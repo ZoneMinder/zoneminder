@@ -57,6 +57,10 @@ th {
     color: #10a4e8;
 }
 
+pre {
+    color: #dddddd;
+}
+
 img.normal {
     border: #cccccc solid 1px;
 }

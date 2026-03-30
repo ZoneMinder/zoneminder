@@ -259,7 +259,7 @@ int main(int argc, const char *argv[], char **envp) {
       fputs("HTTP/1.0 403 Forbidden\r\n\r\n", stdout);
 
       const char *referer = getenv("HTTP_REFERER");
-      Error("Unable to authenticate user from %s", referer);
+      Warning("Unable to authenticate user from %s", referer);
       return exit_zm(0);
     }
     if ( !ValidateAccess(user, monitor_id) ) {

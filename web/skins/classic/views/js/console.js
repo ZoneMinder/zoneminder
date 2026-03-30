@@ -240,11 +240,10 @@ function processRows(rows) {
         functionHtml += 'Analysing: ' + row.Analysing + '<br/>';
       }
       if (row.ONVIF_Event_Listener) {
-        functionHtml += ' Use ONVIF Events';
+        functionHtml += ' Use ONVIF Events<br/>';
       }
       if (row.Recording && row.Recording != 'None') {
         functionHtml += 'Recording: ' + row.Recording + '<br/>';
-        functionHtml += '<br/>';
       }
       functionHtml += '<br/><div class="small text-nowrap text-muted">';
 
@@ -264,11 +263,13 @@ function processRows(rows) {
     row.Function = functionHtml;
 
     // Format Source column with link and dimensions
+    // Apply status class to the cell itself so it doesn't leak into CSV export
+    row._Source_class = source_class;
     var sourceHtml = '';
     if (canEdit.Monitors) {
-      sourceHtml = '<a href="?view=monitor&amp;mid=' + mid + '"><span class="' + source_class + '">' + row.Source + '</span></a>';
+      sourceHtml = '<a href="?view=monitor&amp;mid=' + mid + '">' + row.Source + '</a>';
     } else {
-      sourceHtml = '<span class="' + source_class + '">' + row.Source + '</span>';
+      sourceHtml = row.Source;
     }
     sourceHtml += '<br/>' + row.Width + 'x' + row.Height;
     row.Source = sourceHtml;
@@ -389,7 +390,7 @@ function selectMonitor(element) {
 function reloadWindow() {
   // Use table refresh instead of full page reload
   if (table && table.length) {
-    table.bootstrapTable('refresh');
+    table.bootstrapTable('refresh', {silent: true, reinit: false});
   } else {
     window.location.replace(thisUrl);
   }
@@ -463,6 +464,15 @@ function manageFunctionModal(evt) {
   $j('#modalFunction').modal('show');
 } // end function manageFunctionModal
 
+function exportMonitors() {
+  var link = document.createElement('a');
+  link.href = thisUrl + '?request=console&task=export';
+  link.download = 'zm_monitors_export.json';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
 function resetSort() {
   table.bootstrapTable('deleteCookie', 'sortName');
   table.bootstrapTable('deleteCookie', 'sortOrder');
@@ -479,6 +489,15 @@ function initPage() {
     icons: icons,
     buttons: function() {
       return {
+        exportMonitors: {
+          text: 'Export',
+          icon: 'fa-download',
+          event: exportMonitors,
+          attributes: {
+            'aria-label': 'Export monitors as JSON',
+            'title': 'Export monitors as JSON'
+          }
+        },
         resetSort: {
           text: 'Default Sort',
           icon: 'fa-sort',
@@ -552,6 +571,22 @@ function initPage() {
 
   // Make the table visible after initialization
   table.show();
+
+  // Add icons to column headers after bootstrap-table init so they don't
+  // leak into the Columns dropdown (which uses the plain text title).
+  var headerIcons = {Name: 'videocam', Source: 'settings'};
+  table.find('thead th').each(function() {
+    var field = $j(this).data('field');
+    var inner = $j(this).find('.th-inner');
+    if (!inner.length) return;
+    if (headerIcons[field]) {
+      inner.prepend('<i class="material-icons">' + headerIcons[field] + '</i>&nbsp;');
+    }
+    if (field === 'ZoneCount') {
+      var text = inner.text();
+      inner.html('<a href="?view=zones">' + text + '</a>');
+    }
+  });
 } // end function initPage
 
 function sortMonitors(button) {

@@ -31,18 +31,28 @@ if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
       $zone = array();
     }
 
-    if ( $_REQUEST['newZone']['Units'] == 'Percent' ) {
-      // Convert percentage thresholds to pixel counts using actual monitor pixel area
-      $pixelArea = $monitor->ViewWidth() * $monitor->ViewHeight();
-			foreach (array(
-						'MinAlarmPixels','MaxAlarmPixels',
-						'MinFilterPixels','MaxFilterPixels',
-						'MinBlobPixels','MaxBlobPixels'
-						) as $field ) {
-				if ( isset($_REQUEST['newZone'][$field]) and $_REQUEST['newZone'][$field] )
-					$_REQUEST['newZone'][$field] = intval(($_REQUEST['newZone'][$field]*$pixelArea)/100);
-			}
-		}
+    // Ensure threshold values are always stored as percentages of zone area (0-100).
+    // Values > 100 are pixel counts; convert them using the zone's pixel area.
+    $thresholdFields = array('MinAlarmPixels', 'MaxAlarmPixels', 'MinFilterPixels', 'MaxFilterPixels', 'MinBlobPixels', 'MaxBlobPixels');
+    if (isset($_REQUEST['newZone']['Coords'])) {
+      $points = coordsToPoints($_REQUEST['newZone']['Coords']);
+      if ($points) {
+        $zoneArea = getPolyArea($points);
+        $zonePixelArea = $zoneArea / 10000.0 * $monitor->ViewWidth() * $monitor->ViewHeight();
+        if ($zonePixelArea > 0) {
+          foreach ($thresholdFields as $field) {
+            if (isset($_REQUEST['newZone'][$field]) && $_REQUEST['newZone'][$field] !== '' && floatval($_REQUEST['newZone'][$field]) > 100) {
+              $_REQUEST['newZone'][$field] = round(floatval($_REQUEST['newZone'][$field]) / $zonePixelArea * 100, 2);
+            }
+          }
+        }
+      }
+    }
+    foreach ($thresholdFields as $field) {
+      if (isset($_REQUEST['newZone'][$field]) && $_REQUEST['newZone'][$field] !== '') {
+        $_REQUEST['newZone'][$field] = max(0, min(100, floatval($_REQUEST['newZone'][$field])));
+      }
+    }
 
     unset($_REQUEST['newZone']['Points']);
 

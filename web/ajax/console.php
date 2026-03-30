@@ -11,6 +11,11 @@ if (!empty($_REQUEST['task'])) {
     ajaxResponse($data);
     return;
   }
+
+  if ($task == 'export') {
+    exportMonitorsJSON();
+    return;
+  }
 }
 
 // Handle legacy action-based requests
@@ -587,5 +592,84 @@ function queryRequest() {
   }
   
   return $data;
+}
+
+function exportMonitorsJSON() {
+  require_once('includes/Monitor.php');
+  require_once('includes/Zone.php');
+  require_once('includes/Group.php');
+  require_once('includes/Group_Monitor.php');
+
+  if (!canView('Monitors')) {
+    ajaxError('Insufficient permissions');
+    return;
+  }
+
+  // Fields to exclude from export (runtime/instance-specific, not useful for import)
+  $exclude_fields = array('Id', 'Deleted', 'ServerId', 'StorageId', 'Sequence', 'ZoneCount');
+  $zone_exclude_fields = array('Id', 'MonitorId');
+
+  // Get all non-deleted visible monitors
+  $sql = 'SELECT M.* FROM Monitors AS M WHERE M.Deleted=false ORDER BY M.Sequence ASC';
+  $db_monitors = dbFetchAll($sql);
+
+  // Build group name lookup: MonitorId => array of group names
+  $group_names_by_monitor = array();
+  $all_groups = ZM\Group::find();
+  $groups_by_id = array();
+  foreach ($all_groups as $G) {
+    $groups_by_id[$G->Id()] = $G;
+  }
+  foreach (ZM\Group_Monitor::find() as $GM) {
+    $mid = $GM->MonitorId();
+    $gid = $GM->GroupId();
+    if (isset($groups_by_id[$gid])) {
+      if (!isset($group_names_by_monitor[$mid])) {
+        $group_names_by_monitor[$mid] = array();
+      }
+      $group_names_by_monitor[$mid][] = $groups_by_id[$gid]->Name();
+    }
+  }
+
+  $export = array(
+    'version' => ZM_VERSION,
+    'exported' => date('c'),
+    'monitors' => array()
+  );
+
+  foreach ($db_monitors as $db_row) {
+    if (!visibleMonitor($db_row['Id'])) continue;
+
+    $Monitor = new ZM\Monitor($db_row);
+
+    // Serialize all monitor fields via to_json, then filter
+    $monitor_data = json_decode($Monitor->to_json(), true);
+    foreach ($exclude_fields as $field) {
+      unset($monitor_data[$field]);
+    }
+
+    // Add group names
+    $monitor_data['Groups'] = isset($group_names_by_monitor[$db_row['Id']])
+      ? $group_names_by_monitor[$db_row['Id']]
+      : array();
+
+    // Add zones
+    $zones = ZM\Zone::find(array('MonitorId' => $db_row['Id']));
+    $monitor_data['Zones'] = array();
+    foreach ($zones as $zone) {
+      $zone_data = json_decode($zone->to_json(), true);
+      foreach ($zone_exclude_fields as $field) {
+        unset($zone_data[$field]);
+      }
+      $monitor_data['Zones'][] = $zone_data;
+    }
+
+    $export['monitors'][] = $monitor_data;
+  }
+
+  header('Content-Type: application/json; charset=utf-8');
+  header('Content-Disposition: attachment; filename="zm_monitors_export.json"');
+  echo json_encode($export, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+  exit();
 }
 ?>

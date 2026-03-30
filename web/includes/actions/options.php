@@ -189,5 +189,55 @@ if ( $action == 'delete' ) {
       }
     }
   }
+} else if ($action == 'menuitems') {
+  if (!canEdit('System')) {
+    ZM\Warning('Need System permission to edit menu items');
+  } else if (isset($_REQUEST['items'])) {
+    require_once('includes/MenuItem.php');
+    $allItems = ZM\MenuItem::find();
+    foreach ($allItems as $item) {
+      $id = $item->Id();
+      $enabled = isset($_REQUEST['items'][$id]['Enabled']) ? 1 : 0;
+      $label = isset($_REQUEST['items'][$id]['Label']) ? trim($_REQUEST['items'][$id]['Label']) : null;
+      $sortOrder = isset($_REQUEST['items'][$id]['SortOrder']) ? intval($_REQUEST['items'][$id]['SortOrder']) : $item->SortOrder();
+      if ($label === '') $label = null;
+
+      $iconType = isset($_REQUEST['items'][$id]['IconType']) ? $_REQUEST['items'][$id]['IconType'] : $item->IconType();
+      if (!in_array($iconType, ['material', 'fontawesome', 'image', 'none'])) $iconType = 'material';
+      $icon = isset($_REQUEST['items'][$id]['Icon']) ? trim($_REQUEST['items'][$id]['Icon']) : $item->Icon();
+      if ($icon === '') $icon = null;
+
+      $item->save([
+        'Enabled' => $enabled,
+        'Label' => $label,
+        'SortOrder' => $sortOrder,
+        'Icon' => $icon,
+        'IconType' => $iconType,
+      ]);
+    }
+  }
+  $redirect = '?view=options&tab=menu';
+} else if ($action == 'resetmenu') {
+  if (!canEdit('System')) {
+    ZM\Warning('Need System permission to reset menu items');
+  } else {
+    dbQuery('DELETE FROM Menu_Items');
+    dbQuery("INSERT INTO `Menu_Items` (`MenuKey`, `Enabled`, `SortOrder`) VALUES
+      ('Console', 1, 10),
+      ('Montage', 1, 20),
+      ('MontageReview', 1, 30),
+      ('Events', 1, 40),
+      ('Options', 1, 50),
+      ('Log', 1, 60),
+      ('Devices', 1, 70),
+      ('IntelGpu', 1, 80),
+      ('Groups', 1, 90),
+      ('Filters', 1, 100),
+      ('Snapshots', 1, 110),
+      ('Reports', 1, 120),
+      ('ReportEventAudit', 1, 130),
+      ('Map', 1, 140)");
+  }
+  $redirect = '?view=options&tab=menu';
 } // end if object vs action
 ?>

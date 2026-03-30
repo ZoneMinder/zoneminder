@@ -105,3 +105,51 @@
 .grid-stack-item-content.modeEditingMonitor {
   cursor: crosshair;
 }
+
+/* Compact montage header: filters + settings */
+#mfbpanel .controlHeader {
+  justify-content: flex-start;
+  gap: 2px 4px;
+}
+
+#mfbpanel .controlHeader .term {
+  flex-direction: row;
+  align-items: center;
+  margin-left: 0;
+  margin-right: 4px;
+}
+
+#mfbpanel .controlHeader .term label {
+  margin: 0 4px 0 0;
+  white-space: nowrap;
+}
+
+#mfbpanel .controlHeader input[type="text"] {
+  width: 140px;
+}
+
+#mfbpanel .controlHeader .chosen-container {
+  min-width: 7em;
+}
+
+#sizeControl form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+}
+
+#sizeControl form > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+#sizeControl form > span > label {
+  margin: 0;
+}
+
+#sizeControl .chosen-container {
+  min-width: 6em !important;
+}

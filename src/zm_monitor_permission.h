@@ -52,6 +52,7 @@ class Monitor_Permission {
   Permission getPermission() const { return permission; }
 
   static std::vector<Monitor_Permission> find(int p_user_id);
+  static std::vector<Monitor_Permission> findByRole(int role_id);
 };
 
 #endif // ZM_MOnitor_PERMISSION_H

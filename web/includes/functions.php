@@ -321,8 +321,8 @@ function deletePath( $path ) {
   if (is_link($path)) {
     if (!unlink($path)) ZM\Debug("Failed to unlink $path");
   } else if (is_dir($path)) {
-    if (false === ($output = system('rm -rf "'.escapeshellcmd($path).'"'))) {
-      ZM\Warning('Failed doing rm -rf "'.escapeshellcmd($path).'"');
+    if (false === ($output = system('rm -rf '.escapeshellarg($path)))) {
+      ZM\Warning('Failed doing rm -rf '.escapeshellarg($path));
     }
   } else if (file_exists($path)) {
     if (!unlink($path)) ZM\Debug("Failed to delete $path");
@@ -501,6 +501,12 @@ function getFormChanges($values, $newValues, $types=false, $columns=false) {
     if ( $columns && !isset($columns[$key]) )
       continue;
 
+    # Validate column name to prevent SQL injection via array keys
+    if ( !preg_match('/^[a-zA-Z0-9_]+$/', $key) ) {
+      ZM\Warning("Invalid column name rejected in getFormChanges: $key");
+      continue;
+    }
+
     if ( !isset($types[$key]) )
       $types[$key] = false;
 
@@ -517,10 +523,14 @@ function getFormChanges($values, $newValues, $types=false, $columns=false) {
       case 'image' :
           if ( is_array( $newValues[$key] ) ) {
             $imageData = getimagesize( $newValues[$key]['tmp_name'] );
-            $changes[$key.'Width'] = $key.'Width = '.$imageData[0];
-            $changes[$key.'Height'] = $key.'Height = '.$imageData[1];
-            $changes[$key.'Type'] = $key.'Type = \''.$newValues[$key]['type'].'\'';
-            $changes[$key.'Size'] = $key.'Size = '.$newValues[$key]['size'];
+            if ( !is_array($imageData) ) {
+              ZM\Warning("getimagesize failed for uploaded field '$key'; skipping width/height update.");
+            } else {
+              $changes[$key.'Width'] = $key.'Width = '.intval($imageData[0]);
+              $changes[$key.'Height'] = $key.'Height = '.intval($imageData[1]);
+            }
+            $changes[$key.'Type'] = $key.'Type = '.dbEscape($newValues[$key]['type']);
+            $changes[$key.'Size'] = $key.'Size = '.intval($newValues[$key]['size']);
             ob_start();
             readfile( $newValues[$key]['tmp_name'] );
             $changes[$key] = $key." = ".dbEscape( ob_get_contents() );
@@ -531,9 +541,8 @@ function getFormChanges($values, $newValues, $types=false, $columns=false) {
           break;
       case 'document' :
           if ( is_array( $newValues[$key] ) ) {
-            $imageData = getimagesize( $newValues[$key]['tmp_name'] );
-            $changes[$key.'Type'] = $key.'Type = \''.$newValues[$key]['type'].'\'';
-            $changes[$key.'Size'] = $key.'Size = '.$newValues[$key]['size'];
+            $changes[$key.'Type'] = $key.'Type = '.dbEscape($newValues[$key]['type']);
+            $changes[$key.'Size'] = $key.'Size = '.intval($newValues[$key]['size']);
             ob_start();
             readfile( $newValues[$key]['tmp_name'] );
             $changes[$key] = $key.' = '.dbEscape( ob_get_contents() );
@@ -755,9 +764,9 @@ function daemonStatus($daemon, $args=false) {
 
 function zmcStatus($monitor) {
   if ( $monitor['Type'] == 'Local' ) {
-    $zmcArgs = '-d '.$monitor['Device'];
+    $zmcArgs = '-d '.escapeshellarg($monitor['Device']);
   } else {
-    $zmcArgs = '-m '.$monitor['Id'];
+    $zmcArgs = '-m '.escapeshellarg($monitor['Id']);
   }
   return daemonStatus('zmc', $zmcArgs);
 }
@@ -776,9 +785,9 @@ function daemonCheck($daemon=false, $args=false) {
 
 function zmcCheck($monitor) {
   if ( $monitor['Type'] == 'Local' ) {
-    $zmcArgs = '-d '.$monitor['Device'];
+    $zmcArgs = '-d '.escapeshellarg($monitor['Device']);
   } else {
-    $zmcArgs = '-m '.$monitor['Id'];
+    $zmcArgs = '-m '.escapeshellarg($monitor['Id']);
   }
   return daemonCheck('zmc', $zmcArgs);
 }
@@ -1467,7 +1476,7 @@ function limitPoints(&$points, $min_x, $min_y, $max_x, $max_y) {
 } // end function limitPoints( $points, $min_x, $min_y, $max_x, $max_y )
 
 function convertPixelPointsToPercent(&$points, $width, $height) {
-  if (!$width || !$height) return;
+  if (!$width || !$height) return false;
   $isPixel = false;
   foreach ($points as $point) {
     if ($point['x'] > 100 || $point['y'] > 100) {
@@ -1482,6 +1491,7 @@ function convertPixelPointsToPercent(&$points, $width, $height) {
     }
     unset($point);
   }
+  return $isPixel;
 }
 
 function scalePoints(&$points, $scale) {
@@ -1824,7 +1834,7 @@ function cache_bust($file) {
   ) {
     return 'cache/'.$cacheFile;
   } else {
-    ZM\Warning('Failed linking '.$file.' to '.$cacheFile);
+    ZM\Warning('Failed linking '.ZM_PATH_WEB.'/'.$file.' to '.ZM_DIR_CACHE.'/'.$cacheFile);
   }
   return $file;
 }
@@ -1878,6 +1888,18 @@ function validCardinal($input) {
 
 function validNum( $input ) {
   return preg_replace('/[^\d.-]/', '', $input);
+}
+
+// For device path strings - must be a valid Unix device path
+function validDevicePath($input) {
+  if (is_null($input) || $input === '') return '';
+  // Only allow typical device paths: /dev/video0, /dev/v4l/by-id/..., etc.
+  // Reject any shell metacharacters
+  if (!preg_match('#^/dev/[\w/.\-]+$#', $input)) {
+    ZM\Warning("Invalid device path rejected: ".validHtmlStr($input));
+    return '';
+  }
+  return $input;
 }
 
 // For general strings

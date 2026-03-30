@@ -835,7 +835,8 @@ function streamStart(monitor = null) {
 
   monitorStream.setPlayer($j('#player').val());
   monitorStream.setBottomElement(document.getElementById('bottomBlock'));
-  monitorStream.controlMute(getCookie('zmWatchMute') || 'on'); // default to muted
+  const cookieMuted = getCookie('zmWatchMuted');
+  monitorStream.muted = (cookieMuted === null || cookieMuted === 'true') ? true : false; // default to muted
   monitorStream.manageAvailablePlayers();
   setChannelStream();
   // Start the fps and status updates. give a random delay so that we don't assault the server
@@ -855,6 +856,7 @@ function streamStart(monitor = null) {
   monitorStream.setButton('enableAlarmButton', enableAlmBtn);
   monitorStream.setButton('forceAlarmButton', forceAlmBtn);
   monitorStream.setButton('zoomOutButton', $j('zoomOutBtn'));
+  monitorStream.setButton('analyseBtn', analyseBtn);
   if (canEdit.Monitors) {
     // Will be enabled by streamStatus ajax
     enableAlmBtn.on('click', cmdAlarm);
@@ -1150,6 +1152,10 @@ function watchAllEvents() {
 }
 
 function toggleAnalyseFrames() {
+  // Read current state from MonitorStream (server may have changed it)
+  if (monitorStream) {
+    analyse_frames = monitorStream.analyse_frames;
+  }
   analyse_frames = !analyse_frames;
   if (analyse_frames) {
     analyseBtn.addClass('btn-primary');
@@ -1345,10 +1351,11 @@ function panZoomEventPanzoomchange(event) {
 }
 
 function monitorChangeStreamChannel() {
+  const streamChannel = $j('#streamChannel').val();
+  monitorStream.currentChannelStream = streamChannel;
+  setCookie('zmStreamChannel', streamChannel);
   if ((monitorStream.activePlayer) && (-1 !== monitorStream.activePlayer.indexOf('go2rtc') || -1 !== monitorStream.activePlayer.indexOf('rtsp2web'))) {
     streamCmdStop(true);
-    const streamChannel = $j('#streamChannel').val();
-    setCookie('zmStreamChannel', streamChannel);
     setTimeout(function() {
       monitorStream.start(streamChannel);
       onPlay();

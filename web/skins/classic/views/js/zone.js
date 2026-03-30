@@ -74,6 +74,18 @@ function submitForm(form) {
   form.submit();
 }
 
+function syncPixelInputStates() {
+  var fields = ['MinAlarmPixels', 'MaxAlarmPixels', 'MinFilterPixels', 'MaxFilterPixels', 'MinBlobPixels', 'MaxBlobPixels'];
+  var form = document.zoneForm;
+  for (var i = 0; i < fields.length; i++) {
+    var pctInput = form.elements['newZone[' + fields[i] + ']'];
+    var pxInput = document.getElementById(fields[i] + '_px');
+    if (pctInput && pxInput) {
+      pxInput.disabled = pctInput.disabled;
+    }
+  }
+}
+
 function applyZoneType() {
   var form = document.zoneForm;
   if ( form.elements['newZone[Type]'].value == 'Inactive' || form.elements['newZone[Type]'].value == 'Privacy' ) {
@@ -123,6 +135,7 @@ function applyZoneType() {
     form.elements['newZone[ExtendAlarmFrames]'].disabled = true;
     applyCheckMethod();
   }
+  syncPixelInputStates();
 }
 
 function applyCheckMethod() {
@@ -155,6 +168,7 @@ function applyCheckMethod() {
     form.elements['newZone[MinBlobs]'].disabled = false;
     form.elements['newZone[MaxBlobs]'].disabled = false;
   }
+  syncPixelInputStates();
 }
 
 function applyPreset() {
@@ -164,7 +178,6 @@ function applyPreset() {
   if ( presets[presetId] ) {
     var preset = presets[presetId];
 
-    form.elements['newZone[Units]'].selectedIndex = preset['UnitsIndex'];
     form.elements['newZone[CheckMethod]'].selectedIndex = preset['CheckMethodIndex'];
     form.elements['newZone[MinPixelThreshold]'].value = preset['MinPixelThreshold'];
     form.elements['newZone[MaxPixelThreshold]'].value = preset['MaxPixelThreshold'];
@@ -183,65 +196,68 @@ function applyPreset() {
 
     applyCheckMethod();
     form.elements['newZone[Area]'].value = 100;
+    updateAllPixelDisplays();
   }
 }
 
-function toPixels(field, maxValue) {
-  if ( field.value != '' ) {
-    field.value = Math.round((field.value*maxValue)/100);
-    if ( field.value > maxValue ) {
-      field.value = maxValue;
-    }
-  }
-  field.setAttribute('step', 1);
-  field.setAttribute('max', maxValue);
-}
-
-// maxValue is the max Pixels value which is normally the max area
-function toPercent(field, maxValue) {
-  if ( field.value != '' ) {
-    field.value = Math.round((100*100*field.value)/maxValue)/100;
-    if ( field.value > 100 ) {
-      field.value = 100;
-    }
-  }
-  field.setAttribute('step', 'any');
-  field.setAttribute('max', 100);
-}
-
-function applyZoneUnits() {
-  // zone.Area is in percentage-space (0-10000 for full frame)
-  // Threshold fields are stored as pixel counts in the DB
-  // Convert to pixel area for threshold display conversions
+// Update the pixel input to reflect the current percentage value
+function updatePixelFromPercent(pctInput) {
   var pixelArea = Math.round(zone.Area / monitorArea * monitorPixelArea);
-
-  var form = document.zoneForm;
-  if ( form.elements['newZone[Units]'].value == 'Pixels' ) {
-    form.elements['newZone[Area]'].value = pixelArea;
-    toPixels(form.elements['newZone[MinAlarmPixels]'], pixelArea);
-    toPixels(form.elements['newZone[MaxAlarmPixels]'], pixelArea);
-    toPixels(form.elements['newZone[MinFilterPixels]'], pixelArea);
-    toPixels(form.elements['newZone[MaxFilterPixels]'], pixelArea);
-    toPixels(form.elements['newZone[MinBlobPixels]'], pixelArea);
-    toPixels(form.elements['newZone[MaxBlobPixels]'], pixelArea);
+  var match = pctInput.name.match(/\[(\w+)\]$/);
+  if (!match) return;
+  var pxInput = document.getElementById(match[1] + '_px');
+  if (!pxInput) return;
+  if (pctInput.value !== '' && pixelArea > 0) {
+    pxInput.value = Math.round(parseFloat(pctInput.value) * pixelArea / 100);
+    pxInput.setAttribute('max', pixelArea);
   } else {
-    form.elements['newZone[Area]'].value = Math.round(zone.Area/monitorArea * 100);
-    toPercent(form.elements['newZone[MinAlarmPixels]'], pixelArea);
-    toPercent(form.elements['newZone[MaxAlarmPixels]'], pixelArea);
-    toPercent(form.elements['newZone[MinFilterPixels]'], pixelArea);
-    toPercent(form.elements['newZone[MaxFilterPixels]'], pixelArea);
-    toPercent(form.elements['newZone[MinBlobPixels]'], pixelArea);
-    toPercent(form.elements['newZone[MaxBlobPixels]'], pixelArea);
+    pxInput.value = '';
+  }
+}
+
+// Update the percentage input to reflect a pixel input change
+function updatePercentFromPixel(pxInput) {
+  var pixelArea = Math.round(zone.Area / monitorArea * monitorPixelArea);
+  // Derive the form field name from the px input id: MinAlarmPixels_px -> newZone[MinAlarmPixels]
+  var fieldName = pxInput.id.replace('_px', '');
+  var pctInput = document.zoneForm.elements['newZone[' + fieldName + ']'];
+  if (!pctInput) return;
+  if (pxInput.value !== '' && pixelArea > 0) {
+    var px = Math.max(0, Math.min(parseInt(pxInput.value), pixelArea));
+    pxInput.value = px;
+    pctInput.value = Math.round(px / pixelArea * 10000) / 100;
+  } else {
+    pctInput.value = '';
+  }
+}
+
+function updateAllPixelDisplays() {
+  var pixelArea = Math.round(zone.Area / monitorArea * monitorPixelArea);
+  var form = document.zoneForm;
+
+  // Update area display
+  var areaPct = Math.round(zone.Area / monitorArea * 100);
+  form.elements['newZone[Area]'].value = areaPct;
+  var areaPctSpan = document.getElementById('areaPercent');
+  if (areaPctSpan) areaPctSpan.textContent = areaPct;
+  var areaPxSpan = document.getElementById('areaPixels');
+  if (areaPxSpan) areaPxSpan.textContent = pixelArea;
+
+  // Update threshold pixel inputs
+  var fields = ['MinAlarmPixels', 'MaxAlarmPixels', 'MinFilterPixels', 'MaxFilterPixels', 'MinBlobPixels', 'MaxBlobPixels'];
+  for (var i = 0; i < fields.length; i++) {
+    var input = form.elements['newZone[' + fields[i] + ']'];
+    if (input) updatePixelFromPercent(input);
   }
 }
 
 function limitRange(field, minValue, maxValue) {
   if ( field.value != '' ) {
-    field.value = constrainValue(
-        parseFloat(field.value),
-        parseInt(minValue),
-        parseInt(maxValue)
-    );
+    var currentValue = parseFloat(field.value);
+    var constrainedValue = constrainValue(currentValue, parseInt(minValue), parseInt(maxValue));
+    if ( constrainedValue !== currentValue ) {
+      field.value = constrainedValue;
+    }
   }
 }
 
@@ -257,19 +273,8 @@ function limitFilter(field) {
 }
 
 function limitArea(field) {
-  var minValue = 0;
-  var maxValue;
-  if ( document.zoneForm.elements['newZone[Units]'].value == 'Percent' ) {
-    maxValue = 100;
-  } else {
-    // In Pixels mode, max is the zone's pixel area
-    maxValue = Math.round(zone.Area / monitorArea * monitorPixelArea);
-  }
-  if (maxValue > 0) {
-    limitRange(field, minValue, maxValue);
-  } else {
-    console.error("No value for area");
-  }
+  limitRange(field, 0, 100);
+  updatePixelFromPercent(field);
 }
 
 function highlightOn(index) {
@@ -336,6 +341,7 @@ function constrainValue(value, loVal, hiVal) {
 
 function updateActivePoint(index) {
   const point = $j('#point'+index);
+  if (!point.length) return;
   const imageFeed = document.getElementById('imageFeed'+zone.MonitorId);
   const frameW = imageFeed.clientWidth;
   const frameH = imageFeed.clientHeight;
@@ -358,9 +364,12 @@ function updateActivePoint(index) {
   zone['Points'][index].y = y;
   document.getElementById('newZone[Points]['+index+'][x]').value = x.toFixed(2);
   document.getElementById('newZone[Points]['+index+'][y]').value = y.toFixed(2);
-  var Point = document.getElementById('zonePoly').points.getItem(index);
-  Point.x = x;
-  Point.y = y;
+  var Poly = document.getElementById('zonePoly');
+  if (index < Poly.points.numberOfItems) {
+    var Point = Poly.points.getItem(index);
+    Point.x = x;
+    Point.y = y;
+  }
   updateArea();
 } // end function updateActivePoint(index)
 
@@ -391,15 +400,8 @@ function limitPointValue(point, loVal, hiVal) {
 
 function updateArea( ) {
   // Area is calculated in percentage coordinate space (0-100 x 0-100)
-  const area = Polygon_calcArea(zone['Points']);
-  zone.Area = area;
-  const form = document.getElementById('zoneForm');
-  // Display in current units mode
-  if ( form.elements['newZone[Units]'].value == 'Pixels' ) {
-    form.elements['newZone[Area]'].value = Math.round(area / monitorArea * monitorPixelArea);
-  } else {
-    form.elements['newZone[Area]'].value = Math.round(area / monitorArea * 100);
-  }
+  zone.Area = Polygon_calcArea(zone['Points']);
+  updateAllPixelDisplays();
 }
 
 /* Updates the drawn point based on input from the coordinates text inputs */
@@ -572,6 +574,16 @@ function streamCmdPlay() {
   playBtn.hide();
 }
 
+function changePlayer() {
+  const player = $j('#player').val();
+  setCookie('zmZonePlayer', player);
+  for (let i = 0, length = monitors.length; i < length; i++) {
+    monitors[i].stop();
+    monitors[i].setPlayer(player);
+    monitors[i].start();
+  }
+}
+
 //Make sure the various refreshes are still taking effect
 function watchdogCheck(type) {
   if ( watchdogInactive[type] ) {
@@ -650,19 +662,24 @@ function initPage() {
   }
   );
 
+  form.elements['newZone[MinBlobPixels]'].oninput = window['limitArea'].bind(form.elements['newZone[MinBlobPixels]'], form.elements['newZone[MinBlobPixels]']);
   form.elements['newZone[MinBlobPixels]'].disabled = true;
+  form.elements['newZone[MaxBlobPixels]'].oninput = window['limitArea'].bind(form.elements['newZone[MaxBlobPixels]'], form.elements['newZone[MaxBlobPixels]']);
   form.elements['newZone[MaxBlobPixels]'].disabled = true;
+
+  // Bind pixel inputs for bidirectional sync (editing pixels updates percentages)
+  var pxInputs = document.querySelectorAll('.pxInput');
+  for (var i = 0; i < pxInputs.length; i++) {
+    pxInputs[i].oninput = window['updatePercentFromPixel'].bind(pxInputs[i], pxInputs[i]);
+  }
+
   form.elements['newZone[MinBlobs]'].disabled = true;
   form.elements['newZone[MaxBlobs]'].disabled = true;
   form.elements['newZone[OverloadFrames]'].disabled = true;
 
   applyZoneType();
-
-  if ( form.elements['newZone[Units]'].value == 'Percent' ) {
-    applyZoneUnits();
-  }
-
   applyCheckMethod();
+  updateAllPixelDisplays();
 
   pauseBtn.click(streamCmdPause);
   playBtn.click(streamCmdPlay);
@@ -683,6 +700,10 @@ function initPage() {
 
   if ( el = analyseBtn[0] ) {
     el.onclick = function() {
+      // Read current state from MonitorStream (server may have changed it)
+      if (monitors.length) {
+        analyse_frames = monitors[0].analyse_frames;
+      }
       analyse_frames = !analyse_frames;
       if (analyse_frames) {
         analyseBtn.addClass('btn-primary');
@@ -701,8 +722,14 @@ function initPage() {
     console.log('Analyse button not found');
   }
 
+  var cookiePlayer = getCookie('zmZonePlayer');
+
   for ( let i = 0, length = monitorData.length; i < length; i++ ) {
     monitors[i] = new MonitorStream(monitorData[i]);
+    if (cookiePlayer !== undefined && cookiePlayer !== null) {
+      monitors[i].setPlayer(cookiePlayer);
+    }
+    monitors[i].setButton('analyseBtn', analyseBtn);
     monitors[i].setStreamScale();
     monitors[i].show_analyse_frames(analyse_frames);
     monitors[i].start();

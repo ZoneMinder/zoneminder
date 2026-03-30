@@ -255,6 +255,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     bool forced;
     int  score;
     int  analysing;
+    bool analysis_image;
   } status_data;
 
   status_data.id = monitor->Id();
@@ -302,7 +303,10 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
   status_data.delay = FPSeconds(now - last_frame_sent).count();
   status_data.zoom = zoom;
   status_data.scale = scale;
-  Debug(2, "viewing fps: %.2f capture_fps: %.2f analysis_fps: %.2f Buffer Level:%d, Delayed:%d, Paused:%d, Rate:%d, delay:%.3f, Zoom:%d, Enabled:%d Forced:%d score: %d",
+  status_data.analysis_image = (frame_type == FRAME_ANALYSIS) &&
+      monitor->ShmValid() &&
+      (monitor->Analysing() != Monitor::ANALYSING_NONE);
+  Debug(2, "viewing fps: %.2f capture_fps: %.2f analysis_fps: %.2f Buffer Level:%d, Delayed:%d, Paused:%d, Rate:%d, delay:%.3f, Zoom:%d, Enabled:%d Forced:%d score: %d analysis_image: %d",
         status_data.fps,
         status_data.capture_fps,
         status_data.analysis_fps,
@@ -314,7 +318,8 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
         status_data.zoom,
         status_data.enabled,
         status_data.forced,
-        status_data.score
+        status_data.score,
+        status_data.analysis_image
        );
 
   DataMsg status_msg;

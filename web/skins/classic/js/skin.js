@@ -590,7 +590,7 @@ function submitThisForm(param = null) {
       form = param.form;
     }
   }
-  if (navbar_type == 'left' && !form) {
+  if (navbar_type == 'left' && filter_settings_position != 'inline' && !form) {
     if (currentView == 'console') {
       // We get the form that we process
       form = document.getElementById('monitorFiltersForm');
@@ -847,8 +847,7 @@ function isJSON(str) {
     const result = JSON.parse(str);
     const type = Object.prototype.toString.call(result);
     return type === '[object Object]' || type === '[object Array]'; // We only pass objects and arrays
-  } catch (e) {
-    console.log('This is not JSON', str, e);
+  } catch {
     return false; // This is also not JSON
   }
 }
@@ -1855,6 +1854,30 @@ function setButtonSizeOnStream() {
   });
 }
 
+function calcTextSizeOnInfoBlock(el) {
+  const w = el.offsetWidth;
+  const textLength = el.innerText.length;
+  if (textLength === 0) return false;
+  const d = (w/400 > 1) ? 1 : w/400/0.8; // If the block width is less than 400px, the text will take up more than 40% of the width, otherwise it will be difficult to read.
+  return parseInt((w/textLength) * 0.6 / d); // ~40% of the block width
+}
+
+function setTextSizeOnInfoBlocks() {
+  const block = document.querySelectorAll('[id ^= "stream-info-block"]');
+  Array.prototype.forEach.call(block, (el) => {
+    setTextSizeOnInfoBlock(el);
+  });
+}
+
+function setTextSizeOnInfoBlock(el) {
+  if (el.innerText.length == 0) return;
+  const fontSize = calcTextSizeOnInfoBlock(el);
+  el.style.fontSize = fontSize + "px";
+  el.classList.remove("text-3d-mini", "text-3d");
+  const blockClass = (fontSize !== fontSize || fontSize < 50) ? 'text-3d-mini' : 'text-3d';
+  el.classList.add(blockClass);
+}
+
 /*
 * date - object type Date()
 * shift.offset - number (can be negative)
@@ -1976,6 +1999,8 @@ function changeAttrTitle(collapsed = null) {
 
 /* We create a retractable extruder block with filter settings (we move filters from the top panel) and a button in the left Sidebar menu */
 function insertControlModuleMenu() {
+  if (filter_settings_position == 'inline') return;
+
   var filter = null;
   if (currentView == 'console') {
     destroyChosen(); // It is required to be performed BEFORE receiving the object and only for those pages on which we transfer the filter
@@ -2781,6 +2806,7 @@ function monitorsSetScale(id=null) {
     }
   } // End function _setScale
   setButtonSizeOnStream();
+  setTextSizeOnInfoBlocks();
 } // End function monitorsSetScale
 
 /*IMPORTANT DO NOT CALL WITHOUT CONSCIOUS NEED!!!*/
@@ -2880,5 +2906,46 @@ const waitUntil = (condition, timeout = 0) => {
     }, 100);
   });
 };
+
+// https://stackoverflow.com/a/69273090
+class ManageEventListener {
+  #listeners = {}; // # in a JS class signifies private
+  #idx = 1;
+
+  // add event listener, returns integer ID of new listener
+  addEventListener(element, type, listener, options = {}) {
+    this.#privateAddEventListener(element, this.#idx, type, listener, options);
+    return this.#idx++;
+  }
+
+  // add event listener with custom ID (avoids need to retrieve return ID since you are providing it yourself)
+  addEventListenerById(element, id, type, listener, options = {}) {
+    this.#privateAddEventListener(element, id, type, listener, options);
+    return id;
+  }
+
+  #privateAddEventListener(element, id, type, listener, options) {
+    if (this.#listeners[id]) throw Error(`A listener with id ${id} already exists`);
+    element.addEventListener(type, listener, options);
+    this.#listeners[id] = {element, type, listener, options};
+  }
+
+  // remove event listener with given ID, returns ID of removed listener or null (if listener with given ID does not exist)
+  removeEventListener(id) {
+    const listen = this.#listeners[id];
+    if (listen) {
+      listen.element.removeEventListener(listen.type, listen.listener, listen.options);
+      delete this.#listeners[id];
+    }
+    return !!listen ? id : null;
+  }
+
+  // returns number of events listeners
+  length() {
+    return Object.keys(this.#listeners).length;
+  }
+}
+const manageEventListener = new ManageEventListener();
+window.manageEventListener = manageEventListener;
 
 $j( window ).on("load", initPageGeneral);

@@ -34,7 +34,7 @@ if ( !canEdit('System') ) return;
         </div>
         <div class="modal-footer">
           <input type="file" name="import_file" id="import_file"/>
-          <button name="action" id="importSubmitBtn" type="submit" class="btn btn-primary" value="save"><?php echo translate('Save') ?></button>
+          <button name="action" id="importSubmitBtn" type="submit" class="btn btn-primary" value="save"><?php echo translate('Import') ?></button>
           <button type="button" class="btn btn-secondary" data-dismiss="modal"><?php echo translate('Cancel') ?></button>
         </div>
       </form>

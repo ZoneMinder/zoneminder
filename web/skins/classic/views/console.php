@@ -157,7 +157,7 @@ echo $navbar ?>
 <div id="page">
   <div id="content">
 
-    <div id="fbpanel" class="filterBar hidden-shift">
+    <div id="fbpanel" class="filterBar<?php echo (defined('ZM_WEB_FILTER_SETTINGS_POSITION') && ZM_WEB_FILTER_SETTINGS_POSITION == 'inline') ? '' : ' hidden-shift' ?>">
       <form name="monitorFiltersForm" id="monitorFiltersForm" method="post" action="?view=<?php echo $view; ?>">
       <?php echo $filterbar ?>
       </form>
@@ -190,37 +190,39 @@ echo $navbar ?>
   }
 ?>
         <button type="button" name="addBtn" data-on-click="addMonitor"
-        <?php echo $canCreateMonitors ? '' : ' disabled="disabled" title="'.translate('AddMonitorDisabled').'"' ?>
+        <?php echo $canCreateMonitors ? 'title="'.translate('Add Monitor').'"' : ' disabled="disabled" title="'.translate('AddMonitorDisabled').'"' ?>
         >
           <i class="material-icons">add_circle</i>
           <span class="text">&nbsp;<?php echo translate('AddNewMonitor') ?></span>
         </button>
-        <button type="button" name="cloneBtn" data-on-click-this="cloneMonitor" disabled="disabled">
+        <button type="button" name="cloneBtn" data-on-click-this="cloneMonitor" disabled="disabled" title="<?php echo translate('Clone')?>">
           <i class="material-icons">content_copy</i>
   <!--content_copy used instead of file_copy as there is a bug in material-icons -->
           <span class="text">&nbsp;<?php echo translate('CloneMonitor') ?></span>
         </button>
-        <button type="button" name="editBtn" data-on-click-this="editMonitor" disabled="disabled">
+        <button type="button" name="editBtn" data-on-click-this="editMonitor" disabled="disabled" title="<?php echo translate('Edit')?>">
           <i class="material-icons">edit</i>
           <span class="text">&nbsp;<?php echo translate('Edit') ?></span>
         </button>
-        <button type="button" name="deleteBtn" data-on-click-this="deleteMonitor" disabled="disabled">
+        <button type="button" name="deleteBtn" data-on-click-this="deleteMonitor" disabled="disabled" title="<?php echo translate('Delete')?>">
           <i class="material-icons">delete</i>
           <span class="text">&nbsp;<?php echo translate('Delete') ?></span>
         </button>
-        <button type="button" name="selectBtn" data-on-click-this="selectMonitor" disabled="disabled">
+        <button type="button" name="selectBtn" data-on-click-this="selectMonitor" disabled="disabled" title="<?php echo translate('Select')?>">
           <i class="material-icons">view_list</i>
           <span class="text">&nbsp;<?php echo translate('Select') ?></span>
         </button>
       </div>
       <div class="rightButtons">
-        <button type="button" id="sortBtn" data-on-click-this="sortMonitors">
+        <button type="button" id="sortBtn" data-on-click-this="sortMonitors" title="<?php echo translate('Sort')?>">
         <i class="material-icons sort" title="Click and drag rows to change order">swap_vert</i>
         <span class="text"><?php echo translate('Sort') ?></span>
         </button>
       </div>
         
+<?php if (!defined('ZM_WEB_FILTER_SETTINGS_POSITION') || ZM_WEB_FILTER_SETTINGS_POSITION != 'inline') { ?>
         &nbsp;<a href="#" data-flip-control-object="#fbpanel"><i id="fbflip" class="material-icons" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i></a>
+<?php } ?>
     
     </div><!-- contentButtons -->
     
@@ -240,7 +242,7 @@ echo $navbar ?>
         data-cookie-expire="2y"
         data-remember-order="false"
         data-show-columns="true"
-        data-show-export="true"
+        data-show-export="false"
         data-show-footer="true"
         data-toolbar="#toolbar"
         data-sort-name="Sequence"
@@ -265,14 +267,14 @@ echo $navbar ?>
 <?php if ( ZM_WEB_LIST_THUMBS ) { ?>
             <th data-sortable="false" data-field="Thumbnail" class="colThumbnail"><?php echo translate('Thumbnail') ?></th>
 <?php } ?>
-            <th data-sortable="true" data-field="Name" class="colName"><i class="material-icons">videocam</i>&nbsp;<?php echo translate('Name') ?></th>
+            <th data-sortable="true" data-field="Name" class="colName"><?php echo translate('Name') ?></th>
             <th data-sortable="true" data-visible="false" data-field="Manufacturer" class="colName"><?php echo translate('Manufacturer') ?></th>
             <th data-sortable="true" data-visible="false" data-field="Model" class="colName"><?php echo translate('Model') ?></th>
             <th data-sortable="true" data-field="Function" class="colFunction"><?php echo translate('Function') ?></th>
 <?php if ( count($Servers) ) { ?>
             <th data-sortable="true" data-field="Server" class="colServer"><?php echo translate('Server') ?></th>
 <?php } ?>
-            <th data-sortable="true" data-field="Source" class="colSource"><i class="material-icons">settings</i>&nbsp;<?php echo translate('Source') ?></th>
+            <th data-sortable="true" data-field="Source" class="colSource"><?php echo translate('Source') ?></th>
 <?php if ( $show_storage_areas ) { ?>
             <th data-sortable="true" data-field="Storage" class="colStorage"><?php echo translate('Storage') ?></th>
 <?php }
@@ -291,13 +293,14 @@ echo $navbar ?>
           : array('cnj'=>'and', 'attr'=>'Monitor')
       );
     parseFilter($filter);
-    echo '<th data-sortable="true" data-field="'.$i.'Events" class="colEvents"><a '
-      .(canView('Events') ? 'href="?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$filter['querystring'].'">' : '')
-      .$eventCounts[$i]['title']
-      .'</a></th>'.PHP_EOL;
+    $eventsLink = canView('Events') ? '?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$filter['querystring'] : '';
+    echo '<th data-sortable="true" data-field="'.$i.'Events" class="colEvents"'
+      .'>'
+      .htmlspecialchars($eventCounts[$i]['title'])
+      .'</th>'.PHP_EOL;
   } // end foreach eventCounts
 ?>
-            <th data-sortable="true" data-field="ZoneCount" class="colZones"><a href="?view=zones"><?php echo translate('Zones') ?></a></th>
+            <th data-sortable="true" data-field="ZoneCount" class="colZones"><?php echo translate('Zones') ?></th>
             <th data-sortable="true" data-visible="false" data-field="Sequence" class="Sequence"><?php echo translate('Sequence') ?></th>
           </tr>
         </thead>

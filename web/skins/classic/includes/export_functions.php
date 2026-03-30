@@ -951,14 +951,14 @@ function exportEvents(
         #continue;
       if ($exportStructure == 'flat') {
         if (false !== strpos($file, strval($event->Id()))) {
-          $cmd = 'cp -as '.$event->Path().'/'.$file.' '.$export_dir.'/'.$file. ' 2>&1';
+          $cmd = 'cp -as -- '.escapeshellarg($event->Path().'/'.$file).' '.escapeshellarg($export_dir.'/'.$file). ' 2>&1';
           $exportFileList[] = $file;
         } else {
-          $cmd = 'cp -as '.$event->Path().'/'.$file.' '.$export_dir.'/'.$event->Id().'_'.$file. ' 2>&1';
+          $cmd = 'cp -as -- '.escapeshellarg($event->Path().'/'.$file).' '.escapeshellarg($export_dir.'/'.$event->Id().'_'.$file). ' 2>&1';
           $exportFileList[] = $event->Id().'_'.$file;
         }
       } else {
-        $cmd = 'cp -as '.$event->Path().'/'.$file.' '.$export_dir.'/'.$event->Id().'/'.$file. ' 2>&1';
+        $cmd = 'cp -as -- '.escapeshellarg($event->Path().'/'.$file).' '.escapeshellarg($export_dir.'/'.$event->Id().'/'.$file). ' 2>&1';
         $exportFileList[] = $event->Id().'/'.$file;
       }
       exec($cmd, $output, $return);

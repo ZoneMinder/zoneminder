@@ -566,8 +566,9 @@ class Monitor extends ZM_Object {
     if (ZM_OPT_USE_AUTH) {
       if (ZM_AUTH_RELAY == 'hashed') {
         $args['auth'] = generateAuthHash(ZM_AUTH_HASH_IPS);
-        # Include user so that db lookups can be more efficient
-        $args['user'] = isset($_SESSION['username']) ? $_SESSION['username'] : '';
+        // Include username so zms can filter by indexed Username column
+        // instead of iterating all users to validate the auth hash
+        if (!empty($_SESSION['username'])) $args['user'] = $_SESSION['username'];
       } elseif ( ZM_AUTH_RELAY == 'plain' ) {
         $args['user'] = isset($_SESSION['username']) ? $_SESSION['username'] : '';
         $args['pass'] = isset($_SESSION['password']) ? $_SESSION['password'] : '';
@@ -659,9 +660,9 @@ class Monitor extends ZM_Object {
     }
     if ((!defined('ZM_SERVER_ID')) or ( property_exists($this, 'ServerId') and (ZM_SERVER_ID==$this->{'ServerId'}) )) {
       if ($this->Type() == 'Local') {
-        $zmcArgs = '-d '.$this->{'Device'};
+        $zmcArgs = '-d '.escapeshellarg($this->{'Device'});
       } else {
-        $zmcArgs = '-m '.$this->{'Id'};
+        $zmcArgs = '-m '.escapeshellarg($this->{'Id'});
       }
 
       if ($mode == 'stop') {
@@ -952,7 +953,40 @@ class Monitor extends ZM_Object {
         $group_permission_value = $value;
       }
     }
-  if ($group_permission_value != 'Inherit') return true;
+    if ($group_permission_value != 'Inherit') return true;
+
+    # Check role permissions if user has a role
+    $role = $u->Role();
+    if ($role) {
+      $role_monitor_permissions = $role->Monitor_Permissions();
+      foreach ($role_monitor_permissions as $rmp) {
+        if ($rmp->MonitorId() == $this->Id()) {
+          $permission = $rmp->Permission();
+          if ($permission != 'Inherit') {
+            return ($permission != 'None');
+          }
+        }
+      }
+
+      $role_group_permissions = $role->Group_Permissions();
+      $role_group_permission_value = 'Inherit';
+      foreach ($role_group_permissions as $permission) {
+        $value = $permission->MonitorPermission($this->Id());
+        if ($value == 'None') {
+          Debug('Can\'t view monitor '.$this->{'Id'}.' because of role group '.$permission->Group()->Name().' '.$permission->Permission());
+          return false;
+        }
+        if ($value == 'Edit' or $value == 'View') {
+          $role_group_permission_value = $value;
+        }
+      }
+      if ($role_group_permission_value != 'Inherit') return true;
+
+      if ($u->Monitors() == 'None' and $role->Monitors() != 'None') {
+        return true;
+      }
+    }
+
     return ($u->Monitors() != 'None');
   } # end function canView
 

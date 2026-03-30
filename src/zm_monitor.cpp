@@ -388,7 +388,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   server_id = dbrow[col] ? atoi(dbrow[col]) : 0;
   col++;
 
-  storage_id = atoi(dbrow[col]);
+  storage_id = dbrow[col] ? atoi(dbrow[col]) : 0;
   col++;
   delete storage;
   storage = new Storage(storage_id);

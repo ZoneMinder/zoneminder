@@ -237,9 +237,10 @@ if ( ZM_OPT_USE_AUTH and (!isset($user)) and ($view != 'login') and ($view != 'n
     exit;
   }
   $view = 'none';
-  $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=login';
+  $postLoginQuery = $_SERVER['QUERY_STRING'];
+  $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=login&postLoginQuery=' . urlencode($postLoginQuery);
   zm_session_start();
-  $_SESSION['postLoginQuery'] = $_SERVER['QUERY_STRING'];
+  $_SESSION['postLoginQuery'] = $postLoginQuery;
   session_write_close();
 } else if ( ZM_SHOW_PRIVACY && ($view != 'privacy') && ($view != 'options') && (!$request) && canEdit('System') ) {
   $view = 'none';

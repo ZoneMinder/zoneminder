@@ -59,6 +59,8 @@ Camera::Camera(
   mFirstAudioPTS(0),
   mLastVideoPTS(0),
   mLastAudioPTS(0),
+  mLastVideoDTS(AV_NOPTS_VALUE),
+  mLastAudioDTS(AV_NOPTS_VALUE),
   bytes(0),
   mIsPrimed(false) {
   linesize = width * colours;

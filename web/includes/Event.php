@@ -291,6 +291,9 @@ class Event extends ZM_Object {
     if ( ZM_OPT_USE_AUTH ) {
       if ( ZM_AUTH_RELAY == 'hashed' ) {
         $args['auth'] = generateAuthHash(ZM_AUTH_HASH_IPS);
+        // Include username so zms can filter by indexed Username column
+        // instead of iterating all users to validate the auth hash
+        if (!empty($_SESSION['username'])) $args['user'] = $_SESSION['username'];
       } else if ( ZM_AUTH_RELAY == 'plain' ) {
         $args['user'] = $_SESSION['username'];
         $args['pass'] = $_SESSION['password'];
@@ -406,6 +409,9 @@ class Event extends ZM_Object {
     if ( ZM_OPT_USE_AUTH ) {
       if ( ZM_AUTH_RELAY == 'hashed' ) {
         $args['auth'] = generateAuthHash(ZM_AUTH_HASH_IPS);
+        // Include username so zms can filter by indexed Username column
+        // instead of iterating all users to validate the auth hash
+        if (!empty($_SESSION['username'])) $args['user'] = $_SESSION['username'];
       } else if ( ZM_AUTH_RELAY == 'plain' ) {
         $args['user'] = $_SESSION['username'];
         $args['pass'] = $_SESSION['password'];
@@ -454,8 +460,11 @@ class Event extends ZM_Object {
               return '';
             } 
               
-            #$command ='ffmpeg -v 0 -i '.$videoPath.' -vf "select=gte(n\\,'.$frame['FrameId'].'),setpts=PTS-STARTPTS" '.$eventPath.'/'.$captureImage;
-            $command ='ffmpeg -ss '. $frame['Delta'] .' -i '.$videoPath.' -frames:v 1 '.$eventPath.'/'.$captureImage;
+            if ( !is_executable(ZM_PATH_FFMPEG) ) {
+              Error('ZM_PATH_FFMPEG is not a valid executable: '.ZM_PATH_FFMPEG);
+              return '';
+            }
+            $command = ZM_PATH_FFMPEG.' -ss '.escapeshellarg($frame['Delta']).' -i '.escapeshellarg($videoPath).' -frames:v 1 '.escapeshellarg($eventPath.'/'.$captureImage).' 2>&1';
             Debug('Running '.$command);
             $output = array();
             $retval = 0;
@@ -697,22 +706,20 @@ class Event extends ZM_Object {
   }
 
   function createVideo($format, $rate, $scale, $transform, $overwrite=false) {
-    $command = ZM_PATH_BIN.'/zmvideo.pl -e '.$this->{'Id'}.' -f '.$format.' -r '.sprintf('%.2F', ($rate/RATE_BASE));
-    if (preg_match('/\d+x\d+/', $scale)) {
-      $command .= ' -S '.$scale;
+    $command = ZM_PATH_BIN.'/zmvideo.pl -e '.escapeshellarg($this->{'Id'})
+      .' -f '.escapeshellarg(preg_replace('/[^\w]/', '', $format))
+      .' -r '.escapeshellarg(sprintf('%.2F', ($rate/RATE_BASE)));
+    if (preg_match('/^\d+x\d+$/', $scale)) {
+      $command .= ' -S '.escapeshellarg($scale);
     } else {
-      if ( version_compare(phpversion(), '4.3.10', '>=') )
-        $command .= ' -s '.sprintf('%.2F', ($scale/SCALE_BASE));
-      else
-        $command .= ' -s '.sprintf('%.2f', ($scale/SCALE_BASE));
+      $command .= ' -s '.escapeshellarg(sprintf('%.2F', ($scale/SCALE_BASE)));
     }
     if ($transform != '') {
       $transform = preg_replace('/[^\w=]/', '', $transform);
-      $command .= ' -t '.$transform;
+      $command .= ' -t '.escapeshellarg($transform);
     }
     if ($overwrite)
       $command .= ' -o';
-    $command = escapeshellcmd($command);
     $result = exec($command, $output, $status);
     Debug("generating Video $command: result($result outptu:(".implode("\n", $output )." status($status");
     return $status ? '' : rtrim($result);

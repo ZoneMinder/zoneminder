@@ -338,6 +338,8 @@ Monitor::Monitor() :
     event_close_mode = CLOSE_ALARM;
   } else if (strcmp(config.event_close_mode, "idle") == 0) {
     event_close_mode = CLOSE_IDLE;
+  } else if (strcmp(config.event_close_mode, "duration") == 0) {
+    event_close_mode = CLOSE_DURATION;
   } else {
     Warning("Unknown value for event_close_mode: %s", config.event_close_mode);
   }
@@ -386,7 +388,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   server_id = dbrow[col] ? atoi(dbrow[col]) : 0;
   col++;
 
-  storage_id = atoi(dbrow[col]);
+  storage_id = dbrow[col] ? atoi(dbrow[col]) : 0;
   col++;
   delete storage;
   storage = new Storage(storage_id);
@@ -629,26 +631,30 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   event_close_mode = static_cast<Monitor::EventCloseMode>(dbrow[col] ? atoi(dbrow[col]) : 0);
   col++;
   switch (event_close_mode) {
-  case CLOSE_SYSTEM:
-    if (strcmp(config.event_close_mode, "time") == 0) {
-      event_close_mode = CLOSE_TIME;
-    } else if (strcmp(config.event_close_mode, "alarm") == 0) {
-      event_close_mode = CLOSE_ALARM;
-    } else if (strcmp(config.event_close_mode, "idle") == 0) {
+    case CLOSE_SYSTEM:
+      if (strcmp(config.event_close_mode, "time") == 0) {
+        event_close_mode = CLOSE_TIME;
+      } else if (strcmp(config.event_close_mode, "alarm") == 0) {
+        event_close_mode = CLOSE_ALARM;
+      } else if (strcmp(config.event_close_mode, "idle") == 0) {
+        event_close_mode = CLOSE_IDLE;
+      } else if (strcmp(config.event_close_mode, "duration") == 0) {
+        event_close_mode = CLOSE_DURATION;
+      } else {
+        Warning("Unknown value for event_close_mode %s",
+            config.event_close_mode);
+        event_close_mode = CLOSE_IDLE;
+      }
+      break;
+    case CLOSE_TIME:
+    case CLOSE_ALARM:
+    case CLOSE_IDLE:
+    case CLOSE_DURATION:
+      break;
+    default:
+      Warning("Unknown value for event_close_mode %d, defaulting to idle",
+          event_close_mode);
       event_close_mode = CLOSE_IDLE;
-    } else {
-      Warning("Unknown value for event_close_mode %s", config.event_close_mode);
-      event_close_mode = CLOSE_IDLE;
-    }
-    break;
-  case CLOSE_TIME:
-  case CLOSE_ALARM:
-  case CLOSE_IDLE:
-  case CLOSE_DURATION:
-    break;
-  default:
-    Warning("Unknown value for event_close_mode %d, defaulting to idle", event_close_mode);
-    event_close_mode = CLOSE_IDLE;
   }
 
   frame_skip = atoi(dbrow[col]);
@@ -741,8 +747,10 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   startup_delay = dbrow[col] ? atoi(dbrow[col]) : 0;
   col++;
 
-  // How many frames we need to have before we start analysing
-  ready_count = std::max(warmup_count, pre_event_count);
+  // How many frames we need to have before we start analysing.
+  // Must account for alarm_frame_count because openEvent walks back
+  // max(pre_event_count, alarm_frame_count) frames from the analysis point.
+  ready_count = std::max({warmup_count, pre_event_count, alarm_frame_count});
 
   //shared_data->image_count = 0;
   last_alarm_count = 0;
@@ -2378,7 +2386,6 @@ bool Monitor::Analyse() {
                 Debug(1, "CLOSE_MODE Idle");
                 if (state == IDLE) {
                   if (event->Duration() >= section_length) {
-                    //std::chrono::duration_cast<Seconds>(packet->timestamp.time_since_epoch()) % section_length == Seconds(0)) {
                     Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
                          name.c_str(),
                          packet->image_index,
@@ -2390,8 +2397,19 @@ bool Monitor::Analyse() {
                     closeEvent();
                   }
                 }  // end if IDLE
+              } else if (event_close_mode == CLOSE_DURATION) {
+                Debug(1, "CLOSE_MODE Duration");
+                if (event->Duration() >= section_length) {
+                  Info("%s: %03d - Closing event %" PRIu64 ", duration reached %" PRIi64 " >= %" PRIi64,
+                       name.c_str(),
+                       packet->image_index,
+                       event->Id(),
+                       static_cast<int64>(std::chrono::duration_cast<Seconds>(event->Duration()).count()),
+                       static_cast<int64>(Seconds(section_length).count()));
+                  closeEvent();
+                }
               } else {
-                Warning("CLOSE_MODE Unknown");
+                Warning("CLOSE_MODE Unknown %d", event_close_mode);
               }  // end if event_close_mode
             } else if (shared_data->recording == RECORDING_ONMOTION) {
               if (event->Duration() > section_length or (IDLE==state and (analysis_image_count - last_alarm_count > post_event_count))) {
@@ -3447,19 +3465,50 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
     } // end if alarm or not
   } // end if alarm
 
-  if (top_score > 0) {
-    shared_data->alarm_x = alarm_centre.x_;
-    shared_data->alarm_y = alarm_centre.y_;
+  if (shared_data) {
+    if (top_score > 0) {
+      shared_data->alarm_x = alarm_centre.x_;
+      shared_data->alarm_y = alarm_centre.y_;
 
-    Info("Got alarm centre at %d,%d, at count %d",
-         shared_data->alarm_x, shared_data->alarm_y, analysis_image_count);
-  } else {
-    shared_data->alarm_x = shared_data->alarm_y = -1;
+      Info("Got alarm centre at %d,%d, at count %d",
+           shared_data->alarm_x, shared_data->alarm_y, analysis_image_count);
+    } else {
+      shared_data->alarm_x = shared_data->alarm_y = -1;
+    }
   }
 
   // This is a small and innocent hack to prevent scores of 0 being returned in alarm state
   return score ? score : alarm;
 } // end DetectMotion
+
+unsigned int Monitor::AnalyseFrame(const Image &frame_image, Event::StringSet &zoneSet) {
+  if (!ref_image.Buffer()) {
+    ref_image.Assign(frame_image);
+    return 0;
+  }
+
+  unsigned int score = DetectMotion(frame_image, zoneSet);
+
+  int blend = (state == ALARM) ? alarm_ref_blend_perc : ref_blend_perc;
+  ref_image.Blend(frame_image, blend);
+
+  return score;
+} // end AnalyseFrame
+
+unsigned int Monitor::AnalyseFrame(const Image &frame_image, Event::StringSet &zoneSet, Image *analysis_image) {
+  unsigned int score = AnalyseFrame(frame_image, zoneSet);
+
+  if (analysis_image && score) {
+    analysis_image->Assign(frame_image);
+    for (const Zone &zone : zones) {
+      if (zone.Alarmed() && zone.AlarmImage()) {
+        analysis_image->Overlay(*(zone.AlarmImage()));
+      }
+    }
+  }
+
+  return score;
+} // end AnalyseFrame with analysis_image
 
 // TODO: Move the camera specific things to the camera classes and avoid these casts.
 bool Monitor::DumpSettings(char *output, bool verbose) {

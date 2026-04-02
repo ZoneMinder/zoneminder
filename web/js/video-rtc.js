@@ -163,14 +163,21 @@ export class VideoRTC extends HTMLElement {
      * https://developer.chrome.com/blog/autoplay/
      */
     play() {
-        this.video.play().catch(() => {
-            if (!this.video.muted) {
+        this.video.play().then(_ => {
+            this.onplay();
+        })
+        .catch(er => {
+            if (er.name === 'NotAllowedError' && !this.video.muted) {
                 this.video.muted = true;
-                this.video.play().catch(er => {
-                    console.warn(er);
-                });
+                this.play();
+            } else {
+                console.warn(er);
             }
         });
+    }
+
+    onplay() {
+
     }
 
     /**
@@ -318,7 +325,7 @@ export class VideoRTC extends HTMLElement {
             this.pc = null;
         }
 
-        this.video.src = '';
+        this.video.removeAttribute('src');
         this.video.srcObject = null;
     }
 
@@ -328,6 +335,8 @@ export class VideoRTC extends HTMLElement {
     onopen() {
         // CONNECTING => OPEN
         this.wsState = WebSocket.OPEN;
+
+        if (!this.ws) return;
 
         this.ws.addEventListener('message', ev => {
             if (typeof ev.data === 'string') {
@@ -475,6 +484,8 @@ export class VideoRTC extends HTMLElement {
                 }
             };
         };
+
+        this.ms = ms;
     }
 
     onwebrtc() {

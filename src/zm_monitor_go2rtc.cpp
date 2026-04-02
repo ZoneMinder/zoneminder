@@ -26,6 +26,8 @@
 #include "zm_user.h"
 #include "zm_utils.h"
 
+#if HAVE_LIBCURL
+
 Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
     : parent(parent_), Go2RTC_Healthy(false) {
 
@@ -177,11 +179,11 @@ bool Monitor::Go2RTCManager::refresh_auth_if_needed() {
   auto age = std::chrono::duration_cast<std::chrono::minutes>(now - last_auth_refresh);
 
   if (age.count() < 50) {
-    Debug(3, "Go2RTC: Auth hash is %ld minutes old, no refresh needed", age.count());
+    Debug(3, "Go2RTC: Auth hash is %jd minutes old, no refresh needed", static_cast<intmax_t>(age.count()));
     return false;
   }
 
-  Debug(1, "Go2RTC: Auth hash is %ld minutes old, refreshing", age.count());
+  Debug(1, "Go2RTC: Auth hash is %jd minutes old, refreshing", static_cast<intmax_t>(age.count()));
 
   User *rtsp_user = User::find(parent->rtsp_user);
   if (!rtsp_user) {
@@ -401,4 +403,5 @@ std::pair<CURLcode, std::string> Monitor::Go2RTCManager::CURL_PUT(const std::str
   return std::make_pair(res, response);
 }
 
+#endif  // HAVE_LIBCURL
 

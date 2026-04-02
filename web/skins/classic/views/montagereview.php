@@ -210,7 +210,7 @@ if (count($user->unviewableMonitorIds())) {
   $eventsSql .= ' AND E.MonitorId IN ('.implode(',', $user->viewableMonitorIds()).')';
 }
 if ( count($selected_monitor_ids) ) {
-  $monitor_ids_sql = ' IN (' . implode(',',$selected_monitor_ids).')';
+  $monitor_ids_sql = ' IN (' . implode(',', array_map('intval', $selected_monitor_ids)).')';
   $eventsSql .= ' AND E.MonitorId '.$monitor_ids_sql;
 }
 
@@ -243,7 +243,7 @@ for ( $i = 0; $i < count($speeds); $i++ ) {
   }
 }
 
-$initialDisplayInterval = 1000;
+$initialDisplayInterval = 100;
 if (isset($_REQUEST['displayinterval']))
   $initialDisplayInterval = validCardinal($_REQUEST['displayinterval']);
 
@@ -281,13 +281,17 @@ getBodyTopHTML();
     <input type="hidden" name="view" value="montagereview"/>
     <div id="header">
 <?php
-$html = '<a class="flip" href="#"
-         data-flip-control-object="#mfbpanel"
-         data-flip-control-run-after-func="applyChosen drawGraph"
-         data-flip-control-run-after-complet-func="changeScale">
-           <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
-         </a>'.PHP_EOL;
-$html .= '<div id="mfbpanel" class="hidden-shift container-fluid">'.PHP_EOL;
+$filter_inline = defined('ZM_WEB_FILTER_SETTINGS_POSITION') && ZM_WEB_FILTER_SETTINGS_POSITION == 'inline';
+$html = '';
+if (!$filter_inline) {
+  $html .= '<a class="flip" href="#"
+           data-flip-control-object="#mfbpanel"
+           data-flip-control-run-after-func="applyChosen drawGraph"
+           data-flip-control-run-after-complet-func="changeScale">
+             <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
+           </a>'.PHP_EOL;
+}
+$html .= '<div id="mfbpanel" class="'.($filter_inline ? '' : 'hidden-shift ').'container-fluid">'.PHP_EOL;
 echo $html;
 echo $filterbar;
 if (count($filter->terms())) {
@@ -364,4 +368,5 @@ if (count($filter->terms())) {
 </div><!--page-->
 <script src="<?php echo cache_bust('skins/classic/js/export.js') ?>"></script>
 <script src="<?php echo cache_bust('skins/classic/js/montage_common.js') ?>"></script>
+<script src="<?php echo cache_bust('js/EventStream.js') ?>"></script>
 <?php xhtmlFooter() ?>

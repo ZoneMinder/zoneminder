@@ -98,7 +98,7 @@ git checkout master && git pull && git checkout -b 42-event-favorites
 
 # Write test first, implement, build & test
 cd build && cmake --build . && ctest
-npx eslint --ext .js.php,.js .
+npx eslint .
 
 # Commit
 git add <files>
@@ -179,11 +179,11 @@ ctest
 ### JavaScript Linting
 
 ```bash
-npx eslint --ext .js.php,.js .        # Lint all
+npx eslint .        # Lint all
 npx eslint --fix web/js/              # Auto-fix
 ```
 
-ESLint config: `.eslintrc.js` (Google style guide). Runs in CI via `.github/workflows/ci-eslint.yml`.
+ESLint config: `eslint.config.js` (ESLint 9 flat config, Google style guide). Runs in CI via `.github/workflows/ci-eslint.yml`.
 
 ### PHP/API Testing
 
@@ -257,7 +257,7 @@ Before committing or claiming complete:
 - [ ] Tests written/updated BEFORE or DURING implementation
 - [ ] Build succeeds: `cmake --build .` (C++ changes)
 - [ ] C++ tests pass: `ctest` or `./tests/tests`
-- [ ] JavaScript linting passes: `npx eslint --ext .js.php,.js .`
+- [ ] JavaScript linting passes: `npx eslint .`
 - [ ] Manual testing done (PHP/web changes)
 - [ ] No compiler warnings or linter errors
 - [ ] Code follows existing patterns

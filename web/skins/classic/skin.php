@@ -23,14 +23,8 @@ if ( empty($_COOKIE['zmBandwidth']) )
 if ( empty($_COOKIE['zmBandwidth']) )
   $_COOKIE['zmBandwidth'] = 'low';
 
-foreach ( getSkinIncludes('includes/config.php') as $includeFile )
-  require_once $includeFile;
-
-foreach ( getSkinIncludes('includes/functions.php') as $includeFile )
-  require_once $includeFile;
-
+// Clamp bandwidth before config.php so the ZM_WEB_* defines use the clamped value
 if ( isset($user) ) {
-  // Bandwidth Limiter
   if ($user->MaxBandwidth()) {
     if ($user->MaxBandwidth() == 'low' ) {
       $_COOKIE['zmBandwidth'] = 'low';
@@ -39,6 +33,12 @@ if ( isset($user) ) {
     }
   }
 }
+
+foreach ( getSkinIncludes('includes/config.php') as $includeFile )
+  require_once $includeFile;
+
+foreach ( getSkinIncludes('includes/functions.php') as $includeFile )
+  require_once $includeFile;
 
 // If there are additional actions
 foreach ( getSkinIncludes( 'includes/actions.php' ) as $includeFile )

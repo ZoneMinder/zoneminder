@@ -535,6 +535,25 @@ our @options = (
     type        => $types{boolean},
     category    => 'system',
   },
+  {
+    name        => 'ZM_OPT_USE_REMEMBER_ME',
+    default     => 'None',
+    description => 'Show a "Remember Me" option on the login page',
+    help        => q`
+      Controls whether a "Remember Me" checkbox appears on the login page.
+      None: No checkbox is shown. Sessions always persist for ZM_COOKIE_LIFETIME.
+      Yes: Checkbox is shown and checked by default. Users may uncheck it for a session-only cookie.
+      No: Checkbox is shown and unchecked by default. Users may check it to persist the session.
+      `,
+    requires    => [ { name=>'ZM_OPT_USE_AUTH', value=>'yes' } ],
+    type        => {
+      db_type     => 'string',
+      hint        => 'None|Yes|No',
+      pattern     => qr|^([YyNn])|i,
+      format      => q( $1 )
+    },
+    category    => 'auth',
+  },
   # Google reCaptcha settings
   {
     name        => 'ZM_OPT_USE_GOOG_RECAPTCHA',
@@ -1179,7 +1198,7 @@ our @options = (
       `,
     type        => {
       db_type     => 'integer',
-      hint        => 'None=-5|Panic=-4|Fatal=-3|Error=-2|Warning=-1|Info=0|Debug=1',
+      hint        => 'None=-6|Audit=-5|Panic=-4|Fatal=-3|Error=-2|Warning=-1|Info=0|Debug=1',
       pattern     => qr|^(\d+)$|,
       format      => q( $1 )
     },
@@ -1205,7 +1224,7 @@ our @options = (
       `,
     type        => {
       db_type     => 'integer',
-      hint        => 'None=-5|Panic=-4|Fatal=-3|Error=-2|Warning=-1|Info=0|Debug=1',
+      hint        => 'None=-6|Audit=-5|Panic=-4|Fatal=-3|Error=-2|Warning=-1|Info=0|Debug=1',
       pattern     => qr|^(\d+)$|,
       format      => q( $1 )
     },
@@ -1235,7 +1254,7 @@ our @options = (
       `,
     type        => {
       db_type     => 'integer',
-      hint        => 'None=-5|Panic=-4|Fatal=-3|Error=-2|Warning=-1|Info=0|Debug=1',
+      hint        => 'None=-6|Audit=-5|Panic=-4|Fatal=-3|Error=-2|Warning=-1|Info=0|Debug=1',
       pattern     => qr|^(\d+)$|,
       format      => q( $1 )
     },
@@ -1243,7 +1262,7 @@ our @options = (
   },
   {
     name        => 'ZM_LOG_LEVEL_WEBLOG',
-    default     => '-5',
+    default     => '-6',
     description => 'Save logging output to the weblog',
     help        => q`
       ZoneMinder logging is now more integrated between
@@ -1262,7 +1281,7 @@ our @options = (
       `,
     type        => {
       db_type     => 'integer',
-      hint        => 'None=-5|Panic=-4|Fatal=-3|Error=-2|Warning=-1|Info=0|Debug=1',
+      hint        => 'None=-6|Audit=-5|Panic=-4|Fatal=-3|Error=-2|Warning=-1|Info=0|Debug=1',
       pattern     => qr|^(\d+)$|,
       format      => q( $1 )
     },
@@ -1293,7 +1312,7 @@ our @options = (
       `,
     type        => {
       db_type     => 'integer',
-      hint        => 'None=-5|Panic=-4|Fatal=-3|Error=-2|Warning=-1|Info=0|Debug=1',
+      hint        => 'None=-6|Audit=-5|Panic=-4|Fatal=-3|Error=-2|Warning=-1|Info=0|Debug=1',
       pattern     => qr|^(\d+)$|,
       format      => q( $1 )
     },
@@ -1317,6 +1336,21 @@ our @options = (
       end). The Logs table is pruned periodically so it is possible
       for more than the expected number of rows to be present briefly
       in the meantime.
+      `,
+    type        => $types{string},
+    category    => 'logging',
+  },
+  {
+    name        => 'ZM_LOG_AUDIT_DATABASE_LIMIT',
+    default     => '1 year',
+    description => 'Maximum retention period for audit log entries',
+    help        => q`
+      Audit log entries record administrative changes such as monitor
+      configuration, user management, filter changes, and system settings.
+      These entries are typically retained longer than regular log entries
+      for compliance and troubleshooting. Set to a row count (integer) or
+      time interval such as '1 year', '6 month', '90 day'. Set to empty
+      to retain audit logs indefinitely.
       `,
     type        => $types{string},
     category    => 'logging',
@@ -1983,24 +2017,7 @@ our @options = (
     type        => $types{integer},
     category    => 'system',
   },
-  {
-    name        => 'ZM_FILTER_EXECUTE_INTERVAL',
-    default     => '60',
-    description => 'How often (in seconds) to run automatic saved filters',
-    help        => q`
-      ZoneMinder allows you to save filters to the database which
-      allow events that match certain criteria to be emailed, deleted
-      or uploaded to a remote machine etc. The zmfilter daemon loads
-      these and does the actual operation. This option determines how
-      often the filters are executed on the saved event in the
-      database. If you want a rapid response to new events this
-      should be a smaller value, however this may increase the
-      overall load on the system and affect performance of other
-      elements.
-      `,
-    type        => $types{integer},
-    category    => 'system',
-  },
+  # ZM_FILTER_EXECUTE_INTERVAL removed: each filter now has its own ExecuteInterval
   {
     name        => 'ZM_OPT_UPLOAD',
     default     => 'no',
@@ -2644,7 +2661,7 @@ our @options = (
       users to change their passwords and their language settings
       `,
     type        => $types{boolean},
-    category    => 'config',
+    category    => 'auth',
   },
   {
     name        => 'ZM_OPT_CONTROL',
@@ -2957,6 +2974,74 @@ our @options = (
           : ($1 =~ /^H/ ? 'Hostname' : 'NoCredentials' )
           )
     },
+    category    => 'web',
+  },
+  {
+    name        => 'ZM_WEB_FILTER_SETTINGS_POSITION',
+    default     => 'sidebar',
+    description => 'Where to position the monitor filter settings panel on views.',
+    help        => q`
+      Controls how the monitor filter settings panel is displayed on
+      views that support it (Console, Watch, Montage, Montage Review).
+      When set to 'Embedded in Left Sidebar' (default), the filter
+      panel is moved into the left sidebar extruder. This option only
+      takes effect when ZM_WEB_NAVBAR_TYPE is set to 'left'. When
+      the navbar is not on the left, filters use the standard
+      toggle icon regardless of this setting.
+      Setting this to 'inline' makes the filter panel always visible
+      at the top of the page.
+      `,
+    type        => {
+      db_type     => 'string',
+      hint        => 'Embedded in Left Sidebar|inline',
+      pattern     => qr|^([EiI])|i,
+      format      => q( ($1 =~ /^i/i) ? 'inline' : 'sidebar' )
+    },
+    requires    => [ { name=>'ZM_WEB_NAVBAR_TYPE', value=>'left' } ],
+    category    => 'web',
+  },
+  {
+    name        => 'ZM_WEB_BUTTON_STYLE',
+    default     => 'icons+text',
+    description => 'How to display toolbar buttons throughout the interface.',
+    help        => q`
+      Controls the display of toolbar buttons across the web interface.
+      Icons + Text: Show both icon and label (default).
+      Icons Only: Show only the icon; labels are hidden.
+      Text Only: Show only the label; icons are hidden on buttons that have labels.
+      `,
+    type        => {
+      db_type     => 'string',
+      hint        => 'icons+text|icons|text',
+      pattern     => qr|^([it])|i,
+      format      => q( $1 )
+    },
+    category    => 'web',
+  },
+  {
+    name        => 'ZM_WEB_SHOW_SERVER_STATS',
+    default     => 'yes',
+    description => 'Show server statistics in the navigation bar.',
+    help        => q`
+      Controls whether the server statistics (system load, CPU usage,
+      database connections, storage, and RAM) are displayed in the
+      navigation bar header. Disabling this can reduce visual clutter
+      and the overhead of polling these stats.
+      `,
+    type        => $types{boolean},
+    category    => 'web',
+  },
+  {
+    name        => 'ZM_WEB_SHOW_NAV_BUTTONS',
+    default     => 'yes',
+    description => 'Show Back and Refresh buttons at the top of views.',
+    help        => q`
+      Controls whether the Back and Refresh navigation buttons are
+      displayed in the top-left corner of most views. If disabled,
+      the buttons are hidden to save screen space. You can still use
+      your browser's back and refresh functions.
+      `,
+    type        => $types{boolean},
     category    => 'web',
   },
   {
@@ -4031,6 +4116,50 @@ our @options = (
     help        => '',
     type        => $types{integer},
     category    => 'system',
+  },
+  {
+    name        => 'ZM_OPT_TRAINING',
+    default     => 'no',
+    description => 'Enable custom model training features',
+    help        => q`
+      Enable annotation tools on the event view for correcting
+      object detection results. Corrected annotations are saved
+      in YOLO format for training custom models via pyzm.
+      `,
+    type        => $types{boolean},
+    category    => 'config',
+  },
+  {
+    name        => 'ZM_TRAINING_DATA_DIR',
+    default     => '@ZM_CONTENTDIR@/training',
+    description => 'Training data directory',
+    help        => q`
+      Filesystem path where corrected annotation images and YOLO
+      label files are stored. The directory will be created
+      automatically if it does not exist. Uses Roboflow-compatible
+      YOLO directory layout (images/all/, labels/all/, data.yaml).
+      If left empty, defaults to a training folder alongside your events storage.
+      `,
+    type        => $types{string},
+    category    => 'config',
+    requires    => [ { name => 'ZM_OPT_TRAINING', value => 'yes' } ],
+  },
+  {
+    name        => 'ZM_TRAINING_DETECT_SCRIPT',
+    default     => '',
+    description => 'Object detection script location',
+    help        => q`
+      Full path to the object detection script (e.g.
+      /var/lib/zmeventnotification/bin/zm_detect.py). When set,
+      a Detect button appears in the annotation editor that runs
+      detection on the current frame. The script is called as:
+        <script> -f <image> -m <monitor_id>
+      and its output is parsed for bounding boxes.
+      Leave empty to disable automatic detection.
+      `,
+    type        => $types{string},
+    category    => 'config',
+    requires    => [ { name => 'ZM_OPT_TRAINING', value => 'yes' } ],
   },
 );
 

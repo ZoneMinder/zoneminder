@@ -141,7 +141,7 @@ function addMonitor(btn) {
 }
 
 function import_csv() {
-  const form = $j('#contentForm');
+  const form = $j('#importModalForm')[0];
   var formData = new FormData( form );
   console.log(formData);
 

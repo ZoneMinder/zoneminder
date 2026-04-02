@@ -214,6 +214,7 @@ if(TARGET V4L2::videodev2)
 endif()
 
 add_executable(zmc zmc.cpp)
+add_executable(zma zma.cpp)
 add_executable(zms zms.cpp)
 add_executable(zmu zmu.cpp)
 add_executable(zmbenchmark zmbenchmark.cpp)
@@ -229,6 +230,14 @@ target_link_libraries(zmc
     zm
     ${ZM_EXTRA_LIBS}
     ${CMAKE_DL_LIBS})
+
+target_link_libraries(zma
+  PRIVATE
+    zm-core-interface
+    zm
+    ${ZM_EXTRA_LIBS}
+    ${CMAKE_DL_LIBS}
+    ${FILESYSTEM_LIBRARY})
 
 target_link_libraries(zms
   PRIVATE
@@ -258,7 +267,7 @@ if(BUILD_MAN)
   endforeach(CBINARY zmc zmu)
 endif()
 
-install(TARGETS zmc zmu RUNTIME DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+install(TARGETS zmc zma zmu RUNTIME DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 install(TARGETS zms RUNTIME DESTINATION "${ZM_CGIDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 install(CODE "execute_process(COMMAND ln -sf zms nph-zms WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})")
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/nph-zms DESTINATION "${ZM_CGIDIR}")

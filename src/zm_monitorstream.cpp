@@ -82,6 +82,12 @@ bool MonitorStream::checkSwapPath(const char *path, bool create_path) {
 
 void MonitorStream::processCommand(const CmdMsg *msg) {
   Debug(2, "Got message, type %d, msg %d", msg->msg_type, msg->msg_data[0]);
+
+  if (!monitor) {
+    Warning("Cannot process command, monitor is not loaded");
+    return;
+  }
+
   // Check for incoming command
   switch ((MsgCommand)msg->msg_data[0]) {
   case CMD_PAUSE :
@@ -249,47 +255,58 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     bool forced;
     int  score;
     int  analysing;
+    bool analysis_image;
   } status_data;
 
   status_data.id = monitor->Id();
-  if (!monitor->ShmValid()) {
-    status_data.fps = 0.0;
-    status_data.capture_fps = 0.0;
-    status_data.analysis_fps = 0.0;
-    status_data.state = Monitor::UNKNOWN;
-    //status_data.enabled = monitor->shared_data->active;
-    status_data.enabled = false;
-    status_data.forced = false;
-    status_data.buffer_level = 0;
-  } else {
-    FPSeconds elapsed = now - last_fps_update;
-    if (elapsed.count()) {
-      actual_fps = (actual_fps + (frame_count - last_frame_count) / elapsed.count())/2;
-      last_frame_count = frame_count;
-      last_fps_update = now;
-    }
+  {
+    // Hold monitor_mutex while accessing shared memory to prevent
+    // loadMonitor() from disconnecting/remapping underneath us.
+    std::lock_guard<std::mutex> lck(monitor_mutex);
 
-    status_data.fps = actual_fps;
-    status_data.capture_fps = monitor->get_capture_fps();
-    status_data.analysis_fps = monitor->get_analysis_fps();
-    status_data.state = monitor->shared_data->state;
-    //status_data.enabled = monitor->shared_data->active;
-    status_data.enabled = monitor->trigger_data->trigger_state != Monitor::TriggerState::TRIGGER_OFF;
-    status_data.forced = monitor->trigger_data->trigger_state == Monitor::TriggerState::TRIGGER_ON;
-    if (playback_buffer > 0)
-      status_data.buffer_level = (MOD_ADD( (temp_write_index-temp_read_index), 0, temp_image_buffer_count )*100)/temp_image_buffer_count;
-    else
+    if (!monitor->ShmValid()) {
+      status_data.fps = 0.0;
+      status_data.capture_fps = 0.0;
+      status_data.analysis_fps = 0.0;
+      status_data.state = Monitor::UNKNOWN;
+      status_data.enabled = false;
+      status_data.forced = false;
       status_data.buffer_level = 0;
-    status_data.analysing = monitor->shared_data->analysing;
-    status_data.score = monitor->shared_data->last_frame_score;
-  }
+      status_data.analysing = 0;
+      status_data.score = 0;
+    } else {
+      FPSeconds elapsed = now - last_fps_update;
+      if (elapsed.count()) {
+        actual_fps = (actual_fps + (frame_count - last_frame_count) / elapsed.count())/2;
+        last_frame_count = frame_count;
+        last_fps_update = now;
+      }
+
+      status_data.fps = actual_fps;
+      status_data.capture_fps = monitor->get_capture_fps();
+      status_data.analysis_fps = monitor->get_analysis_fps();
+      status_data.state = monitor->shared_data->state;
+      status_data.enabled = monitor->trigger_data->trigger_state != Monitor::TriggerState::TRIGGER_OFF;
+      status_data.forced = monitor->trigger_data->trigger_state == Monitor::TriggerState::TRIGGER_ON;
+      status_data.analysing = monitor->shared_data->analysing;
+      status_data.score = monitor->shared_data->last_frame_score;
+
+      if (playback_buffer > 0)
+        status_data.buffer_level = (MOD_ADD( (temp_write_index-temp_read_index), 0, temp_image_buffer_count )*100)/temp_image_buffer_count;
+      else
+        status_data.buffer_level = 0;
+    }
+  } // end monitor_mutex scope
   status_data.delayed = delayed;
   status_data.paused = paused;
   status_data.rate = replay_rate;
   status_data.delay = FPSeconds(now - last_frame_sent).count();
   status_data.zoom = zoom;
   status_data.scale = scale;
-  Debug(2, "viewing fps: %.2f capture_fps: %.2f analysis_fps: %.2f Buffer Level:%d, Delayed:%d, Paused:%d, Rate:%d, delay:%.3f, Zoom:%d, Enabled:%d Forced:%d score: %d",
+  status_data.analysis_image = (frame_type == FRAME_ANALYSIS) &&
+      monitor->ShmValid() &&
+      (monitor->Analysing() != Monitor::ANALYSING_NONE);
+  Debug(2, "viewing fps: %.2f capture_fps: %.2f analysis_fps: %.2f Buffer Level:%d, Delayed:%d, Paused:%d, Rate:%d, delay:%.3f, Zoom:%d, Enabled:%d Forced:%d score: %d analysis_image: %d",
         status_data.fps,
         status_data.capture_fps,
         status_data.analysis_fps,
@@ -301,7 +318,8 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
         status_data.zoom,
         status_data.enabled,
         status_data.forced,
-        status_data.score
+        status_data.score,
+        status_data.analysis_image
        );
 
   DataMsg status_msg;
@@ -387,7 +405,12 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
     if (!vid_stream) {
       vid_stream = new VideoStream("pipe:", format, bitrate, effective_fps, send_image->Colours(), send_image->SubpixelOrder(), send_image->Width(), send_image->Height());
       fprintf(stdout, "Content-Type: %s\r\n\r\n", vid_stream->MimeType());
-      vid_stream->OpenStream();
+      if (!vid_stream->OpenStream()) {
+        Error("Failed to open video stream");
+        delete vid_stream;
+        vid_stream = nullptr;
+        return false;
+      }
     }
 
     static SystemTimePoint base_time;

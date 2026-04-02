@@ -116,6 +116,7 @@ function userLogout() {
   global $user;
   ZM\Info('User "'.($user?$user->Username():'no one').'" logged out');
   $user = null;// unset only clears the local variable
+  zm_setcookie('ZM_REMEMBER_ME', '', array('expires' => time() - 31536000));
   zm_session_clear();
 }
 
@@ -503,7 +504,13 @@ function userFromSession() {
 function get_auth_relay() {
   if (ZM_OPT_USE_AUTH) {
     if (ZM_AUTH_RELAY == 'hashed') {
-      return 'auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
+      $relay = 'auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
+      // Include username so zms can filter by indexed Username column
+      // instead of iterating all users to validate the auth hash
+      if (!empty($_SESSION['username'])) {
+        $relay .= '&user='.$_SESSION['username'];
+      }
+      return $relay;
     } else if (ZM_AUTH_RELAY == 'plain') {
       // password probably needs to be escaped
       return 'username='.(isset($_SESSION['username'])?$_SESSION['username']:'').'&password='.urlencode(isset($_SESSION['password']) ? $_SESSION['password'] : '');
@@ -528,7 +535,10 @@ if (ZM_OPT_USE_AUTH) {
     $ret = validateToken($_REQUEST['token'], 'any');
     $user = $ret[0];
   } else {
-    // Non token based auth
+    // Non token based auth - session required for $_SESSION access
+    if (!is_session_started()) {
+      zm_session_start();
+    }
 
     if (ZM_AUTH_HASH_LOGINS && empty($user) && !empty($_REQUEST['auth'])) {
       $user = getAuthUser($_REQUEST['auth']);
@@ -604,6 +614,7 @@ if (ZM_OPT_USE_AUTH) {
       $password = $_REQUEST['password'];
 
       ZM\Info("Login successful for user \"$username\"");
+      #ZM\Audit("user=$username action=login id=".$user->Id()." from=".($_SERVER['REMOTE_ADDR'] ?? 'local'));
       $password_type = password_type($user->Password());
 
       if ( $password_type == 'mysql' or $password_type == 'mysql+bcrypt' ) {

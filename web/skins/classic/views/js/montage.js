@@ -459,6 +459,36 @@ function manageDelConfirmModalBtns() {
   });
 }
 
+function startVisibleMonitors() {
+  for (let i = 0, length = monitors.length; i < length; i++) {
+    const monitor = monitors[i];
+    const isOut = isOutOfViewport(monitor.getElement());
+    if ((!isOut.all) && !monitor.started) {
+      monitor.setPlayer(monitor.player);
+      monitor.start();
+    }
+  }
+}
+
+function refreshAuthAndStartMonitors() {
+  $j.getJSON(thisUrl + '?view=request&request=status&entity=navBar' + (auth_relay ? '&' + auth_relay : ''))
+      .done(function(data) {
+        if (data) {
+          if (data.auth) {
+            auth_hash = data.auth;
+          }
+          if (data.auth_relay) {
+            auth_relay = data.auth_relay;
+          }
+        }
+        startVisibleMonitors();
+      })
+      .fail(function() {
+        // Even if refresh fails, try to start with whatever auth we have
+        startVisibleMonitors();
+      });
+}
+
 function reloadWebSite(ndx) {
   document.getElementById('imageFeed'+ndx).innerHTML = document.getElementById('imageFeed'+ndx).innerHTML;
 }
@@ -603,7 +633,7 @@ function initPage() {
           if ($j('#monitorStatusPosition').val() == 'showOnHover') {
             $j('#monitors').find('#monitorStatus'+id).addClass('hidden');
           }
-          hideСontrolElementsOnStream(el);
+          hideControlElementsOnStream(el);
         }
       }
     });
@@ -615,7 +645,7 @@ function initPage() {
           if ($j('#monitorStatusPosition').val() == 'showOnHover') {
             $j('#monitors').find('#monitorStatus'+id).removeClass('hidden');
           }
-          showСontrolElementsOnStream(el);
+          showControlElementsOnStream(el);
         }
       }
     });
@@ -666,13 +696,7 @@ function initPage() {
                 ayswModal = insertModalHtml('AYSWModal', data.html);
                 ayswModal.on('hidden.bs.modal', function() {
                   idleTimeoutTriggered = false;
-                  for (let i=0, length = monitors.length; i < length; i++) {
-                    const monitor = monitors[i];
-                    if ((!isOutOfViewport(monitor.getElement()).all) && !monitor.started) {
-                      monitor.setPlayer(monitor.player);
-                      monitor.start();
-                    }
-                  }
+                  refreshAuthAndStartMonitors();
                 });
                 ayswModal.modal('show');
               })
@@ -735,13 +759,13 @@ function initPage() {
   window.addEventListener('resize', on_scroll);
 } // end initPage
 
-function hideСontrolElementsOnStream(stream) {
+function hideControlElementsOnStream(stream) {
   const id = stringToNumber(stream.id);
   $j('#button_zoom' + id).stop(true, true).slideUp('fast');
   $j('#ratioControl' + id).stop(true, true).slideUp('fast');
 }
 
-function showСontrolElementsOnStream(stream) {
+function showControlElementsOnStream(stream) {
   const id = stringToNumber(stream.id);
   $j('#button_zoom' + id).stop(true, true).slideDown('fast');
   $j('#ratioControl' + id).stop(true, true).slideDown('fast');
@@ -1028,16 +1052,9 @@ document.onvisibilitychange = () => {
   } else {
     TimerHideShow = clearTimeout(TimerHideShow);
     if (!idleTimeoutTriggered) {
-      //Start monitors when show page
-      for (let i = 0, length = monitors.length; i < length; i++) {
-        const monitor = monitors[i];
-
-        const isOut = isOutOfViewport(monitor.getElement());
-        if ((!isOut.all) && !monitor.started) {
-          monitor.setPlayer(monitor.player);
-          monitor.start();
-        }
-      } // end foreach monitor
+      // Refresh auth hash before restarting streams, since browsers throttle
+      // timers for hidden tabs and the auth hash may have gone stale.
+      refreshAuthAndStartMonitors();
     } // end if not AYSW
   }
 };

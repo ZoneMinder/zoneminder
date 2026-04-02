@@ -58,6 +58,7 @@ if ($action == 'Save') {
       unset($_REQUEST['redirect']);
       return;
     }
+    ZM\AuditAction(($rid ? 'update' : 'create'), 'role', $dbRole->Id(), 'Name: '.$dbRole->Name());
   }
 
   # Save group permissions

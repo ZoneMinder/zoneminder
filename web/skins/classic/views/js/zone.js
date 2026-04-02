@@ -74,6 +74,18 @@ function submitForm(form) {
   form.submit();
 }
 
+function syncPixelInputStates() {
+  var fields = ['MinAlarmPixels', 'MaxAlarmPixels', 'MinFilterPixels', 'MaxFilterPixels', 'MinBlobPixels', 'MaxBlobPixels'];
+  var form = document.zoneForm;
+  for (var i = 0; i < fields.length; i++) {
+    var pctInput = form.elements['newZone[' + fields[i] + ']'];
+    var pxInput = document.getElementById(fields[i] + '_px');
+    if (pctInput && pxInput) {
+      pxInput.disabled = pctInput.disabled;
+    }
+  }
+}
+
 function applyZoneType() {
   var form = document.zoneForm;
   if ( form.elements['newZone[Type]'].value == 'Inactive' || form.elements['newZone[Type]'].value == 'Privacy' ) {
@@ -123,6 +135,7 @@ function applyZoneType() {
     form.elements['newZone[ExtendAlarmFrames]'].disabled = true;
     applyCheckMethod();
   }
+  syncPixelInputStates();
 }
 
 function applyCheckMethod() {
@@ -155,6 +168,7 @@ function applyCheckMethod() {
     form.elements['newZone[MinBlobs]'].disabled = false;
     form.elements['newZone[MaxBlobs]'].disabled = false;
   }
+  syncPixelInputStates();
 }
 
 function applyPreset() {
@@ -164,7 +178,6 @@ function applyPreset() {
   if ( presets[presetId] ) {
     var preset = presets[presetId];
 
-    form.elements['newZone[Units]'].selectedIndex = preset['UnitsIndex'];
     form.elements['newZone[CheckMethod]'].selectedIndex = preset['CheckMethodIndex'];
     form.elements['newZone[MinPixelThreshold]'].value = preset['MinPixelThreshold'];
     form.elements['newZone[MaxPixelThreshold]'].value = preset['MaxPixelThreshold'];
@@ -183,62 +196,68 @@ function applyPreset() {
 
     applyCheckMethod();
     form.elements['newZone[Area]'].value = 100;
+    updateAllPixelDisplays();
   }
 }
 
-function toPixels(field, maxValue) {
-  if ( field.value != '' ) {
-    field.value = Math.round((field.value*maxValue)/100);
-    if ( field.value > maxValue ) {
-      field.value = maxValue;
-    }
-  }
-  field.setAttribute('step', 1);
-  field.setAttribute('max', maxValue);
-}
-
-// maxValue is the max Pixels value which is normally the max area
-function toPercent(field, maxValue) {
-  if ( field.value != '' ) {
-    field.value = Math.round((100*100*field.value)/maxValue)/100;
-    if ( field.value > 100 ) {
-      field.value = 100;
-    }
-  }
-  field.setAttribute('step', 'any');
-  field.setAttribute('max', 100);
-}
-
-function applyZoneUnits() {
-  var area = zone.Area;
-
-  var form = document.zoneForm;
-  if ( form.elements['newZone[Units]'].value == 'Pixels' ) {
-    form.elements['newZone[Area]'].value = area;
-    toPixels(form.elements['newZone[MinAlarmPixels]'], area);
-    toPixels(form.elements['newZone[MaxAlarmPixels]'], area);
-    toPixels(form.elements['newZone[MinFilterPixels]'], area);
-    toPixels(form.elements['newZone[MaxFilterPixels]'], area);
-    toPixels(form.elements['newZone[MinBlobPixels]'], area);
-    toPixels(form.elements['newZone[MaxBlobPixels]'], area);
+// Update the pixel input to reflect the current percentage value
+function updatePixelFromPercent(pctInput) {
+  var pixelArea = Math.round(zone.Area / monitorArea * monitorPixelArea);
+  var match = pctInput.name.match(/\[(\w+)\]$/);
+  if (!match) return;
+  var pxInput = document.getElementById(match[1] + '_px');
+  if (!pxInput) return;
+  if (pctInput.value !== '' && pixelArea > 0) {
+    pxInput.value = Math.round(parseFloat(pctInput.value) * pixelArea / 100);
+    pxInput.setAttribute('max', pixelArea);
   } else {
-    form.elements['newZone[Area]'].value = Math.round(area/monitorArea * 100);
-    toPercent(form.elements['newZone[MinAlarmPixels]'], area);
-    toPercent(form.elements['newZone[MaxAlarmPixels]'], area);
-    toPercent(form.elements['newZone[MinFilterPixels]'], area);
-    toPercent(form.elements['newZone[MaxFilterPixels]'], area);
-    toPercent(form.elements['newZone[MinBlobPixels]'], area);
-    toPercent(form.elements['newZone[MaxBlobPixels]'], area);
+    pxInput.value = '';
+  }
+}
+
+// Update the percentage input to reflect a pixel input change
+function updatePercentFromPixel(pxInput) {
+  var pixelArea = Math.round(zone.Area / monitorArea * monitorPixelArea);
+  // Derive the form field name from the px input id: MinAlarmPixels_px -> newZone[MinAlarmPixels]
+  var fieldName = pxInput.id.replace('_px', '');
+  var pctInput = document.zoneForm.elements['newZone[' + fieldName + ']'];
+  if (!pctInput) return;
+  if (pxInput.value !== '' && pixelArea > 0) {
+    var px = Math.max(0, Math.min(parseInt(pxInput.value), pixelArea));
+    pxInput.value = px;
+    pctInput.value = Math.round(px / pixelArea * 10000) / 100;
+  } else {
+    pctInput.value = '';
+  }
+}
+
+function updateAllPixelDisplays() {
+  var pixelArea = Math.round(zone.Area / monitorArea * monitorPixelArea);
+  var form = document.zoneForm;
+
+  // Update area display
+  var areaPct = Math.round(zone.Area / monitorArea * 100);
+  form.elements['newZone[Area]'].value = areaPct;
+  var areaPctSpan = document.getElementById('areaPercent');
+  if (areaPctSpan) areaPctSpan.textContent = areaPct;
+  var areaPxSpan = document.getElementById('areaPixels');
+  if (areaPxSpan) areaPxSpan.textContent = pixelArea;
+
+  // Update threshold pixel inputs
+  var fields = ['MinAlarmPixels', 'MaxAlarmPixels', 'MinFilterPixels', 'MaxFilterPixels', 'MinBlobPixels', 'MaxBlobPixels'];
+  for (var i = 0; i < fields.length; i++) {
+    var input = form.elements['newZone[' + fields[i] + ']'];
+    if (input) updatePixelFromPercent(input);
   }
 }
 
 function limitRange(field, minValue, maxValue) {
   if ( field.value != '' ) {
-    field.value = constrainValue(
-        parseFloat(field.value),
-        parseInt(minValue),
-        parseInt(maxValue)
-    );
+    var currentValue = parseFloat(field.value);
+    var constrainedValue = constrainValue(currentValue, parseInt(minValue), parseInt(maxValue));
+    if ( constrainedValue !== currentValue ) {
+      field.value = constrainedValue;
+    }
   }
 }
 
@@ -254,16 +273,8 @@ function limitFilter(field) {
 }
 
 function limitArea(field) {
-  var minValue = 0;
-  var maxValue = zone.Area;
-  if ( document.zoneForm.elements['newZone[Units]'].value == 'Percent' ) {
-    maxValue = 100;
-  }
-  if (maxValue > 0) {
-    limitRange(field, minValue, maxValue);
-  } else {
-    console.error("No value for area");
-  }
+  limitRange(field, 0, 100);
+  updatePixelFromPercent(field);
 }
 
 function highlightOn(index) {
@@ -295,7 +306,7 @@ function unsetActivePoint(index) {
 function getCoordString() {
   var coords = [];
   for ( let i = 0; i < zone['Points'].length; i++ ) {
-    coords[coords.length] = zone['Points'][i].x+','+zone['Points'][i].y;
+    coords[coords.length] = parseFloat(zone['Points'][i].x).toFixed(2)+','+parseFloat(zone['Points'][i].y).toFixed(2);
   }
   return coords.join(' ');
 }
@@ -330,32 +341,35 @@ function constrainValue(value, loVal, hiVal) {
 
 function updateActivePoint(index) {
   const point = $j('#point'+index);
-  const imageFrame = document.getElementById('imageFrame');
-  const style = imageFrame.currentStyle || window.getComputedStyle(imageFrame);
-  const padding_left = parseInt(style.paddingLeft);
-  const padding_top = parseInt(style.paddingTop);
-  const padding_right = parseInt(style.paddingRight);
-  const scale = (imageFrame.clientWidth - ( padding_left + padding_right )) / maxX;
+  if (!point.length) return;
+  const imageFeed = document.getElementById('imageFeed'+zone.MonitorId);
+  const frameW = imageFeed.clientWidth;
+  const frameH = imageFeed.clientHeight;
 
   let point_left = parseInt(point.css('left'), 10);
-  if ( point_left < padding_left ) {
-    point.css('left', style.paddingLeft);
-    point_left = parseInt(padding_left);
+  if ( point_left < 0 ) {
+    point.css('left', '0px');
+    point_left = 0;
   }
   let point_top = parseInt(point.css('top'));
-  if ( point_top < padding_top ) {
-    point.css('top', style.paddingTop);
-    point_top = parseInt(padding_top);
+  if ( point_top < 0 ) {
+    point.css('top', '0px');
+    point_top = 0;
   }
 
-  var x = constrainValue(Math.ceil(point_left / scale)-Math.ceil(padding_left/scale), 0, maxX);
-  var y = constrainValue(Math.ceil(point_top / scale)-Math.ceil(padding_top/scale), 0, maxY);
+  var x = constrainValue(Math.round((point_left / frameW) * maxX * 100) / 100, 0, maxX);
+  var y = constrainValue(Math.round((point_top / frameH) * maxY * 100) / 100, 0, maxY);
 
-  zone['Points'][index].x = document.getElementById('newZone[Points]['+index+'][x]').value = x;
-  zone['Points'][index].y = document.getElementById('newZone[Points]['+index+'][y]').value = y;
-  var Point = document.getElementById('zonePoly').points.getItem(index);
-  Point.x = x;
-  Point.y = y;
+  zone['Points'][index].x = x;
+  zone['Points'][index].y = y;
+  document.getElementById('newZone[Points]['+index+'][x]').value = x.toFixed(2);
+  document.getElementById('newZone[Points]['+index+'][y]').value = y.toFixed(2);
+  var Poly = document.getElementById('zonePoly');
+  if (index < Poly.points.numberOfItems) {
+    var Point = Poly.points.getItem(index);
+    Point.x = x;
+    Point.y = y;
+  }
   updateArea();
 } // end function updateActivePoint(index)
 
@@ -365,8 +379,8 @@ function addPoint(index) {
     nextIndex = 0;
   }
 
-  var newX = parseInt(Math.round((zone['Points'][index]['x']+zone['Points'][nextIndex]['x'])/2));
-  var newY = parseInt(Math.round((zone['Points'][index]['y']+zone['Points'][nextIndex]['y'])/2));
+  var newX = Math.round(((parseFloat(zone['Points'][index]['x'])+parseFloat(zone['Points'][nextIndex]['x']))/2) * 100) / 100;
+  var newY = Math.round(((parseFloat(zone['Points'][index]['y'])+parseFloat(zone['Points'][nextIndex]['y']))/2) * 100) / 100;
   if ( nextIndex == 0 ) {
     zone['Points'][zone['Points'].length] = {'x': newX, 'y': newY};
   } else {
@@ -381,20 +395,13 @@ function delPoint(index) {
 }
 
 function limitPointValue(point, loVal, hiVal) {
-  point.value = constrainValue(point.value, loVal, hiVal);
+  point.value = constrainValue(parseFloat(point.value), loVal, hiVal);
 }
 
 function updateArea( ) {
-  const area = Polygon_calcArea(zone['Points']);
-  const form = document.getElementById('zoneForm');
-  form.elements['newZone[Area]'].value = area;
-  if ( form.elements['newZone[Units]'].value == 'Percent' ) {
-    form.elements['newZone[Area]'].value = Math.round( area/monitorArea*100 );
-  } else if ( form.elements['newZone[Units]'].value == 'Pixels' ) {
-    form.elements['newZone[Area]'].value = area;
-  } else {
-    alert('Unknown units: ' + form.elements['newZone[Units]'].value);
-  }
+  // Area is calculated in percentage coordinate space (0-100 x 0-100)
+  zone.Area = Polygon_calcArea(zone['Points']);
+  updateAllPixelDisplays();
 }
 
 /* Updates the drawn point based on input from the coordinates text inputs */
@@ -404,14 +411,11 @@ function updateX(input) {
   limitPointValue(input, 0, maxX);
 
   const point = $j('#point'+index);
-  const x = input.value;
-  const imageFrame = document.getElementById('imageFrame');
-  const style = imageFrame.currentStyle || window.getComputedStyle(imageFrame);
-  const padding_left = parseInt(style.paddingLeft);
-  const padding_right = parseInt(style.paddingRight);
-  const scale = (imageFrame.clientWidth - ( padding_left + padding_right )) / maxX;
+  const x = parseFloat(input.value);
+  const imageFeed = document.getElementById('imageFeed'+zone.MonitorId);
+  const frameW = imageFeed.clientWidth;
 
-  point.css('left', parseInt(x*scale)+'px');
+  point.css('left', Math.round(x / maxX * frameW) + 'px');
   zone['Points'][index].x = x;
   const Point = document.getElementById('zonePoly').points.getItem(index);
   Point.x = x;
@@ -424,14 +428,11 @@ function updateY(input) {
   limitPointValue(input, 0, maxY);
 
   const point = $j('#point'+index);
-  const y = input.value;
-  const imageFrame = document.getElementById('imageFrame');
-  const style = imageFrame.currentStyle || window.getComputedStyle(imageFrame);
-  const padding_left = parseInt(style.paddingLeft);
-  const padding_right = parseInt(style.paddingRight);
-  const scale = (imageFrame.clientWidth - ( padding_left + padding_right )) / maxX;
+  const y = parseFloat(input.value);
+  const imageFeed = document.getElementById('imageFeed'+zone.MonitorId);
+  const frameH = imageFeed.clientHeight;
 
-  point.css('top', parseInt(y*scale)+'px');
+  point.css('top', Math.round(y / maxY * frameH) + 'px');
   zone['Points'][index].y = y;
   const Point = document.getElementById('zonePoly').points.getItem(index);
   Point.y = y;
@@ -454,13 +455,10 @@ function saveChanges(element) {
 }
 
 function drawZonePoints() {
-  var imageFrame = document.getElementById('imageFrame');
+  var imageFeed = document.getElementById('imageFeed'+zone.MonitorId);
   $j('.zonePoint').remove();
-  var style = imageFrame.currentStyle || window.getComputedStyle(imageFrame);
-  var padding_left = parseInt(style.paddingLeft);
-  var padding_right = parseInt(style.paddingRight);
-  var padding_top = parseInt(style.paddingTop);
-  var scale = (imageFrame.clientWidth - ( padding_left + padding_right )) / maxX;
+  var frameW = imageFeed.clientWidth;
+  var frameH = imageFeed.clientHeight;
 
   $j.each( zone['Points'], function(i, coord) {
     var div = $j('<div>');
@@ -471,17 +469,17 @@ function drawZonePoints() {
       'title': 'Point '+(i+1)
     });
     div.css({
-      left: (Math.round(coord.x * scale) + padding_left)+"px",
-      top: ((parseInt(coord.y * scale)) + padding_top) +"px"
+      left: Math.round(parseFloat(coord.x) / maxX * frameW)+"px",
+      top: Math.round(parseFloat(coord.y) / maxY * frameH)+"px"
     });
 
     div.mouseover(highlightOn.bind(i, i));
     div.mouseout(highlightOff.bind(i, i));
 
-    $j('#imageFrame').append(div);
+    $j(imageFeed).append(div);
 
     div.draggable({
-      'containment': document.getElementById('imageFeed'+zone.MonitorId),
+      'containment': imageFeed,
       'start': setActivePoint.bind(i, i),
       'stop': fixActivePoint.bind(i, i),
       'drag': updateActivePoint.bind(i, i)
@@ -505,11 +503,12 @@ function drawZonePoints() {
     $j(input).attr({
       'id': 'newZone[Points]['+i+'][x]',
       'name': 'newZone[Points]['+i+'][x]',
-      'value': zone['Points'][i].x,
+      'value': parseFloat(zone['Points'][i].x).toFixed(2),
       'type': 'number',
       'class': 'ZonePoint',
       'min': '0',
       'max': maxX,
+      'step': 'any',
       'data-point-index': i
     });
     input.oninput = window['updateX'].bind(input, input);
@@ -521,11 +520,12 @@ function drawZonePoints() {
     $j(input).attr({
       'id': 'newZone[Points]['+i+'][y]',
       'name': 'newZone[Points]['+i+'][y]',
-      'value': zone['Points'][i].y,
+      'value': parseFloat(zone['Points'][i].y).toFixed(2),
       'type': 'number',
       'class': 'ZonePoint',
       'min': '0',
       'max': maxY,
+      'step': 'any',
       'data-point-index': i
     });
     input.oninput = window['updateY'].bind(input, input);
@@ -572,6 +572,16 @@ function streamCmdPlay() {
   }
   pauseBtn.show();
   playBtn.hide();
+}
+
+function changePlayer() {
+  const player = $j('#player').val();
+  setCookie('zmZonePlayer', player);
+  for (let i = 0, length = monitors.length; i < length; i++) {
+    monitors[i].stop();
+    monitors[i].setPlayer(player);
+    monitors[i].start();
+  }
 }
 
 //Make sure the various refreshes are still taking effect
@@ -652,19 +662,24 @@ function initPage() {
   }
   );
 
+  form.elements['newZone[MinBlobPixels]'].oninput = window['limitArea'].bind(form.elements['newZone[MinBlobPixels]'], form.elements['newZone[MinBlobPixels]']);
   form.elements['newZone[MinBlobPixels]'].disabled = true;
+  form.elements['newZone[MaxBlobPixels]'].oninput = window['limitArea'].bind(form.elements['newZone[MaxBlobPixels]'], form.elements['newZone[MaxBlobPixels]']);
   form.elements['newZone[MaxBlobPixels]'].disabled = true;
+
+  // Bind pixel inputs for bidirectional sync (editing pixels updates percentages)
+  var pxInputs = document.querySelectorAll('.pxInput');
+  for (var i = 0; i < pxInputs.length; i++) {
+    pxInputs[i].oninput = window['updatePercentFromPixel'].bind(pxInputs[i], pxInputs[i]);
+  }
+
   form.elements['newZone[MinBlobs]'].disabled = true;
   form.elements['newZone[MaxBlobs]'].disabled = true;
   form.elements['newZone[OverloadFrames]'].disabled = true;
 
   applyZoneType();
-
-  if ( form.elements['newZone[Units]'].value == 'Percent' ) {
-    applyZoneUnits();
-  }
-
   applyCheckMethod();
+  updateAllPixelDisplays();
 
   pauseBtn.click(streamCmdPause);
   playBtn.click(streamCmdPlay);
@@ -685,6 +700,10 @@ function initPage() {
 
   if ( el = analyseBtn[0] ) {
     el.onclick = function() {
+      // Read current state from MonitorStream (server may have changed it)
+      if (monitors.length) {
+        analyse_frames = monitors[0].analyse_frames;
+      }
       analyse_frames = !analyse_frames;
       if (analyse_frames) {
         analyseBtn.addClass('btn-primary');
@@ -703,18 +722,32 @@ function initPage() {
     console.log('Analyse button not found');
   }
 
+  var cookiePlayer = getCookie('zmZonePlayer');
+
   for ( let i = 0, length = monitorData.length; i < length; i++ ) {
     monitors[i] = new MonitorStream(monitorData[i]);
+    if (cookiePlayer !== undefined && cookiePlayer !== null) {
+      monitors[i].setPlayer(cookiePlayer);
+    }
+    monitors[i].setButton('analyseBtn', analyseBtn);
     monitors[i].setStreamScale();
     monitors[i].show_analyse_frames(analyse_frames);
     monitors[i].start();
   }
 
-  document.querySelectorAll('#imageFrame img').forEach(function(el) {
-    el.addEventListener("load", imageLoadEvent, {passive: true});
-  });
-  window.addEventListener("resize", drawZonePoints, {passive: true});
-  // if the image link is broken for some reason we won't draw the points, so do it manually
+  // Move the zone SVG into the imageFeed container so it overlays only the image,
+  // not the status bar below it.
+  var imageFeed = document.getElementById('imageFeed'+zone.MonitorId);
+  var zoneSVG = document.getElementById('zoneSVG');
+  if (imageFeed && zoneSVG) {
+    imageFeed.appendChild(zoneSVG);
+  }
+
+  if (imageFeed) {
+    (new ResizeObserver(drawZonePoints)).observe(imageFeed);
+  } else {
+    window.addEventListener("resize", drawZonePoints, {passive: true});
+  }
   drawZonePoints();
 
   // Manage the BACK button
@@ -741,25 +774,15 @@ function panZoomOut(el) {
   zmPanZoom.zoomOut(el);
 }
 
-function imageLoadEvent() {
-  // We only need this event on the first image load to set dimensions.
-  // Turn it off after it has been called.
-  document.querySelectorAll('#imageFrame img').forEach(function(el) {
-    el.removeEventListener("load", imageLoadEvent, {passive: true});
-  });
-  drawZonePoints();
-}
-
 function Polygon_calcArea(coords) {
   var n_coords = coords.length;
   var float_area = 0.0;
 
   for ( i = 0; i < n_coords-1; i++ ) {
-    var trap_area = (coords[i].x*coords[i+1].y - coords[i+1].x*coords[i].y) / 2;
+    var trap_area = (parseFloat(coords[i].x)*parseFloat(coords[i+1].y) - parseFloat(coords[i+1].x)*parseFloat(coords[i].y)) / 2;
     float_area += trap_area;
-    //printf( "%.2f (%.2f)\n", float_area, trap_area );
   }
-  float_area += (coords[n_coords-1].x*coords[0].y - coords[0].x*coords[n_coords-1].y) / 2;
+  float_area += (parseFloat(coords[n_coords-1].x)*parseFloat(coords[0].y) - parseFloat(coords[0].x)*parseFloat(coords[n_coords-1].y)) / 2;
 
   return Math.round(Math.abs(float_area));
 }

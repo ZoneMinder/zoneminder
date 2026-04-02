@@ -835,13 +835,14 @@ function streamStart(monitor = null) {
 
   monitorStream.setPlayer($j('#player').val());
   monitorStream.setBottomElement(document.getElementById('bottomBlock'));
-  monitorStream.controlMute(getCookie('zmWatchMute') || 'on'); // default to muted
+  const cookieMuted = getCookie('zmWatchMuted');
+  monitorStream.muted = (cookieMuted === null || cookieMuted === 'true') ? true : false; // default to muted
   monitorStream.manageAvailablePlayers();
   setChannelStream();
   // Start the fps and status updates. give a random delay so that we don't assault the server
   //monitorStream.setScale($j('#scale').val(), $j('#width').val(), $j('#height').val());
   //monitorsSetScale(monitorId);
-  monitorStream.start(document.getElementById('streamChannel').value);
+  streamCmdPlay(true);
   if (streamMode == 'single') {
     monitorStream.setup_onclick(fetchImage);
   } else {
@@ -855,6 +856,7 @@ function streamStart(monitor = null) {
   monitorStream.setButton('enableAlarmButton', enableAlmBtn);
   monitorStream.setButton('forceAlarmButton', forceAlmBtn);
   monitorStream.setButton('zoomOutButton', $j('zoomOutBtn'));
+  monitorStream.setButton('analyseBtn', analyseBtn);
   if (canEdit.Monitors) {
     // Will be enabled by streamStatus ajax
     enableAlmBtn.on('click', cmdAlarm);
@@ -899,7 +901,10 @@ function streamReStart(oldId, newId) {
   const volumeControls = document.getElementById('volumeControls'+oldId);
   if (volumeControls) volumeControls.id = 'volumeControls'+newId;
   const volumeSlider = document.getElementById('volumeSlider'+oldId);
-  if (volumeSlider) volumeSlider.id = 'volumeSlider'+newId;
+  if (volumeSlider) {
+    monitorStream.destroyVolumeSlider();
+    volumeSlider.id = 'volumeSlider'+newId;
+  }
   const controlMute = document.getElementById('controlMute'+oldId);
   if (controlMute) controlMute.id = 'controlMute'+newId;
 
@@ -1147,6 +1152,10 @@ function watchAllEvents() {
 }
 
 function toggleAnalyseFrames() {
+  // Read current state from MonitorStream (server may have changed it)
+  if (monitorStream) {
+    analyse_frames = monitorStream.analyse_frames;
+  }
   analyse_frames = !analyse_frames;
   if (analyse_frames) {
     analyseBtn.addClass('btn-primary');
@@ -1342,10 +1351,11 @@ function panZoomEventPanzoomchange(event) {
 }
 
 function monitorChangeStreamChannel() {
+  const streamChannel = $j('#streamChannel').val();
+  monitorStream.currentChannelStream = streamChannel;
+  setCookie('zmStreamChannel', streamChannel);
   if ((monitorStream.activePlayer) && (-1 !== monitorStream.activePlayer.indexOf('go2rtc') || -1 !== monitorStream.activePlayer.indexOf('rtsp2web'))) {
     streamCmdStop(true);
-    const streamChannel = $j('#streamChannel').val();
-    setCookie('zmStreamChannel', streamChannel);
     setTimeout(function() {
       monitorStream.start(streamChannel);
       onPlay();
@@ -1358,6 +1368,7 @@ function changePlayer() {
   const player = $j('#player').val();
   setCookie('zmWatchPlayer', player);
   //setCookie('zmWatchPlayer'+monitorId, player);
+  monitorStream.destroyVolumeSlider();
   streamCmdStop(true); // takes care of button state and calls stream.kill()
   console.log('setting to ', $j('#player').val());
   monitorStream.setPlayer($j('#player').val());
@@ -1378,7 +1389,7 @@ function changePlayer() {
 // Kick everything off
 $j( window ).on("load", initPage);
 
-var prevStateStarted = false;
+var prevStateStarted = null;
 document.onvisibilitychange = () => {
   // Always clear it because the return to visibility might happen before timeout
   TimerHideShow = clearTimeout(TimerHideShow);
@@ -1387,22 +1398,29 @@ document.onvisibilitychange = () => {
       //Stop monitor when closing or hiding page
       if (monitorStream) {
         if (monitorStream.started) {
-          prevStateStarted = 'played';
-          //Stop only if playing or paused.
-          // We might want to continue status updates so that alarm sounds etc still happen
-          monitorStream.stop();
+          if ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused) || monitorStream.element.paused) {
+            prevStateStarted = 'paused';
+          } else {
+            prevStateStarted = 'played';
+            //Stop only if playing (not paused).
+            // We might want to continue status updates so that alarm sounds etc still happen
+            monitorStream.stop();
+          }
         } else {
-          prevStateStarted = false;
+          prevStateStarted = 'stopped';
         }
       }
     }, 15*1000);
   } else {
     //Start monitor when show page
     if (monitorStream && prevStateStarted == 'played' && !idleTimeoutTriggered) {
-      prevStateStarted = false;
+      prevStateStarted = null;
       onPlay(); //Set the correct state of the player buttons.
       monitorStream.start(monitorStream.currentChannelStream);
       monitorsSetScale(monitorId);
+    //} else if (prevStateStarted != 'paused') {
+    } else if (monitorStream && monitorStream.element && ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused) || monitorStream.element.paused)) {
+      prevStateStarted = null;
     }
   }
 };

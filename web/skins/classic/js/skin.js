@@ -347,9 +347,9 @@ if ( currentView != 'none' && currentView != 'login' ) {
 
       changeButtonIcon(_this_, objIconButton);
 
-      const nameFuncBefore = _this_.attr('data-flip-сontrol-run-before-func') ? _this_.attr('data-flip-сontrol-run-before-func') : null;
-      const nameFuncAfter = _this_.attr('data-flip-сontrol-run-after-func') ? _this_.attr('data-flip-сontrol-run-after-func') : null;
-      const nameFuncAfterComplet = _this_.attr('data-flip-сontrol-run-after-complet-func') ? _this_.attr('data-flip-сontrol-run-after-complet-func') : null;
+      const nameFuncBefore = _this_.attr('data-flip-control-run-before-func') ? _this_.attr('data-flip-control-run-before-func') : null;
+      const nameFuncAfter = _this_.attr('data-flip-control-run-after-func') ? _this_.attr('data-flip-control-run-after-func') : null;
+      const nameFuncAfterComplet = _this_.attr('data-flip-control-run-after-complet-func') ? _this_.attr('data-flip-control-run-after-complet-func') : null;
 
       if (nameFuncBefore) {
         $j.each(nameFuncBefore.split(' '), function(i, nameFunc) {
@@ -375,7 +375,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
     // Manage visible filter bar & control button (after document ready)
     $j("[data-flip-control-object]").each(function() { //let's go through all objects (buttons) and set icons
       const _this_ = $j(this);
-      const сookie = getCookie('zmFilterBarFlip'+_this_.attr('data-flip-control-object'));
+      const cookie = getCookie('zmFilterBarFlip'+_this_.attr('data-flip-control-object'));
       const initialStateIcon = _this_.attr('data-initial-state-icon'); //"visible"=Opened block , "hidden"=Closed block or "undefined"=use cookie
       const objIconButton = _this_.find("i");
       const obj = $j(_this_.attr('data-flip-control-object'));
@@ -385,7 +385,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
       }
 
       // initialStateIcon takes priority. If there is no cookie, we assume that it is 'visible'
-      const stateIcon = (initialStateIcon) ? initialStateIcon : ((сookie == 'hidden') ? 'hidden' : 'visible');
+      const stateIcon = (initialStateIcon) ? initialStateIcon : ((cookie == 'hidden') ? 'hidden' : 'visible');
       if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
         if (stateIcon == 'hidden') {
           objIconButton.html(objIconButton.attr('data-icon-hidden'));
@@ -590,7 +590,7 @@ function submitThisForm(param = null) {
       form = param.form;
     }
   }
-  if (navbar_type == 'left' && !form) {
+  if (navbar_type == 'left' && filter_settings_position != 'inline' && !form) {
     if (currentView == 'console') {
       // We get the form that we process
       form = document.getElementById('monitorFiltersForm');
@@ -847,7 +847,7 @@ function isJSON(str) {
     const result = JSON.parse(str);
     const type = Object.prototype.toString.call(result);
     return type === '[object Object]' || type === '[object Array]'; // We only pass objects and arrays
-  } catch (e) {
+  } catch {
     return false; // This is also not JSON
   }
 }
@@ -1339,6 +1339,13 @@ function calculateOverlayDimensions(img) {
   return {width: Math.round(width), height: Math.round(height)};
 }
 
+function calculateOverlayScale(img, overlayWidth) {
+  const monitorWidth = parseInt(img.dataset.monitorWidth);
+  if (!monitorWidth || monitorWidth <= 0) return 100;
+  const scale = Math.round(100 * overlayWidth / monitorWidth);
+  return Math.max(5, Math.min(100, scale));
+}
+
 function createThumbnailOverlay(img, overlaySrc, dimensions, streamType, monitorId, go2rtcSrc, go2rtcMid, useGo2rtc) {
   const existing = document.getElementById('thumb-overlay');
   if (existing) existing.remove();
@@ -1359,10 +1366,12 @@ function createThumbnailOverlay(img, overlaySrc, dimensions, streamType, monitor
   container.style.backgroundImage = 'url("' + img.src + '")';
 
   const fallbackToMjpeg = function() {
+    console.log('fallback');
     const streamSrc = img.getAttribute('stream_src');
     if (streamSrc) {
       const fallbackImg = document.createElement('img');
-      fallbackImg.src = streamSrc.replace(/scale=\d+/, 'scale=32');
+      const scale = calculateOverlayScale(img, dimensions.width);
+      fallbackImg.src = streamSrc.replace(/scale=\d+/, 'scale=' + scale);
       container.appendChild(fallbackImg);
     }
   };
@@ -1398,6 +1407,8 @@ function createThumbnailOverlay(img, overlaySrc, dimensions, streamType, monitor
     createVideoElement(container, overlaySrc, eventStart, statusBar);
   } else {
     const overlayImg = document.createElement('img');
+    const scale = calculateOverlayScale(img, dimensions.width);
+    overlaySrc = overlaySrc.replace(/scale=\d+/, 'scale=' + scale);
     overlayImg.src = overlaySrc;
     container.appendChild(overlayImg);
   }
@@ -1430,7 +1441,8 @@ function createGo2rtcStream(container, src, mid, fallbackToMjpeg) {
     const url = new URL(src);
     url.protocol = (url.protocol === 'https:') ? 'wss:' : 'ws:';
     url.pathname += '/ws';
-    url.search = 'src=' + mid + '_0';
+    //url.search = 'src=' + mid + '_0';
+    url.search = 'src=' + mid + '_CameraDirectPrimary';
 
     const stream = document.createElement('video-stream');
     stream.style.cssText = 'width: 100%; height: 100%; display: block;';
@@ -1842,6 +1854,30 @@ function setButtonSizeOnStream() {
   });
 }
 
+function calcTextSizeOnInfoBlock(el) {
+  const w = el.offsetWidth;
+  const textLength = el.innerText.length;
+  if (textLength === 0) return false;
+  const d = (w/400 > 1) ? 1 : w/400/0.8; // If the block width is less than 400px, the text will take up more than 40% of the width, otherwise it will be difficult to read.
+  return parseInt((w/textLength) * 0.6 / d); // ~40% of the block width
+}
+
+function setTextSizeOnInfoBlocks() {
+  const block = document.querySelectorAll('[id ^= "stream-info-block"]');
+  Array.prototype.forEach.call(block, (el) => {
+    setTextSizeOnInfoBlock(el);
+  });
+}
+
+function setTextSizeOnInfoBlock(el) {
+  if (el.innerText.length == 0) return;
+  const fontSize = calcTextSizeOnInfoBlock(el);
+  el.style.fontSize = fontSize + "px";
+  el.classList.remove("text-3d-mini", "text-3d");
+  const blockClass = (fontSize !== fontSize || fontSize < 50) ? 'text-3d-mini' : 'text-3d';
+  el.classList.add(blockClass);
+}
+
 /*
 * date - object type Date()
 * shift.offset - number (can be negative)
@@ -1963,6 +1999,8 @@ function changeAttrTitle(collapsed = null) {
 
 /* We create a retractable extruder block with filter settings (we move filters from the top panel) and a button in the left Sidebar menu */
 function insertControlModuleMenu() {
+  if (filter_settings_position == 'inline') return;
+
   var filter = null;
   if (currentView == 'console') {
     destroyChosen(); // It is required to be performed BEFORE receiving the object and only for those pages on which we transfer the filter
@@ -2396,7 +2434,7 @@ function getMonitorStream(mid) { // RENAME to getStream(), but it is already in 
   let monitorStream_ = null;
   if (currentView == 'watch') {
     monitorStream_ = monitorStream;
-  } else if (currentView == 'montage') {
+  } else if (currentView == 'montage' || currentView == 'zones' || currentView == 'zone') {
     monitorStream_ = monitors.find((o) => {
       return parseInt(o["id"]) === mid;
     });
@@ -2532,7 +2570,7 @@ function initPageGeneral() {
         mainContentJ.css({flex: "0 1 auto"});
       }
       if (typeof ZM_WEB_ANIMATIONS === 'undefined' || !ZM_WEB_ANIMATIONS) {
-        mainContentJ.css({display: "none"});
+        // mainContentJ.css({display: "none"});
       } else {
         mainContentJ.animate({height: 0}, 300, function rollupBeforeunloadPage() {
           mainContentJ.css({display: "none"});
@@ -2754,6 +2792,7 @@ function monitorsSetScale(id=null) {
     }
   } // End function _setScale
   setButtonSizeOnStream();
+  setTextSizeOnInfoBlocks();
 } // End function monitorsSetScale
 
 /*IMPORTANT DO NOT CALL WITHOUT CONSCIOUS NEED!!!*/
@@ -2770,7 +2809,7 @@ async function getTracksFromStream(videoFeedStream) {
   }
 
   let el = null;
-  if (currentView == 'watch' || currentView == 'montage') {
+  if (currentView == 'watch' || currentView == 'montage' || currentView == 'zones' || currentView == 'zone') {
     el = (-1 !== videoFeedStream.activePlayer.indexOf('go2rtc')) ? document.querySelector('[id ^= "liveStream'+videoFeedStream.id+'"] video') : videoFeedStream.getElement();
   } else if (currentView == 'event') {
     el = videoFeedStream.querySelector('video');
@@ -2797,14 +2836,28 @@ async function getTracksFromStream(videoFeedStream) {
   }
 
   if (stream) {
-    videoFeedStream.audioTrack = stream.getAudioTracks()[0];
-    videoFeedStream.videoTrack = stream.getVideoTracks()[0];
-    videoFeedStream.mediaStream = stream;
-    if (moz && videoFeedStream.audioTrack) {
-      // Fix Firefox https://stackoverflow.com/questions/72401396/usage-of-mozcapturestream-stop-audio-output-of-video-element
-      const ctx = new AudioContext();
-      const dest = ctx.createMediaStreamSource(stream);
-      dest.connect(ctx.destination);
+    const timeoutStreamActive = 20000;
+    const streamActive = await waitUntil(() => stream.active, timeoutStreamActive ); // We are waiting for the stream to become active.
+    if (streamActive !== false) {
+      console.debug(`Stream for monitor with ID=${mid} became active within ${(streamActive/1000).toFixed(2)} seconds.`);
+    } else {
+      console.warn(`Within ${(timeoutStreamActive/1000).toFixed(2)} seconds, the stream for monitor with ID=${mid} did not become active.`);
+      return;
+    }
+
+    if (videoFeedStream.started) {
+      // While we were waiting for Media Stream activity, the video stream may have stopped.
+      videoFeedStream.audioTrack = stream.getAudioTracks()[0];
+      videoFeedStream.videoTrack = stream.getVideoTracks()[0];
+      videoFeedStream.mediaStream = stream;
+      if (moz && videoFeedStream.audioTrack) {
+        // Fix Firefox https://stackoverflow.com/questions/72401396/usage-of-mozcapturestream-stop-audio-output-of-video-element
+        const ctx = new AudioContext();
+        const dest = ctx.createMediaStreamSource(stream);
+        dest.connect(ctx.destination);
+      }
+    } else {
+      console.debug(`Stream for monitor ID=${mid} is not running. mediaStream is not assigned for a stream.`);
     }
   } else if (!streamCaptureNotSupported) {
     console.warn(`Failed to capture stream for monitor ID=${mid} while receiving tracks.`);
@@ -2821,5 +2874,64 @@ async function getTracksFromStream(videoFeedStream) {
 
   //connectAudioMotion(mid);
 }
+
+const waitUntil = (condition, timeout = 0) => {
+  const startTime = Date.now();
+
+  return new Promise((resolve) => {
+    const interval = setInterval(() => {
+      const currentTime = Date.now();
+      if (timeout !== 0 && ((currentTime - startTime) > timeout)) {
+        clearInterval(interval);
+        resolve(false);
+      } else {
+        if (!condition()) return;
+        clearInterval(interval);
+        resolve(currentTime - startTime);
+      }
+    }, 100);
+  });
+};
+
+// https://stackoverflow.com/a/69273090
+class ManageEventListener {
+  #listeners = {}; // # in a JS class signifies private
+  #idx = 1;
+
+  // add event listener, returns integer ID of new listener
+  addEventListener(element, type, listener, options = {}) {
+    this.#privateAddEventListener(element, this.#idx, type, listener, options);
+    return this.#idx++;
+  }
+
+  // add event listener with custom ID (avoids need to retrieve return ID since you are providing it yourself)
+  addEventListenerById(element, id, type, listener, options = {}) {
+    this.#privateAddEventListener(element, id, type, listener, options);
+    return id;
+  }
+
+  #privateAddEventListener(element, id, type, listener, options) {
+    if (this.#listeners[id]) throw Error(`A listener with id ${id} already exists`);
+    element.addEventListener(type, listener, options);
+    this.#listeners[id] = {element, type, listener, options};
+  }
+
+  // remove event listener with given ID, returns ID of removed listener or null (if listener with given ID does not exist)
+  removeEventListener(id) {
+    const listen = this.#listeners[id];
+    if (listen) {
+      listen.element.removeEventListener(listen.type, listen.listener, listen.options);
+      delete this.#listeners[id];
+    }
+    return !!listen ? id : null;
+  }
+
+  // returns number of events listeners
+  length() {
+    return Object.keys(this.#listeners).length;
+  }
+}
+const manageEventListener = new ManageEventListener();
+window.manageEventListener = manageEventListener;
 
 $j( window ).on("load", initPageGeneral);

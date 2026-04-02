@@ -844,22 +844,23 @@ FROM `Frames` WHERE `EventId`=?';
     File::Find::find( { wanted=>\&deleteSwapImage, untaint=>1 }, $swap_image_root );
   };
 
-  # Prune the Logs table if required
+  # Prune the Logs table if required (excluding AUDIT entries)
   if ( $Config{ZM_LOG_DATABASE_LIMIT} ) {
+    my $audit_level = ZoneMinder::Logger::AUDIT;
     if ( $Config{ZM_LOG_DATABASE_LIMIT} =~ /^\d+$/ ) {
       # Number of rows
-      my $selectLogRowCountSql = 'SELECT count(*) AS `Rows` FROM `Logs`';
+      my $selectLogRowCountSql = 'SELECT count(*) AS `Rows` FROM `Logs` WHERE `Level` != ?';
       my $selectLogRowCountSth = $dbh->prepare_cached( $selectLogRowCountSql )
         or Fatal("Can't prepare '$selectLogRowCountSql': ".$dbh->errstr());
-      $res = $selectLogRowCountSth->execute()
+      $res = $selectLogRowCountSth->execute($audit_level)
         or Fatal("Can't execute: ".$selectLogRowCountSth->errstr());
       my $row = $selectLogRowCountSth->fetchrow_hashref();
       my $logRows = $row->{Rows};
       if ( $logRows > $Config{ZM_LOG_DATABASE_LIMIT} ) {
-        my $deleteLogByRowsSql = 'DELETE low_priority FROM `Logs` ORDER BY `TimeKey` ASC LIMIT ?';
+        my $deleteLogByRowsSql = 'DELETE low_priority FROM `Logs` WHERE `Level` != ? ORDER BY `TimeKey` ASC LIMIT ?';
         my $deleteLogByRowsSth = $dbh->prepare_cached( $deleteLogByRowsSql )
           or Fatal("Can't prepare '$deleteLogByRowsSql': ".$dbh->errstr());
-        $res = $deleteLogByRowsSth->execute( $logRows - $Config{ZM_LOG_DATABASE_LIMIT} )
+        $res = $deleteLogByRowsSth->execute( $audit_level, $logRows - $Config{ZM_LOG_DATABASE_LIMIT} )
           or Fatal("Can't execute: ".$deleteLogByRowsSth->errstr());
         if ( $deleteLogByRowsSth->rows() ) {
           aud_print('Deleted '.$deleteLogByRowsSth->rows().' log table entries by count');
@@ -867,7 +868,7 @@ FROM `Frames` WHERE `EventId`=?';
       }
     } else {
       # Time of record
-      
+
       # 7 days is invalid.  We need to remove the s
       if ( $Config{ZM_LOG_DATABASE_LIMIT} =~ /^(.*)s$/ ) {
         $Config{ZM_LOG_DATABASE_LIMIT} = $1;
@@ -876,16 +877,53 @@ FROM `Frames` WHERE `EventId`=?';
       do {
         my $deleteLogByTimeSql =
         'DELETE FROM `Logs`
-        WHERE `TimeKey` < unix_timestamp(now() - interval '.$Config{ZM_LOG_DATABASE_LIMIT}.') LIMIT 10';
+        WHERE `Level` != ? AND `TimeKey` < unix_timestamp(now() - interval '.$Config{ZM_LOG_DATABASE_LIMIT}.') LIMIT 10';
         my $deleteLogByTimeSth = $dbh->prepare_cached( $deleteLogByTimeSql )
           or Fatal("Can't prepare '$deleteLogByTimeSql': ".$dbh->errstr());
-        $res = $deleteLogByTimeSth->execute()
+        $res = $deleteLogByTimeSth->execute($audit_level)
           or Fatal("Can't execute: ".$deleteLogByTimeSth->errstr());
         $deleted_rows = $deleteLogByTimeSth->rows();
         aud_print("Deleted $deleted_rows log table entries by time");
       } while ( $deleted_rows );
     }
   } # end if ZM_LOG_DATABASE_LIMIT
+
+  # Prune AUDIT log entries separately with their own retention period
+  if ( $Config{ZM_LOG_AUDIT_DATABASE_LIMIT} ) {
+    my $audit_level = ZoneMinder::Logger::AUDIT;
+    my $audit_limit = $Config{ZM_LOG_AUDIT_DATABASE_LIMIT};
+    if ( $audit_limit =~ /^\d+$/ ) {
+      # Number of rows
+      my $sth = $dbh->prepare_cached('SELECT count(*) AS `Rows` FROM `Logs` WHERE `Level` = ?')
+        or Fatal("Can't prepare audit log count: ".$dbh->errstr());
+      $res = $sth->execute($audit_level)
+        or Fatal("Can't execute audit log count: ".$sth->errstr());
+      my $row = $sth->fetchrow_hashref();
+      my $logRows = $row->{Rows};
+      if ( $logRows > $audit_limit ) {
+        my $del_sth = $dbh->prepare_cached('DELETE low_priority FROM `Logs` WHERE `Level` = ? ORDER BY `TimeKey` ASC LIMIT ?')
+          or Fatal("Can't prepare audit log delete: ".$dbh->errstr());
+        $res = $del_sth->execute($audit_level, $logRows - $audit_limit)
+          or Fatal("Can't execute audit log delete: ".$del_sth->errstr());
+        if ( $del_sth->rows() ) {
+          aud_print('Deleted '.$del_sth->rows().' audit log entries by count');
+        }
+      }
+    } else {
+      # Time of record
+      $audit_limit =~ s/s$//;
+      my $deleted_rows;
+      do {
+        my $del_sth = $dbh->prepare_cached(
+          'DELETE FROM `Logs` WHERE `Level` = ? AND `TimeKey` < unix_timestamp(now() - interval '.$audit_limit.') LIMIT 10')
+          or Fatal("Can't prepare audit log time delete: ".$dbh->errstr());
+        $res = $del_sth->execute($audit_level)
+          or Fatal("Can't execute audit log time delete: ".$del_sth->errstr());
+        $deleted_rows = $del_sth->rows();
+        aud_print("Deleted $deleted_rows audit log entries by time");
+      } while ( $deleted_rows );
+    }
+  } # end if ZM_LOG_AUDIT_DATABASE_LIMIT
   $loop = $continuous;
 
   my $eventcounts_sql = '

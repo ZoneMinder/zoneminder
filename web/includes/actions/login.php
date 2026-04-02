@@ -26,6 +26,16 @@ if ( ('login' == $action) && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == '
 
   // if captcha existed, it was passed
 
+  if (defined('ZM_OPT_USE_REMEMBER_ME') && ZM_OPT_USE_REMEMBER_ME != 'None' && ZM_OPT_USE_REMEMBER_ME != '' && ZM_OPT_USE_REMEMBER_ME != '0') {
+    if (!empty($_REQUEST['remember_me'])) {
+      zm_setcookie('ZM_REMEMBER_ME', '1', array('expires' => time() + ZM_COOKIE_LIFETIME));
+      $_COOKIE['ZM_REMEMBER_ME'] = '1';
+    } else {
+      zm_setcookie('ZM_REMEMBER_ME', '', array('expires' => time() - 31536000));
+      unset($_COOKIE['ZM_REMEMBER_ME']);
+    }
+  }
+
   zm_session_start();
   if (!isset($user) ) {
     $_SESSION['loginFailed'] = true;

@@ -667,9 +667,18 @@ void Image::Initialise() {
   b_u_table = b_u_table_global;
 
   FontLoadError res = font.LoadFontFile(config.font_file_location);
-  if ( res == FontLoadError::kFileNotFound ) {
+  if (res == FontLoadError::kFileNotFound) {
+    // Try compile-time default as fallback
+    std::string fallback = std::string(ZM_FONTDIR) + "/default.zmfnt";
+    if (fallback != config.font_file_location) {
+      Warning("Font not found at configured path %s, trying %s",
+              config.font_file_location, fallback.c_str());
+      res = font.LoadFontFile(fallback.c_str());
+    }
+  }
+  if (res == FontLoadError::kFileNotFound) {
     Error("Invalid font location: %s", config.font_file_location);
-  } else if ( res == FontLoadError::kInvalidFile ) {
+  } else if (res == FontLoadError::kInvalidFile) {
     Error("Invalid font file.");
   }
   initialised = true;

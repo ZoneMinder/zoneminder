@@ -1017,6 +1017,7 @@ a.flip {
   color: white;
 }
 .imageFeed {
+  border: 2px solid white; /* Because .alarm .imageFeed has a red border, so without this is jumps around */
   margin: 0 auto;
   text-align: center;
   /*
@@ -1035,14 +1036,17 @@ a.flip {
   /*
   height: 100%;
   */
-  border: 2px solid #ffffff;
 }
 .imageFeed svg {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
+  height: 100%;
   background: none;
+}
+.imageFeed svg.zones, #videoFeed svg.zones {
+  z-index: 3;
 }
 .colThumbnail img {
   border-radius: 4px;
@@ -1066,15 +1070,15 @@ a.flip {
   color: #dddddd;
 }
 
-.monitor.idle img, .monitor.idle .imageFeed {
+.monitor.idle .imageFeed {
   border: 2px solid #ffffff;
 }
 
-.monitor.alarm img, .monitor.alarm .imageFeed {
+.monitor.alarm .imageFeed {
   border: 2px solid #ff0000;
 }
 
-.monitor.alert img, .monitor.alert .imageFeed {
+.monitor.alert .imageFeed {
   border: 2px solid #ffa500;
 }
 .monitor.alert {
@@ -1485,7 +1489,7 @@ button.btn.btn-view-watch:hover {
 }
 /* --- Style for <input> --- */
 
-/* +++ Volume сontrol +++ */
+/* +++ Volume control +++ */
 .audio-control-mute {
   position: relative;
   cursor: pointer;
@@ -1559,7 +1563,7 @@ noUi-target {
 [id^="volumeControls"].disabled {
   opacity: 0.4;
 }
-/* --- Volume сontrol --- */
+/* --- Volume control --- */
 
 .rightInFlexContainer {
   margin-left: auto; /* This will cause the element in the FLEX container to snap to the right side. All elements after this element will also snap to the right side. */
@@ -1617,6 +1621,32 @@ video-stream[id^='liveStream'] video{
   border-radius: 4px;
 }
 
+.text-3d {
+  color: transparent;
+  text-shadow: -4px 4px hsla(0, 0%, 70%, .4),
+               -3px 3px hsla(0, 0%, 65%, .2),
+               -2px 2px hsla(0, 0%, 60%, .2),
+               -1px 1px hsla(0, 0%, 55%, .2),
+               0px 0px hsla(0, 0%, 50%, .5),
+               1px -1px hsla(0, 0%, 40%, .6),
+               2px -2px hsla(0, 0%, 38%, .7),
+               3px -3px hsla(0, 0%, 37%, .8),
+               4px -4px hsla(0, 0%, 36%, .9),
+               5px -5px hsla(0, 0%, 35%, 1.0);
+}
+.text-3d-mini {
+  color: transparent;
+  text-shadow: -2px 2px hsla(0, 0%, 65%, .2),
+               -1px 1px hsla(0, 0%, 55%, .2),
+               0px 0px hsla(0, 0%, 50%, .5),
+               1px -1px hsla(0, 0%, 40%, .6),
+               2px -2px hsla(0, 0%, 30%, .7);
+}
+
+*[data-on-click-this="toggle_password_visibility"] {
+  cursor: pointer;
+}
+
 /* +++ This block should always be located at the end! */
 .hidden {
     display: none;
@@ -1628,5 +1658,24 @@ video-stream[id^='liveStream'] video{
 
 .invisible {
     visibility: hidden;
+}
+
+/* Button style: icons only — hide text labels */
+.btn-icons-only button .text,
+.btn-icons-only .btn .text {
+  display: none;
+}
+
+/* Button style: text only — hide icons on buttons that have a text label */
+.btn-text-only button:has(.text) > i.material-icons,
+.btn-text-only button:has(.text) > i.fa,
+.btn-text-only .btn:has(.text) > i.material-icons,
+.btn-text-only .btn:has(.text) > i.fa {
+  display: none;
+}
+/* Hide Back and Refresh nav buttons when config disables them */
+.hide-nav-buttons #backBtn,
+.hide-nav-buttons #refreshBtn {
+  display: none;
 }
 /* --- This block should always be located at the end! */

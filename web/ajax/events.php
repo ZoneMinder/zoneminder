@@ -320,7 +320,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     if (!$event->canView()) continue;
     if ($event->Monitor()->Deleted()) continue;
 
-    $scale = intval(5*100*ZM_WEB_LIST_THUMB_WIDTH / $event->Width());
+    $scale = $event->Width() ? intval(5*100*ZM_WEB_LIST_THUMB_WIDTH / $event->Width()) : 100;
     $imgSrc = $event->getThumbnailSrc(array(), '&amp;');
     $streamSrc = $event->getStreamSrc(array(
       'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single', 'rate'=>'400'), '&amp;');
@@ -332,7 +332,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     }
 
     // Modify the row data as needed
-    $row['imgHtml'] = '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="Event '.$event->Id().'" width="' .validInt($event->ThumbnailWidth()). '" height="' .validInt($event->ThumbnailHeight()).'" stream_src="' .$streamSrc. '" still_src="' .$imgSrc. '"' .$videoAttr. ' loading="lazy" />';
+    $row['imgHtml'] = '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="Event '.$event->Id().'" width="' .validInt($event->ThumbnailWidth()). '" height="' .validInt($event->ThumbnailHeight()).'" stream_src="' .$streamSrc. '" still_src="' .$imgSrc. '"' .$videoAttr. ' data-monitor-width="'.$event->Width().'" data-monitor-height="'.$event->Height().'" loading="lazy" />';
     $row['imgWidth'] = validInt($event->ThumbnailWidth());
     $row['imgHeight'] = validInt($event->ThumbnailHeight());
 

@@ -177,9 +177,9 @@ var maxTime='$maxTime';
 ";
 echo 'var rangeTimeSecs='.($maxTimeSecs - $minTimeSecs + 1).";\n";
 if ( isset($defaultCurrentTimeSecs) ) {
-  echo 'var currentTimeSecs=parseInt('.$defaultCurrentTimeSecs.");\n";
+  echo 'var currentTimeSecs=parseFloat('.$defaultCurrentTimeSecs.");\n";
 } else {
-  echo 'var currentTimeSecs=parseInt('.$minTimeSecs.");\n";
+  echo 'var currentTimeSecs=parseFloat('.$minTimeSecs.");\n";
 }
 
 echo 'var speeds=[';

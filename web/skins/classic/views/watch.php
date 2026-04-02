@@ -226,13 +226,17 @@ echo getNavBarHTML() ?>
 <div id="page">
   <div id="header">
 <?php
-    $html = '<a class="flip" href="#" 
-             data-flip-control-object="#mfbpanel" 
-             data-flip-сontrol-run-after-func="applyChosen" 
-             data-flip-сontrol-run-after-complet-func="changeScale">
-               <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
-             </a>'.PHP_EOL;
-    $html .= '<div id="mfbpanel" class="hidden-shift container-fluid">'.PHP_EOL;
+    $filter_inline = defined('ZM_WEB_FILTER_SETTINGS_POSITION') && ZM_WEB_FILTER_SETTINGS_POSITION == 'inline';
+    $html = '';
+    if (!$filter_inline) {
+      $html .= '<a class="flip" href="#"
+               data-flip-control-object="#mfbpanel"
+               data-flip-control-run-after-func="applyChosen"
+               data-flip-control-run-after-complet-func="changeScale">
+                 <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
+               </a>'.PHP_EOL;
+    }
+    $html .= '<div id="mfbpanel" class="'.($filter_inline ? '' : 'hidden-shift ').'container-fluid">'.PHP_EOL;
     echo $html;
 ?>
     <div class="controlHeader">
@@ -335,7 +339,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], ['class'=>'ch
   </div><!--header-->
   <div id="content">
     <div class="container-fluid">
-      <div class="row flex-nowrap" >
+      <div class="row flex-md-nowrap" >
 <?php if (count($monitors)) { ?>
         <nav id="sidebar" <?php echo $showCycle?'':' style="display:none;"'?>>
           <div id="cycleButtons" class="buttons">
@@ -509,9 +513,9 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
               <th data-sortable="false" data-field="EndDateTime"><?php echo translate('AttrEndTime') ?></th>
               <th data-sortable="false" data-field="Length"><?php echo translate('Duration') ?></th>
               <th data-sortable="false" data-field="Frames"><?php echo translate('Frames') ?></th>
-              <th data-sortable="false" data-field="AlarmFrames"><?php echo translate('AlarmBrFrames') ?></th>
-              <th data-sortable="false" data-field="AvgScore"><?php echo translate('AvgBrScore') ?></th>
-              <th data-sortable="false" data-field="MaxScore"><?php echo translate('MaxBrScore') ?></th>
+              <th data-sortable="false" data-field="AlarmFrames" data-switchable-label="<?php echo str_replace('<br/>', ' ', translate('AlarmBrFrames')) ?>"><?php echo translate('AlarmBrFrames') ?></th>
+              <th data-sortable="false" data-field="AvgScore" data-switchable-label="<?php echo str_replace('<br/>', ' ', translate('AvgBrScore')) ?>"><?php echo translate('AvgBrScore') ?></th>
+              <th data-sortable="false" data-field="MaxScore" data-switchable-label="<?php echo str_replace('<br/>', ' ', translate('MaxBrScore')) ?>"><?php echo translate('MaxBrScore') ?></th>
 <?php if (ZM_WEB_LIST_THUMBS) { ?>
               <th data-sortable="false" data-field="Thumbnail"><?php echo translate('Thumbnail') ?></th>
 <?php } ?>

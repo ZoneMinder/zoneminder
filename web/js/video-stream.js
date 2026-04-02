@@ -42,7 +42,19 @@ class VideoStream extends VideoRTC {
      */
     oninit() {
         console.debug('stream.oninit');
+        this.visibilityCheck = false;
         super.oninit();
+    }
+
+    onplay() {
+        const liveStream = this.closest('[id ^= "liveStream"]');
+        if (liveStream) {
+            const monitorStream = getMonitorStream(stringToNumber(liveStream.id));
+            if (monitorStream) {
+                monitorStream.streamStartTime = (Date.now() / 1000).toFixed(2);
+            }
+        }
+        super.onplay();
     }
 
     onconnect() {
@@ -55,6 +67,11 @@ class VideoStream extends VideoRTC {
     ondisconnect() {
         console.debug('stream.ondisconnect');
         super.ondisconnect();
+    }
+
+    connectedCallback() {
+        console.debug('stream.connectedCallback');
+        super.connectedCallback(); 
     }
 
     onopen() {
@@ -72,7 +89,7 @@ class VideoStream extends VideoRTC {
                 case 'mp4':
                 case 'mjpeg':
                     this.divMode = msg.type.toUpperCase();
-                    this.getTracksFromStream();
+                    //this.getTracksFromStream();
                     break;
             }
         };
@@ -92,16 +109,16 @@ class VideoStream extends VideoRTC {
         if (this.pcState !== WebSocket.CLOSED) {
             this.divMode = 'RTC';
         }
-        this.getTracksFromStream();
+        //this.getTracksFromStream();
     }
 
-  pause() {
-    this.video.pause();
-  }
-  close() {
-    this.video.pause();
-  }
-
+    pause() {
+        this.video.pause();
+    }
+    close() {
+        this.video.pause();
+    }
+/*
     getTracksFromStream() {
         const liveStream = this.closest('[id ^= "liveStream"]');
         if (liveStream) {
@@ -113,6 +130,7 @@ class VideoStream extends VideoRTC {
             }
         }
     }
+*/
 }
 
 customElements.define('video-stream', VideoStream);

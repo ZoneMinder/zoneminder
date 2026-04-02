@@ -883,18 +883,18 @@ CREATE TABLE `ZonePresets` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `Name` varchar(64) NOT NULL default '',
   `Type` enum('Active','Inclusive','Exclusive','Preclusive','Inactive','Privacy') NOT NULL default 'Active',
-  `Units` enum('Pixels','Percent') NOT NULL default 'Pixels',
+  `Units` enum('Pixels','Percent') NOT NULL default 'Percent',
   `CheckMethod` enum('AlarmedPixels','FilteredPixels','Blobs') NOT NULL default 'Blobs',
   `MinPixelThreshold` smallint(5) unsigned default NULL,
   `MaxPixelThreshold` smallint(5) unsigned default NULL,
-  `MinAlarmPixels` int(10) unsigned default NULL,
-  `MaxAlarmPixels` int(10) unsigned default NULL,
+  `MinAlarmPixels` DECIMAL(10,2) unsigned default NULL,
+  `MaxAlarmPixels` DECIMAL(10,2) unsigned default NULL,
   `FilterX` tinyint(3) unsigned default NULL,
   `FilterY` tinyint(3) unsigned default NULL,
-  `MinFilterPixels` int(10) unsigned default NULL,
-  `MaxFilterPixels` int(10) unsigned default NULL,
-  `MinBlobPixels` int(10) unsigned default NULL,
-  `MaxBlobPixels` int(10) unsigned default NULL,
+  `MinFilterPixels` DECIMAL(10,2) unsigned default NULL,
+  `MaxFilterPixels` DECIMAL(10,2) unsigned default NULL,
+  `MinBlobPixels` DECIMAL(10,2) unsigned default NULL,
+  `MaxBlobPixels` DECIMAL(10,2) unsigned default NULL,
   `MinBlobs` smallint(5) unsigned default NULL,
   `MaxBlobs` smallint(5) unsigned default NULL,
   `OverloadFrames` smallint(5) unsigned NOT NULL default '0',
@@ -913,7 +913,7 @@ CREATE TABLE `Zones` (
   FOREIGN KEY (`MonitorId`) REFERENCES `Monitors` (`Id`) ON DELETE CASCADE,
   `Name` varchar(64) NOT NULL default '',
   `Type` enum('Active','Inclusive','Exclusive','Preclusive','Inactive','Privacy') NOT NULL default 'Active',
-  `Units` enum('Pixels','Percent') NOT NULL default 'Pixels',
+  `Units` enum('Pixels','Percent') NOT NULL default 'Percent',
   `NumCoords` tinyint(3) unsigned NOT NULL default '0',
   `Coords` tinytext NOT NULL,
   `Area` int(10) unsigned NOT NULL default '0',
@@ -921,14 +921,14 @@ CREATE TABLE `Zones` (
   `CheckMethod` enum('AlarmedPixels','FilteredPixels','Blobs') NOT NULL default 'Blobs',
   `MinPixelThreshold` smallint(5) unsigned default NULL,
   `MaxPixelThreshold` smallint(5) unsigned default NULL,
-  `MinAlarmPixels` int(10) unsigned default NULL,
-  `MaxAlarmPixels` int(10) unsigned default NULL,
+  `MinAlarmPixels` DECIMAL(10,2) unsigned default NULL,
+  `MaxAlarmPixels` DECIMAL(10,2) unsigned default NULL,
   `FilterX` tinyint(3) unsigned default NULL,
   `FilterY` tinyint(3) unsigned default NULL,
-  `MinFilterPixels` int(10) unsigned default NULL,
-  `MaxFilterPixels` int(10) unsigned default NULL,
-  `MinBlobPixels` int(10) unsigned default NULL,
-  `MaxBlobPixels` int(10) unsigned default NULL,
+  `MinFilterPixels` DECIMAL(10,2) unsigned default NULL,
+  `MaxFilterPixels` DECIMAL(10,2) unsigned default NULL,
+  `MinBlobPixels` DECIMAL(10,2) unsigned default NULL,
+  `MaxBlobPixels` DECIMAL(10,2) unsigned default NULL,
   `MinBlobs` smallint(5) unsigned default NULL,
   `MaxBlobs` smallint(5) unsigned default NULL,
   `OverloadFrames` smallint(5) unsigned NOT NULL default '0',
@@ -1328,6 +1328,59 @@ CREATE TABLE `Events_Tags` (
   CONSTRAINT `Events_Tags_ibfk_1` FOREIGN KEY (`TagId`) REFERENCES `Tags` (`Id`) ON DELETE CASCADE,
   CONSTRAINT `Events_Tags_ibfk_2` FOREIGN KEY (`EventId`) REFERENCES `Events` (`Id`) ON DELETE CASCADE
 ) ENGINE=@ZM_MYSQL_ENGINE@;
+
+CREATE TABLE `Notifications` (
+  `Id`              int unsigned    NOT NULL AUTO_INCREMENT,
+  `UserId`          int unsigned    DEFAULT NULL,
+  `Token`           varchar(512)    NOT NULL,
+  `Platform`        enum('android','ios','web') NOT NULL,
+  `MonitorList`     text            DEFAULT NULL,
+  `Interval`        int unsigned    NOT NULL DEFAULT 0,
+  `PushState`       enum('enabled','disabled') NOT NULL DEFAULT 'enabled',
+  `AppVersion`      varchar(32)     DEFAULT NULL,
+  `Profile`         varchar(128)    DEFAULT NULL,
+  `BadgeCount`      int             NOT NULL DEFAULT 0,
+  `LastNotifiedAt`  datetime        DEFAULT NULL,
+  `CreatedOn`       datetime        DEFAULT NULL,
+  `UpdatedOn`       timestamp       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`Id`),
+  UNIQUE KEY `Notifications_Token_idx` (`Token`),
+  KEY `Notifications_UserId_idx` (`UserId`),
+  CONSTRAINT `Notifications_ibfk_1` FOREIGN KEY (`UserId`) REFERENCES `Users` (`Id`) ON DELETE CASCADE
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
+--
+-- Table structure for table `Menu_Items`
+--
+
+DROP TABLE IF EXISTS `Menu_Items`;
+CREATE TABLE `Menu_Items` (
+  `Id`        int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `MenuKey`   varchar(32) NOT NULL,
+  `Enabled`   tinyint(1) NOT NULL DEFAULT 1,
+  `Label`     varchar(64) DEFAULT NULL,
+  `SortOrder` smallint NOT NULL DEFAULT 0,
+  `Icon`      varchar(128) DEFAULT NULL,
+  `IconType`  enum('material','fontawesome','image','none') NOT NULL DEFAULT 'material',
+  PRIMARY KEY (`Id`),
+  UNIQUE KEY `Menu_Items_MenuKey_idx` (`MenuKey`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
+INSERT INTO `Menu_Items` (`MenuKey`, `Enabled`, `SortOrder`) VALUES
+  ('Console', 1, 10),
+  ('Montage', 1, 20),
+  ('MontageReview', 1, 30),
+  ('Events', 1, 40),
+  ('Options', 1, 50),
+  ('Log', 1, 60),
+  ('Devices', 1, 70),
+  ('IntelGpu', 1, 80),
+  ('Groups', 1, 90),
+  ('Filters', 1, 100),
+  ('Snapshots', 1, 110),
+  ('Reports', 1, 120),
+  ('ReportEventAudit', 1, 130),
+  ('Map', 1, 140);
 
 source @PKGDATADIR@/db/Object_Types.sql
 -- We generally don't alter triggers, we drop and re-create them, so let's keep them in a separate file that we can just source in update scripts.

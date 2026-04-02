@@ -898,6 +898,11 @@ function exportEvents(
     return false;
   }
 
+  // Sanitize user-supplied values used in file paths and shell commands
+  $export_root = preg_replace('/[^\w\-.]/', '', $export_root);
+  if (empty($export_root)) $export_root = 'zmExport';
+  $connkey = preg_replace('/[^\w\-.]/', '', $connkey);
+
   if (!($exportFormat == 'tar' or $exportFormat == 'zip')) {
     ZM\Error("None or invalid exportFormat specified $exportFormat.");
     return false;
@@ -946,14 +951,14 @@ function exportEvents(
         #continue;
       if ($exportStructure == 'flat') {
         if (false !== strpos($file, strval($event->Id()))) {
-          $cmd = 'cp -as '.$event->Path().'/'.$file.' '.$export_dir.'/'.$file. ' 2>&1';
+          $cmd = 'cp -as -- '.escapeshellarg($event->Path().'/'.$file).' '.escapeshellarg($export_dir.'/'.$file). ' 2>&1';
           $exportFileList[] = $file;
         } else {
-          $cmd = 'cp -as '.$event->Path().'/'.$file.' '.$export_dir.'/'.$event->Id().'_'.$file. ' 2>&1';
+          $cmd = 'cp -as -- '.escapeshellarg($event->Path().'/'.$file).' '.escapeshellarg($export_dir.'/'.$event->Id().'_'.$file). ' 2>&1';
           $exportFileList[] = $event->Id().'_'.$file;
         }
       } else {
-        $cmd = 'cp -as '.$event->Path().'/'.$file.' '.$export_dir.'/'.$event->Id().'/'.$file. ' 2>&1';
+        $cmd = 'cp -as -- '.escapeshellarg($event->Path().'/'.$file).' '.escapeshellarg($export_dir.'/'.$event->Id().'/'.$file). ' 2>&1';
         $exportFileList[] = $event->Id().'/'.$file;
       }
       exec($cmd, $output, $return);
@@ -1027,7 +1032,7 @@ function exportEvents(
   } // if $exportFormat
 
   @unlink($archive_path);
-  $command .= ' '.$export_root.($connkey?'_'.$connkey:'').'/';
+  $command .= ' '.escapeshellarg($export_root.($connkey?'_'.$connkey:'').'/');
   ZM\Debug($command);
   exec($command, $output, $status);
   if ($status) {

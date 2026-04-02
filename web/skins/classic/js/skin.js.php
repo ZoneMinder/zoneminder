@@ -31,6 +31,7 @@ const navBarRefresh = <?php echo 1000*ZM_WEB_REFRESH_NAVBAR ?>;
 const currentView = '<?php echo $view ?>';
 const homeView = '<?php echo getHomeView() ?>';
 const navbar_type = '<?php echo $navbar_type ?>';
+const filter_settings_position = '<?php echo defined('ZM_WEB_FILTER_SETTINGS_POSITION') ? ZM_WEB_FILTER_SETTINGS_POSITION : 'sidebar' ?>';
 
 const exportProgressString = '<?php echo addslashes(translate('Exporting')) ?>';
 const exportFailedString = '<?php echo translate('ExportFailed') ?>';

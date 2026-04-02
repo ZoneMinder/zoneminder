@@ -54,6 +54,19 @@ function AddNewRole(el) {
   window.location.assign(url);
 }
 
+function sortMenuItems(button) {
+  if (button.classList.contains('btn-success')) {
+    $j('#menuItemsBody').sortable('disable');
+    // Update hidden sort order fields based on new row positions
+    $j('#menuItemsBody tr').each(function(index) {
+      $j(this).find('.sortOrderInput').val((index + 1) * 10);
+    });
+  } else {
+    $j('#menuItemsBody').sortable('enable');
+  }
+  button.classList.toggle('btn-success');
+}
+
 function initPage() {
   const NewStorageBtn = $j('#NewStorageBtn');
   const NewServerBtn = $j('#NewServerBtn');
@@ -65,6 +78,37 @@ function initPage() {
   NewServerBtn.prop('disabled', !canEdit.System);
 
   $j('.bootstraptable').bootstrapTable({icons: icons}).show();
+
+  // Menu items tab: sortable drag-and-drop and icon type toggle
+  if ($j('#menuItemsBody').length) {
+    $j('#menuItemsBody').sortable({
+      disabled: true,
+      axis: 'y',
+      cursor: 'move',
+      update: function() {
+        $j('#menuItemsBody tr').each(function(index) {
+          $j(this).find('.sortOrderInput').val((index + 1) * 10);
+        });
+      }
+    });
+
+    // Toggle icon name input visibility and placeholder based on icon type
+    $j('.iconTypeSelect').on('change', function() {
+      const id = $j(this).data('item-id');
+      const type = $j(this).val();
+      const nameInput = $j('#iconName-' + id);
+      if (type === 'none') {
+        nameInput.hide();
+      } else {
+        nameInput.show();
+        if (type === 'image') {
+          nameInput.attr('placeholder', 'graphics/menu/icon.png').css('width', '200px');
+        } else {
+          nameInput.attr('placeholder', '').css('width', '140px');
+        }
+      }
+    });
+  }
 }
 
 $j(document).ready(function() {

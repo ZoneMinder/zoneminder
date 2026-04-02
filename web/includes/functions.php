@@ -321,8 +321,8 @@ function deletePath( $path ) {
   if (is_link($path)) {
     if (!unlink($path)) ZM\Debug("Failed to unlink $path");
   } else if (is_dir($path)) {
-    if (false === ($output = system('rm -rf "'.escapeshellcmd($path).'"'))) {
-      ZM\Warning('Failed doing rm -rf "'.escapeshellcmd($path).'"');
+    if (false === ($output = system('rm -rf '.escapeshellarg($path)))) {
+      ZM\Warning('Failed doing rm -rf '.escapeshellarg($path));
     }
   } else if (file_exists($path)) {
     if (!unlink($path)) ZM\Debug("Failed to delete $path");
@@ -501,6 +501,12 @@ function getFormChanges($values, $newValues, $types=false, $columns=false) {
     if ( $columns && !isset($columns[$key]) )
       continue;
 
+    # Validate column name to prevent SQL injection via array keys
+    if ( !preg_match('/^[a-zA-Z0-9_]+$/', $key) ) {
+      ZM\Warning("Invalid column name rejected in getFormChanges: $key");
+      continue;
+    }
+
     if ( !isset($types[$key]) )
       $types[$key] = false;
 
@@ -517,10 +523,14 @@ function getFormChanges($values, $newValues, $types=false, $columns=false) {
       case 'image' :
           if ( is_array( $newValues[$key] ) ) {
             $imageData = getimagesize( $newValues[$key]['tmp_name'] );
-            $changes[$key.'Width'] = $key.'Width = '.$imageData[0];
-            $changes[$key.'Height'] = $key.'Height = '.$imageData[1];
-            $changes[$key.'Type'] = $key.'Type = \''.$newValues[$key]['type'].'\'';
-            $changes[$key.'Size'] = $key.'Size = '.$newValues[$key]['size'];
+            if ( !is_array($imageData) ) {
+              ZM\Warning("getimagesize failed for uploaded field '$key'; skipping width/height update.");
+            } else {
+              $changes[$key.'Width'] = $key.'Width = '.intval($imageData[0]);
+              $changes[$key.'Height'] = $key.'Height = '.intval($imageData[1]);
+            }
+            $changes[$key.'Type'] = $key.'Type = '.dbEscape($newValues[$key]['type']);
+            $changes[$key.'Size'] = $key.'Size = '.intval($newValues[$key]['size']);
             ob_start();
             readfile( $newValues[$key]['tmp_name'] );
             $changes[$key] = $key." = ".dbEscape( ob_get_contents() );
@@ -531,9 +541,8 @@ function getFormChanges($values, $newValues, $types=false, $columns=false) {
           break;
       case 'document' :
           if ( is_array( $newValues[$key] ) ) {
-            $imageData = getimagesize( $newValues[$key]['tmp_name'] );
-            $changes[$key.'Type'] = $key.'Type = \''.$newValues[$key]['type'].'\'';
-            $changes[$key.'Size'] = $key.'Size = '.$newValues[$key]['size'];
+            $changes[$key.'Type'] = $key.'Type = '.dbEscape($newValues[$key]['type']);
+            $changes[$key.'Size'] = $key.'Size = '.intval($newValues[$key]['size']);
             ob_start();
             readfile( $newValues[$key]['tmp_name'] );
             $changes[$key] = $key.' = '.dbEscape( ob_get_contents() );
@@ -755,9 +764,9 @@ function daemonStatus($daemon, $args=false) {
 
 function zmcStatus($monitor) {
   if ( $monitor['Type'] == 'Local' ) {
-    $zmcArgs = '-d '.$monitor['Device'];
+    $zmcArgs = '-d '.escapeshellarg($monitor['Device']);
   } else {
-    $zmcArgs = '-m '.$monitor['Id'];
+    $zmcArgs = '-m '.escapeshellarg($monitor['Id']);
   }
   return daemonStatus('zmc', $zmcArgs);
 }
@@ -776,9 +785,9 @@ function daemonCheck($daemon=false, $args=false) {
 
 function zmcCheck($monitor) {
   if ( $monitor['Type'] == 'Local' ) {
-    $zmcArgs = '-d '.$monitor['Device'];
+    $zmcArgs = '-d '.escapeshellarg($monitor['Device']);
   } else {
-    $zmcArgs = '-m '.$monitor['Id'];
+    $zmcArgs = '-m '.escapeshellarg($monitor['Id']);
   }
   return daemonCheck('zmc', $zmcArgs);
 }
@@ -1384,96 +1393,16 @@ function _CompareX($a, $b) {
 }
 
 function getPolyArea($points) {
-  global $debug;
-
-  $n_coords = count($points);
-  $global_edges = array();
-  for ( $j = 0, $i = $n_coords-1; $j < $n_coords; $i = $j++ ) {
-    $x1 = $points[$i]['x'];
-    $x2 = $points[$j]['x'];
-    $y1 = $points[$i]['y'];
-    $y2 = $points[$j]['y'];
-
-    //printf( "x1:%d,y1:%d x2:%d,y2:%d\n", x1, y1, x2, y2 );
-    if ( $y1 == $y2 )
-      continue;
-
-    $dx = $x2 - $x1;
-    $dy = $y2 - $y1;
-
-    $global_edges[] = array(
-        'min_y' => $y1<$y2?$y1:$y2,
-        'max_y' => ($y1<$y2?$y2:$y1)+1,
-        'min_x' => $y1<$y2?$x1:$x2,
-        '_1_m' => $dx/$dy,
-        );
-  }
-
-  usort($global_edges, '_CompareXY');
-
-  if ( $debug ) {
-    for ( $i = 0; $i < count($global_edges); $i++ ) {
-      printf('%d: min_y: %d, max_y:%d, min_x:%.2f, 1/m:%.2f<br>',
-        $i,
-        $global_edges[$i]['min_y'],
-        $global_edges[$i]['max_y'],
-        $global_edges[$i]['min_x'],
-        $global_edges[$i]['_1_m']);
-    }
-  }
-
+  // Shoelace formula - works correctly with both integer and float coordinates
+  $n = count($points);
   $area = 0.0;
-  $active_edges = array();
-  $y = $global_edges[0]['min_y'];
-  do {
-    for ( $i = 0; $i < count($global_edges); $i++ ) {
-      if ( $global_edges[$i]['min_y'] == $y ) {
-        if ( $debug ) printf('Moving global edge<br>');
-        $active_edges[] = $global_edges[$i];
-        array_splice($global_edges, $i, 1);
-        $i--;
-      } else {
-        break;
-      }
-    }
-    usort($active_edges, '_CompareX');
-    if ( $debug ) {
-      for ( $i = 0; $i < count($active_edges); $i++ ) {
-        printf('%d - %d: min_y: %d, max_y:%d, min_x:%.2f, 1/m:%.2f<br>',
-          $y, $i,
-          $active_edges[$i]['min_y'],
-          $active_edges[$i]['max_y'],
-          $active_edges[$i]['min_x'],
-          $active_edges[$i]['_1_m']);
-      }
-    }
-    $last_x = 0;
-    $row_area = 0;
-    $parity = false;
-    for ( $i = 0; $i < count($active_edges); $i++ ) {
-      $x = intval(round($active_edges[$i]['min_x']));
-      if ( $parity ) {
-        $row_area += ($x - $last_x)+1;
-        $area += $row_area;
-      }
-      if ( $active_edges[$i]['max_y'] != $y )
-        $parity = !$parity;
-      $last_x = $x;
-    }
-    if ( $debug ) printf('%d: Area:%d<br>', $y, $row_area);
-    $y++;
-    for ( $i = 0; $i < count($active_edges); $i++ ) {
-      if ( $y >= $active_edges[$i]['max_y'] ) { // Or >= as per sheets
-        if ( $debug ) printf('Deleting active_edge<br>');
-        array_splice($active_edges, $i, 1);
-        $i--;
-      } else {
-        $active_edges[$i]['min_x'] += $active_edges[$i]['_1_m'];
-      }
-    }
-  } while ( count($global_edges) || count($active_edges) );
-  if ( $debug ) printf('Area:%d<br>', $area);
-  return $area;
+  for ($i = 0; $i < $n - 1; $i++) {
+    $area += ((float)$points[$i]['x'] * (float)$points[$i+1]['y']
+            - (float)$points[$i+1]['x'] * (float)$points[$i]['y']);
+  }
+  $area += ((float)$points[$n-1]['x'] * (float)$points[0]['y']
+          - (float)$points[0]['x'] * (float)$points[$n-1]['y']);
+  return round(abs($area) / 2.0);
 }
 
 function getPolyAreaOld($points) {
@@ -1502,7 +1431,7 @@ function getPolyAreaOld($points) {
 }
 
 function mapCoords($a) {
-  return $a['x'].','.$a['y'];
+  return number_format((float)$a['x'], 2, '.', '').','.number_format((float)$a['y'], 2, '.', '');
 }
 
 function pointsToCoords($points) {
@@ -1511,10 +1440,10 @@ function pointsToCoords($points) {
 
 function coordsToPoints($coords) {
   $points = array();
-  if ( preg_match_all('/(\d+,\d+)+/', $coords, $matches) ) {
+  if ( preg_match_all('/([\d.]+,[\d.]+)+/', $coords, $matches) ) {
     for ( $i = 0; $i < count($matches[1]); $i++ ) {
-      if ( preg_match('/(\d+),(\d+)/', $matches[1][$i], $cmatches) ) {
-        $points[] = array('x'=>$cmatches[1], 'y'=>$cmatches[2]);
+      if ( preg_match('/([\d.]+),([\d.]+)/', $matches[1][$i], $cmatches) ) {
+        $points[] = array('x'=>(float)$cmatches[1], 'y'=>(float)$cmatches[2]);
       } else {
         echo('Bogus coordinates ('.$matches[$i].')');
         return false;
@@ -1545,6 +1474,25 @@ function limitPoints(&$points, $min_x, $min_y, $max_x, $max_y) {
     }
   } // end foreach point
 } // end function limitPoints( $points, $min_x, $min_y, $max_x, $max_y )
+
+function convertPixelPointsToPercent(&$points, $width, $height) {
+  if (!$width || !$height) return false;
+  $isPixel = false;
+  foreach ($points as $point) {
+    if ($point['x'] > 100 || $point['y'] > 100) {
+      $isPixel = true;
+      break;
+    }
+  }
+  if ($isPixel) {
+    foreach ($points as &$point) {
+      $point['x'] = round($point['x'] / $width * 100, 2);
+      $point['y'] = round($point['y'] / $height * 100, 2);
+    }
+    unset($point);
+  }
+  return $isPixel;
+}
 
 function scalePoints(&$points, $scale) {
   foreach ( $points as &$point ) {
@@ -1886,7 +1834,7 @@ function cache_bust($file) {
   ) {
     return 'cache/'.$cacheFile;
   } else {
-    ZM\Warning('Failed linking '.$file.' to '.$cacheFile);
+    ZM\Warning('Failed linking '.ZM_PATH_WEB.'/'.$file.' to '.ZM_DIR_CACHE.'/'.$cacheFile);
   }
   return $file;
 }
@@ -1940,6 +1888,18 @@ function validCardinal($input) {
 
 function validNum( $input ) {
   return preg_replace('/[^\d.-]/', '', $input);
+}
+
+// For device path strings - must be a valid Unix device path
+function validDevicePath($input) {
+  if (is_null($input) || $input === '') return '';
+  // Only allow typical device paths: /dev/video0, /dev/v4l/by-id/..., etc.
+  // Reject any shell metacharacters
+  if (!preg_match('#^/dev/[\w/.\-]+$#', $input)) {
+    ZM\Warning("Invalid device path rejected: ".validHtmlStr($input));
+    return '';
+  }
+  return $input;
 }
 
 // For general strings

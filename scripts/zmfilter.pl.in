@@ -175,7 +175,7 @@ while (!$zm_terminate) {
   foreach my $filter (@filters) {
     last if $zm_terminate;
 
-    my $elapsed = ($now - ($$filter{last_ran} ? $$filter{last_ran} : 0));
+    my $elapsed = ($now - ($$filter{last_ran} ? $$filter{last_ran} : $now));
     my $filter_delay = $$filter{ExecuteInterval} - $elapsed;
     Warning("Filter $$filter{Name} is taking ".(-$filter_delay)." seconds longer than execute interval.") if $filter_delay < 0;
     if (!defined($delay) or $filter_delay < $delay) {

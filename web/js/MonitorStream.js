@@ -728,7 +728,10 @@ function MonitorStream(monitorData) {
       infoBlock.style.left = '50%';
       infoBlock.style.transform = 'translate(-50%, -50%)';
       infoBlock.style.pointerEvents = 'none';
-      this.getElement().parentNode.appendChild(infoBlock);
+      const imageFeed = document.getElementById('imageFeed'+this.id);
+      if (imageFeed) {
+        imageFeed.appendChild(infoBlock);
+      }
       currentInfoBlock = infoBlock;
     }
     return currentInfoBlock;

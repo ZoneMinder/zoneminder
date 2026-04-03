@@ -3708,6 +3708,7 @@ int Monitor::Pause() {
       convert_context = nullptr;
     }
     decoding_image_count = 0;
+    if (shared_data) shared_data->last_write_index = image_buffer_count;
   }
   if (analysis_thread) {
     Debug(1, "Joining analysis");

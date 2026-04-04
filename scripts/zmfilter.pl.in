@@ -161,14 +161,13 @@ if ( ! ( $filter_name or $filter_id ) ) {
 }
 
 my @filters;
-my $last_action = 0;
+my $last_reload = 0;
 
 while (!$zm_terminate) {
   my $delay;
   my $now = time;
-  if (($now - $last_action) > $Config{ZM_FILTER_RELOAD_DELAY}) {
-    Debug('Reloading filters');
-    $last_action = $now;
+  if (($now - $last_reload) > $Config{ZM_FILTER_RELOAD_DELAY}) {
+    $last_reload = $now;
     @filters = getFilters({ Name=>$filter_name, Id=>$filter_id });
   }
 

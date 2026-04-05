@@ -174,14 +174,6 @@ while (!$zm_terminate) {
   foreach my $filter (@filters) {
     last if $zm_terminate;
 
-    my $elapsed = ($now - ($$filter{last_ran} ? $$filter{last_ran} : $now));
-    my $filter_delay = $$filter{ExecuteInterval} - $elapsed;
-    Warning("Filter $$filter{Name} is taking ".(-$filter_delay)." seconds longer than execute interval $$filter{ExecuteInterval}.") if $filter_delay < 0;
-    if (!defined($delay) or $filter_delay < $delay) {
-      $delay = $filter_delay > 0 ? $filter_delay : 0;
-      Debug("Setting delay to $delay because ExecuteInterval=$$filter{ExecuteInterval} and $elapsed have elapsed for $$filter{Name}");
-    }
-
     if ($$filter{Concurrent} and !($filter_id or $filter_name)) {
       my ( $proc ) = $0 =~ /(\S+)/;
       my ( $id ) = $$filter{Id} =~ /(\d+)/;
@@ -191,6 +183,15 @@ while (!$zm_terminate) {
     } else {
       checkFilter($filter);
       $$filter{last_ran} = $now;
+    }
+
+    $now = time;
+    my $elapsed = ($now - ($$filter{last_ran} ? $$filter{last_ran} : $now));
+    my $filter_delay = $$filter{ExecuteInterval} - $elapsed;
+    Warning("Filter $$filter{Name} is taking ".(-$filter_delay)." seconds longer than execute interval $$filter{ExecuteInterval}.") if $filter_delay < 0;
+    if (!defined($delay) or $filter_delay < $delay) {
+      $delay = $filter_delay > 0 ? $filter_delay : 0;
+      Debug("Setting delay to $delay because ExecuteInterval=$$filter{ExecuteInterval} and $elapsed have elapsed for $$filter{Name}");
     }
   } # end foreach filter
 

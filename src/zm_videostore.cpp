@@ -239,12 +239,15 @@ bool VideoStore::open() {
           if ((ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0) {
             Warning("Can't open video codec (%s) %s", video_out_codec->name, av_make_error_string(ret).c_str());
             video_out_codec = nullptr;
+            avcodec_free_context(&video_out_ctx);
           }
         }  // end if video_out_codec
 
-        ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
-        if (ret < 0) {
-          Error("Could not initialize stream parameters");
+        if (video_out_ctx) {
+          ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
+          if (ret < 0) {
+            Error("Could not initialize stream parameters");
+          }
         }
         av_dict_free(&opts);
         // Reload it for next attempt and/or avformat open

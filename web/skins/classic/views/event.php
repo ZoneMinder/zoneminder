@@ -325,9 +325,11 @@ if (file_exists($Event->Path().'/objdetect.jpg')) {
                     <div id="zoompan" class="zoompan">
 <?php
 if ($video_tag) {
+  $use_hlsjs = false;
   if (str_ends_with($Event->DefaultVideo(), '.m3u8')) {
     $videoSrc = $Event->getStreamSrc(array('mode'=>'hls'), '&amp;');
     $sourceType = 'application/x-mpegURL';
+    $use_hlsjs = true;
   } else {
     $videoSrc = $Event->getStreamSrc(array('mode'=>'mp4','format'=>'h264'), '&amp;');
     $sourceType = 'video/mp4';
@@ -338,10 +340,15 @@ if ($video_tag) {
                    <?php echo $scale ? 'height="'.reScale($Event->Height(), $scale).'"' : '' ?>
                     controls autoplay preload="auto"
                   >
+<?php if (!$use_hlsjs): ?>
                   <source src="<?php echo $videoSrc; ?>" type="<?php echo $sourceType; ?>">
+<?php endif; ?>
                   <track id="monitorCaption" kind="captions" label="English" srclang="en" src='data:plain/text;charset=utf-8,"WEBVTT\n\n 00:00:00.000 --> 00:00:01.000 ZoneMinder"' default/>
                   Your browser does not support the video tag.
                   </video>
+<?php if ($use_hlsjs): ?>
+                  <script src="<?php echo cache_bust('js/hls-1.6.13/hls.min.js') ?>"></script>
+<?php endif; ?>
                   <script nonce="<?php echo $cspNonce; ?>">
                     document.addEventListener('DOMContentLoaded', function() {
                       if (typeof videojs === 'undefined') {
@@ -364,6 +371,23 @@ if ($video_tag) {
                         zoom: 1,
                         rotate: 0
                       });
+<?php if ($use_hlsjs): ?>
+                      if (typeof Hls !== 'undefined' && Hls.isSupported()) {
+                        var videoEl = player.tech_.el_;
+                        var hlsPlayer = new Hls({
+                          maxBufferLength: 30,
+                          maxMaxBufferLength: 60,
+                        });
+                        hlsPlayer.loadSource('<?php echo $Event->getStreamSrc(array('mode'=>'hls'), '&'); ?>');
+                        hlsPlayer.attachMedia(videoEl);
+                        hlsPlayer.on(Hls.Events.MANIFEST_PARSED, function() {
+                          videoEl.play();
+                        });
+                        hlsPlayer.on(Hls.Events.ERROR, function(event, data) {
+                          console.error('HLS.js error:', data.type, data.details);
+                        });
+                      }
+<?php endif; ?>
                     });
                   </script>
 <?php

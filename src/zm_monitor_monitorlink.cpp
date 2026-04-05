@@ -160,26 +160,24 @@ bool Monitor::MonitorLink::connect() {
 }  // end bool Monitor::MonitorLink::connect()
 
 bool Monitor::MonitorLink::disconnect() {
-  if (connected) {
-    connected = false;
+  connected = false;
 
 #if ZM_MEM_MAPPED
-    if (mem_ptr > (void *)0) {
-      msync(mem_ptr, mem_size, MS_ASYNC);
-      munmap(mem_ptr, mem_size);
-    }
-    if (map_fd >= 0)
-      close(map_fd);
+  if (mem_ptr != nullptr && mem_ptr != MAP_FAILED) {
+    msync(mem_ptr, mem_size, MS_ASYNC);
+    munmap(mem_ptr, mem_size);
+  }
+  if (map_fd >= 0)
+    close(map_fd);
 
-    map_fd = -1;
+  map_fd = -1;
 #else // ZM_MEM_MAPPED
+  if (mem_ptr != nullptr) {
     struct shmid_ds shm_data;
     if (shmctl(shm_id, IPC_STAT, &shm_data) < 0) {
       Debug(3, "Can't shmctl: %s", strerror(errno));
       return false;
     }
-
-    shm_id = 0;
 
     if (shm_data.shm_nattch <= 1) {
       if (shmctl(shm_id, IPC_RMID, 0) < 0) {
@@ -192,10 +190,15 @@ bool Monitor::MonitorLink::disconnect() {
       Debug(3, "Can't shmdt: %s", strerror(errno));
       return false;
     }
-#endif // ZM_MEM_MAPPED
-    mem_size = 0;
-    mem_ptr = nullptr;
   }
+  shm_id = 0;
+#endif // ZM_MEM_MAPPED
+  mem_size = 0;
+  mem_ptr = nullptr;
+  shared_data = nullptr;
+  trigger_data = nullptr;
+  zone_scores = nullptr;
+
   return true;
 }
 

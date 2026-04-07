@@ -142,6 +142,12 @@ proc: BEGIN
   DECLARE v_lock_result INT DEFAULT 0;
   DECLARE v_last DATETIME;
 
+  -- Use READ COMMITTED so the INSERT...SELECT below performs a consistent
+  -- snapshot read on Events without taking shared next-key locks.  Under the
+  -- default REPEATABLE READ (and STATEMENT binlog format) the source-side
+  -- locks deadlock with concurrent DELETE FROM Events.
+  SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED;
+
   -- Non-blocking lock: skip if another process is already refreshing
   SET v_lock_result = GET_LOCK('refresh_summaries_lock', 0);
   IF v_lock_result != 1 THEN

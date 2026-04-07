@@ -2,11 +2,30 @@ DELIMITER //
 
 -- This index covers MonitorId grouping, StartDateTime ranges,
 -- Archived status filtering, and includes DiskSpace for summation.
-CREATE INDEX IF NOT EXISTS Events_Summaries_Performance_idx
-ON Events (MonitorId, StartDateTime, Archived, DiskSpace)//
+SET @s = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema = DATABASE()
+      AND table_name = 'Events'
+      AND index_name = 'Events_Summaries_Performance_idx'
+    ) > 0,
+    "SELECT 'Events_Summaries_Performance_idx already exists'",
+    "CREATE INDEX Events_Summaries_Performance_idx ON Events (MonitorId, StartDateTime, Archived, DiskSpace)"
+))//
+PREPARE stmt FROM @s//
+EXECUTE stmt//
+DEALLOCATE PREPARE stmt//
 
 -- Clean up a previous typoed version of the index
-DROP INDEX IF EXISTS Events_Summaries_Perfomance_idx ON Events//
+SET @s = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema = DATABASE()
+      AND table_name = 'Events'
+      AND index_name = 'Events_Summaries_Perfomance_idx'
+    ) > 0,
+    "DROP INDEX Events_Summaries_Perfomance_idx ON Events",
+    "SELECT 'Events_Summaries_Perfomance_idx does not exist'"
+))//
+PREPARE stmt FROM @s//
+EXECUTE stmt//
+DEALLOCATE PREPARE stmt//
 
 -- Hourly Events View
 CREATE OR REPLACE VIEW Events_Hour AS

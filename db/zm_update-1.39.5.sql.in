@@ -1,0 +1,37 @@
+--
+-- This updates a 1.39.4 database to 1.39.5
+--
+-- Replace Events_Hour, Events_Day, Events_Week, Events_Month,
+-- Events_Archived, and Event_Summaries tables with views.
+-- These views query the Events table directly, eliminating the need
+-- for triggers and periodic reconciliation in zmaudit/zmstats.
+--
+
+-- Step 1: Drop triggers that maintained the old summary tables
+source @PKGDATADIR@/db/triggers.sql
+
+-- Step 2: Drop the old stored procedure and scheduled event
+DROP EVENT IF EXISTS `Event_Summaries_Refresh_Event`;
+DROP PROCEDURE IF EXISTS `Refresh_Summaries_SWR`;
+
+-- Step 3: Drop old denormalized tables (or views if migration was partially run before)
+DROP VIEW IF EXISTS `Events_Hour`;
+DROP VIEW IF EXISTS `Events_Day`;
+DROP VIEW IF EXISTS `Events_Week`;
+DROP VIEW IF EXISTS `Events_Month`;
+DROP VIEW IF EXISTS `Events_Archived`;
+DROP VIEW IF EXISTS `VIEW_Event_Summaries`;
+DROP VIEW IF EXISTS `Event_Summaries`;
+
+DROP TABLE IF EXISTS `Events_Hour`;
+DROP TABLE IF EXISTS `Events_Day`;
+DROP TABLE IF EXISTS `Events_Week`;
+DROP TABLE IF EXISTS `Events_Month`;
+DROP TABLE IF EXISTS `Events_Archived`;
+DROP TABLE IF EXISTS `Event_Summaries`;
+DROP TABLE IF EXISTS `Event_Summaries_Metadata`;
+DROP TABLE IF EXISTS `Event_Summaries_New`;
+DROP TABLE IF EXISTS `Event_Summaries_Old`;
+
+-- Step 4: Create views with the same names, covering index, and SWR refresh
+source @PKGDATADIR@/db/views.sql

@@ -63,7 +63,7 @@ class Monitor extends AppModel {
     ),
     'Device' => array(
       'validPath' => array(
-        'rule' => array('custom', '#^(/dev/[\w/.\-]+)?$#'),
+        'rule' => array('validDevicePath'),
         'message' => 'Invalid device path. Must be a valid /dev/ path (e.g. /dev/video0).',
         'allowEmpty' => true,
         'required' => false,
@@ -71,6 +71,23 @@ class Monitor extends AppModel {
     )
 
   );
+
+  /**
+   * Validate the Device field. Only Local monitors pass Device to a shell,
+   * so the /dev/ restriction only applies when Type == 'Local'. Other Types
+   * may legitimately hold legacy values (e.g. an RTSP URL) in this column.
+   */
+  public function validDevicePath($check) {
+    $value = reset($check);
+    if ($value === null || $value === '') {
+      return true;
+    }
+    $type = isset($this->data['Monitor']['Type']) ? $this->data['Monitor']['Type'] : null;
+    if ($type !== 'Local') {
+      return true;
+    }
+    return (bool)preg_match('#^/dev/[\w/.\-]+$#', $value);
+  }
 
 	//The Associations below have been created with all possible keys, those that are not needed can be removed
 

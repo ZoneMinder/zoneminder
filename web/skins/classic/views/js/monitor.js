@@ -368,7 +368,10 @@ function initPage() {
 
   // Manage the SAVE Button
   document.getElementById("saveBtn").addEventListener("click", function onSaveClick(evt) {
-    saveMonitorData();
+    const form = document.getElementById('contentForm');
+    if (validateForm(form)) {
+      saveMonitorData();
+    }
   });
 
   // Manage the SAVE AND CLOSE Button - use AJAX instead of native form

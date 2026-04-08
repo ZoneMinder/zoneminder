@@ -85,6 +85,9 @@ bool Monitor::MonitorLink::connect() {
   if (!last_connect_time || (now - std::chrono::system_clock::from_time_t(last_connect_time)) > Seconds(1)) {
     last_connect_time = std::chrono::system_clock::to_time_t(now);
 
+    // Clean up any existing resources before reconnecting to avoid fd leaks
+    disconnect();
+
     mem_size = sizeof(SharedData) + sizeof(TriggerData);
 
     Debug(1, "link.mem.size=%jd", static_cast<intmax_t>(mem_size));

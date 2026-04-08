@@ -2378,7 +2378,7 @@ function output_file($path, $chunkSize=1024) {
     $new_length = $size - $range;
     header('HTTP/1.1 206 Partial Content');
     header("Content-Length: $new_length");
-    header("Content-Range: bytes $range$size2/$size");
+    header("Content-Range: bytes $range-$size2/$size");
   } else {
     $size2 = $size - 1;
     header("Content-Range: bytes 0-$size2/$size");

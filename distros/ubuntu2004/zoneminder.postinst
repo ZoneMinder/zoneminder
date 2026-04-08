@@ -168,7 +168,7 @@ if [ ! -f /etc/apt/sources.list.d/zoneminder.list ] && [ ! -f /etc/apt/sources.l
 # This file makes sure that ZoneMinder is kept up-to-date
 # as part of regular system upgrades
  
-deb http://zmrepo.zoneminder.com/debian/master $DISTRO/
+deb http://zmrepo.zoneminder.com/debian/release-1.38 $DISTRO/
 EOF
 fi
 

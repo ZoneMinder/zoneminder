@@ -24,7 +24,6 @@ package ZoneMinder::Server;
 use 5.006;
 use strict;
 use warnings;
-use Config;
 
 require ZoneMinder::Base;
 require ZoneMinder::Config;
@@ -130,7 +129,7 @@ sub CpuUsage {
     # Get CPU utilization percentages
     my $top_output = '';
     ## FreeBSD
-    if (@Config{qw(uname)} == 'freebsd') {
+    if ($ZoneMinder::Config{uname} == 'freebsd') {
       $top_output = `top -b -n 1 | grep "^CPU" | sed 's/%//g' | awk '{print \$2, \$6, \$4, \$10}'`;
     } else {
       $top_output = `top -b -n 1 | grep -i "^%Cpu(s)" | awk '{print \$2, \$4, \$6, \$8}'`;

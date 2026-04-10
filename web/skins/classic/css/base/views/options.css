@@ -121,6 +121,11 @@ input[name="newStorage[Url]"] {
   margin-bottom: 20px;
   margin-right: 5px;
   border-bottom: 1px solid #e7e7e7;
+  padding-bottom: 0.75rem;
+}
+
+#options .form-group span.form-text {
+  margin-top: 0.5rem;
 }
 #options .col-md {
   text-align: left;
@@ -131,32 +136,34 @@ form {
 /*  flex-direction: column;*/
   width: 100%;
   height: 100%;
+  margin-left: 9px;
 /*  padding-top: 2rem; */
 }
 
 @media screen and (max-width:767px) {
   #options label,
- label.col-form-label {
+  label.col-form-label {
     text-align: left;
+    padding-bottom: 5px;
   }
 }
 
 div.dnsmasq,
 .dnsmasq .config {
-text-align: left;
+  text-align: left;
 }
 .dnsmasq .container {
-margin-left: 0;
+  margin-left: 0;
 }
 .dnsmasq .config .row > label {
-width: 150px;
-text-align: right;
+  width: 150px;
+  text-align: right;
 }
 .dnsmasq .config .row {
-min-height:36px;
-text-align: left;
-display: flex;
-align-content: space-around;
+  min-height:36px;
+  text-align: left;
+  display: flex;
+  align-content: space-around;
 }
 #leasesTable td,
 #leasesTable th {
@@ -197,7 +204,7 @@ body.sticky .fixed-table-container {
 }
 
 body.sticky #controlTable thead {
-    position: sticky;
-    top: 0;
-    box-shadow: 0 0px 0, 0 -3px 0 #dfe4ea;
+  position: sticky;
+  top: 0;
+  box-shadow: 0 0px 0, 0 -3px 0 #dfe4ea;
 }

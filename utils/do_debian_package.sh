@@ -315,7 +315,7 @@ EOF
 	  sudo apt-get install devscripts equivs
 	  sudo mk-build-deps -ir $DIRECTORY.orig/debian/control
 	  echo "Status: $?"
-	  DEBUILD=debuild -b -uc -us
+	  DEBUILD="debuild -b -uc -us"
   else
 	  if [ $TYPE == "local" ]; then
 		  # Auto-install all ZoneMinder's dependencies using the Debian control file

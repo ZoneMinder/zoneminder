@@ -57,6 +57,7 @@ VideoStore::VideoStore(
   audio_out_ctx(nullptr),
   packets_written(0),
   frame_count(0),
+  video_encoded(false),
   hw_device_ctx(nullptr),
   resample_ctx(nullptr),
   fifo(nullptr),
@@ -239,12 +240,21 @@ bool VideoStore::open() {
           if ((ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0) {
             Warning("Can't open video codec (%s) %s", video_out_codec->name, av_make_error_string(ret).c_str());
             video_out_codec = nullptr;
+            avcodec_free_context(&video_out_ctx);
           }
         }  // end if video_out_codec
 
-        ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
-        if (ret < 0) {
-          Error("Could not initialize stream parameters");
+        if (video_out_ctx) {
+          ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
+          if (ret < 0) {
+            Error("Could not initialize stream parameters");
+          }
+          // Free the codec context now — it was only opened to generate new
+          // extradata for the stream parameters and is not used for encoding
+          // in PASSTHROUGH mode.  Leaving it alive causes flush_codecs() to
+          // attempt flushing a codec that never received any frames, which
+          // crashes in avcodec_send_frame with newer FFmpeg.
+          avcodec_free_context(&video_out_ctx);
         }
         av_dict_free(&opts);
         // Reload it for next attempt and/or avformat open
@@ -345,6 +355,11 @@ bool VideoStore::open() {
         }
         if (setup_hwaccel(video_out_ctx,
               chosen_codec_data, hw_device_ctx, monitor->EncoderHWAccelDevice(), monitor->Width(), monitor->Height())) {
+          avcodec_free_context(&video_out_ctx);
+          av_dict_free(&opts);
+          if (hw_device_ctx) {
+            av_buffer_unref(&hw_device_ctx);
+          }
           continue;
         }
 
@@ -566,7 +581,9 @@ void VideoStore::flush_codecs() {
   }
 
   // I got crashes if the codec didn't do DELAY, so let's test for it.
-  if (video_out_ctx && video_out_ctx->codec && (video_out_ctx->codec->capabilities & AV_CODEC_CAP_DELAY)) {
+  // Also skip if no frames were ever sent — some encoders crash on flush
+  // when their internal state was never initialized by a real frame.
+  if (video_out_ctx && video_encoded && video_out_ctx->codec && (video_out_ctx->codec->capabilities & AV_CODEC_CAP_DELAY)) {
     // First drain any pending packets before entering flush mode
     // This prevents hangs when the encoder's internal buffer is full
     Debug(1, "Draining pending packets before flush");
@@ -1297,6 +1314,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
           Debug(3, "Got EAGAIN");
         }
       } else {
+        video_encoded = true;
         break;
       }
     } while (!zm_terminate);

@@ -277,9 +277,16 @@ sub run {
     die 'Can\'t open pid file at '.ZM_PID."\n";
   }
 
-  my $fd = 0;
+  # Redirect stdin/stdout/stderr to /dev/null rather than closing them.
+  # Closing them causes the FDs to be reused, which led to memory corruption
+  # when libx264 wrote to a reused stderr FD (66f11435b). Redirecting to
+  # /dev/null keeps valid FDs that children inherit safely.
+  open(STDIN, '<', '/dev/null') or die "Can't redirect STDIN: $!";
+  open(STDOUT, '>', '/dev/null') or die "Can't redirect STDOUT: $!";
+  open(STDERR, '>', '/dev/null') or die "Can't redirect STDERR: $!";
 
-  # This also closes dbh and CLIENT and SERVER
+  # Close all remaining FDs (dbh, CLIENT, SERVER, etc.)
+  my $fd = 3;
   while ( $fd < POSIX::sysconf(&POSIX::_SC_OPEN_MAX) ) {
     POSIX::close($fd++);
   }

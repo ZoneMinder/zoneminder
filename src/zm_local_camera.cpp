@@ -676,8 +676,8 @@ int LocalCamera::Initialise() {
   if (palette == V4L2_PIX_FMT_JPEG || palette == V4L2_PIX_FMT_MJPEG) {
     v4l2_jpegcompression jpeg_comp;
     if (vidioctl(vid_fd, VIDIOC_G_JPEGCOMP, &jpeg_comp) < 0) {
-      if (errno == EINVAL) {
-        Debug(2, "JPEG compression options are not available");
+      if (errno == EINVAL || errno == ENOTTY) {
+        Debug(2, "JPEG compression options are not available: %s", strerror(errno));
       } else {
         Warning("Failed to get JPEG compression options: %s", strerror(errno));
       }

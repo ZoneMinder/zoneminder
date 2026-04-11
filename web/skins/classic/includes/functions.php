@@ -427,12 +427,12 @@ function getSidebarTopHTML() {
       <div class="sidebar-footer hidden-for-collapsed">
         <div class="footer-box">
           <div>
-            <ul>
+            <ul class="account-info">
 ' . getAccountCircleHTML($skin, $user, $forLeftBar = true) . '
             </ul>
           </div>
-          <div style="padding: 0 10px">
-            <div style="margin-bottom: 10px">
+          <div>
+            <div>
               <ul id="versionSidebar">
 ' . getZMVersionHTML() . '
               </ul>

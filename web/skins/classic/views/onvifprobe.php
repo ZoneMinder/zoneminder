@@ -218,7 +218,7 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
                    data-on-input-this="configureButtons"
                    oninput="(function(el){var nb=el.form.elements.namedItem('nextBtn');if(nb)nb.disabled=el.value.trim().length===0;})(this)"
                    onchange="(function(el){var nb=el.form.elements.namedItem('nextBtn');if(nb)nb.disabled=el.value.trim().length===0;})(this)"
-                   size="40"/>
+                   style="width: 40ch"/>
           </p>
           <p>
             <?php echo translate('OnvifCredentialsIntro') ?>

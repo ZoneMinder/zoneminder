@@ -871,7 +871,7 @@ function getStorageHTML() {
 function getRamHTML() {
   $result = '';
   if ( !canView('System') ) return $result;
-  if (file_exists('/proc')) {
+  if (file_exists('/proc') && file_exists('/proc/meminfo')) {
     $contents = file_get_contents('/proc/meminfo');
     preg_match_all('/(\w+):\s+(\d+)\s/', $contents, $matches);
     $meminfo = array_combine($matches[1], array_map(function($v){return 1024*$v;}, $matches[2]));

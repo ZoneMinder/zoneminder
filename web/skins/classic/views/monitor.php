@@ -1250,6 +1250,24 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
       break;
     }
   case 'viewing' :
+    $selectPlayers = array(
+      'go2rtc' => 'Go2RTC',
+      'rtsp2web' => 'RTSP2Web',
+      'janus' => 'Janus',
+      'zms' => ['Name' => 'ZMS MJPEG', 'disabled' => 'disabled'],
+    );
+    if (ZM\Monitor::getEnableDisableZMS()) $selectPlayers = array_merge($selectPlayers, array('none' => 'None')); // Add an option to disable all players
+    $selectedPlayers = [];
+    $noneExists = false; // All players are disabled
+    if ((ZM\Monitor::getEnableDisableZMS() && !$monitor->ZMSEnabled()) && (!$monitor->Go2RTCEnabled()) && (!$monitor->RTSP2WebEnabled()) && (!$monitor->JanusEnabled())) {
+      $selectedPlayers[] = 'none';
+      $noneExists = true;
+    } else {
+      if (!ZM\Monitor::getEnableDisableZMS() || (ZM\Monitor::getEnableDisableZMS() && $monitor->ZMSEnabled())) $selectedPlayers[] = 'zms';
+      if ($monitor->Go2RTCEnabled()) $selectedPlayers[] = 'go2rtc';
+      if ($monitor->RTSP2WebEnabled()) $selectedPlayers[] = 'rtsp2web';
+      if ($monitor->JanusEnabled()) $selectedPlayers[] = 'janus';
+    }
 ?>
             <li class="RTSPServer">
               <label><?php echo translate('RTSPServer'); echo makeHelpLink('OPTIONS_RTSPSERVER') ?></label>
@@ -1259,6 +1277,22 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
               <label><?php echo translate('RTSPStreamName'); echo makeHelpLink('OPTIONS_RTSPSTREAMNAME') ?></label>
               <input type="text" name="newMonitor[RTSPStreamName]" value="<?php echo validHtmlStr($monitor->RTSPStreamName()) ?>"/>
             </li>
+            <li id="SelectPlayers" class="SelectPlayers">
+              <label><?php echo translate('Select players'); echo makeHelpLink('OPTIONS_SELECTPLAYERS') ?> </label>
+              <?php echo htmlSelect('SelectPlayers', $selectPlayers, $selectedPlayers, ['class'=>'chosen chosen-full-width', 'multiple'=>'', 'data-on-change'=>'selectPlayers', 'data-none-exists'=>$noneExists]); ?>
+            </li>
+<?php
+if (ZM\Monitor::getEnableDisableZMS()) {
+  $checkedZMSEnabled = ($monitor->ZMSEnabled()) ? ' checked="checked"' : '';
+  $strZMSEnabled = '
+  <li id="FunctionZMSEnabled">
+    <label>' . translate('ZMS MJPEG') . '</label>
+    <input type="checkbox" name="newMonitor[ZMSEnabled]" value="1"'. $checkedZMSEnabled .' />
+  </li>
+  ';
+  echo $strZMSEnabled;
+}
+?>
             <li id="FunctionGo2RTCEnabled">
               <label><?php echo translate('Go2RTC Live Stream') ?></label>
               <input type="checkbox" name="newMonitor[Go2RTCEnabled]" value="1"<?php echo $monitor->Go2RTCEnabled() ? ' checked="checked"' : '' ?> on_click="update_players"/>

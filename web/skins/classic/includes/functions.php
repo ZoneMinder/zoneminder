@@ -99,7 +99,7 @@ echo output_cache_busted_stylesheet_links(array(
   <?php #Chosen can't be cache-busted because it loads sprites by relative path ?>
   <link rel="stylesheet" href="skins/classic/js/chosen/chosen.min.css" type="text/css"/>
 <?php
-  echo output_link_if_exists(array('js/noUiSlider-15.8.1/dist/nouislider.min.css?'), false, $param = ['global', 'stylesheet', ' type="text/css"']);
+  echo output_link_if_exists(array('js/noUiSlider-15.8.1/dist/nouislider.min.css'), true, $param = ['global', 'stylesheet', 'type="text/css"']);
   echo output_link_if_exists(array(
     'js/dateTimePicker/jquery-ui-timepicker-addon.css',
     'js/jquery-ui-1.13.2/jquery-ui.structure.min.css',

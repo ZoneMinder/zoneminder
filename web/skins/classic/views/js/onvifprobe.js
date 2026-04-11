@@ -15,6 +15,32 @@ function gotoStep1( element ) {
 
 function gotoStep2( element ) {
   var form = element.form;
+  var manualUrlEl = form.elements.namedItem('manual_url');
+  var manualUrl = manualUrlEl ? manualUrlEl.value.trim() : '';
+
+  if ( manualUrl.length > 0 ) {
+    // Normalize: bare IP or IP:port -> prepend scheme and standard ONVIF device path
+    if ( !/^https?:\/\//i.test(manualUrl) ) {
+      manualUrl = 'http://' + manualUrl + '/onvif/device_service';
+    }
+
+    var cameraData = {
+      Function: 'Monitor',
+      Type: 'Ffmpeg',
+      Host: manualUrl,
+      SOAP: '1.1',
+      ConfigURL: manualUrl,
+      ConfigOptions: 'SOAP1.1',
+      Notes: ''
+    };
+
+    var encoded = btoa(JSON.stringify(cameraData));
+    var option = document.createElement('option');
+    option.value = encoded;
+    option.selected = true;
+    form.probe.appendChild(option);
+  }
+
   form.target = self.name;
   form.view.value = 'onvifprobe';
   form.step.value = '2';
@@ -23,13 +49,15 @@ function gotoStep2( element ) {
 
 function configureButtons(element) {
   var form = element.form;
+  var manualUrlEl = form.elements.namedItem('manual_url');
+  var hasManualUrl = manualUrlEl && manualUrlEl.value.trim().length > 0;
+  var hasProbe = form.probe && (form.probe.selectedIndex != 0);
+
   if (form.elements.namedItem('nextBtn')) {
-    form.nextBtn.disabled = (form.probe.selectedIndex==0) ||
-      (form.Username == '') || (form.Username == null) ||
-      (form.Password == '') || (form.Password == null);
+    form.nextBtn.disabled = !(hasManualUrl || hasProbe);
   }
   if (form.elements.namedItem('saveBtn')) {
-    form.saveBtn.disabled = (form.probe.selectedIndex==0);
+    form.saveBtn.disabled = (form.probe.selectedIndex == 0);
   }
 }
 

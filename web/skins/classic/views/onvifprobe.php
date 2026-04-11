@@ -23,6 +23,16 @@ if (!canEdit('Monitors')) {
   return;
 }
 
+// Compatibility shim: get_networks() was added to functions.php in a later
+// release. Older installations need this fallback so the page renders.
+if (!function_exists('get_networks')) {
+  function get_networks() {
+    // Minimal stub: no interface list available on this ZM version.
+    // The manual ONVIF URL entry below works without interface selection.
+    return array('default' => '');
+  }
+}
+
 $cameras = array();
 $cameras[0] = translate('ChooseDetectedCamera');
 
@@ -183,12 +193,12 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
           <?php echo translate('OnvifProbeIntro') ?>
         </p>
         <p><label for="interface"><?php echo translate('Interface') ?></label>
-<?php 
+<?php
   $interfaces = get_networks();
   $default_interface = $interfaces['default'];
   unset($interfaces['default']);
 
-  echo htmlSelect('interface', $interfaces, 
+  echo htmlSelect('interface', $interfaces,
     (isset($_REQUEST['interface']) ? $_REQUEST['interface'] : $default_interface),
     array('data-on-change-this'=>'changeInterface') );
 ?>
@@ -197,6 +207,18 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
           <p>
             <label for="probe"><?php echo translate('DetectedCameras') ?></label>
             <?php echo htmlSelect('probe', $cameras, null, array('data-on-change-this'=>'configureButtons')); ?>
+          </p>
+          <p><?php echo translate('OnvifManualOr') ?></p>
+          <p>
+            <label for="manual_url"><?php echo translate('OnvifManualLabel') ?></label>
+            <input type="text" name="manual_url" id="manual_url"
+                   placeholder="<?php echo translate('OnvifManualPlaceholder') ?>"
+                   value="<?php echo isset($_REQUEST['manual_url']) ? htmlspecialchars($_REQUEST['manual_url']) : '' ?>"
+                   data-on-change-this="configureButtons"
+                   data-on-input-this="configureButtons"
+                   oninput="(function(el){var nb=el.form.elements.namedItem('nextBtn');if(nb)nb.disabled=el.value.trim().length===0;})(this)"
+                   onchange="(function(el){var nb=el.form.elements.namedItem('nextBtn');if(nb)nb.disabled=el.value.trim().length===0;})(this)"
+                   style="width: 40ch"/>
           </p>
           <p>
             <?php echo translate('OnvifCredentialsIntro') ?>
@@ -213,7 +235,8 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
         </div>
         <div id="contentButtons">
           <button type="button" data-on-click="backWindow"><?php echo translate('Cancel') ?></button>
-          <button type="button" name="nextBtn" data-on-click-this="gotoStep2" disabled="disabled"><?php echo translate('Next') ?></button>
+          <button type="button" name="nextBtn" data-on-click-this="gotoStep2"
+            <?php echo (empty($_REQUEST['manual_url']) ? 'disabled="disabled"' : '') ?>><?php echo translate('Next') ?></button>
         </div>
       </form>
     </div>

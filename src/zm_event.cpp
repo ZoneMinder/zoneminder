@@ -202,6 +202,11 @@ Event::~Event() {
   /* Close the video file */
   // We close the videowriter first, because if we finish the event, we might try to view the file, but we aren't done writing it yet.
   if (videoStore != nullptr) {
+    // Write final VOD m3u8 before closing (uses the final video filename)
+    std::string video_url = "index.php?view=view_video&eid=" + std::to_string(id);
+    std::string m3u8_path = path + "/index.m3u8";
+    videoStore->writeM3U8(m3u8_path, video_url, true);
+
     Debug(1, "~Event %" PRIu64 ": deleting video store", id);
     delete videoStore;
     videoStore = nullptr;
@@ -370,7 +375,14 @@ void Event::AddPacket_(const std::shared_ptr<ZMPacket>packet) {
 
   if (videoStore) {
     if (have_video_keyframe) {
+      size_t frags_before = videoStore->fragments().size();
       videoStore->writePacket(packet);
+      // Update m3u8 whenever a new fragment is completed (live HLS)
+      if (videoStore->fragments().size() > frags_before) {
+        std::string m3u8_path = path + "/index.m3u8";
+        std::string video_url = "index.php?view=view_video&eid=" + std::to_string(id);
+        videoStore->writeM3U8(m3u8_path, video_url, false);
+      }
     } else {
       Debug(2, "No video keyframe yet, not writing");
     }

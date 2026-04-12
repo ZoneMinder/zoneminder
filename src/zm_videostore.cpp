@@ -72,7 +72,10 @@ VideoStore::VideoStore(
   next_dts(nullptr),
   audio_next_pts(0),
   max_stream_index(-1),
-  reorder_queue_size(0) {
+  reorder_queue_size(0),
+  last_fragment_offset_(0),
+  last_fragment_start_dts_(AV_NOPTS_VALUE),
+  init_segment_end_(0) {
   FFMPEGInit();
   swscale.init();
   opkt = av_packet_ptr{av_packet_alloc()};
@@ -515,9 +518,8 @@ bool VideoStore::open() {
 
   const AVDictionaryEntry *movflags_entry = av_dict_get(opts, "movflags", nullptr, AV_DICT_MATCH_CASE);
   if (!movflags_entry) {
-    Debug(1, "setting movflags to frag_keyframe+empty_moov+faststart");
-    // Shiboleth reports that this may break seeking in mp4 before it downloads
-    av_dict_set(&opts, "movflags", "frag_keyframe+empty_moov+faststart", 0);
+    Debug(1, "setting movflags to frag_keyframe+empty_moov+default_base_moof");
+    av_dict_set(&opts, "movflags", "frag_keyframe+empty_moov+default_base_moof", 0);
   } else {
     Debug(1, "using movflags %s", movflags_entry->value);
   }
@@ -552,6 +554,13 @@ bool VideoStore::open() {
 
   zm_dump_stream_format(oc, 0, 0, 1);
   if (audio_out_stream) zm_dump_stream_format(oc, 1, 0, 1);
+
+  // Record where the init segment ends (after ftyp+moov written by header)
+  if (oc->pb) {
+    init_segment_end_ = avio_tell(oc->pb);
+    last_fragment_offset_ = init_segment_end_;
+    Debug(1, "Init segment ends at byte %" PRId64, init_segment_end_);
+  }
   return true;
 } // end bool VideoStore::open()
 
@@ -1524,11 +1533,106 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
   Debug(3, "next_dts for stream %d has become %" PRId64 " last_dts %" PRId64,
         stream->index, next_dts[stream->index], last_dts[stream->index]);
 
+  // Track fragment boundaries for HLS byte-range manifest.
+  // With frag_keyframe movflag, FFmpeg writes a new moof+mdat at each video keyframe.
+  // Detect when the file position jumps (new fragment flushed) after a keyframe write.
+  bool is_video_keyframe = (stream == video_out_stream) && (pkt->flags & AV_PKT_FLAG_KEY);
+  int64_t pos_before = oc->pb ? avio_tell(oc->pb) : -1;
+
   int ret = av_interleaved_write_frame(oc, pkt);
   if (ret != 0) {
     Error("Error writing packet: %s", av_make_error_string(ret).c_str());
   } else {
     Debug(4, "Success writing packet");
   }
+
+  // After writing a video keyframe, check if a new fragment was flushed.
+  // The interleaved writer buffers packets and flushes a complete moof+mdat
+  // when it has enough data. We detect this by a position jump.
+  if (is_video_keyframe && oc->pb && ret == 0) {
+    int64_t pos_after = avio_tell(oc->pb);
+    if (pos_after > pos_before && last_fragment_offset_ < pos_before) {
+      // A fragment was flushed. Record the previous fragment.
+      int64_t frag_size = pos_before - last_fragment_offset_;
+      if (frag_size > 0 && last_fragment_start_dts_ != AV_NOPTS_VALUE) {
+        double duration = 0;
+        if (video_out_stream->time_base.den > 0) {
+          duration = static_cast<double>(pkt->dts - last_fragment_start_dts_)
+                     * video_out_stream->time_base.num
+                     / video_out_stream->time_base.den;
+        }
+        if (duration > 0) {
+          fragments_.push_back({last_fragment_offset_, frag_size, duration});
+          Debug(1, "HLS fragment %zu: offset=%" PRId64 " size=%" PRId64 " duration=%.3f",
+                fragments_.size() - 1, last_fragment_offset_, frag_size, duration);
+        }
+      }
+      last_fragment_offset_ = pos_before;
+      last_fragment_start_dts_ = pkt->dts;
+    } else if (last_fragment_start_dts_ == AV_NOPTS_VALUE) {
+      // First keyframe — record start DTS
+      last_fragment_start_dts_ = pkt->dts;
+    }
+  }
+
   return ret;
 }  // end int VideoStore::write_packet(AVPacket *pkt, AVStream *stream)
+
+void VideoStore::writeM3U8(const std::string &m3u8_path, const std::string &video_url, bool is_complete) {
+  // Finalize last fragment if there's data after the last recorded fragment
+  if (oc && oc->pb) {
+    int64_t file_end = avio_tell(oc->pb);
+    if (file_end > last_fragment_offset_ && last_fragment_start_dts_ != AV_NOPTS_VALUE) {
+      int64_t frag_size = file_end - last_fragment_offset_;
+      // Estimate duration from last known DTS
+      double duration = 0;
+      if (video_out_stream && video_out_stream->time_base.den > 0 &&
+          last_dts.count(video_out_stream->index) && last_dts[video_out_stream->index] != AV_NOPTS_VALUE) {
+        duration = static_cast<double>(last_dts[video_out_stream->index] + last_duration[video_out_stream->index] - last_fragment_start_dts_)
+                   * video_out_stream->time_base.num
+                   / video_out_stream->time_base.den;
+      }
+      if (duration > 0 && frag_size > 0) {
+        fragments_.push_back({last_fragment_offset_, frag_size, duration});
+      }
+    }
+  }
+
+  if (fragments_.empty()) return;
+
+  // Calculate max duration for EXT-X-TARGETDURATION (must be integer, rounded up)
+  double max_duration = 0;
+  for (const auto &frag : fragments_) {
+    if (frag.duration > max_duration) max_duration = frag.duration;
+  }
+  int target_duration = static_cast<int>(ceil(max_duration));
+  if (target_duration < 1) target_duration = 1;
+
+  FILE *fp = fopen(m3u8_path.c_str(), "w");
+  if (!fp) {
+    Error("Failed to open %s for writing: %s", m3u8_path.c_str(), strerror(errno));
+    return;
+  }
+
+  fprintf(fp, "#EXTM3U\n");
+  fprintf(fp, "#EXT-X-VERSION:7\n");
+  fprintf(fp, "#EXT-X-TARGETDURATION:%d\n", target_duration);
+  fprintf(fp, "#EXT-X-MEDIA-SEQUENCE:0\n");
+  fprintf(fp, "#EXT-X-PLAYLIST-TYPE:%s\n", is_complete ? "VOD" : "EVENT");
+  fprintf(fp, "#EXT-X-MAP:URI=\"%s\",BYTERANGE=\"%" PRId64 "@0\"\n",
+          video_url.c_str(), init_segment_end_);
+
+  for (const auto &frag : fragments_) {
+    fprintf(fp, "#EXTINF:%.3f,\n", frag.duration);
+    fprintf(fp, "#EXT-X-BYTERANGE:%" PRId64 "@%" PRId64 "\n", frag.size, frag.offset);
+    fprintf(fp, "%s\n", video_url.c_str());
+  }
+
+  if (is_complete) {
+    fprintf(fp, "#EXT-X-ENDLIST\n");
+  }
+
+  fclose(fp);
+  Debug(1, "Wrote m3u8 %s with %zu fragments (complete=%d)",
+        m3u8_path.c_str(), fragments_.size(), is_complete);
+}

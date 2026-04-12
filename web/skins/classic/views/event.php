@@ -325,13 +325,33 @@ if (file_exists($Event->Path().'/objdetect.jpg')) {
                     <div id="zoompan" class="zoompan">
 <?php
 if ($video_tag) {
+  // Use HLS byte-range playback if an m3u8 manifest exists, otherwise direct MP4
+  $has_hls = file_exists($Event->Path() . '/index.m3u8');
+  if ($has_hls) {
+    $Server = $Event->Server();
+    $hlsSrc = $Server->PathToIndex() . '?view=view_hls&amp;eid=' . $Event->Id();
+    if (ZM_OPT_USE_AUTH) {
+      if (ZM_AUTH_RELAY == 'hashed') {
+        $hlsSrc .= '&amp;auth=' . generateAuthHash(ZM_AUTH_HASH_IPS);
+      } else if (ZM_AUTH_RELAY == 'plain') {
+        $hlsSrc .= '&amp;user=' . $_SESSION['username'] . '&amp;pass=' . $_SESSION['password'];
+      } else if (ZM_AUTH_RELAY == 'none') {
+        $hlsSrc .= '&amp;user=' . $_SESSION['username'];
+      }
+    }
+  }
 ?>
                   <video id="videoobj" class="video-js"
                    <?php echo $scale ? 'width="'.reScale($Event->Width(), $scale).'"' : '' ?>
                    <?php echo $scale ? 'height="'.reScale($Event->Height(), $scale).'"' : '' ?>
                     controls autoplay preload="auto"
                   >
+<?php if ($has_hls): ?>
+                  <source src="<?php echo $hlsSrc; ?>" type="application/x-mpegURL">
                   <source src="<?php echo $Event->getStreamSrc(array('mode'=>'mp4','format'=>'h264'),'&amp;'); ?>" type="video/mp4">
+<?php else: ?>
+                  <source src="<?php echo $Event->getStreamSrc(array('mode'=>'mp4','format'=>'h264'),'&amp;'); ?>" type="video/mp4">
+<?php endif; ?>
                   <track id="monitorCaption" kind="captions" label="English" srclang="en" src='data:plain/text;charset=utf-8,"WEBVTT\n\n 00:00:00.000 --> 00:00:01.000 ZoneMinder"' default/>
                   Your browser does not support the video tag.
                   </video>

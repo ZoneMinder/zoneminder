@@ -1251,6 +1251,10 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
     }
   case 'viewing' :
 ?>
+            <li id="WhatDisplay" class="WhatDisplay">
+              <label><?php echo translate('What to display'); echo makeHelpLink('OPTIONS_WHATTODISPLAY') ?> </label>
+              <?php echo htmlSelect('newMonitor[WhatDisplay]', $whatDisplay, $monitor->WhatDisplay()); ?>
+            </li>
             <li class="RTSPServer">
               <label><?php echo translate('RTSPServer'); echo makeHelpLink('OPTIONS_RTSPSERVER') ?></label>
               <input type="checkbox" name="newMonitor[RTSPServer]" value="1"<?php echo $monitor->RTSPServer() ? ' checked="checked"' : '' ?>/>

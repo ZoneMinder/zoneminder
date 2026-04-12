@@ -2250,7 +2250,7 @@ function get_networks() {
 	  } else {
 	    foreach ( $output as $line ) {
               if ( preg_match('/^\d+: ([[:alnum:]]+):/', $line, $matches ) ) {
-                if ( strcmp($matches[1], 'lo') != 0 ) {
+                if ( $matches[1] == 'lo' ) {
                   $interfaces[$matches[1]] = $matches[1];
                 } else {
                   ZM\Debug("No match for $line");

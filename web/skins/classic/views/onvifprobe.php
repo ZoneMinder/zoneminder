@@ -185,7 +185,7 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
         <p><label for="interface"><?php echo translate('Interface') ?></label>
 <?php 
   $interfaces = get_networks();
-  $default_interface = $interfaces['default'];
+  $default_interface = isset($interfaces['default']) ? $interfaces['default'] : null;
   unset($interfaces['default']);
 
   echo htmlSelect('interface', $interfaces, 
@@ -238,10 +238,20 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
 
   $detprofiles = probeProfiles($monitor['Host'], $monitor['SOAP'], $_REQUEST['Username'], $_REQUEST['Password']);
   foreach ($detprofiles as $profile) {
-    $monitor = $camera['monitor'];
+     $monitor = $camera['monitor'];
 
-    $sourceString = "${profile['Name']} : ${profile['Encoding']}" .
-      " (${profile['Width']}x${profile['Height']} @ ${profile['MaxFPS']}fps ${profile['Transport']})";
+    if (PHP_VERSION_ID >= 80200) { // strings ${xxx} are depreated, use {$xxx} instead
+      eval(<<<'PHP'
+        $sourceString = "{$profile['Name']} : {$profile['Encoding']}" .
+          " ({$profile['Width']}x{$profile['Height']} @ {$profile['MaxFPS']}fps {$profile['Transport']})";
+        PHP);
+    } else {
+      eval(<<<'PHP'
+        $sourceString = "${profile['Name']} : ${profile['Encoding']}" .
+          " (${profile['Width']}x${profile['Height']} @ ${profile['MaxFPS']}fps ${profile['Transport']})";
+      PHP);
+    }
+
     // copy technical details
     $monitor['Width']  = $profile['Width'];
     $monitor['Height'] = $profile['Height'];

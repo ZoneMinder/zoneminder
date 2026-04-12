@@ -227,7 +227,6 @@ class Monitor extends ZM_Object {
     'AnalysisImage' => 'FullColour',
     'Enabled'   => array('type'=>'boolean','default'=>1),
     'Decoding'  => 'Always',
-    'WhatDisplay'   => 'OnlyVideo',
     'RTSP2WebEnabled'   => array('type'=>'integer','default'=>0),
     'DefaultPlayer' => '',
     'StreamChannel'   => 'Restream',

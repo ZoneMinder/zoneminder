@@ -20,62 +20,155 @@ DEALLOCATE PREPARE stmt;
 -- to percentages of zone area, matching the coordinate percentage migration
 -- done in zm_update-1.39.2.sql.
 --
-
--- First convert existing pixel count values to percentages WHILE columns
--- are still INT (values 0-100 fit in INT; ALTER to DECIMAL would fail on
--- large pixel counts that exceed DECIMAL(10,2) max of 99999.99).
+-- The Zones.Area column is often 0 (never populated, or not used by the C++
+-- daemon which calculates polygon area at runtime from coordinates).  So we
+-- compute the polygon area directly from the percentage coordinates using the
+-- shoelace formula, then derive the pixel area to convert thresholds.
 --
--- Zone pixel area = (Zones.Area * Monitors.Width * Monitors.Height) / 10000
--- where Zones.Area is in percentage-space (0-10000) from zm_update-1.39.2.sql.
 -- new_percent = old_pixel_count * 100 / zone_pixel_area
---             = old_pixel_count * 1000000 / (Zones.Area * Monitors.Width * Monitors.Height)
+-- zone_pixel_area = pct_poly_area * monitor_width * monitor_height / 10000
 --
--- Only convert zones with percentage coordinates (contain '.') that still have
--- pixel-scale threshold values (> 100 means it can't be a percentage).
+-- Only converts zones with percentage coordinates (contain '.') that still
+-- have pixel-scale threshold values (any value > 100 can't be a percentage).
 
-UPDATE Zones z
-  JOIN Monitors m ON z.MonitorId = m.Id
-SET
-  z.MinAlarmPixels = CASE
-    WHEN z.MinAlarmPixels IS NULL THEN NULL
-    WHEN z.MinAlarmPixels = 0 THEN 0
-    WHEN z.Area > 0 AND m.Width > 0 AND m.Height > 0
-      THEN LEAST(ROUND(z.MinAlarmPixels * 1000000.0 / (z.Area * m.Width * m.Height), 2), 100)
-    ELSE z.MinAlarmPixels END,
-  z.MaxAlarmPixels = CASE
-    WHEN z.MaxAlarmPixels IS NULL THEN NULL
-    WHEN z.MaxAlarmPixels = 0 THEN 0
-    WHEN z.Area > 0 AND m.Width > 0 AND m.Height > 0
-      THEN LEAST(ROUND(z.MaxAlarmPixels * 1000000.0 / (z.Area * m.Width * m.Height), 2), 100)
-    ELSE z.MaxAlarmPixels END,
-  z.MinFilterPixels = CASE
-    WHEN z.MinFilterPixels IS NULL THEN NULL
-    WHEN z.MinFilterPixels = 0 THEN 0
-    WHEN z.Area > 0 AND m.Width > 0 AND m.Height > 0
-      THEN LEAST(ROUND(z.MinFilterPixels * 1000000.0 / (z.Area * m.Width * m.Height), 2), 100)
-    ELSE z.MinFilterPixels END,
-  z.MaxFilterPixels = CASE
-    WHEN z.MaxFilterPixels IS NULL THEN NULL
-    WHEN z.MaxFilterPixels = 0 THEN 0
-    WHEN z.Area > 0 AND m.Width > 0 AND m.Height > 0
-      THEN LEAST(ROUND(z.MaxFilterPixels * 1000000.0 / (z.Area * m.Width * m.Height), 2), 100)
-    ELSE z.MaxFilterPixels END,
-  z.MinBlobPixels = CASE
-    WHEN z.MinBlobPixels IS NULL THEN NULL
-    WHEN z.MinBlobPixels = 0 THEN 0
-    WHEN z.Area > 0 AND m.Width > 0 AND m.Height > 0
-      THEN LEAST(ROUND(z.MinBlobPixels * 1000000.0 / (z.Area * m.Width * m.Height), 2), 100)
-    ELSE z.MinBlobPixels END,
-  z.MaxBlobPixels = CASE
-    WHEN z.MaxBlobPixels IS NULL THEN NULL
-    WHEN z.MaxBlobPixels = 0 THEN 0
-    WHEN z.Area > 0 AND m.Width > 0 AND m.Height > 0
-      THEN LEAST(ROUND(z.MaxBlobPixels * 1000000.0 / (z.Area * m.Width * m.Height), 2), 100)
-    ELSE z.MaxBlobPixels END
-WHERE z.Coords LIKE '%.%'
-  AND (z.MinAlarmPixels > 100 OR z.MaxAlarmPixels > 100
-    OR z.MinFilterPixels > 100 OR z.MaxFilterPixels > 100
-    OR z.MinBlobPixels > 100 OR z.MaxBlobPixels > 100);
+DELIMITER //
+
+DROP PROCEDURE IF EXISTS `zm_convert_zone_thresholds_to_percent` //
+
+CREATE PROCEDURE `zm_convert_zone_thresholds_to_percent`()
+BEGIN
+  DECLARE done INT DEFAULT FALSE;
+  DECLARE v_zone_id INT;
+  DECLARE v_coords TEXT;
+  DECLARE v_mon_width INT;
+  DECLARE v_mon_height INT;
+  DECLARE v_min_alarm, v_max_alarm DOUBLE;
+  DECLARE v_min_filter, v_max_filter DOUBLE;
+  DECLARE v_min_blob, v_max_blob DOUBLE;
+  DECLARE v_remaining TEXT;
+  DECLARE v_pair TEXT;
+  DECLARE v_space_pos INT;
+  DECLARE v_x, v_y DOUBLE;
+  DECLARE v_prev_x, v_prev_y DOUBLE;
+  DECLARE v_first_x, v_first_y DOUBLE;
+  DECLARE v_pct_area DOUBLE;
+  DECLARE v_pixel_area DOUBLE;
+  DECLARE v_have_first INT DEFAULT FALSE;
+
+  DECLARE cur CURSOR FOR
+    SELECT z.Id, z.Coords, m.Width, m.Height,
+           z.MinAlarmPixels, z.MaxAlarmPixels,
+           z.MinFilterPixels, z.MaxFilterPixels,
+           z.MinBlobPixels, z.MaxBlobPixels
+    FROM Zones z
+    JOIN Monitors m ON z.MonitorId = m.Id
+    WHERE z.Coords LIKE '%.%'
+      AND m.Width > 0 AND m.Height > 0
+      AND (z.MinAlarmPixels > 100 OR z.MaxAlarmPixels > 100
+        OR z.MinFilterPixels > 100 OR z.MaxFilterPixels > 100
+        OR z.MinBlobPixels > 100 OR z.MaxBlobPixels > 100);
+
+  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+
+  OPEN cur;
+
+  read_loop: LOOP
+    FETCH cur INTO v_zone_id, v_coords, v_mon_width, v_mon_height,
+                   v_min_alarm, v_max_alarm,
+                   v_min_filter, v_max_filter,
+                   v_min_blob, v_max_blob;
+    IF done THEN
+      LEAVE read_loop;
+    END IF;
+
+    -- Calculate polygon area from percentage coordinates (shoelace formula)
+    SET v_pct_area = 0.0;
+    SET v_have_first = FALSE;
+    SET v_remaining = TRIM(v_coords);
+
+    coord_loop: LOOP
+      IF v_remaining = '' OR v_remaining IS NULL THEN
+        LEAVE coord_loop;
+      END IF;
+
+      SET v_space_pos = LOCATE(' ', v_remaining);
+      IF v_space_pos > 0 THEN
+        SET v_pair = LEFT(v_remaining, v_space_pos - 1);
+        SET v_remaining = TRIM(SUBSTRING(v_remaining, v_space_pos + 1));
+      ELSE
+        SET v_pair = v_remaining;
+        SET v_remaining = '';
+      END IF;
+
+      IF v_pair = '' OR v_pair = ',' THEN
+        ITERATE coord_loop;
+      END IF;
+
+      SET v_x = CAST(SUBSTRING_INDEX(v_pair, ',', 1) AS DECIMAL(10,2));
+      SET v_y = CAST(SUBSTRING_INDEX(v_pair, ',', -1) AS DECIMAL(10,2));
+
+      IF NOT v_have_first THEN
+        SET v_first_x = v_x;
+        SET v_first_y = v_y;
+        SET v_have_first = TRUE;
+      ELSE
+        SET v_pct_area = v_pct_area + (v_prev_x * v_y - v_x * v_prev_y);
+      END IF;
+
+      SET v_prev_x = v_x;
+      SET v_prev_y = v_y;
+    END LOOP coord_loop;
+
+    -- Close polygon
+    IF v_have_first THEN
+      SET v_pct_area = v_pct_area + (v_prev_x * v_first_y - v_first_x * v_prev_y);
+    END IF;
+    SET v_pct_area = ABS(v_pct_area) / 2.0;
+
+    -- Convert percentage-space area to pixel area
+    -- pct coords are 0-100, so full frame = 100*100 = 10000
+    SET v_pixel_area = v_pct_area * v_mon_width * v_mon_height / 10000.0;
+
+    IF v_pixel_area > 0 THEN
+      -- Convert each threshold: only if > 100 (still a pixel count)
+      IF v_min_alarm IS NOT NULL AND v_min_alarm > 100 THEN
+        SET v_min_alarm = LEAST(ROUND(v_min_alarm * 100.0 / v_pixel_area, 2), 100);
+      END IF;
+      IF v_max_alarm IS NOT NULL AND v_max_alarm > 100 THEN
+        SET v_max_alarm = LEAST(ROUND(v_max_alarm * 100.0 / v_pixel_area, 2), 100);
+      END IF;
+      IF v_min_filter IS NOT NULL AND v_min_filter > 100 THEN
+        SET v_min_filter = LEAST(ROUND(v_min_filter * 100.0 / v_pixel_area, 2), 100);
+      END IF;
+      IF v_max_filter IS NOT NULL AND v_max_filter > 100 THEN
+        SET v_max_filter = LEAST(ROUND(v_max_filter * 100.0 / v_pixel_area, 2), 100);
+      END IF;
+      IF v_min_blob IS NOT NULL AND v_min_blob > 100 THEN
+        SET v_min_blob = LEAST(ROUND(v_min_blob * 100.0 / v_pixel_area, 2), 100);
+      END IF;
+      IF v_max_blob IS NOT NULL AND v_max_blob > 100 THEN
+        SET v_max_blob = LEAST(ROUND(v_max_blob * 100.0 / v_pixel_area, 2), 100);
+      END IF;
+
+      UPDATE Zones SET
+        MinAlarmPixels = v_min_alarm,
+        MaxAlarmPixels = v_max_alarm,
+        MinFilterPixels = v_min_filter,
+        MaxFilterPixels = v_max_filter,
+        MinBlobPixels = v_min_blob,
+        MaxBlobPixels = v_max_blob
+      WHERE Id = v_zone_id;
+    END IF;
+
+  END LOOP read_loop;
+
+  CLOSE cur;
+END //
+
+DELIMITER ;
+
+CALL zm_convert_zone_thresholds_to_percent();
+DROP PROCEDURE IF EXISTS `zm_convert_zone_thresholds_to_percent`;
 
 -- Now change threshold columns from int to DECIMAL(10,2) to store percentages
 -- with 2 decimal places (e.g. 25.50 = 25.50% of zone area).

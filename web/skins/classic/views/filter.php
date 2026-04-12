@@ -172,7 +172,7 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
 <?php } ?>
         <p class="Name">
           <label for="filter[Name]"><?php echo translate('Name') ?></label>
-          <input type="text" id="filter[Name]" name="filter[Name]" value="<?php echo validHtmlStr($filter->Name()) ?>" data-on-input-this="updateButtons"/>
+          <input type="text" id="filter[Name]" name="filter[Name]" value="<?php echo validHtmlStr($filter->Name()) ?>" maxlength="64" data-on-input-this="updateButtons"/>
         </p>
 <?php
 if (ZM_OPT_USE_AUTH) {

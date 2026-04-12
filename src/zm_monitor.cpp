@@ -388,7 +388,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   server_id = dbrow[col] ? atoi(dbrow[col]) : 0;
   col++;
 
-  storage_id = atoi(dbrow[col]);
+  storage_id = dbrow[col] ? atoi(dbrow[col]) : 0;
   col++;
   delete storage;
   storage = new Storage(storage_id);
@@ -3708,6 +3708,7 @@ int Monitor::Pause() {
       convert_context = nullptr;
     }
     decoding_image_count = 0;
+    if (shared_data) shared_data->last_write_index = image_buffer_count;
   }
   if (analysis_thread) {
     Debug(1, "Joining analysis");

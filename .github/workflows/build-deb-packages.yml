@@ -112,7 +112,11 @@ jobs:
           set -eux
           mkdir -p artifacts/deb
           ls -l ../
-          mv ../*.deb ../*.buildinfo ../*.changes ../*.dsc ../*.tar.xz ../*.tar.gz artifacts/deb/ || true
+          # Only collect binary artifacts. Source files (.dsc, .orig.tar.*,
+          # .debian.tar.*) are not needed for binary uploads and the orig
+          # tarball has the same filename across distros which confuses
+          # mini-dinstall.
+          mv ../*.deb ../*.buildinfo ../*.changes artifacts/deb/ || true
           # quick verify signatures (non-fatal)
           gpg --verify artifacts/deb/*.changes || true
           gpg --verify artifacts/deb/*.buildinfo || true

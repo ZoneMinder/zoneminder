@@ -374,6 +374,24 @@ div:not(.chosen-container-active) > .chosen-drop {
 .layout-main .sidebar-main .footer-box {
   padding: 0;
 }
+
+.layout-main .sidebar-main .footer-box div{
+  padding: 0 10px;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.layout-main .sidebar-main .footer-box ul.account-info{
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+
+.layout-main .sidebar-main .footer-box #getAccountCircleHTML{
+  margin: 0 !important;
+}
+
 #statusSidebar {
   display: flex;
 }

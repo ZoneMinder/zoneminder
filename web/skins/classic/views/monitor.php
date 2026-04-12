@@ -668,7 +668,9 @@ switch ($name) {
             <label><?php echo translate('DevicePath') ?></label>
 <?php echo count($devices) > 1 ? htmlSelect('newMonitor[Devices]', $devices, $monitor->Device()) : ''; ?>
             <input type="text" name="newMonitor[Device]" value="<?php echo validHtmlStr($monitor->Device()) ?>"
-<?php echo (count($devices) > 1) ? 'style="display: none;"' : '' ?> autocomplete="off"
+<?php echo (count($devices) > 1 and $monitor->Device() != '') ? 'style="display: none;"' : '' ?> autocomplete="off"
+              pattern="/dev/[\w\/.\-]+"
+              title="<?php echo translate('BadDevice') ?> (e.g. /dev/video0)"
             />
           </li>
 <?php

@@ -336,6 +336,8 @@ export class VideoRTC extends HTMLElement {
         // CONNECTING => OPEN
         this.wsState = WebSocket.OPEN;
 
+        if (!this.ws) return;
+
         this.ws.addEventListener('message', ev => {
             if (typeof ev.data === 'string') {
                 const msg = JSON.parse(ev.data);

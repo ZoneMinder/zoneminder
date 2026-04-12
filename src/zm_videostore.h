@@ -63,6 +63,7 @@ class VideoStore {
   SWScale swscale;
   unsigned int packets_written;
   unsigned int frame_count;
+  bool video_encoded;  // true once at least one frame has been sent to the video encoder
 
   AVBufferRef *hw_device_ctx;
 

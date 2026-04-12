@@ -347,12 +347,11 @@ sub control {
   my $command = shift;
   my $process = shift;
 
-  my $valid_device = (defined $monitor->{Device} and $monitor->{Device} =~ /^\/dev\/[\w\/.\-]+$/);
-  if ($monitor->{Type} eq 'Local' and !$valid_device) {
-    Error("Invalid device path rejected: $monitor->{Device}");
-    return;
-  } elsif (!$valid_device and defined $monitor->{Device} and length($monitor->{Device})) {
-    Warning("Monitor $$monitor{Id} has invalid device path: $monitor->{Device}");
+  if ($monitor->{Type} eq 'Local') {
+    if (!defined $monitor->{Device} or $monitor->{Device} !~ /^\/dev\/[\w\/.\-]+$/) {
+      Error("Invalid device path rejected: $monitor->{Device}");
+      return;
+    }
   }
 
   if ($command eq 'stop') {

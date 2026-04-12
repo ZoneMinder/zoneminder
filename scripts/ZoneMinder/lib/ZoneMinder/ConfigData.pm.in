@@ -2017,24 +2017,7 @@ our @options = (
     type        => $types{integer},
     category    => 'system',
   },
-  {
-    name        => 'ZM_FILTER_EXECUTE_INTERVAL',
-    default     => '60',
-    description => 'How often (in seconds) to run automatic saved filters',
-    help        => q`
-      ZoneMinder allows you to save filters to the database which
-      allow events that match certain criteria to be emailed, deleted
-      or uploaded to a remote machine etc. The zmfilter daemon loads
-      these and does the actual operation. This option determines how
-      often the filters are executed on the saved event in the
-      database. If you want a rapid response to new events this
-      should be a smaller value, however this may increase the
-      overall load on the system and affect performance of other
-      elements.
-      `,
-    type        => $types{integer},
-    category    => 'system',
-  },
+  # ZM_FILTER_EXECUTE_INTERVAL removed: each filter now has its own ExecuteInterval
   {
     name        => 'ZM_OPT_UPLOAD',
     default     => 'no',

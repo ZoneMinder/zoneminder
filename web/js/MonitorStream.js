@@ -188,7 +188,7 @@ function MonitorStream(monitorData) {
   this.show = function() {
     const stream = this.getElement();
     if (!stream.src) {
-      stream.src = this.url_to_zms+"&mode=single&scale="+this.scale+"&connkey="+this.connKey+'&'+auth_relay;
+      stream.src = this.url_to_zms+"&mode=single&scale="+this.scale+"&connkey="+this.connKey+(auth_relay?'&'+auth_relay:'');
     }
   };
 
@@ -605,9 +605,9 @@ function MonitorStream(monitorData) {
       this.streamCommand(CMD_PLAY);
     } else {
       let src = this.url_to_zms.replace(/mode=single/i, 'mode=jpeg');
-      if (-1 == src.search('auth')) {
+      if (-1 == src.search('auth') && auth_relay) {
         src += '&'+auth_relay;
-      } else {
+      } else if (-1 != src.search('auth')) {
         src = src.replace(/auth=\w+/i, 'auth='+auth_hash);
       }
       if (-1 == src.search('connkey')) {
@@ -647,9 +647,9 @@ function MonitorStream(monitorData) {
     if (!imgInfoBlock) return null;
 
     let src = this.url_to_zms.replace(/mode=jpeg/i, 'mode=single');
-    if (-1 == src.search('auth')) {
+    if (-1 == src.search('auth') && auth_relay) {
       src += '&'+auth_relay;
-    } else {
+    } else if (-1 != src.search('auth')) {
       src = src.replace(/auth=\w+/i, 'auth='+auth_hash);
     }
     if (-1 == src.search('scale=')) {
@@ -728,7 +728,10 @@ function MonitorStream(monitorData) {
       infoBlock.style.left = '50%';
       infoBlock.style.transform = 'translate(-50%, -50%)';
       infoBlock.style.pointerEvents = 'none';
-      this.getElement().parentNode.appendChild(infoBlock);
+      const imageFeed = document.getElementById('imageFeed'+this.id);
+      if (imageFeed) {
+        imageFeed.appendChild(infoBlock);
+      }
       currentInfoBlock = infoBlock;
     }
     return currentInfoBlock;
@@ -1601,7 +1604,7 @@ function MonitorStream(monitorData) {
   }; // this.getStatusCmdResponse
 
   this.statusCmdQuery = function() {
-    $j.getJSON(this.url + '?view=request&request=status&entity=monitor&element[]=Status&element[]=CaptureFPS&element[]=AnalysisFPS&element[]=Analysing&element[]=Recording&id='+this.id+'&'+auth_relay)
+    $j.getJSON(this.url + '?view=request&request=status&entity=monitor&element[]=Status&element[]=CaptureFPS&element[]=AnalysisFPS&element[]=Analysing&element[]=Recording&id='+this.id+(auth_relay?'&'+auth_relay:''))
         .done(this.getStatusCmdResponse.bind(this))
         .fail(logAjaxFail);
 

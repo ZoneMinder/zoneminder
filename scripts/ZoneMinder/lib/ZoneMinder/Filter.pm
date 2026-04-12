@@ -98,22 +98,24 @@ sub Execute {
     $sql =~ s/zmSystemLoad/$load/g;
   }
 
-
-  Debug("Filter::Execute SQL ($sql)");
-  my $sth = $ZoneMinder::Database::dbh->prepare_cached($sql)
-    or Fatal("Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr());
+  my $sth = $ZoneMinder::Database::dbh->prepare($sql);
+  if (!$sth) {
+    Error("Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr());
+    return;
+  }
   my $res = $sth->execute();
   if ( !$res ) {
     Error("Can't execute filter '$sql', ignoring: ".$sth->errstr());
     return;
   }
+  Debug("Filter::Execute SQL ($sql)");
   my @results;
   while ( my $event = $sth->fetchrow_hashref() ) {
     push @results, $event;
   }
   $sth->finish();
   Debug('Loaded ' . @results . ' events for filter '.$$self{Name}.' using query ('.$sql.')"');
-  if ( $self->{PostSQLConditions} ) {
+  if ($self->{PostSQLConditions} and @{$self->{PostSQLConditions}}) {
     my @filtered_events;
     foreach my $term ( @{$$self{PostSQLConditions}} ) {
       if ( $$term{attr} eq 'ExistsInFileSystem' ) {
@@ -137,6 +139,10 @@ sub Sql {
   $$self{Sql} = shift if @_;
   if ( !$$self{Sql} ) {
     $self->{Sql} = '';
+    $self->{PostSQLConditions} = [];
+    $self->{HasDiskPercent} = 0;
+    $self->{HasDiskBlocks} = 0;
+    $self->{HasSystemLoad} = 0;
     if ( !$self->{Query_json} ) {
       Warning('No query in Filter!');
       return;

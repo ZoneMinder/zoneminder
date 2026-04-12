@@ -1563,6 +1563,9 @@ noUi-target {
 [id^="volumeControls"].disabled {
   opacity: 0.4;
 }
+div.volume {
+  display: inline-block;
+}
 /* --- Volume control --- */
 
 .rightInFlexContainer {

@@ -167,12 +167,9 @@ END //
 
 DELIMITER ;
 
-CALL zm_convert_zone_thresholds_to_percent();
-DROP PROCEDURE IF EXISTS `zm_convert_zone_thresholds_to_percent`;
-
--- Now change threshold columns from int to DECIMAL(10,2) to store percentages
--- with 2 decimal places (e.g. 25.50 = 25.50% of zone area).
--- Values are now 0-100 from the UPDATE above, so they fit in DECIMAL(10,2).
+-- Change threshold columns to DECIMAL(10,2) BEFORE the conversion procedure
+-- runs, so that sub-1.0 percentage values (e.g. 0.26) are not truncated to 0
+-- by INT storage.
 
 SET @s = (SELECT IF(
     (SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
@@ -210,6 +207,10 @@ SET @s = (SELECT IF(
 PREPARE stmt FROM @s;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
+
+-- Now convert the data (columns are DECIMAL, so sub-1.0 values survive)
+CALL zm_convert_zone_thresholds_to_percent();
+DROP PROCEDURE IF EXISTS `zm_convert_zone_thresholds_to_percent`;
 
 --
 -- Add Menu_Items table for customizable navbar/sidebar menu

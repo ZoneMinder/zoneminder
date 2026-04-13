@@ -570,8 +570,13 @@ ZM\Debug("Figuring out height using width: $height = ($width * $oldHeight) / $ol
         ob_start();
         $iScale = imagescale($i, $width, $height);
         imagejpeg($iScale);
-        imagedestroy($i);
-        imagedestroy($iScale);
+        if (PHP_MAJOR_VERSION < 8) { // imagedestroy() is deprecated since 8.0.0
+          imagedestroy($i);
+          imagedestroy($iScale);
+        } else {
+          unset($i);
+          unset($iScale);
+        }
         $scaled_jpeg_data = ob_get_contents();
         file_put_contents($scaled_path, $scaled_jpeg_data, LOCK_EX);
 

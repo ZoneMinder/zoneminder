@@ -99,7 +99,7 @@ echo output_cache_busted_stylesheet_links(array(
   <?php #Chosen can't be cache-busted because it loads sprites by relative path ?>
   <link rel="stylesheet" href="skins/classic/js/chosen/chosen.min.css" type="text/css"/>
 <?php
-  echo output_link_if_exists(array('js/noUiSlider-15.8.1/dist/nouislider.min.css?'), false, $param = ['global', 'stylesheet', '  type="text/css"/']);
+  echo output_link_if_exists(array('js/noUiSlider-15.8.1/dist/nouislider.min.css'), true, $param = ['global', 'stylesheet', 'type="text/css"']);
   echo output_link_if_exists(array(
     'js/dateTimePicker/jquery-ui-timepicker-addon.css',
     'js/jquery-ui-1.13.2/jquery-ui.structure.min.css',
@@ -396,7 +396,7 @@ function getSidebarTopHTML() {
   $blockExtruder = '
 <div id="extruderLeft">
   <div id="contextExtruderLeft" class="text">
-    <! -- Pull-out panel FILLED VIA JS -->
+    <!-- Pull-out panel FILLED VIA JS -->
   </div>
 </div>
 ';
@@ -427,14 +427,16 @@ function getSidebarTopHTML() {
       <div class="sidebar-footer hidden-for-collapsed">
         <div class="footer-box">
           <div>
+            <ul class="account-info">
 ' . getAccountCircleHTML($skin, $user, $forLeftBar = true) . '
+            </ul>
           </div>
-          <div style="padding: 0 10px">
-            <span style="display: block; margin-bottom: 10px">
+          <div>
+            <div>
               <ul id="versionSidebar">
 ' . getZMVersionHTML() . '
               </ul>
-            </span>
+            </div>
             <ul id="statusSidebar">
 ' . getStatusBtnHTML(runtimeStatus($running)) . '
             </ul>
@@ -871,7 +873,7 @@ function getStorageHTML() {
 function getRamHTML() {
   $result = '';
   if ( !canView('System') ) return $result;
-  if (file_exists('/proc')) {
+  if (file_exists('/proc') && file_exists('/proc/meminfo')) {
     $contents = file_get_contents('/proc/meminfo');
     preg_match_all('/(\w+):\s+(\d+)\s/', $contents, $matches);
     $meminfo = array_combine($matches[1], array_map(function($v){return 1024*$v;}, $matches[2]));

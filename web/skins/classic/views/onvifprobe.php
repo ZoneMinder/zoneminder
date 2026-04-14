@@ -238,19 +238,10 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
 
   $detprofiles = probeProfiles($monitor['Host'], $monitor['SOAP'], $_REQUEST['Username'], $_REQUEST['Password']);
   foreach ($detprofiles as $profile) {
-     $monitor = $camera['monitor'];
+    $monitor = $camera['monitor'];
 
-    if (PHP_VERSION_ID >= 80200) { // strings ${xxx} are depreated, use {$xxx} instead
-      eval(<<<'PHP'
-        $sourceString = "{$profile['Name']} : {$profile['Encoding']}" .
-          " ({$profile['Width']}x{$profile['Height']} @ {$profile['MaxFPS']}fps {$profile['Transport']})";
-        PHP);
-    } else {
-      eval(<<<'PHP'
-        $sourceString = "${profile['Name']} : ${profile['Encoding']}" .
-          " (${profile['Width']}x${profile['Height']} @ ${profile['MaxFPS']}fps ${profile['Transport']})";
-      PHP);
-    }
+    $sourceString = $profile['Name'] . ' : ' . $profile['Encoding'] .
+                    ' (' . $profile['Width'] . 'x' . $profile['Height'] . ' @ ' . $profile['MaxFPS'] . 'fps ' . $profile['Transport'] . ')';
 
     // copy technical details
     $monitor['Width']  = $profile['Width'];

@@ -2293,7 +2293,7 @@ function get_networks() {
             $retval = preg_match("/^([A-Za-z0-9]*):\s+flags=([0-9]*)<([A-Z,]*)>.*/ims", $value, $matches);
             ZM\Debug(print_r($matches, true));
             if (($retval == 1) && (strlen($matches[3]) > 0) &&
-                (strpos($matches[3], "LOOPBACK") == false) && (strpos($matches[3], "RUNNING") != false))
+                (strpos($matches[3], "LOOPBACK") === false) && (strpos($matches[3], "RUNNING") !== false))
             {
               $interfaces[$matches[1]] = $matches[1];
             }

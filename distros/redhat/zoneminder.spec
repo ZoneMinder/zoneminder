@@ -230,6 +230,7 @@ mv -f CxxUrl-%{CxxUrl_version} ./dep/CxxUrl
         -DZM_PATH_ARP_SCAN="/usr/sbin/arp-scan" \
         -DZM_PATH_IP="/usr/sbin/ip" \
         -DZM_PATH_IFCONFIG="/usr/sbin/ifconfig" \
+        -DZM_PATH_ROUTE="/usr/sbin/route" \
         .
 
 %cmake_build

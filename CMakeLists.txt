@@ -119,6 +119,7 @@ mark_as_advanced(
   ZM_PATH_UNAME
   ZM_PATH_IP
   ZM_PATH_IFCONFIG
+  ZM_PATH_ROUTE
   ZM_CONFIG_DIR
   ZM_CONFIG_SUBDIR
   ZM_DETECT_SYSTEMD
@@ -198,6 +199,8 @@ set(ZM_PATH_IP "" CACHE PATH
   "Full path to compatible ip binary. Leave empty for automatic detection.")
 set(ZM_PATH_IFCONFIG "" CACHE PATH
   "Full path to compatible ifconfig binary. Leave empty for automatic detection.")
+set(ZM_PATH_ROUTE "" CACHE PATH
+  "Full path to compatible route binary. Leave empty for automatic detection.")
 set(ZM_CONFIG_DIR "${CMAKE_INSTALL_FULL_SYSCONFDIR}/zm" CACHE PATH
   "Location of ZoneMinder configuration, default system config directory")
 set(ZM_CONFIG_SUBDIR "${ZM_CONFIG_DIR}/conf.d" CACHE PATH
@@ -817,6 +820,17 @@ if(ZM_PATH_IFCONFIG STREQUAL "")
     mark_as_advanced(IFCONFIG_EXECUTABLE)
   else()
     message(WARNING "Unable to find a compatible ifconfig binary.")
+  endif()
+endif()
+
+# Find the path to an route compatible executable
+if(ZM_PATH_ROUTE STREQUAL "")
+  find_program(ROUTE_EXECUTABLE route)
+  if(ROUTE_EXECUTABLE)
+    set(ZM_PATH_ROUTE "${ROUTE_EXECUTABLE}")
+    mark_as_advanced(ROUTE_EXECUTABLE)
+  else()
+    message(WARNING "Unable to find a compatible route binary.")
   endif()
 endif()
 

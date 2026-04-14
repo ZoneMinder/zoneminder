@@ -70,6 +70,10 @@ ZM_PATH_IP="@ZM_PATH_IP@"
 # ZoneMinder will find the ifconfig binary automatically on most systems
 ZM_PATH_IFCONFIG="@ZM_PATH_IFCONFIG@"
 
+# Full path to optional route binary or just route to use PATH
+# ZoneMinder will find the route binary automatically on most systems
+ZM_PATH_ROUTE="@ZM_PATH_ROUTE@"
+
 #Full path to shutdown binary
 ZM_PATH_SHUTDOWN="@ZM_PATH_SHUTDOWN@"
 

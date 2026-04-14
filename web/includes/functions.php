@@ -2276,44 +2276,48 @@ function get_networks() {
             } # end foreach line of output
         }
     } else if (defined('ZM_PATH_IFCONFIG') and ZM_PATH_IFCONFIG and file_exists(ZM_PATH_IFCONFIG)) {
-        $osname = strtolower(php_uname('s'));
+      $osname = strtolower(php_uname('s'));
 
-        exec(ZM_PATH_IFCONFIG, $output, $status);
+      exec(ZM_PATH_IFCONFIG, $output, $status);
+      if ($status) {
+        $html_output = implode("\n", $output);
+        ZM\Error("Unable to list network interfaces, status is '$status'. Output was:$html_output");
+      } else {
+        exec('ifconfig', $output, $status);
+
         if ($status) {
-            $html_output = implode("\n", $output);
-            ZM\Error("Unable to list network interfaces, status is '$status'. Output was:$html_output");
+          $html_output = implode("\n", $output);
+          ZM\Error("Unable to list network interfaces, status is '$status'. Output was:$html_output");
         } else {
-            exec('ifconfig', $output, $status);
+          array_walk($output, function($value, $key) use (&$interfaces) {
+            $retval = preg_match("/^([A-Za-z0-9]*):\s+flags=([0-9]*)<([A-Z,]*)>.*/ims", $value, $matches);
+            ZM\Debug(print_r($matches, true));
+            if (($retval == 1) && (strlen($matches[3]) > 0) &&
+                (strpos($matches[3], "LOOPBACK") == false) && (strpos($matches[3], "RUNNING") != false))
+            {
+              $interfaces[$matches[1]] = $matches[1];
+            }
+          });
+
+          if (defined('ZM_PATH_ROUTE') and ZM_PATH_ROUTE and file_exists(ZM_PATH_ROUTE)) {
+            // Get default route iface
+            if (strcmp($osname, 'freebsd') == 0) {
+              exec(ZM_PATH_ROUTE . " get default | grep interface | awk '{print $2}'", $defaultIface, $status);
+            } else {
+              exec(ZM_PATH_ROUTE . " -n | grep '^0.0.0.0' | head -n 1 | awk '{print $8}'", $defaultIface, $status);
+            }
 
             if ($status) {
-                $html_output = implode("\n", $output);
-                ZM\Error("Unable to list network interfaces, status is '$status'. Output was:$html_output");
+              $html_output = implode("\n", $output);
+              ZM\Error("Unable to get default ip route, status is '$status'. Output was:$html_output");
             } else {
-                array_walk($output, function($value, $key) use (&$interfaces) {
-                    $retval = preg_match("/^([A-Za-z0-9]*):\s+flags=([0-9]*)<([A-Z,]*)>.*/ims", $value, $matches);
-                    ZM\Debug(print_r($matches, true));
-                    if (($retval == 1) && (strlen($matches[3]) > 0) &&
-                        (strpos($matches[3], "LOOPBACK") == false) && (strpos($matches[3], "RUNNING") != false))
-                    {
-                        $interfaces[$matches[1]] = $matches[1];
-                    }
-                });
-
-                if (strcmp($osname, 'freebsd') == 0) {
-                    // Get default route iface
-                    exec("route get default | grep interface | awk '{print $2}'", $defaultIface, $status);
-
-                    if ($status) {
-                        $html_output = implode("\n", $output);
-                        ZM\Error("Unable to get default ip route, status is '$status'. Output was:$html_output");
-                    } else {
-                        if (isset($defaultIface) && isset($defaultIface[0])) {
-	                    $interfaces['default'] = $defaultIface[0];
-                        }
-                    }
-                }
+              if (isset($defaultIface) && isset($defaultIface[0])) {
+                $interfaces['default'] = $defaultIface[0];
+              }
             }
+          }
         }
+      }
     }
     return $interfaces;
 }

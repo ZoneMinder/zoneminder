@@ -1551,46 +1551,53 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
   Debug(3, "next_dts for stream %d has become %" PRId64 " last_dts %" PRId64,
         stream->index, next_dts[stream->index], last_dts[stream->index]);
 
-  // Track fragment boundaries for HLS byte-range manifest.
-  // With frag_keyframe movflag, FFmpeg writes a new moof+mdat at each video keyframe.
-  // Detect when the file position jumps (new fragment flushed) after a keyframe write.
+  // HLS fragment tracking: with frag_keyframe movflag, FFmpeg creates a new
+  // moof+mdat at each video keyframe. We record the byte range of each fragment
+  // by checking the file position before and after the write call.
+  //
+  // Strategy: before writing a video keyframe, snapshot the file position.
+  // This marks the end of the previous fragment. We record that fragment and
+  // start tracking the new one.
   bool is_video_keyframe = (stream == video_out_stream) && (pkt->flags & AV_PKT_FLAG_KEY);
-  int64_t pos_before = oc->pb ? avio_tell(oc->pb) : -1;
+
+  if (is_video_keyframe && oc && oc->pb) {
+    // Force flush any buffered data so the file position reflects all previous writes
+    avio_flush(oc->pb);
+    int64_t pos_now = avio_tell(oc->pb);
+
+    if (last_fragment_start_dts_ != AV_NOPTS_VALUE && pos_now > last_fragment_offset_) {
+      // Record the completed fragment
+      int64_t frag_size = pos_now - last_fragment_offset_;
+      double duration = 0;
+      if (video_out_stream->time_base.den > 0) {
+        duration = static_cast<double>(pkt->dts - last_fragment_start_dts_)
+                   * video_out_stream->time_base.num
+                   / video_out_stream->time_base.den;
+      }
+      if (duration > 0 && frag_size > 0) {
+        fragments_.push_back({last_fragment_offset_, frag_size, duration});
+        Debug(1, "HLS fragment %zu: offset=%" PRId64 " size=%" PRId64 " duration=%.3f",
+              fragments_.size() - 1, last_fragment_offset_, frag_size, duration);
+      }
+    }
+    // New fragment starts here
+    last_fragment_offset_ = pos_now;
+    last_fragment_start_dts_ = pkt->dts;
+  }
+
+  // Initialize tracking after init segment is written
+  if (last_fragment_start_dts_ == AV_NOPTS_VALUE && is_video_keyframe) {
+    if (oc && oc->pb) {
+      last_fragment_offset_ = avio_tell(oc->pb);
+    }
+    last_fragment_start_dts_ = pkt->dts;
+  }
 
   int ret = av_interleaved_write_frame(oc, pkt);
   if (ret != 0) {
     Error("Error writing packet: %s", av_make_error_string(ret).c_str());
   } else {
     Debug(4, "Success writing packet");
-  }
-
-  // After writing a video keyframe, check if a new fragment was flushed.
-  // The interleaved writer buffers packets and flushes a complete moof+mdat
-  // when it has enough data. We detect this by a position jump.
-  if (is_video_keyframe && oc->pb && ret == 0) {
-    int64_t pos_after = avio_tell(oc->pb);
-    if (pos_after > pos_before && last_fragment_offset_ < pos_before) {
-      // A fragment was flushed. Record the previous fragment.
-      int64_t frag_size = pos_before - last_fragment_offset_;
-      if (frag_size > 0 && last_fragment_start_dts_ != AV_NOPTS_VALUE) {
-        double duration = 0;
-        if (video_out_stream->time_base.den > 0) {
-          duration = static_cast<double>(pkt->dts - last_fragment_start_dts_)
-                     * video_out_stream->time_base.num
-                     / video_out_stream->time_base.den;
-        }
-        if (duration > 0) {
-          fragments_.push_back({last_fragment_offset_, frag_size, duration});
-          Debug(1, "HLS fragment %zu: offset=%" PRId64 " size=%" PRId64 " duration=%.3f",
-                fragments_.size() - 1, last_fragment_offset_, frag_size, duration);
-        }
-      }
-      last_fragment_offset_ = pos_before;
-      last_fragment_start_dts_ = pkt->dts;
-    } else if (last_fragment_start_dts_ == AV_NOPTS_VALUE) {
-      // First keyframe — record start DTS
-      last_fragment_start_dts_ = pkt->dts;
-    }
   }
 
   return ret;

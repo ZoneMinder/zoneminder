@@ -150,7 +150,8 @@ if ((!$replayMode) or !$replayModes[$replayMode]) {
   $replayMode = 'none';
 }
 
-$video_tag = ($codec == 'MP4') || 
+$video_tag = ($codec == 'MP4') ||
+  str_ends_with($Event->DefaultVideo(), '.m3u8') ||
   ((false !== strpos($Event->DefaultVideo(), 'h264') || false !== strpos($Event->DefaultVideo(), 'av1')) && ($codec === 'auto'));
 
 
@@ -325,8 +326,9 @@ if (file_exists($Event->Path().'/objdetect.jpg')) {
                     <div id="zoompan" class="zoompan">
 <?php
 if ($video_tag) {
-  // Use HLS byte-range playback if an m3u8 manifest exists, otherwise direct MP4
-  $has_hls = file_exists($Event->Path() . '/index.m3u8');
+  // Use HLS byte-range playback if m3u8 manifest exists on disk
+  $has_hls = str_ends_with($Event->DefaultVideo(), '.m3u8')
+    && file_exists($Event->Path() . '/index.m3u8');
   if ($has_hls) {
     $Server = $Event->Server();
     $hlsSrc = $Server->PathToIndex() . '?view=view_hls&amp;eid=' . $Event->Id();
@@ -371,12 +373,39 @@ if ($video_tag) {
                         controls: true,
                         autoplay: true,
                         preload: 'auto',
-                        playbackRates: rates
+                        playbackRates: rates,
+                        liveui: <?php echo $has_hls && !$Event->EndDateTime() ? 'true' : 'false' ?>,
+                        liveTracker: {
+                          trackingThreshold: 0
+                        }
                       });
                       player.zoomrotate({
                         zoom: 1,
                         rotate: 0
                       });
+<?php if ($has_hls && !$Event->EndDateTime()): ?>
+                      // Live HLS: retry on errors — the manifest grows as recording continues.
+                      // Errors are expected when the event just started (no fragments yet)
+                      // or when we catch up to the recording edge.
+                      var liveRetryCount = 0;
+                      var maxLiveRetries = 30;
+                      player.on('error', function() {
+                        var error = player.error();
+                        if (error && liveRetryCount < maxLiveRetries) {
+                          liveRetryCount++;
+                          var delay = liveRetryCount <= 3 ? 3000 : 5000;
+                          console.log('Live HLS: error code=' + error.code + ', retry ' + liveRetryCount + '/' + maxLiveRetries + ' in ' + (delay/1000) + 's');
+                          player.error(null);
+                          setTimeout(function() {
+                            player.src(player.currentSources());
+                          }, delay);
+                        }
+                      });
+                      // Reset retry count on successful playback
+                      player.on('playing', function() {
+                        liveRetryCount = 0;
+                      });
+<?php endif; ?>
                     });
                   </script>
 <?php

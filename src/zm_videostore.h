@@ -96,7 +96,7 @@ class VideoStore {
   // HLS fragment tracking
   std::vector<Fragment> fragments_;
   int64_t last_fragment_offset_;    // byte offset where current fragment started
-  int64_t last_fragment_start_dts_; // DTS of first packet in current fragment
+  int64_t last_fragment_start_dts_; // DTS of first video keyframe in current fragment
   int64_t init_segment_end_;        // byte offset where init segment (ftyp+moov) ends
 
   bool setup_resampler();

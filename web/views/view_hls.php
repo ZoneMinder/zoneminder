@@ -30,6 +30,13 @@ if (!file_exists($m3u8_path)) {
   die('HLS manifest not available for this event');
 }
 
+// Don't serve an m3u8 with no fragments — the event may have just started
+$m3u8_content_check = file_get_contents($m3u8_path);
+if (strpos($m3u8_content_check, '#EXTINF:') === false) {
+  header('HTTP/1.1 404 Not Found');
+  die('HLS manifest has no fragments yet');
+}
+
 // Build auth query string for segment URLs
 $auth_query = '';
 if (ZM_OPT_USE_AUTH) {

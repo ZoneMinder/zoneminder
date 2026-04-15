@@ -239,6 +239,7 @@ if (
   ZM_ENABLE_CSRF_MAGIC &&
   ( $action != 'login' ) &&
   ( $view != 'view_video' ) && // only video no html
+  ( $view != 'view_hls' ) && // HLS manifest, not html
   ( $view != 'image' ) && // view=image doesn't return html, just image data.
   (!$request or ($request == 'modal')) && // requests are ajax and can only return json.
   //( $view != 'frames' ) &&  // big html can overflow ob

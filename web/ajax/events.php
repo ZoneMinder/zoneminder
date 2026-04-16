@@ -189,7 +189,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
       ZM\Error('Invalid sort field: ' . $sort);
       $sort = '';
     } else if ( $sort == 'Tags' ) {
-       $sort = 'T.Name';
+       $sort = 'Tags';
     } else if ( $sort == 'Monitor' ) {
       $sort = 'M.Name';
     } else if ($sort == 'EndDateTime') {

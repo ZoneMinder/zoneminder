@@ -1002,6 +1002,12 @@ function updateProgressBar() {
   if (!eventData) return;
   if (vid) {
     var currentTime = vid.currentTime();
+    // For live HLS, the video duration grows as new fragments arrive.
+    // Keep eventData.Length in sync so the progress bar scales correctly.
+    var videoDuration = vid.duration();
+    if (videoDuration && isFinite(videoDuration) && videoDuration > parseFloat(eventData.Length)) {
+      eventData.Length = videoDuration;
+    }
     var progressDate = new Date(eventData.StartDateTime);
     progressDate.setTime(progressDate.getTime() + (currentTime * 1000));
   } else {

@@ -9,6 +9,8 @@
 #include <list>
 #include <memory>
 #include <map>
+#include <string>
+#include <vector>
 
 extern "C"  {
 #include <libswresample/swresample.h>
@@ -24,6 +26,13 @@ class ZMPacket;
 class PacketQueue;
 
 class VideoStore {
+ public:
+  struct Fragment {
+    int64_t offset;    // byte offset in file
+    int64_t size;      // bytes (moof+mdat)
+    double duration;   // seconds
+  };
+
  private:
 
   const CodecData *chosen_codec_data;
@@ -84,6 +93,12 @@ class VideoStore {
   size_t reorder_queue_size;
   std::map<int, std::list<std::shared_ptr<ZMPacket>>> reorder_queues;
 
+  // HLS fragment tracking
+  std::vector<Fragment> fragments_;
+  int64_t last_fragment_offset_;    // byte offset where current fragment started
+  int64_t last_fragment_start_dts_; // DTS of first video keyframe in current fragment
+  int64_t init_segment_end_;        // byte offset where init segment (ftyp+moov) ends
+
   bool setup_resampler();
   int write_packet(AVPacket *pkt, AVStream *stream);
 
@@ -106,6 +121,10 @@ class VideoStore {
   int writePacket(const std::shared_ptr<ZMPacket> pkt);
   int write_packets(PacketQueue &queue);
   void flush_codecs();
+  const std::vector<Fragment> &fragments() const { return fragments_; }
+  int64_t init_segment_end() const { return init_segment_end_; }
+  void writeM3U8(const std::string &path, const std::string &video_url, bool is_complete);
+
   const char *get_codec() {
     if (chosen_codec_data)
       return chosen_codec_data->codec_codec;

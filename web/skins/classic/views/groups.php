@@ -37,7 +37,7 @@ $children = array();
 foreach ( $Groups as $id=>$Group ) {
   // From PHP 8.5, using 'null' as an array offset is deprecated
   $parentID = $Group->ParentId();
-  if (version_compare(PHP_VERSION, '8.5.0') >= 0) {
+  if ((null === $parentID) && (version_compare(PHP_VERSION, '8.5.0') >= 0)) {
     $parentID = '';
   }
 

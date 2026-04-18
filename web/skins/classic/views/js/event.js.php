@@ -46,7 +46,8 @@ var eventData = {
     Emailed: <?php echo $Event->Emailed?'true':'false' ?>,
     Path: '<?php echo $Event->Path() ?>',
     Latitude: '<?php echo $Event->Latitude() ?>',
-    Longitude: '<?php echo $Event->Longitude() ?>'
+    Longitude: '<?php echo $Event->Longitude() ?>',
+    whatDisplay: '<?php echo $monitor->WhatDisplay() ?>'
 <?php } ?>
 };
 

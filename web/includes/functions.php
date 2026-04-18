@@ -2258,7 +2258,6 @@ function get_networks() {
                 }
             }
         }
-        $routes = array();
         $output = '';
         exec(ZM_PATH_IP.' route', $output, $status);
         if ($status) {

@@ -2259,6 +2259,7 @@ function get_networks() {
             }
         }
         $routes = array();
+        $output = '';
         exec(ZM_PATH_IP.' route', $output, $status);
         if ($status) {
             $html_output = implode('<br/>', $output);
@@ -2276,44 +2277,32 @@ function get_networks() {
             } # end foreach line of output
         }
     } else if (defined('ZM_PATH_IFCONFIG') and ZM_PATH_IFCONFIG and file_exists(ZM_PATH_IFCONFIG)) {
-      $osname = strtolower(php_uname('s'));
-
       exec(ZM_PATH_IFCONFIG, $output, $status);
       if ($status) {
         $html_output = implode("\n", $output);
         ZM\Error("Unable to list network interfaces, status is '$status'. Output was:$html_output");
       } else {
-        exec('ifconfig', $output, $status);
+        array_walk($output, function($value, $key) use (&$interfaces) {
+          $retval = preg_match("/^([A-Za-z0-9]*):\s+flags=([0-9]*)<([A-Z,]*)>.*/ims", $value, $matches);
+          ZM\Debug(print_r($matches, true));
+          if (($retval == 1) && (strlen($matches[3]) > 0) &&
+              (strpos($matches[3], "LOOPBACK") === false) && (strpos($matches[3], "RUNNING") !== false))
+          {
+            $interfaces[$matches[1]] = $matches[1];
+          }
+        });
 
-        if ($status) {
-          $html_output = implode("\n", $output);
-          ZM\Error("Unable to list network interfaces, status is '$status'. Output was:$html_output");
-        } else {
-          array_walk($output, function($value, $key) use (&$interfaces) {
-            $retval = preg_match("/^([A-Za-z0-9]*):\s+flags=([0-9]*)<([A-Z,]*)>.*/ims", $value, $matches);
-            ZM\Debug(print_r($matches, true));
-            if (($retval == 1) && (strlen($matches[3]) > 0) &&
-                (strpos($matches[3], "LOOPBACK") === false) && (strpos($matches[3], "RUNNING") !== false))
-            {
-              $interfaces[$matches[1]] = $matches[1];
-            }
-          });
+        if (defined('ZM_PATH_NETSTAT') and ZM_PATH_NETSTAT and file_exists(ZM_PATH_NETSTAT)) {
+          $output = '';
+          // Get default route iface
+          exec(ZM_PATH_NETSTAT . " -r4 | grep '^default' | head -n 1 | awk '{print $4}'", $defaultIface, $status);
 
-          if (defined('ZM_PATH_ROUTE') and ZM_PATH_ROUTE and file_exists(ZM_PATH_ROUTE)) {
-            // Get default route iface
-            if (strcmp($osname, 'freebsd') == 0) {
-              exec(ZM_PATH_ROUTE . " get default | grep interface | awk '{print $2}'", $defaultIface, $status);
-            } else {
-              exec(ZM_PATH_ROUTE . " -n | grep '^0.0.0.0' | head -n 1 | awk '{print $8}'", $defaultIface, $status);
-            }
-
-            if ($status) {
-              $html_output = implode("\n", $output);
-              ZM\Error("Unable to get default ip route, status is '$status'. Output was:$html_output");
-            } else {
-              if (isset($defaultIface) && isset($defaultIface[0])) {
-                $interfaces['default'] = $defaultIface[0];
-              }
+          if ($status) {
+            $html_output = implode("\n", $output);
+            ZM\Error("Unable to get default ip route, status is '$status'. Output was:$html_output");
+          } else {
+            if (isset($defaultIface) && isset($defaultIface[0])) {
+              $interfaces['default'] = $defaultIface[0];
             }
           }
         }
@@ -2322,9 +2311,43 @@ function get_networks() {
     return $interfaces;
 }
 
-# Returns an array of subnets like 192.168.1.0/24 for a given interface.
-# Will ignore mdns networks.
+function parse_netstat_line(string $line) {
+  $line = trim($line);
+  $pattern = '/^(?:' .
+             '(\d{1,3}(?:\.\d{1,3}){3})\s+' .
+             '\d{1,3}(?:\.\d{1,3}){3}\s+' .
+             '\d{1,3}(?:\.\d{1,3}){3}\s+' .
+             '[A-Za-z]+\s+' .
+             '\d+\s+' .
+             '\d+\s+' .
+             '\d+\s+' .
+             '(\S+)' .
+             ')|(?:' .
+             '(\d{1,3}(?:\.\d{1,3}){3}\/\d{1,2})\s+' .
+             '\S+?\s*' .
+             '[A-Za-z]+\s+' .
+             '(\S+)' .
+             ')$/';
 
+  if (!preg_match($pattern, $line, $matches)) {
+    return null;
+  }
+
+  if (!empty($matches[1])) {
+    return [
+      'ip'      => $matches[1],
+      'iface'   => $matches[2],
+    ];
+  }
+
+  return [
+    'ip'  => $matches[3],
+    'iface' => $matches[4],
+  ];
+}
+
+# Returns an array of subnets like 192.168.1.0/24 (192.168.1.0 on some platforms) for a given interface.
+# Will ignore mdns networks.
 function get_subnets($interface) {
   $subnets = array();
   if (defined('ZM_PATH_IP') and ZM_PATH_IP and file_exists(ZM_PATH_IP)) {
@@ -2347,7 +2370,29 @@ function get_subnets($interface) {
         }
       } # end foreach line of output
     }
+  } else if (defined('ZM_PATH_NETSTAT') and ZM_PATH_NETSTAT and file_exists(ZM_PATH_NETSTAT)) {
+    exec(ZM_PATH_NETSTAT.' -r4', $output, $status);
+    if ( $status ) {
+      $html_output = implode('<br/>', $output);
+      ZM\Error("Unable to list network interfaces, status is '$status'. Output was:<br/><br/>$html_output");
+    } else {
+      foreach ($output as $line) {
+        $netstat_match = parse_netstat_line($line);
+        if (null !== $netstat_match) {
+          if (($netstat_match['ip'] == '169.254.0.0/16') || ($netstat_match['ip'] == '169.254.0.0')) {
+            # Ignore mdns
+          } else if ($netstat_match['iface'] == $interface) {
+            $subnets[] = $netstat_match['ip'];
+          } else {
+            ZM\Debug("Wrong interface " . $netstat_match['iface'] . " != " . $interface);
+          }
+        } else {
+          ZM\Debug("Didn't match $line");
+        }
+      } # end foreach line of output
+    }
   }
+
   return $subnets;
 } # end function get_subnets($interface)
 

@@ -907,6 +907,7 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
         <li class="TargetColorspace">
           <label><?php echo translate('TargetColorspace') ?></label>
           <?php echo htmlSelect('newMonitor[Colours]', $Colours, $monitor->Colours()) ?>
+          <small class="text-muted">(Deprecated - will be auto-detected in a future release)</small>
         </li>
         <li class="CaptureResolution">
           <label><?php echo translate('CaptureResolution') ?> (<?php echo translate('Pixels') ?>)</label>

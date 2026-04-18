@@ -41,6 +41,7 @@ Camera::Camera(
   height(p_height),
   colours(p_colours),
   subpixelorder(p_subpixelorder),
+  pixelFormat(zm_pixformat_from_colours(p_colours, p_subpixelorder)),
   brightness(p_brightness),
   hue(p_hue),
   colour(p_colour),
@@ -101,7 +102,7 @@ AVStream *Camera::getVideoStream() {
       mVideoStream->time_base = (AVRational) {1, 1000000}; // microseconds as base frame rate
       mVideoStream->codecpar->width = width;
       mVideoStream->codecpar->height = height;
-      mVideoStream->codecpar->format = GetFFMPEGPixelFormat(colours, subpixelorder);
+      mVideoStream->codecpar->format = pixelFormat;
       mVideoStream->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
       mVideoStream->codecpar->codec_id = AV_CODEC_ID_NONE;
       Debug(1, "Allocating avstream %p %p %d", mVideoStream, mVideoStream->codecpar, mVideoStream->codecpar->codec_id);

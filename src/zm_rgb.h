@@ -100,15 +100,18 @@ constexpr Rgb kRGBTransparent = 0x01000000;
 // #define RGB_FASTLUM_SINGLE_ITU601(v)    ((RED(v)+RED(v)+RED(v)+BLUE(v)+GREEN(v)+GREEN(v)+GREEN(v)+GREEN(v))>>3)
 // #define RGB_FASTLUM_VALUES_ITU601(ra,ga,ba)  (((ra)+(ra)+(ra)+(ba)+(ga)+(ga)+(ga)+(ga))>>3)
 
-/* ZM colours */
+// DEPRECATED: ZM_COLOUR_* and ZM_SUBPIX_ORDER_* are being replaced by
+// AVPixelFormat throughout the codebase. Use the helpers in zm_pixformat.h for
+// format identification. These values are retained only for byte-per-pixel
+// stride arithmetic and backwards compatibility with the DB Monitors.Colours
+// column which stores {1, 3, 4}.
 #define ZM_COLOUR_RGB32 4
 #define ZM_COLOUR_RGB24 3
 #define ZM_COLOUR_GRAY8 1
-#define ZM_COLOUR_YUV420P 1
-#define ZM_COLOUR_YUVJ420P 1
+#define ZM_COLOUR_YUV420P 1   // DEPRECATED: collides with GRAY8; use AVPixelFormat
+#define ZM_COLOUR_YUVJ420P 1  // DEPRECATED: collides with GRAY8; use AVPixelFormat
 
-/* Subpixel ordering */
-/* Based on byte order naming. For example, for ARGB (on both little endian or big endian) byte+0 should be alpha, byte+1 should be red, and so on. */
+// DEPRECATED: Subpixel ordering constants. Use AVPixelFormat directly.
 #define ZM_SUBPIX_ORDER_NONE 2
 #define ZM_SUBPIX_ORDER_RGB 6
 #define ZM_SUBPIX_ORDER_BGR 5
@@ -119,8 +122,8 @@ constexpr Rgb kRGBTransparent = 0x01000000;
 #define ZM_SUBPIX_ORDER_YUV420P 11
 #define ZM_SUBPIX_ORDER_YUVJ420P 12
 
-/* A macro to use default subpixel order for a specified colour. */
-/* for grayscale it will use NONE, for 3 colours it will use R,G,B, for 4 colours it will use R,G,B,A */
+// DEPRECATED: Use zm_pixformat_from_colours() in zm_pixformat.h instead.
+// Only valid for DB-persisted colours values {1, 3, 4}.
 #define ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(c)  ((c)<<1)
 
 /* Convert RGB colour value into BGR\ARGB\ABGR */

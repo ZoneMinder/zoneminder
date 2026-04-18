@@ -1106,6 +1106,26 @@ None: No frames will be decoded, live view and thumbnails will not be available~
      help to get it to work... it is confirmed to work in some chinese cameras that do not implement ONVIF entirely
     '
    ),
+   'OPTIONS_ONVIF_Alarm_Text' => array(
+    'Help' => '
+     Text associated with event when alarm is activated.~~
+     Some standard values:~~
+     - AnalyticsService~~
+     - ConfigurationChanged~~
+     - Crossed~~
+     - DetectedSound~~
+     - Face~~
+     - FireAlarm~~
+     - IPConflict~~
+     - Motion~~
+     - MotionAlarm (set by default)~~
+     - ObjectsInside~~
+     - ProfileChanged~~
+     - SceneTemperature~~
+     - Tamper~~
+     For more details, see the instructions for your camera, as well as the specifications at the link:~~https://www.onvif.org/specs/core/ONVIF-Core-Specification.pdf
+    '
+   ),
   'ZM_OPT_TRAINING' => array(
     'Prompt' => 'Enable custom model training features',
     'Help' => 'Enable annotation tools on the event view for correcting object detection results.~~Corrected annotations are saved in YOLO format for training custom models via pyzm.~~When enabled, an Annotate button appears on the event view toolbar.'

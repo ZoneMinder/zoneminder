@@ -848,17 +848,6 @@ if(ZM_PATH_PKEXEC STREQUAL "")
   endif()
 endif()
 
-# Find the path to an route compatible executable
-if(ZM_PATH_ROUTE STREQUAL "")
-  find_program(ROUTE_EXECUTABLE route)
-  if(ROUTE_EXECUTABLE)
-    set(ZM_PATH_ROUTE "${ROUTE_EXECUTABLE}")
-    mark_as_advanced(ROUTE_EXECUTABLE)
-  else()
-    message(WARNING "Unable to find a compatible route binary.")
-  endif()
-endif()
-
 # Some variables that zm expects
 set(ZM_PID "${ZM_RUNDIR}/zm.pid")
 set(ZM_CONFIG "${ZM_CONFIG_DIR}/zm.conf")

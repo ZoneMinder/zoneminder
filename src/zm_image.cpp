@@ -726,6 +726,7 @@ uint8_t* Image::WriteBuffer(
     colours = p_colours;
     linesize = p_width * p_colours;
     subpixelorder = p_subpixelorder;
+    imagePixFormat = p_pixfmt;
     pixels = height*width;
     size = newsize;
   }  // end if need to re-alloc buffer
@@ -739,18 +740,8 @@ void Image::AssignDirect(const AVFrame *frame) {
   buffer = frame->data[0];
   linesize = frame->linesize[0];
   allocation = size = av_image_get_buffer_size(static_cast<AVPixelFormat>(frame->format), frame->width, frame->height, 32);
-  switch(static_cast<AVPixelFormat>(frame->format)) {
-    case  AV_PIX_FMT_RGBA:
-      subpixelorder = ZM_SUBPIX_ORDER_RGBA;
-      colours = ZM_COLOUR_RGB32;
-      break;
-    case  AV_PIX_FMT_YUV420P:
-      colours = ZM_COLOUR_GRAY8;
-      break;
-    default:
-      Debug(1, "Unimplemented format");
-      break;
-  }
+  imagePixFormat = static_cast<AVPixelFormat>(frame->format);
+  zm_colours_from_pixformat(imagePixFormat, colours, subpixelorder);
   buffertype = ZM_BUFTYPE_DONTFREE;
   pixels = width * height;
 }
@@ -816,6 +807,7 @@ void Image::AssignDirect(
   colours = p_colours;
   linesize = width * colours;
   subpixelorder = p_subpixelorder;
+  imagePixFormat = zm_pixformat_from_colours(colours, subpixelorder);
   pixels = width * height;
   size = new_buffer_size;
   update_function_pointers();
@@ -869,6 +861,7 @@ void Image::Assign(
     pixels = width*height;
     colours = p_colours;
     subpixelorder = p_subpixelorder;
+    imagePixFormat = zm_pixformat_from_colours(colours, subpixelorder);
     size = new_size;
   }
 
@@ -912,6 +905,7 @@ void Image::Assign(const Image &image) {
     pixels = width*height;
     colours = image.colours;
     subpixelorder = image.subpixelorder;
+    imagePixFormat = image.imagePixFormat;
     size = new_size;
     linesize = image.linesize;
     update_function_pointers();

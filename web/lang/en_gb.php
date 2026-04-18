@@ -471,7 +471,11 @@ $SLANG = array(
     'ObjDetect'             => 'ObjDetect',
     'OnvifProbe'            => 'ONVIF',
     'OnvifProbeIntro'       => 'The list below shows detected ONVIF cameras and whether they are already being used or available for selection.<br/><br/>Select the desired entry from the list below.<br/><br/>Please note that not all cameras may be detected and that choosing a camera here may overwrite any values you already have configured for the current monitor.<br/><br/>',
-    'OnvifCredentialsIntro' => 'Please supply user name and password for the selected camera.<br/>If no user has been created for the camera then the user given here will be created with the given password.<br/><br/>',
+    'OnvifCredentialsIntro' => 'Optionally supply user name and password for the selected camera. Leave blank if the camera does not require authentication.<br/>If no user has been created for the camera then the user given here will be created with the given password.<br/><br/>',
+    'OnvifManualOr'         => 'Or connect to an ONVIF camera directly:',
+    'OnvifManualLabel'      => 'Camera IP / URL',
+    'OnvifManualPlaceholder' => 'e.g. 192.168.1.100 or http://192.168.1.100/onvif/device_service',
+    'OnvifManualConnect'    => 'Connect ONVIF',
     'ONVIF'                 => 'ONVIF',
     'ONVIF_Alarm_Text'      => 'ONVIF Alarm Text',
     'ONVIF_Event_Listener'  => 'ONVIF Event Listener',
@@ -1104,6 +1108,26 @@ None: No frames will be decoded, live view and thumbnails will not be available~
      Disable it if you receive an error ~~~ Couldnt do Renew Error 12 ActionNotSupported
      <env:Text>The device do NOT support this feature</env:Text> ~~~ when trying to enable/use ONVIF ~~it may
      help to get it to work... it is confirmed to work in some chinese cameras that do not implement ONVIF entirely
+    '
+   ),
+   'OPTIONS_ONVIF_Alarm_Text' => array(
+    'Help' => '
+     Text associated with event when alarm is activated.~~
+     Some standard values:~~
+     - AnalyticsService~~
+     - ConfigurationChanged~~
+     - Crossed~~
+     - DetectedSound~~
+     - Face~~
+     - FireAlarm~~
+     - IPConflict~~
+     - Motion~~
+     - MotionAlarm (set by default)~~
+     - ObjectsInside~~
+     - ProfileChanged~~
+     - SceneTemperature~~
+     - Tamper~~
+     For more details, see the instructions for your camera, as well as the specifications at the link:~~https://www.onvif.org/specs/core/ONVIF-Core-Specification.pdf
     '
    ),
   'ZM_OPT_TRAINING' => array(

@@ -13,17 +13,40 @@ function gotoStep1( element ) {
   form.submit();
 }
 
+function normalizeOnvifManualUrl( manualUrl ) {
+  var normalizedUrl = manualUrl.trim();
+
+  if ( normalizedUrl.length === 0 ) {
+    return '';
+  }
+
+  if ( !/^[a-z][a-z0-9+.-]*:\/\//i.test(normalizedUrl) ) {
+    normalizedUrl = 'http://' + normalizedUrl;
+  }
+
+  try {
+    var parsedUrl = new URL(normalizedUrl);
+
+    if ( parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:' ) {
+      return '';
+    }
+
+    if ( !parsedUrl.pathname || parsedUrl.pathname === '/' ) {
+      parsedUrl.pathname = '/onvif/device_service';
+    }
+
+    return parsedUrl.toString();
+  } catch ( e ) {
+    return '';
+  }
+}
+
 function gotoStep2( element ) {
   var form = element.form;
   var manualUrlEl = form.elements.namedItem('manual_url');
-  var manualUrl = manualUrlEl ? manualUrlEl.value.trim() : '';
+  var manualUrl = manualUrlEl ? normalizeOnvifManualUrl(manualUrlEl.value) : '';
 
   if ( manualUrl.length > 0 ) {
-    // Normalize: bare IP or IP:port -> prepend scheme and standard ONVIF device path
-    if ( !/^https?:\/\//i.test(manualUrl) ) {
-      manualUrl = 'http://' + manualUrl + '/onvif/device_service';
-    }
-
     var cameraData = {
       Function: 'Monitor',
       Type: 'Ffmpeg',

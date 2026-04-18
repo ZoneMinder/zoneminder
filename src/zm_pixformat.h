@@ -61,6 +61,11 @@ inline bool zm_colours_from_pixformat(AVPixelFormat fmt,
       colours = ZM_COLOUR_GRAY8;
       subpixelorder = ZM_SUBPIX_ORDER_YUVJ420P;
       return true;
+    case AV_PIX_FMT_YUV422P:
+    case AV_PIX_FMT_YUVJ422P:
+      colours = ZM_COLOUR_GRAY8;  // Y-plane is 1 byte/pixel
+      subpixelorder = ZM_SUBPIX_ORDER_NONE;
+      return true;
     case AV_PIX_FMT_RGB24:
       colours = ZM_COLOUR_RGB24;
       subpixelorder = ZM_SUBPIX_ORDER_RGB;
@@ -97,6 +102,8 @@ inline unsigned int zm_bytes_per_pixel(AVPixelFormat fmt) {
     case AV_PIX_FMT_GRAY8:
     case AV_PIX_FMT_YUV420P:
     case AV_PIX_FMT_YUVJ420P:
+    case AV_PIX_FMT_YUV422P:
+    case AV_PIX_FMT_YUVJ422P:
       return 1;
     case AV_PIX_FMT_RGB24:
     case AV_PIX_FMT_BGR24:

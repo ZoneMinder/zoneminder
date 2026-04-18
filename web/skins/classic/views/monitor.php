@@ -624,7 +624,7 @@ switch ($name) {
               <input type="text" name="newMonitor[ONVIF_Options]" value="<?php echo validHtmlStr($monitor->ONVIF_Options()) ?>"/>
             </li>
             <li class="ONVIF_Alarm_Text">
-              <label><?php echo translate('ONVIF_Alarm_Text') ?></label>
+              <label><?php echo translate('ONVIF_Alarm_Text'); echo makeHelpLink('OPTIONS_ONVIF_Alarm_Text') ?></label>
               <input type="text" name="newMonitor[ONVIF_Alarm_Text]" value="<?php echo validHtmlStr($monitor->ONVIF_Alarm_Text()) ?>"/>
             </li>
             <li class="SOAP_wsa_compl">

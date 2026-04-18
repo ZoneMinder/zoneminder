@@ -448,6 +448,13 @@ int FfmpegCamera::OpenFfmpeg() {
     mVideoCodecContext->framerate = mVideoStream->r_frame_rate;
     mVideoCodecContext->sw_pix_fmt = chosen_codec_data->sw_pix_fmt;
 
+    // libavcodec defaults thread_count to 1, making software 1080p H.264
+    // decode hit ~60ms/frame and saturate a core per camera.  Default to 2
+    // frame-threads instead.  User can override (including 0 = auto) via
+    // thread_count in monitor Options.
+    mVideoCodecContext->thread_count = 2;
+    mVideoCodecContext->thread_type = FF_THREAD_FRAME | FF_THREAD_SLICE;
+
     // Set default options for this codec
     if (chosen_codec_data->options_defaults) {
       AVDictionary *opts_defaults = nullptr;

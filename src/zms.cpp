@@ -276,6 +276,7 @@ int main(int argc, const char *argv[], char **envp) {
   Image::Initialise();
   zmSetDefaultTermHandler();
   zmSetDefaultDieHandler();
+  zmSetDefaultPipeHandler();
 
   setbuf(stdout, nullptr);
   if ( nph ) {

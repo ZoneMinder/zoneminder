@@ -249,17 +249,28 @@ sub end_transaction {
 	$d->{AutoCommit} = $ac;
 } # end sub end_transaction
 
+# Substitute ? placeholders in $sql with the given bind values for logging.
+# Does not rely on sprintf, so it is safe for SQL that contains literal %
+# characters (e.g. dynamic filter SQL with disk percent substitution or
+# LIKE '%foo%' patterns).
+sub _sql_with_bind_values {
+  my ($sql, @vals) = @_;
+  $sql =~ s{\?}{
+    my $v = shift @vals;
+    defined $v ? "'$v'" : 'NULL';
+  }ge;
+  return $sql;
+}
+
 # Basic execution of $dbh->do but with some pretty logging of the sql on error.
 sub zmDbDo {
 	my $sql = shift;
   my $rows = $dbh->do($sql, undef, @_);
 	if ( ! defined $rows ) {
-		$sql =~ s/\?/'%s'/g;
-		Error(sprintf("Failed $sql : ", @_) . $dbh->errstr());
+		Error('Failed '._sql_with_bind_values($sql, @_).' : '.$dbh->errstr());
   } elsif ( ZoneMinder::Logger::logLevel() > INFO ) {
     ($rows) = $rows =~ /^(.*)$/; # de-taint
-    $sql =~ s/\?/'%s'/g;
-		Debug(sprintf("Succeeded $sql : $rows rows affected", @_));
+    Debug('Succeeded '._sql_with_bind_values($sql, @_)." : $rows rows affected");
 	}
   return $rows;
 }

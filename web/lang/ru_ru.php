@@ -1155,6 +1155,26 @@ $OLANG = array(
       ~~ Отключение может помочь заставить работать ONVIF на некоторых китайских камерах, которые не полностью поддерживают ONVIF
       '
     ),
+   'OPTIONS_ONVIF_Alarm_Text' => array(
+    'Help' => '
+     Текст, связанный с событием при активации тревоги.~~
+     Некоторые стандартные значения:~~
+     - AnalyticsService~~
+     - ConfigurationChanged~~
+     - Crossed~~
+     - DetectedSound~~
+     - Face~~
+     - FireAlarm~~
+     - IPConflict~~
+     - Motion~~
+     - MotionAlarm (по умолчанию)~~
+     - ObjectsInside~~
+     - ProfileChanged~~
+     - SceneTemperature~~
+     - Tamper~~
+     Более подробно смотрите в инструкции к своей камере, а также в спецификации по ссылке:~~https://www.onvif.org/specs/core/ONVIF-Core-Specification.pdf
+    '
+   ),
   'FUNCTION_ANALYSIS_ENABLED' => array(
     'Help' => '
       Когда следует выполнять обнаружение движения на захваченном видео.  

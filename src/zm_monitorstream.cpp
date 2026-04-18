@@ -457,7 +457,9 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
       ||
       (fwrite(img_buffer, img_buffer_size, 1, stdout) != 1)
     ) {
-      // If the pipe was closed, we will get signalled SIGPIPE to exit, which will set zm_terminate
+      // If the browser disconnected, SIGPIPE (handled by zm_pipe_handler in
+      // zms) sets zm_terminate; the fwrite above also returned an error with
+      // errno=EPIPE, which we log below before the loop exits cleanly.
       Debug(1, "Unable to send stream frame: %s, zm_terminate: %d", strerror(errno), zm_terminate);
       return false;
     }

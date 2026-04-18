@@ -35,10 +35,23 @@ function gotoStep2( element ) {
     };
 
     var encoded = btoa(JSON.stringify(cameraData));
-    var option = document.createElement('option');
-    option.value = encoded;
+    var option = null;
+    var i;
+
+    for ( i = 0; i < form.probe.options.length; i++ ) {
+      if ( form.probe.options[i].value === encoded ) {
+        option = form.probe.options[i];
+        break;
+      }
+    }
+
+    if ( !option ) {
+      option = document.createElement('option');
+      option.value = encoded;
+      form.probe.appendChild(option);
+    }
+
     option.selected = true;
-    form.probe.appendChild(option);
   }
 
   form.target = self.name;

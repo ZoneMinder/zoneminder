@@ -361,14 +361,38 @@ bool Image::Assign(const AVFrame *frame) {
   }
   zm_dump_video_frame(frame, "source frame in Image::Assign");
 
-  // Desired format
   AVPixelFormat format = (AVPixelFormat)AVPixFormat();
+  AVPixelFormat src_fmt = static_cast<AVPixelFormat>(frame->format);
+
+  // If source and destination format + dimensions match, do a direct plane
+  // copy instead of running through sws_scale. This avoids the overhead of
+  // the swscale pipeline for identity conversions (e.g. YUVJ422P→YUVJ422P).
+  if (src_fmt == format
+      && frame->width == static_cast<int>(width)
+      && frame->height == static_cast<int>(height)) {
+    Debug(4, "Same format %s %dx%d, using av_image_copy",
+          av_get_pix_fmt_name(format), width, height);
+    av_frame_ptr temp_frame{av_frame_alloc()};
+    if (!temp_frame) {
+      Error("Unable to allocate destination frame");
+      return false;
+    }
+    PopulateFrame(temp_frame.get());
+    temp_frame->pts = frame->pts;
+    u_buffer = temp_frame->data[1];
+    v_buffer = temp_frame->data[2];
+    av_image_copy(temp_frame->data, temp_frame->linesize,
+                  (const uint8_t **)frame->data, frame->linesize,
+                  format, width, height);
+    update_function_pointers();
+    return true;
+  }
+
   sws_convert_context = sws_getCachedContext(
                           sws_convert_context,
-                          frame->width, frame->height, (AVPixelFormat)frame->format,
+                          frame->width, frame->height, src_fmt,
                           width, height, format,
                           SWS_BICUBIC,
-                          //SWS_POINT | SWS_BITEXACT,
                           nullptr, nullptr, nullptr);
   if (sws_convert_context == nullptr) {
     Error("Unable to create conversion context");

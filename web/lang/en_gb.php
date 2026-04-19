@@ -583,6 +583,7 @@ $SLANG = array(
     'ReplayGapless'         => 'Gapless Events',
     'ReplaySingle'          => 'Single Event',
     'ReportEventAudit'      => 'Audit Events Report',
+    'RequiresAudioMotionEnabled' => 'Requires installation of the file "audioMotion-analyzer.js"',
     'ResetEventCounts'      => 'Reset Event Counts',
     'RestrictedCameraIds'   => 'Restricted Camera Ids',
     'RestrictedMonitors'    => 'Restricted Monitors',

@@ -1695,8 +1695,8 @@ void Image::Overlay( const Image &image ) {
             subpixelorder, image.subpixelorder);
   }
 
-  /* Grayscale on top of grayscale - complete */
-  if ( imagePixFormat == AV_PIX_FMT_GRAY8 && image.imagePixFormat == AV_PIX_FMT_GRAY8 ) {
+  /* Grayscale/YUV420 on top of grayscale/YUV420 - complete */
+  if ( zm_bytes_per_pixel(imagePixFormat) == 1 && zm_bytes_per_pixel(image.imagePixFormat) == 1 ) {
     const uint8_t* const max_ptr = buffer+size;
     const uint8_t* psrc = image.buffer;
     uint8_t* pdest = buffer;
@@ -1709,8 +1709,8 @@ void Image::Overlay( const Image &image ) {
       psrc++;
     }
 
-    /* RGB24 on top of grayscale - convert to same format first - complete */
-  } else if ( imagePixFormat == AV_PIX_FMT_GRAY8 && zm_is_rgb24(image.imagePixFormat) ) {
+    /* RGB24 on top of grayscale/YUV420 - convert to same format first - complete */
+  } else if ( zm_bytes_per_pixel(imagePixFormat) == 1 && zm_is_rgb24(image.imagePixFormat) ) {
     Colourise(image.colours, image.subpixelorder);
 
     const uint8_t* const max_ptr = buffer+size;
@@ -1727,8 +1727,8 @@ void Image::Overlay( const Image &image ) {
       psrc += 3;
     }
 
-    /* RGB32 on top of grayscale - convert to same format first - complete */
-  } else if ( imagePixFormat == AV_PIX_FMT_GRAY8 && zm_is_rgb32(image.imagePixFormat) ) {
+    /* RGB32 on top of grayscale/YUV420 - convert to same format first - complete */
+  } else if ( zm_bytes_per_pixel(imagePixFormat) == 1 && zm_is_rgb32(image.imagePixFormat) ) {
     Colourise(image.colours, image.subpixelorder);
 
     const Rgb* const max_ptr = (Rgb*)(buffer+size);
@@ -1755,8 +1755,8 @@ void Image::Overlay( const Image &image ) {
       }
     }
 
-    /* Grayscale on top of RGB24 - complete */
-  } else if ( zm_is_rgb24(imagePixFormat) && image.imagePixFormat == AV_PIX_FMT_GRAY8 ) {
+    /* Grayscale/YUV420 on top of RGB24 - complete */
+  } else if ( zm_is_rgb24(imagePixFormat) && zm_bytes_per_pixel(image.imagePixFormat) == 1 ) {
     const uint8_t* const max_ptr = buffer+size;
     const uint8_t* psrc = image.buffer;
     uint8_t* pdest = buffer;
@@ -1789,8 +1789,8 @@ void Image::Overlay( const Image &image ) {
   } else if ( zm_is_rgb24(imagePixFormat) && zm_is_rgb32(image.imagePixFormat) ) {
     Error("Overlay of RGB32 on top of RGB24 is not supported.");
 
-    /* Grayscale on top of RGB32 - complete */
-  } else if ( zm_is_rgb32(imagePixFormat) && image.imagePixFormat == AV_PIX_FMT_GRAY8 ) {
+    /* Grayscale/YUV420 on top of RGB32 - complete */
+  } else if ( zm_is_rgb32(imagePixFormat) && zm_bytes_per_pixel(image.imagePixFormat) == 1 ) {
     const Rgb* const max_ptr = (Rgb*)(buffer+size);
     Rgb* prdest = (Rgb*)buffer;
     const uint8_t* psrc = image.buffer;
@@ -1868,7 +1868,7 @@ void Image::Overlay( const Image &image, const unsigned int lo_x, const unsigned
 
   unsigned int hi_x = (lo_x+image.width)-1;
   unsigned int hi_y = (lo_y+image.height-1);
-  if ( imagePixFormat == AV_PIX_FMT_GRAY8 ) {
+  if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
     const uint8_t *psrc = image.buffer;
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
       uint8_t *pdest = &buffer[(y*width)+lo_x];
@@ -2075,7 +2075,7 @@ bool Image::Delta(const Image &image, Image* targetimage) const {
   } else if (zm_is_rgb32(imagePixFormat)) {
     /* Assume RGBA subpixel order */
     (*delta8_rgba)(buffer, image.buffer, pdiff, pixels);
-  } else if (imagePixFormat == AV_PIX_FMT_GRAY8) {
+  } else if (zm_bytes_per_pixel(imagePixFormat) == 1) {
     (*delta8_gray8)(buffer, image.buffer, pdiff, pixels);
   } else {
     Panic("Delta called with unexpected colours: %d", colours);
@@ -2134,7 +2134,7 @@ void Image::MaskPrivacy( const unsigned char *p_bitmask, const Rgb pixel_colour 
   unsigned int i = 0;
 
   for ( unsigned int y = 0; y < height; y++ ) {
-    if ( imagePixFormat == AV_PIX_FMT_GRAY8 ) {
+    if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
       for ( unsigned int x = 0; x < width; x++, ptr++ ) {
         if ( p_bitmask[i] )
           *ptr = pixel_bw_col;
@@ -2200,7 +2200,7 @@ void Image::Annotate(
   for (const std::string &line : lines) {
     uint32 x = x0;
 
-    if (imagePixFormat == AV_PIX_FMT_GRAY8) {
+    if (zm_bytes_per_pixel(imagePixFormat) == 1) {
       uint8 *ptr = &buffer[(y * width) + x0];
       for (char c : line) {
         for (uint64 cp_row : font_variant.GetCodepoint(c)) {
@@ -2456,7 +2456,7 @@ void Image::DeColourise() {
 
 /* RGB32 compatible: complete */
 void Image::Fill( Rgb colour, const Box *limits ) {
-  if ( !(imagePixFormat == AV_PIX_FMT_GRAY8 || zm_is_rgb24(imagePixFormat) || zm_is_rgb32(imagePixFormat)) ) {
+  if ( !(zm_bytes_per_pixel(imagePixFormat) == 1 || zm_is_rgb24(imagePixFormat) || zm_is_rgb32(imagePixFormat)) ) {
     Panic("Attempt to fill image with unexpected colours %d", colours);
   }
 
@@ -2467,7 +2467,7 @@ void Image::Fill( Rgb colour, const Box *limits ) {
   unsigned int lo_y = limits ? limits->Lo().y_ : 0;
   unsigned int hi_x = limits ? limits->Hi().x_ : width - 1;
   unsigned int hi_y = limits ? limits->Hi().y_ : height - 1;
-  if ( imagePixFormat == AV_PIX_FMT_GRAY8 ) {
+  if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
       unsigned char *p = &buffer[(y*width)+lo_x];
       for ( unsigned int x = lo_x; x <= hi_x; x++, p++) {
@@ -2501,7 +2501,7 @@ void Image::Fill( Rgb colour, int density, const Box *limits ) {
   if ( density <= 1 )
     return Fill(colour,limits);
 
-  if ( !(imagePixFormat == AV_PIX_FMT_GRAY8 || zm_is_rgb24(imagePixFormat) || zm_is_rgb32(imagePixFormat)) ) {
+  if ( !(zm_bytes_per_pixel(imagePixFormat) == 1 || zm_is_rgb24(imagePixFormat) || zm_is_rgb32(imagePixFormat)) ) {
     Panic("Attempt to fill image with unexpected colours %d", colours);
   }
 
@@ -2512,7 +2512,7 @@ void Image::Fill( Rgb colour, int density, const Box *limits ) {
   unsigned int lo_y = limits ? limits->Lo().y_ : 0;
   unsigned int hi_x = limits ? limits->Hi().x_ : width - 1;
   unsigned int hi_y = limits ? limits->Hi().y_ : height - 1;
-  if ( imagePixFormat == AV_PIX_FMT_GRAY8 ) {
+  if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
       unsigned char *p = &buffer[(y*width)+lo_x];
       for ( unsigned int x = lo_x; x <= hi_x; x++, p++) {
@@ -2546,7 +2546,7 @@ void Image::Fill( Rgb colour, int density, const Box *limits ) {
 
 /* RGB32 compatible: complete */
 void Image::Outline( Rgb colour, const Polygon &polygon ) {
-  if ( !(imagePixFormat == AV_PIX_FMT_GRAY8 || zm_is_rgb24(imagePixFormat) || zm_is_rgb32(imagePixFormat)) ) {
+  if ( !(zm_bytes_per_pixel(imagePixFormat) == 1 || zm_is_rgb24(imagePixFormat) || zm_is_rgb32(imagePixFormat)) ) {
     Panic("Attempt to outline image with unexpected colours %d", colours);
   }
 
@@ -2578,7 +2578,7 @@ void Image::Outline( Rgb colour, const Polygon &polygon ) {
       double x;
       int y, yinc = (y1<y2)?1:-1;
       grad *= yinc;
-      if ( imagePixFormat == AV_PIX_FMT_GRAY8 ) {
+      if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
         for ( x = x1, y = y1; y != y2; y += yinc, x += grad ) {
           buffer[(y*width)+int(round(x))] = colour;
         }
@@ -2605,7 +2605,7 @@ void Image::Outline( Rgb colour, const Polygon &polygon ) {
       double y;
       int x, xinc = (x1<x2)?1:-1;
       grad *= xinc;
-      if ( imagePixFormat == AV_PIX_FMT_GRAY8 ) {
+      if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
         //Debug( 9, "x1:%d, x2:%d, y1:%d, y2:%d, gr:%.2lf", x1, x2, y1, y2, grad );
         for ( y = y1, x = x1; x != x2; x += xinc, y += grad ) {
           //Debug( 9, "x:%d, y:%.2f", x, y );
@@ -2629,7 +2629,7 @@ void Image::Outline( Rgb colour, const Polygon &polygon ) {
 
 // Polygon filling is based on the Scan-line Polygon filling algorithm
 void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
-  if (!(imagePixFormat == AV_PIX_FMT_GRAY8 || zm_is_rgb24(imagePixFormat) || zm_is_rgb32(imagePixFormat))) {
+  if (!(zm_bytes_per_pixel(imagePixFormat) == 1 || zm_is_rgb24(imagePixFormat) || zm_is_rgb32(imagePixFormat))) {
     Panic("Attempt to fill image with unexpected colours %d", colours);
   }
 
@@ -2701,7 +2701,7 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
       for (auto it = active_edges.begin(); it + 1 < active_edges.end(); it += 2) {
         int32 lo_x = static_cast<int32>(it->min_x);
         int32 hi_x = static_cast<int32>((it + 1)->min_x);
-        if (imagePixFormat == AV_PIX_FMT_GRAY8) {
+        if (zm_bytes_per_pixel(imagePixFormat) == 1) {
           uint8 *p = &buffer[(scan_line * width) + lo_x];
 
           for (int32 x = lo_x; x <= hi_x; x++, p++) {
@@ -2755,7 +2755,7 @@ void Image::Rotate(int angle) {
     unsigned int line_bytes = new_width*colours;
     unsigned char *s_ptr = buffer;
 
-    if ( imagePixFormat == AV_PIX_FMT_GRAY8 ) {
+    if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
       for ( unsigned int i = new_width; i > 0; i-- ) {
         unsigned char *d_ptr = rotate_buffer+(i-1);
         for ( unsigned int j = new_height; j > 0; j-- ) {
@@ -2789,7 +2789,7 @@ void Image::Rotate(int angle) {
     unsigned char *s_ptr = buffer+size;
     unsigned char *d_ptr = rotate_buffer;
 
-    if ( imagePixFormat == AV_PIX_FMT_GRAY8 ) {
+    if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
       while( s_ptr > buffer ) {
         s_ptr--;
         *d_ptr++ = *s_ptr;
@@ -2818,7 +2818,7 @@ void Image::Rotate(int angle) {
     unsigned int line_bytes = new_width*colours;
     unsigned char *s_ptr = buffer+size;
 
-    if ( imagePixFormat == AV_PIX_FMT_GRAY8 ) {
+    if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
       for ( unsigned int i = new_width; i > 0; i-- ) {
         unsigned char *d_ptr = rotate_buffer+(i-1);
         for ( unsigned int j = new_height; j > 0; j-- ) {
@@ -2867,7 +2867,7 @@ void Image::Flip( bool leftright ) {
     unsigned char *d_ptr = flip_buffer;
     unsigned char *max_d_ptr = flip_buffer + size;
 
-    if ( imagePixFormat == AV_PIX_FMT_GRAY8 ) {
+    if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
       while( d_ptr < max_d_ptr ) {
         for ( unsigned int j = 0; j < width; j++ ) {
           s_ptr--;
@@ -3023,7 +3023,7 @@ void Image::Deinterlace_Discard() {
   /* Simple deinterlacing. Copy the even lines into the odd lines */
   // ICON: These can be drastically improved.  But who cares?
 
-  if ( imagePixFormat == AV_PIX_FMT_GRAY8 ) {
+  if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
     const uint8_t *psrc;
     uint8_t *pdest;
     for (unsigned int y = 0; y < (unsigned int)height; y += 2) {
@@ -3066,7 +3066,7 @@ void Image::Deinterlace_Linear() {
   const uint8_t *pbelow, *pabove;
   uint8_t *pcurrent;
 
-  if ( imagePixFormat == AV_PIX_FMT_GRAY8 ) {
+  if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
     for (unsigned int y = 1; y < (unsigned int)(height-1); y += 2) {
       pabove = buffer + ((y-1) * width);
       pbelow = buffer + ((y+1) * width);
@@ -3132,7 +3132,7 @@ void Image::Deinterlace_Blend() {
 
   uint8_t *pabove, *pcurrent;
 
-  if ( imagePixFormat == AV_PIX_FMT_GRAY8 ) {
+  if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
     for (unsigned int y = 1; y < (unsigned int)height; y += 2) {
       pabove = buffer + ((y-1) * width);
       pcurrent = buffer + (y * width);
@@ -3189,7 +3189,7 @@ void Image::Deinterlace_Blend_CustomRatio(int divider) {
     Error("Deinterlace called with invalid blend ratio");
   }
 
-  if ( imagePixFormat == AV_PIX_FMT_GRAY8 ) {
+  if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
     for (unsigned int y = 1; y < (unsigned int)height; y += 2) {
       pabove = buffer + ((y-1) * width);
       pcurrent = buffer + (y * width);
@@ -3272,7 +3272,7 @@ void Image::Deinterlace_4Field(const Image* next_image, unsigned int threshold) 
   } else if (zm_is_rgb32(imagePixFormat)) {
     /* Assume RGBA subpixel order */
     (*fptr_deinterlace_4field_rgba)(buffer, next_image->buffer, threshold, width, height);
-  } else if (imagePixFormat == AV_PIX_FMT_GRAY8) {
+  } else if (zm_bytes_per_pixel(imagePixFormat) == 1) {
     (*fptr_deinterlace_4field_gray8)(buffer, next_image->buffer, threshold, width, height);
   } else {
     Panic("Deinterlace_4Field called with unexpected colours: %d", colours);

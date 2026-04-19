@@ -64,9 +64,9 @@ Camera::Camera(
   mLastAudioDTS(AV_NOPTS_VALUE),
   bytes(0),
   mIsPrimed(false) {
-  linesize = width * colours;
+  linesize = FFALIGN(av_image_get_linesize(pixelFormat, width, 0), 32);
   pixels = width * height;
-  imagesize = static_cast<unsigned long long>(height) * linesize;
+  imagesize = av_image_get_buffer_size(pixelFormat, width, height, 32);
 
   Debug(2, "New camera id: %d width: %d line size: %d height: %d colours: %d subpixelorder: %d capture: %d, size: %llu",
         monitor->Id(), width, linesize, height, colours, subpixelorder, capture, imagesize);

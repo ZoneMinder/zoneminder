@@ -4,7 +4,12 @@
 */
 
 var AudioMotionAnalyzer = null;
-if (typeof AUDIO_MOTION_ENABLED !== 'undefined' && AUDIO_MOTION_ENABLED) {
+
+function checkAudioMotionEnabled() {
+  return (typeof AUDIO_MOTION_ENABLED !== 'undefined' && AUDIO_MOTION_ENABLED === 'true');
+}
+
+if (checkAudioMotionEnabled()) {
   import('../assets/audioMotion-analyzer/src/audioMotion-analyzer.js').then(module => {
     AudioMotionAnalyzer = module.AudioMotionAnalyzer;
   });
@@ -358,6 +363,7 @@ export class _AudioMotionAnalyzer extends HTMLElement {
   };
 } // END CLASS
 
-if (AudioMotionAnalyzer && (currentView == 'watch' || currentView == 'montage' || currentView == 'event')) {
+//if (AudioMotionAnalyzer && (currentView == 'watch' || currentView == 'montage' || currentView == 'event')) {
+if (checkAudioMotionEnabled() && (currentView == 'watch' || currentView == 'montage' || currentView == 'event')) {
   customElements.define('audio-motion', _AudioMotionAnalyzer);
 }

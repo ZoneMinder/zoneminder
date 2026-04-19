@@ -317,7 +317,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'
 ?>
           </span>
 <?php
-      if (strpos(strtolower($whatDisplaySelected), 'onlyvideo') !== 0) {
+      if ((defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) && strpos(strtolower($whatDisplaySelected), 'onlyvideo') !== 0) {
         $htmlAudioControlPanel = '
           <span id="audioControlPanel" class="audio-control-panel">
             <div id="volumeControls" class="disabled volume">

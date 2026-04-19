@@ -3068,7 +3068,21 @@ bool Monitor::Decode() {
     }
 
     if (!packet->image) {
-      packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());
+      // Use the decoded frame's native pixel format directly instead of
+      // converting to Monitor.Colours (e.g. RGBA). The camera's native format
+      // (typically YUV420P for h264, YUVJ422P for MJPEG) is kept through the
+      // pipeline. This avoids wasteful format conversions and reduces shared
+      // memory usage.
+      unsigned int native_colours, native_subpixelorder;
+      AVPixelFormat native_fmt = static_cast<AVPixelFormat>(packet->in_frame->format);
+      if (!zm_colours_from_pixformat(native_fmt, native_colours, native_subpixelorder)) {
+        Debug(1, "Unknown in_frame format %d %s, converting to camera format",
+              native_fmt, av_get_pix_fmt_name(native_fmt));
+        native_colours = camera->Colours();
+        native_subpixelorder = camera->SubpixelOrder();
+      }
+
+      packet->image = new Image(camera_width, camera_height, native_colours, native_subpixelorder);
 
       bool have_converter = convert_context || setupConvertContext(packet->in_frame.get(), packet->image);
       if (have_converter) {

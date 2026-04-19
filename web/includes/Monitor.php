@@ -227,6 +227,7 @@ class Monitor extends ZM_Object {
     'AnalysisImage' => 'FullColour',
     'Enabled'   => array('type'=>'boolean','default'=>1),
     'Decoding'  => 'Always',
+    'WhatDisplay'   => 'OnlyVideo',
     'RTSP2WebEnabled'   => array('type'=>'integer','default'=>0),
     'DefaultPlayer' => '',
     'StreamChannel'   => 'Restream',
@@ -1282,11 +1283,11 @@ class Monitor extends ZM_Object {
     //if ((!ZM_WEB_COMPACT_MONTAGE) && ($this->Type() != 'WebSite')) {
       $html .= $this->getMonitorStateHTML();
     }
-    $html .= '
+    $htmlAudioMotion = '
       <audio-motion id="audioVisualization'.$this->Id().'" class="audio-visualization">
     '.PHP_EOL;
     if ($view == 'montage') {
-      $html .= '
+      $htmlAudioMotion .= '
         <div id="audioControlPanel'.$this->Id().'" class="audio-control-panel">
           <div id="volumeControls'.$this->Id().'" class="disabled volume">
             <div id="volumeSlider'.$this->Id().'" data-volume="50" data-muted="true" class="volumeSlider noUi-horizontal noUi-base noUi-round"></div>
@@ -1296,8 +1297,9 @@ class Monitor extends ZM_Object {
         <canvas></canvas>
       '.PHP_EOL;
     }
-    $html .= '
+    $htmlAudioMotion .= '
       </audio-motion>'.PHP_EOL;
+    if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) $html .= $htmlAudioMotion;
     $html .= PHP_EOL.'</div></div><!--.grid-stack-item-content--></div><!--.grid-stack-item-->'.PHP_EOL;
     return $html;
   } // end getStreamHTML

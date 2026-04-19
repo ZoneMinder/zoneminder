@@ -1113,13 +1113,18 @@ class Monitor extends ZM_Object {
     global $basename;
     global $view;
 
-    $whatDisplay = (isset($_COOKIE["zmWhatDisplay"])) ? strtolower($_COOKIE["zmWhatDisplay"]) : 'default';
+    $whatDisplay = null;
+    if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) {
+      $whatDisplay = (isset($_COOKIE["zmWhatDisplay"])) ? strtolower($_COOKIE["zmWhatDisplay"]) : 'default';
+    } else {
+      $whatDisplay = 'OnlyVideo';
+    }
     $dataNotDisplayVideo = 'false';
 
     if (false !== strpos($whatDisplay, 'default')) { // Default monitor settings
       if (false === (strpos(strtolower($this->WhatDisplay()), 'video'))) $dataNotDisplayVideo = 'true';
     } else {
-      if (false === (strpos($whatDisplay, 'video'))) $dataNotDisplayVideo = 'true';
+      if (false === (strpos(strtolower($whatDisplay), 'video'))) $dataNotDisplayVideo = 'true';
     }
 
     if (isset($options['scale']) and $options['scale'] != '' and $options['scale'] != 'fixed') {

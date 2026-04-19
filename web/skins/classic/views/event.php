@@ -468,15 +468,19 @@ if ($video_tag) {
   Sorry, your browser does not support inline SVG
                   </svg>
                 </div><!--videoFeed-->
-                <audio-motion id="audioVisualization<?php echo $monitor->Id()?>" class="audio-visualization">
-                  <div id="audioControlPanel<?php echo $monitor->Id()?>" class="audio-control-panel">
-                    <div id="volumeControls<?php echo $monitor->Id()?>" class="disabled volume">
-                      <div id="volumeSlider<?php echo $monitor->Id()?>" data-volume="50" data-muted="true" class="volumeSlider noUi-horizontal noUi-base noUi-round"></div>
-                      <i id="controlMute<?php echo $monitor->Id()?>" class="audio-control-mute material-icons md-22"></i>
+<?php
+if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) echo '
+                <audio-motion id="audioVisualization'.$monitor->Id().'" class="audio-visualization">
+                  <div id="audioControlPanel'.$monitor->Id().'" class="audio-control-panel">
+                    <div id="volumeControls'.$monitor->Id().'" class="disabled volume">
+                      <div id="volumeSlider'.$monitor->Id().'" data-volume="50" data-muted="true" class="volumeSlider noUi-horizontal noUi-base noUi-round"></div>
+                      <i id="controlMute'.$monitor->Id().'" class="audio-control-mute material-icons md-22"></i>
                     </div>
                   </div>
                   <canvas></canvas>
                 </audio-motion>
+' . PHP_EOL;
+?>
                 <div class="monitorStatus">
                   <span class="MonitorName"><?php echo $monitor->Name() . " (". translate('ID'). "=" . $monitor->Id() . ")"; ?>  </span>
                   <span class="stream-info-status-track"></span>

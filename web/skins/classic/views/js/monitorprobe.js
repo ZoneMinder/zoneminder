@@ -23,8 +23,8 @@ function connectOnvif( element ) {
   if ( !manualUrl ) return;
   var mid = (form.mid && form.mid.value) ? form.mid.value : '';
   window.location.assign(
-    '?view=onvifprobe&mid=' + encodeURIComponent(mid) +
-    '&manual_url=' + encodeURIComponent(manualUrl)
+      '?view=onvifprobe&mid=' + encodeURIComponent(mid) +
+      '&manual_url=' + encodeURIComponent(manualUrl)
   );
 }
 

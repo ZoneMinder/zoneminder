@@ -121,6 +121,8 @@ constexpr Rgb kRGBTransparent = 0x01000000;
 #define ZM_SUBPIX_ORDER_ARGB 10
 #define ZM_SUBPIX_ORDER_YUV420P 11
 #define ZM_SUBPIX_ORDER_YUVJ420P 12
+#define ZM_SUBPIX_ORDER_YUV422P 13
+#define ZM_SUBPIX_ORDER_YUVJ422P 14
 
 // DEPRECATED: Use zm_pixformat_from_colours() in zm_pixformat.h instead.
 // Only valid for DB-persisted colours values {1, 3, 4}.

@@ -3068,18 +3068,27 @@ bool Monitor::Decode() {
     }
 
     if (!packet->image) {
-      // Use the decoded frame's native pixel format directly instead of
-      // converting to Monitor.Colours (e.g. RGBA). The camera's native format
-      // (typically YUV420P for h264, YUVJ422P for MJPEG) is kept through the
-      // pipeline. This avoids wasteful format conversions and reduces shared
-      // memory usage.
+      // Use a pipeline-friendly pixel format. Prefer the decoded frame's native
+      // format when Image can represent it with full color (YUV420P, RGB24, RGBA,
+      // GRAY8). For formats like YUVJ422P (MJPEG output) where Image only stores
+      // the Y-plane and drops chroma, convert to YUV420P instead.
       unsigned int native_colours, native_subpixelorder;
       AVPixelFormat native_fmt = static_cast<AVPixelFormat>(packet->in_frame->format);
-      if (!zm_colours_from_pixformat(native_fmt, native_colours, native_subpixelorder)) {
-        Debug(1, "Unknown in_frame format %d %s, converting to camera format",
-              native_fmt, av_get_pix_fmt_name(native_fmt));
-        native_colours = camera->Colours();
-        native_subpixelorder = camera->SubpixelOrder();
+
+      bool can_passthrough = (native_fmt == AV_PIX_FMT_YUV420P
+                           || native_fmt == AV_PIX_FMT_YUVJ420P
+                           || native_fmt == AV_PIX_FMT_YUV422P
+                           || native_fmt == AV_PIX_FMT_YUVJ422P
+                           || native_fmt == AV_PIX_FMT_GRAY8
+                           || zm_is_rgb24(native_fmt)
+                           || zm_is_rgb32(native_fmt));
+
+      if (can_passthrough && zm_colours_from_pixformat(native_fmt, native_colours, native_subpixelorder)) {
+        Debug(1, "Using native frame format %s", av_get_pix_fmt_name(native_fmt));
+      } else {
+        Debug(1, "Converting %s to yuv420p for pipeline", av_get_pix_fmt_name(native_fmt));
+        native_colours = ZM_COLOUR_GRAY8;
+        native_subpixelorder = ZM_SUBPIX_ORDER_YUV420P;
       }
 
       packet->image = new Image(camera_width, camera_height, native_colours, native_subpixelorder);

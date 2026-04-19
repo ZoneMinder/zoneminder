@@ -28,6 +28,8 @@ inline AVPixelFormat zm_pixformat_from_colours(unsigned int colours, unsigned in
   if (colours == ZM_COLOUR_GRAY8) {
     if (subpixelorder == ZM_SUBPIX_ORDER_YUV420P)  return AV_PIX_FMT_YUV420P;
     if (subpixelorder == ZM_SUBPIX_ORDER_YUVJ420P) return AV_PIX_FMT_YUVJ420P;
+    if (subpixelorder == ZM_SUBPIX_ORDER_YUV422P)  return AV_PIX_FMT_YUV422P;
+    if (subpixelorder == ZM_SUBPIX_ORDER_YUVJ422P) return AV_PIX_FMT_YUVJ422P;
     return AV_PIX_FMT_GRAY8;
   }
   if (colours == ZM_COLOUR_RGB24) {
@@ -62,9 +64,12 @@ inline bool zm_colours_from_pixformat(AVPixelFormat fmt,
       subpixelorder = ZM_SUBPIX_ORDER_YUVJ420P;
       return true;
     case AV_PIX_FMT_YUV422P:
+      colours = ZM_COLOUR_GRAY8;  // Y-plane is 1 byte/pixel
+      subpixelorder = ZM_SUBPIX_ORDER_YUV422P;
+      return true;
     case AV_PIX_FMT_YUVJ422P:
       colours = ZM_COLOUR_GRAY8;  // Y-plane is 1 byte/pixel
-      subpixelorder = ZM_SUBPIX_ORDER_NONE;
+      subpixelorder = ZM_SUBPIX_ORDER_YUVJ422P;
       return true;
     case AV_PIX_FMT_RGB24:
       colours = ZM_COLOUR_RGB24;

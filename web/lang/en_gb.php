@@ -1136,6 +1136,16 @@ None: No frames will be decoded, live view and thumbnails will not be available~
      For more details, see the instructions for your camera, as well as the specifications at the link:~~https://www.onvif.org/specs/core/ONVIF-Core-Specification.pdf
     '
    ),
+   'OPTIONS_WHATTODISPLAY' => array(
+    'Help' => '
+     Audio motion visualization can be displayed on the Montage, Watch, and Event pages.~~
+     To do this, install the file "/skins/MySkin/assets/audioMotion-analyzer/src/audioMotion-analyzer.js".~~
+     This file can be downloaded from the following links:~~
+     https://cdn.jsdelivr.net/npm/audiomotion-analyzer@4.5.4~~
+     https://github.com/hvianna/audioMotion-analyzer/releases~~
+     Currently supported version 4.5.4
+    '
+   ),
   'ZM_OPT_TRAINING' => array(
     'Prompt' => 'Enable custom model training features',
     'Help' => 'Enable annotation tools on the event view for correcting object detection results.~~Corrected annotations are saved in YOLO format for training custom models via pyzm.~~When enabled, an Annotate button appears on the event view toolbar.'

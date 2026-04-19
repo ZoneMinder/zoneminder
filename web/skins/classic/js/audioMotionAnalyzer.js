@@ -11,7 +11,11 @@ function checkAudioMotionEnabled() {
 
 if (checkAudioMotionEnabled()) {
   import('../assets/audioMotion-analyzer/src/audioMotion-analyzer.js').then(module => {
-    AudioMotionAnalyzer = module.AudioMotionAnalyzer;
+    if (module.AudioMotionAnalyzer) {
+      AudioMotionAnalyzer = module.AudioMotionAnalyzer;
+    } else {
+      AudioMotionAnalyzer = window.AudioMotionAnalyzer;
+    }
   });
 }
 //import {AudioMotionAnalyzer} from '../assets/audioMotion-analyzer/src/audioMotion-analyzer.js';

@@ -252,7 +252,7 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
           <?php echo htmlSelect('codec', $codecs, $codec, array('data-on-change'=>'changeCodec','id'=>'codec')); ?>
         </div>
         <div id="whatDisplayControl">
-          <label for="whatDisplay"><?php echo translate('What display') ?></label>
+          <label for="whatDisplay"><?php if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) echo translate('What display') ?></label>
 <?php 
             $whatDisplayOptions = [
               'Default'=>translate('Default'),
@@ -266,7 +266,7 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
             } else if (isset($_COOKIE['zmWhatDisplay']) and isset($whatDisplayOptions[$_COOKIE['zmWhatDisplay']])) {
               $whatDisplaySelected = validHtmlStr($_COOKIE['zmWhatDisplay']);
             }
-            echo htmlSelect('whatDisplay', $whatDisplayOptions, $whatDisplaySelected, array('data-on-change'=>'changeWhatDisplay','id'=>'whatDisplay','class'=>'chosen'));
+            if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) echo htmlSelect('whatDisplay', $whatDisplayOptions, $whatDisplaySelected, array('data-on-change'=>'changeWhatDisplay','id'=>'whatDisplay','class'=>'chosen'));
 ?>
         </div><!--#whatDisplayControl-->
       </div>

@@ -649,6 +649,7 @@ $SLANG = array(
     'ReplaySingle'         => 'Одно событие',
     'ReportEventAudit'     => 'Отчёт о событиях аудита',    // Edited - 2019-03-24
     'Reports'              => 'Отчеты',
+    'RequiresAudioMotionEnabled' => 'Требуется установка файла "audioMotion-analyzer.js"',
     'Reset'                => 'Сбросить',
     'ResetEventCounts'     => 'Обнулить счетчик событий',
     'Restart'              => 'Перезапустить',

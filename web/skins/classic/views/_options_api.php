@@ -32,10 +32,11 @@ if ((!defined('ZM_OPT_USE_API')) or ZM_OPT_USE_API != '1') {
 ?>
 
 <form name="userForm" method="post" action="?">
-  <button class="float-left" type="submit" name="updateSelected" id="updateSelected"><?php echo translate('Update')?></button>
-  <button class="float-left" type="button" id="btnNewToken"><?php echo translate('New Token')?></button>
-  <button class="btn-danger float-right" type="submit" name="revokeAllTokens" id="revokeAllTokens"><?php echo translate('RevokeAllTokens')?></button>
-  <br/>
+  <div class="col button-block">
+    <button class="float-left" type="submit" name="updateSelected" id="updateSelected"><?php echo translate('Update')?></button>
+    <button class="float-left" type="button" id="btnNewToken"><?php echo translate('New Token')?></button>
+    <button class="btn-danger float-right" type="submit" name="revokeAllTokens" id="revokeAllTokens"><?php echo translate('RevokeAllTokens')?></button>
+  </div>
 <?php
   function revokeAllTokens() {
     $minTokenTime = time();
@@ -69,7 +70,6 @@ if ((!defined('ZM_OPT_USE_API')) or ZM_OPT_USE_API != '1') {
     updateSelected();
   }
 ?>
-  <br/><br/>
   <input type="hidden" name="view" value="<?php echo $view ?>"/>
   <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
   <input type="hidden" name="action" value="delete"/>

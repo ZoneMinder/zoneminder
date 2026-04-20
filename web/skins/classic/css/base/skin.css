@@ -1650,6 +1650,22 @@ video-stream[id^='liveStream'] video{
   cursor: pointer;
 }
 
+.button-block {
+  display: block;
+  padding-bottom: .5rem;
+}
+
+.button-block:after {
+  content: "";
+  display: block;
+  clear: both;
+  visibility: hidden;
+  line-height: 0;
+  height: 0;
+  margin: 0;
+  padding: 0;
+}
+
 /* +++ This block should always be located at the end! */
 .hidden {
     display: none;

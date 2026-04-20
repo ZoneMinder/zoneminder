@@ -35,9 +35,11 @@ foreach ( ZM\Group::find() as $Group ) {
 # This  array is indexed by parent_id
 $children = array();
 foreach ( $Groups as $id=>$Group ) {
-  if ( ! isset( $children[$Group->ParentId()] ) )
-    $children[$Group->ParentId()] = array();
-  $children[$Group->ParentId()][] = $Group;
+  // From PHP 8.5, using 'null' as an array offset is deprecated
+  $parentID = $Group->ParentId() ?? '';
+  if ( ! isset( $children[$parentID] ) )
+    $children[$parentID] = array();
+  $children[$parentID][] = $Group;
   if ( $max_depth < $Group->depth() )
     $max_depth = $Group->depth();
 }
@@ -104,8 +106,8 @@ function group_line( $Group ) {
   }
   return $html;
 }
-if ( isset( $children[null] ) )
-  foreach ( $children[null] as $Group )
+if ( isset( $children[''] ) )
+  foreach ( $children[''] as $Group )
     echo group_line($Group);
 ?>
                     </tbody>

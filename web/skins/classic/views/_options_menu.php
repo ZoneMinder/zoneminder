@@ -8,29 +8,26 @@ $canEdit = canEdit('System');
   <input type="hidden" name="tab" value="menu"/>
   <input type="hidden" name="action" value="menuitems"/>
   <div id="options">
-    <div class="row pb-2">
-      <div class="col">
-        <div id="contentButtons">
+    <div class="col button-block">
+      <div id="contentButtons">
 <?php if ($canEdit) { ?>
-          <button type="submit" class="btn btn-primary">
-            <i class="material-icons">save</i>
-            <span class="text"><?php echo translate('Save') ?></span>
-          </button>
-          <button type="button" id="sortMenuBtn" class="btn btn-secondary" data-on-click-this="sortMenuItems">
-            <i class="material-icons" title="<?php echo translate('Click and drag rows to change order') ?>">swap_vert</i>
-            <span class="text"><?php echo translate('Sort') ?></span>
-          </button>
-          <button type="submit" name="action" value="resetmenu" class="btn btn-warning"
-            onclick="return confirm('<?php echo addslashes(translate('Reset menu items to defaults?')) ?>');"
-          ><i class="material-icons">restart_alt</i>
-            <span class="text"><?php echo translate('Reset') ?></span>
-          </button>
+        <button type="submit" class="btn btn-primary">
+          <i class="material-icons">save</i>
+          <span class="text"><?php echo translate('Save') ?></span>
+        </button>
+        <button type="button" id="sortMenuBtn" class="btn btn-secondary" data-on-click-this="sortMenuItems">
+          <i class="material-icons" title="<?php echo translate('Click and drag rows to change order') ?>">swap_vert</i>
+          <span class="text"><?php echo translate('Sort') ?></span>
+        </button>
+        <button type="submit" name="action" value="resetmenu" class="btn btn-warning"
+          onclick="return confirm('<?php echo addslashes(translate('Reset menu items to defaults?')) ?>');"
+        ><i class="material-icons">restart_alt</i>
+          <span class="text"><?php echo translate('Reset') ?></span>
+        </button>
 <?php } ?>
-        </div>
       </div>
     </div>
     <div class="wrapper-scroll-table">
-      <div class="row">
         <div class="col">
           <table class="table table-striped" id="menuItemsTable">
             <thead>
@@ -100,7 +97,6 @@ $canEdit = canEdit('System');
             </tbody>
           </table>
         </div>
-      </div>
     </div>
   </div>
 </form>

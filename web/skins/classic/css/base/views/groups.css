@@ -37,10 +37,10 @@ body.sticky #options {
 
 body.sticky .wrapper-scroll-table {
   position: absolute;
-  margin-right: calc(var(--indent-bootstrap-row) * -1);
+  /*margin-right: calc(var(--indent-bootstrap-row) * -1);
   margin-left: calc(var(--indent-bootstrap-row) * -1);
   padding-right: var(--indent-bootstrap-row);
-  padding-left: var(--indent-bootstrap-row);
+  padding-left: var(--indent-bootstrap-row);*/
   width: 100%;
   height: calc(100% - var(--height-block-before-table));
   overflow-x: hidden; 

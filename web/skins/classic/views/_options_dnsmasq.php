@@ -12,8 +12,10 @@ if (!canView('System')) {
 <?php
 if (canEdit('System')) {
 ?>
-    <div id="contentButtons">
-      <button type="submit" name="action" value="save"><?php echo translate('Save') ?></button>
+    <div class="col button-block">
+      <div id="contentButtons">
+        <button type="submit" name="action" value="save"><?php echo translate('Save') ?></button>
+      </div>
     </div>
 <?php
 }

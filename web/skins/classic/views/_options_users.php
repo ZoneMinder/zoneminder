@@ -7,16 +7,13 @@ $roles = ZM\User_Role::Indexed_By_Id();
   <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
   <input type="hidden" name="action" value="delete"/>
   <div id="options">
-    <div class="row">
-      <div class="col">
-        <div id="contentButtons">
-          <?php echo makeButton('?view=user&uid=0', 'AddNewUser', $canEdit); ?>
-          <button type="submit" class="btn-danger" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
-        </div>
-      </div><!-- .col -->
-    </div> <!-- .row -->
+    <div class="col button-block">
+      <div id="contentButtons">
+        <?php echo makeButton('?view=user&uid=0', 'AddNewUser', $canEdit); ?>
+        <button type="submit" class="btn-danger" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
+      </div>
+    </div>
     <div class="wrapper-scroll-table">
-      <div class="row">
         <div class="col">
           <table id="contentTable"
              class="table-sm table-striped"
@@ -75,7 +72,6 @@ $roles = ZM\User_Role::Indexed_By_Id();
             </tbody>
           </table>
         </div><!-- .col -->
-      </div><!-- .row -->
     </div><!-- .wrapper-scroll-table -->
   </div> <!-- #options -->
 <script nonce="<?php echo $cspNonce ?>">

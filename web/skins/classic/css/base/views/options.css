@@ -207,3 +207,18 @@ body.sticky #controlTable thead {
   top: 0;
   box-shadow: 0 0px 0, 0 -3px 0 #dfe4ea;
 }
+.button-block {
+  display: block;
+  padding-bottom: .5rem;
+}
+
+.button-block:after {
+  content: "";
+  display: block;
+  clear: both;
+  visibility: hidden;
+  line-height: 0;
+  height: 0;
+  margin: 0;
+  padding: 0;
+}

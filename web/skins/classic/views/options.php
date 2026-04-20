@@ -44,18 +44,16 @@ foreach ($zmMenu::$submenuOptionsItems as $name=>$value) {
 ?>
         </ul>
       </nav>
-      <div id="optionsContainer" class="col">
+      <div id="optionsContainer">
 <?php 
 if ($tab == 'display') {
 ?>
           <form name="optionsForm" method="get" action="?">
             <input type="hidden" name="view" value="<?php echo $view ?>"/>
             <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
-            <div class="row">
-              <div class="col">
-                <div id="contentButtons">
-                  <button value="Save" type="submit"><?php echo translate('Save') ?></button>
-                </div>
+            <div class="col button-block">
+              <div id="contentButtons">
+                <button value="Save" type="submit"><?php echo translate('Save') ?></button>
               </div>
             </div>
             <div class="form-group row">
@@ -238,14 +236,12 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
         <input type="hidden" name="action" value="options"/>
-          <div class="row pb-2">
-            <div class="col">
-              <div id="contentButtons">
-                <button type="submit" <?php echo $canEdit?'':' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
-              </div>
+          <div class="col button-block">
+            <div id="contentButtons">
+              <button type="submit" <?php echo $canEdit?'':' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
             </div>
           </div>
-        <div class="row h-100">
+        <div class="h-100">
           <div id="options">
 <?php
           if (!isset($configCats[$tab])) {

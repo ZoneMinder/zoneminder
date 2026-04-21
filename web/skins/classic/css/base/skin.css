@@ -1563,6 +1563,7 @@ noUi-target {
 [id^="volumeControls"].disabled {
   opacity: 0.4;
 }
+
 div.volume {
   display: inline-block;
 }
@@ -1648,6 +1649,22 @@ video-stream[id^='liveStream'] video{
 
 *[data-on-click-this="toggle_password_visibility"] {
   cursor: pointer;
+}
+
+.button-block {
+  display: block;
+  padding-bottom: .5rem;
+}
+
+.button-block:after {
+  content: "";
+  display: block;
+  clear: both;
+  visibility: hidden;
+  line-height: 0;
+  height: 0;
+  margin: 0;
+  padding: 0;
 }
 
 /* +++ This block should always be located at the end! */

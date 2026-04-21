@@ -63,7 +63,10 @@ input.large {
 }
 
 body.sticky #options {
-  height: calc(100% - 50px); /* It's bad, but it's temporary */
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  /*height: calc(100% - 50px);*/ /* It's bad, but it's temporary */
   overflow-x: hidden;
   overflow-y: auto;
 }
@@ -186,13 +189,8 @@ textarea.form-control-sm {
 }
 
 body.sticky .wrapper-scroll-table {
-  position: absolute;
-  /*margin-right: calc(var(--indent-bootstrap-row) * -1);
-  margin-left: calc(var(--indent-bootstrap-row) * -1);
-  padding-right: var(--indent-bootstrap-row);
-  padding-left: var(--indent-bootstrap-row);*/
   width: 100%;
-  height: calc(100% - var(--height-block-before-table));
+  height: auto;
   overflow-x: hidden; 
   overflow-y: auto; 
 }

@@ -1563,6 +1563,7 @@ noUi-target {
 [id^="volumeControls"].disabled {
   opacity: 0.4;
 }
+
 div.volume {
   display: inline-block;
 }
@@ -1653,6 +1654,7 @@ video-stream[id^='liveStream'] video{
 .button-block {
   display: block;
   padding-bottom: .5rem;
+  position: sticky;
 }
 
 .button-block:after {

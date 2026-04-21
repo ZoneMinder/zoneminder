@@ -233,6 +233,7 @@ function buildMenuItem($viewItemName, $id, $itemName, $href, $icon, $classNameFo
 function getMenuItemFunctions() {
   return [
     'Console'          => 'getConsoleHTML',
+    'Watch'            => 'getCycleHTML',
     'Montage'          => 'getMontageHTML',
     'MontageReview'    => 'getMontageReviewHTML',
     'Events'           => 'getEventsHTML',
@@ -1304,6 +1305,32 @@ function getFilterHTML($view, $forLeftBar = false, $customLabel = null) {
     );
   } else {
     $result .= '<li id="getFilterHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=filter">'.getNavbarIcon().htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
+  }
+
+  return $result;
+}
+
+// Returns the html representing the Cycle menu item (Watch view in cycle mode)
+function getCycleHTML($view, $forLeftBar = false, $customLabel = null) {
+  $result = '';
+  if ( !canView('Stream') ) return $result;
+  $label = $customLabel !== null ? $customLabel : 'Cycle';
+  $skipTranslate = $customLabel !== null;
+
+  $class = $view == 'cycle' ? ' selected' : '';
+  if ($forLeftBar) {
+    $result .= buildMenuItem(
+      $viewItemName = 'watch',
+      $id = 'getCycleHTML',
+      $itemName = $label,
+      $href = '?view=watch&amp;cycle=true',
+      $icon = 'repeat',
+      $classNameForTag_A = '',
+      $subMenu = '',
+      $skipTranslate
+    );
+  } else {
+    $result .= '<li id="getCycleHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=watch&amp;cycle=true">'.getNavbarIcon().htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
   }
 
   return $result;

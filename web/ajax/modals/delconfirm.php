@@ -1,8 +1,8 @@
 <?php
 // This is the HTML representing the Delete confirmation modal on the Events page and other pages
 
-$delTextKey = isset($_REQUEST['key']) ? $_REQUEST['key'] : 'ConfirmDeleteEvents';
-$delTextTitle = isset($_REQUEST['title']) ? $_REQUEST['title'] : 'ConfirmDeleteTitle';
+$delTextKey = isset($_REQUEST['key']) ? htmlspecialchars(strip_tags($_REQUEST['key']), ENT_NOQUOTES, 'UTF-8') : 'ConfirmDeleteEvents';
+$delTextTitle = isset($_REQUEST['title']) ? htmlspecialchars(strip_tags($_REQUEST['title']), ENT_NOQUOTES, 'UTF-8') : 'ConfirmDeleteTitle';
 
 ?>  
 <div id="deleteConfirm" class="modal fade" tabindex="-1">

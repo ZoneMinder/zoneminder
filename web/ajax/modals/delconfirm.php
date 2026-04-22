@@ -2,13 +2,14 @@
 // This is the HTML representing the Delete confirmation modal on the Events page and other pages
 
 $delTextKey = isset($_REQUEST['key']) ? $_REQUEST['key'] : 'ConfirmDeleteEvents';
+$delTextTitle = isset($_REQUEST['title']) ? $_REQUEST['title'] : 'ConfirmDeleteTitle';
 
 ?>  
 <div id="deleteConfirm" class="modal fade" class="modal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><?php echo translate('ConfirmDeleteTitle') ?></h5>
+        <h5 class="modal-title"><?php echo translate($delTextTitle) ?></h5>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
@@ -24,4 +25,3 @@ $delTextKey = isset($_REQUEST['key']) ? $_REQUEST['key'] : 'ConfirmDeleteEvents'
     </div>
   </div>
 </div>
-

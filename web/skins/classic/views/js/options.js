@@ -69,7 +69,12 @@ function sortMenuItems(button) {
 
 // Load the Delete Confirmation Modal HTML via Ajax call
 function getDelConfirmModal(key, title) {
-  $j.getJSON(thisUrl + '?request=modal&modal=delconfirm&key=' + key + '&title=' + title)
+  $j.getJSON(thisUrl, {
+    request: 'modal',
+    modal: 'delconfirm',
+    key: key,
+    title: title
+  })
       .done(function(data) {
         insertModalHtml('deleteConfirm', data.html);
         document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {

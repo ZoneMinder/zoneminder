@@ -5,7 +5,7 @@ $delTextKey = isset($_REQUEST['key']) ? $_REQUEST['key'] : 'ConfirmDeleteEvents'
 $delTextTitle = isset($_REQUEST['title']) ? $_REQUEST['title'] : 'ConfirmDeleteTitle';
 
 ?>  
-<div id="deleteConfirm" class="modal fade" class="modal" tabindex="-1">
+<div id="deleteConfirm" class="modal fade" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">

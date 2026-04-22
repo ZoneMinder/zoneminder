@@ -663,6 +663,7 @@ $SLANG = array(
     'ReplaySingle'         => 'Одно событие',
     'ReportEventAudit'     => 'Отчёт о событиях аудита',    // Edited - 2019-03-24
     'Reports'              => 'Отчеты',
+    'RequiresAudioMotionEnabled' => 'Требуется установка файла "audioMotion-analyzer.js"',
     'Reset'                => 'Сбросить',
     'ResetEventCounts'     => 'Обнулить счетчик событий',
     'Restart'              => 'Перезапустить',
@@ -1192,6 +1193,16 @@ $OLANG = array(
      - SceneTemperature~~
      - Tamper~~
      Более подробно смотрите в инструкции к своей камере, а также в спецификации по ссылке:~~https://www.onvif.org/specs/core/ONVIF-Core-Specification.pdf
+    '
+   ),
+   'OPTIONS_WHATTODISPLAY' => array(
+    'Help' => '
+     На страницах живого просмотра, монтажа и просмотра события возможно отображение движения аудио.~~
+     Для этого необходимо установить файл "/skins/MySkin/assets/audioMotion-analyzer/src/audioMotion-analyzer.js".~~
+     Указанный файл можно скачать по ссылкам:~~
+     https://cdn.jsdelivr.net/npm/audiomotion-analyzer@4.5.4~~
+     https://github.com/hvianna/audioMotion-analyzer/releases~~
+     На данный момент поддердивается версия 4.5.4
     '
    ),
   'FUNCTION_ANALYSIS_ENABLED' => array(

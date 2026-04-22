@@ -298,6 +298,41 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'
             <label for="streamQuality"><?php echo translate('Stream quality') ?></label>
             <?php echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality', 'class'=>'chosen')); ?>
           </span>
+          <span id="whatDisplayControl">
+            <label for="whatDisplay"><?php if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) echo translate('Show') ?></label>
+<?php 
+            $whatDisplay = [
+              'Default'=>translate('Default'),
+              'OnlyVideo'=>translate('Only video'),
+              'OnlyAudioVisualization'=>translate('Only audio visualization'),
+              'VideoAudioVisualization'=>translate('Video and audio visualization')
+            ];
+            $whatDisplaySelected = 'Default'; // Default
+            if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) {
+              if (isset($_REQUEST['whatDisplay']) and isset($whatDisplay[$_REQUEST['whatDisplay']])) {
+                $whatDisplaySelected = validHtmlStr($_REQUEST['whatDisplay']);
+              } else if (isset($_COOKIE['zmWhatDisplay']) and isset($whatDisplay[$_COOKIE['zmWhatDisplay']])) {
+                $whatDisplaySelected = validHtmlStr($_COOKIE['zmWhatDisplay']);
+              }
+            } else {
+              $whatDisplaySelected = 'OnlyVideo';
+            }
+            if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) echo htmlSelect('whatDisplay', $whatDisplay, $whatDisplaySelected, array('data-on-change'=>'changeWhatDisplay','id'=>'whatDisplay','class'=>'chosen'));
+?>
+          </span>
+<?php
+      if ((defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) && strpos(strtolower($whatDisplaySelected), 'onlyvideo') !== 0) {
+        $htmlAudioControlPanel = '
+          <span id="audioControlPanel" class="audio-control-panel">
+            <div id="volumeControls" class="disabled volume">
+              <div id="volumeSlider" data-volume="50" data-muted="true" class="volumeSlider noUi-horizontal noUi-base noUi-round"></div>
+              <i id="controlMute" class="audio-control-mute material-icons md-22"></i>
+            </div>
+          </span>
+        '.PHP_EOL;
+        echo $htmlAudioControlPanel;
+      }
+?>
           <span id="layoutControl">
             <label for="zmMontageLayout"><?php echo translate('Layout') ?></label>
             <?php echo htmlSelect('zmMontageLayout', $layoutsById, $layout_id, array('id'=>'zmMontageLayout', 'data-on-change'=>'selectLayout', 'class'=>'chosen')); ?>

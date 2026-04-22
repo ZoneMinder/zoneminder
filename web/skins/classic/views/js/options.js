@@ -73,8 +73,8 @@ function getDelConfirmModal(key, title) {
       .done(function(data) {
         insertModalHtml('deleteConfirm', data.html);
         document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
-        $j('#deleteConfirm').modal('hide');
-        submitThisForm(document.querySelector('form[name="userForm"]'));
+          $j('#deleteConfirm').modal('hide');
+          submitThisForm(document.querySelector('form[name="userForm"]'));
         });
       })
       .fail(logAjaxFail);

@@ -67,6 +67,23 @@ function sortMenuItems(button) {
   button.classList.toggle('btn-success');
 }
 
+// Load the Delete Confirmation Modal HTML via Ajax call
+function getDelConfirmModal(key, title) {
+  $j.getJSON(thisUrl + '?request=modal&modal=delconfirm&key=' + key + '&title=' + title)
+      .done(function(data) {
+        insertModalHtml('deleteConfirm', data.html);
+        document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
+        $j('#deleteConfirm').modal('hide');
+        submitThisForm(document.querySelector('form[name="userForm"]'));
+        });
+      })
+      .fail(logAjaxFail);
+}
+
+function DeleteUser() {
+  $j('#deleteConfirm').modal('show');
+}
+
 function initPage() {
   const NewStorageBtn = $j('#NewStorageBtn');
   const NewServerBtn = $j('#NewServerBtn');
@@ -109,6 +126,7 @@ function initPage() {
       }
     });
   }
+  getDelConfirmModal('ConfirmDeleteUser', 'ConfirmDeleteUserTitle');
 }
 
 $j(document).ready(function() {

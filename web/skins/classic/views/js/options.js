@@ -75,8 +75,9 @@ function getDelConfirmModal(key, title) {
     key: key,
     title: title
   })
-      .done(function(data) {
-        insertModalHtml('deleteConfirm', data.html);
+      .done(async function(data) {
+        await insertModalHtml('deleteConfirm', data.html);
+        $j('#deleteConfirm').modal('show');
         document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
           $j('#deleteConfirm').modal('hide');
           submitThisForm(document.querySelector('form[name="userForm"]'));
@@ -86,7 +87,7 @@ function getDelConfirmModal(key, title) {
 }
 
 function DeleteUser() {
-  $j('#deleteConfirm').modal('show');
+  getDelConfirmModal('ConfirmDeleteUser', 'ConfirmDeleteUserTitle');
 }
 
 function initPage() {
@@ -131,7 +132,6 @@ function initPage() {
       }
     });
   }
-  getDelConfirmModal('ConfirmDeleteUser', 'ConfirmDeleteUserTitle');
 }
 
 $j(document).ready(function() {

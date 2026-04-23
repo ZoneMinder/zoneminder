@@ -793,7 +793,10 @@ document.onvisibilitychange = () => {
     TimerHideShow = setTimeout(function() {
       //Stop monitors when closing or hiding page
       for (let i = 0, length = monitorData.length; i < length; i++) {
-        monitors[i].stop();
+        // Use kill() instead of stop() to send CMD_QUIT and terminate the zms
+        // process. stop() only sends CMD_STOP which leaves zms running, causing
+        // orphaned processes to accumulate each time the tab is hidden/shown.
+        monitors[i].kill();
       }
     }, 15*1000);
   } else {

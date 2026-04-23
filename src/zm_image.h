@@ -24,6 +24,7 @@
 #include "zm_jpeg.h"
 #include "zm_logger.h"
 #include "zm_mem_utils.h"
+#include "zm_pixformat.h"
 #include "zm_rgb.h"
 #include "zm_time.h"
 #include "zm_vector2.h"
@@ -176,8 +177,9 @@ class Image {
   inline unsigned int Size() const { return size; }
   std::string Filename() const { return filename_; }
 
-  AVPixelFormat AVPixFormat() const;
-  AVPixelFormat AVPixFormat(AVPixelFormat);
+  AVPixelFormat PixFormat() const { return imagePixFormat; }
+  AVPixelFormat AVPixFormat() const;       // DEPRECATED: use PixFormat()
+  AVPixelFormat AVPixFormat(AVPixelFormat); // Sets imagePixFormat and updates colours/subpixelorder
 
   inline uint8_t* Buffer() { return buffer; }
   inline const uint8_t* Buffer() const { return buffer; }

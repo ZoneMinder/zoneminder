@@ -20,6 +20,7 @@
 #include "zm_mpeg.h"
 
 #include "zm_logger.h"
+#include "zm_pixformat.h"
 #include "zm_rgb.h"
 #include "zm_time.h"
 
@@ -58,38 +59,9 @@ int VideoStream::SetupCodec(
   int bitrate,
   double frame_rate
 ) {
-  /* ffmpeg format matching */
-  switch (colours) {
-  case ZM_COLOUR_RGB24:
-    if (subpixelorder == ZM_SUBPIX_ORDER_BGR) {
-      /* BGR subpixel order */
-      pf = AV_PIX_FMT_BGR24;
-    } else {
-      /* Assume RGB subpixel order */
-      pf = AV_PIX_FMT_RGB24;
-    }
-    break;
-  case ZM_COLOUR_RGB32:
-    if (subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
-      /* ARGB subpixel order */
-      pf = AV_PIX_FMT_ARGB;
-    } else if (subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
-      /* ABGR subpixel order */
-      pf = AV_PIX_FMT_ABGR;
-    } else if (subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
-      /* BGRA subpixel order */
-      pf = AV_PIX_FMT_BGRA;
-    } else {
-      /* Assume RGBA subpixel order */
-      pf = AV_PIX_FMT_RGBA;
-    }
-    break;
-  case ZM_COLOUR_GRAY8:
-    pf = AV_PIX_FMT_GRAY8;
-    break;
-  default:
-    Panic("Unexpected colours: %d",colours);
-    break;
+  pf = zm_pixformat_from_colours(colours, subpixelorder);
+  if (pf == AV_PIX_FMT_NONE) {
+    Panic("Unexpected colours: %d", colours);
   }
 
   if (strcmp("rtp", of->name) == 0) {

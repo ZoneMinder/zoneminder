@@ -1643,6 +1643,12 @@ audio-motion, audio-motion canvas {
 }
 */
 
+/* Fix bootstrap */
+legend {
+  width: auto;
+  padding-inline: 0.5em;
+}
+
 /* Fix bootstrap-table */
 .fixed-table-loading {
   overflow: hidden;

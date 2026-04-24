@@ -32,10 +32,13 @@ if ((!defined('ZM_OPT_USE_API')) or ZM_OPT_USE_API != '1') {
 ?>
 
 <form name="userForm" method="post" action="?">
-  <button class="float-left" type="submit" name="updateSelected" id="updateSelected"><?php echo translate('Update')?></button>
-  <button class="float-left" type="button" id="btnNewToken"><?php echo translate('New Token')?></button>
-  <button class="btn-danger float-right" type="submit" name="revokeAllTokens" id="revokeAllTokens"><?php echo translate('RevokeAllTokens')?></button>
-  <br/>
+  <div id="options">
+    <div class="col button-block">
+      <button class="float-left" type="submit" name="updateSelected" id="updateSelected"><?php echo translate('Update')?></button>
+      <button class="float-left" type="button" id="btnNewToken"><?php echo translate('New Token')?></button>
+      <button class="btn-danger float-right" type="submit" name="revokeAllTokens" id="revokeAllTokens"><?php echo translate('RevokeAllTokens')?></button>
+    </div>
+    <div class="wrapper-scroll-table">
 <?php
   function revokeAllTokens() {
     $minTokenTime = time();
@@ -69,30 +72,31 @@ if ((!defined('ZM_OPT_USE_API')) or ZM_OPT_USE_API != '1') {
     updateSelected();
   }
 ?>
-  <br/><br/>
-  <input type="hidden" name="view" value="<?php echo $view ?>"/>
-  <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
-  <input type="hidden" name="action" value="delete"/>
-  <table id="contentTable" class="table table-striped">
-    <thead class="thead-highlight">
-      <tr>
-        <th class="colUsername"><?php echo translate('Username') ?></th>
-        <th class="colMark"><?php echo translate('Revoke Token') ?></th>
-        <th class="colMark"><?php echo translate('API Enabled') ?></th>
-      </tr>
-    </thead>
-    <tbody>
+      <input type="hidden" name="view" value="<?php echo $view ?>"/>
+      <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
+      <input type="hidden" name="action" value="delete"/>
+      <table id="contentTable" class="table table-striped">
+        <thead class="thead-highlight">
+          <tr>
+            <th class="colUsername"><?php echo translate('Username') ?></th>
+            <th class="colMark"><?php echo translate('Revoke Token') ?></th>
+            <th class="colMark"><?php echo translate('API Enabled') ?></th>
+          </tr>
+        </thead>
+        <tbody>
 <?php
 foreach (ZM\User::find([], ['order'=>'Username']) as $u) {
 ?>
-      <tr>
-        <td class="colUsername"><?php echo validHtmlStr($u->Username()) ?></td>
-        <td class="colMark"><input type="checkbox" name="tokenUids[]" value="<?php echo $u->Id() ?>" /></td>
-        <td class="colMark"><input type="checkbox" name="apiUids[]" value="<?php echo $u->Id() ?>" <?php echo $u->APIEnabled()?'checked':''?> /></td>
-      </tr>
+          <tr>
+            <td class="colUsername"><?php echo validHtmlStr($u->Username()) ?></td>
+            <td class="colMark"><input type="checkbox" name="tokenUids[]" value="<?php echo $u->Id() ?>" /></td>
+            <td class="colMark"><input type="checkbox" name="apiUids[]" value="<?php echo $u->Id() ?>" <?php echo $u->APIEnabled()?'checked':''?> /></td>
+          </tr>
 <?php
 }
 ?>
-    </tbody>
-  </table>
+        </tbody>
+      </table>
+    </div>
+  </div>
 </form>

@@ -36,7 +36,7 @@ function normalizeOnvifManualUrl( manualUrl ) {
     }
 
     return parsedUrl.toString();
-  } catch ( e ) {
+  } catch {
     return '';
   }
 }

@@ -7,16 +7,13 @@ require_once('includes/User_Role.php');
   <input type="hidden" name="action" value="delete"/>
   <input type="hidden" name="object" value="role"/>
   <div id="options">
-    <div class="row">
-      <div class="col">
+      <div class="col button-block">
         <div id="contentButtons">
           <?php echo makeButton('?view=role&rid=0', 'AddNewRole', $canEdit); ?>
           <button type="submit" class="btn-danger" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
         </div>
-      </div><!-- .col -->
-    </div> <!-- .row -->
+      </div>
     <div class="wrapper-scroll-table">
-      <div class="row">
         <div class="col">
           <table id="contentTable"
              class="table-sm table-striped"
@@ -69,7 +66,6 @@ require_once('includes/User_Role.php');
             </tbody>
           </table>
         </div><!-- .col -->
-      </div><!-- .row -->
     </div><!-- .wrapper-scroll-table -->
   </div> <!-- #options -->
 <script nonce="<?php echo $cspNonce ?>">

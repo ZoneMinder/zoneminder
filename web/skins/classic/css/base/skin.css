@@ -1593,6 +1593,48 @@ video-stream {
   padding:0;
 }
 
+/* +++ Audio-motion +++ */
+audio-motion, audio-motion canvas {
+  display: block;
+  width: 100%;
+}
+
+.imageFeed[data-not-display-video="true"], .imageFeed[data-not-display-video="true"] video-stream, .imageFeed[data-not-display-video="true"] video, /* monitor */
+*[id^="videoFeedStream"][data-not-display-video="true"] video { /* event */
+  max-width:25px !important; /* Otherwise, the stream will not start playing, especially for RTSP2Web-MSE. You can't set it below 21px, as we have an analysis of 20px as a starting point for playback. */
+  max-height: 25px !important;
+  border: none !important;
+  visibility: hidden !important;
+  position: absolute !important;
+  overflow: hidden !important;
+}
+
+*[id^="videoFeedStream"][data-not-display-video="true"] .video-js{  /* event */
+  height: 55px !important;
+}
+
+*[id^="videoFeedStream"][data-not-display-video="true"] .vjs-control-bar { /* event */
+ opacity: 1 !important;
+}
+
+.montage-page .monitor { /* Experimental setting */
+  border: 1px solid;
+  border-radius: 4px;
+}
+
+.montage-page .monitor .imageFeed { /* Experimental setting */
+  margin: -1px -1px 0 -1px;
+}
+
+.audio-control-panel .volume {
+  display: inline-block;
+}
+
+.audio-visualization .audio-control-panel {
+  float: right;
+}
+/* --- Audio-motion --- */
+
 /*
 .stream-info-status, .stream-info-mode {
   background-color: rgba(0,0,0,0.3);

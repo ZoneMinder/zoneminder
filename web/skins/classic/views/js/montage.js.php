@@ -39,7 +39,8 @@ monitorData[monitorData.length] = {
   'type': '<?php echo $monitor->Type() ?>',
   'capturing': '<?php echo $monitor->Capturing() ?>',
   'refresh': '<?php echo $monitor->Refresh() ?>',
-  'janus_pin': '<?php echo $monitor->Janus_Pin() ?>'
+  'janus_pin': '<?php echo $monitor->Janus_Pin() ?>',
+  'whatDisplay': '<?php echo $monitor->WhatDisplay() ?>'
 };
 <?php
 } // end foreach monitor

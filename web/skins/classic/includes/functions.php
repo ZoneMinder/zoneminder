@@ -18,6 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
+define("AUDIO_MOTION_ENABLED", file_exists("skins/$skin/assets/audioMotion-analyzer/src/audioMotion-analyzer.js"));
 
 function xhtmlHeaders($file, $title) {
   xhtmlHeadersStart($file, $title);
@@ -1815,6 +1816,9 @@ function xhtmlFooter() {
   $skinJsFile = getSkinFile('js/skin.js');
 ?>
   <script nonce="<?php echo $cspNonce; ?>" src="<?php echo cache_bust($skinJsFile) ?>"></script>
+<?php if ( in_array( $basename, array( 'watch', 'montage', 'event' ) ) ) { ?>
+  <script nonce="<?php echo $cspNonce; ?>" type="module" src="skins/<?php echo $skin ?>/js/audioMotionAnalyzer.js"></script>
+<?php } ?>
   </body>
 </html>
 <?php

@@ -46,6 +46,7 @@ const presetRatio = new Map([
 var defaultPresetRatio = 'auto';
 
 var averageMonitorsRatio;
+var selectorWhatDisplay = null;
 
 function isPresetLayout(name) {
   return ((ZM_PRESET_LAYOUT_NAMES.indexOf(name) != -1) ? true : false);
@@ -298,6 +299,12 @@ function setRatioForMonitor(objStream, id=null) {
   if (!id) {
     id = stringToNumber(objStream.id);
   }
+  const _imageFeed = document.getElementById('imageFeed'+id);
+  if (_imageFeed && _imageFeed.getAttribute('data-not-display-video') === 'true') {
+    console.debug(`Setting the ratio is not required because the monitor ID=${id} is not displayed.`);
+    return;
+  }
+
   const value = getSelected(document.getElementById("ratio"+id));
   const currentMonitor = monitors.find((o) => {
     return parseInt(o["id"]) === id;
@@ -652,6 +659,7 @@ function initPage() {
   });
 
   const arrRatioMonitors = [];
+  selectorWhatDisplay = document.getElementById('whatDisplay');
   for (let i = 0, length = monitorData.length; i < length; i++) {
     const monitor = monitors[i] = new MonitorStream(monitorData[i]);
     monitor.controlMute('on'); // Default to no audio. User can toggle audio for individual streams manually
@@ -662,6 +670,10 @@ function initPage() {
 
     //Prepare the array.
     movableMonitorData[monitor.id] = {'width': 0, 'stop': false};
+    // When displaying only the audio visualization, "#ratioControl" does not need to be displayed
+    if (selectorWhatDisplay && -1 === selectorWhatDisplay.value.toLowerCase().indexOf('video')) {
+      $j('#ratioControl' + monitor.id).css('visibility', 'hidden');
+    }
   }
 
   calculateAverageMonitorsRatio(arrRatioMonitors);
@@ -717,13 +729,26 @@ function initPage() {
   resizeInterval = setInterval(() => { //Updating GridStack resizeToContent, Scale & Ratio
     if (changedMonitors.length > 0) {
       changedMonitors.slice().reverse().forEach(function(item, index, object) {
-        const img = getStream(item);
-        if (img.offsetHeight > 20 && objGridStack) { //Required for initial page loading
-          setRatioForMonitor(img, item);
-          if (objGridStack) objGridStack.resizeToContent(document.getElementById('m'+item), true);
+        if (item) {
+          const img = getStream(item);
+          const _imageFeed = document.getElementById('imageFeed'+item);
+          const noVideo = (_imageFeed && _imageFeed.getAttribute('data-not-display-video') === 'true') ? true : false;
+          if ((noVideo === true || img.offsetHeight > 20) && objGridStack) { //Required for initial page loading
+            setRatioForMonitor(img, item);
+            if (objGridStack) objGridStack.resizeToContent(document.getElementById('m'+item), true);
+            changedMonitors.splice(object.length - 1 - index, 1);
+          }
+          monitorsSetScale(item);
+          if (selectorWhatDisplay && -1 === selectorWhatDisplay.value.indexOf('OnlyVideo')) {
+            // Experimental setting only if audio visualization is used. Blank spaces will be filled.
+            //objGridStack.column(1, 'compact');
+            //objGridStack.column(layoutColumns, 'compact');
+            objGridStack.column(1, 'list'); // This is likely a bug or a GridStack feature. If this isn't called, the rebuild won't occur.
+            objGridStack.column(layoutColumns, 'list');
+          }
+        } else {
           changedMonitors.splice(object.length - 1 - index, 1);
         }
-        monitorsSetScale(item);
       });
     }
   }, 200);
@@ -734,9 +759,16 @@ function initPage() {
   zmPanZoom.init();
 
   // Registering an observer on an element
-  $j('[id ^= "liveStream"]').each(function() {
-    observerMontage.observe(this);
-  });
+  if (selectorWhatDisplay && -1 !== selectorWhatDisplay.value.indexOf('OnlyVideo')) {
+    $j('[id ^= "liveStream"]').each(function() {
+      observerMontage.observe(this);
+    });
+  } else {
+    // This is a temporary, experimental setting, only available if audio visualization is used. Just in case, I don't want to mess anything up.
+    $j('[id ^= "liveStream"], [id ^= "monitorStatus"], audio-motion').each(function() {
+      observerMontage.observe(this);
+    });
+  }
 
   //You can immediately call startMonitors() here, but in this case the height of the monitor will initially be minimal, and then become normal, but this is not pretty.
   //Check if the monitor arrangement is complete
@@ -756,6 +788,11 @@ function initPage() {
       window.scrollEndTimer = setTimeout(on_scroll, 100);
     };
   }
+
+  createVolumeSlider(getVolumeSlider());
+  const volumeControl = getVolumeControls();
+  if (volumeControl) volumeControl.classList.remove("disabled");
+  controlMute(null, 'on');
   window.addEventListener('resize', on_scroll);
 } // end initPage
 
@@ -1034,6 +1071,11 @@ const observerMontage = new ResizeObserver((objResizes) => {
     }
   });
 });
+
+function changeWhatDisplay() {
+  setCookie('zmWhatDisplay', $j('#whatDisplay').val());
+  location.reload();
+}
 
 // Kick everything off
 $j(window).on('load', () => initPage());

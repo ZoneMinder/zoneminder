@@ -1816,7 +1816,7 @@ function xhtmlFooter() {
   $skinJsFile = getSkinFile('js/skin.js');
 ?>
   <script nonce="<?php echo $cspNonce; ?>" src="<?php echo cache_bust($skinJsFile) ?>"></script>
-<?php if ( in_array( $basename, array( 'watch', 'montage', 'event' ) ) ) { ?>
+<?php if ( in_array( $basename, array( 'watch', 'montage', 'event', 'monitor' ) ) ) { ?>
   <script nonce="<?php echo $cspNonce; ?>" type="module" src="skins/<?php echo $skin ?>/js/audioMotionAnalyzer.js"></script>
 <?php } ?>
   </body>

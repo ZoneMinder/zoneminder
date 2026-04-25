@@ -128,6 +128,7 @@ if ($action == 'save') {
       'SectionLengthWarn' => 0,
       'SOAP_wsa_compl' => 0 
       );
+  if (ZM\Monitor::getEnableDisableZMS()) $types['ZMSEnabled'] = 0;
 
   # Checkboxes don't return an element in the POST data, so won't be present in newMonitor.
   # So force a value for these fields

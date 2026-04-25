@@ -18,6 +18,12 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
+$whatDisplay = array(
+  'OnlyVideo' => translate('Only video'),
+  'OnlyAudioVisualization' => translate('Only audio visualization'),
+  'VideoAudioVisualization' => translate('Video and audio visualization'),
+);
+
 $RTSP2WebTypes = array(
   'HLS' => 'HLS',
   'MSE' => 'MSE',

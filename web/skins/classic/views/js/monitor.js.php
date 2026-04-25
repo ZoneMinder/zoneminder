@@ -63,6 +63,8 @@ function validateForm(form) {
       errors[errors.length] = "<?php echo translate('BadPalette') ?>";
     if ( !form.elements['newMonitor[Device]'].value )
       errors[errors.length] = "<?php echo translate('BadDevice') ?>";
+    else if ( !form.elements['newMonitor[Device]'].value.match(/^\/dev\/[\w\/.\-]+$/) )
+      errors[errors.length] = "<?php echo translate('BadDevice') ?>";
     if ( !form.elements['newMonitor[Channel]'] || !form.elements['newMonitor[Channel]'].value || !form.elements['newMonitor[Channel]'].value.match( /^\d+$/ ) )
       errors[errors.length] = "<?php echo translate('BadChannel') ?>";
     if ( !form.elements['newMonitor[Format]'] || !form.elements['newMonitor[Format]'].value || !form.elements['newMonitor[Format]'].value.match( /^\d+$/ ) )

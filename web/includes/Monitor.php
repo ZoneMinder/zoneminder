@@ -240,6 +240,7 @@ class Monitor extends ZM_Object {
     'AnalysisImage' => 'FullColour',
     'Enabled'   => array('type'=>'boolean','default'=>1),
     'Decoding'  => 'Always',
+    'WhatDisplay'   => 'OnlyVideo',
     'RTSP2WebEnabled'   => array('type'=>'integer','default'=>0),
     'DefaultPlayer' => '',
     'StreamChannel'   => 'Restream',
@@ -1091,6 +1092,7 @@ class Monitor extends ZM_Object {
     $html = '
 <div id="monitorStatus'.$this->Id().'" class="monitorStatus">
   <div class="stream-info">
+    <div class="stream-info-status-track"></div>
     <div class="stream-info-status"></div>
     <div class="stream-info-mode"></div>
   </div>
@@ -1122,6 +1124,21 @@ class Monitor extends ZM_Object {
  */
   function getStreamHTML($options) {
     global $basename;
+    global $view;
+
+    $whatDisplay = null;
+    if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) {
+      $whatDisplay = (isset($_COOKIE["zmWhatDisplay"])) ? strtolower($_COOKIE["zmWhatDisplay"]) : 'default';
+    } else {
+      $whatDisplay = 'OnlyVideo';
+    }
+    $dataNotDisplayVideo = 'false';
+
+    if (false !== strpos($whatDisplay, 'default')) { // Default monitor settings
+      if (false === (strpos(strtolower($this->WhatDisplay()), 'video'))) $dataNotDisplayVideo = 'true';
+    } else {
+      if (false === (strpos(strtolower($whatDisplay), 'video'))) $dataNotDisplayVideo = 'true';
+    }
 
     if (isset($options['scale']) and $options['scale'] != '' and $options['scale'] != 'fixed') {
       if ($options['scale'] != 'auto' && $options['scale'] != '0') {
@@ -1188,6 +1205,7 @@ class Monitor extends ZM_Object {
               class="monitorStream imageFeed"
               data-monitor-id="'. $this->Id() .'"
               data-width="'. $this->ViewWidth() .'"
+              data-not-display-video="'. $dataNotDisplayVideo .'"
               data-height="'.$this->ViewHeight() .'" style="'.
 #(($options['width'] and ($options['width'] != '0px')) ? 'width: '.$options['width'].';' : '').
 #(($options['height'] and ($options['height'] != '0px')) ? 'height: '.$options['height'].';' : '').
@@ -1283,6 +1301,23 @@ class Monitor extends ZM_Object {
     //if ((!ZM_WEB_COMPACT_MONTAGE) && ($this->Type() != 'WebSite')) {
       $html .= $this->getMonitorStateHTML();
     }
+    $htmlAudioMotion = '
+      <audio-motion id="audioVisualization'.$this->Id().'" class="audio-visualization">
+    '.PHP_EOL;
+    if ($view == 'montage') {
+      $htmlAudioMotion .= '
+        <div id="audioControlPanel'.$this->Id().'" class="audio-control-panel">
+          <div id="volumeControls'.$this->Id().'" class="disabled volume">
+            <div id="volumeSlider'.$this->Id().'" data-volume="50" data-muted="true" class="volumeSlider noUi-horizontal noUi-base noUi-round"></div>
+            <i id="controlMute'.$this->Id().'" class="audio-control-mute material-icons md-22"></i>
+          </div>
+        </div>
+        <canvas></canvas>
+      '.PHP_EOL;
+    }
+    $htmlAudioMotion .= '
+      </audio-motion>'.PHP_EOL;
+    if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) $html .= $htmlAudioMotion;
     $html .= PHP_EOL.'</div></div><!--.grid-stack-item-content--></div><!--.grid-stack-item-->'.PHP_EOL;
     return $html;
   } // end getStreamHTML

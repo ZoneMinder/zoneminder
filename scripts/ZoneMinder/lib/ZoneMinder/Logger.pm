@@ -76,6 +76,7 @@ our %EXPORT_TAGS = (
       Dump
       Debug
       Info
+      Warn
       Warning
       Error
       Fatal
@@ -741,6 +742,7 @@ sub info {
   $log->logPrint(INFO, @_, caller);
 }
 
+sub Warn { fetch()->logPrint(WARNING, @_, caller); }
 sub Warning { fetch()->logPrint(WARNING, @_, caller); }
 sub warn {
   my $log = shift;

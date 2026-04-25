@@ -150,7 +150,8 @@ if ((!$replayMode) or !$replayModes[$replayMode]) {
   $replayMode = 'none';
 }
 
-$video_tag = ($codec == 'MP4') || 
+$video_tag = ($codec == 'MP4') ||
+  str_ends_with($Event->DefaultVideo(), '.m3u8') ||
   ((false !== strpos($Event->DefaultVideo(), 'h264') || false !== strpos($Event->DefaultVideo(), 'av1')) && ($codec === 'auto'));
 
 
@@ -173,6 +174,15 @@ if (count($filter->terms())==1 and $filter->has_term('Id')) {
 }
 $filterQuery = $filter->querystring();
 $connkey = generateConnKey();
+
+$whatDisplay = (isset($_COOKIE["zmWhatDisplay"])) ? strtolower($_COOKIE["zmWhatDisplay"]) : 'default';
+$dataNotDisplayVideo = 'false';
+
+if (false !== strpos($whatDisplay, 'default')) { // Default monitor settings
+  if (false === (strpos(strtolower($monitor->WhatDisplay()), 'video'))) $dataNotDisplayVideo = 'true';
+} else {
+  if (false === (strpos($whatDisplay, 'video'))) $dataNotDisplayVideo = 'true';
+}
 
 xhtmlHeaders(__FILE__, translate('Event').' '.$Event->Id());
 getBodyTopHTML();
@@ -241,6 +251,24 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
           <label for="codec"><?php echo translate('Codec') ?></label>
           <?php echo htmlSelect('codec', $codecs, $codec, array('data-on-change'=>'changeCodec','id'=>'codec')); ?>
         </div>
+        <div id="whatDisplayControl">
+          <label for="whatDisplay"><?php if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) echo translate('What display') ?></label>
+<?php 
+            $whatDisplayOptions = [
+              'Default'=>translate('Default'),
+              'OnlyVideo'=>translate('Only video'),
+              'OnlyAudioVisualization'=>translate('Only audio visualization'),
+              'VideoAudioVisualization'=>translate('Video and audio visualization')
+            ];
+            $whatDisplaySelected = 'Default'; // Default
+            if (isset($_REQUEST['whatDisplay']) and isset($whatDisplayOptions[$_REQUEST['whatDisplay']])) {
+              $whatDisplaySelected = validHtmlStr($_REQUEST['whatDisplay']);
+            } else if (isset($_COOKIE['zmWhatDisplay']) and isset($whatDisplayOptions[$_COOKIE['zmWhatDisplay']])) {
+              $whatDisplaySelected = validHtmlStr($_COOKIE['zmWhatDisplay']);
+            }
+            if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) echo htmlSelect('whatDisplay', $whatDisplayOptions, $whatDisplaySelected, array('data-on-change'=>'changeWhatDisplay','id'=>'whatDisplay','class'=>'chosen'));
+?>
+        </div><!--#whatDisplayControl-->
       </div>
     </div>
 <?php if ( $Event->Id() ) { ?>
@@ -321,17 +349,38 @@ if (file_exists($Event->Path().'/objdetect.jpg')) {
                       <button id="btn-edit-monitor<?php echo $Event->MonitorId()?>" class="btn btn-edit-monitor" title="<?php echo translate('Edit monitor')?>"><span class="material-icons md-30">edit</span></button>
                     </div>
                   </div>
-                  <div id="videoFeedStream<?php echo $Event->MonitorId()?>">
+                  <div id="videoFeedStream<?php echo $Event->MonitorId()?>" data-not-display-video="<?php echo $dataNotDisplayVideo?>">
                     <div id="zoompan" class="zoompan">
 <?php
 if ($video_tag) {
+  // Use HLS byte-range playback if m3u8 manifest exists on disk
+  $has_hls = str_ends_with($Event->DefaultVideo(), '.m3u8')
+    && file_exists($Event->Path() . '/index.m3u8');
+  if ($has_hls) {
+    $Server = $Event->Server();
+    $hlsSrc = $Server->PathToIndex() . '?view=view_hls&amp;eid=' . $Event->Id();
+    if (ZM_OPT_USE_AUTH) {
+      if (ZM_AUTH_RELAY == 'hashed') {
+        $hlsSrc .= '&amp;auth=' . generateAuthHash(ZM_AUTH_HASH_IPS);
+      } else if (ZM_AUTH_RELAY == 'plain') {
+        $hlsSrc .= '&amp;user=' . $_SESSION['username'] . '&amp;pass=' . $_SESSION['password'];
+      } else if (ZM_AUTH_RELAY == 'none') {
+        $hlsSrc .= '&amp;user=' . $_SESSION['username'];
+      }
+    }
+  }
 ?>
                   <video id="videoobj" class="video-js"
                    <?php echo $scale ? 'width="'.reScale($Event->Width(), $scale).'"' : '' ?>
                    <?php echo $scale ? 'height="'.reScale($Event->Height(), $scale).'"' : '' ?>
                     controls autoplay preload="auto"
                   >
+<?php if ($has_hls): ?>
+                  <source src="<?php echo $hlsSrc; ?>" type="application/x-mpegURL">
                   <source src="<?php echo $Event->getStreamSrc(array('mode'=>'mp4','format'=>'h264'),'&amp;'); ?>" type="video/mp4">
+<?php else: ?>
+                  <source src="<?php echo $Event->getStreamSrc(array('mode'=>'mp4','format'=>'h264'),'&amp;'); ?>" type="video/mp4">
+<?php endif; ?>
                   <track id="monitorCaption" kind="captions" label="English" srclang="en" src='data:plain/text;charset=utf-8,"WEBVTT\n\n 00:00:00.000 --> 00:00:01.000 ZoneMinder"' default/>
                   Your browser does not support the video tag.
                   </video>
@@ -351,12 +400,39 @@ if ($video_tag) {
                         controls: true,
                         autoplay: true,
                         preload: 'auto',
-                        playbackRates: rates
+                        playbackRates: rates,
+                        liveui: <?php echo $has_hls && !$Event->EndDateTime() ? 'true' : 'false' ?>,
+                        liveTracker: {
+                          trackingThreshold: 0
+                        }
                       });
                       player.zoomrotate({
                         zoom: 1,
                         rotate: 0
                       });
+<?php if ($has_hls && !$Event->EndDateTime()): ?>
+                      // Live HLS: retry on errors — the manifest grows as recording continues.
+                      // Errors are expected when the event just started (no fragments yet)
+                      // or when we catch up to the recording edge.
+                      var liveRetryCount = 0;
+                      var maxLiveRetries = 30;
+                      player.on('error', function() {
+                        var error = player.error();
+                        if (error && liveRetryCount < maxLiveRetries) {
+                          liveRetryCount++;
+                          var delay = liveRetryCount <= 3 ? 3000 : 5000;
+                          console.log('Live HLS: error code=' + error.code + ', retry ' + liveRetryCount + '/' + maxLiveRetries + ' in ' + (delay/1000) + 's');
+                          player.error(null);
+                          setTimeout(function() {
+                            player.src(player.currentSources());
+                          }, delay);
+                        }
+                      });
+                      // Reset retry count on successful playback
+                      player.on('playing', function() {
+                        liveRetryCount = 0;
+                      });
+<?php endif; ?>
                     });
                   </script>
 <?php
@@ -392,8 +468,22 @@ if ($video_tag) {
   Sorry, your browser does not support inline SVG
                   </svg>
                 </div><!--videoFeed-->
+<?php
+if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) echo '
+                <audio-motion id="audioVisualization'.$monitor->Id().'" class="audio-visualization">
+                  <div id="audioControlPanel'.$monitor->Id().'" class="audio-control-panel">
+                    <div id="volumeControls'.$monitor->Id().'" class="disabled volume">
+                      <div id="volumeSlider'.$monitor->Id().'" data-volume="50" data-muted="true" class="volumeSlider noUi-horizontal noUi-base noUi-round"></div>
+                      <i id="controlMute'.$monitor->Id().'" class="audio-control-mute material-icons md-22"></i>
+                    </div>
+                  </div>
+                  <canvas></canvas>
+                </audio-motion>
+' . PHP_EOL;
+?>
                 <div class="monitorStatus">
                   <span class="MonitorName"><?php echo $monitor->Name() . " (". translate('ID'). "=" . $monitor->Id() . ")"; ?>  </span>
+                  <span class="stream-info-status-track"></span>
                 </div>
                 <p id="dvrControls">
                   <button type="button" id="prevBtn" title="<?php echo translate('Prev') ?>" class="inactive" data-on-click-true="streamPrev">

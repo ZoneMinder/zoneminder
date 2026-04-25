@@ -133,6 +133,7 @@ const CMD_SEEK = <?php echo CMD_SEEK ?>;
 const CMD_QUERY = <?php echo CMD_QUERY ?>;
 const CMD_QUIT = <?php echo CMD_QUIT ?>;
 const CMD_MAXFPS = <?php echo CMD_MAXFPS ?>;
+const AUDIO_MOTION_ENABLED = "<?php echo (AUDIO_MOTION_ENABLED) ? 'true' : 'false' ?>";
 
 const stateStrings = new Array();
 stateStrings[STATE_UNKNOWN] = "<?php echo translate('Unknown') ?>";

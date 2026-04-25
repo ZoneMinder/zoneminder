@@ -96,6 +96,7 @@ $SLANG = array(
     'Alert'                => 'Бдительность',
     'All'                  => 'Все',
     'AnalysisFPS'          => 'Частота анализа (к/с)',           // Added - 2015-07-22
+    'AnalysisSource'       => 'Канал для анализа',
     'AnalysisUpdateDelay'  => 'Задержка обновления анализа',  // Added - 2015-07-23
     'Apply'                => 'Применить',
     'ApplyingStateChange'  => 'Изменение состояния сервиса',
@@ -241,6 +242,7 @@ $SLANG = array(
     'CloneMonitor'         => 'Клонировать',                  // Edited - 2019-03-25
     'Close'                => 'Закрыть',
     'Colour'               => 'Цвет',
+    'Collapsed'            => 'Свернуто',
     'Command'              => 'Команда',
     'Component'            => 'Компонент',              // Added - 2011-06-16
     'ConcurrentFilter'     => 'Запуск фильтра', // Added - 2018-08-30
@@ -267,11 +269,13 @@ $SLANG = array(
     'ControlType'          => 'Тип управления',
     'Controllable'         => 'Управляемая',
     'Current'              => 'Текущий',                // Added - 2015-04-18
+    'Custom Label'         => 'Надпись',
     'Cycle'                => 'Цикл',
     'CycleWatch'           => 'Просмотр цикла',
     'DateTime'             => 'Дата/Время',              // Added - 2011-06-16
     'Day'                  => 'День',
     'Debug'                => 'Отладка', // Added - 2019-03-25
+    'Default Player'       => 'Плеер по умолчанию',
     'DefaultRate'          => 'Скорость по умолчанию',
     'DefaultScale'         => 'Масштаб по умолчанию',
     'DefaultView'          => 'Вид по умолчанию',
@@ -322,6 +326,7 @@ $SLANG = array(
     'ErrorValidValue'      => 'Ошибка: проверьте что все термы имеют действительное значение',
     'Etc'                  => 'и т.д.',
     'Event'                => 'Событие',
+    'Event Close Mode'     => 'Режим закрытия события',
     'EventFilter'          => 'Фильтр событий',
     'EventId'              => 'Id события', // Added - 2019-03-25
     'EventName'            => 'Имя события', // Added - 2019-03-25
@@ -368,6 +373,7 @@ $SLANG = array(
     'FilterUploadEvents'   => 'Загрузить все совпадения', // Added - 2019-03-25
     'FilterVideoEvents'    => 'Создать видео для всех совпадений', // Added - 2019-03-25
     'Filters'              => 'Фильтры',
+    'FilterUser'           => 'Пользователь фильтра',
     'First'                => 'Первый',
     'FlippedHori'          => 'Перевернуть горизонтально', // Added - 2019-03-25
     'FlippedVert'          => 'Перевернуть вертикально', // Added - 2019-03-25
@@ -414,6 +420,7 @@ $SLANG = array(
     'Hostname'             => 'Имя хоста',               // Edited - 2019-03-25
     'Hour'                 => 'Час',
     'Hue'                  => 'Оттенок',
+    'Icon'                 => 'Иконка',
     'Id'                   => 'ИД',
     'Idle'                 => 'Покой',
     'Ignore'               => 'Игнорировать',
@@ -429,6 +436,7 @@ $SLANG = array(
     'Language'             => 'Язык',
     'Last'                 => 'Последний',
     'Layout'               => 'Раскладка',                 // Added - 2009-02-08
+    'Left'                 => 'Лево',
     'Level'                => 'Уровень',                  // Added - 2011-06-16
     'Libvlc'               => 'Libvlc',
     'LimitResultsPost'     => 'результатами;', // This is used at the end of the phrase 'Limit to first N results only';
@@ -452,6 +460,7 @@ $SLANG = array(
     'Main'                 => 'Основные',
     'Man'                  => 'Человек',
     'Manual'               => 'Manual',
+    'Map'                  => 'Карта',
     'Mark'                 => 'Метка',
     'Max'                  => 'Макс.',
     'MaxBandwidth'         => 'Макс. пропускная способность', // Added - 2019-03-25
@@ -480,6 +489,7 @@ $SLANG = array(
     'MaximumFPS'           => 'Ограничение скорости записи (к/с)',
     'Medium'               => 'средний',
     'Medband'              => 'Обычный канал',
+    'Menu'                 => 'Меню',
     'Message'              => 'Сообщение',                // Added - 2011-06-16
     'MessageSavingDataWhenLeavingPage' => 'Вы покидаете страницу.<br>Хотите сохранить данные?',
     'MinAlarmAreaLtMax'    => 'Минимум зоны тревоги должен быть меньше максимума',
@@ -532,6 +542,8 @@ $SLANG = array(
     'More'                 => 'Еще',                   // Added - 2011-06-16
     'MotionFrameSkip'      => 'Кол-во пропуск. кадров движения',
     'Move'                 => 'Перемещение',
+    'MQTT Enabled'         => 'MQTT',
+    'MQTT Subscriptions'   => 'Подписки MQTT',
     'Mtg2widgrd'           => '2 в ряд',              // Added 2013.08.15.
     'Mtg3widgrd'           => '3 в ряд',              // Added 2013.08.15.
     'Mtg3widgrx'           => '3 в ряд, увеличиваются при тревоге',              // Added 2013.08.15.
@@ -543,6 +555,7 @@ $SLANG = array(
     'MustSupplyPassword'   => 'Вы должны ввести пароль',
     'MustSupplyUsername'   => 'Вы должны ввести имя пользователя',
     'Name'                 => 'Имя',
+    'Navbar Type'          => 'Тип меню навигации',
     'Near'                 => 'Рядом',
     'Network'              => 'Сеть',
     'Network Scan'         => 'Сканировать сеть',
@@ -632,6 +645,7 @@ $SLANG = array(
     'RecaptchaWarning'     => 'Ваш секретный ключ reCAPTCHA недействителен. Пожалуйста, исправьте это, или reCAPTCHA не будет работать', // Added - 2018-08-30
     'Record'               => 'Запись',
     'RecordAudio'          => 'Сохранять ли аудиопоток при сохранении события.', // Edited - 2019-03-25
+    'RecordingSource'      => 'Записываемый канал',
     'RefImageBlendPct'     => 'Смешение опорного кадра, %',
     'Refresh'              => 'Обновить',
     'Remote'               => 'Удаленный',
@@ -649,6 +663,7 @@ $SLANG = array(
     'ReplaySingle'         => 'Одно событие',
     'ReportEventAudit'     => 'Отчёт о событиях аудита',    // Edited - 2019-03-24
     'Reports'              => 'Отчеты',
+    'RequiresAudioMotionEnabled' => 'Требуется установка файла "audioMotion-analyzer.js"',
     'Reset'                => 'Сбросить',
     'ResetEventCounts'     => 'Обнулить счетчик событий',
     'Restart'              => 'Перезапустить',
@@ -658,6 +673,7 @@ $SLANG = array(
     'ReturnDelay'          => 'Задержка возврата',
     'ReturnLocation'       => 'Положение возврата',
     'Rewind'               => 'Назад',
+    'Roles'                => 'Роли',
     'RotateLeft'           => 'Повернуть влево',
     'RotateRight'          => 'Повернуть вправо',
     'RunLocalUpdate'       => 'Запустите zmupdate.pl для обновления', // Edited - 2019-03-24
@@ -682,6 +698,7 @@ $SLANG = array(
     'SetNewBandwidth'      => 'Установка новой ширина канала',
     'SetPreset'            => 'Установка пресета',  // Edited - 2019-03-24
     'Settings'             => 'Настройки',
+    'Show'                 => 'Показывать',
     'ShowFilterWindow'     => 'Показать окно фильтра',
     'ShowTimeline'         => 'Показать график',
     'SignalCheckColour'    => 'Цвет проверки сигнала',
@@ -703,6 +720,7 @@ $SLANG = array(
     'SpeedMedium'          => 'Средняя скорость',
     'SpeedTurbo'           => 'Максимальная скорость', // Edited - 2019-03-24
     'Start'                => 'Запустить',
+    'Startup Delay'        => 'Задержка перед стартом',
     'State'                => 'Состояние',
     'Stats'                => 'Статистика',
     'Status'               => 'Статус',
@@ -723,6 +741,7 @@ $SLANG = array(
     'StorageArea'          => 'Хранилище',           // Added - 2018-08-30
     'StorageScheme'        => 'Схема',                 // Added - 2018-08-30
     'Stream'               => 'Поток',
+    'Stream source'        => 'Источник потока',
     'StreamReplayBuffer'   => 'Буфер потока повторного воспр.',
     'Stream quality'       => 'Качество потока',
     'Submit'               => 'Применить',
@@ -774,6 +793,7 @@ $SLANG = array(
     'User'                 => 'Пользователь',
     'Username'             => 'Имя пользователя',
     'Users'                => 'Пользователи',
+    'use_Amcrest_API'      => 'Использовать Amcrest API',
     'V4L'                  => 'V4L',                    // Added - 2015-04-18
     'V4LCapturesPerFrame'  => 'Захват кадров',     // Added - 2015-04-18
     'V4LMultiBuffer'       => 'Мультибуферизация',        // Added - 2015-04-18
@@ -1155,6 +1175,36 @@ $OLANG = array(
       ~~ Отключение может помочь заставить работать ONVIF на некоторых китайских камерах, которые не полностью поддерживают ONVIF
       '
     ),
+   'OPTIONS_ONVIF_Alarm_Text' => array(
+    'Help' => '
+     Текст, связанный с событием при активации тревоги.~~
+     Некоторые стандартные значения:~~
+     - AnalyticsService~~
+     - ConfigurationChanged~~
+     - Crossed~~
+     - DetectedSound~~
+     - Face~~
+     - FireAlarm~~
+     - IPConflict~~
+     - Motion~~
+     - MotionAlarm (по умолчанию)~~
+     - ObjectsInside~~
+     - ProfileChanged~~
+     - SceneTemperature~~
+     - Tamper~~
+     Более подробно смотрите в инструкции к своей камере, а также в спецификации по ссылке:~~https://www.onvif.org/specs/core/ONVIF-Core-Specification.pdf
+    '
+   ),
+   'OPTIONS_WHATTODISPLAY' => array(
+    'Help' => '
+     На страницах живого просмотра, монтажа и просмотра события возможно отображение движения аудио.~~
+     Для этого необходимо установить файл "/skins/MySkin/assets/audioMotion-analyzer/src/audioMotion-analyzer.js".~~
+     Указанный файл можно скачать по ссылкам:~~
+     https://cdn.jsdelivr.net/npm/audiomotion-analyzer@4.5.4~~
+     https://github.com/hvianna/audioMotion-analyzer/releases~~
+     На данный момент поддердивается версия 4.5.4
+    '
+   ),
   'FUNCTION_ANALYSIS_ENABLED' => array(
     'Help' => '
       Когда следует выполнять обнаружение движения на захваченном видео.  

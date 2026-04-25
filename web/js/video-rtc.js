@@ -442,6 +442,12 @@ export class VideoRTC extends HTMLElement {
 
             this.mseCodecs = msg.value;
 
+            // MediaSource may no longer be 'open' if WebRTC already took over
+            // this.video.srcObject (see onpcvideo), which detaches the MSE.
+            // Calling addSourceBuffer on a non-open MediaSource throws
+            // InvalidStateError, so bail out — WebRTC is handling playback.
+            if (ms.readyState !== 'open') return;
+
             const sb = ms.addSourceBuffer(msg.value);
             sb.mode = 'segments'; // segments or sequence
             sb.addEventListener('updateend', () => {

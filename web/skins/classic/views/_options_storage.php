@@ -4,16 +4,13 @@
     <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
     <input type="hidden" name="action" value="delete"/>
     <input type="hidden" name="object" value="storage"/>
-    <div class="row">
-      <div class="col">
-        <div id="contentButtons">
-          <button type="button" id="NewStorageBtn" value="<?php echo translate('AddNewStorage') ?>" disabled="disabled"><?php echo translate('AddNewStorage') ?></button>
-          <button type="submit" class="btn-danger" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
-        </div>
+    <div class="col button-block">
+      <div id="contentButtons">
+        <button type="button" id="NewStorageBtn" value="<?php echo translate('AddNewStorage') ?>" disabled="disabled"><?php echo translate('AddNewStorage') ?></button>
+        <button type="submit" class="btn-danger" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
       </div>
-    </div> <!-- .row -->
+    </div>
     <div class="wrapper-scroll-table">
-      <div class="row">
         <div class="col overflow-auto">
           <table id="contentTable" class="table table-striped">
             <thead class="thead-highlight">
@@ -66,7 +63,6 @@
             </tbody>
           </table>
         </div><!-- .col -->
-      </div> <!-- .row -->
     </div> <!-- .wrapper-scroll-table -->
   </div> <!-- .options -->
 </form>

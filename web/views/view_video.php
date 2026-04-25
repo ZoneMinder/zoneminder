@@ -41,16 +41,32 @@ $Event = null;
 
 if ( ! empty($_REQUEST['eid']) ) {
   $Event = new ZM\Event($_REQUEST['eid']);
-  $path = (substr($Event->DefaultVideo(), 0, 1) == '/' ) ? $Event->DefaultVideo() : $Event->Path().'/'.$Event->DefaultVideo();
+  if (!empty($_REQUEST['file'])) {
+    $path = $Event->Path().'/'.basename($_REQUEST['file']);
+  } else {
+    $path = $Event->Path().'/'.$Event->DefaultVideo();
+  }
 } else if ( ! empty($_REQUEST['event_id']) ) {
   $Event = new ZM\Event($_REQUEST['event_id']);
   if (!empty($_REQUEST['file'])) {
-    $path = $Event->Path().'/'.preg_replace('/\//', '', $_REQUEST['file']);
+    $path = $Event->Path().'/'.basename($_REQUEST['file']);
   } else {
-    $path = (substr($Event->DefaultVideo(), 0, 1) == '/' ) ? $Event->DefaultVideo() : $Event->Path().'/'.$Event->DefaultVideo();
+    $path = $Event->Path().'/'.$Event->DefaultVideo();
   }
 } else {
   $errorText = 'No video path';
+}
+
+// If DefaultVideo is an m3u8 manifest and no explicit file was requested,
+// find the actual mp4 video file in the event directory.
+if ($Event && !$errorText && !@is_file($path)) {
+  $dir = $Event->Path();
+  // Look for the final renamed mp4 first, then incomplete
+  $candidates = glob($dir.'/'.$Event->Id().'-video.*.mp4');
+  if (!$candidates) $candidates = glob($dir.'/incomplete.*.mp4');
+  if ($candidates) {
+    $path = $candidates[0];
+  }
 }
 
 if ( $errorText ) {

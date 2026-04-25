@@ -18,6 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
+define("AUDIO_MOTION_ENABLED", file_exists("skins/$skin/assets/audioMotion-analyzer/src/audioMotion-analyzer.js"));
 
 function xhtmlHeaders($file, $title) {
   xhtmlHeadersStart($file, $title);
@@ -99,7 +100,7 @@ echo output_cache_busted_stylesheet_links(array(
   <?php #Chosen can't be cache-busted because it loads sprites by relative path ?>
   <link rel="stylesheet" href="skins/classic/js/chosen/chosen.min.css" type="text/css"/>
 <?php
-  echo output_link_if_exists(array('js/noUiSlider-15.8.1/dist/nouislider.min.css?'), false, $param = ['global', 'stylesheet', '  type="text/css"/']);
+  echo output_link_if_exists(array('js/noUiSlider-15.8.1/dist/nouislider.min.css'), true, $param = ['global', 'stylesheet', 'type="text/css"']);
   echo output_link_if_exists(array(
     'js/dateTimePicker/jquery-ui-timepicker-addon.css',
     'js/jquery-ui-1.13.2/jquery-ui.structure.min.css',
@@ -233,6 +234,7 @@ function buildMenuItem($viewItemName, $id, $itemName, $href, $icon, $classNameFo
 function getMenuItemFunctions() {
   return [
     'Console'          => 'getConsoleHTML',
+    'Watch'            => 'getCycleHTML',
     'Montage'          => 'getMontageHTML',
     'MontageReview'    => 'getMontageReviewHTML',
     'Events'           => 'getEventsHTML',
@@ -396,7 +398,7 @@ function getSidebarTopHTML() {
   $blockExtruder = '
 <div id="extruderLeft">
   <div id="contextExtruderLeft" class="text">
-    <! -- Pull-out panel FILLED VIA JS -->
+    <!-- Pull-out panel FILLED VIA JS -->
   </div>
 </div>
 ';
@@ -427,14 +429,16 @@ function getSidebarTopHTML() {
       <div class="sidebar-footer hidden-for-collapsed">
         <div class="footer-box">
           <div>
+            <ul class="account-info">
 ' . getAccountCircleHTML($skin, $user, $forLeftBar = true) . '
+            </ul>
           </div>
-          <div style="padding: 0 10px">
-            <span style="display: block; margin-bottom: 10px">
+          <div>
+            <div>
               <ul id="versionSidebar">
 ' . getZMVersionHTML() . '
               </ul>
-            </span>
+            </div>
             <ul id="statusSidebar">
 ' . getStatusBtnHTML(runtimeStatus($running)) . '
             </ul>
@@ -871,7 +875,7 @@ function getStorageHTML() {
 function getRamHTML() {
   $result = '';
   if ( !canView('System') ) return $result;
-  if (file_exists('/proc')) {
+  if (file_exists('/proc') && file_exists('/proc/meminfo')) {
     $contents = file_get_contents('/proc/meminfo');
     preg_match_all('/(\w+):\s+(\d+)\s/', $contents, $matches);
     $meminfo = array_combine($matches[1], array_map(function($v){return 1024*$v;}, $matches[2]));
@@ -1302,6 +1306,32 @@ function getFilterHTML($view, $forLeftBar = false, $customLabel = null) {
     );
   } else {
     $result .= '<li id="getFilterHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=filter">'.getNavbarIcon().htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
+  }
+
+  return $result;
+}
+
+// Returns the html representing the Cycle menu item (Watch view in cycle mode)
+function getCycleHTML($view, $forLeftBar = false, $customLabel = null) {
+  $result = '';
+  if ( !canView('Stream') ) return $result;
+  $label = $customLabel !== null ? $customLabel : 'Cycle';
+  $skipTranslate = $customLabel !== null;
+
+  $class = $view == 'cycle' ? ' selected' : '';
+  if ($forLeftBar) {
+    $result .= buildMenuItem(
+      $viewItemName = 'watch',
+      $id = 'getCycleHTML',
+      $itemName = $label,
+      $href = '?view=watch&amp;cycle=true',
+      $icon = 'repeat',
+      $classNameForTag_A = '',
+      $subMenu = '',
+      $skipTranslate
+    );
+  } else {
+    $result .= '<li id="getCycleHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=watch&amp;cycle=true">'.getNavbarIcon().htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
   }
 
   return $result;
@@ -1786,6 +1816,9 @@ function xhtmlFooter() {
   $skinJsFile = getSkinFile('js/skin.js');
 ?>
   <script nonce="<?php echo $cspNonce; ?>" src="<?php echo cache_bust($skinJsFile) ?>"></script>
+<?php if ( in_array( $basename, array( 'watch', 'montage', 'event' ) ) ) { ?>
+  <script nonce="<?php echo $cspNonce; ?>" type="module" src="skins/<?php echo $skin ?>/js/audioMotionAnalyzer.js"></script>
+<?php } ?>
   </body>
 </html>
 <?php

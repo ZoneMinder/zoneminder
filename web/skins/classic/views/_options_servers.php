@@ -1,19 +1,16 @@
 <form name="serversForm" method="post" action="?">
   <div id="options">
-    <div class="row">
-      <input type="hidden" name="view" value="<?php echo $view ?>"/>
-      <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
-      <input type="hidden" name="action" value="delete"/>
-      <input type="hidden" name="object" value="server"/>
-      <div class="col">
-        <div id="contentButtons">
-          <button type="button" id="NewServerBtn" value="<?php echo translate('AddNewServer') ?>" disabled="disabled"><?php echo translate('AddNewServer') ?></button>
-          <button type="submit" class="btn-danger" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
-        </div>
-      </div> <!-- .col -->
-    </div> <!-- .row -->
+    <input type="hidden" name="view" value="<?php echo $view ?>"/>
+    <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
+    <input type="hidden" name="action" value="delete"/>
+    <input type="hidden" name="object" value="server"/>
+    <div class="col button-block">
+      <div id="contentButtons">
+        <button type="button" id="NewServerBtn" value="<?php echo translate('AddNewServer') ?>" disabled="disabled"><?php echo translate('AddNewServer') ?></button>
+        <button type="submit" class="btn-danger" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
+      </div>
+    </div> <!-- .col -->
     <div class="wrapper-scroll-table">
-      <div class="row">
         <div class="col">
           <table id="contentTable" class="table table-striped"
               data-click-to-select="true"
@@ -81,7 +78,6 @@ foreach (ZM\Server::find() as $Server) {
            </tbody>
           </table>
         </div> <!-- .col -->
-      </div> <!-- .row -->
     </div> <!-- .wrapper-scroll-table -->
   </div> <!-- .options -->
 </form>

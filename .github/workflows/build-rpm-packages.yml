@@ -215,6 +215,7 @@ jobs:
         with:
           path: artifacts/rpm
           name: ${{ env.artifact_name }}
+          retention-days: 1
 
       - name: Publish to ZMREPO
         uses: easingthemes/ssh-deploy@main
@@ -238,6 +239,6 @@ jobs:
           path: dist
 
       - name: Create release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: dist/**/*

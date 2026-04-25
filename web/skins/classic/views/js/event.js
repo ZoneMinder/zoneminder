@@ -532,6 +532,8 @@ function streamPause() {
   setButtonState('slowFwdBtn', 'inactive');
   setButtonState('slowRevBtn', 'inactive');
   setButtonState('fastRevBtn', 'unavail');
+  const audioMotion = document.querySelector('audio-motion#audioVisualization' + eventData.MonitorId);
+  if (audioMotion && audioMotion.pause) audioMotion.pause();
 }
 
 function playClicked( ) {
@@ -1002,6 +1004,12 @@ function updateProgressBar() {
   if (!eventData) return;
   if (vid) {
     var currentTime = vid.currentTime();
+    // For live HLS, the video duration grows as new fragments arrive.
+    // Keep eventData.Length in sync so the progress bar scales correctly.
+    var videoDuration = vid.duration();
+    if (videoDuration && isFinite(videoDuration) && videoDuration > parseFloat(eventData.Length)) {
+      eventData.Length = videoDuration;
+    }
     var progressDate = new Date(eventData.StartDateTime);
     progressDate.setTime(progressDate.getTime() + (currentTime * 1000));
   } else {
@@ -1376,7 +1384,10 @@ function initPage() {
     addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartDateTime);
     //$j('.vjs-progress-control').append('<div id="alarmCues" class="alarmCues"></div>');//add a place for videojs only on first load
     vid.on('ended', vjsReplay);
-    vid.on('play', streamPlay);
+    vid.on('play', function(event) {
+      streamPlay();
+      connectAudioMotion(eventData.MonitorId);
+    });
     vid.on('pause', streamPause);
     vid.on('click', function(event) {
       handleClick(event);
@@ -1728,7 +1739,10 @@ function initPage() {
         //const id = stringToNumber(this.id); //Montage & Watch page
         const id = eventData.MonitorId; // Event page
         //$j('#button_zoom' + id).stop(true, true).slideDown('fast');
-        $j('#button_zoom' + id).removeClass('hidden');
+        const _imageFeed = document.getElementById('videoFeedStream'+id);
+        if (!_imageFeed || (_imageFeed && _imageFeed.getAttribute('data-not-display-video') !== 'true')) {
+          $j('#button_zoom' + id).removeClass('hidden');
+        }
       },
       function() {
         //const id = stringToNumber(this.id); //Montage & Watch page
@@ -1934,6 +1948,11 @@ function panZoomIn(el) {
 
 function panZoomOut(el) {
   zmPanZoom.zoomOut(el);
+}
+
+function changeWhatDisplay() {
+  setCookie('zmWhatDisplay', $j('#whatDisplay').val());
+  location.reload();
 }
 
 // Kick everything off

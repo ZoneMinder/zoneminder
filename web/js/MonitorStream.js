@@ -45,6 +45,7 @@ function MonitorStream(monitorData) {
   this.server_id = monitorData.server_id;
   this.scale = monitorData.scale ? parseInt(monitorData.scale) : 100;
   this.status = {capturefps: 0, analysisfps: 0}; // json object with alarmstatus, fps etc
+  this.whatDisplay = monitorData.whatDisplay;
   this.lastAlarmState = STATE_IDLE;
   this.statusCmdTimer = null; // timer for requests using ajax to get monitor status
   this.statusCmdParms = {
@@ -188,7 +189,7 @@ function MonitorStream(monitorData) {
   this.show = function() {
     const stream = this.getElement();
     if (!stream.src) {
-      stream.src = this.url_to_zms+"&mode=single&scale="+this.scale+"&connkey="+this.connKey+'&'+auth_relay;
+      stream.src = this.url_to_zms+"&mode=single&scale="+this.scale+"&connkey="+this.connKey+(auth_relay?'&'+auth_relay:'');
     }
   };
 
@@ -430,7 +431,8 @@ function MonitorStream(monitorData) {
 
     //console.log('start go2rtcenabled:', this.Go2RTCEnabled, 'this.player:', this.player, 'muted', this.muted);
 
-    $j('#volumeControls'+this.id).hide();
+    //$j('#volumeControls'+this.id).hide();
+    $j('#volumeControls'+this.id).addClass('disabled');
     $j('#delay'+this.id).addClass('hidden');
 
     if (this.Go2RTCEnabled && ((!this.player) || (-1 !== this.player.indexOf('go2rtc')))) {
@@ -605,9 +607,9 @@ function MonitorStream(monitorData) {
       this.streamCommand(CMD_PLAY);
     } else {
       let src = this.url_to_zms.replace(/mode=single/i, 'mode=jpeg');
-      if (-1 == src.search('auth')) {
+      if (-1 == src.search('auth') && auth_relay) {
         src += '&'+auth_relay;
-      } else {
+      } else if (-1 != src.search('auth')) {
         src = src.replace(/auth=\w+/i, 'auth='+auth_hash);
       }
       if (-1 == src.search('connkey')) {
@@ -640,6 +642,7 @@ function MonitorStream(monitorData) {
     this.handlerEventListener['killStream'] = this.streamListenerBind();
     this.activePlayer = 'zms';
     this.updateStreamInfo('ZMS MJPEG');
+    hideAudioMotion(this.id);
   }; // this.start
 
   this.setSrcInfoBlock = function() {
@@ -647,9 +650,9 @@ function MonitorStream(monitorData) {
     if (!imgInfoBlock) return null;
 
     let src = this.url_to_zms.replace(/mode=jpeg/i, 'mode=single');
-    if (-1 == src.search('auth')) {
+    if (-1 == src.search('auth') && auth_relay) {
       src += '&'+auth_relay;
-    } else {
+    } else if (-1 != src.search('auth')) {
       src = src.replace(/auth=\w+/i, 'auth='+auth_hash);
     }
     if (-1 == src.search('scale=')) {
@@ -728,7 +731,12 @@ function MonitorStream(monitorData) {
       infoBlock.style.left = '50%';
       infoBlock.style.transform = 'translate(-50%, -50%)';
       infoBlock.style.pointerEvents = 'none';
-      this.getElement().parentNode.appendChild(infoBlock);
+      let node = null;
+      const _imageFeed = document.getElementById('imageFeed'+this.id);
+      if (_imageFeed) {
+        node = (_imageFeed.getAttribute('data-not-display-video') === 'true') ? document.getElementById("audioVisualization" + this.id) : _imageFeed;
+      }
+      if (node) node.appendChild(infoBlock);
       currentInfoBlock = infoBlock;
     }
     return currentInfoBlock;
@@ -803,6 +811,7 @@ function MonitorStream(monitorData) {
     } else {
       console.log("Unknown activePlayer", this.activePlayer);
     }
+    if (this.audioMotion && this.audioMotion.stop) this.audioMotion.stop();
     this.activePlayer = '';
     this.started = false;
   };
@@ -941,6 +950,7 @@ function MonitorStream(monitorData) {
       }
       this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
     }
+    if (this.audioMotion && this.audioMotion.init) this.audioMotion.init();
   };
 
   this.eventHandler = function(event) {
@@ -994,20 +1004,16 @@ function MonitorStream(monitorData) {
     this.onplay = func;
   };
 
-
   this.getVolumeControls = function() {
-    // On Watch page slider has no ID, on Montage page it has ID
-    return (document.getElementById('volumeControls')) ? document.getElementById('volumeControls') : document.getElementById('volumeControls'+this.id);
+    return getVolumeControls(this.id);
   };
 
   this.getVolumeSlider = function() {
-    // On Watch page slider has no ID, on Montage page it has ID
-    return (document.getElementById('volumeSlider')) ? document.getElementById('volumeSlider') : document.getElementById('volumeSlider'+this.id);
+    return getVolumeSlider(this.id);
   };
 
   this.getIconMute = function() {
-    // On Watch page icon has no ID, on Montage page it has ID
-    return (document.getElementById('controlMute')) ? document.getElementById('controlMute') : document.getElementById('controlMute'+this.id);
+    return getIconMute(this.id);
   };
 
   this.getAVStream = function() {
@@ -1051,8 +1057,9 @@ function MonitorStream(monitorData) {
     const volumeSlider = this.getVolumeSlider();
     const audioStream = this.getAVStream();
     if (!volumeSlider || !audioStream) return;
-    const iconMute = this.getIconMute();
-    $j('#volumeControls'+this.id).show();
+
+    //$j('#volumeControls'+this.id).show();
+    $j('#volumeControls'+this.id).removeClass('disabled');
     if (!this.handlerEventListener['volumechange']) {
       this.handlerEventListener['volumechange'] = manageEventListener.addEventListener(audioStream, 'volumechange',
           (event) => {
@@ -1061,155 +1068,56 @@ function MonitorStream(monitorData) {
       );
     }
     if (volumeSlider.noUiSlider) return;
-    const defaultVolume = (volumeSlider.getAttribute("data-volume") || 50);
 
-    noUiSlider.create(volumeSlider, {
-      start: [(defaultVolume) ? defaultVolume : audioStream.volume * 100],
-      step: 1,
-      //behaviour: 'unconstrained',
-      behaviour: 'tap',
-      connect: [true, false],
-      range: {
-        'min': 0,
-        'max': 100
-      },
-      /*tooltips: [
-        //true,
-        { to: function(value) { return value.toFixed(0) + '%'; } }
-      ],*/
-    });
-    volumeSlider.allowSetValue = true;
-    volumeSlider.noUiSlider.on('update', function onUpdateUiSlider(values, handle) {
-      audioStream.volume = values[0]/100;
-      if (values[0] > 0 && !audioStream.muted) {
-        iconMute.innerHTML = 'volume_up';
-        volumeSlider.classList.remove('noUi-mute');
-      } else {
-        iconMute.innerHTML = 'volume_off';
-        volumeSlider.classList.add('noUi-mute');
-      }
-      //console.log("Audio volume slider event: 'update'");
-    });
-    volumeSlider.noUiSlider.on('end', function onEndUiSlider(values, handle) {
-      volumeSlider.allowSetValue = true;
-      //console.log("Audio volume slider event: 'end'");
-    });
-    volumeSlider.noUiSlider.on('start', function onStartUiSlider(values, handle) {
-      volumeSlider.allowSetValue = false; // Let's prohibit changing the Value using the "Set" method, otherwise there will be lags and collapse when directly moving the slider with the mouse...
-      //console.log("Audio volume slider event: 'start'");
-    });
-    volumeSlider.noUiSlider.on('set', function onSetUiSlider(values, handle) {
-      //console.log("Audio volume slider event: 'set'");
-    });
-    volumeSlider.noUiSlider.on('slide', function onSlideUiSlider(values, handle) {
-      if (audioStream.volume > 0 && audioStream.muted) {
-        iconMute.innerHTML = 'volume_up';
-        audioStream.muted = false;
-      }
-      //console.log("Audio volume slider event: 'slide'");
-    });
+    createVolumeSlider(volumeSlider, audioStream);
 
-    if (volumeSlider.getAttribute("data-muted") !== "true") {
-      this.controlMute('off');
-    } else {
-      this.controlMute('on');
-    }
+    //if (volumeSlider.getAttribute("data-muted") !== "true") {
+    //  this.controlMute('off');
+    //} else {
+    //  this.controlMute('on');
+    //}
   };
 
   this.destroyVolumeSlider = function() {
-    $j('#volumeControls'+this.id).hide();
+    //$j('#volumeControls'+this.id).hide();
+    $j('#volumeControls'+this.id).addClass('disabled');
     const volumeSlider = this.getVolumeSlider();
+    destroyVolumeSlider(volumeSlider);
     //const iconMute = this.getIconMute();
     //if (iconMute) iconMute.innerText = "";
-    if (volumeSlider && volumeSlider.noUiSlider) {
-      volumeSlider.noUiSlider.destroy();
-      volumeSlider.noUiSlider = null;
-    }
   };
 
   /*
   * volume: on || off
   */
   this.changeStateIconMute = function(volume) {
-    const volumeControls = this.getVolumeControls();
-    const disabled = (volumeControls) ? volumeControls.classList.contains('disabled') : false;
-    const iconMute = this.getIconMute();
-    if (!disabled && iconMute) {
-      iconMute.innerHTML = (volume == 'on')? 'volume_up' : 'volume_off';
-    }
-    return iconMute;
+    return changeStateIconMute(this.id, volume);
   };
 
   /*
   * volume: on || off
   */
   this.changeVolumeSlider = function(volume) {
-    const volumeControls = this.getVolumeControls();
-    //const controlMute = document.querySelector('[id ^= "controlMute'+this.id+'"]');
-    const volumeSlider = this.getVolumeSlider();
-
-    if (volumeSlider) {
-      let disabled = false;
-      if (volumeControls) {
-        disabled = volumeControls.classList.contains('disabled');
-      }
-      if (volume == 'on') {
-        volumeSlider.classList.remove('noUi-mute');
-      } else if (volume == 'off') {
-        volumeSlider.classList.add('noUi-mute');
-      }
-      if (volumeSlider.noUiSlider) {
-        (disabled) ? volumeSlider.noUiSlider.disable() : volumeSlider.noUiSlider.enable();
-      }
-    }
-    return volumeSlider;
+    return changeVolumeSlider(this.id, volume);
   };
 
   /*
   * mode: switch, on, off
   */
   this.controlMute = function(mode = 'switch') {
-    let volumeSlider = this.getVolumeSlider();
     const audioStream = this.getAVStream();
-    const volumeControls = this.getVolumeControls();
-    const disabled = (volumeControls) ? volumeControls.classList.contains('disabled') : false;
-
-    if (volumeSlider && volumeSlider.noUiSlider) {
-      (disabled) ? volumeSlider.noUiSlider.disable() : volumeSlider.noUiSlider.enable();
-    }
-
-    if (disabled) {
-      console.log(`Volume control is disabled in controlMute for monitor ID=${this.id}`);
-      return;
-    }
-    if (!audioStream) {
-      console.log(`No audiostream! in controlMute for monitor ID=${this.id}`);
-      return;
-    }
-
-    if (mode=='switch') {
-      if (audioStream.muted) {
-        audioStream.muted = this.muted = false;
-        this.changeStateIconMute('on');
-        volumeSlider = this.changeVolumeSlider('on');
-        if (volumeSlider && volumeSlider.noUiSlider) {
-          audioStream.volume = volumeSlider.noUiSlider.get() / 100;
+    controlMute(this.id, mode);
+    if (audioStream) {
+      if (mode=='switch') {
+        if (audioStream.muted) {
+          this.muted = false;
+        } else {
+          this.muted = true;
         }
-      } else {
-        audioStream.muted = this.muted = true;
-        this.changeStateIconMute('off');
-        this.changeVolumeSlider('off');
-      }
-    } else if (mode=='on') {
-      audioStream.muted = this.muted = true;
-      this.changeStateIconMute('off');
-      this.changeVolumeSlider('off');
-    } else if (mode=='off') {
-      audioStream.muted = this.muted = false;
-      this.changeStateIconMute('on');
-      volumeSlider = this.changeVolumeSlider('on');
-      if (volumeSlider && volumeSlider.noUiSlider) {
-        audioStream.volume = volumeSlider.noUiSlider.get() / 100;
+      } else if (mode=='on') {
+        this.muted = true;
+      } else if (mode=='off') {
+        this.muted = false;
       }
     }
   };
@@ -1601,7 +1509,7 @@ function MonitorStream(monitorData) {
   }; // this.getStatusCmdResponse
 
   this.statusCmdQuery = function() {
-    $j.getJSON(this.url + '?view=request&request=status&entity=monitor&element[]=Status&element[]=CaptureFPS&element[]=AnalysisFPS&element[]=Analysing&element[]=Recording&id='+this.id+'&'+auth_relay)
+    $j.getJSON(this.url + '?view=request&request=status&entity=monitor&element[]=Status&element[]=CaptureFPS&element[]=AnalysisFPS&element[]=Analysing&element[]=Recording&id='+this.id+(auth_relay?'&'+auth_relay:''))
         .done(this.getStatusCmdResponse.bind(this))
         .fail(logAjaxFail);
 

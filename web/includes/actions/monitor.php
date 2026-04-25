@@ -58,8 +58,10 @@ if ($action == 'save') {
   # For convenience
   $newMonitor = $_REQUEST['newMonitor'];
 
-  # Validate Device path to prevent command injection (CVE-worthy)
-  if (!empty($newMonitor['Device'])) {
+  # Validate Device path to prevent command injection (CVE-worthy).
+  # Only Local monitors pass Device to a shell; for other Types the field
+  # is unused and may legitimately hold legacy values (e.g. an RTSP URL).
+  if (!empty($newMonitor['Device']) and isset($newMonitor['Type']) and $newMonitor['Type'] == 'Local') {
     $newMonitor['Device'] = validDevicePath($newMonitor['Device']);
     if ($newMonitor['Device'] === '') {
       $error_message .= 'Invalid device path. Must be a valid /dev/ path (e.g. /dev/video0).</br>';

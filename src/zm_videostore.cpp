@@ -57,6 +57,7 @@ VideoStore::VideoStore(
   audio_out_ctx(nullptr),
   packets_written(0),
   frame_count(0),
+  video_encoded(false),
   hw_device_ctx(nullptr),
   resample_ctx(nullptr),
   fifo(nullptr),
@@ -72,7 +73,10 @@ VideoStore::VideoStore(
   next_dts(nullptr),
   audio_next_pts(0),
   max_stream_index(-1),
-  reorder_queue_size(0) {
+  reorder_queue_size(0),
+  last_fragment_offset_(0),
+  last_fragment_start_dts_(AV_NOPTS_VALUE),
+  init_segment_end_(0) {
   FFMPEGInit();
   swscale.init();
   opkt = av_packet_ptr{av_packet_alloc()};
@@ -239,12 +243,21 @@ bool VideoStore::open() {
           if ((ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0) {
             Warning("Can't open video codec (%s) %s", video_out_codec->name, av_make_error_string(ret).c_str());
             video_out_codec = nullptr;
+            avcodec_free_context(&video_out_ctx);
           }
         }  // end if video_out_codec
 
-        ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
-        if (ret < 0) {
-          Error("Could not initialize stream parameters");
+        if (video_out_ctx) {
+          ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
+          if (ret < 0) {
+            Error("Could not initialize stream parameters");
+          }
+          // Free the codec context now — it was only opened to generate new
+          // extradata for the stream parameters and is not used for encoding
+          // in PASSTHROUGH mode.  Leaving it alive causes flush_codecs() to
+          // attempt flushing a codec that never received any frames, which
+          // crashes in avcodec_send_frame with newer FFmpeg.
+          avcodec_free_context(&video_out_ctx);
         }
         av_dict_free(&opts);
         // Reload it for next attempt and/or avformat open
@@ -345,6 +358,11 @@ bool VideoStore::open() {
         }
         if (setup_hwaccel(video_out_ctx,
               chosen_codec_data, hw_device_ctx, monitor->EncoderHWAccelDevice(), monitor->Width(), monitor->Height())) {
+          avcodec_free_context(&video_out_ctx);
+          av_dict_free(&opts);
+          if (hw_device_ctx) {
+            av_buffer_unref(&hw_device_ctx);
+          }
           continue;
         }
 
@@ -515,9 +533,8 @@ bool VideoStore::open() {
 
   const AVDictionaryEntry *movflags_entry = av_dict_get(opts, "movflags", nullptr, AV_DICT_MATCH_CASE);
   if (!movflags_entry) {
-    Debug(1, "setting movflags to frag_keyframe+empty_moov+faststart");
-    // Shiboleth reports that this may break seeking in mp4 before it downloads
-    av_dict_set(&opts, "movflags", "frag_keyframe+empty_moov+faststart", 0);
+    Debug(1, "setting movflags to frag_keyframe+empty_moov+default_base_moof");
+    av_dict_set(&opts, "movflags", "frag_keyframe+empty_moov+default_base_moof", 0);
   } else {
     Debug(1, "using movflags %s", movflags_entry->value);
   }
@@ -552,6 +569,13 @@ bool VideoStore::open() {
 
   zm_dump_stream_format(oc, 0, 0, 1);
   if (audio_out_stream) zm_dump_stream_format(oc, 1, 0, 1);
+
+  // Record where the init segment ends (after ftyp+moov written by header)
+  if (oc->pb) {
+    init_segment_end_ = avio_tell(oc->pb);
+    last_fragment_offset_ = init_segment_end_;
+    Debug(1, "Init segment ends at byte %" PRId64, init_segment_end_);
+  }
   return true;
 } // end bool VideoStore::open()
 
@@ -566,7 +590,9 @@ void VideoStore::flush_codecs() {
   }
 
   // I got crashes if the codec didn't do DELAY, so let's test for it.
-  if (video_out_ctx && video_out_ctx->codec && (video_out_ctx->codec->capabilities & AV_CODEC_CAP_DELAY)) {
+  // Also skip if no frames were ever sent — some encoders crash on flush
+  // when their internal state was never initialized by a real frame.
+  if (video_out_ctx && video_encoded && video_out_ctx->codec && (video_out_ctx->codec->capabilities & AV_CODEC_CAP_DELAY)) {
     // First drain any pending packets before entering flush mode
     // This prevents hangs when the encoder's internal buffer is full
     Debug(1, "Draining pending packets before flush");
@@ -1297,6 +1323,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
           Debug(3, "Got EAGAIN");
         }
       } else {
+        video_encoded = true;
         break;
       }
     } while (!zm_terminate);
@@ -1524,11 +1551,113 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
   Debug(3, "next_dts for stream %d has become %" PRId64 " last_dts %" PRId64,
         stream->index, next_dts[stream->index], last_dts[stream->index]);
 
+  // HLS fragment tracking: with frag_keyframe movflag, FFmpeg creates a new
+  // moof+mdat at each video keyframe. We record the byte range of each fragment
+  // by checking the file position before and after the write call.
+  //
+  // Strategy: before writing a video keyframe, snapshot the file position.
+  // This marks the end of the previous fragment. We record that fragment and
+  // start tracking the new one.
+  bool is_video_keyframe = (stream == video_out_stream) && (pkt->flags & AV_PKT_FLAG_KEY);
+
+  if (is_video_keyframe && oc && oc->pb) {
+    // Force flush any buffered data so the file position reflects all previous writes
+    avio_flush(oc->pb);
+    int64_t pos_now = avio_tell(oc->pb);
+
+    if (last_fragment_start_dts_ != AV_NOPTS_VALUE && pos_now > last_fragment_offset_) {
+      // Record the completed fragment
+      int64_t frag_size = pos_now - last_fragment_offset_;
+      double duration = 0;
+      if (video_out_stream->time_base.den > 0) {
+        duration = static_cast<double>(pkt->dts - last_fragment_start_dts_)
+                   * video_out_stream->time_base.num
+                   / video_out_stream->time_base.den;
+      }
+      if (duration > 0 && frag_size > 0) {
+        fragments_.push_back({last_fragment_offset_, frag_size, duration});
+        Debug(1, "HLS fragment %zu: offset=%" PRId64 " size=%" PRId64 " duration=%.3f",
+              fragments_.size() - 1, last_fragment_offset_, frag_size, duration);
+      }
+    }
+    // New fragment starts here
+    last_fragment_offset_ = pos_now;
+    last_fragment_start_dts_ = pkt->dts;
+  }
+
+  // Initialize tracking after init segment is written
+  if (last_fragment_start_dts_ == AV_NOPTS_VALUE && is_video_keyframe) {
+    if (oc && oc->pb) {
+      last_fragment_offset_ = avio_tell(oc->pb);
+    }
+    last_fragment_start_dts_ = pkt->dts;
+  }
+
   int ret = av_interleaved_write_frame(oc, pkt);
   if (ret != 0) {
     Error("Error writing packet: %s", av_make_error_string(ret).c_str());
   } else {
     Debug(4, "Success writing packet");
   }
+
   return ret;
 }  // end int VideoStore::write_packet(AVPacket *pkt, AVStream *stream)
+
+void VideoStore::writeM3U8(const std::string &m3u8_path, const std::string &video_url, bool is_complete) {
+  // Finalize last fragment if there's data after the last recorded fragment
+  if (oc && oc->pb) {
+    int64_t file_end = avio_tell(oc->pb);
+    if (file_end > last_fragment_offset_ && last_fragment_start_dts_ != AV_NOPTS_VALUE) {
+      int64_t frag_size = file_end - last_fragment_offset_;
+      // Estimate duration from last known DTS
+      double duration = 0;
+      if (video_out_stream && video_out_stream->time_base.den > 0 &&
+          last_dts.count(video_out_stream->index) && last_dts[video_out_stream->index] != AV_NOPTS_VALUE) {
+        duration = static_cast<double>(last_dts[video_out_stream->index] + last_duration[video_out_stream->index] - last_fragment_start_dts_)
+                   * video_out_stream->time_base.num
+                   / video_out_stream->time_base.den;
+      }
+      if (duration > 0 && frag_size > 0) {
+        fragments_.push_back({last_fragment_offset_, frag_size, duration});
+      }
+    }
+  }
+
+  if (fragments_.empty()) return;
+
+  // Calculate max duration for EXT-X-TARGETDURATION (must be integer, rounded up)
+  double max_duration = 0;
+  for (const auto &frag : fragments_) {
+    if (frag.duration > max_duration) max_duration = frag.duration;
+  }
+  int target_duration = static_cast<int>(ceil(max_duration));
+  if (target_duration < 1) target_duration = 1;
+
+  FILE *fp = fopen(m3u8_path.c_str(), "w");
+  if (!fp) {
+    Error("Failed to open %s for writing: %s", m3u8_path.c_str(), strerror(errno));
+    return;
+  }
+
+  fprintf(fp, "#EXTM3U\n");
+  fprintf(fp, "#EXT-X-VERSION:7\n");
+  fprintf(fp, "#EXT-X-TARGETDURATION:%d\n", target_duration);
+  fprintf(fp, "#EXT-X-MEDIA-SEQUENCE:0\n");
+  fprintf(fp, "#EXT-X-PLAYLIST-TYPE:%s\n", is_complete ? "VOD" : "EVENT");
+  fprintf(fp, "#EXT-X-MAP:URI=\"%s\",BYTERANGE=\"%" PRId64 "@0\"\n",
+          video_url.c_str(), init_segment_end_);
+
+  for (const auto &frag : fragments_) {
+    fprintf(fp, "#EXTINF:%.3f,\n", frag.duration);
+    fprintf(fp, "#EXT-X-BYTERANGE:%" PRId64 "@%" PRId64 "\n", frag.size, frag.offset);
+    fprintf(fp, "%s\n", video_url.c_str());
+  }
+
+  if (is_complete) {
+    fprintf(fp, "#EXT-X-ENDLIST\n");
+  }
+
+  fclose(fp);
+  Debug(1, "Wrote m3u8 %s with %zu fragments (complete=%d)",
+        m3u8_path.c_str(), fragments_.size(), is_complete);
+}

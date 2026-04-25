@@ -54,6 +54,7 @@ input.large {
   overflow-y: hidden;
   padding-top: 15px;
   display: flex;
+  width: 100%;
 }
 
 #options {
@@ -62,7 +63,10 @@ input.large {
 }
 
 body.sticky #options {
-  height: calc(100% - 50px); /* It's bad, but it's temporary */
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  /*height: calc(100% - 50px);*/ /* It's bad, but it's temporary */
   overflow-x: hidden;
   overflow-y: auto;
 }
@@ -118,9 +122,13 @@ input[name="newStorage[Url]"] {
 }
 
 #options .form-group {
-  margin-bottom: 20px;
-  margin-right: 5px;
+  margin: 0 5px 20px 5px;
   border-bottom: 1px solid #e7e7e7;
+  padding-bottom: 0.75rem;
+}
+
+#options .form-group span.form-text {
+  margin-top: 0.5rem;
 }
 #options .col-md {
   text-align: left;
@@ -136,27 +144,32 @@ form {
 
 @media screen and (max-width:767px) {
   #options label,
- label.col-form-label {
+  label.col-form-label {
     text-align: left;
+    padding-bottom: 5px;
   }
+}
+
+div.dnsmasq {
+  width: 100%;
 }
 
 div.dnsmasq,
 .dnsmasq .config {
-text-align: left;
+  text-align: left;
 }
 .dnsmasq .container {
-margin-left: 0;
+  margin-left: 0;
 }
 .dnsmasq .config .row > label {
-width: 150px;
-text-align: right;
+  width: 150px;
+  text-align: right;
 }
 .dnsmasq .config .row {
-min-height:36px;
-text-align: left;
-display: flex;
-align-content: space-around;
+  min-height:36px;
+  text-align: left;
+  display: flex;
+  align-content: space-around;
 }
 #leasesTable td,
 #leasesTable th {
@@ -176,13 +189,8 @@ textarea.form-control-sm {
 }
 
 body.sticky .wrapper-scroll-table {
-  position: absolute;
-  margin-right: calc(var(--indent-bootstrap-row) * -1);
-  margin-left: calc(var(--indent-bootstrap-row) * -1);
-  padding-right: var(--indent-bootstrap-row);
-  padding-left: var(--indent-bootstrap-row);
   width: 100%;
-  height: calc(100% - var(--height-block-before-table));
+  height: auto;
   overflow-x: hidden; 
   overflow-y: auto; 
 }
@@ -197,7 +205,7 @@ body.sticky .fixed-table-container {
 }
 
 body.sticky #controlTable thead {
-    position: sticky;
-    top: 0;
-    box-shadow: 0 0px 0, 0 -3px 0 #dfe4ea;
+  position: sticky;
+  top: 0;
+  box-shadow: 0 0px 0, 0 -3px 0 #dfe4ea;
 }

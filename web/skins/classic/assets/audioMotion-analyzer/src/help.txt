@@ -1,0 +1,6 @@
+Audio motion visualization can be displayed on the Montage, Watch, and Event pages.
+To do this, install the file "/skins/MySkin/assets/audioMotion-analyzer/src/audioMotion-analyzer.js".
+This file can be downloaded from the following links:
+https://cdn.jsdelivr.net/npm/audiomotion-analyzer@4.5.4
+https://github.com/hvianna/audioMotion-analyzer/releases
+Currently, version 4.5.4 is supported.

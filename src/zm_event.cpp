@@ -140,7 +140,7 @@ Event::Event(
                       state_id,
                       monitor->getOrientation(),
                       0,
-                      video_incomplete_file.c_str(),
+                      (monitor->GetOptVideoWriter() != 0) ? "index.m3u8" : video_incomplete_file.c_str(),
                       save_jpegs,
                       storage->SchemeString().c_str(),
                       monitor->Latitude(),
@@ -202,14 +202,42 @@ Event::~Event() {
   /* Close the video file */
   // We close the videowriter first, because if we finish the event, we might try to view the file, but we aren't done writing it yet.
   if (videoStore != nullptr) {
+    // Finalize last fragment before closing the video store
+    std::string m3u8_path = path + "/index.m3u8";
+    // Write temporary m3u8 with incomplete filename (writeM3U8 finalizes last fragment)
+    std::string video_url_tmp = "index.php?view=view_video&eid=" + std::to_string(id)
+      + "&file=" + video_incomplete_file;
+    videoStore->writeM3U8(m3u8_path, video_url_tmp, true);
+
     Debug(1, "~Event %" PRIu64 ": deleting video store", id);
     delete videoStore;
     videoStore = nullptr;
     int result = rename(video_incomplete_path.c_str(), video_path.c_str());
     if (result != 0) {
       Error("Failed renaming %s to %s, reason: %s", video_incomplete_path.c_str(), video_path.c_str(), strerror(errno));
-      // So that we don't update the event record
       video_file = video_incomplete_file;
+    }
+    // Rewrite final VOD m3u8 with the renamed video filename
+    // Read the m3u8 and replace the incomplete filename with the final one
+    {
+      FILE *fp = fopen(m3u8_path.c_str(), "r");
+      if (fp) {
+        std::string content;
+        char buf[4096];
+        while (fgets(buf, sizeof(buf), fp)) content += buf;
+        fclose(fp);
+
+        // Replace incomplete filename with final filename in URLs
+        size_t pos;
+        while ((pos = content.find(video_incomplete_file)) != std::string::npos) {
+          content.replace(pos, video_incomplete_file.size(), video_file);
+        }
+        fp = fopen(m3u8_path.c_str(), "w");
+        if (fp) {
+          fputs(content.c_str(), fp);
+          fclose(fp);
+        }
+      }
     }
   }
 
@@ -370,7 +398,15 @@ void Event::AddPacket_(const std::shared_ptr<ZMPacket>packet) {
 
   if (videoStore) {
     if (have_video_keyframe) {
+      size_t frags_before = videoStore->fragments().size();
       videoStore->writePacket(packet);
+      // Update m3u8 whenever a new fragment is completed (live HLS)
+      if (videoStore->fragments().size() > frags_before) {
+        std::string m3u8_path = path + "/index.m3u8";
+        std::string video_url = "index.php?view=view_video&eid=" + std::to_string(id)
+          + "&file=" + video_incomplete_file;
+        videoStore->writeM3U8(m3u8_path, video_url, false);
+      }
     } else {
       Debug(2, "No video keyframe yet, not writing");
     }
@@ -768,6 +804,14 @@ void Event::Run() {
       video_file = stringtf("%" PRIu64 "-%s.%s.%s", id, "video", codec.c_str(), container.c_str());
       video_path = path + "/" + video_file;
       Debug(1, "Video file is %s", video_file.c_str());
+
+      // Rename incomplete file to include codec so canPlayCodec() works during recording
+      std::string new_incomplete = stringtf("incomplete.%s.%s", codec.c_str(), container.c_str());
+      std::string new_incomplete_path = path + "/" + new_incomplete;
+      if (rename(video_incomplete_path.c_str(), new_incomplete_path.c_str()) == 0) {
+        video_incomplete_file = new_incomplete;
+        video_incomplete_path = new_incomplete_path;
+      }
     }
   }  // end if GetOptVideoWriter
 

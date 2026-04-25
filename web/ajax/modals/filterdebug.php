@@ -40,6 +40,7 @@
   $sql .= $filter->sql();
   $sql .= $filter->sort_field() ? ' ORDER BY '.$filter->sort_field(). ' ' .($filter->sort_asc() ? 'ASC' : 'DESC') : '';
   $sql .= $filter->limit() ? ' LIMIT '.$filter->limit() : '';
+  $explain_sql = $sql;
   $sql .= $filter->skip_locked() ? ' SKIP LOCKED' : '';
 
 
@@ -66,7 +67,7 @@
   </thead>
   <tbody>
 ';
-  $result = dbFetchAll('EXPLAIN '.$sql);
+  $result = dbFetchAll('EXPLAIN '.$explain_sql);
   foreach ($result as $row) {
     echo '<tr>'.PHP_EOL.
   '<td>'.$row['select_type'].'</td>'.

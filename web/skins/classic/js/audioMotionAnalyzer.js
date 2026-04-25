@@ -1,7 +1,24 @@
 /*
-* https://audiomotion.dev/#/
+* Support https://audiomotion.dev/#/
+* IgorA100 2026
 */
-import {AudioMotionAnalyzer} from '../assets/audioMotion-analyzer/src/audioMotion-analyzer.js';
+
+var AudioMotionAnalyzer = null;
+
+function checkAudioMotionEnabled() {
+  return (typeof AUDIO_MOTION_ENABLED !== 'undefined' && AUDIO_MOTION_ENABLED === 'true');
+}
+
+if (checkAudioMotionEnabled()) {
+  import('../assets/audioMotion-analyzer/src/audioMotion-analyzer.js').then(module => {
+    if (module.AudioMotionAnalyzer) {
+      AudioMotionAnalyzer = module.AudioMotionAnalyzer;
+    } else {
+      AudioMotionAnalyzer = window.AudioMotionAnalyzer;
+    }
+  });
+}
+//import {AudioMotionAnalyzer} from '../assets/audioMotion-analyzer/src/audioMotion-analyzer.js';
 
 export class _AudioMotionAnalyzer extends HTMLElement {
   constructor() {
@@ -351,6 +368,6 @@ export class _AudioMotionAnalyzer extends HTMLElement {
   };
 } // END CLASS
 
-if (currentView == 'watch' || currentView == 'montage' || currentView == 'event') {
+if (checkAudioMotionEnabled() && (currentView == 'watch' || currentView == 'montage' || currentView == 'event')) {
   customElements.define('audio-motion', _AudioMotionAnalyzer);
 }

@@ -23,6 +23,16 @@ if (!canEdit('Monitors')) {
   return;
 }
 
+// Compatibility shim: get_networks() was added to functions.php in a later
+// release. Older installations need this fallback so the page renders.
+if (!function_exists('get_networks')) {
+  function get_networks() {
+    // Minimal stub: no interface list available on this ZM version.
+    // The manual ONVIF URL entry below works without interface selection.
+    return array('default' => '');
+  }
+}
+
 // Probe Local Cameras
 function probeV4L() {
 
@@ -463,9 +473,22 @@ $interfaces = array('', 'select');
           <label for="probe"><?php echo translate('DetectedCameras') ?></label>
           <?php echo htmlSelect('probe', $cameras, null, array('data-on-change-this'=>'configureButtons')); ?>
         </p>
+        <hr/>
+        <p><?php echo translate('OnvifManualOr') ?></p>
+        <p>
+          <label for="manual_url"><?php echo translate('OnvifManualLabel') ?></label>
+          <input type="text" name="manual_url" id="manual_url"
+                 placeholder="<?php echo translate('OnvifManualPlaceholder') ?>"
+                 value="<?php echo isset($_REQUEST['manual_url']) ? htmlspecialchars($_REQUEST['manual_url']) : '' ?>"
+                 data-on-change-this="configureButtons"
+                 data-on-input-this="configureButtons"
+                 size="40"/>
+        </p>
         <div id="contentButtons">
         <button type="button" name="saveBtn" value="Save" data-on-click-this="submitCamera" disabled="disabled">
         <?php echo translate('Save') ?></button>
+        <button type="button" name="onvifBtn" data-on-click-this="connectOnvif" disabled="disabled">
+        <?php echo translate('OnvifManualConnect') ?></button>
         <button type="button" data-on-click="backWindow"><?php echo translate('Cancel') ?></button>
         </div>
       </form>

@@ -671,7 +671,7 @@ function initPage() {
     //Prepare the array.
     movableMonitorData[monitor.id] = {'width': 0, 'stop': false};
     // When displaying only the audio visualization, "#ratioControl" does not need to be displayed
-    if (-1 === selectorWhatDisplay.value.toLowerCase().indexOf('video')) {
+    if (selectorWhatDisplay && -1 === selectorWhatDisplay.value.toLowerCase().indexOf('video')) {
       $j('#ratioControl' + monitor.id).css('visibility', 'hidden');
     }
   }
@@ -739,7 +739,7 @@ function initPage() {
             changedMonitors.splice(object.length - 1 - index, 1);
           }
           monitorsSetScale(item);
-          if (-1 === selectorWhatDisplay.value.indexOf('OnlyVideo')) {
+          if (selectorWhatDisplay && -1 === selectorWhatDisplay.value.indexOf('OnlyVideo')) {
             // Experimental setting only if audio visualization is used. Blank spaces will be filled.
             //objGridStack.column(1, 'compact');
             //objGridStack.column(layoutColumns, 'compact');
@@ -759,7 +759,7 @@ function initPage() {
   zmPanZoom.init();
 
   // Registering an observer on an element
-  if (-1 !== selectorWhatDisplay.value.indexOf('OnlyVideo')) {
+  if (selectorWhatDisplay && -1 !== selectorWhatDisplay.value.indexOf('OnlyVideo')) {
     $j('[id ^= "liveStream"]').each(function() {
       observerMontage.observe(this);
     });

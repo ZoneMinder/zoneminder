@@ -136,6 +136,7 @@ jobs:
         with:
           path: artifacts/deb
           name: ${{ env.artifact_name }}
+          retention-days: 1
       - name: Compute deploy target
         run: |
           VERSION="${GITHUB_REF_NAME#release-}"

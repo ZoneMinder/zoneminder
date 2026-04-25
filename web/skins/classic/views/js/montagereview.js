@@ -1214,6 +1214,14 @@ function changeFilters(e) {
     let minStartDateTime = DateTime.fromFormat(minStartDateTimeElement.value, 'yyyy-MM-dd HH:mm:ss', {zone: ZM_TIMEZONE});
     let maxStartDateTime = DateTime.fromFormat(maxStartDateTimeElement.value, 'yyyy-MM-dd HH:mm:ss', {zone: ZM_TIMEZONE});
 
+    // If either input is empty or malformed, bail out rather than letting
+    // NaN propagate into minTimeSecs/rangeTimeSecs and crash getImageData
+    // in drawSliderOnGraph.
+    if (!minStartDateTime.isValid || !maxStartDateTime.isValid) {
+      console.warn("changeFilters: invalid date input, skipping update");
+      return;
+    }
+
     if (this === minStartDateTimeElement) {
       if (minStartDateTime > maxStartDateTime) {
         maxStartDateTime = minStartDateTime.plus({hours: 1}); // Maybe leave a gap?

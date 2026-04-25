@@ -624,7 +624,7 @@ switch ($name) {
               <input type="text" name="newMonitor[ONVIF_Options]" value="<?php echo validHtmlStr($monitor->ONVIF_Options()) ?>"/>
             </li>
             <li class="ONVIF_Alarm_Text">
-              <label><?php echo translate('ONVIF_Alarm_Text') ?></label>
+              <label><?php echo translate('ONVIF_Alarm_Text'); echo makeHelpLink('OPTIONS_ONVIF_Alarm_Text') ?></label>
               <input type="text" name="newMonitor[ONVIF_Alarm_Text]" value="<?php echo validHtmlStr($monitor->ONVIF_Alarm_Text()) ?>"/>
             </li>
             <li class="SOAP_wsa_compl">
@@ -1252,8 +1252,12 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
   case 'viewing' :
 ?>
             <li id="WhatDisplay" class="WhatDisplay">
-              <label><?php echo translate('What to display'); echo makeHelpLink('OPTIONS_WHATTODISPLAY') ?> </label>
-              <?php echo htmlSelect('newMonitor[WhatDisplay]', $whatDisplay, $monitor->WhatDisplay()); ?>
+              <label><?php echo translate('Show'); echo makeHelpLink('OPTIONS_WHATTODISPLAY') ?> </label>
+              <?php if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED)
+                      echo htmlSelect('newMonitor[WhatDisplay]', $whatDisplay, $monitor->WhatDisplay());
+	                else
+	                  echo '<span class="text-info">' . translate('RequiresAudioMotionEnabled') . '</span>';
+              ?>
             </li>
             <li class="RTSPServer">
               <label><?php echo translate('RTSPServer'); echo makeHelpLink('OPTIONS_RTSPSERVER') ?></label>

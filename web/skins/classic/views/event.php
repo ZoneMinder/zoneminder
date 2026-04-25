@@ -252,7 +252,7 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
           <?php echo htmlSelect('codec', $codecs, $codec, array('data-on-change'=>'changeCodec','id'=>'codec')); ?>
         </div>
         <div id="whatDisplayControl">
-          <label for="whatDisplay"><?php echo translate('What display') ?></label>
+          <label for="whatDisplay"><?php if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) echo translate('What display') ?></label>
 <?php 
             $whatDisplayOptions = [
               'Default'=>translate('Default'),
@@ -266,7 +266,7 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
             } else if (isset($_COOKIE['zmWhatDisplay']) and isset($whatDisplayOptions[$_COOKIE['zmWhatDisplay']])) {
               $whatDisplaySelected = validHtmlStr($_COOKIE['zmWhatDisplay']);
             }
-            echo htmlSelect('whatDisplay', $whatDisplayOptions, $whatDisplaySelected, array('data-on-change'=>'changeWhatDisplay','id'=>'whatDisplay','class'=>'chosen'));
+            if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) echo htmlSelect('whatDisplay', $whatDisplayOptions, $whatDisplaySelected, array('data-on-change'=>'changeWhatDisplay','id'=>'whatDisplay','class'=>'chosen'));
 ?>
         </div><!--#whatDisplayControl-->
       </div>
@@ -468,15 +468,19 @@ if ($video_tag) {
   Sorry, your browser does not support inline SVG
                   </svg>
                 </div><!--videoFeed-->
-                <audio-motion id="audioVisualization<?php echo $monitor->Id()?>" class="audio-visualization">
-                  <div id="audioControlPanel<?php echo $monitor->Id()?>" class="audio-control-panel">
-                    <div id="volumeControls<?php echo $monitor->Id()?>" class="disabled volume">
-                      <div id="volumeSlider<?php echo $monitor->Id()?>" data-volume="50" data-muted="true" class="volumeSlider noUi-horizontal noUi-base noUi-round"></div>
-                      <i id="controlMute<?php echo $monitor->Id()?>" class="audio-control-mute material-icons md-22"></i>
+<?php
+if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) echo '
+                <audio-motion id="audioVisualization'.$monitor->Id().'" class="audio-visualization">
+                  <div id="audioControlPanel'.$monitor->Id().'" class="audio-control-panel">
+                    <div id="volumeControls'.$monitor->Id().'" class="disabled volume">
+                      <div id="volumeSlider'.$monitor->Id().'" data-volume="50" data-muted="true" class="volumeSlider noUi-horizontal noUi-base noUi-round"></div>
+                      <i id="controlMute'.$monitor->Id().'" class="audio-control-mute material-icons md-22"></i>
                     </div>
                   </div>
                   <canvas></canvas>
                 </audio-motion>
+' . PHP_EOL;
+?>
                 <div class="monitorStatus">
                   <span class="MonitorName"><?php echo $monitor->Name() . " (". translate('ID'). "=" . $monitor->Id() . ")"; ?>  </span>
                   <span class="stream-info-status-track"></span>

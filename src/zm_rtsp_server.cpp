@@ -55,6 +55,7 @@ and provide that stream over rtsp
 #include "zm_rtsp_server_fifo_h264_source.h"
 #include "zm_rtsp_server_fifo_av1_source.h"
 #include "zm_rtsp_server_fifo_adts_source.h"
+#include "xop/G711USource.h"
 #include "zm_signal.h"
 #include "zm_time.h"
 #include "zm_utils.h"
@@ -319,6 +320,14 @@ int main(int argc, char *argv[]) {
           Debug(1, "Adding G711A source at %dHz %d channels",
                 monitor->GetAudioFrequency(), monitor->GetAudioChannels());
           session->AddSource(xop::channel_1, xop::G711ASource::CreateNew());
+          audioSource = new ADTS_ZoneMinderFifoSource(rtspServer,
+              session->GetMediaSessionId(), xop::channel_1, audioFifoPath);
+          audioSource->setFrequency(monitor->GetAudioFrequency());
+          audioSource->setChannels(monitor->GetAudioChannels());
+        } else if (std::string::npos != audioFifoPath.find("pcm_mulaw")) {
+          Debug(1, "Adding G711U source at %dHz %d channels",
+                monitor->GetAudioFrequency(), monitor->GetAudioChannels());
+          session->AddSource(xop::channel_1, xop::G711USource::CreateNew());
           audioSource = new ADTS_ZoneMinderFifoSource(rtspServer,
               session->GetMediaSessionId(), xop::channel_1, audioFifoPath);
           audioSource->setFrequency(monitor->GetAudioFrequency());

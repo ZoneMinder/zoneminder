@@ -51,6 +51,7 @@ RETSIGTYPE zmc_die_handler( int signal );
 
 void zmSetHupHandler( SigHandler *handler );
 void zmSetTermHandler( SigHandler *handler );
+void zmSetPipeHandler( SigHandler *handler );
 #if ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )
 void zmSetDieHandler( SigActionHandler *handler );
 #else
@@ -59,6 +60,7 @@ void zmSetDieHandler( SigHandler *handler );
 
 void zmSetDefaultHupHandler();
 void zmSetDefaultTermHandler();
+void zmSetDefaultPipeHandler();
 void zmSetDefaultDieHandler();
 
 #endif // ZM_SIGNAL_H

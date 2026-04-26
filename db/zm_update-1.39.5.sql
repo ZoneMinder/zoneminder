@@ -10,7 +10,7 @@ SET @s = (SELECT IF(
   AND table_schema = DATABASE()
   AND column_name = 'WhatDisplay'
   ) > 0,
-"SELECT 'Column WhatDisplay already exists in Monitors'",
+"ALTER TABLE Monitors MODIFY `WhatDisplay` enum('OnlyVideo','OnlyAudioVisualization','VideoAudioVisualization') NOT NULL DEFAULT 'OnlyVideo'"
 "ALTER TABLE Monitors ADD COLUMN `WhatDisplay` enum('OnlyVideo','OnlyAudioVisualization','VideoAudioVisualization') NOT NULL DEFAULT 'OnlyVideo' AFTER `Decoding`"
 ));
 

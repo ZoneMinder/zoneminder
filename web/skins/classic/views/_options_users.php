@@ -10,7 +10,7 @@ $roles = ZM\User_Role::Indexed_By_Id();
     <div class="col button-block">
       <div id="contentButtons">
         <?php echo makeButton('?view=user&uid=0', 'AddNewUser', $canEdit); ?>
-        <button type="submit" class="btn-danger" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
+        <button type="button" class="btn-danger" name="deleteBtn" value="Delete" data-on-click-this="DeleteUser" disabled="disabled"><?php echo translate('Delete') ?></button>
       </div>
     </div>
     <div class="wrapper-scroll-table">

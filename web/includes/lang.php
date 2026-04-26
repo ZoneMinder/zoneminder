@@ -22,9 +22,9 @@ function translate($name) {
   global $SLANG;
   // The isset is more performant
   if ( isset($SLANG[$name]) || array_key_exists($name, $SLANG) )
-    return $SLANG[$name];
+    return preg_replace('/~~/', '<br/>', $SLANG[$name]);
   else
-    return $name;
+    return preg_replace('/~~/', '<br/>', $name);
 }
 
 function loadLanguage($prefix='') {

@@ -136,6 +136,9 @@ $SLANG = array(
     'AttrStorageServer'    => 'Сервер для размещения хранилища', // Added - 2018-08-30
     'AttrSystemLoad'       => 'Нагрузка проц.',
     'AttrTotalScore'       => 'Сумм. оценка',
+    'AudioMotionVersionOK' => 'Установлена корректная версия "{AudioMotionVersionInstalled}"',
+    'AudioMotionVersionNotInstalled' => 'Требуется установка audio motion analyzer версии "{AudioMotionVersionRequired}"~~Ссылка для загрузки: https://cdn.jsdelivr.net/npm/audiomotion-analyzer@{AudioMotionVersionRequired} или https://github.com/hvianna/audioMotion-analyzer/releases/tag/{AudioMotionVersionRequired}',
+    'AudioMotionVersionWrongVersion' => 'Требуется версия анализатора "{AudioMotionVersionRequired}", но у Вас установлена "{AudioMotionVersionInstalled}"~~Ссылка для загрузки: https://cdn.jsdelivr.net/npm/audiomotion-analyzer@{AudioMotionVersionRequired} или https://github.com/hvianna/audioMotion-analyzer/releases/tag/{AudioMotionVersionRequired}',
     'Auth'                 => 'Авторизация',
     'Auto'                 => 'Авто',
     'AutoStopTimeout'      => 'Тайм-аут автоостановки',
@@ -1200,9 +1203,8 @@ $OLANG = array(
      На страницах живого просмотра, монтажа и просмотра события возможно отображение движения аудио.~~
      Для этого необходимо установить файл "/skins/MySkin/assets/audioMotion-analyzer/src/audioMotion-analyzer.js".~~
      Указанный файл можно скачать по ссылкам:~~
-     https://cdn.jsdelivr.net/npm/audiomotion-analyzer@4.5.4~~
-     https://github.com/hvianna/audioMotion-analyzer/releases~~
-     На данный момент поддердивается версия 4.5.4
+     https://cdn.jsdelivr.net/npm/audiomotion-analyzer@X.X.X где X.X.X это номер версии~~
+     https://github.com/hvianna/audioMotion-analyzer/releases
     '
    ),
   'FUNCTION_ANALYSIS_ENABLED' => array(

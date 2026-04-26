@@ -3,6 +3,8 @@
 * IgorA100 2026
 */
 
+window.SUPPORTED_AUDIO_MOTION_ANALYZER_VERSION = '4.5.4';
+
 var AudioMotionAnalyzer = null;
 
 function checkAudioMotionEnabled() {
@@ -16,7 +18,13 @@ if (checkAudioMotionEnabled()) {
     } else {
       AudioMotionAnalyzer = window.AudioMotionAnalyzer;
     }
+    window.CURRENT_AUDIO_MOTION_ANALYZER_VERSION = AudioMotionAnalyzer.version;
+    if (currentView == 'watch' || currentView == 'montage' || currentView == 'event') {
+      customElements.define('audio-motion', _AudioMotionAnalyzer);
+    }
   });
+} else {
+  window.CURRENT_AUDIO_MOTION_ANALYZER_VERSION = "NotInstalled";
 }
 //import {AudioMotionAnalyzer} from '../assets/audioMotion-analyzer/src/audioMotion-analyzer.js';
 
@@ -367,7 +375,3 @@ export class _AudioMotionAnalyzer extends HTMLElement {
     return currentPlayer;
   };
 } // END CLASS
-
-if (checkAudioMotionEnabled() && (currentView == 'watch' || currentView == 'montage' || currentView == 'event')) {
-  customElements.define('audio-motion', _AudioMotionAnalyzer);
-}

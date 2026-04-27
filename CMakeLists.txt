@@ -119,6 +119,8 @@ mark_as_advanced(
   ZM_PATH_UNAME
   ZM_PATH_IP
   ZM_PATH_IFCONFIG
+  ZM_PATH_NETSTAT
+  ZM_PATH_PKEXEC
   ZM_CONFIG_DIR
   ZM_CONFIG_SUBDIR
   ZM_DETECT_SYSTEMD
@@ -198,6 +200,10 @@ set(ZM_PATH_IP "" CACHE PATH
   "Full path to compatible ip binary. Leave empty for automatic detection.")
 set(ZM_PATH_IFCONFIG "" CACHE PATH
   "Full path to compatible ifconfig binary. Leave empty for automatic detection.")
+set(ZM_PATH_NETSTAT "" CACHE PATH
+  "Full path to compatible netstat binary. Leave empty for automatic detection.")
+set(ZM_PATH_PKEXEC "" CACHE PATH
+  "Full path to compatible pkexec binary. Leave empty for automatic detection.")
 set(ZM_CONFIG_DIR "${CMAKE_INSTALL_FULL_SYSCONFDIR}/zm" CACHE PATH
   "Location of ZoneMinder configuration, default system config directory")
 set(ZM_CONFIG_SUBDIR "${ZM_CONFIG_DIR}/conf.d" CACHE PATH
@@ -817,6 +823,28 @@ if(ZM_PATH_IFCONFIG STREQUAL "")
     mark_as_advanced(IFCONFIG_EXECUTABLE)
   else()
     message(WARNING "Unable to find a compatible ifconfig binary.")
+  endif()
+endif()
+
+# Find the path to an netstat compatible executable
+if(ZM_PATH_NETSTAT STREQUAL "")
+  find_program(NETSTAT_EXECUTABLE netstat)
+  if(NETSTAT_EXECUTABLE)
+    set(ZM_PATH_NETSTAT "${NETSTAT_EXECUTABLE}")
+    mark_as_advanced(NETSTAT_EXECUTABLE)
+  else()
+    message(WARNING "Unable to find a compatible netstat binary.")
+  endif()
+endif()
+
+# Find the path to an pkexec compatible executable
+if(ZM_PATH_PKEXEC STREQUAL "")
+  find_program(PKEXEC_EXECUTABLE pkexec)
+  if(PKEXEC_EXECUTABLE)
+    set(ZM_PATH_PKEXEC "${PKEXEC_EXECUTABLE}")
+    mark_as_advanced(PKEXEC_EXECUTABLE)
+  else()
+    message(WARNING "Unable to find a compatible pkexec binary.")
   endif()
 endif()
 

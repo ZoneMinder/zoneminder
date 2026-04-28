@@ -2842,6 +2842,13 @@ function destroyAudioMotion(mid) {
   }
 };
 
+function pauseAudioMotion(mid) {
+  const audioMotion = document.querySelector('audio-motion#audioVisualization' + mid);
+  if (audioMotion && audioMotion.pause) {
+    audioMotion.pause();
+  }
+};
+
 /*IMPORTANT DO NOT CALL WITHOUT CONSCIOUS NEED!!!*/
 // https://habr.com/ru/companies/timeweb/articles/667148/
 async function getTracksFromStream(videoFeedStream) {

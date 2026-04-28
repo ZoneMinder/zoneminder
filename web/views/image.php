@@ -506,6 +506,10 @@ if ( $errorText ) {
   ZM\Error($errorText);
 } else {
   # Must lock it because zmc may be still writing the jpg and will have a lock on it.
+  if (!file_exists($path)) {
+    ZM\Warning("File '$path' cannot be blocked because it does not exist.");
+    return;
+  }
   $fp_path = fopen($path, 'r');
   $lock = flock($fp_path, LOCK_SH);
   if (!$lock) ZM\Warning("Unable to get a read lock on $path, continuing.");

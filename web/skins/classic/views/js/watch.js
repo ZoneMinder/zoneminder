@@ -167,7 +167,6 @@ function streamCmdPause(action) {
   if (action && monitorStream) {
     monitorStream.pause();
   }
-  if (monitorStream.audioMotion && monitorStream.audioMotion.pause) monitorStream.audioMotion.pause();
 }
 
 function onPlay() {

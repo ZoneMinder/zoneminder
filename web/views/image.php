@@ -357,7 +357,7 @@ if ( empty($_REQUEST['path']) ) {
               $retval = 0;
               exec($command, $output, $retval);
               ZM\Debug("Command: $command, retval: $retval, output: " . implode("\n", $output));
-              if ( ! file_exists($path) ) {
+              if ( $Event->DefaultVideo() !== 'index.m3u8' && ! file_exists($path) ) {
                 header('HTTP/1.0 404 Not Found');
                 ZM\Error('Can\'t create frame images from video for this event '.$Event->DefaultVideo().'
 

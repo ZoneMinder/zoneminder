@@ -22,6 +22,9 @@ if (checkAudioMotionEnabled()) {
     if (currentView == 'watch' || currentView == 'montage' || currentView == 'event') {
       customElements.define('audio-motion', _AudioMotionAnalyzer);
     }
+  }).catch(error => {
+    console.error('Failed to load audioMotion-analyzer module:', error);
+    window.CURRENT_AUDIO_MOTION_ANALYZER_VERSION = "LoadFailed";
   });
 } else {
   window.CURRENT_AUDIO_MOTION_ANALYZER_VERSION = "NotInstalled";

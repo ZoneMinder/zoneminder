@@ -310,7 +310,7 @@ if (defined('ZM_OPT_USE_GEOLOCATION') and ZM_OPT_USE_GEOLOCATION) {
 }
 ?>
 
-              <div id="frames">
+              <div id="frames" class="flex-col-3">
 <?php 
 if (file_exists($Event->Path().'/alarm.jpg')) {
   echo '

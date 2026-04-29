@@ -19,9 +19,6 @@ if (checkAudioMotionEnabled()) {
       AudioMotionAnalyzer = window.AudioMotionAnalyzer;
     }
     window.CURRENT_AUDIO_MOTION_ANALYZER_VERSION = AudioMotionAnalyzer.version;
-    if (currentView == 'watch' || currentView == 'montage' || currentView == 'event') {
-      customElements.define('audio-motion', _AudioMotionAnalyzer);
-    }
   }).catch(error => {
     console.error('Failed to load audioMotion-analyzer module:', error);
     window.CURRENT_AUDIO_MOTION_ANALYZER_VERSION = "LoadFailed";
@@ -378,3 +375,7 @@ export class _AudioMotionAnalyzer extends HTMLElement {
     return currentPlayer;
   };
 } // END CLASS
+
+if (checkAudioMotionEnabled() && (currentView == 'watch' || currentView == 'montage' || currentView == 'event')) {
+  customElements.define('audio-motion', _AudioMotionAnalyzer);
+}

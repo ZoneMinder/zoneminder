@@ -270,7 +270,7 @@ echo htmlSelect('user[HomeView]', $homeview_options, $User->HomeView(), ['class'
 <?php
 if (canEdit('System')) {
 ?>
-        <div class="row flex-col-2">
+        <div class="row flex-col-3">
           <div class="Permissions mt-4 col-lg-6">
             <fieldset>
               <legend><?php echo translate('Global Permissions') ?></legend>
@@ -387,46 +387,46 @@ if (canEdit('Groups')) {
               </table>
             </fieldset>
           </div><!--Group Permissions-->
-        </div> <!--.row flex-col-->
 <?php
   } // end if canEdit(Groups)
 ?>
-        <div id="MonitorPermissions" class="mt-4">
-          <fieldset>
-            <legend><?php echo translate('Monitor Permissions') ?></legend>
-            <table class="table table-sm table-striped">
-              <thead class="thead-light">
-                <tr>
-                  <th class="Id"><?php echo translate('Id') ?></th>
-                  <th class="Name"><?php echo translate('Name') ?></th>
-                  <th class="permission"><?php echo translate('Permission') ?></th>
-                  <th class="effective_permission"><?php echo translate('Effective Permission') ?></th>
-                </tr>
-              </thead>
-              <tbody>
+          <div id="MonitorPermissions" class="col-12 mt-4">
+            <fieldset>
+              <legend><?php echo translate('Monitor Permissions') ?></legend>
+              <table class="table table-sm table-striped">
+                <thead class="thead-light">
+                  <tr>
+                    <th class="Id"><?php echo translate('Id') ?></th>
+                    <th class="Name"><?php echo translate('Name') ?></th>
+                    <th class="permission"><?php echo translate('Permission') ?></th>
+                    <th class="effective_permission"><?php echo translate('Effective Permission') ?></th>
+                  </tr>
+                </thead>
+                <tbody>
 <?php
   $monitors = ZM\Monitor::find(['Deleted'=>0], ['order'=>'Sequence ASC']);
   foreach ($monitors as $monitor) {
     if ($monitor->canView()) {
       echo '
-                <tr>
-                  <td class="Id">'.$monitor->Id().'</td>
-                  <td class="Name">'.validHtmlStr($monitor->Name()).'</td>
-                  <td class="permission">'.html_radio('monitor_permission['.$monitor->Id().']', $inve,
-                    $User->Monitor_Permission($monitor->Id())->Permission(),
-                    ['default'=>'Inherit'],
-                    ['data-on-change'=>'updateEffectivePermissions']).'</td>
-                  <td class="effective_permission" id="effective_permission'.$monitor->Id().'">'.translate($monitor->effectivePermission($User)).'</td>
-                </tr>';
+                  <tr>
+                    <td class="Id">'.$monitor->Id().'</td>
+                    <td class="Name">'.validHtmlStr($monitor->Name()).'</td>
+                    <td class="permission">'.html_radio('monitor_permission['.$monitor->Id().']', $inve,
+                      $User->Monitor_Permission($monitor->Id())->Permission(),
+                      ['default'=>'Inherit'],
+                      ['data-on-change'=>'updateEffectivePermissions']).'</td>
+                    <td class="effective_permission" id="effective_permission'.$monitor->Id().'">'.translate($monitor->effectivePermission($User)).'</td>
+                  </tr>';
     } else {
       ZM\Debug("Can't view monitor ".$monitor->Id(). ' ' .$monitor->canView());
     }
   }
 ?>
-              </tbody>
-            </table>
-          </fieldset>
-        </div><!--Monitor Permissions-->
+                </tbody>
+              </table>
+            </fieldset>
+          </div><!--Monitor Permissions-->
+        </div> <!--.row flex-col-->
 <?php
 } // end if canEdit(System)
 ?>

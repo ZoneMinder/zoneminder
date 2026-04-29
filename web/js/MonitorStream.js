@@ -733,12 +733,10 @@ function MonitorStream(monitorData) {
       infoBlock.style.pointerEvents = 'none';
       let node = null;
       const _imageFeed = document.getElementById('imageFeed'+this.id);
-      if (_imageFeed && _imageFeed.getAttribute('data-not-display-video') === 'true') {
-        node = document.getElementById("audioVisualization" + this.id) || this.getElement();
-      } else {
-        node = this.getElement();
+      if (_imageFeed) {
+        node = (_imageFeed.getAttribute('data-not-display-video') === 'true') ? document.getElementById("audioVisualization" + this.id) : _imageFeed;
       }
-      node.parentNode.appendChild(infoBlock);
+      if (node) node.appendChild(infoBlock);
       currentInfoBlock = infoBlock;
     }
     return currentInfoBlock;

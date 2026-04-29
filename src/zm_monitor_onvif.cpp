@@ -246,6 +246,25 @@ bool ONVIF::InitSoapContext() {
 }
 
 void ONVIF::Subscribe() {
+  // Drop any prior subscription on the camera and reopen the TCP connection.
+  // Cameras typically cap pull-point subscriptions per user and only release
+  // the slot when the originating socket closes; reusing soap here leaks slots
+  // across failed cycles and eventually surfaces as NotAuthorized on
+  // CreatePullPointSubscription even though credentials are fine.
+  if (has_valid_subscription_) {
+    cleanup_subscription();
+    if (soap) {
+      soap_destroy(soap);
+      soap_end(soap);
+      soap_free(soap);
+      soap = nullptr;
+    }
+  }
+
+  // Start each cycle with the preferred auth method; a transient plain-auth
+  // fallback shouldn't pin for the rest of the process.
+  try_usernametoken_auth = false;
+
   if (!InitSoapContext()) {
     setHealthy(false);
     return;
@@ -269,15 +288,21 @@ void ONVIF::Subscribe() {
 
   if (rc != SOAP_OK) {
     const char *detail = soap_fault_detail(soap);
-    bool auth_error = (rc == 401 || (detail && std::strstr(detail, "NotAuthorized")));
+    const char *fault_string = soap_fault_string(soap);
+    // Many cameras report the ONVIF NotAuthorized condition as a SOAP_FAULT
+    // with the explanation in fault_string and detail=null, so check both.
+    bool auth_error = (rc == 401
+                       || (detail && std::strstr(detail, "NotAuthorized"))
+                       || (fault_string && (std::strstr(fault_string, "authoriz")
+                                            || std::strstr(fault_string, "Authoriz"))));
 
     if (rc > 8) {
       Error("ONVIF: Couldn't create subscription at %s! %d, fault:%s, detail:%s", event_endpoint_url_.c_str(),
-          rc, soap_fault_string(soap), detail ? detail : "null");
+          rc, fault_string, detail ? detail : "null");
     } else {
       Error("ONVIF: Couldn't create subscription at %s! %d %s, fault:%s, detail:%s", event_endpoint_url_.c_str(),
           rc, SOAP_STRINGS[rc].c_str(),
-          soap_fault_string(soap), detail ? detail : "null");
+          fault_string, detail ? detail : "null");
     }
 
     // If authentication failed and we were using digest, try plain authentication
@@ -468,6 +493,10 @@ void ONVIF::WaitForMessage() {
         } else {
           Info("ONVIF: PullMessages failed (attempt %d/%d), will continue trying", retry_count, max_retries);
         }
+        // Best-effort unsubscribe so the camera doesn't keep this slot reserved
+        // while Run() loops back into Subscribe(). Subscribe() will also drop
+        // the soap context to force a fresh TCP connection.
+        cleanup_subscription();
         setHealthy(false);
       } else {
         // SOAP_EOF - this is just a timeout, not an error

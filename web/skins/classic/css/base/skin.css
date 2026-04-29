@@ -1643,12 +1643,6 @@ audio-motion, audio-motion canvas {
 }
 */
 
-/* Fix bootstrap */
-legend {
-  width: auto;
-  padding-inline: 0.5em;
-}
-
 /* Fix bootstrap-table */
 .fixed-table-loading {
   overflow: hidden;
@@ -1715,7 +1709,12 @@ video-stream[id^='liveStream'] video{
   padding: 0;
 }
 
-/* +++ For now, let it be like this here, since it might have to be applied to many pages. !!! */
+/* +++ IgorA100 For now, let it be like this here, since it might have to be applied to many pages. https://github.com/ZoneMinder/zoneminder/pull/4752 */
+.user-page fieldset legend {
+  width: auto;
+  padding-inline: 0.5em;
+}
+
 .user-page #header {
   padding-left: 15px;
   padding-right: 15px;

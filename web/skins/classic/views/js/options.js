@@ -75,8 +75,8 @@ function getDelConfirmModal(key, title) {
     key: key,
     title: title
   })
-      .done(async function(data) {
-        await insertModalHtml('deleteConfirm', data.html);
+      .done(function(data) {
+        insertModalHtml('deleteConfirm', data.html);
         $j('#deleteConfirm').modal('show');
         document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
           $j('#deleteConfirm').modal('hide');

@@ -21,6 +21,7 @@
 
 #include "zm_time.h"
 
+#include <atomic>
 #include <condition_variable>
 #include <list>
 #include <memory>
@@ -54,7 +55,7 @@ class PacketQueue {
   bool has_out_of_order_packets_;
   int max_keyframe_interval_;
   int frames_since_last_keyframe_;
-  bool clear_packets_pending_;
+  std::atomic<bool> clear_packets_pending_;
   uint64_t next_queue_index_;
   Monitor *monitor_;
 
@@ -83,6 +84,17 @@ class PacketQueue {
   int get_max_keyframe_interval() const { return max_keyframe_interval_; };
 
   bool clearPackets(const std::shared_ptr<ZMPacket> &packet);
+
+  // Lock-free gate for callers: returns false when a clearPackets() call would
+  // certainly early-return. When keep_keyframes is on we only have work to do
+  // on a keyframe (start of a droppable GOP) or when a previous attempt was
+  // deferred via clear_packets_pending_. A stale read of pending is harmless;
+  // worst case we make one extra (cheap) early-returning call.
+  bool should_try_clear(bool is_keyframe) const {
+    if (!keep_keyframes) return true;
+    return is_keyframe || clear_packets_pending_.load(std::memory_order_relaxed);
+  }
+
   int packet_count(int stream_id);
 
   bool increment_it(packetqueue_iterator *it, bool wait);

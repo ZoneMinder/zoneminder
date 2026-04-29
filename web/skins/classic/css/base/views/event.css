@@ -105,10 +105,21 @@ height: 100%;
 
 #eventStatsTable {
 }
+
+#eventStatsTable td {
+  word-break: break-all;
+  white-space: normal;
+}
+
+#eventStatsTable th{
+  padding-left: 0;
+}
+
 #eventVideo {
   /* width: 100%; *//* flex will make it fill the available space */
 }
 .eventStats {
+  padding-left: 0;
   /* margin-right: 5px; */
 }
 

@@ -416,7 +416,9 @@ function MonitorStream(monitorData) {
         (e) => {
           this.writeTextInfoBlock("Paused", {showImg: false});
           manageEventListener.removeEventListener(this.handlerEventListener['volumechange']);
-          pauseAudioMotion(this.id);
+          if (typeof pauseAudioMotion === 'function') {
+            pauseAudioMotion(this.id);
+          }
         }
     );
   };

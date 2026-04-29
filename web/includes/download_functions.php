@@ -303,14 +303,14 @@ function getFlatCommandForTar() {
 }
 
 function formatVttTimestamp($seconds) {
-  if ($seconds < 0) $seconds = 0;
-  $h = (int)floor($seconds / 3600);
-  $m = (int)floor(($seconds - $h * 3600) / 60);
-  $s = $seconds - $h * 3600 - $m * 60;
-  $whole = (int)floor($s);
-  $ms = (int)round(($s - $whole) * 1000);
-  if ($ms >= 1000) { $ms = 0; $whole += 1; }
-  return sprintf('%02d:%02d:%02d.%03d', $h, $m, $whole, $ms);
+  $totalMs = max(0, (int)round($seconds * 1000));
+  $h = (int)floor($totalMs / 3600000);
+  $remainder = $totalMs % 3600000;
+  $m = (int)floor($remainder / 60000);
+  $remainder = $remainder % 60000;
+  $s = (int)floor($remainder / 1000);
+  $ms = $remainder % 1000;
+  return sprintf('%02d:%02d:%02d.%03d', $h, $m, $s, $ms);
 }
 
 function buildVttContent($cues) {

@@ -532,7 +532,11 @@ function initPage() {
 } // end function initPage()
 
 async function checkVerAudioMotion() {
-  await waitUntil(() => window.CURRENT_AUDIO_MOTION_ANALYZER_VERSION, 20000);
+  const result = await waitUntil(() => window.CURRENT_AUDIO_MOTION_ANALYZER_VERSION, 20000);
+  if (result === false) {
+    console.warn("Unable to obtain the current version number of audio motion analyzer.");
+    return;
+  }
   const whatDisplayInfo = document.getElementById("WhatDisplayInfo");
   whatDisplayInfo.classList.remove("text-success");
   whatDisplayInfo.classList.remove("text-info");

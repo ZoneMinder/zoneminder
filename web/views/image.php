@@ -507,7 +507,8 @@ if ( $errorText ) {
 } else {
   # Must lock it because zmc may be still writing the jpg and will have a lock on it.
   if (!file_exists($path)) {
-    ZM\Warning("File '$path' cannot be blocked because it does not exist.");
+    header('HTTP/1.0 404 Not Found');
+    ZM\Warning("File '$path' cannot be locked because it does not exist.");
     return;
   }
   $fp_path = fopen($path, 'r');

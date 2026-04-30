@@ -252,7 +252,7 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
           <?php echo htmlSelect('codec', $codecs, $codec, array('data-on-change'=>'changeCodec','id'=>'codec')); ?>
         </div>
         <div id="whatDisplayControl">
-          <label for="whatDisplay"><?php if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) echo translate('What display') ?></label>
+          <label for="whatDisplay"><?php if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) echo translate('Show') ?></label>
 <?php 
             $whatDisplayOptions = [
               'Default'=>translate('Default'),

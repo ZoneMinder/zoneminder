@@ -3130,6 +3130,15 @@ const getAVStream = function(mid) {
   return (document.querySelector('#liveStream'+mid + ' video') || document.getElementById('liveStream'+mid));
 };
 
+const replaceDoubleTildeToBR = function(str) {
+  return (str.replaceAll("~~", "<br/>"));
+}
+
+const createClickableLink = function(text) {
+  const text1=text.replace(/(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig, '<a target="_blank" href="$1">$1</a>');
+  return text1.replace(/(^|[^\/])(www\.[\S]+(\b|$))/gim, '$1<a target="_blank" href="http://$2">$2</a>');
+}
+
 // https://stackoverflow.com/a/69273090
 class ManageEventListener {
   #listeners = {}; // # in a JS class signifies private

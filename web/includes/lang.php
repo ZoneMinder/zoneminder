@@ -62,6 +62,22 @@ function loadLanguage($prefix='') {
 
 if ( $langFile = loadLanguage() ) {
   require_once($langFile);
+  if (false === strpos($langFile, 'en_gb.php')) {
+    $fallbackLangFile = 'lang/en_gb.php';
+    if ( file_exists($fallbackLangFile) ) {
+      $SLANG_USER = $SLANG;
+      $VLANG_USER = $VLANG;
+      $OLANG_USER = $OLANG;
+      require_once($fallbackLangFile);
+      $SLANG_ = array_replace_recursive($SLANG, $SLANG_USER);
+      $VLANG_ = array_replace_recursive($VLANG, $VLANG_USER);
+      $OLANG_ = array_replace_recursive($OLANG, $OLANG_USER);
+      $SLANG = $SLANG_;
+      $VLANG = $VLANG_;
+      $OLANG = $OLANG_;
+      unset($SLANG_USER, $VLANG_USER, $OLANG_USER, $SLANG_, $VLANG_, $OLANG_);
+    }
+  }
   require_once('lang/default.php');
   foreach ($DLANG as $key => $value) {
     if ( ! (isset($SLANG[$key]) || array_key_exists($key, $SLANG)) )

@@ -86,6 +86,12 @@ module.exports = defineConfig([{
     "eol-last": "off",
     "indent": "off",
   },
+}, {
+  "files": ["web/skins/classic/js/audioMotionAnalyzer.js"],
+
+  "languageOptions": {
+    sourceType: "module",
+  },
 }, globalIgnores([
   "**/*.min.js",
   "web/api/lib",

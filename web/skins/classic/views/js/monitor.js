@@ -557,7 +557,7 @@ async function checkVerAudioMotion() {
 function applyTemplateAudioMotionTranslation(str) {
   str = str.replaceAll('{AudioMotionVersionInstalled}', window.CURRENT_AUDIO_MOTION_ANALYZER_VERSION);
   str = str.replaceAll('{AudioMotionVersionRequired}', window.SUPPORTED_AUDIO_MOTION_ANALYZER_VERSION);
-  return str;
+  return createClickableLink(replaceDoubleTildeToBR(str));
 }
 
 function saveMonitorData(href = '') {

@@ -10,7 +10,7 @@ function checkAudioMotionEnabled() {
 }
 
 if (checkAudioMotionEnabled()) {
-  import('../assets/audioMotion-analyzer/src/audioMotion-analyzer.js').then(module => {
+  import('../assets/audioMotion-analyzer/src/audioMotion-analyzer.js').then((module) => {
     if (module.AudioMotionAnalyzer) {
       AudioMotionAnalyzer = module.AudioMotionAnalyzer;
     } else {
@@ -35,12 +35,12 @@ export class _AudioMotionAnalyzer extends HTMLElement {
     }
     this.mid = stringToNumber(this.id);
     this.gainNode = null; // This is required for controlling the signal level, as we're using a separate stream. This is because when using WebRTC, we can't get the audio stream from <video>.
-    [this.infoIsAudio, this.infoIsVideo] = [1,2].map(() => document.createElement('i'));
-    this.infoIsAudio.setAttribute('id',"ama_is-audio" + this.mid);
-    this.infoIsAudio.setAttribute('class','material-icons md-18');
+    [this.infoIsAudio, this.infoIsVideo] = [1, 2].map(() => document.createElement('i'));
+    this.infoIsAudio.setAttribute('id', "ama_is-audio" + this.mid);
+    this.infoIsAudio.setAttribute('class', 'material-icons md-18');
     this.infoIsAudio.innerText = 'music_off';
-    this.infoIsVideo.setAttribute('id',"ama_is-video" + this.mid);
-    this.infoIsVideo.setAttribute('class','material-icons md-18');
+    this.infoIsVideo.setAttribute('id', "ama_is-video" + this.mid);
+    this.infoIsVideo.setAttribute('class', 'material-icons md-18');
     this.infoIsVideo.innerText = 'videocam_off';
     this.handlerEventListener = {};
     this.currentPlayer = null; // The current player during initialization
@@ -49,12 +49,12 @@ export class _AudioMotionAnalyzer extends HTMLElement {
     this.hide();
   }
 
-  connectedCallback() {  
-    //console.log('connectedCallback');  
-  }  
+  connectedCallback() {
+    //console.log('connectedCallback');
+  }
 
-  disconnectedCallback() {  
-    //console.log('disconnectedCallback');  
+  disconnectedCallback() {
+    //console.log('disconnectedCallback');
   }
 
   hide = function() {
@@ -137,7 +137,7 @@ export class _AudioMotionAnalyzer extends HTMLElement {
       this.changeIconIsVideo('off');
       manageEventListener.removeEventListener(this.handlerEventListener['volumechange']);
     }
- }; // END stop = function() {
+  }; // END stop = function() {
 
   pause = function() {
     if (this.audioMotion && this.audioMotion.isOn) {
@@ -159,71 +159,69 @@ export class _AudioMotionAnalyzer extends HTMLElement {
 
   createMotionAnalyzer = function() {
     const mid = this.mid;
-    const audioEl = this.getMediaStreamSource();
-    const volumeControls = document.getElementById(`volumeControls${mid}`);
-    const monitorStream = getMonitorStream(mid)
+    const monitorStream = getMonitorStream(mid);
     if (!monitorStream) {
       console.warn(`Audio visualization. Stream for monitor ID=${mid} not found.`);
       return;
     }
 
     this.audioMotion = new AudioMotionAnalyzer(
-      document.getElementById(`audioVisualization${mid}`),
-      {
+        document.getElementById(`audioVisualization${mid}`),
+        {
         //source: audioEl, // main audio source is the HTML <audio> element .webrtc - не работает пока.
         //width: 100%,
-        canvas: document.querySelector(`#audioVisualization${mid} canvas`),
-        height: 80,
-        mode: 2, // This has little impact on performance. The lower the number, the larger the number of bars.
-        maxFPS: this.maxFPS,
-        loRes: this.loRes, //https://github.com/hvianna/audioMotion-analyzer?tab=readme-ov-file#lores-boolean
-        fftSize: 4096, // It has almost no impact on performance. The lower this number, the worse the frequency analysis; at 32, almost all the bars are identical... Optimally, 1024 or more
-        alphaBars: true,
-        noteLabels: false, // It's not really necessary.
-        showScaleX: false, // Removes frequency signatures.
-        showScaleY: false,
-        overlay: true, // Makes the background transparent.
-        bgAlpha: .5, // Background transparency only works with overlay: true.
-        ansiBands: true,
-        barSpace: .5,
-        //channelLayout: 'single',
-        channelLayout: 'dual-combined',
-        colorMode: 'gradient',
-        frequencyScale: 'log',
-        gradient: 'classic',
-        //ledBars: true,
-        //connectSpeakers: false, // Defaults to TRUE
-        lumiBars: false,
-        maxFreq: 5000,
-        minFreq: 125,
-        //maxDecibels: -15, // Def = -25
-        //minDecibels: -75, // Def = -85
-        mirror: 0,
-        radial: false,
-        //reflexFit: true,
-        //reflexRatio: .1,
-        //reflexAlpha: .25,
-        //reflexBright: 1,
-        //linearAmplitude: true,
-        linearAmplitude: false,
-        //linearBoost: 4, // 4 is the optimal mid-range value, approximately the same as with "linearAmplitude" disabled. Only works when linearAmplitude: true
-        showBgColor: true,
-        showPeaks: true,
-        trueLeds: true
-      }
+          canvas: document.querySelector(`#audioVisualization${mid} canvas`),
+          height: 80,
+          mode: 2, // This has little impact on performance. The lower the number, the larger the number of bars.
+          maxFPS: this.maxFPS,
+          loRes: this.loRes, //https://github.com/hvianna/audioMotion-analyzer?tab=readme-ov-file#lores-boolean
+          fftSize: 4096, // It has almost no impact on performance. The lower this number, the worse the frequency analysis; at 32, almost all the bars are identical... Optimally, 1024 or more
+          alphaBars: true,
+          noteLabels: false, // It's not really necessary.
+          showScaleX: false, // Removes frequency signatures.
+          showScaleY: false,
+          overlay: true, // Makes the background transparent.
+          bgAlpha: .5, // Background transparency only works with overlay: true.
+          ansiBands: true,
+          barSpace: .5,
+          //channelLayout: 'single',
+          channelLayout: 'dual-combined',
+          colorMode: 'gradient',
+          frequencyScale: 'log',
+          gradient: 'classic',
+          //ledBars: true,
+          //connectSpeakers: false, // Defaults to TRUE
+          lumiBars: false,
+          maxFreq: 5000,
+          minFreq: 125,
+          //maxDecibels: -15, // Def = -25
+          //minDecibels: -75, // Def = -85
+          mirror: 0,
+          radial: false,
+          //reflexFit: true,
+          //reflexRatio: .1,
+          //reflexAlpha: .25,
+          //reflexBright: 1,
+          //linearAmplitude: true,
+          linearAmplitude: false,
+          //linearBoost: 4, // 4 is the optimal mid-range value, approximately the same as with "linearAmplitude" disabled. Only works when linearAmplitude: true
+          showBgColor: true,
+          showPeaks: true,
+          trueLeds: true
+        }
     );
     monitorStream.audioMotion = this;
 
     this.audioMotion.registerGradient( 'myGradient', {
       bgColor: '#34495e', // background color (optional) - defaults to '#111'
-      dir: 'w',           // add this property to create a horizontal gradient (optional)
-      colorStops: [       // list your gradient colors in this array (at least one color is required)
-        'hsl( 0, 100%, 50% )',        // colors can be defined in any valid CSS format
-        { color: 'yellow', pos: .6 }, // in an object, use `pos` to adjust the offset (0 to 1) of a colorStop
-        { color: '#0f0', level: .5 }  // use `level` to set the max bar amplitude (0 to 1) to use this color
+      dir: 'w', // add this property to create a horizontal gradient (optional)
+      colorStops: [ // list your gradient colors in this array (at least one color is required)
+        'hsl( 0, 100%, 50% )', // colors can be defined in any valid CSS format
+        {color: 'yellow', pos: .6}, // in an object, use `pos` to adjust the offset (0 to 1) of a colorStop
+        {color: '#0f0', level: .5} // use `level` to set the max bar amplitude (0 to 1) to use this color
       ]
     });
-    this.audioMotion.setOptions({gradient:"myGradient"});
+    this.audioMotion.setOptions({gradient: "myGradient"});
 
     if (monitorStream.audioTrack) {
       this.connectToMediaStreamSource();
@@ -241,7 +239,7 @@ export class _AudioMotionAnalyzer extends HTMLElement {
     }
   }; // END destroy = function()
 
-  getInfoBlock =  function() {
+  getInfoBlock = function() {
     let info = document.querySelector('[id ^= "monitorStatus'+this.mid+'"] .stream-info-status-track'); // Watch&Montage page
     if (!info) info = document.querySelector('[id ^= "wrapperEventVideo"] .stream-info-status-track'); // Event page
     return info;
@@ -268,7 +266,7 @@ export class _AudioMotionAnalyzer extends HTMLElement {
     }
   };
 
-  connectToMediaStreamSource = async function () {
+  connectToMediaStreamSource = async function() {
     if (!this.audioMotion) return;
     const audioEl = this.getMediaStreamSource();
     if (!audioEl) {
@@ -295,7 +293,7 @@ export class _AudioMotionAnalyzer extends HTMLElement {
       await this.getTracksFromStream(monitorStream);
       return;
     }
-    const source   = audioCtx.createMediaStreamSource(mediaStream);
+    const source = audioCtx.createMediaStreamSource(mediaStream);
     source.connect(this.gainNode);
     this.audioMotion.connectInput(this.gainNode);
     //this.audioMotion.connectOutput(); // This will result in duplicate sound output.
@@ -338,9 +336,9 @@ export class _AudioMotionAnalyzer extends HTMLElement {
       }
     }
     return ready;
-  }
+  };
 
-  listenerVolumechange = function(_this, event){ // Adjust the visualization level according to the stream's volume level
+  listenerVolumechange = function(_this, event) { // Adjust the visualization level according to the stream's volume level
     if (event.target.muted === true) {
       _this.gainNode.gain.value = 0;
     } else {

@@ -1123,11 +1123,24 @@ a.flip {
 
 .tags-container {
   display: flex;
-  border: 1px solid;
-  border-color: #ccc;
+  border: 1px solid var(--gray);
   border-radius: 4px;
   min-height: 35px;
   margin: 0.25rem 1rem 0.25rem 1rem;
+}
+
+.tags-container button {
+  border-top: none;
+  border-bottom: none;
+}
+
+.tags-container button:first-child {
+  margin-left: 0;
+}
+
+.tags-container button:last-child {
+  margin-right: 0;
+  border-right: none
 }
 
 .tag {
@@ -1149,8 +1162,7 @@ a.flip {
 }
 
 .tag-input {
-  height: 30px;
-  margin-left: 8px;
+  height: 100%;
   border: none;
   width: 100%;
 }
@@ -1161,7 +1173,6 @@ a.flip {
 
 .tag-dropdown {
   vertical-align: center;
-  margin-right: 8px;
   display: inline-block;
   flex-grow: 2;
 }

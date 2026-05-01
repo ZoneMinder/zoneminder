@@ -1720,6 +1720,78 @@ video-stream[id^='liveStream'] video{
   padding: 0;
 }
 
+.flex-col-2,
+.flex-col-3 {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.flex-col-2 > *,
+.flex-col-3 > * {
+  display: flex;
+  flex-grow: 1;
+  justify-content: center;
+}
+
+.flex-col-2 > * {
+  min-width: 50%; /* For potential 2 columns, to align them by width (if we don't use "col-md/lg-*") */
+}
+
+.flex-col-3 > * {
+  min-width: 33.33333%; /* For potential 3 columns, to align them by width (if we don't use "col-md/lg-*") */
+}
+
+/* +++ IgorA100 For now, let it be like this here, since it might have to be applied to many pages. https://github.com/ZoneMinder/zoneminder/pull/4752 */
+.user-page fieldset legend {
+  width: auto;
+  padding-inline: 0.5em;
+}
+
+.user-page #header {
+  padding-left: 15px;
+  padding-right: 15px;
+}
+
+.user-page form#contentForm {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-page #content-inner {
+  width: 100%;
+  height: auto;
+  padding: 0 15px 15px 15px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+@media (min-width: 992px) {
+  *[class*="flex-col-"]> *[class*="col-lg"] { /* Fix bootstrap for flex-grow: 1 */
+    max-width: 100%;
+  }
+
+  .user-page .col + *[class*="col-lg"],
+  .user-page *[class*="col-lg"] + .col,
+  .user-page *[class*="col-lg"] + *[class*="col-lg"] {
+    padding-left: 0;
+  }
+}
+
+@media (min-width: 768px) {
+  *[class*="flex-col-"]> .col,
+  *[class*="flex-col-"]> *[class*="col-md"] { /* Fix bootstrap for flex-grow: 1 */
+    max-width: 100%;
+  }
+
+  .user-page .col + .col,
+  .user-page .col + *[class*="col-md"],
+  .user-page *[class*="col-md"] + .col,
+  .user-page *[class*="col-md"] + *[class*="col-md"] {
+    padding-left: 0;
+  }
+}
+/* --- */
+
 /* +++ This block should always be located at the end! */
 .hidden {
     display: none;

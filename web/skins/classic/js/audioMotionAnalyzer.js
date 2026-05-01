@@ -105,6 +105,10 @@ export class _AudioMotionAnalyzer extends HTMLElement {
         return;
       }
     }
+    if (this.initCompleted && !this.audioMotion) {
+      console.log(`AudioMotion reinitialization is not allowed for monitor ID=${this.mid}, because the previous initialization is not yet complete.`);
+      return;
+    }
 
     this.waitingGetTracksFromStream = true;
     this.initCompleted = true;

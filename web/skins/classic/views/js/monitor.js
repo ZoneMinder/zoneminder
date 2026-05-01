@@ -528,7 +528,37 @@ function initPage() {
   if (!isMobile()) initThumbAnimation();
 
   manageChannelStream();
+  checkVerAudioMotion();
 } // end function initPage()
+
+async function checkVerAudioMotion() {
+  const result = await waitUntil(() => window.CURRENT_AUDIO_MOTION_ANALYZER_VERSION, 20000);
+  if (result === false) {
+    console.warn("Unable to obtain the current version number of audio motion analyzer.");
+    return;
+  }
+  const whatDisplayInfo = document.getElementById("WhatDisplayInfo");
+  whatDisplayInfo.classList.remove("text-success");
+  whatDisplayInfo.classList.remove("text-info");
+  whatDisplayInfo.classList.remove("text-danger");
+
+  if (window.SUPPORTED_AUDIO_MOTION_ANALYZER_VERSION === window.CURRENT_AUDIO_MOTION_ANALYZER_VERSION) {
+    whatDisplayInfo.innerHTML = applyTemplateAudioMotionTranslation(audioMotionVersionOK);
+    whatDisplayInfo.classList.add("text-success");
+  } else if (window.CURRENT_AUDIO_MOTION_ANALYZER_VERSION === "NotInstalled") {
+    whatDisplayInfo.innerHTML = applyTemplateAudioMotionTranslation(audioMotionVersionNotInstalled);
+    whatDisplayInfo.classList.add("text-info");
+  } else { //The versions do not match
+    whatDisplayInfo.innerHTML = applyTemplateAudioMotionTranslation(audioMotionVersionWrongVersion);
+    whatDisplayInfo.classList.add("text-danger");
+  }
+}
+
+function applyTemplateAudioMotionTranslation(str) {
+  str = str.replaceAll('{AudioMotionVersionInstalled}', window.CURRENT_AUDIO_MOTION_ANALYZER_VERSION);
+  str = str.replaceAll('{AudioMotionVersionRequired}', window.SUPPORTED_AUDIO_MOTION_ANALYZER_VERSION);
+  return createClickableLink(replaceDoubleTildeToBR(str));
+}
 
 function saveMonitorData(href = '') {
   const alertBlock = $j("#alertSaveMonitorData");

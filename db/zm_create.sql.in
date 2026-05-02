@@ -1312,7 +1312,7 @@ CREATE TABLE Reports (
 
 CREATE TABLE `Tags` (
   `Id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-  `Name` varchar(64) CHARACTER SET latin1 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
+  `Name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
   `CreateDate` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `CreatedBy` int(10) unsigned,
   `LastAssignedDate` dateTime,

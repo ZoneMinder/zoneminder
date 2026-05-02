@@ -337,7 +337,11 @@ LocalCamera::LocalCamera(
     /* RGB24 palette and 24bit target colourspace */
   } else if (palette == V4L2_PIX_FMT_RGB24 && zm_is_rgb24(pixelFormat)) {
     conversion_type = 0;
-    subpixelorder = ZM_SUBPIX_ORDER_BGR;
+    // V4L2_PIX_FMT_RGB24 is byte-order R,G,B in memory (maps to AV_PIX_FMT_RGB24
+    // in getFfPixFormatFromV4lPalette above), so the subpixel order must be RGB.
+    // Setting BGR here was a long-standing bug that swapped red and blue on
+    // RGB24-capture cameras.
+    subpixelorder = ZM_SUBPIX_ORDER_RGB;
     pixelFormat = zm_pixformat_from_colours(colours, subpixelorder);
 
     /* Grayscale palette and grayscale target colourspace */

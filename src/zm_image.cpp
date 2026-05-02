@@ -379,8 +379,9 @@ bool Image::Assign(const AVFrame *frame) {
     }
     PopulateFrame(temp_frame.get());
     temp_frame->pts = frame->pts;
-    u_buffer = temp_frame->data[1];
-    v_buffer = temp_frame->data[2];
+    // u_buffer/v_buffer are not members of Image on master; av_image_copy
+    // reads the planes directly from temp_frame->data, so we don't need to
+    // mirror them onto the Image either.
     av_image_copy(temp_frame->data, temp_frame->linesize,
                   (const uint8_t **)frame->data, frame->linesize,
                   format, width, height);
@@ -765,7 +766,18 @@ void Image::AssignDirect(const AVFrame *frame) {
   linesize = frame->linesize[0];
   allocation = size = av_image_get_buffer_size(static_cast<AVPixelFormat>(frame->format), frame->width, frame->height, 32);
   imagePixFormat = static_cast<AVPixelFormat>(frame->format);
-  zm_colours_from_pixformat(imagePixFormat, colours, subpixelorder);
+  // Derive ZM colours/subpixelorder from the AVPixelFormat. On unsupported
+  // formats the helper leaves the out-params untouched, which would leave the
+  // Image inconsistent with imagePixFormat and the assigned buffer; put it
+  // into a known invalid state instead.
+  if (!zm_colours_from_pixformat(imagePixFormat, colours, subpixelorder)) {
+    Error("AssignDirect: unsupported pixel format %d on frame %dx%d",
+          frame->format, frame->width, frame->height);
+    imagePixFormat = AV_PIX_FMT_NONE;
+    colours = 0;
+    subpixelorder = 0;
+  }
+  holdbuffer = true;
   buffertype = ZM_BUFTYPE_DONTFREE;
   pixels = width * height;
 }

@@ -522,7 +522,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   camera_height = atoi(dbrow[col]);
   col++;
   colours = atoi(dbrow[col]);
-  // colours from DB is legacy {1,3,4}. Derive the actual pixel format.
   col++;
   palette = atoi(dbrow[col]);
   col++;
@@ -1684,7 +1683,7 @@ void Monitor::DumpZoneImage(const char *zone_string) {
     }
   }
 
-  if (zone_image->PixFormat() == AV_PIX_FMT_GRAY8) {
+  if ( zone_image->Colours() == ZM_COLOUR_GRAY8 ) {
     zone_image->Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
   }
 
@@ -1747,7 +1746,7 @@ bool Monitor::CheckSignal(const Image *image) {
   const uint8_t *buffer = image->Buffer();
   int pixels = image->Pixels();
   int width = image->Width();
-  AVPixelFormat pix_fmt = image->PixFormat();
+  int colours = image->Colours();
 
   int index = 0;
   for (int i = 0; i < signal_check_points; i++) {
@@ -1766,24 +1765,24 @@ bool Monitor::CheckSignal(const Image *image) {
       }
     }
 
-    if (pix_fmt == AV_PIX_FMT_GRAY8 || zm_is_yuv420(pix_fmt)) {
+    if (colours == ZM_COLOUR_GRAY8) {
       if (*(buffer+index) != grayscale_val)
         return true;
 
-    } else if (zm_is_rgb24(pix_fmt)) {
-      const uint8_t *ptr = buffer + (index * static_cast<int>(zm_bytes_per_pixel(pix_fmt)));
+    } else if (colours == ZM_COLOUR_RGB24) {
+      const uint8_t *ptr = buffer+(index*colours);
 
-      if (pix_fmt == AV_PIX_FMT_BGR24) {
+      if (usedsubpixorder == ZM_SUBPIX_ORDER_BGR) {
         if ((RED_PTR_BGRA(ptr) != red_val) || (GREEN_PTR_BGRA(ptr) != green_val) || (BLUE_PTR_BGRA(ptr) != blue_val))
           return true;
       } else {
-        /* Assume RGB24 */
+        /* Assume RGB */
         if ((RED_PTR_RGBA(ptr) != red_val) || (GREEN_PTR_RGBA(ptr) != green_val) || (BLUE_PTR_RGBA(ptr) != blue_val))
           return true;
       }
 
-    } else if (zm_is_rgb32(pix_fmt)) {
-      if (pix_fmt == AV_PIX_FMT_ARGB || pix_fmt == AV_PIX_FMT_ABGR) {
+    } else if (colours == ZM_COLOUR_RGB32) {
+      if (usedsubpixorder == ZM_SUBPIX_ORDER_ARGB || usedsubpixorder == ZM_SUBPIX_ORDER_ABGR) {
         if (ARGB_ABGR_ZEROALPHA(*(((const Rgb*)buffer)+index)) != ARGB_ABGR_ZEROALPHA(colour_val))
           return true;
       } else {
@@ -3070,34 +3069,7 @@ bool Monitor::Decode() {
     }
 
     if (!packet->image) {
-      // Use a pipeline-friendly pixel format. Prefer the decoded frame's native
-      // format when Image can represent it (currently YUV 4:2:0 / 4:2:2 planar
-      // including the JPEG full-range variants, GRAY8, RGB24, and RGB32) — both
-      // 4:2:0 and 4:2:2 paths now have full coverage in zm_pixformat /
-      // zm_colours_from_pixformat. Anything outside that set falls back to a
-      // YUV420P conversion via swscale.
-      unsigned int native_colours, native_subpixelorder;
-      AVPixelFormat native_fmt = static_cast<AVPixelFormat>(packet->in_frame->format);
-      const char *native_fmt_name = av_get_pix_fmt_name(native_fmt);
-      if (!native_fmt_name) native_fmt_name = "unknown";
-
-      bool can_passthrough = (native_fmt == AV_PIX_FMT_YUV420P
-                           || native_fmt == AV_PIX_FMT_YUVJ420P
-                           || native_fmt == AV_PIX_FMT_YUV422P
-                           || native_fmt == AV_PIX_FMT_YUVJ422P
-                           || native_fmt == AV_PIX_FMT_GRAY8
-                           || zm_is_rgb24(native_fmt)
-                           || zm_is_rgb32(native_fmt));
-
-      if (can_passthrough && zm_colours_from_pixformat(native_fmt, native_colours, native_subpixelorder)) {
-        Debug(1, "Using native frame format %s", native_fmt_name);
-      } else {
-        Debug(1, "Converting %s to yuv420p for pipeline", native_fmt_name);
-        native_colours = ZM_COLOUR_GRAY8;
-        native_subpixelorder = ZM_SUBPIX_ORDER_YUV420P;
-      }
-
-      packet->image = new Image(camera_width, camera_height, native_colours, native_subpixelorder);
+      packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());
 
       bool have_converter = convert_context || setupConvertContext(packet->in_frame.get(), packet->image);
       if (have_converter) {

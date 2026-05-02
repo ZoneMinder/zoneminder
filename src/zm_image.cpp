@@ -370,8 +370,9 @@ bool Image::Assign(const AVFrame *frame) {
   if (src_fmt == format
       && frame->width == static_cast<int>(width)
       && frame->height == static_cast<int>(height)) {
+    const char *fmt_name = av_get_pix_fmt_name(format);
     Debug(4, "Same format %s %dx%d, using av_image_copy",
-          av_get_pix_fmt_name(format), width, height);
+          fmt_name ? fmt_name : "unknown", width, height);
     av_frame_ptr temp_frame{av_frame_alloc()};
     if (!temp_frame) {
       Error("Unable to allocate destination frame");
@@ -729,7 +730,23 @@ uint8_t* Image::WriteBuffer(
 
   if ( p_width != width || p_height != height || p_colours != colours || p_subpixelorder != subpixelorder ) {
 
-    unsigned int newsize = (p_width * p_height) * p_colours;
+    // Derive size/linesize from the AVPixelFormat. Using p_width * p_colours
+    // is wrong for planar formats: with the GRAY8/YUV420P alias collision,
+    // p_colours=1 for YUV420P/YUV422P, but those formats need ~1.5x/2x more
+    // bytes for the chroma planes.
+    int av_size = av_image_get_buffer_size(p_pixfmt, p_width, p_height, 32);
+    if (av_size < 0) {
+      Error("WriteBuffer: av_image_get_buffer_size failed for fmt=%d %ux%u",
+            p_pixfmt, p_width, p_height);
+      return nullptr;
+    }
+    int av_linesize = av_image_get_linesize(p_pixfmt, p_width, 0);
+    if (av_linesize < 0) {
+      Error("WriteBuffer: av_image_get_linesize failed for fmt=%d width=%u",
+            p_pixfmt, p_width);
+      return nullptr;
+    }
+    unsigned int newsize = static_cast<unsigned int>(av_size);
 
     if ( buffer == nullptr ) {
       AllocImgBuffer(newsize);
@@ -749,7 +766,7 @@ uint8_t* Image::WriteBuffer(
     width = p_width;
     height = p_height;
     colours = p_colours;
-    linesize = p_width * p_colours;
+    linesize = static_cast<unsigned int>(av_linesize);
     subpixelorder = p_subpixelorder;
     imagePixFormat = p_pixfmt;
     pixels = height*width;
@@ -764,22 +781,32 @@ void Image::AssignDirect(const AVFrame *frame) {
   height = frame->height;
   buffer = frame->data[0];
   linesize = frame->linesize[0];
-  allocation = size = av_image_get_buffer_size(static_cast<AVPixelFormat>(frame->format), frame->width, frame->height, 32);
   imagePixFormat = static_cast<AVPixelFormat>(frame->format);
-  // Derive ZM colours/subpixelorder from the AVPixelFormat. On unsupported
-  // formats the helper leaves the out-params untouched, which would leave the
-  // Image inconsistent with imagePixFormat and the assigned buffer; put it
-  // into a known invalid state instead.
-  if (!zm_colours_from_pixformat(imagePixFormat, colours, subpixelorder)) {
-    Error("AssignDirect: unsupported pixel format %d on frame %dx%d",
-          frame->format, frame->width, frame->height);
+
+  // av_image_get_buffer_size returns int (negative on error). Assigning a
+  // negative value into the unsigned size/allocation members would wrap to
+  // huge and break later bounds-dependent code, so check first.
+  int av_size = av_image_get_buffer_size(imagePixFormat, frame->width, frame->height, 32);
+  bool fmt_ok = (av_size >= 0)
+              && zm_colours_from_pixformat(imagePixFormat, colours, subpixelorder);
+  if (!fmt_ok) {
+    Error("AssignDirect: unsupported pixel format %d on frame %dx%d (av_size=%d)",
+          frame->format, frame->width, frame->height, av_size);
+    // Leave the Image in an explicit invalid state — don't keep stale
+    // size/linesize/colours that don't match imagePixFormat.
     imagePixFormat = AV_PIX_FMT_NONE;
     colours = 0;
     subpixelorder = 0;
+    size = 0;
+    allocation = 0;
+    linesize = 0;
+    pixels = 0;
+  } else {
+    allocation = size = static_cast<unsigned int>(av_size);
+    pixels = width * height;
   }
   holdbuffer = true;
   buffertype = ZM_BUFTYPE_DONTFREE;
-  pixels = width * height;
 }
 
 

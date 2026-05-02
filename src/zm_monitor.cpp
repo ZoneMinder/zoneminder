@@ -3069,11 +3069,15 @@ bool Monitor::Decode() {
 
     if (!packet->image) {
       // Use a pipeline-friendly pixel format. Prefer the decoded frame's native
-      // format when Image can represent it with full color (YUV420P, RGB24, RGBA,
-      // GRAY8). For formats like YUVJ422P (MJPEG output) where Image only stores
-      // the Y-plane and drops chroma, convert to YUV420P instead.
+      // format when Image can represent it (currently YUV 4:2:0 / 4:2:2 planar
+      // including the JPEG full-range variants, GRAY8, RGB24, and RGB32) — both
+      // 4:2:0 and 4:2:2 paths now have full coverage in zm_pixformat /
+      // zm_colours_from_pixformat. Anything outside that set falls back to a
+      // YUV420P conversion via swscale.
       unsigned int native_colours, native_subpixelorder;
       AVPixelFormat native_fmt = static_cast<AVPixelFormat>(packet->in_frame->format);
+      const char *native_fmt_name = av_get_pix_fmt_name(native_fmt);
+      if (!native_fmt_name) native_fmt_name = "unknown";
 
       bool can_passthrough = (native_fmt == AV_PIX_FMT_YUV420P
                            || native_fmt == AV_PIX_FMT_YUVJ420P
@@ -3084,9 +3088,9 @@ bool Monitor::Decode() {
                            || zm_is_rgb32(native_fmt));
 
       if (can_passthrough && zm_colours_from_pixformat(native_fmt, native_colours, native_subpixelorder)) {
-        Debug(1, "Using native frame format %s", av_get_pix_fmt_name(native_fmt));
+        Debug(1, "Using native frame format %s", native_fmt_name);
       } else {
-        Debug(1, "Converting %s to yuv420p for pipeline", av_get_pix_fmt_name(native_fmt));
+        Debug(1, "Converting %s to yuv420p for pipeline", native_fmt_name);
         native_colours = ZM_COLOUR_GRAY8;
         native_subpixelorder = ZM_SUBPIX_ORDER_YUV420P;
       }

@@ -58,6 +58,14 @@ TEST_CASE("zm_colours_from_pixformat: maps each supported format", "[pixformat]"
   REQUIRE(c == ZM_COLOUR_GRAY8);  // collision
   REQUIRE(s == ZM_SUBPIX_ORDER_YUVJ420P);
 
+  REQUIRE(zm_colours_from_pixformat(AV_PIX_FMT_YUV422P, c, s));
+  REQUIRE(c == ZM_COLOUR_GRAY8);  // collision: 4:2:2 also aliases to GRAY8
+  REQUIRE(s == ZM_SUBPIX_ORDER_YUV422P);
+
+  REQUIRE(zm_colours_from_pixformat(AV_PIX_FMT_YUVJ422P, c, s));
+  REQUIRE(c == ZM_COLOUR_GRAY8);  // collision
+  REQUIRE(s == ZM_SUBPIX_ORDER_YUVJ422P);
+
   REQUIRE(zm_colours_from_pixformat(AV_PIX_FMT_RGB24, c, s));
   REQUIRE(c == ZM_COLOUR_RGB24);
   REQUIRE(s == ZM_SUBPIX_ORDER_RGB);
@@ -95,6 +103,8 @@ TEST_CASE("round-trip: from_colours(colours_from_pixformat(fmt)) == fmt", "[pixf
     AV_PIX_FMT_GRAY8,
     AV_PIX_FMT_YUV420P,
     AV_PIX_FMT_YUVJ420P,
+    AV_PIX_FMT_YUV422P,
+    AV_PIX_FMT_YUVJ422P,
     AV_PIX_FMT_RGB24,
     AV_PIX_FMT_BGR24,
     AV_PIX_FMT_RGBA,

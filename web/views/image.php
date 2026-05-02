@@ -306,9 +306,17 @@ if ( empty($_REQUEST['path']) ) {
           # If we store Frames as jpgs, then we don't store an alarmed snapshot
           $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d', $Frame->FrameId()).'-'.$show.'.jpg';
         } else {
-          header('HTTP/1.0 404 Not Found');
-          ZM\Debug('No alarm jpg found for event '.$_REQUEST['eid'].' at '.$path);
-          return;
+          # No individual frame JPEGs — fall back to snapshot if available
+          $snapshot_path = $Event->Path().'/snapshot.jpg';
+          if ( file_exists($snapshot_path) ) {
+            ZM\Debug('No alarm jpg for event '.$_REQUEST['eid'].', falling back to snapshot');
+            $path = $snapshot_path;
+            $Frame->FrameId('snapshot');
+          } else {
+            header('HTTP/1.0 404 Not Found');
+            ZM\Debug('No alarm jpg found for event '.$_REQUEST['eid'].' at '.$path);
+            return;
+          }
         }
       } else {
         $Frame = new ZM\Frame();

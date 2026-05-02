@@ -863,6 +863,44 @@ void Event::Run() {
       packetqueue->wait_for(Microseconds(10000));
     }
   }  // end while
+
+  // If there were alarm frames but no alarm image was written (e.g. because all alarm
+  // packets had no decoded image — common with ONVIF-triggered alarms in
+  // DECODING_KEYFRAMES mode), fall back to the snapshot as the alarm image.
+  if (alarm_frames > 0 && !alarm_frame_written && snapshot_file_written) {
+    Debug(1, "Event %" PRIu64 ": %d alarm frame(s) but no alarm image written (no decoded image available for any alarm frame). Using snapshot as alarm image.",
+          id, alarm_frames);
+    if (link(snapshot_file.c_str(), alarm_file.c_str()) != 0) {
+      // Hard-link failed (e.g. cross-device) — fall back to a byte-for-byte copy.
+      if (FILE *src = fopen(snapshot_file.c_str(), "rb")) {
+        if (FILE *dst = fopen(alarm_file.c_str(), "wb")) {
+          char buf[8192];
+          size_t n;
+          bool write_ok = true;
+          while ((n = fread(buf, 1, sizeof(buf), src)) > 0) {
+            if (fwrite(buf, 1, n, dst) != n) {
+              Error("Event %" PRIu64 ": error writing alarm image: %s", id, strerror(errno));
+              write_ok = false;
+              break;
+            }
+          }
+          fclose(dst);
+          if (write_ok)
+            alarm_frame_written = true;
+          else
+            unlink(alarm_file.c_str());  // Remove incomplete file
+        } else {
+          Error("Event %" PRIu64 ": failed to open alarm image for writing: %s", id, strerror(errno));
+        }
+        fclose(src);
+      } else {
+        Error("Event %" PRIu64 ": failed to open snapshot for reading: %s", id, strerror(errno));
+      }
+    } else {
+      alarm_frame_written = true;
+    }
+  }
+
   Debug(1, "Event::Run %" PRIu64 ": exiting, terminate_=%d zm_terminate=%d", id, terminate_.load(), zm_terminate);
 }  // end Run()
 

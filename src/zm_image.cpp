@@ -1726,9 +1726,21 @@ void Image::Overlay( const Image &image ) {
           width, height, image.width, image.height);
   }
 
-  if ( colours == image.colours && subpixelorder != image.subpixelorder ) {
-    Warning("Attempt to overlay images of same format but with different subpixel order %d != %d.",
-            subpixelorder, image.subpixelorder);
+  // Pre-AVPixelFormat the (colours, subpixelorder) pair was the canonical
+  // format identifier and a colours-match-but-subpixelorder-mismatch warning
+  // was meaningful. With imagePixFormat now canonical the old check fires
+  // false positives whenever GRAY8 (colours=1, subpixelorder=NONE=2) is
+  // overlaid onto YUV420P (colours=1 due to the GRAY8/YUV420P alias
+  // collision, subpixelorder=YUV420P=11) — the dispatch below handles this
+  // case correctly via zm_bytes_per_pixel(...) == 1. Only warn if the
+  // AVPixelFormat actually matches but the ZM metadata diverges, which would
+  // indicate a real format-tracking bug.
+  if (imagePixFormat == image.imagePixFormat
+      && (colours != image.colours || subpixelorder != image.subpixelorder)) {
+    Warning("Overlay: imagePixFormat matches (%s) but ZM (colours,subpixelorder) "
+            "diverges: (%u,%u) vs (%u,%u) — stale metadata?",
+            av_get_pix_fmt_name(imagePixFormat),
+            colours, subpixelorder, image.colours, image.subpixelorder);
   }
 
   /* Grayscale/YUV420 on top of grayscale/YUV420 - complete */

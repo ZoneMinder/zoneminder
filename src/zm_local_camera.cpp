@@ -323,32 +323,25 @@ LocalCamera::LocalCamera(
   /* Try to find a match for the selected palette and target colourspace */
 
   /* RGB32 palette and 32bit target colourspace */
-  if (palette == V4L2_PIX_FMT_RGB32 && zm_is_rgb32(pixelFormat)) {
+  if (palette == V4L2_PIX_FMT_RGB32 && colours == ZM_COLOUR_RGB32) {
     conversion_type = 0;
     subpixelorder = ZM_SUBPIX_ORDER_ARGB;
-    pixelFormat = zm_pixformat_from_colours(colours, subpixelorder);
 
     /* BGR32 palette and 32bit target colourspace */
-  } else if (palette == V4L2_PIX_FMT_BGR32 && zm_is_rgb32(pixelFormat)) {
+  } else if (palette == V4L2_PIX_FMT_BGR32 && colours == ZM_COLOUR_RGB32) {
     conversion_type = 0;
     subpixelorder = ZM_SUBPIX_ORDER_BGRA;
-    pixelFormat = zm_pixformat_from_colours(colours, subpixelorder);
 
     /* RGB24 palette and 24bit target colourspace */
-  } else if (palette == V4L2_PIX_FMT_RGB24 && zm_is_rgb24(pixelFormat)) {
+  } else if (palette == V4L2_PIX_FMT_RGB24 && colours == ZM_COLOUR_RGB24) {
     conversion_type = 0;
-    // V4L2_PIX_FMT_RGB24 is byte-order R,G,B in memory (maps to AV_PIX_FMT_RGB24
-    // in getFfPixFormatFromV4lPalette above), so the subpixel order must be RGB.
-    // Setting BGR here was a long-standing bug that swapped red and blue on
-    // RGB24-capture cameras.
-    subpixelorder = ZM_SUBPIX_ORDER_RGB;
-    pixelFormat = zm_pixformat_from_colours(colours, subpixelorder);
+    conversion_type = 0;
+    subpixelorder = ZM_SUBPIX_ORDER_BGR;
 
     /* Grayscale palette and grayscale target colourspace */
-  } else if (palette == V4L2_PIX_FMT_GREY && pixelFormat == AV_PIX_FMT_GRAY8) {
+  } else if (palette == V4L2_PIX_FMT_GREY && colours == ZM_COLOUR_GRAY8) {
     conversion_type = 0;
     subpixelorder = ZM_SUBPIX_ORDER_NONE;
-    pixelFormat = zm_pixformat_from_colours(colours, subpixelorder);
     /* Unable to find a solution for the selected palette and target colourspace. Conversion required. Notify the user of performance penalty */
   } else {
     if (capture) {
@@ -360,18 +353,15 @@ LocalCamera::LocalCamera(
     /* Try using swscale for the conversion */
     conversion_type = 1;
     Debug(2, "Using swscale for image conversion");
-    if (zm_is_rgb32(pixelFormat)) {
+    if (colours == ZM_COLOUR_RGB32) {
       subpixelorder = ZM_SUBPIX_ORDER_RGBA;
       imagePixFormat = AV_PIX_FMT_RGBA;
-      pixelFormat = AV_PIX_FMT_RGBA;
-    } else if (zm_is_rgb24(pixelFormat)) {
+    } else if (colours == ZM_COLOUR_RGB24) {
       subpixelorder = ZM_SUBPIX_ORDER_RGB;
       imagePixFormat = AV_PIX_FMT_RGB24;
-      pixelFormat = AV_PIX_FMT_RGB24;
-    } else if (pixelFormat == AV_PIX_FMT_GRAY8) {
+    } else if (colours == ZM_COLOUR_GRAY8) {
       subpixelorder = ZM_SUBPIX_ORDER_NONE;
       imagePixFormat = AV_PIX_FMT_GRAY8;
-      pixelFormat = AV_PIX_FMT_GRAY8;
     } else {
       Panic("Unexpected colours: %u",colours);
     }
@@ -386,7 +376,7 @@ LocalCamera::LocalCamera(
       }
     }
     /* Our YUYV->Grayscale conversion is a lot faster than swscale's */
-    if (pixelFormat == AV_PIX_FMT_GRAY8 && palette == V4L2_PIX_FMT_YUYV) {
+    if (colours == ZM_COLOUR_GRAY8 && palette == V4L2_PIX_FMT_YUYV) {
       conversion_type = 2;
     }
 
@@ -398,15 +388,13 @@ LocalCamera::LocalCamera(
 
     if (conversion_type == 2) {
       Debug(2,"Using ZM for image conversion");
-      if ( palette == V4L2_PIX_FMT_RGB32 && pixelFormat == AV_PIX_FMT_GRAY8 ) {
+      if ( palette == V4L2_PIX_FMT_RGB32 && colours == ZM_COLOUR_GRAY8 ) {
         conversion_fptr = &std_convert_argb_gray8;
         subpixelorder = ZM_SUBPIX_ORDER_NONE;
-        pixelFormat = zm_pixformat_from_colours(colours, subpixelorder);
-      } else if (palette == V4L2_PIX_FMT_BGR32 && pixelFormat == AV_PIX_FMT_GRAY8) {
+      } else if (palette == V4L2_PIX_FMT_BGR32 && colours == ZM_COLOUR_GRAY8) {
         conversion_fptr = &std_convert_bgra_gray8;
         subpixelorder = ZM_SUBPIX_ORDER_NONE;
-        pixelFormat = zm_pixformat_from_colours(colours, subpixelorder);
-      } else if (palette == V4L2_PIX_FMT_YUYV && pixelFormat == AV_PIX_FMT_GRAY8) {
+      } else if (palette == V4L2_PIX_FMT_YUYV && colours == ZM_COLOUR_GRAY8) {
         /* Fast YUYV->Grayscale conversion by extracting the Y channel */
         if (config.cpu_extensions && sse_version >= 35) {
           conversion_fptr = &ssse3_convert_yuyv_gray8;
@@ -416,31 +404,24 @@ LocalCamera::LocalCamera(
           Debug(2,"Using standard YUYV->grayscale fast conversion");
         }
         subpixelorder = ZM_SUBPIX_ORDER_NONE;
-        pixelFormat = zm_pixformat_from_colours(colours, subpixelorder);
-      } else if (palette == V4L2_PIX_FMT_YUYV && zm_is_rgb24(pixelFormat)) {
+      } else if (palette == V4L2_PIX_FMT_YUYV && colours == ZM_COLOUR_RGB24) {
         conversion_fptr = &zm_convert_yuyv_rgb;
         subpixelorder = ZM_SUBPIX_ORDER_RGB;
-        pixelFormat = zm_pixformat_from_colours(colours, subpixelorder);
-      } else if (palette == V4L2_PIX_FMT_YUYV && zm_is_rgb32(pixelFormat)) {
+      } else if (palette == V4L2_PIX_FMT_YUYV && colours == ZM_COLOUR_RGB32) {
         conversion_fptr = &zm_convert_yuyv_rgba;
         subpixelorder = ZM_SUBPIX_ORDER_RGBA;
-        pixelFormat = zm_pixformat_from_colours(colours, subpixelorder);
-      } else if (palette == V4L2_PIX_FMT_RGB555 && zm_is_rgb24(pixelFormat)) {
+      } else if (palette == V4L2_PIX_FMT_RGB555 && colours == ZM_COLOUR_RGB24) {
         conversion_fptr = &zm_convert_rgb555_rgb;
         subpixelorder = ZM_SUBPIX_ORDER_RGB;
-        pixelFormat = zm_pixformat_from_colours(colours, subpixelorder);
-      } else if (palette == V4L2_PIX_FMT_RGB555 && zm_is_rgb32(pixelFormat)) {
+      } else if (palette == V4L2_PIX_FMT_RGB555 && colours == ZM_COLOUR_RGB32) {
         conversion_fptr = &zm_convert_rgb555_rgba;
         subpixelorder = ZM_SUBPIX_ORDER_RGBA;
-        pixelFormat = zm_pixformat_from_colours(colours, subpixelorder);
-      } else if (palette == V4L2_PIX_FMT_RGB565 && zm_is_rgb24(pixelFormat)) {
+      } else if (palette == V4L2_PIX_FMT_RGB565 && colours == ZM_COLOUR_RGB24) {
         conversion_fptr = &zm_convert_rgb565_rgb;
         subpixelorder = ZM_SUBPIX_ORDER_RGB;
-        pixelFormat = zm_pixformat_from_colours(colours, subpixelorder);
-      } else if (palette == V4L2_PIX_FMT_RGB565 && zm_is_rgb32(pixelFormat)) {
+      } else if (palette == V4L2_PIX_FMT_RGB565 && colours == ZM_COLOUR_RGB32) {
         conversion_fptr = &zm_convert_rgb565_rgba;
         subpixelorder = ZM_SUBPIX_ORDER_RGBA;
-        pixelFormat = zm_pixformat_from_colours(colours, subpixelorder);
       } else {
         Fatal("Unable to find a suitable format conversion for the selected palette and target colorspace.");
       }
@@ -897,12 +878,11 @@ uint32_t LocalCamera::AutoSelectFormat(int p_colours) {
   int nIndexUsed = -1;
   unsigned int n_preferedformats = 0;
   const uint32_t* preferedformats;
-  AVPixelFormat p_pixfmt = zm_db_colours_to_pixformat(p_colours);
-  if ( zm_is_rgb32(p_pixfmt) ) {
+  if ( p_colours == ZM_COLOUR_RGB32 ) {
     /* 32bit */
     preferedformats = prefered_rgb32_formats;
     n_preferedformats = sizeof(prefered_rgb32_formats) / sizeof(uint32_t);
-  } else if ( p_pixfmt == AV_PIX_FMT_GRAY8 ) {
+  } else if ( p_colours == ZM_COLOUR_GRAY8 ) {
     /* Grayscale */
     preferedformats = prefered_gray8_formats;
     n_preferedformats = sizeof(prefered_gray8_formats) / sizeof(uint32_t);

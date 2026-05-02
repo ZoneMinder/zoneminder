@@ -145,19 +145,16 @@ LibvlcCamera::LibvlcCamera(
   mOptArgV = nullptr;
 
   /* Has to be located inside the constructor so other components such as zma will receive correct colours and subpixel order */
-  if ( zm_is_rgb32(pixelFormat) ) {
+  if ( colours == ZM_COLOUR_RGB32 ) {
     subpixelorder = ZM_SUBPIX_ORDER_BGRA;
-    pixelFormat = zm_pixformat_from_colours(colours, subpixelorder);
     mTargetChroma = "RV32";
     mBpp = 4;
-  } else if ( zm_is_rgb24(pixelFormat) ) {
+  } else if ( colours == ZM_COLOUR_RGB24 ) {
     subpixelorder = ZM_SUBPIX_ORDER_BGR;
-    pixelFormat = zm_pixformat_from_colours(colours, subpixelorder);
     mTargetChroma = "RV24";
     mBpp = 3;
-  } else if ( pixelFormat == AV_PIX_FMT_GRAY8 ) {
+  } else if ( colours == ZM_COLOUR_GRAY8 ) {
     subpixelorder = ZM_SUBPIX_ORDER_NONE;
-    pixelFormat = zm_pixformat_from_colours(colours, subpixelorder);
     mTargetChroma = "GREY";
     mBpp = 1;
   } else {

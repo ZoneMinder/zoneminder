@@ -117,18 +117,15 @@ VncCamera::VncCamera(
          mPort(port),
          mUser(user),
 mPass(pass) {
-  if (zm_is_rgb32(pixelFormat)) {
+  if (colours == ZM_COLOUR_RGB32) {
     subpixelorder = ZM_SUBPIX_ORDER_RGBA;
     mImgPixFmt = AV_PIX_FMT_RGBA;
-    pixelFormat = AV_PIX_FMT_RGBA;
-  } else if (zm_is_rgb24(pixelFormat)) {
+  } else if (colours == ZM_COLOUR_RGB24) {
     subpixelorder = ZM_SUBPIX_ORDER_RGB;
     mImgPixFmt = AV_PIX_FMT_RGB24;
-    pixelFormat = AV_PIX_FMT_RGB24;
-  } else if (pixelFormat == AV_PIX_FMT_GRAY8) {
+  } else if (colours == ZM_COLOUR_GRAY8) {
     subpixelorder = ZM_SUBPIX_ORDER_NONE;
     mImgPixFmt = AV_PIX_FMT_GRAY8;
-    pixelFormat = AV_PIX_FMT_GRAY8;
   } else {
     Panic("Unexpected colours: %d", colours);
   }

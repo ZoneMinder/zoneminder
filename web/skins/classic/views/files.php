@@ -71,10 +71,11 @@ getBodyTopHTML();
 echo getNavBarHTML();
 ?>
   <div id="page">
-    <div id="content">
-      <form id="filesForm" name="filesForm" method="post" action="?view=files&path=<?php echo urlencode($path); ?>">
-        <div id="toolbar">
-          <div class="path">
+    <div id="content" class="row flex-nowrap">
+      <div class="col">
+        <form id="filesForm" name="filesForm" method="post" action="?view=files&path=<?php echo urlencode($path); ?>">
+          <div id="toolbar">
+            <div class="path">
 <?php
 $files = array();
 $folders = array();
@@ -101,24 +102,24 @@ if ($path) {
   } 
 } # end if path
 ?>
-          </div><!--path-->
-          <div id="contentButtons" class='rightInFlexContainer'>
-            <button type="submit" name="action" value="delete" disabled="disabled">
-            <?php echo translate('Delete') ?>
-            </button>
-          </div>
-        </div><!--toolbar-->
-        <div id="inner-content">
-        <table id="contentTable" class="major">
-          <thead class="thead-highlight">
-            <tr>
-              <th class="colSelect"><input type="checkbox" name="toggleCheck" value="1" data-checkbox-name="files[]" data-on-click-this="updateFormCheckboxesByName"></th>
-              <th class="colName"><?php echo translate('Filename') ?></th>
-              <th class="colMtime"><?php echo translate('Last Modified') ?></th>
-              <th class="colSize"><?php echo translate('Size') ?></th>
-            </tr>
-          </thead>
-          <tbody>
+            </div><!--path-->
+            <div id="contentButtons" class='rightInFlexContainer'>
+              <button type="submit" name="action" value="delete" disabled="disabled">
+              <?php echo translate('Delete') ?>
+              </button>
+            </div>
+          </div><!--toolbar-->
+          <div id="inner-content" class="fixed-table-body">
+            <table id="contentTable" class="major table-striped">
+              <thead class="thead-highlight">
+                <tr>
+                  <th class="colSelect"><input type="checkbox" name="toggleCheck" value="1" data-checkbox-name="files[]" data-on-click-this="updateFormCheckboxesByName"></th>
+                  <th class="colName"><?php echo translate('Filename') ?></th>
+                  <th class="colMtime"><?php echo translate('Last Modified') ?></th>
+                  <th class="colSize"><?php echo translate('Size') ?></th>
+                </tr>
+              </thead>
+              <tbody>
 <?php
 function get_dir_size($dir_path) {
   global $storage_areas_by_path;
@@ -199,9 +200,11 @@ foreach ($files as $file) {
 }
 
 ?>
-          </tbody>
-        </table>
-      </form>
+              </tbody>
+            </table>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 <?php xhtmlFooter() ?>

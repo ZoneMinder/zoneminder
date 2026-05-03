@@ -3,6 +3,8 @@
 * IgorA100 2026
 */
 
+window.SUPPORTED_AUDIO_MOTION_ANALYZER_VERSION = '4.5.4';
+
 var AudioMotionAnalyzer = null;
 
 function checkAudioMotionEnabled() {
@@ -16,7 +18,13 @@ if (checkAudioMotionEnabled()) {
     } else {
       AudioMotionAnalyzer = window.AudioMotionAnalyzer;
     }
+    window.CURRENT_AUDIO_MOTION_ANALYZER_VERSION = AudioMotionAnalyzer.version;
+  }).catch((error) => {
+    console.error('Failed to load audioMotion-analyzer module:', error);
+    window.CURRENT_AUDIO_MOTION_ANALYZER_VERSION = "LoadFailed";
   });
+} else {
+  window.CURRENT_AUDIO_MOTION_ANALYZER_VERSION = "NotInstalled";
 }
 //import {AudioMotionAnalyzer} from '../assets/audioMotion-analyzer/src/audioMotion-analyzer.js';
 
@@ -104,6 +112,10 @@ export class _AudioMotionAnalyzer extends HTMLElement {
         console.log(`AudioMotion reinitialization for the same player "${streamPlayer}" is not allowed for monitor ID=${this.mid}`);
         return;
       }
+    }
+    if (this.initCompleted && !this.audioMotion) {
+      console.log(`AudioMotion reinitialization is not allowed for monitor ID=${this.mid}, because the previous initialization is not yet complete.`);
+      return;
     }
 
     this.waitingGetTracksFromStream = true;

@@ -2842,6 +2842,13 @@ function destroyAudioMotion(mid) {
   }
 };
 
+function pauseAudioMotion(mid) {
+  const audioMotion = document.querySelector('audio-motion#audioVisualization' + mid);
+  if (audioMotion && audioMotion.pause) {
+    audioMotion.pause();
+  }
+};
+
 /*IMPORTANT DO NOT CALL WITHOUT CONSCIOUS NEED!!!*/
 // https://habr.com/ru/companies/timeweb/articles/667148/
 async function getTracksFromStream(videoFeedStream) {
@@ -3128,6 +3135,15 @@ const getAVStream = function(mid) {
   This.getElement() may need to be changed, but the implications of such a change need to be analyzed
   */
   return (document.querySelector('#liveStream'+mid + ' video') || document.getElementById('liveStream'+mid));
+};
+
+const replaceDoubleTildeToBR = function(str) {
+  return (str.replaceAll("~~", "<br/>"));
+};
+
+const createClickableLink = function(text) {
+  const text1=text.replace(/(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig, '<a target="_blank" href="$1">$1</a>');
+  return text1.replace(/(^|[^\/])(www\.[\S]+(\b|$))/gim, '$1<a target="_blank" href="http://$2">$2</a>');
 };
 
 // https://stackoverflow.com/a/69273090

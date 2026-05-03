@@ -1660,7 +1660,7 @@ function initPage() {
           const tagInput = $j(this);
           tagValue = tagInput.val().trim();
         }
-        addOrCreateTag(tagValue);
+        addOrCreateTag(tagValue, event.key);
       } else if (event.key === " " || event.key === ",") {
         const tagInput = $j(this);
         const tagValue = tagInput.val().trim();
@@ -1668,6 +1668,26 @@ function initPage() {
         event.preventDefault(); // Prevent the key from being entered in the input field
       } else if (event.key === "Escape") {
         $j("#tagInput").blur();
+      } else if (event.key === "ArrowLeft") {
+        if (ctrled) {
+          var tagValue = $hlight.text();
+          if (!tagValue) {
+            const tagInput = $j(this);
+            tagValue = tagInput.val().trim();
+          }
+          addOrCreateTag(tagValue, event.key);
+          tagAndPrev(true);
+        }
+      } else if (event.key === "ArrowRight") {
+        if (ctrled) {
+          var tagValue = $hlight.text();
+          if (!tagValue) {
+            const tagInput = $j(this);
+            tagValue = tagInput.val().trim();
+          }
+          addOrCreateTag(tagValue, event.key);
+          tagAndNext(true);
+        }
       }
     });
   }
@@ -1775,14 +1795,14 @@ function initPage() {
   if (toggleZonesButton) toggleZonesButton.addEventListener('click', toggleZones);
 } // end initPage
 
-function addOrCreateTag(tagValue) {
+function addOrCreateTag(tagValue, buttonPressed = null) {
   const tagNames = availableTags.map((t) => t.Name.toLowerCase());
   const index = tagNames.indexOf(tagValue.toLowerCase());
   if (index > -1) {
-    addTag(availableTags[index]);
+    addTag(availableTags[index], buttonPressed);
     $j('.tag-dropdown-content').hide();
   } else if (tagValue.trim().length > 0) {
-    createTag(tagValue);
+    createTag(tagValue, buttonPressed);
   }
 }
 
@@ -1835,7 +1855,7 @@ function formatTag(tag) {
   $j('.tag-dropdown').before(tagElement);
 }
 
-function addTag(tag) {
+function addTag(tag, buttonPressed = null) {
   if (tag && (tag.Name.trim() !== '') && !isDup(tag.Name)) {
     $j.getJSON(thisUrl + '?request=event&action=addtag&tid=' + tag.Id + '&id=' + eventData.Id)
         .done(function(data) {
@@ -1845,6 +1865,7 @@ function addTag(tag) {
           // Move the added tag to the front(top) of the availableTags array
           const index = availableTags.map((t) => t.Id).indexOf(tag.Id);
           availableTags.splice(0, 0, availableTags.splice(index, 1)[0]);
+          if (buttonPressed == "Enter") $j('#tagInput').focus();
         })
         .fail(logAjaxFail);
   } else {
@@ -1867,7 +1888,7 @@ function removeTag(tag) {
       .fail(logAjaxFail);
 }
 
-function createTag(tagName) {
+function createTag(tagName, buttonPressed = null) {
   $j.getJSON(thisUrl + '?request=tags&action=createtag&tname=' + tagName)
       .done(function(data) {
         if (data.response.length > 0) {
@@ -1877,6 +1898,7 @@ function createTag(tagName) {
           }
           addTag(tag);
         }
+        if (buttonPressed == "Enter") $j('#tagInput').focus();
       })
       .fail(logAjaxFail);
 }

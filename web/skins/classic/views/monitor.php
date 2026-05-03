@@ -1255,8 +1255,9 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
               <label><?php echo translate('Show'); echo makeHelpLink('OPTIONS_WHATTODISPLAY') ?> </label>
               <?php if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED)
                       echo htmlSelect('newMonitor[WhatDisplay]', $whatDisplay, $monitor->WhatDisplay());
-	                else
-	                  echo '<span class="text-info">' . translate('RequiresAudioMotionEnabled') . '</span>';
+                    else
+                      echo '<span class="text-info">' . translate('RequiresAudioMotionEnabled') . '</span>';
+                    echo '<div id="WhatDisplayInfo" class="form-text"></div>';
               ?>
             </li>
             <li class="RTSPServer">

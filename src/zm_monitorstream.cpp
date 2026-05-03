@@ -634,7 +634,7 @@ void MonitorStream::runStream() {
       if (!was_paused) {
         int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
         Debug(1, "Saving paused image from index %d",index);
-        paused_image = new Image(*monitor->image_buffer[index]);
+        paused_image = new Image(*monitor->ReadShmFrame(index));
         paused_timestamp = SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index]));
       }
     } else if (paused_image) {
@@ -747,12 +747,12 @@ void MonitorStream::runStream() {
             send_image = monitor->GetAlarmImage();
             if (!send_image) {
               Debug(1, "Falling back");
-              send_image = monitor->image_buffer[index];
+              send_image = monitor->ReadShmFrame(index);
             }
           } else {
             //AVPixelFormat pixformat = monitor->image_pixelformats[index];
             //Debug(1, "Sending regular image index %d, pix format is %d %s", index, pixformat, av_get_pix_fmt_name(pixformat));
-            send_image = monitor->image_buffer[index];
+            send_image = monitor->ReadShmFrame(index);
           }
 
           if (!sendFrame(send_image, last_frame_timestamp)) {
@@ -820,7 +820,7 @@ void MonitorStream::runStream() {
 
             temp_image_buffer[temp_index].timestamp =
               SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index]));
-            monitor->image_buffer[index]->WriteJpeg(temp_image_buffer[temp_index].file_name, config.jpeg_file_quality);
+            monitor->ReadShmFrame(index)->WriteJpeg(temp_image_buffer[temp_index].file_name, config.jpeg_file_quality);
             temp_write_index = MOD_ADD(temp_write_index, 1, temp_image_buffer_count);
             if (temp_write_index == temp_read_index) {
               // Go back to live viewing
@@ -976,7 +976,7 @@ void MonitorStream::SingleImage(int scale) {
   int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
   AVPixelFormat pixformat = monitor->image_pixelformats[index];
   Debug(1, "Sending regular image index %d, pix format is %d %s", index, pixformat, av_get_pix_fmt_name(pixformat));
-  Image *snap_image = monitor->image_buffer[index];
+  Image *snap_image = monitor->ReadShmFrame(index);
   if (!config.timestamp_on_capture) {
     monitor->TimestampImage(snap_image,
                             SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index])));

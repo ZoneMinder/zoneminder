@@ -985,6 +985,16 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   bool CheckSignal( const Image *image );
   bool Analyse();
   bool setupConvertContext(const AVFrame *input_frame, const Image *image);
+  // Write capture_image into image_buffer[index] without conversion and
+  // record its AVPixelFormat in image_pixelformats[index] so reading
+  // processes can adopt that format via ReadShmFrame.
+  void WriteShmFrame(unsigned int index, Image *capture_image);
+
+  // Read-side counterpart: ensures image_buffer[index]'s metadata matches
+  // the format zmc wrote via image_pixelformats[index] before returning
+  // it. Use this from zms / zma / event paths instead of touching
+  // image_buffer[index] directly.
+  Image *ReadShmFrame(unsigned int index);
   void applyOrientation(Image *image);
   bool applyDeinterlacing(std::shared_ptr<ZMPacket> &packet, Image *capture_image);
   bool Decode();

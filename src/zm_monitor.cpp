@@ -1120,10 +1120,22 @@ bool Monitor::connect() {
 
   image_buffer.resize(image_buffer_count);
   for (int32_t i = 0; i < image_buffer_count; i++) {
-    image_buffer[i] = new Image(width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*image_size]));
+    // The initial format is a placeholder. The actual SHM bytes can be in
+    // any AVPixelFormat zm_pixformat supports — zmc records the per-slot
+    // format via image_pixelformats[index] in WriteShmFrame, and ReadShmFrame
+    // applies it to image_buffer[i] before each consumer access. We pass
+    // image_size as the allocation upper bound so any format up to that
+    // byte count fits the held SHM slot.
+    image_buffer[i] = new Image(width, height,
+                                 ZM_COLOUR_YUV420P, ZM_SUBPIX_ORDER_YUV420P,
+                                 &(shared_images[i*image_size]),
+                                 image_size, 0);
     image_buffer[i]->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
   }
-  alarm_image.AssignDirect(width, height, camera->Colours(), camera->SubpixelOrder(),
+  // alarm_image follows the same per-slot format convention. Initial format
+  // is a placeholder; consumers should AVPixFormat()-sync from
+  // image_pixelformats[alarm_index] when reading via GetAlarmImage().
+  alarm_image.AssignDirect(width, height, ZM_COLOUR_YUV420P, ZM_SUBPIX_ORDER_YUV420P,
                            &(shared_images[image_buffer_count*image_size]),
                            image_size,
                            ZM_BUFTYPE_DONTFREE
@@ -1132,7 +1144,14 @@ bool Monitor::connect() {
   if (alarm_image.Buffer() + image_size > mem_ptr + mem_size) {
     Warning("We will exceed memsize by %td bytes!", (alarm_image.Buffer() + image_size) - (mem_ptr + mem_size));
   }
-  image_pixelformats = (AVPixelFormat *)(shared_images + (image_buffer_count*image_size));
+  // Layout in SHM is: image_buffer_count*image_size for image_buffer slots,
+  // then image_buffer_count*image_size for alarm_image slots, THEN the
+  // image_pixelformats[] array (mem_size at line ~1002 reserves the space).
+  // Placing it at +1*image_buffer_count*image_size collides with alarm_image's
+  // buffer region — zmc's writes to image_pixelformats[index] corrupt the
+  // alarm image, and zms reads alarm-image bytes back as AVPixelFormat enum
+  // values, producing per-frame "different format every slot" garble.
+  image_pixelformats = (AVPixelFormat *)(shared_images + (2 * image_buffer_count * image_size));
 
   if (purpose == CAPTURE) {
     memset(mem_ptr, 0, mem_size);
@@ -1226,6 +1245,11 @@ bool Monitor::connect() {
     Error("Shared data not initialised by capture daemon for monitor %s", name.c_str());
     return false;
   }
+  // No zms-side per-slot pixformat adoption needed: image_buffer was
+  // constructed above with the same hardcoded YUV420P that zmc uses, so
+  // both processes interpret the SHM bytes the same way without consulting
+  // the image_pixelformats[] array (which still records the actual format
+  // zmc wrote, kept for diagnostic visibility).
 
   // We set these here because otherwise the first fps calc is meaningless
   last_fps_time = std::chrono::system_clock::now();
@@ -2696,7 +2720,7 @@ int Monitor::Capture() {
     shared_data->signal = false;
     shared_data->last_write_index = index;
     shared_data->last_write_time = shared_timestamps[index].tv_sec;
-    image_buffer[index]->Assign(*capture_image);
+    WriteShmFrame(index, capture_image);
     shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
     delete capture_image;
     shared_data->image_count++;
@@ -2832,6 +2856,33 @@ bool Monitor::setupConvertContext(const AVFrame *input_frame, const Image *image
     }
   }
   return (convert_context != nullptr);
+}
+
+void Monitor::WriteShmFrame(unsigned int index, Image *capture_image) {
+  // No conversion at the SHM-write side. zmc records the format the bytes
+  // were actually written in via image_pixelformats[index]; consumers in
+  // other processes (zms etc.) sync image_buffer[index]->AVPixFormat() from
+  // that array before reading via ReadShmFrame, so the SHM transports any
+  // format Image can represent without a sws_scale step. This is the
+  // central no-conversion promise of the AVPixelFormat migration.
+  image_buffer[index]->Assign(*capture_image);
+  image_pixelformats[index] = capture_image->AVPixFormat();
+}
+
+Image *Monitor::ReadShmFrame(unsigned int index) {
+  // Adopt the per-slot format zmc recorded into image_pixelformats[]. zms
+  // (and zma, etc.) construct image_buffer[i] at attach time with whatever
+  // initial format was convenient; the actual bytes the capture daemon
+  // wrote into the slot can be in any AVPixelFormat that zm_pixformat
+  // supports, varying per-slot and across reconnections. AVPixFormat()
+  // updates imagePixFormat, colours, subpixelorder, size and linesize
+  // together so the Image object consistently interprets the SHM bytes.
+  // No-op when the slot's format already matches.
+  AVPixelFormat fmt = image_pixelformats[index];
+  if (fmt != AV_PIX_FMT_NONE && image_buffer[index]->AVPixFormat() != fmt) {
+    image_buffer[index]->AVPixFormat(fmt);
+  }
+  return image_buffer[index];
 }
 
 void Monitor::applyOrientation(Image *image) {
@@ -3068,12 +3119,17 @@ bool Monitor::Decode() {
     }
 
     if (!packet->image) {
-      // Use a pipeline-friendly pixel format. Prefer the decoded frame's native
-      // format when Image can represent it (currently YUV 4:2:0 / 4:2:2 planar
-      // including the JPEG full-range variants, GRAY8, RGB24, and RGB32) — both
-      // 4:2:0 and 4:2:2 paths now have full coverage in zm_pixformat /
-      // zm_colours_from_pixformat. Anything outside that set falls back to a
-      // YUV420P conversion via swscale.
+      // Pick the most pipeline-friendly format Image can represent. If the
+      // decoder's native format is one Image supports, capture into that
+      // directly so sws_scale becomes a no-op identity copy via av_image_copy
+      // (Image::Assign(AVFrame*) takes that fast path on src_fmt == format).
+      // Otherwise fall back to YUV420P, which is universally supported and
+      // the smallest planar option.
+      //
+      // Cross-process consistency with zms is maintained per-slot via
+      // image_pixelformats[index] (written by WriteShmFrame, read on the
+      // zms side before each frame is consumed) — not by pinning the SHM
+      // to a single format here.
       unsigned int native_colours, native_subpixelorder;
       AVPixelFormat native_fmt = static_cast<AVPixelFormat>(packet->in_frame->format);
       const char *native_fmt_name = av_get_pix_fmt_name(native_fmt);
@@ -3095,7 +3151,8 @@ bool Monitor::Decode() {
         native_subpixelorder = ZM_SUBPIX_ORDER_YUV420P;
       }
 
-      packet->image = new Image(camera_width, camera_height, native_colours, native_subpixelorder);
+      packet->image = new Image(camera_width, camera_height,
+                                 native_colours, native_subpixelorder);
 
       bool have_converter = convert_context || setupConvertContext(packet->in_frame.get(), packet->image);
       if (have_converter) {
@@ -3156,11 +3213,10 @@ bool Monitor::Decode() {
       TimestampImage(capture_image, packet->timestamp);
     }
 
-    // Write to shared image buffer
+    // Write to shared image buffer.
     unsigned int index = (shared_data->last_write_index + 1) % image_buffer_count;
     decoding_image_count++;
-    image_buffer[index]->Assign(*capture_image);
-    image_pixelformats[index] = capture_image->AVPixFormat();
+    WriteShmFrame(index, capture_image);
     shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
     shared_data->signal = signal_check_points ? CheckSignal(capture_image) : true;
     shared_data->last_write_index = index;

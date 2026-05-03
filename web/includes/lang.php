@@ -65,10 +65,13 @@ if ( $langFile = loadLanguage() ) {
   if (false === strpos($langFile, 'en_gb.php')) {
     $fallbackLangFile = 'lang/en_gb.php';
     if ( file_exists($fallbackLangFile) ) {
-      $SLANG_USER = $SLANG;
-      $VLANG_USER = $VLANG;
-      $OLANG_USER = $OLANG;
+      $SLANG_USER = (isset($SLANG) && is_array($SLANG)) ? $SLANG : array();
+      $VLANG_USER = (isset($VLANG) && is_array($VLANG)) ? $VLANG : array();
+      $OLANG_USER = (isset($OLANG) && is_array($OLANG)) ? $OLANG : array();
       require_once($fallbackLangFile);
+      $SLANG = (isset($SLANG) && is_array($SLANG)) ? $SLANG : array();
+      $VLANG = (isset($VLANG) && is_array($VLANG)) ? $VLANG : array();
+      $OLANG = (isset($OLANG) && is_array($OLANG)) ? $OLANG : array();
       $SLANG_ = array_replace_recursive($SLANG, $SLANG_USER);
       $VLANG_ = array_replace_recursive($VLANG, $VLANG_USER);
       $OLANG_ = array_replace_recursive($OLANG, $OLANG_USER);

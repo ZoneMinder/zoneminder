@@ -1123,9 +1123,10 @@ a.flip {
 
 .tags-container {
   display: flex;
+  flex-wrap: wrap;
   border: 1px solid var(--gray);
   border-radius: 4px;
-  min-height: 35px;
+  /*min-height: 35px;*/
   margin: 0.25rem 1rem 0.25rem 1rem;
 }
 

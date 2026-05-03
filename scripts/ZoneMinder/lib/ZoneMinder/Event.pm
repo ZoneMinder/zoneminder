@@ -395,28 +395,59 @@ sub delete {
 
     my $in_transaction = $ZoneMinder::Database::dbh->{AutoCommit} ? 0 : 1;
 
-    $ZoneMinder::Database::dbh->begin_work() if ! $in_transaction;
+    # event_delete_trigger fires BEFORE DELETE on Events; after the
+    # accompanying triggers.sql change, event_update_trigger now also fires
+    # BEFORE UPDATE. That gives every Events writer the same lock acquisition
+    # order: buckets[Id] -> Event_Summaries[MonitorId] -> Events[Id] (the
+    # outer DML row last). zmstats.pl runs at the same RC isolation and takes
+    # bucket-row X-locks first, then UPDATE Event_Summaries, which is the
+    # same prefix order — so no cycle is possible across filter / zma /
+    # zmstats. Do NOT pre-lock Event_Summaries here: that puts ES before
+    # buckets and re-introduces the inversion against zma's UPDATE path.
+    #
+    # READ COMMITTED drops the next-key/gap locks that two concurrent filter
+    # workers deleting adjacent EventIds in the bucket tables would otherwise
+    # take. SET TRANSACTION applies to the next transaction only, so it has
+    # to be re-issued before each begin_work (and is skipped when the caller
+    # is managing the TX).
+    #
+    # Retry on errno 1213 only when we own the TX; if the caller is managing
+    # one, bail and let them decide.
+    my $attempt = 0;
+    my $max_attempts = 5;
+    while (1) {
+      $attempt++;
+      if (!$in_transaction) {
+        ZoneMinder::Database::zmDbDo('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
+        $ZoneMinder::Database::dbh->begin_work();
+      }
 
-    # Going to delete in order of least value to greatest value. Stats is least and references Frames
-    ZoneMinder::Database::zmDbDo('DELETE FROM Stats WHERE EventId=?', $$event{Id});
-    if ( $ZoneMinder::Database::dbh->errstr() ) {
-      $ZoneMinder::Database::dbh->commit() if ! $in_transaction;
-      return;
-    }
-    ZoneMinder::Database::zmDbDo('DELETE FROM Event_Data WHERE EventId=?', $$event{Id});
-    if ( $ZoneMinder::Database::dbh->errstr() ) {
-      $ZoneMinder::Database::dbh->commit() if ! $in_transaction;
-      return;
-    }
-    ZoneMinder::Database::zmDbDo('DELETE FROM Frames WHERE EventId=?', $$event{Id});
-    if ( $ZoneMinder::Database::dbh->errstr() ) {
-      $ZoneMinder::Database::dbh->commit() if ! $in_transaction;
-      return;
-    }
+      # Order: Stats -> Event_Data -> Frames -> Events (least to greatest reference depth)
+      my $err = 0;
+      foreach my $stmt (
+        ['DELETE FROM Stats WHERE EventId=?',      $$event{Id}],
+        ['DELETE FROM Event_Data WHERE EventId=?', $$event{Id}],
+        ['DELETE FROM Frames WHERE EventId=?',     $$event{Id}],
+        ['DELETE FROM Events WHERE Id=?',          $$event{Id}],
+      ) {
+        my ($sql, @bind) = @$stmt;
+        ZoneMinder::Database::zmDbDo($sql, @bind);
+        $err = $ZoneMinder::Database::dbh->err() // 0;
+        last if $err;
+      }
 
-    # Do it individually to avoid locking up the table for new events
-    ZoneMinder::Database::zmDbDo('DELETE FROM Events WHERE Id=?', $$event{Id});
-    $ZoneMinder::Database::dbh->commit() if ! $in_transaction;
+      if (!$err) {
+        $ZoneMinder::Database::dbh->commit() if !$in_transaction;
+        last;
+      }
+
+      $ZoneMinder::Database::dbh->rollback() if !$in_transaction;
+      if ($in_transaction or $err != 1213 or $attempt >= $max_attempts) {
+        return;
+      }
+      Debug("Deadlock deleting event $$event{Id} attempt $attempt/$max_attempts, retrying");
+      select(undef, undef, undef, 0.05 * (1 << $attempt) + rand(0.05));
+    }
 
     my $storage = $event->Storage();
     if ($event->DiskSpace() and $storage->Id()) {

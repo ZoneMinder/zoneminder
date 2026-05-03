@@ -19,7 +19,7 @@ if (checkAudioMotionEnabled()) {
       AudioMotionAnalyzer = window.AudioMotionAnalyzer;
     }
     window.CURRENT_AUDIO_MOTION_ANALYZER_VERSION = AudioMotionAnalyzer.version;
-  }).catch(error => {
+  }).catch((error) => {
     console.error('Failed to load audioMotion-analyzer module:', error);
     window.CURRENT_AUDIO_MOTION_ANALYZER_VERSION = "LoadFailed";
   });

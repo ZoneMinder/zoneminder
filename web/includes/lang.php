@@ -68,17 +68,21 @@ if ( $langFile = loadLanguage() ) {
       $SLANG_USER = (isset($SLANG) && is_array($SLANG)) ? $SLANG : array();
       $VLANG_USER = (isset($VLANG) && is_array($VLANG)) ? $VLANG : array();
       $OLANG_USER = (isset($OLANG) && is_array($OLANG)) ? $OLANG : array();
+      $CLANG_USER = (isset($CLANG) && is_array($CLANG)) ? $CLANG : array();
       require_once($fallbackLangFile);
       $SLANG = (isset($SLANG) && is_array($SLANG)) ? $SLANG : array();
       $VLANG = (isset($VLANG) && is_array($VLANG)) ? $VLANG : array();
       $OLANG = (isset($OLANG) && is_array($OLANG)) ? $OLANG : array();
+      $CLANG = (isset($CLANG) && is_array($CLANG)) ? $CLANG : array();
       $SLANG_ = array_replace_recursive($SLANG, $SLANG_USER);
       $VLANG_ = array_replace_recursive($VLANG, $VLANG_USER);
       $OLANG_ = array_replace_recursive($OLANG, $OLANG_USER);
+      $CLANG_ = array_replace_recursive($CLANG, $CLANG_USER);
       $SLANG = $SLANG_;
       $VLANG = $VLANG_;
       $OLANG = $OLANG_;
-      unset($SLANG_USER, $VLANG_USER, $OLANG_USER, $SLANG_, $VLANG_, $OLANG_);
+      $CLANG = $CLANG_;
+      unset($SLANG_USER, $VLANG_USER, $OLANG_USER, $CLANG_USER, $SLANG_, $VLANG_, $OLANG_, $CLANG_);
     }
   }
   require_once('lang/default.php');

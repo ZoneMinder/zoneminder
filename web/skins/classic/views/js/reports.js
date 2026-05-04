@@ -153,7 +153,6 @@ function initPage() {
     }
 
     getDelConfirmModal('ConfirmDeleteReport');
-
   });
 
   table.bootstrapTable('resetSearch');

@@ -68,7 +68,7 @@ function sortMenuItems(button) {
 }
 
 // Load the Delete Confirmation Modal HTML via Ajax call
-function getDelConfirmModal(key, title) {
+function getDelConfirmModal(key, title, formName) {
   $j.getJSON(thisUrl, {
     request: 'modal',
     modal: 'delconfirm',
@@ -80,14 +80,18 @@ function getDelConfirmModal(key, title) {
         $j('#deleteConfirm').modal('show');
         document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
           $j('#deleteConfirm').modal('hide');
-          submitThisForm(document.querySelector('form[name="userForm"]'));
+          submitThisForm(document.querySelector('form[name="'+formName+'"]'));
         });
       })
       .fail(logAjaxFail);
 }
 
 function DeleteUser() {
-  getDelConfirmModal('ConfirmDeleteUser', 'ConfirmDeleteUserTitle');
+  getDelConfirmModal('ConfirmDeleteUser', 'ConfirmDeleteUserTitle', 'userForm');
+}
+
+function DeleteServer() {
+  getDelConfirmModal('ConfirmDeleteServer', 'ConfirmDeleteServerTitle', 'serversForm');
 }
 
 function initPage() {

@@ -24,34 +24,21 @@ function getIdSelections() {
   });
 }
 
-// Load the Delete Confirmation Modal HTML via Ajax call
-function getDelConfirmModal(key) {
-  $j.getJSON(thisUrl + '?request=modal&modal=delconfirm&key=' + key)
-      .done(function(data) {
-        insertModalHtml('deleteConfirm', data.html);
-        manageDelConfirmModalBtns();
-      })
-      .fail(logAjaxFail);
-}
-
 // Manage the DELETE CONFIRMATION modal button
 function manageDelConfirmModalBtns() {
-  document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
-    if ( ! canEdit.Control ) {
-      enoperm();
-      return;
-    }
+  if ( ! canEdit.Control ) {
+    enoperm();
+    return;
+  }
 
-    var selections = getIdSelections();
+  var selections = getIdSelections();
 
-    evt.preventDefault();
-    $j.getJSON(thisUrl + '?request=controlcaps&action=delete&cids[]='+selections.join('&cids[]='))
-        .done( function(data) {
-          $j('#eventTable').bootstrapTable('refresh');
-          window.location.reload(true);
-        })
-        .fail(logAjaxFail);
-  });
+  $j.getJSON(thisUrl + '?request=controlcaps&action=delete&cids[]='+selections.join('&cids[]='))
+      .done( function(data) {
+        $j('#eventTable').bootstrapTable('refresh');
+        window.location.reload(true);
+      })
+      .fail(logAjaxFail);
 }
 
 function initPageControlCaps() {
@@ -91,12 +78,8 @@ function initPageControlCaps() {
       return;
     }
 
-    evt.preventDefault();
-    $j('#deleteConfirm').modal('show');
+    getDelConfirmModal('ConfirmDeleteControl');
   });
-
-  // Load the delete confirmation modal into the DOM
-  getDelConfirmModal('ConfirmDeleteControl');
 
   // Hide these columns on first run when no cookie is saved
   if ( !getCookie("zmControlTable.bs.table.columns") ) {

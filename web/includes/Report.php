@@ -6,14 +6,14 @@ require_once('Object.php');
 class Report extends ZM_Object {
   protected static $table = 'Reports';
 
-	protected $defaults = array(
-			'Id'            => null,
-			'Name'          => '',
-      'FilterId'      => null,
-      'StartDateTime' => null,
-      'EndDateTime'   => null,
-      'Interval'      => '86400',
-			);
+  protected $defaults = array(
+    'Id'            => null,
+    'Name'          => '',
+    'FilterId'      => null,
+    'StartDateTime' => null,
+    'EndDateTime'   => null,
+    'Interval'      => '86400',
+  );
 
   public static function find( $parameters = array(), $options = array() ) {
     return ZM_Object::_find(self::class, $parameters, $options);

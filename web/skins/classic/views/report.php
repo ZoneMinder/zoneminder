@@ -41,14 +41,14 @@ getBodyTopHTML();
   <div id="page">
     <div id="content">
       <div id="inner-content">
-      <form name="report" id="reportForm" method="post" action="?view=report&id=<?php echo $report_id ?>">
+      <form name="report" id="reportForm" method="post" action="?view=report&id=<?php echo $report_id ?>" data-report_id="<?php echo $report_id ?>">
       <!-- Toolbar button placement and styling handled by bootstrap-tables -->
       <div id="toolbar">
         <button id="backBtn" type="button" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
         <!--<button id="filterBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Filter') ?>"><i class="fa fa-filter"></i></button>-->
         <!--<button id="exportBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Export') ?>" disabled><i class="fa fa-external-link"></i></button>-->
         <button id="saveBtn" name="action" value="save" type="submit" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Save') ?>"><i class="fa fa-save"></i></button>
-        <button id="deleteBtn" name="action" value="delete" type="submit" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Delete') ?>" disabled><i class="fa fa-trash"></i></button>
+        <button id="deleteBtn" type="button" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Delete') ?>" disabled><i class="fa fa-trash"></i></button>
       </div>
         <table class="major table table-sm">
           <tbody>
@@ -94,7 +94,14 @@ var events = Array();
 
 <?php
 require_once('includes/Filter.php');
-if (!$report->FilterId()) return;
+if (!$report->FilterId()) {
+  echo '
+    </script>
+  </div>
+  '.PHP_EOL;
+  xhtmlFooter();
+  return;
+}
 
 $filter = new ZM\Filter($report->FilterId());
 if (count($user->unviewableMonitorIds())) {
@@ -180,6 +187,6 @@ new Chart(document.getElementById("bar-chart"), {
     }
 });
  */
-</script>
+    </script>
   </div>
 <?php xhtmlFooter() ?>

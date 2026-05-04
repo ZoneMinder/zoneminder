@@ -71,37 +71,20 @@ function getIdSelections() {
   });
 }
 
-// Load the Delete Confirmation Modal HTML via Ajax call
-function getDelConfirmModal() {
-  $j.getJSON(thisUrl + '?request=modal&modal=delconfirm')
-      .done(function(data) {
-        insertModalHtml('deleteConfirm', data.html);
-        manageDelConfirmModalBtns();
-      })
-      .fail(logAjaxFail);
-}
 
 // Manage the DELETE CONFIRMATION modal button
 function manageDelConfirmModalBtns() {
-  document.getElementById("delConfirmBtn").addEventListener('click', function onDelConfirmClick(evt) {
-    if ( ! canEdit.Events ) {
-      enoperm();
-      return;
-    }
-    evt.preventDefault();
+  if ( ! canEdit.Events ) {
+    enoperm();
+    return;
+  }
 
-    const selections = getIdSelections();
-    if (!selections.length) {
-      alert('Please select reports to delete.');
-    } else {
-      deleteReports(selections);
-    }
-  });
-
-  // Manage the CANCEL modal button
-  document.getElementById("delCancelBtn").addEventListener('click', function onDelCancelClick(evt) {
-    $j('#deleteConfirm').modal('hide');
-  });
+  const selections = getIdSelections();
+  if (!selections.length) {
+    alert('Please select reports to delete.');
+  } else {
+    deleteReports(selections);
+  }
 }
 
 function deleteReports(ids) {
@@ -113,7 +96,6 @@ function deleteReports(ids) {
       .done( function(data) {
         if (!ids.length) {
           $j('#reportsTable').bootstrapTable('refresh');
-          $j('#deleteConfirm').modal('hide');
         } else {
           if (ticker.innerHTML.length < 1 || ticker.innerHTML.length > 10) {
             ticker.innerHTML = '.';
@@ -126,14 +108,10 @@ function deleteReports(ids) {
       .fail( function(jqxhr) {
         logAjaxFail(jqxhr);
         $j('#reportsTable').bootstrapTable('refresh');
-        $j('#deleteConfirm').modal('hide');
       });
 }
 
 function initPage() {
-  // Load the delete confirmation modal into the DOM
-  getDelConfirmModal();
-
   // Init the bootstrap-table
   table.bootstrapTable({icons: icons});
 
@@ -174,8 +152,8 @@ function initPage() {
       return;
     }
 
-    evt.preventDefault();
-    $j('#deleteConfirm').modal('show');
+    getDelConfirmModal('ConfirmDeleteReport');
+
   });
 
   table.bootstrapTable('resetSearch');

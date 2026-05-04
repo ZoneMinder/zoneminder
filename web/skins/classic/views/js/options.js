@@ -67,31 +67,20 @@ function sortMenuItems(button) {
   button.classList.toggle('btn-success');
 }
 
-// Load the Delete Confirmation Modal HTML via Ajax call
-function getDelConfirmModal(key, title, formName) {
-  $j.getJSON(thisUrl, {
-    request: 'modal',
-    modal: 'delconfirm',
-    key: key,
-    title: title
-  })
-      .done(function(data) {
-        insertModalHtml('deleteConfirm', data.html);
-        $j('#deleteConfirm').modal('show');
-        document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
-          $j('#deleteConfirm').modal('hide');
-          submitThisForm(document.querySelector('form[name="'+formName+'"]'));
-        });
-      })
-      .fail(logAjaxFail);
-}
-
 function DeleteUser() {
   getDelConfirmModal('ConfirmDeleteUser', 'ConfirmDeleteUserTitle', 'userForm');
 }
 
 function DeleteServer() {
   getDelConfirmModal('ConfirmDeleteServer', 'ConfirmDeleteServerTitle', 'serversForm');
+}
+
+function DeleteStorage() {
+  getDelConfirmModal('ConfirmDeleteStorage', 'ConfirmDeleteStorageTitle', 'storageForm');
+}
+
+function DeleteRole() {
+  getDelConfirmModal('ConfirmDeleteRole', 'ConfirmDeleteRoleTitle', 'roleForm');
 }
 
 function initPage() {

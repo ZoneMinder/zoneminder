@@ -87,43 +87,23 @@ function getArchivedSelections() {
   return selection.includes("Yes");
 }
 
-// Load the Delete Confirmation Modal HTML via Ajax call
-function getDelConfirmModal() {
-  $j.getJSON(thisUrl + '?request=modal&modal=delconfirm')
-      .done(function(data) {
-        insertModalHtml('deleteConfirm', data.html);
-        manageDelConfirmModalBtns();
-      })
-      .fail(logAjaxFail);
-}
-
 // Manage the DELETE CONFIRMATION modal button
 function manageDelConfirmModalBtns() {
-  document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
-    if (!canEdit.Events) {
-      enoperm();
-      return;
-    }
+  if (!canEdit.Events) {
+    enoperm();
+    return;
+  }
 
-    var selections = getIdSelections();
+  var selections = getIdSelections();
 
-    evt.preventDefault();
-    $j.getJSON(thisUrl + '?request=snapshots&task=delete&ids[]='+selections.join('&ids[]='))
-        .done( function(data) {
-          $j('#snapshotTable').bootstrapTable('refresh');
-          $j('#deleteConfirm').modal('hide');
-        })
-        .fail( function(jqxhr) {
-          logAjaxFail(jqxhr);
-          $j('#snapshotTable').bootstrapTable('refresh');
-          $j('#deleteConfirm').modal('hide');
-        });
-  });
-
-  // Manage the CANCEL modal button
-  document.getElementById("delCancelBtn").addEventListener("click", function onDelCancelClick(evt) {
-    $j('#deleteConfirm').modal('hide');
-  });
+  $j.getJSON(thisUrl + '?request=snapshots&task=delete&ids[]='+selections.join('&ids[]='))
+      .done( function(data) {
+        $j('#snapshotTable').bootstrapTable('refresh');
+      })
+      .fail( function(jqxhr) {
+        logAjaxFail(jqxhr);
+        $j('#snapshotTable').bootstrapTable('refresh');
+      });
 }
 
 function getEventDetailModal(eid) {
@@ -152,9 +132,6 @@ function getObjdetectModal(eid) {
 function initPage() {
   // Remove the thumbnail column from the DOM if thumbnails are off globally
   if ( !WEB_LIST_THUMBS ) $j('th[data-field="Thumbnail"]').remove();
-
-  // Load the delete confirmation modal into the DOM
-  getDelConfirmModal();
 
   // Init the bootstrap-table
   table.bootstrapTable({icons: icons});
@@ -275,8 +252,7 @@ function initPage() {
       return;
     }
 
-    evt.preventDefault();
-    $j('#deleteConfirm').modal('show');
+    getDelConfirmModal('ConfirmDeleteSnapshots');
   });
 
   // Update table links each time after new data is loaded

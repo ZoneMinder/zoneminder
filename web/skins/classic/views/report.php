@@ -94,7 +94,14 @@ var events = Array();
 
 <?php
 require_once('includes/Filter.php');
-if (!$report->FilterId()) return;
+if (!$report->FilterId()) {
+  echo '
+    </script>
+  </div>
+  '.PHP_EOL;
+  xhtmlFooter();
+  return;
+}
 
 $filter = new ZM\Filter($report->FilterId());
 if (count($user->unviewableMonitorIds())) {
@@ -180,6 +187,6 @@ new Chart(document.getElementById("bar-chart"), {
     }
 });
  */
-</script>
+    </script>
   </div>
 <?php xhtmlFooter() ?>

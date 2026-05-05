@@ -36,6 +36,7 @@ require_once('includes/Event.php');
 
 $errorText = false;
 $path = '';
+$mode = (!empty($_REQUEST['mode'])) ? $_REQUEST['mode'] : null;
 
 $Event = null;
 
@@ -59,13 +60,25 @@ if ( ! empty($_REQUEST['eid']) ) {
 
 // If DefaultVideo is an m3u8 manifest and no explicit file was requested,
 // find the actual mp4 video file in the event directory.
-if ($Event && !$errorText && !@is_file($path)) {
-  $dir = $Event->Path();
-  // Look for the final renamed mp4 first, then incomplete
-  $candidates = glob($dir.'/'.$Event->Id().'-video.*.mp4');
-  if (!$candidates) $candidates = glob($dir.'/incomplete.*.mp4');
-  if ($candidates) {
-    $path = $candidates[0];
+if ($mode == "mp4") {
+  if (($Event && $Event->DefaultVideo() === 'index.m3u8' || !@is_file($path)) && !$errorText) {
+    $dir = $Event->Path();
+    // Look for the final renamed mp4 first, then incomplete
+    $candidates = glob($dir.'/'.$Event->Id().'-video.*.mp4');
+    if (!$candidates) $candidates = glob($dir.'/incomplete.*.mp4');
+    if ($candidates) {
+      $path = $candidates[0];
+    }
+  }
+} else {
+  if ($Event && !$errorText && !@is_file($path)) {
+    $dir = $Event->Path();
+    // Look for the final renamed mp4 first, then incomplete
+    $candidates = glob($dir.'/'.$Event->Id().'-video.*.mp4');
+    if (!$candidates) $candidates = glob($dir.'/incomplete.*.mp4');
+    if ($candidates) {
+      $path = $candidates[0];
+    }
   }
 }
 
@@ -80,6 +93,7 @@ if ( ! ($fh = @fopen($path, 'rb') ) ) {
   header('HTTP/1.0 404 Not Found');
   die();
 }
+$filename = ($mode == 'mp4') ? end(preg_split('/[\/]/', $path)) : (($Event) ? $Event->DefaultVideo() : '');
 
 $size = filesize($path);
 $begin = 0;
@@ -100,13 +114,13 @@ if ( isset($_SERVER['HTTP_RANGE']) ) {
   }
 } # end if HTTP_RANGE
 
-$path_info = pathinfo($Event->DefaultVideo());
+$path_info = ($mode == 'mp4') ? pathinfo($path) : pathinfo($Event->DefaultVideo());
 header('Content-type: video/'.$path_info['extension']);
 header('Accept-Ranges: bytes');
 header('Content-Length: '.$length);
 # This is so that Save Image As give a useful filename
 if ($Event) {
-  header('Content-Disposition: inline; filename="' . $Event->DefaultVideo() . '"');
+  header('Content-Disposition: inline; filename="' . $filename . '"');
 } else {
   header('Content-Disposition: inline;');
 }

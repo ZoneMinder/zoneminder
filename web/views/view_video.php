@@ -36,7 +36,7 @@ require_once('includes/Event.php');
 
 $errorText = false;
 $path = '';
-$mode = (!empty($_REQUEST['mode'])) ? $_REQUEST['mode'] : null;
+$mode = (!empty($_REQUEST['mode'])) ? $_REQUEST['mode'] : '';
 
 $Event = null;
 
@@ -93,7 +93,8 @@ if ( ! ($fh = @fopen($path, 'rb') ) ) {
   header('HTTP/1.0 404 Not Found');
   die();
 }
-$filename = ($mode == 'mp4') ? end(preg_split('/[\/]/', $path)) : (($Event) ? $Event->DefaultVideo() : '');
+$arrPath = preg_split('/[\/]/', $path);
+$filename = ($mode == 'mp4') ? end($arrPath) : (($Event) ? $Event->DefaultVideo() : '');
 
 $size = filesize($path);
 $begin = 0;

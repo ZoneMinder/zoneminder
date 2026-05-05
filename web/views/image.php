@@ -336,7 +336,11 @@ if ( empty($_REQUEST['path']) ) {
           $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d', $Frame->FrameId()).'-'.$show.'.jpg';
         } else {
           if ( $Event->DefaultVideo() ) {
-            $file_path = $Event->Path().'/'.$Event->DefaultVideo();
+            if($Event->DefaultVideo() !== 'index.m3u8') {
+              $file_path = $Event->Path().'/'.$Event->DefaultVideo();
+            } else {
+              $file_path = $Event->Path().'/'.$file.find_video($Event->Path());
+            }
 
             if (!file_exists($file_path)) {
               if ($file = find_video($Event->Path())) {

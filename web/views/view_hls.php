@@ -59,15 +59,15 @@ $base_url = $Server->PathToIndex();
 
 // Replace bare URLs with full paths including auth
 $content = preg_replace(
-  '/^(index\.php\?.+)$/m',
-  $base_url . '?$1' . $auth_query,
+  '/^(index\.php)(.+)$/m',
+  $base_url . '$2' . $auth_query,
   $content
 );
 
 // Also fix the EXT-X-MAP URI
 $content = preg_replace(
-  '/URI="(index\.php\?[^"]+)"/m',
-  'URI="' . $base_url . '?$1' . $auth_query . '"',
+  '/URI="(index\.php)(.+)/m',
+  'URI="' . $base_url . '$2' . $auth_query . '"',
   $content
 );
 

@@ -66,8 +66,8 @@ $content = preg_replace(
 
 // Also fix the EXT-X-MAP URI
 $content = preg_replace(
-  '/URI="(index\.php)(.+)/m',
-  'URI="' . $base_url . '$2' . $auth_query . '"',
+  '/(.+URI=")(index\.php)([^"]+)(.+)/m',
+  '$1' . $base_url . '$3' . $auth_query . '$4',
   $content
 );
 

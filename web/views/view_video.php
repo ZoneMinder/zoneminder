@@ -100,13 +100,13 @@ if ( isset($_SERVER['HTTP_RANGE']) ) {
   }
 } # end if HTTP_RANGE
 
-$path_info = pathinfo($Event->DefaultVideo());
+$path_info = pathinfo($path);
 header('Content-type: video/'.$path_info['extension']);
 header('Accept-Ranges: bytes');
 header('Content-Length: '.$length);
 # This is so that Save Image As give a useful filename
 if ($Event) {
-  header('Content-Disposition: inline; filename="' . $Event->DefaultVideo() . '"');
+  header('Content-Disposition: inline; filename="' . basename($path) . '"');
 } else {
   header('Content-Disposition: inline;');
 }

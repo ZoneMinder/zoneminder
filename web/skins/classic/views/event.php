@@ -377,7 +377,6 @@ if ($video_tag) {
                   >
 <?php if ($has_hls): ?>
                   <source src="<?php echo $hlsSrc; ?>" type="application/x-mpegURL">
-                  <source src="<?php echo $Event->getStreamSrc(array('mode'=>'mp4','format'=>'h264'),'&amp;'); ?>" type="video/mp4">
 <?php else: ?>
                   <source src="<?php echo $Event->getStreamSrc(array('mode'=>'mp4','format'=>'h264'),'&amp;'); ?>" type="video/mp4">
 <?php endif; ?>

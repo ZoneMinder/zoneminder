@@ -75,7 +75,11 @@ class StreamBase {
   typedef enum {
     CMD_NONE=0,
     CMD_PAUSE,
+    // CMD_PLAY resumes or starts playback at normal speed (1x, i.e. replay_rate = ZM_RATE_BASE).
+    // Use CMD_VARPLAY to resume at an arbitrary rate.
     CMD_PLAY,
+    // CMD_STOP halts all streaming activity.  Unlike CMD_PAUSE, no keepalive frames are sent
+    // and the stream does no work until a new command is received.
     CMD_STOP,
     CMD_FASTFWD,
     CMD_SLOWFWD,
@@ -88,6 +92,13 @@ class StreamBase {
     CMD_PREV,
     CMD_NEXT,
     CMD_SEEK,
+    // CMD_VARPLAY resumes or starts playback at a caller-specified rate.
+    // The desired rate is packed as a big-endian uint16 offset by +32768 so that the range
+    // [-32768, +32767] maps to [0, 65535].  ZM_RATE_BASE (100) represents 1x speed, so:
+    //   32868 (= 32768 + 100) encodes 1x forward playback,
+    //   32668 (= 32768 - 100) encodes 1x reverse playback.
+    // Negative rates play in reverse; rates > ZM_RATE_BASE play faster than real-time.
+    // MSG payload: msg_data[1..2] = (rate + 32768) as network-byte-order uint16.
     CMD_VARPLAY,
     CMD_GET_IMAGE,
     CMD_QUIT,

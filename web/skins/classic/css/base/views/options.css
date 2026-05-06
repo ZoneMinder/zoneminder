@@ -66,7 +66,7 @@ body.sticky #options {
   max-height: 100%;
   display: flex;
   flex-direction: column;
-  /*height: calc(100% - 50px);*/ /* It's bad, but it's temporary */
+  height: 100%;
   overflow-x: hidden;
   overflow-y: auto;
 }
@@ -190,7 +190,7 @@ textarea.form-control-sm {
 
 body.sticky .wrapper-scroll-table {
   width: 100%;
-  height: auto;
+  height: 100%;
   overflow-x: hidden; 
   overflow-y: auto; 
 }

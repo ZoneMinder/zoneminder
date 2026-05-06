@@ -52,7 +52,11 @@ function zm_session_start() {
   }
   session_start();
   // To help prevent session hijacking
-  $_SESSION['remoteAddr'] = (!empty($_SERVER['HTTP_X_FORWARDED_FOR']) ? $_SERVER['HTTP_X_FORWARDED_FOR'] : $_SERVER['REMOTE_ADDR']);
+  // Use HTTP_X_FORWARDED_FOR if available (for reverse proxy setups), taking only the first IP
+  // to guard against spoofed multi-value headers. Falls back to REMOTE_ADDR for direct connections.
+  $_SESSION['remoteAddr'] = !empty($_SERVER['HTTP_X_FORWARDED_FOR'])
+    ? trim(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0])
+    : $_SERVER['REMOTE_ADDR'];
   $now = time();
   // Do not allow to use expired session ID
   if ( !empty($_SESSION['last_time']) && ($_SESSION['last_time'] < ($now - 180)) ) {
@@ -83,7 +87,9 @@ function zm_session_regenerate_id() {
   //ZM\Debug("Regenerating session. New id was " . session_id());
   unset($_SESSION['last_time']);
   $_SESSION['generated_at'] = time();
-  $_SESSION['remoteAddr'] = (!empty($_SERVER['HTTP_X_FORWARDED_FOR']) ? $_SERVER['HTTP_X_FORWARDED_FOR'] : $_SERVER['REMOTE_ADDR']);
+  $_SESSION['remoteAddr'] = !empty($_SERVER['HTTP_X_FORWARDED_FOR'])
+    ? trim(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0])
+    : $_SERVER['REMOTE_ADDR'];
 } // function zm_session_regenerate_id()
 
 function is_session_started() {

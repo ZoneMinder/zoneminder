@@ -172,7 +172,12 @@ function getAuthUser($auth) {
   if (ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed') && !empty($auth)) {
     $remoteAddr = '';
     if (ZM_AUTH_HASH_IPS) {
-      $remoteAddr = $_SERVER['REMOTE_ADDR'];
+      // Use HTTP_X_FORWARDED_FOR if available (consistent with session.php which uses it for hash generation)
+      // taking only the first IP to guard against spoofed multi-value headers.
+      // This ensures validation matches generation when behind a reverse proxy.
+      $remoteAddr = !empty($_SERVER['HTTP_X_FORWARDED_FOR'])
+        ? trim(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0])
+        : $_SERVER['REMOTE_ADDR'];
       if ( !$remoteAddr ) {
         ZM\Error("Can't determine remote address for authentication, using empty string");
         $remoteAddr = '';

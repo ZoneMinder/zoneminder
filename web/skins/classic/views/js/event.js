@@ -1664,7 +1664,7 @@ function initPage() {
       } else if (event.key === " " || event.key === ",") {
         const tagInput = $j(this);
         const tagValue = tagInput.val().trim();
-        addOrCreateTag(tagValue);
+        addOrCreateTag(tagValue, event.key);
         event.preventDefault(); // Prevent the key from being entered in the input field
       } else if (event.key === "Escape") {
         $j("#tagInput").blur();
@@ -1865,7 +1865,7 @@ function addTag(tag, buttonPressed = null) {
           // Move the added tag to the front(top) of the availableTags array
           const index = availableTags.map((t) => t.Id).indexOf(tag.Id);
           availableTags.splice(0, 0, availableTags.splice(index, 1)[0]);
-          if (buttonPressed == "Enter") $j('#tagInput').focus();
+          if (["Enter", " ", ","].includes(buttonPressed)) $j('#tagInput').focus();
         })
         .fail(logAjaxFail);
   } else {
@@ -1898,7 +1898,7 @@ function createTag(tagName, buttonPressed = null) {
           }
           addTag(tag);
         }
-        if (buttonPressed == "Enter") $j('#tagInput').focus();
+        if (["Enter", " ", ","].includes(buttonPressed)) $j('#tagInput').focus();
       })
       .fail(logAjaxFail);
 }

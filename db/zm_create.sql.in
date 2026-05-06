@@ -1307,6 +1307,7 @@ CREATE TABLE Reports (
   `StartDateTime` datetime default NULL,
   `EndDateTime` datetime default NULL,
   `Interval`  INT(10) UNSIGNED,
+  `CreatedBy` int(10) unsigned,
   PRIMARY KEY(Id)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 

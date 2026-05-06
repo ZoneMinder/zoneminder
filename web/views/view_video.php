@@ -60,18 +60,12 @@ if ( ! empty($_REQUEST['eid']) ) {
 
 // If DefaultVideo is an m3u8 manifest and no explicit file was requested,
 // find the actual mp4 video file in the event directory.
-if ($mode == "mp4") {
-  if (($Event && $Event->DefaultVideo() === 'index.m3u8' || !@is_file($path)) && !$errorText) {
-    $dir = $Event->Path();
-    // Look for the final renamed mp4 first, then incomplete
-    $candidates = glob($dir.'/'.$Event->Id().'-video.*.mp4');
-    if (!$candidates) $candidates = glob($dir.'/incomplete.*.mp4');
-    if ($candidates) {
-      $path = $candidates[0];
-    }
+if ($Event && !$errorText) {
+  $shouldUseMp4Fallback = !@is_file($path);
+  if ($mode == "mp4") {
+    $shouldUseMp4Fallback = ($Event->DefaultVideo() === 'index.m3u8' || !@is_file($path));
   }
-} else {
-  if ($Event && !$errorText && !@is_file($path)) {
+  if ($shouldUseMp4Fallback) {
     $dir = $Event->Path();
     // Look for the final renamed mp4 first, then incomplete
     $candidates = glob($dir.'/'.$Event->Id().'-video.*.mp4');

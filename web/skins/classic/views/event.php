@@ -90,6 +90,7 @@ if (isset($_REQUEST['showZones'])) {
 $codecs = array(
   'auto'  => translate('Auto'),
   'MP4'   => translate('MP4'),
+  'MP4HLS'=> translate('MP4 HLS'),
   'MJPEG' => translate('MJPEG'),
 );
 $codec = 'auto';
@@ -150,7 +151,7 @@ if ((!$replayMode) or !$replayModes[$replayMode]) {
   $replayMode = 'none';
 }
 
-$video_tag = ($codec == 'MP4') ||
+$video_tag = ($codec == 'MP4') || ($codec == 'MP4HLS') ||
   str_ends_with($Event->DefaultVideo(), '.m3u8') ||
   ((false !== strpos($Event->DefaultVideo(), 'h264') || false !== strpos($Event->DefaultVideo(), 'av1')) && ($codec === 'auto'));
 
@@ -354,7 +355,7 @@ if (file_exists($Event->Path().'/objdetect.jpg')) {
 <?php
 if ($video_tag) {
   // Use HLS byte-range playback if m3u8 manifest exists on disk
-  $has_hls = str_ends_with($Event->DefaultVideo(), '.m3u8')
+  $has_hls = (($codec == 'MP4HLS') || str_ends_with($Event->DefaultVideo(), '.m3u8'))
     && file_exists($Event->Path() . '/index.m3u8');
   if ($has_hls) {
     $Server = $Event->Server();

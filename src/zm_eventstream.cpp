@@ -1049,8 +1049,9 @@ void EventStream::runStream() {
       TimePoint::duration time_since_last_send = now - last_frame_sent;
 
       if (stopped) {
-        // In stopped state, do nothing except wait for a new command
-        send_frame = false;
+        // In stopped state, skip all frame processing until a new command is received.
+        // send_frame is already false from initialization above.
+        delta = MAX_SLEEP;
       } else if (!paused) {
         // Figure out if we should send this frame
         Debug(3, "not paused at curr_frame_id (%d-1) mod frame_mod(%d)", curr_frame_id, frame_mod);
@@ -1083,7 +1084,7 @@ void EventStream::runStream() {
       }  // end if streaming stepping or doing nothing
 
       // time_to_event > 0 means that we are not in the event
-      if (time_to_event > Seconds(0) and mode == MODE_ALL) {
+      if (!stopped && time_to_event > Seconds(0) and mode == MODE_ALL) {
         Debug(1, "Time since last send = %.2f s", FPSeconds(time_since_last_send).count());
         if (time_since_last_send > Seconds(1)) {
           char frame_text[64];
@@ -1131,7 +1132,7 @@ void EventStream::runStream() {
         frame_count++;
       }
 
-      if (!paused && !event_data->frames.empty()
+      if (!paused && !stopped && !event_data->frames.empty()
           && curr_frame_id >= 1 && curr_frame_id <= (int)event_data->frames.size()) {
         // Get current frame data, curr_frame_id may have changed
         FrameData *last_frame_data = &event_data->frames[curr_frame_id-1];
@@ -1194,14 +1195,14 @@ void EventStream::runStream() {
                );
         }  // end if not at end of event
       } else {
-        // Paused
+        // Paused or stopped
         delta = MAX_SLEEP;
 
         // We are paused, so might be stepping
         //if ( step != 0 )// Adding 0 is cheaper than an if 0
         // curr_frame_id starts at 1 though, so we might skip the first frame?
         curr_frame_id += step;
-      }  // end if !paused
+      }  // end if !paused && !stopped
     }  // end scope for mutex lock
  
     if (type == STREAM_SINGLE) {

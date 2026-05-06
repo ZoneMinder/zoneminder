@@ -1337,11 +1337,11 @@ function MonitorStream(monitorData) {
 
               if (!this.buttons.enableAlarmButton.hasClass('disabled')) {
                 this.buttons.enableAlarmButton.addClass('disabled');
-                this.buttons.enableAlarmButton.prop('title', disableAlarmsStr);
+                this.buttons.enableAlarmButton.prop('title', translate["DisableAlarms"]);
               }
             } else {
               this.buttons.enableAlarmButton.removeClass('disabled');
-              this.buttons.enableAlarmButton.prop('title', enableAlarmsStr);
+              this.buttons.enableAlarmButton.prop('title', translate["EnableAlarms"]);
             } // end if doing analysis
             this.buttons.enableAlarmButton.prop('disabled', false);
           } // end if have enableAlarmButton
@@ -1352,13 +1352,13 @@ function MonitorStream(monitorData) {
               // and the disabled state should be to force an alarm
               if (this.buttons.forceAlarmButton.hasClass('disabled')) {
                 this.buttons.forceAlarmButton.removeClass('disabled');
-                this.buttons.forceAlarmButton.prop('title', cancelForcedAlarmStr);
+                this.buttons.forceAlarmButton.prop('title', translate["CancelForcedAlarm"]);
               }
             } else {
               if (!this.buttons.forceAlarmButton.hasClass('disabled')) {
                 // Looks disabled
                 this.buttons.forceAlarmButton.addClass('disabled');
-                this.buttons.forceAlarmButton.prop('title', forceAlarmStr);
+                this.buttons.forceAlarmButton.prop('title', translate["ForceAlarm"]);
               }
             }
             this.buttons.forceAlarmButton.prop('disabled', false);
@@ -1468,11 +1468,11 @@ function MonitorStream(monitorData) {
 
             if (!this.buttons.enableAlarmButton.hasClass('disabled')) {
               this.buttons.enableAlarmButton.addClass('disabled');
-              this.buttons.enableAlarmButton.prop('title', disableAlarmsStr);
+              this.buttons.enableAlarmButton.prop('title', translate["DisableAlarms"]);
             }
           } else {
             this.buttons.enableAlarmButton.removeClass('disabled');
-            this.buttons.enableAlarmButton.prop('title', enableAlarmsStr);
+            this.buttons.enableAlarmButton.prop('title', translate["EnableAlarms"]);
           } // end if doing analysis
           this.buttons.enableAlarmButton.prop('disabled', false);
         } // end if have enableAlarmButton
@@ -1483,13 +1483,13 @@ function MonitorStream(monitorData) {
             // and the disabled state should be to force an alarm
             if (this.buttons.forceAlarmButton.hasClass('disabled')) {
               this.buttons.forceAlarmButton.removeClass('disabled');
-              this.buttons.forceAlarmButton.prop('title', cancelForcedAlarmStr);
+              this.buttons.forceAlarmButton.prop('title', translate["CancelForcedAlarm"]);
             }
           } else {
             if (!this.buttons.forceAlarmButton.hasClass('disabled')) {
               // Looks disabled
               this.buttons.forceAlarmButton.addClass('disabled');
-              this.buttons.forceAlarmButton.prop('title', forceAlarmStr);
+              this.buttons.forceAlarmButton.prop('title', translate["ForceAlarm"]);
             }
           }
           this.buttons.forceAlarmButton.prop('disabled', false);

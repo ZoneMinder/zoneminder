@@ -102,7 +102,5 @@ foreach (dbFetchAll('SELECT * FROM ControlPresets WHERE MonitorId = ?', NULL, ar
 global $players;
 echo 'players = '.json_encode($players).PHP_EOL;
 ?>
-var enableAlarmsStr = "<?php echo translate('EnableAlarms') ?>";
-var disableAlarmsStr = "<?php echo translate('DisableAlarms') ?>";
-var forceAlarmStr = "<?php echo translate('ForceAlarm') ?>";
-var cancelForcedAlarmStr = "<?php echo translate('CancelForcedAlarm') ?>";
+
+

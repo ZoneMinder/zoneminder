@@ -103,8 +103,10 @@ var streamMode = '<?php echo $streamMode ?>';
 // Strings
 //
 var causeString = "<?php echo validJsStr(translate('AttrCause')) ?>";
-var showZonesString = "<?php echo validJsStr(translate('Show Zones'))?>";
-var hideZonesString = "<?php echo validJsStr(translate('Hide Zones'))?>";
+zmPrimeTranslations({
+  "Show Zones": "<?php echo validJsStr(translate('Show Zones')) ?>",
+  "Hide Zones": "<?php echo validJsStr(translate('Hide Zones')) ?>",
+});
 var WEB_LIST_THUMB_WIDTH = '<?php echo ZM_WEB_LIST_THUMB_WIDTH ?>';
 var WEB_LIST_THUMB_HEIGHT = '<?php echo ZM_WEB_LIST_THUMB_HEIGHT ?>';
 var popup = '<?php echo $popup ?>';

@@ -29,7 +29,8 @@ function deleteReports(ids) {
       })
       .fail( function(jqxhr) {
         logAjaxFail(jqxhr);
-        $j('#reportsTable').bootstrapTable('refresh');
+        window.alert('Failed to delete report.');
+        window.location.reload();
       });
 }
 

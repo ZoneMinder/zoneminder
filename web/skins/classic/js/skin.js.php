@@ -39,13 +39,13 @@ const exportSucceededString = '<?php echo translate('ExportSucceeded') ?>';
 const cancelString = '<?php echo translate('Cancel') ?>';
 const playerDisabledInMonitorSettings = '<?php echo translate('PlayerDisabledInMonitorSettings') ?>';
 
-const deleteString = "<?php echo addslashes(translate('Delete')) ?>";
-const archivedString = "<?php echo translate('Archived') ?>";
-const unarchivedString = "<?php echo translate('Unarchived') ?>";
-const emailedString = "<?php echo translate('Emailed') ?>";
-const yesString = "<?php echo translate('Yes') ?>";
-const noString = "<?php echo translate('No') ?>";
-const confirmDeleteEventsString = "<?php echo addslashes(translate('ConfirmDeleteEvents')) ?>";
+const deleteString = "<?php echo validJsStr(translate('Delete')) ?>";
+const archivedString = "<?php echo validJsStr(translate('Archived')) ?>";
+const unarchivedString = "<?php echo validJsStr(translate('Unarchived')) ?>";
+const emailedString = "<?php echo validJsStr(translate('Emailed')) ?>";
+const yesString = "<?php echo validJsStr(translate('Yes')) ?>";
+const noString = "<?php echo validJsStr(translate('No')) ?>";
+const confirmDeleteEventsString = "<?php echo validJsStr(translate('ConfirmDeleteEvents')) ?>";
 
 const translate = {
   "seconds": "<?php echo translate('seconds') ?>",

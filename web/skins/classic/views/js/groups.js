@@ -33,7 +33,7 @@ function editGroup( element ) {
 }
 
 function deleteGroup(element) {
-  getDelConfirmModal('ConfirmDeleteGroup', 'ConfirmDeleteGroupTitle', 'groupsForm');
+  getDelConfirmModal('ConfirmDelete', 'Delete', 'groupsForm');
 }
 
 function configureButtons(element) {

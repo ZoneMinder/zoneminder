@@ -109,8 +109,7 @@ function deleteRequest($id) {
   $report = new ZM\Report($id);
   if ( !$report->Id() ) {
     $message[] = array($id=>'Report not found.');
-  //} else if (!$report->canEdit()) {
-  } else if (!canEdit('Events')) { // IgorA100 Since we don't have permissions configured for Reports yet, we'll analyze permissions for Events.
+  } else if (!$report->canEdit()) {
     $message[] = array($id=>'You do not have permission to delete report '.$report->Id());
   } else {
     $report->delete();

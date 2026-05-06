@@ -35,7 +35,7 @@ function manageDelConfirmModalBtns() {
 
   $j.getJSON(thisUrl + '?request=controlcaps&action=delete&cids[]='+selections.join('&cids[]='))
       .done( function(data) {
-        $j('#eventTable').bootstrapTable('refresh');
+        tableControlCaps.bootstrapTable('refresh');
         window.location.reload(true);
       })
       .fail(logAjaxFail);

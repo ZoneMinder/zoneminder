@@ -114,7 +114,7 @@ if ( isset($_SERVER['HTTP_RANGE']) ) {
   }
 } # end if HTTP_RANGE
 
-$path_info = ($mode == 'mp4') ? pathinfo($path) : pathinfo($Event->DefaultVideo());
+$path_info = pathinfo($path ? $path : (($Event) ? $Event->DefaultVideo() : ''));
 header('Content-type: video/'.$path_info['extension']);
 header('Accept-Ranges: bytes');
 header('Content-Length: '.$length);

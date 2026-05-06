@@ -1460,10 +1460,12 @@ void Monitor::UpdateAdaptiveSkip() {
 }
 
 void Monitor::ForceAlarmOn( int force_score, const char *force_cause, const char *force_text ) {
-  trigger_data->trigger_state = TriggerState::TRIGGER_ON;
+  // Write score/cause/text before trigger_state so the analysis thread always
+  // reads complete trigger data when it observes TRIGGER_ON.
   trigger_data->trigger_score = force_score;
   strncpy(trigger_data->trigger_cause, force_cause, sizeof(trigger_data->trigger_cause)-1);
   strncpy(trigger_data->trigger_text, force_text, sizeof(trigger_data->trigger_text)-1);
+  trigger_data->trigger_state = TriggerState::TRIGGER_ON;
 }
 
 void Monitor::ForceAlarmOff() {
@@ -2464,7 +2466,9 @@ bool Monitor::Analyse() {
     } // end if ( trigger_data->trigger_state != TRIGGER_OFF )
 
     if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
-      packetqueue.clearPackets(packet);
+      if (packetqueue.should_try_clear(packet->keyframe)) {
+        packetqueue.clearPackets(packet);
+      }
       // Only do these if it's a video packet.
       shared_data->last_read_index = packet->image_index;
       analysis_image_count++;

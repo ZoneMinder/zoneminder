@@ -509,6 +509,15 @@ void MonitorStream::runStream() {
     return;
   }
 
+  if (!monitor) {
+    Error("Cannot stream monitor %d: not loaded", monitor_id);
+    if (type == STREAM_JPEG)
+      fputs("Content-Type: multipart/x-mixed-replace; boundary=" BOUNDARY "\r\n\r\n", stdout);
+    sendTextFrame("Not connected");
+    zm_terminate = true;
+    return;
+  }
+
   openComms();
   std::thread command_processor;
   if (connkey) {

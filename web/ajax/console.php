@@ -390,7 +390,7 @@ function queryRequest() {
     }
     $row['Analysing'] = isset($monitor['Analysing']) ? $monitor['Analysing'] : 'None';
     $row['Recording'] = isset($monitor['Recording']) ? $monitor['Recording'] : 'None';
-    $row['ONVIF_Event_Listener'] = isset($monitor['ONVIF_Event_Listener']) ? $monitor['ONVIF_Event_Listener'] : 0;
+    $row['ONVIF_Event_Listener'] = isset($monitor['ONVIF_Event_Listener']) ? $monitor['ONVIF_Alarm_Text'] : 0;
     $row['UpdatedOn'] = isset($monitor['UpdatedOn']) ? $monitor['UpdatedOn'] : '';
     $row['Type'] = $monitor['Type'];
     $row['Capturing'] = isset($monitor['Capturing']) ? $monitor['Capturing'] : 'None';

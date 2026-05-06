@@ -4,3 +4,22 @@
   align-items: center;
   margin: 5px;
 }
+
+#filesForm {
+  display: flex;
+  flex-direction: column;
+  overflow-y: unset;
+  height: 100%;
+}
+
+table#contentTable th, table#contentTable td {
+  border-bottom: unset !important;
+}
+
+@media screen and (max-height: 600px) {
+  .sticky #toolbar {
+    max-height: unset;
+    overflow-y: unset;
+    overflow-x: unset;
+  }
+}

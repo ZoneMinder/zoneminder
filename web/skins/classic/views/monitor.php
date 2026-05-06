@@ -1193,8 +1193,18 @@ $videowriter_encoders = array(
   'av1_vaapi' => 'av1_vaapi',
   'av1_nvenc' => 'av1_nvenc'
 );
-echo htmlSelect('newMonitor[Encoder]', $videowriter_encoders, $monitor->Encoder());
+echo htmlSelect('newMonitor[Encoder]', $videowriter_encoders, $monitor->Encoder(), ['id'=>'ZmEncoder']);
 ?>
+            </li>
+            <li class="EncoderTemplate" id="EncoderTemplateRow">
+              <label><?php echo translate('EncoderTemplate') ?></label>
+              <select id="EncoderTemplate" name="newMonitor[__template_picker]"></select>
+              <button type="button" id="ApplyEncoderTemplate"><?php echo translate('ApplyEncoderTemplate') ?></button>
+            </li>
+            <li class="EncoderParameters">
+              <label><?php echo translate('OptionalEncoderParam'); echo makeHelpLink('OPTIONS_ENCODER_PARAMETERS') ?></label>
+              <textarea id="EncoderParameters" name="newMonitor[EncoderParameters]" rows="<?php echo count(explode("\n", $monitor->EncoderParameters())); ?>"><?php echo validHtmlStr($monitor->EncoderParameters()) ?></textarea>
+              <div id="EncoderParameterDiagnostics" class="encoderParameterDiagnostics"></div>
             </li>
             <li class="EncoderHWAccelName">
               <label>
@@ -1219,11 +1229,6 @@ $videowriter_containers = array(
 );
 echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor->OutputContainer());
 ?>
-            </li>
-            <li class="EncoderParameters">
-              <label><?php echo translate('OptionalEncoderParam'); echo makeHelpLink('OPTIONS_ENCODER_PARAMETERS') ?></label>
-              <textarea name="newMonitor[EncoderParameters]" rows="<?php echo count(explode("\n", $monitor->EncoderParameters())); ?>"><?php echo validHtmlStr($monitor->EncoderParameters()) ?></textarea>
-              
             </li>
             <li class="WallClockTimeStamps">
               <label><?php echo translate('Use Wallclock Timestamps') ?></label>
@@ -1273,8 +1278,9 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
               <label><?php echo translate('Show'); echo makeHelpLink('OPTIONS_WHATTODISPLAY') ?> </label>
               <?php if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED)
                       echo htmlSelect('newMonitor[WhatDisplay]', $whatDisplay, $monitor->WhatDisplay());
-	                else
-	                  echo '<span class="text-info">' . translate('RequiresAudioMotionEnabled') . '</span>';
+                    else
+                      echo '<span class="text-info">' . translate('RequiresAudioMotionEnabled') . '</span>';
+                    echo '<div id="WhatDisplayInfo" class="form-text"></div>';
               ?>
             </li>
             <li class="RTSPServer">
@@ -1737,6 +1743,7 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
   </div>
 
   <script src="<?php echo cache_bust('js/MonitorLinkExpression.js') ?>"></script>
+  <script src="<?php echo cache_bust('skins/classic/views/js/monitor-encoder-templates.js') ?>"></script>
 <script type="module" nonce="<?php echo $cspNonce ?>">
   import DmsCoordinates, {parseDms} from "./js/dms.js";
   window.DmsCoordinates = DmsCoordinates;

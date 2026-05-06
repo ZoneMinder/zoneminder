@@ -131,3 +131,10 @@ ul.form > li > label:first-child {
     min-width: unset;
   }
 }
+
+/* Encoder preset diagnostics — advisory text under the EncoderParameters textarea */
+.encoderParameterDiagnostics {
+  font-size: 0.9em;
+  color: #b58900;
+  margin-top: 4px;
+}

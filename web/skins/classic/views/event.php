@@ -200,7 +200,7 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
 ?>
 
 <!-- BEGIN HEADER -->
-    <div class="d-flex flex-row flex-wrap justify-content-between px-3 py-1">
+    <div id="header" class="d-flex flex-row flex-wrap justify-content-between px-3 py-1">
       <div id="toolbar" >
         <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
         <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
@@ -237,22 +237,22 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
       <div class="d-flex flex-row">
         <div id="replayControl">
           <label for="replayMode"><?php echo translate('Replay') ?></label>
-          <?php echo htmlSelect('replayMode', $replayModes, $replayMode, array('data-on-change'=>'changeReplayMode','id'=>'replayMode')); ?>
+          <?php echo htmlSelect('replayMode', $replayModes, $replayMode, array('data-on-change'=>'changeReplayMode','id'=>'replayMode','class'=>'chosen')); ?>
         </div>
         <div id="scaleControl">
           <label for="scale"><?php echo translate('Scale') ?></label>
-          <?php echo htmlSelect('scale', $scales, $scaleSelected, array('data-on-change'=>'changeScale','id'=>'scale')); ?>
+          <?php echo htmlSelect('scale', $scales, $scaleSelected, array('data-on-change'=>'changeScale','id'=>'scale','class'=>'chosen')); ?>
         </div>
           <div id="streamQualityControl"<?php echo $video_tag ? ' style="display: none;"':'' ?>>
           <label for="streamQuality"><?php echo translate('Stream quality') ?></label>
-          <?php echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality')); ?>
+          <?php echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality','class'=>'chosen')); ?>
         </div>
         <div id="codecControl">
           <label for="codec"><?php echo translate('Codec') ?></label>
-          <?php echo htmlSelect('codec', $codecs, $codec, array('data-on-change'=>'changeCodec','id'=>'codec')); ?>
+          <?php echo htmlSelect('codec', $codecs, $codec, array('data-on-change'=>'changeCodec','id'=>'codec','class'=>'chosen')); ?>
         </div>
         <div id="whatDisplayControl">
-          <label for="whatDisplay"><?php if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) echo translate('What display') ?></label>
+          <label for="whatDisplay"><?php if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) echo translate('Show') ?></label>
 <?php 
             $whatDisplayOptions = [
               'Default'=>translate('Default'),
@@ -310,7 +310,7 @@ if (defined('ZM_OPT_USE_GEOLOCATION') and ZM_OPT_USE_GEOLOCATION) {
 }
 ?>
 
-              <div id="frames">
+              <div id="frames" class="flex-col-3">
 <?php 
 if (file_exists($Event->Path().'/alarm.jpg')) {
   echo '

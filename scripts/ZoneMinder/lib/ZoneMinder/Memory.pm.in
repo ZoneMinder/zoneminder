@@ -605,15 +605,18 @@ sub zmTriggerEventOn {
   my $text = shift;
   my $showtext = shift;
 
+  # Write score/cause/text before trigger_state so the analysis process always
+  # reads complete trigger data when it sees TRIGGER_ON.  Perl hash iteration
+  # order is non-deterministic, so trigger_state must be written in a separate
+  # call that executes after all data fields are already in shared memory.
   my $values = {
     'trigger_data:trigger_score' => $score,
     'trigger_data:trigger_cause' => $cause,
   };
   $values->{'trigger_data:trigger_text'} = $text if defined($text);
   $values->{'trigger_data:trigger_showtext'} = $showtext if defined($showtext);
-  $values->{'trigger_data:trigger_state'} = TRIGGER_ON; # Write state last so event not read incomplete
-
   zmMemWrite($monitor, $values);
+  zmMemWrite($monitor, {'trigger_data:trigger_state' => TRIGGER_ON}); # Write state last so event not read incomplete
 }
 
 sub zmTriggerEventOff {

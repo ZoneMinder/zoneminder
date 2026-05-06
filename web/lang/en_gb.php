@@ -83,6 +83,7 @@ $SLANG = array(
     'AnalysisUpdateDelay'   => 'Analysis Update Delay',
     'AcceptDetection'       => 'Accept',
     'APIEnabled'            => 'API Enabled',
+    'ApplyEncoderTemplate'  => 'Apply template',
     'ApplyingStateChange'   => 'Applying State Change',
     'ArchArchived'          => 'Archived Only',
     'Assigned Users'        => 'Assigned Users',
@@ -121,6 +122,9 @@ $SLANG = array(
     'AttrTotalScore'        => 'Total Score',
     'AttrStartWeekday'      => 'Start Weekday',
     'AttrEndWeekday'        => 'End Weekday',
+    'AudioMotionVersionOK'  => 'Correct version installed "{AudioMotionVersionInstalled}"',
+    'AudioMotionVersionNotInstalled' => 'Requires audio motion analyzer version "{AudioMotionVersionRequired}" to be installed~~Download link: https://cdn.jsdelivr.net/npm/audiomotion-analyzer@{AudioMotionVersionRequired} or https://github.com/hvianna/audioMotion-analyzer/releases/tag/{AudioMotionVersionRequired}',
+    'AudioMotionVersionWrongVersion' => 'The required analyzer version is "{AudioMotionVersionRequired}", but you have "{AudioMotionVersionInstalled}" installed~~Download link: https://cdn.jsdelivr.net/npm/audiomotion-analyzer@{AudioMotionVersionRequired} or https://github.com/hvianna/audioMotion-analyzer/releases/tag/{AudioMotionVersionRequired}',
     'Auth'                  => 'Authentication',
     'AutoStopTimeout'       => 'Auto Stop Timeout',
     'AvgBrScore'            => 'Avg.<br/>Score',
@@ -234,6 +238,8 @@ $SLANG = array(
     'ConfirmDeleteTrainingData' => 'This will permanently delete ALL training data (images, labels, and class definitions). Type agree to confirm:',
     'ConfirmDeleteLayout'   => 'Are you sure you wish to delete current layout?',
     'ConfirmDeleteTitle'    => 'Delete Confirmation',
+    'ConfirmDeleteUserTitle'=> 'Confirm User Deletion',
+    'ConfirmDeleteUser'     => 'Are you sure you wish to delete the selected users?',
     'ConfirmPassword'       => 'Confirm Password',
     'ConfirmUnarchiveEvents'=> 'Are you sure you wish to unarchive the selected events?',
     'ConjAnd'               => 'and',
@@ -279,6 +285,14 @@ $SLANG = array(
     'EditControl'           => 'Edit Control',
     'EditLayout'            => 'Edit Layout',
     'EnableAlarms'          => 'Enable Alarms',
+    'EncoderTemplate'       => 'Encoder Template',
+    'EncoderTemplates'      => 'Encoder Templates',
+    'EncoderTemplatesDescription' => 'Curated parameter sets for ffmpeg encoders. Apply one to a monitor\'s Encoder Parameters from the monitor edit page.',
+    'EditEncoderTemplate'   => 'Edit Encoder Template',
+    'NewEncoderTemplate'    => 'New Encoder Template',
+    'AddNewEncoderTemplate' => 'Add New Template',
+    'AllEncoders'           => 'All Encoders',
+    'FilterByEncoder'       => 'Filter by Encoder',
     'EnterNewFilterName'    => 'Enter new filter name',
     'Enter password for QR code' => 'Enter password for QR code',
     'ErrorBrackets'         => 'Error, please check you have an equal number of opening and closing brackets',
@@ -844,16 +858,18 @@ $VLANG = array(
 //
 // In languages such as English this is fairly simple
 // Note this still has to be used with printf etc to get the right formatting
-function zmVlang($langVarArray, $count) {
-  krsort($langVarArray);
-  foreach ($langVarArray as $key=>$value) {
-    if (abs($count) >= $key) {
-      return $value;
+if (!function_exists('zmVlang')) {
+  // To avoid overriding the function, this file may be loaded alongside another language translation file.
+  function zmVlang($langVarArray, $count) {
+    krsort($langVarArray);
+    foreach ($langVarArray as $key=>$value) {
+      if (abs($count) >= $key) {
+        return $value;
+      }
     }
+    ZM\Error('Unable to correlate variable language string');
   }
-  ZM\Error('Unable to correlate variable language string');
 }
-
 // This is an version that could be used in the Russian example above
 // The rules are that the first word form is used if the count ends in
 // 0, 5-9 or 11-19. The second form is used then the count ends in 1
@@ -1141,9 +1157,8 @@ None: No frames will be decoded, live view and thumbnails will not be available~
      Audio motion visualization can be displayed on the Montage, Watch, and Event pages.~~
      To do this, install the file "/skins/MySkin/assets/audioMotion-analyzer/src/audioMotion-analyzer.js".~~
      This file can be downloaded from the following links:~~
-     https://cdn.jsdelivr.net/npm/audiomotion-analyzer@4.5.4~~
-     https://github.com/hvianna/audioMotion-analyzer/releases~~
-     Currently supported version 4.5.4
+     https://cdn.jsdelivr.net/npm/audiomotion-analyzer@X.X.X where X.X.X is the version number~~
+     https://github.com/hvianna/audioMotion-analyzer/releases
     '
    ),
   'ZM_OPT_TRAINING' => array(

@@ -2367,22 +2367,38 @@ function output_file($path, $chunkSize=1024) {
   header("Content-Disposition: $contentDisposition;filename=\"$file\"");
 
   header('Accept-Ranges: bytes');
-  $range = 0;
   $size = filesize($path);
+  $start = 0;
+  $end = $size - 1;
 
   if (isset($_SERVER['HTTP_RANGE'])) {
-    list($a, $range) = explode('=', $_SERVER['HTTP_RANGE']);
-    str_replace($range, '-', $range);
-    $range = (int)$range; #fseek etc require integers not strings
-    $size2 = $size - 1;
-    $new_length = $size - $range;
+    # RFC 7233: bytes=start-end | bytes=start- | bytes=-suffix
+    if (preg_match('/^bytes=(\d*)-(\d*)$/', trim($_SERVER['HTTP_RANGE']), $m)
+        and ($m[1] !== '' or $m[2] !== '')) {
+      if ($m[1] === '') {
+        # Suffix range: last N bytes
+        $suffix = (int)$m[2];
+        if ($suffix > $size) $suffix = $size;
+        $start = $size - $suffix;
+      } else {
+        $start = (int)$m[1];
+        if ($m[2] !== '') $end = (int)$m[2];
+      }
+      if ($end > $size - 1) $end = $size - 1;
+    }
+    if ($start > $end or $start >= $size) {
+      header('HTTP/1.1 416 Range Not Satisfiable');
+      header("Content-Range: bytes */$size");
+      return false;
+    }
+    $length = $end - $start + 1;
     header('HTTP/1.1 206 Partial Content');
-    header("Content-Length: $new_length");
-    header("Content-Range: bytes $range-$size2/$size");
+    header("Content-Length: $length");
+    header("Content-Range: bytes $start-$end/$size");
   } else {
-    $size2 = $size - 1;
-    header("Content-Range: bytes 0-$size2/$size");
-    header('Content-Length: ' . $size);
+    $length = $size;
+    header("Content-Range: bytes 0-$end/$size");
+    header("Content-Length: $size");
   }
 
   if ($size == 0) {
@@ -2391,13 +2407,18 @@ function output_file($path, $chunkSize=1024) {
   @ini_set('magic_quotes_runtime', 0);
   $fp = fopen($path, 'rb');
 
-  fseek($fp, $range);
+  fseek($fp, $start);
 
-  while (!feof($fp) and (connection_status() == 0)) {
+  $remaining = $length;
+  $buffer = 1024 * $chunkSize;
+  while ($remaining > 0 and !feof($fp) and (connection_status() == 0)) {
     set_time_limit(0);
-    print(@fread($fp, 1024*$chunkSize));
+    $data = @fread($fp, min($buffer, $remaining));
+    if ($data === false or $data === '') break;
+    print($data);
     flush();
-    ob_flush();
+    if (ob_get_level() > 0) ob_flush();
+    $remaining -= strlen($data);
   }
   fclose($fp);
 

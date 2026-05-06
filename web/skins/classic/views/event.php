@@ -401,7 +401,7 @@ if ($video_tag) {
                         autoplay: true,
                         preload: 'auto',
                         playbackRates: rates,
-                        liveui: <?php echo $has_hls && !$Event->EndDateTime() ? 'true' : 'false' ?>,
+                        liveui: false,
                         liveTracker: {
                           trackingThreshold: 0
                         }

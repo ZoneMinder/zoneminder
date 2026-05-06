@@ -59,7 +59,7 @@ if ( ! empty($_REQUEST['eid']) ) {
 
 // If DefaultVideo is an m3u8 manifest and no explicit file was requested,
 // find the actual mp4 video file in the event directory.
-if ($Event && !$errorText && !@is_file($path)) {
+if ($Event && !$errorText && str_ends_with($path, '.m3u8') && empty($_REQUEST['file'])) {
   $dir = $Event->Path();
   // Look for the final renamed mp4 first, then incomplete
   $candidates = glob($dir.'/'.$Event->Id().'-video.*.mp4');
@@ -100,13 +100,13 @@ if ( isset($_SERVER['HTTP_RANGE']) ) {
   }
 } # end if HTTP_RANGE
 
-$path_info = pathinfo($Event->DefaultVideo());
+$path_info = pathinfo($path);
 header('Content-type: video/'.$path_info['extension']);
 header('Accept-Ranges: bytes');
 header('Content-Length: '.$length);
 # This is so that Save Image As give a useful filename
 if ($Event) {
-  header('Content-Disposition: inline; filename="' . $Event->DefaultVideo() . '"');
+  header('Content-Disposition: inline; filename="' . basename($path) . '"');
 } else {
   header('Content-Disposition: inline;');
 }

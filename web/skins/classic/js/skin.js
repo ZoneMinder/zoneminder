@@ -686,7 +686,7 @@ function getDelConfirmModal(key, title, formName=null) {
               if (currentView == 'groups') form.elements['action'].value = 'delete';
               submitThisForm(form);
             } else {
-              console.warn(`Форма с именем=${formName} не найдена.`);
+              console.warn(`Form with name=${formName} not found.`);
             }
           }
         });

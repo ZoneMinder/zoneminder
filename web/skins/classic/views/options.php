@@ -141,7 +141,9 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
   include('_options_api.php');
 } else if ($tab == 'menu') {
   include('_options_menu.php');
-}  // $tab == API/menu
+} else if ($tab == 'encoderTemplates') {
+  include('_options_encoderTemplates.php');
+}  // $tab == API/menu/encoderTemplates
   else { 
   $config = array();
   $configCats = array();

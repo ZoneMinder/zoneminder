@@ -40,7 +40,8 @@ function configureButtons(element) {
   if (canEdit.Groups) {
     configureDeleteButton(element);
   } else {
-    form.deleteBtn.disabled = 'disabled';
+    const form = element.form;
+    if (form) form.deleteBtn.disabled = true;
   }
 }
 

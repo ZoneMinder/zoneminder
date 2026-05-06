@@ -679,8 +679,6 @@ function getDelConfirmModal(key, title, formName=null) {
           if (!formName) {
             if (typeof manageDelConfirmModalBtns === "function") {
               manageDelConfirmModalBtns();
-            } else {
-              console.warn(`Функция manageDelConfirmModalBtns не найдена.`);
             }
           } else {
             const form = document.querySelector('form[name="'+formName+'"]');

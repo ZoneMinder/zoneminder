@@ -401,7 +401,7 @@ if ($video_tag) {
                         autoplay: true,
                         preload: 'auto',
                         playbackRates: rates,
-                        liveui: false,
+                        liveui: false, // keep false: true prevents scrubbing back in time for ongoing events
                         liveTracker: {
                           trackingThreshold: 0
                         }

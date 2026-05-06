@@ -38,6 +38,29 @@ const exportFailedString = '<?php echo translate('ExportFailed') ?>';
 const exportSucceededString = '<?php echo translate('ExportSucceeded') ?>';
 const cancelString = '<?php echo translate('Cancel') ?>';
 const playerDisabledInMonitorSettings = '<?php echo translate('PlayerDisabledInMonitorSettings') ?>';
+
+const deleteString = "<?php echo addslashes(translate('Delete')) ?>";
+const archivedString = "<?php echo translate('Archived') ?>";
+const unarchivedString = "<?php echo translate('Unarchived') ?>";
+const emailedString = "<?php echo translate('Emailed') ?>";
+const yesString = "<?php echo translate('Yes') ?>";
+const noString = "<?php echo translate('No') ?>";
+const confirmDeleteEventsString = "<?php echo addslashes(translate('ConfirmDeleteEvents')) ?>";
+
+const translate = {
+  "seconds": "<?php echo translate('seconds') ?>",
+  "Fullscreen": "<?php echo translate('Fullscreen') ?>",
+  "Exit Fullscreen": "<?php echo translate('Exit Fullscreen') ?>",
+  "Showing Analysis": "<?php echo translate('Showing Analysis') ?>",
+  "Show Analysis": "<?php echo translate('Show Analysis') ?>",
+  "Not Showing Analysis": "<?php echo translate('Not Showing Analysis') ?>",
+  "Live": "<?php echo translate('Live') ?>",
+  "Edit": "<?php echo translate('Edit') ?>",
+  "All Events": "<?php echo translate('All Events') ?>",
+  "Info": "<?php echo translate('Info') ?>",
+  "Archived": "<?php echo translate('Archived') ?>",
+  "Emailed": "<?php echo translate('Emailed') ?>",
+};
 <?php
 /* We can't trust PHP_SELF on a path like /index.php/"%3E%3Cimg src=x onerror=prompt('1');%3E which
    will still load index.php but will include the arbitrary payload after `.php/`. To mitigate this,

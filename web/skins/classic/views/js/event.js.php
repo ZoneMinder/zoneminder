@@ -102,23 +102,10 @@ var streamMode = '<?php echo $streamMode ?>';
 //
 // Strings
 //
-var deleteString = "<?php echo validJsStr(translate('Delete')) ?>";
 var causeString = "<?php echo validJsStr(translate('AttrCause')) ?>";
 var showZonesString = "<?php echo validJsStr(translate('Show Zones'))?>";
 var hideZonesString = "<?php echo validJsStr(translate('Hide Zones'))?>";
 var WEB_LIST_THUMB_WIDTH = '<?php echo ZM_WEB_LIST_THUMB_WIDTH ?>';
 var WEB_LIST_THUMB_HEIGHT = '<?php echo ZM_WEB_LIST_THUMB_HEIGHT ?>';
 var popup = '<?php echo $popup ?>';
-
-var translate = {
-  "seconds": "<?php echo translate('seconds') ?>",
-  "Fullscreen": "<?php echo translate('Fullscreen') ?>",
-  "Exit Fullscreen": "<?php echo translate('Exit Fullscreen') ?>",
-  "Live": "<?php echo translate('Live') ?>",
-  "Edit": "<?php echo translate('Edit') ?>",
-  "All Events": "<?php echo translate('All Events') ?>",
-  "Info": "<?php echo translate('Info') ?>",
-  "Archived": "<?php echo translate('Archived') ?>",
-  "Emailed": "<?php echo translate('Emailed') ?>",
-};
 

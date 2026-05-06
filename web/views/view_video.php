@@ -93,8 +93,7 @@ if ( ! ($fh = @fopen($path, 'rb') ) ) {
   header('HTTP/1.0 404 Not Found');
   die();
 }
-$arrPath = preg_split('/[\/]/', $path);
-$filename = ($mode == 'mp4') ? end($arrPath) : (($Event) ? $Event->DefaultVideo() : '');
+$filename = ($mode == 'mp4') ? basename($path) : (($Event) ? $Event->DefaultVideo() : '');
 
 $size = filesize($path);
 $begin = 0;

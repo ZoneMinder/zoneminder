@@ -92,12 +92,14 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
   switch ((MsgCommand)msg->msg_data[0]) {
   case CMD_PAUSE :
     Debug(1, "Got PAUSE command");
+    stopped = false;
     paused = true;
     delayed = true;
     last_frame_sent = now;
     break;
   case CMD_PLAY :
     Debug(1, "Got PLAY command");
+    stopped = false;
     if (paused) {
       paused = false;
       delayed = true;
@@ -106,6 +108,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     break;
   case CMD_VARPLAY :
     Debug(1, "Got VARPLAY command");
+    stopped = false;
     if (paused) {
       paused = false;
       delayed = true;
@@ -114,11 +117,13 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     break;
   case CMD_STOP :
     Debug(1, "Got STOP command");
-    paused = true;
+    stopped = true;
+    paused = false;
     delayed = false;
     break;
   case CMD_FASTFWD :
     Debug(1, "Got FAST FWD command");
+    stopped = false;
     if (paused) {
       paused = false;
       delayed = true;
@@ -156,6 +161,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
   }
   case CMD_SLOWFWD :
     Debug(1, "Got SLOW FWD command");
+    stopped = false;
     paused = true;
     delayed = true;
     replay_rate = ZM_RATE_BASE;
@@ -163,6 +169,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     break;
   case CMD_SLOWREV :
     Debug(1, "Got SLOW REV command");
+    stopped = false;
     paused = true;
     delayed = true;
     replay_rate = ZM_RATE_BASE;
@@ -170,6 +177,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     break;
   case CMD_FASTREV :
     Debug(1, "Got FAST REV command");
+    stopped = false;
     if (paused) {
       paused = false;
       delayed = true;
@@ -256,6 +264,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     int  score;
     int  analysing;
     bool analysis_image;
+    bool stopped;
   } status_data;
 
   status_data.id = monitor->Id();
@@ -299,6 +308,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
   } // end monitor_mutex scope
   status_data.delayed = delayed;
   status_data.paused = paused;
+  status_data.stopped = stopped;
   status_data.rate = replay_rate;
   status_data.delay = FPSeconds(now - last_frame_sent).count();
   status_data.zoom = zoom;
@@ -306,13 +316,14 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
   status_data.analysis_image = (frame_type == FRAME_ANALYSIS) &&
       monitor->ShmValid() &&
       (monitor->Analysing() != Monitor::ANALYSING_NONE);
-  Debug(2, "viewing fps: %.2f capture_fps: %.2f analysis_fps: %.2f Buffer Level:%d, Delayed:%d, Paused:%d, Rate:%d, delay:%.3f, Zoom:%d, Enabled:%d Forced:%d score: %d analysis_image: %d",
+  Debug(2, "viewing fps: %.2f capture_fps: %.2f analysis_fps: %.2f Buffer Level:%d, Delayed:%d, Paused:%d, Stopped:%d, Rate:%d, delay:%.3f, Zoom:%d, Enabled:%d Forced:%d score: %d analysis_image: %d",
         status_data.fps,
         status_data.capture_fps,
         status_data.analysis_fps,
         status_data.buffer_level,
         status_data.delayed,
         status_data.paused,
+        status_data.stopped,
         status_data.rate,
         status_data.delay,
         status_data.zoom,
@@ -638,6 +649,12 @@ void MonitorStream::runStream() {
     monitor->setLastViewed();
     if (frame_type == FRAME_ANALYSIS)
       monitor->setLastAnalysisViewed();
+
+    if (stopped) {
+      // In stopped state, do nothing except wait for a new command
+      std::this_thread::sleep_for(MAX_SLEEP);
+      continue;
+    }
 
     if (paused) {
       if (!was_paused) {

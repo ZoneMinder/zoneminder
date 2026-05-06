@@ -32,6 +32,7 @@ function EventStream(config) {
   this.img = null;
   this.started = false;
   this.paused = false;
+  this.stopped = false;
   this.currentEventId = null;
   this.rate = 100;
   this.status = null;
@@ -457,9 +458,12 @@ function EventStream(config) {
       }
     }
 
-    // Track paused state from server
+    // Track paused and stopped state from server
     if (this.status.paused !== undefined) {
       this.paused = !!this.status.paused;
+    }
+    if (this.status.stopped !== undefined) {
+      this.stopped = !!this.status.stopped;
     }
 
     // Notify consumer

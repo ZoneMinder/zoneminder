@@ -125,6 +125,7 @@ class StreamBase {
   char sock_path_lock[108];
   int lock_fd;
   bool paused;
+  bool stopped;
   int step;
   bool send_twice;        // flag to send the same frame twice
 
@@ -188,6 +189,7 @@ class StreamBase {
     sd(-1),
     lock_fd(0),
     paused(false),
+    stopped(false),
     step(0),
     maxfps(DEFAULT_MAXFPS),
     base_fps(0.0),

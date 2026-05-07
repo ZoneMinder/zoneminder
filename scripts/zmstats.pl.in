@@ -122,6 +122,8 @@ while (!$zm_terminate) {
         my $event_ids = $dbh->selectcol_arrayref(
           "SELECT EventId FROM $table WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL $interval)"
         );
+        $err = $dbh->err() // 0;
+        last if $err;
         if ($event_ids and @$event_ids) {
           zmDbDo(
             "DELETE FROM $table WHERE EventId IN (".join(',', map { '?' } @$event_ids).')',

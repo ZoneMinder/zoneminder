@@ -21,10 +21,20 @@
 function translate($name) {
   global $SLANG;
   // The isset is more performant
-  if ( isset($SLANG[$name]) || array_key_exists($name, $SLANG) )
+  if (( isset($SLANG[$name]) || array_key_exists($name, $SLANG) )) {
     return $SLANG[$name];
-  else
-    return $name;
+  } else {
+    $lcfirstName = lcfirst($name);
+    if ( isset($SLANG[$lcfirstName]) || array_key_exists($lcfirstName, $SLANG) ) {
+      return lcfirst($SLANG[$lcfirstName]);
+    } else {
+      $ucfirstName = mb_ucfirst($name);
+      if ( isset($SLANG[$ucfirstName]) || array_key_exists($ucfirstName, $SLANG) )
+        return lcfirst($SLANG[$ucfirstName]);
+      else
+       return $name;
+    }
+  }
 }
 
 function loadLanguage($prefix='') {

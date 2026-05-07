@@ -395,15 +395,17 @@ sub delete {
 
     my $in_transaction = $ZoneMinder::Database::dbh->{AutoCommit} ? 0 : 1;
 
-    # event_delete_trigger fires BEFORE DELETE on Events; after the
-    # accompanying triggers.sql change, event_update_trigger now also fires
-    # BEFORE UPDATE. That gives every Events writer the same lock acquisition
-    # order: buckets[Id] -> Event_Summaries[MonitorId] -> Events[Id] (the
-    # outer DML row last). zmstats.pl runs at the same RC isolation and takes
-    # bucket-row X-locks first, then UPDATE Event_Summaries, which is the
-    # same prefix order — so no cycle is possible across filter / zma /
-    # zmstats. Do NOT pre-lock Event_Summaries here: that puts ES before
-    # buckets and re-introduces the inversion against zma's UPDATE path.
+    # InnoDB X-locks the matched Events row during WHERE evaluation, before
+    # either BEFORE or AFTER trigger bodies fire, so the lock acquisition
+    # order is the same regardless of trigger timing:
+    #   Events[Id] -> Events_Hour/Day/Week/Month[EventId] -> Event_Summaries[MonitorId]
+    # event_delete_trigger (BEFORE DELETE on Events) and event_update_trigger
+    # (AFTER UPDATE on Events) both propagate into the bucket tables, whose
+    # own triggers then UPDATE Event_Summaries — that's the canonical chain.
+    # zmstats.pl prune+resync follows the matching prefix (bucket DELETEs
+    # then UPDATE Event_Summaries) and crucially does NOT pre-lock
+    # Event_Summaries: that would put ES before buckets and re-introduce the
+    # inversion against zma's UPDATE path.
     #
     # READ COMMITTED drops the next-key/gap locks that two concurrent filter
     # workers deleting adjacent EventIds in the bucket tables would otherwise

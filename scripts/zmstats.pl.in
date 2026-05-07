@@ -200,7 +200,7 @@ while (!$zm_terminate) {
       }
 
       $dbh->rollback();
-      if ($err != 1213 or $attempt >= $max_attempts) {
+      if ($err != 1213 or $attempt >= $max_attempts) { # 1213 = ER_LOCK_DEADLOCK
         Error("Event_Summaries prune+resync gave up after $attempt attempt(s): ".$dbh->errstr());
         last;
       }

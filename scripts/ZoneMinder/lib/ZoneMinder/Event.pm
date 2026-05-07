@@ -413,8 +413,8 @@ sub delete {
     # to be re-issued before each begin_work (and is skipped when the caller
     # is managing the TX).
     #
-    # Retry on errno 1213 only when we own the TX; if the caller is managing
-    # one, bail and let them decide.
+    # Retry on deadlock (MariaDB ER_LOCK_DEADLOCK = 1213) only when we own
+    # the TX; if the caller is managing one, bail and let them decide.
     my $attempt = 0;
     my $max_attempts = 5;
     while (1) {
@@ -444,7 +444,7 @@ sub delete {
       }
 
       $ZoneMinder::Database::dbh->rollback() if !$in_transaction;
-      if ($in_transaction or $err != 1213 or $attempt >= $max_attempts) {
+      if ($in_transaction or $err != 1213 or $attempt >= $max_attempts) { # 1213 = ER_LOCK_DEADLOCK
         return;
       }
       Debug("Deadlock deleting event $$event{Id} attempt $attempt/$max_attempts, retrying");

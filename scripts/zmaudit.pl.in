@@ -942,6 +942,11 @@ FROM `Frames` WHERE `EventId`=?';
   # the trigger writers.
   {
     my %agg;
+    # All-or-nothing per column group: a transient SELECT failure must not
+    # cause the per-monitor UPDATE phase to write 0 over valid counters.
+    # Track which column groups are safe to write; skip the others entirely
+    # — zmaudit will resync them on its next pass.
+    my %ok = (events => 0, h => 0, d => 0, w => 0, m => 0);
 
     my $events_rows = $dbh->selectall_arrayref(q{
       SELECT MonitorId,
@@ -955,6 +960,7 @@ FROM `Frames` WHERE `EventId`=?';
     if ($dbh->err()) {
       Error("zmaudit Events aggregate failed: ".$dbh->errstr());
     } else {
+      $ok{events} = 1;
       for my $r (@$events_rows) {
         $agg{$r->[0]}{total_c}    = $r->[1];
         $agg{$r->[0]}{total_s}    = $r->[2];
@@ -977,14 +983,16 @@ FROM `Frames` WHERE `EventId`=?';
         Error("zmaudit $table aggregate failed: ".$dbh->errstr());
         next;
       }
+      $ok{$key} = 1;
       for my $r (@$rows) {
         $agg{$r->[0]}{$key.'_c'} = $r->[1];
         $agg{$r->[0]}{$key.'_s'} = $r->[2];
       }
     }
 
-    # Include monitors that have an Event_Summaries row but no Events rows so
-    # we still zero them out instead of leaving stale counters.
+    # Include monitors that have an Event_Summaries row but no rows in any
+    # successfully-aggregated source — those need to be zeroed for the
+    # column groups we did read.
     my $existing = $dbh->selectcol_arrayref('SELECT MonitorId FROM Event_Summaries');
     if ($dbh->err()) {
       Error("zmaudit Event_Summaries enumerate failed: ".$dbh->errstr());
@@ -992,27 +1000,34 @@ FROM `Frames` WHERE `EventId`=?';
       $agg{$_} ||= {} for @$existing;
     }
 
-    for my $mid (sort { $a <=> $b } keys %agg) {
-      my $a = $agg{$mid};
-      ZoneMinder::Database::zmDbDo(
-        'UPDATE Event_Summaries SET '.
-          'TotalEvents=?, TotalEventDiskSpace=?, '.
-          'ArchivedEvents=?, ArchivedEventDiskSpace=?, '.
-          'HourEvents=?, HourEventDiskSpace=?, '.
-          'DayEvents=?, DayEventDiskSpace=?, '.
-          'WeekEvents=?, WeekEventDiskSpace=?, '.
-          'MonthEvents=?, MonthEventDiskSpace=? '.
-        'WHERE MonitorId=?',
-        $a->{total_c}    // 0, $a->{total_s}    // 0,
-        $a->{archived_c} // 0, $a->{archived_s} // 0,
-        $a->{h_c}        // 0, $a->{h_s}        // 0,
-        $a->{d_c}        // 0, $a->{d_s}        // 0,
-        $a->{w_c}        // 0, $a->{w_s}        // 0,
-        $a->{m_c}        // 0, $a->{m_s}        // 0,
-        $mid
-      );
+    # Build the SET clause from only the column groups we successfully read.
+    my @set;
+    my @bind_template;
+    if ($ok{events}) {
+      push @set, 'TotalEvents=?, TotalEventDiskSpace=?, ArchivedEvents=?, ArchivedEventDiskSpace=?';
+      push @bind_template, qw(total_c total_s archived_c archived_s);
     }
-    aud_print('Finished resyncing Event_Summaries from Events + bucket tables');
+    for my $bucket (['h','Hour'], ['d','Day'], ['w','Week'], ['m','Month']) {
+      my ($key, $col) = @$bucket;
+      next unless $ok{$key};
+      push @set, "${col}Events=?, ${col}EventDiskSpace=?";
+      push @bind_template, $key.'_c', $key.'_s';
+    }
+
+    if (@set) {
+      my $sql = 'UPDATE Event_Summaries SET '.join(', ', @set).' WHERE MonitorId=?';
+      for my $mid (sort { $a <=> $b } keys %agg) {
+        my $a = $agg{$mid};
+        ZoneMinder::Database::zmDbDo(
+          $sql,
+          (map { $a->{$_} // 0 } @bind_template),
+          $mid
+        );
+      }
+      aud_print('Finished resyncing Event_Summaries from Events + bucket tables');
+    } else {
+      Error('zmaudit: every Event_Summaries aggregate SELECT failed; skipping resync');
+    }
   }
 
   # Storage DiskSpace resync: same trap. Snapshot per-Storage sums via plain

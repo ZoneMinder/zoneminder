@@ -49,7 +49,7 @@ var Server = function() {
         const path = (this.PathToApi && (this.PathToApi != 'null')) ? this.PathToApi : '';
         // Single-server: match browser's host:port (this.Hostname/Port may be wrong behind a proxy).
         if (!this.Id) {
-          return protocol + '//' + location.host + path;
+          return protocol + '//' + (port ? location.hostname + ':' + port : location.host) + path;
         }
         return protocol + '//' + this.Hostname + (port ? ':' + port : (this.Port ? ':' + this.Port : (location.port ? ':' + location.port : ''))) + path;
       }

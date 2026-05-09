@@ -1796,6 +1796,23 @@ our @options = (
     category    => 'web',
   },
   {
+    name        => 'ZM_OPT_EXPORT_TIMESTAMP_TRACK',
+    default     => 'no',
+    description => 'Embed a per-second wall-clock timestamp subtitle track in exported MP4s',
+    help        => q`
+      When exporting (concatenating) events to an MP4 file, write a
+      WebVTT subtitle track containing one cue per second of footage,
+      where each cue text is the wall-clock date/time of that second
+      taken from the source event's StartDateTime. The track is muxed
+      into the output as a mov_text subtitle stream. This lets tools
+      recover the original capture time per frame without OCRing the
+      burned-in OSD timestamp. Players that ignore subtitle tracks
+      will play the file unchanged.
+      `,
+    type        => $types{boolean},
+    category    => 'web',
+  },
+  {
     name        => 'ZM_WEB_POPUP_ON_ALARM',
     default     => 'yes',
     description => 'Should the monitor window jump to the top if an alarm occurs',

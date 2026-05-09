@@ -104,6 +104,8 @@ function downloadEvents(
     $minTime = '';
     $maxTimeSecs = -1;
     $maxTime = '';
+    $vttCues = [];
+    $concatOffset = 0.0;
     foreach ($events_by_monitor_id[$mid] as $event) {
       if ($minTimeSecs == -1 or $minTimeSecs > $event->StartDateTimeSecs()) {
         $minTimeSecs = $event->StartDateTimeSecs();
@@ -114,6 +116,32 @@ function downloadEvents(
         $maxTime = $event->EndDateTime();
       }
       $eventFileList .= 'file \''.$event->Path().'/'.$event->DefaultVideo().'\''.PHP_EOL;
+
+      $duration = (float)$event->Length();
+      if ($duration <= 0 and $event->EndDateTimeSecs()) {
+        $duration = $event->EndDateTimeSecs() - $event->StartDateTimeSecs();
+      }
+      if ($duration > 0) {
+        $eventStart = $event->StartDateTimeSecs();
+        $whole = (int)floor($duration);
+        for ($s = 0; $s < $whole; $s++) {
+          $vttCues[] = [
+            'start' => $concatOffset + $s,
+            'end'   => $concatOffset + $s + 1,
+            'text'  => date('Y-m-d H:i:s', $eventStart + $s),
+          ];
+        }
+        if ($duration - $whole > 0.001) {
+          $vttCues[] = [
+            'start' => $concatOffset + $whole,
+            'end'   => $concatOffset + $duration,
+            'text'  => date('Y-m-d H:i:s', $eventStart + $whole),
+          ];
+        }
+        $concatOffset += $duration;
+      } else {
+        ZM\Debug('Event '.$event->Id().' has no usable duration; skipping its timestamp cues');
+      }
     }
 
     $mergedFileName = $monitor->Name().' '.$minTime.' to '.$maxTime.'.mp4';
@@ -123,11 +151,35 @@ function downloadEvents(
     } else {
       ZM\Error("Can't open event images export file 'event_files.txt'");
     }
-    $cmd = ZM_PATH_FFMPEG.' -f concat -safe 0 -i event_files.txt -c copy '.escapeshellarg($export_dir.'/'.$mergedFileName). ' 2>&1';
+
+    $vttPath = '';
+    $useTimestampTrack = (defined('ZM_OPT_EXPORT_TIMESTAMP_TRACK') and ZM_OPT_EXPORT_TIMESTAMP_TRACK and !empty($vttCues));
+    if ($useTimestampTrack) {
+      $vttPath = 'timestamps.vtt';
+      if (writeVttFile($vttPath, $vttCues) === false) {
+        ZM\Error("Can't write timestamp track '$vttPath'; falling back to no-subtitle export");
+        $useTimestampTrack = false;
+      }
+    }
+
+    $cmd = ZM_PATH_FFMPEG.' -f concat -safe 0 -i event_files.txt';
+    if ($useTimestampTrack) {
+      $cmd .= ' -i '.escapeshellarg($vttPath)
+            .' -map 0:v -map 0:a? -map 1'
+            .' -c:v copy -c:a copy -c:s mov_text'
+            .' -metadata:s:s:0 language=eng -metadata:s:s:0 title=timestamp';
+      if ($minTimeSecs > 0) {
+        $cmd .= ' -metadata creation_time='.escapeshellarg(gmdate('Y-m-d\TH:i:s\Z', $minTimeSecs));
+      }
+    } else {
+      $cmd .= ' -c copy';
+    }
+    $cmd .= ' '.escapeshellarg($export_dir.'/'.$mergedFileName).' 2>&1';
     exec($cmd, $output, $return);
     ZM\Debug($cmd.' return code: '.$return.' output: '.print_r($output,true));
     $exportFileList[] = $mergedFileName;
     @unlink('event_files.txt');
+    if ($vttPath) @unlink($vttPath);
 
     # We're sending one file at a time to the archive. This will significantly save disk space.
     $command = '';
@@ -248,4 +300,30 @@ function getFlatCommandForTar() {
     $command = ' --xform=\'s#^.+/##x\'';
   }
   return $command;
+}
+
+function formatVttTimestamp($seconds) {
+  $totalMs = max(0, (int)round($seconds * 1000));
+  $h = (int)floor($totalMs / 3600000);
+  $remainder = $totalMs % 3600000;
+  $m = (int)floor($remainder / 60000);
+  $remainder = $remainder % 60000;
+  $s = (int)floor($remainder / 1000);
+  $ms = $remainder % 1000;
+  return sprintf('%02d:%02d:%02d.%03d', $h, $m, $s, $ms);
+}
+
+function buildVttContent($cues) {
+  $out = "WEBVTT\n\n";
+  foreach ($cues as $cue) {
+    if ($cue['end'] <= $cue['start']) continue;
+    $out .= formatVttTimestamp($cue['start']).' --> '.formatVttTimestamp($cue['end'])."\n";
+    $out .= $cue['text']."\n\n";
+  }
+  return $out;
+}
+
+function writeVttFile($path, $cues) {
+  $content = buildVttContent($cues);
+  return @file_put_contents($path, $content);
 }

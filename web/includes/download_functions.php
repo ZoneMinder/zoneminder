@@ -115,10 +115,11 @@ function downloadEvents(
         $maxTimeSecs = $endSecs;
         $maxTime = $event->EndDateTime();
       }
-      $eventFileList .= 'file \''.$event->Path().'/'.basename(findVideoEventFile($event)).'\''.PHP_EOL;
+      $fileName = basename(findVideoEventFile($event));
+      if (strpos($fileName, 'incomplete') !== -1) $maxTime = date('Y-m-d H:i:s'); # Probably incomplete event.
+      $eventFileList .= 'file \''.$event->Path().'/'.$fileName.'\''.PHP_EOL;
     }
 
-    $maxTime = ($maxTime !== '') ?: date('Y-m-d H:i:s'); # Probably incomplete event.
     $mergedFileName = $monitor->Name().' '.$minTime.' to '.$maxTime.'.mp4';
     if (($fp = fopen('event_files.txt', 'w'))) {
       fwrite($fp, $eventFileList);

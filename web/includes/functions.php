@@ -2483,4 +2483,20 @@ function to_string($thing) {
   if (is_array($thing)) return implode(', ', $thing);
   return strval($thing);
 }
+
+function findVideoEventFile ($Event) {
+  $dir = $Event->Path();
+  $eventDefaultVideo = $Event->DefaultVideo();
+  $path = (!str_ends_with($eventDefaultVideo, '.m3u8')) ? $dir.'/'.$eventDefaultVideo : '';
+
+  if ($path === '') {
+    // Look for the final renamed mp4 first, then incomplete
+    $candidates = glob($dir.'/'.$Event->Id().'-video.*.mp4');
+    if (!$candidates) $candidates = glob($dir.'/incomplete.*.mp4');
+    if ($candidates) {
+      $path = $candidates[0];
+    }
+  }
+  return $path;
+}
 ?>

@@ -96,7 +96,7 @@ function downloadEvents(
     }
 
     usort($events_by_monitor_id[$mid], function($a, $b) {
-        return strtotime($a->StartDateTime) <=> strtotime($b->StartDateTime);
+      return strtotime($a->StartDateTime) <=> strtotime($b->StartDateTime);
     });
 
     $eventFileList = '';
@@ -109,13 +109,16 @@ function downloadEvents(
         $minTimeSecs = $event->StartDateTimeSecs();
         $minTime = $event->StartDateTime();
       }
-      if ($maxTimeSecs == -1 or $maxTimeSecs < $event->StartDateTimeSecs()) {
-        $maxTimeSecs = $event->EndDateTimeSecs();
+
+      $endSecs = $event->EndDateTimeSecs();
+      if ($endSecs and ($maxTimeSecs == -1 or $maxTimeSecs < $endSecs)) {
+        $maxTimeSecs = $endSecs;
         $maxTime = $event->EndDateTime();
       }
-      $eventFileList .= 'file \''.$event->Path().'/'.$event->DefaultVideo().'\''.PHP_EOL;
+      $eventFileList .= 'file \''.$event->Path().'/'.basename(findVideoEventFile($event)).'\''.PHP_EOL;
     }
 
+    $maxTime = ($maxTime !== '') ?: date('Y-m-d H:i:s'); # Probably incomplete event.
     $mergedFileName = $monitor->Name().' '.$minTime.' to '.$maxTime.'.mp4';
     if (($fp = fopen('event_files.txt', 'w'))) {
       fwrite($fp, $eventFileList);

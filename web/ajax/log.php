@@ -90,6 +90,9 @@ function queryRequest() {
   // The table we want our data from
   $table = 'Logs';
 
+  $nameMainQuery = 't1'; # To optimize queries using a subquery
+  $nameSubQuery = 't2';
+
   // The names of the dB columns in the log table we are interested in
   $columns = array('Id', 'TimeKey', 'Component', 'ServerId', 'Pid', 'Code', 'Message', 'File', 'Line');
   // The names of columns shown in the log view that are NOT dB columns in the database
@@ -107,6 +110,12 @@ function queryRequest() {
 
   // Order specifies the sort direction, either asc or desc
   $order = (isset($_REQUEST['order']) and (strtolower($_REQUEST['order']) == 'asc')) ? 'ASC' : 'DESC';
+
+  if ($nameMainQuery !== '' && $nameSubQuery !== '') {
+    array_walk($columns, function(&$value, $key, $nameMainQuery) {
+      $value = $nameMainQuery . '.' . $value;
+    }, $nameMainQuery);
+  }
 
   $col_str = implode(', ', $columns);
   $data = array();
@@ -158,10 +167,36 @@ function queryRequest() {
     $where .= 'ServerId = ?';
     $query['values'][] = $_REQUEST['ServerId'];
   }
+/* We have an indexed 'Level', not 'Code'.
   if (!empty($_REQUEST['level'])) {
     if ($where) $where .= ' AND ';
     $where .= 'Code = ?';
     $query['values'][] = $_REQUEST['level'];
+  }
+*/
+  $L = $_REQUEST['level'];
+  $LL = '';
+  if (!empty($L)) {
+    if ($L == 'DBG') {
+      $LL = 1;
+    } elseif ($L == 'INF') {
+      $LL = 0;
+    } elseif ($L == 'WAR') {
+      $LL = -1;
+    } elseif ($L == 'ERR') {
+      $LL = -2;
+    } elseif ($L == 'FAT') {
+      $LL = -3;
+    } elseif ($L == 'PNC') {
+      $LL = -4;
+    } elseif ($L == 'AUD') {
+      $LL = -5;
+    } elseif ($L == 'OFF') {
+      $LL = -6;
+    }
+    if ($where) $where .= ' AND ';
+    $where .= ' Level = ?';
+    $query['values'][] = $LL;
   }
   if (!empty($_REQUEST['StartDateTime'])) {
     $start_time = strtotime($_REQUEST['StartDateTime']);
@@ -192,7 +227,21 @@ function queryRequest() {
     $data['total'] = $data['totalNotFiltered'];
   }
 
-  $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` ' .$where. ' ORDER BY ' .$sort. ' ' .$order. ' LIMIT ?, ?';
+  if ($nameMainQuery !== '' && $nameSubQuery !== '') { # Optimized query
+    $query['sql'] = '
+      SELECT ' .$col_str. ' 
+      FROM `' .$table. '` ' .$nameMainQuery. ' 
+      JOIN (
+        SELECT id 
+        FROM `'.$table.'` '.$where. ' 
+        ORDER BY ' .$sort. ' ' .$order. ' 
+        LIMIT ?, ?
+      ) AS ' .$nameSubQuery. ' 
+      ON ' .$nameMainQuery. '.id=' .$nameSubQuery. '.id';
+  } else {
+    $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` ' .$where. ' ORDER BY ' .$sort. ' ' .$order. ' LIMIT ?, ?';
+  }
+
   array_push($query['values'], $offset, $limit);
 
   $rows = array();

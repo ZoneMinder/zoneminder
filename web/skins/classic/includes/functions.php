@@ -1867,17 +1867,6 @@ class ZM_Menu {
   }
 }
 
-if (!function_exists('mb_ucfirst')) { // Available in PHP >= 8.4
-  function mb_ucfirst($str, $encoding='UTF-8') {
-    if (extension_loaded('mbstring')) {
-      $result = mb_strtoupper(mb_substr($str, 0, 1, $encoding)) . mb_substr($str, 1, null, $encoding);
-    } else {
-      $result = (ucfirst($str));
-    }
-    return $result;
-  }
-}
-
 // $typeMenu we are not using it yet. From now on we will specify either 'leftMenu' or 'topMenu'
 // $menuItems we are not using it yet. These are main menu items with the ability to be customized by the user.
 $zmMenu = new ZM_Menu($typeMenu = '', $menuItems = [

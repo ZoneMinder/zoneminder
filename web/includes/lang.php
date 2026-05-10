@@ -25,12 +25,12 @@ function translate($name) {
     return $SLANG[$name];
   } else {
     $lcfirstName = mb_lcfirst($name);
-    if ( isset($SLANG[$lcfirstName]) || array_key_exists($lcfirstName, $SLANG) ) {
+    if ( $lcfirstName !== $name and ( isset($SLANG[$lcfirstName]) || array_key_exists($lcfirstName, $SLANG) ) ) {
       # We found a lowercase word, but since we didn't find anything in the previous step, the final word must be uppercase.
       return mb_ucfirst($SLANG[$lcfirstName]);
     } else {
       $ucfirstName = mb_ucfirst($name);
-      if ( isset($SLANG[$ucfirstName]) || array_key_exists($ucfirstName, $SLANG) ) {
+      if ( $ucfirstName !== $name and ( isset($SLANG[$ucfirstName]) || array_key_exists($ucfirstName, $SLANG) ) ) {
         # We found a word in uppercase, but since we didn't find anything in the previous steps, the final word must be in lowercase.
         return mb_lcfirst($SLANG[$ucfirstName]);
       } else {

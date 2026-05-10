@@ -21,10 +21,23 @@
 function translate($name) {
   global $SLANG;
   // The isset is more performant
-  if ( isset($SLANG[$name]) || array_key_exists($name, $SLANG) )
+  if (( isset($SLANG[$name]) || array_key_exists($name, $SLANG) )) {
     return $SLANG[$name];
-  else
-    return $name;
+  } else {
+    $lcfirstName = mb_lcfirst($name);
+    if ( $lcfirstName !== $name and ( isset($SLANG[$lcfirstName]) || array_key_exists($lcfirstName, $SLANG) ) ) {
+      # We found a lowercase word, but since we didn't find anything in the previous step, the final word must be uppercase.
+      return mb_ucfirst($SLANG[$lcfirstName]);
+    } else {
+      $ucfirstName = mb_ucfirst($name);
+      if ( $ucfirstName !== $name and ( isset($SLANG[$ucfirstName]) || array_key_exists($ucfirstName, $SLANG) ) ) {
+        # We found a word in uppercase, but since we didn't find anything in the previous steps, the final word must be in lowercase.
+        return mb_lcfirst($SLANG[$ucfirstName]);
+      } else {
+        return $name;
+      }
+    }
+  }
 }
 
 function loadLanguage($prefix='') {

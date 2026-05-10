@@ -124,9 +124,10 @@ function downloadEvents(
       $fileName = basename($filePath);
       if (strpos($fileName, 'incomplete') !== false) $maxTime = date('Y-m-d H:i:s'); # Probably incomplete event.
       $eventFileList .= 'file \''.$event->Path().'/'.$fileName.'\''.PHP_EOL;
+    }
 
     if ($eventFileList === '') {
-      ZM\Warning('No event files were found for exporting monitor events with ID='.$event->MonitorId());
+      ZM\Warning('No event files were found for exporting monitor events with ID='.$mid);
       continue;
     }
 

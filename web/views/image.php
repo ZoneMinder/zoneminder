@@ -339,7 +339,7 @@ if ( empty($_REQUEST['path']) ) {
             if($Event->DefaultVideo() !== 'index.m3u8') {
               $file_path = $Event->Path().'/'.$Event->DefaultVideo();
             } else {
-              $file_path = $Event->Path().'/'.$file.find_video($Event->Path());
+              $file_path = $Event->Path().'/'.find_video($Event->Path());
             }
 
             if (!file_exists($file_path)) {

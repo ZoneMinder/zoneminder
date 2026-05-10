@@ -105,6 +105,11 @@ function downloadEvents(
     $maxTimeSecs = -1;
     $maxTime = '';
     foreach ($events_by_monitor_id[$mid] as $event) {
+      $filePath = findVideoEventFile($event);
+      if ($filePath ==='') {
+        ZM\Warning('The file path for event '.$event->Id().' was not found.');
+        continue;
+      }
       if ($minTimeSecs == -1 or $minTimeSecs > $event->StartDateTimeSecs()) {
         $minTimeSecs = $event->StartDateTimeSecs();
         $minTime = $event->StartDateTime();
@@ -115,9 +120,14 @@ function downloadEvents(
         $maxTimeSecs = $endSecs;
         $maxTime = $event->EndDateTime();
       }
-      $fileName = basename(findVideoEventFile($event));
+
+      $fileName = basename($filePath);
       if (strpos($fileName, 'incomplete') !== false) $maxTime = date('Y-m-d H:i:s'); # Probably incomplete event.
       $eventFileList .= 'file \''.$event->Path().'/'.$fileName.'\''.PHP_EOL;
+
+    if ($eventFileList === '') {
+      ZM\Warning('No event files were found for exporting monitor events with ID='.$event->MonitorId());
+      continue;
     }
 
     $mergedFileName = $monitor->Name().' '.$minTime.' to '.$maxTime.'.mp4';
@@ -155,6 +165,11 @@ function downloadEvents(
       if (executeShelCommand($command, $deleteFile = $mergedFileName) === false) return false;
     }
   } # end foreach monitor
+
+  if (count($exportFileList) === 0) {
+   ZM\Warning('No events were found for export.');
+   return "";
+  }
 
   generateFileList($exportFormat, $exportStructure, $archive_path, $exportCompressed, $export_dir, $export_root, $exportFileList);
 

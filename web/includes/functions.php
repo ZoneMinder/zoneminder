@@ -2491,9 +2491,9 @@ function findVideoEventFile ($Event) {
   if (!is_file($path)) $path = ''; # So we don't return a reference to a non-existent file.
 
   if ($path === '') {
-    // Look for the final renamed mp4 first, then incomplete
-    $candidates = glob($dir.'/'.$Event->Id().'-video.*.mp4');
-    if (!$candidates) $candidates = glob($dir.'/incomplete.*.mp4');
+    // Look for the final renamed mp4 or mkv or webm first, then incomplete
+    $candidates = glob($dir.'/'.$Event->Id().'-video.*.*');
+    if (!$candidates) $candidates = glob($dir.'/incomplete.*.*');
     if ($candidates) {
       $path = $candidates[0];
     }

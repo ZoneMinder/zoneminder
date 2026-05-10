@@ -95,6 +95,7 @@ function queryRequest() {
 
   // The names of the dB columns in the log table we are interested in
   $columns = array('Id', 'TimeKey', 'Component', 'ServerId', 'Pid', 'Code', 'Message', 'File', 'Line');
+  $columnsContext = $columns;
   // The names of columns shown in the log view that are NOT dB columns in the database
   $col_alt = array('DateTime', 'Server');
 
@@ -112,12 +113,13 @@ function queryRequest() {
   $order = (isset($_REQUEST['order']) and (strtolower($_REQUEST['order']) == 'asc')) ? 'ASC' : 'DESC';
 
   if ($nameMainQuery !== '' && $nameSubQuery !== '') {
-    array_walk($columns, function(&$value, $key, $nameMainQuery) {
+    array_walk($columnsContext, function(&$value, $key, $nameMainQuery) {
       $value = $nameMainQuery . '.' . $value;
     }, $nameMainQuery);
   }
 
   $col_str = implode(', ', $columns);
+  $col_str_context = implode(', ', $columnsContext);
   $data = array();
   $query = array();
   $query['values'] = array();
@@ -229,7 +231,7 @@ function queryRequest() {
 
   if ($nameMainQuery !== '' && $nameSubQuery !== '') { # Optimized query
     $query['sql'] = '
-      SELECT ' .$col_str. ' 
+      SELECT ' .$col_str_context. ' 
       FROM `' .$table. '` ' .$nameMainQuery. ' 
       JOIN (
         SELECT id 

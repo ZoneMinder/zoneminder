@@ -523,7 +523,7 @@ CREATE TABLE `Logs` (
   `Message` text NOT NULL,
   `File` varchar(255) DEFAULT NULL,
   `Line` smallint(5) unsigned DEFAULT NULL,
-  PRIMARY KEY (`Id`),
+  PRIMARY KEY (`Id`, `Component`, `TimeKey`, `Level`),
   KEY `TimeKey` (`TimeKey`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 

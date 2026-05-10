@@ -3,4 +3,4 @@
 --
 -- Add Component, TimeKey, and Level to the primary index to increase query processing speed.
 --
-ALTER TABLE `Logs` DROP PRIMARY KEY, ADD PRIMARY KEY (`Id`, `Component`, `TimeKey`, `Level`) USING BTREE;
+ALTER TABLE `Logs` DROP PRIMARY KEY, ADD PRIMARY KEY (`Id`, `Component`, `TimeKey`, `Level`);

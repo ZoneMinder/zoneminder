@@ -2486,8 +2486,8 @@ function to_string($thing) {
 
 function findVideoEventFile ($Event) {
   $dir = $Event->Path();
-  $eventDefaultVideo = $Event->DefaultVideo();
-  $path = (!str_ends_with($eventDefaultVideo, '.m3u8')) ? $dir.'/'.$eventDefaultVideo : '';
+  $eventDefaultVideo = to_string($Event->DefaultVideo());
+  $path = ($eventDefaultVideo !== '' && !str_ends_with($eventDefaultVideo, '.m3u8')) ? $dir.'/'.$eventDefaultVideo : '';
 
   if ($path === '') {
     // Look for the final renamed mp4 first, then incomplete

@@ -176,29 +176,12 @@ function queryRequest() {
     $query['values'][] = $_REQUEST['level'];
   }
 */
-  $L = $_REQUEST['level'];
-  $LL = '';
-  if (!empty($L)) {
-    if ($L == 'DBG') {
-      $LL = 1;
-    } elseif ($L == 'INF') {
-      $LL = 0;
-    } elseif ($L == 'WAR') {
-      $LL = -1;
-    } elseif ($L == 'ERR') {
-      $LL = -2;
-    } elseif ($L == 'FAT') {
-      $LL = -3;
-    } elseif ($L == 'PNC') {
-      $LL = -4;
-    } elseif ($L == 'AUD') {
-      $LL = -5;
-    } elseif ($L == 'OFF') {
-      $LL = -6;
-    }
+  $L = $_REQUEST['level'] ?? '';
+  $level_codes = array_flip(ZM\Logger::$codes);
+  if (!empty($L) && isset($level_codes[$L])) {
     if ($where) $where .= ' AND ';
     $where .= ' Level = ?';
-    $query['values'][] = $LL;
+    $query['values'][] = $level_codes[$L];
   }
   if (!empty($_REQUEST['StartDateTime'])) {
     $start_time = strtotime($_REQUEST['StartDateTime']);
@@ -234,12 +217,13 @@ function queryRequest() {
       SELECT ' .$col_str_context. ' 
       FROM `' .$table. '` ' .$nameMainQuery. ' 
       JOIN (
-        SELECT id 
+        SELECT Id 
         FROM `'.$table.'` '.$where. ' 
         ORDER BY ' .$sort. ' ' .$order. ' 
         LIMIT ?, ?
       ) AS ' .$nameSubQuery. ' 
-      ON ' .$nameMainQuery. '.id=' .$nameSubQuery. '.id';
+      ON ' .$nameMainQuery. '.Id=' .$nameSubQuery. '.Id 
+      ORDER BY ' .$nameMainQuery. '.' .$sort. ' ' .$order;
   } else {
     $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` ' .$where. ' ORDER BY ' .$sort. ' ' .$order. ' LIMIT ?, ?';
   }

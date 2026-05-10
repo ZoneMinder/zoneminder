@@ -105,7 +105,7 @@ function downloadEvents(
     $maxTimeSecs = -1;
     $maxTime = '';
     foreach ($events_by_monitor_id[$mid] as $event) {
-      $filePath = findVideoEventFile($event);
+      $filePath = findVideoEventFile($event, "mp4");
       if ($filePath ==='') {
         ZM\Warning('The file path for event '.$event->Id().' was not found.');
         continue;

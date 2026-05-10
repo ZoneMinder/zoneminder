@@ -1099,6 +1099,7 @@ function getOptionsHTML($forLeftBar = false, $customLabel = null) {
     'roles',
     'groups',
     'control',
+    'encoderTemplates',
     'privacy',
     'MQTT',
     'telemetry',

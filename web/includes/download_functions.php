@@ -116,7 +116,7 @@ function downloadEvents(
         $maxTime = $event->EndDateTime();
       }
       $fileName = basename(findVideoEventFile($event));
-      if (strpos($fileName, 'incomplete') !== -1) $maxTime = date('Y-m-d H:i:s'); # Probably incomplete event.
+      if (strpos($fileName, 'incomplete') !== false) $maxTime = date('Y-m-d H:i:s'); # Probably incomplete event.
       $eventFileList .= 'file \''.$event->Path().'/'.$fileName.'\''.PHP_EOL;
     }
 

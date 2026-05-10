@@ -29,7 +29,7 @@ var params =
 // Called by bootstrap-table to retrieve zm log data
 function ajaxRequest(params) {
   if(document.visibilityState == 'hidden') return;
-	if ($j('#filterServerId').val()) {
+  if ($j('#filterServerId').val()) {
     params.data.ServerId = $j('#filterServerId').val();
   }
   if ($j('#filterLevel').val()) {

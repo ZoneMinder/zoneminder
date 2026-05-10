@@ -97,12 +97,12 @@ ul.form > li > label:first-child {
   text-align: right;
 }
 
-nav a.nav-link {
+nav #pills-tab a.nav-link {
   margin-top: -0.5em;
   margin-bottom: -0.5em;
 }
 
-nav .nav-item.form-control-sm {
+nav #pills-tab .nav-item.form-control-sm {
   height: auto;
 }
 

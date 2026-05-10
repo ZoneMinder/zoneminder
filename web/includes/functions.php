@@ -2488,6 +2488,7 @@ function findVideoEventFile ($Event) {
   $dir = $Event->Path();
   $eventDefaultVideo = to_string($Event->DefaultVideo());
   $path = ($eventDefaultVideo !== '' && !str_ends_with($eventDefaultVideo, '.m3u8')) ? $dir.'/'.$eventDefaultVideo : '';
+  if (!is_file($path)) $path = ''; # So we don't return a reference to a non-existent file.
 
   if ($path === '') {
     // Look for the final renamed mp4 first, then incomplete

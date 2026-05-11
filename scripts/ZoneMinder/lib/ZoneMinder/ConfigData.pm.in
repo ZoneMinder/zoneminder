@@ -3140,9 +3140,9 @@ our @options = (
   {
     name        => 'ZM_WEB_H_REFRESH_LOGS',
     default     => '30',
-    description => 'How often (in seconds) the event listing is refreshed in the log window',
+    description => 'How often (in seconds) the listing is refreshed in the log window',
     help        => q`
-      This option determines how often the list of events in the log window is refreshed.
+      This option determines how often the list in the log window is refreshed.
       0 - completely disables refreshing.
       `,
     type        => $types{integer},
@@ -3434,9 +3434,9 @@ our @options = (
   {
     name        => 'ZM_WEB_M_REFRESH_LOGS',
     default     => '60',
-    description => 'How often (in seconds) the event listing is refreshed in the log window',
+    description => 'How often (in seconds) the listing is refreshed in the log window',
     help        => q`
-      This option determines how often the list of events in the log window is refreshed.
+      This option determines how often the list in the log window is refreshed.
       0 - completely disables refreshing.
       `,
     type        => $types{integer},
@@ -3728,9 +3728,9 @@ our @options = (
   {
     name        => 'ZM_WEB_L_REFRESH_LOGS',
     default     => '120',
-    description => 'How often (in seconds) the event listing is refreshed in the log window',
+    description => 'How often (in seconds) the listing is refreshed in the log window',
     help        => q`
-      This option determines how often the list of events in the log window is refreshed.
+      This option determines how often the list in the log window is refreshed.
       0 - completely disables refreshing.
       `,
     type        => $types{integer},

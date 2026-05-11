@@ -185,12 +185,7 @@ function queryRequest() {
   }
   if ($where) $where = ' WHERE '.$where;
 
-  $data['totalNotFiltered'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table, 'Total');
-  if ( $search != '' || count($advsearch) ) {
-    $data['total'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table.$where , 'Total', $query['values']);
-  } else {
-    $data['total'] = $data['totalNotFiltered'];
-  }
+  $data['total'] = dbFetchOne('SELECT count(*) AS Total FROM `' .$table.'` '.$where , 'Total', $query['values']);
 
   $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` ' .$where. ' ORDER BY ' .$sort. ' ' .$order. ' LIMIT ?, ?';
   array_push($query['values'], $offset, $limit);

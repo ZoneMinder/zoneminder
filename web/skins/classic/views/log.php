@@ -145,10 +145,10 @@ echo '</span>';
       data-maintain-meta-data="true"
       data-buttons-class="btn btn-normal"
       data-show-jump-to="true"
-      data-auto-refresh="true"
+      data-auto-refresh="<?php echo (ZM_WEB_REFRESH_LOGS === "0") ? 'false' : 'true'?>"
       data-auto-refresh-silent="true"
       data-show-refresh="true"
-      data-auto-refresh-interval="30"
+      data-auto-refresh-interval="<?php echo ZM_WEB_REFRESH_LOGS ?>"
 <?php if (canEdit('System')) { ?>
       data-click-to-select="true"
 <?php } ?>

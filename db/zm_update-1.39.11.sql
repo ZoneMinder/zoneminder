@@ -3,4 +3,4 @@
 --
 -- Added the ability to disable ZMS
 --
-ALTER TABLE `Monitors` ADD COLUMN `ZMSEnabled` BOOLEAN NOT NULL default true AFTER `Decoding`
+ALTER TABLE `Monitors` ADD COLUMN `ZMSEnabled` BOOLEAN NOT NULL default true AFTER `WhatDisplay`

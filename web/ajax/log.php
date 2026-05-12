@@ -185,7 +185,8 @@ function queryRequest() {
   }
   if ($where) $where = ' WHERE '.$where;
 
-  $data['total'] = dbFetchOne('SELECT count(*) AS Total FROM `' .$table.'` '.$where , 'Total', $query['values']);
+  $data['total'] = dbFetchOne('SELECT count(*) AS Total FROM `' .$table.'` '.$where, 'Total', $query['values']);
+  $data['totalNotFiltered'] = dbFetchOne('SELECT count(*) AS Total FROM `' .$table.'`', 'Total');
 
   $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` ' .$where. ' ORDER BY ' .$sort. ' ' .$order. ' LIMIT ?, ?';
   array_push($query['values'], $offset, $limit);

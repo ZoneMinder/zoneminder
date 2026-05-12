@@ -70,7 +70,7 @@ $options = [''=>translate('All')] + array_combine($components, $components);
 ZM\Debug(print_r($options, true));
 $selected_component = '';
 if (isset($_SESSION['zmLogComponent'])) {
-  if (array_search($_SESSION['zmLogComponent'], $components)) {
+  if (array_search($_SESSION['zmLogComponent'], $components) !== -1) {
     $selected_component = $_SESSION['zmLogComponent'];
   } else {
     unset($_SESSION['zmLogComponent']);

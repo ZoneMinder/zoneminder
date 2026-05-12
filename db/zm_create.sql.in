@@ -523,13 +523,14 @@ CREATE TABLE `Logs` (
   `Message` text NOT NULL,
   `File` varchar(255) DEFAULT NULL,
   `Line` smallint(5) unsigned DEFAULT NULL,
-  PRIMARY KEY (`Id`, `Component`, `TimeKey`, `Level`),
+  PRIMARY KEY (`Id`),
   KEY `TimeKey` (`TimeKey`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 CREATE INDEX `Logs_TimeKey_idx` ON `Logs` (`TimeKey`);
 CREATE INDEX `Logs_Level_idx` ON `Logs` (`Level`);
 CREATE INDEX `Logs_Component_idx` ON `Logs` (`Component`);
+CREATE INDEX `idx_logs_id_component_timekey_level` ON `Logs` (`Id`, `Component`, `TimeKey`, `Level`);
 
 --
 -- Table structure for table `Manufacturers`

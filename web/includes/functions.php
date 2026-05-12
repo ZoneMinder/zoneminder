@@ -2483,4 +2483,26 @@ function to_string($thing) {
   if (is_array($thing)) return implode(', ', $thing);
   return strval($thing);
 }
+
+if (!function_exists('mb_ucfirst')) { // Available in PHP >= 8.4
+  function mb_ucfirst($str, $encoding='UTF-8') {
+    if (extension_loaded('mbstring')) {
+      $result = mb_strtoupper(mb_substr($str, 0, 1, $encoding), $encoding) . mb_substr($str, 1, null, $encoding);
+    } else {
+      $result = (ucfirst($str));
+    }
+    return $result;
+  }
+}
+
+if (!function_exists('mb_lcfirst')) { // Available in PHP >= 8.4
+  function mb_lcfirst($str, $encoding='UTF-8') {
+    if (extension_loaded('mbstring')) {
+      $result = mb_strtolower(mb_substr($str, 0, 1, $encoding), $encoding) . mb_substr($str, 1, null, $encoding);
+    } else {
+      $result = (lcfirst($str));
+    }
+    return $result;
+  }
+}
 ?>

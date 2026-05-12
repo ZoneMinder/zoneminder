@@ -103,6 +103,7 @@ function queryRequest() {
   if (isset($_REQUEST['sort'])) {
     $sort = $_REQUEST['sort'];
     if ($sort == 'DateTime') $sort = 'TimeKey';
+    if ($sort == 'Server') $sort = 'ServerId';
   }
   if (!in_array($sort, array_merge($columns, $col_alt))) {
     ZM\Error('Invalid sort field: ' . $sort);

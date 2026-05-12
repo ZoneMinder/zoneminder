@@ -149,14 +149,11 @@ function queryRequest() {
     if ($where) $where .= ' AND ';
     $where .= 'Component = ?';
     $query['values'][] = $_REQUEST['Component'];
-    zm_session_start();
-    $_SESSION['zmLogComponent'] = $_REQUEST['Component'];
-    session_write_close();
-  } else {
-    zm_session_start();
-    $_SESSION['zmLogComponent'] = '';
-    session_write_close();
   }
+  zm_session_start();
+  $_SESSION['zmLogComponent'] = !empty($_REQUEST['Component']) ? $_REQUEST['Component'] : '';
+  session_write_close();
+
   if (!empty($_REQUEST['ServerId'])) {
     if ($where) $where .= ' AND ';
     $where .= 'ServerId = ?';

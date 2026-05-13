@@ -70,7 +70,7 @@ $options = [''=>translate('All')] + array_combine($components, $components);
 ZM\Debug(print_r($options, true));
 $selected_component = '';
 if (isset($_SESSION['zmLogComponent'])) {
-  if (array_search($_SESSION['zmLogComponent'], $components)) {
+  if (array_search($_SESSION['zmLogComponent'], $components) !== -1) {
     $selected_component = $_SESSION['zmLogComponent'];
   } else {
     unset($_SESSION['zmLogComponent']);
@@ -145,10 +145,10 @@ echo '</span>';
       data-maintain-meta-data="true"
       data-buttons-class="btn btn-normal"
       data-show-jump-to="true"
-      data-auto-refresh="true"
+      data-auto-refresh="<?php echo ((int)ZM_WEB_REFRESH_LOGS === 0) ? 'false' : 'true'?>"
       data-auto-refresh-silent="true"
       data-show-refresh="true"
-      data-auto-refresh-interval="30"
+      <?php echo ((int)ZM_WEB_REFRESH_LOGS !== 0) ? 'data-auto-refresh-interval="' . (int)ZM_WEB_REFRESH_LOGS .'"' : ''?>
 <?php if (canEdit('System')) { ?>
       data-click-to-select="true"
 <?php } ?>

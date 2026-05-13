@@ -404,5 +404,5 @@ div:not(.chosen-container-active) > .chosen-drop {
 #statusSidebar #stateModalBtn {
   white-space: pre-wrap;
   word-wrap: break-word;
-  word-break: break-all;
+  word-break: break-word;
 }

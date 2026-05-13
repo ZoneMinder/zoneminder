@@ -8,7 +8,7 @@ $data = array();
 //
 
 if (!canView('Events'))
-  $message = 'Insufficient permissions for user '.$user->Username().'<br/>';
+  $message = 'Insufficient permissions<br/>';
 
 if (empty($_REQUEST['task'])) {
   $message = 'Must specify a task<br/>';
@@ -106,14 +106,14 @@ switch ($task) {
   case 'unarchive' :
 		# The idea is that anyone can archive, but only people with Event Edit permission can unarchive..
 		if (!canEdit('Events'))  {
-			ajaxError('Insufficient permissions for user '.$user->Username());
+			ajaxError('Insufficient permissions');
 			return;
 		}
     foreach ($eids as $eid) archiveRequest($task, $eid);
     break;
   case 'delete' :
 		if (!canEdit('Events'))  {
-			ajaxError('Insufficient permissions for user '.$user->Username());
+			ajaxError('Insufficient permissions');
 			return;
 		}
     foreach ($eids as $eid) {
@@ -128,7 +128,8 @@ switch ($task) {
     $data = queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $limit);
     break;
   default :
-    ZM\Fatal("Unrecognised task '$task'");
+    ZM\Warning("Unrecognised task '$task'");
+    ajaxError('Unrecognised task');
 } // end switch task
 
 ajaxResponse($data);

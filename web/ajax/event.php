@@ -113,10 +113,11 @@ if ( canView('Events') or canView('Snapshots') ) {
     break;
   case 'download' :
     require_once('includes/download_functions.php');
-    $exportFormat = isset($_REQUEST['exportFormat']) ? $_REQUEST['exportFormat'] : 'zip';
+    $exportFormat = (isset($_REQUEST['exportFormat']) and ($_REQUEST['exportFormat'] === 'tar' or $_REQUEST['exportFormat'] === 'zip')) ? $_REQUEST['exportFormat'] : 'zip';
+    $exportConnkey = preg_replace('/[^\w\-.]/', '', isset($_REQUEST['connkey']) ? $_REQUEST['connkey'] : '');
     $exportFileName = isset($_REQUEST['exportFileName']) ? $_REQUEST['exportFileName'] : '';
 
-    if (!$exportFileName) $exportFileName = 'Export'.(isset($_REQUEST['connkey'])?$_REQUEST['connkey']:'');
+    if (!$exportFileName) $exportFileName = 'Export'.$exportConnkey;
     $exportFileName = preg_replace('/[^\p{L}\p{N}\-\.\(\)]/u', '', $exportFileName);
 
     $exportIds = [];
@@ -148,7 +149,7 @@ if ( canView('Events') or canView('Snapshots') ) {
     ajaxResponse(array(
       'exportFile'=>$exportFile,
       'exportFormat'=>$exportFormat,
-      'connkey'=>(isset($_REQUEST['connkey'])?$_REQUEST['connkey']:'')
+      'connkey'=>$exportConnkey
     ));
 
     } else {

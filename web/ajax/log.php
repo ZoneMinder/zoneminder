@@ -186,8 +186,12 @@ function queryRequest() {
   }
   if ($where) $where = ' WHERE '.$where;
 
-  $data['total'] = dbFetchOne('SELECT count(*) AS Total FROM `' .$table.'` '.$where, 'Total', $query['values']);
   $data['totalNotFiltered'] = dbFetchOne('SELECT count(*) AS Total FROM `' .$table.'`', 'Total');
+  if ($where) {
+    $data['total'] = dbFetchOne('SELECT count(*) AS Total FROM `' .$table.'` '.$where, 'Total', $query['values']);
+  } else {
+    $data['total'] = $data['totalNotFiltered'];
+  }
 
   $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` ' .$where. ' ORDER BY ' .$sort. ' ' .$order. ' LIMIT ?, ?';
   array_push($query['values'], $offset, $limit);

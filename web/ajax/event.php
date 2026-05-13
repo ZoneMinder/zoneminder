@@ -89,9 +89,13 @@ if ( canView('Events') or canView('Snapshots') ) {
       $exportIds = [validCardinal($_REQUEST['id'])];
     }
 
+    $exportRoot = !empty($_REQUEST['exportFile']) ? preg_replace('/[^\w\-.]/', '', $_REQUEST['exportFile']) : '';
+    if (empty($exportRoot)) $exportRoot = 'zmExport';
+    $exportConnkey = preg_replace('/[^\w\-.]/', '', isset($_REQUEST['connkey']) ? $_REQUEST['connkey'] : '');
+
     if ($exportFile = exportEvents(
       $exportIds,
-      (isset($_REQUEST['connkey'])?$_REQUEST['connkey']:''),
+      $exportConnkey,
       $exportDetail,
       $exportFrames,
       $exportImages,
@@ -100,7 +104,7 @@ if ( canView('Events') or canView('Snapshots') ) {
       $exportFormat,
       $exportCompress,
       $exportStructure,
-      (!empty($_REQUEST['exportFile'])?$_REQUEST['exportFile']:'zmExport')
+      $exportRoot
     )) {
       ajaxResponse(array('exportFile'=>$exportFile));
     } else {

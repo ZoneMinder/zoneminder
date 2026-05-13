@@ -169,7 +169,7 @@ function downloadEvents(
 
   if (count($exportFileList) === 0) {
    ZM\Warning('No events were found for export.');
-   return "";
+   return false;
   }
 
   generateFileList($exportFormat, $exportStructure, $archive_path, $exportCompressed, $export_dir, $export_root, $exportFileList);

@@ -243,7 +243,8 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   ZM\Debug('Calling the following sql query: ' .$sql);
   $query = dbQuery($sql, $values);
   if (!$query) {
-    ajaxError(dbError($sql));
+    ZM\Error(dbError($sql));
+    ajaxError('Database query failed');
     return;
   }
   while ($row = dbFetchNext($query)) {

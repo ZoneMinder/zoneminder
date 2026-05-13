@@ -122,7 +122,7 @@ function downloadEvents(
       }
 
       $fileName = basename($filePath);
-      if (strpos($fileName, 'incomplete') !== false) $maxTime = date('Y-m-d H:i:s'); # Probably incomplete event.
+      if (strpos($fileName, 'incomplete') !== false && !$endSecs) $maxTime = date('Y-m-d H:i:s'); # Probably incomplete event.
       $eventFileList .= 'file \''.$event->Path().'/'.$fileName.'\''.PHP_EOL;
     }
 
@@ -131,6 +131,7 @@ function downloadEvents(
       continue;
     }
 
+    if (!$maxTime) $maxTime = date('Y-m-d H:i:s'); # For example, we download a single non-incomlete event, but it's missing EndDateTimeSecs() due to a crash
     $mergedFileName = $monitor->Name().' '.$minTime.' to '.$maxTime.'.mp4';
     if (($fp = fopen('event_files.txt', 'w'))) {
       fwrite($fp, $eventFileList);

@@ -11,21 +11,21 @@ if (!isset($_REQUEST['task'])) {
   $message = 'This request requires a task to be set';
 } else if ($_REQUEST['task'] == 'query') {
   if (!canView('System')) {
-    $message = 'Insufficient permissions to view log entries for user '.$user->Username();
+    $message = 'Insufficient permissions to view log entries';
   } else {
     $data = queryRequest();
   }
 } else if ($_REQUEST['task'] == 'create' ) {
   global $user;
   if (!$user or (!canEdit('System') and !ZM_LOG_INJECT)) {
-    $message = 'Insufficient permissions to create log entries for user '.$user->Username();
+    $message = 'Insufficient permissions to create log entries';
   } else {
     createRequest();
   }
 } else if ($_REQUEST['task'] == 'delete') {
   global $user;
   if (!canEdit('System')) {
-    $message = 'Insufficient permissions to delete log entries for user '.$user->Username();
+    $message = 'Insufficient permissions to delete log entries';
   } else {
     if (!empty($_REQUEST['ids'])) {
       $ids = array_map('intval', (array)$_REQUEST['ids']);
@@ -35,7 +35,8 @@ if (!isset($_REQUEST['task'])) {
   }
 } else {
   // Only the query and create tasks are supported at the moment
-  $message = 'Unrecognised task '.$_REQUEST['task'];
+  ZM\Warning('Unrecognised task '.$_REQUEST['task']);
+  $message = 'Unrecognised task';
 }
 
 if ($message) {

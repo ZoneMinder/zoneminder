@@ -2519,8 +2519,10 @@ function findVideoEventFile ($Event, $ext="*") {
 
   if ($path === '') {
     # By default, we search for files with any extension, such as mp4, mkv, or webm.
-    # Look for the final renamed first, then incomplete
+    # Look for the final renamed first, then incomplete.
+    # Incomplete files may exist as either incomplete.<container> or incomplete.<codec>.<container>.
     $candidates = glob($dir.'/'.$Event->Id().'-video.*.'.$ext);
+    if (!$candidates) $candidates = glob($dir.'/incomplete.'.$ext);
     if (!$candidates) $candidates = glob($dir.'/incomplete.*.'.$ext);
     if ($candidates) {
       $path = $candidates[0];

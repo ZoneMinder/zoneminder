@@ -232,6 +232,5 @@ if ( canEdit('Events') ) {
   } // end switch action
 } // end if canEdit('Events')
 
-ZM\Warning('unknown action '.$_REQUEST['action']);
-ajaxError('Unrecognised action or insufficient permissions');
+ajaxError('Unrecognised action '.validHtmlStr($_REQUEST['action']).' or insufficient permissions for user '.validHtmlStr($user->Username()));
 ?>

@@ -90,8 +90,12 @@ class AppController extends Controller {
         require_once __DIR__ .'/../../../includes/session.php';
         $stateful = $this->request->query('stateful') ? $this->request->query('stateful') : $this->request->data('stateful');
         if ( $stateful ) {
+          // zm_session_start() already populates $_SESSION['remoteAddr'] from
+          // HTTP_X_FORWARDED_FOR (falling back to REMOTE_ADDR), matching what
+          // getAuthUser() uses for validation. Don't overwrite it with bare
+          // REMOTE_ADDR here — that bound the hash to the proxy IP and broke
+          // validation behind a reverse proxy.
           zm_session_start();
-          $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
           if ($user) {
             $_SESSION['username'] = $user->Username();
             if ( ZM_AUTH_RELAY == 'plain' ) {

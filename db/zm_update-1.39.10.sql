@@ -16,3 +16,21 @@ UPDATE ZonePresets SET MinAlarmPixels=0.1                                       
 UPDATE ZonePresets SET MinAlarmPixels=5,                          MinFilterPixels=3.5,                      MinBlobPixels=3    WHERE Id=5;
 UPDATE ZonePresets SET MinAlarmPixels=1,                          MinFilterPixels=0.7,                      MinBlobPixels=0.6  WHERE Id=6;
 UPDATE ZonePresets SET MinAlarmPixels=0.2,                        MinFilterPixels=0.14,                     MinBlobPixels=0.12 WHERE Id=7;
+
+--
+-- Add an index on Sessions.access to support session garbage collection.
+--
+
+SET @s = (SELECT IF(
+  (SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE table_name = 'Sessions'
+    AND table_schema = DATABASE()
+    AND index_name = 'Sessions_access_idx'
+  ) > 0,
+  "SELECT 'access Index already exists on Sessions table'",
+  "CREATE INDEX Sessions_access_idx ON Sessions (`access`)"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;

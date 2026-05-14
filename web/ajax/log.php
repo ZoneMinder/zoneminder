@@ -186,9 +186,9 @@ function queryRequest() {
   }
   if ($where) $where = ' WHERE '.$where;
 
-  $data['totalNotFiltered'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table, 'Total');
-  if ( $search != '' || count($advsearch) ) {
-    $data['total'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table.$where , 'Total', $query['values']);
+  $data['totalNotFiltered'] = dbFetchOne('SELECT count(*) AS Total FROM `' .$table.'`', 'Total');
+  if ($where) {
+    $data['total'] = dbFetchOne('SELECT count(*) AS Total FROM `' .$table.'` '.$where, 'Total', $query['values']);
   } else {
     $data['total'] = $data['totalNotFiltered'];
   }

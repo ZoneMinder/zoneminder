@@ -1343,7 +1343,8 @@ CREATE TABLE Sessions (
   id char(32) not null,
   access INT(10) UNSIGNED DEFAULT NULL,
   data text,
-  PRIMARY KEY(id)
+  PRIMARY KEY(id),
+  KEY `Sessions_access_idx` (`access`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 CREATE TABLE Snapshots (

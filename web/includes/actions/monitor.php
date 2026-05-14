@@ -178,24 +178,36 @@ if ($action == 'save') {
         # If the name has changed, it must also be changed in all storage areas.
         if (isset($changes['Name'])) {
           $saferName = basename($newMonitor['Name']);
+          $oldLinkPath = $oldMonitor->Storage()->Path().'/'.basename($oldMonitor->Name());
+          $oldLinkPathFound = false;
           require_once('includes/Storage.php');
           foreach (ZM\Storage::find() as $Storage) {
             # Let's remove old symlinks
-            $old_link_path = $Storage->Path().'/'.basename($oldMonitor->Name());
-            if (file_exists($old_link_path)) {
-              ZM\Debug("Deleting old link in storage '" . $Storage->Name() . "' " . $old_link_path);
-              unlink($old_link_path);
-            } else {
-              ZM\Debug("Old link didn't exist in storage '" . $Storage->Name() . "' at ".$old_link_path);
+            $storagePath = $Storage->Path() .'/';
+            $dirStoragePath = opendir($storagePath); 
+            while (($file = readdir($dirStoragePath)) !== false) {
+              $linkPath = $storagePath . $file;
+              if (is_link($linkPath)) {
+                $absolutePath = realpath($linkPath);
+                if ($oldLinkPath == $absolutePath) $oldLinkPathFound = true;
+                if ($absolutePath == $Storage->Path().'/'.$mid) {
+                  ZM\Debug("Deleting old link in storage '" . $Storage->Name() . "' " . $linkPath);
+                  unlink($linkPath);
+                }
+              }
+            } 
+            closedir($dirStoragePath);
+            if (!$oldLinkPathFound) {
+              ZM\Debug("Old link at '" . $oldLinkPath . "' was not found in any of the storages");
             }
 
             # Let's create new symlinks
             $dir = $Storage->Path().'/'.$mid;
             if (is_dir($dir)) { # Let's check if there is a folder with events in this storage
-              $link_path = $Storage->Path().'/'.$saferName;
-              if (!is_link($link_path) && !@symlink($mid, $link_path)) {
+              $linkPath = $Storage->Path().'/'.$saferName;
+              if (!is_link($linkPath) && !@symlink($mid, $linkPath)) {
                 # It is necessary to check is_link() to avoid unnecessary warnings, since different repositories can have the same path and this is not prohibited by the configuration.
-                ZM\Warning('Unable to symlink in storage "' . $Storage->Name() . '" ' . $dir . ' to ' . $link_path);
+                ZM\Warning('Unable to symlink in storage "' . $Storage->Name() . '" ' . $dir . ' to ' . $linkPath);
               }
             }
           }

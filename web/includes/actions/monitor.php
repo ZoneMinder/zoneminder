@@ -175,20 +175,28 @@ if ($action == 'save') {
       $oldMonitor = clone $monitor;
 
       if ($monitor->save($changes)) {
-        # Leave old symlinks on old storage areas, as old events will still be there. Only delete the link if the name has changed
+        # If the name has changed, it must also be changed in all storage areas.
         if (isset($changes['Name'])) {
-          $link_path = $oldMonitor->Storage()->Path().'/'.basename($oldMonitor->Name());
-          if (file_exists($link_path)) {
-            ZM\Debug("Deleting old link  ".$link_path);
-            unlink($link_path);
-          } else {
-            ZM\Debug("Old link didn't exist at ".$link_path);
-          }
           $saferName = basename($newMonitor['Name']);
-          $link_path = $monitor->Storage()->Path().'/'.$saferName;
-          if (($saferName != $mid) and !@symlink($mid, $link_path)) {
-            if (!(file_exists($link_path) and is_link($link_path))) {
-              ZM\Warning('Unable to symlink ' . $monitor->Storage()->Path().'/'.$mid . ' to ' . $link_path);
+          require_once('includes/Storage.php');
+          foreach (ZM\Storage::find() as $Storage) {
+            # Let's remove old symlinks
+            $old_link_path = $Storage->Path().'/'.basename($oldMonitor->Name());
+            if (file_exists($old_link_path)) {
+              ZM\Debug("Deleting old link in storage '" . $Storage->Name() . "' " . $old_link_path);
+              unlink($old_link_path);
+            } else {
+              ZM\Debug("Old link didn't exist in storage '" . $Storage->Name() . "' at ".$old_link_path);
+            }
+
+            # Let's create new symlinks
+            $dir = $Storage->Path().'/'.$mid;
+            if (is_dir($dir)) { # Let's check if there is a folder with events in this storage
+              $link_path = $Storage->Path().'/'.$saferName;
+              if (!is_link($link_path) && !@symlink($mid, $link_path)) {
+                # It is necessary to check is_link() to avoid unnecessary warnings, since different repositories can have the same path and this is not prohibited by the configuration.
+                ZM\Warning('Unable to symlink in storage "' . $Storage->Name() . '" ' . $dir . ' to ' . $link_path);
+              }
             }
           }
         }

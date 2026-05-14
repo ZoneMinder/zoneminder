@@ -127,10 +127,12 @@ function queryRequest() {
   );
   
   // Apply GroupId filter using get_group_sql() to include child groups.
-  // Validate that group IDs are integers to guard against tampered cookie values.
+  // Validate that group IDs are positive integers to guard against tampered cookie values.
   if ($request_filters['GroupId']) {
     $groupIds = is_array($request_filters['GroupId']) ? $request_filters['GroupId'] : array($request_filters['GroupId']);
-    $groupIds = array_filter($groupIds, function($id) { return ctype_digit((string)$id); });
+    $groupIds = array_values(array_filter($groupIds, function($id) {
+      return filter_var($id, FILTER_VALIDATE_INT, array('options' => array('min_range' => 1))) !== false;
+    }));
     if (count($groupIds)) {
       $groupSql = ZM\Group::get_group_sql($groupIds);
       if ($groupSql) {
@@ -142,8 +144,10 @@ function queryRequest() {
   foreach (array('ServerId','StorageId') as $filter) {
     if ($request_filters[$filter]) {
       $filter_values = is_array($request_filters[$filter]) ? $request_filters[$filter] : array($request_filters[$filter]);
-      // Validate that ID values are integers
-      $filter_values = array_filter($filter_values, function($id) { return ctype_digit((string)$id); });
+      // Validate that ID values are positive integers
+      $filter_values = array_values(array_filter($filter_values, function($id) {
+        return filter_var($id, FILTER_VALIDATE_INT, array('options' => array('min_range' => 1))) !== false;
+      }));
       if (count($filter_values)) {
         $conditions[] = 'M.'.$filter.' IN (' . implode(',', array_fill(0, count($filter_values), '?')) . ')';
         $values = array_merge($values, $filter_values);
@@ -227,10 +231,12 @@ function queryRequest() {
     });
   }
   
-  // Apply MonitorId filter (validate IDs are integers)
+  // Apply MonitorId filter (validate IDs are positive integers)
   if ($request_filters['MonitorId']) {
     $monitor_ids = is_array($request_filters['MonitorId']) ? $request_filters['MonitorId'] : array($request_filters['MonitorId']);
-    $monitor_ids = array_filter($monitor_ids, function($id) { return ctype_digit((string)$id); });
+    $monitor_ids = array_values(array_filter($monitor_ids, function($id) {
+      return filter_var($id, FILTER_VALIDATE_INT, array('options' => array('min_range' => 1))) !== false;
+    }));
     if (count($monitor_ids)) {
       $filtered_monitors = array_filter($filtered_monitors, function($monitor) use ($monitor_ids) {
         return in_array($monitor['Id'], $monitor_ids);

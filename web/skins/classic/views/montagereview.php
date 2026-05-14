@@ -195,12 +195,25 @@ if (count($filter->terms()) ) {
 // if the bulk record has not been written - to be able to include more current frames reduce bulk frame sizes (event size can be large)
 // Note we round up just a bit on the end time as otherwise you get gaps, like 59.78 to 00 in the next second, which can give blank frames when moved through slowly.
 
+// For events that never wrote EndDateTime (zmc killed/crashed mid-event),
+// fall back to StartDateTime + Length. Length is flushed to the DB every few
+// seconds during recording, so it reflects the actual recorded duration even
+// when zmc died. Otherwise the event would appear to extend across all the
+// down-time, suggesting recorded video that doesn't exist.
 $eventsSql = 'SELECT
   E.*, E.StartDateTime AS StartDateTime,UNIX_TIMESTAMP(E.StartDateTime) AS StartTimeSecs,
-    CASE WHEN E.EndDateTime IS NULL THEN (SELECT NOW()) ELSE E.EndDateTime END AS EndDateTime,
-    CASE WHEN E.EndDateTime IS NULL THEN (SELECT UNIX_TIMESTAMP(NOW())) ELSE UNIX_TIMESTAMP(EndDateTime) END AS EndTimeSecs,
+    CASE
+      WHEN E.EndDateTime IS NOT NULL THEN E.EndDateTime
+      WHEN E.Length > 0 THEN DATE_ADD(E.StartDateTime, INTERVAL FLOOR(E.Length) SECOND)
+      ELSE NOW()
+    END AS EndDateTime,
+    CASE
+      WHEN E.EndDateTime IS NOT NULL THEN UNIX_TIMESTAMP(E.EndDateTime)
+      WHEN E.Length > 0 THEN UNIX_TIMESTAMP(E.StartDateTime) + E.Length
+      ELSE UNIX_TIMESTAMP(NOW())
+    END AS EndTimeSecs,
     M.Name AS MonitorName,M.DefaultScale FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId)
-  WHERE 1 > 0 
+  WHERE 1 > 0
 ';
 
 // This program only calls itself with the time range involved -- it does all monitors (the user can see, in the called group) all the time

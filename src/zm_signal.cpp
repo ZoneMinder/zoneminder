@@ -130,13 +130,13 @@ RETSIGTYPE zm_die_handler(int signal)
     ip = (void *)(uc->uc_mcontext.gregs[REG_EIP]);
 #endif
 #elif defined(__aarch64__)
-#if defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
+#if defined(__FreeBSD__)
     ip = (void *)(uc->uc_mcontext.mc_gpregs.gp_elr);
 #elif
     ip = (void *)(uc->uc_mcontext.pc);
 #endif
 #elif defined(__arm__)
-#if defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
+#if defined(__FreeBSD__)
     ip = (void *)(uc->uc_mcontext.__gregs[_REG_PC]);
 #elif
     ip = (void *)(uc->uc_mcontext.arm_pc);

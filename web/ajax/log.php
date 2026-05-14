@@ -90,8 +90,12 @@ function queryRequest() {
   // The table we want our data from
   $table = 'Logs';
 
+  $nameMainQuery = 't1'; # To optimize queries using a subquery
+  $nameSubQuery = 't2';
+
   // The names of the dB columns in the log table we are interested in
   $columns = array('Id', 'TimeKey', 'Component', 'ServerId', 'Pid', 'Code', 'Message', 'File', 'Line');
+  $columnsContext = $columns;
   // The names of columns shown in the log view that are NOT dB columns in the database
   $col_alt = array('DateTime', 'Server');
 
@@ -99,6 +103,7 @@ function queryRequest() {
   if (isset($_REQUEST['sort'])) {
     $sort = $_REQUEST['sort'];
     if ($sort == 'DateTime') $sort = 'TimeKey';
+    if ($sort == 'Server') $sort = 'ServerId';
   }
   if (!in_array($sort, array_merge($columns, $col_alt))) {
     ZM\Error('Invalid sort field: ' . $sort);
@@ -108,7 +113,14 @@ function queryRequest() {
   // Order specifies the sort direction, either asc or desc
   $order = (isset($_REQUEST['order']) and (strtolower($_REQUEST['order']) == 'asc')) ? 'ASC' : 'DESC';
 
+  if ($nameMainQuery !== '' && $nameSubQuery !== '') {
+    array_walk($columnsContext, function(&$value, $key, $nameMainQuery) {
+      $value = $nameMainQuery . '.' . $value;
+    }, $nameMainQuery);
+  }
+
   $col_str = implode(', ', $columns);
+  $col_str_context = implode(', ', $columnsContext);
   $data = array();
   $query = array();
   $query['values'] = array();
@@ -159,10 +171,19 @@ function queryRequest() {
     $where .= 'ServerId = ?';
     $query['values'][] = $_REQUEST['ServerId'];
   }
+/* We have an indexed 'Level', not 'Code'.
   if (!empty($_REQUEST['level'])) {
     if ($where) $where .= ' AND ';
     $where .= 'Code = ?';
     $query['values'][] = $_REQUEST['level'];
+  }
+*/
+  $L = $_REQUEST['level'] ?? '';
+  $level_codes = array_flip(ZM\Logger::$codes);
+  if (!empty($L) && isset($level_codes[$L])) {
+    if ($where) $where .= ' AND ';
+    $where .= ' Level = ?';
+    $query['values'][] = $level_codes[$L];
   }
   if (!empty($_REQUEST['StartDateTime'])) {
     $start_time = strtotime($_REQUEST['StartDateTime']);
@@ -193,7 +214,22 @@ function queryRequest() {
     $data['total'] = $data['totalNotFiltered'];
   }
 
-  $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` ' .$where. ' ORDER BY ' .$sort. ' ' .$order. ' LIMIT ?, ?';
+  if ($nameMainQuery !== '' && $nameSubQuery !== '') { # Optimized query
+    $query['sql'] = '
+      SELECT ' .$col_str_context. ' 
+      FROM `' .$table. '` ' .$nameMainQuery. ' 
+      JOIN (
+        SELECT Id 
+        FROM `'.$table.'` '.$where. ' 
+        ORDER BY ' .$sort. ' ' .$order. ' 
+        LIMIT ?, ?
+      ) AS ' .$nameSubQuery. ' 
+      ON ' .$nameMainQuery. '.Id=' .$nameSubQuery. '.Id 
+      ORDER BY ' .$nameMainQuery. '.' .$sort. ' ' .$order;
+  } else {
+    $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` ' .$where. ' ORDER BY ' .$sort. ' ' .$order. ' LIMIT ?, ?';
+  }
+
   array_push($query['values'], $offset, $limit);
 
   $rows = array();

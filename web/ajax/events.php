@@ -8,7 +8,7 @@ $data = array();
 //
 
 if (!canView('Events'))
-  $message = 'Insufficient permissions for user '.$user->Username().'<br/>';
+  $message = 'Insufficient permissions for user '.validHtmlStr($user->Username()).'<br/>';
 
 if (empty($_REQUEST['task'])) {
   $message = 'Must specify a task<br/>';
@@ -106,14 +106,14 @@ switch ($task) {
   case 'unarchive' :
 		# The idea is that anyone can archive, but only people with Event Edit permission can unarchive..
 		if (!canEdit('Events'))  {
-			ajaxError('Insufficient permissions for user '.$user->Username());
+			ajaxError('Insufficient permissions for user '.validHtmlStr($user->Username()));
 			return;
 		}
     foreach ($eids as $eid) archiveRequest($task, $eid);
     break;
   case 'delete' :
 		if (!canEdit('Events'))  {
-			ajaxError('Insufficient permissions for user '.$user->Username());
+			ajaxError('Insufficient permissions for user '.validHtmlStr($user->Username()));
 			return;
 		}
     foreach ($eids as $eid) {
@@ -128,7 +128,7 @@ switch ($task) {
     $data = queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $limit);
     break;
   default :
-    ZM\Fatal("Unrecognised task '$task'");
+    ajaxError("Unrecognised task '".validHtmlStr($task)."'");
 } // end switch task
 
 ajaxResponse($data);
@@ -210,11 +210,24 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   $has_post_sql_conditions = count($filter->post_sql_conditions());
 
 
+  // For events that never wrote EndDateTime (zmc killed/crashed mid-event),
+  // fall back to StartDateTime + Length. Length is flushed to the DB every
+  // few seconds during recording, so it reflects the actual recorded
+  // duration even when zmc died without closing the event. Falling back to
+  // NOW() would otherwise extend the event across all the down-time.
   $col_str = '
-  E.*, 
-  UNIX_TIMESTAMP(E.StartDateTime) AS StartTimeSecs, 
-  CASE WHEN E.EndDateTime IS NULL THEN (SELECT NOW()) ELSE E.EndDateTime END AS EndDateTime, 
-  CASE WHEN E.EndDateTime IS NULL THEN (SELECT UNIX_TIMESTAMP(NOW())) ELSE UNIX_TIMESTAMP(EndDateTime) END AS EndTimeSecs, 
+  E.*,
+  UNIX_TIMESTAMP(E.StartDateTime) AS StartTimeSecs,
+  CASE
+    WHEN E.EndDateTime IS NOT NULL THEN E.EndDateTime
+    WHEN E.Length > 0 THEN DATE_ADD(E.StartDateTime, INTERVAL FLOOR(E.Length) SECOND)
+    ELSE NOW()
+  END AS EndDateTime,
+  CASE
+    WHEN E.EndDateTime IS NOT NULL THEN UNIX_TIMESTAMP(E.EndDateTime)
+    WHEN E.Length > 0 THEN UNIX_TIMESTAMP(E.StartDateTime) + E.Length
+    ELSE UNIX_TIMESTAMP(NOW())
+  END AS EndTimeSecs,
   M.Name AS Monitor,
   GROUP_CONCAT(T.Name SEPARATOR ", ") AS Tags';
 
@@ -242,7 +255,8 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   ZM\Debug('Calling the following sql query: ' .$sql);
   $query = dbQuery($sql, $values);
   if (!$query) {
-    ajaxError(dbError($sql));
+    ZM\Error(dbError($sql));
+    ajaxError('Database query failed');
     return;
   }
   while ($row = dbFetchNext($query)) {

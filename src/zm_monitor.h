@@ -789,6 +789,13 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   RecordingOption Recording() const { return recording; }
 
   inline PacketQueue * GetPacketQueue() { return &packetqueue; }
+
+  // Called by the decoder thread as it exits. Releases packet locks for
+  // anything it sent to the codec context but never received as a frame
+  // (codec context is about to be torn down for Pause/reconnect, so those
+  // packets will never produce output). Marks them decoded so the analysis
+  // thread can advance past them.
+  void flushDecoderQueue();
   inline bool Enabled() const {
     return shared_data->capturing;
   }

@@ -170,6 +170,21 @@ bool extractHeaderValue(const std::string &request, const std::string &header_na
   return false;
 }
 
+bool headerContainsToken(const std::string &header_value, const std::string &token) {
+  size_t start = 0;
+  while (start < header_value.size()) {
+    size_t end = header_value.find(',', start);
+    if (end == std::string::npos) {
+      end = header_value.size();
+    }
+    if (toLowerAscii(Trim(header_value.substr(start, end - start), " \t")) == token) {
+      return true;
+    }
+    start = end + 1;
+  }
+  return false;
+}
+
 bool writeFully(int fd, const std::string &payload) {
   size_t offset = 0;
   while (offset < payload.size()) {
@@ -233,12 +248,17 @@ std::string ComputeAcceptKey(const std::string &client_key) {
 
 bool ExtractHandshakeKey(const std::string &request, std::string *client_key) {
   std::string upgrade_value;
+  std::string connection_value;
   std::string version_value;
   if (!extractHeaderValue(request, "sec-websocket-key", client_key)) {
     return false;
   }
   if (!extractHeaderValue(request, "upgrade", &upgrade_value) ||
       (toLowerAscii(upgrade_value) != "websocket")) {
+    return false;
+  }
+  if (!extractHeaderValue(request, "connection", &connection_value) ||
+      !headerContainsToken(connection_value, "upgrade")) {
     return false;
   }
   if (!extractHeaderValue(request, "sec-websocket-version", &version_value) ||
@@ -436,21 +456,15 @@ void MonitorWebSocketServer::run() {
     for (size_t i = 0; i < polled_client_count; ++i) {
       const short revents = pollfds[i + 1].revents;
       if (revents & (POLLERR | POLLHUP | POLLNVAL)) {
-        freeClientResources(&clients[i]);
-        ::close(clients[i].fd);
-        clients[i].fd = -1;
+        closeClient(&clients[i]);
         continue;
       }
       if ((revents & POLLIN) && !handleRead(&clients[i])) {
-        freeClientResources(&clients[i]);
-        ::close(clients[i].fd);
-        clients[i].fd = -1;
+        closeClient(&clients[i]);
         continue;
       }
       if ((revents & POLLOUT) && !flushWrites(&clients[i])) {
-        freeClientResources(&clients[i]);
-        ::close(clients[i].fd);
-        clients[i].fd = -1;
+        closeClient(&clients[i]);
       }
     }
 
@@ -470,8 +484,7 @@ void MonitorWebSocketServer::run() {
 
   for (Client &client : clients) {
     if (client.fd >= 0) {
-      freeClientResources(&client);
-      ::close(client.fd);
+      closeClient(&client);
     }
   }
 }
@@ -749,6 +762,16 @@ bool MonitorWebSocketServer::flushWrites(Client *client) {
   return true;
 }
 
+void MonitorWebSocketServer::closeClient(Client *client) {
+  freeClientResources(client);
+  client->send_queue.clear();
+  client->queued_bytes = 0;
+  if (client->fd >= 0) {
+    ::close(client->fd);
+  }
+  client->fd = -1;
+}
+
 bool MonitorWebSocketServer::sendImagePayload(
     Client *client,
     const Monitor::WebSocketPayload &payload,
@@ -790,7 +813,7 @@ void MonitorWebSocketServer::broadcastStatus(std::vector<Client> *clients, TimeP
     }
     if ((client.next_status_at.time_since_epoch().count() == 0) || (now >= client.next_status_at)) {
       if (!queueFrame(&client, websocket::Opcode::TEXT, status)) {
-        client.fd = -1;
+        closeClient(&client);
         continue;
       }
       client.next_status_at = now + client.status_interval;
@@ -819,7 +842,7 @@ void MonitorWebSocketServer::broadcastImages(std::vector<Client> *clients, TimeP
           break;
         }
         if (!sendImagePayload(&client, payload, "")) {
-          client.fd = -1;
+          closeClient(&client);
           break;
         }
         client.last_image_sequence = payload.sequence;
@@ -834,7 +857,7 @@ void MonitorWebSocketServer::broadcastImages(std::vector<Client> *clients, TimeP
     Monitor::WebSocketPayload payload;
     if (monitor->GetWebSocketPayload(client.image_format, &payload) && (payload.sequence != client.last_image_sequence)) {
       if (!sendImagePayload(&client, payload, "")) {
-        client.fd = -1;
+        closeClient(&client);
         continue;
       }
       client.last_image_sequence = payload.sequence;
@@ -866,7 +889,7 @@ void MonitorWebSocketServer::broadcastEvents(std::vector<Client> *clients) {
     }
     for (const std::string &event : events) {
       if (!queueFrame(&client, websocket::Opcode::TEXT, event)) {
-        client.fd = -1;
+        closeClient(&client);
         break;
       }
     }
@@ -874,15 +897,6 @@ void MonitorWebSocketServer::broadcastEvents(std::vector<Client> *clients) {
 }
 
 void MonitorWebSocketServer::removeClosedClients(std::vector<Client> *clients) {
-  for (Client &client : *clients) {
-    if (client.fd >= 0) {
-      continue;
-    }
-    freeClientResources(&client);
-    client.send_queue.clear();
-    client.queued_bytes = 0;
-  }
-
   clients->erase(
       std::remove_if(
           clients->begin(),

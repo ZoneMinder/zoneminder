@@ -93,6 +93,7 @@ class MonitorWebSocketServer {
   bool handleHandshake(Client *client);
   bool handleFrame(Client *client, const websocket::Frame &frame);
   bool flushWrites(Client *client);
+  void closeClient(Client *client);
   bool sendImagePayload(Client *client, const Monitor::WebSocketPayload &payload, const std::string &request_id);
   void freeClientResources(Client *client);
   bool queueRaw(Client *client, const std::string &payload);

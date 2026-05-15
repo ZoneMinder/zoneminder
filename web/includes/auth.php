@@ -171,24 +171,55 @@ function validateToken($token, $allowed_token_type='access') {
 function getAuthUser($auth) {
   if (ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed') && !empty($auth)) {
     $remoteAddr = '';
+    $xff = !empty($_SERVER['HTTP_X_FORWARDED_FOR'])
+      ? trim(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0])
+      : '';
+    $directAddr = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '';
     if (ZM_AUTH_HASH_IPS) {
-      $remoteAddr = $_SERVER['REMOTE_ADDR'];
+      // Use HTTP_X_FORWARDED_FOR if available (consistent with session.php which uses it for hash generation)
+      // taking only the first IP to guard against spoofed multi-value headers.
+      // This ensures validation matches generation when behind a reverse proxy.
+      $remoteAddr = $xff !== '' ? $xff : $directAddr;
       if ( !$remoteAddr ) {
         ZM\Error("Can't determine remote address for authentication, using empty string");
         $remoteAddr = '';
       }
     }
 
-    $sql = 'SELECT * FROM Users WHERE Enabled = 1';
-    $values = array();
-    if (isset($_SESSION['username'])) {
-      # Most of the time we will be logged in already and the session will have our username, so we can significantly speed up our hash testing by only looking at our user.
-      # Only really important if you have a lot of users.
-      $sql .= ' AND Username=?';
-      array_push($values, $_SESSION['username']);
+    // Prefer the username from the URL (matches what zms uses) so PHP and the
+    // C++ side query the same row. Fall back to the session username for
+    // page-internal calls that don't carry user= on the URL.
+    $requestedUser = !empty($_REQUEST['user']) ? $_REQUEST['user'] : null;
+    $sessionUser = isset($_SESSION['username']) ? $_SESSION['username'] : null;
+    $filterUser = $requestedUser !== null ? $requestedUser : $sessionUser;
+
+    if ($requestedUser !== null && $sessionUser !== null) {
+      $usersMatch = ZM_CASE_INSENSITIVE_USERNAMES
+        ? (strcasecmp($requestedUser, $sessionUser) === 0)
+        : ($requestedUser === $sessionUser);
+      if (!$usersMatch) {
+        ZM\Warning("Auth user mismatch: URL user='$requestedUser' but session username='$sessionUser'. This may indicate a stale auth hash from a previous login, cross-tab session contamination, or a tampered request.");
+      }
     }
 
-    foreach (dbFetchAll($sql, NULL, $values) as $user) {
+    ZM\Debug("getAuthUser: validating auth='$auth' filterUser='".($filterUser ?? '')."' xff='$xff' directAddr='$directAddr' usingRemoteAddr='$remoteAddr' session_username='".($sessionUser ?? '')."'");
+
+    $sql = 'SELECT * FROM Users WHERE Enabled = 1';
+    $values = array();
+    if ($filterUser !== null) {
+      # Most of the time we will be logged in already and the session will have our username, so we can significantly speed up our hash testing by only looking at our user.
+      # Only really important if you have a lot of users.
+      if (ZM_CASE_INSENSITIVE_USERNAMES) {
+        $sql .= ' AND LOWER(Username)=LOWER(?)';
+      } else {
+        $sql .= ' AND Username=?';
+      }
+      array_push($values, $filterUser);
+    }
+
+    $rows = dbFetchAll($sql, NULL, $values);
+    $rowsTried = count($rows);
+    foreach ($rows as $user) {
       $now = time();
       for ($i = 0; $i < ZM_AUTH_HASH_TTL; $i++, $now -= 3600) { // Try for last TTL hours
         $time = localtime($now);
@@ -201,7 +232,7 @@ function getAuthUser($auth) {
       } // end foreach hour
     } // end foreach user
 
-    if (isset($_SESSION['username'])) {
+    if ($filterUser !== null) {
       # In a multi-server case, we might be logged in as another user and so the auth hash didn't work
       if (ZM_CASE_INSENSITIVE_USERNAMES) {
         $sql = 'SELECT * FROM Users WHERE Enabled = 1 AND LOWER(Username) != LOWER(?)';
@@ -209,7 +240,9 @@ function getAuthUser($auth) {
         $sql = 'SELECT * FROM Users WHERE Enabled = 1 AND Username != ?';
       }
 
-      foreach (dbFetchAll($sql, NULL, $values) as $user) {
+      $altRows = dbFetchAll($sql, NULL, array($filterUser));
+      $rowsTried += count($altRows);
+      foreach ($altRows as $user) {
         $now = time();
         for ($i = 0; $i < ZM_AUTH_HASH_TTL; $i++, $now -= 3600) { // Try for last TTL hours
           $time = localtime($now);
@@ -217,11 +250,15 @@ function getAuthUser($auth) {
           $authHash = md5($authKey);
 
           if ($auth == $authHash) {
+            ZM\Debug("getAuthUser: matched user '".$user['Username']."' from fallback (filter was '$filterUser')");
             return new ZM\User($user);
           } // end if $auth == $authHash
         } // end foreach hour
       } // end foreach user
-    } // end if 
+    } // end if
+
+    ZM\Info("Unable to authenticate user from auth hash '$auth' (filterUser='".($filterUser ?? '')."' xff='$xff' directAddr='$directAddr' rowsTried=$rowsTried ttl=".ZM_AUTH_HASH_TTL.'h)');
+    return null;
   } // end if using auth hash
 
   ZM\Info("Unable to authenticate user from auth hash '$auth'");

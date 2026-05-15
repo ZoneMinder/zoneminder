@@ -370,11 +370,33 @@ User *zmLoadTokenUser(const std::string &jwt_token_str, bool use_remote_addr) {
 // Function to validate an authentication string
 User *zmLoadAuthUser(const std::string &auth, const std::string &username, bool use_remote_addr) {
   const char *remote_addr = "";
+  std::string forwarded_for_first; // must outlive remote_addr
   if (use_remote_addr) {
-    remote_addr = getenv("REMOTE_ADDR");
-    if (!remote_addr) {
-      Warning("Can't determine remote address, using null");
-      remote_addr = "";
+    // Prefer HTTP_X_FORWARDED_FOR if available, consistent with PHP session.php which uses it for hash generation.
+    // This ensures that when ZoneMinder is behind a reverse proxy (e.g. Nginx → Apache),
+    // the same IP address is used for both hash generation and validation.
+    // Use only the first IP to guard against spoofed multi-value headers.
+    const char *forwarded_for = getenv("HTTP_X_FORWARDED_FOR");
+    if (forwarded_for && *forwarded_for) {
+      // Extract the first IP from a potentially comma-separated list
+      forwarded_for_first = forwarded_for;
+      auto comma = forwarded_for_first.find(',');
+      if (comma != std::string::npos) {
+        forwarded_for_first = forwarded_for_first.substr(0, comma);
+      }
+      // Trim leading/trailing whitespace
+      auto start = forwarded_for_first.find_first_not_of(' ');
+      auto end = forwarded_for_first.find_last_not_of(' ');
+      if (start != std::string::npos) {
+        forwarded_for_first = forwarded_for_first.substr(start, end - start + 1);
+      }
+      remote_addr = forwarded_for_first.c_str();
+    } else {
+      remote_addr = getenv("REMOTE_ADDR");
+      if (!remote_addr) {
+        Warning("Can't determine remote address, using null");
+        remote_addr = "";
+      }
     }
   }
 

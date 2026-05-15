@@ -996,7 +996,7 @@ sub sendTheEmail {
       } else {
         my $text = MIME::Lite->new(
           'Content-Transfer-Encoding' => 'quoted-printable',
-          Type => 'TEXT', Data => $body
+          Type => 'TEXT', Data => MIME::QuotedPrint::encode_qp($body)
         );
         $related->attach($text);
       } # end if html or not

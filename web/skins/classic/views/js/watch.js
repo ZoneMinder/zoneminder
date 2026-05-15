@@ -58,6 +58,10 @@ var params =
 
 // Called by bootstrap-table to retrieve zm event data
 function ajaxRequest(params) {
+  if (document.visibilityState == 'hidden') {
+    eventListTable.bootstrapTable('hideLoading');
+    return;
+  }
   // Maintain legacy behavior by statically setting these parameters
   const data = params.data;
   data.order = 'desc';

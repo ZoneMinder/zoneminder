@@ -1489,9 +1489,16 @@ packetqueue_iterator *Monitor::CreateWebSocketH264Iterator() {
   bool have_keyframe = false;
 
   while (true) {
+    if (*scan_it == packetqueue.end()) {
+      break;
+    }
+
     ZMPacketLock packet_lock = packetqueue.get_packet_no_wait(scan_it);
     if (!packet_lock.packet_) {
-      break;
+      if (!packetqueue.increment_it(scan_it, video_stream_id)) {
+        break;
+      }
+      continue;
     }
 
     if (packet_lock.packet_->packet &&

@@ -312,6 +312,10 @@ body #sidebarMain .sub-menu-list {
   height: 27px !important;
 }
 
+.extruder .extruder-content .chosen-container .chosen-drop {
+  z-index: 1100;
+}
+
 /* Clear Filter Button Select Multiple Selection */
 .extruder .extruder-content .term-value-wrapper {
   position: relative; /* Enable absolute positioning for child */

@@ -76,7 +76,8 @@ VideoStore::VideoStore(
   reorder_queue_size(0),
   last_fragment_offset_(0),
   last_fragment_start_dts_(AV_NOPTS_VALUE),
-  init_segment_end_(0) {
+  init_segment_end_(0),
+  finalized_(false) {
   FFMPEGInit();
   swscale.init();
   opkt = av_packet_ptr{av_packet_alloc()};
@@ -706,7 +707,7 @@ VideoStore::~VideoStore() {
     }
   }
 
-  if (oc->pb) {
+  if (!finalized_ && oc->pb) {
     flush_codecs();
 
     // Flush Queues
@@ -1551,26 +1552,31 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
   Debug(3, "next_dts for stream %d has become %" PRId64 " last_dts %" PRId64,
         stream->index, next_dts[stream->index], last_dts[stream->index]);
 
-  // HLS fragment tracking: with frag_keyframe movflag, FFmpeg creates a new
-  // moof+mdat at each video keyframe. We record the byte range of each fragment
-  // by checking the file position before and after the write call.
-  //
-  // Strategy: before writing a video keyframe, snapshot the file position.
-  // This marks the end of the previous fragment. We record that fragment and
-  // start tracking the new one.
   bool is_video_keyframe = (stream == video_out_stream) && (pkt->flags & AV_PKT_FLAG_KEY);
+  // Snapshot the keyframe's dts before the write call may modify the packet.
+  int64_t this_keyframe_dts = is_video_keyframe ? pkt->dts : AV_NOPTS_VALUE;
 
+  int ret = av_interleaved_write_frame(oc, pkt);
+  if (ret != 0) {
+    Error("Error writing packet: %s", av_make_error_string(ret).c_str());
+  } else {
+    Debug(4, "Success writing packet");
+  }
+
+  // HLS fragment tracking: with movflags=frag_keyframe, the muxer flushes the
+  // previous fragment to disk inside av_interleaved_write_frame() when a new
+  // keyframe arrives. So the position *after* this call equals the end of the
+  // just-flushed fragment, and last_fragment_offset_/_dts_ describe that
+  // fragment. Record it, then move tracking to the new fragment.
   if (is_video_keyframe && oc && oc->pb) {
-    // Force flush any buffered data so the file position reflects all previous writes
     avio_flush(oc->pb);
-    int64_t pos_now = avio_tell(oc->pb);
+    int64_t pos_after = avio_tell(oc->pb);
 
-    if (last_fragment_start_dts_ != AV_NOPTS_VALUE && pos_now > last_fragment_offset_) {
-      // Record the completed fragment
-      int64_t frag_size = pos_now - last_fragment_offset_;
+    if (last_fragment_start_dts_ != AV_NOPTS_VALUE && pos_after > last_fragment_offset_) {
+      int64_t frag_size = pos_after - last_fragment_offset_;
       double duration = 0;
       if (video_out_stream->time_base.den > 0) {
-        duration = static_cast<double>(pkt->dts - last_fragment_start_dts_)
+        duration = static_cast<double>(this_keyframe_dts - last_fragment_start_dts_)
                    * video_out_stream->time_base.num
                    / video_out_stream->time_base.den;
       }
@@ -1580,49 +1586,101 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
               fragments_.size() - 1, last_fragment_offset_, frag_size, duration);
       }
     }
-    // New fragment starts here
-    last_fragment_offset_ = pos_now;
-    last_fragment_start_dts_ = pkt->dts;
-  }
-
-  // Initialize tracking after init segment is written
-  if (last_fragment_start_dts_ == AV_NOPTS_VALUE && is_video_keyframe) {
-    if (oc && oc->pb) {
-      last_fragment_offset_ = avio_tell(oc->pb);
-    }
-    last_fragment_start_dts_ = pkt->dts;
-  }
-
-  int ret = av_interleaved_write_frame(oc, pkt);
-  if (ret != 0) {
-    Error("Error writing packet: %s", av_make_error_string(ret).c_str());
-  } else {
-    Debug(4, "Success writing packet");
+    last_fragment_offset_ = pos_after;
+    last_fragment_start_dts_ = this_keyframe_dts;
   }
 
   return ret;
 }  // end int VideoStore::write_packet(AVPacket *pkt, AVStream *stream)
 
-void VideoStore::writeM3U8(const std::string &m3u8_path, const std::string &video_url, bool is_complete) {
-  // Finalize last fragment if there's data after the last recorded fragment
-  if (oc && oc->pb) {
-    int64_t file_end = avio_tell(oc->pb);
-    if (file_end > last_fragment_offset_ && last_fragment_start_dts_ != AV_NOPTS_VALUE) {
-      int64_t frag_size = file_end - last_fragment_offset_;
-      // Estimate duration from last known DTS
-      double duration = 0;
-      if (video_out_stream && video_out_stream->time_base.den > 0 &&
-          last_dts.count(video_out_stream->index) && last_dts[video_out_stream->index] != AV_NOPTS_VALUE) {
-        duration = static_cast<double>(last_dts[video_out_stream->index] + last_duration[video_out_stream->index] - last_fragment_start_dts_)
-                   * video_out_stream->time_base.num
-                   / video_out_stream->time_base.den;
+void VideoStore::finalize() {
+  if (finalized_) return;
+  finalized_ = true;
+
+  if (!oc || !oc->pb) return;
+
+  flush_codecs();
+
+  Debug(4, "Flushing interleaved queues");
+  av_interleaved_write_frame(oc, nullptr);
+
+  Debug(1, "Writing trailer");
+  int rc = av_write_trailer(oc);
+  if (rc < 0) {
+    Error("Error writing trailer %s", av_err2str(rc));
+  } else {
+    Debug(3, "Success Writing trailer");
+  }
+
+  // After av_write_trailer, the file contains init+fragments_1..N + mfra trailer.
+  // Capture the on-disk length so we can size the final fragment.
+  avio_flush(oc->pb);
+  int64_t file_size = avio_tell(oc->pb);
+
+  // Close the output file before reading it back to inspect the mfra box.
+  if (!(out_format->flags & AVFMT_NOFILE)) {
+    Debug(4, "Closing");
+    if ((rc = avio_close(oc->pb)) < 0) {
+      Error("Error closing avio %s", av_err2str(rc));
+    }
+  }
+  oc->pb = nullptr;
+
+  // The MOV muxer writes an mfra (Movie Fragment Random Access) box at the end
+  // of the file when fragmentation is on. Its trailing mfro box is exactly 16
+  // bytes and contains the mfra size, so we can subtract that to find where
+  // the final fragment's mdat actually ends.
+  int64_t fragment_n_end = file_size;
+  if (filename && file_size >= 16) {
+    FILE *fp = fopen(filename, "rb");
+    if (fp) {
+      if (fseeko(fp, file_size - 16, SEEK_SET) == 0) {
+        uint8_t mfro[16];
+        if (fread(mfro, 1, 16, fp) == 16) {
+          uint32_t box_size = (static_cast<uint32_t>(mfro[0]) << 24)
+                            | (static_cast<uint32_t>(mfro[1]) << 16)
+                            | (static_cast<uint32_t>(mfro[2]) << 8)
+                            | static_cast<uint32_t>(mfro[3]);
+          if (box_size == 16
+              && mfro[4] == 'm' && mfro[5] == 'f' && mfro[6] == 'r' && mfro[7] == 'o') {
+            uint32_t mfra_size = (static_cast<uint32_t>(mfro[12]) << 24)
+                               | (static_cast<uint32_t>(mfro[13]) << 16)
+                               | (static_cast<uint32_t>(mfro[14]) << 8)
+                               | static_cast<uint32_t>(mfro[15]);
+            if (mfra_size > 0 && static_cast<int64_t>(mfra_size) <= file_size) {
+              fragment_n_end = file_size - mfra_size;
+              Debug(1, "mfra trailer is %u bytes; final fragment ends at %" PRId64,
+                    mfra_size, fragment_n_end);
+            }
+          }
+        }
       }
-      if (duration > 0 && frag_size > 0) {
-        fragments_.push_back({last_fragment_offset_, frag_size, duration});
-      }
+      fclose(fp);
     }
   }
 
+  // Record the final fragment that no subsequent keyframe was around to record.
+  if (last_fragment_start_dts_ != AV_NOPTS_VALUE
+      && fragment_n_end > last_fragment_offset_
+      && video_out_stream && video_out_stream->time_base.den > 0
+      && last_dts.count(video_out_stream->index)
+      && last_dts[video_out_stream->index] != AV_NOPTS_VALUE) {
+    int64_t frag_size = fragment_n_end - last_fragment_offset_;
+    double duration = static_cast<double>(
+        last_dts[video_out_stream->index]
+        + last_duration[video_out_stream->index]
+        - last_fragment_start_dts_)
+        * video_out_stream->time_base.num
+        / video_out_stream->time_base.den;
+    if (duration > 0 && frag_size > 0) {
+      fragments_.push_back({last_fragment_offset_, frag_size, duration});
+      Debug(1, "HLS final fragment: offset=%" PRId64 " size=%" PRId64 " duration=%.3f",
+            last_fragment_offset_, frag_size, duration);
+    }
+  }
+}
+
+void VideoStore::writeM3U8(const std::string &m3u8_path, const std::string &video_url, bool is_complete) {
   if (fragments_.empty()) return;
 
   // Calculate max duration for EXT-X-TARGETDURATION (must be integer, rounded up)

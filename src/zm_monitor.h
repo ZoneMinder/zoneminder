@@ -734,7 +734,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::string websocket_status_json;
   std::mutex websocket_message_mutex;
   std::vector<std::string> websocket_messages;
-  uint32_t websocket_capture_bandwidth;
+  std::atomic<uint32_t> websocket_capture_bandwidth;
 
   // Used in check signal
   uint8_t red_val;

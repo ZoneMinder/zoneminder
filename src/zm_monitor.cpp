@@ -1355,6 +1355,7 @@ void Monitor::RefreshWebSocketStatus() {
   const uint32_t capture_state = shared_data ? shared_data->capturing : static_cast<uint32_t>(capturing);
   const uint32_t recording_state = shared_data ? shared_data->recording : static_cast<uint32_t>(recording);
   const uint32_t current_state = shared_data ? shared_data->state : static_cast<uint32_t>(UNKNOWN);
+  const uint32_t capture_bandwidth = websocket_capture_bandwidth.load();
   const time_t heartbeat_time = shared_data ? shared_data->heartbeat_time : 0;
   const time_t startup_time = shared_data ? shared_data->startup_time : 0;
 
@@ -1379,7 +1380,7 @@ void Monitor::RefreshWebSocketStatus() {
       state_name,
       capture_fps,
       analysis_fps,
-      websocket_capture_bandwidth,
+      capture_bandwidth,
       image_count,
       analysing_state,
       capture_state,
@@ -1479,11 +1480,16 @@ packetqueue_iterator *Monitor::CreateWebSocketH264Iterator() {
     return nullptr;
   }
 
-  packetqueue_iterator latest_keyframe = *it;
+  packetqueue_iterator *scan_it = packetqueue.get_video_it(false);
+  if (!scan_it) {
+    packetqueue.free_it(it);
+    return nullptr;
+  }
+
   bool have_keyframe = false;
 
   while (true) {
-    ZMPacketLock packet_lock = packetqueue.get_packet_no_wait(it);
+    ZMPacketLock packet_lock = packetqueue.get_packet_no_wait(scan_it);
     if (!packet_lock.packet_) {
       break;
     }
@@ -1491,21 +1497,22 @@ packetqueue_iterator *Monitor::CreateWebSocketH264Iterator() {
     if (packet_lock.packet_->packet &&
         packet_lock.packet_->packet->stream_index == video_stream_id &&
         packet_lock.packet_->keyframe) {
-      latest_keyframe = *it;
+      *it = *scan_it;
       have_keyframe = true;
     }
 
-    if (!packetqueue.increment_it(it, video_stream_id)) {
+    if (!packetqueue.increment_it(scan_it, video_stream_id)) {
       break;
     }
   }
+
+  packetqueue.free_it(scan_it);
 
   if (!have_keyframe) {
     packetqueue.free_it(it);
     return nullptr;
   }
 
-  *it = latest_keyframe;
   return it;
 }
 

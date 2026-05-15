@@ -21,6 +21,7 @@ namespace {
 static constexpr const char *kWebSocketMagic = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 static constexpr size_t kMaxHandshakeSize = 16384;
 static constexpr size_t kMaxMessageSize = 1024 * 1024;
+static constexpr size_t kMaxQueuedBytesPerClient = 8 * 1024 * 1024;
 static constexpr int kPollTimeoutMs = 100;
 static constexpr char kBase64Alphabet[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -130,6 +131,63 @@ bool setNonBlocking(int fd) {
   return true;
 }
 
+std::string toLowerAscii(const std::string &input) {
+  std::string lowered = input;
+  std::transform(lowered.begin(), lowered.end(), lowered.begin(), [](unsigned char c) {
+    if (c >= 'A' && c <= 'Z') {
+      return static_cast<char>(c - 'A' + 'a');
+    }
+    return static_cast<char>(c);
+  });
+  return lowered;
+}
+
+bool extractHeaderValue(const std::string &request, const std::string &header_name, std::string *value) {
+  size_t line_start = 0;
+  while (line_start < request.size()) {
+    size_t line_end = request.find('\n', line_start);
+    if (line_end == std::string::npos) {
+      line_end = request.size();
+    }
+
+    std::string line = request.substr(line_start, line_end - line_start);
+    if (!line.empty() && line.back() == '\r') {
+      line.pop_back();
+    }
+
+    size_t colon_pos = line.find(':');
+    if (colon_pos != std::string::npos) {
+      const std::string name = toLowerAscii(Trim(line.substr(0, colon_pos), " \t"));
+      if (name == header_name) {
+        *value = Trim(line.substr(colon_pos + 1), " \t");
+        return !value->empty();
+      }
+    }
+
+    line_start = line_end + 1;
+  }
+
+  return false;
+}
+
+bool writeFully(int fd, const std::string &payload) {
+  size_t offset = 0;
+  while (offset < payload.size()) {
+    const ssize_t bytes_sent = ::send(fd, payload.data() + offset, payload.size() - offset, MSG_NOSIGNAL);
+    if (bytes_sent < 0) {
+      if (errno == EINTR) {
+        continue;
+      }
+      return false;
+    }
+    if (bytes_sent == 0) {
+      return false;
+    }
+    offset += static_cast<size_t>(bytes_sent);
+  }
+  return true;
+}
+
 std::string statusAckJson(const std::string &topic, int interval_ms) {
   return stringtf(
       "{\"type\":\"ack\",\"topic\":\"%s\",\"interval_ms\":%d}",
@@ -174,26 +232,19 @@ std::string ComputeAcceptKey(const std::string &client_key) {
 }
 
 bool ExtractHandshakeKey(const std::string &request, std::string *client_key) {
-  const std::string key_name = "Sec-WebSocket-Key:";
-  size_t key_pos = request.find(key_name);
-  if (key_pos == std::string::npos) {
+  std::string upgrade_value;
+  std::string version_value;
+  if (!extractHeaderValue(request, "sec-websocket-key", client_key)) {
     return false;
   }
-
-  size_t value_start = request.find_first_not_of(" \t", key_pos + key_name.size());
-  if (value_start == std::string::npos) {
+  if (!extractHeaderValue(request, "upgrade", &upgrade_value) ||
+      (toLowerAscii(upgrade_value) != "websocket")) {
     return false;
   }
-
-  size_t value_end = request.find("\r\n", value_start);
-  if (value_end == std::string::npos) {
-    value_end = request.find('\n', value_start);
-  }
-  if (value_end == std::string::npos) {
+  if (!extractHeaderValue(request, "sec-websocket-version", &version_value) ||
+      (version_value != "13")) {
     return false;
   }
-
-  *client_key = Trim(request.substr(value_start, value_end - value_start), " \t");
   return !client_key->empty();
 }
 
@@ -262,16 +313,19 @@ DecodeResult DecodeFrame(const std::string &buffer, Frame *frame, size_t *consum
     return DecodeResult::ERROR;
   }
 
-  std::array<uint8_t, 4> mask = {0, 0, 0, 0};
-  if (masked) {
-    if (buffer.size() < pos + mask.size()) {
-      return DecodeResult::INCOMPLETE;
-    }
-    for (size_t i = 0; i < mask.size(); ++i) {
-      mask[i] = static_cast<uint8_t>(buffer[pos + i]);
-    }
-    pos += mask.size();
+  if (!masked) {
+    Warning("Rejecting unmasked websocket client frame");
+    return DecodeResult::ERROR;
   }
+
+  std::array<uint8_t, 4> mask = {0, 0, 0, 0};
+  if (buffer.size() < pos + mask.size()) {
+    return DecodeResult::INCOMPLETE;
+  }
+  for (size_t i = 0; i < mask.size(); ++i) {
+    mask[i] = static_cast<uint8_t>(buffer[pos + i]);
+  }
+  pos += mask.size();
 
   if (buffer.size() < pos + payload_len) {
     return DecodeResult::INCOMPLETE;
@@ -366,6 +420,9 @@ void MonitorWebSocketServer::run() {
     if (poll_result < 0) {
       if (errno == EINTR) {
         continue;
+      }
+      if (!running) {
+        break;
       }
       Error("poll() failed in websocket server for monitor %u: %s", monitor->Id(), strerror(errno));
       break;
@@ -503,7 +560,7 @@ bool MonitorWebSocketServer::handleHandshake(Client *client) {
 
   std::string client_key;
   if (!websocket::ExtractHandshakeKey(request, &client_key)) {
-    queueRaw(client, "HTTP/1.1 400 Bad Request\r\n\r\n");
+    writeFully(client->fd, "HTTP/1.1 400 Bad Request\r\n\r\n");
     return false;
   }
 
@@ -521,12 +578,16 @@ bool MonitorWebSocketServer::handleFrame(Client *client, const websocket::Frame 
     std::string request_id;
     extractQuotedField(frame.payload, "request_id", &request_id);
     if (!extractQuotedField(frame.payload, "command", &command)) {
-      queueFrame(client, websocket::Opcode::TEXT, errorJson("Missing command"));
+      if (!queueFrame(client, websocket::Opcode::TEXT, errorJson("Missing command"))) {
+        return false;
+      }
       return true;
     }
 
     if (command == "status") {
-      queueFrame(client, websocket::Opcode::TEXT, monitor->GetWebSocketStatusJson());
+      if (!queueFrame(client, websocket::Opcode::TEXT, monitor->GetWebSocketStatusJson())) {
+        return false;
+      }
       return true;
     }
 
@@ -537,16 +598,22 @@ bool MonitorWebSocketServer::handleFrame(Client *client, const websocket::Frame 
       }
       Monitor::WebSocketPayload payload;
       if (!monitor->GetWebSocketPayload(format, &payload)) {
-        queueFrame(client, websocket::Opcode::TEXT, errorJson("Unable to fetch image payload"));
+        if (!queueFrame(client, websocket::Opcode::TEXT, errorJson("Unable to fetch image payload"))) {
+          return false;
+        }
         return true;
       }
-      sendImagePayload(client, payload, request_id);
+      if (!sendImagePayload(client, payload, request_id)) {
+        return false;
+      }
       return true;
     }
 
     std::string topic;
     if (!extractQuotedField(frame.payload, "topic", &topic)) {
-      queueFrame(client, websocket::Opcode::TEXT, errorJson("Missing topic"));
+      if (!queueFrame(client, websocket::Opcode::TEXT, errorJson("Missing topic"))) {
+        return false;
+      }
       return true;
     }
 
@@ -559,8 +626,10 @@ bool MonitorWebSocketServer::handleFrame(Client *client, const websocket::Frame 
         }
         client->subscribe_status = true;
         client->next_status_at = std::chrono::steady_clock::now();
-        queueFrame(client, websocket::Opcode::TEXT, statusAckJson(topic, client->status_interval.count()));
-        queueFrame(client, websocket::Opcode::TEXT, monitor->GetWebSocketStatusJson());
+        if (!queueFrame(client, websocket::Opcode::TEXT, statusAckJson(topic, client->status_interval.count())) ||
+            !queueFrame(client, websocket::Opcode::TEXT, monitor->GetWebSocketStatusJson())) {
+          return false;
+        }
       } else if (topic == "image") {
         int interval_ms = 1000;
         if (extractIntegerField(frame.payload, "interval_ms", &interval_ms)) {
@@ -577,29 +646,41 @@ bool MonitorWebSocketServer::handleFrame(Client *client, const websocket::Frame 
           client->h264_it = monitor->CreateWebSocketH264Iterator();
           if (!client->h264_it) {
             client->subscribe_image = false;
-            queueFrame(client, websocket::Opcode::TEXT, errorJson("Unsupported image format or payload unavailable"));
+            if (!queueFrame(client, websocket::Opcode::TEXT, errorJson("Unsupported image format or payload unavailable"))) {
+              return false;
+            }
             return true;
           }
           client->last_image_sequence = 0;
-          queueFrame(client, websocket::Opcode::TEXT, statusAckJson(topic, 0));
+          if (!queueFrame(client, websocket::Opcode::TEXT, statusAckJson(topic, 0))) {
+            return false;
+          }
         } else {
           client->image_interval = Milliseconds(interval_ms);
           Monitor::WebSocketPayload payload;
           if (!monitor->GetWebSocketPayload(client->image_format, &payload)) {
             client->subscribe_image = false;
-            queueFrame(client, websocket::Opcode::TEXT, errorJson("Unsupported image format or payload unavailable"));
+            if (!queueFrame(client, websocket::Opcode::TEXT, errorJson("Unsupported image format or payload unavailable"))) {
+              return false;
+            }
             return true;
           }
           client->last_image_sequence = payload.sequence;
-          queueFrame(client, websocket::Opcode::TEXT, statusAckJson(topic, client->image_interval.count()));
-          sendImagePayload(client, payload, request_id);
+          if (!queueFrame(client, websocket::Opcode::TEXT, statusAckJson(topic, client->image_interval.count())) ||
+              !sendImagePayload(client, payload, request_id)) {
+            return false;
+          }
           client->next_image_at = std::chrono::steady_clock::now() + client->image_interval;
         }
       } else if (topic == "events") {
         client->subscribe_events = true;
-        queueFrame(client, websocket::Opcode::TEXT, statusAckJson(topic, 0));
+        if (!queueFrame(client, websocket::Opcode::TEXT, statusAckJson(topic, 0))) {
+          return false;
+        }
       } else {
-        queueFrame(client, websocket::Opcode::TEXT, errorJson("Unsupported topic"));
+        if (!queueFrame(client, websocket::Opcode::TEXT, errorJson("Unsupported topic"))) {
+          return false;
+        }
       }
       return true;
     }
@@ -614,19 +695,24 @@ bool MonitorWebSocketServer::handleFrame(Client *client, const websocket::Frame 
       } else if (topic == "events") {
         client->subscribe_events = false;
       } else {
-        queueFrame(client, websocket::Opcode::TEXT, errorJson("Unsupported topic"));
+        if (!queueFrame(client, websocket::Opcode::TEXT, errorJson("Unsupported topic"))) {
+          return false;
+        }
         return true;
       }
-      queueFrame(client, websocket::Opcode::TEXT, statusAckJson(topic, 0));
+      if (!queueFrame(client, websocket::Opcode::TEXT, statusAckJson(topic, 0))) {
+        return false;
+      }
       return true;
     }
 
-    queueFrame(client, websocket::Opcode::TEXT, errorJson("Unsupported command"));
+    if (!queueFrame(client, websocket::Opcode::TEXT, errorJson("Unsupported command"))) {
+      return false;
+    }
     return true;
   }
   case websocket::Opcode::PING:
-    queueFrame(client, websocket::Opcode::PONG, frame.payload);
-    return true;
+    return queueFrame(client, websocket::Opcode::PONG, frame.payload);
   case websocket::Opcode::CLOSE:
     return false;
   default:
@@ -649,7 +735,8 @@ bool MonitorWebSocketServer::flushWrites(Client *client) {
 
     pending.offset += bytes_sent;
     if (pending.offset >= pending.data.size()) {
-      client->send_queue.erase(client->send_queue.begin());
+      client->queued_bytes -= pending.data.size();
+      client->send_queue.pop_front();
     }
   }
 
@@ -660,9 +747,9 @@ bool MonitorWebSocketServer::sendImagePayload(
     Client *client,
     const Monitor::WebSocketPayload &payload,
     const std::string &request_id) {
-  queueFrame(client, websocket::Opcode::TEXT, metadataJson(monitor->Id(), payload, request_id));
-  queueFrame(client, websocket::Opcode::BINARY, payload.payload);
-  return true;
+  return
+      queueFrame(client, websocket::Opcode::TEXT, metadataJson(monitor->Id(), payload, request_id)) &&
+      queueFrame(client, websocket::Opcode::BINARY, payload.payload);
 }
 
 void MonitorWebSocketServer::freeClientResources(Client *client) {
@@ -672,12 +759,21 @@ void MonitorWebSocketServer::freeClientResources(Client *client) {
   }
 }
 
-void MonitorWebSocketServer::queueRaw(Client *client, const std::string &payload) {
+bool MonitorWebSocketServer::queueRaw(Client *client, const std::string &payload) {
+  if ((client->queued_bytes + payload.size()) > kMaxQueuedBytesPerClient) {
+    Warning(
+        "Closing websocket client for monitor %u after queue exceeded %zu bytes",
+        monitor->Id(),
+        kMaxQueuedBytesPerClient);
+    return false;
+  }
+  client->queued_bytes += payload.size();
   client->send_queue.push_back({payload, 0});
+  return true;
 }
 
-void MonitorWebSocketServer::queueFrame(Client *client, websocket::Opcode opcode, const std::string &payload) {
-  queueRaw(client, websocket::EncodeFrame(opcode, payload));
+bool MonitorWebSocketServer::queueFrame(Client *client, websocket::Opcode opcode, const std::string &payload) {
+  return queueRaw(client, websocket::EncodeFrame(opcode, payload));
 }
 
 void MonitorWebSocketServer::broadcastStatus(std::vector<Client> *clients, TimePoint now) {
@@ -687,7 +783,10 @@ void MonitorWebSocketServer::broadcastStatus(std::vector<Client> *clients, TimeP
       continue;
     }
     if ((client.next_status_at.time_since_epoch().count() == 0) || (now >= client.next_status_at)) {
-      queueFrame(&client, websocket::Opcode::TEXT, status);
+      if (!queueFrame(&client, websocket::Opcode::TEXT, status)) {
+        client.fd = -1;
+        continue;
+      }
       client.next_status_at = now + client.status_interval;
     }
   }
@@ -713,7 +812,10 @@ void MonitorWebSocketServer::broadcastImages(std::vector<Client> *clients, TimeP
         if (!monitor->GetNextWebSocketH264Payload(client.h264_it, &payload)) {
           break;
         }
-        sendImagePayload(&client, payload, "");
+        if (!sendImagePayload(&client, payload, "")) {
+          client.fd = -1;
+          break;
+        }
         client.last_image_sequence = payload.sequence;
         packets_sent++;
       }
@@ -725,7 +827,10 @@ void MonitorWebSocketServer::broadcastImages(std::vector<Client> *clients, TimeP
 
     Monitor::WebSocketPayload payload;
     if (monitor->GetWebSocketPayload(client.image_format, &payload) && (payload.sequence != client.last_image_sequence)) {
-      sendImagePayload(&client, payload, "");
+      if (!sendImagePayload(&client, payload, "")) {
+        client.fd = -1;
+        continue;
+      }
       client.last_image_sequence = payload.sequence;
     }
     client.next_image_at = now + client.image_interval;
@@ -733,6 +838,17 @@ void MonitorWebSocketServer::broadcastImages(std::vector<Client> *clients, TimeP
 }
 
 void MonitorWebSocketServer::broadcastEvents(std::vector<Client> *clients) {
+  bool have_subscribers = false;
+  for (const Client &client : *clients) {
+    if ((client.fd >= 0) && client.handshake_complete && client.subscribe_events) {
+      have_subscribers = true;
+      break;
+    }
+  }
+  if (!have_subscribers) {
+    return;
+  }
+
   const std::vector<std::string> events = monitor->DrainWebSocketMessages();
   if (events.empty()) {
     return;
@@ -743,7 +859,10 @@ void MonitorWebSocketServer::broadcastEvents(std::vector<Client> *clients) {
       continue;
     }
     for (const std::string &event : events) {
-      queueFrame(&client, websocket::Opcode::TEXT, event);
+      if (!queueFrame(&client, websocket::Opcode::TEXT, event)) {
+        client.fd = -1;
+        break;
+      }
     }
   }
 }

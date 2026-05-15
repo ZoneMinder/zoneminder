@@ -23,6 +23,15 @@ For example, if ``ZM_MIN_STREAMING_PORT`` is ``30000`` and the monitor id is
 This requires ``Options -> Network -> MIN_STREAMING_PORT`` to be configured and
 the web server or reverse proxy to allow those ports.
 
+.. warning::
+
+   The monitor websocket endpoint can expose live camera data to any client
+   that can reach the monitor's streaming port. This transport does not provide
+   access control by itself, so do not expose these ports directly to
+   untrusted networks. Restrict access with firewall rules and/or place the
+   endpoint behind a reverse proxy that enforces authentication and
+   authorization.
+
 Connection model
 ^^^^^^^^^^^^^^^^
 

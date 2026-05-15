@@ -8,6 +8,7 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <string>
 #include <thread>
 #include <vector>
@@ -76,7 +77,8 @@ class MonitorWebSocketServer {
     uint64_t last_image_sequence = 0;
     packetqueue_iterator *h264_it = nullptr;
     std::string recv_buffer;
-    std::vector<PendingBuffer> send_queue;
+    std::deque<PendingBuffer> send_queue;
+    size_t queued_bytes = 0;
   };
 
   Monitor *monitor;
@@ -93,8 +95,8 @@ class MonitorWebSocketServer {
   bool flushWrites(Client *client);
   bool sendImagePayload(Client *client, const Monitor::WebSocketPayload &payload, const std::string &request_id);
   void freeClientResources(Client *client);
-  void queueRaw(Client *client, const std::string &payload);
-  void queueFrame(Client *client, websocket::Opcode opcode, const std::string &payload);
+  bool queueRaw(Client *client, const std::string &payload);
+  bool queueFrame(Client *client, websocket::Opcode opcode, const std::string &payload);
   void broadcastStatus(std::vector<Client> *clients, TimePoint now);
   void broadcastImages(std::vector<Client> *clients, TimePoint now);
   void broadcastEvents(std::vector<Client> *clients);

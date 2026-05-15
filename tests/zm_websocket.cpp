@@ -39,6 +39,20 @@ TEST_CASE("Websocket handshake extracts client key") {
   REQUIRE(client_key == "dGhlIHNhbXBsZSBub25jZQ==");
 }
 
+TEST_CASE("Websocket handshake accepts case-insensitive header names") {
+  const std::string request =
+      "GET / HTTP/1.1\r\n"
+      "Host: localhost:30001\r\n"
+      "upgrade: websocket\r\n"
+      "connection: Upgrade\r\n"
+      "sec-websocket-key: dGhlIHNhbXBsZSBub25jZQ==\r\n"
+      "sec-websocket-version: 13\r\n\r\n";
+
+  std::string client_key;
+  REQUIRE(zm::websocket::ExtractHandshakeKey(request, &client_key));
+  REQUIRE(client_key == "dGhlIHNhbXBsZSBub25jZQ==");
+}
+
 TEST_CASE("Websocket encodes server text frames") {
   const std::string frame = zm::websocket::EncodeFrame(zm::websocket::Opcode::TEXT, "hello");
 
@@ -60,6 +74,14 @@ TEST_CASE("Websocket decodes masked client text frames") {
   REQUIRE(decoded.opcode == zm::websocket::Opcode::TEXT);
   REQUIRE(decoded.masked == true);
   REQUIRE(decoded.payload == "Hi");
+}
+
+TEST_CASE("Websocket rejects unmasked client frames") {
+  zm::websocket::Frame decoded;
+  size_t consumed = 0;
+  REQUIRE(
+      zm::websocket::DecodeFrame("\x81\x02Hi", &decoded, &consumed) ==
+      zm::websocket::DecodeResult::ERROR);
 }
 
 TEST_CASE("Websocket decoder reports incomplete frames") {

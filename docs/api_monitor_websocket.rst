@@ -174,9 +174,8 @@ buffer.
 
 One-shot ``h264`` requests return a decodable packet snapshot:
 
-* the payload is the latest queued H.264 packet
-* if the packet is a keyframe, codec extradata is prepended before the packet
-  bytes
+* the payload starts at the latest available queued H.264 keyframe
+* codec extradata is prepended before the keyframe packet bytes
 
 ``h264`` subscriptions stream queued packets in order starting from the latest
 available keyframe in the queue. This gives new subscribers a decodable start

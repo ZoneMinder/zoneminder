@@ -62,6 +62,34 @@ TEST_CASE("Websocket encodes server text frames") {
   REQUIRE(frame.substr(2) == "hello");
 }
 
+TEST_CASE("Websocket encodes extended 16-bit payload length") {
+  const std::string payload(126, 'a');
+  const std::string frame = zm::websocket::EncodeFrame(zm::websocket::Opcode::TEXT, payload);
+
+  REQUIRE(frame.size() == payload.size() + 4);
+  REQUIRE(static_cast<unsigned char>(frame[0]) == 0x81);
+  REQUIRE(static_cast<unsigned char>(frame[1]) == 126);
+  REQUIRE(static_cast<unsigned char>(frame[2]) == 0x00);
+  REQUIRE(static_cast<unsigned char>(frame[3]) == 126);
+  REQUIRE(frame.substr(4) == payload);
+}
+
+TEST_CASE("Websocket encodes extended 64-bit payload length") {
+  const std::string payload(65536, 'b');
+  const std::string frame = zm::websocket::EncodeFrame(zm::websocket::Opcode::TEXT, payload);
+
+  REQUIRE(frame.size() == payload.size() + 10);
+  REQUIRE(static_cast<unsigned char>(frame[0]) == 0x81);
+  REQUIRE(static_cast<unsigned char>(frame[1]) == 127);
+  for (int i = 2; i < 7; ++i) {
+    REQUIRE(static_cast<unsigned char>(frame[i]) == 0x00);
+  }
+  REQUIRE(static_cast<unsigned char>(frame[7]) == 0x01);
+  REQUIRE(static_cast<unsigned char>(frame[8]) == 0x00);
+  REQUIRE(static_cast<unsigned char>(frame[9]) == 0x00);
+  REQUIRE(frame.substr(10) == payload);
+}
+
 TEST_CASE("Websocket decodes masked client text frames") {
   const std::string frame(
       "\x81\x82\x37\xfa\x21\x3d\x7f\x93",
@@ -73,6 +101,41 @@ TEST_CASE("Websocket decodes masked client text frames") {
   REQUIRE(consumed == frame.size());
   REQUIRE(decoded.opcode == zm::websocket::Opcode::TEXT);
   REQUIRE(decoded.masked == true);
+  REQUIRE(decoded.payload == "Hi");
+}
+
+TEST_CASE("Websocket decodes 16-bit masked client text frames") {
+  std::string frame;
+  const std::string payload(126, 'x');
+  frame.push_back(static_cast<char>(0x81));
+  frame.push_back(static_cast<char>(0x80 | 126));
+  frame.push_back(static_cast<char>(0x00));
+  frame.push_back(static_cast<char>(126));
+  frame.append("\x01\x02\x03\x04", 4);
+  for (size_t i = 0; i < payload.size(); ++i) {
+    frame.push_back(static_cast<char>(payload[i] ^ "\x01\x02\x03\x04"[i % 4]));
+  }
+
+  zm::websocket::Frame decoded;
+  size_t consumed = 0;
+  REQUIRE(zm::websocket::DecodeFrame(frame, &decoded, &consumed) == zm::websocket::DecodeResult::OK);
+  REQUIRE(consumed == frame.size());
+  REQUIRE(decoded.payload == payload);
+}
+
+TEST_CASE("Websocket decode reports bytes consumed for concatenated frames") {
+  const std::string frame_a(
+      "\x81\x82\x37\xfa\x21\x3d\x7f\x93",
+      8);
+  const std::string frame_b(
+      "\x81\x82\x37\xfa\x21\x3d\x7e\x92",
+      8);
+  const std::string combined = frame_a + frame_b;
+
+  zm::websocket::Frame decoded;
+  size_t consumed = 0;
+  REQUIRE(zm::websocket::DecodeFrame(combined, &decoded, &consumed) == zm::websocket::DecodeResult::OK);
+  REQUIRE(consumed == frame_a.size());
   REQUIRE(decoded.payload == "Hi");
 }
 

@@ -307,6 +307,7 @@ DecodeResult DecodeFrame(const std::string &buffer, Frame *frame, size_t *consum
 
   const uint8_t first = static_cast<uint8_t>(buffer[0]);
   const uint8_t second = static_cast<uint8_t>(buffer[1]);
+  const uint8_t opcode = first & 0x0f;
   const bool masked = (second & 0x80) != 0;
   uint64_t payload_len = (second & 0x7f);
   size_t pos = 2;
@@ -333,6 +334,17 @@ DecodeResult DecodeFrame(const std::string &buffer, Frame *frame, size_t *consum
     return DecodeResult::ERROR;
   }
 
+  if ((opcode & 0x08) != 0) {
+    if ((first & 0x80) == 0) {
+      Warning("Rejecting fragmented websocket control frame");
+      return DecodeResult::ERROR;
+    }
+    if (payload_len > 125) {
+      Warning("Rejecting oversized websocket control frame payload: %" PRIu64, payload_len);
+      return DecodeResult::ERROR;
+    }
+  }
+
   if (!masked) {
     Warning("Rejecting unmasked websocket client frame");
     return DecodeResult::ERROR;
@@ -353,7 +365,7 @@ DecodeResult DecodeFrame(const std::string &buffer, Frame *frame, size_t *consum
 
   frame->fin = (first & 0x80) != 0;
   frame->masked = masked;
-  frame->opcode = static_cast<Opcode>(first & 0x0f);
+  frame->opcode = static_cast<Opcode>(opcode);
   frame->payload.assign(buffer.data() + pos, buffer.data() + pos + payload_len);
 
   if (masked) {
@@ -733,6 +745,7 @@ bool MonitorWebSocketServer::handleFrame(Client *client, const websocket::Frame 
   case websocket::Opcode::PING:
     return queueFrame(client, websocket::Opcode::PONG, frame.payload);
   case websocket::Opcode::CLOSE:
+    writeFully(client->fd, websocket::EncodeFrame(websocket::Opcode::CLOSE, frame.payload));
     return false;
   default:
     return true;

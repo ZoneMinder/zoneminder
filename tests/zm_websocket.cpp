@@ -147,6 +147,20 @@ TEST_CASE("Websocket rejects unmasked client frames") {
       zm::websocket::DecodeResult::ERROR);
 }
 
+TEST_CASE("Websocket rejects oversized control frames") {
+  std::string frame;
+  frame.push_back(static_cast<char>(0x89));
+  frame.push_back(static_cast<char>(0x80 | 126));
+  frame.push_back(static_cast<char>(0x00));
+  frame.push_back(static_cast<char>(126));
+  frame.append("\x01\x02\x03\x04", 4);
+  frame.append(126, 'p');
+
+  zm::websocket::Frame decoded;
+  size_t consumed = 0;
+  REQUIRE(zm::websocket::DecodeFrame(frame, &decoded, &consumed) == zm::websocket::DecodeResult::ERROR);
+}
+
 TEST_CASE("Websocket decoder reports incomplete frames") {
   zm::websocket::Frame decoded;
   size_t consumed = 0;

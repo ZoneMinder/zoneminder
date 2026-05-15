@@ -432,7 +432,8 @@ void MonitorWebSocketServer::run() {
       acceptClients(&clients);
     }
 
-    for (size_t i = 0; i < clients.size(); ++i) {
+    const size_t polled_client_count = pollfds.size() - 1;
+    for (size_t i = 0; i < polled_client_count; ++i) {
       const short revents = pollfds[i + 1].revents;
       if (revents & (POLLERR | POLLHUP | POLLNVAL)) {
         freeClientResources(&clients[i]);

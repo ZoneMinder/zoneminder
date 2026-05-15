@@ -429,10 +429,10 @@ int main(int argc, char *argv[]) {
 
     for (std::shared_ptr<Monitor> & monitor : monitors) {
       monitor->SetHeartbeatTime(std::chrono::system_clock::now());
+      monitor->StopWebSocketServer();
       monitor->Close();
       monitor->SetHeartbeatTime(std::chrono::system_clock::now());
       monitor->disconnect();
-      monitor->StopWebSocketServer();
     }
 
     if (zm_reload) {

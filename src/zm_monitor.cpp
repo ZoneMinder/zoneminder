@@ -1421,6 +1421,9 @@ bool Monitor::GetWebSocketPayload(const std::string &format, WebSocketPayload *p
   }
 
   if (format == "jpeg" || format == "raw") {
+    if (!shared_data || !shared_timestamps) {
+      return false;
+    }
     std::shared_ptr<ZMPacket> snapshot = getSnapshot();
     if (!snapshot || !snapshot->image) {
       return false;
@@ -1650,6 +1653,9 @@ int Monitor::GetImage(int32_t index, int scale) {
 }
 
 std::shared_ptr<ZMPacket> Monitor::getSnapshot(int index) const {
+  if (!shared_data || !shared_timestamps) {
+    return nullptr;
+  }
   if ((index < 0) || (index >= image_buffer_count)) {
     index = shared_data->last_write_index;
   }

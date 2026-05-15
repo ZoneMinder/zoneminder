@@ -11,9 +11,9 @@ Each monitor listens on:
 
 ::
 
-   ZM_MIN_STREAMING_PORT + MonitorId
+   MIN_STREAMING_PORT + MonitorId
 
-For example, if ``ZM_MIN_STREAMING_PORT`` is ``30000`` and the monitor id is
+For example, if ``MIN_STREAMING_PORT`` is ``30000`` and the monitor id is
 ``5``, the websocket endpoint is:
 
 ::

@@ -573,6 +573,11 @@ bool MonitorWebSocketServer::handleHandshake(Client *client) {
 }
 
 bool MonitorWebSocketServer::handleFrame(Client *client, const websocket::Frame &frame) {
+  if (!frame.fin || (frame.opcode == websocket::Opcode::CONTINUATION)) {
+    Warning("Rejecting fragmented websocket frame for monitor %u", monitor->Id());
+    return false;
+  }
+
   switch (frame.opcode) {
   case websocket::Opcode::TEXT: {
     std::string command;
@@ -869,6 +874,15 @@ void MonitorWebSocketServer::broadcastEvents(std::vector<Client> *clients) {
 }
 
 void MonitorWebSocketServer::removeClosedClients(std::vector<Client> *clients) {
+  for (Client &client : *clients) {
+    if (client.fd >= 0) {
+      continue;
+    }
+    freeClientResources(&client);
+    client.send_queue.clear();
+    client.queued_bytes = 0;
+  }
+
   clients->erase(
       std::remove_if(
           clients->begin(),

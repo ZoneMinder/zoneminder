@@ -689,7 +689,7 @@ function getDelConfirmModal(key, title, formName=null) {
               console.warn(`Form with name=${formName} not found.`);
             }
           }
-        });
+        }, {once: true});
       })
       .fail(logAjaxFail);
 }

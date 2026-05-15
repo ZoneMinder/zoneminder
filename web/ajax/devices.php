@@ -24,7 +24,7 @@ if ( !canEdit('Devices') ) {
   return;
 }
 
-$action = validStr($_REQUEST['action']);
+$action = validStr($_REQUEST['action'] ?? '');
 if ( $action == 'delete' ) {
   if ( isset($_REQUEST['markDids']) ) {
     foreach( $_REQUEST['markDids'] as $markDid ) {

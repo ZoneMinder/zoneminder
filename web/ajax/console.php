@@ -55,26 +55,12 @@ ajaxError('Unrecognised action '.$_REQUEST['action'].' or insufficient permissio
 // FUNCTION DEFINITIONS
 //
 
-function getFilterFromRequestOrCookie($name) {
-  if (isset($_REQUEST[$name])) {
-    return $_REQUEST[$name];
-  }
-  $cookieName = 'zmFilter_' . $name;
-  if (isset($_COOKIE[$cookieName])) {
-    $cookieValue = $_COOKIE[$cookieName];
-    if ($cookieValue && $cookieValue !== '') {
-      $decoded = json_decode($cookieValue, true);
-      return ($decoded !== null) ? $decoded : $cookieValue;
-    }
-  }
-  return null;
-}
-
 function queryRequest() {
   global $user, $Servers;
   require_once('includes/Monitor.php');
   require_once('includes/Group.php');
   require_once('includes/Group_Monitor.php');
+  require_once(__DIR__ . '/../views/_monitor_filters.php');
   
   $data = array(
     'total' => 0,
@@ -112,27 +98,29 @@ function queryRequest() {
   $conditions = array();
   $values = array();
   
-  // Get filter values from request, falling back to cookies for persistence after page refresh
+  // Get filter values from request, falling back to cookies for persistence after page refresh.
+  // getFilterSelection() reads $_REQUEST first, then the zmFilter_* cookie.
   $request_filters = array(
-    'GroupId' => getFilterFromRequestOrCookie('GroupId'),
-    'ServerId' => getFilterFromRequestOrCookie('ServerId'),
-    'StorageId' => getFilterFromRequestOrCookie('StorageId'),
-    'Capturing' => getFilterFromRequestOrCookie('Capturing'),
-    'Analysing' => getFilterFromRequestOrCookie('Analysing'),
-    'Recording' => getFilterFromRequestOrCookie('Recording'),
-    'Status' => getFilterFromRequestOrCookie('Status'),
-    'MonitorId' => getFilterFromRequestOrCookie('MonitorId'),
-    'MonitorName' => getFilterFromRequestOrCookie('MonitorName'),
-    'Source' => getFilterFromRequestOrCookie('Source')
+    'GroupId' => getFilterSelection('GroupId'),
+    'ServerId' => getFilterSelection('ServerId'),
+    'StorageId' => getFilterSelection('StorageId'),
+    'Capturing' => getFilterSelection('Capturing'),
+    'Analysing' => getFilterSelection('Analysing'),
+    'Recording' => getFilterSelection('Recording'),
+    'Status' => getFilterSelection('Status'),
+    'MonitorId' => getFilterSelection('MonitorId'),
+    'MonitorName' => getFilterSelection('MonitorName'),
+    'Source' => getFilterSelection('Source')
   );
+  // Text filters must be strings; guard against a cookie value that happens to be valid JSON.
+  if (is_array($request_filters['MonitorName'])) $request_filters['MonitorName'] = '';
+  if (is_array($request_filters['Source'])) $request_filters['Source'] = '';
   
   // Apply GroupId filter using get_group_sql() to include child groups.
-  // Validate that group IDs are positive integers to guard against tampered cookie values.
+  // Use validCardinal() to sanitize ID values before use.
   if ($request_filters['GroupId']) {
     $groupIds = is_array($request_filters['GroupId']) ? $request_filters['GroupId'] : array($request_filters['GroupId']);
-    $groupIds = array_values(array_filter($groupIds, function($id) {
-      return filter_var($id, FILTER_VALIDATE_INT, array('options' => array('min_range' => 1))) !== false;
-    }));
+    $groupIds = array_values(array_filter(array_map('validCardinal', $groupIds)));
     if (count($groupIds)) {
       $groupSql = ZM\Group::get_group_sql($groupIds);
       if ($groupSql) {
@@ -144,10 +132,8 @@ function queryRequest() {
   foreach (array('ServerId','StorageId') as $filter) {
     if ($request_filters[$filter]) {
       $filter_values = is_array($request_filters[$filter]) ? $request_filters[$filter] : array($request_filters[$filter]);
-      // Validate that ID values are positive integers
-      $filter_values = array_values(array_filter($filter_values, function($id) {
-        return filter_var($id, FILTER_VALIDATE_INT, array('options' => array('min_range' => 1))) !== false;
-      }));
+      // Use validCardinal() to sanitize ID values
+      $filter_values = array_values(array_filter(array_map('validCardinal', $filter_values)));
       if (count($filter_values)) {
         $conditions[] = 'M.'.$filter.' IN (' . implode(',', array_fill(0, count($filter_values), '?')) . ')';
         $values = array_merge($values, $filter_values);
@@ -231,12 +217,10 @@ function queryRequest() {
     });
   }
   
-  // Apply MonitorId filter (validate IDs are positive integers)
+  // Apply MonitorId filter (use validCardinal() to sanitize ID values)
   if ($request_filters['MonitorId']) {
     $monitor_ids = is_array($request_filters['MonitorId']) ? $request_filters['MonitorId'] : array($request_filters['MonitorId']);
-    $monitor_ids = array_values(array_filter($monitor_ids, function($id) {
-      return filter_var($id, FILTER_VALIDATE_INT, array('options' => array('min_range' => 1))) !== false;
-    }));
+    $monitor_ids = array_values(array_filter(array_map('validCardinal', $monitor_ids)));
     if (count($monitor_ids)) {
       $filtered_monitors = array_filter($filtered_monitors, function($monitor) use ($monitor_ids) {
         return in_array($monitor['Id'], $monitor_ids);

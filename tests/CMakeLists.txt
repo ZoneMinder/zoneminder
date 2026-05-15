@@ -19,6 +19,7 @@ set(TEST_SOURCES
   zm_onvif_renewal.cpp
   zm_poly.cpp
   zm_utils.cpp
+  zm_websocket.cpp
   zm_vector2.cpp
   zm_zone.cpp)
 

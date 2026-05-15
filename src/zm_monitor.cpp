@@ -34,6 +34,7 @@
 #include "zm_time.h"
 #include "zm_uri.h"
 #include "zm_utils.h"
+#include "zm_websocket.h"
 #include "zm_zone.h"
 
 #if ZM_HAS_V4L2
@@ -52,6 +53,20 @@
 #include <chrono>
 #include <cstring>
 #include <sys/types.h>
+
+namespace {
+
+bool encodeJpegImage(const Image &image, std::string *output) {
+  std::vector<unsigned char> buffer(ZM_MAX_IMAGE_SIZE);
+  size_t encoded_size = 0;
+  if (!image.EncodeJpeg(buffer.data(), &encoded_size)) {
+    return false;
+  }
+  output->assign(reinterpret_cast<const char *>(buffer.data()), encoded_size);
+  return true;
+}
+
+}  // namespace
 #include <sys/stat.h>
 #include <string>
 #include <utility>
@@ -327,6 +342,8 @@ Monitor::Monitor() :
   Janus_Manager(nullptr),
   Amcrest_Manager(nullptr),
   onvif(nullptr),
+  websocket_server(nullptr),
+  websocket_capture_bandwidth(0),
   red_val(0),
   green_val(0),
   blue_val(0),
@@ -1231,6 +1248,7 @@ bool Monitor::connect() {
   last_analysis_fps_time = std::chrono::system_clock::now();
   last_capture_image_count = 0;
 
+  RefreshWebSocketStatus();
   Debug(3, "Success connecting");
   return true;
 } // Monitor::connect
@@ -1287,8 +1305,255 @@ bool Monitor::disconnect() {
     image_buffer[i] = nullptr;
   }
 
+  RefreshWebSocketStatus();
   return true;
 }  // end bool Monitor::disconnect()
+
+bool Monitor::StartWebSocketServer() {
+  if (!config.min_streaming_port) {
+    return false;
+  }
+
+  if (websocket_server) {
+    return true;
+  }
+
+  const unsigned int websocket_port = zm::websocket::MonitorStreamingPort(config.min_streaming_port, id);
+  if (!websocket_port) {
+    Warning("Unable to compute websocket port for monitor %u using base port %d", id, config.min_streaming_port);
+    return false;
+  }
+
+  websocket_server = zm::make_unique<zm::MonitorWebSocketServer>(this);
+  if (!websocket_server->Start(static_cast<int>(websocket_port))) {
+    websocket_server.reset();
+    return false;
+  }
+
+  return true;
+}
+
+void Monitor::StopWebSocketServer() {
+  if (!websocket_server) {
+    return;
+  }
+
+  websocket_server->Stop();
+  websocket_server.reset();
+}
+
+void Monitor::RefreshWebSocketStatus() {
+  const bool connected = isConnected();
+  const bool shm_valid = shared_data && shared_data->valid;
+  const double capture_fps = shared_data ? shared_data->capture_fps : 0.0;
+  const double analysis_fps = shared_data ? shared_data->analysis_fps : 0.0;
+  const uint32_t image_count = shared_data ? shared_data->image_count : 0;
+  const uint32_t last_frame_score = shared_data ? shared_data->last_frame_score : 0;
+  const uint64_t last_event_id = shared_data ? shared_data->last_event_id : 0;
+  const uint32_t analysing_state = shared_data ? shared_data->analysing : static_cast<uint32_t>(ANALYSING_NONE);
+  const uint32_t signal_state = shared_data ? shared_data->signal : 0;
+  const uint32_t capture_state = shared_data ? shared_data->capturing : static_cast<uint32_t>(capturing);
+  const uint32_t recording_state = shared_data ? shared_data->recording : static_cast<uint32_t>(recording);
+  const uint32_t current_state = shared_data ? shared_data->state : static_cast<uint32_t>(UNKNOWN);
+  const time_t heartbeat_time = shared_data ? shared_data->heartbeat_time : 0;
+  const time_t startup_time = shared_data ? shared_data->startup_time : 0;
+
+  const char *state_name = "Unknown";
+  if (current_state < (sizeof(State_Strings) / sizeof(State_Strings[0]))) {
+    state_name = State_Strings[current_state].c_str();
+  }
+
+  std::lock_guard<std::mutex> status_lock(websocket_status_mutex);
+  websocket_status_json = stringtf(
+      "{\"type\":\"status\",\"monitor_id\":%u,\"monitor_name\":\"%s\","
+      "\"connected\":%s,\"shm_valid\":%s,\"state_id\":%u,\"state\":\"%s\","
+      "\"capture_fps\":%.2f,\"analysis_fps\":%.2f,\"capture_bandwidth\":%u,"
+      "\"image_count\":%u,\"analysing\":%u,\"capturing\":%u,\"recording\":%u,"
+      "\"signal\":%u,\"last_frame_score\":%u,\"last_event_id\":%" PRIu64 ","
+      "\"heartbeat_time\":%" PRIu64 ",\"startup_time\":%" PRIu64 "}",
+      id,
+      escape_json_string(name).c_str(),
+      connected ? "true" : "false",
+      shm_valid ? "true" : "false",
+      current_state,
+      state_name,
+      capture_fps,
+      analysis_fps,
+      websocket_capture_bandwidth,
+      image_count,
+      analysing_state,
+      capture_state,
+      recording_state,
+      signal_state,
+      last_frame_score,
+      last_event_id,
+      static_cast<uint64_t>(heartbeat_time),
+      static_cast<uint64_t>(startup_time));
+}
+
+std::string Monitor::GetWebSocketStatusJson() const {
+  std::lock_guard<std::mutex> status_lock(websocket_status_mutex);
+  return websocket_status_json.empty() ? stringtf("{\"type\":\"status\",\"monitor_id\":%u}", id) : websocket_status_json;
+}
+
+void Monitor::QueueWebSocketEvent(const std::string &event_type, const std::string &message) {
+  std::lock_guard<std::mutex> message_lock(websocket_message_mutex);
+  if (websocket_messages.size() >= 64) {
+    websocket_messages.erase(websocket_messages.begin());
+  }
+  websocket_messages.push_back(stringtf(
+      "{\"type\":\"event\",\"monitor_id\":%u,\"event\":\"%s\",\"message\":\"%s\"}",
+      id,
+      escape_json_string(event_type).c_str(),
+      escape_json_string(message).c_str()));
+}
+
+std::vector<std::string> Monitor::DrainWebSocketMessages() {
+  std::lock_guard<std::mutex> message_lock(websocket_message_mutex);
+  std::vector<std::string> drained;
+  drained.swap(websocket_messages);
+  return drained;
+}
+
+bool Monitor::GetWebSocketPayload(const std::string &format, WebSocketPayload *payload) {
+  if (!payload) {
+    return false;
+  }
+
+  if (format == "jpeg" || format == "raw") {
+    std::shared_ptr<ZMPacket> snapshot = getSnapshot();
+    if (!snapshot || !snapshot->image) {
+      return false;
+    }
+
+    payload->format = format;
+    payload->width = snapshot->image->Width();
+    payload->height = snapshot->image->Height();
+    payload->colours = snapshot->image->Colours();
+    payload->subpixel_order = snapshot->image->SubpixelOrder();
+    payload->image_count = shared_data ? shared_data->image_count : 0;
+    payload->sequence = payload->image_count;
+
+    if (format == "jpeg") {
+      payload->content_type = "image/jpeg";
+      Image image_copy;
+      image_copy.Assign(*snapshot->image);
+      return encodeJpegImage(image_copy, &payload->payload);
+    }
+
+    payload->content_type = "application/octet-stream";
+    payload->payload.assign(
+        reinterpret_cast<const char *>(snapshot->image->Buffer()),
+        snapshot->image->Size());
+    return true;
+  }
+
+  if (format != "h264") {
+    return false;
+  }
+
+  packetqueue_iterator *it = CreateWebSocketH264Iterator();
+  if (!it) {
+    return false;
+  }
+
+  const bool ok = GetNextWebSocketH264Payload(it, payload);
+  FreeWebSocketIterator(it);
+  return ok;
+}
+
+packetqueue_iterator *Monitor::CreateWebSocketH264Iterator() {
+  if (!camera || !camera->getVideoStream()) {
+    return nullptr;
+  }
+
+  if (camera->getVideoStream()->codecpar->codec_id != AV_CODEC_ID_H264) {
+    return nullptr;
+  }
+
+  packetqueue_iterator *it = packetqueue.get_video_it(false);
+  if (!it) {
+    return nullptr;
+  }
+
+  packetqueue_iterator latest_keyframe = *it;
+  bool have_keyframe = false;
+
+  while (true) {
+    ZMPacketLock packet_lock = packetqueue.get_packet_no_wait(it);
+    if (!packet_lock.packet_) {
+      break;
+    }
+
+    if (packet_lock.packet_->packet &&
+        packet_lock.packet_->packet->stream_index == video_stream_id &&
+        packet_lock.packet_->keyframe) {
+      latest_keyframe = *it;
+      have_keyframe = true;
+    }
+
+    if (!packetqueue.increment_it(it, video_stream_id)) {
+      break;
+    }
+  }
+
+  if (!have_keyframe) {
+    packetqueue.free_it(it);
+    return nullptr;
+  }
+
+  *it = latest_keyframe;
+  return it;
+}
+
+bool Monitor::GetNextWebSocketH264Payload(packetqueue_iterator *it, WebSocketPayload *payload) {
+  if (!it || !payload || !camera || !camera->getVideoStream()) {
+    return false;
+  }
+
+  ZMPacketLock packet_lock = packetqueue.get_packet_no_wait(it);
+  if (!packet_lock.packet_ || !packet_lock.packet_->packet || !packet_lock.packet_->stream) {
+    return false;
+  }
+
+  const AVCodecID codec_id = packet_lock.packet_->stream->codecpar->codec_id;
+  if (codec_id != AV_CODEC_ID_H264) {
+    packetqueue.increment_it(it, video_stream_id);
+    return false;
+  }
+
+  payload->format = "h264";
+  payload->content_type = "video/h264";
+  payload->width = Width();
+  payload->height = Height();
+  payload->colours = Colours();
+  payload->subpixel_order = SubpixelOrder();
+  payload->image_count = shared_data ? shared_data->image_count : 0;
+  payload->sequence = packet_lock.packet_->queue_index;
+  payload->keyframe = packet_lock.packet_->keyframe;
+  payload->payload.clear();
+
+  if (packet_lock.packet_->keyframe) {
+    AVStream *stream = camera->getVideoStream();
+    if (stream->codecpar->extradata && stream->codecpar->extradata_size > 0) {
+      payload->payload.append(
+          reinterpret_cast<const char *>(stream->codecpar->extradata),
+          stream->codecpar->extradata_size);
+    }
+  }
+
+  payload->payload.append(
+      reinterpret_cast<const char *>(packet_lock.packet_->packet->data),
+      packet_lock.packet_->packet->size);
+  packetqueue.increment_it(it, video_stream_id);
+  return !payload->payload.empty();
+}
+
+void Monitor::FreeWebSocketIterator(packetqueue_iterator *it) {
+  if (it) {
+    packetqueue.free_it(it);
+  }
+}
 
 Monitor::~Monitor() {
 #if MOSQUITTOPP_FOUND
@@ -1296,6 +1561,7 @@ Monitor::~Monitor() {
     mqtt->send("offline");
   }
 #endif
+  StopWebSocketServer();
   Close();
 
   if (mem_ptr != nullptr) {
@@ -1884,9 +2150,11 @@ void Monitor::UpdateFPS() {
     shared_data->capture_fps = new_capture_fps;
     last_capture_image_count = shared_data->image_count;
     shared_data->analysis_fps = new_analysis_fps;
+    websocket_capture_bandwidth = new_capture_bandwidth;
     last_motion_frame_count = motion_frame_count;
     last_camera_bytes = new_camera_bytes;
     last_fps_time = now;
+    RefreshWebSocketStatus();
 
     FPSeconds db_elapsed = now - last_status_time;
     if (db_elapsed > Seconds(10)) {
@@ -3893,4 +4161,3 @@ StringVector Monitor::GroupNames() {
   }
   return groupnames;
 } // end Monitor::GroupNames()
-

@@ -46,6 +46,9 @@
 
 class Group;
 class MonitorLinkExpression;
+namespace zm {
+class MonitorWebSocketServer;
+}
 
 #define SIGNAL_CAUSE "Signal"
 #define MOTION_CAUSE "Motion"
@@ -62,6 +65,19 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   friend class ONVIF;
 
  public:
+  struct WebSocketPayload {
+    std::string format;
+    std::string content_type;
+    std::string payload;
+    uint32_t width = 0;
+    uint32_t height = 0;
+    uint32_t colours = 0;
+    uint32_t subpixel_order = 0;
+    uint32_t image_count = 0;
+    uint64_t sequence = 0;
+    bool keyframe = false;
+  };
+
   typedef enum {
     QUERY=0,
     CAPTURE,
@@ -713,6 +729,12 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   JanusManager *Janus_Manager;
   AmcrestAPI *Amcrest_Manager;
   ONVIF *onvif;
+  std::unique_ptr<zm::MonitorWebSocketServer> websocket_server;
+  mutable std::mutex websocket_status_mutex;
+  std::string websocket_status_json;
+  std::mutex websocket_message_mutex;
+  std::vector<std::string> websocket_messages;
+  uint32_t websocket_capture_bandwidth;
 
   // Used in check signal
   uint8_t red_val;
@@ -927,6 +949,16 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   Image *GetAlarmImage();
   int GetImage(int32_t index=-1, int scale=100);
   std::shared_ptr<ZMPacket> getSnapshot( int index=-1 ) const;
+  bool StartWebSocketServer();
+  void StopWebSocketServer();
+  void RefreshWebSocketStatus();
+  std::string GetWebSocketStatusJson() const;
+  void QueueWebSocketEvent(const std::string &event_type, const std::string &message);
+  std::vector<std::string> DrainWebSocketMessages();
+  bool GetWebSocketPayload(const std::string &format, WebSocketPayload *payload);
+  packetqueue_iterator *CreateWebSocketH264Iterator();
+  bool GetNextWebSocketH264Payload(packetqueue_iterator *it, WebSocketPayload *payload);
+  void FreeWebSocketIterator(packetqueue_iterator *it);
   SystemTimePoint GetTimestamp(int index = -1) const;
   void UpdateAdaptiveSkip();
   useconds_t GetAnalysisRate();

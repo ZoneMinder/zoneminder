@@ -60,7 +60,7 @@ function queryRequest() {
   require_once('includes/Monitor.php');
   require_once('includes/Group.php');
   require_once('includes/Group_Monitor.php');
-  require_once(__DIR__ . '/../views/_monitor_filters.php');
+  require_once getSkinFile('views/_monitor_filters.php');
   
   $data = array(
     'total' => 0,

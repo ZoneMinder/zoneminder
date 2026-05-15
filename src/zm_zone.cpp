@@ -862,9 +862,10 @@ bool Zone::ParsePercentagePolygon(const char *poly_string, unsigned int width, u
     int32 px_x = static_cast<int32>(std::lround(pct_x * mon_w / 100.0));
     int32 px_y = static_cast<int32>(std::lround(pct_y * mon_h / 100.0));
 
-    // Clamp to monitor bounds
-    px_x = std::clamp(px_x, static_cast<int32>(0), static_cast<int32>(width));
-    px_y = std::clamp(px_y, static_cast<int32>(0), static_cast<int32>(height));
+    // Clamp to monitor bounds. Max valid pixel index is width-1/height-1;
+    // values equal to width/height cause out-of-bounds warnings in the rasterizer.
+    px_x = std::clamp(px_x, static_cast<int32>(0), static_cast<int32>(width) - 1);
+    px_y = std::clamp(px_y, static_cast<int32>(0), static_cast<int32>(height) - 1);
 
     Debug(3, "Percentage coord %.2f,%.2f -> pixel %d,%d", pct_x, pct_y, px_x, px_y);
     vertices.emplace_back(px_x, px_y);

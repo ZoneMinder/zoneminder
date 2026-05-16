@@ -116,6 +116,7 @@ function manageClearLogsModalBtns() {
     deleteLogs(getIdSelections());
   });
   document.getElementById('clearLogsCancelBtn').addEventListener('click', function onClearLogsCancelClick(evt) {
+    manageClearButtonAvailability();
     $j('#clearLogsConfirm').modal('hide');
   });
 }
@@ -204,6 +205,7 @@ function initPage() {
   const clearLogsBtn = document.getElementById('clearLogsBtn');
   if (clearLogsBtn) {
     clearLogsBtn.addEventListener('click', function onClearLogsClick(evt) {
+      manageClearButtonAvailability(false);
       evt.preventDefault();
       if (evt.ctrlKey) {
         // Bypass confirmation, but ensure the modal (and its ticker) exists
@@ -216,6 +218,7 @@ function initPage() {
                 deleteLogs(getIdSelections());
               })
               .fail(function(jqXHR) {
+                manageClearButtonAvailability();
                 console.log('error getting clearlogsconfirm', jqXHR);
                 logAjaxFail(jqXHR);
               });
@@ -231,6 +234,7 @@ function initPage() {
                 $j('#clearLogsConfirm').modal('show');
               })
               .fail(function(jqXHR) {
+                manageClearButtonAvailability();
                 console.log('error getting clearlogsconfirm', jqXHR);
                 logAjaxFail(jqXHR);
               });
@@ -243,12 +247,10 @@ function initPage() {
   }
 
   // Enable or disable clear button based on selection
-  table.on('check.bs.table uncheck.bs.table check-all.bs.table uncheck-all.bs.table', function() {
-    const selections = table.bootstrapTable('getSelections');
-    const clearLogsBtn = document.getElementById('clearLogsBtn');
-    if (clearLogsBtn) {
-      clearLogsBtn.disabled = !selections.length;
-    }
+  table.on('check.bs.table uncheck.bs.table check-all.bs.table uncheck-all.bs.table', manageClearButtonAvailability);
+
+  table.on('load-success.bs.table', function() {
+    manageClearButtonAvailability();
   });
 
   $j('#filterStartDateTime, #filterEndDateTime')
@@ -257,6 +259,17 @@ function initPage() {
       .on('change', filterLog);
   $j('#filterComponent')
       .on('change', filterLog);
+}
+
+function manageClearButtonAvailability(enable = null) {
+  const selections = table.bootstrapTable('getSelections');
+  const clearLogsBtn = document.getElementById('clearLogsBtn');
+  if (clearLogsBtn) {
+    if (enable === false || !selections.length)
+      clearLogsBtn.disabled = true;
+    else if (enable === true || selections.length)
+      clearLogsBtn.disabled = false;
+  }
 }
 
 $j(document).ready(function() {

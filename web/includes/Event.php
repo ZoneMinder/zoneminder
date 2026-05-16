@@ -274,7 +274,11 @@ class Event extends ZM_Object {
     if ( $this->{'DefaultVideo'} and $args['mode'] != 'jpeg' ) {
       $streamSrc .= $Server->PathToIndex();
       $args['eid'] = $this->{'Id'};
-      $args['view'] = 'view_video';
+      if (strtolower($args['mode']) == 'mp4') {
+        $args['view'] = 'view_video';
+      } elseif (strtolower($args['mode']) == 'mp4hls') {
+        $args['view'] = 'view_hls';
+      }
     } else {
       $streamSrc .= $Server->PathToZMS();
 

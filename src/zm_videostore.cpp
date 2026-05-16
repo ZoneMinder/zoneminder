@@ -62,7 +62,7 @@ VideoStore::VideoStore(
   resample_ctx(nullptr),
   fifo(nullptr),
   converted_in_samples(nullptr),
-  filename(filename_in),
+  filename(filename_in ? filename_in : ""),
   format(format_in),
   video_first_pts(AV_NOPTS_VALUE),
   video_first_dts(AV_NOPTS_VALUE),
@@ -85,24 +85,24 @@ VideoStore::VideoStore(
 
 /* Failure to open audio will not be a total failure. */
 bool VideoStore::open() {
-  Debug(1, "Opening video storage stream %s format: %s", filename, format);
+  Debug(1, "Opening video storage stream %s format: %s", filename.c_str(), format);
 
-  int ret = avformat_alloc_output_context2(&oc, nullptr, nullptr, filename);
+  int ret = avformat_alloc_output_context2(&oc, nullptr, nullptr, filename.c_str());
   if (ret < 0) {
     Warning(
       "Could not create video storage stream %s as no out ctx"
       " could be assigned based on filename: %s",
-      filename, av_make_error_string(ret).c_str());
+      filename.c_str(), av_make_error_string(ret).c_str());
   }
 
   // Couldn't deduce format from filename, trying from format name
   if (!oc) {
-    avformat_alloc_output_context2(&oc, nullptr, format, filename);
+    avformat_alloc_output_context2(&oc, nullptr, format, filename.c_str());
     if (!oc) {
       Error(
         "Could not create video storage stream %s as no out ctx"
         " could not be assigned based on filename or format %s",
-        filename, format);
+        filename.c_str(), format);
       return false;
     }
   } // end if ! oc
@@ -522,9 +522,9 @@ bool VideoStore::open() {
 
   /* open the out file, if needed */
   if (!(out_format->flags & AVFMT_NOFILE)) {
-    ret = avio_open2(&oc->pb, filename, AVIO_FLAG_WRITE, nullptr, nullptr);
+    ret = avio_open2(&oc->pb, filename.c_str(), AVIO_FLAG_WRITE, nullptr, nullptr);
     if (ret < 0) {
-      Error("Could not open out file '%s': %s", filename, av_make_error_string(ret).c_str());
+      Error("Could not open out file '%s': %s", filename.c_str(), av_make_error_string(ret).c_str());
       return false;
     }
   }
@@ -563,7 +563,7 @@ bool VideoStore::open() {
   av_dict_free(&opts);
   if (ret < 0) {
     Error("Error occurred when writing out file header to %s: %s",
-          filename, av_make_error_string(ret).c_str());
+          filename.c_str(), av_make_error_string(ret).c_str());
     avio_closep(&oc->pb);
     return false;
   }
@@ -693,8 +693,10 @@ Debug(1, "Done flushing");
 VideoStore::~VideoStore() {
 
   // When finalize() has run it already drained these queues; doing it again
-  // would push packets into a closed AVFormatContext.
-  if (!finalized_) {
+  // would push packets into a closed AVFormatContext. Also skip when oc was
+  // never allocated (open() failed before assigning oc) — the write helpers
+  // dereference oc.
+  if (!finalized_ && oc) {
     for (auto &n : reorder_queues) {
       auto &queue = n.second;
       Debug(1, "Queue for %d length is %zu", n.first, queue.size());
@@ -710,7 +712,7 @@ VideoStore::~VideoStore() {
     }
   }
 
-  if (!finalized_ && oc->pb) {
+  if (!finalized_ && oc && oc->pb) {
     flush_codecs();
 
     // Flush Queues
@@ -1651,8 +1653,8 @@ void VideoStore::finalize() {
   // bytes and contains the mfra size, so we can subtract that to find where
   // the final fragment's mdat actually ends.
   int64_t fragment_n_end = file_size;
-  if (filename && file_size >= 16) {
-    FILE *fp = fopen(filename, "rb");
+  if (!filename.empty() && file_size >= 16) {
+    FILE *fp = fopen(filename.c_str(), "rb");
     if (fp) {
       if (fseeko(fp, file_size - 16, SEEK_SET) == 0) {
         uint8_t mfro[16];

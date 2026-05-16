@@ -692,54 +692,11 @@ Debug(1, "Done flushing");
 
 VideoStore::~VideoStore() {
 
-  // When finalize() has run it already drained these queues; doing it again
-  // would push packets into a closed AVFormatContext. Also skip when oc was
-  // never allocated (open() failed before assigning oc) — the write helpers
-  // dereference oc.
-  if (!finalized_ && oc) {
-    for (auto &n : reorder_queues) {
-      auto &queue = n.second;
-      Debug(1, "Queue for %d length is %zu", n.first, queue.size());
-      while (!queue.empty()) {
-        auto pkt = queue.front();
-        queue.pop_front();
-        if (pkt->codec_type == AVMEDIA_TYPE_VIDEO) {
-          writeVideoFramePacket(pkt);
-        } else if (pkt->codec_type == AVMEDIA_TYPE_AUDIO) {
-          writeAudioFramePacket(pkt);
-        }
-      }
-    }
-  }
-
-  if (!finalized_ && oc && oc->pb) {
-    flush_codecs();
-
-    // Flush Queues
-    Debug(4, "Flushing interleaved queues");
-    av_interleaved_write_frame(oc, nullptr);
-
-    Debug(1, "Writing trailer");
-    /* Write the trailer before close */
-    int rc;
-    if ((rc = av_write_trailer(oc)) < 0) {
-      Error("Error writing trailer %s", av_err2str(rc));
-    } else {
-      Debug(3, "Success Writing trailer");
-    }
-
-    // When will we not be using a file ?
-    if (!(out_format->flags & AVFMT_NOFILE)) {
-      /* Close the out file. */
-      Debug(4, "Closing");
-      if ((rc = avio_close(oc->pb)) < 0) {
-        Error("Error closing avio %s", av_err2str(rc));
-      }
-    } else {
-      Debug(3, "Not closing avio because we are not writing to a file.");
-    }
-    oc->pb = nullptr;
-  }  // end if oc->pb
+  // Run the shutdown path through finalize() so the queue-drain / trailer /
+  // close logic lives in one place. finalize() is idempotent and bails early
+  // if oc was never allocated, so the legacy "caller didn't call finalize"
+  // path and the open()-failed-before-allocating-oc path both work.
+  finalize();
 
   // I wonder if we should be closing the file first.
   // I also wonder if we really need to be doing all the ctx

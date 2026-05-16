@@ -258,26 +258,17 @@ Event::~Event() {
   if (frame_data.size()) WriteDbFrames();
 
   uint64_t video_size = 0;
-  bool has_m3u8 = false;
   DIR *video_dir;
   if ((video_dir = opendir(path.c_str())) != NULL) {
     struct dirent *dir_entry;
     while ((dir_entry = readdir(video_dir)) != NULL) {
       struct stat vf_stat;
       if (stat((path + "/" + dir_entry->d_name).c_str(), &vf_stat) == 0 &&
-          S_ISREG(vf_stat.st_mode)) {
+          S_ISREG(vf_stat.st_mode))
         video_size += vf_stat.st_size;
-        if (!strcmp(dir_entry->d_name, "index.m3u8")) has_m3u8 = true;
-      }
     }
     closedir(video_dir);
   }
-
-  // Prefer index.m3u8 as DefaultVideo when an HLS manifest was written, so
-  // event.php picks the HLS player on closed events too — otherwise the player
-  // selection logic falls back to direct mp4 playback for everything except a
-  // manual MP4HLS codec choice.
-  std::string default_video = has_m3u8 ? "index.m3u8" : video_file;
 
   // Use async dbQueue instead of synchronous zmDbDoUpdate to avoid blocking
   // the close_event_thread (which blocks the analysis thread on the next closeEvent).
@@ -295,7 +286,7 @@ Event::~Event() {
       frames, alarm_frames,
       tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0),
       max_score, max_score_frame_id,
-      default_video.c_str(),
+      video_file.c_str(), // defaults to ""
       video_size,
       id);
   dbQueue.push(std::move(sql));

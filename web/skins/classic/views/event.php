@@ -406,7 +406,11 @@ if ($video_tag) {
                         autoplay: true,
                         preload: 'auto',
                         playbackRates: rates,
-                        liveui: <?php echo $has_hls && !$Event->EndDateTime() ? 'true' : 'false' ?>,
+                        // liveui replaces the seekbar with a live-edge-only control,
+                        // which makes it impossible to scrub back through the already-
+                        // recorded portion of an in-progress event. Always false so the
+                        // standard seekbar is rendered.
+                        liveui: false,
                         liveTracker: {
                           trackingThreshold: 0
                         }

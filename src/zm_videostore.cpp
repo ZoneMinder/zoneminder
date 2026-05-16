@@ -692,18 +692,21 @@ Debug(1, "Done flushing");
 
 VideoStore::~VideoStore() {
 
-  for (auto &n : reorder_queues) {
-    auto &queue = n.second;
-    Debug(1, "Queue for %d length is %zu", n.first, queue.size());
-    while (!queue.empty()) {
-      auto pkt = queue.front();
-      queue.pop_front();
-      if (pkt->codec_type == AVMEDIA_TYPE_VIDEO) {
-        writeVideoFramePacket(pkt);
-      } else if (pkt->codec_type == AVMEDIA_TYPE_AUDIO) {
-        writeAudioFramePacket(pkt);
+  // When finalize() has run it already drained these queues; doing it again
+  // would push packets into a closed AVFormatContext.
+  if (!finalized_) {
+    for (auto &n : reorder_queues) {
+      auto &queue = n.second;
+      Debug(1, "Queue for %d length is %zu", n.first, queue.size());
+      while (!queue.empty()) {
+        auto pkt = queue.front();
+        queue.pop_front();
+        if (pkt->codec_type == AVMEDIA_TYPE_VIDEO) {
+          writeVideoFramePacket(pkt);
+        } else if (pkt->codec_type == AVMEDIA_TYPE_AUDIO) {
+          writeAudioFramePacket(pkt);
+        }
       }
-      //delete pkt;
     }
   }
 
@@ -1598,6 +1601,23 @@ void VideoStore::finalize() {
   finalized_ = true;
 
   if (!oc || !oc->pb) return;
+
+  // Drain reorder queues before writing the trailer — the destructor would
+  // otherwise try to run these packets through av_interleaved_write_frame()
+  // after we've already closed oc->pb here.
+  for (auto &n : reorder_queues) {
+    auto &queue = n.second;
+    Debug(1, "Queue for %d length is %zu", n.first, queue.size());
+    while (!queue.empty()) {
+      auto pkt = queue.front();
+      queue.pop_front();
+      if (pkt->codec_type == AVMEDIA_TYPE_VIDEO) {
+        writeVideoFramePacket(pkt);
+      } else if (pkt->codec_type == AVMEDIA_TYPE_AUDIO) {
+        writeAudioFramePacket(pkt);
+      }
+    }
+  }
 
   flush_codecs();
 

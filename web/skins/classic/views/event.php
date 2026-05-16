@@ -354,9 +354,13 @@ if (file_exists($Event->Path().'/objdetect.jpg')) {
                     <div id="zoompan" class="zoompan">
 <?php
 if ($video_tag) {
-  // Use HLS byte-range playback if m3u8 manifest exists on disk
-  $has_hls = (($codec == 'MP4HLS') || str_ends_with($Event->DefaultVideo(), '.m3u8'))
-    && file_exists($Event->Path() . '/index.m3u8');
+  // Prefer HLS byte-range playback whenever the manifest exists on disk and the
+  // user hasn't explicitly opted into a non-HLS playback mode. Closed events
+  // have DefaultVideo rewritten to the renamed mp4, so checking the file system
+  // is what catches them.
+  $has_hls = file_exists($Event->Path() . '/index.m3u8')
+    && (($codec == 'MP4HLS') || ($codec == 'MP4') || ($codec == 'auto')
+        || str_ends_with($Event->DefaultVideo(), '.m3u8'));
   if ($has_hls) {
     $Server = $Event->Server();
     $hlsSrc = $Server->PathToIndex() . '?view=view_hls&amp;eid=' . $Event->Id();

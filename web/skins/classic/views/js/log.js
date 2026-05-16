@@ -56,7 +56,9 @@ function ajaxRequest(params) {
     success: function(data) {
       if (!data.rows.length) {
         // If page is > 1, bt infinitely loops
-        table.bootstrapTable('selectPage', 1);
+        // IgorA100 commented out the code below because it leads to endless table updates if the query returns 0 rows.
+        // This may have been a hack due to incorrect page pagination, which was fixed in https://github.com/ZoneMinder/zoneminder/pull/4818
+        //table.bootstrapTable('selectPage', 1);
       }
       // rearrange the result into what bootstrap-table expects
       params.success({

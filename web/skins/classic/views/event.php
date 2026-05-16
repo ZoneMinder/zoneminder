@@ -355,13 +355,13 @@ if (file_exists($Event->Path().'/objdetect.jpg')) {
 <?php
 if ($video_tag) {
   // Prefer HLS byte-range playback when the manifest exists on disk and the
-  // user picked MP4HLS / auto. Explicit MP4 means "play the mp4 file directly"
-  // and must stay non-HLS even when a manifest is available. Closed events
-  // recorded before DefaultVideo was preserved as 'index.m3u8' still need to
-  // fall through here on auto.
+  // user picked MP4HLS / auto. Explicit MP4 must stay native ("play the mp4
+  // file directly"); explicit MJPEG never reaches here because $video_tag is
+  // false for it. DefaultVideo's extension is deliberately not consulted —
+  // in-progress events have DefaultVideo='index.m3u8' from the constructor,
+  // and using that as a signal would override the explicit MP4 choice.
   $has_hls = file_exists($Event->Path() . '/index.m3u8')
-    && (($codec == 'MP4HLS') || ($codec == 'auto')
-        || str_ends_with($Event->DefaultVideo(), '.m3u8'));
+    && (($codec == 'MP4HLS') || ($codec == 'auto'));
   if ($has_hls) {
     $Server = $Event->Server();
     $hlsSrc = $Server->PathToIndex() . '?view=view_hls&amp;eid=' . $Event->Id();

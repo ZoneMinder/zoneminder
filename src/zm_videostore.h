@@ -62,7 +62,10 @@ class VideoStore {
   AVAudioFifo *fifo;
   uint8_t *converted_in_samples;
 
-  const char *filename;
+  // filename is owned (std::string) so it stays valid for the lifetime of
+  // VideoStore even if the caller later renames/reassigns the source path
+  // it was constructed from. A bare const char* would dangle in that case.
+  std::string filename;
   const char *format;
 
   // These are for in

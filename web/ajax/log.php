@@ -185,6 +185,10 @@ function queryRequest() {
     $where .= ' Level = ?';
     $query['values'][] = $level_codes[$L];
   }
+  zm_session_start();
+  $_SESSION['zmLogFilterLevel'] = $L;
+  session_write_close();
+
   if (!empty($_REQUEST['StartDateTime'])) {
     $start_time = strtotime($_REQUEST['StartDateTime']);
     if ($start_time) {

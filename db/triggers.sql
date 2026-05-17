@@ -127,7 +127,7 @@ drop procedure if exists update_storage_stats//
  * Writers that follow this order (and must continue to):
  *   - event_update_trigger (AFTER UPDATE on Events)
  *   - event_delete_trigger (BEFORE DELETE on Events)
- *   - src/zm_event.cpp Event::createNotification path: INSERT Events, then
+ *   - The Event::Event constructor in src/zm_event.cpp: INSERT Events, then
  *     INSERT Events_Hour/Day/Week/Month, then INSERT/UPDATE Event_Summaries
  *     (event_insert_trigger is commented out below; zmc does it directly)
  *   - The bucket update/delete triggers cascade into Event_Summaries in the

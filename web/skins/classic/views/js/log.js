@@ -112,11 +112,15 @@ function updateHeaderStats(data) {
 function manageClearLogsModalBtns() {
   document.getElementById('clearLogsConfirmBtn').addEventListener('click', function onClearLogsConfirmClick(evt) {
     evt.preventDefault();
+    $j('#clearLogsConfirm').modal('hide');
     document.getElementById('clearLogsConfirmBtn').disabled = true;
     deleteLogs(getIdSelections());
   });
-  $j('#clearLogsConfirm').on('hidden.bs.modal', function onClearLogsConfirmHidden() {
-    manageClearButtonAvailability();
+  $j('#clearLogsConfirm').on('hide.bs.modal', function onClearLogsConfirmHidden(evt) {
+    const idRelatedTarget = $j(document.activeElement).attr('id');
+    // When executing deleteLogs(), we always call a table update
+    // after which manageClearButtonAvailability() is always executed, so there is no need to execute manageClearButtonAvailability() here
+    if (idRelatedTarget != "clearLogsConfirmBtn") manageClearButtonAvailability();
   });
   document.getElementById('clearLogsCancelBtn').addEventListener('click', function onClearLogsCancelClick(evt) {
     evt.preventDefault();
@@ -142,7 +146,6 @@ function deleteLogs(log_ids) {
     data: {'ids[]': chunk},
     success: function(data) {
       if (!log_ids.length) {
-        $j('#clearLogsConfirm').modal('hide');
         table.bootstrapTable('refresh');
       } else {
         if (ticker.innerHTML.length < 1 || ticker.innerHTML.length > 10) {
@@ -155,7 +158,6 @@ function deleteLogs(log_ids) {
     },
     error: function(jqxhr) {
       logAjaxFail(jqxhr);
-      $j('#clearLogsConfirm').modal('hide');
       table.bootstrapTable('refresh');
     }
   });
@@ -268,10 +270,11 @@ function manageClearButtonAvailability(enable = null) {
   const selections = table.bootstrapTable('getSelections');
   const clearLogsBtn = document.getElementById('clearLogsBtn');
   if (clearLogsBtn) {
-    if (enable === false || !selections.length)
+    if (enable === false || !selections.length) {
       clearLogsBtn.disabled = true;
-    else if (enable === true || selections.length)
+    } else if (enable === true || selections.length) {
       clearLogsBtn.disabled = false;
+    }
   }
 }
 

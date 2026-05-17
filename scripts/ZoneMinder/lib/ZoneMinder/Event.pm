@@ -426,6 +426,7 @@ sub delete {
 
       # Order: Stats -> Event_Data -> Frames -> Events (least to greatest reference depth)
       my $err = 0;
+      my $errstr = '';
       foreach my $stmt (
         ['DELETE FROM Stats WHERE EventId=?',      $$event{Id}],
         ['DELETE FROM Event_Data WHERE EventId=?', $$event{Id}],
@@ -435,7 +436,11 @@ sub delete {
         my ($sql, @bind) = @$stmt;
         ZoneMinder::Database::zmDbDo($sql, @bind);
         $err = $ZoneMinder::Database::dbh->err() // 0;
-        last if $err;
+        if ($err) {
+          # Capture before rollback, which can clear errstr on some drivers.
+          $errstr = $ZoneMinder::Database::dbh->errstr() // '';
+          last;
+        }
       }
 
       if (!$err) {
@@ -445,6 +450,11 @@ sub delete {
 
       $ZoneMinder::Database::dbh->rollback() if !$in_transaction;
       if ($in_transaction or $err != 1213 or $attempt >= $max_attempts) { # 1213 = ER_LOCK_DEADLOCK
+        # Surface the final failure ourselves — zmDbDo suppresses its Error
+        # log on 1213 inside a caller-managed TX (we own the retry), and the
+        # exhausted-retries case would otherwise return silently.
+        Error("Failed deleting event $$event{Id} after $attempt attempt(s): err=$err $errstr")
+          if $err;
         return;
       }
       Debug("Deadlock deleting event $$event{Id} attempt $attempt/$max_attempts, retrying");

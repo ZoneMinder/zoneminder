@@ -1001,11 +1001,14 @@ FROM `Frames` WHERE `EventId`=?';
 
     # Include monitors that have an Event_Summaries row but no rows in any
     # successfully-aggregated source — those need to be zeroed for the
-    # column groups we did read.
+    # column groups we did read. If we can't enumerate, we can't claim a
+    # full resync regardless of which aggregates succeeded.
+    my $enumerate_ok = 0;
     my $existing = $dbh->selectcol_arrayref('SELECT MonitorId FROM Event_Summaries');
     if ($dbh->err()) {
       Error("zmaudit Event_Summaries enumerate failed: ".$dbh->errstr());
     } else {
+      $enumerate_ok = 1;
       $agg{$_} ||= {} for @$existing;
     }
 
@@ -1038,12 +1041,13 @@ FROM `Frames` WHERE `EventId`=?';
         $update_failed++ if !defined $rv;
       }
       my @skipped = grep { !$ok{$_} } qw(events h d w m);
-      if (!@skipped and !$update_failed) {
+      if (!@skipped and !$update_failed and $enumerate_ok) {
         aud_print('Finished resyncing Event_Summaries from Events + bucket tables');
       } else {
         aud_print(sprintf(
-          'Partial Event_Summaries resync: skipped aggregates [%s], %d/%d per-monitor UPDATE(s) failed',
+          'Partial Event_Summaries resync: skipped aggregates [%s], enumerate %s, %d/%d per-monitor UPDATE(s) failed',
           join(',', @skipped) || 'none',
+          $enumerate_ok ? 'ok' : 'failed',
           $update_failed, $update_attempted
         ));
       }

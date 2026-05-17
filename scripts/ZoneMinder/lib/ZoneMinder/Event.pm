@@ -427,14 +427,13 @@ sub delete {
       # Order: Stats -> Event_Data -> Frames -> Events (least to greatest reference depth)
       my $err = 0;
       my $errstr = '';
-      foreach my $stmt (
-        ['DELETE FROM Stats WHERE EventId=?',      $$event{Id}],
-        ['DELETE FROM Event_Data WHERE EventId=?', $$event{Id}],
-        ['DELETE FROM Frames WHERE EventId=?',     $$event{Id}],
-        ['DELETE FROM Events WHERE Id=?',          $$event{Id}],
+      foreach my $sql (
+        'DELETE FROM Stats WHERE EventId=?',
+        'DELETE FROM Event_Data WHERE EventId=?',
+        'DELETE FROM Frames WHERE EventId=?',
+        'DELETE FROM Events WHERE Id=?',
       ) {
-        my ($sql, @bind) = @$stmt;
-        ZoneMinder::Database::zmDbDo($sql, @bind);
+        ZoneMinder::Database::zmDbDo($sql, $$event{Id});
         $err = $ZoneMinder::Database::dbh->err() // 0;
         if ($err) {
           # Capture before rollback, which can clear errstr on some drivers.

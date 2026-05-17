@@ -69,6 +69,7 @@ function createRequest() {
 
 function queryRequest() {
   // Offset specifies the starting row to return, used for pagination
+  $newSessionValue = [];
   $offset = 0;
   if (isset($_REQUEST['offset'])) {
     if ((!is_int($_REQUEST['offset']) and !ctype_digit($_REQUEST['offset']))) {
@@ -162,9 +163,7 @@ function queryRequest() {
     $where .= 'Component = ?';
     $query['values'][] = $_REQUEST['Component'];
   }
-  zm_session_start();
-  $_SESSION['zmLogComponent'] = !empty($_REQUEST['Component']) ? $_REQUEST['Component'] : '';
-  session_write_close();
+  $newSessionValue['zmLogComponent'] = !empty($_REQUEST['Component']) ? $_REQUEST['Component'] : '';
 
   if (!empty($_REQUEST['ServerId'])) {
     if ($where) $where .= ' AND ';
@@ -185,9 +184,7 @@ function queryRequest() {
     $where .= ' Level = ?';
     $query['values'][] = $level_codes[$L];
   }
-  zm_session_start();
-  $_SESSION['zmLogFilterLevel'] = $L;
-  session_write_close();
+  $newSessionValue['zmLogFilterLevel'] = isset($level_codes[$L]) ? $L : '';
 
   if (!empty($_REQUEST['StartDateTime'])) {
     $start_time = strtotime($_REQUEST['StartDateTime']);
@@ -209,6 +206,13 @@ function queryRequest() {
       ZM\Warning("Unable to parse EndDateTime ".$_REQUEST['EndDateTime']. " into a timestamp");
     }
   }
+
+  zm_session_start();
+  foreach ($newSessionValue as $name => $value) {
+    $_SESSION[$name] = $value;
+  }
+  session_write_close();
+
   if ($where) $where = ' WHERE '.$where;
 
   $data['totalNotFiltered'] = dbFetchOne('SELECT count(*) AS Total FROM `' .$table.'`', 'Total');

@@ -54,11 +54,10 @@ function ajaxRequest(params) {
     data: params.data,
     timeout: 0,
     success: function(data) {
-      if (!data.rows.length) {
-        // If page is > 1, bt infinitely loops
-        // IgorA100 commented out the code below because it leads to endless table updates if the query returns 0 rows.
-        // This may have been a hack due to incorrect page pagination, which was fixed in https://github.com/ZoneMinder/zoneminder/pull/4818
-        //table.bootstrapTable('selectPage', 1);
+      if (!data.rows.length && data.total > 0) {
+        // If the page is greater than 1, it loops infinitely.
+        table.bootstrapTable('selectPage', 1);
+        return;
       }
       // rearrange the result into what bootstrap-table expects
       params.success({
@@ -95,8 +94,8 @@ function filterLog() {
 function updateHeaderStats(data) {
   var pageNum = table.bootstrapTable('getOptions').pageNumber;
   var pageSize = table.bootstrapTable('getOptions').pageSize;
-  var startRow = ( (pageNum - 1 ) * pageSize ) + 1;
-  var stopRow = pageNum * pageSize;
+  var startRow = (data.total > 0) ? (( (pageNum - 1 ) * pageSize ) + 1) : 0;
+  var stopRow = (data.total > 0) ? ((data.total > pageSize) ? pageNum * pageSize : data.total) : 0;
   var newClass = (data.logstate == 'ok') ? 'text-success' : (data.logstate == 'alert' ? 'text-warning' : ((data.logstate == 'alarm' ? 'text-danger' : '')));
 
   $j('#logState').text(data.logstate);

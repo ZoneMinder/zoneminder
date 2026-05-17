@@ -91,6 +91,7 @@ function EventStream(config) {
     this.currentEventId = eventId;
     this.rate = (options.rate !== undefined) ? options.rate : 100;
     this.paused = false;
+    this.stopped = false;
     this.lastOptions = Object.assign({}, options);
 
     // Fresh connkey for this stream
@@ -203,6 +204,7 @@ function EventStream(config) {
 
     this.started = false;
     this.paused = false;
+    this.stopped = false;
     this.connKey = null;
     this.streamCmdParms.connkey = null;
     this.consecutiveErrors = 0;
@@ -248,6 +250,7 @@ function EventStream(config) {
     }
     this.started = false;
     this.connKey = null;
+    this.stopped = false;
     this.streamCmdParms.connkey = null;
 
     // Delay before restarting — exponential backoff

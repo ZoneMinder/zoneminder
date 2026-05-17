@@ -120,6 +120,8 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     stopped = true;
     paused = false;
     delayed = false;
+    step = 0;
+    send_twice = false;
     break;
   case CMD_FASTFWD :
     Debug(1, "Got FAST FWD command");

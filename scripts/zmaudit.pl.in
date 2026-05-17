@@ -1025,15 +1025,28 @@ FROM `Frames` WHERE `EventId`=?';
 
     if (@set) {
       my $sql = 'UPDATE Event_Summaries SET '.join(', ', @set).' WHERE MonitorId=?';
+      my $update_attempted = 0;
+      my $update_failed    = 0;
       for my $mid (sort { $a <=> $b } keys %agg) {
         my $a = $agg{$mid};
-        ZoneMinder::Database::zmDbDo(
+        $update_attempted++;
+        my $rv = ZoneMinder::Database::zmDbDo(
           $sql,
           (map { $a->{$_} // 0 } @bind_template),
           $mid
         );
+        $update_failed++ if !defined $rv;
       }
-      aud_print('Finished resyncing Event_Summaries from Events + bucket tables');
+      my @skipped = grep { !$ok{$_} } qw(events h d w m);
+      if (!@skipped and !$update_failed) {
+        aud_print('Finished resyncing Event_Summaries from Events + bucket tables');
+      } else {
+        aud_print(sprintf(
+          'Partial Event_Summaries resync: skipped aggregates [%s], %d/%d per-monitor UPDATE(s) failed',
+          join(',', @skipped) || 'none',
+          $update_failed, $update_attempted
+        ));
+      }
     } else {
       Error('zmaudit: every Event_Summaries aggregate SELECT failed; skipping resync');
     }
@@ -1042,6 +1055,7 @@ FROM `Frames` WHERE `EventId`=?';
   # Storage DiskSpace resync: same trap. Snapshot per-Storage sums via plain
   # SELECT, then UPDATE Storage one row at a time.
   {
+    my $storage_done = 0;
     my $rows = $dbh->selectall_arrayref(
       'SELECT StorageId, COALESCE(SUM(DiskSpace), 0) FROM Events GROUP BY StorageId'
     );
@@ -1053,15 +1067,25 @@ FROM `Frames` WHERE `EventId`=?';
       if ($dbh->err()) {
         Error('zmaudit Storage enumerate failed: '.$dbh->errstr());
       } else {
+        my $attempted = 0;
+        my $failed    = 0;
         for my $sid (@$storage_ids) {
-          ZoneMinder::Database::zmDbDo(
+          $attempted++;
+          my $rv = ZoneMinder::Database::zmDbDo(
             'UPDATE Storage SET DiskSpace=? WHERE Id=?',
             $disk{$sid} // 0, $sid
           );
+          $failed++ if !defined $rv;
+        }
+        if (!$failed) {
+          aud_print('Finished updating Storage DiskSpace');
+          $storage_done = 1;
+        } else {
+          aud_print("Partial Storage DiskSpace update: $failed/$attempted row(s) failed");
         }
       }
     }
-    aud_print('Finished updating Storage DiskSpace');
+    Error('zmaudit Storage DiskSpace resync did not complete') if !$storage_done;
   }
 
   sleep($Config{ZM_AUDIT_CHECK_INTERVAL}) if $continuous;

@@ -121,6 +121,8 @@ while (!$zm_terminate) {
       $dbh->begin_work();
 
       my $err = 0;
+      my $errstr;  # captured before rollback() — rollback can clear errstr
+      my %touched_monitors;  # MonitorIds whose buckets we just modified
       foreach my $bucket (
         ['Events_Hour',  '1 hour'],
         ['Events_Day',   '1 day'],
@@ -128,26 +130,37 @@ while (!$zm_terminate) {
         ['Events_Month', '1 month'],
       ) {
         my ($table, $interval) = @$bucket;
-        my $event_ids = $dbh->selectcol_arrayref(
-          "SELECT EventId FROM $table WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL $interval)"
+        my $rows = $dbh->selectall_arrayref(
+          "SELECT EventId, MonitorId FROM $table WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL $interval)"
         );
         $err = $dbh->err() // 0;
-        last if $err;
-        if ($event_ids and @$event_ids) {
-          zmDbDo(
-            "DELETE FROM $table WHERE EventId IN (".join(',', map { '?' } @$event_ids).')',
-            @$event_ids
-          );
-          $err = $dbh->err() // 0;
-          last if $err;
-        }
+        if ($err) { $errstr = $dbh->errstr() // ''; last; }
+        next if !$rows or !@$rows;
+        my @event_ids = map { $_->[0] } @$rows;
+        $touched_monitors{$_->[1]} = 1 for @$rows;
+        zmDbDo(
+          "DELETE FROM $table WHERE EventId IN (".join(',', map { '?' } @event_ids).')',
+          @event_ids
+        );
+        $err = $dbh->err() // 0;
+        if ($err) { $errstr = $dbh->errstr() // ''; last; }
       }
 
-      # Snapshot the per-monitor bucket aggregates. Plain SELECT under RC is
-      # a consistent read and takes no row locks, so this can't deadlock with
-      # the trigger writers.
-      my %agg;
-      if (!$err) {
+      # Only resync ES for monitors we actually touched in this cycle. If
+      # nothing was pruned, the bucket triggers maintain ES correctly between
+      # zmstats passes; zmaudit is the periodic deep-resync safety net.
+      # Restricting to touched monitors also avoids X-locking every ES row
+      # on every zmstats cycle (which would contend with the trigger writers
+      # this rewrite is meant to protect).
+      if (!$err and %touched_monitors) {
+        my @mids = sort { $a <=> $b } keys %touched_monitors;
+        my $placeholders = join(',', map { '?' } @mids);
+
+        # Snapshot the per-monitor bucket aggregates for the touched monitors
+        # only. Plain SELECT under RC is a consistent read and takes no row
+        # locks, so this can't deadlock with the trigger writers.
+        my %agg;
+        $agg{$_} ||= {} for @mids;  # seed so monitors with zero rows still get zeroed
         foreach my $bucket (
           ['Events_Hour',  'h'],
           ['Events_Day',   'd'],
@@ -156,55 +169,46 @@ while (!$zm_terminate) {
         ) {
           my ($table, $key) = @$bucket;
           my $rows = $dbh->selectall_arrayref(
-            "SELECT MonitorId, COUNT(*), COALESCE(SUM(DiskSpace), 0) FROM $table GROUP BY MonitorId"
+            "SELECT MonitorId, COUNT(*), COALESCE(SUM(DiskSpace), 0) FROM $table".
+            " WHERE MonitorId IN ($placeholders) GROUP BY MonitorId",
+            undef, @mids
           );
           $err = $dbh->err() // 0;
-          last if $err;
+          if ($err) { $errstr = $dbh->errstr() // ''; last; }
           for my $r (@$rows) {
             $agg{$r->[0]}{$key.'_c'} = $r->[1];
             $agg{$r->[0]}{$key.'_s'} = $r->[2];
           }
         }
-      }
 
-      # Pull the universe of MonitorIds from Event_Summaries so any monitor
-      # with zero rows in every bucket still gets zeroed out.
-      if (!$err) {
-        my $monitor_ids = $dbh->selectcol_arrayref('SELECT MonitorId FROM Event_Summaries');
-        $err = $dbh->err() // 0;
+        # One UPDATE per touched monitor. The transaction at this point is
+        # still holding the bucket-row X-locks acquired by the earlier
+        # DELETEs and any ES X-locks the bucket DELETE triggers acquired as
+        # a cascade. Those were all acquired in the canonical order
+        # (buckets -> ES) so they don't conflict with the trigger writers.
+        # The new statement itself only X-locks the one ES row it targets
+        # and reads no other table, so it doesn't add any cross-table
+        # dependency that could form a new cycle — its lock acquisition
+        # continues in the same direction.
         if (!$err) {
-          for my $mid (@$monitor_ids) {
-            $agg{$mid} ||= {};
+          for my $mid (@mids) {
+            my $a = $agg{$mid};
+            zmDbDo(
+              'UPDATE Event_Summaries SET '.
+                'HourEvents=?, HourEventDiskSpace=?, '.
+                'DayEvents=?, DayEventDiskSpace=?, '.
+                'WeekEvents=?, WeekEventDiskSpace=?, '.
+                'MonthEvents=?, MonthEventDiskSpace=? '.
+              'WHERE MonitorId=?',
+              $a->{h_c} // 0, $a->{h_s} // 0,
+              $a->{d_c} // 0, $a->{d_s} // 0,
+              $a->{w_c} // 0, $a->{w_s} // 0,
+              $a->{m_c} // 0, $a->{m_s} // 0,
+              $mid
+            );
+            $err = $dbh->err() // 0;
+            if ($err) { $errstr = $dbh->errstr() // ''; last; }
           }
-        }
-      }
-
-      # One UPDATE per monitor. The transaction at this point is still
-      # holding the bucket-row X-locks acquired by the earlier DELETEs and
-      # any ES X-locks the bucket DELETE triggers acquired as a cascade.
-      # Those were all acquired in the canonical order (buckets -> ES) so
-      # they don't conflict with the trigger writers. The new statement
-      # itself only X-locks the one ES row it targets and reads no other
-      # table, so it doesn't add any cross-table dependency that could form
-      # a new cycle — its lock acquisition continues in the same direction.
-      if (!$err) {
-        for my $mid (sort { $a <=> $b } keys %agg) {
-          my $a = $agg{$mid};
-          zmDbDo(
-            'UPDATE Event_Summaries SET '.
-              'HourEvents=?, HourEventDiskSpace=?, '.
-              'DayEvents=?, DayEventDiskSpace=?, '.
-              'WeekEvents=?, WeekEventDiskSpace=?, '.
-              'MonthEvents=?, MonthEventDiskSpace=? '.
-            'WHERE MonitorId=?',
-            $a->{h_c} // 0, $a->{h_s} // 0,
-            $a->{d_c} // 0, $a->{d_s} // 0,
-            $a->{w_c} // 0, $a->{w_s} // 0,
-            $a->{m_c} // 0, $a->{m_s} // 0,
-            $mid
-          );
-          $err = $dbh->err() // 0;
-          last if $err;
         }
       }
 
@@ -215,7 +219,7 @@ while (!$zm_terminate) {
 
       $dbh->rollback();
       if ($err != 1213 or $attempt >= $max_attempts) { # 1213 = ER_LOCK_DEADLOCK
-        Error("Event_Summaries prune+resync gave up after $attempt attempt(s): ".$dbh->errstr());
+        Error("Event_Summaries prune+resync gave up after $attempt attempt(s): ".($errstr // ''));
         last;
       }
       Debug("Deadlock during Event_Summaries prune+resync, attempt $attempt/$max_attempts");

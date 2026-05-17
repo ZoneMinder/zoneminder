@@ -274,17 +274,19 @@ sub zmDbDo {
   for ( my $attempt = 1; $attempt <= $max_attempts; $attempt++ ) {
     $rows = $dbh->do($sql, undef, @params);
     last if defined $rows;
+
+    # In a caller-managed transaction, never issue ANY logging here that can
+    # write to the Logs table: ZoneMinder::Logger->logPrint INSERTs into
+    # Logs using the same $dbh, which would clear $dbh->err / $dbh->errstr
+    # before the caller reads them for rollback/retry. Bail silently — the
+    # caller owns the retry loop and is responsible for logging.
+    last if !$dbh->{AutoCommit};
+
     my $err_code = $dbh->err() // 0;
     if ( $err_code == 1213 and $attempt < $max_attempts ) { # 1213 = ER_LOCK_DEADLOCK
       Debug("Deadlock on '"._sql_with_bind_values($sql, @params)."' attempt $attempt/$max_attempts, retrying");
       select(undef, undef, undef, 0.05 * (1 << $attempt) + rand(0.05));
       next;
-    }
-    if ( $err_code == 1213 and !$dbh->{AutoCommit} ) {
-      # Caller-managed TX owns the retry loop; don't pollute logs with a
-      # misleading "Failed ... Deadlock found" Error before they roll back.
-      Debug('Deadlock in caller-managed TX on '._sql_with_bind_values($sql, @params).'; deferring to caller');
-      last;
     }
     Error('Failed '._sql_with_bind_values($sql, @params).' : '.$dbh->errstr());
     last;

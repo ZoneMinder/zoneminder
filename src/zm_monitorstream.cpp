@@ -113,7 +113,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
       paused = false;
       delayed = true;
     }
-    replay_rate = ntohs(((unsigned char)msg->msg_data[2]<<8)|(unsigned char)msg->msg_data[1])-32768;
+    replay_rate = (((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2])-VARPLAY_RATE_OFFSET;
     break;
   case CMD_STOP :
     Debug(1, "Got STOP command");
@@ -646,15 +646,15 @@ void MonitorStream::runStream() {
       std::this_thread::sleep_for(MAX_SLEEP);
       continue;
     }
-    monitor->setLastViewed();
-    if (frame_type == FRAME_ANALYSIS)
-      monitor->setLastAnalysisViewed();
-
     if (stopped) {
-      // In stopped state, do nothing except wait for a new command
+      // In stopped state, do nothing except wait for a new command.
+      // Don't call setLastViewed() so we don't keep capture/decoding active unnecessarily.
       std::this_thread::sleep_for(MAX_SLEEP);
       continue;
     }
+    monitor->setLastViewed();
+    if (frame_type == FRAME_ANALYSIS)
+      monitor->setLastAnalysisViewed();
 
     if (paused) {
       if (!was_paused) {

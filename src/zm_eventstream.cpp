@@ -480,7 +480,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
     Debug(1, "Got VARPLAY command");
     stopped = false;
     paused = false;
-    replay_rate = ntohs(((unsigned char)msg->msg_data[2]<<8)|(unsigned char)msg->msg_data[1])-32768;
+    replay_rate = (((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2])-VARPLAY_RATE_OFFSET;
     if (replay_rate > 50 * ZM_RATE_BASE) {
       Warning("requested replay rate (%d) is too high. We only support up to 50x", replay_rate);
       replay_rate = 50 * ZM_RATE_BASE;
@@ -494,6 +494,8 @@ void EventStream::processCommand(const CmdMsg *msg) {
     Debug(1, "Got STOP command");
     stopped = true;
     paused = false;
+    step = 0;
+    send_twice = false;
     break;
   case CMD_FASTFWD : {
     Debug(1, "Got FAST FWD command");
@@ -1198,10 +1200,10 @@ void EventStream::runStream() {
         // Paused or stopped
         delta = MAX_SLEEP;
 
-        // We are paused, so might be stepping
+        // We are paused, so might be stepping (not when fully stopped)
         //if ( step != 0 )// Adding 0 is cheaper than an if 0
         // curr_frame_id starts at 1 though, so we might skip the first frame?
-        curr_frame_id += step;
+        if (!stopped) curr_frame_id += step;
       }  // end if !paused && !stopped
     }  // end scope for mutex lock
  

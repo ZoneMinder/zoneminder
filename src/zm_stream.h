@@ -54,6 +54,9 @@ class StreamBase {
   enum { DEFAULT_ZOOM=ZM_SCALE_BASE };
   enum { DEFAULT_MAXFPS=10 };
   enum { DEFAULT_BITRATE=100000 };
+  // Offset applied when encoding a signed replay rate as a uint16 for CMD_VARPLAY.
+  // On the wire: uint16 = rate + VARPLAY_RATE_OFFSET.  Receiver subtracts the same offset.
+  static const int VARPLAY_RATE_OFFSET = 32768;
 
  protected:
   typedef struct {
@@ -93,12 +96,12 @@ class StreamBase {
     CMD_NEXT,
     CMD_SEEK,
     // CMD_VARPLAY resumes or starts playback at a caller-specified rate.
-    // The desired rate is packed as a big-endian uint16 offset by +32768 so that the range
-    // [-32768, +32767] maps to [0, 65535].  ZM_RATE_BASE (100) represents 1x speed, so:
-    //   32868 (= 32768 + 100) encodes 1x forward playback,
-    //   32668 (= 32768 - 100) encodes 1x reverse playback.
+    // The desired rate is packed as a big-endian uint16 offset by +VARPLAY_RATE_OFFSET so that
+    // the range [-32768, +32767] maps to [0, 65535].  ZM_RATE_BASE (100) represents 1x speed, so:
+    //   32868 (= VARPLAY_RATE_OFFSET + 100) encodes 1x forward playback,
+    //   32668 (= VARPLAY_RATE_OFFSET - 100) encodes 1x reverse playback.
     // Negative rates play in reverse; rates > ZM_RATE_BASE play faster than real-time.
-    // MSG payload: msg_data[1..2] = (rate + 32768) as network-byte-order uint16.
+    // MSG payload: msg_data[1..2] = (rate + VARPLAY_RATE_OFFSET) as network-byte-order uint16.
     CMD_VARPLAY,
     CMD_GET_IMAGE,
     CMD_QUIT,
@@ -202,6 +205,7 @@ class StreamBase {
     paused(false),
     stopped(false),
     step(0),
+    send_twice(false),
     maxfps(DEFAULT_MAXFPS),
     base_fps(0.0),
     effective_fps(0.0),

@@ -179,9 +179,14 @@ while (!$zm_terminate) {
         }
       }
 
-      # One UPDATE per monitor: each takes a single ES X-lock and reads
-      # nothing else, so it can't hold any bucket-row lock that would
-      # deadlock with the trigger path.
+      # One UPDATE per monitor. The transaction at this point is still
+      # holding the bucket-row X-locks acquired by the earlier DELETEs and
+      # any ES X-locks the bucket DELETE triggers acquired as a cascade.
+      # Those were all acquired in the canonical order (buckets -> ES) so
+      # they don't conflict with the trigger writers. The new statement
+      # itself only X-locks the one ES row it targets and reads no other
+      # table, so it doesn't add any cross-table dependency that could form
+      # a new cycle — its lock acquisition continues in the same direction.
       if (!$err) {
         for my $mid (sort { $a <=> $b } keys %agg) {
           my $a = $agg{$mid};

@@ -115,8 +115,11 @@ function manageClearLogsModalBtns() {
     document.getElementById('clearLogsConfirmBtn').disabled = true;
     deleteLogs(getIdSelections());
   });
-  document.getElementById('clearLogsCancelBtn').addEventListener('click', function onClearLogsCancelClick(evt) {
+  $j('#clearLogsConfirm').on('hidden.bs.modal', function onClearLogsConfirmHidden() {
     manageClearButtonAvailability();
+  });
+  document.getElementById('clearLogsCancelBtn').addEventListener('click', function onClearLogsCancelClick(evt) {
+    evt.preventDefault();
     $j('#clearLogsConfirm').modal('hide');
   });
 }

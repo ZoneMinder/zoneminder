@@ -101,6 +101,15 @@ while (!$zm_terminate) {
   # READ COMMITTED is still set for the bucket DELETE range scans, so they
   # don't take next-key/gap locks against concurrent filter deletes / zma
   # trigger updates on adjacent EventIds.
+  #
+  # Atomicity tradeoff: between the per-bucket aggregate SELECT and the
+  # per-monitor UPDATE, a concurrent trigger writer (zma/zmc/Event::delete)
+  # can adjust Event_Summaries via the canonical lock chain. Our subsequent
+  # UPDATE will overwrite that adjustment with our older snapshot. This is
+  # intentional and safe: the bucket triggers keep ES drift bounded between
+  # zmstats passes, and any drift introduced by this race is corrected on
+  # the next pass. Locking ES before the snapshot would invert the canonical
+  # order and re-introduce the deadlock cycle this rewrite eliminated.
   {
     my $attempt = 0;
     my $max_attempts = 5;

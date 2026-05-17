@@ -940,6 +940,15 @@ FROM `Frames` WHERE `EventId`=?';
   # per monitor against Event_Summaries. Each UPDATE only X-locks the one ES
   # row it targets and reads no other table, so it can't form a cycle with
   # the trigger writers.
+  #
+  # Atomicity tradeoff (same as zmstats.pl): a concurrent trigger writer can
+  # adjust ES between our snapshot SELECTs and the per-monitor UPDATE; our
+  # UPDATE then overwrites that adjustment with the older snapshot. This is
+  # intentional. zmaudit is a periodic ground-truth resync — incremental
+  # trigger maintenance carries ES correctly between zmaudit passes, and any
+  # drift introduced by this race is bounded and corrected on the next pass.
+  # Locking ES before reading the aggregates would invert the canonical lock
+  # order and re-introduce the deadlock this rewrite eliminated.
   {
     my %agg;
     # All-or-nothing per column group: a transient SELECT failure must not

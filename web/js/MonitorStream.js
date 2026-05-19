@@ -1271,7 +1271,12 @@ function MonitorStream(monitorData) {
 
           const delayString = secsToTime(this.status.delay);
 
-          if (this.status.paused == true) {
+          if (this.status.stopped == true) {
+            $j('#modeValue'+this.id).text('Stopped');
+            $j('#rate'+this.id).addClass('hidden');
+            $j('#delay'+this.id).addClass('hidden');
+            $j('#level'+this.id).addClass('hidden');
+          } else if (this.status.paused == true) {
             $j('#modeValue'+this.id).text('Paused');
             $j('#rate'+this.id).addClass('hidden');
             $j('#delayValue'+this.id).text(delayString);

@@ -291,7 +291,11 @@ sub zmDbDo {
     Error('Failed '._sql_with_bind_values($sql, @params).' : '.$dbh->errstr());
     last;
   }
-  if ( defined $rows and ZoneMinder::Logger::logLevel() > INFO ) {
+  # Skip the success Debug when we're inside a caller-managed transaction:
+  # ZoneMinder::Logger->logPrint INSERTs into Logs on this same $dbh, which
+  # would add an extra write to a TX that's trying to be lock-minimal and
+  # could change $dbh->err / $dbh->errstr the caller will later inspect.
+  if ( defined $rows and $dbh->{AutoCommit} and ZoneMinder::Logger::logLevel() > INFO ) {
     ($rows) = $rows =~ /^(.*)$/; # de-taint
     Debug('Succeeded '._sql_with_bind_values($sql, @params)." : $rows rows affected");
   }

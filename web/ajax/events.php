@@ -347,6 +347,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
 
     if (file_exists($event->Path() . '/index.m3u8'))
       $videoAttr .= ' data-video-hls-src="'.$event->getStreamSrc(array('mode'=>'mp4hls'), '&amp;').'"';
+    $videoAttr .= ' data-video-duration-secs="'.$event->EndDateTimeSecs() - $event->StartDateTimeSecs().'"';
 
     // Modify the row data as needed
     $row['imgHtml'] = '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="Event '.$event->Id().'" width="' .validInt($event->ThumbnailWidth()). '" height="' .validInt($event->ThumbnailHeight()).'" stream_src="' .$streamSrc. '" still_src="' .$imgSrc. '"' .$videoAttr. ' data-monitor-width="'.$event->Width().'" data-monitor-height="'.$event->Height().'" loading="lazy" />';

@@ -1056,33 +1056,57 @@ FROM `Frames` WHERE `EventId`=?';
     }
   }
 
-  # Storage DiskSpace resync: same trap. Snapshot per-Storage sums via plain
-  # SELECT, then UPDATE Storage one row at a time.
+  # Storage DiskSpace resync. Unlike Event_Summaries, Storage.DiskSpace is
+  # NOT maintained by DB triggers — Event::delete and the event-finalize
+  # paths do their own +/- adjustments in application code. So overwriting
+  # with a stale absolute snapshot would actively undo a concurrent
+  # adjustment instead of being self-corrected next pass.
+  #
+  # CAS pattern: read DiskSpace alongside the SUM snapshot, then UPDATE
+  # WHERE DiskSpace is still the value we observed. If a concurrent writer
+  # adjusted it between the SELECT and the UPDATE, the WHERE won't match
+  # and we leave their newer adjustment in place. Next zmaudit pass picks
+  # up any residual drift.
   {
     my $storage_done = 0;
-    my $rows = $dbh->selectall_arrayref(
+    my $events_rows = $dbh->selectall_arrayref(
       'SELECT StorageId, COALESCE(SUM(DiskSpace), 0) FROM Events GROUP BY StorageId'
     );
     if ($dbh->err()) {
       Error('zmaudit Storage aggregate failed: '.$dbh->errstr());
     } else {
-      my %disk = map { $_->[0] => $_->[1] } grep { defined $_->[0] } @$rows;
-      my $storage_ids = $dbh->selectcol_arrayref('SELECT Id FROM Storage');
+      my %disk = map { $_->[0] => $_->[1] } grep { defined $_->[0] } @$events_rows;
+      my $storage_rows = $dbh->selectall_arrayref('SELECT Id, DiskSpace FROM Storage');
       if ($dbh->err()) {
         Error('zmaudit Storage enumerate failed: '.$dbh->errstr());
       } else {
         my $attempted = 0;
         my $failed    = 0;
-        for my $sid (@$storage_ids) {
+        my $deferred  = 0;
+        for my $r (@$storage_rows) {
+          my ($sid, $current) = @$r;
+          my $target = $disk{$sid} // 0;
+          # Skip if already correct (avoids redundant X-locks).
+          next if defined $current and $current == $target;
           $attempted++;
+          # MariaDB null-safe equality (<=>) handles NULL DiskSpace.
           my $rv = ZoneMinder::Database::zmDbDo(
-            'UPDATE Storage SET DiskSpace=? WHERE Id=?',
-            $disk{$sid} // 0, $sid
+            'UPDATE Storage SET DiskSpace=? WHERE Id=? AND DiskSpace <=> ?',
+            $target, $sid, $current
           );
-          $failed++ if !defined $rv;
+          if (!defined $rv) {
+            $failed++;
+          } elsif ($rv == 0) {
+            # CAS lost: concurrent writer adjusted DiskSpace. Leave theirs.
+            $deferred++;
+          }
         }
         if (!$failed) {
-          aud_print('Finished updating Storage DiskSpace');
+          if ($deferred) {
+            aud_print("Updated Storage DiskSpace ($attempted attempted, $deferred deferred to concurrent writers)");
+          } else {
+            aud_print('Finished updating Storage DiskSpace');
+          }
           $storage_done = 1;
         } else {
           aud_print("Partial Storage DiskSpace update: $failed/$attempted row(s) failed");

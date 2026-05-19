@@ -109,6 +109,120 @@ std::pair<std::string, std::string> PairSplit(const std::string &str, char delim
   return std::make_pair(str.substr(0, pos), str.substr(pos + 1, std::string::npos));
 }
 
+bool JsonExtractQuotedField(const std::string &json, const std::string &field, std::string *value) {
+  std::string needle = "\"" + field + "\"";
+  size_t key_pos = json.find(needle);
+  if (key_pos == std::string::npos) {
+    return false;
+  }
+
+  size_t colon_pos = json.find(':', key_pos + needle.size());
+  if (colon_pos == std::string::npos) {
+    return false;
+  }
+
+  size_t quote_start = json.find('"', colon_pos + 1);
+  if (quote_start == std::string::npos) {
+    return false;
+  }
+
+  std::string parsed_value;
+  bool escaping = false;
+  for (size_t i = quote_start + 1; i < json.size(); ++i) {
+    char c = json[i];
+    if (escaping) {
+      parsed_value.push_back(c);
+      escaping = false;
+      continue;
+    }
+    if (c == '\\') {
+      escaping = true;
+      continue;
+    }
+    if (c == '"') {
+      *value = parsed_value;
+      return true;
+    }
+    parsed_value.push_back(c);
+  }
+
+  return false;
+}
+
+bool JsonExtractIntegerField(const std::string &json, const std::string &field, int *value) {
+  std::string needle = "\"" + field + "\"";
+  size_t key_pos = json.find(needle);
+  if (key_pos == std::string::npos) {
+    return false;
+  }
+
+  size_t colon_pos = json.find(':', key_pos + needle.size());
+  if (colon_pos == std::string::npos) {
+    return false;
+  }
+
+  size_t value_pos = json.find_first_of("-0123456789", colon_pos + 1);
+  if (value_pos == std::string::npos) {
+    return false;
+  }
+
+  size_t end_pos = value_pos;
+  while (end_pos < json.size() && ((json[end_pos] >= '0' && json[end_pos] <= '9') || json[end_pos] == '-')) {
+    ++end_pos;
+  }
+
+  try {
+    *value = std::stoi(json.substr(value_pos, end_pos - value_pos));
+  } catch (...) {
+    return false;
+  }
+
+  return true;
+}
+
+bool ExtractHeaderValue(const std::string &request, const std::string &header_name, std::string *value) {
+  size_t line_start = 0;
+  while (line_start < request.size()) {
+    size_t line_end = request.find('\n', line_start);
+    if (line_end == std::string::npos) {
+      line_end = request.size();
+    }
+
+    std::string line = request.substr(line_start, line_end - line_start);
+    if (!line.empty() && line.back() == '\r') {
+      line.pop_back();
+    }
+
+    size_t colon_pos = line.find(':');
+    if (colon_pos != std::string::npos) {
+      const std::string name = StringToLower(Trim(line.substr(0, colon_pos), " \t"));
+      if (name == header_name) {
+        *value = Trim(line.substr(colon_pos + 1), " \t");
+        return !value->empty();
+      }
+    }
+
+    line_start = line_end + 1;
+  }
+
+  return false;
+}
+
+bool HeaderContainsToken(const std::string &header_value, const std::string &token) {
+  size_t start = 0;
+  while (start < header_value.size()) {
+    size_t end = header_value.find(',', start);
+    if (end == std::string::npos) {
+      end = header_value.size();
+    }
+    if (StringToLower(Trim(header_value.substr(start, end - start), " \t")) == token) {
+      return true;
+    }
+    start = end + 1;
+  }
+  return false;
+}
+
 std::string Join(const StringVector &values, const std::string &delim) {
   std::stringstream ss;
 
@@ -158,7 +272,7 @@ std::string ByteArrayToHexString(nonstd::span<const uint8> bytes) {
   return buf;
 }
 
-std::string Base64Encode(const std::string &str) {
+std::string Base64Encode(nonstd::span<const uint8> bytes) {
   static char base64_table[64] = {'\0'};
 
   if (!base64_table[0]) {
@@ -174,23 +288,25 @@ std::string Base64Encode(const std::string &str) {
   }
 
   std::string outString;
-  outString.reserve(2 * str.size());
+  outString.reserve(2 * bytes.size());
 
-  const char *inPtr = str.c_str();
-  while (*inPtr) {
-    unsigned char selection = *inPtr >> 2;
-    unsigned char remainder = (*inPtr++ & 0x03) << 4;
+  for (size_t i = 0; i < bytes.size(); ) {
+    const unsigned char octet_a = bytes[i++];
+    unsigned char selection = octet_a >> 2;
+    unsigned char remainder = (octet_a & 0x03) << 4;
     outString += base64_table[selection];
 
-    if (*inPtr) {
-      selection = remainder | (*inPtr >> 4);
-      remainder = (*inPtr++ & 0x0f) << 2;
+    if (i < bytes.size()) {
+      const unsigned char octet_b = bytes[i++];
+      selection = remainder | (octet_b >> 4);
+      remainder = (octet_b & 0x0f) << 2;
       outString += base64_table[selection];
 
-      if (*inPtr) {
-        selection = remainder | (*inPtr >> 6);
+      if (i < bytes.size()) {
+        const unsigned char octet_c = bytes[i++];
+        selection = remainder | (octet_c >> 6);
         outString += base64_table[selection];
-        selection = (*inPtr++ & 0x3f);
+        selection = (octet_c & 0x3f);
         outString += base64_table[selection];
       } else {
         outString += base64_table[remainder];
@@ -203,6 +319,12 @@ std::string Base64Encode(const std::string &str) {
     }
   }
   return outString;
+}
+
+std::string Base64Encode(const std::string &str) {
+  return Base64Encode(nonstd::span<const uint8>(
+      reinterpret_cast<const uint8 *>(str.data()),
+      str.size()));
 }
 
 std::string TimevalToString(timeval tv) {

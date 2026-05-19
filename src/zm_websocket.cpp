@@ -2,6 +2,7 @@
 
 #include "zm_crypt.h"
 #include "zm_monitor.h"
+#include "zm_user.h"
 #include "zm_utils.h"
 
 #include <algorithm>
@@ -12,6 +13,7 @@
 #include <cstdint>
 #include <cstring>
 #include <fcntl.h>
+#include <sstream>
 #include <poll.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -23,98 +25,6 @@ static constexpr size_t kMaxHandshakeSize = 16384;
 static constexpr size_t kMaxMessageSize = 1024 * 1024;
 static constexpr size_t kMaxQueuedBytesPerClient = 8 * 1024 * 1024;
 static constexpr int kPollTimeoutMs = 100;
-static constexpr char kBase64Alphabet[] =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-std::string base64EncodeBytes(const uint8_t *data, size_t length) {
-  std::string out;
-  out.reserve(((length + 2) / 3) * 4);
-
-  for (size_t i = 0; i < length; i += 3) {
-    const uint32_t octet_a = data[i];
-    const uint32_t octet_b = (i + 1 < length) ? data[i + 1] : 0;
-    const uint32_t octet_c = (i + 2 < length) ? data[i + 2] : 0;
-    const uint32_t triple = (octet_a << 16) | (octet_b << 8) | octet_c;
-
-    out.push_back(kBase64Alphabet[(triple >> 18) & 0x3f]);
-    out.push_back(kBase64Alphabet[(triple >> 12) & 0x3f]);
-    out.push_back((i + 1 < length) ? kBase64Alphabet[(triple >> 6) & 0x3f] : '=');
-    out.push_back((i + 2 < length) ? kBase64Alphabet[triple & 0x3f] : '=');
-  }
-
-  return out;
-}
-
-bool extractQuotedField(const std::string &json, const std::string &field, std::string *value) {
-  std::string needle = "\"" + field + "\"";
-  size_t key_pos = json.find(needle);
-  if (key_pos == std::string::npos) {
-    return false;
-  }
-
-  size_t colon_pos = json.find(':', key_pos + needle.size());
-  if (colon_pos == std::string::npos) {
-    return false;
-  }
-
-  size_t quote_start = json.find('"', colon_pos + 1);
-  if (quote_start == std::string::npos) {
-    return false;
-  }
-
-  std::string parsed_value;
-  bool escaping = false;
-  for (size_t i = quote_start + 1; i < json.size(); ++i) {
-    char c = json[i];
-    if (escaping) {
-      parsed_value.push_back(c);
-      escaping = false;
-      continue;
-    }
-    if (c == '\\') {
-      escaping = true;
-      continue;
-    }
-    if (c == '"') {
-      *value = parsed_value;
-      return true;
-    }
-    parsed_value.push_back(c);
-  }
-
-  return false;
-}
-
-bool extractIntegerField(const std::string &json, const std::string &field, int *value) {
-  std::string needle = "\"" + field + "\"";
-  size_t key_pos = json.find(needle);
-  if (key_pos == std::string::npos) {
-    return false;
-  }
-
-  size_t colon_pos = json.find(':', key_pos + needle.size());
-  if (colon_pos == std::string::npos) {
-    return false;
-  }
-
-  size_t value_pos = json.find_first_of("-0123456789", colon_pos + 1);
-  if (value_pos == std::string::npos) {
-    return false;
-  }
-
-  size_t end_pos = value_pos;
-  while (end_pos < json.size() && ((json[end_pos] >= '0' && json[end_pos] <= '9') || json[end_pos] == '-')) {
-    ++end_pos;
-  }
-
-  try {
-    *value = std::stoi(json.substr(value_pos, end_pos - value_pos));
-  } catch (...) {
-    return false;
-  }
-
-  return true;
-}
 
 bool setNonBlocking(int fd) {
   int flags = fcntl(fd, F_GETFL, 0);
@@ -130,61 +40,6 @@ bool setNonBlocking(int fd) {
 
   return true;
 }
-
-std::string toLowerAscii(const std::string &input) {
-  std::string lowered = input;
-  std::transform(lowered.begin(), lowered.end(), lowered.begin(), [](unsigned char c) {
-    if (c >= 'A' && c <= 'Z') {
-      return static_cast<char>(c - 'A' + 'a');
-    }
-    return static_cast<char>(c);
-  });
-  return lowered;
-}
-
-bool extractHeaderValue(const std::string &request, const std::string &header_name, std::string *value) {
-  size_t line_start = 0;
-  while (line_start < request.size()) {
-    size_t line_end = request.find('\n', line_start);
-    if (line_end == std::string::npos) {
-      line_end = request.size();
-    }
-
-    std::string line = request.substr(line_start, line_end - line_start);
-    if (!line.empty() && line.back() == '\r') {
-      line.pop_back();
-    }
-
-    size_t colon_pos = line.find(':');
-    if (colon_pos != std::string::npos) {
-      const std::string name = toLowerAscii(Trim(line.substr(0, colon_pos), " \t"));
-      if (name == header_name) {
-        *value = Trim(line.substr(colon_pos + 1), " \t");
-        return !value->empty();
-      }
-    }
-
-    line_start = line_end + 1;
-  }
-
-  return false;
-}
-
-bool headerContainsToken(const std::string &header_value, const std::string &token) {
-  size_t start = 0;
-  while (start < header_value.size()) {
-    size_t end = header_value.find(',', start);
-    if (end == std::string::npos) {
-      end = header_value.size();
-    }
-    if (toLowerAscii(Trim(header_value.substr(start, end - start), " \t")) == token) {
-      return true;
-    }
-    start = end + 1;
-  }
-  return false;
-}
-
 bool writeFully(int fd, const std::string &payload) {
   size_t offset = 0;
   while (offset < payload.size()) {
@@ -212,15 +67,17 @@ std::string statusAckJson(const std::string &topic, int interval_ms) {
 
 std::string metadataJson(unsigned int monitor_id, const Monitor::WebSocketPayload &payload, const std::string &request_id) {
   return stringtf(
-      "{\"type\":\"image\",\"request_id\":\"%s\",\"format\":\"%s\",\"content_type\":\"%s\","
-      "\"monitor_id\":%u,\"width\":%u,\"height\":%u,\"colours\":%u,\"subpixel_order\":%u,"
+      "{\"type\":\"%s\",\"request_id\":\"%s\",\"format\":\"%s\",\"content_type\":\"%s\","
+      "\"monitor_id\":%u,\"width\":%u,\"height\":%u,\"line_size\":%u,\"colours\":%u,\"subpixel_order\":%u,"
       "\"image_count\":%u,\"sequence\":%" PRIu64 ",\"keyframe\":%s,\"payload_bytes\":%zu}",
+      escape_json_string(payload.type).c_str(),
       escape_json_string(request_id).c_str(),
       escape_json_string(payload.format).c_str(),
       escape_json_string(payload.content_type).c_str(),
       monitor_id,
       payload.width,
       payload.height,
+      payload.line_size,
       payload.colours,
       payload.subpixel_order,
       payload.image_count,
@@ -235,6 +92,106 @@ std::string errorJson(const std::string &message) {
       escape_json_string(message).c_str());
 }
 
+std::string httpResponse(const char *status_line, const char *body = nullptr) {
+  if (!body || !*body) {
+    return std::string(status_line) + "\r\n\r\n";
+  }
+
+  return stringtf(
+      "%s\r\nContent-Type: text/plain\r\nContent-Length: %zu\r\n\r\n%s",
+      status_line,
+      strlen(body),
+      body);
+}
+
+bool validateStreamAccess(User *user, unsigned int monitor_id) {
+  if (user->getStream() < User::PERM_VIEW) {
+    Warning(
+        "Insufficient websocket privileges for user %d %s on monitor %u: stream permission required",
+        user->Id(),
+        user->getUsername(),
+        monitor_id);
+    return false;
+  }
+
+  if (!user->canAccess(monitor_id)) {
+    Warning(
+        "Insufficient websocket privileges for user %d %s on monitor %u: monitor access denied",
+        user->Id(),
+        user->getUsername(),
+        monitor_id);
+    return false;
+  }
+
+  return true;
+}
+
+User *authenticateWebSocketRequest(const std::string &request, unsigned int monitor_id, int *http_status) {
+  *http_status = 401;
+  if (!config.opt_use_auth) {
+    return nullptr;
+  }
+
+  std::string target;
+  if (!zm::websocket::ExtractHandshakeRequestTarget(request, &target)) {
+    *http_status = 400;
+    return nullptr;
+  }
+
+  User *user = nullptr;
+  std::string token;
+  if (zm::websocket::ExtractAuthorizationBearerToken(request, &token)) {
+    user = zmLoadTokenUser(token, false);
+  } else {
+    const size_t query_pos = target.find('?');
+    std::string query_string;
+    if (query_pos != std::string::npos) {
+      query_string = target.substr(query_pos + 1);
+    }
+
+    std::istringstream request_stream(query_string);
+    QueryString query(request_stream);
+
+    if (query.has("jwt_token")) {
+      user = zmLoadTokenUser(query.get("jwt_token")->firstValue(), false);
+    } else if (query.has("token")) {
+      user = zmLoadTokenUser(query.get("token")->firstValue(), false);
+    } else if (strcmp(config.auth_relay, "none") == 0) {
+      if (query.has("username")) {
+        const std::string username = query.get("username")->firstValue();
+        if (checkUser(username)) {
+          user = zmLoadUser(username);
+        }
+      }
+    } else {
+      if (query.has("auth")) {
+        const std::string auth_hash = query.get("auth")->firstValue();
+        const std::string username = query.has("username") ? query.get("username")->firstValue() : "";
+        if (!auth_hash.empty()) {
+          user = zmLoadAuthUser(auth_hash, username, config.auth_hash_ips);
+        }
+      }
+
+      if ((!user) && query.has("username") && query.has("password")) {
+        user = zmLoadUser(query.get("username")->firstValue(), query.get("password")->firstValue());
+      }
+    }
+  }
+
+  if (!user) {
+    return nullptr;
+  }
+
+  if (!validateStreamAccess(user, monitor_id)) {
+    delete user;
+    *http_status = 403;
+    return nullptr;
+  }
+
+  *http_status = 101;
+  return user;
+}
+
 }  // namespace
 
 namespace zm {
@@ -243,29 +200,58 @@ namespace websocket {
 std::string ComputeAcceptKey(const std::string &client_key) {
   const std::string input = client_key + kWebSocketMagic;
   const zm::crypto::SHA1::Digest digest = zm::crypto::SHA1::GetDigestOf(input);
-  return base64EncodeBytes(digest.data(), digest.size());
+  return Base64Encode(nonstd::span<const uint8>(digest.data(), digest.size()));
 }
 
 bool ExtractHandshakeKey(const std::string &request, std::string *client_key) {
   std::string upgrade_value;
   std::string connection_value;
   std::string version_value;
-  if (!extractHeaderValue(request, "sec-websocket-key", client_key)) {
+  if (!ExtractHeaderValue(request, "sec-websocket-key", client_key)) {
     return false;
   }
-  if (!extractHeaderValue(request, "upgrade", &upgrade_value) ||
-      (toLowerAscii(upgrade_value) != "websocket")) {
+  if (!ExtractHeaderValue(request, "upgrade", &upgrade_value) ||
+      (StringToLower(upgrade_value) != "websocket")) {
     return false;
   }
-  if (!extractHeaderValue(request, "connection", &connection_value) ||
-      !headerContainsToken(connection_value, "upgrade")) {
+  if (!ExtractHeaderValue(request, "connection", &connection_value) ||
+      !HeaderContainsToken(connection_value, "upgrade")) {
     return false;
   }
-  if (!extractHeaderValue(request, "sec-websocket-version", &version_value) ||
+  if (!ExtractHeaderValue(request, "sec-websocket-version", &version_value) ||
       (version_value != "13")) {
     return false;
   }
   return !client_key->empty();
+}
+
+bool ExtractHandshakeRequestTarget(const std::string &request, std::string *target) {
+  const size_t line_end = request.find("\r\n");
+  const std::string request_line = request.substr(0, line_end);
+  std::istringstream line_stream(request_line);
+  std::string method;
+  std::string version;
+  if (!(line_stream >> method >> *target >> version)) {
+    return false;
+  }
+
+  return (method == "GET") && StartsWith(version, "HTTP/");
+}
+
+bool ExtractAuthorizationBearerToken(const std::string &request, std::string *token) {
+  std::string authorization;
+  if (!ExtractHeaderValue(request, "authorization", &authorization)) {
+    return false;
+  }
+
+  const std::string prefix = "bearer ";
+  std::string lower = StringToLower(authorization);
+  if (!StartsWith(lower, prefix)) {
+    return false;
+  }
+
+  *token = Trim(authorization.substr(prefix.length()), " \t");
+  return !token->empty();
 }
 
 std::string BuildHandshakeResponse(const std::string &client_key) {
@@ -482,7 +468,7 @@ void MonitorWebSocketServer::run() {
 
     const TimePoint now = std::chrono::steady_clock::now();
     broadcastStatus(&clients, now);
-    broadcastImages(&clients, now);
+    broadcastStreams(&clients, now);
     broadcastEvents(&clients);
 
     for (Client &client : clients) {
@@ -586,14 +572,30 @@ bool MonitorWebSocketServer::handleHandshake(Client *client) {
 
   std::string client_key;
   if (!websocket::ExtractHandshakeKey(request, &client_key)) {
-    writeFully(client->fd, "HTTP/1.1 400 Bad Request\r\n\r\n");
+    writeFully(client->fd, httpResponse("HTTP/1.1 400 Bad Request", "Bad websocket handshake"));
     return false;
+  }
+
+  if (config.opt_use_auth) {
+    int http_status = 401;
+    User *user = authenticateWebSocketRequest(request, monitor->Id(), &http_status);
+    if (!user) {
+      if (http_status == 403) {
+        writeFully(client->fd, httpResponse("HTTP/1.1 403 Forbidden", "Forbidden"));
+      } else if (http_status == 400) {
+        writeFully(client->fd, httpResponse("HTTP/1.1 400 Bad Request", "Malformed HTTP request line"));
+      } else {
+        writeFully(client->fd, httpResponse("HTTP/1.1 401 Unauthorized", "Authentication required"));
+      }
+      return false;
+    }
+    delete user;
   }
 
   queueRaw(client, websocket::BuildHandshakeResponse(client_key));
   client->handshake_complete = true;
   client->next_status_at = std::chrono::steady_clock::now();
-  client->next_image_at = std::chrono::steady_clock::now();
+  client->next_stream_at = std::chrono::steady_clock::now();
   return true;
 }
 
@@ -607,8 +609,8 @@ bool MonitorWebSocketServer::handleFrame(Client *client, const websocket::Frame 
   case websocket::Opcode::TEXT: {
     std::string command;
     std::string request_id;
-    extractQuotedField(frame.payload, "request_id", &request_id);
-    if (!extractQuotedField(frame.payload, "command", &command)) {
+    JsonExtractQuotedField(frame.payload, "request_id", &request_id);
+    if (!JsonExtractQuotedField(frame.payload, "command", &command)) {
       if (!queueFrame(client, websocket::Opcode::TEXT, errorJson("Missing command"))) {
         return false;
       }
@@ -624,11 +626,12 @@ bool MonitorWebSocketServer::handleFrame(Client *client, const websocket::Frame 
 
     if (command == "image") {
       std::string format;
-      if (!extractQuotedField(frame.payload, "format", &format)) {
+      if (!JsonExtractQuotedField(frame.payload, "format", &format)) {
         format = "jpeg";
       }
+      monitor->setLastViewed();
       Monitor::WebSocketPayload payload;
-      if (!monitor->GetWebSocketPayload(format, &payload)) {
+      if (!monitor->GetWebSocketImagePayload(format, &payload)) {
         if (!queueFrame(client, websocket::Opcode::TEXT, errorJson("Unable to fetch image payload"))) {
           return false;
         }
@@ -640,8 +643,49 @@ bool MonitorWebSocketServer::handleFrame(Client *client, const websocket::Frame 
       return true;
     }
 
+    if (command == "stream") {
+      std::string codec;
+      if (!JsonExtractQuotedField(frame.payload, "codec", &codec)) {
+        codec = "mjpeg";
+      }
+      monitor->setLastViewed();
+
+      Monitor::WebSocketPayload payload;
+      if (codec == "mjpeg") {
+        if (!monitor->GetWebSocketImagePayload("jpeg", &payload)) {
+          if (!queueFrame(client, websocket::Opcode::TEXT, errorJson("Unable to fetch mjpeg stream payload"))) {
+            return false;
+          }
+          return true;
+        }
+        payload.type = "stream";
+        payload.format = "mjpeg";
+      } else {
+        packetqueue_iterator *it = monitor->CreateWebSocketVideoIterator(codec);
+        if (!it) {
+          if (!queueFrame(client, websocket::Opcode::TEXT, errorJson("Unsupported stream codec or payload unavailable"))) {
+            return false;
+          }
+          return true;
+        }
+        const bool ok = monitor->GetNextWebSocketVideoPayload(it, codec, &payload);
+        monitor->FreeWebSocketIterator(it);
+        if (!ok) {
+          if (!queueFrame(client, websocket::Opcode::TEXT, errorJson("Unsupported stream codec or payload unavailable"))) {
+            return false;
+          }
+          return true;
+        }
+      }
+
+      if (!sendImagePayload(client, payload, request_id)) {
+        return false;
+      }
+      return true;
+    }
+
     std::string topic;
-    if (!extractQuotedField(frame.payload, "topic", &topic)) {
+    if (!JsonExtractQuotedField(frame.payload, "topic", &topic)) {
       if (!queueFrame(client, websocket::Opcode::TEXT, errorJson("Missing topic"))) {
         return false;
       }
@@ -651,7 +695,7 @@ bool MonitorWebSocketServer::handleFrame(Client *client, const websocket::Frame 
     if (command == "subscribe") {
       if (topic == "status") {
         int interval_ms = 1000;
-        if (extractIntegerField(frame.payload, "interval_ms", &interval_ms)) {
+        if (JsonExtractIntegerField(frame.payload, "interval_ms", &interval_ms)) {
           interval_ms = std::max(100, std::min(interval_ms, 60000));
           client->status_interval = Milliseconds(interval_ms);
         }
@@ -661,47 +705,49 @@ bool MonitorWebSocketServer::handleFrame(Client *client, const websocket::Frame 
             !queueFrame(client, websocket::Opcode::TEXT, monitor->GetWebSocketStatusJson())) {
           return false;
         }
-      } else if (topic == "image") {
+      } else if (topic == "stream") {
         int interval_ms = 1000;
-        if (extractIntegerField(frame.payload, "interval_ms", &interval_ms)) {
+        if (JsonExtractIntegerField(frame.payload, "interval_ms", &interval_ms)) {
           interval_ms = std::max(100, std::min(interval_ms, 60000));
         }
-        if (!extractQuotedField(frame.payload, "format", &client->image_format)) {
-          client->image_format = "jpeg";
+        if (!JsonExtractQuotedField(frame.payload, "codec", &client->stream_codec)) {
+          client->stream_codec = "mjpeg";
         }
         freeClientResources(client);
-        client->subscribe_image = true;
-        client->next_image_at = std::chrono::steady_clock::now();
-        if (client->image_format == "h264") {
-          client->image_interval = Milliseconds(0);
-          client->h264_it = monitor->CreateWebSocketH264Iterator();
-          if (!client->h264_it) {
-            client->subscribe_image = false;
-            if (!queueFrame(client, websocket::Opcode::TEXT, errorJson("Unsupported image format or payload unavailable"))) {
+        client->subscribe_stream = true;
+        monitor->setLastViewed();
+        client->next_stream_at = std::chrono::steady_clock::now();
+        if (client->stream_codec == "mjpeg") {
+          client->stream_interval = Milliseconds(interval_ms);
+          client->last_stream_sequence = 0;
+          if (!queueFrame(client, websocket::Opcode::TEXT, statusAckJson(topic, client->stream_interval.count()))) {
+            return false;
+          }
+
+          Monitor::WebSocketPayload payload;
+          if (monitor->GetWebSocketImagePayload("jpeg", &payload)) {
+            payload.type = "stream";
+            payload.format = "mjpeg";
+            client->last_stream_sequence = payload.sequence;
+            if (!sendImagePayload(client, payload, request_id)) {
+              return false;
+            }
+          }
+          client->next_stream_at = std::chrono::steady_clock::now() + client->stream_interval;
+        } else {
+          client->stream_interval = Milliseconds(0);
+          client->stream_it = monitor->CreateWebSocketVideoIterator(client->stream_codec);
+          if (!client->stream_it) {
+            client->subscribe_stream = false;
+            if (!queueFrame(client, websocket::Opcode::TEXT, errorJson("Unsupported stream codec or payload unavailable"))) {
               return false;
             }
             return true;
           }
-          client->last_image_sequence = 0;
+          client->last_stream_sequence = 0;
           if (!queueFrame(client, websocket::Opcode::TEXT, statusAckJson(topic, 0))) {
             return false;
           }
-        } else {
-          client->image_interval = Milliseconds(interval_ms);
-          Monitor::WebSocketPayload payload;
-          if (!monitor->GetWebSocketPayload(client->image_format, &payload)) {
-            client->subscribe_image = false;
-            if (!queueFrame(client, websocket::Opcode::TEXT, errorJson("Unsupported image format or payload unavailable"))) {
-              return false;
-            }
-            return true;
-          }
-          client->last_image_sequence = payload.sequence;
-          if (!queueFrame(client, websocket::Opcode::TEXT, statusAckJson(topic, client->image_interval.count())) ||
-              !sendImagePayload(client, payload, request_id)) {
-            return false;
-          }
-          client->next_image_at = std::chrono::steady_clock::now() + client->image_interval;
         }
       } else if (topic == "events") {
         client->subscribe_events = true;
@@ -719,9 +765,9 @@ bool MonitorWebSocketServer::handleFrame(Client *client, const websocket::Frame 
     if (command == "unsubscribe") {
       if (topic == "status") {
         client->subscribe_status = false;
-      } else if (topic == "image") {
-        client->subscribe_image = false;
-        client->last_image_sequence = 0;
+      } else if (topic == "stream") {
+        client->subscribe_stream = false;
+        client->last_stream_sequence = 0;
         freeClientResources(client);
       } else if (topic == "events") {
         client->subscribe_events = false;
@@ -795,9 +841,9 @@ bool MonitorWebSocketServer::sendImagePayload(
 }
 
 void MonitorWebSocketServer::freeClientResources(Client *client) {
-  if (client->h264_it) {
-    monitor->FreeWebSocketIterator(client->h264_it);
-    client->h264_it = nullptr;
+  if (client->stream_it) {
+    monitor->FreeWebSocketIterator(client->stream_it);
+    client->stream_it = nullptr;
   }
 }
 
@@ -834,48 +880,52 @@ void MonitorWebSocketServer::broadcastStatus(std::vector<Client> *clients, TimeP
   }
 }
 
-void MonitorWebSocketServer::broadcastImages(std::vector<Client> *clients, TimePoint now) {
+void MonitorWebSocketServer::broadcastStreams(std::vector<Client> *clients, TimePoint now) {
   for (Client &client : *clients) {
-    if ((client.fd < 0) || !client.handshake_complete || !client.subscribe_image) {
+    if ((client.fd < 0) || !client.handshake_complete || !client.subscribe_stream) {
       continue;
     }
-    if (client.image_format == "h264") {
-      if (!client.h264_it) {
-        client.h264_it = monitor->CreateWebSocketH264Iterator();
-        if (!client.h264_it) {
-          client.subscribe_image = false;
-          continue;
-        }
-      }
-
-      int packets_sent = 0;
-      while (packets_sent < 64) {
-        Monitor::WebSocketPayload payload;
-        if (!monitor->GetNextWebSocketH264Payload(client.h264_it, &payload)) {
-          break;
-        }
-        if (!sendImagePayload(&client, payload, "")) {
-          closeClient(&client);
-          break;
-        }
-        client.last_image_sequence = payload.sequence;
-        packets_sent++;
-      }
-      continue;
-    }
-    if ((client.next_image_at.time_since_epoch().count() != 0) && (now < client.next_image_at)) {
-      continue;
-    }
-
-    Monitor::WebSocketPayload payload;
-    if (monitor->GetWebSocketPayload(client.image_format, &payload) && (payload.sequence != client.last_image_sequence)) {
-      if (!sendImagePayload(&client, payload, "")) {
-        closeClient(&client);
+    monitor->setLastViewed();
+    if (client.stream_codec == "mjpeg") {
+      if ((client.next_stream_at.time_since_epoch().count() != 0) && (now < client.next_stream_at)) {
         continue;
       }
-      client.last_image_sequence = payload.sequence;
+
+      Monitor::WebSocketPayload payload;
+      if (monitor->GetWebSocketImagePayload("jpeg", &payload) && (payload.sequence != client.last_stream_sequence)) {
+        payload.type = "stream";
+        payload.format = "mjpeg";
+        if (!sendImagePayload(&client, payload, "")) {
+          closeClient(&client);
+          continue;
+        }
+        client.last_stream_sequence = payload.sequence;
+      }
+      client.next_stream_at = now + client.stream_interval;
+      continue;
     }
-    client.next_image_at = now + client.image_interval;
+
+    if (!client.stream_it) {
+      client.stream_it = monitor->CreateWebSocketVideoIterator(client.stream_codec);
+      if (!client.stream_it) {
+        client.subscribe_stream = false;
+        continue;
+      }
+    }
+
+    int packets_sent = 0;
+    while (packets_sent < 64) {
+      Monitor::WebSocketPayload payload;
+      if (!monitor->GetNextWebSocketVideoPayload(client.stream_it, client.stream_codec, &payload)) {
+        break;
+      }
+      if (!sendImagePayload(&client, payload, "")) {
+        closeClient(&client);
+        break;
+      }
+      client.last_stream_sequence = payload.sequence;
+      packets_sent++;
+    }
   }
 }
 

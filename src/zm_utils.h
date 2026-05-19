@@ -71,6 +71,10 @@ inline std::string StringToLower(std::string str) {
 StringVector Split(const std::string &str, char delim);
 StringVector Split(const std::string &str, const std::string &delim, size_t limit = 0);
 std::pair<std::string, std::string> PairSplit(const std::string &str, char delim);
+bool JsonExtractQuotedField(const std::string &json, const std::string &field, std::string *value);
+bool JsonExtractIntegerField(const std::string &json, const std::string &field, int *value);
+bool ExtractHeaderValue(const std::string &request, const std::string &header_name, std::string *value);
+bool HeaderContainsToken(const std::string &header_value, const std::string &token);
 
 std::string Join(const StringVector &values, const std::string &delim = ",");
 
@@ -83,6 +87,7 @@ std::string stringtf(const char* format, ...);
 
 std::string ByteArrayToHexString(nonstd::span<const uint8> bytes);
 
+std::string Base64Encode(nonstd::span<const uint8> bytes);
 std::string Base64Encode(const std::string &str);
 
 std::string TimevalToString(timeval tv);

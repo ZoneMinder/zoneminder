@@ -52,12 +52,15 @@
 #include <algorithm>
 #include <chrono>
 #include <cstring>
+#include <string>
+#include <sys/stat.h>
 #include <sys/types.h>
+#include <utility>
 
 namespace {
 
 bool encodeJpegImage(const Image &image, std::string *output) {
-  std::vector<unsigned char> buffer(ZM_MAX_IMAGE_SIZE);
+  static thread_local std::vector<unsigned char> buffer(ZM_MAX_IMAGE_SIZE);
   size_t encoded_size = 0;
   if (!image.EncodeJpeg(buffer.data(), &encoded_size)) {
     return false;
@@ -66,10 +69,114 @@ bool encodeJpegImage(const Image &image, std::string *output) {
   return true;
 }
 
+bool encodeRgbaImage(const Image &image, std::string *output, uint32_t *line_size) {
+  if (!output || !line_size || !image.Buffer() || !image.Width() || !image.Height()) {
+    return false;
+  }
+
+  *line_size = FFALIGN(av_image_get_linesize(AV_PIX_FMT_RGBA, image.Width(), 0), 32);
+  output->assign(static_cast<size_t>(*line_size) * image.Height(), '\0');
+
+  const uint8_t *src = image.Buffer();
+  for (unsigned int y = 0; y < image.Height(); ++y) {
+    const uint8_t *src_row = src + (static_cast<size_t>(y) * image.LineSize());
+    uint8_t *dst_row = reinterpret_cast<uint8_t *>(&(*output)[static_cast<size_t>(y) * (*line_size)]);
+
+    for (unsigned int x = 0; x < image.Width(); ++x) {
+      uint8_t *dst_pixel = dst_row + (x * 4);
+      uint8_t red = 0;
+      uint8_t green = 0;
+      uint8_t blue = 0;
+
+      switch (image.Colours()) {
+      case ZM_COLOUR_GRAY8: {
+        const uint8_t gray = src_row[x];
+        red = gray;
+        green = gray;
+        blue = gray;
+        break;
+      }
+      case ZM_COLOUR_RGB24: {
+        const uint8_t *src_pixel = src_row + (x * 3);
+        if (image.SubpixelOrder() == ZM_SUBPIX_ORDER_BGR) {
+          blue = src_pixel[0];
+          green = src_pixel[1];
+          red = src_pixel[2];
+        } else {
+          red = src_pixel[0];
+          green = src_pixel[1];
+          blue = src_pixel[2];
+        }
+        break;
+      }
+      case ZM_COLOUR_RGB32: {
+        const uint8_t *src_pixel = src_row + (x * 4);
+        switch (image.SubpixelOrder()) {
+        case ZM_SUBPIX_ORDER_BGRA:
+          blue = src_pixel[0];
+          green = src_pixel[1];
+          red = src_pixel[2];
+          break;
+        case ZM_SUBPIX_ORDER_ARGB:
+          red = src_pixel[1];
+          green = src_pixel[2];
+          blue = src_pixel[3];
+          break;
+        case ZM_SUBPIX_ORDER_ABGR:
+          red = src_pixel[3];
+          green = src_pixel[2];
+          blue = src_pixel[1];
+          break;
+        case ZM_SUBPIX_ORDER_RGBA:
+        default:
+          red = src_pixel[0];
+          green = src_pixel[1];
+          blue = src_pixel[2];
+          break;
+        }
+        break;
+      }
+      default:
+        Error("Unsupported image colours %u for websocket rgba payload", image.Colours());
+        return false;
+      }
+
+      dst_pixel[0] = red;
+      dst_pixel[1] = green;
+      dst_pixel[2] = blue;
+      dst_pixel[3] = 0xff;
+    }
+  }
+
+  return true;
+}
+
+bool requestedWebSocketVideoCodec(const std::string &codec, AVCodecID *codec_id, std::string *content_type = nullptr) {
+  if (codec == "h264") {
+    *codec_id = AV_CODEC_ID_H264;
+    if (content_type) {
+      *content_type = "video/h264";
+    }
+    return true;
+  }
+  if (codec == "h265") {
+    *codec_id = AV_CODEC_ID_HEVC;
+    if (content_type) {
+      *content_type = "video/h265";
+    }
+    return true;
+  }
+  if (codec == "av1") {
+    *codec_id = AV_CODEC_ID_AV1;
+    if (content_type) {
+      *content_type = "video/av1";
+    }
+    return true;
+  }
+  return false;
+}
+
 }  // namespace
-#include <sys/stat.h>
-#include <string>
-#include <utility>
 
 #if ZM_MEM_MAPPED
 #include <fcntl.h>
@@ -1310,7 +1417,7 @@ bool Monitor::disconnect() {
 }  // end bool Monitor::disconnect()
 
 bool Monitor::StartWebSocketServer() {
-  if (!config.min_streaming_port) {
+  if (!config.min_websocket_port) {
     return false;
   }
 
@@ -1318,9 +1425,9 @@ bool Monitor::StartWebSocketServer() {
     return true;
   }
 
-  const unsigned int websocket_port = zm::websocket::MonitorStreamingPort(config.min_streaming_port, id);
+  const unsigned int websocket_port = zm::websocket::MonitorStreamingPort(config.min_websocket_port, id);
   if (!websocket_port) {
-    Warning("Unable to compute websocket port for monitor %u using base port %d", id, config.min_streaming_port);
+    Warning("Unable to compute websocket port for monitor %u using base port %d", id, config.min_websocket_port);
     return false;
   }
 
@@ -1416,62 +1523,105 @@ std::vector<std::string> Monitor::DrainWebSocketMessages() {
   return drained;
 }
 
-bool Monitor::GetWebSocketPayload(const std::string &format, WebSocketPayload *payload) {
+bool Monitor::GetWebSocketImagePayload(const std::string &format, WebSocketPayload *payload) {
   if (!payload) {
     return false;
   }
 
-  if (format == "jpeg" || format == "raw") {
-    if (!shared_data || !shared_timestamps) {
-      return false;
-    }
-    std::shared_ptr<ZMPacket> snapshot = getSnapshot();
-    if (!snapshot || !snapshot->image) {
-      return false;
-    }
-
-    payload->format = format;
-    payload->width = snapshot->image->Width();
-    payload->height = snapshot->image->Height();
-    payload->colours = snapshot->image->Colours();
-    payload->subpixel_order = snapshot->image->SubpixelOrder();
-    payload->image_count = shared_data ? shared_data->image_count : 0;
-    payload->sequence = payload->image_count;
-
-    if (format == "jpeg") {
-      payload->content_type = "image/jpeg";
-      Image image_copy;
-      image_copy.Assign(*snapshot->image);
-      return encodeJpegImage(image_copy, &payload->payload);
-    }
-
-    payload->content_type = "application/octet-stream";
-    payload->payload.assign(
-        reinterpret_cast<const char *>(snapshot->image->Buffer()),
-        snapshot->image->Size());
-    return true;
-  }
-
-  if (format != "h264") {
+  if ((format != "jpeg") && (format != "rgba")) {
     return false;
   }
 
-  packetqueue_iterator *it = CreateWebSocketH264Iterator();
+  packetqueue_iterator *it = packetqueue.get_video_it(false);
   if (!it) {
     return false;
   }
 
-  const bool ok = GetNextWebSocketH264Payload(it, payload);
-  FreeWebSocketIterator(it);
-  return ok;
+  packetqueue_iterator *scan_it = packetqueue.get_video_it(false);
+  if (!scan_it) {
+    packetqueue.free_it(it);
+    return false;
+  }
+
+  bool have_image = false;
+  while (true) {
+    if (*scan_it == packetqueue.end()) {
+      break;
+    }
+
+    ZMPacketLock packet_lock = packetqueue.get_packet_no_wait(scan_it);
+    if (!packet_lock.packet_) {
+      if (!packetqueue.increment_it(scan_it, video_stream_id)) {
+        break;
+      }
+      continue;
+    }
+
+    if (packet_lock.packet_->packet &&
+        packet_lock.packet_->packet->stream_index == video_stream_id &&
+        packet_lock.packet_->image) {
+      *it = *scan_it;
+      have_image = true;
+    }
+
+    if (!packetqueue.increment_it(scan_it, video_stream_id)) {
+      break;
+    }
+  }
+
+  packetqueue.free_it(scan_it);
+
+  if (!have_image) {
+    packetqueue.free_it(it);
+    return false;
+  }
+
+  ZMPacketLock packet_lock = packetqueue.get_packet_no_wait(it);
+  packetqueue.free_it(it);
+  if (!packet_lock.packet_ || !packet_lock.packet_->image) {
+    return false;
+  }
+
+  Image *image = packet_lock.packet_->image;
+  payload->type = "image";
+  payload->format = format;
+  payload->width = image->Width();
+  payload->height = image->Height();
+  payload->image_count = shared_data ? shared_data->image_count : 0;
+  payload->sequence = packet_lock.packet_->queue_index;
+  payload->keyframe = false;
+
+  if (format == "jpeg") {
+    payload->content_type = "image/jpeg";
+    payload->line_size = 0;
+    payload->colours = image->Colours();
+    payload->subpixel_order = image->SubpixelOrder();
+    Image image_copy;
+    image_copy.Assign(*image);
+    return encodeJpegImage(image_copy, &payload->payload);
+  }
+
+  if (format == "rgba") {
+    payload->content_type = "application/octet-stream";
+    payload->colours = ZM_COLOUR_RGB32;
+    payload->subpixel_order = ZM_SUBPIX_ORDER_RGBA;
+    return encodeRgbaImage(*image, &payload->payload, &payload->line_size);
+  }
+
+  return false;
 }
 
-packetqueue_iterator *Monitor::CreateWebSocketH264Iterator() {
+packetqueue_iterator *Monitor::CreateWebSocketVideoIterator(const std::string &codec) {
   if (!camera || !camera->getVideoStream()) {
     return nullptr;
   }
 
-  if (camera->getVideoStream()->codecpar->codec_id != AV_CODEC_ID_H264) {
+  AVCodecID requested_codec = AV_CODEC_ID_NONE;
+  if (!requestedWebSocketVideoCodec(codec, &requested_codec)) {
+    return nullptr;
+  }
+
+  if (camera->getVideoStream()->codecpar->codec_id != requested_codec) {
     return nullptr;
   }
 
@@ -1523,8 +1673,14 @@ packetqueue_iterator *Monitor::CreateWebSocketH264Iterator() {
   return it;
 }
 
-bool Monitor::GetNextWebSocketH264Payload(packetqueue_iterator *it, WebSocketPayload *payload) {
+bool Monitor::GetNextWebSocketVideoPayload(packetqueue_iterator *it, const std::string &codec, WebSocketPayload *payload) {
   if (!it || !payload || !camera || !camera->getVideoStream()) {
+    return false;
+  }
+
+  AVCodecID requested_codec = AV_CODEC_ID_NONE;
+  std::string content_type;
+  if (!requestedWebSocketVideoCodec(codec, &requested_codec, &content_type)) {
     return false;
   }
 
@@ -1534,17 +1690,19 @@ bool Monitor::GetNextWebSocketH264Payload(packetqueue_iterator *it, WebSocketPay
   }
 
   const AVCodecID codec_id = packet_lock.packet_->stream->codecpar->codec_id;
-  if (codec_id != AV_CODEC_ID_H264) {
+  if (codec_id != requested_codec) {
     packetqueue.increment_it(it, video_stream_id);
     return false;
   }
 
-  payload->format = "h264";
-  payload->content_type = "video/h264";
-  payload->width = Width();
-  payload->height = Height();
-  payload->colours = Colours();
-  payload->subpixel_order = SubpixelOrder();
+  payload->type = "stream";
+  payload->format = codec;
+  payload->content_type = content_type;
+  payload->width = packet_lock.packet_->stream->codecpar->width ? packet_lock.packet_->stream->codecpar->width : Width();
+  payload->height = packet_lock.packet_->stream->codecpar->height ? packet_lock.packet_->stream->codecpar->height : Height();
+  payload->line_size = 0;
+  payload->colours = 0;
+  payload->subpixel_order = 0;
   payload->image_count = shared_data ? shared_data->image_count : 0;
   payload->sequence = packet_lock.packet_->queue_index;
   payload->keyframe = packet_lock.packet_->keyframe;

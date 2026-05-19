@@ -39,6 +39,28 @@ TEST_CASE("Websocket handshake extracts client key") {
   REQUIRE(client_key == "dGhlIHNhbXBsZSBub25jZQ==");
 }
 
+TEST_CASE("Websocket handshake extracts request target") {
+  const std::string request =
+      "GET /socket?token=abc123 HTTP/1.1\r\n"
+      "Host: localhost:30001\r\n\r\n";
+
+  std::string target;
+  REQUIRE(zm::websocket::ExtractHandshakeRequestTarget(request, &target));
+  REQUIRE(target == "/socket?token=abc123");
+}
+
+TEST_CASE("Websocket handshake rejects non-GET request lines") {
+  std::string target;
+  REQUIRE_FALSE(
+      zm::websocket::ExtractHandshakeRequestTarget(
+          "POST /socket HTTP/1.1\r\nHost: localhost\r\n\r\n",
+          &target));
+  REQUIRE_FALSE(
+      zm::websocket::ExtractHandshakeRequestTarget(
+          "GET /socket\r\nHost: localhost\r\n\r\n",
+          &target));
+}
+
 TEST_CASE("Websocket handshake accepts case-insensitive header names") {
   const std::string request =
       "GET / HTTP/1.1\r\n"
@@ -51,6 +73,17 @@ TEST_CASE("Websocket handshake accepts case-insensitive header names") {
   std::string client_key;
   REQUIRE(zm::websocket::ExtractHandshakeKey(request, &client_key));
   REQUIRE(client_key == "dGhlIHNhbXBsZSBub25jZQ==");
+}
+
+TEST_CASE("Websocket handshake extracts bearer token from authorization header") {
+  const std::string request =
+      "GET /socket HTTP/1.1\r\n"
+      "Host: localhost:30001\r\n"
+      "Authorization: Bearer abc.def.ghi\r\n\r\n";
+
+  std::string token;
+  REQUIRE(zm::websocket::ExtractAuthorizationBearerToken(request, &token));
+  REQUIRE(token == "abc.def.ghi");
 }
 
 TEST_CASE("Websocket encodes server text frames") {

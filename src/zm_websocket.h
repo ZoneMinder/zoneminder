@@ -40,6 +40,8 @@ enum class DecodeResult {
 
 std::string ComputeAcceptKey(const std::string &client_key);
 bool ExtractHandshakeKey(const std::string &request, std::string *client_key);
+bool ExtractHandshakeRequestTarget(const std::string &request, std::string *target);
+bool ExtractAuthorizationBearerToken(const std::string &request, std::string *token);
 std::string BuildHandshakeResponse(const std::string &client_key);
 std::string EncodeFrame(Opcode opcode, const std::string &payload, bool fin = true);
 DecodeResult DecodeFrame(const std::string &buffer, Frame *frame, size_t *consumed);
@@ -68,14 +70,14 @@ class MonitorWebSocketServer {
     bool handshake_complete = false;
     bool subscribe_status = false;
     bool subscribe_events = false;
-    bool subscribe_image = false;
+    bool subscribe_stream = false;
     Milliseconds status_interval = Milliseconds(1000);
-    Milliseconds image_interval = Milliseconds(1000);
+    Milliseconds stream_interval = Milliseconds(1000);
     TimePoint next_status_at = {};
-    TimePoint next_image_at = {};
-    std::string image_format = "jpeg";
-    uint64_t last_image_sequence = 0;
-    packetqueue_iterator *h264_it = nullptr;
+    TimePoint next_stream_at = {};
+    std::string stream_codec = "mjpeg";
+    uint64_t last_stream_sequence = 0;
+    packetqueue_iterator *stream_it = nullptr;
     std::string recv_buffer;
     std::deque<PendingBuffer> send_queue;
     size_t queued_bytes = 0;
@@ -99,7 +101,7 @@ class MonitorWebSocketServer {
   bool queueRaw(Client *client, const std::string &payload);
   bool queueFrame(Client *client, websocket::Opcode opcode, const std::string &payload);
   void broadcastStatus(std::vector<Client> *clients, TimePoint now);
-  void broadcastImages(std::vector<Client> *clients, TimePoint now);
+  void broadcastStreams(std::vector<Client> *clients, TimePoint now);
   void broadcastEvents(std::vector<Client> *clients);
   void removeClosedClients(std::vector<Client> *clients);
 };

@@ -66,11 +66,13 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
  public:
   struct WebSocketPayload {
+    std::string type;
     std::string format;
     std::string content_type;
     std::string payload;
     uint32_t width = 0;
     uint32_t height = 0;
+    uint32_t line_size = 0;
     uint32_t colours = 0;
     uint32_t subpixel_order = 0;
     uint32_t image_count = 0;
@@ -962,9 +964,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::string GetWebSocketStatusJson() const;
   void QueueWebSocketEvent(const std::string &event_type, const std::string &message);
   std::vector<std::string> DrainWebSocketMessages();
-  bool GetWebSocketPayload(const std::string &format, WebSocketPayload *payload);
-  packetqueue_iterator *CreateWebSocketH264Iterator();
-  bool GetNextWebSocketH264Payload(packetqueue_iterator *it, WebSocketPayload *payload);
+  bool GetWebSocketImagePayload(const std::string &format, WebSocketPayload *payload);
+  packetqueue_iterator *CreateWebSocketVideoIterator(const std::string &codec);
+  bool GetNextWebSocketVideoPayload(packetqueue_iterator *it, const std::string &codec, WebSocketPayload *payload);
   void FreeWebSocketIterator(packetqueue_iterator *it);
   SystemTimePoint GetTimestamp(int index = -1) const;
   void UpdateAdaptiveSkip();

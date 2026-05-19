@@ -18,6 +18,8 @@
 #include "zm_catch2.h"
 
 #include "zm_utils.h"
+
+#include <array>
 #include <sstream>
 
 TEST_CASE("Trim") {
@@ -160,6 +162,42 @@ TEST_CASE("Base64Encode") {
   REQUIRE(Base64Encode("foob") == "Zm9vYg==");
   REQUIRE(Base64Encode("fooba") == "Zm9vYmE=");
   REQUIRE(Base64Encode("foobar") == "Zm9vYmFy");
+
+  const std::array<uint8, 3> binary = {{0x00, 0xff, 0x10}};
+  REQUIRE(Base64Encode(nonstd::span<const uint8>(binary.data(), binary.size())) == "AP8Q");
+}
+
+TEST_CASE("JsonExtractQuotedField") {
+  std::string value;
+  REQUIRE(JsonExtractQuotedField("{\"command\":\"stream\",\"codec\":\"h264\"}", "command", &value));
+  REQUIRE(value == "stream");
+  REQUIRE(JsonExtractQuotedField("{\"message\":\"hello \\\"zm\\\"\"}", "message", &value));
+  REQUIRE(value == "hello \"zm\"");
+  REQUIRE_FALSE(JsonExtractQuotedField("{\"command\":123}", "command", &value));
+}
+
+TEST_CASE("JsonExtractIntegerField") {
+  int value = 0;
+  REQUIRE(JsonExtractIntegerField("{\"interval_ms\":1000}", "interval_ms", &value));
+  REQUIRE(value == 1000);
+  REQUIRE(JsonExtractIntegerField("{\"interval_ms\":-25}", "interval_ms", &value));
+  REQUIRE(value == -25);
+  REQUIRE_FALSE(JsonExtractIntegerField("{\"interval_ms\":\"fast\"}", "interval_ms", &value));
+}
+
+TEST_CASE("ExtractHeaderValue and HeaderContainsToken") {
+  const std::string request =
+      "GET / HTTP/1.1\r\n"
+      "Upgrade: websocket\r\n"
+      "Connection: keep-alive, Upgrade\r\n"
+      "Sec-WebSocket-Key: abc\r\n\r\n";
+
+  std::string value;
+  REQUIRE(ExtractHeaderValue(request, "upgrade", &value));
+  REQUIRE(value == "websocket");
+  REQUIRE(ExtractHeaderValue(request, "connection", &value));
+  REQUIRE(HeaderContainsToken(value, "upgrade"));
+  REQUIRE_FALSE(HeaderContainsToken(value, "close"));
 }
 
 TEST_CASE("ZM::clamp") {

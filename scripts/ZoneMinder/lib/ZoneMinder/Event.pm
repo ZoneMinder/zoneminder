@@ -420,7 +420,11 @@ sub delete {
     while (1) {
       $attempt++;
       if (!$in_transaction) {
-        ZoneMinder::Database::zmDbDo('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
+        # Use $dbh->do directly, NOT zmDbDo: zmDbDo's success Debug would
+        # write to the Logs table on this same $dbh, and that INSERT would
+        # become the "next transaction" that consumes the isolation level
+        # directive — silently dropping our delete TX back to the default.
+        $ZoneMinder::Database::dbh->do('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
         $ZoneMinder::Database::dbh->begin_work();
       }
 

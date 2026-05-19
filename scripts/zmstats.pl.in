@@ -116,8 +116,12 @@ while (!$zm_terminate) {
     while (1) {
       $attempt++;
       # SET TRANSACTION ... applies only to the next transaction, so it must
-      # be issued before begin_work and re-issued on each retry.
-      zmDbDo('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
+      # be issued before begin_work and re-issued on each retry. Use
+      # $dbh->do directly, NOT zmDbDo: zmDbDo's success Debug would write to
+      # the Logs table on this same $dbh, and that INSERT would become the
+      # "next transaction" that consumes the isolation directive — silently
+      # dropping our prune+resync TX back to the default.
+      $dbh->do('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
       $dbh->begin_work();
 
       my $err = 0;

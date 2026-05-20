@@ -941,14 +941,14 @@ FROM `Frames` WHERE `EventId`=?';
   # row it targets and reads no other table, so it can't form a cycle with
   # the trigger writers.
   #
-  # Atomicity tradeoff (same as zmstats.pl): a concurrent trigger writer can
-  # adjust ES between our snapshot SELECTs and the per-monitor UPDATE; our
-  # UPDATE then overwrites that adjustment with the older snapshot. This is
-  # intentional. zmaudit is a periodic ground-truth resync — incremental
-  # trigger maintenance carries ES correctly between zmaudit passes, and any
-  # drift introduced by this race is bounded and corrected on the next pass.
-  # Locking ES before reading the aggregates would invert the canonical lock
-  # order and re-introduce the deadlock this rewrite eliminated.
+  # Atomicity: zmaudit guards each per-monitor UPDATE with a CAS predicate
+  # built from the ES values we read at snapshot time (see "Read current ES
+  # values" below). If a concurrent trigger writer adjusts ES between our
+  # snapshot and our UPDATE, the WHERE doesn't match and we leave their
+  # adjustment in place — necessary here because TotalEvents/ArchivedEvents
+  # have no zmstats correction path, so an overwrite would persist until
+  # the next zmaudit pass. zmstats can skip CAS because its TX holds the
+  # bucket X-locks that gate the trigger writers updating its column set.
   {
     my %agg;
     # All-or-nothing per column group: a transient SELECT failure must not
@@ -999,56 +999,108 @@ FROM `Frames` WHERE `EventId`=?';
       }
     }
 
-    # Include monitors that have an Event_Summaries row but no rows in any
-    # successfully-aggregated source — those need to be zeroed for the
-    # column groups we did read. If we can't enumerate, we can't claim a
-    # full resync regardless of which aggregates succeeded.
+    # Read current ES values alongside the enumerate so we can:
+    #   1. Skip rows that already match the aggregate snapshot (no-op).
+    #   2. CAS-guard the UPDATE so a concurrent trigger writer (zmc insert
+    #      path, event_delete_trigger updating TotalEvents/ArchivedEvents,
+    #      Events_*_update_trigger updating bucket disk-space) that adjusts
+    #      ES between our snapshot and our write doesn't get clobbered.
+    # TotalEvents/ArchivedEvents have no zmstats correction path, so without
+    # CAS a transient race could leave drift until the next zmaudit pass.
+    my %current;
     my $enumerate_ok = 0;
-    my $existing = $dbh->selectcol_arrayref('SELECT MonitorId FROM Event_Summaries');
+    my $existing = $dbh->selectall_arrayref(q{
+      SELECT MonitorId,
+             TotalEvents, TotalEventDiskSpace,
+             ArchivedEvents, ArchivedEventDiskSpace,
+             HourEvents, HourEventDiskSpace,
+             DayEvents, DayEventDiskSpace,
+             WeekEvents, WeekEventDiskSpace,
+             MonthEvents, MonthEventDiskSpace
+        FROM Event_Summaries
+    });
     if ($dbh->err()) {
       Error("zmaudit Event_Summaries enumerate failed: ".$dbh->errstr());
     } else {
       $enumerate_ok = 1;
-      $agg{$_} ||= {} for @$existing;
+      for my $r (@$existing) {
+        my $mid = $r->[0];
+        $agg{$mid} ||= {};
+        $current{$mid} = {
+          total_c    => $r->[1],  total_s    => $r->[2],
+          archived_c => $r->[3],  archived_s => $r->[4],
+          h_c        => $r->[5],  h_s        => $r->[6],
+          d_c        => $r->[7],  d_s        => $r->[8],
+          w_c        => $r->[9],  w_s        => $r->[10],
+          m_c        => $r->[11], m_s        => $r->[12],
+        };
+      }
     }
 
-    # Build the SET clause from only the column groups we successfully read.
-    my @set;
-    my @bind_template;
+    # Build SET and CAS-guard parallel lists for the column groups we
+    # successfully read. Each entry: [SET piece, CAS piece, %agg key].
+    my @set_pieces;
     if ($ok{events}) {
-      push @set, 'TotalEvents=?, TotalEventDiskSpace=?, ArchivedEvents=?, ArchivedEventDiskSpace=?';
-      push @bind_template, qw(total_c total_s archived_c archived_s);
+      push @set_pieces,
+        ['TotalEvents=?',            'TotalEvents<=>?',            'total_c'],
+        ['TotalEventDiskSpace=?',    'TotalEventDiskSpace<=>?',    'total_s'],
+        ['ArchivedEvents=?',         'ArchivedEvents<=>?',         'archived_c'],
+        ['ArchivedEventDiskSpace=?', 'ArchivedEventDiskSpace<=>?', 'archived_s'];
     }
     for my $bucket (['h','Hour'], ['d','Day'], ['w','Week'], ['m','Month']) {
       my ($key, $col) = @$bucket;
       next unless $ok{$key};
-      push @set, "${col}Events=?, ${col}EventDiskSpace=?";
-      push @bind_template, $key.'_c', $key.'_s';
+      push @set_pieces,
+        ["${col}Events=?",         "${col}Events<=>?",         $key.'_c'],
+        ["${col}EventDiskSpace=?", "${col}EventDiskSpace<=>?", $key.'_s'];
     }
 
-    if (@set) {
-      my $sql = 'UPDATE Event_Summaries SET '.join(', ', @set).' WHERE MonitorId=?';
+    if (@set_pieces) {
+      my $sql = 'UPDATE Event_Summaries SET '.
+        join(', ', map { $_->[0] } @set_pieces).
+        ' WHERE MonitorId=? AND '.
+        join(' AND ', map { $_->[1] } @set_pieces);
+
       my $update_attempted = 0;
       my $update_failed    = 0;
+      my $update_deferred  = 0;  # CAS lost — concurrent writer adjusted ES
+      my $update_skipped   = 0;  # already correct, no UPDATE needed
       for my $mid (sort { $a <=> $b } keys %agg) {
         my $a = $agg{$mid};
+        my $c = $current{$mid};
+        next if !$c;  # monitor exists in aggregates but not ES; original behavior was to skip
+        my @target = map { $a->{$_->[2]} // 0 } @set_pieces;
+        my @cas    = map { $c->{$_->[2]} } @set_pieces;
+        # Skip rows where the snapshot already matches every target column.
+        my $needs_update = 0;
+        for my $i (0 .. $#set_pieces) {
+          if (!defined $cas[$i] or $cas[$i] != $target[$i]) { $needs_update = 1; last; }
+        }
+        if (!$needs_update) { $update_skipped++; next; }
         $update_attempted++;
         my $rv = ZoneMinder::Database::zmDbDo(
           $sql,
-          (map { $a->{$_} // 0 } @bind_template),
-          $mid
+          @target, $mid, @cas
         );
-        $update_failed++ if !defined $rv;
+        if (!defined $rv) {
+          $update_failed++;
+        } elsif ($rv == 0) {
+          $update_deferred++;
+        }
       }
-      my @skipped = grep { !$ok{$_} } qw(events h d w m);
-      if (!@skipped and !$update_failed and $enumerate_ok) {
-        aud_print('Finished resyncing Event_Summaries from Events + bucket tables');
+      my @skipped_aggs = grep { !$ok{$_} } qw(events h d w m);
+      if (!@skipped_aggs and !$update_failed and $enumerate_ok) {
+        if ($update_deferred or $update_skipped) {
+          aud_print("Finished resyncing Event_Summaries ($update_attempted attempted, $update_deferred deferred to concurrent writers, $update_skipped no-op)");
+        } else {
+          aud_print('Finished resyncing Event_Summaries from Events + bucket tables');
+        }
       } else {
         aud_print(sprintf(
-          'Partial Event_Summaries resync: skipped aggregates [%s], enumerate %s, %d/%d per-monitor UPDATE(s) failed',
-          join(',', @skipped) || 'none',
+          'Partial Event_Summaries resync: skipped aggregates [%s], enumerate %s, %d/%d UPDATE(s) failed, %d deferred',
+          join(',', @skipped_aggs) || 'none',
           $enumerate_ok ? 'ok' : 'failed',
-          $update_failed, $update_attempted
+          $update_failed, $update_attempted, $update_deferred
         ));
       }
     } else {

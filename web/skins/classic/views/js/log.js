@@ -55,7 +55,7 @@ function ajaxRequest(params) {
     timeout: 0,
     success: function(data) {
       if (!data.rows.length && data.total > 0) {
-        // If the page is greater than 1, it loops infinitely.
+        // The requested page is out of range; reset to page 1.
         table.bootstrapTable('selectPage', 1);
         return;
       }

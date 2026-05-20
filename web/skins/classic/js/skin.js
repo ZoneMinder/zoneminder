@@ -1294,7 +1294,7 @@ function thumbnail_onmouseover(event) {
   // Pre-load required modules
   if (useGo2rtc) {
     ensureVideoStreamLoaded();
-  } else if (streamType === 'rtsp2web') {
+  } else if (streamType === 'rtsp2web' || img.dataset.videoHlsSrc) {
     ensureHlsLoaded();
   }
 
@@ -1313,6 +1313,11 @@ function thumbnail_onmouseover(event) {
 function determineOverlaySrc(img, streamType, monitorId, useGo2rtc) {
   const useLiveStream = streamType && monitorId;
   if (useLiveStream || useGo2rtc) return 'live';
+
+  const videoHlsSrc = img.dataset.videoHlsSrc;
+  if (videoHlsSrc && currentView !== 'frames') {
+    return videoHlsSrc;
+  }
 
   const videoSrc = img.getAttribute('video_src');
   if (videoSrc && currentView !== 'frames') return videoSrc;
@@ -1350,6 +1355,7 @@ function calculateOverlayScale(img, overlayWidth) {
 }
 
 function createThumbnailOverlay(img, overlaySrc, dimensions, streamType, monitorId, go2rtcSrc, go2rtcMid, useGo2rtc) {
+  const hlsSrc = img.dataset.videoHlsSrc;
   const existing = document.getElementById('thumb-overlay');
   if (existing) existing.remove();
 
@@ -1377,6 +1383,8 @@ function createThumbnailOverlay(img, overlaySrc, dimensions, streamType, monitor
       fallbackImg.src = streamSrc.replace(/scale=\d+/, 'scale=' + scale);
       container.appendChild(fallbackImg);
     }
+    const infoStatusBar = document.getElementById("info-status-bar");
+    if (infoStatusBar) infoStatusBar.innerHTML = ' [MJPEG] ';
   };
 
   // Determine if this is a live stream or recorded video
@@ -1391,11 +1399,11 @@ function createThumbnailOverlay(img, overlaySrc, dimensions, streamType, monitor
 
     if (isLive) {
       // Live indicator with pulsing dot
-      statusBar.innerHTML = '<span class="live-indicator"><span class="live-dot"></span>LIVE</span>';
+      statusBar.innerHTML = '<span class="live-indicator"><span class="live-dot"></span>LIVE<span id="info-status-bar"></span></span>';
     } else if (eventStart) {
       // Wall clock time for recorded video with clock icon
       statusBar.innerHTML = '<span class="time-indicator"><i class="fa fa-clock-o"></i><span class="time-display">' +
-        formatDateTime(new Date(eventStart)) + '</span></span>';
+        formatDateTime(new Date(eventStart)) + '</span><span id="info-status-bar"></span></span>';
     }
   }
 
@@ -1403,6 +1411,8 @@ function createThumbnailOverlay(img, overlaySrc, dimensions, streamType, monitor
     createGo2rtcStream(container, go2rtcSrc, monitorId || go2rtcMid, fallbackToMjpeg);
   } else if (streamType === 'rtsp2web') {
     createRtsp2webStream(container, img, monitorId, fallbackToMjpeg);
+  } else if (hlsSrc) {
+    playEventHLS(container, img, monitorId, fallbackToMjpeg, statusBar, eventStart);
   } else if (streamType === 'janus') {
     // Janus requires complex initialization; fall back to MJPEG
     fallbackToMjpeg();
@@ -1450,9 +1460,19 @@ function createGo2rtcStream(container, src, mid, fallbackToMjpeg) {
     const stream = document.createElement('video-stream');
     stream.style.cssText = 'width: 100%; height: 100%; display: block;';
     stream.background = true;
-    stream.muted = getCookie('zmWatchMuted') !== 'false';
+    stream.muted = !!getCookie('zmWatchMuted');
     stream.src = url.href;
     container.appendChild(stream);
+
+    var video = document.querySelector('#thumb-overlay video-stream video');
+    if (video) {
+      video.addEventListener("play", (event) => {
+        const closest = video.closest('video-stream');
+        const subMode = (closest) ? closest.getAttribute('current-mode') : '';
+        const infoStatusBar = document.getElementById("info-status-bar");
+        if (infoStatusBar) infoStatusBar.innerHTML = ' [Go2RTC_' + subMode + '] ';
+      });
+    }
 
     // Fallback if go2rtc doesn't produce video within 3s
     stream._fallbackTimer = setTimeout(function() {
@@ -1462,7 +1482,10 @@ function createGo2rtcStream(container, src, mid, fallbackToMjpeg) {
         fallbackToMjpeg();
       }
     }, 3000);
-  }).catch(fallbackToMjpeg);
+  }).catch(function(e) {
+    console.error(e);
+    fallbackToMjpeg();
+  });
 }
 
 function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg) {
@@ -1479,15 +1502,20 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg) {
     video.removeAttribute('controls');
     video.style.cssText = 'width: 100%; height: 100%;';
     video.autoplay = true;
-    video.muted = getCookie('zmWatchMuted') !== 'false';
+    video.muted = !!getCookie('zmWatchMuted');
     video.playsInline = true;
     container.appendChild(video);
+    video.addEventListener("play", (event) => {
+      const infoStatusBar = document.getElementById("info-status-bar");
+      if (infoStatusBar) infoStatusBar.innerHTML = ' [RTSP2Web] ';
+    });
 
     if (Hls.isSupported()) {
       const hls = new Hls();
       hls.loadSource(hlsUrl);
       hls.attachMedia(video);
-      hls.on(Hls.Events.ERROR, function() {
+      hls.on(Hls.Events.ERROR, function(e) {
+        console.error(e);
         hls.destroy();
         video.remove();
         fallbackToMjpeg();
@@ -1514,21 +1542,13 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg) {
         fallbackToMjpeg();
       }
     }, 5000);
-  }).catch(fallbackToMjpeg);
+  }).catch(function(e) {
+    console.error(e);
+    fallbackToMjpeg();
+  });
 }
 
-function createVideoElement(container, src, eventStart, statusBar) {
-  const video = document.createElement('video');
-  const previewRate = getPreviewRate();
-  video.src = src;
-  video.autoplay = true;
-  video.muted = getCookie('zmWatchMuted') !== 'false';
-  video.playsInline = true;
-  video.playbackRate = previewRate;
-  video.addEventListener('loadedmetadata', function() {
-    this.playbackRate = previewRate; // Some browsers reset playbackRate on metadata load
-  });
-
+function updateTimeWallClock(video, eventStart, statusBar) {
   // Update wall clock time as video plays
   if (eventStart && statusBar) {
     const startTime = new Date(eventStart).getTime();
@@ -1540,8 +1560,152 @@ function createVideoElement(container, src, eventStart, statusBar) {
       });
     }
   }
+}
+
+function tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar) {
+  let video = null;
+  const videoSrc = img.getAttribute('video_src');
+  if (videoSrc && currentView !== 'frames' && img.dataset.videoDurationSecs < 60) {
+    const eventStart = img.dataset.eventStart;
+    if (eventStart) {
+      // Wall clock time for recorded video with clock icon
+      statusBar.innerHTML = '<span class="time-indicator"><i class="fa fa-clock-o"></i><span class="time-display">' +
+        formatDateTime(new Date(eventStart)) + '</span><span id="info-status-bar"> [MP4] </span></span>';
+    }
+    video = createVideoElement(container, videoSrc, eventStart, statusBar);
+  } else {
+    fallbackToMjpeg();
+    return;
+  }
+
+  if (video) {
+    // Fallback after 5s if video hasn't loaded
+    video._fallbackTimer = setTimeout(function() {
+      if (video.readyState < 2) {
+        if (video._hls) video._hls.destroy();
+        video.remove();
+        fallbackToMjpeg();
+      }
+    }, 5000);
+  }
+}
+
+function playEventHLS(container, img, monitorId, fallbackToMjpeg, statusBar, eventStart) {
+  const hlsUrl = img.dataset.videoHlsSrc;
+
+  ensureHlsLoaded().then(function() {
+    if (!document.getElementById('thumb-overlay')) return;
+    const video = document.createElement('video');
+    video.addEventListener("ended", (event) => {
+      const infoStatusBar = document.getElementById("info-status-bar");
+      if (infoStatusBar) infoStatusBar.innerHTML = ' [END] ';
+    });
+    video.removeAttribute('controls');
+    video.style.cssText = 'width: 100%; height: 100%;';
+    video.autoplay = false;
+    video.muted = !!getCookie('zmWatchMuted');
+    video.playsInline = true;
+    container.appendChild(video);
+
+    if (Hls.isSupported()) {
+      const hls = new Hls({
+        maxBufferLength: 20,
+        maxMaxBufferLength: 30,
+        backBufferLength: 5
+        //debug: true,
+      });
+
+      hls.loadSource(hlsUrl);
+      hls.attachMedia(video);
+
+      video.play().then(_ => {
+        const infoStatusBar = document.getElementById("info-status-bar");
+        if (infoStatusBar) infoStatusBar.innerHTML = ' [HLS] ';
+        console.debug("HLS video player started playing");
+        updateTimeWallClock(video, eventStart, statusBar);
+      })
+      .catch(er => {
+        if (er.name === 'NotAllowedError' && !this.video.muted) {
+          video.muted = true;
+          video.play().then(_ => {
+
+          })
+          .catch(er => {
+            console.warn(er);
+          });
+        } else {
+          console.warn(er);
+        }
+      });
+
+      video._fallbackTimer = setTimeout(function() {
+        // If the index.m3u8 manifest is bad, playback may not start, although there will be no errors.
+        if (video.readyState < 2) {
+          video.remove();
+          hls.destroy();
+          tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar);
+        }
+      }, 2000);
+
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        console.debug("HLS Event = MANIFEST_PARSED");
+      });
+      hls.on(Hls.Events.BUFFER_APPENDED, () => {
+        console.debug("HLS Event = BUFFER_APPENDED");
+      });
+      hls.on(Hls.Events.ERROR, function(event, data) {
+        const errorType = data.type;
+        const errorDetails = data.details;
+        const errorFatal = data.fatal;
+        console.warn("event:", event, "\n", "errorType:", errorType, "\n", "errorDetails:", errorDetails, "\n", "errorFatal:", errorFatal);
+        video.remove();
+        hls.destroy();
+        clearTimeout(video._fallbackTimer);
+        tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar);
+      });
+      video._hls = hls;
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      // Native HLS support (Safari)
+      video.src = hlsUrl;
+      video.addEventListener('error', function(e) {
+        console.error(e);
+        video.remove();
+        fallbackToMjpeg();
+      });
+    } else {
+      video.remove();
+      tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar);
+    }
+
+  }).catch(function(e) {
+    console.error(e);
+    fallbackToMjpeg();
+  });
+}
+
+function createVideoElement(container, src, eventStart, statusBar) {
+  const video = document.createElement('video');
+  const previewRate = getPreviewRate();
+  video.src = src;
+  video.autoplay = true;
+  video.muted = !!getCookie('zmWatchMuted');
+  video.playsInline = true;
+  video.playbackRate = previewRate;
+  video.addEventListener("loadeddata", () => {
+    console.debug("Change video.readyState to: ", video.readyState);
+  });
+  video.addEventListener('loadedmetadata', function() {
+    this.playbackRate = previewRate; // Some browsers reset playbackRate on metadata load
+  });
+  video.addEventListener("ended", (event) => {
+    const infoStatusBar = document.getElementById("info-status-bar");
+    if (infoStatusBar) infoStatusBar.innerHTML = ' [END] ';
+  });
+
+  updateTimeWallClock(video, eventStart, statusBar);
 
   container.appendChild(video);
+  return video;
 }
 
 function thumbnail_onmouseout(event) {

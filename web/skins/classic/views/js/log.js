@@ -95,7 +95,7 @@ function updateHeaderStats(data) {
   var pageNum = table.bootstrapTable('getOptions').pageNumber;
   var pageSize = table.bootstrapTable('getOptions').pageSize;
   var startRow = (data.total > 0) ? (( (pageNum - 1 ) * pageSize ) + 1) : 0;
-  var stopRow = (data.total > 0) ? ((data.total > pageSize) ? pageNum * pageSize : data.total) : 0;
+  var stopRow = (data.total > 0) ? Math.min(data.total, pageNum * pageSize) : 0;
   var newClass = (data.logstate == 'ok') ? 'text-success' : (data.logstate == 'alert' ? 'text-warning' : ((data.logstate == 'alarm' ? 'text-danger' : '')));
 
   $j('#logState').text(data.logstate);

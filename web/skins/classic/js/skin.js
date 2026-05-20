@@ -1618,25 +1618,25 @@ function playEventHLS(container, img, monitorId, fallbackToMjpeg, statusBar, eve
       hls.loadSource(hlsUrl);
       hls.attachMedia(video);
 
-      video.play().then(_ => {
+      video.play().then(() => {
         const infoStatusBar = document.getElementById("info-status-bar");
         if (infoStatusBar) infoStatusBar.innerHTML = ' [HLS] ';
         console.debug("HLS video player started playing");
         updateTimeWallClock(video, eventStart, statusBar);
       })
-      .catch(er => {
-        if (er.name === 'NotAllowedError' && !this.video.muted) {
-          video.muted = true;
-          video.play().then(_ => {
+          .catch((er) => {
+            if (er.name === 'NotAllowedError' && !this.video.muted) {
+              video.muted = true;
+              video.play().then(() => {
 
-          })
-          .catch(er => {
-            console.warn(er);
+              })
+                  .catch((er) => {
+                    console.warn(er);
+                  });
+            } else {
+              console.warn(er);
+            }
           });
-        } else {
-          console.warn(er);
-        }
-      });
 
       video._fallbackTimer = setTimeout(function() {
         // If the index.m3u8 manifest is bad, playback may not start, although there will be no errors.
@@ -1676,7 +1676,6 @@ function playEventHLS(container, img, monitorId, fallbackToMjpeg, statusBar, eve
       video.remove();
       tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar);
     }
-
   }).catch(function(e) {
     console.error(e);
     fallbackToMjpeg();

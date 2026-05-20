@@ -57,16 +57,19 @@ $content = file_get_contents($m3u8_path);
 $Server = $Event->Server();
 $base_url = $Server->PathToIndex();
 
-// Replace bare URLs with full paths including auth
+// Replace bare relative segment URLs with full paths including auth.
+// The m3u8 has lines like "index.php?view=view_video&eid=N&file=F" — capture
+// only the query string (after "index.php?") so the replacement doesn't emit
+// "/zm/index.php?index.php?view=…".
 $content = preg_replace(
-  '/^(index\.php\?.+)$/m',
+  '/^index\.php\?(.+)$/m',
   $base_url . '?$1' . $auth_query,
   $content
 );
 
-// Also fix the EXT-X-MAP URI
+// Also fix the EXT-X-MAP URI (initialization segment) the same way.
 $content = preg_replace(
-  '/URI="(index\.php\?[^"]+)"/m',
+  '/URI="index\.php\?([^"]+)"/m',
   'URI="' . $base_url . '?$1' . $auth_query . '"',
   $content
 );

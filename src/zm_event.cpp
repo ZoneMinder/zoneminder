@@ -202,9 +202,12 @@ Event::~Event() {
   /* Close the video file */
   // We close the videowriter first, because if we finish the event, we might try to view the file, but we aren't done writing it yet.
   if (videoStore != nullptr) {
-    // Finalize last fragment before closing the video store
+    // Flush the trailer + record the final fragment before writing the m3u8.
+    // finalize() must run before writeM3U8 so the manifest contains every
+    // fragment (including the one no later keyframe was around to close).
+    videoStore->finalize();
+
     std::string m3u8_path = path + "/index.m3u8";
-    // Write temporary m3u8 with incomplete filename (writeM3U8 finalizes last fragment)
     std::string video_url_tmp = "index.php?view=view_video&eid=" + std::to_string(id)
       + "&file=" + video_incomplete_file;
     videoStore->writeM3U8(m3u8_path, video_url_tmp, true);

@@ -354,9 +354,14 @@ if (file_exists($Event->Path().'/objdetect.jpg')) {
                     <div id="zoompan" class="zoompan">
 <?php
 if ($video_tag) {
-  // Use HLS byte-range playback if m3u8 manifest exists on disk
-  $has_hls = (($codec == 'MP4HLS') || str_ends_with($Event->DefaultVideo(), '.m3u8'))
-    && file_exists($Event->Path() . '/index.m3u8');
+  // Prefer HLS byte-range playback when the manifest exists on disk and the
+  // user picked MP4HLS / auto. Explicit MP4 must stay native ("play the mp4
+  // file directly"); explicit MJPEG never reaches here because $video_tag is
+  // false for it. DefaultVideo's extension is deliberately not consulted —
+  // in-progress events have DefaultVideo='index.m3u8' from the constructor,
+  // and using that as a signal would override the explicit MP4 choice.
+  $has_hls = file_exists($Event->Path() . '/index.m3u8')
+    && (($codec == 'MP4HLS') || ($codec == 'auto'));
   if ($has_hls) {
     $Server = $Event->Server();
     $hlsSrc = $Server->PathToIndex() . '?view=view_hls&amp;eid=' . $Event->Id();
@@ -402,7 +407,11 @@ if ($video_tag) {
                         autoplay: true,
                         preload: 'auto',
                         playbackRates: rates,
-                        liveui: <?php echo $has_hls && !$Event->EndDateTime() ? 'true' : 'false' ?>,
+                        // liveui replaces the seekbar with a live-edge-only control,
+                        // which makes it impossible to scrub back through the already-
+                        // recorded portion of an in-progress event. Always false so the
+                        // standard seekbar is rendered.
+                        liveui: false,
                         liveTracker: {
                           trackingThreshold: 0
                         }

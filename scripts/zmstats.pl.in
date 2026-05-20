@@ -127,6 +127,13 @@ while (!$zm_terminate) {
       my $err = 0;
       my $errstr;  # captured before rollback() — rollback can clear errstr
       my %touched_monitors;  # MonitorIds whose buckets we just modified
+      # Chunk size for DELETE WHERE EventId IN (...) — keeps each DELETE
+      # well under max_allowed_packet / max_prepared_stmt_count on installs
+      # where Events_Month has accumulated tens of thousands of aged rows,
+      # while preserving PK-based per-row locking (DELETE by predicate would
+      # range-lock the bucket index and re-introduce the lock-ordering
+      # inversions this rewrite was meant to eliminate).
+      my $delete_chunk = 1000;
       foreach my $bucket (
         ['Events_Hour',  '1 hour'],
         ['Events_Day',   '1 day'],
@@ -142,11 +149,17 @@ while (!$zm_terminate) {
         next if !$rows or !@$rows;
         my @event_ids = map { $_->[0] } @$rows;
         $touched_monitors{$_->[1]} = 1 for @$rows;
-        zmDbDo(
-          "DELETE FROM $table WHERE EventId IN (".join(',', map { '?' } @event_ids).')',
-          @event_ids
-        );
-        $err = $dbh->err() // 0;
+        for (my $i = 0; $i < @event_ids; $i += $delete_chunk) {
+          my $end = $i + $delete_chunk - 1;
+          $end = $#event_ids if $end > $#event_ids;
+          my @batch = @event_ids[$i .. $end];
+          zmDbDo(
+            "DELETE FROM $table WHERE EventId IN (".join(',', map { '?' } @batch).')',
+            @batch
+          );
+          $err = $dbh->err() // 0;
+          last if $err;
+        }
         if ($err) { $errstr = $dbh->errstr() // ''; last; }
       }
 

@@ -1635,41 +1635,46 @@ function playEventHLS(container, img, monitorId, fallbackToMjpeg, statusBar, eve
       const hls = new Hls({
         maxBufferLength: 20,
         maxMaxBufferLength: 30,
-        backBufferLength: 5
+        backBufferLength: 5,
         //debug: true,
       });
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", hlsUrl, false);
+      xhr.send();
+      if (xhr.readyState === 4 && xhr.status === 200) {
+        hls.loadSource(hlsUrl);
+        hls.attachMedia(video);
+        thumbnailVideoPlay(video, 'HLS', eventStart, statusBar);
+        video._fallbackTimer = setTimeout(function() {
+          // If the index.m3u8 manifest is bad, playback may not start, although there will be no errors.
+          if (video.readyState < 2) {
+            video.remove();
+            hls.destroy();
+            tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar);
+          }
+        }, 2000);
 
-      hls.loadSource(hlsUrl);
-      hls.attachMedia(video);
-
-      thumbnailVideoPlay(video, 'HLS', eventStart, statusBar);
-
-      video._fallbackTimer = setTimeout(function() {
-        // If the index.m3u8 manifest is bad, playback may not start, although there will be no errors.
-        if (video.readyState < 2) {
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          console.debug("HLS Event = MANIFEST_PARSED");
+        });
+        hls.on(Hls.Events.BUFFER_APPENDED, () => {
+          console.debug("HLS Event = BUFFER_APPENDED");
+        });
+        hls.on(Hls.Events.ERROR, function(event, data) {
+          const errorType = data.type;
+          const errorDetails = data.details;
+          const errorFatal = data.fatal;
+          console.warn("event:", event, "\n", "errorType:", errorType, "\n", "errorDetails:", errorDetails, "\n", "errorFatal:", errorFatal);
           video.remove();
           hls.destroy();
+          clearTimeout(video._fallbackTimer);
           tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar);
-        }
-      }, 2000);
-
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        console.debug("HLS Event = MANIFEST_PARSED");
-      });
-      hls.on(Hls.Events.BUFFER_APPENDED, () => {
-        console.debug("HLS Event = BUFFER_APPENDED");
-      });
-      hls.on(Hls.Events.ERROR, function(event, data) {
-        const errorType = data.type;
-        const errorDetails = data.details;
-        const errorFatal = data.fatal;
-        console.warn("event:", event, "\n", "errorType:", errorType, "\n", "errorDetails:", errorDetails, "\n", "errorFatal:", errorFatal);
+        });
+        video._hls = hls;
+      } else {
         video.remove();
-        hls.destroy();
-        clearTimeout(video._fallbackTimer);
         tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar);
-      });
-      video._hls = hls;
+      }
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       // Native HLS support (Safari)
       video.src = hlsUrl;

@@ -1072,9 +1072,14 @@ FROM `Frames` WHERE `EventId`=?';
         my @target = map { $a->{$_->[2]} // 0 } @set_pieces;
         my @cas    = map { $c->{$_->[2]} } @set_pieces;
         # Skip rows where the snapshot already matches every target column.
+        # Compare as strings, not numerics: Perl's != coerces to NV (double)
+        # and collapses BIGINTs above 2^53 to the same value, which would
+        # produce false "already correct" skips that persist across passes.
+        # DBI binds these scalars as strings anyway, so string compare is
+        # the same equality the database will see.
         my $needs_update = 0;
         for my $i (0 .. $#set_pieces) {
-          if (!defined $cas[$i] or $cas[$i] != $target[$i]) { $needs_update = 1; last; }
+          if (!defined $cas[$i] or "$cas[$i]" ne "$target[$i]") { $needs_update = 1; last; }
         }
         if (!$needs_update) { $update_skipped++; next; }
         $update_attempted++;
@@ -1138,8 +1143,10 @@ FROM `Frames` WHERE `EventId`=?';
         for my $r (@$storage_rows) {
           my ($sid, $current) = @$r;
           my $target = $disk{$sid} // 0;
-          # Skip if already correct (avoids redundant X-locks).
-          next if defined $current and $current == $target;
+          # Skip if already correct (avoids redundant X-locks). Compare as
+          # strings to avoid the BIGINT/NV precision-collapse trap — see
+          # the Event_Summaries loop comment for the same issue.
+          next if defined $current and "$current" eq "$target";
           $attempted++;
           # MariaDB null-safe equality (<=>) handles NULL DiskSpace.
           my $rv = ZoneMinder::Database::zmDbDo(

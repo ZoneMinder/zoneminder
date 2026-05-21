@@ -1,5 +1,5 @@
 <?php
-$data = array(); 
+$data = array();
 $message = '';
 
 //

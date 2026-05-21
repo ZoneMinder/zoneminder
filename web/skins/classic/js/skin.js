@@ -1460,7 +1460,7 @@ function createGo2rtcStream(container, src, mid, fallbackToMjpeg) {
     const stream = document.createElement('video-stream');
     stream.style.cssText = 'width: 100%; height: 100%; display: block;';
     stream.background = true;
-    stream.muted = !!getCookie('zmWatchMuted');
+    stream.muted = getCookie('zmWatchMuted') === 'true';;
     stream.src = url.href;
     container.appendChild(stream);
 
@@ -1502,7 +1502,7 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg) {
     video.removeAttribute('controls');
     video.style.cssText = 'width: 100%; height: 100%;';
     video.autoplay = true;
-    video.muted = !!getCookie('zmWatchMuted');
+    video.muted = getCookie('zmWatchMuted') === 'true';;
     video.playsInline = true;
     container.appendChild(video);
     video.addEventListener("play", (event) => {
@@ -1546,6 +1546,30 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg) {
     console.error(e);
     fallbackToMjpeg();
   });
+}
+
+function thumbnailVideoPlay(video, currentMode, eventStart, statusBar) {
+  const infoStatusBar = document.getElementById("info-status-bar");
+  video.play().then(() => {
+    if (infoStatusBar && currentMode) infoStatusBar.innerHTML = ' [' + currentMode + '] ';
+    console.debug(currentMode + " video player started playing");
+    if (eventStart && statusBar) updateTimeWallClock(video, eventStart, statusBar);
+  })
+      .catch((er) => {
+        if (er.name === 'NotAllowedError' && !video.muted) {
+          video.muted = true;
+          video.play().then(() => {
+            if (infoStatusBar && currentMode) infoStatusBar.innerHTML = ' [' + currentMode + '] ';
+            console.debug(currentMode + " video player started playing after muting");
+            if (eventStart && statusBar) updateTimeWallClock(video, eventStart, statusBar);
+          })
+              .catch((retryError) => {
+                console.warn(retryError);
+              });
+        } else {
+          console.warn(er);
+        }
+      });
 }
 
 function updateTimeWallClock(video, eventStart, statusBar) {
@@ -1603,7 +1627,7 @@ function playEventHLS(container, img, monitorId, fallbackToMjpeg, statusBar, eve
     video.removeAttribute('controls');
     video.style.cssText = 'width: 100%; height: 100%;';
     video.autoplay = false;
-    video.muted = !!getCookie('zmWatchMuted');
+    video.muted = getCookie('zmWatchMuted') === 'true';;
     video.playsInline = true;
     container.appendChild(video);
 
@@ -1618,25 +1642,7 @@ function playEventHLS(container, img, monitorId, fallbackToMjpeg, statusBar, eve
       hls.loadSource(hlsUrl);
       hls.attachMedia(video);
 
-      video.play().then(() => {
-        const infoStatusBar = document.getElementById("info-status-bar");
-        if (infoStatusBar) infoStatusBar.innerHTML = ' [HLS] ';
-        console.debug("HLS video player started playing");
-        updateTimeWallClock(video, eventStart, statusBar);
-      })
-          .catch((er) => {
-            if (er.name === 'NotAllowedError' && !this.video.muted) {
-              video.muted = true;
-              video.play().then(() => {
-
-              })
-                  .catch((er) => {
-                    console.warn(er);
-                  });
-            } else {
-              console.warn(er);
-            }
-          });
+      thumbnailVideoPlay(video, 'HLS', eventStart, statusBar);
 
       video._fallbackTimer = setTimeout(function() {
         // If the index.m3u8 manifest is bad, playback may not start, although there will be no errors.
@@ -1672,6 +1678,7 @@ function playEventHLS(container, img, monitorId, fallbackToMjpeg, statusBar, eve
         video.remove();
         fallbackToMjpeg();
       });
+      thumbnailVideoPlay(video, 'Native HLS', eventStart, statusBar);
     } else {
       video.remove();
       tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar);
@@ -1687,7 +1694,7 @@ function createVideoElement(container, src, eventStart, statusBar) {
   const previewRate = getPreviewRate();
   video.src = src;
   video.autoplay = true;
-  video.muted = !!getCookie('zmWatchMuted');
+  video.muted = getCookie('zmWatchMuted') === 'true';;
   video.playsInline = true;
   video.playbackRate = previewRate;
   video.addEventListener("loadeddata", () => {

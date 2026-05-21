@@ -1051,7 +1051,7 @@ function MonitorStream(monitorData) {
       console.warn(`volumeSlider for monitor with ID=${this.id} not found`);
     }
     if (currentView != 'montage') {
-      setCookie('zmWatchMuted', audioStream.muted);
+      setCookie('zmWatchMuted', (audioStream.muted) ? 'true' : 'false');
       setCookie('zmWatchVolume', parseInt(audioStream.volume * 100));
     }
   };

@@ -69,7 +69,6 @@ function createRequest() {
 
 function queryRequest() {
   // Offset specifies the starting row to return, used for pagination
-  $newSessionValue = [];
   $offset = 0;
   if (isset($_REQUEST['offset'])) {
     if ((!is_int($_REQUEST['offset']) and !ctype_digit($_REQUEST['offset']))) {
@@ -163,7 +162,6 @@ function queryRequest() {
     $where .= 'Component = ?';
     $query['values'][] = $_REQUEST['Component'];
   }
-  $newSessionValue['zmLogComponent'] = !empty($_REQUEST['Component']) ? $_REQUEST['Component'] : '';
 
   if (!empty($_REQUEST['ServerId'])) {
     if ($where) $where .= ' AND ';
@@ -177,14 +175,13 @@ function queryRequest() {
     $query['values'][] = $_REQUEST['level'];
   }
 */
-  $L = $_REQUEST['level'] ?? '';
+  $L = (!empty($_REQUEST['level'])) ? (string) $_REQUEST['level'] : '';
   $level_codes = array_flip(ZM\Logger::$codes);
   if (!empty($L) && isset($level_codes[$L])) {
     if ($where) $where .= ' AND ';
     $where .= ' Level = ?';
     $query['values'][] = $level_codes[$L];
   }
-  $newSessionValue['zmLogFilterLevel'] = isset($level_codes[$L]) ? $L : '';
 
   if (!empty($_REQUEST['StartDateTime'])) {
     $start_time = strtotime($_REQUEST['StartDateTime']);
@@ -208,9 +205,8 @@ function queryRequest() {
   }
 
   zm_session_start();
-  foreach ($newSessionValue as $name => $value) {
-    $_SESSION[$name] = $value;
-  }
+  $_SESSION['zmLogComponent'] = !empty($_REQUEST['Component']) ? $_REQUEST['Component'] : '';
+  $_SESSION['zmLogFilterLevel'] = isset($level_codes[$L]) ? $L : '';
   session_write_close();
 
   if ($where) $where = ' WHERE '.$where;

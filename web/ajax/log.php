@@ -175,7 +175,7 @@ function queryRequest() {
     $query['values'][] = $_REQUEST['level'];
   }
 */
-  $L = (!empty($_REQUEST['level'])) ? (string) $_REQUEST['level'] : '';
+  $L = (isset($_REQUEST['level']) && !empty($_REQUEST['level']) && is_scalar($_REQUEST['level'])) ? (string) $_REQUEST['level'] : '';
   $level_codes = array_flip(ZM\Logger::$codes);
   if (!empty($L) && isset($level_codes[$L])) {
     if ($where) $where .= ' AND ';

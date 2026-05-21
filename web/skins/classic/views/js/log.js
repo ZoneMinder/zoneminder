@@ -54,9 +54,10 @@ function ajaxRequest(params) {
     data: params.data,
     timeout: 0,
     success: function(data) {
-      if (!data.rows.length) {
-        // If page is > 1, bt infinitely loops
+      if (!data.rows.length && data.total > 0) {
+        // The requested page is out of range; reset to page 1.
         table.bootstrapTable('selectPage', 1);
+        return;
       }
       // rearrange the result into what bootstrap-table expects
       params.success({
@@ -93,8 +94,8 @@ function filterLog() {
 function updateHeaderStats(data) {
   var pageNum = table.bootstrapTable('getOptions').pageNumber;
   var pageSize = table.bootstrapTable('getOptions').pageSize;
-  var startRow = ( (pageNum - 1 ) * pageSize ) + 1;
-  var stopRow = pageNum * pageSize;
+  var startRow = (data.total > 0) ? (( (pageNum - 1 ) * pageSize ) + 1) : 0;
+  var stopRow = (data.total > 0) ? Math.min(data.total, pageNum * pageSize) : 0;
   var newClass = (data.logstate == 'ok') ? 'text-success' : (data.logstate == 'alert' ? 'text-warning' : ((data.logstate == 'alarm' ? 'text-danger' : '')));
 
   $j('#logState').text(data.logstate);

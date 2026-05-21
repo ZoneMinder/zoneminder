@@ -1594,8 +1594,10 @@ function tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar) {
     const eventStart = img.dataset.eventStart;
     if (eventStart) {
       // Wall clock time for recorded video with clock icon
-      if (statusBar) statusBar.innerHTML = '<span class="time-indicator"><i class="fa fa-clock-o"></i><span class="time-display">' +
-        formatDateTime(new Date(eventStart)) + '</span><span id="info-status-bar"> [MP4] </span></span>';
+      if (statusBar) {
+        statusBar.innerHTML = '<span class="time-indicator"><i class="fa fa-clock-o"></i><span class="time-display">' +
+          formatDateTime(new Date(eventStart)) + '</span><span id="info-status-bar"> [MP4] </span></span>';
+      }
     }
     video = createVideoElement(container, videoSrc, eventStart, statusBar);
     thumbnailVideoPlay(video, 'MP4', eventStart, statusBar);

@@ -345,8 +345,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
       $videoAttr = ' video_src="' .$videoSrc. '" data-event-start="'.htmlspecialchars($event->StartDateTime()).'"';
     }
 
-    if (file_exists($event->Path() . '/index.m3u8'))
-      $videoAttr .= ' data-video-hls-src="'.$event->getStreamSrc(array('mode'=>'mp4hls'), '&amp;').'"';
+    $videoAttr .= ' data-video-hls-src="'.$event->getStreamSrc(array('mode'=>'mp4hls'), '&amp;').'"';
     $videoAttr .= ' data-video-duration-secs="'.$event->EndDateTimeSecs() - $event->StartDateTimeSecs().'"';
 
     // Modify the row data as needed

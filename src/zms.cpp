@@ -259,7 +259,23 @@ int main(int argc, const char *argv[], char **envp) {
       fputs("HTTP/1.0 403 Forbidden\r\n\r\n", stdout);
 
       const char *referer = getenv("HTTP_REFERER");
-      Warning("Unable to authenticate user from %s", referer);
+      const char *request_uri = getenv("REQUEST_URI");
+      const char *xff = getenv("HTTP_X_FORWARDED_FOR");
+      const char *remote = getenv("REMOTE_ADDR");
+      // Most failures here are stale auth hashes on long-lived <img src=nph-zms?...>
+      // streams whose hash TTL expired; the browser keeps reconnecting with the
+      // baked-in URL. Including user/auth-prefix/uri/xff makes the noise diagnosable
+      // without flipping on Debug.
+      char auth_prefix[9] = {0};
+      if (*auth) strncpy(auth_prefix, auth, sizeof(auth_prefix)-1);
+      Warning("Unable to authenticate user (user='%s' auth='%s%s' uri='%s' referer='%s' xff='%s' remote='%s')",
+              username.c_str(),
+              auth_prefix,
+              (*auth && strlen(auth) > 8) ? "..." : "",
+              request_uri ? request_uri : "",
+              referer ? referer : "",
+              xff ? xff : "",
+              remote ? remote : "");
       return exit_zm(0);
     }
     if ( !ValidateAccess(user, monitor_id) ) {

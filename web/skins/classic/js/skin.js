@@ -1460,7 +1460,7 @@ function createGo2rtcStream(container, src, mid, fallbackToMjpeg) {
     const stream = document.createElement('video-stream');
     stream.style.cssText = 'width: 100%; height: 100%; display: block;';
     stream.background = true;
-    stream.muted = getCookie('zmWatchMuted') === 'true';;
+    stream.muted = getCookie('zmWatchMuted') === 'true';
     stream.src = url.href;
     container.appendChild(stream);
 
@@ -1502,7 +1502,7 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg) {
     video.removeAttribute('controls');
     video.style.cssText = 'width: 100%; height: 100%;';
     video.autoplay = true;
-    video.muted = getCookie('zmWatchMuted') === 'true';;
+    video.muted = getCookie('zmWatchMuted') === 'true';
     video.playsInline = true;
     container.appendChild(video);
     video.addEventListener("play", (event) => {
@@ -1627,7 +1627,7 @@ function playEventHLS(container, img, monitorId, fallbackToMjpeg, statusBar, eve
     video.removeAttribute('controls');
     video.style.cssText = 'width: 100%; height: 100%;';
     video.autoplay = false;
-    video.muted = getCookie('zmWatchMuted') === 'true';;
+    video.muted = getCookie('zmWatchMuted') === 'true';
     video.playsInline = true;
     container.appendChild(video);
 
@@ -1694,7 +1694,7 @@ function createVideoElement(container, src, eventStart, statusBar) {
   const previewRate = getPreviewRate();
   video.src = src;
   video.autoplay = true;
-  video.muted = getCookie('zmWatchMuted') === 'true';;
+  video.muted = getCookie('zmWatchMuted') === 'true';
   video.playsInline = true;
   video.playbackRate = previewRate;
   video.addEventListener("loadeddata", () => {

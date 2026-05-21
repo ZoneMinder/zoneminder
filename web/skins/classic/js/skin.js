@@ -1417,7 +1417,8 @@ function createThumbnailOverlay(img, overlaySrc, dimensions, streamType, monitor
     // Janus requires complex initialization; fall back to MJPEG
     fallbackToMjpeg();
   } else if (!isLive && img.getAttribute('video_src') && currentView !== 'frames') {
-    createVideoElement(container, overlaySrc, eventStart, statusBar);
+    video = createVideoElement(container, overlaySrc, eventStart, statusBar);
+    thumbnailVideoPlay(video, 'MP4', eventStart, statusBar);
   } else {
     const overlayImg = document.createElement('img');
     const scale = calculateOverlayScale(img, dimensions.width);
@@ -1593,10 +1594,11 @@ function tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar) {
     const eventStart = img.dataset.eventStart;
     if (eventStart) {
       // Wall clock time for recorded video with clock icon
-      statusBar.innerHTML = '<span class="time-indicator"><i class="fa fa-clock-o"></i><span class="time-display">' +
+      if (statusBar) statusBar.innerHTML = '<span class="time-indicator"><i class="fa fa-clock-o"></i><span class="time-display">' +
         formatDateTime(new Date(eventStart)) + '</span><span id="info-status-bar"> [MP4] </span></span>';
     }
     video = createVideoElement(container, videoSrc, eventStart, statusBar);
+    thumbnailVideoPlay(video, 'MP4', eventStart, statusBar);
   } else {
     fallbackToMjpeg();
     return;
@@ -1698,7 +1700,7 @@ function createVideoElement(container, src, eventStart, statusBar) {
   const video = document.createElement('video');
   const previewRate = getPreviewRate();
   video.src = src;
-  video.autoplay = true;
+  video.autoplay = false;
   video.muted = getCookie('zmWatchMuted') === 'true';
   video.playsInline = true;
   video.playbackRate = previewRate;

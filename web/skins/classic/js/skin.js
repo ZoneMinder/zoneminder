@@ -1416,9 +1416,10 @@ function createThumbnailOverlay(img, overlaySrc, dimensions, streamType, monitor
   } else if (streamType === 'janus') {
     // Janus requires complex initialization; fall back to MJPEG
     fallbackToMjpeg();
-  } else if (!isLive && img.getAttribute('video_src') && currentView !== 'frames') {
-    video = createVideoElement(container, overlaySrc, eventStart, statusBar);
-    thumbnailVideoPlay(video, 'MP4', eventStart, statusBar);
+  //} else if (!isLive && img.getAttribute('video_src') && currentView !== 'frames') {
+    // IgorA100 This code now never works, as we always have the data-video-hls-src video attribute. This code will likely be removed in the future.
+    //video = createVideoElement(container, overlaySrc, eventStart, statusBar);
+    //thumbnailVideoPlay(video, 'MP4', eventStart, statusBar);
   } else {
     const overlayImg = document.createElement('img');
     const scale = calculateOverlayScale(img, dimensions.width);
@@ -1502,14 +1503,12 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg) {
     const video = document.createElement('video');
     video.removeAttribute('controls');
     video.style.cssText = 'width: 100%; height: 100%;';
-    video.autoplay = true;
+    video.autoplay = false;
     video.muted = getCookie('zmWatchMuted') === 'true';
     video.playsInline = true;
     container.appendChild(video);
-    video.addEventListener("play", (event) => {
-      const infoStatusBar = document.getElementById("info-status-bar");
-      if (infoStatusBar) infoStatusBar.innerHTML = ' [RTSP2Web] ';
-    });
+    video.streamType = 'rtsp2web';
+    thumbnailVideoPlay(video, 'RTSP2Web', eventStart, statusBar);
 
     if (Hls.isSupported()) {
       const hls = new Hls();
@@ -1643,7 +1642,7 @@ function playEventHLS(container, img, monitorId, fallbackToMjpeg, statusBar, eve
         //debug: true,
       });
       const xhr = new XMLHttpRequest();
-      xhr.open("POST", hlsUrl, false);
+      xhr.open("GET", hlsUrl, false);
       xhr.send();
       if (xhr.readyState === 4 && xhr.status === 200) {
         hls.loadSource(hlsUrl);
@@ -1716,8 +1715,6 @@ function createVideoElement(container, src, eventStart, statusBar) {
     const infoStatusBar = document.getElementById("info-status-bar");
     if (infoStatusBar) infoStatusBar.innerHTML = ' [END] ';
   });
-
-  updateTimeWallClock(video, eventStart, statusBar);
 
   container.appendChild(video);
   return video;

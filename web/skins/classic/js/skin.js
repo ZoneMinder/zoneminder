@@ -615,7 +615,10 @@ function submitThisForm(param = null) {
     // Let's hide the old filter so that it doesn't appear during the transfer...
     filter.style.display = 'none';
     // We return the filter to its place in the form, since in the left side menu the filter should always be inside the form.
-    form.prepend(filter);
+    // Skip if filter is already an ancestor of form (e.g. console: #fbpanel > #monitorFiltersForm), which would cause HierarchyRequestError.
+    if (!filter.contains(form)) {
+      form.prepend(filter);
+    }
   }
   if (param && typeof param === 'string') { //ON WATCH PAGE WHEN SELECTING A MONITOR, the object is transferred as PARAM!!!
     var uri = "?" + $j(form).serialize() + param;

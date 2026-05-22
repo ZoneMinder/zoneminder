@@ -1003,15 +1003,19 @@ void Image::Assign(const Image &image) {
 
   if ( image.buffer != buffer ) {
     if (image.linesize > linesize) {
+      // Source has more per-row padding than the destination can hold. Copy
+      // only the destination's row capacity per line to avoid writing past
+      // the destination buffer on the last row. Source padding bytes beyond
+      // the common row width are discarded.
       // This branch is only reached when dimensions and colours/subpixelorder
-      // match but linesize disagrees, which is an oddly-shaped Image. Copy the
-      // Y/primary plane line by line; planar chroma planes are not handled
+      // match but linesize disagrees, which is an oddly-shaped Image. Only
+      // the Y/primary plane is copied; planar chroma planes are not handled
       // here. The common path is the flat copy below.
       Debug(1, "Must copy line by line due to different line size %d != %d", image.linesize, linesize);
       uint8_t *src_ptr = image.buffer;
       uint8_t *dst_ptr = buffer;
       for (unsigned int i=0; i< image.height; i++) {
-        (*fptr_imgbufcpy)(dst_ptr, src_ptr, image.linesize);
+        (*fptr_imgbufcpy)(dst_ptr, src_ptr, linesize);
         src_ptr += image.linesize;
         dst_ptr += linesize;
       }

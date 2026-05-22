@@ -64,9 +64,29 @@ Camera::Camera(
   mLastAudioDTS(AV_NOPTS_VALUE),
   bytes(0),
   mIsPrimed(false) {
-  linesize = FFALIGN(av_image_get_linesize(pixelFormat, width, 0), 32);
+  // Guard against an unknown (colours, subpixelorder) pair that produced
+  // pixelFormat == AV_PIX_FMT_NONE, or any case where av_image_get_*
+  // returns a negative size — assigning those to unsigned would wrap to a
+  // huge value and break SHM sizing and downstream allocations.
   pixels = width * height;
-  imagesize = av_image_get_buffer_size(pixelFormat, width, height, 32);
+  if (pixelFormat == AV_PIX_FMT_NONE) {
+    Error("Camera: unknown pixel format from colours=%u subpixelorder=%u; falling back to width*colours stride",
+          p_colours, p_subpixelorder);
+    linesize = width * colours;
+    imagesize = static_cast<unsigned long long>(height) * linesize;
+  } else {
+    int raw_linesize = av_image_get_linesize(pixelFormat, width, 0);
+    int raw_imagesize = av_image_get_buffer_size(pixelFormat, width, height, 32);
+    if (raw_linesize < 0 || raw_imagesize < 0) {
+      Error("Camera: av_image_get_* returned %d/%d for pixelFormat=%s; falling back",
+            raw_linesize, raw_imagesize, av_get_pix_fmt_name(pixelFormat));
+      linesize = width * colours;
+      imagesize = static_cast<unsigned long long>(height) * linesize;
+    } else {
+      linesize = FFALIGN(raw_linesize, 32);
+      imagesize = static_cast<unsigned long long>(raw_imagesize);
+    }
+  }
 
   Debug(2, "New camera id: %d width: %d line size: %d height: %d colours: %d subpixelorder: %d capture: %d, size: %llu",
         monitor->Id(), width, linesize, height, colours, subpixelorder, capture, imagesize);

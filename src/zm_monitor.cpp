@@ -1240,11 +1240,14 @@ bool Monitor::connect() {
     Error("Shared data not initialised by capture daemon for monitor %s", name.c_str());
     return false;
   }
-  // No zms-side per-slot pixformat adoption needed: image_buffer was
-  // constructed above with the same hardcoded YUV420P that zmc uses, so
-  // both processes interpret the SHM bytes the same way without consulting
-  // the image_pixelformats[] array (which still records the actual format
-  // zmc wrote, kept for diagnostic visibility).
+  // image_buffer[] is constructed above with a hardcoded YUV420P placeholder
+  // format because we don't yet know which AVPixelFormat zmc has written into
+  // each SHM slot. Readers (zms, zma, etc.) MUST call ReadShmFrame() before
+  // interpreting a slot's bytes — it adopts the per-slot AVPixelFormat from
+  // image_pixelformats[] (written by zmc in WriteShmFrame) and updates the
+  // Image's imagePixFormat, colours, subpixelorder, size and linesize
+  // together. Direct image_buffer[i] access without ReadShmFrame() will
+  // mis-interpret any slot whose actual format differs from the placeholder.
 
   // We set these here because otherwise the first fps calc is meaningless
   last_fps_time = std::chrono::system_clock::now();
@@ -1787,7 +1790,9 @@ bool Monitor::CheckSignal(const Image *image) {
       }
     }
 
-    if (pix_fmt == AV_PIX_FMT_GRAY8 || zm_is_yuv420(pix_fmt)) {
+    if (zm_bytes_per_pixel(pix_fmt) == 1) {
+      // GRAY8 plus all planar YUV variants we transport (420P/J420P/422P/J422P).
+      // For planar formats the Y plane is the first byte at each pixel index.
       if (*(buffer+index) != grayscale_val)
         return true;
 
@@ -2860,12 +2865,16 @@ bool Monitor::setupConvertContext(const AVFrame *input_frame, const Image *image
 void Monitor::WriteShmFrame(unsigned int index, Image *capture_image) {
   // No conversion at the SHM-write side. zmc records the format the bytes
   // were actually written in via image_pixelformats[index]; consumers in
-  // other processes (zms etc.) sync image_buffer[index]->AVPixFormat() from
-  // that array before reading via ReadShmFrame, so the SHM transports any
-  // format Image can represent without a sws_scale step. This is the
-  // central no-conversion promise of the AVPixelFormat migration.
+  // other processes (zms etc.) sync image_buffer[index] from that array
+  // before reading via ReadShmFrame, so the SHM transports any format
+  // Image can represent without a sws_scale step. This is the central
+  // no-conversion promise of the AVPixelFormat migration.
+  //
+  // Record imagePixFormat directly via PixFormat() — AVPixFormat() re-derives
+  // from the deprecated (colours, subpixelorder) pair and could propagate
+  // stale metadata.
   image_buffer[index]->Assign(*capture_image);
-  image_pixelformats[index] = capture_image->AVPixFormat();
+  image_pixelformats[index] = capture_image->PixFormat();
 }
 
 Image *Monitor::ReadShmFrame(unsigned int index) {

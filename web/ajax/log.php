@@ -157,10 +157,11 @@ function queryRequest() {
     $where = '(' .implode(' OR ', $likes). ')';
   }
 
-  if (!empty($_REQUEST['Component'])) {
+  $requestComponent = (isset($_REQUEST['Component']) && !empty($_REQUEST['Component']) && is_scalar($_REQUEST['Component'])) ? (string) $_REQUEST['Component'] : '';
+  if (!empty($requestComponent)) {
     if ($where) $where .= ' AND ';
     $where .= 'Component = ?';
-    $query['values'][] = $_REQUEST['Component'];
+    $query['values'][] = $requestComponent;
   }
 
   if (!empty($_REQUEST['ServerId'])) {
@@ -205,7 +206,7 @@ function queryRequest() {
   }
 
   zm_session_start();
-  $_SESSION['zmLogComponent'] = !empty($_REQUEST['Component']) ? $_REQUEST['Component'] : '';
+  $_SESSION['zmLogComponent'] = $requestComponent;
   $_SESSION['zmLogFilterLevel'] = isset($level_codes[$L]) ? $L : '';
   session_write_close();
 

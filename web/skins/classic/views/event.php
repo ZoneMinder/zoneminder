@@ -90,6 +90,7 @@ if (isset($_REQUEST['showZones'])) {
 $codecs = array(
   'auto'  => translate('Auto'),
   'MP4'   => translate('MP4'),
+  'MP4HLS'=> ['Name'=> 'MP4 HLS', 'disabled'=> (!file_exists($Event->Path() . '/index.m3u8'))],
   'MJPEG' => translate('MJPEG'),
 );
 $codec = 'auto';
@@ -101,8 +102,8 @@ if (isset($_REQUEST['codec'])) {
 } else {
   $codec = $monitor->DefaultCodec();
 }
-if (!isset($codecs[$codec])) {
-  ZM\Warning("Invalid value for Codec: $codec, reverting to auto");
+if (!isset($codecs[$codec]) || (is_array(($codecs[$codec])) && $codecs[$codec]['disabled'])) {
+  if (!isset($codecs[$codec])) ZM\Warning("Invalid value for Codec: $codec, reverting to auto");
   $codec = 'auto';
   unset($_SESSION['zmEventCodec'.$Event->MonitorId()]);
 }
@@ -150,7 +151,7 @@ if ((!$replayMode) or !$replayModes[$replayMode]) {
   $replayMode = 'none';
 }
 
-$video_tag = ($codec == 'MP4') ||
+$video_tag = ($codec == 'MP4') || ($codec == 'MP4HLS') ||
   str_ends_with($Event->DefaultVideo(), '.m3u8') ||
   ((false !== strpos($Event->DefaultVideo(), 'h264') || false !== strpos($Event->DefaultVideo(), 'av1')) && ($codec === 'auto'));
 
@@ -210,7 +211,7 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
         <button id="editBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Edit') ?>" disabled><i class="fa fa-pencil"></i></button>
         <button id="exportBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Export') ?>"><i class="fa fa-external-link"></i></button>
         <a id="downloadBtn" class="btn btn-normal" href="<?php echo $Event->getStreamSrc(array('mode'=>'mp4'),'&amp;')?>"
-          title="<?php echo translate('Download'). ' ' . $Event->DefaultVideo() ?>"
+          title="<?php echo translate('Download'). ' ' . (($Event->DefaultVideo() === 'index.m3u8') ? translate('video') . " " . translate('file') : $Event->DefaultVideo()) ?>"
           download
           <?php echo $Event->DefaultVideo() ? '' : 'style="display:none;"' ?>
 ><i class="fa fa-download"></i></a>
@@ -353,9 +354,14 @@ if (file_exists($Event->Path().'/objdetect.jpg')) {
                     <div id="zoompan" class="zoompan">
 <?php
 if ($video_tag) {
-  // Use HLS byte-range playback if m3u8 manifest exists on disk
-  $has_hls = str_ends_with($Event->DefaultVideo(), '.m3u8')
-    && file_exists($Event->Path() . '/index.m3u8');
+  // Prefer HLS byte-range playback when the manifest exists on disk and the
+  // user picked MP4HLS / auto. Explicit MP4 must stay native ("play the mp4
+  // file directly"); explicit MJPEG never reaches here because $video_tag is
+  // false for it. DefaultVideo's extension is deliberately not consulted —
+  // in-progress events have DefaultVideo='index.m3u8' from the constructor,
+  // and using that as a signal would override the explicit MP4 choice.
+  $has_hls = file_exists($Event->Path() . '/index.m3u8')
+    && (($codec == 'MP4HLS') || ($codec == 'auto'));
   if ($has_hls) {
     $Server = $Event->Server();
     $hlsSrc = $Server->PathToIndex() . '?view=view_hls&amp;eid=' . $Event->Id();
@@ -401,7 +407,11 @@ if ($video_tag) {
                         autoplay: true,
                         preload: 'auto',
                         playbackRates: rates,
-                        liveui: <?php echo $has_hls && !$Event->EndDateTime() ? 'true' : 'false' ?>,
+                        // liveui replaces the seekbar with a live-edge-only control,
+                        // which makes it impossible to scrub back through the already-
+                        // recorded portion of an in-progress event. Always false so the
+                        // standard seekbar is rendered.
+                        liveui: false,
                         liveTracker: {
                           trackingThreshold: 0
                         }

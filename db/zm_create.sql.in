@@ -180,6 +180,71 @@ CREATE TABLE `Devices` (
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --
+-- Table structure for table `EncoderTemplates`
+--
+
+DROP TABLE IF EXISTS `EncoderTemplates`;
+CREATE TABLE `EncoderTemplates` (
+  `Id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `Encoder` varchar(32) NOT NULL,
+  `Name` varchar(64) NOT NULL,
+  `Description` text,
+  `Params` text NOT NULL,
+  PRIMARY KEY (`Id`),
+  KEY `Encoder` (`Encoder`),
+  UNIQUE KEY `Encoder_Name` (`Encoder`, `Name`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
+INSERT INTO `EncoderTemplates` (`Encoder`, `Name`, `Description`, `Params`) VALUES
+('libx264', 'Balanced',
+ '1080p recording with reasonable CPU cost. Good default for most cameras.',
+ 'preset=fast\ncrf=23\ng=30\nprofile=high\npix_fmt=yuv420p'),
+('libx264', 'Archival (high quality)',
+ 'Slow encode for archival storage; substantially smaller files at higher CPU cost.',
+ 'preset=slow\ncrf=20\ng=30\nprofile=high\npix_fmt=yuv420p'),
+('libx264', 'Low CPU',
+ 'Highest encoding speed for slow CPUs; quality and file size trade off.',
+ 'preset=ultrafast\ncrf=26\ng=30\nprofile=baseline\npix_fmt=yuv420p'),
+
+('libx265', 'Balanced',
+ '1080p HEVC recording with reasonable CPU cost. Significantly smaller files than x264 at similar quality.',
+ 'preset=fast\ncrf=25\ng=30\nprofile=main\npix_fmt=yuv420p'),
+('libx265', 'Archival (high quality)',
+ 'Slow HEVC encode for archival storage.',
+ 'preset=slow\ncrf=22\ng=30\nprofile=main\npix_fmt=yuv420p'),
+('libx265', 'Low CPU',
+ 'Highest HEVC encoding speed for slow CPUs.',
+ 'preset=ultrafast\ncrf=28\ng=30\nprofile=main\npix_fmt=yuv420p'),
+
+('h264_nvenc', 'Balanced',
+ '1080p H.264 on NVIDIA GPU; sane vbr+cq defaults, no B-frames for low latency.',
+ 'preset=p4\nrc=vbr\ncq=23\ng=30\nbf=0\nprofile=high\npix_fmt=nv12'),
+('h264_nvenc', 'Low Power',
+ 'Faster preset for thermally-constrained NVIDIA hardware.',
+ 'preset=p1\nrc=vbr\ncq=26\ng=30\nbf=0\nprofile=high\npix_fmt=nv12'),
+
+('hevc_nvenc', 'Balanced',
+ '1080p HEVC on NVIDIA GPU; sane vbr+cq defaults, no B-frames.',
+ 'preset=p4\nrc=vbr\ncq=28\ng=30\nbf=0\nprofile=main\npix_fmt=nv12'),
+('hevc_nvenc', 'Low Power',
+ 'Faster preset for thermally-constrained NVIDIA hardware.',
+ 'preset=p1\nrc=vbr\ncq=30\ng=30\nbf=0\nprofile=main\npix_fmt=nv12'),
+
+('h264_vaapi', 'Balanced',
+ '1080p H.264 via VA-API (Intel/AMD/Mesa); no B-frames.',
+ 'rc_mode=CQP\nqp=24\ng=30\nbf=0\nprofile=high\npix_fmt=nv12'),
+('h264_vaapi', 'Low Power',
+ 'Lower-quality VA-API encode using the low_power codepath.',
+ 'rc_mode=CQP\nqp=27\ng=30\nbf=0\nprofile=high\npix_fmt=nv12\nlow_power=1'),
+
+('hevc_vaapi', 'Balanced',
+ '1080p HEVC via VA-API; no B-frames.',
+ 'rc_mode=CQP\nqp=27\ng=30\nbf=0\nprofile=main\npix_fmt=nv12'),
+('hevc_vaapi', 'Low Power',
+ 'Lower-quality HEVC VA-API encode using the low_power codepath.',
+ 'rc_mode=CQP\nqp=30\ng=30\nbf=0\nprofile=main\npix_fmt=nv12\nlow_power=1');
+
+--
 -- Table structure for table `Events`
 --
 
@@ -464,7 +529,7 @@ CREATE TABLE `Logs` (
 
 CREATE INDEX `Logs_TimeKey_idx` ON `Logs` (`TimeKey`);
 CREATE INDEX `Logs_Level_idx` ON `Logs` (`Level`);
-CREATE INDEX `Logs_Component_idx` ON `Logs` (`Component`);
+CREATE INDEX `Logs_Component_Level_TimeKey_Id_idx` ON `Logs` (`Component`, `Level`, `TimeKey`, `Id`);
 
 --
 -- Table structure for table `Manufacturers`
@@ -1231,13 +1296,13 @@ INSERT INTO MonitorPresets VALUES (NULL,NULL,'Qihan IP, 1920x1080, RTP/RTSP','Ff
 --
 -- Add some zone preset values
 --
-INSERT INTO ZonePresets VALUES (1,'Default','Active','Percent','Blobs',25,NULL,3,75,3,3,3,75,2,NULL,1,NULL,0,0);
-INSERT INTO ZonePresets VALUES (2,'Fast, low sensitivity','Active','Percent','AlarmedPixels',60,NULL,20,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,0);
-INSERT INTO ZonePresets VALUES (3,'Fast, medium sensitivity','Active','Percent','AlarmedPixels',40,NULL,10,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,0);
-INSERT INTO ZonePresets VALUES (4,'Fast, high sensitivity','Active','Percent','AlarmedPixels',20,NULL,5,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,0);
-INSERT INTO ZonePresets VALUES (5,'Best, low sensitivity','Active','Percent','Blobs',60,NULL,36,NULL,7,7,24,NULL,20,NULL,1,NULL,0,0);
-INSERT INTO ZonePresets VALUES (6,'Best, medium sensitivity','Active','Percent','Blobs',40,NULL,16,NULL,5,5,12,NULL,10,NULL,1,NULL,0,0);
-INSERT INTO ZonePresets VALUES (7,'Best, high sensitivity','Active','Percent','Blobs',20,NULL,8,NULL,3,3,6,NULL,5,NULL,1,NULL,0,0);
+INSERT INTO ZonePresets VALUES (1,'Default','Active','Percent','Blobs',25,NULL,0.5,75,3,3,0.35,75,0.3,NULL,1,NULL,0,0);
+INSERT INTO ZonePresets VALUES (2,'Fast, low sensitivity','Active','Percent','AlarmedPixels',60,NULL,3,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,0);
+INSERT INTO ZonePresets VALUES (3,'Fast, medium sensitivity','Active','Percent','AlarmedPixels',40,NULL,0.5,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,0);
+INSERT INTO ZonePresets VALUES (4,'Fast, high sensitivity','Active','Percent','AlarmedPixels',20,NULL,0.1,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,0);
+INSERT INTO ZonePresets VALUES (5,'Best, low sensitivity','Active','Percent','Blobs',60,NULL,5,NULL,7,7,3.5,NULL,3,NULL,1,NULL,0,0);
+INSERT INTO ZonePresets VALUES (6,'Best, medium sensitivity','Active','Percent','Blobs',40,NULL,1,NULL,5,5,0.7,NULL,0.6,NULL,1,NULL,0,0);
+INSERT INTO ZonePresets VALUES (7,'Best, high sensitivity','Active','Percent','Blobs',20,NULL,0.2,NULL,3,3,0.14,NULL,0.12,NULL,1,NULL,0,0);
 
 DROP TABLE IF EXISTS Maps;
 
@@ -1278,7 +1343,8 @@ CREATE TABLE Sessions (
   id char(32) not null,
   access INT(10) UNSIGNED DEFAULT NULL,
   data text,
-  PRIMARY KEY(id)
+  PRIMARY KEY(id),
+  KEY `Sessions_access_idx` (`access`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 CREATE TABLE Snapshots (
@@ -1307,6 +1373,7 @@ CREATE TABLE Reports (
   `StartDateTime` datetime default NULL,
   `EndDateTime` datetime default NULL,
   `Interval`  INT(10) UNSIGNED,
+  `CreatedBy` int(10) unsigned,
   PRIMARY KEY(Id)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 

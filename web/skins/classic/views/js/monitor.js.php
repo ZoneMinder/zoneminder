@@ -4,6 +4,8 @@ const messageSavingDataWhenLeavingPage = '<?php echo translate('MessageSavingDat
 const audioMotionVersionOK = '<?php echo translate('AudioMotionVersionOK') ?>';
 const audioMotionVersionNotInstalled = '<?php echo translate('AudioMotionVersionNotInstalled') ?>';
 const audioMotionVersionWrongVersion = '<?php echo translate('AudioMotionVersionWrongVersion') ?>';
+<?php require_once('includes/EncoderTemplates.php'); ?>
+window.ZM_ENCODER_TEMPLATES = <?php echo json_encode(ZM\EncoderTemplates::all(), JSON_UNESCAPED_SLASHES); ?>;
 
 <?php
 global $players;

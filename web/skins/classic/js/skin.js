@@ -1292,31 +1292,31 @@ function thumbnail_onmouseover(event) {
   const useGo2rtc = streamType === 'go2rtc' || (!streamType && go2rtcSrc && go2rtcMid);
 
   // Pre-load required modules
+  const m3u8Exists = checkM3u8File(img.dataset.videoHlsSrc);
   if (useGo2rtc) {
     ensureVideoStreamLoaded();
-  } else if (streamType === 'rtsp2web' || img.dataset.videoHlsSrc) {
+  } else if (streamType === 'rtsp2web' || m3u8Exists) {
     ensureHlsLoaded();
   }
 
-  // Determine overlay source (priority: live stream > mp4 video > MJPEG/still)
-  const overlaySrc = determineOverlaySrc(img, streamType, monitorId, useGo2rtc);
+  // Determine overlay source (priority: live stream > HLS video > mp4 video > MJPEG/still)
+  const overlaySrc = determineOverlaySrc(img, streamType, monitorId, useGo2rtc, m3u8Exists);
   if (!overlaySrc) return;
 
   const overlayDimensions = calculateOverlayDimensions(img);
   if (!overlayDimensions) return;
 
   thumbnail_timeout = setTimeout(function() {
-    createThumbnailOverlay(img, overlaySrc, overlayDimensions, streamType, monitorId, go2rtcSrc, go2rtcMid, useGo2rtc);
+    createThumbnailOverlay(img, overlaySrc, overlayDimensions, streamType, monitorId, go2rtcSrc, go2rtcMid, useGo2rtc, m3u8Exists);
   }, 250);
 }
 
-function determineOverlaySrc(img, streamType, monitorId, useGo2rtc) {
+function determineOverlaySrc(img, streamType, monitorId, useGo2rtc, m3u8Exists) {
   const useLiveStream = streamType && monitorId;
   if (useLiveStream || useGo2rtc) return 'live';
 
-  const videoHlsSrc = img.dataset.videoHlsSrc;
-  if (videoHlsSrc && currentView !== 'frames') {
-    return videoHlsSrc;
+  if (m3u8Exists && currentView !== 'frames') {
+    return img.dataset.videoHlsSrc;
   }
 
   const videoSrc = img.getAttribute('video_src');
@@ -1354,8 +1354,7 @@ function calculateOverlayScale(img, overlayWidth) {
   return Math.max(5, Math.min(100, scale));
 }
 
-function createThumbnailOverlay(img, overlaySrc, dimensions, streamType, monitorId, go2rtcSrc, go2rtcMid, useGo2rtc) {
-  const hlsSrc = img.dataset.videoHlsSrc;
+function createThumbnailOverlay(img, overlaySrc, dimensions, streamType, monitorId, go2rtcSrc, go2rtcMid, useGo2rtc, m3u8Exists) {
   const existing = document.getElementById('thumb-overlay');
   if (existing) existing.remove();
 
@@ -1410,16 +1409,15 @@ function createThumbnailOverlay(img, overlaySrc, dimensions, streamType, monitor
   if (isLive && useGo2rtc) {
     createGo2rtcStream(container, go2rtcSrc, monitorId || go2rtcMid, fallbackToMjpeg);
   } else if (streamType === 'rtsp2web') {
-    createRtsp2webStream(container, img, monitorId, fallbackToMjpeg);
-  } else if (hlsSrc) {
+    createRtsp2webStream(container, img, monitorId, fallbackToMjpeg, eventStart, statusBar);
+  } else if (m3u8Exists && currentView !== 'frames') {
     playEventHLS(container, img, monitorId, fallbackToMjpeg, statusBar, eventStart);
   } else if (streamType === 'janus') {
     // Janus requires complex initialization; fall back to MJPEG
     fallbackToMjpeg();
-  //} else if (!isLive && img.getAttribute('video_src') && currentView !== 'frames') {
-    // IgorA100 This code now never works, as we always have the data-video-hls-src video attribute. This code will likely be removed in the future.
-    //video = createVideoElement(container, overlaySrc, eventStart, statusBar);
-    //thumbnailVideoPlay(video, 'MP4', eventStart, statusBar);
+  } else if (!isLive && img.getAttribute('video_src') && currentView !== 'frames') {
+    const video = createVideoElement(container, overlaySrc, eventStart, statusBar);
+    thumbnailVideoPlay(video, 'MP4', eventStart, statusBar);
   } else {
     const overlayImg = document.createElement('img');
     const scale = calculateOverlayScale(img, dimensions.width);
@@ -1490,7 +1488,7 @@ function createGo2rtcStream(container, src, mid, fallbackToMjpeg) {
   });
 }
 
-function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg) {
+function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg, eventStart, statusBar) {
   const rtsp2webSrc = img.dataset.rtsp2webSrc;
   const channel = img.dataset.rtsp2webStream === 'Secondary' ? 1 : 0;
 
@@ -1549,7 +1547,7 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg) {
 }
 
 function thumbnailVideoPlay(video, currentMode, eventStart, statusBar) {
-  const infoStatusBar = document.getElementById("info-status-bar");
+  const infoStatusBar = statusBar.querySelector("#info-status-bar");
   video.play().then(() => {
     if (infoStatusBar && currentMode) infoStatusBar.innerHTML = ' [' + currentMode + '] ';
     console.debug(currentMode + " video player started playing");
@@ -1584,6 +1582,13 @@ function updateTimeWallClock(video, eventStart, statusBar) {
       });
     }
   }
+}
+
+function checkM3u8File(hlsUrl) {
+  const xhr = new XMLHttpRequest();
+  xhr.open("GET", hlsUrl, false);
+  xhr.send();
+  return (xhr.readyState === 4 && xhr.status === 200);
 }
 
 function tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar) {
@@ -1641,43 +1646,43 @@ function playEventHLS(container, img, monitorId, fallbackToMjpeg, statusBar, eve
         backBufferLength: 5,
         //debug: true,
       });
-      const xhr = new XMLHttpRequest();
-      xhr.open("GET", hlsUrl, false);
-      xhr.send();
-      if (xhr.readyState === 4 && xhr.status === 200) {
-        hls.loadSource(hlsUrl);
-        hls.attachMedia(video);
-        thumbnailVideoPlay(video, 'HLS', eventStart, statusBar);
-        video._fallbackTimer = setTimeout(function() {
-          // If the index.m3u8 manifest is bad, playback may not start, although there will be no errors.
-          if (video.readyState < 2) {
-            video.remove();
-            hls.destroy();
-            tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar);
-          }
-        }, 2000);
-
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          console.debug("HLS Event = MANIFEST_PARSED");
-        });
-        hls.on(Hls.Events.BUFFER_APPENDED, () => {
-          console.debug("HLS Event = BUFFER_APPENDED");
-        });
-        hls.on(Hls.Events.ERROR, function(event, data) {
-          const errorType = data.type;
-          const errorDetails = data.details;
-          const errorFatal = data.fatal;
-          console.warn("event:", event, "\n", "errorType:", errorType, "\n", "errorDetails:", errorDetails, "\n", "errorFatal:", errorFatal);
+      hls.loadSource(hlsUrl);
+      hls.attachMedia(video);
+      thumbnailVideoPlay(video, 'HLS', eventStart, statusBar);
+      video._fallbackTimer = setTimeout(function() {
+        // If the index.m3u8 manifest is bad, playback may not start, although there will be no errors.
+        if (video.readyState < 2) {
           video.remove();
           hls.destroy();
-          clearTimeout(video._fallbackTimer);
           tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar);
-        });
-        video._hls = hls;
-      } else {
+        }
+      }, 2000);
+
+      hls.on(Hls.Events.FRAG_LOADED, () => {
+        if (video._hls && video._destroy) {
+          video._hls.destroy();
+          video._hls = null;
+          thumbnailVideoDestroy(video);
+        }
+        console.debug("HLS Event = FRAG_LOADED");
+      });
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        console.debug("HLS Event = MANIFEST_PARSED");
+      });
+      hls.on(Hls.Events.BUFFER_APPENDED, () => {
+        console.debug("HLS Event = BUFFER_APPENDED");
+      });
+      hls.on(Hls.Events.BUFFER_EOS, () => {
+        console.debug("HLS Event = BUFFER_EOS");
+      });
+      hls.on(Hls.Events.ERROR, function(event, data) {
+        console.warn("event:", event, "\n", "errorType:", data.type, "\n", "errorDetails:", data.details, "\n", "errorFatal:", data.fatal);
         video.remove();
+        hls.destroy();
+        clearTimeout(video._fallbackTimer);
         tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar);
-      }
+      });
+      video._hls = hls;
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       // Native HLS support (Safari)
       video.src = hlsUrl;

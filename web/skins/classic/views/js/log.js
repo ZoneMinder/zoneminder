@@ -54,9 +54,10 @@ function ajaxRequest(params) {
     data: params.data,
     timeout: 0,
     success: function(data) {
-      if (!data.rows.length) {
-        // If page is > 1, bt infinitely loops
+      if (!data.rows.length && data.total > 0) {
+        // The requested page is out of range; reset to page 1.
         table.bootstrapTable('selectPage', 1);
+        return;
       }
       // rearrange the result into what bootstrap-table expects
       params.success({
@@ -93,8 +94,8 @@ function filterLog() {
 function updateHeaderStats(data) {
   var pageNum = table.bootstrapTable('getOptions').pageNumber;
   var pageSize = table.bootstrapTable('getOptions').pageSize;
-  var startRow = ( (pageNum - 1 ) * pageSize ) + 1;
-  var stopRow = pageNum * pageSize;
+  var startRow = (data.total > 0) ? (( (pageNum - 1 ) * pageSize ) + 1) : 0;
+  var stopRow = (data.total > 0) ? Math.min(data.total, pageNum * pageSize) : 0;
   var newClass = (data.logstate == 'ok') ? 'text-success' : (data.logstate == 'alert' ? 'text-warning' : ((data.logstate == 'alarm' ? 'text-danger' : '')));
 
   $j('#logState').text(data.logstate);
@@ -112,10 +113,18 @@ function updateHeaderStats(data) {
 function manageClearLogsModalBtns() {
   document.getElementById('clearLogsConfirmBtn').addEventListener('click', function onClearLogsConfirmClick(evt) {
     evt.preventDefault();
+    $j('#clearLogsConfirm').modal('hide');
     document.getElementById('clearLogsConfirmBtn').disabled = true;
     deleteLogs(getIdSelections());
   });
+  $j('#clearLogsConfirm').on('hide.bs.modal', function onClearLogsConfirmHidden(evt) {
+    const idRelatedTarget = $j(document.activeElement).attr('id');
+    // When executing deleteLogs(), we always call a table update
+    // after which manageClearButtonAvailability() is always executed, so there is no need to execute manageClearButtonAvailability() here
+    if (idRelatedTarget != "clearLogsConfirmBtn") manageClearButtonAvailability();
+  });
   document.getElementById('clearLogsCancelBtn').addEventListener('click', function onClearLogsCancelClick(evt) {
+    evt.preventDefault();
     $j('#clearLogsConfirm').modal('hide');
   });
 }
@@ -138,7 +147,6 @@ function deleteLogs(log_ids) {
     data: {'ids[]': chunk},
     success: function(data) {
       if (!log_ids.length) {
-        $j('#clearLogsConfirm').modal('hide');
         table.bootstrapTable('refresh');
       } else {
         if (ticker.innerHTML.length < 1 || ticker.innerHTML.length > 10) {
@@ -151,7 +159,6 @@ function deleteLogs(log_ids) {
     },
     error: function(jqxhr) {
       logAjaxFail(jqxhr);
-      $j('#clearLogsConfirm').modal('hide');
       table.bootstrapTable('refresh');
     }
   });
@@ -204,6 +211,7 @@ function initPage() {
   const clearLogsBtn = document.getElementById('clearLogsBtn');
   if (clearLogsBtn) {
     clearLogsBtn.addEventListener('click', function onClearLogsClick(evt) {
+      manageClearButtonAvailability(false);
       evt.preventDefault();
       if (evt.ctrlKey) {
         // Bypass confirmation, but ensure the modal (and its ticker) exists
@@ -216,6 +224,7 @@ function initPage() {
                 deleteLogs(getIdSelections());
               })
               .fail(function(jqXHR) {
+                manageClearButtonAvailability();
                 console.log('error getting clearlogsconfirm', jqXHR);
                 logAjaxFail(jqXHR);
               });
@@ -231,6 +240,7 @@ function initPage() {
                 $j('#clearLogsConfirm').modal('show');
               })
               .fail(function(jqXHR) {
+                manageClearButtonAvailability();
                 console.log('error getting clearlogsconfirm', jqXHR);
                 logAjaxFail(jqXHR);
               });
@@ -243,12 +253,10 @@ function initPage() {
   }
 
   // Enable or disable clear button based on selection
-  table.on('check.bs.table uncheck.bs.table check-all.bs.table uncheck-all.bs.table', function() {
-    const selections = table.bootstrapTable('getSelections');
-    const clearLogsBtn = document.getElementById('clearLogsBtn');
-    if (clearLogsBtn) {
-      clearLogsBtn.disabled = !selections.length;
-    }
+  table.on('check.bs.table uncheck.bs.table check-all.bs.table uncheck-all.bs.table', manageClearButtonAvailability);
+
+  table.on('load-success.bs.table', function() {
+    manageClearButtonAvailability();
   });
 
   $j('#filterStartDateTime, #filterEndDateTime')
@@ -257,6 +265,18 @@ function initPage() {
       .on('change', filterLog);
   $j('#filterComponent')
       .on('change', filterLog);
+}
+
+function manageClearButtonAvailability(enable = null) {
+  const selections = table.bootstrapTable('getSelections');
+  const clearLogsBtn = document.getElementById('clearLogsBtn');
+  if (clearLogsBtn) {
+    if (enable === false || !selections.length) {
+      clearLogsBtn.disabled = true;
+    } else if (enable === true || selections.length) {
+      clearLogsBtn.disabled = false;
+    }
+  }
 }
 
 $j(document).ready(function() {

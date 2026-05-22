@@ -407,7 +407,10 @@ function queryRequest() {
     }
     $row['Analysing'] = isset($monitor['Analysing']) ? $monitor['Analysing'] : 'None';
     $row['Recording'] = isset($monitor['Recording']) ? $monitor['Recording'] : 'None';
-    $row['ONVIF_Event_Listener'] = isset($monitor['ONVIF_Event_Listener']) ? $monitor['ONVIF_Alarm_Text'] : 0;
+    // console.js treats this as both an enable flag AND the text to display:
+    //   if (row.ONVIF_Event_Listener) html += "Use ONVIF '" + row.ONVIF_Event_Listener + "'"
+    // So send the alarm text only when the listener is actually enabled, else 0.
+    $row['ONVIF_Event_Listener'] = !empty($monitor['ONVIF_Event_Listener']) ? $monitor['ONVIF_Alarm_Text'] : 0;
     $row['UpdatedOn'] = isset($monitor['UpdatedOn']) ? $monitor['UpdatedOn'] : '';
     $row['Type'] = $monitor['Type'];
     $row['Capturing'] = isset($monitor['Capturing']) ? $monitor['Capturing'] : 'None';

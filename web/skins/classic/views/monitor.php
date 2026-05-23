@@ -907,7 +907,16 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
         <li class="TargetColorspace">
           <label><?php echo translate('TargetColorspace') ?></label>
           <?php echo htmlSelect('newMonitor[Colours]', $Colours, $monitor->Colours()) ?>
-          <small class="text-muted">(<?php echo translate('DeprecatedColoursSetting') ?>)</small>
+<?php
+          // translate() returns the key when no translation exists. Fall back
+          // to an English string so non-en_gb locales don't render
+          // "DeprecatedColoursSetting" verbatim in the UI.
+          $deprecated_label = translate('DeprecatedColoursSetting');
+          if ($deprecated_label === 'DeprecatedColoursSetting') {
+            $deprecated_label = 'Deprecated - will be auto-detected in a future release';
+          }
+?>
+          <small class="text-muted">(<?php echo $deprecated_label ?>)</small>
         </li>
         <li class="CaptureResolution">
           <label><?php echo translate('CaptureResolution') ?> (<?php echo translate('Pixels') ?>)</label>

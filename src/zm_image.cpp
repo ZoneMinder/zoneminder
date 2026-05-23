@@ -911,19 +911,30 @@ void Image::Assign(
     return;
   }
 
-  unsigned int new_size = p_width * p_height * p_colours;
-  if ( buffer_size < new_size ) {
-    Error("Attempt to assign buffer from an undersized buffer of size: %zu", buffer_size);
-    return;
-  }
-
   if ( !p_height || !p_width ) {
     Error("Attempt to assign buffer with invalid width or height: %d %d", p_width, p_height);
     return;
   }
 
-  if (zm_pixformat_from_colours(p_colours, p_subpixelorder) == AV_PIX_FMT_NONE) {
+  AVPixelFormat new_pix_fmt = zm_pixformat_from_colours(p_colours, p_subpixelorder);
+  if (new_pix_fmt == AV_PIX_FMT_NONE) {
     Error("Attempt to assign buffer with unexpected colours per pixel: %d", p_colours);
+    return;
+  }
+
+  // Derive the required byte size from the AVPixelFormat. The legacy
+  // width*height*colours formula undercounts planar formats like YUV420P
+  // (colours==1 but chroma planes exist), leading to partial copies and
+  // corrupted output.
+  int raw_size = av_image_get_buffer_size(new_pix_fmt, p_width, p_height, 32);
+  if (raw_size < 0) {
+    Error("av_image_get_buffer_size failed (%d) for %s %ux%u",
+          raw_size, av_get_pix_fmt_name(new_pix_fmt), p_width, p_height);
+    return;
+  }
+  unsigned int new_size = static_cast<unsigned int>(raw_size);
+  if ( buffer_size < new_size ) {
+    Error("Attempt to assign buffer from an undersized buffer of size: %zu (need %u)", buffer_size, new_size);
     return;
   }
 
@@ -946,8 +957,12 @@ void Image::Assign(
     pixels = width*height;
     colours = p_colours;
     subpixelorder = p_subpixelorder;
-    imagePixFormat = zm_pixformat_from_colours(colours, subpixelorder);
+    imagePixFormat = new_pix_fmt;
     size = new_size;
+    // Keep linesize in sync with the new format. av_image_get_linesize is
+    // signed; the format validation above guarantees a recognised format
+    // here so the call will not return a negative value.
+    linesize = FFALIGN(av_image_get_linesize(new_pix_fmt, p_width, 0), 32);
   }
 
   if ( new_buffer != buffer )
@@ -1003,14 +1018,30 @@ void Image::Assign(const Image &image) {
 
   if ( image.buffer != buffer ) {
     if (image.linesize > linesize) {
-      // Source has more per-row padding than the destination can hold. Copy
-      // only the destination's row capacity per line to avoid writing past
-      // the destination buffer on the last row. Source padding bytes beyond
-      // the common row width are discarded.
-      // This branch is only reached when dimensions and colours/subpixelorder
-      // match but linesize disagrees, which is an oddly-shaped Image. Only
-      // the Y/primary plane is copied; planar chroma planes are not handled
-      // here. The common path is the flat copy below.
+      // Source has more per-row padding than the destination can hold. This
+      // branch is only reached when dimensions and colours/subpixelorder
+      // match but linesize disagrees — an oddly-shaped Image.
+      //
+      // For planar formats (YUV420P/J420P/YUV422P/J422P) the per-row copy
+      // here only touches the Y plane; chroma planes would need plane-aware
+      // copying with separate strides via av_image_copy_plane. Doing a
+      // silent Y-only copy on a planar image leaves U/V uninitialised in
+      // the destination, producing solid-green output downstream. Refuse
+      // the assignment for planar formats with stride mismatch — the
+      // caller can fall back to a real sws_scale or re-allocate.
+      if (zm_is_yuv420(image.imagePixFormat)
+          || image.imagePixFormat == AV_PIX_FMT_YUV422P
+          || image.imagePixFormat == AV_PIX_FMT_YUVJ422P) {
+        Error("Image::Assign: planar format %s with stride mismatch (src %d > dst %d) "
+              "is not supported by the per-row copy; chroma planes would be lost. "
+              "Caller must convert or reallocate.",
+              av_get_pix_fmt_name(image.imagePixFormat), image.linesize, linesize);
+        return;
+      }
+      // Packed formats (GRAY8, RGB24/BGR24, RGB32 family): copy only the
+      // destination row capacity per line to avoid writing past the
+      // destination on the last row. Source padding bytes beyond the
+      // common row width are discarded.
       Debug(1, "Must copy line by line due to different line size %d != %d", image.linesize, linesize);
       uint8_t *src_ptr = image.buffer;
       uint8_t *dst_ptr = buffer;
@@ -5540,13 +5571,32 @@ AVPixelFormat Image::AVPixFormat() const {
 }
 
 AVPixelFormat Image::AVPixFormat(AVPixelFormat new_pixelformat) {
-  if (!zm_colours_from_pixformat(new_pixelformat, colours, subpixelorder)) {
-    Error("Unknown pixelformat %d %s", new_pixelformat, av_get_pix_fmt_name(new_pixelformat));
+  // Reject unrecognised formats up-front: av_image_get_buffer_size /
+  // av_image_get_linesize return negative for them, and assigning that into
+  // unsigned size/linesize would wrap to a huge value and corrupt later
+  // bounds checks. On failure, leave the Image's format/size/linesize
+  // untouched so callers can recover or skip the slot.
+  unsigned int probe_colours, probe_subpix;
+  if (!zm_colours_from_pixformat(new_pixelformat, probe_colours, probe_subpix)) {
+    Error("Image::AVPixFormat: refusing to set unknown pixelformat %d %s; keeping current %s",
+          new_pixelformat, av_get_pix_fmt_name(new_pixelformat),
+          av_get_pix_fmt_name(imagePixFormat));
+    return imagePixFormat;
   }
-  Debug(4, "Old size: %d, old pixelformat %d", size, imagePixFormat);
+  int new_size = av_image_get_buffer_size(new_pixelformat, width, height, 32);
+  int new_linesize = av_image_get_linesize(new_pixelformat, width, 0);
+  if (new_size < 0 || new_linesize < 0) {
+    Error("Image::AVPixFormat: av_image_get_* returned %d/%d for %s; keeping current %s",
+          new_size, new_linesize, av_get_pix_fmt_name(new_pixelformat),
+          av_get_pix_fmt_name(imagePixFormat));
+    return imagePixFormat;
+  }
+  Debug(4, "Old size: %u, old pixelformat %s", size, av_get_pix_fmt_name(imagePixFormat));
+  colours = probe_colours;
+  subpixelorder = probe_subpix;
   imagePixFormat = new_pixelformat;
-  size = av_image_get_buffer_size(new_pixelformat, width, height, 32);
-  Debug(4, "New size: %d new pixelformat %d", size, new_pixelformat);
-  linesize = FFALIGN(av_image_get_linesize(new_pixelformat, width, 0), 32);
+  size = static_cast<unsigned int>(new_size);
+  linesize = FFALIGN(new_linesize, 32);
+  Debug(4, "New size: %u new pixelformat %s", size, av_get_pix_fmt_name(new_pixelformat));
   return imagePixFormat;
 }

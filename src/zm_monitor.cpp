@@ -299,6 +299,8 @@ Monitor::Monitor() :
   video_store_data(nullptr),
   shared_timestamps(nullptr),
   shared_images(nullptr),
+  image_pixelformats(nullptr),
+  shm_slot_size(0),
   video_stream_id(-1),
   audio_stream_id(-1),
   video_fifo(nullptr),
@@ -991,7 +993,22 @@ bool Monitor::connect() {
     Warning("Already connected. Please call disconnect first.");
   }
   if (!camera) LoadCamera();
+  // SHM slot size must be an upper bound across every AVPixelFormat the
+  // no-conversion pipeline can transport, not just the monitor's configured
+  // colours. If the camera is configured as GRAY8 (1 byte/pixel) but the
+  // decoder hands us YUV422P (2 bytes/pixel) or RGBA (4 bytes/pixel), the
+  // capture-side Assign would fail with "Held buffer is undersized". Size
+  // the slot for the largest supported format (RGBA at 4 bytes/pixel with
+  // 32-byte alignment) and fall back to camera->ImageSize() if that probe
+  // fails, so we never shrink the slot.
   size_t image_size = camera->ImageSize();
+  int upper_bound = av_image_get_buffer_size(AV_PIX_FMT_RGBA, width, height, 32);
+  if (upper_bound > 0 && static_cast<size_t>(upper_bound) > image_size) {
+    Debug(1, "SHM slot sized for upper bound %d (was camera->ImageSize()=%zu)",
+          upper_bound, image_size);
+    image_size = static_cast<size_t>(upper_bound);
+  }
+  shm_slot_size = image_size;
   mem_size = sizeof(SharedData)
              + sizeof(TriggerData)
              + (zone_count * sizeof(int)) // Per zone scores
@@ -1123,9 +1140,9 @@ bool Monitor::connect() {
     // The initial format is a placeholder. The actual SHM bytes can be in
     // any AVPixelFormat zm_pixformat supports — zmc records the per-slot
     // format via image_pixelformats[index] in WriteShmFrame, and ReadShmFrame
-    // applies it to image_buffer[i] before each consumer access. We pass
-    // image_size as the allocation upper bound so any format up to that
-    // byte count fits the held SHM slot.
+    // applies it to image_buffer[i] before each consumer access. image_size
+    // is sized above to the RGBA upper bound so any supported format fits
+    // the held SHM slot regardless of the monitor's configured colours.
     image_buffer[i] = new Image(width, height, ZM_COLOUR_YUV420P, ZM_SUBPIX_ORDER_YUV420P,
                                  &(shared_images[i*image_size]), image_size, 0);
     image_buffer[i]->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
@@ -2895,20 +2912,32 @@ Image *Monitor::ReadShmFrame(unsigned int index) {
   // image_pixelformats[] lives in SHM and is written by another process —
   // treat it as untrusted: an uninitialised slot, a torn write, or a
   // mismatched zmc/zms build could leave an arbitrary enum value here.
-  // Reject anything not in our supported set; av_image_get_buffer_size
-  // returns negative for unrecognised formats and would wrap into Image's
-  // unsigned size/linesize members.
+  // Two checks before applying:
+  //   1. The format must be in our supported set; av_image_get_buffer_size
+  //      returns negative for unrecognised formats and would wrap into
+  //      Image's unsigned size/linesize.
+  //   2. The format's required buffer size must fit shm_slot_size; even a
+  //      supported format (e.g. RGBA at a larger width than expected) could
+  //      otherwise let subsequent reads/writes run past the held slot.
   AVPixelFormat fmt = image_pixelformats[index];
-  unsigned int ignored_colours, ignored_subpix;
-  if (fmt != AV_PIX_FMT_NONE
-      && zm_colours_from_pixformat(fmt, ignored_colours, ignored_subpix)
-      && image_buffer[index]->PixFormat() != fmt) {
-    image_buffer[index]->AVPixFormat(fmt);
-  } else if (fmt != AV_PIX_FMT_NONE
-             && !zm_colours_from_pixformat(fmt, ignored_colours, ignored_subpix)) {
+  if (fmt == AV_PIX_FMT_NONE || image_buffer[index]->PixFormat() == fmt) {
+    return image_buffer[index];
+  }
+  unsigned int probe_colours, probe_subpix;
+  if (!zm_colours_from_pixformat(fmt, probe_colours, probe_subpix)) {
     Warning("ReadShmFrame: ignoring unsupported pixelformat %d in slot %u; keeping current %s",
             fmt, index, av_get_pix_fmt_name(image_buffer[index]->PixFormat()));
+    return image_buffer[index];
   }
+  int required = av_image_get_buffer_size(fmt, width, height, 32);
+  if (required < 0 || static_cast<size_t>(required) > shm_slot_size) {
+    Warning("ReadShmFrame: format %s requires %d bytes but slot %u capacity is %zu; "
+            "keeping current %s to avoid overrun",
+            av_get_pix_fmt_name(fmt), required, index, shm_slot_size,
+            av_get_pix_fmt_name(image_buffer[index]->PixFormat()));
+    return image_buffer[index];
+  }
+  image_buffer[index]->AVPixFormat(fmt);
   return image_buffer[index];
 }
 

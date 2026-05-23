@@ -347,7 +347,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
       // it for events with video; JS falls back to MP4/MJPEG on load failure
       // (handles legacy events recorded before HLS support was added).
       $videoAttr .= ' data-video-hls-src="'.$event->getStreamSrc(array('mode'=>'mp4hls'), '&amp;').'"';
-      $videoAttr .= ' data-video-duration-secs="'.($event->EndDateTimeSecs() - $event->StartDateTimeSecs()).'"';
+      $videoAttr .= ' data-video-duration-secs="'.$event->Duration().'"';
     }
 
     // Modify the row data as needed

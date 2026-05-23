@@ -41,23 +41,42 @@ namespace {
   inline std::string FormatDurationSeconds(int seconds) {
     return "PT" + std::to_string(seconds) + "S";
   }
-}
 
-std::string SOAP_STRINGS[] = {
-    "SOAP_OK",              // 0
-    "SOAP_CLI_FAULT",       // 1
-    "SOAP_SVR_FAULT",       // 2
-    "SOAP_TAG_MISMATCH",    // 3
-    "SOAP_TYPE",            // 4
-    "SOAP_SYNTAX_ERROR",    // 5
-    "SOAP_NO_TAG",          // 6
-    "SOAP_IOB",             // 7
-    "SOAP_MUSTUNDERSTAND",  // 8
-    "SOAP_NAMESPACE",       // 9
-    "SOAP_USER_ERROR",      // 10
-    "SOAP_FATAL_ERROR",     // 11
-    "SOAP_FAULT",           // 12
-};
+  // gsoap error codes are sparse (range -1..1000 with gaps), so a lookup
+  // table is the wrong shape. Cover the codes that show up in practice for
+  // ONVIF cameras; everything else falls through to "UNKNOWN".
+  const char *soap_error_name(int rc) {
+    switch (rc) {
+      case SOAP_EOF:             return "SOAP_EOF";          // -1, also a timeout/disconnect
+      case SOAP_OK:              return "SOAP_OK";           // 0
+      case SOAP_CLI_FAULT:       return "SOAP_CLI_FAULT";    // 1
+      case SOAP_SVR_FAULT:       return "SOAP_SVR_FAULT";    // 2
+      case SOAP_TAG_MISMATCH:    return "SOAP_TAG_MISMATCH"; // 3
+      case SOAP_TYPE:            return "SOAP_TYPE";         // 4
+      case SOAP_SYNTAX_ERROR:    return "SOAP_SYNTAX_ERROR"; // 5
+      case SOAP_NO_TAG:          return "SOAP_NO_TAG";       // 6
+      case SOAP_IOB:             return "SOAP_IOB";          // 7
+      case SOAP_MUSTUNDERSTAND:  return "SOAP_MUSTUNDERSTAND"; // 8
+      case SOAP_NAMESPACE:       return "SOAP_NAMESPACE";    // 9
+      case SOAP_USER_ERROR:      return "SOAP_USER_ERROR";   // 10
+      case SOAP_FATAL_ERROR:     return "SOAP_FATAL_ERROR";  // 11
+      case SOAP_FAULT:           return "SOAP_FAULT";        // 12
+      case SOAP_NO_METHOD:       return "SOAP_NO_METHOD";    // 13
+      case SOAP_GET_METHOD:      return "SOAP_GET_METHOD";   // 15
+      case SOAP_EOM:             return "SOAP_EOM";          // 20
+      case SOAP_HDR:             return "SOAP_HDR";          // 22
+      case SOAP_NULL:            return "SOAP_NULL";         // 23
+      case SOAP_UDP_ERROR:       return "SOAP_UDP_ERROR";    // 27
+      case SOAP_TCP_ERROR:       return "SOAP_TCP_ERROR";    // 28
+      case SOAP_HTTP_ERROR:      return "SOAP_HTTP_ERROR";   // 29
+      case SOAP_SSL_ERROR:       return "SOAP_SSL_ERROR";    // 30
+      case SOAP_ZLIB_ERROR:      return "SOAP_ZLIB_ERROR";   // 31
+      case SOAP_VERSIONMISMATCH: return "SOAP_VERSIONMISMATCH"; // 39
+      case SOAP_STOP:            return "SOAP_STOP";         // 1000
+      default:                   return "UNKNOWN";
+    }
+  }
+}
 
 ONVIF::ONVIF(Monitor *parent_) :
   parent(parent_)
@@ -296,14 +315,10 @@ void ONVIF::Subscribe() {
                        || (fault_string && (std::strstr(fault_string, "authoriz")
                                             || std::strstr(fault_string, "Authoriz"))));
 
-    if (rc > 8) {
-      Error("ONVIF: Couldn't create subscription at %s! %d, fault:%s, detail:%s", event_endpoint_url_.c_str(),
-          rc, fault_string, detail ? detail : "null");
-    } else {
-      Error("ONVIF: Couldn't create subscription at %s! %d %s, fault:%s, detail:%s", event_endpoint_url_.c_str(),
-          rc, SOAP_STRINGS[rc].c_str(),
-          fault_string, detail ? detail : "null");
-    }
+    Error("ONVIF: Couldn't create subscription at %s! %d %s, fault:%s, detail:%s",
+        event_endpoint_url_.c_str(),
+        rc, soap_error_name(rc),
+        fault_string, detail ? detail : "null");
 
     // If authentication failed and we were using digest, try plain authentication
     if (auth_error && !try_usernametoken_auth) {

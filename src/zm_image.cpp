@@ -1857,7 +1857,15 @@ void Image::Overlay( const Image &image ) {
 
   /* Grayscale/YUV420 on top of grayscale/YUV420 - complete */
   if ( zm_bytes_per_pixel(imagePixFormat) == 1 && zm_bytes_per_pixel(image.imagePixFormat) == 1 ) {
-    const uint8_t* const max_ptr = buffer+size;
+    // Overlay only the luma/primary plane. For planar YUV destinations `size`
+    // includes chroma planes which the GRAY8 source has no bytes for —
+    // walking the whole `size` would over-read image.buffer and clobber the
+    // destination's chroma. Bound by the smaller of the two Y-plane spans so
+    // a smaller source can't run past its own buffer either.
+    const size_t y_span = std::min(
+        static_cast<size_t>(height) * linesize,
+        static_cast<size_t>(image.height) * image.linesize);
+    const uint8_t* const max_ptr = buffer + y_span;
     const uint8_t* psrc = image.buffer;
     uint8_t* pdest = buffer;
 

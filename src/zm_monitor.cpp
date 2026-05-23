@@ -2722,10 +2722,15 @@ int Monitor::Capture() {
     Image *capture_image = new Image(width, height, camera->Colours(), camera->SubpixelOrder());
     capture_image->Fill(signalcolor);
     shared_data->signal = false;
-    shared_data->last_write_index = index;
-    shared_data->last_write_time = shared_timestamps[index].tv_sec;
+    // Publish in dependency order: slot bytes + per-slot timestamp first,
+    // then last_write_time (a fresh value, not the stale tv_sec the slot
+    // held from its previous occupant), then last_write_index as the
+    // commit step. Readers gate on last_write_index, so anything they need
+    // for that slot must be visible before this final assignment.
     WriteShmFrame(index, capture_image);
     shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
+    shared_data->last_write_time = std::chrono::system_clock::to_time_t(packet->timestamp);
+    shared_data->last_write_index = index;
     delete capture_image;
     shared_data->image_count++;
     // What about timestamping it?
@@ -2886,9 +2891,23 @@ Image *Monitor::ReadShmFrame(unsigned int index) {
   // updates imagePixFormat, colours, subpixelorder, size and linesize
   // together so the Image object consistently interprets the SHM bytes.
   // No-op when the slot's format already matches.
+  //
+  // image_pixelformats[] lives in SHM and is written by another process —
+  // treat it as untrusted: an uninitialised slot, a torn write, or a
+  // mismatched zmc/zms build could leave an arbitrary enum value here.
+  // Reject anything not in our supported set; av_image_get_buffer_size
+  // returns negative for unrecognised formats and would wrap into Image's
+  // unsigned size/linesize members.
   AVPixelFormat fmt = image_pixelformats[index];
-  if (fmt != AV_PIX_FMT_NONE && image_buffer[index]->AVPixFormat() != fmt) {
+  unsigned int ignored_colours, ignored_subpix;
+  if (fmt != AV_PIX_FMT_NONE
+      && zm_colours_from_pixformat(fmt, ignored_colours, ignored_subpix)
+      && image_buffer[index]->PixFormat() != fmt) {
     image_buffer[index]->AVPixFormat(fmt);
+  } else if (fmt != AV_PIX_FMT_NONE
+             && !zm_colours_from_pixformat(fmt, ignored_colours, ignored_subpix)) {
+    Warning("ReadShmFrame: ignoring unsupported pixelformat %d in slot %u; keeping current %s",
+            fmt, index, av_get_pix_fmt_name(image_buffer[index]->PixFormat()));
   }
   return image_buffer[index];
 }

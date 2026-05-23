@@ -99,9 +99,10 @@ $levels = array(''=>translate('All'));
 foreach (array_values(ZM\Logger::$codes) as $level) {
   $levels[$level] = $level;
 }
+$selectedLevel = (isset($_SESSION['zmLogFilterLevel']) && !empty($_SESSION['zmLogFilterLevel']) && is_scalar($_SESSION['zmLogFilterLevel'])) ? (string) $_SESSION['zmLogFilterLevel'] : '';
+$selectedLevel = isset($levels[$selectedLevel]) ? $selectedLevel : '';
 echo '<span class="term-value-wrapper">';
-echo htmlSelect('filterLevel', $levels,
-    (isset($_SESSION['ZM_LOG_FILTER_LEVEL']) ? $_SESSION['ZM_LOG_FILTER_LEVEL'] : ''),
+echo htmlSelect('filterLevel', $levels, $selectedLevel,
     array('data-on-change'=>'filterLog', 'id'=>'filterLevel', 'class'=>'chosen'));
     #array('class'=>'form-control chosen', 'data-on-change'=>'filterLog'));
 echo '</span>';

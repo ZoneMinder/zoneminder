@@ -193,15 +193,6 @@ function getAuthUser($auth) {
     $sessionUser = isset($_SESSION['username']) ? $_SESSION['username'] : null;
     $filterUser = $requestedUser !== null ? $requestedUser : $sessionUser;
 
-    if ($requestedUser !== null && $sessionUser !== null) {
-      $usersMatch = ZM_CASE_INSENSITIVE_USERNAMES
-        ? (strcasecmp($requestedUser, $sessionUser) === 0)
-        : ($requestedUser === $sessionUser);
-      if (!$usersMatch) {
-        ZM\Warning("Auth user mismatch: URL user='$requestedUser' but session username='$sessionUser'. This may indicate a stale auth hash from a previous login, cross-tab session contamination, or a tampered request.");
-      }
-    }
-
     ZM\Debug("getAuthUser: validating auth='$auth' filterUser='".($filterUser ?? '')."' xff='$xff' directAddr='$directAddr' usingRemoteAddr='$remoteAddr' session_username='".($sessionUser ?? '')."'");
 
     $sql = 'SELECT * FROM Users WHERE Enabled = 1';
@@ -257,7 +248,7 @@ function getAuthUser($auth) {
       } // end foreach user
     } // end if
 
-    ZM\Info("Unable to authenticate user from auth hash '$auth' (filterUser='".($filterUser ?? '')."' xff='$xff' directAddr='$directAddr' rowsTried=$rowsTried ttl=".ZM_AUTH_HASH_TTL.'h)');
+    ZM\Info("Unable to authenticate user from auth hash '$auth' (filterUser='".($filterUser ?? '')."' sessionUser='".($sessionUser ?? '')."' xff='$xff' directAddr='$directAddr' rowsTried=$rowsTried ttl=".ZM_AUTH_HASH_TTL.'h)');
     return null;
   } // end if using auth hash
 

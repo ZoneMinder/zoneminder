@@ -157,14 +157,12 @@ function queryRequest() {
     $where = '(' .implode(' OR ', $likes). ')';
   }
 
-  if (!empty($_REQUEST['Component'])) {
+  $requestComponent = (isset($_REQUEST['Component']) && !empty($_REQUEST['Component']) && is_scalar($_REQUEST['Component'])) ? (string) $_REQUEST['Component'] : '';
+  if (!empty($requestComponent)) {
     if ($where) $where .= ' AND ';
     $where .= 'Component = ?';
-    $query['values'][] = $_REQUEST['Component'];
+    $query['values'][] = $requestComponent;
   }
-  zm_session_start();
-  $_SESSION['zmLogComponent'] = !empty($_REQUEST['Component']) ? $_REQUEST['Component'] : '';
-  session_write_close();
 
   if (!empty($_REQUEST['ServerId'])) {
     if ($where) $where .= ' AND ';
@@ -178,13 +176,14 @@ function queryRequest() {
     $query['values'][] = $_REQUEST['level'];
   }
 */
-  $L = $_REQUEST['level'] ?? '';
+  $L = (isset($_REQUEST['level']) && !empty($_REQUEST['level']) && is_scalar($_REQUEST['level'])) ? (string) $_REQUEST['level'] : '';
   $level_codes = array_flip(ZM\Logger::$codes);
   if (!empty($L) && isset($level_codes[$L])) {
     if ($where) $where .= ' AND ';
     $where .= ' Level = ?';
     $query['values'][] = $level_codes[$L];
   }
+
   if (!empty($_REQUEST['StartDateTime'])) {
     $start_time = strtotime($_REQUEST['StartDateTime']);
     if ($start_time) {
@@ -205,6 +204,12 @@ function queryRequest() {
       ZM\Warning("Unable to parse EndDateTime ".$_REQUEST['EndDateTime']. " into a timestamp");
     }
   }
+
+  zm_session_start();
+  $_SESSION['zmLogComponent'] = $requestComponent;
+  $_SESSION['zmLogFilterLevel'] = isset($level_codes[$L]) ? $L : '';
+  session_write_close();
+
   if ($where) $where = ' WHERE '.$where;
 
   $data['totalNotFiltered'] = dbFetchOne('SELECT count(*) AS Total FROM `' .$table.'`', 'Total');

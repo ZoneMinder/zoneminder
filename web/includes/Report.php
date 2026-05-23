@@ -14,7 +14,7 @@ class Report extends ZM_Object {
       'EndDateTime'   => null,
       'Interval'      => '86400',
       'CreatedBy'     => null,
-			);
+	);
 
   public static function find( $parameters = array(), $options = array() ) {
     return ZM_Object::_find(self::class, $parameters, $options);

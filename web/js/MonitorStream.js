@@ -81,12 +81,54 @@ function MonitorStream(monitorData) {
     this.bottomElement = e;
   };
 
+  this.MAX_AUTH_REFRESH_ATTEMPTS = 3;
+  this.authRefreshAttempts = 0;
+  this.authRefreshTimer = null;
+
   this.img_onerror = function() {
     console.log('Image stream has been stopped! stopping streamCmd');
     this.streamCmdTimer = clearInterval(this.streamCmdTimer);
-    this.writeTextInfoBlock("Error", {showImg: false});
+
+    // zms returns 403 on a stale auth hash (default TTL 2h). The browser keeps
+    // reconnecting the <img> with the same baked-in src, so each retry generates
+    // another zms warning. Try refreshing the auth hash and rebuilding src
+    // before giving up.
+    if (this.authRefreshAttempts >= this.MAX_AUTH_REFRESH_ATTEMPTS) {
+      this.writeTextInfoBlock("Error", {showImg: false});
+      return;
+    }
+    this.authRefreshAttempts++;
+    const backoffMs = 2000 * Math.pow(2, this.authRefreshAttempts - 1); // 2s, 4s, 8s
+    console.log("Stream error; refreshing auth and reconnecting in "+backoffMs+
+      "ms (attempt "+this.authRefreshAttempts+"/"+this.MAX_AUTH_REFRESH_ATTEMPTS+")");
+    this.writeTextInfoBlock("Reconnecting...");
+
+    const self = this;
+    if (this.authRefreshTimer) clearTimeout(this.authRefreshTimer);
+    this.authRefreshTimer = setTimeout(function() {
+      $j.getJSON(thisUrl + '?view=request&request=status&entity=navBar' + (auth_relay ? '&' + auth_relay : ''))
+          .done(function(data) {
+            if (data && data.auth) {
+              auth_hash = data.auth;
+            }
+            const stream = self.getElement();
+            if (stream && stream.src) {
+              const newSrc = stream.src.replace(/auth=\w+/i, 'auth='+auth_hash);
+              stream.src = '';
+              stream.src = newSrc;
+            }
+          })
+          .fail(function() {
+            self.writeTextInfoBlock("Error", {showImg: false});
+          });
+    }, backoffMs);
   };
   this.img_onload = function() {
+    this.authRefreshAttempts = 0;
+    if (this.authRefreshTimer) {
+      clearTimeout(this.authRefreshTimer);
+      this.authRefreshTimer = null;
+    }
     if (!this.streamCmdTimer) {
       console.log('Image stream has loaded! starting streamCmd for monitor ID='+this.id+' connKey='+this.connKey+' in '+statusRefreshTimeout + 'ms');
       this.streamCmdQuery(); // This is to get an instant status update
@@ -1271,7 +1313,12 @@ function MonitorStream(monitorData) {
 
           const delayString = secsToTime(this.status.delay);
 
-          if (this.status.paused == true) {
+          if (this.status.stopped == true) {
+            $j('#modeValue'+this.id).text('Stopped');
+            $j('#rate'+this.id).addClass('hidden');
+            $j('#delay'+this.id).addClass('hidden');
+            $j('#level'+this.id).addClass('hidden');
+          } else if (this.status.paused == true) {
             $j('#modeValue'+this.id).text('Paused');
             $j('#rate'+this.id).addClass('hidden');
             $j('#delayValue'+this.id).text(delayString);

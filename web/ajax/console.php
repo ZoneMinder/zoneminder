@@ -58,7 +58,9 @@ ajaxError('Unrecognised action '.$_REQUEST['action'].' or insufficient permissio
 function queryRequest() {
   global $user, $Servers;
   require_once('includes/Monitor.php');
+  require_once('includes/Group.php');
   require_once('includes/Group_Monitor.php');
+  require_once getSkinFile('views/_monitor_filters.php');
   
   $data = array(
     'total' => 0,
@@ -92,34 +94,46 @@ function queryRequest() {
   $sort = isset($_REQUEST['sort']) ? $_REQUEST['sort'] : 'Sequence';
   $order = isset($_REQUEST['order']) ? strtoupper($_REQUEST['order']) : 'ASC';
   
-  // Build monitor query with filters from request parameters (stateless)
+  // Build monitor query with filters from request parameters, falling back to cookies
   $conditions = array();
   $values = array();
   
-  // Get filter values directly from request
+  // Get filter values from request, falling back to cookies for persistence after page refresh.
+  // getFilterSelection() reads $_REQUEST first, then the zmFilter_* cookie.
   $request_filters = array(
-    'GroupId' => isset($_REQUEST['GroupId']) ? $_REQUEST['GroupId'] : null,
-    'ServerId' => isset($_REQUEST['ServerId']) ? $_REQUEST['ServerId'] : null,
-    'StorageId' => isset($_REQUEST['StorageId']) ? $_REQUEST['StorageId'] : null,
-    'Capturing' => isset($_REQUEST['Capturing']) ? $_REQUEST['Capturing'] : null,
-    'Analysing' => isset($_REQUEST['Analysing']) ? $_REQUEST['Analysing'] : null,
-    'Recording' => isset($_REQUEST['Recording']) ? $_REQUEST['Recording'] : null,
-    'Status' => isset($_REQUEST['Status']) ? $_REQUEST['Status'] : null,
-    'MonitorId' => isset($_REQUEST['MonitorId']) ? $_REQUEST['MonitorId'] : null,
-    'MonitorName' => isset($_REQUEST['MonitorName']) ? $_REQUEST['MonitorName'] : null,
-    'Source' => isset($_REQUEST['Source']) ? $_REQUEST['Source'] : null
+    'GroupId' => getFilterSelection('GroupId'),
+    'ServerId' => getFilterSelection('ServerId'),
+    'StorageId' => getFilterSelection('StorageId'),
+    'Capturing' => getFilterSelection('Capturing'),
+    'Analysing' => getFilterSelection('Analysing'),
+    'Recording' => getFilterSelection('Recording'),
+    'Status' => getFilterSelection('Status'),
+    'MonitorId' => getFilterSelection('MonitorId'),
+    'MonitorName' => getFilterSelection('MonitorName'),
+    'Source' => getFilterSelection('Source')
   );
+  // Text filters must be strings; guard against a cookie value that happens to be valid JSON.
+  if (is_array($request_filters['MonitorName'])) $request_filters['MonitorName'] = '';
+  if (is_array($request_filters['Source'])) $request_filters['Source'] = '';
   
-  // Apply request filters to SQL
+  // Apply GroupId filter using get_group_sql() to include child groups.
+  // Use validCardinal() to sanitize ID values before use.
   if ($request_filters['GroupId']) {
-    $GroupIds = is_array($request_filters['GroupId']) ? $request_filters['GroupId'] : array($request_filters['GroupId']);
-    $conditions[] = 'M.Id IN (SELECT MonitorId FROM Groups_Monitors WHERE GroupId IN (' . implode(',', array_fill(0, count($GroupIds), '?')) . '))';
-    $values = array_merge($values, $GroupIds);
+    $groupIds = is_array($request_filters['GroupId']) ? $request_filters['GroupId'] : array($request_filters['GroupId']);
+    $groupIds = array_values(array_filter(array_map('validCardinal', $groupIds)));
+    if (count($groupIds)) {
+      $groupSql = ZM\Group::get_group_sql($groupIds);
+      if ($groupSql) {
+        $conditions[] = $groupSql;
+      }
+    }
   }
   
   foreach (array('ServerId','StorageId') as $filter) {
     if ($request_filters[$filter]) {
       $filter_values = is_array($request_filters[$filter]) ? $request_filters[$filter] : array($request_filters[$filter]);
+      // Use validCardinal() to sanitize ID values
+      $filter_values = array_values(array_filter(array_map('validCardinal', $filter_values)));
       if (count($filter_values)) {
         $conditions[] = 'M.'.$filter.' IN (' . implode(',', array_fill(0, count($filter_values), '?')) . ')';
         $values = array_merge($values, $filter_values);
@@ -203,12 +217,15 @@ function queryRequest() {
     });
   }
   
-  // Apply MonitorId filter
+  // Apply MonitorId filter (use validCardinal() to sanitize ID values)
   if ($request_filters['MonitorId']) {
     $monitor_ids = is_array($request_filters['MonitorId']) ? $request_filters['MonitorId'] : array($request_filters['MonitorId']);
-    $filtered_monitors = array_filter($filtered_monitors, function($monitor) use ($monitor_ids) {
-      return in_array($monitor['Id'], $monitor_ids);
-    });
+    $monitor_ids = array_values(array_filter(array_map('validCardinal', $monitor_ids)));
+    if (count($monitor_ids)) {
+      $filtered_monitors = array_filter($filtered_monitors, function($monitor) use ($monitor_ids) {
+        return in_array($monitor['Id'], $monitor_ids);
+      });
+    }
   }
   
   $data['total'] = count($filtered_monitors);
@@ -390,7 +407,10 @@ function queryRequest() {
     }
     $row['Analysing'] = isset($monitor['Analysing']) ? $monitor['Analysing'] : 'None';
     $row['Recording'] = isset($monitor['Recording']) ? $monitor['Recording'] : 'None';
-    $row['ONVIF_Event_Listener'] = isset($monitor['ONVIF_Event_Listener']) ? $monitor['ONVIF_Alarm_Text'] : 0;
+    // console.js treats this as both an enable flag AND the text to display:
+    //   if (row.ONVIF_Event_Listener) html += "Use ONVIF '" + row.ONVIF_Event_Listener + "'"
+    // So send the alarm text only when the listener is actually enabled, else 0.
+    $row['ONVIF_Event_Listener'] = !empty($monitor['ONVIF_Event_Listener']) ? $monitor['ONVIF_Alarm_Text'] : 0;
     $row['UpdatedOn'] = isset($monitor['UpdatedOn']) ? $monitor['UpdatedOn'] : '';
     $row['Type'] = $monitor['Type'];
     $row['Capturing'] = isset($monitor['Capturing']) ? $monitor['Capturing'] : 'None';

@@ -87,12 +87,37 @@ class Event extends ZM_Object {
     return $this->{'SecondaryStorage'};
   }
 
-  public function Length(){
-    if(! isset($this->{'Length'})){
-      //TODO: Do something when no Length found
+  private function GetFileDuration( $file ) {
+    $duration = 0;
+    if ($file && file_exists($file)) {
+      $command = "ffmpeg -i " . escapeshellarg($file) . " 2>&1";
+      $output = shell_exec($command);
+      if (preg_match('/Duration:.*(\d+):(\d+):(\d+\.\d+)/', $output, $matches)) {
+        $hours = (int)$matches[1];
+        $minutes = (int)$matches[2];
+        $seconds = (float)$matches[3];
+        $duration = ($hours * 3600) + ($minutes * 60) + $seconds;
+      }
     }
-    return $this->{'Length'};
-    
+    return $duration;
+  }
+
+  public function Length(){
+    $duration = 0;
+    if(! isset($this->{'Length'})){
+      $files = glob($this->Path().'{/incomplete.*,/'.$this->{'Id'}.'-video.*}', GLOB_NOSORT | GLOB_BRACE);
+      if (count($files) > 0) {
+        $file = $files[0];
+        $duration = $this->GetFileDuration($files[0]);
+        dbQuery('UPDATE Events SET Length=? WHERE Id=?', array($duration, $this->{'Id'}));
+      } else {
+        //TODO: IgorA100 Something needs to be done, but what exactly?
+        //$duration = $this->EndDateTimeSecs() - $this->StartDateTimeSecs();
+      }
+    } else {
+      $duration = $this->{'Length'};
+    }
+    return $duration;
   }
 
   public function Frames(){
@@ -124,6 +149,10 @@ class Event extends ZM_Object {
 
   public function EndDateTimeSecs() {
     return strtotime($this->{'EndDateTime'});
+  }
+
+  public function Duration() {
+    return $this->Length();
   }
 
   public function Path() {

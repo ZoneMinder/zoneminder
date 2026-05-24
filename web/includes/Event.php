@@ -93,6 +93,7 @@ class Event extends ZM_Object {
       $command = "ffmpeg -i " . escapeshellarg($file) . " 2>&1";
       $output = shell_exec($command);
       if (preg_match('/Duration:.*(\d+):(\d+):(\d+\.\d+)/', $output, $matches)) {
+        # For incomplete.h264.mkv files, we won't be able to determine the duration; it will always be 0.
         $hours = (int)$matches[1];
         $minutes = (int)$matches[2];
         $seconds = (float)$matches[3];

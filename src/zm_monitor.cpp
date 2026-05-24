@@ -300,6 +300,7 @@ Monitor::Monitor() :
   shared_timestamps(nullptr),
   shared_images(nullptr),
   image_pixelformats(nullptr),
+  alarm_image_pixelformat(nullptr),
   shm_slot_size(0),
   video_stream_id(-1),
   audio_stream_id(-1),
@@ -1016,7 +1017,8 @@ bool Monitor::connect() {
              + (image_buffer_count*sizeof(struct timeval))
              + (image_buffer_count*image_size)
              + (image_buffer_count*image_size) // alarm_images
-             + (image_buffer_count*sizeof(AVPixelFormat)) //
+             + (image_buffer_count*sizeof(AVPixelFormat)) // per-slot capture pix fmt
+             + sizeof(AVPixelFormat) // alarm_image pix fmt (cross-process sync)
              + 64; /* Padding used to permit aligning the images buffer to 64 byte boundary */
 
   Debug(1,
@@ -1147,9 +1149,9 @@ bool Monitor::connect() {
                                  &(shared_images[i*image_size]), image_size, 0);
     image_buffer[i]->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
   }
-  // alarm_image follows the same per-slot format convention. Initial format
-  // is a placeholder; consumers should AVPixFormat()-sync from
-  // image_pixelformats[alarm_index] when reading via GetAlarmImage().
+  // alarm_image follows the per-slot format convention. Initial format is a
+  // placeholder; consumers should sync via GetAlarmImage() which reads the
+  // cross-process *alarm_image_pixelformat.
   alarm_image.AssignDirect(width, height, ZM_COLOUR_YUV420P, ZM_SUBPIX_ORDER_YUV420P,
                            &(shared_images[image_buffer_count*image_size]), image_size, ZM_BUFTYPE_DONTFREE);
   alarm_image.HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
@@ -1158,12 +1160,14 @@ bool Monitor::connect() {
   }
   // Layout in SHM is: image_buffer_count*image_size for image_buffer slots,
   // then image_buffer_count*image_size for alarm_image slots, THEN the
-  // image_pixelformats[] array (mem_size at line ~1002 reserves the space).
-  // Placing it at +1*image_buffer_count*image_size collides with alarm_image's
-  // buffer region — zmc's writes to image_pixelformats[index] corrupt the
-  // alarm image, and zms reads alarm-image bytes back as AVPixelFormat enum
-  // values, producing per-frame "different format every slot" garble.
+  // image_pixelformats[image_buffer_count] array, THEN the single
+  // alarm_image_pixelformat slot. Placing image_pixelformats at
+  // +1*image_buffer_count*image_size would collide with the alarm_image
+  // buffer region — zmc's writes to image_pixelformats[index] would corrupt
+  // the alarm image, and zms would read alarm-image bytes back as
+  // AVPixelFormat enum values, producing per-frame garble.
   image_pixelformats = (AVPixelFormat *)(shared_images + (2 * image_buffer_count * image_size));
+  alarm_image_pixelformat = image_pixelformats + image_buffer_count;
 
   if (purpose == CAPTURE) {
     memset(mem_ptr, 0, mem_size);
@@ -1190,6 +1194,13 @@ bool Monitor::connect() {
     shared_data->alarm_y = -1;
     shared_data->format = camera->SubpixelOrder();
     shared_data->imagesize = camera->ImageSize();
+    // memset zeroed image_pixelformats/alarm_image_pixelformat above; 0 is
+    // AV_PIX_FMT_YUV420P, not the AV_PIX_FMT_NONE sentinel readers expect
+    // for "format not yet published". Initialise explicitly.
+    for (int32_t i = 0; i < image_buffer_count; i++) {
+      image_pixelformats[i] = AV_PIX_FMT_NONE;
+    }
+    *alarm_image_pixelformat = AV_PIX_FMT_NONE;
     shared_data->alarm_cause[0] = 0;
     shared_data->video_fifo_path[0] = 0;
     shared_data->audio_fifo_path[0] = 0;
@@ -1387,7 +1398,42 @@ void Monitor::AddPrivacyBitmask() {
 }
 
 Image *Monitor::GetAlarmImage() {
+  // alarm_image's bytes live in SHM and are written by the capture/analysis
+  // process; alarm_image_pixelformat carries the format that process used.
+  // Without this sync, a reader process (zms) would interpret the bytes
+  // with whatever placeholder format alarm_image was constructed with —
+  // producing garbled output whenever the writer used RGB24/RGBA/etc.
+  if (alarm_image_pixelformat != nullptr) {
+    AVPixelFormat fmt = *alarm_image_pixelformat;
+    if (fmt != AV_PIX_FMT_NONE && alarm_image.PixFormat() != fmt) {
+      unsigned int probe_colours, probe_subpix;
+      if (!zm_colours_from_pixformat(fmt, probe_colours, probe_subpix)) {
+        Warning("GetAlarmImage: ignoring unsupported pixelformat %d; keeping current %s",
+                fmt, av_get_pix_fmt_name(alarm_image.PixFormat()));
+      } else {
+        int required = av_image_get_buffer_size(fmt, width, height, 32);
+        if (required < 0 || static_cast<size_t>(required) > shm_slot_size) {
+          Warning("GetAlarmImage: format %s requires %d bytes but slot capacity is %zu; "
+                  "keeping current %s",
+                  av_get_pix_fmt_name(fmt), required, shm_slot_size,
+                  av_get_pix_fmt_name(alarm_image.PixFormat()));
+        } else {
+          alarm_image.AVPixFormat(fmt);
+        }
+      }
+    }
+  }
   return &alarm_image;
+}
+
+void Monitor::WriteAlarmImage(const Image &src) {
+  // Mirror WriteShmFrame's contract for alarm_image: copy bytes then
+  // publish the canonical AVPixelFormat so reader processes can interpret
+  // the SHM correctly via GetAlarmImage().
+  alarm_image.Assign(src);
+  if (alarm_image_pixelformat != nullptr) {
+    *alarm_image_pixelformat = src.PixFormat();
+  }
 }
 
 int Monitor::GetImage(int32_t index, int scale) {
@@ -2189,7 +2235,7 @@ bool Monitor::Analyse() {
                 } else {
                   Debug(1, "No image to ref yet");
                 }
-                alarm_image.Assign(*(packet->image));
+                WriteAlarmImage(*(packet->image));
               } else {
                 // didn't assign, do motion detection maybe and blending definitely
                 if (!(analysis_image_count % (motion_frame_skip+1))) {
@@ -2249,7 +2295,7 @@ bool Monitor::Analyse() {
 
                 if (hasAnalysisViewers()) {
                   // These extra copies are expensive, so only do it if we have viewers.
-                  alarm_image.Assign(*(packet->analysis_image ? packet->analysis_image : packet->image));
+                  WriteAlarmImage(*(packet->analysis_image ? packet->analysis_image : packet->image));
                 }
 
                 if (analysis_image == ANALYSISIMAGE_YCHANNEL) {

@@ -659,6 +659,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   unsigned char *shared_images;
   std::vector<Image *> image_buffer;
   AVPixelFormat *image_pixelformats;
+  AVPixelFormat *alarm_image_pixelformat;  // cross-process format for alarm_image
   size_t shm_slot_size;  // per-slot byte capacity, sized to RGBA upper bound
 
   int video_stream_id; // will be filled in PrimeCapture
@@ -933,6 +934,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   const std::string &getONVIF_Options() const { return onvif_options; };
 
   Image *GetAlarmImage();
+  // Writer-side helper: copies src into alarm_image and publishes its
+  // AVPixelFormat so reader processes can correctly interpret the SHM bytes.
+  void WriteAlarmImage(const Image &src);
   int GetImage(int32_t index=-1, int scale=100);
   std::shared_ptr<ZMPacket> getSnapshot( int index=-1 ) const;
   SystemTimePoint GetTimestamp(int index = -1) const;

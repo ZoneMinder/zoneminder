@@ -1490,7 +1490,7 @@ function createGo2rtcStream(container, src, mid, fallbackToMjpeg) {
 
 function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg, eventStart, statusBar) {
   const rtsp2webSrc = img.dataset.rtsp2webSrc;
-  const channel = img.dataset.rtsp2webStream === 'Secondary' ? 1 : 0;
+  const channel = (img.dataset.streamChannel && img.dataset.streamChannel.toLowerCase().indexOf("secondary") !== -1 ) ? 1 : 0;
 
   ensureHlsLoaded().then(function() {
     if (!document.getElementById('thumb-overlay')) return;
@@ -1506,12 +1506,30 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg, eventS
     video.playsInline = true;
     container.appendChild(video);
     video.streamType = 'rtsp2web';
-    thumbnailVideoPlay(video, 'RTSP2Web', eventStart, statusBar);
 
     if (Hls.isSupported()) {
       const hls = new Hls();
       hls.loadSource(hlsUrl);
       hls.attachMedia(video);
+
+      const infoStatusBar = statusBar.querySelector("#info-status-bar");
+      hls.on(Hls.Events.MEDIA_ATTACHED, () => {
+        if (infoStatusBar) infoStatusBar.innerHTML = ' [RTSP2Web Loading] ';
+        thumbnailVideoPlay(video, 'RTSP2Web', eventStart, statusBar);
+        console.debug("HLS Event = MEDIA_ATTACHED");
+      });
+      hls.on(Hls.Events.FRAG_LOADED, () => {
+        console.debug("HLS Event = FRAG_LOADED");
+      });
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        console.debug("HLS Event = MANIFEST_PARSED");
+      });
+      hls.on(Hls.Events.BUFFER_APPENDED, () => {
+        console.debug("HLS Event = BUFFER_APPENDED");
+      });
+      hls.on(Hls.Events.BUFFER_EOS, () => {
+        console.debug("HLS Event = BUFFER_EOS");
+      });
       hls.on(Hls.Events.ERROR, function(e) {
         console.error(e);
         hls.destroy();
@@ -1585,6 +1603,7 @@ function updateTimeWallClock(video, eventStart, statusBar) {
 }
 
 function checkM3u8File(hlsUrl) {
+  if (!hlsUrl) return false;
   const xhr = new XMLHttpRequest();
   xhr.open("GET", hlsUrl, false);
   xhr.send();

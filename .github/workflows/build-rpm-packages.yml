@@ -3,6 +3,7 @@ name: build-rpm-packages-signed
 on:
   push:
     branches: [ release-1.38 ]
+    tags: [ '*' ]
 
 permissions:
   contents: write

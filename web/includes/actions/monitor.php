@@ -184,19 +184,23 @@ if ($action == 'save') {
           foreach (ZM\Storage::find() as $Storage) {
             # Let's remove old symlinks
             $storagePath = $Storage->Path() .'/';
-            $dirStoragePath = opendir($storagePath); 
-            while (($file = readdir($dirStoragePath)) !== false) {
-              $linkPath = $storagePath . $file;
-              if (is_link($linkPath)) {
-                $absolutePath = realpath($linkPath);
-                if ($oldLinkPath == $absolutePath) $oldLinkPathFound = true;
-                if ($absolutePath == $Storage->Path().'/'.$mid) {
-                  ZM\Debug("Deleting old link in storage '" . $Storage->Name() . "' " . $linkPath);
-                  unlink($linkPath);
+            $dirStoragePath = opendir($storagePath);
+            if($dirStoragePath === false) {
+              ZM\Warning("Unable to check and delete old symlinks to monitor with ID=".$monitor->Id()." in the '".$monitor->Id()."' storage because the path to the storage is missing or unreadable.");
+            } else {
+              while (($file = readdir($dirStoragePath)) !== false) {
+                $linkPath = $storagePath . $file;
+                if (is_link($linkPath)) {
+                  $absolutePath = realpath($linkPath);
+                  if ($oldLinkPath == $absolutePath) $oldLinkPathFound = true;
+                  if ($absolutePath == $Storage->Path().'/'.$mid) {
+                    ZM\Debug("Deleting old link in storage '" . $Storage->Name() . "' " . $linkPath);
+                    unlink($linkPath);
+                  }
                 }
-              }
-            } 
-            closedir($dirStoragePath);
+              } 
+              closedir($dirStoragePath);
+            }
             if (!$oldLinkPathFound) {
               ZM\Debug("Old link at '" . $oldLinkPath . "' was not found in any of the storages");
             }
@@ -319,7 +323,7 @@ if ($action == 'save') {
 
     $saferName = basename($newMonitor['Name']);
     $link_path = $Storage->Path().'/'.$saferName;
-    if (($saferName != $mid) and !@symlink($mid, $link_path)) {
+    if (((string)$saferName !== (string)$mid) and !@symlink($mid, $link_path)) {
       if (!(file_exists($link_path) and is_link($link_path))) {
         ZM\Warning('Unable to symlink ' . $Storage->Path().'/'.$mid . ' to ' . $link_path);
       }

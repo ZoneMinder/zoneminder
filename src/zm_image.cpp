@@ -783,34 +783,45 @@ uint8_t* Image::WriteBuffer(
 }
 
 void Image::AssignDirect(const AVFrame *frame) {
-  width = frame->width;
-  height = frame->height;
-  buffer = frame->data[0];
-  linesize = frame->linesize[0];
-  imagePixFormat = static_cast<AVPixelFormat>(frame->format);
-
+  AVPixelFormat frame_fmt = static_cast<AVPixelFormat>(frame->format);
+  unsigned int probe_colours, probe_subpix;
   // av_image_get_buffer_size returns int (negative on error). Assigning a
   // negative value into the unsigned size/allocation members would wrap to
-  // huge and break later bounds-dependent code, so check first.
-  int av_size = av_image_get_buffer_size(imagePixFormat, frame->width, frame->height, 32);
+  // huge and break later bounds-dependent code, so check first. Validate
+  // the format against our supported set before touching any state.
+  int av_size = av_image_get_buffer_size(frame_fmt, frame->width, frame->height, 32);
   bool fmt_ok = (av_size >= 0)
-              && zm_colours_from_pixformat(imagePixFormat, colours, subpixelorder);
+              && zm_colours_from_pixformat(frame_fmt, probe_colours, probe_subpix);
   if (!fmt_ok) {
-    Error("AssignDirect: unsupported pixel format %d on frame %dx%d (av_size=%d)",
+    Error("AssignDirect: unsupported pixel format %d on frame %dx%d (av_size=%d); "
+          "fully invalidating Image",
           frame->format, frame->width, frame->height, av_size);
-    // Leave the Image in an explicit invalid state — don't keep stale
-    // size/linesize/colours that don't match imagePixFormat.
+    // Fully invalidate the Image so a caller that ignores the error can't
+    // accidentally walk width*height pixels through a buffer pointer that
+    // will dangle once the AVFrame is freed.
+    width = 0;
+    height = 0;
+    pixels = 0;
+    buffer = nullptr;
     imagePixFormat = AV_PIX_FMT_NONE;
     colours = 0;
     subpixelorder = 0;
     size = 0;
     allocation = 0;
     linesize = 0;
-    pixels = 0;
-  } else {
-    allocation = size = static_cast<unsigned int>(av_size);
-    pixels = width * height;
+    holdbuffer = true;
+    buffertype = ZM_BUFTYPE_DONTFREE;
+    return;
   }
+  width = frame->width;
+  height = frame->height;
+  buffer = frame->data[0];
+  linesize = frame->linesize[0];
+  imagePixFormat = frame_fmt;
+  colours = probe_colours;
+  subpixelorder = probe_subpix;
+  allocation = size = static_cast<unsigned int>(av_size);
+  pixels = width * height;
   holdbuffer = true;
   buffertype = ZM_BUFTYPE_DONTFREE;
 }

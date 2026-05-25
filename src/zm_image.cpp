@@ -2329,10 +2329,14 @@ void Image::MaskPrivacy( const unsigned char *p_bitmask, const Rgb pixel_colour 
   const uint8_t pixel_bw_col = pixel_colour & 0xff;
   const Rgb pixel_rgb_col = rgb_convert(pixel_colour,subpixelorder);
 
-  unsigned char *ptr = &buffer[0];
   unsigned int i = 0;
 
   for ( unsigned int y = 0; y < height; y++ ) {
+    // Re-base the row pointer each iteration: with FFALIGN'd linesize there
+    // may be per-row padding between width*colours and linesize, and a
+    // monotonically-incremented ptr would walk into that padding (and
+    // misaddress subsequent rows).
+    unsigned char *ptr = buffer + y * linesize;
     if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
       for ( unsigned int x = 0; x < width; x++, ptr++ ) {
         if ( p_bitmask[i] )
@@ -2399,8 +2403,11 @@ void Image::Annotate(
   for (const std::string &line : lines) {
     uint32 x = x0;
 
+    // Use linesize (which may include FFALIGN'd padding) for row stride
+    // rather than width*bytesPerPixel, so non-32-aligned widths don't
+    // skew annotation placement into per-row padding.
     if (zm_bytes_per_pixel(imagePixFormat) == 1) {
-      uint8 *ptr = &buffer[(y * width) + x0];
+      uint8 *ptr = &buffer[y * linesize + x0];
       for (char c : line) {
         for (uint64 cp_row : font_variant.GetCodepoint(c)) {
           if (bg_colour != kRGBTransparent) {
@@ -2412,9 +2419,9 @@ void Image::Annotate(
             *(ptr + column_idx) = fg_colour & 0xff;
             cp_row = cp_row & (cp_row - 1);
           }
-          ptr += width;
+          ptr += linesize;
         }
-        ptr -= (width * char_height);
+        ptr -= (linesize * char_height);
         ptr += char_width;
         x += char_width;
         if (x >= width) {
@@ -2423,7 +2430,7 @@ void Image::Annotate(
       }
     } else if (zm_is_rgb24(imagePixFormat)) {
       constexpr uint8 bytesPerPixel = 3;
-      uint8 *ptr = &buffer[((y * width) + x0) * bytesPerPixel];
+      uint8 *ptr = &buffer[y * linesize + x0 * bytesPerPixel];
 
       for (char c : line) {
         for (uint64 cp_row : font_variant.GetCodepoint(c)) {
@@ -2444,9 +2451,9 @@ void Image::Annotate(
             BLUE_PTR_RGBA(colour_ptr) = BLUE_VAL_RGBA(fg_colour);
             cp_row = cp_row & (cp_row - 1);
           }
-          ptr += width * bytesPerPixel;
+          ptr += linesize;
         }
-        ptr -= (width * char_height * bytesPerPixel);
+        ptr -= (linesize * char_height);
         ptr += char_width * bytesPerPixel;
         x += char_width;
         if (x >= width) {
@@ -2455,7 +2462,9 @@ void Image::Annotate(
       }
     } else if (zm_is_rgb32(imagePixFormat)) {
       constexpr uint8 bytesPerPixel = 4;
-      Rgb *ptr = reinterpret_cast<Rgb *>(&buffer[((y * width) + x0) * bytesPerPixel]);
+      // Rgb is 4 bytes (rgb32); convert linesize bytes -> Rgb stride.
+      const unsigned int rgb_stride = linesize / sizeof(Rgb);
+      Rgb *ptr = reinterpret_cast<Rgb *>(&buffer[y * linesize + x0 * bytesPerPixel]);
 
       for (char c : line) {
         for (uint64 cp_row : font_variant.GetCodepoint(c)) {
@@ -2468,9 +2477,9 @@ void Image::Annotate(
             *(ptr + column_idx) = fg_rgb_col;
             cp_row = cp_row & (cp_row - 1);
           }
-          ptr += width;
+          ptr += rgb_stride;
         }
-        ptr -= (width * char_height);
+        ptr -= (rgb_stride * char_height);
         ptr += char_width;
         x += char_width;
         if (x >= width) {
@@ -2514,49 +2523,71 @@ void Image::Colourise(const unsigned int p_reqcolours, const unsigned int p_reqs
 
   AVPixelFormat p_req_pixfmt = zm_pixformat_from_colours(p_reqcolours, p_reqsubpixelorder);
 
+  // AssignDirect validates buffer_size against av_image_get_buffer_size(...,
+  // align=32) and uses an FFALIGN'd linesize. Allocate accordingly and copy
+  // row by row using the source (GRAY8) and destination (RGB) strides, so
+  // we don't undersize the output buffer for non-32-aligned widths and
+  // don't smear pixels across row boundaries.
+  int new_size_signed = av_image_get_buffer_size(p_req_pixfmt, width, height, 32);
+  int dst_linesize_signed = av_image_get_linesize(p_req_pixfmt, width, 0);
+  if (new_size_signed < 0 || dst_linesize_signed < 0) {
+    Error("Colourise: av_image sizing failed for %s %ux%u",
+          av_get_pix_fmt_name(p_req_pixfmt), width, height);
+    return;
+  }
+  const size_t new_size = static_cast<size_t>(new_size_signed);
+  const unsigned int dst_linesize = FFALIGN(dst_linesize_signed, 32);
+  const unsigned int src_linesize = linesize;
+
   if ( zm_is_rgb32(p_req_pixfmt) ) {
     /* RGB32 */
-    Rgb* new_buffer = (Rgb*)AllocBuffer(pixels*sizeof(Rgb));
-
-    const uint8_t *psrc = buffer;
-    Rgb* pdest = new_buffer;
-    Rgb subpixel;
-    Rgb newpixel;
+    Rgb* new_buffer = (Rgb*)AllocBuffer(new_size);
 
     if ( p_req_pixfmt == AV_PIX_FMT_ABGR || p_req_pixfmt == AV_PIX_FMT_ARGB ) {
       /* ARGB\ABGR subpixel order. alpha byte is first (mem+0), so we need to shift the pixel left in the end */
-      for ( unsigned int i=0; i < pixels; i++ ) {
-        newpixel = subpixel = psrc[i];
-        newpixel = (newpixel<<8) | subpixel;
-        newpixel = (newpixel<<8) | subpixel;
-        pdest[i] = (newpixel<<8);
+      for (unsigned int y = 0; y < height; y++) {
+        const uint8_t *psrc = buffer + y * src_linesize;
+        Rgb *pdest = (Rgb *)((uint8_t *)new_buffer + y * dst_linesize);
+        for (unsigned int x = 0; x < width; x++) {
+          Rgb subpixel = psrc[x];
+          Rgb newpixel = subpixel;
+          newpixel = (newpixel << 8) | subpixel;
+          newpixel = (newpixel << 8) | subpixel;
+          pdest[x] = (newpixel << 8);
+        }
       }
     } else {
       /* RGBA\BGRA subpixel order, alpha byte is last (mem+3) */
-      for ( unsigned int i=0; i < pixels; i++ ) {
-        newpixel = subpixel = psrc[i];
-        newpixel = (newpixel<<8) | subpixel;
-        newpixel = (newpixel<<8) | subpixel;
-        pdest[i] = newpixel;
+      for (unsigned int y = 0; y < height; y++) {
+        const uint8_t *psrc = buffer + y * src_linesize;
+        Rgb *pdest = (Rgb *)((uint8_t *)new_buffer + y * dst_linesize);
+        for (unsigned int x = 0; x < width; x++) {
+          Rgb subpixel = psrc[x];
+          Rgb newpixel = subpixel;
+          newpixel = (newpixel << 8) | subpixel;
+          newpixel = (newpixel << 8) | subpixel;
+          pdest[x] = newpixel;
+        }
       }
     }
 
     /* Directly assign the new buffer and make sure it will be freed when not needed anymore */
-    AssignDirect( width, height, p_reqcolours, p_reqsubpixelorder, (uint8_t*)new_buffer, pixels*4, ZM_BUFTYPE_ZM);
+    AssignDirect( width, height, p_reqcolours, p_reqsubpixelorder, (uint8_t*)new_buffer, new_size, ZM_BUFTYPE_ZM);
 
   } else if ( zm_is_rgb24(p_req_pixfmt) ) {
     /* RGB24 */
-    uint8_t *new_buffer = AllocBuffer(pixels*3);
+    uint8_t *new_buffer = AllocBuffer(new_size);
 
-    uint8_t *pdest = new_buffer;
-    const uint8_t *psrc = buffer;
-
-    for ( unsigned int i=0; i < (unsigned int)pixels; i++, pdest += 3 ) {
-      RED_PTR_RGBA(pdest) = GREEN_PTR_RGBA(pdest) = BLUE_PTR_RGBA(pdest) = psrc[i];
+    for (unsigned int y = 0; y < height; y++) {
+      const uint8_t *psrc = buffer + y * src_linesize;
+      uint8_t *pdest = new_buffer + y * dst_linesize;
+      for (unsigned int x = 0; x < width; x++, pdest += 3) {
+        RED_PTR_RGBA(pdest) = GREEN_PTR_RGBA(pdest) = BLUE_PTR_RGBA(pdest) = psrc[x];
+      }
     }
 
     /* Directly assign the new buffer and make sure it will be freed when not needed anymore */
-    AssignDirect( width, height, p_reqcolours, p_reqsubpixelorder, new_buffer, pixels*3, ZM_BUFTYPE_ZM);
+    AssignDirect( width, height, p_reqcolours, p_reqsubpixelorder, new_buffer, new_size, ZM_BUFTYPE_ZM);
   } else {
     Error("Colourise called with unexpected colours: %d", colours);
     return;
@@ -2666,16 +2697,18 @@ void Image::Fill( Rgb colour, const Box *limits ) {
   unsigned int lo_y = limits ? limits->Lo().y_ : 0;
   unsigned int hi_x = limits ? limits->Hi().x_ : width - 1;
   unsigned int hi_y = limits ? limits->Hi().y_ : height - 1;
+  // Use linesize as the row stride so non-32-aligned widths don't write
+  // into padding bytes or shift subsequent rows.
   if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      unsigned char *p = &buffer[(y*width)+lo_x];
+      unsigned char *p = &buffer[y * linesize + lo_x];
       for ( unsigned int x = lo_x; x <= hi_x; x++, p++) {
         *p = colour;
       }
     }
   } else if ( zm_is_rgb24(imagePixFormat) ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      unsigned char *p = &buffer[colours*((y*width)+lo_x)];
+      unsigned char *p = &buffer[y * linesize + lo_x * colours];
       for ( unsigned int x = lo_x; x <= hi_x; x++, p += 3) {
         RED_PTR_RGBA(p) = RED_VAL_RGBA(colour);
         GREEN_PTR_RGBA(p) = GREEN_VAL_RGBA(colour);
@@ -2684,7 +2717,7 @@ void Image::Fill( Rgb colour, const Box *limits ) {
     }
   } else if ( zm_is_rgb32(imagePixFormat) ) { /* RGB32 */
     for ( unsigned int y = lo_y; y <= (unsigned int)hi_y; y++ ) {
-      Rgb *p = (Rgb*)&buffer[((y*width)+lo_x)<<2];
+      Rgb *p = (Rgb*)&buffer[y * linesize + (lo_x << 2)];
 
       for ( unsigned int x = lo_x; x <= (unsigned int)hi_x; x++, p++) {
         /* Fast, copies the entire pixel in a single pass */
@@ -2711,9 +2744,11 @@ void Image::Fill( Rgb colour, int density, const Box *limits ) {
   unsigned int lo_y = limits ? limits->Lo().y_ : 0;
   unsigned int hi_x = limits ? limits->Hi().x_ : width - 1;
   unsigned int hi_y = limits ? limits->Hi().y_ : height - 1;
+  // Use linesize as the row stride so non-32-aligned widths don't write
+  // into padding bytes or shift subsequent rows.
   if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      unsigned char *p = &buffer[(y*width)+lo_x];
+      unsigned char *p = &buffer[y * linesize + lo_x];
       for ( unsigned int x = lo_x; x <= hi_x; x++, p++) {
         if ( ( x == lo_x || x == hi_x || y == lo_y || y == hi_y ) || (!(x%density) && !(y%density) ) )
           *p = colour;
@@ -2721,7 +2756,7 @@ void Image::Fill( Rgb colour, int density, const Box *limits ) {
     }
   } else if ( zm_is_rgb24(imagePixFormat) ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      unsigned char *p = &buffer[colours*((y*width)+lo_x)];
+      unsigned char *p = &buffer[y * linesize + lo_x * colours];
       for ( unsigned int x = lo_x; x <= hi_x; x++, p += 3) {
         if ( ( x == lo_x || x == hi_x || y == lo_y || y == hi_y ) || (!(x%density) && !(y%density) ) ) {
           RED_PTR_RGBA(p) = RED_VAL_RGBA(colour);
@@ -2732,7 +2767,7 @@ void Image::Fill( Rgb colour, int density, const Box *limits ) {
     }
   } else if ( zm_is_rgb32(imagePixFormat) ) { /* RGB32 */
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      Rgb* p = (Rgb*)&buffer[((y*width)+lo_x)<<2];
+      Rgb* p = (Rgb*)&buffer[y * linesize + (lo_x << 2)];
 
       for ( unsigned int x = lo_x; x <= hi_x; x++, p++) {
         if ( ( x == lo_x || x == hi_x || y == lo_y || y == hi_y ) || (!(x%density) && !(y%density) ) )
@@ -3162,12 +3197,15 @@ void Image::Deinterlace_Discard() {
   /* Simple deinterlacing. Copy the even lines into the odd lines */
   // ICON: These can be drastically improved.  But who cares?
 
+  // Use linesize as the per-row byte stride so non-32-aligned widths copy
+  // from/to the correct row offsets. Still copies `width` pixels per row
+  // (the padding bytes are untouched).
   if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
     const uint8_t *psrc;
     uint8_t *pdest;
     for (unsigned int y = 0; y < (unsigned int)height; y += 2) {
-      psrc = buffer + (y * width);
-      pdest = buffer + ((y+1) * width);
+      psrc = buffer + y * linesize;
+      pdest = buffer + (y + 1) * linesize;
       for (unsigned int x = 0; x < (unsigned int)width; x++) {
         *pdest++ = *psrc++;
       }
@@ -3176,8 +3214,8 @@ void Image::Deinterlace_Discard() {
     const uint8_t *psrc;
     uint8_t *pdest;
     for (unsigned int y = 0; y < (unsigned int)height; y += 2) {
-      psrc = buffer + ((y * width) * 3);
-      pdest = buffer + (((y+1) * width) * 3);
+      psrc = buffer + y * linesize;
+      pdest = buffer + (y + 1) * linesize;
       for (unsigned int x = 0; x < (unsigned int)width; x++) {
         *pdest++ = *psrc++;
         *pdest++ = *psrc++;
@@ -3188,8 +3226,8 @@ void Image::Deinterlace_Discard() {
     const Rgb *psrc;
     Rgb *pdest;
     for (unsigned int y = 0; y < (unsigned int)height; y += 2) {
-      psrc = (Rgb*)(buffer + ((y * width) << 2));
-      pdest = (Rgb*)(buffer + (((y+1) * width) << 2));
+      psrc = (Rgb*)(buffer + y * linesize);
+      pdest = (Rgb*)(buffer + (y + 1) * linesize);
       for (unsigned int x = 0; x < (unsigned int)width; x++) {
         *pdest++ = *psrc++;
       }

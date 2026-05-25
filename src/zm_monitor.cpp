@@ -1834,6 +1834,7 @@ bool Monitor::CheckSignal(const Image *image) {
   const uint8_t *buffer = image->Buffer();
   int pixels = image->Pixels();
   int width = image->Width();
+  int linesize = image->LineSize();
   AVPixelFormat pix_fmt = image->PixFormat();
 
   int index = 0;
@@ -1853,14 +1854,20 @@ bool Monitor::CheckSignal(const Image *image) {
       }
     }
 
+    // `index` is a pixel index in [0, width*height). Convert to (x, y) and
+    // use linesize for the row stride — buffer+index would read into per-row
+    // padding (or the wrong row) whenever linesize > width*bytes_per_pixel.
+    const int y = index / width;
+    const int x = index % width;
+
     if (zm_bytes_per_pixel(pix_fmt) == 1) {
       // GRAY8 plus all planar YUV variants we transport (420P/J420P/422P/J422P).
       // For planar formats the Y plane is the first byte at each pixel index.
-      if (*(buffer+index) != grayscale_val)
+      if (*(buffer + y * linesize + x) != grayscale_val)
         return true;
 
     } else if (zm_is_rgb24(pix_fmt)) {
-      const uint8_t *ptr = buffer + (index * static_cast<int>(zm_bytes_per_pixel(pix_fmt)));
+      const uint8_t *ptr = buffer + y * linesize + x * 3;
 
       if (pix_fmt == AV_PIX_FMT_BGR24) {
         if ((RED_PTR_BGRA(ptr) != red_val) || (GREEN_PTR_BGRA(ptr) != green_val) || (BLUE_PTR_BGRA(ptr) != blue_val))
@@ -1872,12 +1879,13 @@ bool Monitor::CheckSignal(const Image *image) {
       }
 
     } else if (zm_is_rgb32(pix_fmt)) {
+      const Rgb *ptr = (const Rgb *)(buffer + y * linesize + x * 4);
       if (pix_fmt == AV_PIX_FMT_ARGB || pix_fmt == AV_PIX_FMT_ABGR) {
-        if (ARGB_ABGR_ZEROALPHA(*(((const Rgb*)buffer)+index)) != ARGB_ABGR_ZEROALPHA(colour_val))
+        if (ARGB_ABGR_ZEROALPHA(*ptr) != ARGB_ABGR_ZEROALPHA(colour_val))
           return true;
       } else {
         /* Assume RGBA or BGRA */
-        if (RGBA_BGRA_ZEROALPHA(*(((const Rgb*)buffer)+index)) != RGBA_BGRA_ZEROALPHA(colour_val))
+        if (RGBA_BGRA_ZEROALPHA(*ptr) != RGBA_BGRA_ZEROALPHA(colour_val))
           return true;
       }
     }
@@ -2785,11 +2793,12 @@ int Monitor::Capture() {
     Image *capture_image = new Image(width, height, camera->Colours(), camera->SubpixelOrder());
     capture_image->Fill(signalcolor);
     shared_data->signal = false;
-    // Publish in dependency order: slot bytes + per-slot timestamp first,
-    // then last_write_time (a fresh value, not the stale tv_sec the slot
-    // held from its previous occupant), then last_write_index as the
-    // commit step. Readers gate on last_write_index, so anything they need
-    // for that slot must be visible before this final assignment.
+    // Publish in dependency order: slot bytes, then per-slot timestamp,
+    // then last_write_time (fresh from packet->timestamp, not the stale
+    // tv_sec the slot held from its previous occupant), then
+    // last_write_index as the commit step. Readers gate on
+    // last_write_index, so every piece of per-slot state they consume
+    // must be visible before this final assignment.
     WriteShmFrame(index, capture_image);
     shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
     shared_data->last_write_time = std::chrono::system_clock::to_time_t(packet->timestamp);

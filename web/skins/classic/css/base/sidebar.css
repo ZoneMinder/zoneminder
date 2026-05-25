@@ -312,6 +312,10 @@ body #sidebarMain .sub-menu-list {
   height: 27px !important;
 }
 
+.extruder .extruder-content .chosen-container .chosen-drop {
+  z-index: 1100;
+}
+
 /* Clear Filter Button Select Multiple Selection */
 .extruder .extruder-content .term-value-wrapper {
   position: relative; /* Enable absolute positioning for child */
@@ -381,17 +385,28 @@ div:not(.chosen-container-active) > .chosen-drop {
   overflow: hidden;
 }
 
-.layout-main .sidebar-main .footer-box ul.account-info{
+.layout-main .sidebar-main .footer-box ul.account-info {
   display: flex;
   justify-content: center;
   overflow: hidden;
   margin-bottom: 5px;
 }
 
-.layout-main .sidebar-main .footer-box #getAccountCircleHTML{
+.layout-main .sidebar-main .footer-box #getAccountCircleHTML {
   margin: 0 !important;
 }
 
 #statusSidebar {
   display: flex;
+  align-items: center;
+}
+
+#statusSidebar #shutdownButton {
+  margin-right: 0;
+}
+
+#statusSidebar #stateModalBtn {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  word-break: break-word;
 }

@@ -99,9 +99,10 @@ $levels = array(''=>translate('All'));
 foreach (array_values(ZM\Logger::$codes) as $level) {
   $levels[$level] = $level;
 }
+$selectedLevel = (isset($_SESSION['zmLogFilterLevel']) && !empty($_SESSION['zmLogFilterLevel']) && is_scalar($_SESSION['zmLogFilterLevel'])) ? (string) $_SESSION['zmLogFilterLevel'] : '';
+$selectedLevel = isset($levels[$selectedLevel]) ? $selectedLevel : '';
 echo '<span class="term-value-wrapper">';
-echo htmlSelect('filterLevel', $levels,
-    (isset($_SESSION['ZM_LOG_FILTER_LEVEL']) ? $_SESSION['ZM_LOG_FILTER_LEVEL'] : ''),
+echo htmlSelect('filterLevel', $levels, $selectedLevel,
     array('data-on-change'=>'filterLog', 'id'=>'filterLevel', 'class'=>'chosen'));
     #array('class'=>'form-control chosen', 'data-on-change'=>'filterLog'));
 echo '</span>';
@@ -145,10 +146,10 @@ echo '</span>';
       data-maintain-meta-data="true"
       data-buttons-class="btn btn-normal"
       data-show-jump-to="true"
-      data-auto-refresh="true"
+      data-auto-refresh="<?php echo ((int)ZM_WEB_REFRESH_LOGS === 0) ? 'false' : 'true'?>"
       data-auto-refresh-silent="true"
       data-show-refresh="true"
-      data-auto-refresh-interval="30"
+      <?php echo ((int)ZM_WEB_REFRESH_LOGS !== 0) ? 'data-auto-refresh-interval="' . (int)ZM_WEB_REFRESH_LOGS .'"' : ''?>
 <?php if (canEdit('System')) { ?>
       data-click-to-select="true"
 <?php } ?>

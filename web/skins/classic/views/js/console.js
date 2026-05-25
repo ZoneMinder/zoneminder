@@ -2,9 +2,11 @@
 const table = $j('#consoleTable');
 var ajax = null;
 var monitors = {}; // Store monitors by ID for function modal
+var lastFooter = null; // Cached footer payload for re-applying after column toggles
 
 // Update footer with dynamic totals
 function updateFooter(footer) {
+  lastFooter = footer;
   // Target the footer within the bootstrap-table wrapper
   // Bootstrap-table may transform td to th and wrap content in divs
   var footerRow = $j('#consoleTable').closest('.bootstrap-table').find('tfoot tr');
@@ -32,35 +34,33 @@ function updateFooter(footer) {
   // Update bandwidth/FPS (in Function column)
   updateCell('td.colFunction, th.colFunction', footer.bandwidth_fps);
 
-  // Update event totals
+  // Update event totals. Target each period by its unique col<Period>Events
+  // class rather than by positional index: bootstrap-table drops hidden columns
+  // from the tfoot DOM entirely, so an index-based lookup would shift every
+  // period after the hidden one into the wrong cell.
   var eventPeriods = ['Total', 'Hour', 'Day', 'Week', 'Month', 'Archived'];
-  var eventCells = footerRow.find('td.colEvents, th.colEvents');
-  eventPeriods.forEach(function(period, index) {
-    if (eventCells.length > index) {
-      var cell = $j(eventCells[index]);
-      // Only update the th-inner div if it exists
-      var innerDiv = cell.find('.th-inner');
-      var target = innerDiv.length ? innerDiv : cell;
+  eventPeriods.forEach(function(period) {
+    var sel = 'td.col' + period + 'Events, th.col' + period + 'Events';
+    var cell = footerRow.find(sel);
+    if (!cell.length) return;
 
-      var contentHtml = footer[period + 'Events'] + '<br/><div class="small text-nowrap text-muted">' +
-                        footer[period + 'EventDiskSpace'] + '</div>';
+    var innerDiv = cell.find('.th-inner');
+    var target = innerDiv.length ? innerDiv : cell;
 
-      // Create or update link with filter querystring
-      if (canView.Events && footer[period + 'FilterQuery']) {
-        var link = target.find('a');
-        if (link.length) {
-          // Update existing link href and content
-          link.attr('href', '?view=' + ZM_WEB_EVENTS_VIEW + footer[period + 'FilterQuery']);
-          link.html(contentHtml);
-        } else {
-          // Create new link
-          target.html('<a href="?view=' + ZM_WEB_EVENTS_VIEW + footer[period + 'FilterQuery'] + '">' +
-                      contentHtml + '</a>');
-        }
+    var contentHtml = footer[period + 'Events'] + '<br/><div class="small text-nowrap text-muted">' +
+                      footer[period + 'EventDiskSpace'] + '</div>';
+
+    if (canView.Events && footer[period + 'FilterQuery']) {
+      var link = target.find('a');
+      if (link.length) {
+        link.attr('href', '?view=' + ZM_WEB_EVENTS_VIEW + footer[period + 'FilterQuery']);
+        link.html(contentHtml);
       } else {
-        // No permission or no filter query, just show text
-        target.html(contentHtml);
+        target.html('<a href="?view=' + ZM_WEB_EVENTS_VIEW + footer[period + 'FilterQuery'] + '">' +
+                    contentHtml + '</a>');
       }
+    } else {
+      target.html(contentHtml);
     }
   });
 
@@ -74,6 +74,10 @@ function updateFooter(footer) {
 
 // Called by bootstrap-table to retrieve monitor data
 function ajaxRequest(params) {
+  if (document.visibilityState == 'hidden') {
+    table.bootstrapTable('hideLoading');
+    return;
+  }
   if (ajax) ajax.abort();
 
   // Get filter selections from the form and add to params.data
@@ -560,6 +564,12 @@ function initPage() {
   table.on('post-body.bs.table', function() {
     if (!isMobile()) initThumbAnimation();
     $j('.functionLnk').click(manageFunctionModal);
+  });
+
+  // Re-apply cached footer totals when columns are toggled, because
+  // bootstrap-table rebuilds tfoot on column-switch and clears our content.
+  table.on('column-switch.bs.table column-switch-all.bs.table', function() {
+    if (lastFooter) updateFooter(lastFooter);
   });
 
   // Makes table sortable - disabled by default, enabled by Sort button

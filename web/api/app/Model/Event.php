@@ -31,11 +31,17 @@ class Event extends AppModel {
  */
 	public $displayField = 'Name';
 
+  // For events that never wrote EndDateTime (zmc killed/crashed mid-event),
+  // fall back to StartDateTime + Length (Length is flushed to the DB every few
+  // seconds during recording, so it reflects the actual recorded duration).
+  // Only fall back to NOW() if Length is also 0 (event has no recorded data
+  // yet, e.g. just started). This prevents montagereview and other consumers
+  // from painting an event bar across hours/days of no real recording.
   public $virtualFields = array(
     'StartTimeSecs' => 'UNIX_TIMESTAMP(StartDateTime)',
-    'EndTimeSecs' => 'UNIX_TIMESTAMP(EndDateTime)',
+    'EndTimeSecs' => '(CASE WHEN Event.EndDateTime IS NOT NULL THEN UNIX_TIMESTAMP(Event.EndDateTime) WHEN Event.Length > 0 THEN UNIX_TIMESTAMP(Event.StartDateTime) + Event.Length ELSE UNIX_TIMESTAMP(NOW()) END)',
     'StartTime' => 'StartDateTime',
-    'EndTime' => 'EndDateTime'
+    'EndTime' => '(CASE WHEN Event.EndDateTime IS NOT NULL THEN Event.EndDateTime WHEN Event.Length > 0 THEN DATE_ADD(Event.StartDateTime, INTERVAL FLOOR(Event.Length) SECOND) ELSE NOW() END)'
   );
 
 	//The Associations below have been created with all possible keys, those that are not needed can be removed

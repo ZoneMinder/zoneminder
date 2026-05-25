@@ -1801,6 +1801,11 @@ video-stream[id^='liveStream'] video{
 }
 /* --- */
 
+.btn-danger.disabled, .btn-danger:disabled {
+  color: #888888;
+  background-color: #b1414c;
+}
+
 /* +++ This block should always be located at the end! */
 .hidden {
     display: none;

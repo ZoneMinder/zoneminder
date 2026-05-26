@@ -89,15 +89,21 @@ class Event extends ZM_Object {
 
   private function GetFileDuration( $file ) {
     $duration = 0;
-    if ($file && file_exists($file)) {
-      $command = "ffmpeg -i " . escapeshellarg($file) . " 2>&1";
-      $output = shell_exec($command);
-      if (preg_match('/Duration:.*(\d+):(\d+):(\d+\.\d+)/', $output, $matches)) {
-        # For incomplete.h264.mkv files, we won't be able to determine the duration; it will always be 0.
-        $hours = (int)$matches[1];
-        $minutes = (int)$matches[2];
-        $seconds = (float)$matches[3];
-        $duration = ($hours * 3600) + ($minutes * 60) + $seconds;
+    if ( $file && file_exists($file) && defined('ZM_PATH_FFMPEG') && ZM_PATH_FFMPEG ) {
+      $ffmpeg = ZM_PATH_FFMPEG;
+      $ffprobe = preg_replace('/ffmpeg(\.exe)?$/i', 'ffprobe$1', $ffmpeg);
+
+      if ( $ffprobe && is_executable($ffprobe) ) {
+        $command = escapeshellarg($ffprobe)
+            . ' -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 '
+            . escapeshellarg($file) . ' 2>&1';
+        $output = shell_exec($command);
+        if ( is_string($output) ) {
+          $output = trim($output);
+          if ( $output !== '' && is_numeric($output) ) {
+            $duration = (float)$output;
+          }
+        }
       }
     }
     return $duration;

@@ -1604,10 +1604,16 @@ function updateTimeWallClock(video, eventStart, statusBar) {
 
 function checkM3u8File(hlsUrl) {
   if (!hlsUrl) return false;
-  const xhr = new XMLHttpRequest();
-  xhr.open("GET", hlsUrl, false);
-  xhr.send();
-  return (xhr.readyState === 4 && xhr.status === 200);
+
+  try {
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", hlsUrl, false);
+    xhr.send();
+    return (xhr.readyState === 4 && xhr.status === 200);
+  } catch (err) {
+    console.warn('Failed to check M3U8 file:', err);
+    return false;
+  }
 }
 
 function tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar) {
@@ -1678,11 +1684,6 @@ function playEventHLS(container, img, monitorId, fallbackToMjpeg, statusBar, eve
       }, 2000);
 
       hls.on(Hls.Events.FRAG_LOADED, () => {
-        if (video._hls && video._destroy) {
-          video._hls.destroy();
-          video._hls = null;
-          thumbnailVideoDestroy(video);
-        }
         console.debug("HLS Event = FRAG_LOADED");
       });
       hls.on(Hls.Events.MANIFEST_PARSED, () => {

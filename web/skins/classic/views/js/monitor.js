@@ -379,11 +379,11 @@ function initPage() {
 
   function saveMonitorDataPrepare(form, buttonId) {
     $j.getJSON(thisUrl, {
-        request: "monitor",
-        action: "validateName",
-        mid: mid,
-        monitorName: form.elements['newMonitor[Name]'].value
-      })
+      request: "monitor",
+      action: "validateName",
+      mid: mid,
+      monitorName: form.elements['newMonitor[Name]'].value
+   })
         .done(function(data) {
           if (data.response === false) {
             alert(data.messageBadNameChars.replace(/~~/, '\r\n'));

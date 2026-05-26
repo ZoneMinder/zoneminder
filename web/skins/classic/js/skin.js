@@ -1603,7 +1603,7 @@ function updateTimeWallClock(video, eventStart, statusBar) {
 }
 
 function checkM3u8File(hlsUrl) {
-  if (!hlsUrl) return false;
+  if (!hlsUrl || currentView === 'frames') return false;
 
   try {
     const xhr = new XMLHttpRequest();

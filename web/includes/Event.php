@@ -116,7 +116,6 @@ class Event extends ZM_Object {
       if (count($files) > 0) {
         $file = $files[0];
         $duration = $this->GetFileDuration($files[0]);
-        if ($duration >0) dbQuery('UPDATE Events SET Length=? WHERE Id=?', array($duration, $this->{'Id'}));
       } else {
         //TODO: IgorA100 Something needs to be done, but what exactly?
         //$duration = $this->EndDateTimeSecs() - $this->StartDateTimeSecs();

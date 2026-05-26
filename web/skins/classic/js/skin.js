@@ -1565,7 +1565,7 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg, eventS
 }
 
 function thumbnailVideoPlay(video, currentMode, eventStart, statusBar) {
-  const infoStatusBar = statusBar.querySelector("#info-status-bar");
+  const infoStatusBar = (statusBar) ? statusBar.querySelector("#info-status-bar") : null;
   video.play().then(() => {
     if (infoStatusBar && currentMode) infoStatusBar.innerHTML = ' [' + currentMode + '] ';
     console.debug(currentMode + " video player started playing");

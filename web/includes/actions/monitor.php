@@ -192,7 +192,7 @@ if ($action == 'save') {
                 $linkPath = $storagePath . $file;
                 if (is_link($linkPath)) {
                   $absolutePath = realpath($linkPath);
-                  if ($oldLinkPath == $absolutePath) $oldLinkPathFound = true;
+                  if ($oldLinkPath == $linkPath) $oldLinkPathFound = true;
                   if ($absolutePath == $Storage->Path().'/'.$mid) {
                     ZM\Debug("Deleting old link in storage '" . $Storage->Name() . "' " . $linkPath);
                     unlink($linkPath);

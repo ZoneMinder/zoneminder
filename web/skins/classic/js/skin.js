@@ -1639,9 +1639,19 @@ function tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar) {
     // Fallback after 5s if video hasn't loaded
     video._fallbackTimer = setTimeout(function() {
       if (video.readyState < 2) {
-        if (video._hls) video._hls.destroy();
         video.remove();
         fallbackToMjpeg();
+      } else {
+        // A defective video may simply stop or freeze.
+        let curTime = video.currentTime;
+        video._fallbackTimerTime = setInterval(function() {
+          if (curTime == video.currentTime) {
+            console.log("MP4 video does not play, fallback to MJPEG.");
+            clearInterval(video._fallbackTimerTime);
+            video.remove();
+            fallbackToMjpeg();
+          }
+        }, 1000);
       }
     }, 5000);
   }
@@ -1767,6 +1777,7 @@ function cleanupVideoStream(videoStream) {
 function cleanupVideoElement(video) {
   if (!video) return;
   if (video._fallbackTimer) clearTimeout(video._fallbackTimer);
+  clearInterval(video._fallbackTimerTime);
   if (video._hls) {
     video._hls.destroy();
     video._hls = null;

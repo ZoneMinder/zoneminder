@@ -783,22 +783,7 @@ uint8_t* Image::WriteBuffer(
 }
 
 void Image::AssignDirect(const AVFrame *frame) {
-  AVPixelFormat frame_fmt = static_cast<AVPixelFormat>(frame->format);
-  unsigned int probe_colours, probe_subpix;
-  // av_image_get_buffer_size returns int (negative on error). Assigning a
-  // negative value into the unsigned size/allocation members would wrap to
-  // huge and break later bounds-dependent code, so check first. Validate
-  // the format against our supported set before touching any state.
-  int av_size = av_image_get_buffer_size(frame_fmt, frame->width, frame->height, 32);
-  bool fmt_ok = (av_size >= 0)
-              && zm_colours_from_pixformat(frame_fmt, probe_colours, probe_subpix);
-  if (!fmt_ok) {
-    Error("AssignDirect: unsupported pixel format %d on frame %dx%d (av_size=%d); "
-          "fully invalidating Image",
-          frame->format, frame->width, frame->height, av_size);
-    // Fully invalidate the Image so a caller that ignores the error can't
-    // accidentally walk width*height pixels through a buffer pointer that
-    // will dangle once the AVFrame is freed.
+  auto invalidate = [&]() {
     width = 0;
     height = 0;
     pixels = 0;
@@ -811,8 +796,57 @@ void Image::AssignDirect(const AVFrame *frame) {
     linesize = 0;
     holdbuffer = true;
     buffertype = ZM_BUFTYPE_DONTFREE;
+  };
+
+  AVPixelFormat frame_fmt = static_cast<AVPixelFormat>(frame->format);
+  unsigned int probe_colours, probe_subpix;
+  // Validate the format against our supported set before touching any state.
+  if (!zm_colours_from_pixformat(frame_fmt, probe_colours, probe_subpix)) {
+    Error("AssignDirect: unsupported pixel format %d on frame %dx%d; "
+          "fully invalidating Image", frame->format, frame->width, frame->height);
+    invalidate();
     return;
   }
+  if (!frame->data[0]) {
+    Error("AssignDirect: AVFrame has null data[0]; fully invalidating Image");
+    invalidate();
+    return;
+  }
+
+  // av_image_get_buffer_size(..., align=32) assumes 32-byte stride
+  // alignment, but the AVFrame may have been allocated with a different
+  // alignment by the decoder. Derive the size from the *actual* frame
+  // strides instead — av_image_fill_pointers computes expected per-plane
+  // offsets given a tightly-packed buffer using the frame's linesize[]; the
+  // last (plane+1) offset is the total contiguous span. We also sanity-
+  // check that the frame's plane pointers really are contiguous starting
+  // at data[0] (a non-contiguous AVFrame can't be wrapped with a single
+  // Image::buffer pointer).
+  uint8_t *expected_planes[4] = {nullptr, nullptr, nullptr, nullptr};
+  int frame_strides[4] = {
+    frame->linesize[0], frame->linesize[1], frame->linesize[2], frame->linesize[3]
+  };
+  int total_size = av_image_fill_pointers(expected_planes, frame_fmt, frame->height,
+                                          frame->data[0], frame_strides);
+  if (total_size <= 0) {
+    Error("AssignDirect: av_image_fill_pointers returned %d for %s %dx%d; invalidating",
+          total_size, av_get_pix_fmt_name(frame_fmt), frame->width, frame->height);
+    invalidate();
+    return;
+  }
+  const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(frame_fmt);
+  const int plane_count = desc ? av_pix_fmt_count_planes(frame_fmt) : 1;
+  for (int p = 1; p < plane_count && p < 4; p++) {
+    if (frame->data[p] && frame->data[p] != expected_planes[p]) {
+      Error("AssignDirect: AVFrame plane %d not contiguous with data[0] "
+            "(expected %p, got %p) for %s %dx%d; invalidating",
+            p, expected_planes[p], frame->data[p],
+            av_get_pix_fmt_name(frame_fmt), frame->width, frame->height);
+      invalidate();
+      return;
+    }
+  }
+
   width = frame->width;
   height = frame->height;
   buffer = frame->data[0];
@@ -820,7 +854,7 @@ void Image::AssignDirect(const AVFrame *frame) {
   imagePixFormat = frame_fmt;
   colours = probe_colours;
   subpixelorder = probe_subpix;
-  allocation = size = static_cast<unsigned int>(av_size);
+  allocation = size = static_cast<unsigned int>(total_size);
   pixels = width * height;
   holdbuffer = true;
   buffertype = ZM_BUFTYPE_DONTFREE;
@@ -2078,18 +2112,21 @@ void Image::Overlay( const Image &image, const unsigned int lo_x, const unsigned
 
   unsigned int hi_x = (lo_x+image.width)-1;
   unsigned int hi_y = (lo_y+image.height-1);
+  // Both buffers may carry per-row padding (linesize > width*colours after
+  // FFALIGN). Rebase source and destination per row using each image's
+  // own linesize so the sequential psrc++ advance can't drift across rows.
   if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
-    const uint8_t *psrc = image.buffer;
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      uint8_t *pdest = &buffer[(y*width)+lo_x];
+      const uint8_t *psrc = image.buffer + (y - lo_y) * image.linesize;
+      uint8_t *pdest = buffer + y * linesize + lo_x;
       for ( unsigned int x = lo_x; x <= hi_x; x++ ) {
         *pdest++ = *psrc++;
       }
     }
   } else if ( zm_is_rgb24(imagePixFormat) ) {
-    const uint8_t *psrc = image.buffer;
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      uint8_t *pdest = &buffer[colours*((y*width)+lo_x)];
+      const uint8_t *psrc = image.buffer + (y - lo_y) * image.linesize;
+      uint8_t *pdest = buffer + y * linesize + lo_x * colours;
       for ( unsigned int x = lo_x; x <= hi_x; x++ ) {
         *pdest++ = *psrc++;
         *pdest++ = *psrc++;
@@ -2097,9 +2134,9 @@ void Image::Overlay( const Image &image, const unsigned int lo_x, const unsigned
       }
     }
   } else if ( zm_is_rgb32(imagePixFormat) ) {
-    const Rgb *psrc = (Rgb*)(image.buffer);
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      Rgb *pdest = (Rgb*)&buffer[((y*width)+lo_x)<<2];
+      const Rgb *psrc = (const Rgb*)(image.buffer + (y - lo_y) * image.linesize);
+      Rgb *pdest = (Rgb*)(buffer + y * linesize + (lo_x << 2));
       for ( unsigned int x = lo_x; x <= hi_x; x++ ) {
         *pdest++ = *psrc++;
       }
@@ -3029,176 +3066,208 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
   } // end while
 }
 
+namespace {
+// Rotate `src_w` × `src_h` plane (bpp bytes per sample, src_linesize stride)
+// into dst (dst_linesize stride) according to angle (90/180/270).
+// For 90/270: dst dims are src_h × src_w. For 180: dst dims are src_w × src_h.
+void rotate_plane(const uint8_t *src, int src_linesize,
+                  unsigned int src_w, unsigned int src_h,
+                  uint8_t *dst, int dst_linesize,
+                  unsigned int bpp, int angle) {
+  if (angle == 90) {
+    // (sx, sy) -> (dx, dy) = (src_h-1-sy, sx). Equivalently, for each
+    // destination row dy=sx, write the column src_w-1-dy from the source.
+    for (unsigned int sy = 0; sy < src_h; sy++) {
+      const uint8_t *src_row = src + sy * src_linesize;
+      const unsigned int dx = src_h - 1 - sy;
+      for (unsigned int sx = 0; sx < src_w; sx++) {
+        const unsigned int dy = sx;
+        uint8_t *dst_px = dst + dy * dst_linesize + dx * bpp;
+        const uint8_t *src_px = src_row + sx * bpp;
+        for (unsigned int b = 0; b < bpp; b++) dst_px[b] = src_px[b];
+      }
+    }
+  } else if (angle == 180) {
+    // (sx, sy) -> (dx, dy) = (src_w-1-sx, src_h-1-sy).
+    for (unsigned int sy = 0; sy < src_h; sy++) {
+      const uint8_t *src_row = src + sy * src_linesize;
+      uint8_t *dst_row = dst + (src_h - 1 - sy) * dst_linesize;
+      for (unsigned int sx = 0; sx < src_w; sx++) {
+        const unsigned int dx = src_w - 1 - sx;
+        uint8_t *dst_px = dst_row + dx * bpp;
+        const uint8_t *src_px = src_row + sx * bpp;
+        for (unsigned int b = 0; b < bpp; b++) dst_px[b] = src_px[b];
+      }
+    }
+  } else if (angle == 270) {
+    // (sx, sy) -> (dx, dy) = (sy, src_w-1-sx).
+    for (unsigned int sy = 0; sy < src_h; sy++) {
+      const uint8_t *src_row = src + sy * src_linesize;
+      const unsigned int dx = sy;
+      for (unsigned int sx = 0; sx < src_w; sx++) {
+        const unsigned int dy = src_w - 1 - sx;
+        uint8_t *dst_px = dst + dy * dst_linesize + dx * bpp;
+        const uint8_t *src_px = src_row + sx * bpp;
+        for (unsigned int b = 0; b < bpp; b++) dst_px[b] = src_px[b];
+      }
+    }
+  }
+}
+}  // namespace
+
 void Image::Rotate(int angle) {
   angle %= 360;
 
   if ( !angle || angle%90 ) {
     return;
   }
-  unsigned int new_height = height;
-  unsigned int new_width = width;
-  uint8_t* rotate_buffer = AllocBuffer(size);
 
-  switch ( angle ) {
-  case 90 : {
-    new_height = width;
-    new_width = height;
+  // For 90°/270° the chroma subsampling pattern itself transposes. YUV420P
+  // has symmetric (2:2) subsampling and survives — the rotated chroma is
+  // still W/2 × H/2 of the rotated image. YUV422P has horizontal-only
+  // subsampling; after a 90°/270° rotation it would need vertical-only
+  // subsampling, which is not the same AVPixelFormat. Refuse rather than
+  // silently producing a non-conformant buffer.
+  const bool is_422 = (imagePixFormat == AV_PIX_FMT_YUV422P
+                       || imagePixFormat == AV_PIX_FMT_YUVJ422P);
+  if ((angle == 90 || angle == 270) && is_422) {
+    Error("Rotate %d° not supported for %s (asymmetric chroma subsampling); "
+          "convert to RGB/YUV420P first", angle, av_get_pix_fmt_name(imagePixFormat));
+    return;
+  }
 
-    unsigned int line_bytes = new_width*colours;
-    unsigned char *s_ptr = buffer;
+  const unsigned int new_width = (angle == 180) ? width : height;
+  const unsigned int new_height = (angle == 180) ? height : width;
 
-    if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
-      for ( unsigned int i = new_width; i > 0; i-- ) {
-        unsigned char *d_ptr = rotate_buffer+(i-1);
-        for ( unsigned int j = new_height; j > 0; j-- ) {
-          *d_ptr = *s_ptr++;
-          d_ptr += line_bytes;
-        }
-      }
-    } else if ( zm_is_rgb32(imagePixFormat) ) {
-      Rgb* s_rptr = (Rgb*)s_ptr;
-      for ( unsigned int i = new_width; i; i-- ) {
-        Rgb* d_rptr = (Rgb*)(rotate_buffer+((i-1)<<2));
-        for ( unsigned int j = new_height; j; j-- ) {
-          *d_rptr = *s_rptr++;
-          d_rptr += new_width;
-        }
-      }
-    } else { /* Assume RGB24 */
-      for ( unsigned int i = new_width; i; i-- ) {
-        unsigned char *d_ptr = rotate_buffer+((i-1)*3);
-        for ( unsigned int j = new_height; j; j-- ) {
-          *d_ptr = *s_ptr++;
-          *(d_ptr+1) = *s_ptr++;
-          *(d_ptr+2) = *s_ptr++;
-          d_ptr += line_bytes;
-        }
-      }
+  int new_size_signed = av_image_get_buffer_size(imagePixFormat, new_width, new_height, 32);
+  if (new_size_signed < 0) {
+    Error("Rotate: av_image_get_buffer_size failed for %s %ux%u",
+          av_get_pix_fmt_name(imagePixFormat), new_width, new_height);
+    return;
+  }
+  const size_t new_size = static_cast<size_t>(new_size_signed);
+  uint8_t* rotate_buffer = AllocBuffer(new_size);
+
+  uint8_t *src_planes[4] = {nullptr, nullptr, nullptr, nullptr};
+  int src_strides[4] = {0, 0, 0, 0};
+  uint8_t *dst_planes[4] = {nullptr, nullptr, nullptr, nullptr};
+  int dst_strides[4] = {0, 0, 0, 0};
+  if (av_image_fill_arrays(src_planes, src_strides, buffer, imagePixFormat, width, height, 32) < 0
+      || av_image_fill_arrays(dst_planes, dst_strides, rotate_buffer, imagePixFormat, new_width, new_height, 32) < 0) {
+    Error("Rotate: av_image_fill_arrays failed for %s", av_get_pix_fmt_name(imagePixFormat));
+    DumpBuffer(rotate_buffer, ZM_BUFTYPE_ZM);
+    return;
+  }
+
+  const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(imagePixFormat);
+  if (!desc) {
+    Error("Rotate: av_pix_fmt_desc_get failed for %s", av_get_pix_fmt_name(imagePixFormat));
+    DumpBuffer(rotate_buffer, ZM_BUFTYPE_ZM);
+    return;
+  }
+  const bool planar = (desc->flags & AV_PIX_FMT_FLAG_PLANAR) != 0;
+
+  if (planar) {
+    // Each plane has 1 byte per sample. Plane 0 is luma at full resolution;
+    // planes 1/2 are chroma subsampled by desc->log2_chroma_w/h.
+    const unsigned int cw = width  >> desc->log2_chroma_w;
+    const unsigned int ch = height >> desc->log2_chroma_h;
+    const unsigned int new_cw = new_width  >> desc->log2_chroma_w;
+    const unsigned int new_ch = new_height >> desc->log2_chroma_h;
+    rotate_plane(src_planes[0], src_strides[0], width, height,
+                 dst_planes[0], dst_strides[0], 1, angle);
+    rotate_plane(src_planes[1], src_strides[1], cw, ch,
+                 dst_planes[1], dst_strides[1], 1, angle);
+    rotate_plane(src_planes[2], src_strides[2], cw, ch,
+                 dst_planes[2], dst_strides[2], 1, angle);
+    (void)new_cw; (void)new_ch;  // dst dims implied by new_w/new_h and subsampling
+  } else {
+    // Packed format: single plane with bpp bytes per pixel.
+    const unsigned int bpp = zm_bytes_per_pixel(imagePixFormat);
+    if (bpp == 0) {
+      Error("Rotate: bytes_per_pixel unknown for %s", av_get_pix_fmt_name(imagePixFormat));
+      DumpBuffer(rotate_buffer, ZM_BUFTYPE_ZM);
+      return;
     }
-    break;
-  }
-  case 180 : {
-    unsigned char *s_ptr = buffer+size;
-    unsigned char *d_ptr = rotate_buffer;
-
-    if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
-      while( s_ptr > buffer ) {
-        s_ptr--;
-        *d_ptr++ = *s_ptr;
-      }
-    } else if ( zm_is_rgb32(imagePixFormat) ) {
-      Rgb* s_rptr = (Rgb*)s_ptr;
-      Rgb* d_rptr = (Rgb*)d_ptr;
-      while( s_rptr > (Rgb*)buffer ) {
-        s_rptr--;
-        *d_rptr++ = *s_rptr;
-      }
-    } else { /* Assume RGB24 */
-      while( s_ptr > buffer ) {
-        s_ptr -= 3;
-        *d_ptr++ = *s_ptr;
-        *d_ptr++ = *(s_ptr+1);
-        *d_ptr++ = *(s_ptr+2);
-      }
-    }
-    break;
-  }
-  case 270 : {
-    new_height = width;
-    new_width = height;
-
-    unsigned int line_bytes = new_width*colours;
-    unsigned char *s_ptr = buffer+size;
-
-    if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
-      for ( unsigned int i = new_width; i > 0; i-- ) {
-        unsigned char *d_ptr = rotate_buffer+(i-1);
-        for ( unsigned int j = new_height; j > 0; j-- ) {
-          s_ptr--;
-          *d_ptr = *s_ptr;
-          d_ptr += line_bytes;
-        }
-      }
-    } else if ( zm_is_rgb32(imagePixFormat) ) {
-      Rgb* s_rptr = (Rgb*)s_ptr;
-      for ( unsigned int i = new_width; i > 0; i-- ) {
-        Rgb* d_rptr = (Rgb*)(rotate_buffer+((i-1)<<2));
-        for ( unsigned int j = new_height; j > 0; j-- ) {
-          s_rptr--;
-          *d_rptr = *s_rptr;
-          d_rptr += new_width;
-        }
-      }
-    } else { /* Assume RGB24 */
-      for ( unsigned int i = new_width; i > 0; i-- ) {
-        unsigned char *d_ptr = rotate_buffer+((i-1)*3);
-        for ( unsigned int j = new_height; j > 0; j-- ) {
-          *(d_ptr+2) = *(--s_ptr);
-          *(d_ptr+1) = *(--s_ptr);
-          *d_ptr = *(--s_ptr);
-          d_ptr += line_bytes;
-        }
-      }
-    }
-    break;
-  }
+    rotate_plane(src_planes[0], src_strides[0], width, height,
+                 dst_planes[0], dst_strides[0], bpp, angle);
   }
 
-  AssignDirect(new_width, new_height, colours, subpixelorder, rotate_buffer, size, ZM_BUFTYPE_ZM);
+  AssignDirect(new_width, new_height, colours, subpixelorder, rotate_buffer, new_size, ZM_BUFTYPE_ZM);
 }  // void Image::Rotate(int angle)
 
-/* RGB32 compatible: complete */
-void Image::Flip( bool leftright ) {
-  uint8_t* flip_buffer = AllocBuffer(size);
-
-  unsigned int line_bytes = width*colours;
-  unsigned int line_bytes2 = 2*line_bytes;
-  if ( leftright ) {
-    // Horizontal flip, left to right
-    unsigned char *s_ptr = buffer+line_bytes;
-    unsigned char *d_ptr = flip_buffer;
-    unsigned char *max_d_ptr = flip_buffer + size;
-
-    if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
-      while( d_ptr < max_d_ptr ) {
-        for ( unsigned int j = 0; j < width; j++ ) {
-          s_ptr--;
-          *d_ptr++ = *s_ptr;
-        }
-        s_ptr += line_bytes2;
-      }
-    } else if ( zm_is_rgb32(imagePixFormat) ) {
-      Rgb* s_rptr = (Rgb*)s_ptr;
-      Rgb* d_rptr = (Rgb*)flip_buffer;
-      Rgb* max_d_rptr = (Rgb*)max_d_ptr;
-      while( d_rptr < max_d_rptr ) {
-        for ( unsigned int j = 0; j < width; j++ ) {
-          s_rptr--;
-          *d_rptr++ = *s_rptr;
-        }
-        s_rptr += width * 2;
-      }
-    } else { /* Assume RGB24 */
-      while( d_ptr < max_d_ptr ) {
-        for ( unsigned int j = 0; j < width; j++ ) {
-          s_ptr -= 3;
-          *d_ptr++ = *s_ptr;
-          *d_ptr++ = *(s_ptr+1);
-          *d_ptr++ = *(s_ptr+2);
-        }
-        s_ptr += line_bytes2;
+namespace {
+// Flip a single plane (bpp bytes per sample) into dst. leftright=true is
+// horizontal flip; leftright=false is vertical flip. src/dst dimensions
+// stay the same; only the order of pixels/rows changes.
+void flip_plane(const uint8_t *src, int src_linesize,
+                unsigned int plane_w, unsigned int plane_h,
+                uint8_t *dst, int dst_linesize,
+                unsigned int bpp, bool leftright) {
+  if (leftright) {
+    for (unsigned int y = 0; y < plane_h; y++) {
+      const uint8_t *src_row = src + y * src_linesize;
+      uint8_t *dst_row = dst + y * dst_linesize;
+      for (unsigned int x = 0; x < plane_w; x++) {
+        const uint8_t *src_px = src_row + x * bpp;
+        uint8_t *dst_px = dst_row + (plane_w - 1 - x) * bpp;
+        for (unsigned int b = 0; b < bpp; b++) dst_px[b] = src_px[b];
       }
     }
   } else {
-    // Vertical flip, top to bottom
-    unsigned char *s_ptr = buffer+(height*line_bytes);
-    unsigned char *d_ptr = flip_buffer;
-
-    while ( s_ptr > buffer ) {
-      s_ptr -= line_bytes;
-      memcpy(d_ptr, s_ptr, line_bytes);
-      d_ptr += line_bytes;
+    // Vertical flip: row y maps to row (plane_h - 1 - y); copy bpp*plane_w
+    // bytes per row (the data portion; padding bytes are left untouched).
+    const size_t row_data_bytes = static_cast<size_t>(plane_w) * bpp;
+    for (unsigned int y = 0; y < plane_h; y++) {
+      memcpy(dst + (plane_h - 1 - y) * dst_linesize,
+             src + y * src_linesize,
+             row_data_bytes);
     }
+  }
+}
+}  // namespace
+
+/* RGB32 compatible: complete; planar YUV (YUV420P/J420P/YUV422P/J422P) flipped per-plane */
+void Image::Flip( bool leftright ) {
+  uint8_t* flip_buffer = AllocBuffer(size);
+
+  uint8_t *src_planes[4] = {nullptr, nullptr, nullptr, nullptr};
+  int src_strides[4] = {0, 0, 0, 0};
+  uint8_t *dst_planes[4] = {nullptr, nullptr, nullptr, nullptr};
+  int dst_strides[4] = {0, 0, 0, 0};
+  if (av_image_fill_arrays(src_planes, src_strides, buffer, imagePixFormat, width, height, 32) < 0
+      || av_image_fill_arrays(dst_planes, dst_strides, flip_buffer, imagePixFormat, width, height, 32) < 0) {
+    Error("Flip: av_image_fill_arrays failed for %s", av_get_pix_fmt_name(imagePixFormat));
+    DumpBuffer(flip_buffer, ZM_BUFTYPE_ZM);
+    return;
+  }
+
+  const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(imagePixFormat);
+  if (!desc) {
+    Error("Flip: av_pix_fmt_desc_get failed for %s", av_get_pix_fmt_name(imagePixFormat));
+    DumpBuffer(flip_buffer, ZM_BUFTYPE_ZM);
+    return;
+  }
+  const bool planar = (desc->flags & AV_PIX_FMT_FLAG_PLANAR) != 0;
+
+  if (planar) {
+    const unsigned int cw = width  >> desc->log2_chroma_w;
+    const unsigned int ch = height >> desc->log2_chroma_h;
+    flip_plane(src_planes[0], src_strides[0], width, height,
+               dst_planes[0], dst_strides[0], 1, leftright);
+    flip_plane(src_planes[1], src_strides[1], cw, ch,
+               dst_planes[1], dst_strides[1], 1, leftright);
+    flip_plane(src_planes[2], src_strides[2], cw, ch,
+               dst_planes[2], dst_strides[2], 1, leftright);
+  } else {
+    const unsigned int bpp = zm_bytes_per_pixel(imagePixFormat);
+    if (bpp == 0) {
+      Error("Flip: bytes_per_pixel unknown for %s", av_get_pix_fmt_name(imagePixFormat));
+      DumpBuffer(flip_buffer, ZM_BUFTYPE_ZM);
+      return;
+    }
+    flip_plane(src_planes[0], src_strides[0], width, height,
+               dst_planes[0], dst_strides[0], bpp, leftright);
   }
 
   AssignDirect(width, height, colours, subpixelorder, flip_buffer, size, ZM_BUFTYPE_ZM);

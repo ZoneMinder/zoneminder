@@ -90,7 +90,7 @@ if ($rows) {
     $videoAttr = '';
     if ($event->DefaultVideo()) {
       $videoSrc = $event->getStreamSrc(array('mode'=>'mp4'), '&amp;');
-      $videoAttr = ' video_src="' .$videoSrc. '"';
+      $videoAttr = ' video_src="' .$videoSrc. '" data-event-start="'.htmlspecialchars($event->StartDateTime()).'"';
     }
 
     // Modify the row data as needed

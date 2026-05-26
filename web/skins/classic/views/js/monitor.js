@@ -383,7 +383,7 @@ function initPage() {
       action: "validateName",
       mid: mid,
       monitorName: form.elements['newMonitor[Name]'].value
-   })
+    })
         .done(function(data) {
           if (data.response === false) {
             alert(data.messageBadNameChars.replace(/~~/, '\r\n'));

@@ -376,6 +376,10 @@ class Monitor extends ZM_Object {
 
   protected $Id;
 
+  public function getDefaults() {
+    return $this->defaults;
+  }
+
   public function save($data = null) {
     if ($data) $this->set($data);
     if ($this->Manufacturer() and $this->Manufacturer()->Name() and ! $this->Manufacturer->Id()) {

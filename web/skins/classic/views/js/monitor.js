@@ -368,21 +368,40 @@ function initPage() {
 
   // Manage the SAVE Button
   document.getElementById("saveBtn").addEventListener("click", function onSaveClick(evt) {
-    const form = document.getElementById('contentForm');
-    if (validateForm(form)) {
-      saveMonitorData();
-    }
+    saveMonitorDataPrepare(document.getElementById('contentForm'), evt.target.id);
   });
 
   // Manage the SAVE AND CLOSE Button - use AJAX instead of native form
   // submit so Chrome doesn't trigger its "save password" prompt.
   document.getElementById("saveAndCloseBtn").addEventListener("click", function onSaveAndCloseClick(evt) {
-    const form = document.getElementById('contentForm');
-    if (validateForm(form)) {
-      $j('#contentButtons').hide();
-      saveMonitorData('?view=console');
-    }
+    saveMonitorDataPrepare(document.getElementById('contentForm'), evt.target.id);
   });
+
+  function saveMonitorDataPrepare(form, buttonId) {
+    $j.getJSON(thisUrl, {
+        request: "monitor",
+        action: "validateName",
+        mid: mid,
+        monitorName: form.elements['newMonitor[Name]'].value
+      })
+        .done(function(data) {
+          if (data.response === false) {
+            alert(data.messageBadNameChars.replace(/~~/, '\r\n'));
+          } else if (data.result === 'Error') {
+            alert(data.message);
+          } else {
+            if (validateForm(form)) {
+              if (buttonId == 'saveBtn') {
+                saveMonitorData();
+              } else if (buttonId == 'saveAndCloseBtn') {
+                $j('#contentButtons').hide();
+                saveMonitorData('?view=console');
+              }
+            }
+          }
+        })
+        .fail(logAjaxFail);
+  }
 
   const form = document.getElementById('contentForm');
 

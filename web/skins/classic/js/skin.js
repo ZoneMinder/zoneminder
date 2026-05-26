@@ -1291,22 +1291,22 @@ function thumbnail_onmouseover(event) {
   const go2rtcMid = img.getAttribute('go2rtc_mid') || monitorId;
   const useGo2rtc = streamType === 'go2rtc' || (!streamType && go2rtcSrc && go2rtcMid);
 
-  // Pre-load required modules
-  const m3u8Exists = checkM3u8File(img.dataset.videoHlsSrc);
-  if (useGo2rtc) {
-    ensureVideoStreamLoaded();
-  } else if (streamType === 'rtsp2web' || m3u8Exists) {
-    ensureHlsLoaded();
-  }
-
-  // Determine overlay source (priority: live stream > HLS video > mp4 video > MJPEG/still)
-  const overlaySrc = determineOverlaySrc(img, streamType, monitorId, useGo2rtc, m3u8Exists);
-  if (!overlaySrc) return;
-
-  const overlayDimensions = calculateOverlayDimensions(img);
-  if (!overlayDimensions) return;
-
   thumbnail_timeout = setTimeout(function() {
+    // Pre-load required modules
+    const m3u8Exists = checkM3u8File(img.dataset.videoHlsSrc);
+    if (useGo2rtc) {
+      ensureVideoStreamLoaded();
+    } else if (streamType === 'rtsp2web' || m3u8Exists) {
+      ensureHlsLoaded();
+    }
+
+    // Determine overlay source (priority: live stream > HLS video > mp4 video > MJPEG/still)
+    const overlaySrc = determineOverlaySrc(img, streamType, monitorId, useGo2rtc, m3u8Exists);
+    if (!overlaySrc) return;
+
+    const overlayDimensions = calculateOverlayDimensions(img);
+    if (!overlayDimensions) return;
+
     createThumbnailOverlay(img, overlaySrc, overlayDimensions, streamType, monitorId, go2rtcSrc, go2rtcMid, useGo2rtc, m3u8Exists);
   }, 250);
 }

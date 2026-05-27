@@ -64,6 +64,14 @@ Camera::Camera(
   mLastAudioDTS(AV_NOPTS_VALUE),
   bytes(0),
   mIsPrimed(false) {
+  // Camera::linesize/imagesize describe the *device-side* buffer that
+  // capture paths copy from (V4L2 mmap buffers, raw RTP frames, etc).
+  // Those buffers are tightly packed at the driver/source stride, not
+  // 32-byte aligned, so use align=1 here. ZM's internal Image buffers
+  // and SHM slots independently apply their own 32-byte alignment for
+  // SIMD performance — that decoupling is the source of the size-mismatch
+  // Fatal in LocalCamera::PrimeCapture when widths aren't 32-aligned.
+  //
   // Guard against an unknown (colours, subpixelorder) pair that produced
   // pixelFormat == AV_PIX_FMT_NONE, or any case where av_image_get_*
   // returns a negative size — assigning those to unsigned would wrap to a
@@ -76,14 +84,14 @@ Camera::Camera(
     imagesize = static_cast<unsigned long long>(height) * linesize;
   } else {
     int raw_linesize = av_image_get_linesize(pixelFormat, width, 0);
-    int raw_imagesize = av_image_get_buffer_size(pixelFormat, width, height, 32);
+    int raw_imagesize = av_image_get_buffer_size(pixelFormat, width, height, 1);
     if (raw_linesize < 0 || raw_imagesize < 0) {
       Error("Camera: av_image_get_* returned %d/%d for pixelFormat=%s; falling back",
             raw_linesize, raw_imagesize, av_get_pix_fmt_name(pixelFormat));
       linesize = width * colours;
       imagesize = static_cast<unsigned long long>(height) * linesize;
     } else {
-      linesize = FFALIGN(raw_linesize, 32);
+      linesize = static_cast<unsigned int>(raw_linesize);
       imagesize = static_cast<unsigned long long>(raw_imagesize);
     }
   }

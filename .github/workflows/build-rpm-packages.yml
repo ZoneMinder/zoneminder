@@ -218,18 +218,23 @@ jobs:
           name: ${{ env.artifact_name }}
 
       - name: Compute deploy target
+        shell: bash
         run: |
-          VERSION="${GITHUB_REF_NAME#release-}"
+          # Both tag pushes (X.Y.Z) and branch pushes (release-X.Y) deploy
+          # to a directory named after the X.Y minor version — point
+          # releases accumulate under one dir.
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF_NAME%.*}"  # X.Y.Z -> X.Y
             echo "DEPLOY_PREFIX=release-${VERSION}" >> $GITHUB_ENV
           else
+            VERSION="${GITHUB_REF_NAME#release-}"  # release-X.Y -> X.Y
             echo "DEPLOY_PREFIX=proposed-${VERSION}" >> $GITHUB_ENV
           fi
       - name: Publish to ZMREPO
         uses: easingthemes/ssh-deploy@main
         env:
           SSH_PRIVATE_KEY: ${{ secrets.ZMREPO_SSH_KEY }}
-          ARGS: "-rltgoDzvO --mkpath"
+          ARGS: "-rltgoDzvO"
           SOURCE: artifacts/rpm/
           REMOTE_HOST: ${{ secrets.ZMREPO_HOST }}
           REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}

@@ -136,18 +136,23 @@ jobs:
           path: artifacts/deb
           name: ${{ env.artifact_name }}
       - name: Compute deploy target
+        shell: bash
         run: |
-          VERSION="${GITHUB_REF_NAME#release-}"
+          # Both tag pushes (X.Y.Z) and branch pushes (release-X.Y) deploy
+          # to a dist named after the X.Y minor version — Debian repos
+          # accumulate all X.Y point releases under one dist.
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF_NAME%.*}"  # X.Y.Z -> X.Y
             echo "DEPLOY_TARGET=debian/release-${VERSION}/mini-dinstall/incoming/" >> $GITHUB_ENV
           else
+            VERSION="${GITHUB_REF_NAME#release-}"  # release-X.Y -> X.Y
             echo "DEPLOY_TARGET=debian/proposed-${VERSION}/mini-dinstall/incoming/" >> $GITHUB_ENV
           fi
       - name: Publish to ZMREPO
         uses: easingthemes/ssh-deploy@main
         env:
           SSH_PRIVATE_KEY: ${{ secrets.ZMREPO_SSH_KEY }}
-          ARGS: "-rltgoDzvO --mkpath"
+          ARGS: "-rltgoDzvO"
           SOURCE: artifacts/deb/
           REMOTE_HOST: ${{ secrets.ZMREPO_HOST }}
           REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}
@@ -164,14 +169,16 @@ jobs:
         with:
           path: dist
       - name: Compute deploy target
+        shell: bash
         run: |
-          VERSION="${GITHUB_REF_NAME#release-}"
+          # Tag is X.Y.Z; strip the patch to land in the X.Y release dist.
+          VERSION="${GITHUB_REF_NAME%.*}"
           echo "DEPLOY_TARGET=debian/release-${VERSION}/mini-dinstall/incoming/" >> $GITHUB_ENV
       - name: Publish release to ZMREPO
         uses: easingthemes/ssh-deploy@main
         env:
           SSH_PRIVATE_KEY: ${{ secrets.ZMREPO_SSH_KEY }}
-          ARGS: "-rltgoDzvO --mkpath"
+          ARGS: "-rltgoDzvO"
           SOURCE: dist/
           REMOTE_HOST: ${{ secrets.ZMREPO_HOST }}
           REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}

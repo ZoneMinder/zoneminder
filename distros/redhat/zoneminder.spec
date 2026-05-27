@@ -21,7 +21,7 @@
 %global zmtargetdistro %{?rhel:el%{rhel}}%{!?rhel:fc%{fedora}}
 
 Name: zoneminder
-Version: 1.38.2
+Version: 1.38.3
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -452,12 +452,14 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 %dir %attr(755,nginx,nginx) %{_localstatedir}/log/zoneminder
 
 %changelog
-* Tue May 26 2026  Isaac Connor <iconnor@zoneminder.com> - 1.38.2-1
-- 1.38.2 maintenance release: security fixes (GHSA-g66m-77fq-79v9,
+* Wed May 27 2026  Isaac Connor <iconnor@zoneminder.com> - 1.38.3-1
+- 1.38.3 maintenance release: security fixes (GHSA-g66m-77fq-79v9,
   GHSA-745h-vg7c-73cg, XSS/SQLi/RCE hardening), VideoStore UAF and
   segfault fixes, ONVIF subscription cleanup, recording correctness
   fixes (DTS, polygon, deadlock retry, Range header), reverse-proxy
-  auth hash fixes, PHP 8 / FreeBSD portability
+  auth hash fixes, PHP 8 / FreeBSD portability. Supersedes 1.38.2
+  (failed packaging attempt — switched Debian source format to
+  3.0 native to fix cross-distro orig.tar.gz upload conflicts).
 
 * Sat Feb 07 2026  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.38.0-1
 - 1.38.0 release

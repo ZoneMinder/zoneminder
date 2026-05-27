@@ -200,13 +200,13 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
 
   echo htmlSelect('interface', $interfaces,
     (isset($_REQUEST['interface']) ? $_REQUEST['interface'] : $default_interface),
-    array('data-on-change-this'=>'changeInterface') );
+    array('data-on-change-this'=>'changeInterface', 'class'=>'chosen') );
 ?>
         </p>
         <div id="DetectedCameras">
           <p>
             <label for="probe"><?php echo translate('DetectedCameras') ?></label>
-            <?php echo htmlSelect('probe', $cameras, null, array('data-on-change-this'=>'configureButtons')); ?>
+            <?php echo htmlSelect('probe', $cameras, null, array('data-on-change-this'=>'configureButtons', 'class'=>'chosen')); ?>
           </p>
           <p><?php echo translate('OnvifManualOr') ?></p>
           <p>

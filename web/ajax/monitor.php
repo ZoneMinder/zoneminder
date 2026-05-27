@@ -2,8 +2,8 @@
 ini_set('display_errors', '0');
 
 if ( canView('Monitors') ) {
-  $mid = (isset($_REQUEST['mid']) && !empty($_REQUEST['mid'])) ? $_REQUEST['mid'] : null;
-  if (!$mid) {
+  $mid = isset($_REQUEST['mid']) ? $_REQUEST['mid'] : null;
+  if ($mid === null || $mid === '') {
     ajaxError(translate('RequestMissing') . ' "mid".');
   }
 
@@ -18,9 +18,10 @@ if ( canView('Monitors') ) {
 
     if (isset($_REQUEST['monitorName']) && !empty($_REQUEST['monitorName'])) {
       $monitorName = $_REQUEST['monitorName'];
-      $cleanedMonitorName = preg_replace($filterRegexp, '', trim($monitorName));
-      if ($monitorName != $cleanedMonitorName){
-        preg_match_all($filterRegexp, trim($monitorName), $badChars);
+      $trimmedMonitorName = trim($monitorName);
+      $cleanedMonitorName = preg_replace($filterRegexp, '', $trimmedMonitorName);
+      if ($trimmedMonitorName != $cleanedMonitorName){
+        preg_match_all($filterRegexp, $trimmedMonitorName, $badChars);
         $result = false;
         $message = translate('BadNameCharsList') . ' "' . implode('","', array_unique($badChars[0])) . '".~~' . translate('BadNameChars');
       }

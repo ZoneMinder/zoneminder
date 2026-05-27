@@ -186,7 +186,7 @@ if ($action == 'save') {
             $storagePath = $Storage->Path() .'/';
             $dirStoragePath = opendir($storagePath);
             if($dirStoragePath === false) {
-              ZM\Warning("Unable to check and delete old symlinks to monitor with ID=".$monitor->Id()." in the '".$monitor->Id()."' storage because the path to the storage is missing or unreadable.");
+              ZM\Warning("Unable to check and delete old symlinks to monitor with ID=".$monitor->Id()." in the '".$Storage->Name()."' storage because the path to the storage is missing or unreadable.");
             } else {
               while (($file = readdir($dirStoragePath)) !== false) {
                 $linkPath = $storagePath . $file;

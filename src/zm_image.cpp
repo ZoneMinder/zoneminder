@@ -1129,20 +1129,23 @@ Image *Image::HighlightEdges(
   unsigned int hi_x = limits ? limits->Hi().x_ : width - 1;
   unsigned int hi_y = limits ? limits->Hi().y_ : height - 1;
 
+  // Source (this) is GRAY8 with src_linesize per row. The destination Image
+  // has its own (possibly different) row stride; use that for high_buff
+  // addressing so non-32-aligned widths don't overflow the destination on
+  // the last row, and use src_linesize when looking up neighbour pixels
+  // (p ± linesize) so we follow the actual row stride rather than `width`.
+  const unsigned int src_linesize = linesize;
+  const unsigned int dst_linesize = high_image->LineSize();
+
   if ( p_pixfmt == AV_PIX_FMT_GRAY8 ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      const uint8_t* p = buffer + (y * linesize) + lo_x;
-      uint8_t* phigh = high_buff + (y * linesize) + lo_x;
+      const uint8_t* p = buffer + (y * src_linesize) + lo_x;
+      uint8_t* phigh = high_buff + (y * dst_linesize) + lo_x;
       for ( unsigned int x = lo_x; x <= hi_x; x++, p++, phigh++ ) {
         bool edge = false;
         if ( *p ) {
-          edge = (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1)) || (y > 0 && !*(p-width)) || (y < (height-1) && !*(p+width));
-#if 0
-          if ( !edge && x > 0 && !*(p-1) ) edge = true;
-          if ( !edge && x < (width-1) && !*(p+1) ) edge = true;
-          if ( !edge && y > 0 && !*(p-width) ) edge = true;
-          if ( !edge && y < (height-1) && !*(p+width) ) edge = true;
-#endif
+          edge = (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1))
+              || (y > 0 && !*(p-src_linesize)) || (y < (height-1) && !*(p+src_linesize));
         }
         if ( edge ) {
           *phigh = colour;
@@ -1151,18 +1154,13 @@ Image *Image::HighlightEdges(
     }
   } else if ( zm_is_rgb24(p_pixfmt) ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      const uint8_t* p = buffer + (y * linesize) + lo_x;
-      uint8_t* phigh = high_buff + (((y * linesize) + lo_x) * 3);
+      const uint8_t* p = buffer + (y * src_linesize) + lo_x;
+      uint8_t* phigh = high_buff + (y * dst_linesize) + lo_x * 3;
       for ( unsigned int x = lo_x; x <= hi_x; x++, p++, phigh += 3 ) {
         bool edge = false;
         if ( *p ) {
-          edge = (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1)) || (y > 0 && !*(p-width)) || (y < (height-1) && !*(p+width));
-#if 0
-          if ( !edge && x > 0 && !*(p-1) ) edge = true;
-          if ( !edge && x < (width-1) && !*(p+1) ) edge = true;
-          if ( !edge && y > 0 && !*(p-width) ) edge = true;
-          if ( !edge && y < (height-1) && !*(p+width) ) edge = true;
-#endif
+          edge = (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1))
+              || (y > 0 && !*(p-src_linesize)) || (y < (height-1) && !*(p+src_linesize));
         }
         if ( edge ) {
           RED_PTR_RGBA(phigh) = RED_VAL_RGBA(colour);
@@ -1173,18 +1171,13 @@ Image *Image::HighlightEdges(
     }
   } else if ( zm_is_rgb32(p_pixfmt) ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      const uint8_t* p = buffer + (y * linesize) + lo_x;
-      Rgb* phigh = (Rgb*)(high_buff + (((y * linesize) + lo_x) * 4));
+      const uint8_t* p = buffer + (y * src_linesize) + lo_x;
+      Rgb* phigh = (Rgb*)(high_buff + (y * dst_linesize) + (lo_x << 2));
       for ( unsigned int x = lo_x; x <= hi_x; x++, p++, phigh++ ) {
         bool edge = false;
         if ( *p ) {
-          edge = (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1)) || (y > 0 && !*(p-width)) || (y < (height-1) && !*(p+width));
-#if 0
-          if ( !edge && x > 0 && !*(p-1) ) edge = true;
-          if ( !edge && x < (width-1) && !*(p+1) ) edge = true;
-          if ( !edge && y > 0 && !*(p-width) ) edge = true;
-          if ( !edge && y < (height-1) && !*(p+width) ) edge = true;
-#endif
+          edge = (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1))
+              || (y > 0 && !*(p-src_linesize)) || (y < (height-1) && !*(p+src_linesize));
         }
         if ( edge ) {
           *phigh = colour;
@@ -2434,8 +2427,12 @@ void Image::MaskPrivacy( const unsigned char *p_bitmask, const Rgb pixel_colour 
               av_get_pix_fmt_name(imagePixFormat));
       return;
     }
-    const unsigned int c_height = planar_420 ? height / 2 : height;
-    const unsigned int c_width = width / 2;
+    // Chroma plane dimensions use ceiling division so an odd width/height
+    // doesn't drop the last chroma column/row — that would leave a strip
+    // along the right/bottom edge with original colour bleeding through
+    // the privacy mask.
+    const unsigned int c_height = planar_420 ? (height + 1) / 2 : height;
+    const unsigned int c_width = (width + 1) / 2;
     const int u_stride = plane_linesizes[1];
     const int v_stride = plane_linesizes[2];
     uint8_t *u_plane = plane_ptrs[1];

@@ -1029,7 +1029,12 @@ void Image::Assign(const Image &image) {
   }
 
   if (image.imagePixFormat == AV_PIX_FMT_NONE) {
-    Error("Attempt to assign image with unexpected colours per pixel: %d", image.colours);
+    // Real cause is unset/unknown AVPixelFormat metadata, not the
+    // (colours, subpixelorder) values themselves — those can legitimately
+    // be 1/something for planar YUV. Report the underlying state.
+    Error("Attempt to assign image with missing AVPixelFormat metadata "
+          "(imagePixFormat=AV_PIX_FMT_NONE, legacy colours=%u subpixelorder=%u)",
+          image.colours, image.subpixelorder);
     return;
   }
 
@@ -3167,18 +3172,17 @@ void Image::Rotate(int angle) {
 
   if (planar) {
     // Each plane has 1 byte per sample. Plane 0 is luma at full resolution;
-    // planes 1/2 are chroma subsampled by desc->log2_chroma_w/h.
-    const unsigned int cw = width  >> desc->log2_chroma_w;
-    const unsigned int ch = height >> desc->log2_chroma_h;
-    const unsigned int new_cw = new_width  >> desc->log2_chroma_w;
-    const unsigned int new_ch = new_height >> desc->log2_chroma_h;
+    // planes 1/2 are chroma subsampled by desc->log2_chroma_w/h. Use ceiling
+    // (AV_CEIL_RSHIFT) — flooring would drop the last chroma column/row for
+    // odd luma dimensions and leave part of U/V unrotated.
+    const unsigned int cw = AV_CEIL_RSHIFT(width,  desc->log2_chroma_w);
+    const unsigned int ch = AV_CEIL_RSHIFT(height, desc->log2_chroma_h);
     rotate_plane(src_planes[0], src_strides[0], width, height,
                  dst_planes[0], dst_strides[0], 1, angle);
     rotate_plane(src_planes[1], src_strides[1], cw, ch,
                  dst_planes[1], dst_strides[1], 1, angle);
     rotate_plane(src_planes[2], src_strides[2], cw, ch,
                  dst_planes[2], dst_strides[2], 1, angle);
-    (void)new_cw; (void)new_ch;  // dst dims implied by new_w/new_h and subsampling
   } else {
     // Packed format: single plane with bpp bytes per pixel.
     const unsigned int bpp = zm_bytes_per_pixel(imagePixFormat);
@@ -3249,8 +3253,10 @@ void Image::Flip( bool leftright ) {
   const bool planar = (desc->flags & AV_PIX_FMT_FLAG_PLANAR) != 0;
 
   if (planar) {
-    const unsigned int cw = width  >> desc->log2_chroma_w;
-    const unsigned int ch = height >> desc->log2_chroma_h;
+    // Ceiling division so odd luma dimensions don't drop the last chroma
+    // column/row.
+    const unsigned int cw = AV_CEIL_RSHIFT(width,  desc->log2_chroma_w);
+    const unsigned int ch = AV_CEIL_RSHIFT(height, desc->log2_chroma_h);
     flip_plane(src_planes[0], src_strides[0], width, height,
                dst_planes[0], dst_strides[0], 1, leftright);
     flip_plane(src_planes[1], src_strides[1], cw, ch,

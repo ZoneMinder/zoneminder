@@ -2325,7 +2325,8 @@ bool Image::Delta(const Image &image, Image* targetimage) const {
   } else if (zm_bytes_per_pixel(imagePixFormat) == 1) {
     (*delta8_gray8)(buffer, image.buffer, pdiff, pixels);
   } else {
-    Panic("Delta called with unexpected colours: %d", colours);
+    Panic("Delta called with unexpected pixel format %d (%s); legacy colours=%d",
+          imagePixFormat, av_get_pix_fmt_name(imagePixFormat), colours);
   }
 
 #ifdef ZM_IMAGE_PROFILING

@@ -82,7 +82,8 @@ RemoteCameraRtsp::RemoteCameraRtsp(
     imagePixFormat = AV_PIX_FMT_GRAY8;
     pixelFormat = AV_PIX_FMT_GRAY8;
   } else {
-    Panic("Unexpected colours: %d", colours);
+    Panic("Unexpected pixel format %d (%s); legacy colours=%d subpixelorder=%d",
+          pixelFormat, av_get_pix_fmt_name(pixelFormat), colours, subpixelorder);
   }
 } // end RemoteCameraRtsp::RemoteCameraRtsp(...)
 

@@ -61,7 +61,8 @@ int VideoStream::SetupCodec(
 ) {
   pf = zm_pixformat_from_colours(colours, subpixelorder);
   if (pf == AV_PIX_FMT_NONE) {
-    Panic("Unexpected colours: %d", colours);
+    Panic("Unsupported (colours, subpixelorder) pair: colours=%d subpixelorder=%d",
+          colours, subpixelorder);
   }
 
   if (strcmp("rtp", of->name) == 0) {

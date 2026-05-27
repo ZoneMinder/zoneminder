@@ -85,6 +85,7 @@ jobs:
           mk-build-deps -ir -t "apt-get -y --no-install-recommends" \
             debian/control
       - name: Build (signed)
+        shell: bash
         env:
           DEB_BUILD_OPTIONS: "parallel=$(nproc)"
           # gpg picks passphrase from environment via loopback
@@ -98,12 +99,13 @@ jobs:
           #git submodule update --init --recursive
           # Cleanup previous builds
           rm -rf ZoneMinder_zoneminder_release
-          curl -s -o do_debian_package.sh https://raw.githubusercontent.com/ZoneMinder/zoneminder/refs/heads/${GITHUB_REF_NAME}/utils/do_debian_package.sh
+          # Use the checked-out copy (works for both branch and tag refs;
+          # raw.githubusercontent .../refs/heads/<tag>/... 404s on tag pushes).
+          cp zoneminder/utils/do_debian_package.sh do_debian_package.sh
           chmod +x do_debian_package.sh
 
           # Tell gpg to use loopback + passphrase
           export GPG_TTY=$(tty || true)
-          ls -l /bin/bash
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
             TAG="${GITHUB_REF#refs/tags/}"
             ./do_debian_package.sh -r="$TAG" -t=binary -b=${GITHUB_REF_NAME} -v=1
@@ -145,7 +147,7 @@ jobs:
         uses: easingthemes/ssh-deploy@main
         env:
           SSH_PRIVATE_KEY: ${{ secrets.ZMREPO_SSH_KEY }}
-          ARGS: "-rltgoDzvO"
+          ARGS: "-rltgoDzvO --mkpath"
           SOURCE: artifacts/deb/
           REMOTE_HOST: ${{ secrets.ZMREPO_HOST }}
           REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}
@@ -169,7 +171,7 @@ jobs:
         uses: easingthemes/ssh-deploy@main
         env:
           SSH_PRIVATE_KEY: ${{ secrets.ZMREPO_SSH_KEY }}
-          ARGS: "-rltgoDzvO"
+          ARGS: "-rltgoDzvO --mkpath"
           SOURCE: dist/
           REMOTE_HOST: ${{ secrets.ZMREPO_HOST }}
           REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}

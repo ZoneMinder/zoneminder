@@ -1530,8 +1530,9 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg, eventS
       hls.on(Hls.Events.BUFFER_EOS, () => {
         console.debug("HLS Event = BUFFER_EOS");
       });
-      hls.on(Hls.Events.ERROR, function(e) {
-        console.error(e);
+      hls.on(Hls.Events.ERROR, function(event, data) {
+        console.error("HLS Event = ERROR", event, data);
+        if (!data || !data.fatal) return;
         hls.destroy();
         video.remove();
         fallbackToMjpeg();
@@ -1636,20 +1637,43 @@ function tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar) {
   }
 
   if (video) {
+    const clearVideoFallbackTimers = function() {
+      if (video._fallbackTimer) {
+        clearTimeout(video._fallbackTimer);
+        video._fallbackTimer = null;
+      }
+      if (video._fallbackTimerTime) {
+        clearInterval(video._fallbackTimerTime);
+        video._fallbackTimerTime = null;
+      }
+    };
+
+    video.addEventListener('ended', function() {
+      clearVideoFallbackTimers();
+    });
+
     // Fallback after 5s if video hasn't loaded
     video._fallbackTimer = setTimeout(function() {
       if (video.readyState < 2) {
+        clearVideoFallbackTimers();
         video.remove();
         fallbackToMjpeg();
       } else {
         // A defective video may simply stop or freeze.
         let curTime = video.currentTime;
         video._fallbackTimerTime = setInterval(function() {
+          if (video.ended) {
+            clearVideoFallbackTimers();
+            return;
+          }
+
           if (curTime == video.currentTime) {
             console.log("MP4 video does not play, fallback to MJPEG.");
-            clearInterval(video._fallbackTimerTime);
+            clearVideoFallbackTimers();
             video.remove();
             fallbackToMjpeg();
+          } else {
+            curTime = video.currentTime;
           }
         }, 1000);
       }

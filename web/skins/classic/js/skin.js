@@ -1531,7 +1531,7 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg, eventS
         console.debug("HLS Event = BUFFER_EOS");
       });
       hls.on(Hls.Events.ERROR, function(event, data) {
-        console.error("HLS Event = ERROR", event, data);
+        console.warn("HLS Event = ERROR", "\n", "event:", event, "\n", "errorType:", data.type, "\n", "errorDetails:", data.details, "\n", "errorFatal:", data.fatal);
         if (!data || !data.fatal) return;
         hls.destroy();
         video.remove();
@@ -1730,7 +1730,8 @@ function playEventHLS(container, img, monitorId, fallbackToMjpeg, statusBar, eve
         console.debug("HLS Event = BUFFER_EOS");
       });
       hls.on(Hls.Events.ERROR, function(event, data) {
-        console.warn("event:", event, "\n", "errorType:", data.type, "\n", "errorDetails:", data.details, "\n", "errorFatal:", data.fatal);
+        console.warn("HLS Event = ERROR", "\n", "event:", event, "\n", "errorType:", data.type, "\n", "errorDetails:", data.details, "\n", "errorFatal:", data.fatal);
+        if (!data || !data.fatal) return;
         video.remove();
         hls.destroy();
         clearTimeout(video._fallbackTimer);

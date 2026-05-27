@@ -666,6 +666,37 @@ function confirmDelete( message ) {
   return ( confirm( message?message:'Are you sure you wish to delete?' ) );
 }
 
+// Load the Delete Confirmation Modal HTML via Ajax call
+function getDelConfirmModal(key, title, formName=null) {
+  $j.getJSON(thisUrl, {
+    request: 'modal',
+    modal: 'delconfirm',
+    key: key,
+    title: title
+  })
+      .done(function(data) {
+        insertModalHtml('deleteConfirm', data.html);
+        $j('#deleteConfirm').modal('show');
+        document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
+          $j('#deleteConfirm').modal('hide');
+          if (!formName) {
+            if (typeof manageDelConfirmModalBtns === "function") {
+              manageDelConfirmModalBtns();
+            }
+          } else {
+            const form = document.querySelector('form[name="'+formName+'"]');
+            if (form) {
+              if (currentView == 'groups') form.elements['action'].value = 'delete';
+              submitThisForm(form);
+            } else {
+              console.warn(`Form with name=${formName} not found.`);
+            }
+          }
+        }, {once: true});
+      })
+      .fail(logAjaxFail);
+}
+
 window.addEventListener( 'DOMContentLoaded', checkSize );
 
 function convertLabelFormat(LabelFormat, monitorName) {

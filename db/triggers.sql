@@ -116,9 +116,32 @@ FOR EACH ROW
 
 drop procedure if exists update_storage_stats//
 
+/* ============================================================================
+ * Canonical lock-acquisition order for every writer that touches Events,
+ * the bucket tables, and Event_Summaries. InnoDB X-locks the matched Events
+ * row during WHERE evaluation, before either BEFORE or AFTER trigger bodies
+ * fire, so the order is the same regardless of trigger timing:
+ *
+ *   Events[Id] -> Events_Hour/Day/Week/Month[EventId] -> Event_Summaries[MonitorId]
+ *
+ * Writers that follow this order (and must continue to):
+ *   - event_update_trigger (AFTER UPDATE on Events)
+ *   - event_delete_trigger (BEFORE DELETE on Events)
+ *   - The Event::Event constructor in src/zm_event.cpp: INSERT Events, then
+ *     INSERT Events_Hour/Day/Week/Month, then INSERT/UPDATE Event_Summaries
+ *     (event_insert_trigger is commented out below; zmc does it directly)
+ *   - The bucket update/delete triggers cascade into Event_Summaries in the
+ *     same direction
+ *   - zmstats.pl prune+resync (bucket DELETEs then UPDATE Event_Summaries)
+ *   - zmaudit.pl resync (bucket SELECTs then UPDATE Event_Summaries)
+ *
+ * Crucially: do NOT pre-lock Event_Summaries before touching the bucket
+ * tables — that inverts the order and reintroduces the deadlock cycle
+ * against zma/filter/zmc writers.
+ * ============================================================================ */
 drop trigger if exists event_update_trigger//
 
-CREATE TRIGGER event_update_trigger AFTER UPDATE ON Events 
+CREATE TRIGGER event_update_trigger AFTER UPDATE ON Events
 FOR EACH ROW
 BEGIN
   declare diff BIGINT default 0;

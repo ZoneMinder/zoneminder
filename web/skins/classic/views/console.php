@@ -294,7 +294,7 @@ echo $navbar ?>
       );
     parseFilter($filter);
     $eventsLink = canView('Events') ? '?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$filter['querystring'] : '';
-    echo '<th data-sortable="true" data-field="'.$i.'Events" class="colEvents"'
+    echo '<th data-sortable="true" data-field="'.$i.'Events" class="colEvents col'.$i.'Events"'
       .'>'
       .htmlspecialchars($eventCounts[$i]['title'])
       .'</th>'.PHP_EOL;

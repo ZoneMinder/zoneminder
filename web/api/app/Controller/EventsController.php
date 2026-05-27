@@ -262,9 +262,14 @@ class EventsController extends AppController {
       return;
     }
 
-    # Get the previous and next events for any monitor
+    # Get the previous and next events for any monitor.
+    # Only Id is used below, so skip the wide SELECT + Monitor/Storage joins + Frames hasMany expansion
+    # that recursive=1 from above would otherwise pull in for each neighbor row.
     $this->Event->id = $id;
-    $event_neighbors = $this->Event->find('neighbors');
+    $event_neighbors = $this->Event->find('neighbors', array(
+      'fields' => array('Event.Id'),
+      'recursive' => -1,
+    ));
     $event['Event']['Next'] = isset($event_neighbors['next']) ? $event_neighbors['next']['Event']['Id'] : 0;
     $event['Event']['Prev'] = isset($event_neighbors['prev']) ? $event_neighbors['prev']['Event']['Id'] : 0;
 
@@ -274,7 +279,9 @@ class EventsController extends AppController {
 
     # Also get the previous and next events for the same monitor
     $event_monitor_neighbors = $this->Event->find('neighbors', array(
-      'conditions'=>array('Event.MonitorId'=>$event['Event']['MonitorId'])
+      'fields' => array('Event.Id'),
+      'recursive' => -1,
+      'conditions' => array('Event.MonitorId' => $event['Event']['MonitorId']),
     ));
     $event['Event']['NextOfMonitor'] = isset($event_monitor_neighbors['next']) ? $event_monitor_neighbors['next']['Event']['Id'] : 0;
     $event['Event']['PrevOfMonitor'] = isset($event_monitor_neighbors['prev']) ? $event_monitor_neighbors['prev']['Event']['Id'] : 0;

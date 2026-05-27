@@ -21,6 +21,26 @@
 require_once('Filter.php');
 require_once('FilterTerm.php');
 
+// Polyfills for PHP 8.0+ string functions, so views and callers don't have to
+// guard each use. ZoneMinder still supports PHP 7.x in some distros.
+if (!function_exists('str_starts_with')) {
+  function str_starts_with(string $haystack, string $needle): bool {
+    return $needle === '' || strncmp($haystack, $needle, strlen($needle)) === 0;
+  }
+}
+if (!function_exists('str_ends_with')) {
+  function str_ends_with(string $haystack, string $needle): bool {
+    if ($needle === '' || $needle === $haystack) return true;
+    $nlen = strlen($needle);
+    return $nlen <= strlen($haystack) && substr_compare($haystack, $needle, -$nlen) === 0;
+  }
+}
+if (!function_exists('str_contains')) {
+  function str_contains(string $haystack, string $needle): bool {
+    return $needle === '' || strpos($haystack, $needle) !== false;
+  }
+}
+
 function noCacheHeaders() {
   header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');    // Date in the past
   header('Last-Modified: '.gmdate( 'D, d M Y H:i:s' ).' GMT'); // always modified
@@ -2504,5 +2524,30 @@ if (!function_exists('mb_lcfirst')) { // Available in PHP >= 8.4
     }
     return $result;
   }
+}
+
+function findVideoEventFile ($Event, $ext="*") {
+  $dir = $Event->Path();
+  $eventDefaultVideo = to_string($Event->DefaultVideo());
+  $path = '';
+  if ($eventDefaultVideo !== '' &&
+    !str_ends_with($eventDefaultVideo, '.m3u8') &&
+    ($ext === "*" || str_ends_with(strtolower($eventDefaultVideo), '.' . $ext))) {
+      $path = $dir.'/'.$eventDefaultVideo;
+  }
+  if (!is_file($path)) $path = ''; # So we don't return a reference to a non-existent file.
+
+  if ($path === '') {
+    # By default, we search for files with any extension, such as mp4, mkv, or webm.
+    # Look for the final renamed first, then incomplete.
+    # Incomplete files may exist as either incomplete.<container> or incomplete.<codec>.<container>.
+    $candidates = glob($dir.'/'.$Event->Id().'-video.*.'.$ext);
+    if (!$candidates) $candidates = glob($dir.'/incomplete.'.$ext);
+    if (!$candidates) $candidates = glob($dir.'/incomplete.*.'.$ext);
+    if ($candidates) {
+      $path = $candidates[0];
+    }
+  }
+  return $path;
 }
 ?>

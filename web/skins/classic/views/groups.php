@@ -61,7 +61,7 @@ getBodyTopHTML();
                   <i class="material-icons md-18">add_circle</i>
                   <span class="text"><?php echo translate('New') ?></span>
                   </button>
-                  <button type="button" name="deleteBtn" value="Delete" data-on-click-this="deleteGroup" disabled="disabled">
+                  <button type="button" class="btn-danger" name="deleteBtn" value="Delete" data-on-click-this="deleteGroup" disabled="disabled">
                   <i class="material-icons md-18">delete</i>
                   <span class="text"><?php echo translate('Delete') ?></span>
                   </button>

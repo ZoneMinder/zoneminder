@@ -188,9 +188,20 @@ class ZMSessionHandler implements SessionHandlerInterface {
     $now = time();
     $old = $now - $max;
     ZM\Debug('doing session gc ' . $now . '-' . $max. '='.$old);
-    $sth = $this->db->prepare('DELETE FROM Sessions WHERE access < :old');
-    $sth->bindParam(':old', $old, PDO::PARAM_INT);
-    return $sth->execute() ? true : false;
+
+    // Two-phase delete: find expired ids via the access index (consistent read, no locks),
+    // then delete by primary key so InnoDB only takes record locks on the matched rows
+    // and not gap locks across the access range — avoids deadlocks with concurrent
+    // REPLACE INTO Sessions on every authenticated request.
+    $sel = $this->db->prepare('SELECT id FROM Sessions WHERE access < :old LIMIT 100');
+    $sel->bindParam(':old', $old, PDO::PARAM_INT);
+    if (!$sel->execute()) return false;
+    $ids = $sel->fetchAll(PDO::FETCH_COLUMN);
+    if (!$ids) return true;
+
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    $del = $this->db->prepare("DELETE FROM Sessions WHERE id IN ($placeholders)");
+    return $del->execute($ids) ? true : false;
   }
   public function validateId($key) : bool {return true;}
 } # end class Session

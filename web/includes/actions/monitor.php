@@ -201,19 +201,19 @@ if ($action == 'save') {
               } 
               closedir($dirStoragePath);
             }
-            if (!$oldLinkPathFound) {
-              ZM\Debug("Old link at '" . $oldLinkPath . "' was not found in any of the storages");
-            }
 
             # Let's create new symlinks
             $dir = $Storage->Path().'/'.$mid;
-            if (is_dir($dir)) { # Let's check if there is a folder with events in this storage
+            if (is_dir($dir) && (string)$saferName !== (string)$mid) { # Let's check if there is a folder with events in this storage
               $linkPath = $Storage->Path().'/'.$saferName;
               if (!is_link($linkPath) && !@symlink($mid, $linkPath)) {
                 # It is necessary to check is_link() to avoid unnecessary warnings, since different repositories can have the same path and this is not prohibited by the configuration.
                 ZM\Warning('Unable to symlink in storage "' . $Storage->Name() . '" ' . $dir . ' to ' . $linkPath);
               }
             }
+          }
+          if (!$oldLinkPathFound) {
+            ZM\Debug("Old link at '" . $oldLinkPath . "' was not found in any of the storages");
           }
         }
 

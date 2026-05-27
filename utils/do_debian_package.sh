@@ -237,16 +237,14 @@ rm .gitignore
 cd ../
 
 
-if [ -e "$DIRECTORY.orig.tar.gz" ]; then
-  read -p "$DIRECTORY.orig.tar.gz exists, overwrite it? [Y/n]"
-  if [[ "$REPLY" == "" || "$REPLY" == [yY] ]]; then
-    tar zcf $DIRECTORY.orig.tar.gz $DIRECTORY.orig
-  fi;
-else
-  tar zcf $DIRECTORY.orig.tar.gz $DIRECTORY.orig
-fi;
+# Source format is 3.0 (native): dpkg-source -b (called by debuild/dpkg-buildpackage)
+# packs the working directory into zoneminder_<VERSION>-<DISTRO>.tar.gz itself, so
+# we don't pre-create an upstream orig tarball. Each distro produces its own
+# self-contained native tarball with a distro-tagged name, eliminating the
+# cross-distro orig.tar.gz hash conflicts that mini-dinstall / Launchpad
+# enforce for 3.0 (quilt).
 
-IFS=',' ;for DISTRO in `echo "$DISTROS"`; do 
+IFS=',' ;for DISTRO in `echo "$DISTROS"`; do
   echo "Generating package for $DISTRO";
   cd $DIRECTORY.orig
 
@@ -353,14 +351,17 @@ EOF
       fi;
       read -p "Do you want to upload this binary to zmrepo? (y/N)"
       if [[ $REPLY == [yY] ]]; then
+        # 3.0 (native): per-distro tarball is zoneminder_${VERSION}-${DISTRO}.tar.gz,
+        # already covered by the zoneminder_${VERSION}-${DISTRO}* glob. No shared
+        # orig.tar.gz to scp.
         if [ "$RELEASE" != "" ]; then
-          echo "scp \"zoneminder_${VERSION}-${DISTRO}\"* \"zoneminder-doc_${VERSION}-${DISTRO}\"* \"zoneminder-dbg_${VERSION}-${DISTRO}\"* \"zoneminder_${VERSION}.orig.tar.gz\" \"zmrepo@zmrepo.connortechnology.com:debian/release-${VERSION_PARTS[0]}.${VERSION_PARTS[1]}/mini-dinstall/incoming/\"";
-          scp "zoneminder_${VERSION}-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.connortechnology.com:debian/release-${VERSION_PARTS[0]}.${VERSION_PARTS[1]}/mini-dinstall/incoming/"
+          echo "scp \"zoneminder_${VERSION}-${DISTRO}\"* \"zoneminder-doc_${VERSION}-${DISTRO}\"* \"zoneminder-dbg_${VERSION}-${DISTRO}\"* \"zmrepo@zmrepo.connortechnology.com:debian/release-${VERSION_PARTS[0]}.${VERSION_PARTS[1]}/mini-dinstall/incoming/\"";
+          scp "zoneminder_${VERSION}-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zmrepo@zmrepo.connortechnology.com:debian/release-${VERSION_PARTS[0]}.${VERSION_PARTS[1]}/mini-dinstall/incoming/"
         else
           if [ "$BRANCH" == "" ]; then
-            scp "zoneminder_${VERSION}-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.connortechnology.com:debian/master/mini-dinstall/incoming/"
+            scp "zoneminder_${VERSION}-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zmrepo@zmrepo.connortechnology.com:debian/master/mini-dinstall/incoming/"
           else
-            scp "$DIRECTORY-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.connortechnology.com:debian/${BRANCH}/mini-dinstall/incoming/"
+            scp "$DIRECTORY-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zmrepo@zmrepo.connortechnology.com:debian/${BRANCH}/mini-dinstall/incoming/"
           fi;
         fi;
       fi;

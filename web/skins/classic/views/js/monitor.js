@@ -311,7 +311,7 @@ function initPage() {
     window.location.assign('?view=console');
   });
 
-  var sourceFormMonitor = $j('#contentForm').serialize();
+  sourceFormMonitor = $j('#contentForm').serialize();
   // Manage the ZONES Button
   document.getElementById("zones-tab").addEventListener("click", function onZonesClick(evt) {
     if ($j('#contentForm').serialize() !== sourceFormMonitor) {
@@ -590,6 +590,7 @@ function saveMonitorData(href = '') {
     data: form_data,
     success: function() {
       alertBlock.fadeOut({duration: 'fast'});
+      sourceFormMonitor = $j('#contentForm').serialize();
       if (href) window.location.assign(href);
       //document.getElementById('zones-tab').classList.remove("disabled");
     },

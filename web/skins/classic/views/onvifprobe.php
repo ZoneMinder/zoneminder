@@ -169,7 +169,19 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
     }
   }
 
+  $monitors = dbFetchAll('SELECT Path FROM Monitors WHERE Deleted=false');
+  if ($monitors) {
+    $monitorHosts = [];
+    foreach ($monitors as $monitor) {
+      if (preg_match('/\/\/([\w\-.]+)[\/|:|\?]/', $monitor['Path'], $matches)) {
+        $monitorHosts[] = $matches[1];
+      }
+    }
+  }
+  $monitorHosts = array_unique($monitorHosts);
+
   $detcameras = probeCameras('');
+  usort($detcameras, fn($a, $b) => $a['monitor']['Host'] <=> $b['monitor']['Host']);
   foreach ($detcameras as $camera) {
     if (preg_match('|([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)|', $camera['monitor']['Host'], $matches)) {
       $ip = $matches[1];
@@ -177,7 +189,13 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
     $host = $ip;
     $sourceDesc = base64_encode(json_encode($camera['monitor']));
     $sourceString = $camera['model'].' @ '.$host.' using version '.$camera['monitor']['SOAP'];
-    $cameras[$sourceDesc] = $sourceString;
+
+    $_host = (preg_match('/\/\/([\w\-.]+)[\/|:|\?]/', $camera['monitor']['Host'], $matches)) ? $matches[1] : '';
+    if ($_host && in_array($_host, $monitorHosts, true)) {
+      $cameras[$sourceDesc] = ['Name'=> $sourceString, 'class'=> 'monitor-added'];
+    } else {
+      $cameras[$sourceDesc] = $sourceString;
+    }
   }
 
   if (count($cameras) <= 0)

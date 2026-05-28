@@ -212,20 +212,20 @@ if [ "$SNAPSHOT" != "stable" ] && [ "$SNAPSHOT" != "" ]; then
 fi;
 
 DIRECTORY="zoneminder_$VERSION";
-if [ -d "$DIRECTORY.orig" ]; then 
-  echo "$DIRECTORY.orig already exists. Please delete it."
+if [ -d "$DIRECTORY" ]; then 
+  echo "$DIRECTORY already exists. Please delete it."
   exit 0;
 fi;
 
 echo "Doing $TYPE release $DIRECTORY";
-mv "${GITHUB_FORK}_zoneminder_release" "$DIRECTORY.orig";
+mv "${GITHUB_FORK}_zoneminder_release" "$DIRECTORY";
 if [ $? -ne 0 ]; then
   echo "Error status code is: $?"
   echo "Setting up build dir failed.";
   exit $?;
 fi;
 
-cd "$DIRECTORY.orig";
+cd "$DIRECTORY";
 
 # Init submodules
 git submodule init
@@ -246,7 +246,7 @@ cd ../
 
 IFS=',' ;for DISTRO in `echo "$DISTROS"`; do
   echo "Generating package for $DISTRO";
-  cd $DIRECTORY.orig
+  cd $DIRECTORY
 
   if [ -e "debian" ]; then
     rm -rf debian
@@ -311,14 +311,14 @@ EOF
   if [ $TYPE == "binary" ]; then
 	  # Auto-install all ZoneMinder's dependencies using the Debian control file
 	  sudo apt-get install devscripts equivs
-	  sudo mk-build-deps -ir $DIRECTORY.orig/debian/control
+	  sudo mk-build-deps -ir $DIRECTORY/debian/control
 	  echo "Status: $?"
 	  DEBUILD=debuild
   else
 	  if [ $TYPE == "local" ]; then
 		  # Auto-install all ZoneMinder's dependencies using the Debian control file
 		  sudo apt-get install devscripts equivs
-		  sudo mk-build-deps -ir $DIRECTORY.orig/debian/control
+		  sudo mk-build-deps -ir $DIRECTORY/debian/control
 		  echo "Status: $?"
 		  DEBUILD="debuild -i -us -uc -b"
 	  else 
@@ -327,7 +327,7 @@ EOF
 	  fi;
   fi;
 
-  cd $DIRECTORY.orig
+  cd $DIRECTORY
 
   if [ "$DEBSIGN_KEYID" != "" ]; then
     DEBUILD="$DEBUILD -k$DEBSIGN_KEYID"
@@ -402,8 +402,8 @@ done; # foreach distro
 
 if [ "$INTERACTIVE" != "no" ]; then
   read -p "Do you want to keep the checked out version of Zoneminder (in case you want to modify it later) [y/N]"
-  [[ $REPLY == [yY] ]] && { mv "$DIRECTORY.orig" zoneminder_release; echo "The checked out copy is preserved in zoneminder_release"; } || { rm -fr "$DIRECTORY.orig"; echo "The checked out copy has been deleted"; }
+  [[ $REPLY == [yY] ]] && { mv "$DIRECTORY" zoneminder_release; echo "The checked out copy is preserved in zoneminder_release"; } || { rm -fr "$DIRECTORY"; echo "The checked out copy has been deleted"; }
   echo "Done!"
 else 
-  rm -fr "$DIRECTORY.orig"; echo "The checked out copy has been deleted";
+  rm -fr "$DIRECTORY"; echo "The checked out copy has been deleted";
 fi

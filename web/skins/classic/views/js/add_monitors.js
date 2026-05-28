@@ -122,9 +122,9 @@ function addMonitor(btn) {
     return;
   }
   const Stream = ProbeResults[url];
-  if (Stream.Monitor) {
+  if (Stream.Monitor && Stream.MonitorId) {
     const Monitor = Stream.Monitor;
-    urlString = '?view=monitor&mid='+Monitor.Id;
+    urlString = '?view=monitor&mid='+Stream.MonitorId;
   } else {
     const Monitor = Stream.camera.monitor;
     urlString = '?view=monitor&newMonitor[Path]='+url;

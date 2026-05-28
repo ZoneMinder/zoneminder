@@ -275,7 +275,7 @@ IFS=',' ;for DISTRO in `echo "$DISTROS"`; do
 
   if [ "$SNAPSHOT" == "stable" ]; then
   cat <<EOF > debian/changelog
-zoneminder ($VERSION-$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
+zoneminder ($VERSION+$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
 
   * Release $VERSION
 
@@ -283,7 +283,7 @@ zoneminder ($VERSION-$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
 
 EOF
   cat <<EOF > debian/NEWS
-zoneminder ($VERSION-$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
+zoneminder ($VERSION+$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
 
   * Release $VERSION
 
@@ -291,14 +291,14 @@ zoneminder ($VERSION-$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
 EOF
   else
   cat <<EOF > debian/changelog
-zoneminder ($VERSION-$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
+zoneminder ($VERSION+$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
 
   * 
 
  -- $AUTHOR  $DATE
 EOF
   cat <<EOF > debian/changelog
-zoneminder ($VERSION-$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
+zoneminder ($VERSION+$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
 
   * 
 
@@ -351,23 +351,23 @@ EOF
       fi;
       read -p "Do you want to upload this binary to zmrepo? (y/N)"
       if [[ $REPLY == [yY] ]]; then
-        # 3.0 (native): per-distro tarball is zoneminder_${VERSION}-${DISTRO}.tar.gz,
-        # already covered by the zoneminder_${VERSION}-${DISTRO}* glob. No shared
+        # 3.0 (native): per-distro tarball is zoneminder_${VERSION}+${DISTRO}.tar.gz,
+        # already covered by the zoneminder_${VERSION}+${DISTRO}* glob. No shared
         # orig.tar.gz to scp.
         if [ "$RELEASE" != "" ]; then
-          echo "scp \"zoneminder_${VERSION}-${DISTRO}\"* \"zoneminder-doc_${VERSION}-${DISTRO}\"* \"zoneminder-dbg_${VERSION}-${DISTRO}\"* \"zmrepo@zmrepo.connortechnology.com:debian/release-${VERSION_PARTS[0]}.${VERSION_PARTS[1]}/mini-dinstall/incoming/\"";
-          scp "zoneminder_${VERSION}-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zmrepo@zmrepo.connortechnology.com:debian/release-${VERSION_PARTS[0]}.${VERSION_PARTS[1]}/mini-dinstall/incoming/"
+          echo "scp \"zoneminder_${VERSION}+${DISTRO}\"* \"zoneminder-doc_${VERSION}+${DISTRO}\"* \"zoneminder-dbg_${VERSION}+${DISTRO}\"* \"zmrepo@zmrepo.connortechnology.com:debian/release-${VERSION_PARTS[0]}.${VERSION_PARTS[1]}/mini-dinstall/incoming/\"";
+          scp "zoneminder_${VERSION}+${DISTRO}"* "zoneminder-doc_${VERSION}+${DISTRO}"* "zoneminder-dbg_${VERSION}+${DISTRO}"* "zmrepo@zmrepo.connortechnology.com:debian/release-${VERSION_PARTS[0]}.${VERSION_PARTS[1]}/mini-dinstall/incoming/"
         else
           if [ "$BRANCH" == "" ]; then
-            scp "zoneminder_${VERSION}-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zmrepo@zmrepo.connortechnology.com:debian/master/mini-dinstall/incoming/"
+            scp "zoneminder_${VERSION}+${DISTRO}"* "zoneminder-doc_${VERSION}+${DISTRO}"* "zoneminder-dbg_${VERSION}+${DISTRO}"* "zmrepo@zmrepo.connortechnology.com:debian/master/mini-dinstall/incoming/"
           else
-            scp "$DIRECTORY-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zmrepo@zmrepo.connortechnology.com:debian/${BRANCH}/mini-dinstall/incoming/"
+            scp "${DIRECTORY}+${DISTRO}"* "zoneminder-doc_${VERSION}+${DISTRO}"* "zoneminder-dbg_${VERSION}+${DISTRO}"* "zmrepo@zmrepo.connortechnology.com:debian/${BRANCH}/mini-dinstall/incoming/"
           fi;
         fi;
       fi;
     fi;
   else
-    SC="zoneminder_${VERSION}-${DISTRO}${PACKAGE_VERSION}_source.changes";
+    SC="zoneminder_${VERSION}+${DISTRO}${PACKAGE_VERSION}_source.changes";
     if [ "$PPA" == "" ]; then
       if [ "$RELEASE" != "" ]; then
         # We need to use our official tarball for the original source, so grab it and overwrite our generated one.

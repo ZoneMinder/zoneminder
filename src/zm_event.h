@@ -92,6 +92,7 @@ class Event {
   int  tot_score;
   int  max_score;
   int max_score_frame_id;
+  SystemTimePoint max_score_time;
   std::string path;
   std::string snapshot_file;
   bool snapshot_file_written;

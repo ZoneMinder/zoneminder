@@ -22,6 +22,7 @@
 #include "zm_camera.h"
 #include "zm_db.h"
 #include "zm_event_tag.h"
+#include "zm_ffmpeg_input.h"
 #include "zm_frame.h"
 #include "zm_logger.h"
 #include "zm_monitor.h"
@@ -64,6 +65,7 @@ Event::Event(
   tot_score(0),
   max_score(-1),
   max_score_frame_id(0),
+  max_score_time(p_start_time),
   //path(""),
   //snapshit_file(),
   snapshot_file_written(false),
@@ -240,6 +242,72 @@ Event::~Event() {
           fputs(content.c_str(), fp);
           fclose(fp);
         }
+      }
+    }
+  }
+
+  // If snapshot.jpg was not written during recording (e.g. PASSTHROUGH mode
+  // with no decoded images), try to generate it now from the completed video.
+  if (!snapshot_file_written && !video_file.empty()) {
+    std::string actual_video_path = path + "/" + video_file;
+    struct stat fs;
+    if (stat(actual_video_path.c_str(), &fs) == 0) {
+      double offset_secs = std::max(0.0,
+          std::chrono::duration_cast<FPSeconds>(max_score_time - start_time).count());
+      FFmpeg_Input ffmpeg_input;
+      if (ffmpeg_input.Open(actual_video_path.c_str()) > 0) {
+        int vid_stream = ffmpeg_input.get_video_stream_id();
+        if (vid_stream >= 0) {
+          // av_frame is owned by ffmpeg_input (av_frame_ptr) and freed on scope exit
+          AVFrame *av_frame = ffmpeg_input.get_frame(vid_stream, offset_secs);
+          if (av_frame) {
+            Image snap(av_frame, av_frame->width, av_frame->height);
+            if (snap.WriteJpeg(snapshot_file)) {
+              snapshot_file_written = true;
+              Debug(1, "Generated snapshot.jpg from video for event %" PRIu64, id);
+            } else {
+              Warning("Failed to write snapshot.jpg from video for event %" PRIu64, id);
+            }
+          } else {
+            Warning("Failed to get video frame for snapshot, event %" PRIu64, id);
+          }
+        }
+      } else {
+        Warning("Failed to open video %s to generate snapshot for event %" PRIu64,
+                actual_video_path.c_str(), id);
+      }
+    }
+  }
+
+  // If alarm.jpg was not written but we have alarm frames and a snapshot exists,
+  // copy snapshot.jpg to alarm.jpg as a fallback.
+  if (!alarm_frame_written && alarm_frames > 0 && snapshot_file_written) {
+    struct stat alarm_stat;
+    if (stat(alarm_file.c_str(), &alarm_stat) != 0) {
+      // alarm.jpg doesn't exist, copy snapshot.jpg to alarm.jpg
+      FILE *src = fopen(snapshot_file.c_str(), "rb");
+      if (src) {
+        FILE *dst = fopen(alarm_file.c_str(), "wb");
+        if (dst) {
+          char buf[65536];
+          size_t n;
+          bool write_ok = true;
+          while ((n = fread(buf, 1, sizeof(buf), src)) > 0) {
+            if (fwrite(buf, 1, n, dst) != n) {
+              write_ok = false;
+              break;
+            }
+          }
+          fclose(dst);
+          if (write_ok) {
+            Debug(1, "Copied snapshot.jpg to alarm.jpg for event %" PRIu64, id);
+          } else {
+            Warning("Failed to copy snapshot.jpg to alarm.jpg for event %" PRIu64, id);
+          }
+        } else {
+          Warning("Failed to open alarm.jpg for writing for event %" PRIu64, id);
+        }
+        fclose(src);
       }
     }
   }
@@ -604,6 +672,7 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
   if (score > max_score) {
     max_score = score;
     max_score_frame_id = frames;
+    max_score_time = packet->timestamp;
   }
 
   if (db_frame) {

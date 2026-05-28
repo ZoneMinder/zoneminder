@@ -858,6 +858,11 @@ void Image::AssignDirect(const AVFrame *frame) {
   pixels = width * height;
   holdbuffer = true;
   buffertype = ZM_BUFTYPE_DONTFREE;
+  // Re-bind format-specific function pointers (delta/blend/convert
+  // dispatch) to the new format. Without this, an Image that previously
+  // held a different format keeps its old fptr_* and subsequent ops take
+  // the wrong optimized path.
+  update_function_pointers();
 }
 
 
@@ -2779,7 +2784,14 @@ void Image::DeColourise() {
   colours = ZM_COLOUR_GRAY8;
   subpixelorder = ZM_SUBPIX_ORDER_NONE;
   imagePixFormat = AV_PIX_FMT_GRAY8;
-  size = width * height;
+  // Keep size and linesize consistent with the new format; downstream ops
+  // (Flip/Rotate allocate via size; row-stride loops use linesize) need both
+  // to match the GRAY8 32-byte-aligned layout, not the previous RGB sizing.
+  int new_size = av_image_get_buffer_size(AV_PIX_FMT_GRAY8, width, height, 32);
+  int new_linesize = av_image_get_linesize(AV_PIX_FMT_GRAY8, width, 0);
+  if (new_size > 0) size = static_cast<unsigned int>(new_size);
+  if (new_linesize > 0) linesize = FFALIGN(new_linesize, 32);
+  update_function_pointers();
 }
 
 /* RGB32 compatible: complete */

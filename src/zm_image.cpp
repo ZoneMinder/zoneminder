@@ -378,7 +378,12 @@ bool Image::Assign(const AVFrame *frame) {
       Error("Unable to allocate destination frame");
       return false;
     }
-    PopulateFrame(temp_frame.get());
+    // PopulateFrame can fail (av_buffer_create / av_image_fill_arrays errors);
+    // calling av_image_copy on an unpopulated temp_frame is undefined.
+    if (PopulateFrame(temp_frame.get()) < 0) {
+      Error("PopulateFrame failed; skipping av_image_copy fast path");
+      return false;
+    }
     temp_frame->pts = frame->pts;
     // u_buffer/v_buffer are not members of Image on master; av_image_copy
     // reads the planes directly from temp_frame->data, so we don't need to
@@ -3292,7 +3297,10 @@ void Image::Flip( bool leftright ) {
 void Image::Scale(const unsigned int new_width, const unsigned int new_height) {
   if (width == new_width and height == new_height) return;
 
-  AVPixelFormat format = AVPixFormat();
+  // imagePixFormat is the canonical source of truth; the deprecated
+  // AVPixFormat() getter re-derives via (colours, subpixelorder) and would
+  // hit the GRAY8/YUV420P alias collision if those legacy fields ever drift.
+  const AVPixelFormat format = imagePixFormat;
   // (new_width+1)*(new_height+1)*colours undercounts planar formats: for
   // YUV420P, colours=1 due to the GRAY8 alias, but the buffer needs
   // ~1.5x for chroma. Use av_image_get_buffer_size so this works for any

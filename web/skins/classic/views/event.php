@@ -152,7 +152,6 @@ if ((!$replayMode) or !$replayModes[$replayMode]) {
 }
 
 $video_tag = ($codec == 'MP4') || ($codec == 'MP4HLS') ||
-  str_ends_with($Event->DefaultVideo(), '.m3u8') ||
   ((false !== strpos($Event->DefaultVideo(), 'h264') || false !== strpos($Event->DefaultVideo(), 'av1')) && ($codec === 'auto'));
 
 
@@ -211,7 +210,7 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
         <button id="editBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Edit') ?>" disabled><i class="fa fa-pencil"></i></button>
         <button id="exportBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Export') ?>"><i class="fa fa-external-link"></i></button>
         <a id="downloadBtn" class="btn btn-normal" href="<?php echo $Event->getStreamSrc(array('mode'=>'mp4'),'&amp;')?>"
-          title="<?php echo translate('Download'). ' ' . (($Event->DefaultVideo() === 'index.m3u8') ? translate('video') . " " . translate('file') : $Event->DefaultVideo()) ?>"
+          title="<?php echo translate('Download'). ' ' . $Event->DefaultVideo() ?>"
           download
           <?php echo $Event->DefaultVideo() ? '' : 'style="display:none;"' ?>
 ><i class="fa fa-download"></i></a>
@@ -357,9 +356,7 @@ if ($video_tag) {
   // Prefer HLS byte-range playback when the manifest exists on disk and the
   // user picked MP4HLS / auto. Explicit MP4 must stay native ("play the mp4
   // file directly"); explicit MJPEG never reaches here because $video_tag is
-  // false for it. DefaultVideo's extension is deliberately not consulted —
-  // in-progress events have DefaultVideo='index.m3u8' from the constructor,
-  // and using that as a signal would override the explicit MP4 choice.
+  // false for it.
   $has_hls = file_exists($Event->Path() . '/index.m3u8')
     && (($codec == 'MP4HLS') || ($codec == 'auto'));
   if ($has_hls) {

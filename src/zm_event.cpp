@@ -140,7 +140,7 @@ Event::Event(
                       state_id,
                       monitor->getOrientation(),
                       0,
-                      (monitor->GetOptVideoWriter() != 0) ? "index.m3u8" : video_incomplete_file.c_str(),
+                      "",  // DefaultVideo: populated after videoStore opens (codec known)
                       save_jpegs,
                       storage->SchemeString().c_str(),
                       monitor->Latitude(),
@@ -815,6 +815,9 @@ void Event::Run() {
         video_incomplete_file = new_incomplete;
         video_incomplete_path = new_incomplete_path;
       }
+      // Surface the (codec-bearing if rename succeeded) name to consumers before close
+      zmDbDo(stringtf("UPDATE Events SET DefaultVideo='%s' WHERE Id=%" PRIu64,
+                      video_incomplete_file.c_str(), id));
     }
   }  // end if GetOptVideoWriter
 

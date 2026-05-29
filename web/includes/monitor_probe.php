@@ -1029,7 +1029,7 @@ function probeNetwork() {
       'IP'          => $camera['ip'],
       'camera'      => $camera,
       'Monitor'     => $monitor,
-      'MonitorId'   => ($monitor) ? $monitor->Id() : '',
+      'MonitorId'   => $monitor ? $monitor->Id() : '',
     ];
   } # end foreach stream
   } # end foreach mac

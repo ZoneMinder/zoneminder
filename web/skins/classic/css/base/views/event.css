@@ -120,6 +120,7 @@ height: 100%;
 }
 .eventStats {
   padding-left: 0;
+  z-index: 1;
   /* margin-right: 5px; */
 }
 

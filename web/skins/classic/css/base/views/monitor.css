@@ -74,10 +74,15 @@ tr td input[type="radio"] {
   text-align: right;
 }
 
+#content {
+  padding-top: 0.5rem;
+}
+
 body.sticky #content {
   overflow-y: auto;
   height: 100%;
 }
+
 nav ul.nav {
   height: 100%;
   flex-direction: column;
@@ -89,11 +94,27 @@ ul.form > li {
   padding-left: 300px;
   margin: 10px 0;
 }
+
 ul.form > li > label:first-child {
   width: 290px;
   margin-left: -300px;
   text-align: right;
 }
+
+nav #pills-tab a.nav-link {
+  margin-top: -0.5em;
+  margin-bottom: -0.5em;
+}
+
+nav #pills-tab .nav-item.form-control-sm {
+  height: auto;
+}
+
+nav #pills-tab a.nav-link.active {
+  background-color: var(--colorBackgroundButtons);
+  border: 1px #ccc solid;
+}
+
 .EncoderParameters label {
   vertical-align: top;
 }

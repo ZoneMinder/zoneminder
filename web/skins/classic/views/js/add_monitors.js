@@ -53,6 +53,8 @@ function probe(params) {
         const rows = data.Streams;
         // rearrange the result into what bootstrap-table expects
         params.success({total: rows.length, totalNotFiltered: rows.length, rows: rows});
+      } else {
+        params.success({total: 0, totalNotFiltered: 0, rows: []});
       }
     },
     error: function(jqXHR) {

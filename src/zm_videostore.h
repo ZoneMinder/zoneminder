@@ -71,7 +71,10 @@ class VideoStore {
   AVAudioFifo *fifo;
   uint8_t *converted_in_samples;
 
-  const char *filename;
+  // filename is owned (std::string) so it stays valid for the lifetime of
+  // VideoStore even if the caller later renames/reassigns the source path
+  // it was constructed from. A bare const char* would dangle in that case.
+  std::string filename;
   const char *format;
 
   // These are for in
@@ -93,11 +96,17 @@ class VideoStore {
   size_t reorder_queue_size;
   std::map<int, std::list<std::shared_ptr<ZMPacket>>> reorder_queues;
 
-  // HLS fragment tracking
+  // HLS fragment tracking. With movflags=frag_keyframe, FFmpeg's mov muxer
+  // doesn't write a fragment to disk until the *next* keyframe arrives (or
+  // until av_write_trailer is called). So when keyframe N arrives, fragment
+  // N-1 is what just got flushed. We snapshot avio_tell *after*
+  // av_interleaved_write_frame() to capture the position past that flush, and
+  // record fragment N-1 then.
   std::vector<Fragment> fragments_;
-  int64_t last_fragment_offset_;    // byte offset where current fragment started
-  int64_t last_fragment_start_dts_; // DTS of first video keyframe in current fragment
+  int64_t last_fragment_offset_;    // byte offset where the current (in-progress) fragment starts
+  int64_t last_fragment_start_dts_; // DTS of the keyframe that started the current fragment
   int64_t init_segment_end_;        // byte offset where init segment (ftyp+moov) ends
+  bool    finalized_;               // true once finalize() has run trailer + last-fragment recording
 
   bool setup_resampler();
   int write_packet(AVPacket *pkt, AVStream *stream);
@@ -124,6 +133,11 @@ class VideoStore {
   const std::vector<Fragment> &fragments() const { return fragments_; }
   int64_t init_segment_end() const { return init_segment_end_; }
   void writeM3U8(const std::string &path, const std::string &video_url, bool is_complete);
+  // Flush queues, write trailer, close output, and record the final fragment.
+  // Call this before writeM3U8(true) so the manifest contains every fragment.
+  // Safe to call once; subsequent calls are no-ops. The destructor will skip
+  // the trailer write if finalize() has already run.
+  void finalize();
 
   const char *get_codec() {
     if (chosen_codec_data)

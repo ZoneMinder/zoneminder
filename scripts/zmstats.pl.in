@@ -87,17 +87,162 @@ while (!$zm_terminate) {
   my $monitor_ids = $dbh->selectcol_arrayref('SELECT MonitorId FROM Monitor_Status WHERE UpdatedOn < timestamp(DATE_SUB(NOW(), INTERVAL 1 MINUTE))');
   zmDbDo('DELETE FROM Monitor_Status WHERE MonitorId IN ('.join(',', map { '?' } @$monitor_ids).')', @$monitor_ids) if $monitor_ids and @$monitor_ids;
 
-  my $event_ids = $dbh->selectcol_arrayref('SELECT EventId FROM Events_Hour WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 hour)');
-  zmDbDo('DELETE FROM Events_Hour WHERE EventId IN ('.join(',', map { '?' } @$event_ids).')', @$event_ids) if $event_ids and @$event_ids;
+  # Prune aged rows from Events_Hour/Day/Week/Month and resync Event_Summaries
+  # in one transaction.
+  #
+  # The resync MUST NOT use a multi-table UPDATE that joins Event_Summaries to
+  # the bucket tables: a multi-table UPDATE takes S-locks on the joined rows
+  # and holds them to TX commit *regardless of isolation level*, which
+  # deadlocks against event_update_trigger / event_delete_trigger holding
+  # X-locks on those same bucket rows. Snapshot the bucket aggregates first
+  # via plain SELECT (consistent read at RC -> no locks), then UPDATE
+  # Event_Summaries one row at a time using the snapshotted values.
+  #
+  # READ COMMITTED is still set for the bucket DELETE range scans, so they
+  # don't take next-key/gap locks against concurrent filter deletes / zma
+  # trigger updates on adjacent EventIds.
+  #
+  # Atomicity tradeoff: between the per-bucket aggregate SELECT and the
+  # per-monitor UPDATE, a concurrent trigger writer (zma/zmc/Event::delete)
+  # can adjust Event_Summaries via the canonical lock chain. Our subsequent
+  # UPDATE will overwrite that adjustment with our older snapshot. This is
+  # intentional and safe: the bucket triggers keep ES drift bounded between
+  # zmstats passes, and any drift introduced by this race is corrected on
+  # the next pass. Locking ES before the snapshot would invert the canonical
+  # order and re-introduce the deadlock cycle this rewrite eliminated.
+  {
+    my $attempt = 0;
+    my $max_attempts = 5;
+    while (1) {
+      $attempt++;
+      # SET TRANSACTION ... applies only to the next transaction, so it must
+      # be issued before begin_work and re-issued on each retry. Use
+      # $dbh->do directly, NOT zmDbDo: zmDbDo's success Debug would write to
+      # the Logs table on this same $dbh, and that INSERT would become the
+      # "next transaction" that consumes the isolation directive — silently
+      # dropping our prune+resync TX back to the default.
+      $dbh->do('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
+      $dbh->begin_work();
 
-  $event_ids = $dbh->selectcol_arrayref('SELECT EventId FROM Events_Day WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 day)');
-  zmDbDo('DELETE FROM Events_Day WHERE EventId IN ('.join(',', map { '?' } @$event_ids).')', @$event_ids) if $event_ids and @$event_ids;
+      my $err = 0;
+      my $errstr;  # captured before rollback() — rollback can clear errstr
+      my %touched_monitors;  # MonitorIds whose buckets we just modified
+      # Chunk size for DELETE WHERE EventId IN (...) — keeps each DELETE
+      # well under max_allowed_packet / max_prepared_stmt_count on installs
+      # where Events_Month has accumulated tens of thousands of aged rows,
+      # while preserving PK-based per-row locking (DELETE by predicate would
+      # range-lock the bucket index and re-introduce the lock-ordering
+      # inversions this rewrite was meant to eliminate).
+      my $delete_chunk = 1000;
+      foreach my $bucket (
+        ['Events_Hour',  '1 hour'],
+        ['Events_Day',   '1 day'],
+        ['Events_Week',  '1 week'],
+        ['Events_Month', '1 month'],
+      ) {
+        my ($table, $interval) = @$bucket;
+        my $rows = $dbh->selectall_arrayref(
+          "SELECT EventId, MonitorId FROM $table WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL $interval)"
+        );
+        $err = $dbh->err() // 0;
+        if ($err) { $errstr = $dbh->errstr() // ''; last; }
+        next if !$rows or !@$rows;
+        my @event_ids = map { $_->[0] } @$rows;
+        $touched_monitors{$_->[1]} = 1 for @$rows;
+        for (my $i = 0; $i < @event_ids; $i += $delete_chunk) {
+          my $end = $i + $delete_chunk - 1;
+          $end = $#event_ids if $end > $#event_ids;
+          my @batch = @event_ids[$i .. $end];
+          zmDbDo(
+            "DELETE FROM $table WHERE EventId IN (".join(',', map { '?' } @batch).')',
+            @batch
+          );
+          $err = $dbh->err() // 0;
+          last if $err;
+        }
+        if ($err) { $errstr = $dbh->errstr() // ''; last; }
+      }
 
-  $event_ids = $dbh->selectcol_arrayref('SELECT EventId FROM Events_Week WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 week)');
-  zmDbDo('DELETE FROM Events_Week WHERE EventId IN ('.join(',', map { '?' } @$event_ids).')', @$event_ids) if $event_ids and @$event_ids;
+      # Only resync ES for monitors we actually touched in this cycle. If
+      # nothing was pruned, the bucket triggers maintain ES correctly between
+      # zmstats passes; zmaudit is the periodic deep-resync safety net.
+      # Restricting to touched monitors also avoids X-locking every ES row
+      # on every zmstats cycle (which would contend with the trigger writers
+      # this rewrite is meant to protect).
+      if (!$err and %touched_monitors) {
+        my @mids = sort { $a <=> $b } keys %touched_monitors;
+        my $placeholders = join(',', map { '?' } @mids);
 
-  $event_ids = $dbh->selectcol_arrayref('SELECT EventId FROM Events_Month WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 month)');
-  zmDbDo('DELETE FROM Events_Month WHERE EventId IN ('.join(',', map { '?' } @$event_ids).')', @$event_ids) if $event_ids and @$event_ids;
+        # Snapshot the per-monitor bucket aggregates for the touched monitors
+        # only. Plain SELECT under RC is a consistent read and takes no row
+        # locks, so this can't deadlock with the trigger writers.
+        my %agg;
+        $agg{$_} ||= {} for @mids;  # seed so monitors with zero rows still get zeroed
+        foreach my $bucket (
+          ['Events_Hour',  'h'],
+          ['Events_Day',   'd'],
+          ['Events_Week',  'w'],
+          ['Events_Month', 'm'],
+        ) {
+          my ($table, $key) = @$bucket;
+          my $rows = $dbh->selectall_arrayref(
+            "SELECT MonitorId, COUNT(*), COALESCE(SUM(DiskSpace), 0) FROM $table".
+            " WHERE MonitorId IN ($placeholders) GROUP BY MonitorId",
+            undef, @mids
+          );
+          $err = $dbh->err() // 0;
+          if ($err) { $errstr = $dbh->errstr() // ''; last; }
+          for my $r (@$rows) {
+            $agg{$r->[0]}{$key.'_c'} = $r->[1];
+            $agg{$r->[0]}{$key.'_s'} = $r->[2];
+          }
+        }
+
+        # One UPDATE per touched monitor. The transaction at this point is
+        # still holding the bucket-row X-locks acquired by the earlier
+        # DELETEs and any ES X-locks the bucket DELETE triggers acquired as
+        # a cascade. Those were all acquired in the canonical order
+        # (buckets -> ES) so they don't conflict with the trigger writers.
+        # The new statement itself only X-locks the one ES row it targets
+        # and reads no other table, so it doesn't add any cross-table
+        # dependency that could form a new cycle — its lock acquisition
+        # continues in the same direction.
+        if (!$err) {
+          for my $mid (@mids) {
+            my $a = $agg{$mid};
+            zmDbDo(
+              'UPDATE Event_Summaries SET '.
+                'HourEvents=?, HourEventDiskSpace=?, '.
+                'DayEvents=?, DayEventDiskSpace=?, '.
+                'WeekEvents=?, WeekEventDiskSpace=?, '.
+                'MonthEvents=?, MonthEventDiskSpace=? '.
+              'WHERE MonitorId=?',
+              $a->{h_c} // 0, $a->{h_s} // 0,
+              $a->{d_c} // 0, $a->{d_s} // 0,
+              $a->{w_c} // 0, $a->{w_s} // 0,
+              $a->{m_c} // 0, $a->{m_s} // 0,
+              $mid
+            );
+            $err = $dbh->err() // 0;
+            if ($err) { $errstr = $dbh->errstr() // ''; last; }
+          }
+        }
+      }
+
+      if (!$err) {
+        $dbh->commit();
+        last;
+      }
+
+      $dbh->rollback();
+      if ($err != 1213 or $attempt >= $max_attempts) { # 1213 = ER_LOCK_DEADLOCK
+        Error("Event_Summaries prune+resync gave up after $attempt attempt(s): ".($errstr // ''));
+        last;
+      }
+      Debug("Deadlock during Event_Summaries prune+resync, attempt $attempt/$max_attempts");
+      select(undef, undef, undef, 0.05 * (1 << $attempt) + rand(0.05));
+    }
+  }
 
   # Prune the Logs table if required (excluding AUDIT entries)
   if ( $Config{ZM_LOG_DATABASE_LIMIT} ) {

@@ -170,11 +170,12 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
   }
 
   $monitors = dbFetchAll('SELECT Path FROM Monitors WHERE Deleted=false');
+  $monitorHosts = [];
   if ($monitors) {
-    $monitorHosts = [];
     foreach ($monitors as $monitor) {
-      if (preg_match('/\/\/([\w\-.]+)[\/|:|\?]/', $monitor['Path'], $matches)) {
-        $monitorHosts[] = $matches[1];
+      $_host = parse_url($monitor['Path'], PHP_URL_HOST);
+      if ($_host) {
+        $monitorHosts[] = $_host;
       }
     }
   }
@@ -190,7 +191,7 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
     $sourceDesc = base64_encode(json_encode($camera['monitor']));
     $sourceString = $camera['model'].' @ '.$host.' using version '.$camera['monitor']['SOAP'];
 
-    $_host = (preg_match('/\/\/([\w\-.]+)[\/|:|\?]/', $camera['monitor']['Host'], $matches)) ? $matches[1] : '';
+    $_host = parse_url($camera['monitor']['Host'], PHP_URL_HOST);
     if ($_host && in_array($_host, $monitorHosts, true)) {
       $cameras[$sourceDesc] = ['Name'=> $sourceString, 'class'=> 'monitor-added'];
     } else {

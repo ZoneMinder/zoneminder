@@ -2312,26 +2312,46 @@ bool Image::Delta(const Image &image, Image* targetimage) const {
   TimePoint start = std::chrono::steady_clock::now();
 #endif
 
+  // The delta8_* SIMD helpers process N contiguous bytes / pixels without
+  // any concept of row stride. With FFALIGN'd linesize, an image's buffer
+  // may have per-row padding (linesize > width*bpp), so passing the full
+  // pixel count would read padding bytes as image data and produce wrong
+  // motion deltas. Drive the helpers row by row instead — width pixels per
+  // row of `this`, of `image`, and of the GRAY8 target, each at their own
+  // linesize stride.
+  const unsigned int src_linesize = linesize;
+  const unsigned int img_linesize = image.linesize;
+  const unsigned int dst_linesize = targetimage->LineSize();
+
+  auto delta_row = [&](void (*fn)(const uint8_t *, const uint8_t *, uint8_t *, unsigned long)) {
+    for (unsigned int y = 0; y < height; y++) {
+      fn(buffer + y * src_linesize,
+         image.buffer + y * img_linesize,
+         pdiff + y * dst_linesize,
+         width);
+    }
+  };
+
   if (imagePixFormat == AV_PIX_FMT_BGR24) {
     /* BGR subpixel order */
-    (*delta8_bgr)(buffer, image.buffer, pdiff, pixels);
+    delta_row(*delta8_bgr);
   } else if (zm_is_rgb24(imagePixFormat)) {
     /* Assume RGB subpixel order */
-    (*delta8_rgb)(buffer, image.buffer, pdiff, pixels);
+    delta_row(*delta8_rgb);
   } else if (imagePixFormat == AV_PIX_FMT_ARGB) {
     /* ARGB subpixel order */
-    (*delta8_argb)(buffer, image.buffer, pdiff, pixels);
+    delta_row(*delta8_argb);
   } else if (imagePixFormat == AV_PIX_FMT_ABGR) {
     /* ABGR subpixel order */
-    (*delta8_abgr)(buffer, image.buffer, pdiff, pixels);
+    delta_row(*delta8_abgr);
   } else if (imagePixFormat == AV_PIX_FMT_BGRA) {
     /* BGRA subpixel order */
-    (*delta8_bgra)(buffer, image.buffer, pdiff, pixels);
+    delta_row(*delta8_bgra);
   } else if (zm_is_rgb32(imagePixFormat)) {
     /* Assume RGBA subpixel order */
-    (*delta8_rgba)(buffer, image.buffer, pdiff, pixels);
+    delta_row(*delta8_rgba);
   } else if (zm_bytes_per_pixel(imagePixFormat) == 1) {
-    (*delta8_gray8)(buffer, image.buffer, pdiff, pixels);
+    delta_row(*delta8_gray8);
   } else {
     Panic("Delta called with unexpected pixel format %d (%s); legacy colours=%d",
           imagePixFormat, av_get_pix_fmt_name(imagePixFormat), colours);
@@ -3590,30 +3610,76 @@ void Image::Deinterlace_4Field(const Image* next_image, unsigned int threshold) 
     Panic( "Attempt to deinterlace different sized images, expected %dx%dx%d %d, got %dx%dx%d %d", width, height, colours, subpixelorder, next_image->width, next_image->height, next_image->colours, next_image->subpixelorder);
   }
 
-  if (imagePixFormat == AV_PIX_FMT_BGR24) {
-    /* BGR subpixel order */
-    std_deinterlace_4field_bgr(buffer, next_image->buffer, threshold, width, height);
-  } else if (zm_is_rgb24(imagePixFormat)) {
-    /* Assume RGB subpixel order */
-    std_deinterlace_4field_rgb(buffer, next_image->buffer, threshold, width, height);
-  } else if (imagePixFormat == AV_PIX_FMT_ARGB) {
-    /* ARGB subpixel order */
-    (*fptr_deinterlace_4field_argb)(buffer, next_image->buffer, threshold, width, height);
-  } else if (imagePixFormat == AV_PIX_FMT_ABGR) {
-    /* ABGR subpixel order */
-    (*fptr_deinterlace_4field_abgr)(buffer, next_image->buffer, threshold, width, height);
-  } else if (imagePixFormat == AV_PIX_FMT_BGRA) {
-    /* BGRA subpixel order */
-    (*fptr_deinterlace_4field_bgra)(buffer, next_image->buffer, threshold, width, height);
-  } else if (zm_is_rgb32(imagePixFormat)) {
-    /* Assume RGBA subpixel order */
-    (*fptr_deinterlace_4field_rgba)(buffer, next_image->buffer, threshold, width, height);
-  } else if (zm_bytes_per_pixel(imagePixFormat) == 1) {
-    (*fptr_deinterlace_4field_gray8)(buffer, next_image->buffer, threshold, width, height);
-  } else {
-    Panic("Deinterlace_4Field called with unexpected colours: %d", colours);
+  // The *_deinterlace_4field_* SIMD helpers use `width` as the row stride
+  // internally and have no concept of per-row padding. With FFALIGN'd
+  // linesize the source row stride may exceed width*bpp, so feeding them
+  // the held buffers directly would treat padding bytes as image data and
+  // corrupt the output for non-32-aligned widths. Pack both inputs into
+  // tightly-laid-out temp buffers (linesize == width*bpp), run the helper,
+  // then copy only the data bytes back into our linesize-padded buffer
+  // (leaving padding untouched). The fast path — no copies — is used
+  // whenever linesize already equals width*bpp on both images, which is
+  // the common case for 32-aligned widths.
+  const unsigned int bpp = (zm_bytes_per_pixel(imagePixFormat) == 1)
+                           ? 1
+                           : zm_bytes_per_pixel(imagePixFormat);
+  const size_t row_data_bytes = static_cast<size_t>(width) * bpp;
+  const bool needs_pack = (linesize != row_data_bytes) || (next_image->linesize != row_data_bytes);
+
+  uint8_t *col1 = buffer;
+  uint8_t *col2 = next_image->buffer;
+  uint8_t *tmp1 = nullptr;
+  uint8_t *tmp2 = nullptr;
+  if (needs_pack) {
+    const size_t packed_size = row_data_bytes * height;
+    tmp1 = AllocBuffer(packed_size);
+    tmp2 = AllocBuffer(packed_size);
+    for (unsigned int y = 0; y < height; y++) {
+      memcpy(tmp1 + y * row_data_bytes, buffer + y * linesize, row_data_bytes);
+      memcpy(tmp2 + y * row_data_bytes, next_image->buffer + y * next_image->linesize, row_data_bytes);
+    }
+    col1 = tmp1;
+    col2 = tmp2;
   }
 
+  if (imagePixFormat == AV_PIX_FMT_BGR24) {
+    /* BGR subpixel order */
+    std_deinterlace_4field_bgr(col1, col2, threshold, width, height);
+  } else if (zm_is_rgb24(imagePixFormat)) {
+    /* Assume RGB subpixel order */
+    std_deinterlace_4field_rgb(col1, col2, threshold, width, height);
+  } else if (imagePixFormat == AV_PIX_FMT_ARGB) {
+    /* ARGB subpixel order */
+    (*fptr_deinterlace_4field_argb)(col1, col2, threshold, width, height);
+  } else if (imagePixFormat == AV_PIX_FMT_ABGR) {
+    /* ABGR subpixel order */
+    (*fptr_deinterlace_4field_abgr)(col1, col2, threshold, width, height);
+  } else if (imagePixFormat == AV_PIX_FMT_BGRA) {
+    /* BGRA subpixel order */
+    (*fptr_deinterlace_4field_bgra)(col1, col2, threshold, width, height);
+  } else if (zm_is_rgb32(imagePixFormat)) {
+    /* Assume RGBA subpixel order */
+    (*fptr_deinterlace_4field_rgba)(col1, col2, threshold, width, height);
+  } else if (zm_bytes_per_pixel(imagePixFormat) == 1) {
+    (*fptr_deinterlace_4field_gray8)(col1, col2, threshold, width, height);
+  } else {
+    if (needs_pack) {
+      DumpBuffer(tmp1, ZM_BUFTYPE_ZM);
+      DumpBuffer(tmp2, ZM_BUFTYPE_ZM);
+    }
+    Panic("Deinterlace_4Field called with unexpected pixel format %d (%s)",
+          imagePixFormat, av_get_pix_fmt_name(imagePixFormat));
+  }
+
+  if (needs_pack) {
+    // Copy the processed Y/primary plane back into our padded buffer,
+    // touching only the data bytes per row so existing padding is intact.
+    for (unsigned int y = 0; y < height; y++) {
+      memcpy(buffer + y * linesize, tmp1 + y * row_data_bytes, row_data_bytes);
+    }
+    DumpBuffer(tmp1, ZM_BUFTYPE_ZM);
+    DumpBuffer(tmp2, ZM_BUFTYPE_ZM);
+  }
 }
 
 

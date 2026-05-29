@@ -395,28 +395,74 @@ sub delete {
 
     my $in_transaction = $ZoneMinder::Database::dbh->{AutoCommit} ? 0 : 1;
 
-    $ZoneMinder::Database::dbh->begin_work() if ! $in_transaction;
+    # InnoDB X-locks the matched Events row during WHERE evaluation, before
+    # either BEFORE or AFTER trigger bodies fire, so the lock acquisition
+    # order is the same regardless of trigger timing:
+    #   Events[Id] -> Events_Hour/Day/Week/Month[EventId] -> Event_Summaries[MonitorId]
+    # event_delete_trigger (BEFORE DELETE on Events) and event_update_trigger
+    # (AFTER UPDATE on Events) both propagate into the bucket tables, whose
+    # own triggers then UPDATE Event_Summaries — that's the canonical chain.
+    # zmstats.pl prune+resync follows the matching prefix (bucket DELETEs
+    # then UPDATE Event_Summaries) and crucially does NOT pre-lock
+    # Event_Summaries: that would put ES before buckets and re-introduce the
+    # inversion against zma's UPDATE path.
+    #
+    # READ COMMITTED drops the next-key/gap locks that two concurrent filter
+    # workers deleting adjacent EventIds in the bucket tables would otherwise
+    # take. SET TRANSACTION applies to the next transaction only, so it has
+    # to be re-issued before each begin_work (and is skipped when the caller
+    # is managing the TX).
+    #
+    # Retry on deadlock (MariaDB ER_LOCK_DEADLOCK = 1213) only when we own
+    # the TX; if the caller is managing one, bail and let them decide.
+    my $attempt = 0;
+    my $max_attempts = 5;
+    while (1) {
+      $attempt++;
+      if (!$in_transaction) {
+        # Use $dbh->do directly, NOT zmDbDo: zmDbDo's success Debug would
+        # write to the Logs table on this same $dbh, and that INSERT would
+        # become the "next transaction" that consumes the isolation level
+        # directive — silently dropping our delete TX back to the default.
+        $ZoneMinder::Database::dbh->do('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
+        $ZoneMinder::Database::dbh->begin_work();
+      }
 
-    # Going to delete in order of least value to greatest value. Stats is least and references Frames
-    ZoneMinder::Database::zmDbDo('DELETE FROM Stats WHERE EventId=?', $$event{Id});
-    if ( $ZoneMinder::Database::dbh->errstr() ) {
-      $ZoneMinder::Database::dbh->commit() if ! $in_transaction;
-      return;
-    }
-    ZoneMinder::Database::zmDbDo('DELETE FROM Event_Data WHERE EventId=?', $$event{Id});
-    if ( $ZoneMinder::Database::dbh->errstr() ) {
-      $ZoneMinder::Database::dbh->commit() if ! $in_transaction;
-      return;
-    }
-    ZoneMinder::Database::zmDbDo('DELETE FROM Frames WHERE EventId=?', $$event{Id});
-    if ( $ZoneMinder::Database::dbh->errstr() ) {
-      $ZoneMinder::Database::dbh->commit() if ! $in_transaction;
-      return;
-    }
+      # Order: Stats -> Event_Data -> Frames -> Events (least to greatest reference depth)
+      my $err = 0;
+      my $errstr = '';
+      foreach my $sql (
+        'DELETE FROM Stats WHERE EventId=?',
+        'DELETE FROM Event_Data WHERE EventId=?',
+        'DELETE FROM Frames WHERE EventId=?',
+        'DELETE FROM Events WHERE Id=?',
+      ) {
+        ZoneMinder::Database::zmDbDo($sql, $$event{Id});
+        $err = $ZoneMinder::Database::dbh->err() // 0;
+        if ($err) {
+          # Capture before rollback, which can clear errstr on some drivers.
+          $errstr = $ZoneMinder::Database::dbh->errstr() // '';
+          last;
+        }
+      }
 
-    # Do it individually to avoid locking up the table for new events
-    ZoneMinder::Database::zmDbDo('DELETE FROM Events WHERE Id=?', $$event{Id});
-    $ZoneMinder::Database::dbh->commit() if ! $in_transaction;
+      if (!$err) {
+        $ZoneMinder::Database::dbh->commit() if !$in_transaction;
+        last;
+      }
+
+      $ZoneMinder::Database::dbh->rollback() if !$in_transaction;
+      if ($in_transaction or $err != 1213 or $attempt >= $max_attempts) { # 1213 = ER_LOCK_DEADLOCK
+        # Surface the final failure ourselves — zmDbDo suppresses its Error
+        # log on 1213 inside a caller-managed TX (we own the retry), and the
+        # exhausted-retries case would otherwise return silently.
+        Error("Failed deleting event $$event{Id} after $attempt attempt(s): err=$err $errstr")
+          if $err;
+        return;
+      }
+      Debug("Deadlock deleting event $$event{Id} attempt $attempt/$max_attempts, retrying");
+      select(undef, undef, undef, 0.05 * (1 << $attempt) + rand(0.05));
+    }
 
     my $storage = $event->Storage();
     if ($event->DiskSpace() and $storage->Id()) {

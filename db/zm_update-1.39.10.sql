@@ -5,8 +5,33 @@
 -- without rebuilding the table by changing the primary key.
 -- Removing Logs_Component_idx because it's now redundant.
 --
-ALTER TABLE `Logs` ADD INDEX `Logs_Component_Level_TimeKey_Id_idx` (`Component`, `Level`, `TimeKey`, `Id`);
-ALTER TABLE `Logs` DROP INDEX `Logs_Component_idx`;
+SET @s = (SELECT IF(
+  (SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE table_name = 'Logs'
+    AND table_schema = DATABASE()
+    AND index_name = 'Logs_Component_Level_TimeKey_Id_idx'
+  ) > 0,
+  "SELECT 'Logs_Component_Level_TimeKey_Id_idx already exists on Logs table'",
+  "ALTER TABLE `Logs` ADD INDEX `Logs_Component_Level_TimeKey_Id_idx` (`Component`, `Level`, `TimeKey`, `Id`)"
+));
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @s = (SELECT IF(
+  (SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE table_name = 'Logs'
+    AND table_schema = DATABASE()
+    AND index_name = 'Logs_Component_idx'
+  ) > 0,
+  "ALTER TABLE `Logs` DROP INDEX `Logs_Component_idx`",
+  "SELECT 'Logs_Component_idx already removed from Logs table'"
+));
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- Recalibrate stock ZonePresets for modern HD resolutions.
 --
@@ -43,4 +68,4 @@ SET @s = (SELECT IF(
 
 PREPARE stmt FROM @s;
 EXECUTE stmt;
-
+DEALLOCATE PREPARE stmt;

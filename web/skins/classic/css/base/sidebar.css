@@ -271,7 +271,7 @@ body #sidebarMain .sub-menu-list {
 .extruder-wrapper span.term,
 .extruder-wrapper span.term .term-value-wrapper input,
 .extruder-wrapper span.term > span { /* Aligning input fields */
-  width: 100%;
+  width: 100% !important;
 }
 
 .extruder-wrapper span.term > span:first-child{
@@ -310,6 +310,10 @@ body #sidebarMain .sub-menu-list {
 .extruder .extruder-content .chosen-container .chosen-single,
 .extruder-wrapper span.term .term-value-wrapper input {
   height: 27px !important;
+}
+
+.extruder .extruder-content .chosen-container .chosen-drop {
+  z-index: 1100;
 }
 
 /* Clear Filter Button Select Multiple Selection */

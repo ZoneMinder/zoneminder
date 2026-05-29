@@ -449,10 +449,12 @@ void EventStream::processCommand(const CmdMsg *msg) {
   switch ((MsgCommand)msg->msg_data[0]) {
   case CMD_PAUSE :
     Debug(1, "Got PAUSE command");
+    stopped = false;
     paused = true;
     break;
   case CMD_PLAY : {
     Debug(1, "Got PLAY command");
+    stopped = false;
     paused = false;
 
     // If we are in single event mode and at the last frame, replay the current event
@@ -476,8 +478,9 @@ void EventStream::processCommand(const CmdMsg *msg) {
   }
   case CMD_VARPLAY : {
     Debug(1, "Got VARPLAY command");
+    stopped = false;
     paused = false;
-    replay_rate = ntohs(((unsigned char)msg->msg_data[2]<<8)|(unsigned char)msg->msg_data[1])-32768;
+    replay_rate = (((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2])-VARPLAY_RATE_OFFSET;
     if (replay_rate > 50 * ZM_RATE_BASE) {
       Warning("requested replay rate (%d) is too high. We only support up to 50x", replay_rate);
       replay_rate = 50 * ZM_RATE_BASE;
@@ -489,10 +492,14 @@ void EventStream::processCommand(const CmdMsg *msg) {
   }
   case CMD_STOP :
     Debug(1, "Got STOP command");
+    stopped = true;
     paused = false;
+    step = 0;
+    send_twice = false;
     break;
   case CMD_FASTFWD : {
     Debug(1, "Got FAST FWD command");
+    stopped = false;
     paused = false;
     // Set play rate
     switch (replay_rate) {
@@ -517,6 +524,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
     break;
   }
   case CMD_SLOWFWD : {
+    stopped = false;
     paused = true;
     replay_rate = ZM_RATE_BASE;
     step = 1;
@@ -526,6 +534,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
     break;
   }
   case CMD_SLOWREV : {
+    stopped = false;
     paused = true;
     replay_rate = ZM_RATE_BASE;
     step = -1;
@@ -535,6 +544,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
   }
   case CMD_FASTREV :
     Debug(1, "Got FAST REV command");
+    stopped = false;
     paused = false;
     // Set play rate
     switch (replay_rate) {
@@ -693,6 +703,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
     int zoom;
     int scale;
     bool paused;
+    bool stopped;
   } status_data = {};
 
   {
@@ -707,6 +718,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
     status_data.zoom = zoom;
     status_data.scale = scale;
     status_data.paused = paused;
+    status_data.stopped = stopped;
 
     FPSeconds elapsed = now - last_fps_update;
     if (elapsed.count() > 0) {
@@ -719,10 +731,11 @@ void EventStream::processCommand(const CmdMsg *msg) {
 
     status_data.fps = actual_fps;
 
-    Debug(2, "Event:%" PRIu64 ", Duration %f, Paused:%d, progress:%f Rate:%d, Zoom:%d Scale:%d",
+    Debug(2, "Event:%" PRIu64 ", Duration %f, Paused:%d, Stopped:%d, progress:%f Rate:%d, Zoom:%d Scale:%d",
           status_data.event_id,
           FPSeconds(status_data.duration).count(),
           status_data.paused,
+          status_data.stopped,
           FPSeconds(status_data.progress).count(),
           status_data.rate,
           status_data.zoom,
@@ -1037,7 +1050,11 @@ void EventStream::runStream() {
       send_frame = false;
       TimePoint::duration time_since_last_send = now - last_frame_sent;
 
-      if (!paused) {
+      if (stopped) {
+        // In stopped state, skip all frame processing until a new command is received.
+        // send_frame is already false from initialization above.
+        delta = MAX_SLEEP;
+      } else if (!paused) {
         // Figure out if we should send this frame
         Debug(3, "not paused at curr_frame_id (%d-1) mod frame_mod(%d)", curr_frame_id, frame_mod);
         // If we are streaming and this frame is due to be sent
@@ -1069,7 +1086,7 @@ void EventStream::runStream() {
       }  // end if streaming stepping or doing nothing
 
       // time_to_event > 0 means that we are not in the event
-      if (time_to_event > Seconds(0) and mode == MODE_ALL) {
+      if (!stopped && time_to_event > Seconds(0) and mode == MODE_ALL) {
         Debug(1, "Time since last send = %.2f s", FPSeconds(time_since_last_send).count());
         if (time_since_last_send > Seconds(1)) {
           char frame_text[64];
@@ -1117,7 +1134,7 @@ void EventStream::runStream() {
         frame_count++;
       }
 
-      if (!paused && !event_data->frames.empty()
+      if (!paused && !stopped && !event_data->frames.empty()
           && curr_frame_id >= 1 && curr_frame_id <= (int)event_data->frames.size()) {
         // Get current frame data, curr_frame_id may have changed
         FrameData *last_frame_data = &event_data->frames[curr_frame_id-1];
@@ -1180,14 +1197,14 @@ void EventStream::runStream() {
                );
         }  // end if not at end of event
       } else {
-        // Paused
+        // Paused or stopped
         delta = MAX_SLEEP;
 
-        // We are paused, so might be stepping
+        // We are paused, so might be stepping (not when fully stopped)
         //if ( step != 0 )// Adding 0 is cheaper than an if 0
         // curr_frame_id starts at 1 though, so we might skip the first frame?
-        curr_frame_id += step;
-      }  // end if !paused
+        if (!stopped) curr_frame_id += step;
+      }  // end if !paused && !stopped
     }  // end scope for mutex lock
  
     if (type == STREAM_SINGLE) {

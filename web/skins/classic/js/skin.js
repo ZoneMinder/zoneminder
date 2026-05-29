@@ -615,7 +615,10 @@ function submitThisForm(param = null) {
     // Let's hide the old filter so that it doesn't appear during the transfer...
     filter.style.display = 'none';
     // We return the filter to its place in the form, since in the left side menu the filter should always be inside the form.
-    form.prepend(filter);
+    // Skip if filter is already an ancestor of form (e.g. console: #fbpanel > #monitorFiltersForm), which would cause HierarchyRequestError.
+    if (!filter.contains(form)) {
+      form.prepend(filter);
+    }
   }
   if (param && typeof param === 'string') { //ON WATCH PAGE WHEN SELECTING A MONITOR, the object is transferred as PARAM!!!
     var uri = "?" + $j(form).serialize() + param;
@@ -661,6 +664,37 @@ function configureDeleteButton( element ) {
 
 function confirmDelete( message ) {
   return ( confirm( message?message:'Are you sure you wish to delete?' ) );
+}
+
+// Load the Delete Confirmation Modal HTML via Ajax call
+function getDelConfirmModal(key, title, formName=null) {
+  $j.getJSON(thisUrl, {
+    request: 'modal',
+    modal: 'delconfirm',
+    key: key,
+    title: title
+  })
+      .done(function(data) {
+        insertModalHtml('deleteConfirm', data.html);
+        $j('#deleteConfirm').modal('show');
+        document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
+          $j('#deleteConfirm').modal('hide');
+          if (!formName) {
+            if (typeof manageDelConfirmModalBtns === "function") {
+              manageDelConfirmModalBtns();
+            }
+          } else {
+            const form = document.querySelector('form[name="'+formName+'"]');
+            if (form) {
+              if (currentView == 'groups') form.elements['action'].value = 'delete';
+              submitThisForm(form);
+            } else {
+              console.warn(`Form with name=${formName} not found.`);
+            }
+          }
+        }, {once: true});
+      })
+      .fail(logAjaxFail);
 }
 
 window.addEventListener( 'DOMContentLoaded', checkSize );

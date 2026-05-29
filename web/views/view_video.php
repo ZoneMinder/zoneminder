@@ -87,7 +87,10 @@ if ( ! ($fh = @fopen($path, 'rb') ) ) {
   header('HTTP/1.0 404 Not Found');
   die();
 }
-$filename = ($mode == 'mp4') ? basename($path) : (($Event) ? $Event->DefaultVideo() : '');
+// Always derive the filename from the resolved $path: after the m3u8 fallback
+// above, $path can point at an mp4 even when DefaultVideo is 'index.m3u8', so
+// reporting DefaultVideo would advertise a manifest while serving mp4 bytes.
+$filename = basename($path);
 
 $size = filesize($path);
 $begin = 0;

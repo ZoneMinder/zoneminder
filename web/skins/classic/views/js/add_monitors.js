@@ -96,7 +96,7 @@ function parseStreams( Streams ) {
     if ( stream.url ) {
       html += '<p>'+stream.description;
       if ( stream.Monitor ) {
-        html += ' is already entered into the system by Monitor ' + stream.Monitor.Id + ' ' + stream.Monitor.Name + '<br/>';
+        html += ' is already entered into the system by Monitor ' + (stream.MonitorId) ? stream.MonitorId : '' + ' ' + stream.Monitor.Name + '<br/>';
         html += '<input type="button" value="Edit" data-on-click-this="addMonitor" data-url="'+stream.url+'"/>';
       } else {
         html += '<input type="button" value="Add" data-on-click-this="addMonitor" data-url="'+stream.url+'"/>';

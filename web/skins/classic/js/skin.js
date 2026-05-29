@@ -2141,6 +2141,7 @@ function insertControlModuleMenu() {
     if (!SIDEBAR_MAIN_EXTRUDER.classList.contains('isOpened')) {
       $j(SIDEBAR_MAIN_EXTRUDER).openMbExtruder();
     } else {
+      SIDEBAR_MAIN_EXTRUDER.style.zIndex = 'unset';
       $j(SIDEBAR_MAIN_EXTRUDER).closeMbExtruder();
     }
   });

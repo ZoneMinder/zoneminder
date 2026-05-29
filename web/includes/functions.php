@@ -453,7 +453,7 @@ function htmlOptions($options, $values) {
     $options_html .= '<option value="'.htmlspecialchars($value, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'"'.
       ($selected?' selected="selected"':'').
       ($disabled?' disabled="disabled"':'').
-      ($class?' class='.$class:'').
+      ($class?' class='.htmlspecialchars($class, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false):'').
       '>'.htmlspecialchars($text, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'</option>'.PHP_EOL;
   } # end foreach options
   if ( $values and ((!is_array($values)) or count($values) ) and ! $has_selected ) {

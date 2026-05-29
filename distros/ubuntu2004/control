@@ -14,7 +14,7 @@ Build-Depends: debhelper (>= 11), sphinx-doc, python3-sphinx, python3-sphinx-rtd
               ,arp-scan
               ,net-tools, iproute2
               ,libbz2-dev
-              ,libcurl4-gnutls-dev
+              ,libcurl4-gnutls-dev | libcurl4-openssl-dev | libcurl4-nss-dev
               ,libjpeg-turbo8-dev | libjpeg62-turbo-dev | libjpeg8-dev | libjpeg9-dev
               ,libturbojpeg0-dev
               ,default-libmysqlclient-dev | libmysqlclient-dev | libmariadbclient-dev-compat
@@ -47,7 +47,6 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libswscale8|libswscale7|libswscale6|libswscale5|libswscale4
         ,libswresample5|libswresample4|libswresample3|libswresample2
         ,ffmpeg
-        ,libcurl4, libcurl4-gnutls-dev
         ,libdatetime-perl, libdate-manip-perl, libmime-lite-perl, libmime-tools-perl
         ,libdbd-mysql-perl
         ,libphp-serialization-perl

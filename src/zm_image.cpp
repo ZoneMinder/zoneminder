@@ -1939,102 +1939,86 @@ void Image::Overlay( const Image &image ) {
             colours, subpixelorder, image.colours, image.subpixelorder);
   }
 
+  // Drive every branch row-by-row using each image's own linesize. Walking
+  // linearly with `buffer + size` as the end was unsafe in two ways:
+  // (a) source and destination linesizes can differ (e.g. one came in via
+  // AssignDirect with a held buffer at a non-FFALIGN stride), so a shared
+  // index drifted across rows; (b) the destination's `size` includes chroma
+  // planes for planar YUV destinations, so iterating to `buffer + size`
+  // walked past the source's Y plane and clobbered the destination's
+  // chroma. After Colourise() the destination's linesize is updated to the
+  // new format's stride, so we re-read it inside each branch.
+
   /* Grayscale/YUV420 on top of grayscale/YUV420 - complete */
   if ( zm_bytes_per_pixel(imagePixFormat) == 1 && zm_bytes_per_pixel(image.imagePixFormat) == 1 ) {
-    // Overlay only the luma/primary plane. For planar YUV destinations `size`
-    // includes chroma planes which the GRAY8 source has no bytes for —
-    // walking the whole `size` would over-read image.buffer and clobber the
-    // destination's chroma. Bound by the smaller of the two Y-plane spans so
-    // a smaller source can't run past its own buffer either.
-    const size_t y_span = std::min(
-        static_cast<size_t>(height) * linesize,
-        static_cast<size_t>(image.height) * image.linesize);
-    const uint8_t* const max_ptr = buffer + y_span;
-    const uint8_t* psrc = image.buffer;
-    uint8_t* pdest = buffer;
-
-    while ( pdest < max_ptr ) {
-      if ( *psrc ) {
-        *pdest = *psrc;
+    // Overlay only the luma/primary plane. Width is shared (panic above).
+    for (unsigned int y = 0; y < height; y++) {
+      const uint8_t *psrc = image.buffer + y * image.linesize;
+      uint8_t *pdest = buffer + y * linesize;
+      for (unsigned int x = 0; x < width; x++, psrc++, pdest++) {
+        if (*psrc) *pdest = *psrc;
       }
-      pdest++;
-      psrc++;
     }
 
     /* RGB24 on top of grayscale/YUV420 - convert to same format first - complete */
   } else if ( zm_bytes_per_pixel(imagePixFormat) == 1 && zm_is_rgb24(image.imagePixFormat) ) {
     Colourise(image.colours, image.subpixelorder);
 
-    const uint8_t* const max_ptr = buffer+size;
-    const uint8_t* psrc = image.buffer;
-    uint8_t* pdest = buffer;
-
-    while ( pdest < max_ptr ) {
-      if ( RED_PTR_RGBA(psrc) || GREEN_PTR_RGBA(psrc) || BLUE_PTR_RGBA(psrc) ) {
-        RED_PTR_RGBA(pdest) = RED_PTR_RGBA(psrc);
-        GREEN_PTR_RGBA(pdest) = GREEN_PTR_RGBA(psrc);
-        BLUE_PTR_RGBA(pdest) = BLUE_PTR_RGBA(psrc);
+    for (unsigned int y = 0; y < height; y++) {
+      const uint8_t *psrc = image.buffer + y * image.linesize;
+      uint8_t *pdest = buffer + y * linesize;
+      for (unsigned int x = 0; x < width; x++, psrc += 3, pdest += 3) {
+        if (RED_PTR_RGBA(psrc) || GREEN_PTR_RGBA(psrc) || BLUE_PTR_RGBA(psrc)) {
+          RED_PTR_RGBA(pdest) = RED_PTR_RGBA(psrc);
+          GREEN_PTR_RGBA(pdest) = GREEN_PTR_RGBA(psrc);
+          BLUE_PTR_RGBA(pdest) = BLUE_PTR_RGBA(psrc);
+        }
       }
-      pdest += 3;
-      psrc += 3;
     }
 
     /* RGB32 on top of grayscale/YUV420 - convert to same format first - complete */
   } else if ( zm_bytes_per_pixel(imagePixFormat) == 1 && zm_is_rgb32(image.imagePixFormat) ) {
     Colourise(image.colours, image.subpixelorder);
 
-    const Rgb* const max_ptr = (Rgb*)(buffer+size);
-    const Rgb* prsrc = (Rgb*)image.buffer;
-    Rgb* prdest = (Rgb*)buffer;
-
-    if ( imagePixFormat == AV_PIX_FMT_RGBA || imagePixFormat == AV_PIX_FMT_BGRA ) {
-      /* RGB\BGR\RGBA\BGRA subpixel order - Alpha byte is last */
-      while ( prdest < max_ptr) {
-        if ( RED_PTR_RGBA(prsrc) || GREEN_PTR_RGBA(prsrc) || BLUE_PTR_RGBA(prsrc) ) {
-          *prdest = *prsrc;
+    const bool alpha_last = (imagePixFormat == AV_PIX_FMT_RGBA || imagePixFormat == AV_PIX_FMT_BGRA);
+    for (unsigned int y = 0; y < height; y++) {
+      const Rgb *prsrc = (const Rgb *)(image.buffer + y * image.linesize);
+      Rgb *prdest = (Rgb *)(buffer + y * linesize);
+      for (unsigned int x = 0; x < width; x++, prsrc++, prdest++) {
+        if (alpha_last) {
+          if (RED_PTR_RGBA(prsrc) || GREEN_PTR_RGBA(prsrc) || BLUE_PTR_RGBA(prsrc))
+            *prdest = *prsrc;
+        } else {
+          if (RED_PTR_ABGR(prsrc) || GREEN_PTR_ABGR(prsrc) || BLUE_PTR_ABGR(prsrc))
+            *prdest = *prsrc;
         }
-        prdest++;
-        prsrc++;
-      }
-    } else {
-      /* ABGR\ARGB subpixel order - Alpha byte is first */
-      while ( prdest < max_ptr) {
-        if ( RED_PTR_ABGR(prsrc) || GREEN_PTR_ABGR(prsrc) || BLUE_PTR_ABGR(prsrc) ) {
-          *prdest = *prsrc;
-        }
-        prdest++;
-        prsrc++;
       }
     }
 
     /* Grayscale/YUV420 on top of RGB24 - complete */
   } else if ( zm_is_rgb24(imagePixFormat) && zm_bytes_per_pixel(image.imagePixFormat) == 1 ) {
-    const uint8_t* const max_ptr = buffer+size;
-    const uint8_t* psrc = image.buffer;
-    uint8_t* pdest = buffer;
-
-    while ( pdest < max_ptr ) {
-      if ( *psrc ) {
-        RED_PTR_RGBA(pdest) = GREEN_PTR_RGBA(pdest) = BLUE_PTR_RGBA(pdest) = *psrc;
+    for (unsigned int y = 0; y < height; y++) {
+      const uint8_t *psrc = image.buffer + y * image.linesize;
+      uint8_t *pdest = buffer + y * linesize;
+      for (unsigned int x = 0; x < width; x++, psrc++, pdest += 3) {
+        if (*psrc) {
+          RED_PTR_RGBA(pdest) = GREEN_PTR_RGBA(pdest) = BLUE_PTR_RGBA(pdest) = *psrc;
+        }
       }
-      pdest += 3;
-      psrc++;
     }
 
     /* RGB24 on top of RGB24 - not complete. need to take care of different subpixel orders */
   } else if ( zm_is_rgb24(imagePixFormat) && zm_is_rgb24(image.imagePixFormat) ) {
-    const uint8_t* const max_ptr = buffer+size;
-    const uint8_t* psrc = image.buffer;
-    uint8_t* pdest = buffer;
-
-    while ( pdest < max_ptr ) {
-      if ( RED_PTR_RGBA(psrc) || GREEN_PTR_RGBA(psrc) || BLUE_PTR_RGBA(psrc) ) {
-        RED_PTR_RGBA(pdest) = RED_PTR_RGBA(psrc);
-        GREEN_PTR_RGBA(pdest) = GREEN_PTR_RGBA(psrc);
-        BLUE_PTR_RGBA(pdest) = BLUE_PTR_RGBA(psrc);
+    for (unsigned int y = 0; y < height; y++) {
+      const uint8_t *psrc = image.buffer + y * image.linesize;
+      uint8_t *pdest = buffer + y * linesize;
+      for (unsigned int x = 0; x < width; x++, psrc += 3, pdest += 3) {
+        if (RED_PTR_RGBA(psrc) || GREEN_PTR_RGBA(psrc) || BLUE_PTR_RGBA(psrc)) {
+          RED_PTR_RGBA(pdest) = RED_PTR_RGBA(psrc);
+          GREEN_PTR_RGBA(pdest) = GREEN_PTR_RGBA(psrc);
+          BLUE_PTR_RGBA(pdest) = BLUE_PTR_RGBA(psrc);
+        }
       }
-      pdest += 3;
-      psrc += 3;
     }
 
     /* RGB32 on top of RGB24 - TO BE DONE */
@@ -2043,28 +2027,18 @@ void Image::Overlay( const Image &image ) {
 
     /* Grayscale/YUV420 on top of RGB32 - complete */
   } else if ( zm_is_rgb32(imagePixFormat) && zm_bytes_per_pixel(image.imagePixFormat) == 1 ) {
-    const Rgb* const max_ptr = (Rgb*)(buffer+size);
-    Rgb* prdest = (Rgb*)buffer;
-    const uint8_t* psrc = image.buffer;
-
-    if ( imagePixFormat == AV_PIX_FMT_RGBA || imagePixFormat == AV_PIX_FMT_BGRA ) {
-      /* RGBA\BGRA subpixel order - Alpha byte is last */
-      while ( prdest < max_ptr ) {
-        if ( *psrc ) {
-          RED_PTR_RGBA(prdest) = *psrc;
-          //RED_PTR_RGBA(prdest) = GREEN_PTR_RGBA(prdest) = BLUE_PTR_RGBA(prdest) = *psrc;
+    const bool alpha_last = (imagePixFormat == AV_PIX_FMT_RGBA || imagePixFormat == AV_PIX_FMT_BGRA);
+    for (unsigned int y = 0; y < height; y++) {
+      const uint8_t *psrc = image.buffer + y * image.linesize;
+      Rgb *prdest = (Rgb *)(buffer + y * linesize);
+      for (unsigned int x = 0; x < width; x++, psrc++, prdest++) {
+        if (*psrc) {
+          if (alpha_last) {
+            RED_PTR_RGBA(prdest) = *psrc;
+          } else {
+            RED_PTR_ABGR(prdest) = GREEN_PTR_ABGR(prdest) = BLUE_PTR_ABGR(prdest) = *psrc;
+          }
         }
-        prdest++;
-        psrc++;
-      }
-    } else {
-      /* ABGR\ARGB subpixel order - Alpha byte is first */
-      while ( prdest < max_ptr ) {
-        if ( *psrc ) {
-          RED_PTR_ABGR(prdest) = GREEN_PTR_ABGR(prdest) = BLUE_PTR_ABGR(prdest) = *psrc;
-        }
-        prdest++;
-        psrc++;
       }
     }
 
@@ -2074,27 +2048,18 @@ void Image::Overlay( const Image &image ) {
 
     /* RGB32 on top of RGB32 - not complete. need to take care of different subpixel orders */
   } else if ( zm_is_rgb32(imagePixFormat) && zm_is_rgb32(image.imagePixFormat) ) {
-    const Rgb* const max_ptr = (Rgb*)(buffer+size);
-    Rgb* prdest = (Rgb*)buffer;
-    const Rgb* prsrc = (Rgb*)image.buffer;
-
-    if ( image.imagePixFormat == AV_PIX_FMT_RGBA || image.imagePixFormat == AV_PIX_FMT_BGRA ) {
-      /* RGB\BGR\RGBA\BGRA subpixel order - Alpha byte is last */
-      while ( prdest < max_ptr ) {
-        if ( RED_PTR_RGBA(prsrc) || GREEN_PTR_RGBA(prsrc) || BLUE_PTR_RGBA(prsrc) ) {
-          *prdest = *prsrc;
+    const bool alpha_last = (image.imagePixFormat == AV_PIX_FMT_RGBA || image.imagePixFormat == AV_PIX_FMT_BGRA);
+    for (unsigned int y = 0; y < height; y++) {
+      const Rgb *prsrc = (const Rgb *)(image.buffer + y * image.linesize);
+      Rgb *prdest = (Rgb *)(buffer + y * linesize);
+      for (unsigned int x = 0; x < width; x++, prsrc++, prdest++) {
+        if (alpha_last) {
+          if (RED_PTR_RGBA(prsrc) || GREEN_PTR_RGBA(prsrc) || BLUE_PTR_RGBA(prsrc))
+            *prdest = *prsrc;
+        } else {
+          if (RED_PTR_ABGR(prsrc) || GREEN_PTR_ABGR(prsrc) || BLUE_PTR_ABGR(prsrc))
+            *prdest = *prsrc;
         }
-        prdest++;
-        prsrc++;
-      }
-    } else {
-      /* ABGR\ARGB subpixel order - Alpha byte is first */
-      while ( prdest < max_ptr ) {
-        if ( RED_PTR_ABGR(prsrc) || GREEN_PTR_ABGR(prsrc) || BLUE_PTR_ABGR(prsrc) ) {
-          *prdest = *prsrc;
-        }
-        prdest++;
-        prsrc++;
       }
     }
   }

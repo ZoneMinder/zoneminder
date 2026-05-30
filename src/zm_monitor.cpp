@@ -1166,7 +1166,18 @@ bool Monitor::connect() {
   // buffer region — zmc's writes to image_pixelformats[index] would corrupt
   // the alarm image, and zms would read alarm-image bytes back as
   // AVPixelFormat enum values, producing per-frame garble.
-  image_pixelformats = (AVPixelFormat *)(shared_images + (2 * image_buffer_count * image_size));
+  //
+  // image_size may not be a multiple of alignof(AVPixelFormat) (for
+  // example GRAY8 with odd width when image_size comes from
+  // camera->ImageSize()). Casting an unaligned address to AVPixelFormat*
+  // is undefined behaviour on strict-alignment ISAs (and slow even on x86),
+  // so round the offset up. The +64 bytes reserved in mem_size for the
+  // 64-byte alignment of shared_images covers this small adjustment.
+  uintptr_t pixfmt_addr = reinterpret_cast<uintptr_t>(
+      shared_images + (2 * image_buffer_count * image_size));
+  const uintptr_t pixfmt_align = alignof(AVPixelFormat);
+  pixfmt_addr = (pixfmt_addr + pixfmt_align - 1) & ~(pixfmt_align - 1);
+  image_pixelformats = reinterpret_cast<AVPixelFormat *>(pixfmt_addr);
   alarm_image_pixelformat = image_pixelformats + image_buffer_count;
 
   if (purpose == CAPTURE) {

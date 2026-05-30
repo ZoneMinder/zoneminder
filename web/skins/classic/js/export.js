@@ -110,7 +110,6 @@ function checkedResponse(data, responseText) {
     if (downloadModal) nodeList = downloadModal.querySelectorAll("[id^=downloadLink]");
     for (let i = 0; i < data.response.length; i++) {
       if (data.response[i][1] === false) {
-        console.log("ССЫЛКИ НЕТ !!!");
         nodeList.forEach(function(el) {
           const params = new URLSearchParams(el.href);
           const filename = (params.has('file')) ? params.get('file') : '';

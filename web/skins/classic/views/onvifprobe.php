@@ -182,7 +182,9 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
   $monitorHosts = array_unique($monitorHosts);
 
   $detcameras = probeCameras('');
-  usort($detcameras, fn($a, $b) => $a['monitor']['Host'] <=> $b['monitor']['Host']);
+  usort($detcameras, function($a, $b) {
+    return strcasecmp(parse_url($a['monitor']['Host'], PHP_URL_HOST) ?: '', parse_url($b['monitor']['Host'], PHP_URL_HOST) ?: '');
+  });
   foreach ($detcameras as $camera) {
     if (preg_match('|([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)|', $camera['monitor']['Host'], $matches)) {
       $ip = $matches[1];

@@ -2,6 +2,7 @@
  * This file contains UI functions relating to export / download modals
  *
  */
+var fileExistencePollingInterval = null;
 
 function startDownload(exportFile) {
   console.log("Starting download from " + exportFile);
@@ -20,6 +21,7 @@ function exportResponse(data, responseText) {
   if (generated) {
     let fileForAutoDownload = [];
     const exportFile = data.exportFile; // NOW THIS IS a real array of links
+    const downloadLink = $j('#downloadLink');
     if (exportFile instanceof Array) {
       let nodeCopy;
       fileForAutoDownload = [...exportFile];
@@ -29,11 +31,12 @@ function exportResponse(data, responseText) {
 
         if (i==0) {
           if (exportFile.length == 1) {
-            $j('#downloadLink').text('Download ' + '"' + fileName + '"');
+            downloadLink.text('Download ' + '"' + fileName + '"');
           } else {
-            $j('#downloadLink').text((i+1) + '. Download ' + '"' + fileName + '"');
+            downloadLink.text((i+1) + '. Download ' + '"' + fileName + '"');
           }
-          $j('#downloadLink').attr("href", thisUrl + file);
+          downloadLink.attr("href", thisUrl + file);
+          downloadLink.removeClass('disabled');
         } else {
           const downloadLink = document.getElementById('downloadLink'+(i-1)) || document.getElementById('downloadLink'); // Links must be in sequential order.
           nodeCopy = downloadLink.cloneNode(true);
@@ -44,8 +47,9 @@ function exportResponse(data, responseText) {
         }
       }
     } else {
-      $j('#downloadLink').text('Download ' + '"' + getFileNameFromURL(exportFile) + '"');
-      $j('#downloadLink').attr("href", thisUrl + exportFile);
+      downloadLink.removeClass('disabled');
+      downloadLink.text('Download ' + '"' + getFileNameFromURL(exportFile) + '"');
+      downloadLink.attr("href", thisUrl + exportFile);
       fileForAutoDownload = [exportFile];
     }
 
@@ -54,9 +58,74 @@ function exportResponse(data, responseText) {
     for (let i=0, length = fileForAutoDownload.length; i < length; i++) {
       setTimeout(startDownload, 1500+(i*500), fileForAutoDownload[i]); // This is an automatic download link.
     }
+
+    let filenamePathArray = [];
+    for (let i = 0; i < fileForAutoDownload.length; i++) {
+      // Let's create an array of filename path
+      const params = new URLSearchParams(fileForAutoDownload[i]);
+      const exportRoot = (params.has('export_root')) ? params.get('export_root') : '';
+      const filename = (params.has('file')) ? params.get('file') : '';
+      const filenamePath = (exportRoot) ? DIR_EXPORTS_DOWNLOAD + '/' + exportRoot + '/' + filename : filenamePath = DIR_EXPORTS_DOWNLOAD + '/' + filename;
+
+      filenamePathArray.push(filenamePath);
+    }
+
+    fileExistencePollingInterval = setInterval(() => {
+      $j.ajax({
+        type: 'GET',
+        url: thisUrl,
+        dataType: 'json',
+        data: {
+          'view': 'request',
+          'request': 'event',
+          'action': 'file_existence_check',
+          'file_name_array': filenamePathArray
+        },
+        success: checkedResponse,
+        timeout: 0,
+        error: function(jqXHR, status, errorThrown) {
+          logAjaxFail(jqXHR, status, errorThrown);
+          $j('#exportProgress').html('Failed: ' + errorThrown);
+        }
+      });
+    }, 3000);
   } else {
     $j('#exportProgress').addClass( 'text-danger' );
     $j('#exportProgress').text(exportFailedString);
+  }
+}
+
+function checkedResponse(data, responseText) {
+  const downloadModal = document.getElementById('downloadModal');
+  if (!downloadModal) {
+    console.log("Modal window for files download is missing.");
+    clearInterval(fileExistencePollingInterval);
+    return;
+  }
+  let filesExist = false;
+  if (data.result == "Error") {
+    console.warn(data, responseText);
+  } else if (data.result == "Ok") {
+    let nodeList = {};
+    if (downloadModal) nodeList = downloadModal.querySelectorAll("[id^=downloadLink]");
+    for (let i = 0; i < data.response.length; i++) {
+      if (data.response[i][1] === false) {
+        console.log("ССЫЛКИ НЕТ !!!");
+        nodeList.forEach(function(el) {
+          const params = new URLSearchParams(el.href);
+          const filename = (params.has('file')) ? params.get('file') : '';
+          if (filename === data.response[i][0].split(/[\/]/).pop()) {
+            // In "data.response[i][0]" we will have the absolute path to the file. We only need to get the file name and compare it with "filename".
+            el.classList.add('disabled');
+          }
+        });
+      } else {
+        filesExist = true;
+      }
+    }
+  }
+  if (data.result == "Error" || !filesExist || !(downloadModal.offsetWidth > 0 && downloadModal.offsetHeight > 0)) {
+    clearInterval(fileExistencePollingInterval);
   }
 }
 

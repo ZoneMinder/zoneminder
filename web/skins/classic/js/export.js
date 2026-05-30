@@ -65,7 +65,7 @@ function exportResponse(data, responseText) {
       const params = new URLSearchParams(fileForAutoDownload[i]);
       const exportRoot = (params.has('export_root')) ? params.get('export_root') : '';
       const filename = (params.has('file')) ? params.get('file') : '';
-      const filenamePath = (exportRoot) ? DIR_EXPORTS_DOWNLOAD + '/' + exportRoot + '/' + filename : filenamePath = DIR_EXPORTS_DOWNLOAD + '/' + filename;
+      const filenamePath = (exportRoot) ? DIR_EXPORTS_DOWNLOAD + '/' + exportRoot + '/' + filename : DIR_EXPORTS_DOWNLOAD + '/' + filename;
 
       filenamePathArray.push(filenamePath);
     }

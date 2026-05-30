@@ -59,7 +59,7 @@ function exportResponse(data, responseText) {
       setTimeout(startDownload, 1500+(i*500), fileForAutoDownload[i]); // This is an automatic download link.
     }
 
-    let filenamePathArray = [];
+    const filenamePathArray = [];
     for (let i = 0; i < fileForAutoDownload.length; i++) {
       // Let's create an array of filename path
       const params = new URLSearchParams(fileForAutoDownload[i]);

@@ -1019,7 +1019,14 @@ bool Monitor::connect() {
              + (image_buffer_count*image_size) // alarm_images
              + (image_buffer_count*sizeof(AVPixelFormat)) // per-slot capture pix fmt
              + sizeof(AVPixelFormat) // alarm_image pix fmt (cross-process sync)
-             + 64; /* Padding used to permit aligning the images buffer to 64 byte boundary */
+             // Padding covers two independent alignment adjustments:
+             //   * up to 63 bytes to push shared_images to a 64-byte boundary
+             //   * up to alignof(AVPixelFormat)-1 bytes to push
+             //     image_pixelformats to its required alignment after the
+             //     image_size-stride run of bytes.
+             // Reserve the worst case so neither adjustment can run past the
+             // mapped region.
+             + 63 + (alignof(AVPixelFormat) - 1);
 
   Debug(1,
         "SharedData=%zu "

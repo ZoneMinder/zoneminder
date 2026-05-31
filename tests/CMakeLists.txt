@@ -12,6 +12,7 @@
 include(Catch)
 
 set(TEST_SOURCES
+  zm_db_schema.cpp
   zm_box.cpp
   zm_comms.cpp
   zm_crypt.cpp
@@ -36,6 +37,10 @@ target_link_libraries(tests
 target_include_directories(tests
   PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR})
+
+target_compile_definitions(tests
+  PRIVATE
+    ZM_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 
 catch_discover_tests(tests)
 

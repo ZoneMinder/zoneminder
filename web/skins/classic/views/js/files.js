@@ -19,6 +19,10 @@ function setButtonStates(element) {
   }
 }
 
+function deleteFiles() {
+  getDelConfirmModal('ConfirmDeleteFiles', 'Delete', 'filesForm');
+}
+
 function initPage() {
   setButtonStates();
   document.querySelectorAll('input[name="files[]"]').forEach(function(el) {

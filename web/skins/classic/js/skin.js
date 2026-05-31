@@ -44,6 +44,7 @@ var shifted = false;
 var ctrled = false;
 var alted = false;
 var mainContent = document.getElementById('content');
+var timeOutExtruderChange;
 
 const showExtruderPanelOnMouseHover = false;
 const NAVBAR_RELOAD = document.getElementById('reload'); // Top panel with statistics
@@ -2376,9 +2377,10 @@ function insertControlModuleMenu() {
   // Assign to Show/hide button
   menuControlModule.on("click", function() {
     if (!SIDEBAR_MAIN_EXTRUDER.classList.contains('isOpened')) {
+      clearTimeout(timeOutExtruderChange);
       $j(SIDEBAR_MAIN_EXTRUDER).openMbExtruder();
     } else {
-      $j(SIDEBAR_MAIN_EXTRUDER).closeMbExtruder();
+      closeMbExtruder(true);
     }
   });
 
@@ -2684,6 +2686,10 @@ function closeMbExtruder(updateCookie = false) {
     setCookie('zmVisibleMbExtruder', !!SIDEBAR_MAIN_EXTRUDER.classList.contains('isOpened'));
   }
   $j(SIDEBAR_MAIN_EXTRUDER).closeMbExtruder();
+  timeOutExtruderChange = setTimeout(function() {
+    // Prevent premature reset of z-index, as Extruder does not disappear immediately
+    SIDEBAR_MAIN_EXTRUDER.style.zIndex = 'unset';
+  }, 300);
 }
 
 /*

@@ -53,6 +53,8 @@ function probe(params) {
         const rows = data.Streams;
         // rearrange the result into what bootstrap-table expects
         params.success({total: rows.length, totalNotFiltered: rows.length, rows: rows});
+      } else {
+        params.success({total: 0, totalNotFiltered: 0, rows: []});
       }
     },
     error: function(jqXHR) {
@@ -123,8 +125,7 @@ function addMonitor(btn) {
   }
   const Stream = ProbeResults[url];
   if (Stream.Monitor) {
-    const Monitor = Stream.Monitor;
-    urlString = '?view=monitor&mid='+Monitor.Id;
+    urlString = '?view=monitor&mid='+Stream.Monitor.Id;
   } else {
     const Monitor = Stream.camera.monitor;
     urlString = '?view=monitor&newMonitor[Path]='+url;

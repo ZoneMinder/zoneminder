@@ -271,7 +271,7 @@ body #sidebarMain .sub-menu-list {
 .extruder-wrapper span.term,
 .extruder-wrapper span.term .term-value-wrapper input,
 .extruder-wrapper span.term > span { /* Aligning input fields */
-  width: 100%;
+  width: 100% !important;
 }
 
 .extruder-wrapper span.term > span:first-child{

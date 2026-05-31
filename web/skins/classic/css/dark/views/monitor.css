@@ -1,7 +1,7 @@
 .swatch {
-    border: 1px solid black;
-    margin-left: 3px;
-    padding: 0px;
+  border: 1px solid black;
+  margin-left: 3px;
+  padding: 0px;
 }
 
 /* Encoder preset diagnostics — advisory text under the EncoderParameters textarea */
@@ -9,4 +9,10 @@
   font-size: 0.9em;
   color: #b58900;
   margin-top: 4px;
+}
+
+nav #pills-tab a.nav-link.active {
+  background-color: rgb(68, 68, 68);
+  color: #dddddd;
+  border: 1px solid var(--gray);
 }

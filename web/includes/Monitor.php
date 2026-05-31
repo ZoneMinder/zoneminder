@@ -374,7 +374,7 @@ class Monitor extends ZM_Object {
     'ArchivedEventDiskSpace' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
   );
 
-  protected $Id;
+  public $Id;
 
   public function save($data = null) {
     if ($data) $this->set($data);

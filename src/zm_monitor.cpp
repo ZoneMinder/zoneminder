@@ -1178,8 +1178,10 @@ bool Monitor::connect() {
   // example GRAY8 with odd width when image_size comes from
   // camera->ImageSize()). Casting an unaligned address to AVPixelFormat*
   // is undefined behaviour on strict-alignment ISAs (and slow even on x86),
-  // so round the offset up. The +64 bytes reserved in mem_size for the
-  // 64-byte alignment of shared_images covers this small adjustment.
+  // so round the offset up. mem_size reserves
+  // 63 + (alignof(AVPixelFormat) - 1) bytes of slack so the combined
+  // 64-byte alignment of shared_images and this pixformat alignment both
+  // fit inside the mapped region.
   uintptr_t pixfmt_addr = reinterpret_cast<uintptr_t>(
       shared_images + (2 * image_buffer_count * image_size));
   const uintptr_t pixfmt_align = alignof(AVPixelFormat);
@@ -1468,11 +1470,17 @@ int Monitor::GetImage(int32_t index, int scale) {
     return 0;
   }
 
+  // Route the slot read through ReadShmFrame so the per-slot AVPixelFormat
+  // recorded by the capture process is adopted on image_buffer[index]
+  // before its bytes are interpreted. Otherwise the JPEG would be encoded
+  // using the placeholder format set at attach time and produce garbled
+  // output whenever the slot's actual format differs.
+  Image *src = ReadShmFrame(index);
   std::string filename = stringtf("Monitor%u.jpg", id);
   // If we are going to be modifying the snapshot before writing, then we need to copy it
   if ((scale != ZM_SCALE_BASE) || (!config.timestamp_on_capture)) {
     Image image;
-    image.Assign(*image_buffer[index]);
+    image.Assign(*src);
 
     if (scale != ZM_SCALE_BASE) {
       image.Scale(scale);
@@ -1483,11 +1491,11 @@ int Monitor::GetImage(int32_t index, int scale) {
     }
     return image.WriteJpeg(filename);
   } else {
-    return image_buffer[index]->WriteJpeg(filename);
+    return src->WriteJpeg(filename);
   }
 }
 
-std::shared_ptr<ZMPacket> Monitor::getSnapshot(int index) const {
+std::shared_ptr<ZMPacket> Monitor::getSnapshot(int index) {
   if ((index < 0) || (index >= image_buffer_count)) {
     index = shared_data->last_write_index;
   }
@@ -1496,7 +1504,11 @@ std::shared_ptr<ZMPacket> Monitor::getSnapshot(int index) const {
     return nullptr;
   }
   if (index != image_buffer_count) {
-    std::shared_ptr<ZMPacket> packet = std::make_shared<ZMPacket> (image_buffer[index],
+    // ReadShmFrame syncs image_buffer[index] to the per-slot format that
+    // zmc wrote, so the ZMPacket consumer can read its bytes in the
+    // correct format instead of the placeholder set at attach time.
+    Image *src = ReadShmFrame(index);
+    std::shared_ptr<ZMPacket> packet = std::make_shared<ZMPacket> (src,
                         SystemTimePoint(zm::chrono::duration_cast<Microseconds>(shared_timestamps[index])));
     return packet;
   } else {
@@ -1505,7 +1517,7 @@ std::shared_ptr<ZMPacket> Monitor::getSnapshot(int index) const {
   return nullptr;
 }
 
-SystemTimePoint Monitor::GetTimestamp(int index) const {
+SystemTimePoint Monitor::GetTimestamp(int index) {
   std::shared_ptr<ZMPacket> packet = getSnapshot(index);
   if (packet)
     return packet->timestamp;

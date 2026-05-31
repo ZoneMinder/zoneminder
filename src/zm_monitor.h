@@ -938,8 +938,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // AVPixelFormat so reader processes can correctly interpret the SHM bytes.
   void WriteAlarmImage(const Image &src);
   int GetImage(int32_t index=-1, int scale=100);
-  std::shared_ptr<ZMPacket> getSnapshot( int index=-1 ) const;
-  SystemTimePoint GetTimestamp(int index = -1) const;
+  std::shared_ptr<ZMPacket> getSnapshot( int index=-1 );
+  SystemTimePoint GetTimestamp(int index = -1);
   void UpdateAdaptiveSkip();
   useconds_t GetAnalysisRate();
   Microseconds GetAnalysisUpdateDelay() const { return analysis_update_delay; }

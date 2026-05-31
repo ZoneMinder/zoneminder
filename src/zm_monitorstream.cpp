@@ -1003,7 +1003,7 @@ void MonitorStream::SingleImage(int scale) {
 
   int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
   AVPixelFormat pixformat = monitor->image_pixelformats[index];
-  Debug(1, "Sending regular image index %d, pix format is %d %s", index, pixformat, av_get_pix_fmt_name(pixformat));
+  Debug(1, "Sending regular image index %d, pix format is %d %s", index, pixformat, zm_get_pix_fmt_name(pixformat));
   Image *snap_image = monitor->ReadShmFrame(index);
   if (!config.timestamp_on_capture) {
     monitor->TimestampImage(snap_image,

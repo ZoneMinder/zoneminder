@@ -374,7 +374,7 @@ LocalCamera::LocalCamera(
       pixelFormat = AV_PIX_FMT_GRAY8;
     } else {
       Panic("Unexpected pixel format %d (%s); legacy colours=%u subpixelorder=%u",
-            pixelFormat, av_get_pix_fmt_name(pixelFormat), colours, subpixelorder);
+            pixelFormat, zm_get_pix_fmt_name(pixelFormat), colours, subpixelorder);
     }
     if (capture) {
       if (!sws_isSupportedInput(capturePixFormat)) {

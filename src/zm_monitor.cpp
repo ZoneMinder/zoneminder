@@ -57,6 +57,14 @@
 #include <sys/types.h>
 #include <utility>
 
+#if ZM_MEM_MAPPED
+#include <fcntl.h>
+#include <sys/mman.h>
+#else  // ZM_MEM_MAPPED
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#endif  // ZM_MEM_MAPPED
+
 namespace {
 
 bool encodeJpegImage(const Image &image, std::string *output) {
@@ -151,6 +159,74 @@ bool encodeRgbaImage(const Image &image, std::string *output, uint32_t *line_siz
   return true;
 }
 
+bool encodeYuv420pImage(const Image &image, std::string *output, uint32_t *line_size) {
+  if (!output || !line_size || !image.Buffer() || !image.Width() || !image.Height()) {
+    return false;
+  }
+
+  const unsigned int width = image.Width();
+  const unsigned int height = image.Height();
+
+  // ZoneMinder images are packed single-plane buffers, so reference plane 0
+  // directly using the image's real (possibly padded) line size.
+  uint8_t *src_data[4] = {const_cast<uint8_t *>(image.Buffer()), nullptr, nullptr, nullptr};
+  int src_linesize[4] = {static_cast<int>(image.LineSize()), 0, 0, 0};
+
+  AVFrame *dst_frame = av_frame_alloc();
+  if (!dst_frame) {
+    return false;
+  }
+  dst_frame->format = AV_PIX_FMT_YUV420P;
+  dst_frame->width = width;
+  dst_frame->height = height;
+  if (av_frame_get_buffer(dst_frame, 32) < 0) {
+    av_frame_free(&dst_frame);
+    Error("Failed to allocate yuv420p frame for websocket payload");
+    return false;
+  }
+
+  SwsContext *sws_ctx = sws_getContext(
+      width, height, image.AVPixFormat(),
+      width, height, AV_PIX_FMT_YUV420P,
+      SWS_FAST_BILINEAR, nullptr, nullptr, nullptr);
+  if (!sws_ctx) {
+    av_frame_free(&dst_frame);
+    Error("Failed to get swscale context for websocket yuv420p payload");
+    return false;
+  }
+
+  const int scaled = sws_scale(sws_ctx, src_data, src_linesize, 0, height, dst_frame->data, dst_frame->linesize);
+  sws_freeContext(sws_ctx);
+  if (scaled <= 0) {
+    av_frame_free(&dst_frame);
+    Error("swscale failed for websocket yuv420p payload");
+    return false;
+  }
+
+  // Copy out as a tightly packed I420 buffer (alignment 1) so the layout is
+  // fully described by the reported width/height: the Y plane is height rows of
+  // line_size bytes, followed by U then V planes of (height + 1) / 2 rows of
+  // (line_size + 1) / 2 bytes each.
+  const int packed_size = av_image_get_buffer_size(AV_PIX_FMT_YUV420P, width, height, 1);
+  if (packed_size <= 0) {
+    av_frame_free(&dst_frame);
+    return false;
+  }
+  output->assign(static_cast<size_t>(packed_size), '\0');
+  const int copied = av_image_copy_to_buffer(
+      reinterpret_cast<uint8_t *>(&(*output)[0]), packed_size,
+      dst_frame->data, dst_frame->linesize,
+      AV_PIX_FMT_YUV420P, width, height, 1);
+  av_frame_free(&dst_frame);
+  if (copied < 0) {
+    output->clear();
+    return false;
+  }
+
+  *line_size = width;
+  return true;
+}
+
 bool requestedWebSocketVideoCodec(const std::string &codec, AVCodecID *codec_id, std::string *content_type = nullptr) {
   if (codec == "h264") {
     *codec_id = AV_CODEC_ID_H264;
@@ -177,14 +253,6 @@ bool requestedWebSocketVideoCodec(const std::string &codec, AVCodecID *codec_id,
 }
 
 }  // namespace
-
-#if ZM_MEM_MAPPED
-#include <fcntl.h>
-#include <sys/mman.h>
-#else  // ZM_MEM_MAPPED
-#include <sys/ipc.h>
-#include <sys/shm.h>
-#endif  // ZM_MEM_MAPPED
 
 // SOLARIS - we don't have MAP_LOCKED on openSolaris/illumos
 #ifndef MAP_LOCKED
@@ -1425,7 +1493,7 @@ bool Monitor::StartWebSocketServer() {
     return true;
   }
 
-  const unsigned int websocket_port = zm::websocket::MonitorStreamingPort(config.min_websocket_port, id);
+  const unsigned int websocket_port = zm::websocket::MonitorWebSocketPort(config.min_websocket_port, id);
   if (!websocket_port) {
     Warning("Unable to compute websocket port for monitor %u using base port %d", id, config.min_websocket_port);
     return false;
@@ -1528,7 +1596,7 @@ bool Monitor::GetWebSocketImagePayload(const std::string &format, WebSocketPaylo
     return false;
   }
 
-  if ((format != "jpeg") && (format != "rgba")) {
+  if ((format != "jpeg") && (format != "rgba") && (format != "yuv420p")) {
     return false;
   }
 
@@ -1606,6 +1674,13 @@ bool Monitor::GetWebSocketImagePayload(const std::string &format, WebSocketPaylo
     payload->colours = ZM_COLOUR_RGB32;
     payload->subpixel_order = ZM_SUBPIX_ORDER_RGBA;
     return encodeRgbaImage(*image, &payload->payload, &payload->line_size);
+  }
+
+  if (format == "yuv420p") {
+    payload->content_type = "application/octet-stream";
+    payload->colours = 0;
+    payload->subpixel_order = 0;
+    return encodeYuv420pImage(*image, &payload->payload, &payload->line_size);
   }
 
   return false;

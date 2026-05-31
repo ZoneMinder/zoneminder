@@ -203,6 +203,6 @@ TEST_CASE("Websocket decoder reports incomplete frames") {
 }
 
 TEST_CASE("Websocket monitor streaming port uses configured base port") {
-  REQUIRE(zm::websocket::MonitorStreamingPort(30000, 5) == 30005);
-  REQUIRE(zm::websocket::MonitorStreamingPort(0, 5) == 0);
+  REQUIRE(zm::websocket::MonitorWebSocketPort(30000, 5) == 30005);
+  REQUIRE(zm::websocket::MonitorWebSocketPort(0, 5) == 0);
 }

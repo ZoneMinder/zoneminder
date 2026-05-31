@@ -427,9 +427,13 @@ int main(int argc, char *argv[]) {
       }
     }  // end while ! zm_terminate and connected
 
+    // Note: the websocket server is intentionally not stopped here. It must
+    // outlive a single capture/reconnect cycle so that queued capture failure
+    // and recovery events are delivered to subscribers and clients are not
+    // dropped every time capture reconnects. It is stopped once on shutdown
+    // after the outer loop.
     for (std::shared_ptr<Monitor> & monitor : monitors) {
       monitor->SetHeartbeatTime(std::chrono::system_clock::now());
-      monitor->StopWebSocketServer();
       monitor->Close();
       monitor->SetHeartbeatTime(std::chrono::system_clock::now());
       monitor->disconnect();
@@ -447,6 +451,10 @@ int main(int argc, char *argv[]) {
       zm_reload = false;
     }  // end if zm_reload
   }  // end while ! zm_terminate outer connection loop
+
+  for (std::shared_ptr<Monitor> &monitor : monitors) {
+    monitor->StopWebSocketServer();
+  }
 
   for (std::shared_ptr<Monitor> &monitor : monitors) {
     std::string sql = stringtf(

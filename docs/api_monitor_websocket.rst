@@ -94,6 +94,7 @@ Supported image formats are:
 
 * ``jpeg``
 * ``rgba``
+* ``yuv420p``
 
 One-shot stream packet request:
 
@@ -204,6 +205,17 @@ packet queue.
 padding, clients must use the reported ``line_size`` value rather than assuming
 ``width * 4`` bytes per row.
 
+``yuv420p`` returns a tightly packed planar I420 buffer. The reported
+``line_size`` is the luma (Y) stride. The buffer layout is fully described by
+the reported ``width``, ``height``, and ``line_size``:
+
+* the Y plane is ``height`` rows of ``line_size`` bytes
+* the U plane follows, ``(height + 1) / 2`` rows of ``(line_size + 1) / 2`` bytes
+* the V plane follows, ``(height + 1) / 2`` rows of ``(line_size + 1) / 2`` bytes
+
+There is no padding between planes or rows, so clients should not assume any
+additional alignment.
+
 Stream behavior
 ^^^^^^^^^^^^^^^
 
@@ -245,13 +257,33 @@ Implementation notes
 This transport currently uses a small in-tree websocket implementation rather
 than adding a new dependency such as ``websocketpp`` to ``zmc``.
 
-The advantage is a smaller integration surface inside the capture daemon and
-direct control over packet queue interaction.
+Tradeoffs of the in-tree implementation versus a mature library such as
+``websocketpp``:
 
-The tradeoff is that TLS is intentionally left to the deployment boundary
-instead of being implemented inside this small in-tree websocket server. In
-practice, production deployments should terminate TLS in a reverse proxy, load
-balancer, or similar front-end before exposing this transport to clients.
+* **Smaller dependency surface.** ``zmc`` is the capture daemon and runs on a
+  wide range of platforms and distributions. A header-only or linked websocket
+  library adds packaging and build-matrix work across every supported target.
+* **Direct packet queue integration.** The server thread reads frames and
+  encoded packets straight from the monitor packet queue without an extra
+  abstraction layer, which keeps the capture thread non-blocking.
+* **Limited scope.** The implementation only needs RFC 6455 server framing for
+  one upgrade path. It does not implement permessage-deflate, extensions,
+  client mode, or subprotocol negotiation. A general-purpose library provides
+  these but they are not required here.
+* **Maintenance cost.** The cost of the in-tree approach is that protocol
+  correctness (framing, control frames, close handshake, masking) must be
+  maintained and tested in this tree rather than relying on an upstream
+  project. The unit tests in ``tests/zm_websocket.cpp`` cover the framing and
+  handshake paths for this reason.
+
+TLS is intentionally left to the deployment boundary instead of being
+implemented inside this in-tree websocket server. This mirrors how the existing
+``zms`` streaming paths are deployed: TLS is terminated by a reverse proxy or
+load balancer. In practice, production deployments should terminate TLS and may
+additionally enforce authentication in a reverse proxy, load balancer, or
+similar front-end before exposing this transport to clients. Authentication is
+still enforced inside ``zmc`` (see `Authentication`_) whenever ``OPT_USE_AUTH``
+is enabled, independently of any proxy.
 
 Errors
 ^^^^^^

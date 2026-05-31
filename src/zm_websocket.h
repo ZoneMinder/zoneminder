@@ -45,7 +45,7 @@ bool ExtractAuthorizationBearerToken(const std::string &request, std::string *to
 std::string BuildHandshakeResponse(const std::string &client_key);
 std::string EncodeFrame(Opcode opcode, const std::string &payload, bool fin = true);
 DecodeResult DecodeFrame(const std::string &buffer, Frame *frame, size_t *consumed);
-unsigned int MonitorStreamingPort(int base_port, unsigned int monitor_id);
+unsigned int MonitorWebSocketPort(int base_port, unsigned int monitor_id);
 
 }  // namespace websocket
 
@@ -98,7 +98,7 @@ class MonitorWebSocketServer {
   void closeClient(Client *client);
   bool sendImagePayload(Client *client, const Monitor::WebSocketPayload &payload, const std::string &request_id);
   void freeClientResources(Client *client);
-  bool queueRaw(Client *client, const std::string &payload);
+  bool queueRaw(Client *client, std::string payload);
   bool queueFrame(Client *client, websocket::Opcode opcode, const std::string &payload);
   void broadcastStatus(std::vector<Client> *clients, TimePoint now);
   void broadcastStreams(std::vector<Client> *clients, TimePoint now);

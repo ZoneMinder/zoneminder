@@ -24,6 +24,7 @@ static constexpr const char *kWebSocketMagic = "258EAFA5-E914-47DA-95CA-C5AB0DC8
 static constexpr size_t kMaxHandshakeSize = 16384;
 static constexpr size_t kMaxMessageSize = 1024 * 1024;
 static constexpr size_t kMaxQueuedBytesPerClient = 8 * 1024 * 1024;
+static constexpr size_t kMaxClientsPerMonitor = 32;
 static constexpr int kPollTimeoutMs = 100;
 
 bool setNonBlocking(int fd) {
@@ -46,6 +47,16 @@ bool writeFully(int fd, const std::string &payload) {
     const ssize_t bytes_sent = ::send(fd, payload.data() + offset, payload.size() - offset, MSG_NOSIGNAL);
     if (bytes_sent < 0) {
       if (errno == EINTR) {
+        continue;
+      }
+      if ((errno == EAGAIN) || (errno == EWOULDBLOCK)) {
+        // Socket is non-blocking; wait briefly for it to drain. This path is
+        // only used for short error/close responses on a connection that is
+        // about to be closed, so a bounded wait is acceptable.
+        struct pollfd pfd = {fd, POLLOUT, 0};
+        if (poll(&pfd, 1, 200) <= 0) {
+          return false;
+        }
         continue;
       }
       return false;
@@ -364,7 +375,7 @@ DecodeResult DecodeFrame(const std::string &buffer, Frame *frame, size_t *consum
   return DecodeResult::OK;
 }
 
-unsigned int MonitorStreamingPort(int base_port, unsigned int monitor_id) {
+unsigned int MonitorWebSocketPort(int base_port, unsigned int monitor_id) {
   if (base_port <= 0) {
     return 0;
   }
@@ -498,6 +509,16 @@ bool MonitorWebSocketServer::acceptClients(std::vector<Client> *clients) {
       }
       Error("accept() failed in websocket server for monitor %u: %s", monitor->Id(), strerror(errno));
       return false;
+    }
+
+    if (clients->size() >= kMaxClientsPerMonitor) {
+      Warning(
+          "Rejecting websocket connection for monitor %u: client limit %zu reached",
+          monitor->Id(),
+          kMaxClientsPerMonitor);
+      writeFully(fd, httpResponse("HTTP/1.1 503 Service Unavailable", "Too many websocket clients"));
+      ::close(fd);
+      continue;
     }
 
     if (!setNonBlocking(fd)) {
@@ -847,7 +868,7 @@ void MonitorWebSocketServer::freeClientResources(Client *client) {
   }
 }
 
-bool MonitorWebSocketServer::queueRaw(Client *client, const std::string &payload) {
+bool MonitorWebSocketServer::queueRaw(Client *client, std::string payload) {
   if ((client->queued_bytes + payload.size()) > kMaxQueuedBytesPerClient) {
     Warning(
         "Closing websocket client for monitor %u after queue exceeded %zu bytes",
@@ -856,12 +877,12 @@ bool MonitorWebSocketServer::queueRaw(Client *client, const std::string &payload
     return false;
   }
   client->queued_bytes += payload.size();
-  client->send_queue.push_back({payload, 0});
+  client->send_queue.push_back({std::move(payload), 0});
   return true;
 }
 
 bool MonitorWebSocketServer::queueFrame(Client *client, websocket::Opcode opcode, const std::string &payload) {
-  return queueRaw(client, websocket::EncodeFrame(opcode, payload));
+  return queueRaw(client, websocket::EncodeFrame(opcode, payload));  // moved: temporary binds to by-value param
 }
 
 void MonitorWebSocketServer::broadcastStatus(std::vector<Client> *clients, TimePoint now) {

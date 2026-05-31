@@ -1566,6 +1566,7 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg, eventS
         console.warn("HLS Event = ERROR", "\n", "event:", event, "\n", "errorType:", data.type, "\n", "errorDetails:", data.details, "\n", "errorFatal:", data.fatal);
         if (!data || !data.fatal) return;
         hls.destroy();
+        clearTimeout(video._fallbackTimer);
         video.remove();
         fallbackToMjpeg();
       });
@@ -1573,9 +1574,11 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg, eventS
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       // Native HLS support (Safari)
       video.src = hlsUrl;
+      thumbnailVideoPlay(video, 'RTSP2Web', eventStart, statusBar);
       video.addEventListener('error', function() {
         video.remove();
         fallbackToMjpeg();
+        return;
       });
     } else {
       video.remove();
@@ -1792,7 +1795,7 @@ function playEventHLS(container, img, monitorId, fallbackToMjpeg, statusBar, eve
     }
   }).catch(function(e) {
     console.error(e);
-    fallbackToMjpeg();
+    tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar);
   });
 }
 

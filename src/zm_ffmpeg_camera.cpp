@@ -529,7 +529,7 @@ int FfmpegCamera::OpenFfmpeg() {
               mVideoCodec->name,
               av_hwdevice_get_type_name(type),
               av_hwdevice_get_type_name(config->device_type),
-              av_get_pix_fmt_name(config->pix_fmt)
+              zm_get_pix_fmt_name(config->pix_fmt)
               );
         }
       }  // end foreach hwconfig
@@ -538,7 +538,7 @@ int FfmpegCamera::OpenFfmpeg() {
 #endif
       if (hw_pix_fmt != AV_PIX_FMT_NONE) {
         Debug(1, "Selected hw_pix_fmt %d %s",
-            hw_pix_fmt, av_get_pix_fmt_name(hw_pix_fmt));
+            hw_pix_fmt, zm_get_pix_fmt_name(hw_pix_fmt));
 
         mVideoCodecContext->hwaccel_flags |= AV_HWACCEL_FLAG_IGNORE_LEVEL;
         //if (!lavc_param->check_hw_profile)

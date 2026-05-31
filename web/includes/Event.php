@@ -111,7 +111,7 @@ class Event extends ZM_Object {
 
   public function Length(){
     $duration = 0;
-    if(! isset($this->{'Length'})){
+    if ( !isset($this->{'Length'}) || (float)$this->{'Length'} <= 0 ) {
       $files = glob($this->Path().'{/incomplete.*,/'.$this->{'Id'}.'-video.*}', GLOB_NOSORT | GLOB_BRACE);
       if (count($files) > 0) {
         $file = $files[0];

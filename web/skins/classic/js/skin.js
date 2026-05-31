@@ -1776,9 +1776,16 @@ function playEventHLS(container, img, monitorId, fallbackToMjpeg, statusBar, eve
       video.addEventListener('error', function(e) {
         console.error(e);
         video.remove();
-        fallbackToMjpeg();
+        clearTimeout(video._fallbackTimer);
+        tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar);
       });
       thumbnailVideoPlay(video, 'Native HLS', eventStart, statusBar);
+      video._fallbackTimer = setTimeout(function() {
+        if (video.readyState < 2) {
+          video.remove();
+          tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar);
+        }
+      }, 2000);
     } else {
       video.remove();
       tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar);

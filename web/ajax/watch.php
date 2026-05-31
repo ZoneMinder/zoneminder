@@ -90,9 +90,9 @@ if ($rows) {
     $videoAttr = '';
     if ($event->DefaultVideo()) {
       $videoSrc = $event->getStreamSrc(array('mode'=>'mp4'), '&amp;');
-      $videoHlsSrc = $event->getStreamSrc(array('mode'=>'hls'), '&amp;');
+      $videoHlsSrc = $event->getStreamSrc(array('mode'=>'mp4hls'), '&amp;');
       $videoDuration = htmlspecialchars((string)$event->Length());
-      $videoAttr = ' video_src="' .$videoSrc. '" data-video-hls-src="' .$videoHlsSrc. '" data-video-duration="' .$videoDuration. '" data-event-start="'.htmlspecialchars($event->StartDateTime()).'"';
+      $videoAttr = ' video_src="' .$videoSrc. '" data-video-hls-src="' .$videoHlsSrc. '" data-video-duration-secs="' .$videoDuration. '" data-event-start="'.htmlspecialchars($event->StartDateTime()).'"';
     }
 
     // Modify the row data as needed

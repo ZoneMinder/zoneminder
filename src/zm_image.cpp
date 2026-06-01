@@ -5807,24 +5807,24 @@ AVPixelFormat Image::AVPixFormat(AVPixelFormat new_pixelformat) {
   unsigned int probe_colours, probe_subpix;
   if (!zm_colours_from_pixformat(new_pixelformat, probe_colours, probe_subpix)) {
     Error("Image::AVPixFormat: refusing to set unknown pixelformat %d %s; keeping current %s",
-          new_pixelformat, av_get_pix_fmt_name(new_pixelformat),
-          av_get_pix_fmt_name(imagePixFormat));
+          new_pixelformat, zm_get_pix_fmt_name(new_pixelformat),
+          zm_get_pix_fmt_name(imagePixFormat));
     return imagePixFormat;
   }
   int new_size = av_image_get_buffer_size(new_pixelformat, width, height, 32);
   int new_linesize = av_image_get_linesize(new_pixelformat, width, 0);
   if (new_size < 0 || new_linesize < 0) {
     Error("Image::AVPixFormat: av_image_get_* returned %d/%d for %s; keeping current %s",
-          new_size, new_linesize, av_get_pix_fmt_name(new_pixelformat),
-          av_get_pix_fmt_name(imagePixFormat));
+          new_size, new_linesize, zm_get_pix_fmt_name(new_pixelformat),
+          zm_get_pix_fmt_name(imagePixFormat));
     return imagePixFormat;
   }
-  Debug(4, "Old size: %u, old pixelformat %s", size, av_get_pix_fmt_name(imagePixFormat));
+  Debug(4, "Old size: %u, old pixelformat %s", size, zm_get_pix_fmt_name(imagePixFormat));
   colours = probe_colours;
   subpixelorder = probe_subpix;
   imagePixFormat = new_pixelformat;
   size = static_cast<unsigned int>(new_size);
   linesize = FFALIGN(new_linesize, 32);
-  Debug(4, "New size: %u new pixelformat %s", size, av_get_pix_fmt_name(new_pixelformat));
+  Debug(4, "New size: %u new pixelformat %s", size, zm_get_pix_fmt_name(new_pixelformat));
   return imagePixFormat;
 }

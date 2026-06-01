@@ -1450,9 +1450,23 @@ void Monitor::WriteAlarmImage(const Image &src) {
   // Mirror WriteShmFrame's contract for alarm_image: copy bytes then
   // publish the canonical AVPixelFormat so reader processes can interpret
   // the SHM correctly via GetAlarmImage().
+  //
+  // Only publish *alarm_image_pixelformat if Assign actually adopted the
+  // source format. Image::Assign silently leaves the destination untouched
+  // on failure (held-buffer undersize, unknown src format), so publishing
+  // a new format whose bytes never landed would make readers misinterpret
+  // the previous alarm-image contents.
+  const AVPixelFormat src_fmt = src.PixFormat();
   alarm_image.Assign(src);
   if (alarm_image_pixelformat != nullptr) {
-    *alarm_image_pixelformat = src.PixFormat();
+    if (alarm_image.PixFormat() == src_fmt) {
+      *alarm_image_pixelformat = src_fmt;
+    } else {
+      Warning("WriteAlarmImage: assign failed (dst fmt %s != src fmt %s); "
+              "keeping previously published pixelformat",
+              zm_get_pix_fmt_name(alarm_image.PixFormat()),
+              zm_get_pix_fmt_name(src_fmt));
+    }
   }
 }
 
@@ -2980,8 +2994,22 @@ void Monitor::WriteShmFrame(unsigned int index, Image *capture_image) {
   // Record imagePixFormat directly via PixFormat() — AVPixFormat() re-derives
   // from the deprecated (colours, subpixelorder) pair and could propagate
   // stale metadata.
+  //
+  // Only publish image_pixelformats[index] if Assign actually adopted the
+  // source format. Image::Assign returns void and silently leaves the
+  // destination untouched on failure (held-buffer undersize, unknown src
+  // format, etc.); publishing a new format whose bytes never landed in the
+  // slot would make readers misinterpret the previous slot contents.
+  const AVPixelFormat src_fmt = capture_image->PixFormat();
   image_buffer[index]->Assign(*capture_image);
-  image_pixelformats[index] = capture_image->PixFormat();
+  if (image_buffer[index]->PixFormat() == src_fmt) {
+    image_pixelformats[index] = src_fmt;
+  } else {
+    Warning("WriteShmFrame: slot %u assign failed (dst fmt %s != src fmt %s); "
+            "keeping previously published pixelformat",
+            index, zm_get_pix_fmt_name(image_buffer[index]->PixFormat()),
+            zm_get_pix_fmt_name(src_fmt));
+  }
 }
 
 Image *Monitor::ReadShmFrame(unsigned int index) {

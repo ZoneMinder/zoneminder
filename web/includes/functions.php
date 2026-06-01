@@ -424,7 +424,7 @@ function htmlOptions($options, $values) {
   $has_selected = false;
   foreach ( $options as $value=>$option ) {
     $disabled = 0;
-    $text = '';
+    $text = $class = '';
     if ( is_array($option) ) {
 
       if ( isset($option['Name']) )
@@ -434,6 +434,9 @@ function htmlOptions($options, $values) {
 
       if ( isset($option['disabled']) ) {
         $disabled = $option['disabled'];
+      }
+      if ( isset($option['class']) ) {
+        $class = $option['class'];
       }
     } else if ( is_object($option) ) {
       $text = $option->Name();
@@ -450,6 +453,7 @@ function htmlOptions($options, $values) {
     $options_html .= '<option value="'.htmlspecialchars($value, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'"'.
       ($selected?' selected="selected"':'').
       ($disabled?' disabled="disabled"':'').
+      ($class?' class="'.htmlspecialchars($class, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'"':'').
       '>'.htmlspecialchars($text, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'</option>'.PHP_EOL;
   } # end foreach options
   if ( $values and ((!is_array($values)) or count($values) ) and ! $has_selected ) {

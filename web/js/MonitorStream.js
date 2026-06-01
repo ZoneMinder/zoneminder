@@ -7,7 +7,7 @@ function MonitorStream(monitorData) {
   this.name = monitorData.name;
   this.started = false;
   this.zmsState = null;
-  this.muted = (currentView == 'watch') ? !!getCookie('zmWatchMuted') : true;
+  this.muted = (currentView == 'watch') ? (getCookie('zmWatchMuted') !== 'false') : true;
   this.connKey = monitorData.connKey;
   this.genConnKey = function() {
     return (Math.floor((Math.random() * 999999) + 1)).toLocaleString('en-US', {minimumIntegerDigits: 6, useGrouping: false});
@@ -1093,7 +1093,7 @@ function MonitorStream(monitorData) {
       console.warn(`volumeSlider for monitor with ID=${this.id} not found`);
     }
     if (currentView != 'montage') {
-      setCookie('zmWatchMuted', audioStream.muted);
+      setCookie('zmWatchMuted', (audioStream.muted) ? 'true' : 'false');
       setCookie('zmWatchVolume', parseInt(audioStream.volume * 100));
     }
   };

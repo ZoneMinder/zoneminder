@@ -91,7 +91,7 @@ body.sticky #eventTable thead {
 }
 
 #downloadModal a.disabled {
-  cursor: not-allowed;
+  pointer-events: none;
   background-color: inherit;
   border-color: inherit;
   opacity: 0.5;

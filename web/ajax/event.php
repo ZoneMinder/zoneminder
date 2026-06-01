@@ -193,11 +193,13 @@ if ( canView('Events') or canView('Snapshots') ) {
     ajaxResponse();
     break;
   case 'file_existence_check' :
-    $fileNameArray = isset($_REQUEST['file_name_array']) ? $_REQUEST['file_name_array'] : [];
+    $fileNameArray = $_REQUEST['file_name_array'] ?? [];
     if (!is_array($fileNameArray)) ajaxError('The "file_name_array" request parameter is not an array');
     $result = [];
     foreach ($fileNameArray as $fileName) {
-      $result[] = [$fileName, file_exists($fileName)];
+      if (is_string($fileName) && $fileName !== '') {
+        $result[] = [$fileName, file_exists(DIR_EXPORTS_DOWNLOAD . DIRECTORY_SEPARATOR . $fileName)];
+      }
     }
     ajaxResponse(array('response'=>$result));
     break;

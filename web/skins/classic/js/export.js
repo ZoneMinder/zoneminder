@@ -65,11 +65,12 @@ function exportResponse(data, responseText) {
       const params = new URLSearchParams(fileForAutoDownload[i]);
       const exportRoot = (params.has('export_root')) ? params.get('export_root') : '';
       const filename = (params.has('file')) ? params.get('file') : '';
-      const filenamePath = (exportRoot) ? DIR_EXPORTS_DOWNLOAD + '/' + exportRoot + '/' + filename : DIR_EXPORTS_DOWNLOAD + '/' + filename;
+      const filenamePath = (exportRoot) ? exportRoot + '/' + filename : filename;
 
       filenamePathArray.push(filenamePath);
     }
 
+    if (fileExistencePollingInterval) clearInterval(fileExistencePollingInterval);
     fileExistencePollingInterval = setInterval(() => {
       $j.ajax({
         type: 'GET',
@@ -111,10 +112,10 @@ function checkedResponse(data, responseText) {
     for (let i = 0; i < data.response.length; i++) {
       if (data.response[i][1] === false) {
         nodeList.forEach(function(el) {
-          const params = new URLSearchParams(el.href);
+          const params = new URL(el.href).searchParams;
           const filename = (params.has('file')) ? params.get('file') : '';
           if (filename === data.response[i][0].split(/[\/]/).pop()) {
-            // In "data.response[i][0]" we will have the absolute path to the file. We only need to get the file name and compare it with "filename".
+            // When exporting unarchived events to "data.response[i][0]", we'll get the file path, including the exportRoot directory. We only need to get the file name and compare it with "filename".
             el.classList.add('disabled');
           }
         });

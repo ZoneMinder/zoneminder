@@ -169,15 +169,32 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
     }
   }
 
-  $detcameras = probeCameras('');
-  foreach ($detcameras as $camera) {
-    if (preg_match('|([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)|', $camera['monitor']['Host'], $matches)) {
-      $ip = $matches[1];
+  $monitors = dbFetchAll('SELECT Path FROM Monitors WHERE Deleted=false');
+  $monitorHosts = [];
+  if ($monitors) {
+    foreach ($monitors as $monitor) {
+      $_host = parse_url($monitor['Path'], PHP_URL_HOST);
+      if ($_host) {
+        $monitorHosts[] = $_host;
+      }
     }
-    $host = $ip;
+  }
+  $monitorHosts = array_unique($monitorHosts);
+
+  $detcameras = probeCameras('');
+  usort($detcameras, function($a, $b) {
+    return strcasecmp(parse_url($a['monitor']['Host'], PHP_URL_HOST) ?: '', parse_url($b['monitor']['Host'], PHP_URL_HOST) ?: '');
+  });
+  foreach ($detcameras as $camera) {
+    $host = parse_url($camera['monitor']['Host'], PHP_URL_HOST);
     $sourceDesc = base64_encode(json_encode($camera['monitor']));
-    $sourceString = $camera['model'].' @ '.$host.' using version '.$camera['monitor']['SOAP'];
-    $cameras[$sourceDesc] = $sourceString;
+    $sourceString = htmlspecialchars($camera['model'].' @ '.$host.' using version '.$camera['monitor']['SOAP']);
+
+    if ($host && in_array($host, $monitorHosts, true)) {
+      $cameras[$sourceDesc] = ['Name'=> $sourceString, 'class'=> 'monitor-added'];
+    } else {
+      $cameras[$sourceDesc] = $sourceString;
+    }
   }
 
   if (count($cameras) <= 0)
@@ -200,13 +217,13 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
 
   echo htmlSelect('interface', $interfaces,
     (isset($_REQUEST['interface']) ? $_REQUEST['interface'] : $default_interface),
-    array('data-on-change-this'=>'changeInterface') );
+    array('data-on-change-this'=>'changeInterface', 'class'=>'chosen') );
 ?>
         </p>
         <div id="DetectedCameras">
           <p>
             <label for="probe"><?php echo translate('DetectedCameras') ?></label>
-            <?php echo htmlSelect('probe', $cameras, null, array('data-on-change-this'=>'configureButtons')); ?>
+            <?php echo htmlSelect('probe', $cameras, null, array('data-on-change-this'=>'configureButtons', 'class'=>'chosen')); ?>
           </p>
           <p><?php echo translate('OnvifManualOr') ?></p>
           <p>
@@ -300,7 +317,7 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
         </p>
         <p>
           <label for="probe"><?php echo translate('DetectedProfiles') ?></label>
-          <?php echo htmlSelect('probe', $profiles, null, array('data-on-change-this'=>'configureButtons')); ?>
+          <?php echo htmlSelect('probe', $profiles, null, array('data-on-change-this'=>'configureButtons', 'class'=>'chosen')); ?>
         </p>
         <div id="contentButtons">
           <button type="button" name="prevBtn" data-on-click-this="gotoStep1"><?php echo translate('Prev') ?></button>

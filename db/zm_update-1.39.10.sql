@@ -1,4 +1,13 @@
 --
+-- Widen DefaultScale to preserve fit_to_width and repair previously truncated values.
+--
+
+ALTER TABLE Monitors MODIFY DefaultScale VARCHAR(16) NOT NULL default '0';
+UPDATE Monitors SET DefaultScale = 'fit_to_width' WHERE DefaultScale = 'fit_to';
+
+ALTER TABLE MonitorPresets MODIFY DefaultScale VARCHAR(16) NOT NULL default '0';
+UPDATE MonitorPresets SET DefaultScale = 'fit_to_width' WHERE DefaultScale = 'fit_to';
+
 -- This updates a 1.39.9 database to 1.39.10
 --
 -- Add a composite secondary index to increase query processing speed

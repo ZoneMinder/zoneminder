@@ -1089,7 +1089,7 @@ class Filter extends ZM_Object {
   // This displays filters from the events page.
   //
   public function simple_widget() {
-    $html = '<div id="fieldsTable" class="filterTable">';
+    $html = '<div id="fieldsTable" class="filterTable controlHeader">';
     $terms = $this->terms();
     $attrTypes = $this->attrTypes();
     $opTypes = $this->opTypes();

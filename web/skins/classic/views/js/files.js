@@ -1,9 +1,8 @@
-function setButtonStates(element) {
+function setButtonStates() {
   const form = document.getElementById('filesForm');
+  let disabled = true;
 
   if (canEdit.System) {
-    let disabled = true;
-
     const files = len=form.elements['files[]'];
     if (files) {
       for (let i=0, len=files.length; i<len; i++) {
@@ -13,13 +12,16 @@ function setButtonStates(element) {
         }
       }
     }
-    form.elements['action'].disabled = disabled;
-  } else {
-    form.elements['action'].disabled = true;
   }
+  document.getElementById('btnDeleteFiles').disabled = disabled;
 }
 
 function deleteFiles() {
+  const input = document.createElement('input');
+  input.type = 'hidden';
+  input.name = 'action';
+  input.value = 'delete';
+  document.getElementById('filesForm').appendChild(input);
   getDelConfirmModal('ConfirmDeleteFiles', 'Delete', 'filesForm');
 }
 

@@ -74,6 +74,10 @@ tr td input[type="radio"] {
   text-align: right;
 }
 
+#content {
+  padding-top: 0.5rem;
+}
+
 body.sticky #content {
   overflow-y: auto;
   height: 100%;
@@ -104,6 +108,11 @@ nav #pills-tab a.nav-link {
 
 nav #pills-tab .nav-item.form-control-sm {
   height: auto;
+}
+
+nav #pills-tab a.nav-link.active {
+  background-color: var(--colorBackgroundButtons);
+  border: 1px #ccc solid;
 }
 
 .EncoderParameters label {

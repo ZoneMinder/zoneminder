@@ -1,7 +1,7 @@
 <?php
 ini_set('display_errors', '0');
 
-if ( canView('Monitors') ) {
+if ( canView('Monitors') || (isset($_REQUEST['mid']) && $_REQUEST['mid'] !== '' && canView('Monitors', $_REQUEST['mid'])) ) {
   $mid = isset($_REQUEST['mid']) ? $_REQUEST['mid'] : null;
   if ($mid === null || $mid === '') {
     ajaxError(translate('RequestMissing') . ' "mid".');

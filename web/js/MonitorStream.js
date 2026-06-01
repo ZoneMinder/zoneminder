@@ -1690,10 +1690,11 @@ function MonitorStream(monitorData) {
       const webrtcUrl = Go2RTCModUrl;
       this.currentChannelStream = streamChannel;
       const streamSuffix = this.getStreamSuffix(streamChannel);
-      console.log('go2rtc stream:', this.id + streamSuffix);
+      const streamName = ZMGo2RTCStreamNames.getGo2RTCStreamName(this.id, this.name, streamSuffix);
+      console.log('go2rtc stream:', streamName);
       webrtcUrl.protocol = (url.protocol=='https:') ? 'wss:' : 'ws';
       webrtcUrl.pathname += "/ws";
-      webrtcUrl.search = 'src=' + this.id + streamSuffix;
+      webrtcUrl.search = new URLSearchParams({src: streamName}).toString();
       stream.src = webrtcUrl.href;
 
       this.webrtc = stream; // track separately do to api differences between video tag and video-stream

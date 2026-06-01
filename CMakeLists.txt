@@ -893,7 +893,17 @@ add_subdirectory(onvif)
 
 if(BUILD_TEST_SUITE)
   message("Building unit tests: Yes")
-  find_package(Catch2 REQUIRED)
+  find_package(Catch2 QUIET)
+  if(NOT Catch2_FOUND)
+    message(STATUS "Catch2 not found via find_package; fetching it with FetchContent")
+    include(FetchContent)
+    FetchContent_Declare(
+      Catch2
+      GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+      GIT_TAG v3.7.1
+    )
+    FetchContent_MakeAvailable(Catch2)
+  endif()
 
   include(CTest)
   add_subdirectory(tests)

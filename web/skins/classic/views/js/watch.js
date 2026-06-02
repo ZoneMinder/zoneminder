@@ -210,7 +210,7 @@ function streamCmdPlay(action) {
   }
 }
 
-function streamCmdStop(action) {
+function streamCmdStop() {
   monitorStream.onplay = false; //Without this line, "onPlay" is triggered immediately due to "if (this.onplay) this.onplay();" in MonitorStream.js
   //setButtonState('pauseBtn', 'inactive');
   //setButtonState('playBtn', 'unavail');
@@ -221,10 +221,8 @@ function streamCmdStop(action) {
     setButtonState('slowRevBtn', 'unavail');
     setButtonState('fastRevBtn', 'unavail');
   }
-  if (action) {
-
-  }
   monitorStream.stop();
+
   //setButtonState('stopBtn', 'unavail');
   //setButtonState('playBtn', 'active');
   setButtonStateWatch('playBtn', 'inactive');
@@ -1064,7 +1062,7 @@ function initPage() {
 
       function stopPlayback() {
         idleTimeoutTriggered = true;
-        streamCmdStop(true);
+        streamCmdStop();
         const cycle_was = cycle;
         cyclePause();
         let ayswModal = $j('#AYSWModal');
@@ -1360,7 +1358,7 @@ function monitorChangeStreamChannel() {
   monitorStream.currentChannelStream = streamChannel;
   setCookie('zmStreamChannel', streamChannel);
   if ((monitorStream.activePlayer) && (-1 !== monitorStream.activePlayer.indexOf('go2rtc') || -1 !== monitorStream.activePlayer.indexOf('rtsp2web'))) {
-    streamCmdStop(true);
+    streamCmdStop();
     setTimeout(function() {
       monitorStream.start(streamChannel);
       onPlay();
@@ -1376,7 +1374,7 @@ function changePlayer() {
   if (monitorStream.audioMotion && monitorStream.audioMotion.destroy) monitorStream.audioMotion.destroy();
 
   monitorStream.destroyVolumeSlider();
-  streamCmdStop(true); // takes care of button state and calls stream.kill()
+  streamCmdStop(); // takes care of button state and calls stream.kill()
   console.log('setting to ', $j('#player').val());
   monitorStream.setPlayer($j('#player').val());
   setChannelStream();

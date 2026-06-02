@@ -3,7 +3,7 @@ function setButtonStates() {
   let disabled = true;
 
   if (canEdit.System) {
-    const files = len=form.elements['files[]'];
+    const files = form.elements['files[]'];
     if (files) {
       for (let i=0, len=files.length; i<len; i++) {
         if (files[i].checked) {
@@ -17,11 +17,15 @@ function setButtonStates() {
 }
 
 function deleteFiles() {
-  const input = document.createElement('input');
-  input.type = 'hidden';
-  input.name = 'action';
+  const form = document.getElementById('filesForm');
+  let input = form.querySelector('input[name="action"]');
+  if (!input) {
+    input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'action';
+    form.appendChild(input);
+  }
   input.value = 'delete';
-  document.getElementById('filesForm').appendChild(input);
   getDelConfirmModal('ConfirmDeleteFiles', 'Delete', 'filesForm');
 }
 

@@ -223,6 +223,7 @@ int Monitor::Go2RTCManager::add_to_Go2RTC() {
   const std::string &primary_path = Use_RTSP_Restream ? rtsp_restream_path : rtsp_path;
   const std::string id_str = std::to_string(parent->Id());
   const std::string monitor_name = parent->Name();
+  const bool has_monitor_name = !monitor_name.empty() && monitor_name != id_str;
 
   const auto add_stream = [&](const std::string &stream_name,
                               const std::string &display_name,
@@ -248,14 +249,14 @@ int Monitor::Go2RTCManager::add_to_Go2RTC() {
     curl_easy_cleanup(curl);
     return -1;
   }
-  if (monitor_name != id_str) {
+  if (has_monitor_name) {
     add_stream(monitor_name, monitor_name, primary_path, "primary (monitor name)");
   }
 
   // Add ZoneMinder restream paths (when RTSP restreamer is enabled)
   if (Use_RTSP_Restream) {
     if (add_stream(id_str + "_ZoneMinderPrimary", monitor_name + " ZoneMinder Primary",
-                   rtsp_restream_path, "ZoneMinderPrimary (monitor ID)") && monitor_name != id_str) {
+                   rtsp_restream_path, "ZoneMinderPrimary (monitor ID)") && has_monitor_name) {
       add_stream(monitor_name + "_ZoneMinderPrimary", monitor_name + " ZoneMinder Primary",
                  rtsp_restream_path, "ZoneMinderPrimary (monitor name)");
     }
@@ -264,7 +265,7 @@ int Monitor::Go2RTCManager::add_to_Go2RTC() {
   // Add direct camera paths
   if (!rtsp_path.empty()) {
     if (add_stream(id_str + "_CameraDirectPrimary", monitor_name + " Camera Direct Primary",
-                   rtsp_path, "CameraDirectPrimary (monitor ID)") && monitor_name != id_str) {
+                   rtsp_path, "CameraDirectPrimary (monitor ID)") && has_monitor_name) {
       add_stream(monitor_name + "_CameraDirectPrimary", monitor_name + " Camera Direct Primary",
                  rtsp_path, "CameraDirectPrimary (monitor name)");
     }
@@ -272,7 +273,7 @@ int Monitor::Go2RTCManager::add_to_Go2RTC() {
 
   if (!rtsp_second_path.empty()) {
     if (add_stream(id_str + "_CameraDirectSecondary", monitor_name + " Camera Direct Secondary",
-                   rtsp_second_path, "CameraDirectSecondary (monitor ID)") && monitor_name != id_str) {
+                   rtsp_second_path, "CameraDirectSecondary (monitor ID)") && has_monitor_name) {
       add_stream(monitor_name + "_CameraDirectSecondary", monitor_name + " Camera Direct Secondary",
                  rtsp_second_path, "CameraDirectSecondary (monitor name)");
     }

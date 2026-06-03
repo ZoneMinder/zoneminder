@@ -361,8 +361,12 @@ bool Image::Assign(const AVFrame *frame) {
   }
   zm_dump_video_frame(frame, "source frame in Image::Assign");
 
-  AVPixelFormat format = (AVPixelFormat)AVPixFormat();
-  AVPixelFormat src_fmt = static_cast<AVPixelFormat>(frame->format);
+  // imagePixFormat is the canonical destination format; the deprecated
+  // AVPixFormat() getter re-derives via (colours, subpixelorder) and would
+  // pick the wrong swscale target if those legacy fields drift out of sync
+  // (e.g. the GRAY8/YUV420P alias collision).
+  const AVPixelFormat format = imagePixFormat;
+  const AVPixelFormat src_fmt = static_cast<AVPixelFormat>(frame->format);
 
   // If source and destination format + dimensions match, do a direct plane
   // copy instead of running through sws_scale. This avoids the overhead of
@@ -370,9 +374,8 @@ bool Image::Assign(const AVFrame *frame) {
   if (src_fmt == format
       && frame->width == static_cast<int>(width)
       && frame->height == static_cast<int>(height)) {
-    const char *fmt_name = av_get_pix_fmt_name(format);
     Debug(4, "Same format %s %dx%d, using av_image_copy",
-          fmt_name ? fmt_name : "unknown", width, height);
+          zm_get_pix_fmt_name(format), width, height);
     av_frame_ptr temp_frame{av_frame_alloc()};
     if (!temp_frame) {
       Error("Unable to allocate destination frame");

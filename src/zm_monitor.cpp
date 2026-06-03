@@ -1475,13 +1475,22 @@ int Monitor::GetImage(int32_t index, int scale) {
     Debug(1, "Invalid index %d passed. image_buffer_count = %d", index, image_buffer_count);
     index = shared_data->last_write_index;
   }
-  if (!image_buffer.size() or static_cast<size_t>(index) >= image_buffer.size()) {
+  if (!image_buffer.size()) {
     Error("Image Buffer has not been allocated");
     return -1;
   }
-  if ( index == image_buffer_count ) {
+  // Check the sentinel BEFORE the bounds check: when last_write_index is
+  // still image_buffer_count (no frames written yet), index equals the
+  // sentinel which also equals image_buffer.size(), so a plain bounds
+  // check would mask the intended "no images" branch and log a misleading
+  // "buffer not allocated" error.
+  if (index == image_buffer_count) {
     Error("Unable to generate image, no images in buffer");
     return 0;
+  }
+  if (static_cast<size_t>(index) >= image_buffer.size()) {
+    Error("Image Buffer has not been allocated");
+    return -1;
   }
 
   // Route the slot read through ReadShmFrame so the per-slot AVPixelFormat
@@ -1513,22 +1522,28 @@ std::shared_ptr<ZMPacket> Monitor::getSnapshot(int index) {
   if ((index < 0) || (index >= image_buffer_count)) {
     index = shared_data->last_write_index;
   }
-  if (!image_buffer.size() or static_cast<size_t>(index) >= image_buffer.size()) {
+  if (!image_buffer.size()) {
     Error("Image Buffer has not been allocated");
     return nullptr;
   }
-  if (index != image_buffer_count) {
-    // ReadShmFrame syncs image_buffer[index] to the per-slot format that
-    // zmc wrote, so the ZMPacket consumer can read its bytes in the
-    // correct format instead of the placeholder set at attach time.
-    Image *src = ReadShmFrame(index);
-    std::shared_ptr<ZMPacket> packet = std::make_shared<ZMPacket> (src,
-                        SystemTimePoint(zm::chrono::duration_cast<Microseconds>(shared_timestamps[index])));
-    return packet;
-  } else {
+  // Sentinel before bounds: index == image_buffer_count means "no frames
+  // written yet" (last_write_index is still the sentinel). Without this
+  // ordering the bounds check below would fire first and log a misleading
+  // "buffer not allocated" error.
+  if (index == image_buffer_count) {
     Error("Unable to generate image, no images in buffer");
+    return nullptr;
   }
-  return nullptr;
+  if (static_cast<size_t>(index) >= image_buffer.size()) {
+    Error("Image Buffer has not been allocated");
+    return nullptr;
+  }
+  // ReadShmFrame syncs image_buffer[index] to the per-slot format that
+  // zmc wrote, so the ZMPacket consumer can read its bytes in the
+  // correct format instead of the placeholder set at attach time.
+  Image *src = ReadShmFrame(index);
+  return std::make_shared<ZMPacket>(src,
+      SystemTimePoint(zm::chrono::duration_cast<Microseconds>(shared_timestamps[index])));
 }
 
 SystemTimePoint Monitor::GetTimestamp(int index) {

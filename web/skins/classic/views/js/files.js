@@ -3,8 +3,9 @@ function setButtonStates() {
   let disabled = true;
 
   if (canEdit.System) {
-    const files = form.elements['files[]'];
+    let files = form.elements['files[]'];
     if (files) {
+      if (!('length' in files)) files = [files];
       for (let i=0, len=files.length; i<len; i++) {
         if (files[i].checked) {
           disabled = false;

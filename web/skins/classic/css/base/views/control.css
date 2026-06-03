@@ -37,6 +37,19 @@
     padding: 0;
 }
 
+.ptzControls .controlsPanel .lightControls {
+    flex-basis: 100%;
+    width: 100%;
+    margin: 5px auto;
+    text-align: center;
+}
+
+/* Lit/amber when the camera reports the light is on; clicking then turns it off. */
+.ptzControls .controlsPanel .lightToggleBtn.active {
+    background-color: #ffc107;
+    color: #000;
+}
+
 .ptzControls .controlsPanel .arrowControl button.longArrowBtn {
     display: block;
 }

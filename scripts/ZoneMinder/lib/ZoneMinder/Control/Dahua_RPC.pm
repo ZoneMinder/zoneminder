@@ -282,6 +282,140 @@ sub reboot {
   $self->reset();
 }
 
+# Build the CoaxialControlIO.control params for the white light.
+# Pure function (no $self) so it is unit-testable without a camera.
+# $io: 1 = on, 2 = off. Type 1 = white light (Type 2 = siren, intentionally unused).
+# IO/TriggerMode are numeric: the camera rejects string "On"/"Off"/"Manual".
+sub coaxial_white_payload {
+  my ($io) = @_;
+  return { channel => 0, info => [ { Type => 1, IO => $io + 0, TriggerMode => 1 } ] };
+}
+
+sub coaxial_white {
+  my ($self, $io) = @_;
+  return $self->rpc_call('CoaxialControlIO.control', coaxial_white_payload($io));
+}
+
+sub lightOn  { my $self = shift; $self->coaxial_white(1); }
+sub lightOff { my $self = shift; $self->coaxial_white(2); }
+
+# Query the current white-light state. Returns { WhiteLight => 'On'|'Off'|undef }.
+# Used by the status-aware single-button toggle in the web UI.
+sub lightStatus {
+  my $self = shift;
+  my $r = $self->rpc_call('CoaxialControlIO.getStatus', { channel => 0 });
+  my $status = ($r and ref($r) eq 'HASH' and $r->{params}) ? $r->{params}{status} : undef;
+  return { WhiteLight => ($status ? $status->{WhiteLight} : undef) };
+}
+
+# ---------------------------------------------------------------------------
+# Config / probe interface
+# ---------------------------------------------------------------------------
+
+# Return a hashref of the camera's current readable state via RPC.
+# Used by zmcontrol direct mode: zmcontrol.pl --protocol Dahua_RPC --address ... --command get_config
+sub get_config {
+  my $self = shift;
+  my %cfg;
+
+  # Identity
+  for my $m (qw(magicBox.getDeviceType magicBox.getSoftwareVersion magicBox.getProductDefinition)) {
+    my $r = $self->rpc_call($m);
+    $cfg{$m} = $r->{params} if $r and $r->{result} and $r->{params};
+  }
+
+  # PTZ
+  my $ptz_obj = $self->ensure_ptz_object();
+  if (defined $ptz_obj) {
+    for my $m (qw(ptz.getCurrentProtocolCaps ptz.getStatus ptz.getPresets)) {
+      my $r = $self->rpc_call($m, {channel => 0}, object => $ptz_obj);
+      $cfg{$m} = $r->{params} if $r and $r->{result} and $r->{params};
+      $cfg{$m.'_error'} = $r->{error}{message} if $r and !$r->{result} and $r->{error};
+    }
+  }
+
+  # Coaxial (light/siren)
+  for my $m (qw(CoaxialControlIO.getCaps CoaxialControlIO.getStatus)) {
+    my $r = $self->rpc_call($m, {channel => 0});
+    $cfg{$m} = $r->{params} if $r and $r->{result} and $r->{params};
+    $cfg{$m.'_error'} = $r->{error}{message} if $r and !$r->{result} and $r->{error};
+  }
+
+  # Named configs
+  for my $n (qw(Lighting Lighting_V2 LightGlobal PtzPreset WorkMode)) {
+    my $r = $self->rpc_call('configManager.getConfig', {name => $n});
+    $cfg{"config.$n"} = $r->{params}{table} if $r and $r->{result} and $r->{params};
+    $cfg{"config.$n".'_error'} = $r->{error}{message} if $r and !$r->{result} and $r->{error};
+  }
+
+  return \%cfg;
+}
+
+# Write a named config blob back to the camera.
+# $diff should be { name => 'Lighting', table => [...] } matching the Dahua configManager shape.
+sub set_config {
+  my ($self, $diff) = @_;
+  return undef unless ref($diff) eq 'HASH' and $diff->{name} and exists $diff->{table};
+  my $r = $self->rpc_call('configManager.setConfig', $diff);
+  return $r ? $r->{result} : undef;
+}
+
+# Probe the camera's capabilities: everything get_config returns, plus test
+# which interfaces respond vs. return InterfaceNotFound. Useful for
+# characterising an unknown Dahua/Amcrest model without writing ad-hoc scripts.
+#   zmcontrol.pl --protocol Dahua_RPC --address admin:pass@IP --command probe
+sub probe {
+  my $self = shift;
+  my %out;
+
+  # --- identity ---
+  for my $m (qw(magicBox.getDeviceType magicBox.getSoftwareVersion magicBox.getProductDefinition)) {
+    my $r = $self->rpc_call($m);
+    if ($r and $r->{result}) {
+      $out{identity}{$m} = $r->{params};
+    } else {
+      $out{identity}{$m} = 'unavailable: '.($r->{error}{message}//'no result');
+    }
+  }
+
+  # --- PTZ ---
+  my $ptz_obj = $self->ensure_ptz_object();
+  $out{ptz}{instance} = defined $ptz_obj ? "handle=$ptz_obj" : 'unavailable';
+  if (defined $ptz_obj) {
+    for my $m (qw(ptz.getCurrentProtocolCaps ptz.getStatus ptz.getPresets)) {
+      my $r = $self->rpc_call($m, {channel => 0}, object => $ptz_obj);
+      $out{ptz}{$m} = ($r and $r->{result}) ? $r->{params} : ($r->{error}{message}//'?');
+    }
+    # Test a safe ptz.start (GotoPreset 0 — no physical movement on most models)
+    my $t = $self->rpc_call('ptz.start', {code=>'GotoPreset',arg1=>0,arg2=>0,arg3=>0,channel=>0}, object=>$ptz_obj);
+    $out{ptz}{'ptz.start(GotoPreset)'} = ($t and $t->{result}) ? 'accepted' : ($t->{error}{message}//'?');
+  }
+
+  # --- Coaxial (light/siren/deterrence) ---
+  for my $m (qw(CoaxialControlIO.getCaps CoaxialControlIO.getStatus)) {
+    my $r = $self->rpc_call($m, {channel => 0});
+    $out{coaxial}{$m} = ($r and $r->{result}) ? $r->{params} : ($r->{error}{message}//'?');
+  }
+
+  # --- Named configs ---
+  for my $n (qw(Lighting Lighting_V2 LightGlobal LightingControl PtzPreset
+                WorkMode AlarmLocal CoaxialControlIO WhiteLight ExAlarmDeterrence)) {
+    my $r = $self->rpc_call('configManager.getConfig', {name => $n});
+    $out{config}{$n} = ($r and $r->{result}) ? $r->{params}{table} : ($r->{error}{message}//'?');
+  }
+
+  # --- Reachability of control methods (read-only tests) ---
+  for my $m (qw(magicBox.reboot system.listMethod)) {
+    my $r = $self->rpc_call($m);
+    # We only check if the method exists (reboot intentionally not sent; listMethod is safe)
+    $out{methods}{$m} = ($r and defined $r->{result})
+      ? ($r->{result} ? 'available' : 'error: '.($r->{error}{message}//'?'))
+      : 'unreachable';
+  }
+
+  return \%out;
+}
+
 1;
 __END__
 

@@ -131,6 +131,7 @@ CREATE TABLE `Controls` (
   `HasWhiteSpeed` tinyint(3) unsigned NOT NULL default '0',
   `MinWhiteSpeed` int(10) unsigned default NULL,
   `MaxWhiteSpeed` int(10) unsigned default NULL,
+  `CanLight` tinyint(3) unsigned NOT NULL default '0',
   `HasPresets` tinyint(3) unsigned NOT NULL default '0',
   `NumPresets` tinyint(3) unsigned NOT NULL default '0',
   `HasHomePreset` tinyint(3) unsigned NOT NULL default '0',
@@ -1213,7 +1214,7 @@ INSERT INTO `Controls` VALUES (NULL,'FOSCAMR2C','Libvlc','FOSCAMR2C',1,1,1,0,0,0
 INSERT INTO `Controls` VALUES (NULL,'Amcrest HTTP API','Ffmpeg','Amcrest_HTTP',0,0,1,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,5,0,0,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,5);
 INSERT INTO `Controls` (`Name`,`Type`,`Protocol`,`CanReset`,`CanReboot`,`CanZoom`,`CanZoomCon`,`HasPresets`,`NumPresets`,`HasHomePreset`,`CanSetPresets`,`CanMove`,`CanMoveDiag`,`CanMoveCon`,`CanPan`,`CanTilt`) VALUES ('Dahua/Amcrest RPC','Ffmpeg','Dahua_RPC',1,1,1,1,1,25,1,1,1,1,1,1,1);
 INSERT INTO `Controls` (`Name`,`Type`,`Protocol`,`CanReset`,`CanReboot`,`CanZoom`,`CanZoomCon`,`HasPresets`,`NumPresets`,`HasHomePreset`,`CanSetPresets`,`CanMove`,`CanMoveDiag`,`CanMoveCon`,`CanPan`,`CanTilt`) VALUES ('Amcrest ASH21-B RPC','Ffmpeg','Dahua_RPC',1,1,0,0,0,0,0,0,1,0,1,1,1);
-INSERT INTO `Controls` (`Name`,`Type`,`Protocol`,`CanReset`,`CanReboot`,`CanZoom`,`CanZoomCon`,`HasPresets`,`NumPresets`,`HasHomePreset`,`CanSetPresets`,`CanMove`,`CanMoveDiag`,`CanMoveCon`,`CanPan`,`CanTilt`) VALUES ('Amcrest ADC2W RPC','Ffmpeg','Dahua_RPC',1,1,0,0,0,0,0,0,0,0,0,0,0);
+INSERT INTO `Controls` (`Name`,`Type`,`Protocol`,`CanReset`,`CanReboot`,`CanZoom`,`CanZoomCon`,`HasPresets`,`NumPresets`,`HasHomePreset`,`CanSetPresets`,`CanMove`,`CanMoveDiag`,`CanMoveCon`,`CanPan`,`CanTilt`,`CanLight`) VALUES ('Amcrest ADC2W RPC','Ffmpeg','Dahua_RPC',1,1,0,0,0,0,0,0,0,0,0,0,0,1);
 INSERT INTO `Controls` VALUES (NULL,'ONVIF','Ffmpeg','ONVIF',0,0,1,1,1,0,0,0,1,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,1,0,1,0,0,0,100,1,1,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,1,0,1,0,0,0,100,1,1,0,NULL,NULL,1,20,1,1,1,1,1,0,1,1,1,NULL,NULL,NULL,NULL,0,NULL,NULL,0,NULL,1,NULL,NULL,NULL,NULL,0,NULL,NULL,0,NULL,0,0);
 
 --

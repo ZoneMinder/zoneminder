@@ -204,6 +204,7 @@ $SLANG = array(
     'CanWhiteBal'           => 'Can White Bal.',
     'CanWhite'              => 'Can White Balance',
     'CanWhiteCon'           => 'Can White Bal. Continuous',
+    'CanLight'              => 'Can Light',
     'CanWhiteRel'           => 'Can White Bal. Relative',
     'CanZoomAbs'            => 'Can Zoom Absolute',
     'CanZoom'               => 'Can Zoom',

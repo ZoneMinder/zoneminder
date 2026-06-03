@@ -46,6 +46,7 @@ $controls = dbFetchAll('SELECT * FROM Controls ORDER BY Name');
             <th class="colCanFocus" data-sortable="true" data-field="CanFocus"><?php echo translate('CanFocus') ?></th>
             <th class="colCanIris" data-sortable="true" data-field="CanIris"><?php echo translate('CanIris') ?></th>
             <th class="colCanWhiteBal" data-sortable="true" data-field="CanWhiteBal"><?php echo translate('CanWhiteBal') ?></th>
+            <th class="colCanLight" data-sortable="true" data-field="CanLight"><?php echo translate('CanLight') ?></th>
             <th class="colHasPresets" data-sortable="true" data-field="HasPresets"><?php echo translate('HasPresets') ?></th>
           </tr>
         </thead>
@@ -64,6 +65,7 @@ foreach( $controls as $control ) {
             <td class="colCanFocus"><?php echo $control['CanFocus']?translate('Yes'):translate('No') ?></td>
             <td class="colCanIris"><?php echo $control['CanIris']?translate('Yes'):translate('No') ?></td>
             <td class="colCanWhiteBal"><?php echo $control['CanWhite']?translate('Yes'):translate('No') ?></td>
+            <td class="colCanLight"><?php echo $control['CanLight']?translate('Yes'):translate('No') ?></td>
             <td class="colHasPresets"><?php echo $control['HasHomePreset']?'H':'' ?><?php echo $control['HasPresets']?$control['NumPresets']:'0' ?></td>
           </tr>
 <?php

@@ -398,6 +398,31 @@ function getControlResponse(respObj, respText) {
   }
 }
 
+// Query the camera's light state (opt-in two-way control command) and reflect
+// it on the single light toggle button.
+function lightStatusReq() {
+  if (!$j('.lightToggleBtn').length) return;
+  const data = {control: 'lightStatus', response: 1};
+  if (auth_hash) data.auth = auth_hash;
+  $j.getJSON(monitorUrl + '?view=request&request=control&id='+monitorId, data)
+      .done(updateLightButton)
+      .fail(logAjaxFail);
+}
+
+function updateLightButton(respObj) {
+  const btn = $j('.lightToggleBtn');
+  if (!btn.length) return;
+  const state = (respObj && respObj.status) ? respObj.status.WhiteLight : null;
+  if (state == 'On') {
+    // Light is on: highlight the button; clicking turns it off.
+    btn.addClass('active').val(btn.attr('data-off-cmd'));
+  } else if (state == 'Off') {
+    btn.removeClass('active').val(btn.attr('data-on-cmd'));
+  }
+  // Unknown state (no daemon reply / remote server): leave the default
+  // (un-highlighted, sends the on command) as a plain toggle.
+}
+
 function controlCmd(event) {
   button = event.target;
 
@@ -1133,6 +1158,15 @@ function initPage() {
     });
   } else {
     alert("No monitor found for id "+monitorId);
+  }
+
+  // Status-aware light toggle: initialise from the camera and re-query after
+  // each click so the button tracks the real state.
+  if ($j('.lightToggleBtn').length) {
+    lightStatusReq();
+    $j(document).on('click', '.lightToggleBtn', function() {
+      setTimeout(lightStatusReq, 800);
+    });
   }
 } // initPage
 

@@ -22,6 +22,14 @@ if (!$Event->Id()) {
   header('HTTP/1.1 404 Not Found');
   die('Event not found');
 }
+// Per-event ACL: coarse canView('Events') isn't enough — the user may be denied
+// access to the monitor that owns this event (GHSA-vj5r-pc2v-gfwv). Return the
+// same 404 as a missing event so the id isn't leaked.
+if (!$Event->canView()) {
+  ZM\Warning('Event '.$_REQUEST['eid'].' HLS access denied');
+  header('HTTP/1.1 404 Not Found');
+  die('Event not found');
+}
 
 $m3u8_path = $Event->Path() . '/index.m3u8';
 

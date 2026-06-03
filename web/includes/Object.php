@@ -24,7 +24,7 @@ class ZM_Object {
         $table = $class::$table;
         $row = dbFetchOne("SELECT * FROM `$table` WHERE `Id`=?", NULL, array($IdOrRow));
         if (!$row) {
-          Error("Unable to load $class record for Id=$IdOrRow");
+          Warning("Unable to load $class record for Id=$IdOrRow");
           return;
         }
       } else {

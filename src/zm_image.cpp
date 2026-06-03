@@ -992,21 +992,25 @@ void Image::Assign(
     return;
   }
 
-  // Derive the required byte size from the AVPixelFormat. The legacy
-  // width*height*colours formula undercounts planar formats like YUV420P
-  // (colours==1 but chroma planes exist), leading to partial copies and
-  // corrupted output.
-  int raw_size = av_image_get_buffer_size(new_pix_fmt, p_width, p_height, 32);
-  if (raw_size < 0) {
-    Error("av_image_get_buffer_size failed (%d) for %s %ux%u",
-          raw_size, av_get_pix_fmt_name(new_pix_fmt), p_width, p_height);
+  // Source and destination may use different alignment. Callers pass
+  // device-side buffers sized at align=1 (e.g. Camera::ImageSize() is now
+  // packed) while ZM's internal Image keeps a 32-byte-aligned layout for
+  // SIMD. Validate the source size against the packed layout and the
+  // destination/allocation against the aligned layout, then copy
+  // plane-by-plane so per-row padding doesn't read past the source.
+  int packed_size = av_image_get_buffer_size(new_pix_fmt, p_width, p_height, 1);
+  int aligned_size = av_image_get_buffer_size(new_pix_fmt, p_width, p_height, 32);
+  if (packed_size < 0 || aligned_size < 0) {
+    Error("av_image_get_buffer_size failed (%d/%d) for %s %ux%u",
+          packed_size, aligned_size, av_get_pix_fmt_name(new_pix_fmt), p_width, p_height);
     return;
   }
-  unsigned int new_size = static_cast<unsigned int>(raw_size);
-  if ( buffer_size < new_size ) {
-    Error("Attempt to assign buffer from an undersized buffer of size: %zu (need %u)", buffer_size, new_size);
+  if (buffer_size < static_cast<size_t>(packed_size)) {
+    Error("Attempt to assign buffer from an undersized buffer of size: %zu (need %d packed)",
+          buffer_size, packed_size);
     return;
   }
+  const unsigned int new_size = static_cast<unsigned int>(aligned_size);
 
   if ( !buffer || p_width != width || p_height != height || p_colours != colours || p_subpixelorder != subpixelorder ) {
 
@@ -1035,8 +1039,27 @@ void Image::Assign(
     linesize = FFALIGN(av_image_get_linesize(new_pix_fmt, p_width, 0), 32);
   }
 
-  if ( new_buffer != buffer )
-    (*fptr_imgbufcpy)(buffer, new_buffer, size);
+  if (new_buffer != buffer) {
+    // Plane-aware copy: src is laid out packed (align=1), dst is laid out
+    // aligned (align=32). av_image_copy walks each plane using its own
+    // src/dst linesize so per-row padding doesn't read past the source.
+    uint8_t *src_data[4] = {nullptr, nullptr, nullptr, nullptr};
+    int src_strides[4] = {0, 0, 0, 0};
+    uint8_t *dst_data[4] = {nullptr, nullptr, nullptr, nullptr};
+    int dst_strides[4] = {0, 0, 0, 0};
+    if (av_image_fill_arrays(src_data, src_strides,
+                             const_cast<uint8_t *>(new_buffer),
+                             new_pix_fmt, p_width, p_height, 1) < 0
+        || av_image_fill_arrays(dst_data, dst_strides, buffer,
+                                new_pix_fmt, p_width, p_height, 32) < 0) {
+      Error("Assign: av_image_fill_arrays failed for %s %ux%u",
+            av_get_pix_fmt_name(new_pix_fmt), p_width, p_height);
+      return;
+    }
+    av_image_copy(dst_data, dst_strides,
+                  const_cast<const uint8_t **>(src_data), src_strides,
+                  new_pix_fmt, p_width, p_height);
+  }
   update_function_pointers();
 }
 

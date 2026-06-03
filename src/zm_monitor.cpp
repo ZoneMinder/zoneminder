@@ -1429,14 +1429,14 @@ Image *Monitor::GetAlarmImage() {
       unsigned int probe_colours, probe_subpix;
       if (!zm_colours_from_pixformat(fmt, probe_colours, probe_subpix)) {
         Warning("GetAlarmImage: ignoring unsupported pixelformat %d; keeping current %s",
-                fmt, av_get_pix_fmt_name(alarm_image.PixFormat()));
+                fmt, zm_get_pix_fmt_name(alarm_image.PixFormat()));
       } else {
         int required = av_image_get_buffer_size(fmt, width, height, 32);
         if (required < 0 || static_cast<size_t>(required) > shm_slot_size) {
           Warning("GetAlarmImage: format %s requires %d bytes but slot capacity is %zu; "
                   "keeping current %s",
-                  av_get_pix_fmt_name(fmt), required, shm_slot_size,
-                  av_get_pix_fmt_name(alarm_image.PixFormat()));
+                  zm_get_pix_fmt_name(fmt), required, shm_slot_size,
+                  zm_get_pix_fmt_name(alarm_image.PixFormat()));
         } else {
           alarm_image.AVPixFormat(fmt);
         }
@@ -3039,15 +3039,15 @@ Image *Monitor::ReadShmFrame(unsigned int index) {
   unsigned int probe_colours, probe_subpix;
   if (!zm_colours_from_pixformat(fmt, probe_colours, probe_subpix)) {
     Warning("ReadShmFrame: ignoring unsupported pixelformat %d in slot %u; keeping current %s",
-            fmt, index, av_get_pix_fmt_name(image_buffer[index]->PixFormat()));
+            fmt, index, zm_get_pix_fmt_name(image_buffer[index]->PixFormat()));
     return image_buffer[index];
   }
   int required = av_image_get_buffer_size(fmt, width, height, 32);
   if (required < 0 || static_cast<size_t>(required) > shm_slot_size) {
     Warning("ReadShmFrame: format %s requires %d bytes but slot %u capacity is %zu; "
             "keeping current %s to avoid overrun",
-            av_get_pix_fmt_name(fmt), required, index, shm_slot_size,
-            av_get_pix_fmt_name(image_buffer[index]->PixFormat()));
+            zm_get_pix_fmt_name(fmt), required, index, shm_slot_size,
+            zm_get_pix_fmt_name(image_buffer[index]->PixFormat()));
     return image_buffer[index];
   }
   image_buffer[index]->AVPixFormat(fmt);

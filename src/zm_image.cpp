@@ -789,6 +789,12 @@ uint8_t* Image::WriteBuffer(
 
 void Image::AssignDirect(const AVFrame *frame) {
   auto invalidate = [&]() {
+    // Release any previously-owned buffer before overwriting buffer/buffertype;
+    // a held (DONTFREE) buffer is left in place by DumpImgBuffer, so this is
+    // safe whether the Image currently owns its memory or wraps somebody
+    // else's. Without this step a ZM_BUFTYPE_ZM allocation would be leaked
+    // every time AssignDirect(frame) hits the invalidate path.
+    DumpImgBuffer();
     width = 0;
     height = 0;
     pixels = 0;
@@ -852,6 +858,12 @@ void Image::AssignDirect(const AVFrame *frame) {
     }
   }
 
+  // Release any previously-owned buffer before we replace it with
+  // frame->data[0]. DumpImgBuffer is a no-op for DONTFREE buffers, so this
+  // is safe whether the Image currently owns its memory or wraps somebody
+  // else's. Without this step a ZM_BUFTYPE_ZM allocation would be leaked
+  // every time AssignDirect(frame) succeeds.
+  DumpImgBuffer();
   width = frame->width;
   height = frame->height;
   buffer = frame->data[0];

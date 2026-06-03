@@ -87,7 +87,7 @@ Camera::Camera(
     int raw_imagesize = av_image_get_buffer_size(pixelFormat, width, height, 1);
     if (raw_linesize < 0 || raw_imagesize < 0) {
       Error("Camera: av_image_get_* returned %d/%d for pixelFormat=%s; falling back",
-            raw_linesize, raw_imagesize, av_get_pix_fmt_name(pixelFormat));
+            raw_linesize, raw_imagesize, zm_get_pix_fmt_name(pixelFormat));
       linesize = width * colours;
       imagesize = static_cast<unsigned long long>(height) * linesize;
     } else {

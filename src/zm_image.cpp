@@ -733,7 +733,9 @@ uint8_t* Image::WriteBuffer(
 
   AVPixelFormat p_pixfmt = zm_pixformat_from_colours(p_colours, p_subpixelorder);
   if (p_pixfmt == AV_PIX_FMT_NONE) {
-    Error("WriteBuffer called with unexpected colours: %d", p_colours);
+    Error("WriteBuffer called with unsupported (colours=%u, subpixelorder=%u) pair; "
+          "no AVPixelFormat mapping",
+          p_colours, p_subpixelorder);
     return nullptr;
   }
 

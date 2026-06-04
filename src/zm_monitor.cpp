@@ -1489,7 +1489,8 @@ int Monitor::GetImage(int32_t index, int scale) {
     return 0;
   }
   if (static_cast<size_t>(index) >= image_buffer.size()) {
-    Error("Image Buffer has not been allocated");
+    Error("GetImage: index %d out of range (image_buffer.size() = %zu)",
+          index, image_buffer.size());
     return -1;
   }
 
@@ -1535,7 +1536,8 @@ std::shared_ptr<ZMPacket> Monitor::getSnapshot(int index) {
     return nullptr;
   }
   if (static_cast<size_t>(index) >= image_buffer.size()) {
-    Error("Image Buffer has not been allocated");
+    Error("getSnapshot: index %d out of range (image_buffer.size() = %zu)",
+          index, image_buffer.size());
     return nullptr;
   }
   // ReadShmFrame syncs image_buffer[index] to the per-slot format that

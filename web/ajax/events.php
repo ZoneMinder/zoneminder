@@ -272,7 +272,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   } # end foreach row
 
   # Filter limits come before pagination limits.
-  if ($filter->limit() and ($filter->limit() > count($unfiltered_rows))) {
+  if ($filter->limit() and ($filter->limit() < count($unfiltered_rows))) {
     ZM\Debug("Filtering rows due to filter->limit " . count($unfiltered_rows)." limit: ".$filter->limit());
     $unfiltered_rows = array_slice($unfiltered_rows, 0, $filter->limit());
   }

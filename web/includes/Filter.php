@@ -116,7 +116,8 @@ class Filter extends ZM_Object {
     if ( ! isset($this->_pre_sql_conditions) ) {
       $this->_pre_sql_conditions = array();
       foreach ( $this->FilterTerms() as $term ) {
-        if ( $term->is_pre_sql() )
+        // Invalid terms add no SQL, so must not count as a condition.
+        if ( $term->is_pre_sql() and $term->valid() )
           $this->_pre_sql_conditions[] = $term;
       } # end foreach term
     }
@@ -128,7 +129,8 @@ class Filter extends ZM_Object {
     if ( ! isset($this->_post_sql_conditions) ) {
       $this->_post_sql_conditions = array();
       foreach ( $this->FilterTerms() as $term ) {
-        if ( $term->is_post_sql() )
+        // Invalid terms add no SQL, so must not count as a condition.
+        if ( $term->is_post_sql() and $term->valid() )
           $this->_post_sql_conditions[] = $term;
       } # end foreach term
     }

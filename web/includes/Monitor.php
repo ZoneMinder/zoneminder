@@ -870,6 +870,55 @@ class Monitor extends ZM_Object {
     return true;
   } // end function sendControlCommand($mid, $command)
 
+  // Send an opt-in query command to the local zmcontrol daemon and return the
+  // decoded 'result' it writes back (e.g. a light status). Returns null if no
+  // running daemon, a remote server, or no reply. Fire-and-forget commands are
+  // unaffected; only this path sets wants_response so zmcontrol replies.
+  public function sendControlCommandWithResponse($command) {
+    $options = array();
+    foreach (explode(' ', $command) as $option) {
+      if (preg_match('/--([^=]+)(?:=(.+))?/', $option, $matches)) {
+        $options[$matches[1]] = isset($matches[2]) ? $matches[2] : 1;
+      }
+    }
+    if (!count($options))
+      return null;
+    $options['wants_response'] = 1;
+
+    # Live status is only available from the local recording server's daemon.
+    if (defined('ZM_SERVER_ID') and property_exists($this, 'ServerId') and ZM_SERVER_ID != $this->{'ServerId'})
+      return null;
+
+    $sockFile = ZM_PATH_SOCKS.'/zmcontrol-'.$this->{'Id'}.'.sock';
+    $socket = socket_create(AF_UNIX, SOCK_STREAM, 0);
+    if ($socket < 0) {
+      Error('socket_create() failed: '.socket_strerror($socket));
+      return null;
+    }
+    if (!@socket_connect($socket, $sockFile)) {
+      # No running control daemon to answer.
+      socket_close($socket);
+      return null;
+    }
+    socket_set_option($socket, SOL_SOCKET, SO_RCVTIMEO, array('sec'=>5, 'usec'=>0));
+    if (!socket_write($socket, jsonEncode($options))) {
+      Error('Cannot write to control socket: '.socket_strerror(socket_last_error($socket)));
+      socket_close($socket);
+      return null;
+    }
+    # Signal end-of-write so zmcontrol's readline completes, but keep reading.
+    socket_shutdown($socket, 1);
+    $response = '';
+    while (($chunk = @socket_read($socket, 4096)) !== false and $chunk !== '') {
+      $response .= $chunk;
+    }
+    socket_close($socket);
+    if ($response === '')
+      return null;
+    $decoded = json_decode($response, true);
+    return (is_array($decoded) and array_key_exists('result', $decoded)) ? $decoded['result'] : null;
+  } // end function sendControlCommandWithResponse($command)
+
   function Groups($new='') {
     if ($new != '')
       $this->Groups = $new;

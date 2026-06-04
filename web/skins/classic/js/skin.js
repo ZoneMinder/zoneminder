@@ -1325,7 +1325,8 @@ function thumbnail_onmouseover(event) {
 
   thumbnail_timeout = setTimeout(function() {
     // Pre-load required modules
-    const m3u8Exists = checkM3u8File(img.dataset.videoHlsSrc);
+    const isLiveStream = Boolean((streamType && monitorId) || useGo2rtc);
+    const m3u8Exists = (!isLiveStream) ? checkM3u8File(img.dataset.videoHlsSrc) : false;
     if (useGo2rtc) {
       ensureVideoStreamLoaded();
     } else if (streamType === 'rtsp2web' || m3u8Exists) {
@@ -1494,16 +1495,23 @@ function createGo2rtcStream(container, src, mid, fallbackToMjpeg) {
     stream.background = true;
     stream.muted = getCookie('zmWatchMuted') === 'true';
     stream.src = url.href;
-    container.appendChild(stream);
 
-    var video = document.querySelector('#thumb-overlay video-stream video');
-    if (video) {
-      video.addEventListener("play", (event) => {
-        const closest = video.closest('video-stream');
-        const subMode = (closest) ? closest.getAttribute('current-mode') : '';
-        const infoStatusBar = document.getElementById("info-status-bar");
-        if (infoStatusBar) infoStatusBar.innerHTML = ' [Go2RTC_' + subMode + '] ';
+    const attachPlayListener = function() {
+      const innerVideo = stream.querySelector('video');
+      if (!innerVideo) return false;
+      innerVideo.addEventListener('play', function() {
+        const subMode = stream.getAttribute('current-mode') || '';
+        const infoStatusBar = document.getElementById('info-status-bar');
+        if (infoStatusBar) infoStatusBar.textContent = ' [Go2RTC_' + subMode + '] ';
       });
+      return true;
+    };
+
+    if (!attachPlayListener()) {
+      const observer = new MutationObserver(function(_mutations, obs) {
+        if (attachPlayListener()) obs.disconnect();
+      });
+      observer.observe(stream, { childList: true });
     }
 
     // Fallback if go2rtc doesn't produce video within 3s

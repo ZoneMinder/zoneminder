@@ -944,6 +944,7 @@ function streamReStart(oldId, newId) {
   el.removeEventListener('mouseleave', handleMouseLeave);
 
   //Change main monitor block
+  monitor_div.textContent = '';
   monitor_div.innerHTML = currentMonitor.streamHTML;
 
   const volumeControls = document.getElementById('volumeControls'+oldId);

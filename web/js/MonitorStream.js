@@ -1564,6 +1564,12 @@ function MonitorStream(monitorData) {
         .fail(logAjaxFail);
 
     if (this.Go2RTCEnabled && ((!this.player) || (-1 !== this.player.indexOf('go2rtc')))) {
+      if (!this.element.currentMode) {
+        // TODO: For some reason, when switching monitors very quickly on the Watch page while using go2rtc, "this.statusCmdTimer" sometimes doesn't clear.
+        // This is likely due to the generation of the <video> tag in video-rtc.js.
+        clearInterval(this.statusCmdTimer);
+        return;
+      }
       if (-1 !== this.element.currentMode.toLowerCase().indexOf('mse')) {
         $j('#delay'+this.id).removeClass('hidden');
         this.manageMSESocket(this.element.video, this.element.ws, this.element.ms);

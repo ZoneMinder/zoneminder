@@ -39,9 +39,13 @@ if (!file_exists($m3u8_path)) {
   exit;
 }
 
-// Don't serve an m3u8 with no fragments — the event may have just started
 $m3u8_content_check = file_get_contents($m3u8_path);
-if (strpos($m3u8_content_check, '#EXTINF:') === false) {
+if ($m3u8_content_check === false) {
+  header('HTTP/1.1 204 No Content');
+  header('Cache-Control: no-cache');
+  ZM\Debug('HLS manifest ' . $m3u8_path .' has not available yet');
+  exit;
+} else if (strpos($m3u8_content_check, '#EXTINF:') === false) {
   header('HTTP/1.1 204 No Content');
   header('Cache-Control: no-cache');
   ZM\Debug('HLS manifest ' . $m3u8_path .' has no fragments yet');

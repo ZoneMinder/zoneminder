@@ -1511,7 +1511,7 @@ function createGo2rtcStream(container, src, mid, fallbackToMjpeg) {
       const observer = new MutationObserver(function(_mutations, obs) {
         if (attachPlayListener()) obs.disconnect();
       });
-      observer.observe(stream, { childList: true });
+      observer.observe(stream, {childList: true});
     }
 
     // Fallback if go2rtc doesn't produce video within 3s

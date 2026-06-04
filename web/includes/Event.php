@@ -114,7 +114,6 @@ class Event extends ZM_Object {
     if ( !isset($this->{'Length'}) || (float)$this->{'Length'} <= 0 ) {
       $files = glob($this->Path().'{/incomplete.*,/'.$this->{'Id'}.'-video.*}', GLOB_NOSORT | GLOB_BRACE);
       if (count($files) > 0) {
-        $file = $files[0];
         $duration = $this->GetFileDuration($files[0]);
       } else {
         //TODO: IgorA100 Something needs to be done, but what exactly?

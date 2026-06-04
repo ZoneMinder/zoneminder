@@ -66,6 +66,7 @@ possible, this should run at more or less constant speed.
 #include <getopt.h>
 #include <iostream>
 #include <unistd.h>
+#include <vector>
 
 void Usage() {
   fprintf(stderr, "zmc -d <device_path> or -r <proto> -H <host> -P <port> -p <path> or -f <file_path> or -m <monitor_id>\n");
@@ -235,11 +236,13 @@ int main(int argc, char *argv[]) {
 
   int result = 0;
   int prime_capture_log_count = 0;
+  std::vector<bool> monitor_faulted(monitors.size(), false);
 
   while (!zm_terminate) {
     result = 0;
 
-    for (const std::shared_ptr<Monitor> &monitor : monitors) {
+    for (size_t monitor_index = 0; monitor_index < monitors.size(); ++monitor_index) {
+      const std::shared_ptr<Monitor> &monitor = monitors[monitor_index];
       std::string sql = stringtf(
                           "INSERT INTO Monitor_Status (MonitorId,Status,CaptureFPS,AnalysisFPS,CaptureBandwidth)"
                           " VALUES (%u, 'Running',0,0,0) ON DUPLICATE KEY UPDATE Status='Running',CaptureFPS=0,AnalysisFPS=0,CaptureBandwidth=0",
@@ -247,13 +250,25 @@ int main(int argc, char *argv[]) {
       zmDbDo(sql);
 
       monitor->LoadCamera();
+      monitor->StartWebSocketServer();
+      monitor->RefreshWebSocketStatus();
 
+      bool connection_failed = false;
       while (!monitor->connect() and !zm_terminate) {
         Warning("Couldn't connect to monitor %d", monitor->Id());
+        if (!connection_failed) {
+          monitor->QueueWebSocketEvent("connection_failed", "Unable to connect to the capture source");
+          monitor->RefreshWebSocketStatus();
+          connection_failed = true;
+          monitor_faulted[monitor_index] = true;
+        }
         monitor->SetHeartbeatTime(std::chrono::system_clock::now());
         sleep(1);
       }
       if (zm_terminate) break;
+      if (connection_failed) {
+        monitor->QueueWebSocketEvent("connection_restored", "Capture source connection restored");
+      }
 
       SystemTimePoint now = std::chrono::system_clock::now();
       monitor->SetStartupTime(now);
@@ -264,11 +279,19 @@ int main(int argc, char *argv[]) {
       }
 
       Seconds sleep_time = Seconds(0);
+      bool priming_failed = false;
       while ((monitor->PrimeCapture() <= 0) and !zm_terminate) {
         if (prime_capture_log_count % 60) {
           logPrintf(Logger::ERROR + monitor->Importance(), "Failed to prime capture of initial monitor");
         } else {
           Debug(1, "Failed to prime capture of initial monitor");
+        }
+
+        if (!priming_failed) {
+          monitor->QueueWebSocketEvent("prime_capture_failed", "Unable to prime the capture source");
+          monitor->RefreshWebSocketStatus();
+          priming_failed = true;
+          monitor_faulted[monitor_index] = true;
         }
 
         prime_capture_log_count++;
@@ -280,6 +303,14 @@ int main(int argc, char *argv[]) {
         monitor->SetHeartbeatTime(std::chrono::system_clock::now());
       }
       if (zm_terminate) break;
+      if (priming_failed) {
+        monitor->QueueWebSocketEvent("prime_capture_restored", "Capture priming restored");
+      }
+      if (monitor_faulted[monitor_index]) {
+        monitor->QueueWebSocketEvent("capture_resumed", "Capture pipeline resumed");
+        monitor_faulted[monitor_index] = false;
+      }
+      monitor->RefreshWebSocketStatus();
 
       sql = stringtf(
               "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%u, 'Connected') ON DUPLICATE KEY UPDATE Status='Connected'",
@@ -325,6 +356,9 @@ int main(int argc, char *argv[]) {
         if (monitors[i]->PreCapture() < 0) {
           Error("Failed to pre-capture monitor %d %s (%zu/%zu)",
                 monitors[i]->Id(), monitors[i]->Name(), i + 1, monitors.size());
+          monitors[i]->QueueWebSocketEvent("capture_failed", "Pre-capture failed");
+          monitors[i]->RefreshWebSocketStatus();
+          monitor_faulted[i] = true;
           result = -1;
           break;
         }
@@ -332,12 +366,18 @@ int main(int argc, char *argv[]) {
           if (!zm_terminate)
             logPrintf(Logger::ERROR + monitors[i]->Importance(), "Failed to capture image from monitor %d %s (%zu/%zu)",
                 monitors[i]->Id(), monitors[i]->Name(), i + 1, monitors.size());
+          monitors[i]->QueueWebSocketEvent("capture_failed", "Capture failed");
+          monitors[i]->RefreshWebSocketStatus();
+          monitor_faulted[i] = true;
           result = -1;
           break;
         }
         if (monitors[i]->PostCapture() < 0) {
           Error("Failed to post-capture monitor %d %s (%zu/%zu)",
                 monitors[i]->Id(), monitors[i]->Name(), i + 1, monitors.size());
+          monitors[i]->QueueWebSocketEvent("capture_failed", "Post-capture failed");
+          monitors[i]->RefreshWebSocketStatus();
+          monitor_faulted[i] = true;
           result = -1;
           break;
         }
@@ -387,6 +427,11 @@ int main(int argc, char *argv[]) {
       }
     }  // end while ! zm_terminate and connected
 
+    // Note: the websocket server is intentionally not stopped here. It must
+    // outlive a single capture/reconnect cycle so that queued capture failure
+    // and recovery events are delivered to subscribers and clients are not
+    // dropped every time capture reconnects. It is stopped once on shutdown
+    // after the outer loop.
     for (std::shared_ptr<Monitor> & monitor : monitors) {
       monitor->SetHeartbeatTime(std::chrono::system_clock::now());
       monitor->Close();
@@ -406,6 +451,10 @@ int main(int argc, char *argv[]) {
       zm_reload = false;
     }  // end if zm_reload
   }  // end while ! zm_terminate outer connection loop
+
+  for (std::shared_ptr<Monitor> &monitor : monitors) {
+    monitor->StopWebSocketServer();
+  }
 
   for (std::shared_ptr<Monitor> &monitor : monitors) {
     std::string sql = stringtf(

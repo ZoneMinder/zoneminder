@@ -1047,6 +1047,22 @@ our @options = (
     category  => 'network',
   },
   {
+    name        =>  'ZM_MIN_WEBSOCKET_PORT',
+    default     =>  '',
+    description =>  'Alternate port range to contact for monitor websocket transport.',
+    help        =>  q`
+      This setting specifies the beginning of a dedicated websocket port
+      range for monitor websocket transport from zmc. Each monitor will
+      listen on this value plus the Monitor Id. For example, a value of
+      31000 causes monitor 1 to listen on port 31001. Use a dedicated
+      range rather than ZM_MIN_STREAMING_PORT so websocket transport does
+      not conflict with multi-port ZMS streaming. If you expose these
+      ports outside a trusted network, terminate TLS and enforce
+      authentication in a reverse proxy or firewall policy.`,
+    type  =>  $types{integer},
+    category  => 'network',
+  },
+  {
     name        => 'ZM_MIN_RTP_PORT',
     default     => '40200',
     description => 'Minimum port that ZoneMinder will listen for RTP traffic on',

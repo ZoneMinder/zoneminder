@@ -21,6 +21,7 @@ set(TEST_SOURCES
   zm_poly.cpp
   zm_time.cpp
   zm_utils.cpp
+  zm_websocket.cpp
   zm_vector2.cpp
   zm_zone.cpp)
 

@@ -34,6 +34,7 @@
 #include "zm_time.h"
 #include "zm_uri.h"
 #include "zm_utils.h"
+#include "zm_websocket.h"
 #include "zm_zone.h"
 
 #if ZM_HAS_V4L2
@@ -51,9 +52,9 @@
 #include <algorithm>
 #include <chrono>
 #include <cstring>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <string>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <utility>
 
 #if ZM_MEM_MAPPED
@@ -63,6 +64,195 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #endif  // ZM_MEM_MAPPED
+
+namespace {
+
+bool encodeJpegImage(const Image &image, std::string *output) {
+  static thread_local std::vector<unsigned char> buffer(ZM_MAX_IMAGE_SIZE);
+  size_t encoded_size = 0;
+  if (!image.EncodeJpeg(buffer.data(), &encoded_size)) {
+    return false;
+  }
+  output->assign(reinterpret_cast<const char *>(buffer.data()), encoded_size);
+  return true;
+}
+
+bool encodeRgbaImage(const Image &image, std::string *output, uint32_t *line_size) {
+  if (!output || !line_size || !image.Buffer() || !image.Width() || !image.Height()) {
+    return false;
+  }
+
+  *line_size = FFALIGN(av_image_get_linesize(AV_PIX_FMT_RGBA, image.Width(), 0), 32);
+  output->assign(static_cast<size_t>(*line_size) * image.Height(), '\0');
+
+  const uint8_t *src = image.Buffer();
+  for (unsigned int y = 0; y < image.Height(); ++y) {
+    const uint8_t *src_row = src + (static_cast<size_t>(y) * image.LineSize());
+    uint8_t *dst_row = reinterpret_cast<uint8_t *>(&(*output)[static_cast<size_t>(y) * (*line_size)]);
+
+    for (unsigned int x = 0; x < image.Width(); ++x) {
+      uint8_t *dst_pixel = dst_row + (x * 4);
+      uint8_t red = 0;
+      uint8_t green = 0;
+      uint8_t blue = 0;
+
+      switch (image.Colours()) {
+      case ZM_COLOUR_GRAY8: {
+        const uint8_t gray = src_row[x];
+        red = gray;
+        green = gray;
+        blue = gray;
+        break;
+      }
+      case ZM_COLOUR_RGB24: {
+        const uint8_t *src_pixel = src_row + (x * 3);
+        if (image.SubpixelOrder() == ZM_SUBPIX_ORDER_BGR) {
+          blue = src_pixel[0];
+          green = src_pixel[1];
+          red = src_pixel[2];
+        } else {
+          red = src_pixel[0];
+          green = src_pixel[1];
+          blue = src_pixel[2];
+        }
+        break;
+      }
+      case ZM_COLOUR_RGB32: {
+        const uint8_t *src_pixel = src_row + (x * 4);
+        switch (image.SubpixelOrder()) {
+        case ZM_SUBPIX_ORDER_BGRA:
+          blue = src_pixel[0];
+          green = src_pixel[1];
+          red = src_pixel[2];
+          break;
+        case ZM_SUBPIX_ORDER_ARGB:
+          red = src_pixel[1];
+          green = src_pixel[2];
+          blue = src_pixel[3];
+          break;
+        case ZM_SUBPIX_ORDER_ABGR:
+          red = src_pixel[3];
+          green = src_pixel[2];
+          blue = src_pixel[1];
+          break;
+        case ZM_SUBPIX_ORDER_RGBA:
+        default:
+          red = src_pixel[0];
+          green = src_pixel[1];
+          blue = src_pixel[2];
+          break;
+        }
+        break;
+      }
+      default:
+        Error("Unsupported image colours %u for websocket rgba payload", image.Colours());
+        return false;
+      }
+
+      dst_pixel[0] = red;
+      dst_pixel[1] = green;
+      dst_pixel[2] = blue;
+      dst_pixel[3] = 0xff;
+    }
+  }
+
+  return true;
+}
+
+bool encodeYuv420pImage(const Image &image, std::string *output, uint32_t *line_size) {
+  if (!output || !line_size || !image.Buffer() || !image.Width() || !image.Height()) {
+    return false;
+  }
+
+  const unsigned int width = image.Width();
+  const unsigned int height = image.Height();
+
+  // ZoneMinder images are packed single-plane buffers, so reference plane 0
+  // directly using the image's real (possibly padded) line size.
+  uint8_t *src_data[4] = {const_cast<uint8_t *>(image.Buffer()), nullptr, nullptr, nullptr};
+  int src_linesize[4] = {static_cast<int>(image.LineSize()), 0, 0, 0};
+
+  AVFrame *dst_frame = av_frame_alloc();
+  if (!dst_frame) {
+    return false;
+  }
+  dst_frame->format = AV_PIX_FMT_YUV420P;
+  dst_frame->width = width;
+  dst_frame->height = height;
+  if (av_frame_get_buffer(dst_frame, 32) < 0) {
+    av_frame_free(&dst_frame);
+    Error("Failed to allocate yuv420p frame for websocket payload");
+    return false;
+  }
+
+  SwsContext *sws_ctx = sws_getContext(
+      width, height, image.AVPixFormat(),
+      width, height, AV_PIX_FMT_YUV420P,
+      SWS_FAST_BILINEAR, nullptr, nullptr, nullptr);
+  if (!sws_ctx) {
+    av_frame_free(&dst_frame);
+    Error("Failed to get swscale context for websocket yuv420p payload");
+    return false;
+  }
+
+  const int scaled = sws_scale(sws_ctx, src_data, src_linesize, 0, height, dst_frame->data, dst_frame->linesize);
+  sws_freeContext(sws_ctx);
+  if (scaled <= 0) {
+    av_frame_free(&dst_frame);
+    Error("swscale failed for websocket yuv420p payload");
+    return false;
+  }
+
+  // Copy out as a tightly packed I420 buffer (alignment 1) so the layout is
+  // fully described by the reported width/height: the Y plane is height rows of
+  // line_size bytes, followed by U then V planes of (height + 1) / 2 rows of
+  // (line_size + 1) / 2 bytes each.
+  const int packed_size = av_image_get_buffer_size(AV_PIX_FMT_YUV420P, width, height, 1);
+  if (packed_size <= 0) {
+    av_frame_free(&dst_frame);
+    return false;
+  }
+  output->assign(static_cast<size_t>(packed_size), '\0');
+  const int copied = av_image_copy_to_buffer(
+      reinterpret_cast<uint8_t *>(&(*output)[0]), packed_size,
+      dst_frame->data, dst_frame->linesize,
+      AV_PIX_FMT_YUV420P, width, height, 1);
+  av_frame_free(&dst_frame);
+  if (copied < 0) {
+    output->clear();
+    return false;
+  }
+
+  *line_size = width;
+  return true;
+}
+
+bool requestedWebSocketVideoCodec(const std::string &codec, AVCodecID *codec_id, std::string *content_type = nullptr) {
+  if (codec == "h264") {
+    *codec_id = AV_CODEC_ID_H264;
+    if (content_type) {
+      *content_type = "video/h264";
+    }
+    return true;
+  }
+  if (codec == "h265") {
+    *codec_id = AV_CODEC_ID_HEVC;
+    if (content_type) {
+      *content_type = "video/h265";
+    }
+    return true;
+  }
+  if (codec == "av1") {
+    *codec_id = AV_CODEC_ID_AV1;
+    if (content_type) {
+      *content_type = "video/av1";
+    }
+    return true;
+  }
+  return false;
+}
+
+}  // namespace
 
 // SOLARIS - we don't have MAP_LOCKED on openSolaris/illumos
 #ifndef MAP_LOCKED
@@ -327,6 +517,8 @@ Monitor::Monitor() :
   Janus_Manager(nullptr),
   Amcrest_Manager(nullptr),
   onvif(nullptr),
+  websocket_server(nullptr),
+  websocket_capture_bandwidth(0),
   red_val(0),
   green_val(0),
   blue_val(0),
@@ -1231,6 +1423,7 @@ bool Monitor::connect() {
   last_analysis_fps_time = std::chrono::system_clock::now();
   last_capture_image_count = 0;
 
+  RefreshWebSocketStatus();
   Debug(3, "Success connecting");
   return true;
 } // Monitor::connect
@@ -1287,8 +1480,330 @@ bool Monitor::disconnect() {
     image_buffer[i] = nullptr;
   }
 
+  RefreshWebSocketStatus();
   return true;
 }  // end bool Monitor::disconnect()
+
+bool Monitor::StartWebSocketServer() {
+  if (!config.min_websocket_port) {
+    return false;
+  }
+
+  if (websocket_server) {
+    return true;
+  }
+
+  const unsigned int websocket_port = zm::websocket::MonitorWebSocketPort(config.min_websocket_port, id);
+  if (!websocket_port) {
+    Warning("Unable to compute websocket port for monitor %u using base port %d", id, config.min_websocket_port);
+    return false;
+  }
+
+  websocket_server = zm::make_unique<zm::MonitorWebSocketServer>(this);
+  if (!websocket_server->Start(static_cast<int>(websocket_port))) {
+    websocket_server.reset();
+    return false;
+  }
+
+  return true;
+}
+
+void Monitor::StopWebSocketServer() {
+  if (!websocket_server) {
+    return;
+  }
+
+  websocket_server->Stop();
+  websocket_server.reset();
+}
+
+void Monitor::RefreshWebSocketStatus() {
+  const bool connected = isConnected();
+  const bool shm_valid = shared_data && shared_data->valid;
+  const double capture_fps = shared_data ? shared_data->capture_fps : 0.0;
+  const double analysis_fps = shared_data ? shared_data->analysis_fps : 0.0;
+  const uint32_t image_count = shared_data ? shared_data->image_count : 0;
+  const uint32_t last_frame_score = shared_data ? shared_data->last_frame_score : 0;
+  const uint64_t last_event_id = shared_data ? shared_data->last_event_id : 0;
+  const uint32_t analysing_state = shared_data ? shared_data->analysing : static_cast<uint32_t>(ANALYSING_NONE);
+  const uint32_t signal_state = shared_data ? shared_data->signal : 0;
+  const uint32_t capture_state = shared_data ? shared_data->capturing : static_cast<uint32_t>(capturing);
+  const uint32_t recording_state = shared_data ? shared_data->recording : static_cast<uint32_t>(recording);
+  const uint32_t current_state = shared_data ? shared_data->state : static_cast<uint32_t>(UNKNOWN);
+  const uint32_t capture_bandwidth = websocket_capture_bandwidth.load();
+  const time_t heartbeat_time = shared_data ? shared_data->heartbeat_time : 0;
+  const time_t startup_time = shared_data ? shared_data->startup_time : 0;
+
+  const char *state_name = "Unknown";
+  if (current_state < (sizeof(State_Strings) / sizeof(State_Strings[0]))) {
+    state_name = State_Strings[current_state].c_str();
+  }
+
+  std::lock_guard<std::mutex> status_lock(websocket_status_mutex);
+  websocket_status_json = stringtf(
+      "{\"type\":\"status\",\"monitor_id\":%u,\"monitor_name\":\"%s\","
+      "\"connected\":%s,\"shm_valid\":%s,\"state_id\":%u,\"state\":\"%s\","
+      "\"capture_fps\":%.2f,\"analysis_fps\":%.2f,\"capture_bandwidth\":%u,"
+      "\"image_count\":%u,\"analysing\":%u,\"capturing\":%u,\"recording\":%u,"
+      "\"signal\":%u,\"last_frame_score\":%u,\"last_event_id\":%" PRIu64 ","
+      "\"heartbeat_time\":%" PRIu64 ",\"startup_time\":%" PRIu64 "}",
+      id,
+      escape_json_string(name).c_str(),
+      connected ? "true" : "false",
+      shm_valid ? "true" : "false",
+      current_state,
+      state_name,
+      capture_fps,
+      analysis_fps,
+      capture_bandwidth,
+      image_count,
+      analysing_state,
+      capture_state,
+      recording_state,
+      signal_state,
+      last_frame_score,
+      last_event_id,
+      static_cast<uint64_t>(heartbeat_time),
+      static_cast<uint64_t>(startup_time));
+}
+
+std::string Monitor::GetWebSocketStatusJson() const {
+  std::lock_guard<std::mutex> status_lock(websocket_status_mutex);
+  return websocket_status_json.empty() ? stringtf("{\"type\":\"status\",\"monitor_id\":%u}", id) : websocket_status_json;
+}
+
+void Monitor::QueueWebSocketEvent(const std::string &event_type, const std::string &message) {
+  std::lock_guard<std::mutex> message_lock(websocket_message_mutex);
+  if (websocket_messages.size() >= 64) {
+    websocket_messages.erase(websocket_messages.begin());
+  }
+  websocket_messages.push_back(stringtf(
+      "{\"type\":\"event\",\"monitor_id\":%u,\"event\":\"%s\",\"message\":\"%s\"}",
+      id,
+      escape_json_string(event_type).c_str(),
+      escape_json_string(message).c_str()));
+}
+
+std::vector<std::string> Monitor::DrainWebSocketMessages() {
+  std::lock_guard<std::mutex> message_lock(websocket_message_mutex);
+  std::vector<std::string> drained;
+  drained.swap(websocket_messages);
+  return drained;
+}
+
+bool Monitor::GetWebSocketImagePayload(const std::string &format, WebSocketPayload *payload) {
+  if (!payload) {
+    return false;
+  }
+
+  if ((format != "jpeg") && (format != "rgba") && (format != "yuv420p")) {
+    return false;
+  }
+
+  packetqueue_iterator *it = packetqueue.get_video_it(false);
+  if (!it) {
+    return false;
+  }
+
+  packetqueue_iterator *scan_it = packetqueue.get_video_it(false);
+  if (!scan_it) {
+    packetqueue.free_it(it);
+    return false;
+  }
+
+  bool have_image = false;
+  while (true) {
+    if (*scan_it == packetqueue.end()) {
+      break;
+    }
+
+    ZMPacketLock packet_lock = packetqueue.get_packet_no_wait(scan_it);
+    if (!packet_lock.packet_) {
+      if (!packetqueue.increment_it(scan_it, video_stream_id)) {
+        break;
+      }
+      continue;
+    }
+
+    if (packet_lock.packet_->packet &&
+        packet_lock.packet_->packet->stream_index == video_stream_id &&
+        packet_lock.packet_->image) {
+      *it = *scan_it;
+      have_image = true;
+    }
+
+    if (!packetqueue.increment_it(scan_it, video_stream_id)) {
+      break;
+    }
+  }
+
+  packetqueue.free_it(scan_it);
+
+  if (!have_image) {
+    packetqueue.free_it(it);
+    return false;
+  }
+
+  ZMPacketLock packet_lock = packetqueue.get_packet_no_wait(it);
+  packetqueue.free_it(it);
+  if (!packet_lock.packet_ || !packet_lock.packet_->image) {
+    return false;
+  }
+
+  Image *image = packet_lock.packet_->image;
+  payload->type = "image";
+  payload->format = format;
+  payload->width = image->Width();
+  payload->height = image->Height();
+  payload->image_count = shared_data ? shared_data->image_count : 0;
+  payload->sequence = packet_lock.packet_->queue_index;
+  payload->keyframe = false;
+
+  if (format == "jpeg") {
+    payload->content_type = "image/jpeg";
+    payload->line_size = 0;
+    payload->colours = image->Colours();
+    payload->subpixel_order = image->SubpixelOrder();
+    Image image_copy;
+    image_copy.Assign(*image);
+    return encodeJpegImage(image_copy, &payload->payload);
+  }
+
+  if (format == "rgba") {
+    payload->content_type = "application/octet-stream";
+    payload->colours = ZM_COLOUR_RGB32;
+    payload->subpixel_order = ZM_SUBPIX_ORDER_RGBA;
+    return encodeRgbaImage(*image, &payload->payload, &payload->line_size);
+  }
+
+  if (format == "yuv420p") {
+    payload->content_type = "application/octet-stream";
+    payload->colours = 0;
+    payload->subpixel_order = 0;
+    return encodeYuv420pImage(*image, &payload->payload, &payload->line_size);
+  }
+
+  return false;
+}
+
+packetqueue_iterator *Monitor::CreateWebSocketVideoIterator(const std::string &codec) {
+  if (!camera || !camera->getVideoStream()) {
+    return nullptr;
+  }
+
+  AVCodecID requested_codec = AV_CODEC_ID_NONE;
+  if (!requestedWebSocketVideoCodec(codec, &requested_codec)) {
+    return nullptr;
+  }
+
+  if (camera->getVideoStream()->codecpar->codec_id != requested_codec) {
+    return nullptr;
+  }
+
+  packetqueue_iterator *it = packetqueue.get_video_it(false);
+  if (!it) {
+    return nullptr;
+  }
+
+  packetqueue_iterator *scan_it = packetqueue.get_video_it(false);
+  if (!scan_it) {
+    packetqueue.free_it(it);
+    return nullptr;
+  }
+
+  bool have_keyframe = false;
+
+  while (true) {
+    if (*scan_it == packetqueue.end()) {
+      break;
+    }
+
+    ZMPacketLock packet_lock = packetqueue.get_packet_no_wait(scan_it);
+    if (!packet_lock.packet_) {
+      if (!packetqueue.increment_it(scan_it, video_stream_id)) {
+        break;
+      }
+      continue;
+    }
+
+    if (packet_lock.packet_->packet &&
+        packet_lock.packet_->packet->stream_index == video_stream_id &&
+        packet_lock.packet_->keyframe) {
+      *it = *scan_it;
+      have_keyframe = true;
+    }
+
+    if (!packetqueue.increment_it(scan_it, video_stream_id)) {
+      break;
+    }
+  }
+
+  packetqueue.free_it(scan_it);
+
+  if (!have_keyframe) {
+    packetqueue.free_it(it);
+    return nullptr;
+  }
+
+  return it;
+}
+
+bool Monitor::GetNextWebSocketVideoPayload(packetqueue_iterator *it, const std::string &codec, WebSocketPayload *payload) {
+  if (!it || !payload || !camera || !camera->getVideoStream()) {
+    return false;
+  }
+
+  AVCodecID requested_codec = AV_CODEC_ID_NONE;
+  std::string content_type;
+  if (!requestedWebSocketVideoCodec(codec, &requested_codec, &content_type)) {
+    return false;
+  }
+
+  ZMPacketLock packet_lock = packetqueue.get_packet_no_wait(it);
+  if (!packet_lock.packet_ || !packet_lock.packet_->packet || !packet_lock.packet_->stream) {
+    return false;
+  }
+
+  const AVCodecID codec_id = packet_lock.packet_->stream->codecpar->codec_id;
+  if (codec_id != requested_codec) {
+    packetqueue.increment_it(it, video_stream_id);
+    return false;
+  }
+
+  payload->type = "stream";
+  payload->format = codec;
+  payload->content_type = content_type;
+  payload->width = packet_lock.packet_->stream->codecpar->width ? packet_lock.packet_->stream->codecpar->width : Width();
+  payload->height = packet_lock.packet_->stream->codecpar->height ? packet_lock.packet_->stream->codecpar->height : Height();
+  payload->line_size = 0;
+  payload->colours = 0;
+  payload->subpixel_order = 0;
+  payload->image_count = shared_data ? shared_data->image_count : 0;
+  payload->sequence = packet_lock.packet_->queue_index;
+  payload->keyframe = packet_lock.packet_->keyframe;
+  payload->payload.clear();
+
+  if (packet_lock.packet_->keyframe) {
+    AVStream *stream = camera->getVideoStream();
+    if (stream->codecpar->extradata && stream->codecpar->extradata_size > 0) {
+      payload->payload.append(
+          reinterpret_cast<const char *>(stream->codecpar->extradata),
+          stream->codecpar->extradata_size);
+    }
+  }
+
+  payload->payload.append(
+      reinterpret_cast<const char *>(packet_lock.packet_->packet->data),
+      packet_lock.packet_->packet->size);
+  packetqueue.increment_it(it, video_stream_id);
+  return !payload->payload.empty();
+}
+
+void Monitor::FreeWebSocketIterator(packetqueue_iterator *it) {
+  if (it) {
+    packetqueue.free_it(it);
+  }
+}
 
 Monitor::~Monitor() {
 #if MOSQUITTOPP_FOUND
@@ -1296,6 +1811,7 @@ Monitor::~Monitor() {
     mqtt->send("offline");
   }
 #endif
+  StopWebSocketServer();
   Close();
 
   if (mem_ptr != nullptr) {
@@ -1384,6 +1900,9 @@ int Monitor::GetImage(int32_t index, int scale) {
 }
 
 std::shared_ptr<ZMPacket> Monitor::getSnapshot(int index) const {
+  if (!shared_data || !shared_timestamps) {
+    return nullptr;
+  }
   if ((index < 0) || (index >= image_buffer_count)) {
     index = shared_data->last_write_index;
   }
@@ -1884,9 +2403,11 @@ void Monitor::UpdateFPS() {
     shared_data->capture_fps = new_capture_fps;
     last_capture_image_count = shared_data->image_count;
     shared_data->analysis_fps = new_analysis_fps;
+    websocket_capture_bandwidth = new_capture_bandwidth;
     last_motion_frame_count = motion_frame_count;
     last_camera_bytes = new_camera_bytes;
     last_fps_time = now;
+    RefreshWebSocketStatus();
 
     FPSeconds db_elapsed = now - last_status_time;
     if (db_elapsed > Seconds(10)) {
@@ -3928,4 +4449,3 @@ StringVector Monitor::GroupNames() {
   }
   return groupnames;
 } // end Monitor::GroupNames()
-

@@ -36,7 +36,7 @@ static std::string LocalSecondString(time_t sec) {
 }
 
 TEST_CASE("SystemTimePointToMysqlString: whole second has no fractional part") {
-  // 1764623999 == 2025-12-01 19:59:59 UTC; exact-second timepoints must format
+  // 1764623999 == 2025-12-01 21:19:59 UTC; exact-second timepoints must format
   // without a fractional component because the Events.StartDateTime column is
   // datetime (second precision).
   SystemTimePoint tp = std::chrono::system_clock::from_time_t(1764623999);

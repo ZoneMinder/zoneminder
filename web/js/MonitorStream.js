@@ -206,7 +206,7 @@ function MonitorStream(monitorData) {
 
     this.selectedPlayer = p;
     // Let's clear out the errors
-    for (let key in playerPriority) {
+    for (const key in playerPriority) {
       playerPriority[key]['countErrors'] = 0;
     }
 
@@ -1885,7 +1885,7 @@ function MonitorStream(monitorData) {
     if (!currentPlayer) currentPlayer = this.player = this.defaultPlayer;
 
     let countErrors = 0;
-    for (let key in playerPriority) {
+    for (const key in playerPriority) {
       if (-1 !== currentPlayer.indexOf(playerPriority[key]['name'])) {
         countErrors = parseInt(playerPriority[key]['countErrors']);
         if (countErrors > 0) console.debug(`${countErrors} playback errors found for player "${currentPlayer}"`);
@@ -1909,16 +1909,16 @@ function MonitorStream(monitorData) {
     } else {
       this.selectNextPlayer(currentPlayer);
     }
-  }
+  };
 
   this.streamErrorRegistration = function() {
-    let currentPlayer = this.player;
-    for (let key in playerPriority) {
+    const currentPlayer = this.player;
+    for (const key in playerPriority) {
       if (-1 !== currentPlayer.indexOf(playerPriority[key]['name'])) {
         playerPriority[key]['countErrors'] = parseInt(playerPriority[key]['countErrors']) + 1;
       }
     }
-  }
+  };
 
   this.selectNextPlayer = function(currentPlayer = null) {
     if (this.defaultPlayer == this.player) {
@@ -1929,7 +1929,7 @@ function MonitorStream(monitorData) {
     }
 
     let foundNextPlayer = false;
-    for (let key in playerPriority) {
+    for (const key in playerPriority) {
       if (-1 !== currentPlayer.indexOf(playerPriority[key]['name'])) {
         // The current player was found in the "playerPriority" object.
         let num = parseInt(key)+1;

@@ -46,6 +46,11 @@ jobs:
         if: matrix.family == 'el'
         run: |
           set -eux
+          # Pin Rocky repos to the canonical baseurl: mirrorlist can hand out
+          # mirrors where AppStream and BaseOS are out of sync, breaking
+          # depsolving (e.g. gnutls-devel requiring a gnutls BaseOS hasn't got)
+          sed -i -e 's|^mirrorlist=|#mirrorlist=|g' -e 's|^#baseurl=http://dl.rockylinux.org/$contentdir|baseurl=http://dl.rockylinux.org/pub/rocky|g' /etc/yum.repos.d/[Rr]ocky*.repo
+          dnf -y clean all
           dnf -y install dnf-plugins-core epel-release
           dnf -y install "https://mirrors.rpmfusion.org/free/el/rpmfusion-free-release-${{ matrix.releasever }}.noarch.rpm"
           if [ "${{ matrix.releasever }}" == "8" ]; then

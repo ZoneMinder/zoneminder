@@ -312,9 +312,12 @@ Image::Image(const AVFrame *frame, int p_width, int p_height) :
   this->Assign(frame);
 }
 
-Image::Image(const AVFrame *frame) {
-  blend_buffer_ = nullptr;
-  blend_buffer_size_ = 0;
+Image::Image(const AVFrame *frame) : Image() {
+  // Delegate to the default ctor first so buffer/buffertype/allocation
+  // are fully initialised before AssignDirect runs. AssignDirect's failure
+  // and success paths both call DumpImgBuffer() to release any previously
+  // owned buffer; without this delegation those calls would read
+  // uninitialised members and potentially free a garbage pointer.
   AssignDirect(frame);
 }
 

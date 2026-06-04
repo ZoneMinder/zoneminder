@@ -197,7 +197,9 @@ if ($options{command}) {
   vec($rin, fileno(SERVER), 1) = 1;
   my $win = $rin;
   my $ein = $win;
-  my $timeout = MAX_COMMAND_WAIT;
+  # Use a short timeout if the module supports keepAlive so the session
+  # does not expire between commands (Dahua cameras expire after ~60s idle).
+  my $timeout = $control->can('keepAlive') ? 30 : MAX_COMMAND_WAIT;
   while (!$zm_terminate) {
     my $nfound = select(my $rout = $rin, undef, undef, $timeout);
     if ( $nfound > 0 ) {
@@ -246,6 +248,7 @@ if ($options{command}) {
       }
     } else {
       Debug('Select timed out');
+      $control->keepAlive() if $control->can('keepAlive');
     }
   } # end while !$zm_terminate
   Info("Control server $id/$protocol exiting");

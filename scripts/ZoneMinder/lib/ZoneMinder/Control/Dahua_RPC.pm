@@ -67,7 +67,10 @@ sub open {
     $self->{state} = 'closed';
     return undef;
   }
-  my $port = $self->{port} || 80;
+  # RPC2 is always on the camera's web port (default 80), not the stream port.
+  # parse_Path() derives {port} from the RTSP URL (typically 554), which is
+  # wrong for RPC. Only honour {port} if it looks like a web port.
+  my $port = ($self->{port} && $self->{port} != 554) ? $self->{port} : 80;
   # JSON-RPC auth is in-band; do not put userinfo in the URL.
   $self->{RPCBase} = 'http://'.$self->{host}.':'.$port.'/';
   $self->{rpc_id} = 0;
@@ -299,13 +302,49 @@ sub coaxial_white {
 sub lightOn  { my $self = shift; $self->coaxial_white(1); }
 sub lightOff { my $self = shift; $self->coaxial_white(2); }
 
+# Indicator LED (camera status light) via LightGlobal config.
+# Used on models like the ASH42-B where LightGlobal.Enable controls the indicator.
+sub indicatorLightOn  { my $self = shift; $self->set_config({ name => 'LightGlobal', table => [ { Enable => JSON::MaybeXS::true  } ] }); }
+sub indicatorLightOff { my $self = shift; $self->set_config({ name => 'LightGlobal', table => [ { Enable => JSON::MaybeXS::false } ] }); }
+
+sub indicatorLightStatus {
+  my $self = shift;
+  my $r = $self->rpc_call('configManager.getConfig', { name => 'LightGlobal' });
+  if (!$r || !$r->{result}) {
+    if ($r && $self->session_expired($r->{error})) {
+      return { Enable => undef } if !$self->login();
+      $r = $self->rpc_call('configManager.getConfig', { name => 'LightGlobal' });
+    }
+  }
+  my $enable = ($r and $r->{result} and $r->{params} and $r->{params}{table})
+    ? $r->{params}{table}[0]{Enable} : undef;
+  return { Enable => (defined $enable ? ($enable ? 'On' : 'Off') : undef) };
+}
+
 # Query the current white-light state. Returns { WhiteLight => 'On'|'Off'|undef }.
 # Used by the status-aware single-button toggle in the web UI.
 sub lightStatus {
   my $self = shift;
   my $r = $self->rpc_call('CoaxialControlIO.getStatus', { channel => 0 });
+  if (!$r || !$r->{result}) {
+    if ($r && $self->session_expired($r->{error})) {
+      return { WhiteLight => undef } if !$self->login();
+      $r = $self->rpc_call('CoaxialControlIO.getStatus', { channel => 0 });
+    }
+  }
   my $status = ($r and ref($r) eq 'HASH' and $r->{params}) ? $r->{params}{status} : undef;
   return { WhiteLight => ($status ? $status->{WhiteLight} : undef) };
+}
+
+# Send a keepalive ping to prevent session expiry in long-running daemons.
+# Call periodically (every ~30s) from the control daemon's idle loop.
+sub keepAlive {
+  my $self = shift;
+  my $r = $self->rpc_call('global.keepAlive', { timeout => 20 });
+  if (!$r || !$r->{result}) {
+    Debug('Dahua_RPC: keepAlive failed, re-logging in');
+    $self->login();
+  }
 }
 
 # ---------------------------------------------------------------------------
@@ -357,6 +396,18 @@ sub set_config {
   my ($self, $diff) = @_;
   return undef unless ref($diff) eq 'HASH' and $diff->{name} and exists $diff->{table};
   my $r = $self->rpc_call('configManager.setConfig', $diff);
+  if (!$r || !$r->{result}) {
+    my $msg = $r ? ($r->{error}{message} // 'result=false') : 'no response';
+    Error('Dahua_RPC: set_config('.$diff->{name}.') failed: '.$msg);
+    # Re-login on session expiry and retry once (same pattern as ptz_raw).
+    if ($r && $self->session_expired($r->{error})) {
+      Debug('Dahua_RPC: session expired during set_config, re-logging in');
+      return undef if !$self->login();
+      $r = $self->rpc_call('configManager.setConfig', $diff);
+      Error('Dahua_RPC: set_config('.$diff->{name}.') still failed after re-login')
+        if !$r || !$r->{result};
+    }
+  }
   return $r ? $r->{result} : undef;
 }
 

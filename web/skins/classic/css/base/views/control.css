@@ -45,7 +45,8 @@
 }
 
 /* Lit/amber when the camera reports the light is on; clicking then turns it off. */
-.ptzControls .controlsPanel .lightToggleBtn.active {
+.ptzControls .controlsPanel .lightToggleBtn.active,
+.ptzControls .controlsPanel .indicatorLightToggleBtn.active {
     background-color: #ffc107;
     color: #000;
 }

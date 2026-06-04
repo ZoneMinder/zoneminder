@@ -423,6 +423,26 @@ function updateLightButton(respObj) {
   // (un-highlighted, sends the on command) as a plain toggle.
 }
 
+function indicatorLightStatusReq() {
+  if (!$j('.indicatorLightToggleBtn').length) return;
+  const data = {control: 'indicatorLightStatus', response: 1};
+  if (auth_hash) data.auth = auth_hash;
+  $j.getJSON(monitorUrl + '?view=request&request=control&id='+monitorId, data)
+      .done(updateIndicatorLightButton)
+      .fail(logAjaxFail);
+}
+
+function updateIndicatorLightButton(respObj) {
+  const btn = $j('.indicatorLightToggleBtn');
+  if (!btn.length) return;
+  const state = (respObj && respObj.status) ? respObj.status.Enable : null;
+  if (state == 'On') {
+    btn.addClass('active').val(btn.attr('data-off-cmd'));
+  } else if (state == 'Off') {
+    btn.removeClass('active').val(btn.attr('data-on-cmd'));
+  }
+}
+
 function controlCmd(event) {
   button = event.target;
 
@@ -1166,6 +1186,12 @@ function initPage() {
     lightStatusReq();
     $j(document).on('click', '.lightToggleBtn', function() {
       setTimeout(lightStatusReq, 800);
+    });
+  }
+  if ($j('.indicatorLightToggleBtn').length) {
+    indicatorLightStatusReq();
+    $j(document).on('click', '.indicatorLightToggleBtn', function() {
+      setTimeout(indicatorLightStatusReq, 800);
     });
   }
 } // initPage

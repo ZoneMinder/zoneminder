@@ -23,6 +23,9 @@
 #include "zm_poly.h"
 #include "zm_swscale.h"
 #include "zm_utils.h"
+
+#include <libavutil/pixdesc.h>
+
 #include <algorithm>
 #include <fcntl.h>
 #include <mutex>
@@ -1115,36 +1118,39 @@ void Image::Assign(const Image &image) {
   }
 
   if ( image.buffer != buffer ) {
-    if (image.linesize > linesize) {
-      // Source has more per-row padding than the destination can hold. This
-      // branch is only reached when dimensions and colours/subpixelorder
-      // match but linesize disagrees — an oddly-shaped Image.
+    if (image.linesize != linesize) {
+      // Dimensions/colours/subpixelorder all match but linesizes disagree.
+      // This happens when src and dst use different alignment conventions
+      // (e.g. dst is FFALIGN'd to 32 from av_image_get_buffer_size while
+      // src came from a held-buffer ctor with a packed driver stride).
       //
-      // For planar formats (YUV420P/J420P/YUV422P/J422P) the per-row copy
-      // here only touches the Y plane; chroma planes would need plane-aware
-      // copying with separate strides via av_image_copy_plane. Doing a
-      // silent Y-only copy on a planar image leaves U/V uninitialised in
-      // the destination, producing solid-green output downstream. Refuse
-      // the assignment for planar formats with stride mismatch — the
-      // caller can fall back to a real sws_scale or re-allocate.
+      // For planar formats (YUV420P/J420P/YUV422P/J422P) a per-row copy of
+      // just the Y plane would leave U/V uninitialised in the destination,
+      // producing solid-green output downstream. Plane-aware copying via
+      // av_image_copy_plane would be needed and the caller may as well
+      // reconvert; refuse explicitly.
       if (zm_is_yuv420(image.imagePixFormat)
           || image.imagePixFormat == AV_PIX_FMT_YUV422P
           || image.imagePixFormat == AV_PIX_FMT_YUVJ422P) {
-        Error("Image::Assign: planar format %s with stride mismatch (src %d > dst %d) "
+        Error("Image::Assign: planar format %s with stride mismatch (src %d vs dst %d) "
               "is not supported by the per-row copy; chroma planes would be lost. "
               "Caller must convert or reallocate.",
               av_get_pix_fmt_name(image.imagePixFormat), image.linesize, linesize);
         return;
       }
-      // Packed formats (GRAY8, RGB24/BGR24, RGB32 family): copy only the
-      // destination row capacity per line to avoid writing past the
-      // destination on the last row. Source padding bytes beyond the
-      // common row width are discarded.
-      Debug(1, "Must copy line by line due to different line size %d != %d", image.linesize, linesize);
+      // Packed formats: copy min(src, dst) bytes per row so we never write
+      // past the destination row capacity AND never read past the source
+      // row capacity. Source padding (when src > dst) is discarded; dest
+      // padding (when src < dst) is left untouched. Both directions are
+      // safe — the previous flat-memcpy path silently over-read the
+      // source when image.linesize < linesize.
+      const unsigned int copy_bytes = std::min(image.linesize, linesize);
+      Debug(1, "Must copy line by line due to different line size %d != %d (copy %u)",
+            image.linesize, linesize, copy_bytes);
       uint8_t *src_ptr = image.buffer;
       uint8_t *dst_ptr = buffer;
       for (unsigned int i=0; i< image.height; i++) {
-        (*fptr_imgbufcpy)(dst_ptr, src_ptr, linesize);
+        (*fptr_imgbufcpy)(dst_ptr, src_ptr, copy_bytes);
         src_ptr += image.linesize;
         dst_ptr += linesize;
       }

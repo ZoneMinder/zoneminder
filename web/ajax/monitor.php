@@ -7,11 +7,16 @@ if ( canView('Monitors') || (isset($_REQUEST['mid']) && $_REQUEST['mid'] !== '' 
     ajaxError(translate('RequestMissing') . ' "mid".');
   }
 
-  switch ( $_REQUEST['action'] ) {
+  $action = $_REQUEST['action'] ?? '';
+  if ($action === '') {
+    ajaxError(translate('RequestMissing') . ' "action".');
+  }
+
+  switch ( $action ) {
   case 'validateName' :
     require_once('includes/Monitor.php');
     $monitor = new ZM\Monitor($mid);
-    $filterRegexp = $monitor->GetDefaults()['Name']['filter_regexp'];
+    $filterRegexp = $monitor->getDefaults()['Name']['filter_regexp'];
     $result = true;
     $badChars = [];
     $message = '';
@@ -33,5 +38,5 @@ if ( canView('Monitors') || (isset($_REQUEST['mid']) && $_REQUEST['mid'] !== '' 
   } // end switch action
 } // end if canEdit('Monitors')
 
-ajaxError(translate('UnrecognisedAction').' "'.$_REQUEST['action'].'" '.translate('or').' '.translate('insufficientPermissionsUser').' "'.$user->Username().'"');
+ajaxError(translate('UnrecognisedAction').' "'.validHtmlStr($_REQUEST['action'] ?? '').'" '.translate('ConjOr').' '.translate('insufficientPermissionsUser').' "'.validHtmlStr($user->Username()).'"');
 ?>

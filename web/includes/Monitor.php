@@ -1348,10 +1348,10 @@ class Monitor extends ZM_Object {
             <i id="controlMute'.$this->Id().'" class="audio-control-mute material-icons md-22"></i>
           </div>
         </div>
-        <canvas></canvas>
       '.PHP_EOL;
     }
     $htmlAudioMotion .= '
+        <canvas></canvas>
       </audio-motion>'.PHP_EOL;
     if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) $html .= $htmlAudioMotion;
     $html .= PHP_EOL.'</div></div><!--.grid-stack-item-content--></div><!--.grid-stack-item-->'.PHP_EOL;

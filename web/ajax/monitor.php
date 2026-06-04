@@ -36,7 +36,7 @@ if ( canView('Monitors') || (isset($_REQUEST['mid']) && $_REQUEST['mid'] !== '' 
     }
     break;
   } // end switch action
-} // end if canEdit('Monitors')
+} // end if canView('Monitors')
 
 ajaxError(translate('UnrecognisedAction').' "'.validHtmlStr($_REQUEST['action'] ?? '').'" '.translate('ConjOr').' '.translate('insufficientPermissionsUser').' "'.validHtmlStr($user->Username()).'"');
 ?>

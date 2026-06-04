@@ -83,6 +83,13 @@ if ( empty($_REQUEST['path']) ) {
       ZM\Error('Event '.$_REQUEST['eid'].' Not found');
       return;
     }
+    // Per-event ACL: coarse Events/Snapshots role isn't enough, must also check
+    // monitor-level permission (GHSA-vj5r-pc2v-gfwv). 404 to avoid leaking the id.
+    if (!$Event->canView()) {
+      header('HTTP/1.0 404 Not Found');
+      ZM\Warning('Event '.$_REQUEST['eid'].' access denied');
+      return;
+    }
 
     if ( $_REQUEST['fid'] == 'objdetect' ) {
       // if animation file is found, return that, else return image
@@ -276,6 +283,13 @@ if ( empty($_REQUEST['path']) ) {
     if ( !$Event ) {
       header('HTTP/1.0 404 Not Found');
       ZM\Error('Event ' . $Frame->EventId() . ' Not Found');
+      return;
+    }
+    // Per-event ACL: see GHSA-vj5r-pc2v-gfwv. The frame id is user-supplied so the
+    // event/monitor it resolves to may be one the user is denied from viewing.
+    if (!$Event->canView()) {
+      header('HTTP/1.0 404 Not Found');
+      ZM\Warning('Event '.$Frame->EventId().' access denied via frame '.$_REQUEST['fid']);
       return;
     }
     $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d',$Frame->FrameId()).'-'.$show.'.jpg';

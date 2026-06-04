@@ -39,11 +39,26 @@ $path = '';
 
 $Event = null;
 
-if ( ! empty($_REQUEST['eid']) ) {
-  $Event = new ZM\Event($_REQUEST['eid']);
-  $path = $Event->Path().'/'.$Event->DefaultVideo();
-} else if ( ! empty($_REQUEST['event_id']) ) {
-  $Event = new ZM\Event($_REQUEST['event_id']);
+$event_id = !empty($_REQUEST['eid']) ? $_REQUEST['eid']
+  : (!empty($_REQUEST['event_id']) ? $_REQUEST['event_id'] : null);
+
+if ($event_id !== null) {
+  $Event = new ZM\Event($event_id);
+  // Validate the event actually loaded — the constructor silently produces an
+  // empty object for unknown ids.
+  if (!$Event->Id()) {
+    header('HTTP/1.0 404 Not Found');
+    ZM\Error('Event '.$event_id.' Not found');
+    die();
+  }
+  // Per-event ACL: coarse canView('Events') isn't enough — the user may be
+  // denied access to the monitor that owns this event (GHSA-vj5r-pc2v-gfwv).
+  // 404 matches the missing-event response so the id isn't leaked.
+  if (!$Event->canView()) {
+    header('HTTP/1.0 404 Not Found');
+    ZM\Warning('Event '.$event_id.' access denied');
+    die();
+  }
   $path = $Event->Path().'/'.$Event->DefaultVideo();
 } else {
   $errorText = 'No video path';

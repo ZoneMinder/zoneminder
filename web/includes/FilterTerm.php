@@ -501,7 +501,8 @@ class FilterTerm {
   }
 
   public function is_post_sql() {
-    if ( $this->attr == 'ExistsInFileSystem' || $this->attr == 'Tags') {
+    // Tags is filtered in SQL (see sql_attr/sql), so it is not post-sql.
+    if ( $this->attr == 'ExistsInFileSystem' ) {
         return true;
     }
     return false;

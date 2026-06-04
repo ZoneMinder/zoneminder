@@ -197,9 +197,13 @@ if ( canView('Events') or canView('Snapshots') ) {
     if (!is_array($fileNameArray)) ajaxError('The "file_name_array" request parameter is not an array');
     $result = [];
     foreach ($fileNameArray as $fileName) {
-      if (is_string($fileName) && $fileName !== '') {
-        $result[] = [$fileName, file_exists(DIR_EXPORTS_DOWNLOAD . DIRECTORY_SEPARATOR . $fileName)];
-      }
+      if (!is_string($fileName) || $fileName === '') continue;
+
+      // Only allow relative paths under DIR_EXPORTS_DOWNLOAD; reject traversal/absolute paths.
+      $fileName = ltrim($fileName, "/\\");
+      if (preg_match('#(^|[\\/])\.\.([\\/]|$)#', $fileName)) continue;
+      $path = DIR_EXPORTS_DOWNLOAD . DIRECTORY_SEPARATOR . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $fileName);
+      $result[] = [$fileName, file_exists($path)];
     }
     ajaxResponse(array('response'=>$result));
     break;

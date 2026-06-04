@@ -36,7 +36,7 @@ function exportResponse(data, responseText) {
             downloadLink.text((i+1) + '. Download ' + '"' + fileName + '"');
           }
           downloadLink.attr("href", thisUrl + file);
-          downloadLink.removeClass('disabled');
+          downloadLink.removeClass('disabled').removeAttr('aria-disabled tabindex');
         } else {
           const downloadLink = document.getElementById('downloadLink'+(i-1)) || document.getElementById('downloadLink'); // Links must be in sequential order.
           nodeCopy = downloadLink.cloneNode(true);
@@ -47,7 +47,7 @@ function exportResponse(data, responseText) {
         }
       }
     } else {
-      downloadLink.removeClass('disabled');
+      downloadLink.removeClass('disabled').removeAttr('aria-disabled tabindex');
       downloadLink.text('Download ' + '"' + getFileNameFromURL(exportFile) + '"');
       downloadLink.attr("href", thisUrl + exportFile);
       fileForAutoDownload = [exportFile];
@@ -87,6 +87,8 @@ function exportResponse(data, responseText) {
         error: function(jqXHR, status, errorThrown) {
           logAjaxFail(jqXHR, status, errorThrown);
           $j('#exportProgress').html('Failed: ' + errorThrown);
+          clearInterval(fileExistencePollingInterval);
+          fileExistencePollingInterval = null;
         }
       });
     }, 3000);
@@ -117,6 +119,8 @@ function checkedResponse(data, responseText) {
           if (filename === data.response[i][0].split(/[\/]/).pop()) {
             // When exporting unarchived events to "data.response[i][0]", we'll get the file path, including the exportRoot directory. We only need to get the file name and compare it with "filename".
             el.classList.add('disabled');
+            el.setAttribute('aria-disabled', 'true');
+            el.setAttribute('tabindex', '-1');
           }
         });
       } else {

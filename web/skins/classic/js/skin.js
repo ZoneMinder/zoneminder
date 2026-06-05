@@ -1495,6 +1495,7 @@ function createGo2rtcStream(container, src, mid, fallbackToMjpeg) {
     stream.background = true;
     stream.muted = getCookie('zmWatchMuted') === 'true';
     stream.src = url.href;
+    container.appendChild(stream);
 
     const attachPlayListener = function() {
       const innerVideo = stream.querySelector('video');
@@ -1663,7 +1664,8 @@ function checkM3u8File(hlsUrl) {
 function tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar) {
   let video = null;
   const videoSrc = img.getAttribute('video_src');
-  if (videoSrc && currentView !== 'frames' && img.dataset.videoDurationSecs < 60) {
+  const durationSecs = parseFloat(img.dataset.videoDurationSecs);
+  if (videoSrc && currentView !== 'frames' && Number.isFinite(durationSecs) && durationSecs > 0 && durationSecs < 60) {
     const eventStart = img.dataset.eventStart;
     if (eventStart) {
       // Wall clock time for recorded video with clock icon

@@ -172,13 +172,23 @@ export class _AudioMotionAnalyzer extends HTMLElement {
       console.warn(`Audio visualization. Stream for monitor ID=${mid} not found.`);
       return;
     }
-
+    if (!monitorStream.started) {
+      console.warn(`Audio visualization. Stream for monitor ID=${mid} not started.`);
+      return;
+    }
+    const audioVisualization = document.getElementById(`audioVisualization${mid}`);
+    if (!audioVisualization) {
+      console.warn(`Audio visualization object for monitor ID=${mid} not found.`);
+      return;
+    }
+    const canvas = audioVisualization.querySelector(`#audioVisualization${mid} canvas`);
+    if (!canvas) return;
     this.audioMotion = new AudioMotionAnalyzer(
-        document.getElementById(`audioVisualization${mid}`),
+        audioVisualization,
         {
-        //source: audioEl, // main audio source is the HTML <audio> element .webrtc - не работает пока.
-        //width: 100%,
-          canvas: document.querySelector(`#audioVisualization${mid} canvas`),
+          //source: audioEl, // main audio source is the HTML <audio> element .webrtc - не работает пока.
+          //width: 100%,
+          canvas: canvas,
           height: 80,
           mode: 2, // This has little impact on performance. The lower the number, the larger the number of bars.
           maxFPS: this.maxFPS,

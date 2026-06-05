@@ -71,7 +71,10 @@ function exportResponse(data, responseText) {
     }
 
     if (fileExistencePollingInterval) clearInterval(fileExistencePollingInterval);
+    let existenceCheckInFlight = false;
     fileExistencePollingInterval = setInterval(() => {
+      if (existenceCheckInFlight) return;
+      existenceCheckInFlight = true;
       $j.ajax({
         type: 'GET',
         url: thisUrl,
@@ -84,6 +87,7 @@ function exportResponse(data, responseText) {
         },
         success: checkedResponse,
         timeout: 0,
+        complete: function() {existenceCheckInFlight = false;},
         error: function(jqXHR, status, errorThrown) {
           logAjaxFail(jqXHR, status, errorThrown);
           $j('#exportProgress').html('Failed: ' + errorThrown);
@@ -115,9 +119,10 @@ function checkedResponse(data, responseText) {
       if (data.response[i][1] === false) {
         nodeList.forEach(function(el) {
           const params = new URL(el.href).searchParams;
-          const filename = (params.has('file')) ? params.get('file') : '';
-          if (filename === data.response[i][0].split(/[\/]/).pop()) {
-            // When exporting unarchived events to "data.response[i][0]", we'll get the file path, including the exportRoot directory. We only need to get the file name and compare it with "filename".
+          const exportRoot = params.get('export_root') || '';
+          const file = params.get('file') || '';
+          const relPath = exportRoot ? (exportRoot + '/' + file) : file;
+          if (relPath === data.response[i][0]) {
             el.classList.add('disabled');
             el.setAttribute('aria-disabled', 'true');
             el.setAttribute('tabindex', '-1');

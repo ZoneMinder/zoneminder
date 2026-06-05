@@ -1952,7 +1952,7 @@ function MonitorStream(monitorData) {
     }
     if (!foundNextPlayer) {
       this.player = 'zms';
-      this.restart();
+this.restart(this.currentChannelStream);
     }
   };
 } // end class MonitorStream

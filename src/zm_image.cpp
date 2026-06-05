@@ -3384,11 +3384,15 @@ void Image::Deinterlace_Discard() {
 
   // Use linesize as the per-row byte stride so non-32-aligned widths copy
   // from/to the correct row offsets. Still copies `width` pixels per row
-  // (the padding bytes are untouched).
+  // (the padding bytes are untouched). Stop one short of the last row
+  // when height is odd — y == height-1 would write to row height which
+  // is past the buffer.
+  if (height < 2) return;
+  const unsigned int last_src = static_cast<unsigned int>(height) - 1;
   if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
     const uint8_t *psrc;
     uint8_t *pdest;
-    for (unsigned int y = 0; y < (unsigned int)height; y += 2) {
+    for (unsigned int y = 0; y < last_src; y += 2) {
       psrc = buffer + y * linesize;
       pdest = buffer + (y + 1) * linesize;
       for (unsigned int x = 0; x < (unsigned int)width; x++) {
@@ -3398,7 +3402,7 @@ void Image::Deinterlace_Discard() {
   } else if ( zm_is_rgb24(imagePixFormat) ) {
     const uint8_t *psrc;
     uint8_t *pdest;
-    for (unsigned int y = 0; y < (unsigned int)height; y += 2) {
+    for (unsigned int y = 0; y < last_src; y += 2) {
       psrc = buffer + y * linesize;
       pdest = buffer + (y + 1) * linesize;
       for (unsigned int x = 0; x < (unsigned int)width; x++) {
@@ -3410,7 +3414,7 @@ void Image::Deinterlace_Discard() {
   } else if ( zm_is_rgb32(imagePixFormat) ) {
     const Rgb *psrc;
     Rgb *pdest;
-    for (unsigned int y = 0; y < (unsigned int)height; y += 2) {
+    for (unsigned int y = 0; y < last_src; y += 2) {
       psrc = (Rgb*)(buffer + y * linesize);
       pdest = (Rgb*)(buffer + (y + 1) * linesize);
       for (unsigned int x = 0; x < (unsigned int)width; x++) {

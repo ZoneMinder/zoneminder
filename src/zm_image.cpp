@@ -2348,27 +2348,27 @@ bool Image::Delta(const Image &image, Image* targetimage) const {
 
   if (imagePixFormat == AV_PIX_FMT_BGR24) {
     /* BGR subpixel order */
-    delta_row(*delta8_bgr);
+    delta_row(delta8_bgr);
   } else if (zm_is_rgb24(imagePixFormat)) {
     /* Assume RGB subpixel order */
-    delta_row(*delta8_rgb);
+    delta_row(delta8_rgb);
   } else if (imagePixFormat == AV_PIX_FMT_ARGB) {
     /* ARGB subpixel order */
-    delta_row(*delta8_argb);
+    delta_row(delta8_argb);
   } else if (imagePixFormat == AV_PIX_FMT_ABGR) {
     /* ABGR subpixel order */
-    delta_row(*delta8_abgr);
+    delta_row(delta8_abgr);
   } else if (imagePixFormat == AV_PIX_FMT_BGRA) {
     /* BGRA subpixel order */
-    delta_row(*delta8_bgra);
+    delta_row(delta8_bgra);
   } else if (zm_is_rgb32(imagePixFormat)) {
     /* Assume RGBA subpixel order */
-    delta_row(*delta8_rgba);
+    delta_row(delta8_rgba);
   } else if (zm_bytes_per_pixel(imagePixFormat) == 1) {
-    delta_row(*delta8_gray8);
+    delta_row(delta8_gray8);
   } else {
     Panic("Delta called with unexpected pixel format %d (%s); legacy colours=%d",
-          imagePixFormat, av_get_pix_fmt_name(imagePixFormat), colours);
+          imagePixFormat, zm_get_pix_fmt_name(imagePixFormat), colours);
   }
 
 #ifdef ZM_IMAGE_PROFILING

@@ -1,53 +1,6 @@
 "use strict";
 var janus = null;
 const streaming = [];
-const playerPriority = {
-  1: { // This setting should always be priority #1.
-    name: 'default',
-    countErrors: 0,
-    durationErrors: 0
-  },
-  2: {
-    name: 'go2rtc_webrtc',
-    countErrors: 0,
-    durationErrors: 0
-  },
-  3: {
-    name: 'go2rtc_mse',
-    countErrors: 0,
-    durationErrors: 0
-  },
-  //4: {
-  //  name: 'go2rtc_hls', // Doesn't work for live viewing.
-  //  countErrors: 0,
-  //  durationErrors: 0
-  //},
-  5: {
-    name: 'rtsp2web_webrtc',
-    countErrors: 0,
-    durationErrors: 0
-  },
-  6: {
-    name: 'rtsp2web_mse',
-    countErrors: 0,
-    durationErrors: 0
-  },
-  7: {
-    name: 'rtsp2web_hls',
-    countErrors: 0,
-    durationErrors: 0
-  },
-  8: {
-    name: 'janus',
-    countErrors: 0,
-    durationErrors: 0
-  },
-  9: {
-    name: 'zms',
-    countErrors: 0,
-    durationErrors: 0
-  },
-};
 
 function MonitorStream(monitorData) {
   this.id = monitorData.id;
@@ -105,6 +58,53 @@ function MonitorStream(monitorData) {
     view: 'request',
     request: 'stream',
     connkey: this.connKey
+  };
+  this.playerPriority = {
+    1: { // This setting should always be priority #1.
+      name: 'default',
+      countErrors: 0,
+      durationErrors: 0
+   },
+    2: {
+      name: 'go2rtc_webrtc',
+      countErrors: 0,
+      durationErrors: 0
+    },
+    3: {
+      name: 'go2rtc_mse',
+      countErrors: 0,
+      durationErrors: 0
+    },
+    //4: {
+    //  name: 'go2rtc_hls', // Doesn't work for live viewing.
+    //  countErrors: 0,
+    //  durationErrors: 0
+    //},
+    5: {
+      name: 'rtsp2web_webrtc',
+      countErrors: 0,
+      durationErrors: 0
+    },
+    6: {
+      name: 'rtsp2web_mse',
+      countErrors: 0,
+      durationErrors: 0
+    },
+    7: {
+      name: 'rtsp2web_hls',
+      countErrors: 0,
+      durationErrors: 0
+    },
+    8: {
+      name: 'janus',
+      countErrors: 0,
+      durationErrors: 0
+    },
+    9: {
+      name: 'zms',
+      countErrors: 0,
+      durationErrors: 0
+    },
   };
   this.ajaxQueue = null;
   this.type = monitorData.type;
@@ -186,7 +186,7 @@ function MonitorStream(monitorData) {
   };
 
   this.player = monitorData.DefaultPlayer;
-  this.defaultPlayer = (this.player) ? this.player : playerPriority[1]['name'];
+  this.defaultPlayer = (this.player) ? this.player : this.playerPriority[1]['name'];
   this.activePlayer = ''; // Variants: go2rtc, janus, rtsp2web_hls, rtsp2web_mse, rtsp2web_webrtc, zms. Relevant for this.player = ''/Auto
   this.selectedPlayer = ''; // Selected player in the browser
   this.setPlayer = function(p) {
@@ -206,8 +206,8 @@ function MonitorStream(monitorData) {
 
     this.selectedPlayer = p;
     // Let's clear out the errors
-    for (const key in playerPriority) {
-      playerPriority[key]['countErrors'] = 0;
+    for (const key in this.playerPriority) {
+      this.playerPriority[key]['countErrors'] = 0;
     }
 
     return this.player = p;
@@ -520,7 +520,7 @@ function MonitorStream(monitorData) {
           }
         }
     );
-    this.handlerEventListener['playStream'] = manageEventListener.addEventListener(stream, 'error',
+    this.handlerEventListener['errorStream'] = manageEventListener.addEventListener(stream, 'error',
         (e) => {
           this.writeTextInfoBlock("Error");
           manageEventListener.removeEventListener(this.handlerEventListener['volumechange']);
@@ -650,6 +650,7 @@ function MonitorStream(monitorData) {
     manageEventListener.removeEventListener(this.handlerEventListener['playStream']);
     if (manageEventListener.removeEventListener(this.handlerEventListener['volumechange']) == this.handlerEventListener['volumechange']) this.handlerEventListener['volumechange'] = null;
     manageEventListener.removeEventListener(this.handlerEventListener['pauseStream']);
+    manageEventListener.removeEventListener(this.handlerEventListener['errorStream']);
 
     /* Stop should stop the stream (killing zms) but NOT set src=''; This leaves the last jpeg up on screen instead of a broken image */
     const stream = this.getElement();
@@ -1885,9 +1886,9 @@ function MonitorStream(monitorData) {
     if (!currentPlayer) currentPlayer = this.player = this.defaultPlayer;
 
     let countErrors = 0;
-    for (const key in playerPriority) {
-      if (-1 !== currentPlayer.indexOf(playerPriority[key]['name'])) {
-        countErrors = parseInt(playerPriority[key]['countErrors']);
+    for (const key in this.playerPriority) {
+      if (-1 !== currentPlayer.indexOf(this.playerPriority[key]['name'])) {
+        countErrors = parseInt(this.playerPriority[key]['countErrors'], 10);
         if (countErrors > 0) console.debug(`${countErrors} playback errors found for player "${currentPlayer}"`);
       }
     }
@@ -1913,9 +1914,9 @@ function MonitorStream(monitorData) {
 
   this.streamErrorRegistration = function() {
     const currentPlayer = this.player;
-    for (const key in playerPriority) {
-      if (-1 !== currentPlayer.indexOf(playerPriority[key]['name'])) {
-        playerPriority[key]['countErrors'] = parseInt(playerPriority[key]['countErrors']) + 1;
+    for (const key in this.playerPriority) {
+      if (-1 !== currentPlayer.indexOf(this.playerPriority[key]['name'])) {
+        this.playerPriority[key]['countErrors'] = parseInt(this.playerPriority[key]['countErrors'], 10) + 1;
       }
     }
   };
@@ -1923,36 +1924,30 @@ function MonitorStream(monitorData) {
   this.selectNextPlayer = function(currentPlayer = null) {
     if (this.defaultPlayer == this.player) {
       // This means we need to start the bypass from the beginning, since we started playback from the default player, which may be in the middle of the list.
-      currentPlayer = playerPriority[1]['name'];
+      currentPlayer = this.playerPriority[1]['name'];
     } else if (!currentPlayer) {
       currentPlayer = this.defaultPlayer;
     }
 
     let foundNextPlayer = false;
-    for (const key in playerPriority) {
-      if (-1 !== currentPlayer.indexOf(playerPriority[key]['name'])) {
-        // The current player was found in the "playerPriority" object.
-        let num = parseInt(key)+1;
-        let nextPlayer = (num < Object.keys(playerPriority).length) ? num : null;
-        if (nextPlayer !== null) {
-          while (nextPlayer !== null && !playerPriority[nextPlayer]) {
-            // It is required because priority numbers may not be consecutive and may have gaps in numbers.
-            num += 1;
-            nextPlayer = (num < Object.keys(playerPriority).length) ? num : null;
-          }
-
-          if (parseInt(playerPriority[nextPlayer]['countErrors']) === 0) {
-            this.player = playerPriority[nextPlayer]['name'];
+    for (const key in this.playerPriority) {
+      if (-1 !== currentPlayer.indexOf(this.playerPriority[key]['name'])) {
+        // The current player was found in the "this.playerPriority" object.
+        const keys = Object.keys(this.playerPriority).map(Number).sort((a, b) => a - b);
+        let idx = keys.indexOf(parseInt(key, 10));
+        while (idx !== -1 && idx + 1 < keys.length) {
+          const nextKey = keys[++idx];
+          if (parseInt(this.playerPriority[nextKey]['countErrors'], 10) === 0) {
+            this.player = this.playerPriority[nextKey]['name'];
             this.restart(this.currentChannelStream);
             foundNextPlayer = true;
             return;
           }
-        } else {
-          this.player = 'zms';
-          this.restart();
-          foundNextPlayer = true;
-          return;
         }
+        this.player = 'zms';
+        this.restart(this.currentChannelStream);
+        foundNextPlayer = true;
+        return;
       }
     }
     if (!foundNextPlayer) {
@@ -2034,7 +2029,7 @@ async function attachVideo(monitorStream) {
           Janus.attachMediaStream(document.getElementById("liveStream" + id), ourstream);
         } else {
           Janus.debug("Janus stream is not active. Restart.");
-          this.streamErrorRegistration();
+          monitorStream.streamErrorRegistration();
           monitorStream.restart();
         }
         monitorStream.updateStreamInfo('', ''); //JANUS

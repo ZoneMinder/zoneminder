@@ -64,7 +64,7 @@ function MonitorStream(monitorData) {
       name: 'default',
       countErrors: 0,
       durationErrors: 0
-   },
+    },
     2: {
       name: 'go2rtc_webrtc',
       countErrors: 0,

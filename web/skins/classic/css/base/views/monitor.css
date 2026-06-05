@@ -78,6 +78,11 @@ tr td input[type="radio"] {
   padding-top: 0.5rem;
 }
 
+#contentForm {
+  height: 100%;
+  overflow: visible;
+}
+
 body.sticky #content {
   overflow-y: auto;
   height: 100%;

@@ -168,6 +168,17 @@ sub Sql {
           next;
         }
 
+        # Date attrs (Date/StartDate/EndDate) emit sargable range queries
+        # against E.StartDateTime / E.EndDateTime instead of wrapping the
+        # column in to_days(), which would prevent index use.  See
+        # _dateRangeSQL below.
+        my $date_column = '';
+        if ( $term->{attr} eq 'Date' or $term->{attr} eq 'StartDate' ) {
+          $date_column = 'E.StartDateTime';
+        } elsif ( $term->{attr} eq 'EndDate' ) {
+          $date_column = 'E.EndDateTime';
+        }
+
         if ( $term->{attr} eq 'AlarmedZoneId' ) {
           $term->{op} = 'EXISTS';
         } elsif ( $term->{attr} eq 'Tags' ) {
@@ -205,9 +216,9 @@ sub Sql {
         } elsif ( $term->{attr} eq 'DateTime' ) {
           $self->{Sql} .= 'E.StartDateTime';
         } elsif ( $term->{attr} eq 'Date' ) {
-          $self->{Sql} .= 'to_days( E.StartDateTime )';
+          # column emitted as part of range expression below
         } elsif ( $term->{attr} eq 'StartDate' ) {
-          $self->{Sql} .= 'to_days( E.StartDateTime )';
+          # column emitted as part of range expression below
         } elsif ( $term->{attr} eq 'Time' or $term->{attr} eq 'StartTime' ) {
           $self->{Sql} .= 'extract( hour_second from E.StartDateTime )';
         } elsif ( $term->{attr} eq 'Weekday' or $term->{attr} eq 'StartWeekday' ) {
@@ -217,7 +228,7 @@ sub Sql {
         } elsif ( $term->{attr} eq 'EndDateTime' ) {
           $self->{Sql} .= 'E.EndDateTime';
         } elsif ( $term->{attr} eq 'EndDate' ) {
-          $self->{Sql} .= 'to_days( E.EndDateTime )';
+          # column emitted as part of range expression below
         } elsif ( $term->{attr} eq 'EndTime' ) {
           $self->{Sql} .= 'extract( hour_second from E.EndDateTime )';
         } elsif ( $term->{attr} eq 'EndWeekday' ) {
@@ -299,14 +310,18 @@ sub Sql {
               if ( uc($temp_value) eq 'NULL' ) {
                 $value = $temp_value;
               } elsif ( $temp_value eq 'CURDATE()' or $temp_value eq 'NOW()' ) {
-                $value = 'to_days('.$temp_value.')';
+                # For Date/StartDate/EndDate the value is consumed by
+                # _dateRangeSQL below; leave it raw.  For CurrentDate
+                # (left side is to_days(NOW()), a constant), preserve
+                # the legacy to_days() wrapping.
+                $value = $date_column ? $temp_value : 'to_days('.$temp_value.')';
               } else {
                 $value = DateTimeToSQL($temp_value);
                 if ( !$value ) {
                   Error("Error parsing date/time '$temp_value', skipping filter '$self->{Name}'");
                   return;
                 }
-                $value = "to_days( '$value' )";
+                $value = $date_column ? "'$value'" : "to_days( '$value' )";
               }
             } elsif ( $term->{attr} eq 'Time' or $term->{attr} eq 'StartTime' or $term->{attr} eq 'EndTime' or $term->{attr} eq 'CurrentTime') {
               if ( uc($temp_value) eq 'NULL' ) {
@@ -326,9 +341,15 @@ sub Sql {
           } # end foreach temp_value
 
           if ( $term->{op} ) {
+            # Date attrs: emit a sargable range expression covering the
+            # whole day(s) instead of comparing to_days(col) op to_days(val),
+            # which would defeat the index on StartDateTime/EndDateTime.
+            if ( $date_column ) {
+              $self->{Sql} .= ' '._dateRangeSQL($date_column, $term->{op}, \@value_list);
+            }
             # Handle special tag values before generic operators to avoid
             # LEFT JOIN NULL comparison issues with EXISTS/NOT EXISTS
-            if ( $term->{attr} eq 'Tags' and defined($term->{val}) and $term->{val} eq '0' ) {
+            elsif ( $term->{attr} eq 'Tags' and defined($term->{val}) and $term->{val} eq '0' ) {
               # "No Tag": = means no tags (NOT EXISTS), != means has tags (EXISTS)
               if ($term->{op} eq '!=' or $term->{op} eq 'IS NOT') {
                 $self->{Sql} .= 'EXISTS (SELECT NULL FROM `Events_Tags` AS ET WHERE ET.EventId = E.Id)';
@@ -527,6 +548,72 @@ sub str_repeat {
   my $string = shift;
   my $count = shift;
   return ${string}x${count};
+}
+
+# Returns ($day_start, $next_day_start) SQL literals for a date value.
+# $value is either 'YYYY-MM-DD HH:MM:SS' (quoted), or CURDATE()/NOW().
+sub _dateBounds {
+  my $value = shift;
+  if ( $value eq 'CURDATE()' or $value eq 'NOW()' ) {
+    return ($value, "$value + INTERVAL 1 DAY");
+  }
+  my $stripped = $value;
+  $stripped =~ s/^'(.+)'$/$1/;
+  my ($y, $m, $d) = $stripped =~ /^(\d{4})-(\d{2})-(\d{2})/;
+  if (!defined $y) {
+    Error("_dateBounds: unable to parse '$value'");
+    return ($value, $value);
+  }
+  my $lo = sprintf("'%04d-%02d-%02d 00:00:00'", $y, $m, $d);
+  my $next_t = POSIX::mktime(0, 0, 0, $d + 1, $m - 1, $y - 1900);
+  my $hi = POSIX::strftime("'%Y-%m-%d 00:00:00'", localtime($next_t));
+  return ($lo, $hi);
+}
+
+# Emits a sargable WHERE-clause fragment for date-precision comparisons
+# against $column.  Values in $value_list are raw SQL literals (quoted
+# date strings or CURDATE()/NOW() or 'NULL').
+sub _dateRangeSQL {
+  my ($column, $op, $value_list) = @_;
+  my @values = @$value_list;
+
+  if ( @values == 1 and uc($values[0]) eq 'NULL' ) {
+    if ( $op eq 'IS' or $op eq '=' ) {
+      return "$column IS NULL";
+    } elsif ( $op eq 'IS NOT' or $op eq '!=' ) {
+      return "$column IS NOT NULL";
+    }
+  }
+
+  if ( $op eq 'IN' or $op eq '=[]' ) {
+    my @ors;
+    for my $v (@values) {
+      my ($lo, $hi) = _dateBounds($v);
+      push @ors, "($column >= $lo AND $column < $hi)";
+    }
+    return '('.join(' OR ', @ors).')';
+  }
+  if ( $op eq 'NOT IN' or $op eq '![]' ) {
+    my @ands;
+    for my $v (@values) {
+      my ($lo, $hi) = _dateBounds($v);
+      push @ands, "($column < $lo OR $column >= $hi)";
+    }
+    return '('.join(' AND ', @ands).')';
+  }
+
+  my ($lo, $hi) = _dateBounds($values[0]);
+  if ( $op eq '=' )  { return "$column >= $lo AND $column < $hi"; }
+  if ( $op eq '!=' ) { return "($column < $lo OR $column >= $hi)"; }
+  if ( $op eq '>' )  { return "$column >= $hi"; }
+  if ( $op eq '>=' ) { return "$column >= $lo"; }
+  if ( $op eq '<' )  { return "$column < $lo"; }
+  if ( $op eq '<=' ) { return "$column < $hi"; }
+  if ( $op eq 'IS' ) { return "$column >= $lo AND $column < $hi"; }
+  if ( $op eq 'IS NOT' ) { return "($column < $lo OR $column >= $hi)"; }
+
+  Warning("_dateRangeSQL: unhandled op '$op', falling back to to_days");
+  return "to_days($column) $op $values[0]";
 }
 
 # Formats a date into MySQL format

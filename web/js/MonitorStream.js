@@ -1564,6 +1564,12 @@ function MonitorStream(monitorData) {
         .fail(logAjaxFail);
 
     if (this.Go2RTCEnabled && ((!this.player) || (-1 !== this.player.indexOf('go2rtc')))) {
+      if (!this.element || !this.element.isConnected) {
+        // Stream element has been detached; stop polling to avoid intervals running on stale objects.
+        this.statusCmdTimer = clearInterval(this.statusCmdTimer);
+        return;
+      }
+      if (!this.element.currentMode) return;
       if (-1 !== this.element.currentMode.toLowerCase().indexOf('mse')) {
         $j('#delay'+this.id).removeClass('hidden');
         this.manageMSESocket(this.element.video, this.element.ws, this.element.ms);

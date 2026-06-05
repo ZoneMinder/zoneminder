@@ -87,7 +87,9 @@ function exportResponse(data, responseText) {
         },
         success: checkedResponse,
         timeout: 0,
-        complete: function() {existenceCheckInFlight = false;},
+        complete: function() {
+          existenceCheckInFlight = false;
+        },
         error: function(jqXHR, status, errorThrown) {
           logAjaxFail(jqXHR, status, errorThrown);
           $j('#exportProgress').html('Failed: ' + errorThrown);

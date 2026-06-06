@@ -118,7 +118,14 @@ function MonitorStream(monitorData) {
               stream.src = newSrc;
             }
           })
-          .fail(function() {
+          .fail(function(jqxhr) {
+            // A dead session returns 401; redirect to login instead of retrying
+            // a stream that can never authenticate.
+            if (typeof authFailureAction === 'function' && authFailureAction(jqxhr.status) == 'login'
+                && typeof goToLogin === 'function') {
+              goToLogin();
+              return;
+            }
             self.writeTextInfoBlock("Error", {showImg: false});
           });
     }, backoffMs);

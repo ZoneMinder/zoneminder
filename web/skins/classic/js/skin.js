@@ -478,19 +478,11 @@ if ( currentView != 'none' && currentView != 'login' ) {
         .done(setNavBar)
         .fail(function(jqxhr, textStatus, error) {
           console.log("Request Failed: " + textStatus + ", " + error);
-          if (error == 'Unauthorized') {
-            window.location.reload(true);
-          }
-          if (!jqxhr.responseText) {
-            console.log("No responseText in jqxhr");
-            console.log(jqxhr);
-            return;
-          }
-          console.log("Response Text: " + jqxhr.responseText.replace(/(<([^>]+)>)/gi, ''));
-          if (textStatus != "timeout") {
-          // The idea is that this should only fail due to auth, so reload the page
-          // which should go to login if it can't stay logged in.
-            window.location.reload(true);
+          // A dead session/hash returns 401; go straight to login rather than
+          // reloading in a loop. Transient errors (network/timeout) are left to
+          // the next poll.
+          if (authFailureAction(jqxhr.status) == 'login') {
+            goToLogin();
           }
         });
   }
@@ -519,6 +511,14 @@ if ( currentView != 'none' && currentView != 'login' ) {
       if ( key == 'getBandwidthHTML' ) bwClickFunction();
     }
   }
+
+  // Re-validate auth when the tab becomes visible again after being hidden or
+  // slept; onAuthVisible (auth-helpers.js) refreshes the hash and repaints, or
+  // redirects to login on a dead session. Wired here so it only runs for the
+  // authenticated views. pageshow covers bfcache restores (Firefox/Chromium/
+  // Android) and refocus.
+  document.addEventListener('visibilitychange', onAuthVisible);
+  window.addEventListener('pageshow', onAuthVisible);
 } // end if ( currentView != 'none' && currentView != 'login' )
 
 //Shows a message if there is an error in the streamObj or the stream doesn't exist.  Returns true if error, false otherwise.

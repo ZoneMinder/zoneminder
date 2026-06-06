@@ -107,7 +107,7 @@ class VideoStream extends VideoRTC {
         const liveStream = this.closest('[id ^= "liveStream"]');
         if (liveStream) {
             const monitorStream = getMonitorStream(stringToNumber(liveStream.id));
-            if (monitorStream) {
+            if (monitorStream && monitorStream.started) {
                 monitorStream.streamErrorRegistration();
                 monitorStream.restart(monitorStream.currentChannelStream);
             }

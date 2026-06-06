@@ -1892,7 +1892,7 @@ function MonitorStream(monitorData) {
       }
     }
 
-    if ((currentPlayer && countErrors === 0) || this.selectedPlayer) { // OR you specified a specific player, which means you can use only it without switching to others
+    if ((currentPlayer && countErrors === 0) || (this.selectedPlayer && this.selectedPlayer === currentPlayer)) { // selectedPlayer pins only when it matches the active selection
       if (this.Go2RTCEnabled && (-1 !== currentPlayer.indexOf('go2rtc'))) {
         this.select_go2rtc(streamChannel);
       } else if (this.janusEnabled && (-1 !== currentPlayer.indexOf('janus'))) {

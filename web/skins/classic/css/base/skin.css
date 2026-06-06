@@ -52,33 +52,33 @@ body.sticky {
 }
 
 h1 {
-    font-family: inherit;
-    font-size: 120%;
-    font-weight: bold;
-    text-align: center;
+  font-family: inherit;
+  font-size: 120%;
+  font-weight: bold;
+  text-align: center;
 }
 
 h2 {
-    font-family: inherit;
-    font-size: 110%;
-    font-weight: bold;
+  font-family: inherit;
+  font-size: 110%;
+  font-weight: bold;
 }
 
 h3 {
-    font-family: inherit;
-    font-size: 100%;
-    font-weight: bold;
+  font-family: inherit;
+  font-size: 100%;
+  font-weight: bold;
 }
 
 h4 {
-    font-family: inherit;
-    font-size: 100%;
+  font-family: inherit;
+  font-size: 100%;
 }
 
 p {
-    font-family: inherit;
-    font-size: 100%;
-    font-weight: normal;
+  font-family: inherit;
+  font-size: 100%;
+  font-weight: normal;
 }
 
 /*
@@ -112,23 +112,23 @@ a {
 
 a.optionhelp,
 a:link {
-    color: var(--colorLink);
-    text-decoration: none;
+  color: var(--colorLink);
+  text-decoration: none;
 }
 
 a:visited {
-    color: #44b8eb;
-    text-decoration: none;
+  color: #44b8eb;
+  text-decoration: none;
 }
 
 a:hover {
-    text-decoration: none; 
-    background-color:rgba(72, 84, 96,0.2);
-    border-radius:4px;
+  text-decoration: none; 
+  background-color:rgba(72, 84, 96,0.2);
+  border-radius:4px;
 }
 
 a:not([href]):hover {
-    color: #212529;
+  color: #212529;
 }
 
 label {
@@ -145,25 +145,33 @@ button.btn {
   font-size: 18px;
   margin-bottom: 3px;
 }
+
 #toolbar .btn-normal,
 #toolbar .btn-danger {
   margin-right: 3px;
 }
+
 #rightButtons .btn-normal,
 #leftButtons .btn-normal {
   margin-right: 0px;
 }
+
 input, textarea, select, button, .btn-primary {
-    border: 1px #ccc solid;
-    padding: 5px;
-    border-radius: 1px;
-    font-family: inherit;
-    font-weight: 400;
-    font-size: 100%;
-    color: #333333;
-    background-color: #f8f8f8;
-    text-align: left;
-    border-radius:4px;
+  border: 1px #ccc solid;
+  padding: 5px;
+  border-radius: 1px;
+  font-family: inherit;
+  font-weight: 400;
+  font-size: 100%;
+  color: #333333;
+  background-color: #f8f8f8;
+  text-align: left;
+  border-radius:4px;
+}
+
+/* Required for a customized scrollbar */
+textarea {   
+  cursor: auto;
 }
 
 input.noborder {

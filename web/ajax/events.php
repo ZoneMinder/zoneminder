@@ -272,7 +272,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   } # end foreach row
 
   # Filter limits come before pagination limits.
-  if ($filter->limit() and ($filter->limit() > count($unfiltered_rows))) {
+  if ($filter->limit() and ($filter->limit() < count($unfiltered_rows))) {
     ZM\Debug("Filtering rows due to filter->limit " . count($unfiltered_rows)." limit: ".$filter->limit());
     $unfiltered_rows = array_slice($unfiltered_rows, 0, $filter->limit());
   }
@@ -342,7 +342,14 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $videoAttr = '';
     if ($event->DefaultVideo()) {
       $videoSrc = $event->getStreamSrc(array('mode'=>'mp4'), '&amp;');
+      $videoDuration = isset($row['Length']) ? (int)$row['Length'] : 0;
+      if ($videoDuration === 0) $videoDuration = $event->Duration();
       $videoAttr = ' video_src="' .$videoSrc. '" data-event-start="'.htmlspecialchars($event->StartDateTime()).'"';
+      // HLS manifest is written progressively during recording. Always advertise
+      // it for events with video; JS falls back to MP4/MJPEG on load failure
+      // (handles legacy events recorded before HLS support was added).
+      $videoAttr .= ' data-video-hls-src="'.$event->getStreamSrc(array('mode'=>'mp4hls'), '&amp;').'"';
+      $videoAttr .= ' data-video-duration-secs="'.$videoDuration.'"';
     }
 
     // Modify the row data as needed

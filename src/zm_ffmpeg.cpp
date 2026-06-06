@@ -20,6 +20,7 @@
 #include "zm_ffmpeg.h"
 
 #include "zm_logger.h"
+#include "zm_pixformat.h"
 #include "zm_rgb.h"
 #include "zm_utils.h"
 
@@ -327,46 +328,9 @@ void FFMPEGDeInit() {
   bInit = false;
 }
 
+// DEPRECATED: use zm_pixformat_from_colours() from zm_pixformat.h instead.
 enum _AVPIXELFORMAT GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subpixelorder) {
-  enum _AVPIXELFORMAT pf;
-
-  Debug(8,"Colours: %d SubpixelOrder: %d",p_colours,p_subpixelorder);
-
-  switch (p_colours) {
-  case ZM_COLOUR_RGB24:
-    if(p_subpixelorder == ZM_SUBPIX_ORDER_BGR) {
-      /* BGR subpixel order */
-      pf = AV_PIX_FMT_BGR24;
-    } else {
-      /* Assume RGB subpixel order */
-      pf = AV_PIX_FMT_RGB24;
-    }
-    break;
-  case ZM_COLOUR_RGB32:
-    if (p_subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
-      /* ARGB subpixel order */
-      pf = AV_PIX_FMT_ARGB;
-    } else if (p_subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
-      /* ABGR subpixel order */
-      pf = AV_PIX_FMT_ABGR;
-    } else if (p_subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
-      /* BGRA subpixel order */
-      pf = AV_PIX_FMT_BGRA;
-    } else {
-      /* Assume RGBA subpixel order */
-      pf = AV_PIX_FMT_RGBA;
-    }
-    break;
-  case ZM_COLOUR_GRAY8:
-    pf = AV_PIX_FMT_GRAY8;
-    break;
-  default:
-    Panic("Unexpected colours: %d", p_colours);
-    pf = AV_PIX_FMT_GRAY8; /* Just to shush gcc variable may be unused warning */
-    break;
-  }
-
-  return pf;
+  return zm_pixformat_from_colours(p_colours, p_subpixelorder);
 }
 
 #if LIBAVUTIL_VERSION_CHECK(56, 0, 0, 17, 100)

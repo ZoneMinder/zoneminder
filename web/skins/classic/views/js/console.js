@@ -166,9 +166,14 @@ function ajaxRequest(params) {
       }
     },
     error: function(jqXHR) {
-      if (jqXHR.statusText != 'abort') {
-        console.log("error", jqXHR);
+      if (jqXHR.statusText == 'abort') return;
+      // A dead session returns 401 here; go to login rather than silently
+      // leaving stale thumbnails that keep 403ing against zms.
+      if (typeof authFailureAction === 'function' && authFailureAction(jqXHR.status) == 'login') {
+        goToLogin();
+        return;
       }
+      console.log("error", jqXHR);
     }
   });
 }

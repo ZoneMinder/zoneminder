@@ -166,10 +166,22 @@ class FilterTerm {
       case 'Date':
       case 'StartDate':
       case 'EndDate':
+        // Date/StartDate/EndDate emit raw quoted date strings here.  sql()
+        // wraps them in a sargable range expression instead of the legacy
+        // to_days(col) op to_days(val), which prevented index use on
+        // StartDateTime / EndDateTime.  CurrentDate is a constant
+        // (to_days(NOW())) on the left and keeps the legacy wrapping.
         if ( $value_upper == 'CURDATE()' or $value_upper == 'NOW()' ) {
-          $value = 'to_days('.$value.')';
+          if ($this->attr === 'CurrentDate') {
+            $value = 'to_days('.$value.')';
+          }
+          // For Date/StartDate/EndDate leave $value as CURDATE()/NOW() raw.
         } else if ( $value_upper != 'NULL' ) {
-          $value = 'to_days(\''.date(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
+          if ($this->attr === 'CurrentDate') {
+            $value = 'to_days(\''.date(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
+          } else {
+            $value = '\''.date(STRF_FMT_DATETIME_DB, strtotime($value)).'\'';
+          }
         }
         break;
       case 'CurrentTime':
@@ -352,6 +364,21 @@ class FilterTerm {
     }
     $sql .= ' ';
 
+    // Date attrs: emit sargable range expression instead of
+    // to_days(col) op to_days(val).
+    $dateColumn = '';
+    if ($this->attr === 'Date' || $this->attr === 'StartDate') {
+      $dateColumn = 'E.StartDateTime';
+    } else if ($this->attr === 'EndDate') {
+      $dateColumn = 'E.EndDateTime';
+    }
+    if ($dateColumn) {
+      $sql .= self::dateRangeSQL($dateColumn, $this->op, $this->sql_values());
+      if ( isset($this->cbr) ) $sql .= ' '.str_repeat(')', $this->cbr);
+      $sql .= PHP_EOL;
+      return $sql;
+    }
+
     $operator = $this->sql_operator();
     $values = $this->sql_values();
     if ((count($values) > 1) and !(($operator == ' IN ') or ($operator == ' NOT IN ') or ($operator == ' =[] ') or ($operator == ' ![] '))) {
@@ -395,6 +422,64 @@ class FilterTerm {
     $sql .= PHP_EOL;
     return $sql;
   } # end public function sql
+
+  // Returns [$day_start_sql, $next_day_start_sql] for a date value.
+  // $value is either a quoted 'YYYY-MM-DD HH:MM:SS', CURDATE(), or NOW().
+  private static function dateBounds($value) {
+    if ($value === 'CURDATE()' || $value === 'NOW()') {
+      return array($value, "$value + INTERVAL 1 DAY");
+    }
+    $stripped = preg_replace("/^'(.+)'$/", '$1', $value);
+    if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})/', $stripped, $m)) {
+      Error("dateBounds: unable to parse '$value'");
+      return array($value, $value);
+    }
+    $lo = sprintf("'%04d-%02d-%02d 00:00:00'", $m[1], $m[2], $m[3]);
+    $hi_t = mktime(0, 0, 0, (int)$m[2], (int)$m[3] + 1, (int)$m[1]);
+    $hi = '\''.date('Y-m-d 00:00:00', $hi_t).'\'';
+    return array($lo, $hi);
+  }
+
+  // Builds a sargable WHERE-clause fragment for date-precision
+  // comparisons against $column.  $values are raw SQL literals from
+  // sql_values() (quoted date strings, CURDATE()/NOW(), or 'NULL').
+  private static function dateRangeSQL($column, $op, $values) {
+    if (count($values) === 1 && strtoupper($values[0]) === 'NULL') {
+      if ($op === 'IS' || $op === '=')         return "$column IS NULL";
+      if ($op === 'IS NOT' || $op === '!=')    return "$column IS NOT NULL";
+    }
+
+    if ($op === 'IN' || $op === '=[]') {
+      $ors = array();
+      foreach ($values as $v) {
+        list($lo, $hi) = self::dateBounds($v);
+        $ors[] = "($column >= $lo AND $column < $hi)";
+      }
+      return '('.implode(' OR ', $ors).')';
+    }
+    if ($op === 'NOT IN' || $op === '![]') {
+      $ands = array();
+      foreach ($values as $v) {
+        list($lo, $hi) = self::dateBounds($v);
+        $ands[] = "($column < $lo OR $column >= $hi)";
+      }
+      return '('.implode(' AND ', $ands).')';
+    }
+
+    list($lo, $hi) = self::dateBounds($values[0]);
+    switch ($op) {
+      case '=':       return "$column >= $lo AND $column < $hi";
+      case '!=':      return "($column < $lo OR $column >= $hi)";
+      case '>':       return "$column >= $hi";
+      case '>=':      return "$column >= $lo";
+      case '<':       return "$column < $lo";
+      case '<=':      return "$column < $hi";
+      case 'IS':      return "$column >= $lo AND $column < $hi";
+      case 'IS NOT':  return "($column < $lo OR $column >= $hi)";
+    }
+    Warning("dateRangeSQL: unhandled op '$op', falling back to to_days");
+    return "to_days($column) $op ".$values[0];
+  }
 
   public function querystring($objectname='filter', $querySep='&amp;') {
     # We don't validate the term parameters here
@@ -501,7 +586,8 @@ class FilterTerm {
   }
 
   public function is_post_sql() {
-    if ( $this->attr == 'ExistsInFileSystem' || $this->attr == 'Tags') {
+    // Tags is filtered in SQL (see sql_attr/sql), so it is not post-sql.
+    if ( $this->attr == 'ExistsInFileSystem' ) {
         return true;
     }
     return false;

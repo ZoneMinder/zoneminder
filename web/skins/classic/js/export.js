@@ -42,7 +42,8 @@ function exportResponse(data, responseText) {
           nodeCopy = downloadLink.cloneNode(true);
           nodeCopy.id = 'downloadLink'+i;
           downloadLink.parentNode.insertBefore(nodeCopy, downloadLink.nextSibling);
-          $j(nodeCopy).html('<br>' + (i+1) + '. Download ' + '"' + fileName + '"');
+          nodeCopy.before(document.createElement('br'));
+          $j(nodeCopy).text((i+1) + '. Download ' + '"' + fileName + '"');
           $j(nodeCopy).attr("href", thisUrl + file);
         }
       }

@@ -172,7 +172,7 @@ export class _AudioMotionAnalyzer extends HTMLElement {
       console.warn(`Audio visualization. Stream for monitor ID=${mid} not found.`);
       return;
     }
-    if (!monitorStream.started) {
+    if (monitorStream.started === false) {
       console.warn(`Audio visualization. Stream for monitor ID=${mid} not started.`);
       return;
     }
@@ -181,7 +181,11 @@ export class _AudioMotionAnalyzer extends HTMLElement {
       console.warn(`Audio visualization object for monitor ID=${mid} not found.`);
       return;
     }
-    const canvas = audioVisualization.querySelector(`#audioVisualization${mid} canvas`);
+    const canvas = audioVisualization.querySelector('canvas');
+    if (!canvas) {
+      console.warn(`Audio visualization canvas for monitor ID=${mid} not found.`);
+      return;
+    }
     if (!canvas) return;
     this.audioMotion = new AudioMotionAnalyzer(
         audioVisualization,

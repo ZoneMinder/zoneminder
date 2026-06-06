@@ -523,7 +523,6 @@ function MonitorStream(monitorData) {
     this.handlerEventListener['errorStream'] = manageEventListener.addEventListener(stream, 'error',
         (e) => {
           this.writeTextInfoBlock("Error");
-          manageEventListener.removeEventListener(this.handlerEventListener['volumechange']);
           this.streamErrorRegistration();
           this.restart(this.currentChannelStream);
         }
@@ -1937,8 +1936,12 @@ function MonitorStream(monitorData) {
         let idx = keys.indexOf(parseInt(key, 10));
         while (idx !== -1 && idx + 1 < keys.length) {
           const nextKey = keys[++idx];
+          const nextName = this.playerPriority[nextKey]['name'];
+          if (nextName.indexOf('go2rtc') !== -1 && !this.Go2RTCEnabled) continue;
+          if (nextName.indexOf('rtsp2web') !== -1 && !this.RTSP2WebEnabled) continue;
+          if (nextName.indexOf('janus') !== -1 && !this.janusEnabled) continue;
           if (parseInt(this.playerPriority[nextKey]['countErrors'], 10) === 0) {
-            this.player = this.playerPriority[nextKey]['name'];
+            this.player = nextName;
             this.restart(this.currentChannelStream);
             foundNextPlayer = true;
             return;
@@ -2030,7 +2033,7 @@ async function attachVideo(monitorStream) {
         } else {
           Janus.debug("Janus stream is not active. Restart.");
           monitorStream.streamErrorRegistration();
-          monitorStream.restart();
+          monitorStream.restart(monitorStream.currentChannelStream);
         }
         monitorStream.updateStreamInfo('', ''); //JANUS
         //getTracksFromStream(monitorStream); //JANUS

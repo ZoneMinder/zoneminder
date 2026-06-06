@@ -14,6 +14,8 @@
 #include "zm_ffmpeg.h"
 #include "zm_rgb.h"
 
+#include <libavutil/pixdesc.h>
+
 //
 // Central pixel format conversion helpers.
 //

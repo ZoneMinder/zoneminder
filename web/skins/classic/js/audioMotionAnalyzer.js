@@ -170,23 +170,26 @@ export class _AudioMotionAnalyzer extends HTMLElement {
     const monitorStream = getMonitorStream(mid);
     if (!monitorStream) {
       console.warn(`Audio visualization. Stream for monitor ID=${mid} not found.`);
+      this.initCompleted = false;
       return;
     }
     if (monitorStream.started === false) {
       console.warn(`Audio visualization. Stream for monitor ID=${mid} not started.`);
+      this.initCompleted = false;
       return;
     }
     const audioVisualization = document.getElementById(`audioVisualization${mid}`);
     if (!audioVisualization) {
       console.warn(`Audio visualization object for monitor ID=${mid} not found.`);
+      this.initCompleted = false;
       return;
     }
     const canvas = audioVisualization.querySelector('canvas');
     if (!canvas) {
       console.warn(`Audio visualization canvas for monitor ID=${mid} not found.`);
+      this.initCompleted = false;
       return;
     }
-    if (!canvas) return;
     this.audioMotion = new AudioMotionAnalyzer(
         audioVisualization,
         {

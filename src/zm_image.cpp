@@ -2674,7 +2674,7 @@ void Image::Colourise(const unsigned int p_reqcolours, const unsigned int p_reqs
   int dst_linesize_signed = av_image_get_linesize(p_req_pixfmt, width, 0);
   if (new_size_signed < 0 || dst_linesize_signed < 0) {
     Error("Colourise: av_image sizing failed for %s %ux%u",
-          av_get_pix_fmt_name(p_req_pixfmt), width, height);
+          zm_get_pix_fmt_name(p_req_pixfmt), width, height);
     return;
   }
   const size_t new_size = static_cast<size_t>(new_size_signed);
@@ -3686,7 +3686,7 @@ void Image::Deinterlace_4Field(const Image* next_image, unsigned int threshold) 
       DumpBuffer(tmp2, ZM_BUFTYPE_ZM);
     }
     Panic("Deinterlace_4Field called with unexpected pixel format %d (%s)",
-          imagePixFormat, av_get_pix_fmt_name(imagePixFormat));
+          imagePixFormat, zm_get_pix_fmt_name(imagePixFormat));
   }
 
   if (needs_pack) {

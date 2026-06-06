@@ -54,8 +54,6 @@ class FfmpegCamera : public Camera {
 
   int frameCount;
 
-  _AVPIXELFORMAT      imagePixFormat;
-
   bool                use_hwaccel; //will default to on if hwaccel specified, will get turned off if there is a failure
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
   AVBufferRef *hw_device_ctx = nullptr;

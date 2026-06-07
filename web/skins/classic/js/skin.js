@@ -3229,19 +3229,25 @@ async function getTracksFromStream(videoFeedStream) {
 
 const waitUntil = (condition, timeout = 0) => {
   const startTime = Date.now();
+  let currentTime;
 
   return new Promise((resolve) => {
-    const interval = setInterval(() => {
-      const currentTime = Date.now();
-      if (timeout !== 0 && ((currentTime - startTime) > timeout)) {
-        clearInterval(interval);
-        resolve(false);
-      } else {
-        if (!condition()) return;
-        clearInterval(interval);
-        resolve(currentTime - startTime);
-      }
-    }, 100);
+    if (condition()) {
+      currentTime = Date.now();
+      resolve(currentTime - startTime);
+    } else {
+      const interval = setInterval(() => {
+        currentTime = Date.now();
+        if (timeout !== 0 && ((currentTime - startTime) > timeout)) {
+          clearInterval(interval);
+          resolve(false);
+        } else {
+          if (!condition()) return;
+          clearInterval(interval);
+          resolve(currentTime - startTime);
+        }
+      }, 100);
+    }
   });
 };
 

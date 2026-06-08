@@ -143,7 +143,7 @@ sub login {
       loginType => 'Direct', authorityType => 'Default', passwordType => 'Default' },
     login => 1);
   if ($r and $r->{result}) {
-    Info('Dahua_RPC: logged in to '.$self->{host});
+    Debug('Dahua_RPC: logged in to '.$self->{host});
     return 1;
   }
   Error('Dahua_RPC: login failed: '.(($r and $r->{error}) ? $r->{error}{message} : 'no/!result response'));
@@ -336,13 +336,17 @@ sub lightStatus {
   return { WhiteLight => ($status ? $status->{WhiteLight} : undef) };
 }
 
-# Send a keepalive ping to prevent session expiry in long-running daemons.
-# Call periodically (every ~30s) from the control daemon's idle loop.
+# Send a keepalive ping to prevent idle session expiry in long-running daemons.
+# Call periodically (every ~30s) from the control daemon's idle loop. The
+# requested timeout must comfortably exceed the ping interval. Note: these
+# cameras also enforce an absolute session lifetime (~30 min) that keepAlive
+# cannot extend, so an occasional failure here is expected and simply triggers
+# a re-authentication.
 sub keepAlive {
   my $self = shift;
-  my $r = $self->rpc_call('global.keepAlive', { timeout => 20 });
+  my $r = $self->rpc_call('global.keepAlive', { timeout => 60 });
   if (!$r || !$r->{result}) {
-    Debug('Dahua_RPC: keepAlive failed, re-logging in');
+    Debug('Dahua_RPC: keepAlive did not confirm session, re-authenticating');
     $self->login();
   }
 }

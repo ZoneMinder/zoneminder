@@ -508,16 +508,16 @@ if ( currentView != 'none' && currentView != 'login' ) {
     for (const key of Object.keys(data)) {
       if ( $j('#'+key).hasClass("show") ) continue; // don't update if the user has the dropdown open
       if (key == 'getLogStatusHTML') {
-        let getLogHTML = [];
-        logState = data[key];
+        const getLogHTML = [];
+        const logState = data[key];
         const _class = (logState == 'ok') ? 'text-success' : (logState == 'alert' ? 'text-warning' : ((logState == 'alarm' ? 'text-danger' : '')));
         getLogHTML.push(document.querySelector('#getLogHTML a'));
         getLogHTML.push(document.querySelector('#getLogIconHTML a span')); // Navbar Type = Collapsed
         getLogHTML.push(document.querySelector('#logState')); // Log page
         for (let i = 0; i < getLogHTML.length; i++) {
           if (getLogHTML[i] === null) continue;
-            getLogHTML[i].classList.remove('text-success', 'text-warning', 'text-danger');
-            getLogHTML[i].classList.add(_class);
+          getLogHTML[i].classList.remove('text-success', 'text-warning', 'text-danger');
+          getLogHTML[i].classList.add(_class);
         }
         continue;
       }

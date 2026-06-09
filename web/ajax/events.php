@@ -185,21 +185,46 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   $col_alt = array('Monitor', 'Tags', 'Storage');
 
   if ( $sort != '' ) {
-    if (!in_array($sort, array_merge($columns, $col_alt))) {
-      ZM\Error('Invalid sort field: ' . $sort);
-      $sort = '';
-    } else if ( $sort == 'Tags' ) {
-       $sort = 'Tags';
-    } else if ( $sort == 'Monitor' ) {
-      $sort = 'M.Name';
-    } else if ($sort == 'EndDateTime') {
-      if ($order == 'ASC') {
-        $sort = 'E.EndDateTime IS NULL, E.EndDateTime';
-      } else {
-        $sort = 'E.EndDateTime IS NOT NULL, E.EndDateTime';
+    // Parse as a comma-separated list of <Column> [IS [NOT] NULL] parts so
+    // multi-expression sorts (e.g. the NULLs-last idiom) round-trip cleanly
+    // instead of being rejected wholesale. Each part's column name still has
+    // to be in the whitelist; once accepted we prefix with the appropriate
+    // alias before splicing into ORDER BY.
+    $whitelist = array_merge($columns, $col_alt);
+    $sql_parts = array();
+    $valid = ZM\Filter::isValidSortExpression($sort);
+    if ($valid) {
+      foreach (explode(',', $sort) as $part) {
+        if (!preg_match('/^\s*([A-Za-z][A-Za-z0-9_]*)(\s+IS\s+(?:NOT\s+)?NULL)?\s*$/i', $part, $m)) {
+          $valid = false;
+          break;
+        }
+        $col = $m[1];
+        if (!in_array($col, $whitelist)) {
+          $valid = false;
+          break;
+        }
+        if ($col == 'Tags') {
+          $col_sql = 'Tags';
+        } else if ($col == 'Monitor') {
+          $col_sql = 'M.Name';
+        } else {
+          $col_sql = 'E.'.$col;
+        }
+        $sql_parts[] = $col_sql.(isset($m[2]) ? $m[2] : '');
       }
+    }
+    if (!$valid) {
+      ZM\Warning('Invalid sort field, ignoring: '.$sort);
+      $sort = '';
+    } else if (count($sql_parts) == 1 && $sql_parts[0] == 'E.EndDateTime') {
+      // Implicit NULLs-last rewrite when sorting only by EndDateTime, so
+      // events without a recorded end (zmc crashed) don't bunch unpredictably.
+      $sort = ($order == 'ASC')
+        ? 'E.EndDateTime IS NULL, E.EndDateTime'
+        : 'E.EndDateTime IS NOT NULL, E.EndDateTime';
     } else {
-      $sort = 'E.'.$sort;
+      $sort = implode(', ', $sql_parts);
     }
   }
 
@@ -312,9 +337,9 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     INNER JOIN Monitors AS M ON E.MonitorId = M.Id 
     LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId 
     LEFT JOIN Tags AS T ON T.Id = ET.TagId 
-    WHERE '.$search_filter->sql().' 
-    GROUP BY E.Id 
-    ORDER BY ' .$sort. ' ' .$order;
+    WHERE '.$search_filter->sql().'
+    GROUP BY E.Id'
+    .($sort ? ' ORDER BY '.$sort.' '.$order : '');
 
     $filtered_rows = dbFetchAll($sql);
     ZM\Debug('Have ' . count($filtered_rows) . ' events matching search filter: '.$sql);

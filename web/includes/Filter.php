@@ -159,6 +159,21 @@ class Filter extends ZM_Object {
     return $filter;
   }
 
+  // Accepts: empty string, a bare identifier, or a comma-separated list of
+  // <Column> [IS [NOT] NULL] expressions. Structural check only — callers
+  // that know which columns are legal should additionally whitelist them
+  // after a successful match.
+  public static function isValidSortExpression($sf) {
+    if ($sf === '' || $sf === null) return true;
+    if (!is_string($sf)) return false;
+    foreach (explode(',', $sf) as $part) {
+      if (!preg_match('/^\s*[A-Za-z][A-Za-z0-9_]*(?:\s+IS\s+(?:NOT\s+)?NULL)?\s*$/i', $part)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   # If no storage areas are specified in the terms, then return all
   public function get_StorageAreas() {
     $storage_ids = array();
@@ -244,7 +259,18 @@ class Filter extends ZM_Object {
       $this->Query($Query);
     }
     if (isset($this->Query()['sort_field'])) {
-      return $this->{'Query'}['sort_field'];
+      $sf = $this->{'Query'}['sort_field'];
+      // Accept either a bare column name or a comma-separated list of
+      // <Column> [IS [NOT] NULL] expressions — the latter lets the NULLs-last
+      // idiom (e.g. "EndDateTime IS NOT NULL, EndDateTime") round-trip cleanly.
+      // The filter UI today only emits a single column; if/when it gains
+      // multi-column sort, the same shape will continue to validate. Anything
+      // outside this grammar is dropped so a stale URL/cookie/DB row can't
+      // leak SQL fragments into data-sort-name.
+      if (self::isValidSortExpression($sf)) {
+        return $sf;
+      }
+      Warning('Ignoring malformed Filter sort_field "'.$sf.'"');
     }
     return ZM_WEB_EVENT_SORT_FIELD;
     #return $this->defaults{'sort_field'};

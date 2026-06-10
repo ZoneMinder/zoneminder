@@ -34,15 +34,22 @@ if (!$Event->canView()) {
 $m3u8_path = $Event->Path() . '/index.m3u8';
 
 if (!file_exists($m3u8_path)) {
-  header('HTTP/1.1 404 Not Found');
-  die('HLS manifest not available for this event');
+  header('HTTP/1.1 204 No Content');
+  header('Cache-Control: no-cache');
+  exit;
 }
 
-// Don't serve an m3u8 with no fragments — the event may have just started
 $m3u8_content_check = file_get_contents($m3u8_path);
-if (strpos($m3u8_content_check, '#EXTINF:') === false) {
-  header('HTTP/1.1 404 Not Found');
-  die('HLS manifest has no fragments yet');
+if ($m3u8_content_check === false) {
+  header('HTTP/1.1 204 No Content');
+  header('Cache-Control: no-cache');
+  ZM\Debug('HLS manifest ' . $m3u8_path . ' is not available yet');
+  exit;
+} else if (strpos($m3u8_content_check, '#EXTINF:') === false) {
+  header('HTTP/1.1 204 No Content');
+  header('Cache-Control: no-cache');
+  ZM\Debug('HLS manifest ' . $m3u8_path .' has no fragments yet');
+  exit;
 }
 
 // Build auth query string for segment URLs

@@ -41,6 +41,7 @@ Camera::Camera(
   height(p_height),
   colours(p_colours),
   subpixelorder(p_subpixelorder),
+  pixelFormat(zm_pixformat_from_colours(p_colours, p_subpixelorder)),
   brightness(p_brightness),
   hue(p_hue),
   colour(p_colour),
@@ -63,9 +64,37 @@ Camera::Camera(
   mLastAudioDTS(AV_NOPTS_VALUE),
   bytes(0),
   mIsPrimed(false) {
-  linesize = width * colours;
+  // Camera::linesize/imagesize describe the *device-side* buffer that
+  // capture paths copy from (V4L2 mmap buffers, raw RTP frames, etc).
+  // Those buffers are tightly packed at the driver/source stride, not
+  // 32-byte aligned, so use align=1 here. ZM's internal Image buffers
+  // and SHM slots independently apply their own 32-byte alignment for
+  // SIMD performance — that decoupling is the source of the size-mismatch
+  // Fatal in LocalCamera::PrimeCapture when widths aren't 32-aligned.
+  //
+  // Guard against an unknown (colours, subpixelorder) pair that produced
+  // pixelFormat == AV_PIX_FMT_NONE, or any case where av_image_get_*
+  // returns a negative size — assigning those to unsigned would wrap to a
+  // huge value and break SHM sizing and downstream allocations.
   pixels = width * height;
-  imagesize = static_cast<unsigned long long>(height) * linesize;
+  if (pixelFormat == AV_PIX_FMT_NONE) {
+    Error("Camera: unknown pixel format from colours=%u subpixelorder=%u; falling back to width*colours stride",
+          p_colours, p_subpixelorder);
+    linesize = width * colours;
+    imagesize = static_cast<unsigned long long>(height) * linesize;
+  } else {
+    int raw_linesize = av_image_get_linesize(pixelFormat, width, 0);
+    int raw_imagesize = av_image_get_buffer_size(pixelFormat, width, height, 1);
+    if (raw_linesize < 0 || raw_imagesize < 0) {
+      Error("Camera: av_image_get_* returned %d/%d for pixelFormat=%s; falling back",
+            raw_linesize, raw_imagesize, zm_get_pix_fmt_name(pixelFormat));
+      linesize = width * colours;
+      imagesize = static_cast<unsigned long long>(height) * linesize;
+    } else {
+      linesize = static_cast<unsigned int>(raw_linesize);
+      imagesize = static_cast<unsigned long long>(raw_imagesize);
+    }
+  }
 
   Debug(2, "New camera id: %d width: %d line size: %d height: %d colours: %d subpixelorder: %d capture: %d, size: %llu",
         monitor->Id(), width, linesize, height, colours, subpixelorder, capture, imagesize);
@@ -101,7 +130,7 @@ AVStream *Camera::getVideoStream() {
       mVideoStream->time_base = (AVRational) {1, 1000000}; // microseconds as base frame rate
       mVideoStream->codecpar->width = width;
       mVideoStream->codecpar->height = height;
-      mVideoStream->codecpar->format = GetFFMPEGPixelFormat(colours, subpixelorder);
+      mVideoStream->codecpar->format = pixelFormat;
       mVideoStream->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
       mVideoStream->codecpar->codec_id = AV_CODEC_ID_NONE;
       Debug(1, "Allocating avstream %p %p %d", mVideoStream, mVideoStream->codecpar, mVideoStream->codecpar->codec_id);

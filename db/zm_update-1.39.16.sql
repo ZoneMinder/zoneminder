@@ -12,3 +12,13 @@ INSERT INTO `Controls`
 SELECT 'LTS CMIP1342WE-28MDA','Ffmpeg','HikVision',0,1,1
   FROM DUAL
  WHERE NOT EXISTS (SELECT 1 FROM `Controls` WHERE `Name`='LTS CMIP1342WE-28MDA');
+
+--
+-- Same for the LTS CMIP3CD42WI-28AISP: another fixed ColorVu camera with the
+-- same white-light interface and no PTZ/focus/iris.
+--
+INSERT INTO `Controls`
+  (`Name`,`Type`,`Protocol`,`CanReset`,`CanReboot`,`CanLight`)
+SELECT 'LTS CMIP3CD42WI-28AISP','Ffmpeg','HikVision',0,1,1
+  FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM `Controls` WHERE `Name`='LTS CMIP3CD42WI-28AISP');

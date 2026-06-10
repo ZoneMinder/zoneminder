@@ -74,6 +74,7 @@ set(ZM_BIN_SRC_FILES
   zm_server.cpp
   zm_signal.cpp
   zm_stream.cpp
+  zm_stream_socket_protocol.cpp
   zm_swscale.cpp
   zm_tag.cpp
   zm_time.cpp

@@ -185,46 +185,32 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   $col_alt = array('Monitor', 'Tags', 'Storage');
 
   if ( $sort != '' ) {
-    // Parse as a comma-separated list of <Column> [IS [NOT] NULL] parts so
-    // multi-expression sorts (e.g. the NULLs-last idiom) round-trip cleanly
-    // instead of being rejected wholesale. Each part's column name still has
-    // to be in the whitelist; once accepted we prefix with the appropriate
-    // alias before splicing into ORDER BY.
+    // Canonicalize the global direction once so the EndDateTime rewrite below
+    // (which branches on $order) and buildSortSql see the same value.
+    $order = strtoupper(trim($order));
+    // Resolve a whitelisted event column name to its SQL (alias), or null.
     $whitelist = array_merge($columns, $col_alt);
-    $sql_parts = array();
-    $valid = ZM\Filter::isValidSortExpression($sort);
-    if ($valid) {
-      foreach (explode(',', $sort) as $part) {
-        if (!preg_match('/^\s*([A-Za-z][A-Za-z0-9_]*)(\s+IS\s+(?:NOT\s+)?NULL)?\s*$/i', $part, $m)) {
-          $valid = false;
-          break;
-        }
-        $col = $m[1];
-        if (!in_array($col, $whitelist)) {
-          $valid = false;
-          break;
-        }
-        if ($col == 'Tags') {
-          $col_sql = 'Tags';
-        } else if ($col == 'Monitor') {
-          $col_sql = 'M.Name';
-        } else {
-          $col_sql = 'E.'.$col;
-        }
-        $sql_parts[] = $col_sql.(isset($m[2]) ? $m[2] : '');
-      }
-    }
-    if (!$valid) {
-      ZM\Warning('Invalid sort field, ignoring: '.$sort);
-      $sort = '';
-    } else if (count($sql_parts) == 1 && $sql_parts[0] == 'E.EndDateTime') {
-      // Implicit NULLs-last rewrite when sorting only by EndDateTime, so
-      // events without a recorded end (zmc crashed) don't bunch unpredictably.
+    $resolve = function($col) use ($whitelist) {
+      if (!in_array($col, $whitelist)) return null;
+      if ($col == 'Tags') return 'Tags';
+      if ($col == 'Monitor') return 'M.Name';
+      return 'E.'.$col;
+    };
+    // Implicit NULLs-last rewrite when sorting solely by EndDateTime, so events
+    // without a recorded end (zmc crashed) don't bunch unpredictably. Emitted
+    // with explicit directions so the IS NULL key keeps ASC ordering even when
+    // the global order is DESC, reproducing the historical SQL.
+    if (trim($sort) == 'EndDateTime') {
       $sort = ($order == 'ASC')
-        ? 'E.EndDateTime IS NULL, E.EndDateTime'
-        : 'E.EndDateTime IS NOT NULL, E.EndDateTime';
-    } else {
-      $sort = implode(', ', $sql_parts);
+        ? 'EndDateTime IS NULL ASC, EndDateTime ASC'
+        : 'EndDateTime IS NOT NULL ASC, EndDateTime DESC';
+    }
+    // Build the per-part directional ORDER BY body. Parts without an explicit
+    // ASC/DESC inherit $order. An invalid/non-whitelisted spec yields '' and is
+    // dropped (no ORDER BY) rather than risking an injected fragment.
+    $sort = ZM\Filter::buildSortSql($sort, $order, $resolve);
+    if ($sort === '') {
+      ZM\Warning('Invalid sort field, ignoring');
     }
   }
 
@@ -262,7 +248,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   LEFT JOIN Tags AS T ON T.Id = ET.TagId 
   '.$where.' 
   GROUP BY E.Id, Monitor
-  '.($sort?' ORDER BY '.$sort.' '.$order:'');
+  '.($sort?' ORDER BY '.$sort:'');
 
   if ((int)($filter->limit()) and !$has_post_sql_conditions) {
     $sql .= ' LIMIT '.(int)($filter->limit());
@@ -339,7 +325,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     LEFT JOIN Tags AS T ON T.Id = ET.TagId 
     WHERE '.$search_filter->sql().'
     GROUP BY E.Id'
-    .($sort ? ' ORDER BY '.$sort.' '.$order : '');
+    .($sort ? ' ORDER BY '.$sort : '');
 
     $filtered_rows = dbFetchAll($sql);
     ZM\Debug('Have ' . count($filtered_rows) . ' events matching search filter: '.$sql);

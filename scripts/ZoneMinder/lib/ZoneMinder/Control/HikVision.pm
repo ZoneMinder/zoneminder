@@ -496,17 +496,37 @@ sub light_status_from {
   return (defined $on and $current eq $on) ? 'On' : 'Off';
 }
 
+# GET with a one-shot re-auth retry. The control daemon calls open() once at
+# startup and then issues requests much later; by then the camera has often
+# dropped the kept-alive connection and the UserAgent gives up on the stale
+# digest token with a 401. Rebuilding the ua and retrying re-authenticates
+# (same workaround PutCmd/PutXML use for writes).
+sub GetWithRetry {
+  my ($self, $url) = @_;
+  my $r = $self->get($url);
+  if ($r and !$r->is_success and $r->code == 401) {
+    $self->{ua} = LWP::UserAgent->new();
+    $self->{ua}->cookie_jar({});
+    $self->{ua}->credentials("$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
+    $r = $self->get($url);
+  }
+  return $r;
+}
+
 sub supplementLightModes {
   my $self = shift;
-  my $r = $self->get("/ISAPI/Image/channels/$ChannelID/supplementLight/capabilities");
+  my $r = $self->GetWithRetry("/ISAPI/Image/channels/$ChannelID/supplementLight/capabilities");
   return () if !$r or !$r->is_success;
   return light_modes_from_caps($r->content);
 }
 
 sub supplementLightDoc {
   my $self = shift;
-  my $r = $self->get("/ISAPI/Image/channels/$ChannelID/supplementLight");
-  return undef if !$r or !$r->is_success;
+  my $r = $self->GetWithRetry("/ISAPI/Image/channels/$ChannelID/supplementLight");
+  if (!$r or !$r->is_success) {
+    Error('HikVision: supplementLight GET failed: '.($r ? $r->status_line : 'no response'));
+    return undef;
+  }
   return $r->content;
 }
 

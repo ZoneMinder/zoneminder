@@ -1479,13 +1479,15 @@ function initPage() {
       const server = Servers[monitorServerId[monId]] || Servers[0];
       let scale = parseInt(100 * monitorCanvasObj[monId].width / monitorWidth[monId]);
       scale = Math.max(10, 10 * parseInt(scale / 10));
+      console.log(monId, monitorData);
+      const monitor = monitorData[i];
 
       eventStreams[monId] = new EventStream({
         monitorId: monId,
         monitorWidth: monitorWidth[monId],
         monitorHeight: monitorHeight[monId],
         url: thisUrl,
-        url_to_zms: server.PathToZMS,
+        url_to_zms: monitor?monitor.UrlToZMS:server.PathToZMS,
         canvas: monitorCanvasObj[monId],
         scale: scale
       });

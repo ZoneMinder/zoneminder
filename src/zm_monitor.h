@@ -659,6 +659,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   unsigned char *shared_images;
   std::vector<Image *> image_buffer;
   AVPixelFormat *image_pixelformats;
+  AVPixelFormat *alarm_image_pixelformat;  // cross-process format for alarm_image
+  size_t shm_slot_size;  // per-slot byte capacity, sized to RGBA upper bound
 
   int video_stream_id; // will be filled in PrimeCapture
   int audio_stream_id; // will be filled in PrimeCapture
@@ -932,9 +934,12 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   const std::string &getONVIF_Options() const { return onvif_options; };
 
   Image *GetAlarmImage();
+  // Writer-side helper: copies src into alarm_image and publishes its
+  // AVPixelFormat so reader processes can correctly interpret the SHM bytes.
+  void WriteAlarmImage(const Image &src);
   int GetImage(int32_t index=-1, int scale=100);
-  std::shared_ptr<ZMPacket> getSnapshot( int index=-1 ) const;
-  SystemTimePoint GetTimestamp(int index = -1) const;
+  std::shared_ptr<ZMPacket> getSnapshot( int index=-1 );
+  SystemTimePoint GetTimestamp(int index = -1);
   void UpdateAdaptiveSkip();
   useconds_t GetAnalysisRate();
   Microseconds GetAnalysisUpdateDelay() const { return analysis_update_delay; }
@@ -992,6 +997,16 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   bool CheckSignal( const Image *image );
   bool Analyse();
   bool setupConvertContext(const AVFrame *input_frame, const Image *image);
+  // Write capture_image into image_buffer[index] without conversion and
+  // record its AVPixelFormat in image_pixelformats[index] so reading
+  // processes can adopt that format via ReadShmFrame.
+  void WriteShmFrame(unsigned int index, Image *capture_image);
+
+  // Read-side counterpart: ensures image_buffer[index]'s metadata matches
+  // the format zmc wrote via image_pixelformats[index] before returning
+  // it. Use this from zms / zma / event paths instead of touching
+  // image_buffer[index] directly.
+  Image *ReadShmFrame(unsigned int index);
   void applyOrientation(Image *image);
   bool applyDeinterlacing(std::shared_ptr<ZMPacket> &packet, Image *capture_image);
   bool Decode();

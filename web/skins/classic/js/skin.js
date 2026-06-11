@@ -478,19 +478,11 @@ if ( currentView != 'none' && currentView != 'login' ) {
         .done(setNavBar)
         .fail(function(jqxhr, textStatus, error) {
           console.log("Request Failed: " + textStatus + ", " + error);
-          if (error == 'Unauthorized') {
-            window.location.reload(true);
-          }
-          if (!jqxhr.responseText) {
-            console.log("No responseText in jqxhr");
-            console.log(jqxhr);
-            return;
-          }
-          console.log("Response Text: " + jqxhr.responseText.replace(/(<([^>]+)>)/gi, ''));
-          if (textStatus != "timeout") {
-          // The idea is that this should only fail due to auth, so reload the page
-          // which should go to login if it can't stay logged in.
-            window.location.reload(true);
+          // A dead session/hash returns 401; go straight to login rather than
+          // reloading in a loop. Transient errors (network/timeout) are left to
+          // the next poll.
+          if (authFailureAction(jqxhr.status) == 'login') {
+            goToLogin();
           }
         });
   }
@@ -515,10 +507,32 @@ if ( currentView != 'none' && currentView != 'login' ) {
     // iterate through all the keys then update each element id with the same name
     for (const key of Object.keys(data)) {
       if ( $j('#'+key).hasClass("show") ) continue; // don't update if the user has the dropdown open
+      if (key == 'getLogStatusHTML') {
+        const getLogHTML = [];
+        const logState = data[key];
+        const _class = (logState == 'ok') ? 'text-success' : (logState == 'alert' ? 'text-warning' : ((logState == 'alarm' ? 'text-danger' : '')));
+        getLogHTML.push(document.querySelector('#getLogHTML a'));
+        getLogHTML.push(document.querySelector('#getLogIconHTML a span')); // Navbar Type = Collapsed
+        getLogHTML.push(document.querySelector('#logState')); // Log page
+        for (let i = 0; i < getLogHTML.length; i++) {
+          if (getLogHTML[i] === null) continue;
+          getLogHTML[i].classList.remove('text-success', 'text-warning', 'text-danger');
+          getLogHTML[i].classList.add(_class);
+        }
+        continue;
+      }
       if ( $j('#'+key).length ) $j('#'+key).replaceWith(data[key]);
       if ( key == 'getBandwidthHTML' ) bwClickFunction();
     }
   }
+
+  // Re-validate auth when the tab becomes visible again after being hidden or
+  // slept; onAuthVisible (auth-helpers.js) refreshes the hash and repaints, or
+  // redirects to login on a dead session. Wired here so it only runs for the
+  // authenticated views. pageshow covers bfcache restores (Firefox/Chromium/
+  // Android) and refocus.
+  document.addEventListener('visibilitychange', onAuthVisible);
+  window.addEventListener('pageshow', onAuthVisible);
 } // end if ( currentView != 'none' && currentView != 'login' )
 
 //Shows a message if there is an error in the streamObj or the stream doesn't exist.  Returns true if error, false otherwise.
@@ -3189,8 +3203,8 @@ async function getTracksFromStream(videoFeedStream) {
   if (stream) {
     const timeoutStreamActive = 20000;
     const startTime = Date.now();
-    const streamActive = await waitUntil(() => (stream.active || !videoFeedStream.started), timeoutStreamActive, stream.active); // We are waiting for the stream to become active.
-    if (streamActive !== false && videoFeedStream.started) {
+    const streamActive = await waitUntil(() => (stream.active || videoFeedStream.started === false), timeoutStreamActive, stream.active); // We are waiting for the stream to become active.
+    if (streamActive !== false && videoFeedStream.started !== false) {
       console.debug(`Stream for monitor with ID=${mid} became active within ${(streamActive/1000).toFixed(2)} seconds.`);
     } else {
       console.warn(`Within ${((Date.now() - startTime)/1000).toFixed(2)} seconds, the stream for monitor with ID=${mid} did not become active.`);
@@ -3229,19 +3243,25 @@ async function getTracksFromStream(videoFeedStream) {
 
 const waitUntil = (condition, timeout = 0) => {
   const startTime = Date.now();
+  let currentTime;
 
   return new Promise((resolve) => {
-    const interval = setInterval(() => {
-      const currentTime = Date.now();
-      if (timeout !== 0 && ((currentTime - startTime) > timeout)) {
-        clearInterval(interval);
-        resolve(false);
-      } else {
-        if (!condition()) return;
-        clearInterval(interval);
-        resolve(currentTime - startTime);
-      }
-    }, 100);
+    if (condition()) {
+      currentTime = Date.now();
+      resolve(currentTime - startTime);
+    } else {
+      const interval = setInterval(() => {
+        currentTime = Date.now();
+        if (timeout !== 0 && ((currentTime - startTime) > timeout)) {
+          clearInterval(interval);
+          resolve(false);
+        } else {
+          if (!condition()) return;
+          clearInterval(interval);
+          resolve(currentTime - startTime);
+        }
+      }, 100);
+    }
   });
 };
 

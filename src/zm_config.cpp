@@ -215,6 +215,18 @@ void process_configfile(char const *configFile) {
       staticConfig.PATH_SWAP = std::string(val_ptr);
     else if ( strcasecmp(name_ptr, "ZM_PATH_ARP") == 0 )
       staticConfig.PATH_ARP = std::string(val_ptr);
+    else if ( strcasecmp(name_ptr, "ZM_STREAM_SOCKET_GROUP") == 0 )
+      staticConfig.STREAM_SOCKET_GROUP = std::string(val_ptr);
+    else if ( strcasecmp(name_ptr, "ZM_STREAM_SOCKET_ALLOWED_UIDS") == 0 )
+      staticConfig.STREAM_SOCKET_ALLOWED_UIDS = std::string(val_ptr);
+    else if ( strcasecmp(name_ptr, "ZM_STREAM_SOCKET_MAX_CLIENTS") == 0 )
+      staticConfig.STREAM_SOCKET_MAX_CLIENTS = atoi(val_ptr);
+    else if ( strcasecmp(name_ptr, "ZM_STREAM_SOCKET_QUEUE_BYTES") == 0 )
+      staticConfig.STREAM_SOCKET_QUEUE_BYTES = atoi(val_ptr);
+    else if ( strcasecmp(name_ptr, "ZM_STREAM_SOCKET_QUEUE_MSGS") == 0 )
+      staticConfig.STREAM_SOCKET_QUEUE_MSGS = atoi(val_ptr);
+    else if ( strcasecmp(name_ptr, "ZM_STREAM_SOCKET_STALL_SECS") == 0 )
+      staticConfig.STREAM_SOCKET_STALL_SECS = atoi(val_ptr);
     else {
       // We ignore this now as there may be more parameters than the
       // c/c++ binaries are bothered about

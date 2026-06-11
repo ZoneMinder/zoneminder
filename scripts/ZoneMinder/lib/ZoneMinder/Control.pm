@@ -484,9 +484,10 @@ sub parse_ControlAddress {
       # Has no scheme at the beginning, so won't parse as a URI
       $address = 'http://'.$address;
     }
-    # To support older installs which likely have non-url encoded passwords we use a dumber regexp than URI uses
-    if ($address =~ /^(?<PROTOCOL>(https?|rtsp):\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@(?<ADDRESS>[^:\/]+)/) {
-      $address = $+{PROTOCOL}.($+{USERNAME} ? join(':', $+{USERNAME}, URI::Escape::uri_escape($+{PASSWORD})).'@' : '').$+{ADDRESS};
+    # To support older installs which likely have non-url encoded passwords we use a dumber regexp than URI uses.
+    # Don't escape % so that url-encoded passwords (e.g. %40 for @) pass through and decode below.
+    if ($address =~ /^(?<PROTOCOL>(https?|rtsp):\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@(?<ADDRESS>.+)$/) {
+      $address = $+{PROTOCOL}.($+{USERNAME} ? join(':', $+{USERNAME}, URI::Escape::uri_escape($+{PASSWORD}, '^A-Za-z0-9\-_.~%')).'@' : '').$+{ADDRESS};
     }
     my $uri = URI->new($address);
     $uri = URI->new('http://'.$address) if ref($uri) eq 'URI::_foreign';
@@ -496,17 +497,8 @@ sub parse_ControlAddress {
       @$self{'username','password'} = $uri->userinfo() =~ /^(.*):(.*)$/;
       $$self{password} = URI::Escape::uri_unescape($$self{password});
     }
-    # Check if it is a host and port or just a host
-    if ( $$self{host} =~ /([^:]+):(.+)/ ) {
-      $$self{host} = $1;
-      $$self{port} = $2 ? $2 : $$self{port};
-    } elsif ($uri->scheme() eq 'http') {
-      $$self{port} = 80;
-      $uri->port($$self{port});
-    } elsif ($uri->scheme() eq 'https') {
-      $$self{port} = 443;
-      $uri->port($$self{port});
-    }
+    # URI gives the explicit port if present, otherwise the scheme default (http 80, https 443, rtsp 554)
+    $$self{port} = $uri->port();
     $$self{address} = $uri->host_port();
     $$self{uri} = $uri;
     $$self{BaseURL} = $uri->canonical();

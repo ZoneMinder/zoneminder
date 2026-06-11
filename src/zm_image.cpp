@@ -23,6 +23,9 @@
 #include "zm_poly.h"
 #include "zm_swscale.h"
 #include "zm_utils.h"
+
+#include <libavutil/pixdesc.h>
+
 #include <algorithm>
 #include <fcntl.h>
 #include <mutex>
@@ -309,9 +312,12 @@ Image::Image(const AVFrame *frame, int p_width, int p_height) :
   this->Assign(frame);
 }
 
-Image::Image(const AVFrame *frame) {
-  blend_buffer_ = nullptr;
-  blend_buffer_size_ = 0;
+Image::Image(const AVFrame *frame) : Image() {
+  // Delegate to the default ctor first so buffer/buffertype/allocation
+  // are fully initialised before AssignDirect runs. AssignDirect's failure
+  // and success paths both call DumpImgBuffer() to release any previously
+  // owned buffer; without this delegation those calls would read
+  // uninitialised members and potentially free a garbage pointer.
   AssignDirect(frame);
 }
 
@@ -361,14 +367,48 @@ bool Image::Assign(const AVFrame *frame) {
   }
   zm_dump_video_frame(frame, "source frame in Image::Assign");
 
-  // Desired format
-  AVPixelFormat format = (AVPixelFormat)AVPixFormat();
+  // imagePixFormat is the canonical destination format; the deprecated
+  // AVPixFormat() getter re-derives via (colours, subpixelorder) and would
+  // pick the wrong swscale target if those legacy fields drift out of sync
+  // (e.g. the GRAY8/YUV420P alias collision).
+  const AVPixelFormat format = imagePixFormat;
+  const AVPixelFormat src_fmt = static_cast<AVPixelFormat>(frame->format);
+
+  // If source and destination format + dimensions match, do a direct plane
+  // copy instead of running through sws_scale. This avoids the overhead of
+  // the swscale pipeline for identity conversions (e.g. YUVJ422P→YUVJ422P).
+  if (src_fmt == format
+      && frame->width == static_cast<int>(width)
+      && frame->height == static_cast<int>(height)) {
+    Debug(4, "Same format %s %dx%d, using av_image_copy",
+          zm_get_pix_fmt_name(format), width, height);
+    av_frame_ptr temp_frame{av_frame_alloc()};
+    if (!temp_frame) {
+      Error("Unable to allocate destination frame");
+      return false;
+    }
+    // PopulateFrame can fail (av_buffer_create / av_image_fill_arrays errors);
+    // calling av_image_copy on an unpopulated temp_frame is undefined.
+    if (PopulateFrame(temp_frame.get()) < 0) {
+      Error("PopulateFrame failed; skipping av_image_copy fast path");
+      return false;
+    }
+    temp_frame->pts = frame->pts;
+    // u_buffer/v_buffer are not members of Image on master; av_image_copy
+    // reads the planes directly from temp_frame->data, so we don't need to
+    // mirror them onto the Image either.
+    av_image_copy(temp_frame->data, temp_frame->linesize,
+                  (const uint8_t **)frame->data, frame->linesize,
+                  format, width, height);
+    update_function_pointers();
+    return true;
+  }
+
   sws_convert_context = sws_getCachedContext(
                           sws_convert_context,
-                          frame->width, frame->height, (AVPixelFormat)frame->format,
+                          frame->width, frame->height, src_fmt,
                           width, height, format,
                           SWS_BICUBIC,
-                          //SWS_POINT | SWS_BITEXACT,
                           nullptr, nullptr, nullptr);
   if (sws_convert_context == nullptr) {
     Error("Unable to create conversion context");
@@ -691,12 +731,11 @@ uint8_t* Image::WriteBuffer(
   const unsigned int p_colours,
   const unsigned int p_subpixelorder) {
 
-  if ( p_colours != ZM_COLOUR_GRAY8
-       &&
-       p_colours != ZM_COLOUR_RGB24
-       &&
-       p_colours != ZM_COLOUR_RGB32 ) {
-    Error("WriteBuffer called with unexpected colours: %d", p_colours);
+  AVPixelFormat p_pixfmt = zm_pixformat_from_colours(p_colours, p_subpixelorder);
+  if (p_pixfmt == AV_PIX_FMT_NONE) {
+    Error("WriteBuffer called with unsupported (colours=%u, subpixelorder=%u) pair; "
+          "no AVPixelFormat mapping",
+          p_colours, p_subpixelorder);
     return nullptr;
   }
 
@@ -707,7 +746,29 @@ uint8_t* Image::WriteBuffer(
 
   if ( p_width != width || p_height != height || p_colours != colours || p_subpixelorder != subpixelorder ) {
 
-    unsigned int newsize = (p_width * p_height) * p_colours;
+    // Derive size/linesize from the AVPixelFormat. Using p_width * p_colours
+    // is wrong for planar formats: with the GRAY8/YUV420P alias collision,
+    // p_colours=1 for YUV420P/YUV422P, but those formats need ~1.5x/2x more
+    // bytes for the chroma planes.
+    int av_size = av_image_get_buffer_size(p_pixfmt, p_width, p_height, 32);
+    if (av_size < 0) {
+      Error("WriteBuffer: av_image_get_buffer_size failed for fmt=%d %ux%u",
+            p_pixfmt, p_width, p_height);
+      return nullptr;
+    }
+    // FFALIGN to 32 to match what av_image_get_buffer_size with align=32
+    // assumes for the buffer layout, and what sws_scale writes when it
+    // produces this format/width pair. Using the unaligned natural linesize
+    // here would mismatch the buffer's actual row stride and cause
+    // diagonal-shift artefacts in any consumer that walks the buffer at
+    // Image::linesize stride (e.g. EncodeJpeg's non-planar path).
+    int av_linesize = FFALIGN(av_image_get_linesize(p_pixfmt, p_width, 0), 32);
+    if (av_linesize < 0) {
+      Error("WriteBuffer: av_image_get_linesize failed for fmt=%d width=%u",
+            p_pixfmt, p_width);
+      return nullptr;
+    }
+    unsigned int newsize = static_cast<unsigned int>(av_size);
 
     if ( buffer == nullptr ) {
       AllocImgBuffer(newsize);
@@ -727,8 +788,9 @@ uint8_t* Image::WriteBuffer(
     width = p_width;
     height = p_height;
     colours = p_colours;
-    linesize = p_width * p_colours;
+    linesize = static_cast<unsigned int>(av_linesize);
     subpixelorder = p_subpixelorder;
+    imagePixFormat = p_pixfmt;
     pixels = height*width;
     size = newsize;
   }  // end if need to re-alloc buffer
@@ -737,25 +799,98 @@ uint8_t* Image::WriteBuffer(
 }
 
 void Image::AssignDirect(const AVFrame *frame) {
+  auto invalidate = [&]() {
+    // Release any previously-owned buffer before overwriting buffer/buffertype;
+    // a held (DONTFREE) buffer is left in place by DumpImgBuffer, so this is
+    // safe whether the Image currently owns its memory or wraps somebody
+    // else's. Without this step a ZM_BUFTYPE_ZM allocation would be leaked
+    // every time AssignDirect(frame) hits the invalidate path.
+    DumpImgBuffer();
+    width = 0;
+    height = 0;
+    pixels = 0;
+    buffer = nullptr;
+    imagePixFormat = AV_PIX_FMT_NONE;
+    colours = 0;
+    subpixelorder = 0;
+    size = 0;
+    allocation = 0;
+    linesize = 0;
+    holdbuffer = true;
+    buffertype = ZM_BUFTYPE_DONTFREE;
+  };
+
+  AVPixelFormat frame_fmt = static_cast<AVPixelFormat>(frame->format);
+  unsigned int probe_colours, probe_subpix;
+  // Validate the format against our supported set before touching any state.
+  if (!zm_colours_from_pixformat(frame_fmt, probe_colours, probe_subpix)) {
+    Error("AssignDirect: unsupported pixel format %d on frame %dx%d; "
+          "fully invalidating Image", frame->format, frame->width, frame->height);
+    invalidate();
+    return;
+  }
+  if (!frame->data[0]) {
+    Error("AssignDirect: AVFrame has null data[0]; fully invalidating Image");
+    invalidate();
+    return;
+  }
+
+  // av_image_get_buffer_size(..., align=32) assumes 32-byte stride
+  // alignment, but the AVFrame may have been allocated with a different
+  // alignment by the decoder. Derive the size from the *actual* frame
+  // strides instead — av_image_fill_pointers computes expected per-plane
+  // offsets given a tightly-packed buffer using the frame's linesize[]; the
+  // last (plane+1) offset is the total contiguous span. We also sanity-
+  // check that the frame's plane pointers really are contiguous starting
+  // at data[0] (a non-contiguous AVFrame can't be wrapped with a single
+  // Image::buffer pointer).
+  uint8_t *expected_planes[4] = {nullptr, nullptr, nullptr, nullptr};
+  int frame_strides[4] = {
+    frame->linesize[0], frame->linesize[1], frame->linesize[2], frame->linesize[3]
+  };
+  int total_size = av_image_fill_pointers(expected_planes, frame_fmt, frame->height,
+                                          frame->data[0], frame_strides);
+  if (total_size <= 0) {
+    Error("AssignDirect: av_image_fill_pointers returned %d for %s %dx%d; invalidating",
+          total_size, av_get_pix_fmt_name(frame_fmt), frame->width, frame->height);
+    invalidate();
+    return;
+  }
+  const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(frame_fmt);
+  const int plane_count = desc ? av_pix_fmt_count_planes(frame_fmt) : 1;
+  for (int p = 1; p < plane_count && p < 4; p++) {
+    if (frame->data[p] && frame->data[p] != expected_planes[p]) {
+      Error("AssignDirect: AVFrame plane %d not contiguous with data[0] "
+            "(expected %p, got %p) for %s %dx%d; invalidating",
+            p, expected_planes[p], frame->data[p],
+            av_get_pix_fmt_name(frame_fmt), frame->width, frame->height);
+      invalidate();
+      return;
+    }
+  }
+
+  // Release any previously-owned buffer before we replace it with
+  // frame->data[0]. DumpImgBuffer is a no-op for DONTFREE buffers, so this
+  // is safe whether the Image currently owns its memory or wraps somebody
+  // else's. Without this step a ZM_BUFTYPE_ZM allocation would be leaked
+  // every time AssignDirect(frame) succeeds.
+  DumpImgBuffer();
   width = frame->width;
   height = frame->height;
   buffer = frame->data[0];
   linesize = frame->linesize[0];
-  allocation = size = av_image_get_buffer_size(static_cast<AVPixelFormat>(frame->format), frame->width, frame->height, 32);
-  switch(static_cast<AVPixelFormat>(frame->format)) {
-    case  AV_PIX_FMT_RGBA:
-      subpixelorder = ZM_SUBPIX_ORDER_RGBA;
-      colours = ZM_COLOUR_RGB32;
-      break;
-    case  AV_PIX_FMT_YUV420P:
-      colours = ZM_COLOUR_GRAY8;
-      break;
-    default:
-      Debug(1, "Unimplemented format");
-      break;
-  }
-  buffertype = ZM_BUFTYPE_DONTFREE;
+  imagePixFormat = frame_fmt;
+  colours = probe_colours;
+  subpixelorder = probe_subpix;
+  allocation = size = static_cast<unsigned int>(total_size);
   pixels = width * height;
+  holdbuffer = true;
+  buffertype = ZM_BUFTYPE_DONTFREE;
+  // Re-bind format-specific function pointers (delta/blend/convert
+  // dispatch) to the new format. Without this, an Image that previously
+  // held a different format keeps its old fptr_* and subsequent ops take
+  // the wrong optimized path.
+  update_function_pointers();
 }
 
 
@@ -781,16 +916,32 @@ void Image::AssignDirect(
     return;
   }
 
-  if ( p_colours != ZM_COLOUR_GRAY8 && p_colours != ZM_COLOUR_RGB24 && p_colours != ZM_COLOUR_RGB32 ) {
+  AVPixelFormat new_pix_fmt = zm_pixformat_from_colours(p_colours, p_subpixelorder);
+  if (new_pix_fmt == AV_PIX_FMT_NONE) {
     Error("Attempt to directly assign buffer with unexpected colours per pixel: %d", p_colours);
     return;
   }
 
-  size_t new_buffer_size = static_cast<size_t>(p_width) * p_height * p_colours;
+  // p_width * p_height * p_colours undercounts planar formats (YUV420P needs
+  // ~1.5x; with the GRAY8 alias colours=1 here would otherwise treat it as
+  // GRAY8 size W*H). Use av_image_* so the size and linesize match what the
+  // pixel format actually requires.
+  int av_size = av_image_get_buffer_size(new_pix_fmt, p_width, p_height, 32);
+  // FFALIGN the linesize to 32 to match the buffer's actual row stride
+  // (av_image_get_buffer_size with align=32 assumes this layout, and
+  // sws_scale writes in this layout). Storing the unaligned natural
+  // linesize would cause downstream consumers that walk the buffer at
+  // Image::linesize stride to drift sideways every row.
+  int av_linesize = FFALIGN(av_image_get_linesize(new_pix_fmt, p_width, 0), 32);
+  if (av_size < 0 || av_linesize < 0) {
+    Error("AssignDirect: av_image sizing failed for %s %ux%u", av_get_pix_fmt_name(new_pix_fmt), p_width, p_height);
+    return;
+  }
+  size_t new_buffer_size = static_cast<size_t>(av_size);
 
   if ( buffer_size < new_buffer_size ) {
-    Error("Attempt to directly assign buffer from an undersized buffer of size: %zu, needed %dx%d*%d colours = %zu",
-          buffer_size, p_width, p_height, p_colours, new_buffer_size);
+    Error("Attempt to directly assign buffer from an undersized buffer of size: %zu, needed %dx%d %s = %zu",
+          buffer_size, p_width, p_height, av_get_pix_fmt_name(new_pix_fmt), new_buffer_size);
     return;
   }
 
@@ -801,7 +952,7 @@ void Image::AssignDirect(
     } else {
       /* Copy into the held buffer */
       if ( new_buffer != buffer ) {
-        (*fptr_imgbufcpy)(buffer, new_buffer, size);
+        (*fptr_imgbufcpy)(buffer, new_buffer, new_buffer_size);
       }
       /* Free the new buffer */
       DumpBuffer(new_buffer, p_buffertype);
@@ -817,8 +968,9 @@ void Image::AssignDirect(
   width = p_width;
   height = p_height;
   colours = p_colours;
-  linesize = width * colours;
+  linesize = static_cast<unsigned int>(av_linesize);
   subpixelorder = p_subpixelorder;
+  imagePixFormat = new_pix_fmt;
   pixels = width * height;
   size = new_buffer_size;
   update_function_pointers();
@@ -837,21 +989,36 @@ void Image::Assign(
     return;
   }
 
-  unsigned int new_size = p_width * p_height * p_colours;
-  if ( buffer_size < new_size ) {
-    Error("Attempt to assign buffer from an undersized buffer of size: %zu", buffer_size);
-    return;
-  }
-
   if ( !p_height || !p_width ) {
     Error("Attempt to assign buffer with invalid width or height: %d %d", p_width, p_height);
     return;
   }
 
-  if ( p_colours != ZM_COLOUR_GRAY8 && p_colours != ZM_COLOUR_RGB24 && p_colours != ZM_COLOUR_RGB32 ) {
+  AVPixelFormat new_pix_fmt = zm_pixformat_from_colours(p_colours, p_subpixelorder);
+  if (new_pix_fmt == AV_PIX_FMT_NONE) {
     Error("Attempt to assign buffer with unexpected colours per pixel: %d", p_colours);
     return;
   }
+
+  // Source and destination may use different alignment. Callers pass
+  // device-side buffers sized at align=1 (e.g. Camera::ImageSize() is now
+  // packed) while ZM's internal Image keeps a 32-byte-aligned layout for
+  // SIMD. Validate the source size against the packed layout and the
+  // destination/allocation against the aligned layout, then copy
+  // plane-by-plane so per-row padding doesn't read past the source.
+  int packed_size = av_image_get_buffer_size(new_pix_fmt, p_width, p_height, 1);
+  int aligned_size = av_image_get_buffer_size(new_pix_fmt, p_width, p_height, 32);
+  if (packed_size < 0 || aligned_size < 0) {
+    Error("av_image_get_buffer_size failed (%d/%d) for %s %ux%u",
+          packed_size, aligned_size, av_get_pix_fmt_name(new_pix_fmt), p_width, p_height);
+    return;
+  }
+  if (buffer_size < static_cast<size_t>(packed_size)) {
+    Error("Attempt to assign buffer from an undersized buffer of size: %zu (need %d packed)",
+          buffer_size, packed_size);
+    return;
+  }
+  const unsigned int new_size = static_cast<unsigned int>(aligned_size);
 
   if ( !buffer || p_width != width || p_height != height || p_colours != colours || p_subpixelorder != subpixelorder ) {
 
@@ -872,28 +1039,58 @@ void Image::Assign(
     pixels = width*height;
     colours = p_colours;
     subpixelorder = p_subpixelorder;
+    imagePixFormat = new_pix_fmt;
     size = new_size;
+    // Keep linesize in sync with the new format. av_image_get_linesize is
+    // signed; the format validation above guarantees a recognised format
+    // here so the call will not return a negative value.
+    linesize = FFALIGN(av_image_get_linesize(new_pix_fmt, p_width, 0), 32);
   }
 
-  if ( new_buffer != buffer )
-    (*fptr_imgbufcpy)(buffer, new_buffer, size);
+  if (new_buffer != buffer) {
+    // Plane-aware copy: src is laid out packed (align=1), dst is laid out
+    // aligned (align=32). av_image_copy walks each plane using its own
+    // src/dst linesize so per-row padding doesn't read past the source.
+    uint8_t *src_data[4] = {nullptr, nullptr, nullptr, nullptr};
+    int src_strides[4] = {0, 0, 0, 0};
+    uint8_t *dst_data[4] = {nullptr, nullptr, nullptr, nullptr};
+    int dst_strides[4] = {0, 0, 0, 0};
+    if (av_image_fill_arrays(src_data, src_strides,
+                             const_cast<uint8_t *>(new_buffer),
+                             new_pix_fmt, p_width, p_height, 1) < 0
+        || av_image_fill_arrays(dst_data, dst_strides, buffer,
+                                new_pix_fmt, p_width, p_height, 32) < 0) {
+      Error("Assign: av_image_fill_arrays failed for %s %ux%u",
+            av_get_pix_fmt_name(new_pix_fmt), p_width, p_height);
+      return;
+    }
+    av_image_copy(dst_data, dst_strides,
+                  const_cast<const uint8_t **>(src_data), src_strides,
+                  new_pix_fmt, p_width, p_height);
+  }
   update_function_pointers();
 }
 
 void Image::Assign(const Image &image) {
-  unsigned int new_size = image.height * image.linesize;
+  // image.size is the AVPixelFormat-aware buffer size (av_image_get_buffer_size,
+  // including chroma planes for planar YUV); image.height * image.linesize is
+  // only the Y plane for planar formats and would silently leave U/V planes
+  // uninitialised in the destination — producing a Cb=Cr=0 "solid green" image
+  // when the dest is later interpreted as YCbCr.
+  unsigned int new_size = image.size;
 
   if ( image.buffer == nullptr ) {
     Error("Attempt to assign image with an empty buffer");
     return;
   }
 
-  if ( image.colours != ZM_COLOUR_GRAY8
-       &&
-       image.colours != ZM_COLOUR_RGB24
-       &&
-       image.colours != ZM_COLOUR_RGB32 ) {
-    Error("Attempt to assign image with unexpected colours per pixel: %d", image.colours);
+  if (image.imagePixFormat == AV_PIX_FMT_NONE) {
+    // Real cause is unset/unknown AVPixelFormat metadata, not the
+    // (colours, subpixelorder) values themselves — those can legitimately
+    // be 1/something for planar YUV. Report the underlying state.
+    Error("Attempt to assign image with missing AVPixelFormat metadata "
+          "(imagePixFormat=AV_PIX_FMT_NONE, legacy colours=%u subpixelorder=%u)",
+          image.colours, image.subpixelorder);
     return;
   }
 
@@ -904,7 +1101,7 @@ void Image::Assign(const Image &image) {
 
     if ( holdbuffer && buffer ) {
       if ( new_size > allocation ) {
-        Error("Held buffer is undersized for assigned buffer");
+        Error("Held buffer is undersized for assigned buffer (need %u, have %lu)", new_size, allocation);
         return;
       }
     } else {
@@ -919,23 +1116,51 @@ void Image::Assign(const Image &image) {
     pixels = width*height;
     colours = image.colours;
     subpixelorder = image.subpixelorder;
+    imagePixFormat = image.imagePixFormat;
     size = new_size;
     linesize = image.linesize;
     update_function_pointers();
   }
 
   if ( image.buffer != buffer ) {
-    if (image.linesize > linesize) {
-      Debug(1, "Must copy line by line due to different line size %d != %d", image.linesize, linesize);
+    if (image.linesize != linesize) {
+      // Dimensions/colours/subpixelorder all match but linesizes disagree.
+      // This happens when src and dst use different alignment conventions
+      // (e.g. dst is FFALIGN'd to 32 from av_image_get_buffer_size while
+      // src came from a held-buffer ctor with a packed driver stride).
+      //
+      // For planar formats (YUV420P/J420P/YUV422P/J422P) a per-row copy of
+      // just the Y plane would leave U/V uninitialised in the destination,
+      // producing solid-green output downstream. Plane-aware copying via
+      // av_image_copy_plane would be needed and the caller may as well
+      // reconvert; refuse explicitly.
+      if (zm_is_yuv420(image.imagePixFormat)
+          || image.imagePixFormat == AV_PIX_FMT_YUV422P
+          || image.imagePixFormat == AV_PIX_FMT_YUVJ422P) {
+        Error("Image::Assign: planar format %s with stride mismatch (src %d vs dst %d) "
+              "is not supported by the per-row copy; chroma planes would be lost. "
+              "Caller must convert or reallocate.",
+              av_get_pix_fmt_name(image.imagePixFormat), image.linesize, linesize);
+        return;
+      }
+      // Packed formats: copy min(src, dst) bytes per row so we never write
+      // past the destination row capacity AND never read past the source
+      // row capacity. Source padding (when src > dst) is discarded; dest
+      // padding (when src < dst) is left untouched. Both directions are
+      // safe — the previous flat-memcpy path silently over-read the
+      // source when image.linesize < linesize.
+      const unsigned int copy_bytes = std::min(image.linesize, linesize);
+      Debug(1, "Must copy line by line due to different line size %d != %d (copy %u)",
+            image.linesize, linesize, copy_bytes);
       uint8_t *src_ptr = image.buffer;
       uint8_t *dst_ptr = buffer;
       for (unsigned int i=0; i< image.height; i++) {
-        (*fptr_imgbufcpy)(dst_ptr, src_ptr, image.linesize);
+        (*fptr_imgbufcpy)(dst_ptr, src_ptr, copy_bytes);
         src_ptr += image.linesize;
         dst_ptr += linesize;
       }
     } else {
-      Debug(4, "Doing full copy line size %d != %d", image.linesize, linesize);
+      Debug(4, "Doing full copy line size %d == %d, %u bytes", image.linesize, linesize, size);
       (*fptr_imgbufcpy)(buffer, image.buffer, size);
     }
   }
@@ -947,12 +1172,14 @@ Image *Image::HighlightEdges(
   unsigned int p_subpixelorder,
   const Box *limits
 ) {
-  if ( colours != ZM_COLOUR_GRAY8 ) {
+  if ( imagePixFormat != AV_PIX_FMT_GRAY8 ) {
     Panic("Attempt to highlight image edges when colours = %d", colours);
   }
 
   /* Convert the colour's RGBA subpixel order into the image's subpixel order */
   colour = rgb_convert(colour, p_subpixelorder);
+
+  AVPixelFormat p_pixfmt = zm_pixformat_from_colours(p_colours, p_subpixelorder);
 
   /* Create a new image of the target format */
   Image *high_image = new Image(width, height, p_colours, p_subpixelorder);
@@ -966,40 +1193,38 @@ Image *Image::HighlightEdges(
   unsigned int hi_x = limits ? limits->Hi().x_ : width - 1;
   unsigned int hi_y = limits ? limits->Hi().y_ : height - 1;
 
-  if ( p_colours == ZM_COLOUR_GRAY8 ) {
+  // Source (this) is GRAY8 with src_linesize per row. The destination Image
+  // has its own (possibly different) row stride; use that for high_buff
+  // addressing so non-32-aligned widths don't overflow the destination on
+  // the last row, and use src_linesize when looking up neighbour pixels
+  // (p ± linesize) so we follow the actual row stride rather than `width`.
+  const unsigned int src_linesize = linesize;
+  const unsigned int dst_linesize = high_image->LineSize();
+
+  if ( p_pixfmt == AV_PIX_FMT_GRAY8 ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      const uint8_t* p = buffer + (y * linesize) + lo_x;
-      uint8_t* phigh = high_buff + (y * linesize) + lo_x;
+      const uint8_t* p = buffer + (y * src_linesize) + lo_x;
+      uint8_t* phigh = high_buff + (y * dst_linesize) + lo_x;
       for ( unsigned int x = lo_x; x <= hi_x; x++, p++, phigh++ ) {
         bool edge = false;
         if ( *p ) {
-          edge = (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1)) || (y > 0 && !*(p-width)) || (y < (height-1) && !*(p+width));
-#if 0
-          if ( !edge && x > 0 && !*(p-1) ) edge = true;
-          if ( !edge && x < (width-1) && !*(p+1) ) edge = true;
-          if ( !edge && y > 0 && !*(p-width) ) edge = true;
-          if ( !edge && y < (height-1) && !*(p+width) ) edge = true;
-#endif
+          edge = (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1))
+              || (y > 0 && !*(p-src_linesize)) || (y < (height-1) && !*(p+src_linesize));
         }
         if ( edge ) {
           *phigh = colour;
         }
       }
     }
-  } else if ( p_colours == ZM_COLOUR_RGB24 ) {
+  } else if ( zm_is_rgb24(p_pixfmt) ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      const uint8_t* p = buffer + (y * linesize) + lo_x;
-      uint8_t* phigh = high_buff + (((y * linesize) + lo_x) * 3);
+      const uint8_t* p = buffer + (y * src_linesize) + lo_x;
+      uint8_t* phigh = high_buff + (y * dst_linesize) + lo_x * 3;
       for ( unsigned int x = lo_x; x <= hi_x; x++, p++, phigh += 3 ) {
         bool edge = false;
         if ( *p ) {
-          edge = (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1)) || (y > 0 && !*(p-width)) || (y < (height-1) && !*(p+width));
-#if 0
-          if ( !edge && x > 0 && !*(p-1) ) edge = true;
-          if ( !edge && x < (width-1) && !*(p+1) ) edge = true;
-          if ( !edge && y > 0 && !*(p-width) ) edge = true;
-          if ( !edge && y < (height-1) && !*(p+width) ) edge = true;
-#endif
+          edge = (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1))
+              || (y > 0 && !*(p-src_linesize)) || (y < (height-1) && !*(p+src_linesize));
         }
         if ( edge ) {
           RED_PTR_RGBA(phigh) = RED_VAL_RGBA(colour);
@@ -1008,20 +1233,15 @@ Image *Image::HighlightEdges(
         }
       }
     }
-  } else if ( p_colours == ZM_COLOUR_RGB32 ) {
+  } else if ( zm_is_rgb32(p_pixfmt) ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      const uint8_t* p = buffer + (y * linesize) + lo_x;
-      Rgb* phigh = (Rgb*)(high_buff + (((y * linesize) + lo_x) * 4));
+      const uint8_t* p = buffer + (y * src_linesize) + lo_x;
+      Rgb* phigh = (Rgb*)(high_buff + (y * dst_linesize) + (lo_x << 2));
       for ( unsigned int x = lo_x; x <= hi_x; x++, p++, phigh++ ) {
         bool edge = false;
         if ( *p ) {
-          edge = (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1)) || (y > 0 && !*(p-width)) || (y < (height-1) && !*(p+width));
-#if 0
-          if ( !edge && x > 0 && !*(p-1) ) edge = true;
-          if ( !edge && x < (width-1) && !*(p+1) ) edge = true;
-          if ( !edge && y > 0 && !*(p-width) ) edge = true;
-          if ( !edge && y < (height-1) && !*(p+width) ) edge = true;
-#endif
+          edge = (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1))
+              || (y > 0 && !*(p-src_linesize)) || (y < (height-1) && !*(p+src_linesize));
         }
         if ( edge ) {
           *phigh = colour;
@@ -1084,6 +1304,7 @@ bool Image::WriteRaw(const std::string &filename) const {
 
 bool Image::ReadJpeg(const std::string &filename, unsigned int p_colours, unsigned int p_subpixelorder) {
   unsigned int new_width, new_height, new_colours, new_subpixelorder;
+  AVPixelFormat p_pixfmt = zm_pixformat_from_colours(p_colours, p_subpixelorder);
 
   if (!readjpg_dcinfo) {
     readjpg_dcinfo = new jpeg_decompress_struct;
@@ -1131,22 +1352,20 @@ bool Image::ReadJpeg(const std::string &filename, unsigned int p_colours, unsign
     height = new_height;
   }
 
-  switch (p_colours) {
-  case ZM_COLOUR_GRAY8:
+  if (p_pixfmt == AV_PIX_FMT_GRAY8) {
     readjpg_dcinfo->out_color_space = JCS_GRAYSCALE;
     new_colours = ZM_COLOUR_GRAY8;
     new_subpixelorder = ZM_SUBPIX_ORDER_NONE;
-    break;
-  case ZM_COLOUR_RGB32:
+  } else if (zm_is_rgb32(p_pixfmt)) {
 #ifdef JCS_EXTENSIONS
     new_colours = ZM_COLOUR_RGB32;
-    if (p_subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
+    if (p_pixfmt == AV_PIX_FMT_BGRA) {
       readjpg_dcinfo->out_color_space = JCS_EXT_BGRX;
       new_subpixelorder = ZM_SUBPIX_ORDER_BGRA;
-    } else if (p_subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
+    } else if (p_pixfmt == AV_PIX_FMT_ARGB) {
       readjpg_dcinfo->out_color_space = JCS_EXT_XRGB;
       new_subpixelorder = ZM_SUBPIX_ORDER_ARGB;
-    } else if (p_subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
+    } else if (p_pixfmt == AV_PIX_FMT_ABGR) {
       readjpg_dcinfo->out_color_space = JCS_EXT_XBGR;
       new_subpixelorder = ZM_SUBPIX_ORDER_ABGR;
     } else {
@@ -1154,20 +1373,22 @@ bool Image::ReadJpeg(const std::string &filename, unsigned int p_colours, unsign
       readjpg_dcinfo->out_color_space = JCS_EXT_RGBX;
       new_subpixelorder = ZM_SUBPIX_ORDER_RGBA;
     }
-    break;
 #else
     Warning("libjpeg-turbo is required for reading a JPEG directly into a RGB32 buffer, reading into a RGB24 buffer instead.");
-#endif
-  case ZM_COLOUR_RGB24:
-  default:
     new_colours = ZM_COLOUR_RGB24;
-    if (p_subpixelorder == ZM_SUBPIX_ORDER_BGR) {
+    readjpg_dcinfo->out_color_space = JCS_RGB;
+    new_subpixelorder = ZM_SUBPIX_ORDER_RGB;
+#endif
+  } else {
+    /* Assume RGB24/BGR24 */
+    new_colours = ZM_COLOUR_RGB24;
+    if (p_pixfmt == AV_PIX_FMT_BGR24) {
 #ifdef JCS_EXTENSIONS
       readjpg_dcinfo->out_color_space = JCS_EXT_BGR;
       new_subpixelorder = ZM_SUBPIX_ORDER_BGR;
 #else
       Warning("libjpeg-turbo is required for reading a JPEG directly into a BGR24 buffer, reading into a RGB24 buffer instead.");
-      cinfo->out_color_space = JCS_RGB;
+      readjpg_dcinfo->out_color_space = JCS_RGB;
       new_subpixelorder = ZM_SUBPIX_ORDER_RGB;
 #endif
     } else {
@@ -1182,8 +1403,7 @@ bool Image::ReadJpeg(const std::string &filename, unsigned int p_colours, unsign
       readjpg_dcinfo->out_color_space = JCS_RGB;
       new_subpixelorder = ZM_SUBPIX_ORDER_RGB;
     }
-    break;
-  }  // end switch p_colours
+  }  // end format dispatch
 
   if (WriteBuffer(new_width, new_height, new_colours, new_subpixelorder) == nullptr) {
     Error("Failed requesting writeable buffer for reading JPEG image.");
@@ -1231,7 +1451,7 @@ bool Image::WriteJpeg(const std::string &filename,
                       SystemTimePoint timestamp,
                       bool on_blocking_abort) const {
 
-  if (config.colour_jpeg_files && (colours == ZM_COLOUR_GRAY8)) {
+  if (config.colour_jpeg_files && (imagePixFormat == AV_PIX_FMT_GRAY8)) {
     Image temp_image(*this);
     temp_image.Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
     return temp_image.WriteJpeg(filename, quality_override, timestamp, on_blocking_abort);
@@ -1297,28 +1517,25 @@ bool Image::WriteJpeg(const std::string &filename,
   cinfo->image_width = width;   /* image width and height, in pixels */
   cinfo->image_height = height;
 
-  switch (colours) {
-  case ZM_COLOUR_GRAY8:
+  if (imagePixFormat == AV_PIX_FMT_GRAY8) {
     cinfo->input_components = 1;
     cinfo->in_color_space = JCS_GRAYSCALE;
-    break;
-  case ZM_COLOUR_RGB32:
+  } else if (zm_is_rgb32(imagePixFormat)) {
 #ifdef JCS_EXTENSIONS
     cinfo->input_components = 4;
-    if (subpixelorder == ZM_SUBPIX_ORDER_RGBA) {
+    if (imagePixFormat == AV_PIX_FMT_RGBA) {
       cinfo->in_color_space = JCS_EXT_RGBX;
-    } else if (subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
+    } else if (imagePixFormat == AV_PIX_FMT_BGRA) {
       cinfo->in_color_space = JCS_EXT_BGRX;
-    } else if (subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
+    } else if (imagePixFormat == AV_PIX_FMT_ARGB) {
       cinfo->in_color_space = JCS_EXT_XRGB;
-    } else if (subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
+    } else if (imagePixFormat == AV_PIX_FMT_ABGR) {
       cinfo->in_color_space = JCS_EXT_XBGR;
     } else {
       Warning("Unknown subpixelorder %d", subpixelorder);
       /* Assume RGBA */
       cinfo->in_color_space = JCS_EXT_RGBX;
     }
-    break;
 #else
     Error("libjpeg-turbo is required for JPEG encoding directly from RGB32 source");
     jpeg_abort_compress(cinfo);
@@ -1327,10 +1544,14 @@ bool Image::WriteJpeg(const std::string &filename,
     fclose(outfile);
     return false;
 #endif
-  case ZM_COLOUR_RGB24:
-  default:
+  } else if (imagePixFormat == AV_PIX_FMT_YUV420P || imagePixFormat == AV_PIX_FMT_YUVJ420P
+          || imagePixFormat == AV_PIX_FMT_YUV422P || imagePixFormat == AV_PIX_FMT_YUVJ422P) {
     cinfo->input_components = 3;
-    if (subpixelorder == ZM_SUBPIX_ORDER_BGR) {
+    cinfo->in_color_space = JCS_YCbCr;
+  } else {
+    /* Assume RGB24/BGR24 */
+    cinfo->input_components = 3;
+    if (imagePixFormat == AV_PIX_FMT_BGR24) {
 #ifdef JCS_EXTENSIONS
       cinfo->in_color_space = JCS_EXT_BGR;
 #else
@@ -1341,21 +1562,11 @@ bool Image::WriteJpeg(const std::string &filename,
       fclose(outfile);
       return false;
 #endif
-    } else if (subpixelorder == ZM_SUBPIX_ORDER_YUV420P) {
-      cinfo->in_color_space = JCS_YCbCr;
     } else {
       /* Assume RGB */
-      /*
-      #ifdef JCS_EXTENSIONS
-      cinfo->out_color_space = JCS_EXT_RGB;
-      #else
-      cinfo->out_color_space = JCS_RGB;
-      #endif
-      */
       cinfo->in_color_space = JCS_RGB;
     }
-    break;
-  }  // end switch(colours)
+  }  // end format dispatch
 
   jpeg_set_defaults(cinfo);
   jpeg_set_quality(cinfo, quality, FALSE);
@@ -1398,21 +1609,42 @@ bool Image::WriteJpeg(const std::string &filename,
     jpeg_write_marker(cinfo, EXIF_CODE, (const JOCTET *) exiftimes, sizeof(exiftimes));
   }
 
-  if (subpixelorder == ZM_SUBPIX_ORDER_YUV420P) {
-    std::vector<uint8_t> tmprowbuf(width * 3);
-    JSAMPROW row_pointer = &tmprowbuf[0];  /* pointer to a single row */
+  if (imagePixFormat == AV_PIX_FMT_YUV420P || imagePixFormat == AV_PIX_FMT_YUVJ420P
+   || imagePixFormat == AV_PIX_FMT_YUV422P || imagePixFormat == AV_PIX_FMT_YUVJ422P) {
+    // Planar YUV: interleave Y/U/V plane rows into per-scanline YCbCr triples.
+    // The previous code here unpacked the buffer as if it were packed YUYV
+    // 4:2:2, which read way past the W*H*1.5 YUV420P buffer end on every
+    // frame — a latent crash that became reachable when image_buffer was
+    // pinned to YUV420P. Use av_image_fill_arrays for plane offsets so this
+    // works for both 4:2:0 and 4:2:2 layouts.
+    uint8_t *plane[4] = {nullptr, nullptr, nullptr, nullptr};
+    int plane_linesizes[4] = {0, 0, 0, 0};
+    if (av_image_fill_arrays(plane, plane_linesizes, buffer, imagePixFormat, width, height, 32) < 0) {
+      Error("WriteJpeg: av_image_fill_arrays failed for %s", av_get_pix_fmt_name(imagePixFormat));
+      jpeg_abort_compress(cinfo);
+      fl.l_type = F_UNLCK;
+      fcntl(raw_fd, F_SETLK, &fl);
+      fclose(outfile);
+      return false;
+    }
+    const bool is_422 = (imagePixFormat == AV_PIX_FMT_YUV422P || imagePixFormat == AV_PIX_FMT_YUVJ422P);
+    const unsigned chroma_v_shift = is_422 ? 0u : 1u;
+
+    std::vector<uint8_t> tmprow(static_cast<size_t>(width) * 3);
+    JSAMPROW row_ptr = tmprow.data();
+
     while (cinfo->next_scanline < cinfo->image_height) {
-      unsigned i, j;
-      unsigned offset = cinfo->next_scanline * cinfo->image_width * 2; //offset to the correct row
-      for (i = 0, j = 0; i < cinfo->image_width * 2; i += 4, j += 6) { //input strides by 4 bytes, output strides by 6 (2 pixels)
-        tmprowbuf[j + 0] = buffer[offset + i + 0]; // Y (unique to this pixel)
-        tmprowbuf[j + 1] = buffer[offset + i + 1]; // U (shared between pixels)
-        tmprowbuf[j + 2] = buffer[offset + i + 3]; // V (shared between pixels)
-        tmprowbuf[j + 3] = buffer[offset + i + 2]; // Y (unique to this pixel)
-        tmprowbuf[j + 4] = buffer[offset + i + 1]; // U (shared between pixels)
-        tmprowbuf[j + 5] = buffer[offset + i + 3]; // V (shared between pixels)
+      const unsigned y = cinfo->next_scanline;
+      const unsigned cy = y >> chroma_v_shift;
+      const uint8_t *yrow = plane[0] + static_cast<size_t>(y) * plane_linesizes[0];
+      const uint8_t *urow = plane[1] + static_cast<size_t>(cy) * plane_linesizes[1];
+      const uint8_t *vrow = plane[2] + static_cast<size_t>(cy) * plane_linesizes[2];
+      for (unsigned x = 0; x < width; ++x) {
+        tmprow[x * 3 + 0] = yrow[x];
+        tmprow[x * 3 + 1] = urow[x >> 1];
+        tmprow[x * 3 + 2] = vrow[x >> 1];
       }
-      jpeg_write_scanlines(cinfo, &row_pointer, 1);
+      jpeg_write_scanlines(cinfo, &row_ptr, 1);
     }
   } else {
     JSAMPROW row_pointer = buffer;  /* pointer to a single row */
@@ -1435,6 +1667,7 @@ bool Image::WriteJpeg(const std::string &filename,
 
 bool Image::DecodeJpeg(const JOCTET *inbuffer, int inbuffer_size, unsigned int p_colours, unsigned int p_subpixelorder) {
   unsigned int new_width, new_height, new_colours, new_subpixelorder;
+  AVPixelFormat p_pixfmt = zm_pixformat_from_colours(p_colours, p_subpixelorder);
 
   if (!decodejpg_dcinfo) {
     decodejpg_dcinfo = new jpeg_decompress_struct;
@@ -1473,22 +1706,20 @@ bool Image::DecodeJpeg(const JOCTET *inbuffer, int inbuffer_size, unsigned int p
           width, height, new_width, new_height);
   }
 
-  switch (p_colours) {
-  case ZM_COLOUR_GRAY8:
+  if (p_pixfmt == AV_PIX_FMT_GRAY8) {
     decodejpg_dcinfo->out_color_space = JCS_GRAYSCALE;
     new_colours = ZM_COLOUR_GRAY8;
     new_subpixelorder = ZM_SUBPIX_ORDER_NONE;
-    break;
-  case ZM_COLOUR_RGB32:
+  } else if (zm_is_rgb32(p_pixfmt)) {
 #ifdef JCS_EXTENSIONS
     new_colours = ZM_COLOUR_RGB32;
-    if (p_subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
+    if (p_pixfmt == AV_PIX_FMT_BGRA) {
       decodejpg_dcinfo->out_color_space = JCS_EXT_BGRX;
       new_subpixelorder = ZM_SUBPIX_ORDER_BGRA;
-    } else if (p_subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
+    } else if (p_pixfmt == AV_PIX_FMT_ARGB) {
       decodejpg_dcinfo->out_color_space = JCS_EXT_XRGB;
       new_subpixelorder = ZM_SUBPIX_ORDER_ARGB;
-    } else if (p_subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
+    } else if (p_pixfmt == AV_PIX_FMT_ABGR) {
       decodejpg_dcinfo->out_color_space = JCS_EXT_XBGR;
       new_subpixelorder = ZM_SUBPIX_ORDER_ABGR;
     } else {
@@ -1496,20 +1727,22 @@ bool Image::DecodeJpeg(const JOCTET *inbuffer, int inbuffer_size, unsigned int p
       decodejpg_dcinfo->out_color_space = JCS_EXT_RGBX;
       new_subpixelorder = ZM_SUBPIX_ORDER_RGBA;
     }
-    break;
 #else
     Warning("libjpeg-turbo is required for reading a JPEG directly into a RGB32 buffer, reading into a RGB24 buffer instead.");
-#endif
-  case ZM_COLOUR_RGB24:
-  default:
     new_colours = ZM_COLOUR_RGB24;
-    if (p_subpixelorder == ZM_SUBPIX_ORDER_BGR) {
+    decodejpg_dcinfo->out_color_space = JCS_RGB;
+    new_subpixelorder = ZM_SUBPIX_ORDER_RGB;
+#endif
+  } else {
+    /* Assume RGB24/BGR24 */
+    new_colours = ZM_COLOUR_RGB24;
+    if (p_pixfmt == AV_PIX_FMT_BGR24) {
 #ifdef JCS_EXTENSIONS
       decodejpg_dcinfo->out_color_space = JCS_EXT_BGR;
       new_subpixelorder = ZM_SUBPIX_ORDER_BGR;
 #else
       Warning("libjpeg-turbo is required for reading a JPEG directly into a BGR24 buffer, reading into a RGB24 buffer instead.");
-      cinfo->out_color_space = JCS_RGB;
+      decodejpg_dcinfo->out_color_space = JCS_RGB;
       new_subpixelorder = ZM_SUBPIX_ORDER_RGB;
 #endif
     } else {
@@ -1524,8 +1757,7 @@ bool Image::DecodeJpeg(const JOCTET *inbuffer, int inbuffer_size, unsigned int p
       decodejpg_dcinfo->out_color_space = JCS_RGB;
       new_subpixelorder = ZM_SUBPIX_ORDER_RGB;
     }
-    break;
-  } // end switch
+  } // end format dispatch
 
   if (WriteBuffer(new_width, new_height, new_colours, new_subpixelorder) == nullptr) {
     Error("Failed requesting writeable buffer for reading JPEG image.");
@@ -1547,7 +1779,7 @@ bool Image::DecodeJpeg(const JOCTET *inbuffer, int inbuffer_size, unsigned int p
 }
 
 bool Image::EncodeJpeg(JOCTET *outbuffer, size_t *outbuffer_size, int quality_override) const {
-  if ( config.colour_jpeg_files && (colours == ZM_COLOUR_GRAY8) ) {
+  if ( config.colour_jpeg_files && (imagePixFormat == AV_PIX_FMT_GRAY8) ) {
     Image temp_image(*this);
     temp_image.Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
     return temp_image.EncodeJpeg(outbuffer, outbuffer_size, quality_override);
@@ -1572,37 +1804,41 @@ bool Image::EncodeJpeg(JOCTET *outbuffer, size_t *outbuffer_size, int quality_ov
   cinfo->image_width = width;   /* image width and height, in pixels */
   cinfo->image_height = height;
 
-  switch ( colours ) {
-  case ZM_COLOUR_GRAY8:
+  const bool is_yuv_planar =
+      (imagePixFormat == AV_PIX_FMT_YUV420P || imagePixFormat == AV_PIX_FMT_YUVJ420P
+       || imagePixFormat == AV_PIX_FMT_YUV422P || imagePixFormat == AV_PIX_FMT_YUVJ422P);
+
+  if (imagePixFormat == AV_PIX_FMT_GRAY8) {
     cinfo->input_components = 1;
     cinfo->in_color_space = JCS_GRAYSCALE;
-    break;
-  case ZM_COLOUR_RGB32:
+  } else if (zm_is_rgb32(imagePixFormat)) {
 #ifdef JCS_EXTENSIONS
     cinfo->input_components = 4;
-    if ( subpixelorder == ZM_SUBPIX_ORDER_RGBA ) {
+    if (imagePixFormat == AV_PIX_FMT_RGBA) {
       cinfo->in_color_space = JCS_EXT_RGBX;
-    } else if ( subpixelorder == ZM_SUBPIX_ORDER_BGRA ) {
+    } else if (imagePixFormat == AV_PIX_FMT_BGRA) {
       cinfo->in_color_space = JCS_EXT_BGRX;
-    } else if ( subpixelorder == ZM_SUBPIX_ORDER_ARGB ) {
+    } else if (imagePixFormat == AV_PIX_FMT_ARGB) {
       cinfo->in_color_space = JCS_EXT_XRGB;
-    } else if ( subpixelorder == ZM_SUBPIX_ORDER_ABGR ) {
+    } else if (imagePixFormat == AV_PIX_FMT_ABGR) {
       cinfo->in_color_space = JCS_EXT_XBGR;
     } else {
       Warning("unknown subpixelorder %d", subpixelorder);
       /* Assume RGBA */
       cinfo->in_color_space = JCS_EXT_RGBX;
     }
-    break;
 #else
     Error("libjpeg-turbo is required for JPEG encoding directly from RGB32 source");
     jpeg_abort_compress(cinfo);
     return false;
 #endif
-  case ZM_COLOUR_RGB24:
-  default:
+  } else if (is_yuv_planar) {
     cinfo->input_components = 3;
-    if ( subpixelorder == ZM_SUBPIX_ORDER_BGR ) {
+    cinfo->in_color_space = JCS_YCbCr;
+  } else {
+    /* Assume RGB24/BGR24 */
+    cinfo->input_components = 3;
+    if (imagePixFormat == AV_PIX_FMT_BGR24) {
 #ifdef JCS_EXTENSIONS
       cinfo->in_color_space = JCS_EXT_BGR;
 #else
@@ -1612,17 +1848,9 @@ bool Image::EncodeJpeg(JOCTET *outbuffer, size_t *outbuffer_size, int quality_ov
 #endif
     } else {
       /* Assume RGB */
-      /*
-      #ifdef JCS_EXTENSIONS
-      cinfo->out_color_space = JCS_EXT_RGB;
-      #else
-      cinfo->out_color_space = JCS_RGB;
-      #endif
-       */
       cinfo->in_color_space = JCS_RGB;
     }
-    break;
-  } // end switch
+  } // end format dispatch
 
   jpeg_set_defaults(cinfo);
   jpeg_set_quality(cinfo, quality, FALSE);
@@ -1630,10 +1858,44 @@ bool Image::EncodeJpeg(JOCTET *outbuffer, size_t *outbuffer_size, int quality_ov
 
   jpeg_start_compress(cinfo, TRUE);
 
-  JSAMPROW row_pointer = buffer;
-  while ( cinfo->next_scanline < cinfo->image_height ) {
-    jpeg_write_scanlines(cinfo, &row_pointer, 1);
-    row_pointer += linesize;
+  if (is_yuv_planar) {
+    // Planar YUV: interleave Y/U/V plane rows into per-scanline YCbCr triples
+    // for libjpeg's JCS_YCbCr input. av_image_fill_arrays computes plane
+    // pointers and per-plane linesizes from the AVPixelFormat, so this works
+    // for both 4:2:0 (YUV420P/YUVJ420P) and 4:2:2 (YUV422P/YUVJ422P) without
+    // hand-coded plane offsets.
+    uint8_t *plane[4] = {nullptr, nullptr, nullptr, nullptr};
+    int plane_linesizes[4] = {0, 0, 0, 0};
+    if (av_image_fill_arrays(plane, plane_linesizes, buffer, imagePixFormat, width, height, 32) < 0) {
+      Error("EncodeJpeg: av_image_fill_arrays failed for %s", av_get_pix_fmt_name(imagePixFormat));
+      jpeg_abort_compress(cinfo);
+      return false;
+    }
+    const bool is_422 = (imagePixFormat == AV_PIX_FMT_YUV422P || imagePixFormat == AV_PIX_FMT_YUVJ422P);
+    const unsigned chroma_v_shift = is_422 ? 0u : 1u;  // 4:2:0 halves vertical too
+
+    std::vector<uint8_t> tmprow(static_cast<size_t>(width) * 3);
+    JSAMPROW row_ptr = tmprow.data();
+
+    while (cinfo->next_scanline < cinfo->image_height) {
+      const unsigned y = cinfo->next_scanline;
+      const unsigned cy = y >> chroma_v_shift;
+      const uint8_t *yrow = plane[0] + static_cast<size_t>(y) * plane_linesizes[0];
+      const uint8_t *urow = plane[1] + static_cast<size_t>(cy) * plane_linesizes[1];
+      const uint8_t *vrow = plane[2] + static_cast<size_t>(cy) * plane_linesizes[2];
+      for (unsigned x = 0; x < width; ++x) {
+        tmprow[x * 3 + 0] = yrow[x];
+        tmprow[x * 3 + 1] = urow[x >> 1];  // chroma is 2x horizontal subsampled in 4:2:0/4:2:2
+        tmprow[x * 3 + 2] = vrow[x >> 1];
+      }
+      jpeg_write_scanlines(cinfo, &row_ptr, 1);
+    }
+  } else {
+    JSAMPROW row_pointer = buffer;
+    while ( cinfo->next_scanline < cinfo->image_height ) {
+      jpeg_write_scanlines(cinfo, &row_pointer, 1);
+      row_pointer += linesize;
+    }
   }
 
   jpeg_finish_compress(cinfo);
@@ -1709,159 +1971,144 @@ void Image::Overlay( const Image &image ) {
           width, height, image.width, image.height);
   }
 
-  if ( colours == image.colours && subpixelorder != image.subpixelorder ) {
-    Warning("Attempt to overlay images of same format but with different subpixel order %d != %d.",
-            subpixelorder, image.subpixelorder);
+  // Pre-AVPixelFormat the (colours, subpixelorder) pair was the canonical
+  // format identifier and a colours-match-but-subpixelorder-mismatch warning
+  // was meaningful. With imagePixFormat now canonical the old check fires
+  // false positives whenever GRAY8 (colours=1, subpixelorder=NONE=2) is
+  // overlaid onto YUV420P (colours=1 due to the GRAY8/YUV420P alias
+  // collision, subpixelorder=YUV420P=11) — the dispatch below handles this
+  // case correctly via zm_bytes_per_pixel(...) == 1. Only warn if the
+  // AVPixelFormat actually matches but the ZM metadata diverges, which would
+  // indicate a real format-tracking bug.
+  if (imagePixFormat == image.imagePixFormat
+      && (colours != image.colours || subpixelorder != image.subpixelorder)) {
+    Warning("Overlay: imagePixFormat matches (%s) but ZM (colours,subpixelorder) "
+            "diverges: (%u,%u) vs (%u,%u) — stale metadata?",
+            av_get_pix_fmt_name(imagePixFormat),
+            colours, subpixelorder, image.colours, image.subpixelorder);
   }
 
-  /* Grayscale on top of grayscale - complete */
-  if ( colours == ZM_COLOUR_GRAY8 && image.colours == ZM_COLOUR_GRAY8 ) {
-    const uint8_t* const max_ptr = buffer+size;
-    const uint8_t* psrc = image.buffer;
-    uint8_t* pdest = buffer;
+  // Drive every branch row-by-row using each image's own linesize. Walking
+  // linearly with `buffer + size` as the end was unsafe in two ways:
+  // (a) source and destination linesizes can differ (e.g. one came in via
+  // AssignDirect with a held buffer at a non-FFALIGN stride), so a shared
+  // index drifted across rows; (b) the destination's `size` includes chroma
+  // planes for planar YUV destinations, so iterating to `buffer + size`
+  // walked past the source's Y plane and clobbered the destination's
+  // chroma. After Colourise() the destination's linesize is updated to the
+  // new format's stride, so we re-read it inside each branch.
 
-    while ( pdest < max_ptr ) {
-      if ( *psrc ) {
-        *pdest = *psrc;
+  /* Grayscale/YUV420 on top of grayscale/YUV420 - complete */
+  if ( zm_bytes_per_pixel(imagePixFormat) == 1 && zm_bytes_per_pixel(image.imagePixFormat) == 1 ) {
+    // Overlay only the luma/primary plane. Width is shared (panic above).
+    for (unsigned int y = 0; y < height; y++) {
+      const uint8_t *psrc = image.buffer + y * image.linesize;
+      uint8_t *pdest = buffer + y * linesize;
+      for (unsigned int x = 0; x < width; x++, psrc++, pdest++) {
+        if (*psrc) *pdest = *psrc;
       }
-      pdest++;
-      psrc++;
     }
 
-    /* RGB24 on top of grayscale - convert to same format first - complete */
-  } else if ( colours == ZM_COLOUR_GRAY8 && image.colours == ZM_COLOUR_RGB24 ) {
+    /* RGB24 on top of grayscale/YUV420 - convert to same format first - complete */
+  } else if ( zm_bytes_per_pixel(imagePixFormat) == 1 && zm_is_rgb24(image.imagePixFormat) ) {
     Colourise(image.colours, image.subpixelorder);
 
-    const uint8_t* const max_ptr = buffer+size;
-    const uint8_t* psrc = image.buffer;
-    uint8_t* pdest = buffer;
-
-    while ( pdest < max_ptr ) {
-      if ( RED_PTR_RGBA(psrc) || GREEN_PTR_RGBA(psrc) || BLUE_PTR_RGBA(psrc) ) {
-        RED_PTR_RGBA(pdest) = RED_PTR_RGBA(psrc);
-        GREEN_PTR_RGBA(pdest) = GREEN_PTR_RGBA(psrc);
-        BLUE_PTR_RGBA(pdest) = BLUE_PTR_RGBA(psrc);
+    for (unsigned int y = 0; y < height; y++) {
+      const uint8_t *psrc = image.buffer + y * image.linesize;
+      uint8_t *pdest = buffer + y * linesize;
+      for (unsigned int x = 0; x < width; x++, psrc += 3, pdest += 3) {
+        if (RED_PTR_RGBA(psrc) || GREEN_PTR_RGBA(psrc) || BLUE_PTR_RGBA(psrc)) {
+          RED_PTR_RGBA(pdest) = RED_PTR_RGBA(psrc);
+          GREEN_PTR_RGBA(pdest) = GREEN_PTR_RGBA(psrc);
+          BLUE_PTR_RGBA(pdest) = BLUE_PTR_RGBA(psrc);
+        }
       }
-      pdest += 3;
-      psrc += 3;
     }
 
-    /* RGB32 on top of grayscale - convert to same format first - complete */
-  } else if ( colours == ZM_COLOUR_GRAY8 && image.colours == ZM_COLOUR_RGB32 ) {
+    /* RGB32 on top of grayscale/YUV420 - convert to same format first - complete */
+  } else if ( zm_bytes_per_pixel(imagePixFormat) == 1 && zm_is_rgb32(image.imagePixFormat) ) {
     Colourise(image.colours, image.subpixelorder);
 
-    const Rgb* const max_ptr = (Rgb*)(buffer+size);
-    const Rgb* prsrc = (Rgb*)image.buffer;
-    Rgb* prdest = (Rgb*)buffer;
-
-    if ( subpixelorder == ZM_SUBPIX_ORDER_RGBA || subpixelorder == ZM_SUBPIX_ORDER_BGRA ) {
-      /* RGB\BGR\RGBA\BGRA subpixel order - Alpha byte is last */
-      while ( prdest < max_ptr) {
-        if ( RED_PTR_RGBA(prsrc) || GREEN_PTR_RGBA(prsrc) || BLUE_PTR_RGBA(prsrc) ) {
-          *prdest = *prsrc;
+    const bool alpha_last = (imagePixFormat == AV_PIX_FMT_RGBA || imagePixFormat == AV_PIX_FMT_BGRA);
+    for (unsigned int y = 0; y < height; y++) {
+      const Rgb *prsrc = (const Rgb *)(image.buffer + y * image.linesize);
+      Rgb *prdest = (Rgb *)(buffer + y * linesize);
+      for (unsigned int x = 0; x < width; x++, prsrc++, prdest++) {
+        if (alpha_last) {
+          if (RED_PTR_RGBA(prsrc) || GREEN_PTR_RGBA(prsrc) || BLUE_PTR_RGBA(prsrc))
+            *prdest = *prsrc;
+        } else {
+          if (RED_PTR_ABGR(prsrc) || GREEN_PTR_ABGR(prsrc) || BLUE_PTR_ABGR(prsrc))
+            *prdest = *prsrc;
         }
-        prdest++;
-        prsrc++;
-      }
-    } else {
-      /* ABGR\ARGB subpixel order - Alpha byte is first */
-      while ( prdest < max_ptr) {
-        if ( RED_PTR_ABGR(prsrc) || GREEN_PTR_ABGR(prsrc) || BLUE_PTR_ABGR(prsrc) ) {
-          *prdest = *prsrc;
-        }
-        prdest++;
-        prsrc++;
       }
     }
 
-    /* Grayscale on top of RGB24 - complete */
-  } else if ( colours == ZM_COLOUR_RGB24 && image.colours == ZM_COLOUR_GRAY8 ) {
-    const uint8_t* const max_ptr = buffer+size;
-    const uint8_t* psrc = image.buffer;
-    uint8_t* pdest = buffer;
-
-    while ( pdest < max_ptr ) {
-      if ( *psrc ) {
-        RED_PTR_RGBA(pdest) = GREEN_PTR_RGBA(pdest) = BLUE_PTR_RGBA(pdest) = *psrc;
+    /* Grayscale/YUV420 on top of RGB24 - complete */
+  } else if ( zm_is_rgb24(imagePixFormat) && zm_bytes_per_pixel(image.imagePixFormat) == 1 ) {
+    for (unsigned int y = 0; y < height; y++) {
+      const uint8_t *psrc = image.buffer + y * image.linesize;
+      uint8_t *pdest = buffer + y * linesize;
+      for (unsigned int x = 0; x < width; x++, psrc++, pdest += 3) {
+        if (*psrc) {
+          RED_PTR_RGBA(pdest) = GREEN_PTR_RGBA(pdest) = BLUE_PTR_RGBA(pdest) = *psrc;
+        }
       }
-      pdest += 3;
-      psrc++;
     }
 
     /* RGB24 on top of RGB24 - not complete. need to take care of different subpixel orders */
-  } else if ( colours == ZM_COLOUR_RGB24 && image.colours == ZM_COLOUR_RGB24 ) {
-    const uint8_t* const max_ptr = buffer+size;
-    const uint8_t* psrc = image.buffer;
-    uint8_t* pdest = buffer;
-
-    while ( pdest < max_ptr ) {
-      if ( RED_PTR_RGBA(psrc) || GREEN_PTR_RGBA(psrc) || BLUE_PTR_RGBA(psrc) ) {
-        RED_PTR_RGBA(pdest) = RED_PTR_RGBA(psrc);
-        GREEN_PTR_RGBA(pdest) = GREEN_PTR_RGBA(psrc);
-        BLUE_PTR_RGBA(pdest) = BLUE_PTR_RGBA(psrc);
+  } else if ( zm_is_rgb24(imagePixFormat) && zm_is_rgb24(image.imagePixFormat) ) {
+    for (unsigned int y = 0; y < height; y++) {
+      const uint8_t *psrc = image.buffer + y * image.linesize;
+      uint8_t *pdest = buffer + y * linesize;
+      for (unsigned int x = 0; x < width; x++, psrc += 3, pdest += 3) {
+        if (RED_PTR_RGBA(psrc) || GREEN_PTR_RGBA(psrc) || BLUE_PTR_RGBA(psrc)) {
+          RED_PTR_RGBA(pdest) = RED_PTR_RGBA(psrc);
+          GREEN_PTR_RGBA(pdest) = GREEN_PTR_RGBA(psrc);
+          BLUE_PTR_RGBA(pdest) = BLUE_PTR_RGBA(psrc);
+        }
       }
-      pdest += 3;
-      psrc += 3;
     }
 
     /* RGB32 on top of RGB24 - TO BE DONE */
-  } else if ( colours == ZM_COLOUR_RGB24 && image.colours == ZM_COLOUR_RGB32 ) {
+  } else if ( zm_is_rgb24(imagePixFormat) && zm_is_rgb32(image.imagePixFormat) ) {
     Error("Overlay of RGB32 on top of RGB24 is not supported.");
 
-    /* Grayscale on top of RGB32 - complete */
-  } else if ( colours == ZM_COLOUR_RGB32 && image.colours == ZM_COLOUR_GRAY8 ) {
-    const Rgb* const max_ptr = (Rgb*)(buffer+size);
-    Rgb* prdest = (Rgb*)buffer;
-    const uint8_t* psrc = image.buffer;
-
-    if ( subpixelorder == ZM_SUBPIX_ORDER_RGBA || subpixelorder == ZM_SUBPIX_ORDER_BGRA ) {
-      /* RGBA\BGRA subpixel order - Alpha byte is last */
-      while ( prdest < max_ptr ) {
-        if ( *psrc ) {
-          RED_PTR_RGBA(prdest) = *psrc;
-          //RED_PTR_RGBA(prdest) = GREEN_PTR_RGBA(prdest) = BLUE_PTR_RGBA(prdest) = *psrc;
+    /* Grayscale/YUV420 on top of RGB32 - complete */
+  } else if ( zm_is_rgb32(imagePixFormat) && zm_bytes_per_pixel(image.imagePixFormat) == 1 ) {
+    const bool alpha_last = (imagePixFormat == AV_PIX_FMT_RGBA || imagePixFormat == AV_PIX_FMT_BGRA);
+    for (unsigned int y = 0; y < height; y++) {
+      const uint8_t *psrc = image.buffer + y * image.linesize;
+      Rgb *prdest = (Rgb *)(buffer + y * linesize);
+      for (unsigned int x = 0; x < width; x++, psrc++, prdest++) {
+        if (*psrc) {
+          if (alpha_last) {
+            RED_PTR_RGBA(prdest) = *psrc;
+          } else {
+            RED_PTR_ABGR(prdest) = GREEN_PTR_ABGR(prdest) = BLUE_PTR_ABGR(prdest) = *psrc;
+          }
         }
-        prdest++;
-        psrc++;
-      }
-    } else {
-      /* ABGR\ARGB subpixel order - Alpha byte is first */
-      while ( prdest < max_ptr ) {
-        if ( *psrc ) {
-          RED_PTR_ABGR(prdest) = GREEN_PTR_ABGR(prdest) = BLUE_PTR_ABGR(prdest) = *psrc;
-        }
-        prdest++;
-        psrc++;
       }
     }
 
     /* RGB24 on top of RGB32 - TO BE DONE */
-  } else if ( colours == ZM_COLOUR_RGB32 && image.colours == ZM_COLOUR_RGB24 ) {
+  } else if ( zm_is_rgb32(imagePixFormat) && zm_is_rgb24(image.imagePixFormat) ) {
     Error("Overlay of RGB24 on top of RGB32 is not supported.");
 
     /* RGB32 on top of RGB32 - not complete. need to take care of different subpixel orders */
-  } else if ( colours == ZM_COLOUR_RGB32 && image.colours == ZM_COLOUR_RGB32 ) {
-    const Rgb* const max_ptr = (Rgb*)(buffer+size);
-    Rgb* prdest = (Rgb*)buffer;
-    const Rgb* prsrc = (Rgb*)image.buffer;
-
-    if ( image.subpixelorder == ZM_SUBPIX_ORDER_RGBA || image.subpixelorder == ZM_SUBPIX_ORDER_BGRA ) {
-      /* RGB\BGR\RGBA\BGRA subpixel order - Alpha byte is last */
-      while ( prdest < max_ptr ) {
-        if ( RED_PTR_RGBA(prsrc) || GREEN_PTR_RGBA(prsrc) || BLUE_PTR_RGBA(prsrc) ) {
-          *prdest = *prsrc;
+  } else if ( zm_is_rgb32(imagePixFormat) && zm_is_rgb32(image.imagePixFormat) ) {
+    const bool alpha_last = (image.imagePixFormat == AV_PIX_FMT_RGBA || image.imagePixFormat == AV_PIX_FMT_BGRA);
+    for (unsigned int y = 0; y < height; y++) {
+      const Rgb *prsrc = (const Rgb *)(image.buffer + y * image.linesize);
+      Rgb *prdest = (Rgb *)(buffer + y * linesize);
+      for (unsigned int x = 0; x < width; x++, prsrc++, prdest++) {
+        if (alpha_last) {
+          if (RED_PTR_RGBA(prsrc) || GREEN_PTR_RGBA(prsrc) || BLUE_PTR_RGBA(prsrc))
+            *prdest = *prsrc;
+        } else {
+          if (RED_PTR_ABGR(prsrc) || GREEN_PTR_ABGR(prsrc) || BLUE_PTR_ABGR(prsrc))
+            *prdest = *prsrc;
         }
-        prdest++;
-        prsrc++;
-      }
-    } else {
-      /* ABGR\ARGB subpixel order - Alpha byte is first */
-      while ( prdest < max_ptr ) {
-        if ( RED_PTR_ABGR(prsrc) || GREEN_PTR_ABGR(prsrc) || BLUE_PTR_ABGR(prsrc) ) {
-          *prdest = *prsrc;
-        }
-        prdest++;
-        prsrc++;
       }
     }
   }
@@ -1887,28 +2134,31 @@ void Image::Overlay( const Image &image, const unsigned int lo_x, const unsigned
 
   unsigned int hi_x = (lo_x+image.width)-1;
   unsigned int hi_y = (lo_y+image.height-1);
-  if ( colours == ZM_COLOUR_GRAY8 ) {
-    const uint8_t *psrc = image.buffer;
+  // Both buffers may carry per-row padding (linesize > width*colours after
+  // FFALIGN). Rebase source and destination per row using each image's
+  // own linesize so the sequential psrc++ advance can't drift across rows.
+  if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      uint8_t *pdest = &buffer[(y*width)+lo_x];
+      const uint8_t *psrc = image.buffer + (y - lo_y) * image.linesize;
+      uint8_t *pdest = buffer + y * linesize + lo_x;
       for ( unsigned int x = lo_x; x <= hi_x; x++ ) {
         *pdest++ = *psrc++;
       }
     }
-  } else if ( colours == ZM_COLOUR_RGB24 ) {
-    const uint8_t *psrc = image.buffer;
+  } else if ( zm_is_rgb24(imagePixFormat) ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      uint8_t *pdest = &buffer[colours*((y*width)+lo_x)];
+      const uint8_t *psrc = image.buffer + (y - lo_y) * image.linesize;
+      uint8_t *pdest = buffer + y * linesize + lo_x * colours;
       for ( unsigned int x = lo_x; x <= hi_x; x++ ) {
         *pdest++ = *psrc++;
         *pdest++ = *psrc++;
         *pdest++ = *psrc++;
       }
     }
-  } else if ( colours == ZM_COLOUR_RGB32 ) {
-    const Rgb *psrc = (Rgb*)(image.buffer);
+  } else if ( zm_is_rgb32(imagePixFormat) ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      Rgb *pdest = (Rgb*)&buffer[((y*width)+lo_x)<<2];
+      const Rgb *psrc = (const Rgb*)(image.buffer + (y - lo_y) * image.linesize);
+      Rgb *pdest = (Rgb*)(buffer + y * linesize + (lo_x << 2));
       for ( unsigned int x = lo_x; x <= hi_x; x++ ) {
         *pdest++ = *psrc++;
       }
@@ -2076,37 +2326,49 @@ bool Image::Delta(const Image &image, Image* targetimage) const {
   TimePoint start = std::chrono::steady_clock::now();
 #endif
 
-  switch ( colours ) {
-  case ZM_COLOUR_RGB24:
-    if ( subpixelorder == ZM_SUBPIX_ORDER_BGR ) {
-      /* BGR subpixel order */
-      (*delta8_bgr)(buffer, image.buffer, pdiff, pixels);
-    } else {
-      /* Assume RGB subpixel order */
-      (*delta8_rgb)(buffer, image.buffer, pdiff, pixels);
+  // The delta8_* SIMD helpers process N contiguous bytes / pixels without
+  // any concept of row stride. With FFALIGN'd linesize, an image's buffer
+  // may have per-row padding (linesize > width*bpp), so passing the full
+  // pixel count would read padding bytes as image data and produce wrong
+  // motion deltas. Drive the helpers row by row instead — width pixels per
+  // row of `this`, of `image`, and of the GRAY8 target, each at their own
+  // linesize stride.
+  const unsigned int src_linesize = linesize;
+  const unsigned int img_linesize = image.linesize;
+  const unsigned int dst_linesize = targetimage->LineSize();
+
+  auto delta_row = [&](void (*fn)(const uint8_t *, const uint8_t *, uint8_t *, unsigned long)) {
+    for (unsigned int y = 0; y < height; y++) {
+      fn(buffer + y * src_linesize,
+         image.buffer + y * img_linesize,
+         pdiff + y * dst_linesize,
+         width);
     }
-    break;
-  case ZM_COLOUR_RGB32:
-    if ( subpixelorder == ZM_SUBPIX_ORDER_ARGB ) {
-      /* ARGB subpixel order */
-      (*delta8_argb)(buffer, image.buffer, pdiff, pixels);
-    } else if(subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
-      /* ABGR subpixel order */
-      (*delta8_abgr)(buffer, image.buffer, pdiff, pixels);
-    } else if(subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
-      /* BGRA subpixel order */
-      (*delta8_bgra)(buffer, image.buffer, pdiff, pixels);
-    } else {
-      /* Assume RGBA subpixel order */
-      (*delta8_rgba)(buffer, image.buffer, pdiff, pixels);
-    }
-    break;
-  case ZM_COLOUR_GRAY8:
-    (*delta8_gray8)(buffer, image.buffer, pdiff, pixels);
-    break;
-  default:
-    Panic("Delta called with unexpected colours: %d",colours);
-    break;
+  };
+
+  if (imagePixFormat == AV_PIX_FMT_BGR24) {
+    /* BGR subpixel order */
+    delta_row(delta8_bgr);
+  } else if (zm_is_rgb24(imagePixFormat)) {
+    /* Assume RGB subpixel order */
+    delta_row(delta8_rgb);
+  } else if (imagePixFormat == AV_PIX_FMT_ARGB) {
+    /* ARGB subpixel order */
+    delta_row(delta8_argb);
+  } else if (imagePixFormat == AV_PIX_FMT_ABGR) {
+    /* ABGR subpixel order */
+    delta_row(delta8_abgr);
+  } else if (imagePixFormat == AV_PIX_FMT_BGRA) {
+    /* BGRA subpixel order */
+    delta_row(delta8_bgra);
+  } else if (zm_is_rgb32(imagePixFormat)) {
+    /* Assume RGBA subpixel order */
+    delta_row(delta8_rgba);
+  } else if (zm_bytes_per_pixel(imagePixFormat) == 1) {
+    delta_row(delta8_gray8);
+  } else {
+    Panic("Delta called with unexpected pixel format %d (%s); legacy colours=%d",
+          imagePixFormat, zm_get_pix_fmt_name(imagePixFormat), colours);
   }
 
 #ifdef ZM_IMAGE_PROFILING
@@ -2158,17 +2420,21 @@ void Image::MaskPrivacy( const unsigned char *p_bitmask, const Rgb pixel_colour 
   const uint8_t pixel_bw_col = pixel_colour & 0xff;
   const Rgb pixel_rgb_col = rgb_convert(pixel_colour,subpixelorder);
 
-  unsigned char *ptr = &buffer[0];
   unsigned int i = 0;
 
   for ( unsigned int y = 0; y < height; y++ ) {
-    if ( colours == ZM_COLOUR_GRAY8 ) {
+    // Re-base the row pointer each iteration: with FFALIGN'd linesize there
+    // may be per-row padding between width*colours and linesize, and a
+    // monotonically-incremented ptr would walk into that padding (and
+    // misaddress subsequent rows).
+    unsigned char *ptr = buffer + y * linesize;
+    if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
       for ( unsigned int x = 0; x < width; x++, ptr++ ) {
         if ( p_bitmask[i] )
           *ptr = pixel_bw_col;
         i++;
       }
-    } else if ( colours == ZM_COLOUR_RGB24 ) {
+    } else if ( zm_is_rgb24(imagePixFormat) ) {
       for ( unsigned int x = 0; x < width; x++, ptr += colours ) {
         if ( p_bitmask[i] ) {
           RED_PTR_RGBA(ptr) = pixel_r_col;
@@ -2177,7 +2443,7 @@ void Image::MaskPrivacy( const unsigned char *p_bitmask, const Rgb pixel_colour 
         }
         i++;
       }
-    } else if ( colours == ZM_COLOUR_RGB32 ) {
+    } else if ( zm_is_rgb32(imagePixFormat) ) {
       for ( unsigned int x = 0; x < width; x++, ptr += colours ) {
         Rgb *temp_ptr = (Rgb*)ptr;
         if ( p_bitmask[i] )
@@ -2189,6 +2455,57 @@ void Image::MaskPrivacy( const unsigned char *p_bitmask, const Rgb pixel_colour 
       return;
     }
   } // end foreach y
+
+  // Planar YUV formats: the loop above masked only the Y plane, leaving the
+  // chroma (U/V) planes intact. Source colour bleeds through the mask
+  // because chroma still carries the original hue — a privacy leak. Set
+  // chroma samples covering any masked Y pixel to the neutral value (128).
+  // For YUV420P chroma is subsampled 2:2; for YUV422P it is 2:1 horizontal.
+  // Use the conservative rule: if any covered Y bit is set in the bitmask,
+  // neutralise the corresponding chroma sample.
+  const bool planar_420 = zm_is_yuv420(imagePixFormat);
+  const bool planar_422 = (imagePixFormat == AV_PIX_FMT_YUV422P
+                           || imagePixFormat == AV_PIX_FMT_YUVJ422P);
+  if (planar_420 || planar_422) {
+    uint8_t *plane_ptrs[4] = {nullptr, nullptr, nullptr, nullptr};
+    int plane_linesizes[4] = {0, 0, 0, 0};
+    int fill_size = av_image_fill_arrays(plane_ptrs, plane_linesizes, buffer,
+                                         imagePixFormat, width, height, 32);
+    if (fill_size < 0 || !plane_ptrs[1] || !plane_ptrs[2]) {
+      Warning("MaskPrivacy: av_image_fill_arrays failed for %s; chroma not masked",
+              av_get_pix_fmt_name(imagePixFormat));
+      return;
+    }
+    // Chroma plane dimensions use ceiling division so an odd width/height
+    // doesn't drop the last chroma column/row — that would leave a strip
+    // along the right/bottom edge with original colour bleeding through
+    // the privacy mask.
+    const unsigned int c_height = planar_420 ? (height + 1) / 2 : height;
+    const unsigned int c_width = (width + 1) / 2;
+    const int u_stride = plane_linesizes[1];
+    const int v_stride = plane_linesizes[2];
+    uint8_t *u_plane = plane_ptrs[1];
+    uint8_t *v_plane = plane_ptrs[2];
+
+    for (unsigned int cy = 0; cy < c_height; cy++) {
+      for (unsigned int cx = 0; cx < c_width; cx++) {
+        const unsigned int y_x0 = cx * 2;
+        const unsigned int y_x1 = y_x0 + 1;
+        const unsigned int y_top = planar_420 ? cy * 2 : cy;
+        const unsigned int y_bot = planar_420 ? y_top + 1 : y_top;
+        bool mask_hit = p_bitmask[y_top * width + y_x0]
+                     || (y_x1 < width && p_bitmask[y_top * width + y_x1]);
+        if (planar_420 && !mask_hit && y_bot < height) {
+          mask_hit = p_bitmask[y_bot * width + y_x0]
+                  || (y_x1 < width && p_bitmask[y_bot * width + y_x1]);
+        }
+        if (mask_hit) {
+          u_plane[cy * u_stride + cx] = 128;
+          v_plane[cy * v_stride + cx] = 128;
+        }
+      }
+    }
+  }
 }
 
 /* RGB32 compatible: complete */
@@ -2228,8 +2545,11 @@ void Image::Annotate(
   for (const std::string &line : lines) {
     uint32 x = x0;
 
-    if (colours == ZM_COLOUR_GRAY8) {
-      uint8 *ptr = &buffer[(y * width) + x0];
+    // Use linesize (which may include FFALIGN'd padding) for row stride
+    // rather than width*bytesPerPixel, so non-32-aligned widths don't
+    // skew annotation placement into per-row padding.
+    if (zm_bytes_per_pixel(imagePixFormat) == 1) {
+      uint8 *ptr = &buffer[y * linesize + x0];
       for (char c : line) {
         for (uint64 cp_row : font_variant.GetCodepoint(c)) {
           if (bg_colour != kRGBTransparent) {
@@ -2241,18 +2561,18 @@ void Image::Annotate(
             *(ptr + column_idx) = fg_colour & 0xff;
             cp_row = cp_row & (cp_row - 1);
           }
-          ptr += width;
+          ptr += linesize;
         }
-        ptr -= (width * char_height);
+        ptr -= (linesize * char_height);
         ptr += char_width;
         x += char_width;
         if (x >= width) {
           break;
         }
       }
-    } else if (colours == ZM_COLOUR_RGB24) {
+    } else if (zm_is_rgb24(imagePixFormat)) {
       constexpr uint8 bytesPerPixel = 3;
-      uint8 *ptr = &buffer[((y * width) + x0) * bytesPerPixel];
+      uint8 *ptr = &buffer[y * linesize + x0 * bytesPerPixel];
 
       for (char c : line) {
         for (uint64 cp_row : font_variant.GetCodepoint(c)) {
@@ -2273,18 +2593,20 @@ void Image::Annotate(
             BLUE_PTR_RGBA(colour_ptr) = BLUE_VAL_RGBA(fg_colour);
             cp_row = cp_row & (cp_row - 1);
           }
-          ptr += width * bytesPerPixel;
+          ptr += linesize;
         }
-        ptr -= (width * char_height * bytesPerPixel);
+        ptr -= (linesize * char_height);
         ptr += char_width * bytesPerPixel;
         x += char_width;
         if (x >= width) {
           break;
         }
       }
-    } else if (colours == ZM_COLOUR_RGB32) {
+    } else if (zm_is_rgb32(imagePixFormat)) {
       constexpr uint8 bytesPerPixel = 4;
-      Rgb *ptr = reinterpret_cast<Rgb *>(&buffer[((y * width) + x0) * bytesPerPixel]);
+      // Rgb is 4 bytes (rgb32); convert linesize bytes -> Rgb stride.
+      const unsigned int rgb_stride = linesize / sizeof(Rgb);
+      Rgb *ptr = reinterpret_cast<Rgb *>(&buffer[y * linesize + x0 * bytesPerPixel]);
 
       for (char c : line) {
         for (uint64 cp_row : font_variant.GetCodepoint(c)) {
@@ -2297,9 +2619,9 @@ void Image::Annotate(
             *(ptr + column_idx) = fg_rgb_col;
             cp_row = cp_row & (cp_row - 1);
           }
-          ptr += width;
+          ptr += rgb_stride;
         }
-        ptr -= (width * char_height);
+        ptr -= (rgb_stride * char_height);
         ptr += char_width;
         x += char_width;
         if (x >= width) {
@@ -2336,54 +2658,78 @@ void Image::Timestamp(const char *label, SystemTimePoint when, const Vector2 &co
 void Image::Colourise(const unsigned int p_reqcolours, const unsigned int p_reqsubpixelorder) {
   Debug(9, "Colourise: Req colours: %u Req subpixel order: %u Current colours: %u Current subpixel order: %u",p_reqcolours,p_reqsubpixelorder,colours,subpixelorder);
 
-  if ( colours != ZM_COLOUR_GRAY8) {
+  if ( imagePixFormat != AV_PIX_FMT_GRAY8) {
     Warning("Target image is already colourised, colours: %u",colours);
     return;
   }
 
-  if ( p_reqcolours == ZM_COLOUR_RGB32 ) {
+  AVPixelFormat p_req_pixfmt = zm_pixformat_from_colours(p_reqcolours, p_reqsubpixelorder);
+
+  // AssignDirect validates buffer_size against av_image_get_buffer_size(...,
+  // align=32) and uses an FFALIGN'd linesize. Allocate accordingly and copy
+  // row by row using the source (GRAY8) and destination (RGB) strides, so
+  // we don't undersize the output buffer for non-32-aligned widths and
+  // don't smear pixels across row boundaries.
+  int new_size_signed = av_image_get_buffer_size(p_req_pixfmt, width, height, 32);
+  int dst_linesize_signed = av_image_get_linesize(p_req_pixfmt, width, 0);
+  if (new_size_signed < 0 || dst_linesize_signed < 0) {
+    Error("Colourise: av_image sizing failed for %s %ux%u",
+          zm_get_pix_fmt_name(p_req_pixfmt), width, height);
+    return;
+  }
+  const size_t new_size = static_cast<size_t>(new_size_signed);
+  const unsigned int dst_linesize = FFALIGN(dst_linesize_signed, 32);
+  const unsigned int src_linesize = linesize;
+
+  if ( zm_is_rgb32(p_req_pixfmt) ) {
     /* RGB32 */
-    Rgb* new_buffer = (Rgb*)AllocBuffer(pixels*sizeof(Rgb));
+    Rgb* new_buffer = (Rgb*)AllocBuffer(new_size);
 
-    const uint8_t *psrc = buffer;
-    Rgb* pdest = new_buffer;
-    Rgb subpixel;
-    Rgb newpixel;
-
-    if ( p_reqsubpixelorder == ZM_SUBPIX_ORDER_ABGR || p_reqsubpixelorder == ZM_SUBPIX_ORDER_ARGB ) {
+    if ( p_req_pixfmt == AV_PIX_FMT_ABGR || p_req_pixfmt == AV_PIX_FMT_ARGB ) {
       /* ARGB\ABGR subpixel order. alpha byte is first (mem+0), so we need to shift the pixel left in the end */
-      for ( unsigned int i=0; i < pixels; i++ ) {
-        newpixel = subpixel = psrc[i];
-        newpixel = (newpixel<<8) | subpixel;
-        newpixel = (newpixel<<8) | subpixel;
-        pdest[i] = (newpixel<<8);
+      for (unsigned int y = 0; y < height; y++) {
+        const uint8_t *psrc = buffer + y * src_linesize;
+        Rgb *pdest = (Rgb *)((uint8_t *)new_buffer + y * dst_linesize);
+        for (unsigned int x = 0; x < width; x++) {
+          Rgb subpixel = psrc[x];
+          Rgb newpixel = subpixel;
+          newpixel = (newpixel << 8) | subpixel;
+          newpixel = (newpixel << 8) | subpixel;
+          pdest[x] = (newpixel << 8);
+        }
       }
     } else {
       /* RGBA\BGRA subpixel order, alpha byte is last (mem+3) */
-      for ( unsigned int i=0; i < pixels; i++ ) {
-        newpixel = subpixel = psrc[i];
-        newpixel = (newpixel<<8) | subpixel;
-        newpixel = (newpixel<<8) | subpixel;
-        pdest[i] = newpixel;
+      for (unsigned int y = 0; y < height; y++) {
+        const uint8_t *psrc = buffer + y * src_linesize;
+        Rgb *pdest = (Rgb *)((uint8_t *)new_buffer + y * dst_linesize);
+        for (unsigned int x = 0; x < width; x++) {
+          Rgb subpixel = psrc[x];
+          Rgb newpixel = subpixel;
+          newpixel = (newpixel << 8) | subpixel;
+          newpixel = (newpixel << 8) | subpixel;
+          pdest[x] = newpixel;
+        }
       }
     }
 
     /* Directly assign the new buffer and make sure it will be freed when not needed anymore */
-    AssignDirect( width, height, p_reqcolours, p_reqsubpixelorder, (uint8_t*)new_buffer, pixels*4, ZM_BUFTYPE_ZM);
+    AssignDirect( width, height, p_reqcolours, p_reqsubpixelorder, (uint8_t*)new_buffer, new_size, ZM_BUFTYPE_ZM);
 
-  } else if ( p_reqcolours == ZM_COLOUR_RGB24 ) {
+  } else if ( zm_is_rgb24(p_req_pixfmt) ) {
     /* RGB24 */
-    uint8_t *new_buffer = AllocBuffer(pixels*3);
+    uint8_t *new_buffer = AllocBuffer(new_size);
 
-    uint8_t *pdest = new_buffer;
-    const uint8_t *psrc = buffer;
-
-    for ( unsigned int i=0; i < (unsigned int)pixels; i++, pdest += 3 ) {
-      RED_PTR_RGBA(pdest) = GREEN_PTR_RGBA(pdest) = BLUE_PTR_RGBA(pdest) = psrc[i];
+    for (unsigned int y = 0; y < height; y++) {
+      const uint8_t *psrc = buffer + y * src_linesize;
+      uint8_t *pdest = new_buffer + y * dst_linesize;
+      for (unsigned int x = 0; x < width; x++, pdest += 3) {
+        RED_PTR_RGBA(pdest) = GREEN_PTR_RGBA(pdest) = BLUE_PTR_RGBA(pdest) = psrc[x];
+      }
     }
 
     /* Directly assign the new buffer and make sure it will be freed when not needed anymore */
-    AssignDirect( width, height, p_reqcolours, p_reqsubpixelorder, new_buffer, pixels*3, ZM_BUFTYPE_ZM);
+    AssignDirect( width, height, p_reqcolours, p_reqsubpixelorder, new_buffer, new_size, ZM_BUFTYPE_ZM);
   } else {
     Error("Colourise called with unexpected colours: %d", colours);
     return;
@@ -2392,10 +2738,10 @@ void Image::Colourise(const unsigned int p_reqcolours, const unsigned int p_reqs
 
 /* RGB32 compatible: complete */
 void Image::DeColourise() {
-  const unsigned int src_colours = colours;
+  const AVPixelFormat src_pixfmt = imagePixFormat;
   const unsigned int src_subpixelorder = subpixelorder;
 
-  if ( src_colours == ZM_COLOUR_RGB32 && config.cpu_extensions && sse_version >= 35 ) {
+  if ( zm_is_rgb32(src_pixfmt) && config.cpu_extensions && sse_version >= 35 ) {
     /* Use SSSE3 functions */
     switch (src_subpixelorder) {
     case ZM_SUBPIX_ORDER_BGRA:
@@ -2414,7 +2760,7 @@ void Image::DeColourise() {
     }
   } else {
     /* Use standard functions */
-    if ( src_colours == ZM_COLOUR_RGB32 ) {
+    if ( zm_is_rgb32(src_pixfmt) ) {
       if ( pixels % 16 ) {
         switch (src_subpixelorder) {
         case ZM_SUBPIX_ORDER_BGRA:
@@ -2476,12 +2822,20 @@ void Image::DeColourise() {
 
   colours = ZM_COLOUR_GRAY8;
   subpixelorder = ZM_SUBPIX_ORDER_NONE;
-  size = width * height;
+  imagePixFormat = AV_PIX_FMT_GRAY8;
+  // Keep size and linesize consistent with the new format; downstream ops
+  // (Flip/Rotate allocate via size; row-stride loops use linesize) need both
+  // to match the GRAY8 32-byte-aligned layout, not the previous RGB sizing.
+  int new_size = av_image_get_buffer_size(AV_PIX_FMT_GRAY8, width, height, 32);
+  int new_linesize = av_image_get_linesize(AV_PIX_FMT_GRAY8, width, 0);
+  if (new_size > 0) size = static_cast<unsigned int>(new_size);
+  if (new_linesize > 0) linesize = FFALIGN(new_linesize, 32);
+  update_function_pointers();
 }
 
 /* RGB32 compatible: complete */
 void Image::Fill( Rgb colour, const Box *limits ) {
-  if ( !(colours == ZM_COLOUR_GRAY8 || colours == ZM_COLOUR_RGB24 || colours == ZM_COLOUR_RGB32 ) ) {
+  if ( !(zm_bytes_per_pixel(imagePixFormat) == 1 || zm_is_rgb24(imagePixFormat) || zm_is_rgb32(imagePixFormat)) ) {
     Panic("Attempt to fill image with unexpected colours %d", colours);
   }
 
@@ -2492,25 +2846,27 @@ void Image::Fill( Rgb colour, const Box *limits ) {
   unsigned int lo_y = limits ? limits->Lo().y_ : 0;
   unsigned int hi_x = limits ? limits->Hi().x_ : width - 1;
   unsigned int hi_y = limits ? limits->Hi().y_ : height - 1;
-  if ( colours == ZM_COLOUR_GRAY8 ) {
+  // Use linesize as the row stride so non-32-aligned widths don't write
+  // into padding bytes or shift subsequent rows.
+  if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      unsigned char *p = &buffer[(y*width)+lo_x];
+      unsigned char *p = &buffer[y * linesize + lo_x];
       for ( unsigned int x = lo_x; x <= hi_x; x++, p++) {
         *p = colour;
       }
     }
-  } else if ( colours == ZM_COLOUR_RGB24 ) {
+  } else if ( zm_is_rgb24(imagePixFormat) ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      unsigned char *p = &buffer[colours*((y*width)+lo_x)];
+      unsigned char *p = &buffer[y * linesize + lo_x * colours];
       for ( unsigned int x = lo_x; x <= hi_x; x++, p += 3) {
         RED_PTR_RGBA(p) = RED_VAL_RGBA(colour);
         GREEN_PTR_RGBA(p) = GREEN_VAL_RGBA(colour);
         BLUE_PTR_RGBA(p) = BLUE_VAL_RGBA(colour);
       }
     }
-  } else if ( colours == ZM_COLOUR_RGB32 ) { /* RGB32 */
+  } else if ( zm_is_rgb32(imagePixFormat) ) { /* RGB32 */
     for ( unsigned int y = lo_y; y <= (unsigned int)hi_y; y++ ) {
-      Rgb *p = (Rgb*)&buffer[((y*width)+lo_x)<<2];
+      Rgb *p = (Rgb*)&buffer[y * linesize + (lo_x << 2)];
 
       for ( unsigned int x = lo_x; x <= (unsigned int)hi_x; x++, p++) {
         /* Fast, copies the entire pixel in a single pass */
@@ -2526,7 +2882,7 @@ void Image::Fill( Rgb colour, int density, const Box *limits ) {
   if ( density <= 1 )
     return Fill(colour,limits);
 
-  if ( !(colours == ZM_COLOUR_GRAY8 || colours == ZM_COLOUR_RGB24 || colours == ZM_COLOUR_RGB32 ) ) {
+  if ( !(zm_bytes_per_pixel(imagePixFormat) == 1 || zm_is_rgb24(imagePixFormat) || zm_is_rgb32(imagePixFormat)) ) {
     Panic("Attempt to fill image with unexpected colours %d", colours);
   }
 
@@ -2537,17 +2893,19 @@ void Image::Fill( Rgb colour, int density, const Box *limits ) {
   unsigned int lo_y = limits ? limits->Lo().y_ : 0;
   unsigned int hi_x = limits ? limits->Hi().x_ : width - 1;
   unsigned int hi_y = limits ? limits->Hi().y_ : height - 1;
-  if ( colours == ZM_COLOUR_GRAY8 ) {
+  // Use linesize as the row stride so non-32-aligned widths don't write
+  // into padding bytes or shift subsequent rows.
+  if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      unsigned char *p = &buffer[(y*width)+lo_x];
+      unsigned char *p = &buffer[y * linesize + lo_x];
       for ( unsigned int x = lo_x; x <= hi_x; x++, p++) {
         if ( ( x == lo_x || x == hi_x || y == lo_y || y == hi_y ) || (!(x%density) && !(y%density) ) )
           *p = colour;
       }
     }
-  } else if ( colours == ZM_COLOUR_RGB24 ) {
+  } else if ( zm_is_rgb24(imagePixFormat) ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      unsigned char *p = &buffer[colours*((y*width)+lo_x)];
+      unsigned char *p = &buffer[y * linesize + lo_x * colours];
       for ( unsigned int x = lo_x; x <= hi_x; x++, p += 3) {
         if ( ( x == lo_x || x == hi_x || y == lo_y || y == hi_y ) || (!(x%density) && !(y%density) ) ) {
           RED_PTR_RGBA(p) = RED_VAL_RGBA(colour);
@@ -2556,9 +2914,9 @@ void Image::Fill( Rgb colour, int density, const Box *limits ) {
         }
       }
     }
-  } else if ( colours == ZM_COLOUR_RGB32 ) { /* RGB32 */
+  } else if ( zm_is_rgb32(imagePixFormat) ) { /* RGB32 */
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      Rgb* p = (Rgb*)&buffer[((y*width)+lo_x)<<2];
+      Rgb* p = (Rgb*)&buffer[y * linesize + (lo_x << 2)];
 
       for ( unsigned int x = lo_x; x <= hi_x; x++, p++) {
         if ( ( x == lo_x || x == hi_x || y == lo_y || y == hi_y ) || (!(x%density) && !(y%density) ) )
@@ -2571,7 +2929,7 @@ void Image::Fill( Rgb colour, int density, const Box *limits ) {
 
 /* RGB32 compatible: complete */
 void Image::Outline( Rgb colour, const Polygon &polygon ) {
-  if ( !(colours == ZM_COLOUR_GRAY8 || colours == ZM_COLOUR_RGB24 || colours == ZM_COLOUR_RGB32 ) ) {
+  if ( !(zm_bytes_per_pixel(imagePixFormat) == 1 || zm_is_rgb24(imagePixFormat) || zm_is_rgb32(imagePixFormat)) ) {
     Panic("Attempt to outline image with unexpected colours %d", colours);
   }
 
@@ -2603,20 +2961,20 @@ void Image::Outline( Rgb colour, const Polygon &polygon ) {
       double x;
       int y, yinc = (y1<y2)?1:-1;
       grad *= yinc;
-      if ( colours == ZM_COLOUR_GRAY8 ) {
+      if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
         for ( x = x1, y = y1; y != y2; y += yinc, x += grad ) {
-          buffer[(y*width)+int(round(x))] = colour;
+          buffer[y * linesize + int(round(x))] = colour;
         }
-      } else if ( colours == ZM_COLOUR_RGB24 ) {
+      } else if ( zm_is_rgb24(imagePixFormat) ) {
         for ( x = x1, y = y1; y != y2; y += yinc, x += grad ) {
-          unsigned char *p = &buffer[colours*((y*width)+int(round(x)))];
+          unsigned char *p = &buffer[y * linesize + int(round(x)) * colours];
           RED_PTR_RGBA(p) = RED_VAL_RGBA(colour);
           GREEN_PTR_RGBA(p) = GREEN_VAL_RGBA(colour);
           BLUE_PTR_RGBA(p) = BLUE_VAL_RGBA(colour);
         }
-      } else if ( colours == ZM_COLOUR_RGB32 ) {
+      } else if ( zm_is_rgb32(imagePixFormat) ) {
         for ( x = x1, y = y1; y != y2; y += yinc, x += grad ) {
-          *(Rgb*)(buffer+(((y*width)+int(round(x)))<<2)) = colour;
+          *(Rgb*)(buffer + y * linesize + (int(round(x)) << 2)) = colour;
         }
       }
     } else {
@@ -2630,22 +2988,22 @@ void Image::Outline( Rgb colour, const Polygon &polygon ) {
       double y;
       int x, xinc = (x1<x2)?1:-1;
       grad *= xinc;
-      if ( colours == ZM_COLOUR_GRAY8 ) {
+      if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
         //Debug( 9, "x1:%d, x2:%d, y1:%d, y2:%d, gr:%.2lf", x1, x2, y1, y2, grad );
         for ( y = y1, x = x1; x != x2; x += xinc, y += grad ) {
           //Debug( 9, "x:%d, y:%.2f", x, y );
-          buffer[(int(round(y))*width)+x] = colour;
+          buffer[int(round(y)) * linesize + x] = colour;
         }
-      } else if ( colours == ZM_COLOUR_RGB24 ) {
+      } else if ( zm_is_rgb24(imagePixFormat) ) {
         for ( y = y1, x = x1; x != x2; x += xinc, y += grad ) {
-          unsigned char *p = &buffer[colours*((int(round(y))*width)+x)];
+          unsigned char *p = &buffer[int(round(y)) * linesize + x * colours];
           RED_PTR_RGBA(p) = RED_VAL_RGBA(colour);
           GREEN_PTR_RGBA(p) = GREEN_VAL_RGBA(colour);
           BLUE_PTR_RGBA(p) = BLUE_VAL_RGBA(colour);
         }
-      } else if ( colours == ZM_COLOUR_RGB32 ) {
+      } else if ( zm_is_rgb32(imagePixFormat) ) {
         for ( y = y1, x = x1; x != x2; x += xinc, y += grad ) {
-          *(Rgb*)(buffer+(((int(round(y))*width)+x)<<2)) = colour;
+          *(Rgb*)(buffer + int(round(y)) * linesize + (x << 2)) = colour;
         }
       }
     }
@@ -2654,7 +3012,7 @@ void Image::Outline( Rgb colour, const Polygon &polygon ) {
 
 // Polygon filling is based on the Scan-line Polygon filling algorithm
 void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
-  if (!(colours == ZM_COLOUR_GRAY8 || colours == ZM_COLOUR_RGB24 || colours == ZM_COLOUR_RGB32)) {
+  if (!(zm_bytes_per_pixel(imagePixFormat) == 1 || zm_is_rgb24(imagePixFormat) || zm_is_rgb32(imagePixFormat))) {
     Panic("Attempt to fill image with unexpected colours %d", colours);
   }
 
@@ -2726,17 +3084,17 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
       for (auto it = active_edges.begin(); it + 1 < active_edges.end(); it += 2) {
         int32 lo_x = static_cast<int32>(it->min_x);
         int32 hi_x = static_cast<int32>((it + 1)->min_x);
-        if (colours == ZM_COLOUR_GRAY8) {
-          uint8 *p = &buffer[(scan_line * width) + lo_x];
+        if (zm_bytes_per_pixel(imagePixFormat) == 1) {
+          uint8 *p = &buffer[scan_line * linesize + lo_x];
 
           for (int32 x = lo_x; x <= hi_x; x++, p++) {
             if (!(x % density)) {
               *p = colour;
             }
           }
-        } else if (colours == ZM_COLOUR_RGB24) {
+        } else if (zm_is_rgb24(imagePixFormat)) {
           constexpr uint8 bytesPerPixel = 3;
-          uint8 *ptr = &buffer[((scan_line * width) + lo_x) * bytesPerPixel];
+          uint8 *ptr = &buffer[scan_line * linesize + lo_x * bytesPerPixel];
 
           for (int32 x = lo_x; x <= hi_x; x++, ptr += bytesPerPixel) {
             if (!(x % density)) {
@@ -2745,9 +3103,9 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
               BLUE_PTR_RGBA(ptr) = BLUE_VAL_RGBA(colour);
             }
           }
-        } else if (colours == ZM_COLOUR_RGB32) {
+        } else if (zm_is_rgb32(imagePixFormat)) {
           constexpr uint8 bytesPerPixel = 4;
-          Rgb *ptr = reinterpret_cast<Rgb *>(&buffer[((scan_line * width) + lo_x) * bytesPerPixel]);
+          Rgb *ptr = reinterpret_cast<Rgb *>(&buffer[scan_line * linesize + lo_x * bytesPerPixel]);
 
           for (int32 x = lo_x; x <= hi_x; x++, ptr++) {
             if (!(x % density)) {
@@ -2762,176 +3120,209 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
   } // end while
 }
 
+namespace {
+// Rotate `src_w` × `src_h` plane (bpp bytes per sample, src_linesize stride)
+// into dst (dst_linesize stride) according to angle (90/180/270).
+// For 90/270: dst dims are src_h × src_w. For 180: dst dims are src_w × src_h.
+void rotate_plane(const uint8_t *src, int src_linesize,
+                  unsigned int src_w, unsigned int src_h,
+                  uint8_t *dst, int dst_linesize,
+                  unsigned int bpp, int angle) {
+  if (angle == 90) {
+    // (sx, sy) -> (dx, dy) = (src_h-1-sy, sx). Equivalently, for each
+    // destination row dy=sx, write the column src_w-1-dy from the source.
+    for (unsigned int sy = 0; sy < src_h; sy++) {
+      const uint8_t *src_row = src + sy * src_linesize;
+      const unsigned int dx = src_h - 1 - sy;
+      for (unsigned int sx = 0; sx < src_w; sx++) {
+        const unsigned int dy = sx;
+        uint8_t *dst_px = dst + dy * dst_linesize + dx * bpp;
+        const uint8_t *src_px = src_row + sx * bpp;
+        for (unsigned int b = 0; b < bpp; b++) dst_px[b] = src_px[b];
+      }
+    }
+  } else if (angle == 180) {
+    // (sx, sy) -> (dx, dy) = (src_w-1-sx, src_h-1-sy).
+    for (unsigned int sy = 0; sy < src_h; sy++) {
+      const uint8_t *src_row = src + sy * src_linesize;
+      uint8_t *dst_row = dst + (src_h - 1 - sy) * dst_linesize;
+      for (unsigned int sx = 0; sx < src_w; sx++) {
+        const unsigned int dx = src_w - 1 - sx;
+        uint8_t *dst_px = dst_row + dx * bpp;
+        const uint8_t *src_px = src_row + sx * bpp;
+        for (unsigned int b = 0; b < bpp; b++) dst_px[b] = src_px[b];
+      }
+    }
+  } else if (angle == 270) {
+    // (sx, sy) -> (dx, dy) = (sy, src_w-1-sx).
+    for (unsigned int sy = 0; sy < src_h; sy++) {
+      const uint8_t *src_row = src + sy * src_linesize;
+      const unsigned int dx = sy;
+      for (unsigned int sx = 0; sx < src_w; sx++) {
+        const unsigned int dy = src_w - 1 - sx;
+        uint8_t *dst_px = dst + dy * dst_linesize + dx * bpp;
+        const uint8_t *src_px = src_row + sx * bpp;
+        for (unsigned int b = 0; b < bpp; b++) dst_px[b] = src_px[b];
+      }
+    }
+  }
+}
+}  // namespace
+
 void Image::Rotate(int angle) {
   angle %= 360;
 
   if ( !angle || angle%90 ) {
     return;
   }
-  unsigned int new_height = height;
-  unsigned int new_width = width;
-  uint8_t* rotate_buffer = AllocBuffer(size);
 
-  switch ( angle ) {
-  case 90 : {
-    new_height = width;
-    new_width = height;
+  // For 90°/270° the chroma subsampling pattern itself transposes. YUV420P
+  // has symmetric (2:2) subsampling and survives — the rotated chroma is
+  // still W/2 × H/2 of the rotated image. YUV422P has horizontal-only
+  // subsampling; after a 90°/270° rotation it would need vertical-only
+  // subsampling, which is not the same AVPixelFormat. Refuse rather than
+  // silently producing a non-conformant buffer.
+  const bool is_422 = (imagePixFormat == AV_PIX_FMT_YUV422P
+                       || imagePixFormat == AV_PIX_FMT_YUVJ422P);
+  if ((angle == 90 || angle == 270) && is_422) {
+    Error("Rotate %d° not supported for %s (asymmetric chroma subsampling); "
+          "convert to RGB/YUV420P first", angle, av_get_pix_fmt_name(imagePixFormat));
+    return;
+  }
 
-    unsigned int line_bytes = new_width*colours;
-    unsigned char *s_ptr = buffer;
+  const unsigned int new_width = (angle == 180) ? width : height;
+  const unsigned int new_height = (angle == 180) ? height : width;
 
-    if ( colours == ZM_COLOUR_GRAY8 ) {
-      for ( unsigned int i = new_width; i > 0; i-- ) {
-        unsigned char *d_ptr = rotate_buffer+(i-1);
-        for ( unsigned int j = new_height; j > 0; j-- ) {
-          *d_ptr = *s_ptr++;
-          d_ptr += line_bytes;
-        }
-      }
-    } else if ( colours == ZM_COLOUR_RGB32 ) {
-      Rgb* s_rptr = (Rgb*)s_ptr;
-      for ( unsigned int i = new_width; i; i-- ) {
-        Rgb* d_rptr = (Rgb*)(rotate_buffer+((i-1)<<2));
-        for ( unsigned int j = new_height; j; j-- ) {
-          *d_rptr = *s_rptr++;
-          d_rptr += new_width;
-        }
-      }
-    } else { /* Assume RGB24 */
-      for ( unsigned int i = new_width; i; i-- ) {
-        unsigned char *d_ptr = rotate_buffer+((i-1)*3);
-        for ( unsigned int j = new_height; j; j-- ) {
-          *d_ptr = *s_ptr++;
-          *(d_ptr+1) = *s_ptr++;
-          *(d_ptr+2) = *s_ptr++;
-          d_ptr += line_bytes;
-        }
-      }
+  int new_size_signed = av_image_get_buffer_size(imagePixFormat, new_width, new_height, 32);
+  if (new_size_signed < 0) {
+    Error("Rotate: av_image_get_buffer_size failed for %s %ux%u",
+          av_get_pix_fmt_name(imagePixFormat), new_width, new_height);
+    return;
+  }
+  const size_t new_size = static_cast<size_t>(new_size_signed);
+  uint8_t* rotate_buffer = AllocBuffer(new_size);
+
+  uint8_t *src_planes[4] = {nullptr, nullptr, nullptr, nullptr};
+  int src_strides[4] = {0, 0, 0, 0};
+  uint8_t *dst_planes[4] = {nullptr, nullptr, nullptr, nullptr};
+  int dst_strides[4] = {0, 0, 0, 0};
+  if (av_image_fill_arrays(src_planes, src_strides, buffer, imagePixFormat, width, height, 32) < 0
+      || av_image_fill_arrays(dst_planes, dst_strides, rotate_buffer, imagePixFormat, new_width, new_height, 32) < 0) {
+    Error("Rotate: av_image_fill_arrays failed for %s", av_get_pix_fmt_name(imagePixFormat));
+    DumpBuffer(rotate_buffer, ZM_BUFTYPE_ZM);
+    return;
+  }
+
+  const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(imagePixFormat);
+  if (!desc) {
+    Error("Rotate: av_pix_fmt_desc_get failed for %s", av_get_pix_fmt_name(imagePixFormat));
+    DumpBuffer(rotate_buffer, ZM_BUFTYPE_ZM);
+    return;
+  }
+  const bool planar = (desc->flags & AV_PIX_FMT_FLAG_PLANAR) != 0;
+
+  if (planar) {
+    // Each plane has 1 byte per sample. Plane 0 is luma at full resolution;
+    // planes 1/2 are chroma subsampled by desc->log2_chroma_w/h. Use ceiling
+    // (AV_CEIL_RSHIFT) — flooring would drop the last chroma column/row for
+    // odd luma dimensions and leave part of U/V unrotated.
+    const unsigned int cw = AV_CEIL_RSHIFT(width,  desc->log2_chroma_w);
+    const unsigned int ch = AV_CEIL_RSHIFT(height, desc->log2_chroma_h);
+    rotate_plane(src_planes[0], src_strides[0], width, height,
+                 dst_planes[0], dst_strides[0], 1, angle);
+    rotate_plane(src_planes[1], src_strides[1], cw, ch,
+                 dst_planes[1], dst_strides[1], 1, angle);
+    rotate_plane(src_planes[2], src_strides[2], cw, ch,
+                 dst_planes[2], dst_strides[2], 1, angle);
+  } else {
+    // Packed format: single plane with bpp bytes per pixel.
+    const unsigned int bpp = zm_bytes_per_pixel(imagePixFormat);
+    if (bpp == 0) {
+      Error("Rotate: bytes_per_pixel unknown for %s", av_get_pix_fmt_name(imagePixFormat));
+      DumpBuffer(rotate_buffer, ZM_BUFTYPE_ZM);
+      return;
     }
-    break;
-  }
-  case 180 : {
-    unsigned char *s_ptr = buffer+size;
-    unsigned char *d_ptr = rotate_buffer;
-
-    if ( colours == ZM_COLOUR_GRAY8 ) {
-      while( s_ptr > buffer ) {
-        s_ptr--;
-        *d_ptr++ = *s_ptr;
-      }
-    } else if ( colours == ZM_COLOUR_RGB32 ) {
-      Rgb* s_rptr = (Rgb*)s_ptr;
-      Rgb* d_rptr = (Rgb*)d_ptr;
-      while( s_rptr > (Rgb*)buffer ) {
-        s_rptr--;
-        *d_rptr++ = *s_rptr;
-      }
-    } else { /* Assume RGB24 */
-      while( s_ptr > buffer ) {
-        s_ptr -= 3;
-        *d_ptr++ = *s_ptr;
-        *d_ptr++ = *(s_ptr+1);
-        *d_ptr++ = *(s_ptr+2);
-      }
-    }
-    break;
-  }
-  case 270 : {
-    new_height = width;
-    new_width = height;
-
-    unsigned int line_bytes = new_width*colours;
-    unsigned char *s_ptr = buffer+size;
-
-    if ( colours == ZM_COLOUR_GRAY8 ) {
-      for ( unsigned int i = new_width; i > 0; i-- ) {
-        unsigned char *d_ptr = rotate_buffer+(i-1);
-        for ( unsigned int j = new_height; j > 0; j-- ) {
-          s_ptr--;
-          *d_ptr = *s_ptr;
-          d_ptr += line_bytes;
-        }
-      }
-    } else if ( colours == ZM_COLOUR_RGB32 ) {
-      Rgb* s_rptr = (Rgb*)s_ptr;
-      for ( unsigned int i = new_width; i > 0; i-- ) {
-        Rgb* d_rptr = (Rgb*)(rotate_buffer+((i-1)<<2));
-        for ( unsigned int j = new_height; j > 0; j-- ) {
-          s_rptr--;
-          *d_rptr = *s_rptr;
-          d_rptr += new_width;
-        }
-      }
-    } else { /* Assume RGB24 */
-      for ( unsigned int i = new_width; i > 0; i-- ) {
-        unsigned char *d_ptr = rotate_buffer+((i-1)*3);
-        for ( unsigned int j = new_height; j > 0; j-- ) {
-          *(d_ptr+2) = *(--s_ptr);
-          *(d_ptr+1) = *(--s_ptr);
-          *d_ptr = *(--s_ptr);
-          d_ptr += line_bytes;
-        }
-      }
-    }
-    break;
-  }
+    rotate_plane(src_planes[0], src_strides[0], width, height,
+                 dst_planes[0], dst_strides[0], bpp, angle);
   }
 
-  AssignDirect(new_width, new_height, colours, subpixelorder, rotate_buffer, size, ZM_BUFTYPE_ZM);
+  AssignDirect(new_width, new_height, colours, subpixelorder, rotate_buffer, new_size, ZM_BUFTYPE_ZM);
 }  // void Image::Rotate(int angle)
 
-/* RGB32 compatible: complete */
-void Image::Flip( bool leftright ) {
-  uint8_t* flip_buffer = AllocBuffer(size);
-
-  unsigned int line_bytes = width*colours;
-  unsigned int line_bytes2 = 2*line_bytes;
-  if ( leftright ) {
-    // Horizontal flip, left to right
-    unsigned char *s_ptr = buffer+line_bytes;
-    unsigned char *d_ptr = flip_buffer;
-    unsigned char *max_d_ptr = flip_buffer + size;
-
-    if ( colours == ZM_COLOUR_GRAY8 ) {
-      while( d_ptr < max_d_ptr ) {
-        for ( unsigned int j = 0; j < width; j++ ) {
-          s_ptr--;
-          *d_ptr++ = *s_ptr;
-        }
-        s_ptr += line_bytes2;
-      }
-    } else if ( colours == ZM_COLOUR_RGB32 ) {
-      Rgb* s_rptr = (Rgb*)s_ptr;
-      Rgb* d_rptr = (Rgb*)flip_buffer;
-      Rgb* max_d_rptr = (Rgb*)max_d_ptr;
-      while( d_rptr < max_d_rptr ) {
-        for ( unsigned int j = 0; j < width; j++ ) {
-          s_rptr--;
-          *d_rptr++ = *s_rptr;
-        }
-        s_rptr += width * 2;
-      }
-    } else { /* Assume RGB24 */
-      while( d_ptr < max_d_ptr ) {
-        for ( unsigned int j = 0; j < width; j++ ) {
-          s_ptr -= 3;
-          *d_ptr++ = *s_ptr;
-          *d_ptr++ = *(s_ptr+1);
-          *d_ptr++ = *(s_ptr+2);
-        }
-        s_ptr += line_bytes2;
+namespace {
+// Flip a single plane (bpp bytes per sample) into dst. leftright=true is
+// horizontal flip; leftright=false is vertical flip. src/dst dimensions
+// stay the same; only the order of pixels/rows changes.
+void flip_plane(const uint8_t *src, int src_linesize,
+                unsigned int plane_w, unsigned int plane_h,
+                uint8_t *dst, int dst_linesize,
+                unsigned int bpp, bool leftright) {
+  if (leftright) {
+    for (unsigned int y = 0; y < plane_h; y++) {
+      const uint8_t *src_row = src + y * src_linesize;
+      uint8_t *dst_row = dst + y * dst_linesize;
+      for (unsigned int x = 0; x < plane_w; x++) {
+        const uint8_t *src_px = src_row + x * bpp;
+        uint8_t *dst_px = dst_row + (plane_w - 1 - x) * bpp;
+        for (unsigned int b = 0; b < bpp; b++) dst_px[b] = src_px[b];
       }
     }
   } else {
-    // Vertical flip, top to bottom
-    unsigned char *s_ptr = buffer+(height*line_bytes);
-    unsigned char *d_ptr = flip_buffer;
-
-    while ( s_ptr > buffer ) {
-      s_ptr -= line_bytes;
-      memcpy(d_ptr, s_ptr, line_bytes);
-      d_ptr += line_bytes;
+    // Vertical flip: row y maps to row (plane_h - 1 - y); copy bpp*plane_w
+    // bytes per row (the data portion; padding bytes are left untouched).
+    const size_t row_data_bytes = static_cast<size_t>(plane_w) * bpp;
+    for (unsigned int y = 0; y < plane_h; y++) {
+      memcpy(dst + (plane_h - 1 - y) * dst_linesize,
+             src + y * src_linesize,
+             row_data_bytes);
     }
+  }
+}
+}  // namespace
+
+/* RGB32 compatible: complete; planar YUV (YUV420P/J420P/YUV422P/J422P) flipped per-plane */
+void Image::Flip( bool leftright ) {
+  uint8_t* flip_buffer = AllocBuffer(size);
+
+  uint8_t *src_planes[4] = {nullptr, nullptr, nullptr, nullptr};
+  int src_strides[4] = {0, 0, 0, 0};
+  uint8_t *dst_planes[4] = {nullptr, nullptr, nullptr, nullptr};
+  int dst_strides[4] = {0, 0, 0, 0};
+  if (av_image_fill_arrays(src_planes, src_strides, buffer, imagePixFormat, width, height, 32) < 0
+      || av_image_fill_arrays(dst_planes, dst_strides, flip_buffer, imagePixFormat, width, height, 32) < 0) {
+    Error("Flip: av_image_fill_arrays failed for %s", av_get_pix_fmt_name(imagePixFormat));
+    DumpBuffer(flip_buffer, ZM_BUFTYPE_ZM);
+    return;
+  }
+
+  const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(imagePixFormat);
+  if (!desc) {
+    Error("Flip: av_pix_fmt_desc_get failed for %s", av_get_pix_fmt_name(imagePixFormat));
+    DumpBuffer(flip_buffer, ZM_BUFTYPE_ZM);
+    return;
+  }
+  const bool planar = (desc->flags & AV_PIX_FMT_FLAG_PLANAR) != 0;
+
+  if (planar) {
+    // Ceiling division so odd luma dimensions don't drop the last chroma
+    // column/row.
+    const unsigned int cw = AV_CEIL_RSHIFT(width,  desc->log2_chroma_w);
+    const unsigned int ch = AV_CEIL_RSHIFT(height, desc->log2_chroma_h);
+    flip_plane(src_planes[0], src_strides[0], width, height,
+               dst_planes[0], dst_strides[0], 1, leftright);
+    flip_plane(src_planes[1], src_strides[1], cw, ch,
+               dst_planes[1], dst_strides[1], 1, leftright);
+    flip_plane(src_planes[2], src_strides[2], cw, ch,
+               dst_planes[2], dst_strides[2], 1, leftright);
+  } else {
+    const unsigned int bpp = zm_bytes_per_pixel(imagePixFormat);
+    if (bpp == 0) {
+      Error("Flip: bytes_per_pixel unknown for %s", av_get_pix_fmt_name(imagePixFormat));
+      DumpBuffer(flip_buffer, ZM_BUFTYPE_ZM);
+      return;
+    }
+    flip_plane(src_planes[0], src_strides[0], width, height,
+               dst_planes[0], dst_strides[0], bpp, leftright);
   }
 
   AssignDirect(width, height, colours, subpixelorder, flip_buffer, size, ZM_BUFTYPE_ZM);
@@ -2940,21 +3331,32 @@ void Image::Flip( bool leftright ) {
 void Image::Scale(const unsigned int new_width, const unsigned int new_height) {
   if (width == new_width and height == new_height) return;
 
-  // Why larger than we need?
-  size_t scale_buffer_size = static_cast<size_t>(new_width+1) * (new_height+1) * colours;
+  // imagePixFormat is the canonical source of truth; the deprecated
+  // AVPixFormat() getter re-derives via (colours, subpixelorder) and would
+  // hit the GRAY8/YUV420P alias collision if those legacy fields ever drift.
+  const AVPixelFormat format = imagePixFormat;
+  // (new_width+1)*(new_height+1)*colours undercounts planar formats: for
+  // YUV420P, colours=1 due to the GRAY8 alias, but the buffer needs
+  // ~1.5x for chroma. Use av_image_get_buffer_size so this works for any
+  // AVPixelFormat. SWScale::Convert checks the buffer size against this
+  // and errors out if undersized.
+  int new_size = av_image_get_buffer_size(format, new_width, new_height, 32);
+  if (new_size < 0) {
+    Error("Scale: av_image_get_buffer_size failed for %s %ux%u", av_get_pix_fmt_name(format), new_width, new_height);
+    return;
+  }
+  size_t scale_buffer_size = static_cast<size_t>(new_size);
   uint8_t* scale_buffer = AllocBuffer(scale_buffer_size);
 
-  AVPixelFormat format = AVPixFormat();
   SWScale swscale;
   swscale.init();
-  swscale.Convert( buffer, allocation,
-                   scale_buffer,
-                   scale_buffer_size,
-                   format, format,
-                   width,
-                   height,
-                   new_width,
-                   new_height);
+  if (swscale.Convert(buffer, allocation, scale_buffer, scale_buffer_size,
+                      format, format, width, height, new_width, new_height) < 0) {
+    Error("Scale: sws_scale conversion failed (%ux%u %s -> %ux%u)",
+          width, height, av_get_pix_fmt_name(format), new_width, new_height);
+    DumpBuffer(scale_buffer, ZM_BUFTYPE_ZM);
+    return;
+  }
   AssignDirect(new_width, new_height, colours, subpixelorder, scale_buffer, scale_buffer_size, ZM_BUFTYPE_ZM);
 }
 
@@ -2967,115 +3369,54 @@ void Image::Scale(const unsigned int factor) {
     return;
   }
 
+  // Delegate to the (new_width, new_height) variant, which uses sws_scale.
+  // The previous hand-rolled pixel-doubling/decimation loops here did not
+  // understand planar YUV layouts (only the Y plane was scaled, the U/V
+  // planes were dropped), so a YUV420P image came out garbled.
   unsigned int new_width = (width*factor)/ZM_SCALE_BASE;
   unsigned int new_height = (height*factor)/ZM_SCALE_BASE;
-
-  // Why larger than we need?
-  size_t scale_buffer_size = static_cast<size_t>(new_width+1) * (new_height+1) * colours;
-
-  uint8_t* scale_buffer = AllocBuffer(scale_buffer_size);
-
-  if ( factor > ZM_SCALE_BASE ) {
-    unsigned char *pd = scale_buffer;
-    unsigned int wc = width*colours;
-    unsigned int nwc = new_width*colours;
-    unsigned int h_count = ZM_SCALE_BASE/2;
-    unsigned int last_h_index = 0;
-    unsigned int last_w_index = 0;
-    for ( unsigned int y = 0; y < height; y++ ) {
-      unsigned char *ps = &buffer[y*wc];
-      unsigned int w_count = ZM_SCALE_BASE/2;
-      last_w_index = 0;
-      for ( unsigned int x = 0; x < width; x++ ) {
-        w_count += factor;
-        unsigned int w_index = w_count/ZM_SCALE_BASE;
-        for (unsigned int f = last_w_index; f < w_index; f++ ) {
-          for ( unsigned int c = 0; c < colours; c++ ) {
-            *pd++ = *(ps+c);
-          }
-        }
-        ps += colours;
-        last_w_index = w_index;
-      }
-      h_count += factor;
-      unsigned int h_index = h_count/ZM_SCALE_BASE;
-      for ( unsigned int f = last_h_index+1; f < h_index; f++ ) {
-        memcpy(pd, pd-nwc, nwc);
-        pd += nwc;
-      }
-      last_h_index = h_index;
-    }  // end foreach line
-    new_width = last_w_index;
-    new_height = last_h_index;
-  } else {
-    unsigned char *pd = scale_buffer;
-    unsigned int wc = width*colours;
-    unsigned int h_count = factor/2;
-    unsigned int last_h_index = 0;
-    unsigned int last_w_index = 0;
-    for ( unsigned int y = 0; y < height; y++ ) {
-      h_count += factor;
-      unsigned int h_index = h_count/ZM_SCALE_BASE;
-      if ( h_index > last_h_index ) {
-        unsigned int w_count = factor/2;
-        unsigned int w_index;
-        last_w_index = 0;
-
-        unsigned char *ps = &buffer[y*wc];
-        for ( unsigned int x = 0; x < width; x++ ) {
-          w_count += factor;
-          w_index = w_count/ZM_SCALE_BASE;
-
-          if ( w_index > last_w_index ) {
-            for ( unsigned int c = 0; c < colours; c++ ) {
-              *pd++ = *ps++;
-            }
-          } else {
-            ps += colours;
-          }
-          last_w_index = w_index;
-        }
-      }
-      last_h_index = h_index;
-    }
-    new_width = last_w_index;
-    new_height = last_h_index;
-  }  // end foreach line
-  AssignDirect(new_width, new_height, colours, subpixelorder, scale_buffer, scale_buffer_size, ZM_BUFTYPE_ZM);
+  Scale(new_width, new_height);
 }
 
 void Image::Deinterlace_Discard() {
   /* Simple deinterlacing. Copy the even lines into the odd lines */
   // ICON: These can be drastically improved.  But who cares?
 
-  if ( colours == ZM_COLOUR_GRAY8 ) {
+  // Use linesize as the per-row byte stride so non-32-aligned widths copy
+  // from/to the correct row offsets. Still copies `width` pixels per row
+  // (the padding bytes are untouched). Stop one short of the last row
+  // when height is odd — y == height-1 would write to row height which
+  // is past the buffer.
+  if (height < 2) return;
+  const unsigned int last_src = static_cast<unsigned int>(height) - 1;
+  if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
     const uint8_t *psrc;
     uint8_t *pdest;
-    for (unsigned int y = 0; y < (unsigned int)height; y += 2) {
-      psrc = buffer + (y * width);
-      pdest = buffer + ((y+1) * width);
+    for (unsigned int y = 0; y < last_src; y += 2) {
+      psrc = buffer + y * linesize;
+      pdest = buffer + (y + 1) * linesize;
       for (unsigned int x = 0; x < (unsigned int)width; x++) {
         *pdest++ = *psrc++;
       }
     }
-  } else if ( colours == ZM_COLOUR_RGB24 ) {
+  } else if ( zm_is_rgb24(imagePixFormat) ) {
     const uint8_t *psrc;
     uint8_t *pdest;
-    for (unsigned int y = 0; y < (unsigned int)height; y += 2) {
-      psrc = buffer + ((y * width) * 3);
-      pdest = buffer + (((y+1) * width) * 3);
+    for (unsigned int y = 0; y < last_src; y += 2) {
+      psrc = buffer + y * linesize;
+      pdest = buffer + (y + 1) * linesize;
       for (unsigned int x = 0; x < (unsigned int)width; x++) {
         *pdest++ = *psrc++;
         *pdest++ = *psrc++;
         *pdest++ = *psrc++;
       }
     }
-  } else if ( colours == ZM_COLOUR_RGB32 ) {
+  } else if ( zm_is_rgb32(imagePixFormat) ) {
     const Rgb *psrc;
     Rgb *pdest;
-    for (unsigned int y = 0; y < (unsigned int)height; y += 2) {
-      psrc = (Rgb*)(buffer + ((y * width) << 2));
-      pdest = (Rgb*)(buffer + (((y+1) * width) << 2));
+    for (unsigned int y = 0; y < last_src; y += 2) {
+      psrc = (Rgb*)(buffer + y * linesize);
+      pdest = (Rgb*)(buffer + (y + 1) * linesize);
       for (unsigned int x = 0; x < (unsigned int)width; x++) {
         *pdest++ = *psrc++;
       }
@@ -3091,26 +3432,29 @@ void Image::Deinterlace_Linear() {
   const uint8_t *pbelow, *pabove;
   uint8_t *pcurrent;
 
-  if ( colours == ZM_COLOUR_GRAY8 ) {
+  // Use linesize as the per-row byte stride so non-32-aligned widths read
+  // and write the correct rows. The inner loops still process `width`
+  // pixels per row; per-row padding bytes are not touched.
+  if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
     for (unsigned int y = 1; y < (unsigned int)(height-1); y += 2) {
-      pabove = buffer + ((y-1) * width);
-      pbelow = buffer + ((y+1) * width);
-      pcurrent = buffer + (y * width);
+      pabove = buffer + (y - 1) * linesize;
+      pbelow = buffer + (y + 1) * linesize;
+      pcurrent = buffer + y * linesize;
       for (unsigned int x = 0; x < (unsigned int)width; x++) {
         *pcurrent++ = (*pabove++ + *pbelow++) >> 1;
       }
     }
     /* Special case for the last line */
-    pcurrent = buffer + ((height-1) * width);
-    pabove = buffer + ((height-2) * width);
+    pcurrent = buffer + (height - 1) * linesize;
+    pabove = buffer + (height - 2) * linesize;
     for (unsigned int x = 0; x < (unsigned int)width; x++) {
       *pcurrent++ = *pabove++;
     }
-  } else if ( colours == ZM_COLOUR_RGB24 ) {
+  } else if ( zm_is_rgb24(imagePixFormat) ) {
     for (unsigned int y = 1; y < (unsigned int)(height-1); y += 2) {
-      pabove = buffer + (((y-1) * width) * 3);
-      pbelow = buffer + (((y+1) * width) * 3);
-      pcurrent = buffer + ((y * width) * 3);
+      pabove = buffer + (y - 1) * linesize;
+      pbelow = buffer + (y + 1) * linesize;
+      pcurrent = buffer + y * linesize;
       for (unsigned int x = 0; x < (unsigned int)width; x++) {
         *pcurrent++ = (*pabove++ + *pbelow++) >> 1;
         *pcurrent++ = (*pabove++ + *pbelow++) >> 1;
@@ -3118,18 +3462,18 @@ void Image::Deinterlace_Linear() {
       }
     }
     /* Special case for the last line */
-    pcurrent = buffer + (((height-1) * width) * 3);
-    pabove = buffer + (((height-2) * width) * 3);
+    pcurrent = buffer + (height - 1) * linesize;
+    pabove = buffer + (height - 2) * linesize;
     for (unsigned int x = 0; x < (unsigned int)width; x++) {
       *pcurrent++ = *pabove++;
       *pcurrent++ = *pabove++;
       *pcurrent++ = *pabove++;
     }
-  } else if ( colours == ZM_COLOUR_RGB32 ) {
+  } else if ( zm_is_rgb32(imagePixFormat) ) {
     for (unsigned int y = 1; y < (unsigned int)(height-1); y += 2) {
-      pabove = buffer + (((y-1) * width) << 2);
-      pbelow = buffer + (((y+1) * width) << 2);
-      pcurrent = buffer + ((y * width) << 2);
+      pabove = buffer + (y - 1) * linesize;
+      pbelow = buffer + (y + 1) * linesize;
+      pcurrent = buffer + y * linesize;
       for (unsigned int x = 0; x < (unsigned int)width; x++) {
         *pcurrent++ = (*pabove++ + *pbelow++) >> 1;
         *pcurrent++ = (*pabove++ + *pbelow++) >> 1;
@@ -3138,8 +3482,8 @@ void Image::Deinterlace_Linear() {
       }
     }
     /* Special case for the last line */
-    pcurrent = buffer + (((height-1) * width) << 2);
-    pabove = buffer + (((height-2) * width) << 2);
+    pcurrent = buffer + (height - 1) * linesize;
+    pabove = buffer + (height - 2) * linesize;
     for (unsigned int x = 0; x < (unsigned int)width; x++) {
       *pcurrent++ = *pabove++;
       *pcurrent++ = *pabove++;
@@ -3157,19 +3501,22 @@ void Image::Deinterlace_Blend() {
 
   uint8_t *pabove, *pcurrent;
 
-  if ( colours == ZM_COLOUR_GRAY8 ) {
+  // Use linesize as the per-row byte stride so non-32-aligned widths read
+  // and write the correct rows. The inner loops still process `width`
+  // pixels per row; per-row padding bytes are not touched.
+  if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
     for (unsigned int y = 1; y < (unsigned int)height; y += 2) {
-      pabove = buffer + ((y-1) * width);
-      pcurrent = buffer + (y * width);
+      pabove = buffer + (y - 1) * linesize;
+      pcurrent = buffer + y * linesize;
       for (unsigned int x = 0; x < (unsigned int)width; x++) {
         *pabove = (*pabove + *pcurrent) >> 1;
         *pcurrent++ = *pabove++;
       }
     }
-  } else if ( colours == ZM_COLOUR_RGB24 ) {
+  } else if ( zm_is_rgb24(imagePixFormat) ) {
     for (unsigned int y = 1; y < (unsigned int)height; y += 2) {
-      pabove = buffer + (((y-1) * width) * 3);
-      pcurrent = buffer + ((y * width) * 3);
+      pabove = buffer + (y - 1) * linesize;
+      pcurrent = buffer + y * linesize;
       for (unsigned int x = 0; x < (unsigned int)width; x++) {
         *pabove = (*pabove + *pcurrent) >> 1;
         *pcurrent++ = *pabove++;
@@ -3179,10 +3526,10 @@ void Image::Deinterlace_Blend() {
         *pcurrent++ = *pabove++;
       }
     }
-  } else if ( colours == ZM_COLOUR_RGB32 ) {
+  } else if ( zm_is_rgb32(imagePixFormat) ) {
     for (unsigned int y = 1; y < (unsigned int)height; y += 2) {
-      pabove = buffer + (((y-1) * width) << 2);
-      pcurrent = buffer + ((y * width) << 2);
+      pabove = buffer + (y - 1) * linesize;
+      pcurrent = buffer + y * linesize;
       for (unsigned int x = 0; x < (unsigned int)width; x++) {
         *pabove = (*pabove + *pcurrent) >> 1;
         *pcurrent++ = *pabove++;
@@ -3214,10 +3561,12 @@ void Image::Deinterlace_Blend_CustomRatio(int divider) {
     Error("Deinterlace called with invalid blend ratio");
   }
 
-  if ( colours == ZM_COLOUR_GRAY8 ) {
+  // Use linesize as the per-row byte stride so non-32-aligned widths read
+  // and write the correct rows. Inner loops process `width` pixels.
+  if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
     for (unsigned int y = 1; y < (unsigned int)height; y += 2) {
-      pabove = buffer + ((y-1) * width);
-      pcurrent = buffer + (y * width);
+      pabove = buffer + (y - 1) * linesize;
+      pcurrent = buffer + y * linesize;
       for (unsigned int x = 0; x < (unsigned int)width; x++) {
         subpix1 = ((*pabove - *pcurrent)>>divider) + *pcurrent;
         subpix2 = ((*pcurrent - *pabove)>>divider) + *pabove;
@@ -3225,10 +3574,10 @@ void Image::Deinterlace_Blend_CustomRatio(int divider) {
         *pabove++ = subpix2;
       }
     }
-  } else if ( colours == ZM_COLOUR_RGB24 ) {
+  } else if ( zm_is_rgb24(imagePixFormat) ) {
     for (unsigned int y = 1; y < (unsigned int)height; y += 2) {
-      pabove = buffer + (((y-1) * width) * 3);
-      pcurrent = buffer + ((y * width) * 3);
+      pabove = buffer + (y - 1) * linesize;
+      pcurrent = buffer + y * linesize;
       for (unsigned int x = 0; x < (unsigned int)width; x++) {
         subpix1 = ((*pabove - *pcurrent)>>divider) + *pcurrent;
         subpix2 = ((*pcurrent - *pabove)>>divider) + *pabove;
@@ -3244,10 +3593,10 @@ void Image::Deinterlace_Blend_CustomRatio(int divider) {
         *pabove++ = subpix2;
       }
     }
-  } else if ( colours == ZM_COLOUR_RGB32 ) {
+  } else if ( zm_is_rgb32(imagePixFormat) ) {
     for (unsigned int y = 1; y < (unsigned int)height; y += 2) {
-      pabove = buffer + (((y-1) * width) << 2);
-      pcurrent = buffer + ((y * width) << 2);
+      pabove = buffer + (y - 1) * linesize;
+      pcurrent = buffer + y * linesize;
       for (unsigned int x = 0; x < (unsigned int)width; x++) {
         subpix1 = ((*pabove - *pcurrent)>>divider) + *pcurrent;
         subpix2 = ((*pcurrent - *pabove)>>divider) + *pabove;
@@ -3279,41 +3628,76 @@ void Image::Deinterlace_4Field(const Image* next_image, unsigned int threshold) 
     Panic( "Attempt to deinterlace different sized images, expected %dx%dx%d %d, got %dx%dx%d %d", width, height, colours, subpixelorder, next_image->width, next_image->height, next_image->colours, next_image->subpixelorder);
   }
 
-  switch(colours) {
-  case ZM_COLOUR_RGB24: {
-    if(subpixelorder == ZM_SUBPIX_ORDER_BGR) {
-      /* BGR subpixel order */
-      std_deinterlace_4field_bgr(buffer, next_image->buffer, threshold, width, height);
-    } else {
-      /* Assume RGB subpixel order */
-      std_deinterlace_4field_rgb(buffer, next_image->buffer, threshold, width, height);
+  // The *_deinterlace_4field_* SIMD helpers use `width` as the row stride
+  // internally and have no concept of per-row padding. With FFALIGN'd
+  // linesize the source row stride may exceed width*bpp, so feeding them
+  // the held buffers directly would treat padding bytes as image data and
+  // corrupt the output for non-32-aligned widths. Pack both inputs into
+  // tightly-laid-out temp buffers (linesize == width*bpp), run the helper,
+  // then copy only the data bytes back into our linesize-padded buffer
+  // (leaving padding untouched). The fast path — no copies — is used
+  // whenever linesize already equals width*bpp on both images, which is
+  // the common case for 32-aligned widths.
+  const unsigned int bpp = (zm_bytes_per_pixel(imagePixFormat) == 1)
+                           ? 1
+                           : zm_bytes_per_pixel(imagePixFormat);
+  const size_t row_data_bytes = static_cast<size_t>(width) * bpp;
+  const bool needs_pack = (linesize != row_data_bytes) || (next_image->linesize != row_data_bytes);
+
+  uint8_t *col1 = buffer;
+  uint8_t *col2 = next_image->buffer;
+  uint8_t *tmp1 = nullptr;
+  uint8_t *tmp2 = nullptr;
+  if (needs_pack) {
+    const size_t packed_size = row_data_bytes * height;
+    tmp1 = AllocBuffer(packed_size);
+    tmp2 = AllocBuffer(packed_size);
+    for (unsigned int y = 0; y < height; y++) {
+      memcpy(tmp1 + y * row_data_bytes, buffer + y * linesize, row_data_bytes);
+      memcpy(tmp2 + y * row_data_bytes, next_image->buffer + y * next_image->linesize, row_data_bytes);
     }
-    break;
-  }
-  case ZM_COLOUR_RGB32: {
-    if(subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
-      /* ARGB subpixel order */
-      (*fptr_deinterlace_4field_argb)(buffer, next_image->buffer, threshold, width, height);
-    } else if(subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
-      /* ABGR subpixel order */
-      (*fptr_deinterlace_4field_abgr)(buffer, next_image->buffer, threshold, width, height);
-    } else if(subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
-      /* BGRA subpixel order */
-      (*fptr_deinterlace_4field_bgra)(buffer, next_image->buffer, threshold, width, height);
-    } else {
-      /* Assume RGBA subpixel order */
-      (*fptr_deinterlace_4field_rgba)(buffer, next_image->buffer, threshold, width, height);
-    }
-    break;
-  }
-  case ZM_COLOUR_GRAY8:
-    (*fptr_deinterlace_4field_gray8)(buffer, next_image->buffer, threshold, width, height);
-    break;
-  default:
-    Panic("Deinterlace_4Field called with unexpected colours: %d",colours);
-    break;
+    col1 = tmp1;
+    col2 = tmp2;
   }
 
+  if (imagePixFormat == AV_PIX_FMT_BGR24) {
+    /* BGR subpixel order */
+    std_deinterlace_4field_bgr(col1, col2, threshold, width, height);
+  } else if (zm_is_rgb24(imagePixFormat)) {
+    /* Assume RGB subpixel order */
+    std_deinterlace_4field_rgb(col1, col2, threshold, width, height);
+  } else if (imagePixFormat == AV_PIX_FMT_ARGB) {
+    /* ARGB subpixel order */
+    (*fptr_deinterlace_4field_argb)(col1, col2, threshold, width, height);
+  } else if (imagePixFormat == AV_PIX_FMT_ABGR) {
+    /* ABGR subpixel order */
+    (*fptr_deinterlace_4field_abgr)(col1, col2, threshold, width, height);
+  } else if (imagePixFormat == AV_PIX_FMT_BGRA) {
+    /* BGRA subpixel order */
+    (*fptr_deinterlace_4field_bgra)(col1, col2, threshold, width, height);
+  } else if (zm_is_rgb32(imagePixFormat)) {
+    /* Assume RGBA subpixel order */
+    (*fptr_deinterlace_4field_rgba)(col1, col2, threshold, width, height);
+  } else if (zm_bytes_per_pixel(imagePixFormat) == 1) {
+    (*fptr_deinterlace_4field_gray8)(col1, col2, threshold, width, height);
+  } else {
+    if (needs_pack) {
+      DumpBuffer(tmp1, ZM_BUFTYPE_ZM);
+      DumpBuffer(tmp2, ZM_BUFTYPE_ZM);
+    }
+    Panic("Deinterlace_4Field called with unexpected pixel format %d (%s)",
+          imagePixFormat, zm_get_pix_fmt_name(imagePixFormat));
+  }
+
+  if (needs_pack) {
+    // Copy the processed Y/primary plane back into our padded buffer,
+    // touching only the data bytes per row so existing padding is intact.
+    for (unsigned int y = 0; y < height; y++) {
+      memcpy(buffer + y * linesize, tmp1 + y * row_data_bytes, row_data_bytes);
+    }
+    DumpBuffer(tmp1, ZM_BUFTYPE_ZM);
+    DumpBuffer(tmp2, ZM_BUFTYPE_ZM);
+  }
 }
 
 
@@ -5464,54 +5848,36 @@ __attribute__((noinline)) void std_deinterlace_4field_abgr(uint8_t* col1, uint8_
 }
 
 AVPixelFormat Image::AVPixFormat() const {
-  if ( colours == ZM_COLOUR_RGB32 ) {
-    return AV_PIX_FMT_RGBA;
-  } else if ( colours == ZM_COLOUR_RGB24 ) {
-    if ( subpixelorder == ZM_SUBPIX_ORDER_BGR) {
-      return AV_PIX_FMT_BGR24;
-    } else {
-      return AV_PIX_FMT_RGB24;
-    }
-  } else if ( colours == ZM_COLOUR_GRAY8 ) {
-    return AV_PIX_FMT_GRAY8;
-  } else {
-    Error("Unknown colours (%d)",colours);
-    return AV_PIX_FMT_RGBA;
-  }
+  return zm_pixformat_from_colours(colours, subpixelorder);
 }
 
 AVPixelFormat Image::AVPixFormat(AVPixelFormat new_pixelformat) {
-  switch (new_pixelformat) {
-    case AV_PIX_FMT_YUVJ420P:
-      colours = ZM_COLOUR_YUVJ420P;
-      subpixelorder = ZM_SUBPIX_ORDER_YUVJ420P;
-      break;
-    case AV_PIX_FMT_YUV420P:
-      colours = ZM_COLOUR_YUV420P;
-      subpixelorder = ZM_SUBPIX_ORDER_YUV420P;
-      break;
-    case AV_PIX_FMT_RGBA:
-      colours = ZM_COLOUR_RGB32;
-      subpixelorder = ZM_SUBPIX_ORDER_RGBA;
-      break;
-    case AV_PIX_FMT_BGR24:
-      colours = ZM_COLOUR_RGB24;
-      subpixelorder = ZM_SUBPIX_ORDER_BGR;
-      break;
-    case AV_PIX_FMT_RGB24:
-      colours = ZM_COLOUR_RGB24;
-      subpixelorder = ZM_SUBPIX_ORDER_RGB;
-      break;
-    case AV_PIX_FMT_GRAY8:
-      colours = ZM_COLOUR_GRAY8;
-      subpixelorder = ZM_SUBPIX_ORDER_NONE;
-      break;
-    default:
-      Error("Unknown pixelformat %d %s", new_pixelformat, av_get_pix_fmt_name(new_pixelformat));
+  // Reject unrecognised formats up-front: av_image_get_buffer_size /
+  // av_image_get_linesize return negative for them, and assigning that into
+  // unsigned size/linesize would wrap to a huge value and corrupt later
+  // bounds checks. On failure, leave the Image's format/size/linesize
+  // untouched so callers can recover or skip the slot.
+  unsigned int probe_colours, probe_subpix;
+  if (!zm_colours_from_pixformat(new_pixelformat, probe_colours, probe_subpix)) {
+    Error("Image::AVPixFormat: refusing to set unknown pixelformat %d %s; keeping current %s",
+          new_pixelformat, zm_get_pix_fmt_name(new_pixelformat),
+          zm_get_pix_fmt_name(imagePixFormat));
+    return imagePixFormat;
   }
-  Debug(4, "Old size: %d, old pixelformat %d", size, imagePixFormat);
-  size = av_image_get_buffer_size(new_pixelformat, width, height, 32);
-  Debug(4, "New size: %d new pixelformat %d", size, new_pixelformat);
-  linesize = FFALIGN(av_image_get_linesize(new_pixelformat, width, 0), 32);
-  return imagePixFormat = new_pixelformat;
+  int new_size = av_image_get_buffer_size(new_pixelformat, width, height, 32);
+  int new_linesize = av_image_get_linesize(new_pixelformat, width, 0);
+  if (new_size < 0 || new_linesize < 0) {
+    Error("Image::AVPixFormat: av_image_get_* returned %d/%d for %s; keeping current %s",
+          new_size, new_linesize, zm_get_pix_fmt_name(new_pixelformat),
+          zm_get_pix_fmt_name(imagePixFormat));
+    return imagePixFormat;
+  }
+  Debug(4, "Old size: %u, old pixelformat %s", size, zm_get_pix_fmt_name(imagePixFormat));
+  colours = probe_colours;
+  subpixelorder = probe_subpix;
+  imagePixFormat = new_pixelformat;
+  size = static_cast<unsigned int>(new_size);
+  linesize = FFALIGN(new_linesize, 32);
+  Debug(4, "New size: %u new pixelformat %s", size, zm_get_pix_fmt_name(new_pixelformat));
+  return imagePixFormat;
 }

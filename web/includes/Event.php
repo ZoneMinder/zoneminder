@@ -87,12 +87,42 @@ class Event extends ZM_Object {
     return $this->{'SecondaryStorage'};
   }
 
-  public function Length(){
-    if(! isset($this->{'Length'})){
-      //TODO: Do something when no Length found
+  private function GetFileDuration( $file ) {
+    $duration = 0;
+    if ( $file && file_exists($file) && defined('ZM_PATH_FFMPEG') && ZM_PATH_FFMPEG ) {
+      $ffmpeg = ZM_PATH_FFMPEG;
+      $ffprobe = preg_replace('/ffmpeg(\.exe)?$/i', 'ffprobe$1', $ffmpeg);
+
+      if ( $ffprobe && is_executable($ffprobe) ) {
+        $command = escapeshellarg($ffprobe)
+            . ' -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 '
+            . escapeshellarg($file) . ' 2>&1';
+        $output = shell_exec($command);
+        if ( is_string($output) ) {
+          $output = trim($output);
+          if ( $output !== '' && is_numeric($output) ) {
+            $duration = (float)$output;
+          }
+        }
+      }
     }
-    return $this->{'Length'};
-    
+    return $duration;
+  }
+
+  public function Length(){
+    $duration = 0;
+    if ( !isset($this->{'Length'}) || (float)$this->{'Length'} <= 0 ) {
+      $files = glob($this->Path().'{/incomplete.*,/'.$this->{'Id'}.'-video.*}', GLOB_NOSORT | GLOB_BRACE);
+      if (count($files) > 0) {
+        $duration = $this->GetFileDuration($files[0]);
+      } else {
+        //TODO: IgorA100 Something needs to be done, but what exactly?
+        //$duration = $this->EndDateTimeSecs() - $this->StartDateTimeSecs();
+      }
+    } else {
+      $duration = $this->{'Length'};
+    }
+    return $duration;
   }
 
   public function Frames(){
@@ -124,6 +154,10 @@ class Event extends ZM_Object {
 
   public function EndDateTimeSecs() {
     return strtotime($this->{'EndDateTime'});
+  }
+
+  public function Duration() {
+    return $this->Length();
   }
 
   public function Path() {
@@ -274,7 +308,7 @@ class Event extends ZM_Object {
     if ( $this->{'DefaultVideo'} and $args['mode'] != 'jpeg' ) {
       $streamSrc .= $Server->PathToIndex();
       $args['eid'] = $this->{'Id'};
-      $args['view'] = 'view_video';
+      $args['view'] = (strtolower($args['mode']) == 'mp4hls') ? 'view_hls' : 'view_video';
     } else {
       $streamSrc .= $Server->PathToZMS();
 

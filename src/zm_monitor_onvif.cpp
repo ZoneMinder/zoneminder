@@ -23,6 +23,7 @@
 #include "zm_time.h"
 #include "zm_utils.h"
 
+#include <algorithm>
 #include <cstring>
 
 #ifdef WITH_GSOAP
@@ -36,6 +37,18 @@ namespace {
   const int ONVIF_RENEWAL_ADVANCE_SECONDS = 60;  // Renew subscription N seconds before expiration
   const int ONVIF_COOLDOWN_RESET_SECONDS = 300;  // Reset retry_count after 5 minutes of failure
   const int ONVIF_DEFAULT_TIMESTAMP_VALIDITY = 60;  // WS-Security timestamp validity in seconds
+
+  // SOAP socket-level timeout (connect/recv/send). zmdc sends SIGTERM and waits
+  // 30s before SIGKILL, so every SOAP operation must be able to unblock within
+  // that window or zmc gets killed before the polling thread can join. Kept
+  // safely below 30s. Must exceed ONVIF_MAX_PULL_TIMEOUT_SECONDS so a normal
+  // long-poll is not aborted prematurely by the recv timeout.
+  const int ONVIF_SOAP_TIMEOUT_SECONDS = 25;
+  // Upper bound for the ONVIF PullMessages long-poll. Strictly less than
+  // ONVIF_SOAP_TIMEOUT_SECONDS so a quiet long-poll (camera holding the
+  // connection open with no events) returns before the socket recv timeout, and
+  // so a stuck PullMessages cannot keep zmc from terminating in time.
+  const int ONVIF_MAX_PULL_TIMEOUT_SECONDS = 20;
 
   // Format seconds as ISO 8601 duration string (e.g., 5 -> "PT5S")
   inline std::string FormatDurationSeconds(int seconds) {
@@ -104,11 +117,16 @@ ONVIF::ONVIF(Monitor *parent_) :
 {
   parse_onvif_options();
 
-  // Clamp pull_timeout_seconds to be less than renewal advance time
-  if (pull_timeout_seconds >= ONVIF_RENEWAL_ADVANCE_SECONDS) {
-    Warning("ONVIF: pull_timeout %ds must be less than renewal advance time (%ds). Adjusting.",
-            pull_timeout_seconds, ONVIF_RENEWAL_ADVANCE_SECONDS);
-    pull_timeout_seconds = ONVIF_RENEWAL_ADVANCE_SECONDS - 1;
+  // Clamp pull_timeout_seconds. It must stay below the renewal advance time (so
+  // we renew before the subscription lapses) and below the SOAP socket timeout
+  // (so a quiet long-poll completes before the recv timeout aborts it, and so a
+  // stuck PullMessages cannot block zmc termination past zmdc's 30s kill window).
+  const int pull_timeout_max =
+      std::min(ONVIF_RENEWAL_ADVANCE_SECONDS - 1, ONVIF_MAX_PULL_TIMEOUT_SECONDS);
+  if (pull_timeout_seconds > pull_timeout_max) {
+    Warning("ONVIF: pull_timeout %ds too large; clamping to %ds to stay within renewal and termination limits.",
+            pull_timeout_seconds, pull_timeout_max);
+    pull_timeout_seconds = pull_timeout_max;
   }
 
   // Build endpoint URL before initializing soap context (InitSoapContext needs it)
@@ -248,9 +266,13 @@ bool ONVIF::InitSoapContext() {
     return false;
   }
 
-  soap->connect_timeout = 0;
-  soap->recv_timeout = 0;
-  soap->send_timeout = 0;
+  // Bound socket operations so a hung camera connection cannot block the polling
+  // thread indefinitely. Kept below zmdc's 30s SIGTERM->SIGKILL window so zmc can
+  // always terminate in time. Must exceed pull_timeout_seconds so a normal
+  // long-poll is not aborted prematurely (see pull_timeout clamp in constructor).
+  soap->connect_timeout = ONVIF_SOAP_TIMEOUT_SECONDS;
+  soap->recv_timeout = ONVIF_SOAP_TIMEOUT_SECONDS;
+  soap->send_timeout = ONVIF_SOAP_TIMEOUT_SECONDS;
   soap_register_plugin(soap, soap_wsse);
   soap_register_plugin(soap, soap_wsa);
 

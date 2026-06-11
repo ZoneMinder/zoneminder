@@ -265,8 +265,13 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     uint8_t control_state[256]; /* +168 */
 
     char alarm_cause[256]; /* +424 */
-    char video_fifo_path[64]; /* +680 */
-    char audio_fifo_path[64]; /* +744 */
+    /* Formerly video_fifo_path/audio_fifo_path. The media FIFOs were
+     ** replaced by the stream socket (path is the documented convention
+     ** PATH_SOCKS/stream_{monitor_id}.sock, not published via shm); the
+     ** fields are kept as reserved padding so the layout and total size
+     ** are unchanged for out-of-tree shm readers. */
+    char reserved_path1[64]; /* +680 */
+    char reserved_path2[64]; /* +744 */
     char janus_pin[64]; /* +808 */
     /* Analysis image ring: the annotated/analysis image is published into a
      * ring of image_buffer_count slots (reusing the alarm_images SHM region).

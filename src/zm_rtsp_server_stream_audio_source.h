@@ -26,8 +26,7 @@ class ZoneMinderStreamAudioSource : public ZoneMinderStreamSource {
   ZoneMinderStreamAudioSource(
     std::shared_ptr<xop::RtspServer>& rtspServer,
     xop::MediaSessionId sessionId,
-    xop::MediaChannelId channelId,
-    const std::string &fifo
+    xop::MediaChannelId channelId
   );
 
   virtual ~ZoneMinderStreamAudioSource() {}

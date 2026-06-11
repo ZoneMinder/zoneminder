@@ -25,8 +25,7 @@ class ADTS_ZoneMinderStreamSource : public ZoneMinderStreamAudioSource {
   ADTS_ZoneMinderStreamSource(
     std::shared_ptr<xop::RtspServer>& rtspServer,
     xop::MediaSessionId sessionId,
-    xop::MediaChannelId channelId,
-    const std::string &fifo
+    xop::MediaChannelId channelId
   );
 
   virtual ~ADTS_ZoneMinderStreamSource() {}

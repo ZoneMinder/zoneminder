@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------------------
 **
-** zm_rtsp_server_fifo_av1_source.cpp
+** zm_rtsp_server_stream_av1_source.cpp
 **
 ** AV1 ZoneMinder RTSP source
 **
@@ -17,10 +17,9 @@
 AV1_ZoneMinderStreamSource::AV1_ZoneMinderStreamSource(
   std::shared_ptr<xop::RtspServer>& rtspServer,
   xop::MediaSessionId sessionId,
-  xop::MediaChannelId channelId,
-  const std::string &fifo
+  xop::MediaChannelId channelId
 )
-  : ZoneMinderStreamVideoSource(rtspServer, sessionId, channelId, fifo) {
+  : ZoneMinderStreamVideoSource(rtspServer, sessionId, channelId) {
   m_hType = 1;  // AV1 identifier
 }
 

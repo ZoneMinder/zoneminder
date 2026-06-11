@@ -36,8 +36,7 @@ class ZoneMinderStreamVideoSource: public ZoneMinderStreamSource {
   ZoneMinderStreamVideoSource(
     std::shared_ptr<xop::RtspServer>& rtspServer,
     xop::MediaSessionId sessionId,
-    xop::MediaChannelId channelId,
-    const std::string &fifo
+    xop::MediaChannelId channelId
   );
  protected:
   void PushFrame(const uint8_t *data, size_t size, int64_t pts) override;

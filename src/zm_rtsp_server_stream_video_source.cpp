@@ -14,10 +14,9 @@
 ZoneMinderStreamVideoSource::ZoneMinderStreamVideoSource(
   std::shared_ptr<xop::RtspServer>& rtspServer,
   xop::MediaSessionId sessionId,
-  xop::MediaChannelId channelId,
-  const std::string &fifo
+  xop::MediaChannelId channelId
 ) :
-  ZoneMinderStreamSource(rtspServer, sessionId, channelId, fifo),
+  ZoneMinderStreamSource(rtspServer, sessionId, channelId),
   m_width(0),
   m_height(0) {
   m_timeBase = {1, 90000};

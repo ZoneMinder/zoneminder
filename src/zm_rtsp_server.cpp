@@ -34,8 +34,8 @@ zm_rtsp_server - The ZoneMinder Server
 
 =head1 DESCRIPTION
 
-This binary's job is to connect to fifo's provided by local zmc processes
-and provide that stream over rtsp
+This binary's job is to connect to the media stream sockets provided by local
+zmc processes and provide those streams over rtsp
 
 =head1 OPTIONS
 
@@ -55,17 +55,252 @@ and provide that stream over rtsp
 #include "zm_rtsp_server_stream_h264_source.h"
 #include "zm_rtsp_server_stream_av1_source.h"
 #include "zm_rtsp_server_stream_adts_source.h"
-#include "xop/G711USource.h"
 #include "zm_signal.h"
+#include "zm_stream_socket_client.h"
+#include "zm_stream_socket_protocol.h"
 #include "zm_time.h"
 #include "zm_utils.h"
 
+#include "xop/G711USource.h"
+#include "xop/RtspServer.h"
+
+#include <condition_variable>
 #include <getopt.h>
 #include <iostream>
+#include <mutex>
+#include <unordered_map>
 #include <vector>
 
+using zm::stream_socket::HelloInfo;
+using zm::stream_socket::Header;
+using zm::stream_socket::StreamId;
 
-#include "xop/RtspServer.h"
+namespace {
+
+// Wakes the main loop when a HELLO requires (re)building a session
+std::mutex rebuild_mutex;
+std::condition_variable rebuild_cv;
+
+bool HelloEqual(const HelloInfo &a, const HelloInfo &b) {
+  return a.codec_id == b.codec_id
+         and a.extradata == b.extradata
+         and a.width == b.width and a.height == b.height
+         and a.fps_num == b.fps_num and a.fps_den == b.fps_den
+         and a.sample_rate == b.sample_rate and a.channels == b.channels;
+}
+
+// One monitor's path from its stream socket to an xop RTSP session.
+//
+// The StreamSocketClient reader thread records HELLOs and forwards media to
+// the packing sources; the main thread (re)builds the xop session from the
+// recorded HELLOs - on first connect and whenever the parameters change
+// (camera reconfigure, zmc restart with a different codec).
+class MonitorRtspStream {
+ public:
+  MonitorRtspStream(std::shared_ptr<xop::RtspServer> rtsp_server,
+                    std::shared_ptr<Monitor> monitor) :
+    rtsp_server_(std::move(rtsp_server)),
+    monitor_(std::move(monitor)),
+    stream_name_(monitor_->GetRTSPStreamName()) {
+    StreamSocketClient::Callbacks callbacks;
+    callbacks.on_hello = [this](StreamId stream, const HelloInfo &info, uint32_t) {
+      std::lock_guard<std::mutex> lock(mutex_);
+      if (stream == StreamId::Video) {
+        pending_video_ = info;
+        have_pending_video_ = true;
+      } else {
+        pending_audio_ = info;
+        have_pending_audio_ = true;
+      }
+      rebuild_cv.notify_all();
+    };
+    callbacks.on_media = [this](const Header &header, const uint8_t *data, size_t size) {
+      std::lock_guard<std::mutex> lock(mutex_);
+      if (header.stream == static_cast<uint8_t>(StreamId::Video)) {
+        if (video_source_)
+          video_source_->OnPacket(data, size, header.pts_us);
+      } else {
+        if (audio_source_)
+          audio_source_->OnPacket(data, size, header.pts_us);
+      }
+    };
+    // BYE/disconnect need no action: the client reconnects on its own and a
+    // fresh HELLO follows; identical parameters keep the session as is.
+    client_ = zm::make_unique<StreamSocketClient>(
+        stringtf("%s/stream_%u.sock", staticConfig.PATH_SOCKS.c_str(), monitor_->Id()),
+        std::move(callbacks));
+  }
+
+  ~MonitorRtspStream() {
+    client_.reset();  // stop callbacks before tearing the session down
+    std::lock_guard<std::mutex> lock(mutex_);
+    TeardownLocked();
+  }
+
+  bool HasClients() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return session_ and session_->GetNumClient() > 0;
+  }
+
+  // Called from the main loop: (re)build the xop session when the recorded
+  // HELLOs differ from what the current session was built with.
+  void Update() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!have_pending_video_)
+      return;  // nothing to serve until video parameters are known
+    if (session_
+        and HelloEqual(built_video_, pending_video_)
+        and have_pending_audio_ == built_with_audio_
+        and (!have_pending_audio_ or HelloEqual(built_audio_, pending_audio_)))
+      return;
+
+    TeardownLocked();
+    BuildLocked();
+  }
+
+ private:
+  // mutex_ must be held
+  void TeardownLocked() {
+    if (video_source_) {
+      delete video_source_;
+      video_source_ = nullptr;
+    }
+    if (audio_source_) {
+      delete audio_source_;
+      audio_source_ = nullptr;
+    }
+    if (session_) {
+      rtsp_server_->RemoveSession(session_->GetMediaSessionId());
+      session_ = nullptr;
+    }
+  }
+
+  // mutex_ must be held; have_pending_video_ is true
+  void BuildLocked() {
+    xop::MediaSession *session = xop::MediaSession::CreateNew(stream_name_);
+    if (!session) {
+      Error("Unable to create session for %s", stream_name_.c_str());
+      return;
+    }
+    session->AddNotifyConnectedCallback(
+        [](xop::MediaSessionId, const std::string &peer_ip, uint16_t peer_port) {
+          Debug(1, "RTSP client connect, ip=%s, port=%hu", peer_ip.c_str(), peer_port);
+        });
+    session->AddNotifyDisconnectedCallback(
+        [](xop::MediaSessionId, const std::string &peer_ip, uint16_t peer_port) {
+          Debug(1, "RTSP client disconnect, ip=%s, port=%hu", peer_ip.c_str(), peer_port);
+        });
+    rtsp_server_->AddSession(session);
+    xop::MediaSessionId session_id = session->GetMediaSessionId();
+
+    const HelloInfo &video = pending_video_;
+    int width = video.width ? video.width : monitor_->Width();
+    int height = video.height ? video.height : monitor_->Height();
+
+    switch (video.codec_id) {
+      case AV_CODEC_ID_H264: {
+        xop::H264Source *h264Source = xop::H264Source::CreateNew();
+        h264Source->SetResolution(width, height);
+        session->AddSource(xop::channel_0, h264Source);
+        auto *source = new H264_ZoneMinderStreamSource(rtsp_server_, session_id, xop::channel_0);
+        source->setH264Source(h264Source);  // Allow stream source to set SPS/PPS
+        source->setWidth(width);
+        source->setHeight(height);
+        video_source_ = source;
+        break;
+      }
+      case AV_CODEC_ID_HEVC: {
+        xop::H265Source *h265Source = xop::H265Source::CreateNew();
+        h265Source->SetResolution(width, height);
+        session->AddSource(xop::channel_0, h265Source);
+        auto *source = new H265_ZoneMinderStreamSource(rtsp_server_, session_id, xop::channel_0);
+        source->setH265Source(h265Source);  // Allow stream source to set VPS/SPS/PPS
+        source->setWidth(width);
+        source->setHeight(height);
+        video_source_ = source;
+        break;
+      }
+      case AV_CODEC_ID_AV1: {
+        xop::AV1Source *av1Source = xop::AV1Source::CreateNew();
+        av1Source->SetResolution(width, height);
+        session->AddSource(xop::channel_0, av1Source);
+        auto *source = new AV1_ZoneMinderStreamSource(rtsp_server_, session_id, xop::channel_0);
+        source->setAV1Source(av1Source);  // Allow stream source to set sequence header
+        source->setWidth(width);
+        source->setHeight(height);
+        video_source_ = source;
+        break;
+      }
+      default:
+        Warning("Monitor %u: unsupported video codec %s for rtsp",
+                monitor_->Id(), avcodec_get_name(video.codec_id));
+        break;
+    }
+    if (!video_source_) {
+      rtsp_server_->RemoveSession(session_id);
+      return;
+    }
+    // Parameter sets from the HELLO prime the packer the same way the FIFO's
+    // in-band extradata used to (Annex B for H.26x, sequence OBU for AV1)
+    if (!video.extradata.empty())
+      video_source_->OnPacket(video.extradata.data(), video.extradata.size(), 0);
+
+    if (have_pending_audio_) {
+      const HelloInfo &audio = pending_audio_;
+      bool supported = true;
+      switch (audio.codec_id) {
+        case AV_CODEC_ID_AAC:
+          Debug(1, "Adding aac source at %uHz %u channels", audio.sample_rate, audio.channels);
+          session->AddSource(xop::channel_1, xop::AACSource::CreateNew(
+                                 audio.sample_rate, audio.channels, false /* has_adts */));
+          break;
+        case AV_CODEC_ID_PCM_ALAW:
+          Debug(1, "Adding G711A source at %uHz %u channels", audio.sample_rate, audio.channels);
+          session->AddSource(xop::channel_1, xop::G711ASource::CreateNew());
+          break;
+        case AV_CODEC_ID_PCM_MULAW:
+          Debug(1, "Adding G711U source at %uHz %u channels", audio.sample_rate, audio.channels);
+          session->AddSource(xop::channel_1, xop::G711USource::CreateNew());
+          break;
+        default:
+          Warning("Monitor %u: unsupported audio codec %s for rtsp",
+                  monitor_->Id(), avcodec_get_name(audio.codec_id));
+          supported = false;
+          break;
+      }
+      if (supported) {
+        auto *source = new ADTS_ZoneMinderStreamSource(rtsp_server_, session_id, xop::channel_1);
+        source->setFrequency(audio.sample_rate);
+        source->setChannels(audio.channels);
+        audio_source_ = source;
+      }
+    }
+
+    session_ = session;
+    built_video_ = pending_video_;
+    built_audio_ = pending_audio_;
+    built_with_audio_ = have_pending_audio_ and audio_source_;
+    Info("Monitor %u: rtsp session %s serving %s%s%s", monitor_->Id(),
+         stream_name_.c_str(), avcodec_get_name(built_video_.codec_id),
+         audio_source_ ? " + " : "",
+         audio_source_ ? avcodec_get_name(built_audio_.codec_id) : "");
+  }
+
+  std::shared_ptr<xop::RtspServer> rtsp_server_;
+  std::shared_ptr<Monitor> monitor_;
+  std::string stream_name_;
+  std::unique_ptr<StreamSocketClient> client_;
+
+  std::mutex mutex_;
+  xop::MediaSession *session_ = nullptr;
+  ZoneMinderStreamSource *video_source_ = nullptr;
+  ZoneMinderStreamSource *audio_source_ = nullptr;
+  HelloInfo pending_video_, pending_audio_;
+  bool have_pending_video_ = false;
+  bool have_pending_audio_ = false;
+  HelloInfo built_video_, built_audio_;
+  bool built_with_audio_ = false;
+};
 
 void Usage() {
   fprintf(stderr, "zm_rtsp_server -m <monitor_id>\n");
@@ -76,6 +311,8 @@ void Usage() {
   fprintf(stderr, "  -v, --version              : Report the installed version of ZoneMinder\n");
   exit(0);
 }
+
+}  // namespace
 
 int main(int argc, char *argv[]) {
   self = argv[0];
@@ -123,8 +360,6 @@ int main(int argc, char *argv[]) {
   }
 
   const char *log_id_string = "zm_rtsp_server";
-  ///std::string log_id_string = std::string("zm_rtsp_server");
-  ///if ( monitor_id > 0 ) log_id_string += stringtf("_m%d", monitor_id);
 
   logInit(log_id_string);
   zmLoadStaticConfig();
@@ -163,197 +398,57 @@ int main(int argc, char *argv[]) {
     exit(-1);
   }
 
-  std::unordered_map<unsigned int, xop::MediaSession *> sessions;
-  std::unordered_map<unsigned int, ZoneMinderStreamSource *> video_sources;
-  std::unordered_map<unsigned int, ZoneMinderStreamSource *> audio_sources;
+  std::unordered_map<unsigned int, std::unique_ptr<MonitorRtspStream>> streams;
   std::unordered_map<unsigned int, std::shared_ptr<Monitor>> monitors;
 
   while (!zm_terminate) {
-    std::unordered_map<unsigned int, std::shared_ptr<Monitor>> old_monitors = monitors;
-
     std::vector<std::shared_ptr<Monitor>> new_monitors = Monitor::LoadMonitors(where, Monitor::QUERY);
+
+    std::unordered_map<unsigned int, std::shared_ptr<Monitor>> old_monitors = monitors;
     for (const auto &monitor : new_monitors) {
-      auto old_monitor_it = old_monitors.find(monitor->Id());
-      if (old_monitor_it != old_monitors.end()
-          and
-          (old_monitor_it->second->GetRTSPStreamName() == monitor->GetRTSPStreamName())
-         ) {
-        Debug(1, "Found monitor in oldmonitors, clearing it");
-        old_monitors.erase(old_monitor_it);
+      auto old_it = old_monitors.find(monitor->Id());
+      if (old_it != old_monitors.end()
+          and old_it->second->GetRTSPStreamName() == monitor->GetRTSPStreamName()) {
+        old_monitors.erase(old_it);
       } else {
         Debug(1, "Adding monitor %d to monitors", monitor->Id());
         monitors[monitor->Id()] = monitor;
       }
     }
-    // Remove monitors that are no longer doing rtsp
+    // Drop monitors that are gone or whose stream name changed (the latter
+    // get rebuilt with the new name on the next pass)
     for (auto it = old_monitors.begin(); it != old_monitors.end(); ++it) {
-      auto mid = it->first;
-      auto &monitor = it->second;
-      Debug(1, "Removing %d %s from monitors", monitor->Id(), monitor->Name());
-      monitors.erase(mid);
-      if (sessions.find(mid) != sessions.end()) {
-        if (video_sources.find(monitor->Id()) != video_sources.end()) {
-          delete video_sources[monitor->Id()];
-          video_sources.erase(monitor->Id());
-        }
-        if (audio_sources.find(monitor->Id()) != audio_sources.end()) {
-          delete audio_sources[monitor->Id()];
-          audio_sources.erase(monitor->Id());
-        }
-        rtspServer->RemoveSession(sessions[mid]->GetMediaSessionId());
-        sessions.erase(mid);
-      }
+      Debug(1, "Removing %d %s from monitors", it->second->Id(), it->second->Name());
+      streams.erase(it->first);
+      monitors.erase(it->first);
     }
 
     for (auto it = monitors.begin(); it != monitors.end(); ++it) {
       auto &monitor = it->second;
 
-      if (!monitor->ShmValid()) {
-        Debug(1, "!ShmValid");
-        monitor->disconnect();
-        if (!monitor->connect()) {
-          Warning("Couldn't connect to monitor %d", monitor->Id());
-          if (sessions.find(monitor->Id()) != sessions.end()) {
-            // Delete (not just erase) the FifoSources first: their dtors stop
-            // and join the read/write threads. RemoveSession then destroys
-            // the MediaSession which owns the xop H264/H265/AV1Source; any
-            // still-running ReadRun thread holds a raw m_h264Source pointer
-            // and will crash in SetSPS on the next SPS NAL.
-            if (video_sources.find(monitor->Id()) != video_sources.end()) {
-              delete video_sources[monitor->Id()];
-              video_sources.erase(monitor->Id());
-            }
-            if (audio_sources.find(monitor->Id()) != audio_sources.end()) {
-              delete audio_sources[monitor->Id()];
-              audio_sources.erase(monitor->Id());
-            }
-            rtspServer->RemoveSession(sessions[monitor->Id()]->GetMediaSessionId());
-            sessions.erase(monitor->Id());
-          }
-          monitor->Reload();  // This is to pickup change of colours, width, height, etc
-          continue;
-        }  // end if failed to connect
-      }  // end if !ShmValid
+      auto stream_it = streams.find(monitor->Id());
+      if (stream_it == streams.end()) {
+        Debug(1, "Monitor %d not in streams, connecting to its stream socket", monitor->Id());
+        stream_it = streams.emplace(monitor->Id(),
+                                    zm::make_unique<MonitorRtspStream>(rtspServer, monitor)).first;
+      }
+      MonitorRtspStream &stream = *stream_it->second;
+      stream.Update();
 
-      if (sessions.end() == sessions.find(monitor->Id())) {
-        Debug(1, "Monitor not found in sessions, opening it");
-        std::string videoFifoPath = monitor->GetVideoFifoPath();
-        if (videoFifoPath.empty()) {
-          Debug(1, "video fifo is empty. Skipping.");
-          continue;
+      if (stream.HasClients()) {
+        // The shm connection is only needed for viewer accounting now
+        if (monitor->ShmValid() or monitor->connect()) {
+          monitor->setLastViewed(std::chrono::system_clock::now());
         }
-
-        std::string streamname = monitor->GetRTSPStreamName();
-        xop::MediaSession *session = sessions[monitor->Id()] = xop::MediaSession::CreateNew(streamname);
-        if (!session) {
-          Error("Unable to create session for %s", streamname.c_str());
-          continue;
-        }
-        session->AddNotifyConnectedCallback([] (xop::MediaSessionId sessionId, const std::string &peer_ip, uint16_t peer_port) {
-          Debug(1, "RTSP client connect, ip=%s, port=%hu", peer_ip.c_str(), peer_port);
-        });
-
-        session->AddNotifyDisconnectedCallback([](xop::MediaSessionId sessionId, const std::string &peer_ip, uint16_t peer_port) {
-          Debug(1, "RTSP client disconnect, ip=%s, port=%hu", peer_ip.c_str(), peer_port);
-        });
-
-        rtspServer->AddSession(session);
-        //char *url = rtspServer->rtspURL(session);
-        //Debug(1, "url is %s for stream %s", url, streamname.c_str());
-        //delete[] url;
-        monitors[monitor->Id()] = monitor;
-
-        Debug(1, "Adding video fifo %s", videoFifoPath.c_str());
-        ZoneMinderStreamVideoSource *videoSource = nullptr;
-
-        if (std::string::npos != videoFifoPath.find("h264")) {
-          xop::H264Source *h264Source = xop::H264Source::CreateNew();
-          h264Source->SetResolution(monitor->Width(), monitor->Height());
-          session->AddSource(xop::channel_0, h264Source);
-          H264_ZoneMinderStreamSource *h264StreamSource = new H264_ZoneMinderStreamSource(rtspServer, session->GetMediaSessionId(), xop::channel_0, videoFifoPath);
-          h264StreamSource->setH264Source(h264Source);  // Allow FIFO source to set SPS/PPS
-          videoSource = h264StreamSource;
-        } else if (
-          std::string::npos != videoFifoPath.find("hevc")
-          or
-          std::string::npos != videoFifoPath.find("h265")) {
-          xop::H265Source *h265Source = xop::H265Source::CreateNew();
-          h265Source->SetResolution(monitor->Width(), monitor->Height());
-          session->AddSource(xop::channel_0, h265Source);
-          H265_ZoneMinderStreamSource *h265StreamSource = new H265_ZoneMinderStreamSource(rtspServer, session->GetMediaSessionId(), xop::channel_0, videoFifoPath);
-          h265StreamSource->setH265Source(h265Source);  // Allow FIFO source to set VPS/SPS/PPS
-          videoSource = h265StreamSource;
-        } else if (std::string::npos != videoFifoPath.find("av1")) {
-          xop::AV1Source *av1Source = xop::AV1Source::CreateNew();
-          av1Source->SetResolution(monitor->Width(), monitor->Height());
-          session->AddSource(xop::channel_0, av1Source);
-          AV1_ZoneMinderStreamSource *av1StreamSource = new AV1_ZoneMinderStreamSource(rtspServer, session->GetMediaSessionId(), xop::channel_0, videoFifoPath);
-          av1StreamSource->setAV1Source(av1Source);  // Allow FIFO source to set sequence header
-          videoSource = av1StreamSource;
-        } else {
-          Warning("Unknown format in %s", videoFifoPath.c_str());
-        }
-        if (videoSource == nullptr) {
-          Error("Unable to create source for %s", videoFifoPath.c_str());
-          rtspServer->RemoveSession(sessions[monitor->Id()]->GetMediaSessionId());
-          sessions.erase(monitor->Id());
-          continue;
-        }
-        video_sources[monitor->Id()] = videoSource;
-        videoSource->setWidth(monitor->Width());
-        videoSource->setHeight(monitor->Height());
-
-        std::string audioFifoPath = monitor->GetAudioFifoPath();
-        if (audioFifoPath.empty()) {
-          Debug(1, "audio fifo is empty. Skipping.");
-          continue;
-        }
-        Debug(1, "Adding audio fifo %s", audioFifoPath.c_str());
-
-        ZoneMinderStreamAudioSource *audioSource = nullptr;
-
-        if (std::string::npos != audioFifoPath.find("aac")) {
-          Debug(1, "Adding aac source at %dHz %d channels",
-                monitor->GetAudioFrequency(), monitor->GetAudioChannels());
-          session->AddSource(xop::channel_1, xop::AACSource::CreateNew(
-                               monitor->GetAudioFrequency(),
-                               monitor->GetAudioChannels(),
-                               false /* has_adts */));
-          audioSource = new ADTS_ZoneMinderStreamSource(rtspServer,
-              session->GetMediaSessionId(), xop::channel_1, audioFifoPath);
-          audioSource->setFrequency(monitor->GetAudioFrequency());
-          audioSource->setChannels(monitor->GetAudioChannels());
-        } else if (std::string::npos != audioFifoPath.find("pcm_alaw")) {
-          Debug(1, "Adding G711A source at %dHz %d channels",
-                monitor->GetAudioFrequency(), monitor->GetAudioChannels());
-          session->AddSource(xop::channel_1, xop::G711ASource::CreateNew());
-          audioSource = new ADTS_ZoneMinderStreamSource(rtspServer,
-              session->GetMediaSessionId(), xop::channel_1, audioFifoPath);
-          audioSource->setFrequency(monitor->GetAudioFrequency());
-          audioSource->setChannels(monitor->GetAudioChannels());
-        } else if (std::string::npos != audioFifoPath.find("pcm_mulaw")) {
-          Debug(1, "Adding G711U source at %dHz %d channels",
-                monitor->GetAudioFrequency(), monitor->GetAudioChannels());
-          session->AddSource(xop::channel_1, xop::G711USource::CreateNew());
-          audioSource = new ADTS_ZoneMinderStreamSource(rtspServer,
-              session->GetMediaSessionId(), xop::channel_1, audioFifoPath);
-          audioSource->setFrequency(monitor->GetAudioFrequency());
-          audioSource->setChannels(monitor->GetAudioChannels());
-        } else {
-          Warning("Unknown format in %s", audioFifoPath.c_str());
-        }
-        if (audioSource == nullptr) {
-          Error("Unable to create source");
-        }
-        audio_sources[monitor->Id()] = audioSource;
-      }  // end if ! sessions[monitor->Id()]
-      if (sessions[monitor->Id()]->GetNumClient() > 0) {
-        SystemTimePoint now = std::chrono::system_clock::now();
-        monitor->setLastViewed(now);
       }
     }  // end foreach monitor
 
-    sleep(10);
+    {
+      // Sleep until the next periodic pass, or earlier if a HELLO arrives
+      // that needs a session (re)build
+      std::unique_lock<std::mutex> lock(rebuild_mutex);
+      rebuild_cv.wait_for(lock, std::chrono::seconds(10));
+    }
 
     if (zm_reload) {
       Info("Reloading configuration");
@@ -366,24 +461,9 @@ int main(int argc, char *argv[]) {
 
   Info("RTSP Server shutting down");
 
-  for (const std::pair<const unsigned int, std::shared_ptr<Monitor>> &mon_pair : monitors) {
-    unsigned int i = mon_pair.first;
-    if (video_sources.find(i) != video_sources.end()) {
-      delete video_sources[i];
-    }
-    if (audio_sources.find(i) != audio_sources.end()) {
-      delete audio_sources[i];
-    }
-    if (sessions.find(i) != sessions.end()) {
-      Debug(1, "Removing session for %s", mon_pair.second->Name());
-      rtspServer->RemoveSession(sessions[i]->GetMediaSessionId());
-      sessions.erase(i);
-    }
-  }  // end foreach monitor
-
+  streams.clear();
+  monitors.clear();
   rtspServer->Stop();
-
-  sessions.clear();
 
   Image::Deinitialise();
   logTerm();

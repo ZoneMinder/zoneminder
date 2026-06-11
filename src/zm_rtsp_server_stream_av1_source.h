@@ -40,8 +40,7 @@ class AV1_ZoneMinderStreamSource : public ZoneMinderStreamVideoSource {
   AV1_ZoneMinderStreamSource(
     std::shared_ptr<xop::RtspServer>& rtspServer,
     xop::MediaSessionId sessionId,
-    xop::MediaChannelId channelId,
-    const std::string &fifo
+    xop::MediaChannelId channelId
   );
 
   virtual ~AV1_ZoneMinderStreamSource() {}

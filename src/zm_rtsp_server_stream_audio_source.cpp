@@ -23,11 +23,10 @@ static const int samplingFrequencyTable[16] = {
 ZoneMinderStreamAudioSource::ZoneMinderStreamAudioSource(
   std::shared_ptr<xop::RtspServer>& rtspServer,
   xop::MediaSessionId sessionId,
-  xop::MediaChannelId channelId,
-  const std::string &fifo
+  xop::MediaChannelId channelId
 )
   :
-  ZoneMinderStreamSource(rtspServer, sessionId, channelId, fifo),
+  ZoneMinderStreamSource(rtspServer, sessionId, channelId),
   samplingFrequencyIndex(-1),
   frequency(-1),
   channels(1) {

@@ -24,10 +24,9 @@
 H264_ZoneMinderStreamSource::H264_ZoneMinderStreamSource(
   std::shared_ptr<xop::RtspServer>& rtspServer,
   xop::MediaSessionId sessionId,
-  xop::MediaChannelId channelId,
-  const std::string &fifo
+  xop::MediaChannelId channelId
 )
-  : H26X_ZoneMinderStreamSource(rtspServer, sessionId, channelId, fifo) {
+  : H26X_ZoneMinderStreamSource(rtspServer, sessionId, channelId) {
   // extradata appears to simply be the SPS and PPS NAL's
   //this->splitFrames(m_stream->codecpar->extradata, m_stream->codecpar->extradata_size);
   m_hType = 264;
@@ -78,10 +77,9 @@ std::list< std::pair<unsigned char*, size_t> > H264_ZoneMinderStreamSource::spli
 H265_ZoneMinderStreamSource::H265_ZoneMinderStreamSource(
   std::shared_ptr<xop::RtspServer>& rtspServer,
   xop::MediaSessionId sessionId,
-  xop::MediaChannelId channelId,
-  const std::string &fifo
+  xop::MediaChannelId channelId
 )
-  : H26X_ZoneMinderStreamSource(rtspServer, sessionId, channelId, fifo) {
+  : H26X_ZoneMinderStreamSource(rtspServer, sessionId, channelId) {
   // extradata appears to simply be the SPS and PPS NAL's
   // this->splitFrames(m_stream->codecpar->extradata, m_stream->codecpar->extradata_size);
   m_hType = 265;

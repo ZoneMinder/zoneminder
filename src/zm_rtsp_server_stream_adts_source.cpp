@@ -21,11 +21,10 @@
 ADTS_ZoneMinderStreamSource::ADTS_ZoneMinderStreamSource(
   std::shared_ptr<xop::RtspServer>& rtspServer,
   xop::MediaSessionId sessionId,
-  xop::MediaChannelId channelId,
-  const std::string &fifo
+  xop::MediaChannelId channelId
 )
   :
-  ZoneMinderStreamAudioSource(rtspServer, sessionId, channelId, fifo) {
+  ZoneMinderStreamAudioSource(rtspServer, sessionId, channelId) {
 #if 0
   int profile = 0;
 

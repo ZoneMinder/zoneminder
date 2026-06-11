@@ -1,15 +1,14 @@
 /* ---------------------------------------------------------------------------
 **
-** FifoSource.h
+** StreamSource.h
 **
-**  live555 source
+** RTSP server media source fed from the monitor stream socket
 **
 ** -------------------------------------------------------------------------*/
 
 #ifndef ZM_RTSP_SERVER_STREAM_SOURCE_H
 #define ZM_RTSP_SERVER_STREAM_SOURCE_H
 
-#include "zm_buffer.h"
 #include "zm_config.h"
 #include "zm_ffmpeg.h"
 #include "zm_define.h"
@@ -22,6 +21,9 @@
 #if HAVE_RTSP_SERVER
 #include "xop/RtspServer.h"
 
+// Packs codec payloads (NAL/OBU split, FU fragmentation) and pushes them to
+// the xop RTSP layer. Fed externally via OnPacket() - one complete access
+// unit or audio packet per call, as delivered by the monitor stream socket.
 class ZoneMinderStreamSource {
 
  public:
@@ -34,16 +36,18 @@ class ZoneMinderStreamSource {
   ZoneMinderStreamSource(
     std::shared_ptr<xop::RtspServer>& rtspServer,
     xop::MediaSessionId sessionId,
-    xop::MediaChannelId channelId,
-    const std::string &fifo
+    xop::MediaChannelId channelId
   );
   virtual ~ZoneMinderStreamSource();
 
+  // Split into frames (NALs/OBUs), queue them for the write thread.
+  // pts is in AV_TIME_BASE_Q. The data is copied; the caller's buffer is not
+  // referenced after return.
+  void OnPacket(const uint8_t *data, size_t size, int64_t pts);
+
  protected:
-  void ReadRun();
   void WriteRun();
 
-  int getNextFrame();
   virtual void PushFrame(const uint8_t *data, size_t size, int64_t pts) = 0;
   // split packet in frames
   virtual std::list< std::pair<unsigned char*, size_t> > splitFrames(unsigned char* frame, size_t &frameSize);
@@ -54,16 +58,12 @@ class ZoneMinderStreamSource {
   std::mutex  mutex_;
   std::condition_variable condition_;
 
-  std::thread read_thread_;
   std::thread write_thread_;
   std::atomic<bool> stop_;
 
   std::shared_ptr<xop::RtspServer> m_rtspServer;
   xop::MediaSessionId m_sessionId;
   xop::MediaChannelId m_channelId;
-  std::string m_fifo;
-  int m_fd;
-  Buffer  m_buffer;
   AVRational m_timeBase;
   std::queue<NAL_Frame *> m_nalQueue;
   int m_hType;

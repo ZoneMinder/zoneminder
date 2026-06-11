@@ -24,11 +24,10 @@ class H26X_ZoneMinderStreamSource : public ZoneMinderStreamVideoSource {
   H26X_ZoneMinderStreamSource(
     std::shared_ptr<xop::RtspServer>& rtspServer,
     xop::MediaSessionId sessionId,
-    xop::MediaChannelId channelId,
-    const std::string &fifo
+    xop::MediaChannelId channelId
   )
     :
-    ZoneMinderStreamVideoSource(rtspServer, sessionId, channelId, fifo),
+    ZoneMinderStreamVideoSource(rtspServer, sessionId, channelId),
     m_keepMarker(false),
     m_frameType(0) { }
 
@@ -49,8 +48,7 @@ class H264_ZoneMinderStreamSource : public H26X_ZoneMinderStreamSource {
   H264_ZoneMinderStreamSource(
     std::shared_ptr<xop::RtspServer>& rtspServer,
     xop::MediaSessionId sessionId,
-    xop::MediaChannelId channelId,
-    const std::string &fifo
+    xop::MediaChannelId channelId
   );
 
   // override ZoneMinderStreamSource
@@ -62,8 +60,7 @@ class H265_ZoneMinderStreamSource : public H26X_ZoneMinderStreamSource {
   H265_ZoneMinderStreamSource(
     std::shared_ptr<xop::RtspServer>& rtspServer,
     xop::MediaSessionId sessionId,
-    xop::MediaChannelId channelId,
-    const std::string &fifo
+    xop::MediaChannelId channelId
   );
 
   // override ZoneMinderStreamSource

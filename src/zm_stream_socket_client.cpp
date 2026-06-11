@@ -82,8 +82,12 @@ void StreamSocketClient::Run() {
     strncpy(addr.sun_path, path_.c_str(), sizeof(addr.sun_path) - 1);
 
     if (::connect(fd, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) != 0) {
-      Debug(2, "StreamSocketClient: connect to %s failed: %s, retrying",
-            path_.c_str(), strerror(errno));
+      // Warn periodically: a producer that is down for a while is worth a log line
+      if (consecutive_failures_ == 0 or consecutive_failures_ % 30 == 29) {
+        Warning("StreamSocketClient: connect to %s failed: %s (attempt %d), retrying",
+                path_.c_str(), strerror(errno), consecutive_failures_ + 1);
+      }
+      ++consecutive_failures_;
       ::close(fd);
       // sleep in small steps so Stop() stays responsive
       auto deadline = std::chrono::steady_clock::now() + kReconnectDelay;
@@ -92,7 +96,8 @@ void StreamSocketClient::Run() {
       continue;
     }
 
-    Debug(1, "StreamSocketClient: connected to %s", path_.c_str());
+    Info("StreamSocketClient: connected to %s", path_.c_str());
+    consecutive_failures_ = 0;
     setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &kReadTimeout, sizeof(kReadTimeout));
     connected_ = true;
     ReadLoop(fd);

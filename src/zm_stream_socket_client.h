@@ -71,6 +71,7 @@ class StreamSocketClient {
   std::string path_;
   Callbacks callbacks_;
   int adopted_fd_ = -1;
+  int consecutive_failures_ = 0;
   std::thread thread_;
   std::atomic<bool> terminate_{false};
   std::atomic<bool> connected_{false};

@@ -126,9 +126,9 @@ class MonitorRtspStream {
     };
     // BYE/disconnect need no action: the client reconnects on its own and a
     // fresh HELLO follows; identical parameters keep the session as is.
-    client_ = zm::make_unique<StreamSocketClient>(
-        stringtf("%s/stream_%u.sock", staticConfig.PATH_SOCKS.c_str(), monitor_->Id()),
-        std::move(callbacks));
+    std::string path = stringtf("%s/stream_%u.sock", staticConfig.PATH_SOCKS.c_str(), monitor_->Id());
+    Info("Monitor %u: consuming stream socket %s", monitor_->Id(), path.c_str());
+    client_ = zm::make_unique<StreamSocketClient>(std::move(path), std::move(callbacks));
   }
 
   ~MonitorRtspStream() {
@@ -401,8 +401,13 @@ int main(int argc, char *argv[]) {
   std::unordered_map<unsigned int, std::unique_ptr<MonitorRtspStream>> streams;
   std::unordered_map<unsigned int, std::shared_ptr<Monitor>> monitors;
 
+  size_t last_monitor_count = SIZE_MAX;
   while (!zm_terminate) {
     std::vector<std::shared_ptr<Monitor>> new_monitors = Monitor::LoadMonitors(where, Monitor::QUERY);
+    if (new_monitors.size() != last_monitor_count) {
+      Info("Serving %zu monitor(s) matching: %s", new_monitors.size(), where.c_str());
+      last_monitor_count = new_monitors.size();
+    }
 
     std::unordered_map<unsigned int, std::shared_ptr<Monitor>> old_monitors = monitors;
     for (const auto &monitor : new_monitors) {

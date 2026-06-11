@@ -353,7 +353,11 @@ bool StreamSocket::DrainClientLocked(Client &client) {
       ++iovcnt;
     }
 
-    ssize_t written = ::writev(client.sock->getDesc(), iov, iovcnt);
+    msghdr msg = {};
+    msg.msg_iov = iov;
+    msg.msg_iovlen = iovcnt;
+    // MSG_NOSIGNAL: a disconnected client must produce EPIPE, not SIGPIPE
+    ssize_t written = ::sendmsg(client.sock->getDesc(), &msg, MSG_NOSIGNAL);
     if (written < 0) {
       if (errno == EAGAIN or errno == EWOULDBLOCK)
         return true;

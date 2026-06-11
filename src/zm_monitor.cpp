@@ -31,6 +31,7 @@
 #include "zm_remote_camera_nvsocket.h"
 #include "zm_remote_camera_rtsp.h"
 #include "zm_signal.h"
+#include "zm_stream_socket.h"
 #include "zm_time.h"
 #include "zm_uri.h"
 #include "zm_utils.h"
@@ -3148,9 +3149,15 @@ int Monitor::Capture() {
         }
         video_fifo->writePacket(*packet);
       }
+      if (stream_socket)
+        stream_socket->SendMedia(packet->packet.get(), zm::stream_socket::StreamId::Video,
+                                 packet->keyframe, packet->pts);
     } else if (packet->codec_type == AVMEDIA_TYPE_AUDIO) {
       if (audio_fifo)
         audio_fifo->writePacket(*packet);
+      if (stream_socket)
+        stream_socket->SendMedia(packet->packet.get(), zm::stream_socket::StreamId::Audio,
+                                 false, packet->pts);
 
       if (audio_detection) {
         // Opened here rather than at camera setup because a stream can gain
@@ -4281,6 +4288,36 @@ int Monitor::PrimeCapture() {
     }
   }  // end if rtsp_server
 
+  // The stream socket is served for every monitor; consumers connect on
+  // demand and an idle socket costs nothing. The listener survives camera
+  // reconnects - re-priming only refreshes stream parameters, which bumps
+  // the protocol generation when they actually changed.
+  if (!stream_socket) {
+    stream_socket = zm::make_unique<StreamSocket>(
+        id,
+        stringtf("%s/stream_%u.sock", staticConfig.PATH_SOCKS.c_str(), id),
+        StreamSocket::ConfigFromStatic());
+    if (!stream_socket->Start()) {
+      Error("Unable to start stream socket for monitor %u", id);
+      stream_socket.reset();
+    }
+  }
+  if (stream_socket) {
+    if (video_stream_id >= 0) {
+      AVStream *videoStream = camera->getVideoStream();
+      if (videoStream and videoStream->codecpar) {
+        AVRational frame_rate = videoStream->avg_frame_rate.num ?
+                                videoStream->avg_frame_rate : videoStream->r_frame_rate;
+        stream_socket->SetVideoParams(videoStream->codecpar, frame_rate);
+      }
+    }
+    if (record_audio and (audio_stream_id >= 0)) {
+      AVStream *audioStream = camera->getAudioStream();
+      if (audioStream and audioStream->codecpar)
+        stream_socket->SetAudioParams(audioStream->codecpar);
+    }
+  }
+
   //Poller Thread
   if (onvif_event_listener || janus_enabled || RTSP2Web_enabled || use_Amcrest_API || Go2RTC_enabled) {
     if (!Poller) {
@@ -4450,6 +4487,10 @@ int Monitor::Close() {
     Debug(1, "video fifo deleted");
     video_fifo = nullptr;
   }
+
+  // stream_socket deliberately survives Close(): consumers keep their
+  // connection across camera reconnects and observe them via generation
+  // bumps when PrimeCapture() re-applies stream parameters.
 
   return 1;
 } // end Monitor::Close()

@@ -48,6 +48,7 @@
 
 class Group;
 class MonitorLinkExpression;
+class StreamSocket;
 
 #define SIGNAL_CAUSE "Signal"
 #define MOTION_CAUSE "Motion"
@@ -723,6 +724,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int audio_stream_id; // will be filled in PrimeCapture
   Fifo *video_fifo;
   Fifo *audio_fifo;
+  // Always-on media output; survives camera reconnects, freed in destructor
+  std::unique_ptr<StreamSocket> stream_socket;
 
   std::shared_ptr<Camera> camera;
   Event       *event;

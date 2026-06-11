@@ -722,8 +722,6 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   int video_stream_id; // will be filled in PrimeCapture
   int audio_stream_id; // will be filled in PrimeCapture
-  Fifo *video_fifo;
-  Fifo *audio_fifo;
   // Always-on media output; survives camera reconnects, freed in destructor
   std::unique_ptr<StreamSocket> stream_socket;
 
@@ -1002,8 +1000,6 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   AVCodecContext *GetVideoCodecContext() const { return camera ? camera->getVideoCodecContext() : nullptr; };
 
   std::string GetSecondPath() const { return second_path; };
-  std::string GetVideoFifoPath() const { return shared_data ? shared_data->video_fifo_path : ""; };
-  std::string GetAudioFifoPath() const { return shared_data ? shared_data->audio_fifo_path : ""; };
   std::string GetRTSPStreamName() const { return rtsp_streamname; };
 
   const std::string &getONVIF_URL() const { return onvif_url; };

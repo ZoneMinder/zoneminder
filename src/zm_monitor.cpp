@@ -310,8 +310,6 @@ Monitor::Monitor() :
   shm_slot_size(0),
   video_stream_id(-1),
   audio_stream_id(-1),
-  video_fifo(nullptr),
-  audio_fifo(nullptr),
   camera(nullptr),
   event(nullptr),
   storage(nullptr),
@@ -1398,8 +1396,6 @@ Monitor::~Monitor() {
   delete linked_monitors;
   linked_monitors = nullptr;
 
-  if (video_fifo) delete video_fifo;
-  if (audio_fifo) delete audio_fifo;
   if (convert_context) {
     sws_freeContext(convert_context);
     convert_context = nullptr;
@@ -3137,24 +3133,10 @@ int Monitor::Capture() {
 
     if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
       packet->packet->stream_index = video_stream_id; // Convert to packetQueue's index
-      if (video_fifo) {
-        if (packet->keyframe) {
-          // avcodec strips out important nals that describe the stream and
-          // stick them in extradata. Need to send them along with keyframes
-          AVStream *stream = camera->getVideoStream();
-          video_fifo->write(
-            static_cast<unsigned char *>(stream->codecpar->extradata),
-            stream->codecpar->extradata_size,
-            packet->pts);
-        }
-        video_fifo->writePacket(*packet);
-      }
       if (stream_socket)
         stream_socket->SendMedia(packet->packet.get(), zm::stream_socket::StreamId::Video,
                                  packet->keyframe, packet->pts);
     } else if (packet->codec_type == AVMEDIA_TYPE_AUDIO) {
-      if (audio_fifo)
-        audio_fifo->writePacket(*packet);
       if (stream_socket)
         stream_socket->SendMedia(packet->packet.get(), zm::stream_socket::StreamId::Audio,
                                  false, packet->pts);
@@ -4264,30 +4246,6 @@ int Monitor::PrimeCapture() {
   Debug(2, "Video stream id is %d, audio is %d, minimum_packets to keep in buffer %d",
         video_stream_id, audio_stream_id, pre_event_count);
 
-  if (rtsp_server) {
-    if (video_stream_id >= 0) {
-      AVStream *videoStream = camera->getVideoStream();
-      snprintf(shared_data->video_fifo_path, sizeof(shared_data->video_fifo_path) - 1, "%s/video_fifo_%u.%s",
-               staticConfig.PATH_SOCKS.c_str(),
-               id,
-               avcodec_get_name(videoStream->codecpar->codec_id)
-              );
-      video_fifo = new Fifo(shared_data->video_fifo_path, true);
-    }
-    if (record_audio and (audio_stream_id >= 0)) {
-      AVStream *audioStream = camera->getAudioStream();
-      if (audioStream && CODEC(audioStream)) {
-        snprintf(shared_data->audio_fifo_path, sizeof(shared_data->audio_fifo_path) - 1, "%s/audio_fifo_%u.%s",
-                 staticConfig.PATH_SOCKS.c_str(), id,
-                 avcodec_get_name(audioStream->codecpar->codec_id)
-                );
-        audio_fifo = new Fifo(shared_data->audio_fifo_path, true);
-      } else {
-        Warning("No audioStream %p or codec?", audioStream);
-      }
-    }
-  }  // end if rtsp_server
-
   // The stream socket is served for every monitor; consumers connect on
   // demand and an idle socket costs nothing. The listener survives camera
   // reconnects - re-priming only refreshes stream parameters, which bumps
@@ -4474,18 +4432,6 @@ int Monitor::Close() {
   if (Janus_Manager) {
     delete Janus_Manager;
     Janus_Manager = nullptr;
-  }
-
-  if (audio_fifo) {
-    delete audio_fifo;
-    audio_fifo = nullptr;
-    Debug(1, "audio fifo deleted");
-  }
-
-  if (video_fifo) {
-    delete video_fifo;
-    Debug(1, "video fifo deleted");
-    video_fifo = nullptr;
   }
 
   // stream_socket deliberately survives Close(): consumers keep their

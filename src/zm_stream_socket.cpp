@@ -223,46 +223,56 @@ void StreamSocket::SendMedia(const AVPacket *packet, StreamId stream,
   if (!packet or packet->size <= 0)
     return;
 
+  bool video_keyframe = keyframe and stream == StreamId::Video;
+
+  std::unique_lock<std::mutex> lock(mutex_);
+  uint32_t sequence = sequence_[static_cast<size_t>(stream)]++;
+  bool have_clients = !clients_.empty();
+
+  // With no consumers the message only counts against the sequence; skip the
+  // packet reference and fan-out entirely. Keyframes are still cached so the
+  // first consumer to connect gets an immediate first frame.
+  if (!have_clients and !video_keyframe)
+    return;
+
+  Header header = {};
+  header.length = kHeaderLengthBytes + packet->size;
+  header.version = kProtocolVersion;
+  header.type = static_cast<uint8_t>(MessageType::Media);
+  header.stream = static_cast<uint8_t>(stream);
+  header.flags = video_keyframe ? kFlagKeyframe : 0;
+  header.sequence = sequence;
+  header.generation = generation_;
+  header.pts_us = static_cast<uint64_t>(pts_us);
+
+  if (video_keyframe) {
+    // Cache the keyframe for fast-start of late joiners; the cache references
+    // the packet's buffer, no copy is made.
+    av_packet_ptr cache_clone{av_packet_clone(packet)};
+    if (cache_clone) {
+      auto cache = std::make_shared<Message>();
+      Header cache_header = header;
+      cache_header.type = static_cast<uint8_t>(MessageType::Keyframe);
+      SerializeHeader(cache_header, cache->header.data());
+      cache->av_payload = std::move(cache_clone);
+      keyframe_ = std::move(cache);
+    }
+  }
+
+  if (!have_clients)
+    return;
+
   // Reference the payload buffer; no copy of the media data is made.
   av_packet_ptr clone{av_packet_clone(packet)};
   if (!clone) {
     Error("StreamSocket: av_packet_clone failed for monitor %u", monitor_id_);
     return;
   }
-
-  {
-    std::lock_guard<std::mutex> lock(mutex_);
-    uint8_t flags = (keyframe and stream == StreamId::Video) ? kFlagKeyframe : 0;
-    uint32_t sequence = sequence_[static_cast<size_t>(stream)]++;
-
-    auto message = std::make_shared<Message>();
-    Header header = {};
-    header.length = kHeaderLengthBytes + clone->size;
-    header.version = kProtocolVersion;
-    header.type = static_cast<uint8_t>(MessageType::Media);
-    header.stream = static_cast<uint8_t>(stream);
-    header.flags = flags;
-    header.sequence = sequence;
-    header.generation = generation_;
-    header.pts_us = static_cast<uint64_t>(pts_us);
-    SerializeHeader(header, message->header.data());
-
-    if (keyframe and stream == StreamId::Video) {
-      // Cache the keyframe for fast-start of late joiners; the cache shares
-      // the same refcounted buffer as the broadcast message.
-      av_packet_ptr cache_clone{av_packet_clone(packet)};
-      if (cache_clone) {
-        auto cache = std::make_shared<Message>();
-        header.type = static_cast<uint8_t>(MessageType::Keyframe);
-        SerializeHeader(header, cache->header.data());
-        cache->av_payload = std::move(cache_clone);
-        keyframe_ = std::move(cache);
-      }
-    }
-
-    message->av_payload = std::move(clone);
-    BroadcastLocked(message);
-  }
+  auto message = std::make_shared<Message>();
+  SerializeHeader(header, message->header.data());
+  message->av_payload = std::move(clone);
+  BroadcastLocked(message);
+  lock.unlock();
   Wake();
 }
 
@@ -450,7 +460,10 @@ void StreamSocket::Run() {
       }
     }
 
-    int ready = ::poll(fds.data(), fds.size(), 100);
+    // With no clients there is nothing to drain or report; sleep until a
+    // connection or a wake. Idle monitors cost no periodic wakeups.
+    int timeout = fds.size() > 2 ? 100 : -1;
+    int ready = ::poll(fds.data(), fds.size(), timeout);
     if (ready < 0) {
       if (errno == EINTR)
         continue;

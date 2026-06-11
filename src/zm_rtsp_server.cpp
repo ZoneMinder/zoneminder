@@ -52,9 +52,9 @@ and provide that stream over rtsp
 #include "zm_define.h"
 #include "zm_monitor.h"
 #include "zm_rtsp_server_authenticator.h"
-#include "zm_rtsp_server_fifo_h264_source.h"
-#include "zm_rtsp_server_fifo_av1_source.h"
-#include "zm_rtsp_server_fifo_adts_source.h"
+#include "zm_rtsp_server_stream_h264_source.h"
+#include "zm_rtsp_server_stream_av1_source.h"
+#include "zm_rtsp_server_stream_adts_source.h"
 #include "xop/G711USource.h"
 #include "zm_signal.h"
 #include "zm_time.h"
@@ -164,8 +164,8 @@ int main(int argc, char *argv[]) {
   }
 
   std::unordered_map<unsigned int, xop::MediaSession *> sessions;
-  std::unordered_map<unsigned int, ZoneMinderFifoSource *> video_sources;
-  std::unordered_map<unsigned int, ZoneMinderFifoSource *> audio_sources;
+  std::unordered_map<unsigned int, ZoneMinderStreamSource *> video_sources;
+  std::unordered_map<unsigned int, ZoneMinderStreamSource *> audio_sources;
   std::unordered_map<unsigned int, std::shared_ptr<Monitor>> monitors;
 
   while (!zm_terminate) {
@@ -264,15 +264,15 @@ int main(int argc, char *argv[]) {
         monitors[monitor->Id()] = monitor;
 
         Debug(1, "Adding video fifo %s", videoFifoPath.c_str());
-        ZoneMinderFifoVideoSource *videoSource = nullptr;
+        ZoneMinderStreamVideoSource *videoSource = nullptr;
 
         if (std::string::npos != videoFifoPath.find("h264")) {
           xop::H264Source *h264Source = xop::H264Source::CreateNew();
           h264Source->SetResolution(monitor->Width(), monitor->Height());
           session->AddSource(xop::channel_0, h264Source);
-          H264_ZoneMinderFifoSource *h264FifoSource = new H264_ZoneMinderFifoSource(rtspServer, session->GetMediaSessionId(), xop::channel_0, videoFifoPath);
-          h264FifoSource->setH264Source(h264Source);  // Allow FIFO source to set SPS/PPS
-          videoSource = h264FifoSource;
+          H264_ZoneMinderStreamSource *h264StreamSource = new H264_ZoneMinderStreamSource(rtspServer, session->GetMediaSessionId(), xop::channel_0, videoFifoPath);
+          h264StreamSource->setH264Source(h264Source);  // Allow FIFO source to set SPS/PPS
+          videoSource = h264StreamSource;
         } else if (
           std::string::npos != videoFifoPath.find("hevc")
           or
@@ -280,16 +280,16 @@ int main(int argc, char *argv[]) {
           xop::H265Source *h265Source = xop::H265Source::CreateNew();
           h265Source->SetResolution(monitor->Width(), monitor->Height());
           session->AddSource(xop::channel_0, h265Source);
-          H265_ZoneMinderFifoSource *h265FifoSource = new H265_ZoneMinderFifoSource(rtspServer, session->GetMediaSessionId(), xop::channel_0, videoFifoPath);
-          h265FifoSource->setH265Source(h265Source);  // Allow FIFO source to set VPS/SPS/PPS
-          videoSource = h265FifoSource;
+          H265_ZoneMinderStreamSource *h265StreamSource = new H265_ZoneMinderStreamSource(rtspServer, session->GetMediaSessionId(), xop::channel_0, videoFifoPath);
+          h265StreamSource->setH265Source(h265Source);  // Allow FIFO source to set VPS/SPS/PPS
+          videoSource = h265StreamSource;
         } else if (std::string::npos != videoFifoPath.find("av1")) {
           xop::AV1Source *av1Source = xop::AV1Source::CreateNew();
           av1Source->SetResolution(monitor->Width(), monitor->Height());
           session->AddSource(xop::channel_0, av1Source);
-          AV1_ZoneMinderFifoSource *av1FifoSource = new AV1_ZoneMinderFifoSource(rtspServer, session->GetMediaSessionId(), xop::channel_0, videoFifoPath);
-          av1FifoSource->setAV1Source(av1Source);  // Allow FIFO source to set sequence header
-          videoSource = av1FifoSource;
+          AV1_ZoneMinderStreamSource *av1StreamSource = new AV1_ZoneMinderStreamSource(rtspServer, session->GetMediaSessionId(), xop::channel_0, videoFifoPath);
+          av1StreamSource->setAV1Source(av1Source);  // Allow FIFO source to set sequence header
+          videoSource = av1StreamSource;
         } else {
           Warning("Unknown format in %s", videoFifoPath.c_str());
         }
@@ -310,7 +310,7 @@ int main(int argc, char *argv[]) {
         }
         Debug(1, "Adding audio fifo %s", audioFifoPath.c_str());
 
-        ZoneMinderFifoAudioSource *audioSource = nullptr;
+        ZoneMinderStreamAudioSource *audioSource = nullptr;
 
         if (std::string::npos != audioFifoPath.find("aac")) {
           Debug(1, "Adding aac source at %dHz %d channels",
@@ -319,7 +319,7 @@ int main(int argc, char *argv[]) {
                                monitor->GetAudioFrequency(),
                                monitor->GetAudioChannels(),
                                false /* has_adts */));
-          audioSource = new ADTS_ZoneMinderFifoSource(rtspServer,
+          audioSource = new ADTS_ZoneMinderStreamSource(rtspServer,
               session->GetMediaSessionId(), xop::channel_1, audioFifoPath);
           audioSource->setFrequency(monitor->GetAudioFrequency());
           audioSource->setChannels(monitor->GetAudioChannels());
@@ -327,7 +327,7 @@ int main(int argc, char *argv[]) {
           Debug(1, "Adding G711A source at %dHz %d channels",
                 monitor->GetAudioFrequency(), monitor->GetAudioChannels());
           session->AddSource(xop::channel_1, xop::G711ASource::CreateNew());
-          audioSource = new ADTS_ZoneMinderFifoSource(rtspServer,
+          audioSource = new ADTS_ZoneMinderStreamSource(rtspServer,
               session->GetMediaSessionId(), xop::channel_1, audioFifoPath);
           audioSource->setFrequency(monitor->GetAudioFrequency());
           audioSource->setChannels(monitor->GetAudioChannels());
@@ -335,7 +335,7 @@ int main(int argc, char *argv[]) {
           Debug(1, "Adding G711U source at %dHz %d channels",
                 monitor->GetAudioFrequency(), monitor->GetAudioChannels());
           session->AddSource(xop::channel_1, xop::G711USource::CreateNew());
-          audioSource = new ADTS_ZoneMinderFifoSource(rtspServer,
+          audioSource = new ADTS_ZoneMinderStreamSource(rtspServer,
               session->GetMediaSessionId(), xop::channel_1, audioFifoPath);
           audioSource->setFrequency(monitor->GetAudioFrequency());
           audioSource->setChannels(monitor->GetAudioChannels());

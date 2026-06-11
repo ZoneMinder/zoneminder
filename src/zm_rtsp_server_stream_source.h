@@ -6,8 +6,8 @@
 **
 ** -------------------------------------------------------------------------*/
 
-#ifndef ZM_RTSP_SERVER_FIFO_SOURCE_H
-#define ZM_RTSP_SERVER_FIFO_SOURCE_H
+#ifndef ZM_RTSP_SERVER_STREAM_SOURCE_H
+#define ZM_RTSP_SERVER_STREAM_SOURCE_H
 
 #include "zm_buffer.h"
 #include "zm_config.h"
@@ -22,7 +22,7 @@
 #if HAVE_RTSP_SERVER
 #include "xop/RtspServer.h"
 
-class ZoneMinderFifoSource {
+class ZoneMinderStreamSource {
 
  public:
 
@@ -31,13 +31,13 @@ class ZoneMinderFifoSource {
     condition_.notify_all();
   };
 
-  ZoneMinderFifoSource(
+  ZoneMinderStreamSource(
     std::shared_ptr<xop::RtspServer>& rtspServer,
     xop::MediaSessionId sessionId,
     xop::MediaChannelId channelId,
     const std::string &fifo
   );
-  virtual ~ZoneMinderFifoSource();
+  virtual ~ZoneMinderStreamSource();
 
  protected:
   void ReadRun();
@@ -70,4 +70,4 @@ class ZoneMinderFifoSource {
 };
 #endif // HAVE_RTSP_SERVER
 
-#endif // ZM_RTSP_SERVER_FIFO_SOURCE_H
+#endif // ZM_RTSP_SERVER_STREAM_SOURCE_H

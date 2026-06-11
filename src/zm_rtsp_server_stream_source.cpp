@@ -8,7 +8,7 @@
 **
 ** -------------------------------------------------------------------------*/
 
-#include "zm_rtsp_server_fifo_source.h"
+#include "zm_rtsp_server_stream_source.h"
 #include "zm_rtsp_server_frame.h"
 
 #include "zm_config.h"
@@ -21,7 +21,7 @@
 #include <sys/file.h>
 
 #if HAVE_RTSP_SERVER
-ZoneMinderFifoSource::ZoneMinderFifoSource(
+ZoneMinderStreamSource::ZoneMinderStreamSource(
   std::shared_ptr<xop::RtspServer>& rtspServer,
   xop::MediaSessionId sessionId,
   xop::MediaChannelId channelId,
@@ -34,12 +34,12 @@ ZoneMinderFifoSource::ZoneMinderFifoSource(
   m_fifo(fifo),
   m_fd(-1),
   m_hType(0) {
-  read_thread_ = std::thread(&ZoneMinderFifoSource::ReadRun, this);
-  write_thread_ = std::thread(&ZoneMinderFifoSource::WriteRun, this);
+  read_thread_ = std::thread(&ZoneMinderStreamSource::ReadRun, this);
+  write_thread_ = std::thread(&ZoneMinderStreamSource::WriteRun, this);
 }
 
-ZoneMinderFifoSource::~ZoneMinderFifoSource() {
-  Debug(1, "Deleting Fifo Source");
+ZoneMinderStreamSource::~ZoneMinderStreamSource() {
+  Debug(1, "Deleting Stream Source");
   Stop();
   if (read_thread_.joinable()) {
     Debug(3, "Joining read thread");
@@ -49,11 +49,11 @@ ZoneMinderFifoSource::~ZoneMinderFifoSource() {
     Debug(3, "Joining write thread");
     write_thread_.join();
   }
-  Debug(1, "Deleting Fifo Source done");
+  Debug(1, "Deleting Stream Source done");
 }
 
 // thread mainloop
-void ZoneMinderFifoSource::ReadRun() {
+void ZoneMinderStreamSource::ReadRun() {
   if (stop_) Warning("bad value for stop_ in ReadRun");
   while (!stop_ and !zm_terminate) {
     if (getNextFrame() < 0) {
@@ -64,7 +64,7 @@ void ZoneMinderFifoSource::ReadRun() {
   }
 }
 
-void ZoneMinderFifoSource::WriteRun() {
+void ZoneMinderStreamSource::WriteRun() {
   size_t maxNalSize = 1400;
 
   if (stop_) Warning("bad value for stop_ in WriteRun");
@@ -143,7 +143,7 @@ void ZoneMinderFifoSource::WriteRun() {
 }
 
 // read from monitor
-int ZoneMinderFifoSource::getNextFrame() {
+int ZoneMinderStreamSource::getNextFrame() {
   if (zm_terminate or stop_) {
     Debug(1, "Terminating %d %d", zm_terminate.load(), (stop_==true?1:0));
     return -1;
@@ -282,7 +282,7 @@ int ZoneMinderFifoSource::getNextFrame() {
 }
 
 // split packet in frames
-std::list< std::pair<unsigned char*,size_t> > ZoneMinderFifoSource::splitFrames(unsigned char* frame, size_t &frameSize) {
+std::list< std::pair<unsigned char*,size_t> > ZoneMinderStreamSource::splitFrames(unsigned char* frame, size_t &frameSize) {
   std::list< std::pair<unsigned char*,size_t> > frameList;
   if ( frame != nullptr ) {
     frameList.push_back(std::pair<unsigned char*,size_t>(frame, frameSize));
@@ -292,7 +292,7 @@ std::list< std::pair<unsigned char*,size_t> > ZoneMinderFifoSource::splitFrames(
 }
 
 // extract a frame
-unsigned char*  ZoneMinderFifoSource::extractFrame(unsigned char* frame, size_t& size, size_t& outsize) {
+unsigned char*  ZoneMinderStreamSource::extractFrame(unsigned char* frame, size_t& size, size_t& outsize) {
   outsize = size;
   size = 0;
   return frame;

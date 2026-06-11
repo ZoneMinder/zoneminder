@@ -3,17 +3,17 @@
 ** support, and with no warranty, express or implied, as to its usefulness for
 ** any purpose.
 **
-** zm_rtsp_server_fifo_av1_source.h
+** zm_rtsp_server_stream_av1_source.h
 **
 ** AV1 ZoneMinder RTSP source
 **
 ** -------------------------------------------------------------------------*/
 
-#ifndef ZM_RTSP_AV1_FIFO_SOURCE_H
-#define ZM_RTSP_AV1_FIFO_SOURCE_H
+#ifndef ZM_RTSP_SERVER_STREAM_AV1_SOURCE_H
+#define ZM_RTSP_SERVER_STREAM_AV1_SOURCE_H
 
 #include "zm_config.h"
-#include "zm_rtsp_server_fifo_video_source.h"
+#include "zm_rtsp_server_stream_video_source.h"
 
 // Forward declaration
 namespace xop {
@@ -35,18 +35,18 @@ enum AV1_OBU_Type {
   AV1_OBU_PADDING = 15
 };
 
-class AV1_ZoneMinderFifoSource : public ZoneMinderFifoVideoSource {
+class AV1_ZoneMinderStreamSource : public ZoneMinderStreamVideoSource {
  public:
-  AV1_ZoneMinderFifoSource(
+  AV1_ZoneMinderStreamSource(
     std::shared_ptr<xop::RtspServer>& rtspServer,
     xop::MediaSessionId sessionId,
     xop::MediaChannelId channelId,
     const std::string &fifo
   );
 
-  virtual ~AV1_ZoneMinderFifoSource() {}
+  virtual ~AV1_ZoneMinderStreamSource() {}
 
-  // Override ZoneMinderFifoSource
+  // Override ZoneMinderStreamSource
   virtual std::list<std::pair<unsigned char*, size_t>>
       splitFrames(unsigned char* frame, size_t &frameSize) override;
   virtual unsigned char* extractFrame(unsigned char* frame,
@@ -73,4 +73,4 @@ class AV1_ZoneMinderFifoSource : public ZoneMinderFifoVideoSource {
 
 #endif // HAVE_RTSP_SERVER
 
-#endif // ZM_RTSP_AV1_FIFO_SOURCE_H
+#endif // ZM_RTSP_SERVER_STREAM_AV1_SOURCE_H

@@ -1,15 +1,15 @@
 /* ---------------------------------------------------------------------------
 **
-** FifoSource.h
+** StreamSource.h
 **
 **  live555 source
 **
 ** -------------------------------------------------------------------------*/
 
-#ifndef ZM_RTSP_SERVER_FIFO_VIDEO_SOURCE_H
-#define ZM_RTSP_SERVER_FIFO_VIDEO_SOURCE_H
+#ifndef ZM_RTSP_SERVER_STREAM_VIDEO_SOURCE_H
+#define ZM_RTSP_SERVER_STREAM_VIDEO_SOURCE_H
 
-#include "zm_rtsp_server_fifo_source.h"
+#include "zm_rtsp_server_stream_source.h"
 
 // Forward declarations
 namespace xop {
@@ -20,7 +20,7 @@ namespace xop {
 
 #if HAVE_RTSP_SERVER
 
-class ZoneMinderFifoVideoSource: public ZoneMinderFifoSource {
+class ZoneMinderStreamVideoSource: public ZoneMinderStreamSource {
 
  public:
   int getWidth() { return m_width; };
@@ -33,7 +33,7 @@ class ZoneMinderFifoVideoSource: public ZoneMinderFifoSource {
   void setH265Source(xop::H265Source *source) { m_h265Source = source; }
   void setAV1Source(xop::AV1Source *source) { m_av1Source = source; }
 
-  ZoneMinderFifoVideoSource(
+  ZoneMinderStreamVideoSource(
     std::shared_ptr<xop::RtspServer>& rtspServer,
     xop::MediaSessionId sessionId,
     xop::MediaChannelId channelId,
@@ -51,4 +51,4 @@ class ZoneMinderFifoVideoSource: public ZoneMinderFifoSource {
 };
 #endif // HAVE_RTSP_SERVER
 
-#endif // ZM_RTSP_SERVER_FIFO_VIDEO_SOURCE_H
+#endif // ZM_RTSP_SERVER_STREAM_VIDEO_SOURCE_H

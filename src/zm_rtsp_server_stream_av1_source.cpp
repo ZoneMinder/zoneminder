@@ -6,7 +6,7 @@
 **
 ** -------------------------------------------------------------------------*/
 
-#include "zm_rtsp_server_fifo_av1_source.h"
+#include "zm_rtsp_server_stream_av1_source.h"
 
 #include "zm_config.h"
 #include "zm_logger.h"
@@ -14,18 +14,18 @@
 
 #if HAVE_RTSP_SERVER
 
-AV1_ZoneMinderFifoSource::AV1_ZoneMinderFifoSource(
+AV1_ZoneMinderStreamSource::AV1_ZoneMinderStreamSource(
   std::shared_ptr<xop::RtspServer>& rtspServer,
   xop::MediaSessionId sessionId,
   xop::MediaChannelId channelId,
   const std::string &fifo
 )
-  : ZoneMinderFifoVideoSource(rtspServer, sessionId, channelId, fifo) {
+  : ZoneMinderStreamVideoSource(rtspServer, sessionId, channelId, fifo) {
   m_hType = 1;  // AV1 identifier
 }
 
 // Parse LEB128 variable-length integer (used for OBU sizes in AV1)
-size_t AV1_ZoneMinderFifoSource::parseLEB128(
+size_t AV1_ZoneMinderStreamSource::parseLEB128(
     unsigned char* data, size_t max_size, uint32_t& value) {
   value = 0;
   size_t bytes_read = 0;
@@ -46,7 +46,7 @@ size_t AV1_ZoneMinderFifoSource::parseLEB128(
 
 // Parse OBU header
 // Returns header size (1 or 2 bytes), 0 on error
-size_t AV1_ZoneMinderFifoSource::parseOBUHeader(
+size_t AV1_ZoneMinderStreamSource::parseOBUHeader(
     unsigned char* data, size_t size, uint8_t& obu_type, bool& has_size) {
   if (size < 1) {
     return 0;
@@ -85,7 +85,7 @@ size_t AV1_ZoneMinderFifoSource::parseOBUHeader(
 }
 
 // Extract a single OBU from the buffer
-unsigned char* AV1_ZoneMinderFifoSource::extractFrame(
+unsigned char* AV1_ZoneMinderStreamSource::extractFrame(
     unsigned char* frame, size_t& size, size_t& outsize) {
   outsize = 0;
 
@@ -139,7 +139,7 @@ unsigned char* AV1_ZoneMinderFifoSource::extractFrame(
 
 // Split buffer into individual OBUs
 std::list<std::pair<unsigned char*, size_t>>
-AV1_ZoneMinderFifoSource::splitFrames(unsigned char* frame, size_t &frameSize) {
+AV1_ZoneMinderStreamSource::splitFrames(unsigned char* frame, size_t &frameSize) {
   std::list<std::pair<unsigned char*, size_t>> frameList;
 
   size_t bufSize = frameSize;

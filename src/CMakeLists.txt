@@ -64,12 +64,12 @@ set(ZM_BIN_SRC_FILES
   zm_rtp_source.cpp
   zm_rtsp.cpp
   zm_rtsp_auth.cpp
-  zm_rtsp_server_fifo_source.cpp
-  zm_rtsp_server_fifo_adts_source.cpp
-  zm_rtsp_server_fifo_h264_source.cpp
-  zm_rtsp_server_fifo_av1_source.cpp
-  zm_rtsp_server_fifo_audio_source.cpp
-  zm_rtsp_server_fifo_video_source.cpp
+  zm_rtsp_server_stream_source.cpp
+  zm_rtsp_server_stream_adts_source.cpp
+  zm_rtsp_server_stream_h264_source.cpp
+  zm_rtsp_server_stream_av1_source.cpp
+  zm_rtsp_server_stream_audio_source.cpp
+  zm_rtsp_server_stream_video_source.cpp
   zm_sdp.cpp
   zm_server.cpp
   zm_signal.cpp

@@ -1,13 +1,13 @@
 /* ---------------------------------------------------------------------------
 **
-** ADTS_FifoSource.cpp
+** ADTS_StreamSource.cpp
 **
 ** ADTS Live555 source
 **
 ** -------------------------------------------------------------------------*/
 
 #include "zm_logger.h"
-#include "zm_rtsp_server_fifo_adts_source.h"
+#include "zm_rtsp_server_stream_adts_source.h"
 
 #include <iomanip>
 #include <sstream>
@@ -18,14 +18,14 @@
 // ADTS ZoneMinder FramedSource
 // ---------------------------------
 //
-ADTS_ZoneMinderFifoSource::ADTS_ZoneMinderFifoSource(
+ADTS_ZoneMinderStreamSource::ADTS_ZoneMinderStreamSource(
   std::shared_ptr<xop::RtspServer>& rtspServer,
   xop::MediaSessionId sessionId,
   xop::MediaChannelId channelId,
   const std::string &fifo
 )
   :
-  ZoneMinderFifoAudioSource(rtspServer, sessionId, channelId, fifo) {
+  ZoneMinderStreamAudioSource(rtspServer, sessionId, channelId, fifo) {
 #if 0
   int profile = 0;
 

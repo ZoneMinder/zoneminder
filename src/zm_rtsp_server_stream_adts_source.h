@@ -3,34 +3,34 @@
 ** support, and with no warranty, express or implied, as to its usefulness for
 ** any purpose.
 **
-** ADTS_ZoneMinderFifoSource.h
+** ADTS_ZoneMinderStreamSource.h
 **
 ** ADTS ZoneMinder live555 source
 **
 ** -------------------------------------------------------------------------*/
 
-#ifndef ZM_RTSP_SERVER_ADTS_FIFO_SOURCE_H
-#define ZM_RTSP_SERVER_ADTS_FIFO_SOURCE_H
+#ifndef ZM_RTSP_SERVER_STREAM_ADTS_SOURCE_H
+#define ZM_RTSP_SERVER_STREAM_ADTS_SOURCE_H
 
 #include "zm_config.h"
-#include "zm_rtsp_server_fifo_audio_source.h"
+#include "zm_rtsp_server_stream_audio_source.h"
 
 #if HAVE_RTSP_SERVER
 // ---------------------------------
 // ADTS(AAC) ZoneMinder FramedSource
 // ---------------------------------
 
-class ADTS_ZoneMinderFifoSource : public ZoneMinderFifoAudioSource {
+class ADTS_ZoneMinderStreamSource : public ZoneMinderStreamAudioSource {
  public:
-  ADTS_ZoneMinderFifoSource(
+  ADTS_ZoneMinderStreamSource(
     std::shared_ptr<xop::RtspServer>& rtspServer,
     xop::MediaSessionId sessionId,
     xop::MediaChannelId channelId,
     const std::string &fifo
   );
 
-  virtual ~ADTS_ZoneMinderFifoSource() {}
+  virtual ~ADTS_ZoneMinderStreamSource() {}
 };
 #endif // HAVE_RTSP_SERVER
 
-#endif // ZM_RTSP_SERVER_ADTS_FIFO_SOURCE_H
+#endif // ZM_RTSP_SERVER_STREAM_ADTS_SOURCE_H

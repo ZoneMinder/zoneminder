@@ -3,34 +3,34 @@
 ** support, and with no warranty, express or implied, as to its usefulness for
 ** any purpose.
 **
-** ADTS_ZoneMinderFifoSource.h
+** ADTS_ZoneMinderStreamSource.h
 **
 ** ADTS ZoneMinder live555 source
 **
 ** -------------------------------------------------------------------------*/
 
-#ifndef ZM_RTSP_SERVER_FIFO_AUDIO_SOURCE_H
-#define ZM_RTSP_SERVER_FIFO_AUDIO_SOURCE_H
+#ifndef ZM_RTSP_SERVER_STREAM_AUDIO_SOURCE_H
+#define ZM_RTSP_SERVER_STREAM_AUDIO_SOURCE_H
 
 #include "zm_config.h"
 #include "zm_logger.h"
-#include "zm_rtsp_server_fifo_source.h"
+#include "zm_rtsp_server_stream_source.h"
 
 #if HAVE_RTSP_SERVER
 // ---------------------------------
 // ZoneMinder AUDIO FramedSource
 // ---------------------------------
 
-class ZoneMinderFifoAudioSource : public ZoneMinderFifoSource {
+class ZoneMinderStreamAudioSource : public ZoneMinderStreamSource {
  public:
-  ZoneMinderFifoAudioSource(
+  ZoneMinderStreamAudioSource(
     std::shared_ptr<xop::RtspServer>& rtspServer,
     xop::MediaSessionId sessionId,
     xop::MediaChannelId channelId,
     const std::string &fifo
   );
 
-  virtual ~ZoneMinderFifoAudioSource() {}
+  virtual ~ZoneMinderStreamAudioSource() {}
 
   void setFrequency(int p_frequency) {
     if (p_frequency <= 0) {
@@ -58,4 +58,4 @@ class ZoneMinderFifoAudioSource : public ZoneMinderFifoSource {
 };
 #endif // HAVE_RTSP_SERVER
 
-#endif // ZM_RTSP_SERVER_FIFO_AUDIO_SOURCE_H
+#endif // ZM_RTSP_SERVER_STREAM_AUDIO_SOURCE_H

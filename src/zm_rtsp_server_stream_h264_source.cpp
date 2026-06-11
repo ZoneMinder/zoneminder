@@ -1,12 +1,12 @@
 /* ---------------------------------------------------------------------------
 **
-** H264_FifoSource.cpp
+** H264_StreamSource.cpp
 **
 ** H264 Live555 source
 **
 ** -------------------------------------------------------------------------*/
 
-#include "zm_rtsp_server_fifo_h264_source.h"
+#include "zm_rtsp_server_stream_h264_source.h"
 
 #include "zm_config.h"
 #include "zm_logger.h"
@@ -21,20 +21,20 @@
 // H264 ZoneMinder FramedSource
 // ---------------------------------
 //
-H264_ZoneMinderFifoSource::H264_ZoneMinderFifoSource(
+H264_ZoneMinderStreamSource::H264_ZoneMinderStreamSource(
   std::shared_ptr<xop::RtspServer>& rtspServer,
   xop::MediaSessionId sessionId,
   xop::MediaChannelId channelId,
   const std::string &fifo
 )
-  : H26X_ZoneMinderFifoSource(rtspServer, sessionId, channelId, fifo) {
+  : H26X_ZoneMinderStreamSource(rtspServer, sessionId, channelId, fifo) {
   // extradata appears to simply be the SPS and PPS NAL's
   //this->splitFrames(m_stream->codecpar->extradata, m_stream->codecpar->extradata_size);
   m_hType = 264;
 }
 
 // split packet into frames
-std::list< std::pair<unsigned char*, size_t> > H264_ZoneMinderFifoSource::splitFrames(unsigned char* frame, size_t &frameSize) {
+std::list< std::pair<unsigned char*, size_t> > H264_ZoneMinderStreamSource::splitFrames(unsigned char* frame, size_t &frameSize) {
   std::list< std::pair<unsigned char*, size_t> > frameList;
 
   size_t bufSize = frameSize;
@@ -75,13 +75,13 @@ std::list< std::pair<unsigned char*, size_t> > H264_ZoneMinderFifoSource::splitF
   return frameList;
 }
 
-H265_ZoneMinderFifoSource::H265_ZoneMinderFifoSource(
+H265_ZoneMinderStreamSource::H265_ZoneMinderStreamSource(
   std::shared_ptr<xop::RtspServer>& rtspServer,
   xop::MediaSessionId sessionId,
   xop::MediaChannelId channelId,
   const std::string &fifo
 )
-  : H26X_ZoneMinderFifoSource(rtspServer, sessionId, channelId, fifo) {
+  : H26X_ZoneMinderStreamSource(rtspServer, sessionId, channelId, fifo) {
   // extradata appears to simply be the SPS and PPS NAL's
   // this->splitFrames(m_stream->codecpar->extradata, m_stream->codecpar->extradata_size);
   m_hType = 265;
@@ -89,7 +89,7 @@ H265_ZoneMinderFifoSource::H265_ZoneMinderFifoSource(
 
 // split packet in frames
 std::list< std::pair<unsigned char*,size_t> >
-H265_ZoneMinderFifoSource::splitFrames(unsigned char* frame, size_t &frameSize) {
+H265_ZoneMinderStreamSource::splitFrames(unsigned char* frame, size_t &frameSize) {
   std::list< std::pair<unsigned char*, size_t> > frameList;
 
   size_t bufSize = frameSize;
@@ -136,9 +136,9 @@ H265_ZoneMinderFifoSource::splitFrames(unsigned char* frame, size_t &frameSize) 
   }  // end while buffer
   frameSize = bufSize;
   return frameList;
-}  // end H265_ZoneMinderFifoSource::splitFrames(unsigned char* frame, unsigned frameSize)
+}  // end H265_ZoneMinderStreamSource::splitFrames(unsigned char* frame, unsigned frameSize)
 
-unsigned char * H26X_ZoneMinderFifoSource::findMarker(
+unsigned char * H26X_ZoneMinderStreamSource::findMarker(
   unsigned char *frame, size_t size, size_t &length
 ) {
   //Debug(1, "findMarker %p %d", frame, size);
@@ -161,7 +161,7 @@ unsigned char * H26X_ZoneMinderFifoSource::findMarker(
 }
 
 // extract a frame
-unsigned char*  H26X_ZoneMinderFifoSource::extractFrame(unsigned char* frame, size_t& size, size_t& outsize) {
+unsigned char*  H26X_ZoneMinderStreamSource::extractFrame(unsigned char* frame, size_t& size, size_t& outsize) {
   unsigned char *outFrame = nullptr;
   Debug(4, "ExtractFrame: %p %zu", frame, size);
   outsize = 0;

@@ -92,12 +92,11 @@ function zm_session_regenerate_id() {
     : $_SERVER['REMOTE_ADDR'];
 } // function zm_session_regenerate_id()
 
-// Regenerate the session id at a privilege boundary (login) in a single
-// Set-Cookie. Unlike zm_session_clear()+zm_session_regenerate_id(), which emit
-// three Set-Cookie headers (a delete plus two fresh starts), this drops any
-// pre-auth session data and uses session_regenerate_id(true) to issue one new id
-// while deleting the old session server-side. Same anti-fixation guarantee, one
-// cookie. Assumes zm_session_start() has been called previously.
+// Regenerate the session id at a privilege boundary (login).
+// When called with an already-started session (the normal login flow), this
+// should emit a single Set-Cookie via session_regenerate_id(true) while
+// discarding any pre-auth session data and deleting the old session server-side.
+// Assumes zm_session_start() has been called previously.
 function zm_session_regenerate_id_login() {
   if (!is_session_started()) zm_session_start();
   // Discard any pre-auth session contents so nothing carries across the

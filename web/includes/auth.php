@@ -811,10 +811,10 @@ if (ZM_OPT_USE_AUTH) {
         $requestPassword = requestString('new_password');
       }
 
-      zm_session_clear(); # Closes session
       // The client has no cookie yet on a first login, but this session must be stored.
       zm_session_persist();
-      zm_session_regenerate_id(); # starts session
+      # Drop the pre-auth session and issue a fresh id in a single Set-Cookie
+      zm_session_regenerate_id_login();
 
       $username = $requestUsername;
       $password = $requestPassword;

@@ -3121,6 +3121,15 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
 }
 
 namespace {
+// Ceiling-divide an unsigned dimension by 2^shift. AV_CEIL_RSHIFT must NOT
+// be used here: its runtime form is -((-(a)) >> (b)), which relies on
+// arithmetic shift of a negative value and silently produces 2^31 + a/2^b
+// when `a` is unsigned (logical shift), sending plane loops billions of
+// samples out of bounds.
+inline unsigned int ceil_rshift(unsigned int a, unsigned int shift) {
+  return (a + (1u << shift) - 1) >> shift;
+}
+
 // Rotate `src_w` × `src_h` plane (bpp bytes per sample, src_linesize stride)
 // into dst (dst_linesize stride) according to angle (90/180/270).
 // For 90/270: dst dims are src_h × src_w. For 180: dst dims are src_w × src_h.
@@ -3224,10 +3233,10 @@ void Image::Rotate(int angle) {
   if (planar) {
     // Each plane has 1 byte per sample. Plane 0 is luma at full resolution;
     // planes 1/2 are chroma subsampled by desc->log2_chroma_w/h. Use ceiling
-    // (AV_CEIL_RSHIFT) — flooring would drop the last chroma column/row for
-    // odd luma dimensions and leave part of U/V unrotated.
-    const unsigned int cw = AV_CEIL_RSHIFT(width,  desc->log2_chroma_w);
-    const unsigned int ch = AV_CEIL_RSHIFT(height, desc->log2_chroma_h);
+    // division — flooring would drop the last chroma column/row for odd luma
+    // dimensions and leave part of U/V unrotated.
+    const unsigned int cw = ceil_rshift(width,  desc->log2_chroma_w);
+    const unsigned int ch = ceil_rshift(height, desc->log2_chroma_h);
     rotate_plane(src_planes[0], src_strides[0], width, height,
                  dst_planes[0], dst_strides[0], 1, angle);
     rotate_plane(src_planes[1], src_strides[1], cw, ch,
@@ -3306,8 +3315,8 @@ void Image::Flip( bool leftright ) {
   if (planar) {
     // Ceiling division so odd luma dimensions don't drop the last chroma
     // column/row.
-    const unsigned int cw = AV_CEIL_RSHIFT(width,  desc->log2_chroma_w);
-    const unsigned int ch = AV_CEIL_RSHIFT(height, desc->log2_chroma_h);
+    const unsigned int cw = ceil_rshift(width,  desc->log2_chroma_w);
+    const unsigned int ch = ceil_rshift(height, desc->log2_chroma_h);
     flip_plane(src_planes[0], src_strides[0], width, height,
                dst_planes[0], dst_strides[0], 1, leftright);
     flip_plane(src_planes[1], src_strides[1], cw, ch,

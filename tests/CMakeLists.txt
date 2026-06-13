@@ -17,13 +17,15 @@ set(TEST_SOURCES
   zm_comms.cpp
   zm_crypt.cpp
   zm_font.cpp
+  zm_image.cpp
   zm_onvif_renewal.cpp
   zm_pixformat.cpp
   zm_poly.cpp
   zm_time.cpp
   zm_utils.cpp
   zm_vector2.cpp
-  zm_zone.cpp)
+  zm_zone.cpp
+  zm_image_linesize.cpp)
 
 add_executable(tests main.cpp ${TEST_SOURCES})
 

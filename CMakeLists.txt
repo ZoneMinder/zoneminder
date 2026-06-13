@@ -10,7 +10,14 @@ set(zoneminder_API_VERSION "${zoneminder_VERSION}.1")
 
 # Make sure the submodules are there
 if(NOT EXISTS "${CMAKE_SOURCE_DIR}/web/api/app/Plugin/Crud/Lib/CrudControllerTrait.php")
-  message(SEND_ERROR "The git submodules are not available. Please run git submodule update --init --recursive")
+  if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
+    message(SEND_ERROR "The git submodules are not available. Please run\n  git submodule update --init --recursive")
+  else()
+    message(SEND_ERROR "This source tree is missing the bundled submodules and cannot be built."
+      " GitHub's auto-generated 'Source code' archives do not include submodules."
+      " Download the complete zoneminder-<version>.tar.gz from the release assets instead,"
+      " or clone the repository with git clone --recurse-submodules.")
+  endif()
 endif()
 
 # CMake does not allow out-of-source build if CMakeCache.exists 

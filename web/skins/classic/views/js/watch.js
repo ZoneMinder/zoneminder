@@ -317,34 +317,6 @@ function streamCmdPan(x, y) {
   monitorStream.streamCommand({x: x, y: y, command: CMD_PAN});
 }
 
-
-/* getStatusCmd is used when not streaming, since there is no persistent zms */
-function getStatusCmdResponse(respObj, respText) {
-  watchdogOk('status');
-  statusCmdTimer = clearTimeout(statusCmdTimer);
-
-  if (respObj.result == 'Ok') {
-    $j('#captureFPSValue').text(respObj.monitor.FrameRate);
-    setAlarmState(respObj.monitor.Status);
-  } else {
-    checkStreamForErrors('getStatusCmdResponse', respObj);
-  }
-
-  var statusCmdTimeout = statusRefreshTimeout;
-  if (alarmState == STATE_ALARM || alarmState == STATE_ALERT) {
-    statusCmdTimeout = statusCmdTimeout/5;
-  }
-  statusCmdTimer = setTimeout(statusCmdQuery, statusCmdTimeout);
-}
-
-function statusCmdQuery() {
-  $j.getJSON(monitorUrl + '?view=request&request=status&entity=monitor&element[]=Status&element[]=FrameRate&id='+monitorId+'&'+auth_relay)
-      .done(getStatusCmdResponse)
-      .fail(logAjaxFail);
-
-  statusCmdTimer = null;
-}
-
 function cmdDisableAlarms() {
   monitorStream.alarmCommand('disableAlarms');
 }
@@ -1430,12 +1402,10 @@ function monitorChangeStreamChannel() {
 function changePlayer() {
   const player = $j('#player').val();
   setCookie('zmWatchPlayer', player);
-  //setCookie('zmWatchPlayer'+monitorId, player);
   if (monitorStream.audioMotion && monitorStream.audioMotion.destroy) monitorStream.audioMotion.destroy();
 
   monitorStream.destroyVolumeSlider();
   streamCmdStop(); // takes care of button state and calls stream.kill()
-  console.log('setting to ', $j('#player').val());
   monitorStream.setPlayer($j('#player').val());
   setChannelStream();
   setTimeout(function() {

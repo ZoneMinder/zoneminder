@@ -3121,6 +3121,15 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
 }
 
 namespace {
+// Ceiling-divide an unsigned dimension by 2^shift. AV_CEIL_RSHIFT must NOT
+// be used here: its runtime form is -((-(a)) >> (b)), which relies on
+// arithmetic shift of a negative value and silently produces 2^31 + a/2^b
+// when `a` is unsigned (logical shift), sending plane loops billions of
+// samples out of bounds.
+inline unsigned int ceil_rshift(unsigned int a, unsigned int shift) {
+  return (a + (1u << shift) - 1) >> shift;
+}
+
 // Rotate `src_w` × `src_h` plane (bpp bytes per sample, src_linesize stride)
 // into dst (dst_linesize stride) according to angle (90/180/270).
 // For 90/270: dst dims are src_h × src_w. For 180: dst dims are src_w × src_h.
@@ -3212,6 +3221,14 @@ void Image::Rotate(int angle) {
     DumpBuffer(rotate_buffer, ZM_BUFTYPE_ZM);
     return;
   }
+  // av_image_fill_arrays re-derives the source stride at 32-byte alignment, but
+  // buffer may be a borrowed plane (e.g. get_y_image wraps a decoder Y plane)
+  // whose real stride is the Image's own linesize and can be smaller than
+  // FFALIGN(width,32). Using the assumed stride would read past the end of that
+  // plane. For ZM-allocated images linesize == src_strides[0], so this is a
+  // no-op there. Only plane 0 is overridden: the only borrowed case is a
+  // single-plane GRAY8 Y image, and planar ZM images are self-consistent.
+  src_strides[0] = linesize;
 
   const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(imagePixFormat);
   if (!desc) {
@@ -3224,10 +3241,10 @@ void Image::Rotate(int angle) {
   if (planar) {
     // Each plane has 1 byte per sample. Plane 0 is luma at full resolution;
     // planes 1/2 are chroma subsampled by desc->log2_chroma_w/h. Use ceiling
-    // (AV_CEIL_RSHIFT) — flooring would drop the last chroma column/row for
-    // odd luma dimensions and leave part of U/V unrotated.
-    const unsigned int cw = AV_CEIL_RSHIFT(width,  desc->log2_chroma_w);
-    const unsigned int ch = AV_CEIL_RSHIFT(height, desc->log2_chroma_h);
+    // division — flooring would drop the last chroma column/row for odd luma
+    // dimensions and leave part of U/V unrotated.
+    const unsigned int cw = ceil_rshift(width,  desc->log2_chroma_w);
+    const unsigned int ch = ceil_rshift(height, desc->log2_chroma_h);
     rotate_plane(src_planes[0], src_strides[0], width, height,
                  dst_planes[0], dst_strides[0], 1, angle);
     rotate_plane(src_planes[1], src_strides[1], cw, ch,
@@ -3282,7 +3299,18 @@ void flip_plane(const uint8_t *src, int src_linesize,
 
 /* RGB32 compatible: complete; planar YUV (YUV420P/J420P/YUV422P/J422P) flipped per-plane */
 void Image::Flip( bool leftright ) {
-  uint8_t* flip_buffer = AllocBuffer(size);
+  // Size the destination from the 32-aligned layout the planes are written at,
+  // not from this->size: a borrowed source (get_y_image wraps a decoder Y
+  // plane) records a tight size from its real linesize, which is smaller than
+  // the aligned destination needs. For ZM-allocated images this equals size.
+  int flip_size_signed = av_image_get_buffer_size(imagePixFormat, width, height, 32);
+  if (flip_size_signed < 0) {
+    Error("Flip: av_image_get_buffer_size failed for %s %ux%u",
+          av_get_pix_fmt_name(imagePixFormat), width, height);
+    return;
+  }
+  const size_t flip_size = static_cast<size_t>(flip_size_signed);
+  uint8_t* flip_buffer = AllocBuffer(flip_size);
 
   uint8_t *src_planes[4] = {nullptr, nullptr, nullptr, nullptr};
   int src_strides[4] = {0, 0, 0, 0};
@@ -3294,6 +3322,10 @@ void Image::Flip( bool leftright ) {
     DumpBuffer(flip_buffer, ZM_BUFTYPE_ZM);
     return;
   }
+  // Use the Image's real stride for the borrowed-plane source rather than the
+  // 32-aligned stride av_image_fill_arrays assumes. See Image::Rotate for the
+  // rationale; no-op for self-consistent ZM-allocated images.
+  src_strides[0] = linesize;
 
   const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(imagePixFormat);
   if (!desc) {
@@ -3306,8 +3338,8 @@ void Image::Flip( bool leftright ) {
   if (planar) {
     // Ceiling division so odd luma dimensions don't drop the last chroma
     // column/row.
-    const unsigned int cw = AV_CEIL_RSHIFT(width,  desc->log2_chroma_w);
-    const unsigned int ch = AV_CEIL_RSHIFT(height, desc->log2_chroma_h);
+    const unsigned int cw = ceil_rshift(width,  desc->log2_chroma_w);
+    const unsigned int ch = ceil_rshift(height, desc->log2_chroma_h);
     flip_plane(src_planes[0], src_strides[0], width, height,
                dst_planes[0], dst_strides[0], 1, leftright);
     flip_plane(src_planes[1], src_strides[1], cw, ch,
@@ -3325,7 +3357,7 @@ void Image::Flip( bool leftright ) {
                dst_planes[0], dst_strides[0], bpp, leftright);
   }
 
-  AssignDirect(width, height, colours, subpixelorder, flip_buffer, size, ZM_BUFTYPE_ZM);
+  AssignDirect(width, height, colours, subpixelorder, flip_buffer, flip_size, ZM_BUFTYPE_ZM);
 }
 
 void Image::Scale(const unsigned int new_width, const unsigned int new_height) {

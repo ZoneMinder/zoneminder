@@ -148,6 +148,8 @@ function ajaxRequest(params) {
     timeout: 0,
     success: function(data) {
       if (data.result == 'Error') {
+        // Settle the loading overlay before bailing, otherwise it stays up.
+        table.bootstrapTable('hideLoading');
         alert(data.message);
         return;
       }
@@ -160,12 +162,21 @@ function ajaxRequest(params) {
       // rearrange the result into what bootstrap-table expects
       params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
 
+      // Always clear the loading overlay. params.success only hides it for
+      // non-silent requests, but a silent request (background refresh /
+      // silentSort) can supersede and abort the non-silent request that
+      // painted the overlay. Without this the rows load but stay masked
+      // behind a stuck spinner, so the table appears not to populate.
+      table.bootstrapTable('hideLoading');
+
       // Update footer with totals from response after table is rendered
       if (data.footer) {
         updateFooter(data.footer);
       }
     },
     error: function(jqXHR) {
+      // An aborted request is superseded by a newer one; that newer request
+      // owns the loading overlay, so leave it alone here.
       if (jqXHR.statusText == 'abort') return;
       // A dead session returns 401 here; go to login rather than silently
       // leaving stale thumbnails that keep 403ing against zms.
@@ -173,6 +184,8 @@ function ajaxRequest(params) {
         goToLogin();
         return;
       }
+      // Clear the overlay so a failed load doesn't leave the table masked.
+      table.bootstrapTable('hideLoading');
       console.log("error", jqXHR);
     }
   });

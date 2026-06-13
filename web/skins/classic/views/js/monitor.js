@@ -313,37 +313,40 @@ function initPage() {
 
   sourceFormMonitor = $j('#contentForm').serialize();
   // Manage the ZONES Button
-  document.getElementById("zones-tab").addEventListener("click", function onZonesClick(evt) {
-    if ($j('#contentForm').serialize() !== sourceFormMonitor) {
-      evt.preventDefault();
-      const data = {
-        request: "modal",
-        modal: "saveconfirm",
-        key: messageSavingDataWhenLeavingPage
-      };
+  const zonesTab = document.getElementById("zones-tab");
+  if (zonesTab) {
+    zonesTab.addEventListener("click", function onZonesClick(evt) {
+      if ($j('#contentForm').serialize() !== sourceFormMonitor) {
+        evt.preventDefault();
+        const data = {
+          request: "modal",
+          modal: "saveconfirm",
+          key: messageSavingDataWhenLeavingPage
+        };
 
-      if (!document.getElementById('saveConfirm')) {
-        // Load the save confirmation modal into the DOM
-        $j.getJSON(thisUrl, data)
-            .done(function(data) {
-              insertModalHtml('saveConfirm', data.html);
-              manageSaveConfirmModalBtns();
-              $j('#saveConfirm').modal('show');
-            })
-            .fail(function(jqXHR) {
-              console.log('error getting saveconfirm', jqXHR);
-              logAjaxFail(jqXHR);
-            });
-        return;
+        if (!document.getElementById('saveConfirm')) {
+          // Load the save confirmation modal into the DOM
+          $j.getJSON(thisUrl, data)
+              .done(function(data) {
+                insertModalHtml('saveConfirm', data.html);
+                manageSaveConfirmModalBtns();
+                $j('#saveConfirm').modal('show');
+              })
+              .fail(function(jqXHR) {
+                console.log('error getting saveconfirm', jqXHR);
+                logAjaxFail(jqXHR);
+              });
+          return;
+        } else {
+          document.getElementById('saveConfirmBtn').disabled = false; // re-enable the button
+          $j('#saveConfirm').modal('show');
+        }
       } else {
-        document.getElementById('saveConfirmBtn').disabled = false; // re-enable the button
-        $j('#saveConfirm').modal('show');
+        const href = '?view=zones&mid='+mid;
+        window.location.assign(href);
       }
-    } else {
-      const href = '?view=zones&mid='+mid;
-      window.location.assign(href);
-    }
-  });
+    });
+  }
 
   // Manage the SAVE CONFIRMATION modal button
   function manageSaveConfirmModalBtns() {

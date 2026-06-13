@@ -49,11 +49,12 @@ class Monitor extends ZM_Object {
     'last_write_time'  => [ 'type'=>'time_t64', 'offset'=>128, 'size'=>8 ],
     'last_read_time'   => [ 'type'=>'time_t64', 'offset'=>136, 'size'=>8 ],
     'last_viewed_time' => [ 'type'=>'time_t64', 'offset'=>144, 'size'=>8 ],
-    'control_state'    => [ 'type'=>'uint8[256]', 'offset'=>152, 'size'=>256 ],
-    'alarm_cause'      => [ 'type'=>'int8[256]', 'offset'=>408, 'size'=>256 ],
-    'video_fifo'       => [ 'type'=>'int8[64]', 'offset'=>664, 'size'=>64 ],
-    'audio_fifo'       => [ 'type'=>'int8[64]', 'offset'=>728, 'size'=>64 ],
-    'janus_pin'        => [ 'type'=>'int8[64]', 'offset'=>792, 'size'=>64 ],
+    'last_analysis_viewed_time' => [ 'type'=>'time_t64', 'offset'=>152, 'size'=>8 ],
+    'control_state'    => [ 'type'=>'uint8[256]', 'offset'=>160, 'size'=>256 ],
+    'alarm_cause'      => [ 'type'=>'int8[256]', 'offset'=>416, 'size'=>256 ],
+    'video_fifo'       => [ 'type'=>'int8[64]', 'offset'=>672, 'size'=>64 ],
+    'audio_fifo'       => [ 'type'=>'int8[64]', 'offset'=>736, 'size'=>64 ],
+    'janus_pin'        => [ 'type'=>'int8[64]', 'offset'=>800, 'size'=>64 ],
   ], 
   'TriggerData' => [
     'size'     => [ 'type'=>'uint32', 'offset'=>864, 'size'=>4 ],
@@ -62,7 +63,7 @@ class Monitor extends ZM_Object {
     'padding'  => [ 'type'=>'uint32', 'offset'=>876, 'size'=>4 ],
     'cause'    => [ 'type'=>'int8[32]', 'offset'=>880, 'size'=>32 ],
     'text'     => [ 'type'=>'int8[256]', 'offset'=>912, 'size'=>256 ],
-    'showtext' => [ 'type'=>'int8[256]', 'offset'=>1268, 'size'=>256 ],
+    'showtext' => [ 'type'=>'int8[256]', 'offset'=>1168, 'size'=>256 ],
     // 1424
   ]
   ];

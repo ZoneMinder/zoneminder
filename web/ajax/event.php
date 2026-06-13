@@ -192,6 +192,22 @@ if ( canView('Events') or canView('Snapshots') ) {
     }
     ajaxResponse();
     break;
+  case 'file_existence_check' :
+    $fileNameArray = $_REQUEST['file_name_array'] ?? [];
+    if (!is_array($fileNameArray)) ajaxError('The "file_name_array" request parameter is not an array');
+    if (count($fileNameArray) > 100) ajaxError('Too many files requested');
+    $result = [];
+    foreach ($fileNameArray as $fileName) {
+      if (!is_string($fileName) || $fileName === '' || strlen($fileName) > 4096 || strpos($fileName, "\0") !== false) continue;
+
+      // Only allow relative paths under DIR_EXPORTS_DOWNLOAD; reject traversal/absolute paths.
+      $fileName = ltrim($fileName, "/\\");
+      if (preg_match('#(^|[\\/])\.\.([\\/]|$)#', $fileName)) continue;
+      $path = DIR_EXPORTS_DOWNLOAD . DIRECTORY_SEPARATOR . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $fileName);
+      $result[] = [$fileName, file_exists($path)];
+    }
+    ajaxResponse(array('response'=>$result));
+    break;
   }
 } // end if canView('Events')
 

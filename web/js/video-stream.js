@@ -102,6 +102,19 @@ class VideoStream extends VideoRTC {
         return super.onclose();
     }
 
+    onerror(ev) {
+        console.debug('stream.onerror');
+        const liveStream = this.closest('[id ^= "liveStream"]');
+        if (liveStream) {
+            const monitorStream = getMonitorStream(stringToNumber(liveStream.id));
+            if (monitorStream && monitorStream.started) {
+                monitorStream.streamErrorRegistration();
+                monitorStream.restart(monitorStream.currentChannelStream);
+            }
+        }
+        super.onerror(ev);
+    }
+
     onpcvideo(ev) {
         console.debug('stream.onpcvideo');
         super.onpcvideo(ev);

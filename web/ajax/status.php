@@ -24,6 +24,7 @@ if ($_REQUEST['entity'] == 'navBar') {
   $data['getStorageHTML'] = getStorageHTML();
   //$data['getShmHTML'] = getShmHTML();
   $data['getRamHTML'] = getRamHTML();
+  $data['getLogStatusHTML'] = logState();
 
   ajaxResponse($data);
   return;

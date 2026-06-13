@@ -49,28 +49,36 @@ ajaxResponse($data);
 //
 
 function createRequest() {
-  if (!empty($_POST['level']) && !empty($_POST['message'])) {
-    ZM\logInit(array('id'=>'web_js'));
+  // Every field here is attacker-controlled. Coerce each to a scalar and strip
+  // control characters (newlines, carriage returns, tabs, etc.) so nothing can
+  // forge additional lines in the text log file, and so non-scalar input (e.g.
+  // message[]=x) cannot trip a TypeError in logPrint(). A log message is a
+  // single line; the Log view stores it as one Message column regardless.
+  $sanitize = function($value) {
+    return is_scalar($value) ? preg_replace('/[\x00-\x1F\x7F]+/', ' ', (string)$value) : '';
+  };
 
-    $file = !empty($_POST['file']) ? preg_replace('/\w+:\/\/[\w.:]+\//', '', $_POST['file']) : '';
-    // Strip control characters (newlines, carriage returns, tabs, etc.) from the
-    // client-supplied fields so they cannot forge additional lines in the text
-    // log file. A log message is a single line; the Log view stores it as one
-    // Message column regardless.
-    $file = preg_replace('/[\x00-\x1F\x7F]+/', ' ', $file);
-    $message = preg_replace('/[\x00-\x1F\x7F]+/', ' ', $_POST['message']);
-    $line = empty($_POST['line']) ? NULL : validInt($_POST['line']);
+  $level = $sanitize($_POST['level'] ?? '');
+  $message = $sanitize($_POST['message'] ?? '');
+  // Strip the URL scheme/host from file, then the control characters.
+  $file = (isset($_POST['file']) && is_scalar($_POST['file']))
+    ? $sanitize(preg_replace('/\w+:\/\/[\w.:]+\//', '', (string)$_POST['file']))
+    : '';
 
-    $levels = array_flip(ZM\Logger::$codes);
-    if (!isset($levels[$_POST['level']])) {
-      ZM\Error('Unexpected logger level '.$_POST['level']);
-      $_POST['level'] = 'ERR';
-    }
-    $level = $levels[$_POST['level']];
-    ZM\Logger::fetch()->logPrint($level, $message, $file, $line);
-  } else {
-    ZM\Error('Invalid log create: '.print_r($_POST, true));
+  if ($level === '' || $message === '') {
+    ZM\Error('Invalid log create: level and message are required');
+    return;
   }
+
+  ZM\logInit(array('id'=>'web_js'));
+  $line = empty($_POST['line']) ? NULL : validInt($_POST['line']);
+
+  $levels = array_flip(ZM\Logger::$codes);
+  if (!isset($levels[$level])) {
+    ZM\Error('Unexpected logger level '.$level); // already sanitized above
+    $level = 'ERR';
+  }
+  ZM\Logger::fetch()->logPrint($levels[$level], $message, $file, $line);
 }
 
 function queryRequest() {

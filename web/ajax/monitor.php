@@ -21,7 +21,7 @@ if ( canView('Monitors') || (isset($_REQUEST['mid']) && $_REQUEST['mid'] !== '' 
     $badChars = [];
     $message = '';
 
-    if (isset($_REQUEST['monitorName']) && $_REQUEST['monitorName'] !== '') {
+    if (isset($_REQUEST['monitorName']) && is_string($_REQUEST['monitorName']) && $_REQUEST['monitorName'] !== '') {
       $monitorName = $_REQUEST['monitorName'];
       $trimmedMonitorName = trim($monitorName);
       $cleanedMonitorName = preg_replace($filterRegexp, '', $trimmedMonitorName);

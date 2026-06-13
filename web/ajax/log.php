@@ -38,31 +38,45 @@ ajaxResponse($data);
 //
 
 function createRequest() {
-  if (!empty($_POST['level']) && !empty($_POST['message'])) {
-    ZM\logInit(array('id'=>'web_js'));
+  // Every field here is attacker-controlled. Coerce each to a scalar and strip
+  // control characters (newlines, carriage returns, tabs, etc.) so nothing can
+  // forge additional lines in the text log file, and so non-scalar input (e.g.
+  // message[]=x) cannot trip a TypeError in logPrint(). A log message is a
+  // single line; the Log view stores it as one Message column regardless.
+  $sanitize = function($value) {
+    return is_scalar($value) ? preg_replace('/[\x00-\x1F\x7F]+/', ' ', (string)$value) : '';
+  };
 
-    $file = !empty($_POST['file']) ? preg_replace('/\w+:\/\/[\w.:]+\//', '', $_POST['file']) : '';
-    // Firefox reports the location as "line:column" (e.g. 1500:28).  validInt()
-    // only strips non-digit characters, so it splices the two together into
-    // 150028, which overflows the smallint Logs.Line column and makes this
-    // endpoint die with a 500 -- the log request fails on the very error it was
-    // sent to report.  Take the leading line number and clamp it to the column.
-    $line = NULL;
-    if (!empty($_POST['line']) and is_scalar($_POST['line'])
-        and preg_match('/\d+/', (string)$_POST['line'], $line_matches)) {
-      $line = min((int)$line_matches[0], 65535);
-    }
+  $level = $sanitize($_POST['level'] ?? '');
+  $message = $sanitize($_POST['message'] ?? '');
+  // Strip the URL scheme/host from file, then the control characters.
+  $file = (isset($_POST['file']) && is_scalar($_POST['file']))
+    ? $sanitize(preg_replace('/\w+:\/\/[\w.:]+\//', '', (string)$_POST['file']))
+    : '';
 
-    $levels = array_flip(ZM\Logger::$codes);
-    if (!isset($levels[$_POST['level']])) {
-      ZM\Error('Unexpected logger level '.$_POST['level']);
-      $_POST['level'] = 'ERR';
-    }
-    $level = $levels[$_POST['level']];
-    ZM\Logger::fetch()->logPrint($level, $_POST['message'], $file, $line);
-  } else {
-    ZM\Error('Invalid log create: '.print_r($_POST, true));
+  if ($level === '' || $message === '') {
+    ZM\Error('Invalid log create: level and message are required');
+    return;
   }
+
+  ZM\logInit(array('id'=>'web_js'));
+  // Firefox reports the location as "line:column" (e.g. 1500:28).  validInt()
+  // only strips non-digit characters, so it splices the two together into
+  // 150028, which overflows the smallint Logs.Line column and makes this
+  // endpoint die with a 500 -- the log request fails on the very error it was
+  // sent to report.  Take the leading line number and clamp it to the column.
+  $line = NULL;
+  if (!empty($_POST['line']) and is_scalar($_POST['line'])
+      and preg_match('/\d+/', (string)$_POST['line'], $line_matches)) {
+    $line = min((int)$line_matches[0], 65535);
+  }
+
+  $levels = array_flip(ZM\Logger::$codes);
+  if (!isset($levels[$level])) {
+    ZM\Error('Unexpected logger level '.$level); // already sanitized above
+    $level = 'ERR';
+  }
+  ZM\Logger::fetch()->logPrint($levels[$level], $message, $file, $line);
 }
 
 function queryRequest() {

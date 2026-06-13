@@ -34,7 +34,16 @@ if (!window.console) {
   console.debug = console.log;
 }
 
+// Browser extensions (ad blockers, password managers, etc.) inject scripts
+// into every page; their errors and CSP violations are not ZoneMinder's and
+// would otherwise spam the log. Ignore anything sourced from an extension.
+function isExtensionSource(url) {
+  return (typeof url === 'string') &&
+    /^(moz-extension|chrome-extension|safari-web-extension|safari-extension|webkit-masked-url):/.test(url);
+}
+
 window.onerror = function(message, url, line, col, error) {
+  if (isExtensionSource(url)) return;
   if (!message || message === 'Script error.') {
     message = 'Script error (no details available, possibly cross-origin)';
   }
@@ -46,6 +55,7 @@ window.onerror = function(message, url, line, col, error) {
 };
 
 window.addEventListener("securitypolicyviolation", function logCSP(evt) {
+  if (isExtensionSource(evt.sourceFile) || isExtensionSource(evt.blockedURI)) return;
   const level = evt.disposition == "enforce" ? "ERR" : "DBG";
   let message = evt.blockedURI + " violated CSP " + evt.violatedDirective;
 

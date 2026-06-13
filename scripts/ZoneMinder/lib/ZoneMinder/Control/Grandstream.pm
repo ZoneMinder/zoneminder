@@ -137,7 +137,6 @@ sub open {
   $self->{ua}->cookie_jar( {} );
 
 
-  my $rescode = '';
   my $url = $BASE_URL.'/goform/login?cmd=login&type=0&user='.$USERNAME;
   my $response = $self->get($url);
   if ($response->is_success()) {
@@ -147,15 +146,28 @@ sub open {
 	  my $authcode = md5_hex($challengeString.':GSC36XXlZpRsFzCbM:'.$PASSWORD);
 	  $url .= '&authcode='.$authcode;
 	  $response = $self->get($url);
-	  $dom = XML::LibXML->load_xml(string => $response->content);
-	  $rescode = $dom->getElementsByTagName('ResCode');
+	  if (!$response->is_success()) {
+	    Error('Grandstream login authcode request failed: '.$response->status_line());
+	    return 0;
+	  }
+	  my $dom2 = XML::LibXML->load_xml(string => $response->content);
+	  my $rescode = $dom2->getElementsByTagName('ResCode')->string_value();
+	  Debug("Grandstream login ResCode: $rescode");
   } else {
-	  Warning("Falling back to old style");
+	  # Initial probe failed; fall back to the old basic-auth-in-URL style and
+	  # test that too, so we only report success if we can actually reach the camera.
+	  Warning('Falling back to old style');
 	  $PROTOCOL = 'http://';
 	  $BASE_URL = $PROTOCOL.$USERNAME.':'.$PASSWORD.'@'.$ADDRESS;
+	  $response = $self->get($BASE_URL.'/goform/login?cmd=login&type=0&user='.$USERNAME);
+	  if (!$response->is_success()) {
+	    Error('Grandstream old-style connection failed: '.$response->status_line());
+	    return 0;
+	  }
   }
 
   $self->{state} = 'open';
+  return 1;
 }
 
 sub get {

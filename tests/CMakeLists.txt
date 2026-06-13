@@ -17,6 +17,7 @@ set(TEST_SOURCES
   zm_comms.cpp
   zm_crypt.cpp
   zm_font.cpp
+  zm_image.cpp
   zm_onvif_renewal.cpp
   zm_pixformat.cpp
   zm_poly.cpp

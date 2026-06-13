@@ -183,7 +183,7 @@ if ($action == 'save') {
           require_once('includes/Storage.php');
           foreach (ZM\Storage::find() as $Storage) {
             # Let's remove old symlinks
-            $storagePath = $Storage->Path() .'/';
+            $storagePath = realpath($Storage->Path()) .'/';
             $dirStoragePath = opendir($storagePath);
             if($dirStoragePath === false) {
               ZM\Warning("Unable to check and delete old symlinks to monitor with ID=".$monitor->Id()." in the '".$Storage->Name()."' storage because the path to the storage is missing or unreadable.");

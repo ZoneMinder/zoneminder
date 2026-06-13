@@ -783,6 +783,7 @@ $SLANG = array(
     'TurboPanSpeed'        => 'Скорость ускор. панорам.',
     'TurboTiltSpeed'       => 'Скорость ускор. наклона',
     'Type'                 => 'Тип',
+    'TZUnset'              => 'Не задано - используется значение из php.ini',
     'Unarchive'            => 'Уд.&nbsp;из&nbsp;архива',
     'Undefined'            => 'Не определено',              // Added - 2009-02-08
     'Units'                => 'Ед. измерения',

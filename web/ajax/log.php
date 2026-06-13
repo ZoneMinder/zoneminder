@@ -53,6 +53,12 @@ function createRequest() {
     ZM\logInit(array('id'=>'web_js'));
 
     $file = !empty($_POST['file']) ? preg_replace('/\w+:\/\/[\w.:]+\//', '', $_POST['file']) : '';
+    // Strip control characters (newlines, carriage returns, tabs, etc.) from the
+    // client-supplied fields so they cannot forge additional lines in the text
+    // log file. A log message is a single line; the Log view stores it as one
+    // Message column regardless.
+    $file = preg_replace('/[\x00-\x1F\x7F]+/', ' ', $file);
+    $message = preg_replace('/[\x00-\x1F\x7F]+/', ' ', $_POST['message']);
     $line = empty($_POST['line']) ? NULL : validInt($_POST['line']);
 
     $levels = array_flip(ZM\Logger::$codes);
@@ -61,7 +67,7 @@ function createRequest() {
       $_POST['level'] = 'ERR';
     }
     $level = $levels[$_POST['level']];
-    ZM\Logger::fetch()->logPrint($level, $_POST['message'], $file, $line);
+    ZM\Logger::fetch()->logPrint($level, $message, $file, $line);
   } else {
     ZM\Error('Invalid log create: '.print_r($_POST, true));
   }

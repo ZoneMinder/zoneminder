@@ -235,10 +235,11 @@ int VncCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
         width,
         height);
 
+  // The VNC framebuffer is packed rows (alignment 1); directbuffer is an
+  // Image buffer (WriteBuffer), which is always align-32.
   int rc = scale.Convert(
              mVncData.buffer,
              mRfb->si.framebufferWidth * mRfb->si.framebufferHeight * 4,
-             //SWScale::GetBufferSize(AV_PIX_FMT_RGBA, mRfb->si.framebufferWidth, mRfb->si.framebufferHeight),
              directbuffer,
              width * height * colours,
              AV_PIX_FMT_RGBA,
@@ -246,7 +247,8 @@ int VncCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
              mRfb->si.framebufferWidth,
              mRfb->si.framebufferHeight,
              width,
-             height);
+             height,
+             1, 32);
   return rc == 0 ? 1 : rc;
 }
 

@@ -691,6 +691,7 @@ $SLANG = array(
     'SaveAs'               => 'Сохранить как',
     'SaveFilter'           => 'Сохранить фильтр',
     'SaveJPEGs'            => 'Сохранить JPEG-и',             // Edited - 2019-03-24
+    'Scan this QR code with the zmNg app to add this profile' => 'Отсканируйте этот QR-код с помощью приложения zmNg, чтобы добавить данный профиль.',
     'Scale'                => 'Масштаб',
     'Score'                => 'Оценка',
     'Secs'                 => 'Сек.',

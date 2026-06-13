@@ -23,10 +23,7 @@
 #include "zm_logger.h"
 
 SWScale::SWScale() :
-  gotdefaults(false),
-  swscale_ctx(nullptr),
-  default_width(0),
-  default_height(0) {
+  swscale_ctx(nullptr) {
   Debug(4, "SWScale object created");
 }
 
@@ -54,23 +51,6 @@ SWScale::~SWScale() {
   }
 
   Debug(4, "SWScale object destroyed");
-}
-
-int SWScale::SetDefaults(
-  enum _AVPIXELFORMAT in_pf,
-  enum _AVPIXELFORMAT out_pf,
-  unsigned int width,
-  unsigned int height) {
-
-  /* Assign the defaults */
-  default_input_pf = in_pf;
-  default_output_pf = out_pf;
-  default_width = width;
-  default_height = height;
-
-  gotdefaults = true;
-
-  return 0;
 }
 
 int SWScale::Convert(
@@ -109,11 +89,13 @@ int SWScale::Convert(
   unsigned int width,
   unsigned int height,
   unsigned int new_width,
-  unsigned int new_height
+  unsigned int new_height,
+  int in_alignment,
+  int out_alignment
 ) {
-  Debug(1, "Convert: in_buffer %p in_buffer_size %zu out_buffer %p size %zu width %d height %d width %d height %d %d %d",
+  Debug(1, "Convert: in_buffer %p in_buffer_size %zu out_buffer %p size %zu width %d height %d width %d height %d %d %d align %d/%d",
         in_buffer, in_buffer_size, out_buffer, out_buffer_size, width, height, new_width, new_height,
-        in_pf, out_pf);
+        in_pf, out_pf, in_alignment, out_alignment);
   /* Parameter checking */
   if (in_buffer == nullptr) {
     Error("NULL Input buffer");
@@ -123,13 +105,13 @@ int SWScale::Convert(
     Error("NULL output buffer");
     return -1;
   }
-  //  if(in_pf == 0 || out_pf == 0) {
-  //    Error("Invalid input or output pixel formats");
-  //    return -2;
-  //  }
   if (!width || !height || !new_height || !new_width) {
     Error("Invalid width or height");
     return -3;
+  }
+  if (in_alignment <= 0 || out_alignment <= 0) {
+    Error("Invalid buffer alignment %d/%d", in_alignment, out_alignment);
+    return -4;
   }
 
   in_pf = fix_deprecated_pix_fmt(in_pf);
@@ -144,19 +126,19 @@ int SWScale::Convert(
             (out_pf)&0xff,((out_pf>>8)&0xff),((out_pf>>16)&0xff),((out_pf>>24)&0xff));
   }
 
-  int alignment = width % 32 ? 1 : 32;
-  /* Check the buffer sizes */
-  size_t needed_insize = GetBufferSize(in_pf, width, height);
+  /* Check the buffer sizes against the layout each alignment implies */
+  size_t needed_insize = GetBufferSize(in_pf, width, height, in_alignment);
   if (needed_insize > in_buffer_size) {
     Warning(
-      "The input buffer size does not match the expected size for the input format. Required: %zu for %dx%d %d Available: %zu",
+      "The input buffer size does not match the expected size for the input format. Required: %zu for %dx%d %d align %d Available: %zu",
       needed_insize,
       width,
       height,
       in_pf,
+      in_alignment,
       in_buffer_size);
   }
-  size_t needed_outsize = GetBufferSize(out_pf, new_width, new_height);
+  size_t needed_outsize = GetBufferSize(out_pf, new_width, new_height, out_alignment);
   if (needed_outsize > out_buffer_size) {
     Error("The output buffer is undersized for the output format. Required: %zu Available: %zu",
           needed_outsize,
@@ -174,22 +156,18 @@ int SWScale::Convert(
     return -6;
   }
 
-  /*
-  input_avframe->format = in_pf;
-  input_avframe->width = width;
-  input_avframe->height = height;
-  output_avframe->format = out_pf;
-  output_avframe->width = new_width;
-  output_avframe->height = new_height;
-  */
-  /* Fill in the buffers */
+  /* Fill in the buffers. The alignments describe how the caller's buffers
+   * are actually laid out — they are facts about the buffers, not tuning
+   * knobs. Guessing them from the dimensions (the old `width % 32 ? 1 : 32`
+   * heuristic) misread every align-32 Image whose width was not a multiple
+   * of 32, e.g. the 720- or 2160-wide output of a rotated monitor. */
   if (av_image_fill_arrays(input_avframe->data, input_avframe->linesize,
-                           (uint8_t*) in_buffer, in_pf, width, height, alignment) <= 0) {
+                           (uint8_t*) in_buffer, in_pf, width, height, in_alignment) <= 0) {
     Error("Failed filling input frame with input buffer");
     return -7;
   }
   if (av_image_fill_arrays(output_avframe->data, output_avframe->linesize,
-                           out_buffer, out_pf, new_width, new_height, alignment) <= 0) {
+                           out_buffer, out_pf, new_width, new_height, out_alignment) <= 0) {
     Error("Failed filling output frame with output buffer");
     return -8;
   }
@@ -214,8 +192,10 @@ int SWScale::Convert(
   enum _AVPIXELFORMAT in_pf,
   enum _AVPIXELFORMAT out_pf,
   unsigned int width,
-  unsigned int height) {
-  return Convert(in_buffer, in_buffer_size, out_buffer, out_buffer_size, in_pf, out_pf, width, height, width, height);
+  unsigned int height,
+  int in_alignment,
+  int out_alignment) {
+  return Convert(in_buffer, in_buffer_size, out_buffer, out_buffer_size, in_pf, out_pf, width, height, width, height, in_alignment, out_alignment);
 }
 
 int SWScale::Convert(
@@ -225,7 +205,8 @@ int SWScale::Convert(
   enum _AVPIXELFORMAT in_pf,
   enum _AVPIXELFORMAT out_pf,
   unsigned int width,
-  unsigned int height) {
+  unsigned int height,
+  int out_alignment) {
   if ( img->Width() != width ) {
     Error("Source image width differs. Source: %d Output: %d", img->Width(), width);
     return -12;
@@ -236,29 +217,10 @@ int SWScale::Convert(
     return -13;
   }
 
-  return Convert(img->Buffer(), img->Size(), out_buffer, out_buffer_size, in_pf, out_pf, width, height);
+  // Image buffers are always laid out by av_image_* with align=32
+  return Convert(img->Buffer(), img->Size(), out_buffer, out_buffer_size, in_pf, out_pf, width, height, 32, out_alignment);
 }
 
-int SWScale::ConvertDefaults(const Image* img, uint8_t* out_buffer, const size_t out_buffer_size) {
-
-  if ( !gotdefaults ) {
-    Error("Defaults are not set");
-    return -24;
-  }
-
-  return Convert(img,out_buffer,out_buffer_size,default_input_pf,default_output_pf,default_width,default_height);
-}
-
-int SWScale::ConvertDefaults(const uint8_t* in_buffer, const size_t in_buffer_size, uint8_t* out_buffer, const size_t out_buffer_size) {
-
-  if ( !gotdefaults ) {
-    Error("Defaults are not set");
-    return -24;
-  }
-
-  return Convert(in_buffer,in_buffer_size,out_buffer,out_buffer_size,default_input_pf,default_output_pf,default_width,default_height);
-}
-
-size_t SWScale::GetBufferSize(enum _AVPIXELFORMAT pf, unsigned int width, unsigned int height) {
-  return av_image_get_buffer_size(pf, width, height, 1);
+size_t SWScale::GetBufferSize(enum _AVPIXELFORMAT pf, unsigned int width, unsigned int height, int alignment) {
+  return av_image_get_buffer_size(pf, width, height, alignment);
 }

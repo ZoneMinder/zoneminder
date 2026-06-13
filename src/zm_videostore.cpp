@@ -1153,6 +1153,10 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
           zm_packet->get_out_frame(video_out_ctx->width, video_out_ctx->height, chosen_codec_data->sw_pix_fmt);
           av_frame_ref(frame.get(), zm_packet->out_frame.get());
 
+          // The destination is out_frame's buffer, which get_out_frame laid
+          // out at alignment (width % 32 ? 1 : 32) — mirror that choice here
+          // so sws writes the layout the encoder will read via
+          // out_frame->linesize.
           swscale.Convert(
               zm_packet->image,
               frame->buf[0]->data,
@@ -1160,7 +1164,8 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
               zm_packet->image->AVPixFormat(),
               chosen_codec_data->sw_pix_fmt,
               video_out_ctx->width,
-              video_out_ctx->height
+              video_out_ctx->height,
+              (video_out_ctx->width % 32) ? 1 : 32
               );
         }
       } else if (zm_packet->in_frame) {

@@ -3382,8 +3382,11 @@ void Image::Scale(const unsigned int new_width, const unsigned int new_height) {
 
   SWScale swscale;
   swscale.init();
+  // Both buffers use Image's align-32 layout: `buffer` is ours, and
+  // scale_buffer is adopted by AssignDirect below, which derives
+  // size/linesize with av_image_* at align=32.
   if (swscale.Convert(buffer, allocation, scale_buffer, scale_buffer_size,
-                      format, format, width, height, new_width, new_height) < 0) {
+                      format, format, width, height, new_width, new_height, 32, 32) < 0) {
     Error("Scale: sws_scale conversion failed (%ux%u %s -> %ux%u)",
           width, height, av_get_pix_fmt_name(format), new_width, new_height);
     DumpBuffer(scale_buffer, ZM_BUFTYPE_ZM);

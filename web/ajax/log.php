@@ -176,7 +176,11 @@ function queryRequest() {
   if ($where) $where = ' WHERE '.$where;
 
   $data['totalNotFiltered'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table, 'Total');
-  if ( $search != '' || count($advsearch) ) {
+  // Recompute the filtered total whenever any filter is active (search,
+  // advanced search, or the Component/ServerId/level/Start/End filters that
+  // all build up $where). Otherwise the row count and page list reflect the
+  // unfiltered total and pagination breaks. refs #4906
+  if ($where) {
     $data['total'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table.$where , 'Total', $query['values']);
   } else {
     $data['total'] = $data['totalNotFiltered'];

@@ -165,16 +165,30 @@ bool VideoStore::open() {
       if (orientation > 1) { // 1 is ROTATE_0
 #if LIBAVCODEC_VERSION_CHECK(59, 37, 100, 37, 100)
         int32_t* displaymatrix = static_cast<int32_t*>(av_malloc(sizeof(int32_t)*9));
+        // Initialise to identity so the matrix is always fully written before
+        // it is attached as side data; av_display_rotation_set(.,0) yields the
+        // identity matrix.
+        av_display_rotation_set(displaymatrix, 0);
         Debug(3, "Have orientation %d", orientation);
-        if (orientation == Monitor::ROTATE_0) {
-        } else if (orientation == Monitor::ROTATE_90) {
-          av_display_rotation_set(displaymatrix, 90);
-        } else if (orientation == Monitor::ROTATE_180) {
-          av_display_rotation_set(displaymatrix, 180);
-        } else if (orientation == Monitor::ROTATE_270) {
-          av_display_rotation_set(displaymatrix, 270);
-        } else {
-          Warning("Unsupported Orientation(%d)", orientation);
+        switch (orientation) {
+          case Monitor::ROTATE_90:
+            av_display_rotation_set(displaymatrix, 90);
+            break;
+          case Monitor::ROTATE_180:
+            av_display_rotation_set(displaymatrix, 180);
+            break;
+          case Monitor::ROTATE_270:
+            av_display_rotation_set(displaymatrix, 270);
+            break;
+          case Monitor::FLIP_HORI:
+            av_display_matrix_flip(displaymatrix, 1, 0);
+            break;
+          case Monitor::FLIP_VERT:
+            av_display_matrix_flip(displaymatrix, 0, 1);
+            break;
+          default:
+            Warning("Unsupported Orientation(%d)", orientation);
+            break;
         }
 #endif
 #if LIBAVCODEC_VERSION_CHECK(60, 31, 102, 31, 102)
@@ -191,18 +205,23 @@ bool VideoStore::open() {
 					sizeof(int32_t) * 9);
 #endif
 #endif
-        if (orientation == Monitor::ROTATE_0) {
-        } else if (orientation == Monitor::ROTATE_90) {
-          ret = av_dict_set(&video_out_stream->metadata, "rotate", "90", 0);
-          if (ret < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__);
-        } else if (orientation == Monitor::ROTATE_180) {
-          ret = av_dict_set(&video_out_stream->metadata, "rotate", "180", 0);
-          if (ret < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__);
-        } else if (orientation == Monitor::ROTATE_270) {
-          ret = av_dict_set(&video_out_stream->metadata, "rotate", "270", 0);
-          if (ret < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__);
-        } else {
-          Warning("Unsupported Orientation(%d)", orientation);
+        // The legacy "rotate" metadata tag only expresses rotation. Flips are
+        // carried by the display matrix side data above, so don't warn for them.
+        switch (orientation) {
+          case Monitor::ROTATE_90:
+            ret = av_dict_set(&video_out_stream->metadata, "rotate", "90", 0);
+            if (ret < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+            break;
+          case Monitor::ROTATE_180:
+            ret = av_dict_set(&video_out_stream->metadata, "rotate", "180", 0);
+            if (ret < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+            break;
+          case Monitor::ROTATE_270:
+            ret = av_dict_set(&video_out_stream->metadata, "rotate", "270", 0);
+            if (ret < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+            break;
+          default:
+            break;
         }
       } // end if orientation
 
@@ -1153,6 +1172,10 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
           zm_packet->get_out_frame(video_out_ctx->width, video_out_ctx->height, chosen_codec_data->sw_pix_fmt);
           av_frame_ref(frame.get(), zm_packet->out_frame.get());
 
+          // The destination is out_frame's buffer, which get_out_frame laid
+          // out at alignment (width % 32 ? 1 : 32) — mirror that choice here
+          // so sws writes the layout the encoder will read via
+          // out_frame->linesize.
           swscale.Convert(
               zm_packet->image,
               frame->buf[0]->data,
@@ -1160,7 +1183,8 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
               zm_packet->image->AVPixFormat(),
               chosen_codec_data->sw_pix_fmt,
               video_out_ctx->width,
-              video_out_ctx->height
+              video_out_ctx->height,
+              (video_out_ctx->width % 32) ? 1 : 32
               );
         }
       } else if (zm_packet->in_frame) {

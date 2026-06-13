@@ -1924,10 +1924,18 @@ function toggle_password_visibility(element) {
     return;
   }
   if (element.innerHTML=='visibility') {
-    input.type = 'text';
+    if (input.classList.contains('masked-input')) {
+      input.classList.add('unmasked');
+    } else {
+      input.type = 'text';
+    }
     element.innerHTML = 'visibility_off';
   } else {
-    input.type = 'password';
+    if (input.classList.contains('masked-input')) {
+      input.classList.remove('unmasked');
+    } else {
+      input.type = 'password';
+    }
     element.innerHTML='visibility';
   }
 }

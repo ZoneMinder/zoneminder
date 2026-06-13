@@ -3221,6 +3221,14 @@ void Image::Rotate(int angle) {
     DumpBuffer(rotate_buffer, ZM_BUFTYPE_ZM);
     return;
   }
+  // av_image_fill_arrays re-derives the source stride at 32-byte alignment, but
+  // buffer may be a borrowed plane (e.g. get_y_image wraps a decoder Y plane)
+  // whose real stride is the Image's own linesize and can be smaller than
+  // FFALIGN(width,32). Using the assumed stride would read past the end of that
+  // plane. For ZM-allocated images linesize == src_strides[0], so this is a
+  // no-op there. Only plane 0 is overridden: the only borrowed case is a
+  // single-plane GRAY8 Y image, and planar ZM images are self-consistent.
+  src_strides[0] = linesize;
 
   const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(imagePixFormat);
   if (!desc) {
@@ -3291,7 +3299,18 @@ void flip_plane(const uint8_t *src, int src_linesize,
 
 /* RGB32 compatible: complete; planar YUV (YUV420P/J420P/YUV422P/J422P) flipped per-plane */
 void Image::Flip( bool leftright ) {
-  uint8_t* flip_buffer = AllocBuffer(size);
+  // Size the destination from the 32-aligned layout the planes are written at,
+  // not from this->size: a borrowed source (get_y_image wraps a decoder Y
+  // plane) records a tight size from its real linesize, which is smaller than
+  // the aligned destination needs. For ZM-allocated images this equals size.
+  int flip_size_signed = av_image_get_buffer_size(imagePixFormat, width, height, 32);
+  if (flip_size_signed < 0) {
+    Error("Flip: av_image_get_buffer_size failed for %s %ux%u",
+          av_get_pix_fmt_name(imagePixFormat), width, height);
+    return;
+  }
+  const size_t flip_size = static_cast<size_t>(flip_size_signed);
+  uint8_t* flip_buffer = AllocBuffer(flip_size);
 
   uint8_t *src_planes[4] = {nullptr, nullptr, nullptr, nullptr};
   int src_strides[4] = {0, 0, 0, 0};
@@ -3303,6 +3322,10 @@ void Image::Flip( bool leftright ) {
     DumpBuffer(flip_buffer, ZM_BUFTYPE_ZM);
     return;
   }
+  // Use the Image's real stride for the borrowed-plane source rather than the
+  // 32-aligned stride av_image_fill_arrays assumes. See Image::Rotate for the
+  // rationale; no-op for self-consistent ZM-allocated images.
+  src_strides[0] = linesize;
 
   const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(imagePixFormat);
   if (!desc) {
@@ -3334,7 +3357,7 @@ void Image::Flip( bool leftright ) {
                dst_planes[0], dst_strides[0], bpp, leftright);
   }
 
-  AssignDirect(width, height, colours, subpixelorder, flip_buffer, size, ZM_BUFTYPE_ZM);
+  AssignDirect(width, height, colours, subpixelorder, flip_buffer, flip_size, ZM_BUFTYPE_ZM);
 }
 
 void Image::Scale(const unsigned int new_width, const unsigned int new_height) {
@@ -3359,8 +3382,11 @@ void Image::Scale(const unsigned int new_width, const unsigned int new_height) {
 
   SWScale swscale;
   swscale.init();
+  // Both buffers use Image's align-32 layout: `buffer` is ours, and
+  // scale_buffer is adopted by AssignDirect below, which derives
+  // size/linesize with av_image_* at align=32.
   if (swscale.Convert(buffer, allocation, scale_buffer, scale_buffer_size,
-                      format, format, width, height, new_width, new_height) < 0) {
+                      format, format, width, height, new_width, new_height, 32, 32) < 0) {
     Error("Scale: sws_scale conversion failed (%ux%u %s -> %ux%u)",
           width, height, av_get_pix_fmt_name(format), new_width, new_height);
     DumpBuffer(scale_buffer, ZM_BUFTYPE_ZM);

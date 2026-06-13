@@ -25,6 +25,7 @@ extern "C" {
 #include <libavutil/imgutils.h>
 }
 
+#include <cstdlib>
 #include <cstring>
 
 namespace {
@@ -132,6 +133,52 @@ TEST_CASE("Image::Rotate YUV420P odd dimensions", "[image]") {
   Planes dst = plane_view(image, AV_PIX_FMT_YUV420P, h, w);
   // (cw-1, ch-1) -> (ch-1-(ch-1), cw-1) = (0, cw-1)
   REQUIRE(dst.data[1][(cw - 1) * dst.stride[1] + 0] == 211);
+}
+
+// Regression: SWScale::Convert guessed each buffer's row alignment from
+// `width % 32 ? 1 : 32`. Image buffers are ALWAYS laid out align-32
+// (av_image_fill_arrays/av_image_get_buffer_size with align=32), so for any
+// width not divisible by 32 the converter read luma rows 16 bytes short and
+// chroma planes from packed (wrong) offsets. Rotating a 1280x720 monitor
+// yields exactly such a width (720 % 32 == 16): every Scale() of a rotated
+// frame came out sheared with garbage chroma, while unrotated monitors
+// (width % 32 == 0) were untouched.
+TEST_CASE("Image::Scale YUV420P with non-32-multiple width", "[image]") {
+  bootstrap_image_config();
+  const int w = 720, h = 1280;  // rotated 1280x720, as ROTATE_90/270 produces
+  Image image(w, h, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_YUV420P);
+  REQUIRE(image.Buffer() != nullptr);
+
+  // Column-banded luma (every row identical: left half 50, right half 200)
+  // and uniform chroma. Any per-row drift or plane-offset error shows up as
+  // rows that differ from each other or chroma that isn't the fill value.
+  Planes src = plane_view(image, AV_PIX_FMT_YUV420P, w, h);
+  for (int y = 0; y < h; y++) {
+    uint8_t *row = src.data[0] + static_cast<size_t>(y) * src.stride[0];
+    memset(row, 50, w / 2);
+    memset(row + w / 2, 200, w - w / 2);
+  }
+  memset(src.data[1], 100, static_cast<size_t>(src.stride[1]) * (h / 2));
+  memset(src.data[2], 160, static_cast<size_t>(src.stride[2]) * (h / 2));
+
+  image.Scale(w / 2, h / 2);
+  REQUIRE(image.Width() == static_cast<unsigned int>(w / 2));
+  REQUIRE(image.Height() == static_cast<unsigned int>(h / 2));
+
+  Planes dst = plane_view(image, AV_PIX_FMT_YUV420P, w / 2, h / 2);
+  // Identical input rows must produce identical output rows. Sample the
+  // middle of each band, away from the edge where bilinear blends.
+  for (int y : {0, h / 8, h / 4, h / 2 - 1}) {
+    const uint8_t *row = dst.data[0] + static_cast<size_t>(y) * dst.stride[0];
+    INFO("output luma row " << y);
+    CHECK(std::abs(static_cast<int>(row[w / 8]) - 50) <= 4);
+    CHECK(std::abs(static_cast<int>(row[w / 4 + w / 8]) - 200) <= 4);
+  }
+  for (int y : {0, h / 8, h / 4 - 1}) {
+    INFO("output chroma row " << y);
+    CHECK(std::abs(static_cast<int>(dst.data[1][static_cast<size_t>(y) * dst.stride[1] + w / 8]) - 100) <= 4);
+    CHECK(std::abs(static_cast<int>(dst.data[2][static_cast<size_t>(y) * dst.stride[2] + w / 8]) - 160) <= 4);
+  }
 }
 
 TEST_CASE("Image::Flip YUV420P", "[image]") {

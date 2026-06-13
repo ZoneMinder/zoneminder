@@ -1806,6 +1806,15 @@ video-stream[id^='liveStream'] video{
   background-color: #b1414c;
 }
 
+/* Camera credential fields are type=text masked with CSS instead of
+ * type=password, so browsers do not offer to save them as logins. */
+input.masked-input {
+  -webkit-text-security: disc;
+}
+input.masked-input.unmasked {
+  -webkit-text-security: none;
+}
+
 /* +++ This block should always be located at the end! */
 .hidden {
     display: none;

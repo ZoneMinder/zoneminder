@@ -145,7 +145,7 @@ void ZoneMinderFifoSource::WriteRun() {
 // read from monitor
 int ZoneMinderFifoSource::getNextFrame() {
   if (zm_terminate or stop_) {
-    Debug(1, "Terminating %d %d", zm_terminate, (stop_==true?1:0));
+    Debug(1, "Terminating %d %d", zm_terminate.load(), (stop_==true?1:0));
     return -1;
   }
 

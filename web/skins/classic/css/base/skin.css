@@ -211,49 +211,6 @@ hr {
     background-color: var(--colorBackgroundButtons);
 }
 
-/*
- * Tabbed headings
- */
-ul.tabList {
-    float: left;
-    list-style: none;
-    padding: 0;
-    margin: 0 0 -4px 0;
-    white-space: nowrap;
-    text-align: left;
-}
-
-ul.tabList li {
-    float: left;
-    border: 1px solid;
-    color: #333333;
-    border: #ccc solid 1px;
-    border-bottom-width: 0;
-    margin: 0 2px 0 0;
-    background: #eee;
-    text-align: center;
-    padding: 5px 10px;
-    border-top-left-radius: 3px;
-    border-top-right-radius: 3px;
-}
-
-ul.tabList li a {
-    text-decoration: none;
-}
-
-ul.tabList li:hover {
-    background-color: #eeeeee;
-}
-
-ul.tabList li.active {
-    background-color: #ffffff;
-    border-bottom: #7f7fb2 dotted 1px;
-}
-
-ul.tabList li.active a {
-  font-weight: bold;
-}
-
 #content {
   display: flex;
   flex-direction: column;

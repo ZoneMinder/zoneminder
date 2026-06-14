@@ -330,3 +330,28 @@ TEST_CASE("remove_authentication") {
     REQUIRE(result == "http://192.168.1.1");
   }
 }
+
+TEST_CASE("AuthNetworkPrefix") {
+  SECTION("empty input returns empty") {
+    REQUIRE(AuthNetworkPrefix("") == "");
+  }
+  SECTION("IPv4 is masked to /24") {
+    // 192.168.1.55 -> c0 a8 01 00
+    REQUIRE(AuthNetworkPrefix("192.168.1.55") == "c0a80100");
+    // any host within the same /24 collapses to the same prefix
+    REQUIRE(AuthNetworkPrefix("192.168.1.99") == AuthNetworkPrefix("192.168.1.55"));
+    // a different /24 differs
+    REQUIRE(AuthNetworkPrefix("192.168.2.55") != AuthNetworkPrefix("192.168.1.55"));
+  }
+  SECTION("IPv6 is masked to /64") {
+    // first 8 bytes preserved, low 64 bits zeroed
+    REQUIRE(AuthNetworkPrefix("2001:db8:1:2::abcd") == "20010db8000100020000000000000000");
+    // privacy-address rotation within the same /64 collapses to one prefix
+    REQUIRE(AuthNetworkPrefix("2001:db8:1:2:ffff:ffff:ffff:ffff") == AuthNetworkPrefix("2001:db8:1:2::1"));
+    // a different /64 differs
+    REQUIRE(AuthNetworkPrefix("2001:db8:1:3::1") != AuthNetworkPrefix("2001:db8:1:2::1"));
+  }
+  SECTION("non-IP input is returned verbatim") {
+    REQUIRE(AuthNetworkPrefix("not-an-ip") == "not-an-ip");
+  }
+}

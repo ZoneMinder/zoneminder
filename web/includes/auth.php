@@ -19,6 +19,7 @@
 //
 //
 require_once('session.php');
+require_once('Network.php');
 require_once('User.php');
 require_once('Group_Permission.php');
 require_once('Monitor_Permission.php');
@@ -170,20 +171,22 @@ function validateToken($token, $allowed_token_type='access') {
 
 function getAuthUser($auth) {
   if (ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed') && !empty($auth)) {
-    $remoteAddr = '';
-    $xff = !empty($_SERVER['HTTP_X_FORWARDED_FOR'])
-      ? trim(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0])
-      : '';
-    $directAddr = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '';
+    $liveAddr = getRemoteAddr();
+    $sessionAddr = isset($_SESSION['remoteAddr']) ? $_SESSION['remoteAddr'] : '';
     if (ZM_AUTH_HASH_IPS) {
-      // Use HTTP_X_FORWARDED_FOR if available (consistent with session.php which uses it for hash generation)
-      // taking only the first IP to guard against spoofed multi-value headers.
-      // This ensures validation matches generation when behind a reverse proxy.
-      $remoteAddr = $xff !== '' ? $xff : $directAddr;
-      if ( !$remoteAddr ) {
-        ZM\Error("Can't determine remote address for authentication, using empty string");
-        $remoteAddr = '';
+      // Validate against the network prefix (IPv4 /24, IPv6 /64) rather than the
+      // exact address, and accept both the live request address and the address
+      // captured when the session/hash was generated. This keeps a single IP
+      // change (IPv6 privacy-address rotation, NAT pool, dual-stack) from
+      // invalidating an otherwise valid hash and bouncing the user to login.
+      $candidateAddrs = array();
+      foreach (array($liveAddr, $sessionAddr) as $addr) {
+        $prefix = authNetworkPrefix($addr);
+        if (!in_array($prefix, $candidateAddrs, true)) $candidateAddrs[] = $prefix;
       }
+      if (!$candidateAddrs) $candidateAddrs = array('');
+    } else {
+      $candidateAddrs = array('');
     }
 
     // Prefer the username from the URL (matches what zms uses) so PHP and the
@@ -193,7 +196,7 @@ function getAuthUser($auth) {
     $sessionUser = isset($_SESSION['username']) ? $_SESSION['username'] : null;
     $filterUser = $requestedUser !== null ? $requestedUser : $sessionUser;
 
-    ZM\Debug("getAuthUser: validating auth='$auth' filterUser='".($filterUser ?? '')."' xff='$xff' directAddr='$directAddr' usingRemoteAddr='$remoteAddr' session_username='".($sessionUser ?? '')."'");
+    ZM\Debug("getAuthUser: validating auth='$auth' filterUser='".($filterUser ?? '')."' liveAddr='$liveAddr' sessionAddr='$sessionAddr' candidatePrefixes='".implode(',', $candidateAddrs)."' session_username='".($sessionUser ?? '')."'");
 
     $sql = 'SELECT * FROM Users WHERE Enabled = 1';
     $values = array();
@@ -214,12 +217,12 @@ function getAuthUser($auth) {
       $now = time();
       for ($i = 0; $i < ZM_AUTH_HASH_TTL; $i++, $now -= 3600) { // Try for last TTL hours
         $time = localtime($now);
-        $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$remoteAddr.$time[2].$time[3].$time[4].$time[5];
-        $authHash = md5($authKey);
-
-        if ($auth == $authHash) {
-          return new ZM\User($user);
-        } // end if $auth == $authHash
+        foreach ($candidateAddrs as $remoteAddr) {
+          $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$remoteAddr.$time[2].$time[3].$time[4].$time[5];
+          if ($auth == md5($authKey)) {
+            return new ZM\User($user);
+          } // end if $auth == $authHash
+        } // end foreach candidate address
       } // end foreach hour
     } // end foreach user
 
@@ -237,18 +240,18 @@ function getAuthUser($auth) {
         $now = time();
         for ($i = 0; $i < ZM_AUTH_HASH_TTL; $i++, $now -= 3600) { // Try for last TTL hours
           $time = localtime($now);
-          $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$remoteAddr.$time[2].$time[3].$time[4].$time[5];
-          $authHash = md5($authKey);
-
-          if ($auth == $authHash) {
-            ZM\Debug("getAuthUser: matched user '".$user['Username']."' from fallback (filter was '$filterUser')");
-            return new ZM\User($user);
-          } // end if $auth == $authHash
+          foreach ($candidateAddrs as $remoteAddr) {
+            $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$remoteAddr.$time[2].$time[3].$time[4].$time[5];
+            if ($auth == md5($authKey)) {
+              ZM\Debug("getAuthUser: matched user '".$user['Username']."' from fallback (filter was '$filterUser')");
+              return new ZM\User($user);
+            } // end if $auth == $authHash
+          } // end foreach candidate address
         } // end foreach hour
       } // end foreach user
     } // end if
 
-    ZM\Info("Unable to authenticate user from auth hash '$auth' (filterUser='".($filterUser ?? '')."' sessionUser='".($sessionUser ?? '')."' xff='$xff' directAddr='$directAddr' rowsTried=$rowsTried ttl=".ZM_AUTH_HASH_TTL.'h)');
+    ZM\Info("Unable to authenticate user from auth hash '$auth' (filterUser='".($filterUser ?? '')."' sessionUser='".($sessionUser ?? '')."' liveAddr='$liveAddr' sessionAddr='$sessionAddr' candidatePrefixes='".implode(',', $candidateAddrs)."' rowsTried=$rowsTried ttl=".ZM_AUTH_HASH_TTL.'h)');
     return null;
   } // end if using auth hash
 
@@ -274,7 +277,9 @@ function generateAuthHash($useRemoteAddr, $force=false) {
     $time = time();
     # We use 1800 so that we regenerate the hash at half the TTL
     $mintime = $time - (ZM_AUTH_HASH_TTL * 1800);
-    $remoteAddr = ZM_AUTH_HASH_IPS ? $_SESSION['remoteAddr'] : '';
+    # Use the network prefix (see Network.php) so the hash and its session cache
+    # key are stable across host-address changes within the same /24 or /64.
+    $remoteAddr = ZM_AUTH_HASH_IPS ? authNetworkPrefix($_SESSION['remoteAddr']) : '';
     # Appending the remoteAddr prevents us from using an auth hash generated for a different ip
     if ($force or (!isset($_SESSION['AuthHash'.$remoteAddr])) or ($_SESSION['AuthHashGeneratedAt'] < $mintime)) {
       $auth = calculateAuthHash($useRemoteAddr ? $remoteAddr : '');
@@ -508,7 +513,7 @@ function canCreate($area) {
 function userFromSession() {
   $user = null; // Not global
   if (isset($_SESSION['username'])) {
-    $remoteAddr = ZM_AUTH_HASH_IPS ? $_SESSION['remoteAddr'] : '';
+    $remoteAddr = ZM_AUTH_HASH_IPS ? authNetworkPrefix($_SESSION['remoteAddr']) : '';
     if (ZM_AUTH_HASH_LOGINS and (ZM_AUTH_RELAY == 'hashed')) {
       # Extra validation, if logged in, then the auth hash will be set in the session, so we can validate it.
       # This prevent session modification to switch users
@@ -571,7 +576,7 @@ if (ZM_OPT_USE_AUTH) {
     if (ZM_AUTH_HASH_LOGINS && empty($user) && !empty($_REQUEST['auth'])) {
       $user = getAuthUser($_REQUEST['auth']);
       if ($user) {
-        $remoteAddr = ZM_AUTH_HASH_IPS ? $_SESSION['remoteAddr'] : '';
+        $remoteAddr = ZM_AUTH_HASH_IPS ? authNetworkPrefix($_SESSION['remoteAddr']) : '';
         if (isset($_SESSION['AuthHash'.$remoteAddr]) and ($_SESSION['AuthHash'.$remoteAddr] != $_REQUEST['auth'])) {
           unset($_SESSION['AuthHashGeneratedAt']);
           unset($_SESSION['AuthHash'.$remoteAddr]);

@@ -276,11 +276,14 @@ std::string User::getAuthHash() {
   time_t now_t = std::chrono::system_clock::to_time_t(now);
   tm now_tm = {};
   localtime_r(&now_t, &now_tm);
+  // Prefix-transform the address (see AuthNetworkPrefix) so this matches a hash
+  // validated against REMOTE_ADDR=127.0.0.1.
+  std::string remote_prefix = config.auth_hash_ips ? AuthNetworkPrefix("127.0.0.1") : "";
   std::string auth_key = stringtf("%s%s%s%s%d%d%d%d",
       config.auth_hash_secret,
       username,
       password,
-      (config.auth_hash_ips ? "127.0.0.1" : ""),
+      remote_prefix.c_str(),
       now_tm.tm_hour,
       now_tm.tm_mday,
       now_tm.tm_mon,
@@ -400,8 +403,14 @@ User *zmLoadAuthUser(const std::string &auth, const std::string &username, bool 
     }
   }
 
-  Debug(1, "Attempting to authenticate user %s from auth string '%s', remote addr(%s)",
-        username.c_str(), auth.c_str(), remote_addr);
+  // Hash against the network prefix (IPv4 /24, IPv6 /64) rather than the exact
+  // address so a client changing host address within the same network (IPv6
+  // privacy-address rotation, NAT pool) keeps validating. Must match the PHP
+  // authNetworkPrefix() used to generate the hash.
+  std::string remote_prefix = AuthNetworkPrefix(remote_addr ? remote_addr : "");
+
+  Debug(1, "Attempting to authenticate user %s from auth string '%s', remote addr(%s) prefix(%s)",
+        username.c_str(), auth.c_str(), remote_addr ? remote_addr : "", remote_prefix.c_str());
   std::string sql = "SELECT `Id`, `Username`, `Password`, `Enabled`,"
                     " `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0,"
                     " COALESCE(`RoleId`, 0)"
@@ -447,7 +456,7 @@ User *zmLoadAuthUser(const std::string &auth, const std::string &username, bool 
                                       config.auth_hash_secret,
                                       db_username,
                                       db_password,
-                                      remote_addr,
+                                      remote_prefix.c_str(),
                                       now_tm.tm_hour,
                                       now_tm.tm_mday,
                                       now_tm.tm_mon,

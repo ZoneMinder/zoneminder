@@ -1,4 +1,6 @@
 <?php
+require_once(__DIR__.'/Network.php');
+
 // Wrapper around setcookie that auto-sets samesite, and deals with older versions of php
 function zm_setcookie($cookie, $value, $options=array()) {
   if (!isset($options['path'])) {
@@ -51,12 +53,9 @@ function zm_session_start() {
     //ZM\Debug('Setting cookie parameters to '.print_r($currentCookieParams, true));
   }
   session_start();
-  // To help prevent session hijacking
-  // Use HTTP_X_FORWARDED_FOR if available (for reverse proxy setups), taking only the first IP
-  // to guard against spoofed multi-value headers. Falls back to REMOTE_ADDR for direct connections.
-  $_SESSION['remoteAddr'] = !empty($_SERVER['HTTP_X_FORWARDED_FOR'])
-    ? trim(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0])
-    : $_SERVER['REMOTE_ADDR'];
+  // To help prevent session hijacking, remember the client address. See
+  // Network.php / getRemoteAddr() for the X-Forwarded-For handling.
+  $_SESSION['remoteAddr'] = getRemoteAddr();
   $now = time();
   // Do not allow to use expired session ID
   if ( !empty($_SESSION['last_time']) && ($_SESSION['last_time'] < ($now - 180)) ) {
@@ -87,9 +86,7 @@ function zm_session_regenerate_id() {
   //ZM\Debug("Regenerating session. New id was " . session_id());
   unset($_SESSION['last_time']);
   $_SESSION['generated_at'] = time();
-  $_SESSION['remoteAddr'] = !empty($_SERVER['HTTP_X_FORWARDED_FOR'])
-    ? trim(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0])
-    : $_SERVER['REMOTE_ADDR'];
+  $_SESSION['remoteAddr'] = getRemoteAddr();
 } // function zm_session_regenerate_id()
 
 // Regenerate the session id at a privilege boundary (login).
@@ -105,9 +102,7 @@ function zm_session_regenerate_id_login() {
   // New id + delete the old session file server-side. Emits a single Set-Cookie.
   session_regenerate_id(true);
   $_SESSION['generated_at'] = time();
-  $_SESSION['remoteAddr'] = !empty($_SERVER['HTTP_X_FORWARDED_FOR'])
-    ? trim(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0])
-    : $_SERVER['REMOTE_ADDR'];
+  $_SESSION['remoteAddr'] = getRemoteAddr();
 } // function zm_session_regenerate_id_login()
 
 function is_session_started() {

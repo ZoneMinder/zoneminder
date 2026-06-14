@@ -21,6 +21,7 @@
 
 #include "zm_config.h"
 #include "zm_logger.h"
+#include <arpa/inet.h>
 #include <array>
 #include <cctype>
 #include <cstdarg>
@@ -156,6 +157,22 @@ std::string ByteArrayToHexString(nonstd::span<const uint8> bytes) {
   }
 
   return buf;
+}
+
+std::string AuthNetworkPrefix(const std::string &ip) {
+  if (ip.empty())
+    return "";
+
+  unsigned char buf[16];
+  if (inet_pton(AF_INET, ip.c_str(), buf) == 1) {
+    buf[3] = 0; // IPv4 -> /24
+    return ByteArrayToHexString(nonstd::span<const uint8>(buf, 4));
+  }
+  if (inet_pton(AF_INET6, ip.c_str(), buf) == 1) {
+    for (int i = 8; i < 16; i++) buf[i] = 0; // IPv6 -> /64
+    return ByteArrayToHexString(nonstd::span<const uint8>(buf, 16));
+  }
+  return ip; // not an IP address, hash it verbatim
 }
 
 std::string Base64Encode(const std::string &str) {

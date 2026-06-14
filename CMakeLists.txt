@@ -151,8 +151,8 @@ set(ZM_RUNDIR "/var/run/zm" CACHE PATH
   "Location of transient process files, default: /var/run/zm")
 set(ZM_SOCKDIR "/var/run/zm" CACHE PATH
   "Location of Unix domain socket files, default /var/run/zm")
-set(ZM_TMPDIR "/var/tmp/zm" CACHE PATH
-  "Location of temporary files, default: /tmp/zm")
+set(ZM_TMPDIR "/var/cache/zoneminder/temp" CACHE PATH
+  "Location of regenerable temporary files, default: /var/cache/zoneminder/temp")
 set(ZM_LOGDIR "/var/log/zm" CACHE PATH
   "Location of generated log files, default: /var/log/zm")
 set(ZM_WEBDIR "${CMAKE_INSTALL_FULL_DATADIR}/zoneminder/www" CACHE PATH

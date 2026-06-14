@@ -1,1 +1,1 @@
-/var/tmp  /usr/share/zoneminder/www/api/app/tmp
+/var/cache/zoneminder/temp  /usr/share/zoneminder/www/api/app/tmp

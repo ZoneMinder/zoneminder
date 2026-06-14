@@ -248,14 +248,18 @@ class FilterTerm {
       # Even will be replaced with 0
       if ( $this->val == 'Odd' or $this->val == 'Even' )  {
         return ' % 2 = ';
-      } else {
+      } else if ( strtoupper($this->val) == 'NULL' ) {
         return ' IS ';
       }
+      # IS is only valid against NULL/TRUE/FALSE; for any other value compare for equality
+      return ' = ';
     case 'IS NOT' :
       if ( $this->val == 'Odd' or $this->val == 'Even' )  {
         return ' % 2 = ';
+      } else if ( strtoupper($this->val) == 'NULL' ) {
+        return ' IS NOT ';
       }
-      return ' IS NOT ';
+      return ' != ';
     default:
       Warning('Invalid operator in filter: ' . print_r($this->op, true));
     } // end switch op

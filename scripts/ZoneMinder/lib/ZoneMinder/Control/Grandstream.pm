@@ -108,7 +108,7 @@ sub open {
       and
     $self->{Monitor}{ControlAddress} ne 'user:port@ip'
   ) {
-    Debug("Getting connection details from Path " . $self->{Monitor}->{ControlAddress});
+    Debug("Monitor $self->{Monitor}{Id} ($self->{Monitor}{Name}): Getting connection details from ControlAddress ".$self->{Monitor}->{ControlAddress});
     if (($self->{Monitor}->{ControlAddress} =~ /^(?<PROTOCOL>https?:\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@?(?<ADDRESS>.*)$/)) {
       $PROTOCOL = $+{PROTOCOL} if $+{PROTOCOL};
       $USERNAME = $+{USERNAME} if $+{USERNAME};
@@ -116,15 +116,15 @@ sub open {
       $ADDRESS = $+{ADDRESS} if $+{ADDRESS};
     }
   } elsif ($self->{Monitor}->{Path}) {
-    Debug("Getting connection details from Path " . $self->{Monitor}->{Path});
+    Debug("Monitor $self->{Monitor}{Id} ($self->{Monitor}{Name}): Getting connection details from Path ".$self->{Monitor}->{Path});
     if (($self->{Monitor}->{Path} =~ /^(?<PROTOCOL>(https?|rtsp):\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@?(?<ADDRESS>[^:\/]+)/)) {
       $USERNAME = $+{USERNAME} if $+{USERNAME};
       $PASSWORD = $+{PASSWORD} if $+{PASSWORD};
       $ADDRESS = $+{ADDRESS} if $+{ADDRESS};
     }
-    Debug("username:$USERNAME password:$PASSWORD address:$ADDRESS");
+    Debug("Monitor $self->{Monitor}{Id} ($self->{Monitor}{Name}): username:$USERNAME password:$PASSWORD address:$ADDRESS");
   } else {
-    Error('Failed to parse auth from address ' . $self->{Monitor}->{ControlAddress});
+    Error("Monitor $self->{Monitor}{Id} ($self->{Monitor}{Name}): Failed to parse auth from address ".$self->{Monitor}->{ControlAddress});
     $ADDRESS = $self->{Monitor}->{ControlAddress};
   }
   $BASE_URL = $PROTOCOL.$ADDRESS;
@@ -142,26 +142,26 @@ sub open {
   if ($response->is_success()) {
 	  my $dom = XML::LibXML->load_xml(string => $response->content);
 	  my $challengeString = $dom->getElementsByTagName('ChallengeCode')->string_value();
-	  Debug('challengstring: '.$challengeString);
+	  Debug("Monitor $self->{Monitor}{Id} ($self->{Monitor}{Name}): challengestring: ".$challengeString);
 	  my $authcode = md5_hex($challengeString.':GSC36XXlZpRsFzCbM:'.$PASSWORD);
 	  $url .= '&authcode='.$authcode;
 	  $response = $self->get($url);
 	  if (!$response->is_success()) {
-	    Error('Grandstream login authcode request failed: '.$response->status_line());
+	    Error("Monitor $self->{Monitor}{Id} ($self->{Monitor}{Name}): Grandstream login authcode request failed: ".$response->status_line());
 	    return 0;
 	  }
 	  my $dom2 = XML::LibXML->load_xml(string => $response->content);
 	  my $rescode = $dom2->getElementsByTagName('ResCode')->string_value();
-	  Debug("Grandstream login ResCode: $rescode");
+	  Debug("Monitor $self->{Monitor}{Id} ($self->{Monitor}{Name}): Grandstream login ResCode: $rescode");
   } else {
 	  # Initial probe failed; fall back to the old basic-auth-in-URL style and
 	  # test that too, so we only report success if we can actually reach the camera.
-	  Warning('Falling back to old style');
+	  Warning("Monitor $self->{Monitor}{Id} ($self->{Monitor}{Name}): Falling back to old style");
 	  $PROTOCOL = 'http://';
 	  $BASE_URL = $PROTOCOL.$USERNAME.':'.$PASSWORD.'@'.$ADDRESS;
 	  $response = $self->get($BASE_URL.'/goform/login?cmd=login&type=0&user='.$USERNAME);
 	  if (!$response->is_success()) {
-	    Error('Grandstream old-style connection failed: '.$response->status_line());
+	    Error("Monitor $self->{Monitor}{Id} ($self->{Monitor}{Name}): Grandstream old-style connection failed: ".$response->status_line());
 	    return 0;
 	  }
   }
@@ -173,9 +173,9 @@ sub open {
 sub get {
   my $self = shift;
   my $url = shift;
-  Debug("Getting $url");
+  Debug("Monitor $self->{Monitor}{Id} ($self->{Monitor}{Name}): Getting $url");
   my $response = $self->{ua}->get($url);
-  Debug('Response: '. $response->status_line . ' ' . $response->content);
+  Debug("Monitor $self->{Monitor}{Id} ($self->{Monitor}{Name}): Response: ".$response->status_line.' '.$response->content);
   return $response;
 }
 
@@ -194,7 +194,7 @@ sub sendCmd {
   my $res = $self->{ua}->request($req);
 
   if (!$res->is_success) {
-    Error('Request failed: '.$res->status_line().' (URI: '.$req->as_string().')');
+    Error("Monitor $self->{Monitor}{Id} ($self->{Monitor}{Name}): Request failed: ".$res->status_line().' (URI: '.$req->as_string().')');
   }
   return $res->is_success;
 }
@@ -207,15 +207,15 @@ sub get_config {
     my $response = $self->get($BASE_URL.'/goform/config?cmd=get&type='.$category);
     my $dom = XML::LibXML->load_xml(string => $response->content);
     if (!$dom) {
-      Error("No document from :".$response->content());
+      Error("Monitor $self->{Monitor}{Id} ($self->{Monitor}{Name}): No document from :".$response->content());
       return;
     }
-    Debug($dom->toString(1));
+    Debug("Monitor $self->{Monitor}{Id} ($self->{Monitor}{Name}): ".$dom->toString(1));
     $config{$category} = {};
     my $Configuration = $dom->getElementsByTagName('Configuration');
     my $xml = $Configuration->get_node(0);
     if (!$xml) {
-      Warning("UNable to get Configuration node from ".$response->content());
+      Warning("Monitor $self->{Monitor}{Id} ($self->{Monitor}{Name}): Unable to get Configuration node from ".$response->content());
       return \%config;
     }
     foreach my $node ($xml->childNodes()) {

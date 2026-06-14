@@ -56,7 +56,16 @@ class FilterTerm {
         }
       }
       if ( isset($term['tablename']) ) {
-        $this->tablename = $term['tablename'];
+        # tablename is concatenated raw into SQL by sql_attr(), so it must be
+        # restricted to the known table aliases used in the filter queries.
+        # Anything else is rejected to prevent SQL injection.
+        $valid_tablenames = array('E', 'M', 'S', 'F', 'T', 'ET', 'Snapshots');
+        if ( in_array($term['tablename'], $valid_tablenames, true) ) {
+          $this->tablename = $term['tablename'];
+        } else {
+          Error("Invalid tablename in filter term: {$term['tablename']}, possible hacking attempt. Using 'E'.");
+          $this->tablename = 'E';
+        }
       } else {
         $this->tablename = 'E';
       }

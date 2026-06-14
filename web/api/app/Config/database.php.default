@@ -74,7 +74,10 @@ class DATABASE_CONFIG {
 		'ssl_key' => ZM_DB_SSL_CLIENT_KEY,
 		'ssl_cert' => ZM_DB_SSL_CLIENT_CERT,
 		'prefix' => '',
-		'encoding' => 'utf8',
+		// utf8mb4, not the utf8/utf8mb3 alias: utf8mb3 mangles 4-byte characters
+		// (emoji, supplementary-plane scripts) in utf8mb4 columns like
+		// Monitors.Name to '?' on read and truncates them on write. refs #4785
+		'encoding' => 'utf8mb4',
 	);
 
 	public $test = array(

@@ -251,11 +251,12 @@ class FilterTerm {
       } else if ( strtoupper($this->val) == 'NULL' ) {
         return ' IS ';
       }
-      # IS is only valid against NULL/TRUE/FALSE; for any other value compare for equality
+      # SQL IS is only kept here for NULL; for any other value compare for equality
       return ' = ';
     case 'IS NOT' :
       if ( $this->val == 'Odd' or $this->val == 'Even' )  {
-        return ' % 2 = ';
+        # negate the modulo test so IS NOT Odd matches even (and vice versa)
+        return ' % 2 != ';
       } else if ( strtoupper($this->val) == 'NULL' ) {
         return ' IS NOT ';
       }

@@ -1241,10 +1241,33 @@ void ONVIF::set_credentials(struct soap *soap) {
     return;
   }
   soap_wsse_delete_Security(soap);
+
+  // Pin a single timestamp for the whole security header. gSOAP's
+  // soap_wsse_add_Timestamp() and soap_wsse_add_UsernameTokenDigest() each call
+  // time(NULL) independently, so when the two calls straddle a one-second
+  // boundary the wsu:Timestamp Created and the UsernameToken Created differ by a
+  // second. Hikvision (and some other cameras) reject that mismatch as
+  // NotAuthorized, which surfaced as intermittent PullMessages auth failures
+  // every few thousand requests despite correct credentials and synced clocks.
+  // Capturing time(NULL) once and forcing both Created values to it removes the
+  // race.
+  time_t wsse_now = time(nullptr);
+
   // Use configurable timestamp validity (default 60 seconds) to handle clock drift
   // between ZoneMinder and the camera. The old value of 10 seconds was too short
   // and caused "not authorized" errors when clocks were slightly out of sync.
   soap_wsse_add_Timestamp(soap, "Time", timestamp_validity_seconds);
+
+  // soap_wsse_add_Timestamp() stamped Created/Expires from its own time(NULL).
+  // Re-stamp them from wsse_now so they match the UsernameToken Created below.
+  _wsse__Security *security = soap_wsse_add_Security(soap);
+  if (security && security->wsu__Timestamp) {
+    security->wsu__Timestamp->Created = soap_strdup(soap, soap_dateTime2s(soap, wsse_now));
+    if (security->wsu__Timestamp->Expires) {
+      security->wsu__Timestamp->Expires =
+          soap_strdup(soap, soap_dateTime2s(soap, wsse_now + timestamp_validity_seconds));
+    }
+  }
 
   const char *username = parent->onvif_username.empty() ? parent->user.c_str() : parent->onvif_username.c_str();
   const char *password = parent->onvif_username.empty() ? parent->pass.c_str() : parent->onvif_password.c_str();
@@ -1254,9 +1277,11 @@ void ONVIF::set_credentials(struct soap *soap) {
     Debug(2, "ONVIF: Using UsernameToken (plain) authentication");
     soap_wsse_add_UsernameTokenText(soap, "Auth", username, password);
   } else {
-    // Try UsernameTokenDigest authentication (default)
+    // Try UsernameTokenDigest authentication (default).
+    // Use the _at variant so the token's Created (and the password digest
+    // computed from it) is pinned to the same wsse_now as the Timestamp above.
     Debug(2, "ONVIF: Using UsernameTokenDigest authentication");
-    soap_wsse_add_UsernameTokenDigest(soap, "Auth", username, password);
+    soap_wsse_add_UsernameTokenDigest_at(soap, "Auth", username, password, wsse_now);
   }
 }
 

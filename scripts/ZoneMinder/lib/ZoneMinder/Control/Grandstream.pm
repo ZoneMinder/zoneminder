@@ -102,40 +102,27 @@ sub open {
   my $self = shift;
   $self->loadMonitor();
 
-  if ($self->{Monitor}{ControlAddress}
-      and
-    $self->{Monitor}{ControlAddress} ne 'user:pass@ip'
-      and
-    $self->{Monitor}{ControlAddress} ne 'user:port@ip'
-  ) {
-    Debug("Getting connection details from Path " . $self->{Monitor}->{ControlAddress});
-    if (($self->{Monitor}->{ControlAddress} =~ /^(?<PROTOCOL>https?:\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@?(?<ADDRESS>.*)$/)) {
-      $PROTOCOL = $+{PROTOCOL} if $+{PROTOCOL};
-      $USERNAME = $+{USERNAME} if $+{USERNAME};
-      $PASSWORD = $+{PASSWORD} if $+{PASSWORD};
-      $ADDRESS = $+{ADDRESS} if $+{ADDRESS};
-    }
-  } elsif ($self->{Monitor}->{Path}) {
-    Debug("Getting connection details from Path " . $self->{Monitor}->{Path});
-    if (($self->{Monitor}->{Path} =~ /^(?<PROTOCOL>(https?|rtsp):\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@?(?<ADDRESS>[^:\/]+)/)) {
-      $USERNAME = $+{USERNAME} if $+{USERNAME};
-      $PASSWORD = $+{PASSWORD} if $+{PASSWORD};
-      $ADDRESS = $+{ADDRESS} if $+{ADDRESS};
-    }
-    Debug("username:$USERNAME password:$PASSWORD address:$ADDRESS");
-  } else {
-    Error('Failed to parse auth from address ' . $self->{Monitor}->{ControlAddress});
-    $ADDRESS = $self->{Monitor}->{ControlAddress};
-  }
-  $BASE_URL = $PROTOCOL.$ADDRESS;
-  $$self{host} = $ADDRESS; # For use with ping
-
   use LWP::UserAgent;
   $self->{ua} = LWP::UserAgent->new;
   $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
   $self->{ua}->ssl_opts(verify_hostname => 0, SSL_verify_mode => 0x00);
   $self->{ua}->cookie_jar( {} );
 
+  # Use the shared URI-based parser (Control.pm) instead of a hand-rolled regex.
+  # The old regex mis-parsed stream Paths such as rtsp://host:554/path: the host
+  # was consumed as the username, the port as the password, and ADDRESS
+  # backtracked to a single digit, producing failures like "Can't connect to 4:80".
+  if (!$self->guess_credentials()) {
+    Error("Monitor $self->{Monitor}{Id} ($self->{Monitor}{Name}): Failed to parse connection details from ControlAddress '".($self->{Monitor}{ControlAddress} // '')."' or Path '".($self->{Monitor}{Path} // '')."'");
+    return 0;
+  }
+  $USERNAME = $self->{username} if $self->{username};
+  $PASSWORD = $self->{password} if defined $self->{password};
+  $ADDRESS = $self->{host};
+  # guess_credentials sets $self->{host} for ping. Keep the https:// default for
+  # the control API; the camera's HTTP/HTTPS port is independent of the stream port.
+  $BASE_URL = $PROTOCOL.$ADDRESS;
+  Debug("Monitor $self->{Monitor}{Id} ($self->{Monitor}{Name}): base url $BASE_URL user $USERNAME");
 
   my $url = $BASE_URL.'/goform/login?cmd=login&type=0&user='.$USERNAME;
   my $response = $self->get($url);

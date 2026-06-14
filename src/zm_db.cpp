@@ -71,7 +71,9 @@ bool zmDbConnect() {
       unsigned int ssl_mode = verify_server_cert ? SSL_MODE_VERIFY_IDENTITY : SSL_MODE_REQUIRED;
       mysql_options(&dbconn, MYSQL_OPT_SSL_MODE, &ssl_mode);
 #elif defined(HAVE_MYSQL_OPT_SSL_VERIFY_SERVER_CERT)
-      char verify_flag = verify_server_cert ? 1 : 0;
+      // This branch only compiles on clients without MYSQL_OPT_SSL_MODE (older
+      // MariaDB/MySQL), where my_bool is the expected argument type and defined.
+      my_bool verify_flag = verify_server_cert ? 1 : 0;
       mysql_options(&dbconn, MYSQL_OPT_SSL_VERIFY_SERVER_CERT, &verify_flag);
 #endif
     }

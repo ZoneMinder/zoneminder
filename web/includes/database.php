@@ -62,9 +62,12 @@ function dbConnect() {
       // so existing installs are not changed on upgrade. Guarded with defined()
       // so an upgraded zm.conf that predates this option does not fatal on PHP 8.
       // Refs #3816.
-      if ( defined('ZM_DB_SSL_VERIFY_SERVER_CERT') and (ZM_DB_SSL_VERIFY_SERVER_CERT !== '') ) {
-        $dbOptions[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] =
-          !in_array(strtolower(ZM_DB_SSL_VERIFY_SERVER_CERT), array('0', 'false', 'no', 'off'));
+      if ( defined('ZM_DB_SSL_VERIFY_SERVER_CERT') ) {
+        $verify_value = strtolower(trim((string)ZM_DB_SSL_VERIFY_SERVER_CERT));
+        if ( $verify_value !== '' ) {
+          $dbOptions[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] =
+            !in_array($verify_value, array('0', 'false', 'no', 'off'), true);
+        }
       }
       $dbConn = new PDO($dsn, ZM_DB_USER, ZM_DB_PASS, $dbOptions);
     } else {

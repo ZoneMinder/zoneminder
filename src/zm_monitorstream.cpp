@@ -924,7 +924,8 @@ void MonitorStream::runStream() {
       Debug(3, "Sleeping for %" PRIi64 " us",
             static_cast<int64>(std::chrono::duration_cast<Microseconds>(sleep_time).count()));
     }
-    std::this_thread::sleep_for(sleep_time);
+    if (!zm_terminate)
+      std::this_thread::sleep_for(sleep_time);
 
     if (ttl > Seconds(0) && (now - stream_start_time) > ttl) {
       Debug(2, "now - start > ttl (%" PRIi64 " us). break",

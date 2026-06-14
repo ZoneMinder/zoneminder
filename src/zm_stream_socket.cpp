@@ -276,6 +276,26 @@ void StreamSocket::SendMedia(const AVPacket *packet, StreamId stream,
   Wake();
 }
 
+void StreamSocket::SendMonitorEvent(std::vector<uint8_t> payload) {
+  std::unique_lock<std::mutex> lock(mutex_);
+  uint32_t sequence = event_sequence_++;
+  if (clients_.empty())
+    return;  // sequence still advanced, so a late joiner sees the gap
+  MessagePtr message = MakeMessage(MessageType::Event, StreamId::Monitor, 0,
+                                   sequence, 0, std::move(payload), true);
+  BroadcastLocked(message);
+  lock.unlock();
+  Wake();
+}
+
+void StreamSocket::SetSnapshotEvent(std::vector<uint8_t> payload) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  // The snapshot is the consumer's authoritative current status on connect; it
+  // is tagged with the current event sequence as a baseline and not broadcast.
+  snapshot_ = MakeMessage(MessageType::Event, StreamId::Monitor, 0,
+                          event_sequence_, 0, std::move(payload), true);
+}
+
 StreamSocket::MessagePtr StreamSocket::MakeMessage(
     MessageType type, StreamId stream, uint8_t flags, uint32_t sequence,
     int64_t pts_us, std::vector<uint8_t> payload, bool control) const {
@@ -423,12 +443,15 @@ void StreamSocket::AcceptClient() {
     client->last_progress = std::chrono::steady_clock::now();
     client->last_stats = client->last_progress;
 
-    // New consumers get the stream parameters first, then the cached keyframe
-    // so they can render immediately instead of waiting for the next GOP.
+    // New consumers get the stream parameters first, then the current-status
+    // snapshot, then the cached keyframe so they can render immediately instead
+    // of waiting for the next GOP.
     if (hello_video_)
       EnqueueLocked(*client, hello_video_);
     if (hello_audio_)
       EnqueueLocked(*client, hello_audio_);
+    if (snapshot_)
+      EnqueueLocked(*client, snapshot_);
     if (keyframe_)
       EnqueueLocked(*client, keyframe_);
 

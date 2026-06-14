@@ -376,6 +376,103 @@ TEST_CASE("StreamSocket sends BYE on stop", "[stream_socket]") {
   REQUIRE(message.header.type == static_cast<uint8_t>(MessageType::Bye));
 }
 
+namespace {
+
+std::vector<uint8_t> make_state_event(uint16_t code, uint32_t state_id,
+                                      uint32_t prev_state_id, const char *name) {
+  MonitorEvent ev;
+  ev.code = code;
+  ev.state_id = state_id;       ev.has_state_id = true;
+  ev.prev_state_id = prev_state_id; ev.has_prev_state_id = true;
+  ev.state_name = name;
+  ev.wall_clock_us = 1718355103501000ULL;
+  ev.has_wall_clock = true;
+  return BuildEvent(ev);
+}
+
+}  // namespace
+
+TEST_CASE("StreamSocket broadcasts a monitor EVENT", "[stream_socket]") {
+  StreamSocket server(1, kSockPath);
+  REQUIRE(server.Start());
+
+  TestClient client;
+  REQUIRE(client.Connect());
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+  server.SendMonitorEvent(make_state_event(kEventStateChanged, 2, 0, "Alarm"));
+
+  ReceivedMessage message;
+  REQUIRE(client.ReadMessage(message));
+  REQUIRE(message.header.type == static_cast<uint8_t>(MessageType::Event));
+  REQUIRE(message.header.stream == static_cast<uint8_t>(StreamId::Monitor));
+  REQUIRE(message.header.sequence == 0);
+
+  MonitorEvent ev;
+  REQUIRE(ParseEvent(message.payload.data(), message.payload.size(), ev));
+  REQUIRE(ev.code == kEventStateChanged);
+  REQUIRE(ev.state_id == 2);
+  REQUIRE(ev.prev_state_id == 0);
+  REQUIRE(ev.state_name == "Alarm");
+  REQUIRE(ev.has_wall_clock);
+
+  server.Stop();
+}
+
+TEST_CASE("StreamSocket event sequence advances without clients", "[stream_socket]") {
+  StreamSocket server(1, kSockPath);
+  REQUIRE(server.Start());
+
+  // Two events produced before any consumer connects; the sequence still
+  // advances so the gap is observable to a later joiner.
+  server.SendMonitorEvent(make_state_event(kEventConnectionFailed, 0, 0, ""));
+  server.SendMonitorEvent(make_state_event(kEventConnectionRestored, 0, 0, ""));
+
+  TestClient client;
+  REQUIRE(client.Connect());
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+  server.SendMonitorEvent(make_state_event(kEventStateChanged, 1, 0, "PreAlarm"));
+
+  ReceivedMessage message;
+  REQUIRE(client.ReadMessage(message));
+  REQUIRE(message.header.type == static_cast<uint8_t>(MessageType::Event));
+  REQUIRE(message.header.sequence == 2);  // 0 and 1 dropped before connect
+
+  server.Stop();
+}
+
+TEST_CASE("StreamSocket replays snapshot on connect", "[stream_socket]") {
+  StreamSocket server(1, kSockPath);
+  REQUIRE(server.Start());
+
+  codec_parameters_ptr par = make_h264_parameters();
+  server.SetVideoParams(par.get(), {30, 1});
+  server.SetSnapshotEvent(make_state_event(kEventSnapshot, 0, 0, "Idle"));
+
+  TestClient client;
+  REQUIRE(client.Connect());
+
+  // HELLO first
+  ReceivedMessage hello;
+  REQUIRE(client.ReadMessage(hello));
+  REQUIRE(hello.header.type == static_cast<uint8_t>(MessageType::Hello));
+
+  // then the snapshot EVENT
+  ReceivedMessage snap;
+  REQUIRE(client.ReadMessage(snap));
+  REQUIRE(snap.header.type == static_cast<uint8_t>(MessageType::Event));
+  REQUIRE(snap.header.stream == static_cast<uint8_t>(StreamId::Monitor));
+
+  MonitorEvent ev;
+  REQUIRE(ParseEvent(snap.payload.data(), snap.payload.size(), ev));
+  REQUIRE(ev.code == kEventSnapshot);
+  REQUIRE(ev.state_id == 0);
+  REQUIRE(ev.state_name == "Idle");
+
+  server.Stop();
+}
+
 TEST_CASE("StreamSocket::ParseAllowedUids", "[stream_socket]") {
   REQUIRE(StreamSocket::ParseAllowedUids("").empty());
   REQUIRE(StreamSocket::ParseAllowedUids("33") == std::vector<uid_t>{33});

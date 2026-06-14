@@ -78,6 +78,17 @@ class StreamSocket {
   void SendMedia(const AVPacket *packet, zm::stream_socket::StreamId stream,
                  bool keyframe, int64_t pts_us);
 
+  // Broadcast a monitor lifecycle EVENT to every connected client. payload is a
+  // pre-built EVENT body (see BuildEvent); the header is framed here with the
+  // next per-monitor event sequence and the current media generation. Events
+  // are control messages - never dropped from a client queue. Never blocks.
+  void SendMonitorEvent(std::vector<uint8_t> payload);
+
+  // Cache the current-status snapshot replayed to each new consumer on connect
+  // (the events analogue of the cached keyframe). payload is a pre-built EVENT
+  // body of code kEventSnapshot. Caching only; does not broadcast.
+  void SetSnapshotEvent(std::vector<uint8_t> payload);
+
   // Parses the ZM_STREAM_SOCKET_ALLOWED_UIDS setting (comma-separated uids;
   // whitespace tolerated, malformed entries ignored with a warning).
   static std::vector<uid_t> ParseAllowedUids(const std::string &value);
@@ -150,10 +161,12 @@ class StreamSocket {
   MessagePtr hello_video_;
   MessagePtr hello_audio_;
   MessagePtr keyframe_;
+  MessagePtr snapshot_;            // current-status EVENT, replayed on connect
   std::vector<uint8_t> hello_video_payload_;
   std::vector<uint8_t> hello_audio_payload_;
   uint32_t generation_ = 0;
-  uint32_t sequence_[2] = {0, 0};  // indexed by StreamId
+  uint32_t sequence_[2] = {0, 0};  // indexed by StreamId (Video, Audio)
+  uint32_t event_sequence_ = 0;    // per-monitor lifecycle event counter
 };
 
 #endif  // ZM_STREAM_SOCKET_H

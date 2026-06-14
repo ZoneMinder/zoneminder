@@ -251,3 +251,133 @@ TEST_CASE("stream_socket::Stats roundtrip") {
     REQUIRE_FALSE(ParseStats(payload.data(), 15, sent, dropped));
   }
 }
+
+TEST_CASE("stream_socket::Event state_changed roundtrip") {
+  MonitorEvent in;
+  in.code = kEventStateChanged;
+  in.wall_clock_us = 0x0001020304050607ULL;
+  in.has_wall_clock = true;
+  in.state_id = 2;       in.has_state_id = true;
+  in.prev_state_id = 0;  in.has_prev_state_id = true;
+  in.state_name = "Alarm";
+
+  std::vector<uint8_t> payload = BuildEvent(in);
+
+  MonitorEvent out;
+  REQUIRE(ParseEvent(payload.data(), payload.size(), out));
+  REQUIRE(out.code == kEventStateChanged);
+  REQUIRE(out.has_wall_clock);
+  REQUIRE(out.wall_clock_us == in.wall_clock_us);
+  REQUIRE(out.has_state_id);
+  REQUIRE(out.state_id == 2);
+  REQUIRE(out.has_prev_state_id);
+  REQUIRE(out.prev_state_id == 0);
+  REQUIRE(out.state_name == "Alarm");
+  // Unset fields stay absent.
+  REQUIRE_FALSE(out.has_detail);
+  REQUIRE(out.message.empty());
+}
+
+TEST_CASE("stream_socket::Event health roundtrip with detail") {
+  MonitorEvent in;
+  in.code = kEventConnectionFailed;
+  in.wall_clock_us = 1718355103501000ULL;
+  in.has_wall_clock = true;
+  in.message = "Unable to connect to the capture source";
+  in.detail = 110;  // ETIMEDOUT
+  in.has_detail = true;
+
+  std::vector<uint8_t> payload = BuildEvent(in);
+
+  MonitorEvent out;
+  REQUIRE(ParseEvent(payload.data(), payload.size(), out));
+  REQUIRE(out.code == kEventConnectionFailed);
+  REQUIRE(out.wall_clock_us == in.wall_clock_us);
+  REQUIRE(out.message == in.message);
+  REQUIRE(out.has_detail);
+  REQUIRE(out.detail == 110);
+  REQUIRE_FALSE(out.has_state_id);
+  REQUIRE(out.state_name.empty());
+}
+
+TEST_CASE("stream_socket::Event minimal snapshot roundtrip") {
+  MonitorEvent in;
+  in.code = kEventSnapshot;
+  in.state_id = 0;  in.has_state_id = true;
+  in.state_name = "Idle";
+  in.wall_clock_us = 7;  in.has_wall_clock = true;
+
+  std::vector<uint8_t> payload = BuildEvent(in);
+
+  MonitorEvent out;
+  REQUIRE(ParseEvent(payload.data(), payload.size(), out));
+  REQUIRE(out.code == kEventSnapshot);
+  REQUIRE(out.has_state_id);
+  REQUIRE(out.state_id == 0);
+  REQUIRE(out.state_name == "Idle");
+  REQUIRE_FALSE(out.has_health_code);
+}
+
+TEST_CASE("stream_socket::Event faulted snapshot carries health code") {
+  MonitorEvent in;
+  in.code = kEventSnapshot;
+  in.state_id = 1;  in.has_state_id = true;
+  in.state_name = "IDLE";
+  in.message = "Unable to connect to the capture source";
+  in.health_code = kEventConnectionFailed;
+  in.has_health_code = true;
+
+  std::vector<uint8_t> payload = BuildEvent(in);
+
+  MonitorEvent out;
+  REQUIRE(ParseEvent(payload.data(), payload.size(), out));
+  REQUIRE(out.code == kEventSnapshot);
+  REQUIRE(out.has_health_code);
+  REQUIRE(out.health_code == kEventConnectionFailed);
+  REQUIRE(out.message == in.message);
+}
+
+TEST_CASE("stream_socket::ParseEvent skips unknown tags") {
+  MonitorEvent in;
+  in.code = kEventCaptureResumed;
+  std::vector<uint8_t> payload = BuildEvent(in);
+  // Append an unknown TLV (tag 0x7e, 2-byte value)
+  payload.insert(payload.end(), {0x7e, 0x02, 0x00, 0xde, 0xad});
+
+  MonitorEvent out;
+  REQUIRE(ParseEvent(payload.data(), payload.size(), out));
+  REQUIRE(out.code == kEventCaptureResumed);
+}
+
+TEST_CASE("stream_socket::ParseEvent rejects malformed input") {
+  SECTION("missing fixed code") {
+    std::vector<uint8_t> payload = {0x01};  // only 1 byte, need 2
+    MonitorEvent out;
+    REQUIRE_FALSE(ParseEvent(payload.data(), payload.size(), out));
+  }
+
+  SECTION("truncated TLV header") {
+    std::vector<uint8_t> payload = {0x01, 0x02, kTlvStateId, 0x04};  // missing length high byte
+    MonitorEvent out;
+    REQUIRE_FALSE(ParseEvent(payload.data(), payload.size(), out));
+  }
+
+  SECTION("value extends past end") {
+    std::vector<uint8_t> payload = {0x01, 0x02, kTlvWallClockUs, 0x08, 0x00, 0x00};
+    MonitorEvent out;
+    REQUIRE_FALSE(ParseEvent(payload.data(), payload.size(), out));
+  }
+
+  SECTION("wall clock with wrong size") {
+    std::vector<uint8_t> payload = {0x01, 0x02, kTlvWallClockUs, 0x04, 0x00, 0x01, 0x02, 0x03, 0x04};
+    MonitorEvent out;
+    REQUIRE_FALSE(ParseEvent(payload.data(), payload.size(), out));
+  }
+
+  SECTION("code-only payload is valid") {
+    std::vector<uint8_t> payload = {0x06, 0x01};  // code 0x0106, no TLVs
+    MonitorEvent out;
+    REQUIRE(ParseEvent(payload.data(), payload.size(), out));
+    REQUIRE(out.code == kEventCaptureResumed);
+  }
+}

@@ -73,6 +73,18 @@ void append_tlv_u32(std::vector<uint8_t> &out, uint8_t tag, uint32_t value) {
   append_tlv(out, tag, value_le, sizeof(value_le));
 }
 
+void append_tlv_u64(std::vector<uint8_t> &out, uint8_t tag, uint64_t value) {
+  uint8_t value_le[8];
+  put_u64(value_le, value);
+  append_tlv(out, tag, value_le, sizeof(value_le));
+}
+
+void append_tlv_str(std::vector<uint8_t> &out, uint8_t tag, const std::string &value) {
+  // TLV length is u16; clamp pathologically long strings rather than overflow.
+  uint16_t len = value.size() > 0xffff ? 0xffff : static_cast<uint16_t>(value.size());
+  append_tlv(out, tag, reinterpret_cast<const uint8_t *>(value.data()), len);
+}
+
 }  // namespace
 
 void SerializeHeader(const Header &header, uint8_t out[kHeaderSize]) {
@@ -180,6 +192,86 @@ bool ParseStats(const uint8_t *data, size_t len, uint64_t &sent, uint64_t &dropp
     return false;
   sent = get_u64(data);
   dropped = get_u64(data + 8);
+  return true;
+}
+
+std::vector<uint8_t> BuildEvent(const MonitorEvent &ev) {
+  std::vector<uint8_t> out;
+  out.reserve(16 + ev.message.size() + ev.state_name.size());
+
+  uint8_t code_le[2];
+  put_u16(code_le, ev.code);
+  out.insert(out.end(), code_le, code_le + 2);
+
+  if (ev.has_wall_clock)     append_tlv_u64(out, kTlvWallClockUs, ev.wall_clock_us);
+  if (!ev.message.empty())   append_tlv_str(out, kTlvMessage, ev.message);
+  if (ev.has_state_id)       append_tlv_u32(out, kTlvStateId, ev.state_id);
+  if (ev.has_prev_state_id)  append_tlv_u32(out, kTlvPrevStateId, ev.prev_state_id);
+  if (ev.has_detail)         append_tlv_u32(out, kTlvDetail, ev.detail);
+  if (!ev.state_name.empty()) append_tlv_str(out, kTlvStateName, ev.state_name);
+  if (ev.has_health_code) {
+    uint8_t code_le[2];
+    put_u16(code_le, ev.health_code);
+    append_tlv(out, kTlvHealthCode, code_le, sizeof(code_le));
+  }
+
+  return out;
+}
+
+bool ParseEvent(const uint8_t *data, size_t len, MonitorEvent &ev) {
+  ev = MonitorEvent();
+  if (len < 2)
+    return false;
+  ev.code = get_u16(data);
+
+  size_t pos = 2;
+  while (pos < len) {
+    if (len - pos < 3)
+      return false;
+    uint8_t tag = data[pos];
+    uint16_t value_len = get_u16(data + pos + 1);
+    pos += 3;
+    if (len - pos < value_len)
+      return false;
+    const uint8_t *value = data + pos;
+    pos += value_len;
+
+    switch (tag) {
+      case kTlvWallClockUs:
+        if (value_len != 8) return false;
+        ev.wall_clock_us = get_u64(value);
+        ev.has_wall_clock = true;
+        break;
+      case kTlvMessage:
+        ev.message.assign(reinterpret_cast<const char *>(value), value_len);
+        break;
+      case kTlvStateId:
+        if (value_len != 4) return false;
+        ev.state_id = get_u32(value);
+        ev.has_state_id = true;
+        break;
+      case kTlvPrevStateId:
+        if (value_len != 4) return false;
+        ev.prev_state_id = get_u32(value);
+        ev.has_prev_state_id = true;
+        break;
+      case kTlvDetail:
+        if (value_len != 4) return false;
+        ev.detail = get_u32(value);
+        ev.has_detail = true;
+        break;
+      case kTlvStateName:
+        ev.state_name.assign(reinterpret_cast<const char *>(value), value_len);
+        break;
+      case kTlvHealthCode:
+        if (value_len != 2) return false;
+        ev.health_code = get_u16(value);
+        ev.has_health_code = true;
+        break;
+      default:
+        break;  // unknown tag: skip
+    }
+  }
   return true;
 }
 

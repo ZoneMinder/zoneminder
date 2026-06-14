@@ -19,6 +19,7 @@
 #define ZM_STREAM_SOCKET_PROTOCOL_H
 
 #include <cstdint>
+#include <string>
 #include <vector>
 
 extern "C" {
@@ -62,11 +63,13 @@ enum class MessageType : uint8_t {
   Keyframe = 0x03,
   Stats    = 0x04,
   Bye      = 0x05,
+  Event    = 0x06,
 };
 
 enum class StreamId : uint8_t {
-  Video = 0,
-  Audio = 1,
+  Video   = 0,
+  Audio   = 1,
+  Monitor = 2,  // EVENT frames: monitor lifecycle, neither video nor audio
 };
 
 constexpr uint8_t kFlagKeyframe = 0x01;
@@ -128,6 +131,52 @@ bool ParseHello(const uint8_t *data, size_t len, HelloInfo &info);
 // STATS payload: u64 messages_sent, u64 messages_dropped_for_this_client.
 std::vector<uint8_t> BuildStats(uint64_t sent, uint64_t dropped);
 bool ParseStats(const uint8_t *data, size_t len, uint64_t &sent, uint64_t &dropped);
+
+// EVENT frame (MessageType::Event, StreamId::Monitor). The payload is a fixed
+// u16 event_code followed by a TLV tail (u8 tag, u16 length, value); unknown
+// tags are skipped, exactly like HELLO. Events are a monitor lifecycle channel,
+// independent of media: the header generation correlates an event with the
+// media epoch in effect, the header sequence counts every event produced so a
+// slow consumer sees drops as gaps, and wall-clock time travels in a TLV.
+constexpr uint16_t kEventSnapshot             = 0x0001;  // current health+state, on connect
+constexpr uint16_t kEventConnectionFailed     = 0x0101;
+constexpr uint16_t kEventConnectionRestored   = 0x0102;
+constexpr uint16_t kEventPrimeCaptureFailed   = 0x0103;
+constexpr uint16_t kEventPrimeCaptureRestored = 0x0104;
+constexpr uint16_t kEventCaptureFailed        = 0x0105;
+constexpr uint16_t kEventCaptureResumed       = 0x0106;
+constexpr uint16_t kEventStateChanged         = 0x0201;
+
+// EVENT TLV tags
+constexpr uint8_t kTlvWallClockUs = 0x01;  // u64, unix-epoch microseconds
+constexpr uint8_t kTlvMessage     = 0x02;  // utf8, human-readable detail
+constexpr uint8_t kTlvStateId     = 0x03;  // u32, current monitor state
+constexpr uint8_t kTlvPrevStateId = 0x04;  // u32, previous state (state_changed)
+constexpr uint8_t kTlvDetail      = 0x05;  // u32, errno / ffmpeg error code
+constexpr uint8_t kTlvStateName   = 0x06;  // utf8, "Idle"/"Alarm"/...
+constexpr uint8_t kTlvHealthCode  = 0x07;  // u16, active fault code in a snapshot (0 = healthy)
+
+// Decoded EVENT payload. A field is "present" only when its has_* flag is set;
+// the wire omits fields that do not apply to a given event_code.
+struct MonitorEvent {
+  uint16_t code = 0;
+  uint64_t wall_clock_us = 0;  bool has_wall_clock = false;
+  std::string message;
+  uint32_t state_id = 0;       bool has_state_id = false;
+  uint32_t prev_state_id = 0;  bool has_prev_state_id = false;
+  uint32_t detail = 0;         bool has_detail = false;
+  std::string state_name;
+  uint16_t health_code = 0;    bool has_health_code = false;  // snapshot: active fault
+};
+
+// Builds an EVENT payload (u16 code + TLV tail) from the populated fields of ev.
+// Only fields whose has_* flag is set (or whose string is non-empty) are
+// emitted. Header framing (sequence/generation/pts) is added by the caller.
+std::vector<uint8_t> BuildEvent(const MonitorEvent &ev);
+
+// Parses an EVENT payload, skipping unknown tags. Returns false on a truncated
+// fixed code or TLV.
+bool ParseEvent(const uint8_t *data, size_t len, MonitorEvent &ev);
 
 }  // namespace stream_socket
 }  // namespace zm

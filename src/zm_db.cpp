@@ -128,7 +128,14 @@ bool zmDbConnect() {
   if (mysql_query(&dbconn, "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED")) {
     Error("Can't set isolation level: %s", mysql_error(&dbconn));
   }
-  mysql_set_character_set(&dbconn, "utf8");
+  // Use utf8mb4 so the connection can carry the full Unicode range. The "utf8"
+  // alias is only 3-byte utf8mb3, which mangles 4-byte characters (e.g. emoji
+  // and supplementary-plane scripts) in utf8mb4 columns like Monitors.Name to
+  // '?' on both read and write. refs #4785
+  if (mysql_set_character_set(&dbconn, "utf8mb4")) {
+    Warning("Can't set connection character set to utf8mb4, falling back to utf8: %s", mysql_error(&dbconn));
+    mysql_set_character_set(&dbconn, "utf8");
+  }
   db_thread_id = mysql_thread_id(&dbconn);
   zmDbConnected = true;
   return zmDbConnected;

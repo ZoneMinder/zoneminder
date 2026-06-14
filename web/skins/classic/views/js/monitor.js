@@ -194,7 +194,7 @@ function initPage() {
     el.onchange = function() {
       const form = document.getElementById('contentForm');
       form.tab.value = 'general';
-      form.submit();
+      saveMonitorDataPrepare(document.getElementById('contentForm'), false, 'reload');
     };
   });
   document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"],input[name="newMonitor[MaxImageBufferCount]"],input[name="newMonitor[Width]"],input[name="newMonitor[Height]"],input[name="newMonitor[PreEventCount]"]').forEach(function(el) {
@@ -311,7 +311,7 @@ function initPage() {
     window.location.assign('?view=console');
   });
 
-  var sourceFormMonitor = $j('#contentForm').serialize();
+  sourceFormMonitor = $j('#contentForm').serialize();
   // Manage the ZONES Button
   const zonesTab = document.getElementById("zones-tab");
   if (zonesTab) {
@@ -354,7 +354,7 @@ function initPage() {
     document.getElementById('saveConfirmBtn').addEventListener('click', function onSaveConfirmClick(evt) {
       document.getElementById('saveConfirmBtn').disabled = true; // prevent double click
       evt.preventDefault();
-      saveMonitorData(href);
+      saveMonitorDataPrepare(document.getElementById('contentForm'), true, href);
     });
 
     // Manage the Don't SAVE modal button
@@ -371,21 +371,44 @@ function initPage() {
 
   // Manage the SAVE Button
   document.getElementById("saveBtn").addEventListener("click", function onSaveClick(evt) {
-    const form = document.getElementById('contentForm');
-    if (validateForm(form)) {
-      saveMonitorData();
-    }
+    saveMonitorDataPrepare(document.getElementById('contentForm'), true);
   });
 
   // Manage the SAVE AND CLOSE Button - use AJAX instead of native form
   // submit so Chrome doesn't trigger its "save password" prompt.
   document.getElementById("saveAndCloseBtn").addEventListener("click", function onSaveAndCloseClick(evt) {
-    const form = document.getElementById('contentForm');
-    if (validateForm(form)) {
-      $j('#contentButtons').hide();
-      saveMonitorData('?view=console');
-    }
+    saveMonitorDataPrepare(document.getElementById('contentForm'), true, '?view=console');
   });
+
+  /*
+  * href - Link to follow after saving
+  */
+  function saveMonitorDataPrepare(form, formValidation, href = null) {
+    $j.getJSON(thisUrl, {
+      request: "monitor",
+      action: "validateName",
+      mid: mid,
+      monitorName: form.elements['newMonitor[Name]'].value
+    })
+        .done(function(data) {
+          if (data.response === false) {
+            alert(data.messageBadNameChars.replace(/~~/, '\r\n'));
+          } else if (data.result === 'Error') {
+            alert(data.message);
+          } else {
+            const successfulFormValidation = (formValidation) ? validateForm(form) : true;
+            if (successfulFormValidation) {
+              if (!href || href === '') {
+                saveMonitorData();
+              } else {
+                $j('#contentButtons').hide();
+                saveMonitorData(href);
+              }
+            }
+          }
+        })
+        .fail(logAjaxFail);
+  }
 
   const form = document.getElementById('contentForm');
 
@@ -574,7 +597,14 @@ function saveMonitorData(href = '') {
     data: form_data,
     success: function() {
       alertBlock.fadeOut({duration: 'fast'});
-      if (href) window.location.assign(href);
+      sourceFormMonitor = $j('#contentForm').serialize();
+      if (href) {
+        if (href == 'reload') {
+          window.location.reload();
+        } else {
+          window.location.assign(href);
+        }
+      }
       //document.getElementById('zones-tab').classList.remove("disabled");
     },
     error: function() {

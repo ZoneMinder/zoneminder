@@ -58,9 +58,7 @@ function validateForm(form) {
     }
   }
 
-  if ( elements['newMonitor[Name]'].value.search( /[^\w\-\.\(\)\:\/ ]/ ) >= 0 )
-    errors[errors.length] = "<?php echo translate('BadNameChars') ?>";
-  else if ( monitorNames[form.elements['newMonitor[Name]'].value] )
+  if ( monitorNames[form.elements['newMonitor[Name]'].value] )
     errors[errors.length] = "<?php echo translate('DuplicateMonitorName') ?>";
 
   if ( form.elements['newMonitor[Type]'].value == 'Local' ) {

@@ -56,6 +56,16 @@ function dbConnect() {
         PDO::MYSQL_ATTR_SSL_KEY  => ZM_DB_SSL_CLIENT_KEY,
         PDO::MYSQL_ATTR_SSL_CERT => ZM_DB_SSL_CLIENT_CERT,
       );
+      // Identity-verify the server certificate when ZM_DB_SSL_VERIFY_SERVER_CERT
+      // is set: truthy verifies, false-y (0/false/no/off) allows a self-signed
+      // or non-matching cert. An empty/unset value leaves PDO's default in place
+      // so existing installs are not changed on upgrade. Guarded with defined()
+      // so an upgraded zm.conf that predates this option does not fatal on PHP 8.
+      // Refs #3816.
+      if ( defined('ZM_DB_SSL_VERIFY_SERVER_CERT') and (ZM_DB_SSL_VERIFY_SERVER_CERT !== '') ) {
+        $dbOptions[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] =
+          !in_array(strtolower(ZM_DB_SSL_VERIFY_SERVER_CERT), array('0', 'false', 'no', 'off'));
+      }
       $dbConn = new PDO($dsn, ZM_DB_USER, ZM_DB_PASS, $dbOptions);
     } else {
       $dbConn = new PDO($dsn, ZM_DB_USER, ZM_DB_PASS);

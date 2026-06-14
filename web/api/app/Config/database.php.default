@@ -100,5 +100,16 @@ class DATABASE_CONFIG {
 		else:
 			$this->default['host'] = ZM_DB_HOST;
 		endif;
+
+		// Identity-verify the server cert when ZM_DB_SSL_VERIFY_SERVER_CERT is
+		// set: truthy verifies, false-y (0/false/no/off) allows a self-signed or
+		// non-matching cert. Empty/unset leaves the default so existing installs
+		// are unchanged on upgrade. The Mysql datasource merges 'flags' into the
+		// PDO connection options. Refs #3816.
+		if (defined('ZM_DB_SSL_VERIFY_SERVER_CERT') and (ZM_DB_SSL_VERIFY_SERVER_CERT !== '')):
+			$this->default['flags'] = array(
+				PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => !in_array(strtolower(ZM_DB_SSL_VERIFY_SERVER_CERT), array('0', 'false', 'no', 'off'))
+			);
+		endif;
 	}
 }

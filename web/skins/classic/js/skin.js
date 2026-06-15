@@ -3503,7 +3503,7 @@ const zmAlert = function(message, title = "") {
         modalInfoMessageBlock.id += '_' + rnd;
         modalInfoMessageBlock.style.top = 20*numberVisibleBlocks + 'px';
         modalInfoMessageBlock.style.left = 20*numberVisibleBlocks + 'px';
-        $j(document).one('shown.bs.modal', modalInfoMessageBlock, function(){
+        $j(document).one('shown.bs.modal', modalInfoMessageBlock, function() {
           // Actions after the modal window becomes visible
           const observer = new MutationObserver(function(_mutations, obs) {
             // We don't care what happened; we'll just remove the block from the DOM.

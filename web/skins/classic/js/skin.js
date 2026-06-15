@@ -3472,6 +3472,68 @@ const createClickableLink = function(text) {
   return text1.replace(/(^|[^\/])(www\.[\S]+(\b|$))/gim, '$1<a target="_blank" href="http://$2">$2</a>');
 };
 
+const zmAlert = function(message, title = "") {
+  const visibleBlocks = document.querySelectorAll('[id^="modalInfoMessageBlock"]');
+  const numberVisibleBlocks = (visibleBlocks) ? visibleBlocks.length : 0;
+  if (numberVisibleBlocks >= 5) {
+    console.warn("The number of visible information blocks has exceeded 5. New blocks are not displayed.");
+    if (title !== '') console.log("TITLE: ", title);
+    console.log("MESSAGE: ", message);
+    return;
+  }
+
+  $j.getJSON(thisUrl, {
+    request: "modal",
+    modal: "infoMessageBlock",
+    title: title,
+    message: message,
+  })
+      .done(function(data) {
+        if (data.result == "Error") {
+          console.warn("Error: ", data.message);
+          return;
+        }
+        const rnd = (Math.floor((Math.random() * 999999) + 1)); // Required for displaying multiple blocks simultaneously.
+        insertModalHtml('modalInfoMessageBlock', data.html);
+        const modalInfoMessageBlock = document.getElementById('modalInfoMessageBlock');
+        if (!modalInfoMessageBlock) {
+          console.warn("Modal information block not found.", data);
+          return;
+        }
+        modalInfoMessageBlock.id += '_' + rnd;
+        modalInfoMessageBlock.style.top = 20*numberVisibleBlocks + 'px'; 
+        modalInfoMessageBlock.style.left = 20*numberVisibleBlocks + 'px'; 
+        $j(document).one('shown.bs.modal',modalInfoMessageBlock,function(){
+          // Actions after the modal window becomes visible
+          const observer = new MutationObserver(function(_mutations, obs) {
+            // We don't care what happened; we'll just remove the block from the DOM.
+           _mutations[0].target.remove();
+            obs.disconnect();
+          });
+          observer.observe(modalInfoMessageBlock, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['style', 'class']
+          });
+        });
+        $j(modalInfoMessageBlock).modal('show');
+
+        const modalBackdrop = document.querySelectorAll('.modal-backdrop');
+        const numberModalBackdrop = (modalBackdrop) ? modalBackdrop.length : 0;
+        if (numberModalBackdrop > 1) {
+          // Only the first block with a dark background is required.
+          Array.from(modalBackdrop).forEach(function(el, index) {
+            if (index === 0) return;
+            el.parentNode.removeChild(el);
+          });
+        }
+      })
+      .fail(function(data) {
+        logAjaxFail(data);
+      });
+}
+
 // https://stackoverflow.com/a/69273090
 class ManageEventListener {
   #listeners = {}; // # in a JS class signifies private

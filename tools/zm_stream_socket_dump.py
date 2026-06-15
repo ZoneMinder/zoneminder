@@ -7,10 +7,17 @@ import socket
 import struct
 import sys
 
-TYPES = {1: 'HELLO', 2: 'MEDIA', 3: 'KEYFRAME', 4: 'STATS', 5: 'BYE'}
+TYPES = {1: 'HELLO', 2: 'MEDIA', 3: 'KEYFRAME', 4: 'STATS', 5: 'BYE', 6: 'EVENT'}
 TLV_NAMES = {1: 'codec_id', 2: 'extradata', 3: 'width', 4: 'height',
              5: 'fps_num', 6: 'fps_den', 7: 'sample_rate', 8: 'channels',
              9: 'profile', 10: 'level'}
+EVENT_CODES = {0x0001: 'snapshot', 0x0101: 'connection_failed',
+               0x0102: 'connection_restored', 0x0103: 'prime_capture_failed',
+               0x0104: 'prime_capture_restored', 0x0105: 'capture_failed',
+               0x0106: 'capture_resumed', 0x0201: 'state_changed'}
+EVENT_TLV_NAMES = {1: 'wall_clock_us', 2: 'message', 3: 'state_id',
+                   4: 'prev_state_id', 5: 'detail', 6: 'state_name',
+                   7: 'health_code'}
 
 
 def read_exact(sock, n):
@@ -41,6 +48,31 @@ def parse_hello(payload):
     return ' '.join(parts)
 
 
+def parse_event(payload):
+    if len(payload) < 2:
+        return 'truncated'
+    code = struct.unpack('<H', payload[:2])[0]
+    parts = [EVENT_CODES.get(code, 'code%#06x' % code)]
+    pos = 2
+    while pos + 3 <= len(payload):
+        tag = payload[pos]
+        length = struct.unpack('<H', payload[pos + 1:pos + 3])[0]
+        value = payload[pos + 3:pos + 3 + length]
+        pos += 3 + length
+        name = EVENT_TLV_NAMES.get(tag, 'tag%#x' % tag)
+        if tag == 2 or tag == 6:  # message, state_name
+            parts.append('%s=%r' % (name, value.decode('utf-8', 'replace')))
+        elif len(value) == 8:
+            parts.append('%s=%d' % (name, struct.unpack('<Q', value)[0]))
+        elif len(value) == 4:
+            parts.append('%s=%d' % (name, struct.unpack('<I', value)[0]))
+        elif len(value) == 2:
+            parts.append('%s=%d' % (name, struct.unpack('<H', value)[0]))
+        else:
+            parts.append('%s=%s' % (name, value.hex()))
+    return ' '.join(parts)
+
+
 def main():
     path = sys.argv[1]
     count = int(sys.argv[2]) if len(sys.argv) > 2 else 30
@@ -58,6 +90,8 @@ def main():
             TYPES.get(mtype, hex(mtype)), stream, flags, seq, gen, pts, len(payload))
         if mtype == 1:
             line += '  {%s}' % parse_hello(payload)
+        elif mtype == 6:
+            line += '  {%s}' % parse_event(payload)
         elif mtype == 4:
             sent, dropped = struct.unpack('<QQ', payload)
             line += '  sent=%d dropped=%d' % (sent, dropped)

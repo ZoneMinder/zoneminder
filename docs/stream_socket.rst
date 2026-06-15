@@ -12,8 +12,10 @@ The socket replaces the per-monitor media FIFOs
 versions created when the RTSPServer option was enabled. Unlike the FIFOs,
 the socket is always on, carries both streams on one connection, supports
 multiple simultaneous consumers, delivers codec parameters in a handshake,
-and makes packet loss observable per consumer. ZoneMinder's own
-``zm_rtsp_server`` is a consumer of this socket.
+and makes packet loss observable per consumer. The same connection also
+carries monitor lifecycle events (capture faults and analysis-state
+changes) as a push channel. ZoneMinder's own ``zm_rtsp_server`` is a
+consumer of this socket.
 
 The path is a documented convention, not published anywhere at runtime:
 consumers derive it from ``ZM_PATH_SOCKS`` (zm.conf) and the monitor id, and
@@ -47,7 +49,7 @@ header::
     u32  length      bytes following this field (20 + payload size)
     u8   version     protocol version, 1
     u8   type        message type, below
-    u8   stream      0 = video, 1 = audio
+    u8   stream      0 = video, 1 = audio, 2 = monitor (EVENT frames)
     u8   flags       bit 0: keyframe (video); other bits reserved, 0
     u32  sequence    per-stream, counts every message produced
     u32  generation  stream epoch; a bump means re-init the decoder
@@ -86,6 +88,41 @@ Message types:
 
 ``0x05 BYE``
   zmc is shutting the stream down; the close that follows is not an error.
+
+``0x06 EVENT``
+  A monitor lifecycle event (``stream`` is ``2``). This is a push channel
+  for capture-fault and analysis-state changes, independent of media: it
+  flows even while the camera is disconnected and the media streams are
+  stalled. ``sequence`` is a per-monitor event counter (its own series, not
+  reset by a media generation bump), ``generation`` is the media epoch in
+  effect at emission for correlation, and ``pts_us`` is 0 when no media is
+  flowing — the event's own timestamp travels in a TLV.
+
+  The payload is a ``u16`` event code followed by a TLV tail (u8 tag, u16
+  length, value; unknown tags skipped). Event codes::
+
+      0x0001 snapshot                current health + state, on connect
+      0x0101 connection_failed       camera connect failed
+      0x0102 connection_restored
+      0x0103 prime_capture_failed    could not prime the capture source
+      0x0104 prime_capture_restored
+      0x0105 capture_failed          pre/capture/post capture failed
+      0x0106 capture_resumed         pipeline recovered after any fault
+      0x0201 state_changed           analysis state transition
+
+  TLV tags: ``0x01`` wall_clock_us (u64, unix-epoch microseconds — the
+  timestamp to surface), ``0x02`` message (utf8 detail), ``0x03`` state_id
+  (u32, current state), ``0x04`` prev_state_id (u32, for state_changed),
+  ``0x05`` detail (u32, errno / ffmpeg error code), ``0x06`` state_name
+  (utf8, e.g. ``IDLE``/``ALARM``), ``0x07`` health_code (u16, the active
+  fault code carried by a faulted snapshot; absent or 0 means healthy).
+
+  ``snapshot`` is sent to every consumer on connect (after the HELLOs, the
+  events analogue of the cached KEYFRAME) and is refreshed on every health
+  or state change, so a late subscriber learns current status without
+  waiting for the next transition. The capture-fault edges are emitted by
+  zmc once per transition; because the socket survives camera reconnects,
+  ``connection_failed`` is observable exactly when media has stopped.
 
 There are no client-to-server messages in version 1; zmc ignores inbound
 bytes.

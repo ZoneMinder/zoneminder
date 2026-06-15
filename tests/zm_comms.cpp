@@ -19,29 +19,18 @@
 
 #include "zm_comms.h"
 #include <array>
-#include <cstdio>
+#include <cstdlib>
+#include <unistd.h>
 
 namespace {
 
-int reserveEphemeralPort(int socket_type) {
-  const int sd = ::socket(AF_INET, socket_type, 0);
-  REQUIRE(sd >= 0);
-
+int getBoundPort(int sd) {
   sockaddr_in addr = {};
-  addr.sin_family = AF_INET;
-  addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-  addr.sin_port = 0;
-
-  const int reuse_addr = 1;
-  REQUIRE(::setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &reuse_addr, sizeof(reuse_addr)) == 0);
-  REQUIRE(::bind(sd, reinterpret_cast<const sockaddr *>(&addr), sizeof(addr)) == 0);
-
   socklen_t addr_len = sizeof(addr);
   REQUIRE(::getsockname(sd, reinterpret_cast<sockaddr *>(&addr), &addr_len) == 0);
 
   const int port = ntohs(addr.sin_port);
   REQUIRE(port > 0);
-  REQUIRE(::close(sd) == 0);
   return port;
 }
 
@@ -162,15 +151,13 @@ TEST_CASE("ZM::SockAddrUnix") {
 
 TEST_CASE("ZM::UdpInetSocket basics") {
   zm::UdpInetSocket socket;
-  const int port = reserveEphemeralPort(SOCK_DGRAM);
-  const std::string port_str = std::to_string(port);
   REQUIRE(socket.isClosed() == true);
   REQUIRE(socket.isOpen() == false);
   REQUIRE(socket.isConnected() == false);
   REQUIRE(socket.isDisconnected() == false);
 
   SECTION("bind with host and port") {
-    REQUIRE(socket.bind(nullptr, port_str.c_str()) == true);
+    REQUIRE(socket.bind(nullptr, "0") == true);
     REQUIRE(socket.isOpen() == true);
     REQUIRE(socket.isDisconnected() == true);
     REQUIRE(socket.isClosed() == false);
@@ -186,23 +173,21 @@ TEST_CASE("ZM::UdpInetSocket basics") {
   }
 
   SECTION("bind with port") {
-    REQUIRE(socket.bind(port_str.c_str()) == true);
+    REQUIRE(socket.bind("0") == true);
   }
 
   SECTION("bind with host and port number") {
-    REQUIRE(socket.bind(nullptr, port) == true);
+    REQUIRE(socket.bind(nullptr, 0) == true);
   }
 
   SECTION("bind with port number") {
-    REQUIRE(socket.bind(port) == true);
+    REQUIRE(socket.bind(0) == true);
   }
 }
 
 TEST_CASE("ZM::UdpInetSocket send/recv") {
   zm::UdpInetSocket srv_socket;
   zm::UdpInetSocket client_socket;
-  const int port = reserveEphemeralPort(SOCK_DGRAM);
-  const std::string port_str = std::to_string(port);
 
   std::array<char, 3> msg = {'a', 'b', 'c'};
   std::array<char, msg.size()> rcv{};
@@ -213,8 +198,10 @@ TEST_CASE("ZM::UdpInetSocket send/recv") {
   }
 
   SECTION("send/recv") {
-    REQUIRE(srv_socket.bind("127.0.0.1", port_str.c_str()) == true);
+    REQUIRE(srv_socket.bind("127.0.0.1", "0") == true);
     REQUIRE(srv_socket.isOpen() == true);
+    const int port = getBoundPort(srv_socket.getReadDesc());
+    const std::string port_str = std::to_string(port);
 
     REQUIRE(client_socket.connect("127.0.0.1", port_str.c_str()) == true);
     REQUIRE(client_socket.isConnected() == true);
@@ -319,13 +306,12 @@ TEST_CASE("ZM::TcpInetClient basics") {
 
 TEST_CASE("ZM::TcpInetServer basics", "[notCI]") {
   zm::TcpInetServer server;
-  const int port = reserveEphemeralPort(SOCK_STREAM);
   REQUIRE(server.isClosed() == true);
   REQUIRE(server.isOpen() == false);
   REQUIRE(server.isConnected() == false);
   REQUIRE(server.isDisconnected() == false);
 
-  REQUIRE(server.bind(port) == true);
+  REQUIRE(server.bind(0) == true);
   REQUIRE(server.isOpen() == true);
   REQUIRE(server.isClosed() == false);
   REQUIRE(server.isConnected() == false);
@@ -347,7 +333,6 @@ TEST_CASE("ZM::TcpInetServer basics", "[notCI]") {
 TEST_CASE("ZM::TcpInetClient/Server send/recv", "[notCI]") {
   zm::TcpInetServer server;
   zm::TcpInetClient client;
-  const int port = reserveEphemeralPort(SOCK_STREAM);
 
   std::array<char, 3> msg = {'a', 'b', 'c'};
   std::array<char, msg.size()> rcv{};
@@ -358,8 +343,9 @@ TEST_CASE("ZM::TcpInetClient/Server send/recv", "[notCI]") {
   }
 
   SECTION("send/recv") {
-    REQUIRE(server.bind(port) == true);
+    REQUIRE(server.bind(0) == true);
     REQUIRE(server.isOpen() == true);
+    const int port = getBoundPort(server.getReadDesc());
     REQUIRE(server.listen() == true);
 
     REQUIRE(client.connect("127.0.0.1", port) == true);

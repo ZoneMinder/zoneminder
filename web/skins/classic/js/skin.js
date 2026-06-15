@@ -1507,7 +1507,11 @@ function createGo2rtcStream(container, src, mid, monitorName, fallbackToMjpeg) {
     const url = new URL(src);
     url.protocol = (url.protocol === 'https:') ? 'wss:' : 'ws:';
     url.pathname += '/ws';
-    const streamName = ZMGo2RTCStreamNames.getGo2RTCStreamName(mid, monitorName, '_CameraDirectPrimary');
+    const streamName = (typeof ZMGo2RTCStreamNames !== 'undefined' &&
+      ZMGo2RTCStreamNames &&
+      typeof ZMGo2RTCStreamNames.getGo2RTCStreamName === 'function') ?
+      ZMGo2RTCStreamNames.getGo2RTCStreamName(mid, monitorName, '_CameraDirectPrimary') :
+      String(mid) + '_CameraDirectPrimary';
     url.search = new URLSearchParams({src: streamName}).toString();
 
     const stream = document.createElement('video-stream');

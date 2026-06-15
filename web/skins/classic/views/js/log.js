@@ -48,12 +48,20 @@ function ajaxRequest(params) {
     params.data.EndDateTime = $j('#filterEndDateTime').val();
   }
 
+  const optionsBootstrapTable = table.bootstrapTable('getOptions');
   if (ajax) ajax.abort();
   ajax = $j.ajax({
     url: thisUrl + '?view=request&request=log&task=query',
     data: params.data,
     timeout: 0,
     success: function(data) {
+      if (optionsBootstrapTable.autoRefresh === true && optionsBootstrapTable.autoRefreshInterval) {
+        setTimeout(function() {
+          table.bootstrapTable('refreshOptions', {
+            autoRefresh: true
+          });
+        }, optionsBootstrapTable.autoRefreshInterval*1000);
+      }
       if (!data.rows.length && data.total > 0) {
         // The requested page is out of range; reset to page 1.
         table.bootstrapTable('selectPage', 1);
@@ -72,10 +80,14 @@ function ajaxRequest(params) {
       logAjaxFail(jqxhr);
       let message = translate["Reason"] + ": ";
       if (jqxhr.statusText == "abort") {
-        table.bootstrapTable('refreshOptions', {
-          autoRefresh: false
-        });
-        message += translate["AJAXRequestForLogsWasAborted"];
+        if (optionsBootstrapTable.autoRefresh === true) {
+          table.bootstrapTable('refreshOptions', {
+            autoRefresh: false
+          });
+          message += translate["AJAXRequestForLogsWasAborted"];
+        } else {
+          message += translate["Aborted"];
+        }
       } else {
         message += jqxhr.statusText;
       }

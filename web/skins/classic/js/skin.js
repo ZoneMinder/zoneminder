@@ -3501,13 +3501,13 @@ const zmAlert = function(message, title = "") {
           return;
         }
         modalInfoMessageBlock.id += '_' + rnd;
-        modalInfoMessageBlock.style.top = 20*numberVisibleBlocks + 'px'; 
-        modalInfoMessageBlock.style.left = 20*numberVisibleBlocks + 'px'; 
-        $j(document).one('shown.bs.modal',modalInfoMessageBlock,function(){
+        modalInfoMessageBlock.style.top = 20*numberVisibleBlocks + 'px';
+        modalInfoMessageBlock.style.left = 20*numberVisibleBlocks + 'px';
+        $j(document).one('shown.bs.modal', modalInfoMessageBlock, function(){
           // Actions after the modal window becomes visible
           const observer = new MutationObserver(function(_mutations, obs) {
             // We don't care what happened; we'll just remove the block from the DOM.
-           _mutations[0].target.remove();
+            _mutations[0].target.remove();
             obs.disconnect();
           });
           observer.observe(modalInfoMessageBlock, {
@@ -3532,7 +3532,7 @@ const zmAlert = function(message, title = "") {
       .fail(function(data) {
         logAjaxFail(data);
       });
-}
+};
 
 // https://stackoverflow.com/a/69273090
 class ManageEventListener {

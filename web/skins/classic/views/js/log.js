@@ -68,7 +68,18 @@ function ajaxRequest(params) {
       updateHeaderStats(data);
     },
     error: function(jqxhr) {
+      table.bootstrapTable('hideLoading');
       logAjaxFail(jqxhr);
+      let message = translate["Reason"] + ": ";
+      if (jqxhr.statusText == "abort") {
+        table.bootstrapTable('refreshOptions', {
+          autoRefresh: false
+        });
+        message += translate["AJAXRequestForLogsWasAborted"];
+      } else {
+        message += jqxhr.statusText;
+      }
+      zmAlert(message, translate["AJAXRequestError"]);
     }
   });
 }

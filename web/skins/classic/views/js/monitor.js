@@ -954,7 +954,7 @@ function ControlId_onChange(ddm) {
 function ControlEdit_onClick() {
   const ControlId = document.getElementById('ControlId');
   if (ControlId) {
-    window.location = '?view=controlcap&cid='+ControlId.value;
+    window.location = '?view=controlcap&cid='+encodeURIComponent(ControlId.value);
   }
 }
 

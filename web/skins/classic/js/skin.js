@@ -100,8 +100,14 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
       evt.preventDefault();
       // Only navigate to safe schemes; block javascript:/data:/vbscript: URLs
       // in href/data-url so a crafted attribute cannot run script on click.
-      if (url && !/^\s*(javascript|data|vbscript):/i.test(url)) {
-        window.location.assign(url);
+      try {
+        const parsed = new URL(String(url), document.baseURI);
+        const proto = parsed.protocol.toLowerCase();
+        if (proto === 'http:' || proto === 'https:') {
+          window.location.assign(parsed.href);
+        }
+      } catch (e) {
+        // Ignore invalid URLs
       }
     });
   });

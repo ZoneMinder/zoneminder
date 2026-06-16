@@ -73,11 +73,11 @@ static rfbBool resize(rfbClient* client) {
     av_free(client->frameBuffer);
   }
 
-  int bufferSize = 4*client->width*client->height;
+  size_t bufferSize = static_cast<size_t>(client->width) * client->height * 4;
   // libVNC doesn't do alignment or padding in each line
   //SWScale::GetBufferSize(AV_PIX_FMT_RGBA, client->width, client->height);
   client->frameBuffer = (uint8_t *)av_malloc(bufferSize);
-  Debug(1, "Allocing new frame buffer %dx%d = %d", client->width, client->height, bufferSize);
+  Debug(1, "Allocing new frame buffer %dx%d = %zu", client->width, client->height, bufferSize);
 
   return TRUE;
 }
@@ -233,10 +233,9 @@ int VncCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
 
   int rc = scale.Convert(
              mVncData.buffer,
-             mRfb->si.framebufferWidth * mRfb->si.framebufferHeight * 4,
-             //SWScale::GetBufferSize(AV_PIX_FMT_RGBA, mRfb->si.framebufferWidth, mRfb->si.framebufferHeight),
+             static_cast<size_t>(mRfb->si.framebufferWidth) * mRfb->si.framebufferHeight * 4,
              directbuffer,
-             width * height * colours,
+             static_cast<size_t>(width) * height * colours,
              AV_PIX_FMT_RGBA,
              mImgPixFmt,
              mRfb->si.framebufferWidth,

@@ -601,9 +601,27 @@ sub get_realm {
   return undef;
 } # end sub get_realm
 
+# Resolve the camera host/ip from the monitor without opening a connection.
+# Returns the cached $self->{host} if open()/guess_credentials() already set it,
+# otherwise parses it out of the monitor's ControlAddress/Path using the shared
+# guess_credentials() (which only needs a UserAgent, no network I/O). This lets
+# callers such as ping() work before open() has been called.
+sub host {
+  my $self = shift;
+  $$self{host} = shift if @_;
+  return $$self{host} if $$self{host};
+
+  if (!$self->{ua}) {
+    require LWP::UserAgent;
+    $self->{ua} = LWP::UserAgent->new();
+  }
+  $self->guess_credentials();
+  return $$self{host};
+}
+
 sub ping {
   my $self = shift;
-  my $ip = @_ ? shift : $$self{host};
+  my $ip = @_ ? shift : $self->host();
   if (!$ip) {
     Warning("No ip to ping. Please either pass ip or populate self{host}");
     return undef;

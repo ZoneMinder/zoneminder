@@ -51,7 +51,7 @@ getBodyTopHTML();
       <?php echo translate('Total') ?>:&nbsp;<span id="totalLogs"></span>&nbsp;-&nbsp;
       <?php echo translate('Available') ?>:&nbsp;<span id="availLogs"></span>&nbsp;-&nbsp;
       <?php echo translate('Displaying') ?>:&nbsp;<span id="displayLogs"></span>&nbsp;-&nbsp;
-      <?php echo translate('Updated') ?>:&nbsp;<span id="lastUpdate"></span>
+      <?php echo translate('Updated') ?>:&nbsp;<span id="lastUpdate"></span><span id="requestStatus"></span>
     </div>
     <div id="logsTable">
     <div id="toolbar">

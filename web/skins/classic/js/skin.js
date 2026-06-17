@@ -107,7 +107,7 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
         if (proto === 'http:' || proto === 'https:') {
           window.location.assign(parsed.href);
         }
-      } catch (e) {
+      } catch {
         // Ignore invalid URLs
       }
     });

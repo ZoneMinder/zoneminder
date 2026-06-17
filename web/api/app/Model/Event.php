@@ -159,7 +159,6 @@ class Event extends AppModel {
         return 1;
       } else {
         ZM\Warning('File does not exist at ' . $this->Path().'/'.$event['DefaultVideo'] );
-        ZM\Warning(print_r($this, true));
       }
     } else {
       return 0;

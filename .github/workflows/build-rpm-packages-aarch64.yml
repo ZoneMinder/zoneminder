@@ -238,11 +238,21 @@ jobs:
             VERSION="${GITHUB_REF_NAME#release-}"  # release-X.Y -> X.Y
             echo "DEPLOY_PREFIX=proposed-${VERSION}" >> $GITHUB_ENV
           fi
+
+      - name: Ensure ZMREPO target directory exists
+        run: |
+          set -eux
+          mkdir -p ~/.ssh
+          echo "${{ secrets.ZMREPO_SSH_KEY }}" > ~/.ssh/zmrepo_deploy_key
+          chmod 600 ~/.ssh/zmrepo_deploy_key
+          ssh -i ~/.ssh/zmrepo_deploy_key -o StrictHostKeyChecking=no \
+            "${{ secrets.ZMREPO_SSH_USER }}@${{ secrets.ZMREPO_HOST }}" \
+            "mkdir -p rpm/${{ env.DEPLOY_PREFIX }}/${{ matrix.family }}/${{ matrix.releasever }}/aarch64/"
       - name: Publish to ZMREPO
         uses: easingthemes/ssh-deploy@main
         env:
           SSH_PRIVATE_KEY: ${{ secrets.ZMREPO_SSH_KEY }}
-          ARGS: "-rltgoDzvO --mkpath"
+          ARGS: "-rltgoDzvO"
           SOURCE: artifacts/rpm/
           REMOTE_HOST: ${{ secrets.ZMREPO_HOST }}
           REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}

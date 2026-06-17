@@ -157,9 +157,22 @@ class Event extends AppModel {
     if ($event['DefaultVideo']) {
       if (file_exists($this->Path().'/'.$event['DefaultVideo'])) {
         return 1;
-      } else {
-        ZM\Warning('File does not exist at ' . $this->Path().'/'.$event['DefaultVideo'] );
       }
+
+      // While an event is recording its DefaultVideo is incomplete.mp4. When
+      // the event closes the file is renamed to <Id>-video.* and the DB row is
+      // updated. If we still see incomplete.mp4 the model is likely stale, so
+      // reload the event from the database and re-check the new DefaultVideo.
+      if (preg_match('/^incomplete\./', basename($event['DefaultVideo']))) {
+        ZM\Event::clear_cache();
+        $Event = ZM\Event::find_one(array('Id'=>$this->id));
+        if ($Event and $Event->DefaultVideo() and $Event->DefaultVideo() != $event['DefaultVideo']
+            and file_exists($Event->Path().'/'.$Event->DefaultVideo())) {
+          return 1;
+        }
+      }
+
+      ZM\Warning('File does not exist at ' . $this->Path().'/'.$event['DefaultVideo'] );
     } else {
       return 0;
     }

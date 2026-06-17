@@ -888,7 +888,10 @@ function ControlId_onChange(ddm) {
 function ControlEdit_onClick() {
   const ControlId = document.getElementById('ControlId');
   if (ControlId) {
-    window.location = '?view=controlcap&cid='+encodeURIComponent(ControlId.value);
+    const cid = parseInt(ControlId.value, 10);
+    if (Number.isInteger(cid) && cid > 0) {
+      window.location = '?view=controlcap&cid=' + cid;
+    }
   }
 }
 

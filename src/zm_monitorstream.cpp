@@ -530,10 +530,10 @@ void MonitorStream::runStream() {
   }
 
   openComms();
+  // Declared here so it stays in scope for the join() at the end of the
+  // stream loop, but not started until the temporary buffer state below has
+  // been initialised (see the launch after the playback_buffer setup).
   std::thread command_processor;
-  if (connkey) {
-    command_processor = std::thread(&MonitorStream::checkCommandQueue, this);
-  }
 
   if (type == STREAM_JPEG)
     fputs("Content-Type: multipart/x-mixed-replace; boundary=" BOUNDARY "\r\n\r\n", stdout);
@@ -599,6 +599,13 @@ void MonitorStream::runStream() {
     Debug(2, "Not using playback_buffer");
   } // end if connkey && playback_buffer
 
+  // Start the command processor only now that temp_image_buffer_count, the
+  // read/write indices and temp_image_buffer are initialised, so a command
+  // arriving early cannot observe a half-initialised stream (the original
+  // cause of the divide-by-zero in issue #4936).
+  if (connkey) {
+    command_processor = std::thread(&MonitorStream::checkCommandQueue, this);
+  }
 
   while (!zm_terminate) {
     if (feof(stdout)) {

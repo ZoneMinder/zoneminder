@@ -76,7 +76,7 @@ function ajaxRequest(params) {
 function processRows(rows) {
   $j.each(rows, function(ndx, row) {
     try {
-      row.Message = decodeURIComponent(row.Message)
+      row.Message = decodeURIComponent(row.Message.replace(/%(?![0-9A-Fa-f]{2})/g, '%25'))
           .replace(/</g, "&lt;").replace(/>/g, "&gt;") // Replace link tags
           .replace(/event (\d+)/g, "<a href=\"?view=event&eid=$1\">event $1</a>");
     } catch (e) {

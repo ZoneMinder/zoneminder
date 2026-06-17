@@ -39,7 +39,7 @@ if (!window.console) {
 // would otherwise spam the log. Ignore anything sourced from an extension.
 function isExtensionSource(url) {
   return (typeof url === 'string') &&
-    /^(moz-extension|chrome-extension|safari-web-extension|safari-extension|webkit-masked-url):/.test(url);
+    /^(moz-extension|chrome-extension|safari-web-extension|safari-extension|webkit-masked-url)(:|$)/.test(url);
 }
 
 window.onerror = function(message, url, line, col, error) {

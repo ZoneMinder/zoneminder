@@ -217,11 +217,21 @@ jobs:
           name: ${{ env.artifact_name }}
           retention-days: 1
 
+      - name: Ensure ZMREPO target directory exists
+        run: |
+          set -eux
+          mkdir -p ~/.ssh
+          echo "${{ secrets.ZMREPO_SSH_KEY }}" > ~/.ssh/zmrepo_deploy_key
+          chmod 600 ~/.ssh/zmrepo_deploy_key
+          ssh -i ~/.ssh/zmrepo_deploy_key -o StrictHostKeyChecking=no \
+            "${{ secrets.ZMREPO_SSH_USER }}@${{ secrets.ZMREPO_HOST }}" \
+            "mkdir -p rpm/master/${{ matrix.family }}/${{ matrix.releasever }}/x86_64/"
+
       - name: Publish to ZMREPO
         uses: easingthemes/ssh-deploy@main
         env:
           SSH_PRIVATE_KEY: ${{ secrets.ZMREPO_SSH_KEY }}
-          ARGS: "-rltgoDzvO --mkpath"
+          ARGS: "-rltgoDzvO"
           SOURCE: artifacts/rpm/
           REMOTE_HOST: ${{ secrets.ZMREPO_HOST }}
           REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}

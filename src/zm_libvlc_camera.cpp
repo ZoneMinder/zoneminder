@@ -80,7 +80,7 @@ void LibvlcUnlockBuffer(void* opaque, void* picture, void *const *planes) {
   LibvlcPrivateData* data = reinterpret_cast<LibvlcPrivateData*>(opaque);
 
   bool newFrame = false;
-  for( unsigned int i=0; i < data->bufferSize; i++ ) {
+  for( size_t i=0; i < data->bufferSize; i++ ) {
     if ( data->buffer[i] != data->prevBuffer[i] ) {
       newFrame = true;
       break;
@@ -274,7 +274,7 @@ int LibvlcCamera::PrimeCapture() {
   (*libvlc_video_set_format_f)(mLibvlcMediaPlayer, mTargetChroma.c_str(), width, height, width * mBpp);
   (*libvlc_video_set_callbacks_f)(mLibvlcMediaPlayer, &LibvlcLockBuffer, &LibvlcUnlockBuffer, nullptr, &mLibvlcData);
 
-  mLibvlcData.bufferSize = width * height * mBpp;
+  mLibvlcData.bufferSize = static_cast<size_t>(width) * height * mBpp;
   // Libvlc wants 32 byte alignment for images (should in theory do this for all image lines)
   mLibvlcData.buffer = (uint8_t*)zm_mallocaligned(64, mLibvlcData.bufferSize);
   mLibvlcData.prevBuffer = (uint8_t*)zm_mallocaligned(64, mLibvlcData.bufferSize);
@@ -304,7 +304,7 @@ int LibvlcCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
     return 0;
 
   mLibvlcData.mutex.lock();
-  zm_packet->image->Assign(width, height, colours, subpixelorder, mLibvlcData.buffer, static_cast<size_t>(width) * height * mBpp);
+  zm_packet->image->Assign(width, height, colours, subpixelorder, mLibvlcData.buffer, mLibvlcData.bufferSize);
   zm_packet->packet->stream_index = mVideoStreamId;
   zm_packet->stream = mVideoStream;
   mLibvlcData.mutex.unlock();

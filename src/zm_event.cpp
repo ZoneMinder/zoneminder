@@ -814,6 +814,10 @@ void Event::Run() {
       if (rename(video_incomplete_path.c_str(), new_incomplete_path.c_str()) == 0) {
         video_incomplete_file = new_incomplete;
         video_incomplete_path = new_incomplete_path;
+        // The VideoStore opened the file under the old name; keep its path in
+        // sync so the trailer write (faststart re-open) and mfra read don't
+        // fail with ENOENT.
+        videoStore->set_filename(new_incomplete_path);
       }
       // Surface the (codec-bearing if rename succeeded) name to consumers before close
       zmDbDo(stringtf("UPDATE Events SET DefaultVideo='%s' WHERE Id=%" PRIu64,

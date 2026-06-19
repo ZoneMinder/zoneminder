@@ -146,6 +146,12 @@ class VideoStore {
       return avcodec_get_name(video_out_stream->codecpar->codec_id);
     return "";
   }
+
+  // Keep our path in sync when the caller renames the on-disk file out from
+  // under the open AVFormatContext. FFmpeg's faststart trailer pass re-opens
+  // oc->url by name, and finalize() fopen()s filename to read the mfra box, so
+  // both must track the new name or they fail with ENOENT.
+  void set_filename(const std::string &new_filename);
 };
 
 #endif // ZM_VIDEOSTORE_H

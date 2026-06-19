@@ -557,6 +557,16 @@ bool VideoStore::open() {
     av_dict_set(&opts, "movflags", "frag_keyframe+empty_moov+default_base_moof", 0);
   } else {
     Debug(1, "using movflags %s", movflags_entry->value);
+    // faststart restructures a single non-fragmented moov atom by re-opening the
+    // file after the trailer is written. It is incompatible with the fragmented
+    // (frag_keyframe/empty_moov) + mfra/HLS output this class produces, and its
+    // re-open-by-name pass fails if the file was renamed while open. Warn so it
+    // is removed from the monitor's encoder options.
+    if (strstr(movflags_entry->value, "faststart")) {
+      Warning("movflags contains 'faststart', which is incompatible with the "
+              "fragmented MP4 / HLS output used here. Remove it from the "
+              "monitor's encoder options to avoid trailer-write failures.");
+    }
   }
   if ((ret = avformat_write_header(oc, &opts)) < 0) {
     // we crash if we try again
@@ -598,6 +608,16 @@ bool VideoStore::open() {
   }
   return true;
 } // end bool VideoStore::open()
+
+void VideoStore::set_filename(const std::string &new_filename) {
+  filename = new_filename;
+  // oc->url is what FFmpeg's MOV muxer re-opens during the faststart trailer
+  // pass; keep it pointing at the real on-disk name.
+  if (oc) {
+    av_freep(&oc->url);
+    oc->url = av_strdup(new_filename.c_str());
+  }
+}
 
 void VideoStore::flush_codecs() {
   // The codec queues data.  We need to send a flush command and out

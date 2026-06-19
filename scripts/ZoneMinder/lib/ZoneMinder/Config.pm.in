@@ -128,12 +128,27 @@ require ZoneMinder::Database;
     }
     open( my $CONFIG, '<', $config_file )
       or croak("Can't open config file '$config_file': $!");
-    foreach my $str ( <$CONFIG> ) {
-      next if ( $str =~ /^\s*$/ );
-      next if ( $str =~ /^\s*#/ );
-      my ( $name, $value ) = $str =~ /^\s*([^=\s]+)\s*=\s*[\'"]*(.*?)[\'"]*\s*$/;
+    my $logical = '';
+    while ( my $str = <$CONFIG> ) {
+      $str =~ s/\r?\n\z//;
+      # A trailing backslash (with optional whitespace before the newline)
+      # means the value continues on the next physical line. Continuation
+      # lines have their leading whitespace stripped so users can indent.
+      if ( $logical ne '' ) {
+        $str =~ s/^[ \t]+//;
+      }
+      if ( $str =~ s/\\[ \t]*\z// ) {
+        $logical .= $str;
+        next;
+      }
+      $logical .= $str;
+      my $line = $logical;
+      $logical = '';
+      next if ( $line =~ /^\s*$/ );
+      next if ( $line =~ /^\s*#/ );
+      my ( $name, $value ) = $line =~ /^\s*([^=\s]+)\s*=\s*[\'"]*(.*?)[\'"]*\s*$/;
       if ( !$name ) {
-        print(STDERR "Warning, bad line in $config_file: $str\n");
+        print(STDERR "Warning, bad line in $config_file: $line\n");
         next;
       } # end if
       $name = uc $name;
@@ -143,7 +158,7 @@ require ZoneMinder::Database;
       #print(STDERR "Warning, known config option name $name in $config_file\n");
       #}
       $Config{$name} = $value;
-    } # end foreach config line
+    } # end while config line
     close($CONFIG);
   } # end sub process_configfile
 

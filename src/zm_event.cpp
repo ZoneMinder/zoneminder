@@ -768,6 +768,21 @@ void Event::Run() {
       video_file = stringtf("%" PRIu64 "-%s.%s.%s", id, "video", codec.c_str(), container.c_str());
       video_path = path + "/" + video_file;
       Debug(1, "Video file is %s", video_file.c_str());
+
+      // Rename incomplete file to include codec so canPlayCodec() works during recording
+      std::string new_incomplete = stringtf("incomplete.%s.%s", codec.c_str(), container.c_str());
+      std::string new_incomplete_path = path + "/" + new_incomplete;
+      if (rename(video_incomplete_path.c_str(), new_incomplete_path.c_str()) == 0) {
+        video_incomplete_file = new_incomplete;
+        video_incomplete_path = new_incomplete_path;
+        // The VideoStore opened the file under the old name; keep its path in
+        // sync so the trailer write (faststart re-open) and mfra read don't
+        // fail with ENOENT.
+        videoStore->set_filename(new_incomplete_path);
+      }
+      // Surface the (codec-bearing if rename succeeded) name to consumers before close
+      zmDbDo(stringtf("UPDATE Events SET DefaultVideo='%s' WHERE Id=%" PRIu64,
+                      video_incomplete_file.c_str(), id));
     }
   }  // end if GetOptVideoWriter
 

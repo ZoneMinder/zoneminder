@@ -32,6 +32,7 @@
 
 #include <cstring>
 #include <list>
+#include <set>
 #include <dirent.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -201,14 +202,22 @@ Event::~Event() {
 
   /* Close the video file */
   // We close the videowriter first, because if we finish the event, we might try to view the file, but we aren't done writing it yet.
+  bool video_file_linked = false;  // set when the final file is hard-linked from incomplete.*
   if (videoStore != nullptr) {
     Debug(1, "~Event %" PRIu64 ": deleting video store", id);
     delete videoStore;
     videoStore = nullptr;
-    int result = rename(video_incomplete_path.c_str(), video_path.c_str());
-    if (result != 0) {
-      Error("Failed renaming %s to %s, reason: %s", video_incomplete_path.c_str(), video_path.c_str(), strerror(errno));
-      // So that we don't update the event record
+    // Hard-link rather than rename so the file is reachable under BOTH the
+    // incomplete.* and final <Id>-video.* names for the whole window in which
+    // the DB still advertises the old DefaultVideo. The DefaultVideo=final
+    // update is written synchronously below, and the incomplete name is only
+    // unlinked once that update has committed, so a reader of the briefly-stale
+    // row (e.g. EventEndCommand analysis) always finds a file instead of racing
+    // the rename.
+    if (link(video_incomplete_path.c_str(), video_path.c_str()) == 0) {
+      video_file_linked = true;
+    } else {
+      Error("Failed linking %s to %s, reason: %s", video_incomplete_path.c_str(), video_path.c_str(), strerror(errno));
       video_file = video_incomplete_file;
     }
   }
@@ -230,17 +239,24 @@ Event::~Event() {
   DIR *video_dir;
   if ((video_dir = opendir(path.c_str())) != NULL) {
     struct dirent *dir_entry;
+    // The final video is hard-linked under both incomplete.* and <Id>-video.*
+    // until the DB update commits, so count each inode at most once to avoid
+    // double-counting the video toward DiskSpace.
+    std::set<ino_t> counted_inodes;
     while ((dir_entry = readdir(video_dir)) != NULL) {
       struct stat vf_stat;
       if (stat((path + "/" + dir_entry->d_name).c_str(), &vf_stat) == 0 &&
-          S_ISREG(vf_stat.st_mode))
+          S_ISREG(vf_stat.st_mode) &&
+          counted_inodes.insert(vf_stat.st_ino).second)
         video_size += vf_stat.st_size;
     }
     closedir(video_dir);
   }
 
-  // Use async dbQueue instead of synchronous zmDbDoUpdate to avoid blocking
-  // the close_event_thread (which blocks the analysis thread on the next closeEvent).
+  // Write the finalized row synchronously. ~Event runs in the monitor's
+  // close_event_thread, so this does not block the analysis thread, and the
+  // EventEndCommand (e.g. external AI analysis) is only forked after this
+  // returns -- so it always reads the committed DefaultVideo=final.
   // Conditionally update Name only if it hasn't been changed by the user during recording.
   std::string sql = stringtf(
       "UPDATE Events SET"
@@ -258,7 +274,15 @@ Event::~Event() {
       video_file.c_str(), // defaults to ""
       video_size,
       id);
-  dbQueue.push(std::move(sql));
+  zmDbDo(sql);
+
+  if (video_file_linked) {
+    // Now that DefaultVideo=final is committed, remove the incomplete.* hard
+    // link. A reader of the row before this point resolved the file under
+    // either name; after it, only the final name remains.
+    if (unlink(video_incomplete_path.c_str()) != 0)
+      Warning("Failed unlinking %s: %s", video_incomplete_path.c_str(), strerror(errno));
+  }
 
   if (storage && storage->Id()) {
     sql = stringtf("UPDATE Storage SET DiskSpace = DiskSpace + %" PRIu64 " WHERE Id=%u", video_size, storage->Id());

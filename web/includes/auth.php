@@ -274,10 +274,14 @@ function generateAuthHash($useRemoteAddr, $force=false) {
     $time = time();
     # We use 1800 so that we regenerate the hash at half the TTL
     $mintime = $time - (ZM_AUTH_HASH_TTL * 1800);
-    $remoteAddr = ZM_AUTH_HASH_IPS ? $_SESSION['remoteAddr'] : '';
-    # Appending the remoteAddr prevents us from using an auth hash generated for a different ip
+    # The address baked into the hash, and the cache slot key, must agree. A
+    # caller that asks for an IP-less hash ($useRemoteAddr false, e.g.
+    # getZmuCommand) must not overwrite the IP-bound slot used by the browser,
+    # otherwise the next status poll serves an IP-less hash that the IP-bound
+    # validator rejects, bouncing the user to login (issue #4921).
+    $remoteAddr = ($useRemoteAddr and ZM_AUTH_HASH_IPS) ? $_SESSION['remoteAddr'] : '';
     if ($force or (!isset($_SESSION['AuthHash'.$remoteAddr])) or ($_SESSION['AuthHashGeneratedAt'] < $mintime)) {
-      $auth = calculateAuthHash($useRemoteAddr ? $remoteAddr : '');
+      $auth = calculateAuthHash($remoteAddr);
       # Don't both regenerating Auth Hash if an hour hasn't gone by yet
       $_SESSION['AuthHash'.$remoteAddr] = $auth;
       $_SESSION['AuthHashGeneratedAt'] = $time;

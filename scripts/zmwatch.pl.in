@@ -132,8 +132,16 @@ while (!$zm_terminate) {
         Debug("Monitor $monitor->{Id} $monitor->{Name}, startup time $now - $startup_time $startup_elapsed <? $Config{ZM_WATCH_MAX_DELAY}");
         if ($monitor->ControlId()) {
           my $control = $monitor->Control();
-          if ($control and $control->CanReboot() and $control->open()) {
-            $control->reboot();
+          # Only try to reboot the camera if it actually answers. Otherwise
+          # open() blocks until it times out on a camera that is down (the
+          # common reason there is no image since startup). ping() resolves the
+          # host from the monitor itself, so no need to dig the ip out here.
+          if ($control and $control->CanReboot()) {
+            if (!$control->ping()) {
+              Debug("Not rebooting $monitor->{Id} $monitor->{Name}: camera is not reachable");
+            } elsif ($control->open()) {
+              $control->reboot();
+            }
           }
         }
         $log->logPrint(ZoneMinder::Logger::WARNING+$monitor->ImportanceNumber(),

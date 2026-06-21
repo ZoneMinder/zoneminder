@@ -46,8 +46,8 @@ Clone the ZoneMinder project if you have not done so already.
 
 ::
 
-	git clone https://github.com/ZoneMinder/ZoneMinder
-        cd ZoneMinder
+	git clone --recursive https://github.com/ZoneMinder/zoneminder.git
+        cd ./zoneminder
 
 Alternatively, if you have already cloned the repo and wish to update it, do the following.
 

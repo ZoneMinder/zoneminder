@@ -426,6 +426,10 @@ bool VideoStore::open() {
       Debug(2, "Success opening codec");
 
       video_out_stream = avformat_new_stream(oc, nullptr);
+      if (!video_out_stream) {
+        Error("Unable to create video out stream");
+        return false;
+      }
       ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
       if (ret < 0) {
         Error("Could not initialize stream parameters");

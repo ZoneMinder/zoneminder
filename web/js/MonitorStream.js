@@ -137,10 +137,17 @@ function MonitorStream(monitorData) {
     this.streamCmdTimer = clearInterval(this.streamCmdTimer);
     this.writeTextInfoBlock("Error", {showImg: false});
 
-    // zms returns 403 on a stale auth hash (default TTL 2h). The browser keeps
-    // reconnecting the <img> with the same baked-in src, so each retry generates
-    // another zms warning. Try refreshing the auth hash and rebuilding src
-    // before giving up.
+    // zms returns 403 on a stale auth hash (default TTL 2h). For a live multipart
+    // (mode=jpeg) <img> the browser reconnects on its own using the same baked-in
+    // src (same connkey, same expired hash), outside JS control. Once the hash
+    // expires every native reconnect 403s, storming zms with failures (typically
+    // after the capture daemon drops the stream). Capture the broken URL, then
+    // blank src *synchronously* so the browser's native retry loop stops dead;
+    // nothing reconnects until we have fetched a fresh hash below.
+    const stream = this.getElement();
+    const brokenSrc = (stream && stream.src) ? stream.src : this.url_to_zms;
+    if (stream) stream.src = '';
+
     if (this.authRefreshAttempts >= this.MAX_AUTH_REFRESH_ATTEMPTS) {
       this.writeTextInfoBlock("Error", {showImg: false});
       return;
@@ -159,12 +166,12 @@ function MonitorStream(monitorData) {
             if (data && data.auth) {
               auth_hash = data.auth;
             }
-            const stream = self.getElement();
-            if (stream && stream.src) {
-              const newSrc = stream.src.replace(/auth=\w+/i, 'auth='+auth_hash);
-              stream.src = '';
-              stream.src = newSrc;
-            }
+            const el = self.getElement();
+            if (!el) return;
+            // Use a fresh connkey: the zms process tied to the old connkey has
+            // exited, so reusing it would race a dead socket.
+            self.connKey = self.streamCmdParms.connkey = self.statusCmdParms.connkey = self.genConnKey();
+            el.src = rebuildStreamSrc(brokenSrc, auth_hash, self.connKey);
           })
           .fail(function(jqxhr) {
             // A dead session returns 401; redirect to login instead of retrying

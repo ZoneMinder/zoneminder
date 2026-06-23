@@ -3525,14 +3525,14 @@ const zmAlert = function(message, title = "") {
           return;
         }
         modalInfoMessageBlock.id = currentIdModalInfoMessageBlock;
-        modalInfoMessageBlock.style.top = 20*numberVisibleBlocks + 'px'; 
-        modalInfoMessageBlock.style.left = 20*numberVisibleBlocks + 'px'; 
-        modalInfoMessageBlock.setAttribute("data-date-time-show", Date.now()); 
-        $j(modalInfoMessageBlock).one('shown.bs.modal',modalInfoMessageBlock,function(){
+        modalInfoMessageBlock.style.top = 20*numberVisibleBlocks + 'px';
+        modalInfoMessageBlock.style.left = 20*numberVisibleBlocks + 'px';
+        modalInfoMessageBlock.setAttribute("data-date-time-show", Date.now());
+        $j(modalInfoMessageBlock).one('shown.bs.modal', modalInfoMessageBlock, function() {
           // Actions after the modal window becomes visible
           const observer = new MutationObserver(function(_mutations, obs) {
             // We don't care what happened; we'll just remove the block from the DOM.
-           _mutations[0].target.remove();
+            _mutations[0].target.remove();
             obs.disconnect();
           });
           observer.observe(modalInfoMessageBlock, {
@@ -3547,7 +3547,7 @@ const zmAlert = function(message, title = "") {
           // We don't need to leave the modal window in the DOM after we've informed the user.
           // Removing Bootstrap settings
           $j(this).removeData('bs.modal');
-  
+
           // Now we remove the element from the DOM
           $j(this).remove();
         });
@@ -3562,7 +3562,7 @@ const zmAlert = function(message, title = "") {
         logAjaxFail(data);
       });
   return currentIdModalInfoMessageBlock;
-}
+};
 
 const closeZmAlert = async function(id) {
   // We should wait for the modal window to appear before closing it to avoid problems when we call the modal window and try to close it immediately.
@@ -3573,10 +3573,10 @@ const closeZmAlert = async function(id) {
     return false;
   }
   // Minimum modal window display time = 2 sec.
-  const promiseTime = await waitUntil(() => (Date.now() - modalInfoMessageBlock.dataset.dateTimeShow > 2000), 2000);
+  await waitUntil(() => (Date.now() - modalInfoMessageBlock.dataset.dateTimeShow > 2000), 2000);
   $j(modalInfoMessageBlock).modal('hide');
   return true;
-}
+};
 
 // https://stackoverflow.com/a/69273090
 class ManageEventListener {

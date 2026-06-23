@@ -103,7 +103,7 @@ function ajaxRequest(params) {
         updateHeaderRequestStatus("stopped");
       } else {
         updateHeaderRequestStatus("error");
-        const id = zmAlert(translate["Reason"] + ": " + jqxhr.statusText + "~~" + translate["ErrorUpdatingLogTable"], translate["AJAXRequestError"]);
+        zmAlert(translate["Reason"] + ": " + jqxhr.statusText + "~~" + translate["ErrorUpdatingLogTable"], translate["AJAXRequestError"]);
       }
       table.bootstrapTable('hideLoading');
       logAjaxFail(jqxhr);
@@ -217,7 +217,7 @@ function deleteLogs(log_ids, handlerAlert = null) {
     log_idsLength = log_ids.length;
     handlerAlert = zmAlert(translate["DeletingRowsFromTable"]);
 
-    waitUntil(() => (document.querySelector('#' + handlerAlert + ' .modal-body')), 10000).then(result => {
+    waitUntil(() => (document.querySelector('#' + handlerAlert + ' .modal-body')), 10000).then(result() => {
       // We're waiting for the modal information block to appear.
       const block = document.querySelector('#' + handlerAlert + ' .modal-body');
       if (block) {
@@ -226,7 +226,7 @@ function deleteLogs(log_ids, handlerAlert = null) {
         console.warn("Modal information block not found.");
       }
       console.log(result);
-    }).catch(error => {
+    }).catch(error() => {
       console.error(error);
     });
   }
@@ -401,7 +401,7 @@ function manageClearButtonAvailability(enable = null) {
     }
   }
 
-  if (selections.length){
+  if (selections.length) {
     allowRequest = false; // We'll prevent table updates from interfering with the user who has selected rows.
     if (ajax && (ajax.readyState !== 4 && ajax.readyState !== 0)) {
       ajax.abort("plannedAbort"); // There may already be a previous request that hasn't completed.

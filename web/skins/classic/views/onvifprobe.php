@@ -212,7 +212,7 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
         <p><label for="interface"><?php echo translate('Interface') ?></label>
 <?php
   $interfaces = get_networks();
-  $default_interface = $interfaces['default'];
+  $default_interface = isset($interfaces['default']) ? $interfaces['default'] : null;
   unset($interfaces['default']);
 
   echo htmlSelect('interface', $interfaces,
@@ -280,8 +280,9 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
   foreach ($detprofiles as $profile) {
     $monitor = $camera['monitor'];
 
-    $sourceString = "${profile['Name']} : ${profile['Encoding']}" .
-      " (${profile['Width']}x${profile['Height']} @ ${profile['MaxFPS']}fps ${profile['Transport']})";
+    $sourceString = $profile['Name'] . ' : ' . $profile['Encoding'] .
+                    ' (' . $profile['Width'] . 'x' . $profile['Height'] . ' @ ' . $profile['MaxFPS'] . 'fps ' . $profile['Transport'] . ')';
+
     // copy technical details
     $monitor['Width']  = $profile['Width'];
     $monitor['Height'] = $profile['Height'];

@@ -270,6 +270,13 @@ function deleteLogs(log_ids, handlerAlert = null) {
 function initPage() {
   var backBtn = $j('#backBtn');
 
+  table.on('click', function(event) {
+    if (event.target.classList.contains('sortable')) {
+      allowRequest = true;
+      table.bootstrapTable('showLoading');
+    }
+  });
+
   table.one('pre-body.bs.table', function(e, arg1, arg2, arg3) {
     btnAutoRefresh = document.querySelector('button[name="autoRefresh"]');
     if (btnAutoRefresh) {

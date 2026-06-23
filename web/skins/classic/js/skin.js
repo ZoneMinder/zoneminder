@@ -553,32 +553,30 @@ function checkStreamForErrors(funcName, streamObj) {
   return false;
 }
 
-function secsToTime( seconds ) {
-  var timeString = "--";
+function formatSeconds(seconds, round='') {
+  let timeSecs = '';
+  if ( seconds < 10 ) {
+    timeSecs = '0'+ ((round) ? seconds.toFixed(round) : seconds.toString().substr( 0, 4 ));
+  } else {
+    timeSecs = (round) ? seconds.toFixed(round) : seconds.toString().substr( 0, 5 );
+  }
+  return timeSecs;
+}
+
+function secsToTime(seconds, round='') {
+  let timeString = "--";
   if ( seconds < 60 ) {
-    timeString = seconds.toString();
+    timeString = (round) ? seconds.toFixed(round) : seconds.toString(10);
   } else if ( seconds < 60*60 ) {
-    var timeMins = parseInt(seconds/60);
-    var timeSecs = seconds%60;
-    if ( timeSecs < 10 ) {
-      timeSecs = '0'+timeSecs.toString().substr( 0, 4 );
-    } else {
-      timeSecs = timeSecs.toString().substr( 0, 5 );
-    }
+    const timeMins = parseInt(seconds/60);
+    const timeSecs = formatSeconds(seconds%60, round);
     timeString = timeMins+":"+timeSecs;
   } else {
-    var timeHours = parseInt(seconds/3600);
-    var timeMins = (seconds%3600)/60;
-    var timeSecs = seconds%60;
+    const timeHours = parseInt(seconds/3600);
+    var timeMins = parseInt((seconds%3600)/60);
+    const timeSecs = formatSeconds(seconds%60, round);
     if ( timeMins < 10 ) {
-      timeMins = '0'+timeMins.toString().substr( 0, 4 );
-    } else {
-      timeMins = timeMins.toString().substr( 0, 5 );
-    }
-    if ( timeSecs < 10 ) {
-      timeSecs = '0'+timeSecs.toString().substr( 0, 4 );
-    } else {
-      timeSecs = timeSecs.toString().substr( 0, 5 );
+      timeMins = '0'+timeMins;
     }
     timeString = timeHours+":"+timeMins+":"+timeSecs;
   }
@@ -2770,6 +2768,16 @@ function initPageGeneral() {
     alted = e.altKey;
   });
 
+  // A hack to keep the darkening background of only the first modal window
+  $j('.modal').on('show.bs.modal', function() {
+    // Remove all ".modal-backdrops" except the top one.
+    $j('.modal-backdrop').not(':first').remove();
+  });
+  // Also, don't forget to clear everything when you close it.
+  $j(document).on('hidden.bs.modal', '.modal', function() {
+    $j('.modal-backdrop').not(':first').remove();
+  });
+
   if (navbar_type == 'left') {
     if ((!isTouchDevice() || !isMobile()) && NAVBAR_RELOAD) {
       // Increase the width of the scrollbar for NON-mobile or NON-touch devices
@@ -3481,6 +3489,9 @@ const zmAlert = function(message, title = "") {
     console.log("MESSAGE: ", message);
     return;
   }
+  const rnd = (Math.floor((Math.random() * 999999) + 1)); // Required for displaying multiple blocks simultaneously.
+  const idModalInfoMessageBlock = 'modalInfoMessageBlock'; // This is stated in ajax/modals/infoMessageBlock.php
+  const currentIdModalInfoMessageBlock = idModalInfoMessageBlock + '_' + rnd.toString();
 
   $j.getJSON(thisUrl, {
     request: "modal",
@@ -3493,46 +3504,65 @@ const zmAlert = function(message, title = "") {
           console.warn("Error: ", data.message);
           return;
         }
-        const rnd = (Math.floor((Math.random() * 999999) + 1)); // Required for displaying multiple blocks simultaneously.
-        insertModalHtml('modalInfoMessageBlock', data.html);
-        const modalInfoMessageBlock = document.getElementById('modalInfoMessageBlock');
+        insertModalHtml(idModalInfoMessageBlock, data.html);
+        const modalInfoMessageBlock = document.getElementById(idModalInfoMessageBlock);
         if (!modalInfoMessageBlock) {
           console.warn("Modal information block not found.", data);
           return;
         }
-        modalInfoMessageBlock.id += '_' + rnd;
-        modalInfoMessageBlock.style.top = 20*numberVisibleBlocks + 'px';
-        modalInfoMessageBlock.style.left = 20*numberVisibleBlocks + 'px';
-        $j(document).one('shown.bs.modal', modalInfoMessageBlock, function() {
+        modalInfoMessageBlock.id = currentIdModalInfoMessageBlock;
+        modalInfoMessageBlock.style.top = 20*numberVisibleBlocks + 'px'; 
+        modalInfoMessageBlock.style.left = 20*numberVisibleBlocks + 'px'; 
+        modalInfoMessageBlock.setAttribute("data-date-time-show", Date.now()); 
+        $j(modalInfoMessageBlock).one('shown.bs.modal',modalInfoMessageBlock,function(){
           // Actions after the modal window becomes visible
           const observer = new MutationObserver(function(_mutations, obs) {
             // We don't care what happened; we'll just remove the block from the DOM.
-            _mutations[0].target.remove();
+           _mutations[0].target.remove();
             obs.disconnect();
           });
           observer.observe(modalInfoMessageBlock, {
             childList: true,
-            subtree: true,
+            subtree: false,
             attributes: true,
             attributeFilter: ['style', 'class']
           });
         });
-        $j(modalInfoMessageBlock).modal('show');
 
-        const modalBackdrop = document.querySelectorAll('.modal-backdrop');
-        const numberModalBackdrop = (modalBackdrop) ? modalBackdrop.length : 0;
-        if (numberModalBackdrop > 1) {
-          // Only the first block with a dark background is required.
-          Array.from(modalBackdrop).forEach(function(el, index) {
-            if (index === 0) return;
-            el.parentNode.removeChild(el);
-          });
-        }
+        $j(modalInfoMessageBlock).on('hidden.bs.modal', function() {
+          // We don't need to leave the modal window in the DOM after we've informed the user.
+          // Removing Bootstrap settings
+          $j(this).removeData('bs.modal');
+  
+          // Now we remove the element from the DOM
+          $j(this).remove();
+        });
+
+        $j(modalInfoMessageBlock).on('hidePrevented.bs.modal', function() {
+          // Called when the modal window is hidden by clicking on the page background.
+        });
+
+        $j(modalInfoMessageBlock).modal('show');
       })
       .fail(function(data) {
         logAjaxFail(data);
       });
-};
+  return currentIdModalInfoMessageBlock;
+}
+
+const closeZmAlert = async function(id) {
+  // We should wait for the modal window to appear before closing it to avoid problems when we call the modal window and try to close it immediately.
+  const promiseModalInfoMessageBlock = await waitUntil(() => (document.querySelector('#'+id+'.show')), 2000);
+  const modalInfoMessageBlock = document.getElementById(id);
+  if (!promiseModalInfoMessageBlock && !modalInfoMessageBlock) {
+    console.log(`modalInfoMessageBlock with ID=${id} not present.`);
+    return false;
+  }
+  // Minimum modal window display time = 2 sec.
+  const promiseTime = await waitUntil(() => (Date.now() - modalInfoMessageBlock.dataset.dateTimeShow > 2000), 2000);
+  $j(modalInfoMessageBlock).modal('hide');
+  return true;
+}
 
 // https://stackoverflow.com/a/69273090
 class ManageEventListener {

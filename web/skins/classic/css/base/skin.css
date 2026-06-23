@@ -1772,6 +1772,52 @@ input.masked-input.unmasked {
   -webkit-text-security: none;
 }
 
+.fa.slash::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+    to bottom right,
+    transparent calc(50% - 3.0px),
+    #ddddddaa calc(50% - 1.0px),
+    #888888 calc(50% + 1.0px),
+    transparent calc(50% + 3.0px)
+  );
+  margin: 0.5em;
+}
+
+.fa.slash:hover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+    to bottom right,
+    transparent calc(50% - 3.0px),
+    #212529aa calc(50% - 1.0px),
+    #939393 calc(50% + 1.0px),
+    transparent calc(50% + 3.0px)
+  );
+  margin: 0.5em;
+}
+
+.progress-container {
+  width: 100%;
+  height: 10px;
+  background-color: #FAFAFA;
+  border: 1px solid #D3D3D3;
+  border-radius: 4px;
+  box-shadow: inset 0 1px 1px #F0F0F0, 0 3px 6px -5px #BBB;
+  overflow: hidden;
+}
+
+.progress-fill {
+  width: 0%;
+  height: 100%;
+  background-image: linear-gradient(90deg, var(--colorBackgroundButtons), var(--colorBackgroundButtons));
+  border-radius: 4px;
+  transition: width 0.3s ease-in-out;
+}
+
 /* +++ This block should always be located at the end! */
 .hidden {
     display: none;

@@ -1,6 +1,8 @@
 var translate = {
   "Reason": "<?php echo translate('Reason') ?>",
   "Aborted": "<?php echo translate('Aborted') ?>",
-  "AJAXRequestForLogsWasAborted": "<?php echo translate('AJAXRequestForLogsWasAborted') ?>",
+  "ErrorUpdatingLogTable": "<?php echo translate('ErrorUpdatingLogTable') ?>",
+  "ErrorDeletingRowFromLogTable": "<?php echo translate('ErrorDeletingRowFromLogTable') ?>",
+  "DeletingRowsFromTable": "<?php echo translate('DeletingRowsFromTable') ?>",
   "AJAXRequestError": "<?php echo translate('AJAXRequestError') ?>",
 };

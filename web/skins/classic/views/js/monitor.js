@@ -555,6 +555,11 @@ function initPage() {
 
   manageChannelStream();
   checkVerAudioMotion();
+
+  // Reflect the current Motion Detection (Analysing) setting on load.
+  if (form.elements['newMonitor[Analysing]']) {
+    Analysing_onChange(form.elements['newMonitor[Analysing]']); // eslint-disable-line new-cap
+  }
 } // end function initPage()
 
 async function checkVerAudioMotion() {
@@ -802,6 +807,10 @@ function Capturing_onChange(e) {
 }
 
 function Analysing_onChange(e) {
+  // When motion detection is None there is no analysis, so hide the
+  // analysis image, analysis fps and ref/alarm blend fields.
+  const show = (e.value != 'None');
+  $j('#AnalysisImage, li.AnalysisFPS, li.RefBlendPerc, li.AlarmRefBlendPerc, li.AlarmRefImageBlendPct').toggle(show);
 }
 
 function Recording_onChange(e) {

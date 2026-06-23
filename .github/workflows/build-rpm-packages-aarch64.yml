@@ -89,7 +89,7 @@ jobs:
           rpmdev-setuptree
 
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -219,6 +219,16 @@ jobs:
           path: artifacts/rpm
           name: ${{ env.artifact_name }}
           retention-days: 1
+
+      - name: Ensure ZMREPO target directory exists
+        run: |
+          set -eux
+          mkdir -p ~/.ssh
+          echo "${{ secrets.ZMREPO_SSH_KEY }}" > ~/.ssh/zmrepo_deploy_key
+          chmod 600 ~/.ssh/zmrepo_deploy_key
+          ssh -i ~/.ssh/zmrepo_deploy_key -o StrictHostKeyChecking=no \
+            "${{ secrets.ZMREPO_SSH_USER }}@${{ secrets.ZMREPO_HOST }}" \
+            "mkdir -p rpm/master/${{ matrix.family }}/${{ matrix.releasever }}/aarch64/"
 
       - name: Publish to ZMREPO
         uses: easingthemes/ssh-deploy@main

@@ -390,6 +390,18 @@ function initPage() {
   table.on('check.bs.table uncheck.bs.table check-all.bs.table uncheck-all.bs.table', manageClearButtonAvailability);
 
   table.on('load-success.bs.table', function() {
+    const txt = $j('#logsTable').find('.pagination-info').html();
+    if (txt) {
+      const matches = txt.match(/([\D]+)+|(\d+)/g);
+      if (matches) {
+        let result = '';
+        matches.forEach((match, index) => {
+          const num = Number(match);
+          result += (!isNaN(num)) ? num.toLocaleString() : match;
+        });
+        $j('.pagination-info').html(result);
+      }
+    }
     manageClearButtonAvailability();
   });
 

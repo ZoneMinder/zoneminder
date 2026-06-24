@@ -126,6 +126,7 @@ function processRows(rows) {
 }
 
 function filterLog() {
+  manageClearButtonAvailability(false);
   allowRequest = true;
 
   table.bootstrapTable('refresh');
@@ -272,6 +273,7 @@ function initPage() {
 
   table.on('click', function(event) {
     if (event.target.classList.contains('sortable')) {
+      manageClearButtonAvailability(false);
       allowRequest = true;
       table.bootstrapTable('showLoading');
     }
@@ -287,6 +289,7 @@ function initPage() {
   });
 
   table.on('page-change.bs.table', function() {
+    manageClearButtonAvailability(false);
     allowRequest = true;
     table.bootstrapTable('showLoading');
   });
@@ -326,6 +329,7 @@ function initPage() {
 
     if (btnRefresh) {
       btnRefresh.addEventListener("click", function onRefreshTableClick(evt) {
+        manageClearButtonAvailability(false);
         allowRequest = true;
         table.bootstrapTable('refresh');
         table.bootstrapTable('showLoading');

@@ -1345,10 +1345,12 @@ function thumbnail_onmouseover(event) {
   const img = event.target;
   const streamType = img.dataset.streamType;
   const monitorId = img.dataset.monitorId;
+  const monitorName = img.dataset.monitorName;
 
   // Legacy go2rtc attributes for backwards compatibility
   const go2rtcSrc = img.getAttribute('go2rtc_src') || img.dataset.go2rtcSrc;
   const go2rtcMid = img.getAttribute('go2rtc_mid') || monitorId;
+  const go2rtcName = img.getAttribute('go2rtc_name') || monitorName;
   const useGo2rtc = streamType === 'go2rtc' || (!streamType && go2rtcSrc && go2rtcMid);
 
   thumbnail_timeout = setTimeout(function() {
@@ -1368,7 +1370,9 @@ function thumbnail_onmouseover(event) {
     const overlayDimensions = calculateOverlayDimensions(img);
     if (!overlayDimensions) return;
 
-    createThumbnailOverlay(img, overlaySrc, overlayDimensions, streamType, monitorId, go2rtcSrc, go2rtcMid, useGo2rtc, m3u8Exists);
+    createThumbnailOverlay(
+        img, overlaySrc, overlayDimensions, streamType, monitorId, monitorName,
+        go2rtcSrc, go2rtcMid, go2rtcName, useGo2rtc, m3u8Exists);
   }, 250);
 }
 
@@ -1415,7 +1419,9 @@ function calculateOverlayScale(img, overlayWidth) {
   return Math.max(5, Math.min(100, scale));
 }
 
-function createThumbnailOverlay(img, overlaySrc, dimensions, streamType, monitorId, go2rtcSrc, go2rtcMid, useGo2rtc, m3u8Exists) {
+function createThumbnailOverlay(
+    img, overlaySrc, dimensions, streamType, monitorId, monitorName,
+    go2rtcSrc, go2rtcMid, go2rtcName, useGo2rtc, m3u8Exists) {
   const existing = document.getElementById('thumb-overlay');
   if (existing) existing.remove();
 
@@ -1468,7 +1474,7 @@ function createThumbnailOverlay(img, overlaySrc, dimensions, streamType, monitor
   }
 
   if (isLive && useGo2rtc) {
-    createGo2rtcStream(container, go2rtcSrc, monitorId || go2rtcMid, fallbackToMjpeg);
+    createGo2rtcStream(container, go2rtcSrc, monitorId || go2rtcMid, monitorName || go2rtcName, fallbackToMjpeg);
   } else if (streamType === 'rtsp2web') {
     createRtsp2webStream(container, img, monitorId, fallbackToMjpeg, eventStart, statusBar);
   } else if (m3u8Exists && currentView !== 'frames') {
@@ -1508,15 +1514,19 @@ function formatDateTime(date) {
   return date.toLocaleString(undefined, options);
 }
 
-function createGo2rtcStream(container, src, mid, fallbackToMjpeg) {
+function createGo2rtcStream(container, src, mid, monitorName, fallbackToMjpeg) {
   ensureVideoStreamLoaded().then(function() {
     if (!document.getElementById('thumb-overlay')) return;
 
     const url = new URL(src);
     url.protocol = (url.protocol === 'https:') ? 'wss:' : 'ws:';
     url.pathname += '/ws';
-    //url.search = 'src=' + mid + '_0';
-    url.search = 'src=' + mid + '_CameraDirectPrimary';
+    const streamName = (typeof ZMGo2RTCStreamNames !== 'undefined' &&
+      ZMGo2RTCStreamNames &&
+      typeof ZMGo2RTCStreamNames.getGo2RTCStreamName === 'function') ?
+      ZMGo2RTCStreamNames.getGo2RTCStreamName(mid, monitorName, '_CameraDirectPrimary') :
+      String(mid) + '_CameraDirectPrimary';
+    url.search = new URLSearchParams({src: streamName}).toString();
 
     const stream = document.createElement('video-stream');
     stream.style.cssText = 'width: 100%; height: 100%; display: block;';

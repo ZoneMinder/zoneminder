@@ -1808,6 +1808,7 @@ function xhtmlFooter() {
 ?>
   </script>
   <script src="<?php echo cache_bust('js/logger.js')?>"></script>
+  <script src="<?php echo cache_bust('js/go2rtc-stream-names.js')?>"></script>
 <?php
   $viewJsFile = getSkinFile('views/js/'.$basename.'.js');
   if ( $viewJsFile ) {

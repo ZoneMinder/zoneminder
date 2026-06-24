@@ -514,8 +514,9 @@ function queryRequest() {
       if ($Monitor->Go2RTCEnabled() && defined('ZM_GO2RTC_PATH') && ZM_GO2RTC_PATH) {
         $liveStreamAttr = ' data-stream-type="go2rtc"'.
           ' data-go2rtc-src="'.htmlspecialchars(ZM_GO2RTC_PATH).'"'.
-          ' data-monitor-id="'.$monitor['Id'].'"';
-        $go2rtcAttr = ' go2rtc_src="'.htmlspecialchars(ZM_GO2RTC_PATH).'" go2rtc_mid="'.$monitor['Id'].'"';
+          ' data-monitor-id="'.$monitor['Id'].'"'.
+          ' data-monitor-name="'.htmlspecialchars($monitor['Name']).'"';
+        $go2rtcAttr = ' go2rtc_src="'.htmlspecialchars(ZM_GO2RTC_PATH).'" go2rtc_mid="'.$monitor['Id'].'" go2rtc_name="'.htmlspecialchars($monitor['Name']).'"';
         $debugAttr .= ' data-debug-overlay="go2rtc"';
       } else if ($Monitor->RTSP2WebEnabled() && defined('ZM_RTSP2WEB_PATH') && ZM_RTSP2WEB_PATH) {
         $liveStreamAttr = ' data-stream-type="rtsp2web"'.

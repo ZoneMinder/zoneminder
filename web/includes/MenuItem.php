@@ -14,6 +14,7 @@ class MenuItem extends ZM_Object {
     'SortOrder' => 0,
     'Icon'      => null,
     'IconType'  => 'material',
+    'Link'      => null,
   );
 
   // Default material icons for each menu key

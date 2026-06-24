@@ -183,6 +183,52 @@ function getBodyTopHTML() {
   }
 } // end function getBodyTopHTML
 
+// Map view names to Menu_Items MenuKey values
+function getViewMenuKeyMap() {
+  return array(
+    'console'            => 'Console',
+    'montage'            => 'Montage',
+    'montagereview'      => 'MontageReview',
+    'events'             => 'Events',
+    'options'            => 'Options',
+    'log'                => 'Log',
+    'devices'            => 'Devices',
+    'intelgpu'           => 'IntelGpu',
+    'quadra'             => 'Quadra',
+    'groups'             => 'Groups',
+    'filter'             => 'Filters',
+    'snapshots'          => 'Snapshots',
+    'reports'            => 'Reports',
+    'report_event_audit' => 'ReportEventAudit',
+    'map'                => 'Map',
+  );
+}
+
+// Map a MenuKey to the href the built-in menu builders use for it.
+function getMenuKeyHrefMap() {
+  static $map = null;
+  if ($map === null) {
+    $map = array();
+    foreach (getViewMenuKeyMap() as $viewName => $menuKey) {
+      $map[$menuKey] = '?view='.$viewName;
+    }
+    // Built-in items not covered by the view map / needing extra params.
+    $map['Watch'] = '?view=watch&cycle=true';
+  }
+  return $map;
+}
+
+// The link a menu item resolves to. Uses the explicit Link when set,
+// otherwise applies the same ?view= rule as the built-in items: known
+// MenuKeys use their built-in href, custom keys become ?view=<MenuKey>.
+function menuItemEffectiveLink($item) {
+  $link = $item->Link();
+  if ($link !== null && $link !== '') return $link;
+  $map = getMenuKeyHrefMap();
+  $key = $item->MenuKey();
+  return isset($map[$key]) ? $map[$key] : '?view='.$key;
+}
+
 function renderMenuIcon($icon, $iconType = 'material') {
   if ($iconType == 'none') {
     return '';
@@ -287,7 +333,22 @@ function renderMenuItems($forLeftBar = false) {
     foreach ($menuItems as $item) {
       if (!$item->Enabled()) continue;
       $key = $item->MenuKey();
-      if (!isset($funcMap[$key])) continue;
+      if (!isset($funcMap[$key])) {
+        // Custom entry: link to its explicit Link, or fall back to the same
+        // ?view= rule the built-in items use.
+        $link = menuItemEffectiveLink($item);
+        $menuIconOverride = ['icon' => $item->effectiveIcon(), 'iconType' => $item->effectiveIconType()];
+        $result .= buildMenuItem(
+          'customMenu-'.$item->Id(),
+          'menuItem-custom-'.$item->Id(),
+          $item->displayLabel(),
+          htmlspecialchars($link),
+          $item->effectiveIcon(),
+          '', '', true, $item->effectiveIconType()
+        );
+        $menuIconOverride = null;
+        continue;
+      }
 
       $funcName = $funcMap[$key];
       $customLabel = ($item->Label() !== null && $item->Label() !== '') ? $item->displayLabel() : null;

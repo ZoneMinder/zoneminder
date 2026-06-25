@@ -144,11 +144,6 @@
     text-align: center;
 }
 
-li {
-    display: inline;
-    list-style-type: none;
-}
-
 span.alarm {
     color: #DC143C;
     font-weight: bold;

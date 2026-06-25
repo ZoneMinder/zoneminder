@@ -645,7 +645,7 @@ void MonitorStream::runStream() {
       // Use ttl if set, otherwise default to 60 seconds.
       Seconds wait_timeout = (ttl > Seconds(0)) ? std::chrono::duration_cast<Seconds>(ttl) : Seconds(60);
       if (now - stream_start_time > wait_timeout) {
-        Warning("Timed out waiting for capture daemon after %" PRIi64 " seconds",
+        Debug(1, "Timed out waiting for capture daemon after %" PRIi64 " seconds",
                 static_cast<int64>(std::chrono::duration_cast<Seconds>(now - stream_start_time).count()));
         zm_terminate = true;
         continue;

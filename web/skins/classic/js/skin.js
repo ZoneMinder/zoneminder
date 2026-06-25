@@ -1646,8 +1646,10 @@ function thumbnailVideoPlay(video, currentMode, eventStart, statusBar) {
       const container = document.getElementById('monitor-thumb-overlay');
       if (container) {
         const dimensions = calculateOverlayDimensions(video);
-        container.style.width = dimensions.width+'px';
-        container.style.height = dimensions.height+'px';
+        if (dimensions) {
+          container.style.width = dimensions.width+'px';
+          container.style.height = dimensions.height+'px';
+        }
       }
     }
     if (infoStatusBar && currentMode) infoStatusBar.innerHTML = ' [' + currentMode + '] ';

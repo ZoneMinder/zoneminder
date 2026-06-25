@@ -35,6 +35,9 @@ echo getNavBarHTML();
 ?>
   <div class="container-fluid" id="content">
     <div class="row flex-nowrap h-100">
+<?php
+if (!(defined('ZM_WEB_LEFT_MENU_OPTIONS_SUBMENU') and ZM_WEB_LEFT_MENU_OPTIONS_SUBMENU)) {
+?>
       <nav id="sidebar">
         <ul class="nav nav-pills flex-column">
 <?php
@@ -44,6 +47,7 @@ foreach ($zmMenu::$submenuOptionsItems as $name=>$value) {
 ?>
         </ul>
       </nav>
+<?php } ?>
       <div id="optionsContainer">
 <?php 
 if ($tab == 'display') {

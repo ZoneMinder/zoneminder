@@ -13,7 +13,6 @@
       <div class="modal-body">
         <p><?php echo translate('ConfirmClearLogs') ?></p>
       </div>
-      <div id="clearLogsProgressTicker"></div>
       <div class="modal-footer">
         <button id="clearLogsCancelBtn" type="button" class="btn btn-secondary" data-dismiss="modal"><?php echo translate('Cancel') ?></button>
         <button id="clearLogsConfirmBtn" type="button" class="btn btn-danger"><?php echo translate('ClearLogs') ?></button>

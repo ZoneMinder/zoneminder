@@ -289,6 +289,7 @@ function initPage() {
   });
 
   table.on('page-change.bs.table', function() {
+    paginationInfoToLocaleString();
     manageClearButtonAvailability(false);
     allowRequest = true;
     table.bootstrapTable('showLoading');
@@ -390,18 +391,7 @@ function initPage() {
   table.on('check.bs.table uncheck.bs.table check-all.bs.table uncheck-all.bs.table', manageClearButtonAvailability);
 
   table.on('load-success.bs.table', function() {
-    const txt = $j('#logsTable').find('.pagination-info').html();
-    if (txt) {
-      const matches = txt.match(/([\D]+)+|(\d+)/g);
-      if (matches) {
-        let result = '';
-        matches.forEach((match, index) => {
-          const num = Number(match);
-          result += (!isNaN(num)) ? num.toLocaleString() : match;
-        });
-        $j('.pagination-info').html(result);
-      }
-    }
+    paginationInfoToLocaleString();
     manageClearButtonAvailability();
   });
 
@@ -411,6 +401,13 @@ function initPage() {
       .on('change', filterLog);
   $j('#filterComponent')
       .on('change', filterLog);
+}
+
+function paginationInfoToLocaleString() {
+  const block = $j('#logsTable').find('.pagination-info');
+  if (block.length) {
+    block.html(stringToLocaleString(block.html()));
+  }
 }
 
 function manageClearButtonAvailability(enable = null) {

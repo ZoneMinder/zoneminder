@@ -3578,6 +3578,21 @@ const closeZmAlert = async function(id) {
   return true;
 };
 
+const stringToLocaleString = function(str) {
+  let result = str;
+  if (str) {
+    const matches = str.match(/([\D]+)+|(\d+)/g);
+    if (matches) {
+      result = '';
+      matches.forEach((match, index) => {
+        const num = Number(match);
+        result += (!isNaN(num)) ? num.toLocaleString() : match;
+      });
+    }
+  }
+  return result;
+};
+
 // https://stackoverflow.com/a/69273090
 class ManageEventListener {
   #listeners = {}; // # in a JS class signifies private

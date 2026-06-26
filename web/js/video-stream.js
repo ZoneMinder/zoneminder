@@ -83,6 +83,14 @@ class VideoStream extends VideoRTC {
             switch (msg.type) {
                 case 'error':
                     this.divError = msg.value;
+                    const liveStream = this.closest('[id ^= "liveStream"]');
+                    if (liveStream) {
+                        const monitorStream = getMonitorStream(stringToNumber(liveStream.id));
+                        if (monitorStream) {
+                            monitorStream.streamErrorRegistration();
+                            monitorStream.restart(monitorStream.currentChannelStream);
+                        }
+                    }
                     break;
                 case 'mse':
                 case 'hls':

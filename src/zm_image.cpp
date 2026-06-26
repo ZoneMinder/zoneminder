@@ -1248,6 +1248,33 @@ Image *Image::HighlightEdges(
         }
       }
     }
+  } else if ( zm_is_yuv420(p_pixfmt) ) {
+    // Single alarm colour over a transparent (Y=0) background; Overlay() onto
+    // a YUV420 image keys on a non-zero luma marker. Write the colour's luma
+    // at each edge pixel and its chroma at the shared 2x2 chroma sample.
+    const YUV yuv = brg_to_yuv(colour);
+    const uint8_t Yc = Y_VAL(yuv), Uc = U_VAL(yuv), Vc = V_VAL(yuv);
+    uint8_t *hplane[4] = {};
+    int hstride[4] = {};
+    if (av_image_fill_arrays(hplane, hstride, high_buff, p_pixfmt, width, height, 32) < 0) {
+      Error("HighlightEdges: av_image_fill_arrays failed for YUV420 %ux%u", width, height);
+      return high_image;
+    }
+    for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
+      const uint8_t* p = buffer + (y * src_linesize) + lo_x;
+      for ( unsigned int x = lo_x; x <= hi_x; x++, p++ ) {
+        bool edge = false;
+        if ( *p ) {
+          edge = (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1))
+              || (y > 0 && !*(p-src_linesize)) || (y < (height-1) && !*(p+src_linesize));
+        }
+        if ( edge ) {
+          hplane[0][y * hstride[0] + x] = Yc ? Yc : 1;  // keep the luma marker non-zero
+          hplane[1][(y / 2) * hstride[1] + (x / 2)] = Uc;
+          hplane[2][(y / 2) * hstride[2] + (x / 2)] = Vc;
+        }
+      }
+    }
   }
 
   return high_image;
@@ -1998,8 +2025,51 @@ void Image::Overlay( const Image &image ) {
   // chroma. After Colourise() the destination's linesize is updated to the
   // new format's stride, so we re-read it inside each branch.
 
-  /* Grayscale/YUV420 on top of grayscale/YUV420 - complete */
-  if ( zm_bytes_per_pixel(imagePixFormat) == 1 && zm_bytes_per_pixel(image.imagePixFormat) == 1 ) {
+  /* YUV420 on top of YUV420 - copy luma + chroma using luma as the mask */
+  if ( zm_is_yuv420(imagePixFormat) && zm_is_yuv420(image.imagePixFormat) ) {
+    // The overlay (a zone alarm highlight) is built in the target's format
+    // with a Clear()ed (Y=0) transparent background, so a non-zero source
+    // luma marks a pixel to paint. Copy that luma, and copy the shared
+    // chroma sample whenever any of the luma pixels it covers is marked.
+    uint8_t *dplane[4] = {};
+    int dstride[4] = {};
+    const uint8_t *splane[4] = {};
+    int sstride[4] = {};
+    if (av_image_fill_arrays(dplane, dstride, buffer, imagePixFormat, width, height, 32) < 0
+        || av_image_fill_arrays(const_cast<uint8_t **>(splane), sstride, image.buffer,
+                                image.imagePixFormat, width, height, 32) < 0) {
+      Error("Overlay: av_image_fill_arrays failed for YUV420 %ux%u", width, height);
+      return;
+    }
+    for (unsigned int y = 0; y < height; y++) {
+      const uint8_t *psrc = splane[0] + y * sstride[0];
+      uint8_t *pdest = dplane[0] + y * dstride[0];
+      for (unsigned int x = 0; x < width; x++) {
+        if (psrc[x]) pdest[x] = psrc[x];
+      }
+    }
+    const unsigned int cw = (width + 1) / 2;
+    const unsigned int ch = (height + 1) / 2;
+    for (unsigned int cy = 0; cy < ch; cy++) {
+      for (unsigned int cx = 0; cx < cw; cx++) {
+        bool marked = false;
+        for (unsigned int dy = 0; dy < 2 && !marked; dy++) {
+          const unsigned int ly = cy * 2 + dy;
+          if (ly >= height) break;
+          for (unsigned int dx = 0; dx < 2; dx++) {
+            const unsigned int lx = cx * 2 + dx;
+            if (lx < width && splane[0][ly * sstride[0] + lx]) { marked = true; break; }
+          }
+        }
+        if (marked) {
+          dplane[1][cy * dstride[1] + cx] = splane[1][cy * sstride[1] + cx];
+          dplane[2][cy * dstride[2] + cx] = splane[2][cy * sstride[2] + cx];
+        }
+      }
+    }
+
+    /* Grayscale/YUV420 on top of grayscale/YUV420 - complete */
+  } else if ( zm_bytes_per_pixel(imagePixFormat) == 1 && zm_bytes_per_pixel(image.imagePixFormat) == 1 ) {
     // Overlay only the luma/primary plane. Width is shared (panic above).
     for (unsigned int y = 0; y < height; y++) {
       const uint8_t *psrc = image.buffer + y * image.linesize;

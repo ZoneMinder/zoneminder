@@ -790,7 +790,13 @@ bool Zone::CheckAlarms(const Image *delta_image) {
         }
       }  // end for y
 
-      if (monitor->Colours() == ZM_COLOUR_GRAY8) {
+      // Build the alarm highlight in the capture's own pixel format so Overlay()
+      // onto the analysis image is a same-format copy. monitor->Colours()==1
+      // aliases both GRAY8 and planar YUV420P, so resolve the real format first:
+      // a true GRAY8 monitor has no colour to carry, so upgrade its highlight to
+      // RGB24; YUV420P keeps its format and carries the alarm colour in chroma.
+      AVPixelFormat capture_fmt = zm_pixformat_from_colours(monitor->Colours(), monitor->SubpixelOrder());
+      if (capture_fmt == AV_PIX_FMT_GRAY8) {
         image = diff_image->HighlightEdges(alarm_rgb, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB, &polygon.Extent());
       } else {
         image = diff_image->HighlightEdges(alarm_rgb, monitor->Colours(), monitor->SubpixelOrder(), &polygon.Extent());

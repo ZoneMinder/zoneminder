@@ -207,3 +207,79 @@ TEST_CASE("Image::Flip YUV420P", "[image]") {
     REQUIRE(dst.data[1][(h / 2 - 1 - 30) * dst.stride[1] + 40] == 210);
   }
 }
+
+// Regression: a zone alarm highlight (RGB) overlaid onto a planar YUV420P
+// analysis image used to call Colourise() — which only handles GRAY8, so it
+// bailed with "already colourised, colours: 1" (the GRAY8/YUV420P alias) and
+// then walked the 1.5x planar buffer as 3x packed RGB (OOB write). Highlights
+// are now built in the target's YUV420P format and Overlay() copies luma plus
+// the shared chroma sample, keyed on a non-zero source luma marker.
+TEST_CASE("Image::Overlay YUV420P highlight", "[image]") {
+  bootstrap_image_config();
+  const int w = 64, h = 48;
+
+  Image target(w, h, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_YUV420P);
+  Planes tgt = plane_view(target, AV_PIX_FMT_YUV420P, w, h);
+  memset(tgt.data[0], 16, static_cast<size_t>(tgt.stride[0]) * h);     // dim luma
+  memset(tgt.data[1], 128, static_cast<size_t>(tgt.stride[1]) * (h / 2));  // neutral chroma
+  memset(tgt.data[2], 128, static_cast<size_t>(tgt.stride[2]) * (h / 2));
+
+  // Transparent (Y=0) highlight with a 2x2 luma marker fully covering chroma
+  // sample (5,5), plus a single-pixel marker partially covering sample (10,10).
+  Image high(w, h, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_YUV420P);
+  Planes hi = plane_view(high, AV_PIX_FMT_YUV420P, w, h);
+  memset(hi.data[0], 0, static_cast<size_t>(hi.stride[0]) * h);
+  memset(hi.data[1], 0, static_cast<size_t>(hi.stride[1]) * (h / 2));
+  memset(hi.data[2], 0, static_cast<size_t>(hi.stride[2]) * (h / 2));
+  for (int y : {10, 11}) for (int x : {10, 11}) hi.data[0][y * hi.stride[0] + x] = 200;
+  hi.data[1][5 * hi.stride[1] + 5] = 84;   // red-ish chroma
+  hi.data[2][5 * hi.stride[2] + 5] = 255;
+  hi.data[0][20 * hi.stride[0] + 20] = 150;  // single covering pixel of sample (10,10)
+  hi.data[1][10 * hi.stride[1] + 10] = 43;   // green-ish chroma
+  hi.data[2][10 * hi.stride[2] + 10] = 21;
+
+  target.Overlay(high);
+
+  Planes out = plane_view(target, AV_PIX_FMT_YUV420P, w, h);
+  // Marked luma copied; unmarked luma untouched.
+  for (int y : {10, 11}) for (int x : {10, 11})
+    CHECK(out.data[0][y * out.stride[0] + x] == 200);
+  CHECK(out.data[0][20 * out.stride[0] + 20] == 150);
+  CHECK(out.data[0][0] == 16);
+  CHECK(out.data[0][5 * out.stride[0] + 5] == 16);
+  // Chroma copied for any covered sample; untouched elsewhere.
+  CHECK(out.data[1][5 * out.stride[1] + 5] == 84);
+  CHECK(out.data[2][5 * out.stride[2] + 5] == 255);
+  CHECK(out.data[1][10 * out.stride[1] + 10] == 43);
+  CHECK(out.data[2][10 * out.stride[2] + 10] == 21);
+  CHECK(out.data[1][0] == 128);
+  CHECK(out.data[2][0] == 128);
+}
+
+// HighlightEdges must be able to emit a YUV420P highlight (so it can be
+// overlaid onto a YUV420P analysis image in the same format). A filled blob's
+// border pixels become non-zero luma markers carrying the alarm chroma.
+TEST_CASE("Image::HighlightEdges YUV420P output", "[image]") {
+  bootstrap_image_config();
+  const int w = 64, h = 48;
+
+  Image src(w, h, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE);
+  src.Clear();
+  // Fill an interior rectangle so it has edges away from the image border.
+  for (int y = 10; y < 30; y++)
+    for (int x = 10; x < 40; x++)
+      src.Buffer()[y * src.LineSize() + x] = 255;
+
+  Rgb red = kRGBRed;  // alarm colour
+  Image *high = src.HighlightEdges(red, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_YUV420P, nullptr);
+  REQUIRE(high != nullptr);
+  REQUIRE(high->PixFormat() == AV_PIX_FMT_YUV420P);
+
+  Planes hi = plane_view(*high, AV_PIX_FMT_YUV420P, w, h);
+  // A border pixel of the blob must carry a non-zero luma marker; an interior
+  // pixel (not an edge) and an outside pixel must stay transparent (Y=0).
+  CHECK(hi.data[0][10 * hi.stride[0] + 20] != 0);  // top edge
+  CHECK(hi.data[0][20 * hi.stride[0] + 25] == 0);  // interior, not an edge
+  CHECK(hi.data[0][0] == 0);                        // outside the blob
+  delete high;
+}

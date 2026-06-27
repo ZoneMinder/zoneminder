@@ -98,6 +98,7 @@ echo '</span>';
 $levels = array(''=>translate('All'));
 foreach (array_values(ZM\Logger::$codes) as $level) {
   $levels[$level] = $level;
+  if ($level == "INF") $levels["except " . $level] = "except " . $level;
 }
 $selectedLevel = (isset($_SESSION['zmLogFilterLevel']) && !empty($_SESSION['zmLogFilterLevel']) && is_scalar($_SESSION['zmLogFilterLevel'])) ? (string) $_SESSION['zmLogFilterLevel'] : '';
 $selectedLevel = isset($levels[$selectedLevel]) ? $selectedLevel : '';

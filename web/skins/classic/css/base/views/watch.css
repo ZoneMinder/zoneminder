@@ -82,6 +82,20 @@
   display: inline;
 }
 
+/* Keep each status item on a single line.  When the monitor is scaled down (e.g.
+ * a 4k camera shown via the go2rtc player), the status bar is constrained to the
+ * scaled video width.  If its items are allowed to wrap, the bar grows taller as
+ * the video gets narrower, and that extra height feeds back into the Auto
+ * scale-to-fit height calculation, shrinking the video further on each pass.  The
+ * result was the video collapsing in steps.  Truncating with an ellipsis keeps the
+ * bar a fixed height and breaks the feedback loop. */
+.monitor .monitorStatus > * {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
 #replayStatus {
     margin: 3px 0 2px;
     text-align: center;

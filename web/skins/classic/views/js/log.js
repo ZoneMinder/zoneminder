@@ -149,7 +149,7 @@ function updateHeaderStats(data) {
   $j('#totalLogs').text(Number(data.total).toLocaleString());
   $j('#availLogs').text(Number(data.totalNotFiltered).toLocaleString());
   $j('#lastUpdate').text(data.updated);
-  $j('#displayLogs').text(startRow + ' to ' + stopRow);
+  $j('#displayLogs').text(Number(startRow).toLocaleString() + ' to ' + Number(stopRow).toLocaleString());
 }
 
 function manageClearLogsModalBtns() {

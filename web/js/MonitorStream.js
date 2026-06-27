@@ -543,6 +543,38 @@ function MonitorStream(monitorData) {
     );
   };
 
+  // When a go2rtc player connects but the source video codec cannot be decoded by
+  // this browser (e.g. an H.265 camera viewed in Chrome, which supports HEVC over
+  // neither WebRTC nor MSE), go2rtc negotiates the video track as inactive and sends
+  // only audio. The <video> then "plays" audio with no picture and stays at 0x0, so
+  // the normal 'error' handler never fires and the player hangs on "Loading...".
+  // Watch for a decoded video frame; if none arrives in time, treat it as a playback
+  // failure and fall back to the next player (ultimately ZMS MJPEG).
+  this.NO_VIDEO_TIMEOUT = 8000;
+  this.noVideoWatchdog = null;
+
+  this.clearNoVideoWatchdog = function() {
+    if (this.noVideoWatchdog) {
+      clearTimeout(this.noVideoWatchdog);
+      this.noVideoWatchdog = null;
+    }
+  };
+
+  this.startNoVideoWatchdog = function() {
+    this.clearNoVideoWatchdog();
+    const self = this;
+    this.noVideoWatchdog = setTimeout(function() {
+      self.noVideoWatchdog = null;
+      if (!self.started || -1 === self.activePlayer.indexOf('go2rtc')) return;
+      const v = self.getAVStream();
+      if (v && v.videoWidth > 0 && v.videoHeight > 0) return; // video is decoding fine
+      console.warn(`Monitor ID=${self.id}: player "${self.player}" connected but produced no video within ${self.NO_VIDEO_TIMEOUT}ms (the source video codec is likely unsupported by this browser, e.g. H.265). Falling back to the next player.`);
+      self.updateStreamInfo('', 'No video - trying next player');
+      self.streamErrorRegistration();
+      self.selectNextPlayer(self.player);
+    }, this.NO_VIDEO_TIMEOUT);
+  };
+
   this.start = function(streamChannel = 'default') {
     this.writeTextInfoBlock("Loading...");
     if (streamChannel === null || streamChannel === '' || currentView == 'montage') streamChannel = 'default';
@@ -682,6 +714,7 @@ function MonitorStream(monitorData) {
     console.debug(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} STOPPING`);
     this.statusCmdTimer = clearInterval(this.statusCmdTimer);
     this.streamCmdTimer = clearInterval(this.streamCmdTimer);
+    this.clearNoVideoWatchdog();
     this.mediaStream = this.audioTrack = this.videoTrack = null;
 
     if (-1 !== this.activePlayer.indexOf('zms')) {
@@ -1718,6 +1751,7 @@ function MonitorStream(monitorData) {
 
       if (typeof observerMontage !== 'undefined') observerMontage.observe(stream);
       this.activePlayer = 'go2rtc';
+      this.startNoVideoWatchdog();
     } else {
       alert("ZM_GO2RTC_PATH is empty. Go to Options->System and set ZM_GO2RTC_PATH accordingly.");
     }

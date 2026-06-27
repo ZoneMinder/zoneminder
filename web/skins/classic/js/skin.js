@@ -1387,9 +1387,13 @@ function determineOverlaySrc(img, streamType, monitorId, useGo2rtc, m3u8Exists) 
   return streamSrc;
 }
 
-function calculateOverlayDimensions(img) {
-  const imgWidth = img.naturalWidth || img.width;
-  const imgHeight = img.naturalHeight || img.height;
+/*
+* obj - an object of type VIDEO or IMG. VIDEO takes precedence.
+*/
+function calculateOverlayDimensions(obj) {
+  const imgWidth = obj.videoWidth || obj.naturalWidth || obj.width;
+  const imgHeight = obj.videoHeight || obj.naturalHeight || obj.height;
+
   if (!imgWidth || !imgHeight) return null;
 
   const aspectRatio = imgWidth / imgHeight;
@@ -1639,6 +1643,16 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg, eventS
 function thumbnailVideoPlay(video, currentMode, eventStart, statusBar) {
   const infoStatusBar = (statusBar) ? statusBar.querySelector("#info-status-bar") : null;
   video.play().then(() => {
+    if (currentMode == 'RTSP2Web') {
+      const container = document.getElementById('monitor-thumb-overlay');
+      if (container) {
+        const dimensions = calculateOverlayDimensions(video);
+        if (dimensions) {
+          container.style.width = dimensions.width+'px';
+          container.style.height = dimensions.height+'px';
+        }
+      }
+    }
     if (infoStatusBar && currentMode) infoStatusBar.innerHTML = ' [' + currentMode + '] ';
     console.debug(currentMode + " video player started playing");
     if (eventStart && statusBar) updateTimeWallClock(video, eventStart, statusBar);

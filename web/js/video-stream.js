@@ -48,10 +48,19 @@ class VideoStream extends VideoRTC {
 
     onplay() {
         const liveStream = this.closest('[id ^= "liveStream"]');
+        const container = document.getElementById('monitor-thumb-overlay');
         if (liveStream) {
             const monitorStream = getMonitorStream(stringToNumber(liveStream.id));
             if (monitorStream) {
                 monitorStream.streamStartTime = (Date.now() / 1000).toFixed(2);
+            }
+        }
+
+        if (container) {
+            const dimensions = calculateOverlayDimensions(this.video);
+            if (dimensions) {
+                container.style.width = dimensions.width+'px';
+                container.style.height = dimensions.height+'px';
             }
         }
         super.onplay();

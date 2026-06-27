@@ -2,6 +2,7 @@
 require_once('includes/MenuItem.php');
 $menuItems = ZM\MenuItem::find([], ['order' => 'SortOrder ASC']);
 $canEdit = canEdit('System');
+$builtinKeys = array_keys(getMenuItemFunctions());
 ?>
 <form name="menuItemsForm" method="post" action="?">
   <input type="hidden" name="view" value="options"/>
@@ -15,11 +16,17 @@ $canEdit = canEdit('System');
           <i class="material-icons">save</i>
           <span class="text"><?php echo translate('Save') ?></span>
         </button>
+        <button type="button" id="addMenuItemBtn" class="btn btn-secondary" data-on-click-this="addMenuItem"
+          title="<?php echo translate('Add a new menu entry') ?>">
+          <i class="material-icons">add</i>
+          <span class="text"><?php echo translate('Add') ?></span>
+        </button>
         <button type="button" id="sortMenuBtn" class="btn btn-secondary" data-on-click-this="sortMenuItems">
           <i class="material-icons" title="<?php echo translate('Click and drag rows to change order') ?>">swap_vert</i>
           <span class="text"><?php echo translate('Sort') ?></span>
         </button>
         <button type="submit" name="action" value="resetmenu" class="btn btn-warning"
+          title="<?php echo translate('Reset to default values') ?>"
           onclick="return confirm('<?php echo addslashes(translate('Reset menu items to defaults?')) ?>');"
         ><i class="material-icons">restart_alt</i>
           <span class="text"><?php echo translate('Reset') ?></span>
@@ -35,7 +42,9 @@ $canEdit = canEdit('System');
                 <th class="text-left"><?php echo translate('Enabled') ?></th>
                 <th class="text-left"><?php echo translate('Name') ?></th>
                 <th class="text-left"><?php echo translate('Custom Label') ?></th>
+                <th class="text-left"><?php echo translate('Link') ?></th>
                 <th class="text-left"><?php echo translate('Icon') ?></th>
+                <th class="text-right"></th>
               </tr>
             </thead>
             <tbody id="menuItemsBody">
@@ -44,6 +53,7 @@ $canEdit = canEdit('System');
   $effIcon = $item->effectiveIcon();
   $effIconType = $item->effectiveIconType();
   $hasCustomIcon = ($item->Icon() !== null && $item->Icon() !== '');
+  $isBuiltin = in_array($item->MenuKey(), $builtinKeys);
 ?>
               <tr id="menuItem-<?php echo $id ?>">
                 <td>
@@ -54,13 +64,34 @@ $canEdit = canEdit('System');
                     <?php echo !$canEdit ? 'disabled' : '' ?>
                   />
                 </td>
-                <td class="text-left"><?php echo htmlspecialchars(translate($item->MenuKey())) ?></td>
+                <td class="text-left">
+<?php if ($isBuiltin) { ?>
+                  <?php echo htmlspecialchars(translate($item->MenuKey())) ?>
+<?php } else { ?>
+                  <input type="text" name="items[<?php echo $id ?>][MenuKey]"
+                    value="<?php echo htmlspecialchars($item->MenuKey()) ?>"
+                    <?php echo !$canEdit ? 'disabled' : '' ?>
+                  />
+<?php } ?>
+                </td>
                 <td>
                   <input type="text" name="items[<?php echo $id ?>][Label]"
                     value="<?php echo htmlspecialchars($item->Label() ?? '') ?>"
                     placeholder="<?php echo htmlspecialchars(translate($item->MenuKey())) ?>"
                     <?php echo !$canEdit ? 'disabled' : '' ?>
                   />
+                </td>
+                <td class="text-left">
+<?php if ($isBuiltin) { ?>
+                  <span class="text-muted"><?php echo htmlspecialchars(menuItemEffectiveLink($item)) ?></span>
+<?php } else { ?>
+                  <input type="text" name="items[<?php echo $id ?>][Link]"
+                    value="<?php echo htmlspecialchars($item->Link() ?? '') ?>"
+                    placeholder="<?php echo htmlspecialchars('?view='.$item->MenuKey()) ?>"
+                    style="width:220px;"
+                    <?php echo !$canEdit ? 'disabled' : '' ?>
+                  />
+<?php } ?>
                 </td>
                 <td class="text-left">
                   <div class="d-flex align-items-center" style="gap:6px;">
@@ -91,6 +122,13 @@ $canEdit = canEdit('System');
                       <?php echo !$canEdit ? 'disabled' : '' ?>
                     />
                   </div>
+                </td>
+                <td class="text-right">
+<?php if ($canEdit) { ?>
+                  <button type="button" class="btn btn-sm btn-danger deleteMenuItemBtn" data-id="<?php echo $id ?>"
+                    title="<?php echo translate('Delete this menu entry') ?>"
+                  ><i class="material-icons">delete</i></button>
+<?php } ?>
                 </td>
               </tr>
 <?php } ?>

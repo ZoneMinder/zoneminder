@@ -70,7 +70,7 @@ if ( $action == 'delete' ) {
 
   $result = dbQuery('SELECT Name,Value,Type,`System` FROM Config WHERE Category=? ORDER BY Id ASC', array($_REQUEST['tab']));
   if (!$result) {
-    echo mysql_error();
+    $error_message .= 'Error loading config for tab ' . htmlspecialchars($_REQUEST['tab']) . ': ' . htmlspecialchars(dbLastError()) . '<br/>';
     return;
   }
 
@@ -93,8 +93,12 @@ if ( $action == 'delete' ) {
           continue;
         }
       }
-      dbQuery('UPDATE Config SET Value=? WHERE Name=?', array($newValue, $config['Name']));
-      $changed = true;
+      if (dbQuery('UPDATE Config SET Value=? WHERE Name=?', array($newValue, $config['Name'])) === null) {
+        $error_message .= 'Error saving ' . htmlspecialchars($config['Name']) . ': ' . htmlspecialchars(dbLastError()) . '<br/>';
+        ZM\Error('Error saving config '.$config['Name'].': '.dbLastError());
+      } else {
+        $changed = true;
+      }
     } # end if value changed
   } # end foreach config entry
   if ( $changed ) {
@@ -119,11 +123,15 @@ if ( $action == 'delete' ) {
     case 'lowband' :
       break;
     }
-    $redirect = '?view=options&tab='.$_REQUEST['tab'];
     loadConfig(false);
     # Might need to update auth hash
     # This doesn't work because the config are constants and won't really be loaded until the next refresh.
     #generateAuthHash(ZM_AUTH_HASH_IPS, true);
+  }
+  # On error stay on the page (no redirect) so the error is shown; otherwise
+  # redirect to drop the POST and reload with fresh values.
+  if (!$error_message) {
+    $redirect = '?view=options&tab='.$_REQUEST['tab'];
   }
   return;
 } else if ($action == 'save') {
@@ -207,16 +215,79 @@ if ( $action == 'delete' ) {
       $icon = isset($_REQUEST['items'][$id]['Icon']) ? trim($_REQUEST['items'][$id]['Icon']) : $item->Icon();
       if ($icon === '') $icon = null;
 
-      $item->save([
+      $link = isset($_REQUEST['items'][$id]['Link']) ? trim($_REQUEST['items'][$id]['Link']) : $item->Link();
+      if ($link === '') $link = null;
+
+      // The MenuKey is only editable for custom (non-built-in) entries, so it
+      // is only present in the request for those rows; keep it otherwise.
+      $menuKey = isset($_REQUEST['items'][$id]['MenuKey']) ? trim($_REQUEST['items'][$id]['MenuKey']) : $item->MenuKey();
+      if ($menuKey === '') $menuKey = $item->MenuKey();
+
+      if (!$item->save([
+        'MenuKey' => $menuKey,
         'Enabled' => $enabled,
         'Label' => $label,
         'SortOrder' => $sortOrder,
         'Icon' => $icon,
         'IconType' => $iconType,
-      ]);
+        'Link' => $link,
+      ])) {
+        $error_message .= 'Failed to save menu item ' . htmlspecialchars($menuKey) . ': ' . htmlspecialchars($item->get_last_error()) . '<br/>';
+      }
+    }
+
+    // Insert any new menu entries added via the "Add" button.
+    if (isset($_REQUEST['newItems']) && is_array($_REQUEST['newItems'])) {
+      foreach ($_REQUEST['newItems'] as $new) {
+        $menuKey = isset($new['MenuKey']) ? trim($new['MenuKey']) : '';
+        if ($menuKey === '') continue;
+
+        $enabled = isset($new['Enabled']) ? 1 : 0;
+        $label = isset($new['Label']) ? trim($new['Label']) : null;
+        if ($label === '') $label = null;
+        $sortOrder = isset($new['SortOrder']) ? intval($new['SortOrder']) : 0;
+
+        $iconType = isset($new['IconType']) ? $new['IconType'] : 'material';
+        if (!in_array($iconType, ['material', 'fontawesome', 'image', 'none'])) $iconType = 'material';
+        $icon = isset($new['Icon']) ? trim($new['Icon']) : null;
+        if ($icon === '') $icon = null;
+        $link = isset($new['Link']) ? trim($new['Link']) : null;
+        if ($link === '') $link = null;
+
+        $newItem = new ZM\MenuItem();
+        if (!$newItem->save([
+          'MenuKey' => $menuKey,
+          'Enabled' => $enabled,
+          'Label' => $label,
+          'SortOrder' => $sortOrder,
+          'Icon' => $icon,
+          'IconType' => $iconType,
+          'Link' => $link,
+        ])) {
+          $error_message .= 'Failed to add menu item ' . htmlspecialchars($menuKey) . ': ' . htmlspecialchars($newItem->get_last_error()) . '<br/>';
+        }
+      }
     }
   }
-  $redirect = '?view=options&tab=menu';
+  # Stay on the page when something failed so the error is shown.
+  if (!$error_message) {
+    $redirect = '?view=options&tab=menu';
+  }
+} else if ($action == 'deletemenuitems') {
+  if (!canEdit('System')) {
+    ZM\Warning('Need System permission to delete menu items');
+  } else if (!empty($_REQUEST['deleteIds']) && is_array($_REQUEST['deleteIds'])) {
+    $ids = array_values(array_filter(array_map('intval', $_REQUEST['deleteIds']), function($v) { return $v > 0; }));
+    if (count($ids)) {
+      $placeholders = implode(',', array_fill(0, count($ids), '?'));
+      if (dbQuery('DELETE FROM `Menu_Items` WHERE `Id` IN ('.$placeholders.')', $ids) === null) {
+        $error_message .= 'Failed to delete menu entries: ' . htmlspecialchars(dbLastError()) . '<br/>';
+      }
+    }
+  }
+  if (!$error_message) {
+    $redirect = '?view=options&tab=menu';
+  }
 } else if ($action == 'resetmenu') {
   if (!canEdit('System')) {
     ZM\Warning('Need System permission to reset menu items');

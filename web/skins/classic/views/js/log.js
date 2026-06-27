@@ -40,7 +40,6 @@ function ajaxRequest(params) {
     // We won't automatically refresh to avoid disturbing the user who has selected rows.
     console.debug("The user selected rows in the table, and the AJAX request was rejected.");
     requestMissed = true;
-    updateHeaderRequestStatus("stopped");
     return;
   }
   if (ajax && (ajax.readyState !== 4 && ajax.readyState !== 0)) {
@@ -149,7 +148,7 @@ function updateHeaderStats(data) {
   $j('#totalLogs').text(Number(data.total).toLocaleString());
   $j('#availLogs').text(Number(data.totalNotFiltered).toLocaleString());
   $j('#lastUpdate').text(data.updated);
-  $j('#displayLogs').text(startRow + ' to ' + stopRow);
+  $j('#displayLogs').text(Number(startRow).toLocaleString() + ' to ' + Number(stopRow).toLocaleString());
 }
 
 function manageClearLogsModalBtns() {
@@ -423,10 +422,12 @@ function manageClearButtonAvailability(enable = null) {
 
   if (selections.length) {
     allowRequest = false; // We'll prevent table updates from interfering with the user who has selected rows.
+    updateHeaderRequestStatus("stopped");
     if (ajax && (ajax.readyState !== 4 && ajax.readyState !== 0)) {
       ajax.abort("plannedAbort"); // There may already be a previous request that hasn't completed.
     }
   } else {
+    if (readHeaderRequestStatus() === "stopped") updateHeaderRequestStatus("awaiting");
     if (requestMissed === true) {
       // A scheduled AJAX update was missed. We'll execute it out of order.
       allowRequest = true;
@@ -436,6 +437,10 @@ function manageClearButtonAvailability(enable = null) {
       updateHeaderRequestStatus("in process");
     }
   }
+}
+
+function readHeaderRequestStatus() {
+  return $j('#requestStatus').text().replace(/(\[|\])/g, '').trim();
 }
 
 function updateHeaderRequestStatus(text) {

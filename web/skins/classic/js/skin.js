@@ -1387,9 +1387,13 @@ function determineOverlaySrc(img, streamType, monitorId, useGo2rtc, m3u8Exists) 
   return streamSrc;
 }
 
-function calculateOverlayDimensions(img) {
-  const imgWidth = img.naturalWidth || img.width;
-  const imgHeight = img.naturalHeight || img.height;
+/*
+* obj - an object of type VIDEO or IMG. VIDEO takes precedence.
+*/
+function calculateOverlayDimensions(obj) {
+  const imgWidth = obj.videoWidth || obj.naturalWidth || obj.width;
+  const imgHeight = obj.videoHeight || obj.naturalHeight || obj.height;
+
   if (!imgWidth || !imgHeight) return null;
 
   const aspectRatio = imgWidth / imgHeight;
@@ -1466,7 +1470,7 @@ function createThumbnailOverlay(img, overlaySrc, dimensions, streamType, monitor
   }
 
   if (isLive && useGo2rtc) {
-    createGo2rtcStream(container, go2rtcSrc, monitorId || go2rtcMid, fallbackToMjpeg);
+    createGo2rtcStream(container, img, go2rtcSrc, monitorId || go2rtcMid, fallbackToMjpeg);
   } else if (streamType === 'rtsp2web') {
     createRtsp2webStream(container, img, monitorId, fallbackToMjpeg, eventStart, statusBar);
   } else if (m3u8Exists && currentView !== 'frames') {
@@ -1506,15 +1510,16 @@ function formatDateTime(date) {
   return date.toLocaleString(undefined, options);
 }
 
-function createGo2rtcStream(container, src, mid, fallbackToMjpeg) {
+function createGo2rtcStream(container, img, src, mid, fallbackToMjpeg) {
   ensureVideoStreamLoaded().then(function() {
     if (!document.getElementById('thumb-overlay')) return;
 
+    const channel = (img.dataset.streamChannel && img.dataset.streamChannel.toLowerCase().indexOf("direct") !== -1 ) ? img.dataset.streamChannel : 'CameraDirectPrimary';
     const url = new URL(src);
     url.protocol = (url.protocol === 'https:') ? 'wss:' : 'ws:';
     url.pathname += '/ws';
     //url.search = 'src=' + mid + '_0';
-    url.search = 'src=' + mid + '_CameraDirectPrimary';
+    url.search = 'src=' + mid + '_' + channel;
 
     const stream = document.createElement('video-stream');
     stream.style.cssText = 'width: 100%; height: 100%; display: block;';
@@ -1638,6 +1643,16 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg, eventS
 function thumbnailVideoPlay(video, currentMode, eventStart, statusBar) {
   const infoStatusBar = (statusBar) ? statusBar.querySelector("#info-status-bar") : null;
   video.play().then(() => {
+    if (currentMode == 'RTSP2Web') {
+      const container = document.getElementById('monitor-thumb-overlay');
+      if (container) {
+        const dimensions = calculateOverlayDimensions(video);
+        if (dimensions) {
+          container.style.width = dimensions.width+'px';
+          container.style.height = dimensions.height+'px';
+        }
+      }
+    }
     if (infoStatusBar && currentMode) infoStatusBar.innerHTML = ' [' + currentMode + '] ';
     console.debug(currentMode + " video player started playing");
     if (eventStart && statusBar) updateTimeWallClock(video, eventStart, statusBar);

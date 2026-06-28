@@ -2336,7 +2336,8 @@ function mseListenerSourceopen(context, videoEl, url) {
         const msg = `WebSocket MSE for a video object ID=${context.id} codec '${mimeCodec}' not supported. Monitor '${context.name}' ID=${context.id} not starting.`;
         console.log(msg);
         context.getElement().before(document.createTextNode(msg));
-        context.stop();
+        context.streamErrorRegistration();
+        context.selectNextPlayer(context.player);
         context.RTSP2WebType = null; // Avoid repeated restarts
         return;
       }

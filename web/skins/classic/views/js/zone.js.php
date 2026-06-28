@@ -101,7 +101,6 @@ var minBlobLtMinFilterString = '<?php echo addslashes(translate('MinBlobLtMinFil
 var minBlobsUnsetString = '<?php echo addslashes(translate('MinBlobsUnset')) ?>';
 var minBlobsLtMaxString = '<?php echo addslashes(translate('MinBlobsLtMax')) ?>';
 
-var deleteString = "<?php echo translate('Delete') ?>";
 //
 // Imported from watch.js.php and modified for new zone edit view
 //
@@ -120,8 +119,3 @@ var statusRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;
 var imageRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_IMAGE ?>;
 
 var canStream = <?php echo canStream()?'true':'false' ?>;
-
-var translate = {
-  "Showing Analysis": '<?php echo translate('Showing Analysis'); ?>',
-  "Not Showing Analysis": '<?php echo translate('Not Showing Analysis'); ?>'
-};

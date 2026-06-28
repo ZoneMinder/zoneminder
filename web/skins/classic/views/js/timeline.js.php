@@ -33,8 +33,6 @@ foreach ($monitors as $monitor) {
 ?>
 var monitors = <?php echo json_encode($jsMonitors) ?>;
 
-var archivedString = "<?php echo translate('Archived') ?>";
-
 var minTime = '<?php echo $minTime?>';
 var midTime = '<?php echo $midTime?>';
 var maxTime = '<?php echo $maxTime?>';

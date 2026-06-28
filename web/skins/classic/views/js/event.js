@@ -1930,12 +1930,12 @@ function toggleZones(e) {
   if (zones.length) {
     if (zones.is(":visible")) {
       zones.hide();
-      button.setAttribute('title', showZonesString);
+      button.setAttribute('title', translate["Show Zones"]);
       $j('#toggleZonesButton .material-icons').text('layers');
       setCookie('zmEventShowZones'+eventData.MonitorId, '0');
     } else {
       zones.show();
-      button.setAttribute('title', hideZonesString);
+      button.setAttribute('title', translate["Hide Zones"]);
       $j('#toggleZonesButton .material-icons').text('layers_clear');
       setCookie('zmEventShowZones'+eventData.MonitorId, '1');
     }

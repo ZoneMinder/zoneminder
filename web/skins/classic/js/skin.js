@@ -2797,16 +2797,6 @@ function initPageGeneral() {
     alted = e.altKey;
   });
 
-  // A hack to keep the darkening background of only the first modal window
-  $j('.modal').on('show.bs.modal', function() {
-    // Remove all ".modal-backdrops" except the top one.
-    $j('.modal-backdrop').not(':first').remove();
-  });
-  // Also, don't forget to clear everything when you close it.
-  $j(document).on('hidden.bs.modal', '.modal', function() {
-    $j('.modal-backdrop').not(':first').remove();
-  });
-
   if (navbar_type == 'left') {
     if ((!isTouchDevice() || !isMobile()) && NAVBAR_RELOAD) {
       // Increase the width of the scrollbar for NON-mobile or NON-touch devices

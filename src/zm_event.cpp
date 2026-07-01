@@ -578,7 +578,7 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
       std::string event_file = stringtf(staticConfig.capture_file_format.c_str(), path.c_str(), frames);
       Debug(1, "Writing capture frame %d to %s", frames, event_file.c_str());
       if (!WriteFrameImage(packet->image, packet->timestamp, event_file.c_str())) {
-        Error("Failed to write frame image");
+        Error("Failed to write frame image at %s", event_file.c_str());
       }
     }  // end if save_jpegs
 

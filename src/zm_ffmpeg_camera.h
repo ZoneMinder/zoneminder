@@ -21,6 +21,7 @@
 #define ZM_FFMPEG_CAMERA_H
 
 #include "zm_camera.h"
+#include "zm_time.h"
 
 #include <memory>
 
@@ -31,6 +32,18 @@ typedef struct DecodeContext {
   AVBufferRef *hw_device_ref;
 } DecodeContext;
 #endif
+
+// Pure real-time pacing decision, factored out of FfmpegCamera so it can be
+// unit-tested without a camera/ffmpeg instance. Given the current packet
+// timestamp and the active anchor, decide whether to re-anchor and how long to
+// sleep. `elapsed` is wall-clock time since the anchor was set; `cap` is the
+// discontinuity threshold above which we re-anchor instead of sleeping.
+struct RealtimePaceDecision {
+  bool reanchor;       // caller should reset the anchor to (now, ts_us)
+  Microseconds sleep;  // how long to wait before delivering this packet
+};
+RealtimePaceDecision ComputeRealtimePace(
+    int64_t ts_us, int64_t anchor_ts_us, Microseconds elapsed, Microseconds cap);
 //
 // Class representing 'ffmpeg' cameras, i.e. those which are
 // accessed using ffmpeg multimedia framework
@@ -55,6 +68,16 @@ class FfmpegCamera : public Camera {
   int64_t             mLoopAudioOffset;        // added to audio pts/dts (audio time_base)
   int64_t             mLoopVideoFrameDuration; // last/typical video frame duration (video time_base)
   int64_t             mLoopAudioFrameDuration; // last/typical audio frame duration (audio time_base)
+
+  // Real-time pacing ("realtime=1"/"re=1" option, like ffmpeg's -re flag): when
+  // reading from a file, throttle packet delivery to the rate implied by the
+  // stream timestamps instead of reading as fast as possible. Anchors wall-clock
+  // time to the timestamp of the first emitted packet and sleeps before each
+  // subsequent packet so it is not delivered ahead of its scheduled time.
+  bool                mRealtime;
+  bool                mRealtimeAnchored;   // true once the anchor below is set
+  TimePoint           mRealtimeStartWall;  // steady_clock anchor for the first packet
+  int64_t             mRealtimeStartTS;    // timestamp of the first packet (AV_TIME_BASE_Q, i.e. microseconds)
 
   std::string         encoder_options;
   std::string         hwaccel_name;
@@ -123,5 +146,9 @@ class FfmpegCamera : public Camera {
   // Seek ctx back to the start and bump the per-stream timestamp offsets so the
   // next packet continues monotonically. Returns false if the seek failed.
   bool loopSeekToStart(AVFormatContext *ctx);
+  // Real-time pacing: given the just-read packet's timestamp in microseconds
+  // (AV_TIME_BASE_Q), sleep until wall-clock time has caught up to the stream's
+  // schedule. No-op unless mRealtime is set. Re-anchors on large discontinuities.
+  void paceRealtime(int64_t ts_us);
 };
 #endif // ZM_FFMPEG_CAMERA_H

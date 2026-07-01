@@ -26,6 +26,8 @@
 #include "zm_utils.h"
 #include "url.hpp"
 
+#include <thread>
+
 extern "C" {
 #include <libavutil/time.h>
 #include <libavdevice/avdevice.h>
@@ -83,6 +85,17 @@ FfmpegCamera::FfmpegCamera(
   stream_height(0) {
   mMaskedPath = remove_authentication(mPath);
   mMaskedSecondPath = remove_authentication(mSecondPath);
+
+  mLoop = false;
+  mLoopVideoOffset = 0;
+  mLoopAudioOffset = 0;
+  mLoopVideoFrameDuration = 0;
+  mLoopAudioFrameDuration = 0;
+
+  mRealtime = false;
+  mRealtimeAnchored = false;
+  mRealtimeStartTS = 0;
+
   if ( capture ) {
     FFMPEGInit();
   }
@@ -131,6 +144,108 @@ int FfmpegCamera::PreCapture() {
   return 0;
 }
 
+bool FfmpegCamera::loopSeekToStart(AVFormatContext *ctx) {
+  if (!(ctx->pb && ctx->pb->seekable)) {
+    Debug(1, "loop: input is not seekable, cannot loop");
+    return false;
+  }
+
+  // Bump the per-stream absolute offsets so the next packet continues one frame
+  // after the last emitted dts. mLastVideoDTS/mLastAudioDTS already include the
+  // offset that was in effect, and start_time is the raw container start, so
+  // this accumulates correctly across repeated loops.
+  // The audio stream lives in the secondary context only when one is in use;
+  // otherwise both streams share mFormatContext.
+  bool ctxHasVideo = (mVideoStream != nullptr) && (ctx == mFormatContext);
+  bool ctxHasAudio = (mAudioStream != nullptr) &&
+                     (ctx == (mSecondFormatContext ? mSecondFormatContext : mFormatContext));
+
+  if (ctxHasVideo && (mLastVideoDTS != AV_NOPTS_VALUE)) {
+    int64_t start = (mVideoStream->start_time != AV_NOPTS_VALUE) ? mVideoStream->start_time : 0;
+    mLoopVideoOffset = mLastVideoDTS + mLoopVideoFrameDuration - start;
+  }
+  if (ctxHasAudio && (mLastAudioDTS != AV_NOPTS_VALUE)) {
+    int64_t start = (mAudioStream->start_time != AV_NOPTS_VALUE) ? mAudioStream->start_time : 0;
+    mLoopAudioOffset = mLastAudioDTS + mLoopAudioFrameDuration - start;
+  }
+
+  int ret = avformat_seek_file(ctx, -1, INT64_MIN, 0, INT64_MAX, AVSEEK_FLAG_BACKWARD);
+  if (ret < 0) {
+    ret = av_seek_frame(ctx, -1, 0, AVSEEK_FLAG_BACKWARD);
+  }
+  if (ret < 0) {
+    Warning("loop: seek to start failed: %s", av_make_error_string(ret).c_str());
+    return false;
+  }
+  Debug(1, "loop: sought to start; offsets video=%" PRId64 " audio=%" PRId64,
+        mLoopVideoOffset, mLoopAudioOffset);
+  return true;
+}
+
+int FfmpegCamera::readFrameWithLoop(AVFormatContext *ctx, AVPacket *pkt) {
+  int ret = av_read_frame(ctx, pkt);
+  if (ret >= 0) return ret;
+
+  bool eof = (ret == AVERROR_EOF) || (ctx->pb && ctx->pb->eof_reached);
+  if (eof && mLoop && loopSeekToStart(ctx)) {
+    Info("loop: reached end of input, restarting from beginning");
+    ret = av_read_frame(ctx, pkt);
+  }
+  return ret;
+}
+
+RealtimePaceDecision ComputeRealtimePace(
+    int64_t ts_us, int64_t anchor_ts_us, Microseconds elapsed, Microseconds cap) {
+  // Backward movement (e.g. a discontinuity the jump checks let through):
+  // re-anchor so we never try to sleep on a negative delta.
+  if (ts_us < anchor_ts_us)
+    return {true, Microseconds(0)};
+
+  Microseconds target_elapsed(ts_us - anchor_ts_us);
+  Microseconds delay = target_elapsed - elapsed;
+
+  // Already behind schedule: deliver immediately.
+  if (delay <= Microseconds(0))
+    return {false, Microseconds(0)};
+
+  // A large gap usually means a timestamp discontinuity rather than a genuine
+  // multi-second frame interval; re-anchor instead of stalling the capture.
+  if (delay > cap)
+    return {true, Microseconds(0)};
+
+  return {false, delay};
+}
+
+void FfmpegCamera::paceRealtime(int64_t ts_us) {
+  if (!mRealtime || (ts_us == AV_NOPTS_VALUE)) return;
+
+  TimePoint now = std::chrono::steady_clock::now();
+
+  // Anchor on the first packet.
+  if (!mRealtimeAnchored) {
+    mRealtimeStartWall = now;
+    mRealtimeStartTS = ts_us;
+    mRealtimeAnchored = true;
+    return;
+  }
+
+  Microseconds elapsed = std::chrono::duration_cast<Microseconds>(now - mRealtimeStartWall);
+  RealtimePaceDecision d = ComputeRealtimePace(ts_us, mRealtimeStartTS, elapsed, Seconds(10));
+
+  if (d.reanchor) {
+    Debug(1, "realtime: re-anchoring pacing at ts %" PRId64 "us", ts_us);
+    mRealtimeStartWall = now;
+    mRealtimeStartTS = ts_us;
+    return;
+  }
+
+  if (d.sleep > Microseconds(0)) {
+    Debug(4, "realtime: sleeping %" PRId64 "us to pace to stream rate",
+          static_cast<int64_t>(d.sleep.count()));
+    std::this_thread::sleep_for(d.sleep);
+  }
+}
+
 int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   if (!mIsPrimed) return -1;
 
@@ -152,7 +267,7 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
           av_rescale_q(mLastAudioPTS, mAudioStream->time_base, AV_TIME_BASE_Q),
           av_rescale_q(mLastVideoPTS, mVideoStream->time_base, AV_TIME_BASE_Q)
          );
-    if ((ret = av_read_frame(formatContextPtr, packet.get())) < 0) {
+    if ((ret = readFrameWithLoop(formatContextPtr, packet.get())) < 0) {
       if (
         // Check if EOF.
         (ret == AVERROR_EOF || (formatContextPtr->pb && formatContextPtr->pb->eof_reached)) ||
@@ -175,7 +290,7 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
           av_rescale_q(mLastVideoPTS, mVideoStream->time_base, AV_TIME_BASE_Q)
          );
 
-    if ((ret = av_read_frame(formatContextPtr, packet.get())) < 0) {
+    if ((ret = readFrameWithLoop(formatContextPtr, packet.get())) < 0) {
       if (
         // Check if EOF.
         (ret == AVERROR_EOF || (formatContextPtr->pb && formatContextPtr->pb->eof_reached)) ||
@@ -203,6 +318,27 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   }
 
   AVStream *stream = formatContextPtr->streams[packet->stream_index];
+
+  // Loop mode: shift this packet's timestamps by the accumulated per-stream
+  // offset so they stay monotonically increasing across loop restarts. Done
+  // before the pts/dts backward-jump checks and before the packet is queued, so
+  // every consumer (analysis, recording) sees continuous timestamps. Also keep
+  // the per-stream frame duration up to date for spacing the next loop.
+  if (mLoop) {
+    int64_t off = 0;
+    if (packet->stream_index == mVideoStreamId) {
+      off = mLoopVideoOffset;
+      if (packet->duration > 0) mLoopVideoFrameDuration = packet->duration;
+    } else if (packet->stream_index == mAudioStreamId) {
+      off = mLoopAudioOffset;
+      if (packet->duration > 0) mLoopAudioFrameDuration = packet->duration;
+    }
+    if (off) {
+      if (packet->pts != AV_NOPTS_VALUE) packet->pts += off;
+      if (packet->dts != AV_NOPTS_VALUE) packet->dts += off;
+    }
+  }
+
   ZM_DUMP_STREAM_PACKET(stream, packet, "ffmpeg_camera in");
 
   if ((packet->pts != AV_NOPTS_VALUE) and (lastPTS >= 0)) {
@@ -247,6 +383,15 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
 
   av_packet_guard pkt_guard{packet};
 
+  // Real-time pacing: throttle delivery to the stream's native rate. Use dts
+  // (monotonic in read order) when available, otherwise pts. Sleep happens here,
+  // after all the drop/error filters above, so only packets we actually deliver
+  // advance the schedule.
+  if (mRealtime) {
+    int64_t pace_ts = (packet->dts != AV_NOPTS_VALUE) ? packet->dts : packet->pts;
+    if (pace_ts != AV_NOPTS_VALUE)
+      paceRealtime(av_rescale_q(pace_ts, stream->time_base, AV_TIME_BASE_Q));
+  }
 
   zm_packet->codec_type = stream->codecpar->codec_type;
 
@@ -297,7 +442,36 @@ int FfmpegCamera::OpenFfmpeg() {
     if (ret < 0) {
       Warning("Could not parse ffmpeg input options '%s'", mOptions.c_str());
     }
+
+    // "loop=1" is handled by us (seek-to-start on EOF), not by ffmpeg, which
+    // does not understand it for most demuxers. Consume it so it is not passed
+    // through and reported as an unrecognized option below.
+    AVDictionaryEntry *loop_entry = av_dict_get(opts, "loop", nullptr, 0);
+    if (loop_entry) {
+      mLoop = (loop_entry->value != nullptr) && (atoi(loop_entry->value) != 0);
+      av_dict_set(&opts, "loop", nullptr, 0);
+      Debug(1, "Loop-on-EOF mode %s from options", mLoop ? "enabled" : "disabled");
+    }
+
+    // "realtime=1" (alias "re=1") is handled by us, like ffmpeg's -re flag:
+    // pace packet delivery to the stream's native rate rather than reading the
+    // file as fast as possible. Consume it so it is not passed through to the
+    // demuxer and reported as an unrecognized option below.
+    AVDictionaryEntry *re_entry = av_dict_get(opts, "realtime", nullptr, 0);
+    if (!re_entry) re_entry = av_dict_get(opts, "re", nullptr, 0);
+    if (re_entry) {
+      mRealtime = (re_entry->value != nullptr) && (atoi(re_entry->value) != 0);
+      av_dict_set(&opts, "realtime", nullptr, 0);
+      av_dict_set(&opts, "re", nullptr, 0);
+      Debug(1, "Real-time pacing %s from options", mRealtime ? "enabled" : "disabled");
+    }
   }
+
+  // Fresh prime: drop any real-time anchor so pacing restarts cleanly, and
+  // start with no loop offset.
+  mRealtimeAnchored = false;
+  mLoopVideoOffset = 0;
+  mLoopAudioOffset = 0;
 
   // Set transport method as specified by method field, rtpUni is default
   std::string protocol = mPath.substr(0, 4);
@@ -486,6 +660,11 @@ int FfmpegCamera::OpenFfmpeg() {
       // reorder_queparse for avforpts, mOpcodec
       av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
       av_dict_set(&opts, "probesize", nullptr, AV_DICT_MATCH_CASE);
+      // loop / realtime (re) are consumed by FfmpegCamera, not the decoder;
+      // strip them so avcodec_open2 doesn't report them as unrecognized.
+      av_dict_set(&opts, "loop", nullptr, AV_DICT_MATCH_CASE);
+      av_dict_set(&opts, "realtime", nullptr, AV_DICT_MATCH_CASE);
+      av_dict_set(&opts, "re", nullptr, AV_DICT_MATCH_CASE);
     }
 
     if (use_hwaccel && (hwaccel_name != "")) {
@@ -643,6 +822,19 @@ int FfmpegCamera::OpenFfmpeg() {
     Debug(1, "Monitor dimensions are %dx%d but camera is sending %dx%d",
           width, height, mVideoCodecContext->width, mVideoCodecContext->height);
   }
+
+  // Seed fallback per-frame durations (in each stream's time_base) used to space
+  // loops apart when a packet's own duration is missing. Live values from
+  // packet->duration override these as packets are read.
+  if (mVideoStream && mVideoStream->avg_frame_rate.num > 0) {
+    mLoopVideoFrameDuration = av_rescale_q(1, av_inv_q(mVideoStream->avg_frame_rate), mVideoStream->time_base);
+  }
+  if (mLoopVideoFrameDuration <= 0) mLoopVideoFrameDuration = 1;
+  if (mAudioStream && mAudioStream->codecpar->sample_rate > 0) {
+    // Typical AAC frame is 1024 samples; good enough as a fallback spacing.
+    mLoopAudioFrameDuration = av_rescale_q(1024, av_make_q(1, mAudioStream->codecpar->sample_rate), mAudioStream->time_base);
+  }
+  if (mLoopAudioFrameDuration <= 0) mLoopAudioFrameDuration = 1;
 
   mIsPrimed = true;
 

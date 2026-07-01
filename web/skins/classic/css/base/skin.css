@@ -1818,6 +1818,10 @@ input.masked-input.unmasked {
   transition: width 0.3s ease-in-out;
 }
 
+.modal-backdrop.show ~ .modal-backdrop.show{
+  opacity : 0;
+}
+
 /* +++ This block should always be located at the end! */
 .hidden {
     display: none;

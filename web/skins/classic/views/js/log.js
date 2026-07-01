@@ -59,11 +59,17 @@ function ajaxRequest(params) {
   if ($j('#filterServerId').val()) {
     params.data.ServerId = $j('#filterServerId').val();
   }
-  if ($j('#filterLevel').val()) {
-    params.data.level = $j('#filterLevel').val();
+  // #filterLevel is a multi-select; val() returns an array of chosen levels (or
+  // null when nothing is selected, which the server treats as "All").
+  const levels = $j('#filterLevel').val();
+  if (levels && levels.length) {
+    params.data.level = levels;
   }
-  if ($j('#filterComponent').val()) {
-    params.data.Component = $j('#filterComponent').val();
+  // #filterComponent is a multi-select; val() returns an array of chosen
+  // components (or null when nothing is selected, treated as "All").
+  const components = $j('#filterComponent').val();
+  if (components && components.length) {
+    params.data.Component = components;
   }
   if ($j('#filterStartDateTime').val()) {
     params.data.StartDateTime = $j('#filterStartDateTime').val();
@@ -397,8 +403,6 @@ function initPage() {
   $j('#filterStartDateTime, #filterEndDateTime')
       .datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false, onClose: filterLog});
   $j('#filterServerId')
-      .on('change', filterLog);
-  $j('#filterComponent')
       .on('change', filterLog);
 }
 

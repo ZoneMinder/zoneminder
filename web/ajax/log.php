@@ -190,17 +190,17 @@ function queryRequest() {
     $query['values'][] = $_REQUEST['level'];
   }
 */
-  $L = (isset($_REQUEST['level']) && !empty($_REQUEST['level']) && is_scalar($_REQUEST['level'])) ? (string) $_REQUEST['level'] : '';
+  $level = (isset($_REQUEST['level']) && !empty($_REQUEST['level']) && is_scalar($_REQUEST['level'])) ? (string) $_REQUEST['level'] : '';
   $level_codes = array_flip(ZM\Logger::$codes);
   $levelValueAllowed = false;
-  if (!empty($L)) {
-    if (isset($level_codes[$L])) {
+  if (!empty($level)) {
+    if (isset($level_codes[$level])) {
       if ($where) $where .= ' AND ';
       $where .= ' Level = ?';
-      $query['values'][] = $level_codes[$L];
+      $query['values'][] = $level_codes[$level];
       $levelValueAllowed = true;
     } else {
-      $res = preg_match('/except (.+)/', $L, $matches);
+      $res = preg_match('/except (.+)/', $level, $matches);
       $_L = ($res && isset($level_codes[$matches[1]])) ? $matches[1] : '';
       if ($_L){
         if ($where) $where .= ' AND ';
@@ -234,7 +234,7 @@ function queryRequest() {
 
   zm_session_start();
   $_SESSION['zmLogComponent'] = $requestComponent;
-  $_SESSION['zmLogFilterLevel'] = $levelValueAllowed ? $L : '';
+  $_SESSION['zmLogFilterLevel'] = $levelValueAllowed ? $level : '';
   session_write_close();
 
   if ($where) $where = ' WHERE '.$where;

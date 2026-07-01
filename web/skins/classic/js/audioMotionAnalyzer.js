@@ -190,6 +190,8 @@ export class _AudioMotionAnalyzer extends HTMLElement {
       this.initCompleted = false;
       return;
     }
+    canvas.classList.remove('hidden-shift');
+
     this.audioMotion = new AudioMotionAnalyzer(
         audioVisualization,
         {
@@ -261,6 +263,8 @@ export class _AudioMotionAnalyzer extends HTMLElement {
     if (this.audioMotion) {
       this.stop();
       this.audioMotion.destroy();
+      const canvas = document.querySelector(`#audioVisualization${this.mid} canvas`);
+      if (canvas) canvas.classList.add('hidden-shift');
     }
   }; // END destroy = function()
 

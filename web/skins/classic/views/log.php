@@ -65,19 +65,19 @@ getBodyTopHTML();
         <label><?php echo translate('Component') ?></label>
 <?php
 $components = dbFetchAll('SELECT DISTINCT Component FROM Logs ORDER BY Component', 'Component');
-ZM\Debug(print_r($components, true));
-$options = [''=>translate('All')] + array_combine($components, $components);
-ZM\Debug(print_r($options, true));
-$selected_component = '';
+$options = $components ? array_combine($components, $components) : array();
+// Multi-select: an empty selection means "All". Accept a scalar (legacy) or an
+// array from the session and keep only values that are still valid components.
+$selectedComponents = array();
 if (isset($_SESSION['zmLogComponent'])) {
-  if (array_search($_SESSION['zmLogComponent'], $components) !== -1) {
-    $selected_component = $_SESSION['zmLogComponent'];
-  } else {
-    unset($_SESSION['zmLogComponent']);
+  foreach ((array)$_SESSION['zmLogComponent'] as $c) {
+    if (is_scalar($c) && isset($options[(string)$c])) $selectedComponents[] = (string)$c;
   }
 }
 echo '<span class="term-value-wrapper">';
-echo htmlSelect('filterComponent', $options, $selected_component, array('id'=>'filterComponent', 'class'=>'chosen'));
+echo htmlSelect('filterComponent[]', $options, $selectedComponents,
+    array('data-on-change'=>'filterLog', 'id'=>'filterComponent', 'class'=>'chosen',
+      'multiple'=>'multiple', 'data-placeholder'=>translate('All')));
 echo '</span>';
 ?>
       </span>
@@ -95,16 +95,22 @@ echo '</span>';
       <span class="term LevelFilter">
         <label><?php echo translate('Level') ?></label>
 <?php
-$levels = array(''=>translate('All'));
+$levels = array();
 foreach (array_values(ZM\Logger::$codes) as $level) {
   $levels[$level] = $level;
 }
-$selectedLevel = (isset($_SESSION['zmLogFilterLevel']) && !empty($_SESSION['zmLogFilterLevel']) && is_scalar($_SESSION['zmLogFilterLevel'])) ? (string) $_SESSION['zmLogFilterLevel'] : '';
-$selectedLevel = isset($levels[$selectedLevel]) ? $selectedLevel : '';
+// Multi-select: an empty selection means "All". Accept a scalar (legacy) or an
+// array from the session and keep only values that are still valid levels.
+$selectedLevels = array();
+if (isset($_SESSION['zmLogFilterLevel'])) {
+  foreach ((array)$_SESSION['zmLogFilterLevel'] as $l) {
+    if (is_scalar($l) && isset($levels[(string)$l])) $selectedLevels[] = (string)$l;
+  }
+}
 echo '<span class="term-value-wrapper">';
-echo htmlSelect('filterLevel', $levels, $selectedLevel,
-    array('data-on-change'=>'filterLog', 'id'=>'filterLevel', 'class'=>'chosen'));
-    #array('class'=>'form-control chosen', 'data-on-change'=>'filterLog'));
+echo htmlSelect('filterLevel[]', $levels, $selectedLevels,
+    array('data-on-change'=>'filterLog', 'id'=>'filterLevel', 'class'=>'chosen',
+      'multiple'=>'multiple', 'data-placeholder'=>translate('All')));
 echo '</span>';
 ?>
       </span>

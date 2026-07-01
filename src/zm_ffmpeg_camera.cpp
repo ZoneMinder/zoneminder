@@ -83,6 +83,13 @@ FfmpegCamera::FfmpegCamera(
   stream_height(0) {
   mMaskedPath = remove_authentication(mPath);
   mMaskedSecondPath = remove_authentication(mSecondPath);
+
+  mLoop = false;
+  mLoopVideoOffset = 0;
+  mLoopAudioOffset = 0;
+  mLoopVideoFrameDuration = 0;
+  mLoopAudioFrameDuration = 0;
+
   if ( capture ) {
     FFMPEGInit();
   }
@@ -131,6 +138,56 @@ int FfmpegCamera::PreCapture() {
   return 0;
 }
 
+bool FfmpegCamera::loopSeekToStart(AVFormatContext *ctx) {
+  if (!(ctx->pb && ctx->pb->seekable)) {
+    Debug(1, "loop: input is not seekable, cannot loop");
+    return false;
+  }
+
+  // Bump the per-stream absolute offsets so the next packet continues one frame
+  // after the last emitted dts. mLastVideoDTS/mLastAudioDTS already include the
+  // offset that was in effect, and start_time is the raw container start, so
+  // this accumulates correctly across repeated loops.
+  // The audio stream lives in the secondary context only when one is in use;
+  // otherwise both streams share mFormatContext.
+  bool ctxHasVideo = (mVideoStream != nullptr) && (ctx == mFormatContext);
+  bool ctxHasAudio = (mAudioStream != nullptr) &&
+                     (ctx == (mSecondFormatContext ? mSecondFormatContext : mFormatContext));
+
+  if (ctxHasVideo && (mLastVideoDTS != AV_NOPTS_VALUE)) {
+    int64_t start = (mVideoStream->start_time != AV_NOPTS_VALUE) ? mVideoStream->start_time : 0;
+    mLoopVideoOffset = mLastVideoDTS + mLoopVideoFrameDuration - start;
+  }
+  if (ctxHasAudio && (mLastAudioDTS != AV_NOPTS_VALUE)) {
+    int64_t start = (mAudioStream->start_time != AV_NOPTS_VALUE) ? mAudioStream->start_time : 0;
+    mLoopAudioOffset = mLastAudioDTS + mLoopAudioFrameDuration - start;
+  }
+
+  int ret = avformat_seek_file(ctx, -1, INT64_MIN, 0, INT64_MAX, AVSEEK_FLAG_BACKWARD);
+  if (ret < 0) {
+    ret = av_seek_frame(ctx, -1, 0, AVSEEK_FLAG_BACKWARD);
+  }
+  if (ret < 0) {
+    Warning("loop: seek to start failed: %s", av_make_error_string(ret).c_str());
+    return false;
+  }
+  Debug(1, "loop: sought to start; offsets video=%" PRId64 " audio=%" PRId64,
+        mLoopVideoOffset, mLoopAudioOffset);
+  return true;
+}
+
+int FfmpegCamera::readFrameWithLoop(AVFormatContext *ctx, AVPacket *pkt) {
+  int ret = av_read_frame(ctx, pkt);
+  if (ret >= 0) return ret;
+
+  bool eof = (ret == AVERROR_EOF) || (ctx->pb && ctx->pb->eof_reached);
+  if (eof && mLoop && loopSeekToStart(ctx)) {
+    Info("loop: reached end of input, restarting from beginning");
+    ret = av_read_frame(ctx, pkt);
+  }
+  return ret;
+}
+
 int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   if (!mIsPrimed) return -1;
 
@@ -152,7 +209,7 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
           av_rescale_q(mLastAudioPTS, mAudioStream->time_base, AV_TIME_BASE_Q),
           av_rescale_q(mLastVideoPTS, mVideoStream->time_base, AV_TIME_BASE_Q)
          );
-    if ((ret = av_read_frame(formatContextPtr, packet.get())) < 0) {
+    if ((ret = readFrameWithLoop(formatContextPtr, packet.get())) < 0) {
       if (
         // Check if EOF.
         (ret == AVERROR_EOF || (formatContextPtr->pb && formatContextPtr->pb->eof_reached)) ||
@@ -175,7 +232,7 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
           av_rescale_q(mLastVideoPTS, mVideoStream->time_base, AV_TIME_BASE_Q)
          );
 
-    if ((ret = av_read_frame(formatContextPtr, packet.get())) < 0) {
+    if ((ret = readFrameWithLoop(formatContextPtr, packet.get())) < 0) {
       if (
         // Check if EOF.
         (ret == AVERROR_EOF || (formatContextPtr->pb && formatContextPtr->pb->eof_reached)) ||
@@ -203,6 +260,27 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   }
 
   AVStream *stream = formatContextPtr->streams[packet->stream_index];
+
+  // Loop mode: shift this packet's timestamps by the accumulated per-stream
+  // offset so they stay monotonically increasing across loop restarts. Done
+  // before the pts/dts backward-jump checks and before the packet is queued, so
+  // every consumer (analysis, recording) sees continuous timestamps. Also keep
+  // the per-stream frame duration up to date for spacing the next loop.
+  if (mLoop) {
+    int64_t off = 0;
+    if (packet->stream_index == mVideoStreamId) {
+      off = mLoopVideoOffset;
+      if (packet->duration > 0) mLoopVideoFrameDuration = packet->duration;
+    } else if (packet->stream_index == mAudioStreamId) {
+      off = mLoopAudioOffset;
+      if (packet->duration > 0) mLoopAudioFrameDuration = packet->duration;
+    }
+    if (off) {
+      if (packet->pts != AV_NOPTS_VALUE) packet->pts += off;
+      if (packet->dts != AV_NOPTS_VALUE) packet->dts += off;
+    }
+  }
+
   ZM_DUMP_STREAM_PACKET(stream, packet, "ffmpeg_camera in");
 
   if ((packet->pts != AV_NOPTS_VALUE) and (lastPTS >= 0)) {
@@ -297,7 +375,21 @@ int FfmpegCamera::OpenFfmpeg() {
     if (ret < 0) {
       Warning("Could not parse ffmpeg input options '%s'", mOptions.c_str());
     }
+
+    // "loop=1" is handled by us (seek-to-start on EOF), not by ffmpeg, which
+    // does not understand it for most demuxers. Consume it so it is not passed
+    // through and reported as an unrecognized option below.
+    AVDictionaryEntry *loop_entry = av_dict_get(opts, "loop", nullptr, 0);
+    if (loop_entry) {
+      mLoop = (loop_entry->value != nullptr) && (atoi(loop_entry->value) != 0);
+      av_dict_set(&opts, "loop", nullptr, 0);
+      Debug(1, "Loop-on-EOF mode %s from options", mLoop ? "enabled" : "disabled");
+    }
   }
+
+  // Fresh prime: start with no loop offset.
+  mLoopVideoOffset = 0;
+  mLoopAudioOffset = 0;
 
   // Set transport method as specified by method field, rtpUni is default
   std::string protocol = mPath.substr(0, 4);
@@ -486,6 +578,9 @@ int FfmpegCamera::OpenFfmpeg() {
       // reorder_queparse for avforpts, mOpcodec
       av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
       av_dict_set(&opts, "probesize", nullptr, AV_DICT_MATCH_CASE);
+      // loop is consumed by FfmpegCamera, not the decoder; strip it so
+      // avcodec_open2 doesn't report it as unrecognized.
+      av_dict_set(&opts, "loop", nullptr, AV_DICT_MATCH_CASE);
     }
 
     if (use_hwaccel && (hwaccel_name != "")) {
@@ -643,6 +738,19 @@ int FfmpegCamera::OpenFfmpeg() {
     Debug(1, "Monitor dimensions are %dx%d but camera is sending %dx%d",
           width, height, mVideoCodecContext->width, mVideoCodecContext->height);
   }
+
+  // Seed fallback per-frame durations (in each stream's time_base) used to space
+  // loops apart when a packet's own duration is missing. Live values from
+  // packet->duration override these as packets are read.
+  if (mVideoStream && mVideoStream->avg_frame_rate.num > 0) {
+    mLoopVideoFrameDuration = av_rescale_q(1, av_inv_q(mVideoStream->avg_frame_rate), mVideoStream->time_base);
+  }
+  if (mLoopVideoFrameDuration <= 0) mLoopVideoFrameDuration = 1;
+  if (mAudioStream && mAudioStream->codecpar->sample_rate > 0) {
+    // Typical AAC frame is 1024 samples; good enough as a fallback spacing.
+    mLoopAudioFrameDuration = av_rescale_q(1024, av_make_q(1, mAudioStream->codecpar->sample_rate), mAudioStream->time_base);
+  }
+  if (mLoopAudioFrameDuration <= 0) mLoopAudioFrameDuration = 1;
 
   mIsPrimed = true;
 

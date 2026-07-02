@@ -7,8 +7,14 @@
       <input type="hidden" name="object" value="ai_dataset"/>
       <div class="col">
         <div id="contentButtons">
-          <button type="button" id="NewDatasetBtn" value="<?php echo translate('AddNewDataset') ?>" disabled="disabled"><?php echo translate('AddNewDataset') ?></button>
-          <button type="submit" class="btn-danger" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
+          <button type="button" id="NewDatasetBtn" title="<?php echo translate('AddNewDataset') ?>" disabled="disabled">
+            <i class="material-icons">add_circle</i>
+            <span class="text">&nbsp;<?php echo translate('AddNewDataset') ?></span>
+          </button>
+          <button type="submit" class="btn-danger" name="deleteBtn" value="Delete" title="<?php echo translate('Delete') ?>" disabled="disabled">
+            <i class="material-icons">delete</i>
+            <span class="text">&nbsp;<?php echo translate('Delete') ?></span>
+          </button>
         </div>
       </div> <!-- .col -->
     </div> <!-- .row -->

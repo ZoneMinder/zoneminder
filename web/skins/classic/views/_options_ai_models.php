@@ -7,8 +7,14 @@
       <input type="hidden" name="object" value="ai_model"/>
       <div class="col">
         <div id="contentButtons">
-          <button type="button" id="NewModelBtn" value="<?php echo translate('AddNewModel') ?>" disabled="disabled"><?php echo translate('AddNewModel') ?></button>
-          <button type="submit" class="btn-danger" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
+          <button type="button" id="NewModelBtn" title="<?php echo translate('AddNewModel') ?>" disabled="disabled">
+            <i class="material-icons">add_circle</i>
+            <span class="text">&nbsp;<?php echo translate('AddNewModel') ?></span>
+          </button>
+          <button type="submit" class="btn-danger" name="deleteBtn" value="Delete" title="<?php echo translate('Delete') ?>" disabled="disabled">
+            <i class="material-icons">delete</i>
+            <span class="text">&nbsp;<?php echo translate('Delete') ?></span>
+          </button>
         </div>
       </div> <!-- .col -->
     </div> <!-- .row -->

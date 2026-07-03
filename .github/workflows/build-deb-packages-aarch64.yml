@@ -135,6 +135,7 @@ jobs:
         with:
           path: artifacts/deb
           name: ${{ env.artifact_name }}
+          retention-days: 1
       - name: Compute deploy target
         shell: bash
         run: |

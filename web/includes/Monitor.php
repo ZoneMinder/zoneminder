@@ -19,12 +19,11 @@ class Monitor extends ZM_Object {
   // struct's /* +N */ comments. The C++ struct is not packed, so the compiler
   // inserts a 4-byte pad before capture_fps (after state) and another before
   // the startup_time union (after audio_channels); every field from capture_fps
-  // onward therefore sits 4 or 8 bytes later than the naive packed offset, and
-  // the whole SharedData struct is 872 bytes (not 864). The previous offsets
-  // were the naive packed values, so PHP had been reading capture_fps onward
-  // (fps, alarm_cause, all of TriggerData) from the wrong addresses. The
-  // authoritative source is the same alignment computation ZoneMinder::Memory
-  // (Memory.pm) performs.
+  // onward therefore sits 4 or 8 bytes later than the naive packed offset. With
+  // the analysis image ring counters appended, SharedData is 888 bytes and
+  // TriggerData starts at 888. The authoritative source is the same alignment
+  // computation ZoneMinder::Memory (Memory.pm) performs; a
+  // sizeof(SharedData)==888 static_assert in zm_monitor.h guards the layout.
   private $shm_offsets = ['SharedData' => [
     'size'             => [ 'type'=>'uint32', 'offset'=>0, 'size'=>4 ],
     'last_write_index' => [ 'type'=>'int32', 'offset'=>4, 'size'=>4 ],
@@ -66,16 +65,21 @@ class Monitor extends ZM_Object {
     'video_fifo'       => [ 'type'=>'int8[64]', 'offset'=>680, 'size'=>64 ],
     'audio_fifo'       => [ 'type'=>'int8[64]', 'offset'=>744, 'size'=>64 ],
     'janus_pin'        => [ 'type'=>'int8[64]', 'offset'=>808, 'size'=>64 ],
+    // Analysis image ring counters, appended at the end of SharedData followed
+    // by 8 bytes of padding (kept for the 16-byte-multiple layout invariant),
+    // so SharedData is now 888 bytes and TriggerData starts at 888.
+    'last_analysis_index'  => [ 'type'=>'int32', 'offset'=>872, 'size'=>4 ],
+    'analysis_image_count' => [ 'type'=>'int32', 'offset'=>876, 'size'=>4 ],
   ],
   'TriggerData' => [
-    'size'     => [ 'type'=>'uint32', 'offset'=>872, 'size'=>4 ],
-    'state'    => [ 'type'=>'uint32', 'offset'=>876, 'size'=>4 ],
-    'score'    => [ 'type'=>'uint32', 'offset'=>880, 'size'=>4 ],
-    'padding'  => [ 'type'=>'uint32', 'offset'=>884, 'size'=>4 ],
-    'cause'    => [ 'type'=>'int8[32]', 'offset'=>888, 'size'=>32 ],
-    'text'     => [ 'type'=>'int8[256]', 'offset'=>920, 'size'=>256 ],
-    'showtext' => [ 'type'=>'int8[256]', 'offset'=>1176, 'size'=>256 ],
-    // 1432
+    'size'     => [ 'type'=>'uint32', 'offset'=>888, 'size'=>4 ],
+    'state'    => [ 'type'=>'uint32', 'offset'=>892, 'size'=>4 ],
+    'score'    => [ 'type'=>'uint32', 'offset'=>896, 'size'=>4 ],
+    'padding'  => [ 'type'=>'uint32', 'offset'=>900, 'size'=>4 ],
+    'cause'    => [ 'type'=>'int8[32]', 'offset'=>904, 'size'=>32 ],
+    'text'     => [ 'type'=>'int8[256]', 'offset'=>936, 'size'=>256 ],
+    'showtext' => [ 'type'=>'int8[256]', 'offset'=>1192, 'size'=>256 ],
+    // 1448
   ]
   ];
 

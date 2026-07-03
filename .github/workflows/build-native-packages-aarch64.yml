@@ -122,6 +122,7 @@ jobs:
         with:
           path: artifacts/deb
           name: ${{ env.artifact_name }}
+          retention-days: 1
       - name: Publish to ZMREPO
         uses: easingthemes/ssh-deploy@main
         env:

@@ -25,6 +25,7 @@
 #include "zm_analysis_thread.h"
 #include "zm_poll_thread.h"
 #include "zm_decoder_thread.h"
+#include "zm_second_stream_thread.h"
 #include "zm_event.h"
 #include "zm_fifo.h"
 #include "zm_image.h"
@@ -60,6 +61,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   friend class MonitorStream;
   friend class MonitorLinkExpression;
   friend class ONVIF;
+  friend class SecondStreamThread;
 
  public:
   typedef enum {
@@ -524,6 +526,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   RecordingSourceOption recording_source;   // Primary, Secondary, Both
 
   DecodingOption  decoding;   // Whether the monitor will decode h264/h265 packets
+  DecodingOption  effective_decoding;  // decoding, but forced on-demand when analysing the substream (viewer-driven only)
+  bool            secondary_analysis;   // AnalysisSource=Secondary and a SecondPath is configured: analyse the substream
   bool            RTSP2Web_enabled;      // Whether we set the h264/h265 stream up on RTSP2Web
   int             RTSP2Web_type;      // Whether we set the h264/h265 stream up on RTSP2Web
   StreamChannelOption stream_channel;      // Which stream source to use: Restream, CameraDirectPrimary, or CameraDirectSecondary
@@ -702,6 +706,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::unique_ptr<AnalysisThread> analysis_thread;
   packetqueue_iterator  *decoder_it;
   std::unique_ptr<DecoderThread> decoder;
+  std::unique_ptr<SecondStreamThread> second_stream;  // decodes the substream for analysis (AnalysisSource=Secondary)
+  Image        secondary_image_native;   // latest substream image at its native (low) resolution, copied from the sidecar mailbox
+  Image        secondary_image;          // secondary_image_native upscaled to camera dims, only when a frame is actually scored
+  uint64_t     last_secondary_sequence = 0;  // sidecar frame counter last scored, to avoid re-scoring a stale frame
   SwsContext   *convert_context;
   std::thread  close_event_thread;
 
@@ -1023,6 +1031,12 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   bool CheckSignal( const Image *image );
   bool Analyse();
   bool setupConvertContext(const AVFrame *input_frame, const Image *image);
+  // Resolve the image to run motion detection / ref-blending against for this
+  // packet.  In secondary-analysis mode this comes from the substream sidecar
+  // (independent of whether the primary was decoded); otherwise it is the
+  // primary packet's Y-channel or colour image.  do_score is set false when the
+  // caller should skip scoring this round (no fresh/valid substream frame).
+  Image *getMotionSourceImage(const std::shared_ptr<ZMPacket> &packet, bool &do_score);
   // Write capture_image into image_buffer[index] without conversion and
   // record its AVPixelFormat in image_pixelformats[index] so reading
   // processes can adopt that format via ReadShmFrame.

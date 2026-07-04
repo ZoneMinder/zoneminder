@@ -17,6 +17,7 @@ class FFmpeg_Input {
   ~FFmpeg_Input();
 
   int Open(const char *filename );
+  int Open(const char *filename, AVDictionary **options);
   int Open(
     const AVStream *,
     const AVCodecContext *,

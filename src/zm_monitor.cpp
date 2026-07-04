@@ -182,6 +182,8 @@ Monitor::Monitor() :
   analysing(ANALYSING_ALWAYS),
   recording(RECORDING_ALWAYS),
   decoding(DECODING_ALWAYS),
+  effective_decoding(DECODING_ALWAYS),
+  secondary_analysis(false),
   RTSP2Web_enabled(false),
   RTSP2Web_type(WEBRTC),
   Go2RTC_enabled(false),
@@ -2314,42 +2316,31 @@ bool Monitor::Analyse() {
 
             Event::StringSet zoneSet;
 
-            if (packet->image) {
-              // decoder may not have been able to provide an image
+            // Resolve the motion-detection source.  In secondary-analysis mode
+            // this is the substream sidecar image (already scaled/converted to
+            // camera dimensions), independent of whether the primary was decoded.
+            // do_score is false when there is no fresh/valid substream frame to
+            // score this round.
+            bool do_score = true;
+            Image *motion_image = getMotionSourceImage(packet, do_score);
+
+            if (motion_image) {
+              // decoder / sidecar may not have been able to provide an image
               if (!ref_image.Buffer()) {
                 Debug(1, "Assigning instead of Detecting");
-
-                if (analysis_image == ANALYSISIMAGE_YCHANNEL) {
-                  // If not decoding, y_image can be null
-                  Image *y_image = packet->get_y_image();
-                  if (y_image) ref_image.Assign(*y_image);
-                } else if (packet->image) {
-                  ref_image.Assign(*(packet->image));
-                } else {
-                  Debug(1, "No image to ref yet");
-                }
-                WriteAlarmImage(*(packet->image));
+                ref_image.Assign(*motion_image);
+                if (packet->image) WriteAlarmImage(*(packet->image));
               } else {
                 // didn't assign, do motion detection maybe and blending definitely
-                if (!(analysis_image_count % (motion_frame_skip+1))) {
+                if (do_score && !(analysis_image_count % (motion_frame_skip+1))) {
                   motion_score = 0;
-                  // Get new score.
-                  if (analysis_image == ANALYSISIMAGE_YCHANNEL) {
-                    Image *y_image = packet->get_y_image();
-                    Debug(1, "Detecting motion on image %d, y_image %p", packet->image_index, y_image);
-                    if (y_image) {
-                      motion_score += DetectMotion(*y_image, zoneSet);
-                    } else {
-                      // y_image unavailable (e.g., LocalCamera without in_frame) - skip motion detection
-                      Debug(1, "y_image unavailable, skipping motion detection");
-                    }
-                  } else {
-                    Debug(1, "Detecting motion on image %d, image %p", packet->image_index, packet->image);
-                    motion_score += DetectMotion(*(packet->image), zoneSet);
-                  }
+                  Debug(1, "Detecting motion on image %d, motion_image %p", packet->image_index, motion_image);
+                  motion_score += DetectMotion(*motion_image, zoneSet);
 
-                  // Instead of showing a greyscale image, let's use the full colour
-                  if (!packet->analysis_image)
+                  // Instead of showing a greyscale image, let's use the full colour.
+                  // In secondary mode the primary may not be decoded, so packet->image
+                  // can be null; the analysis image is then simply unavailable.
+                  if (packet->image && !packet->analysis_image)
                     packet->analysis_image = new Image(*(packet->image));
 
                   // lets construct alarm cause. It will contain cause + names of zones alarmed
@@ -2361,7 +2352,7 @@ bool Monitor::Analyse() {
                     if (zone.Alarmed()) {
                       if (!packet->alarm_cause.empty()) packet->alarm_cause += ",";
                       packet->alarm_cause += zone.Label();
-                      if (zone.AlarmImage())
+                      if (zone.AlarmImage() && packet->analysis_image)
                         packet->analysis_image->Overlay(*(zone.AlarmImage()));
                     }
                     Debug(4, "Setting score for zone %d to %d", zone_index, zone.Score());
@@ -2386,35 +2377,21 @@ bool Monitor::Analyse() {
                   //score += last_motion_score;
                 }
 
-                if (hasAnalysisViewers()) {
+                if (hasAnalysisViewers() && (packet->analysis_image || packet->image)) {
                   // These extra copies are expensive, so only do it if we have viewers.
                   WriteAlarmImage(*(packet->analysis_image ? packet->analysis_image : packet->image));
                 }
 
-                if (analysis_image == ANALYSISIMAGE_YCHANNEL) {
-                  Debug(1, "Blending from y-channel");
-                  Image *y_image = packet->get_y_image();
-                  if (y_image) {
-                    ref_image.Blend(*y_image, ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
-                  } else {
-                    Debug(1, "y_image unavailable, skipping blend");
-                  }
-                } else if (packet->image) {
-                  Debug(1, "Blending full colour image because analysis_image = %d, in_frame=%p and format %d != %d, %d",
-                        analysis_image, packet->in_frame.get(),
-                        (packet->in_frame ? packet->in_frame->format : -1),
-                        AV_PIX_FMT_YUV420P,
-                        AV_PIX_FMT_YUVJ420P
-                       );
-                  ref_image.Blend(*(packet->image), ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
-                  Debug(1, "Done Blending");
-                } else {
-                  Debug(1, "Not able to blend");
+                // Only blend when we actually scored a fresh frame; re-blending a
+                // stale substream frame every primary packet would just churn.
+                if (do_score) {
+                  Debug(1, "Blending analysis image");
+                  ref_image.Blend(*motion_image, ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
                 }
               } // end if had ref_image_buffer or not
             } else {
-              Debug(1, "no image so skipping motion detection");
-            }  // end if has image
+              Debug(1, "no motion image so skipping motion detection");
+            }  // end if has motion image
           } else {
             Debug(1, "Not analysing %d", shared_data->analysing);
           } // end if active and doing motion detection
@@ -3155,11 +3132,13 @@ bool Monitor::Decode() {
   if (!decoder_queue.empty()) {
     // If decoding is on-demand and no longer needed, flush rather than
     // trying to receive stale frames from the decoder.
+    // effective_decoding downgrades DECODING_ALWAYS to on-demand when analysing
+    // the substream, so the primary is only decoded for live viewers.
     bool needs_decoding =
-      (decoding == DECODING_ALWAYS) ||
-      (decoding == DECODING_KEYFRAMES) ||
-      ((decoding == DECODING_ONDEMAND) && (hasViewers() || shared_data->last_write_index == image_buffer_count)) ||
-      ((decoding == DECODING_KEYFRAMESONDEMAND) && hasViewers());
+      (effective_decoding == DECODING_ALWAYS) ||
+      (effective_decoding == DECODING_KEYFRAMES) ||
+      ((effective_decoding == DECODING_ONDEMAND) && (hasViewers() || shared_data->last_write_index == image_buffer_count)) ||
+      ((effective_decoding == DECODING_KEYFRAMESONDEMAND) && hasViewers());
 
     if (!needs_decoding) {
       Debug(1, "Flushing decoder in phase 1: %zu packets queued but decoding no longer needed",
@@ -3232,10 +3211,10 @@ bool Monitor::Decode() {
     // Check if this packet needs to be sent to the decoder
     bool already_decoded = packet->image || packet->in_frame || !packet->packet->size;
     bool should_decode = !already_decoded && (
-      (decoding == DECODING_ALWAYS) ||
-      ((decoding == DECODING_ONDEMAND) && (hasViewers() || shared_data->last_write_index == image_buffer_count)) ||
-      ((decoding == DECODING_KEYFRAMES) && packet->keyframe) ||
-      ((decoding == DECODING_KEYFRAMESONDEMAND) && (hasViewers() || packet->keyframe))
+      (effective_decoding == DECODING_ALWAYS) ||
+      ((effective_decoding == DECODING_ONDEMAND) && (hasViewers() || shared_data->last_write_index == image_buffer_count)) ||
+      ((effective_decoding == DECODING_KEYFRAMES) && packet->keyframe) ||
+      ((effective_decoding == DECODING_KEYFRAMESONDEMAND) && (hasViewers() || packet->keyframe))
     );
 
     if (!should_decode && !decoder_queue.empty()) {
@@ -3644,6 +3623,58 @@ void Monitor::closeEvent() {
   if (shared_data) video_store_data->recording = {};
 } // end bool Monitor::closeEvent()
 
+// How old the newest substream frame may be before we treat it as "no motion
+// data" (substream dropped): don't score, don't force a state change.
+static constexpr Seconds kSecondaryStaleThreshold = Seconds(10);
+
+Image *Monitor::getMotionSourceImage(const std::shared_ptr<ZMPacket> &packet, bool &do_score) {
+  if (secondary_analysis and second_stream) {
+    uint64_t sequence = 0;
+    FPSeconds age = FPSeconds::zero();
+    if (!second_stream->GetLatestImage(secondary_image_native, sequence, age)) {
+      // Sidecar has not produced a frame yet.
+      do_score = false;
+      return nullptr;
+    }
+
+    const bool fresh = (sequence != last_secondary_sequence);
+    const bool stale = (age > FPSeconds(kSecondaryStaleThreshold));
+    if (stale) {
+      Debug(1, "Monitor %d: secondary analysis image is stale (%.1fs old), no motion data",
+            id, age.count());
+    }
+
+    // Only pay for the upscale when the result will actually be used: to seed
+    // the reference image, or to score a fresh, non-stale frame.  Re-scoring a
+    // frame that has not advanced would just burn CPU at the primary rate.
+    const bool need_image = (!ref_image.Buffer()) or (fresh and !stale);
+    if (!need_image) {
+      do_score = false;
+      return nullptr;
+    }
+
+    last_secondary_sequence = sequence;
+    do_score = fresh and !stale;
+
+    // Upscale the native-resolution substream image to camera/zone dimensions so
+    // that DetectMotion and the reference image match the primary coordinate
+    // space and zones need no changes.
+    secondary_image.Assign(secondary_image_native);
+    if ((secondary_image.Width() != static_cast<unsigned int>(camera_width)) or
+        (secondary_image.Height() != static_cast<unsigned int>(camera_height))) {
+      secondary_image.Scale(camera_width, camera_height);
+    }
+    return &secondary_image;
+  }
+
+  // Primary analysis: motion source is the decoded primary packet image.
+  do_score = true;
+  if (analysis_image == ANALYSISIMAGE_YCHANNEL) {
+    return packet->get_y_image();  // may be null if not decoded
+  }
+  return packet->image;
+}
+
 unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zoneSet) {
   bool alarm = false;
   unsigned int score = 0;
@@ -3923,6 +3954,20 @@ int Monitor::PrimeCapture() {
     packetqueue.notify_all();  // wake the thread if it's blocked on wait_for
     decoder->Join();
   }
+  if (second_stream) {
+    second_stream->Stop();
+    second_stream->Join();
+  }
+
+  // AnalysisSource=Secondary: analyse the low-res substream instead of the
+  // full-res primary.  When active, the primary is only decoded on demand (for
+  // live viewers), so DECODING_ALWAYS is downgraded to viewer-driven decoding.
+  secondary_analysis = (analysis_source == ANALYSIS_SECONDARY) and !second_path.empty();
+  effective_decoding = decoding;
+  if (secondary_analysis and (decoding == DECODING_ALWAYS)) {
+    effective_decoding = DECODING_ONDEMAND;
+    Debug(1, "Monitor %d: secondary analysis active, primary decode is on-demand", id);
+  }
 
   int ret = camera->PrimeCapture();
   if (ret <= 0) return ret;
@@ -3988,6 +4033,17 @@ int Monitor::PrimeCapture() {
   }
 
   Debug(1, "Done restarting decoder");
+
+  if (secondary_analysis) {
+    if (!second_stream) {
+      Debug(1, "Creating secondary analysis stream thread for monitor %d", id);
+      second_stream = zm::make_unique<SecondStreamThread>(this);
+    } else {
+      Debug(1, "Restarting secondary analysis stream thread for monitor %d", id);
+      second_stream->Start();
+    }
+  }
+
   if (!analysis_it) {
     Debug(1, "getting analysis_it");
     analysis_it = packetqueue.get_video_it(false);
@@ -4011,6 +4067,9 @@ int Monitor::Pause() {
 
   // Because the stream indexes may change we have to clear out the packetqueue
   if (decoder) decoder->Stop();
+  // Stop the substream sidecar early; it owns its own connection so it is
+  // independent of the packetqueue, but it must be joined before camera teardown.
+  if (second_stream) second_stream->Stop();
 
   if (analysis_thread) {
     analysis_thread->Stop();
@@ -4035,6 +4094,10 @@ int Monitor::Pause() {
   if (analysis_thread) {
     Debug(1, "Joining analysis");
     analysis_thread->Join();
+  }
+  if (second_stream) {
+    Debug(1, "Joining secondary analysis stream");
+    second_stream->Join();
   }
 
   // Must close event before closing camera because it uses in_streams

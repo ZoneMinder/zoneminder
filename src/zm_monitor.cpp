@@ -3631,7 +3631,9 @@ Image *Monitor::getMotionSourceImage(const std::shared_ptr<ZMPacket> &packet, bo
   if (secondary_analysis and second_stream) {
     uint64_t sequence = 0;
     FPSeconds age = FPSeconds::zero();
-    if (!second_stream->GetLatestImage(secondary_image_native, sequence, age)) {
+    // Peek at the frame metadata first (cheap, no pixel copy) so we only pay for
+    // the mailbox copy + upscale when the frame will actually be used.
+    if (!second_stream->PeekLatest(sequence, age)) {
       // Sidecar has not produced a frame yet.
       do_score = false;
       return nullptr;
@@ -3644,15 +3646,19 @@ Image *Monitor::getMotionSourceImage(const std::shared_ptr<ZMPacket> &packet, bo
             id, age.count());
     }
 
-    // Only pay for the upscale when the result will actually be used: to seed
-    // the reference image, or to score a fresh, non-stale frame.  Re-scoring a
-    // frame that has not advanced would just burn CPU at the primary rate.
+    // Only pay for the copy + upscale when the result will actually be used: to
+    // seed the reference image, or to score a fresh, non-stale frame.  Re-scoring
+    // a frame that has not advanced would just burn CPU at the primary rate.
     const bool need_image = (!ref_image.Buffer()) or (fresh and !stale);
     if (!need_image) {
       do_score = false;
       return nullptr;
     }
 
+    if (!second_stream->GetLatestImage(secondary_image_native, sequence, age)) {
+      do_score = false;
+      return nullptr;
+    }
     last_secondary_sequence = sequence;
     do_score = fresh and !stale;
 

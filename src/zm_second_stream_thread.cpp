@@ -45,6 +45,14 @@ void SecondStreamThread::Join() {
   if (thread_.joinable()) thread_.join();
 }
 
+bool SecondStreamThread::PeekLatest(uint64_t &sequence, FPSeconds &age) {
+  std::lock_guard<std::mutex> lck(mutex_);
+  if (!have_image_) return false;
+  sequence = sequence_;
+  age = std::chrono::duration_cast<FPSeconds>(std::chrono::system_clock::now() - capture_time_);
+  return true;
+}
+
 bool SecondStreamThread::GetLatestImage(Image &dest, uint64_t &sequence, FPSeconds &age) {
   std::lock_guard<std::mutex> lck(mutex_);
   if (!have_image_) return false;
@@ -88,8 +96,11 @@ bool SecondStreamThread::OpenInput() {
   }
   if (StringToUpper(url.substr(0, 4)) == "RTSP") {
     // Bound socket reads so a dead substream is detected (and the thread can be
-    // joined on shutdown) instead of blocking forever in av_read_frame.
-    av_dict_set(&opts, "stimeout", "5000000", AV_DICT_DONT_OVERWRITE);  // 5s, microseconds
+    // joined on shutdown) instead of blocking forever in av_read_frame.  The
+    // RTSP option was renamed stimeout -> timeout in ffmpeg 5.0; set both so the
+    // bound applies regardless of the linked ffmpeg version.
+    av_dict_set(&opts, "timeout", "5000000", AV_DICT_DONT_OVERWRITE);   // ffmpeg >= 5.0, microseconds
+    av_dict_set(&opts, "stimeout", "5000000", AV_DICT_DONT_OVERWRITE);  // ffmpeg < 5.0, microseconds
     const std::string &method = monitor_->method;
     if (method == "rtpMulti") {
       av_dict_set(&opts, "rtsp_transport", "udp_multicast", 0);

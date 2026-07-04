@@ -103,6 +103,10 @@ bool SecondStreamThread::OpenInput() {
   }
 
   input_ = new FFmpeg_Input();
+  // The D1 substream is cheap to decode on the CPU, and we cannot consume
+  // hardware-format frames here.  Forcing software decode also avoids contending
+  // with the primary stream over the VAAPI device (/dev/dri/renderD128).
+  input_->set_no_hwaccel(true);
   int ret = input_->Open(url.c_str(), &opts);
   av_dict_free(&opts);
 
@@ -133,6 +137,15 @@ void SecondStreamThread::CloseInput() {
 }
 
 bool SecondStreamThread::ProduceImage(AVFrame *frame) {
+  // We decode the substream in software (set_no_hwaccel), so frames are CPU
+  // buffers.  Guard anyway: a hardware-format frame has a GPU surface in data[0],
+  // not pixels, and must never be treated as a Y plane / swscale input.
+  if (frame->hw_frames_ctx) {
+    Error("Monitor %d: unexpected hardware substream frame (format %d); skipping",
+          monitor_->id, frame->format);
+    return false;
+  }
+
   // The mailbox stores the image at the substream's NATIVE resolution.  The
   // consumer (Monitor::getMotionSourceImage) upscales to camera/zone dimensions
   // only when it actually scores a frame, so the expensive upscale runs at the

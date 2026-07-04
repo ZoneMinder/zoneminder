@@ -180,12 +180,24 @@ bool SecondStreamThread::ProduceImage(AVFrame *frame) {
       return false;
     }
 
-    Image y_wrap(frame->width, frame->height, 1, ZM_SUBPIX_ORDER_NONE, frame->data[0], 0, 0);
-    produced.Assign(y_wrap);  // deep copy out of the transient frame buffer, no scaling
+    // Copy the Y plane into a single-channel image.  Use the align-32 Image
+    // constructor (buffer=nullptr, allocation=0) because ZM's Image::Scale and
+    // all swscale paths assume an align-32 row layout; a width-packed image
+    // (linesize == width) is misread at FFALIGN(width,32) when width is not a
+    // multiple of 32 (e.g. 720), shearing the image into bands.  av_image_copy_plane
+    // bridges the decoder's stride (frame->linesize[0]) to the image's stride.
+    produced = Image(frame->width, frame->height, 1, ZM_SUBPIX_ORDER_NONE, nullptr, 0UL, 0);
+    av_image_copy_plane(
+        produced.Buffer(), produced.LineSize(),
+        frame->data[0], frame->linesize[0],
+        frame->width, frame->height);
   } else {
     // Full colour: convert pixel format only (still at native substream dims).
+    // Align-32 layout (see the YChannel branch) so the downstream Scale is not
+    // misread for widths that are not a multiple of 32.
     produced = Image(frame->width, frame->height,
-                     monitor_->camera->Colours(), monitor_->camera->SubpixelOrder());
+                     monitor_->camera->Colours(), monitor_->camera->SubpixelOrder(),
+                     nullptr, 0UL, 0);
 
     if (!convert_context_) {
       AVPixelFormat input_format;

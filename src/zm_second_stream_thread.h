@@ -36,10 +36,15 @@ class SecondStreamThread {
   void Stop();
   void Join();
 
+  // Cheap peek at the newest frame's metadata without copying pixels.  Returns
+  // false if no frame has ever been produced.  On success sets sequence (a
+  // monotonically increasing frame counter used to detect fresh frames) and age
+  // (time since the frame was captured).  Callers use this to decide whether a
+  // copy is worthwhile before paying for GetLatestImage.
+  bool PeekLatest(uint64_t &sequence, FPSeconds &age);
+
   // Copy the latest published analysis image into dest.  Returns false if no
-  // frame has ever been produced.  On success sets sequence (a monotonically
-  // increasing frame counter used to detect fresh frames) and age (time since
-  // the frame was captured).
+  // frame has ever been produced.  On success sets sequence and age as above.
   bool GetLatestImage(Image &dest, uint64_t &sequence, FPSeconds &age);
 
  private:

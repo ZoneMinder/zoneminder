@@ -18,6 +18,10 @@ class FFmpeg_Input {
 
   int Open(const char *filename );
   int Open(const char *filename, AVDictionary **options);
+  // Force software decoding (skip hardware decoders / hwaccel setup).  Must be
+  // called before Open().  Used by callers that cannot handle hardware-format
+  // frames, e.g. the analysis substream sidecar.
+  void set_no_hwaccel(bool v) { no_hwaccel = v; }
   int Open(
     const AVStream *,
     const AVCodecContext *,
@@ -56,6 +60,7 @@ class FFmpeg_Input {
   av_frame_ptr frame;
   int64_t last_seek_request;
   AVBufferRef *hw_device_ctx;
+  bool no_hwaccel = false;
 };
 
 #endif

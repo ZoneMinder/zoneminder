@@ -46,6 +46,10 @@ int FFmpeg_Input::Open(
 }
 
 int FFmpeg_Input::Open(const char *filepath) {
+  return Open(filepath, nullptr);
+}
+
+int FFmpeg_Input::Open(const char *filepath, AVDictionary **options) {
   int error;
 
   // Without a callback a network input that accepts the connection and never
@@ -66,7 +70,7 @@ int FFmpeg_Input::Open(const char *filepath) {
   input_format_context->interrupt_callback.opaque = this;
 
   /** Open the input file to read from it. */
-  error = avformat_open_input(&input_format_context, filepath, nullptr, nullptr);
+  error = avformat_open_input(&input_format_context, filepath, nullptr, options);
   if ( error < 0 ) {
     if (std::string(filepath).find("incomplete") != std::string::npos) {
       Warning("Could not open input file '%s' (error '%s')",

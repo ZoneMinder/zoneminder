@@ -127,6 +127,13 @@ FfmpegCamera::FfmpegCamera(
 FfmpegCamera::~FfmpegCamera() {
   Close();
 
+  // mSecondFormatContext is a non-owning alias into mSecondInput's AVFormatContext
+  // (set in OpenFfmpeg from mSecondInput->get_format_context()). mSecondInput, a
+  // unique_ptr<FFmpeg_Input>, closes and frees that context in its own destructor,
+  // so clear the alias here to stop the base Camera::~Camera() from freeing the same
+  // context a second time (double free -> crash in avformat_free_context/av_opt_free).
+  mSecondFormatContext = nullptr;
+
   FFMPEGDeInit();
 }
 

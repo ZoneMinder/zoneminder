@@ -3456,6 +3456,28 @@ bool Monitor::Decode() {
     }
   }
 
+  // Capture paths that deliver a raw Image without an ffmpeg decode (e.g.
+  // LocalCamera/V4L2) leave packet->in_frame null even though the pixels are
+  // already present. Wrap the image's planes in an AVFrame — no copy, just
+  // pointers via PopulateFrame — so in_frame consumers work without a real
+  // decode step. Any format the Image supports is fine; consumers that need a
+  // specific layout check for themselves (get_y_image, for instance, rejects
+  // RGB with a precise "no Y plane" message rather than "no frame").
+  //
+  // Done here, after PHASE 5, so the frame reflects the oriented/masked image
+  // (we don't re-run orientation on a shared Y plane), and after the codec
+  // phases so transfer_hwframe is never called with a null codec context.
+  // videostore is unaffected: it prefers packet->image for frame data and
+  // always derives pts from packet->timestamp, never in_frame->pts.
+  if (packet->image && !packet->in_frame) {
+    av_frame_ptr synth{av_frame_alloc()};
+    if (synth && (packet->image->PopulateFrame(synth.get()) >= 0)) {
+      packet->in_frame = std::move(synth);
+      Debug(2, "Synthesized in_frame from image for packet %d (%s)",
+            packet->image_index, av_get_pix_fmt_name(packet->image->PixFormat()));
+    }
+  }
+
   packet->decoded = true;
   packet->notify_all();
   packetqueue.notify_all();  // Wake up analysis thread waiting for decoded packets

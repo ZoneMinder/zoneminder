@@ -782,7 +782,7 @@ function MonitorStream(monitorData) {
           Very, very rarely, on the MONTAGE PAGE THERE MAY BE AN ERROR OF THE TYPE: TypeError: Failed to execute 'remove' on 'SourceBuffer': The start provided (0) is outside the range (0, 0).
           Possibly due to high CPU load, the browser does not have time to process or the "src" attribute was removed from the object.
           */
-          this.mseSourceBuffer.remove(0, Infinity);
+          if (this.mse.sourceBuffers.length > 0) this.mseSourceBuffer.remove(0, Infinity);
         } catch (e) {
           console.warn(`${dateTimeToISOLocal(new Date())} An error occurred while cleaning Source Buffer for ID=${this.id}`, e);
           reject(e);

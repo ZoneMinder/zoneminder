@@ -246,8 +246,27 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     char video_fifo_path[64]; /* +672 */
     char audio_fifo_path[64]; /* +736 */
     char janus_pin[64]; /* +800 */
-    /* 864 total */
+    /* Analysis image ring: the annotated/analysis image is published into a
+     * ring of image_buffer_count slots (reusing the alarm_images SHM region).
+     * last_analysis_index is the slot most recently written (or
+     * image_buffer_count as the "nothing written yet" sentinel);
+     * analysis_image_count is a monotonic counter of analysis images published.
+     * Appended at the end so no earlier SharedData offset shifts. */
+    int32_t last_analysis_index;   /* +864 */
+    int32_t analysis_image_count;  /* +868 */
+    uint32_t analysis_pad[2];      /* +872  keep 16-byte multiple */
+    /* 880 total */
   } SharedData;
+  // Cross-process ABI guard: zmc/zma/zms plus the Perl (Memory.pm) and PHP
+  // (Monitor.php) SHM readers all assume this exact layout. If it changes,
+  // update those readers in lockstep and bump the size below.
+  // Cross-process ABI guard. The struct is naturally aligned (NOT packed), so
+  // two 4-byte pads exist (before capture_fps and before the startup_time
+  // union); the /* +N */ comments above are the packed-layout ideal and do NOT
+  // reflect real offsets. zmc/zma/zms and the Perl (Memory.pm, which computes
+  // alignment) SHM reader assume this exact layout. If it changes, update the
+  // readers in lockstep and bump the size here.
+  static_assert(sizeof(SharedData) == 888, "SharedData layout changed; update Memory.pm and Monitor.php offsets");
 
   enum TriggerState : uint32 {
     TRIGGER_CANCEL,
@@ -659,7 +678,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   unsigned char *shared_images;
   std::vector<Image *> image_buffer;
   AVPixelFormat *image_pixelformats;
-  AVPixelFormat *alarm_image_pixelformat;  // cross-process format for alarm_image
+  // Per-slot cross-process format for the analysis image ring (one entry per
+  // analysis_image_buffer slot), mirroring image_pixelformats for the capture
+  // ring. Replaces the former single alarm_image_pixelformat.
+  AVPixelFormat *analysis_image_pixelformats;
   size_t shm_slot_size;  // per-slot byte capacity, sized to RGBA upper bound
 
   int video_stream_id; // will be filled in PrimeCapture
@@ -705,7 +727,11 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   Image        delta_image;
   Image        ref_image;
-  Image        alarm_image;  // Used in creating analysis images, will be initialized in Analysis
+  // Analysis image ring: the annotated/analysis image is published into a ring
+  // of image_buffer_count slots living in the alarm_images SHM region. Readers
+  // pick up the newest via shared_data->last_analysis_index. Replaces the
+  // former single alarm_image.
+  std::vector<Image *> analysis_image_buffer;
   Image        write_image;    // Used when creating snapshot images
   std::string diag_path_ref;
   std::string diag_path_delta;

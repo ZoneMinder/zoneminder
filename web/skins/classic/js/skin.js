@@ -1581,6 +1581,7 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg, eventS
 
     if (Hls.isSupported()) {
       const hls = new Hls();
+      video._hls = hls;
       hls.loadSource(hlsUrl);
       hls.attachMedia(video);
 
@@ -1589,6 +1590,7 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg, eventS
         if (infoStatusBar) infoStatusBar.innerHTML = ' [RTSP2Web Loading] ';
         thumbnailVideoPlay(video, 'RTSP2Web', eventStart, statusBar);
         console.debug("HLS Event = MEDIA_ATTACHED");
+        clearTimeout(video._fallbackTimer);
       });
       hls.on(Hls.Events.FRAG_LOADED, () => {
         console.debug("HLS Event = FRAG_LOADED");
@@ -1605,12 +1607,11 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg, eventS
       hls.on(Hls.Events.ERROR, function(event, data) {
         console.warn("HLS Event = ERROR", "\n", "event:", event, "\n", "errorType:", data.type, "\n", "errorDetails:", data.details, "\n", "errorFatal:", data.fatal);
         if (!data || !data.fatal) return;
-        hls.destroy();
+        hlsDestroy(hls);
         clearTimeout(video._fallbackTimer);
         video.remove();
         fallbackToMjpeg();
       });
-      video._hls = hls;
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       // Native HLS support (Safari)
       video.src = hlsUrl;
@@ -1629,7 +1630,7 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg, eventS
     // Fallback after 5s if video hasn't loaded
     video._fallbackTimer = setTimeout(function() {
       if (video.readyState < 2) {
-        if (video._hls) video._hls.destroy();
+        if (video._hls) hlsDestroy(video._hls);
         video.remove();
         fallbackToMjpeg();
       }
@@ -1639,6 +1640,19 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg, eventS
     fallbackToMjpeg();
   });
 }
+
+const hlsDestroy = function(hls) {
+  if (hls && Hls) {
+    Object.keys(Hls.Events).forEach(function(eventName) {
+      hls.off(Hls.Events[eventName], function(event, data) {
+      });
+    });
+    hls.destroy();
+    hls = null;
+  } else {
+    console.warn("Hls cannot be destroyed because it is not loaded.");
+  }
+};
 
 function thumbnailVideoPlay(video, currentMode, eventStart, statusBar) {
   const infoStatusBar = (statusBar) ? statusBar.querySelector("#info-status-bar") : null;
@@ -1798,7 +1812,7 @@ function playEventHLS(container, img, monitorId, fallbackToMjpeg, statusBar, eve
         // If the index.m3u8 manifest is bad, playback may not start, although there will be no errors.
         if (video.readyState < 2) {
           video.remove();
-          hls.destroy();
+          hlsDestroy(hls);
           tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar);
         }
       }, 2000);
@@ -1819,7 +1833,7 @@ function playEventHLS(container, img, monitorId, fallbackToMjpeg, statusBar, eve
         console.warn("HLS Event = ERROR", "\n", "event:", event, "\n", "errorType:", data.type, "\n", "errorDetails:", data.details, "\n", "errorFatal:", data.fatal);
         if (!data || !data.fatal) return;
         video.remove();
-        hls.destroy();
+        hlsDestroy(hls);
         clearTimeout(video._fallbackTimer);
         tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar);
       });
@@ -1896,10 +1910,7 @@ function cleanupVideoElement(video) {
   if (!video) return;
   if (video._fallbackTimer) clearTimeout(video._fallbackTimer);
   clearInterval(video._fallbackTimerTime);
-  if (video._hls) {
-    video._hls.destroy();
-    video._hls = null;
-  }
+  if (video._hls) hlsDestroy(video._hls);
   video.pause();
   video.src = '';
   video.load();

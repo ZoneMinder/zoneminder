@@ -78,19 +78,22 @@ void Zone::Setup(
   overload_count = 0;
   extend_alarm_count = 0;
 
-  pg_image = new Image(monitor->Width(), monitor->Height(), 1, ZM_SUBPIX_ORDER_NONE);
+  // Build the polygon mask/ranges at the analysis resolution (== camera size for
+  // primary analysis, but the substream's native size for AnalysisSource=Secondary)
+  // so the zone matches the image DetectMotion actually operates on.
+  pg_image = new Image(monitor->AnalysisWidth(), monitor->AnalysisHeight(), 1, ZM_SUBPIX_ORDER_NONE);
   pg_image->Clear();
   pg_image->Fill(0xff, polygon);
   pg_image->Outline(0xff, polygon);
 
   pixel_area = 0;
-  ranges = new Range[monitor->Height()];
-  for ( unsigned int y = 0; y < monitor->Height(); y++ ) {
+  ranges = new Range[monitor->AnalysisHeight()];
+  for ( unsigned int y = 0; y < monitor->AnalysisHeight(); y++ ) {
     ranges[y].lo_x = -1;
     ranges[y].hi_x = 0;
     ranges[y].off_x = 0;
     const uint8_t *ppoly = pg_image->Buffer( 0, y );
-    for ( unsigned int x = 0; x < monitor->Width(); x++, ppoly++ ) {
+    for ( unsigned int x = 0; x < monitor->AnalysisWidth(); x++, ppoly++ ) {
       if ( *ppoly ) {
         pixel_area++;
         if ( ranges[y].lo_x == -1 ) {
@@ -1223,21 +1226,21 @@ bool Zone::LoadRow(const std::shared_ptr<Monitor> &monitor, const char *const *d
   Debug(5, "Parsing polygon %s (Units=%s)", Coords, Units);
   Polygon polygon;
   bool clamped = false;
-  if (!ParseCoords(Coords, monitor->Width(), monitor->Height(), polygon, clamped)) {
+  if (!ParseCoords(Coords, monitor->AnalysisWidth(), monitor->AnalysisHeight(), polygon, clamped)) {
     Error("Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring",
           Coords, Id, Name, monitor->Name());
     return false;
   }
   if (clamped) {
     Warning("Zone %d/%s for monitor %s has coordinates '%s' outside %ux%u, clamping",
-            Id, Name, monitor->Name(), Coords, monitor->Width(), monitor->Height());
+            Id, Name, monitor->Name(), Coords, monitor->AnalysisWidth(), monitor->AnalysisHeight());
   }
 
   // Convert threshold values from DB format to pixel counts for runtime use.
   // Percentage coordinates: thresholds are stored as % of zone area, convert to pixels.
   // Legacy pixel coordinates: thresholds are already pixel counts.
   int MinAlarmPixels, MaxAlarmPixels, MinFilterPixels, MaxFilterPixels, MinBlobPixels, MaxBlobPixels;
-  const int zpa = strchr(Coords, '.') ? RasterArea(polygon, monitor->Width(), monitor->Height()) : 0;
+  const int zpa = strchr(Coords, '.') ? RasterArea(polygon, monitor->AnalysisWidth(), monitor->AnalysisHeight()) : 0;
   if (zpa > 0) {
     MinAlarmPixels = PercentToPixels(MinAlarmPixels_pct, zpa);
     MaxAlarmPixels = PercentToPixels(MaxAlarmPixels_pct, zpa);
@@ -1454,8 +1457,10 @@ Zone::Zone(const Zone &z) :
   pixel_area = z.pixel_area;
   std::copy(z.blob_stats, z.blob_stats+256, blob_stats);
   pg_image = z.pg_image ? new Image(*z.pg_image) : nullptr;
-  ranges = new Range[monitor->Height()];
-  std::copy(z.ranges, z.ranges+monitor->Height(), ranges);
+  // ranges is sized to the analysis resolution (see Setup), which is what the
+  // source zone was built at - copying monitor->Height() here would over-read.
+  ranges = new Range[monitor->AnalysisHeight()];
+  std::copy(z.ranges, z.ranges+monitor->AnalysisHeight(), ranges);
   image = z.image ? new Image(*z.image) : nullptr;
   //z.stats.debug("Copy Source");
   stats.DumpToLog("Copy dest");

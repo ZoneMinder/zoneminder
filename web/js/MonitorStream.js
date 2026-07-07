@@ -2377,7 +2377,7 @@ function mseListenerSourceopen(context, videoEl, url) {
         console.warn(msg);
         context.showText(msg);
         context.RTSP2WebType = null; // Avoid repeated restarts
-        if (this.selectedPlayer) {
+        if (context.selectedPlayer) {
           context.stop();
         } else {
           // Select next player only for "Auto" mode

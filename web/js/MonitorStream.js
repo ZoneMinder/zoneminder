@@ -685,7 +685,7 @@ function MonitorStream(monitorData) {
 
   this.removeText = function() {
     const blockId = "infoText-"+this.id;
-    let block = document.getElementById(blockId);
+    const block = document.getElementById(blockId);
     if (block) {
       block.textContent = '';
     }
@@ -870,10 +870,9 @@ function MonitorStream(monitorData) {
         this.writeTextInfoBlock("Error");
       }
       this.resetCountStreamErrors(this.player);
-      const msg = `Out of ${this.limitCountErrors} consecutive attempts to start a stream for monitor ID=${this.id} using player "${this.player}", none were successful. The stream has been stopped.`
+      const msg = `Out of ${this.limitCountErrors} consecutive attempts to start a stream for monitor ID=${this.id} using player "${this.player}", none were successful. The stream has been stopped.`;
       console.warn(msg);
       this.showText(msg);
-
     }
   };
 
@@ -2028,7 +2027,7 @@ function MonitorStream(monitorData) {
     }
   };
 
-  this.getCountStreamErrors = function (player) {
+  this.getCountStreamErrors = function(player) {
     if (!player) return;
     let countErrors = 0;
     for (const key in this.playerPriority) {
@@ -2040,7 +2039,7 @@ function MonitorStream(monitorData) {
     return countErrors;
   };
 
-  this.resetCountStreamErrors = function (player) {
+  this.resetCountStreamErrors = function(player) {
     if (!player) return;
     for (const key in this.playerPriority) {
       if (-1 !== player.indexOf(this.playerPriority[key]['name'])) {
@@ -2469,7 +2468,7 @@ function startMsePlay(context, videoEl, url) {
           videoEl.muted = true;
           videoEl.play().then(() => {
             console.debug(self.activePlayer + " video player started playing after muting");
-         })
+          })
               .catch((retryError) => {
                 console.warn(retryError);
               });

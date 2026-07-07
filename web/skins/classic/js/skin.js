@@ -1530,12 +1530,12 @@ function createGo2rtcStream(container, img, src, mid, fallbackToMjpeg) {
     container.appendChild(stream);
 
     stream.handlerEventListener['go2rtc.events.error'] = manageEventListener.addEventListener(stream, 'go2rtc.events.error',
-      (e) => {
-        console.debug('Go2RTC playback error:', e.detail);
-        clearTimeout(stream._fallbackTimer);
-        stream.remove();
-        fallbackToMjpeg();
-      }
+        (e) => {
+          console.debug('Go2RTC playback error:', e.detail);
+          clearTimeout(stream._fallbackTimer);
+          stream.remove();
+          fallbackToMjpeg();
+        }
     );
 
     const attachPlayListener = function() {

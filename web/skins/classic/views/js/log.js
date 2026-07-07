@@ -89,6 +89,7 @@ function ajaxRequest(params) {
     timeout: 600000,
     success: function(data) {
       updateHeaderRequestStatus(secsToTime((Date.now() - startTime)/1000, 1));
+      updateHeaderStats(data);
       table.bootstrapTable('hideLoading');
       if (!data.rows.length && data.total > 0) {
         // The requested page is out of range; reset to page 1.
@@ -101,7 +102,6 @@ function ajaxRequest(params) {
         totalNotFiltered: data.totalNotFiltered,
         rows: processRows(data.rows)
       });
-      updateHeaderStats(data);
     },
     error: function(jqxhr) {
       if (jqxhr.statusText === "plannedAbort") {

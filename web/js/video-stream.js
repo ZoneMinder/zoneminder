@@ -47,13 +47,11 @@ class VideoStream extends VideoRTC {
     }
 
     onplay() {
-        const liveStream = this.closest('[id ^= "liveStream"]');
         const container = document.getElementById('monitor-thumb-overlay');
-        if (liveStream) {
-            const monitorStream = getMonitorStream(stringToNumber(liveStream.id));
-            if (monitorStream) {
-                monitorStream.streamStartTime = (Date.now() / 1000).toFixed(2);
-            }
+        const monitorStream = getMonitorStream(stringToNumber(this.id));
+        if (monitorStream) {
+            monitorStream.streamStartTime = (Date.now() / 1000).toFixed(2);
+            monitorStream.resetCountStreamErrors(this.activePlayer);
         }
 
         if (container) {
@@ -86,19 +84,27 @@ class VideoStream extends VideoRTC {
     onopen() {
         console.debug('stream.onopen');
         const result = super.onopen();
+        if (result !== undefined) {
+            // An available player mode should return.An available player mode should return.
+            if ((!("length" in result)) || (("length" in result) && !result.length)) {
+                this.errorHandling(this.mode, `Playback using Go2RTC in mode "${this.mode}" is not possible.`);
+            }
+        } else {
+            // TODO: Something needs to be done, but what exactly?
+            console.warn(`stream.onopen returned RESULT=UNDEFINED for monitor with ID=${stringToNumber(this.id)} and mode="${this.mode}"`);
+        }
 
         this.onmessage['stream'] = msg => {
             console.debug('stream.onmessge', msg);
             switch (msg.type) {
                 case 'error':
                     this.divError = msg.value;
-                    const liveStream = this.closest('[id ^= "liveStream"]');
-                    if (liveStream) {
-                        const monitorStream = getMonitorStream(stringToNumber(liveStream.id));
-                        if (monitorStream) {
-                            monitorStream.streamErrorRegistration();
-                            monitorStream.restart(monitorStream.currentChannelStream);
-                        }
+                    if (msg.value.indexOf("webrtc") > -1) {
+                        this.errorHandling("webrtc");
+                    } else if (msg.value.indexOf("mse") > -1) {
+                        this.errorHandling("mse");
+                    } else if (msg.value.indexOf("hls") > -1) {
+                        this.errorHandling("hls");
                     }
                     break;
                 case 'mse':
@@ -106,11 +112,21 @@ class VideoStream extends VideoRTC {
                 case 'mp4':
                 case 'mjpeg':
                     this.divMode = msg.type.toUpperCase();
-                    //this.getTracksFromStream();
+                    const monitorStream = getMonitorStream(stringToNumber(this.id));
+                    if (monitorStream) {
+                        monitorStream.player = "go2rtc_" + msg.type;
+                    }
+                    break;
+                case 'webrtc/candidate':
+                    if (!this.waitingWebrtcPlayback) {
+                        // webrtc/candidate can be multiple times, we only need one
+                        this.waitingWebrtcPlayback = setTimeout(function(self) {
+                            self.errorHandling("webrtc", 'No video - trying next player');
+                        }, 3000, this);
+                    }
                     break;
             }
         };
-
         return result;
     }
 
@@ -120,26 +136,25 @@ class VideoStream extends VideoRTC {
     }
 
     onerror(ev) {
-        console.debug('stream.onerror');
-        const liveStream = this.closest('[id ^= "liveStream"]');
-        if (liveStream) {
-            const monitorStream = getMonitorStream(stringToNumber(liveStream.id));
-            if (monitorStream && monitorStream.started) {
-                monitorStream.streamErrorRegistration();
-                monitorStream.restart(monitorStream.currentChannelStream);
-            }
+        clearTimeout(this.waitingWebrtcPlayback);
+        this.waitingWebrtcPlayback = null;
+        console.debug('stream.onerror', ev);
+        const monitorStream = getMonitorStream(stringToNumber(this.id));
+        if (monitorStream && monitorStream.started) {
+            errorHandling(this.mode);
         }
         super.onerror(ev);
     }
 
     onpcvideo(ev) {
+        clearTimeout(this.waitingWebrtcPlayback);
+        this.waitingWebrtcPlayback = null;
         console.debug('stream.onpcvideo');
         super.onpcvideo(ev);
 
         if (this.pcState !== WebSocket.CLOSED) {
             this.divMode = 'RTC';
         }
-        //this.getTracksFromStream();
     }
 
     pause() {
@@ -148,19 +163,28 @@ class VideoStream extends VideoRTC {
     close() {
         this.video.pause();
     }
-/*
-    getTracksFromStream() {
-        const liveStream = this.closest('[id ^= "liveStream"]');
-        if (liveStream) {
-            const monitorStream = getMonitorStream(stringToNumber(liveStream.id));
-            if (monitorStream) {
-                setTimeout(function() { //It takes time for full playback to complete, otherwise you may not receive the tracks. This is especially true for MSE.
-                    getTracksFromStream(monitorStream);
-                }, 500);
-            }
+
+    errorHandling(currentMode, message = null) {
+        const monitorStream = getMonitorStream(stringToNumber(this.id));
+        if (monitorStream) {
+            monitorStream.player = "go2rtc_" + currentMode;
+            monitorStream.streamErrorRegistration();
+            monitorStream.restart(monitorStream.currentChannelStream);
+            monitorStream.writeTextInfoBlock("Error");
+            if (message) monitorStream.showText(message);
         }
+
+        this.dispatchEvent(
+            new CustomEvent('go2rtc.events.error', {
+                detail: {
+                    mode: currentMode,
+                    message: message
+                },
+                bubbles: true,
+                cancelable: false
+            })
+        );
     }
-*/
 }
 
 customElements.define('video-stream', VideoStream);

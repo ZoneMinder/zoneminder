@@ -213,7 +213,7 @@ foreach ($displayMonitors as &$row) {
   }
   $monitor = $monitors[] = new ZM\Monitor($row);
 
-  if ( $monitor->RTSP2WebEnabled() and $monitor->RTSP2WebType == "HLS") {
+  if ($monitor->RTSP2WebEnabled()) {
     $need_hls = true;
   }
   if ($monitor->JanusEnabled()) {

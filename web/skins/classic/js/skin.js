@@ -1522,11 +1522,21 @@ function createGo2rtcStream(container, img, src, mid, fallbackToMjpeg) {
     url.search = 'src=' + mid + '_' + channel;
 
     const stream = document.createElement('video-stream');
+    stream.handlerEventListener = {};
     stream.style.cssText = 'width: 100%; height: 100%; display: block;';
     stream.background = true;
     stream.muted = getCookie('zmWatchMuted') === 'true';
     stream.src = url.href;
     container.appendChild(stream);
+
+    stream.handlerEventListener['go2rtc.events.error'] = manageEventListener.addEventListener(stream, 'go2rtc.events.error',
+      (e) => {
+        console.debug('Go2RTC playback error:', e.detail);
+        clearTimeout(stream._fallbackTimer);
+        stream.remove();
+        fallbackToMjpeg();
+      }
+    );
 
     const attachPlayListener = function() {
       const innerVideo = stream.querySelector('video');
@@ -1888,6 +1898,7 @@ function thumbnail_onmouseout(event) {
 
 function cleanupVideoStream(videoStream) {
   if (!videoStream) return;
+  manageEventListener.removeEventListener(videoStream.handlerEventListener['go2rtc.events.error']);
   if (videoStream._fallbackTimer) clearTimeout(videoStream._fallbackTimer);
   videoStream.close();
 }
@@ -3273,7 +3284,30 @@ async function getTracksFromStream(videoFeedStream) {
 
   }
 
-  connectAudioMotion(mid);
+  // We'll determine whether we need a video track or just an audio track.
+  // When playing H.265, the video may not be decoded, but the audio track will play.
+  const selectorWhatDisplay = document.getElementById('whatDisplay');
+  const monitorStream = getMonitorStream(mid);
+  const defaultWhatDisplay = (typeof eventData !== 'undefined') ? eventData.whatDisplay : (monitorStream) ? monitorStream.whatDisplay : null;
+
+  let videoTrackRequired = true;
+  if (!selectorWhatDisplay || (-1 !== selectorWhatDisplay.value.toLowerCase().indexOf('default'))) { // Default monitor settings
+    if (defaultWhatDisplay && (-1 === defaultWhatDisplay.toLowerCase().indexOf('video'))) videoTrackRequired = false;
+  } else {
+    if (-1 === selectorWhatDisplay.value.toLowerCase().indexOf('video')) videoTrackRequired = false;
+  }
+
+  if (!videoFeedStream.videoTrack ) {
+    monitorStream.updateStreamInfo('', 'Video track missing');
+    monitorStream.writeTextInfoBlock("Video track missing", {showImg: false});
+  }
+  if (!videoFeedStream.videoTrack && videoTrackRequired && (!videoFeedStream.selectedPlayer || videoFeedStream.selectedPlayer === "go2rtc")) {
+    // Switch to a different player only when mode=Auto
+    videoFeedStream.streamErrorRegistration();
+    videoFeedStream.restart(videoFeedStream.currentChannelStream);
+  } else {
+    connectAudioMotion(mid);
+  }
 }
 
 const waitUntil = (condition, timeout = 0) => {

@@ -22,6 +22,7 @@
 #sidebar {
   min-width: 140px;
   padding-right: 1px;
+  padding-left: 15px;
 }
 
 #sidebar .nav {

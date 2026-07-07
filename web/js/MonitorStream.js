@@ -707,7 +707,7 @@ function MonitorStream(monitorData) {
       console.warn(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} has already stopped.`);
       return;
     }
-    this.started = false;
+    //this.started = false;
 
     if (-1 !== this.activePlayer.indexOf('zms')) {
       this.writeTextInfoBlock("Stopped", {showImg: false});
@@ -765,7 +765,7 @@ function MonitorStream(monitorData) {
     }
     if (this.audioMotion && this.audioMotion.stop) this.audioMotion.stop();
     this.activePlayer = '';
-    //this.started = false;
+    this.started = false;
   };
 
   this.stopMse = function() {

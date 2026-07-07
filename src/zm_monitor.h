@@ -567,6 +567,15 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int    camera_height;
   unsigned int    width;              // Normally the same as the camera, but not if partly rotated
   unsigned int    height;             // Normally the same as the camera, but not if partly rotated
+  unsigned int    analysis_width;     // Resolution motion detection runs at. Same as width/height
+  unsigned int    analysis_height;    // except in AnalysisSource=Secondary, where it is the substream's
+                                       // native size so zones/detection run cheaply at the substream res.
+  // Substream native size once discovered from its first decoded frame (0 until
+  // then). Persisted across Load()/Reload() so a reload does not reset the
+  // analysis resolution to the full frame and force a redundant zone rebuild +
+  // reference-image reset.
+  unsigned int    substream_width = 0;
+  unsigned int    substream_height = 0;
   bool            v4l_multi_buffer;
   unsigned int    v4l_captures_per_frame;
   Orientation     orientation;        // Whether the image has to be rotated at all
@@ -708,7 +717,6 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::unique_ptr<DecoderThread> decoder;
   std::unique_ptr<SecondStreamThread> second_stream;  // decodes the substream for analysis (AnalysisSource=Secondary)
   Image        secondary_image_native;   // latest substream image at its native (low) resolution, copied from the sidecar mailbox
-  Image        secondary_image;          // secondary_image_native upscaled to camera dims, only when a frame is actually scored
   uint64_t     last_secondary_sequence = 0;  // sidecar frame counter last scored, to avoid re-scoring a stale frame
   SwsContext   *convert_context;
   std::thread  close_event_thread;
@@ -923,6 +931,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   unsigned int Width() const { return width; }
   unsigned int Height() const { return height; }
+  // Resolution motion detection / zones run at. Equals Width()/Height() except in
+  // AnalysisSource=Secondary, where it tracks the substream's native size.
+  unsigned int AnalysisWidth() const { return analysis_width; }
+  unsigned int AnalysisHeight() const { return analysis_height; }
   unsigned int Colours() const;
   unsigned int SubpixelOrder() const;
 

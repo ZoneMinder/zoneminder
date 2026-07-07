@@ -535,6 +535,14 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   col++;
   width = (orientation==ROTATE_90||orientation==ROTATE_270) ? camera_height : camera_width;
   height = (orientation==ROTATE_90||orientation==ROTATE_270) ? camera_width : camera_height;
+  // Motion detection runs at full frame size by default; secondary-substream
+  // analysis lowers this to the substream's native size on its first frame.
+  // If that size was already discovered (and we are still in secondary mode),
+  // keep it across reload so we don't reset the analysis resolution - and force a
+  // redundant zone rebuild / reference-image reset - on the next substream frame.
+  bool keep_substream_res = (analysis_source == ANALYSIS_SECONDARY) && substream_width;
+  analysis_width = keep_substream_res ? substream_width : width;
+  analysis_height = keep_substream_res ? substream_height : height;
   deinterlacing = atoi(dbrow[col]);
   col++;
   deinterlacing_value = deinterlacing & 0xff;
@@ -2220,7 +2228,10 @@ bool Monitor::Analyse() {
           } else {
             event->addNote(SIGNAL_CAUSE, "Reacquired");
           }
-          if (shared_data->analysing != ANALYSING_NONE) {
+          // In secondary-analysis mode the reference image is seeded and blended
+          // from the substream at the analysis resolution, so don't reseed it here
+          // from the full-res primary (which is only decoded on demand anyway).
+          if ((shared_data->analysing != ANALYSING_NONE) && !secondary_analysis) {
             if  (analysis_image == ANALYSISIMAGE_YCHANNEL) {
               Image *y_image = packet->get_y_image();
               if (y_image) {
@@ -2294,7 +2305,13 @@ bool Monitor::Analyse() {
 #endif
         if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
           /* try to stay behind the decoder. */
-          if (decoding != DECODING_NONE) {
+          // In secondary-analysis mode the motion source is the substream sidecar
+          // image, which is decoded independently of the primary. The primary is
+          // only decoded on demand (for live viewers), so waiting for the primary
+          // packet to decode here would stall motion detection entirely whenever
+          // nobody is watching. Only gate on the primary decode when the primary
+          // is actually the analysis source.
+          if ((decoding != DECODING_NONE) && !secondary_analysis) {
             if (!packet->decoded) {
               // We no longer wait because we need to be checking the triggers and other inputs.
               // Also the logic is too hairy.  capture process can delete the packet that we have here.
@@ -2352,7 +2369,12 @@ bool Monitor::Analyse() {
                     if (zone.Alarmed()) {
                       if (!packet->alarm_cause.empty()) packet->alarm_cause += ",";
                       packet->alarm_cause += zone.Label();
-                      if (zone.AlarmImage() && packet->analysis_image)
+                      // The zone alarm image is at the analysis resolution, which
+                      // differs from the full-res analysis_image when detecting on
+                      // the substream; only overlay when the sizes match.
+                      if (zone.AlarmImage() && packet->analysis_image
+                          && zone.AlarmImage()->Width() == packet->analysis_image->Width()
+                          && zone.AlarmImage()->Height() == packet->analysis_image->Height())
                         packet->analysis_image->Overlay(*(zone.AlarmImage()));
                     }
                     Debug(4, "Setting score for zone %d to %d", zone_index, zone.Score());
@@ -3278,6 +3300,14 @@ bool Monitor::Decode() {
     // between keyframe decodes.
     if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
       shared_data->last_write_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+      // In secondary-analysis mode the primary is only decoded on demand (for
+      // live viewers), so the normal decoding_image_count bump in the decode ->
+      // WriteShmFrame path never runs while nobody is watching. Without this,
+      // Ready() (decoding_image_count > ready_count) would stay false and motion
+      // detection on the substream would never start until a viewer bootstrapped
+      // the decoder - and would then latch on permanently. Advance the warmup
+      // counter here so substream analysis runs continuously, viewer or not.
+      if (secondary_analysis) decoding_image_count++;
     }
   }
 
@@ -3662,15 +3692,46 @@ Image *Monitor::getMotionSourceImage(const std::shared_ptr<ZMPacket> &packet, bo
     last_secondary_sequence = sequence;
     do_score = fresh and !stale;
 
-    // Upscale the native-resolution substream image to camera/zone dimensions so
-    // that DetectMotion and the reference image match the primary coordinate
-    // space and zones need no changes.
-    secondary_image.Assign(secondary_image_native);
-    if ((secondary_image.Width() != static_cast<unsigned int>(camera_width)) or
-        (secondary_image.Height() != static_cast<unsigned int>(camera_height))) {
-      secondary_image.Scale(camera_width, camera_height);
+    // Run motion detection at the substream's NATIVE resolution rather than
+    // upscaling it to the full camera size. Zones are percentage-based, so
+    // rebuilding them at the substream size scales their geometry and pixel
+    // thresholds automatically - this keeps the per-frame Delta/Blend/zone work
+    // proportional to the (small) substream, instead of paying full-res cost.
+    // The substream size is only known once it decodes a frame, so discover it
+    // here and, on change, rebuild the zones and drop the reference image so it
+    // reseeds at the new resolution.
+    const unsigned int native_w = secondary_image_native.Width();
+    const unsigned int native_h = secondary_image_native.Height();
+    if (native_w and native_h and
+        ((native_w != analysis_width) or (native_h != analysis_height))) {
+      const unsigned int prev_w = analysis_width;
+      const unsigned int prev_h = analysis_height;
+      // Zone::Load builds zones at AnalysisWidth()/Height(), so switch the analysis
+      // resolution BEFORE loading. If the load comes back empty while we still have
+      // usable zones (e.g. a transient DB error), revert and keep detecting at the
+      // current resolution, retrying next frame rather than dropping every zone -
+      // which, since the switch would not fire again, would silently disable motion
+      // detection. A monitor that genuinely has no zones has zones.empty() already
+      // and falls through to switch.
+      analysis_width = native_w;
+      analysis_height = native_h;
+      std::vector<Zone> new_zones = Zone::Load(shared_from_this());
+      if (new_zones.empty() and !zones.empty()) {
+        analysis_width = prev_w;
+        analysis_height = prev_h;
+        Warning("Monitor %d: could not load zones at substream resolution %ux%u; retrying",
+                id, native_w, native_h);
+        do_score = false;
+        return nullptr;
+      }
+      Info("Monitor %d: motion detection resolution set to substream native %ux%u (was %ux%u); rebuilding zones",
+           id, native_w, native_h, prev_w, prev_h);
+      substream_width = native_w;
+      substream_height = native_h;
+      zones = std::move(new_zones);
+      ref_image = Image();  // force reseed at the new resolution
     }
-    return &secondary_image;
+    return &secondary_image_native;
   }
 
   // Primary analysis: motion source is the decoded primary packet image.
@@ -3843,7 +3904,9 @@ unsigned int Monitor::AnalyseFrame(const Image &frame_image, Event::StringSet &z
   if (analysis_image && score) {
     analysis_image->Assign(frame_image);
     for (const Zone &zone : zones) {
-      if (zone.Alarmed() && zone.AlarmImage()) {
+      if (zone.Alarmed() && zone.AlarmImage()
+          && zone.AlarmImage()->Width() == analysis_image->Width()
+          && zone.AlarmImage()->Height() == analysis_image->Height()) {
         analysis_image->Overlay(*(zone.AlarmImage()));
       }
     }

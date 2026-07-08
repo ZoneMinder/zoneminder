@@ -875,9 +875,10 @@ class Event extends ZM_Object {
         ." ".escapeshellarg($event_path.'/'.$video_file)." > ".escapeshellarg($event_path.'/ffmpeg.log')." 2>&1"
         ;
       Debug($command);
-	  exec($command, $output, $rc);
-      if($rc !== 0) {
-        Error("Unable to generate video, check $event_path/ffmpeg.log for details. Output: " . implode("\n", $output) . " (rc=$rc)");
+      exec($command, $output, $rc);
+      if ($rc !== 0) {
+        $output_text = $output ? ('. Output: ' . implode("\n", $output)) : '';
+        Error("Unable to generate video, check $event_path/ffmpeg.log for details{$output_text} (rc=$rc)");
         return;
       }
 

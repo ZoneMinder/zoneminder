@@ -376,7 +376,8 @@ bool Image::Assign(const AVFrame *frame) {
   // format to swscale. Passing YUVJ420P/YUVJ422P/etc directly makes swscale emit
   // "deprecated pixel format used, make sure you did set range correctly" (seen
   // in nph-zms). This mirrors what SWScale::Convert already does.
-  const AVPixelFormat src_fmt = fix_deprecated_pix_fmt(static_cast<AVPixelFormat>(frame->format));
+  const AVPixelFormat orig_src_fmt = static_cast<AVPixelFormat>(frame->format);
+  const AVPixelFormat src_fmt = fix_deprecated_pix_fmt(orig_src_fmt);
 
   // If source and destination format + dimensions match, do a direct plane
   // copy instead of running through sws_scale. This avoids the overhead of
@@ -418,6 +419,7 @@ bool Image::Assign(const AVFrame *frame) {
     Error("Unable to create conversion context");
     return false;
   }
+  zm_sws_set_input_range(sws_convert_context, orig_src_fmt);
   bool result = Assign(frame, sws_convert_context);
   update_function_pointers();
   return result;

@@ -744,8 +744,7 @@ function MonitorStream(monitorData) {
         this.webrtc = null;
       }
       if (this.hls) {
-        this.hls.destroy();
-        this.hls = null;
+        hlsDestroy(this.hls);
       }
       if (-1 !== this.activePlayer.indexOf('mse')) {
         this.stopMse();
@@ -1791,17 +1790,41 @@ function MonitorStream(monitorData) {
             maxBufferLength: 10,
             maxMaxBufferLength: 30,
           });
+
+          /* For debug ALL events HLS
+          const self = this;
+          Object.keys(Hls.Events).forEach(function(eventName) {
+            self.hls.on(Hls.Events[eventName], function(event, data) {
+              console.debug('HLS Event = ', eventName);
+              console.debug('HLS Event data = ', data);
+            });
+          });
+          */
+
+          this.hls.on(Hls.Events.MEDIA_ATTACHING, function(event, data) {
+            console.debug(`HLS Event = MEDIA_ATTACHING for monitor ID=${this.id}`);
+          }, this);
+          this.hls.on(Hls.Events.BUFFER_CODECS, function(event, data) {
+            // Triggers if there is an audio track.
+            console.log(`For monitor with ID=${this.id}, the "${data.audio.codec}" audio codec is used.`);
+            if (data.audio.codec.indexOf('mp4a.40.') > -1) {
+              // AAC: mp4a.40.2 - HLS can't play it, so the "Loading" status will always be displayed.
+              // PCM, G.711A, G.711Mu, G.726, G.723 - no audio track
+              this.updateStreamInfo('', `Error. AAC codec "${data.audio.codec}" is not supported.`); //HLS
+              this.streamErrorRegistration();
+              hlsDestroy(this.hls);
+              this.restart(this.currentChannelStream);
+            }
+          }, this);
           this.hls.on(Hls.Events.MEDIA_ATTACHED, function(event, data) {
             console.log(`Video and hls.js are now bound together for monitor ID=${this.id}`);
-            this.updateStreamInfo('', ''); //HLS
-            //getTracksFromStream(this); //HLS
           }, this);
           this.hls.on(Hls.Events.ERROR, function(event, data) {
             console.warn("HLS Event = ERROR", "\n", "event:", event, "\n", "errorType:", data.type, "\n", "errorDetails:", data.details, "\n", "errorFatal:", data.fatal);
+            if (!data || !data.fatal) return;
             this.updateStreamInfo('', 'Error'); //HLS
             this.streamErrorRegistration();
-            if (!data || !data.fatal) return;
-            this.hls.destroy();
+            hlsDestroy(this.hls);
             this.restart(this.currentChannelStream);
           }, this);
           this.hls.loadSource(hlsUrl.href);
@@ -1809,6 +1832,11 @@ function MonitorStream(monitorData) {
         } else if (stream.canPlayType('application/vnd.apple.mpegurl')) {
           stream.src = hlsUrl.href;
         }
+
+        video_el.onplay = (event) => {
+          this.updateStreamInfo('', '');
+          this.resetCountStreamErrors(this.activePlayer);
+        };
         this.activePlayer = 'rtsp2web_hls';
       } else if (-1 !== this.player.indexOf('mse')) {
         const mseUrl = rtsp2webModUrl;
@@ -1965,15 +1993,6 @@ function MonitorStream(monitorData) {
     }
   };
 
-  this.streamErrorRegistration = function() {
-    const currentPlayer = this.player;
-    for (const key in this.playerPriority) {
-      if (-1 !== currentPlayer.indexOf(this.playerPriority[key]['name'])) {
-        this.playerPriority[key]['countErrors'] = parseInt(this.playerPriority[key]['countErrors'], 10) + 1;
-      }
-    }
-  };
-
   this.selectNextPlayer = function(currentPlayer = null) {
     if (this.defaultPlayer == this.player) {
       // This means we need to start the bypass from the beginning, since we started playback from the default player, which may be in the middle of the list.
@@ -2010,6 +2029,16 @@ function MonitorStream(monitorData) {
     if (!foundNextPlayer) {
       this.player = 'zms';
       this.restart(this.currentChannelStream);
+    }
+  };
+
+  this.streamErrorRegistration = function() {
+    const currentPlayer = this.player;
+    for (const key in this.playerPriority) {
+      if (-1 !== currentPlayer.indexOf(this.playerPriority[key]['name'])) {
+        this.playerPriority[key]['countErrors'] = parseInt(this.playerPriority[key]['countErrors'], 10) + 1;
+        break;
+      }
     }
   };
 } // end class MonitorStream
@@ -2237,7 +2266,7 @@ function startRTSP2WebPlay(videoEl, url, stream) {
         }
       },
       error: function(xhr, status, error) {
-        console.warn('Error request localDescription:', error, xhr.responseText);
+        console.warn('RTSP2Web_webrtc Error request localDescription:', error, xhr.responseText);
         stream.updateStreamInfo('', 'Error'); //WEBRTC
         stream.streamErrorRegistration();
         stream.restart(stream.currentChannelStream);

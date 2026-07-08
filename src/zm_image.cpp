@@ -372,7 +372,11 @@ bool Image::Assign(const AVFrame *frame) {
   // pick the wrong swscale target if those legacy fields drift out of sync
   // (e.g. the GRAY8/YUV420P alias collision).
   const AVPixelFormat format = imagePixFormat;
-  const AVPixelFormat src_fmt = static_cast<AVPixelFormat>(frame->format);
+  // Map deprecated YUVJ* formats to their non-J equivalents before handing the
+  // format to swscale. Passing YUVJ420P/YUVJ422P/etc directly makes swscale emit
+  // "deprecated pixel format used, make sure you did set range correctly" (seen
+  // in nph-zms). This mirrors what SWScale::Convert already does.
+  const AVPixelFormat src_fmt = fix_deprecated_pix_fmt(static_cast<AVPixelFormat>(frame->format));
 
   // If source and destination format + dimensions match, do a direct plane
   // copy instead of running through sws_scale. This avoids the overhead of

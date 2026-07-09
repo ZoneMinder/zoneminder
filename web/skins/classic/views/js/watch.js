@@ -853,11 +853,11 @@ function handleMouseLeave(event) {
 function streamStart(monitor = null) {
   monitorStream = new MonitorStream(monitor ? monitor : monitorData[monIdx]);
 
+  monitorStream.manageAvailablePlayers();
   monitorStream.setPlayer($j('#player').val());
   monitorStream.setBottomElement(document.getElementById('bottomBlock'));
   const cookieMuted = getCookie('zmWatchMuted');
   monitorStream.muted = (cookieMuted === null || cookieMuted === 'true') ? true : false; // default to muted
-  monitorStream.manageAvailablePlayers();
   setChannelStream();
   // Start the fps and status updates. give a random delay so that we don't assault the server
   //monitorStream.setScale($j('#scale').val(), $j('#width').val(), $j('#height').val());

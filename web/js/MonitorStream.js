@@ -59,6 +59,7 @@ function MonitorStream(monitorData) {
     request: 'stream',
     connkey: this.connKey
   };
+  this.fatalError = false;
   this.playerPriority = {
     1: { // This setting should always be priority #1.
       name: 'default',
@@ -576,6 +577,7 @@ function MonitorStream(monitorData) {
   };
 
   this.start = function(streamChannel = 'default') {
+    this.fatalError = false;
     this.writeTextInfoBlock("Loading...");
     if (streamChannel === null || streamChannel === '' || currentView == 'montage') streamChannel = 'default';
     // Normalize channel name for internal tracking
@@ -850,10 +852,29 @@ function MonitorStream(monitorData) {
 
   this.restart = function(channelStream = "default", delay = 200) {
     this.stop();
-    const this_ = this;
-    setTimeout(function() {// During the downtime, the monitor may have already started to work.
-      if (!this_.started) this_.start(channelStream);
-    }, delay);
+    const countErrors = this.getCountStreamErrors(this.player);
+    if (countErrors < this.limitCountErrors) {
+      setTimeout(function(self) {// During the downtime, the monitor may have already started to work.
+        if (!self.started) self.start(channelStream);
+      }, delay, this);
+    } else {
+      if (typeof streamCmdStop === 'function') {
+        // Let's set the correct state for the player control buttons (for example, on the Watch page)
+        streamCmdStop();
+      }
+
+      if (-1 !== this.player.indexOf('zms')) {
+        this.writeTextInfoBlock("Error", {showImg: false});
+      } else {
+        this.writeTextInfoBlock("Error");
+      }
+      this.updateStreamInfo('', 'Error');
+      this.fatalError = true;
+      this.resetCountStreamErrors(this.player);
+      const msg = `Out of ${this.limitCountErrors} consecutive attempts to start a stream for monitor ID=${this.id} using player "${this.player}", none were successful. The stream has been stopped.`;
+      console.warn(msg);
+      this.showText(msg);
+    }
   };
 
   this.pause = function() {

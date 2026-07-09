@@ -141,7 +141,7 @@ class VideoStream extends VideoRTC {
         console.debug('stream.onerror', ev);
         const monitorStream = getMonitorStream(stringToNumber(this.id));
         if (monitorStream && monitorStream.started) {
-            errorHandling(this.mode);
+            this.errorHandling(this.mode);
         }
         super.onerror(ev);
     }

@@ -868,6 +868,7 @@ function MonitorStream(monitorData) {
       } else {
         this.writeTextInfoBlock("Error");
       }
+      this.updateStreamInfo('', 'Error');
       this.resetCountStreamErrors(this.player);
       const msg = `Out of ${this.limitCountErrors} consecutive attempts to start a stream for monitor ID=${this.id} using player "${this.player}", none were successful. The stream has been stopped.`;
       console.warn(msg);

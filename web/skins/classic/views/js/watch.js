@@ -1210,8 +1210,9 @@ var cycleIntervalId;
 var secondsToCycle = 0;
 
 function nextCycleView() {
-  secondsToCycle --;
-  if (secondsToCycle<=0) {
+  const stream = (monitorStream) ? monitorStream.getAVStream() : null;
+  if (stream && stream.readyState >= 2 || -1 !== monitorStream.activePlayer.indexOf('zms')) secondsToCycle --;
+  if (secondsToCycle<=0 || (monitorStream.fatalError && monitorStream.selectedPlayer)) {
     cycleNext();
   }
   $j('#secondsToCycle').text(secondsToCycle);

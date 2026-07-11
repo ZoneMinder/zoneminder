@@ -38,7 +38,7 @@ function saveSort() {
 
   const server = Servers[serverId];
   if (!server) {
-    Error("Unknown server "+serverId);
+    zmError("Unknown server "+serverId);
     return;
   }
   $j.ajax({

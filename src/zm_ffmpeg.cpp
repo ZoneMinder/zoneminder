@@ -577,6 +577,43 @@ enum AVPixelFormat fix_deprecated_pix_fmt(enum AVPixelFormat fmt) {
   }
 }
 
+bool pix_fmt_is_jpeg_range(enum AVPixelFormat fmt) {
+  // The deprecated YUVJ* formats carry full-range (0-255) luma/chroma, as
+  // opposed to the limited/broadcast range (16-235) of their non-J equivalents.
+  switch (fmt) {
+  case AV_PIX_FMT_YUVJ411P:
+  case AV_PIX_FMT_YUVJ420P:
+  case AV_PIX_FMT_YUVJ422P:
+  case AV_PIX_FMT_YUVJ440P:
+  case AV_PIX_FMT_YUVJ444P:
+    return true;
+  default:
+    return false;
+  }
+}
+
+void zm_sws_set_input_range(struct SwsContext *ctx, enum AVPixelFormat original_src_fmt) {
+  // swscale assumes limited (MPEG) input range by default. When the decoded
+  // source was a full-range JPEG format (YUVJ*) that got mapped to its non-J
+  // equivalent by fix_deprecated_pix_fmt(), swscale would otherwise treat the
+  // full-range samples as limited and wash the colours out. Tell it the input
+  // is full range so the YUV->RGB / YUV->YUV maths is correct. Pass the
+  // ORIGINAL (pre-fix) format so we can tell whether the source was full range.
+  if (!pix_fmt_is_jpeg_range(original_src_fmt)) return;
+
+  int *inv_table, *table;
+  int srcRange, dstRange, brightness, contrast, saturation;
+  // Returns < 0 when the conversion does not expose colorspace details (e.g.
+  // RGB->RGB); nothing to correct in that case.
+  if (sws_getColorspaceDetails(ctx, &inv_table, &srcRange, &table, &dstRange,
+                               &brightness, &contrast, &saturation) < 0)
+    return;
+  if (srcRange == 1) return;  // already full range
+  srcRange = 1;
+  sws_setColorspaceDetails(ctx, inv_table, srcRange, table, dstRange,
+                           brightness, contrast, saturation);
+}
+
 bool is_video_stream(const AVStream * stream) {
   if (stream->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
     return true;

@@ -552,7 +552,11 @@ function MonitorStream(monitorData) {
   // Watch for a decoded video frame; if none arrives in time, treat it as a playback
   // failure and fall back to the next player (ultimately ZMS MJPEG).
   this.NO_VIDEO_TIMEOUT = 8000;
+  // The transcode stream has to cold-start ffmpeg on the go2rtc host and wait for a
+  // keyframe, so give it a longer grace period than the native-stream check.
+  this.TRANSCODE_NO_VIDEO_TIMEOUT = 15000;
   this.noVideoWatchdog = null;
+  this.go2rtcTranscodeTried = false;
 
   this.clearNoVideoWatchdog = function() {
     if (this.noVideoWatchdog) {
@@ -561,24 +565,36 @@ function MonitorStream(monitorData) {
     }
   };
 
-  this.startNoVideoWatchdog = function() {
+  this.startNoVideoWatchdog = function(timeout) {
     this.clearNoVideoWatchdog();
     const self = this;
+    const t = timeout || this.NO_VIDEO_TIMEOUT;
     this.noVideoWatchdog = setTimeout(function() {
       self.noVideoWatchdog = null;
       if (!self.started || -1 === self.activePlayer.indexOf('go2rtc')) return;
       const v = self.getAVStream();
       if (v && v.videoWidth > 0 && v.videoHeight > 0) return; // video is decoding fine
-      console.warn(`Monitor ID=${self.id}: player "${self.player}" connected but produced no video within ${self.NO_VIDEO_TIMEOUT}ms (the source video codec is likely unsupported by this browser, e.g. H.265). Falling back to the next player.`);
+      if (!self.go2rtcTranscodeTried) {
+        // The source codec is undecodable by this browser (e.g. H.265 in Chrome).
+        // Before giving up on go2rtc, request its server-side H.264 transcode of this
+        // monitor ("<id>_h264"), which go2rtc produces on demand.
+        self.go2rtcTranscodeTried = true;
+        console.warn(`Monitor ID=${self.id}: player "${self.player}" produced no video within ${self.NO_VIDEO_TIMEOUT}ms (native codec likely unsupported, e.g. H.265); requesting go2rtc H.264 transcode stream ${self.id}_h264.`);
+        self.updateStreamInfo('', 'No video - trying H.264 transcode');
+        self.select_go2rtc(self.currentChannelStream); // restarts the watchdog with the transcode timeout
+        return;
+      }
+      console.warn(`Monitor ID=${self.id}: H.264 transcode also produced no video; falling back to the next player.`);
       self.updateStreamInfo('', 'No video - trying next player');
       self.streamErrorRegistration();
       self.selectNextPlayer(self.player);
-    }, this.NO_VIDEO_TIMEOUT);
+    }, t);
   };
 
   this.start = function(streamChannel = 'default') {
     this.fatalError = false;
     this.writeTextInfoBlock("Loading...");
+    this.go2rtcTranscodeTried = false; // a fresh start re-probes the native stream first
     if (streamChannel === null || streamChannel === '' || currentView == 'montage') streamChannel = 'default';
     // Normalize channel name for internal tracking
     if (streamChannel == 'default') {
@@ -1750,14 +1766,22 @@ function MonitorStream(monitorData) {
       const webrtcUrl = Go2RTCModUrl;
       this.currentChannelStream = streamChannel;
       const streamSuffix = this.getStreamSuffix(streamChannel);
-      console.log('go2rtc stream:', this.id + streamSuffix);
+      // When the native stream produced no decodable video, request go2rtc's
+      // server-side H.264 transcode of the primary stream instead.
+      const streamName = this.go2rtcTranscodeTried ? (this.id + '_h264') : (this.id + streamSuffix);
+      console.log('go2rtc stream:', streamName);
       webrtcUrl.protocol = (url.protocol=='https:') ? 'wss:' : 'ws';
       webrtcUrl.pathname += "/ws";
-      webrtcUrl.search = 'src=' + this.id + streamSuffix;
+      webrtcUrl.search = 'src=' + streamName;
       stream.src = webrtcUrl.href;
 
       this.webrtc = stream; // track separately do to api differences between video tag and video-stream
-      if (-1 != this.player.indexOf('_')) {
+      if (this.go2rtcTranscodeTried) {
+        // Force MSE for the transcode: go2rtc's on-the-fly H.264 does not carry the
+        // periodic parameter sets WebRTC needs, so over WebRTC the browser receives
+        // packets but assembles no frames.  MSE (fragmented MP4) decodes it fine.
+        stream.mode = 'mse';
+      } else if (-1 != this.player.indexOf('_')) {
         stream.mode = this.player.substring(this.player.indexOf('_')+1);
       }
       const video_el = this.getAVStream();
@@ -1771,7 +1795,7 @@ function MonitorStream(monitorData) {
 
       if (typeof observerMontage !== 'undefined') observerMontage.observe(stream);
       this.activePlayer = 'go2rtc';
-      this.startNoVideoWatchdog();
+      this.startNoVideoWatchdog(this.go2rtcTranscodeTried ? this.TRANSCODE_NO_VIDEO_TIMEOUT : this.NO_VIDEO_TIMEOUT);
     } else {
       alert("ZM_GO2RTC_PATH is empty. Go to Options->System and set ZM_GO2RTC_PATH accordingly.");
     }

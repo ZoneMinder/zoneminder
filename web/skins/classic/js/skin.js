@@ -1667,7 +1667,7 @@ const hlsDestroy = function(obj) {
     propertyName = '_hls';
   }
 
-  if (!hls || !(obj.hls instanceof Hls)) {
+  if (!hls || !(hls instanceof Hls)) {
     for (const key of Object.keys(obj)) {
       const value = obj[key];
       if (value instanceof Hls) {

@@ -548,16 +548,16 @@ if ( currentView != 'none' && currentView != 'login' ) {
 //Shows a message if there is an error in the streamObj or the stream doesn't exist.  Returns true if error, false otherwise.
 function checkStreamForErrors(funcName, streamObj) {
   if ( !streamObj ) {
-    Error(funcName+': stream object was null');
+    zmError(funcName+': stream object was null');
     return true;
   }
   if ( streamObj.responseJSON ) {
     if (streamObj.responseJSON.result == "Error") {
-      Error(funcName+' stream error: '+streamObj.responseJSON.message);
+      zmError(funcName+' stream error: '+streamObj.responseJSON.message);
       return true;
     }
   } else if ( streamObj.result == "Error" ) {
-    Error(funcName+' stream error: '+streamObj.message);
+    zmError(funcName+' stream error: '+streamObj.message);
     return true;
   }
   return false;

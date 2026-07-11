@@ -110,39 +110,44 @@ function logReport( level, message, file, line ) {
   $j.post(thisUrl, data, null, 'json');
 }
 
-function Panic(message) {
+// These logging helpers are named with a "zm" prefix so they do not collide
+// with the native JS Error constructor or with functions of the same name in
+// third-party libraries (hls.js, jquery, moment, bootstrap, ...). A bare
+// global Error() in particular used to shadow window.Error, breaking every
+// `new Error()` in bundled libraries. See issue #4981.
+function zmPanic(message) {
   console.error(message);
   logReport("PNC", message);
   alert("PANIC: "+message);
 }
 
-function Fatal(message) {
+function zmFatal(message) {
   console.error(message);
   logReport("FAT", message);
   alert("FATAL: "+message);
 }
 
-function Error(message) {
+function zmError(message) {
   console.error(message);
   logReport("ERR", message);
 }
 
-function Warning(message) {
+function zmWarning(message) {
   console.warn(message);
   logReport("WAR", message);
 }
 
-function Info(message) {
+function zmInfo(message) {
   console.info(message);
   logReport("INF", message);
 }
 
-function Debug(message) {
+function zmDebug(message) {
   console.debug(message);
   //logReport("DBG", message);
 }
 
-function Dump(value, label) {
+function zmDump(value, label) {
   if (label) console.debug(label+" => ");
   console.debug(value);
 }

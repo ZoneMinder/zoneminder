@@ -723,42 +723,48 @@ function getDelConfirmModal(key, title, formName=null) {
 window.addEventListener( 'DOMContentLoaded', checkSize );
 
 function convertLabelFormat(LabelFormat, monitorName) {
-  //convert label format from strftime to moment's format (modified from
-  //https://raw.githubusercontent.com/benjaminoakes/moment-strftime/master/lib/moment-strftime.js
-  //added %f and %N below (TODO: add %Q)
+  //convert label format from strftime to luxon's format tokens (originally
+  //based on https://github.com/benjaminoakes/moment-strftime, retargeted to
+  //luxon). added %f and %N below (TODO: add %Q)
+  // luxon renders literal text wrapped in single quotes, and a literal single
+  // quote as ''. Quote each character of the monitor name so any format-token
+  // characters in it (e.g. M, d) are emitted literally and apostrophes survive.
+  var monitorLiteral = monitorName.split('').map(function(c) {
+    return c === "'" ? "''" : "'" + c + "'";
+  }).join('');
   var replacements = {
-    'a': 'ddd',
-    'A': 'dddd',
+    'a': 'ccc',
+    'A': 'cccc',
     'b': 'MMM',
     'B': 'MMMM',
-    'd': 'DD',
-    'e': 'D',
-    'F': 'YYYY-MM-DD',
+    'd': 'dd',
+    'e': 'd',
+    'F': 'yyyy-MM-dd',
     'H': 'HH',
     'I': 'hh',
-    'j': 'DDDD',
+    'j': 'ooo',
     'k': 'H',
     'l': 'h',
     'm': 'MM',
     'M': 'mm',
-    'p': 'A',
-    'r': 'hh:mm:ss A',
+    'p': 'a',
+    'r': 'hh:mm:ss a',
     'S': 'ss',
     'u': 'E',
-    'w': 'd',
+    'w': 'c',
     'W': 'WW',
-    'y': 'YY',
-    'Y': 'YYYY',
+    'y': 'yy',
+    'Y': 'yyyy',
     'z': 'ZZ',
-    'Z': 'z',
-    'f': 'SS',
-    'N': '['+monitorName+']',
+    'Z': 'ZZZZ',
+    'f': 'SSS',
+    'N': monitorLiteral,
     '%': '%'};
-  var momentLabelFormat = Object.keys(replacements).reduce(function(momentFormat, key) {
+  var luxonLabelFormat = Object.keys(replacements).reduce(function(luxonFormat, key) {
     var value = replacements[key];
-    return momentFormat.replace('%' + key, value);
+    return luxonFormat.replace('%' + key, value);
   }, LabelFormat);
-  return momentLabelFormat;
+  return luxonLabelFormat;
 }
 
 function addVideoTimingTrack(video, LabelFormat, monitorName, duration, startTime) {
@@ -775,43 +781,23 @@ function addVideoTimingTrack(video, LabelFormat, monitorName, duration, startTim
   }
 
   var labelFormat = convertLabelFormat(LabelFormat, monitorName);
-  startTime = moment(startTime);
+  // StartDateTime comes from the DB as 'YYYY-MM-DD HH:mm:ss' (SQL); fall back
+  // to ISO parsing just in case. luxon DateTime is immutable.
+  let cueTime = luxon.DateTime.fromSQL(startTime);
+  if (!cueTime.isValid) cueTime = luxon.DateTime.fromISO(startTime);
 
   // In Video.js 8, we need to add cues using the addCue method
   for (let i = 0; i <= duration; i++) {
-    var cue = new VTTCue(i, i + 1, startTime.format(labelFormat));
+    var cue = new VTTCue(i, i + 1, cueTime.toFormat(labelFormat));
     cue.id = i;
     try {
       track.addCue(cue);
     } catch (e) {
       console.warn('Failed to add cue:', e);
     }
-    startTime.add(1, 's');
+    cueTime = cueTime.plus({seconds: 1});
   }
 }
-/*
-var labelFormat = convertLabelFormat(LabelFormat, monitorName);
-var webvttformat = 'HH:mm:ss.SSS', webvttdata="WEBVTT\n\n";
-
-startTime = moment(startTime);
-
-var seconds = moment({s:0}), endduration = moment({s:duration});
-while(seconds.isBefore(endduration)){
-  webvttdata += seconds.format(webvttformat) + " --> ";
-  seconds.add(1,'s');
-  webvttdata += seconds.format(webvttformat) + "\n";
-  webvttdata += startTime.format(labelFormat) + "\n\n";
-  startTime.add(1, 's');
-}
-var track = document.createElement('track');
-track.kind = "captions";
-track.srclang = "en";
-track.label = "English";
-track['default'] = true;
-track.src = 'data:plain/text;charset=utf-8,'+encodeURIComponent(webvttdata);
-video.appendChild(track);
-}
-*/
 
 var resizeTimer;
 

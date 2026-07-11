@@ -901,12 +901,12 @@ function secs2inputstr(s) {
     return '';
   }
 
-  var m = moment(s*1000);
-  if ( ! m ) {
+  var m = luxon.DateTime.fromMillis(s*1000);
+  if ( ! m.isValid ) {
     console.warn("No valid date for " + s + " seconds");
     return '';
   }
-  return m.format("YYYY-MM-DDTHH:mm:ss");
+  return m.toFormat("yyyy-MM-dd'T'HH:mm:ss");
 }
 
 function secs2dbstr(s) {
@@ -914,12 +914,12 @@ function secs2dbstr(s) {
     console.warn("Invalid value for " + s + " seconds");
     return '';
   }
-  var m = moment(s*1000);
-  if ( ! m ) {
+  var m = luxon.DateTime.fromMillis(s*1000);
+  if ( ! m.isValid ) {
     console.warn("No valid date for " + s + " milliseconds");
     return '';
   }
-  return m.format("YYYY-MM-DD HH:mm:ss");
+  return m.toFormat("yyyy-MM-dd HH:mm:ss");
 }
 
 function setFit(value) {
@@ -1312,9 +1312,10 @@ function loadEventData(e) {
             // Normalize date/time values to YYYY-MM-DD HH:mm:ss for the API URL.
             // Locale formats using / as separator break the URL path.
             if (/Date|Time/.test(attr.value)) {
-              const m = moment(val);
-              if (m.isValid()) {
-                urlVal = m.format('YYYY-MM-DD HH:mm:ss');
+              let m = luxon.DateTime.fromISO(val);
+              if (!m.isValid) m = luxon.DateTime.fromSQL(val);
+              if (m.isValid) {
+                urlVal = m.toFormat('yyyy-MM-dd HH:mm:ss');
               }
             }
             url += '/'+attr.value+' '+op.value+':'+encodeURIComponent(urlVal);

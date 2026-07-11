@@ -192,9 +192,15 @@ function initPage() {
   });
   document.querySelectorAll('select[name="newMonitor[Type]"]').forEach(function(el) {
     el.onchange = function() {
+      // Reload the form to render the type-specific fields WITHOUT saving. The
+      // monitor view repopulates from the posted newMonitor values, so the
+      // selected Type and anything already entered are preserved. Saving here
+      // would fail for a brand-new monitor whose Width/Height are not set yet
+      // (both are NOT NULL), leaving the type change unpersisted. A plain
+      // submit posts no action=save, matching the Method field's submitTab.
       const form = document.getElementById('contentForm');
       form.tab.value = 'general';
-      saveMonitorDataPrepare(document.getElementById('contentForm'), false, 'reload');
+      form.submit();
     };
   });
   document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"],input[name="newMonitor[MaxImageBufferCount]"],input[name="newMonitor[Width]"],input[name="newMonitor[Height]"],input[name="newMonitor[PreEventCount]"]').forEach(function(el) {

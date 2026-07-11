@@ -115,21 +115,29 @@ function logReport( level, message, file, line ) {
 // third-party libraries (hls.js, jquery, moment, bootstrap, ...). A bare
 // global Error() in particular used to shadow window.Error, breaking every
 // `new Error()` in bundled libraries. See issue #4981.
+// Build a real Error so we can log a stack trace with the message. Now that we
+// no longer shadow the native constructor this captures where the call
+// originated, which the bare-message logging could not.
+function stackFor(message) {
+  const err = (message instanceof Error) ? message : new Error(message);
+  return err.stack ? err.stack : String(message);
+}
+
 function zmPanic(message) {
   console.error(message);
-  logReport("PNC", message);
+  logReport("PNC", stackFor(message));
   alert("PANIC: "+message);
 }
 
 function zmFatal(message) {
   console.error(message);
-  logReport("FAT", message);
+  logReport("FAT", stackFor(message));
   alert("FATAL: "+message);
 }
 
 function zmError(message) {
   console.error(message);
-  logReport("ERR", message);
+  logReport("ERR", stackFor(message));
 }
 
 function zmWarning(message) {

@@ -26,6 +26,14 @@ if ( !canEdit('System') ) {
 
 global $error_message;
 
+// AI object-detection CRUD lives in dedicated action files. The list views post
+// here (view=options) with object=ai_* for deletes; route those to the matching
+// handler, which processes both save and delete via $action.
+if ( isset($_REQUEST['object']) && in_array($_REQUEST['object'], array('ai_model', 'ai_dataset', 'ai_class'), true) ) {
+  require_once('includes/actions/'.$_REQUEST['object'].'.php');
+  return;
+}
+
 if ( $action == 'delete' ) {
   if ( isset($_REQUEST['object']) ) {
     if ( $_REQUEST['object'] == 'server' ) {

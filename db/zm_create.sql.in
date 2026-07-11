@@ -610,6 +610,11 @@ CREATE TABLE `Monitors` (
   `Analysing` enum('None','Always') NOT NULL default 'Always',
   `AnalysisSource` enum('Primary','Secondary') NOT NULL DEFAULT 'Primary',
   `AnalysisImage` enum('FullColour','YChannel') NOT NULL DEFAULT 'FullColour',
+  `AnalysisImageOpacity` TINYINT UNSIGNED NOT NULL DEFAULT '128',
+  `ObjectDetection` VARCHAR(16) NOT NULL DEFAULT 'none',
+  `ObjectDetectionModel` VARCHAR(255) NOT NULL DEFAULT '',
+  `ObjectDetectionObjectThreshold` FLOAT NOT NULL DEFAULT 0.4,
+  `ObjectDetectionNMSThreshold` FLOAT NOT NULL DEFAULT 0.25,
   `Recording` enum('None', 'OnMotion', 'Always') NOT NULL default 'Always',
   `Enabled` tinyint(3) unsigned NOT NULL default '1',
   `DecodingEnabled` tinyint(3) unsigned NOT NULL default '1',
@@ -1467,6 +1472,10 @@ source @PKGDATADIR@/db/triggers.sql
 
 source @PKGDATADIR@/db/manufacturers.sql
 source @PKGDATADIR@/db/models.sql
+
+-- AI object-detection data model: tables then the COCO 2017 seed.
+source @PKGDATADIR@/db/AI_Models.sql
+source @PKGDATADIR@/db/coco_dataset.sql
 --
 -- Apply the initial configuration
 --

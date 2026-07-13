@@ -1052,11 +1052,11 @@ function clicknav(minSecs, maxSecs, live) {// we use the current time if we can
       maxSecs = parseInt(now);
     }
     maxStr = "&maxTime=" + secs2inputstr(maxSecs);
-    $j('#maxTime').val(secs2inputstr(maxSecs));
-  }
-  if ( minSecs > 0 ) {
-    $j('#minTime').val(secs2inputstr(minSecs));
     minStr = "&minTime=" + secs2inputstr(minSecs);
+    // Persist the range to the shared date cookies so a pan/zoom here carries to
+    // the events list (minTime/maxTime in the URL are deprecated). refs #4976
+    setCookie('zmFilter_StartDateTime', secs2dbstr(minSecs));
+    setCookie('zmFilter_EndDateTime', secs2dbstr(maxSecs));
   }
   if ( maxSecs == 0 && minSecs == 0 ) {
     minStr = "&minTime=1950-01-01+12:00:00";
@@ -1326,7 +1326,9 @@ function loadEventData(e) {
         }
         data[name] = val;
         const cookie = el.attr('data-cookie');
-        if (cookie) setCookie(cookie, val, 3600);
+        // Persist (no expiry) so the shared filter/date range does not silently
+        // expire after an hour and desync from the other views. refs #4976
+        if (cookie) setCookie(cookie, val);
       } // end if name
     } // end if val
   });
@@ -1716,7 +1718,9 @@ function loadFrames(zm_events) {
 
 function getMinMaxStartDateTimeElements() {
   const regexp = /^filter\[Query\]\[terms\]\[(\d+)\]\[attr\]$/;
-  $j('#fieldsTable input[value="StartDateTime"]').each(function(index) {
+  // montagereview renders DateTime (overlap) terms; the events list renders
+  // StartDateTime terms. Bind either so the timeline range tracks the terms. refs #4976
+  $j('#fieldsTable input[value="StartDateTime"], #fieldsTable input[value="DateTime"]').each(function(index) {
     const matches = this.name.match(regexp);
     if (matches && matches.length) {
       const val = this.form.elements['filter[Query][terms]['+matches[1]+'][val]'];

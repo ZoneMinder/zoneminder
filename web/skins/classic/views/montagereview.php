@@ -94,14 +94,19 @@ if (isset($_REQUEST['current'])) {
   $defaultCurrentTimeSecs = strtotime($defaultCurrentTime);
 }
 
+// Range precedence: deprecated minTime/maxTime URL params (kept for old bookmarks)
+// -> shared zmFilter_* date cookies (persisted from the events list and from
+// montagereview navigation) -> last hour. refs #4976
 if ( !isset($_REQUEST['minTime']) && !isset($_REQUEST['maxTime']) ) {
   if (isset($defaultCurrentTimeSecs)) {
     $minTime = date('Y-m-d H:i:s', $defaultCurrentTimeSecs - 1800);
     $maxTime = date('Y-m-d H:i:s', $defaultCurrentTimeSecs + 1800);
   } else {
     $time = time();
-    $maxTime = date('Y-m-d H:i:s', $time);
-    $minTime = date('Y-m-d H:i:s', $time - 3600);
+    $maxTime = (isset($_COOKIE['zmFilter_EndDateTime']) and $_COOKIE['zmFilter_EndDateTime'])
+      ? validHtmlStr($_COOKIE['zmFilter_EndDateTime']) : date('Y-m-d H:i:s', $time);
+    $minTime = (isset($_COOKIE['zmFilter_StartDateTime']) and $_COOKIE['zmFilter_StartDateTime'])
+      ? validHtmlStr($_COOKIE['zmFilter_StartDateTime']) : date('Y-m-d H:i:s', $time - 3600);
   }
 } else {
   if (isset($_REQUEST['minTime']))
@@ -147,8 +152,8 @@ if (isset($_REQUEST['filter'])) {
 } else {
   $filter = new ZM\Filter();
   if (isset($_REQUEST['minTime']) && isset($_REQUEST['maxTime']) && (count($displayMonitors) != 0)) {
-    $filter->addTerm(array('attr' => 'DateTime', 'op' => '>=', 'val' => $_REQUEST['minTime'], 'obr' => '1', 'cookie'=>htmlspecialchars('DateTime<=')));
-    $filter->addTerm(array('attr' => 'DateTime', 'op' => '<=', 'val' => $_REQUEST['maxTime'], 'cnj' => 'and', 'cbr' => '1', 'cookie'=>htmlspecialchars('DateTime<=')));
+    $filter->addTerm(array('attr' => 'DateTime', 'op' => '>=', 'val' => $_REQUEST['minTime'], 'obr' => '1', 'cookie'=>'zmFilter_StartDateTime'));
+    $filter->addTerm(array('attr' => 'DateTime', 'op' => '<=', 'val' => $_REQUEST['maxTime'], 'cnj' => 'and', 'cbr' => '1', 'cookie'=>'zmFilter_EndDateTime'));
     if (count($selected_monitor_ids)) {
       $filter->addTerm(array('attr' => 'Monitor', 'op' => 'IN', 'val' => implode(',',$selected_monitor_ids), 'cnj' => 'and'));
     } else if ( isset($_SESSION['GroupId']) || isset($_SESSION['ServerFilter']) || isset($_SESSION['StorageFilter']) || isset($_SESSION['StatusFilter']) ) {
@@ -170,10 +175,10 @@ if (!$liveMode) {
     $filter->addTerm(array('attr' => 'Archived', 'op' => '=', 'val' => '', 'cnj' => 'and', 'cookie'=>'Archived'));
   }
   if (!$filter->has_term('DateTime', '>=')) {
-    $filter->addTerm(array('attr' => 'DateTime', 'op' => '>=', 'val' => $minTime, 'cnj' => 'and', 'cookie'=>htmlspecialchars('DateTime>=')));
+    $filter->addTerm(array('attr' => 'DateTime', 'op' => '>=', 'val' => $minTime, 'cnj' => 'and', 'cookie'=>'zmFilter_StartDateTime'));
   }
   if (!$filter->has_term('DateTime', '<=')) {
-    $filter->addTerm(array('attr' => 'DateTime', 'op' => '<=', 'val' => $maxTime, 'cnj' => 'and', 'cookie'=>htmlspecialchars('DateTime<=')));
+    $filter->addTerm(array('attr' => 'DateTime', 'op' => '<=', 'val' => $maxTime, 'cnj' => 'and', 'cookie'=>'zmFilter_EndDateTime'));
   }
   if (!$filter->has_term('Tags')) {
     $filter->addTerm(array('attr' => 'Tags', 'op' => '=',

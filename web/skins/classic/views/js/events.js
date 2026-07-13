@@ -589,10 +589,25 @@ function buildFilterQuery() {
   return query;
 }
 
+// Persist every filter term that carries a data-cookie (Monitor, Group,
+// StartDateTime, Notes, Tags, ...) so the selection is shared with the console,
+// montage and montage review views. setCookie JSON-encodes arrays, matching how
+// getFilterSelection() reads the zmFilter_* cookies. refs #4976
+function persistFilterCookies() {
+  $j('#fieldsTable [data-cookie]').each(function persistOne() {
+    const el = $j(this);
+    setCookie(el.attr('data-cookie'), el.val());
+  });
+}
+
 function filterEvents(clickedElement, options) {
   options = options || {};
   if (clickedElement.target && clickedElement.target.id == 'filterArchived') {
     setCookie('zmFilterArchived', clickedElement.target.value);
+  }
+  // Don't rewrite cookies when restoring state from a back/forward navigation.
+  if (!options.skipPushState) {
+    persistFilterCookies();
   }
   filterQuery = buildFilterQuery();
 

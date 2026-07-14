@@ -16,8 +16,7 @@ class FFmpeg_Input {
   FFmpeg_Input();
   ~FFmpeg_Input();
 
-  int Open(const char *filename );
-  int Open(const char *filename, AVDictionary **options);
+  int Open(const char *filename, AVDictionary **options = nullptr);
   // Force software decoding (skip hardware decoders / hwaccel setup).  Must be
   // called before Open().  Used by callers that cannot handle hardware-format
   // frames, e.g. the analysis substream sidecar.

@@ -38,10 +38,6 @@ int FFmpeg_Input::Open(
   return 1;
 }
 
-int FFmpeg_Input::Open(const char *filepath) {
-  return Open(filepath, nullptr);
-}
-
 int FFmpeg_Input::Open(const char *filepath, AVDictionary **options) {
   int error;
 

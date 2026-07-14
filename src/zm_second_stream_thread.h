@@ -43,14 +43,16 @@ class SecondStreamThread {
 
   // Cheap peek at the newest frame's metadata without copying pixels.  Returns
   // false if no frame has ever been produced.  On success sets sequence (a
-  // monotonically increasing frame counter used to detect fresh frames) and age
-  // (time since the frame was captured).  Callers use this to decide whether a
-  // copy is worthwhile before paying for GetLatestImage.
-  bool PeekLatest(uint64_t &sequence, FPSeconds &age);
+  // monotonically increasing frame counter used to detect fresh frames) and
+  // capture_steady (the steady_clock time the frame was captured, for wallclock
+  // sync against a primary packet's steady stamp).  Callers use this to decide
+  // whether a copy is worthwhile before paying for GetLatestImage.
+  bool PeekLatest(uint64_t &sequence, TimePoint &capture_steady);
 
   // Copy the latest published analysis image into dest.  Returns false if no
-  // frame has ever been produced.  On success sets sequence and age as above.
-  bool GetLatestImage(Image &dest, uint64_t &sequence, FPSeconds &age);
+  // frame has ever been produced.  On success sets sequence and capture_steady
+  // as above.
+  bool GetLatestImage(Image &dest, uint64_t &sequence, TimePoint &capture_steady);
 
  private:
   void Run();
@@ -69,7 +71,7 @@ class SecondStreamThread {
   Image latest_image_;
   bool have_image_;
   uint64_t sequence_;
-  SystemTimePoint capture_time_;
+  TimePoint capture_time_;  // steady_clock time the latest frame was captured
 };
 
 #endif  // ZM_SECOND_STREAM_THREAD_H

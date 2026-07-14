@@ -3303,6 +3303,24 @@ bool Monitor::Decode() {
     // between keyframe decodes.
     if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
       shared_data->last_write_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+
+      // Update last_write_index to point to the most recent keyframe
+      // even when the frame hasn't been fully decoded to the image buffer.
+      // This allows mode=single snapshots to always return the latest available
+      // image (a keyframe), while only decoding full frames when needed.
+      if ((decoding == DECODING_KEYFRAMES || decoding == DECODING_KEYFRAMESONDEMAND) && packet->keyframe) {
+        unsigned int kf_index = packet->image_index % image_buffer_count;
+        // Only update if this is a newer keyframe than what last_write_index currently points to
+        int current_write_index = shared_data->last_write_index % image_buffer_count;
+        if (kf_index != current_write_index) {
+          Debug(2, "Updating last_write_index to keyframe index %u (was %u, packet %d)", 
+                kf_index, current_write_index, packet->image_index);
+          // Update timestamp to signal freshness
+          shared_timestamps[kf_index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
+          // Update index as atomic final step
+          shared_data->last_write_index = kf_index;
+        }
+      }
     }
   }
 

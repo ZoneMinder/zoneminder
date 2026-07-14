@@ -114,16 +114,7 @@ bool SecondStreamThread::OpenInput() {
     // bound applies regardless of the linked ffmpeg version.
     av_dict_set(&opts, "timeout", "5000000", AV_DICT_DONT_OVERWRITE);   // ffmpeg >= 5.0, microseconds
     av_dict_set(&opts, "stimeout", "5000000", AV_DICT_DONT_OVERWRITE);  // ffmpeg < 5.0, microseconds
-    const std::string &method = monitor_->method;
-    if (method == "rtpMulti") {
-      av_dict_set(&opts, "rtsp_transport", "udp_multicast", 0);
-    } else if (method == "rtpRtsp") {
-      av_dict_set(&opts, "rtsp_transport", "tcp", 0);
-    } else if (method == "rtpRtspHttp") {
-      av_dict_set(&opts, "rtsp_transport", "http", 0);
-    } else if (method == "rtpUni") {
-      av_dict_set(&opts, "rtsp_transport", "udp", 0);
-    }
+    zm_set_rtsp_transport_method(&opts, monitor_->method);
   }
 
   input_ = new FFmpeg_Input();

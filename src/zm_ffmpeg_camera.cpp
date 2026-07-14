@@ -484,21 +484,7 @@ int FfmpegCamera::OpenFfmpeg() {
   std::string protocol = mPath.substr(0, 4);
   protocol = StringToUpper(protocol);
   if ( protocol == "RTSP" ) {
-    const std::string method = Method();
-    if ( method == "rtpMulti" ) {
-      ret = av_dict_set(&opts, "rtsp_transport", "udp_multicast", 0);
-    } else if ( method == "rtpRtsp" ) {
-      ret = av_dict_set(&opts, "rtsp_transport", "tcp", 0);
-    } else if ( method == "rtpRtspHttp" ) {
-      ret = av_dict_set(&opts, "rtsp_transport", "http", 0);
-    } else if ( method == "rtpUni" ) {
-      ret = av_dict_set(&opts, "rtsp_transport", "udp", 0);
-    } else {
-      Warning("Unknown method (%s)", method.c_str());
-    }
-    if (ret < 0) {
-      Warning("Could not set rtsp_transport method '%s'", method.c_str());
-    }
+    zm_set_rtsp_transport_method(&opts, Method());
   } else if (protocol == "V4L2") {
     avdevice_register_all();
     input_format = av_find_input_format("video4linux2");

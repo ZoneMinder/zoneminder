@@ -415,6 +415,24 @@ void zm_dump_codecpar(const AVCodecParameters *par) {
        );
 }
 
+void zm_set_rtsp_transport_method(AVDictionary **opts, const std::string &method) {
+  int ret = 0;
+  if (method == "rtpMulti") {
+    ret = av_dict_set(opts, "rtsp_transport", "udp_multicast", 0);
+  } else if (method == "rtpRtsp") {
+    ret = av_dict_set(opts, "rtsp_transport", "tcp", 0);
+  } else if (method == "rtpRtspHttp") {
+    ret = av_dict_set(opts, "rtsp_transport", "http", 0);
+  } else if (method == "rtpUni") {
+    ret = av_dict_set(opts, "rtsp_transport", "udp", 0);
+  } else {
+    Warning("Unknown method (%s)", method.c_str());
+  }
+  if (ret < 0) {
+    Warning("Could not set rtsp_transport method '%s'", method.c_str());
+  }
+}
+
 void zm_dump_codec(const AVCodecContext *codec) {
   Debug(1, "Dumping codec_context codec_type %d %s codec_id %d %s tag %c%c%c%c width %d height %d timebase %d/%d format %s profile %d level %d "
         "gop_size %d has_b_frames %d max_b_frames %d me_cmp %d me_range %d qmin %d qmax %d bit_rate %" PRId64 " qcompress %f extradata:%d:%s",

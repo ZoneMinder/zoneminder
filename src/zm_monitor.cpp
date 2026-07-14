@@ -3417,6 +3417,21 @@ bool Monitor::Decode() {
       }
     }
 
+    // Write to shared image buffer.
+    unsigned int index = (shared_data->last_write_index + 1) % image_buffer_count;
+    decoding_image_count++;
+    WriteShmFrame(index, capture_image);
+    shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
+    shared_data->signal = signal_check_points ? CheckSignal(capture_image) : true;
+    shared_data->last_write_index = index;
+    shared_data->last_write_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+
+    // NEW: Track last decoded keyframe for mode=single snapshots
+    if (packet->keyframe) {
+      last_keyframe_index = index;
+      Debug(2, "Updated last_keyframe_index to %d (packet %d)", index, packet->image_index);
+    }
+
     // Rotation/flip
     applyOrientation(capture_image);
 

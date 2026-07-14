@@ -1077,6 +1077,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   }
   int Importance() const { return importance; }
   int StartupDelay() const { return startup_delay; }
+
+ private:
+  int last_keyframe_index = -1;  // Track which slot contains the last decoded keyframe
 };
 
 #define MOD_ADD( var, delta, limit ) (((var)+(limit)+(delta))%(limit))

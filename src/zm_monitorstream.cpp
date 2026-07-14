@@ -1009,9 +1009,17 @@ void MonitorStream::SingleImage(int scale) {
     return;
   }
 
+  // Use the most recent keyframe if available, otherwise use last_write_index
   int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
+  
+  // Validate the timestamp to ensure it's a real frame
+  if (monitor->shared_timestamps[index].tv_sec == 0) {
+    sendTextFrame("Image not yet available.");
+    return;
+  }
+
   AVPixelFormat pixformat = monitor->image_pixelformats[index];
-  Debug(1, "Sending regular image index %d, pix format is %d %s", index, pixformat, zm_get_pix_fmt_name(pixformat));
+  Debug(1, "Sending image index %d, pix format is %d %s", index, pixformat, zm_get_pix_fmt_name(pixformat));
   Image *snap_image = monitor->ReadShmFrame(index);
   if (!config.timestamp_on_capture) {
     monitor->TimestampImage(snap_image,

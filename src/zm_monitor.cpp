@@ -185,7 +185,6 @@ Monitor::Monitor() :
   analysing(ANALYSING_ALWAYS),
   recording(RECORDING_ALWAYS),
   decoding(DECODING_ALWAYS),
-  effective_decoding(DECODING_ALWAYS),
   secondary_analysis(false),
   RTSP2Web_enabled(false),
   RTSP2Web_type(WEBRTC),
@@ -3744,13 +3743,11 @@ bool Monitor::Decode() {
   if (!decoder_queue.empty()) {
     // If decoding is on-demand and no longer needed, flush rather than
     // trying to receive stale frames from the decoder.
-    // effective_decoding downgrades DECODING_ALWAYS to on-demand when analysing
-    // the substream, so the primary is only decoded for live viewers.
     bool needs_decoding =
-      (effective_decoding == DECODING_ALWAYS) ||
-      (effective_decoding == DECODING_KEYFRAMES) ||
-      ((effective_decoding == DECODING_ONDEMAND) && (hasViewers() || shared_data->last_write_index == image_buffer_count)) ||
-      ((effective_decoding == DECODING_KEYFRAMESONDEMAND) && (hasViewers() || decoder_requires_next_packet));
+      (decoding == DECODING_ALWAYS) ||
+      (decoding == DECODING_KEYFRAMES) ||
+      ((decoding == DECODING_ONDEMAND) && (hasViewers() || shared_data->last_write_index == image_buffer_count)) ||
+      ((decoding == DECODING_KEYFRAMESONDEMAND) && (hasViewers() || decoder_requires_next_packet));
 
     if (!needs_decoding) {
       Debug(1, "Flushing decoder in phase 1: %zu packets queued but decoding no longer needed",
@@ -3836,10 +3833,10 @@ bool Monitor::Decode() {
     // Check if this packet needs to be sent to the decoder
     bool already_decoded = packet->image || packet->in_frame || !packet->packet->size;
     bool should_decode = !already_decoded && (
-      (effective_decoding == DECODING_ALWAYS) ||
-      ((effective_decoding == DECODING_ONDEMAND) && (hasViewers() || shared_data->last_write_index == image_buffer_count)) ||
-      ((effective_decoding == DECODING_KEYFRAMES) && (packet->keyframe || decoder_requires_next_packet)) ||
-      ((effective_decoding == DECODING_KEYFRAMESONDEMAND) && (hasViewers() || packet->keyframe || decoder_requires_next_packet))
+      (decoding == DECODING_ALWAYS) ||
+      ((decoding == DECODING_ONDEMAND) && (hasViewers() || shared_data->last_write_index == image_buffer_count)) ||
+      ((decoding == DECODING_KEYFRAMES) && (packet->keyframe || decoder_requires_next_packet)) ||
+      ((decoding == DECODING_KEYFRAMESONDEMAND) && (hasViewers() || packet->keyframe || decoder_requires_next_packet))
     );
     if (should_decode && SkipUntilKeyframe(packet->keyframe)) {
       Debug(2, "Not sending packet %d to the decoder, waiting for a keyframe after the flush", packet->image_index);
@@ -4944,13 +4941,15 @@ int Monitor::PrimeCapture() {
   }
 
   // AnalysisSource=Secondary: analyse the low-res substream instead of the
-  // full-res primary.  When active, the primary is only decoded on demand (for
-  // live viewers), so DECODING_ALWAYS is downgraded to viewer-driven decoding.
+  // full-res primary.  This does not change the primary Decoding setting: the
+  // user's choice is honoured (Encode recording, for instance, still needs the
+  // primary decoded).  The analysis thread runs off the substream regardless of
+  // whether the primary is decoded (see the analysis-thread gate).
   secondary_analysis = (analysis_source == ANALYSIS_SECONDARY) and !second_path.empty();
-  effective_decoding = decoding;
   if (secondary_analysis and (decoding == DECODING_ALWAYS)) {
-    effective_decoding = DECODING_ONDEMAND;
-    Debug(1, "Monitor %d: secondary analysis active, primary decode is on-demand", id);
+    Info("Monitor %d: secondary analysis active with Decoding=Always; the primary "
+         "stream is still decoded continuously. Set Decoding=Ondemand to save CPU "
+         "when no one is viewing (Encode recording still requires decoding).", id);
   }
 
   int ret = camera->PrimeCapture();

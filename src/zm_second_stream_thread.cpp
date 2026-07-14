@@ -220,10 +220,11 @@ bool SecondStreamThread::ProduceImage(AVFrame *frame) {
       }
       if (src_range) {
         // Mark the source as full-range (yuvj) so levels are not crushed.
-        int dummy[4];
+        int *inv_table = nullptr;
+        int *table = nullptr;
         int in_range, out_range, brightness, contrast, saturation;
-        sws_getColorspaceDetails(convert_context_, reinterpret_cast<int **>(&dummy), &in_range,
-                                 reinterpret_cast<int **>(&dummy), &out_range,
+        sws_getColorspaceDetails(convert_context_, &inv_table, &in_range,
+                                 &table, &out_range,
                                  &brightness, &contrast, &saturation);
         coefs = sws_getCoefficients(SWS_CS_DEFAULT);
         sws_setColorspaceDetails(convert_context_, coefs, 1, coefs, out_range,

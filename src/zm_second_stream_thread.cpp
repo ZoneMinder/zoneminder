@@ -53,20 +53,20 @@ void SecondStreamThread::Join() {
   if (thread_.joinable()) thread_.join();
 }
 
-bool SecondStreamThread::PeekLatest(uint64_t &sequence, FPSeconds &age) {
+bool SecondStreamThread::PeekLatest(uint64_t &sequence, TimePoint &capture_steady) {
   std::lock_guard<std::mutex> lck(mutex_);
   if (!have_image_) return false;
   sequence = sequence_;
-  age = std::chrono::duration_cast<FPSeconds>(std::chrono::system_clock::now() - capture_time_);
+  capture_steady = capture_time_;
   return true;
 }
 
-bool SecondStreamThread::GetLatestImage(Image &dest, uint64_t &sequence, FPSeconds &age) {
+bool SecondStreamThread::GetLatestImage(Image &dest, uint64_t &sequence, TimePoint &capture_steady) {
   std::lock_guard<std::mutex> lck(mutex_);
   if (!have_image_) return false;
   dest.Assign(latest_image_);
   sequence = sequence_;
-  age = std::chrono::duration_cast<FPSeconds>(std::chrono::system_clock::now() - capture_time_);
+  capture_steady = capture_time_;
   return true;
 }
 
@@ -255,7 +255,7 @@ bool SecondStreamThread::ProduceImage(AVFrame *frame) {
     latest_image_.Assign(produced);
     have_image_ = true;
     sequence_++;
-    capture_time_ = std::chrono::system_clock::now();
+    capture_time_ = std::chrono::steady_clock::now();
   }
   return true;
 }

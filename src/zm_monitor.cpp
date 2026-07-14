@@ -30,6 +30,7 @@
 #include "zm_remote_camera_http.h"
 #include "zm_remote_camera_nvsocket.h"
 #include "zm_remote_camera_rtsp.h"
+#include "zm_secondary_sync.h"
 #include "zm_signal.h"
 #include "zm_time.h"
 #include "zm_uri.h"
@@ -2862,7 +2863,10 @@ int Monitor::Capture() {
 
   std::shared_ptr<ZMPacket> packet = std::make_shared<ZMPacket>();
   packet->image_index = shared_data->image_count;
+  // Stamp system and steady clocks back-to-back: the steady stamp pairs with
+  // the substream sidecar's steady frame times for NTP-immune wallclock sync.
   packet->timestamp = std::chrono::system_clock::now();
+  packet->timestamp_steady = std::chrono::steady_clock::now();
   shared_data->heartbeat_time = std::chrono::system_clock::to_time_t(packet->timestamp);
   int captureResult = camera->Capture(packet);
   Debug(4, "Back from capture result=%d image count %d timestamp %" PRId64, captureResult, shared_data->image_count,
@@ -3657,20 +3661,28 @@ static constexpr Seconds kSecondaryStaleThreshold = Seconds(10);
 Image *Monitor::getMotionSourceImage(const std::shared_ptr<ZMPacket> &packet, bool &do_score) {
   if (secondary_analysis and second_stream) {
     uint64_t sequence = 0;
-    FPSeconds age = FPSeconds::zero();
+    TimePoint frame_steady = TimePoint::min();
     // Peek at the frame metadata first (cheap, no pixel copy) so we only pay for
     // the mailbox copy + upscale when the frame will actually be used.
-    if (!second_stream->PeekLatest(sequence, age)) {
+    if (!second_stream->PeekLatest(sequence, frame_steady)) {
       // Sidecar has not produced a frame yet.
       do_score = false;
       return nullptr;
     }
 
-    const bool fresh = (sequence != last_secondary_sequence);
-    const bool stale = (age > FPSeconds(kSecondaryStaleThreshold));
+    bool fresh = (sequence != last_secondary_sequence);
+    // Wallclock sync on the steady clock (immune to NTP steps): the substream
+    // is considered stalled when this packet was captured more than the
+    // threshold AFTER the newest substream frame, i.e. the sidecar has stopped
+    // producing.  The test is one-sided on purpose: a frame newer than the
+    // packet just means the analysis thread lags capture (packetqueue backlog)
+    // while the substream is healthy, and analysis pairs with the freshest
+    // frame as it always has.
+    bool stale = SecondaryFrameStalled(packet->timestamp_steady, frame_steady,
+                                       kSecondaryStaleThreshold);
     if (stale) {
-      Debug(1, "Monitor %d: secondary analysis image is stale (%.1fs old), no motion data",
-            id, age.count());
+      Debug(1, "Monitor %d: substream stalled: packet was captured %.1fs after the newest substream frame, no motion data",
+            id, FPSeconds(packet->timestamp_steady - frame_steady).count());
     }
 
     // Only pay for the copy + upscale when the result will actually be used: to
@@ -3682,10 +3694,17 @@ Image *Monitor::getMotionSourceImage(const std::shared_ptr<ZMPacket> &packet, bo
       return nullptr;
     }
 
-    if (!second_stream->GetLatestImage(secondary_image_native, sequence, age)) {
+    if (!second_stream->GetLatestImage(secondary_image_native, sequence, frame_steady)) {
       do_score = false;
       return nullptr;
     }
+    // The mailbox may have advanced between PeekLatest and GetLatestImage, so
+    // recompute the verdict from the metadata GetLatestImage returned: the
+    // scored image and the fresh/stale decision must refer to the same frame.
+    // (A newer frame can only decrease the skew, so stale cannot newly appear.)
+    fresh = (sequence != last_secondary_sequence);
+    stale = SecondaryFrameStalled(packet->timestamp_steady, frame_steady,
+                                  kSecondaryStaleThreshold);
     last_secondary_sequence = sequence;
     do_score = fresh and !stale;
 

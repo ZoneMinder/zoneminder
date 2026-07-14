@@ -33,6 +33,7 @@ ZMPacket::ZMPacket() :
   locked(false),
   keyframe(0),
   stream(nullptr),
+  timestamp_steady(std::chrono::steady_clock::now()),
   image(nullptr),
   y_image(nullptr),
   analysis_image(nullptr),
@@ -52,6 +53,7 @@ ZMPacket::ZMPacket(Image *i, SystemTimePoint tv) :
   keyframe(0),
   stream(nullptr),
   timestamp(tv),
+  timestamp_steady(std::chrono::steady_clock::now()),
   image(i),
   y_image(nullptr),
   analysis_image(nullptr),
@@ -71,6 +73,7 @@ ZMPacket::ZMPacket(ZMPacket &p) :
   keyframe(p.keyframe),
   stream(p.stream),
   timestamp(p.timestamp),
+  timestamp_steady(p.timestamp_steady),
   image(p.image),
   y_image(p.y_image),
   analysis_image(p.analysis_image),
@@ -314,7 +317,10 @@ AVPacket *ZMPacket::set_packet(AVPacket *p) {
     Error("error refing packet");
   }
 
+  // Stamp system and steady clocks back-to-back: the steady stamp pairs with
+  // the substream sidecar's steady frame times for NTP-immune wallclock sync.
   timestamp = std::chrono::system_clock::now();
+  timestamp_steady = std::chrono::steady_clock::now();
   keyframe = p->flags & AV_PKT_FLAG_KEY;
   return packet.get();
 }

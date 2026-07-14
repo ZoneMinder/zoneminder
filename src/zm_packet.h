@@ -55,6 +55,12 @@ class ZMPacket {
   av_frame_ptr out_frame;       // output image, Only filled if needed.
   av_frame_ptr hw_frame;       // output image, Only filled if needed.
   SystemTimePoint timestamp;
+  // steady_clock capture time, stamped back-to-back with timestamp.  Used for
+  // wallclock sync against the substream sidecar (which stamps on the steady
+  // clock), so the comparison is immune to system-clock steps even after
+  // capture start.  Always valid: every constructor stamps it, and the capture
+  // paths re-stamp it together with timestamp.
+  TimePoint timestamp_steady;
   Image     *image;
   Image     *y_image;
   Image     *analysis_image;

@@ -3417,6 +3417,19 @@ bool Monitor::Decode() {
       }
     }
 
+    // Rotation/flip
+    applyOrientation(capture_image);
+
+    // Privacy masking
+    if (privacy_bitmask) {
+      capture_image->MaskPrivacy(privacy_bitmask);
+    }
+
+    // Timestamp overlay
+    if (config.timestamp_on_capture) {
+      TimestampImage(capture_image, packet->timestamp);
+    }
+
     // Write to shared image buffer.
     unsigned int index = (shared_data->last_write_index + 1) % image_buffer_count;
     decoding_image_count++;
@@ -3430,19 +3443,6 @@ bool Monitor::Decode() {
     if (packet->keyframe) {
       last_keyframe_index = index;
       Debug(2, "Updated last_keyframe_index to %d (packet %d)", index, packet->image_index);
-    }
-
-    // Rotation/flip
-    applyOrientation(capture_image);
-
-    // Privacy masking
-    if (privacy_bitmask) {
-      capture_image->MaskPrivacy(privacy_bitmask);
-    }
-
-    // Timestamp overlay
-    if (config.timestamp_on_capture) {
-      TimestampImage(capture_image, packet->timestamp);
     }
 
     // Warn if falling behind

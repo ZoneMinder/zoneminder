@@ -94,6 +94,11 @@ bool SecondStreamThread::OpenInput() {
               monitor_->id, monitor_->options.c_str());
     }
   }
+  // General avio read/write timeout so a dead non-RTSP network substream is
+  // detected and the thread can be joined on shutdown instead of blocking
+  // forever in av_read_frame.  The rtsp demuxer ignores rw_timeout (it uses its
+  // own timeout option, set below), but other avio-based protocols honour it.
+  av_dict_set(&opts, "rw_timeout", "5000000", AV_DICT_DONT_OVERWRITE);  // microseconds
   if (StringToUpper(url.substr(0, 4)) == "RTSP") {
     // Bound socket reads so a dead substream is detected (and the thread can be
     // joined on shutdown) instead of blocking forever in av_read_frame.  The

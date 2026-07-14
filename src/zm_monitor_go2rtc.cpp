@@ -237,6 +237,24 @@ int Monitor::Go2RTCManager::add_to_Go2RTC() {
   }
   Debug(1, "Go2RTC: Successfully added primary stream (monitor ID), response: %s", response.second.c_str());
 
+  // Add a lazily-transcoded H.264 variant of the primary stream.  Browsers that
+  // cannot decode the camera's native codec (Chrome, for example, decodes H.265
+  // over neither WebRTC nor MSE) request "<id>_h264"; go2rtc only spawns ffmpeg
+  // when such a client actually connects, so H.264 cameras never pay for it.  The
+  // source references the primary stream by name so the existing camera connection
+  // is reused rather than opened a second time.
+  {
+    std::string transcode_src = "ffmpeg:" + id_str + "#video=h264";
+    Debug(1, "Go2RTC: Adding H.264 transcode stream - src: %s", transcode_src.c_str());
+    endpoint = Go2RTC_endpoint + "/streams?name=" + id_str + "_h264&src=" + UriEncode(transcode_src);
+    postData = "{\"name\" : \"" + std::string(parent->Name()) + " H264\", \"src\": \"" + transcode_src + "\" }";
+    Debug(2, "Go2RTC: PUT to %s", endpoint.c_str());
+    response = CURL_PUT(endpoint, postData);
+    if (response.first == CURLE_OK) {
+      Debug(1, "Go2RTC: Successfully added H.264 transcode stream, response: %s", response.second.c_str());
+    }
+  }
+
   // Add ZoneMinder restream paths (when RTSP restreamer is enabled)
   if (Use_RTSP_Restream) {
     Debug(1, "Go2RTC: Adding ZoneMinderPrimary stream - path: %s", rtsp_restream_path.c_str());

@@ -548,16 +548,16 @@ if ( currentView != 'none' && currentView != 'login' ) {
 //Shows a message if there is an error in the streamObj or the stream doesn't exist.  Returns true if error, false otherwise.
 function checkStreamForErrors(funcName, streamObj) {
   if ( !streamObj ) {
-    Error(funcName+': stream object was null');
+    zmError(funcName+': stream object was null');
     return true;
   }
   if ( streamObj.responseJSON ) {
     if (streamObj.responseJSON.result == "Error") {
-      Error(funcName+' stream error: '+streamObj.responseJSON.message);
+      zmError(funcName+' stream error: '+streamObj.responseJSON.message);
       return true;
     }
   } else if ( streamObj.result == "Error" ) {
-    Error(funcName+' stream error: '+streamObj.message);
+    zmError(funcName+' stream error: '+streamObj.message);
     return true;
   }
   return false;
@@ -591,6 +591,61 @@ function secsToTime(seconds, round='') {
     timeString = timeHours+":"+timeMins+":"+timeSecs;
   }
   return timeString;
+}
+
+// Timeline/epoch helpers. ZoneMinder stores and displays times in the server's
+// timezone (matching how events are recorded), not the browser's. Formatting
+// epoch seconds in the browser timezone shows the wrong wall clock time when the
+// two differ, so anchor to the server timezone here. refs #4977
+// Requires luxon's DateTime (loaded globally as `DateTime`), the ZM_TIMEZONE
+// constant (from skin.js.php) and, as a fallback, server_utc_offset (from the
+// montagereview view).
+function serverTimeZone() {
+  if (typeof ZM_TIMEZONE !== 'undefined' && ZM_TIMEZONE) return ZM_TIMEZONE;
+  // ZM_TIMEZONE not configured: fall back to the fixed offset the server
+  // reported at page load (does not follow DST, but keeps display consistent).
+  if (typeof server_utc_offset !== 'undefined') {
+    const sign = server_utc_offset < 0 ? '-' : '+';
+    const abs = Math.abs(server_utc_offset);
+    const hh = ('0' + Math.floor(abs / 3600)).slice(-2);
+    const mm = ('0' + Math.floor((abs % 3600) / 60)).slice(-2);
+    return 'UTC' + sign + hh + ':' + mm;
+  }
+  return 'local';
+}
+
+// Parse a 'yyyy-MM-dd HH:mm:ss' string (server-local wall clock) into a luxon
+// DateTime anchored to the server timezone.
+function inputstr2dt(str) {
+  return DateTime.fromFormat(str, 'yyyy-MM-dd HH:mm:ss', {zone: serverTimeZone()});
+}
+
+// Format epoch seconds as 'yyyy-MM-ddTHH:mm:ss' in the server timezone.
+function secs2inputstr(s) {
+  if (!parseInt(s)) {
+    console.warn("Invalid value for " + s + " seconds");
+    return '';
+  }
+  const dt = DateTime.fromSeconds(parseInt(s), {zone: serverTimeZone()});
+  if (!dt.isValid) {
+    console.warn("No valid date for " + s + " seconds");
+    return '';
+  }
+  return dt.toFormat("yyyy-MM-dd'T'HH:mm:ss");
+}
+
+// Format epoch seconds as 'yyyy-MM-dd HH:mm:ss' in the server timezone.
+function secs2dbstr(s) {
+  if (!parseInt(s)) {
+    console.warn("Invalid value for " + s + " seconds");
+    return '';
+  }
+  const dt = DateTime.fromSeconds(parseInt(s), {zone: serverTimeZone()});
+  if (!dt.isValid) {
+    console.warn("No valid date for " + s + " seconds");
+    return '';
+  }
+  return dt.toFormat('yyyy-MM-dd HH:mm:ss');
 }
 
 function submitTab(evt) {

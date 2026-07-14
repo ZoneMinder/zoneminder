@@ -1749,14 +1749,22 @@ function MonitorStream(monitorData) {
       const webrtcUrl = Go2RTCModUrl;
       this.currentChannelStream = streamChannel;
       const streamSuffix = this.getStreamSuffix(streamChannel);
-      console.log('go2rtc stream:', this.id + streamSuffix);
+      // When the native stream produced no decodable video, request go2rtc's
+      // server-side H.264 transcode of the primary stream instead.
+      const streamName = this.go2rtcTranscodeTried ? (this.id + '_h264') : (this.id + streamSuffix);
+      console.log('go2rtc stream:', streamName);
       webrtcUrl.protocol = (url.protocol=='https:') ? 'wss:' : 'ws';
       webrtcUrl.pathname += "/ws";
-      webrtcUrl.search = 'src=' + this.id + streamSuffix;
+      webrtcUrl.search = 'src=' + streamName;
       stream.src = webrtcUrl.href;
 
       this.webrtc = stream; // track separately do to api differences between video tag and video-stream
-      if (-1 != this.player.indexOf('_')) {
+      if (this.go2rtcTranscodeTried) {
+        // Force MSE for the transcode: go2rtc's on-the-fly H.264 does not carry the
+        // periodic parameter sets WebRTC needs, so over WebRTC the browser receives
+        // packets but assembles no frames.  MSE (fragmented MP4) decodes it fine.
+        stream.mode = 'mse';
+      } else if (-1 != this.player.indexOf('_')) {
         stream.mode = this.player.substring(this.player.indexOf('_')+1);
       }
       const video_el = this.getAVStream();

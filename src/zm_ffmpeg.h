@@ -153,6 +153,12 @@ void zm_dump_codec(const AVCodecContext *codec);
 void zm_dump_codecpar(const AVCodecParameters *par);
 void zm_clear_incompatible_codec_tag(const AVOutputFormat *format, AVCodecParameters *par);
 
+// Map a monitor's Method setting (rtpMulti/rtpRtsp/rtpRtspHttp/rtpUni) to the
+// ffmpeg rtsp demuxer's rtsp_transport option.  Warns on an unknown method or
+// a failure to set the option.  Shared by the primary FfmpegCamera open path
+// and the analysis-substream sidecar so both streams use the same transport.
+void zm_set_rtsp_transport_method(AVDictionary **opts, const std::string &method);
+
 #if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
 #define zm_dump_frame(frame, text) Debug(1, "%s: format %d %s sample_rate %" PRIu32 " nb_samples %d" \
       " layout %" PRIu64 " pts %" PRId64, \

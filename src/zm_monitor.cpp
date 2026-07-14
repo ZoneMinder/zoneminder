@@ -2334,10 +2334,10 @@ bool Monitor::Analyse() {
             Event::StringSet zoneSet;
 
             // Resolve the motion-detection source.  In secondary-analysis mode
-            // this is the substream sidecar image (already scaled/converted to
-            // camera dimensions), independent of whether the primary was decoded.
-            // do_score is false when there is no fresh/valid substream frame to
-            // score this round.
+            // this is the substream sidecar image at its native substream
+            // resolution (zones are rebuilt at that size), independent of whether
+            // the primary was decoded.  do_score is false when there is no
+            // fresh/valid substream frame to score this round.
             bool do_score = true;
             Image *motion_image = getMotionSourceImage(packet, do_score);
 

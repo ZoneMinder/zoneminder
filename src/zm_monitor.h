@@ -526,7 +526,6 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   RecordingSourceOption recording_source;   // Primary, Secondary, Both
 
   DecodingOption  decoding;   // Whether the monitor will decode h264/h265 packets
-  DecodingOption  effective_decoding;  // decoding, but forced on-demand when analysing the substream (viewer-driven only)
   bool            secondary_analysis;   // AnalysisSource=Secondary and a SecondPath is configured: analyse the substream
   bool            RTSP2Web_enabled;      // Whether we set the h264/h265 stream up on RTSP2Web
   int             RTSP2Web_type;      // Whether we set the h264/h265 stream up on RTSP2Web

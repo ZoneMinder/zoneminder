@@ -1099,6 +1099,7 @@ Always: every frame will be decoded, live view and thumbnails will be available.
 OnDemand: only do decoding when someone is watching.~~~~
 KeyFrames: Only keyframes will be decoded, so viewing frame rate will be very low, depending on the keyframe interval set in the camera.~~~~
 None: No frames will be decoded, live view and thumbnails will not be available~~~~
+When AnalysisSource is set to Secondary, motion detection runs off the low-res substream and no longer requires decoding the primary stream. Pair Secondary analysis with Decoding=OnDemand to get the CPU saving: the primary is then only decoded while someone is watching. This setting is always honoured, so Encode recording (VideoWriter=Encode) still requires decoding as before.~~~~
 '
   ),
   'FUNCTION_RTSP2WEB_ENABLED' => array(

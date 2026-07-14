@@ -14,56 +14,72 @@ class Monitor extends ZM_Object {
   private $shm_id = null;
   private $connected = false;
 
+  // These offsets are the REAL (naturally-aligned) byte offsets of the C++
+  // SharedData/TriggerData structs, not the packed-layout ideal implied by the
+  // struct's /* +N */ comments. The C++ struct is not packed, so the compiler
+  // inserts a 4-byte pad before capture_fps (after state) and another before
+  // the startup_time union (after audio_channels); every field from capture_fps
+  // onward therefore sits 4 or 8 bytes later than the naive packed offset. With
+  // the analysis image ring counters appended, SharedData is 888 bytes and
+  // TriggerData starts at 888. The authoritative source is the same alignment
+  // computation ZoneMinder::Memory (Memory.pm) performs; a
+  // sizeof(SharedData)==888 static_assert in zm_monitor.h guards the layout.
   private $shm_offsets = ['SharedData' => [
     'size'             => [ 'type'=>'uint32', 'offset'=>0, 'size'=>4 ],
     'last_write_index' => [ 'type'=>'int32', 'offset'=>4, 'size'=>4 ],
     'last_read_index'  => [ 'type'=>'int32', 'offset'=>8, 'size'=>4 ],
     'image_count'      => [ 'type'=>'int32', 'offset'=>12, 'size'=>4 ],
     'state'            => [ 'type'=>'uint32', 'offset'=>16, 'size'=>4 ],
-    'capture_fps'      => [ 'type'=>'double', 'offset'=>20, 'size'=>8 ],
-    'analysis_fps'     => [ 'type'=>'double', 'offset'=>28, 'size'=>8 ],
-    'latitude'         => [ 'type'=>'double', 'offset'=>36, 'size'=>8 ],
-    'longitude'        => [ 'type'=>'double', 'offset'=>44, 'size'=>8 ],
-    'last_event'       => [ 'type'=>'uint64', 'offset'=>52, 'size'=>8 ],
-    'action'           => [ 'type'=>'uint32', 'offset'=>60, 'size'=>4 ],
-    'brightness'       => [ 'type'=>'int32', 'offset'=>64, 'size'=>4 ],
-    'hue'              => [ 'type'=>'int32', 'offset'=>68, 'size'=>4 ],
-    'colour'           => [ 'type'=>'int32', 'offset'=>72, 'size'=>4 ],
-    'contrast'         => [ 'type'=>'int32', 'offset'=>76, 'size'=>4 ],
-    'alarm_x'          => [ 'type'=>'int32', 'offset'=>80, 'size'=>4 ],
-    'alarm_y'          => [ 'type'=>'int32', 'offset'=>84, 'size'=>4 ],
-    'valid'            => [ 'type'=>'uint8', 'offset'=>88, 'size'=>1 ],
-    'capturing'        => [ 'type'=>'uint8', 'offset'=>89, 'size'=>1 ],
-    'analysing'        => [ 'type'=>'uint8', 'offset'=>90, 'size'=>1 ],
-    'recording'        => [ 'type'=>'uint8', 'offset'=>91, 'size'=>1 ],
-    'signal'           => [ 'type'=>'uint8', 'offset'=>92, 'size'=>1 ],
-    'format'           => [ 'type'=>'uint8', 'offset'=>93, 'size'=>1 ],
-    'reserved1'        => [ 'type'=>'uint8', 'offset'=>94, 'size'=>1 ],
-    'reserved2'        => [ 'type'=>'uint8', 'offset'=>95, 'size'=>1 ],
-    'imagesize'        => [ 'type'=>'uint32', 'offset'=>96, 'size'=>4 ],
-    'last_frame_score' => [ 'type'=>'uint32', 'offset'=>100, 'size'=>4 ],
-    'audio_frequency'  => [ 'type'=>'uint32', 'offset'=>104, 'size'=>4 ],
-    'audio_channels'   => [ 'type'=>'uint32', 'offset'=>108, 'size'=>4 ],
-    'startup_time'     => [ 'type'=>'time_t64', 'offset'=>112, 'size'=>8 ],
-    'heartbeat_time'   => [ 'type'=>'time_t64', 'offset'=>120, 'size'=>8 ],
-    'last_write_time'  => [ 'type'=>'time_t64', 'offset'=>128, 'size'=>8 ],
-    'last_read_time'   => [ 'type'=>'time_t64', 'offset'=>136, 'size'=>8 ],
-    'last_viewed_time' => [ 'type'=>'time_t64', 'offset'=>144, 'size'=>8 ],
-    'control_state'    => [ 'type'=>'uint8[256]', 'offset'=>152, 'size'=>256 ],
-    'alarm_cause'      => [ 'type'=>'int8[256]', 'offset'=>408, 'size'=>256 ],
-    'video_fifo'       => [ 'type'=>'int8[64]', 'offset'=>664, 'size'=>64 ],
-    'audio_fifo'       => [ 'type'=>'int8[64]', 'offset'=>728, 'size'=>64 ],
-    'janus_pin'        => [ 'type'=>'int8[64]', 'offset'=>792, 'size'=>64 ],
-  ], 
+    'capture_fps'      => [ 'type'=>'double', 'offset'=>24, 'size'=>8 ],
+    'analysis_fps'     => [ 'type'=>'double', 'offset'=>32, 'size'=>8 ],
+    'latitude'         => [ 'type'=>'double', 'offset'=>40, 'size'=>8 ],
+    'longitude'        => [ 'type'=>'double', 'offset'=>48, 'size'=>8 ],
+    'last_event'       => [ 'type'=>'uint64', 'offset'=>56, 'size'=>8 ],
+    'action'           => [ 'type'=>'uint32', 'offset'=>64, 'size'=>4 ],
+    'brightness'       => [ 'type'=>'int32', 'offset'=>68, 'size'=>4 ],
+    'hue'              => [ 'type'=>'int32', 'offset'=>72, 'size'=>4 ],
+    'colour'           => [ 'type'=>'int32', 'offset'=>76, 'size'=>4 ],
+    'contrast'         => [ 'type'=>'int32', 'offset'=>80, 'size'=>4 ],
+    'alarm_x'          => [ 'type'=>'int32', 'offset'=>84, 'size'=>4 ],
+    'alarm_y'          => [ 'type'=>'int32', 'offset'=>88, 'size'=>4 ],
+    'valid'            => [ 'type'=>'uint8', 'offset'=>92, 'size'=>1 ],
+    'capturing'        => [ 'type'=>'uint8', 'offset'=>93, 'size'=>1 ],
+    'analysing'        => [ 'type'=>'uint8', 'offset'=>94, 'size'=>1 ],
+    'recording'        => [ 'type'=>'uint8', 'offset'=>95, 'size'=>1 ],
+    'signal'           => [ 'type'=>'uint8', 'offset'=>96, 'size'=>1 ],
+    'format'           => [ 'type'=>'uint8', 'offset'=>97, 'size'=>1 ],
+    'reserved1'        => [ 'type'=>'uint8', 'offset'=>98, 'size'=>1 ],
+    'reserved2'        => [ 'type'=>'uint8', 'offset'=>99, 'size'=>1 ],
+    'imagesize'        => [ 'type'=>'uint32', 'offset'=>100, 'size'=>4 ],
+    'last_frame_score' => [ 'type'=>'uint32', 'offset'=>104, 'size'=>4 ],
+    'audio_frequency'  => [ 'type'=>'uint32', 'offset'=>108, 'size'=>4 ],
+    'audio_channels'   => [ 'type'=>'uint32', 'offset'=>112, 'size'=>4 ],
+    'startup_time'     => [ 'type'=>'time_t64', 'offset'=>120, 'size'=>8 ],
+    'heartbeat_time'   => [ 'type'=>'time_t64', 'offset'=>128, 'size'=>8 ],
+    'last_write_time'  => [ 'type'=>'time_t64', 'offset'=>136, 'size'=>8 ],
+    'last_read_time'   => [ 'type'=>'time_t64', 'offset'=>144, 'size'=>8 ],
+    'last_viewed_time' => [ 'type'=>'time_t64', 'offset'=>152, 'size'=>8 ],
+    'last_analysis_viewed_time' => [ 'type'=>'time_t64', 'offset'=>160, 'size'=>8 ],
+    'control_state'    => [ 'type'=>'uint8[256]', 'offset'=>168, 'size'=>256 ],
+    'alarm_cause'      => [ 'type'=>'int8[256]', 'offset'=>424, 'size'=>256 ],
+    'video_fifo'       => [ 'type'=>'int8[64]', 'offset'=>680, 'size'=>64 ],
+    'audio_fifo'       => [ 'type'=>'int8[64]', 'offset'=>744, 'size'=>64 ],
+    'janus_pin'        => [ 'type'=>'int8[64]', 'offset'=>808, 'size'=>64 ],
+    // Analysis image ring counters, appended at the end of SharedData followed
+    // by 8 bytes of padding (kept for the 16-byte-multiple layout invariant),
+    // so SharedData is now 888 bytes and TriggerData starts at 888.
+    'last_analysis_index'  => [ 'type'=>'int32', 'offset'=>872, 'size'=>4 ],
+    'analysis_image_count' => [ 'type'=>'int32', 'offset'=>876, 'size'=>4 ],
+  ],
   'TriggerData' => [
-    'size'     => [ 'type'=>'uint32', 'offset'=>864, 'size'=>4 ],
-    'state'    => [ 'type'=>'uint32', 'offset'=>868, 'size'=>4 ],
-    'score'    => [ 'type'=>'uint32', 'offset'=>872, 'size'=>4 ],
-    'padding'  => [ 'type'=>'uint32', 'offset'=>876, 'size'=>4 ],
-    'cause'    => [ 'type'=>'int8[32]', 'offset'=>880, 'size'=>32 ],
-    'text'     => [ 'type'=>'int8[256]', 'offset'=>912, 'size'=>256 ],
-    'showtext' => [ 'type'=>'int8[256]', 'offset'=>1268, 'size'=>256 ],
-    // 1424
+    'size'     => [ 'type'=>'uint32', 'offset'=>888, 'size'=>4 ],
+    'state'    => [ 'type'=>'uint32', 'offset'=>892, 'size'=>4 ],
+    'score'    => [ 'type'=>'uint32', 'offset'=>896, 'size'=>4 ],
+    'padding'  => [ 'type'=>'uint32', 'offset'=>900, 'size'=>4 ],
+    'cause'    => [ 'type'=>'int8[32]', 'offset'=>904, 'size'=>32 ],
+    'text'     => [ 'type'=>'int8[256]', 'offset'=>936, 'size'=>256 ],
+    'showtext' => [ 'type'=>'int8[256]', 'offset'=>1192, 'size'=>256 ],
+    // 1448
   ]
   ];
 
@@ -211,7 +227,7 @@ class Monitor extends ZM_Object {
 
   protected $defaults = array(
     'Id' => null,
-    'Name' => array('type'=>'text','filter_regexp'=>'/[^\w\-\.\(\)\:\/ ]/', 'default'=>'Monitor'),
+    'Name' => array('type'=>'text','filter_regexp'=>'/[^\w\p{L}\p{M}\p{N}\-\.\(\)\:\/ ]/u', 'default'=>'Monitor'),
     'Deleted' => 0,
     'Notes' => '',
     'ServerId' => 0,
@@ -376,6 +392,10 @@ class Monitor extends ZM_Object {
 
   public $Id;
 
+  public function getDefaults() {
+    return $this->defaults;
+  }
+
   public function save($data = null) {
     if ($data) $this->set($data);
     if ($this->Manufacturer() and $this->Manufacturer()->Name() and ! $this->Manufacturer->Id()) {
@@ -395,7 +415,7 @@ class Monitor extends ZM_Object {
     if (!$this->{'JanusEnabled'}) return '';
 
     if ((!defined('ZM_SERVER_ID')) or ( property_exists($this, 'ServerId') and (ZM_SERVER_ID==$this->{'ServerId'}) )) {
-      $cmd = getZmuCommand(' --janus-pin -m '.$this->{'Id'});
+      $cmd = getZmuCommand(' --janus-pin -m '.validCardinal($this->{'Id'}));
       $output = shell_exec($cmd);
       Debug("Running $cmd output: $output");
       return $output ? trim($output) : $output;

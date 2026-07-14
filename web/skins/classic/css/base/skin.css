@@ -211,49 +211,6 @@ hr {
     background-color: var(--colorBackgroundButtons);
 }
 
-/*
- * Tabbed headings
- */
-ul.tabList {
-    float: left;
-    list-style: none;
-    padding: 0;
-    margin: 0 0 -4px 0;
-    white-space: nowrap;
-    text-align: left;
-}
-
-ul.tabList li {
-    float: left;
-    border: 1px solid;
-    color: #333333;
-    border: #ccc solid 1px;
-    border-bottom-width: 0;
-    margin: 0 2px 0 0;
-    background: #eee;
-    text-align: center;
-    padding: 5px 10px;
-    border-top-left-radius: 3px;
-    border-top-right-radius: 3px;
-}
-
-ul.tabList li a {
-    text-decoration: none;
-}
-
-ul.tabList li:hover {
-    background-color: #eeeeee;
-}
-
-ul.tabList li.active {
-    background-color: #ffffff;
-    border-bottom: #7f7fb2 dotted 1px;
-}
-
-ul.tabList li.active a {
-  font-weight: bold;
-}
-
 #content {
   display: flex;
   flex-direction: column;
@@ -1804,6 +1761,65 @@ video-stream[id^='liveStream'] video{
 .btn-danger.disabled, .btn-danger:disabled {
   color: #888888;
   background-color: #b1414c;
+}
+
+/* Camera credential fields are type=text masked with CSS instead of
+ * type=password, so browsers do not offer to save them as logins. */
+input.masked-input {
+  -webkit-text-security: disc;
+}
+input.masked-input.unmasked {
+  -webkit-text-security: none;
+}
+
+.fa.slash::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+    to bottom right,
+    transparent calc(50% - 3.0px),
+    #ddddddaa calc(50% - 1.0px),
+    #888888 calc(50% + 1.0px),
+    transparent calc(50% + 3.0px)
+  );
+  margin: 0.5em;
+}
+
+.fa.slash:hover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+    to bottom right,
+    transparent calc(50% - 3.0px),
+    #212529aa calc(50% - 1.0px),
+    #939393 calc(50% + 1.0px),
+    transparent calc(50% + 3.0px)
+  );
+  margin: 0.5em;
+}
+
+.progress-container {
+  width: 100%;
+  height: 10px;
+  background-color: #FAFAFA;
+  border: 1px solid #D3D3D3;
+  border-radius: 4px;
+  box-shadow: inset 0 1px 1px #F0F0F0, 0 3px 6px -5px #BBB;
+  overflow: hidden;
+}
+
+.progress-fill {
+  width: 0%;
+  height: 100%;
+  background-image: linear-gradient(90deg, var(--colorBackgroundButtons), var(--colorBackgroundButtons));
+  border-radius: 4px;
+  transition: width 0.3s ease-in-out;
+}
+
+.modal-backdrop.show ~ .modal-backdrop.show{
+  opacity : 0;
 }
 
 /* +++ This block should always be located at the end! */

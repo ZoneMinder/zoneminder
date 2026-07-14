@@ -513,6 +513,7 @@ function queryRequest() {
       if ($Monitor->Go2RTCEnabled() && defined('ZM_GO2RTC_PATH') && ZM_GO2RTC_PATH) {
         $liveStreamAttr = ' data-stream-type="go2rtc"'.
           ' data-go2rtc-src="'.htmlspecialchars(ZM_GO2RTC_PATH).'"'.
+          ' data-stream-channel="'.($Monitor->StreamChannel() ?: 'Restream').'"'.
           ' data-monitor-id="'.$monitor['Id'].'"';
         $go2rtcAttr = ' go2rtc_src="'.htmlspecialchars(ZM_GO2RTC_PATH).'" go2rtc_mid="'.$monitor['Id'].'"';
         $debugAttr .= ' data-debug-overlay="go2rtc"';

@@ -3,6 +3,7 @@
 * IgorA100 2026
 */
 
+"use strict";
 window.SUPPORTED_AUDIO_MOTION_ANALYZER_VERSION = '4.5.4';
 
 var AudioMotionAnalyzer = null;
@@ -170,15 +171,34 @@ export class _AudioMotionAnalyzer extends HTMLElement {
     const monitorStream = getMonitorStream(mid);
     if (!monitorStream) {
       console.warn(`Audio visualization. Stream for monitor ID=${mid} not found.`);
+      this.initCompleted = false;
       return;
     }
+    if (monitorStream.started === false) {
+      console.warn(`Audio visualization. Stream for monitor ID=${mid} not started.`);
+      this.initCompleted = false;
+      return;
+    }
+    const audioVisualization = document.getElementById(`audioVisualization${mid}`);
+    if (!audioVisualization) {
+      console.warn(`Audio visualization object for monitor ID=${mid} not found.`);
+      this.initCompleted = false;
+      return;
+    }
+    const canvas = audioVisualization.querySelector('canvas');
+    if (!canvas) {
+      console.warn(`Audio visualization canvas for monitor ID=${mid} not found.`);
+      this.initCompleted = false;
+      return;
+    }
+    canvas.classList.remove('hidden-shift');
 
     this.audioMotion = new AudioMotionAnalyzer(
-        document.getElementById(`audioVisualization${mid}`),
+        audioVisualization,
         {
-        //source: audioEl, // main audio source is the HTML <audio> element .webrtc - не работает пока.
-        //width: 100%,
-          canvas: document.querySelector(`#audioVisualization${mid} canvas`),
+          //source: audioEl, // main audio source is the HTML <audio> element .webrtc - не работает пока.
+          //width: 100%,
+          canvas: canvas,
           height: 80,
           mode: 2, // This has little impact on performance. The lower the number, the larger the number of bars.
           maxFPS: this.maxFPS,
@@ -189,7 +209,7 @@ export class _AudioMotionAnalyzer extends HTMLElement {
           showScaleX: false, // Removes frequency signatures.
           showScaleY: false,
           overlay: true, // Makes the background transparent.
-          bgAlpha: .5, // Background transparency only works with overlay: true.
+          bgAlpha: .9, // Background transparency only works with overlay: true.
           ansiBands: true,
           barSpace: .5,
           //channelLayout: 'single',
@@ -244,6 +264,8 @@ export class _AudioMotionAnalyzer extends HTMLElement {
     if (this.audioMotion) {
       this.stop();
       this.audioMotion.destroy();
+      const canvas = document.querySelector(`#audioVisualization${this.mid} canvas`);
+      if (canvas) canvas.classList.add('hidden-shift');
     }
   }; // END destroy = function()
 
@@ -347,6 +369,12 @@ export class _AudioMotionAnalyzer extends HTMLElement {
   };
 
   listenerVolumechange = function(_this, event) { // Adjust the visualization level according to the stream's volume level
+    const audioCtx = _this.audioMotion.audioCtx;
+    if (audioCtx && audioCtx.state !== 'running') {
+      audioCtx.resume();
+      _this.connectToMediaStreamSource();
+    }
+
     if (event.target.muted === true) {
       _this.gainNode.gain.value = 0;
     } else {

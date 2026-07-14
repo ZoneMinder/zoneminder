@@ -372,7 +372,12 @@ bool Image::Assign(const AVFrame *frame) {
   // pick the wrong swscale target if those legacy fields drift out of sync
   // (e.g. the GRAY8/YUV420P alias collision).
   const AVPixelFormat format = imagePixFormat;
-  const AVPixelFormat src_fmt = static_cast<AVPixelFormat>(frame->format);
+  // Map deprecated YUVJ* formats to their non-J equivalents before handing the
+  // format to swscale. Passing YUVJ420P/YUVJ422P/etc directly makes swscale emit
+  // "deprecated pixel format used, make sure you did set range correctly" (seen
+  // in nph-zms). This mirrors what SWScale::Convert already does.
+  const AVPixelFormat orig_src_fmt = static_cast<AVPixelFormat>(frame->format);
+  const AVPixelFormat src_fmt = fix_deprecated_pix_fmt(orig_src_fmt);
 
   // If source and destination format + dimensions match, do a direct plane
   // copy instead of running through sws_scale. This avoids the overhead of
@@ -414,6 +419,7 @@ bool Image::Assign(const AVFrame *frame) {
     Error("Unable to create conversion context");
     return false;
   }
+  zm_sws_set_input_range(sws_convert_context, orig_src_fmt);
   bool result = Assign(frame, sws_convert_context);
   update_function_pointers();
   return result;
@@ -1248,6 +1254,33 @@ Image *Image::HighlightEdges(
         }
       }
     }
+  } else if ( zm_is_yuv420(p_pixfmt) ) {
+    // Single alarm colour over a transparent (Y=0) background; Overlay() onto
+    // a YUV420 image keys on a non-zero luma marker. Write the colour's luma
+    // at each edge pixel and its chroma at the shared 2x2 chroma sample.
+    const YUV yuv = brg_to_yuv(colour);
+    const uint8_t Yc = Y_VAL(yuv), Uc = U_VAL(yuv), Vc = V_VAL(yuv);
+    uint8_t *hplane[4] = {};
+    int hstride[4] = {};
+    if (av_image_fill_arrays(hplane, hstride, high_buff, p_pixfmt, width, height, 32) < 0) {
+      Error("HighlightEdges: av_image_fill_arrays failed for YUV420 %ux%u", width, height);
+      return high_image;
+    }
+    for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
+      const uint8_t* p = buffer + (y * src_linesize) + lo_x;
+      for ( unsigned int x = lo_x; x <= hi_x; x++, p++ ) {
+        bool edge = false;
+        if ( *p ) {
+          edge = (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1))
+              || (y > 0 && !*(p-src_linesize)) || (y < (height-1) && !*(p+src_linesize));
+        }
+        if ( edge ) {
+          hplane[0][y * hstride[0] + x] = Yc ? Yc : 1;  // keep the luma marker non-zero
+          hplane[1][(y / 2) * hstride[1] + (x / 2)] = Uc;
+          hplane[2][(y / 2) * hstride[2] + (x / 2)] = Vc;
+        }
+      }
+    }
   }
 
   return high_image;
@@ -1998,8 +2031,51 @@ void Image::Overlay( const Image &image ) {
   // chroma. After Colourise() the destination's linesize is updated to the
   // new format's stride, so we re-read it inside each branch.
 
-  /* Grayscale/YUV420 on top of grayscale/YUV420 - complete */
-  if ( zm_bytes_per_pixel(imagePixFormat) == 1 && zm_bytes_per_pixel(image.imagePixFormat) == 1 ) {
+  /* YUV420 on top of YUV420 - copy luma + chroma using luma as the mask */
+  if ( zm_is_yuv420(imagePixFormat) && zm_is_yuv420(image.imagePixFormat) ) {
+    // The overlay (a zone alarm highlight) is built in the target's format
+    // with a Clear()ed (Y=0) transparent background, so a non-zero source
+    // luma marks a pixel to paint. Copy that luma, and copy the shared
+    // chroma sample whenever any of the luma pixels it covers is marked.
+    uint8_t *dplane[4] = {};
+    int dstride[4] = {};
+    const uint8_t *splane[4] = {};
+    int sstride[4] = {};
+    if (av_image_fill_arrays(dplane, dstride, buffer, imagePixFormat, width, height, 32) < 0
+        || av_image_fill_arrays(const_cast<uint8_t **>(splane), sstride, image.buffer,
+                                image.imagePixFormat, width, height, 32) < 0) {
+      Error("Overlay: av_image_fill_arrays failed for YUV420 %ux%u", width, height);
+      return;
+    }
+    for (unsigned int y = 0; y < height; y++) {
+      const uint8_t *psrc = splane[0] + y * sstride[0];
+      uint8_t *pdest = dplane[0] + y * dstride[0];
+      for (unsigned int x = 0; x < width; x++) {
+        if (psrc[x]) pdest[x] = psrc[x];
+      }
+    }
+    const unsigned int cw = (width + 1) / 2;
+    const unsigned int ch = (height + 1) / 2;
+    for (unsigned int cy = 0; cy < ch; cy++) {
+      for (unsigned int cx = 0; cx < cw; cx++) {
+        bool marked = false;
+        for (unsigned int dy = 0; dy < 2 && !marked; dy++) {
+          const unsigned int ly = cy * 2 + dy;
+          if (ly >= height) break;
+          for (unsigned int dx = 0; dx < 2; dx++) {
+            const unsigned int lx = cx * 2 + dx;
+            if (lx < width && splane[0][ly * sstride[0] + lx]) { marked = true; break; }
+          }
+        }
+        if (marked) {
+          dplane[1][cy * dstride[1] + cx] = splane[1][cy * sstride[1] + cx];
+          dplane[2][cy * dstride[2] + cx] = splane[2][cy * sstride[2] + cx];
+        }
+      }
+    }
+
+    /* Grayscale/YUV420 on top of grayscale/YUV420 - complete */
+  } else if ( zm_bytes_per_pixel(imagePixFormat) == 1 && zm_bytes_per_pixel(image.imagePixFormat) == 1 ) {
     // Overlay only the luma/primary plane. Width is shared (panic above).
     for (unsigned int y = 0; y < height; y++) {
       const uint8_t *psrc = image.buffer + y * image.linesize;
@@ -3121,6 +3197,15 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
 }
 
 namespace {
+// Ceiling-divide an unsigned dimension by 2^shift. AV_CEIL_RSHIFT must NOT
+// be used here: its runtime form is -((-(a)) >> (b)), which relies on
+// arithmetic shift of a negative value and silently produces 2^31 + a/2^b
+// when `a` is unsigned (logical shift), sending plane loops billions of
+// samples out of bounds.
+inline unsigned int ceil_rshift(unsigned int a, unsigned int shift) {
+  return (a + (1u << shift) - 1) >> shift;
+}
+
 // Rotate `src_w` × `src_h` plane (bpp bytes per sample, src_linesize stride)
 // into dst (dst_linesize stride) according to angle (90/180/270).
 // For 90/270: dst dims are src_h × src_w. For 180: dst dims are src_w × src_h.
@@ -3212,6 +3297,14 @@ void Image::Rotate(int angle) {
     DumpBuffer(rotate_buffer, ZM_BUFTYPE_ZM);
     return;
   }
+  // av_image_fill_arrays re-derives the source stride at 32-byte alignment, but
+  // buffer may be a borrowed plane (e.g. get_y_image wraps a decoder Y plane)
+  // whose real stride is the Image's own linesize and can be smaller than
+  // FFALIGN(width,32). Using the assumed stride would read past the end of that
+  // plane. For ZM-allocated images linesize == src_strides[0], so this is a
+  // no-op there. Only plane 0 is overridden: the only borrowed case is a
+  // single-plane GRAY8 Y image, and planar ZM images are self-consistent.
+  src_strides[0] = linesize;
 
   const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(imagePixFormat);
   if (!desc) {
@@ -3224,10 +3317,10 @@ void Image::Rotate(int angle) {
   if (planar) {
     // Each plane has 1 byte per sample. Plane 0 is luma at full resolution;
     // planes 1/2 are chroma subsampled by desc->log2_chroma_w/h. Use ceiling
-    // (AV_CEIL_RSHIFT) — flooring would drop the last chroma column/row for
-    // odd luma dimensions and leave part of U/V unrotated.
-    const unsigned int cw = AV_CEIL_RSHIFT(width,  desc->log2_chroma_w);
-    const unsigned int ch = AV_CEIL_RSHIFT(height, desc->log2_chroma_h);
+    // division — flooring would drop the last chroma column/row for odd luma
+    // dimensions and leave part of U/V unrotated.
+    const unsigned int cw = ceil_rshift(width,  desc->log2_chroma_w);
+    const unsigned int ch = ceil_rshift(height, desc->log2_chroma_h);
     rotate_plane(src_planes[0], src_strides[0], width, height,
                  dst_planes[0], dst_strides[0], 1, angle);
     rotate_plane(src_planes[1], src_strides[1], cw, ch,
@@ -3282,7 +3375,18 @@ void flip_plane(const uint8_t *src, int src_linesize,
 
 /* RGB32 compatible: complete; planar YUV (YUV420P/J420P/YUV422P/J422P) flipped per-plane */
 void Image::Flip( bool leftright ) {
-  uint8_t* flip_buffer = AllocBuffer(size);
+  // Size the destination from the 32-aligned layout the planes are written at,
+  // not from this->size: a borrowed source (get_y_image wraps a decoder Y
+  // plane) records a tight size from its real linesize, which is smaller than
+  // the aligned destination needs. For ZM-allocated images this equals size.
+  int flip_size_signed = av_image_get_buffer_size(imagePixFormat, width, height, 32);
+  if (flip_size_signed < 0) {
+    Error("Flip: av_image_get_buffer_size failed for %s %ux%u",
+          av_get_pix_fmt_name(imagePixFormat), width, height);
+    return;
+  }
+  const size_t flip_size = static_cast<size_t>(flip_size_signed);
+  uint8_t* flip_buffer = AllocBuffer(flip_size);
 
   uint8_t *src_planes[4] = {nullptr, nullptr, nullptr, nullptr};
   int src_strides[4] = {0, 0, 0, 0};
@@ -3294,6 +3398,10 @@ void Image::Flip( bool leftright ) {
     DumpBuffer(flip_buffer, ZM_BUFTYPE_ZM);
     return;
   }
+  // Use the Image's real stride for the borrowed-plane source rather than the
+  // 32-aligned stride av_image_fill_arrays assumes. See Image::Rotate for the
+  // rationale; no-op for self-consistent ZM-allocated images.
+  src_strides[0] = linesize;
 
   const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(imagePixFormat);
   if (!desc) {
@@ -3306,8 +3414,8 @@ void Image::Flip( bool leftright ) {
   if (planar) {
     // Ceiling division so odd luma dimensions don't drop the last chroma
     // column/row.
-    const unsigned int cw = AV_CEIL_RSHIFT(width,  desc->log2_chroma_w);
-    const unsigned int ch = AV_CEIL_RSHIFT(height, desc->log2_chroma_h);
+    const unsigned int cw = ceil_rshift(width,  desc->log2_chroma_w);
+    const unsigned int ch = ceil_rshift(height, desc->log2_chroma_h);
     flip_plane(src_planes[0], src_strides[0], width, height,
                dst_planes[0], dst_strides[0], 1, leftright);
     flip_plane(src_planes[1], src_strides[1], cw, ch,
@@ -3325,7 +3433,7 @@ void Image::Flip( bool leftright ) {
                dst_planes[0], dst_strides[0], bpp, leftright);
   }
 
-  AssignDirect(width, height, colours, subpixelorder, flip_buffer, size, ZM_BUFTYPE_ZM);
+  AssignDirect(width, height, colours, subpixelorder, flip_buffer, flip_size, ZM_BUFTYPE_ZM);
 }
 
 void Image::Scale(const unsigned int new_width, const unsigned int new_height) {
@@ -3350,8 +3458,11 @@ void Image::Scale(const unsigned int new_width, const unsigned int new_height) {
 
   SWScale swscale;
   swscale.init();
+  // Both buffers use Image's align-32 layout: `buffer` is ours, and
+  // scale_buffer is adopted by AssignDirect below, which derives
+  // size/linesize with av_image_* at align=32.
   if (swscale.Convert(buffer, allocation, scale_buffer, scale_buffer_size,
-                      format, format, width, height, new_width, new_height) < 0) {
+                      format, format, width, height, new_width, new_height, 32, 32) < 0) {
     Error("Scale: sws_scale conversion failed (%ux%u %s -> %ux%u)",
           width, height, av_get_pix_fmt_name(format), new_width, new_height);
     DumpBuffer(scale_buffer, ZM_BUFTYPE_ZM);

@@ -299,7 +299,12 @@ Image *ZMPacket::get_y_image() {
       return nullptr;
     }
 
-    y_image = new Image(in_frame->width, in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, in_frame->data[0], 0, 0);
+    // Wrap the decoder's Y plane with its real stride (linesize[0]). The plane
+    // is packed at the decoder's alignment, which may be smaller than the
+    // FFALIGN(width,32) a plain Image would assume; recording the true stride
+    // keeps stride-aware reads (motion analysis) and Rotate/Flip correct.
+    y_image = new Image(in_frame->width, in_frame->linesize[0], in_frame->height,
+                        1, ZM_SUBPIX_ORDER_NONE, in_frame->data[0], 0);
   }
   return y_image;
 }

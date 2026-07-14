@@ -401,7 +401,9 @@ class ZM_Object {
         return true;
       }
     }
-    $this->_last_error = dbError($sql);
+    # dbQuery swallows the PDOException, so prefer the message it captured.
+    $this->_last_error = dbLastError();
+    if (!$this->_last_error) $this->_last_error = dbError($sql);
     return false;
   } // end function save
 

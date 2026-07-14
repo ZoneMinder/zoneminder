@@ -917,22 +917,22 @@ sub recover_timestamps {
     } # end foreach capture jpg
     $ZoneMinder::Database::dbh->commit();
   } elsif ( @mp4_files ) {
+    # No capture jpgs (e.g. an mp4 plus a snapshot.jpg). Probe the video for
+    # its duration. Length is NOT NULL in the db, so we must always set it.
     my $file = $path.'/'.$mp4_files[0];
-    ( $file ) = $file =~ /^(.*)$/;
+    ( $file ) = $file =~ /^(.*)$/; # de-taint
 
     my $first_timestamp = (stat($file))[9];
     $starttime = $first_timestamp if $first_timestamp < $starttime;
-    my $output = `ffprobe $file 2>&1`;
-    my ($duration) = $output =~ /Duration: [:\.0-9]+/gm;
-    Debug("From mp4 have duration $duration, start: $first_timestamp");
 
-    my ( $h, $m, $s, $u );
-      if ( $duration =~ m/(\d+):(\d+):(\d+)\.(\d+)/ ) {
-        ( $h, $m, $s, $u ) = ($1, $2, $3, $4 );
-        Debug("( $h, $m, $s, $u ) from /^(\\d{2}):(\\d{2}):(\\d{2})\.(\\d+)/");
-      }
-    my $seconds = ($h*60*60)+($m*60)+$s;
-    $Event->Length($seconds.'.'.$u);
+    my $seconds = mp4_duration($file);
+    if ( !defined $seconds ) {
+      Warning("Unable to determine duration of $file from ffprobe. Defaulting Length to 0.");
+      $seconds = 0;
+    }
+    Debug("From mp4 have duration $seconds seconds, start: $first_timestamp");
+
+    $Event->Length(sprintf('%.2f', $seconds));
     $Event->StartDateTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $first_timestamp) );
     $Event->EndDateTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $first_timestamp+$seconds) );
   }
@@ -941,6 +941,27 @@ sub recover_timestamps {
   }
   $Event->StartDateTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $starttime) );
 }
+
+# Return the duration of a video file in seconds (float), or undef if it
+# cannot be determined. $file must already be de-tainted by the caller.
+sub mp4_duration {
+  my $file = shift;
+
+  # Preferred: ask ffprobe for the machine-readable duration in seconds.
+  my $duration = `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 '$file' 2>/dev/null`;
+  chomp $duration if defined $duration;
+  if ( defined $duration and $duration =~ /^(\d+(?:\.\d+)?)$/ ) {
+    return $1;
+  }
+
+  # Fallback: parse the human-readable "Duration: HH:MM:SS.uu" line.
+  my $output = `ffprobe '$file' 2>&1`;
+  if ( $output =~ /Duration:\s*(\d+):(\d+):(\d+)\.(\d+)/ ) {
+    return ($1*3600) + ($2*60) + $3 + "0.$4";
+  }
+
+  return undef;
+} # end sub mp4_duration
 
 sub guess_EndDateTime {
   my $event = shift;
@@ -1108,9 +1129,8 @@ Isaac Connor, E<lt>isaac@zoneminder.comE<gt>
 
 Copyright (C) 2001-2017  ZoneMinder LLC
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.3 or,
-at your option, any later version of Perl 5 you may have available.
+Licensed under the GNU General Public License v2 or later; see the COPYING
+file distributed with ZoneMinder for the full text.
 
 
 =cut

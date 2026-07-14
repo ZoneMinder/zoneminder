@@ -56,7 +56,16 @@ class FilterTerm {
         }
       }
       if ( isset($term['tablename']) ) {
-        $this->tablename = $term['tablename'];
+        # tablename is concatenated raw into SQL by sql_attr(), so it must be
+        # restricted to the known table aliases used in the filter queries.
+        # Anything else is rejected to prevent SQL injection.
+        $valid_tablenames = array('E', 'M', 'S', 'F', 'T', 'ET', 'Snapshots');
+        if ( in_array($term['tablename'], $valid_tablenames, true) ) {
+          $this->tablename = $term['tablename'];
+        } else {
+          Error("Invalid tablename in filter term: {$term['tablename']}, possible hacking attempt. Using 'E'.");
+          $this->tablename = 'E';
+        }
       } else {
         $this->tablename = 'E';
       }
@@ -248,14 +257,19 @@ class FilterTerm {
       # Even will be replaced with 0
       if ( $this->val == 'Odd' or $this->val == 'Even' )  {
         return ' % 2 = ';
-      } else {
+      } else if ( strtoupper($this->val) == 'NULL' ) {
         return ' IS ';
       }
+      # SQL IS is only kept here for NULL; for any other value compare for equality
+      return ' = ';
     case 'IS NOT' :
       if ( $this->val == 'Odd' or $this->val == 'Even' )  {
-        return ' % 2 = ';
+        # negate the modulo test so IS NOT Odd matches even (and vice versa)
+        return ' % 2 != ';
+      } else if ( strtoupper($this->val) == 'NULL' ) {
+        return ' IS NOT ';
       }
-      return ' IS NOT ';
+      return ' != ';
     default:
       Warning('Invalid operator in filter: ' . print_r($this->op, true));
     } // end switch op

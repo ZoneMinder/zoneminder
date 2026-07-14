@@ -49,10 +49,10 @@ if ($action == 'save') {
     if (ZM_OPT_X10) {
       $x10Monitor = array();
     }
-   if (!empty($_REQUEST['newMonitor']['Id'])) { 
-     // Reuse existing but deleted monitor
-     $mid = validCardinal($_REQUEST['newMonitor']['Id']);
-   }
+    if (!empty($_REQUEST['newMonitor']['Id'])) { 
+      // Reuse existing but deleted monitor
+      $mid = validCardinal($_REQUEST['newMonitor']['Id']);
+    }
   }
 
   # For convenience
@@ -175,14 +175,45 @@ if ($action == 'save') {
       $oldMonitor = clone $monitor;
 
       if ($monitor->save($changes)) {
-        # Leave old symlinks on old storage areas, as old events will still be there. Only delete the link if the name has changed
+        # If the name has changed, it must also be changed in all storage areas.
         if (isset($changes['Name'])) {
-          $link_path = $oldMonitor->Storage()->Path().'/'.basename($oldMonitor->Name());
-          if (file_exists($link_path)) {
-            ZM\Debug("Deleting old link  ".$link_path);
-            unlink($link_path);
-          } else {
-            ZM\Debug("Old link didn't exist at ".$link_path);
+          $saferName = basename($newMonitor['Name']);
+          $oldLinkPath = $oldMonitor->Storage()->Path().'/'.basename($oldMonitor->Name());
+          $oldLinkPathFound = false;
+          require_once('includes/Storage.php');
+          foreach (ZM\Storage::find() as $Storage) {
+            # Let's remove old symlinks
+            $storagePath = realpath($Storage->Path()) .'/';
+            $dirStoragePath = opendir($storagePath);
+            if($dirStoragePath === false) {
+              ZM\Warning("Unable to check and delete old symlinks to monitor with ID=".$monitor->Id()." in the '".$Storage->Name()."' storage because the path to the storage is missing or unreadable.");
+            } else {
+              while (($file = readdir($dirStoragePath)) !== false) {
+                $linkPath = $storagePath . $file;
+                if (is_link($linkPath)) {
+                  $absolutePath = realpath($linkPath);
+                  if ($oldLinkPath == $linkPath) $oldLinkPathFound = true;
+                  if ($absolutePath == $Storage->Path().'/'.$mid) {
+                    ZM\Debug("Deleting old link in storage '" . $Storage->Name() . "' " . $linkPath);
+                    unlink($linkPath);
+                  }
+                }
+              } 
+              closedir($dirStoragePath);
+            }
+
+            # Let's create new symlinks
+            $dir = $Storage->Path().'/'.$mid;
+            if (is_dir($dir) && (string)$saferName !== (string)$mid) { # Let's check if there is a folder with events in this storage
+              $linkPath = $Storage->Path().'/'.$saferName;
+              if (!is_link($linkPath) && !@symlink($mid, $linkPath)) {
+                # It is necessary to check is_link() to avoid unnecessary warnings, since different repositories can have the same path and this is not prohibited by the configuration.
+                ZM\Warning('Unable to symlink in storage "' . $Storage->Name() . '" ' . $dir . ' to ' . $linkPath);
+              }
+            }
+          }
+          if (!$oldLinkPathFound) {
+            ZM\Debug("Old link at '" . $oldLinkPath . "' was not found in any of the storages");
           }
         }
 
@@ -277,7 +308,9 @@ if ($action == 'save') {
         }
         ZM\AuditAction('create', 'monitor', $mid, 'Name: '.($newMonitor['Name'] ?? ''));
       } else {
-        ZM\Error('Error saving new Monitor.');
+        $dbError = $monitor->get_last_error();
+        $error_message .= 'Error saving new Monitor: '.($dbError ? $dbError : 'unknown database error').'<br/>';
+        ZM\Error('Error saving new Monitor: '.$dbError);
         return;
       }
     }
@@ -292,7 +325,7 @@ if ($action == 'save') {
 
     $saferName = basename($newMonitor['Name']);
     $link_path = $Storage->Path().'/'.$saferName;
-    if (($saferName != $newMonitor['Name']) and !@symlink($mid, $link_path)) {
+    if (((string)$saferName !== (string)$mid) and !@symlink($mid, $link_path)) {
       if (!(file_exists($link_path) and is_link($link_path))) {
         ZM\Warning('Unable to symlink ' . $Storage->Path().'/'.$mid . ' to ' . $link_path);
       }

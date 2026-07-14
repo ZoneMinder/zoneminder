@@ -895,32 +895,8 @@ function mmove(event) {
   }
 }
 
-function secs2inputstr(s) {
-  if ( ! parseInt(s) ) {
-    console.warn("Invalid value for " + s + " seconds");
-    return '';
-  }
-
-  var m = moment(s*1000);
-  if ( ! m ) {
-    console.warn("No valid date for " + s + " seconds");
-    return '';
-  }
-  return m.format("YYYY-MM-DDTHH:mm:ss");
-}
-
-function secs2dbstr(s) {
-  if (!parseInt(s)) {
-    console.warn("Invalid value for " + s + " seconds");
-    return '';
-  }
-  var m = moment(s*1000);
-  if ( ! m ) {
-    console.warn("No valid date for " + s + " milliseconds");
-    return '';
-  }
-  return m.format("YYYY-MM-DD HH:mm:ss");
-}
+// secs2inputstr(), secs2dbstr(), inputstr2dt() and serverTimeZone() live in
+// skins/classic/js/skin.js so they can be reused outside montagereview.
 
 function setFit(value) {
   fitMode = value;
@@ -1034,10 +1010,9 @@ function setLive(value) {
 // The section below are to reload this program with new parameters
 
 function clicknav(minSecs, maxSecs, live) {// we use the current time if we can
-  var date = new Date();
-  var now = Math.floor(date.getTime() / 1000);
-  var tz_difference = (-1 * date.getTimezoneOffset() * 60) - server_utc_offset;
-  now -= tz_difference;
+  // minSecs/maxSecs are epoch seconds; secs2inputstr renders them in the server
+  // timezone, so compare against the real epoch now (no timezone shift). refs #4977
+  var now = Math.floor(Date.now() / 1000);
 
   var minStr = "";
   var maxStr = "";
@@ -1080,23 +1055,18 @@ function clicknav(minSecs, maxSecs, live) {// we use the current time if we can
   window.location = uri;
 } // end function clicknav
 
+// now is epoch seconds; clicknav/secs2inputstr render it in the server timezone,
+// so no browser-vs-server timezone shift is needed here. refs #4977
 function click_lastHour() {
-  var date = new Date();
-  var now = Math.floor( date.getTime() / 1000 );
-  now -= -1 * date.getTimezoneOffset() * 60;
-  now += server_utc_offset;
+  var now = Math.floor( Date.now() / 1000 );
   clicknav(now - 3599, now, 0);
 }
 function click_lastEight() {
-  var date = new Date();
-  var now = Math.floor( date.getTime() / 1000 );
-  now -= -1 * date.getTimezoneOffset() * 60 - server_utc_offset;
+  var now = Math.floor( Date.now() / 1000 );
   clicknav(now - 3600*8 + 1, now, 0);
 }
 function click_last24() {
-  var date = new Date();
-  var now = Math.floor( date.getTime() / 1000 );
-  now -= -1 * date.getTimezoneOffset() * 60 - server_utc_offset;
+  var now = Math.floor( Date.now() / 1000 );
   clicknav(now - 3600*24 + 1, now, 0);
 }
 function click_zoomin() {
@@ -1211,8 +1181,8 @@ function changeFilters(e) {
   // Also, if StartDateTime <= or >= are changed, limit max duration to 24h
 
   if (minStartDateTimeElement && maxStartDateTimeElement) {
-    let minStartDateTime = DateTime.fromFormat(minStartDateTimeElement.value, 'yyyy-MM-dd HH:mm:ss', {zone: ZM_TIMEZONE});
-    let maxStartDateTime = DateTime.fromFormat(maxStartDateTimeElement.value, 'yyyy-MM-dd HH:mm:ss', {zone: ZM_TIMEZONE});
+    let minStartDateTime = inputstr2dt(minStartDateTimeElement.value);
+    let maxStartDateTime = inputstr2dt(maxStartDateTimeElement.value);
 
     // If either input is empty or malformed, bail out rather than letting
     // NaN propagate into minTimeSecs/rangeTimeSecs and crash getImageData
@@ -1479,13 +1449,15 @@ function initPage() {
       const server = Servers[monitorServerId[monId]] || Servers[0];
       let scale = parseInt(100 * monitorCanvasObj[monId].width / monitorWidth[monId]);
       scale = Math.max(10, 10 * parseInt(scale / 10));
+      console.log(monId, monitorData);
+      const monitor = monitorData[i];
 
       eventStreams[monId] = new EventStream({
         monitorId: monId,
         monitorWidth: monitorWidth[monId],
         monitorHeight: monitorHeight[monId],
         url: thisUrl,
-        url_to_zms: server.PathToZMS,
+        url_to_zms: monitor?monitor.UrlToZMS:server.PathToZMS,
         canvas: monitorCanvasObj[monId],
         scale: scale
       });

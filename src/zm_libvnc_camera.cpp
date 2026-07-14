@@ -73,11 +73,15 @@ static rfbBool resize(rfbClient* client) {
     av_free(client->frameBuffer);
   }
 
-  int bufferSize = 4*client->width*client->height;
+  size_t bufferSize = static_cast<size_t>(client->width) * client->height * 4;
   // libVNC doesn't do alignment or padding in each line
   //SWScale::GetBufferSize(AV_PIX_FMT_RGBA, client->width, client->height);
   client->frameBuffer = (uint8_t *)av_malloc(bufferSize);
-  Debug(1, "Allocing new frame buffer %dx%d = %d", client->width, client->height, bufferSize);
+  if (!client->frameBuffer) {
+    Error("Failed to allocate %zu byte frame buffer for %dx%d", bufferSize, client->width, client->height);
+    return FALSE;
+  }
+  Debug(1, "Allocing new frame buffer %dx%d = %zu", client->width, client->height, bufferSize);
 
   return TRUE;
 }
@@ -225,28 +229,30 @@ int VncCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   zm_packet->stream = mVideoStream;
 
   uint8_t *directbuffer = zm_packet->image->WriteBuffer(width, height, colours, subpixelorder);
-  Debug(1, "scale src %p, %d, dest %p %d %d %dx%d %dx%d", mVncData.buffer,
-        mRfb->si.framebufferWidth * mRfb->si.framebufferHeight * 4,
+  Debug(1, "scale src %p, %zu, dest %p %zu %d %dx%d %dx%d", mVncData.buffer,
+        static_cast<size_t>(mRfb->si.framebufferWidth) * mRfb->si.framebufferHeight * 4,
         directbuffer,
-        width * height * colours,
+        static_cast<size_t>(width) * height * colours,
         mImgPixFmt,
         mRfb->si.framebufferWidth,
         mRfb->si.framebufferHeight,
         width,
         height);
 
+  // The VNC framebuffer is packed rows (alignment 1); directbuffer is an
+  // Image buffer (WriteBuffer), which is always align-32.
   int rc = scale.Convert(
              mVncData.buffer,
-             mRfb->si.framebufferWidth * mRfb->si.framebufferHeight * 4,
-             //SWScale::GetBufferSize(AV_PIX_FMT_RGBA, mRfb->si.framebufferWidth, mRfb->si.framebufferHeight),
+             static_cast<size_t>(mRfb->si.framebufferWidth) * mRfb->si.framebufferHeight * 4,
              directbuffer,
-             width * height * colours,
+             static_cast<size_t>(width) * height * colours,
              AV_PIX_FMT_RGBA,
              mImgPixFmt,
              mRfb->si.framebufferWidth,
              mRfb->si.framebufferHeight,
              width,
-             height);
+             height,
+             1, 32);
   return rc == 0 ? 1 : rc;
 }
 

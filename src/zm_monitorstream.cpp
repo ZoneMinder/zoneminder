@@ -302,10 +302,8 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
       status_data.analysing = monitor->shared_data->analysing;
       status_data.score = monitor->shared_data->last_frame_score;
 
-      if (playback_buffer > 0)
-        status_data.buffer_level = (MOD_ADD( (temp_write_index-temp_read_index), 0, temp_image_buffer_count )*100)/temp_image_buffer_count;
-      else
-        status_data.buffer_level = 0;
+      status_data.buffer_level =
+          MonitorStreamBufferLevel(temp_write_index, temp_read_index, temp_image_buffer_count);
     }
   } // end monitor_mutex scope
   status_data.delayed = delayed;
@@ -473,7 +471,7 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
       // If the browser disconnected, SIGPIPE (handled by zm_pipe_handler in
       // zms) sets zm_terminate; the fwrite above also returned an error with
       // errno=EPIPE, which we log below before the loop exits cleanly.
-      Debug(1, "Unable to send stream frame: %s, zm_terminate: %d", strerror(errno), zm_terminate);
+      Debug(1, "Unable to send stream frame: %s, zm_terminate: %d", strerror(errno), zm_terminate.load());
       return false;
     }
     fputs("\r\n", stdout);
@@ -532,10 +530,10 @@ void MonitorStream::runStream() {
   }
 
   openComms();
+  // Declared here so it stays in scope for the join() at the end of the
+  // stream loop, but not started until the temporary buffer state below has
+  // been initialised (see the launch after the playback_buffer setup).
   std::thread command_processor;
-  if (connkey) {
-    command_processor = std::thread(&MonitorStream::checkCommandQueue, this);
-  }
 
   if (type == STREAM_JPEG)
     fputs("Content-Type: multipart/x-mixed-replace; boundary=" BOUNDARY "\r\n\r\n", stdout);
@@ -601,6 +599,13 @@ void MonitorStream::runStream() {
     Debug(2, "Not using playback_buffer");
   } // end if connkey && playback_buffer
 
+  // Start the command processor only now that temp_image_buffer_count, the
+  // read/write indices and temp_image_buffer are initialised, so a command
+  // arriving early cannot observe a half-initialised stream (the original
+  // cause of the divide-by-zero in issue #4936).
+  if (connkey) {
+    command_processor = std::thread(&MonitorStream::checkCommandQueue, this);
+  }
 
   while (!zm_terminate) {
     if (feof(stdout)) {
@@ -640,8 +645,10 @@ void MonitorStream::runStream() {
       // Use ttl if set, otherwise default to 60 seconds.
       Seconds wait_timeout = (ttl > Seconds(0)) ? std::chrono::duration_cast<Seconds>(ttl) : Seconds(60);
       if (now - stream_start_time > wait_timeout) {
-        Warning("Timed out waiting for capture daemon after %" PRIi64 " seconds",
-                static_cast<int64>(std::chrono::duration_cast<Seconds>(now - stream_start_time).count()));
+        Debug(1, "Timed out waiting for capture daemon after %" PRIi64 " seconds.  ttl is %" PRIi64,
+                static_cast<int64>(std::chrono::duration_cast<Seconds>(now - stream_start_time).count()),
+                static_cast<int64>(std::chrono::duration_cast<Seconds>(wait_timeout).count())
+                );
         zm_terminate = true;
         continue;
       }
@@ -924,7 +931,8 @@ void MonitorStream::runStream() {
       Debug(3, "Sleeping for %" PRIi64 " us",
             static_cast<int64>(std::chrono::duration_cast<Microseconds>(sleep_time).count()));
     }
-    std::this_thread::sleep_for(sleep_time);
+    if (!zm_terminate)
+      std::this_thread::sleep_for(sleep_time);
 
     if (ttl > Seconds(0) && (now - stream_start_time) > ttl) {
       Debug(2, "now - start > ttl (%" PRIi64 " us). break",

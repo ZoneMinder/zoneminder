@@ -131,11 +131,15 @@ function buildMonitorsFilters() {
   foreach ( array('ServerId','StorageId','Status','Capturing','Analysing','Recording') as $filter ) {
     $filterValue = getFilterSelection($filter);
     if ( $filterValue ) {
+      # Function=None monitors have no Monitor_Status row, so the LEFT JOIN leaves
+      # S.Status NULL. Treat a missing status as NotRunning so that filter matches
+      # them, mirroring the NULL->NotRunning coalesce used for display in console.php.
+      $column = ($filter == 'Status') ? "COALESCE(`Status`, 'NotRunning')" : '`'.$filter.'`';
       if ( is_array($filterValue) ) {
-        $conditions[] = '`'.$filter . '` IN ('.implode(',', array_map(function(){return '?';}, $filterValue)).')';
+        $conditions[] = $column.' IN ('.implode(',', array_map(function(){return '?';}, $filterValue)).')';
         $values = array_merge($values, $filterValue);
       } else {
-        $conditions[] = '`'.$filter . '`=?';
+        $conditions[] = $column.'=?';
         $values[] = $filterValue;
       }
     }

@@ -15,10 +15,15 @@ struct AVFrame;
 struct SwsContext;
 
 // Decodes a monitor's low-res analysis substream (SecondPath) in its own thread
-// and publishes the latest frame as an analysis-ready Image, scaled/converted to
-// the primary camera dimensions.  Used when AnalysisSource=Secondary so that
-// motion detection does not require software-decoding the full-resolution
-// primary stream while nobody is watching live.
+// and publishes the latest decoded frame as an analysis-ready Image at the
+// substream's NATIVE resolution (no scaling to the primary camera dimensions).
+// Depending on the monitor's analysis_image setting the mailbox holds either the
+// raw Y channel (ANALYSISIMAGE_YCHANNEL) or a full-colour, pixel-format-converted
+// image; either way it stays at the substream's own width/height and the consumer
+// (Monitor::getMotionSourceImage) rebuilds zones at that size.  Used when
+// AnalysisSource=Secondary so that motion detection does not require
+// software-decoding the full-resolution primary stream while nobody is watching
+// live.
 //
 // The thread owns its own FFmpeg_Input outright (it must free nothing it did not
 // allocate) and never emits packets into the monitor packetqueue.  On read

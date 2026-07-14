@@ -33,6 +33,14 @@ SecondStreamThread::~SecondStreamThread() {
 void SecondStreamThread::Start() {
   Stop();  // Signal any running thread to terminate first
   if (thread_.joinable()) thread_.join();
+  // Drop the pre-restart frame so the mailbox does not serve a stale image from
+  // the previous connection (e.g. after a reconnect or SecondPath change).  Keep
+  // sequence_ monotonic across restarts: consumers hold last_secondary_sequence
+  // and a reset-to-equal value would read as "no fresh frame".
+  {
+    std::lock_guard<std::mutex> lck(mutex_);
+    have_image_ = false;
+  }
   terminate_ = false;
   thread_ = std::thread(&SecondStreamThread::Run, this);
 }

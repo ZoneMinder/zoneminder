@@ -1350,6 +1350,10 @@ function loadEventData(e) {
       const event_list = {};
       for (let i=0, len = data.events.length; i<len; i++) {
         const ev = data.events[i].Event;
+        // Skip empty events. A capture crash can leave events with no frames
+        // and no end time; there is nothing to review and, reported with an
+        // open end, they overlap real events and confuse event selection.
+        if (!parseInt(ev.Frames)) continue;
         ev.Id = parseInt(ev.Id);
         ev.MonitorId = parseInt(ev.MonitorId);
         event_list[ev.Id] = events[ev.Id] = ev;

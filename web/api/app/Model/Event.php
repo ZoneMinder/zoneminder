@@ -39,7 +39,7 @@ class Event extends AppModel {
   // from painting an event bar across hours/days of no real recording.
   public $virtualFields = array(
     'StartTimeSecs' => 'UNIX_TIMESTAMP(StartDateTime)',
-    'EndTimeSecs' => '(CASE WHEN Event.EndDateTime IS NOT NULL THEN UNIX_TIMESTAMP(Event.EndDateTime) WHEN Event.Length > 0 THEN UNIX_TIMESTAMP(Event.StartDateTime) + Event.Length ELSE UNIX_TIMESTAMP(NOW()) END)',
+    'EndTimeSecs' => '(CASE WHEN Event.EndDateTime IS NOT NULL THEN UNIX_TIMESTAMP(Event.EndDateTime) WHEN Event.Length > 0 THEN UNIX_TIMESTAMP(Event.StartDateTime) + Event.Length ELSE UNIX_TIMESTAMP(Event.StartDateTime) END)',
     'StartTime' => 'StartDateTime',
     'EndTime' => '(CASE WHEN Event.EndDateTime IS NOT NULL THEN Event.EndDateTime WHEN Event.Length > 0 THEN DATE_ADD(Event.StartDateTime, INTERVAL FLOOR(Event.Length) SECOND) ELSE NOW() END)'
   );

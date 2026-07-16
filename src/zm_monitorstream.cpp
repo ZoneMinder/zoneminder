@@ -1013,8 +1013,9 @@ void MonitorStream::SingleImage(int scale) {
   int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
   
   // Validate the timestamp to ensure it's a real frame
-  if (monitor->shared_timestamps[index].tv_sec == 0) {
-    sendTextFrame("Image not yet available.");
+  if (!monitor->shared_data->valid || !monitor->shared_timestamps[index].tv_sec) {
+    Debug(1, "Image slot %d is invalid or not yet decoded. Waiting...", index);
+    sendTextFrame("Image slot not ready");
     return;
   }
 

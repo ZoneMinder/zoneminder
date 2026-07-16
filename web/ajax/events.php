@@ -213,20 +213,22 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   // For events that never wrote EndDateTime (zmc killed/crashed mid-event),
   // fall back to StartDateTime + Length. Length is flushed to the DB every
   // few seconds during recording, so it reflects the actual recorded
-  // duration even when zmc died without closing the event. Falling back to
-  // NOW() would otherwise extend the event across all the down-time.
+  // duration even when zmc died without closing the event. When Length is 0
+  // too (an empty crash-orphaned event), fall back to StartDateTime so the
+  // event has no span; NOW() would otherwise extend it across all the
+  // down-time and overlap every later event.
   $col_str = '
   E.*,
   UNIX_TIMESTAMP(E.StartDateTime) AS StartTimeSecs,
   CASE
     WHEN E.EndDateTime IS NOT NULL THEN E.EndDateTime
     WHEN E.Length > 0 THEN DATE_ADD(E.StartDateTime, INTERVAL FLOOR(E.Length) SECOND)
-    ELSE NOW()
+    ELSE E.StartDateTime
   END AS EndDateTime,
   CASE
     WHEN E.EndDateTime IS NOT NULL THEN UNIX_TIMESTAMP(E.EndDateTime)
     WHEN E.Length > 0 THEN UNIX_TIMESTAMP(E.StartDateTime) + E.Length
-    ELSE UNIX_TIMESTAMP(NOW())
+    ELSE UNIX_TIMESTAMP(E.StartDateTime)
   END AS EndTimeSecs,
   M.Name AS Monitor,
   GROUP_CONCAT(T.Name SEPARATOR ", ") AS Tags';

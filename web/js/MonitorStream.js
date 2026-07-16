@@ -759,9 +759,8 @@ function MonitorStream(monitorData) {
         stream.srcObject = null;
         this.webrtc = null;
       }
-      if (this.hls) {
-        hlsDestroy(this.hls);
-      }
+      if (this.hls) hlsDestroy(this);
+
       if (-1 !== this.activePlayer.indexOf('mse')) {
         this.stopMse();
       }
@@ -1836,7 +1835,7 @@ function MonitorStream(monitorData) {
               // PCM, G.711A, G.711Mu, G.726, G.723 - no audio track
               this.updateStreamInfo('', `Error. AAC codec "${data.audio.codec}" is not supported.`); //HLS
               this.streamErrorRegistration();
-              hlsDestroy(this.hls);
+              hlsDestroy(this);
               this.restart(this.currentChannelStream);
             }
           }, this);
@@ -1848,7 +1847,7 @@ function MonitorStream(monitorData) {
             if (!data || !data.fatal) return;
             this.updateStreamInfo('', 'Error'); //HLS
             this.streamErrorRegistration();
-            hlsDestroy(this.hls);
+            hlsDestroy(this);
             this.restart(this.currentChannelStream);
           }, this);
           this.hls.loadSource(hlsUrl.href);

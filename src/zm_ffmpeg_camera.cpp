@@ -27,6 +27,7 @@
 #include "url.hpp"
 
 #include <thread>
+#include <vector>
 
 extern "C" {
 #include <libavutil/time.h>
@@ -671,73 +672,79 @@ int FfmpegCamera::OpenFfmpeg() {
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
       // 3.2 doesn't seem to have all the bits in place, so let's require 3.4 and up
 #if LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
-      // Print out available types
-      enum AVHWDeviceType type = AV_HWDEVICE_TYPE_NONE;
-      while ((type = av_hwdevice_iterate_types(type)) != AV_HWDEVICE_TYPE_NONE)
-        Debug(1, "%s", av_hwdevice_get_type_name(type));
-
-      const char *hw_name = hwaccel_name.c_str();
-      type = av_hwdevice_find_type_by_name(hw_name);
-      if (type == AV_HWDEVICE_TYPE_NONE) {
-        Debug(1, "Device type %s is not supported.", hw_name);
-      } else {
-        Debug(1, "Found hwdevice %s", av_hwdevice_get_type_name(type));
+      // Build the list of hw device types to try. A DecoderHWAccelName of
+      // "auto" probes every hwaccel libav offers and uses the first that both
+      // the decoder supports and whose device can be created; any other value
+      // is treated as an explicit device-type name (e.g. "vaapi", "cuda").
+      // If nothing usable is found we transparently fall back to software.
+      std::vector<enum AVHWDeviceType> candidate_types;
+      bool auto_detect = (hwaccel_name == "auto");
+      enum AVHWDeviceType it = AV_HWDEVICE_TYPE_NONE;
+      while ((it = av_hwdevice_iterate_types(it)) != AV_HWDEVICE_TYPE_NONE) {
+        Debug(1, "Available hwdevice type %s", av_hwdevice_get_type_name(it));
+        if (auto_detect) candidate_types.push_back(it);
+      }
+      if (!auto_detect) {
+        enum AVHWDeviceType named = av_hwdevice_find_type_by_name(hwaccel_name.c_str());
+        if (named == AV_HWDEVICE_TYPE_NONE)
+          Debug(1, "Device type %s is not supported.", hwaccel_name.c_str());
+        else
+          candidate_types.push_back(named);
       }
 
+      for (enum AVHWDeviceType type : candidate_types) {
+        Debug(1, "Trying hwdevice %s", av_hwdevice_get_type_name(type));
+        hw_pix_fmt = AV_PIX_FMT_NONE;
 #if LIBAVUTIL_VERSION_CHECK(56, 22, 0, 14, 0)
-      // Get hw_pix_fmt
-      for (int i = 0;; i++) {
-        const AVCodecHWConfig *config = avcodec_get_hw_config(mVideoCodec, i);
-        if (!config) {
-          Debug(1, "Decoder %s does not support config %d.",
-              mVideoCodec->name, i);
-          break;
-        }
-        if ((config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX)
-            && (config->device_type == type)
-           ) {
-          hw_pix_fmt = config->pix_fmt;
-          Debug(1, "Decoder %s does support our type %s.",
-              mVideoCodec->name, av_hwdevice_get_type_name(type));
-          //break;
-        } else {
-          Debug(1, "Decoder %s hwConfig doesn't match our type: %s != %s, pix_fmt %s.",
-              mVideoCodec->name,
-              av_hwdevice_get_type_name(type),
-              av_hwdevice_get_type_name(config->device_type),
-              zm_get_pix_fmt_name(config->pix_fmt)
-              );
-        }
-      }  // end foreach hwconfig
+        // Does this decoder advertise a hw config for this device type?
+        for (int i = 0;; i++) {
+          const AVCodecHWConfig *config = avcodec_get_hw_config(mVideoCodec, i);
+          if (!config) break;
+          if ((config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX)
+              && (config->device_type == type)) {
+            hw_pix_fmt = config->pix_fmt;
+            Debug(1, "Decoder %s supports type %s (pix_fmt %s).",
+                mVideoCodec->name, av_hwdevice_get_type_name(type),
+                zm_get_pix_fmt_name(hw_pix_fmt));
+          }
+        }  // end foreach hwconfig
 #else
-      hw_pix_fmt = find_fmt_by_hw_type(type);
+        hw_pix_fmt = find_fmt_by_hw_type(type);
 #endif
-      if (hw_pix_fmt != AV_PIX_FMT_NONE) {
-        Debug(1, "Selected hw_pix_fmt %d %s",
-            hw_pix_fmt, zm_get_pix_fmt_name(hw_pix_fmt));
-
-        mVideoCodecContext->hwaccel_flags |= AV_HWACCEL_FLAG_IGNORE_LEVEL;
-        //if (!lavc_param->check_hw_profile)
-        mVideoCodecContext->hwaccel_flags |= AV_HWACCEL_FLAG_ALLOW_PROFILE_MISMATCH;
+        if (hw_pix_fmt == AV_PIX_FMT_NONE) {
+          Debug(1, "Decoder %s has no hw_pix_fmt for %s, skipping.",
+              mVideoCodec->name, av_hwdevice_get_type_name(type));
+          continue;
+        }
 
         ret = av_hwdevice_ctx_create(&hw_device_ctx, type,
             (hwaccel_device != "" ? hwaccel_device.c_str() : nullptr), nullptr, 0);
-        if (ret < 0 and hwaccel_device != "") {
+        if (ret < 0 and hwaccel_device != "")
           ret = av_hwdevice_ctx_create(&hw_device_ctx, type, nullptr, nullptr, 0);
-        }
         if (ret < 0) {
-          Error("Failed to create hwaccel device. %s", av_make_error_string(ret).c_str());
+          Warning("Failed to create %s hwaccel device: %s",
+              av_hwdevice_get_type_name(type), av_make_error_string(ret).c_str());
           hw_pix_fmt = AV_PIX_FMT_NONE;
-          use_hwaccel = false;
-        } else {
-          Debug(1, "Created hwdevice for %s", hwaccel_device.c_str());
-          // Set opaque to point to our hw_pix_fmt so callback can access it
-          mVideoCodecContext->opaque = &hw_pix_fmt;
-          mVideoCodecContext->get_format = get_hw_format;
-          mVideoCodecContext->hw_device_ctx = av_buffer_ref(hw_device_ctx);
+          hw_device_ctx = nullptr;
+          continue;  // try the next candidate
         }
-      } else {
-        Debug(1, "Failed to find suitable hw_pix_fmt.");
+
+        // Success: wire up hardware decoding and stop searching.
+        Info("Using %s hardware decoding for %s",
+            av_hwdevice_get_type_name(type), mVideoCodec->name);
+        mVideoCodecContext->hwaccel_flags |= AV_HWACCEL_FLAG_IGNORE_LEVEL;
+        //if (!lavc_param->check_hw_profile)
+        mVideoCodecContext->hwaccel_flags |= AV_HWACCEL_FLAG_ALLOW_PROFILE_MISMATCH;
+        // Set opaque to point to our hw_pix_fmt so callback can access it
+        mVideoCodecContext->opaque = &hw_pix_fmt;
+        mVideoCodecContext->get_format = get_hw_format;
+        mVideoCodecContext->hw_device_ctx = av_buffer_ref(hw_device_ctx);
+        break;
+      }  // end foreach candidate type
+
+      if (hw_pix_fmt == AV_PIX_FMT_NONE) {
+        Debug(1, "No usable hardware decoder found; falling back to software decoding.");
+        use_hwaccel = false;
       }
 #else
       Debug(1, "AVCodec not new enough for hwaccel");

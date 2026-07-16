@@ -762,6 +762,7 @@ function redrawScreen() {
     fit.text('fit');
     setScale(currentScale);
   }
+  updateStreamScales(); // fit mode resizes canvases via maxfit2, bypassing setScale
   timerFire(); // force a fire in case it's not timing. timerFirst will call outputUpdate
 } // end function redrawScreen
 
@@ -917,6 +918,29 @@ function setScale(newscale) {
     monitorCanvasObj[monitorPtr[i]].height = monitorHeight[monitorPtr[i]]*monitorNormalizeScale[monitorPtr[i]]*monitorZoomScale[monitorPtr[i]]*newscale;
   }
   currentScale = newscale;
+  updateStreamScales();
+}
+
+// Percentage of the monitor's native size needed to fill its canvas. Streaming
+// larger than the canvas spends bandwidth and decode time on pixels that are
+// thrown away on the way to the canvas.
+function streamScaleForMonitor(monId) {
+  const canvasObj = monitorCanvasObj[monId];
+  if (!canvasObj || !monitorWidth[monId]) return 100;
+  const scale = 10 * parseInt(parseInt(100 * canvasObj.width / monitorWidth[monId]) / 10); // Round to nearest 10
+  return Math.min(100, Math.max(10, scale));
+}
+
+// Canvas sizes change with the scale slider, fit mode and zoom, and the canvas
+// starts out at the monitor's native size, so the scale a stream was created
+// with goes stale. Push the current size to the streams.
+function updateStreamScales() {
+  for (let i = 0; i < numMonitors; i++) {
+    const monId = monitorPtr[i];
+    if (!eventStreams[monId]) continue;
+    const scale = streamScaleForMonitor(monId);
+    if (scale != eventStreams[monId].scale) eventStreams[monId].setScale(scale);
+  }
 }
 
 function showSpeed(val) {
@@ -1447,19 +1471,18 @@ function initPage() {
       const monId = monitorPtr[i];
       if (!monId || !monitorCanvasObj[monId]) continue;
       const server = Servers[monitorServerId[monId]] || Servers[0];
-      let scale = parseInt(100 * monitorCanvasObj[monId].width / monitorWidth[monId]);
-      scale = Math.max(10, 10 * parseInt(scale / 10));
-      console.log(monId, monitorData);
       const monitor = monitorData[i];
 
       eventStreams[monId] = new EventStream({
         monitorId: monId,
         monitorWidth: monitorWidth[monId],
         monitorHeight: monitorHeight[monId],
-        url: thisUrl,
+        url: monitor?monitor.Url:thisUrl,
         url_to_zms: monitor?monitor.UrlToZMS:server.PathToZMS,
         canvas: monitorCanvasObj[monId],
-        scale: scale
+        // Canvases are still at their native size here; redrawScreen() sizes
+        // them and updateStreamScales() corrects this before the first start().
+        scale: streamScaleForMonitor(monId)
       });
 
       // Draw zoom +/- icons after each frame

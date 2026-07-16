@@ -8,6 +8,7 @@ var wait_for_events_interval = null;
 var eventStreams = {}; // EventStream instances keyed by monitorId
 var eventStreamsActive = false; // True when using EventStream mode
 var isScrubbing = false; // True during mouse drag on timeline
+var lastTimerFireMs = 0; // Epoch ms of the previous timerFire, to advance the clock by real elapsed time
 var streamDriftThreshold = 2; // Seconds of drift before we seek to correct
 var lastDriftCorrection = {}; // Epoch ms of last drift correction per monitorId
 var driftCorrectionCooldown = 3000; // ms to wait between drift corrections
@@ -472,15 +473,24 @@ function timerFire() {
     timerInterval = currentDisplayInterval;
   }
 
+  // Advance by the time that actually elapsed rather than by the nominal
+  // interval. setInterval fires late under load, so accumulating the nominal
+  // value lets our clock fall behind real time. The zms streams play at real
+  // time, so that gap shows up as drift and gets corrected by a seek, which
+  // is visible as a jump. lastTimerFireMs is reset whenever playback starts
+  // or the speed changes, so a resume doesn't replay the paused time.
+  const nowMs = Date.now();
+  const playSecs = lastTimerFireMs ? currentSpeed * (nowMs - lastTimerFireMs) / 1000 : 0;
+  lastTimerFireMs = nowMs;
+
   if (liveMode) {
     //outputUpdate(currentTimeSecs); // In live mode we basically do nothing but redisplay
-  } else if (currentTimeSecs + playSecsPerInterval >= maxTimeSecs) {
+  } else if (currentTimeSecs + playSecs >= maxTimeSecs) {
     // beyond the end just stop
     if (speedIndex) setSpeed(0);
     //outputUpdate(currentTimeSecs);
-  } else if (playSecsPerInterval || (currentTimeSecs==minTimeSecs)) {
-    currentTimeSecs = playSecsPerInterval + currentTimeSecs;
-    //outputUpdate(playSecsPerInterval + currentTimeSecs);
+  } else if (playSecs || (currentTimeSecs==minTimeSecs)) {
+    currentTimeSecs = playSecs + currentTimeSecs;
   } else {
     // console.log("Not updating");
   }
@@ -970,7 +980,7 @@ function setSpeed(speed_index) {
   }
   currentSpeed = parseFloat(speeds[speed_index]);
   speedIndex = speed_index;
-  playSecsPerInterval = currentSpeed * currentDisplayInterval / 1000;
+  lastTimerFireMs = Date.now(); // don't count time spent at the previous speed at the new one
   setCookie('speed', currentSpeed);
   showSpeed(speed_index);
 

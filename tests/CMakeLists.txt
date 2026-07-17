@@ -25,6 +25,7 @@ set(TEST_SOURCES
   zm_pixformat.cpp
   zm_swscale_range.cpp
   zm_poly.cpp
+  zm_secondary_sync.cpp
   zm_time.cpp
   zm_utils.cpp
   zm_vector2.cpp

@@ -73,18 +73,21 @@ void Zone::Setup(
   overload_count = 0;
   extend_alarm_count = 0;
 
-  pg_image = new Image(monitor->Width(), monitor->Height(), 1, ZM_SUBPIX_ORDER_NONE);
+  // Build the polygon mask/ranges at the analysis resolution (== camera size for
+  // primary analysis, but the substream's native size for AnalysisSource=Secondary)
+  // so the zone matches the image DetectMotion actually operates on.
+  pg_image = new Image(monitor->AnalysisWidth(), monitor->AnalysisHeight(), 1, ZM_SUBPIX_ORDER_NONE);
   pg_image->Clear();
   pg_image->Fill(0xff, polygon);
   pg_image->Outline(0xff, polygon);
 
-  ranges = new Range[monitor->Height()];
-  for ( unsigned int y = 0; y < monitor->Height(); y++ ) {
+  ranges = new Range[monitor->AnalysisHeight()];
+  for ( unsigned int y = 0; y < monitor->AnalysisHeight(); y++ ) {
     ranges[y].lo_x = -1;
     ranges[y].hi_x = 0;
     ranges[y].off_x = 0;
     const uint8_t *ppoly = pg_image->Buffer( 0, y );
-    for ( unsigned int x = 0; x < monitor->Width(); x++, ppoly++ ) {
+    for ( unsigned int x = 0; x < monitor->AnalysisWidth(); x++, ppoly++ ) {
       if ( *ppoly ) {
         if ( ranges[y].lo_x == -1 ) {
           ranges[y].lo_x = x;
@@ -997,7 +1000,7 @@ std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
     Polygon polygon;
     if (strchr(Coords, '.')) {
       // Decimal values present — treat as percentages regardless of Units field
-      if (!ParsePercentagePolygon(Coords, monitor->Width(), monitor->Height(), polygon)) {
+      if (!ParsePercentagePolygon(Coords, monitor->AnalysisWidth(), monitor->AnalysisHeight(), polygon)) {
         Error("Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring",
               Coords, Id, Name, monitor->Name());
         continue;
@@ -1192,8 +1195,10 @@ Zone::Zone(const Zone &z) :
   diag_path(z.diag_path) {
   std::copy(z.blob_stats, z.blob_stats+256, blob_stats);
   pg_image = z.pg_image ? new Image(*z.pg_image) : nullptr;
-  ranges = new Range[monitor->Height()];
-  std::copy(z.ranges, z.ranges+monitor->Height(), ranges);
+  // ranges is sized to the analysis resolution (see Setup), which is what the
+  // source zone was built at - copying monitor->Height() here would over-read.
+  ranges = new Range[monitor->AnalysisHeight()];
+  std::copy(z.ranges, z.ranges+monitor->AnalysisHeight(), ranges);
   image = z.image ? new Image(*z.image) : nullptr;
   //z.stats.debug("Copy Source");
   stats.DumpToLog("Copy dest");

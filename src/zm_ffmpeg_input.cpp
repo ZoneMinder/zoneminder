@@ -38,11 +38,11 @@ int FFmpeg_Input::Open(
   return 1;
 }
 
-int FFmpeg_Input::Open(const char *filepath) {
+int FFmpeg_Input::Open(const char *filepath, AVDictionary **options) {
   int error;
 
   /** Open the input file to read from it. */
-  error = avformat_open_input(&input_format_context, filepath, nullptr, nullptr);
+  error = avformat_open_input(&input_format_context, filepath, nullptr, options);
   if ( error < 0 ) {
     if (std::string(filepath).find("incomplete") != std::string::npos) {
       Warning("Could not open input file '%s' (error '%s')",
@@ -97,6 +97,12 @@ int FFmpeg_Input::Open(const char *filepath) {
     std::list<const CodecData *>codec_data = get_decoder_data(input_format_context->streams[i]->codecpar->codec_id, "auto");
     for (auto it = codec_data.begin(); it != codec_data.end(); it ++) {
       const CodecData *chosen_codec_data = *it;
+#if HAVE_LIBAVUTIL_HWCONTEXT_H && LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
+      if (no_hwaccel and (chosen_codec_data->hwdevice_type != AV_HWDEVICE_TYPE_NONE)) {
+        Debug(1, "Skipping hardware codec %s (software decoding forced)", chosen_codec_data->codec_name);
+        continue;
+      }
+#endif
       Debug(1, "Found codec %s", chosen_codec_data->codec_name);
 
       streams[i].codec = avcodec_find_decoder_by_name(chosen_codec_data->codec_name);

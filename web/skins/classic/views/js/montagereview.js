@@ -357,13 +357,7 @@ function getImageSource(monId, time) {
       return;
     }
 
-    let scale = parseInt(100 * monitorCanvasObj[monId].width / monitorWidth[monId]);
-    if (scale > 100) {
-      scale = 100;
-    } else {
-      scale = 10 * parseInt(scale/10); // Round to nearest 10
-      // May need to limit how small we can go to maintain fidelity
-    }
+    const scale = streamScaleForMonitor(monId);
 
     // Storage[0] is guaranteed to exist as we make sure it is there in montagereview.js.php
     const storage = Storage[e.StorageId] ? Storage[e.StorageId] : Storage[0];
@@ -931,13 +925,15 @@ function setScale(newscale) {
   updateStreamScales();
 }
 
-// Percentage of the monitor's native size needed to fill its canvas. Streaming
-// larger than the canvas spends bandwidth and decode time on pixels that are
-// thrown away on the way to the canvas.
+// Percentage of the monitor's native size needed to fill its canvas. Rounded
+// UP to the next 10 so the streamed image is at least the canvas size:
+// rounding down makes zms send fewer pixels than the canvas shows, and the
+// browser then upscales the image, blurring it. Streaming much larger than the
+// canvas would instead waste bandwidth and decode time on pixels thrown away.
 function streamScaleForMonitor(monId) {
   const canvasObj = monitorCanvasObj[monId];
   if (!canvasObj || !monitorWidth[monId]) return 100;
-  const scale = 10 * parseInt(parseInt(100 * canvasObj.width / monitorWidth[monId]) / 10); // Round to nearest 10
+  const scale = 10 * Math.ceil(100 * canvasObj.width / monitorWidth[monId] / 10);
   return Math.min(100, Math.max(10, scale));
 }
 

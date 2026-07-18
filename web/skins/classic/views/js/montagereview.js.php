@@ -37,7 +37,6 @@ var lastSpeedIndex=0;
 // for history, and fps for live, and dynamically determined (in ms)
 
 var currentDisplayInterval=<?php echo $initialDisplayInterval?>;
-var playSecsPerInterval=1;       // How many seconds of recorded image we play per refresh determined by speed (replay rate) and display interval; (default=1 if coming from live)
 var timerInterval;               // milliseconds between interrupts
 var timerObj;                    // object to hold timer interval;
 var freeTimeLastIntervals=[];    // Percentage of current interval used in loading most recent image

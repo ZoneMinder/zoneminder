@@ -105,7 +105,7 @@ class ConfigsController extends AppController {
  */
 	public function edit($id = null) {
 		global $user;
-		$canEdit = (!$user) || ($user['System'] == 'Edit');
+		$canEdit = (!$user) || ($user->System() == 'Edit');
 		if (!$canEdit) {
 			throw new UnauthorizedException(__('Insufficient privileges'));
 			return;
@@ -143,7 +143,7 @@ class ConfigsController extends AppController {
  */
 	public function delete($id = null) {
 		global $user;
-		$canEdit = (!$user) || ($user['System'] == 'Edit');
+		$canEdit = (!$user) || ($user->System() == 'Edit');
 		if (!$canEdit) {
 			throw new UnauthorizedException(__('Insufficient privileges'));
 			return;

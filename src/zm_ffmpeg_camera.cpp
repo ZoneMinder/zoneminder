@@ -675,8 +675,10 @@ int FfmpegCamera::OpenFfmpeg() {
       // Build the list of hw device types to try. A DecoderHWAccelName of
       // "auto" probes every hwaccel libav offers and uses the first that both
       // the decoder supports and whose device can be created; any other value
-      // is treated as an explicit device-type name (e.g. "vaapi", "cuda").
-      // If nothing usable is found we transparently fall back to software.
+      // is a comma-separated priority list of device-type names, tried in
+      // order (e.g. "cuda,vaapi"; a single name like "vaapi" is just the
+      // one-element case and behaves as before). If nothing usable is found
+      // we transparently fall back to software.
       std::vector<enum AVHWDeviceType> candidate_types;
       bool auto_detect = (hwaccel_name == "auto");
       enum AVHWDeviceType it = AV_HWDEVICE_TYPE_NONE;
@@ -685,11 +687,15 @@ int FfmpegCamera::OpenFfmpeg() {
         if (auto_detect) candidate_types.push_back(it);
       }
       if (!auto_detect) {
-        enum AVHWDeviceType named = av_hwdevice_find_type_by_name(hwaccel_name.c_str());
-        if (named == AV_HWDEVICE_TYPE_NONE)
-          Debug(1, "Device type %s is not supported.", hwaccel_name.c_str());
-        else
-          candidate_types.push_back(named);
+        for (const std::string &token : Split(hwaccel_name, ',')) {
+          std::string name = TrimSpaces(token);
+          if (name.empty()) continue;
+          enum AVHWDeviceType named = av_hwdevice_find_type_by_name(name.c_str());
+          if (named == AV_HWDEVICE_TYPE_NONE)
+            Warning("Unknown hwaccel device type '%s', skipping.", name.c_str());
+          else
+            candidate_types.push_back(named);
+        }
       }
 
       for (enum AVHWDeviceType type : candidate_types) {
@@ -772,6 +778,11 @@ int FfmpegCamera::OpenFfmpeg() {
     zm_dump_codec(mVideoCodecContext);
     break;
   } // end foreach codec
+
+  if (!mVideoCodecContext) {
+    Debug(1, "Failed with known codecs, trying harder");
+    mVideoCodecContext = open_fallback_decoder(mVideoStream->codecpar, &mVideoCodec);
+  }
 
   if (!mVideoCodecContext) {
     Warning("Failed to open codec");

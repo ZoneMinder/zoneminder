@@ -296,9 +296,12 @@ getBodyTopHTML();
     <input type="hidden" name="view" value="montagereview"/>
     <div id="header">
 <?php
-$filter_inline = defined('ZM_WEB_FILTER_SETTINGS_POSITION') && ZM_WEB_FILTER_SETTINGS_POSITION == 'inline';
+$filter_inline = filterSettingsInline();
 $html = '';
-if (!$filter_inline) {
+// In inline mode the filter panel sits at the top of the page and this flip
+// icon is what hides/shows it. In sidebar mode the panel lives in the sidebar
+// extruder, which has its own show/hide control, so the flip icon is omitted.
+if ($filter_inline) {
   $html .= '<a class="flip" href="#"
            data-flip-control-object="#mfbpanel"
            data-flip-control-run-after-func="applyChosen drawGraph"

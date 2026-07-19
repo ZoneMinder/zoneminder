@@ -296,7 +296,7 @@ getBodyTopHTML();
     <input type="hidden" name="view" value="montagereview"/>
     <div id="header">
 <?php
-$filter_inline = defined('ZM_WEB_FILTER_SETTINGS_POSITION') && ZM_WEB_FILTER_SETTINGS_POSITION == 'inline';
+$filter_inline = filterSettingsInline();
 $html = '';
 // In inline mode the filter panel sits at the top of the page and this flip
 // icon is what hides/shows it. In sidebar mode the panel lives in the sidebar

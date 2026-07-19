@@ -3159,7 +3159,7 @@ bool Monitor::Decode() {
       (decoding == DECODING_ALWAYS) ||
       (decoding == DECODING_KEYFRAMES) ||
       ((decoding == DECODING_ONDEMAND) && (hasViewers() || shared_data->last_write_index == image_buffer_count)) ||
-      ((decoding == DECODING_KEYFRAMESONDEMAND) && hasViewers());
+      ((decoding == DECODING_KEYFRAMESONDEMAND) && (hasViewers() || decoder_requires_next_packet));
 
     if (!needs_decoding) {
       Debug(1, "Flushing decoder in phase 1: %zu packets queued but decoding no longer needed",
@@ -3180,11 +3180,16 @@ bool Monitor::Decode() {
       auto front_packet = front_lock.packet_;
 
       int ret = front_packet->receive_frame(context);
+      Debug(2, "RECV packet=%d ret=%d", front_packet->image_index, ret);
       if (ret > 0) {
         // Success - got a decoded frame, take ownership and process it
         packet_lock = std::move(decoder_queue.front());
         decoder_queue.pop_front();
+        Debug(2, "QUEUE POP size=%zu", decoder_queue.size());
         packet = front_packet;
+        if ((decoding == DECODING_KEYFRAMES || (decoding == DECODING_KEYFRAMESONDEMAND && !hasViewers())) && decoder_requires_next_packet ) {
+          decoder_requires_next_packet  = false;
+        }
         Debug(2, "Received frame for packet %d", packet->image_index);
         // Continue to PHASE 3 (frame processing)
       } else if (ret < 0) {
@@ -3230,12 +3235,16 @@ bool Monitor::Decode() {
     }
 
     // Check if this packet needs to be sent to the decoder
+    if ((decoding == DECODING_KEYFRAMES || (decoding == DECODING_KEYFRAMESONDEMAND && !hasViewers())) && packet->keyframe) {
+      decoder_requires_next_packet = true;
+      Debug(2, "Decoder requires follow-up packets after keyframe %d", packet->image_index);
+    }
     bool already_decoded = packet->image || packet->in_frame || !packet->packet->size;
     bool should_decode = !already_decoded && (
       (decoding == DECODING_ALWAYS) ||
       ((decoding == DECODING_ONDEMAND) && (hasViewers() || shared_data->last_write_index == image_buffer_count)) ||
-      ((decoding == DECODING_KEYFRAMES) && packet->keyframe) ||
-      ((decoding == DECODING_KEYFRAMESONDEMAND) && (hasViewers() || packet->keyframe))
+      ((decoding == DECODING_KEYFRAMES) && (packet->keyframe || decoder_requires_next_packet)) ||
+      ((decoding == DECODING_KEYFRAMESONDEMAND) && (hasViewers() || packet->keyframe || decoder_requires_next_packet))
     );
 
     if (!should_decode && !decoder_queue.empty()) {
@@ -3256,10 +3265,21 @@ bool Monitor::Decode() {
     }
 
     if (should_decode) {
-      Debug(2, "Sending packet %d to decoder", packet->image_index);
-
+      Debug(2,
+        "Sending packet=%d to decoder "
+        "key=%d "
+        "flags=0x%x "
+        "pts=%lld "
+        "dts=%lld",
+        packet->image_index,
+        packet->keyframe,
+        packet->packet->flags,
+        (long long)packet->packet->pts,
+        (long long)packet->packet->dts
+      );
       SystemTimePoint starttime = std::chrono::system_clock::now();
       int ret = packet->send_packet(context);
+      Debug(2, "SEND RESULT packet=%d ret=%d", packet->image_index, ret);
       SystemTimePoint endtime = std::chrono::system_clock::now();
 
       // Warn if send_packet is taking too long
@@ -3285,6 +3305,7 @@ bool Monitor::Decode() {
 
       // Success - packet sent to decoder, queue it for receive later
       decoder_queue.push_back(std::move(packet_lock));
+      Debug(2, "QUEUE PUSH size=%zu", decoder_queue.size());
       packetqueue.increment_it(decoder_it, false);
       return true;  // Frame will be received on a future call
     }
@@ -3299,24 +3320,6 @@ bool Monitor::Decode() {
     // between keyframe decodes.
     if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
       shared_data->last_write_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-
-      // Update last_write_index to point to the most recent keyframe
-      // even when the frame hasn't been fully decoded to the image buffer.
-      // This allows mode=single snapshots to always return the latest available
-      // image (a keyframe), while only decoding full frames when needed.
-      if ((decoding == DECODING_KEYFRAMES || decoding == DECODING_KEYFRAMESONDEMAND) && packet->keyframe) {
-        unsigned int kf_index = packet->image_index % image_buffer_count;
-        // Only update if this is a newer keyframe than what last_write_index currently points to
-        int current_write_index = shared_data->last_write_index % image_buffer_count;
-        if (kf_index != current_write_index) {
-          Debug(2, "Updating last_write_index to keyframe index %u (was %u, packet %d)", 
-                kf_index, current_write_index, packet->image_index);
-          // Update timestamp to signal freshness
-          shared_timestamps[kf_index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
-          // Update index as atomic final step
-          shared_data->last_write_index = kf_index;
-        }
-      }
     }
   }
 
@@ -3433,17 +3436,12 @@ bool Monitor::Decode() {
     // Write to shared image buffer.
     unsigned int index = (shared_data->last_write_index + 1) % image_buffer_count;
     decoding_image_count++;
+    Debug(2, "SHM WRITE packet=%d index=%d", packet->image_index, packet->image_index % image_buffer_count);
     WriteShmFrame(index, capture_image);
     shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
     shared_data->signal = signal_check_points ? CheckSignal(capture_image) : true;
     shared_data->last_write_index = index;
     shared_data->last_write_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-
-    // NEW: Track last decoded keyframe for mode=single snapshots
-    if (packet->keyframe) {
-      last_keyframe_index = index;
-      Debug(2, "Updated last_keyframe_index to %d (packet %d)", index, packet->image_index);
-    }
 
     // Warn if falling behind
     auto lag = std::chrono::system_clock::now() - packet->timestamp;

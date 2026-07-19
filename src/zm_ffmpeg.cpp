@@ -149,6 +149,33 @@ std::list<const CodecData*> get_decoder_data(int wanted_codec, const std::string
   return results;
 }
 
+AVCodecContext *open_fallback_decoder(const AVCodecParameters *codecpar, const AVCodec **codec_out) {
+  const AVCodec *codec = avcodec_find_decoder(codecpar->codec_id);
+  if (!codec) {
+    Debug(1, "No fallback decoder available for codec %s",
+        avcodec_get_name(codecpar->codec_id));
+    return nullptr;
+  }
+  Debug(1, "Trying fallback decoder %s for codec %s",
+      codec->name, avcodec_get_name(codecpar->codec_id));
+  AVCodecContext *ctx = avcodec_alloc_context3(codec);
+  if (!ctx) {
+    Error("Failed to allocate context for fallback decoder %s", codec->name);
+    return nullptr;
+  }
+  avcodec_parameters_to_context(ctx, codecpar);
+  zm_dump_codec(ctx);
+  int ret = avcodec_open2(ctx, codec, nullptr);
+  if (ret < 0) {
+    Error("Could not open fallback decoder %s (error '%s')",
+        codec->name, av_make_error_string(ret).c_str());
+    avcodec_free_context(&ctx);
+    return nullptr;
+  }
+  if (codec_out) *codec_out = codec;
+  return ctx;
+}
+
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
 

@@ -780,6 +780,11 @@ int FfmpegCamera::OpenFfmpeg() {
   } // end foreach codec
 
   if (!mVideoCodecContext) {
+    Debug(1, "Failed with known codecs, trying harder");
+    mVideoCodecContext = open_fallback_decoder(mVideoStream->codecpar, &mVideoCodec);
+  }
+
+  if (!mVideoCodecContext) {
     Warning("Failed to open codec");
     return -1;
   }

@@ -348,6 +348,18 @@ class EventsController extends AppController {
       throw new NotFoundException(__('Invalid event'));
     }
 
+    # Events=Edit is coarse. Enforce the per-monitor ACL too, otherwise a user
+    # denied a monitor can still mutate that monitor's events by direct Id.
+    $this->Event->recursive = -1;
+    $event = $this->Event->find('first', array(
+      'conditions' => array('Event.' . $this->Event->primaryKey => $id)
+    ));
+    $EventObj = new ZM\Event($event['Event']);
+    if ( !$EventObj->canEdit() ) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+      return;
+    }
+
     if ( $this->Event->save($this->request->data) ) {
       $message = 'Saved';
     } else {
@@ -379,6 +391,19 @@ class EventsController extends AppController {
       throw new NotFoundException(__('Invalid event'));
     }
     $this->request->allowMethod('post', 'delete');
+
+    # Events=Edit is coarse. Enforce the per-monitor ACL too, otherwise a user
+    # denied a monitor can still delete that monitor's events by direct Id.
+    $this->Event->recursive = -1;
+    $event = $this->Event->find('first', array(
+      'conditions' => array('Event.' . $this->Event->primaryKey => $id)
+    ));
+    $EventObj = new ZM\Event($event['Event']);
+    if ( !$EventObj->canEdit() ) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+      return;
+    }
+
     if ( $this->Event->delete() ) {
       //$this->loadModel('Frame');
       //$this->Event->Frame->delete();

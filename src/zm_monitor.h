@@ -34,6 +34,7 @@
 #include "zm_utils.h"
 #include "zm_zone.h"
 
+#include <atomic>
 #include <list>
 #include <memory>
 #include <sys/time.h>
@@ -727,6 +728,12 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   Image        delta_image;
   Image        ref_image;
+  // ref_image is owned by the analysis thread (Analyse/DetectMotion). The
+  // capture thread (CheckAction) must not touch its buffer directly; on
+  // suspend-resume it sets this flag instead and the analysis thread drops the
+  // stale reference itself on its next pass. Prevents a use-after-free/null
+  // deref race in Image::Delta (refs #4983).
+  std::atomic<bool> ref_image_reset_{false};
   // Analysis image ring: the annotated/analysis image is published into a ring
   // of image_buffer_count slots living in the alarm_images SHM region. Readers
   // pick up the newest via shared_data->last_analysis_index. Replaces the

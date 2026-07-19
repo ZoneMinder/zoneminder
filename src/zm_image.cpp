@@ -2392,6 +2392,15 @@ bool Image::Delta(const Image &image, Image* targetimage) const {
     return false;
   }
 
+  // DumpImgBuffer() nulls buffer while leaving width/height/colours intact, so
+  // the size check above is no guarantee the pixels are present. Without this a
+  // dumped reference image (e.g. dropped on resume) walks the delta helpers from
+  // a null base pointer and faults at address 0 on the first row (refs #4983).
+  if ( buffer == nullptr || image.buffer == nullptr ) {
+    Error("Attempt to get delta with a null buffer (this %p, other %p)", buffer, image.buffer);
+    return false;
+  }
+
   uint8_t *pdiff = targetimage->WriteBuffer(width, height, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE);
   if ( pdiff == nullptr ) {
     Error("Failed requesting writeable buffer for storing the delta image");

@@ -3128,6 +3128,7 @@ bool Monitor::applyDeinterlacing(std::shared_ptr<ZMPacket> &packet, Image *captu
 void Monitor::flushDecoderQueue() {
   // Called from DecoderThread::Run() as the decoder thread exits, so no
   // concurrent access to decoder_queue: the thread that mutates it is us.
+  decoder_requires_next_packet  = false;
   if (decoder_queue.empty()) return;
   Debug(1, "Flushing %zu in-flight entries from decoder_queue", decoder_queue.size());
   for (auto &lock : decoder_queue) {

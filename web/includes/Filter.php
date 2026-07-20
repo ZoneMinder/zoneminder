@@ -1142,6 +1142,22 @@ class Filter extends ZM_Object {
     return $html;
   }  # end function widget()
 
+  // Decode a multi-value term value or cookie into an array of ids/strings.
+  // Cookies are written JSON-encoded by skin.js setCookie(), but legacy cookies
+  // (and pasted values) may be plain comma-separated, so fall back to explode.
+  static function decode_multi($raw) {
+    if ($raw === null or $raw === '')
+      return array();
+    if (is_array($raw))
+      return $raw;
+    $decoded = json_decode($raw, true);
+    if (is_array($decoded))
+      return $decoded;
+    if ($decoded !== null)  # scalar JSON value like a bare number
+      return array($decoded);
+    return explode(',', $raw);
+  }
+
   //
   // This displays filters from the events page.
   //
@@ -1269,11 +1285,17 @@ class Filter extends ZM_Object {
           $html .= $this->addButtonForFilterSelect("filter[Query][terms][$i][val]");
           $html .= '</span>';
         } else if ( $term['attr'] == 'Group') {
+          $selected = self::decode_multi($term['val']);
+          $attrs = ['class'=>'term-value chosen chosen-auto-width',
+            'multiple'=>'multiple',
+            'data-placeholder'=>translate('All Groups')];
+          if (isset($term['cookie'])) {
+            $attrs['data-cookie'] = $term['cookie'];
+            if (!$selected and isset($_COOKIE[$term['cookie']]))
+              $selected = self::decode_multi($_COOKIE[$term['cookie']]);
+          }
           $html .= '<span class="term-value-wrapper">';
-          $html .= htmlSelect("filter[Query][terms][$i][val]", Group::get_dropdown_options(), $term['val'],
-            ['class'=>'term-value chosen chosen-auto-width',
-            'multiple'=>'multiple', 
-            'data-placeholder'=>translate('All Groups')]).PHP_EOL;
+          $html .= htmlSelect("filter[Query][terms][$i][val]", Group::get_dropdown_options(), $selected, $attrs).PHP_EOL;
           $html .= $this->addButtonForFilterSelect("filter[Query][terms][$i][val]");
           $html .= '</span>';
         } else if ( $term['attr'] == 'StateId' ) {
@@ -1293,17 +1315,14 @@ class Filter extends ZM_Object {
               $monitors[$m->Id()] = $m->Id().' '.validHtmlStr($m->Name());
             }
           }
-          $selected = explode(',', $term['val']);
+          $selected = self::decode_multi($term['val']);
           // echo '<pre>Monitor selected: '; print_r($selected); echo '</pre>';
-          if (count($selected) == 1 and !$selected[0]) {
-            $selected = null;
-          }
           $options = ['class'=>'term-value chosen chosen-auto-width', 'multiple'=>'multiple', 'data-placeholder'=>translate('All Monitors')];
           if (isset($term['cookie'])) {
             $options['data-cookie'] = $term['cookie'];
 
-            if (!$selected and isset($_COOKIE[$term['cookie']]) and $_COOKIE[$term['cookie']])
-              $selected = explode(',', $_COOKIE[$term['cookie']]);
+            if (!$selected and isset($_COOKIE[$term['cookie']]))
+              $selected = self::decode_multi($_COOKIE[$term['cookie']]);
           }
           $html .= '<span class="term-value-wrapper">';
           $html .= htmlSelect("filter[Query][terms][$i][val]", $monitors, $selected, $options).PHP_EOL;
@@ -1344,15 +1363,12 @@ class Filter extends ZM_Object {
           $html .= $this->addButtonForFilterSelect("filter[Query][terms][$i][val]");
         } else if ( $term['attr'] == 'Notes' ) {
           $attrs = ['id'=>'filterNotes', 'class'=>'term-value chosen chosen-auto-width', 'multiple'=>'multiple', 'data-placeholder'=>translate('Event Type')];
-          $selected = explode(',', $term['val']);
-          if (count($selected) == 1 and !$selected[0]) {
-            $selected = null;
-          }
+          $selected = self::decode_multi($term['val']);
           if (isset($term['cookie'])) {
             $attrs['data-cookie'] = $term['cookie'];
 
-            if (!$selected and isset($_COOKIE[$term['cookie']]) and $_COOKIE[$term['cookie']])
-              $selected = explode(',', $_COOKIE[$term['cookie']]);
+            if (!$selected and isset($_COOKIE[$term['cookie']]))
+              $selected = self::decode_multi($_COOKIE[$term['cookie']]);
           }
           $options = [
             'Motion' => 'Motion',

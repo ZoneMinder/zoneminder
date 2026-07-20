@@ -3140,7 +3140,7 @@ bool Monitor::applyDeinterlacing(std::shared_ptr<ZMPacket> &packet, Image *captu
 void Monitor::flushDecoderQueue() {
   // Called from DecoderThread::Run() as the decoder thread exits, so no
   // concurrent access to decoder_queue: the thread that mutates it is us.
-  decoder_requires_next_packet  = false;
+  decoder_requires_next_packet = false;
   if (decoder_queue.empty()) return;
   Debug(1, "Flushing %zu in-flight entries from decoder_queue", decoder_queue.size());
   for (auto &lock : decoder_queue) {
@@ -3199,7 +3199,7 @@ bool Monitor::Decode() {
         decoder_queue.pop_front();
         packet = front_packet;
         if ((decoding == DECODING_KEYFRAMES || (decoding == DECODING_KEYFRAMESONDEMAND && !hasViewers())) && decoder_requires_next_packet ) {
-          decoder_requires_next_packet  = false;
+          decoder_requires_next_packet = false;
         }
         Debug(2, "Received frame for packet %d, decoder queue pop size=%zu", packet->image_index, decoder_queue.size());
         // Continue to PHASE 3 (frame processing)
@@ -3285,13 +3285,14 @@ bool Monitor::Decode() {
         (long long)packet->packet->dts
       );
       SystemTimePoint starttime = std::chrono::system_clock::now();
+      bool waiting_for_followup = decoder_requires_next_packet;
       int ret = packet->send_packet(context);
       SystemTimePoint endtime = std::chrono::system_clock::now();
 
       // Warn if send_packet is taking too long
       int fps = static_cast<int>(get_capture_fps());
       Milliseconds warning_threshold;
-      if (decoder_requires_next_packet) {
+      if (waiting_for_followup) {
         // Keyframe-only modes may legitimately wait for the next packets
         // before the decoder can output a frame.
         warning_threshold = Milliseconds(500);
@@ -3303,11 +3304,13 @@ bool Monitor::Decode() {
 
       if ((endtime - starttime > warning_threshold) && Logger::fetch()->debugOn()) {
         Warning(
-            "send_packet %d is too slow: %.3f seconds "
-            "(waiting for follow-up packets after keyframe). "
+            "send_packet %d is too slow: %.3f seconds%s. "
             "Capture fps=%d, queue size=%zu, keyframe interval=%d, ret=%d",
             packet->image_index,
             FPSeconds(endtime - starttime).count(),
+            waiting_for_followup
+                ? " (waiting for follow-up packets after keyframe)"
+                : "",
             fps,
             decoder_queue.size(),
             packetqueue.get_max_keyframe_interval(),

@@ -363,9 +363,14 @@ bool Image::Assign(const AVFrame *frame) {
 
   // Desired format
   AVPixelFormat format = (AVPixelFormat)AVPixFormat();
+  // Map deprecated YUVJ* formats to their non-J equivalents before handing the
+  // format to swscale. Passing YUVJ420P/YUVJ422P/etc directly makes swscale emit
+  // "deprecated pixel format used, make sure you did set range correctly" (seen
+  // in nph-zms). This mirrors what SWScale::Convert already does.
+  const AVPixelFormat src_fmt = fix_deprecated_pix_fmt(static_cast<AVPixelFormat>(frame->format));
   sws_convert_context = sws_getCachedContext(
                           sws_convert_context,
-                          frame->width, frame->height, (AVPixelFormat)frame->format,
+                          frame->width, frame->height, src_fmt,
                           width, height, format,
                           SWS_BICUBIC,
                           //SWS_POINT | SWS_BITEXACT,

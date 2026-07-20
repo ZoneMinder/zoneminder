@@ -41,9 +41,11 @@ EXCLUDE = re.compile(
     re.IGNORECASE,
 )
 
-# Cyrillic and Greek letter blocks. These are what homoglyph attacks and
-# accidental paste-ins draw from; ZoneMinder code is otherwise ASCII.
-HOMOGLYPH = re.compile(r'[Ѐ-ӿͰ-Ͽ]')
+# Cyrillic (U+0400-U+04FF) and Greek (U+0370-U+03FF) letter blocks. These are
+# what homoglyph attacks and accidental paste-ins draw from; ZoneMinder code is
+# otherwise ASCII. Written with \u escapes so this script is itself ASCII and
+# passes its own check.
+HOMOGLYPH = re.compile("[\u0400-\u04ff\u0370-\u03ff]")
 
 
 def tracked_files():
@@ -78,7 +80,7 @@ def main():
     for path, lineno, col, cp, text in violations:
         print('  {}:{}:{}  U+{:04X}'.format(path, lineno, col, cp))
         print('    {}'.format(text.strip()))
-    print('\nReplace each with its ASCII equivalent (e.g. Cyrillic С U+0421 -> Latin C).')
+    print('\nReplace each with its ASCII equivalent (e.g. Cyrillic Es U+0421 -> Latin C).')
     print('If a character is genuinely required, add its path to EXCLUDE in {}.'.format(sys.argv[0]))
     return 1
 

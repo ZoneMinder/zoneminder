@@ -3193,17 +3193,15 @@ bool Monitor::Decode() {
       auto front_packet = front_lock.packet_;
 
       int ret = front_packet->receive_frame(context);
-      Debug(2, "RECV packet=%d ret=%d", front_packet->image_index, ret);
       if (ret > 0) {
         // Success - got a decoded frame, take ownership and process it
         packet_lock = std::move(decoder_queue.front());
         decoder_queue.pop_front();
-        Debug(2, "QUEUE POP size=%zu", decoder_queue.size());
         packet = front_packet;
         if ((decoding == DECODING_KEYFRAMES || (decoding == DECODING_KEYFRAMESONDEMAND && !hasViewers())) && decoder_requires_next_packet ) {
           decoder_requires_next_packet  = false;
         }
-        Debug(2, "Received frame for packet %d", packet->image_index);
+        Debug(2, "Received frame for packet %d, decoder queue pop size=%zu", packet->image_index, decoder_queue.size());
         // Continue to PHASE 3 (frame processing)
       } else if (ret < 0) {
         // Decoder error
@@ -3248,10 +3246,6 @@ bool Monitor::Decode() {
     }
 
     // Check if this packet needs to be sent to the decoder
-    if ((decoding == DECODING_KEYFRAMES || (decoding == DECODING_KEYFRAMESONDEMAND && !hasViewers())) && packet->keyframe) {
-      decoder_requires_next_packet = true;
-      Debug(2, "Decoder requires follow-up packets after keyframe %d", packet->image_index);
-    }
     bool already_decoded = packet->image || packet->in_frame || !packet->packet->size;
     bool should_decode = !already_decoded && (
       (decoding == DECODING_ALWAYS) ||
@@ -3292,15 +3286,32 @@ bool Monitor::Decode() {
       );
       SystemTimePoint starttime = std::chrono::system_clock::now();
       int ret = packet->send_packet(context);
-      Debug(2, "SEND RESULT packet=%d ret=%d", packet->image_index, ret);
       SystemTimePoint endtime = std::chrono::system_clock::now();
 
       // Warn if send_packet is taking too long
       int fps = static_cast<int>(get_capture_fps());
-      if ((fps > 0) && (endtime - starttime > Milliseconds(1000 / fps)) and Logger::fetch()->debugOn()) {
-        Warning("send_packet %d is too slow: %.3f seconds. Capture fps is %d, queue size is %zu, keyframe interval is %d, retval was %d",
-            packet->image_index, FPSeconds(endtime - starttime).count(), fps,
-            decoder_queue.size(), packetqueue.get_max_keyframe_interval(), ret);
+      Milliseconds warning_threshold;
+      if (decoder_requires_next_packet) {
+        // Keyframe-only modes may legitimately wait for the next packets
+        // before the decoder can output a frame.
+        warning_threshold = Milliseconds(500);
+      } else if (fps > 0) {
+        warning_threshold = Milliseconds(1000 / fps);
+      } else {
+        warning_threshold = Milliseconds(1000);
+      }
+
+      if ((endtime - starttime > warning_threshold) && Logger::fetch()->debugOn()) {
+        Warning(
+            "send_packet %d is too slow: %.3f seconds "
+            "(waiting for follow-up packets after keyframe). "
+            "Capture fps=%d, queue size=%zu, keyframe interval=%d, ret=%d",
+            packet->image_index,
+            FPSeconds(endtime - starttime).count(),
+            fps,
+            decoder_queue.size(),
+            packetqueue.get_max_keyframe_interval(),
+            ret);
       } else {
         Debug(3, "send_packet took: %.3f seconds. Capture fps is %d", FPSeconds(endtime - starttime).count(), fps);
       }
@@ -3318,7 +3329,10 @@ bool Monitor::Decode() {
 
       // Success - packet sent to decoder, queue it for receive later
       decoder_queue.push_back(std::move(packet_lock));
-      Debug(2, "QUEUE PUSH size=%zu", decoder_queue.size());
+      if (packet->keyframe && (decoding == DECODING_KEYFRAMES || (decoding == DECODING_KEYFRAMESONDEMAND && !hasViewers()))) {
+        decoder_requires_next_packet = true;
+        Debug(2, "Decoder requires follow-up packets after keyframe %d, decoder queue push size=%zu", packet->image_index, decoder_queue.size());
+      }
       packetqueue.increment_it(decoder_it, false);
       return true;  // Frame will be received on a future call
     }
@@ -3449,7 +3463,7 @@ bool Monitor::Decode() {
     // Write to shared image buffer.
     unsigned int index = (shared_data->last_write_index + 1) % image_buffer_count;
     decoding_image_count++;
-    Debug(2, "SHM WRITE packet=%d index=%d", packet->image_index, packet->image_index % image_buffer_count);
+    Debug(5, "SHM WRITE packet=%d index=%d", packet->image_index, packet->image_index % image_buffer_count);
     WriteShmFrame(index, capture_image);
     shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
     shared_data->signal = signal_check_points ? CheckSignal(capture_image) : true;

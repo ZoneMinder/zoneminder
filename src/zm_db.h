@@ -21,6 +21,7 @@
 #define ZM_DB_H
 
 #include <condition_variable>
+#include <cstdint>
 #include <mutex>
 #include <mysql/mysql.h>
 #include <mysql/mysqld_error.h>
@@ -70,7 +71,7 @@ extern bool zmDbConnected;
 bool zmDbConnect();
 void zmDbClose();
 int zmDbDo(const std::string &query);
-int zmDbDoInsert(const std::string &query);
+uint64_t zmDbDoInsert(const std::string &query);
 int zmDbDoUpdate(const std::string &query);
 
 MYSQL_RES * zmDbFetch(const std::string &query);

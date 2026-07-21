@@ -3157,7 +3157,7 @@ bool Monitor::Decode() {
   AVCodecContext *context = camera->getVideoCodecContext();
   ZMPacketLock packet_lock;
   std::shared_ptr<ZMPacket> packet;
-
+  bool keyframe_startup = false;
   // ===========================================================================
   // PHASE 1: Try to receive a decoded frame from the decoder
   // ===========================================================================
@@ -3211,7 +3211,7 @@ bool Monitor::Decode() {
         // The decoder still requires additional input packets.
         Debug(2, "Decoder needs additional input after packet %d (EAGAIN)", front_packet->image_index);
       }
-      bool keyframe_startup = packet->keyframe || decoder_requires_next_packet;
+      keyframe_startup = packet->keyframe || decoder_requires_next_packet;
     }  // end if needs_decoding
   }
 

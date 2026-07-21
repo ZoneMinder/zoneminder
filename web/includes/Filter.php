@@ -1383,19 +1383,34 @@ class Filter extends ZM_Object {
     if (!$u) $u=$user;
     if ($u->canEdit('System')) return true;
 
-    if ($this->UserId() == $u->Id()) {
-      if ($u->canEdit('Events')) return true;
-      if ($u->canView('Events')) {
-        // If we can only view events, then we can't perform filters that involve changing the event.
-        if (!(
-          $this->AutoExecute() and
-          $this->AutoDelete() and
-          $this->AutoUnarchive() and
-          $this->AutoMove() and
-          $this->AutoCopy()
-        )) {
-          return true;
-        }
+    // Below here the user is not a System editor, so may only act on filters
+    // that they own.
+    if ($this->UserId() != $u->Id()) return false;
+
+    // AutoExecuteCmd is run verbatim as an OS command by zmfilter.pl, which is
+    // equivalent to shell access on the server. Restrict it to System editors,
+    // who were already granted access above.
+    if ($this->AutoExecute()) return false;
+
+    // Users who can edit Events may run filters that change events
+    // (move/copy/delete/archive/etc).
+    if ($u->canEdit('Events')) return true;
+
+    // View-only users may only run filters that neither change events nor
+    // trigger side effects. Deny if ANY auto action is enabled.
+    if ($u->canView('Events')) {
+      if (!(
+        $this->AutoDelete() or
+        $this->AutoUnarchive() or
+        $this->AutoArchive() or
+        $this->AutoMove() or
+        $this->AutoCopy() or
+        $this->AutoVideo() or
+        $this->AutoUpload() or
+        $this->AutoEmail() or
+        $this->AutoMessage()
+      )) {
+        return true;
       }
     }
     return false;

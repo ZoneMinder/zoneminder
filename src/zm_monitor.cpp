@@ -3157,7 +3157,6 @@ bool Monitor::Decode() {
   AVCodecContext *context = camera->getVideoCodecContext();
   ZMPacketLock packet_lock;
   std::shared_ptr<ZMPacket> packet;
-  bool keyframe_startup = false;
   // ===========================================================================
   // PHASE 1: Try to receive a decoded frame from the decoder
   // ===========================================================================
@@ -3211,7 +3210,6 @@ bool Monitor::Decode() {
         // The decoder still requires additional input packets.
         Debug(2, "Decoder needs additional input after packet %d (EAGAIN)", front_packet->image_index);
       }
-      keyframe_startup = packet->keyframe || decoder_requires_next_packet;
     }  // end if needs_decoding
   }
 
@@ -3287,12 +3285,9 @@ bool Monitor::Decode() {
         (long long)packet->packet->dts
       );
       SystemTimePoint starttime = std::chrono::system_clock::now();
-      if (packet->keyframe) {
-        decoder_requires_next_packet = true;
-        Debug(2, "Decoder requires follow-up packets after keyframe %d, decoder queue push size=%zu", packet->image_index, decoder_queue.size());
-      }
       int ret = packet->send_packet(context);
       SystemTimePoint endtime = std::chrono::system_clock::now();
+      bool keyframe_startup = packet->keyframe || decoder_requires_next_packet;
 
       // Warn if send_packet is taking too long
       int fps = static_cast<int>(get_capture_fps());
@@ -3337,6 +3332,10 @@ bool Monitor::Decode() {
 
       // Success - packet sent to decoder, queue it for receive later
       decoder_queue.push_back(std::move(packet_lock));
+      if (packet->keyframe) {
+        decoder_requires_next_packet = true;
+        Debug(2, "Decoder requires follow-up packets after keyframe %d, decoder queue push size=%zu", packet->image_index, decoder_queue.size());
+      }
       packetqueue.increment_it(decoder_it, false);
       return true;  // Frame will be received on a future call
     }

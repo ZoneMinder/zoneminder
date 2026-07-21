@@ -1091,6 +1091,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // A future improvement could eliminate mode-specific checks by relying solely
   // on this flag to track the decoder state.
   bool decoder_requires_next_packet = false;
+
+  // Image index of the keyframe that started the current decoder startup.
+  // -1 means the decoder is not currently in keyframe startup.
+  int startup_keyframe_packet = -1;
 };
 
 #define MOD_ADD( var, delta, limit ) (((var)+(limit)+(delta))%(limit))

@@ -3211,6 +3211,7 @@ bool Monitor::Decode() {
         // The decoder still requires additional input packets.
         Debug(2, "Decoder needs additional input after packet %d (EAGAIN)", front_packet->image_index);
       }
+      bool keyframe_startup = packet->keyframe || decoder_requires_next_packet;
     }  // end if needs_decoding
   }
 
@@ -3292,7 +3293,6 @@ bool Monitor::Decode() {
       }
       int ret = packet->send_packet(context);
       SystemTimePoint endtime = std::chrono::system_clock::now();
-      bool keyframe_startup = packet->keyframe || decoder_requires_next_packet;
 
       // Warn if send_packet is taking too long
       int fps = static_cast<int>(get_capture_fps());

@@ -80,6 +80,30 @@ sub CpuLoad {
   return (undef, undef, undef);
 } # end sub CpuLoad
 
+# Parse the CPU state lines of OpenBSD's top. It prints either a single
+# aggregate "CPU states:" line or one "CPU0 states:" line per core,
+# depending on its mode, so sum whichever we get and average over the
+# number of lines seen. Field widths vary with the value (100.0 vs 0.0),
+# so don't depend on the padding. Returns
+# ($user, $nice, $system, $idle), or the empty list if nothing matched.
+sub parse_bsd_top_cpu {
+  my $top_output = shift;
+  my ($user, $nice, $system, $idle, $cpus) = (0, 0, 0, 0, 0);
+
+  foreach my $line (split(/\n/, $top_output)) {
+    if ($line =~ /^CPU\d*\s+states:\s*([\d\.]+)%\s*user,\s*([\d\.]+)%\s*nice,\s*([\d\.]+)%\s*sys,\s*([\d\.]+)%\s*spin,\s*([\d\.]+)%\s*intr,\s*([\d\.]+)%\s*idle/) {
+      $user += $1;
+      $nice += $2;
+      $system += $3;
+      $idle += $6;
+      $cpus += 1;
+    } # end if line match
+  } # end foreach line
+
+  return () if !$cpus;
+  return ($user/$cpus, $nice/$cpus, $system/$cpus, $idle/$cpus);
+} # end sub parse_bsd_top_cpu
+
 sub CpuUsage {
 
   my $fileNameCurStat = '/proc/stat';
@@ -153,16 +177,11 @@ sub CpuUsage {
       return ($user, $nice, $system, $idle, $user + $system);
     } else {
       $top_output = `top -b -n 1`;
-      my ($user, $system, $nice, $idle) = (0, 0, 0, 0);
-      foreach my $line (split(/\n/, $top_output)) {
-        #OpenBSD
-        if ($line =~ /^CPU\d+ states:  ([\d\.]+)% user,  ([\d\.]+)% nice,  ([\d\.]+)% sys,  ([\d\.]+)% spin,  ([\d\.]+)% intr, ([\d\.]+)% idle$/) {
-          $user = $user ? $user : ($user + $1)/2;
-          $nice = $nice ? $nice : ($nice + $2)/2;
-          $system = $system ? $system : ($system + $3)/2;
-          $idle = $idle ? $idle : ($idle + $6)/2;
-        } # end if line match
-      } # end foreach
+      my ($user, $nice, $system, $idle) = parse_bsd_top_cpu($top_output);
+      if (!defined $user) {
+        ZoneMinder::Logger::Warning("Failed getting cpu utilization from top output: $top_output");
+        ($user, $nice, $system, $idle) = (0, 0, 0, 0);
+      }
       return ($user, $nice, $system, $idle, $user + $system);
     } # end if BSD
   }

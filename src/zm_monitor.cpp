@@ -3191,6 +3191,7 @@ bool Monitor::Decode() {
       auto &front_lock = decoder_queue.front();
       auto front_packet = front_lock.packet_;
 
+      bool keyframe_startup = decoder_requires_next_packet;
       int ret = front_packet->receive_frame(context);
       if (ret > 0) {
         // Success - got a decoded frame, take ownership and process it
@@ -3287,7 +3288,6 @@ bool Monitor::Decode() {
       SystemTimePoint starttime = std::chrono::system_clock::now();
       int ret = packet->send_packet(context);
       SystemTimePoint endtime = std::chrono::system_clock::now();
-      bool keyframe_startup = packet->keyframe || decoder_requires_next_packet;
 
       // Warn if send_packet is taking too long
       int fps = static_cast<int>(get_capture_fps());

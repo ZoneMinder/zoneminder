@@ -3157,6 +3157,7 @@ bool Monitor::Decode() {
   AVCodecContext *context = camera->getVideoCodecContext();
   ZMPacketLock packet_lock;
   std::shared_ptr<ZMPacket> packet;
+  const bool waiting_for_followup = decoder_requires_next_packet;
 
   // ===========================================================================
   // PHASE 1: Try to receive a decoded frame from the decoder
@@ -3198,6 +3199,9 @@ bool Monitor::Decode() {
         packet_lock = std::move(decoder_queue.front());
         decoder_queue.pop_front();
         packet = front_packet;
+        if (decoder_requires_next_packet ) {
+          decoder_requires_next_packet = false;
+        }
         Debug(2, "Received frame for packet %d, decoder queue pop size=%zu", packet->image_index, decoder_queue.size());
         // Continue to PHASE 3 (frame processing)
       } else if (ret < 0) {
@@ -3289,7 +3293,7 @@ bool Monitor::Decode() {
       // Warn if send_packet is taking too long
       int fps = static_cast<int>(get_capture_fps());
       Milliseconds warning_threshold;
-      if (startup_keyframe_packet != -1) {
+      if (waiting_for_followup) {
         // Decoder may legitimately require additional packets
         // before producing the first decoded frame.
         warning_threshold = Milliseconds(500);
@@ -3305,7 +3309,7 @@ bool Monitor::Decode() {
             "Capture fps=%d, queue size=%zu, keyframe interval=%d, ret=%d",
             packet->image_index,
             FPSeconds(endtime - starttime).count(),
-            startup_keyframe_packet != -1
+            waiting_for_followup
                 ? " (keyframe startup / decoder latency)"
                 : "",
             fps,
@@ -3331,7 +3335,6 @@ bool Monitor::Decode() {
       decoder_queue.push_back(std::move(packet_lock));
       if (packet->keyframe) {
         decoder_requires_next_packet = true;
-        startup_keyframe_packet = packet->image_index;
         Debug(2, "Decoder requires follow-up packets after keyframe %d, decoder queue push size=%zu", packet->image_index, decoder_queue.size());
       }
       packetqueue.increment_it(decoder_it, false);
@@ -3501,10 +3504,6 @@ bool Monitor::Decode() {
   }
 
   packet->decoded = true;
-  if (decoder_requires_next_packet ) {
-    decoder_requires_next_packet = false;
-    startup_keyframe_packet = -1;
-  }
   packet->notify_all();
   packetqueue.notify_all();  // Wake up analysis thread waiting for decoded packets
   return true;

@@ -3154,7 +3154,6 @@ void Monitor::flushDecoderQueue() {
 }
 
 bool Monitor::Decode() {
-  bool finished_followup = false;
   AVCodecContext *context = camera->getVideoCodecContext();
   ZMPacketLock packet_lock;
   std::shared_ptr<ZMPacket> packet;
@@ -3199,8 +3198,7 @@ bool Monitor::Decode() {
         packet_lock = std::move(decoder_queue.front());
         decoder_queue.pop_front();
         packet = front_packet;
-        if ((decoding == DECODING_KEYFRAMES || (decoding == DECODING_KEYFRAMESONDEMAND && !hasViewers())) && decoder_requires_next_packet ) {
-          finished_followup = true;
+        if (decoder_requires_next_packet ) {
           decoder_requires_next_packet = false;
         }
         Debug(2, "Received frame for packet %d, decoder queue pop size=%zu", packet->image_index, decoder_queue.size());
@@ -3209,8 +3207,9 @@ bool Monitor::Decode() {
         // Decoder error
         return false;
       } else {
-        // EAGAIN - decoder needs more input, fall through to send another packet
-        Debug(2, "receive_frame returned EAGAIN for packet %d", front_packet->image_index);
+        // EAGAIN - no frame available yet.
+        // The decoder still requires additional input packets.
+        Debug(2, "Decoder needs additional input after packet %d (EAGAIN)", front_packet->image_index);
       }
     }  // end if needs_decoding
   }
@@ -3289,13 +3288,14 @@ bool Monitor::Decode() {
       SystemTimePoint starttime = std::chrono::system_clock::now();
       int ret = packet->send_packet(context);
       SystemTimePoint endtime = std::chrono::system_clock::now();
+      bool keyframe_startup = packet->keyframe || decoder_requires_next_packet;
 
       // Warn if send_packet is taking too long
       int fps = static_cast<int>(get_capture_fps());
       Milliseconds warning_threshold;
-      if (finished_followup) {
-        // Keyframe-only modes may legitimately wait for the next packets
-        // before the decoder can output a frame.
+      if (keyframe_startup) {
+        // Decoder may legitimately require additional packets
+        // before producing the first decoded frame.
         warning_threshold = Milliseconds(500);
       } else if (fps > 0) {
         warning_threshold = Milliseconds(1000 / fps);
@@ -3309,8 +3309,8 @@ bool Monitor::Decode() {
             "Capture fps=%d, queue size=%zu, keyframe interval=%d, ret=%d",
             packet->image_index,
             FPSeconds(endtime - starttime).count(),
-            finished_followup
-                ? " (first frame after keyframe)"
+            keyframe_startup
+                ? " (keyframe startup / decoder latency)"
                 : "",
             fps,
             decoder_queue.size(),
@@ -3333,7 +3333,7 @@ bool Monitor::Decode() {
 
       // Success - packet sent to decoder, queue it for receive later
       decoder_queue.push_back(std::move(packet_lock));
-      if (packet->keyframe && (decoding == DECODING_KEYFRAMES || (decoding == DECODING_KEYFRAMESONDEMAND && !hasViewers()))) {
+      if (packet->keyframe) {
         decoder_requires_next_packet = true;
         Debug(2, "Decoder requires follow-up packets after keyframe %d, decoder queue push size=%zu", packet->image_index, decoder_queue.size());
       }

@@ -3157,6 +3157,8 @@ bool Monitor::Decode() {
   AVCodecContext *context = camera->getVideoCodecContext();
   ZMPacketLock packet_lock;
   std::shared_ptr<ZMPacket> packet;
+  bool keyframe_startup = false;
+
   // ===========================================================================
   // PHASE 1: Try to receive a decoded frame from the decoder
   // ===========================================================================
@@ -3191,7 +3193,7 @@ bool Monitor::Decode() {
       auto &front_lock = decoder_queue.front();
       auto front_packet = front_lock.packet_;
 
-      bool keyframe_startup = decoder_requires_next_packet;
+      keyframe_startup = decoder_requires_next_packet;
       int ret = front_packet->receive_frame(context);
       if (ret > 0) {
         // Success - got a decoded frame, take ownership and process it

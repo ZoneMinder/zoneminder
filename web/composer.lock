@@ -4,29 +4,35 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "8681d5f6d7e4cac288ebc212c388587f",
+    "content-hash": "2f6bfe577800b645f670859afa5ab73d",
     "packages": [
         {
             "name": "firebase/php-jwt",
-            "version": "v6.0.0",
+            "version": "v7.0.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/firebase/php-jwt.git",
-                "reference": "0541cba75ab108ef901985e68055a92646c73534"
+                "reference": "c03036fd5dbd530a95406ca3b5f6d7b24eaa3910"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/firebase/php-jwt/zipball/0541cba75ab108ef901985e68055a92646c73534",
-                "reference": "0541cba75ab108ef901985e68055a92646c73534",
+                "url": "https://api.github.com/repos/firebase/php-jwt/zipball/c03036fd5dbd530a95406ca3b5f6d7b24eaa3910",
+                "reference": "c03036fd5dbd530a95406ca3b5f6d7b24eaa3910",
                 "shasum": ""
             },
             "require": {
-                "php": ">=5.3.0"
+                "php": "^8.0"
             },
             "require-dev": {
-                "phpunit/phpunit": ">=4.8 <=9"
+                "guzzlehttp/guzzle": "^7.4",
+                "phpspec/prophecy-phpunit": "^2.0",
+                "phpunit/phpunit": "^9.5",
+                "psr/cache": "^2.0||^3.0",
+                "psr/http-client": "^1.0",
+                "psr/http-factory": "^1.0"
             },
             "suggest": {
+                "ext-sodium": "Support EdDSA (Ed25519) signatures",
                 "paragonie/sodium_compat": "Support EdDSA (Ed25519) signatures when libsodium is not present"
             },
             "type": "library",
@@ -59,9 +65,9 @@
             ],
             "support": {
                 "issues": "https://github.com/firebase/php-jwt/issues",
-                "source": "https://github.com/firebase/php-jwt/tree/v6.0.0"
+                "source": "https://github.com/firebase/php-jwt/tree/v7.0.0"
             },
-            "time": "2022-01-24T15:18:34+00:00"
+            "time": "2025-12-15T19:26:43+00:00"
         },
         {
             "name": "ircmaxell/password-compat",
@@ -109,10 +115,10 @@
     "packages-dev": [],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": [],
+    "stability-flags": {},
     "prefer-stable": false,
     "prefer-lowest": false,
-    "platform": [],
-    "platform-dev": [],
-    "plugin-api-version": "2.3.0"
+    "platform": {},
+    "platform-dev": {},
+    "plugin-api-version": "2.6.0"
 }

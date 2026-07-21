@@ -189,6 +189,7 @@ if (canEdit('Monitors')) {
         return;
       }
     }
+    break;
   } // end case import
   default:
   ZM\Warning('unknown action '.$_REQUEST['action']);
@@ -196,5 +197,5 @@ if (canEdit('Monitors')) {
 } else {
   ZM\Warning('Cannot edit monitors');
 }
-ajaxError('Unrecognised action '.$_REQUEST['action'].' or insufficient permissions for user ' . $user->Username());
+ajaxError('Unrecognised action '.validHtmlStr($_REQUEST['action']).' or insufficient permissions for user '.validHtmlStr($user->Username()));
 ?>

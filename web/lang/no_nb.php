@@ -149,7 +149,7 @@ $SLANG = array(
     'BadPreEventCountMaxImageBufferCount'      => 'Maks Bilde Bufferantall bør være større enn Før-event bildeantall for å tilfredsstilles',
     'BadRefBlendPerc'       => 'Referanse blenderprosent må være et positivt tall',
     'BadNoSaveJPEGsOrVideoWriter' => 'SaveJPEGs og VideoWriter er begge deaktivert. Ingenting vil bli tatt opp!',
-    'BadSectionLength'      => 'Seksjonslengde må være et heltall som er 30 eller høyere',
+    'BadSectionLength'      => 'Seksjonslengde må være et heltall som er 10 eller høyere',
     'BadSignalCheckColour'  => 'Signal sjekkfarge må være en gyldig RGB fargestreng',
     'BadStreamReplayBuffer' => 'Strøm avspillingsbuffer må være et tall som er 0 eller høyere',
     'BadSourceType'         => 'Kildetype \"Web Site\" krever at Funksjon er satt til \"Monitor\"',
@@ -482,6 +482,7 @@ $SLANG = array(
     'PostEventImageBuffer'  => 'Etter Hendelse Bildeantall',
     'PreEventImageBuffer'   => 'Før Hendelse Bildeantall',
     'PreserveAspect'        => 'Bevar sideforhold',
+    'PreviewRate'           => 'Forhåndsvisningshastighet',
     'PreviousMonitor'       => 'Forrige Monitor',
     'PrivacyAbout'          => 'Om',
     'PrivacyAboutText'      => 'Siden 2002 har ZoneMinder vært den ledende gratis og åpen kildekode Video Management System (VMS)-løsningen for Linux-plattformer. ZoneMinder støttes av fellesskapet og administreres av de som velger å bruke fritiden sin til prosjektet. Den beste måten å forbedre ZoneMinder på er å engasjere seg.',
@@ -962,10 +963,10 @@ Alltid: En ZMC prosess vil kjøre og umiddelbart koble til og forbli tilkoblet.~
       Manuell setting av Profil-ID, som kan tvinge en nettleser til å forsøke å spille en gitt strøm. Forsøk "42e01f"
       for en universell støttet verdi, eller la stå blank for å bruke Profil-IDIen oppgitt av kilden.'
   ),
-  'FUNCTION_JANUS_USE_RTSP_RESTREAM' => array(
+  'FUNCTION_RESTREAM' => array(
     'Hjelp' => '
-      Hvis kameraet ikke fungerer under Janus uten tillegsinstillinger, aktiver denne for å bruke ZoneMinder
-      RTSP restream som Janus kilde.'
+      Aktiver denne for å bruke ZoneMinder RTSP restream som kilde for strømmetjenester
+      (Janus, Go2RTC, RTSP2Web) i stedet for kameraet direkte. Nyttig hvis kameraet ikke fungerer med en strømmetjeneste direkte.'
   ),
   'FUNCTION_JANUS_RTSP_SESSION_TIMEOUT' => array(
     'Hjelp' => '

@@ -1,6 +1,11 @@
 const hasOnvif = <?php echo ZM_HAS_ONVIF ?>;
 const defaultAspectRatio = '<?php echo ZM_DEFAULT_ASPECT_RATIO ?>';
 const messageSavingDataWhenLeavingPage = '<?php echo translate('MessageSavingDataWhenLeavingPage') ?>';
+const audioMotionVersionOK = '<?php echo translate('AudioMotionVersionOK') ?>';
+const audioMotionVersionNotInstalled = '<?php echo translate('AudioMotionVersionNotInstalled') ?>';
+const audioMotionVersionWrongVersion = '<?php echo translate('AudioMotionVersionWrongVersion') ?>';
+<?php require_once('includes/EncoderTemplates.php'); ?>
+window.ZM_ENCODER_TEMPLATES = <?php echo json_encode(ZM\EncoderTemplates::all(), JSON_UNESCAPED_SLASHES); ?>;
 
 <?php
 global $players;
@@ -53,15 +58,15 @@ function validateForm(form) {
     }
   }
 
-  if ( elements['newMonitor[Name]'].value.search( /[^\w\-\.\(\)\:\/ ]/ ) >= 0 )
-    errors[errors.length] = "<?php echo translate('BadNameChars') ?>";
-  else if ( monitorNames[form.elements['newMonitor[Name]'].value] )
+  if ( monitorNames[form.elements['newMonitor[Name]'].value] )
     errors[errors.length] = "<?php echo translate('DuplicateMonitorName') ?>";
 
   if ( form.elements['newMonitor[Type]'].value == 'Local' ) {
     if ( !form.elements['newMonitor[Palette]'] || !form.elements['newMonitor[Palette]'].value || !form.elements['newMonitor[Palette]'].value.match( /^\d+$/ ) )
       errors[errors.length] = "<?php echo translate('BadPalette') ?>";
     if ( !form.elements['newMonitor[Device]'].value )
+      errors[errors.length] = "<?php echo translate('BadDevice') ?>";
+    else if ( !form.elements['newMonitor[Device]'].value.match(/^\/dev\/[\w\/.\-]+$/) )
       errors[errors.length] = "<?php echo translate('BadDevice') ?>";
     if ( !form.elements['newMonitor[Channel]'] || !form.elements['newMonitor[Channel]'].value || !form.elements['newMonitor[Channel]'].value.match( /^\d+$/ ) )
       errors[errors.length] = "<?php echo translate('BadChannel') ?>";
@@ -151,7 +156,7 @@ function validateForm(form) {
 
     if ( !form.elements['newMonitor[AlarmFrameCount]'].value || !(parseInt(form.elements['newMonitor[AlarmFrameCount]'].value) > 0 ) )
       errors[errors.length] = "<?php echo translate('BadAlarmFrameCount') ?>";
-    if ( !form.elements['newMonitor[SectionLength]'].value || !(parseInt(form.elements['newMonitor[SectionLength]'].value) >= 30 ) )
+    if ( !form.elements['newMonitor[SectionLength]'].value || !(parseInt(form.elements['newMonitor[SectionLength]'].value) >= 10 ) )
       errors[errors.length] = "<?php echo translate('BadSectionLength') ?>";
     if ( !form.elements['newMonitor[AnalysisUpdateDelay]'].value || !(parseInt(form.elements['newMonitor[AnalysisUpdateDelay]'].value) >= 0 ) )
       errors[errors.length] = "<?php echo translate('BadAnalysisUpdateDelay') ?>";
@@ -168,7 +173,7 @@ function validateForm(form) {
       errors[errors.length] = "<?php echo translate('BadWebColour') ?>";
   }
 
-  if ( form.elements['newMonitor[RTSPStreamName]'].value
+  if ( form.elements['newMonitor[RTSPStreamName]'] && form.elements['newMonitor[RTSPStreamName]'].value
       &&
       rtspStreamNames[form.elements['newMonitor[RTSPStreamName]'].value]
     )
@@ -179,7 +184,7 @@ function validateForm(form) {
     return false;
   }
 
-  if ( (form.elements['newMonitor[Recording]'].value != 'None') ) {
+  if ( (form.elements['newMonitor[Recording]'] && form.elements['newMonitor[Recording]'].value != 'None') ) {
     if ( (form.elements['newMonitor[SaveJPEGs]'].value == '0') && (form.elements['newMonitor[VideoWriter]'].value == '0') ) {
       warnings[warnings.length] = "<?php echo translate('BadNoSaveJPEGsOrVideoWriter'); ?>";
     }

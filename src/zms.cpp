@@ -50,15 +50,6 @@ bool ValidateAccess(User *user, int mon_id) {
   return allowed;
 }
 
-int exit_zms(int exit_code) {
-  Debug(1, "Terminating");
-  Image::Deinitialise();
-  dbQueue.stop();
-  zmDbClose();
-  logTerm();
-  exit(exit_code);
-  return exit_code;
-}
 int main(int argc, const char *argv[], char **envp) {
   self = argv[0];
 
@@ -68,7 +59,7 @@ int main(int argc, const char *argv[], char **envp) {
   enum { ZMS_JPEG, ZMS_MPEG, ZMS_RAW, ZMS_ZIP, ZMS_SINGLE } mode = ZMS_JPEG;
   char format[32] = "";
   int monitor_id = 0;
-  time_t event_time = 0;
+  SystemTimePoint event_time = std::chrono::system_clock::time_point::min();
   uint64_t event_id = 0;
   unsigned int frame_id = 1;
   int frames_to_send = -1;
@@ -112,7 +103,7 @@ int main(int argc, const char *argv[], char **envp) {
   const char *query = getenv("QUERY_STRING");
   if ( query == nullptr ) {
     Fatal("No query string.");
-    return exit_zms(0);
+    return exit_zm(0);
   }  // end if query
 
   Debug(1, "Query: %s", query);
@@ -171,10 +162,15 @@ int main(int argc, const char *argv[], char **envp) {
       std::tm tm = {};
       std::stringstream ss(value);
       ss >> std::get_time(&tm, "%Y-%m-%d %H:%M:%S");
-      auto tp = std::chrono::system_clock::from_time_t(std::mktime(&tm));
-      event_time = std::chrono::duration_cast<FPSeconds>(tp.time_since_epoch()).count();
+      event_time = std::chrono::system_clock::from_time_t(std::mktime(&tm));
+      //Debug(1, "Setting event_time to %s", SystemTimePointToString(event_time).c_str());
     } else if ( !strcmp(name, "time") ) {
-      event_time = atoi(value);
+      double double_time = atof(value);
+      std::chrono::duration<double> event_time_seconds(double_time);
+      auto system_duration = std::chrono::duration_cast<std::chrono::system_clock::duration>(event_time_seconds);
+	    event_time = SystemTimePoint{system_duration};
+      //Debug(1, "Setting event_time to %s from %s %.2f %lf",
+          //SystemTimePointToString(event_time).c_str(), value, double_time, event_time_seconds.count());
     } else if ( !strcmp(name, "event") ) {
       event_id = strtoull(value, nullptr, 10);
       source = ZMS_EVENT;
@@ -263,14 +259,30 @@ int main(int argc, const char *argv[], char **envp) {
       fputs("HTTP/1.0 403 Forbidden\r\n\r\n", stdout);
 
       const char *referer = getenv("HTTP_REFERER");
-      Error("Unable to authenticate user from %s", referer);
-      return exit_zms(0);
+      const char *request_uri = getenv("REQUEST_URI");
+      const char *xff = getenv("HTTP_X_FORWARDED_FOR");
+      const char *remote = getenv("REMOTE_ADDR");
+      // Most failures here are stale auth hashes on long-lived <img src=nph-zms?...>
+      // streams whose hash TTL expired; the browser keeps reconnecting with the
+      // baked-in URL. Including user/auth-prefix/uri/xff makes the noise diagnosable
+      // without flipping on Debug.
+      char auth_prefix[9] = {0};
+      if (*auth) strncpy(auth_prefix, auth, sizeof(auth_prefix)-1);
+      Warning("Unable to authenticate user (user='%s' auth='%s%s' uri='%s' referer='%s' xff='%s' remote='%s')",
+              username.c_str(),
+              auth_prefix,
+              (*auth && strlen(auth) > 8) ? "..." : "",
+              request_uri ? request_uri : "",
+              referer ? referer : "",
+              xff ? xff : "",
+              remote ? remote : "");
+      return exit_zm(0);
     }
     if ( !ValidateAccess(user, monitor_id) ) {
       delete user;
       user = nullptr;
       fputs("HTTP/1.0 403 Forbidden\r\n\r\n", stdout);
-      return exit_zms(0);
+      return exit_zm(0);
     }
     delete user;
     user = nullptr;
@@ -280,6 +292,7 @@ int main(int argc, const char *argv[], char **envp) {
   Image::Initialise();
   zmSetDefaultTermHandler();
   zmSetDefaultDieHandler();
+  zmSetDefaultPipeHandler();
 
   setbuf(stdout, nullptr);
   if ( nph ) {
@@ -334,9 +347,6 @@ int main(int argc, const char *argv[], char **envp) {
     stream.setStreamStart(monitor_id, format);
     stream.runStream();
   } else if ( source == ZMS_EVENT ) {
-    if ( !event_id ) {
-      Fatal("Can't view an event without specifying an event_id.");
-    }
     EventStream stream;
     stream.setStreamScale(scale);
     stream.setStreamReplayRate(rate);
@@ -344,8 +354,10 @@ int main(int argc, const char *argv[], char **envp) {
     stream.setStreamMode(replay);
     stream.setStreamQueue(connkey);
     stream.setFramesToSend(frames_to_send);
-    if ( monitor_id && event_time ) {
+    if ( monitor_id && (event_time != std::chrono::system_clock::time_point::min())) {
       stream.setStreamStart(monitor_id, event_time);
+    } else if ( event_id && (event_time != std::chrono::system_clock::time_point::min())) {
+      stream.setStreamStart(event_id, event_time);
     } else {
       Debug(3, "Setting stream start to frame (%d)", frame_id);
       stream.setStreamStart(event_id, frame_id);
@@ -365,6 +377,6 @@ int main(int argc, const char *argv[], char **envp) {
     Error("Neither a monitor or event was specified.");
   }  // end if monitor or event
 
-  return exit_zms(0);
+  return exit_zm(0);
 }
 

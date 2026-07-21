@@ -228,26 +228,33 @@ function exportEventImages($event, $exportDetail, $exportFrames, $myfilelist) {
 
 <?php
   if ($event->DefaultVideo()) {
-    // videojs zoomrotate only when direct recording
-    $Zoom = 1;
-    $Rotation = 0;
-    $Monitor = $event->Monitor();
-    if ($Monitor->VideoWriter() == '2') {
-      # Passthrough
-      $Rotation = $event->Orientation();
-      if (in_array($event->Orientation(), array('ROTATE_90','ROTATE_270')))
-        $Zoom = $event->Height()/$event->Width();
-    } # end if passthrough
 ?>
     <div id="videoFeed">
-      <video id="videoobj" class="video-js vjs-default-skin" style="transform: matrix(1, 0, 0, 1, 0, 0);"
+      <video id="videoobj" class="video-js"
         width="<?php echo $event->Width() ?>"
         height="<?php echo $event->Height() ?>"
-        data-setup='{ "controls": true, "autoplay": true, "preload": "auto", "plugins": { "zoomrotate": { "zoom": "<?php echo $Zoom ?>"}}}'>
+        controls autoplay preload="auto">
         <source src="<?php echo $event->DefaultVideo(); ?>" type="video/mp4">
         <track id="monitorCaption" kind="captions" label="English" srclang="en" src='data:plain/text;charset=utf-8,"WEBVTT\n\n 00:00:00.000 --> 00:00:01.000 ZoneMinder"' default>
         Your browser does not support the video tag.
       </video>
+      <script nonce="<?php echo $cspNonce; ?>">
+        document.addEventListener('DOMContentLoaded', function() {
+          if (typeof videojs === 'undefined') {
+            console.error('videojs is not loaded');
+            return;
+          }
+          var player = videojs('videoobj', {
+            controls: true,
+            autoplay: true,
+            preload: 'auto'
+          });
+          player.zoomrotate({
+            zoom: 1,
+            rotate: 0
+          });
+        });
+      </script>
     </div><!--videoFeed-->
 <?php
 	} else { // end if DefaultVideo
@@ -891,6 +898,11 @@ function exportEvents(
     return false;
   }
 
+  // Sanitize user-supplied values used in file paths and shell commands
+  $export_root = preg_replace('/[^\w\-.]/', '', $export_root);
+  if (empty($export_root)) $export_root = 'zmExport';
+  $connkey = preg_replace('/[^\w\-.]/', '', $connkey);
+
   if (!($exportFormat == 'tar' or $exportFormat == 'zip')) {
     ZM\Error("None or invalid exportFormat specified $exportFormat.");
     return false;
@@ -939,14 +951,14 @@ function exportEvents(
         #continue;
       if ($exportStructure == 'flat') {
         if (false !== strpos($file, strval($event->Id()))) {
-          $cmd = 'cp -as '.$event->Path().'/'.$file.' '.$export_dir.'/'.$file. ' 2>&1';
+          $cmd = 'cp -as -- '.escapeshellarg($event->Path().'/'.$file).' '.escapeshellarg($export_dir.'/'.$file). ' 2>&1';
           $exportFileList[] = $file;
         } else {
-          $cmd = 'cp -as '.$event->Path().'/'.$file.' '.$export_dir.'/'.$event->Id().'_'.$file. ' 2>&1';
+          $cmd = 'cp -as -- '.escapeshellarg($event->Path().'/'.$file).' '.escapeshellarg($export_dir.'/'.$event->Id().'_'.$file). ' 2>&1';
           $exportFileList[] = $event->Id().'_'.$file;
         }
       } else {
-        $cmd = 'cp -as '.$event->Path().'/'.$file.' '.$export_dir.'/'.$event->Id().'/'.$file. ' 2>&1';
+        $cmd = 'cp -as -- '.escapeshellarg($event->Path().'/'.$file).' '.escapeshellarg($export_dir.'/'.$event->Id().'/'.$file). ' 2>&1';
         $exportFileList[] = $event->Id().'/'.$file;
       }
       exec($cmd, $output, $return);
@@ -1020,7 +1032,7 @@ function exportEvents(
   } // if $exportFormat
 
   @unlink($archive_path);
-  $command .= ' '.$export_root.($connkey?'_'.$connkey:'').'/';
+  $command .= ' '.escapeshellarg($export_root.($connkey?'_'.$connkey:'').'/');
   ZM\Debug($command);
   exec($command, $output, $status);
   if ($status) {

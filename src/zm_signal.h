@@ -21,9 +21,13 @@
 #define ZM_SIGNAL_H
 
 #include "zm_config.h"
+#include <atomic>
 #include <csignal>
 
-#if HAVE_EXECINFO_H
+#if HAVE_LIBUNWIND
+#define UNW_LOCAL_ONLY
+#include <libunwind.h>
+#elif HAVE_EXECINFO_H
 #include <execinfo.h>
 #endif
 #if HAVE_UCONTEXT_H
@@ -31,9 +35,12 @@
 #endif
 
 typedef RETSIGTYPE (SigHandler)( int );
+#if ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )
+typedef RETSIGTYPE (SigActionHandler)( int, siginfo_t *info, void *context );
+#endif
 
 extern bool zm_reload;
-extern bool zm_terminate;
+extern std::atomic<bool> zm_terminate;
 
 RETSIGTYPE zmc_hup_handler( int signal );
 RETSIGTYPE zmc_term_handler( int signal );
@@ -45,10 +52,16 @@ RETSIGTYPE zmc_die_handler( int signal );
 
 void zmSetHupHandler( SigHandler *handler );
 void zmSetTermHandler( SigHandler *handler );
+void zmSetPipeHandler( SigHandler *handler );
+#if ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )
+void zmSetDieHandler( SigActionHandler *handler );
+#else
 void zmSetDieHandler( SigHandler *handler );
+#endif
 
 void zmSetDefaultHupHandler();
 void zmSetDefaultTermHandler();
+void zmSetDefaultPipeHandler();
 void zmSetDefaultDieHandler();
 
 #endif // ZM_SIGNAL_H

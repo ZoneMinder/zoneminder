@@ -125,6 +125,8 @@ if ( isset($_REQUEST['Control']) ) {
       'MinGainSpeed' => '',
       'MaxGainSpeed' => '',
       'CanWhite' => '',
+      'CanLight' => '',
+      'CanIndicatorLight' => '',
       'CanAutoWhite' => '',
       'CanWhiteAbs' => '',
       'CanWhiteRel' => '',
@@ -232,6 +234,14 @@ switch ( $name ) {
             <tr>
               <th class="text-right pr-3" scope="row"><?php echo translate('CanSleep') ?></th>
               <td><input type="checkbox" name="Control[CanSleep]" value="1"<?php if ( !empty($Control['CanSleep']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanLight') ?></th>
+              <td><input type="checkbox" name="Control[CanLight]" value="1"<?php if ( !empty($Control['CanLight']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanIndicatorLight') ?></th>
+              <td><input type="checkbox" name="Control[CanIndicatorLight]" value="1"<?php if ( !empty($Control['CanIndicatorLight']) ) { ?> checked="checked"<?php } ?>/></td>
             </tr>
             <tr>
               <th class="text-right pr-3" scope="row"><?php echo translate('CanReset') ?></th>

@@ -35,7 +35,7 @@ function probe(params) {
           const stream = data.Streams[i];
           if (stream.Monitor) {
             stream.buttons = '<input type="button" value="Edit" data-on-click-this="addMonitor" data-url="'+stream.url+'"/>';
-          } else if (user.Monitors == 'Create') {
+          } else if (stream.url && user.Monitors == 'Create') {
             stream.buttons = '<input type="button" value="Add" data-on-click-this="addMonitor" data-url="'+stream.url+'"/>';
           }
           if (ZM_WEB_LIST_THUMBS && stream.camera.mjpegstream) {
@@ -45,12 +45,16 @@ function probe(params) {
           } else {
             console.log(stream.camera);
           }
-          ProbeResults[stream.url] = stream;
+          if (stream.url) {
+            ProbeResults[stream.url] = stream;
+          }
         } // end for each Stream
 
         const rows = data.Streams;
         // rearrange the result into what bootstrap-table expects
         params.success({total: rows.length, totalNotFiltered: rows.length, rows: rows});
+      } else {
+        params.success({total: 0, totalNotFiltered: 0, rows: []});
       }
     },
     error: function(jqXHR) {
@@ -121,8 +125,7 @@ function addMonitor(btn) {
   }
   const Stream = ProbeResults[url];
   if (Stream.Monitor) {
-    const Monitor = Stream.Monitor;
-    urlString = '?view=monitor&mid='+Monitor.Id;
+    urlString = '?view=monitor&mid='+Stream.Monitor.Id;
   } else {
     const Monitor = Stream.camera.monitor;
     urlString = '?view=monitor&newMonitor[Path]='+url;
@@ -139,7 +142,7 @@ function addMonitor(btn) {
 }
 
 function import_csv() {
-  const form = $j('#contentForm');
+  const form = $j('#importModalForm')[0];
   var formData = new FormData( form );
   console.log(formData);
 

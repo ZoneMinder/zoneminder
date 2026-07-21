@@ -40,22 +40,26 @@ var icons = {
 
 var panZoomEnabled = true; //Add it to settings in the future
 var expiredTap; //Time between touch screen clicks. Used to analyze double clicks
-var shifted = ctrled = alted = false;
+var shifted = false;
+var ctrled = false;
+var alted = false;
 var mainContent = document.getElementById('content');
+var timeOutExtruderChange;
 
 const showExtruderPanelOnMouseHover = false;
 const NAVBAR_RELOAD = document.getElementById('reload'); // Top panel with statistics
 const BTN_COLLAPSE = document.getElementById('btn-collapse'); // Button to switch the menu view collapsed/expanded
 const SIDEBAR_MAIN = document.getElementById('sidebarMain'); // Left Sidebar with Menu
 const SIDEBAR_MAIN_EXTRUDER = document.getElementById('extruderLeft'); // Sliding extruder panel from the left Sidebar
+const PLACEHOLDER_IMAGE = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEAAAAALAAAAAABAAEAAAI="; // Transparent GIF 1 pixel
 
 function checkSize() {
   if ( 0 ) {
     if (window.outerHeight) {
-      var w = window.outerWidth;
-      var prevW = w;
-      var h = window.outerHeight;
-      var prevH = h;
+      let w = window.outerWidth;
+      const prevW = w;
+      let h = window.outerHeight;
+      const prevH = h;
       if (h > screen.availHeight) {
         h = screen.availHeight;
       }
@@ -85,17 +89,27 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
 
   document.querySelectorAll(".zmlink").forEach(function(el) {
     el.addEventListener("click", function onClick(evt) {
-      var el = this;
-      var url;
-      if ( el.hasAttribute("href") ) {
+      const element = this;
+      let url;
+      if ( element.hasAttribute("href") ) {
         // <a>
-        url = el.getAttribute("href");
+        url = element.getAttribute("href");
       } else {
         // buttons
-        url = el.getAttribute("data-url");
+        url = element.getAttribute("data-url");
       }
       evt.preventDefault();
-      window.location.assign(url);
+      // Only navigate to safe schemes; block javascript:/data:/vbscript: URLs
+      // in href/data-url so a crafted attribute cannot run script on click.
+      try {
+        const parsed = new URL(String(url), document.baseURI);
+        const proto = parsed.protocol.toLowerCase();
+        if (proto === 'http:' || proto === 'https:') {
+          window.location.assign(parsed.href);
+        }
+      } catch {
+        // Ignore invalid URLs
+      }
     });
   });
 
@@ -269,7 +283,27 @@ function refreshParentWindow() {
 }
 
 if ( currentView != 'none' && currentView != 'login' ) {
-  $j.ajaxSetup({timeout: AJAX_TIMEOUT}); //sets timeout for all getJSON.
+  const t = "AJAX execution error: ";
+  $j.ajaxSetup({
+    timeout: AJAX_TIMEOUT, //sets timeout for all getJSON.
+    error: function(jqXHR, exception) {
+      if (exception === 'parsererror') {
+        console.trace(t + '"Requested JSON parse failed."');
+      } else if (exception === 'timeout') {
+        console.trace(t + '"Time out error."');
+      } else if (jqXHR.status === 0 && exception !== 'timeout') {
+        console.trace(t + '"Not connection Verify Network."');
+      } else if (jqXHR.status == 404) {
+        console.trace(t + '"Requested page not found [404]."');
+      } else if (jqXHR.status == 500) {
+        console.trace(t + '"Internal Server Error [500]."');
+      } else {
+        console.trace(t + '"Uncaught Error."');
+        console.log('jqXHR.responseText:', jqXHR.responseText);
+        console.log('exception:', exception);
+      }
+    }
+  });
 
   $j(document).ready(function() {
     // List of functions that are allowed to be called via the value of an object's DOM attribute.
@@ -324,9 +358,9 @@ if ( currentView != 'none' && currentView != 'login' ) {
 
       changeButtonIcon(_this_, objIconButton);
 
-      const nameFuncBefore = _this_.attr('data-flip-сontrol-run-before-func') ? _this_.attr('data-flip-сontrol-run-before-func') : null;
-      const nameFuncAfter = _this_.attr('data-flip-сontrol-run-after-func') ? _this_.attr('data-flip-сontrol-run-after-func') : null;
-      const nameFuncAfterComplet = _this_.attr('data-flip-сontrol-run-after-complet-func') ? _this_.attr('data-flip-сontrol-run-after-complet-func') : null;
+      const nameFuncBefore = _this_.attr('data-flip-control-run-before-func') ? _this_.attr('data-flip-control-run-before-func') : null;
+      const nameFuncAfter = _this_.attr('data-flip-control-run-after-func') ? _this_.attr('data-flip-control-run-after-func') : null;
+      const nameFuncAfterComplet = _this_.attr('data-flip-control-run-after-complet-func') ? _this_.attr('data-flip-control-run-after-complet-func') : null;
 
       if (nameFuncBefore) {
         $j.each(nameFuncBefore.split(' '), function(i, nameFunc) {
@@ -352,7 +386,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
     // Manage visible filter bar & control button (after document ready)
     $j("[data-flip-control-object]").each(function() { //let's go through all objects (buttons) and set icons
       const _this_ = $j(this);
-      const сookie = getCookie('zmFilterBarFlip'+_this_.attr('data-flip-control-object'));
+      const cookie = getCookie('zmFilterBarFlip'+_this_.attr('data-flip-control-object'));
       const initialStateIcon = _this_.attr('data-initial-state-icon'); //"visible"=Opened block , "hidden"=Closed block or "undefined"=use cookie
       const objIconButton = _this_.find("i");
       const obj = $j(_this_.attr('data-flip-control-object'));
@@ -362,7 +396,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
       }
 
       // initialStateIcon takes priority. If there is no cookie, we assume that it is 'visible'
-      const stateIcon = (initialStateIcon) ? initialStateIcon : ((сookie == 'hidden') ? 'hidden' : 'visible');
+      const stateIcon = (initialStateIcon) ? initialStateIcon : ((cookie == 'hidden') ? 'hidden' : 'visible');
       if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
         if (stateIcon == 'hidden') {
           objIconButton.html(objIconButton.attr('data-icon-hidden'));
@@ -454,19 +488,11 @@ if ( currentView != 'none' && currentView != 'login' ) {
         .done(setNavBar)
         .fail(function(jqxhr, textStatus, error) {
           console.log("Request Failed: " + textStatus + ", " + error);
-          if (error == 'Unauthorized') {
-            window.location.reload(true);
-          }
-          if (!jqxhr.responseText) {
-            console.log("No responseText in jqxhr");
-            console.log(jqxhr);
-            return;
-          }
-          console.log("Response Text: " + jqxhr.responseText.replace(/(<([^>]+)>)/gi, ''));
-          if (textStatus != "timeout") {
-          // The idea is that this should only fail due to auth, so reload the page
-          // which should go to login if it can't stay logged in.
-            window.location.reload(true);
+          // A dead session/hash returns 401; go straight to login rather than
+          // reloading in a loop. Transient errors (network/timeout) are left to
+          // the next poll.
+          if (authFailureAction(jqxhr.status) == 'login') {
+            goToLogin();
           }
         });
   }
@@ -491,60 +517,135 @@ if ( currentView != 'none' && currentView != 'login' ) {
     // iterate through all the keys then update each element id with the same name
     for (const key of Object.keys(data)) {
       if ( $j('#'+key).hasClass("show") ) continue; // don't update if the user has the dropdown open
+      if (key == 'getLogStatusHTML') {
+        const getLogHTML = [];
+        const logState = data[key];
+        const _class = (logState == 'ok') ? 'text-success' : (logState == 'alert' ? 'text-warning' : ((logState == 'alarm' ? 'text-danger' : '')));
+        getLogHTML.push(document.querySelector('#getLogHTML a'));
+        getLogHTML.push(document.querySelector('#getLogIconHTML a span')); // Navbar Type = Collapsed
+        getLogHTML.push(document.querySelector('#logState')); // Log page
+        for (let i = 0; i < getLogHTML.length; i++) {
+          if (getLogHTML[i] === null) continue;
+          getLogHTML[i].classList.remove('text-success', 'text-warning', 'text-danger');
+          getLogHTML[i].classList.add(_class);
+        }
+        continue;
+      }
       if ( $j('#'+key).length ) $j('#'+key).replaceWith(data[key]);
       if ( key == 'getBandwidthHTML' ) bwClickFunction();
     }
   }
+
+  // Re-validate auth when the tab becomes visible again after being hidden or
+  // slept; onAuthVisible (auth-helpers.js) refreshes the hash and repaints, or
+  // redirects to login on a dead session. Wired here so it only runs for the
+  // authenticated views. pageshow covers bfcache restores (Firefox/Chromium/
+  // Android) and refocus.
+  document.addEventListener('visibilitychange', onAuthVisible);
+  window.addEventListener('pageshow', onAuthVisible);
 } // end if ( currentView != 'none' && currentView != 'login' )
 
 //Shows a message if there is an error in the streamObj or the stream doesn't exist.  Returns true if error, false otherwise.
 function checkStreamForErrors(funcName, streamObj) {
   if ( !streamObj ) {
-    Error(funcName+': stream object was null');
+    zmError(funcName+': stream object was null');
     return true;
   }
   if ( streamObj.responseJSON ) {
     if (streamObj.responseJSON.result == "Error") {
-      Error(funcName+' stream error: '+streamObj.responseJSON.message);
+      zmError(funcName+' stream error: '+streamObj.responseJSON.message);
       return true;
     }
   } else if ( streamObj.result == "Error" ) {
-    Error(funcName+' stream error: '+streamObj.message);
+    zmError(funcName+' stream error: '+streamObj.message);
     return true;
   }
   return false;
 }
 
-function secsToTime( seconds ) {
-  var timeString = "--";
+function formatSeconds(seconds, round='') {
+  let timeSecs = '';
+  if ( seconds < 10 ) {
+    timeSecs = '0'+ ((round) ? seconds.toFixed(round) : seconds.toString().substr( 0, 4 ));
+  } else {
+    timeSecs = (round) ? seconds.toFixed(round) : seconds.toString().substr( 0, 5 );
+  }
+  return timeSecs;
+}
+
+function secsToTime(seconds, round='') {
+  let timeString = "--";
   if ( seconds < 60 ) {
-    timeString = seconds.toString();
+    timeString = (round) ? seconds.toFixed(round) : seconds.toString(10);
   } else if ( seconds < 60*60 ) {
-    var timeMins = parseInt(seconds/60);
-    var timeSecs = seconds%60;
-    if ( timeSecs < 10 ) {
-      timeSecs = '0'+timeSecs.toString().substr( 0, 4 );
-    } else {
-      timeSecs = timeSecs.toString().substr( 0, 5 );
-    }
+    const timeMins = parseInt(seconds/60);
+    const timeSecs = formatSeconds(seconds%60, round);
     timeString = timeMins+":"+timeSecs;
   } else {
-    var timeHours = parseInt(seconds/3600);
-    var timeMins = (seconds%3600)/60;
-    var timeSecs = seconds%60;
+    const timeHours = parseInt(seconds/3600);
+    var timeMins = parseInt((seconds%3600)/60);
+    const timeSecs = formatSeconds(seconds%60, round);
     if ( timeMins < 10 ) {
-      timeMins = '0'+timeMins.toString().substr( 0, 4 );
-    } else {
-      timeMins = timeMins.toString().substr( 0, 5 );
-    }
-    if ( timeSecs < 10 ) {
-      timeSecs = '0'+timeSecs.toString().substr( 0, 4 );
-    } else {
-      timeSecs = timeSecs.toString().substr( 0, 5 );
+      timeMins = '0'+timeMins;
     }
     timeString = timeHours+":"+timeMins+":"+timeSecs;
   }
   return timeString;
+}
+
+// Timeline/epoch helpers. ZoneMinder stores and displays times in the server's
+// timezone (matching how events are recorded), not the browser's. Formatting
+// epoch seconds in the browser timezone shows the wrong wall clock time when the
+// two differ, so anchor to the server timezone here. refs #4977
+// Requires luxon's DateTime (loaded globally as `DateTime`), the ZM_TIMEZONE
+// constant (from skin.js.php) and, as a fallback, server_utc_offset (from the
+// montagereview view).
+function serverTimeZone() {
+  if (typeof ZM_TIMEZONE !== 'undefined' && ZM_TIMEZONE) return ZM_TIMEZONE;
+  // ZM_TIMEZONE not configured: fall back to the fixed offset the server
+  // reported at page load (does not follow DST, but keeps display consistent).
+  if (typeof server_utc_offset !== 'undefined') {
+    const sign = server_utc_offset < 0 ? '-' : '+';
+    const abs = Math.abs(server_utc_offset);
+    const hh = ('0' + Math.floor(abs / 3600)).slice(-2);
+    const mm = ('0' + Math.floor((abs % 3600) / 60)).slice(-2);
+    return 'UTC' + sign + hh + ':' + mm;
+  }
+  return 'local';
+}
+
+// Parse a 'yyyy-MM-dd HH:mm:ss' string (server-local wall clock) into a luxon
+// DateTime anchored to the server timezone.
+function inputstr2dt(str) {
+  return DateTime.fromFormat(str, 'yyyy-MM-dd HH:mm:ss', {zone: serverTimeZone()});
+}
+
+// Format epoch seconds as 'yyyy-MM-ddTHH:mm:ss' in the server timezone.
+function secs2inputstr(s) {
+  if (!parseInt(s)) {
+    console.warn("Invalid value for " + s + " seconds");
+    return '';
+  }
+  const dt = DateTime.fromSeconds(parseInt(s), {zone: serverTimeZone()});
+  if (!dt.isValid) {
+    console.warn("No valid date for " + s + " seconds");
+    return '';
+  }
+  return dt.toFormat("yyyy-MM-dd'T'HH:mm:ss");
+}
+
+// Format epoch seconds as 'yyyy-MM-dd HH:mm:ss' in the server timezone.
+function secs2dbstr(s) {
+  if (!parseInt(s)) {
+    console.warn("Invalid value for " + s + " seconds");
+    return '';
+  }
+  const dt = DateTime.fromSeconds(parseInt(s), {zone: serverTimeZone()});
+  if (!dt.isValid) {
+    console.warn("No valid date for " + s + " seconds");
+    return '';
+  }
+  return dt.toFormat('yyyy-MM-dd HH:mm:ss');
 }
 
 function submitTab(evt) {
@@ -560,17 +661,21 @@ function submitTab(evt) {
 function submitThisForm(param = null) {
   var form = this.form;
   var filter = null; // The filter that we previously moved to the left sidebar menu
-  if (!form && param && typeof param === 'object' && ('tagName' in param && param.tagName == 'FORM')) { // A form can be passed as a parameter.
-    form = param;
+  if (!form && param && typeof param === 'object' && 'tagName' in param) {
+    if (param.tagName == 'FORM') { // A form can be passed as a parameter.
+      form = param;
+    } else if (param.form) {
+      form = param.form;
+    }
   }
-  if (navbar_type == 'left' && !form) {
+  if (navbar_type == 'left' && filter_settings_position != 'inline' && !form) {
     if (currentView == 'console') {
       // We get the form that we process
-      form = document.querySelector('form[name="monitorForm"]');
+      form = document.getElementById('monitorFiltersForm');
       // We get a filter
       filter = document.getElementById('fbpanel');
     } else if (currentView == 'montage') {
-      form = document.getElementById('filters_form');
+      form = document.getElementById('monitorFiltersForm');
       // Filter is inside the form.
     } else if (currentView == 'montagereview') {
       form = document.getElementById('montagereview_form');
@@ -581,14 +686,17 @@ function submitThisForm(param = null) {
   }
 
   if ( ! form ) {
-    console.log("No this.form.  element with onchange is not in a form");
+    console.log("No this.form.  element with onchange is not in a form", this, param);
     return;
   }
   if (filter && navbar_type == 'left') {
     // Let's hide the old filter so that it doesn't appear during the transfer...
     filter.style.display = 'none';
     // We return the filter to its place in the form, since in the left side menu the filter should always be inside the form.
-    form.prepend(filter);
+    // Skip if filter is already an ancestor of form (e.g. console: #fbpanel > #monitorFiltersForm), which would cause HierarchyRequestError.
+    if (!filter.contains(form)) {
+      form.prepend(filter);
+    }
   }
   if (param && typeof param === 'string') { //ON WATCH PAGE WHEN SELECTING A MONITOR, the object is transferred as PARAM!!!
     var uri = "?" + $j(form).serialize() + param;
@@ -618,7 +726,7 @@ function configureDeleteButton( element ) {
   var form = element.form;
   var checked = element.checked;
   if ( !checked ) {
-    for ( var i = 0; i < form.elements.length; i++ ) {
+    for ( let i = 0; i < form.elements.length; i++ ) {
       if ( form.elements[i].name == element.name ) {
         if ( form.elements[i].checked ) {
           checked = true;
@@ -634,6 +742,37 @@ function configureDeleteButton( element ) {
 
 function confirmDelete( message ) {
   return ( confirm( message?message:'Are you sure you wish to delete?' ) );
+}
+
+// Load the Delete Confirmation Modal HTML via Ajax call
+function getDelConfirmModal(key, title, formName=null) {
+  $j.getJSON(thisUrl, {
+    request: 'modal',
+    modal: 'delconfirm',
+    key: key,
+    title: title
+  })
+      .done(function(data) {
+        insertModalHtml('deleteConfirm', data.html);
+        $j('#deleteConfirm').modal('show');
+        document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
+          $j('#deleteConfirm').modal('hide');
+          if (!formName) {
+            if (typeof manageDelConfirmModalBtns === "function") {
+              manageDelConfirmModalBtns();
+            }
+          } else {
+            const form = document.querySelector('form[name="'+formName+'"]');
+            if (form) {
+              if (currentView == 'groups') form.elements['action'].value = 'delete';
+              submitThisForm(form);
+            } else {
+              console.warn(`Form with name=${formName} not found.`);
+            }
+          }
+        }, {once: true});
+      })
+      .fail(logAjaxFail);
 }
 
 window.addEventListener( 'DOMContentLoaded', checkSize );
@@ -678,13 +817,30 @@ function convertLabelFormat(LabelFormat, monitorName) {
 }
 
 function addVideoTimingTrack(video, LabelFormat, monitorName, duration, startTime) {
-//This is a hacky way to handle changing the texttrack. If we ever upgrade vjs in a revamp replace this.  Old method preserved because it's the right way.
-  var cues = vid.textTracks()[0].cues();
+  // Updated for Video.js 8.x API
+  if (!vid || !vid.textTracks || !vid.textTracks().length) {
+    console.warn('addVideoTimingTrack: No text tracks available');
+    return;
+  }
+
+  var track = vid.textTracks()[0];
+  if (!track) {
+    console.warn('addVideoTimingTrack: Text track not found');
+    return;
+  }
+
   var labelFormat = convertLabelFormat(LabelFormat, monitorName);
   startTime = moment(startTime);
 
-  for ( var i = 0; i <= duration; i++ ) {
-    cues[i] = {id: i, index: i, startTime: i, endTime: i+1, text: startTime.format(labelFormat)};
+  // In Video.js 8, we need to add cues using the addCue method
+  for (let i = 0; i <= duration; i++) {
+    var cue = new VTTCue(i, i + 1, startTime.format(labelFormat));
+    cue.id = i;
+    try {
+      track.addCue(cue);
+    } catch (e) {
+      console.warn('Failed to add cue:', e);
+    }
     startTime.add(1, 's');
   }
 }
@@ -742,8 +898,8 @@ window.onresize = endOfResize;
  * */
 function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container, panZoomScale = 1) {
   //$j(window).on('resize', endOfResize); //set delayed scaling when Scale to Fit is selected
-  if (!container) container = $j('#content');
-  if (!container) {
+  if (!container || !container.length) container = $j('#content');
+  if (!container.length) {
     console.error("No container found");
     return;
   }
@@ -752,12 +908,20 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container, panZoom
   const viewPort = $j(window);
   // jquery does not provide a bottom offset, and offset does not include margins.  outerHeight true minus false gives total vertical margins.
   var bottomLoc = 0;
+  const content = $j("#content");
+  const scrollTop = (content.length > 0) ? content.scrollTop() : 0; // Watch page may have Scroll when Stream changes
   if (bottomEl !== false) {
     if (!bottomEl || !bottomEl.length) {
-      bottomEl = $j(container[0].lastElementChild);
+      if (container[0] && container[0].lastElementChild) {
+        bottomEl = $j(container[0].lastElementChild);
+      } else {
+        bottomEl = false;
+      }
     }
-    bottomLoc = bottomEl.offset().top + (bottomEl.outerHeight(true) - bottomEl.outerHeight()) + bottomEl.outerHeight(true);
-    console.log("bottomLoc: " + bottomEl.offset().top + " + (" + bottomEl.outerHeight(true) + ' - ' + bottomEl.outerHeight() +') + '+bottomEl.outerHeight(true) + '='+bottomLoc);
+    if (bottomEl && bottomEl.length) {
+      bottomLoc = bottomEl.offset().top + (bottomEl.outerHeight(true) - bottomEl.outerHeight()) + bottomEl.outerHeight(true) + scrollTop;
+      console.log("bottomLoc: " + bottomEl.offset().top + " + (" + bottomEl.outerHeight(true) + ' - ' + bottomEl.outerHeight() +') + '+bottomEl.outerHeight(true) + '='+bottomLoc);
+    }
   }
   let newHeight = viewPort.height() - (bottomLoc - scaleEl.outerHeight(true));
   let newWidth = ratio * newHeight;
@@ -795,10 +959,10 @@ function isJSON(str) {
     const result = JSON.parse(str);
     const type = Object.prototype.toString.call(result);
     return type === '[object Object]' || type === '[object Array]'; // We only pass objects and arrays
-  } catch (e) {
+  } catch {
     return false; // This is also not JSON
   }
-};
+}
 
 function setCookie(name, value, seconds) {
   var newValue = (typeof value === 'string' || typeof value === 'boolean') ? value : JSON.stringify(value);
@@ -821,7 +985,7 @@ function getCookie(name) {
   var nameEQ = name + "=";
   var result = null;
   var ca = document.cookie.split(';');
-  for (var i=0; i < ca.length; i++) {
+  for (let i=0; i < ca.length; i++) {
     if (result) break;
     var c = ca[i];
     while (c.charAt(0)==' ') c = c.substring(1, c.length);
@@ -839,6 +1003,19 @@ function delCookie(name) {
   document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
 }
 
+// Preview rate for thumbnail hover overlay. Cookie stores value as hundredths (e.g., 500 = 5x speed).
+function getPreviewRate() {
+  const rate = getCookie('zmPreviewRate');
+  return rate ? parseInt(rate, 10) / 100 : 5;
+}
+
+function changePreviewRate() {
+  const select = document.getElementById('previewRate');
+  if (select) {
+    setCookie('zmPreviewRate', select.value);
+  }
+}
+
 function bwClickFunction() {
   $j('.bwselect').click(function() {
     var bwval = $j(this).data('pdsa-dropdown-val');
@@ -851,7 +1028,9 @@ function reminderClickFunction() {
   $j("#dropdown_reminder a").click(function() {
     var option = $j(this).data('pdsa-dropdown-val');
     $j.getJSON(thisUrl + '?view=version&action=version&option=' + option)
-        .done(window.location.reload(true)) //Do a full refresh to update ZM_DYN_LAST_VERSION
+        .done(function() {
+          window.location.reload(true); // Do a full refresh to update ZM_DYN_LAST_VERSION
+        })
         .fail(logAjaxFail);
   });
 }
@@ -908,7 +1087,7 @@ function getStateModal() {
 function manageStateModalBtns() {
   // Enable or disable the Delete button depending on the selected run state
   $j("#runState").change(function() {
-    runstate = $j(this).val();
+    var runstate = $j(this).val();
 
     if ( (runstate == 'stop') || (runstate == 'restart') || (runstate == 'start') || (runstate == 'default') ) {
       $j("#btnDelete").prop("disabled", true);
@@ -919,7 +1098,7 @@ function manageStateModalBtns() {
 
   // Enable or disable the Save button when entering a new state
   $j("#newState").keyup(function() {
-    length = $j(this).val().length;
+    var length = $j(this).val().length;
     if ( length < 1 ) {
       $j("#btnSave").prop("disabled", true);
     } else {
@@ -969,7 +1148,21 @@ function stateStuff(action, runState, newState) {
 }
 
 function strip_html(string) {
-  return string.replace(/<[^>]+>/g, '');
+  // Parse as HTML and return only the text content. Regex tag-stripping is
+  // an incomplete sanitizer (e.g. nested/overlapping tags) and can backtrack;
+  // letting the parser extract textContent is both correct and linear.
+  const doc = new DOMParser().parseFromString(String(string), 'text/html');
+  return doc.body.textContent || '';
+}
+
+function escapeHTML(text) {
+  if (!text) return text;
+  return text.toString()
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
 }
 
 function logAjaxFail(jqxhr, textStatus, error) {
@@ -1000,7 +1193,7 @@ function getModal(id, parameters, buttonconfig=null) {
 
         insertModalHtml(id, data.html);
         buttonconfig ? buttonconfig() : manageModalBtns(id);
-        modal = $j('#'+id+'Modal');
+        var modal = $j('#'+id+'Modal');
         if ( ! modal.length ) {
           console.log('No modal found');
         }
@@ -1057,7 +1250,8 @@ function human_filesize(size, precision = 2) {
     size = size / step;
     i++;
   }
-  return (Math.round(size*(10^precision))/(10^precision))+units[i];
+  var factor = Math.pow(10, precision);
+  return (Math.round(size * factor) / factor) + units[i];
 }
 
 
@@ -1097,14 +1291,19 @@ function manageShutdownBtns(element) {
 /* Controls the availability of options for selection*/
 function manageChannelStream() {
   let select = null;
+  let primaryPath_ = null;
   let secondPath_ = null;
+  let restream = null;
+
   if (currentView == 'watch') {
     if (typeof monitorData !== 'undefined') {
       const monitor = monitorData.find((o) => {
         return parseInt(o["id"]) === monitorId;
       });
       if (monitor) {
+        primaryPath_ = monitor['Path'];
         secondPath_ = monitor['SecondPath'];
+        restream = monitor['Restream'];
       }
       select = document.querySelector('select[name="streamChannel"]');
     } else {
@@ -1112,62 +1311,711 @@ function manageChannelStream() {
     }
   } else if (currentView == 'monitor') {
     // Local source doesn't have second path
+    const PathInput = document.querySelector('input[name="newMonitor[Path]"]');
+    if (PathInput) {
+      primaryPath_ = PathInput.value;
+    }
     const SecondPathInput = document.querySelector('input[name="newMonitor[SecondPath]"]');
     if (SecondPathInput) {
       secondPath_ = SecondPathInput.value;
     }
-    select = document.querySelector('select[name="newMonitor[RTSP2WebStream]"]');
+    const RestreamInput = document.querySelector('input[name="newMonitor[Restream]"]');
+    if (RestreamInput) {
+      restream = RestreamInput.checked;
+    }
+    select = document.querySelector('select[name="newMonitor[StreamChannel]"]');
   }
   if (select) {
     select.querySelectorAll("option").forEach(function(el) {
-      if (el.value == 'Secondary' && !secondPath_) {
-        el.disabled = true;
-      } else {
-        el.disabled = false;
+      if (el.value == 'Secondary' || el.value == 'CameraDirectSecondary') {
+        el.disabled = !secondPath_;
+      } else if (el.value == 'Restream' || el.value == 'ZoneMinderPrimary') {
+        el.disabled = !restream;
+      } else if (el.value == 'CameraDirectPrimary') {
+        el.disabled = !primaryPath_;
       }
-      applyChosen(select);
     });
+
+    // If current selection is disabled, auto-select first available option
+    const selectedOption = select.options[select.selectedIndex];
+    if (selectedOption && selectedOption.disabled) {
+      // Prefer CameraDirectPrimary, then first enabled option
+      const cameraDirectPrimary = select.querySelector('option[value="CameraDirectPrimary"]:not([disabled])');
+      if (cameraDirectPrimary) {
+        select.value = 'CameraDirectPrimary';
+      } else {
+        const firstEnabled = select.querySelector('option:not([disabled])');
+        if (firstEnabled) {
+          select.value = firstEnabled.value;
+        }
+      }
+    }
+    applyChosen(select);
   }
 }
 
+// Lazy-load the video-stream custom element for go2rtc overlay support
+var _videoStreamLoaded = null;
+function ensureVideoStreamLoaded() {
+  if (_videoStreamLoaded) return _videoStreamLoaded;
+
+  if (customElements.get('video-stream')) {
+    _videoStreamLoaded = Promise.resolve();
+  } else {
+    _videoStreamLoaded = import('../js/video-stream.js').catch(function(e) {
+      console.warn('Failed to load video-stream module:', e);
+      _videoStreamLoaded = null;
+    });
+  }
+  return _videoStreamLoaded;
+}
+
+// Lazy-load HLS.js for RTSP2Web HLS streaming
+var _hlsLoaded = null;
+function ensureHlsLoaded() {
+  if (_hlsLoaded) return _hlsLoaded;
+
+  if (typeof Hls !== 'undefined') {
+    _hlsLoaded = Promise.resolve();
+  } else {
+    _hlsLoaded = new Promise(function(resolve, reject) {
+      const script = document.createElement('script');
+      script.src = '../js/hls-1.6.13/hls.min.js';
+      script.onload = resolve;
+      script.onerror = function() {
+        _hlsLoaded = null;
+        reject(new Error('Failed to load HLS.js'));
+      };
+      document.head.appendChild(script);
+    });
+  }
+  return _hlsLoaded;
+}
+
 var thumbnail_timeout;
+
 function thumbnail_onmouseover(event) {
   const img = event.target;
-  const imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
-  const imgAttr = ( currentView == 'frames' ) ? 'full_img_src' : 'stream_src';
-  img.src = img.getAttribute(imgAttr);
-  if ( currentView == 'console' || currentView == 'monitor' ) {
-    const rect = img.getBoundingClientRect();
-    const zoomHeight = rect.height * 5; // scale factor defined in css
-    if ( rect.bottom + (zoomHeight - rect.height) > window.innerHeight ) {
-      img.style.transformOrigin = '0% 100%';
-    } else {
-      img.style.transformOrigin = '0% 0%';
+  const streamType = img.dataset.streamType;
+  const monitorId = img.dataset.monitorId;
+
+  // Legacy go2rtc attributes for backwards compatibility
+  const go2rtcSrc = img.getAttribute('go2rtc_src') || img.dataset.go2rtcSrc;
+  const go2rtcMid = img.getAttribute('go2rtc_mid') || monitorId;
+  const useGo2rtc = streamType === 'go2rtc' || (!streamType && go2rtcSrc && go2rtcMid);
+
+  thumbnail_timeout = setTimeout(function() {
+    // Pre-load required modules
+    const isLiveStream = Boolean((streamType && monitorId) || useGo2rtc);
+    const m3u8Exists = (!isLiveStream) ? checkM3u8File(img.dataset.videoHlsSrc) : false;
+    if (useGo2rtc) {
+      ensureVideoStreamLoaded();
+    } else if (streamType === 'rtsp2web' || m3u8Exists) {
+      ensureHlsLoaded();
+    }
+
+    // Determine overlay source (priority: live stream > HLS video > mp4 video > MJPEG/still)
+    const overlaySrc = determineOverlaySrc(img, streamType, monitorId, useGo2rtc, m3u8Exists);
+    if (!overlaySrc) return;
+
+    const overlayDimensions = calculateOverlayDimensions(img);
+    if (!overlayDimensions) return;
+
+    createThumbnailOverlay(img, overlaySrc, overlayDimensions, streamType, monitorId, go2rtcSrc, go2rtcMid, useGo2rtc, m3u8Exists);
+  }, 250);
+}
+
+function determineOverlaySrc(img, streamType, monitorId, useGo2rtc, m3u8Exists) {
+  const useLiveStream = streamType && monitorId;
+  if (useLiveStream || useGo2rtc) return 'live';
+
+  if (m3u8Exists && currentView !== 'frames') {
+    return img.dataset.videoHlsSrc;
+  }
+
+  const videoSrc = img.getAttribute('video_src');
+  if (videoSrc && currentView !== 'frames') return videoSrc;
+
+  if (currentView === 'frames') return img.getAttribute('full_img_src');
+
+  const streamSrc = img.getAttribute('stream_src');
+  return streamSrc;
+}
+
+/*
+* obj - an object of type VIDEO or IMG. VIDEO takes precedence.
+*/
+function calculateOverlayDimensions(obj) {
+  const imgWidth = obj.videoWidth || obj.naturalWidth || obj.width;
+  const imgHeight = obj.videoHeight || obj.naturalHeight || obj.height;
+
+  if (!imgWidth || !imgHeight) return null;
+
+  const aspectRatio = imgWidth / imgHeight;
+  const maxWidth = window.innerWidth * 0.6;
+  const maxHeight = window.innerHeight * 0.7;
+
+  let width = maxWidth;
+  let height = width / aspectRatio;
+  if (height > maxHeight) {
+    height = maxHeight;
+    width = height * aspectRatio;
+  }
+
+  return {width: Math.round(width), height: Math.round(height)};
+}
+
+function calculateOverlayScale(img, overlayWidth) {
+  const monitorWidth = parseInt(img.dataset.monitorWidth);
+  if (!monitorWidth || monitorWidth <= 0) return 100;
+  const scale = Math.round(100 * overlayWidth / monitorWidth);
+  return Math.max(5, Math.min(100, scale));
+}
+
+function createThumbnailOverlay(img, overlaySrc, dimensions, streamType, monitorId, go2rtcSrc, go2rtcMid, useGo2rtc, m3u8Exists) {
+  const existing = document.getElementById('thumb-overlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'thumb-overlay';
+
+  // Wrapper contains video container and status bar
+  const wrapper = document.createElement('div');
+  wrapper.className = 'thumb-overlay-wrapper';
+
+  // Container uses cached still image as background while stream loads
+  const container = document.createElement('div');
+  container.id = 'monitor-thumb-overlay'; // video-stream.js expects parent with id starting with "monitor"
+  container.className = 'thumb-overlay-img';
+  container.style.width = dimensions.width + 'px';
+  container.style.height = dimensions.height + 'px';
+  container.style.backgroundImage = 'url("' + img.src + '")';
+
+  const fallbackToMjpeg = function() {
+    console.log('fallback');
+    const streamSrc = img.getAttribute('stream_src');
+    if (streamSrc) {
+      const fallbackImg = document.createElement('img');
+      const scale = calculateOverlayScale(img, dimensions.width);
+      fallbackImg.src = streamSrc.replace(/scale=\d+/, 'scale=' + scale);
+      container.appendChild(fallbackImg);
+    }
+    const infoStatusBar = document.getElementById("info-status-bar");
+    if (infoStatusBar) infoStatusBar.innerHTML = ' [MJPEG] ';
+  };
+
+  // Determine if this is a live stream or recorded video
+  const isLive = (overlaySrc === 'live');
+  const eventStart = img.dataset.eventStart;
+
+  // Create status bar (only if there's content to show)
+  let statusBar = null;
+  if (isLive || eventStart) {
+    statusBar = document.createElement('div');
+    statusBar.className = 'thumb-overlay-status';
+
+    if (isLive) {
+      // Live indicator with pulsing dot
+      statusBar.innerHTML = '<span class="live-indicator"><span class="live-dot"></span>LIVE<span id="info-status-bar"></span></span>';
+    } else if (eventStart) {
+      // Wall clock time for recorded video with clock icon
+      statusBar.innerHTML = '<span class="time-indicator"><i class="fa fa-clock-o"></i><span class="time-display">' +
+        formatDateTime(new Date(eventStart)) + '</span><span id="info-status-bar"></span></span>';
     }
   }
-  thumbnail_timeout = setTimeout(function() {
-    img.classList.add(imgClass);
-  }, 250);
+
+  if (isLive && useGo2rtc) {
+    createGo2rtcStream(container, img, go2rtcSrc, monitorId || go2rtcMid, fallbackToMjpeg);
+  } else if (streamType === 'rtsp2web') {
+    createRtsp2webStream(container, img, monitorId, fallbackToMjpeg, eventStart, statusBar);
+  } else if (m3u8Exists && currentView !== 'frames') {
+    playEventHLS(container, img, monitorId, fallbackToMjpeg, statusBar, eventStart);
+  } else if (streamType === 'janus') {
+    // Janus requires complex initialization; fall back to MJPEG
+    fallbackToMjpeg();
+  } else if (!isLive && img.getAttribute('video_src') && currentView !== 'frames') {
+    const video = createVideoElement(container, overlaySrc, eventStart, statusBar);
+    thumbnailVideoPlay(video, 'MP4', eventStart, statusBar);
+  } else {
+    const overlayImg = document.createElement('img');
+    const scale = calculateOverlayScale(img, dimensions.width);
+    overlaySrc = overlaySrc.replace(/scale=\d+/, 'scale=' + scale);
+    overlayImg.src = overlaySrc;
+    container.appendChild(overlayImg);
+  }
+
+  wrapper.appendChild(container);
+  if (statusBar) wrapper.appendChild(statusBar);
+  overlay.appendChild(wrapper);
+  document.body.appendChild(overlay);
+}
+
+// Format date/time for display in status bar
+function formatDateTime(date) {
+  if (!(date instanceof Date) || isNaN(date)) return '';
+  const options = {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  };
+  return date.toLocaleString(undefined, options);
+}
+
+function createGo2rtcStream(container, img, src, mid, fallbackToMjpeg) {
+  ensureVideoStreamLoaded().then(function() {
+    if (!document.getElementById('thumb-overlay')) return;
+
+    const channel = (img.dataset.streamChannel && img.dataset.streamChannel.toLowerCase().indexOf("direct") !== -1 ) ? img.dataset.streamChannel : 'CameraDirectPrimary';
+    const url = new URL(src);
+    url.protocol = (url.protocol === 'https:') ? 'wss:' : 'ws:';
+    url.pathname += '/ws';
+    //url.search = 'src=' + mid + '_0';
+    url.search = 'src=' + mid + '_' + channel;
+
+    const stream = document.createElement('video-stream');
+    stream.style.cssText = 'width: 100%; height: 100%; display: block;';
+    stream.background = true;
+    stream.muted = getCookie('zmWatchMuted') === 'true';
+    stream.src = url.href;
+    container.appendChild(stream);
+
+    const attachPlayListener = function() {
+      const innerVideo = stream.querySelector('video');
+      if (!innerVideo) return false;
+      innerVideo.addEventListener('play', function() {
+        const subMode = stream.getAttribute('current-mode') || '';
+        const infoStatusBar = document.getElementById('info-status-bar');
+        if (infoStatusBar) infoStatusBar.textContent = ' [Go2RTC_' + subMode + '] ';
+      });
+      return true;
+    };
+
+    if (!attachPlayListener()) {
+      const observer = new MutationObserver(function(_mutations, obs) {
+        if (attachPlayListener()) obs.disconnect();
+      });
+      observer.observe(stream, {childList: true});
+    }
+
+    // Fallback if go2rtc doesn't produce video within 3s
+    stream._fallbackTimer = setTimeout(function() {
+      const innerVideo = stream.querySelector('video');
+      if (!innerVideo || innerVideo.readyState < 2) {
+        stream.remove();
+        fallbackToMjpeg();
+      }
+    }, 3000);
+  }).catch(function(e) {
+    console.error(e);
+    fallbackToMjpeg();
+  });
+}
+
+function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg, eventStart, statusBar) {
+  const rtsp2webSrc = img.dataset.rtsp2webSrc;
+  const channel = (img.dataset.streamChannel && img.dataset.streamChannel.toLowerCase().indexOf("secondary") !== -1 ) ? 1 : 0;
+
+  ensureHlsLoaded().then(function() {
+    if (!document.getElementById('thumb-overlay')) return;
+
+    const url = new URL(rtsp2webSrc);
+    const hlsUrl = url.protocol + '//' + url.host + '/stream/' + monitorId + '/channel/' + channel + '/hls/live/index.m3u8';
+
+    const video = document.createElement('video');
+    video.removeAttribute('controls');
+    video.style.cssText = 'width: 100%; height: 100%;';
+    video.autoplay = false;
+    video.muted = getCookie('zmWatchMuted') === 'true';
+    video.playsInline = true;
+    container.appendChild(video);
+    video.streamType = 'rtsp2web';
+
+    // Fallback after 5s if video hasn't loaded
+    video._fallbackTimer = setTimeout(function() {
+      if (video.readyState < 2) {
+        hlsDestroy(video);
+        video.remove();
+        fallbackToMjpeg();
+      }
+    }, 5000);
+
+    if (Hls.isSupported()) {
+      const hls = new Hls();
+      video._hls = hls;
+      hls.loadSource(hlsUrl);
+      hls.attachMedia(video);
+
+      const infoStatusBar = statusBar.querySelector("#info-status-bar");
+      hls.on(Hls.Events.MEDIA_ATTACHED, () => {
+        if (infoStatusBar) infoStatusBar.innerHTML = ' [RTSP2Web Loading] ';
+        thumbnailVideoPlay(video, 'RTSP2Web', eventStart, statusBar);
+        console.debug("HLS Event = MEDIA_ATTACHED");
+        clearTimeout(video._fallbackTimer);
+      });
+      hls.on(Hls.Events.FRAG_LOADED, () => {
+        console.debug("HLS Event = FRAG_LOADED");
+      });
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        console.debug("HLS Event = MANIFEST_PARSED");
+      });
+      hls.on(Hls.Events.BUFFER_APPENDED, () => {
+        console.debug("HLS Event = BUFFER_APPENDED");
+      });
+      hls.on(Hls.Events.BUFFER_EOS, () => {
+        console.debug("HLS Event = BUFFER_EOS");
+      });
+      hls.on(Hls.Events.ERROR, function(event, data) {
+        console.warn("HLS Event = ERROR", "\n", "event:", event, "\n", "errorType:", data.type, "\n", "errorDetails:", data.details, "\n", "errorFatal:", data.fatal);
+        if (!data || !data.fatal) return;
+        hlsDestroy(video);
+        clearTimeout(video._fallbackTimer);
+        video.remove();
+        fallbackToMjpeg();
+      });
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      // Native HLS support (Safari)
+      video.src = hlsUrl;
+      thumbnailVideoPlay(video, 'RTSP2Web', eventStart, statusBar);
+      video.addEventListener('error', function() {
+        video.remove();
+        clearTimeout(video._fallbackTimer);
+        fallbackToMjpeg();
+        return;
+      });
+    } else {
+      video.remove();
+      clearTimeout(video._fallbackTimer);
+      fallbackToMjpeg();
+      return;
+    }
+  }).catch(function(e) {
+    console.error(e);
+    fallbackToMjpeg();
+  });
+}
+
+/*
+* obj - can be either an HLS instance or an object containing an HLS instance in its property.
+*/
+const hlsDestroy = function(obj) {
+  if (typeof Hls === 'undefined') {
+    console.warn("The hls.js library is not loaded.");
+    return;
+  }
+  if (!obj) {
+    console.warn("No object was passed as an argument to the hlsDestroy() function.");
+    return;
+  }
+  let hls = null;
+  let propertyName = null;
+  if (obj instanceof Hls) {
+    hls = obj;
+  } else if ('hls' in obj) {
+    hls = obj.hls;
+    propertyName = 'hls';
+  } else if ('_hls' in obj) {
+    hls = obj._hls;
+    propertyName = '_hls';
+  }
+
+  if (!hls || !(hls instanceof Hls)) {
+    for (const key of Object.keys(obj)) {
+      const value = obj[key];
+      if (value instanceof Hls) {
+        hls = value;
+        propertyName = key;
+        break;
+      }
+    }
+  }
+
+  if (hls) {
+    hls.off();
+    hls.destroy();
+    hls = null;
+    // If propertyName is null, it means an HLS instance was passed to the function.
+    if (propertyName) obj[propertyName] = null;
+  } else {
+    console.warn(`Hls for object`, obj, `cannot be destroyed because it is not loaded.`);
+  }
+};
+
+function thumbnailVideoPlay(video, currentMode, eventStart, statusBar) {
+  const infoStatusBar = (statusBar) ? statusBar.querySelector("#info-status-bar") : null;
+  video.play().then(() => {
+    if (currentMode == 'RTSP2Web') {
+      const container = document.getElementById('monitor-thumb-overlay');
+      if (container) {
+        const dimensions = calculateOverlayDimensions(video);
+        if (dimensions) {
+          container.style.width = dimensions.width+'px';
+          container.style.height = dimensions.height+'px';
+        }
+      }
+    }
+    if (infoStatusBar && currentMode) infoStatusBar.innerHTML = ' [' + currentMode + '] ';
+    console.debug(currentMode + " video player started playing");
+    if (eventStart && statusBar) updateTimeWallClock(video, eventStart, statusBar);
+  })
+      .catch((er) => {
+        if (er.name === 'NotAllowedError' && !video.muted) {
+          video.muted = true;
+          video.play().then(() => {
+            if (infoStatusBar && currentMode) infoStatusBar.innerHTML = ' [' + currentMode + '] ';
+            console.debug(currentMode + " video player started playing after muting");
+            if (eventStart && statusBar) updateTimeWallClock(video, eventStart, statusBar);
+          })
+              .catch((retryError) => {
+                console.warn(retryError);
+              });
+        } else {
+          console.warn(er);
+        }
+      });
+}
+
+function updateTimeWallClock(video, eventStart, statusBar) {
+  // Update wall clock time as video plays
+  if (eventStart && statusBar) {
+    const startTime = new Date(eventStart).getTime();
+    const timeDisplay = statusBar.querySelector('.time-display');
+    if (timeDisplay && !isNaN(startTime)) {
+      video.addEventListener('timeupdate', function() {
+        const currentTime = startTime + (video.currentTime * 1000);
+        timeDisplay.textContent = formatDateTime(new Date(currentTime));
+      });
+    }
+  }
+}
+
+function checkM3u8File(hlsUrl) {
+  if (!hlsUrl || currentView === 'frames') return false;
+
+  try {
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", hlsUrl, false);
+    xhr.send();
+    return (xhr.readyState === 4 && xhr.status === 200);
+  } catch (err) {
+    console.warn('Failed to check M3U8 file:', err);
+    return false;
+  }
+}
+
+function tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar) {
+  let video = null;
+  const videoSrc = img.getAttribute('video_src');
+  const durationSecs = parseFloat(img.dataset.videoDurationSecs);
+  if (videoSrc && currentView !== 'frames' && Number.isFinite(durationSecs) && durationSecs > 0 && durationSecs < 60) {
+    const eventStart = img.dataset.eventStart;
+    if (eventStart) {
+      // Wall clock time for recorded video with clock icon
+      if (statusBar) {
+        statusBar.innerHTML = '<span class="time-indicator"><i class="fa fa-clock-o"></i><span class="time-display">' +
+          formatDateTime(new Date(eventStart)) + '</span><span id="info-status-bar"> [MP4] </span></span>';
+      }
+    }
+    video = createVideoElement(container, videoSrc, eventStart, statusBar);
+    thumbnailVideoPlay(video, 'MP4', eventStart, statusBar);
+  } else {
+    fallbackToMjpeg();
+    return;
+  }
+
+  if (video) {
+    const clearVideoFallbackTimers = function() {
+      if (video._fallbackTimer) {
+        clearTimeout(video._fallbackTimer);
+        video._fallbackTimer = null;
+      }
+      if (video._fallbackTimerTime) {
+        clearInterval(video._fallbackTimerTime);
+        video._fallbackTimerTime = null;
+      }
+    };
+
+    video.addEventListener('ended', function() {
+      clearVideoFallbackTimers();
+    });
+
+    // Fallback after 5s if video hasn't loaded
+    video._fallbackTimer = setTimeout(function() {
+      if (video.readyState < 2) {
+        clearVideoFallbackTimers();
+        video.remove();
+        fallbackToMjpeg();
+      } else {
+        // A defective video may simply stop or freeze.
+        let curTime = video.currentTime;
+        video._fallbackTimerTime = setInterval(function() {
+          if (video.ended) {
+            clearVideoFallbackTimers();
+            return;
+          }
+
+          if (curTime == video.currentTime) {
+            console.log("MP4 video does not play, fallback to MJPEG.");
+            clearVideoFallbackTimers();
+            video.remove();
+            fallbackToMjpeg();
+          } else {
+            curTime = video.currentTime;
+          }
+        }, 1000);
+      }
+    }, 5000);
+  }
+}
+
+function playEventHLS(container, img, monitorId, fallbackToMjpeg, statusBar, eventStart) {
+  const hlsUrl = img.dataset.videoHlsSrc;
+
+  ensureHlsLoaded().then(function() {
+    if (!document.getElementById('thumb-overlay')) return;
+    const video = document.createElement('video');
+    video.addEventListener("ended", (event) => {
+      const infoStatusBar = document.getElementById("info-status-bar");
+      if (infoStatusBar) infoStatusBar.innerHTML = ' [END] ';
+    });
+    video.removeAttribute('controls');
+    video.style.cssText = 'width: 100%; height: 100%;';
+    video.autoplay = false;
+    video.muted = getCookie('zmWatchMuted') === 'true';
+    video.playsInline = true;
+    container.appendChild(video);
+
+    if (Hls.isSupported()) {
+      const hls = new Hls({
+        maxBufferLength: 20,
+        maxMaxBufferLength: 30,
+        backBufferLength: 5,
+        //debug: true,
+      });
+      hls.loadSource(hlsUrl);
+      hls.attachMedia(video);
+      thumbnailVideoPlay(video, 'HLS', eventStart, statusBar);
+      video._fallbackTimer = setTimeout(function() {
+        // If the index.m3u8 manifest is bad, playback may not start, although there will be no errors.
+        if (video.readyState < 2) {
+          hlsDestroy(video);
+          video.remove();
+          tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar);
+        }
+      }, 2000);
+
+      hls.on(Hls.Events.FRAG_LOADED, () => {
+        console.debug("HLS Event = FRAG_LOADED");
+      });
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        console.debug("HLS Event = MANIFEST_PARSED");
+      });
+      hls.on(Hls.Events.BUFFER_APPENDED, () => {
+        console.debug("HLS Event = BUFFER_APPENDED");
+      });
+      hls.on(Hls.Events.BUFFER_EOS, () => {
+        console.debug("HLS Event = BUFFER_EOS");
+      });
+      hls.on(Hls.Events.ERROR, function(event, data) {
+        console.warn("HLS Event = ERROR", "\n", "event:", event, "\n", "errorType:", data.type, "\n", "errorDetails:", data.details, "\n", "errorFatal:", data.fatal);
+        if (!data || !data.fatal) return;
+        hlsDestroy(video);
+        video.remove();
+        clearTimeout(video._fallbackTimer);
+        tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar);
+      });
+      video._hls = hls;
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      // Native HLS support (Safari)
+      video.src = hlsUrl;
+      video.addEventListener('error', function(e) {
+        console.error(e);
+        video.remove();
+        clearTimeout(video._fallbackTimer);
+        tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar);
+      });
+      thumbnailVideoPlay(video, 'Native HLS', eventStart, statusBar);
+      video._fallbackTimer = setTimeout(function() {
+        if (video.readyState < 2) {
+          video.remove();
+          tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar);
+        }
+      }, 2000);
+    } else {
+      video.remove();
+      tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar);
+    }
+  }).catch(function(e) {
+    console.error(e);
+    tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar);
+  });
+}
+
+function createVideoElement(container, src, eventStart, statusBar) {
+  const video = document.createElement('video');
+  const previewRate = getPreviewRate();
+  video.src = src;
+  video.autoplay = false;
+  video.muted = getCookie('zmWatchMuted') === 'true';
+  video.playsInline = true;
+  video.playbackRate = previewRate;
+  video.addEventListener("loadeddata", () => {
+    console.debug("Change video.readyState to: ", video.readyState);
+  });
+  video.addEventListener('loadedmetadata', function() {
+    this.playbackRate = previewRate; // Some browsers reset playbackRate on metadata load
+  });
+  video.addEventListener("ended", (event) => {
+    const infoStatusBar = document.getElementById("info-status-bar");
+    if (infoStatusBar) infoStatusBar.innerHTML = ' [END] ';
+  });
+
+  container.appendChild(video);
+  return video;
 }
 
 function thumbnail_onmouseout(event) {
   clearTimeout(thumbnail_timeout);
-  var img = event.target;
-  var imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
-  var imgAttr = ( currentView == 'frames' ) ? 'img_src' : 'still_src';
-  img.src = img.getAttribute(imgAttr);
-  img.classList.remove(imgClass);
-  if ( currentView == 'console' || currentView == 'monitor' ) {
-    img.style.transformOrigin = '';
-  }
+  const overlay = document.getElementById('thumb-overlay');
+  if (!overlay) return;
+
+  cleanupVideoStream(overlay.querySelector('video-stream'));
+  cleanupVideoElement(overlay.querySelector('video'));
+
+  const streamImg = overlay.querySelector('.thumb-overlay-img > img');
+  if (streamImg) streamImg.src = '';
+  overlay.remove();
+}
+
+function cleanupVideoStream(videoStream) {
+  if (!videoStream) return;
+  if (videoStream._fallbackTimer) clearTimeout(videoStream._fallbackTimer);
+  videoStream.close();
+}
+
+function cleanupVideoElement(video) {
+  if (!video) return;
+  if (video._fallbackTimer) clearTimeout(video._fallbackTimer);
+  clearInterval(video._fallbackTimerTime);
+  if (video._hls) hlsDestroy(video);
+  video.pause();
+  video.src = '';
+  video.load();
 }
 
 function initThumbAnimation() {
-  if ( ANIMATE_THUMBS ) {
+  if (ANIMATE_THUMBS) {
+    let hasGo2rtc = false;
     $j('.colThumbnail img').each(function() {
-      this.addEventListener('mouseover', thumbnail_onmouseover, false);
-      this.addEventListener('mouseout', thumbnail_onmouseout, false);
+      this.addEventListener('mouseenter', thumbnail_onmouseover, false);
+      this.addEventListener('mouseleave', thumbnail_onmouseout, false);
+      if (this.getAttribute('go2rtc_src')) hasGo2rtc = true;
     });
+    // Preload the video-stream module so it's ready when the user hovers
+    if (hasGo2rtc) ensureVideoStreamLoaded();
   }
 }
 
@@ -1204,10 +2052,18 @@ function toggle_password_visibility(element) {
     return;
   }
   if (element.innerHTML=='visibility') {
-    input.type = 'text';
+    if (input.classList.contains('masked-input')) {
+      input.classList.add('unmasked');
+    } else {
+      input.type = 'text';
+    }
     element.innerHTML = 'visibility_off';
   } else {
-    input.type = 'password';
+    if (input.classList.contains('masked-input')) {
+      input.classList.remove('unmasked');
+    } else {
+      input.type = 'password';
+    }
     element.innerHTML='visibility';
   }
 }
@@ -1281,7 +2137,9 @@ function destroyChosen(selector = '') {
 
 function applyChosen(selector = '') {
   const limit_search_threshold = 10;
-  var [obj_1, obj_2, obj_3] = '';
+  var obj_1;
+  var obj_2;
+  var obj_3;
   destroyChosen(selector);
   if (typeof selector === 'string') {
     obj_1 = $j(selector + '.chosen').not('.hidden, .hidden-shift, .chosen-full-width, .chosen-auto-width');
@@ -1320,7 +2178,7 @@ function thisClickOnStreamObject(clickObj) {
   } else {
     // When using go2rtc there will be a <video> element with no ID wrapped in a <video-stream> with an ID of !
     if (clickObj.closest('video-stream')) return true;
-  };
+  }
   return false;
 }
 
@@ -1438,6 +2296,30 @@ function setButtonSizeOnStream() {
   });
 }
 
+function calcTextSizeOnInfoBlock(el) {
+  const w = el.offsetWidth;
+  const textLength = el.innerText.length;
+  if (textLength === 0) return false;
+  const d = (w/400 > 1) ? 1 : w/400/0.8; // If the block width is less than 400px, the text will take up more than 40% of the width, otherwise it will be difficult to read.
+  return parseInt((w/textLength) * 0.6 / d); // ~40% of the block width
+}
+
+function setTextSizeOnInfoBlocks() {
+  const block = document.querySelectorAll('[id ^= "stream-info-block"]');
+  Array.prototype.forEach.call(block, (el) => {
+    setTextSizeOnInfoBlock(el);
+  });
+}
+
+function setTextSizeOnInfoBlock(el) {
+  if (el.innerText.length == 0) return;
+  const fontSize = calcTextSizeOnInfoBlock(el);
+  el.style.fontSize = fontSize + "px";
+  el.classList.remove("text-3d-mini", "text-3d");
+  const blockClass = (fontSize !== fontSize || fontSize < 50) ? 'text-3d-mini' : 'text-3d';
+  el.classList.add(blockClass);
+}
+
 /*
 * date - object type Date()
 * shift.offset - number (can be negative)
@@ -1485,12 +2367,13 @@ function canPlayCodec(filename) {
   const matches = re.exec(filename);
   if (matches && matches.length) {
     const video = document.createElement('video');
-    if (matches[1] == 'av1') matches[1] = 'av01';
-    else if (matches[1] == 'h264') matches[1] = 'avc1';
-    else if (matches[1] == 'hevc') matches[1] = 'hvc1';
+    if (matches[1] == 'av1') matches[1] = 'av01.0.01M.08';
+    else if (matches[1] == 'h264') matches[1] = 'avc1.42E01E';
+    else if (matches[1] == 'hevc') matches[1] = 'hvc1.1.6.L93.B0';
     else {
       console.log('matches didnt match'+matches[1]);
     }
+    video.muted = true;
 
     const can = video.canPlayType('video/mp4; codecs="'+matches[1]+'"');
     if (can == "probably") {
@@ -1558,13 +2441,15 @@ function changeAttrTitle(collapsed = null) {
 
 /* We create a retractable extruder block with filter settings (we move filters from the top panel) and a button in the left Sidebar menu */
 function insertControlModuleMenu() {
+  if (filter_settings_position == 'inline') return;
+
   var filter = null;
   if (currentView == 'console') {
     destroyChosen(); // It is required to be performed BEFORE receiving the object and only for those pages on which we transfer the filter
     filter = document.querySelector('#fbpanel');
   } else if (currentView == 'montage') {
     destroyChosen();
-    filter = document.querySelector('#filters_form');
+    filter = document.querySelector('#monitorFiltersForm');
   } else if (currentView == 'montagereview') {
     destroyChosen();
     filter = document.createElement('div');
@@ -1662,9 +2547,10 @@ function insertControlModuleMenu() {
   // Assign to Show/hide button
   menuControlModule.on("click", function() {
     if (!SIDEBAR_MAIN_EXTRUDER.classList.contains('isOpened')) {
+      clearTimeout(timeOutExtruderChange);
       $j(SIDEBAR_MAIN_EXTRUDER).openMbExtruder();
     } else {
-      $j(SIDEBAR_MAIN_EXTRUDER).closeMbExtruder();
+      closeMbExtruder(true);
     }
   });
 
@@ -1728,17 +2614,17 @@ function findPos(obj, foundScrollLeft, foundScrollTop) {
     foundScrollLeft = true;
   }
   if (obj.offsetParent) {
-    var pos = findPos(obj.offsetParent, foundScrollLeft, foundScrollTop);
+    const pos = findPos(obj.offsetParent, foundScrollLeft, foundScrollTop);
     curleft += pos[0];
     curtop += pos[1];
   } else if (obj.ownerDocument) {
-    var thewindow = obj.ownerDocument.defaultView;
+    let thewindow = obj.ownerDocument.defaultView;
     if (!thewindow && obj.ownerDocument.parentWindow) thewindow = obj.ownerDocument.parentWindow;
     if (thewindow) {
       if (!foundScrollTop && thewindow.scrollY && thewindow.scrollY > 0) curtop -= parseInt(thewindow.scrollY);
       if (!foundScrollLeft && thewindow.scrollX && thewindow.scrollX > 0) curleft -= parseInt(thewindow.scrollX);
       if (thewindow.frameElement) {
-        var pos = findPos(thewindow.frameElement);
+        const pos = findPos(thewindow.frameElement);
         curleft += pos[0];
         curtop += pos[1];
       }
@@ -1868,8 +2754,8 @@ function manageVisibilityVideoPlayerControlPanel(evt, action) {
     if (!video) {
       video = evt.target.getAttribute('tagName');
     }
-    if (video && !video.closest('#videoobj')) {
-      // We do not touch the video.js object, since it has its own controls.
+    if (video && !video.closest('#videoobj') && !video.closest('#thumb-overlay')) {
+      // We do not touch the video.js object or thumbnail overlay videos, since they have their own controls.
       if (action == 'hide') {
         video.removeAttribute('controls');
       } else if (action == 'show') {
@@ -1970,6 +2856,10 @@ function closeMbExtruder(updateCookie = false) {
     setCookie('zmVisibleMbExtruder', !!SIDEBAR_MAIN_EXTRUDER.classList.contains('isOpened'));
   }
   $j(SIDEBAR_MAIN_EXTRUDER).closeMbExtruder();
+  timeOutExtruderChange = setTimeout(function() {
+    // Prevent premature reset of z-index, as Extruder does not disappear immediately
+    SIDEBAR_MAIN_EXTRUDER.style.zIndex = 'unset';
+  }, 300);
 }
 
 /*
@@ -1977,19 +2867,28 @@ function closeMbExtruder(updateCookie = false) {
 * If many options were selected in the filter, then deleting them one by one takes a long time; it is easier to delete everything with one button.
 */
 function resetSelectElement(el) {
-  console.log("clearSelectMultiply_el=>", el);
-  const selectElement = document.querySelector('select[name="'+el.getAttribute('data-select-target')+'"]');
-  if (!selectElement) return;
-  Array.from(selectElement.options).forEach((option) => {
-    option.selected = false;
-  });
-  applyChosen(selectElement);
-
-  if (currentView == 'events') {
-    filterEvents(clickedElement = selectElement);
-  } else {
-    submitThisForm(this.closest('form'));
+  const selectElement = $j('select[name="'+el.getAttribute('data-select-target')+'"]');
+  if (!selectElement.length) {
+    console.log('No element found for select[name="'+el.getAttribute('data-select-target')+'"]');
+    return;
   }
+  selectElement.val('');
+  applyChosen(selectElement);
+  selectElement.change();
+}
+
+function getMonitorStream(mid) { // RENAME to getStream(), but it is already in montage.js, so merge!!!
+  let monitorStream_ = null;
+  if (currentView == 'watch') {
+    monitorStream_ = monitorStream;
+  } else if (currentView == 'montage' || currentView == 'zones' || currentView == 'zone') {
+    monitorStream_ = monitors.find((o) => {
+      return parseInt(o["id"]) === mid;
+    });
+  } else if (currentView == 'event') {
+    monitorStream_ = document.querySelector('[id ^= "videoFeedStream"]');
+  }
+  return monitorStream_;
 }
 
 function initPageGeneral() {
@@ -2088,50 +2987,757 @@ function initPageGeneral() {
   }, 200);
 
   // https://web.dev/articles/bfcache Firefox has a peculiar behavior of caching the previous page.
+  // The problem also occurs on some Linux (Chromium) and Android (Chrome) devices.
   window.addEventListener('pageshow', (event) => {
     if (event.persisted) {
       // Do any checks and updates to the page
-      if (mainContentJ[0].clientHeight < 1) {
-        window.location.reload( true );
-      }
+      window.location.reload( true );
     }
   });
 
-  window.addEventListener('beforeunload', function addListenerGlobalBeforeunload(event) {
+  function addListenerGlobalBeforeunload(event) {
+    /* Due to bfcache etc, we should really limit any changes we might make.  We will have to undo them if we then get a back button click */
+    //window.removeEventListener('beforeunload', addListenerGlobalBeforeunload);
     //event.preventDefault();
     if (navbar_type == 'left') {
-      closeMbExtruder(updateCookie = true);
+      closeMbExtruder(true);
     }
 
-    if (mainContentJ) {
+    const href = event.target.activeElement.href;
+    if (href && (href.indexOf('view=archive') != -1 || href.indexOf('view=download') != -1)
+      || event.target.activeElement.id == 'exportButton') {
+      // Clicked on the link to download the generated file in the modal window
+      // on the Events page or when automatic download of generated files was enabled
+      return;
+    }
+
+    if (mainContent) {
       if (mainContentJ.css('display') == 'flex') {
         // If flex-grow is set to a value > 0 then "height" will be ignored!
         mainContentJ.css({flex: "0 1 auto"});
       }
-
-      mainContentJ.animate({height: 0}, 300, function rollupBeforeunloadPage() {
-        const btnCollapse = $j('body').find('#btn-collapse');
-        if (btnCollapse) btnCollapse.css({display: "none"});
-        mainContentJ.css({display: "none"});
-      });
+      if (typeof ZM_WEB_ANIMATIONS === 'undefined' || !ZM_WEB_ANIMATIONS) {
+        // mainContentJ.css({display: "none"});
+      } else {
+        mainContentJ.animate({height: 0}, 300, function rollupBeforeunloadPage() {
+          mainContentJ.css({display: "none"});
+        });
+      }
     }
     //event.returnValue = '';
-  });
+  }
+  window.addEventListener('beforeunload', addListenerGlobalBeforeunload);
 
   document.querySelectorAll('[id ^= "controlMute"]').forEach(function(el) {
     el.addEventListener("click", function clickControlMute(event) {
-      const mid = (stringToNumber(event.target.id) || stringToNumber(document.querySelector('[id ^= "liveStream"]').id));
-      if (!mid) return;
-      if (currentView == 'watch') {
-        monitorStream.controlMute('switch');
-      } else if (currentView == 'montage') {
-        const currentMonitor = monitors.find((o) => {
-          return parseInt(o["id"]) === mid;
+      let mid = (stringToNumber(event.target.id));
+      if (isNaN(mid)) { // For example, a common one on the Montage page
+        // You can't call it with MODE='switch' here, as some monitors may have the volume on, while others may have the volume off. You need to get the current state of the MUTED icon!!!
+        const setStateMuted = (event.target.textContent == "volume_off") ? 'off' : 'on';
+        controlMute(null, setStateMuted);
+        document.querySelectorAll('[id ^= "controlMute"]').forEach(function(el) {
+          // Let's specify the button state for each monitor on the page.
+          mid = (stringToNumber(el.id));
+          if (isNaN(mid)) return; // For all monitors
+          const currentMonitor = monitors.find((o) => {
+            return parseInt(o["id"]) === mid;
+          });
+          currentMonitor.controlMute(setStateMuted);
         });
-        currentMonitor.controlMute('switch');
+      } else {
+        if (currentView == 'watch') {
+          monitorStream.controlMute('switch');
+        } else if (currentView == 'montage' || currentView == 'event') {
+          const currentMonitor = monitors.find((o) => {
+            return parseInt(o["id"]) === mid;
+          });
+          currentMonitor.controlMute('switch');
+        }
       }
     });
   });
 }
+
+// Called when monitor filters change - refreshes table via AJAX instead of full page reload
+function monitorFilterOnChange(element) {
+  // Save filter values to cookies for persistence
+  var form = (element && element.form) ? element.form : document.forms['monitorFiltersForm'];
+  if (form) {
+    // Define filter fields to save (using var names without [] suffix for consistency)
+    var filterFields = [
+      {name: 'GroupId[]', cookieName: 'GroupId'},
+      {name: 'ServerId[]', cookieName: 'ServerId'},
+      {name: 'StorageId[]', cookieName: 'StorageId'},
+      {name: 'Status[]', cookieName: 'Status'},
+      {name: 'Capturing[]', cookieName: 'Capturing'},
+      {name: 'Analysing[]', cookieName: 'Analysing'},
+      {name: 'Recording[]', cookieName: 'Recording'},
+      {name: 'MonitorId[]', cookieName: 'MonitorId'},
+      {name: 'MonitorName', cookieName: 'MonitorName'},
+      {name: 'Source', cookieName: 'Source'}
+    ];
+
+    filterFields.forEach(function(fieldInfo) {
+      var field = form.elements[fieldInfo.name];
+      if (field) {
+        // Check if it's a multi-value field (ends with [] or is select-multiple)
+        var isMultiValue = fieldInfo.name.endsWith('[]') || field.multiple || field.type === 'select-multiple';
+
+        if (isMultiValue) {
+          // Handle multi-select dropdowns and array fields
+          var selected = $j(field).val();
+          if (selected && selected.length > 0) {
+            setCookie('zmFilter_' + fieldInfo.cookieName, JSON.stringify(selected));
+          } else {
+            setCookie('zmFilter_' + fieldInfo.cookieName, '');
+          }
+        } else if (field.type === 'text') {
+          // Handle text inputs
+          setCookie('zmFilter_' + fieldInfo.cookieName, field.value);
+        }
+      }
+    });
+  }
+
+  // On console view with bootstrap-table, just refresh the table
+  if (typeof table !== 'undefined' && table.length) {
+    table.bootstrapTable('refresh');
+  } else {
+    // Fall back to full page reload on other views
+    submitThisForm(element);
+  }
+}
+
+function isEmpty(obj) {
+  return obj && typeof obj === 'object' && Object.keys(obj).length === 0;
+}
+
+function copyAllAttributesDOMElement(fromEl, toEl) {
+  for (const attr of fromEl.attributes) {
+    toEl.setAttribute(attr.name, attr.value);
+  }
+};
+
+function replaceDOMElement(fromEl, toTypeEl) {
+  let newEl = fromEl;
+  if (fromEl.nodeName != toTypeEl.toUpperCase()) {
+    const container = fromEl.parentNode;
+    newEl = document.createElement(toTypeEl);
+    copyAllAttributesDOMElement(fromEl, newEl);
+    fromEl.parentNode.removeChild(fromEl);
+    container.appendChild(newEl);
+  }
+  return newEl;
+};
+
+function monitorsSetScale(id=null) {
+  id = stringToNumber(id);
+  if (!isNaN(id)) {
+    let currentMonitor;
+    if (typeof monitorStream !== 'undefined' && monitorStream !== false) {
+      //monitorStream used on Watch page.
+      currentMonitor = monitorStream;
+    } else if (typeof monitors !== 'undefined') {
+      //used on Montage, Watch & Event page.
+      currentMonitor = monitors.find((o) => {
+        return parseInt(o["id"]) === id;
+      });
+    } else {
+      console.log("Stream is missing.");
+      return;
+    }
+    _setScale(currentMonitor);
+  } else { // Not a specific stream, but all streams.
+    for ( let i = 0, length = monitors.length; i < length; i++ ) {
+      _setScale(monitors[i]);
+    } // end foreach monitor
+  }
+
+  function _setScale(currentMonitor) {
+    const id = currentMonitor.id;
+    const panZoomScale = (panZoomEnabled && typeof zmPanZoom !== 'undefined') ? zmPanZoom.panZoom[id].getScale() : 1;
+    let resize = false;
+    let width = 'auto';
+    let height = 'auto';
+    let overrideHW = false;
+    let defScale = 0;
+    const ratio = currentMonitor.width / currentMonitor.height;
+    const landscape = ratio > 1 ? true : false; //Image orientation.
+    const liveStream = currentMonitor.getElement();
+    const monitor_div = document.getElementById('monitor'+id);
+    if (!monitor_div) {
+      console.log("No monitor div for ", id);
+      return;
+    }
+    const scale = $j('#scale').val();
+    if (scale) {
+      if (scale == '0') {
+        //Auto, Width is calculated based on the occupied height so that the image and control buttons occupy the visible part of the screen.
+      } else if (scale == '100') {
+        //Actual, 100% of original size
+        width = currentMonitor.width + 'px';
+        height = currentMonitor.height + 'px';
+        overrideHW = true;
+      } else if (scale == 'fit_to_width') {
+        //Fit to screen width
+        width = parseInt(monitor_div.clientWidth * panZoomScale) + 'px';
+        defScale = parseInt(monitor_div.clientWidth / currentMonitor.width * panZoomScale * 100);
+        overrideHW = true;
+      } else if (scale.indexOf("px") > -1) {
+        // If the aspect ratio specified in the monitor settings does not correspond to the actual aspect ratio of the video, then:
+        // - For MJPEG player, the video will be displayed according to the specified aspect ratio.
+        // - For other players, taking into account the actual video aspect ratio.
+        if (landscape) {
+          width = scale;
+          //height = parseInt(scale) / ratio + 'px';
+          defScale = parseInt(Math.min(stringToNumber(scale), window.innerWidth) / currentMonitor.width * panZoomScale * 100);
+        } else {
+          width = parseInt(parseInt(scale) * ratio) + 'px';
+          //height = scale;
+          defScale = parseInt(Math.min(stringToNumber(scale), window.innerHeight) / currentMonitor.height * panZoomScale * 100);
+        }
+        overrideHW = true;
+      }
+      resize = true;
+    } else { // Montage page does not have "scale"
+      width = parseInt(liveStream.clientWidth * panZoomScale) + 'px';
+      height = parseInt(liveStream.clientHeight * panZoomScale) + 'px';
+    }
+
+    currentMonitor.setScale(defScale, width, height, {resizeImg: resize, scaleImg: panZoomScale, streamQuality: $j('#streamQuality').val()});
+
+    if (overrideHW) {
+      if (scale == 'fit_to_width') {
+        liveStream.style.width = width;
+        liveStream.style.height = '';
+        liveStream.style.maxWidth = '';
+        monitor_div.style.width = 'auto';
+        monitor_div.style.height = '';
+        monitor_div.style.maxWidth = '';
+      } else if (scale.indexOf("px") > -1) {
+        liveStream.style.width = '';
+        liveStream.style.height = height;
+        liveStream.style.maxWidth = '100%';
+        monitor_div.style.width = width;
+        monitor_div.style.height = '';
+        monitor_div.style.maxWidth = '100%';
+      } else if (scale == '100') {
+        liveStream.style.width = width;
+        liveStream.style.height = height;
+        liveStream.style.maxWidth = '';
+        monitor_div.style.width = 'fit-content';
+        monitor_div.style.height = '';
+        monitor_div.style.maxWidth = '';
+      } else {
+        liveStream.style.width = width;
+        liveStream.style.height = height;
+        liveStream.style.maxWidth = '';
+        monitor_div.style.width = '100%';
+        monitor_div.style.height = '';
+        monitor_div.style.maxWidth = '';
+      }
+    }
+
+    if (scale == '0') {
+      const fillVideo = true; //true = In AUTO mode it will stretch to the full width, but will spoil the proportions if they do not correspond to the actual proportions in the monitor settings!!!
+      const tagVideo = (liveStream.tagName == 'VIDEO') ? liveStream : liveStream.querySelector('video');
+      if (tagVideo) {
+        if (fillVideo) {
+          tagVideo.style.width = '';
+          tagVideo.objectFit = 'fill';
+        } else {
+          tagVideo.style.width = 'auto';
+          tagVideo.objectFit = '';
+        }
+      }
+    }
+  } // End function _setScale
+  setButtonSizeOnStream();
+  setTextSizeOnInfoBlocks();
+} // End function monitorsSetScale
+
+function connectAudioMotion(mid) {
+  const selectorWhatDisplay = document.getElementById('whatDisplay');
+  const monitorStream = getMonitorStream(mid);
+  const defaultWhatDisplay = (typeof eventData !== 'undefined') ? eventData.whatDisplay : (monitorStream) ? monitorStream.whatDisplay : null;
+
+  if (!selectorWhatDisplay || (-1 !== selectorWhatDisplay.value.toLowerCase().indexOf('default'))) { // Default monitor settings
+    if (defaultWhatDisplay && (-1 === defaultWhatDisplay.toLowerCase().indexOf('audio'))) return;
+  } else {
+    if (-1 === selectorWhatDisplay.value.toLowerCase().indexOf('audio')) return;
+  }
+
+  const audioMotion = document.querySelector('audio-motion#audioVisualization' + mid);
+  if (audioMotion && audioMotion.init) {
+    audioMotion.init();
+  } else {
+    console.log(`connectToMediaStreamSource not possible. 'audio-motion'=`, $j(audioMotion));
+  }
+};
+
+function hideAudioMotion(mid) {
+  const audioMotion = document.querySelector('audio-motion#audioVisualization' + mid);
+  if (audioMotion && audioMotion.hide) {
+    audioMotion.hide();
+  }
+};
+
+function destroyAudioMotion(mid) {
+  const audioMotion = document.querySelector('audio-motion#audioVisualization' + mid);
+  if (audioMotion && audioMotion.destroy) {
+    audioMotion.destroy();
+  }
+};
+
+function pauseAudioMotion(mid) {
+  const audioMotion = document.querySelector('audio-motion#audioVisualization' + mid);
+  if (audioMotion && audioMotion.pause) {
+    audioMotion.pause();
+  }
+};
+
+/*IMPORTANT DO NOT CALL WITHOUT CONSCIOUS NEED!!!*/
+// https://habr.com/ru/companies/timeweb/articles/667148/
+async function getTracksFromStream(videoFeedStream) {
+  if (!videoFeedStream) {
+    console.log(`Unable to get tracks from stream because the stream is missing.`);
+    return;
+  }
+  const mid = (typeof eventData !== 'undefined') ? eventData.MonitorId : (videoFeedStream) ? videoFeedStream.id : null;
+  if (!mid) {
+    console.log(`getTracksFromStream: Unable to get Monitor.ID for`, videoFeedStream);
+    return;
+  }
+
+  let el = null;
+  if (currentView == 'watch' || currentView == 'montage' || currentView == 'zones' || currentView == 'zone') {
+    el = (-1 !== videoFeedStream.activePlayer.indexOf('go2rtc')) ? document.querySelector('[id ^= "liveStream'+videoFeedStream.id+'"] video') : videoFeedStream.getElement();
+  } else if (currentView == 'event') {
+    el = videoFeedStream.querySelector('video');
+  }
+  videoFeedStream.mediaStream = videoFeedStream.audioTrack = videoFeedStream.videoTrack = null;
+
+  if (!el) {
+    console.log(`"Video stream" NOT found for monitor ID=${mid}.`);
+    return;
+  }
+  let streamCaptureNotSupported = false;
+  let stream = null;
+
+  // We should NOT call captureStream again, as there may be problems with capturing the stream!
+  let moz = false; // Detecting Firefox
+  if ("captureStream" in el) {
+    stream = await el.captureStream();
+  } else if ("mozCaptureStreamUntilEnded" in el) {
+    stream = await el.mozCaptureStreamUntilEnded();
+    moz = true;
+  } else {
+    console.warn(`"captureStream" NOT found in STREAM for monitor ID=${mid} or not supported by the browser.`);
+    streamCaptureNotSupported = true; // This will enable the volume control if the browser does not support captureStream (for example, Safari)
+  }
+
+  if (stream) {
+    const timeoutStreamActive = 20000;
+    const startTime = Date.now();
+    const streamActive = await waitUntil(() => (stream.active || videoFeedStream.started === false), timeoutStreamActive, stream.active); // We are waiting for the stream to become active.
+    if (streamActive !== false && videoFeedStream.started !== false) {
+      console.debug(`Stream for monitor with ID=${mid} became active within ${(streamActive/1000).toFixed(2)} seconds.`);
+    } else {
+      console.warn(`Within ${((Date.now() - startTime)/1000).toFixed(2)} seconds, the stream for monitor with ID=${mid} did not become active.`);
+      return;
+    }
+
+    if (videoFeedStream.started === undefined || videoFeedStream.started) { // Event page || Watch/Montage
+      // While we were waiting for Media Stream activity, the video stream may have stopped.
+      videoFeedStream.audioTrack = stream.getAudioTracks()[0];
+      videoFeedStream.videoTrack = stream.getVideoTracks()[0];
+      videoFeedStream.mediaStream = stream;
+      if (moz && videoFeedStream.audioTrack) {
+        // Fix Firefox https://stackoverflow.com/questions/72401396/usage-of-mozcapturestream-stop-audio-output-of-video-element
+        const ctx = new AudioContext();
+        const dest = ctx.createMediaStreamSource(stream);
+        dest.connect(ctx.destination);
+      }
+    } else {
+      console.debug(`Stream for monitor ID=${mid} is not running. mediaStream is not assigned for a stream.`);
+    }
+  } else if (!streamCaptureNotSupported) {
+    console.warn(`Failed to capture stream for monitor ID=${mid} while receiving tracks.`);
+  }
+
+  console.debug(`mediaStream for ID=${mid}:`, videoFeedStream.mediaStream);
+  console.debug(`audioTrack  for ID=${mid}:`, videoFeedStream.audioTrack);
+  console.debug(`videoTrack  for ID=${mid}:`, videoFeedStream.videoTrack);
+  if (currentView == 'watch' || currentView == 'montage') {
+    (videoFeedStream.audioTrack || streamCaptureNotSupported) ? videoFeedStream.volumeControlsHandler('enable') : videoFeedStream.volumeControlsHandler('disable');
+  } else if (currentView == 'event') {
+
+  }
+
+  connectAudioMotion(mid);
+}
+
+const waitUntil = (condition, timeout = 0) => {
+  const startTime = Date.now();
+  let currentTime;
+
+  return new Promise((resolve) => {
+    if (condition()) {
+      currentTime = Date.now();
+      resolve(currentTime - startTime);
+    } else {
+      const interval = setInterval(() => {
+        currentTime = Date.now();
+        if (timeout !== 0 && ((currentTime - startTime) > timeout)) {
+          clearInterval(interval);
+          resolve(false);
+        } else {
+          if (!condition()) return;
+          clearInterval(interval);
+          resolve(currentTime - startTime);
+        }
+      }, 100);
+    }
+  });
+};
+
+const createVolumeSlider = function(volumeSlider, audioStream=null) {
+  if (!volumeSlider) return;
+  const defaultVolume = (volumeSlider.getAttribute("data-volume") || 50);
+  const iconMute = getIconMute(stringToNumber(volumeSlider.id));
+
+  noUiSlider.create(volumeSlider, {
+    start: [(defaultVolume) ? defaultVolume : (audioStream) ? audioStream.volume * 100 : 50],
+    step: 1,
+    //behaviour: 'unconstrained',
+    behaviour: 'tap',
+    connect: [true, false],
+    range: {
+      'min': 0,
+      'max': 100
+    },
+    /*tooltips: [
+      //true,
+      { to: function(value) { return value.toFixed(0) + '%'; } }
+    ],*/
+  });
+  volumeSlider.allowSetValue = true;
+  volumeSlider.noUiSlider.on('update', function onUpdateUiSlider(values, handle) {
+    const valueSlider = values[0];
+    if (audioStream) audioStream.volume = valueSlider/100;
+    if (valueSlider > 0 && (!audioStream || (audioStream && !audioStream.muted))) {
+      iconMute.innerHTML = 'volume_up';
+      volumeSlider.classList.remove('noUi-mute');
+    } else {
+      iconMute.innerHTML = 'volume_off';
+      volumeSlider.classList.add('noUi-mute');
+    }
+    //console.log("Audio volume slider event: 'update'");
+  });
+  volumeSlider.noUiSlider.on('end', function onEndUiSlider(values, handle) {
+    volumeSlider.allowSetValue = true;
+    //console.log("Audio volume slider event: 'end'");
+  });
+  volumeSlider.noUiSlider.on('start', function onStartUiSlider(values, handle) {
+    volumeSlider.allowSetValue = false; // Let's prohibit changing the Value using the "Set" method, otherwise there will be lags and collapse when directly moving the slider with the mouse...
+    //console.log("Audio volume slider event: 'start'");
+  });
+  volumeSlider.noUiSlider.on('set', function onSetUiSlider(values, handle) {
+    //console.log("Audio volume slider event: 'set'");
+  });
+  volumeSlider.noUiSlider.on('slide', function onSlideUiSlider(values, handle) {
+    if (audioStream) {
+      if (audioStream.volume > 0 && audioStream.muted) {
+        iconMute.innerHTML = 'volume_up';
+        audioStream.muted = false;
+      }
+    } else { // For all monitors
+      document.querySelectorAll('[id ^= "volumeSlider"]').forEach(function(el) {
+        const mid = stringToNumber(el.id);
+        if (isNaN(mid)) return;
+        const stream = getAVStream(mid);
+        const valueSlider = values[0];
+        if (stream) stream.volume = valueSlider/100;
+        const iconMute = getIconMute(mid);
+        if (iconMute) iconMute.innerHTML = (valueSlider > 0) ? 'volume_up' : 'volume_off';
+        if (stream) stream.muted = (valueSlider > 0) ? false : true;
+      });
+    }
+    //console.log("Audio volume slider event: 'slide'");
+  });
+};
+
+const destroyVolumeSlider = function(volumeSlider) {
+  if (volumeSlider) {
+    if (volumeSlider.noUiSlider) {
+      volumeSlider.noUiSlider.destroy();
+      volumeSlider.noUiSlider = null;
+    }
+    const mid = stringToNumber(volumeSlider.id);
+    if (!isNaN(mid)) changeStateIconMute(mid, '');
+  }
+};
+
+const changeStateIconMute = function(mid, volume) {
+  //const volumeControls = getVolumeControls(mid);
+  //const disabled = (volumeControls) ? volumeControls.classList.contains('disabled') : false;
+  const iconMute = getIconMute(mid);
+  if (iconMute) {
+    iconMute.innerHTML = (volume == 'on') ? 'volume_up' : (volume == 'off') ? 'volume_off' : '';
+  }
+  return iconMute;
+};
+
+const changeVolumeSlider = function(mid, volume) {
+  const volumeControls = getVolumeControls(mid);
+  const volumeSlider = getVolumeSlider(mid);
+  if (volumeSlider) {
+    let disabled = false;
+    if (volumeControls) {
+      disabled = volumeControls.classList.contains('disabled');
+    }
+    if (volume == 'on') {
+      volumeSlider.classList.remove('noUi-mute');
+    } else if (volume == 'off') {
+      volumeSlider.classList.add('noUi-mute');
+    }
+    if (volumeSlider.noUiSlider) {
+      (disabled) ? volumeSlider.noUiSlider.disable() : volumeSlider.noUiSlider.enable();
+    }
+  }
+  return volumeSlider;
+};
+
+const controlMute = function(mid, mode = 'switch') {
+  let volumeSlider = getVolumeSlider(mid);
+  const audioStream = getAVStream(mid);
+  const volumeControls = getVolumeControls(mid);
+  const disabled = (volumeControls) ? volumeControls.classList.contains('disabled') : false;
+
+  if (volumeSlider && volumeSlider.noUiSlider) {
+    (disabled) ? volumeSlider.noUiSlider.disable() : volumeSlider.noUiSlider.enable();
+  }
+
+  if (disabled) {
+    console.log(`Volume control is disabled in controlMute for monitor ID=${mid}`);
+    return;
+  }
+  if (mid && !audioStream) {
+    console.log(`No audiostream! in controlMute for monitor ID=${mid}`);
+    return;
+  }
+
+  if (mode=='switch') {
+    if (audioStream.muted) {
+      changeStateIconMute(mid, 'on');
+      volumeSlider = changeVolumeSlider(mid, 'on');
+      if (mid) {
+        audioStream.muted = false;
+        if (volumeSlider && volumeSlider.noUiSlider) {
+          audioStream.volume = volumeSlider.noUiSlider.get() / 100;
+        }
+      } else { // For all monitors
+
+      }
+    } else {
+      changeStateIconMute(mid, 'off');
+      changeVolumeSlider(mid, 'off');
+      if (mid) {
+        audioStream.muted = true;
+      } else { // For all monitors
+
+      }
+    }
+  } else if (mode=='on') {
+    changeStateIconMute(mid, 'off');
+    changeVolumeSlider(mid, 'off');
+    if (mid) {
+      audioStream.muted = true;
+    } else { // For all monitors
+
+    }
+  } else if (mode=='off') {
+    changeStateIconMute(mid, 'on');
+    volumeSlider = changeVolumeSlider(mid, 'on');
+    if (mid) {
+      audioStream.muted = false;
+      if (volumeSlider && volumeSlider.noUiSlider) {
+        audioStream.volume = volumeSlider.noUiSlider.get() / 100;
+      }
+    } else { // For all monitors
+
+    }
+  }
+};
+
+const getVolumeControls = function(mid=null) {
+  return (mid && !isNaN(mid)) ? document.getElementById('volumeControls'+mid) : document.getElementById('volumeControls');
+};
+
+const getVolumeSlider = function(mid=null) {
+  return (mid && !isNaN(mid)) ? document.getElementById('volumeSlider'+mid) : document.getElementById('volumeSlider');
+};
+
+const getIconMute = function(mid=null) {
+  return (mid && !isNaN(mid)) ? document.getElementById('controlMute'+mid) : document.getElementById('controlMute');
+};
+
+const getAVStream = function(mid) {
+  /*
+  Go2RTC uses <video-stream id='liveStreamXX'><video></video></video-stream>,
+  RTSP2Web uses <video id='liveStreamXX'></video>
+  This.getElement() may need to be changed, but the implications of such a change need to be analyzed
+  */
+  return (document.querySelector('#liveStream'+mid + ' video') || document.getElementById('liveStream'+mid));
+};
+
+const replaceDoubleTildeToBR = function(str) {
+  return (str.replaceAll("~~", "<br/>"));
+};
+
+const createClickableLink = function(text) {
+  const text1=text.replace(/(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig, '<a target="_blank" href="$1">$1</a>');
+  return text1.replace(/(^|[^\/])(www\.[\S]+(\b|$))/gim, '$1<a target="_blank" href="http://$2">$2</a>');
+};
+
+const zmAlert = function(message, title = "") {
+  const visibleBlocks = document.querySelectorAll('[id^="modalInfoMessageBlock"]');
+  const numberVisibleBlocks = (visibleBlocks) ? visibleBlocks.length : 0;
+  if (numberVisibleBlocks >= 5) {
+    console.warn("The number of visible information blocks has exceeded 5. New blocks are not displayed.");
+    if (title !== '') console.log("TITLE: ", title);
+    console.log("MESSAGE: ", message);
+    return;
+  }
+  const rnd = (Math.floor((Math.random() * 999999) + 1)); // Required for displaying multiple blocks simultaneously.
+  const idModalInfoMessageBlock = 'modalInfoMessageBlock'; // This is stated in ajax/modals/infoMessageBlock.php
+  const currentIdModalInfoMessageBlock = idModalInfoMessageBlock + '_' + rnd.toString();
+
+  $j.getJSON(thisUrl, {
+    request: "modal",
+    modal: "infoMessageBlock",
+    title: title,
+    message: message,
+  })
+      .done(function(data) {
+        if (data.result == "Error") {
+          console.warn("Error: ", data.message);
+          return;
+        }
+        insertModalHtml(idModalInfoMessageBlock, data.html);
+        const modalInfoMessageBlock = document.getElementById(idModalInfoMessageBlock);
+        if (!modalInfoMessageBlock) {
+          console.warn("Modal information block not found.", data);
+          return;
+        }
+        modalInfoMessageBlock.id = currentIdModalInfoMessageBlock;
+        modalInfoMessageBlock.style.top = 20*numberVisibleBlocks + 'px';
+        modalInfoMessageBlock.style.left = 20*numberVisibleBlocks + 'px';
+        modalInfoMessageBlock.setAttribute("data-date-time-show", Date.now());
+        $j(modalInfoMessageBlock).one('shown.bs.modal', modalInfoMessageBlock, function() {
+          // Actions after the modal window becomes visible
+          const observer = new MutationObserver(function(_mutations, obs) {
+            // We don't care what happened; we'll just remove the block from the DOM.
+            _mutations[0].target.remove();
+            obs.disconnect();
+          });
+          observer.observe(modalInfoMessageBlock, {
+            childList: true,
+            subtree: false,
+            attributes: true,
+            attributeFilter: ['style', 'class']
+          });
+        });
+
+        $j(modalInfoMessageBlock).on('hidden.bs.modal', function() {
+          // We don't need to leave the modal window in the DOM after we've informed the user.
+          // Removing Bootstrap settings
+          $j(this).removeData('bs.modal');
+
+          // Now we remove the element from the DOM
+          $j(this).remove();
+        });
+
+        $j(modalInfoMessageBlock).on('hidePrevented.bs.modal', function() {
+          // Called when the modal window is hidden by clicking on the page background.
+        });
+
+        $j(modalInfoMessageBlock).modal('show');
+      })
+      .fail(function(data) {
+        logAjaxFail(data);
+      });
+  return currentIdModalInfoMessageBlock;
+};
+
+const closeZmAlert = async function(id) {
+  // We should wait for the modal window to appear before closing it to avoid problems when we call the modal window and try to close it immediately.
+  const promiseModalInfoMessageBlock = await waitUntil(() => (document.querySelector('#'+id+'.show')), 2000);
+  const modalInfoMessageBlock = document.getElementById(id);
+  if (!promiseModalInfoMessageBlock && !modalInfoMessageBlock) {
+    console.log(`modalInfoMessageBlock with ID=${id} not present.`);
+    return false;
+  }
+  // Minimum modal window display time = 2 sec.
+  await waitUntil(() => (Date.now() - modalInfoMessageBlock.dataset.dateTimeShow > 2000), 2000);
+  $j(modalInfoMessageBlock).modal('hide');
+  return true;
+};
+
+const stringToLocaleString = function(str) {
+  let result = str;
+  if (str) {
+    const matches = str.match(/([\D]+)+|(\d+)/g);
+    if (matches) {
+      result = '';
+      matches.forEach((match, index) => {
+        const num = Number(match);
+        result += (!isNaN(num)) ? num.toLocaleString() : match;
+      });
+    }
+  }
+  return result;
+};
+
+// https://stackoverflow.com/a/69273090
+class ManageEventListener {
+  #listeners = {}; // # in a JS class signifies private
+  #idx = 1;
+
+  // add event listener, returns integer ID of new listener
+  addEventListener(element, type, listener, options = {}) {
+    this.#privateAddEventListener(element, this.#idx, type, listener, options);
+    return this.#idx++;
+  }
+
+  // add event listener with custom ID (avoids need to retrieve return ID since you are providing it yourself)
+  addEventListenerById(element, id, type, listener, options = {}) {
+    this.#privateAddEventListener(element, id, type, listener, options);
+    return id;
+  }
+
+  #privateAddEventListener(element, id, type, listener, options) {
+    if (this.#listeners[id]) throw Error(`A listener with id ${id} already exists`);
+    element.addEventListener(type, listener, options);
+    this.#listeners[id] = {element, type, listener, options};
+  }
+
+  // remove event listener with given ID, returns ID of removed listener or null (if listener with given ID does not exist)
+  removeEventListener(id) {
+    const listen = this.#listeners[id];
+    if (listen) {
+      listen.element.removeEventListener(listen.type, listen.listener, listen.options);
+      delete this.#listeners[id];
+    }
+    return !!listen ? id : null;
+  }
+
+  // returns number of events listeners
+  length() {
+    return Object.keys(this.#listeners).length;
+  }
+}
+const manageEventListener = new ManageEventListener();
+window.manageEventListener = manageEventListener;
 
 $j( window ).on("load", initPageGeneral);

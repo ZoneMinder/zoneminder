@@ -2,8 +2,6 @@
 // Import constants
 //
 
-const ZM_DIR_SOUNDS = '<?php echo ZM_DIR_SOUNDS ?>';
-
 var monitorData = new Array();
 <?php
   global $monitors;
@@ -17,7 +15,8 @@ monitorData[monitorData.length] = {
   'height':<?php echo $monitor->ViewHeight() ?>,
   'janusEnabled':<?php echo $monitor->JanusEnabled() ?>,
   'RTSP2WebEnabled': <?php echo $monitor->RTSP2WebEnabled() ?>,
-  'RTSP2WebStream': '<?php echo $monitor->RTSP2WebStream() ?>',
+  'RTSPServer':<?php echo $monitor->RTSPServer() ? 'true' : 'false' ?>,
+  'StreamChannel': '<?php echo $monitor->StreamChannel() ?>',
   'DefaultPlayer':'<?php echo $monitor->DefaultPlayer() ?>',
   'Go2RTCEnabled': <?php echo $monitor->Go2RTCEnabled() ?>,
   'url': '<?php echo $monitor->UrlToIndex( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',

@@ -24,30 +24,30 @@ if (!canView('Events')) {
 }
 
 $storage_areas = ZM\Storage::find();
-$is_ok_path = false;
+$storage_areas_by_path = array_to_hash_by_key('Path', $storage_areas);
 $path = (!empty($_REQUEST['path'])) ? detaintPathAllowAbsolute($_REQUEST['path']) : '';
 if (!$path) {
-  if (count($storage_areas)==0) {
-    $path = ZM_DIR_EVENTS;
-  } else if (count($storage_areas)==0) {
-    $path = $storage_areas[0]->Path();
-  }
+  $path = (count($storage_areas)==0) ?  ZM_DIR_EVENTS : $storage_areas[0]->Path();
 }
 
+$is_ok_path = false;
 if ($path) {
   foreach ($storage_areas as $storage) {
     $rc = strstr($path, $storage->Path(), true);
     if ((false !== $rc) and ($rc == '')) {
       # Must be at the beginning
       $is_ok_path = true;
+      break;
     }
   }
-  $path_parts = pathinfo($path);
+  if ($is_ok_path) {
+    $path_parts = pathinfo($path);
 
-  if (@is_file($path)) {
-    if (output_file($path))
-      return;
-    $path = $path_parts['dirname'];
+    if (@is_file($path)) {
+      if (output_file($path))
+        return;
+      $path = $path_parts['dirname'];
+    }
   }
 } # end if path
 
@@ -71,10 +71,11 @@ getBodyTopHTML();
 echo getNavBarHTML();
 ?>
   <div id="page">
-    <div id="content">
-      <form id="filesForm" name="filesForm" method="post" action="?view=files&path=<?php echo urlencode($path); ?>">
-        <div id="toolbar">
-          <div class="path">
+    <div id="content" class="row flex-nowrap">
+      <div class="col">
+        <form id="filesForm" name="filesForm" method="post" action="?view=files&path=<?php echo urlencode($path); ?>">
+          <div id="toolbar">
+            <div class="path">
 <?php
 $files = array();
 $folders = array();
@@ -101,26 +102,28 @@ if ($path) {
   } 
 } # end if path
 ?>
-          </div><!--path-->
-          <div id="contentButtons">
-            <button type="submit" name="action" value="delete" disabled="disabled">
-            <?php echo translate('Delete') ?>
-            </button>
-          </div>
-        </div><!--toolbar-->
-        <div id="inner-content">
-        <table id="contentTable" class="major">
-          <thead class="thead-highlight">
-            <tr>
-              <th class="colSelect"><input type="checkbox" name="toggleCheck" value="1" data-checkbox-name="files[]" data-on-click-this="updateFormCheckboxesByName"></th>
-              <th class="colName"><?php echo translate('Filename') ?></th>
-              <th class="colMtime"><?php echo translate('Last Modified') ?></th>
-              <th class="colSize"><?php echo translate('Size') ?></th>
-            </tr>
-          </thead>
-          <tbody>
+            </div><!--path-->
+            <div id="contentButtons" class='rightInFlexContainer'>
+              <button id="btnDeleteFiles" type="button" class="btn btn-danger" data-on-click-this="deleteFiles" disabled="disabled">
+              <?php echo translate('Delete') ?>
+              </button>
+            </div>
+          </div><!--toolbar-->
+          <div id="inner-content" class="fixed-table-body">
+            <table id="contentTable" class="major table-striped">
+              <thead class="thead-highlight">
+                <tr>
+                  <th class="colSelect"><input type="checkbox" name="toggleCheck" value="1" data-checkbox-name="files[]" data-on-click-this="updateFormCheckboxesByName"></th>
+                  <th class="colName"><?php echo translate('Filename') ?></th>
+                  <th class="colMtime"><?php echo translate('Last Modified') ?></th>
+                  <th class="colSize"><?php echo translate('Size') ?></th>
+                </tr>
+              </thead>
+              <tbody>
 <?php
 function get_dir_size($dir_path) {
+  global $storage_areas_by_path;
+  if (isset($storage_areas_by_path[$dir_path])) return $storage_areas_by_path[$dir_path]->DiskSpace();
   $size = 0;
   $entries = is_readable($dir_path) ? scandir($dir_path) : array();
   foreach ($entries as $file) {
@@ -170,7 +173,7 @@ if ($parent != '') {
   echo '
 <tr>
   <td class="colSelect"></td>
-  <td><span class="material-icons md-18">folder</span><a href="?view=files&amp;path='.urlencode($parent).'">..</a></td>
+  <td colspan="3"><span class="material-icons md-18">folder</span><a href="?view=files&amp;path='.urlencode($parent).'">..</a></td>
 </tr>';
 }
 foreach ($folders as $folder) {
@@ -197,9 +200,11 @@ foreach ($files as $file) {
 }
 
 ?>
-          </tbody>
-        </table>
-      </form>
+              </tbody>
+            </table>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 <?php xhtmlFooter() ?>

@@ -11,11 +11,11 @@
   <td><?php echo htmlSelect( 'newMonitor[Colours]', $Colours, $monitor->Colours() ); ?></td></tr>
 <tr>
   <td><?php echo translate('CaptureWidth') ?> (<?php echo translate('Pixels') ?>)</td>
-  <td><input type="number" name="newMonitor[Width]" value="<?php echo validHtmlStr($monitor->Width()) ?>" size="4" onkeyup="updateMonitorDimensions(this);"/></td>
+  <td><input type="number" name="newMonitor[Width]" value="<?php echo validHtmlStr($monitor->Width()) ?>" size="4"/></td>
 </tr>
 <tr>
   <td><?php echo translate('CaptureHeight') ?> (<?php echo translate('Pixels') ?>)</td>
-  <td><input type="number" name="newMonitor[Height]" value="<?php echo validHtmlStr($monitor->Height()) ?>" size="4" onkeyup="updateMonitorDimensions(this);"/></td>
+  <td><input type="number" name="newMonitor[Height]" value="<?php echo validHtmlStr($monitor->Height()) ?>" size="4"/></td>
 </tr>
 <tr><td><?php echo translate('PreserveAspect') ?></td><td><input type="checkbox" name="preserveAspectRatio" value="1"/></td></tr> 
 <tr><td><?php echo translate('Orientation') ?></td><td><?php echo htmlselect( 'newMonitor[Orientation]', $orientations, $monitor->Orientation() );?></td></tr>

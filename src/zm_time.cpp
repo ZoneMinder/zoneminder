@@ -36,6 +36,23 @@ std::string SystemTimePointToString(SystemTimePoint tp) {
   return timeString;
 }
 
+std::string SystemTimePointToMysqlString(SystemTimePoint tp) {
+  // Format to whole-second precision only. The MySQL datetime columns this feeds
+  // (e.g. Events.StartDateTime) have no fractional precision, and MySQL 8 ROUNDS
+  // a fractional string when storing it, so ".999999" before midnight would be
+  // promoted to 00:00:00 of the next day. Event::SetPath() derives the on-disk
+  // day folder from to_time_t() (which truncates), so emitting a roundable
+  // fractional made the DB row and the disk folder diverge by a day for events
+  // starting just before local midnight. Truncate here to match to_time_t and
+  // keep both representations on the same second. refs #4870
+  time_t tp_sec = std::chrono::system_clock::to_time_t(tp);
+
+  char buffer[32];
+  tm tp_tm = {};
+  strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", localtime_r(&tp_sec, &tp_tm));
+  return std::string(buffer);
+}
+
 std::string TimePointToString(TimePoint tp) {
   const auto tp_dur = std::chrono::duration_cast<std::chrono::system_clock::duration>(tp - std::chrono::steady_clock::now());
   time_t tp_sec = std::chrono::system_clock::to_time_t(
@@ -51,6 +68,17 @@ std::string TimePointToString(TimePoint tp) {
   timePtr += strftime(timePtr, timeString.capacity(), "%x %H:%M:%S", localtime_r(&tp_sec, &tp_tm));
   snprintf(timePtr, timeString.capacity() - (timePtr - timeString.data()), ".%06" PRIi64, static_cast<int64_t>(now_frac.count()));
   return timeString;
+}
+
+std::string format_absolute_time_iso8601(time_t time) {
+  struct tm *tm_utc = gmtime(&time);
+  if (!tm_utc) {
+    return "";
+  }
+
+  char buffer[32];
+  strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%S.000Z", tm_utc);
+  return std::string(buffer);
 }
 
 SystemTimePoint StringToSystemTimePoint(const std::string &timestamp) {

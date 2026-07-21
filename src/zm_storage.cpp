@@ -26,8 +26,8 @@
 
 Storage::Storage() : id(0) {
   Warning("Instantiating default Storage Object. Should not happen.");
-  strcpy(name, "Default");
-  if (staticConfig.DIR_EVENTS[0] != '/') {
+  strncpy(name, "Default", sizeof(name) - 1);
+  if (staticConfig.DIR_EVENTS.empty() || staticConfig.DIR_EVENTS[0] != '/') {
     // not using an absolute path. Make it one by appending ZM_PATH_WEB
     snprintf(path, sizeof(path), "%s/%s",
              staticConfig.PATH_WEB.c_str(), staticConfig.DIR_EVENTS.c_str());
@@ -85,7 +85,7 @@ Storage::Storage(unsigned int p_id) : id(p_id) {
     }
   }
   if (!id) {
-    if (staticConfig.DIR_EVENTS[0] != '/') {
+    if (staticConfig.DIR_EVENTS.empty() || staticConfig.DIR_EVENTS[0] != '/') {
       // not using an absolute path. Make it one by appending ZM_PATH_WEB
       snprintf(path, sizeof(path), "%s/%s",
                staticConfig.PATH_WEB.c_str(), staticConfig.DIR_EVENTS.c_str());
@@ -93,7 +93,7 @@ Storage::Storage(unsigned int p_id) : id(p_id) {
       strncpy(path, staticConfig.DIR_EVENTS.c_str(), sizeof(path) - 1);
     }
     Debug(1, "No id passed to Storage constructor.  Using default path %s instead", path);
-    strcpy(name, "Default");
+    strncpy(name, "Default", sizeof(name) - 1);
     scheme = MEDIUM;
     scheme_str = "Medium";
   }

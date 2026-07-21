@@ -93,6 +93,13 @@ class Server extends ZM_Object {
       $result = explode(':', $_SERVER['HTTP_HOST']);
       return $result[0];
     }
+    // Fall back to ZM_BASE_URL for single-server setups
+    if ( defined('ZM_BASE_URL') && ZM_BASE_URL ) {
+      $parsed = parse_url(ZM_BASE_URL);
+      if ( isset($parsed['host']) ) {
+        return $parsed['host'];
+      }
+    }
     return '';
   }
 
@@ -104,13 +111,23 @@ class Server extends ZM_Object {
       return $this->{'Protocol'};
     }
 
-    return  ( 
-              ( isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on' )
-              or
-              ( isset($_SERVER['HTTP_X_FORWARDED_PROTO']) and ( $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https' ) )
-              or
-              ( isset($_SERVER['HTTP_FRONT_END_HTTPS']) and ($_SERVER['HTTP_FRONT_END_HTTPS'] == 'On' ) )
-            ) ? 'https' : 'http';
+    // Check $_SERVER variables first
+    if ( ( isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on' )
+      or ( isset($_SERVER['HTTP_X_FORWARDED_PROTO']) and ( $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https' ) )
+      or ( isset($_SERVER['HTTP_FRONT_END_HTTPS']) and ($_SERVER['HTTP_FRONT_END_HTTPS'] == 'On' ) )
+    ) {
+      return 'https';
+    }
+
+    // Fall back to ZM_BASE_URL for single-server setups
+    if ( defined('ZM_BASE_URL') && ZM_BASE_URL ) {
+      $parsed = parse_url(ZM_BASE_URL);
+      if ( isset($parsed['scheme']) ) {
+        return $parsed['scheme'];
+      }
+    }
+
+    return 'http';
   }
 
   public function Port( $new = '' ) {
@@ -125,7 +142,19 @@ class Server extends ZM_Object {
       return $_SERVER['HTTP_X_FORWARDED_PORT'];
     }
 
-    return $_SERVER['SERVER_PORT'];
+    // Fall back to ZM_BASE_URL for single-server setups
+    if ( defined('ZM_BASE_URL') && ZM_BASE_URL ) {
+      $parsed = parse_url(ZM_BASE_URL);
+      if ( isset($parsed['port']) ) {
+        return $parsed['port'];
+      }
+      // Return default ports based on protocol
+      if ( isset($parsed['scheme']) ) {
+        return $parsed['scheme'] == 'https' ? 443 : 80;
+      }
+    }
+
+    return null;
   }
 
   public function PathToZMS( $new = null ) {

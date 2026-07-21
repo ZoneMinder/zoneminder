@@ -23,6 +23,16 @@ if (!canEdit('Monitors')) {
   return;
 }
 
+// Compatibility shim: get_networks() was added to functions.php in a later
+// release. Older installations need this fallback so the page renders.
+if (!function_exists('get_networks')) {
+  function get_networks() {
+    // Minimal stub: no interface list available on this ZM version.
+    // The manual ONVIF URL entry below works without interface selection.
+    return array('default' => '');
+  }
+}
+
 $cameras = array();
 $cameras[0] = translate('ChooseDetectedCamera');
 
@@ -50,7 +60,7 @@ function execONVIF($cmd) {
 
 function probeCameras($localIp) {
   $cameras = array();
-  $lines = @execONVIF('probe 1.1,1.2'.(isset($_REQUEST['interface']) ? ' '.$_REQUEST['interface'] : '' ));
+  $lines = @execONVIF('probe 1.1,1.2'.(isset($_REQUEST['interface']) ? ' '.escapeshellarg($_REQUEST['interface']) : '' ));
   if ($lines) {
     foreach ($lines as $line) {
       $line = rtrim($line);
@@ -93,7 +103,7 @@ function probeCameras($localIp) {
 
 function probeProfiles($device_ep, $soapversion, $username, $password) {
   $profiles = array();
-  if ($lines = @execONVIF("profiles $device_ep $soapversion $username $password")) {
+  if ($lines = @execONVIF('profiles '.escapeshellarg($device_ep).' '.escapeshellarg($soapversion).' '.escapeshellarg($username).' '.escapeshellarg($password))) {
     foreach ($lines as $line) {
       $line = rtrim( $line );
 
@@ -159,15 +169,32 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
     }
   }
 
-  $detcameras = probeCameras('');
-  foreach ($detcameras as $camera) {
-    if (preg_match('|([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)|', $camera['monitor']['Host'], $matches)) {
-      $ip = $matches[1];
+  $monitors = dbFetchAll('SELECT Path FROM Monitors WHERE Deleted=false');
+  $monitorHosts = [];
+  if ($monitors) {
+    foreach ($monitors as $monitor) {
+      $_host = parse_url($monitor['Path'], PHP_URL_HOST);
+      if ($_host) {
+        $monitorHosts[] = $_host;
+      }
     }
-    $host = $ip;
+  }
+  $monitorHosts = array_unique($monitorHosts);
+
+  $detcameras = probeCameras('');
+  usort($detcameras, function($a, $b) {
+    return strcasecmp(parse_url($a['monitor']['Host'], PHP_URL_HOST) ?: '', parse_url($b['monitor']['Host'], PHP_URL_HOST) ?: '');
+  });
+  foreach ($detcameras as $camera) {
+    $host = parse_url($camera['monitor']['Host'], PHP_URL_HOST);
     $sourceDesc = base64_encode(json_encode($camera['monitor']));
-    $sourceString = $camera['model'].' @ '.$host.' using version '.$camera['monitor']['SOAP'];
-    $cameras[$sourceDesc] = $sourceString;
+    $sourceString = htmlspecialchars($camera['model'].' @ '.$host.' using version '.$camera['monitor']['SOAP']);
+
+    if ($host && in_array($host, $monitorHosts, true)) {
+      $cameras[$sourceDesc] = ['Name'=> $sourceString, 'class'=> 'monitor-added'];
+    } else {
+      $cameras[$sourceDesc] = $sourceString;
+    }
   }
 
   if (count($cameras) <= 0)
@@ -183,20 +210,32 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
           <?php echo translate('OnvifProbeIntro') ?>
         </p>
         <p><label for="interface"><?php echo translate('Interface') ?></label>
-<?php 
+<?php
   $interfaces = get_networks();
   $default_interface = $interfaces['default'];
   unset($interfaces['default']);
 
-  echo htmlSelect('interface', $interfaces, 
+  echo htmlSelect('interface', $interfaces,
     (isset($_REQUEST['interface']) ? $_REQUEST['interface'] : $default_interface),
-    array('data-on-change-this'=>'changeInterface') );
+    array('data-on-change-this'=>'changeInterface', 'class'=>'chosen') );
 ?>
         </p>
         <div id="DetectedCameras">
           <p>
             <label for="probe"><?php echo translate('DetectedCameras') ?></label>
-            <?php echo htmlSelect('probe', $cameras, null, array('data-on-change-this'=>'configureButtons')); ?>
+            <?php echo htmlSelect('probe', $cameras, null, array('data-on-change-this'=>'configureButtons', 'class'=>'chosen')); ?>
+          </p>
+          <p><?php echo translate('OnvifManualOr') ?></p>
+          <p>
+            <label for="manual_url"><?php echo translate('OnvifManualLabel') ?></label>
+            <input type="text" name="manual_url" id="manual_url"
+                   placeholder="<?php echo translate('OnvifManualPlaceholder') ?>"
+                   value="<?php echo isset($_REQUEST['manual_url']) ? htmlspecialchars($_REQUEST['manual_url']) : '' ?>"
+                   data-on-change-this="configureButtons"
+                   data-on-input-this="configureButtons"
+                   oninput="(function(el){var nb=el.form.elements.namedItem('nextBtn');if(nb)nb.disabled=el.value.trim().length===0;})(this)"
+                   onchange="(function(el){var nb=el.form.elements.namedItem('nextBtn');if(nb)nb.disabled=el.value.trim().length===0;})(this)"
+                   style="width: 40ch"/>
           </p>
           <p>
             <?php echo translate('OnvifCredentialsIntro') ?>
@@ -213,7 +252,8 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
         </div>
         <div id="contentButtons">
           <button type="button" data-on-click="backWindow"><?php echo translate('Cancel') ?></button>
-          <button type="button" name="nextBtn" data-on-click-this="gotoStep2" disabled="disabled"><?php echo translate('Next') ?></button>
+          <button type="button" name="nextBtn" data-on-click-this="gotoStep2"
+            <?php echo (empty($_REQUEST['manual_url']) ? 'disabled="disabled"' : '') ?>><?php echo translate('Next') ?></button>
         </div>
       </form>
     </div>
@@ -277,7 +317,7 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
         </p>
         <p>
           <label for="probe"><?php echo translate('DetectedProfiles') ?></label>
-          <?php echo htmlSelect('probe', $profiles, null, array('data-on-change-this'=>'configureButtons')); ?>
+          <?php echo htmlSelect('probe', $profiles, null, array('data-on-change-this'=>'configureButtons', 'class'=>'chosen')); ?>
         </p>
         <div id="contentButtons">
           <button type="button" name="prevBtn" data-on-click-this="gotoStep1"><?php echo translate('Prev') ?></button>

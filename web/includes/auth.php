@@ -22,15 +22,21 @@ require_once('session.php');
 require_once('User.php');
 require_once('Group_Permission.php');
 require_once('Monitor_Permission.php');
+require_once('User_Role.php');
+require_once('Role_Group_Permission.php');
+require_once('Role_Monitor_Permission.php');
 require_once(__DIR__.'/../vendor/autoload.php');
 use \Firebase\JWT\JWT;
 
 function password_type($password) {
-   if ( $password[0] == '*' ) {
+  if (!$password || $password === '') {
+    return 'plain';
+  }
+  if ($password[0] == '*') {
     return 'mysql';
-  } else if ( preg_match('/^\$2[ayb]\$.+$/', $password) ) {
+  } else if (preg_match('/^\$2[ayb]\$.+$/', $password)) {
     return 'bcrypt';
-  } else if ( substr($password, 0,4) == '-ZM-' ) {
+  } else if (substr($password, 0, 4) == '-ZM-') {
   // zmupdate.pl adds a '-ZM-' prefix to overlay encrypted passwords
   // this is done so that we don't spend cycles doing two bcrypt password_verify calls
   // for every wrong password entered. This will only be invoked for passwords zmupdate.pl has
@@ -43,18 +49,16 @@ function password_type($password) {
 // this function migrates mysql hashing to bcrypt, if you are using PHP >= 5.5
 // will be called after successful login, only if mysql hashing is detected
 function migrateHash($user, $pass) {
-  if ( function_exists('password_hash') ) {
+  if (function_exists('password_hash')) {
     ZM\Info("Migrating $user to bcrypt scheme");
     // let it generate its own salt, and ensure bcrypt as PASSWORD_DEFAULT may change later
-    // we can modify this later to support argon2 etc as switch to its own password signature detection 
+    // we can modify this later to support argon2 etc as switch to its own password signature detection
     $bcrypt_hash = password_hash($pass, PASSWORD_BCRYPT);
-    //ZM\Info ("hased bcrypt $pass is $bcrypt_hash");
-    $update_password_sql = 'UPDATE Users SET Password=\''.$bcrypt_hash.'\' WHERE Username=\''.$user.'\'';
-    dbQuery($update_password_sql);
+    dbQuery('UPDATE Users SET Password=? WHERE Username=?', array($bcrypt_hash, $user));
     # Since password field has changed, existing auth_hash is no longer valid
     generateAuthHash(ZM_AUTH_HASH_IPS, true);
   } else {
-    ZM\Info('Cannot migrate password scheme to bcrypt, as you are using PHP < 5.3');
+    ZM\Info('Cannot migrate password scheme to bcrypt, as you are using PHP < 5.5');
     return;
   }
 }
@@ -69,7 +73,7 @@ function validateUser($username='', $password='') {
   // local user, shouldn't affect the global user
   $user = dbFetchOne($sql, NULL, array($username)); // Not global
   if (!$user) {
-    return array(false, "Could not retrieve user $username details");
+    return array(false, 'Invalid username or password');
   }
 
   switch (password_type($user['Password'])) {
@@ -105,13 +109,14 @@ function validateUser($username='', $password='') {
   if ($password_correct) {
     return array(new ZM\User($user), 'OK');
   }
-  return array(false, "Login denied for user \"$username\"");
+  return array(false, 'Invalid username or password');
 } # end function validateUser
 
 function userLogout() {
   global $user;
   ZM\Info('User "'.($user?$user->Username():'no one').'" logged out');
   $user = null;// unset only clears the local variable
+  zm_setcookie('ZM_REMEMBER_ME', '', array('expires' => time() - 31536000));
   zm_session_clear();
 }
 
@@ -166,24 +171,46 @@ function validateToken($token, $allowed_token_type='access') {
 function getAuthUser($auth) {
   if (ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed') && !empty($auth)) {
     $remoteAddr = '';
+    $xff = !empty($_SERVER['HTTP_X_FORWARDED_FOR'])
+      ? trim(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0])
+      : '';
+    $directAddr = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '';
     if (ZM_AUTH_HASH_IPS) {
-      $remoteAddr = $_SERVER['REMOTE_ADDR'];
+      // Use HTTP_X_FORWARDED_FOR if available (consistent with session.php which uses it for hash generation)
+      // taking only the first IP to guard against spoofed multi-value headers.
+      // This ensures validation matches generation when behind a reverse proxy.
+      $remoteAddr = $xff !== '' ? $xff : $directAddr;
       if ( !$remoteAddr ) {
         ZM\Error("Can't determine remote address for authentication, using empty string");
         $remoteAddr = '';
       }
     }
 
+    // Prefer the username from the URL (matches what zms uses) so PHP and the
+    // C++ side query the same row. Fall back to the session username for
+    // page-internal calls that don't carry user= on the URL.
+    $requestedUser = !empty($_REQUEST['user']) ? $_REQUEST['user'] : null;
+    $sessionUser = isset($_SESSION['username']) ? $_SESSION['username'] : null;
+    $filterUser = $requestedUser !== null ? $requestedUser : $sessionUser;
+
+    ZM\Debug("getAuthUser: validating auth='$auth' filterUser='".($filterUser ?? '')."' xff='$xff' directAddr='$directAddr' usingRemoteAddr='$remoteAddr' session_username='".($sessionUser ?? '')."'");
+
     $sql = 'SELECT * FROM Users WHERE Enabled = 1';
     $values = array();
-    if (isset($_SESSION['username'])) {
+    if ($filterUser !== null) {
       # Most of the time we will be logged in already and the session will have our username, so we can significantly speed up our hash testing by only looking at our user.
       # Only really important if you have a lot of users.
-      $sql .= ' AND Username=?';
-      array_push($values, $_SESSION['username']);
+      if (ZM_CASE_INSENSITIVE_USERNAMES) {
+        $sql .= ' AND LOWER(Username)=LOWER(?)';
+      } else {
+        $sql .= ' AND Username=?';
+      }
+      array_push($values, $filterUser);
     }
 
-    foreach (dbFetchAll($sql, NULL, $values) as $user) {
+    $rows = dbFetchAll($sql, NULL, $values);
+    $rowsTried = count($rows);
+    foreach ($rows as $user) {
       $now = time();
       for ($i = 0; $i < ZM_AUTH_HASH_TTL; $i++, $now -= 3600) { // Try for last TTL hours
         $time = localtime($now);
@@ -196,7 +223,7 @@ function getAuthUser($auth) {
       } // end foreach hour
     } // end foreach user
 
-    if (isset($_SESSION['username'])) {
+    if ($filterUser !== null) {
       # In a multi-server case, we might be logged in as another user and so the auth hash didn't work
       if (ZM_CASE_INSENSITIVE_USERNAMES) {
         $sql = 'SELECT * FROM Users WHERE Enabled = 1 AND LOWER(Username) != LOWER(?)';
@@ -204,7 +231,9 @@ function getAuthUser($auth) {
         $sql = 'SELECT * FROM Users WHERE Enabled = 1 AND Username != ?';
       }
 
-      foreach (dbFetchAll($sql, NULL, $values) as $user) {
+      $altRows = dbFetchAll($sql, NULL, array($filterUser));
+      $rowsTried += count($altRows);
+      foreach ($altRows as $user) {
         $now = time();
         for ($i = 0; $i < ZM_AUTH_HASH_TTL; $i++, $now -= 3600) { // Try for last TTL hours
           $time = localtime($now);
@@ -212,17 +241,24 @@ function getAuthUser($auth) {
           $authHash = md5($authKey);
 
           if ($auth == $authHash) {
+            ZM\Debug("getAuthUser: matched user '".$user['Username']."' from fallback (filter was '$filterUser')");
             return new ZM\User($user);
           } // end if $auth == $authHash
         } // end foreach hour
       } // end foreach user
-    } // end if 
+    } // end if
+
+    ZM\Info("Unable to authenticate user from auth hash '$auth' (filterUser='".($filterUser ?? '')."' sessionUser='".($sessionUser ?? '')."' xff='$xff' directAddr='$directAddr' rowsTried=$rowsTried ttl=".ZM_AUTH_HASH_TTL.'h)');
+    return null;
   } // end if using auth hash
 
   ZM\Info("Unable to authenticate user from auth hash '$auth'");
   return null;
 } // end getAuthUser($auth)
 
+// TODO: MD5 is cryptographically weak. Consider migrating to hash('sha256', ...)
+// However, changing this would invalidate all existing auth hashes and require
+// a coordinated update of all components that generate/validate auth hashes.
 function calculateAuthHash($remoteAddr='') {
   global $user;
   $local_time = localtime();
@@ -235,32 +271,32 @@ function generateAuthHash($useRemoteAddr, $force=false) {
   global $user;
   if (!isset($_SESSION['remoteAddr'])) $_SESSION['remoteAddr'] = '';
   if (ZM_OPT_USE_AUTH and (ZM_AUTH_RELAY == 'hashed') and $user and $user->Username()) {
-    if (!isset($_SESSION)) {
-      # Appending the remoteAddr prevents us from using an auth hash generated for a different ip
-      #$auth = calculateAuthHash($useRemoteAddr?$_SESSION['remoteAddr']:'');
-      $auth = calculateAuthHash();
-      return $auth;
-    } else {
-      $time = time();
-      # We use 1800 so that we regenerate the hash at half the TTL
-      $mintime = $time - (ZM_AUTH_HASH_TTL * 1800);
-      $remoteAddr = ZM_AUTH_HASH_IPS ? $_SESSION['remoteAddr'] : '';
-      # Appending the remoteAddr prevents us from using an auth hash generated for a different ip
-      if ($force or ( !isset($_SESSION['AuthHash'.$remoteAddr]) ) or ( $_SESSION['AuthHashGeneratedAt'] < $mintime )) {
-        $auth = calculateAuthHash($useRemoteAddr ? $remoteAddr : '');
-        # Don't both regenerating Auth Hash if an hour hasn't gone by yet
-        $_SESSION['AuthHash'.$remoteAddr] = $auth;
-        $_SESSION['AuthHashGeneratedAt'] = $time;
-        # Because we don't write out the session, it shouldn't actually get written out to disk.  However if it does, the GeneratedAt should protect us.
-      } # end if AuthHash is not cached
-      return $_SESSION['AuthHash'.$remoteAddr];
-    }
+    $time = time();
+    # We use 1800 so that we regenerate the hash at half the TTL
+    $mintime = $time - (ZM_AUTH_HASH_TTL * 1800);
+    # The address baked into the hash, and the cache slot key, must agree. A
+    # caller that asks for an IP-less hash ($useRemoteAddr false, e.g.
+    # getZmuCommand) must not overwrite the IP-bound slot used by the browser,
+    # otherwise the next status poll serves an IP-less hash that the IP-bound
+    # validator rejects, bouncing the user to login (issue #4921).
+    $remoteAddr = ($useRemoteAddr and ZM_AUTH_HASH_IPS) ? $_SESSION['remoteAddr'] : '';
+    if ($force or (!isset($_SESSION['AuthHash'.$remoteAddr])) or ($_SESSION['AuthHashGeneratedAt'] < $mintime)) {
+      $auth = calculateAuthHash($remoteAddr);
+      # Don't both regenerating Auth Hash if an hour hasn't gone by yet
+      $_SESSION['AuthHash'.$remoteAddr] = $auth;
+      $_SESSION['AuthHashGeneratedAt'] = $time;
+      # Because we don't write out the session, it shouldn't actually get written out to disk.  However if it does, the GeneratedAt should protect us.
+    } # end if AuthHash is not cached
+    return $_SESSION['AuthHash'.$remoteAddr];
   } # end if using AUTH and AUTH_RELAY
   return '';
 }
 
 $group_permissions = null;
 $monitor_permissions = null; # hash indexed by MonitorId
+$role_group_permissions = null;
+$role_monitor_permissions = null;
+
 function visibleMonitor($mid) {
   global $user;
   if (!$user) return false;
@@ -275,7 +311,7 @@ function visibleMonitor($mid) {
   if (isset($monitor_permissions[$mid])) {
     $permission = $monitor_permissions[$mid]->Permission();
     if ($permission != 'Inherit') {
-      ZM\Debug('Returning '.($permission == 'None' ? false : true)." for monitor $mid");
+      ZM\Debug('Returning '.($permission == 'None' ? false : true)." for monitor $mid from user monitor permission");
       return ($permission == 'None' ? false : true);
     }
   }
@@ -284,18 +320,58 @@ function visibleMonitor($mid) {
   if ($group_permissions === null)
     $group_permissions = $user->Group_Permissions();
 
-  # If denied view in any group, then can't view it.
+  # Check user's group permissions
   $group_permission_value = 'Inherit';
   foreach ($group_permissions as $permission) {
     $value = $permission->MonitorPermission($mid);
     if ($value == 'None') {
-      ZM\Debug("Can't view monitor $mid because of group ".$permission->Group()->Name().' '.$permission->Permission());
+      ZM\Debug("Can't view monitor $mid because of user group ".$permission->Group()->Name().' '.$permission->Permission());
       return false;
     } else if ($value == 'View' or $value == 'Edit') {
       $group_permission_value = $value;
     }
   }
   if ($group_permission_value != 'Inherit') return true;
+
+  # Check role permissions if user has a role
+  $role = $user->Role();
+  if ($role) {
+    global $role_monitor_permissions;
+    if ($role_monitor_permissions === null) {
+      $role_monitor_permissions = array_to_hash_by_key('MonitorId', $role->Monitor_Permissions());
+    }
+
+    if (isset($role_monitor_permissions[$mid])) {
+      $permission = $role_monitor_permissions[$mid]->Permission();
+      if ($permission != 'Inherit') {
+        ZM\Debug('Returning '.($permission == 'None' ? false : true)." for monitor $mid from role monitor permission");
+        return ($permission == 'None' ? false : true);
+      }
+    }
+
+    global $role_group_permissions;
+    if ($role_group_permissions === null)
+      $role_group_permissions = $role->Group_Permissions();
+
+    # Check role's group permissions
+    $role_group_permission_value = 'Inherit';
+    foreach ($role_group_permissions as $permission) {
+      $value = $permission->MonitorPermission($mid);
+      if ($value == 'None') {
+        ZM\Debug("Can't view monitor $mid because of role group ".$permission->Group()->Name().' '.$permission->Permission());
+        return false;
+      } else if ($value == 'View' or $value == 'Edit') {
+        $role_group_permission_value = $value;
+      }
+    }
+    if ($role_group_permission_value != 'Inherit') return true;
+
+    # Check role's base Monitors permission if user's is 'None'
+    if ($user->Monitors() == 'None' and $role->Monitors() != 'None') {
+      ZM\Debug("Using role Monitors permission ".$role->Monitors()." for monitor $mid");
+      return true;
+    }
+  }
 
   return ($user->Monitors() != 'None');
 }
@@ -304,7 +380,19 @@ function canView($area, $mid=false) {
   global $user;
   if (!$user) return false;
   if ($mid) return visibleMonitor($mid);
-  return ($user->$area() && ($user->$area() != 'None'));
+
+  # Check user's direct permission first
+  if ($user->$area() && ($user->$area() != 'None')) {
+    return true;
+  }
+
+  # If user's permission is 'None', check role permission
+  $role = $user->Role();
+  if ($role && $role->$area() && ($role->$area() != 'None')) {
+    return true;
+  }
+
+  return false;
 }
 
 function editableMonitor($mid) {
@@ -320,27 +408,66 @@ function editableMonitor($mid) {
   if ($monitor_permissions === null) {
     $monitor_permissions = array_to_hash_by_key('MonitorId', ZM\Monitor_Permission::find(array('UserId'=>$user->Id())));
   }
-  if (isset($monitor_permissions[$mid]) and 
-    ($monitor_permissions[$mid]->Permission() == 'None' or $monitor_permissions[$mid]->Permission() == 'View')
-  ) {
-    //ZM\Debug("Have monitor permission == ".$monitor_permissions[$mid]->Permission());
-    return false;
+  if (isset($monitor_permissions[$mid])) {
+    $permission = $monitor_permissions[$mid]->Permission();
+    if ($permission == 'None' or $permission == 'View') {
+      return false;
+    } else if ($permission == 'Edit') {
+      return true;
+    }
   }
 
   global $group_permissions;
   if ($group_permissions === null)
     $group_permissions = ZM\Group_Permission::find(array('UserId'=>$user->Id()));
 
-  # If denied view in any group, then can't view it.
+  # Check user's group permissions
   foreach ($group_permissions as $permission) {
     $perm_value = $permission->MonitorPermission($mid);
-    //ZM\Debug("Have group permission $perm_value");
     if ($perm_value == 'Edit') {
       return true;
     }
   }
 
-  #ZM\Debug("Monitors permission is ".$user->Monitors());
+  # Check role permissions if user has a role
+  $role = $user->Role();
+  if ($role) {
+    global $role_monitor_permissions;
+    if ($role_monitor_permissions === null) {
+      $role_monitor_permissions = array_to_hash_by_key('MonitorId', $role->Monitor_Permissions());
+    }
+
+    if (isset($role_monitor_permissions[$mid])) {
+      $permission = $role_monitor_permissions[$mid]->Permission();
+      if ($permission == 'None' or $permission == 'View') {
+        return false;
+      } else if ($permission == 'Edit') {
+        return true;
+      }
+    }
+
+    global $role_group_permissions;
+    if ($role_group_permissions === null)
+      $role_group_permissions = $role->Group_Permissions();
+
+    # Check role's group permissions
+    foreach ($role_group_permissions as $permission) {
+      $perm_value = $permission->MonitorPermission($mid);
+      if ($perm_value == 'Edit') {
+        return true;
+      }
+    }
+
+    # Check role's base Monitors permission if user's doesn't allow edit
+    $user_monitors = $user->Monitors();
+    if ($user_monitors != 'Edit' && $user_monitors != 'Create') {
+      $role_monitors = $role->Monitors();
+      if ($role_monitors == 'Edit' || $role_monitors == 'Create') {
+        return true;
+      }
+    }
+  }
+
   return (($user->Monitors() == 'Edit') || ($user->Monitors() == 'Create'));
 }
 
@@ -349,13 +476,37 @@ function canEdit($area, $mid=false) {
 
   if (!$user) return false;
   if ($mid) return editableMonitor($mid);
-  return ($user->$area() == 'Edit' or $user->$area() == 'Create');
+
+  # Check user's direct permission first
+  if ($user->$area() == 'Edit' or $user->$area() == 'Create') {
+    return true;
+  }
+
+  # If user's permission doesn't allow edit, check role permission
+  $role = $user->Role();
+  if ($role && ($role->$area() == 'Edit' or $role->$area() == 'Create')) {
+    return true;
+  }
+
+  return false;
 }
 
 function canCreate($area) {
   global $user;
+  if (!$user) return false;
 
-  return ( $user && ($user->$area() == 'Create') );
+  # Check user's direct permission first
+  if ($user->$area() == 'Create') {
+    return true;
+  }
+
+  # If user's permission doesn't allow create, check role permission
+  $role = $user->Role();
+  if ($role && $role->$area() == 'Create') {
+    return true;
+  }
+
+  return false;
 }
 
 function userFromSession() {
@@ -385,7 +536,13 @@ function userFromSession() {
 function get_auth_relay() {
   if (ZM_OPT_USE_AUTH) {
     if (ZM_AUTH_RELAY == 'hashed') {
-      return 'auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
+      $relay = 'auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
+      // Include username so zms can filter by indexed Username column
+      // instead of iterating all users to validate the auth hash
+      if (!empty($_SESSION['username'])) {
+        $relay .= '&user='.$_SESSION['username'];
+      }
+      return $relay;
     } else if (ZM_AUTH_RELAY == 'plain') {
       // password probably needs to be escaped
       return 'username='.(isset($_SESSION['username'])?$_SESSION['username']:'').'&password='.urlencode(isset($_SESSION['password']) ? $_SESSION['password'] : '');
@@ -408,12 +565,31 @@ if (ZM_OPT_USE_AUTH) {
     // don't know the token type. That will
     // be checked later 
     $ret = validateToken($_REQUEST['token'], 'any');
-    $user = $ret[0];
+    if (!$ret[0]) {
+      // validateToken returns array(false, $errorMessage) on failure.
+      // Assigning false to $user would leave isset($user) true, bypassing
+      // the ZM_OPT_USE_AUTH gate in index.php. Unset so $user stays undefined.
+      ZM\Warning($ret[1]);
+      unset($user); // unset should be ok here because we aren't in a function
+    } else {
+      $user = $ret[0];
+    }
   } else {
-    // Non token based auth
+    // Non token based auth - session required for $_SESSION access
+    if (!is_session_started()) {
+      zm_session_start();
+    }
 
     if (ZM_AUTH_HASH_LOGINS && empty($user) && !empty($_REQUEST['auth'])) {
       $user = getAuthUser($_REQUEST['auth']);
+      if ($user) {
+        $remoteAddr = ZM_AUTH_HASH_IPS ? $_SESSION['remoteAddr'] : '';
+        if (isset($_SESSION['AuthHash'.$remoteAddr]) and ($_SESSION['AuthHash'.$remoteAddr] != $_REQUEST['auth'])) {
+          unset($_SESSION['AuthHashGeneratedAt']);
+          unset($_SESSION['AuthHash'.$remoteAddr]);
+        }
+        $_SESSION['username'] = $user->Username();
+      }
     } else if (!(empty($_REQUEST['user']) or empty($_REQUEST['pass']))) {
       # The shortened versions are used in auth_relay = PLAIN
       $ret = validateUser($_REQUEST['user'], $_REQUEST['pass']);
@@ -471,13 +647,14 @@ if (ZM_OPT_USE_AUTH) {
         } // end if success==false
       } // end if using reCaptcha
 
-      zm_session_clear(); # Closes session
-      zm_session_regenerate_id(); # starts session
+      # Drop the pre-auth session and issue a fresh id in a single Set-Cookie
+      zm_session_regenerate_id_login();
 
       $username = $_REQUEST['username'];
       $password = $_REQUEST['password'];
 
       ZM\Info("Login successful for user \"$username\"");
+      #ZM\Audit("user=$username action=login id=".$user->Id()." from=".($_SERVER['REMOTE_ADDR'] ?? 'local'));
       $password_type = password_type($user->Password());
 
       if ( $password_type == 'mysql' or $password_type == 'mysql+bcrypt' ) {

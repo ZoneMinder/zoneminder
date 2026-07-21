@@ -90,6 +90,7 @@ if (isset($_REQUEST['showZones'])) {
 $codecs = array(
   'auto'  => translate('Auto'),
   'MP4'   => translate('MP4'),
+  'MP4HLS'=> ['Name'=> 'MP4 HLS', 'disabled'=> (!file_exists($Event->Path() . '/index.m3u8'))],
   'MJPEG' => translate('MJPEG'),
 );
 $codec = 'auto';
@@ -101,8 +102,8 @@ if (isset($_REQUEST['codec'])) {
 } else {
   $codec = $monitor->DefaultCodec();
 }
-if (!isset($codecs[$codec])) {
-  ZM\Warning("Invalid value for Codec: $codec, reverting to auto");
+if (!isset($codecs[$codec]) || (is_array(($codecs[$codec])) && $codecs[$codec]['disabled'])) {
+  if (!isset($codecs[$codec])) ZM\Warning("Invalid value for Codec: $codec, reverting to auto");
   $codec = 'auto';
   unset($_SESSION['zmEventCodec'.$Event->MonitorId()]);
 }
@@ -150,18 +151,9 @@ if ((!$replayMode) or !$replayModes[$replayMode]) {
   $replayMode = 'none';
 }
 
-$video_tag = ($codec == 'MP4') || 
+$video_tag = ($codec == 'MP4') || ($codec == 'MP4HLS') ||
   ((false !== strpos($Event->DefaultVideo(), 'h264') || false !== strpos($Event->DefaultVideo(), 'av1')) && ($codec === 'auto'));
 
-// videojs zoomrotate only when direct recording
-$Zoom = 1;
-$Rotation = 0;
-if ($monitor->VideoWriter() == '2') {
-# Passthrough
-  $Rotation = $Event->Orientation();
-  if (in_array($Event->Orientation(),array('90','270')))
-    $Zoom = $Event->Height()/$Event->Width();
-}
 
 // These are here to figure out the next/prev event, however if there is no filter, then default to one that specifies the Monitor
 if ( !isset($_REQUEST['filter']) ) {
@@ -183,6 +175,15 @@ if (count($filter->terms())==1 and $filter->has_term('Id')) {
 $filterQuery = $filter->querystring();
 $connkey = generateConnKey();
 
+$whatDisplay = (isset($_COOKIE["zmWhatDisplay"])) ? strtolower($_COOKIE["zmWhatDisplay"]) : 'default';
+$dataNotDisplayVideo = 'false';
+
+if (false !== strpos($whatDisplay, 'default')) { // Default monitor settings
+  if (false === (strpos(strtolower($monitor->WhatDisplay()), 'video'))) $dataNotDisplayVideo = 'true';
+} else {
+  if (false === (strpos($whatDisplay, 'video'))) $dataNotDisplayVideo = 'true';
+}
+
 xhtmlHeaders(__FILE__, translate('Event').' '.$Event->Id());
 getBodyTopHTML();
 ?>
@@ -199,7 +200,7 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
 ?>
 
 <!-- BEGIN HEADER -->
-    <div class="d-flex flex-row flex-wrap justify-content-between px-3 py-1">
+    <div id="header" class="d-flex flex-row flex-wrap justify-content-between px-3 py-1">
       <div id="toolbar" >
         <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
         <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
@@ -220,7 +221,11 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
         <a id="montageReviewBtn" href="?view=montagereview&live=0&current=<?php echo urlencode($Event->StartDateTime()) ?>" class="btn btn-normal" title="<?php echo translate('Montage Review') ?>"><i class="material-icons md-18">grid_view</i></a>
 <?php
   if (canView('System')) { ?>
-    <button id="toggleZonesButton" class="btn btn-<?php echo $showZones?'normal':'secondary'?>" title="<?php echo translate(($showZones?'Hide':'Show').' Zones')?>" ><span class="material-icons"><?php echo $showZones?'layers_clear':'layers'?></span</button>
+    <button id="toggleZonesButton" class="btn btn-<?php echo $showZones?'normal':'secondary'?>" title="<?php echo translate(($showZones?'Hide':'Show').' Zones')?>" ><span class="material-icons"><?php echo $showZones?'layers_clear':'layers'?></span></button>
+<?php
+  }
+  if (defined('ZM_OPT_TRAINING') and ZM_OPT_TRAINING) { ?>
+    <a id="annotateBtn" class="btn btn-normal" href="?view=training&eid=<?php echo $Event->Id() ?>" data-toggle="tooltip" data-placement="top" title="<?php echo translate('ObjectTraining') ?>"><i class="fa fa-crosshairs"></i></a>
 <?php
   }
   } // end if Event->Id
@@ -232,20 +237,38 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
       <div class="d-flex flex-row">
         <div id="replayControl">
           <label for="replayMode"><?php echo translate('Replay') ?></label>
-          <?php echo htmlSelect('replayMode', $replayModes, $replayMode, array('data-on-change'=>'changeReplayMode','id'=>'replayMode')); ?>
+          <?php echo htmlSelect('replayMode', $replayModes, $replayMode, array('data-on-change'=>'changeReplayMode','id'=>'replayMode','class'=>'chosen')); ?>
         </div>
         <div id="scaleControl">
           <label for="scale"><?php echo translate('Scale') ?></label>
-          <?php echo htmlSelect('scale', $scales, $scaleSelected, array('data-on-change'=>'changeScale','id'=>'scale')); ?>
+          <?php echo htmlSelect('scale', $scales, $scaleSelected, array('data-on-change'=>'changeScale','id'=>'scale','class'=>'chosen')); ?>
         </div>
           <div id="streamQualityControl"<?php echo $video_tag ? ' style="display: none;"':'' ?>>
           <label for="streamQuality"><?php echo translate('Stream quality') ?></label>
-          <?php echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality')); ?>
+          <?php echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality','class'=>'chosen')); ?>
         </div>
         <div id="codecControl">
           <label for="codec"><?php echo translate('Codec') ?></label>
-          <?php echo htmlSelect('codec', $codecs, $codec, array('data-on-change'=>'changeCodec','id'=>'codec')); ?>
+          <?php echo htmlSelect('codec', $codecs, $codec, array('data-on-change'=>'changeCodec','id'=>'codec','class'=>'chosen')); ?>
         </div>
+        <div id="whatDisplayControl">
+          <label for="whatDisplay"><?php if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) echo translate('Show') ?></label>
+<?php 
+            $whatDisplayOptions = [
+              'Default'=>translate('Default'),
+              'OnlyVideo'=>translate('Only video'),
+              'OnlyAudioVisualization'=>translate('Only audio visualization'),
+              'VideoAudioVisualization'=>translate('Video and audio visualization')
+            ];
+            $whatDisplaySelected = 'Default'; // Default
+            if (isset($_REQUEST['whatDisplay']) and isset($whatDisplayOptions[$_REQUEST['whatDisplay']])) {
+              $whatDisplaySelected = validHtmlStr($_REQUEST['whatDisplay']);
+            } else if (isset($_COOKIE['zmWhatDisplay']) and isset($whatDisplayOptions[$_COOKIE['zmWhatDisplay']])) {
+              $whatDisplaySelected = validHtmlStr($_COOKIE['zmWhatDisplay']);
+            }
+            if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) echo htmlSelect('whatDisplay', $whatDisplayOptions, $whatDisplaySelected, array('data-on-change'=>'changeWhatDisplay','id'=>'whatDisplay','class'=>'chosen'));
+?>
+        </div><!--#whatDisplayControl-->
       </div>
     </div>
 <?php if ( $Event->Id() ) { ?>
@@ -287,7 +310,7 @@ if (defined('ZM_OPT_USE_GEOLOCATION') and ZM_OPT_USE_GEOLOCATION) {
 }
 ?>
 
-              <div id="frames">
+              <div id="frames" class="flex-col-3">
 <?php 
 if (file_exists($Event->Path().'/alarm.jpg')) {
   echo '
@@ -326,26 +349,99 @@ if (file_exists($Event->Path().'/objdetect.jpg')) {
                       <button id="btn-edit-monitor<?php echo $Event->MonitorId()?>" class="btn btn-edit-monitor" title="<?php echo translate('Edit monitor')?>"><span class="material-icons md-30">edit</span></button>
                     </div>
                   </div>
-                  <div id="videoFeedStream<?php echo $Event->MonitorId()?>">
+                  <div id="videoFeedStream<?php echo $Event->MonitorId()?>" data-not-display-video="<?php echo $dataNotDisplayVideo?>">
                     <div id="zoompan" class="zoompan">
 <?php
 if ($video_tag) {
+  // Prefer HLS byte-range playback when the manifest exists on disk and the
+  // user picked MP4HLS / auto. Explicit MP4 must stay native ("play the mp4
+  // file directly"); explicit MJPEG never reaches here because $video_tag is
+  // false for it.
+  $has_hls = file_exists($Event->Path() . '/index.m3u8')
+    && (($codec == 'MP4HLS') || ($codec == 'auto'));
+  if ($has_hls) {
+    $Server = $Event->Server();
+    $hlsSrc = $Server->PathToIndex() . '?view=view_hls&amp;eid=' . $Event->Id();
+    if (ZM_OPT_USE_AUTH) {
+      if (ZM_AUTH_RELAY == 'hashed') {
+        $hlsSrc .= '&amp;auth=' . generateAuthHash(ZM_AUTH_HASH_IPS);
+      } else if (ZM_AUTH_RELAY == 'plain') {
+        $hlsSrc .= '&amp;user=' . $_SESSION['username'] . '&amp;pass=' . $_SESSION['password'];
+      } else if (ZM_AUTH_RELAY == 'none') {
+        $hlsSrc .= '&amp;user=' . $_SESSION['username'];
+      }
+    }
+  }
 ?>
-                  <video autoplay id="videoobj" class="video-js vjs-default-skin"
-                    style="transform: matrix(1, 0, 0, 1, 0, 0);"
+                  <video id="videoobj" class="video-js"
                    <?php echo $scale ? 'width="'.reScale($Event->Width(), $scale).'"' : '' ?>
                    <?php echo $scale ? 'height="'.reScale($Event->Height(), $scale).'"' : '' ?>
-                    data-setup='{ "controls": true, "autoplay": true, "preload": "auto", "playbackRates": [ <?php echo implode(',',
-                      array_map(function($r){return $r/100;},
-                        array_filter(
-                          array_keys($rates),
-                          function($r){return $r >= 0 ? true : false;}
-                        ))) ?>], "plugins": { "zoomrotate": { "zoom": "<?php echo $Zoom ?>"}}}'
+                    controls autoplay preload="auto"
                   >
+<?php if ($has_hls): ?>
+                  <source src="<?php echo $hlsSrc; ?>" type="application/x-mpegURL">
                   <source src="<?php echo $Event->getStreamSrc(array('mode'=>'mp4','format'=>'h264'),'&amp;'); ?>" type="video/mp4">
+<?php else: ?>
+                  <source src="<?php echo $Event->getStreamSrc(array('mode'=>'mp4','format'=>'h264'),'&amp;'); ?>" type="video/mp4">
+<?php endif; ?>
                   <track id="monitorCaption" kind="captions" label="English" srclang="en" src='data:plain/text;charset=utf-8,"WEBVTT\n\n 00:00:00.000 --> 00:00:01.000 ZoneMinder"' default/>
                   Your browser does not support the video tag.
                   </video>
+                  <script nonce="<?php echo $cspNonce; ?>">
+                    document.addEventListener('DOMContentLoaded', function() {
+                      if (typeof videojs === 'undefined') {
+                        console.error('videojs is not loaded');
+                        return;
+                      }
+                      var rates = [<?php echo implode(',',
+                        array_map(function($r){return $r/100;},
+                          array_filter(
+                            array_keys($rates),
+                            function($r){return $r >= 0 ? true : false;}
+                          ))) ?>];
+                      var player = videojs('videoobj', {
+                        controls: true,
+                        autoplay: true,
+                        preload: 'auto',
+                        playbackRates: rates,
+                        // liveui replaces the seekbar with a live-edge-only control,
+                        // which makes it impossible to scrub back through the already-
+                        // recorded portion of an in-progress event. Always false so the
+                        // standard seekbar is rendered.
+                        liveui: false,
+                        liveTracker: {
+                          trackingThreshold: 0
+                        }
+                      });
+                      player.zoomrotate({
+                        zoom: 1,
+                        rotate: 0
+                      });
+<?php if ($has_hls && !$Event->EndDateTime()): ?>
+                      // Live HLS: retry on errors — the manifest grows as recording continues.
+                      // Errors are expected when the event just started (no fragments yet)
+                      // or when we catch up to the recording edge.
+                      var liveRetryCount = 0;
+                      var maxLiveRetries = 30;
+                      player.on('error', function() {
+                        var error = player.error();
+                        if (error && liveRetryCount < maxLiveRetries) {
+                          liveRetryCount++;
+                          var delay = liveRetryCount <= 3 ? 3000 : 5000;
+                          console.log('Live HLS: error code=' + error.code + ', retry ' + liveRetryCount + '/' + maxLiveRetries + ' in ' + (delay/1000) + 's');
+                          player.error(null);
+                          setTimeout(function() {
+                            player.src(player.currentSources());
+                          }, delay);
+                        }
+                      });
+                      // Reset retry count on successful playback
+                      player.on('playing', function() {
+                        liveRetryCount = 0;
+                      });
+<?php endif; ?>
+                    });
+                  </script>
 <?php
 } else {
   if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
@@ -370,7 +466,7 @@ if ($video_tag) {
                     <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
                     <div id="indicator" style="display: none;"></div>
                   </div><!--progressBar-->
-                  <svg class="zones" id="zones<?php echo $monitor->Id() ?>" style="display:<?php echo $showZones ? 'block' : 'none'; ?>" viewBox="0 0 <?php echo $monitor->ViewWidth().' '.$monitor->ViewHeight() ?>" preserveAspectRatio="none">
+                  <svg class="zones" id="zones<?php echo $monitor->Id() ?>" style="display:<?php echo $showZones ? 'block' : 'none'; ?>" viewBox="0 0 100 100" preserveAspectRatio="none">
 <?php
     foreach (ZM\Zone::find(array('MonitorId'=>$monitor->Id()), array('order'=>'Area DESC')) as $zone) {
       echo $zone->svg_polygon();
@@ -379,8 +475,22 @@ if ($video_tag) {
   Sorry, your browser does not support inline SVG
                   </svg>
                 </div><!--videoFeed-->
+<?php
+if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) echo '
+                <audio-motion id="audioVisualization'.$monitor->Id().'" class="audio-visualization">
+                  <div id="audioControlPanel'.$monitor->Id().'" class="audio-control-panel">
+                    <div id="volumeControls'.$monitor->Id().'" class="disabled volume">
+                      <div id="volumeSlider'.$monitor->Id().'" data-volume="50" data-muted="true" class="volumeSlider noUi-horizontal noUi-base noUi-round"></div>
+                      <i id="controlMute'.$monitor->Id().'" class="audio-control-mute material-icons md-22"></i>
+                    </div>
+                  </div>
+                  <canvas></canvas>
+                </audio-motion>
+' . PHP_EOL;
+?>
                 <div class="monitorStatus">
                   <span class="MonitorName"><?php echo $monitor->Name() . " (". translate('ID'). "=" . $monitor->Id() . ")"; ?>  </span>
+                  <span class="stream-info-status-track"></span>
                 </div>
                 <p id="dvrControls">
                   <button type="button" id="prevBtn" title="<?php echo translate('Prev') ?>" class="inactive" data-on-click-true="streamPrev">
@@ -422,6 +532,7 @@ if ($video_tag) {
   echo htmlSelect('rate', $rates, intval($rate), array('id'=>'rateValue'));
 ?>
                   <span id="progress"><?php echo translate('Progress') ?>: <span id="progressValue">0</span>s</span>
+                  <span id="currentTime"><?php echo translate('Time') ?>: <span id="currentTimeValue"></span></span>
                   <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue">1</span>x</span>
 <?php if (!$video_tag) { ?>
                   <span id="fps"><?php echo translate('FPS') ?>: <span id="fpsValue"></span></span>
@@ -452,8 +563,7 @@ if ($video_tag) {
     
   </div><!--page-->
   <link href="skins/<?php echo $skin ?>/js/video-js.css" rel="stylesheet">
-  <link href="skins/<?php echo $skin ?>/js/video-js-skin.css" rel="stylesheet">
-  <script src="skins/<?php echo $skin ?>/js/video.js"></script>
+  <script src="skins/<?php echo $skin ?>/js/video.min.js"></script>
   <script src="./js/videojs.zoomrotate.js"></script>
 <?php
   echo output_link_if_exists(array('css/base/zones.css'));

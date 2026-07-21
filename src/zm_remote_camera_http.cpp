@@ -165,10 +165,10 @@ int RemoteCameraHttp::Connect() {
     if ( connect( sd, p->ai_addr, p->ai_addrlen ) < 0 ) {
       close(sd);
       sd = -1;
-      char buf[sizeof(struct in6_addr)];
+      char buf[INET6_ADDRSTRLEN];
       struct sockaddr_in *addr;
       addr = (struct sockaddr_in *)p->ai_addr;
-      inet_ntop( AF_INET, &(addr->sin_addr), buf, INET6_ADDRSTRLEN );
+      inet_ntop(AF_INET, &(addr->sin_addr), buf, sizeof(buf));
 
       Warning("Can't connect to remote camera mid: %d at %s: %s", monitor->Id(), buf, strerror(errno));
       continue;
@@ -231,7 +231,7 @@ int RemoteCameraHttp::ReadData(Buffer &buffer, unsigned int bytes_expected) {
     socklen_t len = sizeof(error);
     int retval = getsockopt(sd, SOL_SOCKET, SO_ERROR, &error, &len);
     if (retval != 0) {
-      Debug(1, "error getting socket error code %s", strerror(retval));
+      Debug(1, "error getting socket error code %s", strerror(errno));
     }
     if (error != 0) {
       return -1;
@@ -263,7 +263,7 @@ int RemoteCameraHttp::ReadData(Buffer &buffer, unsigned int bytes_expected) {
         socklen_t len = sizeof(error);
         int retval = getsockopt(sd, SOL_SOCKET, SO_ERROR, &error, &len);
         if (retval != 0) {
-          Debug(1, "error getting socket error code %s", strerror(retval));
+          Debug(1, "error getting socket error code %s", strerror(errno));
         }
         if (error != 0) {
           return -1;

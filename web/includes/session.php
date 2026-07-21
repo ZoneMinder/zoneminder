@@ -26,8 +26,12 @@ function zm_session_start() {
     // use_strict_mode is mandatory for security reasons.
     ini_set('session.use_strict_mode', 1);
 
-    $currentCookieParams = session_get_cookie_params(); 
-    $currentCookieParams['lifetime'] = ZM_COOKIE_LIFETIME;
+    $currentCookieParams = session_get_cookie_params();
+    if (defined('ZM_OPT_USE_REMEMBER_ME') && ZM_OPT_USE_REMEMBER_ME != 'None' && ZM_OPT_USE_REMEMBER_ME != '' && ZM_OPT_USE_REMEMBER_ME != '0' && empty($_COOKIE['ZM_REMEMBER_ME'])) {
+      $currentCookieParams['lifetime'] = 0;
+    } else {
+      $currentCookieParams['lifetime'] = ZM_COOKIE_LIFETIME;
+    }
     $currentCookieParams['httponly'] = true;
     if ( version_compare(phpversion(), '7.3.0', '<') ) {
       session_set_cookie_params(
@@ -48,7 +52,11 @@ function zm_session_start() {
   }
   session_start();
   // To help prevent session hijacking
-  $_SESSION['remoteAddr'] = (!empty($_SERVER['HTTP_X_FORWARDED_FOR']) ? $_SERVER['HTTP_X_FORWARDED_FOR'] : $_SERVER['REMOTE_ADDR']);
+  // Use HTTP_X_FORWARDED_FOR if available (for reverse proxy setups), taking only the first IP
+  // to guard against spoofed multi-value headers. Falls back to REMOTE_ADDR for direct connections.
+  $_SESSION['remoteAddr'] = !empty($_SERVER['HTTP_X_FORWARDED_FOR'])
+    ? trim(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0])
+    : $_SERVER['REMOTE_ADDR'];
   $now = time();
   // Do not allow to use expired session ID
   if ( !empty($_SESSION['last_time']) && ($_SESSION['last_time'] < ($now - 180)) ) {
@@ -79,8 +87,28 @@ function zm_session_regenerate_id() {
   //ZM\Debug("Regenerating session. New id was " . session_id());
   unset($_SESSION['last_time']);
   $_SESSION['generated_at'] = time();
-  $_SESSION['remoteAddr'] = (!empty($_SERVER['HTTP_X_FORWARDED_FOR']) ? $_SERVER['HTTP_X_FORWARDED_FOR'] : $_SERVER['REMOTE_ADDR']);
+  $_SESSION['remoteAddr'] = !empty($_SERVER['HTTP_X_FORWARDED_FOR'])
+    ? trim(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0])
+    : $_SERVER['REMOTE_ADDR'];
 } // function zm_session_regenerate_id()
+
+// Regenerate the session id at a privilege boundary (login).
+// When called with an already-started session (the normal login flow), this
+// should emit a single Set-Cookie via session_regenerate_id(true) while
+// discarding any pre-auth session data and deleting the old session server-side.
+// Assumes zm_session_start() has been called previously.
+function zm_session_regenerate_id_login() {
+  if (!is_session_started()) zm_session_start();
+  // Discard any pre-auth session contents so nothing carries across the
+  // authentication boundary.
+  $_SESSION = array();
+  // New id + delete the old session file server-side. Emits a single Set-Cookie.
+  session_regenerate_id(true);
+  $_SESSION['generated_at'] = time();
+  $_SESSION['remoteAddr'] = !empty($_SERVER['HTTP_X_FORWARDED_FOR'])
+    ? trim(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0])
+    : $_SERVER['REMOTE_ADDR'];
+} // function zm_session_regenerate_id_login()
 
 function is_session_started() {
   if ( php_sapi_name() !== 'cli' ) {
@@ -178,9 +206,20 @@ class ZMSessionHandler implements SessionHandlerInterface {
     $now = time();
     $old = $now - $max;
     ZM\Debug('doing session gc ' . $now . '-' . $max. '='.$old);
-    $sth = $this->db->prepare('DELETE FROM Sessions WHERE access < :old');
-    $sth->bindParam(':old', $old, PDO::PARAM_INT);
-    return $sth->execute() ? true : false;
+
+    // Two-phase delete: find expired ids via the access index (consistent read, no locks),
+    // then delete by primary key so InnoDB only takes record locks on the matched rows
+    // and not gap locks across the access range — avoids deadlocks with concurrent
+    // REPLACE INTO Sessions on every authenticated request.
+    $sel = $this->db->prepare('SELECT id FROM Sessions WHERE access < :old LIMIT 100');
+    $sel->bindParam(':old', $old, PDO::PARAM_INT);
+    if (!$sel->execute()) return false;
+    $ids = $sel->fetchAll(PDO::FETCH_COLUMN);
+    if (!$ids) return true;
+
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    $del = $this->db->prepare("DELETE FROM Sessions WHERE id IN ($placeholders)");
+    return $del->execute($ids) ? true : false;
   }
   public function validateId($key) : bool {return true;}
 } # end class Session

@@ -22,6 +22,9 @@ if ( !validInt($eid) ) {
         <img src="?view=image&amp;eid=<?php echo $eid ?>&amp;fid=objdetect">
       </div>
       <div class="modal-footer">
+<?php if (defined('ZM_OPT_TRAINING') and ZM_OPT_TRAINING) { ?>
+        <a href="?view=training&eid=<?php echo $eid ?>" class="btn btn-primary mr-auto"><i class="fa fa-crosshairs"></i> <?php echo translate('ObjectTraining') ?></a>
+<?php } ?>
         <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
       </div>
     </div>

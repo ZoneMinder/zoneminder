@@ -22,5 +22,6 @@
 #define ZM_H
 
 extern const char *self;
+int exit_zm(int exit_code);
 
 #endif // ZM_H

@@ -26,7 +26,6 @@ sub open {
   my $self = shift;
   $self->loadMonitor();
 
-
   $self->{ua} = LWP::UserAgent->new;
   $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
   $self->{state} = 'closed';
@@ -84,16 +83,19 @@ sub sendCmdPost {
 
   my $res = $self->post(
     $url,
-    Referer=>$$self{BaseURL},
-    Content=>$form
+    $form,
+    [
+      Referer=>$$self{BaseURL}.'/eng/admin/tools_default.cgi',
+    ]
+    #Content=>$form
   );
 
+  Debug($res->content);
   if (!$res->is_success) {
     return undef;
   }
-  Debug($res->content);
 
-  return !undef;
+  return 1;
 } # end sub sendCmdPost
 
 sub move {

@@ -55,23 +55,35 @@ This step is not required if you are using our ppa packages as they will do it f
         sudo apt install -y zoneminder
 
 
-**Step 6:** Configure Apache correctly:
+**Step 6:** Set permissions
+
+If you plan to use local USB or V4L2 cameras (``/dev/video*``), the web server
+user must be in the ``video`` group. The package postinst script does this
+automatically, but if you installed from source or the group was not added, run:
 
 ::
-        
+
+        sudo adduser www-data video
+
+You will need to restart ZoneMinder (or reboot) for the group change to take effect.
+
+**Step 7:** Configure Apache correctly:
+
+::
+
         sudo a2enmod rewrite headers cgi
         sudo a2enconf zoneminder
         sudo systemctl restart apache2
 
 
-**Step 7:** Enable and start zoneminder
+**Step 8:** Enable and start zoneminder
 
 ::
 
         sudo systemctl enable zoneminder
         sudo systemctl start zoneminder
 
-**Step 8:** Open Zoneminder
+**Step 9:** Open Zoneminder
 
 Open up a browser and go to ``http://hostname_or_ip/zm`` to open the ZoneMinder Console.
 
@@ -194,6 +206,13 @@ Set /etc/zm/zm.conf to root:www-data 740 and www-data access to content
 
         chmod 740 /etc/zm/zm.conf
         chown root:www-data /etc/zm/zm.conf
+
+If you plan to use local USB or V4L2 cameras (``/dev/video*``), add the web server
+user to the ``video`` group:
+
+::
+
+        sudo adduser www-data video
 
 **Step 7:** Configure Apache correctly:
 

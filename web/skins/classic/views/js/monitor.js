@@ -14,7 +14,8 @@ function updateMonitorDimensions(element) {
     var monitorWidth = parseInt(form.elements['newMonitor[Width]'].value);
     var monitorHeight = parseInt(form.elements['newMonitor[Height]'].value);
 
-    if ( form.elements['preserveAspectRatio'].checked ) {
+    // The WebSite monitor type renders Width/Height without a preserveAspectRatio checkbox.
+    if ( form.elements['preserveAspectRatio'] && form.elements['preserveAspectRatio'].checked ) {
       switch ( element.name ) {
         case 'newMonitor[Width]':
           if ( monitorWidth >= 0 ) {
@@ -37,7 +38,7 @@ function updateMonitorDimensions(element) {
     // If we find a matching option in the dropdown, select it or select custom
 
     var option = $j('select[name="dimensions_select"] option[value="'+monitorWidth+'x'+monitorHeight+'"]');
-    if ( !option.size() ) {
+    if ( !option.length ) {
       $j('select[name="dimensions_select"]').val('');
     } else {
       $j('select[name="dimensions_select"]').val(monitorWidth+'x'+monitorHeight);
@@ -67,23 +68,52 @@ function loadLocations( element ) {
 
   var returnLocationOptions = controlOptions[controlIdSelect.selectedIndex];
   if ( returnLocationOptions ) {
-    for ( var i = 0; i < returnLocationOptions.length; i++ ) {
+    for ( let i = 0; i < returnLocationOptions.length; i++ ) {
       returnLocationSelect.options[returnLocationSelect.options.length] = new Option( returnLocationOptions[i], i );
     }
   }
 }
 
-function Janus_Use_RTSP_Restream_onclick(e) {
-  Janus_Use_RTSP_Restream = $j('[name="newMonitor[Janus_Use_RTSP_Restream]"]');
-  if (Janus_Use_RTSP_Restream.length) {
-    const Janus_RTSP_User = $j('#Janus_RTSP_User');
-    if (Janus_Use_RTSP_Restream[0].checked) {
-      Janus_RTSP_User.show();
+function Restream_onclick(e) {
+  const Restream = $j('[name="newMonitor[Restream]"]');
+  if (Restream.length) {
+    const RTSP_User = $j('#RTSP_User');
+    if (Restream[0].checked) {
+      RTSP_User.show();
     } else {
-      Janus_RTSP_User.hide();
+      RTSP_User.hide();
     }
   } else {
-    console.log("Didn't find newMonitor[Janus_Use_RTSP_Restream]");
+    console.log("Didn't find newMonitor[Restream]");
+  }
+}
+
+function updateRestreamVisibility() {
+  const form = document.getElementById('contentForm');
+  const rtspServer = form.elements['newMonitor[RTSPServer]'];
+  const janusEnabled = form.elements['newMonitor[JanusEnabled]'];
+  const go2rtcEnabled = form.elements['newMonitor[Go2RTCEnabled]'];
+  const rtsp2webEnabled = form.elements['newMonitor[RTSP2WebEnabled]'];
+
+  const anyStreamingEnabled =
+    (janusEnabled && janusEnabled.checked) ||
+    (go2rtcEnabled && go2rtcEnabled.checked) ||
+    (rtsp2webEnabled && rtsp2webEnabled.checked);
+
+  const showRestream = rtspServer && rtspServer.checked && anyStreamingEnabled;
+
+  const restreamEl = document.getElementById('FunctionRestream');
+  if (restreamEl) restreamEl.hidden = !showRestream;
+
+  // Hide RTSP_User if restream not visible or restream not checked
+  const rtspUser = document.getElementById('RTSP_User');
+  if (rtspUser) {
+    const restream = form.elements['newMonitor[Restream]'];
+    if (!showRestream || !restream || !restream.checked) {
+      rtspUser.style.display = 'none';
+    } else {
+      rtspUser.style.display = '';
+    }
   }
 }
 
@@ -102,6 +132,12 @@ function initPage() {
     };
   });
   $j('#contentForm').submit(function(event) {
+    // Clear password field values before any native form submission so
+    // Chrome doesn't offer to save them.  The values are already in the
+    // database and will be repopulated when the page reloads.
+    this.querySelectorAll('input[type="password"]').forEach(function(el) {
+      el.value = '';
+    });
     if (validateForm(this)) {
       $j('#contentButtons').hide();
       return true;
@@ -140,11 +176,10 @@ function initPage() {
   document.querySelectorAll('select[name="newMonitor[Devices]"]').forEach(function(el) {
     el.onchange = window['devices_onchange'].bind(el, el);
   });
-  document.querySelectorAll('input[name="newMonitor[Width]"]').forEach(function(el) {
-    el.oninput = window['updateMonitorDimensions'].bind(el, el);
-  });
-  document.querySelectorAll('input[name="newMonitor[Height]"]').forEach(function(el) {
-    el.oninput = window['updateMonitorDimensions'].bind(el, el);
+  // Width/Height also get a buffer_setting_oninput listener below, so use
+  // addEventListener rather than oninput= to avoid one clobbering the other.
+  document.querySelectorAll('input[name="newMonitor[Width]"],input[name="newMonitor[Height]"]').forEach(function(el) {
+    el.addEventListener('input', window['updateMonitorDimensions'].bind(el, el));
   });
   document.querySelectorAll('select[name="dimensions_select"]').forEach(function(el) {
     el.onchange = window['updateMonitorDimensions'].bind(el, el);
@@ -157,13 +192,19 @@ function initPage() {
   });
   document.querySelectorAll('select[name="newMonitor[Type]"]').forEach(function(el) {
     el.onchange = function() {
+      // Reload the form to render the type-specific fields WITHOUT saving. The
+      // monitor view repopulates from the posted newMonitor values, so the
+      // selected Type and anything already entered are preserved. Saving here
+      // would fail for a brand-new monitor whose Width/Height are not set yet
+      // (both are NOT NULL), leaving the type change unpersisted. A plain
+      // submit posts no action=save, matching the Method field's submitTab.
       const form = document.getElementById('contentForm');
       form.tab.value = 'general';
       form.submit();
     };
   });
   document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"],input[name="newMonitor[MaxImageBufferCount]"],input[name="newMonitor[Width]"],input[name="newMonitor[Height]"],input[name="newMonitor[PreEventCount]"]').forEach(function(el) {
-    el.oninput = window['buffer_setting_oninput'].bind(el);
+    el.addEventListener('input', window['buffer_setting_oninput'].bind(el));
   });
   update_estimated_ram_use();
 
@@ -276,39 +317,42 @@ function initPage() {
     window.location.assign('?view=console');
   });
 
-  var sourceFormMonitor = $j('#contentForm').serialize();
+  sourceFormMonitor = $j('#contentForm').serialize();
   // Manage the ZONES Button
-  document.getElementById("zones-tab").addEventListener("click", function onZonesClick(evt) {
-    if ($j('#contentForm').serialize() !== sourceFormMonitor) {
-      evt.preventDefault();
-      const data = {
-        request: "modal",
-        modal: "saveconfirm",
-        key: messageSavingDataWhenLeavingPage
-      };
+  const zonesTab = document.getElementById("zones-tab");
+  if (zonesTab) {
+    zonesTab.addEventListener("click", function onZonesClick(evt) {
+      if ($j('#contentForm').serialize() !== sourceFormMonitor) {
+        evt.preventDefault();
+        const data = {
+          request: "modal",
+          modal: "saveconfirm",
+          key: messageSavingDataWhenLeavingPage
+        };
 
-      if (!document.getElementById('saveConfirm')) {
-        // Load the save confirmation modal into the DOM
-        $j.getJSON(thisUrl, data)
-            .done(function(data) {
-              insertModalHtml('saveConfirm', data.html);
-              manageSaveConfirmModalBtns();
-              $j('#saveConfirm').modal('show');
-            })
-            .fail(function(jqXHR) {
-              console.log('error getting saveconfirm', jqXHR);
-              logAjaxFail(jqXHR);
-            });
-        return;
+        if (!document.getElementById('saveConfirm')) {
+          // Load the save confirmation modal into the DOM
+          $j.getJSON(thisUrl, data)
+              .done(function(data) {
+                insertModalHtml('saveConfirm', data.html);
+                manageSaveConfirmModalBtns();
+                $j('#saveConfirm').modal('show');
+              })
+              .fail(function(jqXHR) {
+                console.log('error getting saveconfirm', jqXHR);
+                logAjaxFail(jqXHR);
+              });
+          return;
+        } else {
+          document.getElementById('saveConfirmBtn').disabled = false; // re-enable the button
+          $j('#saveConfirm').modal('show');
+        }
       } else {
-        document.getElementById('saveConfirmBtn').disabled = false; // re-enable the button
-        $j('#saveConfirm').modal('show');
+        const href = '?view=zones&mid='+mid;
+        window.location.assign(href);
       }
-    } else {
-      const href = '?view=zones&mid='+mid;
-      window.location.assign(href);
-    }
-  });
+    });
+  }
 
   // Manage the SAVE CONFIRMATION modal button
   function manageSaveConfirmModalBtns() {
@@ -316,7 +360,7 @@ function initPage() {
     document.getElementById('saveConfirmBtn').addEventListener('click', function onSaveConfirmClick(evt) {
       document.getElementById('saveConfirmBtn').disabled = true; // prevent double click
       evt.preventDefault();
-      saveMonitorData(href);
+      saveMonitorDataPrepare(document.getElementById('contentForm'), true, href);
     });
 
     // Manage the Don't SAVE modal button
@@ -332,9 +376,45 @@ function initPage() {
   }
 
   // Manage the SAVE Button
-  document.getElementById("saveBtn").addEventListener("click", function onZonesClick(evt) {
-    saveMonitorData();
+  document.getElementById("saveBtn").addEventListener("click", function onSaveClick(evt) {
+    saveMonitorDataPrepare(document.getElementById('contentForm'), true);
   });
+
+  // Manage the SAVE AND CLOSE Button - use AJAX instead of native form
+  // submit so Chrome doesn't trigger its "save password" prompt.
+  document.getElementById("saveAndCloseBtn").addEventListener("click", function onSaveAndCloseClick(evt) {
+    saveMonitorDataPrepare(document.getElementById('contentForm'), true, '?view=console');
+  });
+
+  /*
+  * href - Link to follow after saving
+  */
+  function saveMonitorDataPrepare(form, formValidation, href = null) {
+    $j.getJSON(thisUrl, {
+      request: "monitor",
+      action: "validateName",
+      mid: mid,
+      monitorName: form.elements['newMonitor[Name]'].value
+    })
+        .done(function(data) {
+          if (data.response === false) {
+            alert(data.messageBadNameChars.replace(/~~/, '\r\n'));
+          } else if (data.result === 'Error') {
+            alert(data.message);
+          } else {
+            const successfulFormValidation = (formValidation) ? validateForm(form) : true;
+            if (successfulFormValidation) {
+              if (!href || href === '') {
+                saveMonitorData();
+              } else {
+                $j('#contentButtons').hide();
+                saveMonitorData(href);
+              }
+            }
+          }
+        })
+        .fail(logAjaxFail);
+  }
 
   const form = document.getElementById('contentForm');
 
@@ -346,12 +426,10 @@ function initPage() {
     if (janusEnabled.checked) {
       document.getElementById("FunctionJanusAudioEnabled").hidden = false;
       document.getElementById("FunctionJanusProfileOverride").hidden = false;
-      document.getElementById("FunctionJanusUseRTSPRestream").hidden = false;
       document.getElementById("FunctionJanusRTSPSessionTimeout").hidden = false;
     } else {
       document.getElementById("FunctionJanusAudioEnabled").hidden = true;
       document.getElementById("FunctionJanusProfileOverride").hidden = true;
-      document.getElementById("FunctionJanusUseRTSPRestream").hidden = true;
       document.getElementById("FunctionJanusRTSPSessionTimeout").hidden = true;
     }
 
@@ -359,20 +437,26 @@ function initPage() {
       if (this.checked) {
         document.getElementById("FunctionJanusAudioEnabled").hidden = false;
         document.getElementById("FunctionJanusProfileOverride").hidden = false;
-        document.getElementById("FunctionJanusUseRTSPRestream").hidden = false;
         document.getElementById("FunctionJanusRTSPSessionTimeout").hidden = false;
       } else {
         document.getElementById("FunctionJanusAudioEnabled").hidden = true;
         document.getElementById("FunctionJanusProfileOverride").hidden = true;
-        document.getElementById("FunctionJanusUseRTSPRestream").hidden = true;
         document.getElementById("FunctionJanusRTSPSessionTimeout").hidden = true;
       }
+      updateRestreamVisibility();
     });
+  }
 
-    const Janus_Use_RTSP_Restream = form.elements['newMonitor[Janus_Use_RTSP_Restream]'];
-    if (Janus_Use_RTSP_Restream) {
-      Janus_Use_RTSP_Restream.onclick = Janus_Use_RTSP_Restream_onclick;
-    }
+  // Manage the Restream checkbox (visible when RTSPServer enabled AND any streaming option)
+  const Restream = form.elements['newMonitor[Restream]'];
+  if (Restream) {
+    Restream.onclick = Restream_onclick;
+  }
+
+  // Add event listeners for RTSPServer and streaming options to update Restream visibility
+  const rtspServer = form.elements['newMonitor[RTSPServer]'];
+  if (rtspServer) {
+    rtspServer.addEventListener('change', updateRestreamVisibility);
   }
 
   //Manage the RTSP2Web settings div
@@ -383,28 +467,33 @@ function initPage() {
 
   if (RTSP2WebEnabled || Go2RTCEnabled) {
     if (Go2RTCEnabled.checked || RTSP2WebEnabled.checked) {
-      document.getElementById("RTSP2WebStream").hidden = false;
+      document.getElementById("StreamChannel").hidden = false;
     } else {
-      document.getElementById("RTSP2WebStream").hidden = true;
+      document.getElementById("StreamChannel").hidden = true;
     }
 
     Go2RTCEnabled.addEventListener('change', function() {
       if (this.checked || RTSP2WebEnabled.checked) {
-        document.getElementById("RTSP2WebStream").hidden = false;
+        document.getElementById("StreamChannel").hidden = false;
       } else {
-        document.getElementById("RTSP2WebStream").hidden = true;
+        document.getElementById("StreamChannel").hidden = true;
       }
+      updateRestreamVisibility();
     });
 
     RTSP2WebEnabled.addEventListener('change', function() {
       if (this.checked || Go2RTCEnabled.checked) {
-        document.getElementById("RTSP2WebStream").hidden = false;
+        document.getElementById("StreamChannel").hidden = false;
       } else {
-        document.getElementById("RTSP2WebStream").hidden = true;
+        document.getElementById("StreamChannel").hidden = true;
       }
+      updateRestreamVisibility();
     });
   }
   update_players();
+
+  // Initialize restream visibility on page load
+  updateRestreamVisibility();
 
   const monitorPath = document.getElementsByName("newMonitor[Path]")[0];
   if (monitorPath) {
@@ -471,7 +560,42 @@ function initPage() {
   if (!isMobile()) initThumbAnimation();
 
   manageChannelStream();
+  checkVerAudioMotion();
+
+  // Reflect the current Motion Detection (Analysing) setting on load.
+  if (form.elements['newMonitor[Analysing]']) {
+    Analysing_onChange(form.elements['newMonitor[Analysing]']); // eslint-disable-line new-cap
+  }
 } // end function initPage()
+
+async function checkVerAudioMotion() {
+  const result = await waitUntil(() => window.CURRENT_AUDIO_MOTION_ANALYZER_VERSION, 20000);
+  if (result === false) {
+    console.warn("Unable to obtain the current version number of audio motion analyzer.");
+    return;
+  }
+  const whatDisplayInfo = document.getElementById("WhatDisplayInfo");
+  whatDisplayInfo.classList.remove("text-success");
+  whatDisplayInfo.classList.remove("text-info");
+  whatDisplayInfo.classList.remove("text-danger");
+
+  if (window.SUPPORTED_AUDIO_MOTION_ANALYZER_VERSION === window.CURRENT_AUDIO_MOTION_ANALYZER_VERSION) {
+    whatDisplayInfo.innerHTML = applyTemplateAudioMotionTranslation(audioMotionVersionOK);
+    whatDisplayInfo.classList.add("text-success");
+  } else if (window.CURRENT_AUDIO_MOTION_ANALYZER_VERSION === "NotInstalled") {
+    whatDisplayInfo.innerHTML = applyTemplateAudioMotionTranslation(audioMotionVersionNotInstalled);
+    whatDisplayInfo.classList.add("text-info");
+  } else { //The versions do not match
+    whatDisplayInfo.innerHTML = applyTemplateAudioMotionTranslation(audioMotionVersionWrongVersion);
+    whatDisplayInfo.classList.add("text-danger");
+  }
+}
+
+function applyTemplateAudioMotionTranslation(str) {
+  str = str.replaceAll('{AudioMotionVersionInstalled}', window.CURRENT_AUDIO_MOTION_ANALYZER_VERSION);
+  str = str.replaceAll('{AudioMotionVersionRequired}', window.SUPPORTED_AUDIO_MOTION_ANALYZER_VERSION);
+  return createClickableLink(replaceDoubleTildeToBR(str));
+}
 
 function saveMonitorData(href = '') {
   const alertBlock = $j("#alertSaveMonitorData");
@@ -484,7 +608,14 @@ function saveMonitorData(href = '') {
     data: form_data,
     success: function() {
       alertBlock.fadeOut({duration: 'fast'});
-      if (href) window.location.assign(href);
+      sourceFormMonitor = $j('#contentForm').serialize();
+      if (href) {
+        if (href == 'reload') {
+          window.location.reload();
+        } else {
+          window.location.assign(href);
+        }
+      }
       //document.getElementById('zones-tab').classList.remove("disabled");
     },
     error: function() {
@@ -595,7 +726,7 @@ function change_WebColour() {
 function getRandomColour() {
   var letters = '0123456789ABCDEF';
   var colour = '#';
-  for (var i = 0; i < 6; i++) {
+  for (let i = 0; i < 6; i++) {
     colour += letters[Math.floor(Math.random() * 16)];
   }
   return colour;
@@ -682,6 +813,10 @@ function Capturing_onChange(e) {
 }
 
 function Analysing_onChange(e) {
+  // When motion detection is None there is no analysis, so hide the
+  // analysis image, analysis fps and ref/alarm blend fields.
+  const show = (e.value != 'None');
+  $j('#AnalysisImage, li.AnalysisFPS, li.RefBlendPerc, li.AlarmRefBlendPerc, li.AlarmRefImageBlendPct').toggle(show);
 }
 
 function Recording_onChange(e) {
@@ -761,9 +896,11 @@ function populate_models(ManufacturerId) {
 function ManufacturerId_onchange(ManufacturerId_select) {
   if (ManufacturerId_select.value) {
     ManufacturerId_select.form.elements['newMonitor[Manufacturer]'].style['display'] = 'none';
+    ManufacturerId_select.form.elements['newMonitor[Manufacturer]'].disabled = true;
     populate_models(ManufacturerId_select.value);
   } else {
-    ManufacturerId_select.form.elements['newMonitor[Manufacturer]'].style['display'] = 'inline';
+    ManufacturerId_select.form.elements['newMonitor[Manufacturer]'].style['display'] = '';
+    ManufacturerId_select.form.elements['newMonitor[Manufacturer]'].disabled = false;
     // Set models dropdown to Unknown, text area visible
     const ModelId_dropdown = $j('[name="newMonitor[ModelId]"]');
     ModelId_dropdown.empty();
@@ -800,9 +937,9 @@ function Manufacturer_onchange(input) {
 
 function ModelId_onchange(ModelId_select) {
   if (parseInt(ModelId_select.value)) {
-    $j('[name="newMonitor[Model]"]').hide();
+    $j('[name="newMonitor[Model]"]').hide().prop('disabled', true);
   } else {
-    $j('[name="newMonitor[Model]"]').show();
+    $j('[name="newMonitor[Model]"]').show().prop('disabled', false);
   }
 }
 
@@ -832,7 +969,10 @@ function ControlId_onChange(ddm) {
 function ControlEdit_onClick() {
   const ControlId = document.getElementById('ControlId');
   if (ControlId) {
-    window.location = '?view=controlcap&cid='+ControlId.value;
+    const cid = parseInt(ControlId.value, 10);
+    if (Number.isInteger(cid) && cid > 0) {
+      window.location = '?view=controlcap&cid=' + cid;
+    }
   }
 }
 
@@ -841,3 +981,12 @@ function ControlList_onClick() {
 }
 
 window.addEventListener('DOMContentLoaded', initPage);
+
+// Clear password field values when navigating away from the page so
+// Chrome doesn't offer to save/update credentials.  These are camera
+// credentials, not user login credentials.
+window.addEventListener('pagehide', function() {
+  document.querySelectorAll('#contentForm input[type="password"]').forEach(function(el) {
+    el.value = '';
+  });
+});

@@ -128,12 +128,27 @@ require ZoneMinder::Database;
     }
     open( my $CONFIG, '<', $config_file )
       or croak("Can't open config file '$config_file': $!");
-    foreach my $str ( <$CONFIG> ) {
-      next if ( $str =~ /^\s*$/ );
-      next if ( $str =~ /^\s*#/ );
-      my ( $name, $value ) = $str =~ /^\s*([^=\s]+)\s*=\s*[\'"]*(.*?)[\'"]*\s*$/;
+    my $logical = '';
+    while ( my $str = <$CONFIG> ) {
+      $str =~ s/\r?\n\z//;
+      # A trailing backslash (with optional whitespace before the newline)
+      # means the value continues on the next physical line. Continuation
+      # lines have their leading whitespace stripped so users can indent.
+      if ( $logical ne '' ) {
+        $str =~ s/^[ \t]+//;
+      }
+      if ( $str =~ s/\\[ \t]*\z// ) {
+        $logical .= $str;
+        next;
+      }
+      $logical .= $str;
+      my $line = $logical;
+      $logical = '';
+      next if ( $line =~ /^\s*$/ );
+      next if ( $line =~ /^\s*#/ );
+      my ( $name, $value ) = $line =~ /^\s*([^=\s]+)\s*=\s*[\'"]*(.*?)[\'"]*\s*$/;
       if ( !$name ) {
-        print(STDERR "Warning, bad line in $config_file: $str\n");
+        print(STDERR "Warning, bad line in $config_file: $line\n");
         next;
       } # end if
       $name = uc $name;
@@ -143,7 +158,7 @@ require ZoneMinder::Database;
       #print(STDERR "Warning, known config option name $name in $config_file\n");
       #}
       $Config{$name} = $value;
-    } # end foreach config line
+    } # end while config line
     close($CONFIG);
   } # end sub process_configfile
 
@@ -314,9 +329,8 @@ Philip Coombes, E<lt>philip.coombes@zoneminder.comE<gt>
 
 Copyright (C) 2001-2008  Philip Coombes
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.3 or,
-at your option, any later version of Perl 5 you may have available.
+Licensed under the GNU General Public License v2 or later; see the COPYING
+file distributed with ZoneMinder for the full text.
 
 
 =cut

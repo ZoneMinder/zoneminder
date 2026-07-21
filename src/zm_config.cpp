@@ -25,7 +25,10 @@
 #include <cerrno>
 #include <cstring>
 #include <dirent.h>
+#include <fstream>
 #include <glob.h>
+#include <string>
+#include <vector>
 
 // Note that Error and Debug calls won't actually go anywhere unless you
 // set the relevant ENV vars because the logger gets it's setting from the
@@ -91,12 +94,12 @@ void zmLoadDBConfig() {
     } else {
       Fatal("Can't get ServerName for Server ID %d", staticConfig.SERVER_ID);
     }
+  }
 
-    if (staticConfig.SERVER_ID) {
-      Debug(3, "Multi-server configuration detected. Server is %d.", staticConfig.SERVER_ID);
-    } else {
-      Debug(3, "Single server configuration assumed because no Server ID or Name was specified.");
-    }
+  if (staticConfig.SERVER_ID) {
+    Debug(3, "Multi-server configuration detected. Server is %d.", staticConfig.SERVER_ID);
+  } else {
+    Debug(3, "Single server configuration assumed because no Server ID or Name was specified.");
   }
 
   staticConfig.capture_file_format = stringtf("%%s/%%0%dd-capture.jpg", config.event_image_digits);
@@ -106,18 +109,34 @@ void zmLoadDBConfig() {
 }
 
 void process_configfile(char const *configFile) {
-  FILE *cfg;
-  char line[512];
-  if ( (cfg = fopen(configFile, "r")) == nullptr ) {
+  std::ifstream cfg(configFile);
+  if ( !cfg.is_open() ) {
     Fatal("Can't open %s: %s", configFile, strerror(errno));
     return;
   }
-  while ( fgets(line, sizeof(line), cfg) != nullptr ) {
-    char *line_ptr = line;
+  std::string raw;
+  while ( std::getline(cfg, raw) ) {
+    // Tolerate Windows line endings.
+    if ( !raw.empty() && raw.back() == '\r' ) raw.pop_back();
 
-    // Trim off any cr/lf line endings
-    int chomp_len = strcspn(line_ptr, "\r\n");
-    line_ptr[chomp_len] = '\0';
+    // Backslash before the newline means the value continues on the next
+    // physical line. Trailing whitespace before the '\' is allowed.
+    // Continuation lines have their leading whitespace stripped so callers
+    // can indent for readability without it leaking into the value.
+    while ( true ) {
+      size_t last_non_ws = raw.find_last_not_of(" \t");
+      if ( last_non_ws == std::string::npos || raw[last_non_ws] != '\\' ) break;
+      raw.erase(last_non_ws);
+      std::string next;
+      if ( !std::getline(cfg, next) ) break;
+      if ( !next.empty() && next.back() == '\r' ) next.pop_back();
+      size_t lead = next.find_first_not_of(" \t");
+      if ( lead != std::string::npos ) raw.append(next, lead, std::string::npos);
+    }
+
+    std::vector<char> line(raw.begin(), raw.end());
+    line.push_back('\0');
+    char *line_ptr = line.data();
 
     // Remove leading white space
     int white_len = strspn(line_ptr, " \t");
@@ -131,13 +150,12 @@ void process_configfile(char const *configFile) {
     char *temp_ptr = line_ptr+strlen(line_ptr)-1;
     while ( *temp_ptr == ' ' || *temp_ptr == '\t' || *temp_ptr == '\'' || *temp_ptr == '\"') {
       *temp_ptr-- = '\0';
-      temp_ptr--;
     }
 
     // Now look for the '=' in the middle of the line
     temp_ptr = strchr(line_ptr, '=');
     if ( !temp_ptr ) {
-      Warning("Invalid data in %s: '%s'", configFile, line);
+      Warning("Invalid data in %s: '%s'", configFile, line.data());
       continue;
     }
 
@@ -149,7 +167,7 @@ void process_configfile(char const *configFile) {
     do {
       *temp_ptr = '\0';
       temp_ptr--;
-    } while ( *temp_ptr == ' ' || *temp_ptr == '\t' );
+    } while ( temp_ptr >= name_ptr && (*temp_ptr == ' ' || *temp_ptr == '\t') );
 
     // Remove leading white space and leading quotes from the value part
     white_len = strspn(val_ptr, " \t");
@@ -170,6 +188,8 @@ void process_configfile(char const *configFile) {
       staticConfig.DB_SSL_CLIENT_KEY = std::string(val_ptr);
     else if ( strcasecmp(name_ptr, "ZM_DB_SSL_CLIENT_CERT") == 0 )
       staticConfig.DB_SSL_CLIENT_CERT = std::string(val_ptr);
+    else if ( strcasecmp(name_ptr, "ZM_DB_SSL_VERIFY_SERVER_CERT") == 0 )
+      staticConfig.DB_SSL_VERIFY_SERVER_CERT = std::string(val_ptr);
     else if ( strcasecmp(name_ptr, "ZM_PATH_WEB") == 0 )
       staticConfig.PATH_WEB = std::string(val_ptr);
     else if ( strcasecmp(name_ptr, "ZM_SERVER_HOST") == 0 )
@@ -202,7 +222,6 @@ void process_configfile(char const *configFile) {
       // Warning( "Invalid parameter '%s' in %s", name_ptr, ZM_CONFIG );
     }
   } // end foreach line of the config
-  fclose(cfg);
 }
 
 StaticConfig staticConfig;
@@ -231,21 +250,25 @@ ConfigItem::ConfigItem(const ConfigItem &item) {
 
   //Info( "Created new config item %s = %s (%s)\n", name, value, type );
 
-  accessed = false;
+  cfg_type = item.cfg_type;
+  cfg_value = item.cfg_value;
+  accessed = item.accessed;
 }
 void ConfigItem::Copy(const ConfigItem &item) {
-  if (name) delete name;
+  delete[] name;
   name = new char[strlen(item.name)+1];
   strcpy(name, item.name);
-  if (value) delete value;
+  delete[] value;
   value = new char[strlen(item.value)+1];
   strcpy(value, item.value);
-  if (type) delete type;
+  delete[] type;
   type = new char[strlen(item.type)+1];
   strcpy(type, item.type);
 
   //Info( "Created new config item %s = %s (%s)\n", name, value, type );
-  accessed = false;
+  cfg_type = item.cfg_type;
+  cfg_value = item.cfg_value;
+  accessed = item.accessed;
 }
 
 ConfigItem::~ConfigItem() {

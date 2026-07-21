@@ -15,6 +15,7 @@
 #cmakedefine HAVE_SENDFILE 1
 #cmakedefine HAVE_DECL_BACKTRACE 1
 #cmakedefine HAVE_DECL_BACKTRACE_SYMBOLS 1
+#cmakedefine HAVE_LIBUNWIND 1
 #cmakedefine HAVE_POSIX_MEMALIGN 1
 #cmakedefine HAVE_SIGINFO_T 1
 #cmakedefine HAVE_UCONTEXT_T 1
@@ -34,6 +35,8 @@
 #cmakedefine HAVE_LIBGNUTLS 1
 #cmakedefine HAVE_LIBMYSQLCLIENT 1
 #cmakedefine HAVE_MYSQL_H 1
+#cmakedefine HAVE_MYSQL_OPT_SSL_MODE 1
+#cmakedefine HAVE_MYSQL_OPT_SSL_VERIFY_SERVER_CERT 1
 #cmakedefine HAVE_LIBAVUTIL_HWCONTEXT_H 1
 #cmakedefine HAVE_LIBVLC 1
 #cmakedefine HAVE_VLC_VLC_H 1

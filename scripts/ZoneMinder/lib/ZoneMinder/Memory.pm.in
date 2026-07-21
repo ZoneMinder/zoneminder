@@ -179,11 +179,15 @@ our %mem_data = (
     last_write_time  => { type=>'time_t64', seq=>$mem_seq++ },
     last_read_time   => { type=>'time_t64', seq=>$mem_seq++ },
     last_viewed_time => { type=>'time_t64', seq=>$mem_seq++ },
+    last_analysis_viewed_time => { type=>'time_t64', seq=>$mem_seq++ },
     control_state    => { type=>'uint8[256]', seq=>$mem_seq++ },
     alarm_cause      => { type=>'int8[256]', seq=>$mem_seq++ },
     video_fifo       => { type=>'int8[64]', seq=>$mem_seq++ },
     audio_fifo       => { type=>'int8[64]', seq=>$mem_seq++ },
     janus_pin        => { type=>'int8[64]', seq=>$mem_seq++ },
+    last_analysis_index => { type=>'int32', seq=>$mem_seq++ },
+    analysis_image_count => { type=>'int32', seq=>$mem_seq++ },
+    analysis_pad     => { type=>'uint8[8]', seq=>$mem_seq++ },
   }
   },
   trigger_data => { type=>'TriggerData', seq=>$mem_seq++, 'contents'=> {
@@ -604,15 +608,18 @@ sub zmTriggerEventOn {
   my $text = shift;
   my $showtext = shift;
 
+  # Write score/cause/text before trigger_state so the analysis process always
+  # reads complete trigger data when it sees TRIGGER_ON.  Perl hash iteration
+  # order is non-deterministic, so trigger_state must be written in a separate
+  # call that executes after all data fields are already in shared memory.
   my $values = {
     'trigger_data:trigger_score' => $score,
     'trigger_data:trigger_cause' => $cause,
   };
   $values->{'trigger_data:trigger_text'} = $text if defined($text);
   $values->{'trigger_data:trigger_showtext'} = $showtext if defined($showtext);
-  $values->{'trigger_data:trigger_state'} = TRIGGER_ON; # Write state last so event not read incomplete
-
   zmMemWrite($monitor, $values);
+  zmMemWrite($monitor, {'trigger_data:trigger_state' => TRIGGER_ON}); # Write state last so event not read incomplete
 }
 
 sub zmTriggerEventOff {
@@ -914,9 +921,8 @@ Philip Coombes, E<lt>philip.coombes@zoneminder.comE<gt>
 
 Copyright (C) 2001-2008  Philip Coombes
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.3 or,
-at your option, any later version of Perl 5 you may have available.
+Licensed under the GNU General Public License v2 or later; see the COPYING
+file distributed with ZoneMinder for the full text.
 
 
 =cut

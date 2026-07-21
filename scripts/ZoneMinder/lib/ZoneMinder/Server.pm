@@ -127,7 +127,15 @@ sub CpuUsage {
 
   } else {
     # Get CPU utilization percentages
-    my $top_output = `top -b -n 1 | grep -i "^%Cpu(s)" | awk '{print \$2, \$4, \$6, \$8}'`;
+    my $top_output = '';
+    my $uname_output = lc(qx($ZoneMinder::Config{ZM_PATH_UNAME} -s));
+    chomp($uname_output);
+    ## FreeBSD
+    if ($uname_output eq 'freebsd') {
+      $top_output = `top -b -n 1 | grep "^CPU" | sed 's/%//g' | awk '{print \$2, \$6, \$4, \$10}'`;
+    } else {
+      $top_output = `top -b -n 1 | grep -i "^%Cpu(s)" | awk '{print \$2, \$4, \$6, \$8}'`;
+    }
     if ($top_output and ($top_output =~ /\d/)) {
       my ($user, $system, $nice, $idle) = split(/ /, $top_output);
       $user =~ s/[^\d\.]//g;
@@ -148,7 +156,7 @@ sub CpuUsage {
       my ($user, $system, $nice, $idle) = (0, 0, 0, 0);
       foreach my $line (split(/\n/, $top_output)) {
         #OpenBSD
-        if ($line =~ /^CPU\d+ states:  ([\d\.]+)% user,  ([\d\.]+)% nice,  %([\d\.]+) sys,  ([\d\.]+)% spin,  ([\d\.]+)% intr, ([\d\.]+)% idle$/) {
+        if ($line =~ /^CPU\d+ states:  ([\d\.]+)% user,  ([\d\.]+)% nice,  ([\d\.]+)% sys,  ([\d\.]+)% spin,  ([\d\.]+)% intr, ([\d\.]+)% idle$/) {
           $user = $user ? $user : ($user + $1)/2;
           $nice = $nice ? $nice : ($nice + $2)/2;
           $system = $system ? $system : ($system + $3)/2;

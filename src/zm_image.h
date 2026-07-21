@@ -24,6 +24,7 @@
 #include "zm_jpeg.h"
 #include "zm_logger.h"
 #include "zm_mem_utils.h"
+#include "zm_pixformat.h"
 #include "zm_rgb.h"
 #include "zm_time.h"
 #include "zm_vector2.h"
@@ -134,12 +135,16 @@ class Image {
   uint8_t *buffer;
   int buffertype; /* 0=not ours, no need to call free(), 1=malloc() buffer, 2=new buffer */
   int holdbuffer; /* Hold the buffer instead of replacing it with new one */
+  uint8_t *blend_buffer_;
+  size_t blend_buffer_size_;
   std::string annotation_;
   std::string filename_;
 
  public:
   Image();
   explicit Image(const std::string &filename);
+  Image(int p_width, int p_height, int p_colours, int p_subpixelorder,
+      uint8_t *p_buffer, unsigned long p_allocation, unsigned int padding=0);
   Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer=0, unsigned int padding=0);
   Image(int p_width, int p_linesize, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer=0, unsigned int padding=0);
   explicit Image(const Image &p_image);
@@ -172,8 +177,9 @@ class Image {
   inline unsigned int Size() const { return size; }
   std::string Filename() const { return filename_; }
 
-  AVPixelFormat AVPixFormat() const;
-  AVPixelFormat AVPixFormat(AVPixelFormat);
+  AVPixelFormat PixFormat() const { return imagePixFormat; }
+  AVPixelFormat AVPixFormat() const;       // DEPRECATED: use PixFormat()
+  AVPixelFormat AVPixFormat(AVPixelFormat); // Sets imagePixFormat and updates colours/subpixelorder
 
   inline uint8_t* Buffer() { return buffer; }
   inline const uint8_t* Buffer() const { return buffer; }
@@ -204,7 +210,7 @@ class Image {
     const size_t buffer_size);
   void Assign(const Image &image);
   bool Assign(const AVFrame *frame);
-  bool Assign(const AVFrame *frame, SwsContext *convert_context, AVFrame *temp_frame);
+  bool Assign(const AVFrame *frame, SwsContext *convert_context);
   void AssignDirect(
     const unsigned int p_width,
     const unsigned int p_height,
@@ -262,7 +268,7 @@ class Image {
   static Image *Merge( unsigned int n_images, Image *images[], double weight );
   static Image *Highlight(unsigned int n_images, Image *images[], Rgb threshold = kRGBBlack, Rgb ref_colour = kRGBRed);
   //Image *Delta( const Image &image ) const;
-  void Delta( const Image &image, Image* targetimage) const;
+  bool Delta( const Image &image, Image* targetimage) const;
 
   const Vector2 centreCoord(const char *text, const int size) const;
   void MaskPrivacy( const unsigned char *p_bitmask, const Rgb pixel_colour=0x00222222 );
@@ -294,6 +300,7 @@ class Image {
   void Deinterlace_Blend();
   void Deinterlace_Blend_CustomRatio(int divider);
   void Deinterlace_4Field(const Image* next_image, unsigned int threshold);
+  const std::string toString();
 };
 
 // Scan-line polygon fill algorithm

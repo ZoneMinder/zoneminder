@@ -15,6 +15,7 @@ AnalysisThread::~AnalysisThread() {
 }
 
 void AnalysisThread::Start() {
+  Stop();  // Signal any running thread to terminate first
   if (thread_.joinable()) thread_.join();
   terminate_ = false;
   Debug(3, "Starting analysis thread");
@@ -33,10 +34,11 @@ void AnalysisThread::Run() {
     // Some periodic updates are required for variable capturing framerate
     if (!monitor_->Analyse()) {
       if (!(terminate_ or zm_terminate)) {
-        // We only sleep when Analyse returns false because it is an error condition and we will spin like mad if it persists.
-        Microseconds sleep_for = monitor_->Active() ? Microseconds(ZM_SAMPLE_RATE) : Microseconds(ZM_SUSPENDED_RATE);
-        Debug(5, "Sleeping for %" PRId64 "us", int64(sleep_for.count()));
-        std::this_thread::sleep_for(sleep_for);
+        // We wait on the packetqueue condition variable instead of sleeping.
+        // This allows us to wake up immediately when decoding completes.
+        Microseconds wait_for = monitor_->Active() ? Microseconds(ZM_SAMPLE_RATE) : Microseconds(ZM_SUSPENDED_RATE);
+        Debug(5, "Waiting for %" PRId64 "us", int64(wait_for.count()));
+        monitor_->GetPacketQueue()->wait_for(wait_for);
       }
     }
   }

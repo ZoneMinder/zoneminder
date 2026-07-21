@@ -8,7 +8,7 @@ $data = array();
 //
 
 if (!canView('Events'))
-  $message = 'Insufficient permissions for user '.$user->Username().'<br/>';
+  $message = 'Insufficient permissions for user '.validHtmlStr($user->Username()).'<br/>';
 
 if (empty($_REQUEST['task'])) {
   $message = 'Must specify a task<br/>';
@@ -46,7 +46,7 @@ if (!empty($_REQUEST['MonitorId'])) {
   $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=> '=', 'val'=>$_REQUEST['MonitorId']));
 }
 if (!empty($_REQUEST['Tag'])) {
-  $filter->addTerm(array('cnj'=>'and', 'attr'=>'Tag', 'op'=>'=', 'val'=>''));
+  $filter->addTerm(array('cnj'=>'and', 'attr'=>'Tag', 'op'=>'=', 'val'=>$_REQUEST['Tag']));
 }
 
 // Search contains a user entered string to search on
@@ -106,14 +106,14 @@ switch ($task) {
   case 'unarchive' :
 		# The idea is that anyone can archive, but only people with Event Edit permission can unarchive..
 		if (!canEdit('Events'))  {
-			ajaxError('Insufficient permissions for user '.$user->Username());
+			ajaxError('Insufficient permissions for user '.validHtmlStr($user->Username()));
 			return;
 		}
     foreach ($eids as $eid) archiveRequest($task, $eid);
     break;
   case 'delete' :
 		if (!canEdit('Events'))  {
-			ajaxError('Insufficient permissions for user '.$user->Username());
+			ajaxError('Insufficient permissions for user '.validHtmlStr($user->Username()));
 			return;
 		}
     foreach ($eids as $eid) {
@@ -128,7 +128,7 @@ switch ($task) {
     $data = queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $limit);
     break;
   default :
-    ZM\Fatal("Unrecognised task '$task'");
+    ajaxError("Unrecognised task '".validHtmlStr($task)."'");
 } // end switch task
 
 ajaxResponse($data);
@@ -185,21 +185,32 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   $col_alt = array('Monitor', 'Tags', 'Storage');
 
   if ( $sort != '' ) {
-    if (!in_array($sort, array_merge($columns, $col_alt))) {
-      ZM\Error('Invalid sort field: ' . $sort);
-      $sort = '';
-    } else if ( $sort == 'Tags' ) {
-       $sort = 'T.Name';
-    } else if ( $sort == 'Monitor' ) {
-      $sort = 'M.Name';
-    } else if ($sort == 'EndDateTime') {
-      if ($order == 'ASC') {
-        $sort = 'E.EndDateTime IS NULL, E.EndDateTime';
-      } else {
-        $sort = 'E.EndDateTime IS NOT NULL, E.EndDateTime';
-      }
-    } else {
-      $sort = 'E.'.$sort;
+    // Canonicalize the global direction once so the EndDateTime rewrite below
+    // (which branches on $order) and buildSortSql see the same value.
+    $order = strtoupper(trim($order));
+    // Resolve a whitelisted event column name to its SQL (alias), or null.
+    $whitelist = array_merge($columns, $col_alt);
+    $resolve = function($col) use ($whitelist) {
+      if (!in_array($col, $whitelist)) return null;
+      if ($col == 'Tags') return 'Tags';
+      if ($col == 'Monitor') return 'M.Name';
+      return 'E.'.$col;
+    };
+    // Implicit NULLs-last rewrite when sorting solely by EndDateTime, so events
+    // without a recorded end (zmc crashed) don't bunch unpredictably. Emitted
+    // with explicit directions so the IS NULL key keeps ASC ordering even when
+    // the global order is DESC, reproducing the historical SQL.
+    if (trim($sort) == 'EndDateTime') {
+      $sort = ($order == 'ASC')
+        ? 'EndDateTime IS NULL ASC, EndDateTime ASC'
+        : 'EndDateTime IS NOT NULL ASC, EndDateTime DESC';
+    }
+    // Build the per-part directional ORDER BY body. Parts without an explicit
+    // ASC/DESC inherit $order. An invalid/non-whitelisted spec yields '' and is
+    // dropped (no ORDER BY) rather than risking an injected fragment.
+    $sort = ZM\Filter::buildSortSql($sort, $order, $resolve);
+    if ($sort === '') {
+      ZM\Warning('Invalid sort field, ignoring');
     }
   }
 
@@ -209,11 +220,27 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   $where = $filter->sql()?' WHERE ('.$filter->sql().')' : '';
   $has_post_sql_conditions = count($filter->post_sql_conditions());
 
+
+  // For events that never wrote EndDateTime (zmc killed/crashed mid-event),
+  // fall back to StartDateTime + Length. Length is flushed to the DB every
+  // few seconds during recording, so it reflects the actual recorded
+  // duration even when zmc died without closing the event. When Length is 0
+  // too (an empty crash-orphaned event), fall back to StartDateTime so the
+  // event has no span; NOW() would otherwise extend it across all the
+  // down-time and overlap every later event.
   $col_str = '
-  E.*, 
-  UNIX_TIMESTAMP(E.StartDateTime) AS StartTimeSecs, 
-  CASE WHEN E.EndDateTime IS NULL THEN (SELECT NOW()) ELSE E.EndDateTime END AS EndDateTime, 
-  CASE WHEN E.EndDateTime IS NULL THEN (SELECT UNIX_TIMESTAMP(NOW())) ELSE UNIX_TIMESTAMP(EndDateTime) END AS EndTimeSecs, 
+  E.*,
+  UNIX_TIMESTAMP(E.StartDateTime) AS StartTimeSecs,
+  CASE
+    WHEN E.EndDateTime IS NOT NULL THEN E.EndDateTime
+    WHEN E.Length > 0 THEN DATE_ADD(E.StartDateTime, INTERVAL FLOOR(E.Length) SECOND)
+    ELSE E.StartDateTime
+  END AS EndDateTime,
+  CASE
+    WHEN E.EndDateTime IS NOT NULL THEN UNIX_TIMESTAMP(E.EndDateTime)
+    WHEN E.Length > 0 THEN UNIX_TIMESTAMP(E.StartDateTime) + E.Length
+    ELSE UNIX_TIMESTAMP(E.StartDateTime)
+  END AS EndTimeSecs,
   M.Name AS Monitor,
   GROUP_CONCAT(T.Name SEPARATOR ", ") AS Tags';
 
@@ -223,7 +250,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   LEFT JOIN Tags AS T ON T.Id = ET.TagId 
   '.$where.' 
   GROUP BY E.Id, Monitor
-  '.($sort?' ORDER BY '.$sort.' '.$order:'');
+  '.($sort?' ORDER BY '.$sort:'');
 
   if ((int)($filter->limit()) and !$has_post_sql_conditions) {
     $sql .= ' LIMIT '.(int)($filter->limit());
@@ -241,7 +268,8 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   ZM\Debug('Calling the following sql query: ' .$sql);
   $query = dbQuery($sql, $values);
   if (!$query) {
-    ajaxError(dbError($sql));
+    ZM\Error(dbError($sql));
+    ajaxError('Database query failed');
     return;
   }
   while ($row = dbFetchNext($query)) {
@@ -257,7 +285,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   } # end foreach row
 
   # Filter limits come before pagination limits.
-  if ($filter->limit() and ($filter->limit() > count($unfiltered_rows))) {
+  if ($filter->limit() and ($filter->limit() < count($unfiltered_rows))) {
     ZM\Debug("Filtering rows due to filter->limit " . count($unfiltered_rows)." limit: ".$filter->limit());
     $unfiltered_rows = array_slice($unfiltered_rows, 0, $filter->limit());
   }
@@ -297,9 +325,9 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     INNER JOIN Monitors AS M ON E.MonitorId = M.Id 
     LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId 
     LEFT JOIN Tags AS T ON T.Id = ET.TagId 
-    WHERE '.$search_filter->sql().' 
-    GROUP BY E.Id 
-    ORDER BY ' .$sort. ' ' .$order;
+    WHERE '.$search_filter->sql().'
+    GROUP BY E.Id'
+    .($sort ? ' ORDER BY '.$sort : '');
 
     $filtered_rows = dbFetchAll($sql);
     ZM\Debug('Have ' . count($filtered_rows) . ' events matching search filter: '.$sql);
@@ -319,13 +347,26 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     if (!$event->canView()) continue;
     if ($event->Monitor()->Deleted()) continue;
 
-    $scale = intval(5*100*ZM_WEB_LIST_THUMB_WIDTH / $event->Width());
+    $scale = $event->Width() ? intval(5*100*ZM_WEB_LIST_THUMB_WIDTH / $event->Width()) : 100;
     $imgSrc = $event->getThumbnailSrc(array(), '&amp;');
     $streamSrc = $event->getStreamSrc(array(
       'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single', 'rate'=>'400'), '&amp;');
 
+    $videoAttr = '';
+    if ($event->DefaultVideo()) {
+      $videoSrc = $event->getStreamSrc(array('mode'=>'mp4'), '&amp;');
+      $videoDuration = isset($row['Length']) ? (int)$row['Length'] : 0;
+      if ($videoDuration === 0) $videoDuration = $event->Duration();
+      $videoAttr = ' video_src="' .$videoSrc. '" data-event-start="'.htmlspecialchars($event->StartDateTime()).'"';
+      // HLS manifest is written progressively during recording. Always advertise
+      // it for events with video; JS falls back to MP4/MJPEG on load failure
+      // (handles legacy events recorded before HLS support was added).
+      $videoAttr .= ' data-video-hls-src="'.$event->getStreamSrc(array('mode'=>'mp4hls'), '&amp;').'"';
+      $videoAttr .= ' data-video-duration-secs="'.$videoDuration.'"';
+    }
+
     // Modify the row data as needed
-    $row['imgHtml'] = '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="Event '.$event->Id().'" width="' .validInt($event->ThumbnailWidth()). '" height="' .validInt($event->ThumbnailHeight()).'" stream_src="' .$streamSrc. '" still_src="' .$imgSrc. '" loading="lazy" />';
+    $row['imgHtml'] = '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="Event '.$event->Id().'" width="' .validInt($event->ThumbnailWidth()). '" height="' .validInt($event->ThumbnailHeight()).'" stream_src="' .$streamSrc. '" still_src="' .$imgSrc. '"' .$videoAttr. ' data-monitor-width="'.$event->Width().'" data-monitor-height="'.$event->Height().'" loading="lazy" />';
     $row['imgWidth'] = validInt($event->ThumbnailWidth());
     $row['imgHeight'] = validInt($event->ThumbnailHeight());
 
@@ -349,6 +390,19 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   } else {
     $data['total'] = $data['totalNotFiltered'];
   }
+
+  # Calculate totals for footer display
+  $totalDiskSpace = 0;
+  $totalLength = 0;
+  foreach ($filtered_rows as $row) {
+    $totalDiskSpace += isset($row['DiskSpace']) ? $row['DiskSpace'] : 0;
+    $totalLength += isset($row['Length']) ? $row['Length'] : 0;
+  }
+  $data['footerData'] = array(
+    'DiskSpace' => human_filesize($totalDiskSpace),
+    'Length' => $totalLength,
+  );
+
   ZM\Debug("Done");
   return $data;
 }

@@ -5,16 +5,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(zm-feature-interface INTERFACE)
 
-# The cxx_std_* feature flags were only introduced in CMake 3.8
-# Use to old way to specify the required standard level for older CMake versions.
-# Remove this once we raise the required CMake version.
-if(${CMAKE_VERSION} VERSION_LESS 3.8.0)
-  set(CMAKE_CXX_STANDARD 11)
-else()
-  target_compile_features(zm-feature-interface
-    INTERFACE
-      cxx_std_11)
-endif()
+target_compile_features(zm-feature-interface
+  INTERFACE
+    cxx_std_11)
 
 # Interface to set warning levels on targets.
 # It gets populated in the compiler specific script.

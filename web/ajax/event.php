@@ -89,9 +89,13 @@ if ( canView('Events') or canView('Snapshots') ) {
       $exportIds = [validCardinal($_REQUEST['id'])];
     }
 
+    $exportRoot = !empty($_REQUEST['exportFile']) ? preg_replace('/[^\w\-.]/', '', $_REQUEST['exportFile']) : '';
+    if (empty($exportRoot)) $exportRoot = 'zmExport';
+    $exportConnkey = preg_replace('/[^\w\-.]/', '', isset($_REQUEST['connkey']) ? $_REQUEST['connkey'] : '');
+
     if ($exportFile = exportEvents(
       $exportIds,
-      (isset($_REQUEST['connkey'])?$_REQUEST['connkey']:''),
+      $exportConnkey,
       $exportDetail,
       $exportFrames,
       $exportImages,
@@ -100,7 +104,7 @@ if ( canView('Events') or canView('Snapshots') ) {
       $exportFormat,
       $exportCompress,
       $exportStructure,
-      (!empty($_REQUEST['exportFile'])?$_REQUEST['exportFile']:'zmExport')
+      $exportRoot
     )) {
       ajaxResponse(array('exportFile'=>$exportFile));
     } else {
@@ -109,11 +113,12 @@ if ( canView('Events') or canView('Snapshots') ) {
     break;
   case 'download' :
     require_once('includes/download_functions.php');
-    $exportFormat = isset($_REQUEST['exportFormat']) ? $_REQUEST['exportFormat'] : 'zip';
+    $exportFormat = (isset($_REQUEST['exportFormat']) and ($_REQUEST['exportFormat'] === 'tar' or $_REQUEST['exportFormat'] === 'zip')) ? $_REQUEST['exportFormat'] : 'zip';
+    $exportConnkey = preg_replace('/[^\w\-.]/', '', isset($_REQUEST['connkey']) ? $_REQUEST['connkey'] : '');
     $exportFileName = isset($_REQUEST['exportFileName']) ? $_REQUEST['exportFileName'] : '';
 
-    if (!$exportFileName) $exportFileName = 'Export'.(isset($_REQUEST['connkey'])?$_REQUEST['connkey']:'');
-    $exportFileName = preg_replace('/[^\w\-\.\(\):]+/', '', $exportFileName);
+    if (!$exportFileName) $exportFileName = 'Export'.$exportConnkey;
+    $exportFileName = preg_replace('/[^\p{L}\p{N}\-\.\(\)]/u', '', $exportFileName);
 
     $exportIds = [];
     if (!empty($_REQUEST['eids'])) {
@@ -135,7 +140,7 @@ if ( canView('Events') or canView('Snapshots') ) {
       ZM\Debug("No filter");
     }
 
-    if ( $exportFile = exportEvents(
+    if ( $exportFile = downloadEvents(
       $exportIds,
       $exportFileName,
       $exportFormat,
@@ -144,48 +149,11 @@ if ( canView('Events') or canView('Snapshots') ) {
     ajaxResponse(array(
       'exportFile'=>$exportFile,
       'exportFormat'=>$exportFormat,
-      'connkey'=>(isset($_REQUEST['connkey'])?$_REQUEST['connkey']:'')
+      'connkey'=>$exportConnkey
     ));
 
     } else {
-      ajaxError('Export Failed');
-    }
-    break;
-  }
-} // end if canView('Events')
-
-if ( canEdit('Events') ) {
-  switch ( $_REQUEST['action'] ) {
-  case 'rename' :
-    if ( !empty($_REQUEST['eventName']) )
-      dbQuery('UPDATE Events SET Name = ? WHERE Id = ?', array($_REQUEST['eventName'], $_REQUEST['id']));
-    else
-      ajaxError('No new event name supplied');
-    ajaxResponse(array('refreshEvent'=>true, 'refreshParent'=>true));
-    break;
-  case 'eventdetail' :
-    dbQuery(
-      'UPDATE Events SET Cause = ?, Notes = ? WHERE Id = ?',
-      array($_REQUEST['newEvent']['Cause'], $_REQUEST['newEvent']['Notes'], $_REQUEST['id'])
-    );
-    ajaxResponse(array('refreshEvent'=>true, 'refreshParent'=>true));
-    break;
-  case 'archive' :
-  case 'unarchive' :
-    $archiveVal = ($_REQUEST['action'] == 'archive')?1:0;
-    dbQuery(
-      'UPDATE Events SET Archived = ? WHERE Id = ?',
-      array($archiveVal, $_REQUEST['id'])
-    );
-    ajaxResponse(array('refreshEvent'=>true, 'refreshParent'=>false));
-    break;
-  case 'delete' :
-    $Event = new ZM\Event($_REQUEST['id']);
-    if ( !$Event->Id() ) {
-      ajaxResponse(array('refreshEvent'=>false, 'refreshParent'=>true, 'message'=> 'Event not found.'));
-    } else {
-      $Event->delete();
-      ajaxResponse(array('refreshEvent'=>false, 'refreshParent'=>true));
+      ajaxError('Download generation Failed');
     }
     break;
   case 'getselectedtags' :
@@ -224,8 +192,61 @@ if ( canEdit('Events') ) {
     }
     ajaxResponse();
     break;
+  case 'file_existence_check' :
+    $fileNameArray = $_REQUEST['file_name_array'] ?? [];
+    if (!is_array($fileNameArray)) ajaxError('The "file_name_array" request parameter is not an array');
+    if (count($fileNameArray) > 100) ajaxError('Too many files requested');
+    $result = [];
+    foreach ($fileNameArray as $fileName) {
+      if (!is_string($fileName) || $fileName === '' || strlen($fileName) > 4096 || strpos($fileName, "\0") !== false) continue;
+
+      // Only allow relative paths under DIR_EXPORTS_DOWNLOAD; reject traversal/absolute paths.
+      $fileName = ltrim($fileName, "/\\");
+      if (preg_match('#(^|[\\/])\.\.([\\/]|$)#', $fileName)) continue;
+      $path = DIR_EXPORTS_DOWNLOAD . DIRECTORY_SEPARATOR . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $fileName);
+      $result[] = [$fileName, file_exists($path)];
+    }
+    ajaxResponse(array('response'=>$result));
+    break;
+  }
+} // end if canView('Events')
+
+if ( canEdit('Events') ) {
+  switch ( $_REQUEST['action'] ) {
+  case 'rename' :
+    if ( !empty($_REQUEST['eventName']) )
+      dbQuery('UPDATE Events SET Name = ? WHERE Id = ?', array($_REQUEST['eventName'], $_REQUEST['id']));
+    else
+      ajaxError('No new event name supplied');
+    ajaxResponse(array('refreshEvent'=>true, 'refreshParent'=>true));
+    break;
+  case 'eventdetail' :
+    dbQuery(
+      'UPDATE Events SET Cause = ?, Notes = ? WHERE Id = ?',
+      array($_REQUEST['newEvent']['Cause'], $_REQUEST['newEvent']['Notes'], $_REQUEST['id'])
+    );
+    ajaxResponse(array('refreshEvent'=>true, 'refreshParent'=>true));
+    break;
+  case 'archive' :
+  case 'unarchive' :
+    $archiveVal = ($_REQUEST['action'] == 'archive')?1:0;
+    dbQuery(
+      'UPDATE Events SET Archived = ? WHERE Id = ?',
+      array($archiveVal, $_REQUEST['id'])
+    );
+    ajaxResponse(array('refreshEvent'=>true, 'refreshParent'=>false));
+    break;
+  case 'delete' :
+    $Event = new ZM\Event($_REQUEST['id']);
+    if ( !$Event->Id() ) {
+      ajaxResponse(array('refreshEvent'=>false, 'refreshParent'=>true, 'message'=> 'Event not found.'));
+    } else {
+      $Event->delete();
+      ajaxResponse(array('refreshEvent'=>false, 'refreshParent'=>true));
+    }
+    break;
   } // end switch action
 } // end if canEdit('Events')
 
-ajaxError('Unrecognised action '.$_REQUEST['action'].' or insufficient permissions for user '.$user->Username());
+ajaxError('Unrecognised action '.validHtmlStr($_REQUEST['action']).' or insufficient permissions for user '.validHtmlStr($user->Username()));
 ?>

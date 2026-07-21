@@ -37,6 +37,7 @@ use Sys::CPU qw(cpu_count);
 use POSIX qw(strftime uname);
 use JSON::MaybeXS;
 use Encode;
+use URI;
 
 $ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
@@ -278,6 +279,7 @@ sub countQuery {
   my $table = shift;
 
   my $sql = "SELECT count(*) FROM `$table`";
+  $sql .= ' WHERE `Deleted`=false' if $table eq 'Monitors';
   my $sth = $dbh->prepare_cached($sql) or die "Can't prepare '$sql': ".$dbh->errstr();
   my $res = $sth->execute() or die 'Can\'t execute: '.$sth->errstr();
   my $count = $sth->fetchrow_array();
@@ -290,13 +292,21 @@ sub countQuery {
 sub getMonitorRef {
   my $dbh = shift;
 
-  my $sql = 'SELECT `Id`,`Name`,`Type`,`Capturing`,`Analysing`,`Recording`,`Width`,`Height`,`Colours`,`MaxFPS`,`AlarmMaxFPS`,
+  my $sql = 'SELECT `Id`,`Name`,`Type`,`Capturing`,`Analysing`,`Recording`,`Width`,`Height`,`Colours`,`MaxFPS`,`AlarmMaxFPS`, `Path`,
   (SELECT Name FROM Manufacturers WHERE Manufacturers.Id = ManufacturerId) AS Manufacturer,
   (SELECT Name FROM Models WHERE Models.Id = ModelId) AS Model
-  FROM `Monitors`';
+  FROM `Monitors` WHERE Deleted=false';
   my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
   my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
   my $arrayref = $sth->fetchall_arrayref({});
+
+  # Sanitize Path
+  foreach my $monitor (@{$arrayref}) {
+    next if $$monitor{Type} eq 'Local';
+    my $uri = URI->new($$monitor{Path});
+    $uri->authority('username:password@host');
+    $$monitor{Path} = $uri->as_string();
+  }
 
   return $arrayref;
 }

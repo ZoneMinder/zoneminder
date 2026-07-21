@@ -111,7 +111,7 @@ $SLANG = array(
 	'BadPreEventCount'=> 'Etkinlik öncesi görüntü sayısı en az sıfır ve görüntü arabellek boyutundan az olmalıdır',
 	'BadPreEventCountMaxImageBufferCount'=> 'Maksimum Görüntü Arabellek Sayısı, Olay Öncesi görüntü sayısından büyük olmalıdır, aksi takdirde karşılanamaz',
 	'BadRefBlendPerc'=> 'Referans karışım yüzdesi pozitif bir tam sayı olmalıdır',
-	'BadSectionLength'=> 'Bölüm uzunluğu 30 veya daha büyük bir tam sayı olmalıdır',
+	'BadSectionLength'=> 'Bölüm uzunluğu 10 veya daha büyük bir tam sayı olmalıdır',
 	'BadSignalCheckColour'=> 'Sinyal kontrol rengi geçerli bir RGB renk dizisi olmalıdır',
 	'BadSourceType'=> 'Kaynak Türü "Web Sitesi" İşlevinin "İzleme" olarak ayarlanmasını gerektirir',
 	'BadStreamReplayBuffer'=> 'Akış tekrar oynatma arabelleği sıfır veya daha büyük bir tam sayı olmalıdır',
@@ -446,6 +446,7 @@ $SLANG = array(
 	'PostEventImageBuffer'=> 'Etkinlik Sonrası Görüntü Sayısı',
 	'PreEventImageBuffer'=> 'Etkinlik Öncesi Görüntü Sayısı',
 	'PreserveAspect'=> 'En Boy Oranını Koru',
+	'PreviewRate'=> 'Önizleme Hızı',
 	'PreviousMonitor'=> 'Önceki Monitör',
 	'PrivacyAbout'=> 'Hakkında',
 	'PrivacyAboutText'=> 'ZoneMinder, 2002\'den beri Linux platformları için en iyi ücretsiz ve açık kaynaklı Video Yönetim Sistemi (VMS) çözümüdür. ZoneMinder topluluk tarafından desteklenir ve projeye boş zamanlarını gönüllü olarak vermeyi seçenler tarafından yönetilir. ZoneMinder\'ı geliştirmenin en iyi yolu dahil olmaktır.',
@@ -884,10 +885,10 @@ ancak kameranız tarayıcı tarafından desteklenmeyen bir ses biçimi gönderir
       Bir tarayıcının belirli bir akışı oynatmayı denemesini sağlayabilecek bir Profil Kimliğini manuel olarak ayarlayın. Evrensel olarak desteklenen bir değer için "42e01f"
 değerini deneyin veya kaynak tarafından belirtilen Profil Kimliğini kullanmak için bunu boş bırakın.'
   ),
-  'FUNCTION_JANUS_USE_RTSP_RESTREAM'=> array(
+  'FUNCTION_RESTREAM'=> array(
     'Help'=> '
-      Kameranız Janus altında başka hiçbir seçenekle çalışmıyorsa, bunu etkinleştirerek ZoneMinder
-RTSP yeniden akışını Janus kaynağı olarak kullanın.'
+      Akış hizmetleri (Janus, Go2RTC, RTSP2Web) için kaynak olarak kamera yerine ZoneMinder RTSP yeniden akışını
+kullanmak için bunu etkinleştirin. Kameranız doğrudan bir akış hizmetiyle çalışmıyorsa yararlıdır.'
   ),
   'FUNCTION_JANUS_RTSP_SESSION_TIMEOUT'=> array(
     'Help'=> '

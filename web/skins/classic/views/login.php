@@ -3,13 +3,21 @@ xhtmlHeaders(__FILE__, translate('Login'));
 getBodyTopHTML();
 echo getNavBarHTML();
 ?>
-  <div class="container">
+  <div id="content" class="container">
 <?php
 if ( defined('ZM_OPT_USE_AUTH') and ZM_OPT_USE_AUTH ) {
+  // Check for postLoginQuery in both $_GET (URL parameter) and $_SESSION
+  // Give priority to URL parameter as it's more immediate
+  $postLoginQuery = '';
+  if (isset($_GET['postLoginQuery'])) {
+    $postLoginQuery = validStr($_GET['postLoginQuery']);
+  } else if (isset($_SESSION['postLoginQuery'])) {
+    $postLoginQuery = validStr($_SESSION['postLoginQuery']);
+  }
 ?>
     <form class="center-block" name="loginForm" id="loginForm" method="post" action="?view=login">
       <input type="hidden" name="action" value="login"/>
-      <input type="hidden" name="postLoginQuery" value="<?php echo isset($_SESSION['postLoginQuery']) ? validHtmlStr($_SESSION['postLoginQuery']) : ''; ?>" />
+      <input type="hidden" name="postLoginQuery" value="<?php echo validHtmlStr($postLoginQuery); ?>" />
 
       <div id="loginError" class="hidden alarm" role="alert">
         <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
@@ -25,6 +33,15 @@ if ( defined('ZM_OPT_USE_AUTH') and ZM_OPT_USE_AUTH ) {
         <label for="inputPassword" class="sr-only"><?php echo translate('Password') ?></label>
         <input type="password" id="inputPassword" name="password" class="form-control" placeholder="Password" required autocomplete="current-password"/>
 <?php
+if (defined('ZM_OPT_USE_REMEMBER_ME') && ZM_OPT_USE_REMEMBER_ME != 'None' && ZM_OPT_USE_REMEMBER_ME != '' && ZM_OPT_USE_REMEMBER_ME != '0') {
+  $checked = (ZM_OPT_USE_REMEMBER_ME == 'Yes') ? ' checked="checked"' : '';
+?>
+        <div class="form-check mt-2 mb-2">
+          <input type="checkbox" class="form-check-input" id="inputRememberMe" name="remember_me" value="1"<?php echo $checked ?>/>
+          <label class="form-check-label" for="inputRememberMe"><?php echo translate('RememberMe') ?></label>
+        </div>
+<?php
+}
 if (
   defined('ZM_OPT_USE_GOOG_RECAPTCHA') 
   && defined('ZM_OPT_GOOG_RECAPTCHA_SITEKEY') 

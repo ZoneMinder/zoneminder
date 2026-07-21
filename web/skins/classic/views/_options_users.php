@@ -1,18 +1,19 @@
+<?php
+require_once('includes/User_Role.php');
+$roles = ZM\User_Role::Indexed_By_Id();
+?>
 <form name="userForm" method="post" action="?">
   <input type="hidden" name="view" value="<?php echo $view ?>"/>
   <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
   <input type="hidden" name="action" value="delete"/>
   <div id="options">
-    <div class="row">
-      <div class="col">
-        <div id="contentButtons">
-          <?php echo makeButton('?view=user&uid=0', 'AddNewUser', $canEdit); ?>
-          <button type="submit" class="btn-danger" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
-        </div>
-      </div><!-- .col -->
-    </div> <!-- .row -->
+    <div class="col button-block">
+      <div id="contentButtons">
+        <?php echo makeButton('?view=user&uid=0', 'AddNewUser', $canEdit); ?>
+        <button type="button" class="btn-danger" name="deleteBtn" value="Delete" data-on-click-this="DeleteUser" disabled="disabled"><?php echo translate('Delete') ?></button>
+      </div>
+    </div>
     <div class="wrapper-scroll-table">
-      <div class="row">
         <div class="col">
           <table id="contentTable"
              class="table-sm table-striped"
@@ -30,6 +31,7 @@
                 <th data-sortable="true" class="colEmail"><?php echo translate('Email') ?></th>
                 <th data-sortable="true" class="colLanguage"><?php echo translate('Language') ?></th>
                 <th data-sortable="true" class="colEnabled"><?php echo translate('Enabled') ?></th>
+                <th data-sortable="true" class="colRole"><?php echo translate('Role') ?></th>
                 <th data-sortable="true" class="colStream"><?php echo translate('Stream') ?></th>
                 <th data-sortable="true" class="colEvents"><?php echo translate('Events') ?></th>
                 <th data-sortable="true" class="colControl"><?php echo translate('Control') ?></th>
@@ -52,6 +54,7 @@
                 <td class="colEmail"><?php echo $user_row->Email()?validHtmlStr($user_row->Email()):'' ?></td>
                 <td class="colLanguage"><?php echo $user_row->Language()?validHtmlStr($user_row->Language()):'default' ?></td>
                 <td class="colEnabled"><?php echo translate($user_row->Enabled()?'Yes':'No') ?></td>
+                <td class="colRole"><?php echo ($user_row->RoleId() && isset($roles[$user_row->RoleId()])) ? makeLink('?view=role&amp;rid='.$user_row->RoleId(), validHtmlStr($roles[$user_row->RoleId()]->Name()), $canEdit) : '' ?></td>
                 <td class="colStream"><?php echo validHtmlStr($user_row->Stream()) ?></td>
                 <td class="colEvents"><?php echo validHtmlStr($user_row->Events()) ?></td>
                 <td class="colControl"><?php echo validHtmlStr($user_row->Control()) ?></td>
@@ -69,7 +72,6 @@
             </tbody>
           </table>
         </div><!-- .col -->
-      </div><!-- .row -->
     </div><!-- .wrapper-scroll-table -->
   </div> <!-- #options -->
 <script nonce="<?php echo $cspNonce ?>">

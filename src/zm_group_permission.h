@@ -57,6 +57,7 @@ class Group_Permission {
   void loadMonitorIds();
 
   static std::vector<Group_Permission> find(int p_user_id);
+  static std::vector<Group_Permission> findByRole(int role_id);
 };
 
 #endif // ZM_GROUP_PERMISSION_H

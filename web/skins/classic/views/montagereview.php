@@ -195,12 +195,27 @@ if (count($filter->terms()) ) {
 // if the bulk record has not been written - to be able to include more current frames reduce bulk frame sizes (event size can be large)
 // Note we round up just a bit on the end time as otherwise you get gaps, like 59.78 to 00 in the next second, which can give blank frames when moved through slowly.
 
+// For events that never wrote EndDateTime (zmc killed/crashed mid-event),
+// fall back to StartDateTime + Length. Length is flushed to the DB every few
+// seconds during recording, so it reflects the actual recorded duration even
+// when zmc died. When Length is 0 too (an empty crash-orphaned event), fall
+// back to StartDateTime so the event has no span. Otherwise the event would
+// appear to extend across all the down-time, suggesting recorded video that
+// doesn't exist.
 $eventsSql = 'SELECT
   E.*, E.StartDateTime AS StartDateTime,UNIX_TIMESTAMP(E.StartDateTime) AS StartTimeSecs,
-    CASE WHEN E.EndDateTime IS NULL THEN (SELECT NOW()) ELSE E.EndDateTime END AS EndDateTime,
-    CASE WHEN E.EndDateTime IS NULL THEN (SELECT UNIX_TIMESTAMP(NOW())) ELSE UNIX_TIMESTAMP(EndDateTime) END AS EndTimeSecs,
+    CASE
+      WHEN E.EndDateTime IS NOT NULL THEN E.EndDateTime
+      WHEN E.Length > 0 THEN DATE_ADD(E.StartDateTime, INTERVAL FLOOR(E.Length) SECOND)
+      ELSE E.StartDateTime
+    END AS EndDateTime,
+    CASE
+      WHEN E.EndDateTime IS NOT NULL THEN UNIX_TIMESTAMP(E.EndDateTime)
+      WHEN E.Length > 0 THEN UNIX_TIMESTAMP(E.StartDateTime) + E.Length
+      ELSE UNIX_TIMESTAMP(E.StartDateTime)
+    END AS EndTimeSecs,
     M.Name AS MonitorName,M.DefaultScale FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId)
-  WHERE 1 > 0 
+  WHERE 1 > 0
 ';
 
 // This program only calls itself with the time range involved -- it does all monitors (the user can see, in the called group) all the time
@@ -210,7 +225,7 @@ if (count($user->unviewableMonitorIds())) {
   $eventsSql .= ' AND E.MonitorId IN ('.implode(',', $user->viewableMonitorIds()).')';
 }
 if ( count($selected_monitor_ids) ) {
-  $monitor_ids_sql = ' IN (' . implode(',',$selected_monitor_ids).')';
+  $monitor_ids_sql = ' IN (' . implode(',', array_map('intval', $selected_monitor_ids)).')';
   $eventsSql .= ' AND E.MonitorId '.$monitor_ids_sql;
 }
 
@@ -243,13 +258,14 @@ for ( $i = 0; $i < count($speeds); $i++ ) {
   }
 }
 
-$initialDisplayInterval = 1000;
+$initialDisplayInterval = 100;
 if (isset($_REQUEST['displayinterval']))
   $initialDisplayInterval = validCardinal($_REQUEST['displayinterval']);
 
 $minTimeSecs = $maxTimeSecs = 0;
 if (isset($minTime) && isset($maxTime)) {
   if ($minTime >= $maxTime) {
+    if (!isset($error_message)) $error_message = '';
     $error_message .= 'Invalid minTime and maxTime specified.<br/>';
     if ($minTime > $maxTime) {
       $temp = $minTime;
@@ -280,13 +296,20 @@ getBodyTopHTML();
     <input type="hidden" name="view" value="montagereview"/>
     <div id="header">
 <?php
-$html = '<a class="flip" href="#" 
-         data-flip-control-object="#mfbpanel" 
-         data-flip-сontrol-run-after-func="applyChosen drawGraph" 
-         data-flip-сontrol-run-after-complet-func="changeScale">
-           <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
-         </a>'.PHP_EOL;
-$html .= '<div id="mfbpanel" class="hidden-shift container-fluid">'.PHP_EOL;
+$filter_inline = filterSettingsInline();
+$html = '';
+// In inline mode the filter panel sits at the top of the page and this flip
+// icon is what hides/shows it. In sidebar mode the panel lives in the sidebar
+// extruder, which has its own show/hide control, so the flip icon is omitted.
+if ($filter_inline) {
+  $html .= '<a class="flip" href="#"
+           data-flip-control-object="#mfbpanel"
+           data-flip-control-run-after-func="applyChosen drawGraph"
+           data-flip-control-run-after-complet-func="changeScale">
+             <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
+           </a>'.PHP_EOL;
+}
+$html .= '<div id="mfbpanel" class="'.($filter_inline ? '' : 'hidden-shift ').'container-fluid">'.PHP_EOL;
 echo $html;
 echo $filterbar;
 if (count($filter->terms())) {
@@ -314,7 +337,7 @@ if (count($filter->terms())) {
           <button type="button" id="panleft"   data-on-click="click_panleft"    >&lt; <?php echo translate('Pan') ?></button>
           <button type="button" id="zoomin"    data-on-click="click_zoomin"     ><?php echo translate('In +') ?></button>
           <button type="button" id="zoomout"   data-on-click="click_zoomout"    ><?php echo translate('Out -') ?></button>
-          <button type="button" id="lasteight" data-on-click="click_last24"     ><?php echo translate('24 Hour') ?></button>
+          <button type="button" id="last24" data-on-click="click_last24"     ><?php echo translate('24 Hour') ?></button>
           <button type="button" id="lasteight" data-on-click="click_lastEight"  ><?php echo translate('8 Hour') ?></button>
           <button type="button" id="lasthour"  data-on-click="click_lastHour"   ><?php echo translate('1 Hour') ?></button>
           <button type="button" id="allof"     data-on-click="click_all_events" ><?php echo translate('All Events') ?></button>
@@ -334,7 +357,7 @@ if (count($filter->terms())) {
 ?>
           <button type="button" id="downloadVideo" data-on-click="click_download"><?php echo translate('Download Video') ?></button>
 <?php } // end if !live ?>
-<button type="button" id="collapse" data-flip-control-object="#timelinediv" data-flip-сontrol-run-after-func="drawGraph" title="<?php echo translate('Toggle timeline visibility');?>"> <!-- OR run redrawScreen? -->
+<button type="button" id="collapse" data-flip-control-object="#timelinediv" data-flip-control-run-after-func="drawGraph" title="<?php echo translate('Toggle timeline visibility');?>"> <!-- OR run redrawScreen? -->
             <i class="material-icons" data-icon-visible="history_toggle_off" data-icon-hidden="schedule"></i>
           </button>
         </div>
@@ -363,4 +386,5 @@ if (count($filter->terms())) {
 </div><!--page-->
 <script src="<?php echo cache_bust('skins/classic/js/export.js') ?>"></script>
 <script src="<?php echo cache_bust('skins/classic/js/montage_common.js') ?>"></script>
+<script src="<?php echo cache_bust('js/EventStream.js') ?>"></script>
 <?php xhtmlFooter() ?>

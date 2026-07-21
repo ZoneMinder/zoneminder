@@ -49,14 +49,25 @@ if ($action == 'save') {
     if (ZM_OPT_X10) {
       $x10Monitor = array();
     }
-   if (!empty($_REQUEST['newMonitor']['Id'])) { 
-     // Reuse existing but deleted monitor
-     $mid = validCardinal($_REQUEST['newMonitor']['Id']);
-   }
+    if (!empty($_REQUEST['newMonitor']['Id'])) { 
+      // Reuse existing but deleted monitor
+      $mid = validCardinal($_REQUEST['newMonitor']['Id']);
+    }
   }
 
   # For convenience
   $newMonitor = $_REQUEST['newMonitor'];
+
+  # Validate Device path to prevent command injection (CVE-worthy).
+  # Only Local monitors pass Device to a shell; for other Types the field
+  # is unused and may legitimately hold legacy values (e.g. an RTSP URL).
+  if (!empty($newMonitor['Device']) and isset($newMonitor['Type']) and $newMonitor['Type'] == 'Local') {
+    $newMonitor['Device'] = validDevicePath($newMonitor['Device']);
+    if ($newMonitor['Device'] === '') {
+      $error_message .= 'Invalid device path. Must be a valid /dev/ path (e.g. /dev/video0).</br>';
+      return;
+    }
+  }
 
   if (!$newMonitor['ManufacturerId'] and ($newMonitor['Manufacturer'] != '')) {
     # Need to add a new Manufacturer entry
@@ -102,7 +113,7 @@ if ($action == 'save') {
       'Go2RTCEnabled' => 0,
       'JanusEnabled' => 0,
       'JanusAudioEnabled' => 0,
-      'Janus_Use_RTSP_Restream' => 0,
+      'Restream' => 0,
 //       'Janus_RTSP_Session_Timeout' => 0,
       'Exif' => 0,
       'RTSPDescribe' => 0,
@@ -164,14 +175,45 @@ if ($action == 'save') {
       $oldMonitor = clone $monitor;
 
       if ($monitor->save($changes)) {
-        # Leave old symlinks on old storage areas, as old events will still be there. Only delete the link if the name has changed
+        # If the name has changed, it must also be changed in all storage areas.
         if (isset($changes['Name'])) {
-          $link_path = $oldMonitor->Storage()->Path().'/'.basename($oldMonitor->Name());
-          if (file_exists($link_path)) {
-            ZM\Debug("Deleting old link  ".$link_path);
-            unlink($link_path);
-          } else {
-            ZM\Debug("Old link didn't exist at ".$link_path);
+          $saferName = basename($newMonitor['Name']);
+          $oldLinkPath = $oldMonitor->Storage()->Path().'/'.basename($oldMonitor->Name());
+          $oldLinkPathFound = false;
+          require_once('includes/Storage.php');
+          foreach (ZM\Storage::find() as $Storage) {
+            # Let's remove old symlinks
+            $storagePath = realpath($Storage->Path()) .'/';
+            $dirStoragePath = opendir($storagePath);
+            if($dirStoragePath === false) {
+              ZM\Warning("Unable to check and delete old symlinks to monitor with ID=".$monitor->Id()." in the '".$Storage->Name()."' storage because the path to the storage is missing or unreadable.");
+            } else {
+              while (($file = readdir($dirStoragePath)) !== false) {
+                $linkPath = $storagePath . $file;
+                if (is_link($linkPath)) {
+                  $absolutePath = realpath($linkPath);
+                  if ($oldLinkPath == $linkPath) $oldLinkPathFound = true;
+                  if ($absolutePath == $Storage->Path().'/'.$mid) {
+                    ZM\Debug("Deleting old link in storage '" . $Storage->Name() . "' " . $linkPath);
+                    unlink($linkPath);
+                  }
+                }
+              } 
+              closedir($dirStoragePath);
+            }
+
+            # Let's create new symlinks
+            $dir = $Storage->Path().'/'.$mid;
+            if (is_dir($dir) && (string)$saferName !== (string)$mid) { # Let's check if there is a folder with events in this storage
+              $linkPath = $Storage->Path().'/'.$saferName;
+              if (!is_link($linkPath) && !@symlink($mid, $linkPath)) {
+                # It is necessary to check is_link() to avoid unnecessary warnings, since different repositories can have the same path and this is not prohibited by the configuration.
+                ZM\Warning('Unable to symlink in storage "' . $Storage->Name() . '" ' . $dir . ' to ' . $linkPath);
+              }
+            }
+          }
+          if (!$oldLinkPathFound) {
+            ZM\Debug("Old link at '" . $oldLinkPath . "' was not found in any of the storages");
           }
         }
 
@@ -181,27 +223,22 @@ if ($action == 'save') {
 
           $zones = dbFetchAll('SELECT * FROM Zones WHERE MonitorId=?', NULL, array($mid));
 
+          // Zone coords are stored as percentages, so they don't need rescaling
+          // on resolution change. Only handle rotation (swap x/y) and rescale
+          // threshold pixel counts.
+          $newA = $newW * $newH;
+          $oldA = $oldMonitor->Width() * $oldMonitor->Height();
+
           if ( ($newW == $oldMonitor->Height()) and ($newH == $oldMonitor->Width()) ) {
+            // Rotation: swap x,y percentage coords
             foreach ( $zones as $zone ) {
-              $newZone = $zone;
-              # Rotation, no change to area etc just swap the coords
               $newZone = $zone;
               $points = coordsToPoints($zone['Coords']);
               for ( $i = 0; $i < count($points); $i++ ) {
                 $x = $points[$i]['x'];
                 $points[$i]['x'] = $points[$i]['y'];
                 $points[$i]['y'] = $x;
-
-                if ( $points[$i]['x'] > ($newW-1) ) {
-                  ZM\Warning("Correcting x {$points[$i]['x']} > $newW of zone {$newZone['Name']} as it extends outside the new dimensions");
-                  $points[$i]['x'] = ($newW-1);
-                }
-                if ( $points[$i]['y'] > ($newH-1) ) {
-                  ZM\Warning("Correcting y {$points[$i]['y']} $newH of zone {$newZone['Name']} as it extends outside the new dimensions");
-                  $points[$i]['y'] = ($newH-1);
-                }
               }
-
               $newZone['Coords'] = pointsToCoords($points);
               $changes = getFormChanges($zone, $newZone, $types);
 
@@ -210,33 +247,17 @@ if ($action == 'save') {
                   array($mid, $zone['Id']));
               }
             } # end foreach zone
-          } else {
-            $newA = $newW * $newH;
-            $oldA = $oldMonitor->Width() * $oldMonitor->Height();
-
+          } else if ($oldA > 0 && $newA != $oldA) {
+            // Non-rotation resize: coords stay the same (percentages),
+            // but rescale threshold pixel counts by area ratio
             foreach ( $zones as $zone ) {
               $newZone = $zone;
-              $points = coordsToPoints($zone['Coords']);
-              for ( $i = 0; $i < count($points); $i++ ) {
-                $points[$i]['x'] = intval(($points[$i]['x']*($newW-1))/($oldMonitor->Width()-1));
-                $points[$i]['y'] = intval(($points[$i]['y']*($newH-1))/($oldMonitor->Height()-1));
-                if ( $points[$i]['x'] > ($newW-1) ) {
-                  ZM\Warning("Correcting x of zone {$newZone['Name']} as it extends outside the new dimensions");
-                  $points[$i]['x'] = ($newW-1);
-                }
-                if ( $points[$i]['y'] > ($newH-1) ) {
-                  ZM\Warning("Correcting y of zone {$newZone['Name']} as it extends outside the new dimensions");
-                  $points[$i]['y'] = ($newH-1);
-                }
-              }
-              $newZone['Coords'] = pointsToCoords($points);
-              $newZone['Area'] = intval(round(($zone['Area']*$newA)/$oldA));
-              $newZone['MinAlarmPixels'] = intval(round(($newZone['MinAlarmPixels']*$newA)/$oldA));
-              $newZone['MaxAlarmPixels'] = intval(round(($newZone['MaxAlarmPixels']*$newA)/$oldA));
-              $newZone['MinFilterPixels'] = intval(round(($newZone['MinFilterPixels']*$newA)/$oldA));
-              $newZone['MaxFilterPixels'] = intval(round(($newZone['MaxFilterPixels']*$newA)/$oldA));
-              $newZone['MinBlobPixels'] = intval(round(($newZone['MinBlobPixels']*$newA)/$oldA));
-              $newZone['MaxBlobPixels'] = intval(round(($newZone['MaxBlobPixels']*$newA)/$oldA));
+              $newZone['MinAlarmPixels'] = intval(round(($zone['MinAlarmPixels']*$newA)/$oldA));
+              $newZone['MaxAlarmPixels'] = intval(round(($zone['MaxAlarmPixels']*$newA)/$oldA));
+              $newZone['MinFilterPixels'] = intval(round(($zone['MinFilterPixels']*$newA)/$oldA));
+              $newZone['MaxFilterPixels'] = intval(round(($zone['MaxFilterPixels']*$newA)/$oldA));
+              $newZone['MinBlobPixels'] = intval(round(($zone['MinBlobPixels']*$newA)/$oldA));
+              $newZone['MaxBlobPixels'] = intval(round(($zone['MaxBlobPixels']*$newA)/$oldA));
 
               $changes = getFormChanges($zone, $newZone, $types);
 
@@ -247,6 +268,7 @@ if ($action == 'save') {
             } // end foreach zone
           } // end if rotation or just size change
         } // end if changes in width or height
+        ZM\AuditAction('update', 'monitor', $mid, 'Changed: '.implode(', ', array_keys($changes)));
       } else {
         $error_message .= $monitor->get_last_error();
       } // end if successful save
@@ -261,17 +283,20 @@ if ($action == 'save') {
 
       if ( $monitor->insert($changes) ) {
         $mid = $monitor->Id();
-        $zoneArea = $newMonitor['Width'] * $newMonitor['Height'];
+        // Zone coords are now stored as percentages (0-100)
+        $zoneWidth = $newMonitor['Width'];
+        $zoneHeight = $newMonitor['Height'];
+        if (isset($newMonitor['Orientation']) &&
+            ($newMonitor['Orientation'] == 'ROTATE_90' || $newMonitor['Orientation'] == 'ROTATE_270')) {
+          $zoneWidth = $newMonitor['Height'];
+          $zoneHeight = $newMonitor['Width'];
+        }
+        $zoneArea = $zoneWidth * $zoneHeight;
         $zone = new ZM\Zone();
-        if (!$zone->save(['MonitorId'=>$monitor->Id(), 'Name'=>'All', 'Coords'=>
-          sprintf( '%d,%d %d,%d %d,%d %d,%d', 0, 0,
-            $newMonitor['Width']-1,
-            0,
-            $newMonitor['Width']-1,
-            $newMonitor['Height']-1,
-            0,
-            $newMonitor['Height']-1),
-          'Area'=>$zoneArea,
+        if (!$zone->save(['MonitorId'=>$monitor->Id(), 'Name'=>'All',
+          'Units'=>'Percent',
+          'Coords'=>'0.00,0.00 100.00,0.00 100.00,100.00 0.00,100.00',
+          'Area'=>10000,
           'MinAlarmPixels'=>intval(($zoneArea*.05)/100),
           'MaxAlarmPixels'=>intval(($zoneArea*75)/100),
           'MinFilterPixels'=>intval(($zoneArea*.05)/100),
@@ -281,8 +306,11 @@ if ($action == 'save') {
           $error_message .= $zone->get_last_error();
           ZM\Error('Error adding zone:' . $error_message);
         }
+        ZM\AuditAction('create', 'monitor', $mid, 'Name: '.($newMonitor['Name'] ?? ''));
       } else {
-        ZM\Error('Error saving new Monitor.');
+        $dbError = $monitor->get_last_error();
+        $error_message .= 'Error saving new Monitor: '.($dbError ? $dbError : 'unknown database error').'<br/>';
+        ZM\Error('Error saving new Monitor: '.$dbError);
         return;
       }
     }
@@ -297,7 +325,7 @@ if ($action == 'save') {
 
     $saferName = basename($newMonitor['Name']);
     $link_path = $Storage->Path().'/'.$saferName;
-    if (($saferName != $newMonitor['Name']) and !@symlink($mid, $link_path)) {
+    if (((string)$saferName !== (string)$mid) and !@symlink($mid, $link_path)) {
       if (!(file_exists($link_path) and is_link($link_path))) {
         ZM\Warning('Unable to symlink ' . $Storage->Path().'/'.$mid . ' to ' . $link_path);
       }

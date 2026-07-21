@@ -105,10 +105,22 @@ height: 100%;
 
 #eventStatsTable {
 }
+
+#eventStatsTable td {
+  word-break: break-all;
+  white-space: normal;
+}
+
+#eventStatsTable th{
+  padding-left: 0;
+}
+
 #eventVideo {
   /* width: 100%; *//* flex will make it fill the available space */
 }
 .eventStats {
+  padding-left: 0;
+  z-index: 1;
   /* margin-right: 5px; */
 }
 
@@ -329,9 +341,7 @@ svg.zones {
   left: 0;
   background: none;
   width: 100%;
-  /*
   height: 100%;
-  */
 }
 #videoobj {
   width: 100%;
@@ -361,6 +371,9 @@ svg.zones {
 #frames img {
   float: left;
   z-index: 1000;
+  border: 1px solid var(--gray);
+  border-radius: 5px;
+  margin: 3px;
 }
 
 button.btn.btn-view-watch, button.btn.btn-fullscreen, .ratioControl {

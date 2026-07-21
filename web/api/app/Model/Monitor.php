@@ -60,9 +60,34 @@ class Monitor extends AppModel {
     'OutputCodec' => array (
 	    'rule' => array('inList', array (0,27,173,167,226)),
 	    'message'=>'Invalid value. Should be one of these integer values: 0(auto), 27(h264), 173(h265/hvec), 167(vp9), 226(av1)'
+    ),
+    'Device' => array(
+      'validPath' => array(
+        'rule' => array('validDevicePath'),
+        'message' => 'Invalid device path. Must be a valid /dev/ path (e.g. /dev/video0).',
+        'allowEmpty' => true,
+        'required' => false,
+      ),
     )
 
   );
+
+  /**
+   * Validate the Device field. Only Local monitors pass Device to a shell,
+   * so the /dev/ restriction only applies when Type == 'Local'. Other Types
+   * may legitimately hold legacy values (e.g. an RTSP URL) in this column.
+   */
+  public function validDevicePath($check) {
+    $value = reset($check);
+    if ($value === null || $value === '') {
+      return true;
+    }
+    $type = isset($this->data['Monitor']['Type']) ? $this->data['Monitor']['Type'] : null;
+    if ($type !== 'Local') {
+      return true;
+    }
+    return (bool)preg_match('#^/dev/[\w/.\-]+$#', $value);
+  }
 
 	//The Associations below have been created with all possible keys, those that are not needed can be removed
 
@@ -183,11 +208,11 @@ class Monitor extends AppModel {
     foreach ($daemons as $daemon) {
       $args = '';
       if ($daemon == 'zmc' and $monitor['Type'] == 'Local') {
-        $args = '-d ' . $monitor['Device'];
+        $args = '-d ' . escapeshellarg($monitor['Device']);
       } else if ($daemon == 'zmcontrol.pl') {
-        $args = '--id '.$monitor['Id'];
+        $args = '--id '.escapeshellarg($monitor['Id']);
       } else {
-        $args = '-m ' . $monitor['Id'];
+        $args = '-m ' . escapeshellarg($monitor['Id']);
       }
 
       $shellcmd = escapeshellcmd(ZM_PATH_BIN.'/zmdc.pl '.$command.' '.$daemon.' '.$args);

@@ -47,12 +47,17 @@ use ZoneMinder::Database qw(:all);
 
 use POSIX;
 
-use vars qw/ $serial $primark_key $table $primary_key %fields $debug/;
+use vars qw/ $serial $table $primary_key %fields %defaults $debug/;
 $serial = $primary_key = 'Id';
 $debug = 1;
 $table = 'Storage';
 $primary_key = 'Id';
 %fields = map { $_ => $_ } qw( Id Name Path DoDelete ServerId Type Url DiskSpace Scheme Enabled);
+
+%defaults = (
+  Type => 'local',
+  Scheme => 'Medium',
+);
 
 sub Path {
   if ( @_ > 1 ) {
@@ -232,9 +237,8 @@ Isaac Connor, E<lt>isaac@zoneminder.comE<gt>
 
 Copyright (C) 2022 ZoneMinder Inc
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.3 or,
-at your option, any later version of Perl 5 you may have available.
+Licensed under the GNU General Public License v2 or later; see the COPYING
+file distributed with ZoneMinder for the full text.
 
 
 =cut

@@ -24,7 +24,7 @@ class ZM_Object {
         $table = $class::$table;
         $row = dbFetchOne("SELECT * FROM `$table` WHERE `Id`=?", NULL, array($IdOrRow));
         if (!$row) {
-          Error("Unable to load $class record for Id=$IdOrRow");
+          Warning("Unable to load $class record for Id=$IdOrRow");
           return;
         }
       } else {
@@ -101,8 +101,10 @@ class ZM_Object {
       $fields = array();
       $sql .= 'WHERE ';
       foreach ( $parameters as $field => $value ) {
-        if ( $value === null ) {
+        if ( $value === null or $value === 'NULL') {
           $fields[] = '`'.$field.'` IS NULL';
+        } else if ( $value === 'NOT NULL' ) {
+          $fields[] = '`'.$field.'` IS NOT NULL';
         } else if ( is_array($value) ) {
           if ( count($value) ) {
             $func = function(){return '?';};
@@ -399,7 +401,9 @@ class ZM_Object {
         return true;
       }
     }
-    $this->_last_error = dbError($sql);
+    # dbQuery swallows the PDOException, so prefer the message it captured.
+    $this->_last_error = dbLastError();
+    if (!$this->_last_error) $this->_last_error = dbError($sql);
     return false;
   } // end function save
 

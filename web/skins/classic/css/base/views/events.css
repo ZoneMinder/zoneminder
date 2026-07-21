@@ -1,5 +1,5 @@
 .archived {
-    background-color: #ffc107;;
+    background-color: #ffc107;
 }
 
 #contentTable.major .colTime {
@@ -81,9 +81,19 @@ body.sticky #eventTable thead {
 .bs-bars {
   width: 100%;
 }
+
 #toolbar .row {
   width: 100%;
 }
+
 #toolbar .row >div {
   padding: 0;
+}
+
+#downloadModal a.disabled {
+  pointer-events: none;
+  background-color: inherit;
+  border-color: inherit;
+  opacity: 0.5;
+  text-decoration: line-through;
 }

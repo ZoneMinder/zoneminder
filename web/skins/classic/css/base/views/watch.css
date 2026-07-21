@@ -22,6 +22,7 @@
 #sidebar {
   min-width: 140px;
   padding-right: 1px;
+  padding-left: 15px;
 }
 
 #sidebar .nav {
@@ -40,13 +41,15 @@
 }
 
 .monitor {
+  display: flex;
+  flex-direction: column;
   margin: 0 auto;
 }
 
-.monitor .imageFeed,
-.monitor .imageFeed,
 .monitor .imageFeed {
   border: 2px solid #999999;
+  padding: 0px;
+  margin: 0px;
 }
 
 .monitor .imageFeed img,
@@ -54,7 +57,8 @@
 .monitor .imageFeed video-stream,
 .monitor .imageFeed svg {
   border: none;
-  display: inline-block;
+  /*display: inline-block;*/
+  display: block;
   width: 100%;
 }
 
@@ -77,6 +81,20 @@
 
 .monitorStatus > .monitorState {
   display: inline;
+}
+
+/* Keep each status item on a single line.  When the monitor is scaled down (e.g.
+ * a 4k camera shown via the go2rtc player), the status bar is constrained to the
+ * scaled video width.  If its items are allowed to wrap, the bar grows taller as
+ * the video gets narrower, and that extra height feeds back into the Auto
+ * scale-to-fit height calculation, shrinking the video further on each pass.  The
+ * result was the video collapsing in steps.  Truncating with an ellipsis keeps the
+ * bar a fixed height and breaks the feedback loop. */
+.monitor .monitorStatus > * {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 #replayStatus {
@@ -126,7 +144,7 @@
 
 
 #events {
-    margin: 0 auto;
+    margin: 0 auto 10px;
 }
 
 #eventList {
@@ -139,11 +157,6 @@
 
 #eventList th, #eventList td {
     text-align: center;
-}
-
-li {
-    display: inline;
-    list-style-type: none;
 }
 
 span.alarm {
@@ -197,10 +210,6 @@ body.sticky #content {
   overflow-y: auto;
 }
 
-.zoom {
-  transform-origin: 100% 00%;
-}
-
 button.btn.btn-view-watch, button.btn.btn-fullscreen, .ratioControl {
   display: none;
 }
@@ -208,6 +217,30 @@ button.btn.btn-view-watch, button.btn.btn-fullscreen, .ratioControl {
 #sizeControl > span {
   white-space: nowrap;
   line-height: 36px;
+}
+
+@media screen and (max-width: 767px) {
+  #sidebar {
+    width: 100%;
+    min-width: unset;
+  }
+
+  #sidebar .nav {
+    flex-wrap: wrap;
+    flex-direction: row;
+  }
+
+  #wrapperMonitor {
+    overflow-x: hidden;
+  }
+
+  #ptzControls {
+    width: 100%;
+  }
+
+  .d-flex.flex-row.justify-content-between {
+    flex-wrap: wrap;
+  }
 }
 
 /* +++ Support for old ZoomPan algorithm */

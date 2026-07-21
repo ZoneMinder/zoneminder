@@ -168,9 +168,9 @@ function initialAlarmCues(eventId) {
 
 function setAlarmCues(data) {
   if (!data) {
-    Error('No data in setAlarmCues for event ' + eventData.Id);
+    zmError('No data in setAlarmCues for event ' + eventData.Id);
   } else if (!data.frames) {
-    Error('No data.frames in setAlarmCues for event ' + eventData.Id);
+    zmError('No data.frames in setAlarmCues for event ' + eventData.Id);
   } else {
     cueFrames = data.frames;
     const alarmSpans = renderAlarmCues(vid ? $j("#videoobj") : $j("#evtStream"));//use videojs width or zms width
@@ -477,6 +477,9 @@ function getCmdResponse(respObj, respText) {
     streamPlay();
   }
   $j('#progressValue').html(secsToTime(parseInt(streamStatus.progress)));
+  var clockTime = new Date(eventData.StartDateTime);
+  clockTime.setTime(clockTime.getTime() + (streamStatus.progress * 1000));
+  $j('#currentTimeValue').html(clockTime.toLocaleTimeString());
   //$j('#zoomValue').html(streamStatus.zoom);
   const pz = zmPanZoom.panZoom[eventData.MonitorId];
   if (pz) $j('#zoomValue').html(pz.getScale().toFixed(1));
@@ -498,7 +501,11 @@ function getCmdResponse(respObj, respText) {
   updateProgressBar();
 
   if (streamStatus.auth) {
-    auth_hash = streamStatus.auth;
+    if (streamStatus.auth != auth_hash) {
+      console.log("Changed auth from " + auth_hash + " to " + streamStatus.auth);
+      auth_hash = streamStatus.auth;
+      auth_relay = streamStatus.auth_relay;
+    }
   } // end if have a new auth hash
 } // end function getCmdResponse( respObj, respText )
 
@@ -510,8 +517,8 @@ function pauseClicked() {
     vid.pause();
   } else {
     streamReq({command: CMD_PAUSE});
+    streamPause();
   }
-  streamPause();
 }
 
 function streamPause() {
@@ -525,6 +532,8 @@ function streamPause() {
   setButtonState('slowFwdBtn', 'inactive');
   setButtonState('slowRevBtn', 'inactive');
   setButtonState('fastRevBtn', 'unavail');
+  const audioMotion = document.querySelector('audio-motion#audioVisualization' + eventData.MonitorId);
+  if (audioMotion && audioMotion.pause) audioMotion.pause();
 }
 
 function playClicked( ) {
@@ -541,19 +550,12 @@ function playClicked( ) {
     }
   } else {
     if (zmsBroke) {
-      // The assumption is that the command failed because zms exited, so restart the stream.
-      const img = document.getElementById('evtStream');
-      const src = img.src;
-      const url = new URL(src);
-      url.searchParams.set('scale', currentScale); // In event.php we don’t yet know what scale to substitute. Let it be for now.
-      img.src = '';
-      img.src = url;
-      zmsBroke = false;
+      restartZmsStream();
     } else {
       streamReq({command: CMD_PLAY});
     }
+    streamPlay();
   }
-  streamPlay();
 }
 
 function vjsPlay() { //catches if we change mode programatically
@@ -816,16 +818,48 @@ function streamPan(x, y) {
 }
 */
 
+// Restart the zms stream by resetting the <img> src. The browser makes a
+// new CGI request to zms (same connkey), spawning a fresh process. When the
+// new zms delivers its first MJPEG frame, img.onload fires as a reliable
+// signal that the command socket is ready. Optional onReady callback is
+// invoked at that point to send queued commands (e.g. CMD_SEEK).
+function restartZmsStream(onReady) {
+  const img = document.getElementById('evtStream');
+  if (!img) {
+    console.warn('restartZmsStream: no evtStream element found');
+    return;
+  }
+  const url = new URL(img.src);
+  url.searchParams.set('scale', currentScale);
+  img.src = '';
+  img.onload = function() {
+    img.onload = null;
+    zmsBroke = false;
+    if (onReady) onReady();
+  };
+  img.src = url.href;
+}
+
 function streamSeek(offset) {
   if (vid) {
     vid.currentTime(offset);
   } else {
-    streamReq({command: CMD_SEEK, offset: offset});
+    if (zmsBroke) {
+      restartZmsStream(function() {
+        streamSeek(offset);
+      });
+    } else {
+      streamReq({command: CMD_SEEK, offset: offset});
+    }
   }
 }
 
 function streamQuery() {
-  streamReq({command: CMD_QUERY});
+  if (zmsBroke !== true) {
+    streamReq({command: CMD_QUERY});
+  } else {
+    clearInterval(streamCmdInterval);
+  }
 }
 
 function getEventResponse(respObj, respText) {
@@ -970,7 +1004,14 @@ function updateProgressBar() {
   if (!eventData) return;
   if (vid) {
     var currentTime = vid.currentTime();
-    var progressDate = new Date(currentTime);
+    // For live HLS, the video duration grows as new fragments arrive.
+    // Keep eventData.Length in sync so the progress bar scales correctly.
+    var videoDuration = vid.duration();
+    if (videoDuration && isFinite(videoDuration) && videoDuration > parseFloat(eventData.Length)) {
+      eventData.Length = videoDuration;
+    }
+    var progressDate = new Date(eventData.StartDateTime);
+    progressDate.setTime(progressDate.getTime() + (currentTime * 1000));
   } else {
     if (!streamStatus) return;
     var currentTime = streamStatus.progress;
@@ -983,6 +1024,7 @@ function updateProgressBar() {
 
   progressBox.css('width', curWidth + '%');
   progressBox.attr('title', progressDate.toLocaleTimeString());
+  $j('#currentTimeValue').html(progressDate.toLocaleTimeString());
 } // end function updateProgressBar()
 
 // Handles seeking when clicking on the progress bar.
@@ -1199,7 +1241,7 @@ function getEvtStatsCookie() {
 
 function getStat() {
   eventStatsTable.empty().append('<tbody>');
-  if (!eventData) return;
+  if (isEmpty(eventData)) return;
 
   $j.each(eventDataStrings, function(key) {
     if (key == 'MonitorId') return true; // Not show ID string
@@ -1267,9 +1309,11 @@ function getStat() {
         tdString += ', ' + translate["Emailed"] + ':' + (eventData['Emailed'] ? yesStr : noStr);
         break;
       case 'Length':
-        const date = new Date(0); // Have to init it fresh.  setSeconds seems to add time, not set it.
-        date.setSeconds(eventData[key]);
-        tdString = date.toISOString().substr(11, 8);
+        if (eventData[key]) {
+          const date = new Date(0); // Have to init it fresh.  setSeconds seems to add time, not set it.
+          date.setSeconds(eventData[key]);
+          tdString = date.toISOString().substr(11, 8);
+        }
         break;
       default:
         tdString = eventData[key];
@@ -1339,9 +1383,23 @@ function initPage() {
     vid = videojs('videoobj');
     addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartDateTime);
     //$j('.vjs-progress-control').append('<div id="alarmCues" class="alarmCues"></div>');//add a place for videojs only on first load
-    vid.on('ended', vjsReplay);
-    vid.on('play', playClicked);
-    vid.on('pause', pauseClicked);
+    vid.on('ended', function(event) {
+      vjsReplay();
+      eventData._playng = false;
+    });
+    vid.on('play', function(event) {
+      streamPlay();
+      if (!eventData._playng) connectAudioMotion(eventData.MonitorId);
+      eventData._playng = true;
+    });
+    vid.on('playing', function(event) { // Required for HLS with AUTOPLAY in Firefox, as on.play doesn't work in this case.
+      if (!eventData._playng) connectAudioMotion(eventData.MonitorId);
+      eventData._playng = true;
+    });
+    vid.on('pause', function(event) {
+      streamPause();
+      eventData._playng = false;
+    });
     vid.on('click', function(event) {
       handleClick(event);
     });
@@ -1356,6 +1414,9 @@ function initPage() {
 
     vid.on('timeupdate', function() {
       $j('#progressValue').html(secsToTime(Math.floor(vid.currentTime())));
+      var clockTime = new Date(eventData.StartDateTime);
+      clockTime.setTime(clockTime.getTime() + (vid.currentTime() * 1000));
+      $j('#currentTimeValue').html(clockTime.toLocaleTimeString());
     });
     vid.on('ratechange', function() {
       rate = vid.playbackRate() * 100;
@@ -1388,6 +1449,7 @@ function initPage() {
       }
     }
   } // end if videojs or mjpeg stream
+  $j('#currentTimeValue').html(new Date(eventData.StartDateTime).toLocaleTimeString());
   nearEventsQuery(eventData.Id);
   initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues
   document.querySelectorAll('select[name="rate"]').forEach(function(el) {
@@ -1609,14 +1671,34 @@ function initPage() {
           const tagInput = $j(this);
           tagValue = tagInput.val().trim();
         }
-        addOrCreateTag(tagValue);
+        addOrCreateTag(tagValue, event.key);
       } else if (event.key === " " || event.key === ",") {
         const tagInput = $j(this);
         const tagValue = tagInput.val().trim();
-        addOrCreateTag(tagValue);
+        addOrCreateTag(tagValue, event.key);
         event.preventDefault(); // Prevent the key from being entered in the input field
       } else if (event.key === "Escape") {
         $j("#tagInput").blur();
+      } else if (event.key === "ArrowLeft") {
+        if (ctrled) {
+          var tagValue = $hlight.text();
+          if (!tagValue) {
+            const tagInput = $j(this);
+            tagValue = tagInput.val().trim();
+          }
+          addOrCreateTag(tagValue, event.key);
+          tagAndPrev(true);
+        }
+      } else if (event.key === "ArrowRight") {
+        if (ctrled) {
+          var tagValue = $hlight.text();
+          if (!tagValue) {
+            const tagInput = $j(this);
+            tagValue = tagInput.val().trim();
+          }
+          addOrCreateTag(tagValue, event.key);
+          tagAndNext(true);
+        }
       }
     });
   }
@@ -1688,7 +1770,10 @@ function initPage() {
         //const id = stringToNumber(this.id); //Montage & Watch page
         const id = eventData.MonitorId; // Event page
         //$j('#button_zoom' + id).stop(true, true).slideDown('fast');
-        $j('#button_zoom' + id).removeClass('hidden');
+        const _imageFeed = document.getElementById('videoFeedStream'+id);
+        if (!_imageFeed || (_imageFeed && _imageFeed.getAttribute('data-not-display-video') !== 'true')) {
+          $j('#button_zoom' + id).removeClass('hidden');
+        }
       },
       function() {
         //const id = stringToNumber(this.id); //Montage & Watch page
@@ -1716,16 +1801,19 @@ function initPage() {
       updateProgressBar();
     }, streamTimeout);
   }
+
+  const toggleZonesButton = document.getElementById('toggleZonesButton');
+  if (toggleZonesButton) toggleZonesButton.addEventListener('click', toggleZones);
 } // end initPage
 
-function addOrCreateTag(tagValue) {
+function addOrCreateTag(tagValue, buttonPressed = null) {
   const tagNames = availableTags.map((t) => t.Name.toLowerCase());
   const index = tagNames.indexOf(tagValue.toLowerCase());
   if (index > -1) {
-    addTag(availableTags[index]);
+    addTag(availableTags[index], buttonPressed);
     $j('.tag-dropdown-content').hide();
   } else if (tagValue.trim().length > 0) {
-    createTag(tagValue);
+    createTag(tagValue, buttonPressed);
   }
 }
 
@@ -1778,8 +1866,8 @@ function formatTag(tag) {
   $j('.tag-dropdown').before(tagElement);
 }
 
-function addTag(tag) {
-  if (tag.Name.trim() !== '' && !isDup(tag.Name)) {
+function addTag(tag, buttonPressed = null) {
+  if (tag && (tag.Name.trim() !== '') && !isDup(tag.Name)) {
     $j.getJSON(thisUrl + '?request=event&action=addtag&tid=' + tag.Id + '&id=' + eventData.Id)
         .done(function(data) {
           formatTag(tag);
@@ -1788,6 +1876,7 @@ function addTag(tag) {
           // Move the added tag to the front(top) of the availableTags array
           const index = availableTags.map((t) => t.Id).indexOf(tag.Id);
           availableTags.splice(0, 0, availableTags.splice(index, 1)[0]);
+          if (["Enter", " ", ","].includes(buttonPressed)) $j('#tagInput').focus();
         })
         .fail(logAjaxFail);
   } else {
@@ -1810,7 +1899,7 @@ function removeTag(tag) {
       .fail(logAjaxFail);
 }
 
-function createTag(tagName) {
+function createTag(tagName, buttonPressed = null) {
   $j.getJSON(thisUrl + '?request=tags&action=createtag&tname=' + tagName)
       .done(function(data) {
         if (data.response.length > 0) {
@@ -1820,6 +1909,7 @@ function createTag(tagName) {
           }
           addTag(tag);
         }
+        if (["Enter", " ", ","].includes(buttonPressed)) $j('#tagInput').focus();
       })
       .fail(logAjaxFail);
 }
@@ -1844,9 +1934,6 @@ function getSelectedTags() {
       })
       .fail(logAjaxFail);
 }
-
-var toggleZonesButton = document.getElementById('toggleZonesButton');
-if (toggleZonesButton) toggleZonesButton.addEventListener('click', toggleZones);
 
 function toggleZones(e) {
   const zones = $j('#zones'+eventData.MonitorId);
@@ -1894,6 +1981,11 @@ function panZoomIn(el) {
 
 function panZoomOut(el) {
   zmPanZoom.zoomOut(el);
+}
+
+function changeWhatDisplay() {
+  setCookie('zmWhatDisplay', $j('#whatDisplay').val());
+  location.reload();
 }
 
 // Kick everything off

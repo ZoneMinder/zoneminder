@@ -71,6 +71,10 @@ class User extends AppModel {
  * @var array
  */
 	public $belongsTo = array(
+    'Role' => array(
+      'className' => 'Role',
+      'foreignKey' => 'RoleId',
+    ),
 	);
 
 /**

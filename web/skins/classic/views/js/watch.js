@@ -2,11 +2,13 @@ var backBtn = $j('#backBtn');
 var settingsBtn = $j('#settingsBtn');
 var enableAlmBtn = $j('#enableAlmBtn');
 var forceAlmBtn = $j('#forceAlmBtn');
-var table = $j('#eventList');
+var analyseBtn = $j('#analyseBtn');
+var eventListTable = $j('#eventList');
 var sidebarView = $j('#sidebar');
 var sidebarControls = $j('#ptzControls');
 var wrapperMonitor = $j('#wrapperMonitor');
 var filterQuery = '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId;
+var analyse_frames = false;
 var idleTimeoutTriggered = false; /* Timer ZM_WEB_VIEWING_TIMEOUT has been triggered */
 var monitorStream = false; /* Stream is not started */
 var currentMonitor;
@@ -56,6 +58,10 @@ var params =
 
 // Called by bootstrap-table to retrieve zm event data
 function ajaxRequest(params) {
+  if (document.visibilityState == 'hidden') {
+    eventListTable.bootstrapTable('hideLoading');
+    return;
+  }
   // Maintain legacy behavior by statically setting these parameters
   const data = params.data;
   data.order = 'desc';
@@ -204,7 +210,7 @@ function streamCmdPlay(action) {
   }
 }
 
-function streamCmdStop(action) {
+function streamCmdStop() {
   monitorStream.onplay = false; //Without this line, "onPlay" is triggered immediately due to "if (this.onplay) this.onplay();" in MonitorStream.js
   //setButtonState('pauseBtn', 'inactive');
   //setButtonState('playBtn', 'unavail');
@@ -215,9 +221,8 @@ function streamCmdStop(action) {
     setButtonState('slowRevBtn', 'unavail');
     setButtonState('fastRevBtn', 'unavail');
   }
-  if (action) {
-    monitorStream.stop();
-  }
+  monitorStream.stop();
+
   //setButtonState('stopBtn', 'unavail');
   //setButtonState('playBtn', 'active');
   setButtonStateWatch('playBtn', 'inactive');
@@ -312,34 +317,6 @@ function streamCmdPan(x, y) {
   monitorStream.streamCommand({x: x, y: y, command: CMD_PAN});
 }
 
-
-/* getStatusCmd is used when not streaming, since there is no persistent zms */
-function getStatusCmdResponse(respObj, respText) {
-  watchdogOk('status');
-  statusCmdTimer = clearTimeout(statusCmdTimer);
-
-  if (respObj.result == 'Ok') {
-    $j('#captureFPSValue').text(respObj.monitor.FrameRate);
-    setAlarmState(respObj.monitor.Status);
-  } else {
-    checkStreamForErrors('getStatusCmdResponse', respObj);
-  }
-
-  var statusCmdTimeout = statusRefreshTimeout;
-  if (alarmState == STATE_ALARM || alarmState == STATE_ALERT) {
-    statusCmdTimeout = statusCmdTimeout/5;
-  }
-  statusCmdTimer = setTimeout(statusCmdQuery, statusCmdTimeout);
-}
-
-function statusCmdQuery() {
-  $j.getJSON(monitorUrl + '?view=request&request=status&entity=monitor&element[]=Status&element[]=FrameRate&id='+monitorId+'&'+auth_relay)
-      .done(getStatusCmdResponse)
-      .fail(logAjaxFail);
-
-  statusCmdTimer = null;
-}
-
 function cmdDisableAlarms() {
   monitorStream.alarmCommand('disableAlarms');
 }
@@ -390,6 +367,51 @@ function getControlResponse(respObj, respText) {
   //console.log( respText );
   if (respObj.result != 'Ok') {
     alert("Control response was status = "+respObj.status+"\nmessage = "+respObj.message);
+  }
+}
+
+// Query the camera's light state (opt-in two-way control command) and reflect
+// it on the single light toggle button.
+function lightStatusReq() {
+  if (!$j('.lightToggleBtn').length) return;
+  const data = {control: 'lightStatus', response: 1};
+  if (auth_hash) data.auth = auth_hash;
+  $j.getJSON(monitorUrl + '?view=request&request=control&id='+monitorId, data)
+      .done(updateLightButton)
+      .fail(logAjaxFail);
+}
+
+function updateLightButton(respObj) {
+  const btn = $j('.lightToggleBtn');
+  if (!btn.length) return;
+  const state = (respObj && respObj.status) ? respObj.status.WhiteLight : null;
+  if (state == 'On') {
+    // Light is on: highlight the button; clicking turns it off.
+    btn.addClass('active').val(btn.attr('data-off-cmd'));
+  } else if (state == 'Off') {
+    btn.removeClass('active').val(btn.attr('data-on-cmd'));
+  }
+  // Unknown state (no daemon reply / remote server): leave the default
+  // (un-highlighted, sends the on command) as a plain toggle.
+}
+
+function indicatorLightStatusReq() {
+  if (!$j('.indicatorLightToggleBtn').length) return;
+  const data = {control: 'indicatorLightStatus', response: 1};
+  if (auth_hash) data.auth = auth_hash;
+  $j.getJSON(monitorUrl + '?view=request&request=control&id='+monitorId, data)
+      .done(updateIndicatorLightButton)
+      .fail(logAjaxFail);
+}
+
+function updateIndicatorLightButton(respObj) {
+  const btn = $j('.indicatorLightToggleBtn');
+  if (!btn.length) return;
+  const state = (respObj && respObj.status) ? respObj.status.Enable : null;
+  if (state == 'On') {
+    btn.addClass('active').val(btn.attr('data-off-cmd'));
+  } else if (state == 'Off') {
+    btn.removeClass('active').val(btn.attr('data-on-cmd'));
   }
 }
 
@@ -655,7 +677,7 @@ function processClicks(event, field, value, row, $element) {
       var eid = row.Id.replace(/(<([^>]+)>)/gi, '');
       $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+eid)
           .done(function(data) {
-            table.bootstrapTable('refresh');
+            eventListTable.bootstrapTable('refresh');
           })
           .fail(logAjaxFail);
     } else {
@@ -684,7 +706,7 @@ function manageDelConfirmModalBtns() {
     evt.preventDefault();
     $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+eid)
         .done(function(data) {
-          table.bootstrapTable('refresh');
+          eventListTable.bootstrapTable('refresh');
           $j('#deleteConfirm').modal('hide');
         })
         .fail(logAjaxFail);
@@ -697,7 +719,7 @@ function manageDelConfirmModalBtns() {
 }
 
 function refresh_events_table() {
-  table.bootstrapTable('refresh');
+  eventListTable.bootstrapTable('refresh');
 }
 
 function controlSetClicked() {
@@ -759,9 +781,9 @@ function streamPrepareStart(monitor=null) {
 
     if (canView.Events) {
       // Init the bootstrap-table
-      table.bootstrapTable({icons: icons});
+      eventListTable.bootstrapTable({icons: icons});
       // Update table rows each time after new data is loaded
-      table.on('post-body.bs.table', function(data) {
+      eventListTable.on('post-body.bs.table', function(data) {
         $j('#eventList tr:contains("New Event")').addClass('recent');
         $j('.objDetectLink').click(function(evt) {
           evt.preventDefault();
@@ -770,17 +792,17 @@ function streamPrepareStart(monitor=null) {
       });
 
       // Take appropriate action when the user clicks on a cell
-      table.on('click-cell.bs.table', processClicks);
+      eventListTable.on('click-cell.bs.table', processClicks);
 
       // Some toolbar events break the thumbnail animation, so re-init eventlistener
-      table.on('all.bs.table', initThumbAnimation);
+      eventListTable.on('all.bs.table', initThumbAnimation);
 
       // Update table links each time after new data is loaded
-      table.on('post-body.bs.table', function(data) {
+      eventListTable.on('post-body.bs.table', function(data) {
         const thumb_ndx = $j('#eventList tr th').filter(function() {
           return $j(this).attr('data-field').toLowerCase().trim() == 'thumbnail';
         }).index();
-        table.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass('colThumbnail');
+        eventListTable.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass('colThumbnail');
       });
     } // end if canView.Events
   } else if (currentMonitor.monitorRefresh > 0) {
@@ -831,14 +853,16 @@ function handleMouseLeave(event) {
 function streamStart(monitor = null) {
   monitorStream = new MonitorStream(monitor ? monitor : monitorData[monIdx]);
 
-  monitorStream.setPlayer($j('#player').val());
-  monitorStream.setBottomElement(document.getElementById('dvrControls'));
   monitorStream.manageAvailablePlayers();
+  monitorStream.setPlayer($j('#player').val());
+  monitorStream.setBottomElement(document.getElementById('bottomBlock'));
+  const cookieMuted = getCookie('zmWatchMuted');
+  monitorStream.muted = (cookieMuted === null || cookieMuted === 'true') ? true : false; // default to muted
   setChannelStream();
   // Start the fps and status updates. give a random delay so that we don't assault the server
   //monitorStream.setScale($j('#scale').val(), $j('#width').val(), $j('#height').val());
   //monitorsSetScale(monitorId);
-  monitorStream.start(document.getElementById('streamChannel').value);
+  streamCmdPlay(true);
   if (streamMode == 'single') {
     monitorStream.setup_onclick(fetchImage);
   } else {
@@ -852,6 +876,7 @@ function streamStart(monitor = null) {
   monitorStream.setButton('enableAlarmButton', enableAlmBtn);
   monitorStream.setButton('forceAlarmButton', forceAlmBtn);
   monitorStream.setButton('zoomOutButton', $j('zoomOutBtn'));
+  monitorStream.setButton('analyseBtn', analyseBtn);
   if (canEdit.Monitors) {
     // Will be enabled by streamStatus ajax
     enableAlmBtn.on('click', cmdAlarm);
@@ -893,20 +918,37 @@ function streamReStart(oldId, newId) {
   //Change main monitor block
   monitor_div.innerHTML = currentMonitor.streamHTML;
 
+  const volumeControls = document.getElementById('volumeControls'+oldId);
+  if (volumeControls) volumeControls.id = 'volumeControls'+newId;
+  const volumeSlider = document.getElementById('volumeSlider'+oldId);
+  if (volumeSlider) {
+    monitorStream.destroyVolumeSlider();
+    volumeSlider.id = 'volumeSlider'+newId;
+  }
+  const controlMute = document.getElementById('controlMute'+oldId);
+  if (controlMute) controlMute.id = 'controlMute'+newId;
+
   //Change active element of the navigation menu
   document.getElementById('nav-item-cycle'+oldId).querySelector('a').classList.remove("active");
   document.getElementById('nav-item-cycle'+newId).querySelector('a').classList.add("active");
 
   //Set global variables from the current monitor
   streamMode = currentMonitor.streamMode;
-
-  table.bootstrapTable('destroy');
+  controlWhatDisplay(oldId, newId);
+  eventListTable.bootstrapTable('destroy');
   applyMonitorControllable();
   //manageChannelStream();
   streamPrepareStart(currentMonitor);
   zmPanZoom.init();
   zmPanZoom.init({objString: '.imageFeed', disablePan: true, contain: 'inside', additional: true});
   //document.getElementById('monitor').classList.remove('hidden-shift');
+
+  // Remove Event listener for double click
+  const elStream = document.querySelectorAll('[id = "wrapperMonitor"]');
+  Array.prototype.forEach.call(elStream, (el) => {
+    el.removeEventListener('touchstart', doubleTouch);
+    el.removeEventListener('dblclick', doubleClickOnStream);
+  });
 }
 
 function setChannelStream() {
@@ -914,14 +956,16 @@ function setChannelStream() {
   manageChannelStream();
 
   if (-1 === monitorStream.activePlayer.indexOf('zms')) {
-    let streamChannelValue = (getCookie('zmStreamChannel') || currentMonitor.RTSP2WebStream && currentMonitor.SecondPath);
     // When switching monitors, cookies may store a channel from the previous monitor that the current monitor does not have.
-    streamChannel.value = streamChannelValue; // This will be easier than checking for a disabled option by going through the options. That is, we set the required option and if it is disabled, then we select the 'Primary' channel
+    let streamChannelValue = getCookie('zmStreamChannel') || currentMonitor.StreamChannel;
+    streamChannel.value = streamChannelValue;
 
+    // If the selected option is disabled, find the first enabled option
     if (streamChannel.options[streamChannel.selectedIndex] && streamChannel.options[streamChannel.selectedIndex].disabled) {
-      streamChannelValue = 'Primary';
+      const firstEnabled = streamChannel.querySelector('option:not([disabled])');
+      streamChannelValue = firstEnabled ? firstEnabled.value : 'Restream';
     }
-    monitorStream.currentChannelStream = (streamChannelValue == 'Secondary') ? 1 : 0;
+    monitorStream.currentChannelStream = streamChannelValue;
     streamChannel.value = streamChannelValue;
   }
 }
@@ -1035,7 +1079,7 @@ function initPage() {
 
       function stopPlayback() {
         idleTimeoutTriggered = true;
-        streamCmdStop(true);
+        streamCmdStop();
         const cycle_was = cycle;
         cyclePause();
         let ayswModal = $j('#AYSWModal');
@@ -1093,7 +1137,7 @@ function initPage() {
     });
 
     // Registering an observer on an element
-    $j('[id ^= "liveStream"]').each(function() {
+    $j('[id ^= "liveStream"], .monitorStatus').each(function() {
       observer.observe(this);
     });
 
@@ -1106,6 +1150,21 @@ function initPage() {
     });
   } else {
     alert("No monitor found for id "+monitorId);
+  }
+
+  // Status-aware light toggle: initialise from the camera and re-query after
+  // each click so the button tracks the real state.
+  if ($j('.lightToggleBtn').length) {
+    lightStatusReq();
+    $j(document).on('click', '.lightToggleBtn', function() {
+      setTimeout(lightStatusReq, 800);
+    });
+  }
+  if ($j('.indicatorLightToggleBtn').length) {
+    indicatorLightStatusReq();
+    $j(document).on('click', '.indicatorLightToggleBtn', function() {
+      setTimeout(indicatorLightStatusReq, 800);
+    });
   }
 } // initPage
 
@@ -1125,6 +1184,26 @@ function watchFullscreen() {
 
 function watchAllEvents() {
   window.location.replace(currentMonitor.urlForAllEvents);
+}
+
+function toggleAnalyseFrames() {
+  // Read current state from MonitorStream (server may have changed it)
+  if (monitorStream) {
+    analyse_frames = monitorStream.analyse_frames;
+  }
+  analyse_frames = !analyse_frames;
+  if (analyse_frames) {
+    analyseBtn.addClass('btn-primary');
+    analyseBtn.removeClass('btn-secondary');
+    analyseBtn.attr('title', translate['Showing Analysis']);
+  } else {
+    analyseBtn.removeClass('btn-primary');
+    analyseBtn.addClass('btn-secondary');
+    analyseBtn.attr('title', translate['Show Analysis']);
+  }
+  if (monitorStream) {
+    monitorStream.show_analyse_frames(analyse_frames);
+  }
 }
 
 var cycleIntervalId;
@@ -1307,10 +1386,11 @@ function panZoomEventPanzoomchange(event) {
 }
 
 function monitorChangeStreamChannel() {
+  const streamChannel = $j('#streamChannel').val();
+  monitorStream.currentChannelStream = streamChannel;
+  setCookie('zmStreamChannel', streamChannel);
   if ((monitorStream.activePlayer) && (-1 !== monitorStream.activePlayer.indexOf('go2rtc') || -1 !== monitorStream.activePlayer.indexOf('rtsp2web'))) {
-    streamCmdStop(true);
-    const streamChannel = $j('#streamChannel').val();
-    setCookie('zmStreamChannel', streamChannel);
+    streamCmdStop();
     setTimeout(function() {
       monitorStream.start(streamChannel);
       onPlay();
@@ -1322,9 +1402,10 @@ function monitorChangeStreamChannel() {
 function changePlayer() {
   const player = $j('#player').val();
   setCookie('zmWatchPlayer', player);
-  //setCookie('zmWatchPlayer'+monitorId, player);
-  streamCmdStop(true); // takes care of button state and calls stream.kill()
-  console.log('setting to ', $j('#player').val());
+  if (monitorStream.audioMotion && monitorStream.audioMotion.destroy) monitorStream.audioMotion.destroy();
+
+  monitorStream.destroyVolumeSlider();
+  streamCmdStop(); // takes care of button state and calls stream.kill()
   monitorStream.setPlayer($j('#player').val());
   setChannelStream();
   setTimeout(function() {
@@ -1340,132 +1421,37 @@ function changePlayer() {
   }, 300);*/
 }
 
-function monitorsSetScale(id=null) {
-  //This function will probably need to be moved to the main JS file, because now used on Watch & Montage pages
-  if (id || typeof monitorStream !== 'undefined') {
-    if (monitorStream !== false) {
-      //monitorStream used on Watch page.
-      var currentMonitor = monitorStream;
-    } else if (typeof monitors !== 'undefined') {
-      //used on Montage, Watch & Event page.
-      var currentMonitor = monitors.find((o) => {
-        return parseInt(o["id"]) === id;
-      });
-    } else {
-      //Stream is missing
-      return;
-    }
-    var panZoomScale = (panZoomEnabled && zmPanZoom.panZoom[id]) ? zmPanZoom.panZoom[id].getScale() : 1;
-
-    let resize = false;
-    let width = 'auto';
-    let maxWidth = '';
-    let height = 'auto';
-    let overrideHW = false;
-    let defScale = 0;
-    const landscape = currentMonitor.width / currentMonitor.height > 1 ? true : false; //Image orientation.
-
-    const scale = $j('#scale').val();
-    if (scale == '0') {
-      //Auto, Width is calculated based on the occupied height so that the image and control buttons occupy the visible part of the screen.
-      resize = true;
-    } else if (scale == '100') {
-      //Actual, 100% of original size
-      width = currentMonitor.width + 'px';
-      height = currentMonitor.height + 'px';
-    } else if (scale == 'fit_to_width') {
-      //Fit to screen width
-      width = parseInt(window.innerWidth * panZoomScale) + 'px';
-    } else if (scale.indexOf("px") > -1) {
-      if (landscape) {
-        maxWidth = scale;
-        defScale = parseInt(Math.min(stringToNumber(scale), window.innerWidth) / currentMonitor.width * panZoomScale * 100);
-      } else {
-        defScale = parseInt(Math.min(stringToNumber(scale), window.innerHeight) / currentMonitor.height * panZoomScale * 100);
-        height = scale;
-      }
-      resize = true;
-      overrideHW = true;
-    }
-
-    const liveStream = document.getElementById('liveStream'+id);
-    const monitor_div = document.getElementById('monitor'+id);
-    if (!monitor_div) console.log("No monitor div for ", id);
-    if (resize) {
-      if (scale == '0') {
-        monitor_div.style.width = 'max-content'; //Required when switching from resize=false to resize=true
-      }
-      monitor_div.style.maxWidth = maxWidth;
-      if (!landscape) { //PORTRAIT
-        monitor_div.style.width = 'max-content';
-        liveStream.style.height = height;
-      }
-    } else {
-      liveStream.style.height = '';
-      monitor_div.style.width = width;
-      monitor_div.style.maxWidth = '';
-      if (scale == 'fit_to_width') {
-        monitor_div.style.width = '';
-      } else if (scale == '100') {
-        liveStream.style.width = width;
-      }
-    }
-    //currentMonitor.setScale(0, maxWidth ? maxWidth : width, height, {resizeImg: resize, scaleImg: panZoomScale});
-    currentMonitor.setScale(defScale, width, height, {resizeImg: resize, scaleImg: panZoomScale, streamQuality: $j('#streamQuality').val()});
-    if (overrideHW) {
-      if (!landscape) { //PORTRAIT
-        monitor_div.style.width = 'max-content';
-      } else {
-        liveStream.style.height = 'auto';
-        monitor_div.style.width = 'auto';
-      }
-    }
-  } else { // Not a specific stream, but all streams.
-    for ( let i = 0, length = monitors.length; i < length; i++ ) {
-      const id = monitors[i].id;
-      var panZoomScale = panZoomEnabled ? panZoom[id].getScale() : 1;
-
-      let resize = false;
-      let width = 'auto';
-      let height = 'auto';
-
-      const scale = $j('#scale').val();
-      if (scale == '0') {
-        //Auto, Width is calculated based on the occupied height so that the image and control buttons occupy the visible part of the screen.
-        resize = true;
-      } else if (scale == '100') {
-        //Actual, 100% of original size
-        width = monitors[i].width + 'px';
-        height = monitors[i].height + 'px';
-      } else if (scale == 'fit_to_width') {
-        //Fit to screen width
-        width = parseInt(window.innerWidth * panZoomScale) + 'px';
-      }
-
-      if (resize) {
-        monitor_div.style.width = 'max-content'; //Required when switching from resize=false to resize=true
-      }
-      //monitors[i].setScale(0, parseInt(el.clientWidth * panZoomScale) + 'px', parseInt(el.clientHeight * panZoomScale) + 'px', {resizeImg:true, scaleImg:panZoomScale});
-      monitors[i].setScale(0, width, height, {resizeImg: resize, scaleImg: panZoomScale});
-      if (!resize) {
-        livestream = document.getElementById('liveStream'+id);
-        livestream.style.height = '';
-        if (scale == 'fit_to_width') {
-          monitor_div.style.width = '';
-        } else if (scale == '100') {
-          monitor_div.style.width = 'max-content';
-          liveStream.style.width = width;
-        }
-      }
-    } // end foreach monitor
+function controlWhatDisplay(oldId, newId) {
+  const selectorWhatDisplay = document.getElementById('whatDisplay');
+  const defaultWhatDisplay = (monitorStream) ? monitorStream.whatDisplay : 'OnlyVideo';
+  const imageFeed = document.getElementById('imageFeed'+monitorId);
+  let noAudioMotion = false;
+  let noVideo = false;
+  if (!selectorWhatDisplay || (-1 !== selectorWhatDisplay.value.toLowerCase().indexOf('default'))) { // Default monitor settings
+    if (defaultWhatDisplay && (-1 === defaultWhatDisplay.toLowerCase().indexOf('audio'))) noAudioMotion = true;
+    if (defaultWhatDisplay && (-1 === defaultWhatDisplay.toLowerCase().indexOf('video'))) noVideo = true;
+  } else {
+    if (-1 === selectorWhatDisplay.value.toLowerCase().indexOf('audio')) noAudioMotion = true;
+    if (-1 === selectorWhatDisplay.value.toLowerCase().indexOf('video')) noVideo = true;
   }
-  setButtonSizeOnStream();
+  if (noAudioMotion) {
+    destroyAudioMotion(oldId);
+    document.querySelector('.stream-info-status-track').innerText = '';
+  } else {
+    connectAudioMotion(newId);
+  }
+  if (imageFeed) imageFeed.setAttribute("data-not-display-video", noVideo);
+}
+
+function changeWhatDisplay() {
+  setCookie('zmWhatDisplay', $j('#whatDisplay').val());
+  controlWhatDisplay(monitorId, monitorId);
 }
 
 // Kick everything off
 $j( window ).on("load", initPage);
 
-var prevStateStarted = false;
+var prevStateStarted = null;
 document.onvisibilitychange = () => {
   // Always clear it because the return to visibility might happen before timeout
   TimerHideShow = clearTimeout(TimerHideShow);
@@ -1474,22 +1460,29 @@ document.onvisibilitychange = () => {
       //Stop monitor when closing or hiding page
       if (monitorStream) {
         if (monitorStream.started) {
-          prevStateStarted = 'played';
-          //Stop only if playing or paused.
-          // We might want to continue status updates so that alarm sounds etc still happen
-          monitorStream.stop();
+          if ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused) || monitorStream.element.paused) {
+            prevStateStarted = 'paused';
+          } else {
+            prevStateStarted = 'played';
+            //Stop only if playing (not paused).
+            // We might want to continue status updates so that alarm sounds etc still happen
+            monitorStream.stop();
+          }
         } else {
-          prevStateStarted = false;
+          prevStateStarted = 'stopped';
         }
       }
     }, 15*1000);
   } else {
     //Start monitor when show page
     if (monitorStream && prevStateStarted == 'played' && !idleTimeoutTriggered) {
-      prevStateStarted = false;
+      prevStateStarted = null;
       onPlay(); //Set the correct state of the player buttons.
       monitorStream.start(monitorStream.currentChannelStream);
       monitorsSetScale(monitorId);
+    //} else if (prevStateStarted != 'paused') {
+    } else if (monitorStream && monitorStream.element && ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused) || monitorStream.element.paused)) {
+      prevStateStarted = null;
     }
   }
 };

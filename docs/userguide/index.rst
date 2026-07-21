@@ -5,6 +5,7 @@ User Guide
 
    introduction
    components
+   zma
    gettingstarted
    definemonitor
    definezone

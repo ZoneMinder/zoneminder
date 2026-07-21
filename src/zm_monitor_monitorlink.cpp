@@ -82,8 +82,11 @@ Monitor::MonitorLink::~MonitorLink() {
 
 bool Monitor::MonitorLink::connect() {
   SystemTimePoint now = std::chrono::system_clock::now();
-  if (!last_connect_time || (now - std::chrono::system_clock::from_time_t(last_connect_time)) > Seconds(60)) {
+  if (!last_connect_time || (now - std::chrono::system_clock::from_time_t(last_connect_time)) > Seconds(1)) {
     last_connect_time = std::chrono::system_clock::to_time_t(now);
+
+    // Clean up any existing resources before reconnecting to avoid fd leaks
+    disconnect();
 
     mem_size = sizeof(SharedData) + sizeof(TriggerData);
 
@@ -160,26 +163,24 @@ bool Monitor::MonitorLink::connect() {
 }  // end bool Monitor::MonitorLink::connect()
 
 bool Monitor::MonitorLink::disconnect() {
-  if (connected) {
-    connected = false;
+  connected = false;
 
 #if ZM_MEM_MAPPED
-    if (mem_ptr > (void *)0) {
-      msync(mem_ptr, mem_size, MS_ASYNC);
-      munmap(mem_ptr, mem_size);
-    }
-    if (map_fd >= 0)
-      close(map_fd);
+  if (mem_ptr != nullptr && mem_ptr != MAP_FAILED) {
+    msync(mem_ptr, mem_size, MS_ASYNC);
+    munmap(mem_ptr, mem_size);
+  }
+  if (map_fd >= 0)
+    close(map_fd);
 
-    map_fd = -1;
+  map_fd = -1;
 #else // ZM_MEM_MAPPED
+  if (mem_ptr != nullptr) {
     struct shmid_ds shm_data;
     if (shmctl(shm_id, IPC_STAT, &shm_data) < 0) {
       Debug(3, "Can't shmctl: %s", strerror(errno));
       return false;
     }
-
-    shm_id = 0;
 
     if (shm_data.shm_nattch <= 1) {
       if (shmctl(shm_id, IPC_RMID, 0) < 0) {
@@ -192,10 +193,15 @@ bool Monitor::MonitorLink::disconnect() {
       Debug(3, "Can't shmdt: %s", strerror(errno));
       return false;
     }
-#endif // ZM_MEM_MAPPED
-    mem_size = 0;
-    mem_ptr = nullptr;
   }
+  shm_id = 0;
+#endif // ZM_MEM_MAPPED
+  mem_size = 0;
+  mem_ptr = nullptr;
+  shared_data = nullptr;
+  trigger_data = nullptr;
+  zone_scores = nullptr;
+
   return true;
 }
 
@@ -218,9 +224,30 @@ int Monitor::MonitorLink::score() {
     Debug(1, "Checking zone %u, zone_index is %d, score is %d", zone_id, zone_index, zone_scores[zone_index]);
     return zone_scores[zone_index];
   }
+
+  // Latch: detect if a new event started since we last checked.
+  // This catches alarms even if the linked monitor transitioned through
+  // ALARM -> ALERT -> IDLE between our analysis cycles.
+  if (shared_data->last_event_id != last_event_id) {
+    Debug(1, "New event %" PRIu64 " on linked monitor (was %" PRIu64 "), last_frame_score %d",
+          shared_data->last_event_id, last_event_id, shared_data->last_frame_score);
+    last_event_id = shared_data->last_event_id;
+    // Return last_frame_score if still available, otherwise minimum of 1
+    // to ensure the alarm is not silently missed
+    return shared_data->last_frame_score > 0 ? shared_data->last_frame_score : 1;
+  }
+
   if (shared_data->state == ALARM) {
     Debug(1, "Checking all zones score is %d", shared_data->last_frame_score);
     return shared_data->last_frame_score;
+  }
+  if (shared_data->state == ALERT) {
+    // Linked monitor's event is still open in its post-event window — motion
+    // has paused but may resume. Return a sentinel so our event stays open;
+    // do not latch last_frame_score, which would inflate the receiving
+    // monitor's accumulated score and bias snapshot.jpg selection.
+    Debug(1, "Linked monitor in ALERT, returning sentinel to keep event open");
+    return 1;
   }
   Debug(1, "not alarmed. %d", shared_data->state);
   return 0;
@@ -228,6 +255,4 @@ int Monitor::MonitorLink::score() {
 
 bool Monitor::MonitorLink::hasAlarmed() {
   return this->score() > 0;
-  last_event_id = shared_data->last_event_id;
-  return false;
 }

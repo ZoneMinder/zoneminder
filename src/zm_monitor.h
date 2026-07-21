@@ -38,14 +38,11 @@
 #include <memory>
 #include <sys/time.h>
 #include <vector>
+#if HAVE_LIBCURL
 #include <curl/curl.h>
+#endif  // HAVE_LIBCURL
 
-#ifdef WITH_GSOAP
-#include "soapPullPointSubscriptionBindingProxy.h"
-#include "plugin/wsseapi.h"
-#include "plugin/wsaapi.h"
-#include <openssl/err.h>
-#endif
+#include "zm_monitor_onvif.h"
 
 class Group;
 class MonitorLinkExpression;
@@ -62,6 +59,7 @@ class MonitorLinkExpression;
 class Monitor : public std::enable_shared_from_this<Monitor> {
   friend class MonitorStream;
   friend class MonitorLinkExpression;
+  friend class ONVIF;
 
  public:
   typedef enum {
@@ -118,9 +116,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   } RTSP2WebOption;
 
   typedef enum {
-    PRIMARY=1,
-    SECONDARY
-  } RTSP2WebStreamOption;
+    RESTREAM=1,
+    CAMERA_DIRECT_PRIMARY,
+    CAMERA_DIRECT_SECONDARY
+  } StreamChannelOption;
 
   typedef enum {
     LOCAL=1,
@@ -237,14 +236,37 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
       time_t last_viewed_time;
       uint64_t extrapad5;
     };
-    uint8_t control_state[256]; /* +152  */
+    union {                     /* +152  */
+      time_t last_analysis_viewed_time;
+      uint64_t extrapad6;
+    };
+    uint8_t control_state[256]; /* +160  */
 
-    char alarm_cause[256]; /* 408 */
-    char video_fifo_path[64]; /* 664 */
-    char audio_fifo_path[64]; /* 728 */
-    char janus_pin[64]; /* 792 */
-    /* 856 total? */
+    char alarm_cause[256]; /* +416 */
+    char video_fifo_path[64]; /* +672 */
+    char audio_fifo_path[64]; /* +736 */
+    char janus_pin[64]; /* +800 */
+    /* Analysis image ring: the annotated/analysis image is published into a
+     * ring of image_buffer_count slots (reusing the alarm_images SHM region).
+     * last_analysis_index is the slot most recently written (or
+     * image_buffer_count as the "nothing written yet" sentinel);
+     * analysis_image_count is a monotonic counter of analysis images published.
+     * Appended at the end so no earlier SharedData offset shifts. */
+    int32_t last_analysis_index;   /* +864 */
+    int32_t analysis_image_count;  /* +868 */
+    uint32_t analysis_pad[2];      /* +872  keep 16-byte multiple */
+    /* 880 total */
   } SharedData;
+  // Cross-process ABI guard: zmc/zma/zms plus the Perl (Memory.pm) and PHP
+  // (Monitor.php) SHM readers all assume this exact layout. If it changes,
+  // update those readers in lockstep and bump the size below.
+  // Cross-process ABI guard. The struct is naturally aligned (NOT packed), so
+  // two 4-byte pads exist (before capture_fps and before the startup_time
+  // union); the /* +N */ comments above are the packed-layout ideal and do NOT
+  // reflect real offsets. zmc/zma/zms and the Perl (Memory.pm, which computes
+  // alignment) SHM reader assume this exact layout. If it changes, update the
+  // readers in lockstep and bump the size here.
+  static_assert(sizeof(SharedData) == 888, "SharedData layout changed; update Memory.pm and Monitor.php offsets");
 
   enum TriggerState : uint32 {
     TRIGGER_CANCEL,
@@ -327,42 +349,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   };
  protected:
 
-  class ONVIF {
-   protected:
-    Monitor *parent;
-    bool alarmed;
-    bool healthy;
-    std::string last_topic;
-    std::string last_value;
-    void SetNoteSet(Event::StringSet &noteSet);
-#ifdef WITH_GSOAP
-    struct soap *soap = nullptr;
-    _tev__CreatePullPointSubscription request;
-    _tev__CreatePullPointSubscriptionResponse response;
-    _tev__PullMessages tev__PullMessages;
-    _tev__PullMessagesResponse tev__PullMessagesResponse;
-    _wsnt__Renew wsnt__Renew;
-    _wsnt__RenewResponse wsnt__RenewResponse;
-    PullPointSubscriptionBindingProxy proxyEvent;
-    void set_credentials(struct soap *soap);
-#endif
-    std::unordered_map<std::string, std::string> alarms;
-    std::mutex   alarms_mutex;
-   public:
-    explicit ONVIF(Monitor *parent_);
-    ~ONVIF();
-    void start();
-    void WaitForMessage();
-    bool isAlarmed() {
-      std::unique_lock<std::mutex> lck(alarms_mutex);
-      return alarmed;
-    };
-    void setAlarmed(bool p_alarmed) { alarmed = p_alarmed; };
-    bool isHealthy() const { return healthy; };
-    void setNotes(Event::StringSet &noteSet) { SetNoteSet(noteSet); };
-  };
-
   class AmcrestAPI {
+#if HAVE_LIBCURL
    private:
     Monitor *parent;
     bool alarmed;
@@ -388,9 +376,18 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     bool isAlarmed() const { return alarmed; };
     bool isHealthy() const { return healthy; };
     void setNotes(Event::StringSet &noteSet) { SetNoteSet(noteSet); };
+#else
+   public:
+    explicit AmcrestAPI(Monitor *) {}
+    void WaitForMessage() {}
+    bool isAlarmed() const { return false; }
+    bool isHealthy() const { return true; }
+    void setNotes(Event::StringSet &) {}
+#endif  // HAVE_LIBCURL
   };
 
   class RTSP2WebManager {
+#if HAVE_LIBCURL
    protected:
     Monitor *parent;
     CURL *curl = nullptr;
@@ -398,6 +395,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
     bool RTSP2Web_Healthy;
     bool Use_RTSP_Restream;
+    bool ssl_verification_failed = false;
     std::string RTSP2Web_endpoint;
     std::string rtsp_username;
     std::string rtsp_password;
@@ -412,9 +410,18 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     int add_to_RTSP2Web();
     int check_RTSP2Web();
     int remove_from_RTSP2Web();
+#else
+   public:
+    explicit RTSP2WebManager(Monitor *) {}
+    void load_from_monitor() {}
+    int add_to_RTSP2Web() { return 0; }
+    int check_RTSP2Web() { return 1; }
+    int remove_from_RTSP2Web() { return 0; }
+#endif  // HAVE_LIBCURL
   };
 
   class Go2RTCManager {
+#if HAVE_LIBCURL
     protected:
       Monitor *parent;
       // helper class for CURL
@@ -428,12 +435,15 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
       std::pair<CURLcode, std::string>  CURL_PUT(const std::string &endpoint, const std::string &data) const;
       bool Go2RTC_Healthy;
       bool Use_RTSP_Restream;
+      mutable bool ssl_verification_failed = false;
       std::string Go2RTC_endpoint;
       std::string rtsp_restream_path;
+      std::string rtsp_restream_base_path;  // Path without auth parameter
       std::string rtsp_username;
       std::string rtsp_password;
       std::string rtsp_path;
       std::string rtsp_second_path;
+      SystemTimePoint last_auth_refresh;    // Track when auth was last refreshed
 
     public:
       explicit Go2RTCManager(Monitor *parent_);
@@ -442,9 +452,20 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
       int add_to_Go2RTC();
       int check_Go2RTC();
       int remove_from_Go2RTC();
+      bool refresh_auth_if_needed();        // Refresh auth_hash if expired
+#else
+    public:
+      explicit Go2RTCManager(Monitor *) {}
+      void load_from_monitor() {}
+      int add_to_Go2RTC() { return 0; }
+      int check_Go2RTC() { return 1; }
+      int remove_from_Go2RTC() { return 0; }
+      bool refresh_auth_if_needed() { return false; }
+#endif  // HAVE_LIBCURL
   };
 
   class JanusManager {
+#if HAVE_LIBCURL
    protected:
     Monitor *parent;
     CURL *curl = nullptr;
@@ -452,6 +473,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
     bool Janus_Healthy;
     bool Use_RTSP_Restream;
+    bool ssl_verification_failed = false;
     std::string janus_session;
     std::string janus_handle;
     std::string janus_endpoint;
@@ -473,6 +495,17 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     int get_janus_session();
     int get_janus_handle();
     int get_janus_plugin();
+#else
+   public:
+    explicit JanusManager(Monitor *) {}
+    void load_from_monitor() {}
+    int add_to_janus() { return 0; }
+    int check_janus() { return 1; }
+    int remove_from_janus() { return 0; }
+    int get_janus_session() { return 0; }
+    int get_janus_handle() { return 0; }
+    int get_janus_plugin() { return 0; }
+#endif  // HAVE_LIBCURL
   };
 
 
@@ -493,14 +526,14 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   DecodingOption  decoding;   // Whether the monitor will decode h264/h265 packets
   bool            RTSP2Web_enabled;      // Whether we set the h264/h265 stream up on RTSP2Web
   int             RTSP2Web_type;      // Whether we set the h264/h265 stream up on RTSP2Web
-  RTSP2WebStreamOption RTSP2Web_stream;      // Whether we use the primary or secondary URL for the stream
+  StreamChannelOption stream_channel;      // Which stream source to use: Restream, CameraDirectPrimary, or CameraDirectSecondary
   bool            Go2RTC_enabled;     // Whether we set the h264/h265 stream up on Go2RTC
   bool            janus_enabled;      // Whether we set the h264/h265 stream up on janus
   bool            janus_audio_enabled;      // Whether we tell Janus to try to include audio.
   std::string     janus_profile_override;   // The Profile-ID to force the stream to use.
-  bool            janus_use_rtsp_restream;  // Point Janus at the ZM RTSP output, rather than the camera directly.
+  bool            restream;  // Point streaming services (Janus/Go2RTC/RTSP2Web) at the ZM RTSP output, rather than the camera directly.
   std::string     janus_pin;  // For security, we generate a pin required to view the stream.
-  int             janus_rtsp_user;          // User Id of a user to use for auth to RTSP_Server
+  int             rtsp_user;          // User Id of a user to use for auth to RTSP_Server
   int             janus_rtsp_session_timeout;  // RTSP session timeout (work around for cameras that dont send ;timeout=<timeout in seconds> but do have a timeout)
 
   std::string protocol;
@@ -645,6 +678,11 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   unsigned char *shared_images;
   std::vector<Image *> image_buffer;
   AVPixelFormat *image_pixelformats;
+  // Per-slot cross-process format for the analysis image ring (one entry per
+  // analysis_image_buffer slot), mirroring image_pixelformats for the capture
+  // ring. Replaces the former single alarm_image_pixelformat.
+  AVPixelFormat *analysis_image_pixelformats;
+  size_t shm_slot_size;  // per-slot byte capacity, sized to RGBA upper bound
 
   int video_stream_id; // will be filled in PrimeCapture
   int audio_stream_id; // will be filled in PrimeCapture
@@ -659,11 +697,11 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   VideoStore          *videoStore;
   PacketQueue      packetqueue;
   std::unique_ptr<PollThread> Poller;
+  std::list<ZMPacketLock> decoder_queue;
   packetqueue_iterator  *analysis_it;
   std::unique_ptr<AnalysisThread> analysis_thread;
   packetqueue_iterator  *decoder_it;
   std::unique_ptr<DecoderThread> decoder;
-  av_frame_ptr dest_frame;                    // Used by decoding thread doing colorspace conversions
   SwsContext   *convert_context;
   std::thread  close_event_thread;
 
@@ -689,13 +727,14 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   Image        delta_image;
   Image        ref_image;
-  Image        alarm_image;  // Used in creating analysis images, will be initialized in Analysis
+  // Analysis image ring: the annotated/analysis image is published into a ring
+  // of image_buffer_count slots living in the alarm_images SHM region. Readers
+  // pick up the newest via shared_data->last_analysis_index. Replaces the
+  // former single alarm_image.
+  std::vector<Image *> analysis_image_buffer;
   Image        write_image;    // Used when creating snapshot images
   std::string diag_path_ref;
   std::string diag_path_delta;
-
-  //ONVIF
-  bool Event_Poller_Closes_Event;
 
   RTSP2WebManager *RTSP2Web_Manager;
   Go2RTCManager *Go2RTC_Manager;
@@ -756,6 +795,13 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   RecordingOption Recording() const { return recording; }
 
   inline PacketQueue * GetPacketQueue() { return &packetqueue; }
+
+  // Called by the decoder thread as it exits. Releases packet locks for
+  // anything it sent to the codec context but never received as a frame
+  // (codec context is about to be torn down for Pause/reconnect, so those
+  // packets will never produce output). Marks them decoded so the analysis
+  // thread can advance past them.
+  void flushDecoderQueue();
   inline bool Enabled() const {
     return shared_data->capturing;
   }
@@ -775,13 +821,16 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     return shared_data->janus_pin;
   }
 
-  inline bool has_out_of_order_packets() const { return packetqueue.has_out_of_order_packets(); };
-  int get_max_keyframe_interval() const { return packetqueue.get_max_keyframe_interval(); };
+  bool has_out_of_order_packets() { return packetqueue.has_out_of_order_packets(); };
+  int get_max_keyframe_interval() { return packetqueue.get_max_keyframe_interval(); };
 
   bool OnvifEnabled() {
     return onvif_event_listener;
   }
-  int check_janus(); //returns 1 for healthy, 0 for success but missing stream, negative for error.
+  int check_janus() {
+    if (Janus_Manager) return Janus_Manager->check_janus();
+    return -1;
+  }
   bool EventPollerHealthy() const {
     if (onvif) {
       return onvif->isHealthy();
@@ -825,6 +874,28 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
       int64 intNow = static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count());
       Debug(3, "Last viewed %" PRId64 " seconds ago", intNow - shared_data->last_viewed_time);
       return (((!shared_data->last_viewed_time) or ((intNow - shared_data->last_viewed_time)) > 10)) ? false : true;
+    }
+    return false;
+  }
+  int64_t getLastAnalysisViewed() {
+    if (shared_data && shared_data->valid)
+      return shared_data->last_analysis_viewed_time;
+    return 0;
+  }
+  void setLastAnalysisViewed() {
+    setLastAnalysisViewed(std::chrono::system_clock::now());
+  }
+  void setLastAnalysisViewed(SystemTimePoint new_time) {
+    if (shared_data && shared_data->valid)
+      shared_data->last_analysis_viewed_time =
+        static_cast<int64>(std::chrono::duration_cast<Seconds>(new_time.time_since_epoch()).count());
+  }
+  bool hasAnalysisViewers() {
+    if (shared_data && shared_data->valid) {
+      SystemTimePoint now = std::chrono::system_clock::now();
+      int64 intNow = static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count());
+      Debug(3, "Last analysis viewed %" PRId64 " seconds ago", intNow - shared_data->last_analysis_viewed_time);
+      return (((!shared_data->last_analysis_viewed_time) or ((intNow - shared_data->last_analysis_viewed_time)) > 10)) ? false : true;
     }
     return false;
   }
@@ -889,9 +960,12 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   const std::string &getONVIF_Options() const { return onvif_options; };
 
   Image *GetAlarmImage();
+  // Writer-side helper: copies src into alarm_image and publishes its
+  // AVPixelFormat so reader processes can correctly interpret the SHM bytes.
+  void WriteAlarmImage(const Image &src);
   int GetImage(int32_t index=-1, int scale=100);
-  ZMPacket *getSnapshot( int index=-1 ) const;
-  SystemTimePoint GetTimestamp(int index = -1) const;
+  std::shared_ptr<ZMPacket> getSnapshot( int index=-1 );
+  SystemTimePoint GetTimestamp(int index = -1);
   void UpdateAdaptiveSkip();
   useconds_t GetAnalysisRate();
   Microseconds GetAnalysisUpdateDelay() const { return analysis_update_delay; }
@@ -942,18 +1016,32 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   void CheckAction();
 
   unsigned int DetectMotion( const Image &comp_image, Event::StringSet &zoneSet );
+  unsigned int AnalyseFrame( const Image &frame_image, Event::StringSet &zoneSet );
+  unsigned int AnalyseFrame( const Image &frame_image, Event::StringSet &zoneSet, Image *analysis_image );
   // DetectBlack seems to be unused. Check it on zm_monitor.cpp for more info.
   //unsigned int DetectBlack( const Image &comp_image, Event::StringSet &zoneSet );
   bool CheckSignal( const Image *image );
   bool Analyse();
   bool setupConvertContext(const AVFrame *input_frame, const Image *image);
+  // Write capture_image into image_buffer[index] without conversion and
+  // record its AVPixelFormat in image_pixelformats[index] so reading
+  // processes can adopt that format via ReadShmFrame.
+  void WriteShmFrame(unsigned int index, Image *capture_image);
+
+  // Read-side counterpart: ensures image_buffer[index]'s metadata matches
+  // the format zmc wrote via image_pixelformats[index] before returning
+  // it. Use this from zms / zma / event paths instead of touching
+  // image_buffer[index] directly.
+  Image *ReadShmFrame(unsigned int index);
+  void applyOrientation(Image *image);
+  bool applyDeinterlacing(std::shared_ptr<ZMPacket> &packet, Image *capture_image);
   bool Decode();
   bool Poll();
   void DumpImage( Image *dump_image ) const;
   std::string Substitute(const std::string &format, SystemTimePoint ts_time) const;
   void TimestampImage(Image *ts_image, SystemTimePoint ts_time) const;
   Event *openEvent(
-    const std::shared_ptr<ZMPacket> &snap,
+    ZMPacketLock *packet_lock,
     const std::string &cause,
     const Event::StringSetMap &noteSetMap);
   void closeEvent();

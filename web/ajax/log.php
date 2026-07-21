@@ -11,20 +11,31 @@ if (!isset($_REQUEST['task'])) {
   $message = 'This request requires a task to be set';
 } else if ($_REQUEST['task'] == 'query') {
   if (!canView('System')) {
-    $message = 'Insufficient permissions to view log entries for user '.$user->Username();
+    $message = 'Insufficient permissions to view log entries for user '.validHtmlStr($user->Username());
   } else {
     $data = queryRequest();
   }
 } else if ($_REQUEST['task'] == 'create' ) {
   global $user;
   if (!$user or (!canEdit('System') and !ZM_LOG_INJECT)) {
-    $message = 'Insufficient permissions to create log entries for user '.$user->Username();
+    $message = 'Insufficient permissions to create log entries for user '.validHtmlStr($user->Username());
   } else {
     createRequest();
   }
+} else if ($_REQUEST['task'] == 'delete') {
+  global $user;
+  if (!canEdit('System')) {
+    $message = 'Insufficient permissions to delete log entries for user '.validHtmlStr($user->Username());
+  } else {
+    if (!empty($_REQUEST['ids'])) {
+      $ids = array_map('intval', (array)$_REQUEST['ids']);
+      $placeholders = implode(',', array_fill(0, count($ids), '?'));
+      dbQuery('DELETE FROM Logs WHERE Id IN (' . $placeholders . ')', $ids);
+    }
+  }
 } else {
   // Only the query and create tasks are supported at the moment
-  $message = 'Unrecognised task '.$_REQUEST['task'];
+  $message = 'Unrecognised task '.validHtmlStr($_REQUEST['task']);
 }
 
 if ($message) {
@@ -38,22 +49,36 @@ ajaxResponse($data);
 //
 
 function createRequest() {
-  if (!empty($_POST['level']) && !empty($_POST['message'])) {
-    ZM\logInit(array('id'=>'web_js'));
+  // Every field here is attacker-controlled. Coerce each to a scalar and strip
+  // control characters (newlines, carriage returns, tabs, etc.) so nothing can
+  // forge additional lines in the text log file, and so non-scalar input (e.g.
+  // message[]=x) cannot trip a TypeError in logPrint(). A log message is a
+  // single line; the Log view stores it as one Message column regardless.
+  $sanitize = function($value) {
+    return is_scalar($value) ? preg_replace('/[\x00-\x1F\x7F]+/', ' ', (string)$value) : '';
+  };
 
-    $file = !empty($_POST['file']) ? preg_replace('/\w+:\/\/[\w.:]+\//', '', $_POST['file']) : '';
-    $line = empty($_POST['line']) ? NULL : validInt($_POST['line']);
+  $level = $sanitize($_POST['level'] ?? '');
+  $message = $sanitize($_POST['message'] ?? '');
+  // Strip the URL scheme/host from file, then the control characters.
+  $file = (isset($_POST['file']) && is_scalar($_POST['file']))
+    ? $sanitize(preg_replace('/\w+:\/\/[\w.:]+\//', '', (string)$_POST['file']))
+    : '';
 
-    $levels = array_flip(ZM\Logger::$codes);
-    if (!isset($levels[$_POST['level']])) {
-      ZM\Error('Unexpected logger level '.$_POST['level']);
-      $_POST['level'] = 'ERR';
-    }
-    $level = $levels[$_POST['level']];
-    ZM\Logger::fetch()->logPrint($level, $_POST['message'], $file, $line);
-  } else {
-    ZM\Error('Invalid log create: '.print_r($_POST, true));
+  if ($level === '' || $message === '') {
+    ZM\Error('Invalid log create: level and message are required');
+    return;
   }
+
+  ZM\logInit(array('id'=>'web_js'));
+  $line = empty($_POST['line']) ? NULL : validInt($_POST['line']);
+
+  $levels = array_flip(ZM\Logger::$codes);
+  if (!isset($levels[$level])) {
+    ZM\Error('Unexpected logger level '.$level); // already sanitized above
+    $level = 'ERR';
+  }
+  ZM\Logger::fetch()->logPrint($levels[$level], $message, $file, $line);
 }
 
 function queryRequest() {
@@ -79,9 +104,12 @@ function queryRequest() {
   // The table we want our data from
   $table = 'Logs';
 
-  // The names of the dB columns in the log table we are interested in
-  $columns = array('TimeKey', 'Component', 'ServerId', 'Pid', 'Code', 'Message', 'File', 'Line');
+  $nameMainQuery = 't1'; # To optimize queries using a subquery
+  $nameSubQuery = 't2';
 
+  // The names of the dB columns in the log table we are interested in
+  $columns = array('Id', 'TimeKey', 'Component', 'ServerId', 'Pid', 'Code', 'Message', 'File', 'Line');
+  $columnsContext = $columns;
   // The names of columns shown in the log view that are NOT dB columns in the database
   $col_alt = array('DateTime', 'Server');
 
@@ -89,6 +117,7 @@ function queryRequest() {
   if (isset($_REQUEST['sort'])) {
     $sort = $_REQUEST['sort'];
     if ($sort == 'DateTime') $sort = 'TimeKey';
+    if ($sort == 'Server') $sort = 'ServerId';
   }
   if (!in_array($sort, array_merge($columns, $col_alt))) {
     ZM\Error('Invalid sort field: ' . $sort);
@@ -98,7 +127,14 @@ function queryRequest() {
   // Order specifies the sort direction, either asc or desc
   $order = (isset($_REQUEST['order']) and (strtolower($_REQUEST['order']) == 'asc')) ? 'ASC' : 'DESC';
 
+  if ($nameMainQuery !== '' && $nameSubQuery !== '') {
+    array_walk($columnsContext, function(&$value, $key, $nameMainQuery) {
+      $value = $nameMainQuery . '.' . $value;
+    }, $nameMainQuery);
+  }
+
   $col_str = implode(', ', $columns);
+  $col_str_context = implode(', ', $columnsContext);
   $data = array();
   $query = array();
   $query['values'] = array();
@@ -135,24 +171,51 @@ function queryRequest() {
     $where = '(' .implode(' OR ', $likes). ')';
   }
 
-  if (!empty($_REQUEST['Component'])) {
-    if ($where) $where .= ' AND ';
-    $where .= 'Component = ?';
-    $query['values'][] = $_REQUEST['Component'];
-    zm_session_start();
-    $_SESSION['zmLogComponent'] = $_REQUEST['Component'];
-    session_write_close();
+  // Component is a multi-select: accept a scalar (legacy) or an array of
+  // component names and match any of them.
+  $requestComponents = array();
+  if (isset($_REQUEST['Component'])) {
+    foreach ((array)$_REQUEST['Component'] as $component) {
+      if (is_scalar($component) && (string)$component !== '') $requestComponents[] = (string)$component;
+    }
   }
+  if (count($requestComponents)) {
+    if ($where) $where .= ' AND ';
+    $placeholders = implode(', ', array_fill(0, count($requestComponents), '?'));
+    $where .= 'Component IN (' . $placeholders . ')';
+    foreach ($requestComponents as $component) $query['values'][] = $component;
+  }
+
   if (!empty($_REQUEST['ServerId'])) {
     if ($where) $where .= ' AND ';
     $where .= 'ServerId = ?';
     $query['values'][] = $_REQUEST['ServerId'];
   }
+/* We have an indexed 'Level', not 'Code'.
   if (!empty($_REQUEST['level'])) {
     if ($where) $where .= ' AND ';
     $where .= 'Code = ?';
     $query['values'][] = $_REQUEST['level'];
   }
+*/
+  // Level is a multi-select: accept a scalar (legacy) or an array of level codes
+  // ('DBG', 'INF', ...). Keep only recognized codes and match any of them.
+  $level_codes = array_flip(ZM\Logger::$codes);
+  $requestLevels = array();
+  if (isset($_REQUEST['level'])) {
+    foreach ((array)$_REQUEST['level'] as $level) {
+      if (is_scalar($level) && isset($level_codes[(string)$level])) {
+        $requestLevels[(string)$level] = $level_codes[(string)$level];
+      }
+    }
+  }
+  if (count($requestLevels)) {
+    if ($where) $where .= ' AND ';
+    $placeholders = implode(', ', array_fill(0, count($requestLevels), '?'));
+    $where .= ' Level IN (' . $placeholders . ')';
+    foreach ($requestLevels as $code) $query['values'][] = $code;
+  }
+
   if (!empty($_REQUEST['StartDateTime'])) {
     $start_time = strtotime($_REQUEST['StartDateTime']);
     if ($start_time) {
@@ -173,16 +236,37 @@ function queryRequest() {
       ZM\Warning("Unable to parse EndDateTime ".$_REQUEST['EndDateTime']. " into a timestamp");
     }
   }
+
+  zm_session_start();
+  $_SESSION['zmLogComponent'] = $requestComponents;
+  $_SESSION['zmLogFilterLevel'] = array_keys($requestLevels);
+  session_write_close();
+
   if ($where) $where = ' WHERE '.$where;
 
-  $data['totalNotFiltered'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table, 'Total');
-  if ( $search != '' || count($advsearch) ) {
-    $data['total'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table.$where , 'Total', $query['values']);
+  $data['totalNotFiltered'] = dbFetchOne('SELECT count(*) AS Total FROM `' .$table.'`', 'Total');
+  if ($where) {
+    $data['total'] = dbFetchOne('SELECT count(*) AS Total FROM `' .$table.'` '.$where, 'Total', $query['values']);
   } else {
     $data['total'] = $data['totalNotFiltered'];
   }
 
-  $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` ' .$where. ' ORDER BY ' .$sort. ' ' .$order. ' LIMIT ?, ?';
+  if ($nameMainQuery !== '' && $nameSubQuery !== '') { # Optimized query
+    $query['sql'] = '
+      SELECT ' .$col_str_context. ' 
+      FROM `' .$table. '` ' .$nameMainQuery. ' 
+      JOIN (
+        SELECT Id 
+        FROM `'.$table.'` '.$where. ' 
+        ORDER BY ' .$sort. ' ' .$order. ' 
+        LIMIT ?, ?
+      ) AS ' .$nameSubQuery. ' 
+      ON ' .$nameMainQuery. '.Id=' .$nameSubQuery. '.Id 
+      ORDER BY ' .$nameMainQuery. '.' .$sort. ' ' .$order;
+  } else {
+    $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` ' .$where. ' ORDER BY ' .$sort. ' ' .$order. ' LIMIT ?, ?';
+  }
+
   array_push($query['values'], $offset, $limit);
 
   $rows = array();

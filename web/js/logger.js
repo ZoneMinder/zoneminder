@@ -34,11 +34,35 @@ if (!window.console) {
   console.debug = console.log;
 }
 
-window.onerror = function(message, url, line) {
+// Browser extensions (ad blockers, password managers, etc.) inject scripts
+// into every page; their errors and CSP violations are not ZoneMinder's and
+// would otherwise spam the log. Ignore anything sourced from an extension,
+// unless ZM_LOG_BROWSER_EXTENSIONS is enabled (useful to detect a plugin
+// touching the ZoneMinder tab).
+// ZM_LOG_BROWSER_EXTENSIONS is emitted as the string '0'/'1' (boolean config),
+// matching the ZM_LOG_INJECT convention above.
+const logExtensionSources =
+  (typeof ZM_LOG_BROWSER_EXTENSIONS !== 'undefined') && (ZM_LOG_BROWSER_EXTENSIONS !== '0');
+
+function isExtensionSource(url) {
+  return (typeof url === 'string') &&
+    /^(moz-extension|chrome-extension|safari-web-extension|safari-extension|webkit-masked-url)(:|$)/.test(url);
+}
+
+window.onerror = function(message, url, line, col, error) {
+  if (!logExtensionSources && isExtensionSource(url)) return;
+  if (!message || message === 'Script error.') {
+    message = 'Script error (no details available, possibly cross-origin)';
+  }
+  if (error && error.stack) {
+    message += '\n' + error.stack;
+  }
+  if (col) line = line + ':' + col;
   logReport("ERR", message, url, line);
 };
 
 window.addEventListener("securitypolicyviolation", function logCSP(evt) {
+  if (!logExtensionSources && (isExtensionSource(evt.sourceFile) || isExtensionSource(evt.blockedURI))) return;
   const level = evt.disposition == "enforce" ? "ERR" : "DBG";
   let message = evt.blockedURI + " violated CSP " + evt.violatedDirective;
 
@@ -49,9 +73,20 @@ window.addEventListener("securitypolicyviolation", function logCSP(evt) {
 function logReport( level, message, file, line ) {
   if (!reportLogs) return;
 
+  if (message === undefined || message === null) {
+    message = 'Unknown error';
+  }
+
   /* eslint-disable no-caller */
-  if (arguments && arguments.callee && arguments.callee.caller && arguments.callee.caller.caller && arguments.callee.caller.caller.name) {
-    message += ' - '+arguments.callee.caller.caller.name+'()';
+  try {
+    if (arguments.callee && arguments.callee.caller && arguments.callee.caller.caller) {
+      const callerName = arguments.callee.caller.caller.name;
+      if (callerName) {
+        message += ' - '+callerName+'()';
+      }
+    }
+  } catch {
+    // arguments.callee unavailable in strict mode
   }
 
   const data = {
@@ -75,39 +110,52 @@ function logReport( level, message, file, line ) {
   $j.post(thisUrl, data, null, 'json');
 }
 
-function Panic(message) {
+// These logging helpers are named with a "zm" prefix so they do not collide
+// with the native JS Error constructor or with functions of the same name in
+// third-party libraries (hls.js, jquery, moment, bootstrap, ...). A bare
+// global Error() in particular used to shadow window.Error, breaking every
+// `new Error()` in bundled libraries. See issue #4981.
+// Build a real Error so we can log a stack trace with the message. Now that we
+// no longer shadow the native constructor this captures where the call
+// originated, which the bare-message logging could not.
+function stackFor(message) {
+  const err = (message instanceof Error) ? message : new Error(message);
+  return err.stack ? err.stack : String(message);
+}
+
+function zmPanic(message) {
   console.error(message);
-  logReport("PNC", message);
+  logReport("PNC", stackFor(message));
   alert("PANIC: "+message);
 }
 
-function Fatal(message) {
+function zmFatal(message) {
   console.error(message);
-  logReport("FAT", message);
+  logReport("FAT", stackFor(message));
   alert("FATAL: "+message);
 }
 
-function Error(message) {
+function zmError(message) {
   console.error(message);
-  logReport("ERR", message);
+  logReport("ERR", stackFor(message));
 }
 
-function Warning(message) {
+function zmWarning(message) {
   console.warn(message);
   logReport("WAR", message);
 }
 
-function Info(message) {
+function zmInfo(message) {
   console.info(message);
   logReport("INF", message);
 }
 
-function Debug(message) {
+function zmDebug(message) {
   console.debug(message);
   //logReport("DBG", message);
 }
 
-function Dump(value, label) {
+function zmDump(value, label) {
   if (label) console.debug(label+" => ");
   console.debug(value);
 }

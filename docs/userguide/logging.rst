@@ -19,11 +19,30 @@ As well as specific script logging above, information, warning and error message
 where you can see that the date is formatted differently (and only to 1 second precision) and there is an additional field for the hostname (as syslog can operate over a network). As well as ZoneMinder entries in this file you may also see entries from various other system components. You should ensure that your syslogd daemon is running for syslog messages to be correctly handled.
 
 
-Customizing logging properly in ZoneMinder
--------------------------------------------
+Quick Guide: Enable Debug Logs for a Specific Monitor
+--------------------------------------------------------------
 
-.. todo:
-  Is this all valid anymore ?
+If a monitor is failing (for example Monitor 5), enabling debug logs for that monitor usually provides
+the most useful detail without enabling debug for everything.
+
+1. Go to ``Options -> Logging`` in the ZoneMinder web UI
+2. Enable ``LOG_DEBUG``
+3. Set ``LOG_DEBUG_TARGET`` to the monitor capture process name, e.g. ``_zmc_m5``
+4. Set ``LOG_DEBUG_LEVEL`` to ``9``
+5. Leave ``LOG_DEBUG_FILE`` empty (recommended; produces separate per-component log files)
+6. Click **Save**
+7. Restart ZoneMinder so the changes take effect:
+
+::
+
+  sudo systemctl restart zoneminder
+
+After restarting, look in your ZoneMinder log directory for a file like ``zmc_m5.log``.
+
+Notes:
+
+* Debug logging is verbose. Disable it when finished.
+* Multiple targets can be specified as a comma-separated list (example: ``_zmc_m5,_zmc_m11``).
 
 
 Other Notes

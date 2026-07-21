@@ -133,7 +133,7 @@ sub load {
       $data = $ZoneMinder::Database::dbh->selectrow_hashref("SELECT * FROM `$table` WHERE `$primary_key`=?", {}, $$self{$primary_key});
       if ( !$data ) {
         if ( $ZoneMinder::Database::dbh->errstr ) {
-          Error( "Failure to load Object record for $$self{$primary_key}: Reason: " . $ZoneMinder::Database::dbh->errstr );
+          Error( "Failure to load Object record for $type id:$$self{$primary_key}: Reason: " . $ZoneMinder::Database::dbh->errstr );
         } else {
           Debug("No Results Loading $type from $table WHERE $primary_key = $$self{$primary_key}");
         } # end if
@@ -173,7 +173,7 @@ sub lock_and_load {
   my $data = $ZoneMinder::Database::dbh->selectrow_hashref("SELECT * FROM `$table` WHERE `$primary_key`=? FOR UPDATE", {}, $$self{$primary_key});
   if ( ! $data ) {
     if ( $ZoneMinder::Database::dbh->errstr ) {
-      Error("Failure to load Object record for $$self{$primary_key}: Reason: ".$ZoneMinder::Database::dbh->errstr);
+      Error("Failure to load Object record for $type id:$$self{$primary_key}: Reason: ".$ZoneMinder::Database::dbh->errstr);
     } else {
       Debug("No Results Lock and Loading $type from $table WHERE $primary_key = $$self{$primary_key}");
     } # end if
@@ -990,9 +990,8 @@ Isaac Connor, E<lt>isaac@zoneminder.comE<gt>
 
 Copyright (C) 2001-2017  ZoneMinder LLC
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.3 or,
-at your option, any later version of Perl 5 you may have available.
+Licensed under the GNU General Public License v2 or later; see the COPYING
+file distributed with ZoneMinder for the full text.
 
 
 =cut

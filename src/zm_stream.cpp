@@ -51,6 +51,10 @@ bool StreamBase::loadMonitor(int p_monitor_id) {
     return false;
   }
 
+  // Hold monitor_mutex during disconnect/connect to prevent the command
+  // processor thread from accessing shared memory while it is remapped.
+  std::lock_guard<std::mutex> lck(monitor_mutex);
+
   if (monitor->isConnected()) {
     monitor->disconnect();
   }
@@ -158,7 +162,7 @@ Image *StreamBase::prepareImage(Image *image) {
      * However if we have zoomed before, then we are zooming into the previous cutout
      * The box stored in last_crop should be in base_image units, So we need to turn x,y into percentages, then apply to last_crop
      */
-    if (!last_crop.Hi().x_ or last_crop.Hi().y_) last_crop = Box({0, 0}, {base_image_width, base_image_height});
+    if (!last_crop.Hi().x_ && !last_crop.Hi().y_) last_crop = Box({0, 0}, {base_image_width, base_image_height});
 
     double x_percent = static_cast<double>(x * ZM_SCALE_BASE) / base_image_width;
     double y_percent = static_cast<double>(y * ZM_SCALE_BASE) / base_image_height;
@@ -277,7 +281,12 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
     if (!vid_stream) {
       vid_stream = new VideoStream("pipe:", format, bitrate, effective_fps, image.Colours(), image.SubpixelOrder(), image.Width(), image.Height());
       fprintf(stdout, "Content-Type: %s\r\n\r\n", vid_stream->MimeType());
-      vid_stream->OpenStream();
+      if (!vid_stream->OpenStream()) {
+        Error("Failed to open video stream");
+        delete vid_stream;
+        vid_stream = nullptr;
+        return false;
+      }
     }
     /* double pts = */ vid_stream->EncodeFrame(image.Buffer(), image.Size());
   } else {
@@ -344,13 +353,13 @@ void StreamBase::openComms() {
     }
 
     lock_fd = open(sock_path_lock, O_CREAT|O_WRONLY, S_IRUSR | S_IWUSR);
-    if ( lock_fd <= 0 ) {
+    if ( lock_fd < 0 ) {
       Error("Unable to open sock lock file %s: %s", sock_path_lock, strerror(errno));
-      lock_fd = 0;
+      lock_fd = -1;
     } else if ( flock(lock_fd, LOCK_EX) != 0 ) {
       Error("Unable to lock sock lock file %s: %s", sock_path_lock, strerror(errno));
       close(lock_fd);
-      lock_fd = 0;
+      lock_fd = -1;
     } else {
       Debug(1, "We have obtained a lock on %s fd: %d", sock_path_lock, lock_fd);
     }
@@ -405,7 +414,7 @@ void StreamBase::closeComms() {
       sd = -1;
     }
     // Can't delete any files because another zms might have come along and opened them and is waiting on the lock.
-    if ( lock_fd > 0 ) {
+    if ( lock_fd >= 0 ) {
       close(lock_fd); //close it rather than unlock it in case it got deleted.
     }
   }

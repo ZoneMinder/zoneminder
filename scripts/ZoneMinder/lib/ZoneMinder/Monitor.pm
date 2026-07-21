@@ -66,8 +66,8 @@ $serial = $primary_key = 'Id';
   JanusEnabled
   JanusAudioEnabled
   Janus_Profile_Override
-  Janus_Use_RTSP_Restream
-  Janus_RTSP_User
+  Restream
+  RTSP_User
   Janus_RTSP_Session_Timeout
   LinkedMonitors
   Triggers
@@ -193,8 +193,8 @@ $fields{model} = undef;
     JanusEnabled => 0,
     JanusAudioEnabled => 0,
     Janus_Profile_Override => q`''`,
-    Janus_Use_RTSP_Restream => 0,
-    Janus_RTSP_User => undef,
+    Restream => 0,
+    RTSP_User => undef,
     Janus_RTSP_Session_Timeout => 0,
     LinkedMonitors => undef,
     Triggers => '',
@@ -347,12 +347,19 @@ sub control {
   my $command = shift;
   my $process = shift;
 
+  if ($monitor->{Type} eq 'Local') {
+    if (!defined $monitor->{Device} or $monitor->{Device} !~ /^\/dev\/[\w\/.\-]+$/) {
+      Error("Invalid device path rejected: $monitor->{Device}");
+      return;
+    }
+  }
+
   if ($command eq 'stop') {
     if ($process) {
       ZoneMinder::General::runCommand("zmdc.pl stop $process -m $$monitor{Id}");
     } else {
       if ($monitor->{Type} eq 'Local') {
-        ZoneMinder::General::runCommand('zmdc.pl stop zmc -d '.$monitor->{Device});
+        ZoneMinder::General::runCommand("zmdc.pl stop zmc -d '$monitor->{Device}'");
       } else {
         ZoneMinder::General::runCommand('zmdc.pl stop zmc -m '.$monitor->{Id});
       }
@@ -362,7 +369,7 @@ sub control {
       ZoneMinder::General::runCommand("zmdc.pl start $process -m $$monitor{Id}");
     } else {
       if ($monitor->{Type} eq 'Local') {
-        ZoneMinder::General::runCommand('zmdc.pl start zmc -d '.$monitor->{Device});
+        ZoneMinder::General::runCommand("zmdc.pl start zmc -d '$monitor->{Device}'");
       } else {
         ZoneMinder::General::runCommand('zmdc.pl start zmc -m '.$monitor->{Id});
       }
@@ -372,7 +379,7 @@ sub control {
       ZoneMinder::General::runCommand("zmdc.pl restart $process -m $$monitor{Id}");
     } else {
       if ($monitor->{Type} eq 'Local') {
-        ZoneMinder::General::runCommand('zmdc.pl restart zmc -d '.$monitor->{Device});
+        ZoneMinder::General::runCommand("zmdc.pl restart zmc -d '$monitor->{Device}'");
       } else {
         ZoneMinder::General::runCommand('zmdc.pl restart zmc -m '.$monitor->{Id});
       }
@@ -498,7 +505,11 @@ sub zmcControl {
 
   if ((!$ZoneMinder::Config{ZM_SERVER_ID}) or ( $$self{ServerId} and ($ZoneMinder::Config{ZM_SERVER_ID}==$$self{ServerId}) )) {
     if ($$self{Type} eq 'Local') {
-      $zmcArgs .= '-d '.$self->{Device};
+      if (!defined $$self{Device} or $$self{Device} !~ /^\/dev\/[\w\/.\-]+$/) {
+        Error("Invalid device path rejected: $$self{Device}");
+        return;
+      }
+      $zmcArgs .= "-d '$$self{Device}'";
     } else {
       $zmcArgs .= '-m '.$self->{Id};
     }
@@ -626,9 +637,8 @@ Isaac Connor, E<lt>isaac@zoneminder.comE<gt>
 
 Copyright (C) 2001-2017  ZoneMinder LLC
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.3 or,
-at your option, any later version of Perl 5 you may have available.
+Licensed under the GNU General Public License v2 or later; see the COPYING
+file distributed with ZoneMinder for the full text.
 
 
 =cut

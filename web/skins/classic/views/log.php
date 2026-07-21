@@ -23,6 +23,24 @@ if ( !canView('System') ) {
   return;
 }
 
+// Calculate default page size based on browser height
+$defaultPageSize = 25; // Fallback default
+if (isset($_COOKIE['zmBrowserSizes'])) {
+  $zmBrowserSizes = jsonDecode($_COOKIE['zmBrowserSizes']);
+  if (!empty($zmBrowserSizes['innerHeight'])) {
+    $browserHeight = validInt($zmBrowserSizes['innerHeight']);
+    if ($browserHeight) {
+      // Subtract approximate overhead: navbar(56) + summary(30) + toolbar(66) + table header(40) + pagination(58) + margins(44)
+
+      $availableHeight = $browserHeight - 56 /* navbar */ - 18 /* (summary) */ - 66 /* toolbar */ - 25 /*table header */ - 58 /* pageination block */ - 0 /* margins */;
+      // Estimate ~32px per row // icon on mine is 26.5
+      $calculatedRows = floor($availableHeight / 27);
+      // Clamp between 10 and 100
+      $defaultPageSize = max(10, min(100, $calculatedRows));
+    }
+  }
+}
+
 xhtmlHeaders(__FILE__, translate('SystemLog'));
 getBodyTopHTML();
   echo getNavBarHTML() ?>
@@ -33,30 +51,33 @@ getBodyTopHTML();
       <?php echo translate('Total') ?>:&nbsp;<span id="totalLogs"></span>&nbsp;-&nbsp;
       <?php echo translate('Available') ?>:&nbsp;<span id="availLogs"></span>&nbsp;-&nbsp;
       <?php echo translate('Displaying') ?>:&nbsp;<span id="displayLogs"></span>&nbsp;-&nbsp;
-      <?php echo translate('Updated') ?>:&nbsp;<span id="lastUpdate"></span>
+      <?php echo translate('Updated') ?>:&nbsp;<span id="lastUpdate"></span><span id="requestStatus"></span>
     </div>
     <div id="logsTable">
     <div id="toolbar">
       <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
       <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
+<?php if ( canEdit('System') ) { ?>
+      <button id="clearLogsBtn" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="<?php echo translate('ClearLogs') ?>" disabled><i class="fa fa-trash"></i> <?php echo translate('ClearLogs') ?></button>
+<?php } ?>
       <div class="controlHeader">
       <span class="term ComponentFilter">
         <label><?php echo translate('Component') ?></label>
 <?php
 $components = dbFetchAll('SELECT DISTINCT Component FROM Logs ORDER BY Component', 'Component');
-ZM\Debug(print_r($components, true));
-$options = [''=>translate('All')] + array_combine($components, $components);
-ZM\Debug(print_r($options, true));
-$selected_component = '';
+$options = $components ? array_combine($components, $components) : array();
+// Multi-select: an empty selection means "All". Accept a scalar (legacy) or an
+// array from the session and keep only values that are still valid components.
+$selectedComponents = array();
 if (isset($_SESSION['zmLogComponent'])) {
-  if (array_search($_SESSION['zmLogComponent'], $components)) {
-    $selected_component = $_SESSION['zmLogComponent'];
-  } else {
-    unset($_SESSION['zmLogComponent']);
+  foreach ((array)$_SESSION['zmLogComponent'] as $c) {
+    if (is_scalar($c) && isset($options[(string)$c])) $selectedComponents[] = (string)$c;
   }
 }
 echo '<span class="term-value-wrapper">';
-echo htmlSelect('filterComponent', $options, $selected_component, array('id'=>'filterComponent', 'class'=>'chosen'));
+echo htmlSelect('filterComponent[]', $options, $selectedComponents,
+    array('data-on-change'=>'filterLog', 'id'=>'filterComponent', 'class'=>'chosen',
+      'multiple'=>'multiple', 'data-placeholder'=>translate('All')));
 echo '</span>';
 ?>
       </span>
@@ -74,15 +95,22 @@ echo '</span>';
       <span class="term LevelFilter">
         <label><?php echo translate('Level') ?></label>
 <?php
-$levels = array(''=>translate('All'));
+$levels = array();
 foreach (array_values(ZM\Logger::$codes) as $level) {
   $levels[$level] = $level;
 }
+// Multi-select: an empty selection means "All". Accept a scalar (legacy) or an
+// array from the session and keep only values that are still valid levels.
+$selectedLevels = array();
+if (isset($_SESSION['zmLogFilterLevel'])) {
+  foreach ((array)$_SESSION['zmLogFilterLevel'] as $l) {
+    if (is_scalar($l) && isset($levels[(string)$l])) $selectedLevels[] = (string)$l;
+  }
+}
 echo '<span class="term-value-wrapper">';
-echo htmlSelect('filterLevel', $levels,
-    (isset($_SESSION['ZM_LOG_FILTER_LEVEL']) ? $_SESSION['ZM_LOG_FILTER_LEVEL'] : ''),
-    array('data-on-change'=>'filterLog', 'id'=>'filterLevel', 'class'=>'chosen'));
-    #array('class'=>'form-control chosen', 'data-on-change'=>'filterLog'));
+echo htmlSelect('filterLevel[]', $levels, $selectedLevels,
+    array('data-on-change'=>'filterLog', 'id'=>'filterLevel', 'class'=>'chosen',
+      'multiple'=>'multiple', 'data-placeholder'=>translate('All')));
 echo '</span>';
 ?>
       </span>
@@ -108,6 +136,7 @@ echo '</span>';
       data-side-pagination="server"
       data-ajax="ajaxRequest"
       data-pagination="true"
+      data-page-size="<?php echo $defaultPageSize ?>"
       data-page-list="[10, 25, 50, 100, 200, 300, 400, 500]"
       data-search="true"
       data-advanced-search="true"
@@ -123,13 +152,21 @@ echo '</span>';
       data-maintain-meta-data="true"
       data-buttons-class="btn btn-normal"
       data-show-jump-to="true"
-      data-auto-refresh="true"
+      data-auto-refresh="<?php echo ((int)ZM_WEB_REFRESH_LOGS === 0) ? 'false' : 'true'?>"
       data-auto-refresh-silent="true"
       data-show-refresh="true"
-      data-auto-refresh-interval="30"
+      <?php echo ((int)ZM_WEB_REFRESH_LOGS !== 0) ? 'data-auto-refresh-interval="' . (int)ZM_WEB_REFRESH_LOGS .'"' : ''?>
+<?php if (canEdit('System')) { ?>
+      data-click-to-select="true"
+<?php } ?>
+      data-id-field="Id"
     >
       <thead class="thead-highlight">
         <tr>
+<?php if (canEdit('System')) { ?>
+          <th data-sortable="false" data-field="toggleCheck" data-checkbox="true"></th>
+<?php } ?>
+          <th data-field="Id" data-visible="false"></th>
           <th data-sortable="true" data-field="DateTime"><?php echo translate('DateTime') ?></th>
           <th data-sortable="true" data-field="Component"><?php echo translate('Component') ?></th>
 <?php if (count($Servers)>1) { ?>

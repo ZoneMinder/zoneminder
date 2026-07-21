@@ -116,7 +116,8 @@ class Filter extends ZM_Object {
     if ( ! isset($this->_pre_sql_conditions) ) {
       $this->_pre_sql_conditions = array();
       foreach ( $this->FilterTerms() as $term ) {
-        if ( $term->is_pre_sql() )
+        // Invalid terms add no SQL, so must not count as a condition.
+        if ( $term->is_pre_sql() and $term->valid() )
           $this->_pre_sql_conditions[] = $term;
       } # end foreach term
     }
@@ -128,7 +129,8 @@ class Filter extends ZM_Object {
     if ( ! isset($this->_post_sql_conditions) ) {
       $this->_post_sql_conditions = array();
       foreach ( $this->FilterTerms() as $term ) {
-        if ( $term->is_post_sql() )
+        // Invalid terms add no SQL, so must not count as a condition.
+        if ( $term->is_post_sql() and $term->valid() )
           $this->_post_sql_conditions[] = $term;
       } # end foreach term
     }
@@ -155,6 +157,50 @@ class Filter extends ZM_Object {
     $filter = new Filter();
     $filter->Query($new_filter['Query']);
     return $filter;
+  }
+
+  // Accepts: empty string, a bare identifier, or a comma-separated list of
+  // <Column> [IS [NOT] NULL] [ASC|DESC] expressions. Structural check only —
+  // callers that know which columns are legal should additionally whitelist
+  // them after a successful match.
+
+  // Single source of truth for the sort grammar, shared by validation and
+  // building. Each comma-separated part: <Column> [IS [NOT] NULL] [ASC|DESC].
+  const SORT_PART_RE = '/^\s*([A-Za-z][A-Za-z0-9_]*)(\s+IS\s+(?:NOT\s+)?NULL)?(\s+(?:ASC|DESC))?\s*$/i';
+
+  public static function isValidSortExpression($sf) {
+    if ($sf === '' || $sf === null) return true;
+    if (!is_string($sf)) return false;
+    foreach (explode(',', $sf) as $part) {
+      if (!preg_match(self::SORT_PART_RE, $part)) return false;
+    }
+    return true;
+  }
+
+  // Build a safe ORDER BY body (without the "ORDER BY" keyword) from a sort
+  // spec. $order is the global default direction ('ASC'|'DESC') used for parts
+  // that omit an explicit ASC/DESC. $resolve_column is callable($col): ?string
+  // returning the column's SQL (e.g. 'E.Id', 'M.Name') or null if not allowed.
+  // Returns '' if the spec is empty or any part is invalid/not allowed.
+  public static function buildSortSql($sort, $order, $resolve_column) {
+    if ($sort === '' || $sort === null) return '';
+    // Defend the "safe" contract: only ASC/DESC may reach the SQL as a default
+    // direction, regardless of what a caller passes.
+    $order = strtoupper(trim($order));
+    if ($order !== 'ASC' && $order !== 'DESC') return '';
+    $out = array();
+    foreach (explode(',', $sort) as $part) {
+      if (!preg_match(self::SORT_PART_RE, $part, $m)) return '';
+      $col_sql = call_user_func($resolve_column, $m[1]);
+      if ($col_sql === null) return '';
+      $null_expr = '';
+      if (isset($m[2]) && trim($m[2]) !== '') {
+        $null_expr = (stripos($m[2], 'NOT') !== false) ? ' IS NOT NULL' : ' IS NULL';
+      }
+      $dir = (isset($m[3]) && trim($m[3]) !== '') ? strtoupper(trim($m[3])) : $order;
+      $out[] = $col_sql.$null_expr.' '.$dir;
+    }
+    return implode(', ', $out);
   }
 
   # If no storage areas are specified in the terms, then return all
@@ -242,7 +288,18 @@ class Filter extends ZM_Object {
       $this->Query($Query);
     }
     if (isset($this->Query()['sort_field'])) {
-      return $this->{'Query'}['sort_field'];
+      $sf = $this->{'Query'}['sort_field'];
+      // Accept either a bare column name or a comma-separated list of
+      // <Column> [IS [NOT] NULL] expressions — the latter lets the NULLs-last
+      // idiom (e.g. "EndDateTime IS NOT NULL, EndDateTime") round-trip cleanly.
+      // The filter UI today only emits a single column; if/when it gains
+      // multi-column sort, the same shape will continue to validate. Anything
+      // outside this grammar is dropped so a stale URL/cookie/DB row can't
+      // leak SQL fragments into data-sort-name.
+      if (self::isValidSortExpression($sf)) {
+        return $sf;
+      }
+      Warning('Ignoring malformed Filter sort_field "'.$sf.'"');
     }
     return ZM_WEB_EVENT_SORT_FIELD;
     #return $this->defaults{'sort_field'};
@@ -924,6 +981,9 @@ class Filter extends ZM_Object {
     return self::$archiveTypes;
   }
 
+  //
+  // This displays filters from the filters page.
+  //
   public function widget() {
     $html = '<table id="fieldsTable" class="filterTable"><tbody>';
     $opTypes = $this->opTypes();
@@ -976,7 +1036,7 @@ class Filter extends ZM_Object {
         }
       }
     }
-    $availableTags = array(''=>translate('No Tag'));
+    $availableTags = array('0'=>translate('No Tag'), '-1'=>translate('Any Tag'));
     foreach ( dbFetchAll('SELECT Id, Name FROM Tags ORDER BY lower(`Name`) ASC') AS $tag ) {
       $availableTags[$tag['Id']] = validHtmlStr($tag['Name']);
     }
@@ -1003,22 +1063,16 @@ class Filter extends ZM_Object {
         if ( $term['attr'] == 'Archived' ) {
           $html .= '<td>'.translate('OpEq').'<input type="hidden" name="filter[Query][terms]['.$i.'][op]" value="="/></td>'.PHP_EOL;
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $archiveTypes, $term['val'], ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;
-        
-        
-        
         } else if ( $term['attr'] == 'Tags') {
           // Error($term['attr']);
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op'], ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;
           $options = ['class'=>'chosen chosen-full-width', 'multiple'=>'multiple'];
-          $selected = explode(',', $term['val']);
-          if (count($selected) == 1 and !$selected[0]) {
-            $selected = null;
-          }
+          $selected = isset($term['val']) ? json_decode($term['val']) : [];
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $availableTags, $selected, $options).'</td>'.PHP_EOL;
-          // ZM\Debug('$availableTags: '.$availableTags);
-          // ZM\Debug('$selected: '.$selected);
-
-
+          // These echo statements print these variables at the top of the view for debugging.
+          // echo '<div style="background-color:orange"><pre>availableTags: '; print_r($availableTags); echo '</pre></div>';
+          // echo '<div style="background-color:lightblue"><pre>selected: '; print_r($selected); echo '</pre></div>';
+          // echo '<div style="background-color:green"><pre>options: '; print_r($options); echo '</pre></div>';
 
         } else if ( $term['attr'] == 'DateTime' || $term['attr'] == 'StartDateTime' || $term['attr'] == 'EndDateTime') {
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op'], ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;
@@ -1088,8 +1142,11 @@ class Filter extends ZM_Object {
     return $html;
   }  # end function widget()
 
+  //
+  // This displays filters from the events page.
+  //
   public function simple_widget() {
-    $html = '<div id="fieldsTable" class="filterTable">';
+    $html = '<div id="fieldsTable" class="filterTable controlHeader">';
     $terms = $this->terms();
     $attrTypes = $this->attrTypes();
     $opTypes = $this->opTypes();
@@ -1112,7 +1169,7 @@ class Filter extends ZM_Object {
     for ( $i = 0; $i < 7; $i++ ) {
       $weekdays[$i] = date('D', mktime(12, 0, 0, 1, $i+1, 2001));
     }
-    $availableTags = array(''=>translate('No Tag'));
+    $availableTags = array('0'=>translate('No Tag'), '-1'=>translate('Any Tag'));
     foreach ( dbFetchAll('SELECT Id, Name FROM Tags ORDER BY lower(`Name`) ASC') AS $tag ) {
       $availableTags[$tag['Id']] = validHtmlStr($tag['Name']);
     }
@@ -1135,6 +1192,9 @@ class Filter extends ZM_Object {
       #$html .= ($i == 0) ?  '' : htmlSelect("filter[Query][terms][$i][cnj]", $conjunctionTypes, $term['cnj']).PHP_EOL;
       $html .= ($i == 0) ?  '' : html_input("filter[Query][terms][$i][cnj]", 'hidden', $term['cnj']).PHP_EOL;
       if ( isset($term['attr']) ) {
+        if (($term['attr'] == 'Tags') and (count($availableTags)<=1)) {
+          continue;
+        }
         $html .= '<span class="term '.$term['attr'].'"><span class="term-label-wrapper"><label>'.$attrTypes[$term['attr']].'</label>';
         $html .= html_input("filter[Query][terms][$i][attr]", 'hidden', $term['attr']);
         $html .= html_input("filter[Query][terms][$i][op]", 'hidden', $term['op']).PHP_EOL;
@@ -1146,27 +1206,24 @@ class Filter extends ZM_Object {
           $html .= htmlSelect("filter[Query][terms][$i][val]", $archiveTypes, $term['val'],['id'=>'filterArchived', 'class'=>'chosen chosen-auto-width']).PHP_EOL;
           $html .= '</span>';
         } else if ( $term['attr'] == 'Tags' ) {
-          $selected = empty($term['val']) ? [] : json_decode($term['val']);
-          // echo '<pre>selected: '; print_r($selected); echo '</pre>';
-          if (count($selected) == 1 and !$selected[0]) {
-            $selected = null;
-          }
+          $selected = isset($term['val']) ? json_decode($term['val']) : [];
+          // echo '<pre>selected: '; echo $term['val']."<br/>"; print_r($selected); echo '</pre>';
           $options = ['id'=>'filterTags', 'class'=>'chosen chosen-auto-width', 'multiple'=>'multiple', 'data-placeholder'=>translate('All Tags')];
           if (isset($term['cookie'])) {
             $options['data-cookie'] = $term['cookie'];
 
-            if (!$selected and isset($_COOKIE[$term['cookie']]) and $_COOKIE[$term['cookie']])
+            if ((!isset($term['val']) or $term['val']=='') and isset($_COOKIE[$term['cookie']]) and $_COOKIE[$term['cookie']])
               $selected = json_decode($_COOKIE[$term['cookie']]);
           }
-          // These echo statements print these variables at the top of the view.
-          // echo '<pre>availableTags: '; print_r($availableTags); echo '</pre>';
-          // echo '<pre>selected: '; print_r($selected); echo '</pre>';
-          // echo '<pre>options: '; print_r($options); echo '</pre>';
+          // These echo statements print these variables at the top of the view for debugging.
+          // echo '<div style="background-color:orange"><pre>availableTags: '; print_r($availableTags); echo '</pre></div>';
+          // echo '<div style="background-color:lightblue"><pre>selected: '; print_r($selected); echo '</pre></div>';
+          // echo '<div style="background-color:green"><pre>options: '; print_r($options); echo '</pre></div>';
 
-          $html .= '<span class="term-value-wrapper">';
-          $html .= htmlSelect("filter[Query][terms][$i][val]", $availableTags, $selected, $options).PHP_EOL;
-          $html .= $this->addButtonForFilterSelect("filter[Query][terms][$i][val]");
-          $html .= '</span>';
+            $html .= '<span class="term-value-wrapper">';
+            $html .= htmlSelect("filter[Query][terms][$i][val]", $availableTags, $selected, $options).PHP_EOL;
+            $html .= $this->addButtonForFilterSelect("filter[Query][terms][$i][val]");
+            $html .= '</span>';
           // $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", array_combine($availableTags,$availableTags), $term['val'],
           // $options).'</span>'.PHP_EOL;
           // $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $availableTags, $term['val'], $options).'</span>'.PHP_EOL;
@@ -1175,8 +1232,6 @@ class Filter extends ZM_Object {
           // Debug('$availableTags: '.$availableTags);
           // Debug('$selected: '.$selected);
           // Debug('$options: '.$options);
-
-
 
         } else if ( $term['attr'] == 'DateTime' || $term['attr'] == 'StartDateTime' || $term['attr'] == 'EndDateTime') {
           $html .= '<span class="term-value-wrapper">';

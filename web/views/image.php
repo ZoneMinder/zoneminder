@@ -60,6 +60,11 @@ if (!empty($_REQUEST['proxy'])) {
   }
 
   $url_parts = parse_url($url);
+  if (!$url_parts || !isset($url_parts['scheme']) ||
+      !in_array(strtolower($url_parts['scheme']), array('http', 'https'))) {
+    ZM\Warning('Image proxy only supports http/https URLs');
+    return;
+  }
   $username = $url_parts['user'];
   $password = isset($url_parts['pass']) ? $url_parts['pass'] : '';
 
@@ -204,7 +209,14 @@ $media_type='image/jpeg';
 
 if ( empty($_REQUEST['path']) ) {
 
+  // Validate show parameter against allowlist to prevent command injection (CVE-2025-65791)
+  $allowed_show_values = array('capture', 'analyse');
   $show = empty($_REQUEST['show']) ? 'capture' : $_REQUEST['show'];
+  if (!in_array($show, $allowed_show_values)) {
+    header('HTTP/1.0 400 Bad Request');
+    ZM\Error('Invalid show parameter: ' . preg_replace('/[^a-zA-Z0-9_-]/', '', $show));
+    return;
+  }
 
   if ( empty($_REQUEST['fid']) ) {
     header('HTTP/1.0 404 Not Found');
@@ -217,6 +229,13 @@ if ( empty($_REQUEST['path']) ) {
     if ( !$Event ) {
       header('HTTP/1.0 404 Not Found');
       ZM\Error('Event '.$_REQUEST['eid'].' Not found');
+      return;
+    }
+    // Per-event ACL: coarse Events/Snapshots role isn't enough, must also check
+    // monitor-level permission (GHSA-vj5r-pc2v-gfwv). 404 to avoid leaking the id.
+    if (!$Event->canView()) {
+      header('HTTP/1.0 404 Not Found');
+      ZM\Warning('Event '.$_REQUEST['eid'].' access denied');
       return;
     }
 
@@ -324,7 +343,11 @@ if ( empty($_REQUEST['path']) ) {
           $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d', $Frame->FrameId()).'-'.$show.'.jpg';
         } else {
           if ( $Event->DefaultVideo() ) {
-            $file_path = $Event->Path().'/'.$Event->DefaultVideo();
+            if($Event->DefaultVideo() !== 'index.m3u8') {
+              $file_path = $Event->Path().'/'.$Event->DefaultVideo();
+            } else {
+              $file_path = $Event->Path().'/'.find_video($Event->Path());
+            }
 
             if (!file_exists($file_path)) {
               if ($file = find_video($Event->Path())) {
@@ -332,7 +355,12 @@ if ( empty($_REQUEST['path']) ) {
               }
             }
             if (file_exists($file_path)) {
-              $command = ZM_PATH_FFMPEG.' -ss '. $Frame->Delta() .' -i '.$file_path.' -frames:v 1 '.$path . ' 2>&1';
+              if ( !is_executable(ZM_PATH_FFMPEG) ) {
+                header('HTTP/1.0 500 Internal Server Error');
+                ZM\Error('ZM_PATH_FFMPEG is not a valid executable: '.ZM_PATH_FFMPEG);
+                return;
+              }
+              $command = ZM_PATH_FFMPEG.' -ss '.escapeshellarg($Frame->Delta()).' -i '.escapeshellarg($file_path).' -frames:v 1 '.escapeshellarg($path).' 2>&1';
               #$command ='ffmpeg -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
               #$command ='ffmpeg -v 0 -i '.$Storage->Path().'/'.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
               ZM\Debug("Running $command");
@@ -340,7 +368,7 @@ if ( empty($_REQUEST['path']) ) {
               $retval = 0;
               exec($command, $output, $retval);
               ZM\Debug("Command: $command, retval: $retval, output: " . implode("\n", $output));
-              if ( ! file_exists($path) ) {
+              if ( $Event->DefaultVideo() !== 'index.m3u8' && ! file_exists($path) ) {
                 header('HTTP/1.0 404 Not Found');
                 ZM\Error('Can\'t create frame images from video for this event '.$Event->DefaultVideo().'
 
@@ -397,6 +425,13 @@ if ( empty($_REQUEST['path']) ) {
       ZM\Error('Event ' . $Frame->EventId() . ' Not Found');
       return;
     }
+    // Per-event ACL: see GHSA-vj5r-pc2v-gfwv. The frame id is user-supplied so the
+    // event/monitor it resolves to may be one the user is denied from viewing.
+    if (!$Event->canView()) {
+      header('HTTP/1.0 404 Not Found');
+      ZM\Warning('Event '.$Frame->EventId().' access denied via frame '.$_REQUEST['fid']);
+      return;
+    }
     $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d',$Frame->FrameId()).'-'.$show.'.jpg';
   } # end if have eid
     
@@ -413,10 +448,16 @@ if ( empty($_REQUEST['path']) ) {
       }
       if (!file_exists($file_path)) {
         header('HTTP/1.0 404 Not Found');
-        ZM\Error("Can't create frame images from video because there is no video file for this event at (".$Event->Path().'/'.$Event->DefaultVideo() );
+        ZM\Warning("Can't create frame images from video because there is no video file for this event at (".$Event->Path().'/'.$Event->DefaultVideo() );
         return;
       }
-      $command = ZM_PATH_FFMPEG.' -ss '. $Frame->Delta() .' -i '.$file_path.' -frames:v 1 '.$path . ' 2>&1';
+      if ( !is_executable(ZM_PATH_FFMPEG) ) {
+        header('HTTP/1.0 500 Internal Server Error');
+        ZM\Error('ZM_PATH_FFMPEG is not a valid executable: '.ZM_PATH_FFMPEG);
+        return;
+      }
+      // Use escapeshellarg() to prevent command injection
+      $command = ZM_PATH_FFMPEG.' -ss '.escapeshellarg($Frame->Delta()).' -i '.escapeshellarg($file_path).' -frames:v 1 '.escapeshellarg($path).' 2>&1';
       #$command ='ffmpeg -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
 #$command ='ffmpeg -v 0 -i '.$Storage->Path().'/'.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
       ZM\Debug("Running $command");
@@ -424,13 +465,18 @@ if ( empty($_REQUEST['path']) ) {
       $retval = 0;
       exec($command, $output, $retval);
       ZM\Debug("Command: $command, retval: $retval, output: " . implode("\n", $output));
-      if ( ! file_exists($path) ) {
+      if ($Event->DefaultVideo() !== 'index.m3u8' && ! file_exists($path) ) {
         header('HTTP/1.0 404 Not Found');
-        ZM\Error('Can\'t create frame images from video for this event '.$Event->DefaultVideo().'
+        $message = 'Can\'t create frame images from video for this event '.$Event->DefaultVideo().'
 
 Command was: '.$command.'
 
-Output was: '.implode(PHP_EOL,$output) );
+Output was: '.implode(PHP_EOL,$output);
+        if (str_contains($Event->DefaultVideo(), 'incomplete')) {
+          ZM\Warning($message);
+        } else {
+          ZM\Error($message);
+        }
         return;
       }
       # Generating an image file will use up more disk space, so update the Event record.
@@ -478,6 +524,11 @@ if ( $errorText ) {
   ZM\Error($errorText);
 } else {
   # Must lock it because zmc may be still writing the jpg and will have a lock on it.
+  if (!file_exists($path)) {
+    header('HTTP/1.0 404 Not Found');
+    ZM\Warning("File '$path' cannot be locked because it does not exist.");
+    return;
+  }
   $fp_path = fopen($path, 'r');
   $lock = flock($fp_path, LOCK_SH);
   if (!$lock) ZM\Warning("Unable to get a read lock on $path, continuing.");
@@ -517,9 +568,9 @@ ZM\Debug("Figuring out height using width: $height = ($width * $oldHeight) / $ol
     }
   
     # Slight optimisation, thumbnails always specify width and height, so we can cache them.
-    $scaled_path = preg_replace('/\.jpg$/', "-${width}x${height}.jpg", $path);
+    $scaled_path = preg_replace('/\.jpg$/', "-{$width}x{$height}.jpg", $path);
     if ($Event) {
-      $filename = $Event->MonitorId().'_'.$Event->Id().'_'.$Frame->FrameId()."-${width}x${height}.jpg";
+      $filename = $Event->MonitorId().'_'.$Event->Id().'_'.$Frame->FrameId()."-{$width}x{$height}.jpg";
       header('Content-Disposition: inline; filename="' . $filename . '"');
     }
 
@@ -542,8 +593,13 @@ ZM\Debug("Figuring out height using width: $height = ($width * $oldHeight) / $ol
         ob_start();
         $iScale = imagescale($i, $width, $height);
         imagejpeg($iScale);
-        imagedestroy($i);
-        imagedestroy($iScale);
+        if (PHP_MAJOR_VERSION < 8) { // imagedestroy() is deprecated since 8.0.0
+          imagedestroy($i);
+          imagedestroy($iScale);
+        } else {
+          unset($i);
+          unset($iScale);
+        }
         $scaled_jpeg_data = ob_get_contents();
         file_put_contents($scaled_path, $scaled_jpeg_data, LOCK_EX);
 

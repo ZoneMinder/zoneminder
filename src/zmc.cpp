@@ -190,7 +190,9 @@ int main(int argc, char *argv[]) {
   logInit(log_id_string);
 
   HwCapsDetect();
+#if HAVE_LIBCURL
   curl_global_init(CURL_GLOBAL_DEFAULT);
+#endif  // HAVE_LIBCURL
 
   std::vector<std::shared_ptr<Monitor>> monitors;
 #if ZM_HAS_V4L2
@@ -248,6 +250,7 @@ int main(int argc, char *argv[]) {
 
       while (!monitor->connect() and !zm_terminate) {
         Warning("Couldn't connect to monitor %d", monitor->Id());
+        monitor->SetHeartbeatTime(std::chrono::system_clock::now());
         sleep(1);
       }
       if (zm_terminate) break;
@@ -300,7 +303,11 @@ int main(int argc, char *argv[]) {
           time_t last_viewed = monitors[i]->getLastViewed();
           int64 since_last_view = static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count()) - last_viewed;
           Debug(1, "Last view %jd= %" PRId64 " seconds since last view", last_viewed, since_last_view);
-          if (((!last_viewed) or (since_last_view > 10)) and (monitors[i]->GetLastWriteIndex() != -1)) {
+          if (!last_viewed or (since_last_view > 10)) {
+            // Nobody is watching — pause if running, otherwise stay paused.
+            // The previous GetLastWriteIndex() != -1 guard caused a
+            // Pause/Play cycle because Pause() resets the write index,
+            // making the guard false and falling through to Play().
             if (monitors[i]->getCamera()->isPrimed()) {
               monitors[i]->Pause();
             }
@@ -322,7 +329,8 @@ int main(int argc, char *argv[]) {
           break;
         }
         if (monitors[i]->Capture() < 0) {
-          logPrintf(Logger::ERROR + monitors[i]->Importance(), "Failed to capture image from monitor %d %s (%zu/%zu)",
+          if (!zm_terminate)
+            logPrintf(Logger::ERROR + monitors[i]->Importance(), "Failed to capture image from monitor %d %s (%zu/%zu)",
                 monitors[i]->Id(), monitors[i]->Name(), i + 1, monitors.size());
           result = -1;
           break;
@@ -380,7 +388,9 @@ int main(int argc, char *argv[]) {
     }  // end while ! zm_terminate and connected
 
     for (std::shared_ptr<Monitor> & monitor : monitors) {
+      monitor->SetHeartbeatTime(std::chrono::system_clock::now());
       monitor->Close();
+      monitor->SetHeartbeatTime(std::chrono::system_clock::now());
       monitor->disconnect();
     }
 
@@ -407,7 +417,9 @@ int main(int argc, char *argv[]) {
   Debug(1, "Cleared monitors");
 
   Image::Deinitialise();
+#if HAVE_LIBCURL
   curl_global_cleanup();
+#endif  // HAVE_LIBCURL
   Debug(1, "terminating");
   dbQueue.stop();
   zmDbClose();

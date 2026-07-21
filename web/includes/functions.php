@@ -21,6 +21,26 @@
 require_once('Filter.php');
 require_once('FilterTerm.php');
 
+// Polyfills for PHP 8.0+ string functions, so views and callers don't have to
+// guard each use. ZoneMinder still supports PHP 7.x in some distros.
+if (!function_exists('str_starts_with')) {
+  function str_starts_with(string $haystack, string $needle): bool {
+    return $needle === '' || strncmp($haystack, $needle, strlen($needle)) === 0;
+  }
+}
+if (!function_exists('str_ends_with')) {
+  function str_ends_with(string $haystack, string $needle): bool {
+    if ($needle === '' || $needle === $haystack) return true;
+    $nlen = strlen($needle);
+    return $nlen <= strlen($haystack) && substr_compare($haystack, $needle, -$nlen) === 0;
+  }
+}
+if (!function_exists('str_contains')) {
+  function str_contains(string $haystack, string $needle): bool {
+    return $needle === '' || strpos($haystack, $needle) !== false;
+  }
+}
+
 function noCacheHeaders() {
   header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');    // Date in the past
   header('Last-Modified: '.gmdate( 'D, d M Y H:i:s' ).' GMT'); // always modified
@@ -143,84 +163,42 @@ function getVideoStreamHTML($id, $src, $width, $height, $format, $title='') {
   }
   if ( !$mimeType || ($mimeType == 'application/octet-stream') )
     $mimeType = 'video/'.$format;
-  if ( ZM_WEB_USE_OBJECT_TAGS ) {
-    switch( $mimeType ) {
-      case 'video/x-ms-asf' :
-      case 'video/x-msvideo' :
-      case 'video/mp4' :
-          if ( isWindows() ) {
-            return '<object id="'.$id.'" width="'.$width.'" height="'.$height.'
-              classid="CLSID:22D6F312-B0F6-11D0-94AB-0080C74C7E95"
-              codebase="'.ZM_BASE_PROTOCOL.'://activex.microsoft.com/activex/controls/mplayer/en/nsmp2inf.cab#Version=6,0,02,902"
-              standby="Loading Microsoft Windows Media Player components..."
-              type="'.$mimeType.'">
-              <param name="FileName" value="'.$src.'"/>
-              <param name="autoStart" value="1"/>
-              <param name="showControls" value="0"/>
-              <embed type="'.$mimeType.'"
-              pluginspage="'.ZM_BASE_PROTOCOL.'://www.microsoft.com/Windows/MediaPlayer/"
-              src="'.$src.'"
-              name="'.$title.'"
-              width="'.$width.'"
-              height="'.$height.'"
-              autostart="1"
-              showcontrols="0">
-              </embed>
-              </object>';
-          }
-      case 'video/quicktime' :
-            return '<object id="'.$id.'" width="'.$width.'" height="'.$height.'"
-            classid="clsid:02BF25D5-8C17-4B23-BC80-D3488ABDDC6B"
-            codebase="'.ZM_BASE_PROTOCOL.'://www.apple.com/qtactivex/qtplugin.cab"
-            type="'.$mimeType.'">
-            <param name="src" value="'.$src.'"/>
-            <param name="autoplay" VALUE="true"/>
-            <param name="controller" VALUE="false"/>
-            <embed type="'.$mimeType.'"
-            src="'.$src.'"
-            pluginspage="'.ZM_BASE_PROTOCOL.'://www.apple.com/quicktime/download/"
-            name="'.$title.'" width="'.$width.'" height="'.$height.'"
-            autoplay="true"
-            controller="true">
-            </embed>
-            </object>';
-      case 'application/x-shockwave-flash' :
-            return '<object id="'.$id.'" width="'.$width.'" height="'.$height.'"
-            classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000"
-            codebase="'.ZM_BASE_PROTOCOL.'://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=6,0,40,0"
-            type="'.$mimeType.'">
-            <param name="movie" value="'.$src.'"/>
-            <param name="quality" value="high"/>
-            <param name="bgcolor" value="#ffffff"/>
-            <embed type="'.$mimeType.'"
-            pluginspage="'.ZM_BASE_PROTOCOL.'://www.macromedia.com/go/getflashplayer"
-            src="'.$src.'"
-            name="'.$title.'"
-            width="'.$width.'"
-            height="'.$height.'"
-            quality="high"
-            bgcolor="#ffffff">
-            </embed>
-            </object>';
-    } # end switch
-  } # end if use object tags
 
   switch ($mimeType) {
     case 'video/mp4' :
-      global $rates;
-      return '<video autoplay id="videoobj" class="video-js vjs-default-skin"'
-        .($width ? ' width="'.$width.'"' : '').($height ? ' height="'.$height.'"' : '').'
-            style="transform: matrix(1, 0, 0, 1, 0, 0);"
-            data-setup=\'{ "controls": true, "autoplay": true, "preload": "auto", "playbackRates": [ '. implode(',',
-              array_map(function($r){return $r/100;},
-                array_filter(
-                  array_keys($rates),
-                  function($r){return $r >= 0 ? true : false;}
-                ))).']}\' 
-          >
+      global $rates, $cspNonce;
+      $playbackRates = implode(',',
+        array_map(function($r){return $r/100;},
+          array_filter(
+            array_keys($rates),
+            function($r){return $r >= 0 ? true : false;}
+          )));
+      
+      return '<video id="videoobj" class="video-js"
+            controls autoplay preload="auto">
           <source src="'. $src.'" type="video/mp4">
           Your browser does not support the video tag.
-          </video>';
+        </video>
+        <script nonce="'.$cspNonce.'">
+          document.addEventListener("DOMContentLoaded", function() {
+            if (typeof videojs === "undefined") {
+              console.error("videojs is not loaded");
+              return;
+            }
+            var player = videojs("videoobj", {
+              controls: true,
+              autoplay: true,
+              preload: "auto",
+              fluid: true,
+              responsive: true,
+              playbackRates: [' . $playbackRates . ']
+            });
+            player.zoomrotate({
+              zoom: 1,
+              rotate: 0
+            });
+          });
+        </script>';
     default:
     return '<embed'. ( isset($mimeType)?(' type="'.$mimeType.'"'):'' ). '
       src="'.$src.'"
@@ -244,10 +222,7 @@ function getImageStreamHTML( $id, $src, $width, $height, $title='' ) {
   if (canStreamIframe()) {
       return '<iframe id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" '.($width? ' width="'. validInt($width).'"' : '').($height?' height="'.validInt($height).'"' : '' ).'/>';
   } else {
-      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" style="'.
-      (($width and ($width !='auto')) ?'width:'.$width.';' : '').
-      (($height and ($height != 'auto'))?' height:'.$height.';':'').
-      '" />';
+    return getImageStill($id, $src, $width, $height, $title);
   }
 }
 
@@ -282,9 +257,10 @@ function outputImageStill($id, $src, $width, $height, $title='') {
   echo getImageStill($id, $src, $width, $height, $title='');
 }
 function getImageStill($id, $src, $width, $height, $title='') {
-  return '<img id="'.$id.'" src="'.$src.'" alt="'.$title.'"'.
-    (validInt($width)?' width="'.$width.'"':'').
-    (validInt($height)?' height="'.$height.'"':'').' />';
+      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" style="'.
+      (($width and ($width !='auto')) ?'width:'.$width.';' : '').
+      (($height and ($height != 'auto'))?' height:'.$height.';':'').
+      '" />';
 }
 
 function getWebSiteUrl($id, $src, $width, $height, $title='') {
@@ -365,8 +341,8 @@ function deletePath( $path ) {
   if (is_link($path)) {
     if (!unlink($path)) ZM\Debug("Failed to unlink $path");
   } else if (is_dir($path)) {
-    if (false === ($output = system('rm -rf "'.escapeshellcmd($path).'"'))) {
-      ZM\Warning('Failed doing rm -rf "'.escapeshellcmd($path).'"');
+    if (false === ($output = system('rm -rf '.escapeshellarg($path)))) {
+      ZM\Warning('Failed doing rm -rf '.escapeshellarg($path));
     }
   } else if (file_exists($path)) {
     if (!unlink($path)) ZM\Debug("Failed to delete $path");
@@ -448,7 +424,7 @@ function htmlOptions($options, $values) {
   $has_selected = false;
   foreach ( $options as $value=>$option ) {
     $disabled = 0;
-    $text = '';
+    $text = $class = '';
     if ( is_array($option) ) {
 
       if ( isset($option['Name']) )
@@ -458,6 +434,9 @@ function htmlOptions($options, $values) {
 
       if ( isset($option['disabled']) ) {
         $disabled = $option['disabled'];
+      }
+      if ( isset($option['class']) ) {
+        $class = $option['class'];
       }
     } else if ( is_object($option) ) {
       $text = $option->Name();
@@ -474,6 +453,7 @@ function htmlOptions($options, $values) {
     $options_html .= '<option value="'.htmlspecialchars($value, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'"'.
       ($selected?' selected="selected"':'').
       ($disabled?' disabled="disabled"':'').
+      ($class?' class="'.htmlspecialchars($class, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'"':'').
       '>'.htmlspecialchars($text, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'</option>'.PHP_EOL;
   } # end foreach options
   if ( $values and ((!is_array($values)) or count($values) ) and ! $has_selected ) {
@@ -545,6 +525,12 @@ function getFormChanges($values, $newValues, $types=false, $columns=false) {
     if ( $columns && !isset($columns[$key]) )
       continue;
 
+    # Validate column name to prevent SQL injection via array keys
+    if ( !preg_match('/^[a-zA-Z0-9_]+$/', $key) ) {
+      ZM\Warning("Invalid column name rejected in getFormChanges: $key");
+      continue;
+    }
+
     if ( !isset($types[$key]) )
       $types[$key] = false;
 
@@ -561,10 +547,14 @@ function getFormChanges($values, $newValues, $types=false, $columns=false) {
       case 'image' :
           if ( is_array( $newValues[$key] ) ) {
             $imageData = getimagesize( $newValues[$key]['tmp_name'] );
-            $changes[$key.'Width'] = $key.'Width = '.$imageData[0];
-            $changes[$key.'Height'] = $key.'Height = '.$imageData[1];
-            $changes[$key.'Type'] = $key.'Type = \''.$newValues[$key]['type'].'\'';
-            $changes[$key.'Size'] = $key.'Size = '.$newValues[$key]['size'];
+            if ( !is_array($imageData) ) {
+              ZM\Warning("getimagesize failed for uploaded field '$key'; skipping width/height update.");
+            } else {
+              $changes[$key.'Width'] = $key.'Width = '.intval($imageData[0]);
+              $changes[$key.'Height'] = $key.'Height = '.intval($imageData[1]);
+            }
+            $changes[$key.'Type'] = $key.'Type = '.dbEscape($newValues[$key]['type']);
+            $changes[$key.'Size'] = $key.'Size = '.intval($newValues[$key]['size']);
             ob_start();
             readfile( $newValues[$key]['tmp_name'] );
             $changes[$key] = $key." = ".dbEscape( ob_get_contents() );
@@ -575,9 +565,8 @@ function getFormChanges($values, $newValues, $types=false, $columns=false) {
           break;
       case 'document' :
           if ( is_array( $newValues[$key] ) ) {
-            $imageData = getimagesize( $newValues[$key]['tmp_name'] );
-            $changes[$key.'Type'] = $key.'Type = \''.$newValues[$key]['type'].'\'';
-            $changes[$key.'Size'] = $key.'Size = '.$newValues[$key]['size'];
+            $changes[$key.'Type'] = $key.'Type = '.dbEscape($newValues[$key]['type']);
+            $changes[$key.'Size'] = $key.'Size = '.intval($newValues[$key]['size']);
             ob_start();
             readfile( $newValues[$key]['tmp_name'] );
             $changes[$key] = $key.' = '.dbEscape( ob_get_contents() );
@@ -799,9 +788,9 @@ function daemonStatus($daemon, $args=false) {
 
 function zmcStatus($monitor) {
   if ( $monitor['Type'] == 'Local' ) {
-    $zmcArgs = '-d '.$monitor['Device'];
+    $zmcArgs = '-d '.escapeshellarg($monitor['Device']);
   } else {
-    $zmcArgs = '-m '.$monitor['Id'];
+    $zmcArgs = '-m '.escapeshellarg($monitor['Id']);
   }
   return daemonStatus('zmc', $zmcArgs);
 }
@@ -820,9 +809,9 @@ function daemonCheck($daemon=false, $args=false) {
 
 function zmcCheck($monitor) {
   if ( $monitor['Type'] == 'Local' ) {
-    $zmcArgs = '-d '.$monitor['Device'];
+    $zmcArgs = '-d '.escapeshellarg($monitor['Device']);
   } else {
-    $zmcArgs = '-m '.$monitor['Id'];
+    $zmcArgs = '-m '.escapeshellarg($monitor['Id']);
   }
   return daemonCheck('zmc', $zmcArgs);
 }
@@ -1428,96 +1417,16 @@ function _CompareX($a, $b) {
 }
 
 function getPolyArea($points) {
-  global $debug;
-
-  $n_coords = count($points);
-  $global_edges = array();
-  for ( $j = 0, $i = $n_coords-1; $j < $n_coords; $i = $j++ ) {
-    $x1 = $points[$i]['x'];
-    $x2 = $points[$j]['x'];
-    $y1 = $points[$i]['y'];
-    $y2 = $points[$j]['y'];
-
-    //printf( "x1:%d,y1:%d x2:%d,y2:%d\n", x1, y1, x2, y2 );
-    if ( $y1 == $y2 )
-      continue;
-
-    $dx = $x2 - $x1;
-    $dy = $y2 - $y1;
-
-    $global_edges[] = array(
-        'min_y' => $y1<$y2?$y1:$y2,
-        'max_y' => ($y1<$y2?$y2:$y1)+1,
-        'min_x' => $y1<$y2?$x1:$x2,
-        '_1_m' => $dx/$dy,
-        );
-  }
-
-  usort($global_edges, '_CompareXY');
-
-  if ( $debug ) {
-    for ( $i = 0; $i < count($global_edges); $i++ ) {
-      printf('%d: min_y: %d, max_y:%d, min_x:%.2f, 1/m:%.2f<br>',
-        $i,
-        $global_edges[$i]['min_y'],
-        $global_edges[$i]['max_y'],
-        $global_edges[$i]['min_x'],
-        $global_edges[$i]['_1_m']);
-    }
-  }
-
+  // Shoelace formula - works correctly with both integer and float coordinates
+  $n = count($points);
   $area = 0.0;
-  $active_edges = array();
-  $y = $global_edges[0]['min_y'];
-  do {
-    for ( $i = 0; $i < count($global_edges); $i++ ) {
-      if ( $global_edges[$i]['min_y'] == $y ) {
-        if ( $debug ) printf('Moving global edge<br>');
-        $active_edges[] = $global_edges[$i];
-        array_splice($global_edges, $i, 1);
-        $i--;
-      } else {
-        break;
-      }
-    }
-    usort($active_edges, '_CompareX');
-    if ( $debug ) {
-      for ( $i = 0; $i < count($active_edges); $i++ ) {
-        printf('%d - %d: min_y: %d, max_y:%d, min_x:%.2f, 1/m:%.2f<br>',
-          $y, $i,
-          $active_edges[$i]['min_y'],
-          $active_edges[$i]['max_y'],
-          $active_edges[$i]['min_x'],
-          $active_edges[$i]['_1_m']);
-      }
-    }
-    $last_x = 0;
-    $row_area = 0;
-    $parity = false;
-    for ( $i = 0; $i < count($active_edges); $i++ ) {
-      $x = intval(round($active_edges[$i]['min_x']));
-      if ( $parity ) {
-        $row_area += ($x - $last_x)+1;
-        $area += $row_area;
-      }
-      if ( $active_edges[$i]['max_y'] != $y )
-        $parity = !$parity;
-      $last_x = $x;
-    }
-    if ( $debug ) printf('%d: Area:%d<br>', $y, $row_area);
-    $y++;
-    for ( $i = 0; $i < count($active_edges); $i++ ) {
-      if ( $y >= $active_edges[$i]['max_y'] ) { // Or >= as per sheets
-        if ( $debug ) printf('Deleting active_edge<br>');
-        array_splice($active_edges, $i, 1);
-        $i--;
-      } else {
-        $active_edges[$i]['min_x'] += $active_edges[$i]['_1_m'];
-      }
-    }
-  } while ( count($global_edges) || count($active_edges) );
-  if ( $debug ) printf('Area:%d<br>', $area);
-  return $area;
+  for ($i = 0; $i < $n - 1; $i++) {
+    $area += ((float)$points[$i]['x'] * (float)$points[$i+1]['y']
+            - (float)$points[$i+1]['x'] * (float)$points[$i]['y']);
+  }
+  $area += ((float)$points[$n-1]['x'] * (float)$points[0]['y']
+          - (float)$points[0]['x'] * (float)$points[$n-1]['y']);
+  return round(abs($area) / 2.0);
 }
 
 function getPolyAreaOld($points) {
@@ -1546,7 +1455,7 @@ function getPolyAreaOld($points) {
 }
 
 function mapCoords($a) {
-  return $a['x'].','.$a['y'];
+  return number_format((float)$a['x'], 2, '.', '').','.number_format((float)$a['y'], 2, '.', '');
 }
 
 function pointsToCoords($points) {
@@ -1555,10 +1464,10 @@ function pointsToCoords($points) {
 
 function coordsToPoints($coords) {
   $points = array();
-  if ( preg_match_all('/(\d+,\d+)+/', $coords, $matches) ) {
+  if ( preg_match_all('/([\d.]+,[\d.]+)+/', $coords, $matches) ) {
     for ( $i = 0; $i < count($matches[1]); $i++ ) {
-      if ( preg_match('/(\d+),(\d+)/', $matches[1][$i], $cmatches) ) {
-        $points[] = array('x'=>$cmatches[1], 'y'=>$cmatches[2]);
+      if ( preg_match('/([\d.]+),([\d.]+)/', $matches[1][$i], $cmatches) ) {
+        $points[] = array('x'=>(float)$cmatches[1], 'y'=>(float)$cmatches[2]);
       } else {
         echo('Bogus coordinates ('.$matches[$i].')');
         return false;
@@ -1589,6 +1498,25 @@ function limitPoints(&$points, $min_x, $min_y, $max_x, $max_y) {
     }
   } // end foreach point
 } // end function limitPoints( $points, $min_x, $min_y, $max_x, $max_y )
+
+function convertPixelPointsToPercent(&$points, $width, $height) {
+  if (!$width || !$height) return false;
+  $isPixel = false;
+  foreach ($points as $point) {
+    if ($point['x'] > 100 || $point['y'] > 100) {
+      $isPixel = true;
+      break;
+    }
+  }
+  if ($isPixel) {
+    foreach ($points as &$point) {
+      $point['x'] = round($point['x'] / $width * 100, 2);
+      $point['y'] = round($point['y'] / $height * 100, 2);
+    }
+    unset($point);
+  }
+  return $isPixel;
+}
 
 function scalePoints(&$points, $scale) {
   foreach ( $points as &$point ) {
@@ -1930,7 +1858,7 @@ function cache_bust($file) {
   ) {
     return 'cache/'.$cacheFile;
   } else {
-    ZM\Warning('Failed linking '.$file.' to '.$cacheFile);
+    ZM\Warning('Failed linking '.ZM_PATH_WEB.'/'.$file.' to '.ZM_DIR_CACHE.'/'.$cacheFile);
   }
   return $file;
 }
@@ -1984,6 +1912,18 @@ function validCardinal($input) {
 
 function validNum( $input ) {
   return preg_replace('/[^\d.-]/', '', $input);
+}
+
+// For device path strings - must be a valid Unix device path
+function validDevicePath($input) {
+  if (is_null($input) || $input === '') return '';
+  // Only allow typical device paths: /dev/video0, /dev/v4l/by-id/..., etc.
+  // Reject any shell metacharacters
+  if (!preg_match('#^/dev/[\w/.\-]+$#', $input)) {
+    ZM\Warning("Invalid device path rejected: ".validHtmlStr($input));
+    return '';
+  }
+  return $input;
 }
 
 // For general strings
@@ -2424,6 +2364,11 @@ function extract_auth_values_from_url($url) {
   $username = substr( $url, $protocolPrefixPos+3, $fieldsSeparatorPos-($protocolPrefixPos+3) );
   $password = substr( $url, $fieldsSeparatorPos+1, $authSeparatorPos-$fieldsSeparatorPos-1 );
 
+  // URL decode the credentials since they may contain encoded special characters
+  // from ONVIF probe or manual URL entry
+  $username = urldecode($username);
+  $password = urldecode($password);
+
   return array( $username, $password );
 }
 
@@ -2446,22 +2391,38 @@ function output_file($path, $chunkSize=1024) {
   header("Content-Disposition: $contentDisposition;filename=\"$file\"");
 
   header('Accept-Ranges: bytes');
-  $range = 0;
   $size = filesize($path);
+  $start = 0;
+  $end = $size - 1;
 
   if (isset($_SERVER['HTTP_RANGE'])) {
-    list($a, $range) = explode('=', $_SERVER['HTTP_RANGE']);
-    str_replace($range, '-', $range);
-    $range = (int)$range; #fseek etc require integers not strings
-    $size2 = $size - 1;
-    $new_length = $size - $range;
+    # RFC 7233: bytes=start-end | bytes=start- | bytes=-suffix
+    if (preg_match('/^bytes=(\d*)-(\d*)$/', trim($_SERVER['HTTP_RANGE']), $m)
+        and ($m[1] !== '' or $m[2] !== '')) {
+      if ($m[1] === '') {
+        # Suffix range: last N bytes
+        $suffix = (int)$m[2];
+        if ($suffix > $size) $suffix = $size;
+        $start = $size - $suffix;
+      } else {
+        $start = (int)$m[1];
+        if ($m[2] !== '') $end = (int)$m[2];
+      }
+      if ($end > $size - 1) $end = $size - 1;
+    }
+    if ($start > $end or $start >= $size) {
+      header('HTTP/1.1 416 Range Not Satisfiable');
+      header("Content-Range: bytes */$size");
+      return false;
+    }
+    $length = $end - $start + 1;
     header('HTTP/1.1 206 Partial Content');
-    header("Content-Length: $new_length");
-    header("Content-Range: bytes $range$size2/$size");
+    header("Content-Length: $length");
+    header("Content-Range: bytes $start-$end/$size");
   } else {
-    $size2 = $size - 1;
-    header("Content-Range: bytes 0-$size2/$size");
-    header('Content-Length: ' . $size);
+    $length = $size;
+    header("Content-Range: bytes 0-$end/$size");
+    header("Content-Length: $size");
   }
 
   if ($size == 0) {
@@ -2470,13 +2431,18 @@ function output_file($path, $chunkSize=1024) {
   @ini_set('magic_quotes_runtime', 0);
   $fp = fopen($path, 'rb');
 
-  fseek($fp, $range);
+  fseek($fp, $start);
 
-  while (!feof($fp) and (connection_status() == 0)) {
+  $remaining = $length;
+  $buffer = 1024 * $chunkSize;
+  while ($remaining > 0 and !feof($fp) and (connection_status() == 0)) {
     set_time_limit(0);
-    print(@fread($fp, 1024*$chunkSize));
+    $data = @fread($fp, min($buffer, $remaining));
+    if ($data === false or $data === '') break;
+    print($data);
     flush();
-    ob_flush();
+    if (ob_get_level() > 0) ob_flush();
+    $remaining -= strlen($data);
   }
   fclose($fp);
 
@@ -2540,5 +2506,52 @@ function to_string($thing) {
   if (empty($thing)) return '';
   if (is_array($thing)) return implode(', ', $thing);
   return strval($thing);
+}
+
+if (!function_exists('mb_ucfirst')) { // Available in PHP >= 8.4
+  function mb_ucfirst($str, $encoding='UTF-8') {
+    if (extension_loaded('mbstring')) {
+      $result = mb_strtoupper(mb_substr($str, 0, 1, $encoding), $encoding) . mb_substr($str, 1, null, $encoding);
+    } else {
+      $result = (ucfirst($str));
+    }
+    return $result;
+  }
+}
+
+if (!function_exists('mb_lcfirst')) { // Available in PHP >= 8.4
+  function mb_lcfirst($str, $encoding='UTF-8') {
+    if (extension_loaded('mbstring')) {
+      $result = mb_strtolower(mb_substr($str, 0, 1, $encoding), $encoding) . mb_substr($str, 1, null, $encoding);
+    } else {
+      $result = (lcfirst($str));
+    }
+    return $result;
+  }
+}
+
+function findVideoEventFile ($Event, $ext="*") {
+  $dir = $Event->Path();
+  $eventDefaultVideo = to_string($Event->DefaultVideo());
+  $path = '';
+  if ($eventDefaultVideo !== '' &&
+    !str_ends_with($eventDefaultVideo, '.m3u8') &&
+    ($ext === "*" || str_ends_with(strtolower($eventDefaultVideo), '.' . $ext))) {
+      $path = $dir.'/'.$eventDefaultVideo;
+  }
+  if (!is_file($path)) $path = ''; # So we don't return a reference to a non-existent file.
+
+  if ($path === '') {
+    # By default, we search for files with any extension, such as mp4, mkv, or webm.
+    # Look for the final renamed first, then incomplete.
+    # Incomplete files may exist as either incomplete.<container> or incomplete.<codec>.<container>.
+    $candidates = glob($dir.'/'.$Event->Id().'-video.*.'.$ext);
+    if (!$candidates) $candidates = glob($dir.'/incomplete.'.$ext);
+    if (!$candidates) $candidates = glob($dir.'/incomplete.*.'.$ext);
+    if ($candidates) {
+      $path = $candidates[0];
+    }
+  }
+  return $path;
 }
 ?>

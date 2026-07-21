@@ -57,14 +57,23 @@ echo getNavBarHTML();
     $monitor = $monitors[$mid];
     # ViewWidth() and ViewHeight() are already rotated
     $minX = 0;
-    $maxX = $monitor->ViewWidth()-1;
+    $maxX = 100;
     $minY = 0;
-    $maxY = $monitor->ViewHeight()-1;
+    $maxY = 100;
 
     $zones = array();
     foreach ( dbFetchAll('SELECT * FROM Zones WHERE MonitorId=? ORDER BY Area DESC', NULL, array($mid)) as $row ) {
       $row['Points'] = coordsToPoints($row['Coords']);
 
+      $row['OutOfBounds'] = false;
+      foreach ($row['Points'] as $point) {
+        if ($point['x'] < $minX || $point['x'] > $maxX || $point['y'] < $minY || $point['y'] > $maxY) {
+          $row['OutOfBounds'] = true;
+          break;
+        }
+      }
+
+      convertPixelPointsToPercent($row['Points'], $monitor->ViewWidth(), $monitor->ViewHeight());
       limitPoints($row['Points'], $minX, $minY, $maxX, $maxY);
       $row['Coords'] = pointsToCoords($row['Points']);
       $row['AreaCoords'] = preg_replace('/\s+/', ',', $row['Coords']);
@@ -91,9 +100,13 @@ echo getNavBarHTML();
   foreach ($zones as $zone) {
 ?>
               <tr>
-                <td class="colName"><?php echo makeLink('?view=zone&mid='.$mid.'&zid='.$zone['Id'], validHtmlStr($zone['Name']), true, 'data-on-click-true="streamCmdQuit"'); ?></td>
+                <td class="colName"><?php echo makeLink('?view=zone&mid='.$mid.'&zid='.$zone['Id'], validHtmlStr($zone['Name']), true, 'data-on-click-true="streamCmdQuit"');
+                  if ($zone['OutOfBounds']) {
+                    echo ' <span class="text-warning" title="'.htmlspecialchars('Zone coordinates extend beyond image dimensions ('.$monitor->ViewWidth().'x'.$monitor->ViewHeight().'). Points have been clamped.').'">&nbsp;<i class="fa fa-exclamation-triangle"></i></span>';
+                  }
+                ?></td>
                 <td class="colType"><?php echo validHtmlStr($zone['Type']) ?></td>
-                <td class="colUnits"><?php echo $zone['Area'] ?>&nbsp;/&nbsp;<?php echo sprintf('%.2f', ($zone['Area']*100)/($monitor->ViewWidth()*$monitor->ViewHeight()) ) ?></td>
+                <td class="colUnits"><?php echo intval($zone['Area'] / 10000 * $monitor->ViewWidth() * $monitor->ViewHeight()) ?>&nbsp;/&nbsp;<?php echo sprintf('%.2f', $zone['Area'] / 100) ?></td>
                 <td class="colMark"><input type="checkbox" name="markZids[]" value="<?php echo $zone['Id'] ?>" data-on-click-this="configureDeleteButton"<?php if ( !canEdit('Monitors') ) { ?> disabled="disabled"<?php } ?>/></td>
               </tr>
 <?php

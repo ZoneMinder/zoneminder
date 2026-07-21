@@ -38,10 +38,28 @@ class MonitorsController extends AppController {
       $conditions = array();
     }
 
+    // Only join Groups_Monitors when the request actually filters by group, so
+    // a bare GroupId named param can resolve against that table. Joining it
+    // unconditionally multiplied rows for monitors in multiple groups, which we
+    // used to collapse with GROUP BY `Monitor`.`Id`. That GROUP BY fails under
+    // ONLY_FULL_GROUP_BY on engines without functional-dependency detection
+    // (e.g. MariaDB), which rejects the non-grouped SELECT columns. Refs #3633.
+    $group_filter = false;
+    foreach ($conditions as $key => $value) {
+      if (strpos((string)$key, 'GroupId') !== false) { $group_filter = true; break; }
+      if (is_array($value)) {
+        foreach ($value as $sub_key => $sub_value) {
+          if (strpos((string)$sub_key, 'GroupId') !== false) { $group_filter = true; break 2; }
+        }
+      }
+    }
+
     $find_array = array(
       'conditions' => &$conditions,
       'contain'    => array('Group'),
-      'joins'      => array(
+    );
+    if ($group_filter) {
+      $find_array['joins'] = array(
         array(
           'table' => 'Groups_Monitors',
           'type'  => 'left',
@@ -49,13 +67,19 @@ class MonitorsController extends AppController {
             'Groups_Monitors.MonitorId = Monitor.Id',
           ),
         ),
-      ),
-      'group' => '`Monitor`.`Id`'
-    );
+      );
+    }
+
     $monitors = $this->Monitor->find('all', $find_array);
     $allowed_monitors = [];
+    $seen_monitor_ids = [];
     require_once __DIR__ .'/../../../includes/Monitor.php';
     foreach ($monitors as $m) {
+      // A monitor matching multiple GroupId values appears once per match;
+      // collapse those here rather than with a GROUP BY (see note above).
+      $monitor_id = $m['Monitor']['Id'];
+      if (isset($seen_monitor_ids[$monitor_id])) continue;
+      $seen_monitor_ids[$monitor_id] = true;
       $monitor = new ZM\Monitor($m['Monitor']);
       if (!$monitor->canView()) continue;
       array_push($allowed_monitors, $m);
@@ -259,7 +283,7 @@ class MonitorsController extends AppController {
       global $user;
       $mToken = $this->request->query('token') ? $this->request->query('token') : $this->request->data('token');;
       if ($mToken) {
-        $auth = ' -T '.$mToken;
+        $auth = ' -T '.escapeshellarg($mToken);
       } else if (ZM_AUTH_RELAY == 'hashed') {
         $auth = ' -A '.calculateAuthHash(''); # Can't do REMOTE_IP because zmu doesn't normally have access to it.
       } else if (ZM_AUTH_RELAY == 'plain') {
@@ -278,13 +302,17 @@ class MonitorsController extends AppController {
           $password = $_SESSION['password'];
         }
 
-        $auth = ' -U ' .$user->Username().' -P '.$password;
+        $auth = ' -U '.escapeshellarg($user->Username()).' -P '.escapeshellarg($password);
       } else if (ZM_AUTH_RELAY == 'none') {
-        $auth = ' -U ' .$user->Username();
+        $auth = ' -U '.escapeshellarg($user->Username());
       }
     }
-    
-    $shellcmd = escapeshellcmd(ZM_PATH_BIN."/zmu $verbose -m$id $q $auth");
+
+    $shellcmd = ZM_PATH_BIN.'/zmu'
+      .($verbose ? " $verbose" : '')
+      .' -m'.escapeshellarg($id)
+      ." $q"
+      .$auth;
     $status = exec($shellcmd, $output, $rc);
     ZM\Debug("Command: $shellcmd output: ".implode(PHP_EOL, $output)." rc: $rc");
     if ($rc) {
@@ -325,16 +353,16 @@ class MonitorsController extends AppController {
     }
 
     $monitor = $this->Monitor->find('first', array(
-      'fields' => array('Id', 'Type', 'Device', 'Function'),
+      'fields' => array('Id', 'Type', 'Device', 'Capturing'),
       'conditions' => array('Id' => $id)
     ));
 
     // Clean up the returned array
     $monitor = Set::extract('/Monitor/.', $monitor);
-    if ($monitor[0]['Function'] == 'None') {
+    if ($monitor[0]['Capturing'] == 'None') {
       $this->set(array(
         'status' => false,
-        'statustext' => 'Monitor function is set to None',
+        'statustext' => 'Monitor capturing is set to None',
         '_serialize' => array('status','statustext'),
       ));
       return;
@@ -342,9 +370,9 @@ class MonitorsController extends AppController {
 
     // Pass -d for local, otherwise -m
     if ( $monitor[0]['Type'] == 'Local' ) {
-      $args = '-d '. $monitor[0]['Device'];  
+      $args = '-d '. escapeshellarg($monitor[0]['Device']);
     } else {
-      $args = '-m '. $monitor[0]['Id'];
+      $args = '-m '. escapeshellarg($monitor[0]['Id']);
     }
 
     // Build the command, and execute it
@@ -369,7 +397,7 @@ class MonitorsController extends AppController {
   public function daemonControl($id, $command, $daemon=null) {
     // Need to see if it is local or remote
     $monitor = $this->Monitor->find('first', array(
-      'fields' => array('Id', 'Type', 'Function', 'Device', 'ServerId'),
+      'fields' => array('Id', 'Type', 'Capturing', 'Device', 'ServerId'),
       'conditions' => array('Id' => $id)
     ));
     $monitor = $monitor['Monitor'];

@@ -58,7 +58,7 @@ $monitorStatusPosition = array(
   'showOnHover' => translate('Show on hover'),
 );
 
-$monitorStatusPositionSelected = 'outsideImgBottom';
+$monitorStatusPositionSelected = ZM_WEB_COMPACT_MONTAGE ? 'hidden' : 'outsideImgBottom';
 if (isset($_REQUEST['monitorStatusPositionSelected'])) {
   $monitorStatusPositionSelected = $_REQUEST['monitorStatusPositionSelected'];
 } else if (isset($_COOKIE['zmMonitorStatusPositionSelected'])) {
@@ -202,7 +202,6 @@ foreach ($displayMonitors as &$row) {
     continue;
 
   $row['Scale'] = $scale;
-  $row['PopupScale'] = reScale(SCALE_BASE, $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE);
 
   if (ZM_OPT_CONTROL && $row['ControlId'] && $row['Controllable'])
     $showControl = true;
@@ -250,34 +249,23 @@ echo getNavBarHTML();
   <div id="page">
   <div id="header"<?php echo (isset($_REQUEST['header']) and ($_REQUEST['header']=='0' or $_REQUEST['header']=='hidden')) ? ' style="display:none;"' : '' ?>>
 <?php
-    $html = '<a class="flip" href="#" 
-             data-flip-control-object="#mfbpanel" 
-             data-flip-сontrol-run-after-func="applyChosen" 
-             data-flip-сontrol-run-after-complet-func="changeScale">
-               <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
-             </a>'.PHP_EOL;
-    $html .= '<div id="mfbpanel" class="hidden-shift container-fluid">'.PHP_EOL;
+    $filter_inline = filterSettingsInline();
+    $html = '';
+    // In inline mode this flip icon is the only control that hides/shows the
+    // top filter panel. In sidebar mode the panel lives in the sidebar
+    // extruder, which has its own show/hide control, so the icon is omitted.
+    if ($filter_inline) {
+      $html .= '<a class="flip" href="#"
+               data-flip-control-object="#mfbpanel"
+               data-flip-control-run-after-func="applyChosen"
+               data-flip-control-run-after-complet-func="changeScale">
+                 <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
+               </a>'.PHP_EOL;
+    }
+    $html .= '<div id="mfbpanel" class="'.($filter_inline ? '' : 'hidden-shift ').'container-fluid">'.PHP_EOL;
     echo $html;
 ?>
-      <div id="headerButtons">
-<?php
-if ($showControl) {
-  echo makeLink('?view=control', translate('Control'));
-}
-if (canView('System')) {
-  if ($showZones) {
-  ?>
-    <a id="HideZones" href="?view=montage&amp;showZones=0"><?php echo translate('Hide Zones')?></a>
-  <?php
-  } else {
-  ?>
-    <a id="ShowZones" href="?view=montage&amp;showZones=1"><?php echo translate('Show Zones')?></a>
-  <?php
-  }
-}
-?>
-      </div>
-      <form method="get" id="filters_form">
+      <form method="get" name="monitorFiltersForm" id="monitorFiltersForm">
         <input type="hidden" name="view" value="montage"/>
         <?php echo $filterbar ?>
       </form>
@@ -313,6 +301,41 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'
             <label for="streamQuality"><?php echo translate('Stream quality') ?></label>
             <?php echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality', 'class'=>'chosen')); ?>
           </span>
+          <span id="whatDisplayControl">
+            <label for="whatDisplay"><?php if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) echo translate('Show') ?></label>
+<?php 
+            $whatDisplay = [
+              'Default'=>translate('Default'),
+              'OnlyVideo'=>translate('Only video'),
+              'OnlyAudioVisualization'=>translate('Only audio visualization'),
+              'VideoAudioVisualization'=>translate('Video and audio visualization')
+            ];
+            $whatDisplaySelected = 'Default'; // Default
+            if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) {
+              if (isset($_REQUEST['whatDisplay']) and isset($whatDisplay[$_REQUEST['whatDisplay']])) {
+                $whatDisplaySelected = validHtmlStr($_REQUEST['whatDisplay']);
+              } else if (isset($_COOKIE['zmWhatDisplay']) and isset($whatDisplay[$_COOKIE['zmWhatDisplay']])) {
+                $whatDisplaySelected = validHtmlStr($_COOKIE['zmWhatDisplay']);
+              }
+            } else {
+              $whatDisplaySelected = 'OnlyVideo';
+            }
+            if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) echo htmlSelect('whatDisplay', $whatDisplay, $whatDisplaySelected, array('data-on-change'=>'changeWhatDisplay','id'=>'whatDisplay','class'=>'chosen'));
+?>
+          </span>
+<?php
+      if ((defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) && strpos(strtolower($whatDisplaySelected), 'onlyvideo') !== 0) {
+        $htmlAudioControlPanel = '
+          <span id="audioControlPanel" class="audio-control-panel">
+            <div id="volumeControls" class="disabled volume">
+              <div id="volumeSlider" data-volume="50" data-muted="true" class="volumeSlider noUi-horizontal noUi-base noUi-round"></div>
+              <i id="controlMute" class="audio-control-mute material-icons md-22"></i>
+            </div>
+          </span>
+        '.PHP_EOL;
+        echo $htmlAudioControlPanel;
+      }
+?>
           <span id="layoutControl">
             <label for="zmMontageLayout"><?php echo translate('Layout') ?></label>
             <?php echo htmlSelect('zmMontageLayout', $layoutsById, $layout_id, array('id'=>'zmMontageLayout', 'data-on-change'=>'selectLayout', 'class'=>'chosen')); ?>
@@ -335,6 +358,18 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'
           <button type="button" id="fullscreenBtn" title="<?php echo translate('Fullscreen') ?>" class="avail" data-on-click="watchFullscreen">
           <i class="material-icons md-18">fullscreen</i>
           </button>
+<?php
+if ($showControl) {
+  echo makeLink('?view=control', translate('Control'));
+}
+if (canView('System')) {
+  if ($showZones) {
+    echo '<a id="HideZones" href="?view=montage&amp;showZones=0">'.translate('Hide Zones').'</a>';
+  } else {
+    echo '<a id="ShowZones" href="?view=montage&amp;showZones=1">'.translate('Show Zones').'</a>';
+  }
+}
+?>
         </form>
       </div>
     </div><!--header-->
@@ -345,6 +380,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'
 foreach ($monitors as $monitor) {
   $monitor_options = $options;
   #ZM\Debug('Options: ' . print_r($monitor_options,true));
+  $monitor_options['scale'] = 50; # ensure defined value, but not 100 because this is montage... we assume at least 2 streams
 
   if ($monitor->Type() == 'WebSite') {
     echo getWebSiteUrl(
@@ -355,9 +391,10 @@ foreach ($monitors as $monitor) {
       $monitor->Name()
     );
   } else {
-    $monitor_options['state'] = !ZM_WEB_COMPACT_MONTAGE;
+    $monitor_options['state'] = true;
     $monitor_options['zones'] = $showZones;
-    $monitor_options['mode'] = 'paused';
+    # If we start up in a streaming mode, even paused, the content-type=mixed etc makes Chrome queue the requests for 15s.  We are stuck with just getting a single image to start, then switching to streaming in js.
+    $monitor_options['mode'] = 'single';
     $monitor_options['connkey'] = $monitor->connKey();
     $browser_width = 1920;
     if (isset($_COOKIE['zmBrowserSizes'])) {
@@ -377,14 +414,17 @@ foreach ($monitors as $monitor) {
         }
       }
     } else {
+      $divisor = count($monitors)/2;
+      if ($divisor < 2) $divisor = 2;
+
       # Custom, default to 25% of 1920 for now, because 25% of a 4k is very different from 25% of 640px
-      $monitor_options['scale'] = intval(100*(($browser_width/4)/$monitor->Width()));
+      $monitor_options['scale'] = intval(100*(($browser_width/$divisor)/$monitor->Width()));
       if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
       else if ($monitor_options['scale'] < 10) $monitor_options['scale'] = 10;
     }
     $monitor->initial_scale($monitor_options['scale']);
     echo $monitor->getStreamHTML($monitor_options);
-  }
+  } # end if monitor type == Website
 } # end foreach monitor
 ?>
       </div>

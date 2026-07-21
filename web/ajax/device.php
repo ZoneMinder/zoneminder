@@ -20,7 +20,7 @@
 
 // Device view actions
 if ( !canEdit('Devices') ) {
-  ajaxError('Insufficient permissions for user '.$user->Username());
+  ajaxError('Insufficient permissions for user '.validHtmlStr($user->Username()));
   return;
 }
 
@@ -41,7 +41,7 @@ if ( $action == 'device' ) {
   }
   ajaxResponse();
 } else {
-  ajaxError('Unrecognised action '.$_REQUEST['action']);
+  ajaxError('Unrecognised action '.validHtmlStr($_REQUEST['action']));
 } // end if action
 
 ?>

@@ -8,9 +8,31 @@ name: "CodeQL"
 on:
   push:
     branches: [master]
+    paths-ignore:
+      - 'db/**'
+      - 'docs/**'
+      - 'distros/**'
+      - 'misc/**'
+      - 'onvif/**'
+      - 'scripts/**'
+      - '**/*.md'
+      - '**/*.sql'
+      - '**/*.in'
+      - '.github/ISSUE_TEMPLATE/**'
   pull_request:
     # The branches below must be a subset of the branches above
     branches: [master]
+    paths-ignore:
+      - 'db/**'
+      - 'docs/**'
+      - 'distros/**'
+      - 'misc/**'
+      - 'onvif/**'
+      - 'scripts/**'
+      - '**/*.md'
+      - '**/*.sql'
+      - '**/*.in'
+      - '.github/ISSUE_TEMPLATE/**'
   schedule:
     - cron: '0 3 * * 5'
 
@@ -37,7 +59,7 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v5
+      uses: actions/checkout@v7
       with:
         # We must fetch at least the immediate parents so that if this is
         # a pull request then we can checkout the head.

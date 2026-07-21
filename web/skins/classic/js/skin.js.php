@@ -31,6 +31,7 @@ const navBarRefresh = <?php echo 1000*ZM_WEB_REFRESH_NAVBAR ?>;
 const currentView = '<?php echo $view ?>';
 const homeView = '<?php echo getHomeView() ?>';
 const navbar_type = '<?php echo $navbar_type ?>';
+const filter_settings_position = '<?php echo defined('ZM_WEB_FILTER_SETTINGS_POSITION') ? ZM_WEB_FILTER_SETTINGS_POSITION : 'sidebar' ?>';
 
 const exportProgressString = '<?php echo addslashes(translate('Exporting')) ?>';
 const exportFailedString = '<?php echo translate('ExportFailed') ?>';
@@ -132,6 +133,7 @@ const CMD_SEEK = <?php echo CMD_SEEK ?>;
 const CMD_QUERY = <?php echo CMD_QUERY ?>;
 const CMD_QUIT = <?php echo CMD_QUIT ?>;
 const CMD_MAXFPS = <?php echo CMD_MAXFPS ?>;
+const AUDIO_MOTION_ENABLED = "<?php echo (AUDIO_MOTION_ENABLED) ? 'true' : 'false' ?>";
 
 const stateStrings = new Array();
 stateStrings[STATE_UNKNOWN] = "<?php echo translate('Unknown') ?>";
@@ -146,7 +148,7 @@ if ($user) {
   // Only include config if logged in or auth turned off. The login view doesn't require any config.
   global $zm_config;
   foreach ($zm_config as $name=>$c) {
-    if (!$c['Private']) {
+    if (empty($c['Private'])) {
       if (empty($c['Value'])) {
         echo 'const '. $name . ' = \'\';'.PHP_EOL;
       } else if (isset($c['Type']) and $c['Type'] == 'integer' and $c['Value'] != '') {

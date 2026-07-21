@@ -21,6 +21,7 @@
 #define ZM_CAMERA_H
 
 #include "zm_image.h"
+#include "zm_pixformat.h"
 #include <sys/ioctl.h>
 #include <sys/types.h>
 
@@ -42,8 +43,9 @@ class Camera {
   uint16_t  width;
   uint16_t  height;
   unsigned int  linesize;
-  unsigned int  colours;
-  unsigned int  subpixelorder;
+  unsigned int  colours;       // DEPRECATED: use pixelFormat
+  unsigned int  subpixelorder; // DEPRECATED: use pixelFormat
+  AVPixelFormat pixelFormat;
   unsigned int  pixels;
   unsigned long long imagesize;
   int           brightness;
@@ -64,6 +66,8 @@ class Camera {
   int64_t     mFirstAudioPTS;
   int64_t     mLastVideoPTS;
   int64_t     mLastAudioPTS;
+  int64_t     mLastVideoDTS;
+  int64_t     mLastAudioDTS;
   unsigned int  bytes;
   bool mIsPrimed;
 
@@ -96,8 +100,9 @@ class Camera {
   unsigned int Width() const { return width; }
   unsigned int LineSize() const { return linesize; }
   unsigned int Height() const { return height; }
-  unsigned int Colours() const { return colours; }
-  unsigned int SubpixelOrder() const { return subpixelorder; }
+  unsigned int Colours() const { return colours; }       // DEPRECATED
+  unsigned int SubpixelOrder() const { return subpixelorder; } // DEPRECATED
+  AVPixelFormat PixelFormat() const { return pixelFormat; }
   unsigned int Pixels() const { return pixels; }
   unsigned long long ImageSize() const { return imagesize; }
   unsigned int Bytes() const { return bytes; };

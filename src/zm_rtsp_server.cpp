@@ -53,7 +53,9 @@ and provide that stream over rtsp
 #include "zm_monitor.h"
 #include "zm_rtsp_server_authenticator.h"
 #include "zm_rtsp_server_fifo_h264_source.h"
+#include "zm_rtsp_server_fifo_av1_source.h"
 #include "zm_rtsp_server_fifo_adts_source.h"
+#include "xop/G711USource.h"
 #include "zm_signal.h"
 #include "zm_time.h"
 #include "zm_utils.h"
@@ -212,10 +214,17 @@ int main(int argc, char *argv[]) {
         if (!monitor->connect()) {
           Warning("Couldn't connect to monitor %d", monitor->Id());
           if (sessions.find(monitor->Id()) != sessions.end()) {
+            // Delete (not just erase) the FifoSources first: their dtors stop
+            // and join the read/write threads. RemoveSession then destroys
+            // the MediaSession which owns the xop H264/H265/AV1Source; any
+            // still-running ReadRun thread holds a raw m_h264Source pointer
+            // and will crash in SetSPS on the next SPS NAL.
             if (video_sources.find(monitor->Id()) != video_sources.end()) {
+              delete video_sources[monitor->Id()];
               video_sources.erase(monitor->Id());
             }
             if (audio_sources.find(monitor->Id()) != audio_sources.end()) {
+              delete audio_sources[monitor->Id()];
               audio_sources.erase(monitor->Id());
             }
             rtspServer->RemoveSession(sessions[monitor->Id()]->GetMediaSessionId());
@@ -258,14 +267,29 @@ int main(int argc, char *argv[]) {
         ZoneMinderFifoVideoSource *videoSource = nullptr;
 
         if (std::string::npos != videoFifoPath.find("h264")) {
-          session->AddSource(xop::channel_0, xop::H264Source::CreateNew());
-          videoSource = new H264_ZoneMinderFifoSource(rtspServer, session->GetMediaSessionId(), xop::channel_0, videoFifoPath);
+          xop::H264Source *h264Source = xop::H264Source::CreateNew();
+          h264Source->SetResolution(monitor->Width(), monitor->Height());
+          session->AddSource(xop::channel_0, h264Source);
+          H264_ZoneMinderFifoSource *h264FifoSource = new H264_ZoneMinderFifoSource(rtspServer, session->GetMediaSessionId(), xop::channel_0, videoFifoPath);
+          h264FifoSource->setH264Source(h264Source);  // Allow FIFO source to set SPS/PPS
+          videoSource = h264FifoSource;
         } else if (
           std::string::npos != videoFifoPath.find("hevc")
           or
           std::string::npos != videoFifoPath.find("h265")) {
-          session->AddSource(xop::channel_0, xop::H265Source::CreateNew());
-          videoSource = new H265_ZoneMinderFifoSource(rtspServer, session->GetMediaSessionId(), xop::channel_0, videoFifoPath);
+          xop::H265Source *h265Source = xop::H265Source::CreateNew();
+          h265Source->SetResolution(monitor->Width(), monitor->Height());
+          session->AddSource(xop::channel_0, h265Source);
+          H265_ZoneMinderFifoSource *h265FifoSource = new H265_ZoneMinderFifoSource(rtspServer, session->GetMediaSessionId(), xop::channel_0, videoFifoPath);
+          h265FifoSource->setH265Source(h265Source);  // Allow FIFO source to set VPS/SPS/PPS
+          videoSource = h265FifoSource;
+        } else if (std::string::npos != videoFifoPath.find("av1")) {
+          xop::AV1Source *av1Source = xop::AV1Source::CreateNew();
+          av1Source->SetResolution(monitor->Width(), monitor->Height());
+          session->AddSource(xop::channel_0, av1Source);
+          AV1_ZoneMinderFifoSource *av1FifoSource = new AV1_ZoneMinderFifoSource(rtspServer, session->GetMediaSessionId(), xop::channel_0, videoFifoPath);
+          av1FifoSource->setAV1Source(av1Source);  // Allow FIFO source to set sequence header
+          videoSource = av1FifoSource;
         } else {
           Warning("Unknown format in %s", videoFifoPath.c_str());
         }
@@ -307,6 +331,14 @@ int main(int argc, char *argv[]) {
               session->GetMediaSessionId(), xop::channel_1, audioFifoPath);
           audioSource->setFrequency(monitor->GetAudioFrequency());
           audioSource->setChannels(monitor->GetAudioChannels());
+        } else if (std::string::npos != audioFifoPath.find("pcm_mulaw")) {
+          Debug(1, "Adding G711U source at %dHz %d channels",
+                monitor->GetAudioFrequency(), monitor->GetAudioChannels());
+          session->AddSource(xop::channel_1, xop::G711USource::CreateNew());
+          audioSource = new ADTS_ZoneMinderFifoSource(rtspServer,
+              session->GetMediaSessionId(), xop::channel_1, audioFifoPath);
+          audioSource->setFrequency(monitor->GetAudioFrequency());
+          audioSource->setChannels(monitor->GetAudioChannels());
         } else {
           Warning("Unknown format in %s", audioFifoPath.c_str());
         }
@@ -324,7 +356,9 @@ int main(int argc, char *argv[]) {
     sleep(10);
 
     if (zm_reload) {
+      Info("Reloading configuration");
       logTerm();
+      zmLoadDBConfig();
       logInit(log_id_string);
       zm_reload = false;
     }  // end if zm_reload

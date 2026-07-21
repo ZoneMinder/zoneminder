@@ -76,7 +76,7 @@ if ( count($user->unviewableMonitorIds()) ) {
   $eventsSql .= ' AND MonitorId IN ('.implode(',', $user->viewableMonitorIds()).')';
 }
 if ( count($selected_monitor_ids) ) {
-  $eventsSql .= ' AND MonitorId IN ('.implode(',', $selected_monitor_ids).')';
+  $eventsSql .= ' AND MonitorId IN ('.implode(',', array_map('intval', $selected_monitor_ids)).')';
 }
 if ( isset($minTime) && isset($maxTime) ) {
   $eventsSql .= " AND EndDateTime > '" . $minTime . "' AND StartDateTime < '" . $maxTime . "'";

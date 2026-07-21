@@ -3,6 +3,7 @@ const monitors = new Array();
 var monitors_ul = null;
 var idleTimeoutTriggered = false; /* Timer ZM_WEB_VIEWING_TIMEOUT has been triggered */
 var monitorInitComplete = false;
+var resizeInterval = null;
 
 const VIEWING = 0;
 const EDITING = 1;
@@ -45,6 +46,7 @@ const presetRatio = new Map([
 var defaultPresetRatio = 'auto';
 
 var averageMonitorsRatio;
+var selectorWhatDisplay = null;
 
 function isPresetLayout(name) {
   return ((ZM_PRESET_LAYOUT_NAMES.indexOf(name) != -1) ? true : false);
@@ -297,6 +299,12 @@ function setRatioForMonitor(objStream, id=null) {
   if (!id) {
     id = stringToNumber(objStream.id);
   }
+  const _imageFeed = document.getElementById('imageFeed'+id);
+  if (_imageFeed && _imageFeed.getAttribute('data-not-display-video') === 'true') {
+    console.debug(`Setting the ratio is not required because the monitor ID=${id} is not displayed.`);
+    return;
+  }
+
   const value = getSelected(document.getElementById("ratio"+id));
   const currentMonitor = monitors.find((o) => {
     return parseInt(o["id"]) === id;
@@ -319,6 +327,7 @@ function setRatioForMonitor(objStream, id=null) {
   if (!height) {
     console.log("0 height from ", currentMonitor.width, currentMonitor.height, (currentMonitor.width / currentMonitor.height > 1), objStream.clientWidth / ratio);
   } else {
+    //console.log('good height', height, objStream);
     objStream.style['height'] = (objStream.naturalHeight === undefined || objStream.naturalHeight > 20) ? height + 'px' : 'auto';
     objStream.parentNode.style['height'] = height + 'px';
   }
@@ -457,6 +466,36 @@ function manageDelConfirmModalBtns() {
   });
 }
 
+function startVisibleMonitors() {
+  for (let i = 0, length = monitors.length; i < length; i++) {
+    const monitor = monitors[i];
+    const isOut = isOutOfViewport(monitor.getElement());
+    if ((!isOut.all) && !monitor.started) {
+      monitor.setPlayer(monitor.player);
+      monitor.start();
+    }
+  }
+}
+
+function refreshAuthAndStartMonitors() {
+  $j.getJSON(thisUrl + '?view=request&request=status&entity=navBar' + (auth_relay ? '&' + auth_relay : ''))
+      .done(function(data) {
+        if (data) {
+          if (data.auth) {
+            auth_hash = data.auth;
+          }
+          if (data.auth_relay) {
+            auth_relay = data.auth_relay;
+          }
+        }
+        startVisibleMonitors();
+      })
+      .fail(function() {
+        // Even if refresh fails, try to start with whatever auth we have
+        startVisibleMonitors();
+      });
+}
+
 function reloadWebSite(ndx) {
   document.getElementById('imageFeed'+ndx).innerHTML = document.getElementById('imageFeed'+ndx).innerHTML;
 }
@@ -481,6 +520,7 @@ function startMonitors() {
     const monitor = monitors[i];
     const isOut = isOutOfViewport(monitor.getElement());
     if (!isOut.all) {
+      monitor.setPlayer(monitor.player);
       monitor.start();
     }
     if ((monitor.type == 'WebSite') && (monitor.refresh > 0)) {
@@ -551,7 +591,7 @@ function fullscreenchanged(event) {
 function calculateAverageMonitorsRatio(arrRatioMonitors) {
   //Let's calculate the average Ratio value for the displayed monitors
   let total = 0;
-  for (var i = 0; i < arrRatioMonitors.length; i++) {
+  for (let i = 0; i < arrRatioMonitors.length; i++) {
     total += arrRatioMonitors[i];
   }
   const avg = total / arrRatioMonitors.length;
@@ -591,44 +631,35 @@ function initPage() {
   //  $j('#zmMontageLayout').val(getCookie('zmMontageLayout'));
   //}
 
-  document.querySelectorAll(".monitorStream, .ratioControl").forEach(function(el) {
+  document.querySelectorAll(".grid-monitor").forEach(function(el) {
     // Displaying & hiding "Scale" and other buttons, at the top of the monitor image,  monitor status information
     el.addEventListener('mouseout', function addListenerMouseover(event) {
       const id = stringToNumber(el.id);
-      if (event.target && event.relatedTarget) {
-        if (event.relatedTarget.closest('#imageFeed'+id) && event.target.closest('#imageFeed'+id)) {
-          return;
+      if (!(event.target && event.target.closest('#m'+id) && event.relatedTarget && event.relatedTarget.closest('#m'+id))) { // This will prevent the code below from being executed if we navigate within a single monitor block.
+        if (!event.relatedTarget || (event.relatedTarget && !event.relatedTarget.closest('#m'+id))) {
+          if ($j('#monitorStatusPosition').val() == 'showOnHover') {
+            $j('#monitors').find('#monitorStatus'+id).addClass('hidden');
+          }
+          hideControlElementsOnStream(el);
         }
-      }
-      if (!event.relatedTarget) {
-        hideСontrolElementsOnStream(el);
-        return;
-      }
-      if (!event.relatedTarget.closest('#imageFeed'+id) && (!event.relatedTarget.closest('#ratioControl'+id))) {
-        if ($j('#monitorStatusPosition').val() == 'showOnHover') {
-          $j('#monitors').find('#monitorStatus'+id).addClass('hidden');
-        }
-        hideСontrolElementsOnStream(el);
       }
     });
 
     el.addEventListener('mouseover', function addListenerMouseover(event) {
       const id = stringToNumber(el.id);
-      if (event.target && event.relatedTarget) {
-        if (event.relatedTarget.closest('#imageFeed'+id) && event.target.closest('#imageFeed'+id)) {
-          return;
+      if (!(event.target && event.target.closest('#m'+id) && event.relatedTarget && event.relatedTarget.closest('#m'+id))) {
+        if (event.target.closest('#m'+id)) {
+          if ($j('#monitorStatusPosition').val() == 'showOnHover') {
+            $j('#monitors').find('#monitorStatus'+id).removeClass('hidden');
+          }
+          showControlElementsOnStream(el);
         }
-      }
-      if (event.target.closest('#imageFeed'+id) || event.target.closest('#ratioControl'+id)) {
-        if ($j('#monitorStatusPosition').val() == 'showOnHover') {
-          $j('#monitors').find('#monitorStatus'+id).removeClass('hidden');
-        }
-        showСontrolElementsOnStream(el);
       }
     });
   });
 
   const arrRatioMonitors = [];
+  selectorWhatDisplay = document.getElementById('whatDisplay');
   for (let i = 0, length = monitorData.length; i < length; i++) {
     const monitor = monitors[i] = new MonitorStream(monitorData[i]);
     monitor.controlMute('on'); // Default to no audio. User can toggle audio for individual streams manually
@@ -639,6 +670,10 @@ function initPage() {
 
     //Prepare the array.
     movableMonitorData[monitor.id] = {'width': 0, 'stop': false};
+    // When displaying only the audio visualization, "#ratioControl" does not need to be displayed
+    if (selectorWhatDisplay && -1 === selectorWhatDisplay.value.toLowerCase().indexOf('video')) {
+      $j('#ratioControl' + monitor.id).css('visibility', 'hidden');
+    }
   }
 
   calculateAverageMonitorsRatio(arrRatioMonitors);
@@ -673,12 +708,7 @@ function initPage() {
                 ayswModal = insertModalHtml('AYSWModal', data.html);
                 ayswModal.on('hidden.bs.modal', function() {
                   idleTimeoutTriggered = false;
-                  for (let i=0, length = monitors.length; i < length; i++) {
-                    const monitor = monitors[i];
-                    if ((!isOutOfViewport(monitor.getElement()).all) && !monitor.started) {
-                      monitor.start();
-                    }
-                  }
+                  refreshAuthAndStartMonitors();
                 });
                 ayswModal.modal('show');
               })
@@ -696,16 +726,29 @@ function initPage() {
     inactivityTime();
   }
 
-  setInterval(() => { //Updating GridStack resizeToContent, Scale & Ratio
+  resizeInterval = setInterval(() => { //Updating GridStack resizeToContent, Scale & Ratio
     if (changedMonitors.length > 0) {
       changedMonitors.slice().reverse().forEach(function(item, index, object) {
-        const img = getStream(item);
-        if (img.offsetHeight > 20 && objGridStack) { //Required for initial page loading
-          setRatioForMonitor(img, item);
-          if (objGridStack) objGridStack.resizeToContent(document.getElementById('m'+item), true);
+        if (item) {
+          const img = getStream(item);
+          const _imageFeed = document.getElementById('imageFeed'+item);
+          const noVideo = (_imageFeed && _imageFeed.getAttribute('data-not-display-video') === 'true') ? true : false;
+          if ((noVideo === true || img.offsetHeight > 20) && objGridStack) { //Required for initial page loading
+            setRatioForMonitor(img, item);
+            if (objGridStack) objGridStack.resizeToContent(document.getElementById('m'+item), true);
+            changedMonitors.splice(object.length - 1 - index, 1);
+          }
+          monitorsSetScale(item);
+          if (selectorWhatDisplay && -1 === selectorWhatDisplay.value.indexOf('OnlyVideo')) {
+            // Experimental setting only if audio visualization is used. Blank spaces will be filled.
+            //objGridStack.column(1, 'compact');
+            //objGridStack.column(layoutColumns, 'compact');
+            objGridStack.column(1, 'list'); // This is likely a bug or a GridStack feature. If this isn't called, the rebuild won't occur.
+            objGridStack.column(layoutColumns, 'list');
+          }
+        } else {
           changedMonitors.splice(object.length - 1 - index, 1);
         }
-        monitorsSetScale(item);
       });
     }
   }, 200);
@@ -716,9 +759,16 @@ function initPage() {
   zmPanZoom.init();
 
   // Registering an observer on an element
-  $j('[id ^= "liveStream"]').each(function() {
-    observerMontage.observe(this);
-  });
+  if (selectorWhatDisplay && -1 !== selectorWhatDisplay.value.indexOf('OnlyVideo')) {
+    $j('[id ^= "liveStream"]').each(function() {
+      observerMontage.observe(this);
+    });
+  } else {
+    // This is a temporary, experimental setting, only available if audio visualization is used. Just in case, I don't want to mess anything up.
+    $j('[id ^= "liveStream"], [id ^= "monitorStatus"], audio-motion').each(function() {
+      observerMontage.observe(this);
+    });
+  }
 
   //You can immediately call startMonitors() here, but in this case the height of the monitor will initially be minimal, and then become normal, but this is not pretty.
   //Check if the monitor arrangement is complete
@@ -738,16 +788,21 @@ function initPage() {
       window.scrollEndTimer = setTimeout(on_scroll, 100);
     };
   }
+
+  createVolumeSlider(getVolumeSlider());
+  const volumeControl = getVolumeControls();
+  if (volumeControl) volumeControl.classList.remove("disabled");
+  controlMute(null, 'on');
   window.addEventListener('resize', on_scroll);
 } // end initPage
 
-function hideСontrolElementsOnStream(stream) {
+function hideControlElementsOnStream(stream) {
   const id = stringToNumber(stream.id);
   $j('#button_zoom' + id).stop(true, true).slideUp('fast');
   $j('#ratioControl' + id).stop(true, true).slideUp('fast');
 }
 
-function showСontrolElementsOnStream(stream) {
+function showControlElementsOnStream(stream) {
   const id = stringToNumber(stream.id);
   $j('#button_zoom' + id).stop(true, true).slideDown('fast');
   $j('#ratioControl' + id).stop(true, true).slideDown('fast');
@@ -756,15 +811,17 @@ function showСontrolElementsOnStream(stream) {
 
 function on_scroll() {
   if (!monitorInitComplete || idleTimeoutTriggered) return;
+
   for (let i = 0, length = monitors.length; i < length; i++) {
     const monitor = monitors[i];
 
     const isOut = isOutOfViewport(monitor.getElement());
+    //console.log(isOut, monitor.id);
     if (!isOut.all) {
       if (!monitor.started) monitor.start();
     } else if (monitor.started) {
-      //monitor.stop(); // does not work without replacing SRC to stop ZMS
-      monitor.kill();
+      monitor.stop(); // does not work without replacing SRC to stop ZMS
+      //monitor.kill();
     }
   } // end foreach monitor
 } // end function on_scsroll
@@ -793,6 +850,7 @@ function isOutOfViewport(elem) {
 };
 
 function formSubmit(form) {
+  clearInterval(resizeInterval);
   console.log("Killing streaming");
   for (let i = 0, length = monitors.length; i < length; i++) {
     if (monitors[i]) {
@@ -861,32 +919,6 @@ function changeStreamQuality() {
   const streamQuality = $j('#streamQuality').val();
   setCookie('zmStreamQuality', streamQuality);
   monitorsSetScale();
-}
-
-function monitorsSetScale(id=null) {
-  // This function will probably need to be moved to the main JS file, because now used on Watch & Montage pages
-  id = parseInt(id);
-  if (id || typeof monitorStream !== 'undefined') {
-    //monitorStream used on Watch page.
-    if (typeof monitorStream !== 'undefined') {
-      var currentMonitor = monitorStream;
-    } else {
-      var currentMonitor = monitors.find((o) => {
-        return parseInt(o["id"]) === id;
-      });
-    }
-    const el = document.getElementById('liveStream'+id);
-    const panZoomScale = (panZoomEnabled && zmPanZoom.panZoom[id] ) ? zmPanZoom.panZoom[id].getScale() : 1;
-    currentMonitor.setScale(0, el.clientWidth * panZoomScale + 'px', el.clientHeight * panZoomScale + 'px', {resizeImg: false, streamQuality: $j('#streamQuality').val()});
-  } else {
-    for ( let i = 0, length = monitors.length; i < length; i++ ) {
-      const id = monitors[i].id;
-      const el = document.getElementById('liveStream'+id);
-      const panZoomScale = panZoomEnabled ? zmPanZoom.panZoom[id].getScale() : 1;
-      monitors[i].setScale(0, parseInt(el.clientWidth * panZoomScale) + 'px', parseInt(el.clientHeight * panZoomScale) + 'px', {resizeImg: false, streamQuality: $j('#streamQuality').val()});
-    }
-  }
-  setButtonSizeOnStream();
 }
 
 function changeMonitorRate() {
@@ -1040,6 +1072,11 @@ const observerMontage = new ResizeObserver((objResizes) => {
   });
 });
 
+function changeWhatDisplay() {
+  setCookie('zmWhatDisplay', $j('#whatDisplay').val());
+  location.reload();
+}
+
 // Kick everything off
 $j(window).on('load', () => initPage());
 
@@ -1047,24 +1084,19 @@ document.onvisibilitychange = () => {
   if (document.visibilityState === "hidden") {
     TimerHideShow = clearTimeout(TimerHideShow);
     TimerHideShow = setTimeout(function() {
-      //Stop monitors when closing or hiding page
-      //closing should kill, hiding should stop
+      //Stop monitors when hiding page
+      //closing should kill, hiding should stop/pause
       for (let i = 0, length = monitors.length; i < length; i++) {
+        // Stop instead of pause because we don't want buffering in zms
         monitors[i].stop();
       }
     }, 15*1000);
   } else {
     TimerHideShow = clearTimeout(TimerHideShow);
     if (!idleTimeoutTriggered) {
-      //Start monitors when show page
-      for (let i = 0, length = monitors.length; i < length; i++) {
-        const monitor = monitors[i];
-
-        const isOut = isOutOfViewport(monitor.getElement());
-        if ((!isOut.all) && !monitor.started) {
-          monitor.start();
-        }
-      } // end foreach monitor
+      // Refresh auth hash before restarting streams, since browsers throttle
+      // timers for hidden tabs and the auth hash may have gone stale.
+      refreshAuthAndStartMonitors();
     } // end if not AYSW
   }
 };
@@ -1072,6 +1104,7 @@ document.onvisibilitychange = () => {
 
 window.onbeforeunload = function(e) {
   console.log('unload');
+  clearInterval(resizeInterval);
   /*
   //event.preventDefault();
   for (let i = 0, length = monitorData.length; i < length; i++) {

@@ -116,18 +116,47 @@ FOR EACH ROW
 
 drop procedure if exists update_storage_stats//
 
+/* ============================================================================
+ * Canonical lock-acquisition order for every writer that touches Events,
+ * the bucket tables, and Event_Summaries. InnoDB X-locks the matched Events
+ * row during WHERE evaluation, before either BEFORE or AFTER trigger bodies
+ * fire, so the order is the same regardless of trigger timing:
+ *
+ *   Events[Id] -> Events_Hour/Day/Week/Month[EventId] -> Event_Summaries[MonitorId]
+ *
+ * Writers that follow this order (and must continue to):
+ *   - event_update_trigger (AFTER UPDATE on Events)
+ *   - event_delete_trigger (BEFORE DELETE on Events)
+ *   - The Event::Event constructor in src/zm_event.cpp: INSERT Events, then
+ *     INSERT Events_Hour/Day/Week/Month, then INSERT/UPDATE Event_Summaries
+ *     (event_insert_trigger is commented out below; zmc does it directly)
+ *   - The bucket update/delete triggers cascade into Event_Summaries in the
+ *     same direction
+ *   - zmstats.pl prune+resync (bucket DELETEs then UPDATE Event_Summaries)
+ *   - zmaudit.pl resync (bucket SELECTs then UPDATE Event_Summaries)
+ *
+ * Crucially: do NOT pre-lock Event_Summaries before touching the bucket
+ * tables — that inverts the order and reintroduces the deadlock cycle
+ * against zma/filter/zmc writers.
+ * ============================================================================ */
 drop trigger if exists event_update_trigger//
 
-CREATE TRIGGER event_update_trigger AFTER UPDATE ON Events 
+CREATE TRIGGER event_update_trigger AFTER UPDATE ON Events
 FOR EACH ROW
 BEGIN
   declare diff BIGINT default 0;
   set diff = COALESCE(NEW.DiskSpace,0) - COALESCE(OLD.DiskSpace,0);
 
-  UPDATE Events_Hour SET DiskSpace=NEW.DiskSpace WHERE EventId=NEW.Id;
-  UPDATE Events_Day SET DiskSpace=NEW.DiskSpace WHERE EventId=NEW.Id;
-  UPDATE Events_Week SET DiskSpace=NEW.DiskSpace WHERE EventId=NEW.Id;
-  UPDATE Events_Month SET DiskSpace=NEW.DiskSpace WHERE EventId=NEW.Id;
+  IF ( diff ) THEN
+    UPDATE Events_Hour SET DiskSpace=NEW.DiskSpace WHERE EventId=NEW.Id;
+    UPDATE Events_Day SET DiskSpace=NEW.DiskSpace WHERE EventId=NEW.Id;
+    UPDATE Events_Week SET DiskSpace=NEW.DiskSpace WHERE EventId=NEW.Id;
+    UPDATE Events_Month SET DiskSpace=NEW.DiskSpace WHERE EventId=NEW.Id;
+    UPDATE Event_Summaries
+      SET
+        TotalEventDiskSpace = GREATEST(COALESCE(TotalEventDiskSpace,0) - COALESCE(OLD.DiskSpace,0) + COALESCE(NEW.DiskSpace,0),0)
+      WHERE Event_Summaries.MonitorId=OLD.MonitorId;
+  END IF;
 
   IF ( NEW.Archived != OLD.Archived ) THEN
     IF ( NEW.Archived ) THEN
@@ -153,12 +182,6 @@ BEGIN
     UPDATE Events_Archived SET DiskSpace=NEW.DiskSpace WHERE EventId=NEW.Id;
   END IF;
 
-  IF ( diff ) THEN
-    UPDATE Event_Summaries
-      SET
-        TotalEventDiskSpace = GREATEST(COALESCE(TotalEventDiskSpace,0) - COALESCE(OLD.DiskSpace,0) + COALESCE(NEW.DiskSpace,0),0)
-      WHERE Event_Summaries.MonitorId=OLD.MonitorId;
-  END IF;
 END;
 
 //
@@ -168,6 +191,7 @@ DROP TRIGGER IF EXISTS event_insert_trigger//
 /* The assumption is that when an Event is inserted, it has no size yet, so don't bother updating the DiskSpace, just the count.
  * The DiskSpace will get update in the Event Update Trigger
  */
+/*
 CREATE TRIGGER event_insert_trigger AFTER INSERT ON Events
 FOR EACH ROW
   BEGIN
@@ -185,6 +209,7 @@ FOR EACH ROW
   TotalEvents = COALESCE(TotalEvents,0)+1;
 END;
 //
+*/
 
 DROP TRIGGER IF EXISTS event_delete_trigger//
 

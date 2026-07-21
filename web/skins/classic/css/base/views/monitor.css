@@ -74,10 +74,20 @@ tr td input[type="radio"] {
   text-align: right;
 }
 
+#content {
+  padding-top: 0.5rem;
+}
+
+#contentForm {
+  height: 100%;
+  overflow: visible;
+}
+
 body.sticky #content {
   overflow-y: auto;
   height: 100%;
 }
+
 nav ul.nav {
   height: 100%;
   flex-direction: column;
@@ -89,11 +99,27 @@ ul.form > li {
   padding-left: 300px;
   margin: 10px 0;
 }
+
 ul.form > li > label:first-child {
   width: 290px;
   margin-left: -300px;
   text-align: right;
 }
+
+nav #pills-tab a.nav-link {
+  margin-top: -0.5em;
+  margin-bottom: -0.5em;
+}
+
+nav #pills-tab .nav-item.form-control-sm {
+  height: auto;
+}
+
+nav #pills-tab a.nav-link.active {
+  background-color: var(--colorBackgroundButtons);
+  border: 1px #ccc solid;
+}
+
 .EncoderParameters label {
   vertical-align: top;
 }
@@ -112,9 +138,29 @@ ul.form > li > label:first-child {
     padding-left: 0;
     margin: 5px 0;
   }
-  ul.form > li > label {
+  ul.form > li > label:first-child {
     width: 100%;
     margin-left: 0;
     text-align: left;
   }
+  #page tr td:first-child {
+    min-width: unset;
+  }
+  .tab-pane td:first-child {
+    text-align: left;
+  }
+  textarea,
+  input[name="newMonitor[ONVIF_URL]"],
+  input[name="newMonitor[ONVIF_Username]"],
+  input[name="newMonitor[ONVIF_Password]"],
+  input[name="newMonitor[LabelFormat]"] {
+    min-width: unset;
+  }
+}
+
+/* Encoder preset diagnostics — advisory text under the EncoderParameters textarea */
+.encoderParameterDiagnostics {
+  font-size: 0.9em;
+  color: #b58900;
+  margin-top: 4px;
 }

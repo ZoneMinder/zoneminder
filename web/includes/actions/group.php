@@ -44,6 +44,7 @@ if ( $action == 'save' ) {
       dbQuery('INSERT INTO `Groups_Monitors` (`GroupId`,`MonitorId`) VALUES (?,?)', array($group_id, $mid));
     }
   }
+  ZM\AuditAction((!empty($_REQUEST['gid']) ? 'update' : 'create'), 'group', $group->Id(), 'Name: '.$_REQUEST['newGroup']['Name']);
   $redirect = '?view=groups';
 }
 ?>

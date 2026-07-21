@@ -84,13 +84,14 @@ sub open
     use LWP::UserAgent;
     use IO::Socket::SSL;
     $self->{ua} = LWP::UserAgent->new(keep_alive => 1);
+    # Try with SSL verification enabled first
     $self->{ua}->ssl_opts(
-      verify_hostname => 0,
-      SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_NONE,
-      SSL_hostname => ''
+      verify_hostname => 1,
+      SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_PEER,
     );
     $self->{ua}->agent("ZoneMinder Control Agent/".ZoneMinder::Base::ZM_VERSION);
     $self->{state} = 'closed';
+    $self->{ssl_verified} = 1;  # Track if we're using SSL verification
 #   credentials:  ("ip:port" (no prefix!), realm (string), username (string), password (string)
     $self->{ua}->credentials($ADDRESS, $REALM, $USERNAME, $PASSWORD);
 
@@ -98,6 +99,18 @@ sub open
     my $url = $PROTOCOL . $ADDRESS . $cgi;
     my $req = HTTP::Request->new(GET=>$url);
     my $res = $self->{ua}->request($req);
+
+    # If SSL verification failed, retry without verification
+    if (!$res->is_success && $self->{ssl_verified} && $res->status_line =~ /SSL|certificate|verify/i) {
+        Warning("SSL certificate verification failed for $url (" . $res->status_line . "), retrying without verification");
+        $self->{ua}->ssl_opts(
+          verify_hostname => 0,
+          SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_NONE,
+          SSL_hostname => ''
+        );
+        $self->{ssl_verified} = 0;
+        $res = $self->{ua}->request($req);
+    }
 
     if ($res->is_success) {
         $self->{state} = 'open';
@@ -173,6 +186,18 @@ sub _sendGetRequest {
     my $url = $PROTOCOL . $ADDRESS . $url_path;
     my $req = HTTP::Request->new(GET => $url);
     my $res = $self->{ua}->request($req);
+
+    # If SSL verification failed, retry without verification
+    if (!$res->is_success && $self->{ssl_verified} && $res->status_line =~ /SSL|certificate|verify/i) {
+        Warning("SSL certificate verification failed for $url (" . $res->status_line . "), retrying without verification");
+        $self->{ua}->ssl_opts(
+          verify_hostname => 0,
+          SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_NONE,
+          SSL_hostname => ''
+        );
+        $self->{ssl_verified} = 0;
+        $res = $self->{ua}->request($req);
+    }
 
     if ($res->is_success) {
         return 1;

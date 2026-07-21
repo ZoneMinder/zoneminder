@@ -57,6 +57,7 @@ our %EXPORT_TAGS = (
       ERROR
       FATAL
       PANIC
+      AUDIT
       NOLOG
       ) ],
     functions => [ qw(
@@ -75,10 +76,12 @@ our %EXPORT_TAGS = (
       Dump
       Debug
       Info
+      Warn
       Warning
       Error
       Fatal
       Panic
+      Audit
       ) ]
     );
 
@@ -122,7 +125,8 @@ use constant {
   ERROR => -2,
   FATAL => -3,
   PANIC => -4,
-  NOLOG => -5
+  AUDIT => -5,
+  NOLOG => -6
 };
 
 our %codes = (
@@ -141,6 +145,7 @@ our %codes = (
     &ERROR => 'ERR',
     &FATAL => 'FAT',
     &PANIC => 'PNC',
+    &AUDIT => 'AUD',
     &NOLOG => 'OFF'
     );
 
@@ -159,7 +164,8 @@ our %priorities = (
   &WARNING => 'warning',
   &ERROR => 'err',
   &FATAL => 'err',
-  &PANIC => 'err'
+  &PANIC => 'err',
+  &AUDIT => 'notice'
 );
 
 our $logger;
@@ -736,6 +742,7 @@ sub info {
   $log->logPrint(INFO, @_, caller);
 }
 
+sub Warn { fetch()->logPrint(WARNING, @_, caller); }
 sub Warning { fetch()->logPrint(WARNING, @_, caller); }
 sub warn {
   my $log = shift;
@@ -763,6 +770,8 @@ sub Panic {
   fetch()->logPrint(PANIC, @_, caller);
   confess($_[0]);
 }
+
+sub Audit { fetch()->logPrint(AUDIT, @_, caller); }
 
 1;
 __END__
@@ -910,9 +919,8 @@ Philip Coombes, E<lt>philip.coombes@zoneminder.comE<gt>
 
 Copyright (C) 2001-2008  Philip Coombes
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.3 or,
-at your option, any later version of Perl 5 you may have available.
+Licensed under the GNU General Public License v2 or later; see the COPYING
+file distributed with ZoneMinder for the full text.
 
 
 =cut

@@ -364,13 +364,12 @@ function getImageSource(monId, time) {
       return;
     }
 
-    let scale = parseInt(100 * monitorCanvasObj[monId].width / monitorWidth[monId]);
-    if (scale > 100) {
-      scale = 100;
-    } else {
-      scale = 10 * parseInt(scale/10); // Round to nearest 10
-      // May need to limit how small we can go to maintain fidelity
-    }
+    // Percentage of the monitor's native size needed to fill its canvas,
+    // rounded UP to the next 10 so the streamed image is at least the canvas
+    // size. Rounding down makes zms send fewer pixels than the canvas shows and
+    // the browser then upscales the image, blurring it.
+    let scale = 10 * Math.ceil(100 * monitorCanvasObj[monId].width / monitorWidth[monId] / 10);
+    scale = Math.min(100, Math.max(10, scale));
 
     // Storage[0] is guaranteed to exist as we make sure it is there in montagereview.js.php
     const storage = Storage[e.StorageId] ? Storage[e.StorageId] : Storage[0];

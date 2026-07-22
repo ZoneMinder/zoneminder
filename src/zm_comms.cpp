@@ -547,6 +547,11 @@ bool zm::InetSocket::bind(const char *host, const char *serv) {
       continue;
     }
 
+    // Without SO_REUSEADDR a previous socket lingering in TIME_WAIT on the
+    // same port makes bind() fail with EADDRINUSE.
+    int val = 1;
+    ::setsockopt(mSd, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val));
+
     mState = DISCONNECTED;
     if (::bind(mSd, rp->ai_addr, rp->ai_addrlen) == 0) {
       break;                  /* Success */

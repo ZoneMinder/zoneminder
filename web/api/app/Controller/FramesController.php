@@ -69,11 +69,7 @@ class FramesController extends AppController {
 
     global $user;
     $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : null;
-    if ( $allowedMonitors ) {
-      $mon_options = array('Event.MonitorId' => $allowedMonitors);
-    } else {
-      $mon_options = '';
-    }
+
     $named_params = $this->request->params['named'];
     if ( $named_params ) {
       $this->FilterComponent = $this->Components->load('Filter');
@@ -82,7 +78,21 @@ class FramesController extends AppController {
       $conditions = array();
     }
 
-    $frames = $this->Frame->find('all', ['conditions'=>$conditions]);
+    $findOptions = array('conditions' => $conditions);
+    if ( $allowedMonitors ) {
+      // Frame has no MonitorId of its own, and recursive=-1 above means the
+      // Event association isn't auto-joined, so the per-monitor ACL has to
+      // join through to the owning Event explicitly.
+      $findOptions['joins'] = array(array(
+        'table' => 'Events',
+        'alias' => 'Event',
+        'type' => 'inner',
+        'conditions' => array('Event.Id = Frame.EventId'),
+      ));
+      $findOptions['conditions'][] = array('Event.MonitorId' => $allowedMonitors);
+    }
+
+    $frames = $this->Frame->find('all', $findOptions);
 		$this->set(array(
 			'frames' => $frames,
 			'_serialize' => array('frames')

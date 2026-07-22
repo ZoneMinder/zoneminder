@@ -29,8 +29,10 @@ set(TEST_SOURCES
   zm_utils.cpp
   zm_vector2.cpp
   zm_zone.cpp
+  zm_zone_stride.cpp
   zm_image_linesize.cpp
-  zm_ffmpeg_camera.cpp)
+  zm_ffmpeg_camera.cpp
+  zm_ffmpeg_fallback.cpp)
 
 add_executable(tests main.cpp ${TEST_SOURCES})
 

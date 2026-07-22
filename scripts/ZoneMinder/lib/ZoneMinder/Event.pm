@@ -861,7 +861,7 @@ sub recover_timestamps {
   Debug('Have ' . @contents . ' files in '.$path);
   closedir(DIR);
 
-  my @mp4_files = grep(/^\d+\-video\.\w+\.mp4$/, @contents);
+  my @mp4_files = grep(/^\d+\-video\.(?:\w+\.)?mp4$/, @contents);
   if ( @mp4_files ) {
     $$Event{DefaultVideo} = $mp4_files[0];
   }
@@ -880,7 +880,6 @@ sub recover_timestamps {
     my $first_file = "$path/$capture_jpgs[0]";
     ( $first_file ) = $first_file =~ /^(.*)$/;
     my $first_timestamp = (stat($first_file))[9];
-    $starttime = $first_timestamp if $first_timestamp < $starttime;
 
     my $last_file = $path.'/'.$capture_jpgs[@capture_jpgs-1];
     ( $last_file ) = $last_file =~ /^(.*)$/;
@@ -922,24 +921,27 @@ sub recover_timestamps {
     my $file = $path.'/'.$mp4_files[0];
     ( $file ) = $file =~ /^(.*)$/; # de-taint
 
-    my $first_timestamp = (stat($file))[9];
-    $starttime = $first_timestamp if $first_timestamp < $starttime;
-
     my $seconds = mp4_duration($file);
     if ( !defined $seconds ) {
       Warning("Unable to determine duration of $file from ffprobe. Defaulting Length to 0.");
       $seconds = 0;
     }
-    Debug("From mp4 have duration $seconds seconds, start: $first_timestamp");
+    # The mp4 is written as the event records, so its mtime is when recording
+    # finished. The event therefore started $seconds before that.
+    my $last_timestamp = (stat($file))[9];
+    my $first_timestamp = $last_timestamp - $seconds;
+    Debug("From mp4 have duration $seconds seconds, start: $first_timestamp end: $last_timestamp");
 
     $Event->Length(sprintf('%.2f', $seconds));
     $Event->StartDateTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $first_timestamp) );
-    $Event->EndDateTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $first_timestamp+$seconds) );
+    $Event->EndDateTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $last_timestamp) );
+  } else {
+    # Nothing to derive the times from, so fall back to the directory's mtime.
+    $Event->StartDateTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $starttime) );
   }
   if ( @mp4_files ) {
     $Event->DefaultVideo($mp4_files[0]);
   }
-  $Event->StartDateTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $starttime) );
 }
 
 # Return the duration of a video file in seconds (float), or undef if it
@@ -988,7 +990,7 @@ sub fix_DefaultVideo {
     Debug('Have ' . @contents . ' files in '.$path);
     closedir(DIR);
 
-    my @mp4_files = grep(/^\d+\-video\.\w+\.mp4$/, @contents);
+    my @mp4_files = grep(/^\d+\-video\.(?:\w+\.)?mp4$/, @contents);
     if ( @mp4_files ) {
       $$event{DefaultVideo} = $mp4_files[0];
     }

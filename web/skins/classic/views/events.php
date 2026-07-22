@@ -25,6 +25,7 @@ if ( !canView('Events') || (!empty($_REQUEST['execute']) && !canEdit('Events')) 
 
 require_once('includes/Event.php');
 require_once('includes/Filter.php');
+require_once('_monitor_filters.php'); // getFilterSelection() for shared zmFilter_* cookies
 
 $eventsSql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultScale FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId) WHERE';
 if (count($user->unviewableMonitorIds())) {
@@ -41,23 +42,32 @@ if ( isset($_REQUEST['filter'])) {
  
 if (!$filter->Id()) {
   $num_terms = count($filter->terms());
+  # Shared cross-view filter selection (console/montage/montagereview all use these
+  # zmFilter_* cookies). Only seed defaults from them on the default-filter path so an
+  # explicit ?filter= is never overridden. refs #4976
+  $sharedMonitorId = getFilterSelection('MonitorId');
+  if (is_array($sharedMonitorId)) $sharedMonitorId = implode(',', $sharedMonitorId);
+  $sharedGroupId = getFilterSelection('GroupId');
+  if (is_array($sharedGroupId)) $sharedGroupId = implode(',', $sharedGroupId);
   if (!$filter->has_term('Monitor')) {
-    $filter->addTerm(array('cnj'=>'and', 'attr'=>'Monitor', 'op'=> '=', 'val'=>'', 'cookie'=>'eventsMonitor'), 0);
+    $filter->addTerm(array('cnj'=>'and', 'attr'=>'Monitor', 'op'=> '=',
+      'val'=> $num_terms ? '' : $sharedMonitorId, 'cookie'=>'zmFilter_MonitorId'), 0);
   }
   if (ZM\Group::find_one() and !$filter->has_term('Group'))
-    $filter->addTerm(array('cnj'=>'and', 'attr'=>'Group', 'op'=> '=', 'cookie'=>'eventsGroup'), 0);
+    $filter->addTerm(array('cnj'=>'and', 'attr'=>'Group', 'op'=> '=',
+      'val'=> $num_terms ? '' : $sharedGroupId, 'cookie'=>'zmFilter_GroupId'), 0);
   if (!$filter->has_term('Notes')) {
     $filter->addTerm(array('cnj'=>'and', 'attr'=>'Notes', 'op'=> 'LIKE', 'val'=>'', 'cookie'=>'eventsNotes'));
   }
   if (!$filter->has_term('StartDateTime', '>=')) {
-    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '>=', 
-      'val' => $num_terms ? '' : (isset($_COOKIE['eventsStartDateTimeStart']) ? $_COOKIE['eventsStartDateTimeStart'] : date('Y-m-d h:i:s', time()-3600)),
-      'cnj' => 'and', 'cookie'=>'eventsStartDateTimeStart'));
+    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '>=',
+      'val' => $num_terms ? '' : (isset($_COOKIE['zmFilter_StartDateTime']) ? $_COOKIE['zmFilter_StartDateTime'] : date('Y-m-d H:i:s', time()-3600)),
+      'cnj' => 'and', 'cookie'=>'zmFilter_StartDateTime'));
   }
   if (!$filter->has_term('StartDateTime', '<=')) {
     $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '<=',
-      'val' => $num_terms ? '' : (isset($_COOKIE['eventsStartDateTimeEnd']) ? $_COOKIE['eventsStartDateTimeEnd'] : ''),
-      'cnj' => 'and', 'cookie'=>'eventsEndDateTimeEnd'));
+      'val' => $num_terms ? '' : (isset($_COOKIE['zmFilter_EndDateTime']) ? $_COOKIE['zmFilter_EndDateTime'] : ''),
+      'cnj' => 'and', 'cookie'=>'zmFilter_EndDateTime'));
   }
   if (!$filter->has_term('Tags')) {
     $filter->addTerm(array('attr' => 'Tags', 'op' => '=',

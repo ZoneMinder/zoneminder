@@ -153,13 +153,27 @@ function xhtmlHeadersEnd() {
   echo '</head>';
 } // end function xhtmlHeaders( $file, $title )
 
+// True when the monitor filter panel should be shown inline (at the top of the
+// view) with its own toggle icon, rather than embedded in the left sidebar.
+// The sidebar can only be used when the navbar is on the left; without a left
+// navbar there is nothing to embed into, so filters are always inline. The
+// effective navbar position is the request/cookie/session value resolved into
+// the global $navbar_type by index.php, not the ZM_WEB_NAVBAR_TYPE default, so
+// the user's live choice is honoured. This mirrors the panel relocation
+// condition in skin.js, which uses the same value.
+function filterSettingsInline() {
+  global $navbar_type;
+  if ($navbar_type != 'left') return true;
+  return defined('ZM_WEB_FILTER_SETTINGS_POSITION') && ZM_WEB_FILTER_SETTINGS_POSITION == 'inline';
+}
+
 // Outputs an opening body tag, and any additional content that should go at the very top, like warnings and error messages.
 function getBodyTopHTML() {
   global $view;
   //Needed for more flexible global governance
   $classes = $view.'-page';
   if (defined('ZM_WEB_NAVBAR_STICKY') and ZM_WEB_NAVBAR_STICKY) $classes .= ' sticky';
-  if (defined('ZM_WEB_FILTER_SETTINGS_POSITION') and ZM_WEB_FILTER_SETTINGS_POSITION == 'inline') $classes .= ' filter-inline';
+  if (filterSettingsInline()) $classes .= ' filter-inline';
   if (defined('ZM_WEB_BUTTON_STYLE') and ZM_WEB_BUTTON_STYLE == 'icons') $classes .= ' btn-icons-only';
   else if (defined('ZM_WEB_BUTTON_STYLE') and ZM_WEB_BUTTON_STYLE == 'text') $classes .= ' btn-text-only';
   if (defined('ZM_WEB_SHOW_NAV_BUTTONS') and !ZM_WEB_SHOW_NAV_BUTTONS) $classes .= ' hide-nav-buttons';

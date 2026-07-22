@@ -214,7 +214,19 @@ sub Sql {
         } elsif ( $term->{attr} eq 'CurrentDate' ) {
           $self->{Sql} .= 'to_days(NOW())';
         } elsif ( $term->{attr} eq 'DateTime' ) {
-          $self->{Sql} .= 'E.StartDateTime';
+          # Mirror web/includes/FilterTerm.php: DateTime is an "event overlaps
+          # this instant/window" idiom, not a plain StartDateTime comparison. A
+          # lower bound (>=/>) is satisfied by an event still running at that
+          # time, so compare against EndDateTime (NULL end = ongoing = never
+          # ends). An upper bound (<=/</=) is satisfied by an event that had
+          # already started, so compare against StartDateTime. Keep this in sync
+          # with the PHP so the web UI and the zmfilter.pl daemon select the
+          # same events. refs #4976
+          if ( ($term->{op}//'') eq '>=' or ($term->{op}//'') eq '>' ) {
+            $self->{Sql} .= "COALESCE(E.EndDateTime, '9999-12-31 23:59:59')";
+          } else {
+            $self->{Sql} .= 'E.StartDateTime';
+          }
         } elsif ( $term->{attr} eq 'Date' ) {
           # column emitted as part of range expression below
         } elsif ( $term->{attr} eq 'StartDate' ) {

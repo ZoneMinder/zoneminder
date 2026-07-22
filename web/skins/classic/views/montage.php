@@ -249,9 +249,12 @@ echo getNavBarHTML();
   <div id="page">
   <div id="header"<?php echo (isset($_REQUEST['header']) and ($_REQUEST['header']=='0' or $_REQUEST['header']=='hidden')) ? ' style="display:none;"' : '' ?>>
 <?php
-    $filter_inline = defined('ZM_WEB_FILTER_SETTINGS_POSITION') && ZM_WEB_FILTER_SETTINGS_POSITION == 'inline';
+    $filter_inline = filterSettingsInline();
     $html = '';
-    if (!$filter_inline) {
+    // In inline mode this flip icon is the only control that hides/shows the
+    // top filter panel. In sidebar mode the panel lives in the sidebar
+    // extruder, which has its own show/hide control, so the icon is omitted.
+    if ($filter_inline) {
       $html .= '<a class="flip" href="#"
                data-flip-control-object="#mfbpanel"
                data-flip-control-run-after-func="applyChosen"

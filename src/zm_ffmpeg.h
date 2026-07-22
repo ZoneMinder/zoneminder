@@ -332,6 +332,11 @@ struct CodecData {
 };
 std::list<const CodecData*> get_encoder_data(const std::string & wanted_codec, const std::string &wanted_coder) ;
 std::list<const CodecData*> get_decoder_data(int wanted_codec, const std::string &wanted_coder) ;
+// When none of the preferred decoders in dec_codecs are usable, fall back to
+// whatever decoder this ffmpeg build actually provides for codecpar->codec_id.
+// Returns an opened AVCodecContext (caller frees with avcodec_free_context) or
+// nullptr. When non-null, *codec_out receives the chosen AVCodec.
+AVCodecContext *open_fallback_decoder(const AVCodecParameters *codecpar, const AVCodec **codec_out = nullptr);
 int setup_hwaccel(AVCodecContext *codec_ctx, const CodecData *codec_data,AVBufferRef * &hw_device_ctx, const std::string &device, int width, int height);
 int libjpeg_to_ffmpeg_qv(int libjpeg_quality);
 enum AVPixelFormat get_hw_format(AVCodecContext *ctx, const enum AVPixelFormat *pix_fmts);

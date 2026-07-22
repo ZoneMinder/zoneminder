@@ -153,24 +153,24 @@ Event::Event(
 
   /* None of these are crucial, and are simple when done as individual transactions */
   sql = stringtf("INSERT INTO `Events_Hour` (EventId,MonitorId,StartDateTime,DiskSpace)"
-      " VALUES (%" PRId64 ",%u,'%s',NULL)",
+      " VALUES (%" PRIu64 ",%u,'%s',NULL)",
       id, monitor->Id(), now_str.c_str());
   dbQueue.push(std::move(sql));
   sql = stringtf("INSERT INTO `Events_Day` (EventId,MonitorId,StartDateTime,DiskSpace)"
-      " VALUES (%" PRId64 ",%u,'%s',NULL)",
+      " VALUES (%" PRIu64 ",%u,'%s',NULL)",
       id, monitor->Id(), now_str.c_str());
   dbQueue.push(std::move(sql));
   sql = stringtf("INSERT INTO `Events_Week` (EventId,MonitorId,StartDateTime,DiskSpace)"
-      " VALUES (%" PRId64 ",%u,'%s',NULL)",
+      " VALUES (%" PRIu64 ",%u,'%s',NULL)",
       id, monitor->Id(), now_str.c_str());
   dbQueue.push(std::move(sql));
   sql = stringtf("INSERT INTO `Events_Month` (EventId,MonitorId,StartDateTime,DiskSpace)"
-      " VALUES (%" PRId64 ",%u,'%s',NULL)",
+      " VALUES (%" PRIu64 ",%u,'%s',NULL)",
       id, monitor->Id(), now_str.c_str());
   dbQueue.push(std::move(sql));
   /*
   sql = stringtf("INSERT INTO `Events_Year` (EventId,MonitorId,StartDateTime,DiskSpace)"
-      " VALUES (%" PRId64 ",%u,'%s',NULL)",
+      " VALUES (%" PRIu64 ",%u,'%s',NULL)",
       id, monitor->Id(), now_str.c_str());
   dbQueue.push(std::move(sql));
   */
@@ -469,7 +469,7 @@ void Event::AddPacket_(const std::shared_ptr<ZMPacket>packet) {
           tag->save();
           Debug(1, "Created new Tag %s", cls.c_str());
           tags.emplace(std::make_pair(cls, *tag));
-          int tag_id = tag->Id();
+          uint64_t tag_id = tag->Id();
           delete tag;  // Delete after copying into map
           tag = nullptr;
 

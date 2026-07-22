@@ -623,10 +623,10 @@ int main(int argc, char *argv[]) {
               monitor->Id(), storage_id, event_id,
               static_cast<int64>(std::chrono::duration_cast<Seconds>(fd.timestamp.time_since_epoch()).count()),
               scheme_str.c_str(), monitor->Width(), monitor->Height());
-            int new_event_id = zmDbDoInsert(sql);
-            if (new_event_id > 0) {
+            uint64_t new_event_id = zmDbDoInsert(sql);
+            if (new_event_id) {
               current_event->db_event_id = new_event_id;
-              Info("Created new event %d from re-analysis of event %" PRIu64, new_event_id, event_id);
+              Info("Created new event %" PRIu64 " from re-analysis of event %" PRIu64, new_event_id, event_id);
 
               // Create directory and copy video files to new event
               std::string new_event_path = BuildNewEventPath(

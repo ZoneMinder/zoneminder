@@ -304,6 +304,13 @@ class FilterTerm {
     case 'CurrentWeekday':
       return 'weekday(NOW()';
     case 'DateTime':
+      // DateTime is an "event overlaps this instant/window" idiom, not a plain
+      // StartDateTime comparison. A lower bound (>=/>) is satisfied by an event
+      // still running at that time, so compare against EndDateTime (NULL end =
+      // ongoing = never ends). An upper bound (<=/</=) is satisfied by an event
+      // that had already started, so compare against StartDateTime. refs #4976
+      if ($this->op == '>=' or $this->op == '>')
+        return "COALESCE(E.EndDateTime, '9999-12-31 23:59:59')";
       return 'E.StartDateTime';
     case 'Date':
      return 'to_days(E.StartDateTime)';

@@ -539,7 +539,8 @@ function MonitorStream(monitorData) {
     this.handlerEventListener['errorStream'] = manageEventListener.addEventListener(stream, 'error',
         (e) => {
           clearTimeout(this.mseWaitingErrorReset);
-          console.warn(`Stream playback error for monitor ID=${this.id}.`, `ERROR: ${e.srcElement.error.message}`, e);
+          const mediaErrorMsg = e?.target?.error?.message || e?.srcElement?.error?.message || 'Unknown media error';
+          console.warn(`Stream playback error for monitor ID=${this.id}.`, `ERROR: ${mediaErrorMsg}`, e);
           this.writeTextInfoBlock("Error");
           this.streamErrorRegistration();
           this.restart(this.currentChannelStream);
@@ -2065,7 +2066,7 @@ function MonitorStream(monitorData) {
   };
 
   this.getCountStreamErrors = function(player) {
-    if (!player) return;
+    if (!player) return 0;
     let countErrors = 0;
     for (const key in this.playerPriority) {
       if (-1 !== player.indexOf(this.playerPriority[key]['name'])) {
@@ -2496,7 +2497,7 @@ function startMsePlay(context, videoEl, url) {
   $j('#delay'+context.id).removeClass('hidden');
 
   // This is necessary if the browser doesn't allow automatic playback with sound.
-  const self = this;
+  const self = context;
   videoEl.play().then(() => {
     console.debug("RTSP2Web type MSE started playing the video stream successfully.");
   })

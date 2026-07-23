@@ -2361,7 +2361,10 @@ bool Monitor::Analyse() {
                   }
 
                   // Instead of showing a greyscale image, let's use the full colour
-                  if (!packet->analysis_image)
+                  // Only allocate it when this frame actually has motion score,
+                  // so that Event::AddFrame doesn't save analysis jpegs for
+                  // every analysed frame (refs #4996).
+                  if (motion_score and !packet->analysis_image)
                     packet->analysis_image = new Image(*(packet->image));
 
                   // lets construct alarm cause. It will contain cause + names of zones alarmed

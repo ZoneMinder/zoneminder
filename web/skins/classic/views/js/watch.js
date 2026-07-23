@@ -1491,33 +1491,33 @@ window.addEventListener('pageshow', () => {
 });
 
 function stopPage() {
-      if (monitorStream) {
-        if (monitorStream.started) {
-          if ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused) || monitorStream.element.paused) {
-            prevStateStarted = 'paused';
-          } else {
-            prevStateStarted = 'played';
-            //Stop only if playing (not paused).
-            // We might want to continue status updates so that alarm sounds etc still happen
-            monitorStream.stop();
-          }
-        } else {
-          prevStateStarted = 'stopped';
-        }
+  if (monitorStream) {
+    if (monitorStream.started) {
+      if ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused) || monitorStream.element.paused) {
+        prevStateStarted = 'paused';
+      } else {
+        prevStateStarted = 'played';
+        //Stop only if playing (not paused).
+        // We might want to continue status updates so that alarm sounds etc still happen
+        monitorStream.stop();
       }
+    } else {
+      prevStateStarted = 'stopped';
+    }
+  }
 }
 
 function startPage() {
-    if (monitorStream && prevStateStarted == 'played' && !idleTimeoutTriggered) {
-      prevStateStarted = null;
-      onPlay(); //Set the correct state of the player buttons.
-      monitorStream.start(monitorStream.currentChannelStream);
-      monitorsSetScale(monitorId);
-    //} else if (prevStateStarted != 'paused') {
-    } else if (monitorStream && monitorStream.element && ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused) || monitorStream.element.paused)) {
-      prevStateStarted = null;
-    }
+  if (monitorStream && prevStateStarted == 'played' && !idleTimeoutTriggered) {
+    prevStateStarted = null;
+    onPlay(); //Set the correct state of the player buttons.
+    monitorStream.start(monitorStream.currentChannelStream);
+    monitorsSetScale(monitorId);
+  //} else if (prevStateStarted != 'paused') {
+  } else if (monitorStream && monitorStream.element && ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused) || monitorStream.element.paused)) {
+    prevStateStarted = null;
   }
+}
 
 function setButtonStateWatch(element_id, btnClass) {
   //Temporary function so as not to break anything else, because analysis of the setButtonState function in skin.js is required,

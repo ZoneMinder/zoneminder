@@ -1084,6 +1084,13 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   }
   int Importance() const { return importance; }
   int StartupDelay() const { return startup_delay; }
+
+ private:
+  // True after a keyframe is sent until the decoder outputs the first frame.
+  // Used by keyframe-based decoding modes to feed any required follow-up packets.
+  // A future improvement could eliminate mode-specific checks by relying solely
+  // on this flag to track the decoder state.
+  bool decoder_requires_next_packet = false;
 };
 
 #define MOD_ADD( var, delta, limit ) (((var)+(limit)+(delta))%(limit))

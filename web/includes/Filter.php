@@ -6,6 +6,23 @@ require_once('Monitor.php');
 
 class Filter extends ZM_Object {
   protected static $table = 'Filters';
+
+  // A sort_field value is concatenated into an ORDER BY clause, so it must be
+  // validated before use. Accept only a bare column name optionally followed by
+  // an "IS [NOT] NULL" test and/or ASC/DESC, comma-separated. Anything outside
+  // this grammar (parentheses, quotes, functions, semicolons, ...) is rejected
+  // so a stale URL/cookie/DB row can't inject SQL.
+  const SORT_PART_RE = '/^\s*([A-Za-z][A-Za-z0-9_]*)(\s+IS\s+(?:NOT\s+)?NULL)?(\s+(?:ASC|DESC))?\s*$/i';
+
+  public static function isValidSortExpression($sf) {
+    if ($sf === '' || $sf === null) return true;
+    if (!is_string($sf)) return false;
+    foreach (explode(',', $sf) as $part) {
+      if (!preg_match(self::SORT_PART_RE, $part)) return false;
+    }
+    return true;
+  }
+
   protected static $attrTypes = null;
   protected static $opTypes = null;
   protected static $tags_opTypes = null;
@@ -242,7 +259,13 @@ class Filter extends ZM_Object {
       $this->Query($Query);
     }
     if (isset($this->Query()['sort_field'])) {
-      return $this->{'Query'}['sort_field'];
+      $sf = $this->{'Query'}['sort_field'];
+      // Validate on read so a malicious value stored in an existing filter row
+      // is neutralised too, not just newly-saved ones.
+      if (self::isValidSortExpression($sf)) {
+        return $sf;
+      }
+      Warning('Ignoring malformed Filter sort_field "'.$sf.'"');
     }
     return ZM_WEB_EVENT_SORT_FIELD;
     #return $this->defaults{'sort_field'};

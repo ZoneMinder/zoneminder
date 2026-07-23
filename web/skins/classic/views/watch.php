@@ -231,7 +231,9 @@ echo getNavBarHTML() ?>
     // In inline mode this flip icon is the only control that hides/shows the
     // top filter panel. In sidebar mode the panel lives in the sidebar
     // extruder, which has its own show/hide control, so the icon is omitted.
-    if ($filter_inline) {
+    // IgorA100: No, the above statement is incorrect. #mfbpanel contains not only filters but also other information that is not transferred to the left sidebar.
+    //if ($filter_inline) {
+    if (1) {
       $html .= '<a class="flip" href="#"
                data-flip-control-object="#mfbpanel"
                data-flip-control-run-after-func="applyChosen"

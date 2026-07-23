@@ -59,6 +59,7 @@ function MonitorStream(monitorData) {
     request: 'stream',
     connkey: this.connKey
   };
+  this.limitCountErrors = 2;
   this.playerPriority = {
     1: { // This setting should always be priority #1.
       name: 'default',
@@ -75,11 +76,11 @@ function MonitorStream(monitorData) {
       countErrors: 0,
       durationErrors: 0
     },
-    //4: {
-    //  name: 'go2rtc_hls', // Doesn't work for live viewing.
-    //  countErrors: 0,
-    //  durationErrors: 0
-    //},
+    100: {
+      name: 'go2rtc_hls', // Doesn't work for live viewing. But it's required for error counting. Let's set the priority after ZMS, i.e., in theory, with Mode=Auto, it will never be selected.
+      countErrors: 0,
+      durationErrors: 0
+    },
     5: {
       name: 'rtsp2web_webrtc',
       countErrors: 0,
@@ -218,7 +219,8 @@ function MonitorStream(monitorData) {
 
     }
 
-    this.selectedPlayer = p;
+    //this.selectedPlayer = p;
+    this.selectedPlayer = $j('#player').val(); // Selected player in the browser
     // Let's clear out the errors
     for (const key in this.playerPriority) {
       this.playerPriority[key]['countErrors'] = 0;
@@ -536,6 +538,9 @@ function MonitorStream(monitorData) {
     );
     this.handlerEventListener['errorStream'] = manageEventListener.addEventListener(stream, 'error',
         (e) => {
+          clearTimeout(this.mseWaitingErrorReset);
+          const mediaErrorMsg = e?.target?.error?.message || e?.srcElement?.error?.message || 'Unknown media error';
+          console.warn(`Stream playback error for monitor ID=${this.id}.`, `ERROR: ${mediaErrorMsg}`, e);
           this.writeTextInfoBlock("Error");
           this.streamErrorRegistration();
           this.restart(this.currentChannelStream);
@@ -543,56 +548,9 @@ function MonitorStream(monitorData) {
     );
   };
 
-  // When a go2rtc player connects but the source video codec cannot be decoded by
-  // this browser (e.g. an H.265 camera viewed in Chrome, which supports HEVC over
-  // neither WebRTC nor MSE), go2rtc negotiates the video track as inactive and sends
-  // only audio. The <video> then "plays" audio with no picture and stays at 0x0, so
-  // the normal 'error' handler never fires and the player hangs on "Loading...".
-  // Watch for a decoded video frame; if none arrives in time, treat it as a playback
-  // failure and fall back to the next player (ultimately ZMS MJPEG).
-  this.NO_VIDEO_TIMEOUT = 8000;
-  // The transcode stream has to cold-start ffmpeg on the go2rtc host and wait for a
-  // keyframe, so give it a longer grace period than the native-stream check.
-  this.TRANSCODE_NO_VIDEO_TIMEOUT = 15000;
-  this.noVideoWatchdog = null;
-  this.go2rtcTranscodeTried = false;
-
-  this.clearNoVideoWatchdog = function() {
-    if (this.noVideoWatchdog) {
-      clearTimeout(this.noVideoWatchdog);
-      this.noVideoWatchdog = null;
-    }
-  };
-
-  this.startNoVideoWatchdog = function(timeout) {
-    this.clearNoVideoWatchdog();
-    const self = this;
-    const t = timeout || this.NO_VIDEO_TIMEOUT;
-    this.noVideoWatchdog = setTimeout(function() {
-      self.noVideoWatchdog = null;
-      if (!self.started || -1 === self.activePlayer.indexOf('go2rtc')) return;
-      const v = self.getAVStream();
-      if (v && v.videoWidth > 0 && v.videoHeight > 0) return; // video is decoding fine
-      if (!self.go2rtcTranscodeTried) {
-        // The source codec is undecodable by this browser (e.g. H.265 in Chrome).
-        // Before giving up on go2rtc, request its server-side H.264 transcode of this
-        // monitor ("<id>_h264"), which go2rtc produces on demand.
-        self.go2rtcTranscodeTried = true;
-        console.warn(`Monitor ID=${self.id}: player "${self.player}" produced no video within ${self.NO_VIDEO_TIMEOUT}ms (native codec likely unsupported, e.g. H.265); requesting go2rtc H.264 transcode stream ${self.id}_h264.`);
-        self.updateStreamInfo('', 'No video - trying H.264 transcode');
-        self.select_go2rtc(self.currentChannelStream); // restarts the watchdog with the transcode timeout
-        return;
-      }
-      console.warn(`Monitor ID=${self.id}: H.264 transcode also produced no video; falling back to the next player.`);
-      self.updateStreamInfo('', 'No video - trying next player');
-      self.streamErrorRegistration();
-      self.selectNextPlayer(self.player);
-    }, t);
-  };
-
   this.start = function(streamChannel = 'default') {
     this.writeTextInfoBlock("Loading...");
-    this.go2rtcTranscodeTried = false; // a fresh start re-probes the native stream first
+    this.removeText();
     if (streamChannel === null || streamChannel === '' || currentView == 'montage') streamChannel = 'default';
     // Normalize channel name for internal tracking
     if (streamChannel == 'default') {
@@ -706,6 +664,34 @@ function MonitorStream(monitorData) {
     return currentInfoBlock;
   };
 
+  this.showText = function(text) {
+    const blockId = "infoText-"+this.id;
+    let block = document.getElementById(blockId);
+    if (!block) {
+      block = document.createElement('span');
+      block.id = blockId;
+      block.classList.add("info-text");
+      this.getElement().parentElement.prepend(block);
+    }
+    if (text !== "" && block.textContent !== text) {
+      if (block.textContent !== "") {
+        // The text already existed, we need to add a new one.
+        block.appendChild(document.createElement('br'));
+        block.appendChild(document.createTextNode(text));
+      } else {
+        block.textContent = text;
+      }
+    }
+  };
+
+  this.removeText = function() {
+    const blockId = "infoText-"+this.id;
+    const block = document.getElementById(blockId);
+    if (block) {
+      block.textContent = '';
+    }
+  };
+
   this.stop = function() {
     manageEventListener.removeEventListener(this.handlerEventListener['killStream']);
     manageEventListener.removeEventListener(this.handlerEventListener['playStream']);
@@ -722,6 +708,8 @@ function MonitorStream(monitorData) {
       console.warn(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} has already stopped.`);
       return;
     }
+    //this.started = false;
+
     if (-1 !== this.activePlayer.indexOf('zms')) {
       this.writeTextInfoBlock("Stopped", {showImg: false});
     } else {
@@ -730,7 +718,6 @@ function MonitorStream(monitorData) {
     console.debug(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} STOPPING`);
     this.statusCmdTimer = clearInterval(this.statusCmdTimer);
     this.streamCmdTimer = clearInterval(this.streamCmdTimer);
-    this.clearNoVideoWatchdog();
     this.mediaStream = this.audioTrack = this.videoTrack = null;
 
     if (-1 !== this.activePlayer.indexOf('zms')) {
@@ -865,10 +852,28 @@ function MonitorStream(monitorData) {
 
   this.restart = function(channelStream = "default", delay = 200) {
     this.stop();
-    const this_ = this;
-    setTimeout(function() {// During the downtime, the monitor may have already started to work.
-      if (!this_.started) this_.start(channelStream);
-    }, delay);
+    const countErrors = this.getCountStreamErrors(this.player);
+    if (countErrors < this.limitCountErrors) {
+      setTimeout(function(self) {// During the downtime, the monitor may have already started to work.
+        if (!self.started) self.start(channelStream);
+      }, delay, this);
+    } else {
+      if (typeof streamCmdStop === 'function') {
+        // Let's set the correct state for the player control buttons (for example, on the Watch page)
+        streamCmdStop();
+      }
+
+      if (-1 !== this.player.indexOf('zms')) {
+        this.writeTextInfoBlock("Error", {showImg: false});
+      } else {
+        this.writeTextInfoBlock("Error");
+      }
+      this.updateStreamInfo('', 'Error');
+      this.resetCountStreamErrors(this.player);
+      const msg = `Out of ${this.limitCountErrors} consecutive attempts to start a stream for monitor ID=${this.id} using player "${this.player}", none were successful. The stream has been stopped.`;
+      console.warn(msg);
+      this.showText(msg);
+    }
   };
 
   this.pause = function() {
@@ -1773,7 +1778,6 @@ function MonitorStream(monitorData) {
 
       if (typeof observerMontage !== 'undefined') observerMontage.observe(stream);
       this.activePlayer = 'go2rtc';
-      this.startNoVideoWatchdog(this.go2rtcTranscodeTried ? this.TRANSCODE_NO_VIDEO_TIMEOUT : this.NO_VIDEO_TIMEOUT);
     } else {
       alert("ZM_GO2RTC_PATH is empty. Go to Options->System and set ZM_GO2RTC_PATH accordingly.");
     }
@@ -1989,20 +1993,15 @@ function MonitorStream(monitorData) {
     if (!currentPlayer) currentPlayer = this.player;
     if (!currentPlayer) currentPlayer = this.player = this.defaultPlayer;
 
-    let countErrors = 0;
-    for (const key in this.playerPriority) {
-      if (-1 !== currentPlayer.indexOf(this.playerPriority[key]['name'])) {
-        countErrors = parseInt(this.playerPriority[key]['countErrors'], 10);
-        if (countErrors > 0) console.debug(`${countErrors} playback errors found for player "${currentPlayer}"`);
-      }
-    }
+    const countErrors = this.getCountStreamErrors(currentPlayer);
+    if (countErrors > 0) console.debug(`${countErrors} playback errors found for player "${currentPlayer}"`);
 
     if ((currentPlayer && countErrors === 0) || (this.selectedPlayer && this.selectedPlayer === currentPlayer)) { // selectedPlayer pins only when it matches the active selection
       if (this.Go2RTCEnabled && (-1 !== currentPlayer.indexOf('go2rtc'))) {
         this.select_go2rtc(streamChannel);
-      } else if (this.janusEnabled && (-1 !== currentPlayer.indexOf('janus'))) {
+      } else if (this.janusEnabled && (-1 !== currentPlayer.indexOf('janus')) && streamChannel.toLowerCase().indexOf("primary") > -1 && this.selectedPlayer !== 'go2rtc') { // To avoid confusion, since Janus can only work with the first channel & selectedPlayer !== "Go2RTC Auto"
         this.select_janus(streamChannel);
-      } else if (this.RTSP2WebEnabled && (-1 !== currentPlayer.indexOf('rtsp2web'))) {
+      } else if (this.RTSP2WebEnabled && (-1 !== currentPlayer.indexOf('rtsp2web')) && this.selectedPlayer !== 'go2rtc') {
         this.select_rtsp2web(streamChannel);
       } else if (-1 !== currentPlayer.indexOf('zms')) {
         this.select_zms();
@@ -2036,6 +2035,7 @@ function MonitorStream(monitorData) {
           if (nextName.indexOf('go2rtc') !== -1 && !this.Go2RTCEnabled) continue;
           if (nextName.indexOf('rtsp2web') !== -1 && !this.RTSP2WebEnabled) continue;
           if (nextName.indexOf('janus') !== -1 && !this.janusEnabled) continue;
+          if (this.selectedPlayer === 'go2rtc' && nextName.indexOf('go2rtc') === -1 && nextName.indexOf('zms') === -1 ) continue;
           if (parseInt(this.playerPriority[nextKey]['countErrors'], 10) === 0) {
             this.player = nextName;
             this.restart(this.currentChannelStream);
@@ -2060,6 +2060,28 @@ function MonitorStream(monitorData) {
     for (const key in this.playerPriority) {
       if (-1 !== currentPlayer.indexOf(this.playerPriority[key]['name'])) {
         this.playerPriority[key]['countErrors'] = parseInt(this.playerPriority[key]['countErrors'], 10) + 1;
+        break;
+      }
+    }
+  };
+
+  this.getCountStreamErrors = function(player) {
+    if (!player) return 0;
+    let countErrors = 0;
+    for (const key in this.playerPriority) {
+      if (-1 !== player.indexOf(this.playerPriority[key]['name'])) {
+        countErrors = parseInt(this.playerPriority[key]['countErrors'], 10);
+        break;
+      }
+    }
+    return countErrors;
+  };
+
+  this.resetCountStreamErrors = function(player) {
+    if (!player) return;
+    for (const key in this.playerPriority) {
+      if (-1 !== player.indexOf(this.playerPriority[key]['name'])) {
+        this.playerPriority[key]['countErrors'] = 0;
         break;
       }
     }
@@ -2142,6 +2164,7 @@ async function attachVideo(monitorStream) {
           monitorStream.restart(monitorStream.currentChannelStream);
         }
         monitorStream.updateStreamInfo('', ''); //JANUS
+        monitorStream.resetCountStreamErrors(monitorStream.activePlayer);
         //getTracksFromStream(monitorStream); //JANUS
       }
     },
@@ -2366,9 +2389,12 @@ function mseListenerSourceopen(context, videoEl, url) {
     console.log(`${dateTimeToISOLocal(new Date())} WebSocket MSE CLOSED for a video object ID=${context.id}.`);
   };
   context.wsMSE.onerror = function(event) {
-    console.warn(`${dateTimeToISOLocal(new Date())} WebSocket MSE ERROR for a video object ID=${context.id}:`, event);
-    context.streamErrorRegistration();
-    if (context.started) context.restart();
+    // Firefox will display error 1006 when closing the socket. There's likely a problem with RTSP2Web.
+    console.warn(`${dateTimeToISOLocal(new Date())} WebSocket MSE ERROR for a video object ID=${context.id} [stream status: ${(context.started) ? "started" : "stopped"}]:`, event);
+    if (context.started) {
+      context.streamErrorRegistration();
+      context.restart(context.currentChannelStream);
+    }
   };
   context.wsMSE.onmessage = function(event) {
     if (!context.mse || (context.mse && context.mse.readyState !== "open")) return;
@@ -2386,10 +2412,16 @@ function mseListenerSourceopen(context, videoEl, url) {
         console.log(`WebSocket MSE for a video object ID=${context.id} codec used: ${mimeCodec}`);
       } else {
         const msg = `WebSocket MSE for a video object ID=${context.id} codec '${mimeCodec}' not supported. Monitor '${context.name}' ID=${context.id} not starting.`;
-        console.log(msg);
-        context.getElement().before(document.createTextNode(msg));
-        context.stop();
+        console.warn(msg);
+        context.showText(msg);
         context.RTSP2WebType = null; // Avoid repeated restarts
+        if (context.selectedPlayer) {
+          context.stop();
+        } else {
+          // Select next player only for "Auto" mode
+          context.streamErrorRegistration();
+          context.selectNextPlayer(context.player);
+        }
         return;
       }
 
@@ -2404,7 +2436,7 @@ function mseListenerSourceopen(context, videoEl, url) {
 }
 
 function startMsePlay(context, videoEl, url) {
-  console.log('startMsePlay');
+  console.log(`startMsePlay for monitor with ID=${context.id}`);
   var startPermitted = true;
   if (!context.MSEBufferCleared) {
     startPermitted = false;
@@ -2419,15 +2451,20 @@ function startMsePlay(context, videoEl, url) {
   if (startPermitted) {
     clearTimeout(context.waitingStart);
   } else {
-    context.waitingStart = setTimeout(function() {
-      startMsePlay(context, videoEl, url);
-    }, 100);
+    context.waitingStart = setTimeout(function(_context) {
+      if (context.started) startMsePlay(context, videoEl, url);
+    }, 100, context);
     return;
   }
 
   context.mse = new MediaSource();
   videoEl.onplay = (event) => {
-    context.updateStreamInfo('', ''); //MSE
+    context.mseWaitingErrorReset = setTimeout(function(self) {
+      // If the video is in H.265, the browser may start playing (even if it doesn't support H.265) and an error may immediately appear.
+      // You need to wait a bit before resetting the error. This will allow for more accurate error counting.
+      self.updateStreamInfo('', ''); //MSE
+      self.resetCountStreamErrors(context.activePlayer);
+    }, 500, context);
     //getTracksFromStream(context); //MSE
     context.streamStartTime = (Date.now() / 1000).toFixed(2);
     if (videoEl.buffered.length > 0 && videoEl.currentTime < videoEl.buffered.end(videoEl.buffered.length - 1) - 0.1) {
@@ -2458,6 +2495,25 @@ function startMsePlay(context, videoEl, url) {
     videoEl.src = window.URL.createObjectURL(context.mse);
   }
   $j('#delay'+context.id).removeClass('hidden');
+
+  // This is necessary if the browser doesn't allow automatic playback with sound.
+  const self = context;
+  videoEl.play().then(() => {
+    console.debug("RTSP2Web type MSE started playing the video stream successfully.");
+  })
+      .catch((er) => {
+        if (er.name === 'NotAllowedError' && !videoEl.muted) {
+          videoEl.muted = true;
+          videoEl.play().then(() => {
+            console.debug(self.activePlayer + " video player started playing after muting");
+          })
+              .catch((retryError) => {
+                console.warn(retryError);
+              });
+        } else {
+          console.warn(er);
+        }
+      });
 }
 
 function pushMsePacket(videoEl, context) {

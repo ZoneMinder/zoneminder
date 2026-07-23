@@ -1822,6 +1822,14 @@ input.masked-input.unmasked {
   opacity : 0;
 }
 
+.info-text {
+  position: relative;
+  display: block;
+  z-index: 10001;
+  color: #212529;
+  background-color: beige;
+}
+
 /* +++ This block should always be located at the end! */
 .hidden {
     display: none;

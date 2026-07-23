@@ -3472,7 +3472,7 @@ bool Monitor::Decode() {
     // Write to shared image buffer.
     unsigned int index = (shared_data->last_write_index + 1) % image_buffer_count;
     decoding_image_count++;
-    Debug(5, "SHM WRITE packet=%d index=%d", packet->image_index, packet->image_index % image_buffer_count);
+    Debug(5, "SHM WRITE packet=%d index=%u", packet->image_index, index);
     WriteShmFrame(index, capture_image);
     shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
     shared_data->signal = signal_check_points ? CheckSignal(capture_image) : true;

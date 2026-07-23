@@ -51,7 +51,7 @@ class VideoStream extends VideoRTC {
         const monitorStream = getMonitorStream(stringToNumber(this.id));
         if (monitorStream) {
             monitorStream.streamStartTime = (Date.now() / 1000).toFixed(2);
-            monitorStream.resetCountStreamErrors(this.activePlayer);
+            monitorStream.resetCountStreamErrors(monitorStream.activePlayer);
         }
 
         if (container) {
@@ -85,7 +85,7 @@ class VideoStream extends VideoRTC {
         console.debug('stream.onopen');
         const result = super.onopen();
         if (result !== undefined) {
-            // An available player mode should return.An available player mode should return.
+            // An available player mode should return.
             if ((!("length" in result)) || (("length" in result) && !result.length)) {
                 this.errorHandling(this.mode, `Playback using Go2RTC in mode "${this.mode}" is not possible.`);
             }

@@ -2793,7 +2793,7 @@ function initDatepicker() {
 
 function managePanZoomButton(evt) {
   var url = "";
-  if (panZoomEnabled) {
+  if (panZoomEnabled && thisClickOnStreamObject(evt.target)) {
     const targetId =
         evt.target.closest('[id^="imageFeed"]')?.id ||
         evt.target.closest('[id^="videoFeedStream"]')?.id ||
@@ -2833,9 +2833,7 @@ function managePanZoomButton(evt) {
       }
     }
     // Zoom by mouse click
-    if (thisClickOnStreamObject(evt.target)) {
-      zmPanZoom.click(mid);
-    }
+    zmPanZoom.click(mid);
   }
 }
 

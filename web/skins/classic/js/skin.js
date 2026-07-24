@@ -2818,9 +2818,9 @@ function managePanZoomButton(evt) {
       } else if (buttonClicked.className.includes('btn-edit-monitor')) {
         url = '?view=monitor&mid='+mid;
       } else if (buttonClicked.className.includes('btn-fullscreen')) {
-      if (document.fullscreenElement) {
-        closeFullscreen();
-      } else {
+        if (document.fullscreenElement) {
+          closeFullscreen();
+        } else {
           openFullscreen(document.getElementById('monitor'+mid));
         }
       }

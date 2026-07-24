@@ -1,5 +1,11 @@
 "use strict";
 const table = $j('#consoleTable');
+// Upper bound for the Columns dropdown height, matching bootstrap-table's own
+// stylesheet. There is deliberately no lower bound: the menu scrolls, so a short
+// one is still usable, whereas forcing a minimum taller than the room available
+// makes Popper shove the menu back up over the clipped area.
+const MAX_COLUMNS_MENU_HEIGHT = 300;
+const COLUMNS_MENU_GAP = 10;
 var ajax = null;
 var monitors = {}; // Store monitors by ID for function modal
 
@@ -527,7 +533,46 @@ function initPage() {
 
   // Make the table visible after initialization
   table.show();
+
+  constrainColumnsDropdown();
 } // end function initPage
+
+// #monitorList and its .bootstrap-table are overflow:hidden so the table body
+// scrolls on its own, which means anything Popper moves above the toolbar gets
+// clipped. In a short window Popper would flip the Columns menu up, or shift it
+// up to keep its full 300px inside the viewport, hiding the first entries. Keep
+// it anchored below the button and only ever as tall as the room beneath it.
+function constrainColumnsDropdown() {
+  var toggle = $j('#monitorList .fixed-table-toolbar .columns button.dropdown-toggle');
+  if (!toggle.length) return;
+
+  toggle.attr('data-flip', 'false');
+
+  // The show class lands on .keep-open, the toggle's parent, not on .columns.
+  toggle.parent().on('show.bs.dropdown', function() {
+    sizeColumnsMenu(toggle);
+  });
+
+  // Popper repositions an open menu on resize but keeps the max-height it was
+  // given when it opened, so a window dragged shorter pulls the menu back over
+  // the clipped area. Re-measure whenever the menu is open as the window changes.
+  $j(window).on('resize', function() {
+    if (!toggle.parent().hasClass('show')) return;
+    sizeColumnsMenu(toggle);
+  });
+}
+
+function sizeColumnsMenu(toggle) {
+  var menu = toggle.parent().find('.dropdown-menu');
+  if (!menu.length) return;
+  // Leave a small gap so the menu never sits flush against the window edge.
+  var available = window.innerHeight - toggle[0].getBoundingClientRect().bottom - COLUMNS_MENU_GAP;
+  menu.css('max-height', Math.max(0, Math.min(MAX_COLUMNS_MENU_HEIGHT, available)) + 'px');
+  // Let Popper re-place the menu against the height we just set. On first open
+  // Popper does not exist yet, and positions itself correctly straight after.
+  var dropdown = toggle.data('bs.dropdown');
+  if (dropdown && dropdown._popper) dropdown._popper.scheduleUpdate();
+}
 
 function sortMonitors(button) {
   if (button.classList.contains('btn-success')) {

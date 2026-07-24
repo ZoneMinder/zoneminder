@@ -6,6 +6,23 @@ require_once('Monitor.php');
 
 class Filter extends ZM_Object {
   protected static $table = 'Filters';
+
+  // A sort_field value is concatenated into an ORDER BY clause, so it must be
+  // validated before use. Accept only a bare column name optionally followed by
+  // an "IS [NOT] NULL" test and/or ASC/DESC, comma-separated. Anything outside
+  // this grammar (parentheses, quotes, functions, semicolons, ...) is rejected
+  // so a stale URL/cookie/DB row can't inject SQL.
+  const SORT_PART_RE = '/^\s*([A-Za-z][A-Za-z0-9_]*)(\s+IS\s+(?:NOT\s+)?NULL)?(\s+(?:ASC|DESC))?\s*$/i';
+
+  public static function isValidSortExpression($sf) {
+    if ($sf === '' || $sf === null) return true;
+    if (!is_string($sf)) return false;
+    foreach (explode(',', $sf) as $part) {
+      if (!preg_match(self::SORT_PART_RE, $part)) return false;
+    }
+    return true;
+  }
+
   protected static $attrTypes = null;
   protected static $opTypes = null;
   protected static $tags_opTypes = null;
@@ -242,7 +259,13 @@ class Filter extends ZM_Object {
       $this->Query($Query);
     }
     if (isset($this->Query()['sort_field'])) {
-      return $this->{'Query'}['sort_field'];
+      $sf = $this->{'Query'}['sort_field'];
+      // Validate on read so a malicious value stored in an existing filter row
+      // is neutralised too, not just newly-saved ones.
+      if (self::isValidSortExpression($sf)) {
+        return $sf;
+      }
+      Warning('Ignoring malformed Filter sort_field "'.$sf.'"');
     }
     return ZM_WEB_EVENT_SORT_FIELD;
     #return $this->defaults{'sort_field'};
@@ -1383,19 +1406,34 @@ class Filter extends ZM_Object {
     if (!$u) $u=$user;
     if ($u->canEdit('System')) return true;
 
-    if ($this->UserId() == $u->Id()) {
-      if ($u->canEdit('Events')) return true;
-      if ($u->canView('Events')) {
-        // If we can only view events, then we can't perform filters that involve changing the event.
-        if (!(
-          $this->AutoExecute() and
-          $this->AutoDelete() and
-          $this->AutoUnarchive() and
-          $this->AutoMove() and
-          $this->AutoCopy()
-        )) {
-          return true;
-        }
+    // Below here the user is not a System editor, so may only act on filters
+    // that they own.
+    if ($this->UserId() != $u->Id()) return false;
+
+    // AutoExecuteCmd is run verbatim as an OS command by zmfilter.pl, which is
+    // equivalent to shell access on the server. Restrict it to System editors,
+    // who were already granted access above.
+    if ($this->AutoExecute()) return false;
+
+    // Users who can edit Events may run filters that change events
+    // (move/copy/delete/archive/etc).
+    if ($u->canEdit('Events')) return true;
+
+    // View-only users may only run filters that neither change events nor
+    // trigger side effects. Deny if ANY auto action is enabled.
+    if ($u->canView('Events')) {
+      if (!(
+        $this->AutoDelete() or
+        $this->AutoUnarchive() or
+        $this->AutoArchive() or
+        $this->AutoMove() or
+        $this->AutoCopy() or
+        $this->AutoVideo() or
+        $this->AutoUpload() or
+        $this->AutoEmail() or
+        $this->AutoMessage()
+      )) {
+        return true;
       }
     }
     return false;

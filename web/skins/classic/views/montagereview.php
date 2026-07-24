@@ -198,19 +198,21 @@ if (count($filter->terms()) ) {
 // For events that never wrote EndDateTime (zmc killed/crashed mid-event),
 // fall back to StartDateTime + Length. Length is flushed to the DB every few
 // seconds during recording, so it reflects the actual recorded duration even
-// when zmc died. Otherwise the event would appear to extend across all the
-// down-time, suggesting recorded video that doesn't exist.
+// when zmc died. When Length is 0 too (an empty crash-orphaned event), fall
+// back to StartDateTime so the event has no span. Otherwise the event would
+// appear to extend across all the down-time, suggesting recorded video that
+// doesn't exist.
 $eventsSql = 'SELECT
   E.*, E.StartDateTime AS StartDateTime,UNIX_TIMESTAMP(E.StartDateTime) AS StartTimeSecs,
     CASE
       WHEN E.EndDateTime IS NOT NULL THEN E.EndDateTime
       WHEN E.Length > 0 THEN DATE_ADD(E.StartDateTime, INTERVAL FLOOR(E.Length) SECOND)
-      ELSE NOW()
+      ELSE E.StartDateTime
     END AS EndDateTime,
     CASE
       WHEN E.EndDateTime IS NOT NULL THEN UNIX_TIMESTAMP(E.EndDateTime)
       WHEN E.Length > 0 THEN UNIX_TIMESTAMP(E.StartDateTime) + E.Length
-      ELSE UNIX_TIMESTAMP(NOW())
+      ELSE UNIX_TIMESTAMP(E.StartDateTime)
     END AS EndTimeSecs,
     M.Name AS MonitorName,M.DefaultScale FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId)
   WHERE 1 > 0

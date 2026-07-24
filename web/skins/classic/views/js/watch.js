@@ -1455,40 +1455,72 @@ function changeWhatDisplay() {
 $j( window ).on("load", initPage);
 
 var prevStateStarted = null;
-document.onvisibilitychange = () => {
+document.addEventListener('visibilitychange', () => {
   // Always clear it because the return to visibility might happen before timeout
   TimerHideShow = clearTimeout(TimerHideShow);
   if (document.visibilityState === "hidden") {
     TimerHideShow = setTimeout(function() {
       //Stop monitor when closing or hiding page
-      if (monitorStream) {
-        if (monitorStream.started) {
-          if ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused) || monitorStream.element.paused) {
-            prevStateStarted = 'paused';
-          } else {
-            prevStateStarted = 'played';
-            //Stop only if playing (not paused).
-            // We might want to continue status updates so that alarm sounds etc still happen
-            monitorStream.stop();
-          }
-        } else {
-          prevStateStarted = 'stopped';
-        }
-      }
+      stopPage();
     }, 15*1000);
   } else {
     //Start monitor when show page
-    if (monitorStream && prevStateStarted == 'played' && !idleTimeoutTriggered) {
-      prevStateStarted = null;
-      onPlay(); //Set the correct state of the player buttons.
-      monitorStream.start(monitorStream.currentChannelStream);
-      monitorsSetScale(monitorId);
-    //} else if (prevStateStarted != 'paused') {
-    } else if (monitorStream && monitorStream.element && ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused) || monitorStream.element.paused)) {
-      prevStateStarted = null;
+    startPage();
+  }
+});
+
+document.addEventListener('freeze', () => {
+  console.log('FREEZE');
+  stopPage();
+});
+
+document.addEventListener('resume', () => {
+  console.log('RESUME');
+  if (!document.hidden) {
+    startPage();
+  }
+});
+
+window.addEventListener('pagehide', () => {
+  console.log('PAGEHIDE');
+  stopPage();
+});
+
+window.addEventListener('pageshow', () => {
+  console.log('PAGESHOW');
+  if (!document.hidden) {
+    startPage();
+  }
+});
+
+function stopPage() {
+  if (monitorStream) {
+    if (monitorStream.started) {
+      if ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused) || monitorStream.element.paused) {
+        prevStateStarted = 'paused';
+      } else {
+        prevStateStarted = 'played';
+        //Stop only if playing (not paused).
+        // We might want to continue status updates so that alarm sounds etc still happen
+        monitorStream.stop();
+      }
+    } else {
+      prevStateStarted = 'stopped';
     }
   }
-};
+}
+
+function startPage() {
+  if (monitorStream && prevStateStarted == 'played' && !idleTimeoutTriggered) {
+    prevStateStarted = null;
+    onPlay(); //Set the correct state of the player buttons.
+    monitorStream.start(monitorStream.currentChannelStream);
+    monitorsSetScale(monitorId);
+  //} else if (prevStateStarted != 'paused') {
+  } else if (monitorStream && monitorStream.element && ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused) || monitorStream.element.paused)) {
+    prevStateStarted = null;
+  }
+}
 
 function setButtonStateWatch(element_id, btnClass) {
   //Temporary function so as not to break anything else, because analysis of the setButtonState function in skin.js is required,

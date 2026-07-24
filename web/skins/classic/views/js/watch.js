@@ -864,9 +864,8 @@ function streamStart(monitor = null) {
   //monitorsSetScale(monitorId);
   streamCmdPlay(true);
   if (streamMode == 'single') {
-    monitorStream.setup_onclick(fetchImage);
+    monitorStream.setup_onclick((evt) => { const img = evt && evt.target && evt.target.closest ? evt.target.closest('img') : null; if (img) fetchImage(img); });
   } else {
-    monitorStream.setup_onclick(handleClick);
     monitorStream.setup_onmove(handleMove);
   }
   monitorStream.setup_onpause(onPause);

@@ -223,7 +223,7 @@ class Monitor extends ZM_Object {
 
   protected $defaults = array(
     'Id' => null,
-    'Name' => array('type'=>'text','filter_regexp'=>'/[^\w\-\.\(\)\:\/ ]/', 'default'=>'Monitor'),
+    'Name' => array('type'=>'text','filter_regexp'=>'/[^\w\p{L}\p{M}\p{N}\-\.\(\)\:\/ ]/u', 'default'=>'Monitor'),
     'Deleted' => 0,
     'Notes' => '',
     'ServerId' => 0,
@@ -385,7 +385,11 @@ class Monitor extends ZM_Object {
     'ArchivedEventDiskSpace' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
   );
 
-  protected $Id;
+  public $Id;
+
+  public function getDefaults() {
+    return $this->defaults;
+  }
 
   public function save($data = null) {
     if ($data) $this->set($data);

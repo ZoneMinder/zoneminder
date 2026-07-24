@@ -608,7 +608,10 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
       }
     } // end if is an alarm frame
 
-    if (save_jpegs & 2) {
+    // Only write analysis jpegs for alarm frames. Since 1.38 every analysed
+    // packet carries an analysis_image (for the live analysis view), so
+    // writing whenever one exists would save every frame of the event.
+    if ((save_jpegs & 2) and (frame_type == ALARM)) {
       if (packet->analysis_image) {
         std::string event_file = stringtf(staticConfig.analyse_file_format.c_str(), path.c_str(), frames);
         Debug(1, "Writing analysis frame %d to %s", frames, event_file.c_str());

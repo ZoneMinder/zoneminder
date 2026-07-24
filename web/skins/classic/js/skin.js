@@ -2792,45 +2792,37 @@ function initDatepicker() {
 }
 
 function managePanZoomButton(evt) {
-  var url = null;
+  var url = "";
   if (panZoomEnabled) {
-    const targetId = evt.target.id;
-    var monitorId_ = null; // Resolve variable conflict. ToDo: In general, you need to use objects.
+    const targetId =
+        evt.target.closest('[id^="imageFeed"]')?.id ||
+        evt.target.closest('[id^="videoFeedStream"]')?.id ||
+        "";
+    if (!targetId) {
+      console.log("Unable to get monitor ID for the clicked object", evt.target);
+      return;
+    }
+    const mid = stringToNumber(targetId);
     if (!evt.target.closest('.imageFeed') && !(evt.target.closest('#videoFeed'))) {
       // Click was outside '.imageFeed'
       $j('[id^="button_zoom"]').addClass('hidden');
       return;
     } else {
-      $j('#button_zoom' + stringToNumber(targetId)).removeClass('hidden');
-    }
-    if (!('getAttribute' in evt.currentTarget)) return; // Touchscreen tap on '.imageFeed' does not have 'currentTarget'
-    //evt.preventDefault();
-    // We are looking for an object with an ID, because there may be another element in the button.
-    const obj = targetId ? evt.target : evt.target.parentElement;
-    if (!obj) {
-      console.log("No obj found", targetId, evt.target, evt.target.parentElement);
-      return;
+      $j('#button_zoom' + mid).removeClass('hidden');
     }
 
-    if (currentView == 'watch') {
-      monitorId_ = monitorId;
-    } else if (currentView == 'montage') {
-      // On Montage page with mode==EDITING it is forbidden to use PanZoom
-      if (mode == EDITING) return;
-      monitorId_ = evt.currentTarget.getAttribute("data-monitor-id");
-    } else if (currentView == 'event') {
-      monitorId_ = eventData.MonitorId;
-    }
-
-    if (obj.className.includes('btn-view-watch')) {
-      url = '?view=watch&mid='+monitorId_;
-    } else if (obj.className.includes('btn-edit-monitor')) {
-      url = '?view=monitor&mid='+monitorId_;
-    } else if (obj.className.includes('btn-fullscreen')) {
+    const buttonClicked = evt.target.closest('button') || evt.target.closest('.btn');
+    if (buttonClicked) {
+      if (buttonClicked.className.includes('btn-view-watch')) {
+        url = '?view=watch&mid='+mid;
+      } else if (buttonClicked.className.includes('btn-edit-monitor')) {
+        url = '?view=monitor&mid='+mid;
+      } else if (buttonClicked.className.includes('btn-fullscreen')) {
       if (document.fullscreenElement) {
         closeFullscreen();
       } else {
-        openFullscreen(document.getElementById('monitor'+evt.currentTarget.getAttribute("data-monitor-id")));
+          openFullscreen(document.getElementById('monitor'+mid));
+        }
       }
     }
     if (url) {
@@ -2841,8 +2833,8 @@ function managePanZoomButton(evt) {
       }
     }
     // Zoom by mouse click
-    if (thisClickOnStreamObject(obj)) {
-      zmPanZoom.click(monitorId_);
+    if (thisClickOnStreamObject(evt.target)) {
+      zmPanZoom.click(mid);
     }
   }
 }

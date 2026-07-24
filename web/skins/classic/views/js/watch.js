@@ -869,6 +869,7 @@ function streamStart(monitor = null) {
       if (img) fetchImage(img);
     });
   } else {
+    monitorStream.setup_onclick(handleClick);
     monitorStream.setup_onmove(handleMove);
   }
   monitorStream.setup_onpause(onPause);

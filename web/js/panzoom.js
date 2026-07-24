@@ -266,6 +266,10 @@ var zmPanZoom = {
   },
 
   click: function(id) {
+    if (!this.panZoom[id]) {
+      console.warn(`panZoom for object with ID=${id} not found`);
+      return;
+    }
     if (this.ctrled && this.shifted) {
       this.panZoom[id].zoom(1, {animate: true});
     } else if (this.ctrled) {

@@ -2794,13 +2794,21 @@ function initDatepicker() {
 function managePanZoomButton(evt) {
   var url = "";
   if (panZoomEnabled) {
-    const target = evt.target.closest('[id^="imageFeed"], [id^="videoFeedStream"]');
+    const target = evt.target.closest('[id^="imageFeed"], [id^="videoFeedStream"], [id^="videoFeed"]');
     if (!target) {
       // Click was outside imageFeed & videoFeedStream
       $j('[id^="button_zoom"]').addClass('hidden');
       return;
     }
-    const mid = stringToNumber(target.id);
+    let mid = stringToNumber(target.id);
+    if (Number.isNaN(mid)) {
+      // For example, MJPEG on Event page
+      mid = stringToNumber(target.querySelector('[id^="imageFeed"], [id^="videoFeedStream"]')?.id);
+    }
+    if (Number.isNaN(mid)) {
+      console.log("Unable to get monitor ID for the clicked object", evt.target);
+      return;
+    }
     const buttonClicked = evt.target.closest('button, .btn');
     $j('#button_zoom' + mid).removeClass('hidden');
 

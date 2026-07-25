@@ -1456,9 +1456,8 @@ $j( window ).on("load", initPage);
 
 var prevStateStarted = null;
 document.addEventListener('visibilitychange', () => {
-  // Always clear it because the return to visibility might happen before timeout
-  TimerHideShow = clearTimeout(TimerHideShow);
   if (document.visibilityState === "hidden") {
+    clearTimeout(TimerHideShow);
     TimerHideShow = setTimeout(function() {
       //Stop monitor when closing or hiding page
       stopPage();
@@ -1494,6 +1493,9 @@ window.addEventListener('pageshow', () => {
 });
 
 function stopPage() {
+  // Avoid calling stopPage() twice, as stopPage() can be called asynchronously from different places.
+  // For example, if 'freeze' is triggered earlier than 15 seconds after visibilityState === "hidden"
+  TimerHideShow = clearTimeout(TimerHideShow);
   if (monitorStream) {
     if (monitorStream.started) {
       if ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused) || monitorStream.element.paused) {
@@ -1511,6 +1513,8 @@ function stopPage() {
 }
 
 function startPage() {
+  // Always clear it because the return to visibility might happen before timeout
+  TimerHideShow = clearTimeout(TimerHideShow);
   if (monitorStream && prevStateStarted == 'played' && !idleTimeoutTriggered) {
     prevStateStarted = null;
     onPlay(); //Set the correct state of the player buttons.

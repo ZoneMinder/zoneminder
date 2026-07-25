@@ -198,6 +198,7 @@ function onPlay() {
 }
 
 function streamCmdPlay(action) {
+  if (document.hidden) return;
   onPlay();
   if (action) {
     if (monitorStream.started) {
@@ -1475,9 +1476,11 @@ document.addEventListener('freeze', () => {
 
 document.addEventListener('resume', () => {
   console.log('RESUME');
-  if (!document.hidden) {
-    startPage();
-  }
+  setTimeout(() => {
+    if (!document.hidden) {
+      startPage();
+    }
+  }, 100);
 });
 
 window.addEventListener('pagehide', () => {
@@ -1487,9 +1490,11 @@ window.addEventListener('pagehide', () => {
 
 window.addEventListener('pageshow', () => {
   console.log('PAGESHOW');
-  if (!document.hidden) {
-    startPage();
-  }
+  setTimeout(() => {
+    if (!document.hidden) {
+      startPage();
+    }
+  }, 100);
 });
 
 function stopPage() {

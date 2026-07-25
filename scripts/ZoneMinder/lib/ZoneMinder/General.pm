@@ -126,7 +126,7 @@ sub getCmdFormat {
     chomp( $output );
     Debug("Test failed, '$output'");
 
-    $prefix = 'su '.$Config{ZM_WEB_USER}.q` --shell=/bin/sh --command='`;
+    $prefix = 'su -s /bin/sh '.$Config{ZM_WEB_USER}.q` -c '`;
     $suffix = q`'`;
     $command = $prefix.$null_command.$suffix;
     Debug("Testing \"$command\"");

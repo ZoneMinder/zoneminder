@@ -2793,25 +2793,17 @@ function initDatepicker() {
 
 function managePanZoomButton(evt) {
   var url = "";
-  if (panZoomEnabled && thisClickOnStreamObject(evt.target)) {
-    const targetId =
-        evt.target.closest('[id^="imageFeed"]')?.id ||
-        evt.target.closest('[id^="videoFeedStream"]')?.id ||
-        "";
-    if (!targetId) {
-      console.log("Unable to get monitor ID for the clicked object", evt.target);
-      return;
-    }
-    const mid = stringToNumber(targetId);
-    if (!evt.target.closest('.imageFeed') && !(evt.target.closest('#videoFeed'))) {
-      // Click was outside '.imageFeed'
+  if (panZoomEnabled) {
+    const target = evt.target.closest('[id^="imageFeed"], [id^="videoFeedStream"]');
+    if (!target) {
+      // Click was outside imageFeed & videoFeedStream
       $j('[id^="button_zoom"]').addClass('hidden');
       return;
-    } else {
-      $j('#button_zoom' + mid).removeClass('hidden');
     }
+    const mid = stringToNumber(target.id);
+    const buttonClicked = evt.target.closest('button, .btn');
+    $j('#button_zoom' + mid).removeClass('hidden');
 
-    const buttonClicked = evt.target.closest('button') || evt.target.closest('.btn');
     if (buttonClicked) {
       if (buttonClicked.className.includes('btn-view-watch')) {
         url = '?view=watch&mid='+mid;
@@ -2832,8 +2824,10 @@ function managePanZoomButton(evt) {
         window.location.assign(url);
       }
     }
-    // Zoom by mouse click
-    zmPanZoom.click(mid);
+    if (thisClickOnStreamObject(evt.target)) {
+      // Zoom by mouse click
+      zmPanZoom.click(mid);
+    }
   }
 }
 

@@ -94,6 +94,11 @@ void *sse2_aligned_memcpy(void *dest, const void *src, size_t bytes);
 
 void touch(const char *pathname);
 
+// Current resident set size of this process in kilobytes, read from
+// /proc/self/statm. Returns 0 if it can't be read (e.g. non-Linux). Cheap
+// enough to call periodically from a stream loop to trace memory growth.
+size_t zm_get_rss_kb();
+
 namespace zm {
 // C++14 std::make_unique (TODO: remove this once C++14 is supported)
 template<typename T, typename ...Args>

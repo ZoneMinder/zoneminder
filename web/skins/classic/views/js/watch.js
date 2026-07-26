@@ -510,6 +510,7 @@ function handleClick(event) {
     managePanZoomButton(event);
   } else {
     // +++ Old ZoomPan algorithm.
+    if (targetId.indexOf("liveStream") === -1 || !monitorStream || monitorStream.activePlayer.indexOf('zms') === -1) return;
     if (!(event.ctrlKey && (event.shift || event.shiftKey))) {
     // target should be the img tag
       const target = $j(event.target);
@@ -874,7 +875,6 @@ function streamStart(monitor = null) {
       if (img) fetchImage(img);
     });
   } else {
-    monitorStream.setup_onclick(handleClick);
     monitorStream.setup_onmove(handleMove);
   }
   monitorStream.setup_onpause(onPause);

@@ -250,21 +250,13 @@ echo getNavBarHTML();
   <div id="header"<?php echo (isset($_REQUEST['header']) and ($_REQUEST['header']=='0' or $_REQUEST['header']=='hidden')) ? ' style="display:none;"' : '' ?>>
 <?php
     $filter_inline = filterSettingsInline();
-    $html = '';
-    // In inline mode this flip icon is the only control that hides/shows the
-    // top filter panel. In sidebar mode the panel lives in the sidebar
-    // extruder, which has its own show/hide control, so the icon is omitted.
-    //if ($filter_inline) {
-    // IgorA100: No, the above statement is incorrect. #mfbpanel contains not only filters but also other information that is not transferred to the left sidebar.
-    if (1) {
-      $html .= '<a class="flip" href="#"
-               data-flip-control-object="#mfbpanel"
-               data-flip-control-run-after-func="applyChosen"
-               data-flip-control-run-after-complet-func="changeScale">
-                 <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
-               </a>'.PHP_EOL;
-    }
-    $html .= '<div id="mfbpanel" class="'.($filter_inline ? '' : 'hidden-shift ').'container-fluid">'.PHP_EOL;
+    $html = '<a class="flip" href="#"
+             data-flip-control-object="#mfbpanel"
+             data-flip-control-run-after-func="applyChosen"
+             data-flip-control-run-after-complet-func="changeScale">
+               <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
+             </a>
+             <div id="mfbpanel" class="hidden-shift container-fluid">'.PHP_EOL;
     echo $html;
 ?>
       <form method="get" name="monitorFiltersForm" id="monitorFiltersForm">

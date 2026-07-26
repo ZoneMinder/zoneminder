@@ -897,6 +897,14 @@ int FfmpegCamera::Close() {
   }
 #endif
 
+  // Re-arm hardware decoding for the next PrimeCapture(). Without this a
+  // single transient failure - a GPU still resetting, a driver that finished
+  // initialising after zmc started, a render node not yet permissioned -
+  // pins the monitor to software decoding for the whole life of the process,
+  // long after the hardware is healthy again. Reconnects are the natural
+  // retry point, so let them retry.
+  use_hwaccel = true;
+
   if ( mFormatContext ) {
     avformat_close_input(&mFormatContext);
     mFormatContext = nullptr;

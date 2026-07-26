@@ -198,7 +198,11 @@ function onPlay() {
 }
 
 function streamCmdPlay(action) {
-  if (document.hidden) return;
+  if (document.hidden && action) {
+    // Defer autoplay until the tab becomes visible again.
+    prevStateStarted = 'played';
+    return;
+  }
   onPlay();
   if (action) {
     if (monitorStream.started) {

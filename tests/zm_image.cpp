@@ -256,6 +256,69 @@ TEST_CASE("Image::Overlay YUV420P highlight", "[image]") {
   CHECK(out.data[2][0] == 128);
 }
 
+// Regression: monitors whose decoder emits native YUV420P (the passthrough
+// default for H.264/H.265) get an analysis image in YUV420P even when the
+// configured Colours is RGB, so the zone alarm highlight arrives as
+// RGB24/RGB32. Overlay() used to funnel that combination into Colourise() —
+// which warns "Target image is already colourised, colours: 1" and returns —
+// then walked the planar YUV buffer as packed RGB, corrupting the saved
+// analysis jpegs. The marked (non-black) highlight pixels must instead be
+// converted to luma + the shared chroma sample.
+TEST_CASE("Image::Overlay RGB highlight onto YUV420P", "[image]") {
+  bootstrap_image_config();
+  const int w = 64, h = 48;
+
+  Image target(w, h, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_YUV420P);
+  Planes tgt = plane_view(target, AV_PIX_FMT_YUV420P, w, h);
+  memset(tgt.data[0], 16, static_cast<size_t>(tgt.stride[0]) * h);      // dim luma
+  memset(tgt.data[1], 128, static_cast<size_t>(tgt.stride[1]) * (h / 2));  // neutral chroma
+  memset(tgt.data[2], 128, static_cast<size_t>(tgt.stride[2]) * (h / 2));
+
+  // Alarm red as it should land in the YUV target.
+  const YUV red_yuv = brg_to_yuv(kRGBRed);
+  const uint8_t exp_y = Y_VAL(red_yuv), exp_u = U_VAL(red_yuv), exp_v = V_VAL(red_yuv);
+
+  auto check_target = [&]() {
+    Planes out = plane_view(target, AV_PIX_FMT_YUV420P, w, h);
+    // Marked pixel converted; luma elsewhere untouched.
+    CHECK(out.data[0][10 * out.stride[0] + 10] == exp_y);
+    CHECK(out.data[0][0] == 16);
+    CHECK(out.data[0][10 * out.stride[0] + 11] == 16);
+    // Shared chroma sample (5,5) carries the alarm colour; untouched elsewhere.
+    CHECK(out.data[1][5 * out.stride[1] + 5] == exp_u);
+    CHECK(out.data[2][5 * out.stride[2] + 5] == exp_v);
+    CHECK(out.data[1][0] == 128);
+    CHECK(out.data[2][0] == 128);
+  };
+
+  SECTION("RGB24 highlight") {
+    Image high(w, h, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
+    high.Clear();
+    uint8_t *p = high.Buffer() + 10 * high.LineSize() + 10 * 3;
+    p[0] = 0xff;  // R
+    target.Overlay(high);
+    check_target();
+  }
+
+  SECTION("RGB32 RGBA highlight") {
+    Image high(w, h, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA);
+    high.Clear();
+    uint8_t *p = high.Buffer() + 10 * high.LineSize() + 10 * 4;
+    p[0] = 0xff;  // R
+    target.Overlay(high);
+    check_target();
+  }
+
+  SECTION("RGB32 BGRA highlight") {
+    Image high(w, h, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_BGRA);
+    high.Clear();
+    uint8_t *p = high.Buffer() + 10 * high.LineSize() + 10 * 4;
+    p[2] = 0xff;  // R sits at byte 2 in BGRA
+    target.Overlay(high);
+    check_target();
+  }
+}
+
 // HighlightEdges must be able to emit a YUV420P highlight (so it can be
 // overlaid onto a YUV420P analysis image in the same format). A filled blob's
 // border pixels become non-zero luma markers carrying the alarm chroma.

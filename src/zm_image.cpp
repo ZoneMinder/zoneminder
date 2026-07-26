@@ -2085,8 +2085,8 @@ void Image::Overlay( const Image &image ) {
       }
     }
 
-    /* RGB24 on top of grayscale/YUV420 - convert to same format first - complete */
-  } else if ( zm_bytes_per_pixel(imagePixFormat) == 1 && zm_is_rgb24(image.imagePixFormat) ) {
+    /* RGB24 on top of grayscale - convert to same format first - complete */
+  } else if ( imagePixFormat == AV_PIX_FMT_GRAY8 && zm_is_rgb24(image.imagePixFormat) ) {
     Colourise(image.colours, image.subpixelorder);
 
     for (unsigned int y = 0; y < height; y++) {
@@ -2101,8 +2101,8 @@ void Image::Overlay( const Image &image ) {
       }
     }
 
-    /* RGB32 on top of grayscale/YUV420 - convert to same format first - complete */
-  } else if ( zm_bytes_per_pixel(imagePixFormat) == 1 && zm_is_rgb32(image.imagePixFormat) ) {
+    /* RGB32 on top of grayscale - convert to same format first - complete */
+  } else if ( imagePixFormat == AV_PIX_FMT_GRAY8 && zm_is_rgb32(image.imagePixFormat) ) {
     Colourise(image.colours, image.subpixelorder);
 
     const bool alpha_last = (imagePixFormat == AV_PIX_FMT_RGBA || imagePixFormat == AV_PIX_FMT_BGRA);
@@ -2116,6 +2116,43 @@ void Image::Overlay( const Image &image ) {
         } else {
           if (RED_PTR_ABGR(prsrc) || GREEN_PTR_ABGR(prsrc) || BLUE_PTR_ABGR(prsrc))
             *prdest = *prsrc;
+        }
+      }
+    }
+
+    /* RGB24/RGB32 on top of YUV420 - convert marked pixels to YUV - complete */
+  } else if ( zm_is_yuv420(imagePixFormat)
+              && (zm_is_rgb24(image.imagePixFormat) || zm_is_rgb32(image.imagePixFormat)) ) {
+    // The zone alarm highlight is built from the monitor's configured colours,
+    // but the analysis image follows the decoder's native format (usually
+    // YUV420P via passthrough). Converting the whole target to RGB would be
+    // wasteful; instead convert just the marked (non-black) highlight pixels
+    // to YUV and write luma plus the shared 2x2 chroma sample.
+    uint8_t *dplane[4] = {};
+    int dstride[4] = {};
+    if (av_image_fill_arrays(dplane, dstride, buffer, imagePixFormat, width, height, 32) < 0) {
+      Error("Overlay: av_image_fill_arrays failed for YUV420 %ux%u", width, height);
+      return;
+    }
+    const unsigned int psize = zm_bytes_per_pixel(image.imagePixFormat);
+    // Byte offsets of R,G,B within an overlay pixel for its subpixel order.
+    unsigned int ro = 0, go = 1, bo = 2;  // RGB24 / RGBA
+    switch (image.imagePixFormat) {
+      case AV_PIX_FMT_BGR24:
+      case AV_PIX_FMT_BGRA: ro = 2; go = 1; bo = 0; break;
+      case AV_PIX_FMT_ARGB: ro = 1; go = 2; bo = 3; break;
+      case AV_PIX_FMT_ABGR: ro = 3; go = 2; bo = 1; break;
+      default: break;
+    }
+    for (unsigned int y = 0; y < height; y++) {
+      const uint8_t *psrc = image.buffer + y * image.linesize;
+      for (unsigned int x = 0; x < width; x++, psrc += psize) {
+        const uint8_t r = psrc[ro], g = psrc[go], b = psrc[bo];
+        if (r || g || b) {
+          const YUV yuv = brg_to_yuv(r | (g << 8) | (b << 16));
+          dplane[0][y * dstride[0] + x] = Y_VAL(yuv);
+          dplane[1][(y / 2) * dstride[1] + (x / 2)] = U_VAL(yuv);
+          dplane[2][(y / 2) * dstride[2] + (x / 2)] = V_VAL(yuv);
         }
       }
     }

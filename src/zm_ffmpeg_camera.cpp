@@ -749,7 +749,19 @@ int FfmpegCamera::OpenFfmpeg() {
       }  // end foreach candidate type
 
       if (hw_pix_fmt == AV_PIX_FMT_NONE) {
-        Debug(1, "No usable hardware decoder found; falling back to software decoding.");
+        // "auto" asks us to probe, so finding nothing is unremarkable. But if
+        // the admin named hwaccels explicitly and none of them worked, this
+        // monitor now decodes on the CPU and nothing else will ever say so:
+        // a default install does not log Debug, and we only get here once, at
+        // capture start. That silence hides a dead GPU for as long as nobody
+        // wonders why the load average doubled.
+        if (auto_detect) {
+          Debug(1, "No usable hardware decoder found; falling back to software decoding.");
+        } else {
+          Warning("None of the requested hwaccels (%s) are usable for %s; "
+              "falling back to software decoding.",
+              hwaccel_name.c_str(), mVideoCodec->name);
+        }
         use_hwaccel = false;
       }
 #else

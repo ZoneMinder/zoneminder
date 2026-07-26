@@ -198,6 +198,11 @@ function onPlay() {
 }
 
 function streamCmdPlay(action) {
+  if (document.hidden && action) {
+    // Defer autoplay until the tab becomes visible again.
+    prevStateStarted = 'played';
+    return;
+  }
   onPlay();
   if (action) {
     if (monitorStream.started) {
@@ -1455,40 +1460,80 @@ function changeWhatDisplay() {
 $j( window ).on("load", initPage);
 
 var prevStateStarted = null;
-document.onvisibilitychange = () => {
-  // Always clear it because the return to visibility might happen before timeout
-  TimerHideShow = clearTimeout(TimerHideShow);
+document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === "hidden") {
+    clearTimeout(TimerHideShow);
     TimerHideShow = setTimeout(function() {
       //Stop monitor when closing or hiding page
-      if (monitorStream) {
-        if (monitorStream.started) {
-          if ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused) || monitorStream.element.paused) {
-            prevStateStarted = 'paused';
-          } else {
-            prevStateStarted = 'played';
-            //Stop only if playing (not paused).
-            // We might want to continue status updates so that alarm sounds etc still happen
-            monitorStream.stop();
-          }
-        } else {
-          prevStateStarted = 'stopped';
-        }
-      }
+      stopPage();
     }, 15*1000);
   } else {
     //Start monitor when show page
-    if (monitorStream && prevStateStarted == 'played' && !idleTimeoutTriggered) {
-      prevStateStarted = null;
-      onPlay(); //Set the correct state of the player buttons.
-      monitorStream.start(monitorStream.currentChannelStream);
-      monitorsSetScale(monitorId);
-    //} else if (prevStateStarted != 'paused') {
-    } else if (monitorStream && monitorStream.element && ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused) || monitorStream.element.paused)) {
-      prevStateStarted = null;
+    startPage();
+  }
+});
+
+document.addEventListener('freeze', () => {
+  console.log('FREEZE');
+  stopPage();
+});
+
+document.addEventListener('resume', () => {
+  console.log('RESUME');
+  setTimeout(() => {
+    if (!document.hidden) {
+      startPage();
+    }
+  }, 100);
+});
+
+window.addEventListener('pagehide', () => {
+  console.log('PAGEHIDE');
+  stopPage();
+});
+
+window.addEventListener('pageshow', () => {
+  console.log('PAGESHOW');
+  setTimeout(() => {
+    if (!document.hidden) {
+      startPage();
+    }
+  }, 100);
+});
+
+function stopPage() {
+  // Avoid calling stopPage() twice, as stopPage() can be called asynchronously from different places.
+  // For example, if 'freeze' is triggered earlier than 15 seconds after visibilityState === "hidden"
+  TimerHideShow = clearTimeout(TimerHideShow);
+  if (monitorStream) {
+    if (monitorStream.started) {
+      if ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused) || monitorStream.element.paused) {
+        prevStateStarted = 'paused';
+      } else {
+        prevStateStarted = 'played';
+        //Stop only if playing (not paused).
+        // We might want to continue status updates so that alarm sounds etc still happen
+        monitorStream.stop();
+      }
+    } else {
+      prevStateStarted = 'stopped';
     }
   }
-};
+}
+
+function startPage() {
+  // Always clear it because the return to visibility might happen before timeout
+  TimerHideShow = clearTimeout(TimerHideShow);
+  if (monitorStream && prevStateStarted == 'played' && !idleTimeoutTriggered) {
+    prevStateStarted = null;
+    onPlay(); //Set the correct state of the player buttons.
+    monitorStream.start(monitorStream.currentChannelStream);
+    monitorsSetScale(monitorId);
+  //} else if (prevStateStarted != 'paused') {
+  } else if (monitorStream && monitorStream.element && ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused) || monitorStream.element.paused)) {
+    prevStateStarted = null;
+  }
+}
 
 function setButtonStateWatch(element_id, btnClass) {
   //Temporary function so as not to break anything else, because analysis of the setButtonState function in skin.js is required,

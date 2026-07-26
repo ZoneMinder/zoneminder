@@ -1057,8 +1057,25 @@ void EventStream::runStream() {
   // Has to go here, at the moment, for sendFrame(delta).
   Microseconds delta = Microseconds(0);
 
+  // Periodic RSS trace so a runaway nph-zms can be caught in the act, along
+  // with the frames-vector size which scales with (re)loaded event length. refs #5006
+  TimePoint last_mem_report = std::chrono::steady_clock::now();
+  const Seconds mem_report_interval = Seconds(30);
+
   while (!zm_terminate) {
     now = start = std::chrono::steady_clock::now();
+
+    if (now - last_mem_report >= mem_report_interval) {
+      last_mem_report = now;
+      // event_data is only mutated by this thread (loadEventData); the command
+      // thread only reads it, so this unlocked read is safe for a diagnostic.
+      Debug(1, "mem trace event: rss=%zuKB event=%" PRIu64 " frames=%zu frame_count=%d curr_frame_id=%d sent=%d",
+           zm_get_rss_kb(),
+           event_data ? event_data->event_id : 0,
+           event_data ? event_data->frames.size() : 0,
+           event_data ? event_data->frame_count : 0,
+           curr_frame_id, frame_count);
+    }
 
     {
       std::scoped_lock lck{mutex};

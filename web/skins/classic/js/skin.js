@@ -2832,6 +2832,9 @@ function managePanZoomButton(evt) {
         window.location.assign(url);
       }
     }
+
+    // On Montage page with mode==EDITING it is forbidden to use PanZoom
+    if (currentView == 'montage' && mode == EDITING) return;
     if (thisClickOnStreamObject(evt.target)) {
       // Zoom by mouse click
       zmPanZoom.click(mid);

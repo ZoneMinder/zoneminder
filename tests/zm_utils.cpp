@@ -330,3 +330,30 @@ TEST_CASE("remove_authentication") {
     REQUIRE(result == "http://192.168.1.1");
   }
 }
+
+TEST_CASE("zm_strncpy") {
+  char buf[8];
+
+  SECTION("fits, null-terminated") {
+    zm_strncpy(buf, "abc", sizeof(buf));
+    REQUIRE(std::string(buf) == "abc");
+  }
+  SECTION("oversize truncated to size-1 and terminated") {
+    zm_strncpy(buf, "abcdefghijkl", sizeof(buf));
+    REQUIRE(std::string(buf) == "abcdefg");   // 7 chars + '\0'
+    REQUIRE(buf[7] == '\0');
+  }
+  SECTION("delimiter length n limits copy") {
+    zm_strncpy(buf, "abcdef", sizeof(buf), 3); // src not null-terminated at field end
+    REQUIRE(std::string(buf) == "abc");
+  }
+  SECTION("delimiter length also capped to buffer") {
+    zm_strncpy(buf, "abcdefghij", sizeof(buf), 20);
+    REQUIRE(std::string(buf) == "abcdefg");
+    REQUIRE(buf[7] == '\0');
+  }
+  SECTION("empty source") {
+    zm_strncpy(buf, "", sizeof(buf));
+    REQUIRE(buf[0] == '\0');
+  }
+}

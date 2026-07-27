@@ -30,8 +30,22 @@
 #include <string>
 #include <sys/time.h>
 #include <vector>
+#include <cstring>
 
 typedef std::vector<std::string> StringVector;
+
+// Bounded string copy into a fixed-size buffer that ALWAYS null-terminates
+// (unlike strcpy, which overflows, and strncpy, which skips the terminator on
+// truncation). Copies at most n bytes from src when n >= 0 (for
+// delimiter-bounded fields where src is not null-terminated at the field end),
+// otherwise up to src's null terminator. dst holds `size` bytes.
+inline void zm_strncpy(char *dst, const char *src, size_t size, ssize_t n = -1) {
+  if (!size) return;
+  size_t len = (n >= 0) ? static_cast<size_t>(n) : strlen(src);
+  if (len >= size) len = size - 1;
+  memcpy(dst, src, len);
+  dst[len] = '\0';
+}
 
 std::string Trim(const std::string &str, const std::string &char_set);
 inline std::string TrimSpaces(const std::string &str) { return Trim(str, " \t"); }

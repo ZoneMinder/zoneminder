@@ -46,7 +46,10 @@ class Server extends ZM_Object {
 
   public function ReadStats() {
     #ToDo: Analyze the date of the last entry, because The entry may be out of date and not updated.
-    $dbStats = dbFetchAll('SELECT * FROM Server_Stats WHERE ServerId=? ORDER BY TimeStamp DESC LIMIT 1',NULL, [$this->Id()]);
+    # Single-server installs store stats under ServerId=0 (zmstats.pl writes
+    # ZM_SERVER_ID ? ZM_SERVER_ID : 0), and $this->Id() is empty/undef there.
+    # Coerce a falsy id to 0 so the lookup matches; a real id passes through.
+    $dbStats = dbFetchAll('SELECT * FROM Server_Stats WHERE ServerId=? ORDER BY TimeStamp DESC LIMIT 1',NULL, [$this->Id() ? $this->Id() : 0]);
     if (count($dbStats)) {
       $this->TimeUpdateStats = $dbStats[0]['TimeStamp'];
       $this->CpuLoad = $dbStats[0]['CpuLoad'];

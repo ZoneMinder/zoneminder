@@ -104,7 +104,8 @@ var zmPanZoom = {
         _this.setTriggerChangedMonitors(id);
       });
 
-      $j(document).on('keyup.panzoom keydown.panzoom', function(e) {
+      const nameSpace = '.panzoom_' + id;
+      $j(document).on('keyup' + nameSpace + ' keydown' + nameSpace, function(e) {
         _this.shifted = e.shiftKey ? e.shiftKey : e.shift;
         _this.ctrled = e.ctrlKey;
         _this.alted = e.altKey;
@@ -123,7 +124,8 @@ var zmPanZoom = {
         console.log(`PanZoom for monitor "${params['id']}" was not initialized.`);
         return;
       }
-      //Disables for the entire document!//$j(document).off('keyup.panzoom keydown.panzoom');
+      const nameSpace = '.panzoom_' + params['id'];
+      $j(document).off(nameSpace);
       const obj = this.panZoom[params['id']].target;
       // #videoFeed - Event page, #monitorX - Montage & Watch page
       const el = document.getElementById('videoFeed');

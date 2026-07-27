@@ -463,6 +463,11 @@ function MonitorStream(monitorData) {
     if (statusEl) statusEl.innerText = status;
   };
 
+  this.updateStreamInfoStatusTrack = function(info='') {
+    const statusTrack = document.querySelector('#monitor' + this.id + ' .stream-info-status-track');
+    if (statusTrack) statusTrack.innerText = info;
+  };
+
   /*
   * streamChannel options:
   *   'default' or 'Primary' - Main stream (uses monitor ID, which is ZM restream if RTSPServer enabled)

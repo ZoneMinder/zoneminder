@@ -261,7 +261,13 @@ var zmPanZoom = {
       if (videoJs) videoJs.style.pointerEvents = 'none';
     } else {
       this.panZoom[id].setOptions({handleStartEvent: (event) => {}});
-      if (videoJs) videoJs.style.pointerEvents = '';
+      if (videoJs) {
+        if (this.shifted || this.ctrled || this.alted) {
+          videoJs.style.pointerEvents = 'none';
+        } else {
+          videoJs.style.pointerEvents = '';
+        }
+      }
     }
   },
 

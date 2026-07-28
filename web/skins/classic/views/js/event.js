@@ -1806,6 +1806,72 @@ function initPage() {
   if (toggleZonesButton) toggleZonesButton.addEventListener('click', toggleZones);
 } // end initPage
 
+// --- Per-user (per-browser) tag ordering ---------------------------------
+// The server's tag list is global, sorted by most-recently-applied across
+// ALL users (Tags.LastAssignedDate). We keep a personal recency list in
+// localStorage, scoped to the logged-in username, and use it to re-sort
+// the dropdown so *this* user's recently used tags float to the top —
+// without touching the server-side global ordering at all.
+var TAG_ORDER_MAX = 50;
+
+function getTagOrderStorageKey() {
+  var uname = (typeof currentUsername !== 'undefined' && currentUsername) ? currentUsername : 'default';
+  return 'zmTagOrder_' + uname;
+}
+
+function loadTagOrder() {
+  try {
+    var raw = window.localStorage.getItem(getTagOrderStorageKey());
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    console.warn('Unable to read tag order from localStorage', e);
+    return [];
+  }
+}
+
+function saveTagUsage(tagName) {
+  try {
+    var order = loadTagOrder();
+    order = order.filter(function(name) {
+      return name.toLowerCase() !== tagName.toLowerCase();
+    });
+    order.unshift(tagName);
+    if (order.length > TAG_ORDER_MAX) order = order.slice(0, TAG_ORDER_MAX);
+    window.localStorage.setItem(getTagOrderStorageKey(), JSON.stringify(order));
+  } catch (e) {
+    console.warn('Unable to save tag order to localStorage', e);
+  }
+}
+
+// Reorders `tags` (as returned by the server) so tags in this user's
+// personal recency list come first, in that order, followed by whatever
+// is left in the server's original (global) order.
+function applyPersonalTagOrder(tags) {
+  var order = loadTagOrder();
+  if (!order.length) return tags;
+
+  var byNameLower = {};
+  tags.forEach(function(tag) {
+    byNameLower[tag.Name.toLowerCase()] = tag;
+  });
+
+  var personal = [];
+  var usedNames = {};
+  order.forEach(function(name) {
+    var tag = byNameLower[name.toLowerCase()];
+    if (tag && !usedNames[tag.Name.toLowerCase()]) {
+      personal.push(tag);
+      usedNames[tag.Name.toLowerCase()] = true;
+    }
+  });
+
+  var rest = tags.filter(function(tag) {
+    return !usedNames[tag.Name.toLowerCase()];
+  });
+
+  return personal.concat(rest);
+}
+
 function addOrCreateTag(tagValue, buttonPressed = null) {
   const tagNames = availableTags.map((t) => t.Name.toLowerCase());
   const index = tagNames.indexOf(tagValue.toLowerCase());
@@ -1876,6 +1942,9 @@ function addTag(tag, buttonPressed = null) {
           // Move the added tag to the front(top) of the availableTags array
           const index = availableTags.map((t) => t.Id).indexOf(tag.Id);
           availableTags.splice(0, 0, availableTags.splice(index, 1)[0]);
+          // Remember that THIS user just used this tag, so it sorts to
+          // the top of their personal dropdown ordering on future loads.
+          saveTagUsage(tag.Name);
           if (["Enter", " ", ","].includes(buttonPressed)) $j('#tagInput').focus();
         })
         .fail(logAjaxFail);
@@ -1917,7 +1986,7 @@ function createTag(tagName, buttonPressed = null) {
 function getAvailableTags() {
   $j.getJSON(thisUrl + '?request=tags&action=getavailabletags')
       .done(function(data) {
-        availableTags = data.response;
+        availableTags = applyPersonalTagOrder(data.response);
       })
       .fail(logAjaxFail);
 }

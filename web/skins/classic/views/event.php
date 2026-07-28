@@ -272,6 +272,11 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
       </div>
     </div>
 <?php if ( $Event->Id() ) { ?>
+    <script nonce="<?php echo $cspNonce; ?>">
+      // Scopes the personal (per-user) tag ordering kept in this browser's
+      // localStorage — see event.js applyPersonalTagOrder().
+      var currentUsername = <?php echo json_encode($user->Username()); ?>;
+    </script>
     <div class="tags-container">
       <div class="tag-dropdown">
         <!-- input type has to be "search" (not "text") so that the Enter button (not Next) works on mobile Chrome browser. -->

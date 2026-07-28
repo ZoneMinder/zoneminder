@@ -1413,9 +1413,8 @@ function initPage() {
     if (cookie) vid.volume(cookie);
 
     vid.on('timeupdate', function() {
+      updateProgressBar();
       $j('#progressValue').html(secsToTime(Math.floor(vid.currentTime())));
-      var clockTime = new Date(eventData.StartDateTime);
-      clockTime.setTime(clockTime.getTime() + (vid.currentTime() * 1000));
       $j('#currentTimeValue').html(clockTime.toLocaleTimeString());
     });
     vid.on('ratechange', function() {

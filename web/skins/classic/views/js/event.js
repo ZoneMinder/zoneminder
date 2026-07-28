@@ -1415,7 +1415,6 @@ function initPage() {
     vid.on('timeupdate', function() {
       updateProgressBar();
       $j('#progressValue').html(secsToTime(Math.floor(vid.currentTime())));
-      $j('#currentTimeValue').html(clockTime.toLocaleTimeString());
     });
     vid.on('ratechange', function() {
       rate = vid.playbackRate() * 100;

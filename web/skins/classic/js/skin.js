@@ -3745,10 +3745,10 @@ const manageEventListener = new ManageEventListener();
 window.manageEventListener = manageEventListener;
 
 /**
- * Generate RFC4122 version 4 UUID.
- * Uses crypto.randomUUID() if available, then crypto.getRandomValues(),
- * otherwise falls back to Math.random().
- */
+ * Generate an RFC4122 version 4 UUID.
+ * Uses crypto.randomUUID() when available, otherwise falls back to
+ * crypto.getRandomValues() for compatibility with older browsers.
+*/
 function generateUUID() {
   // Modern browsers
   if (window.crypto?.randomUUID) {
@@ -3760,7 +3760,7 @@ function generateUUID() {
     const bytes = new Uint8Array(16);
     window.crypto.getRandomValues(bytes);
 
-    // RFC4122 v4
+    // RFC4122 version 4
     bytes[6] = (bytes[6] & 0x0f) | 0x40;
     bytes[8] = (bytes[8] & 0x3f) | 0x80;
 
@@ -3775,12 +3775,8 @@ function generateUUID() {
     );
   }
 
-  // Legacy browsers
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
+  console.warn('Web Crypto API is not supported. Unable to generate UUID.');
+  return null;
 }
 
 function isCurrentPlaybackSession(videoFeedStream, playbackSessionId) {

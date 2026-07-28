@@ -276,6 +276,7 @@ export class _AudioMotionAnalyzer extends HTMLElement {
     if (this.audioMotion) {
       this.stop();
       this.audioMotion.destroy();
+      this.audioMotion = null;
       const canvas = document.querySelector(`#audioVisualization${this.mid} canvas`);
       if (canvas) canvas.classList.add('hidden-shift');
     }

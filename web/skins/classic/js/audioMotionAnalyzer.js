@@ -54,6 +54,9 @@ export class _AudioMotionAnalyzer extends HTMLElement {
     this.handlerEventListener = {};
     this.currentPlayer = null; // The current player during initialization
     this.currentMediaStream = null; // The current MediaStream during initialization
+    this.playbackSessionId = null;
+    this.mediaStreamSource = null;
+    window.audioMotionCtx ??= new AudioContext();
 
     this.hide();
   }
@@ -104,6 +107,7 @@ export class _AudioMotionAnalyzer extends HTMLElement {
     const monitorStream = getMonitorStream(this.mid);
     const mediaStream = monitorStream.mediaStream;
     const audioTrack = monitorStream.audioTrack;
+    this.playbackSessionId = monitorStream.playbackSessionId;
 
     if (this.currentPlayer !== null && streamPlayer === this.currentPlayer && this.currentMediaStream !== null && mediaStream.id === this.currentMediaStream.id) {
       if (this.audioMotion && this.gainNode && mediaStream && mediaStream.active && audioTrack && !this.audioMotion.isOn) {
@@ -132,6 +136,10 @@ export class _AudioMotionAnalyzer extends HTMLElement {
 
     if (!monitorStream.mediaStream) {
       await this.getTracksFromStream(monitorStream);
+    }
+    if (!isCurrentPlaybackSession(monitorStream, this.playbackSessionId)) {
+      console.debug(`RACE [${this.playbackSessionId}] AudioMotion.init() aborted`);
+      return;
     }
     this.createMotionAnalyzer();
   }; // END init = function()
@@ -196,6 +204,10 @@ export class _AudioMotionAnalyzer extends HTMLElement {
     this.audioMotion = new AudioMotionAnalyzer(
         audioVisualization,
         {
+          // We will pass our own AudioContext and not trust the audioMotion-analyzer plugin,
+          // since it only needs to be created once during initialization.
+          // Otherwise, there may be sound issues, for example, in Chromium
+          audioCtx: window.audioMotionCtx,
           //source: audioEl, // main audio source is the HTML <audio> element .webrtc - не работает пока.
           //width: 100%,
           canvas: canvas,
@@ -305,10 +317,19 @@ export class _AudioMotionAnalyzer extends HTMLElement {
     }
 
     const audioCtx = this.audioMotion.audioCtx;
+    if (audioCtx.state !== 'running') {
+      console.warn(`AudioContext state=${audioCtx.state}, resuming...`);
+      await audioCtx.resume();
+    }
+
     const monitorStream = getMonitorStream(this.mid);
     const mediaStream = monitorStream.mediaStream;
 
     this.disconnectMediaStreamSource();
+    if (this.gainNode) {
+      this.gainNode.disconnect();
+      this.gainNode = null;
+    }
     this.gainNode = audioCtx.createGain();
 
     this.handlerEventListener['volumechange'] = manageEventListener.addEventListener(audioEl, 'volumechange', this.listenerVolumechange.bind(null, this));
@@ -323,8 +344,13 @@ export class _AudioMotionAnalyzer extends HTMLElement {
       await this.getTracksFromStream(monitorStream);
       return;
     }
-    const source = audioCtx.createMediaStreamSource(mediaStream);
-    source.connect(this.gainNode);
+    if (!isCurrentPlaybackSession(monitorStream, this.playbackSessionId)) {
+      console.debug(`RACE [${this.playbackSessionId}] AudioMotion.connectToMediaStreamSource() aborted`);
+      return;
+    }
+
+    this.mediaStreamSource = audioCtx.createMediaStreamSource(mediaStream);
+    this.mediaStreamSource.connect(this.gainNode);
     this.audioMotion.connectInput(this.gainNode);
     //this.audioMotion.connectOutput(); // This will result in duplicate sound output.
   };
@@ -333,6 +359,10 @@ export class _AudioMotionAnalyzer extends HTMLElement {
     if (this.audioMotion) {
       this.audioMotion.disconnectOutput();
       this.audioMotion.disconnectInput();
+      if (this.mediaStreamSource) {
+        this.mediaStreamSource.disconnect();
+        this.mediaStreamSource = null;
+      }
     }
   };
 
@@ -341,6 +371,10 @@ export class _AudioMotionAnalyzer extends HTMLElement {
     // Until the previous request completes within "this.getTracksFromStreamTimeout," don't send a new one.
     this.waitingGetTracksFromStream = false;
     await getTracksFromStream(monitorStream);
+    if (!isCurrentPlaybackSession(monitorStream, this.playbackSessionId)) {
+      console.debug(`RACE [${this.playbackSessionId}] AudioMotion.getTracksFromStream() aborted`);
+      return;
+    }
     this.waitingGetTracksFromStream = true;
   };
 

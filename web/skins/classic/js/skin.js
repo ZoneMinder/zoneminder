@@ -3303,6 +3303,7 @@ async function getTracksFromStream(videoFeedStream) {
     console.log(`getTracksFromStream: Unable to get Monitor.ID for`, videoFeedStream);
     return;
   }
+  const playbackSessionId = videoFeedStream.playbackSessionId;
 
   let el = null;
   if (currentView == 'watch' || currentView == 'montage' || currentView == 'zones' || currentView == 'zone') {
@@ -3330,11 +3331,19 @@ async function getTracksFromStream(videoFeedStream) {
     console.warn(`"captureStream" NOT found in STREAM for monitor ID=${mid} or not supported by the browser.`);
     streamCaptureNotSupported = true; // This will enable the volume control if the browser does not support captureStream (for example, Safari)
   }
+  if (!isCurrentPlaybackSession(videoFeedStream, playbackSessionId)) {
+    console.debug(`RACE [${playbackSessionId}] getTracksFromStream() aborted`);
+    return;
+  }
 
   if (stream) {
     const timeoutStreamActive = 20000;
     const startTime = Date.now();
     const streamActive = await waitUntil(() => (stream.active || videoFeedStream.started === false), timeoutStreamActive, stream.active); // We are waiting for the stream to become active.
+    if (!isCurrentPlaybackSession(videoFeedStream, playbackSessionId)) {
+      console.debug(`RACE [${playbackSessionId}] waitUntil() aborted`);
+      return;
+    }
     if (streamActive !== false && videoFeedStream.started !== false) {
       console.debug(`Stream for monitor with ID=${mid} became active within ${(streamActive/1000).toFixed(2)} seconds.`);
     } else {
@@ -3734,5 +3743,48 @@ class ManageEventListener {
 }
 const manageEventListener = new ManageEventListener();
 window.manageEventListener = manageEventListener;
+
+/**
+ * Generate RFC4122 version 4 UUID.
+ * Uses crypto.randomUUID() if available, then crypto.getRandomValues(),
+ * otherwise falls back to Math.random().
+ */
+function generateUUID() {
+  // Modern browsers
+  if (window.crypto?.randomUUID) {
+    return window.crypto.randomUUID();
+  }
+
+  // Older browsers with Web Crypto API
+  if (window.crypto?.getRandomValues) {
+    const bytes = new Uint8Array(16);
+    window.crypto.getRandomValues(bytes);
+
+    // RFC4122 v4
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+
+    const hex = Array.from(bytes, b => b.toString(16).padStart(2, '0'));
+
+    return (
+      hex.slice(0, 4).join('') + '-' +
+      hex.slice(4, 6).join('') + '-' +
+      hex.slice(6, 8).join('') + '-' +
+      hex.slice(8, 10).join('') + '-' +
+      hex.slice(10, 16).join('')
+    );
+  }
+
+  // Legacy browsers
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+function isCurrentPlaybackSession(videoFeedStream, playbackSessionId) {
+  return playbackSessionId === videoFeedStream.playbackSessionId;
+}
 
 $j( window ).on("load", initPageGeneral);

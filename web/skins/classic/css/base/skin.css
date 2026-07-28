@@ -1137,6 +1137,7 @@ a.flip {
   margin: 4px;
   display: flex;
   align-items: center;
+  order: 2;
 }
 
 .tag-text {

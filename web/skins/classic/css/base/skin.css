@@ -1164,6 +1164,7 @@ a.flip {
   margin-right: 8px;
   display: inline-block;
   flex-grow: 2;
+  order: 3;
 }
 
 .tag-dropdown-content {

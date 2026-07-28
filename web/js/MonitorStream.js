@@ -735,6 +735,7 @@ function MonitorStream(monitorData) {
     this.clearNoVideoWatchdog();
     this.mediaStream = this.audioTrack = this.videoTrack = null;
 
+    if (this.audioMotion && this.audioMotion.stop) this.audioMotion.stop();
     if (-1 !== this.activePlayer.indexOf('zms')) {
       // Icon: My current thought is to just tell zms to stop. Don't go to single.
       if (this.started) this.streamCommand(CMD_STOP);
@@ -752,42 +753,49 @@ function MonitorStream(monitorData) {
         console.log('close not in ', this.webrtc);
       }
       this.webrtc = null;
-      stream.srcObject = null;
       this.streamStartTime = 0;
     } else if (-1 !== this.activePlayer.indexOf('rtsp2web')) {
       if (this.webrtc) {
         if (this.webrtc.close) this.webrtc.close();
-        stream.src = '';
-        stream.srcObject = null;
         this.webrtc = null;
       }
       if (this.hls) hlsDestroy(this);
 
       if (-1 !== this.activePlayer.indexOf('mse')) {
-        this.stopMse();
+        this.stopMse().finally(() => {
+          console.debug(`RTSP2Web type MSE fully stopped for ID=${this.id}`);
+          stream.removeAttribute('src');
+          stream.load?.();
+        });
       }
     } else if (-1 !== this.activePlayer.indexOf('janus')) {
       if (janus && streaming[this.id]) {
         //streaming[this.id].detach(); // This will result in an error! This requires a more detailed study of Janus, or perhaps it has been fixed in a version higher than 1.1.2.
       }
-      //stream.src = '';
-      //stream.srcObject = null;
       janus.destroy();
       janus = null;
     } else {
       console.log("Unknown activePlayer", this.activePlayer);
     }
-    if (this.audioMotion && this.audioMotion.stop) this.audioMotion.stop();
 
-    // To avoid memory leaks and race conditions, it's necessary to manipulate the DOM element.
-    const videoStream = getAVStream(this.id);
-    if (videoStream) {
-      // ZMS MJPEG uses <img>, which doesn't implement pause() or load()
-      videoStream.pause?.();
-      videoStream.removeAttribute('src');
-      if ('srcObject' in videoStream) videoStream.srcObject = null;
-      videoStream.load?.();
+    // Release browser resources to avoid memory leaks (especially in Firefox)
+    const isZms = -1 !== this.activePlayer.indexOf('zms');
+    const isMse = (-1 !== this.activePlayer.indexOf('rtsp2web') && -1 !== this.activePlayer.indexOf('mse'));
+
+    // Stop MediaStream tracks before detaching the stream
+    if (stream.srcObject) {
+      stream.srcObject.getTracks().forEach((track) => {
+        console.debug(`Stopping ${track.kind} track (${track.readyState}):`, track.id, track);
+        track.stop();
+        console.debug(`Stopped ${track.kind} track (${track.readyState}):`, track.id);
+      });
+      stream.srcObject = null;
     }
+    // ZMS MJPEG uses <img>, which doesn't implement pause() or load()
+    stream.pause?.();
+    if (!isZms && !isMse) stream.removeAttribute('src');
+    if (!isMse) stream.load?.();
+
     this.activePlayer = '';
     this.started = false;
   };

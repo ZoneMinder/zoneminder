@@ -106,6 +106,8 @@ function MonitorStream(monitorData) {
       durationErrors: 0
     },
   };
+
+  this.playbackSessionId = null;
   this.ajaxQueue = null;
   this.type = monitorData.type;
   this.capturing = monitorData.capturing;
@@ -776,6 +778,15 @@ function MonitorStream(monitorData) {
       console.log("Unknown activePlayer", this.activePlayer);
     }
     if (this.audioMotion && this.audioMotion.stop) this.audioMotion.stop();
+
+    // To avoid memory leaks and race conditions, it's necessary to manipulate the DOM element.
+    const videoStream = getAVStream(this.id);
+    if (videoStream) {
+      videoStream.pause();
+      videoStream.removeAttribute('src');
+      videoStream.srcObject = null;
+      videoStream.load();
+    }
     this.activePlayer = '';
     this.started = false;
   };
@@ -1734,6 +1745,7 @@ function MonitorStream(monitorData) {
 
   this.select_go2rtc = function(streamChannel) {
     if (ZM_GO2RTC_PATH) {
+      this.playbackSessionId = generateUUID();
       const url = new URL(ZM_GO2RTC_PATH);
 
       const stream = this.element = replaceDOMElement(this.getElement(), 'video-stream');
@@ -1781,6 +1793,7 @@ function MonitorStream(monitorData) {
 
   this.select_rtsp2web = function(streamChannel) {
     if (ZM_RTSP2WEB_PATH) {
+      this.playbackSessionId = generateUUID();
       const stream = this.element = replaceDOMElement(this.getElement(), 'video');
       stream.srcObject = null;
       stream.setAttribute("autoplay", "");
@@ -1885,6 +1898,7 @@ function MonitorStream(monitorData) {
   };
 
   this.select_janus = function(streamChannel) {
+    this.playbackSessionId = generateUUID();
     let server;
     const stream = this.element = replaceDOMElement(this.getElement(), 'video');
     stream.srcObject = null;
@@ -1919,6 +1933,7 @@ function MonitorStream(monitorData) {
 
   this.select_zms = function() {
     // zms stream
+    this.playbackSessionId = generateUUID();
     const stream = this.element = replaceDOMElement(this.getElement(), 'img');
     stream.srcObject = null;
     if (!stream) return;

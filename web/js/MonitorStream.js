@@ -782,10 +782,11 @@ function MonitorStream(monitorData) {
     // To avoid memory leaks and race conditions, it's necessary to manipulate the DOM element.
     const videoStream = getAVStream(this.id);
     if (videoStream) {
-      videoStream.pause();
+      // ZMS MJPEG uses <img>, which doesn't implement pause() or load()
+      videoStream.pause?.();
       videoStream.removeAttribute('src');
-      videoStream.srcObject = null;
-      videoStream.load();
+      if ('srcObject' in videoStream) videoStream.srcObject = null;
+      videoStream.load?.();
     }
     this.activePlayer = '';
     this.started = false;

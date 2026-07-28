@@ -1768,7 +1768,12 @@ function MonitorStream(monitorData) {
         stream.mode = this.player.substring(this.player.indexOf('_')+1);
       }
       const video_el = this.getAVStream();
-      if (video_el) video_el.muted = this.muted;
+      if (video_el) {
+        video_el.muted = this.muted;
+      } else {
+        console.warn(`go2rtc DOM element of video stream for monitor with ID=${this.id} not found`);
+        return;
+      }
       this.handlerEventListenerStream(video_el);
 
       clearInterval(this.statusCmdTimer); // Fix for issues in Chromium when quickly hiding/showing a page. Doesn't clear statusCmdTimer when minimizing a page https://stackoverflow.com/questions/9501813/clearinterval-not-working
@@ -1796,7 +1801,12 @@ function MonitorStream(monitorData) {
 
       const rtsp2webModUrl = url;
       const video_el = this.getAVStream();
-      if (video_el) video_el.muted = this.muted;
+      if (video_el) {
+        video_el.muted = this.muted;
+      } else {
+        console.warn(`rtsp2web DOM element of video stream for monitor with ID=${this.id} not found`);
+        return;
+      }
       this.handlerEventListenerStream(video_el);
       rtsp2webModUrl.username = '';
       rtsp2webModUrl.password = '';
@@ -1896,7 +1906,12 @@ function MonitorStream(monitorData) {
     stream.setAttribute("autoplay", "");
     stream.setAttribute("muted", this.muted);
     const video_el = this.getAVStream();
-    if (video_el) video_el.muted = this.muted;
+    if (video_el) {
+      video_el.muted = this.muted;
+    } else {
+      console.warn(`janus DOM element of video stream for monitor with ID=${this.id} not found`);
+      return;
+    }
     this.handlerEventListenerStream(video_el);
     if (ZM_JANUS_PATH) {
       server = ZM_JANUS_PATH;

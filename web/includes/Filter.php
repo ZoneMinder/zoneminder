@@ -336,8 +336,12 @@ class Filter extends ZM_Object {
       $this->Query($Query);
     }
     // Error($this->Query()['limit']);
+    // limit is user-controlled (populated from the request via set()/Query())
+    // and gets concatenated straight into SQL by callers. Coerce to int here
+    // so a payload like "1 AND (SELECT ...)" can never survive to a LIMIT
+    // clause. See GHSA-28mv-hqxw-qw84.
     if ( isset( $this->Query()['limit'] ) )
-      return $this->{'Query'}['limit'];
+      return (int)$this->{'Query'}['limit'];
     return 0;
     #return $this->defaults{'limit'};
   }
@@ -846,7 +850,7 @@ class Filter extends ZM_Object {
     '.$where.($sort?' ORDER BY '.$sort:'');
     
     if ($this->limit() and !count($this->pre_sql_conditions()) and !count($this->post_sql_conditions())) {
-      $sql .= ' LIMIT '.$this->limit();
+      $sql .= ' LIMIT '.(int)$this->limit();
     }
 
     Debug('Calling the following sql query: ' .$sql);
@@ -1448,6 +1452,16 @@ class Filter extends ZM_Object {
     global $user;
     if (!$u) $u = $user;
     if ($u->canEdit('System') or ($this->UserId() == $u->Id())) return true;
+    return false;
+  }
+
+  public function canView($u=null) {
+    global $user;
+    if (!$u) $u = $user;
+    // System viewers can inspect any filter. Otherwise you must own it. An
+    // unsaved/transient filter (no Id) is built from the requester's own input
+    // (e.g. the filterdebug modal), so treat it as viewable by the requester.
+    if ($u->canView('System') or ($this->UserId() == $u->Id()) or !$this->Id()) return true;
     return false;
   }
 

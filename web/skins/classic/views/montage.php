@@ -256,7 +256,7 @@ echo getNavBarHTML();
              data-flip-control-run-after-complet-func="changeScale">
                <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
              </a>
-             <div id="mfbpanel" class="hidden-shift container-fluid">'.PHP_EOL;
+             <div id="mfbpanel" class="'.($filter_inline ? '' : 'hidden-shift ').'container-fluid">'.PHP_EOL;
     echo $html;
 ?>
       <form method="get" name="monitorFiltersForm" id="monitorFiltersForm">

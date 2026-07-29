@@ -498,7 +498,9 @@ function getCmdResponse(respObj, respText) {
     fps.innerHTML = streamStatus.fps;
   }
 
-  updateProgressBar();
+  if (!vid) {
+    updateProgressBar();
+  }
 
   if (streamStatus.auth) {
     if (streamStatus.auth != auth_hash) {
@@ -1413,10 +1415,8 @@ function initPage() {
     if (cookie) vid.volume(cookie);
 
     vid.on('timeupdate', function() {
+      updateProgressBar();
       $j('#progressValue').html(secsToTime(Math.floor(vid.currentTime())));
-      var clockTime = new Date(eventData.StartDateTime);
-      clockTime.setTime(clockTime.getTime() + (vid.currentTime() * 1000));
-      $j('#currentTimeValue').html(clockTime.toLocaleTimeString());
     });
     vid.on('ratechange', function() {
       rate = vid.playbackRate() * 100;
@@ -1795,12 +1795,6 @@ function initPage() {
       updateScale = false;
     }
   }, 500);
-
-  if (vid) {
-    setInterval(() => {
-      updateProgressBar();
-    }, streamTimeout);
-  }
 
   const toggleZonesButton = document.getElementById('toggleZonesButton');
   if (toggleZonesButton) toggleZonesButton.addEventListener('click', toggleZones);

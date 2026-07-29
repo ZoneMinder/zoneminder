@@ -607,7 +607,12 @@ function MonitorStream(monitorData) {
     //$j('#volumeControls'+this.id).hide();
     $j('#volumeControls'+this.id).addClass('disabled');
     $j('#delay'+this.id).addClass('hidden');
-
+    this.handlerEventListener['zm:tracksReceived'] = manageEventListener.addEventListener(document, 'zm:tracksReceived',
+        (e) => {
+          // IgorA100 Full implementation will be available a little later.
+          console.debug("EVENT tracksReceived:", e.detail);
+        }
+    );
     this.selectPlayer(streamChannel);
   }; // this.start
 
@@ -709,6 +714,7 @@ function MonitorStream(monitorData) {
   };
 
   this.stop = function() {
+    manageEventListener.removeEventListener(this.handlerEventListener['zm:tracksReceived']);
     manageEventListener.removeEventListener(this.handlerEventListener['killStream']);
     manageEventListener.removeEventListener(this.handlerEventListener['playStream']);
     if (manageEventListener.removeEventListener(this.handlerEventListener['volumechange']) == this.handlerEventListener['volumechange']) this.handlerEventListener['volumechange'] = null;

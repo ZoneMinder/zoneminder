@@ -191,81 +191,73 @@ var zmPanZoom = {
   */
   manageCursor: function(id) {
     if (!this.panZoom[id]) {
-      console.log(`PanZoom for monitor ID=${id} was not initialized.`);
+      console.log(`PanZoom object for monitor ID=${id} was not initialized.`);
       return;
     }
-    var obj;
-    var obj_btn;
     const disablePan = this.panZoom[id].getOptions().disablePan;
     const disableZoom = this.panZoom[id].getOptions().disableZoom;
+    const panZoomTarget = this.panZoom[id].target;
+    const blockButtonZoom = document.getElementById('button_zoom'+id); //Change the cursor when you hover over the block of buttons at the top of the image.
 
-    obj = this.getStream(id);
-    if (obj) { //Montage & Watch page
-      obj_btn = document.getElementById('button_zoom'+id); //Change the cursor when you hover over the block of buttons at the top of the image. Not required on Event page
-    } else { //Event page
-      obj = document.getElementById('videoFeedStream'+id);
-    }
-
-    if (!obj) {
-      console.log(`Stream with id=${id} not found.`);
+    if (!panZoomTarget) {
+      console.log(`PanZoom object for monitor ID=${id} has no target property.`);
       return;
     }
     const currentScale = this.panZoom[id].getScale().toFixed(1);
 
     if (this.shifted && this.ctrled) {
       const cursor = (disableZoom) ? 'auto' : 'zoom-out';
-      obj.style['cursor'] = cursor;
-      if (obj_btn) {
-        obj_btn.style['cursor'] = cursor;
+      panZoomTarget.style['cursor'] = cursor;
+      if (blockButtonZoom) {
+        blockButtonZoom.style['cursor'] = cursor;
       }
     } else if (this.shifted) {
       const cursor = (disableZoom) ? 'auto' : 'zoom-in';
-      obj.style['cursor'] = cursor;
-      if (obj_btn) {
-        obj_btn.style['cursor'] = cursor;
+      panZoomTarget.style['cursor'] = cursor;
+      if (blockButtonZoom) {
+        blockButtonZoom.style['cursor'] = cursor;
       }
     } else if (this.ctrled) {
       if (currentScale == 1.0) {
-        obj.style['cursor'] = 'auto';
-        if (obj_btn) {
-          obj_btn.style['cursor'] = 'auto';
+        panZoomTarget.style['cursor'] = 'auto';
+        if (blockButtonZoom) {
+          blockButtonZoom.style['cursor'] = 'auto';
         }
       } else {
         const cursor = (disableZoom) ? 'auto' : 'zoom-out';
-        obj.style['cursor'] = cursor;
-        if (obj_btn) {
-          obj_btn.style['cursor'] = cursor;
+        panZoomTarget.style['cursor'] = cursor;
+        if (blockButtonZoom) {
+          blockButtonZoom.style['cursor'] = cursor;
         }
       }
     } else { //No ctrled & no shifted
       if (currentScale == 1.0) {
-        obj.style['cursor'] = 'auto';
-        if (obj_btn) {
-          obj_btn.style['cursor'] = 'auto';
+        panZoomTarget.style['cursor'] = 'auto';
+        if (blockButtonZoom) {
+          blockButtonZoom.style['cursor'] = 'auto';
         }
       } else {
         const cursor = (disablePan) ? 'auto' : 'move';
-        obj.style['cursor'] = cursor;
-        if (obj_btn) {
-          obj_btn.style['cursor'] = cursor;
+        panZoomTarget.style['cursor'] = cursor;
+        if (blockButtonZoom) {
+          blockButtonZoom.style['cursor'] = cursor;
         }
       }
     }
 
-    const videoJs = document.querySelector('.video-js .vjs-tech');
-
-    if (this.panZoom[id].getScale().toFixed(1) > 1) {
+    const video = panZoomTarget.querySelector(`video, .vjs-tech`);
+    if (currentScale > 1) {
       this.panZoom[id].setOptions({handleStartEvent: (event) => {
         event.preventDefault();
       }});
-      if (videoJs) videoJs.style.pointerEvents = 'none';
+      if (video) video.style.pointerEvents = 'none';
     } else {
       this.panZoom[id].setOptions({handleStartEvent: (event) => {}});
-      if (videoJs) {
+      if (video) {
         if (this.shifted || this.ctrled || this.alted) {
-          videoJs.style.pointerEvents = 'none';
+          video.style.pointerEvents = 'none';
         } else {
-          videoJs.style.pointerEvents = '';
+          video.style.pointerEvents = '';
         }
       }
     }

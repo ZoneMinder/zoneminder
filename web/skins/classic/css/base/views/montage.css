@@ -69,6 +69,12 @@
   fill-opacity: 0.25;
 }
 
+/* Zone overlays are always rendered so toggleZones can show them without a
+   page reload. This hides them until the Show Zones button is pressed. */
+#monitors.hide-zones svg.zones {
+  display: none;
+}
+
 .Active {
   stroke: #ff0000;
   fill: #ff0000;

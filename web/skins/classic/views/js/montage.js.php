@@ -8,6 +8,9 @@ const statusRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;
 
 const canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;
 
+const showZonesString = "<?php echo validJsStr(translate('Show Zones')) ?>";
+const hideZonesString = "<?php echo validJsStr(translate('Hide Zones')) ?>";
+
 var monitorData = new Array();
 
 <?php

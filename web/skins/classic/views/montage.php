@@ -29,9 +29,11 @@ require_once('includes/Zone.php');
 $showControl = false;
 $showZones = false;
 if (isset($_REQUEST['showZones'])) {
-  if ($_REQUEST['showZones'] == 1) {
-    $showZones = true;
-  }
+  $showZones = $_SESSION['zmMontageShowZones'] = $_REQUEST['showZones'] == 1;
+} else if (isset($_COOKIE['zmMontageShowZones'])) {
+  $showZones = $_SESSION['zmMontageShowZones'] = $_COOKIE['zmMontageShowZones'] == 1;
+} else if (isset($_SESSION['zmMontageShowZones'])) {
+  $showZones = $_SESSION['zmMontageShowZones'];
 }
 $widths = array( 
   'auto'  => 'auto',
@@ -357,11 +359,9 @@ if ($showControl) {
   echo makeLink('?view=control', translate('Control'));
 }
 if (canView('System')) {
-  if ($showZones) {
-    echo '<a id="HideZones" href="?view=montage&amp;showZones=0">'.translate('Hide Zones').'</a>';
-  } else {
-    echo '<a id="ShowZones" href="?view=montage&amp;showZones=1">'.translate('Show Zones').'</a>';
-  }
+  echo '<button type="button" id="toggleZonesButton" class="btn btn-'.($showZones?'normal':'secondary').
+    '" title="'.translate(($showZones?'Hide':'Show').' Zones').'" data-on-click-this="toggleZones">'.
+    '<i class="material-icons md-18">'.($showZones?'layers_clear':'layers').'</i></button>';
 }
 ?>
         </form>
@@ -369,7 +369,7 @@ if (canView('System')) {
     </div><!--header-->
   </div>
   <div id="content">
-    <div id="monitors" class="grid-stack hidden-shift">
+    <div id="monitors" class="grid-stack hidden-shift<?php echo $showZones ? '' : ' hide-zones' ?>">
 <?php
 foreach ($monitors as $monitor) {
   $monitor_options = $options;
@@ -386,7 +386,9 @@ foreach ($monitors as $monitor) {
     );
   } else {
     $monitor_options['state'] = true;
-    $monitor_options['zones'] = $showZones;
+    # Always emit the zone overlays so toggleZones can show/hide them without a
+    # page reload; #monitors.hide-zones keeps them hidden until asked for.
+    $monitor_options['zones'] = canView('System');
     # If we start up in a streaming mode, even paused, the content-type=mixed etc makes Chrome queue the requests for 15s.  We are stuck with just getting a single image to start, then switching to streaming in js.
     $monitor_options['mode'] = 'single';
     $monitor_options['connkey'] = $monitor->connKey();

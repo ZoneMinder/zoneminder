@@ -105,7 +105,7 @@ var zmPanZoom = {
       });
 
       const nameSpace = '.panzoom_' + id;
-      $j(document).on('keyup' + nameSpace + ' keydown' + nameSpace, function(e) {
+      $j(document).off(nameSpace).on('keyup' + nameSpace + ' keydown' + nameSpace, function(e) {
         _this.shifted = e.shiftKey ? e.shiftKey : e.shift;
         _this.ctrled = e.ctrlKey;
         _this.alted = e.altKey;

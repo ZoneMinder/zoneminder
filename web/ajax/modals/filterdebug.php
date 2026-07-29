@@ -39,7 +39,7 @@
 ';
   $sql .= $filter->sql();
   $sql .= $filter->sort_field() ? ' ORDER BY '.$filter->sort_field(). ' ' .($filter->sort_asc() ? 'ASC' : 'DESC') : '';
-  $sql .= $filter->limit() ? ' LIMIT '.$filter->limit() : '';
+  $sql .= $filter->limit() ? ' LIMIT '.(int)$filter->limit() : '';
   $explain_sql = $sql;
   $sql .= $filter->skip_locked() ? ' SKIP LOCKED' : '';
 

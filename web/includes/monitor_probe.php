@@ -833,7 +833,7 @@ function get_arp_scan_results($network) {
     ZM\Error('arp-scan compatible binary not found or not executable by the web user account. Verify ZM_PATH_ARP_SCAN points to a valid arp-scan tool.');
     return $results;
   }
-  $arp_scan_command = '/usr/bin/pkexec '.ZM_PATH_ARP_SCAN.' '.$network;
+  $arp_scan_command = ZM_PATH_PKEXEC.' '.ZM_PATH_ARP_SCAN.' '.$network;
   $result = exec(escapeshellcmd($arp_scan_command), $output, $status);
   if ($status) {
     ZM\Error("Unable to probe network cameras, command was $arp_scan_command, status is '$status' output: ".implode(PHP_EOL, $output));

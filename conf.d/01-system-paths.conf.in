@@ -70,6 +70,14 @@ ZM_PATH_IP="@ZM_PATH_IP@"
 # ZoneMinder will find the ifconfig binary automatically on most systems
 ZM_PATH_IFCONFIG="@ZM_PATH_IFCONFIG@"
 
+# Full path to optional netstat binary or just netstat to use PATH
+# ZoneMinder will find the netstat binary automatically on most systems
+ZM_PATH_NETSTAT="@ZM_PATH_NETSTAT@"
+
+# Full path to optional pkexec binary or just pkexec to use PATH
+# ZoneMinder will find the pkexec binary automatically on most systems
+ZM_PATH_PKEXEC="@ZM_PATH_PKEXEC@"
+
 #Full path to shutdown binary
 ZM_PATH_SHUTDOWN="@ZM_PATH_SHUTDOWN@"
 

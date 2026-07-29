@@ -498,7 +498,9 @@ function getCmdResponse(respObj, respText) {
     fps.innerHTML = streamStatus.fps;
   }
 
-  updateProgressBar();
+  if (!vid) {
+    updateProgressBar();
+  }
 
   if (streamStatus.auth) {
     if (streamStatus.auth != auth_hash) {
@@ -1793,12 +1795,6 @@ function initPage() {
       updateScale = false;
     }
   }, 500);
-
-  if (vid) {
-    setInterval(() => {
-      updateProgressBar();
-    }, streamTimeout);
-  }
 
   const toggleZonesButton = document.getElementById('toggleZonesButton');
   if (toggleZonesButton) toggleZonesButton.addEventListener('click', toggleZones);

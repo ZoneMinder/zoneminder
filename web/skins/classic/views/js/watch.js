@@ -947,6 +947,8 @@ function streamReStart(oldId, newId) {
   applyMonitorControllable();
   //manageChannelStream();
   streamPrepareStart(currentMonitor);
+  // IgorA100 ToDo: This isn't a duplicate initialization. We initialize different objects (in the first case, ".zoompan" is the default, in the second, ".imageFeed"), 
+  // but PanZoom wasn't fully implemented in panzoom.js for the second ".imageFeed" initialization line.
   zmPanZoom.init();
   zmPanZoom.init({objString: '.imageFeed', disablePan: true, contain: 'inside', additional: true});
   //document.getElementById('monitor').classList.remove('hidden-shift');
@@ -1047,6 +1049,8 @@ function initPage() {
   document.getElementById('use-old-zoom-pan').checked = useOldZoomPan;
   // --- Support of old ZoomPan algorithm
 
+  // IgorA100 ToDo: This isn't a duplicate initialization. We initialize different objects (in the first case, ".zoompan" is the default, in the second, ".imageFeed"), 
+  // but PanZoom wasn't fully implemented in panzoom.js for the second ".imageFeed" initialization line.
   zmPanZoom.init();
   zmPanZoom.init({objString: '.imageFeed', disablePan: true, contain: 'inside', additional: true});
 

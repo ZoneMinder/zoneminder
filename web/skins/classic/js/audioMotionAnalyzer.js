@@ -331,15 +331,6 @@ export class _AudioMotionAnalyzer extends HTMLElement {
       this.gainNode.disconnect();
       this.gainNode = null;
     }
-    this.gainNode = audioCtx.createGain();
-
-    this.handlerEventListener['volumechange'] = manageEventListener.addEventListener(audioEl, 'volumechange', this.listenerVolumechange.bind(null, this));
-
-    if (audioEl.muted) {
-      this.gainNode.gain.value = 0;
-    } else {
-      this.gainNode.gain.value = audioEl.volume;
-    }
 
     if (!mediaStream.active) { // This is especially useful for the Event page during repeat playback.
       await this.getTracksFromStream(monitorStream);
@@ -348,6 +339,16 @@ export class _AudioMotionAnalyzer extends HTMLElement {
     if (!isCurrentPlaybackSession(monitorStream, this.playbackSessionId)) {
       console.debug(`RACE [${this.playbackSessionId}] AudioMotion.connectToMediaStreamSource() aborted`);
       return;
+    }
+
+    this.gainNode = audioCtx.createGain();
+
+    this.handlerEventListener['volumechange'] = manageEventListener.addEventListener(audioEl, 'volumechange', this.listenerVolumechange.bind(null, this));
+
+    if (audioEl.muted) {
+      this.gainNode.gain.value = 0;
+    } else {
+      this.gainNode.gain.value = audioEl.volume;
     }
 
     this.mediaStreamSource = audioCtx.createMediaStreamSource(mediaStream);

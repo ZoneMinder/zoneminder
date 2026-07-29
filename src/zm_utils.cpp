@@ -351,6 +351,22 @@ void touch(const char *pathname) {
   close(fd);
 }
 
+size_t zm_get_rss_kb() {
+  // /proc/self/statm reports memory in pages: field 2 is resident set size.
+  FILE *fp = fopen("/proc/self/statm", "r");
+  if (!fp) return 0;
+  long rss_pages = 0;
+  // First field (total program size) is skipped, second is resident pages.
+  if (fscanf(fp, "%*s %ld", &rss_pages) != 1) {
+    fclose(fp);
+    return 0;
+  }
+  fclose(fp);
+  long page_kb = sysconf(_SC_PAGESIZE) / 1024;
+  if (page_kb <= 0) page_kb = 4;  // sane default if sysconf fails
+  return static_cast<size_t>(rss_pages) * static_cast<size_t>(page_kb);
+}
+
 std::string UriDecode(const std::string &encoded) {
   const char *src = encoded.c_str();
   std::string retbuf;

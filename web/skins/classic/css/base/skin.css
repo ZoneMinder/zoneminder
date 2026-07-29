@@ -146,6 +146,10 @@ button.btn {
   margin-bottom: 3px;
 }
 
+#toolbar>button {
+  align-self: flex-start;
+}
+
 #toolbar .btn-normal,
 #toolbar .btn-danger {
   margin-right: 3px;

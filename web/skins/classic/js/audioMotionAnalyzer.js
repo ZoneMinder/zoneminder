@@ -332,7 +332,7 @@ export class _AudioMotionAnalyzer extends HTMLElement {
       this.gainNode = null;
     }
 
-    if (!mediaStream.active) { // This is especially useful for the Event page during repeat playback.
+    if (!mediaStream || !mediaStream.active) { // This is especially useful for the Event page during repeat playback.
       await this.getTracksFromStream(monitorStream);
       return;
     }

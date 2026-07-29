@@ -3296,11 +3296,19 @@ function pauseAudioMotion(mid) {
 async function getTracksFromStream(videoFeedStream) {
   if (!videoFeedStream) {
     console.log(`Unable to get tracks from stream because the stream is missing.`);
+    dispatchTracksReceived(videoFeedStream, {
+      status: 'failed',
+      reason: 'invalid-stream'
+    });
     return;
   }
   const mid = (typeof eventData !== 'undefined') ? eventData.MonitorId : (videoFeedStream) ? videoFeedStream.id : null;
   if (!mid) {
     console.log(`getTracksFromStream: Unable to get Monitor.ID for`, videoFeedStream);
+    dispatchTracksReceived(videoFeedStream, {
+      status: 'failed',
+      reason: 'monitor-id-not-found'
+    });
     return;
   }
   const playbackSessionId = videoFeedStream.playbackSessionId;
@@ -3315,6 +3323,10 @@ async function getTracksFromStream(videoFeedStream) {
 
   if (!el) {
     console.log(`"Video stream" NOT found for monitor ID=${mid}.`);
+    dispatchTracksReceived(videoFeedStream, {
+      status: 'failed',
+      reason: 'video-element-not-found'
+    });
     return;
   }
   let streamCaptureNotSupported = false;
@@ -3333,6 +3345,11 @@ async function getTracksFromStream(videoFeedStream) {
   }
   if (!isCurrentPlaybackSession(videoFeedStream, playbackSessionId)) {
     console.debug(`RACE [${playbackSessionId}] getTracksFromStream() aborted`);
+    if (stream) stream.getTracks().forEach((t) => t.stop());
+    dispatchTracksReceived(videoFeedStream, {
+      status: 'aborted',
+      reason: 'playback-session-changed'
+    });
     return;
   }
 
@@ -3342,12 +3359,21 @@ async function getTracksFromStream(videoFeedStream) {
     const streamActive = await waitUntil(() => (stream.active || videoFeedStream.started === false), timeoutStreamActive, stream.active); // We are waiting for the stream to become active.
     if (!isCurrentPlaybackSession(videoFeedStream, playbackSessionId)) {
       console.debug(`RACE [${playbackSessionId}] waitUntil() aborted`);
+      stream.getTracks().forEach((t) => t.stop());
+      dispatchTracksReceived(videoFeedStream, {
+        status: 'aborted',
+        reason: 'playback-session-changed'
+      });
       return;
     }
     if (streamActive !== false && videoFeedStream.started !== false) {
       console.debug(`Stream for monitor with ID=${mid} became active within ${(streamActive/1000).toFixed(2)} seconds.`);
     } else {
       console.warn(`Within ${((Date.now() - startTime)/1000).toFixed(2)} seconds, the stream for monitor with ID=${mid} did not become active.`);
+      dispatchTracksReceived(videoFeedStream, {
+        status: 'failed',
+        reason: 'stream-inactive'
+      });
       return;
     }
 
@@ -3380,6 +3406,27 @@ async function getTracksFromStream(videoFeedStream) {
 
   connectAudioMotion(mid);
 }
+
+/**
+* status: 'failed', 'aborted', 'success'
+*/
+const dispatchTracksReceived = function(videoFeedStream, {
+  status,
+  reason = null
+} = {}) {
+  document.dispatchEvent(new CustomEvent('zm:tracksReceived', {
+    detail: {
+      monitorId: videoFeedStream?.id ?? null,
+      status,
+      reason,
+      stream: {
+        mediaStream: videoFeedStream?.mediaStream ?? null,
+        audioTrack: videoFeedStream?.audioTrack ?? null,
+        videoTrack: videoFeedStream?.videoTrack ?? null
+      }
+    }
+  }));
+};
 
 const waitUntil = (condition, timeout = 0) => {
   const startTime = Date.now();

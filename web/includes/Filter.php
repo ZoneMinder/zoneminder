@@ -1455,6 +1455,16 @@ class Filter extends ZM_Object {
     return false;
   }
 
+  public function canView($u=null) {
+    global $user;
+    if (!$u) $u = $user;
+    // System viewers can inspect any filter. Otherwise you must own it. An
+    // unsaved/transient filter (no Id) is built from the requester's own input
+    // (e.g. the filterdebug modal), so treat it as viewable by the requester.
+    if ($u->canView('System') or ($this->UserId() == $u->Id()) or !$this->Id()) return true;
+    return false;
+  }
+
   public function canEdit($u=null) {
     global $user;
     if (!$u) $u=$user;

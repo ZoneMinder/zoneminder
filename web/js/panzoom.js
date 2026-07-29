@@ -245,7 +245,7 @@ var zmPanZoom = {
       }
     }
 
-    const video = document.querySelector(`video#liveStream${id}, #liveStream${id} video, #videoFeedStream${id} .video-js .vjs-tech`);
+    const video = panZoomTarget.querySelector(`video, .vjs-tech`);
     if (currentScale > 1) {
       this.panZoom[id].setOptions({handleStartEvent: (event) => {
         event.preventDefault();

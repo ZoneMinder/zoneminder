@@ -1361,6 +1361,10 @@ function onStatsResize(vidWidth) {
 }
 
 function initPage() {
+  if (eventNotFound) {
+    console.log("Event was not found.");
+    return;
+  }
   getAvailableTags();
   getSelectedTags();
 

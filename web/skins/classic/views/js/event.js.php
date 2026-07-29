@@ -17,6 +17,7 @@
 // PHP variables to JS
 //
 var connKey = '<?php echo $connkey ?>';
+const eventNotFound = <?php echo ((!$Event->Id() || ($Event->Id() and !file_exists($Event->Path()))) ? "true" : "false") ?>;
 
 var eventData = {
 <?php if ( $Event->Id() ) { ?>

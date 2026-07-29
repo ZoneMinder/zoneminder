@@ -1444,7 +1444,7 @@ function controlWhatDisplay(oldId, newId) {
   }
   if (noAudioMotion) {
     destroyAudioMotion(oldId);
-    monitorStream.updateStreamInfoStatusTrack("");
+    if (monitorStream && monitorStream.updateStreamInfoStatusTrack) monitorStream.updateStreamInfoStatusTrack('');
   } else {
     if (monitorStream.activePlayer.indexOf("zms") !== -1) {
       connectAudioMotion(newId);

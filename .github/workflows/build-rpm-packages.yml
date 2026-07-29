@@ -29,6 +29,9 @@ jobs:
           - distro: "rockylinux:8"
             releasever: "8"
             family: "el"
+          - distro: "fedora:44"
+            releasever: "44"
+            family: "fedora"
           - distro: "fedora:43"
             releasever: "43"
             family: "fedora"
@@ -64,7 +67,8 @@ jobs:
         run: |
           set -eux
           dnf -y install dnf-plugins-core
-          dnf -y install "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${{ matrix.releasever }}.noarch.rpm"
+          dnf -y install "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${{ matrix.releasever }}.noarch.rpm" || \
+            dnf -y install "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-rawhide.noarch.rpm"
 
       - name: Install build tools
         run: |

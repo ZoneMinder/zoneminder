@@ -313,8 +313,17 @@ export class _AudioMotionAnalyzer extends HTMLElement {
 
     const audioCtx = this.audioMotion.audioCtx;
     if (audioCtx.state !== 'running') {
-      console.warn(`AudioContext state=${audioCtx.state}, resuming...`);
-      await audioCtx.resume();
+      console.warn(`AudioContext for monitor ID=${this.mid} is in "${audioCtx.state}" state, resuming...`);
+      try {
+        await audioCtx.resume();
+      } catch (err) {
+        console.warn(`Failed to resume AudioContext for monitor ID=${this.mid}:`, err);
+        return;
+      }
+      if (audioCtx.state !== 'running') {
+        console.warn(`AudioContext for monitor ID=${this.mid} is still not running (state=${audioCtx.state}).`);
+        return;
+      }
     }
 
     const monitorStream = getMonitorStream(this.mid);

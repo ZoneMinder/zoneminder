@@ -34,7 +34,6 @@ export class _AudioMotionAnalyzer extends HTMLElement {
     super();
     this.audioMotion = null; // AudioMotionAnalyzer object
     this.initCompleted = false;
-    this.getTracksFromStreamTimeout = 20000;
     if (currentView == 'watch' || currentView == 'event') {
       this.maxFPS = 30;
       this.loRes = false;
@@ -107,6 +106,10 @@ export class _AudioMotionAnalyzer extends HTMLElement {
     const monitorStream = getMonitorStream(this.mid);
     const mediaStream = monitorStream.mediaStream;
     const audioTrack = monitorStream.audioTrack;
+    if (!audioTrack) {
+      console.log(`AudioMotion will not be started for monitor ID=${this.mid} because no audioTrack is available.`);
+      return;
+    }
     this.playbackSessionId = monitorStream.playbackSessionId;
 
     if (this.currentPlayer !== null && streamPlayer === this.currentPlayer && this.currentMediaStream !== null && mediaStream.id === this.currentMediaStream.id) {
@@ -123,7 +126,6 @@ export class _AudioMotionAnalyzer extends HTMLElement {
       return;
     }
 
-    this.waitingGetTracksFromStream = true;
     this.initCompleted = true;
 
     if (this.audioMotion) {
@@ -133,14 +135,6 @@ export class _AudioMotionAnalyzer extends HTMLElement {
     this.currentMediaStream = monitorStream.mediaStream;
     this.changeIconIsVideo('off');
     this.changeIconIsAudio('off');
-
-    if (!monitorStream.mediaStream) {
-      await this.getTracksFromStream(monitorStream);
-    }
-    if (!isCurrentPlaybackSession(monitorStream, this.playbackSessionId)) {
-      console.debug(`RACE [${this.playbackSessionId}] AudioMotion.init() aborted`);
-      return;
-    }
     this.createMotionAnalyzer();
   }; // END init = function()
 
@@ -332,12 +326,8 @@ export class _AudioMotionAnalyzer extends HTMLElement {
       this.gainNode = null;
     }
 
-    if (!mediaStream || !mediaStream.active) { // This is especially useful for the Event page during repeat playback.
-      await this.getTracksFromStream(monitorStream);
-      return;
-    }
     if (!isCurrentPlaybackSession(monitorStream, this.playbackSessionId)) {
-      console.debug(`RACE [${this.playbackSessionId}] AudioMotion.connectToMediaStreamSource() aborted`);
+      console.debug(`RACE [${this.playbackSessionId}] AudioMotion.connectToMediaStreamSource() for monitor ID=${this.mid} aborted`);
       return;
     }
 
@@ -366,18 +356,6 @@ export class _AudioMotionAnalyzer extends HTMLElement {
         this.mediaStreamSource = null;
       }
     }
-  };
-
-  getTracksFromStream = async function(monitorStream) {
-    await waitUntil(() => this.waitingGetTracksFromStream, this.getTracksFromStreamTimeout);
-    // Until the previous request completes within "this.getTracksFromStreamTimeout," don't send a new one.
-    this.waitingGetTracksFromStream = false;
-    await getTracksFromStream(monitorStream);
-    if (!isCurrentPlaybackSession(monitorStream, this.playbackSessionId)) {
-      console.debug(`RACE [${this.playbackSessionId}] AudioMotion.getTracksFromStream() aborted`);
-      return;
-    }
-    this.waitingGetTracksFromStream = true;
   };
 
   monitorGridRedrawTrigger = function() {

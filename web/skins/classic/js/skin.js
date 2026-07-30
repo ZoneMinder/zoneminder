@@ -3787,25 +3787,29 @@ class ManageEventListener {
     if (options && typeof options === 'object' && options.replaceId != null) {
       if (this.#listeners[options.replaceId]) {
         console.warn(
-          'Replacing existing event listener:',
-          {
-            id: options.replaceId,
-            type,
-            element,
+            'Replacing existing event listener:',
+            {
+              id: options.replaceId,
+              type,
+              element,
             previous: this.#listeners[options.replaceId]
-          }
+            }
         );
       }
 
       this.removeEventListener(options.replaceId);
 
       // Don't pass our internal option to addEventListener()
-      const { replaceId, ...rest } = options;
-      eventOptions = Object.keys(rest).length ? rest : undefined;
+      eventOptions = {...options};
+      delete eventOptions.replaceId;
+
+      if (!Object.keys(eventOptions).length) {
+        eventOptions = undefined;
+      }
     }
 
     if (this.#listeners[id]) {
-      throw Error(`A listener with id ${id} already exists`);
+      throw new Error(`A listener with id ${id} already exists`);
     }
 
     element.addEventListener(type, listener, eventOptions);
@@ -3825,9 +3829,9 @@ class ManageEventListener {
 
     if (listen) {
       listen.element.removeEventListener(
-        listen.type,
-        listen.listener,
-        listen.options
+          listen.type,
+          listen.listener,
+          listen.options
       );
       delete this.#listeners[id];
     }

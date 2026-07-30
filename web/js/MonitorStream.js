@@ -734,8 +734,12 @@ function MonitorStream(monitorData) {
     this.mediaStream = this.audioTrack = this.videoTrack = null;
 
     if (-1 !== this.activePlayer.indexOf('zms')) {
-      // Icon: My current thought is to just tell zms to stop. Don't go to single.
-      if (this.started) this.streamCommand(CMD_STOP);
+      // Stop the active MJPEG stream first. After that, switch the image to mode=single
+      // so the last frame remains visible while the MJPEG connection is fully released.
+      if (this.started || wasStarting) this.streamCommand(CMD_STOP);
+      const src = stream.src;
+      stream.src = "";
+      stream.src = src.replace(/([?&])mode=[^&]*/, '$1mode=single');
     } else if (-1 !== this.activePlayer.indexOf('go2rtc')) {
       if (!(stream.wsState === WebSocket.CLOSED && stream.pcState === WebSocket.CLOSED)) {
         try {

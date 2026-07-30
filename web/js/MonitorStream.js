@@ -526,7 +526,8 @@ function MonitorStream(monitorData) {
           this.writeTextInfoBlock("");
           this.createVolumeSlider();
           getTracksFromStream(this);
-        }
+        },
+        {replaceId: this.handlerEventListener['playStream']}
     );
     this.handlerEventListener['pauseStream'] = manageEventListener.addEventListener(stream, 'pause',
         (e) => {

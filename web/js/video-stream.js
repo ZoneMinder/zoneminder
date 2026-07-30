@@ -119,7 +119,7 @@ class VideoStream extends VideoRTC {
         return super.onclose();
     }
 
-    onerror(ev) {
+    onerrorGo2rtc(ev) {
         console.debug('stream.onerror');
         const liveStream = this.closest('[id ^= "liveStream"]');
         if (liveStream) {
@@ -129,7 +129,7 @@ class VideoStream extends VideoRTC {
                 monitorStream.restart(monitorStream.currentChannelStream);
             }
         }
-        super.onerror(ev);
+        super.onerrorGo2rtc(ev);
     }
 
     onpcvideo(ev) {

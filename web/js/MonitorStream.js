@@ -598,9 +598,9 @@ function MonitorStream(monitorData) {
       console.debug(
           `Start() ignored for monitor ID=${this.id}`,
           {
-              started: this.started,
-              starting: this.starting,
-              activePlayer: this.activePlayer || 'undefined',
+            started: this.started,
+            starting: this.starting,
+            activePlayer: this.activePlayer || 'undefined',
           }
       );
       return;
@@ -752,9 +752,9 @@ function MonitorStream(monitorData) {
       console.warn(
           `Stop() ignored for monitor ID=${this.id}: stream is already stopped.`,
           {
-              started: this.started,
-              starting: wasStarting,
-              activePlayer: this.activePlayer || 'undefined',
+            started: this.started,
+            starting: wasStarting,
+            activePlayer: this.activePlayer || 'undefined',
           }
       );
       return;

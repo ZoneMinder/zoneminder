@@ -3792,7 +3792,7 @@ class ManageEventListener {
               id: options.replaceId,
               type,
               element,
-            previous: this.#listeners[options.replaceId]
+              previous: this.#listeners[options.replaceId]
             }
         );
       }

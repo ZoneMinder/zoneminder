@@ -612,7 +612,8 @@ function MonitorStream(monitorData) {
           // IgorA100 Full implementation will be available a little later.
           if (e.detail.monitorId !== this.id) return;
           console.debug("EVENT tracksReceived:", e.detail);
-        }
+        },
+        {replaceId: this.handlerEventListener['zm:tracksReceived']}
     );
     this.selectPlayer(streamChannel);
   }; // this.start

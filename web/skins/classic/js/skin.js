@@ -3419,6 +3419,7 @@ const dispatchTracksReceived = function(videoFeedStream, {
       monitorId: videoFeedStream?.id ?? null,
       status,
       reason,
+      activePlayer: videoFeedStream?.activePlayer ?? null,
       stream: {
         mediaStream: videoFeedStream?.mediaStream ?? null,
         audioTrack: videoFeedStream?.audioTrack ?? null,
@@ -3750,40 +3751,91 @@ const stringToLocaleString = function(str) {
   return result;
 };
 
-// https://stackoverflow.com/a/69273090
+// Based on the original implementation: https://stackoverflow.com/a/69273090
+// Modified to prevent duplicate event listener registration while remaining
+// fully compatible with the original API and method calls.
+//
+// New feature: use the `replaceId` option to automatically replace
+// an existing event listener instead of registering a duplicate:
+//
+// let id;
+// id = addEventListener(element, type, listener, {
+//   replaceId: id
+// });
 class ManageEventListener {
   #listeners = {}; // # in a JS class signifies private
   #idx = 1;
 
   // add event listener, returns integer ID of new listener
   addEventListener(element, type, listener, options = {}) {
-    this.#privateAddEventListener(element, this.#idx, type, listener, options);
-    return this.#idx++;
+    const id = this.#idx++;
+    this.#privateAddEventListener(element, id, type, listener, options);
+    return id;
   }
 
-  // add event listener with custom ID (avoids need to retrieve return ID since you are providing it yourself)
+  // add event listener with custom ID
   addEventListenerById(element, id, type, listener, options = {}) {
     this.#privateAddEventListener(element, id, type, listener, options);
     return id;
   }
 
   #privateAddEventListener(element, id, type, listener, options) {
-    if (this.#listeners[id]) throw Error(`A listener with id ${id} already exists`);
-    element.addEventListener(type, listener, options);
-    this.#listeners[id] = {element, type, listener, options};
+    let eventOptions = options;
+
+    // Automatically remove previously registered listener
+    // before adding the new one.
+    if (options && typeof options === 'object' && options.replaceId != null) {
+      if (this.#listeners[options.replaceId]) {
+        console.warn(
+          'Replacing existing event listener:',
+          {
+            id: options.replaceId,
+            type,
+            element,
+            previous: this.#listeners[options.replaceId]
+          }
+        );
+      }
+
+      this.removeEventListener(options.replaceId);
+
+      // Don't pass our internal option to addEventListener()
+      const { replaceId, ...rest } = options;
+      eventOptions = Object.keys(rest).length ? rest : undefined;
+    }
+
+    if (this.#listeners[id]) {
+      throw Error(`A listener with id ${id} already exists`);
+    }
+
+    element.addEventListener(type, listener, eventOptions);
+
+    this.#listeners[id] = {
+      element,
+      type,
+      listener,
+      options: eventOptions
+    };
   }
 
-  // remove event listener with given ID, returns ID of removed listener or null (if listener with given ID does not exist)
+  // remove event listener with given ID,
+  // returns ID of removed listener or null
   removeEventListener(id) {
     const listen = this.#listeners[id];
+
     if (listen) {
-      listen.element.removeEventListener(listen.type, listen.listener, listen.options);
+      listen.element.removeEventListener(
+        listen.type,
+        listen.listener,
+        listen.options
+      );
       delete this.#listeners[id];
     }
-    return !!listen ? id : null;
+
+    return listen ? id : null;
   }
 
-  // returns number of events listeners
+  // returns number of event listeners
   length() {
     return Object.keys(this.#listeners).length;
   }

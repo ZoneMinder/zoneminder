@@ -5,7 +5,8 @@ const streaming = [];
 function MonitorStream(monitorData) {
   this.id = monitorData.id;
   this.name = monitorData.name;
-  this.started = false;
+  this.started = false; // Stream is running.
+  this.starting = false; // Stream startup is in progress.
   this.zmsState = null;
   this.muted = (currentView == 'watch') ? (getCookie('zmWatchMuted') !== 'false') : true;
   this.connKey = monitorData.connKey;
@@ -593,6 +594,19 @@ function MonitorStream(monitorData) {
   };
 
   this.start = function(streamChannel = 'default') {
+    if (this.started || this.starting) {
+      console.debug(
+          `Start() ignored for monitor ID=${this.id}`,
+          {
+              started: this.started,
+              starting: this.starting,
+              activePlayer: this.activePlayer || 'undefined',
+          }
+      );
+      return;
+    }
+    this.starting = true;
+
     this.writeTextInfoBlock("Loading...");
     this.go2rtcTranscodeTried = false; // a fresh start re-probes the native stream first
     if (streamChannel === null || streamChannel === '' || currentView == 'montage') streamChannel = 'default';
@@ -716,6 +730,12 @@ function MonitorStream(monitorData) {
   };
 
   this.stop = function() {
+    // Preserve the previous starting state before clearing it.
+    // This allows us to distinguish between stopping an already running
+    // stream and cancelling a stream that was still starting.
+    const wasStarting = this.starting;
+    this.starting = false;
+
     manageEventListener.removeEventListener(this.handlerEventListener['zm:tracksReceived']);
     manageEventListener.removeEventListener(this.handlerEventListener['killStream']);
     manageEventListener.removeEventListener(this.handlerEventListener['playStream']);
@@ -728,8 +748,15 @@ function MonitorStream(monitorData) {
     if (!stream) {
       console.warn(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} it is impossible to stop because it is not found.`);
       return;
-    } else if (!this.started) {
-      console.warn(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} has already stopped.`);
+    } else if (!this.started && !wasStarting) {
+      console.warn(
+          `Stop() ignored for monitor ID=${this.id}: stream is already stopped.`,
+          {
+              started: this.started,
+              starting: wasStarting,
+              activePlayer: this.activePlayer || 'undefined',
+          }
+      );
       return;
     }
     if (-1 !== this.activePlayer.indexOf('zms')) {
@@ -741,12 +768,11 @@ function MonitorStream(monitorData) {
     this.statusCmdTimer = clearInterval(this.statusCmdTimer);
     this.streamCmdTimer = clearInterval(this.streamCmdTimer);
     this.clearNoVideoWatchdog();
-    this.mediaStream = this.audioTrack = this.videoTrack = null;
 
     if (this.audioMotion && this.audioMotion.stop) this.audioMotion.stop();
     if (-1 !== this.activePlayer.indexOf('zms')) {
       // Icon: My current thought is to just tell zms to stop. Don't go to single.
-      if (this.started) this.streamCommand(CMD_STOP);
+      if (this.started || wasStarting) this.streamCommand(CMD_STOP);
     } else if (-1 !== this.activePlayer.indexOf('go2rtc')) {
       if (!(stream.wsState === WebSocket.CLOSED && stream.pcState === WebSocket.CLOSED)) {
         try {
@@ -799,6 +825,8 @@ function MonitorStream(monitorData) {
       });
       stream.srcObject = null;
     }
+    this.mediaStream = this.audioTrack = this.videoTrack = null;
+
     // ZMS MJPEG uses <img>, which doesn't implement pause() or load()
     stream.pause?.();
     if (!isZms && !isMse) stream.removeAttribute('src');
@@ -893,10 +921,9 @@ function MonitorStream(monitorData) {
 
   this.restart = function(channelStream = "default", delay = 200) {
     this.stop();
-    const this_ = this;
-    setTimeout(function() {// During the downtime, the monitor may have already started to work.
-      if (!this_.started) this_.start(channelStream);
-    }, delay);
+    setTimeout(function(self) {// During the downtime, the monitor may have already started to work.
+      if (!self.started && !self.starting) self.start(channelStream);
+    }, delay, this);
   };
 
   this.pause = function() {
@@ -1972,7 +1999,7 @@ function MonitorStream(monitorData) {
 
     this.destroyVolumeSlider();
 
-    this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
+    this.streamCmdTimer = clearInterval(this.streamCmdTimer);
     // Step 1 make sure we are streaming instead of a static image
     if (stream.getAttribute('loading') == 'lazy') {
       stream.setAttribute('loading', 'eager');

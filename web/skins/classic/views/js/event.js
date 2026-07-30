@@ -1387,20 +1387,20 @@ function initPage() {
     //$j('.vjs-progress-control').append('<div id="alarmCues" class="alarmCues"></div>');//add a place for videojs only on first load
     vid.on('ended', function(event) {
       vjsReplay();
-      eventData._playng = false;
+      eventData._playing = false;
     });
     vid.on('play', function(event) {
       streamPlay();
-      if (!eventData._playng) connectAudioMotion(eventData.MonitorId);
-      eventData._playng = true;
+      if (!eventData._playing) getTracksFromStream(getMonitorStream(eventData.MonitorId));
+      eventData._playing = true;
     });
     vid.on('playing', function(event) { // Required for HLS with AUTOPLAY in Firefox, as on.play doesn't work in this case.
-      if (!eventData._playng) connectAudioMotion(eventData.MonitorId);
-      eventData._playng = true;
+      if (!eventData._playing) getTracksFromStream(getMonitorStream(eventData.MonitorId));
+      eventData._playing = true;
     });
     vid.on('pause', function(event) {
       streamPause();
-      eventData._playng = false;
+      eventData._playing = false;
     });
     vid.on('click', function(event) {
       handleClick(event);

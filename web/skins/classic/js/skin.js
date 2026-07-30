@@ -3345,7 +3345,7 @@ async function getTracksFromStream(videoFeedStream) {
   }
   if (!isCurrentPlaybackSession(videoFeedStream, playbackSessionId)) {
     console.debug(`RACE [${playbackSessionId}] getTracksFromStream() aborted`);
-    if (stream) stream.getTracks().forEach((t) => t.stop());
+    stopMediaStreamTracks(stream);
     dispatchTracksReceived(videoFeedStream, {
       status: 'aborted',
       reason: 'playback-session-changed'
@@ -3359,7 +3359,7 @@ async function getTracksFromStream(videoFeedStream) {
     const streamActive = await waitUntil(() => (stream.active || videoFeedStream.started === false), timeoutStreamActive, stream.active); // We are waiting for the stream to become active.
     if (!isCurrentPlaybackSession(videoFeedStream, playbackSessionId)) {
       console.debug(`RACE [${playbackSessionId}] waitUntil() aborted`);
-      stream.getTracks().forEach((t) => t.stop());
+      stopMediaStreamTracks(stream);
       dispatchTracksReceived(videoFeedStream, {
         status: 'aborted',
         reason: 'playback-session-changed'
@@ -3370,6 +3370,11 @@ async function getTracksFromStream(videoFeedStream) {
       console.debug(`Stream for monitor with ID=${mid} became active within ${(streamActive/1000).toFixed(2)} seconds.`);
     } else {
       console.warn(`Within ${((Date.now() - startTime)/1000).toFixed(2)} seconds, the stream for monitor with ID=${mid} did not become active.`);
+
+      // The captured MediaStream never became active.
+      // Stop all tracks to release browser resources before returning.
+      stopMediaStreamTracks(stream);
+
       dispatchTracksReceived(videoFeedStream, {
         status: 'failed',
         reason: 'stream-inactive'
@@ -3405,6 +3410,15 @@ async function getTracksFromStream(videoFeedStream) {
   }
 
   connectAudioMotion(mid);
+
+  if (videoFeedStream.started === false) {
+    console.debug(`RACE [${playbackSessionId}] activePlayer: "${videoFeedStream.activePlayer || "not defined"}" skip tracksReceived because stream for monitor ID=${mid} stopped`);
+    return;
+  }
+
+  dispatchTracksReceived(videoFeedStream, {
+    status: 'success'
+  });
 }
 
 /**
@@ -3416,7 +3430,7 @@ const dispatchTracksReceived = function(videoFeedStream, {
 } = {}) {
   document.dispatchEvent(new CustomEvent('zm:tracksReceived', {
     detail: {
-      monitorId: videoFeedStream?.id ?? null,
+      monitorId: (typeof eventData !== 'undefined') ? eventData.MonitorId : videoFeedStream?.id,
       status,
       reason,
       activePlayer: videoFeedStream?.activePlayer ?? null,
@@ -3428,6 +3442,16 @@ const dispatchTracksReceived = function(videoFeedStream, {
     }
   }));
 };
+
+/**
+ * Stop all tracks of a MediaStream and release its resources.
+ *
+ * @param {MediaStream|null|undefined} stream
+ */
+function stopMediaStreamTracks(stream) {
+  if (!(stream instanceof MediaStream)) return;
+  stream.getTracks().forEach((track) => track.stop());
+}
 
 const waitUntil = (condition, timeout = 0) => {
   const startTime = Date.now();

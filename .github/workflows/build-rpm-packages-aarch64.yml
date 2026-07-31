@@ -29,6 +29,9 @@ jobs:
           - distro: "rockylinux:8"
             releasever: "8"
             family: "el"
+          - distro: "fedora:44"
+            releasever: "44"
+            family: "fedora"
           - distro: "fedora:43"
             releasever: "43"
             family: "fedora"
@@ -118,7 +121,7 @@ jobs:
       - name: Install build dependencies
         run: |
           set -eux
-          dnf -y builddep distros/redhat/zoneminder.spec
+          dnf -y builddep --allowerasing distros/redhat/zoneminder.spec
 
       - name: Determine version and prepare sources
         id: version

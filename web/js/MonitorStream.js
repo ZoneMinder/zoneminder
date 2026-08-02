@@ -1644,7 +1644,11 @@ function MonitorStream(monitorData) {
         this.ajaxQueue = jQuery.ajaxQueue({
           url: this.url + (auth_relay?'?'+auth_relay:''),
           xhrFields: {withCredentials: true},
-          data: streamCmdParms,
+          // Snapshot: ajaxQueue defers $.ajax (and therefore data serialization)
+          // until earlier queued requests finish. Callers that pass this.streamCmdParms
+          // directly would otherwise have their command clobbered by the
+          // streamCmdQuery timer setting command=CMD_QUERY before the request fires.
+          data: Object.assign({}, streamCmdParms),
           dataType: 'json'
         })
             .done(this.getStreamCmdResponse.bind(this))

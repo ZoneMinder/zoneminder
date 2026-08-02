@@ -413,9 +413,22 @@ void StreamBase::closeComms() {
       close(sd);
       sd = -1;
     }
-    // Can't delete any files because another zms might have come along and opened them and is waiting on the lock.
+    // Remove our command socket while we still hold the lock. Another zms with
+    // the same connkey blocks on flock(LOCK_EX) in openComms() before it
+    // unlinks and binds, so it cannot have created its own socket yet and we
+    // cannot be deleting a file that belongs to it.
+    //
+    // This has to happen: web/ajax/stream.php uses file_exists() on this path
+    // to decide whether zms is listening. A socket left behind by an exited zms
+    // makes that check succeed, so the sendto() fails with ECONNREFUSED instead
+    // of waiting for the new process to bind, and the command is lost.
+    if ( loc_sock_path[0] && (unlink(loc_sock_path) < 0) && (errno != ENOENT) ) {
+      Warning("Failed to unlink '%s': %s", loc_sock_path, strerror(errno));
+    }
+    // Don't unlink sock_path_lock: another zms may already be waiting on it.
     if ( lock_fd >= 0 ) {
       close(lock_fd); //close it rather than unlock it in case it got deleted.
+      lock_fd = -1;
     }
   }
 } // end void StreamBase::closeComms

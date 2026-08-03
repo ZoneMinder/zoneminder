@@ -727,7 +727,8 @@ function MonitorStream(monitorData) {
     const wasStarting = this.starting;
     this.starting = false;
 
-    manageEventListener.removeEventListener(this.handlerEventListener['zm:tracksReceived']);    manageEventListener.removeEventListener(this.handlerEventListener['killStream']);
+    manageEventListener.removeEventListener(this.handlerEventListener['zm:tracksReceived']);
+    manageEventListener.removeEventListener(this.handlerEventListener['killStream']);
     manageEventListener.removeEventListener(this.handlerEventListener['playStream']);
     if (manageEventListener.removeEventListener(this.handlerEventListener['volumechange']) == this.handlerEventListener['volumechange']) this.handlerEventListener['volumechange'] = null;
     manageEventListener.removeEventListener(this.handlerEventListener['pauseStream']);

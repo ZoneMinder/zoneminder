@@ -3368,7 +3368,7 @@ async function getTracksFromStream(videoFeedStream) {
   if (stream) {
     const timeoutStreamActive = 20000;
     const startTime = Date.now();
-    const streamActive = await waitUntil(() => (stream.active || videoFeedStream.started === false), timeoutStreamActive, stream.active); // We are waiting for the stream to become active.
+    const streamActive = await waitUntil(() => (stream.active || videoFeedStream.started === false), timeoutStreamActive); // We are waiting for the stream to become active.
     if (!isCurrentPlaybackSession(videoFeedStream, playbackSessionId)) {
       console.debug(`RACE [${playbackSessionId}] waitUntil() aborted`);
       stopMediaStreamTracks(stream);

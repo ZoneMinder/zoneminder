@@ -922,7 +922,7 @@ function MonitorStream(monitorData) {
     const countErrors = this.getCountStreamErrors(this.player);
     if (countErrors < this.limitCountErrors) {
       setTimeout(function(self) {// During the downtime, the monitor may have already started to work.
-        if ((!self.started && !self.starting) self.start(channelStream);
+        if (!self.started && !self.starting) self.start(channelStream);
       }, delay, this);
     } else {
       if (typeof streamCmdStop === 'function') {

@@ -697,7 +697,7 @@ function MonitorStream(monitorData) {
     }
   };
 
-  this.stop = function() {
+  this.stop = function(options = {}) {
     manageEventListener.removeEventListener(this.handlerEventListener['killStream']);
     manageEventListener.removeEventListener(this.handlerEventListener['playStream']);
     if (manageEventListener.removeEventListener(this.handlerEventListener['volumechange']) == this.handlerEventListener['volumechange']) this.handlerEventListener['volumechange'] = null;
@@ -727,7 +727,7 @@ function MonitorStream(monitorData) {
 
     if (-1 !== this.activePlayer.indexOf('zms')) {
       // Icon: My current thought is to just tell zms to stop. Don't go to single.
-      if (this.started) this.streamCommand(CMD_STOP);
+      if (this.started && !options.skipStreamCommand) this.streamCommand(CMD_STOP);
     } else if (-1 !== this.activePlayer.indexOf('go2rtc')) {
       if (!(stream.wsState === WebSocket.CLOSED && stream.pcState === WebSocket.CLOSED)) {
         try {
@@ -845,14 +845,20 @@ function MonitorStream(monitorData) {
     stream.onload = null;
 
     // this.stop tells zms to stop streaming, but the process remains. We need to turn the stream into an image.
-    if (this.started && (-1 !== this.activePlayer.indexOf('zms')) && this.connKey) {
+    const quit = this.started && (-1 !== this.activePlayer.indexOf('zms')) && this.connKey;
+    if (quit) {
       // Make zms exit, sometimes zms doesn't receive SIGPIPE, so try to send QUIT
       this.streamCommand(CMD_QUIT);
-      this.streamCmdParms.connkey = this.statusCmdParms.connkey = this.connKey = null;
-      this.started = false;
     }
-    // Kill and stop share a lot of the same code... so just call stop
-    this.stop();
+    // Kill and stop share a lot of the same code... so just call stop.
+    // Don't clear started/connKey before this: stop() bails out early when
+    // !started, which would leave statusCmdTimer and streamCmdTimer running and
+    // activePlayer set. Tell it to skip CMD_STOP instead, because zms is already
+    // on its way out and the command would just error against a dead socket.
+    this.stop({skipStreamCommand: quit});
+    if (quit) {
+      this.streamCmdParms.connkey = this.statusCmdParms.connkey = this.connKey = null;
+    }
   };
 
   this.restart = function(channelStream = "default", delay = 200) {

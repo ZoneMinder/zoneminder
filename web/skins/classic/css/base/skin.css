@@ -1120,6 +1120,7 @@ a.flip {
   margin: 4px;
   display: flex;
   align-items: center;
+  order: 2;
 }
 
 .tag-text {
@@ -1145,6 +1146,7 @@ a.flip {
   vertical-align: center;
   display: inline-block;
   flex-grow: 2;
+  order: 3;
 }
 
 .tag-dropdown-content {

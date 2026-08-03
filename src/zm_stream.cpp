@@ -413,16 +413,29 @@ void StreamBase::closeComms() {
       close(sd);
       sd = -1;
     }
-    // Remove our command socket while we still hold the lock. Another zms with
-    // the same connkey blocks on flock(LOCK_EX) in openComms() before it
-    // unlinks and binds, so it cannot have created its own socket yet and we
-    // cannot be deleting a file that belongs to it.
+    // Remove our command socket, but only while we still hold the lock, and only
+    // if we actually got the lock.
     //
-    // This has to happen: web/ajax/stream.php uses file_exists() on this path
-    // to decide whether zms is listening. A socket left behind by an exited zms
-    // makes that check succeed, so the sendto() fails with ECONNREFUSED instead
-    // of waiting for the new process to bind, and the command is lost.
-    if ( loc_sock_path[0] && (unlink(loc_sock_path) < 0) && (errno != ENOENT) ) {
+    // Note this is zms-<connkey>s.sock, not the .lock file. A second zms sharing
+    // this connkey is blocked in flock(LOCK_EX) on the .lock file, and the first
+    // thing it does after winning that lock is unlink this very path itself
+    // ("Unlink before bind" in openComms()). It never reads our socket file, so
+    // removing it here only does early what our successor would do anyway.
+    //
+    // Ordering matters: if we unlinked after releasing the lock we could delete
+    // a socket the successor had already bound, leaving it unreachable.
+    //
+    // The lock_fd guard matters because openComms() carries on and binds even
+    // when it fails to take the lock, so without it a lockless zms could delete
+    // a socket belonging to the zms that does hold the lock. Leaking the file in
+    // that case is no worse than the behaviour before this check existed.
+    //
+    // This is worth doing because web/ajax/stream.php uses file_exists() on this
+    // path to decide whether zms is listening. A socket left behind by an exited
+    // zms makes that check succeed, so the sendto() fails with ECONNREFUSED
+    // instead of waiting for the new process to bind, and the command is lost.
+    if ( (lock_fd >= 0) && loc_sock_path[0]
+         && (unlink(loc_sock_path) < 0) && (errno != ENOENT) ) {
       Warning("Failed to unlink '%s': %s", loc_sock_path, strerror(errno));
     }
     // Don't unlink sock_path_lock: another zms may already be waiting on it.

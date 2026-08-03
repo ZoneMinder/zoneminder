@@ -3441,8 +3441,11 @@ async function getTracksFromStream(videoFeedStream) {
     // Switch to a different player only when mode=Auto
     videoFeedStream.streamErrorRegistration();
     videoFeedStream.restart(videoFeedStream.currentChannelStream);
-  } else {
-    connectAudioMotion(mid);
+    dispatchTracksReceived(videoFeedStream, {
+      status: 'aborted',
+      reason: 'playback-videoTrack-missing'
+    });
+    return;
   }
 
   if (videoFeedStream.started === false) {

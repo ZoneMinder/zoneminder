@@ -1361,6 +1361,10 @@ function onStatsResize(vidWidth) {
 }
 
 function initPage() {
+  document.addEventListener('zm:tracksReceived', (e) => {
+    if (e.detail.stream.audioTrack) connectAudioMotion(e.detail.monitorId);
+  });
+
   getAvailableTags();
   getSelectedTags();
 

@@ -1448,9 +1448,13 @@ function controlWhatDisplay(oldId, newId) {
   }
   if (noAudioMotion) {
     destroyAudioMotion(oldId);
-    document.querySelector('.stream-info-status-track').innerText = '';
+    if (monitorStream && monitorStream.updateStreamInfoStatusTrack) monitorStream.updateStreamInfoStatusTrack('');
   } else {
-    connectAudioMotion(newId);
+    if (monitorStream.activePlayer.indexOf("zms") === -1) {
+      connectAudioMotion(newId);
+    } else {
+      monitorStream.updateStreamInfoStatusTrack("");
+    }
   }
   if (imageFeed) imageFeed.setAttribute("data-not-display-video", noVideo);
 }

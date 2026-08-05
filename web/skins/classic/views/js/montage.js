@@ -915,6 +915,16 @@ function panZoomOut(el) {
   zmPanZoom.zoomOut(el);
 }
 
+function toggleZones(button) {
+  // Zone overlays are always in the DOM; #monitors.hide-zones controls them.
+  const hidden = document.getElementById('monitors').classList.toggle('hide-zones');
+  setCookie('zmMontageShowZones', hidden ? '0' : '1');
+  button.setAttribute('title', hidden ? showZonesString : hideZonesString);
+  button.classList.toggle('btn-normal', !hidden);
+  button.classList.toggle('btn-secondary', hidden);
+  $j(button).find('.material-icons').text(hidden ? 'layers' : 'layers_clear');
+}
+
 function changeStreamQuality() {
   const streamQuality = $j('#streamQuality').val();
   setCookie('zmStreamQuality', streamQuality);

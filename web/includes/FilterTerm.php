@@ -56,7 +56,16 @@ class FilterTerm {
         }
       }
       if ( isset($term['tablename']) ) {
-        $this->tablename = $term['tablename'];
+        # tablename is concatenated raw into SQL by sql_attr(), so it must be
+        # restricted to the known table aliases used in the filter queries.
+        # Anything else is rejected to prevent SQL injection.
+        $valid_tablenames = array('E', 'M', 'S', 'F', 'T', 'ET', 'Snapshots');
+        if ( in_array($term['tablename'], $valid_tablenames, true) ) {
+          $this->tablename = $term['tablename'];
+        } else {
+          Error("Invalid tablename in filter term: {$term['tablename']}, possible hacking attempt. Using 'E'.");
+          $this->tablename = 'E';
+        }
       } else {
         $this->tablename = 'E';
       }
@@ -295,6 +304,13 @@ class FilterTerm {
     case 'CurrentWeekday':
       return 'weekday(NOW()';
     case 'DateTime':
+      // DateTime is an "event overlaps this instant/window" idiom, not a plain
+      // StartDateTime comparison. A lower bound (>=/>) is satisfied by an event
+      // still running at that time, so compare against EndDateTime (NULL end =
+      // ongoing = never ends). An upper bound (<=/</=) is satisfied by an event
+      // that had already started, so compare against StartDateTime. refs #4976
+      if ($this->op == '>=' or $this->op == '>')
+        return "COALESCE(E.EndDateTime, '9999-12-31 23:59:59')";
       return 'E.StartDateTime';
     case 'Date':
      return 'to_days(E.StartDateTime)';

@@ -308,7 +308,9 @@ if ($action == 'save') {
         }
         ZM\AuditAction('create', 'monitor', $mid, 'Name: '.($newMonitor['Name'] ?? ''));
       } else {
-        ZM\Error('Error saving new Monitor.');
+        $dbError = $monitor->get_last_error();
+        $error_message .= 'Error saving new Monitor: '.($dbError ? $dbError : 'unknown database error').'<br/>';
+        ZM\Error('Error saving new Monitor: '.$dbError);
         return;
       }
     }

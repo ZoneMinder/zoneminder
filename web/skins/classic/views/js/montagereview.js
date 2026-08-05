@@ -8,6 +8,7 @@ var wait_for_events_interval = null;
 var eventStreams = {}; // EventStream instances keyed by monitorId
 var eventStreamsActive = false; // True when using EventStream mode
 var isScrubbing = false; // True during mouse drag on timeline
+var lastTimerFireMs = 0; // Epoch ms of the previous timerFire, to advance the clock by real elapsed time
 var streamDriftThreshold = 2; // Seconds of drift before we seek to correct
 var lastDriftCorrection = {}; // Epoch ms of last drift correction per monitorId
 var driftCorrectionCooldown = 3000; // ms to wait between drift corrections
@@ -356,13 +357,7 @@ function getImageSource(monId, time) {
       return;
     }
 
-    let scale = parseInt(100 * monitorCanvasObj[monId].width / monitorWidth[monId]);
-    if (scale > 100) {
-      scale = 100;
-    } else {
-      scale = 10 * parseInt(scale/10); // Round to nearest 10
-      // May need to limit how small we can go to maintain fidelity
-    }
+    const scale = streamScaleForMonitor(monId);
 
     // Storage[0] is guaranteed to exist as we make sure it is there in montagereview.js.php
     const storage = Storage[e.StorageId] ? Storage[e.StorageId] : Storage[0];
@@ -472,15 +467,24 @@ function timerFire() {
     timerInterval = currentDisplayInterval;
   }
 
+  // Advance by the time that actually elapsed rather than by the nominal
+  // interval. setInterval fires late under load, so accumulating the nominal
+  // value lets our clock fall behind real time. The zms streams play at real
+  // time, so that gap shows up as drift and gets corrected by a seek, which
+  // is visible as a jump. lastTimerFireMs is reset whenever playback starts
+  // or the speed changes, so a resume doesn't replay the paused time.
+  const nowMs = Date.now();
+  const playSecs = lastTimerFireMs ? currentSpeed * (nowMs - lastTimerFireMs) / 1000 : 0;
+  lastTimerFireMs = nowMs;
+
   if (liveMode) {
     //outputUpdate(currentTimeSecs); // In live mode we basically do nothing but redisplay
-  } else if (currentTimeSecs + playSecsPerInterval >= maxTimeSecs) {
+  } else if (currentTimeSecs + playSecs >= maxTimeSecs) {
     // beyond the end just stop
     if (speedIndex) setSpeed(0);
     //outputUpdate(currentTimeSecs);
-  } else if (playSecsPerInterval || (currentTimeSecs==minTimeSecs)) {
-    currentTimeSecs = playSecsPerInterval + currentTimeSecs;
-    //outputUpdate(playSecsPerInterval + currentTimeSecs);
+  } else if (playSecs || (currentTimeSecs==minTimeSecs)) {
+    currentTimeSecs = playSecs + currentTimeSecs;
   } else {
     // console.log("Not updating");
   }
@@ -762,6 +766,7 @@ function redrawScreen() {
     fit.text('fit');
     setScale(currentScale);
   }
+  updateStreamScales(); // fit mode resizes canvases via maxfit2, bypassing setScale
   timerFire(); // force a fire in case it's not timing. timerFirst will call outputUpdate
 } // end function redrawScreen
 
@@ -895,32 +900,8 @@ function mmove(event) {
   }
 }
 
-function secs2inputstr(s) {
-  if ( ! parseInt(s) ) {
-    console.warn("Invalid value for " + s + " seconds");
-    return '';
-  }
-
-  var m = moment(s*1000);
-  if ( ! m ) {
-    console.warn("No valid date for " + s + " seconds");
-    return '';
-  }
-  return m.format("YYYY-MM-DDTHH:mm:ss");
-}
-
-function secs2dbstr(s) {
-  if (!parseInt(s)) {
-    console.warn("Invalid value for " + s + " seconds");
-    return '';
-  }
-  var m = moment(s*1000);
-  if ( ! m ) {
-    console.warn("No valid date for " + s + " milliseconds");
-    return '';
-  }
-  return m.format("YYYY-MM-DD HH:mm:ss");
-}
+// secs2inputstr(), secs2dbstr(), inputstr2dt() and serverTimeZone() live in
+// skins/classic/js/skin.js so they can be reused outside montagereview.
 
 function setFit(value) {
   fitMode = value;
@@ -941,6 +922,31 @@ function setScale(newscale) {
     monitorCanvasObj[monitorPtr[i]].height = monitorHeight[monitorPtr[i]]*monitorNormalizeScale[monitorPtr[i]]*monitorZoomScale[monitorPtr[i]]*newscale;
   }
   currentScale = newscale;
+  updateStreamScales();
+}
+
+// Percentage of the monitor's native size needed to fill its canvas. Rounded
+// UP to the next 10 so the streamed image is at least the canvas size:
+// rounding down makes zms send fewer pixels than the canvas shows, and the
+// browser then upscales the image, blurring it. Streaming much larger than the
+// canvas would instead waste bandwidth and decode time on pixels thrown away.
+function streamScaleForMonitor(monId) {
+  const canvasObj = monitorCanvasObj[monId];
+  if (!canvasObj || !monitorWidth[monId]) return 100;
+  const scale = 10 * Math.ceil(100 * canvasObj.width / monitorWidth[monId] / 10);
+  return Math.min(100, Math.max(10, scale));
+}
+
+// Canvas sizes change with the scale slider, fit mode and zoom, and the canvas
+// starts out at the monitor's native size, so the scale a stream was created
+// with goes stale. Push the current size to the streams.
+function updateStreamScales() {
+  for (let i = 0; i < numMonitors; i++) {
+    const monId = monitorPtr[i];
+    if (!eventStreams[monId]) continue;
+    const scale = streamScaleForMonitor(monId);
+    if (scale != eventStreams[monId].scale) eventStreams[monId].setScale(scale);
+  }
 }
 
 function showSpeed(val) {
@@ -970,7 +976,7 @@ function setSpeed(speed_index) {
   }
   currentSpeed = parseFloat(speeds[speed_index]);
   speedIndex = speed_index;
-  playSecsPerInterval = currentSpeed * currentDisplayInterval / 1000;
+  lastTimerFireMs = Date.now(); // don't count time spent at the previous speed at the new one
   setCookie('speed', currentSpeed);
   showSpeed(speed_index);
 
@@ -1034,10 +1040,9 @@ function setLive(value) {
 // The section below are to reload this program with new parameters
 
 function clicknav(minSecs, maxSecs, live) {// we use the current time if we can
-  var date = new Date();
-  var now = Math.floor(date.getTime() / 1000);
-  var tz_difference = (-1 * date.getTimezoneOffset() * 60) - server_utc_offset;
-  now -= tz_difference;
+  // minSecs/maxSecs are epoch seconds; secs2inputstr renders them in the server
+  // timezone, so compare against the real epoch now (no timezone shift). refs #4977
+  var now = Math.floor(Date.now() / 1000);
 
   var minStr = "";
   var maxStr = "";
@@ -1047,11 +1052,11 @@ function clicknav(minSecs, maxSecs, live) {// we use the current time if we can
       maxSecs = parseInt(now);
     }
     maxStr = "&maxTime=" + secs2inputstr(maxSecs);
-    $j('#maxTime').val(secs2inputstr(maxSecs));
-  }
-  if ( minSecs > 0 ) {
-    $j('#minTime').val(secs2inputstr(minSecs));
     minStr = "&minTime=" + secs2inputstr(minSecs);
+    // Persist the range to the shared date cookies so a pan/zoom here carries to
+    // the events list (minTime/maxTime in the URL are deprecated). refs #4976
+    setCookie('zmFilter_StartDateTime', secs2dbstr(minSecs));
+    setCookie('zmFilter_EndDateTime', secs2dbstr(maxSecs));
   }
   if ( maxSecs == 0 && minSecs == 0 ) {
     minStr = "&minTime=1950-01-01+12:00:00";
@@ -1080,23 +1085,18 @@ function clicknav(minSecs, maxSecs, live) {// we use the current time if we can
   window.location = uri;
 } // end function clicknav
 
+// now is epoch seconds; clicknav/secs2inputstr render it in the server timezone,
+// so no browser-vs-server timezone shift is needed here. refs #4977
 function click_lastHour() {
-  var date = new Date();
-  var now = Math.floor( date.getTime() / 1000 );
-  now -= -1 * date.getTimezoneOffset() * 60;
-  now += server_utc_offset;
+  var now = Math.floor( Date.now() / 1000 );
   clicknav(now - 3599, now, 0);
 }
 function click_lastEight() {
-  var date = new Date();
-  var now = Math.floor( date.getTime() / 1000 );
-  now -= -1 * date.getTimezoneOffset() * 60 - server_utc_offset;
+  var now = Math.floor( Date.now() / 1000 );
   clicknav(now - 3600*8 + 1, now, 0);
 }
 function click_last24() {
-  var date = new Date();
-  var now = Math.floor( date.getTime() / 1000 );
-  now -= -1 * date.getTimezoneOffset() * 60 - server_utc_offset;
+  var now = Math.floor( Date.now() / 1000 );
   clicknav(now - 3600*24 + 1, now, 0);
 }
 function click_zoomin() {
@@ -1211,8 +1211,8 @@ function changeFilters(e) {
   // Also, if StartDateTime <= or >= are changed, limit max duration to 24h
 
   if (minStartDateTimeElement && maxStartDateTimeElement) {
-    let minStartDateTime = DateTime.fromFormat(minStartDateTimeElement.value, 'yyyy-MM-dd HH:mm:ss', {zone: ZM_TIMEZONE});
-    let maxStartDateTime = DateTime.fromFormat(maxStartDateTimeElement.value, 'yyyy-MM-dd HH:mm:ss', {zone: ZM_TIMEZONE});
+    let minStartDateTime = inputstr2dt(minStartDateTimeElement.value);
+    let maxStartDateTime = inputstr2dt(maxStartDateTimeElement.value);
 
     // If either input is empty or malformed, bail out rather than letting
     // NaN propagate into minTimeSecs/rangeTimeSecs and crash getImageData
@@ -1326,7 +1326,9 @@ function loadEventData(e) {
         }
         data[name] = val;
         const cookie = el.attr('data-cookie');
-        if (cookie) setCookie(cookie, val, 3600);
+        // Persist (no expiry) so the shared filter/date range does not silently
+        // expire after an hour and desync from the other views. refs #4976
+        if (cookie) setCookie(cookie, val);
       } // end if name
     } // end if val
   });
@@ -1346,6 +1348,10 @@ function loadEventData(e) {
       const event_list = {};
       for (let i=0, len = data.events.length; i<len; i++) {
         const ev = data.events[i].Event;
+        // Skip empty events. A capture crash can leave events with no frames
+        // and no end time; there is nothing to review and, reported with an
+        // open end, they overlap real events and confuse event selection.
+        if (!parseInt(ev.Frames)) continue;
         ev.Id = parseInt(ev.Id);
         ev.MonitorId = parseInt(ev.MonitorId);
         event_list[ev.Id] = events[ev.Id] = ev;
@@ -1477,19 +1483,18 @@ function initPage() {
       const monId = monitorPtr[i];
       if (!monId || !monitorCanvasObj[monId]) continue;
       const server = Servers[monitorServerId[monId]] || Servers[0];
-      let scale = parseInt(100 * monitorCanvasObj[monId].width / monitorWidth[monId]);
-      scale = Math.max(10, 10 * parseInt(scale / 10));
-      console.log(monId, monitorData);
       const monitor = monitorData[i];
 
       eventStreams[monId] = new EventStream({
         monitorId: monId,
         monitorWidth: monitorWidth[monId],
         monitorHeight: monitorHeight[monId],
-        url: thisUrl,
+        url: monitor?monitor.Url:thisUrl,
         url_to_zms: monitor?monitor.UrlToZMS:server.PathToZMS,
         canvas: monitorCanvasObj[monId],
-        scale: scale
+        // Canvases are still at their native size here; redrawScreen() sizes
+        // them and updateStreamScales() corrects this before the first start().
+        scale: streamScaleForMonitor(monId)
       });
 
       // Draw zoom +/- icons after each frame
@@ -1713,7 +1718,9 @@ function loadFrames(zm_events) {
 
 function getMinMaxStartDateTimeElements() {
   const regexp = /^filter\[Query\]\[terms\]\[(\d+)\]\[attr\]$/;
-  $j('#fieldsTable input[value="StartDateTime"]').each(function(index) {
+  // montagereview renders DateTime (overlap) terms; the events list renders
+  // StartDateTime terms. Bind either so the timeline range tracks the terms. refs #4976
+  $j('#fieldsTable input[value="StartDateTime"], #fieldsTable input[value="DateTime"]').each(function(index) {
     const matches = this.name.match(regexp);
     if (matches && matches.length) {
       const val = this.form.elements['filter[Query][terms]['+matches[1]+'][val]'];

@@ -140,7 +140,7 @@ echo getNavBarHTML();
         <button type="button" id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
       </div>
       <div class="w-100 pt-2">
-        <h2><?php echo translate('Monitor').' '.$monitor->Name().' - '.translate('Zone').' '.$zone['Name'] ?></h2>
+        <h2><?php echo translate('Monitor').' '.validHtmlStr($monitor->Name()).' - '.translate('Zone').' '.validHtmlStr($zone['Name']) ?></h2>
       </div>
     </div>
     <div id="content">

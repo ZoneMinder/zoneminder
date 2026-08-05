@@ -88,6 +88,17 @@ function EventStream(config) {
    */
   this.start = function(eventId, options) {
     options = options || {};
+
+    // An explicit start supersedes any pending recovery.
+    if (this.recoveryTimer) {
+      clearTimeout(this.recoveryTimer);
+      this.recoveryTimer = null;
+    }
+
+    // Tear down any existing connection first. Re-using a live <img> would
+    // abort its MJPEG stream behind zms's back and orphan the zms process.
+    if (this.started || this.img) this.teardown(this.started);
+
     this.currentEventId = eventId;
     this.rate = (options.rate !== undefined) ? options.rate : 100;
     this.paused = false;
@@ -173,6 +184,37 @@ function EventStream(config) {
   };
 
   // -------------------------------------------------------------------------
+  // teardown(quit) — Drop the connection, timers and draw loop.
+  // Pass quit=false when zms is already gone, so we don't ask a dead process
+  // to exit. Detaching the img handlers before clearing src keeps our own
+  // teardown from firing onerror and looking like a stream failure.
+  // -------------------------------------------------------------------------
+
+  this.teardown = function(quit) {
+    if (quit && this.started) this.streamCommand(CMD_QUIT);
+    this.streamCmdTimer = clearInterval(this.streamCmdTimer);
+
+    if (this.rafId) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = null;
+    }
+
+    if (this.img) {
+      this.img.onload = null;
+      this.img.onerror = null;
+      this.img.src = '';
+      if (this.img.parentNode) {
+        this.img.parentNode.removeChild(this.img);
+      }
+      this.img = null;
+    }
+
+    this.started = false;
+    this.connKey = null;
+    this.streamCmdParms.connkey = null;
+  };
+
+  // -------------------------------------------------------------------------
   // stop() — Stop the current stream
   // -------------------------------------------------------------------------
 
@@ -184,29 +226,9 @@ function EventStream(config) {
 
     if (!this.started) return;
 
-    this.streamCommand(CMD_QUIT);
-    this.streamCmdTimer = clearInterval(this.streamCmdTimer);
-
-    if (this.rafId) {
-      cancelAnimationFrame(this.rafId);
-      this.rafId = null;
-    }
-
-    if (this.img) {
-      this.img.onload = null;
-      this.img.onerror = null;
-      this.img.src = '';
-      if (this.img.parentNode) {
-        this.img.parentNode.removeChild(this.img);
-      }
-      this.img = null;
-    }
-
-    this.started = false;
+    this.teardown(true);
     this.paused = false;
     this.stopped = false;
-    this.connKey = null;
-    this.streamCmdParms.connkey = null;
     this.consecutiveErrors = 0;
     this.recoveryDelay = 1000;
   };
@@ -216,7 +238,23 @@ function EventStream(config) {
   // -------------------------------------------------------------------------
 
   this.recover = function() {
+    // A recovery is already scheduled. Without this, every error arriving
+    // while we wait to retry (the status poll keeps firing, and each reply
+    // is another Error) would queue another restart and inflate the attempt
+    // count until we give up on a stream that was never retried once.
+    if (this.recoveryTimer) return;
+
     this.consecutiveErrors++;
+
+    var self = this;
+    var eventId = this.currentEventId;
+    var opts = Object.assign({}, this.lastOptions || {});
+    opts.rate = this.rate;
+
+    // Drop the dead connection before deciding whether to retry, so that
+    // giving up leaves nothing running. zms is already gone, so no CMD_QUIT.
+    this.teardown(false);
+    this.stopped = false;
 
     if (this.consecutiveErrors > this.maxRecoveryAttempts) {
       console.error('EventStream: max recovery attempts reached for monitor ' +
@@ -228,34 +266,14 @@ function EventStream(config) {
     console.warn('EventStream: recovery attempt ' + this.consecutiveErrors +
       '/' + this.maxRecoveryAttempts + ' for monitor ' + this.monitorId);
 
-    var self = this;
-    var eventId = this.currentEventId;
-    var opts = Object.assign({}, this.lastOptions || {});
-    opts.rate = this.rate;
-
-    // Clean up old state without sending CMD_QUIT (zms is already dead)
-    this.streamCmdTimer = clearInterval(this.streamCmdTimer);
-    if (this.rafId) {
-      cancelAnimationFrame(this.rafId);
-      this.rafId = null;
-    }
-    if (this.img) {
-      this.img.onload = null;
-      this.img.onerror = null;
-      this.img.src = '';
-      if (this.img.parentNode) {
-        this.img.parentNode.removeChild(this.img);
-      }
-      this.img = null;
-    }
-    this.started = false;
-    this.connKey = null;
-    this.stopped = false;
-    this.streamCmdParms.connkey = null;
-
     // Delay before restarting — exponential backoff
     this.recoveryTimer = setTimeout(function() {
       self.recoveryTimer = null;
+      // teardown() cleared started, so a consumer polling for a live stream
+      // may have restarted us while we waited. Restarting again here would
+      // abort that healthy stream and orphan its zms, which fails the img
+      // and lands us straight back in recover().
+      if (self.started) return;
       self.start(eventId, opts);
     }, this.recoveryDelay);
 
@@ -340,37 +358,15 @@ function EventStream(config) {
       this.recoveryTimer = null;
     }
 
-    if (this.started) {
-      // Tell current zms to exit
-      this.streamCommand(CMD_QUIT);
-      this.streamCmdTimer = clearInterval(this.streamCmdTimer);
-      if (this.rafId) {
-        cancelAnimationFrame(this.rafId);
-        this.rafId = null;
-      }
-      if (this.img) {
-        this.img.onload = null;
-        this.img.onerror = null;
-        this.img.src = '';
-        if (this.img.parentNode) {
-          this.img.parentNode.removeChild(this.img);
-        }
-        this.img = null;
-      }
-      this.started = false;
-      this.connKey = null;
-      this.streamCmdParms.connkey = null;
-    }
-
     // Reset recovery state for fresh event
     this.consecutiveErrors = 0;
     this.recoveryDelay = 1000;
 
-    // Brief delay to let the old zms process clean up, then start fresh
-    var self = this;
-    setTimeout(function() {
-      self.start(eventId, options);
-    }, 200);
+    // start() tears the old stream down (sending CMD_QUIT) and brings the new
+    // event up in one step. Doing the teardown here instead and starting from
+    // a timer would leave started=false in between, and a consumer polling for
+    // a live stream would start its own before the timer fired.
+    this.start(eventId, options);
   };
 
   // -------------------------------------------------------------------------

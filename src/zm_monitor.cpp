@@ -300,7 +300,7 @@ Monitor::Monitor() :
   shared_timestamps(nullptr),
   shared_images(nullptr),
   image_pixelformats(nullptr),
-  alarm_image_pixelformat(nullptr),
+  analysis_image_pixelformats(nullptr),
   shm_slot_size(0),
   video_stream_id(-1),
   audio_stream_id(-1),
@@ -1016,9 +1016,9 @@ bool Monitor::connect() {
              + sizeof(VideoStoreData) //Information to pass back to the capture process
              + (image_buffer_count*sizeof(struct timeval))
              + (image_buffer_count*image_size)
-             + (image_buffer_count*image_size) // alarm_images
+             + (image_buffer_count*image_size) // analysis image ring (alarm_images)
              + (image_buffer_count*sizeof(AVPixelFormat)) // per-slot capture pix fmt
-             + sizeof(AVPixelFormat) // alarm_image pix fmt (cross-process sync)
+             + (image_buffer_count*sizeof(AVPixelFormat)) // per-slot analysis pix fmt (cross-process sync)
              // Padding covers two independent alignment adjustments:
              //   * up to 63 bytes to push shared_images to a 64-byte boundary
              //   * up to alignof(AVPixelFormat)-1 bytes to push
@@ -1156,23 +1156,28 @@ bool Monitor::connect() {
                                  &(shared_images[i*image_size]), image_size, 0);
     image_buffer[i]->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
   }
-  // alarm_image follows the per-slot format convention. Initial format is a
-  // placeholder; consumers should sync via GetAlarmImage() which reads the
-  // cross-process *alarm_image_pixelformat.
-  alarm_image.AssignDirect(width, height, ZM_COLOUR_YUV420P, ZM_SUBPIX_ORDER_YUV420P,
-                           &(shared_images[image_buffer_count*image_size]), image_size, ZM_BUFTYPE_DONTFREE);
-  alarm_image.HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
-  if (alarm_image.Buffer() + image_size > mem_ptr + mem_size) {
-    Warning("We will exceed memsize by %td bytes!", (alarm_image.Buffer() + image_size) - (mem_ptr + mem_size));
+  // Analysis image ring: one Image per slot in the alarm_images SHM region
+  // (the second image_buffer_count*image_size block). Each slot follows the
+  // per-slot format convention; consumers sync via GetAlarmImage() which reads
+  // the cross-process analysis_image_pixelformats[last_analysis_index].
+  analysis_image_buffer.resize(image_buffer_count);
+  for (int32_t i = 0; i < image_buffer_count; i++) {
+    analysis_image_buffer[i] = new Image(width, height, ZM_COLOUR_YUV420P, ZM_SUBPIX_ORDER_YUV420P,
+                                         &(shared_images[(image_buffer_count+i)*image_size]), image_size, 0);
+    analysis_image_buffer[i]->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
+  }
+  if (analysis_image_buffer[image_buffer_count-1]->Buffer() + image_size > mem_ptr + mem_size) {
+    Warning("We will exceed memsize by %td bytes!",
+        (analysis_image_buffer[image_buffer_count-1]->Buffer() + image_size) - (mem_ptr + mem_size));
   }
   // Layout in SHM is: image_buffer_count*image_size for image_buffer slots,
-  // then image_buffer_count*image_size for alarm_image slots, THEN the
-  // image_pixelformats[image_buffer_count] array, THEN the single
-  // alarm_image_pixelformat slot. Placing image_pixelformats at
-  // +1*image_buffer_count*image_size would collide with the alarm_image
-  // buffer region — zmc's writes to image_pixelformats[index] would corrupt
-  // the alarm image, and zms would read alarm-image bytes back as
-  // AVPixelFormat enum values, producing per-frame garble.
+  // then image_buffer_count*image_size for analysis_image_buffer slots, THEN
+  // the image_pixelformats[image_buffer_count] array, THEN the
+  // analysis_image_pixelformats[image_buffer_count] array. Placing
+  // image_pixelformats at +1*image_buffer_count*image_size would collide with
+  // the analysis image buffer region — zmc's writes to image_pixelformats[index]
+  // would corrupt the analysis image, and zms would read analysis-image bytes
+  // back as AVPixelFormat enum values, producing per-frame garble.
   //
   // image_size may not be a multiple of alignof(AVPixelFormat) (for
   // example GRAY8 with odd width when image_size comes from
@@ -1187,7 +1192,7 @@ bool Monitor::connect() {
   const uintptr_t pixfmt_align = alignof(AVPixelFormat);
   pixfmt_addr = (pixfmt_addr + pixfmt_align - 1) & ~(pixfmt_align - 1);
   image_pixelformats = reinterpret_cast<AVPixelFormat *>(pixfmt_addr);
-  alarm_image_pixelformat = image_pixelformats + image_buffer_count;
+  analysis_image_pixelformats = image_pixelformats + image_buffer_count;
 
   if (purpose == CAPTURE) {
     memset(mem_ptr, 0, mem_size);
@@ -1203,6 +1208,8 @@ bool Monitor::connect() {
     shared_data->state = state = IDLE;
     shared_data->last_write_index = image_buffer_count;
     shared_data->last_read_index = image_buffer_count;
+    shared_data->last_analysis_index = image_buffer_count; // sentinel: nothing published yet
+    shared_data->analysis_image_count = 0;
     shared_data->last_write_time = 0;
     shared_data->last_event_id = 0;
     shared_data->action = (Action)0;
@@ -1219,8 +1226,8 @@ bool Monitor::connect() {
     // for "format not yet published". Initialise explicitly.
     for (int32_t i = 0; i < image_buffer_count; i++) {
       image_pixelformats[i] = AV_PIX_FMT_NONE;
+      analysis_image_pixelformats[i] = AV_PIX_FMT_NONE;
     }
-    *alarm_image_pixelformat = AV_PIX_FMT_NONE;
     shared_data->alarm_cause[0] = 0;
     shared_data->video_fifo_path[0] = 0;
     shared_data->audio_fifo_path[0] = 0;
@@ -1315,7 +1322,6 @@ bool Monitor::disconnect() {
     return true;
   }
 
-  alarm_image.HoldBuffer(false); /* Allow to reset buffer when we connect */
   if (purpose == CAPTURE) {
     if (unlink(mem_file.c_str()) < 0) {
       Warning("Can't unlink '%s': %s", mem_file.c_str(), strerror(errno));
@@ -1356,6 +1362,10 @@ bool Monitor::disconnect() {
     // We delete the image because it is an object pointing to space that won't be free'd.
     delete image_buffer[i];
     image_buffer[i] = nullptr;
+    // analysis_image_buffer entries point into the same SHM mapping (with
+    // HoldBuffer set) so deleting them won't free the SHM bytes.
+    delete analysis_image_buffer[i];
+    analysis_image_buffer[i] = nullptr;
   }
 
   return true;
@@ -1418,56 +1428,70 @@ void Monitor::AddPrivacyBitmask() {
 }
 
 Image *Monitor::GetAlarmImage() {
-  // alarm_image's bytes live in SHM and are written by the capture/analysis
-  // process; alarm_image_pixelformat carries the format that process used.
-  // Without this sync, a reader process (zms) would interpret the bytes
-  // with whatever placeholder format alarm_image was constructed with —
+  // Return the most recently published analysis-ring slot. The ring bytes live
+  // in SHM and are written by the capture/analysis process;
+  // analysis_image_pixelformats[index] carries the format that process used.
+  // Without this sync, a reader process (zms) would interpret the bytes with
+  // whatever placeholder format the slot Image was constructed with —
   // producing garbled output whenever the writer used RGB24/RGBA/etc.
-  if (alarm_image_pixelformat != nullptr) {
-    AVPixelFormat fmt = *alarm_image_pixelformat;
-    if (fmt != AV_PIX_FMT_NONE && alarm_image.PixFormat() != fmt) {
+  int32_t index = shared_data->last_analysis_index;
+  // Sentinel (image_buffer_count) or an out-of-range value means "nothing
+  // published yet" — fall back to slot 0 so callers still get a valid Image.
+  if (index < 0 || index >= image_buffer_count) index = 0;
+  Image *img = analysis_image_buffer[index];
+  if (analysis_image_pixelformats != nullptr) {
+    AVPixelFormat fmt = analysis_image_pixelformats[index];
+    if (fmt != AV_PIX_FMT_NONE && img->PixFormat() != fmt) {
       unsigned int probe_colours, probe_subpix;
       if (!zm_colours_from_pixformat(fmt, probe_colours, probe_subpix)) {
         Warning("GetAlarmImage: ignoring unsupported pixelformat %d; keeping current %s",
-                fmt, zm_get_pix_fmt_name(alarm_image.PixFormat()));
+                fmt, zm_get_pix_fmt_name(img->PixFormat()));
       } else {
         int required = av_image_get_buffer_size(fmt, width, height, 32);
         if (required < 0 || static_cast<size_t>(required) > shm_slot_size) {
           Warning("GetAlarmImage: format %s requires %d bytes but slot capacity is %zu; "
                   "keeping current %s",
                   zm_get_pix_fmt_name(fmt), required, shm_slot_size,
-                  zm_get_pix_fmt_name(alarm_image.PixFormat()));
+                  zm_get_pix_fmt_name(img->PixFormat()));
         } else {
-          alarm_image.AVPixFormat(fmt);
+          img->AVPixFormat(fmt);
         }
       }
     }
   }
-  return &alarm_image;
+  return img;
 }
 
 void Monitor::WriteAlarmImage(const Image &src) {
-  // Mirror WriteShmFrame's contract for alarm_image: copy bytes then
-  // publish the canonical AVPixelFormat so reader processes can interpret
-  // the SHM correctly via GetAlarmImage().
+  // Publish src into the next analysis-ring slot. Mirror WriteShmFrame's
+  // contract: copy bytes then publish the canonical AVPixelFormat so reader
+  // processes can interpret the SHM correctly via GetAlarmImage().
   //
-  // Only publish *alarm_image_pixelformat if Assign actually adopted the
-  // source format. Image::Assign silently leaves the destination untouched
-  // on failure (held-buffer undersize, unknown src format), so publishing
-  // a new format whose bytes never landed would make readers misinterpret
-  // the previous alarm-image contents.
+  // The slot is chosen from analysis_image_count so successive writes rotate
+  // through the ring. last_analysis_index is published LAST (after the bytes
+  // and format are in place) so a reader that samples last_analysis_index
+  // always sees a fully written slot.
+  //
+  // Only publish the format if Assign actually adopted the source format.
+  // Image::Assign silently leaves the destination untouched on failure
+  // (held-buffer undersize, unknown src format), so publishing a new format
+  // whose bytes never landed would make readers misinterpret the slot.
+  int32_t index = shared_data->analysis_image_count % image_buffer_count;
   const AVPixelFormat src_fmt = src.PixFormat();
-  alarm_image.Assign(src);
-  if (alarm_image_pixelformat != nullptr) {
-    if (alarm_image.PixFormat() == src_fmt) {
-      *alarm_image_pixelformat = src_fmt;
+  Image *dst = analysis_image_buffer[index];
+  dst->Assign(src);
+  if (analysis_image_pixelformats != nullptr) {
+    if (dst->PixFormat() == src_fmt) {
+      analysis_image_pixelformats[index] = src_fmt;
     } else {
       Warning("WriteAlarmImage: assign failed (dst fmt %s != src fmt %s); "
               "keeping previously published pixelformat",
-              zm_get_pix_fmt_name(alarm_image.PixFormat()),
+              zm_get_pix_fmt_name(dst->PixFormat()),
               zm_get_pix_fmt_name(src_fmt));
     }
   }
+  shared_data->last_analysis_index = index;
+  shared_data->analysis_image_count++;
 }
 
 int Monitor::GetImage(int32_t index, int scale) {
@@ -1980,7 +2004,9 @@ void Monitor::CheckAction() {
       if ( Enabled() && !Active() ) {
         Info("Received resume indication at count %d", shared_data->image_count);
         shared_data->analysing = analysing;
-        ref_image.DumpImgBuffer(); // Will get re-assigned by analysis thread
+        // Analysis thread owns ref_image; ask it to drop the pre-suspend
+        // reference rather than freeing the buffer under it here (refs #4983).
+        ref_image_reset_ = true;
         shared_data->alarm_x = shared_data->alarm_y = -1;
       }
       shared_data->action &= ~RESUME;
@@ -1993,7 +2019,8 @@ void Monitor::CheckAction() {
       Info("Auto resuming at count %d", shared_data->image_count);
       auto_resume_time = {};
       shared_data->analysing = analysing;
-      ref_image.DumpImgBuffer(); // Will get re-assigned by analysis thread
+      // See RESUME above: defer the reference-image reset to the analysis thread.
+      ref_image_reset_ = true;
     }
   }
 }
@@ -2113,6 +2140,15 @@ bool Monitor::Analyse() {
     return false;
   }
   std::shared_ptr<ZMPacket> packet = packet_lock.packet_;
+
+  // The capture thread requested that we drop the pre-suspend reference image.
+  // Do it here, on the thread that owns ref_image, so the buffer is never freed
+  // out from under an in-flight Delta/Blend (refs #4983). The subsequent
+  // !ref_image.Buffer() checks re-seed it from the next frame.
+  if (ref_image_reset_.exchange(false)) {
+    Debug(1, "Resetting reference image on resume");
+    ref_image.DumpImgBuffer();
+  }
 
   // Is it possible for packet->score to be ! -1 ? Not if everything is working correctly
   if (packet->score != -1) {
@@ -2325,7 +2361,10 @@ bool Monitor::Analyse() {
                   }
 
                   // Instead of showing a greyscale image, let's use the full colour
-                  if (!packet->analysis_image)
+                  // Only allocate it when this frame actually has motion score,
+                  // so that Event::AddFrame doesn't save analysis jpegs for
+                  // every analysed frame (refs #4996).
+                  if (motion_score and !packet->analysis_image)
                     packet->analysis_image = new Image(*(packet->image));
 
                   // lets construct alarm cause. It will contain cause + names of zones alarmed
@@ -2946,28 +2985,8 @@ int Monitor::Capture() {
 
 bool Monitor::setupConvertContext(const AVFrame *input_frame, const Image *image) {
   AVPixelFormat imagePixFormat = image->AVPixFormat();
-  AVPixelFormat inputPixFormat;
-  bool changeColorspaceDetails = false;
-  switch (input_frame->format) {
-  case AV_PIX_FMT_YUVJ420P:
-    inputPixFormat = AV_PIX_FMT_YUV420P;
-    changeColorspaceDetails = true;
-    break;
-  case AV_PIX_FMT_YUVJ422P:
-    inputPixFormat = AV_PIX_FMT_YUV422P;
-    changeColorspaceDetails = true;
-    break;
-  case AV_PIX_FMT_YUVJ444P:
-    inputPixFormat = AV_PIX_FMT_YUV444P;
-    changeColorspaceDetails = true;
-    break;
-  case AV_PIX_FMT_YUVJ440P:
-    inputPixFormat = AV_PIX_FMT_YUV440P;
-    changeColorspaceDetails = true;
-    break;
-  default:
-    inputPixFormat = (AVPixelFormat)input_frame->format;
-  }
+  AVPixelFormat origPixFormat = (AVPixelFormat)input_frame->format;
+  AVPixelFormat inputPixFormat = fix_deprecated_pix_fmt(origPixFormat);
 
   convert_context = sws_getContext(
                       input_frame->width,
@@ -2988,17 +3007,9 @@ bool Monitor::setupConvertContext(const AVFrame *input_frame, const Image *image
           image->Width(), image->Height(),
           av_get_pix_fmt_name(imagePixFormat)
          );
-    if (changeColorspaceDetails) {
-      // change the range of input data by first reading the current color space and then setting it's range as yuvj.
-      int dummy[4];
-      int srcRange, dstRange;
-      int brightness, contrast, saturation;
-      sws_getColorspaceDetails(convert_context, (int**)&dummy, &srcRange, (int**)&dummy, &dstRange, &brightness, &contrast, &saturation);
-      const int* coefs = sws_getCoefficients(SWS_CS_DEFAULT);
-      srcRange = 1; // this marks that values are according to yuvj
-      sws_setColorspaceDetails(convert_context, coefs, srcRange, coefs, dstRange,
-                               brightness, contrast, saturation);
-    }
+    // Mark the input as full range when the source was a YUVJ* format so the
+    // conversion maths doesn't crush full-range luma into limited range.
+    zm_sws_set_input_range(convert_context, origPixFormat);
   }
   return (convert_context != nullptr);
 }
@@ -3132,6 +3143,7 @@ bool Monitor::applyDeinterlacing(std::shared_ptr<ZMPacket> &packet, Image *captu
 void Monitor::flushDecoderQueue() {
   // Called from DecoderThread::Run() as the decoder thread exits, so no
   // concurrent access to decoder_queue: the thread that mutates it is us.
+  decoder_requires_next_packet = false;
   if (decoder_queue.empty()) return;
   Debug(1, "Flushing %zu in-flight entries from decoder_queue", decoder_queue.size());
   for (auto &lock : decoder_queue) {
@@ -3163,7 +3175,7 @@ bool Monitor::Decode() {
       (decoding == DECODING_ALWAYS) ||
       (decoding == DECODING_KEYFRAMES) ||
       ((decoding == DECODING_ONDEMAND) && (hasViewers() || shared_data->last_write_index == image_buffer_count)) ||
-      ((decoding == DECODING_KEYFRAMESONDEMAND) && hasViewers());
+      ((decoding == DECODING_KEYFRAMESONDEMAND) && (hasViewers() || decoder_requires_next_packet));
 
     if (!needs_decoding) {
       Debug(1, "Flushing decoder in phase 1: %zu packets queued but decoding no longer needed",
@@ -3189,14 +3201,15 @@ bool Monitor::Decode() {
         packet_lock = std::move(decoder_queue.front());
         decoder_queue.pop_front();
         packet = front_packet;
-        Debug(2, "Received frame for packet %d", packet->image_index);
+        Debug(2, "Received frame for packet %d, decoder queue pop size=%zu", packet->image_index, decoder_queue.size());
         // Continue to PHASE 3 (frame processing)
       } else if (ret < 0) {
         // Decoder error
         return false;
       } else {
-        // EAGAIN - decoder needs more input, fall through to send another packet
-        Debug(2, "receive_frame returned EAGAIN for packet %d", front_packet->image_index);
+        // EAGAIN - no frame available yet.
+        // The decoder still requires additional input packets.
+        Debug(2, "Decoder needs additional input after packet %d (EAGAIN)", front_packet->image_index);
       }
     }  // end if needs_decoding
   }
@@ -3238,8 +3251,8 @@ bool Monitor::Decode() {
     bool should_decode = !already_decoded && (
       (decoding == DECODING_ALWAYS) ||
       ((decoding == DECODING_ONDEMAND) && (hasViewers() || shared_data->last_write_index == image_buffer_count)) ||
-      ((decoding == DECODING_KEYFRAMES) && packet->keyframe) ||
-      ((decoding == DECODING_KEYFRAMESONDEMAND) && (hasViewers() || packet->keyframe))
+      ((decoding == DECODING_KEYFRAMES) && (packet->keyframe || decoder_requires_next_packet)) ||
+      ((decoding == DECODING_KEYFRAMESONDEMAND) && (hasViewers() || packet->keyframe || decoder_requires_next_packet))
     );
 
     if (!should_decode && !decoder_queue.empty()) {
@@ -3260,18 +3273,55 @@ bool Monitor::Decode() {
     }
 
     if (should_decode) {
-      Debug(2, "Sending packet %d to decoder", packet->image_index);
-
+      Debug(2,
+        "Sending packet=%d to decoder "
+        "key=%d, "
+        "flags=0x%x, "
+        "pts=%lld, "
+        "dts=%lld, "
+        "decoder queue size=%zu",
+        packet->image_index,
+        packet->keyframe,
+        packet->packet->flags,
+        (long long)packet->packet->pts,
+        (long long)packet->packet->dts,
+        decoder_queue.size()
+      );
       SystemTimePoint starttime = std::chrono::system_clock::now();
       int ret = packet->send_packet(context);
       SystemTimePoint endtime = std::chrono::system_clock::now();
 
       // Warn if send_packet is taking too long
       int fps = static_cast<int>(get_capture_fps());
-      if ((fps > 0) && (endtime - starttime > Milliseconds(1000 / fps)) and Logger::fetch()->debugOn()) {
-        Warning("send_packet %d is too slow: %.3f seconds. Capture fps is %d, queue size is %zu, keyframe interval is %d, retval was %d",
-            packet->image_index, FPSeconds(endtime - starttime).count(), fps,
-            decoder_queue.size(), packetqueue.get_max_keyframe_interval(), ret);
+      if (ret >= 0 && packet->keyframe && (decoding == DECODING_KEYFRAMES || (decoding == DECODING_KEYFRAMESONDEMAND && !hasViewers()))) {
+        decoder_requires_next_packet = true;
+        Debug(2, "Decoder requires follow-up packets after keyframe %d (EAGAIN=%s). Capture fps=%d, decoder queue size=%zu, duration=%.3f, ret=%d", packet->image_index, (ret == 0) ? "true" : "false", fps, decoder_queue.size(), FPSeconds(endtime - starttime).count(), ret);
+      }
+
+      Milliseconds warning_threshold;
+      if (decoder_requires_next_packet) {
+        // Decoder may legitimately require additional packets
+        // before producing the first decoded frame.
+        warning_threshold = Milliseconds(500);
+      } else if (fps > 0) {
+        warning_threshold = Milliseconds(1000 / fps);
+      } else {
+        warning_threshold = Milliseconds(1000);
+      }
+
+      if ((endtime - starttime > warning_threshold) && Logger::fetch()->debugOn()) {
+        Warning(
+            "Decode cycle for packet %d took %.3f seconds%s. "
+            "Capture fps=%d, queue size=%zu, keyframe interval=%d, ret=%d",
+            packet->image_index,
+            FPSeconds(endtime - starttime).count(),
+            decoder_requires_next_packet
+                ? " (keyframe startup / decoder latency)"
+                : "",
+            fps,
+            decoder_queue.size(),
+            packetqueue.get_max_keyframe_interval(),
+            ret);
       } else {
         Debug(3, "send_packet took: %.3f seconds. Capture fps is %d", FPSeconds(endtime - starttime).count(), fps);
       }
@@ -3319,6 +3369,9 @@ bool Monitor::Decode() {
       packet->decoded = true;
       packet->notify_all();
       packetqueue.notify_all();
+      if (decoder_requires_next_packet ) {
+        decoder_requires_next_packet = false;
+      }
       return false;
     }
 
@@ -3392,6 +3445,9 @@ bool Monitor::Decode() {
 
   if (packet->image) {
     Image *capture_image = packet->image;
+    if (decoder_requires_next_packet ) {
+      decoder_requires_next_packet = false;
+    }
 
     // Deinterlacing
     if (deinterlacing_value) {
@@ -3419,6 +3475,7 @@ bool Monitor::Decode() {
     // Write to shared image buffer.
     unsigned int index = (shared_data->last_write_index + 1) % image_buffer_count;
     decoding_image_count++;
+    Debug(5, "SHM WRITE packet=%d index=%u", packet->image_index, index);
     WriteShmFrame(index, capture_image);
     shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
     shared_data->signal = signal_check_points ? CheckSignal(capture_image) : true;
@@ -3429,6 +3486,28 @@ bool Monitor::Decode() {
     auto lag = std::chrono::system_clock::now() - packet->timestamp;
     if (lag > Seconds(ZM_WATCH_MAX_DELAY)) {
       Warning("Decoding is not keeping up. %.2f seconds behind capture.", FPSeconds(lag).count());
+    }
+  }
+
+  // Capture paths that deliver a raw Image without an ffmpeg decode (e.g.
+  // LocalCamera/V4L2) leave packet->in_frame null even though the pixels are
+  // already present. Wrap the image's planes in an AVFrame — no copy, just
+  // pointers via PopulateFrame — so in_frame consumers work without a real
+  // decode step. Any format the Image supports is fine; consumers that need a
+  // specific layout check for themselves (get_y_image, for instance, rejects
+  // RGB with a precise "no Y plane" message rather than "no frame").
+  //
+  // Done here, after PHASE 5, so the frame reflects the oriented/masked image
+  // (we don't re-run orientation on a shared Y plane), and after the codec
+  // phases so transfer_hwframe is never called with a null codec context.
+  // videostore is unaffected: it prefers packet->image for frame data and
+  // always derives pts from packet->timestamp, never in_frame->pts.
+  if (packet->image && !packet->in_frame) {
+    av_frame_ptr synth{av_frame_alloc()};
+    if (synth && (packet->image->PopulateFrame(synth.get()) >= 0)) {
+      packet->in_frame = std::move(synth);
+      Debug(2, "Synthesized in_frame from image for packet %d (%s)",
+            packet->image_index, av_get_pix_fmt_name(packet->image->PixFormat()));
     }
   }
 

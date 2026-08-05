@@ -1383,6 +1383,20 @@ our @options = (
     type        => $types{boolean},
     category    => 'logging',
   },
+  {
+    name        => 'ZM_LOG_BROWSER_EXTENSIONS',
+    default     => 'no',
+    description => 'Log Javascript errors and CSP violations from browser extensions',
+    help        => q`
+       Browser extensions (ad blockers, password managers, etc.) inject scripts into
+       every page. Their Javascript errors and Content-Security-Policy violations are
+       not ZoneMinder's code and normally just spam the web_js log, so by default they
+       are ignored. Enable this if you want to see when a browser extension is touching
+       the ZoneMinder tab, at the cost of noisier logs.
+      `,
+    type        => $types{boolean},
+    category    => 'logging',
+  },
 {
     name        => 'ZM_LOG_DEBUG',
     default     => 'no',

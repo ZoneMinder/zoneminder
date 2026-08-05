@@ -31,26 +31,7 @@ function probe(params) {
       }
 
       if (data.Streams && data.Streams.length) {
-        for ( i in data.Streams ) {
-          const stream = data.Streams[i];
-          if (stream.Monitor) {
-            stream.buttons = '<input type="button" value="Edit" data-on-click-this="addMonitor" data-url="'+stream.url+'"/>';
-          } else if (stream.url && user.Monitors == 'Create') {
-            stream.buttons = '<input type="button" value="Add" data-on-click-this="addMonitor" data-url="'+stream.url+'"/>';
-          }
-          if (ZM_WEB_LIST_THUMBS && stream.camera.mjpegstream) {
-            console.log("Setting thumbnail stream to " + stream.camera.mjpegstream);
-            //stream.Thumbnail = '<img src="'+stream.camera.mjpegstream+'"/>';
-            stream.Thumbnail = '<img src="?view=image&proxy='+stream.camera.mjpegstream+'" width="'+ZM_WEB_LIST_THUMB_WIDTH+'"/>';
-          } else {
-            console.log(stream.camera);
-          }
-          if (stream.url) {
-            ProbeResults[stream.url] = stream;
-          }
-        } // end for each Stream
-
-        const rows = data.Streams;
+        const rows = decorateStreams(data.Streams);
         // rearrange the result into what bootstrap-table expects
         params.success({total: rows.length, totalNotFiltered: rows.length, rows: rows});
       } else {
@@ -65,52 +46,30 @@ function probe(params) {
   });
 }
 
-function onvif_probe() {
+// Add the buttons/Thumbnail columns bootstrap-table expects and remember each
+// stream by url so addMonitor() can find it. Shared by the network probe and
+// the CSV import.
+function decorateStreams(streams) {
+  const rows = [];
+  for (const i in streams) {
+    const stream = streams[i];
+    if (stream.Monitor) {
+      stream.buttons = '<input type="button" value="Edit" data-on-click-this="addMonitor" data-url="'+stream.url+'"/>';
+    } else if (stream.url && user.Monitors == 'Create') {
+      stream.buttons = '<input type="button" value="Add" data-on-click-this="addMonitor" data-url="'+stream.url+'"/>';
+    }
+    if (ZM_WEB_LIST_THUMBS && stream.camera && stream.camera.mjpegstream) {
+      stream.Thumbnail = '<img src="?view=image&proxy='+stream.camera.mjpegstream+'" width="'+ZM_WEB_LIST_THUMB_WIDTH+'"/>';
+    }
+    if (stream.url) {
+      ProbeResults[stream.url] = stream;
+    }
+    rows.push(stream);
+  } // end for each Stream
+  return rows;
 }
 
-function getProbeResponse( respObj, respText ) {
-  if ( respObj.Streams && respObj.Streams.length ) {
-    parseStreams( respObj.Streams );
-  } else {
-    var results_div = $j('#results')[0];
-    if ( ! results_div ) {
-      console.log("No results div found.");
-      return;
-    }
-    results_div.innerHTML = 'No streams found.';
-    //console.log("No streams: " + respText);
-  }
-} // end function getProbeResponse
-
-function parseStreams( Streams ) {
-  ProbeResults = Array();
-
-  const results_div = $j('#results')[0];
-  if ( ! results_div ) {
-    console.log("No results div found.");
-    return;
-  }
-  results_div.innerHTML = '';
-  var html = '';
-
-  for ( i in Streams ) {
-    const stream = Streams[i];
-    if ( stream.url ) {
-      html += '<p>'+stream.description;
-      if ( stream.Monitor ) {
-        html += ' is already entered into the system by Monitor ' + stream.Monitor.Id + ' ' + stream.Monitor.Name + '<br/>';
-        html += '<input type="button" value="Edit" data-on-click-this="addMonitor" data-url="'+stream.url+'"/>';
-      } else {
-        html += '<input type="button" value="Add" data-on-click-this="addMonitor" data-url="'+stream.url+'"/>';
-      }
-      html += '</p>';
-      ProbeResults[stream.url] = stream;
-    } else {
-      //console.log(stream);
-    }
-  } // end for each Stream
-
-  results_div.innerHTML = html;
+function onvif_probe() {
 }
 
 function addMonitor(btn) {
@@ -143,20 +102,29 @@ function addMonitor(btn) {
 
 function import_csv() {
   const form = $j('#importModalForm')[0];
-  var formData = new FormData( form );
-  console.log(formData);
+  const formData = new FormData(form);
 
-  $j.ajax({
-    url: thisUrl+"?request=add_monitors&action=import",
-    type: 'POST',
-    data: formData,
-    processData: false, // tell jQuery not to process the data
-    contentType: false, // tell jQuery not to set contentType
-    done: function(data) {
-      const json = JSON.parse(data);
-      parseStreams(json.Streams);
-    }
-  });
+  // Use fetch, not $j.ajax: csrf-magic.js overrides XMLHttpRequest.send and does
+  // `csrfMagicName + '=' + token + '&' + data`, which stringifies a FormData body
+  // to "[object FormData]" and drops the uploaded file, so the backend sees no
+  // file. fetch is not wrapped by csrf-magic. The __csrf_magic hidden input is
+  // part of the form, so FormData(form) still carries the token as a real
+  // multipart field.
+  fetch(thisUrl+'?view=request&request=add_monitors&action=import', {
+    method: 'POST',
+    body: formData,
+  })
+      .then((resp) => resp.json())
+      .then((data) => {
+        if (data.result == 'Error') {
+          alert(data.message);
+          return;
+        }
+        $j('#ImportMonitorsModal').modal('hide');
+        const rows = decorateStreams(data.Streams ? data.Streams : []);
+        table.bootstrapTable('load', {total: rows.length, totalNotFiltered: rows.length, rows: rows});
+      })
+      .catch(logAjaxFail);
 }
 
 function importMonitors() {

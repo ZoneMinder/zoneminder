@@ -94,14 +94,19 @@ if (isset($_REQUEST['current'])) {
   $defaultCurrentTimeSecs = strtotime($defaultCurrentTime);
 }
 
+// Range precedence: deprecated minTime/maxTime URL params (kept for old bookmarks)
+// -> shared zmFilter_* date cookies (persisted from the events list and from
+// montagereview navigation) -> last hour. refs #4976
 if ( !isset($_REQUEST['minTime']) && !isset($_REQUEST['maxTime']) ) {
   if (isset($defaultCurrentTimeSecs)) {
     $minTime = date('Y-m-d H:i:s', $defaultCurrentTimeSecs - 1800);
     $maxTime = date('Y-m-d H:i:s', $defaultCurrentTimeSecs + 1800);
   } else {
     $time = time();
-    $maxTime = date('Y-m-d H:i:s', $time);
-    $minTime = date('Y-m-d H:i:s', $time - 3600);
+    $maxTime = (isset($_COOKIE['zmFilter_EndDateTime']) and $_COOKIE['zmFilter_EndDateTime'])
+      ? validHtmlStr($_COOKIE['zmFilter_EndDateTime']) : date('Y-m-d H:i:s', $time);
+    $minTime = (isset($_COOKIE['zmFilter_StartDateTime']) and $_COOKIE['zmFilter_StartDateTime'])
+      ? validHtmlStr($_COOKIE['zmFilter_StartDateTime']) : date('Y-m-d H:i:s', $time - 3600);
   }
 } else {
   if (isset($_REQUEST['minTime']))
@@ -147,8 +152,8 @@ if (isset($_REQUEST['filter'])) {
 } else {
   $filter = new ZM\Filter();
   if (isset($_REQUEST['minTime']) && isset($_REQUEST['maxTime']) && (count($displayMonitors) != 0)) {
-    $filter->addTerm(array('attr' => 'DateTime', 'op' => '>=', 'val' => $_REQUEST['minTime'], 'obr' => '1', 'cookie'=>htmlspecialchars('DateTime<=')));
-    $filter->addTerm(array('attr' => 'DateTime', 'op' => '<=', 'val' => $_REQUEST['maxTime'], 'cnj' => 'and', 'cbr' => '1', 'cookie'=>htmlspecialchars('DateTime<=')));
+    $filter->addTerm(array('attr' => 'DateTime', 'op' => '>=', 'val' => $_REQUEST['minTime'], 'obr' => '1', 'cookie'=>'zmFilter_StartDateTime'));
+    $filter->addTerm(array('attr' => 'DateTime', 'op' => '<=', 'val' => $_REQUEST['maxTime'], 'cnj' => 'and', 'cbr' => '1', 'cookie'=>'zmFilter_EndDateTime'));
     if (count($selected_monitor_ids)) {
       $filter->addTerm(array('attr' => 'Monitor', 'op' => 'IN', 'val' => implode(',',$selected_monitor_ids), 'cnj' => 'and'));
     } else if ( isset($_SESSION['GroupId']) || isset($_SESSION['ServerFilter']) || isset($_SESSION['StorageFilter']) || isset($_SESSION['StatusFilter']) ) {
@@ -170,10 +175,10 @@ if (!$liveMode) {
     $filter->addTerm(array('attr' => 'Archived', 'op' => '=', 'val' => '', 'cnj' => 'and', 'cookie'=>'Archived'));
   }
   if (!$filter->has_term('DateTime', '>=')) {
-    $filter->addTerm(array('attr' => 'DateTime', 'op' => '>=', 'val' => $minTime, 'cnj' => 'and', 'cookie'=>htmlspecialchars('DateTime>=')));
+    $filter->addTerm(array('attr' => 'DateTime', 'op' => '>=', 'val' => $minTime, 'cnj' => 'and', 'cookie'=>'zmFilter_StartDateTime'));
   }
   if (!$filter->has_term('DateTime', '<=')) {
-    $filter->addTerm(array('attr' => 'DateTime', 'op' => '<=', 'val' => $maxTime, 'cnj' => 'and', 'cookie'=>htmlspecialchars('DateTime<=')));
+    $filter->addTerm(array('attr' => 'DateTime', 'op' => '<=', 'val' => $maxTime, 'cnj' => 'and', 'cookie'=>'zmFilter_EndDateTime'));
   }
   if (!$filter->has_term('Tags')) {
     $filter->addTerm(array('attr' => 'Tags', 'op' => '=',
@@ -198,19 +203,21 @@ if (count($filter->terms()) ) {
 // For events that never wrote EndDateTime (zmc killed/crashed mid-event),
 // fall back to StartDateTime + Length. Length is flushed to the DB every few
 // seconds during recording, so it reflects the actual recorded duration even
-// when zmc died. Otherwise the event would appear to extend across all the
-// down-time, suggesting recorded video that doesn't exist.
+// when zmc died. When Length is 0 too (an empty crash-orphaned event), fall
+// back to StartDateTime so the event has no span. Otherwise the event would
+// appear to extend across all the down-time, suggesting recorded video that
+// doesn't exist.
 $eventsSql = 'SELECT
   E.*, E.StartDateTime AS StartDateTime,UNIX_TIMESTAMP(E.StartDateTime) AS StartTimeSecs,
     CASE
       WHEN E.EndDateTime IS NOT NULL THEN E.EndDateTime
       WHEN E.Length > 0 THEN DATE_ADD(E.StartDateTime, INTERVAL FLOOR(E.Length) SECOND)
-      ELSE NOW()
+      ELSE E.StartDateTime
     END AS EndDateTime,
     CASE
       WHEN E.EndDateTime IS NOT NULL THEN UNIX_TIMESTAMP(E.EndDateTime)
       WHEN E.Length > 0 THEN UNIX_TIMESTAMP(E.StartDateTime) + E.Length
-      ELSE UNIX_TIMESTAMP(NOW())
+      ELSE UNIX_TIMESTAMP(E.StartDateTime)
     END AS EndTimeSecs,
     M.Name AS MonitorName,M.DefaultScale FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId)
   WHERE 1 > 0
@@ -294,9 +301,12 @@ getBodyTopHTML();
     <input type="hidden" name="view" value="montagereview"/>
     <div id="header">
 <?php
-$filter_inline = defined('ZM_WEB_FILTER_SETTINGS_POSITION') && ZM_WEB_FILTER_SETTINGS_POSITION == 'inline';
+$filter_inline = filterSettingsInline();
 $html = '';
-if (!$filter_inline) {
+// In inline mode the filter panel sits at the top of the page and this flip
+// icon is what hides/shows it. In sidebar mode the panel lives in the sidebar
+// extruder, which has its own show/hide control, so the flip icon is omitted.
+if ($filter_inline) {
   $html .= '<a class="flip" href="#"
            data-flip-control-object="#mfbpanel"
            data-flip-control-run-after-func="applyChosen drawGraph"

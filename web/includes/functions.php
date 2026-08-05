@@ -1823,8 +1823,12 @@ function generateConnKey() {
 }
 
 function detaintPathAllowAbsolute($path) {
-  // Strip out :// because php:// is a way to inject code apparently
-  $path = str_replace('://', '', $path);
+  // Strip out :// because php:// is a way to inject code apparently.
+  // This must loop: a single pass lets the removal re-form the sequence it
+  // just removed, so '::////' collapses back into '://'.
+  do {
+    $path = str_replace('://', '', $path, $count);
+  } while($count);
   // Remove any absolute paths, or relative ones that want to go up
   do {
     $path = str_replace('../', '', $path, $count);
@@ -1834,8 +1838,12 @@ function detaintPathAllowAbsolute($path) {
 
 function detaintPath($path) {
 
-  // Strip out :// because php:// is a way to inject code apparently
-  $path = str_replace('://', '', $path);
+  // Strip out :// because php:// is a way to inject code apparently.
+  // This must loop: a single pass lets the removal re-form the sequence it
+  // just removed, so '::////' collapses back into '://'.
+  do {
+    $path = str_replace('://', '', $path, $count);
+  } while($count);
   // Remove any absolute paths, or relative ones that want to go up
   do {
     $path = str_replace('../', '', $path, $count);

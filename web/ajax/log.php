@@ -171,11 +171,19 @@ function queryRequest() {
     $where = '(' .implode(' OR ', $likes). ')';
   }
 
-  $requestComponent = (isset($_REQUEST['Component']) && !empty($_REQUEST['Component']) && is_scalar($_REQUEST['Component'])) ? (string) $_REQUEST['Component'] : '';
-  if (!empty($requestComponent)) {
+  // Component is a multi-select: accept a scalar (legacy) or an array of
+  // component names and match any of them.
+  $requestComponents = array();
+  if (isset($_REQUEST['Component'])) {
+    foreach ((array)$_REQUEST['Component'] as $component) {
+      if (is_scalar($component) && (string)$component !== '') $requestComponents[] = (string)$component;
+    }
+  }
+  if (count($requestComponents)) {
     if ($where) $where .= ' AND ';
-    $where .= 'Component = ?';
-    $query['values'][] = $requestComponent;
+    $placeholders = implode(', ', array_fill(0, count($requestComponents), '?'));
+    $where .= 'Component IN (' . $placeholders . ')';
+    foreach ($requestComponents as $component) $query['values'][] = $component;
   }
 
   if (!empty($_REQUEST['ServerId'])) {
@@ -190,12 +198,22 @@ function queryRequest() {
     $query['values'][] = $_REQUEST['level'];
   }
 */
-  $L = (isset($_REQUEST['level']) && !empty($_REQUEST['level']) && is_scalar($_REQUEST['level'])) ? (string) $_REQUEST['level'] : '';
+  // Level is a multi-select: accept a scalar (legacy) or an array of level codes
+  // ('DBG', 'INF', ...). Keep only recognized codes and match any of them.
   $level_codes = array_flip(ZM\Logger::$codes);
-  if (!empty($L) && isset($level_codes[$L])) {
+  $requestLevels = array();
+  if (isset($_REQUEST['level'])) {
+    foreach ((array)$_REQUEST['level'] as $level) {
+      if (is_scalar($level) && isset($level_codes[(string)$level])) {
+        $requestLevels[(string)$level] = $level_codes[(string)$level];
+      }
+    }
+  }
+  if (count($requestLevels)) {
     if ($where) $where .= ' AND ';
-    $where .= ' Level = ?';
-    $query['values'][] = $level_codes[$L];
+    $placeholders = implode(', ', array_fill(0, count($requestLevels), '?'));
+    $where .= ' Level IN (' . $placeholders . ')';
+    foreach ($requestLevels as $code) $query['values'][] = $code;
   }
 
   if (!empty($_REQUEST['StartDateTime'])) {
@@ -220,8 +238,8 @@ function queryRequest() {
   }
 
   zm_session_start();
-  $_SESSION['zmLogComponent'] = $requestComponent;
-  $_SESSION['zmLogFilterLevel'] = isset($level_codes[$L]) ? $L : '';
+  $_SESSION['zmLogComponent'] = $requestComponents;
+  $_SESSION['zmLogFilterLevel'] = array_keys($requestLevels);
   session_write_close();
 
   if ($where) $where = ' WHERE '.$where;

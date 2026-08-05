@@ -31,6 +31,19 @@ class ZonesController extends AppController {
     if ( !$this->Monitor->exists($id) ) {
       throw new NotFoundException(__('Invalid monitor'));
     }
+
+    # Monitors=View is coarse. Enforce the per-monitor ACL so zones of a monitor
+    # the user is denied are not listed by direct monitor Id.
+    $this->Monitor->recursive = -1;
+    $monitor = $this->Monitor->find('first', array(
+      'conditions' => array('Monitor.Id' => $id)
+    ));
+    $MonitorObj = new ZM\Monitor($monitor['Monitor']);
+    if ( !$MonitorObj->canView() ) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+      return;
+    }
+
     $this->Zone->recursive = -1;
     $zones = $this->Zone->find('all', array(
       'conditions' => array('MonitorId' => $id)

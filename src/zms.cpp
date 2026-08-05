@@ -236,6 +236,21 @@ int main(int argc, const char *argv[], char **envp) {
   }
   logInit(log_id_string);
 
+  // Summarise the decoded request so a runaway nph-zms can be tied to its
+  // stream type/params. Debug level because this fires once per process and
+  // there can be many (one per montage tile). refs #5006 (nph-zms
+  // occasionally consuming excessive memory).
+  {
+    static const char *source_names[] = {"unknown", "monitor", "event", "fifo"};
+    static const char *mode_names[] = {"jpeg", "mpeg", "raw", "zip", "single"};
+    Debug(1, "zms request: source=%s mode=%s monitor=%d event=%" PRIu64
+         " frame=%u frames=%d connkey=%u scale=%u rate=%u maxfps=%.2f"
+         " buffer=%u ttl=%u rss=%zuKB",
+         source_names[source], mode_names[mode], monitor_id, event_id,
+         frame_id, frames_to_send, connkey, scale, rate, maxfps,
+         playback_buffer, ttl, zm_get_rss_kb());
+  }
+
   if ( config.opt_use_auth ) {
     User *user = nullptr;
 

@@ -3,6 +3,7 @@
 * IgorA100 2026
 */
 
+"use strict";
 window.SUPPORTED_AUDIO_MOTION_ANALYZER_VERSION = '4.5.4';
 
 var AudioMotionAnalyzer = null;
@@ -190,6 +191,8 @@ export class _AudioMotionAnalyzer extends HTMLElement {
       this.initCompleted = false;
       return;
     }
+    canvas.classList.remove('hidden-shift');
+
     this.audioMotion = new AudioMotionAnalyzer(
         audioVisualization,
         {
@@ -206,7 +209,7 @@ export class _AudioMotionAnalyzer extends HTMLElement {
           showScaleX: false, // Removes frequency signatures.
           showScaleY: false,
           overlay: true, // Makes the background transparent.
-          bgAlpha: .5, // Background transparency only works with overlay: true.
+          bgAlpha: .9, // Background transparency only works with overlay: true.
           ansiBands: true,
           barSpace: .5,
           //channelLayout: 'single',
@@ -261,6 +264,8 @@ export class _AudioMotionAnalyzer extends HTMLElement {
     if (this.audioMotion) {
       this.stop();
       this.audioMotion.destroy();
+      const canvas = document.querySelector(`#audioVisualization${this.mid} canvas`);
+      if (canvas) canvas.classList.add('hidden-shift');
     }
   }; // END destroy = function()
 
@@ -364,6 +369,12 @@ export class _AudioMotionAnalyzer extends HTMLElement {
   };
 
   listenerVolumechange = function(_this, event) { // Adjust the visualization level according to the stream's volume level
+    const audioCtx = _this.audioMotion.audioCtx;
+    if (audioCtx && audioCtx.state !== 'running') {
+      audioCtx.resume();
+      _this.connectToMediaStreamSource();
+    }
+
     if (event.target.muted === true) {
       _this.gainNode.gain.value = 0;
     } else {

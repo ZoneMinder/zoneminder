@@ -448,8 +448,7 @@ function queryRequest() {
         'width'  => ZM_WEB_LIST_THUMB_WIDTH,
         'height' => ZM_WEB_LIST_THUMB_HEIGHT ? ZM_WEB_LIST_THUMB_HEIGHT : ZM_WEB_LIST_THUMB_WIDTH * $ratio_factor,
         'scale'  => $Monitor->ViewWidth() ? intval(100 * ZM_WEB_LIST_THUMB_WIDTH / $Monitor->ViewWidth()) : 100,
-        'mode'   => 'jpeg',
-        'frames' => 1,
+        'mode'   => 'single',
       );
 
       $stillSrc = $Monitor->getStreamSrc($options);
@@ -466,7 +465,7 @@ function queryRequest() {
       $options['scale'] = $Monitor->ViewWidth() ? intval(100 * $target_width / $Monitor->ViewWidth()) : 100;
       if ($options['scale'] > 100) $options['scale'] = 100;
       else if ($options['scale'] < 10) $options['scale'] = 10;
-      unset($options['frames']);
+      $options['mode'] = 'jpeg';
       $streamSrc = $Monitor->getStreamSrc($options);
 
       $videoAttr = '';
@@ -514,6 +513,7 @@ function queryRequest() {
       if ($Monitor->Go2RTCEnabled() && defined('ZM_GO2RTC_PATH') && ZM_GO2RTC_PATH) {
         $liveStreamAttr = ' data-stream-type="go2rtc"'.
           ' data-go2rtc-src="'.htmlspecialchars(ZM_GO2RTC_PATH).'"'.
+          ' data-stream-channel="'.($Monitor->StreamChannel() ?: 'Restream').'"'.
           ' data-monitor-id="'.$monitor['Id'].'"';
         $go2rtcAttr = ' go2rtc_src="'.htmlspecialchars(ZM_GO2RTC_PATH).'" go2rtc_mid="'.$monitor['Id'].'"';
         $debugAttr .= ' data-debug-overlay="go2rtc"';

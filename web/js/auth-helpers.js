@@ -28,6 +28,31 @@ function loginRedirectUrl(baseUrl, view) {
   return baseUrl + '?view=login&postLoginQuery=' + encodeURIComponent('view=' + (view || 'console'));
 }
 
+// Rewrite a stream <img> URL with a fresh auth hash and (optionally) a fresh
+// connkey, used when reconnecting a broken zms stream. The old auth hash may
+// have expired past AUTH_HASH_TTL and the zms process behind the old connkey has
+// exited, so a clean reconnect needs both swapped. Existing auth=/connkey=
+// parameters are replaced in place; if absent they are appended. Pure (no DOM),
+// so it is unit-tested directly (tests/js/auth-helpers.test.js).
+function rebuildStreamSrc(src, authHash, connKey) {
+  let out = src || '';
+  if (authHash) {
+    if (/auth=\w+/i.test(out)) {
+      out = out.replace(/auth=\w+/i, 'auth=' + authHash);
+    } else {
+      out += (out.indexOf('?') === -1 ? '?' : '&') + 'auth=' + authHash;
+    }
+  }
+  if (connKey !== undefined && connKey !== null && connKey !== '') {
+    if (/connkey=\d+/i.test(out)) {
+      out = out.replace(/connkey=\d+/i, 'connkey=' + connKey);
+    } else {
+      out += (out.indexOf('?') === -1 ? '?' : '&') + 'connkey=' + connKey;
+    }
+  }
+  return out;
+}
+
 // Navigate to the login page. Guarded so repeated auth failures (e.g. every
 // stream on a console) only trigger one navigation.
 let authGoingToLogin = false;
@@ -74,5 +99,5 @@ function onAuthVisible() {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = {authFailureAction, loginRedirectUrl};
+  module.exports = {authFailureAction, loginRedirectUrl, rebuildStreamSrc};
 }

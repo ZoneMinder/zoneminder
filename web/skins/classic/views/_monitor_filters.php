@@ -43,6 +43,68 @@ function getFilterSelection($name) {
   return $selectedValue;
 }
 
+// Resolve the shared monitor-attribute filters (ServerId/StorageId/Status/
+// Capturing/Analysing/Recording/MonitorName/Source) to the set of viewable
+// monitor ids they select, so views that filter events (which have no such
+// columns) can constrain to those monitors. Returns null when no attribute
+// filter is active (meaning "all monitors" -> caller should not constrain).
+// Group and Monitor selection are handled as first-class event terms and are
+// intentionally excluded here. refs #4976
+function getFilteredMonitorIds() {
+  require_once('includes/Monitor.php');
+
+  $conditions = array();
+  $values = array();
+  foreach (array('ServerId', 'StorageId', 'Status', 'Capturing', 'Analysing', 'Recording') as $filter) {
+    $filterValue = getFilterSelection($filter);
+    if ($filterValue === '' or $filterValue === array() or $filterValue === null)
+      continue;
+    # See buildMonitorsFilters(): Function=None monitors have no Monitor_Status row.
+    $column = ($filter == 'Status') ? "COALESCE(`Status`, 'NotRunning')" : '`'.$filter.'`';
+    if (is_array($filterValue)) {
+      $conditions[] = $column.' IN ('.implode(',', array_map(function() {return '?';}, $filterValue)).')';
+      $values = array_merge($values, $filterValue);
+    } else {
+      $conditions[] = $column.'=?';
+      $values[] = $filterValue;
+    }
+  }
+
+  $monitorNameFilter = getFilterSelection('MonitorName');
+  $sourceFilter = getFilterSelection('Source');
+
+  if (!count($conditions) and !$monitorNameFilter and !$sourceFilter)
+    return null; // no attribute filter active -> all monitors
+
+  $sql = 'SELECT M.* FROM Monitors AS M
+    LEFT JOIN Monitor_Status AS S ON S.MonitorId=M.Id
+    WHERE M.`Deleted`=false'
+    . (count($conditions) ? ' AND '.implode(' AND ', $conditions) : '');
+  $ids = array();
+  foreach (dbFetchAll($sql, null, $values) as $row) {
+    if (!visibleMonitor($row['Id']))
+      continue; // never widen visibility beyond what the user may view
+
+    if ($monitorNameFilter) {
+      $regexp = $monitorNameFilter;
+      if (!strpos($regexp, '/')) $regexp = '/'.$regexp.'/i';
+      if (@preg_match($regexp, '') === false) $regexp = '/'.preg_quote($monitorNameFilter, '/').'/i';
+      if (!@preg_match($regexp, $row['Name'])) continue;
+    }
+    if ($sourceFilter) {
+      $Monitor = new ZM\Monitor($row);
+      $regexp = $sourceFilter;
+      if (!preg_match("/^\/.+\/[a-z]*$/i", $regexp)) $regexp = '/'.$regexp.'/i';
+      if (@preg_match($regexp, '') !== false) {
+        if (!preg_match($regexp, $Monitor->Source()) and !preg_match($regexp, $Monitor->Path()))
+          continue;
+      }
+    }
+    $ids[] = $row['Id'];
+  }
+  return $ids;
+}
+
 function addFilterSelect($name, $options, $selectedValue=null) {
   if ($selectedValue == null) $selectedValue = getFilterSelection($name);
   

@@ -1,2 +1,12 @@
 paths-ignore:
   - dep/
+  # Vendored third-party JavaScript that ZoneMinder ships but does not
+  # maintain. CodeQL flags coding patterns internal to these libraries
+  # (unsafe-jquery-plugin, insecure-randomness, etc.) that are not ZoneMinder
+  # bugs and cannot be fixed here. ZM-authored files in these trees (skin.js,
+  # MonitorStream.js, views/js/*.js, ...) are NOT listed and remain analysed.
+  - web/skins/classic/assets/
+  - web/skins/classic/js/jquery-ui-1.13.2/
+  - web/skins/classic/js/dateTimePicker/
+  - web/skins/classic/js/bootstrap-4.5.0.js
+  - web/js/hls-1.6.13/

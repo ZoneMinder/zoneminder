@@ -181,6 +181,7 @@ target_link_libraries(zm
     chmike::CxxUrl
     martinmoene::span-lite
     ${ZM_BIN_LIBS}
+    ${FILESYSTEM_LIBRARY}
   PRIVATE
     zm-core-interface)
 
@@ -236,8 +237,7 @@ target_link_libraries(zma
     zm-core-interface
     zm
     ${ZM_EXTRA_LIBS}
-    ${CMAKE_DL_LIBS}
-    ${FILESYSTEM_LIBRARY})
+    ${CMAKE_DL_LIBS})
 
 target_link_libraries(zms
   PRIVATE

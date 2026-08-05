@@ -201,7 +201,7 @@ class StreamBase {
     send_objdetect(false),
     connkey(0),
     sd(-1),
-    lock_fd(0),
+    lock_fd(-1),
     paused(false),
     stopped(false),
     step(0),

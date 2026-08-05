@@ -348,6 +348,18 @@ class EventsController extends AppController {
       throw new NotFoundException(__('Invalid event'));
     }
 
+    # Events=Edit is coarse. Enforce the per-monitor ACL too, otherwise a user
+    # denied a monitor can still mutate that monitor's events by direct Id.
+    $this->Event->recursive = -1;
+    $event = $this->Event->find('first', array(
+      'conditions' => array('Event.' . $this->Event->primaryKey => $id)
+    ));
+    $EventObj = new ZM\Event($event['Event']);
+    if ( !$EventObj->canEdit() ) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+      return;
+    }
+
     if ( $this->Event->save($this->request->data) ) {
       $message = 'Saved';
     } else {
@@ -379,6 +391,19 @@ class EventsController extends AppController {
       throw new NotFoundException(__('Invalid event'));
     }
     $this->request->allowMethod('post', 'delete');
+
+    # Events=Edit is coarse. Enforce the per-monitor ACL too, otherwise a user
+    # denied a monitor can still delete that monitor's events by direct Id.
+    $this->Event->recursive = -1;
+    $event = $this->Event->find('first', array(
+      'conditions' => array('Event.' . $this->Event->primaryKey => $id)
+    ));
+    $EventObj = new ZM\Event($event['Event']);
+    if ( !$EventObj->canEdit() ) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+      return;
+    }
+
     if ( $this->Event->delete() ) {
       //$this->loadModel('Frame');
       //$this->Event->Frame->delete();
@@ -540,15 +565,27 @@ class EventsController extends AppController {
       throw new NotFoundException(__('Invalid event'));
     }
 
-    // Get the current value of Archive
+    // Toggling Archived mutates state, so restrict to state-changing verbs (not CSRF-able GET).
+    $this->request->allowMethod('post', 'put');
+
     $archived = $this->Event->find('first', array(
-      'fields' => array('Event.Archived'),
       'conditions' => array('Event.Id' => $id)
     ));
+    $EventObj = new ZM\Event($archived['Event']);
+
     // If 0, 1, if 1, 0
     $archiveVal = (($archived['Event']['Archived'] == 0) ? 1 : 0);
 
-    // Save the new value 
+    // Archiving protects an event from purge, so any user who can view the event may do it.
+    // Un-archiving makes it eligible for purge again, so that requires edit permission.
+    // Both canView() and canEdit() enforce the per-monitor object-level ACL.
+    $allowed = $archiveVal ? $EventObj->canView() : $EventObj->canEdit();
+    if ( !$allowed ) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+      return;
+    }
+
+    // Save the new value
     $this->Event->id = $id;
     $this->Event->saveField('Archived', $archiveVal);
 

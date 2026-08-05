@@ -22,6 +22,18 @@
 
 #include "zm_stream.h"
 
+// Returns the playback buffer fill level as a percentage (0-100).
+// Guards against buffer_count <= 0, which would otherwise raise SIGFPE via
+// modulo/division by zero. processCommand() can run on the command thread
+// before runStream() assigns temp_image_buffer_count, so the count may still
+// be 0 while playback_buffer is already > 0.
+// See https://github.com/ZoneMinder/zoneminder/issues/4936
+inline int MonitorStreamBufferLevel(int write_index, int read_index, int buffer_count) {
+  if (buffer_count <= 0)
+    return 0;
+  return (((write_index - read_index + buffer_count) % buffer_count) * 100) / buffer_count;
+}
+
 class MonitorStream : public StreamBase {
  protected:
   struct SwapImage {

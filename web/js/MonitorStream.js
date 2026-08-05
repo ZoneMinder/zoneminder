@@ -59,6 +59,7 @@ function MonitorStream(monitorData) {
     request: 'stream',
     connkey: this.connKey
   };
+  this.limitCountErrors = 2;
   this.playerPriority = {
     1: { // This setting should always be priority #1.
       name: 'default',
@@ -75,11 +76,11 @@ function MonitorStream(monitorData) {
       countErrors: 0,
       durationErrors: 0
     },
-    //4: {
-    //  name: 'go2rtc_hls', // Doesn't work for live viewing.
-    //  countErrors: 0,
-    //  durationErrors: 0
-    //},
+    100: {
+      name: 'go2rtc_hls', // Doesn't work for live viewing. But it's required for error counting. Let's set the priority after ZMS, i.e., in theory, with Mode=Auto, it will never be selected.
+      countErrors: 0,
+      durationErrors: 0
+    },
     5: {
       name: 'rtsp2web_webrtc',
       countErrors: 0,
@@ -137,10 +138,17 @@ function MonitorStream(monitorData) {
     this.streamCmdTimer = clearInterval(this.streamCmdTimer);
     this.writeTextInfoBlock("Error", {showImg: false});
 
-    // zms returns 403 on a stale auth hash (default TTL 2h). The browser keeps
-    // reconnecting the <img> with the same baked-in src, so each retry generates
-    // another zms warning. Try refreshing the auth hash and rebuilding src
-    // before giving up.
+    // zms returns 403 on a stale auth hash (default TTL 2h). For a live multipart
+    // (mode=jpeg) <img> the browser reconnects on its own using the same baked-in
+    // src (same connkey, same expired hash), outside JS control. Once the hash
+    // expires every native reconnect 403s, storming zms with failures (typically
+    // after the capture daemon drops the stream). Capture the broken URL, then
+    // blank src *synchronously* so the browser's native retry loop stops dead;
+    // nothing reconnects until we have fetched a fresh hash below.
+    const stream = this.getElement();
+    const brokenSrc = (stream && stream.src) ? stream.src : this.url_to_zms;
+    if (stream) stream.src = '';
+
     if (this.authRefreshAttempts >= this.MAX_AUTH_REFRESH_ATTEMPTS) {
       this.writeTextInfoBlock("Error", {showImg: false});
       return;
@@ -159,12 +167,12 @@ function MonitorStream(monitorData) {
             if (data && data.auth) {
               auth_hash = data.auth;
             }
-            const stream = self.getElement();
-            if (stream && stream.src) {
-              const newSrc = stream.src.replace(/auth=\w+/i, 'auth='+auth_hash);
-              stream.src = '';
-              stream.src = newSrc;
-            }
+            const el = self.getElement();
+            if (!el) return;
+            // Use a fresh connkey: the zms process tied to the old connkey has
+            // exited, so reusing it would race a dead socket.
+            self.connKey = self.streamCmdParms.connkey = self.statusCmdParms.connkey = self.genConnKey();
+            el.src = rebuildStreamSrc(brokenSrc, auth_hash, self.connKey);
           })
           .fail(function(jqxhr) {
             // A dead session returns 401; redirect to login instead of retrying
@@ -211,7 +219,8 @@ function MonitorStream(monitorData) {
 
     }
 
-    this.selectedPlayer = p;
+    //this.selectedPlayer = p;
+    this.selectedPlayer = $j('#player').val(); // Selected player in the browser
     // Let's clear out the errors
     for (const key in this.playerPriority) {
       this.playerPriority[key]['countErrors'] = 0;
@@ -456,6 +465,11 @@ function MonitorStream(monitorData) {
     if (statusEl) statusEl.innerText = status;
   };
 
+  this.updateStreamInfoStatusTrack = function(info='') {
+    const statusTrack = document.querySelector('#monitor' + this.id + ' .stream-info-status-track');
+    if (statusTrack) statusTrack.innerText = info;
+  };
+
   /*
   * streamChannel options:
   *   'default' or 'Primary' - Main stream (uses monitor ID, which is ZM restream if RTSPServer enabled)
@@ -529,6 +543,9 @@ function MonitorStream(monitorData) {
     );
     this.handlerEventListener['errorStream'] = manageEventListener.addEventListener(stream, 'error',
         (e) => {
+          clearTimeout(this.mseWaitingErrorReset);
+          const mediaErrorMsg = e?.target?.error?.message || e?.srcElement?.error?.message || 'Unknown media error';
+          console.warn(`Stream playback error for monitor ID=${this.id}.`, `ERROR: ${mediaErrorMsg}`, e);
           this.writeTextInfoBlock("Error");
           this.streamErrorRegistration();
           this.restart(this.currentChannelStream);
@@ -538,6 +555,7 @@ function MonitorStream(monitorData) {
 
   this.start = function(streamChannel = 'default') {
     this.writeTextInfoBlock("Loading...");
+    this.removeText();
     if (streamChannel === null || streamChannel === '' || currentView == 'montage') streamChannel = 'default';
     // Normalize channel name for internal tracking
     if (streamChannel == 'default') {
@@ -651,7 +669,35 @@ function MonitorStream(monitorData) {
     return currentInfoBlock;
   };
 
-  this.stop = function() {
+  this.showText = function(text) {
+    const blockId = "infoText-"+this.id;
+    let block = document.getElementById(blockId);
+    if (!block) {
+      block = document.createElement('span');
+      block.id = blockId;
+      block.classList.add("info-text");
+      this.getElement().parentElement.prepend(block);
+    }
+    if (text !== "" && block.textContent !== text) {
+      if (block.textContent !== "") {
+        // The text already existed, we need to add a new one.
+        block.appendChild(document.createElement('br'));
+        block.appendChild(document.createTextNode(text));
+      } else {
+        block.textContent = text;
+      }
+    }
+  };
+
+  this.removeText = function() {
+    const blockId = "infoText-"+this.id;
+    const block = document.getElementById(blockId);
+    if (block) {
+      block.textContent = '';
+    }
+  };
+
+  this.stop = function(options = {}) {
     manageEventListener.removeEventListener(this.handlerEventListener['killStream']);
     manageEventListener.removeEventListener(this.handlerEventListener['playStream']);
     if (manageEventListener.removeEventListener(this.handlerEventListener['volumechange']) == this.handlerEventListener['volumechange']) this.handlerEventListener['volumechange'] = null;
@@ -667,6 +713,8 @@ function MonitorStream(monitorData) {
       console.warn(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} has already stopped.`);
       return;
     }
+    //this.started = false;
+
     if (-1 !== this.activePlayer.indexOf('zms')) {
       this.writeTextInfoBlock("Stopped", {showImg: false});
     } else {
@@ -679,7 +727,7 @@ function MonitorStream(monitorData) {
 
     if (-1 !== this.activePlayer.indexOf('zms')) {
       // Icon: My current thought is to just tell zms to stop. Don't go to single.
-      if (this.started) this.streamCommand(CMD_STOP);
+      if (this.started && !options.skipStreamCommand) this.streamCommand(CMD_STOP);
     } else if (-1 !== this.activePlayer.indexOf('go2rtc')) {
       if (!(stream.wsState === WebSocket.CLOSED && stream.pcState === WebSocket.CLOSED)) {
         try {
@@ -703,10 +751,8 @@ function MonitorStream(monitorData) {
         stream.srcObject = null;
         this.webrtc = null;
       }
-      if (this.hls) {
-        this.hls.destroy();
-        this.hls = null;
-      }
+      if (this.hls) hlsDestroy(this);
+
       if (-1 !== this.activePlayer.indexOf('mse')) {
         this.stopMse();
       }
@@ -742,7 +788,7 @@ function MonitorStream(monitorData) {
           Very, very rarely, on the MONTAGE PAGE THERE MAY BE AN ERROR OF THE TYPE: TypeError: Failed to execute 'remove' on 'SourceBuffer': The start provided (0) is outside the range (0, 0).
           Possibly due to high CPU load, the browser does not have time to process or the "src" attribute was removed from the object.
           */
-          this.mseSourceBuffer.remove(0, Infinity);
+          if (this.mse.sourceBuffers.length > 0) this.mseSourceBuffer.remove(0, Infinity);
         } catch (e) {
           console.warn(`${dateTimeToISOLocal(new Date())} An error occurred while cleaning Source Buffer for ID=${this.id}`, e);
           reject(e);
@@ -799,22 +845,46 @@ function MonitorStream(monitorData) {
     stream.onload = null;
 
     // this.stop tells zms to stop streaming, but the process remains. We need to turn the stream into an image.
-    if (this.started && (-1 !== this.activePlayer.indexOf('zms')) && this.connKey) {
+    const quit = this.started && (-1 !== this.activePlayer.indexOf('zms')) && this.connKey;
+    if (quit) {
       // Make zms exit, sometimes zms doesn't receive SIGPIPE, so try to send QUIT
       this.streamCommand(CMD_QUIT);
-      this.streamCmdParms.connkey = this.statusCmdParms.connkey = this.connKey = null;
-      this.started = false;
     }
-    // Kill and stop share a lot of the same code... so just call stop
-    this.stop();
+    // Kill and stop share a lot of the same code... so just call stop.
+    // Don't clear started/connKey before this: stop() bails out early when
+    // !started, which would leave statusCmdTimer and streamCmdTimer running and
+    // activePlayer set. Tell it to skip CMD_STOP instead, because zms is already
+    // on its way out and the command would just error against a dead socket.
+    this.stop({skipStreamCommand: quit});
+    if (quit) {
+      this.streamCmdParms.connkey = this.statusCmdParms.connkey = this.connKey = null;
+    }
   };
 
   this.restart = function(channelStream = "default", delay = 200) {
     this.stop();
-    const this_ = this;
-    setTimeout(function() {// During the downtime, the monitor may have already started to work.
-      if (!this_.started) this_.start(channelStream);
-    }, delay);
+    const countErrors = this.getCountStreamErrors(this.player);
+    if (countErrors < this.limitCountErrors) {
+      setTimeout(function(self) {// During the downtime, the monitor may have already started to work.
+        if (!self.started) self.start(channelStream);
+      }, delay, this);
+    } else {
+      if (typeof streamCmdStop === 'function') {
+        // Let's set the correct state for the player control buttons (for example, on the Watch page)
+        streamCmdStop();
+      }
+
+      if (-1 !== this.player.indexOf('zms')) {
+        this.writeTextInfoBlock("Error", {showImg: false});
+      } else {
+        this.writeTextInfoBlock("Error");
+      }
+      this.updateStreamInfo('', 'Error');
+      this.resetCountStreamErrors(this.player);
+      const msg = `Out of ${this.limitCountErrors} consecutive attempts to start a stream for monitor ID=${this.id} using player "${this.player}", none were successful. The stream has been stopped.`;
+      console.warn(msg);
+      this.showText(msg);
+    }
   };
 
   this.pause = function() {
@@ -1580,7 +1650,11 @@ function MonitorStream(monitorData) {
         this.ajaxQueue = jQuery.ajaxQueue({
           url: this.url + (auth_relay?'?'+auth_relay:''),
           xhrFields: {withCredentials: true},
-          data: streamCmdParms,
+          // Snapshot: ajaxQueue defers $.ajax (and therefore data serialization)
+          // until earlier queued requests finish. Callers that pass this.streamCmdParms
+          // directly would otherwise have their command clobbered by the
+          // streamCmdQuery timer setting command=CMD_QUERY before the request fires.
+          data: Object.assign({}, streamCmdParms),
           dataType: 'json'
         })
             .done(this.getStreamCmdResponse.bind(this))
@@ -1690,18 +1764,31 @@ function MonitorStream(monitorData) {
       const webrtcUrl = Go2RTCModUrl;
       this.currentChannelStream = streamChannel;
       const streamSuffix = this.getStreamSuffix(streamChannel);
-      console.log('go2rtc stream:', this.id + streamSuffix);
+      // When the native stream produced no decodable video, request go2rtc's
+      // server-side H.264 transcode of the primary stream instead.
+      const streamName = this.go2rtcTranscodeTried ? (this.id + '_h264') : (this.id + streamSuffix);
+      console.log('go2rtc stream:', streamName);
       webrtcUrl.protocol = (url.protocol=='https:') ? 'wss:' : 'ws';
       webrtcUrl.pathname += "/ws";
-      webrtcUrl.search = 'src=' + this.id + streamSuffix;
+      webrtcUrl.search = 'src=' + streamName;
       stream.src = webrtcUrl.href;
 
       this.webrtc = stream; // track separately do to api differences between video tag and video-stream
-      if (-1 != this.player.indexOf('_')) {
+      if (this.go2rtcTranscodeTried) {
+        // Force MSE for the transcode: go2rtc's on-the-fly H.264 does not carry the
+        // periodic parameter sets WebRTC needs, so over WebRTC the browser receives
+        // packets but assembles no frames.  MSE (fragmented MP4) decodes it fine.
+        stream.mode = 'mse';
+      } else if (-1 != this.player.indexOf('_')) {
         stream.mode = this.player.substring(this.player.indexOf('_')+1);
       }
       const video_el = this.getAVStream();
-      if (video_el) video_el.muted = this.muted;
+      if (video_el) {
+        video_el.muted = this.muted;
+      } else {
+        console.warn(`go2rtc DOM element of video stream for monitor with ID=${this.id} not found`);
+        return;
+      }
       this.handlerEventListenerStream(video_el);
 
       clearInterval(this.statusCmdTimer); // Fix for issues in Chromium when quickly hiding/showing a page. Doesn't clear statusCmdTimer when minimizing a page https://stackoverflow.com/questions/9501813/clearinterval-not-working
@@ -1728,7 +1815,12 @@ function MonitorStream(monitorData) {
 
       const rtsp2webModUrl = url;
       const video_el = this.getAVStream();
-      if (video_el) video_el.muted = this.muted;
+      if (video_el) {
+        video_el.muted = this.muted;
+      } else {
+        console.warn(`rtsp2web DOM element of video stream for monitor with ID=${this.id} not found`);
+        return;
+      }
       this.handlerEventListenerStream(video_el);
       rtsp2webModUrl.username = '';
       rtsp2webModUrl.password = '';
@@ -1750,17 +1842,41 @@ function MonitorStream(monitorData) {
             maxBufferLength: 10,
             maxMaxBufferLength: 30,
           });
+
+          /* For debug ALL events HLS
+          const self = this;
+          Object.keys(Hls.Events).forEach(function(eventName) {
+            self.hls.on(Hls.Events[eventName], function(event, data) {
+              console.debug('HLS Event = ', eventName);
+              console.debug('HLS Event data = ', data);
+            });
+          });
+          */
+
+          this.hls.on(Hls.Events.MEDIA_ATTACHING, function(event, data) {
+            console.debug(`HLS Event = MEDIA_ATTACHING for monitor ID=${this.id}`);
+          }, this);
+          this.hls.on(Hls.Events.BUFFER_CODECS, function(event, data) {
+            // Triggers if there is an audio track.
+            console.log(`For monitor with ID=${this.id}, the "${data.audio.codec}" audio codec is used.`);
+            if (data.audio.codec.indexOf('mp4a.40.') > -1) {
+              // AAC: mp4a.40.2 - HLS can't play it, so the "Loading" status will always be displayed.
+              // PCM, G.711A, G.711Mu, G.726, G.723 - no audio track
+              this.updateStreamInfo('', `Error. AAC codec "${data.audio.codec}" is not supported.`); //HLS
+              this.streamErrorRegistration();
+              hlsDestroy(this);
+              this.restart(this.currentChannelStream);
+            }
+          }, this);
           this.hls.on(Hls.Events.MEDIA_ATTACHED, function(event, data) {
             console.log(`Video and hls.js are now bound together for monitor ID=${this.id}`);
-            this.updateStreamInfo('', ''); //HLS
-            //getTracksFromStream(this); //HLS
           }, this);
           this.hls.on(Hls.Events.ERROR, function(event, data) {
             console.warn("HLS Event = ERROR", "\n", "event:", event, "\n", "errorType:", data.type, "\n", "errorDetails:", data.details, "\n", "errorFatal:", data.fatal);
+            if (!data || !data.fatal) return;
             this.updateStreamInfo('', 'Error'); //HLS
             this.streamErrorRegistration();
-            if (!data || !data.fatal) return;
-            this.hls.destroy();
+            hlsDestroy(this);
             this.restart(this.currentChannelStream);
           }, this);
           this.hls.loadSource(hlsUrl.href);
@@ -1768,6 +1884,11 @@ function MonitorStream(monitorData) {
         } else if (stream.canPlayType('application/vnd.apple.mpegurl')) {
           stream.src = hlsUrl.href;
         }
+
+        video_el.onplay = (event) => {
+          this.updateStreamInfo('', '');
+          this.resetCountStreamErrors(this.activePlayer);
+        };
         this.activePlayer = 'rtsp2web_hls';
       } else if (-1 !== this.player.indexOf('mse')) {
         const mseUrl = rtsp2webModUrl;
@@ -1799,7 +1920,12 @@ function MonitorStream(monitorData) {
     stream.setAttribute("autoplay", "");
     stream.setAttribute("muted", this.muted);
     const video_el = this.getAVStream();
-    if (video_el) video_el.muted = this.muted;
+    if (video_el) {
+      video_el.muted = this.muted;
+    } else {
+      console.warn(`janus DOM element of video stream for monitor with ID=${this.id} not found`);
+      return;
+    }
     this.handlerEventListenerStream(video_el);
     if (ZM_JANUS_PATH) {
       server = ZM_JANUS_PATH;
@@ -1897,20 +2023,15 @@ function MonitorStream(monitorData) {
     if (!currentPlayer) currentPlayer = this.player;
     if (!currentPlayer) currentPlayer = this.player = this.defaultPlayer;
 
-    let countErrors = 0;
-    for (const key in this.playerPriority) {
-      if (-1 !== currentPlayer.indexOf(this.playerPriority[key]['name'])) {
-        countErrors = parseInt(this.playerPriority[key]['countErrors'], 10);
-        if (countErrors > 0) console.debug(`${countErrors} playback errors found for player "${currentPlayer}"`);
-      }
-    }
+    const countErrors = this.getCountStreamErrors(currentPlayer);
+    if (countErrors > 0) console.debug(`${countErrors} playback errors found for player "${currentPlayer}"`);
 
     if ((currentPlayer && countErrors === 0) || (this.selectedPlayer && this.selectedPlayer === currentPlayer)) { // selectedPlayer pins only when it matches the active selection
       if (this.Go2RTCEnabled && (-1 !== currentPlayer.indexOf('go2rtc'))) {
         this.select_go2rtc(streamChannel);
-      } else if (this.janusEnabled && (-1 !== currentPlayer.indexOf('janus'))) {
+      } else if (this.janusEnabled && (-1 !== currentPlayer.indexOf('janus')) && streamChannel.toLowerCase().indexOf("primary") > -1 && this.selectedPlayer !== 'go2rtc') { // To avoid confusion, since Janus can only work with the first channel & selectedPlayer !== "Go2RTC Auto"
         this.select_janus(streamChannel);
-      } else if (this.RTSP2WebEnabled && (-1 !== currentPlayer.indexOf('rtsp2web'))) {
+      } else if (this.RTSP2WebEnabled && (-1 !== currentPlayer.indexOf('rtsp2web')) && this.selectedPlayer !== 'go2rtc') {
         this.select_rtsp2web(streamChannel);
       } else if (-1 !== currentPlayer.indexOf('zms')) {
         this.select_zms();
@@ -1921,15 +2042,6 @@ function MonitorStream(monitorData) {
       }
     } else {
       this.selectNextPlayer(currentPlayer);
-    }
-  };
-
-  this.streamErrorRegistration = function() {
-    const currentPlayer = this.player;
-    for (const key in this.playerPriority) {
-      if (-1 !== currentPlayer.indexOf(this.playerPriority[key]['name'])) {
-        this.playerPriority[key]['countErrors'] = parseInt(this.playerPriority[key]['countErrors'], 10) + 1;
-      }
     }
   };
 
@@ -1953,6 +2065,7 @@ function MonitorStream(monitorData) {
           if (nextName.indexOf('go2rtc') !== -1 && !this.Go2RTCEnabled) continue;
           if (nextName.indexOf('rtsp2web') !== -1 && !this.RTSP2WebEnabled) continue;
           if (nextName.indexOf('janus') !== -1 && !this.janusEnabled) continue;
+          if (this.selectedPlayer === 'go2rtc' && nextName.indexOf('go2rtc') === -1 && nextName.indexOf('zms') === -1 ) continue;
           if (parseInt(this.playerPriority[nextKey]['countErrors'], 10) === 0) {
             this.player = nextName;
             this.restart(this.currentChannelStream);
@@ -1969,6 +2082,38 @@ function MonitorStream(monitorData) {
     if (!foundNextPlayer) {
       this.player = 'zms';
       this.restart(this.currentChannelStream);
+    }
+  };
+
+  this.streamErrorRegistration = function() {
+    const currentPlayer = this.player;
+    for (const key in this.playerPriority) {
+      if (-1 !== currentPlayer.indexOf(this.playerPriority[key]['name'])) {
+        this.playerPriority[key]['countErrors'] = parseInt(this.playerPriority[key]['countErrors'], 10) + 1;
+        break;
+      }
+    }
+  };
+
+  this.getCountStreamErrors = function(player) {
+    if (!player) return 0;
+    let countErrors = 0;
+    for (const key in this.playerPriority) {
+      if (-1 !== player.indexOf(this.playerPriority[key]['name'])) {
+        countErrors = parseInt(this.playerPriority[key]['countErrors'], 10);
+        break;
+      }
+    }
+    return countErrors;
+  };
+
+  this.resetCountStreamErrors = function(player) {
+    if (!player) return;
+    for (const key in this.playerPriority) {
+      if (-1 !== player.indexOf(this.playerPriority[key]['name'])) {
+        this.playerPriority[key]['countErrors'] = 0;
+        break;
+      }
     }
   };
 } // end class MonitorStream
@@ -2049,6 +2194,7 @@ async function attachVideo(monitorStream) {
           monitorStream.restart(monitorStream.currentChannelStream);
         }
         monitorStream.updateStreamInfo('', ''); //JANUS
+        monitorStream.resetCountStreamErrors(monitorStream.activePlayer);
         //getTracksFromStream(monitorStream); //JANUS
       }
     },
@@ -2196,7 +2342,7 @@ function startRTSP2WebPlay(videoEl, url, stream) {
         }
       },
       error: function(xhr, status, error) {
-        console.warn('Error request localDescription:', error, xhr.responseText);
+        console.warn('RTSP2Web_webrtc Error request localDescription:', error, xhr.responseText);
         stream.updateStreamInfo('', 'Error'); //WEBRTC
         stream.streamErrorRegistration();
         stream.restart(stream.currentChannelStream);
@@ -2273,9 +2419,12 @@ function mseListenerSourceopen(context, videoEl, url) {
     console.log(`${dateTimeToISOLocal(new Date())} WebSocket MSE CLOSED for a video object ID=${context.id}.`);
   };
   context.wsMSE.onerror = function(event) {
-    console.warn(`${dateTimeToISOLocal(new Date())} WebSocket MSE ERROR for a video object ID=${context.id}:`, event);
-    context.streamErrorRegistration();
-    if (context.started) context.restart();
+    // Firefox will display error 1006 when closing the socket. There's likely a problem with RTSP2Web.
+    console.warn(`${dateTimeToISOLocal(new Date())} WebSocket MSE ERROR for a video object ID=${context.id} [stream status: ${(context.started) ? "started" : "stopped"}]:`, event);
+    if (context.started) {
+      context.streamErrorRegistration();
+      context.restart(context.currentChannelStream);
+    }
   };
   context.wsMSE.onmessage = function(event) {
     if (!context.mse || (context.mse && context.mse.readyState !== "open")) return;
@@ -2293,10 +2442,16 @@ function mseListenerSourceopen(context, videoEl, url) {
         console.log(`WebSocket MSE for a video object ID=${context.id} codec used: ${mimeCodec}`);
       } else {
         const msg = `WebSocket MSE for a video object ID=${context.id} codec '${mimeCodec}' not supported. Monitor '${context.name}' ID=${context.id} not starting.`;
-        console.log(msg);
-        context.getElement().before(document.createTextNode(msg));
-        context.stop();
+        console.warn(msg);
+        context.showText(msg);
         context.RTSP2WebType = null; // Avoid repeated restarts
+        if (context.selectedPlayer) {
+          context.stop();
+        } else {
+          // Select next player only for "Auto" mode
+          context.streamErrorRegistration();
+          context.selectNextPlayer(context.player);
+        }
         return;
       }
 
@@ -2311,7 +2466,7 @@ function mseListenerSourceopen(context, videoEl, url) {
 }
 
 function startMsePlay(context, videoEl, url) {
-  console.log('startMsePlay');
+  console.log(`startMsePlay for monitor with ID=${context.id}`);
   var startPermitted = true;
   if (!context.MSEBufferCleared) {
     startPermitted = false;
@@ -2326,15 +2481,20 @@ function startMsePlay(context, videoEl, url) {
   if (startPermitted) {
     clearTimeout(context.waitingStart);
   } else {
-    context.waitingStart = setTimeout(function() {
-      startMsePlay(context, videoEl, url);
-    }, 100);
+    context.waitingStart = setTimeout(function(_context) {
+      if (context.started) startMsePlay(context, videoEl, url);
+    }, 100, context);
     return;
   }
 
   context.mse = new MediaSource();
   videoEl.onplay = (event) => {
-    context.updateStreamInfo('', ''); //MSE
+    context.mseWaitingErrorReset = setTimeout(function(self) {
+      // If the video is in H.265, the browser may start playing (even if it doesn't support H.265) and an error may immediately appear.
+      // You need to wait a bit before resetting the error. This will allow for more accurate error counting.
+      self.updateStreamInfo('', ''); //MSE
+      self.resetCountStreamErrors(context.activePlayer);
+    }, 500, context);
     //getTracksFromStream(context); //MSE
     context.streamStartTime = (Date.now() / 1000).toFixed(2);
     if (videoEl.buffered.length > 0 && videoEl.currentTime < videoEl.buffered.end(videoEl.buffered.length - 1) - 0.1) {
@@ -2365,6 +2525,25 @@ function startMsePlay(context, videoEl, url) {
     videoEl.src = window.URL.createObjectURL(context.mse);
   }
   $j('#delay'+context.id).removeClass('hidden');
+
+  // This is necessary if the browser doesn't allow automatic playback with sound.
+  const self = context;
+  videoEl.play().then(() => {
+    console.debug("RTSP2Web type MSE started playing the video stream successfully.");
+  })
+      .catch((er) => {
+        if (er.name === 'NotAllowedError' && !videoEl.muted) {
+          videoEl.muted = true;
+          videoEl.play().then(() => {
+            console.debug(self.activePlayer + " video player started playing after muting");
+          })
+              .catch((retryError) => {
+                console.warn(retryError);
+              });
+        } else {
+          console.warn(er);
+        }
+      });
 }
 
 function pushMsePacket(videoEl, context) {

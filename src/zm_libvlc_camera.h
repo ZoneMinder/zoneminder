@@ -36,7 +36,7 @@ struct LibvlcPrivateData {
   uint8_t* buffer;
   uint8_t* prevBuffer;
   time_t prevTime;
-  uint32_t bufferSize;
+  size_t bufferSize;
   std::mutex mutex;
 
   bool newImage;

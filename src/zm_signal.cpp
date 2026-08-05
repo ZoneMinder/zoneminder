@@ -26,7 +26,7 @@
 #define TRACE_SIZE 16
 
 bool zm_reload = false;
-bool zm_terminate = false;
+std::atomic<bool> zm_terminate = false;
 bool zm_panic = false;
 
 RETSIGTYPE zm_hup_handler(int signal) {

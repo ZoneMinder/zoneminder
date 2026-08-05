@@ -58,7 +58,8 @@ int SWScale::Convert(
   AVFrame *out_frame
 ) {
 
-  AVPixelFormat format = fix_deprecated_pix_fmt((AVPixelFormat)in_frame->format);
+  AVPixelFormat orig_format = (AVPixelFormat)in_frame->format;
+  AVPixelFormat format = fix_deprecated_pix_fmt(orig_format);
   /* Get the context */
   swscale_ctx = sws_getCachedContext(swscale_ctx,
                                      in_frame->width, in_frame->height, format,
@@ -68,6 +69,7 @@ int SWScale::Convert(
     Error("Failed getting swscale context");
     return -6;
   }
+  zm_sws_set_input_range(swscale_ctx, orig_format);
   /* Do the conversion */
   if (!sws_scale(swscale_ctx,
                  in_frame->data, in_frame->linesize, 0, in_frame->height,
@@ -114,6 +116,7 @@ int SWScale::Convert(
     return -4;
   }
 
+  const enum _AVPIXELFORMAT orig_in_pf = in_pf;
   in_pf = fix_deprecated_pix_fmt(in_pf);
 
   /* Warn if the input or output pixelformat is not supported */
@@ -155,6 +158,7 @@ int SWScale::Convert(
     Error("Failed getting swscale context");
     return -6;
   }
+  zm_sws_set_input_range(swscale_ctx, orig_in_pf);
 
   /* Fill in the buffers. The alignments describe how the caller's buffers
    * are actually laid out — they are facts about the buffers, not tuning

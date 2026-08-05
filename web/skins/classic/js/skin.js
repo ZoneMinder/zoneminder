@@ -99,7 +99,17 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
         url = element.getAttribute("data-url");
       }
       evt.preventDefault();
-      window.location.assign(url);
+      // Only navigate to safe schemes; block javascript:/data:/vbscript: URLs
+      // in href/data-url so a crafted attribute cannot run script on click.
+      try {
+        const parsed = new URL(String(url), document.baseURI);
+        const proto = parsed.protocol.toLowerCase();
+        if (proto === 'http:' || proto === 'https:') {
+          window.location.assign(parsed.href);
+        }
+      } catch {
+        // Ignore invalid URLs
+      }
     });
   });
 
@@ -538,51 +548,104 @@ if ( currentView != 'none' && currentView != 'login' ) {
 //Shows a message if there is an error in the streamObj or the stream doesn't exist.  Returns true if error, false otherwise.
 function checkStreamForErrors(funcName, streamObj) {
   if ( !streamObj ) {
-    Error(funcName+': stream object was null');
+    zmError(funcName+': stream object was null');
     return true;
   }
   if ( streamObj.responseJSON ) {
     if (streamObj.responseJSON.result == "Error") {
-      Error(funcName+' stream error: '+streamObj.responseJSON.message);
+      zmError(funcName+' stream error: '+streamObj.responseJSON.message);
       return true;
     }
   } else if ( streamObj.result == "Error" ) {
-    Error(funcName+' stream error: '+streamObj.message);
+    zmError(funcName+' stream error: '+streamObj.message);
     return true;
   }
   return false;
 }
 
-function secsToTime( seconds ) {
-  var timeString = "--";
+function formatSeconds(seconds, round='') {
+  let timeSecs = '';
+  if ( seconds < 10 ) {
+    timeSecs = '0'+ ((round) ? seconds.toFixed(round) : seconds.toString().substr( 0, 4 ));
+  } else {
+    timeSecs = (round) ? seconds.toFixed(round) : seconds.toString().substr( 0, 5 );
+  }
+  return timeSecs;
+}
+
+function secsToTime(seconds, round='') {
+  let timeString = "--";
   if ( seconds < 60 ) {
-    timeString = seconds.toString();
+    timeString = (round) ? seconds.toFixed(round) : seconds.toString(10);
   } else if ( seconds < 60*60 ) {
-    var timeMins = parseInt(seconds/60);
-    var timeSecs = seconds%60;
-    if ( timeSecs < 10 ) {
-      timeSecs = '0'+timeSecs.toString().substr( 0, 4 );
-    } else {
-      timeSecs = timeSecs.toString().substr( 0, 5 );
-    }
+    const timeMins = parseInt(seconds/60);
+    const timeSecs = formatSeconds(seconds%60, round);
     timeString = timeMins+":"+timeSecs;
   } else {
-    var timeHours = parseInt(seconds/3600);
-    var timeMins = (seconds%3600)/60;
-    var timeSecs = seconds%60;
+    const timeHours = parseInt(seconds/3600);
+    var timeMins = parseInt((seconds%3600)/60);
+    const timeSecs = formatSeconds(seconds%60, round);
     if ( timeMins < 10 ) {
-      timeMins = '0'+timeMins.toString().substr( 0, 4 );
-    } else {
-      timeMins = timeMins.toString().substr( 0, 5 );
-    }
-    if ( timeSecs < 10 ) {
-      timeSecs = '0'+timeSecs.toString().substr( 0, 4 );
-    } else {
-      timeSecs = timeSecs.toString().substr( 0, 5 );
+      timeMins = '0'+timeMins;
     }
     timeString = timeHours+":"+timeMins+":"+timeSecs;
   }
   return timeString;
+}
+
+// Timeline/epoch helpers. ZoneMinder stores and displays times in the server's
+// timezone (matching how events are recorded), not the browser's. Formatting
+// epoch seconds in the browser timezone shows the wrong wall clock time when the
+// two differ, so anchor to the server timezone here. refs #4977
+// Requires luxon's DateTime (loaded globally as `DateTime`), the ZM_TIMEZONE
+// constant (from skin.js.php) and, as a fallback, server_utc_offset (from the
+// montagereview view).
+function serverTimeZone() {
+  if (typeof ZM_TIMEZONE !== 'undefined' && ZM_TIMEZONE) return ZM_TIMEZONE;
+  // ZM_TIMEZONE not configured: fall back to the fixed offset the server
+  // reported at page load (does not follow DST, but keeps display consistent).
+  if (typeof server_utc_offset !== 'undefined') {
+    const sign = server_utc_offset < 0 ? '-' : '+';
+    const abs = Math.abs(server_utc_offset);
+    const hh = ('0' + Math.floor(abs / 3600)).slice(-2);
+    const mm = ('0' + Math.floor((abs % 3600) / 60)).slice(-2);
+    return 'UTC' + sign + hh + ':' + mm;
+  }
+  return 'local';
+}
+
+// Parse a 'yyyy-MM-dd HH:mm:ss' string (server-local wall clock) into a luxon
+// DateTime anchored to the server timezone.
+function inputstr2dt(str) {
+  return DateTime.fromFormat(str, 'yyyy-MM-dd HH:mm:ss', {zone: serverTimeZone()});
+}
+
+// Format epoch seconds as 'yyyy-MM-ddTHH:mm:ss' in the server timezone.
+function secs2inputstr(s) {
+  if (!parseInt(s)) {
+    console.warn("Invalid value for " + s + " seconds");
+    return '';
+  }
+  const dt = DateTime.fromSeconds(parseInt(s), {zone: serverTimeZone()});
+  if (!dt.isValid) {
+    console.warn("No valid date for " + s + " seconds");
+    return '';
+  }
+  return dt.toFormat("yyyy-MM-dd'T'HH:mm:ss");
+}
+
+// Format epoch seconds as 'yyyy-MM-dd HH:mm:ss' in the server timezone.
+function secs2dbstr(s) {
+  if (!parseInt(s)) {
+    console.warn("Invalid value for " + s + " seconds");
+    return '';
+  }
+  const dt = DateTime.fromSeconds(parseInt(s), {zone: serverTimeZone()});
+  if (!dt.isValid) {
+    console.warn("No valid date for " + s + " seconds");
+    return '';
+  }
+  return dt.toFormat('yyyy-MM-dd HH:mm:ss');
 }
 
 function submitTab(evt) {
@@ -1085,7 +1148,11 @@ function stateStuff(action, runState, newState) {
 }
 
 function strip_html(string) {
-  return string.replace(/<[^>]+>/g, '');
+  // Parse as HTML and return only the text content. Regex tag-stripping is
+  // an incomplete sanitizer (e.g. nested/overlapping tags) and can backtrack;
+  // letting the parser extract textContent is both correct and linear.
+  const doc = new DOMParser().parseFromString(String(string), 'text/html');
+  return doc.body.textContent || '';
 }
 
 function escapeHTML(text) {
@@ -1375,9 +1442,13 @@ function determineOverlaySrc(img, streamType, monitorId, useGo2rtc, m3u8Exists) 
   return streamSrc;
 }
 
-function calculateOverlayDimensions(img) {
-  const imgWidth = img.naturalWidth || img.width;
-  const imgHeight = img.naturalHeight || img.height;
+/*
+* obj - an object of type VIDEO or IMG. VIDEO takes precedence.
+*/
+function calculateOverlayDimensions(obj) {
+  const imgWidth = obj.videoWidth || obj.naturalWidth || obj.width;
+  const imgHeight = obj.videoHeight || obj.naturalHeight || obj.height;
+
   if (!imgWidth || !imgHeight) return null;
 
   const aspectRatio = imgWidth / imgHeight;
@@ -1454,7 +1525,7 @@ function createThumbnailOverlay(img, overlaySrc, dimensions, streamType, monitor
   }
 
   if (isLive && useGo2rtc) {
-    createGo2rtcStream(container, go2rtcSrc, monitorId || go2rtcMid, fallbackToMjpeg);
+    createGo2rtcStream(container, img, go2rtcSrc, monitorId || go2rtcMid, fallbackToMjpeg);
   } else if (streamType === 'rtsp2web') {
     createRtsp2webStream(container, img, monitorId, fallbackToMjpeg, eventStart, statusBar);
   } else if (m3u8Exists && currentView !== 'frames') {
@@ -1494,22 +1565,34 @@ function formatDateTime(date) {
   return date.toLocaleString(undefined, options);
 }
 
-function createGo2rtcStream(container, src, mid, fallbackToMjpeg) {
+function createGo2rtcStream(container, img, src, mid, fallbackToMjpeg) {
   ensureVideoStreamLoaded().then(function() {
     if (!document.getElementById('thumb-overlay')) return;
 
+    const channel = (img.dataset.streamChannel && img.dataset.streamChannel.toLowerCase().indexOf("direct") !== -1 ) ? img.dataset.streamChannel : 'CameraDirectPrimary';
     const url = new URL(src);
     url.protocol = (url.protocol === 'https:') ? 'wss:' : 'ws:';
     url.pathname += '/ws';
     //url.search = 'src=' + mid + '_0';
-    url.search = 'src=' + mid + '_CameraDirectPrimary';
+    url.search = 'src=' + mid + '_' + channel;
 
     const stream = document.createElement('video-stream');
+    stream.handlerEventListener = {};
     stream.style.cssText = 'width: 100%; height: 100%; display: block;';
     stream.background = true;
     stream.muted = getCookie('zmWatchMuted') === 'true';
     stream.src = url.href;
     container.appendChild(stream);
+
+    stream.handlerEventListener['go2rtc.events.error'] = manageEventListener.addEventListener(stream, 'go2rtc.events.error',
+        (e) => {
+          console.debug('Go2RTC playback error:', e.detail);
+          clearTimeout(stream._fallbackTimer);
+          manageEventListener.removeEventListener(stream.handlerEventListener['go2rtc.events.error']);
+          stream.remove();
+          fallbackToMjpeg();
+        }
+    );
 
     const attachPlayListener = function() {
       const innerVideo = stream.querySelector('video');
@@ -1562,8 +1645,18 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg, eventS
     container.appendChild(video);
     video.streamType = 'rtsp2web';
 
+    // Fallback after 5s if video hasn't loaded
+    video._fallbackTimer = setTimeout(function() {
+      if (video.readyState < 2) {
+        hlsDestroy(video);
+        video.remove();
+        fallbackToMjpeg();
+      }
+    }, 5000);
+
     if (Hls.isSupported()) {
       const hls = new Hls();
+      video._hls = hls;
       hls.loadSource(hlsUrl);
       hls.attachMedia(video);
 
@@ -1572,6 +1665,7 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg, eventS
         if (infoStatusBar) infoStatusBar.innerHTML = ' [RTSP2Web Loading] ';
         thumbnailVideoPlay(video, 'RTSP2Web', eventStart, statusBar);
         console.debug("HLS Event = MEDIA_ATTACHED");
+        clearTimeout(video._fallbackTimer);
       });
       hls.on(Hls.Events.FRAG_LOADED, () => {
         console.debug("HLS Event = FRAG_LOADED");
@@ -1588,44 +1682,92 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg, eventS
       hls.on(Hls.Events.ERROR, function(event, data) {
         console.warn("HLS Event = ERROR", "\n", "event:", event, "\n", "errorType:", data.type, "\n", "errorDetails:", data.details, "\n", "errorFatal:", data.fatal);
         if (!data || !data.fatal) return;
-        hls.destroy();
+        hlsDestroy(video);
         clearTimeout(video._fallbackTimer);
         video.remove();
         fallbackToMjpeg();
       });
-      video._hls = hls;
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       // Native HLS support (Safari)
       video.src = hlsUrl;
       thumbnailVideoPlay(video, 'RTSP2Web', eventStart, statusBar);
       video.addEventListener('error', function() {
         video.remove();
+        clearTimeout(video._fallbackTimer);
         fallbackToMjpeg();
         return;
       });
     } else {
       video.remove();
+      clearTimeout(video._fallbackTimer);
       fallbackToMjpeg();
       return;
     }
-
-    // Fallback after 5s if video hasn't loaded
-    video._fallbackTimer = setTimeout(function() {
-      if (video.readyState < 2) {
-        if (video._hls) video._hls.destroy();
-        video.remove();
-        fallbackToMjpeg();
-      }
-    }, 5000);
   }).catch(function(e) {
     console.error(e);
     fallbackToMjpeg();
   });
 }
 
+/*
+* obj - can be either an HLS instance or an object containing an HLS instance in its property.
+*/
+const hlsDestroy = function(obj) {
+  if (typeof Hls === 'undefined') {
+    console.warn("The hls.js library is not loaded.");
+    return;
+  }
+  if (!obj) {
+    console.warn("No object was passed as an argument to the hlsDestroy() function.");
+    return;
+  }
+  let hls = null;
+  let propertyName = null;
+  if (obj instanceof Hls) {
+    hls = obj;
+  } else if ('hls' in obj) {
+    hls = obj.hls;
+    propertyName = 'hls';
+  } else if ('_hls' in obj) {
+    hls = obj._hls;
+    propertyName = '_hls';
+  }
+
+  if (!hls || !(hls instanceof Hls)) {
+    for (const key of Object.keys(obj)) {
+      const value = obj[key];
+      if (value instanceof Hls) {
+        hls = value;
+        propertyName = key;
+        break;
+      }
+    }
+  }
+
+  if (hls) {
+    hls.off();
+    hls.destroy();
+    hls = null;
+    // If propertyName is null, it means an HLS instance was passed to the function.
+    if (propertyName) obj[propertyName] = null;
+  } else {
+    console.warn(`Hls for object`, obj, `cannot be destroyed because it is not loaded.`);
+  }
+};
+
 function thumbnailVideoPlay(video, currentMode, eventStart, statusBar) {
   const infoStatusBar = (statusBar) ? statusBar.querySelector("#info-status-bar") : null;
   video.play().then(() => {
+    if (currentMode == 'RTSP2Web') {
+      const container = document.getElementById('monitor-thumb-overlay');
+      if (container) {
+        const dimensions = calculateOverlayDimensions(video);
+        if (dimensions) {
+          container.style.width = dimensions.width+'px';
+          container.style.height = dimensions.height+'px';
+        }
+      }
+    }
     if (infoStatusBar && currentMode) infoStatusBar.innerHTML = ' [' + currentMode + '] ';
     console.debug(currentMode + " video player started playing");
     if (eventStart && statusBar) updateTimeWallClock(video, eventStart, statusBar);
@@ -1770,8 +1912,8 @@ function playEventHLS(container, img, monitorId, fallbackToMjpeg, statusBar, eve
       video._fallbackTimer = setTimeout(function() {
         // If the index.m3u8 manifest is bad, playback may not start, although there will be no errors.
         if (video.readyState < 2) {
+          hlsDestroy(video);
           video.remove();
-          hls.destroy();
           tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar);
         }
       }, 2000);
@@ -1791,8 +1933,8 @@ function playEventHLS(container, img, monitorId, fallbackToMjpeg, statusBar, eve
       hls.on(Hls.Events.ERROR, function(event, data) {
         console.warn("HLS Event = ERROR", "\n", "event:", event, "\n", "errorType:", data.type, "\n", "errorDetails:", data.details, "\n", "errorFatal:", data.fatal);
         if (!data || !data.fatal) return;
+        hlsDestroy(video);
         video.remove();
-        hls.destroy();
         clearTimeout(video._fallbackTimer);
         tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar);
       });
@@ -1861,6 +2003,7 @@ function thumbnail_onmouseout(event) {
 
 function cleanupVideoStream(videoStream) {
   if (!videoStream) return;
+  manageEventListener.removeEventListener(videoStream.handlerEventListener['go2rtc.events.error']);
   if (videoStream._fallbackTimer) clearTimeout(videoStream._fallbackTimer);
   videoStream.close();
 }
@@ -1869,10 +2012,7 @@ function cleanupVideoElement(video) {
   if (!video) return;
   if (video._fallbackTimer) clearTimeout(video._fallbackTimer);
   clearInterval(video._fallbackTimerTime);
-  if (video._hls) {
-    video._hls.destroy();
-    video._hls = null;
-  }
+  if (video._hls) hlsDestroy(video);
   video.pause();
   video.src = '';
   video.load();
@@ -2664,45 +2804,37 @@ function initDatepicker() {
 }
 
 function managePanZoomButton(evt) {
-  var url = null;
+  var url = "";
   if (panZoomEnabled) {
-    const targetId = evt.target.id;
-    var monitorId_ = null; // Resolve variable conflict. ToDo: In general, you need to use objects.
-    if (!evt.target.closest('.imageFeed') && !(evt.target.closest('#videoFeed'))) {
-      // Click was outside '.imageFeed'
+    const target = evt.target.closest('[id^="imageFeed"], [id^="videoFeedStream"], [id^="videoFeed"]');
+    if (!target) {
+      // Click was outside imageFeed & videoFeedStream
       $j('[id^="button_zoom"]').addClass('hidden');
       return;
-    } else {
-      $j('#button_zoom' + stringToNumber(targetId)).removeClass('hidden');
     }
-    if (!('getAttribute' in evt.currentTarget)) return; // Touchscreen tap on '.imageFeed' does not have 'currentTarget'
-    //evt.preventDefault();
-    // We are looking for an object with an ID, because there may be another element in the button.
-    const obj = targetId ? evt.target : evt.target.parentElement;
-    if (!obj) {
-      console.log("No obj found", targetId, evt.target, evt.target.parentElement);
+    let mid = stringToNumber(target.id);
+    if (Number.isNaN(mid)) {
+      // For example, MJPEG on Event page
+      mid = stringToNumber(target.querySelector('[id^="imageFeed"], [id^="videoFeedStream"]')?.id);
+    }
+    if (Number.isNaN(mid)) {
+      console.log("Unable to get monitor ID for the clicked object", evt.target);
       return;
     }
+    const buttonClicked = evt.target.closest('button, .btn');
+    $j('#button_zoom' + mid).removeClass('hidden');
 
-    if (currentView == 'watch') {
-      monitorId_ = monitorId;
-    } else if (currentView == 'montage') {
-      // On Montage page with mode==EDITING it is forbidden to use PanZoom
-      if (mode == EDITING) return;
-      monitorId_ = evt.currentTarget.getAttribute("data-monitor-id");
-    } else if (currentView == 'event') {
-      monitorId_ = eventData.MonitorId;
-    }
-
-    if (obj.className.includes('btn-view-watch')) {
-      url = '?view=watch&mid='+monitorId_;
-    } else if (obj.className.includes('btn-edit-monitor')) {
-      url = '?view=monitor&mid='+monitorId_;
-    } else if (obj.className.includes('btn-fullscreen')) {
-      if (document.fullscreenElement) {
-        closeFullscreen();
-      } else {
-        openFullscreen(document.getElementById('monitor'+evt.currentTarget.getAttribute("data-monitor-id")));
+    if (buttonClicked) {
+      if (buttonClicked.className.includes('btn-view-watch')) {
+        url = '?view=watch&mid='+mid;
+      } else if (buttonClicked.className.includes('btn-edit-monitor')) {
+        url = '?view=monitor&mid='+mid;
+      } else if (buttonClicked.className.includes('btn-fullscreen')) {
+        if (document.fullscreenElement) {
+          closeFullscreen();
+        } else {
+          openFullscreen(document.getElementById('monitor'+mid));
+        }
       }
     }
     if (url) {
@@ -2712,9 +2844,12 @@ function managePanZoomButton(evt) {
         window.location.assign(url);
       }
     }
-    // Zoom by mouse click
-    if (thisClickOnStreamObject(obj)) {
-      zmPanZoom.click(monitorId_);
+
+    // On Montage page with mode==EDITING it is forbidden to use PanZoom
+    if (currentView == 'montage' && mode == EDITING) return;
+    if (thisClickOnStreamObject(evt.target)) {
+      // Zoom by mouse click
+      zmPanZoom.click(mid);
     }
   }
 }
@@ -3246,7 +3381,30 @@ async function getTracksFromStream(videoFeedStream) {
 
   }
 
-  connectAudioMotion(mid);
+  // We'll determine whether we need a video track or just an audio track.
+  // When playing H.265, the video may not be decoded, but the audio track will play.
+  const selectorWhatDisplay = document.getElementById('whatDisplay');
+  const monitorStream = getMonitorStream(mid);
+  const defaultWhatDisplay = (typeof eventData !== 'undefined') ? eventData.whatDisplay : (monitorStream) ? monitorStream.whatDisplay : null;
+
+  let videoTrackRequired = true;
+  if (!selectorWhatDisplay || (-1 !== selectorWhatDisplay.value.toLowerCase().indexOf('default'))) { // Default monitor settings
+    if (defaultWhatDisplay && (-1 === defaultWhatDisplay.toLowerCase().indexOf('video'))) videoTrackRequired = false;
+  } else {
+    if (-1 === selectorWhatDisplay.value.toLowerCase().indexOf('video')) videoTrackRequired = false;
+  }
+
+  if (!videoFeedStream.videoTrack ) {
+    monitorStream.updateStreamInfo('', 'Video track missing');
+    monitorStream.writeTextInfoBlock("Video track missing", {showImg: false});
+  }
+  if (!videoFeedStream.videoTrack && videoTrackRequired && (!videoFeedStream.selectedPlayer || videoFeedStream.selectedPlayer === "go2rtc")) {
+    // Switch to a different player only when mode=Auto
+    videoFeedStream.streamErrorRegistration();
+    videoFeedStream.restart(videoFeedStream.currentChannelStream);
+  } else {
+    connectAudioMotion(mid);
+  }
 }
 
 const waitUntil = (condition, timeout = 0) => {
@@ -3470,6 +3628,105 @@ const replaceDoubleTildeToBR = function(str) {
 const createClickableLink = function(text) {
   const text1=text.replace(/(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig, '<a target="_blank" href="$1">$1</a>');
   return text1.replace(/(^|[^\/])(www\.[\S]+(\b|$))/gim, '$1<a target="_blank" href="http://$2">$2</a>');
+};
+
+const zmAlert = function(message, title = "") {
+  const visibleBlocks = document.querySelectorAll('[id^="modalInfoMessageBlock"]');
+  const numberVisibleBlocks = (visibleBlocks) ? visibleBlocks.length : 0;
+  if (numberVisibleBlocks >= 5) {
+    console.warn("The number of visible information blocks has exceeded 5. New blocks are not displayed.");
+    if (title !== '') console.log("TITLE: ", title);
+    console.log("MESSAGE: ", message);
+    return;
+  }
+  const rnd = (Math.floor((Math.random() * 999999) + 1)); // Required for displaying multiple blocks simultaneously.
+  const idModalInfoMessageBlock = 'modalInfoMessageBlock'; // This is stated in ajax/modals/infoMessageBlock.php
+  const currentIdModalInfoMessageBlock = idModalInfoMessageBlock + '_' + rnd.toString();
+
+  $j.getJSON(thisUrl, {
+    request: "modal",
+    modal: "infoMessageBlock",
+    title: title,
+    message: message,
+  })
+      .done(function(data) {
+        if (data.result == "Error") {
+          console.warn("Error: ", data.message);
+          return;
+        }
+        insertModalHtml(idModalInfoMessageBlock, data.html);
+        const modalInfoMessageBlock = document.getElementById(idModalInfoMessageBlock);
+        if (!modalInfoMessageBlock) {
+          console.warn("Modal information block not found.", data);
+          return;
+        }
+        modalInfoMessageBlock.id = currentIdModalInfoMessageBlock;
+        modalInfoMessageBlock.style.top = 20*numberVisibleBlocks + 'px';
+        modalInfoMessageBlock.style.left = 20*numberVisibleBlocks + 'px';
+        modalInfoMessageBlock.setAttribute("data-date-time-show", Date.now());
+        $j(modalInfoMessageBlock).one('shown.bs.modal', modalInfoMessageBlock, function() {
+          // Actions after the modal window becomes visible
+          const observer = new MutationObserver(function(_mutations, obs) {
+            // We don't care what happened; we'll just remove the block from the DOM.
+            _mutations[0].target.remove();
+            obs.disconnect();
+          });
+          observer.observe(modalInfoMessageBlock, {
+            childList: true,
+            subtree: false,
+            attributes: true,
+            attributeFilter: ['style', 'class']
+          });
+        });
+
+        $j(modalInfoMessageBlock).on('hidden.bs.modal', function() {
+          // We don't need to leave the modal window in the DOM after we've informed the user.
+          // Removing Bootstrap settings
+          $j(this).removeData('bs.modal');
+
+          // Now we remove the element from the DOM
+          $j(this).remove();
+        });
+
+        $j(modalInfoMessageBlock).on('hidePrevented.bs.modal', function() {
+          // Called when the modal window is hidden by clicking on the page background.
+        });
+
+        $j(modalInfoMessageBlock).modal('show');
+      })
+      .fail(function(data) {
+        logAjaxFail(data);
+      });
+  return currentIdModalInfoMessageBlock;
+};
+
+const closeZmAlert = async function(id) {
+  // We should wait for the modal window to appear before closing it to avoid problems when we call the modal window and try to close it immediately.
+  const promiseModalInfoMessageBlock = await waitUntil(() => (document.querySelector('#'+id+'.show')), 2000);
+  const modalInfoMessageBlock = document.getElementById(id);
+  if (!promiseModalInfoMessageBlock && !modalInfoMessageBlock) {
+    console.log(`modalInfoMessageBlock with ID=${id} not present.`);
+    return false;
+  }
+  // Minimum modal window display time = 2 sec.
+  await waitUntil(() => (Date.now() - modalInfoMessageBlock.dataset.dateTimeShow > 2000), 2000);
+  $j(modalInfoMessageBlock).modal('hide');
+  return true;
+};
+
+const stringToLocaleString = function(str) {
+  let result = str;
+  if (str) {
+    const matches = str.match(/([\D]+)+|(\d+)/g);
+    if (matches) {
+      result = '';
+      matches.forEach((match, index) => {
+        const num = Number(match);
+        result += (!isNaN(num)) ? num.toLocaleString() : match;
+      });
+    }
+  }
+  return result;
 };
 
 // https://stackoverflow.com/a/69273090

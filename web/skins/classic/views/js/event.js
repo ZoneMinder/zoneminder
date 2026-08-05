@@ -168,9 +168,9 @@ function initialAlarmCues(eventId) {
 
 function setAlarmCues(data) {
   if (!data) {
-    Error('No data in setAlarmCues for event ' + eventData.Id);
+    zmError('No data in setAlarmCues for event ' + eventData.Id);
   } else if (!data.frames) {
-    Error('No data.frames in setAlarmCues for event ' + eventData.Id);
+    zmError('No data.frames in setAlarmCues for event ' + eventData.Id);
   } else {
     cueFrames = data.frames;
     const alarmSpans = renderAlarmCues(vid ? $j("#videoobj") : $j("#evtStream"));//use videojs width or zms width
@@ -498,7 +498,9 @@ function getCmdResponse(respObj, respText) {
     fps.innerHTML = streamStatus.fps;
   }
 
-  updateProgressBar();
+  if (!vid) {
+    updateProgressBar();
+  }
 
   if (streamStatus.auth) {
     if (streamStatus.auth != auth_hash) {
@@ -1383,12 +1385,23 @@ function initPage() {
     vid = videojs('videoobj');
     addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartDateTime);
     //$j('.vjs-progress-control').append('<div id="alarmCues" class="alarmCues"></div>');//add a place for videojs only on first load
-    vid.on('ended', vjsReplay);
+    vid.on('ended', function(event) {
+      vjsReplay();
+      eventData._playng = false;
+    });
     vid.on('play', function(event) {
       streamPlay();
-      connectAudioMotion(eventData.MonitorId);
+      if (!eventData._playng) connectAudioMotion(eventData.MonitorId);
+      eventData._playng = true;
     });
-    vid.on('pause', streamPause);
+    vid.on('playing', function(event) { // Required for HLS with AUTOPLAY in Firefox, as on.play doesn't work in this case.
+      if (!eventData._playng) connectAudioMotion(eventData.MonitorId);
+      eventData._playng = true;
+    });
+    vid.on('pause', function(event) {
+      streamPause();
+      eventData._playng = false;
+    });
     vid.on('click', function(event) {
       handleClick(event);
     });
@@ -1402,10 +1415,8 @@ function initPage() {
     if (cookie) vid.volume(cookie);
 
     vid.on('timeupdate', function() {
+      updateProgressBar();
       $j('#progressValue').html(secsToTime(Math.floor(vid.currentTime())));
-      var clockTime = new Date(eventData.StartDateTime);
-      clockTime.setTime(clockTime.getTime() + (vid.currentTime() * 1000));
-      $j('#currentTimeValue').html(clockTime.toLocaleTimeString());
     });
     vid.on('ratechange', function() {
       rate = vid.playbackRate() * 100;
@@ -1784,12 +1795,6 @@ function initPage() {
       updateScale = false;
     }
   }, 500);
-
-  if (vid) {
-    setInterval(() => {
-      updateProgressBar();
-    }, streamTimeout);
-  }
 
   const toggleZonesButton = document.getElementById('toggleZonesButton');
   if (toggleZonesButton) toggleZonesButton.addEventListener('click', toggleZones);

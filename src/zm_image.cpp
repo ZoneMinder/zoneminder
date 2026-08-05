@@ -372,7 +372,12 @@ bool Image::Assign(const AVFrame *frame) {
   // pick the wrong swscale target if those legacy fields drift out of sync
   // (e.g. the GRAY8/YUV420P alias collision).
   const AVPixelFormat format = imagePixFormat;
-  const AVPixelFormat src_fmt = static_cast<AVPixelFormat>(frame->format);
+  // Map deprecated YUVJ* formats to their non-J equivalents before handing the
+  // format to swscale. Passing YUVJ420P/YUVJ422P/etc directly makes swscale emit
+  // "deprecated pixel format used, make sure you did set range correctly" (seen
+  // in nph-zms). This mirrors what SWScale::Convert already does.
+  const AVPixelFormat orig_src_fmt = static_cast<AVPixelFormat>(frame->format);
+  const AVPixelFormat src_fmt = fix_deprecated_pix_fmt(orig_src_fmt);
 
   // If source and destination format + dimensions match, do a direct plane
   // copy instead of running through sws_scale. This avoids the overhead of
@@ -414,6 +419,7 @@ bool Image::Assign(const AVFrame *frame) {
     Error("Unable to create conversion context");
     return false;
   }
+  zm_sws_set_input_range(sws_convert_context, orig_src_fmt);
   bool result = Assign(frame, sws_convert_context);
   update_function_pointers();
   return result;
@@ -1248,6 +1254,33 @@ Image *Image::HighlightEdges(
         }
       }
     }
+  } else if ( zm_is_yuv420(p_pixfmt) ) {
+    // Single alarm colour over a transparent (Y=0) background; Overlay() onto
+    // a YUV420 image keys on a non-zero luma marker. Write the colour's luma
+    // at each edge pixel and its chroma at the shared 2x2 chroma sample.
+    const YUV yuv = brg_to_yuv(colour);
+    const uint8_t Yc = Y_VAL(yuv), Uc = U_VAL(yuv), Vc = V_VAL(yuv);
+    uint8_t *hplane[4] = {};
+    int hstride[4] = {};
+    if (av_image_fill_arrays(hplane, hstride, high_buff, p_pixfmt, width, height, 32) < 0) {
+      Error("HighlightEdges: av_image_fill_arrays failed for YUV420 %ux%u", width, height);
+      return high_image;
+    }
+    for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
+      const uint8_t* p = buffer + (y * src_linesize) + lo_x;
+      for ( unsigned int x = lo_x; x <= hi_x; x++, p++ ) {
+        bool edge = false;
+        if ( *p ) {
+          edge = (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1))
+              || (y > 0 && !*(p-src_linesize)) || (y < (height-1) && !*(p+src_linesize));
+        }
+        if ( edge ) {
+          hplane[0][y * hstride[0] + x] = Yc ? Yc : 1;  // keep the luma marker non-zero
+          hplane[1][(y / 2) * hstride[1] + (x / 2)] = Uc;
+          hplane[2][(y / 2) * hstride[2] + (x / 2)] = Vc;
+        }
+      }
+    }
   }
 
   return high_image;
@@ -1998,8 +2031,51 @@ void Image::Overlay( const Image &image ) {
   // chroma. After Colourise() the destination's linesize is updated to the
   // new format's stride, so we re-read it inside each branch.
 
-  /* Grayscale/YUV420 on top of grayscale/YUV420 - complete */
-  if ( zm_bytes_per_pixel(imagePixFormat) == 1 && zm_bytes_per_pixel(image.imagePixFormat) == 1 ) {
+  /* YUV420 on top of YUV420 - copy luma + chroma using luma as the mask */
+  if ( zm_is_yuv420(imagePixFormat) && zm_is_yuv420(image.imagePixFormat) ) {
+    // The overlay (a zone alarm highlight) is built in the target's format
+    // with a Clear()ed (Y=0) transparent background, so a non-zero source
+    // luma marks a pixel to paint. Copy that luma, and copy the shared
+    // chroma sample whenever any of the luma pixels it covers is marked.
+    uint8_t *dplane[4] = {};
+    int dstride[4] = {};
+    const uint8_t *splane[4] = {};
+    int sstride[4] = {};
+    if (av_image_fill_arrays(dplane, dstride, buffer, imagePixFormat, width, height, 32) < 0
+        || av_image_fill_arrays(const_cast<uint8_t **>(splane), sstride, image.buffer,
+                                image.imagePixFormat, width, height, 32) < 0) {
+      Error("Overlay: av_image_fill_arrays failed for YUV420 %ux%u", width, height);
+      return;
+    }
+    for (unsigned int y = 0; y < height; y++) {
+      const uint8_t *psrc = splane[0] + y * sstride[0];
+      uint8_t *pdest = dplane[0] + y * dstride[0];
+      for (unsigned int x = 0; x < width; x++) {
+        if (psrc[x]) pdest[x] = psrc[x];
+      }
+    }
+    const unsigned int cw = (width + 1) / 2;
+    const unsigned int ch = (height + 1) / 2;
+    for (unsigned int cy = 0; cy < ch; cy++) {
+      for (unsigned int cx = 0; cx < cw; cx++) {
+        bool marked = false;
+        for (unsigned int dy = 0; dy < 2 && !marked; dy++) {
+          const unsigned int ly = cy * 2 + dy;
+          if (ly >= height) break;
+          for (unsigned int dx = 0; dx < 2; dx++) {
+            const unsigned int lx = cx * 2 + dx;
+            if (lx < width && splane[0][ly * sstride[0] + lx]) { marked = true; break; }
+          }
+        }
+        if (marked) {
+          dplane[1][cy * dstride[1] + cx] = splane[1][cy * sstride[1] + cx];
+          dplane[2][cy * dstride[2] + cx] = splane[2][cy * sstride[2] + cx];
+        }
+      }
+    }
+
+    /* Grayscale/YUV420 on top of grayscale/YUV420 - complete */
+  } else if ( zm_bytes_per_pixel(imagePixFormat) == 1 && zm_bytes_per_pixel(image.imagePixFormat) == 1 ) {
     // Overlay only the luma/primary plane. Width is shared (panic above).
     for (unsigned int y = 0; y < height; y++) {
       const uint8_t *psrc = image.buffer + y * image.linesize;
@@ -2009,8 +2085,8 @@ void Image::Overlay( const Image &image ) {
       }
     }
 
-    /* RGB24 on top of grayscale/YUV420 - convert to same format first - complete */
-  } else if ( zm_bytes_per_pixel(imagePixFormat) == 1 && zm_is_rgb24(image.imagePixFormat) ) {
+    /* RGB24 on top of grayscale - convert to same format first - complete */
+  } else if ( imagePixFormat == AV_PIX_FMT_GRAY8 && zm_is_rgb24(image.imagePixFormat) ) {
     Colourise(image.colours, image.subpixelorder);
 
     for (unsigned int y = 0; y < height; y++) {
@@ -2025,8 +2101,8 @@ void Image::Overlay( const Image &image ) {
       }
     }
 
-    /* RGB32 on top of grayscale/YUV420 - convert to same format first - complete */
-  } else if ( zm_bytes_per_pixel(imagePixFormat) == 1 && zm_is_rgb32(image.imagePixFormat) ) {
+    /* RGB32 on top of grayscale - convert to same format first - complete */
+  } else if ( imagePixFormat == AV_PIX_FMT_GRAY8 && zm_is_rgb32(image.imagePixFormat) ) {
     Colourise(image.colours, image.subpixelorder);
 
     const bool alpha_last = (imagePixFormat == AV_PIX_FMT_RGBA || imagePixFormat == AV_PIX_FMT_BGRA);
@@ -2040,6 +2116,43 @@ void Image::Overlay( const Image &image ) {
         } else {
           if (RED_PTR_ABGR(prsrc) || GREEN_PTR_ABGR(prsrc) || BLUE_PTR_ABGR(prsrc))
             *prdest = *prsrc;
+        }
+      }
+    }
+
+    /* RGB24/RGB32 on top of YUV420 - convert marked pixels to YUV - complete */
+  } else if ( zm_is_yuv420(imagePixFormat)
+              && (zm_is_rgb24(image.imagePixFormat) || zm_is_rgb32(image.imagePixFormat)) ) {
+    // The zone alarm highlight is built from the monitor's configured colours,
+    // but the analysis image follows the decoder's native format (usually
+    // YUV420P via passthrough). Converting the whole target to RGB would be
+    // wasteful; instead convert just the marked (non-black) highlight pixels
+    // to YUV and write luma plus the shared 2x2 chroma sample.
+    uint8_t *dplane[4] = {};
+    int dstride[4] = {};
+    if (av_image_fill_arrays(dplane, dstride, buffer, imagePixFormat, width, height, 32) < 0) {
+      Error("Overlay: av_image_fill_arrays failed for YUV420 %ux%u", width, height);
+      return;
+    }
+    const unsigned int psize = zm_bytes_per_pixel(image.imagePixFormat);
+    // Byte offsets of R,G,B within an overlay pixel for its subpixel order.
+    unsigned int ro = 0, go = 1, bo = 2;  // RGB24 / RGBA
+    switch (image.imagePixFormat) {
+      case AV_PIX_FMT_BGR24:
+      case AV_PIX_FMT_BGRA: ro = 2; go = 1; bo = 0; break;
+      case AV_PIX_FMT_ARGB: ro = 1; go = 2; bo = 3; break;
+      case AV_PIX_FMT_ABGR: ro = 3; go = 2; bo = 1; break;
+      default: break;
+    }
+    for (unsigned int y = 0; y < height; y++) {
+      const uint8_t *psrc = image.buffer + y * image.linesize;
+      for (unsigned int x = 0; x < width; x++, psrc += psize) {
+        const uint8_t r = psrc[ro], g = psrc[go], b = psrc[bo];
+        if (r || g || b) {
+          const YUV yuv = brg_to_yuv(r | (g << 8) | (b << 16));
+          dplane[0][y * dstride[0] + x] = Y_VAL(yuv);
+          dplane[1][(y / 2) * dstride[1] + (x / 2)] = U_VAL(yuv);
+          dplane[2][(y / 2) * dstride[2] + (x / 2)] = V_VAL(yuv);
         }
       }
     }
@@ -2313,6 +2426,15 @@ bool Image::Delta(const Image &image, Image* targetimage) const {
   if ( !(width == image.width && height == image.height && colours == image.colours && subpixelorder == image.subpixelorder) ) {
     Error( "Attempt to get delta of different sized images, expected %dx%dx%d %d, got %dx%dx%d %d",
            width, height, colours, subpixelorder, image.width, image.height, image.colours, image.subpixelorder);
+    return false;
+  }
+
+  // DumpImgBuffer() nulls buffer while leaving width/height/colours intact, so
+  // the size check above is no guarantee the pixels are present. Without this a
+  // dumped reference image (e.g. dropped on resume) walks the delta helpers from
+  // a null base pointer and faults at address 0 on the first row (refs #4983).
+  if ( buffer == nullptr || image.buffer == nullptr ) {
+    Error("Attempt to get delta with a null buffer (this %p, other %p)", buffer, image.buffer);
     return false;
   }
 

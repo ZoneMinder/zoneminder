@@ -2984,7 +2984,8 @@ int Monitor::Capture() {
 } // end Monitor::Capture
 
 bool Monitor::setupConvertContext(const AVFrame *input_frame, const Image *image) {
-  AVPixelFormat imagePixFormat = image->AVPixFormat();
+  AVPixelFormat origImagePixFormat = image->AVPixFormat();
+  AVPixelFormat imagePixFormat = fix_deprecated_pix_fmt(origImagePixFormat);
   AVPixelFormat origPixFormat = (AVPixelFormat)input_frame->format;
   AVPixelFormat inputPixFormat = fix_deprecated_pix_fmt(origPixFormat);
 
@@ -3007,9 +3008,9 @@ bool Monitor::setupConvertContext(const AVFrame *input_frame, const Image *image
           image->Width(), image->Height(),
           av_get_pix_fmt_name(imagePixFormat)
          );
-    // Mark the input as full range when the source was a YUVJ* format so the
+    // Mark either side as full range when it was a YUVJ* format so the
     // conversion maths doesn't crush full-range luma into limited range.
-    zm_sws_set_input_range(convert_context, origPixFormat);
+    zm_sws_set_ranges(convert_context, origPixFormat, origImagePixFormat);
   }
   return (convert_context != nullptr);
 }

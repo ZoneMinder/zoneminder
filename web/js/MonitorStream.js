@@ -5,7 +5,8 @@ const streaming = [];
 function MonitorStream(monitorData) {
   this.id = monitorData.id;
   this.name = monitorData.name;
-  this.started = false;
+  this.started = false; // Stream is running.
+  this.starting = false; // Stream startup is in progress.
   this.zmsState = null;
   this.muted = (currentView == 'watch') ? (getCookie('zmWatchMuted') !== 'false') : true;
   this.connKey = monitorData.connKey;
@@ -107,6 +108,8 @@ function MonitorStream(monitorData) {
       durationErrors: 0
     },
   };
+
+  this.playbackSessionId = null;
   this.ajaxQueue = null;
   this.type = monitorData.type;
   this.capturing = monitorData.capturing;
@@ -530,7 +533,8 @@ function MonitorStream(monitorData) {
           this.writeTextInfoBlock("");
           this.createVolumeSlider();
           getTracksFromStream(this);
-        }
+        },
+        {replaceId: this.handlerEventListener['playStream']}
     );
     this.handlerEventListener['pauseStream'] = manageEventListener.addEventListener(stream, 'pause',
         (e) => {
@@ -554,6 +558,19 @@ function MonitorStream(monitorData) {
   };
 
   this.start = function(streamChannel = 'default') {
+    if (this.started || this.starting) {
+      console.debug(
+          `Start() ignored for monitor ID=${this.id}`,
+          {
+            started: this.started,
+            starting: this.starting,
+            activePlayer: this.activePlayer || 'undefined',
+          }
+      );
+      return;
+    }
+    this.starting = true;
+
     this.writeTextInfoBlock("Loading...");
     this.removeText();
     if (streamChannel === null || streamChannel === '' || currentView == 'montage') streamChannel = 'default';
@@ -568,7 +585,13 @@ function MonitorStream(monitorData) {
     //$j('#volumeControls'+this.id).hide();
     $j('#volumeControls'+this.id).addClass('disabled');
     $j('#delay'+this.id).addClass('hidden');
-
+    this.handlerEventListener['zm:tracksReceived'] = manageEventListener.addEventListener(document, 'zm:tracksReceived',
+        (e) => {
+          if (e.detail.monitorId !== this.id) return;
+          if (this.audioTrack) connectAudioMotion(this.id);
+        },
+        {replaceId: this.handlerEventListener['zm:tracksReceived']}
+    );
     this.selectPlayer(streamChannel);
   }; // this.start
 
@@ -698,6 +721,13 @@ function MonitorStream(monitorData) {
   };
 
   this.stop = function(options = {}) {
+    // Preserve the previous starting state before clearing it.
+    // This allows us to distinguish between stopping an already running
+    // stream and cancelling a stream that was still starting.
+    const wasStarting = this.starting;
+    this.starting = false;
+
+    manageEventListener.removeEventListener(this.handlerEventListener['zm:tracksReceived']);
     manageEventListener.removeEventListener(this.handlerEventListener['killStream']);
     manageEventListener.removeEventListener(this.handlerEventListener['playStream']);
     if (manageEventListener.removeEventListener(this.handlerEventListener['volumechange']) == this.handlerEventListener['volumechange']) this.handlerEventListener['volumechange'] = null;
@@ -709,8 +739,15 @@ function MonitorStream(monitorData) {
     if (!stream) {
       console.warn(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} it is impossible to stop because it is not found.`);
       return;
-    } else if (!this.started) {
-      console.warn(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} has already stopped.`);
+    } else if (!this.started && !wasStarting) {
+      console.warn(
+          `Stop() ignored for monitor ID=${this.id}: stream is already stopped.`,
+          {
+            started: this.started,
+            starting: wasStarting,
+            activePlayer: this.activePlayer || 'undefined',
+          }
+      );
       return;
     }
     //this.started = false;
@@ -725,9 +762,10 @@ function MonitorStream(monitorData) {
     this.streamCmdTimer = clearInterval(this.streamCmdTimer);
     this.mediaStream = this.audioTrack = this.videoTrack = null;
 
+    if (this.audioMotion && this.audioMotion.stop) this.audioMotion.stop();
     if (-1 !== this.activePlayer.indexOf('zms')) {
       // Icon: My current thought is to just tell zms to stop. Don't go to single.
-      if (this.started && !options.skipStreamCommand) this.streamCommand(CMD_STOP);
+      if ((this.started || wasStarting) && !options.skipStreamCommand) this.streamCommand(CMD_STOP);
     } else if (-1 !== this.activePlayer.indexOf('go2rtc')) {
       if (!(stream.wsState === WebSocket.CLOSED && stream.pcState === WebSocket.CLOSED)) {
         try {
@@ -742,32 +780,51 @@ function MonitorStream(monitorData) {
         console.log('close not in ', this.webrtc);
       }
       this.webrtc = null;
-      stream.srcObject = null;
       this.streamStartTime = 0;
     } else if (-1 !== this.activePlayer.indexOf('rtsp2web')) {
       if (this.webrtc) {
         if (this.webrtc.close) this.webrtc.close();
-        stream.src = '';
-        stream.srcObject = null;
         this.webrtc = null;
       }
       if (this.hls) hlsDestroy(this);
 
       if (-1 !== this.activePlayer.indexOf('mse')) {
-        this.stopMse();
+        this.stopMse().finally(() => {
+          console.debug(`RTSP2Web type MSE fully stopped for ID=${this.id}`);
+          stream.removeAttribute('src');
+          stream.load?.();
+        });
       }
     } else if (-1 !== this.activePlayer.indexOf('janus')) {
       if (janus && streaming[this.id]) {
         //streaming[this.id].detach(); // This will result in an error! This requires a more detailed study of Janus, or perhaps it has been fixed in a version higher than 1.1.2.
       }
-      //stream.src = '';
-      //stream.srcObject = null;
       janus.destroy();
       janus = null;
     } else {
       console.log("Unknown activePlayer", this.activePlayer);
     }
-    if (this.audioMotion && this.audioMotion.stop) this.audioMotion.stop();
+
+    // Release browser resources to avoid memory leaks (especially in Firefox)
+    const isZms = -1 !== this.activePlayer.indexOf('zms');
+    const isMse = (-1 !== this.activePlayer.indexOf('rtsp2web') && -1 !== this.activePlayer.indexOf('mse'));
+
+    // Stop MediaStream tracks before detaching the stream
+    if (stream.srcObject) {
+      stream.srcObject.getTracks().forEach((track) => {
+        console.debug(`Stopping ${track.kind} track (${track.readyState}):`, track.id, track);
+        track.stop();
+        console.debug(`Stopped ${track.kind} track (${track.readyState}):`, track.id);
+      });
+      stream.srcObject = null;
+    }
+    this.mediaStream = this.audioTrack = this.videoTrack = null;
+
+    // ZMS MJPEG uses <img>, which doesn't implement pause() or load()
+    stream.pause?.();
+    if (!isZms && !isMse) stream.removeAttribute('src');
+    if (!isMse) stream.load?.();
+
     this.activePlayer = '';
     this.started = false;
   };
@@ -866,7 +923,7 @@ function MonitorStream(monitorData) {
     const countErrors = this.getCountStreamErrors(this.player);
     if (countErrors < this.limitCountErrors) {
       setTimeout(function(self) {// During the downtime, the monitor may have already started to work.
-        if (!self.started) self.start(channelStream);
+        if (!self.started && !self.starting) self.start(channelStream);
       }, delay, this);
     } else {
       if (typeof streamCmdStop === 'function') {
@@ -1754,6 +1811,7 @@ function MonitorStream(monitorData) {
 
   this.select_go2rtc = function(streamChannel) {
     if (ZM_GO2RTC_PATH) {
+      this.playbackSessionId = generateUUID();
       const url = new URL(ZM_GO2RTC_PATH);
 
       const stream = this.element = replaceDOMElement(this.getElement(), 'video-stream');
@@ -1805,6 +1863,7 @@ function MonitorStream(monitorData) {
 
   this.select_rtsp2web = function(streamChannel) {
     if (ZM_RTSP2WEB_PATH) {
+      this.playbackSessionId = generateUUID();
       const stream = this.element = replaceDOMElement(this.getElement(), 'video');
       stream.srcObject = null;
       stream.setAttribute("autoplay", "");
@@ -1914,6 +1973,7 @@ function MonitorStream(monitorData) {
   };
 
   this.select_janus = function(streamChannel) {
+    this.playbackSessionId = generateUUID();
     let server;
     const stream = this.element = replaceDOMElement(this.getElement(), 'video');
     stream.srcObject = null;
@@ -1953,13 +2013,14 @@ function MonitorStream(monitorData) {
 
   this.select_zms = function() {
     // zms stream
+    this.playbackSessionId = generateUUID();
     const stream = this.element = replaceDOMElement(this.getElement(), 'img');
     stream.srcObject = null;
     if (!stream) return;
 
     this.destroyVolumeSlider();
 
-    this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
+    this.streamCmdTimer = clearInterval(this.streamCmdTimer);
     // Step 1 make sure we are streaming instead of a static image
     if (stream.getAttribute('loading') == 'lazy') {
       stream.setAttribute('loading', 'eager');

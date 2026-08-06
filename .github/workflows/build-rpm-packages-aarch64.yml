@@ -217,6 +217,9 @@ jobs:
           echo "artifact_name=rpm-aarch64-${sanitized_distro_name}" >> $GITHUB_ENV
 
       - name: Upload RPM artifacts
+        # Only the tag-only `release` job consumes these. On branch pushes the
+        # packages go straight to ZMREPO below, so uploading is pure storage cost.
+        if: startsWith(github.ref, 'refs/tags/')
         uses: actions/upload-artifact@v7
         with:
           path: artifacts/rpm

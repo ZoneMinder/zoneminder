@@ -27,6 +27,17 @@ if ( defined('ZM_OPT_USE_AUTH') and ZM_OPT_USE_AUTH ) {
       <div id="loginform">
 
         <h1><i class="material-icons md-36">account_circle</i> <?php echo validHtmlStr(ZM_WEB_TITLE) . ' ' . translate('Login') ?></h1>
+<?php
+// Optional site notice. Escaped rather than interpreted: this page is served
+// before anyone has authenticated, so it is not a place to emit raw markup.
+// nl2br runs after escaping so that the only tags in the output are the ones
+// we added, and a multi-line message still renders as multiple lines.
+if (defined('ZM_WEB_LOGIN_MESSAGE') and trim(ZM_WEB_LOGIN_MESSAGE) !== '') {
+?>
+        <div id="loginMessage"><?php echo nl2br(validHtmlStr(trim(ZM_WEB_LOGIN_MESSAGE))) ?></div>
+<?php
+}
+?>
         <label for="inputUsername" class="sr-only"><?php echo translate('Username') ?></label>
         <input type="text" id="inputUsername" name="username" class="form-control" autocapitalize="none" placeholder="Username" required autofocus autocomplete="username"/>
 

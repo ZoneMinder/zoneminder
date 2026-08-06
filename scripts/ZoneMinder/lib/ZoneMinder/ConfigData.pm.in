@@ -3046,6 +3046,26 @@ our @options = (
     category    => 'web',
   },
   {
+    name        => 'ZM_WEB_LOGIN_MESSAGE',
+    default     => '',
+    description => 'Message to display above the login form.',
+    help        => q`
+      Text shown on the login page, between the title and the username
+      and password fields. Useful for a site notice, an acceptable use
+      or legal warning, or a note identifying which installation this
+      is when you run more than one.
+
+      Leave empty to show nothing, which is the default.
+
+      The text is displayed exactly as entered: HTML is escaped rather
+      than interpreted, because the login page is served before anyone
+      has authenticated. Line breaks are preserved, so a multi-line
+      message renders as multiple lines.
+      `,
+    type        => $types{text},
+    category    => 'web',
+  },
+  {
     name        => 'ZM_WEB_SHOW_NAV_BUTTONS',
     default     => 'yes',
     description => 'Show Back and Refresh buttons at the top of views.',

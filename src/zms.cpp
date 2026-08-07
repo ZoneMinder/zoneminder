@@ -282,7 +282,9 @@ int main(int argc, const char *argv[], char **envp) {
       // baked-in URL. Including user/auth-prefix/uri/xff makes the noise diagnosable
       // without flipping on Debug.
       char auth_prefix[9] = {0};
-      if (*auth) strncpy(auth_prefix, auth, sizeof(auth_prefix)-1);
+      // Deliberate truncation to the first 8 chars; snprintf always NUL-terminates,
+      // whereas strncpy here trips -Wstringop-truncation at -O2.
+      if (*auth) snprintf(auth_prefix, sizeof(auth_prefix), "%s", auth);
       Warning("Unable to authenticate user (user='%s' auth='%s%s' uri='%s' referer='%s' xff='%s' remote='%s')",
               username.c_str(),
               auth_prefix,

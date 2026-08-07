@@ -2,6 +2,21 @@
 var janus = null;
 const streaming = [];
 
+/* Does this ajax/stream.php failure mean the zms behind our connkey is gone?
+ *
+ * Only then is it right to tear the stream down and start a new one, because
+ * doing so replaces the connkey and leaves any still-running zms unaddressable.
+ * A slow reply or a socket problem local to php says nothing about zms, and
+ * restarting on those is what left processes behind.
+ *
+ * An absent reason is treated as fatal so that a php that predates the reason
+ * field keeps the older behaviour.
+ */
+function streamErrorIsFatal(reason) {
+  if (!reason) return true;
+  return reason == 'no_socket';
+}
+
 function MonitorStream(monitorData) {
   this.id = monitorData.id;
   this.name = monitorData.name;
@@ -1446,11 +1461,23 @@ function MonitorStream(monitorData) {
     } else {
       if (!this.started) return;
       console.error(respObj.message);
+
+      // Only a zms that is actually gone justifies tearing the stream down;
+      // see streamErrorIsFatal().
+      if (!streamErrorIsFatal(respObj.reason)) {
+        console.log('Not reloading stream for '+respObj.reason+' error, will retry on the next poll');
+        return;
+      }
+
       // Try to reload the image stream.
       console.log('Reloading stream: ' + stream.src);
-      // Instead of changing rand, perhaps we should be changing connKey.
       let src = (-1 != stream.src.indexOf('rand=')) ? stream.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) )) : stream.src+'&rand='+Math.floor((Math.random() * 1000000));
       src = src.replace(/auth=\w+/i, 'auth='+auth_hash);
+      /* Make the old zms exit before we stop being able to address it.  Once
+       * the connkey is replaced nothing can reach the old process, so if it
+       * missed SIGPIPE it would linger and keep streaming forever.
+       */
+      this.quitConnKey(this.connKey);
       this.streamCmdParms.connkey = this.statusCmdParms.connkey = this.connKey = this.genConnKey();
       src = src.replace(/connkey=\d+/i, 'connkey='+this.connKey);
       stream.src = '';
@@ -1647,6 +1674,28 @@ function MonitorStream(monitorData) {
       this.streamCmdParms.command = CMD_QUERY;
       this.streamCmdReq(this.streamCmdParms);
     }
+  };
+
+  /* Tell the zms behind a specific connkey to exit.
+   *
+   * Deliberately not routed through streamCommand()/streamCmdReq():
+   *   - those send to this.connKey at request time, and the caller here is
+   *     about to replace it, so the QUIT has to name its target explicitly;
+   *   - their response is fed back into getStreamCmdResponse(), and this is
+   *     called from that function's error path.  A QUIT that also failed would
+   *     re-enter the error path, quit again, and loop.
+   * The outcome is ignored on purpose: this is best effort, and there is
+   * nothing useful to do if the process is already gone.
+   */
+  this.quitConnKey = function(connkey) {
+    if (!connkey) return;
+    const params = Object.assign({}, this.streamCmdParms, {command: CMD_QUIT, connkey: connkey});
+    jQuery.ajaxQueue({
+      url: this.url + (auth_relay?'?'+auth_relay:''),
+      xhrFields: {withCredentials: true},
+      data: params,
+      dataType: 'json'
+    });
   };
 
   this.streamCommand = function(command) {
@@ -2675,4 +2724,8 @@ function appendMseBuffer(packet, context) {
     context.streamErrorRegistration();
     context.restart(context.currentChannelStream, 1000);
   }
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {streamErrorIsFatal};
 }

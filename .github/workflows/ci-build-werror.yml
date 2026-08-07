@@ -37,7 +37,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            build-essential cmake pkg-config \
+            build-essential cmake pkg-config gcc-multilib g++-multilib \
             libavcodec-dev libavformat-dev libavutil-dev libavdevice-dev \
             libswresample-dev libswscale-dev \
             default-libmysqlclient-dev \
@@ -46,6 +46,14 @@ jobs:
             libv4l-dev libvlc-dev libvncserver-dev \
             libmosquitto-dev libmosquittopp-dev \
             gsoap libgsoap-dev
+
+      # Runs before the build: it is compile-only and takes about a second, so a
+      # SharedData ABI break is reported immediately rather than after the full
+      # tree has built. The runners are all 64bit, so without this step nothing
+      # in CI exercises the 32bit layout that zmc/zma/zms, Memory.pm and
+      # Monitor.php all have to agree on.
+      - name: Check SharedData 32bit/64bit ABI
+        run: python3 utils/check-shareddata-abi.py
 
       - name: Configure
         # -Wno-error=cpp and -Wno-error=conditionally-supported keep third-party

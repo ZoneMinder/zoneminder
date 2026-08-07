@@ -1340,7 +1340,6 @@ bool Image::WriteRaw(const std::string &filename) const {
 
 bool Image::ReadJpeg(const std::string &filename, unsigned int p_colours, unsigned int p_subpixelorder) {
   unsigned int new_width, new_height, new_colours, new_subpixelorder;
-  AVPixelFormat p_pixfmt = zm_pixformat_from_colours(p_colours, p_subpixelorder);
 
   if (!readjpg_dcinfo) {
     readjpg_dcinfo = new jpeg_decompress_struct;
@@ -1361,6 +1360,9 @@ bool Image::ReadJpeg(const std::string &filename, unsigned int p_colours, unsign
     fclose(infile);
     return false;
   }
+
+  /* Computed after setjmp() so it cannot be clobbered by the longjmp() out of the error handler */
+  const AVPixelFormat p_pixfmt = zm_pixformat_from_colours(p_colours, p_subpixelorder);
 
   jpeg_stdio_src(readjpg_dcinfo, infile);
 
@@ -1703,7 +1705,6 @@ bool Image::WriteJpeg(const std::string &filename,
 
 bool Image::DecodeJpeg(const JOCTET *inbuffer, int inbuffer_size, unsigned int p_colours, unsigned int p_subpixelorder) {
   unsigned int new_width, new_height, new_colours, new_subpixelorder;
-  AVPixelFormat p_pixfmt = zm_pixformat_from_colours(p_colours, p_subpixelorder);
 
   if (!decodejpg_dcinfo) {
     decodejpg_dcinfo = new jpeg_decompress_struct;
@@ -1717,6 +1718,9 @@ bool Image::DecodeJpeg(const JOCTET *inbuffer, int inbuffer_size, unsigned int p
     jpeg_abort_decompress(decodejpg_dcinfo);
     return false;
   }
+
+  /* Computed after setjmp() so it cannot be clobbered by the longjmp() out of the error handler */
+  const AVPixelFormat p_pixfmt = zm_pixformat_from_colours(p_colours, p_subpixelorder);
 
   zm_jpeg_mem_src(decodejpg_dcinfo, inbuffer, inbuffer_size);
 

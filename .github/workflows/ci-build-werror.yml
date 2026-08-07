@@ -1,0 +1,65 @@
+name: CI Build Warnings
+
+# Builds with optimization enabled and -Werror to gate on compiler warnings.
+#
+# This job exists because GCC only emits an entire class of warnings from its
+# optimizer passes, so they are invisible in the -O0 Debug trees most local
+# development uses: -Wclobbered, -Wmaybe-uninitialized, -Wstringop-truncation,
+# -Wstringop-overflow, -Warray-bounds, -Wdangling-pointer, -Wuse-after-free.
+# The packaging workflows do build Release, but without -Werror, so these were
+# only ever printed as noise and first failed builds downstream.
+#
+# Pinned to a fixed runner image rather than ubuntu-latest: -Wclobbered in
+# particular is sensitive to compiler version and inlining decisions, so an
+# unannounced GCC bump should not redden CI on its own. Bump deliberately.
+
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches: [ master ]
+
+permissions:
+  contents: read
+
+jobs:
+  build-werror:
+    name: Release build with -Werror (gcc)
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake pkg-config \
+            libavcodec-dev libavformat-dev libavutil-dev libavdevice-dev \
+            libswresample-dev libswscale-dev \
+            default-libmysqlclient-dev \
+            libbz2-dev libcurl4-openssl-dev libjpeg-dev libturbojpeg0-dev \
+            libpcre2-dev libpolkit-gobject-1-dev libssl-dev zlib1g-dev \
+            libv4l-dev libvlc-dev libvncserver-dev \
+            libmosquitto-dev libmosquittopp-dev \
+            gsoap libgsoap-dev
+
+      - name: Configure
+        # -Wno-error=cpp and -Wno-error=conditionally-supported keep third-party
+        # code from failing the build: system mosquittopp.h carries a #warning,
+        # and gsoap's own wsseapi.c plugin source does a function-pointer cast.
+        # Neither is ZoneMinder code and neither is actionable here. Warnings in
+        # our own sources remain hard errors.
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DENABLE_WERROR=ON \
+            -DBUILD_MAN=0 \
+            -DCMAKE_C_FLAGS="-Wno-error=cpp -Wno-error=conditionally-supported" \
+            -DCMAKE_CXX_FLAGS="-Wno-error=cpp -Wno-error=conditionally-supported"
+
+      - name: Build
+        run: cmake --build build -j"$(nproc)"

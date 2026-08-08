@@ -823,7 +823,7 @@ include('_monitor_source_nvsocket.php');
           <li>
           <li class="SourceOptions">
             <label><?php echo translate('Options'); echo makeHelpLink('OPTIONS_'.strtoupper($monitor->Type())) ?></label>
-            <input type="text" name="newMonitor[Options]" value="<?php echo validHtmlStr($monitor->Options()) ?>"/>
+            <textarea name="newMonitor[Options]" rows="<?php echo max(2, count(preg_split('/[,\r\n]+/', $monitor->Options()))) ?>"><?php echo validHtmlStr($monitor->Options()) ?></textarea>
           <li>
 <?php
       }

@@ -439,7 +439,7 @@ int FfmpegCamera::OpenFfmpeg() {
   // Handle options
   AVDictionary *opts = nullptr;
   if (!mOptions.empty()) {
-    ret = av_dict_parse_string(&opts, mOptions.c_str(), "=", ",", 0);
+    ret = av_dict_parse_string(&opts, mOptions.c_str(), "=", kOptionSeparators, 0);
     if (ret < 0) {
       Warning("Could not parse ffmpeg input options '%s'", mOptions.c_str());
     }
@@ -651,7 +651,7 @@ int FfmpegCamera::OpenFfmpeg() {
 
     //Set user-specified options, which may override codec defaults
     if (!mOptions.empty()) {
-      av_dict_parse_string(&opts, mOptions.c_str(), "=", ",", 0);
+      av_dict_parse_string(&opts, mOptions.c_str(), "=", kOptionSeparators, 0);
       const AVDictionaryEntry *entry = av_dict_get(opts, "thread_count", nullptr, AV_DICT_MATCH_CASE);
       if (entry) {
         mVideoCodecContext->thread_count = std::stoul(entry->value);

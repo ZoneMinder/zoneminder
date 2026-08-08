@@ -125,6 +125,7 @@ nav #pills-tab a.nav-link.active {
  * Groups multi-select is replaced by. They all want their label at the top. */
 .EncoderParameters label,
 .Notes label,
+.SourceOptions label,
 .Groups label {
   vertical-align: top;
 }

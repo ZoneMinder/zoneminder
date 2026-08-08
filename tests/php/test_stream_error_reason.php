@@ -37,11 +37,18 @@ if ($src === false) {
 
 // Every ajaxError() call must carry a classification, otherwise the client
 // falls back to treating it as fatal and we are back to orphaning zms.
-$calls = preg_match_all('/^\s*ajaxError\(/m', $src, $m);
-$classified = preg_match_all('/STREAM_ERR_[A-Z_]+/', $src, $m2);
+// Match each call up to the end of its statement, so a call that spans lines is
+// still one item, and count the calls that carry a constant - counting bare
+// STREAM_ERR_ occurrences instead would let the four define()s cover for four
+// call sites that had lost their argument.
+preg_match_all('/^\s*ajaxError\(.*?\);/ms', $src, $m);
+$calls = count($m[0]);
+$unclassified = array_filter($m[0], function($call) {
+  return strpos($call, 'STREAM_ERR_') === false;
+});
 echo "ajaxError classification\n";
 check('every ajaxError call is classified',
-  $calls > 0 && $classified >= $calls, true);
+  $calls > 0 && !$unclassified, true);
 
 // The four classes the client distinguishes.
 foreach (array('NO_SOCKET' => 'no_socket', 'TIMEOUT' => 'timeout',

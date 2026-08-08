@@ -1804,7 +1804,7 @@ function ajaxError($message, $code=HTTP_STATUS_OK, $reason=null) {
     ajaxCleanup();
   if ( $code == HTTP_STATUS_OK ) {
     $response = array('result'=>'Error', 'message'=>$message);
-    if ($reason) $response['reason'] = $reason;
+    if ($reason !== null) $response['reason'] = $reason;
     header('Content-type: application/json');
     exit(jsonEncode($response));
   }

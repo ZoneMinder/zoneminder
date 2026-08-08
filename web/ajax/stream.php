@@ -167,8 +167,9 @@ case 0 :
   if ($select_timed_out) {
     ajaxError("Timed out waiting for msg $remSockFile after waiting $timeout milliseconds",
       HTTP_STATUS_OK, STREAM_ERR_TIMEOUT);
+  } else {
+    ajaxError('No data to read from socket', HTTP_STATUS_OK, STREAM_ERR_TRANSIENT);
   }
-  ajaxError('No data to read from socket', HTTP_STATUS_OK, STREAM_ERR_TRANSIENT);
   break;
 default :
   if ( $nbytes != MSG_DATA_SIZE ) {

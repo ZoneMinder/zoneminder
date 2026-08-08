@@ -199,8 +199,13 @@ set(ZM_PATH_SHUTDOWN "/sbin/shutdown" CACHE PATH
   "Path to shutdown binary, default: /sbin/shutdown")
 
 # Advanced
-set(ZM_PATH_MAP "/dev/shm" CACHE PATH
+if(ZM_TARGET_DISTRO MATCHES "OpenBSD")
+  set(ZM_PATH_MAP "/tmp" CACHE PATH
   "Location to save mapped memory files, default: /dev/shm")
+else()
+  set(ZM_PATH_MAP "/dev/shm" CACHE PATH
+  "Location to save mapped memory files, default: /dev/shm")
+endif()
 set(ZM_PATH_ARP "" CACHE PATH
   "Full path to compatible arp binary. Leave empty for automatic detection.")
 set(ZM_PATH_ARP_SCAN "" CACHE PATH
@@ -246,7 +251,7 @@ set(ZM_PERL_SEARCH_PATH "" CACHE PATH
 	where ZM_PERL_INSTALL_PATH has been overridden such that ZoneMinder's Perl modules
 	are installed outside Perl's default search path.")
 set(ZM_TARGET_DISTRO "" CACHE STRING
-  "Build ZoneMinder for a specific distribution.  Currently, valid names are: fc, el, OS13, FreeBSD")
+  "Build ZoneMinder for a specific distribution.  Currently, valid names are: fc, el, OS13, FreeBSD, OpenBSD")
 set(ZM_DETECT_SYSTEMD "ON" CACHE BOOL
   "Set to OFF to disable detection of systemd. default: ON")
 set(ZM_SYSTEMD "OFF" CACHE BOOL
@@ -303,7 +308,7 @@ elseif(ZM_TARGET_DISTRO STREQUAL "OS13")
   set(ZM_WEB_GROUP "www")
   set(ZM_WEBDIR "/srv/www/htdocs/zoneminder")
   set(ZM_CGIDIR "/srv/www/cgi-bin")
-elseif(ZM_TARGET_DISTRO STREQUAL "FreeBSD")
+elseif((ZM_TARGET_DISTRO STREQUAL "FreeBSD") OR (ZM_TARGET_DISTRO STREQUAL "OpenBSD"))
   set(ZM_RUNDIR "/var/run/zm")
   set(ZM_SOCKDIR "/var/run/zm")
   set(ZM_TMPDIR "/var/tmp/zm")

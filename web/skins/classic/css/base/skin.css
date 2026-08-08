@@ -1108,11 +1108,6 @@ a.flip {
   margin-left: 0;
 }
 
-.tags-container button:last-child {
-  margin-right: 0;
-  border-right: none
-}
-
 .tag {
   background-color: #F0F0F0;
   border-radius: 12px;

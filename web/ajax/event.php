@@ -180,6 +180,11 @@ if ( canView('Events') or canView('Snapshots') ) {
     $values = array($_REQUEST['tid']);
     dbFetchAll($sql, NULL, $values);
 
+    // Record this tag against the user's personal recency order so it
+    // sorts to the top of THEIR dropdown next time, on any device.
+    require_once('includes/TagOrder.php');
+    \ZM\TagOrder::recordUsage($user->Id(), validCardinal($_REQUEST['tid']));
+
     ajaxResponse(array('response'=>$response));
     break;
   case 'removetag' :

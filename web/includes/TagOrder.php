@@ -51,18 +51,12 @@ class TagOrder {
     }
     $json = json_encode($order);
 
-    $existing = dbFetchOne(
-      'SELECT Id FROM User_Preferences WHERE UserId = ? AND Name = ?',
-      NULL,
-      array($userId, self::PREF_NAME)
+    // (UserId, Name) is unique, so let the db decide insert-vs-update instead
+    // of racing a SELECT against a concurrent request from the same user.
+    dbQuery(
+      'INSERT INTO User_Preferences (UserId, Name, Value) VALUES (?, ?, ?)'.
+      ' ON DUPLICATE KEY UPDATE Value = VALUES(Value)',
+      array($userId, self::PREF_NAME, $json)
     );
-    if ($existing) {
-      dbQuery('UPDATE User_Preferences SET Value = ? WHERE Id = ?', array($json, $existing['Id']));
-    } else {
-      dbQuery(
-        'INSERT INTO User_Preferences (UserId, Name, Value) VALUES (?, ?, ?)',
-        array($userId, self::PREF_NAME, $json)
-      );
-    }
   }
 }

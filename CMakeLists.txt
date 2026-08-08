@@ -199,7 +199,7 @@ set(ZM_PATH_SHUTDOWN "/sbin/shutdown" CACHE PATH
   "Path to shutdown binary, default: /sbin/shutdown")
 
 # Advanced
-set(ZM_PATH_MAP "/dev/shm" CACHE PATH
+set(ZM_PATH_MAP "/tmp" CACHE PATH
   "Location to save mapped memory files, default: /dev/shm")
 set(ZM_PATH_ARP "" CACHE PATH
   "Full path to compatible arp binary. Leave empty for automatic detection.")

@@ -204,7 +204,10 @@ function processRows(rows) {
     // Store original ID for later use
     row._id = mid;
 
-    var stream_available = canView.Stream && (row.Type == 'WebSite' || (row.CaptureFPS && row.Capturing != 'None'));
+    // A deleted monitor has no capture daemon, so any fps left on its stale
+    // status row does not mean there is a stream to link to.
+    var stream_available = !row.Deleted && canView.Stream &&
+      (row.Type == 'WebSite' || (row.CaptureFPS && row.Capturing != 'None'));
 
     // Determine status classes
     var source_class = 'infoText';
@@ -212,7 +215,12 @@ function processRows(rows) {
     // FPS report interval: 60 seconds base + 30 seconds buffer for FPSReportInterval
     var fps_report_seconds = 90;
 
-    if ((!row.Status || row.Status == 'NotRunning') && row.Type != 'WebSite') {
+    if (row.Deleted) {
+      // Only reachable via the Deleted entry in the Status filter. Nothing is
+      // running for it, so the fps checks below say nothing useful.
+      source_class = 'errorText';
+      source_class_reason = 'Deleted';
+    } else if ((!row.Status || row.Status == 'NotRunning') && row.Type != 'WebSite') {
       source_class = 'errorText';
       source_class_reason = 'Not Running';
     } else {
@@ -244,6 +252,10 @@ function processRows(rows) {
       nameHtml += '<a href="?view=watch&amp;mid=' + mid + '">' + row.Name + '</a>';
     } else {
       nameHtml += row.Name;
+    }
+
+    if (row.Deleted) {
+      nameHtml += ' <span class="errorText">(deleted)</span>';
     }
 
     // Add groups

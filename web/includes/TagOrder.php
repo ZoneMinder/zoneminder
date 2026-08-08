@@ -11,6 +11,8 @@
 //
 namespace ZM;
 
+require_once('database.php');
+
 class TagOrder {
   const MAX_ENTRIES = 50;
   const PREF_NAME = 'tagOrder';

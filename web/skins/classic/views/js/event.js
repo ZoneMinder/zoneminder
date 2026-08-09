@@ -94,12 +94,12 @@ $j(document).on("keydown", "", function(e) {
 });
 
 function streamReq(data) {
-  if (auth_hash) data.auth = auth_hash;
+  if (zmAuth.hash) data.auth = zmAuth.hash;
   data.connkey = connKey;
   data.view = 'request';
   data.request = 'stream';
 
-  $j.getJSON(monitorUrl+'?'+auth_relay, data)
+  $j.getJSON(zmAuth.appendTo(monitorUrl), data)
       .done(getCmdResponse)
       .fail(logAjaxFail);
 }
@@ -502,13 +502,9 @@ function getCmdResponse(respObj, respText) {
     updateProgressBar();
   }
 
-  if (streamStatus.auth) {
-    if (streamStatus.auth != auth_hash) {
-      console.log("Changed auth from " + auth_hash + " to " + streamStatus.auth);
-      auth_hash = streamStatus.auth;
-      auth_relay = streamStatus.auth_relay;
-    }
-  } // end if have a new auth hash
+  if (zmAuth.update(streamStatus)) {
+    console.log("Changed auth to " + zmAuth.hash);
+  }
 } // end function getCmdResponse( respObj, respText )
 
 function pauseClicked() {
@@ -898,7 +894,7 @@ function getEventResponse(respObj, respText) {
 function eventQuery(eventId) {
   var data = {};
   data.id = eventId;
-  if (auth_hash) data.auth = auth_hash;
+  if (zmAuth.hash) data.auth = zmAuth.hash;
 
   $j.getJSON(thisUrl + '?view=request&request=status&entity=event', data)
       .done(getEventResponse)
@@ -947,7 +943,7 @@ function getFrameResponse(respObj, respText) {
 
 function frameQuery(eventId, frameId, loadImage) {
   var data = {};
-  if (auth_hash) data.auth = auth_hash;
+  if (zmAuth.hash) data.auth = zmAuth.hash;
   data.loopback = loadImage;
   data.eid = eventId;
   data.fid = frameId;

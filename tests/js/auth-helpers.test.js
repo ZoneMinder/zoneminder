@@ -99,5 +99,140 @@ test('handles empty/undefined src safely', () => {
   assert.strictEqual(ZM.rebuildStreamSrc(undefined, 'abc', null), '?auth=abc');
 });
 
+console.log('authHashFromRelay');
+test('extracts the hash from a hashed relay', () => {
+  assert.strictEqual(ZM.authHashFromRelay('auth=abc123&user=plaza'), 'abc123');
+});
+test('extracts the hash when auth is not the first parameter', () => {
+  assert.strictEqual(ZM.authHashFromRelay('user=plaza&auth=abc123'), 'abc123');
+});
+test('extracts the hash from a relay with no user', () => {
+  assert.strictEqual(ZM.authHashFromRelay('auth=abc123'), 'abc123');
+});
+test('does not match a parameter merely ending in auth', () => {
+  assert.strictEqual(ZM.authHashFromRelay('xauth=abc123'), '');
+});
+test('returns empty for the plain/none relay forms', () => {
+  assert.strictEqual(ZM.authHashFromRelay('username=plaza&password=secret'), '');
+  assert.strictEqual(ZM.authHashFromRelay('username=plaza'), '');
+});
+test('handles empty/undefined relay safely', () => {
+  assert.strictEqual(ZM.authHashFromRelay(''), '');
+  assert.strictEqual(ZM.authHashFromRelay(undefined), '');
+  assert.strictEqual(ZM.authHashFromRelay(null), '');
+});
+
+console.log('appendQuery');
+test('joins with ? when the url has no query string', () => {
+  assert.strictEqual(ZM.appendQuery('/zm/index.php', 'auth=abc'), '/zm/index.php?auth=abc');
+});
+test('joins with & when the url already has a query string', () => {
+  assert.strictEqual(ZM.appendQuery('/zm/index.php?view=montage', 'auth=abc'), '/zm/index.php?view=montage&auth=abc');
+});
+test('leaves the url untouched when auth is off', () => {
+  // The `x ? '&'+x : ''` dance at every call site existed to avoid a dangling
+  // separator; appendQuery owns that decision now.
+  assert.strictEqual(ZM.appendQuery('/zm/index.php?view=montage', ''), '/zm/index.php?view=montage');
+  assert.strictEqual(ZM.appendQuery('/zm/index.php', undefined), '/zm/index.php');
+});
+
+console.log('setUrlParam');
+test('replaces an existing parameter in place', () => {
+  assert.strictEqual(
+      ZM.setUrlParam('nph-zms?monitor=26&auth=OLD&mode=jpeg', 'auth', 'NEW'),
+      'nph-zms?monitor=26&auth=NEW&mode=jpeg');
+});
+test('appends when the parameter is absent', () => {
+  assert.strictEqual(ZM.setUrlParam('nph-zms?monitor=26', 'auth', 'NEW'), 'nph-zms?monitor=26&auth=NEW');
+});
+test('does not match a parameter merely ending in the name', () => {
+  assert.strictEqual(ZM.setUrlParam('nph-zms?xauth=OLD', 'auth', 'NEW'), 'nph-zms?xauth=OLD&auth=NEW');
+});
+test('replaces an empty-valued parameter', () => {
+  assert.strictEqual(ZM.setUrlParam('nph-zms?auth=&mode=jpeg', 'auth', 'NEW'), 'nph-zms?auth=NEW&mode=jpeg');
+});
+
+console.log('ZMAuth');
+test('derives the hash from the relay', () => {
+  assert.strictEqual(new ZM.ZMAuth('auth=abc123&user=plaza').hash, 'abc123');
+});
+test('has no hash under the plain relay form', () => {
+  assert.strictEqual(new ZM.ZMAuth('username=plaza&password=secret').hash, '');
+});
+test('has no hash when authentication is off', () => {
+  assert.strictEqual(new ZM.ZMAuth('').hash, '');
+  assert.strictEqual(new ZM.ZMAuth().hash, '');
+});
+test('the hash cannot drift from the relay', () => {
+  // The regression this whole type exists for. ajax/stream.php omitted `auth`
+  // from its reply whenever it matched the hash the request carried (which came
+  // from auth_relay), so the separate auth_hash global was never corrected and
+  // reconnecting streams baked it in. There is now one value, so an update to
+  // the relay is by construction an update to the hash.
+  const auth = new ZM.ZMAuth('auth=7361222c&user=plaza');
+  auth.update({auth_relay: 'auth=5bc52e6d&user=plaza'});
+  assert.strictEqual(auth.hash, '5bc52e6d');
+});
+test('update reports whether the credential changed', () => {
+  const auth = new ZM.ZMAuth('auth=abc&user=plaza');
+  assert.strictEqual(auth.update({auth_relay: 'auth=abc&user=plaza'}), false, 'same relay is not a change');
+  assert.strictEqual(auth.update({auth_relay: 'auth=def&user=plaza'}), true);
+  assert.strictEqual(auth.hash, 'def');
+});
+test('update accepts a reply carrying only auth', () => {
+  const auth = new ZM.ZMAuth('auth=abc&user=plaza');
+  assert.strictEqual(auth.update({auth: 'def'}), true);
+  assert.strictEqual(auth.relay, 'auth=def&user=plaza', 'user must survive the swap');
+  assert.strictEqual(auth.update({auth: 'def'}), false);
+});
+test('update ignores empty and missing payloads', () => {
+  const auth = new ZM.ZMAuth('auth=abc&user=plaza');
+  assert.strictEqual(auth.update(null), false);
+  assert.strictEqual(auth.update({}), false);
+  assert.strictEqual(auth.relay, 'auth=abc&user=plaza');
+});
+test('appendTo authenticates a url', () => {
+  const auth = new ZM.ZMAuth('auth=abc&user=plaza');
+  assert.strictEqual(
+      auth.appendTo('/zm/index.php?view=request&request=status'),
+      '/zm/index.php?view=request&request=status&auth=abc&user=plaza');
+});
+test('appendTo is a no-op when authentication is off', () => {
+  assert.strictEqual(new ZM.ZMAuth('').appendTo('/zm/index.php?view=montage'), '/zm/index.php?view=montage');
+});
+test('applyTo swaps the hash and keeps the other stream options', () => {
+  const auth = new ZM.ZMAuth('auth=5bc52e6d&user=plaza');
+  assert.strictEqual(
+      auth.applyTo('cgi-bin/nph-zms?monitor=26&auth=7361222c&user=plaza&connkey=563525&scale=25&mode=jpeg'),
+      'cgi-bin/nph-zms?monitor=26&auth=5bc52e6d&user=plaza&connkey=563525&scale=25&mode=jpeg');
+});
+test('applyTo swaps the connkey too when reconnecting', () => {
+  const auth = new ZM.ZMAuth('auth=5bc52e6d&user=plaza');
+  const out = auth.applyTo('cgi-bin/nph-zms?monitor=26&auth=7361222c&user=plaza&connkey=563525&mode=jpeg', 563155);
+  assert.strictEqual(out.indexOf('auth=7361222c'), -1, 'stale hash must be gone');
+  assert.strictEqual(out.indexOf('connkey=563525'), -1, 'dead connkey must be gone');
+  assert.ok(out.indexOf('auth=5bc52e6d') !== -1);
+  assert.ok(out.indexOf('connkey=563155') !== -1);
+});
+test('applyTo appends the whole relay when the src carries no auth', () => {
+  // user= has to come along, otherwise zms falls back to scanning every row.
+  const auth = new ZM.ZMAuth('auth=abc&user=plaza');
+  assert.strictEqual(
+      auth.applyTo('cgi-bin/nph-zms?monitor=26&mode=jpeg'),
+      'cgi-bin/nph-zms?monitor=26&mode=jpeg&auth=abc&user=plaza');
+});
+test('applyTo appends the plain relay form, which has no hash to swap', () => {
+  const auth = new ZM.ZMAuth('username=plaza&password=secret');
+  assert.strictEqual(
+      auth.applyTo('cgi-bin/nph-zms?monitor=26&mode=jpeg'),
+      'cgi-bin/nph-zms?monitor=26&mode=jpeg&username=plaza&password=secret');
+});
+test('applyTo only sets the connkey when authentication is off', () => {
+  const auth = new ZM.ZMAuth('');
+  assert.strictEqual(
+      auth.applyTo('cgi-bin/nph-zms?monitor=26&connkey=1&mode=jpeg', 99),
+      'cgi-bin/nph-zms?monitor=26&connkey=99&mode=jpeg');
+});
+
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);

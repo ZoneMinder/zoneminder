@@ -484,7 +484,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
   }
 
   function getNavBar() {
-    $j.getJSON(thisUrl + '?view=request&request=status&entity=navBar' + (auth_relay?'&'+auth_relay:''))
+    $j.getJSON(zmAuth.appendTo(thisUrl + '?view=request&request=status&entity=navBar'))
         .done(setNavBar)
         .fail(function(jqxhr, textStatus, error) {
           console.log("Request Failed: " + textStatus + ", " + error);
@@ -502,18 +502,13 @@ if ( currentView != 'none' && currentView != 'login' ) {
       console.error("No data in setNavBar");
       return;
     }
-    if (data.auth) {
-      if (data.auth != auth_hash) {
-        console.log("Update auth_hash to "+data.auth);
-        // Update authentication token.
-        auth_hash = data.auth;
-      }
-      delete data.auth;
+    if (zmAuth.update(data)) {
+      console.log("Updated auth to "+zmAuth.hash);
     }
-    if (data.auth_relay) {
-      auth_relay = data.auth_relay;
-      delete data.auth_relay;
-    }
+    // The remaining keys are navbar widgets; drop the credential so the loop
+    // below doesn't go looking for elements named after it.
+    delete data.auth;
+    delete data.auth_relay;
     // iterate through all the keys then update each element id with the same name
     for (const key of Object.keys(data)) {
       if ( $j('#'+key).hasClass("show") ) continue; // don't update if the user has the dropdown open

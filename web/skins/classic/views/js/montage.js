@@ -478,16 +478,9 @@ function startVisibleMonitors() {
 }
 
 function refreshAuthAndStartMonitors() {
-  $j.getJSON(thisUrl + '?view=request&request=status&entity=navBar' + (auth_relay ? '&' + auth_relay : ''))
+  $j.getJSON(zmAuth.appendTo(thisUrl + '?view=request&request=status&entity=navBar'))
       .done(function(data) {
-        if (data) {
-          if (data.auth) {
-            auth_hash = data.auth;
-          }
-          if (data.auth_relay) {
-            auth_relay = data.auth_relay;
-          }
-        }
+        zmAuth.update(data);
         startVisibleMonitors();
       })
       .fail(function() {

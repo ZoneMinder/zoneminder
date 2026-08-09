@@ -172,18 +172,24 @@ if ( canView('Events') or canView('Snapshots') ) {
     ajaxResponse(array('response'=>$response));
     break;
   case 'addtag' :
+    // Validate once and reuse; $_REQUEST values are strings at best and can be
+    // arrays, so anything non-scalar is rejected outright.
+    $tagId = is_scalar($_REQUEST['tid'] ?? null) ? validCardinal($_REQUEST['tid']) : '';
+    $eventId = is_scalar($_REQUEST['id'] ?? null) ? validCardinal($_REQUEST['id']) : '';
+    if ($tagId === '' or $eventId === '') ajaxError('addtag requires a numeric tid and id');
+
     $sql = 'INSERT INTO Events_Tags (TagId, EventId, AssignedBy) VALUES (?, ?, ?)';
-    $values = array($_REQUEST['tid'], $_REQUEST['id'], $user->Id());
+    $values = array($tagId, $eventId, $user->Id());
     $response = dbFetchAll($sql, NULL, $values);
 
     $sql = 'UPDATE Tags SET LastAssignedDate = NOW() WHERE Id = ?';
-    $values = array($_REQUEST['tid']);
+    $values = array($tagId);
     dbFetchAll($sql, NULL, $values);
 
     // Record this tag against the user's personal recency order so it
     // sorts to the top of THEIR dropdown next time, on any device.
     require_once('includes/TagOrder.php');
-    \ZM\TagOrder::recordUsage($user->Id(), validCardinal($_REQUEST['tid']));
+    \ZM\TagOrder::recordUsage($user->Id(), $tagId);
 
     ajaxResponse(array('response'=>$response));
     break;

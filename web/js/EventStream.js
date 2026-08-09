@@ -129,8 +129,8 @@ function EventStream(config) {
     }
 
     // Auth
-    if (typeof auth_relay !== 'undefined' && auth_relay) {
-      src += '&' + auth_relay;
+    if (typeof zmAuth !== 'undefined') {
+      src = zmAuth.appendTo(src);
     }
 
     // Use a DOM <img> element for MJPEG reception. Browsers natively
@@ -395,7 +395,7 @@ function EventStream(config) {
   this.streamCmdReq = function(params) {
     var self = this;
     this.ajaxQueue = jQuery.ajaxQueue({
-      url: this.url + (auth_relay ? '?' + auth_relay : ''),
+      url: zmAuth.appendTo(this.url),
       xhrFields: {withCredentials: true},
       data: params,
       dataType: 'json'
@@ -447,14 +447,9 @@ function EventStream(config) {
 
     this.status = respObj.status;
 
-    // Update auth hash if the server sent a fresh one
-    if (this.status.auth) {
-      if (typeof auth_hash !== 'undefined' && this.status.auth !== auth_hash) {
-        auth_hash = this.status.auth;
-      }
-      if (typeof auth_relay !== 'undefined' && this.status.auth_relay) {
-        auth_relay = this.status.auth_relay;
-      }
+    // Update the credential if the server sent a fresh one
+    if (typeof zmAuth !== 'undefined') {
+      zmAuth.update(this.status);
     }
 
     // Track paused and stopped state from server

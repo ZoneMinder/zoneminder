@@ -18,7 +18,7 @@ function probe(params) {
       setCookie('addMonitors'+name, el.val(), 3600);
     }
   });
-  if (auth_relay) params.data['auth_relay'] = auth_relay;
+  if (zmAuth.relay) params.data['auth_relay'] = zmAuth.relay;
 
   $j.ajax({
     url: thisUrl + '?view=request&request=add_monitors&action=probe',

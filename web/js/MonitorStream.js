@@ -180,17 +180,15 @@ function MonitorStream(monitorData) {
     const self = this;
     if (this.authRefreshTimer) clearTimeout(this.authRefreshTimer);
     this.authRefreshTimer = setTimeout(function() {
-      $j.getJSON(thisUrl + '?view=request&request=status&entity=navBar' + (auth_relay ? '&' + auth_relay : ''))
+      $j.getJSON(zmAuth.appendTo(thisUrl + '?view=request&request=status&entity=navBar'))
           .done(function(data) {
-            if (data && data.auth) {
-              auth_hash = data.auth;
-            }
+            zmAuth.update(data);
             const el = self.getElement();
             if (!el) return;
             // Use a fresh connkey: the zms process tied to the old connkey has
             // exited, so reusing it would race a dead socket.
             self.connKey = self.streamCmdParms.connkey = self.statusCmdParms.connkey = self.genConnKey();
-            el.src = rebuildStreamSrc(brokenSrc, auth_hash, self.connKey);
+            el.src = zmAuth.applyTo(brokenSrc, self.connKey);
           })
           .fail(function(jqxhr) {
             // A dead session returns 401; redirect to login instead of retrying
@@ -322,7 +320,7 @@ function MonitorStream(monitorData) {
   this.show = function() {
     const stream = this.getElement();
     if (!stream.src) {
-      stream.src = this.url_to_zms+"&mode=single&scale="+this.scale+"&connkey="+this.connKey+(auth_relay?'&'+auth_relay:'');
+      stream.src = zmAuth.appendTo(this.url_to_zms+"&mode=single&scale="+this.scale+"&connkey="+this.connKey);
     }
   };
 
@@ -455,7 +453,7 @@ function MonitorStream(monitorData) {
           return;
         }
         let newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+newscale);
-        newSrc = newSrc.replace(/auth=\w+/i, 'auth='+auth_hash);
+        newSrc = zmAuth.applyTo(newSrc);
         if (newSrc != oldSrc) {
           this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
           // We know that only the first zms will get the command because the
@@ -614,12 +612,7 @@ function MonitorStream(monitorData) {
     const imgInfoBlock = document.getElementById('img-stream-info-block' + this.id);
     if (!imgInfoBlock) return null;
 
-    let src = this.url_to_zms.replace(/mode=jpeg/i, 'mode=single');
-    if (-1 == src.search('auth') && auth_relay) {
-      src += '&'+auth_relay;
-    } else if (-1 != src.search('auth')) {
-      src = src.replace(/auth=\w+/i, 'auth='+auth_hash);
-    }
+    let src = zmAuth.applyTo(this.url_to_zms.replace(/mode=jpeg/i, 'mode=single'));
     if (-1 == src.search('scale=')) {
       src += '&scale='+this.scale;
     }
@@ -913,8 +906,16 @@ function MonitorStream(monitorData) {
       console.log("No element found for monitor "+this.id);
       return;
     }
-    stream.onerror = null;
-    stream.onload = null;
+    // Only an img has onerror/onload as inherited accessors that are safe to null.
+    // <video-stream> (go2rtc) defines onerror as a method on VideoRTC.prototype, so
+    // assigning null here would create an own property shadowing it, and the next
+    // websocket error would throw "this.onerror is not a function" from
+    // VideoRTC.onconnect().  The element survives the kill because replaceDOMElement()
+    // reuses a node whose tag already matches.
+    if (stream.nodeName === 'IMG') {
+      stream.onerror = null;
+      stream.onload = null;
+    }
 
     // this.stop tells zms to stop streaming, but the process remains. We need to turn the stream into an image.
     const quit = this.started && (-1 !== this.activePlayer.indexOf('zms')) && this.connKey;
@@ -1443,14 +1444,10 @@ function MonitorStream(monitorData) {
           }
         }
 
-        if (this.status.auth) {
-          if (this.status.auth != auth_hash) {
-            // Don't reload the stream because it causes annoying flickering. Wait until the stream breaks.
-            console.log("Changed auth from " + auth_hash + " to " + this.status.auth);
-            auth_hash = this.status.auth;
-            auth_relay = this.status.auth_relay;
-          }
-        } // end if have a new auth hash
+        // Don't reload the stream because it causes annoying flickering. Wait until the stream breaks.
+        if (zmAuth.update(this.status)) {
+          console.log("Changed auth to " + zmAuth.hash);
+        }
       } // end if has state
 
       if (this.started && !this.streamCmdTimer) {
@@ -1472,14 +1469,13 @@ function MonitorStream(monitorData) {
       // Try to reload the image stream.
       console.log('Reloading stream: ' + stream.src);
       let src = (-1 != stream.src.indexOf('rand=')) ? stream.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) )) : stream.src+'&rand='+Math.floor((Math.random() * 1000000));
-      src = src.replace(/auth=\w+/i, 'auth='+auth_hash);
       /* Make the old zms exit before we stop being able to address it.  Once
        * the connkey is replaced nothing can reach the old process, so if it
        * missed SIGPIPE it would linger and keep streaming forever.
        */
       this.quitConnKey(this.connKey);
       this.streamCmdParms.connkey = this.statusCmdParms.connkey = this.connKey = this.genConnKey();
-      src = src.replace(/connkey=\d+/i, 'connkey='+this.connKey);
+      src = zmAuth.applyTo(src, this.connKey);
       stream.src = '';
       stream.src = src;
     } // end if Ok or not
@@ -1564,21 +1560,17 @@ function MonitorStream(monitorData) {
 
       this.setAlarmState(monitor.Status);
 
-      if (respObj.auth) {
-        if (auth_hash != respObj.auth) {
-          // Don't reload the stream because it causes annoying flickering. Wait until the stream breaks.
-          console.log("Changed auth from " + auth_hash + " to " + respObj.auth);
-          auth_hash = respObj.auth;
-          auth_relay = respObj.auth_relay;
-        }
-      } // end if have a new auth hash
+      // Don't reload the stream because it causes annoying flickering. Wait until the stream breaks.
+      if (zmAuth.update(respObj)) {
+        console.log("Changed auth to " + zmAuth.hash);
+      }
     } else {
       checkStreamForErrors('getStatusCmdResponse', respObj);
     }
   }; // this.getStatusCmdResponse
 
   this.statusCmdQuery = function() {
-    $j.getJSON(this.url + '?view=request&request=status&entity=monitor&element[]=Status&element[]=CaptureFPS&element[]=AnalysisFPS&element[]=Analysing&element[]=Recording&id='+this.id+(auth_relay?'&'+auth_relay:''))
+    $j.getJSON(zmAuth.appendTo(this.url + '?view=request&request=status&entity=monitor&element[]=Status&element[]=CaptureFPS&element[]=AnalysisFPS&element[]=Analysing&element[]=Recording&id='+this.id))
         .done(this.getStatusCmdResponse.bind(this))
         .fail(logAjaxFail);
 
@@ -1691,7 +1683,7 @@ function MonitorStream(monitorData) {
     if (!connkey) return;
     const params = Object.assign({}, this.streamCmdParms, {command: CMD_QUIT, connkey: connkey});
     jQuery.ajaxQueue({
-      url: this.url + (auth_relay?'?'+auth_relay:''),
+      url: zmAuth.appendTo(this.url),
       xhrFields: {withCredentials: true},
       data: params,
       dataType: 'json'
@@ -1731,7 +1723,7 @@ function MonitorStream(monitorData) {
     alarmCmdParms.id = this.id;
 
     this.ajaxQueue = jQuery.ajaxQueue({
-      url: this.url + (auth_relay?'?'+auth_relay:''),
+      url: zmAuth.appendTo(this.url),
       xhrFields: {withCredentials: true},
       data: alarmCmdParms,
       dataType: 'json'
@@ -1754,7 +1746,7 @@ function MonitorStream(monitorData) {
       if (!(streamCmdParms.command == CMD_STOP && ((-1 !== this.activePlayer.indexOf('go2rtc')) || (-1 !== this.activePlayer.indexOf('rtsp2web'))))) {
         //Otherwise, there will be errors in the console "Socket ... does not exist" when quickly switching stop->start and we also do not need to replace SRC in getStreamCmdResponse
         this.ajaxQueue = jQuery.ajaxQueue({
-          url: this.url + (auth_relay?'?'+auth_relay:''),
+          url: zmAuth.appendTo(this.url),
           xhrFields: {withCredentials: true},
           // Snapshot: ajaxQueue defers $.ajax (and therefore data serialization)
           // until earlier queued requests finish. Callers that pass this.streamCmdParms
@@ -2078,8 +2070,10 @@ function MonitorStream(monitorData) {
     stream.onload = this.img_onload.bind(this);
     // Check if the auth hash in the current img src is still valid.
     // On long-running pages the hash from page load may have expired.
-    const srcAuthMatch = stream.src ? stream.src.match(/auth=(\w+)/i) : null;
-    const srcAuthCurrent = srcAuthMatch && srcAuthMatch[1] === auth_hash;
+    // zmAuth.hash is '' when authentication is off or under the plain/none relay
+    // forms; there is no hash to compare then, so fall through and rebuild as
+    // this has always done.
+    const srcAuthCurrent = stream.src && zmAuth.hash && authHashFromRelay(stream.src) === zmAuth.hash;
 
     if (srcAuthCurrent && this.activePlayer == 'zms') {
       // Auth is current and zms was already the active player — just resume
@@ -2090,12 +2084,7 @@ function MonitorStream(monitorData) {
       this.streamCmdTimer = setInterval(this.streamCmdQuery.bind(this), statusRefreshTimeout);
       this.streamCommand(CMD_PLAY);
     } else {
-      let src = this.url_to_zms.replace(/mode=single/i, 'mode=jpeg');
-      if (-1 == src.search('auth') && auth_relay) {
-        src += '&'+auth_relay;
-      } else if (-1 != src.search('auth')) {
-        src = src.replace(/auth=\w+/i, 'auth='+auth_hash);
-      }
+      let src = zmAuth.applyTo(this.url_to_zms.replace(/mode=single/i, 'mode=jpeg'));
       if (-1 == src.search('connkey')) {
         this.streamCmdParms.connkey = this.statusCmdParms.connkey = this.connKey = this.genConnKey(); // The "connkey" needs to be replaced, because on the Watch page, when switching the player to ZMS, then to any other player, and then returning to ZMS, playback will not occur, because the socket="previous connkey" will be closed.
         src += '&connkey='+this.connKey;

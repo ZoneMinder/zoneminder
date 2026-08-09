@@ -3408,8 +3408,8 @@ async function getTracksFromStream(videoFeedStream) {
   }
 
   console.debug(`mediaStream for ID=${mid}:`, videoFeedStream.mediaStream);
-  console.debug(`audioTrack  for ID=${mid}:`, videoFeedStream.audioTrack);
-  console.debug(`videoTrack  for ID=${mid}:`, videoFeedStream.videoTrack);
+  console.debug(`audioTrack for ID=${mid}:`, videoFeedStream.audioTrack);
+  console.debug(`videoTrack for ID=${mid}:`, videoFeedStream.videoTrack);
   if (currentView == 'watch' || currentView == 'montage') {
     (videoFeedStream.audioTrack || streamCaptureNotSupported) ? videoFeedStream.volumeControlsHandler('enable') : videoFeedStream.volumeControlsHandler('disable');
   } else if (currentView == 'event') {

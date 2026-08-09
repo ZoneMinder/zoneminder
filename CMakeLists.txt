@@ -199,6 +199,8 @@ set(ZM_PATH_SHUTDOWN "/sbin/shutdown" CACHE PATH
   "Path to shutdown binary, default: /sbin/shutdown")
 
 # Advanced
+set(ZM_PATH_MAP "/dev/shm" CACHE PATH
+  "Location to save mapped memory files, default: /dev/shm")
 set(ZM_PATH_ARP "" CACHE PATH
   "Full path to compatible arp binary. Leave empty for automatic detection.")
 set(ZM_PATH_ARP_SCAN "" CACHE PATH
@@ -313,11 +315,7 @@ elseif((ZM_TARGET_DISTRO STREQUAL "FreeBSD") OR (ZM_TARGET_DISTRO STREQUAL "Open
   set(ZM_WEBDIR "/usr/local/share/zoneminder/www")
   set(ZM_CGIDIR "/usr/local/libexec/zoneminder/cgi-bin")
   set(ZM_PATH_MAP "/tmp" CACHE PATH
-  "Location to save mapped memory files, default: /dev/shm")
-else()
-  # Default to standard /dev/shm cache path for most distros
-  set(ZM_PATH_MAP "/dev/shm" CACHE PATH
-  "Location to save mapped memory files, default: /dev/shm")
+    "Location to save mapped memory files, default: /dev/shm")
 endif()
 
 if(BUILD_MAN)

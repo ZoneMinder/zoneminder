@@ -227,6 +227,14 @@ test('applyTo appends the plain relay form, which has no hash to swap', () => {
       auth.applyTo('cgi-bin/nph-zms?monitor=26&mode=jpeg'),
       'cgi-bin/nph-zms?monitor=26&mode=jpeg&username=plaza&password=secret');
 });
+test('applyTo returns empty for a blank src rather than a bare query string', () => {
+  // montagereview's loadImage2Monitor treats '' as "nothing to load"; a bare
+  // '?auth=...' would resolve against the page and load HTML as an image.
+  const auth = new ZM.ZMAuth('auth=abc&user=plaza');
+  assert.strictEqual(auth.applyTo(''), '');
+  assert.strictEqual(auth.applyTo(undefined), '');
+  assert.strictEqual(auth.applyTo('', 99), '');
+});
 test('applyTo only sets the connkey when authentication is off', () => {
   const auth = new ZM.ZMAuth('');
   assert.strictEqual(

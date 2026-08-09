@@ -124,7 +124,12 @@ class ZMAuth {
   // so the rest of its stream options survive; one that carries none gets the
   // whole relay, which is what brings user= (or username=/password=) along.
   applyTo(src, connKey) {
-    let out = src || '';
+    // No src means there is no stream to point anywhere. Returning '' keeps
+    // callers that treat a blank src as "nothing to load" working; building
+    // '?auth=...' here would resolve against the current page and load the
+    // surrounding HTML as an image.
+    if (!src) return '';
+    let out = src;
     if (this.relay) {
       if (/(?:^|[?&])auth=\w*/i.test(out)) {
         if (this.hash) out = setUrlParam(out, 'auth', this.hash);

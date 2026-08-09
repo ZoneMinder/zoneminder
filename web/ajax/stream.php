@@ -191,13 +191,11 @@ case MSG_DATA_WATCH :
   #$data['scale'] = $data['scale'];
   if (ZM_OPT_USE_AUTH) {
     if (ZM_AUTH_RELAY == 'hashed') {
-      $auth_hash = generateAuthHash(ZM_AUTH_HASH_IPS);
-      if (isset($_REQUEST['auth']) and ($_REQUEST['auth'] != $auth_hash)) {
-        $data['auth'] = $auth_hash;
-        ZM\Debug('including new auth hash '.$data['auth'].'because doesnt match request auth hash '.$_REQUEST['auth']);
-      //} else {
-        //ZM\Debug('Not including new auth hash because it hasn\'t changed '.$auth_hash);
-      }
+      # Send the hash unconditionally. Withholding it when it matched the hash
+      # the request carried meant a client whose copy had drifted could never be
+      # corrected, and reconnecting streams then baked the drifted hash into
+      # their <img> src and 403'd against zms indefinitely.
+      $data['auth'] = generateAuthHash(ZM_AUTH_HASH_IPS);
     }
     $data['auth_relay'] = get_auth_relay();
   }
@@ -216,10 +214,8 @@ case MSG_DATA_EVENT :
   $data['fps'] = round( $data['fps'], 2 );
   if ( ZM_OPT_USE_AUTH ) {
     if (ZM_AUTH_RELAY == 'hashed') {
-      $auth_hash = generateAuthHash(ZM_AUTH_HASH_IPS);
-      if ( isset($_REQUEST['auth']) and ($_REQUEST['auth'] != $auth_hash) ) {
-        $data['auth'] = $auth_hash;
-      }
+      # Unconditional, for the reason given in the MSG_DATA_WATCH branch above.
+      $data['auth'] = generateAuthHash(ZM_AUTH_HASH_IPS);
     }
     $data['auth_relay'] = get_auth_relay();
   }

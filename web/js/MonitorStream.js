@@ -906,8 +906,16 @@ function MonitorStream(monitorData) {
       console.log("No element found for monitor "+this.id);
       return;
     }
-    stream.onerror = null;
-    stream.onload = null;
+    // Only an img has onerror/onload as inherited accessors that are safe to null.
+    // <video-stream> (go2rtc) defines onerror as a method on VideoRTC.prototype, so
+    // assigning null here would create an own property shadowing it, and the next
+    // websocket error would throw "this.onerror is not a function" from
+    // VideoRTC.onconnect().  The element survives the kill because replaceDOMElement()
+    // reuses a node whose tag already matches.
+    if (stream.nodeName === 'IMG') {
+      stream.onerror = null;
+      stream.onload = null;
+    }
 
     // this.stop tells zms to stop streaming, but the process remains. We need to turn the stream into an image.
     const quit = this.started && (-1 !== this.activePlayer.indexOf('zms')) && this.connKey;

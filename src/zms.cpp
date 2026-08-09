@@ -281,13 +281,10 @@ int main(int argc, const char *argv[], char **envp) {
       // streams whose hash TTL expired; the browser keeps reconnecting with the
       // baked-in URL. Including user/auth-prefix/uri/xff makes the noise diagnosable
       // without flipping on Debug.
-      char auth_prefix[9] = {0};
-      // Deliberate truncation to the first 8 chars; snprintf always NUL-terminates,
-      // whereas strncpy here trips -Wstringop-truncation at -O2.
-      if (*auth) snprintf(auth_prefix, sizeof(auth_prefix), "%s", auth);
-      Warning("Unable to authenticate user (user='%s' auth='%s%s' uri='%s' referer='%s' xff='%s' remote='%s')",
+      // Log only the first 8 chars of the hash: enough to correlate, not enough to replay.
+      Warning("Unable to authenticate user (user='%s' auth='%.8s%s' uri='%s' referer='%s' xff='%s' remote='%s')",
               username.c_str(),
-              auth_prefix,
+              auth,
               (*auth && strlen(auth) > 8) ? "..." : "",
               request_uri ? request_uri : "",
               referer ? referer : "",

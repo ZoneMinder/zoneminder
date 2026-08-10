@@ -277,6 +277,12 @@ function getFrame(monId, time, last_Frame) {
     return;
   }
 
+  // Recording events outgrow the frames we hold; pick up the rest once the
+  // cursor reaches the end of them.
+  if (!Event.EndDateTime && Event.NewestFrameTimeSecs && (time > Event.NewestFrameTimeSecs)) {
+    refreshOpenEventFrames(Event);
+  }
+
   // Need to get frame by time, not some fun calc that assumes frames have the same length.
   // Frames are sorted in descreasing order (or not sorted).
   // This is likely not efficient.  Would be better to start at the last frame viewed, see if it is still relevant
@@ -579,9 +585,12 @@ function drawEventOnGraph(zm_event) {
 
   // round low end down
   const x1 = parseInt((zm_event.StartTimeSecs - minTimeSecs) / rangeTimeSecs * cWidth);
-  if (!zm_event.EndTimeSecs) zm_event.EndTimeSecs = maxTimeSecs;
+  // An event still recording has no end yet, so it runs to the edge of the
+  // window. Kept local: writing it back would give the event a concrete end and
+  // stop findEventByTime() matching it once the window moved on.
+  const endTimeSecs = zm_event.EndTimeSecs ? zm_event.EndTimeSecs : maxTimeSecs;
   // round high end up to be sure consecutive ones connect
-  const x2 = parseInt((zm_event.EndTimeSecs - minTimeSecs) / rangeTimeSecs * cWidth + 0.5 );
+  const x2 = parseInt((endTimeSecs - minTimeSecs) / rangeTimeSecs * cWidth + 0.5 );
   if (!monitorColour[zm_event.MonitorId]) {
     console.warn("No colour for monitor", zm_event.MonitorId);
     ctx.fillStyle = '#43bcf2';
@@ -1349,6 +1358,14 @@ function loadEventData(e) {
         if (!parseInt(ev.Frames)) continue;
         ev.Id = parseInt(ev.Id);
         ev.MonitorId = parseInt(ev.MonitorId);
+        // An event still being written has no end. The API reports EndTimeSecs
+        // for it anyway, derived from the Length last flushed by zmc, which is
+        // seconds behind what has actually been captured. Taken as a real end it
+        // makes findEventByTime() reject the newest part of a recording event,
+        // so scrubbing to now says "No event" while the camera is recording.
+        // Clearing it restores the open-ended handling the rest of this file
+        // already implements for a missing EndTimeSecs.
+        if (!ev.EndDateTime) ev.EndTimeSecs = null;
         event_list[ev.Id] = events[ev.Id] = ev;
 
         if ((!(ev.MonitorId in events_for_monitor)) || !events_for_monitor[ev.MonitorId]) {
@@ -1642,25 +1659,54 @@ window.addEventListener("resize", redrawScreen, {passive: true});
 // Kick everything off
 window.addEventListener('DOMContentLoaded', initPage);
 
+/* An event that is still recording keeps gaining frames after montage review
+ * read them. Once the cursor passes the newest frame we hold, ask for the rest.
+ * Throttled because getFrame() runs for every monitor on every timer tick, and
+ * rate limited per event rather than globally so one monitor cannot starve
+ * another. */
+const OPEN_EVENT_FRAME_REFRESH_MS = 5000;
+function refreshOpenEventFrames(zm_event) {
+  const now = Date.now();
+  if (zm_event.FramesRefreshedAt && ((now - zm_event.FramesRefreshedAt) < OPEN_EVENT_FRAME_REFRESH_MS)) {
+    return;
+  }
+  zm_event.FramesRefreshedAt = now;
+  const event_list = {};
+  event_list[zm_event.Id] = zm_event;
+  loadFrames(event_list).catch(function(e) {
+    console.warn('Failed to refresh frames for recording event '+zm_event.Id, e);
+  });
+}
+
 /* Expects an Object, not an array, of EventId=>Event mappings. */
 function loadFrames(zm_events) {
   return new Promise(function(resolve, reject) {
     const url = Servers[serverId].urlToApi()+'/frames/index';
 
-    let query = '';
-    const ids = Object.keys(zm_events);
+    // Decide what needs fetching before batching, so that an event skipped here
+    // can't swallow the batch built up for the ones before it. Testing the
+    // remaining count inside the skip meant a trailing already-loaded event
+    // dropped the whole accumulated query and those frames never arrived.
+    const ids = Object.keys(zm_events).filter(function(event_id) {
+      const zm_event = zm_events[event_id];
+      // A closed event's frame set is final, so load it once. An event still
+      // recording keeps gaining frames, and skipping it here is what left the
+      // newest part of a live recording unreachable until a page reload.
+      // Re-reading is safe: frames are stored by id, so this overwrites rather
+      // than duplicates.
+      if (zm_event.FramesById && zm_event.EndDateTime) return false;
+      if (!zm_event.FramesById) zm_event.FramesById = []; //Signal that we are loading them
+      return true;
+    });
 
+    if (!ids.length) {
+      resolve();
+      return;
+    }
+
+    let query = '';
     while (ids.length) {
-      const event_id = ids.shift();
-      {
-        const zm_event = zm_events[event_id];
-        if (zm_event.FramesById) {
-          // console.log('already loaded FramesById', zm_event);
-          continue;
-        }
-        zm_event.FramesById = []; //Signal that we are loading them
-      }
-      query += '/EventId:'+event_id;
+      query += '/EventId:'+ids.shift();
 
       if ((!ids.length) || (query.length > 1000)) {
         $j.ajax(zmAuth.appendTo(url+query+'.json'), {
@@ -1692,6 +1738,12 @@ function loadFrames(zm_events) {
 
                 //if (!zm_event.FramesById) zm_event.FramesById = [];
                 zm_event.FramesById[frame.Id] = frame;
+                // Remember how far this event has been read, so getFrame() can
+                // tell when a recording event has outgrown what we hold.
+                const frameSecs = parseFloat(frame.TimeStampSecs);
+                if (!zm_event.NewestFrameTimeSecs || (frameSecs > zm_event.NewestFrameTimeSecs)) {
+                  zm_event.NewestFrameTimeSecs = frameSecs;
+                }
                 //drawFrameOnGraph(frame);
               } // end foreach frame
             } else {

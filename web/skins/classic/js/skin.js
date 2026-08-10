@@ -484,7 +484,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
   }
 
   function getNavBar() {
-    $j.getJSON(thisUrl + '?view=request&request=status&entity=navBar' + (auth_relay?'&'+auth_relay:''))
+    $j.getJSON(zmAuth.appendTo(thisUrl + '?view=request&request=status&entity=navBar'))
         .done(setNavBar)
         .fail(function(jqxhr, textStatus, error) {
           console.log("Request Failed: " + textStatus + ", " + error);
@@ -502,18 +502,13 @@ if ( currentView != 'none' && currentView != 'login' ) {
       console.error("No data in setNavBar");
       return;
     }
-    if (data.auth) {
-      if (data.auth != auth_hash) {
-        console.log("Update auth_hash to "+data.auth);
-        // Update authentication token.
-        auth_hash = data.auth;
-      }
-      delete data.auth;
+    if (zmAuth.update(data)) {
+      console.log("Updated auth to "+zmAuth.hash);
     }
-    if (data.auth_relay) {
-      auth_relay = data.auth_relay;
-      delete data.auth_relay;
-    }
+    // The remaining keys are navbar widgets; drop the credential so the loop
+    // below doesn't go looking for elements named after it.
+    delete data.auth;
+    delete data.auth_relay;
     // iterate through all the keys then update each element id with the same name
     for (const key of Object.keys(data)) {
       if ( $j('#'+key).hasClass("show") ) continue; // don't update if the user has the dropdown open
@@ -1577,11 +1572,22 @@ function createGo2rtcStream(container, img, src, mid, fallbackToMjpeg) {
     url.search = 'src=' + mid + '_' + channel;
 
     const stream = document.createElement('video-stream');
+    stream.handlerEventListener = {};
     stream.style.cssText = 'width: 100%; height: 100%; display: block;';
     stream.background = true;
     stream.muted = getCookie('zmWatchMuted') === 'true';
     stream.src = url.href;
     container.appendChild(stream);
+
+    stream.handlerEventListener['go2rtc.events.error'] = manageEventListener.addEventListener(stream, 'go2rtc.events.error',
+        (e) => {
+          console.debug('Go2RTC playback error:', e.detail);
+          clearTimeout(stream._fallbackTimer);
+          manageEventListener.removeEventListener(stream.handlerEventListener['go2rtc.events.error']);
+          stream.remove();
+          fallbackToMjpeg();
+        }
+    );
 
     const attachPlayListener = function() {
       const innerVideo = stream.querySelector('video');
@@ -1992,6 +1998,7 @@ function thumbnail_onmouseout(event) {
 
 function cleanupVideoStream(videoStream) {
   if (!videoStream) return;
+  manageEventListener.removeEventListener(videoStream.handlerEventListener['go2rtc.events.error']);
   if (videoStream._fallbackTimer) clearTimeout(videoStream._fallbackTimer);
   videoStream.close();
 }
@@ -3296,13 +3303,22 @@ function pauseAudioMotion(mid) {
 async function getTracksFromStream(videoFeedStream) {
   if (!videoFeedStream) {
     console.log(`Unable to get tracks from stream because the stream is missing.`);
+    dispatchTracksReceived(videoFeedStream, {
+      status: 'failed',
+      reason: 'invalid-stream'
+    });
     return;
   }
   const mid = (typeof eventData !== 'undefined') ? eventData.MonitorId : (videoFeedStream) ? videoFeedStream.id : null;
   if (!mid) {
     console.log(`getTracksFromStream: Unable to get Monitor.ID for`, videoFeedStream);
+    dispatchTracksReceived(videoFeedStream, {
+      status: 'failed',
+      reason: 'monitor-id-not-found'
+    });
     return;
   }
+  const playbackSessionId = videoFeedStream.playbackSessionId;
 
   let el = null;
   if (currentView == 'watch' || currentView == 'montage' || currentView == 'zones' || currentView == 'zone') {
@@ -3314,6 +3330,10 @@ async function getTracksFromStream(videoFeedStream) {
 
   if (!el) {
     console.log(`"Video stream" NOT found for monitor ID=${mid}.`);
+    dispatchTracksReceived(videoFeedStream, {
+      status: 'failed',
+      reason: 'video-element-not-found'
+    });
     return;
   }
   let streamCaptureNotSupported = false;
@@ -3330,15 +3350,42 @@ async function getTracksFromStream(videoFeedStream) {
     console.warn(`"captureStream" NOT found in STREAM for monitor ID=${mid} or not supported by the browser.`);
     streamCaptureNotSupported = true; // This will enable the volume control if the browser does not support captureStream (for example, Safari)
   }
+  if (!isCurrentPlaybackSession(videoFeedStream, playbackSessionId)) {
+    console.debug(`RACE [${playbackSessionId}] getTracksFromStream() aborted`);
+    stopMediaStreamTracks(stream);
+    dispatchTracksReceived(videoFeedStream, {
+      status: 'aborted',
+      reason: 'playback-session-changed'
+    });
+    return;
+  }
 
   if (stream) {
     const timeoutStreamActive = 20000;
     const startTime = Date.now();
-    const streamActive = await waitUntil(() => (stream.active || videoFeedStream.started === false), timeoutStreamActive, stream.active); // We are waiting for the stream to become active.
+    const streamActive = await waitUntil(() => (stream.active || videoFeedStream.started === false), timeoutStreamActive); // We are waiting for the stream to become active.
+    if (!isCurrentPlaybackSession(videoFeedStream, playbackSessionId)) {
+      console.debug(`RACE [${playbackSessionId}] waitUntil() aborted`);
+      stopMediaStreamTracks(stream);
+      dispatchTracksReceived(videoFeedStream, {
+        status: 'aborted',
+        reason: 'playback-session-changed'
+      });
+      return;
+    }
     if (streamActive !== false && videoFeedStream.started !== false) {
       console.debug(`Stream for monitor with ID=${mid} became active within ${(streamActive/1000).toFixed(2)} seconds.`);
     } else {
       console.warn(`Within ${((Date.now() - startTime)/1000).toFixed(2)} seconds, the stream for monitor with ID=${mid} did not become active.`);
+
+      // The captured MediaStream never became active.
+      // Stop all tracks to release browser resources before returning.
+      stopMediaStreamTracks(stream);
+
+      dispatchTracksReceived(videoFeedStream, {
+        status: 'failed',
+        reason: 'stream-inactive'
+      });
       return;
     }
 
@@ -3361,15 +3408,81 @@ async function getTracksFromStream(videoFeedStream) {
   }
 
   console.debug(`mediaStream for ID=${mid}:`, videoFeedStream.mediaStream);
-  console.debug(`audioTrack  for ID=${mid}:`, videoFeedStream.audioTrack);
-  console.debug(`videoTrack  for ID=${mid}:`, videoFeedStream.videoTrack);
+  console.debug(`audioTrack for ID=${mid}:`, videoFeedStream.audioTrack);
+  console.debug(`videoTrack for ID=${mid}:`, videoFeedStream.videoTrack);
   if (currentView == 'watch' || currentView == 'montage') {
     (videoFeedStream.audioTrack || streamCaptureNotSupported) ? videoFeedStream.volumeControlsHandler('enable') : videoFeedStream.volumeControlsHandler('disable');
   } else if (currentView == 'event') {
 
   }
 
-  connectAudioMotion(mid);
+  // We'll determine whether we need a video track or just an audio track.
+  // When playing H.265, the video may not be decoded, but the audio track will play.
+  const selectorWhatDisplay = document.getElementById('whatDisplay');
+  const monitorStream = getMonitorStream(mid);
+  const defaultWhatDisplay = (typeof eventData !== 'undefined') ? eventData.whatDisplay : (monitorStream) ? monitorStream.whatDisplay : null;
+
+  let videoTrackRequired = true;
+  if (!selectorWhatDisplay || (-1 !== selectorWhatDisplay.value.toLowerCase().indexOf('default'))) { // Default monitor settings
+    if (defaultWhatDisplay && (-1 === defaultWhatDisplay.toLowerCase().indexOf('video'))) videoTrackRequired = false;
+  } else {
+    if (-1 === selectorWhatDisplay.value.toLowerCase().indexOf('video')) videoTrackRequired = false;
+  }
+  if (!videoFeedStream.videoTrack ) {
+    monitorStream.updateStreamInfo('', 'Video track missing');
+    monitorStream.writeTextInfoBlock("Video track missing", {showImg: false});
+  }
+  if (!videoFeedStream.videoTrack && videoTrackRequired && (!videoFeedStream.selectedPlayer || videoFeedStream.selectedPlayer === "go2rtc")) {
+    // Switch to a different player only when mode=Auto
+    videoFeedStream.streamErrorRegistration();
+    videoFeedStream.restart(videoFeedStream.currentChannelStream);
+    dispatchTracksReceived(videoFeedStream, {
+      status: 'aborted',
+      reason: 'playback-videoTrack-missing'
+    });
+    return;
+  }
+
+  if (videoFeedStream.started === false) {
+    console.debug(`RACE [${playbackSessionId}] activePlayer: "${videoFeedStream.activePlayer || "not defined"}" skip tracksReceived because stream for monitor ID=${mid} stopped`);
+    return;
+  }
+
+  dispatchTracksReceived(videoFeedStream, {
+    status: 'success'
+  });
+};
+
+/**
+* status: 'failed', 'aborted', 'success'
+*/
+const dispatchTracksReceived = function(videoFeedStream, {
+  status,
+  reason = null
+} = {}) {
+  document.dispatchEvent(new CustomEvent('zm:tracksReceived', {
+    detail: {
+      monitorId: (typeof eventData !== 'undefined') ? eventData.MonitorId : videoFeedStream?.id,
+      status,
+      reason,
+      activePlayer: videoFeedStream?.activePlayer ?? null,
+      stream: {
+        mediaStream: videoFeedStream?.mediaStream ?? null,
+        audioTrack: videoFeedStream?.audioTrack ?? null,
+        videoTrack: videoFeedStream?.videoTrack ?? null
+      }
+    }
+  }));
+};
+
+/**
+ * Stop all tracks of a MediaStream and release its resources.
+ *
+ * @param {MediaStream|null|undefined} stream
+ */
+function stopMediaStreamTracks(stream) {
+  if (!(stream instanceof MediaStream)) return;
+  stream.getTracks().forEach((track) => track.stop());
 }
 
 const waitUntil = (condition, timeout = 0) => {
@@ -3694,45 +3807,139 @@ const stringToLocaleString = function(str) {
   return result;
 };
 
-// https://stackoverflow.com/a/69273090
+// Based on the original implementation: https://stackoverflow.com/a/69273090
+// Modified to prevent duplicate event listener registration while remaining
+// fully compatible with the original API and method calls.
+//
+// New feature: use the `replaceId` option to automatically replace
+// an existing event listener instead of registering a duplicate:
+//
+// let id;
+// id = addEventListener(element, type, listener, {
+//   replaceId: id
+// });
 class ManageEventListener {
   #listeners = {}; // # in a JS class signifies private
   #idx = 1;
 
   // add event listener, returns integer ID of new listener
   addEventListener(element, type, listener, options = {}) {
-    this.#privateAddEventListener(element, this.#idx, type, listener, options);
-    return this.#idx++;
+    const id = this.#idx++;
+    this.#privateAddEventListener(element, id, type, listener, options);
+    return id;
   }
 
-  // add event listener with custom ID (avoids need to retrieve return ID since you are providing it yourself)
+  // add event listener with custom ID
   addEventListenerById(element, id, type, listener, options = {}) {
     this.#privateAddEventListener(element, id, type, listener, options);
     return id;
   }
 
   #privateAddEventListener(element, id, type, listener, options) {
-    if (this.#listeners[id]) throw Error(`A listener with id ${id} already exists`);
-    element.addEventListener(type, listener, options);
-    this.#listeners[id] = {element, type, listener, options};
+    let eventOptions = options;
+
+    // Automatically remove previously registered listener
+    // before adding the new one.
+    if (options && typeof options === 'object' && options.replaceId != null) {
+      if (this.#listeners[options.replaceId]) {
+        console.warn(
+            'Replacing existing event listener:',
+            {
+              id: options.replaceId,
+              type,
+              element,
+              previous: this.#listeners[options.replaceId]
+            }
+        );
+      }
+
+      this.removeEventListener(options.replaceId);
+
+      // Don't pass our internal option to addEventListener()
+      eventOptions = {...options};
+      delete eventOptions.replaceId;
+
+      if (!Object.keys(eventOptions).length) {
+        eventOptions = undefined;
+      }
+    }
+
+    if (this.#listeners[id]) {
+      throw new Error(`A listener with id ${id} already exists`);
+    }
+
+    element.addEventListener(type, listener, eventOptions);
+
+    this.#listeners[id] = {
+      element,
+      type,
+      listener,
+      options: eventOptions
+    };
   }
 
-  // remove event listener with given ID, returns ID of removed listener or null (if listener with given ID does not exist)
+  // remove event listener with given ID,
+  // returns ID of removed listener or null
   removeEventListener(id) {
     const listen = this.#listeners[id];
+
     if (listen) {
-      listen.element.removeEventListener(listen.type, listen.listener, listen.options);
+      listen.element.removeEventListener(
+          listen.type,
+          listen.listener,
+          listen.options
+      );
       delete this.#listeners[id];
     }
-    return !!listen ? id : null;
+
+    return listen ? id : null;
   }
 
-  // returns number of events listeners
+  // returns number of event listeners
   length() {
     return Object.keys(this.#listeners).length;
   }
 }
 const manageEventListener = new ManageEventListener();
 window.manageEventListener = manageEventListener;
+
+/**
+ * Generate an RFC4122 version 4 UUID.
+ * Uses crypto.randomUUID() when available, otherwise falls back to
+ * crypto.getRandomValues() for compatibility with older browsers.
+*/
+function generateUUID() {
+  // Modern browsers
+  if (window.crypto?.randomUUID) {
+    return window.crypto.randomUUID();
+  }
+
+  // Older browsers with Web Crypto API
+  if (window.crypto?.getRandomValues) {
+    const bytes = new Uint8Array(16);
+    window.crypto.getRandomValues(bytes);
+
+    // RFC4122 version 4
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+
+    const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0'));
+
+    return (
+      hex.slice(0, 4).join('') + '-' +
+      hex.slice(4, 6).join('') + '-' +
+      hex.slice(6, 8).join('') + '-' +
+      hex.slice(8, 10).join('') + '-' +
+      hex.slice(10, 16).join('')
+    );
+  }
+
+  console.warn('Web Crypto API is not supported. Unable to generate UUID.');
+  return null;
+}
+
+function isCurrentPlaybackSession(videoFeedStream, playbackSessionId) {
+  return playbackSessionId === videoFeedStream.playbackSessionId;
+}
 
 $j( window ).on("load", initPageGeneral);

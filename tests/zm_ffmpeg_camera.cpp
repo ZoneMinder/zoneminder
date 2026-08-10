@@ -19,6 +19,9 @@
 
 #include "zm_ffmpeg_camera.h"
 #include "zm_time.h"
+#include "zm_utils.h"
+
+#include <string>
 
 // ComputeRealtimePace() is the pure decision behind FfmpegCamera's "realtime=1"
 // (ffmpeg -re style) pacing: given the current packet timestamp, the active
@@ -83,4 +86,52 @@ TEST_CASE("ComputeRealtimePace: a delay right at the cap still sleeps") {
   RealtimePaceDecision d = ComputeRealtimePace(10 * 1000000LL, 0, Microseconds(0), kCap);
   REQUIRE_FALSE(d.reanchor);
   REQUIRE(d.sleep == kCap);
+}
+
+// The Options field is entered as a textarea so an option can go on its own
+// line, but ffmpeg gets it as one string. av_dict_parse_string() takes a set of
+// pair separator characters, so this needs no parsing of our own - but only if
+// the newlines are actually in that set. With just "," a newline is swallowed
+// into the preceding value and every option after the first is lost. These
+// exercise kOptionSeparators itself, the value FfmpegCamera passes.
+static AVDictionary *parse_options(const char *options, const char *pairs_sep) {
+  AVDictionary *opts = nullptr;
+  REQUIRE(av_dict_parse_string(&opts, options, "=", pairs_sep, 0) == 0);
+  return opts;
+}
+
+static std::string dict_get(AVDictionary *opts, const char *key) {
+  const AVDictionaryEntry *e = av_dict_get(opts, key, nullptr, AV_DICT_MATCH_CASE);
+  return e ? e->value : "";
+}
+
+TEST_CASE("ffmpeg options separated by newlines parse as separate entries") {
+  SECTION("newline separated") {
+    AVDictionary *opts = parse_options("rtsp_transport=tcp\nstimeout=5000000", kOptionSeparators);
+    REQUIRE(av_dict_count(opts) == 2);
+    REQUIRE(dict_get(opts, "rtsp_transport") == "tcp");
+    REQUIRE(dict_get(opts, "stimeout") == "5000000");
+    av_dict_free(&opts);
+  }
+
+  SECTION("comma separated still works") {
+    AVDictionary *opts = parse_options("rtsp_transport=tcp,stimeout=5000000", kOptionSeparators);
+    REQUIRE(av_dict_count(opts) == 2);
+    REQUIRE(dict_get(opts, "rtsp_transport") == "tcp");
+    av_dict_free(&opts);
+  }
+
+  SECTION("crlf, blank lines and a trailing newline are not empty entries") {
+    AVDictionary *opts = parse_options("rtsp_transport=tcp\r\n\r\nstimeout=5000000\n", kOptionSeparators);
+    REQUIRE(av_dict_count(opts) == 2);
+    REQUIRE(dict_get(opts, "stimeout") == "5000000");
+    av_dict_free(&opts);
+  }
+
+  SECTION("a comma-only separator would lose everything after the first newline") {
+    AVDictionary *opts = parse_options("rtsp_transport=tcp\nstimeout=5000000", ",");
+    REQUIRE(av_dict_count(opts) == 1);
+    REQUIRE(dict_get(opts, "rtsp_transport") == "tcp\nstimeout=5000000");
+    av_dict_free(&opts);
+  }
 }

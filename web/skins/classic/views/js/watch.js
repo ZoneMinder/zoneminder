@@ -70,7 +70,7 @@ function ajaxRequest(params) {
   data.view = 'request';
   data.request = 'watch';
   data.mid = monitorId;
-  if (auth_hash) data.auth = auth_hash;
+  if (zmAuth.hash) data.auth = zmAuth.hash;
 
   $j.getJSON(thisUrl, data)
       .done(function(data) {
@@ -359,7 +359,7 @@ function cmdForce() {
 }
 
 function controlReq(data) {
-  if (auth_hash) data.auth = auth_hash;
+  if (zmAuth.hash) data.auth = zmAuth.hash;
   $j.getJSON(monitorUrl + '?view=request&request=control&id='+monitorId, data)
       .done(getControlResponse)
       .fail(logAjaxFail);
@@ -380,7 +380,7 @@ function getControlResponse(respObj, respText) {
 function lightStatusReq() {
   if (!$j('.lightToggleBtn').length) return;
   const data = {control: 'lightStatus', response: 1};
-  if (auth_hash) data.auth = auth_hash;
+  if (zmAuth.hash) data.auth = zmAuth.hash;
   $j.getJSON(monitorUrl + '?view=request&request=control&id='+monitorId, data)
       .done(updateLightButton)
       .fail(logAjaxFail);
@@ -403,7 +403,7 @@ function updateLightButton(respObj) {
 function indicatorLightStatusReq() {
   if (!$j('.indicatorLightToggleBtn').length) return;
   const data = {control: 'indicatorLightStatus', response: 1};
-  if (auth_hash) data.auth = auth_hash;
+  if (zmAuth.hash) data.auth = zmAuth.hash;
   $j.getJSON(monitorUrl + '?view=request&request=control&id='+monitorId, data)
       .done(updateIndicatorLightButton)
       .fail(logAjaxFail);
@@ -640,7 +640,7 @@ function updatePresetLabels() {
 
 function changeControl(e) {
   const input = e.target;
-  $j.getJSON(monitorUrl+'?request=v4l2_settings&mid='+monitorId+'&'+input.name+'='+input.value+'&'+auth_relay)
+  $j.getJSON(zmAuth.appendTo(monitorUrl+'?request=v4l2_settings&mid='+monitorId+'&'+input.name+'='+input.value))
       .done(function(evt) {
         if (evt.result == 'Ok') {
           evt.controls.forEach(function(control) {
@@ -658,7 +658,7 @@ function changeControl(e) {
 }
 
 function getSettingsModal() {
-  $j.getJSON(monitorUrl + '?request=modal&modal=settings&mid=' + monitorId+'&'+auth_relay)
+  $j.getJSON(zmAuth.appendTo(monitorUrl + '?request=modal&modal=settings&mid=' + monitorId))
       .done(function(data) {
         let modal = $j('#settingsModal');
         if (modal.length) modal.remove();
@@ -734,7 +734,7 @@ function controlSetClicked() {
   if (!modal.lenth) {
     console.log('loading');
     // Load the PTZ Preset modal into the DOM
-    $j.getJSON(monitorUrl + '?request=modal&modal=controlpreset&mid=' + monitorId+'&'+auth_relay)
+    $j.getJSON(zmAuth.appendTo(monitorUrl + '?request=modal&modal=controlpreset&mid=' + monitorId))
         .done(function(data) {
           insertModalHtml('ctrlPresetModal', data.html);
           updatePresetLabels();
@@ -1448,9 +1448,13 @@ function controlWhatDisplay(oldId, newId) {
   }
   if (noAudioMotion) {
     destroyAudioMotion(oldId);
-    document.querySelector('.stream-info-status-track').innerText = '';
+    if (monitorStream && monitorStream.updateStreamInfoStatusTrack) monitorStream.updateStreamInfoStatusTrack('');
   } else {
-    connectAudioMotion(newId);
+    if (monitorStream.activePlayer.indexOf("zms") === -1) {
+      connectAudioMotion(newId);
+    } else {
+      monitorStream.updateStreamInfoStatusTrack("");
+    }
   }
   if (imageFeed) imageFeed.setAttribute("data-not-display-video", noVideo);
 }

@@ -58,7 +58,7 @@ var Server = function() {
       key: 'getFromApi',
       value: function getFromApi() {
         const url = this.urlToApi() + (arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '');
-        return fetch(url + '?' + auth_relay + (arguments.length > 1 && arguments[1] !== undefined ? '&'+arguments[1] : ''));
+        return fetch(appendQuery(zmAuth.appendTo(url), arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : ''));
       }
     },
     {

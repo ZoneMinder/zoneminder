@@ -311,15 +311,11 @@ function getFrame(monId, time, last_Frame) {
 // time is seconds since epoch
 function getImageSource(monId, time) {
   if (liveMode == 1) {
-    let new_url = monitorImageObject[monId].src.replace(
+    const new_url = monitorImageObject[monId].src.replace(
         /rand=\d+/i,
         'rand='+Math.floor(Math.random() * 1000000)
     );
-    if (auth_hash) {
-      // update auth hash
-      new_url = new_url.replace(/auth=[a-z0-9]+/i, 'auth='+auth_hash);
-    }
-    return new_url;
+    return zmAuth.applyTo(new_url);
   }
   let frame_id;
 
@@ -363,7 +359,7 @@ function getImageSource(monId, time) {
     const storage = Storage[e.StorageId] ? Storage[e.StorageId] : Storage[0];
     // monitorServerId may be 0, which gives us the default Server entry
     const server = storage.ServerId ? Servers[storage.ServerId] : Servers[monitorServerId[monId]];
-    return server.PathToZMS + '?' +
+    return zmAuth.appendTo(server.PathToZMS + '?' +
     //mode=jpeg
       "mode=single" +
       "&event=" + Frame.EventId +
@@ -374,8 +370,7 @@ function getImageSource(monId, time) {
       "&scale=" + scale +
       "&monitor=" + monId +
       "&frames=1" +
-      "&rate=" + 100*speeds[speedIndex] +
-      (auth_relay ? '&' + auth_relay : '');
+      "&rate=" + 100*speeds[speedIndex]);
   } // end found Frame
   return '';
 } // end function getImageSource
@@ -1130,7 +1125,7 @@ function click_download() {
   const data = form.serializeArray();
   data[data.length] = {name: 'mergeevents', value: true};
   $j.ajax({
-    url: thisUrl+'?request=modal&modal=download'+(auth_relay?'&'+auth_relay:''),
+    url: zmAuth.appendTo(thisUrl+'?request=modal&modal=download'),
     data: data
   })
       .done(function(data) {
@@ -1390,7 +1385,7 @@ function loadEventData(e) {
   if (mon_ids.length) {
     for (let i=0; i < mon_ids.length; i++) {
       ajax = $j.ajax({
-        url: url+ '/MonitorId:'+mon_ids[i]+ '.json'+'?'+auth_relay,
+        url: zmAuth.appendTo(url+'/MonitorId:'+mon_ids[i]+'.json'),
         method: 'GET',
         //url: thisUrl + '?view=request&request=events&task=query&sort=Id&order=ASC',
         //data: data,
@@ -1404,7 +1399,7 @@ function loadEventData(e) {
     } // end foreach monitor
   } else {
     ajax = $j.ajax({
-      url: url+'.json'+'?'+auth_relay,
+      url: zmAuth.appendTo(url+'.json'),
       method: 'GET',
       //url: thisUrl + '?view=request&request=events&task=query&sort=Id&order=ASC',
       //data: data,
@@ -1632,7 +1627,7 @@ function takeSnapshot() {
   server = new Server(Servers[serverId]);
   $j.ajax({
     method: 'POST',
-    url: server.urlToApi()+'/snapshots.json' + (auth_relay ? '?' + auth_relay : ''),
+    url: zmAuth.appendTo(server.urlToApi()+'/snapshots.json'),
     data: { 'monitor_ids[]': monitorIndex.keys()},
     success: function(response) {
       console.log(response);
@@ -1668,7 +1663,7 @@ function loadFrames(zm_events) {
       query += '/EventId:'+event_id;
 
       if ((!ids.length) || (query.length > 1000)) {
-        $j.ajax(url+query+'.json?'+auth_relay, {
+        $j.ajax(zmAuth.appendTo(url+query+'.json'), {
           timeout: 0,
           success: function(data) {
             if (data && data.frames && data.frames.length) {

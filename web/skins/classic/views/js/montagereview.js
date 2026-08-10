@@ -91,6 +91,15 @@ function evaluateLoadTimes() {
   $j('#fps').text("Display refresh rate is " + (1000 / currentDisplayInterval).toFixed(1) + " per second, avgFrac=" + avgFrac.toFixed(3) + ".");
 } // end evaluateLoadTimes()
 
+/* An event that is still recording has no end yet. For lookup and drawing it
+ * runs to the end of the window under review. Every comparison against an
+ * event's end has to go through here: a bare `EndTimeSecs >= time` is false when
+ * the value is null, which silently excludes the recording event - the timeline
+ * would draw it while playback reported "No event" over the same span. */
+function eventEndTimeSecs(zm_event) {
+  return zm_event.EndTimeSecs ? zm_event.EndTimeSecs : maxTimeSecs;
+}
+
 function findEventByTime(arr, time, debug=false) {
   let start = 0;
   let end = arr.length-1; // -1 because 0 based indexing
@@ -103,7 +112,7 @@ function findEventByTime(arr, time, debug=false) {
     }
   }
   // Iterate while start not meets end
-  while ((start <= end) && (arr[start].StartTimeSecs <= time) && (!arr[end].EndTimeSecs || (arr[end].EndTimeSecs >= time))) {
+  while ((start <= end) && (arr[start].StartTimeSecs <= time) && (eventEndTimeSecs(arr[end]) >= time)) {
     if (debug) {
       console.log("looking for "+time+" Start: " + arr[start].StartTimeSecs + ' End: ' + arr[end].EndTimeSecs);
     }
@@ -113,7 +122,7 @@ function findEventByTime(arr, time, debug=false) {
 
     // If element is present at mid, return True
     if (debug) console.log(middle, zm_event, time);
-    if ((zm_event.StartTimeSecs <= time) && (!zm_event.EndTimeSecs || (zm_event.EndTimeSecs >= time))) {
+    if ((zm_event.StartTimeSecs <= time) && (eventEndTimeSecs(zm_event) >= time)) {
       if (debug) console.log("Found it at ", zm_event);
       return zm_event;
     }
@@ -122,7 +131,7 @@ function findEventByTime(arr, time, debug=false) {
     // Else look in left or right half accordingly
     if (zm_event.StartTimeSecs < time) {
       start = middle + 1;
-    } else if (zm_event.EndTimeSecs > time) {
+    } else if (eventEndTimeSecs(zm_event) > time) {
       end = middle - 1;
     } else {
       break;
@@ -243,7 +252,7 @@ function getFrame(monId, time, last_Frame) {
         console.error('No event found for ', event_id);
         break;
       }
-      if (e.StartTimeSecs <= time && e.EndTimeSecs >= time) {
+      if (e.StartTimeSecs <= time && eventEndTimeSecs(e) >= time) {
         Event = e;
         break;
       }
@@ -588,7 +597,7 @@ function drawEventOnGraph(zm_event) {
   // An event still recording has no end yet, so it runs to the edge of the
   // window. Kept local: writing it back would give the event a concrete end and
   // stop findEventByTime() matching it once the window moved on.
-  const endTimeSecs = zm_event.EndTimeSecs ? zm_event.EndTimeSecs : maxTimeSecs;
+  const endTimeSecs = eventEndTimeSecs(zm_event);
   // round high end up to be sure consecutive ones connect
   const x2 = parseInt((endTimeSecs - minTimeSecs) / rangeTimeSecs * cWidth + 0.5 );
   if (!monitorColour[zm_event.MonitorId]) {

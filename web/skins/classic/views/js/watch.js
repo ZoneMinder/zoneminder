@@ -1468,6 +1468,7 @@ function changeWhatDisplay() {
 $j( window ).on("load", initPage);
 
 var prevStateStarted = null;
+var prevStateCycle = null;
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === "hidden") {
     clearTimeout(TimerHideShow);
@@ -1513,6 +1514,8 @@ function stopPage() {
   // Avoid calling stopPage() twice, as stopPage() can be called asynchronously from different places.
   // For example, if 'freeze' is triggered earlier than 15 seconds after visibilityState === "hidden"
   TimerHideShow = clearTimeout(TimerHideShow);
+  prevStateCycle = cycle;
+  if (prevStateCycle) cycleStop();
   if (monitorStream) {
     if (monitorStream.started) {
       if ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused) || monitorStream.element.paused) {
@@ -1541,6 +1544,7 @@ function startPage() {
   } else if (monitorStream && monitorStream.element && ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused) || monitorStream.element.paused)) {
     prevStateStarted = null;
   }
+  if (prevStateCycle) cycleStart();
 }
 
 function setButtonStateWatch(element_id, btnClass) {

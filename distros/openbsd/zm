@@ -1,0 +1,26 @@
+#!/bin/ksh
+
+daemon="/usr/local/bin/zmpkg.pl"
+daemon_flags=""
+
+# Source function library.
+. /etc/rc.d/rc.subr
+
+pexp="/usr/local/bin/python $daemon${daemon_flags:+ $daemon_flags}"
+
+rc_bg=YES
+rc_reload=NO
+
+rc_check() {
+        pgrep -T "${daemon_rtable}" -q -xf "/usr/bin/perl -wT /usr/local/bin/zmdc.pl startup"
+}
+
+rc_stop() {
+        rc_exec "${daemon} stop"
+}
+
+rc_start() {
+        rc_exec "${daemon} start"
+}
+
+rc_cmd $1

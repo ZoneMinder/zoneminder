@@ -35,7 +35,8 @@ var params =
 
 // Called by bootstrap-table to retrieve zm log data
 function ajaxRequest(params) {
-  if (document.visibilityState == 'hidden' || (allowRequest !== true && autoRefresh === false)) return;
+  if (deferTableRequestWhileHidden(table)) return;
+  if (allowRequest !== true && autoRefresh === false) return;
   if (getIdSelections().length && allowRequest === false) {
     // We won't automatically refresh to avoid disturbing the user who has selected rows.
     console.debug("The user selected rows in the table, and the AJAX request was rejected.");

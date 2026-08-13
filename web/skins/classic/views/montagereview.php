@@ -103,9 +103,14 @@ if ( !isset($_REQUEST['minTime']) && !isset($_REQUEST['maxTime']) ) {
     $maxTime = date('Y-m-d H:i:s', $defaultCurrentTimeSecs + 1800);
   } else {
     $time = time();
-    $maxTime = (isset($_COOKIE['zmFilter_EndDateTime']) and $_COOKIE['zmFilter_EndDateTime'])
+    # This view always needs a window to draw, but a stored one may only be used
+    # when the request did not specify a filter. With a filter present the window
+    # is guessed from its own DateTime terms below; falling back to the stored
+    # window instead would narrow the filter the user asked for.
+    $use_stored = !isset($_REQUEST['filter']);
+    $maxTime = ($use_stored and isset($_COOKIE['zmFilter_EndDateTime']) and $_COOKIE['zmFilter_EndDateTime'])
       ? validHtmlStr($_COOKIE['zmFilter_EndDateTime']) : date('Y-m-d H:i:s', $time);
-    $minTime = (isset($_COOKIE['zmFilter_StartDateTime']) and $_COOKIE['zmFilter_StartDateTime'])
+    $minTime = ($use_stored and isset($_COOKIE['zmFilter_StartDateTime']) and $_COOKIE['zmFilter_StartDateTime'])
       ? validHtmlStr($_COOKIE['zmFilter_StartDateTime']) : date('Y-m-d H:i:s', $time - 3600);
   }
 } else {
@@ -132,8 +137,10 @@ if (isset($_REQUEST['filter'])) {
 	# Try to guess min/max time from filter
 	foreach ($terms as &$term) {
     if ($term['attr'] == 'Notes') {
+      # Tag it so edits persist, but do not seed from the stored value: we are
+      # inside the branch where the request specified a filter, and that filter
+      # must not be narrowed by what was last typed in another view.
       $term['cookie'] = 'Notes';
-      if (empty($term['val']) and isset($_COOKIE['Notes'])) $term['val'] = $_COOKIE['Notes'];
     } else if ($term['attr'] == 'StartDateTime') {
 			if ($term['op'] == '<=' or $term['op'] == '<') {
 				$maxTime = $term['val'];
@@ -171,8 +178,17 @@ if (isset($_REQUEST['filter'])) {
   } # end if REQUEST[Filter]
 }
 if (!$liveMode) {
+  # Stored selections are a convenience for the default, filter-less page: a
+  # filter given in the request is authoritative and must not be widened or
+  # narrowed by them (issue #5026). Resolved here rather than in Filter, which
+  # renders whatever value it is handed and looks nothing up. Terms keep their
+  # cookie name either way so edits still persist client-side.
+  $use_stored = !isset($_REQUEST['filter']);
+  $storedArchived = ($use_stored and isset($_COOKIE['Archived'])) ? $_COOKIE['Archived'] : '';
+  $storedTags     = ($use_stored and isset($_COOKIE['eventsTags'])) ? $_COOKIE['eventsTags'] : '';
+  $storedNotes    = ($use_stored and isset($_COOKIE['eventsNotes'])) ? $_COOKIE['eventsNotes'] : '';
   if (!$filter->has_term('Archived')) {
-    $filter->addTerm(array('attr' => 'Archived', 'op' => '=', 'val' => '', 'cnj' => 'and', 'cookie'=>'Archived'));
+    $filter->addTerm(array('attr' => 'Archived', 'op' => '=', 'val' => $storedArchived, 'cnj' => 'and', 'cookie'=>'Archived'));
   }
   if (!$filter->has_term('DateTime', '>=')) {
     $filter->addTerm(array('attr' => 'DateTime', 'op' => '>=', 'val' => $minTime, 'cnj' => 'and', 'cookie'=>'zmFilter_StartDateTime'));
@@ -181,12 +197,11 @@ if (!$liveMode) {
     $filter->addTerm(array('attr' => 'DateTime', 'op' => '<=', 'val' => $maxTime, 'cnj' => 'and', 'cookie'=>'zmFilter_EndDateTime'));
   }
   if (!$filter->has_term('Tags')) {
-    $filter->addTerm(array('attr' => 'Tags', 'op' => '=',
-      'val' => (isset($_COOKIE['eventsTags']) ? $_COOKIE['eventsTags'] : ''),
+    $filter->addTerm(array('attr' => 'Tags', 'op' => '=', 'val' => $storedTags,
       'cnj' => 'and', 'cookie'=>'eventsTags'));
   }
   if (!$filter->has_term('Notes')) {
-    $filter->addTerm(array('cnj'=>'and', 'attr'=>'Notes', 'op'=> 'LIKE', 'val'=>'', 'cookie'=>'eventsNotes'));
+    $filter->addTerm(array('cnj'=>'and', 'attr'=>'Notes', 'op'=> 'LIKE', 'val'=>$storedNotes, 'cookie'=>'eventsNotes'));
   }
 }
 if (count($filter->terms()) ) {

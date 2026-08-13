@@ -378,14 +378,50 @@ sub sendCmd {
 #  Imaging — Brightness / Contrast
 # =========================================================================
 
+# The imaging calls address a VideoSource token, which is a *different*
+# namespace from the media ProfileToken held in ControlDevice: on an AMLINK
+# AL5M-T5171EW the profiles are 'MediaProfile00000' while the video source is
+# '00000'. This used to be hardcoded to '000', which such cameras reject with
+# "The requested VideoSource does not exist.", so it is read from
+# GetVideoSources instead. Pure function so it is testable without a camera
+# (see t/onvif_video_source.t).
+sub video_source_token_from_xml {
+  my ($xml) = @_;
+  return undef if !defined $xml;
+  # First VideoSources element wins; multi-sensor devices list one per sensor.
+  return $xml =~ m{<(?:\w+:)?VideoSources\b[^>]*\btoken=["']([^"']*)["']} ? $1 : undef;
+}
+
+# Discover and cache the video source token, falling back to the conventional
+# '000' only for this call so a camera that is briefly unreachable at startup
+# gets another chance rather than caching the wrong token for the daemon's life.
+sub _video_source_token {
+  my $self = shift;
+  return $$self{videoSourceToken} if defined $$self{videoSourceToken};
+
+  my $res = $self->sendCmd('/onvif/media',
+    '<s:Body><GetVideoSources xmlns="http://www.onvif.org/ver10/media/wsdl"/></s:Body>',
+    'http://www.onvif.org/ver10/media/wsdl/GetVideoSources');
+
+  my $token = $res ? video_source_token_from_xml($res->decoded_content) : undef;
+  if (defined $token) {
+    Debug("ONVIF video source token: $token");
+    $$self{videoSourceToken} = $token;
+    return $token;
+  }
+  Debug('Could not discover ONVIF video source token, using 000');
+  return '000';
+}
+
 sub getCamParams {
   my $self = shift;
   $$self{CamParams} = {} if !$$self{CamParams};
 
+  my $token = $self->_video_source_token();
   my $body = '
 <s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <GetImagingSettings xmlns="http://www.onvif.org/ver20/imaging/wsdl">
-    <VideoSourceToken>000</VideoSourceToken>
+    <VideoSourceToken>' . $token . '</VideoSourceToken>
   </GetImagingSettings>
 </s:Body>';
 
@@ -408,10 +444,11 @@ sub getCamParams {
 sub _setImaging {
   my ($self, $param, $value) = @_;
 
+  my $token = $self->_video_source_token();
   my $body = '
 <s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <SetImagingSettings xmlns="http://www.onvif.org/ver20/imaging/wsdl">
-    <VideoSourceToken>000</VideoSourceToken>
+    <VideoSourceToken>' . $token . '</VideoSourceToken>
     <ImagingSettings>
       <' . $param . ' xmlns="http://www.onvif.org/ver10/schema">' . $value . '</' . $param . '>
     </ImagingSettings>

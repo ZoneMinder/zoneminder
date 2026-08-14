@@ -82,37 +82,47 @@ class EventsController extends AppController {
       }
       $conditions = $this->FilterComponent->buildFilter($named_params);
       #ZM\Debug(print_r($conditions, true));
+      # DateTime is a pseudo-attribute meaning "the event was running then", so a
+      # window over it is an overlap test: the event started by the upper bound
+      # and had not finished by the lower bound. Applying the term's own operator
+      # to both StartDateTime and EndDateTime instead makes the upper bound a
+      # containment test, which drops every event that spans the end of the
+      # window -- with continuous recording that is most of them.
+      $datetime_terms = array();
       foreach ($conditions as $k=>$v) {
         if ( 0 === strpos($k, 'DateTime') ) {
-          $new_start = preg_replace('/DateTime/', 'StartDateTime', $k);
-          $new_end = preg_replace('/DateTime/', 'EndDateTime', $k);
-          if (isset($conditions['OR'])) {
-            $conditions['AND'] = [
-              ['OR' => $conditions['OR']],
-              [
-                [$new_start => $conditions[$k]],
-                  ['OR'=>[
-                    $new_end => $conditions[$k],
-                    'EndDateTime IS NULL',
-                  ]
-                ]
-              ]
-            ];
-            unset($conditions['OR']);
-          } else {
-            $conditions['OR'] = [
-              [$new_start => $conditions[$k]],
-              [
-                'OR'=>[
-                    $new_end => $conditions[$k],
-                    'EndDateTime IS NULL',
-                ]
-              ]
-            ];
-          }
+          $datetime_terms[$k] = $v;
           unset($conditions[$k]);
         }
-      } // end foreach condition
+      }
+      if ($datetime_terms) {
+        # An event still being written has no EndDateTime, but it is not
+        # unbounded: zmc flushes Length every few seconds, so StartDateTime +
+        # Length is its effective end. Only an event with neither falls back to
+        # NOW(). Treating a missing EndDateTime as "matches any window" instead
+        # made every crash-orphaned event ever recorded match every query.
+        $effective_end = '(CASE'
+          .' WHEN Event.EndDateTime IS NOT NULL THEN Event.EndDateTime'
+          .' WHEN Event.Length > 0 THEN DATE_ADD(Event.StartDateTime, INTERVAL FLOOR(Event.Length) SECOND)'
+          .' ELSE NOW() END)';
+        $ds = $this->Event->getDataSource();
+        foreach ($datetime_terms as $k=>$v) {
+          $op = trim(substr($k, strlen('DateTime')));
+          if ($op == '<' or $op == '<=') {
+            # Upper bound: the event must have started by then.
+            $conditions[] = array('Event.StartDateTime '.$op => $v);
+          } else if ($op == '>' or $op == '>=') {
+            # Lower bound: the event must not have ended before then.
+            $conditions[] = $effective_end.' '.$op.' '.$ds->value($v, 'string');
+          } else {
+            # Anything else (=, !=) still matches against either end.
+            $conditions[] = array('OR' => array(
+              array('Event.StartDateTime '.$op => $v),
+              array('Event.EndDateTime '.$op => $v),
+            ));
+          }
+        }
+      } // end if datetime terms
       #ZM\Debug(print_r($conditions, true));
 
     } else {

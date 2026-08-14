@@ -1232,8 +1232,6 @@ class Filter extends ZM_Object {
           if (isset($term['cookie'])) {
             $options['data-cookie'] = $term['cookie'];
 
-            if ((!isset($term['val']) or $term['val']=='') and isset($_COOKIE[$term['cookie']]) and $_COOKIE[$term['cookie']])
-              $selected = json_decode($_COOKIE[$term['cookie']]);
           }
           // These echo statements print these variables at the top of the view for debugging.
           // echo '<div style="background-color:orange"><pre>availableTags: '; print_r($availableTags); echo '</pre></div>';
@@ -1262,7 +1260,6 @@ class Filter extends ZM_Object {
             $html .= ' id="filter[Query][terms]['.$i.'][val]"';
           }
           if (isset($term['cookie'])) {
-            if ((!$term['val']) and isset($_COOKIE[$term['cookie']])) $term['val'] = $_COOKIE[$term['cookie']];
             $html .= ' data-cookie="'.validHtmlStr($term['cookie']).'"';
           }
           $html .= ' value="'.(isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'').'"';
@@ -1274,7 +1271,6 @@ class Filter extends ZM_Object {
           $html .= '<span class="term-value-wrapper">';
           $html .= '<input type="text" class="term-value datepicker" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]"';
           if (isset($term['cookie'])) {
-            if (!$term['val'] and isset($_COOKIE[$term['cookie']])) $term['val'] = $_COOKIE[$term['cookie']];
             $html .= ' data-cookie="'.$term['cookie'].'"';
           }
           $html .= ' value="'.(isset($term['val'])?validHtmlStr($term['val']):'').'" placeholder="'.translate('Attr'.$term['attr']).'"';
@@ -1295,8 +1291,6 @@ class Filter extends ZM_Object {
             'data-placeholder'=>translate('All Groups')];
           if (isset($term['cookie'])) {
             $attrs['data-cookie'] = $term['cookie'];
-            if (!$selected and isset($_COOKIE[$term['cookie']]))
-              $selected = self::decode_multi($_COOKIE[$term['cookie']]);
           }
           $html .= '<span class="term-value-wrapper">';
           $html .= htmlSelect("filter[Query][terms][$i][val]", Group::get_dropdown_options(), $selected, $attrs).PHP_EOL;
@@ -1325,8 +1319,6 @@ class Filter extends ZM_Object {
           if (isset($term['cookie'])) {
             $options['data-cookie'] = $term['cookie'];
 
-            if (!$selected and isset($_COOKIE[$term['cookie']]))
-              $selected = self::decode_multi($_COOKIE[$term['cookie']]);
           }
           $html .= '<span class="term-value-wrapper">';
           $html .= htmlSelect("filter[Query][terms][$i][val]", $monitors, $selected, $options).PHP_EOL;
@@ -1371,8 +1363,6 @@ class Filter extends ZM_Object {
           if (isset($term['cookie'])) {
             $attrs['data-cookie'] = $term['cookie'];
 
-            if (!$selected and isset($_COOKIE[$term['cookie']]))
-              $selected = self::decode_multi($_COOKIE[$term['cookie']]);
           }
           $options = [
             'Motion' => 'Motion',

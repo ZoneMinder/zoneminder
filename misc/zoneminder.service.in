@@ -15,6 +15,51 @@ ExecStop=@BINDIR@/zmpkg.pl stop
 PIDFile=@ZM_RUNDIR@/zm.pid
 Environment=TZ=:/etc/localtime
 
+# Hardening. Several of the usual options break ZoneMinder in ways that are not
+# obvious from the web ui, so the ones that must stay off are set explicitly
+# rather than left to a default a distribution might override. Please read the
+# comments before adding more.
+
+# zmc publishes frames in shared memory under ZM_PATH_MAP (/dev/shm) and zms
+# reads them from there. zms runs under the web server rather than here, so a
+# private /dev would leave it reading an empty buffer and every stream would go
+# black. zms also writes swap images under ZM_PATH_SWAP (/var/tmp/zm) which
+# zmaudit.pl, which does run here, is responsible for cleaning up; PrivateTmp
+# covers /var/tmp as well as /tmp, so it would leave those to accumulate.
+PrivateTmp=no
+PrivateDevices=no
+# Local cameras need /dev/video*, hardware de/encoding needs /dev/dri.
+DevicePolicy=auto
+
+# zmstats reads /proc/stat, /proc/meminfo and /proc/loadavg, and zmpkg.pl reads
+# /proc/self/cgroup to tell whether systemd started it. ProcSubset=pid hides the
+# first three and ProtectProc=invisible hides pid 1; between them every recorded
+# statistic silently becomes zero.
+ProcSubset=all
+ProtectProc=default
+
+ProtectSystem=full
+ProtectClock=yes
+ProtectControlGroups=yes
+ProtectHostname=yes
+ProtectKernelLogs=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+LockPersonality=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+
+# The options above put this unit in its own mount namespace, so a filesystem
+# mounted after ZoneMinder starts is not visible to it. If event storage lives
+# on a late mounted or removable filesystem, name it in RequiresMountsFor= or
+# drop the hardening rather than debugging empty event directories.
+
+# Deliberately not set:
+#   NoNewPrivileges - filters with AutoExecute run operator supplied commands,
+#     and zm-sudo grants the web user shutdown.
+#   ProtectHome - event storage is often kept under /home.
+#   MemoryDenyWriteExecute - breaks some hardware accelerated codecs.
+
 [Install]
 WantedBy=multi-user.target
 

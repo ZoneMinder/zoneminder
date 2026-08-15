@@ -151,8 +151,14 @@ if ( $command =~ /^(start|stop|restart)$/ ) {
   $command = $1;
 
   if ( systemdRunning() && !calledBysystem() ) {
-    qx(@BINDIR@/zmsystemctl.pl $command);
-    $command = '';
+    my $output = qx(@BINDIR@/zmsystemctl.pl $command 2>&1);
+    if ( $? == 0 ) {
+      $command = '';
+    } else {
+      Error("Failed to $command via zmsystemctl.pl, exit status ".($? >> 8)
+        .": $output Running the command directly instead, which leaves the"
+        .' daemons in this process\'s cgroup and mount namespace.');
+    }
   }
 }
 
@@ -356,17 +362,27 @@ sub resetStates {
 }
 
 sub systemdRunning {
-  my $output = qx(ps -o comm="" -p 1);
-  return scalar ( $output =~ /systemd/ );
+  # This is what sd_booted(3) does. Do not probe pid 1 through /proc: a web
+  # server hardened with ProtectProc=invisible hides it from the web user, and
+  # we would conclude that systemd is not running precisely when we most need
+  # to hand the daemons over to it.
+  return -d '/run/systemd/system';
 }
 
 sub calledBysystem {
-  my $ppid = getppid();
-
-  my $output = qx(ps -o comm="" -p $ppid);
-  #chomp( $output );
-
-  return ($output =~ /^(?:systemd|init)$/);
+  # Are we already running as the service that zmsystemctl.pl would start? Ask
+  # our own cgroup, which is readable no matter how /proc is hardened and is
+  # not something we can drop by daemonising.
+  #
+  # Not the parent's name from /proc: our parent is pid 1, which a web server
+  # with ProtectProc=invisible hides from us, and we get re-parented anyway if
+  # it exits first. Not $ENV{INVOCATION_ID} either: systemd sets that for every
+  # descendant of a unit, so anything the web ui forks inherits the web
+  # server's and would wrongly look like it was started by systemd.
+  open(my $cgroup, '<', '/proc/self/cgroup') or return 0;
+  my $in_service = grep { m|/zoneminder\.service| } <$cgroup>;
+  close($cgroup);
+  return $in_service;
 }
 
 sub verifyFolder {

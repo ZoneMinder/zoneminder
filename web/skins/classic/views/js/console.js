@@ -80,10 +80,7 @@ function updateFooter(footer) {
 
 // Called by bootstrap-table to retrieve monitor data
 function ajaxRequest(params) {
-  if (document.visibilityState == 'hidden') {
-    table.bootstrapTable('hideLoading');
-    return;
-  }
+  if (deferTableRequestWhileHidden(table)) return;
   if (ajax) ajax.abort();
 
   // Get filter selections from the form and add to params.data

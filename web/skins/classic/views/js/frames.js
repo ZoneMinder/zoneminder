@@ -3,10 +3,7 @@ var table = $j('#framesTable');
 
 // Called by bootstrap-table to retrieve zm frame data
 function ajaxRequest(params) {
-  if (document.visibilityState == 'hidden') {
-    table.bootstrapTable('hideLoading');
-    return;
-  }
+  if (deferTableRequestWhileHidden(table)) return;
   if ( params.data && params.data.filter ) {
     params.data.advsearch = params.data.filter;
     delete params.data.filter;

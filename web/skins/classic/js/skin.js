@@ -1582,8 +1582,15 @@ function createGo2rtcStream(container, img, src, mid, fallbackToMjpeg) {
     stream.handlerEventListener['go2rtc.events.error'] = manageEventListener.addEventListener(stream, 'go2rtc.events.error',
         (e) => {
           console.debug('Go2RTC playback error:', e.detail);
+          const innerVideo = stream.querySelector('video');
+          if (innerVideo && !innerVideo.paused && innerVideo.readyState >= 2) {
+            // A player mode we aren't using reported an error (eg the webrtc
+            // watchdog while MSE carries playback). Video is running, keep it.
+            return;
+          }
           clearTimeout(stream._fallbackTimer);
           manageEventListener.removeEventListener(stream.handlerEventListener['go2rtc.events.error']);
+          disconnectVideoStream(stream);
           stream.remove();
           fallbackToMjpeg();
         }
@@ -1611,6 +1618,7 @@ function createGo2rtcStream(container, img, src, mid, fallbackToMjpeg) {
     stream._fallbackTimer = setTimeout(function() {
       const innerVideo = stream.querySelector('video');
       if (!innerVideo || innerVideo.readyState < 2) {
+        disconnectVideoStream(stream);
         stream.remove();
         fallbackToMjpeg();
       }
@@ -2000,7 +2008,21 @@ function cleanupVideoStream(videoStream) {
   if (!videoStream) return;
   manageEventListener.removeEventListener(videoStream.handlerEventListener['go2rtc.events.error']);
   if (videoStream._fallbackTimer) clearTimeout(videoStream._fallbackTimer);
+  disconnectVideoStream(videoStream);
   videoStream.close();
+}
+
+// video-stream elements in the hover overlay run with background=true, so
+// disconnectedCallback() won't tear anything down when we remove them. Without
+// this the websocket and RTCPeerConnection stay open for the life of the page
+// and every hover leaves another consumer on the camera.
+function disconnectVideoStream(videoStream) {
+  if (videoStream.wsState === WebSocket.CLOSED && videoStream.pcState === WebSocket.CLOSED) return;
+  try {
+    videoStream.ondisconnect();
+  } catch (e) {
+    console.warn(e);
+  }
 }
 
 function cleanupVideoElement(video) {

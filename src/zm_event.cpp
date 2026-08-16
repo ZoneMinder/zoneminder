@@ -226,6 +226,26 @@ Event::~Event() {
     // the rename.
     if (link(video_incomplete_path.c_str(), video_path.c_str()) == 0) {
       video_file_linked = true;
+    } else if (ErrnoMeansNoHardLinkSupport(errno)) {
+      // exFAT and friends are perfectly writable but have no hard links at all,
+      // so fall back to a plain rename. The event then gets its normal final
+      // name instead of keeping incomplete.* forever, and this is a supported
+      // configuration rather than an error worth logging as one.
+      //
+      // The cost is the dual-name window described above: between this rename
+      // and the DefaultVideo update below, a reader of the still-stale row
+      // looks for incomplete.* and will not find it. On a filesystem without
+      // hard links there is no way to have the file under both names at once,
+      // and a brief window beats every event on the system being named as
+      // though it never finished recording.
+      if (rename(video_incomplete_path.c_str(), video_path.c_str()) == 0) {
+        Debug(1, "Filesystem does not support hard links, renamed %s to %s",
+              video_incomplete_path.c_str(), video_path.c_str());
+      } else {
+        Error("Failed renaming %s to %s, reason: %s",
+              video_incomplete_path.c_str(), video_path.c_str(), strerror(errno));
+        video_file = video_incomplete_file;
+      }
     } else {
       Error("Failed linking %s to %s, reason: %s", video_incomplete_path.c_str(), video_path.c_str(), strerror(errno));
       video_file = video_incomplete_file;

@@ -616,7 +616,7 @@ switch ($name) {
             </li>
             <li class="ONVIF_Password">
               <label><?php echo translate('Password') ?></label>
-              <input type="password" id="newMonitor[ONVIF_Password]" name="newMonitor[ONVIF_Password]" value="<?php echo validHtmlStr($monitor->ONVIF_Password()) ?>" autocomplete="onvif_password"/>
+              <input type="text" class="masked-input" id="newMonitor[ONVIF_Password]" name="newMonitor[ONVIF_Password]" value="<?php echo validHtmlStr($monitor->ONVIF_Password()) ?>" autocomplete="onvif_password"/>
               <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="newMonitor[ONVIF_Password]">visibility</span>
             </li>
             <li class="ONVIF_Options">
@@ -738,7 +738,7 @@ include('_monitor_source_nvsocket.php');
         </li>
         <li class="Pass">
           <label><?php echo translate('Password') ?></label>
-          <input type="password" id="newMonitor[Pass]" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>" autocomplete="source_password"/>
+          <input type="text" class="masked-input" id="newMonitor[Pass]" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>" autocomplete="source_password"/>
           <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="newMonitor[Pass]">visibility</span>
         </li>
 <?php
@@ -749,7 +749,7 @@ include('_monitor_source_nvsocket.php');
           </li>
           <li class="Pass">
             <label><?php echo translate('Password') ?></label>
-              <input type="password" id="newMonitor[Pass]" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>" autocomplete="source_password"/>
+              <input type="text" class="masked-input" id="newMonitor[Pass]" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>" autocomplete="source_password"/>
               <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="newMonitor[Pass]">visibility</span>
           </li>
           <li class="Protocol">
@@ -814,7 +814,7 @@ include('_monitor_source_nvsocket.php');
           </li>
           <li class="Pass">
             <label><?php echo translate('Password') ?></label>
-            <input type="password" id="newMonitor[Pass]" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>" autocomplete="source_password"/>
+            <input type="text" class="masked-input" id="newMonitor[Pass]" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>" autocomplete="source_password"/>
             <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="newMonitor[Pass]">visibility</span>
           </li>
           <li class="Method">
@@ -823,7 +823,7 @@ include('_monitor_source_nvsocket.php');
           <li>
           <li class="SourceOptions">
             <label><?php echo translate('Options'); echo makeHelpLink('OPTIONS_'.strtoupper($monitor->Type())) ?></label>
-            <input type="text" name="newMonitor[Options]" value="<?php echo validHtmlStr($monitor->Options()) ?>"/>
+            <textarea name="newMonitor[Options]" rows="<?php echo max(2, count(preg_split('/[,\r\n]+/', $monitor->Options()))) ?>"><?php echo validHtmlStr($monitor->Options()) ?></textarea>
           <li>
 <?php
       }
@@ -907,6 +907,7 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
         <li class="TargetColorspace">
           <label><?php echo translate('TargetColorspace') ?></label>
           <?php echo htmlSelect('newMonitor[Colours]', $Colours, $monitor->Colours()) ?>
+          <small class="text-muted">(<?php echo translate('DeprecatedColoursSetting') ?>)</small>
         </li>
         <li class="CaptureResolution">
           <label><?php echo translate('CaptureResolution') ?> (<?php echo translate('Pixels') ?>)</label>
@@ -937,6 +938,7 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
             '1280x1024'=>'1280x1024 1MP',
             '1600x1200'=>'1600x1200 2MP',
             '1920x1080'=>'1920x1080 1080p',
+            '2304x1296'=>'2304x1296 1296p 3MP',
             '2048x1536'=>'2048x1536 3MP',
             '2560x1440'=>'2560x1440 1440p QHD WQHD',
             '2560x1920'=>'2560x1920 5MP',

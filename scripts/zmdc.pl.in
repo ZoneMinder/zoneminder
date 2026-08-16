@@ -266,6 +266,35 @@ our %terminating_processes;
 our %pids_to_reap;
 our $zm_terminate = 0;
 
+# Re-assert the pid file so systemd (PIDFile=) keeps tracking us even if it
+# was removed out-of-band (e.g. tmpfiles cleanup of /run, or a partial/aborted
+# stop that unlinked the pid but left us running). Cheap: only writes when the
+# file is missing or its contents don't match our pid. Shutdown-safe: the
+# shutdown unlink runs only after the main loop exits, so this can never
+# recreate the pid file after termination has begun.
+my $pid_reassert_failed = 0;
+sub ensure_pid {
+  my $current;
+  if ( open(my $fh, '<', ZM_PID) ) {
+    $current = <$fh>;
+    close($fh);
+    chomp $current if defined $current;
+  }
+  return if defined($current) and $current eq "$$";
+  if ( open(my $PID, '>', ZM_PID) ) {
+    print($PID $$);
+    close($PID);
+    Warning('Re-asserted pid file '.ZM_PID.' (was missing or stale)');
+    $pid_reassert_failed = 0;
+  } elsif ( !$pid_reassert_failed ) {
+    # Warn only on the first failure while the condition persists, so a
+    # permanently unwritable ZM_PID (e.g. /run/zm removed) does not flood the
+    # log every loop tick. Reset above once a write succeeds again.
+    Warning('Unable to (re)write pid file '.ZM_PID.": $!");
+    $pid_reassert_failed = 1;
+  }
+}
+
 sub run {
 
   # Call this first otherwise stdout/stderror redirects to the pidfile = bad
@@ -411,6 +440,7 @@ sub run {
     restartPending();
     check_for_processes_to_kill() if %terminating_processes;
     reaper() if %pids_to_reap;
+    ensure_pid();
   } # end while
 
   dPrint(ZoneMinder::Logger::INFO, 'Server exiting at '.strftime('%y/%m/%d %H:%M:%S', localtime())."\n");

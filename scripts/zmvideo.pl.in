@@ -75,6 +75,7 @@ use autouse 'Data::Dumper'=>qw(Dumper);
 use POSIX qw(strftime);
 use Getopt::Long qw(:config no_ignore_case );
 use Cwd;
+use File::Temp qw(tempfile);
 use autouse 'Pod::Usage'=>qw(pod2usage);
 
 $| = 1;
@@ -235,11 +236,15 @@ if ( $concat_name ) {
   ($cwd) = $cwd =~ /(.*)/; # detaint
   chdir( $cwd );
   ($concat_name ) = $concat_name =~ /([\-A-Za-z0-9_\.]*)/;
-  my $concat_list_file = "/tmp/$concat_name.concat.lst";
 
   my $video_file = $concat_name . '.'. $detaint_format;
 
-  open( my $fd, '>', $concat_list_file ) or die "Can't open $concat_list_file: $!";
+  # Create the ffmpeg concat list with a randomized name (atomic O_EXCL) inside
+  # ZoneMinder's own temp dir, rather than a predictable /tmp/<name>.concat.lst
+  # in world-writable /tmp, which was open to a symlink/race and leaked
+  # monitor/event names. The list entries are absolute paths, so its location
+  # does not affect ffmpeg's resolution.
+  my ($fd, $concat_list_file) = tempfile('zmconcat-XXXXXX', SUFFIX => '.concat.lst', DIR => '@ZM_TMPDIR@');
   foreach ( @video_files ) {
     print $fd "file '$_'\n";
   }

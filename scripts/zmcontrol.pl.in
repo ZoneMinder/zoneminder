@@ -197,27 +197,42 @@ if ($options{command}) {
   vec($rin, fileno(SERVER), 1) = 1;
   my $win = $rin;
   my $ein = $win;
-  my $timeout = MAX_COMMAND_WAIT;
+  # Use a short timeout if the module supports keepAlive so the session
+  # does not expire between commands (Dahua cameras expire after ~60s idle).
+  my $timeout = $control->can('keepAlive') ? 30 : MAX_COMMAND_WAIT;
   while (!$zm_terminate) {
     my $nfound = select(my $rout = $rin, undef, undef, $timeout);
     if ( $nfound > 0 ) {
       if ( vec($rout, fileno(SERVER), 1) ) {
         my $paddr = accept(CLIENT, SERVER);
         my $message = <CLIENT>;
-        close(CLIENT);
 
-        next if !$message;
+        if ( !$message ) {
+          close(CLIENT);
+          next;
+        }
 
         my $params = jsonDecode($message);
         Debug(Dumper($params));
 
         my $command = $params->{command};
         if ( $command eq 'quit' ) {
+          close(CLIENT);
           last;
         } elsif ( $command ) {
-          $control->$command($params);
+          my $result = $control->$command($params);
+          # Opt-in response: only write back when the caller asked for one, so
+          # fire-and-forget callers (which have already closed their end) never
+          # get a write -> no SIGPIPE. Ignore PIPE defensively in case a query
+          # client gave up before reading.
+          if ( $params->{wants_response} ) {
+            local $SIG{PIPE} = 'IGNORE';
+            print(CLIENT jsonEncode({result => $result}));
+          }
+          close(CLIENT);
         } else {
           Warning("No command in $message");
+          close(CLIENT);
         }
       } else {
         Fatal('Bogus descriptor');
@@ -233,6 +248,7 @@ if ($options{command}) {
       }
     } else {
       Debug('Select timed out');
+      $control->keepAlive() if $control->can('keepAlive');
     }
   } # end while !$zm_terminate
   Info("Control server $id/$protocol exiting");

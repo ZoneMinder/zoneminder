@@ -162,7 +162,24 @@ fi
 
 if [ ! -f /etc/apt/sources.list.d/zoneminder.list ] && [ ! -f /etc/apt/sources.list.d/zoneminder.sources ]; then
   wget -O - https://zmrepo.zoneminder.com/debian/archive-keyring.gpg | sudo tee /etc/apt/trusted.gpg.d/zmrepo.asc
-  DISTRO=`lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`;
+
+  # Resolve the apt codename for the zmrepo source line. Derivatives such as
+  # Linux Mint report their own codename via lsb_release (e.g. "wilma"), which
+  # zmrepo does not publish, so prefer the upstream Ubuntu/Debian release that
+  # the distro is based on.
+  DISTRO=""
+  # Linux Mint (Ubuntu editions) records the upstream Ubuntu codename here.
+  if [ -r /etc/upstream-release/lsb-release ]; then
+    DISTRO=`. /etc/upstream-release/lsb-release 2>/dev/null; echo "$DISTRIB_CODENAME"`
+  fi
+  if [ -z "$DISTRO" ] && [ -r /etc/os-release ]; then
+    # Ubuntu-based derivatives set UBUNTU_CODENAME, Debian-based ones may set
+    # DEBIAN_CODENAME, to the upstream codename; fall back to this release's own
+    # codename for Ubuntu/Debian proper.
+    DISTRO=`. /etc/os-release 2>/dev/null; echo "${UBUNTU_CODENAME:-${DEBIAN_CODENAME:-$VERSION_CODENAME}}"`
+  fi
+  # Last resort: ask lsb_release directly.
+  [ -z "$DISTRO" ] && DISTRO=`lsb_release -cs 2>/dev/null`
 
 	cat >/etc/apt/sources.list.d/zoneminder.list <<EOF
 # This file makes sure that ZoneMinder is kept up-to-date

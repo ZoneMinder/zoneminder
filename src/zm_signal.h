@@ -21,6 +21,7 @@
 #define ZM_SIGNAL_H
 
 #include "zm_config.h"
+#include <atomic>
 #include <csignal>
 
 #if HAVE_LIBUNWIND
@@ -39,7 +40,7 @@ typedef RETSIGTYPE (SigActionHandler)( int, siginfo_t *info, void *context );
 #endif
 
 extern bool zm_reload;
-extern bool zm_terminate;
+extern std::atomic<bool> zm_terminate;
 
 RETSIGTYPE zmc_hup_handler( int signal );
 RETSIGTYPE zmc_term_handler( int signal );

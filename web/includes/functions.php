@@ -1791,13 +1791,20 @@ define('HTTP_STATUS_OK', 200);
 define('HTTP_STATUS_BAD_REQUEST', 400);
 define('HTTP_STATUS_FORBIDDEN', 403);
 
-function ajaxError($message, $code=HTTP_STATUS_OK) {
+/* $reason is an optional machine-readable classification of the failure, for
+ * callers that need to react differently to different errors instead of
+ * parsing $message.  It is named $reason rather than $code because $code is
+ * already taken by the HTTP status.  Included in the response only when set,
+ * so existing callers and their clients are unaffected.
+ */
+function ajaxError($message, $code=HTTP_STATUS_OK, $reason=null) {
   $backTrace = debug_backtrace();
   ZM\Debug($message.' from '.print_r($backTrace, true));
   if ( function_exists('ajaxCleanup') )
     ajaxCleanup();
   if ( $code == HTTP_STATUS_OK ) {
     $response = array('result'=>'Error', 'message'=>$message);
+    if ($reason !== null) $response['reason'] = $reason;
     header('Content-type: application/json');
     exit(jsonEncode($response));
   }
@@ -1823,8 +1830,12 @@ function generateConnKey() {
 }
 
 function detaintPathAllowAbsolute($path) {
-  // Strip out :// because php:// is a way to inject code apparently
-  $path = str_replace('://', '', $path);
+  // Strip out :// because php:// is a way to inject code apparently.
+  // This must loop: a single pass lets the removal re-form the sequence it
+  // just removed, so '::////' collapses back into '://'.
+  do {
+    $path = str_replace('://', '', $path, $count);
+  } while($count);
   // Remove any absolute paths, or relative ones that want to go up
   do {
     $path = str_replace('../', '', $path, $count);
@@ -1834,8 +1845,12 @@ function detaintPathAllowAbsolute($path) {
 
 function detaintPath($path) {
 
-  // Strip out :// because php:// is a way to inject code apparently
-  $path = str_replace('://', '', $path);
+  // Strip out :// because php:// is a way to inject code apparently.
+  // This must loop: a single pass lets the removal re-form the sequence it
+  // just removed, so '::////' collapses back into '://'.
+  do {
+    $path = str_replace('://', '', $path, $count);
+  } while($count);
   // Remove any absolute paths, or relative ones that want to go up
   do {
     $path = str_replace('../', '', $path, $count);

@@ -1399,6 +1399,20 @@ our @options = (
     type        => $types{boolean},
     category    => 'logging',
   },
+  {
+    name        => 'ZM_LOG_BROWSER_EXTENSIONS',
+    default     => 'no',
+    description => 'Log Javascript errors and CSP violations from browser extensions',
+    help        => q`
+       Browser extensions (ad blockers, password managers, etc.) inject scripts into
+       every page. Their Javascript errors and Content-Security-Policy violations are
+       not ZoneMinder's code and normally just spam the web_js log, so by default they
+       are ignored. Enable this if you want to see when a browser extension is touching
+       the ZoneMinder tab, at the cost of noisier logs.
+      `,
+    type        => $types{boolean},
+    category    => 'logging',
+  },
 {
     name        => 'ZM_LOG_DEBUG',
     default     => 'no',
@@ -3048,6 +3062,26 @@ our @options = (
     category    => 'web',
   },
   {
+    name        => 'ZM_WEB_LOGIN_MESSAGE',
+    default     => '',
+    description => 'Message to display above the login form.',
+    help        => q`
+      Text shown on the login page, between the title and the username
+      and password fields. Useful for a site notice, an acceptable use
+      or legal warning, or a note identifying which installation this
+      is when you run more than one.
+
+      Leave empty to show nothing, which is the default.
+
+      The text is displayed exactly as entered: HTML is escaped rather
+      than interpreted, because the login page is served before anyone
+      has authenticated. Line breaks are preserved, so a multi-line
+      message renders as multiple lines.
+      `,
+    type        => $types{text},
+    category    => 'web',
+  },
+  {
     name        => 'ZM_WEB_SHOW_NAV_BUTTONS',
     default     => 'yes',
     description => 'Show Back and Refresh buttons at the top of views.',
@@ -4300,9 +4334,8 @@ Philip Coombes, E<lt>philip.coombes@zoneminder.comE<gt>
 
 Copyright (C) 2001-2008  Philip Coombes
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.3 or,
-at your option, any later version of Perl 5 you may have available.
+Licensed under the GNU General Public License v2 or later; see the COPYING
+file distributed with ZoneMinder for the full text.
 
 
 =cut

@@ -3,6 +3,7 @@
 * IgorA100 2026
 */
 
+"use strict";
 window.SUPPORTED_AUDIO_MOTION_ANALYZER_VERSION = '4.5.4';
 
 var AudioMotionAnalyzer = null;
@@ -33,7 +34,6 @@ export class _AudioMotionAnalyzer extends HTMLElement {
     super();
     this.audioMotion = null; // AudioMotionAnalyzer object
     this.initCompleted = false;
-    this.getTracksFromStreamTimeout = 20000;
     if (currentView == 'watch' || currentView == 'event') {
       this.maxFPS = 30;
       this.loRes = false;
@@ -53,6 +53,9 @@ export class _AudioMotionAnalyzer extends HTMLElement {
     this.handlerEventListener = {};
     this.currentPlayer = null; // The current player during initialization
     this.currentMediaStream = null; // The current MediaStream during initialization
+    this.playbackSessionId = null;
+    this.mediaStreamSource = null;
+    window.audioMotionCtx ??= new AudioContext();
 
     this.hide();
   }
@@ -103,6 +106,11 @@ export class _AudioMotionAnalyzer extends HTMLElement {
     const monitorStream = getMonitorStream(this.mid);
     const mediaStream = monitorStream.mediaStream;
     const audioTrack = monitorStream.audioTrack;
+    if (!audioTrack) {
+      console.log(`AudioMotion will not be started for monitor ID=${this.mid} because no audioTrack is available.`);
+      return;
+    }
+    this.playbackSessionId = monitorStream.playbackSessionId;
 
     if (this.currentPlayer !== null && streamPlayer === this.currentPlayer && this.currentMediaStream !== null && mediaStream.id === this.currentMediaStream.id) {
       if (this.audioMotion && this.gainNode && mediaStream && mediaStream.active && audioTrack && !this.audioMotion.isOn) {
@@ -118,7 +126,6 @@ export class _AudioMotionAnalyzer extends HTMLElement {
       return;
     }
 
-    this.waitingGetTracksFromStream = true;
     this.initCompleted = true;
 
     if (this.audioMotion) {
@@ -128,10 +135,6 @@ export class _AudioMotionAnalyzer extends HTMLElement {
     this.currentMediaStream = monitorStream.mediaStream;
     this.changeIconIsVideo('off');
     this.changeIconIsAudio('off');
-
-    if (!monitorStream.mediaStream) {
-      await this.getTracksFromStream(monitorStream);
-    }
     this.createMotionAnalyzer();
   }; // END init = function()
 
@@ -170,15 +173,38 @@ export class _AudioMotionAnalyzer extends HTMLElement {
     const monitorStream = getMonitorStream(mid);
     if (!monitorStream) {
       console.warn(`Audio visualization. Stream for monitor ID=${mid} not found.`);
+      this.initCompleted = false;
       return;
     }
+    if (monitorStream.started === false) {
+      console.warn(`Audio visualization. Stream for monitor ID=${mid} not started.`);
+      this.initCompleted = false;
+      return;
+    }
+    const audioVisualization = document.getElementById(`audioVisualization${mid}`);
+    if (!audioVisualization) {
+      console.warn(`Audio visualization object for monitor ID=${mid} not found.`);
+      this.initCompleted = false;
+      return;
+    }
+    const canvas = audioVisualization.querySelector('canvas');
+    if (!canvas) {
+      console.warn(`Audio visualization canvas for monitor ID=${mid} not found.`);
+      this.initCompleted = false;
+      return;
+    }
+    canvas.classList.remove('hidden-shift');
 
     this.audioMotion = new AudioMotionAnalyzer(
-        document.getElementById(`audioVisualization${mid}`),
+        audioVisualization,
         {
-        //source: audioEl, // main audio source is the HTML <audio> element .webrtc - не работает пока.
-        //width: 100%,
-          canvas: document.querySelector(`#audioVisualization${mid} canvas`),
+          // We will pass our own AudioContext and not trust the audioMotion-analyzer plugin,
+          // since it only needs to be created once during initialization.
+          // Otherwise, there may be sound issues, for example, in Chromium
+          audioCtx: window.audioMotionCtx,
+          //source: audioEl, // main audio source is the HTML <audio> element .webrtc - не работает пока.
+          //width: 100%,
+          canvas: canvas,
           height: 80,
           mode: 2, // This has little impact on performance. The lower the number, the larger the number of bars.
           maxFPS: this.maxFPS,
@@ -189,7 +215,7 @@ export class _AudioMotionAnalyzer extends HTMLElement {
           showScaleX: false, // Removes frequency signatures.
           showScaleY: false,
           overlay: true, // Makes the background transparent.
-          bgAlpha: .5, // Background transparency only works with overlay: true.
+          bgAlpha: .9, // Background transparency only works with overlay: true.
           ansiBands: true,
           barSpace: .5,
           //channelLayout: 'single',
@@ -244,6 +270,9 @@ export class _AudioMotionAnalyzer extends HTMLElement {
     if (this.audioMotion) {
       this.stop();
       this.audioMotion.destroy();
+      this.audioMotion = null;
+      const canvas = document.querySelector(`#audioVisualization${this.mid} canvas`);
+      if (canvas) canvas.classList.add('hidden-shift');
     }
   }; // END destroy = function()
 
@@ -283,10 +312,34 @@ export class _AudioMotionAnalyzer extends HTMLElement {
     }
 
     const audioCtx = this.audioMotion.audioCtx;
+    if (audioCtx.state !== 'running') {
+      console.warn(`AudioContext for monitor ID=${this.mid} is in "${audioCtx.state}" state, resuming...`);
+      try {
+        await audioCtx.resume();
+      } catch (err) {
+        console.warn(`Failed to resume AudioContext for monitor ID=${this.mid}:`, err);
+        return;
+      }
+      if (audioCtx.state !== 'running') {
+        console.warn(`AudioContext for monitor ID=${this.mid} is still not running (state=${audioCtx.state}).`);
+        return;
+      }
+    }
+
     const monitorStream = getMonitorStream(this.mid);
     const mediaStream = monitorStream.mediaStream;
 
     this.disconnectMediaStreamSource();
+    if (this.gainNode) {
+      this.gainNode.disconnect();
+      this.gainNode = null;
+    }
+
+    if (!isCurrentPlaybackSession(monitorStream, this.playbackSessionId)) {
+      console.debug(`RACE [${this.playbackSessionId}] AudioMotion.connectToMediaStreamSource() for monitor ID=${this.mid} aborted`);
+      return;
+    }
+
     this.gainNode = audioCtx.createGain();
 
     this.handlerEventListener['volumechange'] = manageEventListener.addEventListener(audioEl, 'volumechange', this.listenerVolumechange.bind(null, this));
@@ -297,12 +350,8 @@ export class _AudioMotionAnalyzer extends HTMLElement {
       this.gainNode.gain.value = audioEl.volume;
     }
 
-    if (!mediaStream.active) { // This is especially useful for the Event page during repeat playback.
-      await this.getTracksFromStream(monitorStream);
-      return;
-    }
-    const source = audioCtx.createMediaStreamSource(mediaStream);
-    source.connect(this.gainNode);
+    this.mediaStreamSource = audioCtx.createMediaStreamSource(mediaStream);
+    this.mediaStreamSource.connect(this.gainNode);
     this.audioMotion.connectInput(this.gainNode);
     //this.audioMotion.connectOutput(); // This will result in duplicate sound output.
   };
@@ -311,15 +360,11 @@ export class _AudioMotionAnalyzer extends HTMLElement {
     if (this.audioMotion) {
       this.audioMotion.disconnectOutput();
       this.audioMotion.disconnectInput();
+      if (this.mediaStreamSource) {
+        this.mediaStreamSource.disconnect();
+        this.mediaStreamSource = null;
+      }
     }
-  };
-
-  getTracksFromStream = async function(monitorStream) {
-    await waitUntil(() => this.waitingGetTracksFromStream, this.getTracksFromStreamTimeout);
-    // Until the previous request completes within "this.getTracksFromStreamTimeout," don't send a new one.
-    this.waitingGetTracksFromStream = false;
-    await getTracksFromStream(monitorStream);
-    this.waitingGetTracksFromStream = true;
   };
 
   monitorGridRedrawTrigger = function() {
@@ -347,6 +392,12 @@ export class _AudioMotionAnalyzer extends HTMLElement {
   };
 
   listenerVolumechange = function(_this, event) { // Adjust the visualization level according to the stream's volume level
+    const audioCtx = _this.audioMotion.audioCtx;
+    if (audioCtx && audioCtx.state !== 'running') {
+      audioCtx.resume();
+      _this.connectToMediaStreamSource();
+    }
+
     if (event.target.muted === true) {
       _this.gainNode.gain.value = 0;
     } else {

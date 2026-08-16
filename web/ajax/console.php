@@ -151,25 +151,18 @@ function queryRequest() {
     }
   }
   
-  if ($request_filters['Status']) {
-    $status_values = is_array($request_filters['Status']) ? $request_filters['Status'] : array($request_filters['Status']);
-    if (count($status_values)) {
-      $conditions[] = 'COALESCE(S.Status, IF(M.Type="WebSite","Running","NotRunning")) IN (' . implode(',', array_fill(0, count($status_values), '?')) . ')';
-      $values = array_merge($values, $status_values);
-    }
-  }
-  
+  // Carries the Deleted restriction as well as the status match, so that
+  // selecting the 'Deleted' pseudo status is what surfaces deleted monitors.
+  $conditions[] = monitorStatusFilterSql($request_filters['Status'], $values,
+    'COALESCE(S.Status, IF(M.Type="WebSite","Running","NotRunning"))');
+
   // Build SQL query
   $sql = 'SELECT M.*, S.*, E.*, (SELECT Name FROM Manufacturers WHERE Manufacturers.Id=M.ManufacturerId) AS Manufacturer, (SELECT Name FROM Models where Models.Id=M.ModelId) AS Model
     FROM Monitors AS M
-    LEFT JOIN Monitor_Status AS S ON S.MonitorId=M.Id 
-    LEFT JOIN Event_Summaries AS E ON E.MonitorId=M.Id 
-    WHERE M.`Deleted`=false';
-  
-  if (count($conditions)) {
-    $sql .= ' AND ' . implode(' AND ', $conditions);
-  }
-  
+    LEFT JOIN Monitor_Status AS S ON S.MonitorId=M.Id
+    LEFT JOIN Event_Summaries AS E ON E.MonitorId=M.Id
+    WHERE ' . implode(' AND ', $conditions);
+
   // Get total count before filtering
   $monitors = dbFetchAll($sql, null, $values);
   $unfiltered_monitors = array();
@@ -315,8 +308,13 @@ function queryRequest() {
     $row['Model'] = $monitor['Model'];
     $row['Sequence'] = isset($monitor['Sequence']) ? $monitor['Sequence'] : 0;
     
-    // Status
-    if (!$monitor['Status']) {
+    // Status. A deleted monitor has no daemons, so whatever Monitor_Status row
+    // it left behind is stale - report it as Deleted instead of a status the
+    // row cannot actually be in.
+    $row['Deleted'] = $monitor['Deleted'] ? 1 : 0;
+    if ($monitor['Deleted']) {
+      $monitor['Status'] = 'Deleted';
+    } else if (!$monitor['Status']) {
       if ($monitor['Type'] == 'WebSite')
         $monitor['Status'] = 'Running';
       else
@@ -448,8 +446,7 @@ function queryRequest() {
         'width'  => ZM_WEB_LIST_THUMB_WIDTH,
         'height' => ZM_WEB_LIST_THUMB_HEIGHT ? ZM_WEB_LIST_THUMB_HEIGHT : ZM_WEB_LIST_THUMB_WIDTH * $ratio_factor,
         'scale'  => $Monitor->ViewWidth() ? intval(100 * ZM_WEB_LIST_THUMB_WIDTH / $Monitor->ViewWidth()) : 100,
-        'mode'   => 'jpeg',
-        'frames' => 1,
+        'mode'   => 'single',
       );
 
       $stillSrc = $Monitor->getStreamSrc($options);
@@ -466,7 +463,7 @@ function queryRequest() {
       $options['scale'] = $Monitor->ViewWidth() ? intval(100 * $target_width / $Monitor->ViewWidth()) : 100;
       if ($options['scale'] > 100) $options['scale'] = 100;
       else if ($options['scale'] < 10) $options['scale'] = 10;
-      unset($options['frames']);
+      $options['mode'] = 'jpeg';
       $streamSrc = $Monitor->getStreamSrc($options);
 
       $videoAttr = '';
@@ -514,6 +511,7 @@ function queryRequest() {
       if ($Monitor->Go2RTCEnabled() && defined('ZM_GO2RTC_PATH') && ZM_GO2RTC_PATH) {
         $liveStreamAttr = ' data-stream-type="go2rtc"'.
           ' data-go2rtc-src="'.htmlspecialchars(ZM_GO2RTC_PATH).'"'.
+          ' data-stream-channel="'.($Monitor->StreamChannel() ?: 'Restream').'"'.
           ' data-monitor-id="'.$monitor['Id'].'"';
         $go2rtcAttr = ' go2rtc_src="'.htmlspecialchars(ZM_GO2RTC_PATH).'" go2rtc_mid="'.$monitor['Id'].'"';
         $debugAttr .= ' data-debug-overlay="go2rtc"';

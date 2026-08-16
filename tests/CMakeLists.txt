@@ -12,17 +12,29 @@
 include(Catch)
 
 set(TEST_SOURCES
+  zm_config.cpp
   zm_db_schema.cpp
   zm_box.cpp
   zm_comms.cpp
   zm_crypt.cpp
   zm_font.cpp
+  zm_image.cpp
+  zm_monitorstream.cpp
   zm_onvif_renewal.cpp
+  zm_onvif_wsse.cpp
+  zm_pixformat.cpp
+  zm_stream.cpp
+  zm_swscale_range.cpp
   zm_poly.cpp
+  zm_time.cpp
   zm_utils.cpp
   zm_websocket.cpp
   zm_vector2.cpp
-  zm_zone.cpp)
+  zm_zone.cpp
+  zm_zone_stride.cpp
+  zm_image_linesize.cpp
+  zm_ffmpeg_camera.cpp
+  zm_ffmpeg_fallback.cpp)
 
 add_executable(tests main.cpp ${TEST_SOURCES})
 

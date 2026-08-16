@@ -65,21 +65,6 @@ img.normal {
     border: #cccccc solid 1px;
 }
 
-ul.tabList li {
-    color: #8f8fc2;
-    border: #8f8fc2 solid 1px;
-    background: #444444;
-}
-
-ul.tabList li:hover {
-    background-color: #dddddd;
-}
-
-ul.tabList li.active {
-    background-color: #222222;
-    border-bottom: #8f8fc2 dotted 1px;
-}
-
 #content::backdrop {
   background-color: black;
 }

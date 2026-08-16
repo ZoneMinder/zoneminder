@@ -16,6 +16,12 @@ if ( canView('Control', $_REQUEST['id']) ) {
     return;
   }
 
+  // Opt-in query: return the daemon's reply (e.g. light status) to the browser.
+  if ( !empty($_REQUEST['response']) ) {
+    ajaxResponse(array('status' => $monitor->sendControlCommandWithResponse($ctrlCommand)));
+    return;
+  }
+
   if ( $monitor->sendControlCommand($ctrlCommand) ) {
     ajaxResponse('Success');
   } else {

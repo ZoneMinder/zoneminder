@@ -23,6 +23,7 @@
 #include "zm_time.h"
 #include "zm_utils.h"
 
+#include <algorithm>
 #include <cstring>
 
 #ifdef WITH_GSOAP
@@ -36,6 +37,18 @@ namespace {
   const int ONVIF_RENEWAL_ADVANCE_SECONDS = 60;  // Renew subscription N seconds before expiration
   const int ONVIF_COOLDOWN_RESET_SECONDS = 300;  // Reset retry_count after 5 minutes of failure
   const int ONVIF_DEFAULT_TIMESTAMP_VALIDITY = 60;  // WS-Security timestamp validity in seconds
+
+  // SOAP socket-level timeout (connect/recv/send). zmdc sends SIGTERM and waits
+  // 30s before SIGKILL, so every SOAP operation must be able to unblock within
+  // that window or zmc gets killed before the polling thread can join. Kept
+  // safely below 30s. Must exceed ONVIF_MAX_PULL_TIMEOUT_SECONDS so a normal
+  // long-poll is not aborted prematurely by the recv timeout.
+  const int ONVIF_SOAP_TIMEOUT_SECONDS = 25;
+  // Upper bound for the ONVIF PullMessages long-poll. Strictly less than
+  // ONVIF_SOAP_TIMEOUT_SECONDS so a quiet long-poll (camera holding the
+  // connection open with no events) returns before the socket recv timeout, and
+  // so a stuck PullMessages cannot keep zmc from terminating in time.
+  const int ONVIF_MAX_PULL_TIMEOUT_SECONDS = 20;
 
   // Format seconds as ISO 8601 duration string (e.g., 5 -> "PT5S")
   inline std::string FormatDurationSeconds(int seconds) {
@@ -104,11 +117,16 @@ ONVIF::ONVIF(Monitor *parent_) :
 {
   parse_onvif_options();
 
-  // Clamp pull_timeout_seconds to be less than renewal advance time
-  if (pull_timeout_seconds >= ONVIF_RENEWAL_ADVANCE_SECONDS) {
-    Warning("ONVIF: pull_timeout %ds must be less than renewal advance time (%ds). Adjusting.",
-            pull_timeout_seconds, ONVIF_RENEWAL_ADVANCE_SECONDS);
-    pull_timeout_seconds = ONVIF_RENEWAL_ADVANCE_SECONDS - 1;
+  // Clamp pull_timeout_seconds. It must stay below the renewal advance time (so
+  // we renew before the subscription lapses) and below the SOAP socket timeout
+  // (so a quiet long-poll completes before the recv timeout aborts it, and so a
+  // stuck PullMessages cannot block zmc termination past zmdc's 30s kill window).
+  const int pull_timeout_max =
+      std::min(ONVIF_RENEWAL_ADVANCE_SECONDS - 1, ONVIF_MAX_PULL_TIMEOUT_SECONDS);
+  if (pull_timeout_seconds > pull_timeout_max) {
+    Warning("ONVIF: pull_timeout %ds too large; clamping to %ds to stay within renewal and termination limits.",
+            pull_timeout_seconds, pull_timeout_max);
+    pull_timeout_seconds = pull_timeout_max;
   }
 
   // Build endpoint URL before initializing soap context (InitSoapContext needs it)
@@ -248,9 +266,13 @@ bool ONVIF::InitSoapContext() {
     return false;
   }
 
-  soap->connect_timeout = 0;
-  soap->recv_timeout = 0;
-  soap->send_timeout = 0;
+  // Bound socket operations so a hung camera connection cannot block the polling
+  // thread indefinitely. Kept below zmdc's 30s SIGTERM->SIGKILL window so zmc can
+  // always terminate in time. Must exceed pull_timeout_seconds so a normal
+  // long-poll is not aborted prematurely (see pull_timeout clamp in constructor).
+  soap->connect_timeout = ONVIF_SOAP_TIMEOUT_SECONDS;
+  soap->recv_timeout = ONVIF_SOAP_TIMEOUT_SECONDS;
+  soap->send_timeout = ONVIF_SOAP_TIMEOUT_SECONDS;
   soap_register_plugin(soap, soap_wsse);
   soap_register_plugin(soap, soap_wsa);
 
@@ -1219,10 +1241,33 @@ void ONVIF::set_credentials(struct soap *soap) {
     return;
   }
   soap_wsse_delete_Security(soap);
+
+  // Pin a single timestamp for the whole security header. gSOAP's
+  // soap_wsse_add_Timestamp() and soap_wsse_add_UsernameTokenDigest() each call
+  // time(NULL) independently, so when the two calls straddle a one-second
+  // boundary the wsu:Timestamp Created and the UsernameToken Created differ by a
+  // second. Hikvision (and some other cameras) reject that mismatch as
+  // NotAuthorized, which surfaced as intermittent PullMessages auth failures
+  // every few thousand requests despite correct credentials and synced clocks.
+  // Capturing time(NULL) once and forcing both Created values to it removes the
+  // race.
+  time_t wsse_now = time(nullptr);
+
   // Use configurable timestamp validity (default 60 seconds) to handle clock drift
   // between ZoneMinder and the camera. The old value of 10 seconds was too short
   // and caused "not authorized" errors when clocks were slightly out of sync.
   soap_wsse_add_Timestamp(soap, "Time", timestamp_validity_seconds);
+
+  // soap_wsse_add_Timestamp() stamped Created/Expires from its own time(NULL).
+  // Re-stamp them from wsse_now so they match the UsernameToken Created below.
+  _wsse__Security *security = soap_wsse_add_Security(soap);
+  if (security && security->wsu__Timestamp) {
+    security->wsu__Timestamp->Created = soap_strdup(soap, soap_dateTime2s(soap, wsse_now));
+    if (security->wsu__Timestamp->Expires) {
+      security->wsu__Timestamp->Expires =
+          soap_strdup(soap, soap_dateTime2s(soap, wsse_now + timestamp_validity_seconds));
+    }
+  }
 
   const char *username = parent->onvif_username.empty() ? parent->user.c_str() : parent->onvif_username.c_str();
   const char *password = parent->onvif_username.empty() ? parent->pass.c_str() : parent->onvif_password.c_str();
@@ -1232,9 +1277,11 @@ void ONVIF::set_credentials(struct soap *soap) {
     Debug(2, "ONVIF: Using UsernameToken (plain) authentication");
     soap_wsse_add_UsernameTokenText(soap, "Auth", username, password);
   } else {
-    // Try UsernameTokenDigest authentication (default)
+    // Try UsernameTokenDigest authentication (default).
+    // Use the _at variant so the token's Created (and the password digest
+    // computed from it) is pinned to the same wsse_now as the Timestamp above.
     Debug(2, "ONVIF: Using UsernameTokenDigest authentication");
-    soap_wsse_add_UsernameTokenDigest(soap, "Auth", username, password);
+    soap_wsse_add_UsernameTokenDigest_at(soap, "Auth", username, password, wsse_now);
   }
 }
 

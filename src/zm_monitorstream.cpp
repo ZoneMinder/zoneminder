@@ -302,10 +302,8 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
       status_data.analysing = monitor->shared_data->analysing;
       status_data.score = monitor->shared_data->last_frame_score;
 
-      if (playback_buffer > 0)
-        status_data.buffer_level = (MOD_ADD( (temp_write_index-temp_read_index), 0, temp_image_buffer_count )*100)/temp_image_buffer_count;
-      else
-        status_data.buffer_level = 0;
+      status_data.buffer_level =
+          MonitorStreamBufferLevel(temp_write_index, temp_read_index, temp_image_buffer_count);
     }
   } // end monitor_mutex scope
   status_data.delayed = delayed;
@@ -473,7 +471,7 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
       // If the browser disconnected, SIGPIPE (handled by zm_pipe_handler in
       // zms) sets zm_terminate; the fwrite above also returned an error with
       // errno=EPIPE, which we log below before the loop exits cleanly.
-      Debug(1, "Unable to send stream frame: %s, zm_terminate: %d", strerror(errno), zm_terminate);
+      Debug(1, "Unable to send stream frame: %s, zm_terminate: %d", strerror(errno), zm_terminate.load());
       return false;
     }
     fputs("\r\n", stdout);
@@ -532,10 +530,10 @@ void MonitorStream::runStream() {
   }
 
   openComms();
+  // Declared here so it stays in scope for the join() at the end of the
+  // stream loop, but not started until the temporary buffer state below has
+  // been initialised (see the launch after the playback_buffer setup).
   std::thread command_processor;
-  if (connkey) {
-    command_processor = std::thread(&MonitorStream::checkCommandQueue, this);
-  }
 
   if (type == STREAM_JPEG)
     fputs("Content-Type: multipart/x-mixed-replace; boundary=" BOUNDARY "\r\n\r\n", stdout);
@@ -548,6 +546,10 @@ void MonitorStream::runStream() {
 
   TimePoint stream_start_time = std::chrono::steady_clock::now();
   when_to_send_next_frame = stream_start_time; // initialize it to now so that we spit out a frame immediately
+
+  // Periodic RSS trace so a runaway nph-zms can be caught in the act. refs #5006
+  TimePoint last_mem_report = stream_start_time;
+  const Seconds mem_report_interval = Seconds(30);
 
   temp_image_buffer_count = playback_buffer;
   temp_read_index = temp_image_buffer_count;
@@ -601,6 +603,13 @@ void MonitorStream::runStream() {
     Debug(2, "Not using playback_buffer");
   } // end if connkey && playback_buffer
 
+  // Start the command processor only now that temp_image_buffer_count, the
+  // read/write indices and temp_image_buffer are initialised, so a command
+  // arriving early cannot observe a half-initialised stream (the original
+  // cause of the divide-by-zero in issue #4936).
+  if (connkey) {
+    command_processor = std::thread(&MonitorStream::checkCommandQueue, this);
+  }
 
   while (!zm_terminate) {
     if (feof(stdout)) {
@@ -614,6 +623,14 @@ void MonitorStream::runStream() {
     }
 
     now = std::chrono::steady_clock::now();
+
+    if (now - last_mem_report >= mem_report_interval) {
+      last_mem_report = now;
+      Debug(1, "mem trace m%d: rss=%zuKB frame_count=%d buffer_level=%d temp_count=%d paused=%d delayed=%d",
+           monitor_id, zm_get_rss_kb(), frame_count,
+           MonitorStreamBufferLevel(temp_write_index, temp_read_index, temp_image_buffer_count),
+           temp_image_buffer_count, paused, delayed);
+    }
 
     bool was_paused = paused;
     if (!checkInitialised()) {
@@ -640,8 +657,10 @@ void MonitorStream::runStream() {
       // Use ttl if set, otherwise default to 60 seconds.
       Seconds wait_timeout = (ttl > Seconds(0)) ? std::chrono::duration_cast<Seconds>(ttl) : Seconds(60);
       if (now - stream_start_time > wait_timeout) {
-        Warning("Timed out waiting for capture daemon after %" PRIi64 " seconds",
-                static_cast<int64>(std::chrono::duration_cast<Seconds>(now - stream_start_time).count()));
+        Debug(1, "Timed out waiting for capture daemon after %" PRIi64 " seconds.  ttl is %" PRIi64,
+                static_cast<int64>(std::chrono::duration_cast<Seconds>(now - stream_start_time).count()),
+                static_cast<int64>(std::chrono::duration_cast<Seconds>(wait_timeout).count())
+                );
         zm_terminate = true;
         continue;
       }
@@ -662,7 +681,7 @@ void MonitorStream::runStream() {
       if (!was_paused) {
         int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
         Debug(1, "Saving paused image from index %d",index);
-        paused_image = new Image(*monitor->image_buffer[index]);
+        paused_image = new Image(*monitor->ReadShmFrame(index));
         paused_timestamp = SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index]));
       }
     } else if (paused_image) {
@@ -775,12 +794,12 @@ void MonitorStream::runStream() {
             send_image = monitor->GetAlarmImage();
             if (!send_image) {
               Debug(1, "Falling back");
-              send_image = monitor->image_buffer[index];
+              send_image = monitor->ReadShmFrame(index);
             }
           } else {
             //AVPixelFormat pixformat = monitor->image_pixelformats[index];
             //Debug(1, "Sending regular image index %d, pix format is %d %s", index, pixformat, av_get_pix_fmt_name(pixformat));
-            send_image = monitor->image_buffer[index];
+            send_image = monitor->ReadShmFrame(index);
           }
 
           if (!sendFrame(send_image, last_frame_timestamp)) {
@@ -848,7 +867,7 @@ void MonitorStream::runStream() {
 
             temp_image_buffer[temp_index].timestamp =
               SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index]));
-            monitor->image_buffer[index]->WriteJpeg(temp_image_buffer[temp_index].file_name, config.jpeg_file_quality);
+            monitor->ReadShmFrame(index)->WriteJpeg(temp_image_buffer[temp_index].file_name, config.jpeg_file_quality);
             temp_write_index = MOD_ADD(temp_write_index, 1, temp_image_buffer_count);
             if (temp_write_index == temp_read_index) {
               // Go back to live viewing
@@ -924,7 +943,8 @@ void MonitorStream::runStream() {
       Debug(3, "Sleeping for %" PRIi64 " us",
             static_cast<int64>(std::chrono::duration_cast<Microseconds>(sleep_time).count()));
     }
-    std::this_thread::sleep_for(sleep_time);
+    if (!zm_terminate)
+      std::this_thread::sleep_for(sleep_time);
 
     if (ttl > Seconds(0) && (now - stream_start_time) > ttl) {
       Debug(2, "now - start > ttl (%" PRIi64 " us). break",
@@ -1003,8 +1023,8 @@ void MonitorStream::SingleImage(int scale) {
 
   int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
   AVPixelFormat pixformat = monitor->image_pixelformats[index];
-  Debug(1, "Sending regular image index %d, pix format is %d %s", index, pixformat, av_get_pix_fmt_name(pixformat));
-  Image *snap_image = monitor->image_buffer[index];
+  Debug(1, "Sending regular image index %d, pix format is %d %s", index, pixformat, zm_get_pix_fmt_name(pixformat));
+  Image *snap_image = monitor->ReadShmFrame(index);
   if (!config.timestamp_on_capture) {
     monitor->TimestampImage(snap_image,
                             SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index])));

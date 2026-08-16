@@ -98,6 +98,8 @@ class Control extends ZM_Object {
     'HasWhiteSpeed' => 0, 
     'MinWhiteSpeed' => NULL,
     'MaxWhiteSpeed' => NULL,
+    'CanLight' => 0,
+    'CanIndicatorLight' => 0,
     'HasPresets' => 0,
     'NumPresets' => 0,
     'HasHomePreset' => 0,
@@ -122,6 +124,10 @@ class Control extends ZM_Object {
     $cmds['Sleep'] = 'sleep';
     $cmds['Reset'] = 'reset';
     $cmds['Reboot'] = 'reboot';
+    $cmds['LightOn']  = 'lightOn';
+    $cmds['LightOff'] = 'lightOff';
+    $cmds['IndicatorLightOn']  = 'indicatorLightOn';
+    $cmds['IndicatorLightOff'] = 'indicatorLightOff';
 
     $cmds['PresetSet'] = 'presetSet';
     $cmds['PresetGoto'] = 'presetGoto';

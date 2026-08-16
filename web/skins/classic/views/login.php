@@ -27,11 +27,27 @@ if ( defined('ZM_OPT_USE_AUTH') and ZM_OPT_USE_AUTH ) {
       <div id="loginform">
 
         <h1><i class="material-icons md-36">account_circle</i> <?php echo validHtmlStr(ZM_WEB_TITLE) . ' ' . translate('Login') ?></h1>
+<?php
+// Optional site notice. Escaped rather than interpreted: this page is served
+// before anyone has authenticated, so it is not a place to emit raw markup.
+// nl2br runs after escaping so that the only tags in the output are the ones
+// we added, and a multi-line message still renders as multiple lines.
+if (defined('ZM_WEB_LOGIN_MESSAGE') and trim(ZM_WEB_LOGIN_MESSAGE) !== '') {
+?>
+        <div id="loginMessage"><?php echo nl2br(validHtmlStr(trim(ZM_WEB_LOGIN_MESSAGE))) ?></div>
+<?php
+}
+?>
         <label for="inputUsername" class="sr-only"><?php echo translate('Username') ?></label>
         <input type="text" id="inputUsername" name="username" class="form-control" autocapitalize="none" placeholder="Username" required autofocus autocomplete="username"/>
 
         <label for="inputPassword" class="sr-only"><?php echo translate('Password') ?></label>
-        <input type="password" id="inputPassword" name="password" class="form-control" placeholder="Password" required autocomplete="current-password"/>
+        <div class="input-group">
+          <input type="password" id="inputPassword" name="password" class="form-control" placeholder="Password" required autocomplete="current-password"/>
+          <div class="input-group-append">
+            <span class="input-group-text material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="inputPassword" title="<?php echo translate('Password') ?>">visibility</span>
+          </div>
+        </div>
 <?php
 if (defined('ZM_OPT_USE_REMEMBER_ME') && ZM_OPT_USE_REMEMBER_ME != 'None' && ZM_OPT_USE_REMEMBER_ME != '' && ZM_OPT_USE_REMEMBER_ME != '0') {
   $checked = (ZM_OPT_USE_REMEMBER_ME == 'Yes') ? ' checked="checked"' : '';

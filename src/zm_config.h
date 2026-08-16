@@ -53,6 +53,7 @@ struct StaticConfig {
   std::string DB_SSL_CA_CERT;
   std::string DB_SSL_CLIENT_KEY;
   std::string DB_SSL_CLIENT_CERT;
+  std::string DB_SSL_VERIFY_SERVER_CERT;
   std::string PATH_WEB;
   std::string SERVER_NAME;
   unsigned int SERVER_ID;

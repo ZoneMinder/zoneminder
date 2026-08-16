@@ -1,5 +1,11 @@
 "use strict";
 const table = $j('#consoleTable');
+// Upper bound for the Columns dropdown height, matching bootstrap-table's own
+// stylesheet. There is deliberately no lower bound: the menu scrolls, so a short
+// one is still usable, whereas forcing a minimum taller than the room available
+// makes Popper shove the menu back up over the clipped area.
+const MAX_COLUMNS_MENU_HEIGHT = 300;
+const COLUMNS_MENU_GAP = 10;
 var ajax = null;
 var monitors = {}; // Store monitors by ID for function modal
 var lastFooter = null; // Cached footer payload for re-applying after column toggles
@@ -74,10 +80,7 @@ function updateFooter(footer) {
 
 // Called by bootstrap-table to retrieve monitor data
 function ajaxRequest(params) {
-  if (document.visibilityState == 'hidden') {
-    table.bootstrapTable('hideLoading');
-    return;
-  }
+  if (deferTableRequestWhileHidden(table)) return;
   if (ajax) ajax.abort();
 
   // Get filter selections from the form and add to params.data
@@ -148,6 +151,8 @@ function ajaxRequest(params) {
     timeout: 0,
     success: function(data) {
       if (data.result == 'Error') {
+        // Settle the loading overlay before bailing, otherwise it stays up.
+        table.bootstrapTable('hideLoading');
         alert(data.message);
         return;
       }
@@ -160,15 +165,31 @@ function ajaxRequest(params) {
       // rearrange the result into what bootstrap-table expects
       params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
 
+      // Always clear the loading overlay. params.success only hides it for
+      // non-silent requests, but a silent request (background refresh /
+      // silentSort) can supersede and abort the non-silent request that
+      // painted the overlay. Without this the rows load but stay masked
+      // behind a stuck spinner, so the table appears not to populate.
+      table.bootstrapTable('hideLoading');
+
       // Update footer with totals from response after table is rendered
       if (data.footer) {
         updateFooter(data.footer);
       }
     },
     error: function(jqXHR) {
-      if (jqXHR.statusText != 'abort') {
-        console.log("error", jqXHR);
+      // An aborted request is superseded by a newer one; that newer request
+      // owns the loading overlay, so leave it alone here.
+      if (jqXHR.statusText == 'abort') return;
+      // A dead session returns 401 here; go to login rather than silently
+      // leaving stale thumbnails that keep 403ing against zms.
+      if (typeof authFailureAction === 'function' && authFailureAction(jqXHR.status) == 'login') {
+        goToLogin();
+        return;
       }
+      // Clear the overlay so a failed load doesn't leave the table masked.
+      table.bootstrapTable('hideLoading');
+      console.log("error", jqXHR);
     }
   });
 }
@@ -180,7 +201,10 @@ function processRows(rows) {
     // Store original ID for later use
     row._id = mid;
 
-    var stream_available = canView.Stream && (row.Type == 'WebSite' || (row.CaptureFPS && row.Capturing != 'None'));
+    // A deleted monitor has no capture daemon, so any fps left on its stale
+    // status row does not mean there is a stream to link to.
+    var stream_available = !row.Deleted && canView.Stream &&
+      (row.Type == 'WebSite' || (row.CaptureFPS && row.Capturing != 'None'));
 
     // Determine status classes
     var source_class = 'infoText';
@@ -188,7 +212,12 @@ function processRows(rows) {
     // FPS report interval: 60 seconds base + 30 seconds buffer for FPSReportInterval
     var fps_report_seconds = 90;
 
-    if ((!row.Status || row.Status == 'NotRunning') && row.Type != 'WebSite') {
+    if (row.Deleted) {
+      // Only reachable via the Deleted entry in the Status filter. Nothing is
+      // running for it, so the fps checks below say nothing useful.
+      source_class = 'errorText';
+      source_class_reason = 'Deleted';
+    } else if ((!row.Status || row.Status == 'NotRunning') && row.Type != 'WebSite') {
       source_class = 'errorText';
       source_class_reason = 'Not Running';
     } else {
@@ -220,6 +249,10 @@ function processRows(rows) {
       nameHtml += '<a href="?view=watch&amp;mid=' + mid + '">' + row.Name + '</a>';
     } else {
       nameHtml += row.Name;
+    }
+
+    if (row.Deleted) {
+      nameHtml += ' <span class="errorText">(deleted)</span>';
     }
 
     // Add groups
@@ -597,7 +630,46 @@ function initPage() {
       inner.html('<a href="?view=zones">' + text + '</a>');
     }
   });
+
+  constrainColumnsDropdown();
 } // end function initPage
+
+// #monitorList and its .bootstrap-table are overflow:hidden so the table body
+// scrolls on its own, which means anything Popper moves above the toolbar gets
+// clipped. In a short window Popper would flip the Columns menu up, or shift it
+// up to keep its full 300px inside the viewport, hiding the first entries. Keep
+// it anchored below the button and only ever as tall as the room beneath it.
+function constrainColumnsDropdown() {
+  var toggle = $j('#monitorList .fixed-table-toolbar .columns button.dropdown-toggle');
+  if (!toggle.length) return;
+
+  toggle.attr('data-flip', 'false');
+
+  // The show class lands on .keep-open, the toggle's parent, not on .columns.
+  toggle.parent().on('show.bs.dropdown', function() {
+    sizeColumnsMenu(toggle);
+  });
+
+  // Popper repositions an open menu on resize but keeps the max-height it was
+  // given when it opened, so a window dragged shorter pulls the menu back over
+  // the clipped area. Re-measure whenever the menu is open as the window changes.
+  $j(window).on('resize', function() {
+    if (!toggle.parent().hasClass('show')) return;
+    sizeColumnsMenu(toggle);
+  });
+}
+
+function sizeColumnsMenu(toggle) {
+  var menu = toggle.parent().find('.dropdown-menu');
+  if (!menu.length) return;
+  // Leave a small gap so the menu never sits flush against the window edge.
+  var available = window.innerHeight - toggle[0].getBoundingClientRect().bottom - COLUMNS_MENU_GAP;
+  menu.css('max-height', Math.max(0, Math.min(MAX_COLUMNS_MENU_HEIGHT, available)) + 'px');
+  // Let Popper re-place the menu against the height we just set. On first open
+  // Popper does not exist yet, and positions itself correctly straight after.
+  var dropdown = toggle.data('bs.dropdown');
+  if (dropdown && dropdown._popper) dropdown._popper.scheduleUpdate();
+}
 
 function sortMonitors(button) {
   if (button.classList.contains('btn-success')) {

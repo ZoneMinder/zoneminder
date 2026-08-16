@@ -214,10 +214,17 @@ int main(int argc, char *argv[]) {
         if (!monitor->connect()) {
           Warning("Couldn't connect to monitor %d", monitor->Id());
           if (sessions.find(monitor->Id()) != sessions.end()) {
+            // Delete (not just erase) the FifoSources first: their dtors stop
+            // and join the read/write threads. RemoveSession then destroys
+            // the MediaSession which owns the xop H264/H265/AV1Source; any
+            // still-running ReadRun thread holds a raw m_h264Source pointer
+            // and will crash in SetSPS on the next SPS NAL.
             if (video_sources.find(monitor->Id()) != video_sources.end()) {
+              delete video_sources[monitor->Id()];
               video_sources.erase(monitor->Id());
             }
             if (audio_sources.find(monitor->Id()) != audio_sources.end()) {
+              delete audio_sources[monitor->Id()];
               audio_sources.erase(monitor->Id());
             }
             rtspServer->RemoveSession(sessions[monitor->Id()]->GetMediaSessionId());

@@ -300,14 +300,30 @@ function process_configfile($configFile) {
   $config = array();
   if (is_readable($configFile)) {
     $cfg = fopen($configFile, 'r') or error_log('Could not open config file: '.$configFile);
+    $logical = '';
     while ( !feof($cfg) ) {
-      $str = fgets($cfg, 512);
-      if ( preg_match('/^\s*(#.*)?$/', $str) ) {
+      $str = fgets($cfg);
+      if ($str === false) break;
+      $str = preg_replace('/\r?\n\z/', '', $str);
+      // Trailing backslash (with optional whitespace) continues the value on
+      // the next physical line. Leading whitespace on continuation lines is
+      // stripped so users can indent for readability.
+      if ($logical !== '') {
+        $str = ltrim($str, " \t");
+      }
+      if (preg_match('/^(.*?)\\\\[ \t]*$/', $str, $m)) {
+        $logical .= $m[1];
         continue;
-      } else if ( preg_match('/^\s*([^=\s]+)\s*=\s*[\'"]*(.*?)[\'"]*\s*$/', $str, $matches) ) {
+      }
+      $logical .= $str;
+      $line = $logical;
+      $logical = '';
+      if ( preg_match('/^\s*(#.*)?$/', $line) ) {
+        continue;
+      } else if ( preg_match('/^\s*([^=\s]+)\s*=\s*[\'"]*(.*?)[\'"]*\s*$/', $line, $matches) ) {
         $config[$matches[1]] = ['Name'=>$matches[1], 'Value'=>$matches[2]];
 			} else {
-				error_log("Malformed line in config $configFile\n$str");
+				error_log("Malformed line in config $configFile\n$line");
 			}
     }
     fclose($cfg);

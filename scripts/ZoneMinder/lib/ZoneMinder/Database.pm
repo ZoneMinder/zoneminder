@@ -104,6 +104,14 @@ sub zmDbConnect {
           'mysql_ssl_client_key='.$ZoneMinder::Config::Config{ZM_DB_SSL_CLIENT_KEY},
           'mysql_ssl_client_cert='.$ZoneMinder::Config::Config{ZM_DB_SSL_CLIENT_CERT}
           );
+      # Identity-verify the server certificate when ZM_DB_SSL_VERIFY_SERVER_CERT
+      # is set: truthy verifies, false-y (0/false/no/off) allows a self-signed or
+      # non-matching cert. An empty/unset value leaves the driver default so
+      # existing installs are unchanged on upgrade.
+      my $verify = $ZoneMinder::Config::Config{ZM_DB_SSL_VERIFY_SERVER_CERT};
+      if ( defined($verify) and ($verify ne '') ) {
+        $sslOptions .= ';mysql_ssl_verify_server_cert=' . ((lc($verify) =~ /^(0|false|no|off)$/) ? '0' : '1');
+      }
     }
 
     eval {

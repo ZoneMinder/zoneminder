@@ -10,7 +10,14 @@ set(zoneminder_API_VERSION "${zoneminder_VERSION}.1")
 
 # Make sure the submodules are there
 if(NOT EXISTS "${CMAKE_SOURCE_DIR}/web/api/app/Plugin/Crud/Lib/CrudControllerTrait.php")
-  message(SEND_ERROR "The git submodules are not available. Please run git submodule update --init --recursive")
+  if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
+    message(SEND_ERROR "The git submodules are not available. Please run\n  git submodule update --init --recursive")
+  else()
+    message(SEND_ERROR "This source tree is missing the bundled submodules and cannot be built."
+      " GitHub's auto-generated 'Source code' archives do not include submodules."
+      " Download the complete zoneminder-<version>.tar.gz from the release assets instead,"
+      " or clone the repository with git clone --recurse-submodules.")
+  endif()
 endif()
 
 # CMake does not allow out-of-source build if CMakeCache.exists 
@@ -144,8 +151,8 @@ set(ZM_RUNDIR "/var/run/zm" CACHE PATH
   "Location of transient process files, default: /var/run/zm")
 set(ZM_SOCKDIR "/var/run/zm" CACHE PATH
   "Location of Unix domain socket files, default /var/run/zm")
-set(ZM_TMPDIR "/var/tmp/zm" CACHE PATH
-  "Location of temporary files, default: /tmp/zm")
+set(ZM_TMPDIR "/var/cache/zoneminder/temp" CACHE PATH
+  "Location of regenerable temporary files, default: /var/cache/zoneminder/temp")
 set(ZM_LOGDIR "/var/log/zm" CACHE PATH
   "Location of generated log files, default: /var/log/zm")
 set(ZM_WEBDIR "${CMAKE_INSTALL_FULL_DATADIR}/zoneminder/www" CACHE PATH
@@ -169,6 +176,9 @@ set(ZM_DB_USER "zmuser" CACHE STRING
   "Name of the ZoneMinder database user, default: zmuser")
 set(ZM_DB_PASS "zmpass" CACHE STRING
   "Password of the ZoneMinder database user, default: zmpass")
+set(ZM_DB_SSL_VERIFY_SERVER_CERT "1" CACHE STRING
+  "Verify the database server's SSL certificate against the CA when ZM_DB_SSL_CA_CERT is set.
+     Set to 0 to allow a self-signed server certificate. default: 1")
 set(ZM_WEB_USER "" CACHE STRING
   "The user apache or the local web server runs on. Leave empty for automatic detection.
      If that fails, you can use this variable to force")
@@ -540,6 +550,18 @@ if(MYSQLCLIENT_LIBRARIES)
   if(NOT HAVE_MYSQL_H)
     message(FATAL_ERROR "ZoneMinder requires MySQL headers - check that MySQL development packages are installed")
   endif()
+  # The option controlling server-certificate verification differs by client:
+  # MySQL 8.0 removed MYSQL_OPT_SSL_VERIFY_SERVER_CERT in favour of
+  # MYSQL_OPT_SSL_MODE, while older MariaDB/MySQL only have the former. These are
+  # enum values, not macros, so detect them by compiling rather than with #ifdef.
+  check_cxx_source_compiles("
+    #include <mysql.h>
+    int main() { enum mysql_option opt = MYSQL_OPT_SSL_MODE; (void)opt; return 0; }
+  " HAVE_MYSQL_OPT_SSL_MODE)
+  check_cxx_source_compiles("
+    #include <mysql.h>
+    int main() { enum mysql_option opt = MYSQL_OPT_SSL_VERIFY_SERVER_CERT; (void)opt; return 0; }
+  " HAVE_MYSQL_OPT_SSL_VERIFY_SERVER_CERT)
 else()
   message(FATAL_ERROR "ZoneMinder requires mysqlclient but it was not found on your system")
 endif()

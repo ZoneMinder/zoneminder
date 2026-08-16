@@ -104,7 +104,7 @@ if ($path) {
 ?>
             </div><!--path-->
             <div id="contentButtons" class='rightInFlexContainer'>
-              <button type="submit" name="action" value="delete" disabled="disabled">
+              <button id="btnDeleteFiles" type="button" class="btn btn-danger" data-on-click-this="deleteFiles" disabled="disabled">
               <?php echo translate('Delete') ?>
               </button>
             </div>

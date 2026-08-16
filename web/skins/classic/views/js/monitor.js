@@ -14,7 +14,8 @@ function updateMonitorDimensions(element) {
     var monitorWidth = parseInt(form.elements['newMonitor[Width]'].value);
     var monitorHeight = parseInt(form.elements['newMonitor[Height]'].value);
 
-    if ( form.elements['preserveAspectRatio'].checked ) {
+    // The WebSite monitor type renders Width/Height without a preserveAspectRatio checkbox.
+    if ( form.elements['preserveAspectRatio'] && form.elements['preserveAspectRatio'].checked ) {
       switch ( element.name ) {
         case 'newMonitor[Width]':
           if ( monitorWidth >= 0 ) {
@@ -37,7 +38,7 @@ function updateMonitorDimensions(element) {
     // If we find a matching option in the dropdown, select it or select custom
 
     var option = $j('select[name="dimensions_select"] option[value="'+monitorWidth+'x'+monitorHeight+'"]');
-    if ( !option.size() ) {
+    if ( !option.length ) {
       $j('select[name="dimensions_select"]').val('');
     } else {
       $j('select[name="dimensions_select"]').val(monitorWidth+'x'+monitorHeight);
@@ -175,11 +176,10 @@ function initPage() {
   document.querySelectorAll('select[name="newMonitor[Devices]"]').forEach(function(el) {
     el.onchange = window['devices_onchange'].bind(el, el);
   });
-  document.querySelectorAll('input[name="newMonitor[Width]"]').forEach(function(el) {
-    el.oninput = window['updateMonitorDimensions'].bind(el, el);
-  });
-  document.querySelectorAll('input[name="newMonitor[Height]"]').forEach(function(el) {
-    el.oninput = window['updateMonitorDimensions'].bind(el, el);
+  // Width/Height also get a buffer_setting_oninput listener below, so use
+  // addEventListener rather than oninput= to avoid one clobbering the other.
+  document.querySelectorAll('input[name="newMonitor[Width]"],input[name="newMonitor[Height]"]').forEach(function(el) {
+    el.addEventListener('input', window['updateMonitorDimensions'].bind(el, el));
   });
   document.querySelectorAll('select[name="dimensions_select"]').forEach(function(el) {
     el.onchange = window['updateMonitorDimensions'].bind(el, el);
@@ -192,13 +192,19 @@ function initPage() {
   });
   document.querySelectorAll('select[name="newMonitor[Type]"]').forEach(function(el) {
     el.onchange = function() {
+      // Reload the form to render the type-specific fields WITHOUT saving. The
+      // monitor view repopulates from the posted newMonitor values, so the
+      // selected Type and anything already entered are preserved. Saving here
+      // would fail for a brand-new monitor whose Width/Height are not set yet
+      // (both are NOT NULL), leaving the type change unpersisted. A plain
+      // submit posts no action=save, matching the Method field's submitTab.
       const form = document.getElementById('contentForm');
       form.tab.value = 'general';
       form.submit();
     };
   });
   document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"],input[name="newMonitor[MaxImageBufferCount]"],input[name="newMonitor[Width]"],input[name="newMonitor[Height]"],input[name="newMonitor[PreEventCount]"]').forEach(function(el) {
-    el.oninput = window['buffer_setting_oninput'].bind(el);
+    el.addEventListener('input', window['buffer_setting_oninput'].bind(el));
   });
   update_estimated_ram_use();
 
@@ -311,39 +317,42 @@ function initPage() {
     window.location.assign('?view=console');
   });
 
-  var sourceFormMonitor = $j('#contentForm').serialize();
+  sourceFormMonitor = $j('#contentForm').serialize();
   // Manage the ZONES Button
-  document.getElementById("zones-tab").addEventListener("click", function onZonesClick(evt) {
-    if ($j('#contentForm').serialize() !== sourceFormMonitor) {
-      evt.preventDefault();
-      const data = {
-        request: "modal",
-        modal: "saveconfirm",
-        key: messageSavingDataWhenLeavingPage
-      };
+  const zonesTab = document.getElementById("zones-tab");
+  if (zonesTab) {
+    zonesTab.addEventListener("click", function onZonesClick(evt) {
+      if ($j('#contentForm').serialize() !== sourceFormMonitor) {
+        evt.preventDefault();
+        const data = {
+          request: "modal",
+          modal: "saveconfirm",
+          key: messageSavingDataWhenLeavingPage
+        };
 
-      if (!document.getElementById('saveConfirm')) {
-        // Load the save confirmation modal into the DOM
-        $j.getJSON(thisUrl, data)
-            .done(function(data) {
-              insertModalHtml('saveConfirm', data.html);
-              manageSaveConfirmModalBtns();
-              $j('#saveConfirm').modal('show');
-            })
-            .fail(function(jqXHR) {
-              console.log('error getting saveconfirm', jqXHR);
-              logAjaxFail(jqXHR);
-            });
-        return;
+        if (!document.getElementById('saveConfirm')) {
+          // Load the save confirmation modal into the DOM
+          $j.getJSON(thisUrl, data)
+              .done(function(data) {
+                insertModalHtml('saveConfirm', data.html);
+                manageSaveConfirmModalBtns();
+                $j('#saveConfirm').modal('show');
+              })
+              .fail(function(jqXHR) {
+                console.log('error getting saveconfirm', jqXHR);
+                logAjaxFail(jqXHR);
+              });
+          return;
+        } else {
+          document.getElementById('saveConfirmBtn').disabled = false; // re-enable the button
+          $j('#saveConfirm').modal('show');
+        }
       } else {
-        document.getElementById('saveConfirmBtn').disabled = false; // re-enable the button
-        $j('#saveConfirm').modal('show');
+        const href = '?view=zones&mid='+mid;
+        window.location.assign(href);
       }
-    } else {
-      const href = '?view=zones&mid='+mid;
-      window.location.assign(href);
-    }
-  });
+    });
+  }
 
   // Manage the SAVE CONFIRMATION modal button
   function manageSaveConfirmModalBtns() {
@@ -351,7 +360,7 @@ function initPage() {
     document.getElementById('saveConfirmBtn').addEventListener('click', function onSaveConfirmClick(evt) {
       document.getElementById('saveConfirmBtn').disabled = true; // prevent double click
       evt.preventDefault();
-      saveMonitorData(href);
+      saveMonitorDataPrepare(document.getElementById('contentForm'), true, href);
     });
 
     // Manage the Don't SAVE modal button
@@ -368,21 +377,44 @@ function initPage() {
 
   // Manage the SAVE Button
   document.getElementById("saveBtn").addEventListener("click", function onSaveClick(evt) {
-    const form = document.getElementById('contentForm');
-    if (validateForm(form)) {
-      saveMonitorData();
-    }
+    saveMonitorDataPrepare(document.getElementById('contentForm'), true);
   });
 
   // Manage the SAVE AND CLOSE Button - use AJAX instead of native form
   // submit so Chrome doesn't trigger its "save password" prompt.
   document.getElementById("saveAndCloseBtn").addEventListener("click", function onSaveAndCloseClick(evt) {
-    const form = document.getElementById('contentForm');
-    if (validateForm(form)) {
-      $j('#contentButtons').hide();
-      saveMonitorData('?view=console');
-    }
+    saveMonitorDataPrepare(document.getElementById('contentForm'), true, '?view=console');
   });
+
+  /*
+  * href - Link to follow after saving
+  */
+  function saveMonitorDataPrepare(form, formValidation, href = null) {
+    $j.getJSON(thisUrl, {
+      request: "monitor",
+      action: "validateName",
+      mid: mid,
+      monitorName: form.elements['newMonitor[Name]'].value
+    })
+        .done(function(data) {
+          if (data.response === false) {
+            alert(data.messageBadNameChars.replace(/~~/, '\r\n'));
+          } else if (data.result === 'Error') {
+            alert(data.message);
+          } else {
+            const successfulFormValidation = (formValidation) ? validateForm(form) : true;
+            if (successfulFormValidation) {
+              if (!href || href === '') {
+                saveMonitorData();
+              } else {
+                $j('#contentButtons').hide();
+                saveMonitorData(href);
+              }
+            }
+          }
+        })
+        .fail(logAjaxFail);
+  }
 
   const form = document.getElementById('contentForm');
 
@@ -529,6 +561,11 @@ function initPage() {
 
   manageChannelStream();
   checkVerAudioMotion();
+
+  // Reflect the current Motion Detection (Analysing) setting on load.
+  if (form.elements['newMonitor[Analysing]']) {
+    Analysing_onChange(form.elements['newMonitor[Analysing]']); // eslint-disable-line new-cap
+  }
 } // end function initPage()
 
 async function checkVerAudioMotion() {
@@ -571,7 +608,14 @@ function saveMonitorData(href = '') {
     data: form_data,
     success: function() {
       alertBlock.fadeOut({duration: 'fast'});
-      if (href) window.location.assign(href);
+      sourceFormMonitor = $j('#contentForm').serialize();
+      if (href) {
+        if (href == 'reload') {
+          window.location.reload();
+        } else {
+          window.location.assign(href);
+        }
+      }
       //document.getElementById('zones-tab').classList.remove("disabled");
     },
     error: function() {
@@ -769,6 +813,10 @@ function Capturing_onChange(e) {
 }
 
 function Analysing_onChange(e) {
+  // When motion detection is None there is no analysis, so hide the
+  // analysis image, analysis fps and ref/alarm blend fields.
+  const show = (e.value != 'None');
+  $j('#AnalysisImage, li.AnalysisFPS, li.RefBlendPerc, li.AlarmRefBlendPerc, li.AlarmRefImageBlendPct').toggle(show);
 }
 
 function Recording_onChange(e) {
@@ -921,7 +969,10 @@ function ControlId_onChange(ddm) {
 function ControlEdit_onClick() {
   const ControlId = document.getElementById('ControlId');
   if (ControlId) {
-    window.location = '?view=controlcap&cid='+ControlId.value;
+    const cid = parseInt(ControlId.value, 10);
+    if (Number.isInteger(cid) && cid > 0) {
+      window.location = '?view=controlcap&cid=' + cid;
+    }
   }
 }
 

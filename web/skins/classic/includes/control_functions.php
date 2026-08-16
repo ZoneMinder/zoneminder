@@ -114,6 +114,26 @@ function controlWhite($monitor, $cmds) {
   return ob_get_clean();
 }
 
+function controlLight($monitor, $cmds) {
+  ob_start();
+?>
+<div class="lightControls">
+  <button type="button" class="ptzTextBtn lightToggleBtn" data-on-click="controlCmd" data-on-cmd="<?php echo $cmds['LightOn'] ?>" data-off-cmd="<?php echo $cmds['LightOff'] ?>" value="<?php echo $cmds['LightOn'] ?>"><?php echo translate('Light') ?></button>
+</div>
+<?php
+  return ob_get_clean();
+}
+
+function controlIndicatorLight($monitor, $cmds) {
+  ob_start();
+?>
+<div class="lightControls">
+  <button type="button" class="ptzTextBtn indicatorLightToggleBtn" data-on-click="controlCmd" data-on-cmd="<?php echo $cmds['IndicatorLightOn'] ?>" data-off-cmd="<?php echo $cmds['IndicatorLightOff'] ?>" value="<?php echo $cmds['IndicatorLightOn'] ?>"><?php echo translate('Indicator') ?></button>
+</div>
+<?php
+  return ob_get_clean();
+}
+
 function controlPanTilt($monitor, $cmds) {
   $control = $monitor->Control();
   ob_start();
@@ -241,6 +261,10 @@ function ptzControls($monitor) {
     echo controlIris($monitor, $cmds);
   if ( $control->CanWhite() )
     echo controlWhite($monitor, $cmds);
+  if ( $control->CanLight() )
+    echo controlLight($monitor, $cmds);
+  if ( $control->CanIndicatorLight() )
+    echo controlIndicatorLight($monitor, $cmds);
   if ( $control->CanMove() ) {
 ?>
   <div class="pantiltPanel">

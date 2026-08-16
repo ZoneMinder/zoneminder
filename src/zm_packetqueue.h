@@ -28,7 +28,6 @@
 #include <mutex>
 #include <vector>
 
-class Monitor;
 class ZMPacket;
 class ZMPacketLock;
 
@@ -37,10 +36,9 @@ typedef std::list<std::shared_ptr<ZMPacket>>::iterator packetqueue_iterator;
 class PacketQueue {
  private: // For now just to ease development
   std::list<std::shared_ptr<ZMPacket>>    pktQueue;
-  std::list<std::shared_ptr<ZMPacket>>::iterator analysis_it;
 
   int video_stream_id;
-  int max_video_packet_count; // allow a negative value to someday mean unlimited
+  int max_video_packet_count; // 0 means unlimited
   // This is now a hard limit on the # of video packets to keep in the queue so that we can limit ram
   int pre_event_video_packet_count; // Was max_video_packet_count
   int max_stream_id;
@@ -57,7 +55,6 @@ class PacketQueue {
   int frames_since_last_keyframe_;
   std::atomic<bool> clear_packets_pending_;
   uint64_t next_queue_index_;
-  Monitor *monitor_;
 
  public:
   PacketQueue();
@@ -69,7 +66,6 @@ class PacketQueue {
   void setMaxVideoPackets(int p);
   void setPreEventVideoPackets(int p);
   void setKeepKeyframes(bool k) { keep_keyframes = k; };
-  void setMonitor(Monitor *m) { monitor_ = m; };
 
   bool queuePacket(std::shared_ptr<ZMPacket> packet);
   void stop();
@@ -103,7 +99,6 @@ class PacketQueue {
   ZMPacketLock get_packet_no_wait(packetqueue_iterator *);
   ZMPacketLock get_packet_and_increment_it(packetqueue_iterator *);
   packetqueue_iterator *get_video_it(bool wait);
-  packetqueue_iterator *get_stream_it(int stream_id);
   void free_it(packetqueue_iterator *);
 
   packetqueue_iterator *get_event_start_packet_it(
@@ -111,7 +106,6 @@ class PacketQueue {
     unsigned int pre_event_count
   );
   bool is_there_an_iterator_pointing_to_packet(const std::shared_ptr<ZMPacket> zm_packet);
-  void unlock(ZMPacketLock *lp);
   void notify_all();
   void wait();
   void wait_for(Microseconds duration);

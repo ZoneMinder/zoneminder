@@ -49,22 +49,36 @@ ajaxResponse($data);
 //
 
 function createRequest() {
-  if (!empty($_POST['level']) && !empty($_POST['message'])) {
-    ZM\logInit(array('id'=>'web_js'));
+  // Every field here is attacker-controlled. Coerce each to a scalar and strip
+  // control characters (newlines, carriage returns, tabs, etc.) so nothing can
+  // forge additional lines in the text log file, and so non-scalar input (e.g.
+  // message[]=x) cannot trip a TypeError in logPrint(). A log message is a
+  // single line; the Log view stores it as one Message column regardless.
+  $sanitize = function($value) {
+    return is_scalar($value) ? preg_replace('/[\x00-\x1F\x7F]+/', ' ', (string)$value) : '';
+  };
 
-    $file = !empty($_POST['file']) ? preg_replace('/\w+:\/\/[\w.:]+\//', '', $_POST['file']) : '';
-    $line = empty($_POST['line']) ? NULL : validInt($_POST['line']);
+  $level = $sanitize($_POST['level'] ?? '');
+  $message = $sanitize($_POST['message'] ?? '');
+  // Strip the URL scheme/host from file, then the control characters.
+  $file = (isset($_POST['file']) && is_scalar($_POST['file']))
+    ? $sanitize(preg_replace('/\w+:\/\/[\w.:]+\//', '', (string)$_POST['file']))
+    : '';
 
-    $levels = array_flip(ZM\Logger::$codes);
-    if (!isset($levels[$_POST['level']])) {
-      ZM\Error('Unexpected logger level '.$_POST['level']);
-      $_POST['level'] = 'ERR';
-    }
-    $level = $levels[$_POST['level']];
-    ZM\Logger::fetch()->logPrint($level, $_POST['message'], $file, $line);
-  } else {
-    ZM\Error('Invalid log create: '.print_r($_POST, true));
+  if ($level === '' || $message === '') {
+    ZM\Error('Invalid log create: level and message are required');
+    return;
   }
+
+  ZM\logInit(array('id'=>'web_js'));
+  $line = empty($_POST['line']) ? NULL : validInt($_POST['line']);
+
+  $levels = array_flip(ZM\Logger::$codes);
+  if (!isset($levels[$level])) {
+    ZM\Error('Unexpected logger level '.$level); // already sanitized above
+    $level = 'ERR';
+  }
+  ZM\Logger::fetch()->logPrint($levels[$level], $message, $file, $line);
 }
 
 function queryRequest() {
@@ -157,11 +171,19 @@ function queryRequest() {
     $where = '(' .implode(' OR ', $likes). ')';
   }
 
-  $requestComponent = (isset($_REQUEST['Component']) && !empty($_REQUEST['Component']) && is_scalar($_REQUEST['Component'])) ? (string) $_REQUEST['Component'] : '';
-  if (!empty($requestComponent)) {
+  // Component is a multi-select: accept a scalar (legacy) or an array of
+  // component names and match any of them.
+  $requestComponents = array();
+  if (isset($_REQUEST['Component'])) {
+    foreach ((array)$_REQUEST['Component'] as $component) {
+      if (is_scalar($component) && (string)$component !== '') $requestComponents[] = (string)$component;
+    }
+  }
+  if (count($requestComponents)) {
     if ($where) $where .= ' AND ';
-    $where .= 'Component = ?';
-    $query['values'][] = $requestComponent;
+    $placeholders = implode(', ', array_fill(0, count($requestComponents), '?'));
+    $where .= 'Component IN (' . $placeholders . ')';
+    foreach ($requestComponents as $component) $query['values'][] = $component;
   }
 
   if (!empty($_REQUEST['ServerId'])) {
@@ -176,12 +198,22 @@ function queryRequest() {
     $query['values'][] = $_REQUEST['level'];
   }
 */
-  $L = (isset($_REQUEST['level']) && !empty($_REQUEST['level']) && is_scalar($_REQUEST['level'])) ? (string) $_REQUEST['level'] : '';
+  // Level is a multi-select: accept a scalar (legacy) or an array of level codes
+  // ('DBG', 'INF', ...). Keep only recognized codes and match any of them.
   $level_codes = array_flip(ZM\Logger::$codes);
-  if (!empty($L) && isset($level_codes[$L])) {
+  $requestLevels = array();
+  if (isset($_REQUEST['level'])) {
+    foreach ((array)$_REQUEST['level'] as $level) {
+      if (is_scalar($level) && isset($level_codes[(string)$level])) {
+        $requestLevels[(string)$level] = $level_codes[(string)$level];
+      }
+    }
+  }
+  if (count($requestLevels)) {
     if ($where) $where .= ' AND ';
-    $where .= ' Level = ?';
-    $query['values'][] = $level_codes[$L];
+    $placeholders = implode(', ', array_fill(0, count($requestLevels), '?'));
+    $where .= ' Level IN (' . $placeholders . ')';
+    foreach ($requestLevels as $code) $query['values'][] = $code;
   }
 
   if (!empty($_REQUEST['StartDateTime'])) {
@@ -206,8 +238,8 @@ function queryRequest() {
   }
 
   zm_session_start();
-  $_SESSION['zmLogComponent'] = $requestComponent;
-  $_SESSION['zmLogFilterLevel'] = isset($level_codes[$L]) ? $L : '';
+  $_SESSION['zmLogComponent'] = $requestComponents;
+  $_SESSION['zmLogFilterLevel'] = array_keys($requestLevels);
   session_write_close();
 
   if ($where) $where = ' WHERE '.$where;

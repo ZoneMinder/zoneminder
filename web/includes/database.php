@@ -56,6 +56,19 @@ function dbConnect() {
         PDO::MYSQL_ATTR_SSL_KEY  => ZM_DB_SSL_CLIENT_KEY,
         PDO::MYSQL_ATTR_SSL_CERT => ZM_DB_SSL_CLIENT_CERT,
       );
+      // Identity-verify the server certificate when ZM_DB_SSL_VERIFY_SERVER_CERT
+      // is set: truthy verifies, false-y (0/false/no/off) allows a self-signed
+      // or non-matching cert. An empty/unset value leaves PDO's default in place
+      // so existing installs are not changed on upgrade. Guarded with defined()
+      // so an upgraded zm.conf that predates this option does not fatal on PHP 8.
+      // Refs #3816.
+      if ( defined('ZM_DB_SSL_VERIFY_SERVER_CERT') ) {
+        $verify_value = strtolower(trim((string)ZM_DB_SSL_VERIFY_SERVER_CERT));
+        if ( $verify_value !== '' ) {
+          $dbOptions[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] =
+            !in_array($verify_value, array('0', 'false', 'no', 'off'), true);
+        }
+      }
       $dbConn = new PDO($dsn, ZM_DB_USER, ZM_DB_PASS, $dbOptions);
     } else {
       $dbConn = new PDO($dsn, ZM_DB_USER, ZM_DB_PASS);
@@ -137,11 +150,14 @@ function dbQuery($sql, $params=NULL, $debug = false) {
     if (isset($params)) {
       if (!$result = $dbConn->prepare($sql)) {
         ZM\Error("SQL: Error preparing $sql: " . $pdo->errorInfo);
+        // Set after logging: a DB log target would call dbQuery and clobber this.
+        $GLOBALS['dbLastError'] = implode(' ', $dbConn->errorInfo());
         return NULL;
       }
 
       if (!$result->execute($params)) {
         ZM\Error("SQL: Error executing $sql: " . print_r($result->errorInfo(), true));
+        $GLOBALS['dbLastError'] = implode(' ', $result->errorInfo());
         return NULL;
       }
     } else {
@@ -151,6 +167,7 @@ function dbQuery($sql, $params=NULL, $debug = false) {
       $result = $dbConn->query($sql);
       if ( ! $result ) {
         ZM\Error("SQL: Error preparing $sql: " . $pdo->errorInfo);
+        $GLOBALS['dbLastError'] = implode(' ', $dbConn->errorInfo());
         return NULL;
       }
     }
@@ -159,9 +176,17 @@ function dbQuery($sql, $params=NULL, $debug = false) {
     }
   } catch(PDOException $e) {
     ZM\Error("SQL-ERR '".$e->getMessage()."', statement was '".$sql."' params:" . ($params?implode(',',$params):''));
+    $GLOBALS['dbLastError'] = $e->getMessage();
     return NULL;
   }
+  $GLOBALS['dbLastError'] = null;
   return $result;
+}
+
+// Human-readable text of the most recent dbQuery() failure, or '' if the last
+// query succeeded. Only meaningful immediately after dbQuery() returns NULL.
+function dbLastError() {
+  return isset($GLOBALS['dbLastError']) ? $GLOBALS['dbLastError'] : '';
 }
 
 function dbFetchOne($sql, $col=false, $params=NULL) {

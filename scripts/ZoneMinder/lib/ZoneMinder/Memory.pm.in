@@ -185,6 +185,9 @@ our %mem_data = (
     video_fifo       => { type=>'int8[64]', seq=>$mem_seq++ },
     audio_fifo       => { type=>'int8[64]', seq=>$mem_seq++ },
     janus_pin        => { type=>'int8[64]', seq=>$mem_seq++ },
+    last_analysis_index => { type=>'int32', seq=>$mem_seq++ },
+    analysis_image_count => { type=>'int32', seq=>$mem_seq++ },
+    analysis_pad     => { type=>'uint8[8]', seq=>$mem_seq++ },
   }
   },
   trigger_data => { type=>'TriggerData', seq=>$mem_seq++, 'contents'=> {
@@ -918,9 +921,8 @@ Philip Coombes, E<lt>philip.coombes@zoneminder.comE<gt>
 
 Copyright (C) 2001-2008  Philip Coombes
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.3 or,
-at your option, any later version of Perl 5 you may have available.
+Licensed under the GNU General Public License v2 or later; see the COPYING
+file distributed with ZoneMinder for the full text.
 
 
 =cut

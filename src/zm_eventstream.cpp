@@ -27,6 +27,7 @@
 #include "zm_storage.h"
 #include <algorithm>
 #include <arpa/inet.h>
+#include <memory>
 #include <sys/stat.h>
 
 #include <filesystem>
@@ -45,8 +46,19 @@ const std::string EventStream::StreamMode_Strings[4] = {
 constexpr Milliseconds EventStream::STREAM_PAUSE_WAIT;
 
 bool EventStream::loadInitialEventData(int monitor_id, SystemTimePoint event_time) {
-  std::string sql = stringtf("SELECT `Id` FROM `Events` WHERE "
-                             "`MonitorId` = %d AND unix_timestamp(`EndDateTime`) > %jd "
+  // An event still being written has no EndDateTime, and unix_timestamp(NULL)
+  // is NULL, so comparing it never matches: the event currently recording could
+  // not be streamed at all, and every request for one logged a failure. Fall
+  // back to StartDateTime + Length, which zmc flushes every few seconds, so a
+  // recording event is found. An event with neither ends where it starts, which
+  // keeps a crash-orphaned event from matching every time -- it would be
+  // selected in preference to the real one by the ORDER BY below. This is the
+  // same expression the API's Event model uses for EndTimeSecs.
+  std::string sql = stringtf("SELECT `Id` FROM `Events` WHERE `MonitorId` = %d AND "
+                             "(CASE"
+                             " WHEN `EndDateTime` IS NOT NULL THEN unix_timestamp(`EndDateTime`)"
+                             " WHEN `Length` > 0 THEN unix_timestamp(`StartDateTime`) + `Length`"
+                             " ELSE unix_timestamp(`StartDateTime`) END) > %jd "
                              "ORDER BY `Id` ASC LIMIT 1", monitor_id, std::chrono::system_clock::to_time_t(event_time));
 
   MYSQL_RES *result = zmDbFetch(sql);
@@ -60,7 +72,10 @@ bool EventStream::loadInitialEventData(int monitor_id, SystemTimePoint event_tim
     return false;
   }
   if (!mysql_num_rows(result)) {
-    Error("Unable to load event using %s", sql.c_str());
+    // Not an error: a client is free to ask for a time this monitor was not
+    // recording, and it does so once per request. At Error level that filled
+    // the log faster than anything else zms emits.
+    Debug(1, "No event for monitor %d covering the requested time, using %s", monitor_id, sql.c_str());
     mysql_free_result(result);
     return false;
   }
@@ -861,23 +876,25 @@ bool EventStream::sendFrame(Microseconds delta_us) {
   // Reusable string member avoids per-frame heap allocations.
   // After the first frame, the string's buffer is reused (unless path exceeds capacity).
   reuse_filepath_.clear();
-  struct stat filestat = {};
+  // exists() with an error_code overload mirrors stat()'s behaviour (treat any
+  // failure as "not present") without throwing or filling an unused struct stat.
+  std::error_code exists_ec;
 
   // This needs to be abstracted.  If we are saving jpgs, then load the capture file.
   // If we are only saving analysis frames, then send that.
   if ((frame_type == FRAME_ANALYSIS) && (event_data->SaveJPEGs & 2)) {
     reuse_filepath_ = stringtf(staticConfig.analyse_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
-    if (stat(reuse_filepath_.c_str(), &filestat) < 0) {
+    if (!std::filesystem::exists(reuse_filepath_, exists_ec)) {
       Debug(1, "analyze file %s not found will try to stream from other", reuse_filepath_.c_str());
       reuse_filepath_ = stringtf(staticConfig.capture_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
-      if (stat(reuse_filepath_.c_str(), &filestat) < 0) {
+      if (!std::filesystem::exists(reuse_filepath_, exists_ec)) {
         Debug(1, "capture file %s not found either", reuse_filepath_.c_str());
         reuse_filepath_.clear();
       }
     }
   } else if (event_data->SaveJPEGs & 1) {
     reuse_filepath_ = stringtf(staticConfig.capture_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
-    if (stat(reuse_filepath_.c_str(), &filestat) < 0) {
+    if (!std::filesystem::exists(reuse_filepath_, exists_ec)) {
       Debug(1, "Capture file %s not found (bulk/interpolated frame %d), trying ffmpeg_input",
             reuse_filepath_.c_str(), curr_frame_id);
       reuse_filepath_.clear();
@@ -889,9 +906,12 @@ bool EventStream::sendFrame(Microseconds delta_us) {
   }
 
   if ( type == STREAM_MPEG ) {
-    Image image(reuse_filepath_.c_str());
+    // Decode into the reused member rather than a fresh per-frame stack Image;
+    // ReadJpeg reuses its buffer when dimensions match, avoiding a ~2MB
+    // malloc/free each frame.
+    reuse_image_.ReadJpeg(reuse_filepath_, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
 
-    Image *send_image = prepareImage(&image);
+    Image *send_image = prepareImage(&reuse_image_);
 
     if ( !vid_stream ) {
       vid_stream = new VideoStream("pipe:", format, bitrate, effective_fps,
@@ -919,9 +939,18 @@ bool EventStream::sendFrame(Microseconds delta_us) {
       }
     } else {
       Image *image = nullptr;
+      // Owns the image only on the ffmpeg (mp4) path; the JPEG path decodes into
+      // the reused member, so nothing is freed there. unique_ptr replaces the
+      // old new/delete pair and frees automatically at scope exit.
+      std::unique_ptr<Image> owned_image;
 
       if (!reuse_filepath_.empty()) {
-        image = new Image(reuse_filepath_.c_str());
+        // Decode into the reused member instead of allocating a fresh Image each
+        // frame. ReadJpeg's WriteBuffer reuses the pixel allocation when the
+        // dimensions match (every frame of a given event), eliminating a ~2MB
+        // malloc/free per streamed frame.
+        reuse_image_.ReadJpeg(reuse_filepath_, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
+        image = &reuse_image_;
       } else if (ffmpeg_input) {
         // Get the frame from the mp4 input
         const FrameData *frame_data = &event_data->frames[curr_frame_id-1];
@@ -929,7 +958,8 @@ bool EventStream::sendFrame(Microseconds delta_us) {
                            ffmpeg_input->get_video_stream_id(),
                            FPSeconds(frame_data->offset).count());
         if (frame) {
-          image = new Image(frame, monitor->Width(), monitor->Height());
+          owned_image = std::make_unique<Image>(frame, monitor->Width(), monitor->Height());
+          image = owned_image.get();
         } else {
           Error("Failed getting a frame.");
 	  sendTextFrame("Failed getting frame");
@@ -998,7 +1028,7 @@ bool EventStream::sendFrame(Microseconds delta_us) {
         break;
       }
       int rc = send_buffer(img_buffer, img_buffer_size);
-      delete image;
+      // owned_image (ffmpeg path) frees here; reuse_image_ persists for next frame
       image = nullptr;
       if (!rc) return false;
     }  // end if send_raw or not
@@ -1041,8 +1071,25 @@ void EventStream::runStream() {
   // Has to go here, at the moment, for sendFrame(delta).
   Microseconds delta = Microseconds(0);
 
+  // Periodic RSS trace so a runaway nph-zms can be caught in the act, along
+  // with the frames-vector size which scales with (re)loaded event length. refs #5006
+  TimePoint last_mem_report = std::chrono::steady_clock::now();
+  const Seconds mem_report_interval = Seconds(30);
+
   while (!zm_terminate) {
     now = start = std::chrono::steady_clock::now();
+
+    if (now - last_mem_report >= mem_report_interval) {
+      last_mem_report = now;
+      // event_data is only mutated by this thread (loadEventData); the command
+      // thread only reads it, so this unlocked read is safe for a diagnostic.
+      Debug(1, "mem trace event: rss=%zuKB event=%" PRIu64 " frames=%zu frame_count=%d curr_frame_id=%d sent=%d",
+           zm_get_rss_kb(),
+           event_data ? event_data->event_id : 0,
+           event_data ? event_data->frames.size() : 0,
+           event_data ? event_data->frame_count : 0,
+           curr_frame_id, frame_count);
+    }
 
     {
       std::scoped_lock lck{mutex};

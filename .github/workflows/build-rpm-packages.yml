@@ -28,6 +28,9 @@ jobs:
           - distro: "rockylinux:8"
             releasever: "8"
             family: "el"
+          - distro: "fedora:44"
+            releasever: "44"
+            family: "fedora"
           - distro: "fedora:43"
             releasever: "43"
             family: "fedora"
@@ -58,7 +61,8 @@ jobs:
         run: |
           set -eux
           dnf -y install dnf-plugins-core
-          dnf -y install "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${{ matrix.releasever }}.noarch.rpm"
+          dnf -y install "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${{ matrix.releasever }}.noarch.rpm" || \
+            dnf -y install "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-rawhide.noarch.rpm"
 
       - name: Install build tools
         run: |
@@ -87,7 +91,7 @@ jobs:
           rpmdev-setuptree
 
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -112,7 +116,7 @@ jobs:
       - name: Install build dependencies
         run: |
           set -eux
-          dnf -y builddep distros/redhat/zoneminder.spec
+          dnf -y builddep --allowerasing distros/redhat/zoneminder.spec
 
       - name: Determine version and prepare sources
         id: version
@@ -211,11 +215,24 @@ jobs:
           echo "artifact_name=rpm-${sanitized_distro_name}" >> $GITHUB_ENV
 
       - name: Upload RPM artifacts
+        # Only the tag-only `release` job consumes these. On branch pushes the
+        # packages go straight to ZMREPO below, so uploading is pure storage cost.
+        if: startsWith(github.ref, 'refs/tags/')
         uses: actions/upload-artifact@v7
         with:
           path: artifacts/rpm
           name: ${{ env.artifact_name }}
           retention-days: 1
+
+      - name: Ensure ZMREPO target directory exists
+        run: |
+          set -eux
+          mkdir -p ~/.ssh
+          echo "${{ secrets.ZMREPO_SSH_KEY }}" > ~/.ssh/zmrepo_deploy_key
+          chmod 600 ~/.ssh/zmrepo_deploy_key
+          ssh -i ~/.ssh/zmrepo_deploy_key -o StrictHostKeyChecking=no \
+            "${{ secrets.ZMREPO_SSH_USER }}@${{ secrets.ZMREPO_HOST }}" \
+            "mkdir -p rpm/master/${{ matrix.family }}/${{ matrix.releasever }}/x86_64/"
 
       - name: Publish to ZMREPO
         uses: easingthemes/ssh-deploy@main

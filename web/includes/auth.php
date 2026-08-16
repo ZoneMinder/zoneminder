@@ -274,10 +274,14 @@ function generateAuthHash($useRemoteAddr, $force=false) {
     $time = time();
     # We use 1800 so that we regenerate the hash at half the TTL
     $mintime = $time - (ZM_AUTH_HASH_TTL * 1800);
-    $remoteAddr = ZM_AUTH_HASH_IPS ? $_SESSION['remoteAddr'] : '';
-    # Appending the remoteAddr prevents us from using an auth hash generated for a different ip
+    # The address baked into the hash, and the cache slot key, must agree. A
+    # caller that asks for an IP-less hash ($useRemoteAddr false, e.g.
+    # getZmuCommand) must not overwrite the IP-bound slot used by the browser,
+    # otherwise the next status poll serves an IP-less hash that the IP-bound
+    # validator rejects, bouncing the user to login (issue #4921).
+    $remoteAddr = ($useRemoteAddr and ZM_AUTH_HASH_IPS) ? $_SESSION['remoteAddr'] : '';
     if ($force or (!isset($_SESSION['AuthHash'.$remoteAddr])) or ($_SESSION['AuthHashGeneratedAt'] < $mintime)) {
-      $auth = calculateAuthHash($useRemoteAddr ? $remoteAddr : '');
+      $auth = calculateAuthHash($remoteAddr);
       # Don't both regenerating Auth Hash if an hour hasn't gone by yet
       $_SESSION['AuthHash'.$remoteAddr] = $auth;
       $_SESSION['AuthHashGeneratedAt'] = $time;
@@ -561,7 +565,15 @@ if (ZM_OPT_USE_AUTH) {
     // don't know the token type. That will
     // be checked later 
     $ret = validateToken($_REQUEST['token'], 'any');
-    $user = $ret[0];
+    if (!$ret[0]) {
+      // validateToken returns array(false, $errorMessage) on failure.
+      // Assigning false to $user would leave isset($user) true, bypassing
+      // the ZM_OPT_USE_AUTH gate in index.php. Unset so $user stays undefined.
+      ZM\Warning($ret[1]);
+      unset($user); // unset should be ok here because we aren't in a function
+    } else {
+      $user = $ret[0];
+    }
   } else {
     // Non token based auth - session required for $_SESSION access
     if (!is_session_started()) {
@@ -635,8 +647,8 @@ if (ZM_OPT_USE_AUTH) {
         } // end if success==false
       } // end if using reCaptcha
 
-      zm_session_clear(); # Closes session
-      zm_session_regenerate_id(); # starts session
+      # Drop the pre-auth session and issue a fresh id in a single Set-Cookie
+      zm_session_regenerate_id_login();
 
       $username = $_REQUEST['username'];
       $password = $_REQUEST['password'];

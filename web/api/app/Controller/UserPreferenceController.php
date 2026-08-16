@@ -14,14 +14,35 @@ class UserPreferenceController extends AppController {
  */
 	public $components = array('RequestHandler');
 
-  public function beforeFilter() {
-    parent::beforeFilter();
+  # A preference belongs to the user who set it, so ownership is the permission:
+  # everyone may manage their own, and nobody else's. Requiring System instead
+  # let any System account read and overwrite another user's preferences, and
+  # stopped ordinary users saving theirs at all, which is what the montage layout
+  # in montage_common.js does through this controller.
+
+/**
+ * The authenticated user's id, or null when authentication is off.
+ */
+  private function currentUserId() {
     global $user;
-    # We already tested for auth in appController, so we just need to test for specific permission
-    $canView = $user && ($user->System() != 'None');
-    if (!$canView) {
+    return $user ? $user->Id() : null;
+  }
+
+/**
+ * Restrict a row to the caller. A System Edit account may manage anyone's, so
+ * that an administrator can still clear a broken preference.
+ *
+ * @throws UnauthorizedException
+ */
+  private function assertOwned($id) {
+    global $user;
+    if (!$user) return;
+    if ($user->System() == 'Edit') return;
+    $row = $this->UserPreference->find('first', array(
+      'conditions' => array('UserPreference.'.$this->UserPreference->primaryKey => $id)
+    ));
+    if (!$row or ($row['UserPreference']['UserId'] != $user->Id())) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
-      return;
     }
   }
 
@@ -37,6 +58,11 @@ class UserPreferenceController extends AppController {
       $conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
     } else {
       $conditions = array();
+    }
+
+    global $user;
+    if ($user and ($user->System() != 'Edit')) {
+      $conditions['UserPreference.UserId'] = $user->Id();
     }
 
     $find_array = array(
@@ -61,7 +87,8 @@ class UserPreferenceController extends AppController {
 		if (!$this->UserPreference->exists($id)) {
 			throw new NotFoundException(__('Invalid user preference'));
 		}
-		$options = array('conditions' => array('User_Preferences.' . $this->UserPreference->primaryKey => $id));
+		$this->assertOwned($id);
+		$options = array('conditions' => array('UserPreference.' . $this->UserPreference->primaryKey => $id));
 		$user_preference = $this->UserPreference->find('first', $options);
 		$this->set(array(
 			'user_preference' => $user_preference,
@@ -81,6 +108,10 @@ class UserPreferenceController extends AppController {
     }
     $message = '';
 		if ($this->request->is('post')) {
+      # The client sends its own UserId; taking it on trust would let anyone
+      # write a preference for another account.
+      $own = $this->currentUserId();
+      if ($own !== null) $data['UserId'] = $own;
       $exists = $this->UserPreference->find('first', ['conditions'=>['UserId'=>$data['UserId'],'Name'=>$data['Name']]]);
       if ($exists) {
         $this->UserPreference->id = $exists['UserPreference']['Id'];
@@ -115,11 +146,12 @@ class UserPreferenceController extends AppController {
 		if (!$this->UserPreference->exists($id)) {
 			throw new NotFoundException(__('Invalid user_preference'));
 		}
+		$this->assertOwned($id);
 		if ($this->request->is(array('post', 'put'))) {
 			if ($this->UserPreference->save($this->request->data)) {
 			}
 		} else {
-			$options = array('conditions' => array('User_Preferences.'.$this->UserPreference->primaryKey => $id));
+			$options = array('conditions' => array('UserPreference.'.$this->UserPreference->primaryKey => $id));
 			$this->request->data = $this->UserPreference->find('first', $options);
 		}
 		$preference = $this->UserPreference;
@@ -138,6 +170,7 @@ class UserPreferenceController extends AppController {
 		if (!$this->UserPreference->exists()) {
 			throw new NotFoundException(__('Invalid user_preference'));
 		}
+		$this->assertOwned($id);
 		$this->request->allowMethod('post', 'delete');
 		if ($this->UserPreference->delete()) {
 			return $this->flash(__('The user_preference has been deleted.'), array('action' => 'index'));

@@ -3,12 +3,14 @@
 
 #include "zm_comms.h"
 #include "zm_monitor.h"
+#include "zm_tls.h"
 #include "zm_time.h"
 
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <deque>
+#include <memory>
 #include <string>
 #include <thread>
 #include <vector>
@@ -57,6 +59,12 @@ class MonitorWebSocketServer {
   bool Start(int port);
   void Stop();
 
+  // Enables TLS for subsequently accepted clients. Must be called before
+  // Start(). Returns false if the certificate or key cannot be used, in which
+  // case the caller should not start the listener at all rather than fall back
+  // to plaintext.
+  bool EnableTLS(const std::string &certificate_path, const std::string &key_path);
+
  private:
   struct PendingBuffer {
     std::string data;
@@ -67,6 +75,11 @@ class MonitorWebSocketServer {
     explicit Client(int p_fd) : fd(p_fd) {}
 
     int fd;
+    // Null when the listener is plaintext. When set, every byte to and from
+    // this client goes through it, and tls_want_write records which direction
+    // the last call wanted so poll() can be told.
+    std::unique_ptr<zm::tls::Session> tls;
+    bool tls_want_write = false;
     bool handshake_complete = false;
     bool subscribe_status = false;
     bool subscribe_events = false;
@@ -85,6 +98,7 @@ class MonitorWebSocketServer {
 
   Monitor *monitor;
   int port;
+  std::unique_ptr<zm::tls::ServerContext> tls_context;
   std::atomic<bool> running;
   TcpInetServer server;
   std::thread server_thread;
@@ -92,6 +106,15 @@ class MonitorWebSocketServer {
   void run();
   bool acceptClients(std::vector<Client> *clients);
   bool handleRead(Client *client);
+  // Drives the TLS handshake. Returns false if the client should be dropped.
+  // Sets *done when the session is ready for application data.
+  bool handleTlsHandshake(Client *client, bool *done);
+  // Reads through TLS or the raw socket as appropriate. *closed is set when the
+  // peer went away.
+  bool readAvailable(Client *client, bool *closed);
+  // Writes a short payload immediately, through TLS when the client has it.
+  // Only for responses on connections that are about to be closed.
+  void writeImmediate(Client *client, const std::string &payload);
   bool handleHandshake(Client *client);
   bool handleFrame(Client *client, const websocket::Frame &frame);
   bool flushWrites(Client *client);

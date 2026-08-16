@@ -1392,6 +1392,29 @@ bool Monitor::StartWebSocketServer() {
   }
 
   websocket_server = zm::make_unique<zm::MonitorWebSocketServer>(this);
+
+  // Browsers refuse ws:// from an https:// page, so a plaintext listener is
+  // unusable on most installs. Configure a certificate and we serve wss://.
+  const std::string tls_cert = config.websocket_tls_cert ? config.websocket_tls_cert : "";
+  const std::string tls_key = config.websocket_tls_key ? config.websocket_tls_key : "";
+
+  if (!tls_cert.empty() || !tls_key.empty()) {
+    if (tls_cert.empty() || tls_key.empty()) {
+      Error("Monitor %u: ZM_WEBSOCKET_TLS_CERT and ZM_WEBSOCKET_TLS_KEY must both be set; refusing to start the websocket listener", id);
+      websocket_server.reset();
+      return false;
+    }
+    // Deliberately fatal rather than falling back: silently serving plaintext
+    // on a port the operator asked to be encrypted is worse than not starting.
+    if (!websocket_server->EnableTLS(tls_cert, tls_key)) {
+      Error("Monitor %u: unable to enable TLS on the websocket listener; not starting it", id);
+      websocket_server.reset();
+      return false;
+    }
+  } else {
+    Info("Monitor %u: websocket listener is plaintext (ws://). Set ZM_WEBSOCKET_TLS_CERT and ZM_WEBSOCKET_TLS_KEY, or front it with a reverse proxy, to use it from an https page.", id);
+  }
+
   if (!websocket_server->Start(static_cast<int>(websocket_port))) {
     websocket_server.reset();
     return false;

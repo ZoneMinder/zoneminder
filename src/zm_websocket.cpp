@@ -397,6 +397,15 @@ MonitorWebSocketServer::~MonitorWebSocketServer() {
   Stop();
 }
 
+bool MonitorWebSocketServer::EnableTLS(const std::string &certificate_path, const std::string &key_path) {
+  std::unique_ptr<zm::tls::ServerContext> context(new zm::tls::ServerContext());
+  if (!context->Load(certificate_path, key_path)) {
+    return false;
+  }
+  tls_context = std::move(context);
+  return true;
+}
+
 bool MonitorWebSocketServer::Start(int p_port) {
   if (running) {
     return true;
@@ -439,7 +448,7 @@ void MonitorWebSocketServer::run() {
 
     for (const Client &client : clients) {
       short events = POLLIN;
-      if (!client.send_queue.empty()) {
+      if (!client.send_queue.empty() || client.tls_want_write) {
         events |= POLLOUT;
       }
       pollfds.push_back({client.fd, events, 0});
@@ -516,7 +525,11 @@ bool MonitorWebSocketServer::acceptClients(std::vector<Client> *clients) {
           "Rejecting websocket connection for monitor %u: client limit %zu reached",
           monitor->Id(),
           kMaxClientsPerMonitor);
-      writeFully(fd, httpResponse("HTTP/1.1 503 Service Unavailable", "Too many websocket clients"));
+      // With TLS there is no session yet to answer through, and a plaintext
+      // reply to a client expecting a ServerHello is worse than silence.
+      if (!tls_context) {
+        writeFully(fd, httpResponse("HTTP/1.1 503 Service Unavailable", "Too many websocket clients"));
+      }
       ::close(fd);
       continue;
     }
@@ -527,24 +540,78 @@ bool MonitorWebSocketServer::acceptClients(std::vector<Client> *clients) {
     }
 
     clients->emplace_back(fd);
+    if (tls_context) {
+      clients->back().tls.reset(new zm::tls::Session(*tls_context, fd));
+    }
   }
 
   return true;
 }
 
-bool MonitorWebSocketServer::handleRead(Client *client) {
+bool MonitorWebSocketServer::handleTlsHandshake(Client *client, bool *done) {
+  *done = false;
+  const zm::tls::Result result = client->tls->Handshake();
+  switch (result) {
+  case zm::tls::Result::kOk:
+    client->tls_want_write = false;
+    *done = true;
+    return true;
+  case zm::tls::Result::kWantRead:
+    client->tls_want_write = false;
+    return true;
+  case zm::tls::Result::kWantWrite:
+    client->tls_want_write = true;
+    return true;
+  default:
+    Debug(1, "Dropping websocket client for monitor %u: TLS handshake failed", monitor->Id());
+    return false;
+  }
+}
+
+bool MonitorWebSocketServer::readAvailable(Client *client, bool *closed) {
   char buffer[4096];
+  *closed = false;
+
   while (true) {
-    const ssize_t bytes_read = ::recv(client->fd, buffer, sizeof(buffer), 0);
-    if (bytes_read == 0) {
-      return false;
-    }
-    if (bytes_read < 0) {
-      if ((errno == EAGAIN) || (errno == EWOULDBLOCK)) {
+    size_t bytes_read = 0;
+
+    if (client->tls) {
+      const zm::tls::Result result = client->tls->Read(buffer, sizeof(buffer), &bytes_read);
+      if (result == zm::tls::Result::kWantRead) {
+        client->tls_want_write = false;
         break;
       }
-      Error("recv() failed in websocket server for monitor %u: %s", monitor->Id(), strerror(errno));
-      return false;
+      if (result == zm::tls::Result::kWantWrite) {
+        // A renegotiation can make a read need the socket to be writable.
+        client->tls_want_write = true;
+        break;
+      }
+      if (result == zm::tls::Result::kClosed) {
+        *closed = true;
+        return true;
+      }
+      if (result != zm::tls::Result::kOk) {
+        return false;
+      }
+      client->tls_want_write = false;
+    } else {
+      const ssize_t raw = ::recv(client->fd, buffer, sizeof(buffer), 0);
+      if (raw == 0) {
+        *closed = true;
+        return true;
+      }
+      if (raw < 0) {
+        if ((errno == EAGAIN) || (errno == EWOULDBLOCK)) {
+          break;
+        }
+        Error("recv() failed in websocket server for monitor %u: %s", monitor->Id(), strerror(errno));
+        return false;
+      }
+      bytes_read = static_cast<size_t>(raw);
+    }
+
+    if (bytes_read == 0) {
+      break;
     }
 
     client->recv_buffer.append(buffer, bytes_read);
@@ -552,6 +619,29 @@ bool MonitorWebSocketServer::handleRead(Client *client) {
       Warning("Closing websocket client for monitor %u due to oversized message", monitor->Id());
       return false;
     }
+  }
+
+  return true;
+}
+
+bool MonitorWebSocketServer::handleRead(Client *client) {
+  // TLS has to be established before there is any HTTP to look at.
+  if (client->tls && !client->tls->HandshakeComplete()) {
+    bool done = false;
+    if (!handleTlsHandshake(client, &done)) {
+      return false;
+    }
+    if (!done) {
+      return true;
+    }
+  }
+
+  bool closed = false;
+  if (!readAvailable(client, &closed)) {
+    return false;
+  }
+  if (closed) {
+    return false;
   }
 
   if (!client->handshake_complete) {
@@ -593,7 +683,7 @@ bool MonitorWebSocketServer::handleHandshake(Client *client) {
 
   std::string client_key;
   if (!websocket::ExtractHandshakeKey(request, &client_key)) {
-    writeFully(client->fd, httpResponse("HTTP/1.1 400 Bad Request", "Bad websocket handshake"));
+    writeImmediate(client, httpResponse("HTTP/1.1 400 Bad Request", "Bad websocket handshake"));
     return false;
   }
 
@@ -602,11 +692,11 @@ bool MonitorWebSocketServer::handleHandshake(Client *client) {
     User *user = authenticateWebSocketRequest(request, monitor->Id(), &http_status);
     if (!user) {
       if (http_status == 403) {
-        writeFully(client->fd, httpResponse("HTTP/1.1 403 Forbidden", "Forbidden"));
+        writeImmediate(client, httpResponse("HTTP/1.1 403 Forbidden", "Forbidden"));
       } else if (http_status == 400) {
-        writeFully(client->fd, httpResponse("HTTP/1.1 400 Bad Request", "Malformed HTTP request line"));
+        writeImmediate(client, httpResponse("HTTP/1.1 400 Bad Request", "Malformed HTTP request line"));
       } else {
-        writeFully(client->fd, httpResponse("HTTP/1.1 401 Unauthorized", "Authentication required"));
+        writeImmediate(client, httpResponse("HTTP/1.1 401 Unauthorized", "Authentication required"));
       }
       return false;
     }
@@ -812,24 +902,81 @@ bool MonitorWebSocketServer::handleFrame(Client *client, const websocket::Frame 
   case websocket::Opcode::PING:
     return queueFrame(client, websocket::Opcode::PONG, frame.payload);
   case websocket::Opcode::CLOSE:
-    writeFully(client->fd, websocket::EncodeFrame(websocket::Opcode::CLOSE, frame.payload));
+    writeImmediate(client, websocket::EncodeFrame(websocket::Opcode::CLOSE, frame.payload));
     return false;
   default:
     return true;
   }
 }
 
+void MonitorWebSocketServer::writeImmediate(Client *client, const std::string &payload) {
+  if (!client->tls) {
+    writeFully(client->fd, payload);
+    return;
+  }
+
+  // The socket is non-blocking, so a bounded wait per chunk. This only runs on
+  // paths that close the connection immediately afterwards, so giving up early
+  // costs an error response, not correctness.
+  size_t offset = 0;
+  const int kDeadlineMs = 200;
+  while (offset < payload.size()) {
+    size_t written = 0;
+    const zm::tls::Result result = client->tls->Write(payload.data() + offset, payload.size() - offset, &written);
+    if (result == zm::tls::Result::kOk) {
+      offset += written;
+      continue;
+    }
+    if ((result == zm::tls::Result::kWantRead) || (result == zm::tls::Result::kWantWrite)) {
+      struct pollfd pfd = {client->fd, static_cast<short>(result == zm::tls::Result::kWantWrite ? POLLOUT : POLLIN), 0};
+      if (poll(&pfd, 1, kDeadlineMs) <= 0) {
+        return;
+      }
+      continue;
+    }
+    return;
+  }
+}
+
 bool MonitorWebSocketServer::flushWrites(Client *client) {
   while (!client->send_queue.empty()) {
     PendingBuffer &pending = client->send_queue.front();
-    const ssize_t bytes_sent =
-      ::send(client->fd, pending.data.data() + pending.offset, pending.data.size() - pending.offset, MSG_NOSIGNAL);
-    if (bytes_sent < 0) {
-      if ((errno == EAGAIN) || (errno == EWOULDBLOCK)) {
+    size_t bytes_sent = 0;
+
+    if (client->tls) {
+      const zm::tls::Result result = client->tls->Write(
+          pending.data.data() + pending.offset, pending.data.size() - pending.offset, &bytes_sent);
+      if (result == zm::tls::Result::kWantWrite) {
+        client->tls_want_write = true;
         return true;
       }
-      Error("send() failed in websocket server for monitor %u: %s", monitor->Id(), strerror(errno));
-      return false;
+      if (result == zm::tls::Result::kWantRead) {
+        // Mid-renegotiation the write needs readable data first.
+        client->tls_want_write = false;
+        return true;
+      }
+      if (result == zm::tls::Result::kClosed) {
+        return false;
+      }
+      if (result != zm::tls::Result::kOk) {
+        return false;
+      }
+      client->tls_want_write = false;
+    } else {
+      const ssize_t raw =
+        ::send(client->fd, pending.data.data() + pending.offset, pending.data.size() - pending.offset, MSG_NOSIGNAL);
+      if (raw < 0) {
+        if ((errno == EAGAIN) || (errno == EWOULDBLOCK)) {
+          return true;
+        }
+        Error("send() failed in websocket server for monitor %u: %s", monitor->Id(), strerror(errno));
+        return false;
+      }
+      bytes_sent = static_cast<size_t>(raw);
+    }
+
+    if (bytes_sent == 0) {
+      return true;
     }
 
     pending.offset += bytes_sent;
@@ -843,6 +990,10 @@ bool MonitorWebSocketServer::flushWrites(Client *client) {
 }
 
 void MonitorWebSocketServer::closeClient(Client *client) {
+  if (client->tls) {
+    client->tls->Shutdown();
+    client->tls.reset();
+  }
   freeClientResources(client);
   client->send_queue.clear();
   client->queued_bytes = 0;

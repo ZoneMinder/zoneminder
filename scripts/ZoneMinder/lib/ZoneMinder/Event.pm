@@ -395,10 +395,20 @@ sub delete {
 
     my $in_transaction = $ZoneMinder::Database::dbh->{AutoCommit} ? 0 : 1;
 
+    # Storage[Id] is taken first, before anything per-monitor. It is the only
+    # row here shared across monitors, so it has to be the coarsest lock in the
+    # order. Taking it last (as the old lock_and_load did, after the deletes
+    # had already X-locked Event_Summaries[MonitorId]) meant a batch deleting
+    # events for monitor A held Event_Summaries[A] and waited on Storage, while
+    # a concurrent batch on monitor B held Storage and waited on
+    # Event_Summaries[B]: an ABBA cycle. It only bites when the caller manages
+    # the transaction, because then the deletes have not committed and their
+    # locks are still held when Storage is requested.
+    #
     # InnoDB X-locks the matched Events row during WHERE evaluation, before
     # either BEFORE or AFTER trigger bodies fire, so the lock acquisition
     # order is the same regardless of trigger timing:
-    #   Events[Id] -> Events_Hour/Day/Week/Month[EventId] -> Event_Summaries[MonitorId]
+    #   Storage[Id] -> Events[Id] -> Events_Hour/Day/Week/Month[EventId] -> Event_Summaries[MonitorId]
     # event_delete_trigger (BEFORE DELETE on Events) and event_update_trigger
     # (AFTER UPDATE on Events) both propagate into the bucket tables, whose
     # own triggers then UPDATE Event_Summaries — that's the canonical chain.
@@ -415,6 +425,13 @@ sub delete {
     #
     # Retry on deadlock (MariaDB ER_LOCK_DEADLOCK = 1213) only when we own
     # the TX; if the caller is managing one, bail and let them decide.
+
+    # Resolved once, outside the retry loop: DiskSpace() can stat the event
+    # directory and Storage() can hit the db, and neither changes between
+    # attempts.
+    my $storage = $event->Storage();
+    my $reclaim = $event->DiskSpace();
+
     my $attempt = 0;
     my $max_attempts = 5;
     while (1) {
@@ -428,16 +445,36 @@ sub delete {
         $ZoneMinder::Database::dbh->begin_work();
       }
 
+      my @statements;
+
+      # Reclaim the event's disk usage first, so the shared Storage row is
+      # locked ahead of the per-monitor rows the deletes below will touch.
+      # A single atomic decrement replaces the old lock_and_load + save
+      # read-modify-write: the UPDATE takes the same X lock the SELECT ... FOR
+      # UPDATE did, without a window between read and write, and GREATEST()
+      # keeps DiskSpace from going negative if the accounting has drifted.
+      # This also puts the reclaim inside the delete transaction, so it rolls
+      # back with the deletes instead of being applied after a commit.
+      if ($reclaim and $storage->Id()) {
+        push @statements, [
+          'UPDATE Storage SET DiskSpace = GREATEST(COALESCE(DiskSpace,0) - ?, 0) WHERE Id=?',
+          $reclaim, $storage->Id(),
+        ];
+      }
+
       # Order: Stats -> Event_Data -> Frames -> Events (least to greatest reference depth)
-      my $err = 0;
-      my $errstr = '';
-      foreach my $sql (
+      push @statements, map { [$_, $$event{Id}] } (
         'DELETE FROM Stats WHERE EventId=?',
         'DELETE FROM Event_Data WHERE EventId=?',
         'DELETE FROM Frames WHERE EventId=?',
         'DELETE FROM Events WHERE Id=?',
-      ) {
-        ZoneMinder::Database::zmDbDo($sql, $$event{Id});
+      );
+
+      my $err = 0;
+      my $errstr = '';
+      foreach my $statement (@statements) {
+        my ($sql, @params) = @$statement;
+        ZoneMinder::Database::zmDbDo($sql, @params);
         $err = $ZoneMinder::Database::dbh->err() // 0;
         if ($err) {
           # Capture before rollback, which can clear errstr on some drivers.
@@ -462,12 +499,6 @@ sub delete {
       }
       Debug("Deadlock deleting event $$event{Id} attempt $attempt/$max_attempts, retrying");
       select(undef, undef, undef, 0.05 * (1 << $attempt) + rand(0.05));
-    }
-
-    my $storage = $event->Storage();
-    if ($event->DiskSpace() and $storage->Id()) {
-      $storage->lock_and_load();
-      $storage->save({DiskSpace=>$storage->DiskSpace()-$event->DiskSpace()});
     }
   }
 
@@ -831,13 +862,19 @@ sub MoveTo {
   $ZoneMinder::Database::dbh->commit() if !$was_in_transaction;
 
   # Update storage diskspace.  The triggers no longer do this. This is ... less important so do it outside the transaction
-  if ($old_diskspace and $$OldStorage{Id}) {
-    $OldStorage->lock_and_load();
-    $OldStorage->save({DiskSpace => $OldStorage->DiskSpace()-$old_diskspace});
-  }
-  if ($new_diskspace and $$NewStorage{Id}) {
-    $NewStorage->lock_and_load();
-    $NewStorage->save({DiskSpace => $NewStorage->DiskSpace()+$new_diskspace});
+  # Atomic adjustments rather than lock_and_load + save: outside a transaction
+  # the SELECT ... FOR UPDATE released its lock as soon as it committed, so the
+  # read and the write raced and concurrent movers could lose an update. Lowest
+  # Storage Id first, so two movers swapping events between the same pair of
+  # storage areas cannot deadlock against each other.
+  my @adjustments;
+  push @adjustments, [$$OldStorage{Id}, -$old_diskspace] if $old_diskspace and $$OldStorage{Id};
+  push @adjustments, [$$NewStorage{Id}, $new_diskspace] if $new_diskspace and $$NewStorage{Id};
+  foreach my $adjustment (sort { $$a[0] <=> $$b[0] } @adjustments) {
+    my ($storage_id, $delta) = @$adjustment;
+    ZoneMinder::Database::zmDbDo(
+      'UPDATE Storage SET DiskSpace = GREATEST(COALESCE(DiskSpace,0) + ?, 0) WHERE Id=?',
+      $delta, $storage_id);
   }
 
   $self->delete_files($OldStorage);

@@ -42,7 +42,12 @@ if (defined('ZM_WEB_LOGIN_MESSAGE') and trim(ZM_WEB_LOGIN_MESSAGE) !== '') {
         <input type="text" id="inputUsername" name="username" class="form-control" autocapitalize="none" placeholder="Username" required autofocus autocomplete="username"/>
 
         <label for="inputPassword" class="sr-only"><?php echo translate('Password') ?></label>
-        <input type="password" id="inputPassword" name="password" class="form-control" placeholder="Password" required autocomplete="current-password"/>
+        <div class="input-group">
+          <input type="password" id="inputPassword" name="password" class="form-control" placeholder="Password" required autocomplete="current-password"/>
+          <div class="input-group-append">
+            <span class="input-group-text material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="inputPassword" title="<?php echo translate('Password') ?>">visibility</span>
+          </div>
+        </div>
 <?php
 if (defined('ZM_OPT_USE_REMEMBER_ME') && ZM_OPT_USE_REMEMBER_ME != 'None' && ZM_OPT_USE_REMEMBER_ME != '' && ZM_OPT_USE_REMEMBER_ME != '0') {
   $checked = (ZM_OPT_USE_REMEMBER_ME == 'Yes') ? ' checked="checked"' : '';

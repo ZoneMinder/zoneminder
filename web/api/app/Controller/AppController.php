@@ -66,8 +66,9 @@ class AppController extends Controller {
 
     # For use throughout the app. If not logged in, this will be null.
     global $user;
-    # This will auto-login if username=&password= are set, or auth=
     require_once __DIR__ .'/../../../includes/auth.php';
+    # This will auto-login if username=&password= are set, or auth=
+    zm_authenticate_request();
    
     if ( ZM_OPT_USE_AUTH ) {
       if ( ZM_OPT_USE_LEGACY_API_AUTH or !strcasecmp($this->params->action, 'login') ) {

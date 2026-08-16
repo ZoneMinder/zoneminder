@@ -149,6 +149,33 @@ std::list<const CodecData*> get_decoder_data(int wanted_codec, const std::string
   return results;
 }
 
+AVCodecContext *open_fallback_decoder(const AVCodecParameters *codecpar, const AVCodec **codec_out) {
+  const AVCodec *codec = avcodec_find_decoder(codecpar->codec_id);
+  if (!codec) {
+    Debug(1, "No fallback decoder available for codec %s",
+        avcodec_get_name(codecpar->codec_id));
+    return nullptr;
+  }
+  Debug(1, "Trying fallback decoder %s for codec %s",
+      codec->name, avcodec_get_name(codecpar->codec_id));
+  AVCodecContext *ctx = avcodec_alloc_context3(codec);
+  if (!ctx) {
+    Error("Failed to allocate context for fallback decoder %s", codec->name);
+    return nullptr;
+  }
+  avcodec_parameters_to_context(ctx, codecpar);
+  zm_dump_codec(ctx);
+  int ret = avcodec_open2(ctx, codec, nullptr);
+  if (ret < 0) {
+    Error("Could not open fallback decoder %s (error '%s')",
+        codec->name, av_make_error_string(ret).c_str());
+    avcodec_free_context(&ctx);
+    return nullptr;
+  }
+  if (codec_out) *codec_out = codec;
+  return ctx;
+}
+
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
 
@@ -592,14 +619,18 @@ bool pix_fmt_is_jpeg_range(enum AVPixelFormat fmt) {
   }
 }
 
-void zm_sws_set_input_range(struct SwsContext *ctx, enum AVPixelFormat original_src_fmt) {
-  // swscale assumes limited (MPEG) input range by default. When the decoded
-  // source was a full-range JPEG format (YUVJ*) that got mapped to its non-J
-  // equivalent by fix_deprecated_pix_fmt(), swscale would otherwise treat the
-  // full-range samples as limited and wash the colours out. Tell it the input
-  // is full range so the YUV->RGB / YUV->YUV maths is correct. Pass the
-  // ORIGINAL (pre-fix) format so we can tell whether the source was full range.
-  if (!pix_fmt_is_jpeg_range(original_src_fmt)) return;
+void zm_sws_set_ranges(struct SwsContext *ctx,
+                       enum AVPixelFormat original_src_fmt,
+                       enum AVPixelFormat original_dst_fmt) {
+  // swscale assumes limited (MPEG) range by default. When a side of the
+  // conversion was a full-range JPEG format (YUVJ*) that got mapped to its
+  // non-J equivalent by fix_deprecated_pix_fmt(), swscale would otherwise
+  // treat full-range samples as limited (or crush full-range output into
+  // limited range) and wash the colours out. Tell it which sides are full
+  // range. Pass the ORIGINAL (pre-fix) formats.
+  const bool src_full = pix_fmt_is_jpeg_range(original_src_fmt);
+  const bool dst_full = pix_fmt_is_jpeg_range(original_dst_fmt);
+  if (!src_full && !dst_full) return;
 
   int *inv_table, *table;
   int srcRange, dstRange, brightness, contrast, saturation;
@@ -608,8 +639,10 @@ void zm_sws_set_input_range(struct SwsContext *ctx, enum AVPixelFormat original_
   if (sws_getColorspaceDetails(ctx, &inv_table, &srcRange, &table, &dstRange,
                                &brightness, &contrast, &saturation) < 0)
     return;
-  if (srcRange == 1) return;  // already full range
-  srcRange = 1;
+  bool changed = false;
+  if (src_full && srcRange != 1) { srcRange = 1; changed = true; }
+  if (dst_full && dstRange != 1) { dstRange = 1; changed = true; }
+  if (!changed) return;
   sws_setColorspaceDetails(ctx, inv_table, srcRange, table, dstRange,
                            brightness, contrast, saturation);
 }

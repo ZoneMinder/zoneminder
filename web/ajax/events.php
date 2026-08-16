@@ -29,10 +29,18 @@ if ($message) {
 }
 
 require_once('includes/Filter.php');
+require_once getSkinFile('views/_monitor_filters.php'); // getFilteredMonitorIds()
 $filter = isset($_REQUEST['filter']) ? ZM\Filter::parse($_REQUEST['filter']) : new ZM\Filter();
 if (count( $user->unviewableMonitorIds())) {
   $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$user->viewableMonitorIds()));
   // $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>'5'));
+}
+# Constrain to the monitors selected by the shared monitor-attribute filters
+# (Status/Capturing/Server/Storage/Name/Source) which have no Events column and so
+# can't be expressed as event terms. Null = no such filter active. refs #4976
+$attr_monitor_ids = getFilteredMonitorIds();
+if ($attr_monitor_ids !== null) {
+  $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$attr_monitor_ids));
 }
 // TODO: Why is $user->viewableMonitorIds() returning $user->unviewableMonitorIds()
 // Error('$user->viewableMonitorIds(): '.print_r($user->viewableMonitorIds()));

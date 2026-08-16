@@ -31,10 +31,7 @@ var params =
 
 // Called by bootstrap-table to retrieve zm event data
 function ajaxRequest(params) {
-  if (document.visibilityState == 'hidden') {
-    table.bootstrapTable('hideLoading');
-    return;
-  }
+  if (deferTableRequestWhileHidden(table)) return;
   if (ajax) ajax.abort();
 
   if ( params.data && params.data.filter ) {

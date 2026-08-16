@@ -547,6 +547,10 @@ void MonitorStream::runStream() {
   TimePoint stream_start_time = std::chrono::steady_clock::now();
   when_to_send_next_frame = stream_start_time; // initialize it to now so that we spit out a frame immediately
 
+  // Periodic RSS trace so a runaway nph-zms can be caught in the act. refs #5006
+  TimePoint last_mem_report = stream_start_time;
+  const Seconds mem_report_interval = Seconds(30);
+
   temp_image_buffer_count = playback_buffer;
   temp_read_index = temp_image_buffer_count;
   temp_write_index = temp_image_buffer_count;
@@ -619,6 +623,14 @@ void MonitorStream::runStream() {
     }
 
     now = std::chrono::steady_clock::now();
+
+    if (now - last_mem_report >= mem_report_interval) {
+      last_mem_report = now;
+      Debug(1, "mem trace m%d: rss=%zuKB frame_count=%d buffer_level=%d temp_count=%d paused=%d delayed=%d",
+           monitor_id, zm_get_rss_kb(), frame_count,
+           MonitorStreamBufferLevel(temp_write_index, temp_read_index, temp_image_buffer_count),
+           temp_image_buffer_count, paused, delayed);
+    }
 
     bool was_paused = paused;
     if (!checkInitialised()) {

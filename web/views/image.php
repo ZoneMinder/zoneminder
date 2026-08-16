@@ -53,6 +53,14 @@ if ( !function_exists('imagescale') ) {
 }
 
 if (!empty($_REQUEST['proxy'])) {
+  // The only consumer is the camera discovery thumbnail on add_monitors, which
+  // already requires monitor editing rights. Don't hand an outbound fetch
+  // primitive to plain event viewers.
+  if (!canEdit('Monitors')) {
+    ZM\Warning('Insufficient privileges to use the image proxy');
+    return;
+  }
+
   $url = $_REQUEST['proxy'];
   if (!$url) {
     ZM\Warning('No url passed to image proxy');
@@ -65,7 +73,42 @@ if (!empty($_REQUEST['proxy'])) {
     ZM\Warning('Image proxy only supports http/https URLs');
     return;
   }
-  $username = $url_parts['user'];
+
+  $host = isset($url_parts['host']) ? $url_parts['host'] : '';
+  if ($host === '') {
+    ZM\Warning('Image proxy requires a host in the url');
+    return;
+  }
+
+  // Guard against SSRF. Discovery legitimately proxies cameras on the local
+  // LAN, so private ranges stay reachable, but loopback, link-local and other
+  // reserved addresses (127.0.0.1, ::1, 169.254.169.254 cloud metadata) are
+  // refused. FILTER_FLAG_NO_RES_RANGE covers exactly those without excluding
+  // 10/8, 172.16/12, 192.168/16 or fc00::/7.
+  if (filter_var($host, FILTER_VALIDATE_IP)) {
+    $addresses = array($host);
+  } else {
+    $addresses = gethostbynamel($host);
+    if (!$addresses) $addresses = array();
+    $aaaa = @dns_get_record($host, DNS_AAAA);
+    if ($aaaa) {
+      foreach ($aaaa as $rr) {
+        if (!empty($rr['ipv6'])) $addresses[] = $rr['ipv6'];
+      }
+    }
+  }
+  if (!$addresses) {
+    ZM\Warning('Image proxy could not resolve '.$host);
+    return;
+  }
+  foreach ($addresses as $address) {
+    if (!filter_var($address, FILTER_VALIDATE_IP, FILTER_FLAG_NO_RES_RANGE)) {
+      ZM\Warning('Image proxy refusing reserved address '.$address.' for host '.$host);
+      return;
+    }
+  }
+
+  $username = isset($url_parts['user']) ? $url_parts['user'] : '';
   $password = isset($url_parts['pass']) ? $url_parts['pass'] : '';
 
   $method = 'GET';

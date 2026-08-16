@@ -146,6 +146,10 @@ button.btn {
   margin-bottom: 3px;
 }
 
+#toolbar>button {
+  align-self: flex-start;
+}
+
 #toolbar .btn-normal,
 #toolbar .btn-danger {
   margin-right: 3px;
@@ -1104,11 +1108,6 @@ a.flip {
   margin-left: 0;
 }
 
-.tags-container button:last-child {
-  margin-right: 0;
-  border-right: none
-}
-
 .tag {
   background-color: #F0F0F0;
   border-radius: 12px;
@@ -1820,6 +1819,14 @@ input.masked-input.unmasked {
 
 .modal-backdrop.show ~ .modal-backdrop.show{
   opacity : 0;
+}
+
+.info-text {
+  position: relative;
+  display: block;
+  z-index: 10001;
+  color: #212529;
+  background-color: beige;
 }
 
 /* +++ This block should always be located at the end! */

@@ -128,6 +128,18 @@ TEST_CASE("Split (string delimiter)") {
 
   items = Split("a b c", " ", 2);
   REQUIRE(items == std::vector<std::string>{"a", "b c"});
+
+  // LibvlcCamera splits the monitor Options field this way. The field is a
+  // textarea, so an option may be on its own line rather than after a comma,
+  // and runs of separators (a blank line, or crlf) must not become entries.
+  items = Split("--rate=1\n--no-audio", kOptionSeparators);
+  REQUIRE(items == std::vector<std::string>{"--rate=1", "--no-audio"});
+
+  items = Split("--rate=1,--no-audio", kOptionSeparators);
+  REQUIRE(items == std::vector<std::string>{"--rate=1", "--no-audio"});
+
+  items = Split("--rate=1\r\n\r\n--no-audio\n", kOptionSeparators);
+  REQUIRE(items == std::vector<std::string>{"--rate=1", "--no-audio"});
 }
 
 TEST_CASE("Join") {
@@ -328,5 +340,32 @@ TEST_CASE("remove_authentication") {
     std::string url("http://username:password@192.168.1.1");
     std::string result = remove_authentication(url);
     REQUIRE(result == "http://192.168.1.1");
+  }
+}
+
+TEST_CASE("zm_strncpy") {
+  char buf[8];
+
+  SECTION("fits, null-terminated") {
+    zm_strncpy(buf, "abc", sizeof(buf));
+    REQUIRE(std::string(buf) == "abc");
+  }
+  SECTION("oversize truncated to size-1 and terminated") {
+    zm_strncpy(buf, "abcdefghijkl", sizeof(buf));
+    REQUIRE(std::string(buf) == "abcdefg");   // 7 chars + '\0'
+    REQUIRE(buf[7] == '\0');
+  }
+  SECTION("delimiter length n limits copy") {
+    zm_strncpy(buf, "abcdef", sizeof(buf), 3); // src not null-terminated at field end
+    REQUIRE(std::string(buf) == "abc");
+  }
+  SECTION("delimiter length also capped to buffer") {
+    zm_strncpy(buf, "abcdefghij", sizeof(buf), 20);
+    REQUIRE(std::string(buf) == "abcdefg");
+    REQUIRE(buf[7] == '\0');
+  }
+  SECTION("empty source") {
+    zm_strncpy(buf, "", sizeof(buf));
+    REQUIRE(buf[0] == '\0');
   }
 }

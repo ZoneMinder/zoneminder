@@ -823,7 +823,7 @@ include('_monitor_source_nvsocket.php');
           <li>
           <li class="SourceOptions">
             <label><?php echo translate('Options'); echo makeHelpLink('OPTIONS_'.strtoupper($monitor->Type())) ?></label>
-            <input type="text" name="newMonitor[Options]" value="<?php echo validHtmlStr($monitor->Options()) ?>"/>
+            <textarea name="newMonitor[Options]" rows="<?php echo max(2, count(preg_split('/[,\r\n]+/', $monitor->Options()))) ?>"><?php echo validHtmlStr($monitor->Options()) ?></textarea>
           <li>
 <?php
       }
@@ -938,6 +938,7 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
             '1280x1024'=>'1280x1024 1MP',
             '1600x1200'=>'1600x1200 2MP',
             '1920x1080'=>'1920x1080 1080p',
+            '2304x1296'=>'2304x1296 1296p 3MP',
             '2048x1536'=>'2048x1536 3MP',
             '2560x1440'=>'2560x1440 1440p QHD WQHD',
             '2560x1920'=>'2560x1920 5MP',

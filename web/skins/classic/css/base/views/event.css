@@ -217,7 +217,7 @@ height: 100%;
 }
 
 #progressBar .progressBox {
-  transition: width .1s;
+  transition: width 0.2s linear;
   height: 100%;
   position: absolute;
   top: 0;

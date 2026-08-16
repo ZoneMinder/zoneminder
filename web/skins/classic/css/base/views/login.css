@@ -32,6 +32,18 @@ form .alarm {
 	border-bottom: 1px solid #e7e7e7;
 }
 
+#loginMessage {
+	margin-bottom: 15px;
+	padding: 10px 12px;
+	border-left: 3px solid #ccc;
+	background-color: #f8f8f8;
+	color: #555;
+	font-size: 90%;
+	/* Admin-supplied text of unknown length, so keep long words from
+	   widening the fixed-width form. */
+	overflow-wrap: break-word;
+}
+
 #loginform {
 	padding: 40px 60px;
 }

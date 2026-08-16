@@ -32,6 +32,7 @@
 #include <string>
 #include <sys/time.h>
 #include <vector>
+#include <cstring>
 
 
 #ifdef NDEBUG
@@ -42,6 +43,19 @@
 #endif
 
 typedef std::vector<std::string> StringVector;
+
+// Bounded string copy into a fixed-size buffer that ALWAYS null-terminates
+// (unlike strcpy, which overflows, and strncpy, which skips the terminator on
+// truncation). Copies at most n bytes from src when n >= 0 (for
+// delimiter-bounded fields where src is not null-terminated at the field end),
+// otherwise up to src's null terminator. dst holds `size` bytes.
+inline void zm_strncpy(char *dst, const char *src, size_t size, ssize_t n = -1) {
+  if (!size) return;
+  size_t len = (n >= 0) ? static_cast<size_t>(n) : strlen(src);
+  if (len >= size) len = size - 1;
+  memcpy(dst, src, len);
+  dst[len] = '\0';
+}
 
 std::string escape_json_string(std::string input);
 std::string remove_newlines(std::string input);
@@ -74,6 +88,13 @@ std::pair<std::string, std::string> PairSplit(const std::string &str, char delim
 
 std::string Join(const StringVector &values, const std::string &delim = ",");
 
+// Separator characters between entries in a monitor's Options field. The ui
+// offers a textarea, so an option may be on its own line as well as after a
+// comma. Both consumers - av_dict_parse_string() for Ffmpeg and Split() for
+// Libvlc - take a set of separator characters and skip empty entries, so a
+// blank line, crlf or a trailing newline all just work.
+constexpr const char kOptionSeparators[] = ",\r\n";
+
 inline bool StartsWith(const std::string &haystack, const std::string &needle) {
   return (haystack.substr(0, needle.length()) == needle);
 }
@@ -93,6 +114,11 @@ void HwCapsDetect();
 void *sse2_aligned_memcpy(void *dest, const void *src, size_t bytes);
 
 void touch(const char *pathname);
+
+// Current resident set size of this process in kilobytes, read from
+// /proc/self/statm. Returns 0 if it can't be read (e.g. non-Linux). Cheap
+// enough to call periodically from a stream loop to trace memory growth.
+size_t zm_get_rss_kb();
 
 namespace zm {
 // C++14 std::make_unique (TODO: remove this once C++14 is supported)

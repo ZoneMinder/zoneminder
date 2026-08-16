@@ -46,8 +46,19 @@ const std::string EventStream::StreamMode_Strings[4] = {
 constexpr Milliseconds EventStream::STREAM_PAUSE_WAIT;
 
 bool EventStream::loadInitialEventData(int monitor_id, SystemTimePoint event_time) {
-  std::string sql = stringtf("SELECT `Id` FROM `Events` WHERE "
-                             "`MonitorId` = %d AND unix_timestamp(`EndDateTime`) > %jd "
+  // An event still being written has no EndDateTime, and unix_timestamp(NULL)
+  // is NULL, so comparing it never matches: the event currently recording could
+  // not be streamed at all, and every request for one logged a failure. Fall
+  // back to StartDateTime + Length, which zmc flushes every few seconds, so a
+  // recording event is found. An event with neither ends where it starts, which
+  // keeps a crash-orphaned event from matching every time -- it would be
+  // selected in preference to the real one by the ORDER BY below. This is the
+  // same expression the API's Event model uses for EndTimeSecs.
+  std::string sql = stringtf("SELECT `Id` FROM `Events` WHERE `MonitorId` = %d AND "
+                             "(CASE"
+                             " WHEN `EndDateTime` IS NOT NULL THEN unix_timestamp(`EndDateTime`)"
+                             " WHEN `Length` > 0 THEN unix_timestamp(`StartDateTime`) + `Length`"
+                             " ELSE unix_timestamp(`StartDateTime`) END) > %jd "
                              "ORDER BY `Id` ASC LIMIT 1", monitor_id, std::chrono::system_clock::to_time_t(event_time));
 
   MYSQL_RES *result = zmDbFetch(sql);
@@ -61,7 +72,10 @@ bool EventStream::loadInitialEventData(int monitor_id, SystemTimePoint event_tim
     return false;
   }
   if (!mysql_num_rows(result)) {
-    Error("Unable to load event using %s", sql.c_str());
+    // Not an error: a client is free to ask for a time this monitor was not
+    // recording, and it does so once per request. At Error level that filled
+    // the log faster than anything else zms emits.
+    Debug(1, "No event for monitor %d covering the requested time, using %s", monitor_id, sql.c_str());
     mysql_free_result(result);
     return false;
   }
@@ -1057,8 +1071,25 @@ void EventStream::runStream() {
   // Has to go here, at the moment, for sendFrame(delta).
   Microseconds delta = Microseconds(0);
 
+  // Periodic RSS trace so a runaway nph-zms can be caught in the act, along
+  // with the frames-vector size which scales with (re)loaded event length. refs #5006
+  TimePoint last_mem_report = std::chrono::steady_clock::now();
+  const Seconds mem_report_interval = Seconds(30);
+
   while (!zm_terminate) {
     now = start = std::chrono::steady_clock::now();
+
+    if (now - last_mem_report >= mem_report_interval) {
+      last_mem_report = now;
+      // event_data is only mutated by this thread (loadEventData); the command
+      // thread only reads it, so this unlocked read is safe for a diagnostic.
+      Debug(1, "mem trace event: rss=%zuKB event=%" PRIu64 " frames=%zu frame_count=%d curr_frame_id=%d sent=%d",
+           zm_get_rss_kb(),
+           event_data ? event_data->event_id : 0,
+           event_data ? event_data->frames.size() : 0,
+           event_data ? event_data->frame_count : 0,
+           curr_frame_id, frame_count);
+    }
 
     {
       std::scoped_lock lck{mutex};

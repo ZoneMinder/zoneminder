@@ -60,16 +60,18 @@ int SWScale::Convert(
 
   AVPixelFormat orig_format = (AVPixelFormat)in_frame->format;
   AVPixelFormat format = fix_deprecated_pix_fmt(orig_format);
+  AVPixelFormat orig_out_format = (AVPixelFormat)out_frame->format;
+  AVPixelFormat out_format = fix_deprecated_pix_fmt(orig_out_format);
   /* Get the context */
   swscale_ctx = sws_getCachedContext(swscale_ctx,
                                      in_frame->width, in_frame->height, format,
-                                     out_frame->width, out_frame->height, (AVPixelFormat)out_frame->format,
+                                     out_frame->width, out_frame->height, out_format,
                                      SWS_FAST_BILINEAR, NULL, NULL, NULL);
   if ( swscale_ctx == NULL ) {
     Error("Failed getting swscale context");
     return -6;
   }
-  zm_sws_set_input_range(swscale_ctx, orig_format);
+  zm_sws_set_ranges(swscale_ctx, orig_format, orig_out_format);
   /* Do the conversion */
   if (!sws_scale(swscale_ctx,
                  in_frame->data, in_frame->linesize, 0, in_frame->height,
@@ -116,8 +118,17 @@ int SWScale::Convert(
     return -4;
   }
 
+  // Map deprecated YUVJ* formats on BOTH sides. Handing swscale a YUVJ format
+  // makes it emit "deprecated pixel format used, make sure you did set range
+  // correctly" on every context creation — that is what floods the apache
+  // error log from nph-zms when montage/console scale full-range h264 streams.
+  // The J and non-J variants share an identical memory layout, so the buffer
+  // size/fill maths below is unaffected; only the range flags matter, and
+  // zm_sws_set_ranges() restores those.
   const enum _AVPIXELFORMAT orig_in_pf = in_pf;
+  const enum _AVPIXELFORMAT orig_out_pf = out_pf;
   in_pf = fix_deprecated_pix_fmt(in_pf);
+  out_pf = fix_deprecated_pix_fmt(out_pf);
 
   /* Warn if the input or output pixelformat is not supported */
   if (!sws_isSupportedInput(in_pf)) {
@@ -158,7 +169,7 @@ int SWScale::Convert(
     Error("Failed getting swscale context");
     return -6;
   }
-  zm_sws_set_input_range(swscale_ctx, orig_in_pf);
+  zm_sws_set_ranges(swscale_ctx, orig_in_pf, orig_out_pf);
 
   /* Fill in the buffers. The alignments describe how the caller's buffers
    * are actually laid out — they are facts about the buffers, not tuning

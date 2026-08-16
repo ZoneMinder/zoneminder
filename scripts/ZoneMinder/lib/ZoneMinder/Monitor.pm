@@ -40,6 +40,7 @@ require ZoneMinder::Zone;
 require ZoneMinder::Manufacturer;
 require ZoneMinder::Model;
 use ZoneMinder::Logger qw(:all);
+use ZoneMinder::Database qw(:all);
 
 use parent qw(ZoneMinder::Object);
 
@@ -350,6 +351,24 @@ sub control {
   if ($monitor->{Type} eq 'Local') {
     if (!defined $monitor->{Device} or $monitor->{Device} !~ /^\/dev\/[\w\/.\-]+$/) {
       Error("Invalid device path rejected: $monitor->{Device}");
+      return;
+    }
+  }
+
+  # Callers hold a Monitor object for a while before acting on it: zmwatch
+  # fetches its whole list at the top of a pass and then walks it, so a monitor
+  # deleted mid-pass is still restarted from that stale list. The web ui already
+  # stopped its zmc, so the restart resurrects a capture daemon for a monitor
+  # nothing will ever ask about again - an orphan zmc that survives until the
+  # next zmpkg restart. Re-read Deleted from the db before starting anything.
+  if (($command eq 'start' or $command eq 'restart') and $$monitor{Id}) {
+    my $row = zmDbFetchOne('SELECT `Deleted` FROM `Monitors` WHERE `Id`=?', $$monitor{Id});
+    if (!$row) {
+      Info("Not running $command for monitor $$monitor{Id}: no longer exists");
+      return;
+    }
+    if ($$row{Deleted}) {
+      Info("Not running $command for monitor $$monitor{Id}: has been deleted");
       return;
     }
   }

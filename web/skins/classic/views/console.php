@@ -116,7 +116,10 @@ $total_analysis_fps = 0;
 $status_counts = array();
 for ( $i = 0; $i < count($displayMonitors); $i++ ) {
   $monitor = &$displayMonitors[$i];
-  if ( !$monitor['Status'] ) {
+  if ( $monitor['Deleted'] ) {
+    # Whatever Monitor_Status row a deleted monitor left behind is stale.
+    $monitor['Status'] = 'Deleted';
+  } else if ( !$monitor['Status'] ) {
     if ( $monitor['Type'] == 'WebSite' )
      $monitor['Status'] = 'Running';
     else

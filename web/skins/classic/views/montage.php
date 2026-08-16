@@ -29,9 +29,11 @@ require_once('includes/Zone.php');
 $showControl = false;
 $showZones = false;
 if (isset($_REQUEST['showZones'])) {
-  if ($_REQUEST['showZones'] == 1) {
-    $showZones = true;
-  }
+  $showZones = $_SESSION['zmMontageShowZones'] = $_REQUEST['showZones'] == 1;
+} else if (isset($_COOKIE['zmMontageShowZones'])) {
+  $showZones = $_SESSION['zmMontageShowZones'] = $_COOKIE['zmMontageShowZones'] == 1;
+} else if (isset($_SESSION['zmMontageShowZones'])) {
+  $showZones = $_SESSION['zmMontageShowZones'];
 }
 $widths = array( 
   'auto'  => 'auto',
@@ -213,7 +215,7 @@ foreach ($displayMonitors as &$row) {
   }
   $monitor = $monitors[] = new ZM\Monitor($row);
 
-  if ( $monitor->RTSP2WebEnabled() and $monitor->RTSP2WebType == "HLS") {
+  if ($monitor->RTSP2WebEnabled()) {
     $need_hls = true;
   }
   if ($monitor->JanusEnabled()) {
@@ -250,19 +252,13 @@ echo getNavBarHTML();
   <div id="header"<?php echo (isset($_REQUEST['header']) and ($_REQUEST['header']=='0' or $_REQUEST['header']=='hidden')) ? ' style="display:none;"' : '' ?>>
 <?php
     $filter_inline = filterSettingsInline();
-    $html = '';
-    // In inline mode this flip icon is the only control that hides/shows the
-    // top filter panel. In sidebar mode the panel lives in the sidebar
-    // extruder, which has its own show/hide control, so the icon is omitted.
-    if ($filter_inline) {
-      $html .= '<a class="flip" href="#"
-               data-flip-control-object="#mfbpanel"
-               data-flip-control-run-after-func="applyChosen"
-               data-flip-control-run-after-complet-func="changeScale">
-                 <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
-               </a>'.PHP_EOL;
-    }
-    $html .= '<div id="mfbpanel" class="'.($filter_inline ? '' : 'hidden-shift ').'container-fluid">'.PHP_EOL;
+    $html = '<a class="flip" href="#"
+             data-flip-control-object="#mfbpanel"
+             data-flip-control-run-after-func="applyChosen"
+             data-flip-control-run-after-complet-func="changeScale">
+               <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
+             </a>
+             <div id="mfbpanel" class="'.($filter_inline ? '' : 'hidden-shift ').'container-fluid">'.PHP_EOL;
     echo $html;
 ?>
       <form method="get" name="monitorFiltersForm" id="monitorFiltersForm">
@@ -363,11 +359,9 @@ if ($showControl) {
   echo makeLink('?view=control', translate('Control'));
 }
 if (canView('System')) {
-  if ($showZones) {
-    echo '<a id="HideZones" href="?view=montage&amp;showZones=0">'.translate('Hide Zones').'</a>';
-  } else {
-    echo '<a id="ShowZones" href="?view=montage&amp;showZones=1">'.translate('Show Zones').'</a>';
-  }
+  echo '<button type="button" id="toggleZonesButton" class="btn btn-'.($showZones?'normal':'secondary').
+    '" title="'.translate(($showZones?'Hide':'Show').' Zones').'" data-on-click-this="toggleZones">'.
+    '<i class="material-icons md-18">'.($showZones?'layers_clear':'layers').'</i></button>';
 }
 ?>
         </form>
@@ -375,7 +369,7 @@ if (canView('System')) {
     </div><!--header-->
   </div>
   <div id="content">
-    <div id="monitors" class="grid-stack hidden-shift">
+    <div id="monitors" class="grid-stack hidden-shift<?php echo $showZones ? '' : ' hide-zones' ?>">
 <?php
 foreach ($monitors as $monitor) {
   $monitor_options = $options;
@@ -392,7 +386,9 @@ foreach ($monitors as $monitor) {
     );
   } else {
     $monitor_options['state'] = true;
-    $monitor_options['zones'] = $showZones;
+    # Always emit the zone overlays so toggleZones can show/hide them without a
+    # page reload; #monitors.hide-zones keeps them hidden until asked for.
+    $monitor_options['zones'] = canView('System');
     # If we start up in a streaming mode, even paused, the content-type=mixed etc makes Chrome queue the requests for 15s.  We are stuck with just getting a single image to start, then switching to streaming in js.
     $monitor_options['mode'] = 'single';
     $monitor_options['connkey'] = $monitor->connKey();

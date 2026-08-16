@@ -375,14 +375,17 @@ bool Image::Assign(const AVFrame *frame) {
   // Map deprecated YUVJ* formats to their non-J equivalents before handing the
   // format to swscale. Passing YUVJ420P/YUVJ422P/etc directly makes swscale emit
   // "deprecated pixel format used, make sure you did set range correctly" (seen
-  // in nph-zms). This mirrors what SWScale::Convert already does.
+  // in nph-zms). This mirrors what SWScale::Convert already does. Both sides
+  // need it: imagePixFormat is itself YUVJ* whenever the monitor passes through
+  // a full-range h264/mjpeg source.
   const AVPixelFormat orig_src_fmt = static_cast<AVPixelFormat>(frame->format);
   const AVPixelFormat src_fmt = fix_deprecated_pix_fmt(orig_src_fmt);
+  const AVPixelFormat dst_fmt = fix_deprecated_pix_fmt(format);
 
   // If source and destination format + dimensions match, do a direct plane
   // copy instead of running through sws_scale. This avoids the overhead of
   // the swscale pipeline for identity conversions (e.g. YUVJ422P→YUVJ422P).
-  if (src_fmt == format
+  if (src_fmt == dst_fmt
       && frame->width == static_cast<int>(width)
       && frame->height == static_cast<int>(height)) {
     Debug(4, "Same format %s %dx%d, using av_image_copy",
@@ -412,14 +415,14 @@ bool Image::Assign(const AVFrame *frame) {
   sws_convert_context = sws_getCachedContext(
                           sws_convert_context,
                           frame->width, frame->height, src_fmt,
-                          width, height, format,
+                          width, height, dst_fmt,
                           SWS_BICUBIC,
                           nullptr, nullptr, nullptr);
   if (sws_convert_context == nullptr) {
     Error("Unable to create conversion context");
     return false;
   }
-  zm_sws_set_input_range(sws_convert_context, orig_src_fmt);
+  zm_sws_set_ranges(sws_convert_context, orig_src_fmt, format);
   bool result = Assign(frame, sws_convert_context);
   update_function_pointers();
   return result;
@@ -1337,7 +1340,6 @@ bool Image::WriteRaw(const std::string &filename) const {
 
 bool Image::ReadJpeg(const std::string &filename, unsigned int p_colours, unsigned int p_subpixelorder) {
   unsigned int new_width, new_height, new_colours, new_subpixelorder;
-  AVPixelFormat p_pixfmt = zm_pixformat_from_colours(p_colours, p_subpixelorder);
 
   if (!readjpg_dcinfo) {
     readjpg_dcinfo = new jpeg_decompress_struct;
@@ -1358,6 +1360,9 @@ bool Image::ReadJpeg(const std::string &filename, unsigned int p_colours, unsign
     fclose(infile);
     return false;
   }
+
+  /* Computed after setjmp() so it cannot be clobbered by the longjmp() out of the error handler */
+  const AVPixelFormat p_pixfmt = zm_pixformat_from_colours(p_colours, p_subpixelorder);
 
   jpeg_stdio_src(readjpg_dcinfo, infile);
 
@@ -1700,7 +1705,6 @@ bool Image::WriteJpeg(const std::string &filename,
 
 bool Image::DecodeJpeg(const JOCTET *inbuffer, int inbuffer_size, unsigned int p_colours, unsigned int p_subpixelorder) {
   unsigned int new_width, new_height, new_colours, new_subpixelorder;
-  AVPixelFormat p_pixfmt = zm_pixformat_from_colours(p_colours, p_subpixelorder);
 
   if (!decodejpg_dcinfo) {
     decodejpg_dcinfo = new jpeg_decompress_struct;
@@ -1714,6 +1718,9 @@ bool Image::DecodeJpeg(const JOCTET *inbuffer, int inbuffer_size, unsigned int p
     jpeg_abort_decompress(decodejpg_dcinfo);
     return false;
   }
+
+  /* Computed after setjmp() so it cannot be clobbered by the longjmp() out of the error handler */
+  const AVPixelFormat p_pixfmt = zm_pixformat_from_colours(p_colours, p_subpixelorder);
 
   zm_jpeg_mem_src(decodejpg_dcinfo, inbuffer, inbuffer_size);
 
@@ -2085,8 +2092,8 @@ void Image::Overlay( const Image &image ) {
       }
     }
 
-    /* RGB24 on top of grayscale/YUV420 - convert to same format first - complete */
-  } else if ( zm_bytes_per_pixel(imagePixFormat) == 1 && zm_is_rgb24(image.imagePixFormat) ) {
+    /* RGB24 on top of grayscale - convert to same format first - complete */
+  } else if ( imagePixFormat == AV_PIX_FMT_GRAY8 && zm_is_rgb24(image.imagePixFormat) ) {
     Colourise(image.colours, image.subpixelorder);
 
     for (unsigned int y = 0; y < height; y++) {
@@ -2101,8 +2108,8 @@ void Image::Overlay( const Image &image ) {
       }
     }
 
-    /* RGB32 on top of grayscale/YUV420 - convert to same format first - complete */
-  } else if ( zm_bytes_per_pixel(imagePixFormat) == 1 && zm_is_rgb32(image.imagePixFormat) ) {
+    /* RGB32 on top of grayscale - convert to same format first - complete */
+  } else if ( imagePixFormat == AV_PIX_FMT_GRAY8 && zm_is_rgb32(image.imagePixFormat) ) {
     Colourise(image.colours, image.subpixelorder);
 
     const bool alpha_last = (imagePixFormat == AV_PIX_FMT_RGBA || imagePixFormat == AV_PIX_FMT_BGRA);
@@ -2116,6 +2123,43 @@ void Image::Overlay( const Image &image ) {
         } else {
           if (RED_PTR_ABGR(prsrc) || GREEN_PTR_ABGR(prsrc) || BLUE_PTR_ABGR(prsrc))
             *prdest = *prsrc;
+        }
+      }
+    }
+
+    /* RGB24/RGB32 on top of YUV420 - convert marked pixels to YUV - complete */
+  } else if ( zm_is_yuv420(imagePixFormat)
+              && (zm_is_rgb24(image.imagePixFormat) || zm_is_rgb32(image.imagePixFormat)) ) {
+    // The zone alarm highlight is built from the monitor's configured colours,
+    // but the analysis image follows the decoder's native format (usually
+    // YUV420P via passthrough). Converting the whole target to RGB would be
+    // wasteful; instead convert just the marked (non-black) highlight pixels
+    // to YUV and write luma plus the shared 2x2 chroma sample.
+    uint8_t *dplane[4] = {};
+    int dstride[4] = {};
+    if (av_image_fill_arrays(dplane, dstride, buffer, imagePixFormat, width, height, 32) < 0) {
+      Error("Overlay: av_image_fill_arrays failed for YUV420 %ux%u", width, height);
+      return;
+    }
+    const unsigned int psize = zm_bytes_per_pixel(image.imagePixFormat);
+    // Byte offsets of R,G,B within an overlay pixel for its subpixel order.
+    unsigned int ro = 0, go = 1, bo = 2;  // RGB24 / RGBA
+    switch (image.imagePixFormat) {
+      case AV_PIX_FMT_BGR24:
+      case AV_PIX_FMT_BGRA: ro = 2; go = 1; bo = 0; break;
+      case AV_PIX_FMT_ARGB: ro = 1; go = 2; bo = 3; break;
+      case AV_PIX_FMT_ABGR: ro = 3; go = 2; bo = 1; break;
+      default: break;
+    }
+    for (unsigned int y = 0; y < height; y++) {
+      const uint8_t *psrc = image.buffer + y * image.linesize;
+      for (unsigned int x = 0; x < width; x++, psrc += psize) {
+        const uint8_t r = psrc[ro], g = psrc[go], b = psrc[bo];
+        if (r || g || b) {
+          const YUV yuv = brg_to_yuv(r | (g << 8) | (b << 16));
+          dplane[0][y * dstride[0] + x] = Y_VAL(yuv);
+          dplane[1][(y / 2) * dstride[1] + (x / 2)] = U_VAL(yuv);
+          dplane[2][(y / 2) * dstride[2] + (x / 2)] = V_VAL(yuv);
         }
       }
     }
@@ -2389,6 +2433,15 @@ bool Image::Delta(const Image &image, Image* targetimage) const {
   if ( !(width == image.width && height == image.height && colours == image.colours && subpixelorder == image.subpixelorder) ) {
     Error( "Attempt to get delta of different sized images, expected %dx%dx%d %d, got %dx%dx%d %d",
            width, height, colours, subpixelorder, image.width, image.height, image.colours, image.subpixelorder);
+    return false;
+  }
+
+  // DumpImgBuffer() nulls buffer while leaving width/height/colours intact, so
+  // the size check above is no guarantee the pixels are present. Without this a
+  // dumped reference image (e.g. dropped on resume) walks the delta helpers from
+  // a null base pointer and faults at address 0 on the first row (refs #4983).
+  if ( buffer == nullptr || image.buffer == nullptr ) {
+    Error("Attempt to get delta with a null buffer (this %p, other %p)", buffer, image.buffer);
     return false;
   }
 
@@ -3456,8 +3509,18 @@ void Image::Scale(const unsigned int new_width, const unsigned int new_height) {
   size_t scale_buffer_size = static_cast<size_t>(new_size);
   uint8_t* scale_buffer = AllocBuffer(scale_buffer_size);
 
-  SWScale swscale;
-  swscale.init();
+  // Reuse one SWScale (and thus one cached sws context) per thread. A fresh
+  // local one meant a full sws_init_context on every scaled frame — for a
+  // montage of N streams that is N context builds per frame period, and it is
+  // what made the (now-fixed) deprecated-format warning a flood rather than a
+  // one-off. sws_getCachedContext re-inits by itself if the geometry changes.
+  static thread_local SWScale swscale;
+  static thread_local const bool swscale_ready = swscale.init();
+  if (!swscale_ready) {
+    Error("Scale: failed to initialise SWScale");
+    DumpBuffer(scale_buffer, ZM_BUFTYPE_ZM);
+    return;
+  }
   // Both buffers use Image's align-32 layout: `buffer` is ours, and
   // scale_buffer is adopted by AssignDirect below, which derives
   // size/linesize with av_image_* at align=32.

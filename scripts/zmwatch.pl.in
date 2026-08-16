@@ -84,14 +84,46 @@ $ZoneMinder::Object::no_cache = 1;
 Debug('Watchdog starting, pausing for '.START_DELAY.' seconds');
 sleep(START_DELAY);
 
+# Wall-clock of the last completed check pass, to detect systemic stalls (see below).
+my $last_pass_time = time();
+
 while (!$zm_terminate) {
+  my $db_was_down = 0;
   while (!($dbh and $dbh->ping()) and !$zm_terminate) {
+    $db_was_down = 1;
     if (!($dbh = zmDbConnect())) {
       sleep($Config{ZM_WATCH_CHECK_INTERVAL});
     }
   }
 
+  # --- Systemic-stall guard -------------------------------------------------
+  # The capture daemons and this watchdog share the database. If the DB (or the
+  # host/network) drops out, EVERY zmc stops updating its shared-memory
+  # heartbeat at the same instant. When the DB returns, this loop would see the
+  # whole fleet as simultaneously "stale" and restart -- and reboot -- every
+  # camera, even though nothing is wrong with any of them. That is the cause of
+  # the fleet-wide restart storms (each one coincided with a DB outage).
+  #
+  # Distinguish "this camera died" from "the thing we both depend on died": if
+  # we just came out of a DB reconnect, or far more wall-clock than a normal
+  # cycle has elapsed (host stall / clock step), skip restart+reboot actions for
+  # ONE pass so the daemons can refresh their heartbeats. A genuinely dead
+  # camera is still stale next pass (~check interval later) and gets handled
+  # then -- reboot behaviour is preserved, just no longer fired on a false
+  # fleet-wide positive.
+  my $pass_now = time();
+  my $since_last_pass = $pass_now - $last_pass_time;
+  $last_pass_time = $pass_now;
+  my $stall_grace = $db_was_down
+    || ($since_last_pass > 2 * $Config{ZM_WATCH_CHECK_INTERVAL});
+  if ($stall_grace) {
+    Warning("zmwatch: systemic stall detected (db_was_down=$db_was_down, "
+      ."${since_last_pass}s since last check) - skipping restart/reboot actions "
+      ."this pass so capture daemons can refresh their heartbeats");
+  }
+
   foreach my $monitor (ZoneMinder::Monitor->find(Deleted=>0, $Config{ZM_SERVER_ID} ? (ServerId=>$Config{ZM_SERVER_ID}) : ())) {
+    next if $stall_grace; # systemic DB/host stall this pass: don't restart/reboot on false staleness
     next if $monitor->{Capturing} eq 'None';
     next if $monitor->{Type} eq 'WebSite';
 

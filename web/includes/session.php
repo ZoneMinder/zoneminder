@@ -1,4 +1,25 @@
 <?php
+require_once(__DIR__.'/Network.php');
+
+// Record the client address for this request, keeping the previous one when it
+// changes so an auth hash issued against it can still be validated. How long
+// that stays acceptable is auth's decision; see authHashCandidateAddrs() in
+// auth.php.
+function zm_session_set_remote_addr() {
+  $addr = getRemoteAddr();
+  if (isset($_SESSION['remoteAddr']) and ($_SESSION['remoteAddr'] !== '') and ($_SESSION['remoteAddr'] !== $addr)) {
+    // Only ever keep one previous address. Drop the cached hash belonging to
+    // the one being displaced so a client whose address changes repeatedly
+    // cannot accumulate AuthHash slots in the session.
+    if (isset($_SESSION['prevRemoteAddr']) and ($_SESSION['prevRemoteAddr'] !== $addr)) {
+      unset($_SESSION['AuthHash'.$_SESSION['prevRemoteAddr']]);
+    }
+    $_SESSION['prevRemoteAddr'] = $_SESSION['remoteAddr'];
+    $_SESSION['prevRemoteAddrAt'] = time();
+  }
+  $_SESSION['remoteAddr'] = $addr;
+}
+
 // Wrapper around setcookie that auto-sets samesite, and deals with older versions of php
 function zm_setcookie($cookie, $value, $options=array()) {
   if (!isset($options['path'])) {
@@ -51,12 +72,9 @@ function zm_session_start() {
     //ZM\Debug('Setting cookie parameters to '.print_r($currentCookieParams, true));
   }
   session_start();
-  // To help prevent session hijacking
-  // Use HTTP_X_FORWARDED_FOR if available (for reverse proxy setups), taking only the first IP
-  // to guard against spoofed multi-value headers. Falls back to REMOTE_ADDR for direct connections.
-  $_SESSION['remoteAddr'] = !empty($_SERVER['HTTP_X_FORWARDED_FOR'])
-    ? trim(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0])
-    : $_SERVER['REMOTE_ADDR'];
+  // To help prevent session hijacking, remember the client address. See
+  // Network.php / getRemoteAddr() for the X-Forwarded-For handling.
+  zm_session_set_remote_addr();
   $now = time();
   // Do not allow to use expired session ID
   if ( !empty($_SESSION['last_time']) && ($_SESSION['last_time'] < ($now - 180)) ) {
@@ -87,9 +105,7 @@ function zm_session_regenerate_id() {
   //ZM\Debug("Regenerating session. New id was " . session_id());
   unset($_SESSION['last_time']);
   $_SESSION['generated_at'] = time();
-  $_SESSION['remoteAddr'] = !empty($_SERVER['HTTP_X_FORWARDED_FOR'])
-    ? trim(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0])
-    : $_SERVER['REMOTE_ADDR'];
+  zm_session_set_remote_addr();
 } // function zm_session_regenerate_id()
 
 // Regenerate the session id at a privilege boundary (login).
@@ -105,9 +121,11 @@ function zm_session_regenerate_id_login() {
   // New id + delete the old session file server-side. Emits a single Set-Cookie.
   session_regenerate_id(true);
   $_SESSION['generated_at'] = time();
-  $_SESSION['remoteAddr'] = !empty($_SERVER['HTTP_X_FORWARDED_FOR'])
-    ? trim(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0])
-    : $_SERVER['REMOTE_ADDR'];
+  // Bind a fresh login to the address it came from only. Any address carried
+  // over from before the privilege boundary must not stay acceptable.
+  unset($_SESSION['prevRemoteAddr']);
+  unset($_SESSION['prevRemoteAddrAt']);
+  $_SESSION['remoteAddr'] = getRemoteAddr();
 } // function zm_session_regenerate_id_login()
 
 function is_session_started() {

@@ -48,6 +48,25 @@ class VideoStore;
 class ZMPacket;
 class Zone;
 
+// True when a failed link(2) means the filesystem has no hard links at all,
+// rather than something being wrong with this particular call.
+//
+// link(2) documents EPERM for "the filesystem containing oldpath and newpath
+// does not support the creation of hard links", which is what exFAT, FAT and
+// most FUSE-mounted network filesystems report. EXDEV is deliberately excluded:
+// that is a cross-device link, where rename(2) would fail the same way.
+// See https://github.com/ZoneMinder/zoneminder/issues/5048
+inline bool ErrnoMeansNoHardLinkSupport(int err) {
+  return (err == EPERM)
+#ifdef EOPNOTSUPP
+      || (err == EOPNOTSUPP)
+#endif
+#ifdef ENOTSUP
+      || (err == ENOTSUP)
+#endif
+      || (err == ENOSYS);
+}
+
 // Maximum number of prealarm frames that can be stored
 #define MAX_PRE_ALARM_FRAMES  16
 

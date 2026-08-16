@@ -17,6 +17,7 @@ set(TEST_SOURCES
   zm_box.cpp
   zm_comms.cpp
   zm_crypt.cpp
+  zm_event_hardlink.cpp
   zm_font.cpp
   zm_image.cpp
   zm_monitorstream.cpp

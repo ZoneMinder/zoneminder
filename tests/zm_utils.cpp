@@ -223,6 +223,52 @@ TEST_CASE("UriEncode") {
   REQUIRE(UriDecode(UriEncode("\xD0\xB2\xD1\x85")) == "\xD0\xB2\xD1\x85");
 }
 
+TEST_CASE("escape_json_string") {
+  // Nothing to do.
+  REQUIRE(escape_json_string("") == "");
+  REQUIRE(escape_json_string("Front Door") == "Front Door");
+
+  // A quote must come out as one backslash then a quote. The previous
+  // implementation escaped quotes before backslashes, so it emitted \\" here:
+  // an escaped backslash followed by a bare quote, which closed the JSON
+  // string it was embedded in.
+  REQUIRE(escape_json_string("\"") == "\\\"");
+  REQUIRE(escape_json_string("Front \"Door\"") == "Front \\\"Door\\\"");
+
+  // A backslash doubles, and that doubling must not itself be re-doubled.
+  REQUIRE(escape_json_string("\\") == "\\\\");
+  REQUIRE(escape_json_string("back\\slash") == "back\\\\slash");
+
+  // A backslash adjacent to a quote is where ordering errors surface.
+  REQUIRE(escape_json_string("\\\"") == "\\\\\\\"");
+
+  // Named control character escapes.
+  REQUIRE(escape_json_string("\n") == "\\n");
+  REQUIRE(escape_json_string("\r") == "\\r");
+  REQUIRE(escape_json_string("\t") == "\\t");
+  REQUIRE(escape_json_string("\b") == "\\b");
+  REQUIRE(escape_json_string("\f") == "\\f");
+  REQUIRE(escape_json_string("line\nbreak") == "line\\nbreak");
+
+  // Control characters without a short form must still be escaped.
+  REQUIRE(escape_json_string(std::string(1, '\a')) == "\\u0007");
+  REQUIRE(escape_json_string(std::string(1, '\x01')) == "\\u0001");
+  REQUIRE(escape_json_string(std::string(1, '\x1f')) == "\\u001f");
+
+  // An embedded NUL is a control character like any other and must survive.
+  REQUIRE(escape_json_string(std::string("a\0b", 3)) == "a\\u0000b");
+
+  // 0x7f is not a JSON control character, and UTF-8 passes through intact.
+  REQUIRE(escape_json_string(std::string(1, '\x7f')) == std::string(1, '\x7f'));
+  REQUIRE(escape_json_string("\xD0\xB2\xD1\x85") == "\xD0\xB2\xD1\x85");
+
+  // Escaping twice is not the same as escaping once. This is the double
+  // escape the go2rtc credential path was hitting.
+  const std::string once = escape_json_string("pa\\ss");
+  REQUIRE(once == "pa\\\\ss");
+  REQUIRE(escape_json_string(once) == "pa\\\\\\\\ss");
+}
+
 TEST_CASE("QueryString") {
   SECTION("no value") {
     std::stringstream str("name1=");

@@ -69,8 +69,12 @@ Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
   rtsp_second_path = parent->GetSecondPath();
 
   if (!parent->user.empty()) {
-    rtsp_username = escape_json_string(parent->user);
-    rtsp_password = escape_json_string(parent->pass);
+    // Stored raw. These end up in an RTSP URL, not in JSON, and the JSON
+    // payloads that embed the assembled path escape it themselves at the point
+    // it becomes JSON. Escaping here as well meant a password containing a
+    // backslash reached go2rtc doubled.
+    rtsp_username = parent->user;
+    rtsp_password = parent->pass;
     if (rtsp_path.find("rtsp://") == 0) {
       rtsp_path = "rtsp://" + rtsp_username + ":" + rtsp_password + "@" + rtsp_path.substr(7, std::string::npos);
     } else {

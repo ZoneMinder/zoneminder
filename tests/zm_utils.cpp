@@ -185,6 +185,28 @@ TEST_CASE("UriDecode") {
   REQUIRE(UriDecode("abcABC123-_.~%21%28%29%26%3d+") == "abcABC123-_.~!()&= ");
 }
 
+TEST_CASE("LooksLikeNumericIdAlias") {
+  // Names that would collide with an id-keyed go2rtc alias.
+  REQUIRE(LooksLikeNumericIdAlias("5"));
+  REQUIRE(LooksLikeNumericIdAlias("42"));
+  REQUIRE(LooksLikeNumericIdAlias("05"));
+  REQUIRE(LooksLikeNumericIdAlias("5_h264"));
+  REQUIRE(LooksLikeNumericIdAlias("5_CameraDirectPrimary"));
+  REQUIRE(LooksLikeNumericIdAlias("5_"));
+
+  // Ordinary monitor names that are safe to register.
+  REQUIRE_FALSE(LooksLikeNumericIdAlias(""));
+  REQUIRE_FALSE(LooksLikeNumericIdAlias("Front Door"));
+  REQUIRE_FALSE(LooksLikeNumericIdAlias("Camera 5"));
+  REQUIRE_FALSE(LooksLikeNumericIdAlias("5a"));
+  REQUIRE_FALSE(LooksLikeNumericIdAlias("5 Front"));
+  REQUIRE_FALSE(LooksLikeNumericIdAlias("_5"));
+  REQUIRE_FALSE(LooksLikeNumericIdAlias("Gate5"));
+
+  // Non-ASCII names must not be mistaken for ids.
+  REQUIRE_FALSE(LooksLikeNumericIdAlias("\xD0\xB2\xD1\x85"));
+}
+
 TEST_CASE("UriEncode") {
   // Basic alphanumeric and safe characters should not be encoded
   REQUIRE(UriEncode("abcABC123") == "abcABC123");

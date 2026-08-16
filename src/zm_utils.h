@@ -82,6 +82,12 @@ inline std::string StringToLower(std::string str) {
   return str;
 }
 
+/// True when the string is a decimal number, or a decimal number followed by
+/// '_'. ZoneMinder derives go2rtc stream aliases from numeric monitor ids
+/// ("7", "7_h264"), so a monitor *named* like that would collide with the
+/// aliases owned by whichever monitor actually holds that id.
+bool LooksLikeNumericIdAlias(const std::string &value);
+
 StringVector Split(const std::string &str, char delim);
 StringVector Split(const std::string &str, const std::string &delim, size_t limit = 0);
 std::pair<std::string, std::string> PairSplit(const std::string &str, char delim);

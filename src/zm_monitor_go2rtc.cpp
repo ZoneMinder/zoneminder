@@ -223,19 +223,70 @@ int Monitor::Go2RTCManager::add_to_Go2RTC() {
   const std::string &primary_path = Use_RTSP_Restream ? rtsp_restream_path : rtsp_path;
   const std::string id_str = std::to_string(parent->Id());
 
+  const std::string monitor_name = parent->Name();
+
+  // Stream aliases are keyed on the numeric monitor id. That is what the web UI
+  // requests and what any canonical reference should use, because the id is
+  // unique and stable for the life of the monitor. The monitor name is
+  // registered *in addition*, purely as a convenience for hand-written
+  // go2rtc/Home Assistant config. Name aliases are best effort and nothing in
+  // ZoneMinder consumes them: Monitors.Name has no unique constraint and can be
+  // changed at any time, so a name is not a dependable stream identifier.
+  const bool register_name_aliases =
+      !monitor_name.empty() &&
+      (monitor_name != id_str) &&
+      !LooksLikeNumericIdAlias(monitor_name);
+
+  if (!monitor_name.empty() && LooksLikeNumericIdAlias(monitor_name)) {
+    Debug(1, "Go2RTC: Skipping name aliases for monitor %d: name '%s' would collide with the numeric id namespace",
+          parent->Id(), monitor_name.c_str());
+  }
+
+  // Register a single alias. Returns true when go2rtc accepted it.
+  const auto put_stream = [&](const std::string &alias,
+                              const std::string &display_name,
+                              const std::string &stream_path) -> bool {
+    const std::string endpoint =
+        Go2RTC_endpoint + "/streams?name=" + UriEncode(alias) + "&src=" + UriEncode(stream_path);
+    const std::string postData = "{\"name\" : \"" + escape_json_string(display_name) +
+        "\", \"src\": \"" + escape_json_string(stream_path) + "\" }";
+    Debug(2, "Go2RTC: PUT to %s with data: %s", endpoint.c_str(), postData.c_str());
+    const std::pair<CURLcode, std::string> response = CURL_PUT(endpoint, postData);
+    if (response.first != CURLE_OK) {
+      return false;
+    }
+    Debug(1, "Go2RTC: Successfully added stream '%s', response: %s", alias.c_str(), response.second.c_str());
+    return true;
+  };
+
+  // Register the canonical id-keyed alias, then the optional name alias. Only
+  // the id alias determines success; a failed name alias is logged and ignored
+  // so it can never break a stream that the id alias already serves.
+  const auto add_stream = [&](const std::string &suffix,
+                              const std::string &display_suffix,
+                              const std::string &stream_path) -> bool {
+    const std::string id_alias = id_str + suffix;
+    if (!put_stream(id_alias, monitor_name + display_suffix, stream_path)) {
+      Warning("Go2RTC: Failed to add stream '%s'", id_alias.c_str());
+      return false;
+    }
+    if (register_name_aliases) {
+      const std::string name_alias = monitor_name + suffix;
+      if (!put_stream(name_alias, monitor_name + display_suffix, stream_path)) {
+        Warning("Go2RTC: Failed to add name alias '%s'; stream '%s' is unaffected",
+                name_alias.c_str(), id_alias.c_str());
+      }
+    }
+    return true;
+  };
+
   // Add primary stream using just the monitor ID (for backward compatibility)
   Debug(1, "Go2RTC: Adding primary stream (monitor ID) - path: %s%s",
         primary_path.c_str(), Use_RTSP_Restream ? " (via RTSP restreamer)" : "");
-  std::string endpoint = Go2RTC_endpoint + "/streams?name=" + id_str + "&src=" + UriEncode(primary_path);
-  std::string postData = "{\"name\" : \"" + escape_json_string(parent->Name()) + "\", \"src\": \"" + escape_json_string(primary_path) + "\" }";
-  Debug(2, "Go2RTC: PUT to %s with data: %s", endpoint.c_str(), postData.c_str());
-  std::pair<CURLcode, std::string> response = CURL_PUT(endpoint, postData);
-  if (response.first != CURLE_OK) {
+  if (!add_stream("", "", primary_path)) {
     curl_easy_cleanup(curl);
-    Warning("Go2RTC: Failed to add primary stream (monitor ID)");
     return -1;
   }
-  Debug(1, "Go2RTC: Successfully added primary stream (monitor ID), response: %s", response.second.c_str());
 
   // Add a lazily-transcoded H.264 variant of the primary stream.  Browsers that
   // cannot decode the camera's native codec (Chrome, for example, decodes H.265
@@ -244,50 +295,28 @@ int Monitor::Go2RTCManager::add_to_Go2RTC() {
   // source references the primary stream by name so the existing camera connection
   // is reused rather than opened a second time.
   {
-    std::string transcode_src = "ffmpeg:" + id_str + "#video=h264";
+    const std::string transcode_src = "ffmpeg:" + id_str + "#video=h264";
     Debug(1, "Go2RTC: Adding H.264 transcode stream - src: %s", transcode_src.c_str());
-    endpoint = Go2RTC_endpoint + "/streams?name=" + id_str + "_h264&src=" + UriEncode(transcode_src);
-    postData = "{\"name\" : \"" + escape_json_string(parent->Name()) + " H264\", \"src\": \"" + escape_json_string(transcode_src) + "\" }";
-    Debug(2, "Go2RTC: PUT to %s", endpoint.c_str());
-    response = CURL_PUT(endpoint, postData);
-    if (response.first == CURLE_OK) {
-      Debug(1, "Go2RTC: Successfully added H.264 transcode stream, response: %s", response.second.c_str());
-    }
+    // The source deliberately references the primary stream by id, not by name,
+    // so the indirection stays valid across a rename.
+    add_stream("_h264", " H264", transcode_src);
   }
 
   // Add ZoneMinder restream paths (when RTSP restreamer is enabled)
   if (Use_RTSP_Restream) {
     Debug(1, "Go2RTC: Adding ZoneMinderPrimary stream - path: %s", rtsp_restream_path.c_str());
-    endpoint = Go2RTC_endpoint + "/streams?name=" + id_str + "_ZoneMinderPrimary&src=" + UriEncode(rtsp_restream_path);
-    postData = "{\"name\" : \"" + escape_json_string(parent->Name()) + " ZoneMinder Primary\", \"src\": \"" + escape_json_string(rtsp_restream_path) + "\" }";
-    Debug(2, "Go2RTC: PUT to %s", endpoint.c_str());
-    response = CURL_PUT(endpoint, postData);
-    if (response.first == CURLE_OK) {
-      Debug(1, "Go2RTC: Successfully added ZoneMinderPrimary, response: %s", response.second.c_str());
-    }
+    add_stream("_ZoneMinderPrimary", " ZoneMinder Primary", rtsp_restream_path);
   }
 
   // Add direct camera paths
   if (!rtsp_path.empty()) {
     Debug(1, "Go2RTC: Adding CameraDirectPrimary stream - path: %s", rtsp_path.c_str());
-    endpoint = Go2RTC_endpoint + "/streams?name=" + id_str + "_CameraDirectPrimary&src=" + UriEncode(rtsp_path);
-    postData = "{\"name\" : \"" + escape_json_string(parent->Name()) + " Camera Direct Primary\", \"src\": \"" + escape_json_string(rtsp_path) + "\" }";
-    Debug(2, "Go2RTC: PUT to %s", endpoint.c_str());
-    response = CURL_PUT(endpoint, postData);
-    if (response.first == CURLE_OK) {
-      Debug(1, "Go2RTC: Successfully added CameraDirectPrimary, response: %s", response.second.c_str());
-    }
+    add_stream("_CameraDirectPrimary", " Camera Direct Primary", rtsp_path);
   }
 
   if (!rtsp_second_path.empty()) {
     Debug(1, "Go2RTC: Adding CameraDirectSecondary stream - path: %s", rtsp_second_path.c_str());
-    endpoint = Go2RTC_endpoint + "/streams?name=" + id_str + "_CameraDirectSecondary&src=" + UriEncode(rtsp_second_path);
-    postData = "{\"name\" : \"" + escape_json_string(parent->Name()) + " Camera Direct Secondary\", \"src\": \"" + escape_json_string(rtsp_second_path) + "\" }";
-    Debug(2, "Go2RTC: PUT to %s", endpoint.c_str());
-    response = CURL_PUT(endpoint, postData);
-    if (response.first == CURLE_OK) {
-      Debug(1, "Go2RTC: Successfully added CameraDirectSecondary, response: %s", response.second.c_str());
-    }
+    add_stream("_CameraDirectSecondary", " Camera Direct Secondary", rtsp_second_path);
   } else {
     Debug(2, "Go2RTC: No secondary camera path configured");
   }

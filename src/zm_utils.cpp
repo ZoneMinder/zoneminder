@@ -60,6 +60,17 @@ std::string ReplaceAll(std::string str, const std::string &old_value, const std:
   return str;
 }
 
+bool LooksLikeNumericIdAlias(const std::string &value) {
+  size_t digits = 0;
+  while ((digits < value.size()) && isdigit(static_cast<unsigned char>(value[digits]))) {
+    digits++;
+  }
+  if (digits == 0) {
+    return false;
+  }
+  return (digits == value.size()) || (value[digits] == '_');
+}
+
 StringVector Split(const std::string &str, char delim) {
   std::vector<std::string> tokens;
 

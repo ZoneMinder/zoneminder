@@ -156,28 +156,15 @@ function zm_session_clear() {
   session_write_close();
 } // function zm_session_clear()
 
+// The connection is fetched per call rather than held as a member. This handler
+// is constructed while session.php is being included, before anything has
+// needed the database, so there is nothing to capture at that point - which is
+// what the old `$this->db = $dbConn` constructor got wrong. zmDbConnOrNull()
+// returns null when the database is unreachable and the methods below degrade
+// to "no session" rather than ending the request.
 class ZMSessionHandler implements SessionHandlerInterface {
-  private $db;
-  public function __construct() {
-    global $dbConn;
-    $this->db = $dbConn;
-
-    // Set handler to overide SESSION
-    /*
-    session_set_save_handler(
-      array($this, '_open'),
-      array($this, '_close'),
-      array($this, '_read'),
-      array($this, '_write'),
-      array($this, '_destroy'),
-      array($this, '_gc'),
-      array($this, '_create_sid'),
-      array($this, '_validate_sid')
-    );
-*/
-  }
   public function open($path, $name): bool {
-    return $this->db ? true : false;
+    return zmDbConnOrNull() ? true : false;
   }
   public function close() : bool {
     // The example code closed the db connection.. I don't think we care to.
@@ -185,7 +172,8 @@ class ZMSessionHandler implements SessionHandlerInterface {
   }
   #[\ReturnTypeWillChange]
   public function read($id){
-    $sth = $this->db->prepare('SELECT data FROM Sessions WHERE id = :id');
+    if (!($db = zmDbConnOrNull())) return '';
+    $sth = $db->prepare('SELECT data FROM Sessions WHERE id = :id');
     if (!$sth->bindParam(':id', $id, PDO::PARAM_STR, 32)) {
       ZM\Error("Failed to bind param");
       if (!$sth->bindParam(':id', $id, PDO::PARAM_STR)) {
@@ -202,10 +190,11 @@ class ZMSessionHandler implements SessionHandlerInterface {
     return '';
   }
   public function write($id, $data) : bool {
+    if (!($db = zmDbConnOrNull())) return false;
     // Create time stamp
     $access = time();
 
-    $sth = $this->db->prepare('REPLACE INTO Sessions VALUES (:id, :access, :data)');
+    $sth = $db->prepare('REPLACE INTO Sessions VALUES (:id, :access, :data)');
 
     $sth->bindParam(':id', $id, PDO::PARAM_STR, 32);
     $sth->bindParam(':access', $access, PDO::PARAM_INT);
@@ -214,12 +203,14 @@ class ZMSessionHandler implements SessionHandlerInterface {
     return $sth->execute() ? true : false;
   }
   public function destroy($id) : bool {
-    $sth = $this->db->prepare('DELETE FROM Sessions WHERE Id = :id');
+    if (!($db = zmDbConnOrNull())) return false;
+    $sth = $db->prepare('DELETE FROM Sessions WHERE Id = :id');
     $sth->bindParam(':id', $id, PDO::PARAM_STR, 32);
     return $sth->execute() ? true : false;
   }
   #[\ReturnTypeWillChange]
   public function gc($max) {
+    if (!($db = zmDbConnOrNull())) return false;
     // Calculate what is to be deemed old
     $now = time();
     $old = $now - $max;
@@ -229,14 +220,14 @@ class ZMSessionHandler implements SessionHandlerInterface {
     // then delete by primary key so InnoDB only takes record locks on the matched rows
     // and not gap locks across the access range — avoids deadlocks with concurrent
     // REPLACE INTO Sessions on every authenticated request.
-    $sel = $this->db->prepare('SELECT id FROM Sessions WHERE access < :old LIMIT 100');
+    $sel = $db->prepare('SELECT id FROM Sessions WHERE access < :old LIMIT 100');
     $sel->bindParam(':old', $old, PDO::PARAM_INT);
     if (!$sel->execute()) return false;
     $ids = $sel->fetchAll(PDO::FETCH_COLUMN);
     if (!$ids) return true;
 
     $placeholders = implode(',', array_fill(0, count($ids), '?'));
-    $del = $this->db->prepare("DELETE FROM Sessions WHERE id IN ($placeholders)");
+    $del = $db->prepare("DELETE FROM Sessions WHERE id IN ($placeholders)");
     return $del->execute($ids) ? true : false;
   }
   public function validateId($key) : bool {return true;}

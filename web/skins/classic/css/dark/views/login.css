@@ -17,6 +17,10 @@ input[type="password"] {
   color: #dddddd;
 }
 
+.input-group .input-group-text.material-icons {
+  color: #dddddd;
+}
+
 form {
   border: 1px solid #303030;
   background-color: #303030;

@@ -14,6 +14,42 @@ input[type="password"] {
 	border-top-right-radius: 0;
 }
 
+/* The password field sits in an input-group with the visibility toggle, which
+   drops the field's own bottom margin, so the group carries it instead. */
+.input-group {
+	position: relative;
+	margin-bottom: 10px;
+}
+
+/* Lay the toggle over the field rather than beside it. A regular addon would
+   have to keep its own fill in step with the field's, and it cannot: the
+   field's background changes with the theme, with focus, and again when the
+   browser paints its autofill highlight over it. Sitting on top, the toggle
+   stays transparent and the field itself shows through. */
+.input-group .form-control {
+	padding-right: 2.75rem;
+	border-radius: 0 0 .25rem .25rem;
+}
+
+.input-group .input-group-append {
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	/* .form-control raises itself to 3 while focused. */
+	z-index: 4;
+}
+
+/* The display is forced because the font loader sets
+   'display: inline-block !important' on every .material-icons, which would
+   otherwise beat the flex centring. */
+.input-group .input-group-text.material-icons {
+	display: flex !important;
+	align-items: center;
+	border: 0;
+	background-color: transparent;
+}
+
 input[type="submit"] {
 	margin-top: 20px;
 }

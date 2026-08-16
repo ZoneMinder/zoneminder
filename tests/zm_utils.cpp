@@ -207,6 +207,20 @@ TEST_CASE("UriEncode") {
   // Round-trip test: encode then decode should return original
   std::string original = "hello world!";
   REQUIRE(UriDecode(UriEncode(original)) == original);
+
+  // Non-ASCII bytes must each be escaped as a single %XX pair. A signed char
+  // sign-extends here and yields "%FF" (truncated from "FFFFFFD0") instead.
+  REQUIRE(UriEncode("\xD0\xB2") == "%D0%B2");
+  REQUIRE(UriEncode("\xFF") == "%FF");
+  REQUIRE(UriEncode("\x80") == "%80");
+
+  // A Cyrillic name (U+0432 U+0445 U+043E U+0434) - the kind of name the
+  // utf8mb4 switch made storable. Written as bytes so this file stays ASCII.
+  REQUIRE(UriEncode("\xD0\xB2\xD1\x85\xD0\xBE\xD0\xB4") == "%D0%B2%D1%85%D0%BE%D0%B4");
+
+  // Mixed ASCII and UTF-8, and a multi-byte round trip.
+  REQUIRE(UriEncode("Cam \xC3\xA9") == "Cam%20%C3%A9");
+  REQUIRE(UriDecode(UriEncode("\xD0\xB2\xD1\x85")) == "\xD0\xB2\xD1\x85");
 }
 
 TEST_CASE("QueryString") {

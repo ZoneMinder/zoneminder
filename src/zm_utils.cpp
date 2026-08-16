@@ -403,15 +403,19 @@ std::string UriEncode(const std::string &value) {
   std::string retbuf;
   retbuf.reserve(value.length() * 3); // at most all characters get replaced with the escape
 
-  char tmp[5] = "";
+  char tmp[4] = "";
   while (*src) {
-    std::string::value_type c = *src;
+    // Must be unsigned: a signed char sign-extends bytes >= 0x80 when promoted
+    // for isalnum()/snprintf(), which mangles every non-ASCII UTF-8 byte.
+    const unsigned char c = static_cast<unsigned char>(*src);
     if (c == ' ') {
       retbuf.append("%20");
-    } else if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
-      retbuf.push_back(c);
+    } else if ((c < 0x80) && (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~')) {
+      // The unreserved set is ASCII-only, so bytes >= 0x80 are always escaped
+      // rather than left to a locale-dependent isalnum().
+      retbuf.push_back(static_cast<char>(c));
     } else {
-      snprintf(tmp, 4, "%%%02X", c);
+      snprintf(tmp, sizeof(tmp), "%%%02X", c);
       retbuf.append(tmp);
     }
     src++;

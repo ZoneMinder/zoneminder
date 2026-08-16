@@ -3584,8 +3584,7 @@ Event * Monitor::openEvent(
         logInit(log_id.c_str());
         Error("Error execing %s: %s", event_start_command.c_str(), strerror(errno));
       }
-      // openbsd has no std::quick_exit
-      std::abort();
+      _exit(0);
     }
   }
 
@@ -3636,8 +3635,7 @@ void Monitor::closeEvent() {
           logInit(log_id.c_str());
           Error("Error execing %s: %s", command.c_str(), strerror(errno));
         }
-        // openbsd has no std::quick_exit
-        std::abort();
+        _exit(0);
       }
     }
   }, event, event_end_command);

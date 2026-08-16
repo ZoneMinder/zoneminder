@@ -64,25 +64,45 @@ INSERT INTO `Controls` VALUES (NULL,'HiSilicon Hi3510 CGI','Ffmpeg','HiSilicon_H
 --
 -- Amcrest IP5M-1190EW, verified against firmware 2.810.00AC004.0.R.
 --
--- The generic 'Amcrest HTTP API' entry above advertises zoom and continuous
--- zoom and no presets, which is backwards for this model.  Pan, tilt, the
--- diagonals and continuous move all physically move it, arg2 really is the
--- speed, and GotoPreset works.  Zoom, focus and iris do not: ZoomTele,
--- ZoomWide, FocusNear and FocusFar all answer OK and do nothing, while
--- autoFocus, getFocusStatus, IrisLarge and AutoPanOn 400.  PositionABS
--- answers OK and is inert (24 pan angles and 5 tilt values all produced an
--- identical frame), so CanMoveAbs and CanMoveMap stay 0, and moveMap is
--- built on PositionABS anyway.  It has a WhiteLight in Lighting_V2 but
--- coaxialControlIO 400s and config writes to Lighting/Lighting_V2 are
--- accepted and then ignored, so CanLight stays 0.
+-- Measured with amcrest_probe.pl, which decides every flag by comparing
+-- frames before and after the command.  That matters here: this firmware
+-- answers OK to codes the hardware cannot perform, and its
+-- ptz.cgi?action=getStatus reports a fixed Postion=0/16.65 MoveStatus=Idle
+-- no matter what the camera is doing, so neither the status code nor the
+-- reported position can be used to decide anything.
+--
+-- Pan, tilt and continuous move work.  The diagonals do not: LeftUp is
+-- accepted and shifts the picture by 1.8 against a 6.0 threshold, i.e. not
+-- at all.  Zoom, focus and iris do not work either - ZoomTele and
+-- FocusNear are accepted and change nothing, while autoFocus,
+-- getFocusStatus, IrisLarge and AutoPanOn are refused outright.
+--
+-- PositionABS is the subtle one.  It is accepted, it reaches distinct
+-- positions, and revisiting a coordinate reproduces the frame, so a naive
+-- test calls it working.  But its targets are 90 degrees apart and the
+-- median step shifts the view by 16.4 where a single one second nudge
+-- shifts it by 42.5, so the pan argument is being clamped to a fraction of
+-- what was asked.  A moveMap click would not land where it was aimed, so
+-- CanMoveAbs and CanMoveMap are both 0.
+--
+-- Speed: the firmware accepts arg2 up to at least 64, but the measured
+-- displacement stops increasing above 4 (31.5, 36.2, 41.4 for speeds 1, 2,
+-- 4 and then flat), so the usable range is 1..4.
+--
+-- The white light exists in Lighting_V2 but coaxialControlIO is refused and
+-- config writes to Lighting/Lighting_V2 are accepted and then silently
+-- ignored, so CanLight stays 0.
 --
 -- Beware when checking any of this yourself: ptz.cgi?action=getStatus on
 -- this firmware always reports Postion=0/16.65 MoveStatus=Idle no matter
 -- what the camera is doing.  Status cannot tell you whether a move worked;
 -- compare snapshots instead.
 --
--- NumPresets 255 is the tinyint maximum and the documented Dahua limit.
--- SetPreset was accepted and read back at every index tried up to 256, so
--- the firmware does not appear to bound-check it.
+-- NumPresets is 25 to match the sibling Dahua/Amcrest RPC entries.  The
+-- firmware itself stored a preset at every index tried up to 256, but this
+-- column is not a hardware ceiling: the classic skin renders one button per
+-- preset, and GotoPreset is refused for any index that has not been stored
+-- yet, so a larger number just produces a wall of buttons that error until
+-- each one is defined.
 --
-INSERT INTO `Controls` (`Name`,`Type`,`Protocol`,`CanReset`,`CanReboot`,`HasPresets`,`NumPresets`,`HasHomePreset`,`CanSetPresets`,`CanMove`,`CanMoveDiag`,`CanMoveCon`,`CanPan`,`HasPanSpeed`,`MinPanSpeed`,`MaxPanSpeed`,`CanTilt`,`HasTiltSpeed`,`MinTiltSpeed`,`MaxTiltSpeed`) VALUES ('Amcrest IP5M-1190EW HTTP','Ffmpeg','Amcrest_HTTP',1,1,1,255,1,1,1,1,1,1,1,1,8,1,1,1,8);
+INSERT INTO `Controls` (`Name`,`Type`,`Protocol`,`CanReset`,`CanReboot`,`HasPresets`,`NumPresets`,`HasHomePreset`,`CanSetPresets`,`CanMove`,`CanMoveCon`,`CanPan`,`HasPanSpeed`,`MinPanSpeed`,`MaxPanSpeed`,`CanTilt`,`HasTiltSpeed`,`MinTiltSpeed`,`MaxTiltSpeed`) VALUES ('Amcrest IP5M-1190EW HTTP','Ffmpeg','Amcrest_HTTP',1,1,1,25,1,1,1,1,1,1,1,4,1,1,1,4);

@@ -19,6 +19,31 @@
 
 #include "zm_comms.h"
 #include <array>
+#include <cstdlib>
+#include <unistd.h>
+
+namespace {
+
+int getBoundPort(int sd) {
+  sockaddr_in addr = {};
+  socklen_t addr_len = sizeof(addr);
+  REQUIRE(::getsockname(sd, reinterpret_cast<sockaddr *>(&addr), &addr_len) == 0);
+
+  const int port = ntohs(addr.sin_port);
+  REQUIRE(port > 0);
+  return port;
+}
+
+std::string makeUnixSocketPath() {
+  char path_template[] = "/tmp/zm.unittest.XXXXXX";
+  const int fd = ::mkstemp(path_template);
+  REQUIRE(fd >= 0);
+  REQUIRE(::close(fd) == 0);
+  REQUIRE(::unlink(path_template) == 0);
+  return std::string(path_template) + ".sock";
+}
+
+}  // namespace
 
 TEST_CASE("ZM::Pipe basics") {
   zm::Pipe pipe;
@@ -132,7 +157,7 @@ TEST_CASE("ZM::UdpInetSocket basics") {
   REQUIRE(socket.isDisconnected() == false);
 
   SECTION("bind with host and port") {
-    REQUIRE(socket.bind(nullptr, "1234") == true);
+    REQUIRE(socket.bind(nullptr, "0") == true);
     REQUIRE(socket.isOpen() == true);
     REQUIRE(socket.isDisconnected() == true);
     REQUIRE(socket.isClosed() == false);
@@ -148,15 +173,15 @@ TEST_CASE("ZM::UdpInetSocket basics") {
   }
 
   SECTION("bind with port") {
-    REQUIRE(socket.bind("1234") == true);
+    REQUIRE(socket.bind("0") == true);
   }
 
   SECTION("bind with host and port number") {
-    REQUIRE(socket.bind(nullptr, 1234) == true);
+    REQUIRE(socket.bind(nullptr, 0) == true);
   }
 
   SECTION("bind with port number") {
-    REQUIRE(socket.bind(1234) == true);
+    REQUIRE(socket.bind(0) == true);
   }
 }
 
@@ -173,10 +198,12 @@ TEST_CASE("ZM::UdpInetSocket send/recv") {
   }
 
   SECTION("send/recv") {
-    REQUIRE(srv_socket.bind("127.0.0.1", "1234") == true);
+    REQUIRE(srv_socket.bind("127.0.0.1", "0") == true);
     REQUIRE(srv_socket.isOpen() == true);
+    const int port = getBoundPort(srv_socket.getReadDesc());
+    const std::string port_str = std::to_string(port);
 
-    REQUIRE(client_socket.connect("127.0.0.1", "1234") == true);
+    REQUIRE(client_socket.connect("127.0.0.1", port_str.c_str()) == true);
     REQUIRE(client_socket.isConnected() == true);
 
     REQUIRE(client_socket.send(msg.data(), msg.size()) == msg.size());
@@ -187,8 +214,7 @@ TEST_CASE("ZM::UdpInetSocket send/recv") {
 }
 
 TEST_CASE("ZM::UdpUnixSocket basics") {
-  std::string sock_path = "/tmp/zm.unittest.sock";
-  unlink(sock_path.c_str()); // make sure the socket file does not exist
+  const std::string sock_path = makeUnixSocketPath();
 
   zm::UdpUnixSocket socket;
   REQUIRE(socket.isClosed() == true);
@@ -218,8 +244,7 @@ TEST_CASE("ZM::UdpUnixSocket basics") {
 }
 
 TEST_CASE("ZM::UdpUnixSocket send/recv") {
-  std::string sock_path = "/tmp/zm.unittest.sock";
-  unlink(sock_path.c_str()); // make sure the socket file does not exist
+  const std::string sock_path = makeUnixSocketPath();
 
   zm::UdpUnixSocket srv_socket;
   zm::UdpUnixSocket client_socket;
@@ -286,7 +311,7 @@ TEST_CASE("ZM::TcpInetServer basics", "[notCI]") {
   REQUIRE(server.isConnected() == false);
   REQUIRE(server.isDisconnected() == false);
 
-  REQUIRE(server.bind(1234) == true);
+  REQUIRE(server.bind(0) == true);
   REQUIRE(server.isOpen() == true);
   REQUIRE(server.isClosed() == false);
   REQUIRE(server.isConnected() == false);
@@ -318,11 +343,12 @@ TEST_CASE("ZM::TcpInetClient/Server send/recv", "[notCI]") {
   }
 
   SECTION("send/recv") {
-    REQUIRE(server.bind(1234) == true);
+    REQUIRE(server.bind(0) == true);
     REQUIRE(server.isOpen() == true);
+    const int port = getBoundPort(server.getReadDesc());
     REQUIRE(server.listen() == true);
 
-    REQUIRE(client.connect("127.0.0.1", 1234) == true);
+    REQUIRE(client.connect("127.0.0.1", port) == true);
     REQUIRE(client.isConnected() == true);
 
     REQUIRE(server.accept() == true);

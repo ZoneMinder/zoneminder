@@ -57,6 +57,12 @@ class HostController extends AppController {
   }
 
   function getLoad() {
+    # getSysLoadHTML() in the web ui renders nothing without canView('System'),
+    # so the same figure is not handed out here to an account without it.
+    global $user;
+    if ($user and ($user->System() == 'None')) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+    }
     $load = sys_getloadavg();
 
     $this->set(array(
@@ -228,6 +234,17 @@ class HostController extends AppController {
     if ( $mid and !$this->Monitor->exists($mid) ) {
       throw new NotFoundException(__('Invalid monitor'));
     }
+    require_once __DIR__ .'/../../../includes/Monitor.php';
+    # Usage is reported per monitor, keyed by monitor name, so an account that
+    # cannot view a monitor was being told that it exists and how much disk it
+    # uses. Report only on the monitors it may see.
+    if ($mid) {
+      $one = $this->Monitor->find('first', array('conditions' => array('Id' => $mid)));
+      $zm_monitor = new ZM\Monitor($one['Monitor']);
+      if (!$zm_monitor->canView()) {
+        throw new UnauthorizedException(__('Insufficient Privileges'));
+      }
+    }
 
     $zm_dir_events = ZM_DIR_EVENTS;
 
@@ -250,6 +267,8 @@ class HostController extends AppController {
 
       // Add each monitor's usage to array
       foreach ($monitors as $key => $value) {
+        $zm_monitor = new ZM\Monitor($value['Monitor']);
+        if (!$zm_monitor->canView()) continue;
         $id = $value['Monitor']['Id'];
         $name = $value['Monitor']['Name'];
         $color = $value['Monitor']['WebColour'];

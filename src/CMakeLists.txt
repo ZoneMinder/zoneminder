@@ -78,6 +78,7 @@ set(ZM_BIN_SRC_FILES
   zm_time.cpp
   zm_uri.cpp
   zm_user.cpp
+  zm_tls.cpp
   zm_utils.cpp
   zm_websocket.cpp
   zm_videostore.cpp

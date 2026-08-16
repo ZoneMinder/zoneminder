@@ -18,18 +18,38 @@ For example, if ``MIN_WEBSOCKET_PORT`` is ``31000`` and the monitor id is
 
 ::
 
-   ws://your-server:31005/
+   wss://your-server:31005/
 
 This requires ``Options -> Network -> MIN_WEBSOCKET_PORT`` to be configured and
-the web server or reverse proxy to allow those ports.
+the web server or firewall to allow those ports.
+
+TLS
+^^^
+
+Browsers refuse a ``ws://`` connection from a page served over ``https``, so on
+any TLS protected install the listener has to speak ``wss://``. Set both of:
+
+* ``Options -> Network -> WEBSOCKET_TLS_CERT`` - PEM certificate chain
+* ``Options -> Network -> WEBSOCKET_TLS_KEY`` - matching PEM private key
+
+and ``zmc`` terminates TLS itself. Until both are set the listener is plaintext
+``ws://``, which is only usable from an ``http`` page or through a proxy.
+
+The certificate the web server already uses is normally the right one. Note
+that ``zmc`` does not run as root on most installs, while web server private
+keys are frequently root only, so the key may need its group ownership or mode
+adjusting. If the key cannot be read, the listener logs the reason and refuses
+to start rather than silently falling back to plaintext.
+
+Terminating TLS at a reverse proxy instead remains possible: leave both options
+unset and have the proxy forward ``wss://`` to the plaintext port. That keeps
+private keys at the web server, at the cost of extra proxy configuration.
 
 .. warning::
 
-   The monitor websocket endpoint can expose live camera data to any client
-   that can reach the monitor's websocket port. Native TLS is not provided by
-   ``zmc`` itself, so do not expose these ports directly to untrusted
-   networks. Restrict access with firewall rules and/or place the endpoint
-   behind a reverse proxy that terminates TLS.
+   The monitor websocket endpoint exposes live camera data to any client that
+   can reach the port. Restrict access with firewall rules whether or not TLS
+   is enabled.
 
 Connection model
 ^^^^^^^^^^^^^^^^
@@ -67,13 +87,13 @@ Examples:
 
 ::
 
-   ws://your-server:31005/?token=<jwt>
+   wss://your-server:31005/?token=<jwt>
 
 or:
 
 ::
 
-   ws://your-server:31005/?auth=<hash>&username=alice
+   wss://your-server:31005/?auth=<hash>&username=alice
 
 Commands
 ^^^^^^^^
@@ -276,14 +296,13 @@ Tradeoffs of the in-tree implementation versus a mature library such as
   project. The unit tests in ``tests/zm_websocket.cpp`` cover the framing and
   handshake paths for this reason.
 
-TLS is intentionally left to the deployment boundary instead of being
-implemented inside this in-tree websocket server. This mirrors how the existing
-``zms`` streaming paths are deployed: TLS is terminated by a reverse proxy or
-load balancer. In practice, production deployments should terminate TLS and may
-additionally enforce authentication in a reverse proxy, load balancer, or
-similar front-end before exposing this transport to clients. Authentication is
-still enforced inside ``zmc`` (see `Authentication`_) whenever ``OPT_USE_AUTH``
-is enabled, independently of any proxy.
+TLS is terminated by ``zmc`` itself when a certificate and key are configured,
+because unlike the ``zms`` streaming paths this listener is not fronted by the
+web server and so cannot inherit its encryption. The implementation lives in
+``src/zm_tls.cpp`` behind a small backend-neutral interface, so it works with
+either value of ``ZM_CRYPTO_BACKEND``. Authentication is enforced inside
+``zmc`` (see `Authentication`_) whenever ``OPT_USE_AUTH`` is enabled,
+independently of TLS.
 
 Errors
 ^^^^^^

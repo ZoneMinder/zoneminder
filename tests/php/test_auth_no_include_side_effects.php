@@ -35,18 +35,18 @@ function topLevelExecutableStatements($path) {
   $allowedCalls = array('require', 'require_once', 'include', 'include_once', 'define', 'defined');
   $controlFlow = array(T_IF, T_SWITCH, T_WHILE, T_DO, T_FOR, T_FOREACH, T_TRY, T_ECHO, T_PRINT);
 
+  // No "skip inside parentheses" rule: a call nested in a condition, such as
+  // `if ( !dbConnect() )`, is still executed on include, and skipping
+  // parenthesised tokens would hide it.
   $found = array();
   $depth = 0;
-  $parens = 0;
   foreach ($tokens as $i => $token) {
     if (is_string($token)) {
       if ($token === '{') $depth++;
       else if ($token === '}') $depth--;
-      else if ($token === '(') $parens++;
-      else if ($token === ')') $parens--;
       continue;
     }
-    if ($depth !== 0 or $parens !== 0) continue;
+    if ($depth !== 0) continue;
 
     list($id, $text, $line) = array($token[0], $token[1], $token[2]);
 
@@ -93,10 +93,15 @@ check('zm_authenticate_request() is defined',
 $fixture = tempnam(sys_get_temp_dir(), 'zmtest').'.php';
 file_put_contents($fixture, "<?php\nrequire_once('x.php');\nfunction f() { if (true) { g(); } }\nif (SOMETHING) {\n  h();\n}\n");
 $detected = topLevelExecutableStatements($fixture);
-unlink($fixture);
 check('the detector finds a file-scope if()', count($detected), 1);
 check('the detector ignores code inside functions and require_once',
   $detected, array('4: if'));
+
+// A call nested inside a file-scope condition still runs on include.
+file_put_contents($fixture, "<?php\nfunction f() { g(); }\nif ( !connect() ) {\n  exit();\n}\n");
+check('the detector finds a call nested in a file-scope if',
+  topLevelExecutableStatements($fixture), array('3: if', '3: connect('));
+unlink($fixture);
 
 echo "\n$passes passed, $failures failed\n";
 exit($failures ? 1 : 0);

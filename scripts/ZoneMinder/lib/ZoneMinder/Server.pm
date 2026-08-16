@@ -209,6 +209,46 @@ sub CpuUsage {
   }
 } # end sub CpuUsage
 
+# Is systemd running? This is what sd_booted(3) does. Do not probe pid 1
+# through /proc instead: a web server hardened with ProtectProc=invisible hides
+# it from the web user, and we would conclude that systemd is absent precisely
+# when we most need to hand our daemons over to it.
+sub systemdRunning {
+  return -d '/run/systemd/system';
+}
+
+# Does $cgroup, the contents of a cgroup file, put us inside $unit's service?
+# Takes the text rather than reading the file so that it can be tested. Copes
+# with the single "0::/path" line of cgroup v2 and the several
+# "id:controller:/path" lines of v1, and does not confuse a unit whose name
+# merely starts with $unit for $unit itself.
+sub cgroup_in_service {
+  my ($cgroup, $unit) = @_;
+  return 0 if !defined $cgroup or !defined $unit or $unit eq '';
+
+  return scalar grep { m{/\Q$unit\E\.service(?:/|$)} } split(/\n/, $cgroup);
+}
+
+# Are we already running as $unit, so that asking systemd to start it would ask
+# systemd to start us again? Our own cgroup answers that however /proc is
+# hardened, and we cannot shed it by daemonising.
+#
+# Not the parent's name from /proc: our parent is pid 1, which a web server
+# with ProtectProc=invisible hides from us, and we get re-parented anyway if it
+# exits first. Not $ENV{INVOCATION_ID} either: systemd sets that for every
+# descendant of a unit, so anything forked from the web ui inherits the web
+# server's copy and would wrongly look as though systemd had started it.
+sub calledBysystem {
+  my $unit = shift;
+  $unit = 'zoneminder' if !defined $unit;
+
+  open(my $cgroup, '<', '/proc/self/cgroup') or return 0;
+  my $contents = do { local $/ = undef; <$cgroup> };
+  close($cgroup);
+
+  return cgroup_in_service($contents, $unit);
+}
+
 sub PathToZMS {
   my $this = shift;
   $this->{PathToZMS} = shift if @_;

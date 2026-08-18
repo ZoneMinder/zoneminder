@@ -303,8 +303,8 @@ function get_arp_results() {
     ZM\Error('ARP compatible binary not found or not executable by the web user account. Verify ZM_PATH_ARP points to a valid arp tool.');
     return $results;
   }
-  if (count($result)==1) {
-    $arp_command .= ' -n';
+  if (count($result) == 1) {
+    $arp_command .= ' -na';
   }
 
   $result = exec(escapeshellcmd($arp_command), $output, $status);
@@ -331,7 +331,7 @@ function get_arp_scan_results($network) {
     ZM\Error('arp-scan compatible binary not found or not executable by the web user account. Verify ZM_PATH_ARP_SCAN points to a valid arp-scan tool.');
     return $results;
   }
-  $arp_scan_command = '/usr/bin/pkexec '.ZM_PATH_ARP_SCAN.' '.$network.' 2>&1';
+  $arp_scan_command = ZM_PATH_PKEXEC.' '.ZM_PATH_ARP_SCAN.' '.$network.' 2>&1';
   $result = exec(escapeshellcmd($arp_scan_command), $output, $status);
   if ($status) {
     ZM\Error("Unable to probe network cameras, command was $arp_scan_command, status is '$status' output: ".implode(PHP_EOL, $output));
@@ -363,10 +363,10 @@ function probeNetwork() {
   foreach ( dbFetchAll("SELECT `Id`, `Name`, `Path` FROM `Monitors` WHERE `Type` = 'Ffmpeg' ORDER BY `Path`") as $monitor ) {
     $url_parts = parse_url($monitor['Path']);
     if ($url_parts !== false) {
-      ZM\Debug("Ffmpeg monitor ${url_parts['host']} = ${monitor['Id']} ${monitor['Name']}");
+        ZM\Debug("Ffmpeg monitor " . $url_parts['host'] . " = " . $monitor['Id'] . " " . $monitor['Name']);
       $monitors[gethostbyname($url_parts['host'])] = $monitor;
     } else {
-      ZM\Debug("Unable to parse ${monitor['Path']}");
+        ZM\Debug("Unable to parse " . $monitor['Path']);
     }
   }
 
@@ -460,7 +460,7 @@ echo getNavBarHTML();
 <?php
 $interfaces = array('', 'select');
   $interfaces += get_networks();
-  $default_interface = $interfaces['default'];
+  $default_interface = isset($interfaces['default']) ? $interfaces['default'] : '';
   unset($interfaces['default']);
 
   echo htmlSelect('interface', $interfaces,

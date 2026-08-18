@@ -20,27 +20,62 @@
 #include "zm_comms.h"
 #include <array>
 #include <cstdlib>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
 namespace {
 
+// InetSocket::bind() resolves with AF_UNSPEC, so the socket that actually got
+// bound may be AF_INET6. sockaddr_storage is the only buffer guaranteed to be
+// big enough for either, and the port sits at a different offset in each.
 int getBoundPort(int sd) {
-  sockaddr_in addr = {};
+  sockaddr_storage addr = {};
   socklen_t addr_len = sizeof(addr);
   REQUIRE(::getsockname(sd, reinterpret_cast<sockaddr *>(&addr), &addr_len) == 0);
 
-  const int port = ntohs(addr.sin_port);
+  int port = 0;
+  if (addr.ss_family == AF_INET) {
+    port = ntohs(reinterpret_cast<const sockaddr_in *>(&addr)->sin_port);
+  } else if (addr.ss_family == AF_INET6) {
+    port = ntohs(reinterpret_cast<const sockaddr_in6 *>(&addr)->sin6_port);
+  } else {
+    FAIL("unexpected address family " << addr.ss_family);
+  }
+
   REQUIRE(port > 0);
   return port;
 }
 
+// mkstemp is what reserves the name, so the template has to be the socket path
+// itself. Reserving zm.unittest.XXXXXX and then appending .sock would hand back
+// a name nothing had claimed, which two concurrent runs could still collide on.
 std::string makeUnixSocketPath() {
-  char path_template[] = "/tmp/zm.unittest.XXXXXX";
-  const int fd = ::mkstemp(path_template);
+  char path_template[] = "/tmp/zm.unittest.XXXXXX.sock";
+  const int fd = ::mkstemps(path_template, 5);
   REQUIRE(fd >= 0);
   REQUIRE(::close(fd) == 0);
+  // bind() needs the path free, and this process holds the only claim on it.
   REQUIRE(::unlink(path_template) == 0);
-  return std::string(path_template) + ".sock";
+  return std::string(path_template);
+}
+
+// A port nothing is listening on. Binding then closing leaves the number
+// unused, which is far safer than hardcoding one and hoping the host agrees.
+int getUnusedPort() {
+  const int sd = ::socket(AF_INET, SOCK_STREAM, 0);
+  REQUIRE(sd >= 0);
+
+  sockaddr_in addr = {};
+  addr.sin_family = AF_INET;
+  addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+  addr.sin_port = 0;
+  REQUIRE(::bind(sd, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) == 0);
+
+  const int port = getBoundPort(sd);
+  REQUIRE(::close(sd) == 0);
+  return port;
 }
 
 }  // namespace
@@ -297,7 +332,7 @@ TEST_CASE("ZM::TcpInetClient basics") {
   REQUIRE(client.isConnected() == false);
   REQUIRE(client.isDisconnected() == false);
 
-  REQUIRE(client.connect("127.0.0.1", 1234) == false);
+  REQUIRE(client.connect("127.0.0.1", getUnusedPort()) == false);
   REQUIRE(client.isClosed() == true);
   REQUIRE(client.isOpen() == false);
   REQUIRE(client.isConnected() == false);

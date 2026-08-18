@@ -464,11 +464,12 @@ sub delete {
       select(undef, undef, undef, 0.05 * (1 << $attempt) + rand(0.05));
     }
 
-    my $storage = $event->Storage();
-    if ($event->DiskSpace() and $storage->Id()) {
-      $storage->lock_and_load();
-      $storage->save({DiskSpace=>$storage->DiskSpace()-$event->DiskSpace()});
-    }
+    # Relative, single-statement adjustment.  A lock_and_load + save here would
+    # be a read-modify-write whose FOR UPDATE lock is dropped the moment the
+    # SELECT autocommits, so the absolute value it then writes clobbers any
+    # adjustment zmc or another filter made in between.
+    # See ZoneMinder::Storage::adjust_diskspace.
+    $event->Storage()->adjust_diskspace(-$event->DiskSpace()) if $event->DiskSpace();
   }
 
   if ( ( $in_zmaudit or (!$Config{ZM_OPT_FAST_DELETE})) and $event->Storage()->DoDelete() ) {
@@ -830,15 +831,11 @@ sub MoveTo {
   }
   $ZoneMinder::Database::dbh->commit() if !$was_in_transaction;
 
-  # Update storage diskspace.  The triggers no longer do this. This is ... less important so do it outside the transaction
-  if ($old_diskspace and $$OldStorage{Id}) {
-    $OldStorage->lock_and_load();
-    $OldStorage->save({DiskSpace => $OldStorage->DiskSpace()-$old_diskspace});
-  }
-  if ($new_diskspace and $$NewStorage{Id}) {
-    $NewStorage->lock_and_load();
-    $NewStorage->save({DiskSpace => $NewStorage->DiskSpace()+$new_diskspace});
-  }
+  # Update storage diskspace.  The triggers no longer do this. This is ... less
+  # important, so it is a relative adjustment rather than a read-modify-write:
+  # one statement per storage area, no lock outliving it.
+  $OldStorage->adjust_diskspace(-$old_diskspace) if $old_diskspace;
+  $NewStorage->adjust_diskspace($new_diskspace) if $new_diskspace;
 
   $self->delete_files($OldStorage);
   return $error;

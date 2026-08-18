@@ -128,6 +128,18 @@ TEST_CASE("Split (string delimiter)") {
 
   items = Split("a b c", " ", 2);
   REQUIRE(items == std::vector<std::string>{"a", "b c"});
+
+  // LibvlcCamera splits the monitor Options field this way. The field is a
+  // textarea, so an option may be on its own line rather than after a comma,
+  // and runs of separators (a blank line, or crlf) must not become entries.
+  items = Split("--rate=1\n--no-audio", kOptionSeparators);
+  REQUIRE(items == std::vector<std::string>{"--rate=1", "--no-audio"});
+
+  items = Split("--rate=1,--no-audio", kOptionSeparators);
+  REQUIRE(items == std::vector<std::string>{"--rate=1", "--no-audio"});
+
+  items = Split("--rate=1\r\n\r\n--no-audio\n", kOptionSeparators);
+  REQUIRE(items == std::vector<std::string>{"--rate=1", "--no-audio"});
 }
 
 TEST_CASE("Join") {
@@ -195,6 +207,66 @@ TEST_CASE("UriEncode") {
   // Round-trip test: encode then decode should return original
   std::string original = "hello world!";
   REQUIRE(UriDecode(UriEncode(original)) == original);
+
+  // Non-ASCII bytes must each be escaped as a single %XX pair. A signed char
+  // sign-extends here and yields "%FF" (truncated from "FFFFFFD0") instead.
+  REQUIRE(UriEncode("\xD0\xB2") == "%D0%B2");
+  REQUIRE(UriEncode("\xFF") == "%FF");
+  REQUIRE(UriEncode("\x80") == "%80");
+
+  // A Cyrillic name (U+0432 U+0445 U+043E U+0434) - the kind of name the
+  // utf8mb4 switch made storable. Written as bytes so this file stays ASCII.
+  REQUIRE(UriEncode("\xD0\xB2\xD1\x85\xD0\xBE\xD0\xB4") == "%D0%B2%D1%85%D0%BE%D0%B4");
+
+  // Mixed ASCII and UTF-8, and a multi-byte round trip.
+  REQUIRE(UriEncode("Cam \xC3\xA9") == "Cam%20%C3%A9");
+  REQUIRE(UriDecode(UriEncode("\xD0\xB2\xD1\x85")) == "\xD0\xB2\xD1\x85");
+}
+
+TEST_CASE("escape_json_string") {
+  // Nothing to do.
+  REQUIRE(escape_json_string("") == "");
+  REQUIRE(escape_json_string("Front Door") == "Front Door");
+
+  // A quote must come out as one backslash then a quote. The previous
+  // implementation escaped quotes before backslashes, so it emitted \\" here:
+  // an escaped backslash followed by a bare quote, which closed the JSON
+  // string it was embedded in.
+  REQUIRE(escape_json_string("\"") == "\\\"");
+  REQUIRE(escape_json_string("Front \"Door\"") == "Front \\\"Door\\\"");
+
+  // A backslash doubles, and that doubling must not itself be re-doubled.
+  REQUIRE(escape_json_string("\\") == "\\\\");
+  REQUIRE(escape_json_string("back\\slash") == "back\\\\slash");
+
+  // A backslash adjacent to a quote is where ordering errors surface.
+  REQUIRE(escape_json_string("\\\"") == "\\\\\\\"");
+
+  // Named control character escapes.
+  REQUIRE(escape_json_string("\n") == "\\n");
+  REQUIRE(escape_json_string("\r") == "\\r");
+  REQUIRE(escape_json_string("\t") == "\\t");
+  REQUIRE(escape_json_string("\b") == "\\b");
+  REQUIRE(escape_json_string("\f") == "\\f");
+  REQUIRE(escape_json_string("line\nbreak") == "line\\nbreak");
+
+  // Control characters without a short form must still be escaped.
+  REQUIRE(escape_json_string(std::string(1, '\a')) == "\\u0007");
+  REQUIRE(escape_json_string(std::string(1, '\x01')) == "\\u0001");
+  REQUIRE(escape_json_string(std::string(1, '\x1f')) == "\\u001f");
+
+  // An embedded NUL is a control character like any other and must survive.
+  REQUIRE(escape_json_string(std::string("a\0b", 3)) == "a\\u0000b");
+
+  // 0x7f is not a JSON control character, and UTF-8 passes through intact.
+  REQUIRE(escape_json_string(std::string(1, '\x7f')) == std::string(1, '\x7f'));
+  REQUIRE(escape_json_string("\xD0\xB2\xD1\x85") == "\xD0\xB2\xD1\x85");
+
+  // Escaping twice is not the same as escaping once. This is the double
+  // escape the go2rtc credential path was hitting.
+  const std::string once = escape_json_string("pa\\ss");
+  REQUIRE(once == "pa\\\\ss");
+  REQUIRE(escape_json_string(once) == "pa\\\\\\\\ss");
 }
 
 TEST_CASE("QueryString") {

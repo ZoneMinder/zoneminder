@@ -69,8 +69,12 @@ Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
   rtsp_second_path = parent->GetSecondPath();
 
   if (!parent->user.empty()) {
-    rtsp_username = escape_json_string(parent->user);
-    rtsp_password = escape_json_string(parent->pass);
+    // Stored raw. These end up in an RTSP URL, not in JSON, and the JSON
+    // payloads that embed the assembled path escape it themselves at the point
+    // it becomes JSON. Escaping here as well meant a password containing a
+    // backslash reached go2rtc doubled.
+    rtsp_username = parent->user;
+    rtsp_password = parent->pass;
     if (rtsp_path.find("rtsp://") == 0) {
       rtsp_path = "rtsp://" + rtsp_username + ":" + rtsp_password + "@" + rtsp_path.substr(7, std::string::npos);
     } else {
@@ -227,7 +231,7 @@ int Monitor::Go2RTCManager::add_to_Go2RTC() {
   Debug(1, "Go2RTC: Adding primary stream (monitor ID) - path: %s%s",
         primary_path.c_str(), Use_RTSP_Restream ? " (via RTSP restreamer)" : "");
   std::string endpoint = Go2RTC_endpoint + "/streams?name=" + id_str + "&src=" + UriEncode(primary_path);
-  std::string postData = "{\"name\" : \"" + std::string(parent->Name()) + "\", \"src\": \"" + primary_path + "\" }";
+  std::string postData = "{\"name\" : \"" + escape_json_string(parent->Name()) + "\", \"src\": \"" + escape_json_string(primary_path) + "\" }";
   Debug(2, "Go2RTC: PUT to %s with data: %s", endpoint.c_str(), postData.c_str());
   std::pair<CURLcode, std::string> response = CURL_PUT(endpoint, postData);
   if (response.first != CURLE_OK) {
@@ -247,7 +251,7 @@ int Monitor::Go2RTCManager::add_to_Go2RTC() {
     std::string transcode_src = "ffmpeg:" + id_str + "#video=h264";
     Debug(1, "Go2RTC: Adding H.264 transcode stream - src: %s", transcode_src.c_str());
     endpoint = Go2RTC_endpoint + "/streams?name=" + id_str + "_h264&src=" + UriEncode(transcode_src);
-    postData = "{\"name\" : \"" + std::string(parent->Name()) + " H264\", \"src\": \"" + transcode_src + "\" }";
+    postData = "{\"name\" : \"" + escape_json_string(parent->Name()) + " H264\", \"src\": \"" + escape_json_string(transcode_src) + "\" }";
     Debug(2, "Go2RTC: PUT to %s", endpoint.c_str());
     response = CURL_PUT(endpoint, postData);
     if (response.first == CURLE_OK) {
@@ -259,7 +263,7 @@ int Monitor::Go2RTCManager::add_to_Go2RTC() {
   if (Use_RTSP_Restream) {
     Debug(1, "Go2RTC: Adding ZoneMinderPrimary stream - path: %s", rtsp_restream_path.c_str());
     endpoint = Go2RTC_endpoint + "/streams?name=" + id_str + "_ZoneMinderPrimary&src=" + UriEncode(rtsp_restream_path);
-    postData = "{\"name\" : \"" + std::string(parent->Name()) + " ZoneMinder Primary\", \"src\": \"" + rtsp_restream_path + "\" }";
+    postData = "{\"name\" : \"" + escape_json_string(parent->Name()) + " ZoneMinder Primary\", \"src\": \"" + escape_json_string(rtsp_restream_path) + "\" }";
     Debug(2, "Go2RTC: PUT to %s", endpoint.c_str());
     response = CURL_PUT(endpoint, postData);
     if (response.first == CURLE_OK) {
@@ -271,7 +275,7 @@ int Monitor::Go2RTCManager::add_to_Go2RTC() {
   if (!rtsp_path.empty()) {
     Debug(1, "Go2RTC: Adding CameraDirectPrimary stream - path: %s", rtsp_path.c_str());
     endpoint = Go2RTC_endpoint + "/streams?name=" + id_str + "_CameraDirectPrimary&src=" + UriEncode(rtsp_path);
-    postData = "{\"name\" : \"" + std::string(parent->Name()) + " Camera Direct Primary\", \"src\": \"" + rtsp_path + "\" }";
+    postData = "{\"name\" : \"" + escape_json_string(parent->Name()) + " Camera Direct Primary\", \"src\": \"" + escape_json_string(rtsp_path) + "\" }";
     Debug(2, "Go2RTC: PUT to %s", endpoint.c_str());
     response = CURL_PUT(endpoint, postData);
     if (response.first == CURLE_OK) {
@@ -282,7 +286,7 @@ int Monitor::Go2RTCManager::add_to_Go2RTC() {
   if (!rtsp_second_path.empty()) {
     Debug(1, "Go2RTC: Adding CameraDirectSecondary stream - path: %s", rtsp_second_path.c_str());
     endpoint = Go2RTC_endpoint + "/streams?name=" + id_str + "_CameraDirectSecondary&src=" + UriEncode(rtsp_second_path);
-    postData = "{\"name\" : \"" + std::string(parent->Name()) + " Camera Direct Secondary\", \"src\": \"" + rtsp_second_path + "\" }";
+    postData = "{\"name\" : \"" + escape_json_string(parent->Name()) + " Camera Direct Secondary\", \"src\": \"" + escape_json_string(rtsp_second_path) + "\" }";
     Debug(2, "Go2RTC: PUT to %s", endpoint.c_str());
     response = CURL_PUT(endpoint, postData);
     if (response.first == CURLE_OK) {

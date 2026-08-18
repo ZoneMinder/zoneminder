@@ -233,7 +233,7 @@ function loadConfig( $defineConsts=true ) {
 
   $config = [];
 
-  global $dbConn;
+  $dbConn = zmDbConn();
   $result = $dbConn->query('SELECT Name,Value,Type,Private FROM Config');
   if ( !$result )
     echo mysql_error();

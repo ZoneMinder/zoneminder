@@ -97,8 +97,9 @@ var focusWindow = <?php echo !empty($focusWindow)?'true':'false' ?>;
 
 const imagePrefix = '<?php echo '?view=image&eid=' ?>';
 
-var auth_hash = '<?php echo generateAuthHash(ZM_AUTH_HASH_IPS) ?>';
-var auth_relay = '<?php echo get_auth_relay() ?>';
+// The page's one copy of the authentication credential. ZMAuth derives the bare
+// hash from the relay, so the two can never disagree; see web/js/auth-helpers.js.
+var zmAuth = new ZMAuth('<?php echo get_auth_relay() ?>');
 var user = <?php echo $user ? json_encode($user->expose(['Password'])) : '{}'; ?>;
 var running = <?php echo daemonCheck()?'true':'false' ?>;
 

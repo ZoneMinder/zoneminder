@@ -107,7 +107,6 @@ if ($action == 'save') {
       'TrackMotion' => 0,
       'ModectDuringPTZ' =>  0,
       'Enabled' => 0,
-      'Deleted' => 0,
       'DecodingEnabled' => 0,
       'RTSP2WebEnabled' => 0,
       'Go2RTCEnabled' => 0,
@@ -130,7 +129,10 @@ if ($action == 'save') {
       );
 
   # Checkboxes don't return an element in the POST data, so won't be present in newMonitor.
-  # So force a value for these fields
+  # So force a value for these fields.
+  # Deleted is deliberately NOT in this list: its checkbox is an "undelete"
+  # action, present only on a deleted monitor and only ever sending 0. Forcing
+  # a default of 0 when it is absent undeleted the monitor on every save.
   foreach ($types as $field => $value) {
     if (!isset($newMonitor[$field])) {
       $newMonitor[$field] = $value;
@@ -158,9 +160,12 @@ if ($action == 'save') {
   if (count($changes)) {
     // monitor->Id() has a value when the db record exists
     if ($monitor->Id()) {
-      if ($monitor->Deleted() and ! isset($_REQUEST['newMonitor[Deleted]'])) {
+      if ($monitor->Deleted() and empty($_REQUEST['mid'])) {
         # We are saving a new monitor with a specified Id and the Id is used in a deleted record.
         # Undelete it so that it is visible.
+        # Editing an existing deleted monitor (mid in the request) must NOT
+        # undelete it - that only happens via the explicit undelete checkbox,
+        # which arrives as newMonitor[Deleted]=0 and so shows up in $changes.
         $monitor->Deleted(false);
       }
 

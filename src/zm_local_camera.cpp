@@ -465,13 +465,14 @@ LocalCamera::LocalCamera(
     }
 
     imgConversionContext = sws_getContext(
-                             width, height, capturePixFormat,
-                             width, height, imagePixFormat, SWS_BICUBIC,
+                             width, height, fix_deprecated_pix_fmt(capturePixFormat),
+                             width, height, fix_deprecated_pix_fmt(imagePixFormat), SWS_BICUBIC,
                              nullptr, nullptr, nullptr);
 
     if (!imgConversionContext) {
       Fatal("Unable to initialise image scaling context");
     }
+    zm_sws_set_ranges(imgConversionContext, capturePixFormat, imagePixFormat);
   } else {
     imgConversionContext = nullptr;
   } // end if capture and conversion_tye == swscale

@@ -120,7 +120,13 @@ nav #pills-tab a.nav-link.active {
   border: 1px #ccc solid;
 }
 
-.EncoderParameters label {
+/* The label is inline-block next to its field, so it lines up with the bottom
+ * of a field taller than one row - the textareas, and the chosen container the
+ * Groups multi-select is replaced by. They all want their label at the top. */
+.EncoderParameters label,
+.Notes label,
+.SourceOptions label,
+.Groups label {
   vertical-align: top;
 }
 

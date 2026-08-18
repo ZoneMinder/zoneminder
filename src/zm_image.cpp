@@ -375,14 +375,17 @@ bool Image::Assign(const AVFrame *frame) {
   // Map deprecated YUVJ* formats to their non-J equivalents before handing the
   // format to swscale. Passing YUVJ420P/YUVJ422P/etc directly makes swscale emit
   // "deprecated pixel format used, make sure you did set range correctly" (seen
-  // in nph-zms). This mirrors what SWScale::Convert already does.
+  // in nph-zms). This mirrors what SWScale::Convert already does. Both sides
+  // need it: imagePixFormat is itself YUVJ* whenever the monitor passes through
+  // a full-range h264/mjpeg source.
   const AVPixelFormat orig_src_fmt = static_cast<AVPixelFormat>(frame->format);
   const AVPixelFormat src_fmt = fix_deprecated_pix_fmt(orig_src_fmt);
+  const AVPixelFormat dst_fmt = fix_deprecated_pix_fmt(format);
 
   // If source and destination format + dimensions match, do a direct plane
   // copy instead of running through sws_scale. This avoids the overhead of
   // the swscale pipeline for identity conversions (e.g. YUVJ422P→YUVJ422P).
-  if (src_fmt == format
+  if (src_fmt == dst_fmt
       && frame->width == static_cast<int>(width)
       && frame->height == static_cast<int>(height)) {
     Debug(4, "Same format %s %dx%d, using av_image_copy",
@@ -412,14 +415,14 @@ bool Image::Assign(const AVFrame *frame) {
   sws_convert_context = sws_getCachedContext(
                           sws_convert_context,
                           frame->width, frame->height, src_fmt,
-                          width, height, format,
+                          width, height, dst_fmt,
                           SWS_BICUBIC,
                           nullptr, nullptr, nullptr);
   if (sws_convert_context == nullptr) {
     Error("Unable to create conversion context");
     return false;
   }
-  zm_sws_set_input_range(sws_convert_context, orig_src_fmt);
+  zm_sws_set_ranges(sws_convert_context, orig_src_fmt, format);
   bool result = Assign(frame, sws_convert_context);
   update_function_pointers();
   return result;
@@ -1337,7 +1340,6 @@ bool Image::WriteRaw(const std::string &filename) const {
 
 bool Image::ReadJpeg(const std::string &filename, unsigned int p_colours, unsigned int p_subpixelorder) {
   unsigned int new_width, new_height, new_colours, new_subpixelorder;
-  AVPixelFormat p_pixfmt = zm_pixformat_from_colours(p_colours, p_subpixelorder);
 
   if (!readjpg_dcinfo) {
     readjpg_dcinfo = new jpeg_decompress_struct;
@@ -1358,6 +1360,9 @@ bool Image::ReadJpeg(const std::string &filename, unsigned int p_colours, unsign
     fclose(infile);
     return false;
   }
+
+  /* Computed after setjmp() so it cannot be clobbered by the longjmp() out of the error handler */
+  const AVPixelFormat p_pixfmt = zm_pixformat_from_colours(p_colours, p_subpixelorder);
 
   jpeg_stdio_src(readjpg_dcinfo, infile);
 
@@ -1700,7 +1705,6 @@ bool Image::WriteJpeg(const std::string &filename,
 
 bool Image::DecodeJpeg(const JOCTET *inbuffer, int inbuffer_size, unsigned int p_colours, unsigned int p_subpixelorder) {
   unsigned int new_width, new_height, new_colours, new_subpixelorder;
-  AVPixelFormat p_pixfmt = zm_pixformat_from_colours(p_colours, p_subpixelorder);
 
   if (!decodejpg_dcinfo) {
     decodejpg_dcinfo = new jpeg_decompress_struct;
@@ -1714,6 +1718,9 @@ bool Image::DecodeJpeg(const JOCTET *inbuffer, int inbuffer_size, unsigned int p
     jpeg_abort_decompress(decodejpg_dcinfo);
     return false;
   }
+
+  /* Computed after setjmp() so it cannot be clobbered by the longjmp() out of the error handler */
+  const AVPixelFormat p_pixfmt = zm_pixformat_from_colours(p_colours, p_subpixelorder);
 
   zm_jpeg_mem_src(decodejpg_dcinfo, inbuffer, inbuffer_size);
 
@@ -3502,8 +3509,18 @@ void Image::Scale(const unsigned int new_width, const unsigned int new_height) {
   size_t scale_buffer_size = static_cast<size_t>(new_size);
   uint8_t* scale_buffer = AllocBuffer(scale_buffer_size);
 
-  SWScale swscale;
-  swscale.init();
+  // Reuse one SWScale (and thus one cached sws context) per thread. A fresh
+  // local one meant a full sws_init_context on every scaled frame — for a
+  // montage of N streams that is N context builds per frame period, and it is
+  // what made the (now-fixed) deprecated-format warning a flood rather than a
+  // one-off. sws_getCachedContext re-inits by itself if the geometry changes.
+  static thread_local SWScale swscale;
+  static thread_local const bool swscale_ready = swscale.init();
+  if (!swscale_ready) {
+    Error("Scale: failed to initialise SWScale");
+    DumpBuffer(scale_buffer, ZM_BUFTYPE_ZM);
+    return;
+  }
   // Both buffers use Image's align-32 layout: `buffer` is ours, and
   // scale_buffer is adopted by AssignDirect below, which derives
   // size/linesize with av_image_* at align=32.

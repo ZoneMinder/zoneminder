@@ -88,6 +88,13 @@ std::pair<std::string, std::string> PairSplit(const std::string &str, char delim
 
 std::string Join(const StringVector &values, const std::string &delim = ",");
 
+// Separator characters between entries in a monitor's Options field. The ui
+// offers a textarea, so an option may be on its own line as well as after a
+// comma. Both consumers - av_dict_parse_string() for Ffmpeg and Split() for
+// Libvlc - take a set of separator characters and skip empty entries, so a
+// blank line, crlf or a trailing newline all just work.
+constexpr const char kOptionSeparators[] = ",\r\n";
+
 inline bool StartsWith(const std::string &haystack, const std::string &needle) {
   return (haystack.substr(0, needle.length()) == needle);
 }

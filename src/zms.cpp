@@ -281,11 +281,10 @@ int main(int argc, const char *argv[], char **envp) {
       // streams whose hash TTL expired; the browser keeps reconnecting with the
       // baked-in URL. Including user/auth-prefix/uri/xff makes the noise diagnosable
       // without flipping on Debug.
-      char auth_prefix[9] = {0};
-      if (*auth) strncpy(auth_prefix, auth, sizeof(auth_prefix)-1);
-      Warning("Unable to authenticate user (user='%s' auth='%s%s' uri='%s' referer='%s' xff='%s' remote='%s')",
+      // Log only the first 8 chars of the hash: enough to correlate, not enough to replay.
+      Warning("Unable to authenticate user (user='%s' auth='%.8s%s' uri='%s' referer='%s' xff='%s' remote='%s')",
               username.c_str(),
-              auth_prefix,
+              auth,
               (*auth && strlen(auth) > 8) ? "..." : "",
               request_uri ? request_uri : "",
               referer ? referer : "",

@@ -179,37 +179,41 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   typedef enum { CLOSE_UNKNOWN=0, CLOSE_SYSTEM, CLOSE_TIME, CLOSE_DURATION, CLOSE_IDLE, CLOSE_ALARM } EventCloseMode;
 
-  /* sizeof(SharedData) expected to be 472 bytes on 32bit and 64bit */
+  /* sizeof(SharedData) is 888 bytes on both 32bit and 64bit */
   typedef struct {
-    uint32_t size;              /* +0    */
-    int32_t  last_write_index;  /* +4    */
-    int32_t  last_read_index;   /* +8    */
-    int32_t  image_count;       /* +12   */
-    uint32_t state;             /* +16   */
-    double      capture_fps;    /* +20   Current capturing fps */
-    double      analysis_fps;   /* +28   Current analysis fps */
-    double      latitude;       /* +36   */
-    double      longitude;      /* +44   */
-    uint64_t last_event_id;     /* +52   */
-    uint32_t action;            /* +60   */
-    int32_t brightness;         /* +64   */
-    int32_t hue;                /* +68   */
-    int32_t colour;             /* +72   */
-    int32_t contrast;           /* +76   */
-    int32_t alarm_x;            /* +80   */
-    int32_t alarm_y;            /* +84   */
-    uint8_t valid;              /* +88   */
-    uint8_t capturing;          /* +89   */
-    uint8_t analysing;          /* +90   */
-    uint8_t recording;          /* +91   */
-    uint8_t signal;             /* +92   */
-    uint8_t format;             /* +93   */
-    uint8_t reserved1;          /* +94   */
-    uint8_t reserved2;          /* +95   */
-    uint32_t imagesize;         /* +96   */
-    uint32_t last_frame_score;  /* +100   */
-    uint32_t audio_frequency;   /* +104   */
-    uint32_t audio_channels;    /* +108   */
+    uint32_t size;              /* +0 */
+    int32_t  last_write_index;  /* +4 */
+    int32_t  last_read_index;   /* +8 */
+    int32_t  image_count;       /* +12 */
+    uint32_t state;             /* +16 */
+    /* Explicit pad. x86-64 aligns double to 8 and inserts this implicitly, but
+     * the i386 SysV ABI aligns double to 4 and would not, shifting every later
+     * member by 4. Making it explicit keeps the layout identical on both. */
+    uint32_t epadding1;         /* +20 */
+    double      capture_fps;    /* +24   Current capturing fps */
+    double      analysis_fps;   /* +32   Current analysis fps */
+    double      latitude;       /* +40 */
+    double      longitude;      /* +48 */
+    uint64_t last_event_id;     /* +56 */
+    uint32_t action;            /* +64 */
+    int32_t brightness;         /* +68 */
+    int32_t hue;                /* +72 */
+    int32_t colour;             /* +76 */
+    int32_t contrast;           /* +80 */
+    int32_t alarm_x;            /* +84 */
+    int32_t alarm_y;            /* +88 */
+    uint8_t valid;              /* +92 */
+    uint8_t capturing;          /* +93 */
+    uint8_t analysing;          /* +94 */
+    uint8_t recording;          /* +95 */
+    uint8_t signal;             /* +96 */
+    uint8_t format;             /* +97 */
+    uint8_t reserved1;          /* +98 */
+    uint8_t reserved2;          /* +99 */
+    uint32_t imagesize;         /* +100 */
+    uint32_t last_frame_score;  /* +104 */
+    uint32_t audio_frequency;   /* +108 */
+    uint32_t audio_channels;    /* +112 */
     //uint32_t reserved3;         /* +0   */
     /*
      ** This keeps 32bit time_t and 64bit time_t identical and compatible as long as time is before 2038.
@@ -217,57 +221,68 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
      ** Because startup_time is 64bit it may be aligned to a 64bit boundary.  So it's offset SHOULD be a multiple
      ** of 8. Add or delete epadding's to achieve this.
      */
-    union {                     /* +112   */
+    /* Explicit pad, same reasoning as epadding1: the following union is
+     * 8-aligned on x86-64 but only 4-aligned on i386. */
+    uint32_t epadding2;         /* +116 */
+    union {                     /* +120  */
       time_t startup_time;			/* When the zmc process started.  zmwatch uses this to see how long the process has been running without getting any images */
       uint64_t extrapad1;
     };
-    union {                     /* +120   */
+    union {                     /* +128  */
       time_t heartbeat_time;			/* Constantly updated by zmc.  Used to determine if the process is alive or hung or dead */
       uint64_t extrapad2;
     };
-    union {                     /* +128   */
+    union {                     /* +136  */
       time_t last_write_time;
       uint64_t extrapad3;
     };
-    union {                     /* +136  */
+    union {                     /* +144  */
       time_t last_read_time;
       uint64_t extrapad4;
     };
-    union {                     /* +144  */
+    union {                     /* +152  */
       time_t last_viewed_time;
       uint64_t extrapad5;
     };
-    union {                     /* +152  */
+    union {                     /* +160  */
       time_t last_analysis_viewed_time;
       uint64_t extrapad6;
     };
-    uint8_t control_state[256]; /* +160  */
+    uint8_t control_state[256]; /* +168 */
 
-    char alarm_cause[256]; /* +416 */
-    char video_fifo_path[64]; /* +672 */
-    char audio_fifo_path[64]; /* +736 */
-    char janus_pin[64]; /* +800 */
+    char alarm_cause[256]; /* +424 */
+    char video_fifo_path[64]; /* +680 */
+    char audio_fifo_path[64]; /* +744 */
+    char janus_pin[64]; /* +808 */
     /* Analysis image ring: the annotated/analysis image is published into a
      * ring of image_buffer_count slots (reusing the alarm_images SHM region).
      * last_analysis_index is the slot most recently written (or
      * image_buffer_count as the "nothing written yet" sentinel);
      * analysis_image_count is a monotonic counter of analysis images published.
      * Appended at the end so no earlier SharedData offset shifts. */
-    int32_t last_analysis_index;   /* +864 */
-    int32_t analysis_image_count;  /* +868 */
-    uint32_t analysis_pad[2];      /* +872  keep 16-byte multiple */
-    /* 880 total */
+    int32_t last_analysis_index;   /* +872 */
+    int32_t analysis_image_count;  /* +876 */
+    uint32_t analysis_pad[2];      /* +880   keep 16-byte multiple */
+    /* 888 total */
   } SharedData;
   // Cross-process ABI guard: zmc/zma/zms plus the Perl (Memory.pm) and PHP
   // (Monitor.php) SHM readers all assume this exact layout. If it changes,
   // update those readers in lockstep and bump the size below.
-  // Cross-process ABI guard. The struct is naturally aligned (NOT packed), so
-  // two 4-byte pads exist (before capture_fps and before the startup_time
-  // union); the /* +N */ comments above are the packed-layout ideal and do NOT
-  // reflect real offsets. zmc/zma/zms and the Perl (Memory.pm, which computes
-  // alignment) SHM reader assume this exact layout. If it changes, update the
-  // readers in lockstep and bump the size here.
+  //
+  // The struct is naturally aligned (NOT packed). Both interior pads are now
+  // declared explicitly as epadding1/epadding2, so the /* +N */ comments above
+  // are the real offsets on every supported ABI. Those pads are what keep i386
+  // (which aligns double and uint64_t to 4, not 8) byte-identical to x86-64;
+  // without them i386 produced a 880-byte struct that disagreed with the Perl
+  // and PHP readers, both of which assume 8-byte alignment unconditionally.
   static_assert(sizeof(SharedData) == 888, "SharedData layout changed; update Memory.pm and Monitor.php offsets");
+  // The two members whose alignment differs between x86-64 and i386, asserted
+  // individually so an ABI divergence points at the culprit rather than only
+  // reporting a size mismatch. These must match the hardcoded offsets in
+  // web/includes/Monitor.php and the computed ones in Memory.pm.
+  static_assert(offsetof(SharedData, capture_fps) == 24, "capture_fps offset changed; update Memory.pm and Monitor.php");
+  static_assert(offsetof(SharedData, startup_time) == 120, "startup_time offset changed; update Memory.pm and Monitor.php");
+  static_assert(offsetof(SharedData, control_state) == 168, "control_state offset changed; update Memory.pm and Monitor.php");
 
   enum TriggerState : uint32 {
     TRIGGER_CANCEL,

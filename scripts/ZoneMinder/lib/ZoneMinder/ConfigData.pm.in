@@ -2434,6 +2434,27 @@ our @options = (
     category    => 'system',
   },
   {
+    name        => 'ZM_FILTER_LOCK_TIMEOUT',
+    default     => '3600',
+    description => 'How long (in seconds) a filter may hold an event before other filters may take it',
+    help        => q`
+      Filters with Lock Rows set claim each event in the Events_Lock
+      table before working on it, so that two filters do not act on the
+      same event at the same time. The claim is released when the filter
+      is done with the event, but a filter that is killed part way
+      through cannot release anything, so claims also expire. This is
+      how long they last. It needs to be comfortably longer than the
+      slowest thing a filter does to a single event - generating a video
+      or uploading a large event can take a while - because once a claim
+      expires another filter is free to take the event, even though the
+      first one may still be working on it. Set it too long and events
+      that a crashed filter had claimed are skipped by every other
+      filter until the claim expires.
+      `,
+    type        => $types{integer},
+    category    => 'system',
+  },
+  {
     name        => 'ZM_STATS_UPDATE_INTERVAL',
     default     => '60',
     description => 'How often to update the database statistics',

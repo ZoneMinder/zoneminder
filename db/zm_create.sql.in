@@ -346,6 +346,25 @@ CREATE TABLE `Events_Archived` (
   KEY `Events_Archived_MonitorId_idx` (`MonitorId`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
+/*
+ * Advisory locks over events, used by filters with LockRows set to claim an
+ * event before working on it. Deliberately NOT a row lock: claiming is a single
+ * autocommitted INSERT touching one row here, so no lock is held while the
+ * filter works, and nothing in this table can deadlock against, or block, the
+ * writers that touch Events/Events_*/Event_Summaries.
+ * No foreign key to Events for the same reason - it would make every event
+ * delete take a lock in here. Rows for deleted events are harmless and expire.
+ */
+DROP TABLE IF EXISTS `Events_Lock`;
+CREATE TABLE `Events_Lock` (
+  `EventId`   BIGINT unsigned NOT NULL,
+  `LockedBy`  varchar(64) NOT NULL, /* server id and pid of the claiming process */
+  `LockedAt`  datetime NOT NULL,
+  `ExpiresAt` datetime NOT NULL, /* claims expire so a killed filter cannot hold one forever */
+  PRIMARY KEY (`EventId`),
+  KEY `Events_Lock_ExpiresAt_idx` (`ExpiresAt`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
 DROP TABLE IF EXISTS `Event_Data`;
 CREATE TABLE `Event_Data` (
   `Id`      BIGINT unsigned NOT NULL auto_increment,

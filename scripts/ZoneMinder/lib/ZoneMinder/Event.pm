@@ -1105,6 +1105,67 @@ sub tags {
   return wantarray ? @tags : \@tags;
 }
 
+# ==========================================================================
+#
+# Advisory locks over events (the Events_Lock table)
+#
+# Used by filters with LockRows set so that two of them do not work on the same
+# event at once.  Deliberately not a row lock: acquiring is one autocommitted
+# INSERT touching one row of Events_Lock, and nothing is held while the event is
+# actually worked on.  Locking the filter's result set with SELECT ... FOR
+# UPDATE instead accumulates every lock the batch goes on to take - Events, the
+# bucket tables, Event_Summaries, Storage - until it commits, which deadlocks
+# two filters against each other and stalls zmc, which cannot open a new event
+# on a monitor whose Event_Summaries row is being held.
+#
+# Because the lock lives in a table rather than in the session, the filter's
+# selection query can exclude events other filters hold (see
+# ZoneMinder::Filter::Sql), so a filter's LIMIT fills with events it can
+# actually work on instead of being used up by events it will skip.
+#
+# The flip side is that a killed process cannot release what it held, so locks
+# expire after ZM_FILTER_LOCK_TIMEOUT.
+#
+# ==========================================================================
+
+sub lock_owner {
+  return ($Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID} : 0).'.'.$$;
+}
+
+# Returns 1 if we now hold the lock on this event, 0 if another process does.
+sub acquire_lock {
+  my $self = shift;
+  my $timeout = shift;
+  $timeout = ($Config{ZM_FILTER_LOCK_TIMEOUT} || 3600) if !defined $timeout;
+
+  # Clear an expired lock first so the INSERT below can take it.  Two separate
+  # autocommitted statements on purpose, each touching one row and holding
+  # nothing afterwards.  If another process gets in between them, our INSERT
+  # IGNORE reports no rows and we leave the event alone - which is the safe
+  # direction.
+  zmDbDo('DELETE FROM Events_Lock WHERE EventId=? AND ExpiresAt<NOW()', $$self{Id});
+
+  my $rows = zmDbDo(
+    'INSERT IGNORE INTO Events_Lock (EventId,LockedBy,LockedAt,ExpiresAt) VALUES (?,?,NOW(),NOW() + INTERVAL ? SECOND)',
+    $$self{Id}, lock_owner(), $timeout);
+
+  # DBI reports 0E0 rather than 0 for a statement that affected nothing, and it
+  # numifies to 0, so this distinguishes "inserted" from "already locked".
+  return (defined $rows and $rows > 0) ? 1 : 0;
+}
+
+sub release_lock {
+  my $self = shift;
+  return zmDbDo('DELETE FROM Events_Lock WHERE EventId=? AND LockedBy=?',
+    $$self{Id}, lock_owner());
+}
+
+# Drop locks whose holder went away without releasing them, so the table does
+# not accumulate rows.  Covered by the ExpiresAt index.
+sub reap_expired_locks {
+  return zmDbDo('DELETE FROM Events_Lock WHERE ExpiresAt<NOW()');
+}
+
 1;
 __END__
 

@@ -449,6 +449,15 @@ sub Sql {
       $sql .= ' AND ( '.join(' or ', @auto_terms).' )';
     }
 
+    # Leave out events another filter is already working on, so that our LIMIT
+    # fills with events we can actually do something with instead of being used
+    # up by events we would only skip. Done here rather than by skipping at
+    # claim time because a filter whose whole result set is held elsewhere would
+    # otherwise make no progress at all.
+    if ($$self{LockRows} and $filter_expr->{skip_locked}) {
+      $sql .= ' AND NOT EXISTS (SELECT 1 FROM Events_Lock AS EL WHERE EL.EventId=E.Id AND EL.ExpiresAt>NOW())';
+    }
+
     my $sort_column = '';
     if ($filter_expr->{sort_field}) {
       if ( $filter_expr->{sort_field} eq 'Id' ) {
@@ -499,16 +508,26 @@ sub Sql {
     if ($filter_expr->{limit}) {
       $sql .= ' LIMIT 0,'.$filter_expr->{limit};
     }
-    if ($$self{LockRows}) {
-      $sql .= ' FOR UPDATE';
-      if ($filter_expr->{skip_locked}) {
-        $sql .= ' SKIP LOCKED';
-      }
-    }
+    # LockRows deliberately does NOT add FOR UPDATE here.  Selecting the whole
+    # result set FOR UPDATE means every row lock, and every lock the per-event
+    # work goes on to take (Events_Hour/Day/Week/Month, Event_Summaries,
+    # Storage), is held until the batch commits.  That both deadlocks two
+    # filters against each other and blocks zmc from opening a new event on any
+    # monitor the filter touched.  zmfilter claims one event at a time in the
+    # Events_Lock table instead - see ZoneMinder::Event::acquire_lock.
     $self->{Sql} = $sql;
   } # end if has Sql
   return $self->{Sql};
 } # end sub Sql
+
+# Whether events another filter has claimed should be left out of this filter's
+# results altogether, rather than returned and then skipped one at a time.
+sub skip_locked {
+  my $self = shift;
+  return 0 if !$$self{Query_json};
+  my $filter_expr = ZoneMinder::General::jsonDecode($$self{Query_json});
+  return $filter_expr->{skip_locked} ? 1 : 0;
+}
 
 sub getDiskPercent {
   my $command = 'df ' . ($_[0] ? $_[0] : '.');

@@ -582,9 +582,9 @@ function MonitorStream(monitorData) {
                     }
                     if (this.audioTrack) connectAudioMotion(this.id);
                   } else {
-                      console.warn(`Error receiving audio/video tracks for monitor ID=${this.id}. [${e.detail.reason}]`, this.activePlayer, e);
-                      this.streamErrorRegistration();
-                      this.restart(this.currentChannelStream);
+                    console.warn(`Error receiving audio/video tracks for monitor ID=${this.id}. [${e.detail.reason}]`, this.activePlayer, e);
+                    this.streamErrorRegistration();
+                    this.restart(this.currentChannelStream);
                   }
                 } else {
                   console.warn(`RACE for monitor ID=${this.id}, we received audio video tracks, but the stream has already stopped.`, this.activePlayer, e);
@@ -2668,7 +2668,7 @@ function mseListenerSourceopen(context, videoEl, url) {
         } else {
           // Restart for select next player only for "Auto" mode
           context.streamErrorRegistration(true);
-          context.restart(context.currentChannelStream);;
+          context.restart(context.currentChannelStream);
         }
         return;
       }

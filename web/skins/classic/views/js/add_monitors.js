@@ -141,21 +141,33 @@ function addMonitor(btn) {
 }
 
 function import_csv() {
-  const form = $j('#contentForm');
-  var formData = new FormData( form );
-  console.log(formData);
+  // The file input and the CSRF input live in the modal's form, which has
+  // id="importModalForm" (its *name* is contentForm, but jQuery '#' matches on
+  // id, so '#contentForm' picked up the page's main form instead, which holds
+  // neither).
+  const form = $j('#importModalForm')[0];
+  const formData = new FormData(form);
 
-  $j.ajax({
-    url: thisUrl+"?request=add_monitors&action=import",
-    type: 'POST',
-    data: formData,
-    processData: false, // tell jQuery not to process the data
-    contentType: false, // tell jQuery not to set contentType
-    done: function(data) {
-      const json = JSON.parse(data);
-      parseStreams(json.Streams);
-    }
-  });
+  // Use fetch, not $j.ajax: csrf-magic.js overrides XMLHttpRequest.send and does
+  // `csrfMagicName + '=' + token + '&' + data`, which stringifies a FormData body
+  // to "[object FormData]" and drops the uploaded file, so the backend sees no
+  // file. fetch is not wrapped by csrf-magic. The __csrf_magic hidden input is
+  // part of the form, so FormData(form) still carries the token as a real
+  // multipart field.
+  fetch(thisUrl+'?request=add_monitors&action=import', {
+    method: 'POST',
+    body: formData,
+  })
+      .then((resp) => resp.json())
+      .then((data) => {
+        if (data.result == 'Error') {
+          alert(data.message);
+          return;
+        }
+        $j('#ImportMonitorsModal').modal('hide');
+        parseStreams(data.Streams ? data.Streams : []);
+      })
+      .catch(logAjaxFail);
 }
 
 function importMonitors() {

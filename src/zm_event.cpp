@@ -238,9 +238,12 @@ Event::~Event() {
       // hard links there is no way to have the file under both names at once,
       // and a brief window beats every event on the system being named as
       // though it never finished recording.
+      const int link_errno = errno;
       if (rename(video_incomplete_path.c_str(), video_path.c_str()) == 0) {
-        Debug(1, "Filesystem does not support hard links, renamed %s to %s",
-              video_incomplete_path.c_str(), video_path.c_str());
+        // Reports the errno rather than asserting the cause: on Linux EPERM
+        // usually means something other than a filesystem without hard links.
+        Debug(1, "Renamed %s to %s, link was refused: %s",
+              video_incomplete_path.c_str(), video_path.c_str(), strerror(link_errno));
       } else {
         Error("Failed renaming %s to %s, reason: %s",
               video_incomplete_path.c_str(), video_path.c_str(), strerror(errno));

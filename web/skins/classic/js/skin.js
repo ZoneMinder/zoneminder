@@ -3471,7 +3471,7 @@ const dispatchTracksReceived = function(videoFeedStream, {
       }
     }));
   } else {
-    console.warn(`No stream found for ${videoFeedStream}. dispatchEvent для 'zm:tracksReceived' не будет добавлен.`);
+    console.warn(`No stream found for ${videoFeedStream}. dispatchEvent for 'zm:tracksReceived' will not be added.`);
   }
 };
 

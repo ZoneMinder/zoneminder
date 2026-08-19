@@ -3455,19 +3455,24 @@ const dispatchTracksReceived = function(videoFeedStream, {
   status,
   reason = null
 } = {}) {
-  document.dispatchEvent(new CustomEvent('zm:tracksReceived', {
-    detail: {
-      monitorId: (typeof eventData !== 'undefined') ? eventData.MonitorId : videoFeedStream?.id,
-      status,
-      reason,
-      activePlayer: videoFeedStream?.activePlayer ?? null,
-      stream: {
-        mediaStream: videoFeedStream?.mediaStream ?? null,
-        audioTrack: videoFeedStream?.audioTrack ?? null,
-        videoTrack: videoFeedStream?.videoTrack ?? null
+  const objStream = (videoFeedStream?.dispatchEvent instanceof Function) ? videoFeedStream : videoFeedStream?.element;
+  if (objStream) {
+    objStream.dispatchEvent(new CustomEvent('zm:tracksReceived', {
+      detail: {
+        monitorId: (typeof eventData !== 'undefined') ? eventData.MonitorId : videoFeedStream?.id,
+        status,
+        reason,
+        activePlayer: videoFeedStream?.activePlayer ?? null,
+        stream: {
+          mediaStream: videoFeedStream?.mediaStream ?? null,
+          audioTrack: videoFeedStream?.audioTrack ?? null,
+          videoTrack: videoFeedStream?.videoTrack ?? null
+        }
       }
-    }
-  }));
+    }));
+  } else {
+    console.warn(`No stream found for ${videoFeedStream}. dispatchEvent для 'zm:tracksReceived' не будет добавлен.`);
+  }
 };
 
 /**

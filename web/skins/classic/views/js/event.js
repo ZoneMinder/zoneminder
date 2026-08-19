@@ -1357,9 +1357,14 @@ function onStatsResize(vidWidth) {
 }
 
 function initPage() {
-  document.addEventListener('zm:tracksReceived', (e) => {
-    if (e.detail.stream.audioTrack) connectAudioMotion(e.detail.monitorId);
-  });
+  const stream = document.getElementById('videoFeedStream' + eventData.MonitorId);
+  if (stream) {
+    stream.addEventListener('zm:tracksReceived', (e) => {
+      if (e.detail.stream.audioTrack) connectAudioMotion(e.detail.monitorId);
+    });
+  } else {
+    console.warn(`No stream found for monitor with ID=${eventData.MonitorId}. Listener for 'zm:tracksReceived' not added.`);
+  }
 
   getAvailableTags();
   getSelectedTags();

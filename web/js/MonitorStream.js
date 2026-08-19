@@ -551,7 +551,7 @@ function MonitorStream(monitorData) {
           this.writeTextInfoBlock("");
           this.createVolumeSlider();
 
-          this.handlerEventListener['zm:tracksReceived'] = manageEventListener.addEventListener(document, 'zm:tracksReceived',
+          this.handlerEventListener['zm:tracksReceived'] = manageEventListener.addEventListener(this.getElement(), 'zm:tracksReceived',
               (e) => {
                 if (!isCurrentPlaybackSession(this, playbackSessionId)) return;
                 if (e.detail.monitorId !== this.id) return;
@@ -2153,6 +2153,7 @@ function MonitorStream(monitorData) {
     };
     stream.onload = (e) => {
       if (!isCurrentPlaybackSession(this, playbackSessionId)) return;
+      this.resetCountStreamErrors(this.activePlayer);
       onLoad(e);
     };
 
@@ -2630,8 +2631,8 @@ function mseListenerSourceopen(context, videoEl, url) {
     console.log(`Connect to WebSocket MSE for a video object ID=${context.id}`);
   };
   context.wsMSE.onclose = (event) => {
-    context.clearWebSocket();
     if (!isCurrentPlaybackSession(context, playbackSessionId)) return;
+    context.clearWebSocket();
     console.log(`${dateTimeToISOLocal(new Date())} WebSocket MSE CLOSED for a video object ID=${context.id}.`);
   };
   context.wsMSE.onerror = function(event) {
@@ -2713,6 +2714,7 @@ function startMsePlay(context, videoEl, url) {
     context.mseWaitingErrorReset = setTimeout(function(self) {
       // If the video is in H.265, the browser may start playing (even if it doesn't support H.265) and an error may immediately appear.
       // You need to wait a bit before resetting the error. This will allow for more accurate error counting.
+      if (!isCurrentPlaybackSession(context, playbackSessionId)) return;
       self.updateStreamInfo('', ''); //MSE
       self.resetCountStreamErrors(context.activePlayer);
     }, 500, context);

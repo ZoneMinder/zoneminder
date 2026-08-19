@@ -657,7 +657,7 @@ void MonitorStream::runStream() {
       // Use ttl if set, otherwise default to 60 seconds.
       Seconds wait_timeout = (ttl > Seconds(0)) ? std::chrono::duration_cast<Seconds>(ttl) : Seconds(60);
       if (now - stream_start_time > wait_timeout) {
-        Debug(1, "Timed out waiting for capture daemon after %" PRIi64 " seconds.  ttl is %" PRIi64,
+        logPrintf(Logger::WARNING + monitor->Importance(), "Timed out waiting for capture daemon after %" PRIi64 " seconds.  ttl is %" PRIi64,
                 static_cast<int64>(std::chrono::duration_cast<Seconds>(now - stream_start_time).count()),
                 static_cast<int64>(std::chrono::duration_cast<Seconds>(wait_timeout).count())
                 );
@@ -894,7 +894,7 @@ void MonitorStream::runStream() {
           // Timeout if we've never received a frame from capture
           Seconds wait_timeout = (ttl > Seconds(0)) ? std::chrono::duration_cast<Seconds>(ttl) : Seconds(60);
           if (now - stream_start_time > wait_timeout) {
-            Warning("Timed out waiting for initial capture after %" PRIi64 " seconds",
+            logPrintf(Logger::WARNING + monitor->Importance(), "Timed out waiting for initial capture after %" PRIi64 " seconds",
                     static_cast<int64>(std::chrono::duration_cast<Seconds>(now - stream_start_time).count()));
             zm_terminate = true;
             continue;

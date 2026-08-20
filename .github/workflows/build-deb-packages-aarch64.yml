@@ -105,9 +105,9 @@ jobs:
           ls -l /bin/bash
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
             TAG="${GITHUB_REF#refs/tags/}"
-            ./do_debian_package.sh -r="$TAG" -t=binary -b=${GITHUB_REF_NAME} -v=1
+            ./do_debian_package.sh -r="$TAG" -t=binary-arch -b=${GITHUB_REF_NAME} -v=1
           else
-            ./do_debian_package.sh -s=CURRENT -t=binary -b=${GITHUB_REF_NAME} -v=1
+            ./do_debian_package.sh -s=CURRENT -t=binary-arch -b=${GITHUB_REF_NAME} -v=1
           fi
       - name: Cleanup
         run: |
@@ -152,7 +152,7 @@ jobs:
         uses: easingthemes/ssh-deploy@main
         env:
           SSH_PRIVATE_KEY: ${{ secrets.ZMREPO_SSH_KEY }}
-          ARGS: "-rltgoDzvO"
+          ARGS: "-rltgoDzvOW"
           SOURCE: artifacts/deb/
           REMOTE_HOST: ${{ secrets.ZMREPO_HOST }}
           REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}
@@ -176,7 +176,7 @@ jobs:
         uses: easingthemes/ssh-deploy@main
         env:
           SSH_PRIVATE_KEY: ${{ secrets.ZMREPO_SSH_KEY }}
-          ARGS: "-rltgoDzvO"
+          ARGS: "-rltgoDzvOW"
           SOURCE: dist/
           REMOTE_HOST: ${{ secrets.ZMREPO_HOST }}
           REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}

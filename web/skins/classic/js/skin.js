@@ -2048,8 +2048,18 @@ function initThumbAnimation() {
   }
 }
 
-function setSrc(elem, src) {
-  elem.src = src + (src.includes('?') ? '&' : '?') + '_=' + Date.now();
+function addOrUpdateRandParam(src) {
+  const rand = Date.now();
+  if (/[?&]rand=\d+/i.test(src)) {
+    return src.replace(/([?&])rand=\d+/i, '$1rand=' + rand);
+  }
+  return src + (src.includes('?') ? '&' : '?') + 'rand=' + rand;
+}
+
+function refreshStreamSrc(stream, src) {
+  src = addOrUpdateRandParam(src);
+  stream.src = '';
+  stream.src = src;
 }
 
 /* View in fullscreen */

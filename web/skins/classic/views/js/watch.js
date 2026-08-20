@@ -482,10 +482,7 @@ function controlCmdImage(x, y) {
 }
 
 function fetchImage(streamImage) {
-  const oldsrc = streamImage.src;
-  const newsrc = oldsrc.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
-  streamImage.src = '';
-  streamImage.src = newsrc;
+  refreshStreamSrc(streamImage, streamImage.src);
 }
 
 function handleClick(event) {

@@ -619,8 +619,7 @@ function MonitorStream(monitorData) {
     if (-1 == src.search('mode=')) {
       src += '&mode=single';
     }
-    imgInfoBlock.src = '';
-    imgInfoBlock.src = src;
+    setSrc(imgInfoBlock, src);
     return imgInfoBlock;
   };
 

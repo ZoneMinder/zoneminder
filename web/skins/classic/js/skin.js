@@ -2048,6 +2048,10 @@ function initThumbAnimation() {
   }
 }
 
+function setSrc(elem, src) {
+  elem.src = src + (src.includes('?') ? '&' : '?') + '_=' + Date.now();
+}
+
 /* View in fullscreen */
 function openFullscreen(elem) {
   if (elem.requestFullscreen) {

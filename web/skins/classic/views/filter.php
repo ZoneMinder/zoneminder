@@ -223,10 +223,13 @@ echo htmlSelect('filter[Query][sort_asc]', $sort_dirns, $filter->sort_asc(), ['c
               <td>
                 <label for="filter[Query][skip_locked]"><?php echo translate('Skip Locked') ?></label>
 <?php
+// No longer gated on the server supporting SELECT ... SKIP LOCKED: filters
+// claim events in the Events_Lock table, which works on any version.
 echo htmlSelect('filter[Query][skip_locked]',
   array('0'=>translate('No'), '1'=>translate('Yes')),
   $filter->skip_locked(),
-  ( db_supports_feature('skip_locks') ? ['Id'=>'filter[Query][skip_locked]', 'class'=>'chosen']: ['Id'=>'filter[Query][skip_locked]', 'disabled'=>'disabled', 'title'=>'Database does not support the skip locked feature.', 'class'=>'chosen'])
+  ['Id'=>'filter[Query][skip_locked]', 'class'=>'chosen',
+    'title'=>'Leave out events another filter is already working on. Requires Lock Rows.']
 );
 
 ?>

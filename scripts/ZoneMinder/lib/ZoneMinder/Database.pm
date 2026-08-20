@@ -75,6 +75,81 @@ require ZoneMinder::Config;
 
 our $dbh = undef;
 
+# Which DBD do we drive the database with? DBD::mysql 5 refuses to connect to a
+# MariaDB server, so prefer DBD::MariaDB when it is installed: it drives both
+# MySQL and MariaDB. Cached because the answer cannot change within a process.
+#
+# ZM_DB_TYPE is deliberately not consulted. It also builds the PHP PDO dsn, and
+# PDO has no MariaDB driver, so its only working value is mysql whichever server
+# is in use.
+my $db_driver;
+sub zmDbDriver {
+  return $db_driver if defined $db_driver;
+
+  $db_driver = eval { require DBD::MariaDB; 1 } ? 'MariaDB' : 'mysql';
+  Debug("Using DBD::$db_driver to reach the database");
+  return $db_driver;
+}
+
+# Build the DBI dsn for $driver from a hash of ZM_DB_* values. The two drivers
+# differ by more than the scheme: DBD::MariaDB spells DBD::mysql's mysql_*
+# parameters mariadb_*, and ignores parameters it does not recognise, so a dsn
+# built with the wrong prefix does not fail. It quietly drops the socket path
+# and the TLS settings and connects over plain TCP instead.
+sub zmDbDsn {
+  my ($driver, $config, $options) = @_;
+  my $prefix = ($driver eq 'MariaDB') ? 'mariadb' : 'mysql';
+
+  my $dsn = 'DBI:'.$driver.':database='.$$config{ZM_DB_NAME};
+
+  my ( $host, $portOrSocket ) = ( $$config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
+  if ( defined($portOrSocket) ) {
+    if ( $portOrSocket =~ /^\// ) {
+      $dsn .= ';'.$prefix.'_socket='.$portOrSocket;
+    } else {
+      $dsn .= ';host='.$host.';port='.$portOrSocket;
+    }
+  } else {
+    $dsn .= ';host='.$$config{ZM_DB_HOST};
+  }
+
+  if ( $$config{ZM_DB_SSL_CA_CERT} ) {
+    $dsn .= join(';', '',
+        $prefix.'_ssl=1',
+        $prefix.'_ssl_ca_file='.$$config{ZM_DB_SSL_CA_CERT},
+        $prefix.'_ssl_client_key='.$$config{ZM_DB_SSL_CLIENT_KEY},
+        $prefix.'_ssl_client_cert='.$$config{ZM_DB_SSL_CLIENT_CERT}
+        );
+    # Identity-verify the server certificate when ZM_DB_SSL_VERIFY_SERVER_CERT
+    # is set: truthy verifies, false-y (0/false/no/off) allows a self-signed or
+    # non-matching cert. An empty/unset value leaves the driver default so
+    # existing installs are unchanged on upgrade.
+    my $verify = $$config{ZM_DB_SSL_VERIFY_SERVER_CERT};
+    if ( defined($verify) and ($verify ne '') ) {
+      $dsn .= ';'.$prefix.'_ssl_verify_server_cert=' . ((lc($verify) =~ /^(0|false|no|off)$/) ? '0' : '1');
+    }
+  }
+
+  # Callers name their driver parameters after DBD::mysql, which is all the code
+  # has ever had to talk to. Rename them for DBD::MariaDB rather than let it
+  # ignore them. Sorted so a given set of options always produces the same dsn.
+  if ( $options ) {
+    $dsn .= join(';', '', map {
+        (my $key = $_) =~ s/^mysql_/${prefix}_/;
+        $key.'='.$$options{$_};
+      } sort keys %{$options});
+  }
+
+  return $dsn;
+}
+
+# DBD::MariaDB is always utf8mb4. DBD::mysql has to be told, or the utf8 alias
+# gets us utf8mb3 and 4 byte characters are mangled.
+sub zmDbConnectAttributes {
+  my $driver = shift;
+  return { ($driver eq 'MariaDB') ? () : (mysql_enable_utf8mb4 => 1) };
+}
+
 sub zmDbConnect {
   my $force = shift;
   if ( $force ) {
@@ -83,44 +158,14 @@ sub zmDbConnect {
   my $options = shift;
 
   if ( ( !defined($dbh) ) or ! $dbh->ping() ) {
-    my ( $host, $portOrSocket ) = ( $ZoneMinder::Config::Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
-    my $socket;
-
-    if ( defined($portOrSocket) ) {
-      if ( $portOrSocket =~ /^\// ) {
-        $socket = ';mysql_socket='.$portOrSocket;
-      } else {
-        $socket = ';host='.$host.';port='.$portOrSocket;
-      }
-    } else {
-      $socket = ';host='.$ZoneMinder::Config::Config{ZM_DB_HOST}; 
-    }
-
-    my $sslOptions = '';
-    if ( $ZoneMinder::Config::Config{ZM_DB_SSL_CA_CERT} ) {
-      $sslOptions = join(';', '',
-          'mysql_ssl=1',
-          'mysql_ssl_ca_file='.$ZoneMinder::Config::Config{ZM_DB_SSL_CA_CERT},
-          'mysql_ssl_client_key='.$ZoneMinder::Config::Config{ZM_DB_SSL_CLIENT_KEY},
-          'mysql_ssl_client_cert='.$ZoneMinder::Config::Config{ZM_DB_SSL_CLIENT_CERT}
-          );
-      # Identity-verify the server certificate when ZM_DB_SSL_VERIFY_SERVER_CERT
-      # is set: truthy verifies, false-y (0/false/no/off) allows a self-signed or
-      # non-matching cert. An empty/unset value leaves the driver default so
-      # existing installs are unchanged on upgrade.
-      my $verify = $ZoneMinder::Config::Config{ZM_DB_SSL_VERIFY_SERVER_CERT};
-      if ( defined($verify) and ($verify ne '') ) {
-        $sslOptions .= ';mysql_ssl_verify_server_cert=' . ((lc($verify) =~ /^(0|false|no|off)$/) ? '0' : '1');
-      }
-    }
+    my $driver = zmDbDriver();
 
     eval {
       $dbh = DBI->connect(
-        'DBI:'.$ZoneMinder::Config::Config{ZM_DB_TYPE}.':database='.$ZoneMinder::Config::Config{ZM_DB_NAME}
-        .$socket . $sslOptions . ($options?join(';', '', map { $_.'='.$$options{$_} } keys %{$options} ) : '')
+        zmDbDsn($driver, \%ZoneMinder::Config::Config, $options)
         , $ZoneMinder::Config::Config{ZM_DB_USER}
         , $ZoneMinder::Config::Config{ZM_DB_PASS}
-        , { ($ZoneMinder::Config::Config{ZM_DB_TYPE} eq 'mysql' ? (mysql_enable_utf8mb4 => 1) : ()) }
+        , zmDbConnectAttributes($driver)
         );
     };
     if ( !$dbh or $@ ) {

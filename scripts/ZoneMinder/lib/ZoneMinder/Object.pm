@@ -317,7 +317,9 @@ $log->debug("No serial") if $debug;
         $command =~ s/\?/\%s/g;
         $log->debug('SQL DEBUG: ('.sprintf($command, map { defined $_ ? $_ : 'undef' } ( @sql{@keys} ) ).'):' );
       } # end if
-      $$self{Id} = $local_dbh->{'mysql_insertid'} if !$$self{Id};
+      # DBI's portable accessor: DBD::MariaDB has no mysql_insertid, and
+      # would hand back undef, leaving the new row's Id unset.
+      $$self{Id} = $local_dbh->last_insert_id(undef, undef, undef, undef) if !$$self{Id};
     } else {
       delete $sql{created_on};
       my @keys = keys %sql;

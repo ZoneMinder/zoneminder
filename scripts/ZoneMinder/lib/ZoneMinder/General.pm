@@ -328,7 +328,8 @@ sub createEvent {
     or Fatal( "Can't prepare sql '$sql': ".$dbh->errstr() );
   my $res = $sth->execute( @values )
     or Fatal( "Can't execute sql '$sql': ".$sth->errstr() );
-  $event->{Id} = $dbh->{mysql_insertid};
+  # Portable across DBD::mysql and DBD::MariaDB; see ZoneMinder::Object.
+  $event->{Id} = $dbh->last_insert_id(undef, undef, undef, undef);
   Info( "Created event ".$event->{Id} );
 
   if ( $event->{EndDateTime} ) {

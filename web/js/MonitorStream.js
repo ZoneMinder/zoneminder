@@ -1466,7 +1466,8 @@ function MonitorStream(monitorData) {
       }
 
       // Try to reload the image stream.
-      console.log('Reloading stream: ' + stream.src);
+      let src = stream.src;
+      console.log('Reloading stream: ' + src);
       /* Make the old zms exit before we stop being able to address it.  Once
        * the connkey is replaced nothing can reach the old process, so if it
        * missed SIGPIPE it would linger and keep streaming forever.

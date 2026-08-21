@@ -2576,7 +2576,7 @@ function findVideoEventFile ($Event, $ext="*") {
   $path = '';
   if ($eventDefaultVideo !== '' &&
     !str_ends_with($eventDefaultVideo, '.m3u8') &&
-    ($ext === "*" || str_ends_with(strtolower($eventDefaultVideo), '.' . $ext))) {
+    ($ext === "*" || str_ends_with(strtolower($eventDefaultVideo), '.' . strtolower($ext)))) {
       $path = $dir.'/'.$eventDefaultVideo;
   }
   if (!is_file($path)) $path = ''; # So we don't return a reference to a non-existent file.

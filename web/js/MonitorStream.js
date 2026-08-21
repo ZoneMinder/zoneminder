@@ -664,8 +664,7 @@ function MonitorStream(monitorData) {
     if (-1 == src.search('mode=')) {
       src += '&mode=single';
     }
-    imgInfoBlock.src = '';
-    imgInfoBlock.src = src;
+    refreshStreamSrc(imgInfoBlock, src);
     return imgInfoBlock;
   };
 
@@ -1519,8 +1518,8 @@ function MonitorStream(monitorData) {
       }
 
       // Try to reload the image stream.
-      console.log('Reloading stream: ' + stream.src);
-      let src = (-1 != stream.src.indexOf('rand=')) ? stream.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) )) : stream.src+'&rand='+Math.floor((Math.random() * 1000000));
+      let src = stream.src;
+      console.log('Reloading stream: ' + src);
       /* Make the old zms exit before we stop being able to address it.  Once
        * the connkey is replaced nothing can reach the old process, so if it
        * missed SIGPIPE it would linger and keep streaming forever.
@@ -1528,8 +1527,7 @@ function MonitorStream(monitorData) {
       this.quitConnKey(this.connKey);
       this.streamCmdParms.connkey = this.statusCmdParms.connkey = this.connKey = this.genConnKey();
       src = zmAuth.applyTo(src, this.connKey);
-      stream.src = '';
-      stream.src = src;
+      refreshStreamSrc(stream, src);
     } // end if Ok or not
   }; // this.getStreamCmdResponse
 

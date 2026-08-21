@@ -861,12 +861,21 @@ sub MoveTo {
   }
   $ZoneMinder::Database::dbh->commit() if !$was_in_transaction;
 
-  # Update storage diskspace.  The triggers no longer do this. This is ... less important so do it outside the transaction
-  # Atomic adjustments rather than lock_and_load + save: outside a transaction
-  # the SELECT ... FOR UPDATE released its lock as soon as it committed, so the
-  # read and the write raced and concurrent movers could lose an update. Lowest
-  # Storage Id first, so two movers swapping events between the same pair of
-  # storage areas cannot deadlock against each other.
+  # Update storage diskspace.  The triggers no longer do this.
+  # Atomic adjustments rather than lock_and_load + save: when we own the
+  # transaction the SELECT ... FOR UPDATE released its lock the moment it
+  # committed, so the read and the write raced and concurrent movers could lose
+  # an update. Lowest Storage Id first, so two movers swapping events between
+  # the same pair of storage areas cannot deadlock against each other.
+  #
+  # Note these are NOT outside a transaction when the caller owns one, which a
+  # filter with LockRows does. In that case Storage is locked here, after this
+  # sub has already locked the Event and its save() has cascaded into the bucket
+  # and Event_Summaries rows, so the order is the reverse of the Storage-first
+  # order delete() now uses. That inversion predates this change and is left
+  # alone deliberately: locking Storage before lock_and_load would hold a row on
+  # a shared storage area for the whole of CopyTo, serialising every move on
+  # that area behind one file copy.
   my @adjustments;
   push @adjustments, [$$OldStorage{Id}, -$old_diskspace] if $old_diskspace and $$OldStorage{Id};
   push @adjustments, [$$NewStorage{Id}, $new_diskspace] if $new_diskspace and $$NewStorage{Id};

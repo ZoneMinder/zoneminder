@@ -20,6 +20,9 @@
 
 #include "zm_logger.h"
 #include "zm_signal.h"
+#include <algorithm>
+#include <cctype>
+#include <cinttypes>
 #include <cstdlib>
 #include <unistd.h>
 
@@ -230,7 +233,7 @@ int zmDbDo(const std::string &query) {
   return 1;
 }
 
-int zmDbDoInsert(const std::string &query) {
+uint64_t zmDbDoInsert(const std::string &query) {
   std::lock_guard<std::mutex> lck(db_mutex);
   if (!zmDbConnected and !zmDbConnect())
     return 0;
@@ -245,9 +248,8 @@ int zmDbDoInsert(const std::string &query) {
         return 0;
     }
   }
-  // Might not be an int... FIXME
-  int id = mysql_insert_id(&dbconn);
-  Debug(2, "Success running sql insert %s. Resulting id is %d", query.c_str(), id);
+  uint64_t id = mysql_insert_id(&dbconn);
+  Debug(2, "Success running sql insert %s. Resulting id is %" PRIu64, query.c_str(), id);
   return id;
 }
 

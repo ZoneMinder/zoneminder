@@ -67,6 +67,17 @@ class TagsController extends AppController {
           'type'  => 'inner',
           'conditions' => ['Events.Id = Events_Tags.EventId'],
         ];
+
+      # The join to Events exposes the tag/event association, which is
+      # per-monitor data. Restrict it to monitors the caller may view so a
+      # monitor-restricted user cannot confirm which tags attach to events on
+      # cameras they are denied. The plain tag list (no Events.Id filter) is a
+      # global label vocabulary and is intentionally left unrestricted.
+      global $user;
+      $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : array();
+      if ( count($allowedMonitors) ) {
+        $conditions[] = array('Events.MonitorId' => $allowedMonitors);
+      }
     }
 
 		$tags = $this->Tag->find('all', $find_array);
@@ -212,11 +223,21 @@ class TagsController extends AppController {
   // returns monitor associations
   public function associations() {
     $this->Tag->recursive = -1;
+
+    # Each tag is returned with its associated Events, which is per-monitor
+    # data. Restrict the contained events to monitors the caller may view so a
+    # monitor-restricted user does not learn which events on denied cameras
+    # carry a given tag.
+    global $user;
+    $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : array();
+    $event_contain = array('fields'=>array('Id','Name'));
+    if ( count($allowedMonitors) ) {
+      $event_contain['conditions'] = array('Event.MonitorId' => $allowedMonitors);
+    }
+
     $tags = $this->Tag->find('all', array(
                                         'contain'=> array(
-                                          'Event' => array(
-                                            'fields'=>array('Id','Name')
-                                          )
+                                          'Event' => $event_contain
                                         )
                                       )
                                 );

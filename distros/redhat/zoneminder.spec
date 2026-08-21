@@ -21,7 +21,7 @@
 %global zmtargetdistro %{?rhel:el%{rhel}}%{!?rhel:fc%{fedora}}
 
 Name: zoneminder
-Version: 1.38.3
+Version: 1.38.4
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -452,6 +452,16 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 %dir %attr(755,nginx,nginx) %{_localstatedir}/log/zoneminder
 
 %changelog
+* Mon Aug 10 2026  Isaac Connor <iconnor@zoneminder.com> - 1.38.4-1
+- 1.38.4 maintenance release: API and web authorization fixes
+  (per-monitor ACL on EventData, Tags, Frames, event/zone endpoints,
+  per-event ACL on media endpoints, token auth bypass, image proxy
+  restrictions), SQL injection and XSS hardening in filters and name
+  output, SDP and HTTP header buffer overflow fixes, event id 64-bit
+  insert id, hwaccel retry on reconnect, incomplete-file rename race,
+  zms buffer initialisation, montage review and timeline fixes,
+  Server_Stats indexing, Fedora 44 packaging.
+
 * Wed May 27 2026  Isaac Connor <iconnor@zoneminder.com> - 1.38.3-1
 - 1.38.3 maintenance release: security fixes (GHSA-g66m-77fq-79v9,
   GHSA-745h-vg7c-73cg, XSS/SQLi/RCE hardening), VideoStore UAF and

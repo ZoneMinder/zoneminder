@@ -547,13 +547,13 @@ function MonitorStream(monitorData) {
     }
     this.handlerEventListener['playStream'] = manageEventListener.addEventListener(stream, 'play',
         (e) => {
-          if (!isCurrentPlaybackSession(this, playbackSessionId)) return;
+          if (!this.sessionActive(playbackSessionId)) return;
           this.writeTextInfoBlock("");
           this.createVolumeSlider();
 
           this.handlerEventListener['zm:tracksReceived'] = manageEventListener.addEventListener(this.getElement(), 'zm:tracksReceived',
               (e) => {
-                if (!isCurrentPlaybackSession(this, playbackSessionId)) return;
+                if (!this.sessionActive(playbackSessionId)) return;
                 if (e.detail.monitorId !== this.id) return;
 
                 if (this.started) {
@@ -598,7 +598,7 @@ function MonitorStream(monitorData) {
     );
     this.handlerEventListener['pauseStream'] = manageEventListener.addEventListener(stream, 'pause',
         (e) => {
-          if (!isCurrentPlaybackSession(this, playbackSessionId)) return;
+          if (!this.sessionActive(playbackSessionId)) return;
           this.writeTextInfoBlock("Paused", {showImg: false});
           manageEventListener.removeEventListener(this.handlerEventListener['volumechange']);
           if (typeof pauseAudioMotion === 'function') {
@@ -609,7 +609,7 @@ function MonitorStream(monitorData) {
     this.handlerEventListener['errorStream'] = manageEventListener.addEventListener(stream, 'error',
         (e) => {
           clearTimeout(this.mseWaitingErrorReset);
-          if (!isCurrentPlaybackSession(this, playbackSessionId) || !this.isActive) return;
+          if (!this.sessionActive(playbackSessionId)) return;
           const mediaErrorMsg = e?.target?.error?.message || e?.srcElement?.error?.message || 'Unknown media error';
           console.warn(`Stream playback error for monitor ID=${this.id}.`, `ERROR: ${mediaErrorMsg}`, e);
           this.writeTextInfoBlock("Error");
@@ -984,8 +984,7 @@ function MonitorStream(monitorData) {
     if (countErrors < this.limitCountErrors) {
       const playbackSessionId = this.playbackSessionId;
       setTimeout(function(self) {// During the downtime, the monitor may have already started to work.
-        if (!isCurrentPlaybackSession(self, playbackSessionId)) return;
-        if (!self.isActive) return;
+        if (!self.sessionActive(playbackSessionId)) return;
         if (!self.started && !self.starting) self.start(channelStream);
       }, delay, this);
     } else {
@@ -2014,12 +2013,12 @@ function MonitorStream(monitorData) {
           */
 
           this.hls.on(Hls.Events.MEDIA_ATTACHING, function(event, data) {
-            if (!isCurrentPlaybackSession(this, playbackSessionId)) return;
+            if (!this.sessionActive(playbackSessionId)) return;
             console.debug(`HLS Event = MEDIA_ATTACHING for monitor ID=${this.id}`);
           }, this);
           this.hls.on(Hls.Events.BUFFER_CODECS, function(event, data) {
             // Triggers if there is an audio track.
-            if (!isCurrentPlaybackSession(this, playbackSessionId)) {
+            if (!this.sessionActive(playbackSessionId)) {
               //hlsDestroy(this);
               return;
             }
@@ -2034,11 +2033,11 @@ function MonitorStream(monitorData) {
             }
           }, this);
           this.hls.on(Hls.Events.MEDIA_ATTACHED, function(event, data) {
-            if (!isCurrentPlaybackSession(this, playbackSessionId)) return;
+            if (!this.sessionActive(playbackSessionId)) return;
             console.log(`Video and hls.js are now bound together for monitor ID=${this.id}`);
           }, this);
           this.hls.on(Hls.Events.ERROR, function(event, data) {
-            if (!isCurrentPlaybackSession(this, playbackSessionId)) {
+            if (!this.sessionActive(playbackSessionId)) {
               //hlsDestroy(this);
               return;
             }
@@ -2135,7 +2134,7 @@ function MonitorStream(monitorData) {
     if (!stream) return;
 
     this.destroyVolumeSlider();
-    if (!isCurrentPlaybackSession(this, playbackSessionId)) return;
+    if (!this.sessionActive(playbackSessionId)) return;
 
     this.streamCmdTimer = clearInterval(this.streamCmdTimer);
     // Step 1 make sure we are streaming instead of a static image
@@ -2146,11 +2145,11 @@ function MonitorStream(monitorData) {
     const onLoad = this.img_onload.bind(this);
 
     stream.onerror = (e) => {
-      if (!isCurrentPlaybackSession(this, playbackSessionId)) return;
+      if (!this.sessionActive(playbackSessionId)) return;
       onError(e);
     };
     stream.onload = (e) => {
-      if (!isCurrentPlaybackSession(this, playbackSessionId)) return;
+      if (!this.sessionActive(playbackSessionId)) return;
       this.resetCountStreamErrors(this.activePlayer);
       onLoad(e);
     };
@@ -2199,14 +2198,14 @@ function MonitorStream(monitorData) {
       }
       if (stream.src != src) {
         //console.log("Setting src.src", stream.src, src);
-        if (!isCurrentPlaybackSession(this, playbackSessionId)) return;
+        if (!this.sessionActive(playbackSessionId)) return;
         stream.src = '';
         stream.src = src;
         // This isn't a duplicate of the code above. It's intentional. However, upon closer testing, the similar line above may prove unnecessary.
-        if (!isCurrentPlaybackSession(this, playbackSessionId)) return;
+        if (!this.sessionActive(playbackSessionId)) return;
       }
     } // end if paused or not
-    if (!isCurrentPlaybackSession(this, playbackSessionId)) return;
+    if (!this.sessionActive(playbackSessionId)) return;
     if (!this.isActive) {
       this.kill();
       return;
@@ -2328,6 +2327,11 @@ function MonitorStream(monitorData) {
       }
     }
   };
+
+  this.sessionActive = function(playbackSessionId) {
+    return (isCurrentPlaybackSession(this, playbackSessionId) && this.isActive);
+  }
+
 } // end class MonitorStream
 
 /* +++ Janus */
@@ -2529,26 +2533,26 @@ function startRTSP2WebPlay(videoEl, url, stream) {
   };
 
   stream.webrtc.onnegotiationneeded = async function handleNegotiationNeeded() {
-    if (!isCurrentPlaybackSession(stream, playbackSessionId) || !stream.isActive) return;
+    if (!stream.sessionActive(playbackSessionId)) return;
 
     const offer = await stream.webrtc.createOffer({
       //iceRestart:true,
       offerToReceiveAudio: true,
       offerToReceiveVideo: true
     });
-    if (!isCurrentPlaybackSession(stream, playbackSessionId) || !stream.isActive) return;
+    if (!stream.sessionActive(playbackSessionId)) return;
     if (stream.webrtc.sctp && stream.webrtc.sctp.state != 'open') return;
 
     await stream.webrtc.setLocalDescription(offer);
     //console.log(stream.webrtc.localDescription.sdp);
-    if (!isCurrentPlaybackSession(stream, playbackSessionId) || !stream.isActive) return;
+    if (!stream.sessionActive(playbackSessionId)) return;
 
     $j.ajax({
       url: url,
       method: 'POST',
       data: {data: btoa(stream.webrtc.localDescription.sdp)},
       success: function(response) {
-        if (!isCurrentPlaybackSession(stream, playbackSessionId) || !stream.isActive) return;
+        if (!stream.sessionActive(playbackSessionId)) return;
         if ((stream.webrtc && 'sctp' in stream.webrtc && stream.webrtc.sctp) && stream.webrtc.sctp.state != 'stable') {
           try {
             stream.webrtc.setRemoteDescription(new RTCSessionDescription({
@@ -2561,7 +2565,7 @@ function startRTSP2WebPlay(videoEl, url, stream) {
         }
       },
       error: function(xhr, status, error) {
-        if (!isCurrentPlaybackSession(stream, playbackSessionId) || !stream.isActive) return;
+        if (!stream.sessionActive(playbackSessionId)) return;
         console.warn('RTSP2Web_webrtc Error request localDescription:', error, xhr.responseText);
         stream.updateStreamInfo('', 'Error'); //WEBRTC
         stream.streamErrorRegistration();
@@ -2574,7 +2578,7 @@ function startRTSP2WebPlay(videoEl, url, stream) {
   };
 
   stream.webrtc.onsignalingstatechange = async function signalingstatechange() {
-    if (!isCurrentPlaybackSession(stream, playbackSessionId) || !stream.isActive) return;
+    if (!stream.sessionActive(playbackSessionId)) return;
 
     switch (stream.webrtc.signalingState) {
       case 'have-local-offer':
@@ -2599,7 +2603,7 @@ function startRTSP2WebPlay(videoEl, url, stream) {
   };
 
   stream.webrtc.ontrack = function ontrack(event) {
-    if (!isCurrentPlaybackSession(stream, playbackSessionId) || !stream.isActive) return;
+    if (!stream.sessionActive(playbackSessionId)) return;
 
     console.log(event.track.kind + ' track is delivered');
     mediaStream.addTrack(event.track);
@@ -2637,16 +2641,16 @@ function mseListenerSourceopen(context, videoEl, url) {
   context.wsMSE.binaryType = 'arraybuffer';
 
   context.wsMSE.onopen = function(event) {
-    if (!isCurrentPlaybackSession(context, playbackSessionId) || !context.isActive) return;
+    if (!context.sessionActive(playbackSessionId)) return;
     console.log(`Connect to WebSocket MSE for a video object ID=${context.id}`);
   };
   context.wsMSE.onclose = (event) => {
-    if (!isCurrentPlaybackSession(context, playbackSessionId)) return;
+    if (!context.sessionActive(playbackSessionId)) return;
     context.clearWebSocket();
     console.log(`${dateTimeToISOLocal(new Date())} WebSocket MSE CLOSED for a video object ID=${context.id}.`);
   };
   context.wsMSE.onerror = function(event) {
-    if (!isCurrentPlaybackSession(context, playbackSessionId) || !context.isActive) return;
+    if (!context.sessionActive(playbackSessionId)) return;
     // Firefox will display error 1006 when closing the socket. There's likely a problem with RTSP2Web.
     console.warn(`${dateTimeToISOLocal(new Date())} WebSocket MSE ERROR for a video object ID=${context.id} [stream status: ${(context.started) ? "started" : "stopped"}]:`, event);
     if (context.started) {
@@ -2655,7 +2659,7 @@ function mseListenerSourceopen(context, videoEl, url) {
     }
   };
   context.wsMSE.onmessage = function(event) {
-    if (!isCurrentPlaybackSession(context, playbackSessionId) || !context.isActive) return;
+    if (!context.sessionActive(playbackSessionId)) return;
     if (!context.mse || (context.mse && context.mse.readyState !== "open")) return;
     const data = new Uint8Array(event.data);
     if (data[0] === 9) {
@@ -2712,19 +2716,19 @@ function startMsePlay(context, videoEl, url) {
     clearTimeout(context.waitingStart);
   } else {
     context.waitingStart = setTimeout(function(_context) {
-      if (!isCurrentPlaybackSession(_context, playbackSessionId) || !_context.isActive) return;
-      if (context.started) startMsePlay(context, videoEl, url);
+      if (!_context.sessionActive(playbackSessionId)) return;
+      if (_context.started) startMsePlay(_context, videoEl, url);
     }, 100, context);
     return;
   }
 
   context.mse = new MediaSource();
   videoEl.onplay = (event) => {
-    if (!isCurrentPlaybackSession(context, playbackSessionId) || !context.isActive) return;
+    if (!context.sessionActive(playbackSessionId)) return;
     context.mseWaitingErrorReset = setTimeout(function(self) {
       // If the video is in H.265, the browser may start playing (even if it doesn't support H.265) and an error may immediately appear.
       // You need to wait a bit before resetting the error. This will allow for more accurate error counting.
-      if (!isCurrentPlaybackSession(context, playbackSessionId) || !context.isActive) return;
+      if (!context.sessionActive(playbackSessionId)) return;
       self.updateStreamInfo('', ''); //MSE
       self.resetCountStreamErrors(context.activePlayer);
     }, 500, context);
@@ -2765,7 +2769,7 @@ function startMsePlay(context, videoEl, url) {
     console.debug("RTSP2Web type MSE started playing the video stream successfully.");
   })
       .catch((er) => {
-        if (!isCurrentPlaybackSession(self, playbackSessionId) || !self.isActive) return;
+        if (!self.sessionActive(playbackSessionId)) return;;
         if (er.name === 'NotAllowedError' && !videoEl.muted) {
           videoEl.muted = true;
           videoEl.play().then(() => {

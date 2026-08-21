@@ -1236,8 +1236,8 @@ var secondsToCycle = 0;
 
 function nextCycleView() {
   const stream = (monitorStream) ? monitorStream.getAVStream() : null;
-  if (stream && stream.readyState >= 2 || -1 !== monitorStream.activePlayer.indexOf('zms')) secondsToCycle --;
-  if (secondsToCycle<=0 || (monitorStream.fatalError && monitorStream.selectedPlayer)) {
+  if (stream && stream.readyState >= 2) secondsToCycle --;
+  if (secondsToCycle<=0 || monitorStream.fatalError) {
     cycleNext();
   }
   $j('#secondsToCycle').text(secondsToCycle);

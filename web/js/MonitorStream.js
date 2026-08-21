@@ -245,6 +245,7 @@ function MonitorStream(monitorData) {
     for (const key in this.playerPriority) {
       this.playerPriority[key]['countErrors'] = 0;
     }
+    this.fatalError = false;
 
     return this.player = p;
   };
@@ -2153,6 +2154,9 @@ function MonitorStream(monitorData) {
     stream.onload = (e) => {
       if (!isCurrentPlaybackSession(this, playbackSessionId)) return;
       this.resetCountStreamErrors(this.activePlayer);
+      // We're adding a new property, readyState , which isn't initially present in the <img> tag. We won't initialize it elsewhere for now.
+      // readyState for <img> will be either undefined or 3
+      stream.readyState = 3;
       onLoad(e);
     };
 
@@ -2283,6 +2287,7 @@ function MonitorStream(monitorData) {
         // We're already on the last player, but ZMS could theoretically still have errors. This is necessary to avoid loops.
         if (this.player === 'zms' || currentPlayer.indexOf('zms') !== -1) {
           console.error("All players failed. Stop restart loop", currentPlayer);
+          this.fatalError = true;
           return;
         }
 

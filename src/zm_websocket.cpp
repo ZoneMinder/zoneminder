@@ -26,6 +26,10 @@ static constexpr size_t kMaxMessageSize = 1024 * 1024;
 static constexpr size_t kMaxQueuedBytesPerClient = 8 * 1024 * 1024;
 static constexpr size_t kMaxClientsPerMonitor = 32;
 static constexpr int kPollTimeoutMs = 100;
+// A peer that opens a socket and then says nothing would otherwise hold its slot
+// against kMaxClientsPerMonitor forever, so 32 idle connections could deny the
+// service to everyone. Generous enough for a slow TLS handshake over a bad link.
+static constexpr Seconds kHandshakeTimeout = Seconds(30);
 
 bool setNonBlocking(int fd) {
   int flags = fcntl(fd, F_GETFL, 0);
@@ -167,14 +171,13 @@ User *authenticateWebSocketRequest(const std::string &request, unsigned int moni
       user = zmLoadTokenUser(query.get("jwt_token")->firstValue(), false);
     } else if (query.has("token")) {
       user = zmLoadTokenUser(query.get("token")->firstValue(), false);
-    } else if (strcmp(config.auth_relay, "none") == 0) {
-      if (query.has("username")) {
-        const std::string username = query.get("username")->firstValue();
-        if (checkUser(username)) {
-          user = zmLoadUser(username);
-        }
-      }
     } else {
+      // Deliberately no AUTH_RELAY=none shortcut here. zms and zmu accept a bare
+      // username under that relay mode because the web server has already
+      // authenticated the request before proxying to them. This listener is a
+      // plain socket on its own port with nothing in front of it, so the
+      // assumption that makes the shortcut safe does not hold, and honouring it
+      // would let anyone who can reach the port name any account they like.
       if (query.has("auth")) {
         const std::string auth_hash = query.get("auth")->firstValue();
         const std::string username = query.has("username") ? query.get("username")->firstValue() : "";
@@ -184,7 +187,15 @@ User *authenticateWebSocketRequest(const std::string &request, unsigned int moni
       }
 
       if ((!user) && query.has("username") && query.has("password")) {
-        user = zmLoadUser(query.get("username")->firstValue(), query.get("password")->firstValue());
+        const std::string username = query.get("username")->firstValue();
+        const std::string password = query.get("password")->firstValue();
+        // The password must be non-empty and actually verified. zmLoadUser
+        // returns the user for an empty password whenever AUTH_RELAY is none,
+        // which is the same relayed-trust assumption, so an empty one would be
+        // a bypass rather than a failed login.
+        if (checkUser(username) && !password.empty()) {
+          user = zmLoadUser(username, password);
+        }
       }
     }
   }
@@ -497,6 +508,7 @@ void MonitorWebSocketServer::run() {
       }
     }
 
+    dropStalledHandshakes(&clients, now);
     removeClosedClients(&clients);
   }
 
@@ -1128,6 +1140,19 @@ void MonitorWebSocketServer::broadcastEvents(std::vector<Client> *clients) {
         break;
       }
     }
+  }
+}
+
+void MonitorWebSocketServer::dropStalledHandshakes(std::vector<Client> *clients, TimePoint now) {
+  for (Client &client : *clients) {
+    if ((client.fd < 0) || client.handshake_complete) {
+      continue;
+    }
+    if ((now - client.accepted_at) < kHandshakeTimeout) {
+      continue;
+    }
+    Debug(1, "Closing websocket client for monitor %u that never completed its handshake", monitor->Id());
+    closeClient(&client);
   }
 }
 

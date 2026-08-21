@@ -75,6 +75,9 @@ class MonitorWebSocketServer {
     explicit Client(int p_fd) : fd(p_fd) {}
 
     int fd;
+    // When the connection was accepted, so a peer that never finishes the TLS
+    // or HTTP handshake can be reaped instead of occupying a slot forever.
+    TimePoint accepted_at = std::chrono::steady_clock::now();
     // Null when the listener is plaintext. When set, every byte to and from
     // this client goes through it, and tls_want_write records which direction
     // the last call wanted so poll() can be told.
@@ -127,6 +130,8 @@ class MonitorWebSocketServer {
   void broadcastStreams(std::vector<Client> *clients, TimePoint now);
   void broadcastEvents(std::vector<Client> *clients);
   void removeClosedClients(std::vector<Client> *clients);
+  // Closes clients that connected but never completed the websocket handshake.
+  void dropStalledHandshakes(std::vector<Client> *clients, TimePoint now);
 };
 
 }  // namespace zm

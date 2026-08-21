@@ -2330,8 +2330,7 @@ function MonitorStream(monitorData) {
 
   this.sessionActive = function(playbackSessionId) {
     return (isCurrentPlaybackSession(this, playbackSessionId) && this.isActive);
-  }
-
+  };
 } // end class MonitorStream
 
 /* +++ Janus */
@@ -2769,7 +2768,7 @@ function startMsePlay(context, videoEl, url) {
     console.debug("RTSP2Web type MSE started playing the video stream successfully.");
   })
       .catch((er) => {
-        if (!self.sessionActive(playbackSessionId)) return;;
+        if (!self.sessionActive(playbackSessionId)) return;
         if (er.name === 'NotAllowedError' && !videoEl.muted) {
           videoEl.muted = true;
           videoEl.play().then(() => {

@@ -609,7 +609,7 @@ function MonitorStream(monitorData) {
     this.handlerEventListener['errorStream'] = manageEventListener.addEventListener(stream, 'error',
         (e) => {
           clearTimeout(this.mseWaitingErrorReset);
-          if (!isCurrentPlaybackSession(this, playbackSessionId)) return;
+          if (!isCurrentPlaybackSession(this, playbackSessionId) || !this.isActive) return;
           const mediaErrorMsg = e?.target?.error?.message || e?.srcElement?.error?.message || 'Unknown media error';
           console.warn(`Stream playback error for monitor ID=${this.id}.`, `ERROR: ${mediaErrorMsg}`, e);
           this.writeTextInfoBlock("Error");
@@ -2501,6 +2501,7 @@ function startRTSP2WebPlay(videoEl, url, stream) {
     stream.RTSP2WebType = null; // Avoid repeated restarts.
     return;
   }
+  const playbackSessionId = stream.playbackSessionId;
   stream.updateStreamInfo('', 'loading');
 
   if (stream.webrtc) {
@@ -2528,20 +2529,26 @@ function startRTSP2WebPlay(videoEl, url, stream) {
   };
 
   stream.webrtc.onnegotiationneeded = async function handleNegotiationNeeded() {
+    if (!isCurrentPlaybackSession(stream, playbackSessionId) || !stream.isActive) return;
+
     const offer = await stream.webrtc.createOffer({
       //iceRestart:true,
       offerToReceiveAudio: true,
       offerToReceiveVideo: true
     });
+    if (!isCurrentPlaybackSession(stream, playbackSessionId) || !stream.isActive) return;
     if (stream.webrtc.sctp && stream.webrtc.sctp.state != 'open') return;
+
     await stream.webrtc.setLocalDescription(offer);
     //console.log(stream.webrtc.localDescription.sdp);
+    if (!isCurrentPlaybackSession(stream, playbackSessionId) || !stream.isActive) return;
 
     $j.ajax({
       url: url,
       method: 'POST',
       data: {data: btoa(stream.webrtc.localDescription.sdp)},
       success: function(response) {
+        if (!isCurrentPlaybackSession(stream, playbackSessionId) || !stream.isActive) return;
         if ((stream.webrtc && 'sctp' in stream.webrtc && stream.webrtc.sctp) && stream.webrtc.sctp.state != 'stable') {
           try {
             stream.webrtc.setRemoteDescription(new RTCSessionDescription({
@@ -2554,6 +2561,7 @@ function startRTSP2WebPlay(videoEl, url, stream) {
         }
       },
       error: function(xhr, status, error) {
+        if (!isCurrentPlaybackSession(stream, playbackSessionId) || !stream.isActive) return;
         console.warn('RTSP2Web_webrtc Error request localDescription:', error, xhr.responseText);
         stream.updateStreamInfo('', 'Error'); //WEBRTC
         stream.streamErrorRegistration();
@@ -2566,6 +2574,8 @@ function startRTSP2WebPlay(videoEl, url, stream) {
   };
 
   stream.webrtc.onsignalingstatechange = async function signalingstatechange() {
+    if (!isCurrentPlaybackSession(stream, playbackSessionId) || !stream.isActive) return;
+
     switch (stream.webrtc.signalingState) {
       case 'have-local-offer':
         //console.log("webrtc.onsignalingstatechange (connectionState): ", stream.webrtc.connectionState);
@@ -2589,6 +2599,8 @@ function startRTSP2WebPlay(videoEl, url, stream) {
   };
 
   stream.webrtc.ontrack = function ontrack(event) {
+    if (!isCurrentPlaybackSession(stream, playbackSessionId) || !stream.isActive) return;
+
     console.log(event.track.kind + ' track is delivered');
     mediaStream.addTrack(event.track);
   };
@@ -2625,7 +2637,7 @@ function mseListenerSourceopen(context, videoEl, url) {
   context.wsMSE.binaryType = 'arraybuffer';
 
   context.wsMSE.onopen = function(event) {
-    if (!isCurrentPlaybackSession(context, playbackSessionId)) return;
+    if (!isCurrentPlaybackSession(context, playbackSessionId) || !context.isActive) return;
     console.log(`Connect to WebSocket MSE for a video object ID=${context.id}`);
   };
   context.wsMSE.onclose = (event) => {
@@ -2634,7 +2646,7 @@ function mseListenerSourceopen(context, videoEl, url) {
     console.log(`${dateTimeToISOLocal(new Date())} WebSocket MSE CLOSED for a video object ID=${context.id}.`);
   };
   context.wsMSE.onerror = function(event) {
-    if (!isCurrentPlaybackSession(context, playbackSessionId)) return;
+    if (!isCurrentPlaybackSession(context, playbackSessionId) || !context.isActive) return;
     // Firefox will display error 1006 when closing the socket. There's likely a problem with RTSP2Web.
     console.warn(`${dateTimeToISOLocal(new Date())} WebSocket MSE ERROR for a video object ID=${context.id} [stream status: ${(context.started) ? "started" : "stopped"}]:`, event);
     if (context.started) {
@@ -2643,8 +2655,8 @@ function mseListenerSourceopen(context, videoEl, url) {
     }
   };
   context.wsMSE.onmessage = function(event) {
+    if (!isCurrentPlaybackSession(context, playbackSessionId) || !context.isActive) return;
     if (!context.mse || (context.mse && context.mse.readyState !== "open")) return;
-    if (!isCurrentPlaybackSession(context, playbackSessionId)) return;
     const data = new Uint8Array(event.data);
     if (data[0] === 9) {
       let mimeCodec;
@@ -2700,7 +2712,7 @@ function startMsePlay(context, videoEl, url) {
     clearTimeout(context.waitingStart);
   } else {
     context.waitingStart = setTimeout(function(_context) {
-      if (!isCurrentPlaybackSession(_context, playbackSessionId)) return;
+      if (!isCurrentPlaybackSession(_context, playbackSessionId) || !_context.isActive) return;
       if (context.started) startMsePlay(context, videoEl, url);
     }, 100, context);
     return;
@@ -2708,11 +2720,11 @@ function startMsePlay(context, videoEl, url) {
 
   context.mse = new MediaSource();
   videoEl.onplay = (event) => {
-    if (!isCurrentPlaybackSession(context, playbackSessionId)) return;
+    if (!isCurrentPlaybackSession(context, playbackSessionId) || !context.isActive) return;
     context.mseWaitingErrorReset = setTimeout(function(self) {
       // If the video is in H.265, the browser may start playing (even if it doesn't support H.265) and an error may immediately appear.
       // You need to wait a bit before resetting the error. This will allow for more accurate error counting.
-      if (!isCurrentPlaybackSession(context, playbackSessionId)) return;
+      if (!isCurrentPlaybackSession(context, playbackSessionId) || !context.isActive) return;
       self.updateStreamInfo('', ''); //MSE
       self.resetCountStreamErrors(context.activePlayer);
     }, 500, context);
@@ -2753,6 +2765,7 @@ function startMsePlay(context, videoEl, url) {
     console.debug("RTSP2Web type MSE started playing the video stream successfully.");
   })
       .catch((er) => {
+        if (!isCurrentPlaybackSession(self, playbackSessionId) || !self.isActive) return;
         if (er.name === 'NotAllowedError' && !videoEl.muted) {
           videoEl.muted = true;
           videoEl.play().then(() => {

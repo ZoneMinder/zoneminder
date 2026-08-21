@@ -144,51 +144,80 @@ if (canEdit('Monitors')) {
   } // end case url_probe
   case 'import':
   {
-
+    if ( !isset($_FILES['import_file']) ) {
+      ajaxError('No file was uploaded.');
+      return;
+    }
     $file = $_FILES['import_file'];
 
     if ( $file['error'] > 0 ) {
-      ajaxError($file['error']);
+      ajaxError('File upload failed with error code '.$file['error']);
       return;
-    } else {
-      $filename = $file['name'];
-
-      $available_streams = array();
-      $row = 1;
-      if ( ($handle = fopen($file['tmp_name'], 'r')) !== FALSE ) {
-        while ( ($data = fgetcsv($handle, 1000, ',')) !== FALSE ) {
-          $name = $data[0];
-          $url = $data[1];
-          $group = $data[2];
-          ZM\Info("Have the following line data $name $url $group");
-
-          $url_bits = null;
-          if ( preg_match('/(\d+)\.(\d+)\.(\d+)\.(\d+)/', $url) ) {
-            $url_bits = array('host'=>$url, 'scheme'=>'http');
-          } else {
-            $url_bits = parse_url($url);
-          }
-          if ( ! $url_bits ) {
-            ZM\Info("Bad url, skipping line $name $url $group");
-            continue;
-          }
-
-          $available_streams += probe($url_bits);
-
-          //$url_bits['url'] = unparse_url( $url_bits );
-          //$url_bits['Monitor'] = $defaultMonitor;
-          //$url_bits['Monitor']->Name( $name );
-          //$url_bits['Monitor']->merge( $_POST['newMonitor'] );
-          //$available_streams[] = $url_bits;
-
-        } // end while rows
-        fclose($handle);
-        ajaxResponse(array('Streams'=>$available_streams));
-      } else {
-        ajaxError('Uploaded file does not exist');
-        return;
-      }
     }
+    if ( !is_uploaded_file($file['tmp_name']) ) {
+      ajaxError('Uploaded file does not exist');
+      return;
+    }
+
+    if ( ($handle = fopen($file['tmp_name'], 'r')) === FALSE ) {
+      ajaxError('Unable to open uploaded file');
+      return;
+    }
+
+    $available_streams = array();
+    $row = 0;
+    while ( ($data = fgetcsv($handle, 1000, ',')) !== FALSE ) {
+      $row ++;
+      if ( count($data) < 2 ) {
+        ZM\Info("Skipping line $row, expected at least Name,URL columns");
+        continue;
+      }
+      $name = trim($data[0]);
+      $url = trim($data[1]);
+      $group = isset($data[2]) ? trim($data[2]) : '';
+
+      // Skip an optional header row (Name,URL,Group)
+      if ( $row == 1 and !strcasecmp($name, 'Name') and !strcasecmp($url, 'URL') ) {
+        ZM\Debug('Skipping header row');
+        continue;
+      }
+      if ( $url === '' ) {
+        ZM\Info("Skipping line $row, no URL");
+        continue;
+      }
+      ZM\Info("Importing line $row: $name $url $group");
+
+      $url_bits = parse_url($url);
+      $host = ($url_bits and isset($url_bits['host'])) ? $url_bits['host'] : '';
+
+      # If a monitor already exists for this url, offer to edit it instead of adding a duplicate.
+      $monitor = null;
+      $existing = ZM\Monitor::find(array('Path'=>$url));
+      if ( count($existing) ) $monitor = $existing[0];
+
+      $available_streams[] = array(
+        'mac'         => '',
+        'description' => $name.' - '.$url,
+        'url'         => $url,
+        'IP'          => $host,
+        'Group'       => $group,
+        'camera'      => array(
+          'Name'         => $name,
+          'ip'           => $host,
+          'Manufacturer' => '',
+          'Model'        => '',
+          'monitor'      => array(
+            'Type' => 'Ffmpeg',
+            'Path' => $url,
+            'Name' => $name,
+          ),
+        ),
+        'Monitor'     => $monitor,
+      );
+    } // end while rows
+    fclose($handle);
+
+    ajaxResponse(array('Streams'=>$available_streams));
     break;
   } // end case import
   default:

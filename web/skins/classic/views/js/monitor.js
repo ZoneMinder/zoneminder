@@ -14,7 +14,8 @@ function updateMonitorDimensions(element) {
     var monitorWidth = parseInt(form.elements['newMonitor[Width]'].value);
     var monitorHeight = parseInt(form.elements['newMonitor[Height]'].value);
 
-    if ( form.elements['preserveAspectRatio'].checked ) {
+    // The WebSite monitor type renders Width/Height without a preserveAspectRatio checkbox.
+    if ( form.elements['preserveAspectRatio'] && form.elements['preserveAspectRatio'].checked ) {
       switch ( element.name ) {
         case 'newMonitor[Width]':
           if ( monitorWidth >= 0 ) {
@@ -37,7 +38,7 @@ function updateMonitorDimensions(element) {
     // If we find a matching option in the dropdown, select it or select custom
 
     var option = $j('select[name="dimensions_select"] option[value="'+monitorWidth+'x'+monitorHeight+'"]');
-    if ( !option.size() ) {
+    if ( !option.length ) {
       $j('select[name="dimensions_select"]').val('');
     } else {
       $j('select[name="dimensions_select"]').val(monitorWidth+'x'+monitorHeight);
@@ -175,11 +176,10 @@ function initPage() {
   document.querySelectorAll('select[name="newMonitor[Devices]"]').forEach(function(el) {
     el.onchange = window['devices_onchange'].bind(el, el);
   });
-  document.querySelectorAll('input[name="newMonitor[Width]"]').forEach(function(el) {
-    el.oninput = window['updateMonitorDimensions'].bind(el, el);
-  });
-  document.querySelectorAll('input[name="newMonitor[Height]"]').forEach(function(el) {
-    el.oninput = window['updateMonitorDimensions'].bind(el, el);
+  // Width/Height also get a buffer_setting_oninput listener below, so use
+  // addEventListener rather than oninput= to avoid one clobbering the other.
+  document.querySelectorAll('input[name="newMonitor[Width]"],input[name="newMonitor[Height]"]').forEach(function(el) {
+    el.addEventListener('input', window['updateMonitorDimensions'].bind(el, el));
   });
   document.querySelectorAll('select[name="dimensions_select"]').forEach(function(el) {
     el.onchange = window['updateMonitorDimensions'].bind(el, el);
@@ -204,7 +204,7 @@ function initPage() {
     };
   });
   document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"],input[name="newMonitor[MaxImageBufferCount]"],input[name="newMonitor[Width]"],input[name="newMonitor[Height]"],input[name="newMonitor[PreEventCount]"]').forEach(function(el) {
-    el.oninput = window['buffer_setting_oninput'].bind(el);
+    el.addEventListener('input', window['buffer_setting_oninput'].bind(el));
   });
   update_estimated_ram_use();
 

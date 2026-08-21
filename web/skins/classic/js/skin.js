@@ -484,7 +484,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
   }
 
   function getNavBar() {
-    $j.getJSON(thisUrl + '?view=request&request=status&entity=navBar' + (auth_relay?'&'+auth_relay:''))
+    $j.getJSON(zmAuth.appendTo(thisUrl + '?view=request&request=status&entity=navBar'))
         .done(setNavBar)
         .fail(function(jqxhr, textStatus, error) {
           console.log("Request Failed: " + textStatus + ", " + error);
@@ -502,18 +502,13 @@ if ( currentView != 'none' && currentView != 'login' ) {
       console.error("No data in setNavBar");
       return;
     }
-    if (data.auth) {
-      if (data.auth != auth_hash) {
-        console.log("Update auth_hash to "+data.auth);
-        // Update authentication token.
-        auth_hash = data.auth;
-      }
-      delete data.auth;
+    if (zmAuth.update(data)) {
+      console.log("Updated auth to "+zmAuth.hash);
     }
-    if (data.auth_relay) {
-      auth_relay = data.auth_relay;
-      delete data.auth_relay;
-    }
+    // The remaining keys are navbar widgets; drop the credential so the loop
+    // below doesn't go looking for elements named after it.
+    delete data.auth;
+    delete data.auth_relay;
     // iterate through all the keys then update each element id with the same name
     for (const key of Object.keys(data)) {
       if ( $j('#'+key).hasClass("show") ) continue; // don't update if the user has the dropdown open
@@ -591,6 +586,61 @@ function secsToTime(seconds, round='') {
     timeString = timeHours+":"+timeMins+":"+timeSecs;
   }
   return timeString;
+}
+
+// Timeline/epoch helpers. ZoneMinder stores and displays times in the server's
+// timezone (matching how events are recorded), not the browser's. Formatting
+// epoch seconds in the browser timezone shows the wrong wall clock time when the
+// two differ, so anchor to the server timezone here. refs #4977
+// Requires luxon's DateTime (loaded globally as `DateTime`), the ZM_TIMEZONE
+// constant (from skin.js.php) and, as a fallback, server_utc_offset (from the
+// montagereview view).
+function serverTimeZone() {
+  if (typeof ZM_TIMEZONE !== 'undefined' && ZM_TIMEZONE) return ZM_TIMEZONE;
+  // ZM_TIMEZONE not configured: fall back to the fixed offset the server
+  // reported at page load (does not follow DST, but keeps display consistent).
+  if (typeof server_utc_offset !== 'undefined') {
+    const sign = server_utc_offset < 0 ? '-' : '+';
+    const abs = Math.abs(server_utc_offset);
+    const hh = ('0' + Math.floor(abs / 3600)).slice(-2);
+    const mm = ('0' + Math.floor((abs % 3600) / 60)).slice(-2);
+    return 'UTC' + sign + hh + ':' + mm;
+  }
+  return 'local';
+}
+
+// Parse a 'yyyy-MM-dd HH:mm:ss' string (server-local wall clock) into a luxon
+// DateTime anchored to the server timezone.
+function inputstr2dt(str) {
+  return DateTime.fromFormat(str, 'yyyy-MM-dd HH:mm:ss', {zone: serverTimeZone()});
+}
+
+// Format epoch seconds as 'yyyy-MM-ddTHH:mm:ss' in the server timezone.
+function secs2inputstr(s) {
+  if (!parseInt(s)) {
+    console.warn("Invalid value for " + s + " seconds");
+    return '';
+  }
+  const dt = DateTime.fromSeconds(parseInt(s), {zone: serverTimeZone()});
+  if (!dt.isValid) {
+    console.warn("No valid date for " + s + " seconds");
+    return '';
+  }
+  return dt.toFormat("yyyy-MM-dd'T'HH:mm:ss");
+}
+
+// Format epoch seconds as 'yyyy-MM-dd HH:mm:ss' in the server timezone.
+function secs2dbstr(s) {
+  if (!parseInt(s)) {
+    console.warn("Invalid value for " + s + " seconds");
+    return '';
+  }
+  const dt = DateTime.fromSeconds(parseInt(s), {zone: serverTimeZone()});
+  if (!dt.isValid) {
+    console.warn("No valid date for " + s + " seconds");
+    return '';
+  }
+  return dt.toFormat('yyyy-MM-dd HH:mm:ss');
 }
 
 function submitTab(evt) {
@@ -1522,11 +1572,29 @@ function createGo2rtcStream(container, img, src, mid, fallbackToMjpeg) {
     url.search = 'src=' + mid + '_' + channel;
 
     const stream = document.createElement('video-stream');
+    stream.handlerEventListener = {};
     stream.style.cssText = 'width: 100%; height: 100%; display: block;';
     stream.background = true;
     stream.muted = getCookie('zmWatchMuted') === 'true';
     stream.src = url.href;
     container.appendChild(stream);
+
+    stream.handlerEventListener['go2rtc.events.error'] = manageEventListener.addEventListener(stream, 'go2rtc.events.error',
+        (e) => {
+          console.debug('Go2RTC playback error:', e.detail);
+          const innerVideo = stream.querySelector('video');
+          if (innerVideo && !innerVideo.paused && innerVideo.readyState >= 2) {
+            // A player mode we aren't using reported an error (eg the webrtc
+            // watchdog while MSE carries playback). Video is running, keep it.
+            return;
+          }
+          clearTimeout(stream._fallbackTimer);
+          manageEventListener.removeEventListener(stream.handlerEventListener['go2rtc.events.error']);
+          disconnectVideoStream(stream);
+          stream.remove();
+          fallbackToMjpeg();
+        }
+    );
 
     const attachPlayListener = function() {
       const innerVideo = stream.querySelector('video');
@@ -1550,6 +1618,7 @@ function createGo2rtcStream(container, img, src, mid, fallbackToMjpeg) {
     stream._fallbackTimer = setTimeout(function() {
       const innerVideo = stream.querySelector('video');
       if (!innerVideo || innerVideo.readyState < 2) {
+        disconnectVideoStream(stream);
         stream.remove();
         fallbackToMjpeg();
       }
@@ -1579,6 +1648,15 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg, eventS
     container.appendChild(video);
     video.streamType = 'rtsp2web';
 
+    // Fallback after 5s if video hasn't loaded
+    video._fallbackTimer = setTimeout(function() {
+      if (video.readyState < 2) {
+        hlsDestroy(video);
+        video.remove();
+        fallbackToMjpeg();
+      }
+    }, 5000);
+
     if (Hls.isSupported()) {
       const hls = new Hls();
       video._hls = hls;
@@ -1607,7 +1685,7 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg, eventS
       hls.on(Hls.Events.ERROR, function(event, data) {
         console.warn("HLS Event = ERROR", "\n", "event:", event, "\n", "errorType:", data.type, "\n", "errorDetails:", data.details, "\n", "errorFatal:", data.fatal);
         if (!data || !data.fatal) return;
-        hlsDestroy(hls);
+        hlsDestroy(video);
         clearTimeout(video._fallbackTimer);
         video.remove();
         fallbackToMjpeg();
@@ -1618,39 +1696,65 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg, eventS
       thumbnailVideoPlay(video, 'RTSP2Web', eventStart, statusBar);
       video.addEventListener('error', function() {
         video.remove();
+        clearTimeout(video._fallbackTimer);
         fallbackToMjpeg();
         return;
       });
     } else {
       video.remove();
+      clearTimeout(video._fallbackTimer);
       fallbackToMjpeg();
       return;
     }
-
-    // Fallback after 5s if video hasn't loaded
-    video._fallbackTimer = setTimeout(function() {
-      if (video.readyState < 2) {
-        if (video._hls) hlsDestroy(video._hls);
-        video.remove();
-        fallbackToMjpeg();
-      }
-    }, 5000);
   }).catch(function(e) {
     console.error(e);
     fallbackToMjpeg();
   });
 }
 
-const hlsDestroy = function(hls) {
-  if (hls && Hls) {
-    Object.keys(Hls.Events).forEach(function(eventName) {
-      hls.off(Hls.Events[eventName], function(event, data) {
-      });
-    });
+/*
+* obj - can be either an HLS instance or an object containing an HLS instance in its property.
+*/
+const hlsDestroy = function(obj) {
+  if (typeof Hls === 'undefined') {
+    console.warn("The hls.js library is not loaded.");
+    return;
+  }
+  if (!obj) {
+    console.warn("No object was passed as an argument to the hlsDestroy() function.");
+    return;
+  }
+  let hls = null;
+  let propertyName = null;
+  if (obj instanceof Hls) {
+    hls = obj;
+  } else if ('hls' in obj) {
+    hls = obj.hls;
+    propertyName = 'hls';
+  } else if ('_hls' in obj) {
+    hls = obj._hls;
+    propertyName = '_hls';
+  }
+
+  if (!hls || !(hls instanceof Hls)) {
+    for (const key of Object.keys(obj)) {
+      const value = obj[key];
+      if (value instanceof Hls) {
+        hls = value;
+        propertyName = key;
+        break;
+      }
+    }
+  }
+
+  if (hls) {
+    hls.off();
     hls.destroy();
     hls = null;
+    // If propertyName is null, it means an HLS instance was passed to the function.
+    if (propertyName) obj[propertyName] = null;
   } else {
-    console.warn("Hls cannot be destroyed because it is not loaded.");
+    console.warn(`Hls for object`, obj, `cannot be destroyed because it is not loaded.`);
   }
 };
 
@@ -1811,8 +1915,8 @@ function playEventHLS(container, img, monitorId, fallbackToMjpeg, statusBar, eve
       video._fallbackTimer = setTimeout(function() {
         // If the index.m3u8 manifest is bad, playback may not start, although there will be no errors.
         if (video.readyState < 2) {
+          hlsDestroy(video);
           video.remove();
-          hlsDestroy(hls);
           tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar);
         }
       }, 2000);
@@ -1832,8 +1936,8 @@ function playEventHLS(container, img, monitorId, fallbackToMjpeg, statusBar, eve
       hls.on(Hls.Events.ERROR, function(event, data) {
         console.warn("HLS Event = ERROR", "\n", "event:", event, "\n", "errorType:", data.type, "\n", "errorDetails:", data.details, "\n", "errorFatal:", data.fatal);
         if (!data || !data.fatal) return;
+        hlsDestroy(video);
         video.remove();
-        hlsDestroy(hls);
         clearTimeout(video._fallbackTimer);
         tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar);
       });
@@ -1902,15 +2006,30 @@ function thumbnail_onmouseout(event) {
 
 function cleanupVideoStream(videoStream) {
   if (!videoStream) return;
+  manageEventListener.removeEventListener(videoStream.handlerEventListener['go2rtc.events.error']);
   if (videoStream._fallbackTimer) clearTimeout(videoStream._fallbackTimer);
+  disconnectVideoStream(videoStream);
   videoStream.close();
+}
+
+// video-stream elements in the hover overlay run with background=true, so
+// disconnectedCallback() won't tear anything down when we remove them. Without
+// this the websocket and RTCPeerConnection stay open for the life of the page
+// and every hover leaves another consumer on the camera.
+function disconnectVideoStream(videoStream) {
+  if (videoStream.wsState === WebSocket.CLOSED && videoStream.pcState === WebSocket.CLOSED) return;
+  try {
+    videoStream.ondisconnect();
+  } catch (e) {
+    console.warn(e);
+  }
 }
 
 function cleanupVideoElement(video) {
   if (!video) return;
   if (video._fallbackTimer) clearTimeout(video._fallbackTimer);
   clearInterval(video._fallbackTimerTime);
-  if (video._hls) hlsDestroy(video._hls);
+  if (video._hls) hlsDestroy(video);
   video.pause();
   video.src = '';
   video.load();
@@ -1927,6 +2046,20 @@ function initThumbAnimation() {
     // Preload the video-stream module so it's ready when the user hovers
     if (hasGo2rtc) ensureVideoStreamLoaded();
   }
+}
+
+function addOrUpdateRandParam(src) {
+  const rand = Date.now();
+  if (/[?&]rand=\d+/i.test(src)) {
+    return src.replace(/([?&])rand=\d+/i, '$1rand=' + rand);
+  }
+  return src + (src.includes('?') ? '&' : '?') + 'rand=' + rand;
+}
+
+function refreshStreamSrc(stream, src) {
+  src = addOrUpdateRandParam(src);
+  stream.src = '';
+  stream.src = src;
 }
 
 /* View in fullscreen */
@@ -2702,45 +2835,37 @@ function initDatepicker() {
 }
 
 function managePanZoomButton(evt) {
-  var url = null;
+  var url = "";
   if (panZoomEnabled) {
-    const targetId = evt.target.id;
-    var monitorId_ = null; // Resolve variable conflict. ToDo: In general, you need to use objects.
-    if (!evt.target.closest('.imageFeed') && !(evt.target.closest('#videoFeed'))) {
-      // Click was outside '.imageFeed'
+    const target = evt.target.closest('[id^="imageFeed"], [id^="videoFeedStream"], [id^="videoFeed"]');
+    if (!target) {
+      // Click was outside imageFeed & videoFeedStream
       $j('[id^="button_zoom"]').addClass('hidden');
       return;
-    } else {
-      $j('#button_zoom' + stringToNumber(targetId)).removeClass('hidden');
     }
-    if (!('getAttribute' in evt.currentTarget)) return; // Touchscreen tap on '.imageFeed' does not have 'currentTarget'
-    //evt.preventDefault();
-    // We are looking for an object with an ID, because there may be another element in the button.
-    const obj = targetId ? evt.target : evt.target.parentElement;
-    if (!obj) {
-      console.log("No obj found", targetId, evt.target, evt.target.parentElement);
+    let mid = stringToNumber(target.id);
+    if (Number.isNaN(mid)) {
+      // For example, MJPEG on Event page
+      mid = stringToNumber(target.querySelector('[id^="imageFeed"], [id^="videoFeedStream"]')?.id);
+    }
+    if (Number.isNaN(mid)) {
+      console.log("Unable to get monitor ID for the clicked object", evt.target);
       return;
     }
+    const buttonClicked = evt.target.closest('button, .btn');
+    $j('#button_zoom' + mid).removeClass('hidden');
 
-    if (currentView == 'watch') {
-      monitorId_ = monitorId;
-    } else if (currentView == 'montage') {
-      // On Montage page with mode==EDITING it is forbidden to use PanZoom
-      if (mode == EDITING) return;
-      monitorId_ = evt.currentTarget.getAttribute("data-monitor-id");
-    } else if (currentView == 'event') {
-      monitorId_ = eventData.MonitorId;
-    }
-
-    if (obj.className.includes('btn-view-watch')) {
-      url = '?view=watch&mid='+monitorId_;
-    } else if (obj.className.includes('btn-edit-monitor')) {
-      url = '?view=monitor&mid='+monitorId_;
-    } else if (obj.className.includes('btn-fullscreen')) {
-      if (document.fullscreenElement) {
-        closeFullscreen();
-      } else {
-        openFullscreen(document.getElementById('monitor'+evt.currentTarget.getAttribute("data-monitor-id")));
+    if (buttonClicked) {
+      if (buttonClicked.className.includes('btn-view-watch')) {
+        url = '?view=watch&mid='+mid;
+      } else if (buttonClicked.className.includes('btn-edit-monitor')) {
+        url = '?view=monitor&mid='+mid;
+      } else if (buttonClicked.className.includes('btn-fullscreen')) {
+        if (document.fullscreenElement) {
+          closeFullscreen();
+        } else {
+          openFullscreen(document.getElementById('monitor'+mid));
+        }
       }
     }
     if (url) {
@@ -2750,9 +2875,12 @@ function managePanZoomButton(evt) {
         window.location.assign(url);
       }
     }
-    // Zoom by mouse click
-    if (thisClickOnStreamObject(obj)) {
-      zmPanZoom.click(monitorId_);
+
+    // On Montage page with mode==EDITING it is forbidden to use PanZoom
+    if (currentView == 'montage' && mode == EDITING) return;
+    if (thisClickOnStreamObject(evt.target)) {
+      // Zoom by mouse click
+      zmPanZoom.click(mid);
     }
   }
 }
@@ -3211,13 +3339,22 @@ function pauseAudioMotion(mid) {
 async function getTracksFromStream(videoFeedStream) {
   if (!videoFeedStream) {
     console.log(`Unable to get tracks from stream because the stream is missing.`);
+    dispatchTracksReceived(videoFeedStream, {
+      status: 'failed',
+      reason: 'invalid-stream'
+    });
     return;
   }
   const mid = (typeof eventData !== 'undefined') ? eventData.MonitorId : (videoFeedStream) ? videoFeedStream.id : null;
   if (!mid) {
     console.log(`getTracksFromStream: Unable to get Monitor.ID for`, videoFeedStream);
+    dispatchTracksReceived(videoFeedStream, {
+      status: 'failed',
+      reason: 'monitor-id-not-found'
+    });
     return;
   }
+  const playbackSessionId = videoFeedStream.playbackSessionId;
 
   let el = null;
   if (currentView == 'watch' || currentView == 'montage' || currentView == 'zones' || currentView == 'zone') {
@@ -3229,6 +3366,10 @@ async function getTracksFromStream(videoFeedStream) {
 
   if (!el) {
     console.log(`"Video stream" NOT found for monitor ID=${mid}.`);
+    dispatchTracksReceived(videoFeedStream, {
+      status: 'failed',
+      reason: 'video-element-not-found'
+    });
     return;
   }
   let streamCaptureNotSupported = false;
@@ -3245,15 +3386,42 @@ async function getTracksFromStream(videoFeedStream) {
     console.warn(`"captureStream" NOT found in STREAM for monitor ID=${mid} or not supported by the browser.`);
     streamCaptureNotSupported = true; // This will enable the volume control if the browser does not support captureStream (for example, Safari)
   }
+  if (!isCurrentPlaybackSession(videoFeedStream, playbackSessionId)) {
+    console.debug(`RACE [${playbackSessionId}] getTracksFromStream() aborted`);
+    stopMediaStreamTracks(stream);
+    dispatchTracksReceived(videoFeedStream, {
+      status: 'aborted',
+      reason: 'playback-session-changed'
+    });
+    return;
+  }
 
   if (stream) {
     const timeoutStreamActive = 20000;
     const startTime = Date.now();
-    const streamActive = await waitUntil(() => (stream.active || videoFeedStream.started === false), timeoutStreamActive, stream.active); // We are waiting for the stream to become active.
+    const streamActive = await waitUntil(() => (stream.active || videoFeedStream.started === false), timeoutStreamActive); // We are waiting for the stream to become active.
+    if (!isCurrentPlaybackSession(videoFeedStream, playbackSessionId)) {
+      console.debug(`RACE [${playbackSessionId}] waitUntil() aborted`);
+      stopMediaStreamTracks(stream);
+      dispatchTracksReceived(videoFeedStream, {
+        status: 'aborted',
+        reason: 'playback-session-changed'
+      });
+      return;
+    }
     if (streamActive !== false && videoFeedStream.started !== false) {
       console.debug(`Stream for monitor with ID=${mid} became active within ${(streamActive/1000).toFixed(2)} seconds.`);
     } else {
       console.warn(`Within ${((Date.now() - startTime)/1000).toFixed(2)} seconds, the stream for monitor with ID=${mid} did not become active.`);
+
+      // The captured MediaStream never became active.
+      // Stop all tracks to release browser resources before returning.
+      stopMediaStreamTracks(stream);
+
+      dispatchTracksReceived(videoFeedStream, {
+        status: 'failed',
+        reason: 'stream-inactive'
+      });
       return;
     }
 
@@ -3276,15 +3444,59 @@ async function getTracksFromStream(videoFeedStream) {
   }
 
   console.debug(`mediaStream for ID=${mid}:`, videoFeedStream.mediaStream);
-  console.debug(`audioTrack  for ID=${mid}:`, videoFeedStream.audioTrack);
-  console.debug(`videoTrack  for ID=${mid}:`, videoFeedStream.videoTrack);
+  console.debug(`audioTrack for ID=${mid}:`, videoFeedStream.audioTrack);
+  console.debug(`videoTrack for ID=${mid}:`, videoFeedStream.videoTrack);
   if (currentView == 'watch' || currentView == 'montage') {
     (videoFeedStream.audioTrack || streamCaptureNotSupported) ? videoFeedStream.volumeControlsHandler('enable') : videoFeedStream.volumeControlsHandler('disable');
   } else if (currentView == 'event') {
 
   }
 
-  connectAudioMotion(mid);
+  if (videoFeedStream.started === false) {
+    console.debug(`RACE [${playbackSessionId}] activePlayer: "${videoFeedStream.activePlayer || "not defined"}" skip tracksReceived because stream for monitor ID=${mid} stopped`);
+    return;
+  }
+
+  dispatchTracksReceived(videoFeedStream, {
+    status: 'success'
+  });
+};
+
+/**
+* status: 'failed', 'aborted', 'success'
+*/
+const dispatchTracksReceived = function(videoFeedStream, {
+  status,
+  reason = null
+} = {}) {
+  const objStream = (videoFeedStream?.dispatchEvent instanceof Function) ? videoFeedStream : videoFeedStream?.element;
+  if (objStream) {
+    objStream.dispatchEvent(new CustomEvent('zm:tracksReceived', {
+      detail: {
+        monitorId: (typeof eventData !== 'undefined') ? eventData.MonitorId : videoFeedStream?.id,
+        status,
+        reason,
+        activePlayer: videoFeedStream?.activePlayer ?? null,
+        stream: {
+          mediaStream: videoFeedStream?.mediaStream ?? null,
+          audioTrack: videoFeedStream?.audioTrack ?? null,
+          videoTrack: videoFeedStream?.videoTrack ?? null
+        }
+      }
+    }));
+  } else {
+    console.warn(`No stream found for ${videoFeedStream}. dispatchEvent for 'zm:tracksReceived' will not be added.`);
+  }
+};
+
+/**
+ * Stop all tracks of a MediaStream and release its resources.
+ *
+ * @param {MediaStream|null|undefined} stream
+ */
+function stopMediaStreamTracks(stream) {
+  if (!(stream instanceof MediaStream)) return;
+  stream.getTracks().forEach((track) => track.stop());
 }
 
 const waitUntil = (condition, timeout = 0) => {
@@ -3609,45 +3821,139 @@ const stringToLocaleString = function(str) {
   return result;
 };
 
-// https://stackoverflow.com/a/69273090
+// Based on the original implementation: https://stackoverflow.com/a/69273090
+// Modified to prevent duplicate event listener registration while remaining
+// fully compatible with the original API and method calls.
+//
+// New feature: use the `replaceId` option to automatically replace
+// an existing event listener instead of registering a duplicate:
+//
+// let id;
+// id = addEventListener(element, type, listener, {
+//   replaceId: id
+// });
 class ManageEventListener {
   #listeners = {}; // # in a JS class signifies private
   #idx = 1;
 
   // add event listener, returns integer ID of new listener
   addEventListener(element, type, listener, options = {}) {
-    this.#privateAddEventListener(element, this.#idx, type, listener, options);
-    return this.#idx++;
+    const id = this.#idx++;
+    this.#privateAddEventListener(element, id, type, listener, options);
+    return id;
   }
 
-  // add event listener with custom ID (avoids need to retrieve return ID since you are providing it yourself)
+  // add event listener with custom ID
   addEventListenerById(element, id, type, listener, options = {}) {
     this.#privateAddEventListener(element, id, type, listener, options);
     return id;
   }
 
   #privateAddEventListener(element, id, type, listener, options) {
-    if (this.#listeners[id]) throw Error(`A listener with id ${id} already exists`);
-    element.addEventListener(type, listener, options);
-    this.#listeners[id] = {element, type, listener, options};
+    let eventOptions = options;
+
+    // Automatically remove previously registered listener
+    // before adding the new one.
+    if (options && typeof options === 'object' && options.replaceId != null) {
+      if (this.#listeners[options.replaceId]) {
+        console.warn(
+            'Replacing existing event listener:',
+            {
+              id: options.replaceId,
+              type,
+              element,
+              previous: this.#listeners[options.replaceId]
+            }
+        );
+      }
+
+      this.removeEventListener(options.replaceId);
+
+      // Don't pass our internal option to addEventListener()
+      eventOptions = {...options};
+      delete eventOptions.replaceId;
+
+      if (!Object.keys(eventOptions).length) {
+        eventOptions = undefined;
+      }
+    }
+
+    if (this.#listeners[id]) {
+      throw new Error(`A listener with id ${id} already exists`);
+    }
+
+    element.addEventListener(type, listener, eventOptions);
+
+    this.#listeners[id] = {
+      element,
+      type,
+      listener,
+      options: eventOptions
+    };
   }
 
-  // remove event listener with given ID, returns ID of removed listener or null (if listener with given ID does not exist)
+  // remove event listener with given ID,
+  // returns ID of removed listener or null
   removeEventListener(id) {
     const listen = this.#listeners[id];
+
     if (listen) {
-      listen.element.removeEventListener(listen.type, listen.listener, listen.options);
+      listen.element.removeEventListener(
+          listen.type,
+          listen.listener,
+          listen.options
+      );
       delete this.#listeners[id];
     }
-    return !!listen ? id : null;
+
+    return listen ? id : null;
   }
 
-  // returns number of events listeners
+  // returns number of event listeners
   length() {
     return Object.keys(this.#listeners).length;
   }
 }
 const manageEventListener = new ManageEventListener();
 window.manageEventListener = manageEventListener;
+
+/**
+ * Generate an RFC4122 version 4 UUID.
+ * Uses crypto.randomUUID() when available, otherwise falls back to
+ * crypto.getRandomValues() for compatibility with older browsers.
+*/
+function generateUUID() {
+  // Modern browsers
+  if (window.crypto?.randomUUID) {
+    return window.crypto.randomUUID();
+  }
+
+  // Older browsers with Web Crypto API
+  if (window.crypto?.getRandomValues) {
+    const bytes = new Uint8Array(16);
+    window.crypto.getRandomValues(bytes);
+
+    // RFC4122 version 4
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+
+    const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0'));
+
+    return (
+      hex.slice(0, 4).join('') + '-' +
+      hex.slice(4, 6).join('') + '-' +
+      hex.slice(6, 8).join('') + '-' +
+      hex.slice(8, 10).join('') + '-' +
+      hex.slice(10, 16).join('')
+    );
+  }
+
+  console.warn('Web Crypto API is not supported. Unable to generate UUID.');
+  return null;
+}
+
+function isCurrentPlaybackSession(videoFeedStream, playbackSessionId) {
+  return playbackSessionId === videoFeedStream.playbackSessionId;
+}
 
 $j( window ).on("load", initPageGeneral);

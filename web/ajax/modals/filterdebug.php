@@ -1,3 +1,25 @@
+<?php
+  require_once('includes/Filter.php');
+
+  // Build the filter up front so we can authorize against it. This modal
+  // exposes the MySQL EXPLAIN for a filter's query, so restrict it to users
+  // allowed to view that specific filter (owner or System viewer) rather than
+  // any authenticated user. refs GHSA-28mv-hqxw-qw84
+  $fid = validInt($_REQUEST['fid']);
+
+  $filter = null;
+  if ($fid) {
+    $filter = new ZM\Filter($fid);
+  } else if (isset($_REQUEST['filter'])) {
+    $filter = new ZM\Filter();
+    $filter->set($_REQUEST['filter']);
+  }
+
+  if (!$filter or !$filter->canView()) {
+    $view = 'error';
+    return;
+  }
+?>
 <div class="modal fade" id="filterdebugModal" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -9,22 +31,8 @@
      </div>
      <div class="modal-body">
 <?php
-  require_once('includes/Filter.php');
-  $fid = validInt($_REQUEST['fid']);
-
-  $filter = null;
-  if ($fid) {
-    $filter = new ZM\Filter($fid);
-    if (!$filter->Id()) {
-      echo '<div class="error">Filter not found for id '.$fid.'</div>';
-    }
-  } else {
-   $filter = new ZM\Filter();
-   if ( isset($_REQUEST['filter'])) {
-     $filter->set($_REQUEST['filter']);
-   } else {
-     echo '<div class="error">No filter id or contents specified.</div>';
-   }
+  if ($fid and !$filter->Id()) {
+    echo '<div class="error">Filter not found for id '.$fid.'</div>';
   }
 ?>
        <form name="contentForm" id="filterdebugForm" method="post" action="?">
@@ -38,10 +46,14 @@
     WHERE
 ';
   $sql .= $filter->sql();
+  // A filter with Lock Rows and Skip Locked leaves out events another filter is
+  // already working on. Mirrors ZoneMinder::Filter::Sql, which is what zmfilter
+  // actually runs.
+  if ($filter->LockRows() and $filter->skip_locked())
+    $sql .= ' AND NOT EXISTS (SELECT 1 FROM Events_Lock AS EL WHERE EL.EventId=E.Id AND EL.ExpiresAt>NOW())';
   $sql .= $filter->sort_field() ? ' ORDER BY '.$filter->sort_field(). ' ' .($filter->sort_asc() ? 'ASC' : 'DESC') : '';
-  $sql .= $filter->limit() ? ' LIMIT '.$filter->limit() : '';
+  $sql .= $filter->limit() ? ' LIMIT '.(int)$filter->limit() : '';
   $explain_sql = $sql;
-  $sql .= $filter->skip_locked() ? ' SKIP LOCKED' : '';
 
 
   echo preg_replace('/\n/', '<br/>', $sql);

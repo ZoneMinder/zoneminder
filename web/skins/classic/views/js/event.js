@@ -94,12 +94,12 @@ $j(document).on("keydown", "", function(e) {
 });
 
 function streamReq(data) {
-  if (auth_hash) data.auth = auth_hash;
+  if (zmAuth.hash) data.auth = zmAuth.hash;
   data.connkey = connKey;
   data.view = 'request';
   data.request = 'stream';
 
-  $j.getJSON(monitorUrl+'?'+auth_relay, data)
+  $j.getJSON(zmAuth.appendTo(monitorUrl), data)
       .done(getCmdResponse)
       .fail(logAjaxFail);
 }
@@ -498,15 +498,13 @@ function getCmdResponse(respObj, respText) {
     fps.innerHTML = streamStatus.fps;
   }
 
-  updateProgressBar();
+  if (!vid) {
+    updateProgressBar();
+  }
 
-  if (streamStatus.auth) {
-    if (streamStatus.auth != auth_hash) {
-      console.log("Changed auth from " + auth_hash + " to " + streamStatus.auth);
-      auth_hash = streamStatus.auth;
-      auth_relay = streamStatus.auth_relay;
-    }
-  } // end if have a new auth hash
+  if (zmAuth.update(streamStatus)) {
+    console.log("Changed auth to " + zmAuth.hash);
+  }
 } // end function getCmdResponse( respObj, respText )
 
 function pauseClicked() {
@@ -896,7 +894,7 @@ function getEventResponse(respObj, respText) {
 function eventQuery(eventId) {
   var data = {};
   data.id = eventId;
-  if (auth_hash) data.auth = auth_hash;
+  if (zmAuth.hash) data.auth = zmAuth.hash;
 
   $j.getJSON(thisUrl + '?view=request&request=status&entity=event', data)
       .done(getEventResponse)
@@ -945,7 +943,7 @@ function getFrameResponse(respObj, respText) {
 
 function frameQuery(eventId, frameId, loadImage) {
   var data = {};
-  if (auth_hash) data.auth = auth_hash;
+  if (zmAuth.hash) data.auth = zmAuth.hash;
   data.loopback = loadImage;
   data.eid = eventId;
   data.fid = frameId;
@@ -1359,6 +1357,15 @@ function onStatsResize(vidWidth) {
 }
 
 function initPage() {
+  const stream = document.getElementById('videoFeedStream' + eventData.MonitorId);
+  if (stream) {
+    stream.addEventListener('zm:tracksReceived', (e) => {
+      if (e.detail.stream.audioTrack) connectAudioMotion(e.detail.monitorId);
+    });
+  } else {
+    console.warn(`No stream found for monitor with ID=${eventData.MonitorId}. Listener for 'zm:tracksReceived' not added.`);
+  }
+
   getAvailableTags();
   getSelectedTags();
 
@@ -1385,20 +1392,20 @@ function initPage() {
     //$j('.vjs-progress-control').append('<div id="alarmCues" class="alarmCues"></div>');//add a place for videojs only on first load
     vid.on('ended', function(event) {
       vjsReplay();
-      eventData._playng = false;
+      eventData._playing = false;
     });
     vid.on('play', function(event) {
       streamPlay();
-      if (!eventData._playng) connectAudioMotion(eventData.MonitorId);
-      eventData._playng = true;
+      if (!eventData._playing) getTracksFromStream(getMonitorStream(eventData.MonitorId));
+      eventData._playing = true;
     });
     vid.on('playing', function(event) { // Required for HLS with AUTOPLAY in Firefox, as on.play doesn't work in this case.
-      if (!eventData._playng) connectAudioMotion(eventData.MonitorId);
-      eventData._playng = true;
+      if (!eventData._playing) getTracksFromStream(getMonitorStream(eventData.MonitorId));
+      eventData._playing = true;
     });
     vid.on('pause', function(event) {
       streamPause();
-      eventData._playng = false;
+      eventData._playing = false;
     });
     vid.on('click', function(event) {
       handleClick(event);
@@ -1413,10 +1420,8 @@ function initPage() {
     if (cookie) vid.volume(cookie);
 
     vid.on('timeupdate', function() {
+      updateProgressBar();
       $j('#progressValue').html(secsToTime(Math.floor(vid.currentTime())));
-      var clockTime = new Date(eventData.StartDateTime);
-      clockTime.setTime(clockTime.getTime() + (vid.currentTime() * 1000));
-      $j('#currentTimeValue').html(clockTime.toLocaleTimeString());
     });
     vid.on('ratechange', function() {
       rate = vid.playbackRate() * 100;
@@ -1795,12 +1800,6 @@ function initPage() {
       updateScale = false;
     }
   }, 500);
-
-  if (vid) {
-    setInterval(() => {
-      updateProgressBar();
-    }, streamTimeout);
-  }
 
   const toggleZonesButton = document.getElementById('toggleZonesButton');
   if (toggleZonesButton) toggleZonesButton.addEventListener('click', toggleZones);

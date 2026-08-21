@@ -13,6 +13,20 @@ function getFilterQueryConjunctionTypes() {
 }
 
 class FilterTerm {
+  // How far back a DateTime lower bound looks for an event that was already
+  // running. Events do not outlive the nightly logrotate SIGHUP, which stops
+  // and restarts them, so a day is comfortably beyond any real event and keeps
+  // the StartDateTime range tight enough to stay indexed.
+  const MAX_EVENT_DAYS = 1;
+
+  // When an event was never closed, EndDateTime is NULL and StartDateTime plus
+  // Length is the best available end. Mirrors the SELECT list in
+  // ajax/events.php; an event with no Length has no span at all.
+  const EFFECTIVE_END_SQL = '(CASE
+    WHEN E.EndDateTime IS NOT NULL THEN E.EndDateTime
+    WHEN E.Length > 0 THEN DATE_ADD(E.StartDateTime, INTERVAL FLOOR(E.Length) SECOND)
+    ELSE E.StartDateTime END)';
+
   public $filter;
   public $index;
   public $attr;
@@ -304,6 +318,12 @@ class FilterTerm {
     case 'CurrentWeekday':
       return 'weekday(NOW()';
     case 'DateTime':
+      // DateTime is an "event overlaps this instant/window" idiom, not a plain
+      // StartDateTime comparison. A lower bound (>=/>) is satisfied by an event
+      // still running at that time, so it compares against EndDateTime and has
+      // to treat a NULL end as ongoing - sql() emits that whole predicate itself
+      // and never reaches here. An upper bound (<=/</=) is satisfied by an event
+      // that had already started, so compare against StartDateTime. refs #4976
       return 'E.StartDateTime';
     case 'Date':
      return 'to_days(E.StartDateTime)';
@@ -391,6 +411,47 @@ class FilterTerm {
       if ( isset($this->cbr) ) $sql .= ' '.str_repeat(')', $this->cbr);
       $sql .= PHP_EOL;
       return $sql;
+    }
+
+    // DateTime is an "event overlaps this instant/window" idiom: an event is on
+    // the near side of a lower bound if it was still running when that instant
+    // arrived. Two parts:
+    //
+    // The floor on StartDateTime makes the term indexable for a window in the
+    // past, and stops an event that was never closed from matching windows
+    // years later. On its own it is a poor bound for a window near now - it
+    // spans a whole day, which on a busy monitor is thousands of events - so
+    // the EndDateTime conjunct is emitted alongside it. That one is implied by
+    // the effective end below and is there purely so the optimiser has a second
+    // indexable handle to cost: it ranges over Events_EndDateTime_MonitorId_idx
+    // and is narrow exactly when the StartDateTime floor is wide. Whichever is
+    // cheaper for the window at hand gets picked.
+    //
+    // The effective end treats a NULL EndDateTime by falling back to
+    // StartDateTime + Length, exactly as the SELECT list in ajax/events.php
+    // does. Length is flushed during recording, so this tells a live event
+    // (Length still growing, so it reaches the bound) apart from one that zmc
+    // was killed part way through (Length frozen at whatever was recorded).
+    // The old COALESCE(E.EndDateTime, '9999-12-31 23:59:59') could not: it read
+    // every NULL end as "never ends", so every abandoned event matched every
+    // window ever after, and wrapping the column in a function meant no index
+    // could be used either.
+    //
+    // Keep this in sync with ZoneMinder::Filter::Sql. refs #4976
+    if ($this->attr === 'DateTime' and ($this->op == '>=' or $this->op == '>')) {
+      $operator = $this->sql_operator();
+      $subterms = array();
+      foreach ($this->sql_values() as $value) {
+        $subterms[] = '(E.StartDateTime >= DATE_SUB('.$value.', INTERVAL '.self::MAX_EVENT_DAYS.' DAY)'
+          .' AND (E.EndDateTime IS NULL OR E.EndDateTime'.$operator.$value.')'
+          .' AND '.self::EFFECTIVE_END_SQL.$operator.$value.')';
+      }
+      if (count($subterms)) {
+        $sql .= (count($subterms) > 1) ? '('.implode(' OR ', $subterms).')' : $subterms[0];
+        if ( isset($this->cbr) ) $sql .= ' '.str_repeat(')', $this->cbr);
+        $sql .= PHP_EOL;
+        return $sql;
+      }
     }
 
     $operator = $this->sql_operator();

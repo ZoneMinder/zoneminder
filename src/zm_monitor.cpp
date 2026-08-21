@@ -2004,7 +2004,9 @@ void Monitor::CheckAction() {
       if ( Enabled() && !Active() ) {
         Info("Received resume indication at count %d", shared_data->image_count);
         shared_data->analysing = analysing;
-        ref_image.DumpImgBuffer(); // Will get re-assigned by analysis thread
+        // Analysis thread owns ref_image; ask it to drop the pre-suspend
+        // reference rather than freeing the buffer under it here (refs #4983).
+        ref_image_reset_ = true;
         shared_data->alarm_x = shared_data->alarm_y = -1;
       }
       shared_data->action &= ~RESUME;
@@ -2017,7 +2019,8 @@ void Monitor::CheckAction() {
       Info("Auto resuming at count %d", shared_data->image_count);
       auto_resume_time = {};
       shared_data->analysing = analysing;
-      ref_image.DumpImgBuffer(); // Will get re-assigned by analysis thread
+      // See RESUME above: defer the reference-image reset to the analysis thread.
+      ref_image_reset_ = true;
     }
   }
 }
@@ -2137,6 +2140,15 @@ bool Monitor::Analyse() {
     return false;
   }
   std::shared_ptr<ZMPacket> packet = packet_lock.packet_;
+
+  // The capture thread requested that we drop the pre-suspend reference image.
+  // Do it here, on the thread that owns ref_image, so the buffer is never freed
+  // out from under an in-flight Delta/Blend (refs #4983). The subsequent
+  // !ref_image.Buffer() checks re-seed it from the next frame.
+  if (ref_image_reset_.exchange(false)) {
+    Debug(1, "Resetting reference image on resume");
+    ref_image.DumpImgBuffer();
+  }
 
   // Is it possible for packet->score to be ! -1 ? Not if everything is working correctly
   if (packet->score != -1) {
@@ -2349,7 +2361,10 @@ bool Monitor::Analyse() {
                   }
 
                   // Instead of showing a greyscale image, let's use the full colour
-                  if (!packet->analysis_image)
+                  // Only allocate it when this frame actually has motion score,
+                  // so that Event::AddFrame doesn't save analysis jpegs for
+                  // every analysed frame (refs #4996).
+                  if (motion_score and !packet->analysis_image)
                     packet->analysis_image = new Image(*(packet->image));
 
                   // lets construct alarm cause. It will contain cause + names of zones alarmed
@@ -2969,7 +2984,8 @@ int Monitor::Capture() {
 } // end Monitor::Capture
 
 bool Monitor::setupConvertContext(const AVFrame *input_frame, const Image *image) {
-  AVPixelFormat imagePixFormat = image->AVPixFormat();
+  AVPixelFormat origImagePixFormat = image->AVPixFormat();
+  AVPixelFormat imagePixFormat = fix_deprecated_pix_fmt(origImagePixFormat);
   AVPixelFormat origPixFormat = (AVPixelFormat)input_frame->format;
   AVPixelFormat inputPixFormat = fix_deprecated_pix_fmt(origPixFormat);
 
@@ -2992,9 +3008,9 @@ bool Monitor::setupConvertContext(const AVFrame *input_frame, const Image *image
           image->Width(), image->Height(),
           av_get_pix_fmt_name(imagePixFormat)
          );
-    // Mark the input as full range when the source was a YUVJ* format so the
+    // Mark either side as full range when it was a YUVJ* format so the
     // conversion maths doesn't crush full-range luma into limited range.
-    zm_sws_set_input_range(convert_context, origPixFormat);
+    zm_sws_set_ranges(convert_context, origPixFormat, origImagePixFormat);
   }
   return (convert_context != nullptr);
 }
@@ -3128,6 +3144,7 @@ bool Monitor::applyDeinterlacing(std::shared_ptr<ZMPacket> &packet, Image *captu
 void Monitor::flushDecoderQueue() {
   // Called from DecoderThread::Run() as the decoder thread exits, so no
   // concurrent access to decoder_queue: the thread that mutates it is us.
+  decoder_requires_next_packet = false;
   if (decoder_queue.empty()) return;
   Debug(1, "Flushing %zu in-flight entries from decoder_queue", decoder_queue.size());
   for (auto &lock : decoder_queue) {
@@ -3159,7 +3176,7 @@ bool Monitor::Decode() {
       (decoding == DECODING_ALWAYS) ||
       (decoding == DECODING_KEYFRAMES) ||
       ((decoding == DECODING_ONDEMAND) && (hasViewers() || shared_data->last_write_index == image_buffer_count)) ||
-      ((decoding == DECODING_KEYFRAMESONDEMAND) && hasViewers());
+      ((decoding == DECODING_KEYFRAMESONDEMAND) && (hasViewers() || decoder_requires_next_packet));
 
     if (!needs_decoding) {
       Debug(1, "Flushing decoder in phase 1: %zu packets queued but decoding no longer needed",
@@ -3185,14 +3202,15 @@ bool Monitor::Decode() {
         packet_lock = std::move(decoder_queue.front());
         decoder_queue.pop_front();
         packet = front_packet;
-        Debug(2, "Received frame for packet %d", packet->image_index);
+        Debug(2, "Received frame for packet %d, decoder queue pop size=%zu", packet->image_index, decoder_queue.size());
         // Continue to PHASE 3 (frame processing)
       } else if (ret < 0) {
         // Decoder error
         return false;
       } else {
-        // EAGAIN - decoder needs more input, fall through to send another packet
-        Debug(2, "receive_frame returned EAGAIN for packet %d", front_packet->image_index);
+        // EAGAIN - no frame available yet.
+        // The decoder still requires additional input packets.
+        Debug(2, "Decoder needs additional input after packet %d (EAGAIN)", front_packet->image_index);
       }
     }  // end if needs_decoding
   }
@@ -3234,8 +3252,8 @@ bool Monitor::Decode() {
     bool should_decode = !already_decoded && (
       (decoding == DECODING_ALWAYS) ||
       ((decoding == DECODING_ONDEMAND) && (hasViewers() || shared_data->last_write_index == image_buffer_count)) ||
-      ((decoding == DECODING_KEYFRAMES) && packet->keyframe) ||
-      ((decoding == DECODING_KEYFRAMESONDEMAND) && (hasViewers() || packet->keyframe))
+      ((decoding == DECODING_KEYFRAMES) && (packet->keyframe || decoder_requires_next_packet)) ||
+      ((decoding == DECODING_KEYFRAMESONDEMAND) && (hasViewers() || packet->keyframe || decoder_requires_next_packet))
     );
 
     if (!should_decode && !decoder_queue.empty()) {
@@ -3256,18 +3274,55 @@ bool Monitor::Decode() {
     }
 
     if (should_decode) {
-      Debug(2, "Sending packet %d to decoder", packet->image_index);
-
+      Debug(2,
+        "Sending packet=%d to decoder "
+        "key=%d, "
+        "flags=0x%x, "
+        "pts=%lld, "
+        "dts=%lld, "
+        "decoder queue size=%zu",
+        packet->image_index,
+        packet->keyframe,
+        packet->packet->flags,
+        (long long)packet->packet->pts,
+        (long long)packet->packet->dts,
+        decoder_queue.size()
+      );
       SystemTimePoint starttime = std::chrono::system_clock::now();
       int ret = packet->send_packet(context);
       SystemTimePoint endtime = std::chrono::system_clock::now();
 
       // Warn if send_packet is taking too long
       int fps = static_cast<int>(get_capture_fps());
-      if ((fps > 0) && (endtime - starttime > Milliseconds(1000 / fps)) and Logger::fetch()->debugOn()) {
-        Warning("send_packet %d is too slow: %.3f seconds. Capture fps is %d, queue size is %zu, keyframe interval is %d, retval was %d",
-            packet->image_index, FPSeconds(endtime - starttime).count(), fps,
-            decoder_queue.size(), packetqueue.get_max_keyframe_interval(), ret);
+      if (ret >= 0 && packet->keyframe && (decoding == DECODING_KEYFRAMES || (decoding == DECODING_KEYFRAMESONDEMAND && !hasViewers()))) {
+        decoder_requires_next_packet = true;
+        Debug(2, "Decoder requires follow-up packets after keyframe %d (EAGAIN=%s). Capture fps=%d, decoder queue size=%zu, duration=%.3f, ret=%d", packet->image_index, (ret == 0) ? "true" : "false", fps, decoder_queue.size(), FPSeconds(endtime - starttime).count(), ret);
+      }
+
+      Milliseconds warning_threshold;
+      if (decoder_requires_next_packet) {
+        // Decoder may legitimately require additional packets
+        // before producing the first decoded frame.
+        warning_threshold = Milliseconds(500);
+      } else if (fps > 0) {
+        warning_threshold = Milliseconds(1000 / fps);
+      } else {
+        warning_threshold = Milliseconds(1000);
+      }
+
+      if ((endtime - starttime > warning_threshold) && Logger::fetch()->debugOn()) {
+        Warning(
+            "Decode cycle for packet %d took %.3f seconds%s. "
+            "Capture fps=%d, queue size=%zu, keyframe interval=%d, ret=%d",
+            packet->image_index,
+            FPSeconds(endtime - starttime).count(),
+            decoder_requires_next_packet
+                ? " (keyframe startup / decoder latency)"
+                : "",
+            fps,
+            decoder_queue.size(),
+            packetqueue.get_max_keyframe_interval(),
+            ret);
       } else {
         Debug(3, "send_packet took: %.3f seconds. Capture fps is %d", FPSeconds(endtime - starttime).count(), fps);
       }
@@ -3315,6 +3370,9 @@ bool Monitor::Decode() {
       packet->decoded = true;
       packet->notify_all();
       packetqueue.notify_all();
+      if (decoder_requires_next_packet ) {
+        decoder_requires_next_packet = false;
+      }
       return false;
     }
 
@@ -3388,6 +3446,9 @@ bool Monitor::Decode() {
 
   if (packet->image) {
     Image *capture_image = packet->image;
+    if (decoder_requires_next_packet ) {
+      decoder_requires_next_packet = false;
+    }
 
     // Deinterlacing
     if (deinterlacing_value) {
@@ -3415,6 +3476,7 @@ bool Monitor::Decode() {
     // Write to shared image buffer.
     unsigned int index = (shared_data->last_write_index + 1) % image_buffer_count;
     decoding_image_count++;
+    Debug(5, "SHM WRITE packet=%d index=%u", packet->image_index, index);
     WriteShmFrame(index, capture_image);
     shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
     shared_data->signal = signal_check_points ? CheckSignal(capture_image) : true;
@@ -3584,7 +3646,7 @@ Event * Monitor::openEvent(
         logInit(log_id.c_str());
         Error("Error execing %s: %s", event_start_command.c_str(), strerror(errno));
       }
-      std::quick_exit(0);
+      _exit(0);
     }
   }
 
@@ -3635,7 +3697,7 @@ void Monitor::closeEvent() {
           logInit(log_id.c_str());
           Error("Error execing %s: %s", command.c_str(), strerror(errno));
         }
-        std::quick_exit(0);
+        _exit(0);
       }
     }
   }, event, event_end_command);

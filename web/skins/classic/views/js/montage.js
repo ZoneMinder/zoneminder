@@ -478,16 +478,9 @@ function startVisibleMonitors() {
 }
 
 function refreshAuthAndStartMonitors() {
-  $j.getJSON(thisUrl + '?view=request&request=status&entity=navBar' + (auth_relay ? '&' + auth_relay : ''))
+  $j.getJSON(zmAuth.appendTo(thisUrl + '?view=request&request=status&entity=navBar'))
       .done(function(data) {
-        if (data) {
-          if (data.auth) {
-            auth_hash = data.auth;
-          }
-          if (data.auth_relay) {
-            auth_relay = data.auth_relay;
-          }
-        }
+        zmAuth.update(data);
         startVisibleMonitors();
       })
       .fail(function() {
@@ -913,6 +906,16 @@ function panZoomIn(el) {
 
 function panZoomOut(el) {
   zmPanZoom.zoomOut(el);
+}
+
+function toggleZones(button) {
+  // Zone overlays are always in the DOM; #monitors.hide-zones controls them.
+  const hidden = document.getElementById('monitors').classList.toggle('hide-zones');
+  setCookie('zmMontageShowZones', hidden ? '0' : '1');
+  button.setAttribute('title', hidden ? showZonesString : hideZonesString);
+  button.classList.toggle('btn-normal', !hidden);
+  button.classList.toggle('btn-secondary', hidden);
+  $j(button).find('.material-icons').text(hidden ? 'layers' : 'layers_clear');
 }
 
 function changeStreamQuality() {

@@ -116,7 +116,10 @@ $total_analysis_fps = 0;
 $status_counts = array();
 for ( $i = 0; $i < count($displayMonitors); $i++ ) {
   $monitor = &$displayMonitors[$i];
-  if ( !$monitor['Status'] ) {
+  if ( $monitor['Deleted'] ) {
+    # Whatever Monitor_Status row a deleted monitor left behind is stale.
+    $monitor['Status'] = 'Deleted';
+  } else if ( !$monitor['Status'] ) {
     if ( $monitor['Type'] == 'WebSite' )
      $monitor['Status'] = 'Running';
     else
@@ -157,7 +160,7 @@ echo $navbar ?>
 <div id="page">
   <div id="content">
 
-    <div id="fbpanel" class="filterBar<?php echo (defined('ZM_WEB_FILTER_SETTINGS_POSITION') && ZM_WEB_FILTER_SETTINGS_POSITION == 'inline') ? '' : ' hidden-shift' ?>">
+    <div id="fbpanel" class="filterBar<?php echo filterSettingsInline() ? '' : ' hidden-shift' ?>">
       <form name="monitorFiltersForm" id="monitorFiltersForm" method="post" action="?view=<?php echo $view; ?>">
       <?php echo $filterbar ?>
       </form>
@@ -220,7 +223,7 @@ echo $navbar ?>
         </button>
       </div>
         
-<?php if (!defined('ZM_WEB_FILTER_SETTINGS_POSITION') || ZM_WEB_FILTER_SETTINGS_POSITION != 'inline') { ?>
+<?php if (filterSettingsInline()) { ?>
         &nbsp;<a href="#" data-flip-control-object="#fbpanel"><i id="fbflip" class="material-icons" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i></a>
 <?php } ?>
     

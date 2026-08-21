@@ -42,6 +42,20 @@ use vars qw/ $table $primary_key %fields /;
 $table = 'Filters';
 $primary_key = 'Id';
 
+# How far back a DateTime lower bound looks for an event that was already
+# running.  Events do not outlive the nightly logrotate SIGHUP, which stops and
+# restarts them, so a day is comfortably beyond any real event and keeps the
+# StartDateTime range tight enough to stay indexed.
+use constant MAX_EVENT_DAYS => 1;
+
+# When an event was never closed, EndDateTime is NULL and StartDateTime plus
+# Length is the best available end.  Mirrors the SELECT list in
+# web/ajax/events.php; an event with no Length has no span at all.
+use constant EFFECTIVE_END_SQL => '(CASE
+    WHEN E.EndDateTime IS NOT NULL THEN E.EndDateTime
+    WHEN E.Length > 0 THEN DATE_ADD(E.StartDateTime, INTERVAL FLOOR(E.Length) SECOND)
+    ELSE E.StartDateTime END)';
+
 %fields = map { $_ => $_ } qw(
 Id
 Name
@@ -179,6 +193,14 @@ sub Sql {
           $date_column = 'E.EndDateTime';
         }
 
+        # A DateTime lower bound also emits a whole predicate rather than an
+        # attribute, so it is flagged here and handled below where the value is
+        # known.  See the DateTime branch.
+        my $datetime_lower_bound = (
+          ($term->{attr} eq 'DateTime')
+          and (($term->{op}//'') eq '>=' or ($term->{op}//'') eq '>')
+        ) ? 1 : 0;
+
         if ( $term->{attr} eq 'AlarmedZoneId' ) {
           $term->{op} = 'EXISTS';
         } elsif ( $term->{attr} eq 'Tags' ) {
@@ -214,7 +236,16 @@ sub Sql {
         } elsif ( $term->{attr} eq 'CurrentDate' ) {
           $self->{Sql} .= 'to_days(NOW())';
         } elsif ( $term->{attr} eq 'DateTime' ) {
-          $self->{Sql} .= 'E.StartDateTime';
+          # Mirror web/includes/FilterTerm.php: DateTime is an "event overlaps
+          # this instant/window" idiom, not a plain StartDateTime comparison. A
+          # lower bound (>=/>) is satisfied by an event still running at that
+          # time, so it compares against EndDateTime and has to treat a NULL end
+          # as ongoing - that whole predicate is emitted below, where the value
+          # is known, so nothing is emitted here. An upper bound (<=/</=) is
+          # satisfied by an event that had already started, so compare against
+          # StartDateTime. Keep this in sync with the PHP so the web UI and the
+          # zmfilter.pl daemon select the same events. refs #4976
+          $self->{Sql} .= 'E.StartDateTime' if !$datetime_lower_bound;
         } elsif ( $term->{attr} eq 'Date' ) {
           # column emitted as part of range expression below
         } elsif ( $term->{attr} eq 'StartDate' ) {
@@ -347,6 +378,24 @@ sub Sql {
             if ( $date_column ) {
               $self->{Sql} .= ' '._dateRangeSQL($date_column, $term->{op}, \@value_list);
             }
+            # An event is on the near side of a lower bound if it was still
+            # running when that instant arrived.  Mirror of the PHP in
+            # web/includes/FilterTerm.php - see the long comment there.  The
+            # StartDateTime floor bounds a window in the past and stops an event
+            # that was never closed from matching years later; the EndDateTime
+            # conjunct is implied by the effective end and exists only to give
+            # the optimiser a second indexable handle, narrow exactly when the
+            # floor is wide; the effective end falls back to StartDateTime +
+            # Length so a live event (Length still growing) is told apart from
+            # one zmc was killed part way through (Length frozen).
+            elsif ( $datetime_lower_bound and @value_list ) {
+              my @subterms = map {
+                '(E.StartDateTime >= DATE_SUB('.$_.', INTERVAL '.MAX_EVENT_DAYS.' DAY)'
+                .' AND (E.EndDateTime IS NULL OR E.EndDateTime '.$term->{op}.' '.$_.')'
+                .' AND '.EFFECTIVE_END_SQL.' '.$term->{op}.' '.$_.')'
+              } @value_list;
+              $self->{Sql} .= ' '.((@subterms > 1) ? '('.join(' OR ', @subterms).')' : $subterms[0]);
+            }
             # Handle special tag values before generic operators to avoid
             # LEFT JOIN NULL comparison issues with EXISTS/NOT EXISTS
             elsif ( $term->{attr} eq 'Tags' and defined($term->{val}) and $term->{val} eq '0' ) {
@@ -437,6 +486,15 @@ sub Sql {
       $sql .= ' AND ( '.join(' or ', @auto_terms).' )';
     }
 
+    # Leave out events another filter is already working on, so that our LIMIT
+    # fills with events we can actually do something with instead of being used
+    # up by events we would only skip. Done here rather than by skipping at
+    # claim time because a filter whose whole result set is held elsewhere would
+    # otherwise make no progress at all.
+    if ($$self{LockRows} and $filter_expr->{skip_locked}) {
+      $sql .= ' AND NOT EXISTS (SELECT 1 FROM Events_Lock AS EL WHERE EL.EventId=E.Id AND EL.ExpiresAt>NOW())';
+    }
+
     my $sort_column = '';
     if ($filter_expr->{sort_field}) {
       if ( $filter_expr->{sort_field} eq 'Id' ) {
@@ -487,16 +545,26 @@ sub Sql {
     if ($filter_expr->{limit}) {
       $sql .= ' LIMIT 0,'.$filter_expr->{limit};
     }
-    if ($$self{LockRows}) {
-      $sql .= ' FOR UPDATE';
-      if ($filter_expr->{skip_locked}) {
-        $sql .= ' SKIP LOCKED';
-      }
-    }
+    # LockRows deliberately does NOT add FOR UPDATE here.  Selecting the whole
+    # result set FOR UPDATE means every row lock, and every lock the per-event
+    # work goes on to take (Events_Hour/Day/Week/Month, Event_Summaries,
+    # Storage), is held until the batch commits.  That both deadlocks two
+    # filters against each other and blocks zmc from opening a new event on any
+    # monitor the filter touched.  zmfilter claims one event at a time in the
+    # Events_Lock table instead - see ZoneMinder::Event::acquire_lock.
     $self->{Sql} = $sql;
   } # end if has Sql
   return $self->{Sql};
 } # end sub Sql
+
+# Whether events another filter has claimed should be left out of this filter's
+# results altogether, rather than returned and then skipped one at a time.
+sub skip_locked {
+  my $self = shift;
+  return 0 if !$$self{Query_json};
+  my $filter_expr = ZoneMinder::General::jsonDecode($$self{Query_json});
+  return $filter_expr->{skip_locked} ? 1 : 0;
+}
 
 sub getDiskPercent {
   my $command = 'df ' . ($_[0] ? $_[0] : '.');

@@ -58,10 +58,7 @@ var params =
 
 // Called by bootstrap-table to retrieve zm event data
 function ajaxRequest(params) {
-  if (document.visibilityState == 'hidden') {
-    eventListTable.bootstrapTable('hideLoading');
-    return;
-  }
+  if (deferTableRequestWhileHidden(eventListTable)) return;
   // Maintain legacy behavior by statically setting these parameters
   const data = params.data;
   data.order = 'desc';
@@ -70,7 +67,7 @@ function ajaxRequest(params) {
   data.view = 'request';
   data.request = 'watch';
   data.mid = monitorId;
-  if (auth_hash) data.auth = auth_hash;
+  if (zmAuth.hash) data.auth = zmAuth.hash;
 
   $j.getJSON(thisUrl, data)
       .done(function(data) {
@@ -198,8 +195,14 @@ function onPlay() {
 }
 
 function streamCmdPlay(action) {
+  if (document.hidden && action) {
+    // Defer autoplay until the tab becomes visible again.
+    prevStateStarted = 'played';
+    return;
+  }
   onPlay();
   if (action) {
+    monitorStream.isActive = true;
     if (monitorStream.started) {
       //Stream was on pause
       monitorStream.play();
@@ -211,23 +214,40 @@ function streamCmdPlay(action) {
 }
 
 function streamCmdStop() {
-  monitorStream.onplay = false; //Without this line, "onPlay" is triggered immediately due to "if (this.onplay) this.onplay();" in MonitorStream.js
-  //setButtonState('pauseBtn', 'inactive');
-  //setButtonState('playBtn', 'unavail');
-  //setButtonState('stopBtn', 'active');
-  if (currentMonitor.monitorStreamReplayBuffer) {
-    setButtonState('fastFwdBtn', 'unavail');
-    setButtonState('slowFwdBtn', 'unavail');
-    setButtonState('slowRevBtn', 'unavail');
-    setButtonState('fastRevBtn', 'unavail');
-  }
+  monitorStream.isActive = false;
   monitorStream.stop();
+  updatePlayerControls("stop");
+}
 
-  //setButtonState('stopBtn', 'unavail');
-  //setButtonState('playBtn', 'active');
-  setButtonStateWatch('playBtn', 'inactive');
-  setButtonStateWatch('stopBtn', 'unavail');
-  setButtonStateWatch('pauseBtn', 'hidden');
+function updatePlayerControls(state) {
+  switch (state) {
+    case 'play':
+      break;
+
+    case 'pause':
+      break;
+
+    case 'stop':
+      monitorStream.onplay = false; //Without this line, "onPlay" is triggered immediately due to "if (this.onplay) this.onplay();" in MonitorStream.js
+      //setButtonState('pauseBtn', 'inactive');
+      //setButtonState('playBtn', 'unavail');
+      //setButtonState('stopBtn', 'active');
+      if (currentMonitor.monitorStreamReplayBuffer) {
+        setButtonState('fastFwdBtn', 'unavail');
+        setButtonState('slowFwdBtn', 'unavail');
+        setButtonState('slowRevBtn', 'unavail');
+        setButtonState('fastRevBtn', 'unavail');
+      }
+      //setButtonState('stopBtn', 'unavail');
+      //setButtonState('playBtn', 'active');
+      setButtonStateWatch('playBtn', 'inactive');
+      setButtonStateWatch('stopBtn', 'unavail');
+      setButtonStateWatch('pauseBtn', 'hidden');
+      break;
+
+    default:
+      console.warn(`Unknown player control state: ${state}`);
+  }
 }
 
 function streamCmdFastFwd(action) {
@@ -354,7 +374,7 @@ function cmdForce() {
 }
 
 function controlReq(data) {
-  if (auth_hash) data.auth = auth_hash;
+  if (zmAuth.hash) data.auth = zmAuth.hash;
   $j.getJSON(monitorUrl + '?view=request&request=control&id='+monitorId, data)
       .done(getControlResponse)
       .fail(logAjaxFail);
@@ -375,7 +395,7 @@ function getControlResponse(respObj, respText) {
 function lightStatusReq() {
   if (!$j('.lightToggleBtn').length) return;
   const data = {control: 'lightStatus', response: 1};
-  if (auth_hash) data.auth = auth_hash;
+  if (zmAuth.hash) data.auth = zmAuth.hash;
   $j.getJSON(monitorUrl + '?view=request&request=control&id='+monitorId, data)
       .done(updateLightButton)
       .fail(logAjaxFail);
@@ -398,7 +418,7 @@ function updateLightButton(respObj) {
 function indicatorLightStatusReq() {
   if (!$j('.indicatorLightToggleBtn').length) return;
   const data = {control: 'indicatorLightStatus', response: 1};
-  if (auth_hash) data.auth = auth_hash;
+  if (zmAuth.hash) data.auth = zmAuth.hash;
   $j.getJSON(monitorUrl + '?view=request&request=control&id='+monitorId, data)
       .done(updateIndicatorLightButton)
       .fail(logAjaxFail);
@@ -480,10 +500,7 @@ function controlCmdImage(x, y) {
 }
 
 function fetchImage(streamImage) {
-  const oldsrc = streamImage.src;
-  const newsrc = oldsrc.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
-  streamImage.src = '';
-  streamImage.src = newsrc;
+  refreshStreamSrc(streamImage, streamImage.src);
 }
 
 function handleClick(event) {
@@ -505,6 +522,7 @@ function handleClick(event) {
     managePanZoomButton(event);
   } else {
     // +++ Old ZoomPan algorithm.
+    if (targetId.indexOf("liveStream") === -1 || !monitorStream || monitorStream.activePlayer.indexOf('zms') === -1) return;
     if (!(event.ctrlKey && (event.shift || event.shiftKey))) {
     // target should be the img tag
       const target = $j(event.target);
@@ -634,7 +652,7 @@ function updatePresetLabels() {
 
 function changeControl(e) {
   const input = e.target;
-  $j.getJSON(monitorUrl+'?request=v4l2_settings&mid='+monitorId+'&'+input.name+'='+input.value+'&'+auth_relay)
+  $j.getJSON(zmAuth.appendTo(monitorUrl+'?request=v4l2_settings&mid='+monitorId+'&'+input.name+'='+input.value))
       .done(function(evt) {
         if (evt.result == 'Ok') {
           evt.controls.forEach(function(control) {
@@ -652,7 +670,7 @@ function changeControl(e) {
 }
 
 function getSettingsModal() {
-  $j.getJSON(monitorUrl + '?request=modal&modal=settings&mid=' + monitorId+'&'+auth_relay)
+  $j.getJSON(zmAuth.appendTo(monitorUrl + '?request=modal&modal=settings&mid=' + monitorId))
       .done(function(data) {
         let modal = $j('#settingsModal');
         if (modal.length) modal.remove();
@@ -728,7 +746,7 @@ function controlSetClicked() {
   if (!modal.lenth) {
     console.log('loading');
     // Load the PTZ Preset modal into the DOM
-    $j.getJSON(monitorUrl + '?request=modal&modal=controlpreset&mid=' + monitorId+'&'+auth_relay)
+    $j.getJSON(zmAuth.appendTo(monitorUrl + '?request=modal&modal=controlpreset&mid=' + monitorId))
         .done(function(data) {
           insertModalHtml('ctrlPresetModal', data.html);
           updatePresetLabels();
@@ -864,9 +882,11 @@ function streamStart(monitor = null) {
   //monitorsSetScale(monitorId);
   streamCmdPlay(true);
   if (streamMode == 'single') {
-    monitorStream.setup_onclick(fetchImage);
+    monitorStream.setup_onclick((evt) => {
+      const img = (evt && evt.target && evt.target.closest) ? evt.target.closest('img') : null;
+      if (img) fetchImage(img);
+    });
   } else {
-    monitorStream.setup_onclick(handleClick);
     monitorStream.setup_onmove(handleMove);
   }
   monitorStream.setup_onpause(onPause);
@@ -906,6 +926,7 @@ function streamReStart(oldId, newId) {
 
   zmPanZoom.action('disable', {id: oldId});
   if (monitorStream) {
+    monitorStream.isActive = false;
     monitorStream.kill();
   } else {
     console.log("No monitorStream?");
@@ -939,6 +960,8 @@ function streamReStart(oldId, newId) {
   applyMonitorControllable();
   //manageChannelStream();
   streamPrepareStart(currentMonitor);
+  // IgorA100 ToDo: This isn't a duplicate initialization. We initialize different objects (in the first case, ".zoompan" is the default, in the second, ".imageFeed"),
+  // but PanZoom wasn't fully implemented in panzoom.js for the second ".imageFeed" initialization line.
   zmPanZoom.init();
   zmPanZoom.init({objString: '.imageFeed', disablePan: true, contain: 'inside', additional: true});
   //document.getElementById('monitor').classList.remove('hidden-shift');
@@ -1039,6 +1062,8 @@ function initPage() {
   document.getElementById('use-old-zoom-pan').checked = useOldZoomPan;
   // --- Support of old ZoomPan algorithm
 
+  // IgorA100 ToDo: This isn't a duplicate initialization. We initialize different objects (in the first case, ".zoompan" is the default, in the second, ".imageFeed"),
+  // but PanZoom wasn't fully implemented in panzoom.js for the second ".imageFeed" initialization line.
   zmPanZoom.init();
   zmPanZoom.init({objString: '.imageFeed', disablePan: true, contain: 'inside', additional: true});
 
@@ -1393,6 +1418,7 @@ function monitorChangeStreamChannel() {
   if ((monitorStream.activePlayer) && (-1 !== monitorStream.activePlayer.indexOf('go2rtc') || -1 !== monitorStream.activePlayer.indexOf('rtsp2web'))) {
     streamCmdStop();
     setTimeout(function() {
+      monitorStream.isActive = true;
       monitorStream.start(streamChannel);
       onPlay();
       monitorsSetScale(monitorId);
@@ -1437,9 +1463,13 @@ function controlWhatDisplay(oldId, newId) {
   }
   if (noAudioMotion) {
     destroyAudioMotion(oldId);
-    document.querySelector('.stream-info-status-track').innerText = '';
+    if (monitorStream && monitorStream.updateStreamInfoStatusTrack) monitorStream.updateStreamInfoStatusTrack('');
   } else {
-    connectAudioMotion(newId);
+    if (monitorStream.activePlayer.indexOf("zms") === -1) {
+      connectAudioMotion(newId);
+    } else {
+      monitorStream.updateStreamInfoStatusTrack("");
+    }
   }
   if (imageFeed) imageFeed.setAttribute("data-not-display-video", noVideo);
 }
@@ -1453,40 +1483,86 @@ function changeWhatDisplay() {
 $j( window ).on("load", initPage);
 
 var prevStateStarted = null;
-document.onvisibilitychange = () => {
-  // Always clear it because the return to visibility might happen before timeout
-  TimerHideShow = clearTimeout(TimerHideShow);
+var prevStateCycle = null;
+document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === "hidden") {
+    clearTimeout(TimerHideShow);
     TimerHideShow = setTimeout(function() {
       //Stop monitor when closing or hiding page
-      if (monitorStream) {
-        if (monitorStream.started) {
-          if ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused) || monitorStream.element.paused) {
-            prevStateStarted = 'paused';
-          } else {
-            prevStateStarted = 'played';
-            //Stop only if playing (not paused).
-            // We might want to continue status updates so that alarm sounds etc still happen
-            monitorStream.stop();
-          }
-        } else {
-          prevStateStarted = 'stopped';
-        }
-      }
+      stopPage();
     }, 15*1000);
   } else {
     //Start monitor when show page
-    if (monitorStream && prevStateStarted == 'played' && !idleTimeoutTriggered) {
-      prevStateStarted = null;
-      onPlay(); //Set the correct state of the player buttons.
-      monitorStream.start(monitorStream.currentChannelStream);
-      monitorsSetScale(monitorId);
-    //} else if (prevStateStarted != 'paused') {
-    } else if (monitorStream && monitorStream.element && ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused) || monitorStream.element.paused)) {
-      prevStateStarted = null;
+    startPage();
+  }
+});
+
+document.addEventListener('freeze', () => {
+  console.log('FREEZE');
+  stopPage();
+});
+
+document.addEventListener('resume', () => {
+  console.log('RESUME');
+  setTimeout(() => {
+    if (!document.hidden) {
+      startPage();
+    }
+  }, 100);
+});
+
+window.addEventListener('pagehide', () => {
+  console.log('PAGEHIDE');
+  stopPage();
+});
+
+window.addEventListener('pageshow', () => {
+  console.log('PAGESHOW');
+  setTimeout(() => {
+    if (!document.hidden) {
+      startPage();
+    }
+  }, 100);
+});
+
+function stopPage() {
+  // Avoid calling stopPage() twice, as stopPage() can be called asynchronously from different places.
+  // For example, if 'freeze' is triggered earlier than 15 seconds after visibilityState === "hidden"
+  TimerHideShow = clearTimeout(TimerHideShow);
+  prevStateCycle = cycle;
+  if (prevStateCycle) cycleStop();
+  if (monitorStream) {
+    if (monitorStream.started) {
+      if ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused) || monitorStream.element.paused) {
+        prevStateStarted = 'paused';
+      } else {
+        prevStateStarted = 'played';
+        //Stop only if playing (not paused).
+        // We might want to continue status updates so that alarm sounds etc still happen
+        monitorStream.isActive = false;
+        monitorStream.stop();
+      }
+    } else {
+      prevStateStarted = 'stopped';
     }
   }
-};
+}
+
+function startPage() {
+  // Always clear it because the return to visibility might happen before timeout
+  TimerHideShow = clearTimeout(TimerHideShow);
+  if (monitorStream && prevStateStarted == 'played' && !idleTimeoutTriggered) {
+    prevStateStarted = null;
+    onPlay(); //Set the correct state of the player buttons.
+    monitorStream.isActive = true;
+    monitorStream.start(monitorStream.currentChannelStream);
+    monitorsSetScale(monitorId);
+  //} else if (prevStateStarted != 'paused') {
+  } else if (monitorStream && monitorStream.element && ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused) || monitorStream.element.paused)) {
+    prevStateStarted = null;
+  }
+  if (prevStateCycle) cycleStart();
+}
 
 function setButtonStateWatch(element_id, btnClass) {
   //Temporary function so as not to break anything else, because analysis of the setButtonState function in skin.js is required,

@@ -153,24 +153,24 @@ Event::Event(
 
   /* None of these are crucial, and are simple when done as individual transactions */
   sql = stringtf("INSERT INTO `Events_Hour` (EventId,MonitorId,StartDateTime,DiskSpace)"
-      " VALUES (%" PRId64 ",%u,'%s',NULL)",
+      " VALUES (%" PRIu64 ",%u,'%s',NULL)",
       id, monitor->Id(), now_str.c_str());
   dbQueue.push(std::move(sql));
   sql = stringtf("INSERT INTO `Events_Day` (EventId,MonitorId,StartDateTime,DiskSpace)"
-      " VALUES (%" PRId64 ",%u,'%s',NULL)",
+      " VALUES (%" PRIu64 ",%u,'%s',NULL)",
       id, monitor->Id(), now_str.c_str());
   dbQueue.push(std::move(sql));
   sql = stringtf("INSERT INTO `Events_Week` (EventId,MonitorId,StartDateTime,DiskSpace)"
-      " VALUES (%" PRId64 ",%u,'%s',NULL)",
+      " VALUES (%" PRIu64 ",%u,'%s',NULL)",
       id, monitor->Id(), now_str.c_str());
   dbQueue.push(std::move(sql));
   sql = stringtf("INSERT INTO `Events_Month` (EventId,MonitorId,StartDateTime,DiskSpace)"
-      " VALUES (%" PRId64 ",%u,'%s',NULL)",
+      " VALUES (%" PRIu64 ",%u,'%s',NULL)",
       id, monitor->Id(), now_str.c_str());
   dbQueue.push(std::move(sql));
   /*
   sql = stringtf("INSERT INTO `Events_Year` (EventId,MonitorId,StartDateTime,DiskSpace)"
-      " VALUES (%" PRId64 ",%u,'%s',NULL)",
+      " VALUES (%" PRIu64 ",%u,'%s',NULL)",
       id, monitor->Id(), now_str.c_str());
   dbQueue.push(std::move(sql));
   */
@@ -226,6 +226,29 @@ Event::~Event() {
     // the rename.
     if (link(video_incomplete_path.c_str(), video_path.c_str()) == 0) {
       video_file_linked = true;
+    } else if (ErrnoMeansNoHardLinkSupport(errno)) {
+      // exFAT and friends are perfectly writable but have no hard links at all,
+      // so fall back to a plain rename. The event then gets its normal final
+      // name instead of keeping incomplete.* forever, and this is a supported
+      // configuration rather than an error worth logging as one.
+      //
+      // The cost is the dual-name window described above: between this rename
+      // and the DefaultVideo update below, a reader of the still-stale row
+      // looks for incomplete.* and will not find it. On a filesystem without
+      // hard links there is no way to have the file under both names at once,
+      // and a brief window beats every event on the system being named as
+      // though it never finished recording.
+      const int link_errno = errno;
+      if (rename(video_incomplete_path.c_str(), video_path.c_str()) == 0) {
+        // Reports the errno rather than asserting the cause: on Linux EPERM
+        // usually means something other than a filesystem without hard links.
+        Debug(1, "Renamed %s to %s, link was refused: %s",
+              video_incomplete_path.c_str(), video_path.c_str(), strerror(link_errno));
+      } else {
+        Error("Failed renaming %s to %s, reason: %s",
+              video_incomplete_path.c_str(), video_path.c_str(), strerror(errno));
+        video_file = video_incomplete_file;
+      }
     } else {
       Error("Failed linking %s to %s, reason: %s", video_incomplete_path.c_str(), video_path.c_str(), strerror(errno));
       video_file = video_incomplete_file;
@@ -469,7 +492,7 @@ void Event::AddPacket_(const std::shared_ptr<ZMPacket>packet) {
           tag->save();
           Debug(1, "Created new Tag %s", cls.c_str());
           tags.emplace(std::make_pair(cls, *tag));
-          int tag_id = tag->Id();
+          uint64_t tag_id = tag->Id();
           delete tag;  // Delete after copying into map
           tag = nullptr;
 

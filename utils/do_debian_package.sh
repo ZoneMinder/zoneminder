@@ -310,12 +310,19 @@ EOF
 
   # Leave the .orig so that we don't pollute it when building deps
   cd ..
-  if [ $TYPE == "binary" ]; then
+  if [ $TYPE == "binary" -o $TYPE == "binary-arch" ]; then
 	  # Auto-install all ZoneMinder's dependencies using the Debian control file
 	  sudo apt-get install devscripts equivs
 	  sudo mk-build-deps -ir $DIRECTORY.orig/debian/control
 	  echo "Status: $?"
-	  DEBUILD="debuild -b -uc -us"
+	  # binary-arch skips Architecture: all packages. Used on secondary
+	  # architectures so that the arch-independent .debs are only built and
+	  # uploaded once, by the amd64 builders.
+	  if [ $TYPE == "binary-arch" ]; then
+		  DEBUILD="debuild -B -uc -us"
+	  else
+		  DEBUILD="debuild -b -uc -us"
+	  fi;
   else
 	  if [ $TYPE == "local" ]; then
 		  # Auto-install all ZoneMinder's dependencies using the Debian control file
@@ -345,7 +352,7 @@ EOF
 
   cd ../
 
-  if [ $TYPE == "binary" ]; then
+  if [ $TYPE == "binary" -o $TYPE == "binary-arch" ]; then
     if [ "$INTERACTIVE" != "no" ]; then
       read -p "Not doing dput since it's a binary release. Do you want to install it? (y/N)"
       if [[ $REPLY == [yY] ]]; then

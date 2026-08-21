@@ -223,10 +223,13 @@ echo htmlSelect('filter[Query][sort_asc]', $sort_dirns, $filter->sort_asc(), ['c
               <td>
                 <label for="filter[Query][skip_locked]"><?php echo translate('Skip Locked') ?></label>
 <?php
+// No longer gated on the server supporting SELECT ... SKIP LOCKED: filters
+// claim events in the Events_Lock table, which works on any version.
 echo htmlSelect('filter[Query][skip_locked]',
   array('0'=>translate('No'), '1'=>translate('Yes')),
   $filter->skip_locked(),
-  ( db_supports_feature('skip_locks') ? ['Id'=>'filter[Query][skip_locked]', 'class'=>'chosen']: ['Id'=>'filter[Query][skip_locked]', 'disabled'=>'disabled', 'title'=>'Database does not support the skip locked feature.', 'class'=>'chosen'])
+  ['Id'=>'filter[Query][skip_locked]', 'class'=>'chosen',
+    'title'=>'Leave out events another filter is already working on. Requires Lock Rows.']
 );
 
 ?>
@@ -286,12 +289,24 @@ if ( ZM_OPT_MESSAGE ) {
             </p>
 <?php
 }
+// AutoExecuteCmd is run verbatim as an OS command by zmfilter.pl, so it is
+// restricted to System editors. Other users get hidden inputs that preserve
+// any existing values so saving unrelated fields does not silently alter them.
+if ( canEdit('System') ) {
 ?>
             <p>
               <label for="filter[AutoExecute]"><?php echo translate('FilterExecuteEvents') ?></label>
               <input type="checkbox" id="filter[AutoExecute]" name="filter[AutoExecute]" value="1"<?php if ( $filter->AutoExecute() ) { ?> checked="checked"<?php } ?>/>
               <input type="text" name="filter[AutoExecuteCmd]" value="<?php echo (null !==$filter->AutoExecuteCmd())?validHtmlStr($filter->AutoExecuteCmd()):'' ?>" maxlength="255" data-on-change-this="updateButtons"/>
             </p>
+<?php
+} else {
+?>
+            <input type="hidden" name="filter[AutoExecute]" value="<?php echo $filter->AutoExecute() ? 1 : 0 ?>"/>
+            <input type="hidden" name="filter[AutoExecuteCmd]" value="<?php echo validHtmlStr($filter->AutoExecuteCmd()) ?>"/>
+<?php
+}
+?>
             <p>
               <label for="filter[AutoDelete]"><?php echo translate('FilterDeleteEvents') ?></label>
               <input type="checkbox" id="filter[AutoDelete]" name="filter[AutoDelete]" value="1"<?php if ( $filter->AutoDelete() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>

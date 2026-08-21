@@ -673,6 +673,7 @@ $SLANG = array(
     'SpeedLow'              => 'Low Speed',
     'SpeedMedium'           => 'Medium Speed',
     'SpeedTurbo'            => 'Turbo Speed',
+    'StatusDeleted'         => 'Deleted',
     'StatusUnknown'         => 'Unknown',
     'StatusConnected'       => 'Capturing',
     'StatusNotRunning'      => 'Not Running',

@@ -74,7 +74,7 @@ if ($event_id !== null) {
 // then incomplete (zmc may have died before renaming).
 if ($Event && !$errorText && !@is_file($path)) {
   $dir = $Event->Path();
-  if ($dir !== '') {
+  if (trim((string)$dir) !== '') {
     $candidates = glob($dir.'/'.$Event->Id().'-video.*.mp4');
     if (!$candidates) $candidates = glob($dir.'/incomplete.*.mp4');
     if ($candidates) {

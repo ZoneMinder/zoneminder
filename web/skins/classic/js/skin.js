@@ -1582,8 +1582,15 @@ function createGo2rtcStream(container, img, src, mid, fallbackToMjpeg) {
     stream.handlerEventListener['go2rtc.events.error'] = manageEventListener.addEventListener(stream, 'go2rtc.events.error',
         (e) => {
           console.debug('Go2RTC playback error:', e.detail);
+          const innerVideo = stream.querySelector('video');
+          if (innerVideo && !innerVideo.paused && innerVideo.readyState >= 2) {
+            // A player mode we aren't using reported an error (eg the webrtc
+            // watchdog while MSE carries playback). Video is running, keep it.
+            return;
+          }
           clearTimeout(stream._fallbackTimer);
           manageEventListener.removeEventListener(stream.handlerEventListener['go2rtc.events.error']);
+          disconnectVideoStream(stream);
           stream.remove();
           fallbackToMjpeg();
         }
@@ -1611,6 +1618,7 @@ function createGo2rtcStream(container, img, src, mid, fallbackToMjpeg) {
     stream._fallbackTimer = setTimeout(function() {
       const innerVideo = stream.querySelector('video');
       if (!innerVideo || innerVideo.readyState < 2) {
+        disconnectVideoStream(stream);
         stream.remove();
         fallbackToMjpeg();
       }
@@ -2000,7 +2008,21 @@ function cleanupVideoStream(videoStream) {
   if (!videoStream) return;
   manageEventListener.removeEventListener(videoStream.handlerEventListener['go2rtc.events.error']);
   if (videoStream._fallbackTimer) clearTimeout(videoStream._fallbackTimer);
+  disconnectVideoStream(videoStream);
   videoStream.close();
+}
+
+// video-stream elements in the hover overlay run with background=true, so
+// disconnectedCallback() won't tear anything down when we remove them. Without
+// this the websocket and RTCPeerConnection stay open for the life of the page
+// and every hover leaves another consumer on the camera.
+function disconnectVideoStream(videoStream) {
+  if (videoStream.wsState === WebSocket.CLOSED && videoStream.pcState === WebSocket.CLOSED) return;
+  try {
+    videoStream.ondisconnect();
+  } catch (e) {
+    console.warn(e);
+  }
 }
 
 function cleanupVideoElement(video) {
@@ -2024,6 +2046,20 @@ function initThumbAnimation() {
     // Preload the video-stream module so it's ready when the user hovers
     if (hasGo2rtc) ensureVideoStreamLoaded();
   }
+}
+
+function addOrUpdateRandParam(src) {
+  const rand = Date.now();
+  if (/[?&]rand=\d+/i.test(src)) {
+    return src.replace(/([?&])rand=\d+/i, '$1rand=' + rand);
+  }
+  return src + (src.includes('?') ? '&' : '?') + 'rand=' + rand;
+}
+
+function refreshStreamSrc(stream, src) {
+  src = addOrUpdateRandParam(src);
+  stream.src = '';
+  stream.src = src;
 }
 
 /* View in fullscreen */
@@ -3416,33 +3452,6 @@ async function getTracksFromStream(videoFeedStream) {
 
   }
 
-  // We'll determine whether we need a video track or just an audio track.
-  // When playing H.265, the video may not be decoded, but the audio track will play.
-  const selectorWhatDisplay = document.getElementById('whatDisplay');
-  const monitorStream = getMonitorStream(mid);
-  const defaultWhatDisplay = (typeof eventData !== 'undefined') ? eventData.whatDisplay : (monitorStream) ? monitorStream.whatDisplay : null;
-
-  let videoTrackRequired = true;
-  if (!selectorWhatDisplay || (-1 !== selectorWhatDisplay.value.toLowerCase().indexOf('default'))) { // Default monitor settings
-    if (defaultWhatDisplay && (-1 === defaultWhatDisplay.toLowerCase().indexOf('video'))) videoTrackRequired = false;
-  } else {
-    if (-1 === selectorWhatDisplay.value.toLowerCase().indexOf('video')) videoTrackRequired = false;
-  }
-  if (!videoFeedStream.videoTrack ) {
-    monitorStream.updateStreamInfo('', 'Video track missing');
-    monitorStream.writeTextInfoBlock("Video track missing", {showImg: false});
-  }
-  if (!videoFeedStream.videoTrack && videoTrackRequired && (!videoFeedStream.selectedPlayer || videoFeedStream.selectedPlayer === "go2rtc")) {
-    // Switch to a different player only when mode=Auto
-    videoFeedStream.streamErrorRegistration();
-    videoFeedStream.restart(videoFeedStream.currentChannelStream);
-    dispatchTracksReceived(videoFeedStream, {
-      status: 'aborted',
-      reason: 'playback-videoTrack-missing'
-    });
-    return;
-  }
-
   if (videoFeedStream.started === false) {
     console.debug(`RACE [${playbackSessionId}] activePlayer: "${videoFeedStream.activePlayer || "not defined"}" skip tracksReceived because stream for monitor ID=${mid} stopped`);
     return;
@@ -3460,19 +3469,24 @@ const dispatchTracksReceived = function(videoFeedStream, {
   status,
   reason = null
 } = {}) {
-  document.dispatchEvent(new CustomEvent('zm:tracksReceived', {
-    detail: {
-      monitorId: (typeof eventData !== 'undefined') ? eventData.MonitorId : videoFeedStream?.id,
-      status,
-      reason,
-      activePlayer: videoFeedStream?.activePlayer ?? null,
-      stream: {
-        mediaStream: videoFeedStream?.mediaStream ?? null,
-        audioTrack: videoFeedStream?.audioTrack ?? null,
-        videoTrack: videoFeedStream?.videoTrack ?? null
+  const objStream = (videoFeedStream?.dispatchEvent instanceof Function) ? videoFeedStream : videoFeedStream?.element;
+  if (objStream) {
+    objStream.dispatchEvent(new CustomEvent('zm:tracksReceived', {
+      detail: {
+        monitorId: (typeof eventData !== 'undefined') ? eventData.MonitorId : videoFeedStream?.id,
+        status,
+        reason,
+        activePlayer: videoFeedStream?.activePlayer ?? null,
+        stream: {
+          mediaStream: videoFeedStream?.mediaStream ?? null,
+          audioTrack: videoFeedStream?.audioTrack ?? null,
+          videoTrack: videoFeedStream?.videoTrack ?? null
+        }
       }
-    }
-  }));
+    }));
+  } else {
+    console.warn(`No stream found for ${videoFeedStream}. dispatchEvent for 'zm:tracksReceived' will not be added.`);
+  }
 };
 
 /**

@@ -17,6 +17,7 @@ set(TEST_SOURCES
   zm_box.cpp
   zm_comms.cpp
   zm_crypt.cpp
+  zm_event_hardlink.cpp
   zm_font.cpp
   zm_image.cpp
   zm_monitorstream.cpp
@@ -24,6 +25,7 @@ set(TEST_SOURCES
   zm_onvif_wsse.cpp
   zm_pixformat.cpp
   zm_stream.cpp
+  zm_stream_races.cpp
   zm_swscale_range.cpp
   zm_poly.cpp
   zm_time.cpp

@@ -732,11 +732,33 @@ message(STATUS "Perl module install path: ${ZM_PERL_INSTALL_PATH}")
 # Check all required modules at once
 # TODO: Add checking for the optional modules
 find_package(
-  PerlModules COMPONENTS Sys::Syslog DBI DBD::mysql
+  PerlModules COMPONENTS Sys::Syslog DBI
   Getopt::Long Time::HiRes Date::Manip LWP::UserAgent
   ${ZM_MMAP_PERLPACKAGE})
 if(NOT PERLMODULES_FOUND)
   message(WARNING "Not all required perl modules were found on your system")
+endif()
+
+# Either DBD will do, so they cannot go in the list above, which requires all of
+# its components. DBD::mysql 5 refuses to connect to a MariaDB server, so such a
+# system needs DBD::MariaDB. Check in the same order ZoneMinder::Database
+# prefers them, since DBD::MariaDB drives both servers.
+foreach(zm_dbd DBD::MariaDB DBD::mysql)
+  if(NOT ZM_PERL_DBD)
+    execute_process(
+      COMMAND "${PERL_EXECUTABLE}" "-e" "use ${zm_dbd};"
+      RESULT_VARIABLE zm_dbd_result OUTPUT_QUIET ERROR_QUIET)
+    if(zm_dbd_result EQUAL 0)
+      set(ZM_PERL_DBD "${zm_dbd}")
+    endif()
+  endif()
+endforeach()
+if(ZM_PERL_DBD)
+  message(STATUS "Checking for a perl database driver - found ${ZM_PERL_DBD}")
+else()
+  message(WARNING
+    "Neither DBD::MariaDB nor DBD::mysql was found. The perl scripts will not be"
+    " able to reach the database. Install DBD::MariaDB for a MariaDB server.")
 endif()
 
 # Attempt to check which user apache (or other web server) runs on by 

@@ -43,6 +43,35 @@ function getFilterSelection($name) {
   return $selectedValue;
 }
 
+// Deleted monitors are hidden from every monitor listing, which leaves no way
+// to find one again after it has been deleted. 'Deleted' is therefore offered
+// as a pseudo status in the Status filter: on its own it lists only the deleted
+// monitors, alongside real statuses it adds them to that selection, and when it
+// is not selected the listing stays restricted to live monitors as before.
+//
+// Returns a single WHERE fragment covering both Deleted and Status, and appends
+// its bind values to $values. $statusColumn is the expression the caller uses
+// for the live status, which differs between callers.
+function monitorStatusFilterSql($statusFilter, &$values, $statusColumn) {
+  if ($statusFilter === '' or $statusFilter === null) {
+    $statuses = array();
+  } else {
+    $statuses = is_array($statusFilter) ? $statusFilter : array($statusFilter);
+  }
+  $include_deleted = in_array('Deleted', $statuses);
+  $statuses = array_values(array_diff($statuses, array('Deleted')));
+
+  if ($include_deleted and !count($statuses))
+    return 'M.`Deleted`=true';
+
+  $sql = 'M.`Deleted`=false';
+  if (count($statuses)) {
+    $sql .= ' AND '.$statusColumn.' IN ('.implode(',', array_fill(0, count($statuses), '?')).')';
+    $values = array_merge($values, $statuses);
+  }
+  return $include_deleted ? '('.$sql.' OR M.`Deleted`=true)' : $sql;
+}
+
 // Resolve the shared monitor-attribute filters (ServerId/StorageId/Status/
 // Capturing/Analysing/Recording/MonitorName/Source) to the set of viewable
 // monitor ids they select, so views that filter events (which have no such
@@ -55,12 +84,11 @@ function getFilteredMonitorIds() {
 
   $conditions = array();
   $values = array();
-  foreach (array('ServerId', 'StorageId', 'Status', 'Capturing', 'Analysing', 'Recording') as $filter) {
+  foreach (array('ServerId', 'StorageId', 'Capturing', 'Analysing', 'Recording') as $filter) {
     $filterValue = getFilterSelection($filter);
     if ($filterValue === '' or $filterValue === array() or $filterValue === null)
       continue;
-    # See buildMonitorsFilters(): Function=None monitors have no Monitor_Status row.
-    $column = ($filter == 'Status') ? "COALESCE(`Status`, 'NotRunning')" : '`'.$filter.'`';
+    $column = '`'.$filter.'`';
     if (is_array($filterValue)) {
       $conditions[] = $column.' IN ('.implode(',', array_map(function() {return '?';}, $filterValue)).')';
       $values = array_merge($values, $filterValue);
@@ -69,17 +97,20 @@ function getFilteredMonitorIds() {
       $values[] = $filterValue;
     }
   }
+  # See buildMonitorsFilters(): Function=None monitors have no Monitor_Status row.
+  # Appended last so the bind values stay in the same order as the conditions.
+  $statusFilter = getFilterSelection('Status');
+  $conditions[] = monitorStatusFilterSql($statusFilter, $values, "COALESCE(`Status`, 'NotRunning')");
 
   $monitorNameFilter = getFilterSelection('MonitorName');
   $sourceFilter = getFilterSelection('Source');
 
-  if (!count($conditions) and !$monitorNameFilter and !$sourceFilter)
+  if (count($conditions) == 1 and !$statusFilter and !$monitorNameFilter and !$sourceFilter)
     return null; // no attribute filter active -> all monitors
 
   $sql = 'SELECT M.* FROM Monitors AS M
     LEFT JOIN Monitor_Status AS S ON S.MonitorId=M.Id
-    WHERE M.`Deleted`=false'
-    . (count($conditions) ? ' AND '.implode(' AND ', $conditions) : '');
+    WHERE '.implode(' AND ', $conditions);
   $ids = array();
   foreach (dbFetchAll($sql, null, $values) as $row) {
     if (!visibleMonitor($row['Id']))
@@ -190,13 +221,10 @@ function buildMonitorsFilters() {
 
   if ( $groupSql )
     $conditions[] = $groupSql;
-  foreach ( array('ServerId','StorageId','Status','Capturing','Analysing','Recording') as $filter ) {
+  foreach ( array('ServerId','StorageId','Capturing','Analysing','Recording') as $filter ) {
     $filterValue = getFilterSelection($filter);
     if ( $filterValue ) {
-      # Function=None monitors have no Monitor_Status row, so the LEFT JOIN leaves
-      # S.Status NULL. Treat a missing status as NotRunning so that filter matches
-      # them, mirroring the NULL->NotRunning coalesce used for display in console.php.
-      $column = ($filter == 'Status') ? "COALESCE(`Status`, 'NotRunning')" : '`'.$filter.'`';
+      $column = '`'.$filter.'`';
       if ( is_array($filterValue) ) {
         $conditions[] = $column.' IN ('.implode(',', array_map(function(){return '?';}, $filterValue)).')';
         $values = array_merge($values, $filterValue);
@@ -206,6 +234,12 @@ function buildMonitorsFilters() {
       }
     }
   } # end foreach filter
+
+  # Function=None monitors have no Monitor_Status row, so the LEFT JOIN leaves
+  # S.Status NULL. Treat a missing status as NotRunning so that filter matches
+  # them, mirroring the NULL->NotRunning coalesce used for display in console.php.
+  # This also carries the Deleted restriction - see monitorStatusFilterSql().
+  $conditions[] = monitorStatusFilterSql(getFilterSelection('Status'), $values, "COALESCE(`Status`, 'NotRunning')");
 
   if (count($user->unviewableMonitorIds()) ) {
     $ids = $user->viewableMonitorIds();
@@ -262,6 +296,7 @@ function buildMonitorsFilters() {
     'NotRunning' => translate('StatusNotRunning'),
     'Running' => translate('StatusRunning'),
     'Connected' => translate('StatusConnected'),
+    'Deleted' => translate('StatusDeleted'),
     );
   $html .= '<span class="term-value-wrapper">';
   $html .= htmlSelect( 'Status[]', $status_options,
@@ -283,12 +318,15 @@ function buildMonitorsFilters() {
   $html .= '</span>';
   $html .= '</span>';
 
-  $sqlAll = 'SELECT M.*, S.*, E.*
+  $sqlFrom = 'SELECT M.*, S.*, E.*
     FROM Monitors AS M
-    LEFT JOIN Monitor_Status AS S ON S.MonitorId=M.Id 
-    LEFT JOIN Event_Summaries AS E ON E.MonitorId=M.Id 
-    WHERE M.`Deleted`=false';
-  $sqlSelected = $sqlAll . ( count($conditions) ? ' AND ' . implode(' AND ', $conditions) : '' ).' ORDER BY Sequence ASC';
+    LEFT JOIN Monitor_Status AS S ON S.MonitorId=M.Id
+    LEFT JOIN Event_Summaries AS E ON E.MonitorId=M.Id
+    WHERE ';
+  # The "all available" count is what the filters are counted against, so it
+  # stays restricted to live monitors however the Status filter is set.
+  $sqlAll = $sqlFrom.'M.`Deleted`=false';
+  $sqlSelected = $sqlFrom . implode(' AND ', $conditions).' ORDER BY Sequence ASC';
   $monitors = dbFetchAll($sqlSelected, null, $values);
 
   $colAllAvailableMonitors = 0;

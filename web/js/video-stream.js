@@ -37,6 +37,13 @@ class VideoStream extends VideoRTC {
         this.currentMode = 'ERROR';
     }
 
+    set src(value) {
+        const monitorStream = getMonitorStream(stringToNumber(this.id));
+        monitorStream.playbackSessionId = generateUUID();
+        this.playbackSessionId = monitorStream.playbackSessionId;
+        super.src = value;
+    }
+
     /**
      * Custom GUI
      */
@@ -167,6 +174,7 @@ class VideoStream extends VideoRTC {
     errorHandling(currentMode, message = null) {
         const monitorStream = getMonitorStream(stringToNumber(this.id));
         if (monitorStream) {
+            if (!isCurrentPlaybackSession(monitorStream, this.playbackSessionId)) return;
             monitorStream.player = "go2rtc_" + currentMode;
             monitorStream.streamErrorRegistration();
             monitorStream.restart(monitorStream.currentChannelStream);

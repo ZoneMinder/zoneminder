@@ -84,6 +84,30 @@ sub CpuLoad {
 # per process instead of every ZM_STATS_UPDATE_INTERVAL.
 my $warned_cpu_usage = 0;
 
+# Parse the CPU state lines of OpenBSD's top. It prints either a single
+# aggregate "CPU states:" line or one "CPU0 states:" line per core,
+# depending on its mode, so sum whichever we get and average over the
+# number of lines seen. Field widths vary with the value (100.0 vs 0.0),
+# so don't depend on the padding. Returns
+# ($user, $nice, $system, $idle), or the empty list if nothing matched.
+sub parse_bsd_top_cpu {
+  my $top_output = shift;
+  my ($user, $nice, $system, $idle, $cpus) = (0, 0, 0, 0, 0);
+
+  foreach my $line (split(/\n/, $top_output)) {
+    if ($line =~ /^CPU\d*\s+states:\s*([\d\.]+)%\s*user,\s*([\d\.]+)%\s*nice,\s*([\d\.]+)%\s*sys,\s*([\d\.]+)%\s*spin,\s*([\d\.]+)%\s*intr,\s*([\d\.]+)%\s*idle/) {
+      $user += $1;
+      $nice += $2;
+      $system += $3;
+      $idle += $6;
+      $cpus += 1;
+    } # end if line match
+  } # end foreach line
+
+  return () if !$cpus;
+  return ($user/$cpus, $nice/$cpus, $system/$cpus, $idle/$cpus);
+} # end sub parse_bsd_top_cpu
+
 sub CpuUsage {
 
   my $fileNameCurStat = '/proc/stat';
@@ -152,23 +176,78 @@ sub CpuUsage {
     }
     my $top_output = `$top_cmd` // '';
 
-    # split on an empty $top_output returns an empty list, so default all four
-    # before touching them or we warn under -w on every interval.
-    my ($user, $system, $nice, $idle) = split(/ /, $top_output);
-    foreach ($user, $system, $nice, $idle) {
-      $_ = defined($_) ? $_ : '';
-      s/[^\d\.]//g;
-      $_ = 0 if $_ eq '';
+    if ($top_output =~ /\d/) {
+      # split on an empty $top_output returns an empty list, so default all four
+      # before touching them or we warn under -w on every interval.
+      my ($user, $system, $nice, $idle) = split(/ /, $top_output);
+      foreach ($user, $system, $nice, $idle) {
+        $_ = defined($_) ? $_ : '';
+        s/[^\d\.]//g;
+        $_ = 0 if $_ eq '';
+      }
+      if (!$user or !$system) {
+        if (!$warned_cpu_usage) {
+          $warned_cpu_usage = 1;
+          ZoneMinder::Logger::Warning("$stat_error Falling back to top also failed: $top_cmd gave output '$top_output'.");
+        }
+      }
+      return ($user, $nice, $system, $idle, $user + $system);
     }
-    if (!$user or !$system) {
+
+    # OpenBSD's top prints CPU states in a format neither grep above matches,
+    # so parse its raw output instead.
+    my $raw_top = `top -b -n 1` // '';
+    my ($user, $nice, $system, $idle) = parse_bsd_top_cpu($raw_top);
+    if (!defined $user) {
       if (!$warned_cpu_usage) {
         $warned_cpu_usage = 1;
-        ZoneMinder::Logger::Warning("$stat_error Falling back to top also failed: $top_cmd gave output '$top_output'.");
+        ZoneMinder::Logger::Warning("$stat_error Falling back to top also failed: $top_cmd gave no numbers and top output could not be parsed: '$raw_top'.");
       }
+      ($user, $nice, $system, $idle) = (0, 0, 0, 0);
     }
     return ($user, $nice, $system, $idle, $user + $system);
   }
 } # end sub CpuUsage
+
+# Is systemd running? This is what sd_booted(3) does. Do not probe pid 1
+# through /proc instead: a web server hardened with ProtectProc=invisible hides
+# it from the web user, and we would conclude that systemd is absent precisely
+# when we most need to hand our daemons over to it.
+sub systemdRunning {
+  return -d '/run/systemd/system';
+}
+
+# Does $cgroup, the contents of a cgroup file, put us inside $unit's service?
+# Takes the text rather than reading the file so that it can be tested. Copes
+# with the single "0::/path" line of cgroup v2 and the several
+# "id:controller:/path" lines of v1, and does not confuse a unit whose name
+# merely starts with $unit for $unit itself.
+sub cgroup_in_service {
+  my ($cgroup, $unit) = @_;
+  return 0 if !defined $cgroup or !defined $unit or $unit eq '';
+
+  return scalar grep { m{/\Q$unit\E\.service(?:/|$)} } split(/\n/, $cgroup);
+}
+
+# Are we already running as $unit, so that asking systemd to start it would ask
+# systemd to start us again? Our own cgroup answers that however /proc is
+# hardened, and we cannot shed it by daemonising.
+#
+# Not the parent's name from /proc: our parent is pid 1, which a web server
+# with ProtectProc=invisible hides from us, and we get re-parented anyway if it
+# exits first. Not $ENV{INVOCATION_ID} either: systemd sets that for every
+# descendant of a unit, so anything forked from the web ui inherits the web
+# server's copy and would wrongly look as though systemd had started it.
+sub calledBysystem {
+  my $unit = shift;
+  $unit = 'zoneminder' if !defined $unit;
+
+  open(my $cgroup, '<', '/proc/self/cgroup') or return 0;
+  my $contents = do { local $/ = undef; <$cgroup> };
+  close($cgroup);
+
+  return cgroup_in_service($contents, $unit);
+}
 
 sub PathToZMS {
   my $this = shift;

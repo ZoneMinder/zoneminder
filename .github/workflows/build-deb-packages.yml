@@ -148,7 +148,7 @@ jobs:
         uses: easingthemes/ssh-deploy@main
         env:
           SSH_PRIVATE_KEY: ${{ secrets.ZMREPO_SSH_KEY }}
-          ARGS: "-rltgoDzvO"
+          ARGS: "-rltgoDzvOW"
           SOURCE: artifacts/deb/
           REMOTE_HOST: ${{ secrets.ZMREPO_HOST }}
           REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}
@@ -172,7 +172,7 @@ jobs:
         uses: easingthemes/ssh-deploy@main
         env:
           SSH_PRIVATE_KEY: ${{ secrets.ZMREPO_SSH_KEY }}
-          ARGS: "-rltgoDzvO"
+          ARGS: "-rltgoDzvOW"
           SOURCE: dist/
           REMOTE_HOST: ${{ secrets.ZMREPO_HOST }}
           REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}

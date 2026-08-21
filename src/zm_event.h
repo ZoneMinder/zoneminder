@@ -48,6 +48,30 @@ class VideoStore;
 class ZMPacket;
 class Zone;
 
+// True when a failed link(2) means renaming instead is worth trying, rather
+// than something being wrong that a rename would hit too. EXDEV is deliberately
+// excluded: a cross-device link is one rename(2) cannot do either.
+//
+// EOPNOTSUPP (and its alias ENOTSUP) and ENOSYS mean the filesystem has no hard
+// links at all, on both platforms.
+//
+// EPERM only means that on Linux, where the VFS returns it for a filesystem
+// with no link operation, which is the exFAT and FAT case. Linux overloads it
+// with fs.protected_hardlinks, immutable sources and idmapped mounts, so this
+// is a broader "try the rename" than the errno alone proves; rename is the
+// right attempt in all of those, and where it genuinely cannot proceed it fails
+// and gets reported. FreeBSD is excluded because there EPERM only ever means a
+// directory source, an immutable source or an immutable target directory, all
+// real errors, and absent link support arrives as EOPNOTSUPP above.
+// See https://github.com/ZoneMinder/zoneminder/issues/5048
+inline bool ErrnoMeansNoHardLinkSupport(int err) {
+  if ((err == EOPNOTSUPP) || (err == ENOTSUP) || (err == ENOSYS)) return true;
+#ifndef __FreeBSD__
+  if (err == EPERM) return true;
+#endif
+  return false;
+}
+
 // Maximum number of prealarm frames that can be stored
 #define MAX_PRE_ALARM_FRAMES  16
 

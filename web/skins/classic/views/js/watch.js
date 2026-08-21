@@ -202,6 +202,7 @@ function streamCmdPlay(action) {
   }
   onPlay();
   if (action) {
+    monitorStream.isActive = true;
     if (monitorStream.started) {
       //Stream was on pause
       monitorStream.play();
@@ -213,23 +214,40 @@ function streamCmdPlay(action) {
 }
 
 function streamCmdStop() {
-  monitorStream.onplay = false; //Without this line, "onPlay" is triggered immediately due to "if (this.onplay) this.onplay();" in MonitorStream.js
-  //setButtonState('pauseBtn', 'inactive');
-  //setButtonState('playBtn', 'unavail');
-  //setButtonState('stopBtn', 'active');
-  if (currentMonitor.monitorStreamReplayBuffer) {
-    setButtonState('fastFwdBtn', 'unavail');
-    setButtonState('slowFwdBtn', 'unavail');
-    setButtonState('slowRevBtn', 'unavail');
-    setButtonState('fastRevBtn', 'unavail');
-  }
+  monitorStream.isActive = false;
   monitorStream.stop();
+  updatePlayerControls("stop");
+}
 
-  //setButtonState('stopBtn', 'unavail');
-  //setButtonState('playBtn', 'active');
-  setButtonStateWatch('playBtn', 'inactive');
-  setButtonStateWatch('stopBtn', 'unavail');
-  setButtonStateWatch('pauseBtn', 'hidden');
+function updatePlayerControls(state) {
+  switch (state) {
+    case 'play':
+      break;
+
+    case 'pause':
+      break;
+
+    case 'stop':
+      monitorStream.onplay = false; //Without this line, "onPlay" is triggered immediately due to "if (this.onplay) this.onplay();" in MonitorStream.js
+      //setButtonState('pauseBtn', 'inactive');
+      //setButtonState('playBtn', 'unavail');
+      //setButtonState('stopBtn', 'active');
+      if (currentMonitor.monitorStreamReplayBuffer) {
+        setButtonState('fastFwdBtn', 'unavail');
+        setButtonState('slowFwdBtn', 'unavail');
+        setButtonState('slowRevBtn', 'unavail');
+        setButtonState('fastRevBtn', 'unavail');
+      }
+      //setButtonState('stopBtn', 'unavail');
+      //setButtonState('playBtn', 'active');
+      setButtonStateWatch('playBtn', 'inactive');
+      setButtonStateWatch('stopBtn', 'unavail');
+      setButtonStateWatch('pauseBtn', 'hidden');
+      break;
+
+    default:
+      console.warn(`Unknown player control state: ${state}`);
+  }
 }
 
 function streamCmdFastFwd(action) {
@@ -482,10 +500,7 @@ function controlCmdImage(x, y) {
 }
 
 function fetchImage(streamImage) {
-  const oldsrc = streamImage.src;
-  const newsrc = oldsrc.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
-  streamImage.src = '';
-  streamImage.src = newsrc;
+  refreshStreamSrc(streamImage, streamImage.src);
 }
 
 function handleClick(event) {
@@ -911,6 +926,7 @@ function streamReStart(oldId, newId) {
 
   zmPanZoom.action('disable', {id: oldId});
   if (monitorStream) {
+    monitorStream.isActive = false;
     monitorStream.kill();
   } else {
     console.log("No monitorStream?");
@@ -1401,6 +1417,7 @@ function monitorChangeStreamChannel() {
   if ((monitorStream.activePlayer) && (-1 !== monitorStream.activePlayer.indexOf('go2rtc') || -1 !== monitorStream.activePlayer.indexOf('rtsp2web'))) {
     streamCmdStop();
     setTimeout(function() {
+      monitorStream.isActive = true;
       monitorStream.start(streamChannel);
       onPlay();
       monitorsSetScale(monitorId);
@@ -1521,6 +1538,7 @@ function stopPage() {
         prevStateStarted = 'played';
         //Stop only if playing (not paused).
         // We might want to continue status updates so that alarm sounds etc still happen
+        monitorStream.isActive = false;
         monitorStream.stop();
       }
     } else {
@@ -1535,6 +1553,7 @@ function startPage() {
   if (monitorStream && prevStateStarted == 'played' && !idleTimeoutTriggered) {
     prevStateStarted = null;
     onPlay(); //Set the correct state of the player buttons.
+    monitorStream.isActive = true;
     monitorStream.start(monitorStream.currentChannelStream);
     monitorsSetScale(monitorId);
   //} else if (prevStateStarted != 'paused') {

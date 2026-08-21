@@ -33,6 +33,7 @@ use bytes;
 @EXTRA_PERL_LIB@
 use ZoneMinder;
 use ZoneMinder::Monitor;
+use ZoneMinder::Server;
 use ZoneMinder::State;
 use ZoneMinder::Filter;
 use DBI;
@@ -150,7 +151,8 @@ if ( $command =~ /^(start|stop|restart)$/ ) {
 # We have to detaint to keep perl from complaining
   $command = $1;
 
-  if ( systemdRunning() && !calledBysystem() ) {
+  if ( ZoneMinder::Server::systemdRunning()
+      && !ZoneMinder::Server::calledBysystem() ) {
     my $output = qx(@BINDIR@/zmsystemctl.pl $command 2>&1);
     if ( $? == 0 ) {
       $command = '';
@@ -205,7 +207,6 @@ if ( $command =~ /^(?:start|restart)$/ ) {
     my $Server = undef;
     my @monitors;
     if ( $Config{ZM_SERVER_ID} ) {
-      require ZoneMinder::Server;
       Info("Multi-server configuration detected. Starting up services for server $Config{ZM_SERVER_ID}");
       $Server = new ZoneMinder::Server($Config{ZM_SERVER_ID});
       @monitors = ZoneMinder::Monitor->find(Deleted=>0, ServerId=>$Config{ZM_SERVER_ID});
@@ -359,30 +360,6 @@ sub resetStates {
   $dbh = zmDbConnect() if ! $dbh;
   $dbh->do('UPDATE `States` SET `IsActive`=0')
     or Fatal("Can't execute: ".$dbh->errstr());
-}
-
-sub systemdRunning {
-  # This is what sd_booted(3) does. Do not probe pid 1 through /proc: a web
-  # server hardened with ProtectProc=invisible hides it from the web user, and
-  # we would conclude that systemd is not running precisely when we most need
-  # to hand the daemons over to it.
-  return -d '/run/systemd/system';
-}
-
-sub calledBysystem {
-  # Are we already running as the service that zmsystemctl.pl would start? Ask
-  # our own cgroup, which is readable no matter how /proc is hardened and is
-  # not something we can drop by daemonising.
-  #
-  # Not the parent's name from /proc: our parent is pid 1, which a web server
-  # with ProtectProc=invisible hides from us, and we get re-parented anyway if
-  # it exits first. Not $ENV{INVOCATION_ID} either: systemd sets that for every
-  # descendant of a unit, so anything the web ui forks inherits the web
-  # server's and would wrongly look like it was started by systemd.
-  open(my $cgroup, '<', '/proc/self/cgroup') or return 0;
-  my $in_service = grep { m|/zoneminder\.service| } <$cgroup>;
-  close($cgroup);
-  return $in_service;
 }
 
 sub verifyFolder {

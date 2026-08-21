@@ -24,6 +24,7 @@
 #include <array>
 #include <cctype>
 #include <cstdarg>
+#include <cstdio>
 #include <cstring>
 #include <fcntl.h> /* Definition of AT_* constants */
 #include <unistd.h>
@@ -403,15 +404,19 @@ std::string UriEncode(const std::string &value) {
   std::string retbuf;
   retbuf.reserve(value.length() * 3); // at most all characters get replaced with the escape
 
-  char tmp[5] = "";
+  char tmp[4] = "";
   while (*src) {
-    std::string::value_type c = *src;
+    // Must be unsigned: a signed char sign-extends bytes >= 0x80 when promoted
+    // for isalnum()/snprintf(), which mangles every non-ASCII UTF-8 byte.
+    const unsigned char c = static_cast<unsigned char>(*src);
     if (c == ' ') {
       retbuf.append("%20");
-    } else if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
-      retbuf.push_back(c);
+    } else if ((c < 0x80) && (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~')) {
+      // The unreserved set is ASCII-only, so bytes >= 0x80 are always escaped
+      // rather than left to a locale-dependent isalnum().
+      retbuf.push_back(static_cast<char>(c));
     } else {
-      snprintf(tmp, 4, "%%%02X", c);
+      snprintf(tmp, sizeof(tmp), "%%%02X", c);
       retbuf.append(tmp);
     }
     src++;
@@ -545,14 +550,38 @@ std::string remove_newlines( std::string str ) {
   return str;
 }
 
-std::string escape_json_string( std::string input ) {
-  std::string tmp;
-  tmp = regex_replace(input, std::regex("\n"), "\\n");
-  tmp = regex_replace(tmp,   std::regex("\b"), "\\b");
-  tmp = regex_replace(tmp,   std::regex("\f"), "\\f");
-  tmp = regex_replace(tmp,   std::regex("\r"), "\\r");
-  tmp = regex_replace(tmp,   std::regex("\t"), "\\t");
-  tmp = regex_replace(tmp,   std::regex("\""), "\\\"");
-  tmp = regex_replace(tmp,   std::regex("[\\\\]"), "\\\\");
-  return tmp;
+std::string escape_json_string(std::string input) {
+  // One pass over the input, so each byte produces its escape exactly once.
+  // The previous implementation ran a chain of regex_replace calls with the
+  // backslash pass last, which re-escaped the backslashes the earlier passes
+  // had just introduced: a quote came out as \\" , an escaped backslash
+  // followed by a bare quote, which terminates the JSON string it is sitting
+  // in. It also left control characters other than \b \f \n \r \t unescaped,
+  // which RFC 8259 does not allow.
+  std::string output;
+  output.reserve(input.size());
+
+  for (unsigned char c : input) {
+    switch (c) {
+    case '"':  output += "\\\""; break;
+    case '\\': output += "\\\\"; break;
+    case '\b': output += "\\b"; break;
+    case '\f': output += "\\f"; break;
+    case '\n': output += "\\n"; break;
+    case '\r': output += "\\r"; break;
+    case '\t': output += "\\t"; break;
+    default:
+      if (c < 0x20) {
+        // Control characters with no short form have to go out as \u00XX.
+        char buffer[7];
+        snprintf(buffer, sizeof(buffer), "\\u%04x", c);
+        output += buffer;
+      } else {
+        // Bytes >= 0x80 are passed through so UTF-8 stays intact.
+        output += static_cast<char>(c);
+      }
+      break;
+    }
+  }
+  return output;
 }

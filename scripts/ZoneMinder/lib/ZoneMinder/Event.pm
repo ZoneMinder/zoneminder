@@ -445,36 +445,32 @@ sub delete {
         $ZoneMinder::Database::dbh->begin_work();
       }
 
-      my @statements;
+      my $err = 0;
+      my $errstr = '';
 
-      # Reclaim the event's disk usage first, so the shared Storage row is
-      # locked ahead of the per-monitor rows the deletes below will touch.
-      # A single atomic decrement replaces the old lock_and_load + save
-      # read-modify-write: the UPDATE takes the same X lock the SELECT ... FOR
-      # UPDATE did, without a window between read and write, and GREATEST()
-      # keeps DiskSpace from going negative if the accounting has drifted.
-      # This also puts the reclaim inside the delete transaction, so it rolls
-      # back with the deletes instead of being applied after a commit.
+      # Reclaim the disk usage FIRST, so the shared Storage row is locked ahead
+      # of the per-monitor rows the deletes below touch. Doing it afterwards
+      # meant a batch could hold Event_Summaries[MonitorId] while waiting on
+      # Storage, while a concurrent batch held Storage and waited on
+      # Event_Summaries. Reclaiming here also puts it inside the transaction,
+      # so it rolls back with the deletes rather than being applied after them.
+      # See ZoneMinder::Storage::adjust_diskspace for why this is a relative
+      # single statement rather than a read-modify-write.
       if ($reclaim and $storage->Id()) {
-        push @statements, [
-          'UPDATE Storage SET DiskSpace = GREATEST(COALESCE(DiskSpace,0) - ?, 0) WHERE Id=?',
-          $reclaim, $storage->Id(),
-        ];
+        $storage->adjust_diskspace(-$reclaim);
+        $err = $ZoneMinder::Database::dbh->err() // 0;
+        $errstr = $ZoneMinder::Database::dbh->errstr() // '' if $err;
       }
 
       # Order: Stats -> Event_Data -> Frames -> Events (least to greatest reference depth)
-      push @statements, map { [$_, $$event{Id}] } (
+      foreach my $sql (
         'DELETE FROM Stats WHERE EventId=?',
         'DELETE FROM Event_Data WHERE EventId=?',
         'DELETE FROM Frames WHERE EventId=?',
         'DELETE FROM Events WHERE Id=?',
-      );
-
-      my $err = 0;
-      my $errstr = '';
-      foreach my $statement (@statements) {
-        my ($sql, @params) = @$statement;
-        ZoneMinder::Database::zmDbDo($sql, @params);
+      ) {
+        last if $err;
+        ZoneMinder::Database::zmDbDo($sql, $$event{Id});
         $err = $ZoneMinder::Database::dbh->err() // 0;
         if ($err) {
           # Capture before rollback, which can clear errstr on some drivers.
@@ -861,30 +857,11 @@ sub MoveTo {
   }
   $ZoneMinder::Database::dbh->commit() if !$was_in_transaction;
 
-  # Update storage diskspace.  The triggers no longer do this.
-  # Atomic adjustments rather than lock_and_load + save: when we own the
-  # transaction the SELECT ... FOR UPDATE released its lock the moment it
-  # committed, so the read and the write raced and concurrent movers could lose
-  # an update. Lowest Storage Id first, so two movers swapping events between
-  # the same pair of storage areas cannot deadlock against each other.
-  #
-  # Note these are NOT outside a transaction when the caller owns one, which a
-  # filter with LockRows does. In that case Storage is locked here, after this
-  # sub has already locked the Event and its save() has cascaded into the bucket
-  # and Event_Summaries rows, so the order is the reverse of the Storage-first
-  # order delete() now uses. That inversion predates this change and is left
-  # alone deliberately: locking Storage before lock_and_load would hold a row on
-  # a shared storage area for the whole of CopyTo, serialising every move on
-  # that area behind one file copy.
-  my @adjustments;
-  push @adjustments, [$$OldStorage{Id}, -$old_diskspace] if $old_diskspace and $$OldStorage{Id};
-  push @adjustments, [$$NewStorage{Id}, $new_diskspace] if $new_diskspace and $$NewStorage{Id};
-  foreach my $adjustment (sort { $$a[0] <=> $$b[0] } @adjustments) {
-    my ($storage_id, $delta) = @$adjustment;
-    ZoneMinder::Database::zmDbDo(
-      'UPDATE Storage SET DiskSpace = GREATEST(COALESCE(DiskSpace,0) + ?, 0) WHERE Id=?',
-      $delta, $storage_id);
-  }
+  # Update storage diskspace.  The triggers no longer do this. This is ... less
+  # important, so it is a relative adjustment rather than a read-modify-write:
+  # one statement per storage area, no lock outliving it.
+  $OldStorage->adjust_diskspace(-$old_diskspace) if $old_diskspace;
+  $NewStorage->adjust_diskspace($new_diskspace) if $new_diskspace;
 
   $self->delete_files($OldStorage);
   return $error;
@@ -1152,6 +1129,67 @@ sub tags {
   my $self = shift;
   my @tags = map { $_->Name() } $self->Tags();
   return wantarray ? @tags : \@tags;
+}
+
+# ==========================================================================
+#
+# Advisory locks over events (the Events_Lock table)
+#
+# Used by filters with LockRows set so that two of them do not work on the same
+# event at once.  Deliberately not a row lock: acquiring is one autocommitted
+# INSERT touching one row of Events_Lock, and nothing is held while the event is
+# actually worked on.  Locking the filter's result set with SELECT ... FOR
+# UPDATE instead accumulates every lock the batch goes on to take - Events, the
+# bucket tables, Event_Summaries, Storage - until it commits, which deadlocks
+# two filters against each other and stalls zmc, which cannot open a new event
+# on a monitor whose Event_Summaries row is being held.
+#
+# Because the lock lives in a table rather than in the session, the filter's
+# selection query can exclude events other filters hold (see
+# ZoneMinder::Filter::Sql), so a filter's LIMIT fills with events it can
+# actually work on instead of being used up by events it will skip.
+#
+# The flip side is that a killed process cannot release what it held, so locks
+# expire after ZM_FILTER_LOCK_TIMEOUT.
+#
+# ==========================================================================
+
+sub lock_owner {
+  return ($Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID} : 0).'.'.$$;
+}
+
+# Returns 1 if we now hold the lock on this event, 0 if another process does.
+sub acquire_lock {
+  my $self = shift;
+  my $timeout = shift;
+  $timeout = ($Config{ZM_FILTER_LOCK_TIMEOUT} || 3600) if !defined $timeout;
+
+  # Clear an expired lock first so the INSERT below can take it.  Two separate
+  # autocommitted statements on purpose, each touching one row and holding
+  # nothing afterwards.  If another process gets in between them, our INSERT
+  # IGNORE reports no rows and we leave the event alone - which is the safe
+  # direction.
+  zmDbDo('DELETE FROM Events_Lock WHERE EventId=? AND ExpiresAt<NOW()', $$self{Id});
+
+  my $rows = zmDbDo(
+    'INSERT IGNORE INTO Events_Lock (EventId,LockedBy,LockedAt,ExpiresAt) VALUES (?,?,NOW(),NOW() + INTERVAL ? SECOND)',
+    $$self{Id}, lock_owner(), $timeout);
+
+  # DBI reports 0E0 rather than 0 for a statement that affected nothing, and it
+  # numifies to 0, so this distinguishes "inserted" from "already locked".
+  return (defined $rows and $rows > 0) ? 1 : 0;
+}
+
+sub release_lock {
+  my $self = shift;
+  return zmDbDo('DELETE FROM Events_Lock WHERE EventId=? AND LockedBy=?',
+    $$self{Id}, lock_owner());
+}
+
+# Drop locks whose holder went away without releasing them, so the table does
+# not accumulate rows.  Covered by the ExpiresAt index.
+sub reap_expired_locks {
+  return zmDbDo('DELETE FROM Events_Lock WHERE ExpiresAt<NOW()');
 }
 
 1;

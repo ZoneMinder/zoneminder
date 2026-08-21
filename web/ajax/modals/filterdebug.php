@@ -46,10 +46,14 @@
     WHERE
 ';
   $sql .= $filter->sql();
+  // A filter with Lock Rows and Skip Locked leaves out events another filter is
+  // already working on. Mirrors ZoneMinder::Filter::Sql, which is what zmfilter
+  // actually runs.
+  if ($filter->LockRows() and $filter->skip_locked())
+    $sql .= ' AND NOT EXISTS (SELECT 1 FROM Events_Lock AS EL WHERE EL.EventId=E.Id AND EL.ExpiresAt>NOW())';
   $sql .= $filter->sort_field() ? ' ORDER BY '.$filter->sort_field(). ' ' .($filter->sort_asc() ? 'ASC' : 'DESC') : '';
   $sql .= $filter->limit() ? ' LIMIT '.(int)$filter->limit() : '';
   $explain_sql = $sql;
-  $sql .= $filter->skip_locked() ? ' SKIP LOCKED' : '';
 
 
   echo preg_replace('/\n/', '<br/>', $sql);

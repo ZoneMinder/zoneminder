@@ -25,7 +25,7 @@ if ( canEdit('Monitors') ) {
   {
     $monitor_ids = $_POST['monitor_ids'];
     # Two concurrent sorts could generate odd sorting... so lock the table.
-    global $dbConn;
+    $dbConn = zmDbConn();
     $dbConn->beginTransaction();
     $dbConn->exec('LOCK TABLES Monitors WRITE');
     for ( $i = 0; $i < count($monitor_ids); $i += 1 ) {

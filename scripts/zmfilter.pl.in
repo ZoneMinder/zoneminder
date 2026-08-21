@@ -73,6 +73,7 @@ if ( $version ) {
 
 require ZoneMinder::Event;
 require ZoneMinder::Filter;
+require ZoneMinder::Storage;
 
 use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)
   ? $Config{ZM_DIR_EVENTS}
@@ -171,6 +172,10 @@ while (!$zm_terminate) {
     @filters = getFilters({ Name=>$filter_name, Id=>$filter_id });
   }
 
+  # Clear out event locks belonging to filters that were killed before they
+  # could release them, so those events don't stay skipped past their expiry.
+  ZoneMinder::Event::reap_expired_locks() if grep { $$_{LockRows} } @filters;
+
   foreach my $filter (@filters) {
     last if $zm_terminate;
 
@@ -256,7 +261,6 @@ FILTER: while( my $db_filter = $sth->fetchrow_hashref() ) {
 sub checkFilter {
   my $filter = shift;
 
-  my $in_transaction = ZoneMinder::Database::start_transaction($dbh) if $$filter{LockRows}; 
   my @Events = $filter->Execute();
   Debug(
       join(' ',
@@ -282,98 +286,123 @@ sub checkFilter {
     last if $zm_terminate;
     my $Event = new ZoneMinder::Event($$event{Id}, $event);
 
-    Debug('Checking event '.$Event->{Id});
-    my $delete_ok = !undef;
     $dbh->ping();
-    if ( $filter->{AutoArchive} ) {
-      Info("Archiving event $Event->{Id}");
-      # Do it individually to avoid locking up the table for new events
-      $Event->save({Archived=>1});
-    }
-    if ( $filter->{AutoUnarchive} ) {
-      Info("Unarchiving event $Event->{Id}");
-      # Do it individually to avoid locking up the table for new events
-      $Event->save({Archived=>0});
-    }
-    if ( $Config{ZM_OPT_FFMPEG} && $filter->{AutoVideo} ) {
-      if ( !$Event->{Videoed} ) {
-        $delete_ok = undef if !generateVideo($filter, $Event);
-      }
-    }
-    if ( $Config{ZM_OPT_EMAIL} && $filter->{AutoEmail} and $filter->{EmailFormat} eq 'Individual') {
-      if ( !$Event->{Emailed} ) {
-        $delete_ok = undef if !sendEmail($filter, $Event);
-      }
-    }
-    if ( $Config{ZM_OPT_MESSAGE} && $filter->{AutoMessage} ) {
-      if ( !$Event->{Messaged} ) {
-        $delete_ok = undef if !sendMessage($filter, $Event);
-      }
-    }
-    if ( $Config{ZM_OPT_UPLOAD} && $filter->{AutoUpload} ) {
-      if ( !$Event->{Uploaded} ) {
-        $delete_ok = undef if !uploadArchFile($filter, $Event);
-      }
-    }
-    if ( $filter->{AutoExecute} ) {
-      if ( !$Event->{Executed} ) {
-        $delete_ok = undef if !executeCommand($filter, $Event);
-      }
-    }
-    if ( $filter->{AutoDelete} ) {
-      if ( $delete_ok ) {
-        $Event->delete();
-        next; # If someone has configured the filter to do something in addition to delete, errors will be logged.
-      } else {
-        Error("Unable to delete event $Event->{Id} as previous operations failed");
-      }
-    } # end if AutoDelete
 
-
-    if ( $filter->{AutoMove} ) {
-      my $NewStorage = new ZoneMinder::Storage($filter->{AutoMoveTo});
-      Info("Moving event $Event->{Id} from ".$Event->Storage(undef)->Path().' to '.$NewStorage->Path());
-      $_ = $Event->MoveTo($NewStorage);
-      Error($_) if $_;
+    # LockRows serialises this filter against the others one event at a time.
+    # The lock is a row in Events_Lock rather than a lock on the event itself,
+    # so it can be held for the whole of an event's work - which may be an
+    # ffmpeg encode, an upload or an executed command - without holding any
+    # InnoDB lock. zmc goes on opening events on the same monitor throughout.
+    if ($$filter{LockRows} and !$Event->acquire_lock()) {
+      Debug("Skipping event $$Event{Id}, another filter is working on it");
+      next;
     }
-    if ( $filter->{AutoCopy} ) {
-      # Copy To is different from MoveTo in that it JUST copies the files
-      # So we still need to update the Event object with the new SecondaryStorageId
-      my $NewStorage = ZoneMinder::Storage->find_one(Id=>$filter->{AutoCopyTo});
-      if ( $NewStorage ) {
-        Info("Copying event $Event->{Id} to datastore $filter->{AutoCopyTo}");
-        $_ = $Event->CopyTo($NewStorage);
-        if ( $_ ) {
-          $ZoneMinder::Database::dbh->commit();
-          Error($_);
-        } else {
-          $Event->save({SecondaryStorageId=>$$NewStorage{Id}});
-          $ZoneMinder::Database::dbh->commit();
-        }
-      } else {
-        Error("No storage area found for copy to operation.  AutoCopyTo was $$filter{AutoCopyTo}");
-      }
-    } # end if AutoCopy
 
-    if ( $filter->{UpdateDiskSpace} ) {
-      my $old_diskspace = $$Event{DiskSpace};
-			my $new_diskspace = $Event->DiskSpace(undef);
-
-      if (
-					( (!defined $old_diskspace) and defined $new_diskspace)
-					or
-					( (defined $old_diskspace) and (defined $new_diskspace) and ($old_diskspace != $new_diskspace) )
-					) {
-        $Event->save();
-      }
-    } # end if UpdateDiskSpace
+    eval { checkFilterEvent($filter, $Event) };
+    my $error = $@;
+    $Event->release_lock() if $$filter{LockRows};
+    Error("Error processing event $$Event{Id}: $error") if $error;
   } # end foreach event
 
   if ($Config{ZM_OPT_EMAIL} and $filter->{AutoEmail} and ($filter->{EmailFormat} eq 'Summary') and @Events) {
     sendSummaryEmail($filter, @Events);
   }
-  ZoneMinder::Database::end_transaction($dbh, $in_transaction) if $$filter{LockRows}; 
 } # end sub checkFilter
+
+# Everything a filter does to one event. Called with that event's Events_Lock
+# row held when the filter has LockRows set.
+#
+# Nothing here opens a transaction: each statement stands on its own so that no
+# lock outlives it. Event::delete manages its own short transaction around the
+# row deletes, which is the only place several statements have to be atomic.
+sub checkFilterEvent {
+  my ($filter, $Event) = @_;
+
+  Debug('Checking event '.$Event->{Id});
+  my $delete_ok = !undef;
+  if ( $filter->{AutoArchive} ) {
+    Info("Archiving event $Event->{Id}");
+    # Do it individually to avoid locking up the table for new events
+    $Event->save({Archived=>1});
+  }
+  if ( $filter->{AutoUnarchive} ) {
+    Info("Unarchiving event $Event->{Id}");
+    # Do it individually to avoid locking up the table for new events
+    $Event->save({Archived=>0});
+  }
+  if ( $Config{ZM_OPT_FFMPEG} && $filter->{AutoVideo} ) {
+    if ( !$Event->{Videoed} ) {
+      $delete_ok = undef if !generateVideo($filter, $Event);
+    }
+  }
+  if ( $Config{ZM_OPT_EMAIL} && $filter->{AutoEmail} and $filter->{EmailFormat} eq 'Individual') {
+    if ( !$Event->{Emailed} ) {
+      $delete_ok = undef if !sendEmail($filter, $Event);
+    }
+  }
+  if ( $Config{ZM_OPT_MESSAGE} && $filter->{AutoMessage} ) {
+    if ( !$Event->{Messaged} ) {
+      $delete_ok = undef if !sendMessage($filter, $Event);
+    }
+  }
+  if ( $Config{ZM_OPT_UPLOAD} && $filter->{AutoUpload} ) {
+    if ( !$Event->{Uploaded} ) {
+      $delete_ok = undef if !uploadArchFile($filter, $Event);
+    }
+  }
+  if ( $filter->{AutoExecute} ) {
+    if ( !$Event->{Executed} ) {
+      $delete_ok = undef if !executeCommand($filter, $Event);
+    }
+  }
+  if ( $filter->{AutoDelete} ) {
+    if ( $delete_ok ) {
+      $Event->delete();
+      return; # If someone has configured the filter to do something in addition to delete, errors will be logged.
+    } else {
+      Error("Unable to delete event $Event->{Id} as previous operations failed");
+    }
+  } # end if AutoDelete
+
+
+  if ( $filter->{AutoMove} ) {
+    my $NewStorage = new ZoneMinder::Storage($filter->{AutoMoveTo});
+    Info("Moving event $Event->{Id} from ".$Event->Storage(undef)->Path().' to '.$NewStorage->Path());
+    $_ = $Event->MoveTo($NewStorage);
+    Error($_) if $_;
+  }
+  if ( $filter->{AutoCopy} ) {
+    # Copy To is different from MoveTo in that it JUST copies the files
+    # So we still need to update the Event object with the new SecondaryStorageId
+    my $NewStorage = ZoneMinder::Storage->find_one(Id=>$filter->{AutoCopyTo});
+    if ( $NewStorage ) {
+      Info("Copying event $Event->{Id} to datastore $filter->{AutoCopyTo}");
+      $_ = $Event->CopyTo($NewStorage);
+      if ( $_ ) {
+        Error($_);
+      } else {
+        # No commit: each statement autocommits now that LockRows no longer
+        # wraps the whole filter run in one transaction.
+        $Event->save({SecondaryStorageId=>$$NewStorage{Id}});
+      }
+    } else {
+      Error("No storage area found for copy to operation.  AutoCopyTo was $$filter{AutoCopyTo}");
+    }
+  } # end if AutoCopy
+
+  if ( $filter->{UpdateDiskSpace} ) {
+    my $old_diskspace = $$Event{DiskSpace};
+    my $new_diskspace = $Event->DiskSpace(undef);
+
+    if (
+      ( (!defined $old_diskspace) and defined $new_diskspace)
+      or
+      ( (defined $old_diskspace) and (defined $new_diskspace) and ($old_diskspace != $new_diskspace) )
+      ) {
+      $Event->save();
+    }
+  } # end if UpdateDiskSpace
+} # end sub checkFilterEvent
 
 sub generateVideo {
   my $filter = shift;

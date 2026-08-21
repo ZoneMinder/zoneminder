@@ -206,7 +206,7 @@ class Event extends ZM_Object {
       return;
     }
 
-    global $dbConn;
+    $dbConn = zmDbConn();
     $dbConn->beginTransaction();
     try {
       $this->lock();

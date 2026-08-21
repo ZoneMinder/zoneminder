@@ -497,10 +497,10 @@ void EventStream::processCommand(const CmdMsg *msg) {
     paused = false;
     replay_rate = (((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2])-VARPLAY_RATE_OFFSET;
     if (replay_rate > 50 * ZM_RATE_BASE) {
-      Warning("requested replay rate (%d) is too high. We only support up to 50x", replay_rate);
+      Warning("requested replay rate (%d) is too high. We only support up to 50x", replay_rate.load());
       replay_rate = 50 * ZM_RATE_BASE;
-    } else if (replay_rate < -50*ZM_RATE_BASE) {
-      Warning("requested replay rate (%d) is too low. We only support up to -50x", replay_rate);
+    } else if (replay_rate.load() < -50*ZM_RATE_BASE) {
+      Warning("requested replay rate (%d) is too low. We only support up to -50x", replay_rate.load());
       replay_rate = -50 * ZM_RATE_BASE;
     }
     break;
@@ -532,7 +532,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
       replay_rate = 50 * ZM_RATE_BASE;
       break;
     default :
-      Debug(1,"Defaulting replay_rate to 2*ZM_RATE_BASE because it is %d", replay_rate);
+      Debug(1,"Defaulting replay_rate to 2*ZM_RATE_BASE because it is %d", replay_rate.load());
       replay_rate = 2 * ZM_RATE_BASE;
       break;
     }
@@ -587,10 +587,10 @@ void EventStream::processCommand(const CmdMsg *msg) {
   case CMD_ZOOMIN :
     x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
     y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
-    Debug(1, "Got ZOOM IN command, to %d,%d", x, y);
+    Debug(1, "Got ZOOM IN command, to %d,%d", x.load(), y.load());
     zoom += 10;
     send_frame = true;
-    if (paused) {
+    if (paused.load()) {
       step = 1;
       send_twice = true;
     }
@@ -617,18 +617,18 @@ void EventStream::processCommand(const CmdMsg *msg) {
   case CMD_PAN :
     x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
     y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
-    Debug(1, "Got PAN command, to %d,%d", x, y);
+    Debug(1, "Got PAN command, to %d,%d", x.load(), y.load());
     send_frame = true;
-    if (paused) {
+    if (paused.load()) {
       step = 1;
       send_twice = true;
     }
     break;
   case CMD_SCALE :
     scale = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
-    Debug(1, "Got SCALE command, to %d", scale);
+    Debug(1, "Got SCALE command, to %d", scale.load());
     send_frame = true;
-    if (paused) {
+    if (paused.load()) {
       step = 1;
       send_twice = true;
     }
@@ -739,7 +739,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
     if (elapsed.count() > 0) {
       actual_fps = (actual_fps + (frame_count - last_frame_count) / elapsed.count())/2;
       Debug(1, "actual_fps %f = old + frame_count %d - last %d / elapsed %.2f from %.2f - %.2f scale %d", actual_fps, frame_count, last_frame_count,
-          elapsed.count(), FPSeconds(now.time_since_epoch()).count(), FPSeconds(last_fps_update.time_since_epoch()).count(), scale);
+          elapsed.count(), FPSeconds(now.time_since_epoch()).count(), FPSeconds(last_fps_update.time_since_epoch()).count(), scale.load());
       last_frame_count = frame_count;
       last_fps_update = now;
     }
@@ -1112,7 +1112,7 @@ void EventStream::runStream() {
         send_frame = true;
         //}
       } else if (step != 0) {
-        Debug(2, "Paused with step %d", step);
+        Debug(2, "Paused with step %d", step.load());
         // We are paused and are just stepping forward or backward one frame
         step = 0;
         send_frame = true;
@@ -1286,7 +1286,7 @@ void EventStream::runStream() {
           // This doesn't make sense unless we have hit the end of the event.
           time_to_event = event_data->frames[0].timestamp - curr_stream_time;
           Debug(1, "replay rate (%d) time_to_event (%f s) = frame timestamp (%f s) - curr_stream_time (%f s)",
-                replay_rate,
+                replay_rate.load(),
                 FPSeconds(time_to_event).count(),
                 FPSeconds(event_data->frames[0].timestamp.time_since_epoch()).count(),
                 FPSeconds(curr_stream_time.time_since_epoch()).count());
@@ -1294,7 +1294,7 @@ void EventStream::runStream() {
         } else if (replay_rate < 0) {
           time_to_event = curr_stream_time - event_data->frames[event_data->frames.size()-1].timestamp;
           Debug(1, "replay rate (%d), time_to_event(%f s) = curr_stream_time (%f s) - frame timestamp (%f s)",
-                replay_rate,
+                replay_rate.load(),
                 FPSeconds(time_to_event).count(),
                 FPSeconds(curr_stream_time.time_since_epoch()).count(),
                 FPSeconds(event_data->frames[event_data->frames.size() - 1].timestamp.time_since_epoch()).count());

@@ -428,8 +428,12 @@ class Logger {
         $file = substr($file, 0, 255);
 
       try {
-        global $dbConn;
         $sql = 'INSERT INTO `Logs` ( `TimeKey`, `Component`, `ServerId`, `Pid`, `Level`, `Code`, `Message`, `File`, `Line` ) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ? )';
+        // Never open a connection just to write a log line, and never let a
+        // logging call end the request. The catch below drops to NOLOG, so this
+        // falls through to the weblog/error_log targets and does not retry.
+        $dbConn = zmDbConnOrNull();
+        if (!$dbConn) throw new PDOException('No database connection');
         $stmt = $dbConn->prepare($sql);
         $result = $stmt->execute(array(sprintf('%d.%06d', $time['sec'], $time['usec']), $this->id,
           (defined('ZM_SERVER_ID') ? ZM_SERVER_ID : null), getmypid(), $level, $code, $string, $file, $line));

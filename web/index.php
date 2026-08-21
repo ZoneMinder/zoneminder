@@ -201,6 +201,7 @@ $user = null;
 $request = isset($_REQUEST['request']) ? detaintPath($_REQUEST['request']) : null;
 
 require_once('includes/auth.php');
+zm_authenticate_request();
 
 # Only one request can open the session file at a time, so let's close the session here to improve concurrency.
 # Any file/page that sets session variables must re-open it.

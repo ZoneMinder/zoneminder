@@ -398,8 +398,12 @@ sub ptz_status {
   return $self->get_name_value('cgi-bin/ptz.cgi?action=getStatus&channel=0');
 }
 
-# Coaxial IO drives the white light / siren on cameras that have one.
-# Cameras without the hardware answer with an error, which we pass back.
+# Coaxial IO drives the white light / siren on coax/HDCVI devices.  Plain
+# ip cameras answer 400/Error to coaxialControlIO.cgi even when they do
+# have a white light - an IP5M-1190EW refuses it, and also ignores writes
+# to its Lighting/Lighting_V2 Mode, so its light is not remotely
+# controllable over the http api at all.  Check getAux() before offering
+# these in a ui.
 sub lightOn {
   my $self = shift;
   Debug('White light on');
@@ -430,9 +434,10 @@ sub getAux {
   my $self = shift;
   my %aux;
   foreach my $pair (
-    ['coaxial'  => 'cgi-bin/coaxialControlIO.cgi?action=getCaps&channel=1'],
-    ['lighting' => 'cgi-bin/configManager.cgi?action=getConfig&name=Lighting_V2'],
-    ['ptz'      => 'cgi-bin/ptz.cgi?action=getCurrentProtocolCaps&channel=0'],
+    ['coaxial'   => 'cgi-bin/coaxialControlIO.cgi?action=getCaps&channel=1'],
+    ['lighting'  => configManager_url('Lighting_V2')],
+    ['lighting1' => configManager_url('Lighting')],
+    ['ptz'       => 'cgi-bin/ptz.cgi?action=getCurrentProtocolCaps&channel=0'],
   ) {
     my ($name, $url) = @$pair;
     my $values = $self->get_name_value($url);
@@ -457,9 +462,12 @@ my %config_urls = (
   caps            => 'cgi-bin/encode.cgi?action=getCaps',
   encode1         => 'cgi-bin/encode.cgi?action=getConfigCaps&channel=1',
   videoincaps     => 'cgi-bin/devVideoInput.cgi?action=getCaps&channel=1',
+  # getCurrentProtocolCaps is documented but fixed-lens models answer
+  # 400/Error to it, which get_name_value logs at Debug.
   ptzcaps         => 'cgi-bin/ptz.cgi?action=getCurrentProtocolCaps&channel=0',
+  ptzstatus       => 'cgi-bin/ptz.cgi?action=getStatus&channel=0',
   presets         => 'cgi-bin/ptz.cgi?action=getPresets&channel=0',
-  interfaces      => 'cgi-bin/networkInterface.cgi?action=getInterfaces',
+  interfaces      => 'cgi-bin/netApp.cgi?action=getInterfaces',
   users           => 'cgi-bin/userManager.cgi?action=getUserInfoAll',
   groups          => 'cgi-bin/userManager.cgi?action=getGroupInfoAll',
   systeminfo      => 'cgi-bin/magicBox.cgi?action=getSystemInfo',
@@ -473,39 +481,54 @@ my %config_urls = (
 );
 
 # Sections fetched through configManager.cgi.  These are read/write.
-# Not every model implements every section; the ones it doesn't answer
-# with an error body, which we log at Debug rather than Warning.
+# Verified present on an IP5M-1190EW running 2.810.00AC004.0.R; other
+# models carry a different set, and a section a camera doesn't have
+# answers 400 with an 'Error' body, which we log at Debug not Warning.
+#
+# Notably absent on that model, so deliberately not listed: UPnP, Login,
+# LoginFailure, Storage, Ftp, AudioOutput, AlarmLocal, SmartMotion,
+# VideoAnalyseRule, PrivacyMasking, P2P.
 #
 # get_config() will happily fetch a section that isn't listed here - any
 # name it doesn't recognise is tried as a configManager name - so a
-# template file can pull in extras (WLan, NAS, Ftp, VideoInExposure,
-# VideoInWhiteBalance, VideoInBacklight, PrivacyMasking, ...) without
-# needing a change here.
+# template file can pull in extras without needing a change here.
 my @configManager_names = (
   'General',
   'Locales',
   'NTP',
   'Network',
+  'WLan',
   'RTSP',
   'Multicast',
+  'DDNS',
   'Email',
+  'NAS',
+  'T2UServer',
+  'AccessFilter',
+  'AutoMaintain',
   'Encode',
   'Snap',
+  'VideoStandard',
+  'VideoInMode',
   'VideoWidget',
   'VideoColor',
+  'VideoImageControl',
   'VideoInOptions',
   'VideoInDayNight',
-  'VideoImageControl',
-  'MotionDetect',
-  'RecordMode',
+  'VideoInExposure',
+  'VideoInWhiteBalance',
+  'VideoInBacklight',
+  'VideoInFocus',
+  'AudioInput',
   'ChannelTitle',
   'Lighting',
+  'Lighting_V2',
+  'MotionDetect',
+  'Alarm',
+  'Record',
+  'RecordMode',
+  'RecordStoragePoint',
   'PtzAutoMovement',
-  'AutoMaintain',
-  'UPnP',
-  'DDNS',
-  'AccessFilter',
-  'Login',
 );
 
 sub configManager_url {
@@ -644,14 +667,21 @@ sub restoreDefault {
 sub device_info {
   my $self = shift;
   my %info;
-  foreach my $name (qw(devicetype serialno vendor machinename hardwareversion softwareversion systeminfo)) {
+  foreach my $name (qw(devicetype serialno vendor machinename systeminfo)) {
     my $values = $self->get_name_value($config_urls{$name});
     next if !$values;
-    # These endpoints answer with a single key, eg 'type=IP2M-841B'
+    # These endpoints answer with a single key, eg 'type=IP5M-1190EW'
     foreach my $key (keys %$values) {
       $info{$key} = $$values{$key};
     }
   }
+  # Both version endpoints answer with a bare 'version=', so a flat merge
+  # would lose one of them.
+  my ($version, $build) = $self->getVersion();
+  $info{softwareVersion} = $version if defined $version;
+  $info{softwareBuild} = $build if defined $build;
+  my $hardware = $self->get_name_value($config_urls{hardwareversion});
+  $info{hardwareVersion} = $$hardware{version} if $hardware and $$hardware{version};
   return keys %info ? \%info : undef;
 }
 
@@ -665,12 +695,15 @@ sub getModel {
   return $$values{type};
 }
 
+# The camera answers on one line with the build date appended, eg
+# 'version=2.810.00AC004.0.R,build:2023-09-04'.  In list context return the
+# version and the build separately, in scalar context just the version.
 sub getVersion {
   my $self = shift;
   my $values = $self->get_name_value($config_urls{softwareversion});
-  return undef if !$values;
-  # version=2.400.0000000.28.R, build=2019-05-31
-  return $$values{version};
+  return undef if !$values or !$$values{version};
+  my ($version, $build) = split(/,\s*build:\s*/, $$values{version}, 2);
+  return wantarray ? ($version, $build) : $version;
 }
 
 # Amcrest publish no machine readable firmware feed, so this is a manual
@@ -765,10 +798,12 @@ sub get_users {
 
   my $users = indexed_to_array($values, 'users');
   my @users;
-  foreach my $id (sort { $a <=> $b } keys %$users) {
-    my $user = $$users{$id};
+  foreach my $index (sort { $a <=> $b } keys %$users) {
+    my $user = $$users{$index};
     push @users, {
-      id       => $id,
+      # The camera numbers its users itself, starting at 1.  Only fall
+      # back to the array position if it didn't tell us.
+      id       => defined($$user{Id}) ? $$user{Id} : $index,
       userName => $$user{Name},
       userType => $$user{Group},
       memo     => $$user{Memo},
@@ -854,13 +889,17 @@ sub update_user {
     }
   }
 
-  my $url = 'cgi-bin/userManager.cgi?action=modifyUser&name='.uri_encode($name)
-    .'&user.Name='.uri_encode($updates{userName} // $name);
-  $url .= '&user.Group='.user_group($updates{userType}) if $updates{userType};
-  $url .= '&user.Memo='.uri_encode($updates{memo}) if defined $updates{memo};
-
   # Nothing but the password changed, we're done.
   return 1 if !$updates{userType} and !defined($updates{memo}) and !$updates{userName};
+
+  # modifyUser rejects a partial record with 400, so send the whole user
+  # back with the requested changes merged over it.
+  my $url = 'cgi-bin/userManager.cgi?action=modifyUser&name='.uri_encode($name)
+    .'&user.Name='.uri_encode($updates{userName} // $name)
+    .'&user.Group='.user_group($updates{userType} // $$user{userType})
+    .'&user.Sharable='.($$user{sharable} // 'true')
+    .'&user.Reserved='.($$user{reserved} // 'false')
+    .'&user.Memo='.uri_encode($updates{memo} // $$user{memo} // '');
 
   my $response = $self->get_retry($url);
   if (!$response->is_success()) {
@@ -1027,10 +1066,14 @@ C<get_time()> and C<set_time()> via C<global.cgi>.
 =item Users
 
 C<get_users()>, C<add_user()>, C<update_user()>, C<delete_user()> via
-C<userManager.cgi>.  Amcrest keys users by name rather than by a numeric
-id; C<get_users()> reports the list position as C<id> and the accessors
-accept either that or the name.  Amcrest only has two groups, admin and
+C<userManager.cgi>.  The camera numbers its own users from 1 and
+C<userManager.cgi> keys them by name, so C<get_users()> reports both and
+the accessors take either.  C<modifyUser> rejects a partial record with
+400, so C<update_user()> reads the user back and sends the whole record
+with the changes merged over it; a password change goes through
+C<modifyPassword> separately.  Amcrest only has two groups, admin and
 user, so administrator maps to admin and everything else to user.
+Deleting a reserved user is refused rather than attempted.
 
 =item Streams
 
@@ -1049,9 +1092,23 @@ Not every model implements every section.  A section the camera does not
 know answers 400 with an C<Error> body, which is logged at Debug rather
 than Warning so that probing stays quiet.
 
+=head1 VERIFIED AGAINST
+
+An Amcrest IP5M-1190EW running 2.810.00AC004.0.R.  A full C<get_config()>
+returns 52 sections there in about 24 seconds.
+
+Things that model does B<not> implement, all of which degrade to a Debug
+line: C<ptz.cgi?action=getCurrentProtocolCaps>,
+C<coaxialControlIO.cgi>, and the UPnP, Login, Storage, Ftp, AudioOutput,
+AlarmLocal, SmartMotion, VideoAnalyseRule, PrivacyMasking and P2P config
+sections.  It also accepts writes to C<Lighting> and C<Lighting_V2>,
+answering C<OK>, and then silently ignores them - so although it has a
+WhiteLight, that light cannot be driven over the http api.
+
 C<update_firmware()> is written to the documented
-C<Firmware.cgi?action=upgrade> endpoint but has not been verified against
-real hardware.  Flashing the wrong image will brick the camera.
+C<Firmware.cgi?action=upgrade> endpoint and is the one thing here still
+unverified - deliberately, since flashing a wrong image bricks the
+camera.
 
 =head1 SEE ALSO
 

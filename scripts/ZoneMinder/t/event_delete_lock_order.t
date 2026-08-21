@@ -21,9 +21,20 @@ my $storage_dir = tempdir(CLEANUP => 1);
   sub Id { return $_[0]{Id} }
   sub Path { return $_[0]{Path} }
   sub DoDelete { return 0 }  # keep delete() out of the filesystem
-  # The pre-fix code reclaimed disk space through these two rather than
-  # through zmDbDo. They are here so that code path runs to completion and
-  # the ordering assertions below are what fail, rather than a missing method.
+  # Mirrors ZoneMinder::Storage::adjust_diskspace, which is what delete() calls
+  # now. It has to go through zmDbDo so the statement shows up in the recorded
+  # order, which is the whole point of this test.
+  sub adjust_diskspace {
+    my ($self, $delta) = @_;
+    return if !$$self{Id} or !$delta;
+    return ZoneMinder::Database::zmDbDo(
+      'UPDATE Storage SET DiskSpace=GREATEST(COALESCE(DiskSpace,0)+?,0) WHERE Id=?',
+      $delta, $$self{Id});
+  }
+
+  # The pre-fix code reclaimed disk space through these rather than through
+  # zmDbDo. They are here so that path runs to completion and the ordering
+  # assertions below are what fail, rather than a missing method.
   sub lock_and_load { return 1 }
   sub DiskSpace { return $_[0]{DiskSpace} }
   sub save { return '' }
@@ -86,8 +97,8 @@ my @sql = run_delete(4096);
 is(scalar(@sql), 5, 'one Storage update plus the four deletes');
 like($sql[0], qr/^UPDATE Storage /, 'Storage is locked first, before any delete');
 like($sql[0], qr/GREATEST/, 'DiskSpace is clamped so it cannot go negative');
-is_deeply([$issued[0][1], $issued[0][2]], [4096, 2],
-  'Storage update is parameterised by reclaim and storage id');
+is_deeply([$issued[0][1], $issued[0][2]], [-4096, 2],
+  'Storage update is parameterised by the negative reclaim and the storage id');
 
 my ($storage_at) = grep { $sql[$_] =~ /^UPDATE Storage / } 0 .. $#sql;
 my ($events_at)  = grep { $sql[$_] =~ /DELETE FROM Events / } 0 .. $#sql;

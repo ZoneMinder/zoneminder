@@ -326,11 +326,7 @@ function getFrame(monId, time, last_Frame) {
 // time is seconds since epoch
 function getImageSource(monId, time) {
   if (liveMode == 1) {
-    const new_url = monitorImageObject[monId].src.replace(
-        /rand=\d+/i,
-        'rand='+Math.floor(Math.random() * 1000000)
-    );
-    return zmAuth.applyTo(new_url);
+    return zmAuth.applyTo(addOrUpdateRandParam(monitorImageObject[monId].src));
   }
   let frame_id;
 

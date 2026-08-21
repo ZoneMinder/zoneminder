@@ -335,7 +335,7 @@ export class _AudioMotionAnalyzer extends HTMLElement {
       this.gainNode = null;
     }
 
-    if (!isCurrentPlaybackSession(monitorStream, this.playbackSessionId)) {
+    if (!monitorStream.sessionActive(this.playbackSessionId)) {
       console.debug(`RACE [${this.playbackSessionId}] AudioMotion.connectToMediaStreamSource() for monitor ID=${this.mid} aborted`);
       return;
     }

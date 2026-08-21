@@ -2662,11 +2662,11 @@ function mseListenerSourceopen(context, videoEl, url) {
         console.warn(msg);
         context.showText(msg);
         context.RTSP2WebType = null; // Avoid repeated restarts
+        context.streamErrorRegistration(true);
         if (context.selectedPlayer) {
           context.stop();
         } else {
           // Restart for select next player only for "Auto" mode
-          context.streamErrorRegistration(true);
           context.restart(context.currentChannelStream);
         }
         return;

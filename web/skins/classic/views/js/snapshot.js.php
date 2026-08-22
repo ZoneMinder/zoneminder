@@ -24,7 +24,6 @@ var eventDataStrings = {
 
 // Strings
 //
-var deleteString = "<?php echo validJsStr(translate('Delete')) ?>";
 var causeString = "<?php echo validJsStr(translate('AttrCause')) ?>";
 var downloadProgressString = "<?php echo validJsStr(translate('Downloading')) ?>";
 var downloadFailedString = '<?php echo translate('Download Failed') ?>';

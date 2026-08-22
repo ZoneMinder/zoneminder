@@ -38,6 +38,35 @@ const exportFailedString = '<?php echo translate('ExportFailed') ?>';
 const exportSucceededString = '<?php echo translate('ExportSucceeded') ?>';
 const cancelString = '<?php echo translate('Cancel') ?>';
 const playerDisabledInMonitorSettings = '<?php echo translate('PlayerDisabledInMonitorSettings') ?>';
+
+const deleteString = "<?php echo validJsStr(translate('Delete')) ?>";
+const archivedString = "<?php echo validJsStr(translate('Archived')) ?>";
+const unarchivedString = "<?php echo validJsStr(translate('Unarchived')) ?>";
+const emailedString = "<?php echo validJsStr(translate('Emailed')) ?>";
+const yesString = "<?php echo validJsStr(translate('Yes')) ?>";
+const noString = "<?php echo validJsStr(translate('No')) ?>";
+const confirmDeleteEventsString = "<?php echo validJsStr(translate('ConfirmDeleteEvents')) ?>";
+
+const translate = {};
+function zmPrimeTranslations(t) { Object.assign(translate, t); }
+zmPrimeTranslations({
+  "seconds": "<?php echo translate('seconds') ?>",
+  "Fullscreen": "<?php echo translate('Fullscreen') ?>",
+  "Exit Fullscreen": "<?php echo translate('Exit Fullscreen') ?>",
+  "Showing Analysis": "<?php echo translate('Showing Analysis') ?>",
+  "Show Analysis": "<?php echo translate('Show Analysis') ?>",
+  "Not Showing Analysis": "<?php echo translate('Not Showing Analysis') ?>",
+  "Live": "<?php echo translate('Live') ?>",
+  "Edit": "<?php echo translate('Edit') ?>",
+  "All Events": "<?php echo translate('All Events') ?>",
+  "Info": "<?php echo translate('Info') ?>",
+  "Archived": "<?php echo translate('Archived') ?>",
+  "Emailed": "<?php echo translate('Emailed') ?>",
+  "EnableAlarms": "<?php echo translate('EnableAlarms') ?>",
+  "DisableAlarms": "<?php echo translate('DisableAlarms') ?>",
+  "ForceAlarm": "<?php echo translate('ForceAlarm') ?>",
+  "CancelForcedAlarm": "<?php echo translate('CancelForcedAlarm') ?>",
+});
 <?php
 /* We can't trust PHP_SELF on a path like /index.php/"%3E%3Cimg src=x onerror=prompt('1');%3E which
    will still load index.php but will include the arbitrary payload after `.php/`. To mitigate this,

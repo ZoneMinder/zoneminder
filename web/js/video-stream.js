@@ -174,7 +174,7 @@ class VideoStream extends VideoRTC {
     errorHandling(currentMode, message = null) {
         const monitorStream = getMonitorStream(stringToNumber(this.id));
         if (monitorStream) {
-            if (!monitorStream.sessionActive(this.playbackSessionId)) return;
+            if (!streamSessionActive(monitorStream, this.playbackSessionId)) return;
             monitorStream.player = "go2rtc_" + currentMode;
             monitorStream.streamErrorRegistration();
             monitorStream.restart(monitorStream.currentChannelStream);

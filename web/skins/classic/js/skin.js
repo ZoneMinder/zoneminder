@@ -3386,7 +3386,7 @@ async function getTracksFromStream(videoFeedStream) {
     console.warn(`"captureStream" NOT found in STREAM for monitor ID=${mid} or not supported by the browser.`);
     streamCaptureNotSupported = true; // This will enable the volume control if the browser does not support captureStream (for example, Safari)
   }
-  if (!isCurrentPlaybackSession(videoFeedStream, playbackSessionId)) {
+  if (!streamSessionActive(videoFeedStream, playbackSessionId)) {
     console.debug(`RACE [${playbackSessionId}] getTracksFromStream() aborted`);
     stopMediaStreamTracks(stream);
     dispatchTracksReceived(videoFeedStream, {
@@ -3400,7 +3400,7 @@ async function getTracksFromStream(videoFeedStream) {
     const timeoutStreamActive = 20000;
     const startTime = Date.now();
     const streamActive = await waitUntil(() => (stream.active || videoFeedStream.started === false), timeoutStreamActive); // We are waiting for the stream to become active.
-    if (!isCurrentPlaybackSession(videoFeedStream, playbackSessionId)) {
+    if (!streamSessionActive(videoFeedStream, playbackSessionId)) {
       console.debug(`RACE [${playbackSessionId}] waitUntil() aborted`);
       stopMediaStreamTracks(stream);
       dispatchTracksReceived(videoFeedStream, {
@@ -3955,5 +3955,9 @@ function generateUUID() {
 function isCurrentPlaybackSession(videoFeedStream, playbackSessionId) {
   return playbackSessionId === videoFeedStream.playbackSessionId;
 }
+
+function streamSessionActive(stream, playbackSessionId) {
+  return (isCurrentPlaybackSession(stream, playbackSessionId) && (("sessionActive" in stream) ? stream.isActive : true));
+};
 
 $j( window ).on("load", initPageGeneral);

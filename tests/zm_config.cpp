@@ -79,3 +79,54 @@ TEST_CASE("process_configfile: lines longer than the legacy 512-byte cap survive
 
   REQUIRE(staticConfig.DB_HOST == long_value);
 }
+
+TEST_CASE("ConfigItem converts each declared type") {
+  SECTION("boolean") {
+    REQUIRE(ConfigItem("ZM_TEST", "1", "boolean").BooleanValue() == true);
+    REQUIRE(ConfigItem("ZM_TEST", "0", "boolean").BooleanValue() == false);
+  }
+  SECTION("integer") {
+    REQUIRE(ConfigItem("ZM_TEST", "42", "integer").IntegerValue() == 42);
+  }
+  SECTION("hexadecimal is parsed base 16") {
+    REQUIRE(ConfigItem("ZM_TEST", "7a000000", "hexadecimal").IntegerValue() == 0x7a000000);
+  }
+  SECTION("decimal") {
+    REQUIRE(ConfigItem("ZM_TEST", "1.5", "decimal").DecimalValue() == Catch::Approx(1.5));
+  }
+  SECTION("anything else is a string") {
+    REQUIRE(std::string(ConfigItem("ZM_TEST", "hello", "text").StringValue()) == "hello");
+  }
+}
+
+TEST_CASE("ConfigItem type mismatch is non-fatal and converts best-effort") {
+  // A stale Config row can carry the wrong Type for the accessor the daemon
+  // uses. That used to exit(-1); now it warns and converts from the raw value.
+  SECTION("boolean accessor on a string item") {
+    REQUIRE(ConfigItem("ZM_TEST", "yes", "text").BooleanValue() == true);
+    REQUIRE(ConfigItem("ZM_TEST", "0", "text").BooleanValue() == false);
+    REQUIRE(ConfigItem("ZM_TEST", "", "text").BooleanValue() == false);
+  }
+  SECTION("integer accessor on a string item") {
+    REQUIRE(ConfigItem("ZM_TEST", "42", "text").IntegerValue() == 42);
+  }
+  SECTION("decimal accessor on a string item") {
+    REQUIRE(ConfigItem("ZM_TEST", "1.5", "text").DecimalValue() == Catch::Approx(1.5));
+  }
+  SECTION("string accessor on an integer item returns the raw value") {
+    REQUIRE(std::string(ConfigItem("ZM_TEST", "42", "integer").StringValue()) == "42");
+  }
+}
+
+TEST_CASE("Config members hold compiled-in defaults before any database load") {
+  // The whole point of name-based lookup: a daemon that never reaches the
+  // Config table still has every member populated, so adding or removing rows
+  // cannot shift anything. Values mirror ConfigData.pm.in.
+  Config fresh;
+
+  REQUIRE(fresh.opt_use_auth == false);
+  REQUIRE(fresh.auth_hash_ttl == 2);
+  REQUIRE(fresh.watch_max_delay == Catch::Approx(45));
+  REQUIRE(fresh.font_file_location != nullptr);
+  REQUIRE(std::string(fresh.font_file_location) != "");
+}

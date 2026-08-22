@@ -2327,10 +2327,6 @@ function MonitorStream(monitorData) {
       }
     }
   };
-
-  this.sessionActive = function(playbackSessionId) {
-    return (isCurrentPlaybackSession(this, playbackSessionId) && this.isActive);
-  };
 } // end class MonitorStream
 
 /* +++ Janus */

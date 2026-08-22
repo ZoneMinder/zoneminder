@@ -41,8 +41,16 @@ Logger *Logger::smInstance = nullptr;
 
 Logger::StringMap Logger::smCodes;
 Logger::IntMap Logger::smSyslogPriorities;
+std::atomic<bool> Logger::smDoLogRotate(false);
 
 void Logger::usrHandler(int sig) {
+  // SIGHUP means reload, which for zmc costs a camera reconnect and a gap in
+  // recording. logrotate only needs the file handle dropped, so it sends
+  // SIGWINCH instead. Just flag it, the next logPrint does the work.
+  if (sig == SIGWINCH) {
+    smDoLogRotate = true;
+    return;
+  }
   Logger *logger = fetch();
   if (sig == SIGUSR1)
     logger->level(logger->level()+1);
@@ -220,6 +228,9 @@ void Logger::initialise(const std::string &id, const Options &options) {
       Fatal("sigaction(), error = %s", strerror(errno));
     }
     if ( sigaction(SIGUSR2, &action, 0) < 0) {
+      Fatal("sigaction(), error = %s", strerror(errno));
+    }
+    if ( sigaction(SIGWINCH, &action, 0) < 0) {
       Fatal("sigaction(), error = %s", strerror(errno));
     }
   }
@@ -426,6 +437,13 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
     Panic("Invalid logger level %d", level);
 
   log_mutex.lock();
+
+  if (smDoLogRotate.exchange(false)) {
+    // logrotate has renamed the file out from under us. Drop the handle and the
+    // write below reopens it at the original path.
+    closeFile();
+  }
+
   // Can we save some cycles by having these as members and not allocate them on the fly? I think so.
   char            timeString[64];
   char            logString[4096]; // SQL TEXT can hold 64k so we could go up to 32k here but why?

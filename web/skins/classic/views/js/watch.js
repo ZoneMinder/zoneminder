@@ -1235,8 +1235,10 @@ var cycleIntervalId;
 var secondsToCycle = 0;
 
 function nextCycleView() {
-  secondsToCycle --;
-  if (secondsToCycle<=0) {
+  const stream = (monitorStream) ? monitorStream.getAVStream() : null;
+  const playerErrorLimitReached = (monitorStream.selectedPlayer && monitorStream.getCountStreamErrors(monitorStream.selectedPlayer || monitorStream.activePlayer) >= monitorStream.limitCountErrors);
+  if (stream && stream.readyState >= 2) secondsToCycle --;
+  if (secondsToCycle<=0 || monitorStream.fatalError || playerErrorLimitReached) {
     cycleNext();
   }
   $j('#secondsToCycle').text(secondsToCycle);

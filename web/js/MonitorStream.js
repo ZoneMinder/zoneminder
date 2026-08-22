@@ -76,6 +76,7 @@ function MonitorStream(monitorData) {
     connkey: this.connKey
   };
   this.limitCountErrors = 2;
+  this.fatalError = false; // Fatal playback error for monitor. None of the players were able to play the stream.
   this.playerPriority = {
     1: { // This setting should always be priority #1.
       name: 'default',
@@ -244,6 +245,7 @@ function MonitorStream(monitorData) {
     for (const key in this.playerPriority) {
       this.playerPriority[key]['countErrors'] = 0;
     }
+    this.fatalError = false;
 
     return this.player = p;
   };
@@ -1000,7 +1002,7 @@ function MonitorStream(monitorData) {
           this.writeTextInfoBlock("Error");
         }
         this.updateStreamInfo('', 'Error');
-        this.resetCountStreamErrors(this.player);
+        //this.resetCountStreamErrors(this.player);
         const msg = `Out of ${this.limitCountErrors} consecutive attempts to start a stream for monitor ID=${this.id} using player "${this.player}", none were successful. The stream has been stopped.`;
         console.warn(msg);
         this.showText(msg);
@@ -2151,6 +2153,9 @@ function MonitorStream(monitorData) {
     stream.onload = (e) => {
       if (!streamSessionActive(this, playbackSessionId)) return;
       this.resetCountStreamErrors(this.activePlayer);
+      // We're adding a new property, readyState , which isn't initially present in the <img> tag. We won't initialize it elsewhere for now.
+      // readyState for <img> will be either undefined or 3
+      stream.readyState = 3;
       onLoad(e);
     };
 
@@ -2281,6 +2286,7 @@ function MonitorStream(monitorData) {
         // We're already on the last player, but ZMS could theoretically still have errors. This is necessary to avoid loops.
         if (this.player === 'zms' || currentPlayer.indexOf('zms') !== -1) {
           console.error("All players failed. Stop restart loop", currentPlayer);
+          this.fatalError = true;
           return;
         }
 

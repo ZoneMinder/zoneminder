@@ -1236,7 +1236,7 @@ var secondsToCycle = 0;
 
 function nextCycleView() {
   const stream = (monitorStream) ? monitorStream.getAVStream() : null;
-  const playerErrorLimitReached = (monitorStream.selectedPlayer && monitorStream.getCountStreamErrors(monitorStream.selectedPlayer || monitorStream.activePlayer) >= monitorStream.limitCountErrors);
+  const playerErrorLimitReached = monitorStream && monitorStream.selectedPlayer && monitorStream.getCountStreamErrors(monitorStream.player) >= monitorStream.limitCountErrors;
   if (stream && stream.readyState >= 2) secondsToCycle --;
   if (secondsToCycle<=0 || monitorStream.fatalError || playerErrorLimitReached) {
     cycleNext();

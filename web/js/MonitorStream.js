@@ -154,10 +154,11 @@ function MonitorStream(monitorData) {
   this.authRefreshTimer = null;
 
   this.img_onerror = function() {
+    if (!this.isActive) return;
     console.log('Image stream has been stopped! stopping streamCmd');
+    this.streamErrorRegistration();
     this.streamCmdTimer = clearInterval(this.streamCmdTimer);
     this.writeTextInfoBlock("Error", {showImg: false});
-    if (!this.isActive) return;
 
     // zms returns 403 on a stale auth hash (default TTL 2h). For a live multipart
     // (mode=jpeg) <img> the browser reconnects on its own using the same baked-in

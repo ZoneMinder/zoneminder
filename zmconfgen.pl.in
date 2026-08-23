@@ -76,7 +76,7 @@ sub cppDefaultValue {
   $default = '' if !defined($default);
 
   if ( $db_type eq 'boolean' ) {
-    return ($default eq 'yes' || $default eq '1') ? 'true' : 'false';
+    return $default ? 'true' : 'false';
   } elsif ( $db_type eq 'integer' ) {
     return ($default ne '') ? int($default) : '0';
   } elsif ( $db_type eq 'hexadecimal' ) {
@@ -188,16 +188,14 @@ sub generateConfigSQL {
     $option->{db_pattern} = $option->{type}->{pattern};
     $option->{db_format} = $option->{type}->{format};
     my %processes = map { $_ => $_ } split(',', $option->{processes}) if $option->{processes};
-    if ( $option->{db_type} eq 'boolean' ) {
-      $option->{db_value} = ($option->{value} eq 'yes') ? '1' : '0';
-    } else {
-      $option->{db_value} = $option->{value};
-    }
+    $option->{db_value} = dbValue($option->{db_type}, $option->{value});
+    $option->{db_default} = dbValue($option->{db_type}, $option->{default});
     if ( $option->{name} eq 'ZM_DYN_CURR_VERSION' || $option->{name} eq 'ZM_DYN_DB_VERSION' ) {
       $option->{db_value} = '@VERSION@';
     }
     if ( my $requires = $option->{requires} ) {
-      $option->{db_requires} = join(';', map { my $value = $_->{value}; $value = ($value eq 'yes')?1:0 if ( $options_hash{$_->{name}}->{db_type} eq 'boolean' ); ( "$_->{name}=$value" ) } @$requires );
+      # Requires values are already in stored form, booleans included.
+      $option->{db_requires} = join(';', map { "$_->{name}=$_->{value}" } @$requires);
     } else {
       $option->{db_requires} = '';
     }
@@ -207,7 +205,7 @@ sub generateConfigSQL {
       $option->{name},
       addSlashes($option->{db_value}),
       $option->{db_type},
-      addSlashes($option->{default}),
+      addSlashes($option->{db_default}),
       addSlashes($option->{db_hint}),
       addSlashes($option->{db_pattern}),
       addSlashes($option->{db_format}),

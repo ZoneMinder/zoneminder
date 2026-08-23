@@ -720,11 +720,13 @@ sub logrot {
   logReinit();
   foreach my $process ( values %pid_hash ) {
     if ( $process->{pid} ) {
-      Debug("Hupping $$process{command} at $$process{pid}");
-      # && $process->{command} =~ /^zm.*\.pl/ ) {
-      kill('HUP', $process->{pid});
+      Debug("Rotating logs of $$process{command} at $$process{pid}");
+      # WINCH, not HUP: HUP means reload, which makes zmc drop its camera
+      # connection and the perl daemons exit for zmdc to restart. Rotating logs
+      # nightly must not interrupt capture. See issue #5063.
+      kill('WINCH', $process->{pid});
     } else {
-      Debug("Not Hupping $$process{command}");
+      Debug("Not rotating logs of $$process{command}");
     }
   }
 }

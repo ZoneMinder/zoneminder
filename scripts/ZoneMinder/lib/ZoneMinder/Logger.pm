@@ -676,12 +676,17 @@ sub logUSR2Handler {
 }
 
 sub logSetSignal {
+  # SIGHUP means reload, which for most daemons means exiting so that zmdc
+  # restarts them. logrotate only needs the file handle dropped, so it sends
+  # SIGWINCH instead.
+  $SIG{WINCH} = \&logHupHandler;
   $SIG{HUP} = \&logHupHandler;
   $SIG{USR1} = \&logUSR1Handler;
   $SIG{USR2} = \&logUSR2Handler;
 }
 
 sub logClearSignal {
+  $SIG{WINCH} = 'DEFAULT';
   $SIG{HUP} = 'DEFAULT';
   $SIG{USR1} = 'DEFAULT';
   $SIG{USR2} = 'DEFAULT';

@@ -14,9 +14,9 @@ function getFilterQueryConjunctionTypes() {
 
 class FilterTerm {
   // How far back a DateTime lower bound looks for an event that was already
-  // running. Events do not outlive the nightly logrotate SIGHUP, which stops
-  // and restarts them, so a day is comfortably beyond any real event and keeps
-  // the StartDateTime range tight enough to stay indexed.
+  // running. Continuous recording closes and reopens an event every
+  // SectionLength seconds, so a day is comfortably beyond any real event and
+  // keeps the StartDateTime range tight enough to stay indexed.
   const MAX_EVENT_DAYS = 1;
 
   // When an event was never closed, EndDateTime is NULL and StartDateTime plus

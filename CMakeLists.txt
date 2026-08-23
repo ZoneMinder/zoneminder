@@ -580,7 +580,7 @@ set(CMAKE_REQUIRED_INCLUDES ${FFMPEG_avutil_INCLUDE_DIRS})
 check_include_file("libavutil/hwcontext.h" HAVE_LIBAVUTIL_HWCONTEXT_H)
 
 set(PATH_FFMPEG "")
-set(OPT_FFMPEG "no")
+set(OPT_FFMPEG "0")
 
 # Find the path to the ffmpeg executable
 find_program(FFMPEG_EXECUTABLE
@@ -588,7 +588,7 @@ find_program(FFMPEG_EXECUTABLE
   PATH_SUFFIXES ffmpeg)
 if(FFMPEG_EXECUTABLE)
   set(PATH_FFMPEG "${FFMPEG_EXECUTABLE}")
-  set(OPT_FFMPEG "yes")
+  set(OPT_FFMPEG "1")
   mark_as_advanced(FFMPEG_EXECUTABLE)
 endif()
 

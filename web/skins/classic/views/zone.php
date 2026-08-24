@@ -121,6 +121,26 @@ if ($zonePixelArea > 0) {
   }
 }
 
+# Rectangle measurement ratios, and the only definition of their defaults -
+# zone-object-size.js falls back to whatever is rendered here. Read from the
+# cookie server side, as the player selector below does with zmZonePlayer.
+#
+# 25% of the drawn rectangle is docs/userguide/definezone.rst [J]; the rest of
+# the box is background, and low-contrast pixels never clear MinPixelThreshold.
+# 70% and 86% match every shipped Blobs preset (zm_create.sql.in ZonePresets:
+# 0.5/0.35/0.3, 5/3.5/3, 1/0.7/0.6, 0.2/0.14/0.12), so the steps are a property
+# of the pipeline rather than a sensitivity dial.
+$rectangle_ratios = array(
+  'objectFraction'    => array('cookie' => 'zmZoneObjectFraction', 'value' => 25),
+  'objectFilterRatio' => array('cookie' => 'zmZoneFilterRatio',    'value' => 70),
+  'objectBlobRatio'   => array('cookie' => 'zmZoneBlobRatio',      'value' => 86),
+);
+foreach ($rectangle_ratios as $id => $spec) {
+  if (!isset($_COOKIE[$spec['cookie']])) continue;
+  $saved = validInt($_COOKIE[$spec['cookie']]);
+  if ($saved >= 1 and $saved <= 100) $rectangle_ratios[$id]['value'] = $saved;
+}
+
 $focusWindow = true;
 # Have to do this here, because the .js.php references somethings figured out when generating the streamHTML
 $monitor->connKey();
@@ -177,8 +197,12 @@ if ( count($other_zones) ) {
 }
 ?>
                 <polygon id="zonePoly" points="<?php echo $zone['AreaCoords'] ?>" class="Editing <?php echo $zone['Type'] ?>"/>
+                <rect id="objectRect" x="0" y="0" width="0" height="0" style="display:none"/>
                 Sorry, your browser does not support inline SVG
               </svg>
+              <button type="button" id="objectImageReplaceBtn" class="btn btn-normal" style="display:none" title="<?php echo translate('ObjectImageLoad') ?>">
+                <i class="material-icons md-18">folder_open</i>
+              </button>
             </div><?php # imageFrame
 ?>
 
@@ -191,6 +215,16 @@ if ( count($other_zones) ) {
               </button>
               <button type="button" id="playBtn" class="btn btn-primary" title="<?php echo translate('Play') ?>">
                 <i class="material-icons md-18">play_arrow</i>
+              </button>
+              <button type="button" id="objectImageBtn" class="btn btn-normal" title="<?php echo translate('ObjectImageUse') ?>">
+                <i class="material-icons md-18">image</i>
+              </button>
+              <input type="file" id="objectImageFile" accept="image/*" style="display:none"/>
+              <button type="button" id="objectSizeBtn" class="btn btn-normal" title="<?php echo translate('ObjectSizeMeasure') ?>">
+                <i class="material-icons md-18">highlight_alt</i>
+              </button>
+              <button type="button" id="objectSizeUndoBtn" class="btn btn-normal" style="display:none" title="<?php echo translate('ObjectSizeUndo') ?>">
+                <i class="material-icons md-18">undo</i>
               </button>
               <span id="playerControl">
                 <label for="player"><?php echo translate('Player') ?></label>
@@ -335,6 +369,32 @@ if ( count($other_zones) ) {
 								</tr>
 							</tbody>
 						</table>
+						<table id="rectangleSettings" style="display:none">
+							<caption><?php echo translate('RectangleMeasure') ?></caption>
+							<tbody>
+								<tr>
+									<th scope="row"><?php echo translate('RectangleAlarmedArea') ?></th>
+									<td>
+										<input type="number" id="objectFraction" value="<?php echo $rectangle_ratios['objectFraction']['value'] ?>" min="1" max="100" step="1"/>%
+										<span class="ratioHint"><?php echo translate('RectangleOfRectangle') ?></span>
+									</td>
+								</tr>
+								<tr>
+									<th scope="row"><?php echo translate('RectangleFilteredArea') ?></th>
+									<td>
+										<input type="number" id="objectFilterRatio" value="<?php echo $rectangle_ratios['objectFilterRatio']['value'] ?>" min="1" max="100" step="1"/>%
+										<span class="ratioHint"><?php echo translate('RectangleOfAlarmed') ?></span>
+									</td>
+								</tr>
+								<tr>
+									<th scope="row"><?php echo translate('RectangleBlobArea') ?></th>
+									<td>
+										<input type="number" id="objectBlobRatio" value="<?php echo $rectangle_ratios['objectBlobRatio']['value'] ?>" min="1" max="100" step="1"/>%
+										<span class="ratioHint"><?php echo translate('RectangleOfFiltered') ?></span>
+									</td>
+								</tr>
+							</tbody>
+						</table>
 					</div>
       </form>
     </div><!--content-->
@@ -351,4 +411,5 @@ if ($monitor->Go2RTCEnabled()) {
 }
 ?>
   <script src="<?php echo cache_bust('js/MonitorStream.js') ?>"></script>
+  <script src="<?php echo cache_bust('skins/classic/views/js/zone-object-size.js') ?>"></script>
 <?php xhtmlFooter() ?>

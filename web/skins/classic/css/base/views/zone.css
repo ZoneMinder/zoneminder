@@ -57,7 +57,27 @@
  width: 100%;
  height: 100%;
  background: none;
+ /* Above #objectStill, so the zone outline stays visible over an uploaded
+    still just as it does over the live view. */
+ z-index: 2;
  }
+
+/* An uploaded still standing in for the live view. Occupies exactly the box
+   the stream occupies - width/height 100% of imageFeed, whose aspect-ratio is
+   pinned to the monitor's in zone.php - so a box drawn on it maps to the same
+   frame percentages the live view would have produced.
+   object-fit is fill, deliberately: contain would letterbox and shift the
+   coordinate mapping. A still from the same camera has the same aspect anyway;
+   one that does not gets stretched, which keeps the maths honest. */
+#imageFrame #objectStill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+    z-index: 1;
+}
 #imageFrame img {
   width: 100%;
   display: block;
@@ -119,12 +139,54 @@
   }
 }
 
-#zonePoints table table tr.highlight {
+/* Khaki marks something singled out: a point row under the cursor, or a field
+   the object-size tool rewrote. Stated once so the two cannot drift apart. */
+#zonePoints table table tr.highlight,
+#zoneSettings .objectSizeChanged {
     background-color: #f0e68c;
+}
+
+/* Forced dark because the khaki above is a light background in both themes,
+   and form fields carry the theme's own text colour. */
+#zoneSettings .objectSizeChanged {
+    color: #000;
 }
 
 #zonePoints table table tr.active {
     background-color: #ffa07a;
+}
+
+/* Size of the measuring box, in capture pixels. Sits just above the box, or
+   just inside it when the box is close to the top edge. Yellow on black to
+   tie it to the box without competing with the red zone outline. */
+#imageFrame #objectSizeLabel {
+    position: absolute;
+    z-index: 6;
+    transform: translateY(-100%);
+    margin-top: -2px;
+    padding: 1px 4px;
+    font-size: 10px;
+    line-height: 1.4;
+    white-space: nowrap;
+    color: #ffff00;
+    background: rgba(0, 0, 0, 0.65);
+    border-radius: 2px;
+    /* It sits over the area being dragged, so it must never take the mouse. */
+    pointer-events: none;
+}
+
+#imageFrame #objectSizeLabel.below {
+    transform: none;
+    margin-top: 2px;
+}
+
+/* The object measuring box. Stroke matches .zones polygon.Editing below so it
+   reads as the same class of annotation as the zone outline itself. */
+.zones #objectRect {
+    fill: none;
+    stroke: #ffff00;
+    stroke-width: 2px;
+    vector-effect: non-scaling-stroke;
 }
 
 #zonePoints table table th,
@@ -218,4 +280,63 @@ svg circle {
 #StreamControlButtons {
   display: inline;
   float: right;
+}
+
+/* Rectangle measurement ratios. Its own table, shown only while the measuring
+   tool is in use, because these govern the tool rather than the zone. */
+#rectangleSettings {
+    border-collapse: collapse;
+    width: 100%;
+    margin-top: 8px;
+}
+
+#rectangleSettings caption {
+    caption-side: top;
+    padding: 3px;
+    font-weight: bold;
+    text-align: left;
+}
+
+#rectangleSettings th,
+#rectangleSettings td {
+    border: 1px solid #7f7fb2;
+    padding: 3px;
+    text-align: left;
+}
+
+#rectangleSettings th[scope=row] {
+    white-space: nowrap;
+}
+
+#rectangleSettings input[type="number"] {
+    width: 60px;
+    -moz-appearance: textfield;
+}
+
+#rectangleSettings input[type="number"]::-webkit-outer-spin-button,
+#rectangleSettings input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+#rectangleSettings .ratioHint {
+    font-size: 11px;
+    opacity: 0.75;
+}
+
+/* Replace-image button, sitting on the still it replaces. Above the size
+   label (6) so it is never buried, and it must take the mouse, unlike the
+   other overlays. */
+#imageFrame #objectImageReplaceBtn {
+    position: absolute;
+    top: 7px;
+    right: 8px;
+    z-index: 7;
+    padding: 2px 5px;
+    line-height: 1;
+    opacity: 0.85;
+}
+
+#imageFrame #objectImageReplaceBtn:hover {
+    opacity: 1;
 }

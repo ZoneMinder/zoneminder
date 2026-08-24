@@ -165,6 +165,10 @@ CREATE TABLE `Controls` (
   `TurboTiltSpeed` int(10) default NULL,
   `CanAutoScan` tinyint(3) unsigned NOT NULL default '0',
   `NumScanPaths` tinyint(3) unsigned NOT NULL default '0',
+  `CanAudioPlay` tinyint(3) unsigned NOT NULL default '0',
+  `MinAudioFile` int(10) unsigned default NULL,
+  `MaxAudioFile` int(10) unsigned default NULL,
+  `CanAudioVolume` tinyint(3) unsigned NOT NULL default '0',
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 

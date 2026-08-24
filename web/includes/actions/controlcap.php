@@ -79,6 +79,8 @@ if ( $action == 'Save' ) {
     'CanSetPresets' =>  0,
     'CanLed' => 0,
     'CanLight' => 0,
+    'CanAudioPlay' => 0,
+    'CanAudioVolume' => 0,
   );
 
   # Checkboxes don't return an element in the POST data, so won't be present in newControl.

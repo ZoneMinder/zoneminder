@@ -384,6 +384,9 @@ if ( $monitor->Type() != 'WebSite' ) {
     $tabs['control'] = translate('Control');
   if ( ZM_OPT_X10 )
     $tabs['x10'] = translate('X10');
+  // Actions target other monitors, so this is offered regardless of whether
+  // this monitor is itself controllable.
+  $tabs['actions'] = translate('Actions');
   $tabs['misc'] = translate('Misc');
   $tabs['zones'] = translate('Zones');
   if (defined('ZM_OPT_USE_GEOLOCATION') and ZM_OPT_USE_GEOLOCATION)
@@ -497,6 +500,18 @@ switch ($name) {
               <li class="Notes">
                 <label><?php echo translate('Notes') ?></label>
                 <textarea name="newMonitor[Notes]" rows="4"><?php echo validHtmlStr($monitor->Notes()) ?></textarea>
+              </li>
+              <li class="DeviceClass">
+                <label><?php echo translate('DeviceClass') ?></label>
+<?php
+              // What the device *is*, as opposed to Type, which is how it is
+              // captured. An IP speaker is still captured over Ffmpeg.
+              $device_class_options = array(
+                'Camera'  => translate('DeviceClassCamera'),
+                'Speaker' => translate('DeviceClassSpeaker'),
+              );
+              echo htmlSelect('newMonitor[DeviceClass]', $device_class_options, $monitor->DeviceClass());
+?>
               </li>
               <li class="Manufacturer">
                 <label><?php echo translate('Manufacturer') ?></label>
@@ -1565,6 +1580,113 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
               <input type="text" name="newX10Monitor[AlarmOutput]" value="<?php echo validHtmlStr($newX10Monitor['AlarmOutput']) ?>" size="20"/>
             </li>
 <?php
+      break;
+    }
+  case 'actions' :
+    {
+      require_once('includes/MonitorAction.php');
+
+      $candidates = ZM\MonitorAction::targetCandidates();
+      $trigger_options = array(
+        'EventStart' => translate('ActionTriggerEventStart'),
+        'EventEnd'   => translate('ActionTriggerEventEnd'),
+        'Alarm'      => translate('ActionTriggerAlarm'),
+        'Manual'     => translate('ActionTriggerManual'),
+      );
+      $all_type_options = array(
+        'LightOn'           => translate('ActionLightOn'),
+        'LightOff'          => translate('ActionLightOff'),
+        'IndicatorLightOn'  => translate('ActionIndicatorLightOn'),
+        'IndicatorLightOff' => translate('ActionIndicatorLightOff'),
+        'AudioPlay'         => translate('ActionAudioPlay'),
+        'AudioStop'         => translate('ActionAudioStop'),
+      );
+
+      $capabilities_json = array();
+      foreach ($candidates as $candidate) {
+        $capabilities_json[$candidate['Id']] = array(
+          'Types' => $candidate['Types'],
+          'MinAudioFile' => $candidate['MinAudioFile'],
+          'MaxAudioFile' => $candidate['MaxAudioFile'],
+        );
+      }
+
+      $actions = $monitor->Id() ?
+        ZM\MonitorAction::find(array('MonitorId'=>$monitor->Id()), array('order'=>'`Sequence`,`Id`')) :
+        array();
+
+      if (!count($candidates)) {
+?>
+        <li class="warning">
+          <?php echo translate('ActionsNoCapableDevices') ?>
+        </li>
+<?php
+      } else {
+?>
+        <li>
+          <p class="text-muted"><?php echo translate('ActionsHelp') ?></p>
+        </li>
+        <li>
+          <table id="monitorActionsTable" class="table table-sm">
+            <thead>
+              <tr>
+                <th><?php echo translate('Enabled') ?></th>
+                <th><?php echo translate('ActionTrigger') ?></th>
+                <th><?php echo translate('ActionTarget') ?></th>
+                <th><?php echo translate('ActionType') ?></th>
+                <th><?php echo translate('ActionAudioFile') ?></th>
+              </tr>
+            </thead>
+            <tbody>
+<?php
+        // One spare blank row so an action can always be added without js.
+        $rows = $actions;
+        $rows[] = new ZM\MonitorAction();
+        $i = 0;
+        foreach ($rows as $action) {
+          $target_options = array('' => translate('None'));
+          foreach ($candidates as $candidate)
+            $target_options[$candidate['Id']] = $candidate['Name'];
+
+          // Only offer types the chosen target has been measured to support.
+          $type_options = array();
+          foreach ($candidates as $candidate) {
+            if ($candidate['Id'] == $action->TargetMonitorId()) {
+              foreach ($candidate['Types'] as $type)
+                $type_options[$type] = $all_type_options[$type];
+            }
+          }
+          if (!count($type_options)) $type_options = $all_type_options;
+?>
+              <tr class="monitorActionRow">
+                <td><input type="checkbox" name="newAction[<?php echo $i ?>][Enabled]" value="1"<?php echo $action->Enabled() ? ' checked="checked"' : '' ?>/></td>
+                <td><input type="hidden" name="newAction[<?php echo $i ?>][Id]" value="<?php echo validHtmlStr($action->Id()) ?>"/>
+                    <?php echo htmlSelect('newAction['.$i.'][TriggerOn]', $trigger_options, $action->TriggerOn()) ?></td>
+                <td><?php echo htmlSelect('newAction['.$i.'][TargetMonitorId]', $target_options, $action->TargetMonitorId(), array('class'=>'actionTarget')) ?></td>
+                <td><?php echo htmlSelect('newAction['.$i.'][ActionType]', $type_options, $action->ActionType(), array('class'=>'actionType')) ?></td>
+                <td><input class="actionAudioFile" type="number" name="newAction[<?php echo $i ?>][AudioFile]" value="<?php echo validHtmlStr($action->AudioFile()) ?>" min="0" step="1"/></td>
+              </tr>
+<?php
+          $i ++;
+        } // end foreach action
+?>
+            </tbody>
+          </table>
+        </li>
+        <li>
+          <p class="text-muted"><?php echo translate('ActionsRemoveHelp') ?></p>
+        </li>
+        <li>
+          <script>
+            // What each candidate device can be asked to do, so changing the
+            // target updates the action list without a round trip. The server
+            // re-checks this on save; here it is convenience, not enforcement.
+            var monitorActionCapabilities = <?php echo json_encode($capabilities_json) ?>;
+            var monitorActionTypeLabels = <?php echo json_encode($all_type_options) ?>;
+          </script>
+        </li>
+<?php
+      } // end if any capable devices
       break;
     }
   case 'misc' :

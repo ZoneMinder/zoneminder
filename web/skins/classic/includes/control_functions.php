@@ -296,13 +296,56 @@ function controlPower($monitor, $cmds) {
   return ob_get_clean();
 }
 
+// Buttons for this monitor's manually-triggered actions. These drive other
+// monitors - usually a speaker - so they are shown even when this monitor has
+// no control of its own.
+function monitorActionControls($monitor) {
+  require_once('includes/MonitorAction.php');
+
+  $actions = ZM\MonitorAction::find(
+    array('MonitorId'=>$monitor->Id(), 'TriggerOn'=>'Manual', 'Enabled'=>1),
+    array('order'=>'`Sequence`,`Id`'));
+  if ( !count($actions) )
+    return '';
+
+  ob_start();
+?>
+<div class="monitorActionControls">
+<?php
+  foreach ( $actions as $action ) {
+    $target = $action->TargetMonitor();
+    if ( !$target or !canView('Control', $target->Id()) )
+      continue;
+    $label = $action->Label() ? $action->Label() :
+      translate('Action'.$action->ActionType()).' - '.$target->Name();
+?>
+  <button type="button" class="ptzTextBtn monitorActionBtn" data-on-click-this="fireMonitorAction" data-action-id="<?php echo $action->Id() ?>" title="<?php echo validHtmlStr($label) ?>"><?php echo validHtmlStr($label) ?></button>
+<?php
+  } // end foreach action
+?>
+</div>
+<?php
+  return ob_get_clean();
+}
+
 function ptzControls($monitor) {
   $control = $monitor->Control();
+  $actionControls = monitorActionControls($monitor);
+
+  // A monitor with manual actions but no control of its own still gets a
+  // panel; there is simply nothing but the action buttons in it.
+  if ( !$control or !$control->Id() ) {
+    if ( $actionControls === '' )
+      return '';
+    return '<div class="controlsPanel">'.$actionControls.'</div>';
+  }
+
   $cmds = $control->commands();
   ob_start();
 ?>
 <div class="controlsPanel">
 <?php
+  echo $actionControls;
   if ( $control->CanFocus() )
     echo controlFocus($monitor, $cmds);
   if ( $control->CanZoom() )

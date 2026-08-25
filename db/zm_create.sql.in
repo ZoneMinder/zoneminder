@@ -645,6 +645,7 @@ CREATE TABLE `Monitors` (
   `ManufacturerId`  int unsigned, FOREIGN KEY (`ManufacturerId`) REFERENCES `Manufacturers` (Id),
   `ModelId`  int unsigned, FOREIGN KEY (`ModelId`) REFERENCES `Models` (Id),
   `Type` enum('Local','Remote','File','Ffmpeg','Libvlc','cURL','WebSite','NVSocket','VNC') NOT NULL default 'Local',
+  `DeviceClass` enum('Camera','Speaker') NOT NULL default 'Camera',
   `Function` enum('None','Monitor','Modect','Record','Mocord','Nodect') NOT NULL default 'Monitor',
   `Capturing` enum('None','Ondemand', 'Always') NOT NULL default 'Always',
   `Analysing` enum('None','Always') NOT NULL default 'Always',
@@ -783,6 +784,33 @@ CREATE TABLE `Monitors` (
 CREATE INDEX `Monitors_ServerId_idx` ON `Monitors` (`ServerId`);
 
 DROP TABLE IF EXISTS `Monitor_Status`;
+--
+-- Actions a monitor performs when it alarms.  The device acted on is a
+-- monitor in its own right and is usually NOT the monitor that triggered:
+-- a doorbell camera lights its own illuminator but plays a warning through a
+-- separate speaker.  TargetMonitorId therefore carries its own foreign key
+-- and may or may not equal MonitorId.
+--
+-- ActionType names a zmcontrol command; whether it is offered for a given
+-- target is decided by that target's Controls row (CanLight,
+-- CanIndicatorLight, CanAudioPlay), so a device can only be asked to do what
+-- it has been measured to do.
+--
+CREATE TABLE `MonitorActions` (
+  `Id` int(10) unsigned NOT NULL auto_increment,
+  `MonitorId` int(10) unsigned NOT NULL,
+  `TriggerOn` enum('EventStart','EventEnd','Alarm','Manual') NOT NULL default 'EventStart',
+  `ActionType` enum('LightOn','LightOff','IndicatorLightOn','IndicatorLightOff','AudioPlay','AudioStop') NOT NULL default 'AudioPlay',
+  `TargetMonitorId` int(10) unsigned NOT NULL,
+  `AudioFile` int(10) unsigned default NULL,
+  `Label` varchar(64) NOT NULL default '',
+  `Enabled` tinyint(1) unsigned NOT NULL default '1',
+  `Sequence` smallint(5) unsigned NOT NULL default '0',
+  PRIMARY KEY (`Id`),
+  KEY `MonitorId_TriggerOn` (`MonitorId`,`TriggerOn`),
+  KEY `TargetMonitorId` (`TargetMonitorId`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
 CREATE TABLE `Monitor_Status` (
   `MonitorId` int(10) unsigned NOT NULL,
   `Status`  enum('Unknown','NotRunning','Running','Connected','Signal') NOT NULL default 'Unknown',

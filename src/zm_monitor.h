@@ -172,6 +172,17 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     PASSTHROUGH,
   } VideoWriter;
 
+  // An action this monitor performs when it alarms. The device acted on is
+  // identified by target_monitor_id and is frequently NOT this monitor: the
+  // point of the feature is that a camera can sound a speaker elsewhere.
+  struct EventAction {
+    enum TriggerOn { EVENT_START, EVENT_END, ALARM, MANUAL };
+    TriggerOn     trigger;
+    std::string   action_type;       // zmcontrol command, e.g. audioPlay
+    unsigned int  target_monitor_id;
+    int           audio_file;        // -1 when the action takes no file
+  };
+
  protected:
   typedef std::set<Zone *> ZoneSet;
 
@@ -745,6 +756,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   //MonitorLink    **linked_monitors;
   std::string   event_start_command;
   std::string   event_end_command;
+  std::vector<EventAction> actions;
 
   std::vector<Group *> groups;
 
@@ -1082,6 +1094,16 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   void Reload();
   void ReloadZones();
   void ReloadLinkedMonitors();
+
+  void LoadActions();
+  void RunActions(EventAction::TriggerOn trigger);
+  // Pure helpers, separated from RunActions so they can be tested without a
+  // database, a socket or a device. ActionCommandName maps the DB enum onto a
+  // zmcontrol method rather than passing the stored string through, so nothing
+  // from the database is interpolated into the message uninspected.
+  static const char *ActionCommandName(const std::string &action_type);
+  static std::string ActionMessage(const EventAction &action);
+  static const char *ActionTriggerName(EventAction::TriggerOn trigger);
 
   bool DumpSettings( char *output, bool verbose );
   void DumpZoneImage( const char *zone_string=0 );

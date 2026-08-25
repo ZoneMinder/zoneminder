@@ -370,6 +370,63 @@ if ($action == 'save') {
     } # end if has x10Changes
   } # end if ZM_OPT_X10
 
+  if ( isset($_REQUEST['newAction']) and is_array($_REQUEST['newAction']) ) {
+    require_once('includes/MonitorAction.php');
+
+    $submitted_ids = array();
+    foreach ( $_REQUEST['newAction'] as $posted ) {
+      # A row with no target is how the editor expresses "unused": the spare
+      # blank row on every page, or an existing action the operator cleared.
+      $target = empty($posted['TargetMonitorId']) ? 0 : validInt($posted['TargetMonitorId']);
+      $action_id = empty($posted['Id']) ? 0 : validInt($posted['Id']);
+
+      if ( !$target ) {
+        if ( $action_id )
+          dbQuery('DELETE FROM MonitorActions WHERE Id=? AND MonitorId=?', array($action_id, $mid));
+        continue;
+      }
+
+      # Never store an action the target cannot perform. The editor filters the
+      # dropdown, but the request is not to be trusted. A disabled select is
+      # not submitted at all, so the key may simply be absent.
+      $action_type = isset($posted['ActionType']) ? $posted['ActionType'] : '';
+      $trigger_on = isset($posted['TriggerOn']) ? $posted['TriggerOn'] : 'EventStart';
+
+      $target_monitor = ZM\Monitor::find_one(array('Id'=>$target));
+      $allowed = ZM\MonitorAction::typesForMonitor($target_monitor);
+      if ( !in_array($action_type, $allowed) ) {
+        ZM\Warning('Ignoring action: monitor '.$target.' cannot '.$action_type);
+        continue;
+      }
+
+      $values = array(
+        'MonitorId'       => $mid,
+        'TargetMonitorId' => $target,
+        'TriggerOn'       => $trigger_on,
+        'ActionType'      => $action_type,
+        'AudioFile'       => (!isset($posted['AudioFile']) or $posted['AudioFile'] === '')
+                               ? null : validInt($posted['AudioFile']),
+        'Enabled'         => empty($posted['Enabled']) ? 0 : 1,
+      );
+
+      $action = $action_id ?
+        ZM\MonitorAction::find_one(array('Id'=>$action_id, 'MonitorId'=>$mid)) : new ZM\MonitorAction();
+      if ( !$action ) $action = new ZM\MonitorAction();
+
+      if ( $action->Id() ) {
+        $action->save($values);
+        $submitted_ids[] = $action->Id();
+      } else if ( $action->insert($values) ) {
+        $submitted_ids[] = $action->Id();
+      } else {
+        $error_message .= 'Error saving monitor action: '.$action->get_last_error().'<br/>';
+      }
+    } # end foreach posted action
+
+    # zmc re-reads the action list on restart, so a change here needs one.
+    $restart = true;
+  } # end if newAction
+
   if ( $restart ) {
     if ( $monitor->Capturing() != 'None' and $monitor->Type() != 'WebSite' and !$monitor->Deleted()) {
       $monitor->zmcControl('start');

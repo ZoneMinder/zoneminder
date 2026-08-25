@@ -64,6 +64,7 @@ GetOptions(
   'panstep=i'     =>\$options{panstep},
   'tiltstep=i'    =>\$options{tiltstep},
   'preset=i'      =>\$options{preset},
+  'file=i'        =>\$options{file},
   'autostop'      =>\$options{autostop},
 ) or pod2usage(-exitstatus => -1);
 

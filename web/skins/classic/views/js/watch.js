@@ -373,6 +373,25 @@ function cmdForce() {
   }
 }
 
+/**
+ * Fire one of this monitor's manually-triggered actions. Only the action id
+ * travels; the command and its target are rebuilt server side from the stored
+ * row, so the browser cannot name an arbitrary control method.
+ * @param {HTMLElement} el the button, carrying data-action-id
+ */
+function fireMonitorAction(el) {
+  const actionId = el.getAttribute('data-action-id');
+  if (!actionId) {
+    console.error('Monitor action button has no data-action-id');
+    return;
+  }
+  const data = {aid: actionId};
+  if (zmAuth.hash) data.auth = zmAuth.hash;
+  $j.getJSON(monitorUrl + '?view=request&request=control&action=monitorAction&id=' + monitorId, data)
+      .done(getControlResponse)
+      .fail(logAjaxFail);
+}
+
 function controlReq(data) {
   if (zmAuth.hash) data.auth = zmAuth.hash;
   $j.getJSON(monitorUrl + '?view=request&request=control&id='+monitorId, data)

@@ -52,7 +52,9 @@
 #include <chrono>
 #include <cstring>
 #include <sys/types.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/un.h>
 #include <string>
 #include <utility>
 
@@ -1225,6 +1227,7 @@ bool Monitor::connect() {
     shared_data->valid = true;
 
     ReloadLinkedMonitors();
+    LoadActions();
 
     if (RTSP2Web_enabled) {
       RTSP2Web_Manager = new RTSP2WebManager(this);
@@ -2436,6 +2439,10 @@ bool Monitor::Analyse() {
               Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u Cause:%s",
                    name.c_str(), packet->image_index, Event::PreAlarmCount(), alarm_frame_count, cause.c_str());
               shared_data->state = state = ALARM;
+              // Only the genuine entry into alarm fires actions. The
+              // ALERT->ALARM path below is a re-trigger within one alarm and
+              // would sound a speaker repeatedly through a single incident.
+              RunActions(EventAction::ALARM);
             } else if (state != PREALARM) {
               Info("%s: %03d - Gone into prealarm state", name.c_str(), analysis_image_count);
               shared_data->state = state = PREALARM;
@@ -2780,6 +2787,141 @@ void Monitor::ReloadLinkedMonitors() {
   }
 }  // end if p_linked_monitors
 }  // end void Monitor::ReloadLinkedMonitors()
+
+const char *Monitor::ActionCommandName(const std::string &action_type) {
+  // Deliberately a whitelist keyed off the DB enum rather than passing the
+  // stored string through: nothing out of the database reaches the control
+  // daemon without being recognised here first.
+  if (action_type == "LightOn") return "lightOn";
+  if (action_type == "LightOff") return "lightOff";
+  if (action_type == "IndicatorLightOn") return "indicatorLightOn";
+  if (action_type == "IndicatorLightOff") return "indicatorLightOff";
+  if (action_type == "AudioPlay") return "audioPlay";
+  if (action_type == "AudioStop") return "audioStop";
+  return nullptr;
+}
+
+const char *Monitor::ActionTriggerName(EventAction::TriggerOn trigger) {
+  switch (trigger) {
+    case EventAction::EVENT_START: return "EventStart";
+    case EventAction::EVENT_END:   return "EventEnd";
+    case EventAction::ALARM:       return "Alarm";
+    case EventAction::MANUAL:      return "Manual";
+  }
+  return "";
+}
+
+// zmcontrol.pl reads one line of JSON from its socket and calls the named
+// method on the Control object, so this is the whole wire format.
+std::string Monitor::ActionMessage(const EventAction &action) {
+  const char *command = ActionCommandName(action.action_type);
+  if (!command) return "";
+
+  std::string message = std::string("{\"command\":\"") + command + "\"";
+  // Only audioPlay takes a file; -1 means the action does not carry one.
+  if (action.audio_file >= 0 && action.action_type == "AudioPlay")
+    message += ",\"file\":" + std::to_string(action.audio_file);
+  message += "}";
+  return message;
+}
+
+void Monitor::LoadActions() {
+  actions.clear();
+
+  std::string sql = stringtf(
+      "SELECT `TriggerOn`, `ActionType`, `TargetMonitorId`, `AudioFile`"
+      " FROM `MonitorActions` WHERE `MonitorId`=%u AND `Enabled`=1"
+      " ORDER BY `Sequence`, `Id`", id);
+
+  MYSQL_RES *result = zmDbFetch(sql);
+  if (!result) {
+    Error("Can't load actions for monitor %u: %s", id, mysql_error(&dbconn));
+    return;
+  }
+
+  while (MYSQL_ROW dbrow = mysql_fetch_row(result)) {
+    EventAction action;
+    const std::string trigger = dbrow[0] ? dbrow[0] : "";
+    if (trigger == "EventStart") action.trigger = EventAction::EVENT_START;
+    else if (trigger == "EventEnd") action.trigger = EventAction::EVENT_END;
+    else if (trigger == "Alarm") action.trigger = EventAction::ALARM;
+    else if (trigger == "Manual") action.trigger = EventAction::MANUAL;
+    else {
+      Warning("Monitor %u: ignoring action with unknown trigger '%s'", id, trigger.c_str());
+      continue;
+    }
+
+    action.action_type = dbrow[1] ? dbrow[1] : "";
+    if (!ActionCommandName(action.action_type)) {
+      Warning("Monitor %u: ignoring action with unknown type '%s'",
+              id, action.action_type.c_str());
+      continue;
+    }
+
+    action.target_monitor_id = dbrow[2] ? atoi(dbrow[2]) : 0;
+    if (!action.target_monitor_id) {
+      Warning("Monitor %u: ignoring %s action with no target monitor",
+              id, action.action_type.c_str());
+      continue;
+    }
+    action.audio_file = dbrow[3] ? atoi(dbrow[3]) : -1;
+
+    actions.push_back(action);
+  }
+  mysql_free_result(result);
+  Debug(1, "Monitor %u loaded %zu actions", id, actions.size());
+}
+
+// Actions are fire-and-forget: a speaker that is offline must never hold up
+// event handling, so a failed connect is logged and skipped rather than
+// retried. Manual actions are driven from the web ui and are never run here.
+void Monitor::RunActions(EventAction::TriggerOn trigger) {
+  for (const EventAction &action : actions) {
+    if (action.trigger != trigger) continue;
+
+    const std::string message = ActionMessage(action);
+    if (message.empty()) continue;
+
+    std::string sock_path = stringtf("%s/zmcontrol-%u.sock",
+        staticConfig.PATH_SOCKS.c_str(), action.target_monitor_id);
+
+    int sd = ::socket(AF_UNIX, SOCK_STREAM, 0);
+    if (sd < 0) {
+      Error("Can't create socket for action %s: %s",
+            action.action_type.c_str(), strerror(errno));
+      continue;
+    }
+
+    struct sockaddr_un addr = {};
+    addr.sun_family = AF_UNIX;
+    if (sock_path.length() >= sizeof(addr.sun_path)) {
+      Error("Control socket path too long: %s", sock_path.c_str());
+      ::close(sd);
+      continue;
+    }
+    strncpy(addr.sun_path, sock_path.c_str(), sizeof(addr.sun_path)-1);
+
+    if (::connect(sd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+      // Usually means no zmcontrol daemon is running for the target.
+      Warning("Monitor %u: %s action on monitor %u skipped, can't connect to %s: %s",
+              id, action.action_type.c_str(), action.target_monitor_id,
+              sock_path.c_str(), strerror(errno));
+      ::close(sd);
+      continue;
+    }
+
+    // zmcontrol.pl reads a line, so the newline is required.
+    const std::string line = message + "\n";
+    if (::write(sd, line.c_str(), line.length()) < 0) {
+      Error("Monitor %u: failed writing %s action to monitor %u: %s",
+            id, action.action_type.c_str(), action.target_monitor_id, strerror(errno));
+    } else {
+      Debug(1, "Monitor %u ran %s action on monitor %u: %s",
+            id, ActionTriggerName(trigger), action.target_monitor_id, message.c_str());
+    }
+    ::close(sd);
+  }  // end foreach action
+}  // end void Monitor::RunActions(EventAction::TriggerOn)
 
 std::vector<std::shared_ptr<Monitor>> Monitor::LoadMonitors(const std::string &where, Purpose purpose) {
   std::string sql = load_monitor_sql + " WHERE " + where;
@@ -3612,6 +3754,8 @@ Event * Monitor::openEvent(
   if (mqtt) mqtt->send(stringtf("event start: %" PRId64, event->Id()));
 #endif
 
+  RunActions(EventAction::EVENT_START);
+
   if (!event_start_command.empty()) {
     if (fork() == 0) {
       Logger *log = Logger::fetch();
@@ -3669,6 +3813,10 @@ void Monitor::closeEvent() {
 #if MOSQUITTOPP_FOUND
   if (mqtt) mqtt->send(stringtf("event end: %" PRId64, event->Id()));
 #endif
+  // Run on this thread, before the event is handed to the closing thread: the
+  // lambda below does not capture `this` and the Monitor may outlive it.
+  RunActions(EventAction::EVENT_END);
+
   Debug(1, "Starting thread to close event");
   std::lock_guard<std::mutex> close_lck(close_event_thread_mutex);
   close_event_thread = std::thread([](Event *e, const std::string &command) {

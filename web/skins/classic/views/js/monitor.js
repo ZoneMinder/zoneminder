@@ -990,3 +990,54 @@ window.addEventListener('pagehide', function() {
     el.value = '';
   });
 });
+
+/**
+ * Rebuild one action row's type list and file input to match the device it
+ * targets, so the editor only ever offers what that device supports. The
+ * server re-checks this on save; this is convenience, not enforcement.
+ * @param {HTMLElement} row the tr holding the action's inputs
+ */
+function updateMonitorActionRow(row) {
+  const target = row.querySelector('select[name*="[TargetMonitorId]"]');
+  const type = row.querySelector('select[name*="[ActionType]"]');
+  const file = row.querySelector('input[name*="[AudioFile]"]');
+  if (!target || !type || !file) return;
+
+  const caps = (typeof monitorActionCapabilities !== 'undefined') ?
+    monitorActionCapabilities[target.value] : null;
+  const labels = (typeof monitorActionTypeLabels !== 'undefined') ?
+    monitorActionTypeLabels : {};
+
+  const wanted = type.value;
+  type.innerHTML = '';
+  if (caps && caps.Types) {
+    caps.Types.forEach(function(t) {
+      const option = document.createElement('option');
+      option.value = t;
+      option.textContent = labels[t] ? labels[t] : t;
+      if (t == wanted) option.selected = true;
+      type.appendChild(option);
+    });
+  }
+  type.disabled = !(caps && caps.Types && caps.Types.length);
+
+  // Only a sound takes a file, and only within the range that device accepts.
+  const takesFile = (type.value == 'AudioPlay');
+  file.style.visibility = takesFile ? 'visible' : 'hidden';
+  if (takesFile && caps) {
+    if (caps.MinAudioFile !== null) file.min = caps.MinAudioFile;
+    if (caps.MaxAudioFile !== null) file.max = caps.MaxAudioFile;
+    if (file.value === '' && caps.MinAudioFile !== null) file.value = caps.MinAudioFile;
+  }
+}
+
+window.addEventListener('DOMContentLoaded', function initMonitorActions() {
+  document.querySelectorAll('tr.monitorActionRow').forEach(function(row) {
+    updateMonitorActionRow(row);
+    row.querySelectorAll('select').forEach(function(el) {
+      el.addEventListener('change', function() {
+        updateMonitorActionRow(row);
+      });
+    });
+  });
+});

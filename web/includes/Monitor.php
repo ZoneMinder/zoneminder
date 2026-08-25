@@ -219,6 +219,7 @@ class Monitor extends ZM_Object {
     'ManufacturerId'  => null,
     'ModelId'         => null,
     'Type'      => 'Ffmpeg',
+    'DeviceClass' => 'Camera',
     'Capturing' => 'Always',
     'Analysing' => 'Always',
     'Recording' => 'Always',

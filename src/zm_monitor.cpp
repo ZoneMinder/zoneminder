@@ -274,6 +274,7 @@ Monitor::Monitor() :
   event_count(0),
   //image_count(0),
   last_capture_image_count(0),
+  fps_reported(false),
   analysis_image_count(0),
   decoding_image_count(0),
   motion_frame_count(0),
@@ -1308,6 +1309,7 @@ bool Monitor::connect() {
   last_fps_time = std::chrono::system_clock::now();
   last_analysis_fps_time = std::chrono::system_clock::now();
   last_capture_image_count = 0;
+  fps_reported = false;
 
   Debug(3, "Success connecting");
   return true;
@@ -2049,13 +2051,17 @@ void Monitor::UpdateFPS() {
         new_capture_fps,
         new_analysis_fps);
 
+    // Report on the configured interval, plus once at startup so a fresh
+    // process shows an fps promptly instead of staying silent for a whole
+    // interval. This used to report every 10 frames for the whole of the first
+    // interval, and since the block above runs at most once a second that came
+    // out as a line a second: a 10fps camera with an interval of 36000 logged
+    // roughly 3600 times before quieting down. See
+    // https://github.com/ZoneMinder/zoneminder/issues/3269
     if ( fps_report_interval and
-        (
-         !(shared_data->image_count%fps_report_interval)
-         or
-         ( (shared_data->image_count < fps_report_interval) and !(shared_data->image_count%10) )
-        )
+        ( !fps_reported or !(shared_data->image_count%fps_report_interval) )
        ) {
+      fps_reported = true;
       Info("%s: %d - Capturing at %.2lf fps, capturing bandwidth %ubytes/sec Analysing at %.2lf fps",
           name.c_str(), shared_data->image_count, new_capture_fps, new_capture_bandwidth, new_analysis_fps);
 

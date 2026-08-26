@@ -150,7 +150,7 @@ void StreamBase::checkCommandQueue() {
   } // end while !zm_terminate
 }  // end void StreamBase::checkCommandQueue()
 
-Image *StreamBase::prepareImage(Image *image) {
+Image *StreamBase::prepareImage(Image *image, int pre_scaled_by) {
   /* zooming should happen before scaling to preserve quality
    * scale is relative to base dimensions, and represents the rough ratio between desired view size and base dimensions
    */
@@ -165,6 +165,10 @@ Image *StreamBase::prepareImage(Image *image) {
   const unsigned short cur_x = x.load();
   const unsigned short cur_y = y.load();
 
+  // A caller that pre-scaled did so having seen no zoom. If zoom was turned on
+  // in between, this frame crops a downscaled image and so looks softer than it
+  // should; the next frame is produced at full size because the caller sees the
+  // zoom by then. Not worth decoding the frame twice to avoid.
   if (cur_zoom != 100) {
     int base_image_width = image->Width(),
         base_image_height = image->Height(),
@@ -248,12 +252,20 @@ Image *StreamBase::prepareImage(Image *image) {
     image->Crop(last_crop);
     image->Scale(disp_image_width, disp_image_height);
   } else if (cur_scale != ZM_SCALE_BASE) {
-    Debug(3, "scaling by %d from %dx%d", cur_scale, image->Width(), image->Height());
-    static Image copy_image;
-    copy_image.Assign(*image);
-    image = &copy_image;
-    image_copied = true;
-    image->Scale(cur_scale);
+    if (pre_scaled_by == cur_scale) {
+      // Already at the right size: the caller folded the scale into a colour
+      // conversion it had to do anyway, which saves a second full frame
+      // sws_scale and the full frame copy below. Nothing to do, and nothing to
+      // copy either, since we are not about to modify it.
+      Debug(3, "already scaled by %d to %dx%d", cur_scale, image->Width(), image->Height());
+    } else {
+      Debug(3, "scaling by %d from %dx%d", cur_scale, image->Width(), image->Height());
+      static Image copy_image;
+      copy_image.Assign(*image);
+      image = &copy_image;
+      image_copied = true;
+      image->Scale(cur_scale);
+    }
   }
   Debug(3, "Sending %dx%d", image->Width(), image->Height());
 
@@ -265,7 +277,7 @@ Image *StreamBase::prepareImage(Image *image) {
   last_y = cur_y;
 
   return image;
-}  // end Image *StreamBase::prepareImage(Image *image)
+}  // end Image *StreamBase::prepareImage(Image *image, int pre_scaled_by)
 
 bool StreamBase::sendTextFrame(const char *frame_text) {
   int width = 640;

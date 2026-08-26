@@ -31,6 +31,13 @@ if (!isset($_REQUEST['task'])) {
       $ids = array_map('intval', (array)$_REQUEST['ids']);
       $placeholders = implode(',', array_fill(0, count($ids), '?'));
       dbQuery('DELETE FROM Logs WHERE Id IN (' . $placeholders . ')', $ids);
+    } else if (!empty($_REQUEST['all'])) {
+      // Deleting by id needs one request per 100 rows, which is unusable at the
+      // hundreds of thousands of rows people accumulate, and the table's
+      // check-all only ever selects the current page. This clears the lot in one
+      // statement. It is a separate parameter rather than "no ids given" so a
+      // malformed request that lost its ids cannot empty the table by accident.
+      dbQuery('DELETE FROM Logs');
     }
   }
 } else {

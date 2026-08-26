@@ -158,6 +158,15 @@ function updateHeaderStats(data) {
   $j('#displayLogs').text(Number(startRow).toLocaleString() + ' to ' + Number(stopRow).toLocaleString());
 }
 
+// The modal is fetched once and reused, so its text is set each time it opens.
+function updateClearLogsConfirmText() {
+  const text = document.getElementById('clearLogsConfirmText');
+  if (text) {
+    text.textContent = getIdSelections().length
+      ? translate['ConfirmClearLogs'] : translate['ConfirmClearAllLogs'];
+  }
+}
+
 function manageClearLogsModalBtns() {
   document.getElementById('clearLogsConfirmBtn').addEventListener('click', function onClearLogsConfirmClick(evt) {
     evt.preventDefault();
@@ -210,6 +219,9 @@ function setDeleteProgressBarValue(val) {
 
 var log_idsLength;
 function deleteLogs(log_ids, handlerAlert = null) {
+  // Nothing selected means clear all, in one statement rather than 100 ids at a
+  // time, so it finishes on the log tables people actually have.
+  const clearAll = !log_ids.length;
   if (handlerAlert === null) {
     // Creating a progress bar.
     deleteProgressBar = document.createElement('div');
@@ -238,16 +250,17 @@ function deleteLogs(log_ids, handlerAlert = null) {
     });
   }
 
-  const chunk = log_ids.splice(0, 100);
+  const chunk = clearAll ? [] : log_ids.splice(0, 100);
 
-  console.log('Deleting ' + chunk.length + ' log entries. ' + log_ids.length + ' remaining.');
+  console.log(clearAll ? 'Deleting all log entries.'
+    : 'Deleting ' + chunk.length + ' log entries. ' + log_ids.length + ' remaining.');
   $j.ajax({
     method: 'post',
     timeout: 0,
     url: thisUrl + '?request=log&task=delete',
-    data: {'ids[]': chunk},
+    data: clearAll ? {all: 1} : {'ids[]': chunk},
     success: function(data) {
-      if (!log_ids.length) {
+      if (clearAll || !log_ids.length) {
         allowRequest = true;
         setDeleteProgressBarValue(100);
         table.bootstrapTable('refresh');
@@ -378,6 +391,7 @@ function initPage() {
               .done(function(data) {
                 insertModalHtml('clearLogsConfirm', data.html);
                 manageClearLogsModalBtns();
+                updateClearLogsConfirmText();
                 $j('#clearLogsConfirm').modal('show');
               })
               .fail(function(jqXHR) {
@@ -387,6 +401,7 @@ function initPage() {
               });
         } else {
           document.getElementById('clearLogsConfirmBtn').disabled = false;
+          updateClearLogsConfirmText();
           $j('#clearLogsConfirm').modal('show');
         }
       }
@@ -418,11 +433,9 @@ function manageClearButtonAvailability(enable = null) {
   const selections = table.bootstrapTable('getSelections');
   const clearLogsBtn = document.getElementById('clearLogsBtn');
   if (clearLogsBtn) {
-    if (enable === false || !selections.length) {
-      clearLogsBtn.disabled = true;
-    } else if (enable === true || selections.length) {
-      clearLogsBtn.disabled = false;
-    }
+    // Stays enabled with nothing selected: that now means clear all, rather
+    // than a dead button that swallows the click. See #4727.
+    clearLogsBtn.disabled = (enable === false);
   }
 
   if (selections.length) {

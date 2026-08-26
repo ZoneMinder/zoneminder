@@ -5,4 +5,6 @@ var translate = {
   "ErrorDeletingRowFromLogTable": "<?php echo translate('ErrorDeletingRowFromLogTable') ?>",
   "DeletingRowsFromTable": "<?php echo translate('DeletingRowsFromTable') ?>",
   "AJAXRequestError": "<?php echo translate('AJAXRequestError') ?>",
+  "ConfirmClearLogs": "<?php echo translate('ConfirmClearLogs') ?>",
+  "ConfirmClearAllLogs": "<?php echo translate('ConfirmClearAllLogs') ?>",
 };

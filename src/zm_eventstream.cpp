@@ -961,10 +961,11 @@ bool EventStream::sendFrame(Microseconds delta_us) {
                            ffmpeg_input->get_video_stream_id(),
                            FPSeconds(frame_data->offset).count());
         if (frame) {
-          // Decode straight to the size being sent. sws_scale colour converts
-          // and resizes in the same pass, so converting at full size and then
-          // scaling cost an extra full frame conversion plus a full frame copy
-          // for every frame streamed. refs #3681
+          // Convert straight to the size being sent. The decode is unchanged,
+          // but the RGBA conversion sws_scale was doing anyway can resize in
+          // the same pass, so converting at full size and then scaling cost an
+          // extra full frame conversion plus a full frame copy for every frame
+          // streamed. refs #3681
           int convert_width = monitor->Width();
           int convert_height = monitor->Height();
           pre_scaled_by = preScaleDimensions(monitor->Width(), monitor->Height(),

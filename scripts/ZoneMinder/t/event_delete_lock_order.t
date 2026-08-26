@@ -5,7 +5,7 @@ use File::Temp qw(tempdir);
 
 eval { require ZoneMinder::Event; 1 } or plan skip_all => "cannot load ZoneMinder::Event: $@";
 require ZoneMinder::Database;
-plan tests => 11;
+plan tests => 15;
 
 # Storage is shared across monitors; Event_Summaries is per-monitor. delete()
 # has to take the coarse Storage row before the deletes cascade into the fine
@@ -53,10 +53,10 @@ my $storage_dir = tempdir(CLEANUP => 1);
   package Test::DBH;
   # AutoCommit off means "caller is managing the transaction", which is the
   # batch path where the deadlock actually bites.
-  sub new { return bless {AutoCommit => 0}, shift }
+  sub new { return bless {AutoCommit => 0, err => 0}, shift }
   sub ping { return 1 }
-  sub err { return 0 }
-  sub errstr { return '' }
+  sub err { return $_[0]{err} }
+  sub errstr { return $_[0]{err} ? 'mock failure' : '' }
   sub begin_work { return 1 }
   sub commit { return 1 }
   sub rollback { return 1 }
@@ -68,9 +68,17 @@ my $storage_dir = tempdir(CLEANUP => 1);
 }
 
 my @issued;
+my $fail_on = '';
 {
   no warnings 'redefine', 'once';
-  *ZoneMinder::Database::zmDbDo = sub { push @issued, [@_]; return 1 };
+  *ZoneMinder::Database::zmDbDo = sub {
+    push @issued, [@_];
+    # $fail_on lets a test make one statement fail, so the compensating path runs.
+    if ($fail_on and $_[0] =~ /\Q$fail_on\E/) {
+      $ZoneMinder::Database::dbh->{err} = 1205;  # lock wait timeout, not a deadlock
+    }
+    return 1;
+  };
 }
 
 sub run_delete {
@@ -109,6 +117,20 @@ is($sql[1], 'DELETE FROM Stats WHERE EventId=?', 'Stats deleted first of the eve
 is($sql[2], 'DELETE FROM Event_Data WHERE EventId=?', 'then Event_Data');
 is($sql[3], 'DELETE FROM Frames WHERE EventId=?', 'then Frames');
 is($sql[4], 'DELETE FROM Events WHERE Id=?', 'Events last, so its triggers run after its dependants are gone');
+
+# A failed delete inside a caller-managed transaction must not leave the reclaim
+# standing. delete() cannot roll back a transaction it does not own, and zmfilter
+# ignores what delete() returns and commits anyway, so a decrement left in place
+# would be committed against an event that still exists.
+$fail_on = 'DELETE FROM Stats';
+my @failed = run_delete(4096);
+$fail_on = '';
+
+my @storage_stmts = grep { $_->[0] =~ /^UPDATE Storage/ } @issued;
+is(scalar(@storage_stmts), 2, 'the reclaim is followed by a compensating adjustment');
+is($storage_stmts[0][1], -4096, 'first takes the space off');
+is($storage_stmts[1][1], 4096, 'second puts it back');
+is($storage_stmts[0][2], $storage_stmts[1][2], 'both target the same storage area');
 
 # With nothing to reclaim there is no reason to touch the shared row at all.
 my @no_reclaim = run_delete(0);

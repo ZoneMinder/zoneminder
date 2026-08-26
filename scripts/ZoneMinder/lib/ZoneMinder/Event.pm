@@ -447,6 +447,7 @@ sub delete {
 
       my $err = 0;
       my $errstr = '';
+      my $reclaimed = 0;
 
       # Reclaim the disk usage FIRST, so the shared Storage row is locked ahead
       # of the per-monitor rows the deletes below touch. Doing it afterwards
@@ -459,7 +460,11 @@ sub delete {
       if ($reclaim and $storage->Id()) {
         $storage->adjust_diskspace(-$reclaim);
         $err = $ZoneMinder::Database::dbh->err() // 0;
-        $errstr = $ZoneMinder::Database::dbh->errstr() // '' if $err;
+        if ($err) {
+          $errstr = $ZoneMinder::Database::dbh->errstr() // '';
+        } else {
+          $reclaimed = 1;
+        }
       }
 
       # Order: Stats -> Event_Data -> Frames -> Events (least to greatest reference depth)
@@ -485,6 +490,16 @@ sub delete {
       }
 
       $ZoneMinder::Database::dbh->rollback() if !$in_transaction;
+
+      # That rollback undoes the reclaim when we own the transaction. When the
+      # caller owns it we cannot roll back, and zmfilter ignores what delete()
+      # returns and commits regardless (scripts/zmfilter.pl.in), so a reclaim
+      # left standing would commit a DiskSpace decrement for an event that is
+      # still there. Put it back.
+      if ($reclaimed and $in_transaction) {
+        $storage->adjust_diskspace($reclaim);
+      }
+
       if ($in_transaction or $err != 1213 or $attempt >= $max_attempts) { # 1213 = ER_LOCK_DEADLOCK
         # Surface the final failure ourselves — zmDbDo suppresses its Error
         # log on 1213 inside a caller-managed TX (we own the retry), and the

@@ -1260,7 +1260,7 @@ function loadEventData(e) {
         success: receive_events,
         error: function(jqXHR) {
           ajax = null;
-          console.log("error", jqXHR);
+          logAjaxFail(jqXHR);
         }
       });
     } // end foreach monitor
@@ -1274,7 +1274,7 @@ function loadEventData(e) {
       success: receive_events,
       error: function(jqXHR) {
         ajax = null;
-        console.log("error", jqXHR);
+        logAjaxFail(jqXHR);
       }
     });
   }

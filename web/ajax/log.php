@@ -151,7 +151,11 @@ function logFilter() {
   if (count($advsearch)) {
     $requested = true;
     foreach ($advsearch as $col=>$text) {
-      if (!in_array($col, array_merge($columns, $col_alt))) {
+      // Real columns only. DateTime and Server are built in PHP after the rows
+      // come back, so matching on them produces SQL against columns the Logs
+      // table does not have. The advanced search form offers them because the
+      // view declares them as fields, and the resulting statement fails.
+      if (!in_array($col, $columns)) {
         ZM\Error("'$col' is not a searchable column name");
         continue;
       }

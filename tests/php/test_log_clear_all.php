@@ -16,6 +16,7 @@ if ($argc < 2) {
     'all-filtered-server', 'truncate-falls-back', 'filter-parity',
     'advsearch-all-invalid', 'advsearch-mixed',
     'unparseable-date', 'unknown-level', 'blank-date-is-no-filter', 'delete-fails',
+    'advsearch-pseudo-column',
   );
   $failures = 0;
   foreach ($cases as $case) {
@@ -152,6 +153,13 @@ switch ($case) {
     $GLOBALS['delete_fails'] = true;
     $_REQUEST = array('task' => 'delete', 'all' => 1, 'ServerId' => '4');
     break;
+  case 'advsearch-pseudo-column':
+    // The advanced search form offers DateTime and Server because the view
+    // declares them as fields, but they are built in PHP and are not columns of
+    // Logs, so they must not reach the SQL.
+    $_REQUEST = array('task' => 'delete', 'all' => 1,
+      'filter' => json_encode(array('DateTime' => '2026-08')));
+    break;
 }
 
 require(__DIR__.'/../../web/ajax/log.php');
@@ -272,6 +280,16 @@ switch ($case) {
 
   case 'delete-fails':
     check('a failed filtered delete is reported', count($GLOBALS['errors']), 1);
+    break;
+
+  case 'advsearch-pseudo-column':
+    check('a view-only column never reaches the SQL',
+      strpos($queries[0]['sql'], 'DateTime'), false);
+    // It matches nothing rather than everything, and the query the user was
+    // looking at resolves the same way, so the two agree on an empty result.
+    check('it matches nothing instead of truncating',
+      $queries[0]['sql'], 'DELETE FROM Logs WHERE 1=0');
+    check('exactly one statement', count($queries), 1);
     break;
 
   case 'filter-parity':

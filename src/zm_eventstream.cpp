@@ -939,6 +939,9 @@ bool EventStream::sendFrame(Microseconds delta_us) {
       }
     } else {
       Image *image = nullptr;
+      // Non zero once the frame has been decoded straight to the size we are
+      // going to send, so prepareImage knows not to scale it a second time.
+      int pre_scaled_by = 0;
       // Owns the image only on the ffmpeg (mp4) path; the JPEG path decodes into
       // the reused member, so nothing is freed there. unique_ptr replaces the
       // old new/delete pair and frees automatically at scope exit.
@@ -958,7 +961,16 @@ bool EventStream::sendFrame(Microseconds delta_us) {
                            ffmpeg_input->get_video_stream_id(),
                            FPSeconds(frame_data->offset).count());
         if (frame) {
-          owned_image = std::make_unique<Image>(frame, monitor->Width(), monitor->Height());
+          // Convert straight to the size being sent. The decode is unchanged,
+          // but the RGBA conversion sws_scale was doing anyway can resize in
+          // the same pass, so converting at full size and then scaling cost an
+          // extra full frame conversion plus a full frame copy for every frame
+          // streamed. refs #3681
+          int convert_width = monitor->Width();
+          int convert_height = monitor->Height();
+          pre_scaled_by = preScaleDimensions(monitor->Width(), monitor->Height(),
+                                             convert_width, convert_height);
+          owned_image = std::make_unique<Image>(frame, convert_width, convert_height);
           image = owned_image.get();
         } else {
           Error("Failed getting a frame.");
@@ -999,7 +1011,7 @@ bool EventStream::sendFrame(Microseconds delta_us) {
         return true;
       }
 
-      Image *send_image = prepareImage(image);
+      Image *send_image = prepareImage(image, pre_scaled_by);
       reserveTempImgBuffer(send_image->Size());
       size_t img_buffer_size = 0;
       uint8_t *img_buffer = temp_img_buffer;

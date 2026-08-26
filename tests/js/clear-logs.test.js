@@ -35,7 +35,14 @@ function test(name, fn) {
 function loadLog() {
   const state = {
     selections: [],
-    button: {disabled: true},
+    button: {
+      disabled: true,
+      attrs: {},
+      setAttribute: function(k, v) {
+        this.attrs[k] = v;
+      },
+    },
+    buttonLabel: {textContent: ''},
     confirmText: {textContent: ''},
     posts: [],
   };
@@ -73,6 +80,8 @@ function loadLog() {
     translate: {
       'ConfirmClearLogs': 'selected?',
       'ConfirmClearAllLogs': 'all?',
+      'ClearLogs': 'Clear Logs',
+      'ClearAllLogs': 'Clear ALL Logs',
       'DeletingRowsFromTable': 'deleting',
       'Reason': 'reason',
       'ErrorDeletingRowFromLogTable': 'err',
@@ -81,6 +90,7 @@ function loadLog() {
     document: {
       getElementById: function(id) {
         if (id === 'clearLogsBtn') return state.button;
+        if (id === 'clearLogsBtnLabel') return state.buttonLabel;
         if (id === 'clearLogsConfirmText') return state.confirmText;
         return null;
       },
@@ -138,6 +148,23 @@ test('is still disabled while a request is in flight', () => {
   sandbox.manageClearButtonAvailability(false);
   assert.strictEqual(state.button.disabled, true,
       'explicit disable is what suppresses the button during a refresh');
+});
+
+console.log('\nbutton label');
+test('says clear all when nothing is selected', () => {
+  const {sandbox, state} = loadLog();
+  state.selections = [];
+  sandbox.manageClearButtonAvailability();
+  assert.strictEqual(state.buttonLabel.textContent, 'Clear ALL Logs',
+      'the difference should be visible before the confirmation, not only in it');
+  assert.strictEqual(state.button.attrs.title, 'Clear ALL Logs');
+});
+test('says clear logs once rows are selected', () => {
+  const {sandbox, state} = loadLog();
+  state.selections = [{Id: 7}];
+  sandbox.manageClearButtonAvailability();
+  assert.strictEqual(state.buttonLabel.textContent, 'Clear Logs');
+  assert.strictEqual(state.button.attrs.title, 'Clear Logs');
 });
 
 console.log('\nconfirmation wording');

@@ -436,6 +436,12 @@ function manageClearButtonAvailability(enable = null) {
     // Stays enabled with nothing selected: that now means clear all, rather
     // than a dead button that swallows the click. See #4727.
     clearLogsBtn.disabled = (enable === false);
+    // Say which of the two the button is about to do, so the difference is
+    // visible before the confirmation rather than only in it.
+    const label = document.getElementById('clearLogsBtnLabel');
+    const text = selections.length ? translate['ClearLogs'] : translate['ClearAllLogs'];
+    if (label) label.textContent = text;
+    clearLogsBtn.setAttribute('title', text);
   }
 
   if (selections.length) {

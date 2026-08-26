@@ -7,4 +7,6 @@ var translate = {
   "AJAXRequestError": "<?php echo translate('AJAXRequestError') ?>",
   "ConfirmClearLogs": "<?php echo translate('ConfirmClearLogs') ?>",
   "ConfirmClearAllLogs": "<?php echo translate('ConfirmClearAllLogs') ?>",
+  "ClearLogs": "<?php echo translate('ClearLogs') ?>",
+  "ClearAllLogs": "<?php echo translate('ClearAllLogs') ?>",
 };

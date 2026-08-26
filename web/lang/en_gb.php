@@ -238,6 +238,7 @@ $SLANG = array(
     'ConfiguredFor'         => 'Configured for',
     'ConfigURL'             => 'Config Base URL',
     'ConfirmAction'         => 'Action Confirmation',
+    'ClearAllLogs'          => 'Clear ALL Logs',
     'ConfirmClearAllLogs'   => 'No rows are selected, so this will delete all log entries. Are you sure?',
     'ConfirmClearLogs'      => 'Are you sure you wish to delete the selected log entries?',
     'ConfirmClearLogsTitle' => 'Clear Logs Confirmation',

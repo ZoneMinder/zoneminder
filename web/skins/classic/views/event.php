@@ -376,7 +376,10 @@ if ($video_tag) {
                   </div><!--"#videoFeedStream"-->
                   <div id="progressBar" style="width: 100%;">
                     <div id="alarmCues" style="width: 100%;"></div>
-                    <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
+                    <?php # progressBox is the replay position fill. ZM_WEB_SHOW_PROGRESS turns
+                          # the progress display off while keeping the bar itself, which is what
+                          # you click to jump around the event. See #4850. ?>
+                    <div class="progressBox" id="progressBox" title="" style="width: 0%;<?php echo ZM_WEB_SHOW_PROGRESS ? '' : 'display:none;' ?>"></div>
                     <div id="indicator" style="display: none;"></div>
                   </div><!--progressBar-->
                   <svg class="zones" id="zones<?php echo $monitor->Id() ?>" style="display:<?php echo $showZones ? 'block' : 'none'; ?>" viewBox="0 0 <?php echo $monitor->ViewWidth().' '.$monitor->ViewHeight() ?>" preserveAspectRatio="none">
@@ -430,7 +433,7 @@ if ($video_tag) {
   #rates are defined in skins/classic/includes/config.php
   echo htmlSelect('rate', $rates, intval($rate), array('id'=>'rateValue'));
 ?>
-                  <span id="progress"><?php echo translate('Progress') ?>: <span id="progressValue">0</span>s</span>
+                  <span id="progress"<?php echo ZM_WEB_SHOW_PROGRESS ? '' : ' style="display:none;"' ?>><?php echo translate('Progress') ?>: <span id="progressValue">0</span>s</span>
                   <span id="currentTime"><?php echo translate('Time') ?>: <span id="currentTimeValue"></span></span>
                   <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue">1</span>x</span>
 <?php if (!$video_tag) { ?>

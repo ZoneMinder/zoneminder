@@ -964,19 +964,11 @@ bool EventStream::sendFrame(Microseconds delta_us) {
           // Decode straight to the size being sent. sws_scale colour converts
           // and resizes in the same pass, so converting at full size and then
           // scaling cost an extra full frame conversion plus a full frame copy
-          // for every frame streamed. Only safe with no zoom active: zoom crops
-          // before scaling and needs the full resolution to crop out of.
-          // refs #3681
+          // for every frame streamed. refs #3681
           int convert_width = monitor->Width();
           int convert_height = monitor->Height();
-          const int cur_scale = scale.load();
-          if ((zoom.load() == ZM_SCALE_BASE) and (cur_scale != ZM_SCALE_BASE)) {
-            convert_width = (monitor->Width() * cur_scale) / ZM_SCALE_BASE;
-            convert_height = (monitor->Height() * cur_scale) / ZM_SCALE_BASE;
-            pre_scaled_by = cur_scale;
-            Debug(3, "Converting straight to %dx%d for scale %d",
-                convert_width, convert_height, cur_scale);
-          }
+          pre_scaled_by = preScaleDimensions(monitor->Width(), monitor->Height(),
+                                             convert_width, convert_height);
           owned_image = std::make_unique<Image>(frame, convert_width, convert_height);
           image = owned_image.get();
         } else {

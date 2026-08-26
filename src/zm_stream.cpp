@@ -150,7 +150,44 @@ void StreamBase::checkCommandQueue() {
   } // end while !zm_terminate
 }  // end void StreamBase::checkCommandQueue()
 
+int StreamBase::preScaleDimensions(int base_width, int base_height, int &width, int &height) const {
+  // Any zoom crops before scaling and needs the full resolution to crop out of.
+  if (zoom.load() != ZM_SCALE_BASE) return 0;
+
+  const int cur_scale = scale.load();
+  if (cur_scale == ZM_SCALE_BASE) return 0;
+
+  const int scaled_width = (base_width * cur_scale) / ZM_SCALE_BASE;
+  const int scaled_height = (base_height * cur_scale) / ZM_SCALE_BASE;
+  // CMD_SCALE stores whatever the client sent, so 0 gets here. Image::Scale
+  // refuses a zero factor, but converting straight to 0x0 would instead put a
+  // negative av_image_get_buffer_size result into an unsigned size and allocate
+  // on it, so leave anything degenerate to the path that already rejects it.
+  if ((scaled_width <= 0) or (scaled_height <= 0)) return 0;
+
+  width = scaled_width;
+  height = scaled_height;
+  return cur_scale;
+}
+
 Image *StreamBase::prepareImage(Image *image, int pre_scaled_by) {
+  if (pre_scaled_by) {
+    // The caller produced the image at exactly the size to send, folding the
+    // scale into a colour conversion it had to do anyway. Send it untouched.
+    //
+    // The command thread can change scale or zoom between the caller reading
+    // them and this call, in which case this one frame goes out at the scale it
+    // was built for and without any new zoom, and the next frame is built from
+    // the new values. Scaling here instead would apply the scale a second time
+    // (a 50% frame of a 640px source would go out at 160px, not 320px), and
+    // cropping here would do it in the reduced image's coordinates and leave
+    // last_crop in the wrong units for every later frame. refs #3681
+    Debug(3, "Sending pre-scaled %dx%d, scale %d", image->Width(), image->Height(), pre_scaled_by);
+    last_scale = pre_scaled_by;
+    last_zoom = ZM_SCALE_BASE;
+    return image;
+  }
+
   /* zooming should happen before scaling to preserve quality
    * scale is relative to base dimensions, and represents the rough ratio between desired view size and base dimensions
    */
@@ -165,10 +202,6 @@ Image *StreamBase::prepareImage(Image *image, int pre_scaled_by) {
   const unsigned short cur_x = x.load();
   const unsigned short cur_y = y.load();
 
-  // A caller that pre-scaled did so having seen no zoom. If zoom was turned on
-  // in between, this frame crops a downscaled image and so looks softer than it
-  // should; the next frame is produced at full size because the caller sees the
-  // zoom by then. Not worth decoding the frame twice to avoid.
   if (cur_zoom != 100) {
     int base_image_width = image->Width(),
         base_image_height = image->Height(),
@@ -252,20 +285,12 @@ Image *StreamBase::prepareImage(Image *image, int pre_scaled_by) {
     image->Crop(last_crop);
     image->Scale(disp_image_width, disp_image_height);
   } else if (cur_scale != ZM_SCALE_BASE) {
-    if (pre_scaled_by == cur_scale) {
-      // Already at the right size: the caller folded the scale into a colour
-      // conversion it had to do anyway, which saves a second full frame
-      // sws_scale and the full frame copy below. Nothing to do, and nothing to
-      // copy either, since we are not about to modify it.
-      Debug(3, "already scaled by %d to %dx%d", cur_scale, image->Width(), image->Height());
-    } else {
-      Debug(3, "scaling by %d from %dx%d", cur_scale, image->Width(), image->Height());
-      static Image copy_image;
-      copy_image.Assign(*image);
-      image = &copy_image;
-      image_copied = true;
-      image->Scale(cur_scale);
-    }
+    Debug(3, "scaling by %d from %dx%d", cur_scale, image->Width(), image->Height());
+    static Image copy_image;
+    copy_image.Assign(*image);
+    image = &copy_image;
+    image_copied = true;
+    image->Scale(cur_scale);
   }
   Debug(3, "Sending %dx%d", image->Width(), image->Height());
 

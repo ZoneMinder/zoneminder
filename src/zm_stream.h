@@ -183,6 +183,12 @@ class StreamBase {
   // callers that have to colour convert anyway and can therefore scale in the
   // same swscale pass. 0 means the image is at full size. See #3681.
   Image *prepareImage(Image *image, int pre_scaled_by = 0);
+
+  // Dimensions a caller should produce the source image at so the scale folds
+  // into a colour conversion it has to do anyway. Returns the scale used, which
+  // is what prepareImage wants as pre_scaled_by, or 0 when the fast path does
+  // not apply and the image must be produced at base_width x base_height.
+  int preScaleDimensions(int base_width, int base_height, int &width, int &height) const;
   void checkCommandQueue();
   virtual void processCommand(const CmdMsg *msg)=0;
   void reserveTempImgBuffer(size_t size);

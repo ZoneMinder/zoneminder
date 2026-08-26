@@ -35,6 +35,7 @@ our %EXPORT_TAGS = (
       daemonControl
       parseNameEqualsValueToHash
       hash_diff
+      acquireExclusiveLock
       ) ]
     );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
@@ -56,6 +57,29 @@ use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Database qw(:all);
 
 use POSIX;
+use Fcntl qw(:flock);
+
+# Take an exclusive, non blocking lock on $path, creating it if needed. Returns
+# the open filehandle on success and undef if someone else already holds it or
+# the file cannot be opened. The lock lives for as long as the caller keeps the
+# returned handle, so store it somewhere that outlives the work it guards. It is
+# released when the handle goes out of scope or the process exits, including on
+# a crash, which a lock built out of a pid file or the presence of a socket
+# cannot manage.
+sub acquireExclusiveLock {
+  my $path = shift;
+
+  my $fh;
+  if (!open($fh, '>', $path)) {
+    Error("Can't open lock file $path: $!");
+    return undef;
+  }
+  if (!flock($fh, LOCK_EX|LOCK_NB)) {
+    close($fh);
+    return undef;
+  }
+  return $fh;
+}
 
 # For running general shell commands
 sub executeShellCommand {
@@ -707,6 +731,7 @@ of the ZoneMinder scripts
       systemStatus
       parseNameEqualsValueToHash
       hash_diff
+      acquireExclusiveLock
       ) ]
 
 

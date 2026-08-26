@@ -9,4 +9,6 @@ var translate = {
   "ConfirmClearAllLogs": "<?php echo translate('ConfirmClearAllLogs') ?>",
   "ClearLogs": "<?php echo translate('ClearLogs') ?>",
   "ClearAllLogs": "<?php echo translate('ClearAllLogs') ?>",
+  "ClearFilteredLogs": "<?php echo translate('ClearFilteredLogs') ?>",
+  "ConfirmClearFilteredLogs": "<?php echo translate('ConfirmClearFilteredLogs') ?>",
 };

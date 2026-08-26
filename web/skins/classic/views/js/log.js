@@ -7,6 +7,25 @@ var btnAutoRefresh = null;
 var autoRefresh = null;
 var optionsBootstrapTable = null;
 var deleteProgressBar = null;
+// The filter the table last queried with. A clear all sends this so the backend
+// deletes exactly the rows on screen, rather than everything. Remembered from
+// the request itself so the two cannot drift apart.
+var currentFilter = {};
+const FILTER_KEYS = ['search', 'filter', 'ServerId', 'level', 'Component',
+  'StartDateTime', 'EndDateTime'];
+
+function rememberFilter(data) {
+  currentFilter = {};
+  FILTER_KEYS.forEach(function(k) {
+    if (data[k] !== undefined && data[k] !== '' && data[k] !== null) {
+      currentFilter[k] = data[k];
+    }
+  });
+}
+
+function filterIsActive() {
+  return Object.keys(currentFilter).length > 0;
+}
 
 /*
 This is the format of the json object sent by bootstrap-table
@@ -78,6 +97,8 @@ function ajaxRequest(params) {
   if ($j('#filterEndDateTime').val()) {
     params.data.EndDateTime = $j('#filterEndDateTime').val();
   }
+
+  rememberFilter(params.data);
 
   const startTime = Date.now();
   updateHeaderRequestStatus("in process");
@@ -161,9 +182,12 @@ function updateHeaderStats(data) {
 // The modal is fetched once and reused, so its text is set each time it opens.
 function updateClearLogsConfirmText() {
   const text = document.getElementById('clearLogsConfirmText');
-  if (text) {
-    text.textContent = getIdSelections().length
-      ? translate['ConfirmClearLogs'] : translate['ConfirmClearAllLogs'];
+  if (!text) return;
+  if (getIdSelections().length) {
+    text.textContent = translate['ConfirmClearLogs'];
+  } else {
+    text.textContent = filterIsActive()
+      ? translate['ConfirmClearFilteredLogs'] : translate['ConfirmClearAllLogs'];
   }
 }
 
@@ -258,7 +282,7 @@ function deleteLogs(log_ids, handlerAlert = null) {
     method: 'post',
     timeout: 0,
     url: thisUrl + '?request=log&task=delete',
-    data: clearAll ? {all: 1} : {'ids[]': chunk},
+    data: clearAll ? Object.assign({all: 1}, currentFilter) : {'ids[]': chunk},
     success: function(data) {
       if (clearAll || !log_ids.length) {
         allowRequest = true;
@@ -382,8 +406,12 @@ function initPage() {
     clearLogsBtn.addEventListener('click', function onClearLogsClick(evt) {
       manageClearButtonAvailability(false);
       evt.preventDefault();
-      if (evt.ctrlKey) {
-        // Bypass confirmation
+      if (evt.ctrlKey && getIdSelections().length) {
+        // Bypass confirmation, but only for a delete of rows the user picked.
+        // The button used to be disabled with nothing selected, so this shortcut
+        // could not reach the clear-everything path. It can now, and clearing
+        // the whole table on a stray ctrl-click is not something to do without
+        // asking. refs #4727
         deleteLogs(getIdSelections());
       } else {
         if (!document.getElementById('clearLogsConfirm')) {
@@ -439,7 +467,12 @@ function manageClearButtonAvailability(enable = null) {
     // Say which of the two the button is about to do, so the difference is
     // visible before the confirmation rather than only in it.
     const label = document.getElementById('clearLogsBtnLabel');
-    const text = selections.length ? translate['ClearLogs'] : translate['ClearAllLogs'];
+    let text = translate['ClearLogs'];
+    if (!selections.length) {
+      // With a filter applied this clears what the view is showing, not the
+      // whole table, so do not promise ALL.
+      text = filterIsActive() ? translate['ClearFilteredLogs'] : translate['ClearAllLogs'];
+    }
     if (label) label.textContent = text;
     clearLogsBtn.setAttribute('title', text);
   }

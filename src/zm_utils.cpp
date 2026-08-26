@@ -216,7 +216,11 @@ std::string TimevalToString(timeval tv) {
     return "";
   }
 
-  return stringtf("%s.%06ld", tm_buf.data(), tv.tv_usec);
+  // %jd/intmax_t, not %ld: under glibc's 64 bit time ABI (Debian trixie on
+  // armhf, for one) tv_usec is __suseconds64_t while long is still 32 bits, so
+  // %ld reads half the argument and misaligns the rest of the varargs. Harmless
+  // enough on stdout, but this one lands in a buffer that gets used. refs #4580
+  return stringtf("%s.%06jd", tm_buf.data(), static_cast<intmax_t>(tv.tv_usec));
 }
 
 /* Detect special hardware features, such as SIMD instruction sets */

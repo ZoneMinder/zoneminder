@@ -3,6 +3,14 @@
 -- so that zones are resolution-independent.
 --
 
+-- Coords is tinytext (255 bytes).  The percentage form is longer than the pixel
+-- form it replaces -- up to 13 bytes per point ("100.00,100.00") against 9
+-- ("1920,1080") -- so a zone with enough points can overflow and be silently
+-- truncated by the conversion below, which destroys the polygon.  Widen the
+-- column first.  See also zm_update-1.39.23.sql, which does the same for
+-- installations that are already past this version.
+ALTER TABLE Zones MODIFY `Coords` TEXT NOT NULL;
+
 DELIMITER //
 
 DROP PROCEDURE IF EXISTS `zm_update_zone_coords_to_percent` //

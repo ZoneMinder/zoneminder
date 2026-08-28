@@ -1028,7 +1028,7 @@ CREATE TABLE `Zones` (
   `Type` enum('Active','Inclusive','Exclusive','Preclusive','Inactive','Privacy') NOT NULL default 'Active',
   `Units` enum('Pixels','Percent') NOT NULL default 'Percent',
   `NumCoords` tinyint(3) unsigned NOT NULL default '0',
-  `Coords` tinytext NOT NULL,
+  `Coords` text NOT NULL,
   `Area` int(10) unsigned NOT NULL default '0',
   `AlarmRGB` int(10) unsigned default '0',
   `CheckMethod` enum('AlarmedPixels','FilteredPixels','Blobs') NOT NULL default 'Blobs',
@@ -1317,7 +1317,7 @@ CREATE TABLE Maps (
   `Name`      VARCHAR(64) NOT NULL,
   `Filename`  VARCHAR(64) NOT NULL default '',
   `NumCoords` tinyint(3) unsigned NOT NULL default '0',
-  `Coords` tinytext NOT NULL,
+  `Coords` text NOT NULL,
   `ParentId`   int(1) unsigned,
   PRIMARY KEY (`Id`)
 );

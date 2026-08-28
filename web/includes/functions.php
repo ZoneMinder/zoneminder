@@ -72,7 +72,9 @@ function CSPHeaders($view, $nonce) {
 }
 
 function CORSHeaders() {
-  if (isset($_SERVER['HTTP_ORIGIN'])) {
+  # An empty Origin cannot match a server and needs no headers, so treat it the
+  # same as no Origin at all rather than warning about a value we cannot print.
+  if (isset($_SERVER['HTTP_ORIGIN']) and $_SERVER['HTTP_ORIGIN'] !== '') {
 # The following is left for future reference/use.
     $valid = false;
     global $Servers;
@@ -103,7 +105,16 @@ function CORSHeaders() {
       }
     }
     if (!$valid) {
-      ZM\Warning($_SERVER['HTTP_ORIGIN'] . ' is not found in servers list.');
+      # Browsers send Origin on same-origin POST/fetch as well.  Such a request
+      # needs no CORS headers, so not finding it in the servers list is normal
+      # and not worth warning about -- it only means the Servers table does not
+      # happen to list the hostname this install is being reached on.
+      if (isset($_SERVER['HTTP_HOST'])
+        and preg_replace('/^https?:\/\//i', '', $_SERVER['HTTP_ORIGIN']) === $_SERVER['HTTP_HOST']) {
+        ZM\Debug('CORS: same-origin request from '.$_SERVER['HTTP_ORIGIN'].', no headers needed');
+      } else {
+        ZM\Warning($_SERVER['HTTP_ORIGIN'] . ' is not found in servers list.');
+      }
     }
   } else {
     ZM\Debug('CORS: NO origin');

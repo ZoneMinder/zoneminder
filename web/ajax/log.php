@@ -71,7 +71,16 @@ function createRequest() {
   }
 
   ZM\logInit(array('id'=>'web_js'));
-  $line = empty($_POST['line']) ? NULL : validInt($_POST['line']);
+  // Firefox reports the location as "line:column" (e.g. 1500:28).  validInt()
+  // only strips non-digit characters, so it splices the two together into
+  // 150028, which overflows the smallint Logs.Line column and makes this
+  // endpoint die with a 500 -- the log request fails on the very error it was
+  // sent to report.  Take the leading line number and clamp it to the column.
+  $line = NULL;
+  if (!empty($_POST['line']) and is_scalar($_POST['line'])
+      and preg_match('/\d+/', (string)$_POST['line'], $line_matches)) {
+    $line = min((int)$line_matches[0], 65535);
+  }
 
   $levels = array_flip(ZM\Logger::$codes);
   if (!isset($levels[$level])) {

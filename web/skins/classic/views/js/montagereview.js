@@ -2,7 +2,7 @@
 
 var LOADING = true; // Default to true as initial state
 
-var ajax = null;
+var ajaxRequests = [];
 var wait_for_events_interval = null;
 
 var eventStreams = {}; // EventStream instances keyed by monitorId
@@ -1317,6 +1317,12 @@ function loadEventData(e) {
           const op = this.form.elements[op_name];
           if (attr) {
             if (attr.value==='Monitor') attr.value='MonitorId';
+            // DateTime is a filter-engine pseudo-attribute, not an Events
+            // column: Filter.php resolves 'DateTime' and 'StartDateTime' to the
+            // same E.StartDateTime.  The API takes column names, and silently
+            // ignores a term it cannot resolve rather than erroring, so leaving
+            // it as DateTime returns every event ever instead of the window.
+            if (attr.value==='DateTime') attr.value='StartDateTime';
             let urlVal = val;
             // Normalize date/time values to YYYY-MM-DD HH:mm:ss for the API URL.
             // Locale formats using / as separator break the URL path.
@@ -1401,37 +1407,44 @@ function loadEventData(e) {
     }
   } // end function receive_events
 
-  //FIXME ajax gets overwrritten by subsequent monitor
-  if (ajax) ajax.abort();
+  // One request is fired per monitor, so every one of them has to be kept.
+  // Assigning them all to a single variable left only the last abortable: a
+  // re-entry while the user scrubbed cancelled one of twelve, and the other
+  // eleven landed and drew events for a window that had already moved.
+  while (ajaxRequests.length) {
+    ajaxRequests.pop().abort();
+  }
 
   if (mon_ids.length) {
     for (let i=0; i < mon_ids.length; i++) {
-      ajax = $j.ajax({
+      ajaxRequests.push($j.ajax({
         url: zmAuth.appendTo(url+'/MonitorId:'+mon_ids[i]+'.json'),
         method: 'GET',
         //url: thisUrl + '?view=request&request=events&task=query&sort=Id&order=ASC',
         //data: data,
         timeout: 0,
         success: receive_events,
-        error: function(jqXHR) {
-          ajax = null;
+        error: function(jqXHR, textStatus) {
+          // An abort is this function replacing its own query, not a failure.
+          if (textStatus === 'abort') return;
           console.error("loadEventData error", jqXHR.status);
         }
-      });
+      }));
     } // end foreach monitor
   } else {
-    ajax = $j.ajax({
+    ajaxRequests.push($j.ajax({
       url: zmAuth.appendTo(url+'.json'),
       method: 'GET',
       //url: thisUrl + '?view=request&request=events&task=query&sort=Id&order=ASC',
       //data: data,
       timeout: 0,
       success: receive_events,
-      error: function(jqXHR) {
-        ajax = null;
+      error: function(jqXHR, textStatus) {
+        // An abort is this function replacing its own query, not a failure.
+        if (textStatus === 'abort') return;
         console.log("error", jqXHR);
       }
-    });
+    }));
   }
   LOADING = false;
   return;

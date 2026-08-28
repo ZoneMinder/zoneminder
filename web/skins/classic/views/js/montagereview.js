@@ -2,7 +2,7 @@
 
 var LOADING = true; // Default to true as initial state
 
-var ajax = null;
+var ajaxRequests = [];
 var wait_for_events_interval = null;
 
 var lastTimerFireMs = 0; // Epoch ms of the previous timerFire, to advance the clock by real elapsed time
@@ -1278,37 +1278,44 @@ function loadEventData(e) {
     }
   } // end function receive_events
 
-  //FIXME ajax gets overwrritten by subsequent monitor
-  if (ajax) ajax.abort();
+  // One request is fired per monitor, so every one of them has to be kept.
+  // Assigning them all to a single variable left only the last abortable: a
+  // re-entry while the user scrubbed cancelled one of twelve, and the other
+  // eleven landed and drew events for a window that had already moved.
+  while (ajaxRequests.length) {
+    ajaxRequests.pop().abort();
+  }
 
   if (mon_ids.length) {
     for (let i=0; i < mon_ids.length; i++) {
-      ajax = $j.ajax({
+      ajaxRequests.push($j.ajax({
         url: url+ '/MonitorId:'+mon_ids[i]+ '.json'+'?'+auth_relay,
         method: 'GET',
         //url: thisUrl + '?view=request&request=events&task=query&sort=Id&order=ASC',
         //data: data,
         timeout: 0,
         success: receive_events,
-        error: function(jqXHR) {
-          ajax = null;
+        error: function(jqXHR, textStatus) {
+          // An abort is this function replacing its own query, not a failure.
+          if (textStatus === 'abort') return;
           logAjaxFail(jqXHR);
         }
-      });
+      }));
     } // end foreach monitor
   } else {
-    ajax = $j.ajax({
+    ajaxRequests.push($j.ajax({
       url: url+'.json'+'?'+auth_relay,
       method: 'GET',
       //url: thisUrl + '?view=request&request=events&task=query&sort=Id&order=ASC',
       //data: data,
       timeout: 0,
       success: receive_events,
-      error: function(jqXHR) {
-        ajax = null;
+      error: function(jqXHR, textStatus) {
+        // An abort is this function replacing its own query, not a failure.
+        if (textStatus === 'abort') return;
         logAjaxFail(jqXHR);
       }
-    });
+    }));
   }
   LOADING = false;
   return;

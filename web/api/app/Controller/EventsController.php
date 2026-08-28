@@ -80,7 +80,14 @@ class EventsController extends AppController {
           unset($named_params[$k]);
         }
       }
-      $conditions = $this->FilterComponent->buildFilter($named_params);
+      // Events columns, plus the two names this action resolves itself: DateTime
+      // is a pseudo-attribute turned into an overlap test below, and GroupId is
+      // served by the Groups_Monitors join added further down. Anything else
+      // would reach MySQL as an unknown column and come back as a 500.
+      $valid_fields = array_keys($this->Event->schema());
+      $valid_fields[] = 'DateTime';
+      $valid_fields[] = 'GroupId';
+      $conditions = $this->FilterComponent->buildFilter($named_params, $valid_fields);
       #ZM\Debug(print_r($conditions, true));
       # DateTime is a pseudo-attribute meaning "the event was running then", so a
       # window over it is an overlap test: the event started by the upper bound

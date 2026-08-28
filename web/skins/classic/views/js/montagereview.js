@@ -1316,19 +1316,20 @@ function loadEventData(e) {
           const op_name = 'filter[Query][terms]['+found[1]+'][op]';
           const op = this.form.elements[op_name];
           if (attr) {
-            // Translate to the column names the API expects, in a local rather
-            // than by writing back to attr.value.  The form is submitted when a
-            // filter changes, and montagereview.php decides whether the range
-            // terms are already present by looking for 'DateTime'; a form left
-            // holding 'StartDateTime' came back with a second, duplicate pair.
-            // Filter.php resolves 'DateTime' and 'StartDateTime' to the same
-            // E.StartDateTime, so only the query needs the column name.  The
-            // API silently ignores a term it cannot resolve rather than
-            // erroring, which is why an untranslated DateTime returned every
-            // event ever instead of the requested window.
+            // Translate in a local rather than by writing back to attr.value:
+            // the form is submitted when a filter changes, and
+            // montagereview.php decides whether the range terms are already
+            // present by looking for 'DateTime', so a form left holding a
+            // rewritten name came back with a second, duplicate pair.
+            //
+            // DateTime is deliberately NOT rewritten to StartDateTime.
+            // EventsController::index() treats DateTime as a pseudo-attribute
+            // meaning "the event was running then" and turns the window into an
+            // overlap test against an effective end date; StartDateTime is a
+            // plain column and gives a containment test, which drops the event
+            // that was already recording when the window opened.
             let apiAttr = attr.value;
             if (apiAttr === 'Monitor') apiAttr = 'MonitorId';
-            if (apiAttr === 'DateTime') apiAttr = 'StartDateTime';
             let urlVal = val;
             // Normalize date/time values to YYYY-MM-DD HH:mm:ss for the API URL.
             // Locale formats using / as separator break the URL path.

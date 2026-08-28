@@ -1317,6 +1317,12 @@ function loadEventData(e) {
           const op = this.form.elements[op_name];
           if (attr) {
             if (attr.value==='Monitor') attr.value='MonitorId';
+            // DateTime is a filter-engine pseudo-attribute, not an Events
+            // column: Filter.php resolves 'DateTime' and 'StartDateTime' to the
+            // same E.StartDateTime.  The API takes column names, and silently
+            // ignores a term it cannot resolve rather than erroring, so leaving
+            // it as DateTime returns every event ever instead of the window.
+            if (attr.value==='DateTime') attr.value='StartDateTime';
             let urlVal = val;
             // Normalize date/time values to YYYY-MM-DD HH:mm:ss for the API URL.
             // Locale formats using / as separator break the URL path.

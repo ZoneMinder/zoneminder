@@ -1655,7 +1655,8 @@ function logState() {
       );
 
   # This is an expensive request, as it has to hit every row of the Logs Table
-  $sql = 'SELECT Level, COUNT(Level) AS LevelCount FROM Logs WHERE Level < '.ZM\Logger::INFO.' AND TimeKey > unix_timestamp(now() - interval '.ZM_LOG_CHECK_PERIOD.' second) GROUP BY Level ORDER BY Level ASC';
+  # Level >= PANIC excludes AUDIT and below, which are not error conditions
+  $sql = 'SELECT Level, COUNT(Level) AS LevelCount FROM Logs WHERE Level < '.ZM\Logger::INFO.' AND Level >= '.ZM\Logger::PANIC.' AND TimeKey > unix_timestamp(now() - interval '.ZM_LOG_CHECK_PERIOD.' second) GROUP BY Level ORDER BY Level ASC';
   $counts = dbFetchAll($sql);
   if ( $counts ) {
     foreach ( $counts as $count ) {

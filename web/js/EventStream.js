@@ -110,8 +110,12 @@ function EventStream(config) {
     this.streamCmdParms.connkey = this.connKey;
 
     // Build zms URL
+    // UrlToZMS already carries '?monitor=N' for a monitor-specific stream,
+    // so a second '?' here produced zms?monitor=24?source=event, which reads
+    // as one giant monitor value and makes every stream log unreadable.
     var src = this.url_to_zms +
-      '?source=event' +
+      (this.url_to_zms.indexOf('?') == -1 ? '?' : '&') +
+      'source=event' +
       '&mode=jpeg' +
       '&event=' + eventId +
       '&monitor=' + this.monitorId +
@@ -159,21 +163,6 @@ function EventStream(config) {
       self.recover();
     };
 
-    // onload fires once when the first MJPEG frame arrives, confirming
-    // the zms process is running and the command socket is ready.
-    this.img.onload = function() {
-      // Successful frame — reset error counter
-      self.consecutiveErrors = 0;
-      self.recoveryDelay = 1000;
-
-      if (!self.streamCmdTimer) {
-        self.streamCmdQuery();
-        self.streamCmdTimer = setInterval(
-            self.streamCmdQuery.bind(self), self.statusInterval
-        );
-      }
-    };
-
     // Start the rAF draw loop — draws whenever the browser has
     // decoded a new MJPEG frame into the img element.
     this.startDrawLoop();
@@ -181,6 +170,22 @@ function EventStream(config) {
     // Setting src starts the MJPEG connection
     this.img.src = src;
     this.started = true;
+
+    /* Poll for status from here, not from img.onload.
+     *
+     * onload is not a dependable per-restart signal for a
+     * multipart/x-mixed-replace img: a restarted stream could paint its first
+     * frame without ever getting a poller of its own, while the poller from
+     * the connection before it kept running.  Starting the timer next to the
+     * src that created the connkey ties the two together.
+     *
+     * The first query waits a full interval: zms creates its command socket
+     * after the request reaches it, and asking before it exists returns
+     * no_socket for a stream that is merely still starting.
+     */
+    this.streamCmdTimer = setInterval(
+        this.streamCmdQuery.bind(this), this.statusInterval
+    );
   };
 
   // -------------------------------------------------------------------------
@@ -394,6 +399,9 @@ function EventStream(config) {
 
   this.streamCmdReq = function(params) {
     var self = this;
+    // The connkey this exchange is about. Replies are queued and can land
+    // after a restart has replaced it; see getStreamCmdResponse().
+    var connKey = params.connkey;
     this.ajaxQueue = jQuery.ajaxQueue({
       url: zmAuth.appendTo(this.url),
       xhrFields: {withCredentials: true},
@@ -401,10 +409,11 @@ function EventStream(config) {
       dataType: 'json'
     })
         .done(function(respObj) {
-          self.getStreamCmdResponse(respObj);
+          self.getStreamCmdResponse(respObj, connKey);
         })
         .fail(function(jqXHR, textStatus) {
           if (textStatus === 'abort') return;
+          if (connKey !== self.connKey) return;
           console.warn('EventStream: AJAX failed for monitor ' +
             self.monitorId + ': ' + textStatus);
           // AJAX failure likely means zms has died (socket gone)
@@ -428,13 +437,24 @@ function EventStream(config) {
   // getStreamCmdResponse(respObj) — Handle CMD_QUERY / command responses
   // -------------------------------------------------------------------------
 
-  this.getStreamCmdResponse = function(respObj) {
+  this.getStreamCmdResponse = function(respObj, connKey) {
     if (!respObj) return;
+
+    /* A reply for a connkey we no longer hold describes a stream that is
+     * already gone: it was issued before a restart and queued behind other
+     * requests.  Acting on it restarted the healthy stream that replaced it,
+     * which produced another stale reply, and so on - the stream never lived
+     * long enough to deliver a second frame.
+     */
+    if (connKey !== undefined && connKey !== this.connKey) return;
 
     if (respObj.result === 'Error' || respObj.result === 'Err') {
       console.warn('EventStream: command error for monitor ' +
-        this.monitorId);
-      // Error response means stream.php couldn't talk to zms — recover
+        this.monitorId + ': ' + respObj.message);
+      if (!EventStream.errorIsFatal(respObj.reason)) {
+        // zms is alive, this one exchange failed. Retry on the next poll.
+        return;
+      }
       this.recover();
       return;
     }
@@ -492,4 +512,23 @@ function EventStream(config) {
     ctx.drawImage(this.img, 0, 0, this.canvas.width, this.canvas.height);
     if (this.onFrameDrawn) this.onFrameDrawn(this.canvas);
   };
+}
+
+/* Does this ajax/stream.php failure mean the zms behind our connkey is gone?
+ *
+ * Only then is restarting right: a restart replaces the connkey and leaves any
+ * still-running zms unaddressable. A slow reply or a php-local socket problem
+ * says nothing about zms.  An absent reason means a php that predates the
+ * field, so keep the older always-restart behaviour.
+ *
+ * Same rule as streamErrorIsFatal() in MonitorStream.js, kept here because the
+ * views that use EventStream do not load MonitorStream.js.
+ */
+EventStream.errorIsFatal = function(reason) {
+  if (!reason) return true;
+  return reason == 'no_socket';
+};
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {EventStream};
 }

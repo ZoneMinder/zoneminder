@@ -45,6 +45,7 @@ our %EXPORT_TAGS = (
       %types
       @options
       %options_hash
+      dbValue
       ) ]
     );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
@@ -91,10 +92,10 @@ our %types = (
   },
   boolean => {
     db_type     => 'boolean',
-    hint        => 'yes|no',
-    pattern     => qr|^([yn])|i,
+    hint        => '1|0',
+    pattern     => qr|^([01])|,
     check       => q( $1 ),
-    format      => q( ($1 =~ /^y/) ? 'yes' : 'no' )
+    format      => q( $1 ? 1 : 0 )
   },
   integer => {
     db_type     => 'integer',
@@ -275,7 +276,7 @@ our @options = (
   },
   {
     name        => 'ZM_OPT_USE_AUTH',
-    default     => 'no',
+    default     => '0',
     description => 'Authenticate user logins to ZoneMinder',
     help        => q`
       ZoneMinder can run in two modes. The simplest is an entirely
@@ -304,7 +305,7 @@ our @options = (
       supplied user without additional authentication provided such a
       user is configured in ZoneMinder.
       `,
-    requires    => [ { name=>'ZM_OPT_USE_AUTH', value=>'yes' } ],
+    requires    => [ { name=>'ZM_OPT_USE_AUTH', value=>'1' } ],
     type        => {
       db_type     => 'string',
       hint        => 'builtin|remote',
@@ -315,13 +316,13 @@ our @options = (
   },
   {
     name        => 'ZM_CASE_INSENSITIVE_USERNAMES',
-    default     => 'no',
+    default     => '0',
     description => 'Case insensitive username authentication',
     help        => q`
       This option makes usernames case insensitive when
       authenticating.
       `,
-    requires    => [ { name=>'ZM_OPT_USE_AUTH', value=>'yes' } ],
+    requires    => [ { name=>'ZM_OPT_USE_AUTH', value=>'1' } ],
     type        => $types{boolean},
     category    => 'auth',
   },
@@ -341,7 +342,7 @@ our @options = (
       external access. You can also switch off authentication
       relaying if your system is isolated in other ways.
       `,
-    requires    => [ { name=>'ZM_OPT_USE_AUTH', value=>'yes' } ],
+    requires    => [ { name=>'ZM_OPT_USE_AUTH', value=>'1' } ],
     type        => {
       db_type     => 'string',
       hint        => 'hashed|plain|none',
@@ -362,7 +363,7 @@ our @options = (
       secret increases security substantially.
       `,
     requires    => [
-      { name=>'ZM_OPT_USE_AUTH', value=>'yes' },
+      { name=>'ZM_OPT_USE_AUTH', value=>'1' },
       { name=>'ZM_AUTH_RELAY', value=>'hashed' }
     ],
     type        => $types{string},
@@ -371,7 +372,7 @@ our @options = (
   },
   {
     name        => 'ZM_AUTH_HASH_IPS',
-    default     => 'no',
+    default     => '0',
     description => 'Include IP addresses in the authentication hash',
     help        => q`
       When ZoneMinder is running in hashed authenticated mode it can
@@ -386,7 +387,7 @@ our @options = (
       authentication, switching this option off may help.
       `,
     requires    => [
-      { name=>'ZM_OPT_USE_AUTH', value=>'yes' },
+      { name=>'ZM_OPT_USE_AUTH', value=>'1' },
       { name=>'ZM_AUTH_RELAY', value=>'hashed' }
     ],
     type        => $types{boolean},
@@ -401,7 +402,7 @@ our @options = (
       automatically be regenerated at half this value.
       `,
     requires    => [
-      { name=>'ZM_OPT_USE_AUTH', value=>'yes' },
+      { name=>'ZM_OPT_USE_AUTH', value=>'1' },
       { name=>'ZM_AUTH_RELAY', value=>'hashed' }
     ],
     type        => $types{integer},
@@ -409,7 +410,7 @@ our @options = (
   },
   {
     name        => 'ZM_AUTH_HASH_LOGINS',
-    default     => 'yes',
+    default     => '1',
     description => 'Allow login by authentication hash',
     help        => q`
       The normal process for logging into ZoneMinder is via the login
@@ -427,7 +428,7 @@ our @options = (
       ZM_AUTH_HASH_SECRET to something unique to your system.
       `,
     requires    => [
-      { name=>'ZM_OPT_USE_AUTH', value=>'yes' },
+      { name=>'ZM_OPT_USE_AUTH', value=>'1' },
       { name=>'ZM_AUTH_RELAY', value=>'hashed' }
     ],
     type        => $types{boolean},
@@ -479,7 +480,7 @@ our @options = (
   },
   {
     name        => 'ZM_ENABLE_CSRF_MAGIC',
-    default     => 'yes',
+    default     => '1',
     description => 'Enable csrf-magic library',
     help        => q`
       CSRF stands for Cross-Site Request Forgery which, under specific
@@ -495,7 +496,7 @@ our @options = (
   },
   {
     name        => 'ZM_OPT_USE_API',
-    default     => 'yes',
+    default     => '1',
     description => 'Enable ZoneMinder APIs',
     help        => q`
       ZoneMinder now features a new API using which 3rd party
@@ -511,7 +512,7 @@ our @options = (
   },
   {
     name        => 'ZM_OPT_USE_LEGACY_API_AUTH',
-    default     => 'yes',
+    default     => '1',
     description => 'Enable legacy API authentication',
     help        => q`
       Starting version 1.34.0, ZoneMinder uses a more secure 
@@ -522,7 +523,7 @@ our @options = (
   },
   {
     name        => 'ZM_OPT_USE_EVENTNOTIFICATION',
-    default     => 'no',
+    default     => '0',
     description => 'Enable 3rd party Event Notification Server',
     help        => q`
       zmeventnotification is a 3rd party event notification server
@@ -545,7 +546,7 @@ our @options = (
       Yes: Checkbox is shown and checked by default. Users may uncheck it for a session-only cookie.
       No: Checkbox is shown and unchecked by default. Users may check it to persist the session.
       `,
-    requires    => [ { name=>'ZM_OPT_USE_AUTH', value=>'yes' } ],
+    requires    => [ { name=>'ZM_OPT_USE_AUTH', value=>'1' } ],
     type        => {
       db_type     => 'string',
       hint        => 'None|Yes|No',
@@ -557,7 +558,7 @@ our @options = (
   # Google reCaptcha settings
   {
     name        => 'ZM_OPT_USE_GOOG_RECAPTCHA',
-    default     => 'no',
+    default     => '0',
     description => 'Add Google reCaptcha to login page',
     help        => q`
       This option allows you to include a google
@@ -571,7 +572,7 @@ our @options = (
       and they will fail the reCaptcha test.
       `,
     requires    => [
-                     {name=>'ZM_OPT_USE_AUTH', value=>'yes'}
+                     {name=>'ZM_OPT_USE_AUTH', value=>'1'}
                    ],
     type        => $types{boolean},
     category    => 'auth',
@@ -585,7 +586,7 @@ our @options = (
       for more details.
       `,
     requires    => [
-                     {name=>'ZM_OPT_USE_GOOG_RECAPTCHA', value=>'yes'}
+                     {name=>'ZM_OPT_USE_GOOG_RECAPTCHA', value=>'1'}
                    ],
     type        => $types{string},
     private     => 1,
@@ -601,7 +602,7 @@ our @options = (
       for more details.
       `,
     requires    => [
-                     {name=>'ZM_OPT_USE_GOOG_RECAPTCHA', value=>'yes'}
+                     {name=>'ZM_OPT_USE_GOOG_RECAPTCHA', value=>'1'}
                    ],
     type        => $types{string},
     private     => 1,
@@ -619,7 +620,7 @@ our @options = (
     description =>  'Tile provider to use for maps.',
     help        =>  'OpenStreetMaps does not itself provide the images to use in the map. There are many to choose from.  Mapbox.com is one example that offers free tiles and has been tested during development of this feature.',
     requires    =>  [
-                     {name=>'ZM_OPT_USE_GEOLOCATION', value=>'yes'}
+                     {name=>'ZM_OPT_USE_GEOLOCATION', value=>'1'}
                    ],
     type        => $types{string},
     category    => 'system',
@@ -629,14 +630,14 @@ our @options = (
     description =>  'Access Token for the tile provider used for maps.',
     help        =>  'OpenStreetMaps does not itself provide the images to use in the map. There are many to choose from.  Mapbox.com is one example that offers free tiles and has been tested during development of this feature. You must go to mapbox.com and sign up and get an access token and cutnpaste it here.',
     requires    =>  [
-                     {name=>'ZM_OPT_USE_GEOLOCATION', value=>'yes'}
+                     {name=>'ZM_OPT_USE_GEOLOCATION', value=>'1'}
                    ],
     type        => $types{string},
     category    => 'system',
   },
   {
     name        =>  'ZM_SYSTEM_SHUTDOWN',
-    default     =>  'no',
+    default     =>  '0',
     description =>  'Allow Admin users to power off or restart the system from the ZoneMinder UI.',
     help        =>  'The system will need to have sudo installed and the following added to /etc/sudoers~~
     ~~
@@ -648,7 +649,7 @@ our @options = (
   },
   {
     name        =>  'ZM_FEATURES_SNAPSHOTS',
-    default     =>  'no',
+    default     =>  '0',
     description =>  'Enable snapshot functionality.',
     help        =>  'Snapshots are a collection of events.  They can be created using the snapshot button in montage view.  All visible monitors will have a short event created, archived and added to the Snapshot.',
     type      =>  $types{boolean},
@@ -656,7 +657,7 @@ our @options = (
   },
   {
     name        => 'ZM_USE_DEEP_STORAGE',
-    default     => 'yes',
+    default     => '1',
     description => 'Use a deep filesystem hierarchy for events',
     help        => q`
       This option is now the default for new ZoneMinder systems and
@@ -677,7 +678,7 @@ our @options = (
   },
   {
     name        => 'ZM_COLOUR_JPEG_FILES',
-    default     => 'no',
+    default     => '0',
     description => 'Colourise greyscale JPEG files',
     help        => q`
       Cameras that capture in greyscale can write their captured
@@ -693,7 +694,7 @@ our @options = (
   },
   {
     name        => 'ZM_ADD_JPEG_COMMENTS',
-    default     => 'no',
+    default     => '0',
     description => 'Add jpeg timestamp annotations as file header comments',
     help        => q`
       JPEG files may have a number of extra fields added to the file
@@ -766,7 +767,7 @@ our @options = (
   },
   {
     name        => 'ZM_MPEG_TIMED_FRAMES',
-    default     => 'yes',
+    default     => '1',
     description => 'Tag video frames with a timestamp for more realistic streaming',
     help        => q`
       When using streamed MPEG based video, either for live monitor
@@ -823,7 +824,7 @@ our @options = (
   },
   {
     name        => 'ZM_RAND_STREAM',
-    default     => 'yes',
+    default     => '1',
     description => 'Add a random string to prevent caching of streams',
     help        => q`
       Some browsers can cache the streams used by ZoneMinder. In
@@ -835,7 +836,7 @@ our @options = (
   },
   {
     name        => 'ZM_TIMESTAMP_ON_CAPTURE',
-    default     => 'yes',
+    default     => '1',
     description => 'Timestamp images as soon as they are captured',
     help        => q`
       ZoneMinder can add a timestamp to images in two ways. The
@@ -888,7 +889,7 @@ our @options = (
   },
   {
     name        => 'ZM_CPU_EXTENSIONS',
-    default     => 'yes',
+    default     => '1',
     description => 'Use advanced CPU extensions to increase performance',
     help        => q`
       When advanced processor extensions such as SSE2 or SSSE3 are
@@ -903,7 +904,7 @@ our @options = (
   },
   {
     name        => 'ZM_FAST_IMAGE_BLENDS',
-    default     => 'yes',
+    default     => '1',
     description => 'Use a fast algorithm to blend the reference image',
     help        => q`
       To detect alarms ZoneMinder needs to blend the captured image
@@ -924,7 +925,7 @@ our @options = (
   },
   {
     name        => 'ZM_OPT_ADAPTIVE_SKIP',
-    default     => 'yes',
+    default     => '1',
     description => 'Should frame analysis try and be efficient in skipping frames',
     help        => q`
       In previous versions of ZoneMinder the analysis daemon would
@@ -1108,7 +1109,7 @@ our @options = (
       Please note this cannot be edited through the Web UI or API.~~
       It can only be changed through .conf files in @ZM_CONFIG_SUBDIR@~~
     ',
-    requires    => [ { name=>'ZM_OPT_FFMPEG', value=>'yes' } ],
+    requires    => [ { name=>'ZM_OPT_FFMPEG', value=>'1' } ],
     type        => $types{abs_path},
     category    => 'images',
     system      => 1,
@@ -1124,7 +1125,7 @@ our @options = (
       are given before the -i option). Check the ffmpeg documentation
       for a full list of options which may be used here.
       `,
-    requires    => [ { name=>'ZM_OPT_FFMPEG', value=>'yes' } ],
+    requires    => [ { name=>'ZM_OPT_FFMPEG', value=>'1' } ],
     type        => $types{string},
     category    => 'images',
   },
@@ -1141,7 +1142,7 @@ our @options = (
       common one will often be to force an output frame rate
       supported by the video encoder.
       `,
-    requires    => [ { name=>'ZM_OPT_FFMPEG', value=>'yes' } ],
+    requires    => [ { name=>'ZM_OPT_FFMPEG', value=>'1' } ],
     type        => $types{string},
     category    => 'images',
   },
@@ -1158,7 +1159,7 @@ our @options = (
       web video, adding '**' defines the default format for phone
       video.
       `,
-    requires    => [ { name=>'ZM_OPT_FFMPEG', value=>'yes' } ],
+    requires    => [ { name=>'ZM_OPT_FFMPEG', value=>'1' } ],
     type        => $types{string},
     category    => 'images',
   },
@@ -1173,7 +1174,7 @@ our @options = (
       seconds to pass before closing the stream and trying to reopen
       it again.
       `,
-    requires    => [ { name=>'ZM_OPT_FFMPEG', value=>'yes' } ],
+    requires    => [ { name=>'ZM_OPT_FFMPEG', value=>'1' } ],
     type        => $types{integer},
     category    => 'images',
   },
@@ -1357,7 +1358,7 @@ our @options = (
   },
   {
     name        => 'ZM_LOG_FFMPEG',
-    default     => 'yes',
+    default     => '1',
     description => 'Log FFMPEG messages',
     help        => q`
        When enabled (default is on), this option will log FFMPEG messages.
@@ -1371,7 +1372,7 @@ our @options = (
   },
   {
     name        => 'ZM_LOG_INJECT',
-    default     => 'no',
+    default     => '0',
     description => 'Allow log injection via API by unprivileged users.',
     help        => q`
        When enabled (default is off), this option will allow users without System:Edit
@@ -1385,7 +1386,7 @@ our @options = (
   },
   {
     name        => 'ZM_LOG_BROWSER_EXTENSIONS',
-    default     => 'no',
+    default     => '0',
     description => 'Log Javascript errors and CSP violations from browser extensions',
     help        => q`
        Browser extensions (ad blockers, password managers, etc.) inject scripts into
@@ -1399,7 +1400,7 @@ our @options = (
   },
 {
     name        => 'ZM_LOG_DEBUG',
-    default     => 'no',
+    default     => '0',
     description => 'Switch debugging on',
     help        => q`
       ZoneMinder components usually support debug logging available
@@ -1430,7 +1431,7 @@ our @options = (
       debug issues with the web interface use '_web'. You can specify
       multiple targets by separating them with '|' characters.
       `,
-    requires    => [ { name => 'ZM_LOG_DEBUG', value => 'yes' } ],
+    requires    => [ { name => 'ZM_LOG_DEBUG', value => '1' } ],
     type        => $types{string},
     category    => 'logging',
   },
@@ -1449,7 +1450,7 @@ our @options = (
       interface only have one level so this is an on/off type option
       for them.
       `,
-    requires    => [ { name => 'ZM_LOG_DEBUG', value => 'yes' } ],
+    requires    => [ { name => 'ZM_LOG_DEBUG', value => '1' } ],
     type        => {
       db_type     => 'integer',
       hint        => '1|2|3|4|5|6|7|8|9',
@@ -1477,7 +1478,7 @@ our @options = (
       setting as it will also prevent subsequent runs from
       overwriting the same log. 
       `,
-    requires    => [ { name => 'ZM_LOG_DEBUG', value => 'yes' } ],
+    requires    => [ { name => 'ZM_LOG_DEBUG', value => '1' } ],
     type        => $types{string},
     category    => 'logging',
   },
@@ -1600,7 +1601,7 @@ our @options = (
   },
   {
     name        => 'ZM_RECORD_EVENT_STATS',
-    default     => 'yes',
+    default     => '1',
     description => 'Record event statistical information, switch off if too slow',
     help        => q`
       This version of ZoneMinder records detailed information about
@@ -1608,8 +1609,8 @@ our @options = (
       optimum settings are for Zones though this is tricky at
       present. However in future releases this will be done more
       easily and intuitively, especially with a large sample of
-      events. The default option of 'yes' allows this information to
-      be collected now in readiness for this but if you are concerned
+      events. It is enabled by default, which allows this information
+      to be collected now in readiness for this, but if you are concerned
       about performance you can switch this off in which case no
       Stats information will be saved.
       `,
@@ -1618,7 +1619,7 @@ our @options = (
   },
   {
     name        => 'ZM_RECORD_DIAG_IMAGES',
-    default     => 'no',
+    default     => '0',
     description => 'Record intermediate alarm diagnostic images, can be very slow',
     help        => q`
       In addition to recording event statistics you can also record
@@ -1636,7 +1637,7 @@ our @options = (
   },
   {
     name        => 'ZM_DUMP_CORES',
-    default     => 'no',
+    default     => '0',
     description => 'Create core files on unexpected process failure.',
     help        => q`
       When an unrecoverable error occurs in a ZoneMinder binary
@@ -1748,7 +1749,7 @@ our @options = (
   },
   {
     name        => 'ZM_HOME_ABOUT',
-    default     => 'yes',
+    default     => '1',
     description => 'Whether to enable the ZoneMinder About menu.',
     help        => q`
       When enabled, the ZoneMinder logo in the top left corner of the
@@ -1776,7 +1777,7 @@ our @options = (
   },
   {
     name        => 'ZM_WEB_EVENT_DISK_SPACE',
-    default     => 'yes',
+    default     => '1',
     description => 'Whether to show disk space used by each event.',
     help        => q`
       Adds another column to the listing of events
@@ -1790,7 +1791,7 @@ our @options = (
   },
   {
     name        => 'ZM_WEB_ID_ON_CONSOLE',
-    default     => 'yes',
+    default     => '1',
     description => 'Should the console list the monitor id',
     help        => q`
       Some find it useful to have the id always visible
@@ -1801,7 +1802,7 @@ our @options = (
   },
   {
     name        => 'ZM_WEB_ID_ON_FILTER',
-    default     => 'yes',
+    default     => '1',
     description => 'Should the filter view list the filter id',
     help        => q`
       Some find it useful to have the id included in the dropdown before the name.
@@ -1811,7 +1812,7 @@ our @options = (
   },
   {
     name        => 'ZM_WEB_POPUP_ON_ALARM',
-    default     => 'yes',
+    default     => '1',
     description => 'Should the monitor window jump to the top if an alarm occurs',
     help        => q`
       When viewing a live monitor stream you can specify whether you
@@ -1825,7 +1826,7 @@ our @options = (
   },
   {
     name        => 'ZM_OPT_X10',
-    default     => 'no',
+    default     => '0',
     description => 'Support interfacing with X10 devices',
     help        => q`
       If you have an X10 Home Automation setup in your home you can
@@ -1841,7 +1842,7 @@ our @options = (
     name        => 'ZM_X10_DEVICE',
     default     => '/dev/ttyS0',
     description => 'What device is your X10 controller connected on',
-    requires    => [ { name => 'ZM_OPT_X10', value => 'yes' } ],
+    requires    => [ { name => 'ZM_OPT_X10', value => '1' } ],
     help        => q`
       If you have an X10 controller device (e.g. XM10U) connected to
       your computer this option details which port it is connected on,
@@ -1854,7 +1855,7 @@ our @options = (
     name        => 'ZM_X10_HOUSE_CODE',
     default     => 'A',
     description => 'What X10 house code should be used',
-    requires    => [ { name => 'ZM_OPT_X10', value => 'yes' } ],
+    requires    => [ { name => 'ZM_OPT_X10', value => '1' } ],
     help        => q`
       X10 devices are grouped together by identifying them as all
       belonging to one House Code. This option details what that is.
@@ -1867,7 +1868,7 @@ our @options = (
     name        => 'ZM_X10_DB_RELOAD_INTERVAL',
     default     => '60',
     description => 'How often (in seconds) the X10 daemon reloads the monitors from the database',
-    requires    => [ { name => 'ZM_OPT_X10', value => 'yes' } ],
+    requires    => [ { name => 'ZM_OPT_X10', value => '1' } ],
     help        => q`
       The zmx10 daemon periodically checks the database to find out
       what X10 events trigger, or result from, alarms. This option
@@ -1879,7 +1880,7 @@ our @options = (
   },
   {
     name        => 'ZM_WEB_SOUND_ON_ALARM',
-    default     => 'no',
+    default     => '0',
     description => 'Should the monitor window play a sound if an alarm occurs',
     help        => q`
       When viewing a live monitor stream you can specify whether you
@@ -1901,12 +1902,12 @@ our @options = (
       defined earlier.
       `,
     type        => $types{file},
-    requires    => [ { name => 'ZM_WEB_SOUND_ON_ALARM', value => 'yes' } ],
+    requires    => [ { name => 'ZM_WEB_SOUND_ON_ALARM', value => '1' } ],
     category    => 'web',
   },
   {
     name        => 'ZM_WEB_COMPACT_MONTAGE',
-    default     => 'no',
+    default     => '0',
     description => 'Compact the montage view by removing extra detail',
     help        => q`
       The montage view shows the output of all of your active
@@ -1921,7 +1922,7 @@ our @options = (
   },
   {
     name        => 'ZM_OPT_FAST_DELETE',
-    default     => 'no',
+    default     => '0',
     description => 'Delete only event database records for speed',
     help        => q`
       Normally an event created as the result of an alarm consists of
@@ -1940,7 +1941,7 @@ our @options = (
   },
   {
     name        => 'ZM_STRICT_VIDEO_CONFIG',
-    default     => 'yes',
+    default     => '1',
     description => 'Allow errors in setting video config to be fatal',
     help        => q`
       With some video devices errors can be reported in setting the
@@ -1970,7 +1971,7 @@ our @options = (
   },
   {
     name        => 'ZM_V4L_MULTI_BUFFER',
-    default     => 'yes',
+    default     => '1',
     description => 'Use more than one buffer for Video 4 Linux devices',
     help        => q`
       Performance when using Video 4 Linux devices is usually best if
@@ -2034,7 +2035,7 @@ our @options = (
   # ZM_FILTER_EXECUTE_INTERVAL removed: each filter now has its own ExecuteInterval
   {
     name        => 'ZM_OPT_UPLOAD',
-    default     => 'no',
+    default     => '0',
     description => 'Should ZoneMinder support uploading events from filters',
     help        => q`
       In ZoneMinder you can create event filters that specify whether
@@ -2049,7 +2050,7 @@ our @options = (
     name        => 'ZM_UPLOAD_ARCH_FORMAT',
     default     => 'tar',
     description => 'What format the uploaded events should be created in.',
-    requires    => [ { name => 'ZM_OPT_UPLOAD', value => 'yes' } ],
+    requires    => [ { name => 'ZM_OPT_UPLOAD', value => '1' } ],
     help        => q`
       Uploaded events may be stored in either .tar or .zip format,
       this option specifies which. Note that to use this you will
@@ -2066,7 +2067,7 @@ our @options = (
   },
   {
     name        => 'ZM_UPLOAD_ARCH_COMPRESS',
-    default     => 'no',
+    default     => '0',
     description => 'Should archive files be compressed',
     help        => q`
       When the archive files are created they can be compressed.
@@ -2075,13 +2076,13 @@ our @options = (
       in their creation. Only enable if you have CPU to waste and are
       limited in disk space on your remote server or bandwidth.
       `,
-    requires    => [ { name => 'ZM_OPT_UPLOAD', value => 'yes' } ],
+    requires    => [ { name => 'ZM_OPT_UPLOAD', value => '1' } ],
     type        => $types{boolean},
     category    => 'upload',
   },
   {
     name        => 'ZM_UPLOAD_ARCH_ANALYSE',
-    default     => 'no',
+    default     => '0',
     description => 'Include the analysis files in the archive',
     help        => q`
       When the archive files are created they can contain either just
@@ -2093,7 +2094,7 @@ our @options = (
       caused an alarm in the first place as archives with these files
       in can be considerably larger.
       `,
-    requires    => [ { name => 'ZM_OPT_UPLOAD', value => 'yes' } ],
+    requires    => [ { name => 'ZM_OPT_UPLOAD', value => '1' } ],
     type        => $types{boolean},
     category    => 'upload',
   },
@@ -2101,7 +2102,7 @@ our @options = (
     name        => 'ZM_UPLOAD_PROTOCOL',
     default     => 'ftp',
     description => 'What protocol to use to upload events',
-    requires    => [ { name => 'ZM_OPT_UPLOAD', value => 'yes' } ],
+    requires    => [ { name => 'ZM_OPT_UPLOAD', value => '1' } ],
     help        => q`
       ZoneMinder can upload events to a remote server using either
       FTP or SFTP. Regular FTP is widely supported but not
@@ -2128,7 +2129,7 @@ our @options = (
       a remote server. This option indicates the name, or ip address,
       of the server to use.
       `,
-    requires    => [ { name => 'ZM_OPT_UPLOAD', value => 'yes' } ],
+    requires    => [ { name => 'ZM_OPT_UPLOAD', value => '1' } ],
     type        => $types{hostname},
     category    => 'upload',
   },
@@ -2143,7 +2144,7 @@ our @options = (
       connection. If this option is left blank then the default, port
       22, is used. This option is ignored for FTP uploads.
       `,
-    requires    => [ { name => 'ZM_OPT_UPLOAD', value => 'yes' } ],
+    requires    => [ { name => 'ZM_OPT_UPLOAD', value => '1' } ],
     type        => $types{integer},
     category    => 'upload',
   },
@@ -2156,7 +2157,7 @@ our @options = (
       a remote server. This option indicates the username that
       ZoneMinder should use to log in for transfer.
       `,
-    requires    => [ { name => 'ZM_OPT_UPLOAD', value => 'yes' } ],
+    requires    => [ { name => 'ZM_OPT_UPLOAD', value => '1' } ],
     type        => $types{alphanum},
     category    => 'upload',
   },
@@ -2171,7 +2172,7 @@ our @options = (
       certificate based logins for SFTP servers you can leave this
       option blank.
       `,
-    requires    => [ { name => 'ZM_OPT_UPLOAD', value => 'yes' } ],
+    requires    => [ { name => 'ZM_OPT_UPLOAD', value => '1' } ],
     type        => $types{string},
     category    => 'upload',
   },
@@ -2185,7 +2186,7 @@ our @options = (
       ZoneMinder should use for temporary upload files. These are
       files that are created from events, uploaded and then deleted.
       `,
-    requires    => [ { name => 'ZM_OPT_UPLOAD', value => 'yes' } ],
+    requires    => [ { name => 'ZM_OPT_UPLOAD', value => '1' } ],
     type        => $types{abs_path},
     category    => 'upload',
   },
@@ -2198,7 +2199,7 @@ our @options = (
       a remote server. This option indicates the remote directory
       that ZoneMinder should use to upload event files to.
       `,
-    requires    => [ { name => 'ZM_OPT_UPLOAD', value => 'yes' } ],
+    requires    => [ { name => 'ZM_OPT_UPLOAD', value => '1' } ],
     type        => $types{rel_path},
     category    => 'upload',
   },
@@ -2213,13 +2214,13 @@ our @options = (
       determines that the transfer has failed and closes down the
       connection.
       `,
-    requires    => [ { name => 'ZM_OPT_UPLOAD', value => 'yes' } ],
+    requires    => [ { name => 'ZM_OPT_UPLOAD', value => '1' } ],
     type        => $types{integer},
     category    => 'upload',
   },
   {
     name        => 'ZM_UPLOAD_STRICT',
-    default     => 'no',
+    default     => '0',
     description => 'Require strict host key checking for SFTP uploads',
     help        => q`
       You can require SFTP uploads to verify the host key of the remote server
@@ -2228,13 +2229,13 @@ our @options = (
       ~/.ssh/known_hosts, where ~ is the home directory of the web server running
       ZoneMinder.
       `,
-    requires    => [ { name => 'ZM_OPT_UPLOAD', value => 'yes' } ],
+    requires    => [ { name => 'ZM_OPT_UPLOAD', value => '1' } ],
     type        => $types{boolean},
     category    => 'upload',
   },
   {
     name        => 'ZM_UPLOAD_FTP_PASSIVE',
-    default     => 'yes',
+    default     => '1',
     description => 'Use passive ftp when uploading',
     help        => q`
       You can use filters to instruct ZoneMinder to upload events to
@@ -2244,7 +2245,7 @@ our @options = (
       is more robust and likely to work from behind firewalls. This
       option is ignored for SFTP transfers.
       `,
-    requires    => [ { name => 'ZM_OPT_UPLOAD', value => 'yes' } ],
+    requires    => [ { name => 'ZM_OPT_UPLOAD', value => '1' } ],
     help        => q`
       If your computer is behind a firewall or proxy you may need to
       set FTP to passive mode. In fact for simple transfers it makes
@@ -2256,22 +2257,22 @@ our @options = (
   },
   {
     name        => 'ZM_UPLOAD_DEBUG',
-    default     => 'no',
+    default     => '0',
     description => 'Switch upload debugging on',
     help        => q`
       You can use filters to instruct ZoneMinder to upload events to
       a remote server. If you are having (or expecting) troubles with
-      uploading events then setting this to 'yes' permits additional
+      uploading events then enabling this permits additional
       information to be generated by the underlying transfer modules
       and included in the logs.
       `,
-    requires    => [ { name => 'ZM_OPT_UPLOAD', value => 'yes' } ],
+    requires    => [ { name => 'ZM_OPT_UPLOAD', value => '1' } ],
     type        => $types{boolean},
     category    => 'upload',
   },
   {
     name        => 'ZM_OPT_EMAIL',
-    default     => 'no',
+    default     => '0',
     description => 'Should ZoneMinder email you details of events that match corresponding filters',
     help        => q`
       In ZoneMinder you can create event filters that specify whether
@@ -2288,7 +2289,7 @@ our @options = (
   },
   {
     name        => 'ZM_OPT_MESSAGE',
-    default     => 'no',
+    default     => '0',
     description => 'Should ZoneMinder message you with details of events that match corresponding filters',
     help        => q`
       In ZoneMinder you can create event filters that specify whether
@@ -2308,7 +2309,7 @@ our @options = (
     name        => 'ZM_MESSAGE_ADDRESS',
     default     => '',
     description => 'The email address to send matching event details to',
-    requires    => [ { name => 'ZM_OPT_MESSAGE', value => 'yes' } ],
+    requires    => [ { name => 'ZM_OPT_MESSAGE', value => '1' } ],
     help        => q`
       This option is used to define the short message email address
       that any events that match the appropriate filters will be sent
@@ -2321,7 +2322,7 @@ our @options = (
     name        => 'ZM_MESSAGE_SUBJECT',
     default     => 'ZoneMinder: Alarm - %MN%-%EI%',
     description => 'The subject of the message used to send matching event details',
-    requires    => [ { name => 'ZM_OPT_MESSAGE', value => 'yes' } ],
+    requires    => [ { name => 'ZM_OPT_MESSAGE', value => '1' } ],
     help        => q`
       This option is used to define the subject of the message that
       is sent for any events that match the appropriate filters.
@@ -2333,7 +2334,7 @@ our @options = (
     name        => 'ZM_MESSAGE_BODY',
     default     => 'ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% score.',
     description => 'The body of the message used to send matching event details',
-    requires    => [ { name => 'ZM_OPT_MESSAGE', value => 'yes' } ],
+    requires    => [ { name => 'ZM_OPT_MESSAGE', value => '1' } ],
     help        => q`
       This option is used to define the content of the message that
       is sent for any events that match the appropriate filters.
@@ -2343,11 +2344,11 @@ our @options = (
   },
   {
     name        => 'ZM_NEW_MAIL_MODULES',
-    default     => 'no',
+    default     => '0',
     description => 'Use a newer perl method to send emails',
     requires    => [
-    { name => 'ZM_OPT_EMAIL', value => 'yes' },
-    { name => 'ZM_OPT_MESSAGE', value => 'yes' }
+    { name => 'ZM_OPT_EMAIL', value => '1' },
+    { name => 'ZM_OPT_MESSAGE', value => '1' }
     ],
     help        => q`
       Traditionally ZoneMinder has used the MIME::Entity perl module
@@ -2368,8 +2369,8 @@ our @options = (
     default     => 'localhost',
     description => 'The host address of your SMTP mail server',
     requires    => [
-    { name => 'ZM_OPT_EMAIL', value => 'yes' },
-    { name => 'ZM_OPT_MESSAGE', value => 'yes' }
+    { name => 'ZM_OPT_EMAIL', value => '1' },
+    { name => 'ZM_OPT_MESSAGE', value => '1' }
     ],
     help        => q`
       If you have chosen SMTP as the method by which to send
@@ -2387,8 +2388,8 @@ our @options = (
     default     => '',
     description => 'The email address you wish your event notifications to originate from',
     requires    => [
-    { name => 'ZM_OPT_EMAIL', value => 'yes' },
-    { name => 'ZM_OPT_MESSAGE', value => 'yes' }
+    { name => 'ZM_OPT_EMAIL', value => '1' },
+    { name => 'ZM_OPT_MESSAGE', value => '1' }
     ],
     help        => q`
       The emails or messages that will be sent to you informing you
@@ -2404,8 +2405,8 @@ our @options = (
     default     => '',
     description => 'The URL of your ZoneMinder installation',
     requires    => [
-    { name => 'ZM_OPT_EMAIL', value => 'yes' },
-    { name => 'ZM_OPT_MESSAGE', value => 'yes' }
+    { name => 'ZM_OPT_EMAIL', value => '1' },
+    { name => 'ZM_OPT_MESSAGE', value => '1' }
     ],
     help        => q`
       The emails or messages that will be sent to you informing you
@@ -2497,7 +2498,7 @@ our @options = (
   },
   {
     name        => 'ZM_RUN_AUDIT',
-    default     => 'no',
+    default     => '0',
     description => 'Run zmaudit to check data consistency',
     help        => q`
       The zmaudit daemon exists to check that the saved information
@@ -2633,7 +2634,7 @@ our @options = (
 # Deprecated, superseded by event close mode
   {
     name        => 'ZM_WEIGHTED_ALARM_CENTRES',
-    default     => 'no',
+    default     => '0',
     description => 'Use a weighted algorithm to calculate the centre of an alarm',
     help        => q`
       ZoneMinder will always calculate the centre point of an alarm
@@ -2688,7 +2689,7 @@ our @options = (
   },
   {
     name        => 'ZM_USER_SELF_EDIT',
-    default     => 'no',
+    default     => '0',
     description => 'Allow unprivileged users to change their details',
     help        => q`
       Ordinarily only users with system edit privilege are able to
@@ -2700,7 +2701,7 @@ our @options = (
   },
   {
     name        => 'ZM_OPT_CONTROL',
-    default     => 'yes',
+    default     => '1',
     description => 'Support controllable (e.g. PTZ) cameras',
     help        => q`
       ZoneMinder includes limited support for controllable cameras. A
@@ -2715,7 +2716,7 @@ our @options = (
   },
   {
     name        => 'ZM_OPT_TRIGGERS',
-    default     => 'no',
+    default     => '0',
     description => 'Interface external event triggers via socket or device files',
     help        => q`
       ZoneMinder can interact with external systems which prompt or
@@ -2728,7 +2729,7 @@ our @options = (
   },
   {
     name        => 'ZM_CHECK_FOR_UPDATES',
-    default     => 'yes',
+    default     => '1',
     description => 'Check with zoneminder.com for updated versions',
     help        => q`
       From ZoneMinder version 1.17.0 onwards new versions are
@@ -2755,7 +2756,7 @@ our @options = (
   },
   {
     name        => 'ZM_TELEMETRY_DATA',
-    default     => 'no',
+    default     => '0',
     description => 'Send usage information to ZoneMinder',
     help        => q`
       Enable collection of usage information of the local system and send
@@ -2894,7 +2895,7 @@ our @options = (
   },
   {
     name        => 'ZM_WEB_LIST_THUMBS',
-    default     => 'yes',
+    default     => '1',
     description => 'Display mini-thumbnails of event images in event lists and on console',
     help        => q`
       Originally the event lists and console just displayed text details of the
@@ -2920,7 +2921,7 @@ our @options = (
       used and height ignored.
       `,
     type        => $types{integer},
-    requires    => [ { name => 'ZM_WEB_LIST_THUMBS', value => 'yes' } ],
+    requires    => [ { name => 'ZM_WEB_LIST_THUMBS', value => '1' } ],
     category    => 'web',
   },
   {
@@ -2937,12 +2938,12 @@ our @options = (
       be used and height ignored.
       `,
     type        => $types{integer},
-    requires    => [ { name => 'ZM_WEB_LIST_THUMBS', value => 'yes' } ],
+    requires    => [ { name => 'ZM_WEB_LIST_THUMBS', value => '1' } ],
     category    => 'web',
   },
   {
     name        => 'ZM_WEB_ANIMATE_THUMBS',
-    default     => 'yes',
+    default     => '1',
     description => 'Enlarge and show the live stream when a thumbnail is hovered over',
     help        => q`
       Enabling this option causes the static thumbnail, shown on certain
@@ -2950,12 +2951,12 @@ our @options = (
       hovered over by the mouse.
       `,
     type        => $types{boolean},
-    requires    => [ { name => 'ZM_WEB_LIST_THUMBS', value => 'yes' } ],
+    requires    => [ { name => 'ZM_WEB_LIST_THUMBS', value => '1' } ],
     category    => 'web',
   },
   {
     name        => 'ZM_WEB_ANIMATIONS',
-    default     => 'yes',
+    default     => '1',
     description => 'Use various animations when rendering the web UI.',
     help        => q`
       Animations include content roll up when changing views etc.
@@ -2965,7 +2966,7 @@ our @options = (
   },
   {
     name        => 'ZM_WEB_XFRAME_WARN',
-    default     => 'yes',
+    default     => '1',
     description => 'Warn when website X-Frame-Options is set to sameorigin',
     help        => q`
       When creating a Web Site monitor, if the target web site has
@@ -3055,7 +3056,7 @@ our @options = (
   },
   {
     name        => 'ZM_WEB_SHOW_SERVER_STATS',
-    default     => 'yes',
+    default     => '1',
     description => 'Show server statistics in the navigation bar.',
     help        => q`
       Controls whether the server statistics (system load, CPU usage,
@@ -3088,7 +3089,7 @@ our @options = (
   },
   {
     name        => 'ZM_WEB_SHOW_NAV_BUTTONS',
-    default     => 'yes',
+    default     => '1',
     description => 'Show Back and Refresh buttons at the top of views.',
     help        => q`
       Controls whether the Back and Refresh navigation buttons are
@@ -3326,7 +3327,7 @@ our @options = (
   },
   {
     name        => 'ZM_WEB_H_SCALE_THUMBS',
-    default     => 'no',
+    default     => '0',
     description => 'Scale thumbnails in events, bandwidth versus CPU in rescaling',
     help        => q`
       If unset, this option sends the whole image to the browser
@@ -3361,7 +3362,7 @@ our @options = (
   },
   {
     name        => 'ZM_WEB_H_SHOW_PROGRESS',
-    default     => 'yes',
+    default     => '1',
     description => 'Show the progress of replay in event view.',
     help        => q`
       When viewing events an event navigation panel and progress bar
@@ -3620,7 +3621,7 @@ our @options = (
   },
   {
     name        => 'ZM_WEB_M_SCALE_THUMBS',
-    default     => 'yes',
+    default     => '1',
     description => 'Scale thumbnails in events, bandwidth versus CPU in rescaling',
     help        => q`
       If unset, this option sends the whole image to the browser
@@ -3655,7 +3656,7 @@ our @options = (
   },
   {
     name        => 'ZM_WEB_M_SHOW_PROGRESS',
-    default     => 'yes',
+    default     => '1',
     description => 'Show the progress of replay in event view.',
     help        => q`
       When viewing events an event navigation panel and progress bar
@@ -3913,7 +3914,7 @@ our @options = (
   },
   {
     name        => 'ZM_WEB_L_SCALE_THUMBS',
-    default     => 'yes',
+    default     => '1',
     description => 'Scale thumbnails in events, bandwidth versus CPU in rescaling',
     help        => q`
       If unset, this option sends the whole image to the browser
@@ -3948,7 +3949,7 @@ our @options = (
   },
   {
     name        => 'ZM_WEB_L_SHOW_PROGRESS',
-    default     => 'no',
+    default     => '0',
     description => 'Show the progress of replay in event view.',
     help        => q`
       When viewing events an event navigation panel and progress bar
@@ -4043,7 +4044,7 @@ our @options = (
   },
   {
     name        => 'ZM_DYN_SHOW_DONATE_REMINDER',
-    default     => 'yes',
+    default     => '1',
     description => 'Remind about donations or not',
     help        => '',
     type        => $types{boolean},
@@ -4052,7 +4053,7 @@ our @options = (
   },
   {
     name        => 'ZM_SHOW_PRIVACY',
-    default     => 'yes',
+    default     => '1',
     description => 'Present the privacy statment',
     help        => '',
     type        => $types{boolean},
@@ -4061,15 +4062,15 @@ our @options = (
   },
   {
     name        => 'ZM_SSMTP_MAIL',
-    default     => 'no',
+    default     => '0',
     description =>  q`
       Use a SSMTP mail server if available.
       NEW_MAIL_MODULES must be enabled
       `,
     requires    => [
-      { name => 'ZM_OPT_EMAIL', value => 'yes' },
-      { name => 'ZM_OPT_MESSAGE', value => 'yes' },
-      { name => 'ZM_NEW_MAIL_MODULES', value => 'yes' }
+      { name => 'ZM_OPT_EMAIL', value => '1' },
+      { name => 'ZM_OPT_MESSAGE', value => '1' },
+      { name => 'ZM_NEW_MAIL_MODULES', value => '1' }
     ],
     help        => q`
       SSMTP is a lightweight and efficient method to send email.
@@ -4085,7 +4086,7 @@ our @options = (
     name        => 'ZM_SSMTP_PATH',
     default     => '',
     description => 'SSMTP executable path',
-    requires    => [{ name => 'ZM_SSMTP_MAIL', value => 'yes' }],
+    requires    => [{ name => 'ZM_SSMTP_MAIL', value => '1' }],
     help        => q`
       Recommend setting the path to the SSMTP application.
       If path is not defined. Zoneminder will try to determine
@@ -4104,7 +4105,7 @@ our @options = (
   },
   {
     name        => 'ZM_RECORD_DIAG_IMAGES_FIFO',
-    default     => 'no',
+    default     => '0',
     description => ' Recording intermediate alarm diagnostic use fifo instead of files (faster)',
     help        => 'This tries to lessen the load of recording diag images by sending them to a memory FIFO pipe instead of creating each file.',
     type        => $types{boolean},
@@ -4161,7 +4162,7 @@ our @options = (
 # Add options for Alarm Server
   {
     name        => 'ZM_OPT_USE_ALARMSERVER',
-    default     => 'no',
+    default     => '0',
     description => 'Enable NETSurveillance WEB Camera ALARM SERVER',
     help        => q`
       Alarm Server that works with cameras that use Netsurveillance Web Server, 
@@ -4175,7 +4176,7 @@ our @options = (
   },
   {
     name        => 'ZM_OPT_ALS_LOGENTRY',
-    default     => 'no',
+    default     => '0',
     description => 'Makes ALARM SERVER create a log entry in ZoneMinder on Human Detected',
     help        => '',
     type        => $types{boolean},
@@ -4183,7 +4184,7 @@ our @options = (
   },
   {
     name        => 'ZM_OPT_ALS_ALARM',
-    default     => 'no',
+    default     => '0',
     description => 'Send the Human Detected alarm from ALARM SERVER to ZoneMinder, It does not work along with OPT_ALS_TRIGGEREVENT',
     help        => '',
     type        => $types{boolean},
@@ -4191,7 +4192,7 @@ our @options = (
   },
   {
     name        => 'ZM_OPT_ALS_TRIGGEREVENT',
-    default     => 'no',
+    default     => '0',
     description => 'Trigger an event on Human Detected alarm from ALARM SERVER to ZoneMinder. Requires the zmTrigger option Enabled',
     help        => '',
     type        => $types{boolean},
@@ -4207,7 +4208,7 @@ our @options = (
   },
   {
     name        => 'ZM_OPT_TRAINING',
-    default     => 'no',
+    default     => '0',
     description => 'Enable custom model training features',
     help        => q`
       Enable annotation tools on the event view for correcting
@@ -4230,7 +4231,7 @@ our @options = (
       `,
     type        => $types{string},
     category    => 'config',
-    requires    => [ { name => 'ZM_OPT_TRAINING', value => 'yes' } ],
+    requires    => [ { name => 'ZM_OPT_TRAINING', value => '1' } ],
   },
   {
     name        => 'ZM_TRAINING_DETECT_SCRIPT',
@@ -4247,7 +4248,7 @@ our @options = (
       `,
     type        => $types{string},
     category    => 'config',
-    requires    => [ { name => 'ZM_OPT_TRAINING', value => 'yes' } ],
+    requires    => [ { name => 'ZM_OPT_TRAINING', value => '1' } ],
   },
 );
 
@@ -4270,6 +4271,22 @@ sub initialiseConfig {
     $option->{id} = $option_id++;
   }
   $configInitialised = 1;
+}
+
+# The form a value takes in the Config table. Booleans are stored as 1/0, so
+# an option with no default is false, matching the empty string initialiseConfig
+# gives it above; every other type is stored as written.
+#
+# Both writers of the table go through this - saveConfigToDB for an existing
+# install, zmconfgen for the zm_create.sql of a fresh one - and each writes
+# Value and DefaultValue through it. They have to agree: the C++ config loader
+# reads back only the rows where the two differ and takes compiled-in defaults
+# for the rest, so a column written in a different form would make an unchanged
+# row look changed.
+sub dbValue {
+  my ($db_type, $value) = @_;
+  return $value ? '1' : '0' if $db_type eq 'boolean';
+  return defined($value) ? $value : '';
 }
 
 1;

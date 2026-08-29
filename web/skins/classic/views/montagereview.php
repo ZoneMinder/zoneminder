@@ -161,20 +161,11 @@ if (isset($_REQUEST['filter'])) {
   if (isset($_REQUEST['minTime']) && isset($_REQUEST['maxTime']) && (count($displayMonitors) != 0)) {
     $filter->addTerm(array('attr' => 'DateTime', 'op' => '>=', 'val' => $_REQUEST['minTime'], 'obr' => '1', 'cookie'=>'zmFilter_StartDateTime'));
     $filter->addTerm(array('attr' => 'DateTime', 'op' => '<=', 'val' => $_REQUEST['maxTime'], 'cnj' => 'and', 'cbr' => '1', 'cookie'=>'zmFilter_EndDateTime'));
-    if (count($selected_monitor_ids)) {
-      $filter->addTerm(array('attr' => 'Monitor', 'op' => 'IN', 'val' => implode(',',$selected_monitor_ids), 'cnj' => 'and'));
-    } else if ( isset($_SESSION['GroupId']) || isset($_SESSION['ServerFilter']) || isset($_SESSION['StorageFilter']) || isset($_SESSION['StatusFilter']) ) {
-      # this should be redundant
-      for ( $i = 0; $i < count($displayMonitors); $i++ ) {
-        if ( $i == '0' ) {
-          $filter->addTerm(array('attr' => 'MonitorId', 'op' => '=', 'val' => $displayMonitors[$i]['Id'], 'cnj' => 'and', 'obr' => '1'));
-        } else if ( $i == (count($displayMonitors)-1) ) {
-          $filter->addTerm(array('attr' => 'MonitorId', 'op' => '=', 'val' => $displayMonitors[$i]['Id'], 'cnj' => 'or', 'cbr' => '1'));
-        } else {
-          $filter->addTerm(array('attr' => 'MonitorId', 'op' => '=', 'val' => $displayMonitors[$i]['Id'], 'cnj' => 'or'));
-        }
-      }
-    }
+    // No monitor terms here. The monitor filter bar renders its own control for
+    // the selection, so repeating it as filter terms drew a second monitor
+    // selector. Neither is needed for the query: the bar has already reduced
+    // $displayMonitors, and loadEventData() asks for those ids. The MonitorId
+    // branch this replaces was marked "this should be redundant" when written.
   } # end if REQUEST[Filter]
 }
 if (!$liveMode) {
@@ -331,9 +322,46 @@ if ($filter_inline) {
 }
 $html .= '<div id="mfbpanel" class="'.($filter_inline ? '' : 'hidden-shift ').'container-fluid">'.PHP_EOL;
 echo $html;
-echo $filterbar;
+// The monitor attribute filters pick which cameras are shown and are rarely
+// changed once set, so they sit behind their own control instead of taking rows
+// of the filter bar. skin.js applies hidden-shift from data-initial-state-icon,
+// which moves the block off screen while leaving it measurable so Chosen still
+// initialises the selects inside it.
+echo '<a class="flip" href="#"
+         data-flip-control-object="#monitorFilterBar"
+         data-initial-state-icon="hidden"
+         data-flip-control-run-after-func="applyChosen">
+        <i class="material-icons md-18" data-icon-visible="expand_less" data-icon-hidden="expand_more"></i>
+        '.translate('MonitorFilters').'
+      </a>'.PHP_EOL;
+echo '<div id="monitorFilterBar">'.$resultMonitorFilters['filterBarWithoutMonitor'].'</div>'.PHP_EOL;
 if (count($filter->terms())) {
-  echo $filter->simple_widget();
+  // The monitor selection is what those attribute filters produce, so it stays
+  // on show with the event filter terms rather than collapsing with them. It is
+  // spliced into simple_widget()'s own flex row so it sits on the same line;
+  // emitted as a sibling it would take a row of its own.
+  // The monitor attribute filters above decide which monitors exist to choose
+  // between, so they are what the Monitor term should offer. Anything they
+  // exclude cannot appear in these events either. Set on the filter before
+  // asking it for a widget, rather than handed to the widget.
+  $monitor_term_options = array();
+  foreach ($resultMonitorFilters['displayMonitors'] as $m) {
+    $monitor_term_options[$m['Id']] = $m['Id'].' '.validHtmlStr($m['Name']);
+  }
+  $filter->monitor_options($monitor_term_options);
+
+  $terms_html = $filter->simple_widget();
+  $spliced = 0;
+  $terms_html = preg_replace(
+    '/(<div id="fieldsTable"[^>]*>)/',
+    '$1'.str_replace('$', '\\$', $resultMonitorFilters['monitorSelect']),
+    $terms_html, 1, $spliced);
+  echo $terms_html;
+  if (!$spliced) {
+    // simple_widget() no longer opens with that div; do not lose the control.
+    ZM\Warning('Could not place the monitor selector in the filter terms row');
+    echo '<div class="controlHeader">'.$resultMonitorFilters['monitorSelect'].'</div>';
+  }
 }
 ?>
 

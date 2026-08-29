@@ -1316,23 +1316,30 @@ function loadEventData(e) {
           const op_name = 'filter[Query][terms]['+found[1]+'][op]';
           const op = this.form.elements[op_name];
           if (attr) {
-            if (attr.value==='Monitor') attr.value='MonitorId';
-            // DateTime is a filter-engine pseudo-attribute, not an Events
-            // column: Filter.php resolves 'DateTime' and 'StartDateTime' to the
-            // same E.StartDateTime.  The API takes column names, and silently
-            // ignores a term it cannot resolve rather than erroring, so leaving
-            // it as DateTime returns every event ever instead of the window.
-            if (attr.value==='DateTime') attr.value='StartDateTime';
+            // Translate in a local rather than by writing back to attr.value:
+            // the form is submitted when a filter changes, and
+            // montagereview.php decides whether the range terms are already
+            // present by looking for 'DateTime', so a form left holding a
+            // rewritten name came back with a second, duplicate pair.
+            //
+            // DateTime is deliberately NOT rewritten to StartDateTime.
+            // EventsController::index() treats DateTime as a pseudo-attribute
+            // meaning "the event was running then" and turns the window into an
+            // overlap test against an effective end date; StartDateTime is a
+            // plain column and gives a containment test, which drops the event
+            // that was already recording when the window opened.
+            let apiAttr = attr.value;
+            if (apiAttr === 'Monitor') apiAttr = 'MonitorId';
             let urlVal = val;
             // Normalize date/time values to YYYY-MM-DD HH:mm:ss for the API URL.
             // Locale formats using / as separator break the URL path.
-            if (/Date|Time/.test(attr.value)) {
+            if (/Date|Time/.test(apiAttr)) {
               const m = moment(val);
               if (m.isValid()) {
                 urlVal = m.format('YYYY-MM-DD HH:mm:ss');
               }
             }
-            url += '/'+attr.value+' '+op.value+':'+encodeURIComponent(urlVal);
+            url += '/'+apiAttr+' '+op.value+':'+encodeURIComponent(urlVal);
           } else {
             console.warn('No attr for '+attr_name);
           }

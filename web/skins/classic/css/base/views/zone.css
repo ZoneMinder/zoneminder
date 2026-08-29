@@ -1,18 +1,29 @@
 #zoneForm {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 4px;
+  /* Fill the remaining height of #content so the image column can be sized to
+   * what is left over after the buttons below it. */
+  flex: 1 1 auto;
+  min-height: 0;
+  text-align: left;
 }
 #settingsPanel, .buttons, #zonePoints  {
   margin: 2px;
 }
+#imageAndPoints .buttons {
+  text-align: center;
+}
 #settingsPanel {
-  flex: 0 0 480px;
+  flex: 0 0 540px;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 #zoneSettings {
   border-collapse: collapse;
   width: 100%;
+  table-layout: fixed;
 }
 
 #zoneSettings th,
@@ -25,13 +36,16 @@
 #zoneSettings th[scope=row] {
   padding: 4px 3px 3px;
   vertical-align: top;
-  white-space: nowrap;
+  width: 36%;
 }
 
 #imageAndPoints {
   position: relative;
   flex: 1 1 0;
   min-width: 320px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   container-type: inline-size;
 }
 
@@ -42,12 +56,19 @@
 #imageFrame {
     position: relative;
     padding: 3px 4px 4px 3px;
+    /* The feed is sized by scaleToFit(), which keeps the buttons below it on
+     * screen, so this only has to centre whatever width it ends up with. */
+    min-height: 0;
+    display: flex;
+    justify-content: center;
 }
 #imageFrame .monitor {
   width: 100%;
 }
 #imageFrame .imageFeed {
  position: relative;
+ max-width: 100%;
+ margin: 0 auto;
 }
 #imageFrame svg {
  box-sizing: border-box;
@@ -117,6 +138,12 @@
   #zonePoints > table > tbody > tr {
     flex-direction: column;
   }
+}
+
+#zonePoints table table th.pointAction,
+#zonePoints table table td.pointAction {
+    width: 80px;
+    white-space: nowrap;
 }
 
 #zonePoints table table tr.highlight {
@@ -193,16 +220,16 @@ input[name="newZone[MinBlobs]"],
 input[name="newZone[MaxBlobs]"],
 input[name="newZone[MinAlarmPixels]"],
 input[name="newZone[MaxAlarmPixels]"] {
-  width: 60px;
+  width: 56px;
 }
 .pxInput {
-  width: 70px;
+  width: 56px;
 }
 .zoneArea {
   font-weight: bold;
 }
 input.ZonePoint {
-    width: 75px;
+    width: 62px;
 }
 input.ZonePoint.changed {
     background-color: #ffffcc;
@@ -221,4 +248,15 @@ svg circle {
 #StreamControlButtons {
   display: inline;
   float: right;
+}
+
+/* Narrow screens: stack the columns and size the feed from the width again */
+@media (max-width: 900px) {
+  #zoneForm {
+    flex-wrap: wrap;
+  }
+  #settingsPanel {
+    flex: 1 1 100%;
+    overflow-y: visible;
+  }
 }

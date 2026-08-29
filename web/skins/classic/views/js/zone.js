@@ -551,9 +551,10 @@ function drawZonePoints() {
     $j(row).mouseout(highlightOff.bind(i, i));
 
     var cell = document.createElement('td');
-    $j(cell).text(i+1).appendTo(row);
+    $j(cell).addClass('pointIndex').text(i+1).appendTo(row);
 
     cell = document.createElement('td');
+    $j(cell).addClass('pointX');
     var input = document.createElement('input');
     $j(input).attr({
       'id': 'newZone[Points]['+i+'][x]',
@@ -571,6 +572,7 @@ function drawZonePoints() {
     $j(cell).appendTo(row);
 
     cell = document.createElement('td');
+    $j(cell).addClass('pointY');
     input = document.createElement('input');
     $j(input).attr({
       'id': 'newZone[Points]['+i+'][y]',
@@ -588,6 +590,7 @@ function drawZonePoints() {
     $j(cell).appendTo(row);
 
     cell = document.createElement('td');
+    $j(cell).addClass('pointAction');
     var pbtn = document.createElement('button');
     $j(pbtn)
         .attr('type', 'button')
@@ -808,6 +811,7 @@ function initPage() {
   } else {
     window.addEventListener("resize", drawZonePoints, {passive: true});
   }
+  changeScale();
   drawZonePoints();
 
   // Manage the BACK button
@@ -838,6 +842,15 @@ function initPage() {
   $j('#zoneForm').on('input change', checkDirty);
   checkDirty();
 } // initPage
+
+/* Sizes the feed to the space left above the Save/Reset/Cancel buttons, the same
+ * way the watch view fits its stream.  Called on load and on window resize. */
+function changeScale() {
+  const feed = $j('#imageFeed'+zone.MonitorId);
+  if (!feed.length) return;
+  const newSize = scaleToFit(monitorData[0].width, monitorData[0].height, feed, $j('#imageAndPoints .buttons'), $j('#imageAndPoints'));
+  if (newSize) feed.css('width', newSize.width+'px');
+}
 
 function panZoomIn(el) {
   zmPanZoom.zoomIn(el);

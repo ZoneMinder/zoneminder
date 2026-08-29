@@ -2,6 +2,10 @@ var pauseBtn = $j('#pauseBtn');
 var playBtn = $j('#playBtn');
 var saveBtn = $j('#saveBtn');
 var cancelBtn = $j('#cancelBtn');
+var resetBtn = $j('#resetBtn');
+var initialState = null; // normalised snapshot of form values taken on load, for change detection
+var initialValues = null; // raw form values as loaded, for restoring on reset
+var initialPoints = null; // snapshot of zone['Points'] taken on load
 var backBtn = $j('#backBtn');
 var refreshBtn = $j('#refreshBtn');
 var analyseBtn = $j('#analyseBtn');
@@ -402,6 +406,7 @@ function updateArea( ) {
   // Area is calculated in percentage coordinate space (0-100 x 0-100)
   zone.Area = Polygon_calcArea(zone['Points']);
   updateAllPixelDisplays();
+  checkDirty();
 }
 
 /* Updates the drawn point based on input from the coordinates text inputs */
@@ -437,6 +442,56 @@ function updateY(input) {
   const Point = document.getElementById('zonePoly').points.getItem(index);
   Point.y = y;
   updateArea();
+}
+
+/* Serialise every named form field so we can tell whether anything changed */
+function formState() {
+  const form = document.zoneForm;
+  const values = [];
+  for ( let i = 0; i < form.elements.length; i++ ) {
+    const el = form.elements[i];
+    if ( el.name && el.name != 'presetSelector' ) {
+      // Compare numbers by value so 100 and 100.00 don't look like a change
+      const value = (el.type == 'number' && el.value !== '') ? parseFloat(el.value) : el.value;
+      values.push(el.name+'='+value);
+    }
+  }
+  return values.join('&');
+}
+
+/* Highlight the coordinate inputs of any point that differs from the loaded zone */
+function markChangedPoints() {
+  if ( initialPoints === null ) return;
+  for ( let i = 0; i < zone['Points'].length; i++ ) {
+    const original = initialPoints[i];
+    const changed = !original ||
+      parseFloat(zone['Points'][i].x).toFixed(2) != parseFloat(original.x).toFixed(2) ||
+      parseFloat(zone['Points'][i].y).toFixed(2) != parseFloat(original.y).toFixed(2);
+    $j('#newZone\\[Points\\]\\['+i+'\\]\\[x\\], #newZone\\[Points\\]\\['+i+'\\]\\[y\\]').toggleClass('changed', changed);
+  }
+}
+
+function checkDirty() {
+  if ( initialState === null ) return;
+  resetBtn.prop('disabled', formState() == initialState);
+  markChangedPoints();
+}
+
+function resetChanges() {
+  const form = document.zoneForm;
+  // drawZonePoints re-creates the point inputs, so they are not restored here
+  zone['Points'] = JSON.parse(JSON.stringify(initialPoints));
+  drawZonePoints();
+
+  for ( const name in initialValues ) {
+    const el = form.elements[name];
+    if ( el ) el.value = initialValues[name];
+  }
+  form.presetSelector.selectedIndex = 0;
+
+  applyZoneType();
+  updateArea();
+  checkDirty();
 }
 
 function saveChanges(element) {
@@ -556,6 +611,7 @@ function drawZonePoints() {
   } // end foreach point
   // Sets up the SVG polygon
   updateZoneImage();
+  checkDirty();
 } // end drawZonePoints()
 
 function streamCmdPause() {
@@ -698,6 +754,10 @@ function initPage() {
     };
   }
 
+  if ( el = resetBtn[0] ) {
+    el.onclick = resetChanges;
+  }
+
   if ( el = analyseBtn[0] ) {
     el.onclick = function() {
       // Read current state from MonitorStream (server may have changed it)
@@ -764,6 +824,19 @@ function initPage() {
     evt.preventDefault();
     window.location.reload(true);
   });
+
+  // Snapshot the loaded state so the Reset button can restore it
+  initialPoints = JSON.parse(JSON.stringify(zone['Points']));
+  initialValues = {};
+  for ( let i = 0; i < form.elements.length; i++ ) {
+    const el = form.elements[i];
+    if ( el.name && el.name.indexOf('newZone[Points]') !== 0 ) {
+      initialValues[el.name] = el.value;
+    }
+  }
+  initialState = formState();
+  $j('#zoneForm').on('input change', checkDirty);
+  checkDirty();
 } // initPage
 
 function panZoomIn(el) {

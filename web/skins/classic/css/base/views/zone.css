@@ -204,6 +204,9 @@ input[name="newZone[MaxAlarmPixels]"] {
 input.ZonePoint {
     width: 75px;
 }
+input.ZonePoint.changed {
+    background-color: #ffffcc;
+}
 svg {
   overflow: visible;
 }

@@ -250,6 +250,7 @@ if ( count($other_zones) ) {
                 <button type="button" id="saveBtn" value="Save" <?php if (!canEdit('Monitors') || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>>
                 <?php echo translate('Save') ?>
                 </button>
+                <button type="button" id="resetBtn" value="Reset" disabled="disabled"><?php echo translate('Reset') ?></button>
                 <button type="button" id="cancelBtn" value="Cancel"><?php echo translate('Cancel') ?></button>
               </div>
             </div><!--end ZonePoints-->

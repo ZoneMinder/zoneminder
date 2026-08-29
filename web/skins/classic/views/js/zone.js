@@ -884,6 +884,13 @@ function changeScale() {
     'width': newSize.width+'px',
     'margin-left': (feed.offset().left - $j('#imageAndPoints').offset().left)+'px'
   });
+  // Ask for an image close to the size we display it at.  The scale set when the
+  // stream started was calculated before the feed had been sized, so it was far
+  // too small and the browser had to enlarge the image.  Round down by 5: our
+  // scaler is not precise enough for the last few percent to be worth the bytes.
+  if (monitors.length) {
+    monitors[0].setStreamScale(5 * Math.floor(newSize.width / monitorData[0].width * 20));
+  }
 }
 
 function panZoomIn(el) {

@@ -340,6 +340,16 @@ if (count($filter->terms())) {
   // on show with the event filter terms rather than collapsing with them. It is
   // spliced into simple_widget()'s own flex row so it sits on the same line;
   // emitted as a sibling it would take a row of its own.
+  // The monitor attribute filters above decide which monitors exist to choose
+  // between, so they are what the Monitor term should offer. Anything they
+  // exclude cannot appear in these events either. Set on the filter before
+  // asking it for a widget, rather than handed to the widget.
+  $monitor_term_options = array();
+  foreach ($resultMonitorFilters['displayMonitors'] as $m) {
+    $monitor_term_options[$m['Id']] = $m['Id'].' '.validHtmlStr($m['Name']);
+  }
+  $filter->monitor_options($monitor_term_options);
+
   $terms_html = $filter->simple_widget();
   $spliced = 0;
   $terms_html = preg_replace(

@@ -943,7 +943,15 @@ function exportEvents(
     $event_dir = $export_dir.'/'.$event->Id();
     if (!(@mkdir($event_dir) or file_exists($event_dir))) {
       ZM\Error("Can't mkdir $event_dir");
+      continue;
     }
+    // mkdir() applies the process umask, so a strict enough one leaves this
+    // with no execute bit at all, and a directory with no execute bit is not
+    // traversable even by root: the search check is the one thing
+    // CAP_DAC_OVERRIDE does not bypass. Every copy into it then fails with
+    // permission denied and the export quietly comes out incomplete. Set the
+    // mode explicitly, the same as the two directories above. See #5074.
+    chmod($event_dir, 0700);
     $event_exportFileList = exportFileList($event, $exportDetail, $exportFrames, $exportImages, $exportVideo, $exportMisc);
     #$exportFileList = array_merge($exportFileList, $event_exportFileList);
     foreach ($event_exportFileList as $file) {

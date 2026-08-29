@@ -1959,6 +1959,15 @@ function validStr($input) {
   return strip_tags($input);
 }
 
+// The bandwidth profiles a skin is expected to have settings for. The classic
+// skin defines its whole ZM_WEB_* constant set by switching on this value, so
+// anything outside this list leaves those constants undefined and every page
+// fatals on the first one it reaches. Nothing may reach the zmBandwidth cookie
+// without passing this.
+function isValidBandwidth($input) {
+  return in_array($input, array('high', 'medium', 'low'), true);
+}
+
 // For strings in javascript or tags etc, expected to be in quotes so further quotes escaped rather than converted
 function validJsStr($input) {
   if (is_null($input)) return '';

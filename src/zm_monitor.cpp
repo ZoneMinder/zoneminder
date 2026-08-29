@@ -3485,7 +3485,7 @@ bool Monitor::Decode() {
 
     // Warn if falling behind
     auto lag = std::chrono::system_clock::now() - packet->timestamp;
-    if (lag > Seconds(ZM_WATCH_MAX_DELAY)) {
+    if (lag > Seconds(static_cast<int>(config.watch_max_delay))) {
       Warning("Decoding is not keeping up. %.2f seconds behind capture.", FPSeconds(lag).count());
     }
   }

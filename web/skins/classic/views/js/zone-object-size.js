@@ -80,12 +80,14 @@
     };
   }
 
-  // The filter keeps a pixel only if a fully-white kernel-sized window covers
-  // it (zm_zone.cpp:338), so once the kernel reaches the box's narrow side the
-  // object is erased entirely and the zone silently stops alarming.
+  // The filter keeps a pixel only if a fully-white FilterX by FilterY window
+  // covers it (zm_zone.cpp:338), so a box narrower than the kernel on either
+  // axis is erased entirely and the zone silently stops alarming. A box that
+  // exactly fits the kernel survives, hence < rather than <=.
   // Only catches the certain case - real limbs are thinner than their box.
-  function objectTooNarrowToFilter(rectWpx, rectHpx, kernel) {
-    return Math.min(rectWpx, rectHpx) <= Math.max(kernel || 0, MIN_FILTER_KERNEL);
+  function objectTooNarrowToFilter(rectWpx, rectHpx, filterX, filterY) {
+    return rectWpx < Math.max(filterX || 0, MIN_FILTER_KERNEL) ||
+        rectHpx < Math.max(filterY || 0, MIN_FILTER_KERNEL);
   }
 
   const api = {
@@ -391,11 +393,15 @@
     const form = document.zoneForm;
     const wPx = Math.abs(b.x - a.x) / maxX * monitorData[0].width;
     const hPx = Math.abs(b.y - a.y) / maxY * monitorData[0].height;
-    const kernel = Math.max(
+    const fx = Math.max(
         parseInt(form.elements['newZone[FilterX]'].value, 10) || 0,
-        parseInt(form.elements['newZone[FilterY]'].value, 10) || 0);
-    if (objectTooNarrowToFilter(wPx, hPx, kernel)) {
-      alert(zoneObjectSizeStrings.filterTooSmall.replace(/%s/g, kernel));
+        MIN_FILTER_KERNEL);
+    const fy = Math.max(
+        parseInt(form.elements['newZone[FilterY]'].value, 10) || 0,
+        MIN_FILTER_KERNEL);
+    if (objectTooNarrowToFilter(wPx, hPx, fx, fy)) {
+      alert(zoneObjectSizeStrings.filterTooSmall
+          .replace('%s', fx).replace('%s', fy));
     }
   }
 
@@ -409,11 +415,9 @@
         alert(zoneObjectSizeStrings.inactive);
         return;
       }
-      if (!armed) {
-        // Arming starts a fresh measurement, so drop the previous one's marks.
-        hideRect();
-        clearChangeMarks();
-      }
+      // Arming starts a fresh measurement: the next drag must snapshot the
+      // state as it is now, not as it was before the previous one.
+      if (!armed) forgetMeasurement();
       setArmed(!armed);
     });
 
@@ -461,7 +465,17 @@
         }
         const reader = new FileReader();
         reader.onload = function() {
-          loadStill(reader.result);
+          // The MIME type only says what the file claims to be. Decode it
+          // first, so a corrupt one complains instead of pausing the stream
+          // to show a broken image.
+          const probe = new Image();
+          probe.onload = function() {
+            loadStill(reader.result);
+          };
+          probe.onerror = function() {
+            alert(zoneObjectSizeStrings.notAnImage);
+          };
+          probe.src = reader.result;
         };
         reader.onerror = function() {
           alert(zoneObjectSizeStrings.notAnImage);
@@ -488,28 +502,45 @@
     const presetSelector = document.getElementById('presetSelector');
     if (presetSelector) presetSelector.addEventListener('change', forgetMeasurement);
 
-    // Unmarks just that field; the rest of the measurement stands. Our own
-    // writes assign .value directly and raise no input event.
     const form = document.zoneForm;
+
+    // applyZoneType disables every field we write once the zone stops being
+    // measurable, so stand down rather than re-enable them behind it.
+    form.elements['newZone[Type]'].addEventListener('change', function() {
+      if (zoneIsMeasurable()) return;
+      if (armed) setArmed(false);
+      forgetMeasurement();
+    });
+
+    // Hands one field back to the user: unmark it, and move the snapshot on
+    // so undo cannot revert an edit made after us. Our own writes assign
+    // .value directly and raise no input event.
+    function releaseField(field) {
+      markChanged(field, false);
+      const el = form.elements['newZone[' + field + ']'];
+      if (undoSnapshot && el) undoSnapshot[field] = el.value;
+    }
+
     MANAGED_FIELDS.forEach(function(field) {
       const el = form.elements['newZone[' + field + ']'];
       if (el) {
         el.addEventListener('input', function() {
-          markChanged(field, false);
+          releaseField(field);
         });
       }
-      // The pixel twin writes back to the percentage field without an event.
+      // The pixel twin writes the percentage field from zone.js's own oninput,
+      // which runs first, so the value is already there to snapshot.
       const px = document.getElementById(field + '_px');
       if (px) {
         px.addEventListener('input', function() {
-          markChanged(field, false);
+          releaseField(field);
         });
       }
     });
     const checkMethod = form.elements['newZone[CheckMethod]'];
     if (checkMethod) {
       checkMethod.addEventListener('change', function() {
-        markChanged('CheckMethod', false);
+        releaseField('CheckMethod');
       });
     }
 

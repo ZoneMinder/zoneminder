@@ -229,28 +229,35 @@ test('a hand-tuned threshold survives too', () => {
 });
 
 console.log('objectTooNarrowToFilter');
-test('an object no wider than the kernel cannot be detected', () => {
+test('an object narrower than the kernel cannot be detected', () => {
   // No fully-white window of that size fits, so the opening blacks out every
   // pixel and the zone can never alarm.
-  assert.strictEqual(ZM.objectTooNarrowToFilter(3, 140, 3), true);
-  assert.strictEqual(ZM.objectTooNarrowToFilter(2, 140, 3), true);
+  assert.strictEqual(ZM.objectTooNarrowToFilter(2, 140, 3, 3), true);
+});
+test('an object that exactly fits the kernel survives', () => {
+  assert.strictEqual(ZM.objectTooNarrowToFilter(3, 140, 3, 3), false);
 });
 test('a normally-sized object is fine', () => {
-  assert.strictEqual(ZM.objectTooNarrowToFilter(60, 140, 3), false);
+  assert.strictEqual(ZM.objectTooNarrowToFilter(60, 140, 3, 3), false);
 });
 test('judged against the kernel actually in use', () => {
   // The regression this guards: a sensitivity preset sets 7x7, the tool now
   // leaves that alone, and a 5px object is erased. Assuming 3x3 would miss it.
-  assert.strictEqual(ZM.objectTooNarrowToFilter(5, 140, 7), true);
-  assert.strictEqual(ZM.objectTooNarrowToFilter(5, 140, 3), false);
+  assert.strictEqual(ZM.objectTooNarrowToFilter(5, 140, 7, 7), true);
+  assert.strictEqual(ZM.objectTooNarrowToFilter(5, 140, 3, 3), false);
+});
+test('each side is judged against its own filter dimension', () => {
+  // A 15x3 kernel fits inside a 100x10 object, so nothing is erased.
+  assert.strictEqual(ZM.objectTooNarrowToFilter(100, 10, 15, 3), false);
+  // Turn the kernel on its side and the same object no longer fits it.
+  assert.strictEqual(ZM.objectTooNarrowToFilter(100, 10, 3, 15), true);
 });
 test('never reports safer than the 3x3 minimum', () => {
   // A kernel below the legal minimum cannot make a 2px object detectable.
-  assert.strictEqual(ZM.objectTooNarrowToFilter(2, 140, 0), true);
+  assert.strictEqual(ZM.objectTooNarrowToFilter(2, 140, 0, 0), true);
 });
-test('measured against the narrower side, not the area', () => {
-  // A wide flat object is still erased when its height is the problem.
-  assert.strictEqual(ZM.objectTooNarrowToFilter(400, 2, 3), true);
+test('a wide flat object is erased when its height is the problem', () => {
+  assert.strictEqual(ZM.objectTooNarrowToFilter(400, 2, 3, 3), true);
 });
 
 console.log('\n' + passed + ' passed, ' + failed + ' failed');

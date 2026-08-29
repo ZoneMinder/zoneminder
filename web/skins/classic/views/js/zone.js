@@ -90,6 +90,24 @@ function syncPixelInputStates() {
   }
 }
 
+/* The colour picker and the R/G/B inputs are two views of the same value */
+function alarmColourFromInputs() {
+  const form = document.zoneForm;
+  const picker = document.getElementById('alarmColour');
+  if (!picker) return;
+  const hex = (value) => ('0'+(parseInt(value) || 0).toString(16)).slice(-2);
+  picker.value = '#'+hex(form.newAlarmRgbR.value)+hex(form.newAlarmRgbG.value)+hex(form.newAlarmRgbB.value);
+  picker.disabled = form.newAlarmRgbR.disabled;
+}
+
+function alarmColourToInputs(picker) {
+  const form = document.zoneForm;
+  form.newAlarmRgbR.value = parseInt(picker.value.substr(1, 2), 16);
+  form.newAlarmRgbG.value = parseInt(picker.value.substr(3, 2), 16);
+  form.newAlarmRgbB.value = parseInt(picker.value.substr(5, 2), 16);
+  checkDirty();
+}
+
 function applyZoneType() {
   var form = document.zoneForm;
   if ( form.elements['newZone[Type]'].value == 'Inactive' || form.elements['newZone[Type]'].value == 'Privacy' ) {
@@ -140,6 +158,7 @@ function applyZoneType() {
     applyCheckMethod();
   }
   syncPixelInputStates();
+  alarmColourFromInputs();
 }
 
 function applyCheckMethod() {
@@ -490,6 +509,7 @@ function resetChanges() {
   form.presetSelector.selectedIndex = 0;
 
   applyZoneType();
+  alarmColourFromInputs();
   updateArea();
   checkDirty();
 }
@@ -739,6 +759,13 @@ function initPage() {
   applyZoneType();
   applyCheckMethod();
   updateAllPixelDisplays();
+
+  const picker = document.getElementById('alarmColour');
+  if (picker) {
+    picker.oninput = window['alarmColourToInputs'].bind(picker, picker);
+    $j('input[name^="newAlarmRgb"]').on('input change', alarmColourFromInputs);
+    alarmColourFromInputs();
+  }
 
   pauseBtn.click(streamCmdPause);
   playBtn.click(streamCmdPlay);

@@ -243,6 +243,7 @@ if ( count($other_zones) ) {
 								<tr>
 									<th scope="row"><?php echo translate('ZoneAlarmColour') ?></th>
 									<td colspan="2">
+										<input type="color" id="alarmColour" value="<?php echo sprintf('#%06x', $zone['AlarmRGB'] & 0xffffff) ?>"/>
 										<input type="number" name="newAlarmRgbR" value="<?php echo ($zone['AlarmRGB']>>16)&0xff ?>" min="0" max="255"/>
 										/
 										<input type="number" name="newAlarmRgbG" value="<?php echo ($zone['AlarmRGB']>>8)&0xff ?>" min="0" max="255"/>

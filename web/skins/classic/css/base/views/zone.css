@@ -196,6 +196,12 @@
 input[name="newZone[Name]"] {
 width: 100%;
 }
+#alarmColour {
+  width: 40px;
+  height: 26px;
+  padding: 1px;
+  vertical-align: middle;
+}
 input[name="newAlarmRgbR"],
 input[name="newAlarmRgbG"],
 input[name="newAlarmRgbB"] {

@@ -139,6 +139,11 @@ echo getNavBarHTML();
         <button type="button" id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
         <button type="button" id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
       </div>
+      <div class="float-right pr-3 pt-1">
+        <button type="button" id="saveBtn" value="Save" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Save') ?>"<?php if (!canEdit('Monitors') || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>><i class="fa fa-save"></i></button>
+        <button type="button" id="resetBtn" value="Reset" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Reset') ?>" disabled="disabled"><i class="fa fa-undo"></i></button>
+        <button type="button" id="cancelBtn" value="Cancel" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Cancel') ?>"><i class="fa fa-times"></i></button>
+      </div>
       <div class="w-100 pt-2">
         <h2><?php echo translate('Monitor').' '.validHtmlStr($monitor->Name()).' - '.translate('Zone').' '.validHtmlStr($zone['Name']) ?></h2>
       </div>
@@ -212,48 +217,7 @@ if ( count($other_zones) ) {
 ?>
               </span>
             </div>
-            <div id="zonePoints">
-              <table>
-                <tbody>
-                  <tr>
-  <?php
-  $pointCols = 2;
-  for ( $i = 0; $i < $pointCols; $i++ ) {
-  ?>
-                    <td>
-                      <table>
-                        <thead>
-                          <tr>
-                            <th><?php echo translate('Point') ?></th>
-                            <th><?php echo translate('X') ?></th>
-                            <th><?php echo translate('Y') ?></th>
-                            <th><?php echo translate('Action') ?></th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                        </tbody>
-                      </table>
-                    </td>
-  <?php
-  # I think this for horizontal filler
-      if ( $i < ($pointCols-1) ) {
-  ?>
-                    <td class="pointSpacer">&nbsp;</td>
-  <?php
-      }
-  } # end foreach pointcol
-  ?>
-                  </tr>
-                </tbody>
-              </table>
-              <div class="buttons">
-                <button type="button" id="saveBtn" value="Save" <?php if (!canEdit('Monitors') || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>>
-                <?php echo translate('Save') ?>
-                </button>
-                <button type="button" id="cancelBtn" value="Cancel"><?php echo translate('Cancel') ?></button>
-              </div>
-            </div><!--end ZonePoints-->
-          </div><!--image & points-->
+          </div><!--image & buttons-->
 
 					<div id="settingsPanel">
 						<table id="zoneSettings">
@@ -279,6 +243,7 @@ if ( count($other_zones) ) {
 								<tr>
 									<th scope="row"><?php echo translate('ZoneAlarmColour') ?></th>
 									<td colspan="2">
+										<input type="color" id="alarmColour" value="<?php echo sprintf('#%06x', $zone['AlarmRGB'] & 0xffffff) ?>"/>
 										<input type="number" name="newAlarmRgbR" value="<?php echo ($zone['AlarmRGB']>>16)&0xff ?>" min="0" max="255"/>
 										/
 										<input type="number" name="newAlarmRgbG" value="<?php echo ($zone['AlarmRGB']>>8)&0xff ?>" min="0" max="255"/>
@@ -335,6 +300,41 @@ if ( count($other_zones) ) {
 								</tr>
 							</tbody>
 						</table>
+            <div id="zonePoints">
+              <table>
+                <tbody>
+                  <tr>
+  <?php
+  $pointCols = 2;
+  for ( $i = 0; $i < $pointCols; $i++ ) {
+  ?>
+                    <td>
+                      <table>
+                        <thead>
+                          <tr>
+                            <th class="pointIndex"><?php echo translate('Point') ?></th>
+                            <th class="pointX"><?php echo translate('X') ?></th>
+                            <th class="pointY"><?php echo translate('Y') ?></th>
+                            <th class="pointAction"><?php echo translate('Action') ?></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                      </table>
+                    </td>
+  <?php
+  # I think this for horizontal filler
+      if ( $i < ($pointCols-1) ) {
+  ?>
+                    <td class="pointSpacer">&nbsp;</td>
+  <?php
+      }
+  } # end foreach pointcol
+  ?>
+                  </tr>
+                </tbody>
+              </table>
+            </div><!--end ZonePoints-->
 					</div>
       </form>
     </div><!--content-->

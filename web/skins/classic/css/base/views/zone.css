@@ -8,11 +8,14 @@
   min-height: 0;
   text-align: left;
 }
-#settingsPanel, .buttons, #zonePoints  {
-  margin: 2px;
+#settingsPanel {
+  margin-top: 2px;
+  margin-right: 2px;
 }
-#imageAndPoints .buttons {
-  text-align: center;
+/* No right margin: #zonePoints is full width inside the panel and the margin
+ * would push it past the panel, giving it a horizontal scrollbar. */
+#zonePoints {
+  margin-top: 2px;
 }
 #settingsPanel {
   flex: 0 0 540px;
@@ -245,8 +248,14 @@ svg circle {
   display: inline;
   float: left;
 }
+/* Sized to the video by changeScale() so its left edge lines up with the image */
+/* Sized and positioned to the video by changeScale() so the two line up */
 #StreamControlButtons {
-  display: inline;
+  display: block;
+  overflow: hidden;
+  text-align: left;
+}
+#StreamControlButtons #playerControl {
   float: right;
 }
 

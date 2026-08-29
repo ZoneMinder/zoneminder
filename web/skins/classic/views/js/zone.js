@@ -495,7 +495,7 @@ function resetChanges() {
 }
 
 function saveChanges(element) {
-  var form = element.form;
+  var form = document.zoneForm;
   if ( validateForm(form) ) {
     submitForm(form);
     if ( form.elements['newZone[Type]'].value == 'Privacy' ) {
@@ -848,8 +848,15 @@ function initPage() {
 function changeScale() {
   const feed = $j('#imageFeed'+zone.MonitorId);
   if (!feed.length) return;
-  const newSize = scaleToFit(monitorData[0].width, monitorData[0].height, feed, $j('#imageAndPoints .buttons'), $j('#imageAndPoints'));
-  if (newSize) feed.css('width', newSize.width+'px');
+  const controls = $j('#StreamControlButtons');
+  const newSize = scaleToFit(monitorData[0].width, monitorData[0].height, feed, controls, $j('#imageAndPoints'));
+  if (!newSize) return;
+  feed.css('width', newSize.width+'px');
+  // Line the stream controls up with the video, which is centred in the column
+  controls.css({
+    'width': newSize.width+'px',
+    'margin-left': (feed.offset().left - $j('#imageAndPoints').offset().left)+'px'
+  });
 }
 
 function panZoomIn(el) {

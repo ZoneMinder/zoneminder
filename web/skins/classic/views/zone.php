@@ -139,6 +139,11 @@ echo getNavBarHTML();
         <button type="button" id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
         <button type="button" id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
       </div>
+      <div class="float-right pr-3 pt-1">
+        <button type="button" id="saveBtn" value="Save" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Save') ?>"<?php if (!canEdit('Monitors') || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>><i class="fa fa-save"></i></button>
+        <button type="button" id="resetBtn" value="Reset" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Reset') ?>" disabled="disabled"><i class="fa fa-undo"></i></button>
+        <button type="button" id="cancelBtn" value="Cancel" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Cancel') ?>"><i class="fa fa-times"></i></button>
+      </div>
       <div class="w-100 pt-2">
         <h2><?php echo translate('Monitor').' '.validHtmlStr($monitor->Name()).' - '.translate('Zone').' '.validHtmlStr($zone['Name']) ?></h2>
       </div>
@@ -212,13 +217,6 @@ if ( count($other_zones) ) {
 ?>
               </span>
             </div>
-              <div class="buttons">
-                <button type="button" id="saveBtn" value="Save" <?php if (!canEdit('Monitors') || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>>
-                <?php echo translate('Save') ?>
-                </button>
-                <button type="button" id="resetBtn" value="Reset" disabled="disabled"><?php echo translate('Reset') ?></button>
-                <button type="button" id="cancelBtn" value="Cancel"><?php echo translate('Cancel') ?></button>
-              </div>
           </div><!--image & buttons-->
 
 					<div id="settingsPanel">

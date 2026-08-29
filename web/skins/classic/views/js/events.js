@@ -67,11 +67,13 @@ function ajaxRequest(params) {
       params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
     },
     error: function(jqXHR) {
-      if (jqXHR.statusText != 'abort') {
-        console.log("error", jqXHR);
-      }
-      //logAjaxFail(jqXHR);
-      //$j('#eventTable').bootstrapTable('refresh');
+      // Every reload aborts the request in flight, so those are not failures.
+      if (jqXHR.statusText == 'abort') return;
+      // Without this the table sits on "Loading, please wait" for good, which
+      // is what a large result set exhausting the PHP memory limit looks like
+      // from here: the request 500s and nothing ever says so. See #3301.
+      table.bootstrapTable('hideLoading');
+      logAjaxFail(jqXHR);
     }
   });
 }

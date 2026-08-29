@@ -1526,9 +1526,26 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
   } else {
     if (last_dts[stream->index] != AV_NOPTS_VALUE) {
       if (pkt->dts < last_dts[stream->index]) {
-        Warning("non increasing dts, fixing. our dts %" PRId64 " stream %d last_dts %" PRId64 " last_duration %" PRId64 " (%.3f seconds back). reorder_queue_size=%zu",
-            pkt->dts, stream->index, last_dts[stream->index], last_duration[stream->index],
-            (last_dts[stream->index] - pkt->dts) * av_q2d(stream->time_base), reorder_queue_size);
+        // Cameras with sloppy timestamps do this on nearly every packet, so at
+        // one message per packet the log fills at frame rate and buries
+        // everything else (#4242). The message is worth keeping, so rate limit
+        // it to one a second per stream and carry the count of the ones folded
+        // into it rather than dropping it to Debug.
+        const SystemTimePoint now = std::chrono::system_clock::now();
+        const int index = stream->index;
+        if (!last_dts_warning.count(index) or (now - last_dts_warning[index] >= Seconds(1))) {
+          Warning("non increasing dts, fixing. our dts %" PRId64 " stream %d last_dts %" PRId64 " last_duration %" PRId64 " (%.3f seconds back). reorder_queue_size=%zu%s",
+              pkt->dts, stream->index, last_dts[stream->index], last_duration[stream->index],
+              (last_dts[stream->index] - pkt->dts) * av_q2d(stream->time_base), reorder_queue_size,
+              suppressed_dts_warnings[index]
+                ? stringtf(" (%" PRIu64 " more since the last of these)",
+                           suppressed_dts_warnings[index]).c_str()
+                : "");
+          last_dts_warning[index] = now;
+          suppressed_dts_warnings[index] = 0;
+        } else {
+          suppressed_dts_warnings[index]++;
+        }
         pkt->dts = last_dts[stream->index]+last_duration[stream->index];
         if (pkt->dts > pkt->pts) pkt->pts = pkt->dts; // Do it here to avoid warning below
       } else if (pkt->dts == last_dts[stream->index]) {

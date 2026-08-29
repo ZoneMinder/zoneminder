@@ -5,6 +5,7 @@
 #include "zm_define.h"
 #include "zm_ffmpeg.h"
 #include "zm_swscale.h"
+#include "zm_time.h"
 
 #include <list>
 #include <memory>
@@ -89,6 +90,12 @@ class VideoStore {
   int64_t *next_dts;
   std::map<int, int64_t> last_dts;
   std::map<int, int64_t> last_duration;
+  // Cameras with sloppy timestamps hand us a decreasing dts on nearly every
+  // packet, so warning per packet floods the log at frame rate. See #4242.
+  // Kept per stream: when the last one was logged, and how many have been
+  // folded into the next message.
+  std::map<int, SystemTimePoint> last_dts_warning;
+  std::map<int, uint64_t> suppressed_dts_warnings;
   int64_t audio_next_pts;
 
   int max_stream_index;

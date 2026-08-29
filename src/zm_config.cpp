@@ -111,7 +111,7 @@ void zmLoadDBConfig() {
 void process_configfile(char const *configFile) {
   std::ifstream cfg(configFile);
   if ( !cfg.is_open() ) {
-    Fatal("Can't open %s: %s", configFile, strerror(errno));
+    Error("Can't open %s: %s", configFile, strerror(errno));
     return;
   }
   std::string raw;

@@ -101,6 +101,15 @@ but if you installed from source or the group was not added, run:
 
     sudo adduser www-data video
 
+If you plan to use hardware accelerated decoding (``DecoderHWAccelName`` set to
+``vaapi`` or ``qsv``), the web server user also needs the ``render`` group. The
+render node ``/dev/dri/renderD*`` belongs to ``render`` rather than ``video``,
+and without it ZoneMinder logs ``Failed to create hwaccel device``:
+
+::
+
+    sudo adduser www-data render
+
 **Step 7:** Tweak Apache configuration
 
 ::
@@ -210,6 +219,15 @@ but if you installed from source or the group was not added, run:
 ::
 
     sudo adduser www-data video
+
+If you plan to use hardware accelerated decoding (``DecoderHWAccelName`` set to
+``vaapi`` or ``qsv``), the web server user also needs the ``render`` group. The
+render node ``/dev/dri/renderD*`` belongs to ``render`` rather than ``video``,
+and without it ZoneMinder logs ``Failed to create hwaccel device``:
+
+::
+
+    sudo adduser www-data render
 
 **Step 7:** Tweak Apache configuration
 

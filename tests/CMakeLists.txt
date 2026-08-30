@@ -83,6 +83,7 @@ set(TEST_SOURCES
   zm_image_blend.cpp
   zm_image_delta.cpp
   zm_image_jpeg_range.cpp
+  zm_log_throttle.cpp
   zm_logger_rotate.cpp
   zm_logger_reload.cpp
   zm_ffmpeg_camera.cpp

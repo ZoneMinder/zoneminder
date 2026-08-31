@@ -274,6 +274,7 @@ $SLANG = array(
     'EnterNewFilterName'    => 'Enter new filter name',
     'Enter password for QR code' => 'Enter password for QR code',
     'ErrorBrackets'         => 'Error, please check you have an equal number of opening and closing brackets',
+    'ErrorUpdatingEventTable' => 'Error updating event table',
     'ErrorValidValue'       => 'Error, please check that all terms have a valid value',
     'Etc'                   => 'etc',
     'EventFilter'           => 'Event Filter',

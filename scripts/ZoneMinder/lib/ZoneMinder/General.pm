@@ -35,6 +35,8 @@ our %EXPORT_TAGS = (
       daemonControl
       parseNameEqualsValueToHash
       hash_diff
+      acquireExclusiveLock
+      lockHolderPid
       ) ]
     );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
@@ -56,6 +58,68 @@ use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Database qw(:all);
 
 use POSIX;
+use Fcntl qw(:flock O_WRONLY O_CREAT);
+
+# The pid recorded in a lock file, or undef when it is empty or unreadable.
+sub lockHolderPid {
+  my ($path) = @_;
+  my $rfh;
+  return undef unless open($rfh, '<', $path);
+  my $line = <$rfh>;
+  close($rfh);
+  return undef unless defined $line;
+  chomp $line;
+  # The capture also untaints it, since callers log it from taint checked scripts.
+  return ($line =~ /^(\d+)$/) ? $1 : undef;
+}
+
+# Take an exclusive, non blocking lock on $path, creating it if needed, and
+# record the holder's pid in it. The lock lives for as long as the caller keeps
+# the returned handle, so store it somewhere that outlives the work it guards.
+# It is released when the handle goes out of scope or the process exits,
+# including on a crash, which a lock built out of a pid file or the presence of
+# a socket cannot manage.
+#
+# Returns ($fh, $status, $pid):
+#   ($fh,   'ok',    $$)   the lock is ours
+#   (undef, 'held',  $pid) someone else has it, and who, when the file says so
+#   (undef, 'error', undef) it could not be opened at all, already logged
+#
+# Callers need those two failures kept apart. A lock file left behind by another
+# user cannot be opened for write at all, and reporting that as a duplicate
+# server sends the operator hunting for a process that does not exist.
+sub acquireExclusiveLock {
+  my ($path) = @_;
+
+  # O_CREAT without O_TRUNC on purpose. Truncating at open would throw away the
+  # current holder's pid before we know whether we can have the lock, and that
+  # pid is the one useful thing the loser has to report. 0666 because whoever
+  # runs the daemon next has to be able to open it for write: the socket
+  # directory belongs to the web user, but these daemons get run by hand as root
+  # often enough that a root owned 0644 lock file would wedge that monitor for
+  # good.
+  my $fh;
+  if (!sysopen($fh, $path, O_WRONLY|O_CREAT, 0666)) {
+    Error("Can't open lock file $path: $!");
+    return (undef, 'error', undef);
+  }
+  # umask takes the group and other write bits back off the mode above, so set
+  # them again. Harmlessly fails when we did not create it.
+  chmod(0666, $path);
+
+  if (!flock($fh, LOCK_EX|LOCK_NB)) {
+    my $pid = lockHolderPid($path);
+    close($fh);
+    return (undef, 'held', $pid);
+  }
+
+  # Ours now, so say who we are and let the next process name us rather than
+  # leaving someone to run fuser over the file.
+  truncate($fh, 0);
+  seek($fh, 0, 0);
+  syswrite($fh, "$$\n");
+  return ($fh, 'ok', $$);
+}
 
 # For running general shell commands
 sub executeShellCommand {
@@ -707,6 +771,8 @@ of the ZoneMinder scripts
       systemStatus
       parseNameEqualsValueToHash
       hash_diff
+      acquireExclusiveLock
+      lockHolderPid
       ) ]
 
 

@@ -317,6 +317,7 @@ $SLANG = array(
     'Enter password for QR code' => 'Enter password for QR code',
     'ErrorBrackets'         => 'Error, please check you have an equal number of opening and closing brackets',
     'ErrorDeletingRowFromLogTable' => 'Error deleting row from log table',
+    'ErrorUpdatingEventTable' => 'Error updating event table',
     'ErrorUpdatingLogTable' => 'Error updating log table',
     'ErrorValidValue'       => 'Error, please check that all terms have a valid value',
     'ErrorVerifyingMonitorName'=> 'Unable to verify the monitor name because the name is missing',

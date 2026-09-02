@@ -959,6 +959,13 @@ function isJSON(str) {
   }
 }
 
+// Cookies holding an absolute date range. They are shared between the events
+// list and montage review (refs #4976), but do not age well: kept until 2038, a
+// window picked months ago is restored on a bare page load and the view opens on
+// a range with no events. Session scope keeps the sharing and lets a new session
+// fall back to the last hour.
+const sessionCookies = ['zmFilter_StartDateTime', 'zmFilter_EndDateTime'];
+
 function setCookie(name, value, seconds) {
   var newValue = (typeof value === 'string' || typeof value === 'boolean') ? value : JSON.stringify(value);
   let expires = "";
@@ -966,6 +973,8 @@ function setCookie(name, value, seconds) {
     const date = new Date();
     date.setTime(date.getTime() + (seconds*1000));
     expires = "; expires=" + date.toUTCString();
+  } else if (sessionCookies.includes(name)) {
+    expires = "";
   } else {
     // 2147483647 is 2^31 - 1 which is January of 2038 to avoid the 32bit integer overflow bug.
     expires = "; max-age=2147483647";

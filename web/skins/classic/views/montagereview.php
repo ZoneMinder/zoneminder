@@ -308,18 +308,12 @@ getBodyTopHTML();
     <div id="header">
 <?php
 $filter_inline = filterSettingsInline();
-$html = '';
-// In inline mode the filter panel sits at the top of the page and this flip
-// icon is what hides/shows it. In sidebar mode the panel lives in the sidebar
-// extruder, which has its own show/hide control, so the flip icon is omitted.
-if ($filter_inline) {
-  $html .= '<a class="flip" href="#"
+$html = '<a class="flip" href="#"
            data-flip-control-object="#mfbpanel"
            data-flip-control-run-after-func="applyChosen drawGraph"
            data-flip-control-run-after-complet-func="changeScale">
              <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
            </a>'.PHP_EOL;
-}
 $html .= '<div id="mfbpanel" class="'.($filter_inline ? '' : 'hidden-shift ').'container-fluid">'.PHP_EOL;
 echo $html;
 // The monitor attribute filters pick which cameras are shown and are rarely
@@ -327,6 +321,7 @@ echo $html;
 // of the filter bar. skin.js applies hidden-shift from data-initial-state-icon,
 // which moves the block off screen while leaving it measurable so Chosen still
 // initialises the selects inside it.
+if ($filter_inline) {
 echo '<a class="flip" href="#"
          data-flip-control-object="#monitorFilterBar"
          data-initial-state-icon="hidden"
@@ -335,6 +330,7 @@ echo '<a class="flip" href="#"
         '.translate('MonitorFilters').'
       </a>'.PHP_EOL;
 echo '<div id="monitorFilterBar">'.$resultMonitorFilters['filterBarWithoutMonitor'].'</div>'.PHP_EOL;
+}
 if (count($filter->terms())) {
   // The monitor selection is what those attribute filters produce, so it stays
   // on show with the event filter terms rather than collapsing with them. It is

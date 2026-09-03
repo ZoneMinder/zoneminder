@@ -55,6 +55,10 @@ function ajaxRequest(params) {
     timeout: 0,
     success: function(data) {
       if (data.result == 'Error') {
+        // ajaxError() answers 200 with result=Error for things like a
+        // permission failure, so this returns without params.success() and
+        // would leave the table loading for ever, same as the error path below.
+        table.bootstrapTable('hideLoading');
         alert(data.message);
         return;
       }
@@ -66,12 +70,19 @@ function ajaxRequest(params) {
       // rearrange the result into what bootstrap-table expects
       params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
     },
-    error: function(jqXHR) {
-      if (jqXHR.statusText != 'abort') {
-        console.log("error", jqXHR);
-      }
-      //logAjaxFail(jqXHR);
-      //$j('#eventTable').bootstrapTable('refresh');
+    error: function(jqXHR, textStatus, errorThrown) {
+      // Every reload aborts the request in flight, so those are not failures.
+      if (jqXHR.statusText == 'abort') return;
+      // Without this the table sits on "Loading, please wait" for good, which
+      // is what a large result set exhausting the PHP memory limit looks like
+      // from here: the request 500s and nothing ever says so. logAjaxFail only
+      // writes to the console, and events.php suppresses display_errors, so a
+      // memory fatal arrives with an empty body and not even that says
+      // anything useful. Hence the alert as well. See #3301.
+      table.bootstrapTable('hideLoading');
+      zmAlert(translate['Reason'] + ': ' + jqXHR.statusText + '~~' +
+        translate['ErrorUpdatingEventTable'], translate['AJAXRequestError']);
+      logAjaxFail(jqXHR, textStatus, errorThrown);
     }
   });
 }

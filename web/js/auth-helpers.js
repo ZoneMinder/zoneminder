@@ -150,26 +150,62 @@ function goToLogin() {
   window.location.assign(loginRedirectUrl(thisUrl, currentView));
 }
 
+// A hidden tab has its timers throttled, and a slept/frozen one has them
+// stopped outright, so nothing refreshes the credential while we are in the
+// background. The server rotates the hash at half of AUTH_HASH_TTL
+// (generateAuthHash()), so a hash baked into a stream <img> src or a table url
+// an hour or more before we come back is probably already dead: every request
+// made off it 403s and fills the log with auth errors. Remember when we went
+// hidden so refocus can tell an alt-tab from an overnight sleep.
+const AUTH_STALE_MS = 60 * 60 * 1000;
+let authHiddenAt = 0;
+
+// Pure so it can be tested without faking the clock or the DOM.
+function authHiddenTooLong(hiddenAt, now) {
+  return hiddenAt !== 0 && (now - hiddenAt) > AUTH_STALE_MS;
+}
+
 // Perform a single silent auth probe against the lightweight navBar status
-// endpoint. On success zmAuth is refreshed (via setNavBar) and onValid() is
-// invoked so the view can repaint its streams with the fresh credential. A dead
-// session (401) goes straight to login; transient errors are swallowed so we
-// don't bounce the user on a blip.
+// endpoint. zmAuth is refreshed (via setNavBar) and the queued callbacks are
+// then invoked so each view can repaint its streams with the fresh credential.
+// A dead session (401) goes straight to login and the callbacks are dropped;
+// other failures still run them, since a transient blip is no reason to leave
+// the page's streams stopped. Concurrent callers share the one request.
 let authRevalidating = false;
+const authPendingCallbacks = [];
 function revalidateAuth(onValid) {
+  if (typeof onValid === 'function') authPendingCallbacks.push(onValid);
   if (authRevalidating) return;
   authRevalidating = true;
   $j.getJSON(zmAuth.appendTo(thisUrl + '?view=request&request=status&entity=navBar'))
       .done(function(data) {
         setNavBar(data);
-        if (typeof onValid === 'function') onValid();
+        // Only a reply we actually got clears the staleness; until then every
+        // whenAuthFresh() caller keeps queueing instead of running early.
+        authHiddenAt = 0;
       })
       .fail(function(jqxhr) {
         if (authFailureAction(jqxhr.status) == 'login') goToLogin();
       })
       .always(function() {
         authRevalidating = false;
+        const callbacks = authPendingCallbacks.splice(0, authPendingCallbacks.length);
+        if (authGoingToLogin) return;
+        for (let i = 0; i < callbacks.length; i++) callbacks[i]();
       });
+}
+
+// Run cb against a credential we have reason to trust. After a short hide the
+// hash is still good and cb runs straight away; after a long one cb is queued
+// behind the revalidation, so nothing restarts a stream or a table poll on the
+// expired hash. Use this anywhere a visibility/resume handler kicks off
+// authenticated requests.
+function whenAuthFresh(cb) {
+  if (!authHiddenTooLong(authHiddenAt, Date.now())) {
+    cb();
+    return;
+  }
+  revalidateAuth(cb);
 }
 
 // When the tab becomes visible again after being hidden/slept, the baked-in auth
@@ -178,7 +214,10 @@ function revalidateAuth(onValid) {
 // every stream fire a stale request that 403s. Wired up by skin.js for the
 // authenticated views only.
 function onAuthVisible() {
-  if (document.visibilityState !== 'visible') return;
+  if (document.visibilityState !== 'visible') {
+    if (!authHiddenAt) authHiddenAt = Date.now();
+    return;
+  }
   revalidateAuth(function() {
     // console repaints its thumbnails via the bootstrap-table reload; other
     // views re-point their streams off the refreshed credential.
@@ -194,6 +233,8 @@ if (typeof module !== 'undefined' && module.exports) {
     setUrlParam,
     authHashFromRelay,
     rebuildStreamSrc,
+    authHiddenTooLong,
+    AUTH_STALE_MS,
     ZMAuth,
   };
 }

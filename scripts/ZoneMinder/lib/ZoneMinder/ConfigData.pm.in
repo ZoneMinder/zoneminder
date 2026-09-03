@@ -1048,6 +1048,50 @@ our @options = (
     category  => 'network',
   },
   {
+    name        =>  'ZM_WEBSOCKET_TLS_CERT',
+    default     =>  '',
+    description =>  'Certificate used to serve wss:// on the monitor websocket ports.',
+    help        =>  q`
+      Path to a PEM certificate chain used by the per-monitor websocket
+      listeners in zmc. Browsers refuse a ws:// connection from a page
+      served over https, so this must be set for the websocket transport
+      to be usable on a TLS protected install. Set ZM_WEBSOCKET_TLS_KEY
+      as well; the listener stays plaintext until both are present.
+      The same certificate the web server uses is normally the right one,
+      but note that zmc must be able to read the private key, and keys
+      issued for a web server are frequently root only.`,
+    type  =>  $types{string},
+    category  => 'network',
+  },
+  {
+    name        =>  'ZM_WEBSOCKET_TLS_KEY',
+    default     =>  '',
+    description =>  'Private key matching ZM_WEBSOCKET_TLS_CERT.',
+    help        =>  q`
+      Path to the PEM private key matching ZM_WEBSOCKET_TLS_CERT. It must
+      be readable by the user zmc runs as, which is usually not root. If
+      it cannot be read, the websocket listener logs the reason and
+      refuses to start rather than falling back to plaintext.`,
+    type  =>  $types{string},
+    category  => 'network',
+  },
+  {
+    name        =>  'ZM_MIN_WEBSOCKET_PORT',
+    default     =>  '',
+    description =>  'Alternate port range to contact for monitor websocket transport.',
+    help        =>  q`
+      This setting specifies the beginning of a dedicated websocket port
+      range for monitor websocket transport from zmc. Each monitor will
+      listen on this value plus the Monitor Id. For example, a value of
+      31000 causes monitor 1 to listen on port 31001. Use a dedicated
+      range rather than ZM_MIN_STREAMING_PORT so websocket transport does
+      not conflict with multi-port ZMS streaming. If you expose these
+      ports outside a trusted network, terminate TLS and enforce
+      authentication in a reverse proxy or firewall policy.`,
+    type  =>  $types{integer},
+    category  => 'network',
+  },
+  {
     name        => 'ZM_MIN_RTP_PORT',
     default     => '40200',
     description => 'Minimum port that ZoneMinder will listen for RTP traffic on',

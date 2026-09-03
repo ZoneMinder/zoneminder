@@ -242,18 +242,16 @@ test('applyTo only sets the connkey when authentication is off', () => {
       'cgi-bin/nph-zms?monitor=26&connkey=99&mode=jpeg');
 });
 
-test('authHiddenTooLong ignores a tab that was never hidden', () => {
-  assert.strictEqual(ZM.authHiddenTooLong(0, Date.now()), false);
-});
-test('authHiddenTooLong lets a quick alt-tab through', () => {
+test('authIsStale trusts a credential the server just confirmed', () => {
   const now = Date.now();
-  assert.strictEqual(ZM.authHiddenTooLong(now - 30 * 1000, now), false);
-  assert.strictEqual(ZM.authHiddenTooLong(now - ZM.AUTH_STALE_MS, now), false);
+  assert.strictEqual(ZM.authIsStale(now, now), false);
+  assert.strictEqual(ZM.authIsStale(now - 30 * 1000, now), false);
+  assert.strictEqual(ZM.authIsStale(now - ZM.AUTH_STALE_MS, now), false);
 });
-test('authHiddenTooLong flags a hide longer than the hash rotation', () => {
+test('authIsStale flags a credential unheard of for longer than the rotation', () => {
   const now = Date.now();
-  assert.strictEqual(ZM.authHiddenTooLong(now - ZM.AUTH_STALE_MS - 1, now), true);
-  assert.strictEqual(ZM.authHiddenTooLong(now - 8 * 60 * 60 * 1000, now), true);
+  assert.strictEqual(ZM.authIsStale(now - ZM.AUTH_STALE_MS - 1, now), true);
+  assert.strictEqual(ZM.authIsStale(now - 8 * 60 * 60 * 1000, now), true);
 });
 
 console.log('\n' + passed + ' passed, ' + failed + ' failed');

@@ -2193,7 +2193,13 @@ bool Monitor::Analyse() {
                     if (zone.Alarmed()) {
                       if (!packet->alarm_cause.empty()) packet->alarm_cause += ",";
                       packet->alarm_cause += zone.Label();
-                      if (zone.AlarmImage())
+                      // analysis_image is only allocated when the frame scored
+                      // (refs #4996). A preclusive zone alarms and is left marked
+                      // Alarmed() while DetectMotion deliberately zeroes the score,
+                      // so this loop is reachable with no analysis_image at all.
+                      // Overlaying then dereferences null. Nothing consumes an
+                      // analysis image for a zero-score frame anyway.
+                      if (packet->analysis_image and zone.AlarmImage())
                         packet->analysis_image->Overlay(*(zone.AlarmImage()));
                     }
                     Debug(4, "Setting score for zone %d to %d", zone_index, zone.Score());

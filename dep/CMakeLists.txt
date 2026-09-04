@@ -8,9 +8,12 @@ endif()
 add_subdirectory(libbcrypt)
 add_subdirectory(RtspServer)
 add_subdirectory(span-lite)
-set(ENABLE_INSTALL_SAVED "${ENABLE_INSTALL}")
-set(ENABLE_INSTALL OFF)
-set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
-add_subdirectory(CxxUrl)
-unset(CMAKE_POLICY_DEFAULT_CMP0077)
-set(ENABLE_INSTALL "${ENABLE_INSTALL_SAVED}")
+# Same reason as jwt-cpp: keep the vendored copy's install() rules - its static
+# library, url.hpp/string.hpp and its cmake package files - out of our install
+# prefix. This replaces forcing CxxUrl's own ENABLE_INSTALL option off, which
+# worked but rested on the submodule continuing to spell that option exactly
+# that way, and on CMAKE_POLICY_DEFAULT_CMP0077 to make the set() stick at all
+# (CxxUrl asks for CMake 3.10, so option() would otherwise ignore it). A rename
+# upstream would have quietly restored the leak. CMake enforces this one, and
+# inter-target dependencies supersede the exclusion, so zm still links it.
+add_subdirectory(CxxUrl EXCLUDE_FROM_ALL)

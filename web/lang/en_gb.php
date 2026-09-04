@@ -1080,7 +1080,11 @@ Always: A zmc process will run and immediately connect and stay connected.~~~~
     ),
   'OPTIONS_WHATTODISPLAY' => array(
      'Help' => '
-     On the Watch, Montage, Event page, you can display either a video stream, or an audio stream visualization, or both a video stream and an audio visualization.
+     On the Watch, Montage, Event page, you can display either a video stream, or an audio stream visualization, or both a video stream and an audio visualization.~~
+     To display the audio motion visualization, install the file "/skins/MySkin/assets/audioMotion-analyzer/src/audioMotion-analyzer.js".~~
+     This file can be downloaded from the following links:~~
+     https://cdn.jsdelivr.net/npm/audiomotion-analyzer@X.X.X where X.X.X is the version number~~
+     https://github.com/hvianna/audioMotion-analyzer/releases
      ',
     ),
   'FUNCTION_ANALYSIS_ENABLED' => array(
@@ -1177,15 +1181,6 @@ None: No frames will be decoded, live view and thumbnails will not be available~
      - SceneTemperature~~
      - Tamper~~
      For more details, see the instructions for your camera, as well as the specifications at the link:~~https://www.onvif.org/specs/core/ONVIF-Core-Specification.pdf
-    '
-   ),
-   'OPTIONS_WHATTODISPLAY' => array(
-    'Help' => '
-     Audio motion visualization can be displayed on the Montage, Watch, and Event pages.~~
-     To do this, install the file "/skins/MySkin/assets/audioMotion-analyzer/src/audioMotion-analyzer.js".~~
-     This file can be downloaded from the following links:~~
-     https://cdn.jsdelivr.net/npm/audiomotion-analyzer@X.X.X where X.X.X is the version number~~
-     https://github.com/hvianna/audioMotion-analyzer/releases
     '
    ),
   'ZM_OPT_TRAINING' => array(

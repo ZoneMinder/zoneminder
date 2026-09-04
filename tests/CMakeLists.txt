@@ -21,6 +21,7 @@ set(TEST_SOURCES
   zm_font.cpp
   zm_image.cpp
   zm_monitorstream.cpp
+  zm_onvif_auth_error.cpp
   zm_onvif_renewal.cpp
   zm_onvif_wsse.cpp
   zm_pixformat.cpp

@@ -158,7 +158,7 @@ function goToLogin() {
 
 // How long a credential we have not heard about is trusted for. The server
 // rotates the hash at half of AUTH_HASH_TTL (generateAuthHash()), so anything
-// last confirmed an hour or more ago is likely dead, and every request made off
+// last confirmed longer ago than that is likely dead, and every request made off
 // it 403s and fills the log with auth errors.
 //
 // Whatever stops the page from hearing about the credential is what makes it go
@@ -176,19 +176,33 @@ function authIsStale(freshAt, now) {
   return (now - freshAt) > AUTH_STALE_MS;
 }
 
+// The probe carries no credential, deliberately. zm_authenticate_request()
+// resolves the request against exactly one source: an auth= in the URL takes the
+// ZM_AUTH_HASH_LOGINS branch (auth.php), and when getAuthUser() rejects it the
+// chain has already been entered, so userFromSession() below it never runs and a
+// live session cookie authenticates as nobody. Sending the very hash we suspect
+// is dead is what would make the probe fail. Without it the session cookie is
+// what answers, which is the question being asked: who am I, and what is my
+// current hash?
+function authProbeUrl(baseUrl) {
+  return baseUrl + '?view=request&request=status&entity=navBar';
+}
+
 // Perform a single silent auth probe against the lightweight navBar status
 // endpoint. zmAuth is refreshed (via setNavBar) and the queued callbacks are
 // then invoked so each view can repaint its streams with the fresh credential.
-// A dead session (401) goes straight to login and the callbacks are dropped;
-// other failures still run them, since a transient blip is no reason to leave
-// the page's streams stopped. Concurrent callers share the one request.
+// Since the probe rides the session cookie, a rejection (401 or 403, both of
+// which authFailureAction calls 'login') means the session itself is gone: go
+// straight to login and drop the callbacks. Other failures still run them, since
+// a transient blip is no reason to leave the page's streams stopped. Concurrent
+// callers share the one request.
 let authRevalidating = false;
 const authPendingCallbacks = [];
 function revalidateAuth(onValid) {
   if (typeof onValid === 'function') authPendingCallbacks.push(onValid);
   if (authRevalidating) return;
   authRevalidating = true;
-  $j.getJSON(zmAuth.appendTo(thisUrl + '?view=request&request=status&entity=navBar'))
+  $j.getJSON(authProbeUrl(thisUrl))
       .done(function(data) {
         // setNavBar feeds this through zmAuth.update(), which is what stamps
         // the credential fresh. Stamp here too so authentication being off - no
@@ -245,6 +259,8 @@ if (typeof module !== 'undefined' && module.exports) {
     authHashFromRelay,
     rebuildStreamSrc,
     authIsStale,
+    authProbeUrl,
+    revalidateAuth,
     AUTH_STALE_MS,
     ZMAuth,
   };

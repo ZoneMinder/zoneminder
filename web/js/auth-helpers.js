@@ -103,13 +103,19 @@ class ZMAuth {
   update(data) {
     if (!data) return false;
     if (data.auth_relay) {
+      // Stamp even when it matches: the server just handed us this relay, so
+      // the credential is confirmed good whether or not it changed.
+      authFreshAt = Date.now();
       if (data.auth_relay === this.relay) return false;
       this.relay = data.auth_relay;
       return true;
     }
-    if (data.auth && data.auth !== this.hash) {
-      this.relay = setUrlParam(this.relay, 'auth', data.auth);
-      return true;
+    if (data.auth) {
+      authFreshAt = Date.now();
+      if (data.auth !== this.hash) {
+        this.relay = setUrlParam(this.relay, 'auth', data.auth);
+        return true;
+      }
     }
     return false;
   }
@@ -150,26 +156,84 @@ function goToLogin() {
   window.location.assign(loginRedirectUrl(thisUrl, currentView));
 }
 
+// How long a credential we have not heard about is trusted for. The server
+// rotates the hash at half of AUTH_HASH_TTL (generateAuthHash()), so anything
+// last confirmed longer ago than that is likely dead, and every request made off
+// it 403s and fills the log with auth errors.
+//
+// Whatever stops the page from hearing about the credential is what makes it go
+// stale, and there is more than one: a hidden tab has its timers throttled and
+// a slept/frozen one has them stopped outright, while an idle montage that hit
+// ZM_WEB_VIEWING_TIMEOUT stops its monitors - and their status polls - without
+// ever going hidden. So track the age of the credential itself rather than the
+// age of any one of those states.
+const AUTH_STALE_MS = 60 * 60 * 1000;
+// The relay was rendered into the page by PHP, so it is fresh as of load.
+let authFreshAt = Date.now();
+
+// Pure so it can be tested without faking the clock or the DOM.
+function authIsStale(freshAt, now) {
+  return (now - freshAt) > AUTH_STALE_MS;
+}
+
+// The probe carries no credential, deliberately. zm_authenticate_request()
+// resolves the request against exactly one source: an auth= in the URL takes the
+// ZM_AUTH_HASH_LOGINS branch (auth.php), and when getAuthUser() rejects it the
+// chain has already been entered, so userFromSession() below it never runs and a
+// live session cookie authenticates as nobody. Sending the very hash we suspect
+// is dead is what would make the probe fail. Without it the session cookie is
+// what answers, which is the question being asked: who am I, and what is my
+// current hash?
+function authProbeUrl(baseUrl) {
+  return baseUrl + '?view=request&request=status&entity=navBar';
+}
+
 // Perform a single silent auth probe against the lightweight navBar status
-// endpoint. On success zmAuth is refreshed (via setNavBar) and onValid() is
-// invoked so the view can repaint its streams with the fresh credential. A dead
-// session (401) goes straight to login; transient errors are swallowed so we
-// don't bounce the user on a blip.
+// endpoint. zmAuth is refreshed (via setNavBar) and the queued callbacks are
+// then invoked so each view can repaint its streams with the fresh credential.
+// Since the probe rides the session cookie, a rejection (401 or 403, both of
+// which authFailureAction calls 'login') means the session itself is gone: go
+// straight to login and drop the callbacks. Other failures still run them, since
+// a transient blip is no reason to leave the page's streams stopped. Concurrent
+// callers share the one request.
 let authRevalidating = false;
+const authPendingCallbacks = [];
 function revalidateAuth(onValid) {
+  if (typeof onValid === 'function') authPendingCallbacks.push(onValid);
   if (authRevalidating) return;
   authRevalidating = true;
-  $j.getJSON(zmAuth.appendTo(thisUrl + '?view=request&request=status&entity=navBar'))
+  $j.getJSON(authProbeUrl(thisUrl))
       .done(function(data) {
+        // setNavBar feeds this through zmAuth.update(), which is what stamps
+        // the credential fresh. Stamp here too so authentication being off - no
+        // auth_relay in the reply, and no hash that can expire - doesn't leave
+        // every whenAuthFresh() caller revalidating once an hour forever.
+        authFreshAt = Date.now();
         setNavBar(data);
-        if (typeof onValid === 'function') onValid();
       })
       .fail(function(jqxhr) {
         if (authFailureAction(jqxhr.status) == 'login') goToLogin();
       })
       .always(function() {
         authRevalidating = false;
+        const callbacks = authPendingCallbacks.splice(0, authPendingCallbacks.length);
+        if (authGoingToLogin) return;
+        for (let i = 0; i < callbacks.length; i++) callbacks[i]();
       });
+}
+
+// Run cb against a credential we have reason to trust. While the page has been
+// hearing from the server the hash is still good and cb runs straight away;
+// once it has gone quiet for AUTH_STALE_MS, cb is queued behind a revalidation
+// so nothing restarts a stream or a table poll on an expired hash. Use this
+// anywhere a resume path - visibility, bfcache, idle timeout - kicks off
+// authenticated requests after a gap.
+function whenAuthFresh(cb) {
+  if (!authIsStale(authFreshAt, Date.now())) {
+    cb();
+    return;
+  }
+  revalidateAuth(cb);
 }
 
 // When the tab becomes visible again after being hidden/slept, the baked-in auth
@@ -194,6 +258,10 @@ if (typeof module !== 'undefined' && module.exports) {
     setUrlParam,
     authHashFromRelay,
     rebuildStreamSrc,
+    authIsStale,
+    authProbeUrl,
+    revalidateAuth,
+    AUTH_STALE_MS,
     ZMAuth,
   };
 }

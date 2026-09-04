@@ -27,6 +27,7 @@
 #include <cstdint>
 #include <cstring>
 
+#ifdef WITH_GSOAP
 
 namespace {
 // The reason wording cameras use for an authentication refusal. Matched against
@@ -41,14 +42,11 @@ bool mentions_authorization(const char *text) {
 }
 }  // namespace
 
-bool ONVIFIsAuthError(int result, int fault_code,
-                      const char *fault_string, const char *detail) {
+bool ONVIFIsAuthError(int result, const char *fault_string, const char *detail) {
   if (result == 401) return true;
-  if (result != fault_code) return false;
+  if (result != SOAP_FAULT) return false;
   return mentions_authorization(fault_string) or mentions_authorization(detail);
 }
-
-#ifdef WITH_GSOAP
 #include "url.hpp"
 
 // ONVIF configuration constants
@@ -519,7 +517,7 @@ void ONVIF::WaitForMessage() {
       const char *fault_string = soap_fault_string(soap);
 
       if (soap->error != SOAP_EOF) { //Ignore the timeout error
-        bool is_auth_error = ONVIFIsAuthError(result, SOAP_FAULT, fault_string, detail);
+        bool is_auth_error = ONVIFIsAuthError(result, fault_string, detail);
 
         if (is_auth_error) {
           // Authorization failure - likely due to clock drift or expired credentials

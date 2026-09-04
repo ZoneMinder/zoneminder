@@ -387,6 +387,11 @@ int main(int argc, char *argv[]) {
 
   Image::Deinitialise();
   logTerm();
+  // Stop the queue before closing the connection it writes through; every other
+  // daemon already does. Outside zmDbClose because that holds db_mutex, and the
+  // queue thread wants that same mutex to drain, so joining it from in there
+  // would deadlock.
+  dbQueue.stop();
   zmDbClose();
 
   return 0;

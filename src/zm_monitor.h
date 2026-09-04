@@ -669,6 +669,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   State      state;
   SystemTimePoint start_time;
   SystemTimePoint last_fps_time;
+  // How often each monitor writes its row of Monitor_Status, and the width of
+  // the window the writes are staggered across (see Monitor::connect).
+  static constexpr Seconds kStatusUpdateInterval = Seconds(10);
   SystemTimePoint last_status_time;
   SystemTimePoint last_analysis_fps_time;
   SystemTimePoint auto_resume_time;

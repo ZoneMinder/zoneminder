@@ -2507,10 +2507,16 @@ function insertControlModuleMenu() {
     filter = document.createElement('div');
     filter.setAttribute("id", "filterMontagereview");
 
-    const filterOne = document.querySelector('#mfbpanel .controlHeader');
+    // Named precisely: #fieldsTable also carries .controlHeader, so a looser
+    // '#mfbpanel .controlHeader' silently matches it instead when the monitor
+    // filter bar is absent, which hides the fact that the attribute filters
+    // never made it into the extruder.
+    const filterOne = document.querySelector('#monitorFilterBar .controlHeader');
     const filterTwo = document.querySelector('#fieldsTable');
-    filter.prepend(filterTwo);
-    filter.prepend(filterOne);
+    // Either can be absent - a filter with no terms renders no #fieldsTable -
+    // and prepend() stringifies null into a literal 'null' text node.
+    if (filterTwo) filter.prepend(filterTwo);
+    if (filterOne) filter.prepend(filterOne);
   } else if (currentView == 'watch') {
     destroyChosen();
     filter = document.querySelector('.controlHeader form');

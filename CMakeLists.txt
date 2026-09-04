@@ -414,7 +414,9 @@ else()
     "ZoneMinder requires jpeg but it was not found on your system")
 endif()
 
-set(CxxUrl_BUILD_SHARED_LIBS "OFF")
+# CxxUrl builds a static library on its own: its option is
+# CxxUrl_BUILD_STATIC_LIBS and it defaults to ON, independently of
+# BUILD_SHARED_LIBS. There is nothing to force here.
 list(APPEND ZM_BIN_LIBS chmike::CxxUrl)
 
 # libjwt

@@ -8,6 +8,7 @@ configure_file(zm_update-1.37.4.sql.in "${CMAKE_CURRENT_BINARY_DIR}/zm_update-1.
 configure_file(zm_update-1.37.69.sql.in "${CMAKE_CURRENT_BINARY_DIR}/zm_update-1.37.69.sql" @ONLY)
 configure_file(zm_update-1.37.74.sql.in "${CMAKE_CURRENT_BINARY_DIR}/zm_update-1.37.74.sql" @ONLY)
 configure_file(zm_update-1.37.77.sql.in "${CMAKE_CURRENT_BINARY_DIR}/zm_update-1.37.77.sql" @ONLY)
+configure_file(zm_update-1.39.25.sql.in "${CMAKE_CURRENT_BINARY_DIR}/zm_update-1.39.25.sql" @ONLY)
 
 # install zm_create.sql
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zm_create.sql" DESTINATION "${CMAKE_INSTALL_DATADIR}/zoneminder/db")

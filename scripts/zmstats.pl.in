@@ -102,14 +102,21 @@ while (!$zm_terminate) {
   # don't take next-key/gap locks against concurrent filter deletes / zma
   # trigger updates on adjacent EventIds.
   #
+  # Cascade triggers on Events_Hour/Day/Week/Month were removed by
+  # zm_update-1.39.25.sql, so the bucket DELETEs here do not touch
+  # Event_Summaries — the resync below is the single point of truth for the
+  # Hour/Day/Week/Month columns.
+  #
   # Atomicity tradeoff: between the per-bucket aggregate SELECT and the
-  # per-monitor UPDATE, a concurrent trigger writer (zma/zmc/Event::delete)
+  # per-monitor UPDATE, a concurrent writer (zma's event_update_trigger,
+  # Event::delete via event_delete_trigger, or zmc inserting new events)
   # can adjust Event_Summaries via the canonical lock chain. Our subsequent
   # UPDATE will overwrite that adjustment with our older snapshot. This is
-  # intentional and safe: the bucket triggers keep ES drift bounded between
-  # zmstats passes, and any drift introduced by this race is corrected on
-  # the next pass. Locking ES before the snapshot would invert the canonical
-  # order and re-introduce the deadlock cycle this rewrite eliminated.
+  # intentional and safe: those Events-level triggers keep ES drift bounded
+  # between zmstats passes, and any drift introduced by this race is
+  # corrected on the next pass (or by zmaudit's CAS-guarded resync).
+  # Locking ES before the snapshot would invert the canonical lock order
+  # and re-introduce the deadlock cycle this rewrite eliminated.
   {
     my $attempt = 0;
     my $max_attempts = 5;
@@ -164,11 +171,11 @@ while (!$zm_terminate) {
       }
 
       # Only resync ES for monitors we actually touched in this cycle. If
-      # nothing was pruned, the bucket triggers maintain ES correctly between
-      # zmstats passes; zmaudit is the periodic deep-resync safety net.
-      # Restricting to touched monitors also avoids X-locking every ES row
-      # on every zmstats cycle (which would contend with the trigger writers
-      # this rewrite is meant to protect).
+      # nothing was pruned, the Events-level triggers maintain ES correctly
+      # between zmstats passes; zmaudit is the periodic deep-resync safety
+      # net. Restricting to touched monitors also avoids X-locking every ES
+      # row on every zmstats cycle (which would contend with the trigger
+      # writers this rewrite is meant to protect).
       if (!$err and %touched_monitors) {
         my @mids = sort { $a <=> $b } keys %touched_monitors;
         my $placeholders = join(',', map { '?' } @mids);
@@ -198,15 +205,13 @@ while (!$zm_terminate) {
           }
         }
 
-        # One UPDATE per touched monitor. The transaction at this point is
-        # still holding the bucket-row X-locks acquired by the earlier
-        # DELETEs and any ES X-locks the bucket DELETE triggers acquired as
-        # a cascade. Those were all acquired in the canonical order
-        # (buckets -> ES) so they don't conflict with the trigger writers.
-        # The new statement itself only X-locks the one ES row it targets
-        # and reads no other table, so it doesn't add any cross-table
-        # dependency that could form a new cycle — its lock acquisition
-        # continues in the same direction.
+        # One UPDATE per touched monitor. Cascade triggers on the bucket
+        # tables were removed by zm_update-1.39.25.sql, so the earlier
+        # DELETEs only hold bucket-row X-locks (no ES X-locks acquired as a
+        # cascade). The new statement X-locks the one ES row it targets and
+        # reads no other table, so it doesn't add any cross-table dependency
+        # that could form a new cycle — its lock acquisition continues in
+        # the canonical direction (buckets -> ES).
         if (!$err) {
           for my $mid (@mids) {
             my $a = $agg{$mid};

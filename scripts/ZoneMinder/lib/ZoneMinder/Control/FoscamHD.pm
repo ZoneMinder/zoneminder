@@ -64,7 +64,10 @@ use URI::Escape qw(uri_escape uri_unescape);
 # reads the section back and writes the merged result, never the diff alone.
 #
 # 'field_set' is for the sections the firmware exposes only as one command
-# per field, where there is nothing to merge.
+# per field, where there is nothing to merge.  Those carry their query
+# parameter name explicitly, because it is not always the field name and a
+# wrong one is not reported: the camera answers result=0 and applies 0 for
+# the parameter it did not receive.
 #
 # A section with neither is read-only.
 #
@@ -83,16 +86,23 @@ my %SECTIONS = (
   DDNSConfig       => {get => 'getDDNSConfig',         set => 'setDDNSConfig'},
   MotionDetectConfig => {get => 'getMotionDetectConfig', set => 'setMotionDetectConfig'},
 
-  # One command per field on this firmware.  setDenoiseLevel answers -3, so
-  # denoiseLevel is readable but not writable and is left out of field_set.
+  # One command per field on this firmware, as [command, query parameter].
+  # The parameter is not always named after the field it sets: setContrast
+  # really does take 'constrast'.  Sending the correctly spelled 'contrast'
+  # answers result=0, leaves the real parameter unset and applies 0 for it,
+  # which turns the picture black - so the pair is spelled out per field
+  # rather than assumed from the field name.
+  #
+  # setDenoiseLevel answers -3, so denoiseLevel is readable but not writable
+  # and is left out of field_set.
   ImageSetting => {
     get => 'getImageSetting',
     field_set => {
-      brightness => 'setBrightness',
-      contrast   => 'setContrast',
-      hue        => 'setHue',
-      saturation => 'setSaturation',
-      sharpness  => 'setSharpness',
+      brightness => ['setBrightness', 'brightness'],
+      contrast   => ['setContrast',   'constrast'],
+      hue        => ['setHue',        'hue'],
+      saturation => ['setSaturation', 'saturation'],
+      sharpness  => ['setSharpness',  'sharpness'],
     },
   },
 
@@ -272,12 +282,13 @@ sub set_config {
 
     if ($section->{field_set}) {
       foreach my $field (sort keys %wanted) {
-        my $cmd = $section->{field_set}{$field};
-        if (!$cmd) {
+        my $setter = $section->{field_set}{$field};
+        if (!$setter) {
           Warning("$name.$field is not writable on this camera");
           next;
         }
-        if (!$self->cgi($cmd, {$field => $wanted{$field}})) {
+        my ($cmd, $param) = @$setter;
+        if (!$self->cgi($cmd, {$param => $wanted{$field}})) {
           Error("Failed to set $name.$field");
           $ok = 0;
         }

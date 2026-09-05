@@ -111,7 +111,7 @@ while (!$zm_terminate) {
   # trigger updates on adjacent EventIds.
   #
   # Cascade triggers on Events_Hour/Day/Week/Month were removed by
-  # zm_update-1.39.25.sql, so the bucket DELETEs here do not touch
+  # zm_update-1.39.26.sql, so the bucket DELETEs here do not touch
   # Event_Summaries — the resync below is the single point of truth for the
   # Hour/Day/Week/Month columns.
   #
@@ -214,7 +214,7 @@ while (!$zm_terminate) {
         }
 
         # One UPDATE per touched monitor. Cascade triggers on the bucket
-        # tables were removed by zm_update-1.39.25.sql, so the earlier
+        # tables were removed by zm_update-1.39.26.sql, so the earlier
         # DELETEs only hold bucket-row X-locks (no ES X-locks acquired as a
         # cascade). The new statement X-locks the one ES row it targets and
         # reads no other table, so it doesn't add any cross-table dependency

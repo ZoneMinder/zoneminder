@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 use POSIX qw(tzset);
-use Test::More tests => 33;
+use Test::More tests => 36;
 
 require_ok('ZoneMinder::Control::FoscamHD');
 
@@ -150,7 +150,26 @@ is($stub->set_time(), undef, 'set_time refuses to run without an ntp server');
 
 @sent = ();
 $stub->set_time(ntp_server => '192.168.2.66', timezone => 14400);
+my ($write) = grep { $_->[0] eq 'setSystemTime' } @sent;
 is_deeply(
-  {map { $_ => $sent[1][1]{$_} } qw(timeSource ntpServer timeZone isDst dst)},
+  {map { $_ => $write->[1]{$_} } qw(timeSource ntpServer timeZone isDst dst)},
   {timeSource => 0, ntpServer => '192.168.2.66', timeZone => 14400, isDst => 0, dst => 0},
   'set_time sends NTP mode with dst folded into timeZone');
+
+# Run from cron, so it must not burn a flash write when nothing would move.
+local $reads{getSystemTime} = {
+  timeSource => 0, ntpServer => '192.168.2.66', dateFormat => 0, timeFormat => 1,
+  timeZone => 14400, isDst => 0, dst => 0,
+  year => 2026, mon => 9, day => 5, hour => 13, minute => 52, sec => 47,
+};
+@sent = ();
+ok($stub->set_time(ntp_server => '192.168.2.66', timezone => 14400),
+  'set_time succeeds when the camera is already set the way we want');
+is(scalar(grep { $_->[0] eq 'setSystemTime' } @sent), 0,
+  'and writes nothing at all');
+
+# A moved offset - which is what a DST change looks like - still writes.
+@sent = ();
+$stub->set_time(ntp_server => '192.168.2.66', timezone => 18000);
+is(scalar(grep { $_->[0] eq 'setSystemTime' } @sent), 1,
+  'set_time writes once when the offset has moved');

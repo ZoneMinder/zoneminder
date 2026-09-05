@@ -365,6 +365,18 @@ sub set_time {
   $settings{dateFormat} = $opts{date_format} if defined $opts{date_format};
   $settings{timeFormat} = $opts{time_format} if defined $opts{time_format};
 
+  # Don't write when nothing would change.  The camera keeps this in flash
+  # and set_time is meant to be safe to run from cron - the offset it exists
+  # to correct only really moves twice a year - so an unconditional write
+  # would be thousands of pointless erase cycles for two that matter.
+  my $current = $self->get_time();
+  if ($current and !grep {
+        !defined($$current{$_}) or $$current{$_} ne $settings{$_}
+      } keys %settings) {
+    Debug('Camera time settings are already what we want, not writing them');
+    return 1;
+  }
+
   return $self->set_config({SystemTime => \%settings});
 } # end sub set_time
 

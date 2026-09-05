@@ -154,10 +154,15 @@ if ( $filter_name ) {
   Info('Scanning for events using all filters');
 }
 
-# The delay is for the unattended case, where this is one of several daemons
-# all starting at once. A named filter is someone asking for one thing now, and
-# so is a terminal on stdin.
-if ( !($filter_name or $filter_id) and !startedInteractively() ) {
+# The delay is for the unattended case: zmpkg brings this up as one of several
+# daemons at once, as "zmdc.pl start zmfilter.pl --filter_id=N --daemon", and
+# --daemon is what marks that. Running it for a single pass is someone asking
+# for something now, and so is a terminal on stdin.
+#
+# This used to test for a named filter instead, which is backwards -- zmpkg
+# always names one, so the boot path never waited and the only invocation that
+# did was a hand-run scan of every filter.
+if ( $daemon and !startedInteractively() ) {
   Debug('Sleeping due to start delay: ' . START_DELAY . ' seconds...');
   $sleeping = 1;
   sleep(START_DELAY);

@@ -40,7 +40,7 @@ Tag::Tag(const MYSQL_ROW &dbrow) {
 /* If a zero or invalid p_id is passed, then the old default path will be assumed.  */
 Tag::Tag(uint64_t p_id) : id(p_id) {
   if (id) {
-    std::string sql = stringtf("SELECT `Id`, `Name`, `CreateDate`, `CreatedBy`, `LastAssignedOn` FROM `Tags` WHERE `Id`=%" PRIu64, id);
+    std::string sql = stringtf("SELECT `Id`, `Name`, `CreateDate`, `CreatedBy`, `LastAssignedDate` FROM `Tags` WHERE `Id`=%" PRIu64, id);
     Debug(4, "Loading Tag for %" PRIu64 " using %s", id, sql.c_str());
     zmDbRow dbrow;
     if (!dbrow.fetch(sql)) {
@@ -90,7 +90,7 @@ uint64_t Tag::save() {
     return id;
   }
   if (last_assigned_on.time_since_epoch() == Seconds(0)) last_assigned_on = std::chrono::system_clock::now();
-  std::string sql = stringtf("UPDATE `Tags` SET (`LastAssignedOn`) VALUES ('from_unixtime(%" PRId64 ")) WHERE Id=%" PRIu64,
+  std::string sql = stringtf("UPDATE `Tags` SET `LastAssignedDate` = from_unixtime(%" PRId64 ") WHERE `Id`=%" PRIu64,
         static_cast<int64>(std::chrono::system_clock::to_time_t(last_assigned_on)), id);
   return zmDbDo(sql); 
 }

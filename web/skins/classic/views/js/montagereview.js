@@ -1309,13 +1309,18 @@ function loadEventData(e) {
       const name = el.attr('name');
 
       if (name) {
-        const found = name.match(/filter\[Query\]\[terms\]\[(\d)+\]\[val\]/);
+        const found = name.match(/filter\[Query\]\[terms\]\[(\d+)\]\[val\]/);
         if (found) {
           const attr_name = 'filter[Query][terms]['+found[1]+'][attr]';
-          const attr = this.form.elements[attr_name];
           const op_name = 'filter[Query][terms]['+found[1]+'][op]';
-          const op = this.form.elements[op_name];
-          if (attr) {
+          // Looked up by name rather than through this.form: in sidebar filter
+          // mode insertControlModuleMenu() moves #fieldsTable out of
+          // #montagereview_form and into the extruder, leaving these inputs with
+          // no form owner. Scoped to #fieldsTable because term names are unique
+          // within a form, not within the document.
+          const attr = document.querySelector('#fieldsTable [name="'+attr_name+'"]');
+          const op = document.querySelector('#fieldsTable [name="'+op_name+'"]');
+          if (attr && op) {
             // Translate in a local rather than by writing back to attr.value:
             // the form is submitted when a filter changes, and
             // montagereview.php decides whether the range terms are already
@@ -1341,7 +1346,7 @@ function loadEventData(e) {
             }
             url += '/'+apiAttr+' '+op.value+':'+encodeURIComponent(urlVal);
           } else {
-            console.warn('No attr for '+attr_name);
+            console.warn('No attr/op for '+attr_name);
           }
         //} else {
           //console.log("No match for " + name);
@@ -1796,9 +1801,11 @@ function getMinMaxStartDateTimeElements() {
   $j('#fieldsTable input[value="StartDateTime"], #fieldsTable input[value="DateTime"]').each(function(index) {
     const matches = this.name.match(regexp);
     if (matches && matches.length) {
-      const val = this.form.elements['filter[Query][terms]['+matches[1]+'][val]'];
-      if (val) {
-        const op = this.form.elements['filter[Query][terms]['+matches[1]+'][op]'];
+      // Same reason as in loadEventData(): in sidebar filter mode these inputs have
+      // been moved out of the form, so this.form is null.
+      const val = document.querySelector('#fieldsTable [name="filter[Query][terms]['+matches[1]+'][val]"]');
+      const op = document.querySelector('#fieldsTable [name="filter[Query][terms]['+matches[1]+'][op]"]');
+      if (val && op) {
         if (op.value == '>=') {
           minStartDateTimeElement = val;
         } else if (op.value == '<=') {
@@ -1807,7 +1814,7 @@ function getMinMaxStartDateTimeElements() {
           console.warn('unknown op', op.value);
         }
       } else {
-        console.warn("no val ", matches);
+        console.warn("no val/op ", matches);
       }
     }
   });

@@ -292,7 +292,7 @@ sub checkFilter {
 
     Debug('Checking event '.$Event->{Id});
     my $delete_ok = !undef;
-    $dbh->ping();
+    $dbh = zmDbConnect();
     if ( $filter->{AutoArchive} ) {
       Info("Archiving event $Event->{Id}");
       # Do it individually to avoid locking up the table for new events

@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 use POSIX qw(tzset);
-use Test::More tests => 36;
+use Test::More tests => 37;
 
 require_ok('ZoneMinder::Control::FoscamHD');
 
@@ -135,6 +135,12 @@ $stub->set_config({ImageSetting => {brightness => 60, contrast => 40}});
 is(scalar @sent, 2, 'ImageSetting sends one command per field');
 is($sent[0][0], 'setBrightness', 'brightness has its own command');
 is_deeply($sent[0][1], {brightness => 60}, 'and carries only its own field');
+
+# setContrast takes 'constrast'.  Spelling it 'contrast' is accepted with
+# result=0 and applies 0, which shows up as a black picture.
+my ($contrast_call) = grep { $_->[0] eq 'setContrast' } @sent;
+is_deeply($contrast_call->[1], {constrast => 40},
+  'contrast is sent under the name the firmware actually reads');
 
 # denoiseLevel is readable but has no setter on this firmware.
 @sent = ();

@@ -39,8 +39,16 @@ sub TermHandler {
 $SIG{TERM} = \&TermHandler;
 $SIG{INT} = \&TermHandler;
 
-Info('Stats Daemon starting in '.START_DELAY.' seconds');
-sleep(START_DELAY);
+# Nothing here races with startup -- the first thing this does is connect to
+# the database, and it has its own reconnect loop for that -- so the delay is
+# only politeness while zmc and zma are competing for the disk and the server.
+# Skip it entirely when a person is waiting on the output.
+if (startedInteractively()) {
+  Debug('Running interactively, skipping the '.START_DELAY.' second start delay');
+} else {
+  Info('Stats Daemon starting in '.START_DELAY.' seconds');
+  sleep(START_DELAY);
+}
 
 my $dbh = zmDbConnect();
 $dbh->do('SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED');

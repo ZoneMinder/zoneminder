@@ -154,7 +154,10 @@ if ( $filter_name ) {
   Info('Scanning for events using all filters');
 }
 
-if ( ! ( $filter_name or $filter_id ) ) {
+# The delay is for the unattended case, where this is one of several daemons
+# all starting at once. A named filter is someone asking for one thing now, and
+# so is a terminal on stdin.
+if ( !($filter_name or $filter_id) and !startedInteractively() ) {
   Debug('Sleeping due to start delay: ' . START_DELAY . ' seconds...');
   $sleeping = 1;
   sleep(START_DELAY);

@@ -37,6 +37,7 @@ our %EXPORT_TAGS = (
       hash_diff
       acquireExclusiveLock
       lockHolderPid
+      startedInteractively
       ) ]
     );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
@@ -59,6 +60,13 @@ use ZoneMinder::Database qw(:all);
 
 use POSIX;
 use Fcntl qw(:flock O_WRONLY O_CREAT);
+
+# Whether this process was run by hand rather than started by the daemon
+# manager. zmdc.pl reopens STDIN on /dev/null for everything it starts, so a
+# terminal on STDIN means a person typed this.
+sub startedInteractively {
+  return -t STDIN ? 1 : 0;
+}
 
 # The pid recorded in a lock file, or undef when it is empty or unreadable.
 sub lockHolderPid {

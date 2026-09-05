@@ -28,6 +28,8 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zm_update-1.37.69.sql" DESTINATION "$
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zm_update-1.37.74.sql" DESTINATION "${CMAKE_INSTALL_DATADIR}/zoneminder/db")
 # install zm_update-1.37.77.sql
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zm_update-1.37.77.sql" DESTINATION "${CMAKE_INSTALL_DATADIR}/zoneminder/db")
+# install zm_update-1.39.25.sql
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zm_update-1.39.25.sql" DESTINATION "${CMAKE_INSTALL_DATADIR}/zoneminder/db")
 
 # Install the database upgrade scripts
 install(FILES ${dbfileslist} DESTINATION "${CMAKE_INSTALL_DATADIR}/zoneminder/db")

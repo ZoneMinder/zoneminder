@@ -323,7 +323,6 @@ class Monitor extends ZM_Object {
     'SectionLengthWarn'   =>  true,
     'MinSectionLength'    =>  10,
     'EventCloseMode'    => 'system',
-    'FrameSkip'           =>  0,
     'MotionFrameSkip'     =>  0,
     'AnalysisFPSLimit'  =>  [ 'default'=>null, 'initial_default'=>2, 'type'=>'float' ],
     'AnalysisUpdateDelay'  =>  0,

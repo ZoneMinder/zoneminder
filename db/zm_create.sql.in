@@ -371,7 +371,7 @@ CREATE TABLE `Events_Archived` (
  * event before working on it. Deliberately NOT a row lock: claiming is a single
  * autocommitted INSERT touching one row here, so no lock is held while the
  * filter works, and nothing in this table can deadlock against, or block, the
- * writers that touch Events/Events_*/Event_Summaries.
+ * writers that touch Events, the Events_* tables and Event_Summaries.
  * No foreign key to Events for the same reason - it would make every event
  * delete take a lock in here. Rows for deleted events are harmless and expire.
  */
@@ -739,7 +739,6 @@ CREATE TABLE `Monitors` (
   `SectionLengthWarn` boolean NOT NULL default true,
   `EventCloseMode`  enum('system','time', 'duration', 'idle', 'alarm') NOT NULL DEFAULT 'system',
   `MinSectionLength` int(10) unsigned NOT NULL default '10',
-  `FrameSkip` smallint(5) unsigned NOT NULL default '0',
   `MotionFrameSkip` smallint(5) unsigned NOT NULL default '0',
   `AnalysisFPSLimit` decimal(5,2) default NULL,
   `AnalysisUpdateDelay` smallint(5) unsigned NOT NULL default '0',

@@ -1348,8 +1348,9 @@ function loadEventData(e) {
         }
         data[name] = val;
         const cookie = el.attr('data-cookie');
-        // Persist (no expiry) so the shared filter/date range does not silently
-        // expire after an hour and desync from the other views. refs #4976
+        // Persist so the shared filter does not silently expire after an hour
+        // and desync from the other views. setCookie scopes the date-range
+        // cookies to the session; the rest are kept. refs #4976
         if (cookie) setCookie(cookie, val);
       } // end if name
     } // end if val

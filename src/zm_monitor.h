@@ -625,7 +625,6 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   Seconds    min_section_length;   // Minimum event length when using event_close_mode == ALARM
   bool       startstop_on_section_length; // Whether to start/stop events on time % section_length
   bool       adaptive_skip;        // Whether to use the newer adaptive algorithm for this monitor
-  int        frame_skip;        // How many frames to skip in continuous modes
   int        motion_frame_skip;      // How many frames to skip in motion detection
   double     analysis_fps_limit;     // Target framerate for video analysis
   Microseconds analysis_update_delay;  //  How long we wait before updating analysis parameters
@@ -670,6 +669,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   State      state;
   SystemTimePoint start_time;
   SystemTimePoint last_fps_time;
+  // How often each monitor writes its row of Monitor_Status, and the width of
+  // the window the writes are staggered across (see Monitor::connect).
+  static constexpr Seconds kStatusUpdateInterval = Seconds(10);
   SystemTimePoint last_status_time;
   SystemTimePoint last_analysis_fps_time;
   SystemTimePoint auto_resume_time;

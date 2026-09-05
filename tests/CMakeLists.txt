@@ -37,6 +37,7 @@ set(TEST_SOURCES
   zm_zone.cpp
   zm_zone_stride.cpp
   zm_image_linesize.cpp
+  zm_log_throttle.cpp
   zm_logger_rotate.cpp
   zm_ffmpeg_camera.cpp
   zm_ffmpeg_fallback.cpp)

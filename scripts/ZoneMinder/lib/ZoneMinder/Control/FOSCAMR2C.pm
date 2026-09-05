@@ -51,8 +51,12 @@ use warnings;
  
 require ZoneMinder::Base;
 require ZoneMinder::Control;
+require ZoneMinder::Control::FoscamHD;
  
-our @ISA = qw(ZoneMinder::Control);
+# FoscamHD is itself a ZoneMinder::Control.  It adds get_config, set_config and
+# set_time for the CGIProxy.fcgi settings API this camera shares with the rest
+# of the HD Foscams, and leaves the PTZ below alone.
+our @ISA = qw(ZoneMinder::Control::FoscamHD);
  
 our $VERSION = $ZoneMinder::Base::VERSION;
  

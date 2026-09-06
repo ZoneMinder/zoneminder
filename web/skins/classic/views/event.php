@@ -389,7 +389,7 @@ if ($video_tag) {
                   </svg>
                 </div><!--videoFeed-->
                 <div class="monitorStatus">
-                  <span class="MonitorName"><?php echo $monitor->Name() . " (". translate('ID'). "=" . $monitor->Id() . ")"; ?>  </span>
+                  <span class="MonitorName"><?php echo validHtmlStr($monitor->Name()) . " (". translate('ID'). "=" . $monitor->Id() . ")"; ?>  </span>
                 </div>
                 <p id="dvrControls">
                   <button type="button" id="prevBtn" title="<?php echo translate('Prev') ?>" class="inactive" data-on-click-true="streamPrev">

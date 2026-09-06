@@ -433,74 +433,6 @@ function reloadWindow() {
   }
 }
 
-// Manage the the Function modal and its buttons
-function manageFunctionModal(evt) {
-  evt.preventDefault();
-
-  if ( !canEdit.Events ) {
-    enoperm();
-    return;
-  }
-
-  if ( ! $j('#modalFunction').length ) {
-    // Load the Function modal on page load
-    $j.getJSON(thisUrl + '?request=modal&modal=function')
-        .done(function(data) {
-          insertModalHtml('modalFunction', data.html);
-          // Manage the CANCEL modal buttons
-          $j('.funcCancelBtn').click(function(evt) {
-            evt.preventDefault();
-            $j('#modalFunction').modal('hide');
-          });
-          // Manage the SAVE modal buttons
-          $j('.funcSaveBtn').click(function(evt) {
-            evt.preventDefault();
-            $j('#function_form').submit();
-          });
-
-          manageFunctionModal(evt);
-        })
-        .fail(logAjaxFail);
-    return;
-  }
-
-  var mid = evt.currentTarget.getAttribute('data-mid');
-  monitor = monitors[mid];
-  if ( !monitor ) {
-    console.error("No monitor found for mid " + mid);
-    return;
-  }
-
-  var function_form = document.getElementById('function_form');
-  if ( !function_form ) {
-    console.error("Unable to find form with id function_form");
-    return;
-  }
-  function_form.elements['newFunction'].onchange=function() {
-    $j('#function_help div').hide();
-    $j('#'+this.value+'Help').show();
-    if ( this.value == 'Monitor' || this.value == 'None' ) {
-      $j('#FunctionAnalysisEnabled').hide();
-    } else {
-      $j('#FunctionAnalysisEnabled').show();
-    }
-    if ( this.value == 'Record' || this.value == 'Nodect' ) {
-      $j('#FunctionDecodingEnabled').show();
-    } else {
-      $j('#FunctionDecodingEnabled').hide();
-    }
-  };
-  function_form.elements['newFunction'].value = monitor.Function;
-  function_form.elements['newFunction'].onchange();
-
-  function_form.elements['newEnabled'].checked = monitor.Enabled == '1';
-  function_form.elements['newDecodingEnabled'].checked = monitor.DecodingEnabled == '1';
-  function_form.elements['mid'].value = mid;
-  document.getElementById('function_monitor_name').innerHTML = monitor.Name;
-
-  $j('#modalFunction').modal('show');
-} // end function manageFunctionModal
-
 function exportMonitors() {
   var link = document.createElement('a');
   link.href = thisUrl + '?request=console&task=export';
@@ -596,7 +528,6 @@ function initPage() {
   // Setup the thumbnail video animation after table loads
   table.on('post-body.bs.table', function() {
     if (!isMobile()) initThumbAnimation();
-    $j('.functionLnk').click(manageFunctionModal);
   });
 
   // Re-apply cached footer totals when columns are toggled, because

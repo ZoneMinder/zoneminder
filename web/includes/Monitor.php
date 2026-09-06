@@ -84,22 +84,6 @@ class Monitor extends ZM_Object {
   ];
 
 
-  protected static $FunctionTypes = null;
-
-  public static function getFunctionTypes() {
-    if (!isset($FunctionTypes)) {
-      $FunctionTypes = array(
-        'None'    => translate('FnNone'),
-        'Monitor' => translate('FnMonitor'),
-        'Modect'  => translate('FnModect'),
-        'Record'  => translate('FnRecord'),
-        'Mocord'  => translate('FnMocord'),
-        'Nodect'  => translate('FnNodect')
-      );
-    }
-    return $FunctionTypes;
-  }
-
   protected static $CapturingOptions = null;
   public static function getCapturingOptions() {
     if (!isset($CapturingOptions)) {

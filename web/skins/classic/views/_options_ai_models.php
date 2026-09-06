@@ -30,7 +30,7 @@
                 <th data-sortable="true" class="colFramework"><?php echo translate('Framework') ?></th>
                 <th data-sortable="true" class="colVersion"><?php echo translate('Version') ?></th>
                 <th data-sortable="true" class="colDataset"><?php echo translate('Dataset') ?></th>
-                <th data-sortable="true" class="colModelPath"><?php echo translate('ModelPath') ?></th>
+                <th data-sortable="true" class="colModelPath"><?php echo translate('Model Path') ?></th>
                 <th data-sortable="true" class="colEnabled"><?php echo translate('Enabled') ?></th>
                 <th data-sortable="true" class="colDescription"><?php echo translate('Description') ?></th>
               </tr>

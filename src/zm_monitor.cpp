@@ -353,29 +353,6 @@ Monitor::Monitor() :
   videoStore = nullptr;
 }  // Monitor::Monitor
 
-/*
-   std::string load_monitor_sql =
-   "SELECT `Id`, `Name`, `Deleted`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0,"
-   "`Recording`+0, `RecordingSource`+0, `Decoding`+0, "
-   " RTSP2WebEnabled, RTSP2WebType, `StreamChannel`+0,"
-   " GO2RTCEnabled, "
-   "JanusEnabled, JanusAudioEnabled, Janus_Profile_Override, Restream, RTSP_User, Janus_RTSP_Session_Timeout,"
-   "LinkedMonitors, `EventStartCommand`, `EventEndCommand`, "
-   "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
-   "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
-   "Protocol, Method, Options, User, Pass, Host, Port, Path, SecondPath, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, "
-   "SaveJPEGs, VideoWriter, EncoderParameters,"
-   "OutputCodecName, Encoder, OutputContainer, RecordAudio, WallClockTimestamps,"
-   "Brightness, Contrast, Hue, Colour, "
-   "EventPrefix, LabelFormat, LabelX, LabelY, LabelSize,"
-   "ImageBufferCount, `MaxImageBufferCount`, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, "
-   "`SectionLength`, `SectionLengthWarn`, `MinSectionLength`, `EventCloseMode`, "
-   "`FrameSkip`, `MotionFrameSkip`, "
-   "FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif,"
-   "`RTSPServer`, `RTSPStreamName`, `SOAP_wsa_compl`,"
-   "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`, "
-   "SignalCheckPoints, SignalCheckColour, Importance-1, ZoneCount, `MQTT_Enabled`, `MQTT_Subscriptions`, StartupDelay FROM Monitors";
-*/
 
 void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   purpose = p;

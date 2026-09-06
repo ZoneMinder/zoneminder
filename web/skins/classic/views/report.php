@@ -54,7 +54,7 @@ getBodyTopHTML();
           <tbody>
             <tr>
               <th class="text-right" scope="row"><?php echo translate('Name') ?></th>
-              <td><input type="text" name="Report[Name]" value="<?php echo $report->Name() ?>"/></td>
+              <td><input type="text" name="Report[Name]" value="<?php echo validHtmlStr($report->Name()) ?>"/></td>
             </tr>
             <tr>
               <th class="text-right " scope="row"><?php echo translate('Filter') ?></th>

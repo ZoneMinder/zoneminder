@@ -492,7 +492,7 @@ if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) echo '
 ' . PHP_EOL;
 ?>
                 <div class="monitorStatus">
-                  <span class="MonitorName"><?php echo $monitor->Name() . " (". translate('ID'). "=" . $monitor->Id() . ")"; ?>  </span>
+                  <span class="MonitorName"><?php echo validHtmlStr($monitor->Name()) . " (". translate('ID'). "=" . $monitor->Id() . ")"; ?>  </span>
                   <span class="stream-info-status-track"></span>
                 </div>
                 <p id="dvrControls">

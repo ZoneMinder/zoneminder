@@ -465,13 +465,13 @@ $interfaces = array('', 'select');
 
   echo htmlSelect('interface', $interfaces,
     (isset($_REQUEST['interface']) ? $_REQUEST['interface'] : $default_interface),
-    array('data-on-change-this'=>'changeInterface') );
+    array('id'=>'interface', 'data-on-change-this'=>'changeInterface') );
 
 ?>
         </p>
         <p>
           <label for="probe"><?php echo translate('DetectedCameras') ?></label>
-          <?php echo htmlSelect('probe', $cameras, null, array('data-on-change-this'=>'configureButtons')); ?>
+          <?php echo htmlSelect('probe', $cameras, null, array('id'=>'probe', 'data-on-change-this'=>'configureButtons')); ?>
         </p>
         <hr/>
         <p><?php echo translate('OnvifManualOr') ?></p>

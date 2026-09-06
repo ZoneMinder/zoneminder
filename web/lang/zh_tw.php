@@ -151,7 +151,6 @@ $SLANG = array(
     'AutoStopTimeout'       => '超時自動停止',
     'Available'             => 'Available',
     'AvgBrScore'            => '平均<br/>分數',
-    'Available'             => 'Available',
     'Background'            => '背景',
     'BackgroundFilter'      => 'Run filter in background',
     'BadAlarmFrameCount'    => '警報 frame count must be an integer of one or more',

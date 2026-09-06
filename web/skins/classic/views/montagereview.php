@@ -308,18 +308,17 @@ getBodyTopHTML();
     <div id="header">
 <?php
 $filter_inline = filterSettingsInline();
-$html = '';
-// In inline mode the filter panel sits at the top of the page and this flip
-// icon is what hides/shows it. In sidebar mode the panel lives in the sidebar
-// extruder, which has its own show/hide control, so the flip icon is omitted.
-if ($filter_inline) {
-  $html .= '<a class="flip" href="#"
-           data-flip-control-object="#mfbpanel"
-           data-flip-control-run-after-func="applyChosen drawGraph"
-           data-flip-control-run-after-complet-func="changeScale">
-             <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
-           </a>'.PHP_EOL;
-}
+// #mfbpanel holds more than the filter on this page. The scale and speed
+// sliders, the pan/zoom/period buttons, Live, Fit, Download Video and the
+// timeline are all inside it, and they stay behind when skin.js lifts the
+// filter out into the sidebar extruder. So this flip icon is the only way to
+// reach them in either mode and is rendered in both, as on montage and watch.
+$html = '<a class="flip" href="#"
+         data-flip-control-object="#mfbpanel"
+         data-flip-control-run-after-func="applyChosen drawGraph"
+         data-flip-control-run-after-complet-func="changeScale">
+           <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
+         </a>'.PHP_EOL;
 $html .= '<div id="mfbpanel" class="'.($filter_inline ? '' : 'hidden-shift ').'container-fluid">'.PHP_EOL;
 echo $html;
 // The monitor attribute filters pick which cameras are shown and are rarely
@@ -327,14 +326,26 @@ echo $html;
 // of the filter bar. skin.js applies hidden-shift from data-initial-state-icon,
 // which moves the block off screen while leaving it measurable so Chosen still
 // initialises the selects inside it.
-echo '<a class="flip" href="#"
-         data-flip-control-object="#monitorFilterBar"
-         data-initial-state-icon="hidden"
-         data-flip-control-run-after-func="applyChosen">
-        <i class="material-icons md-18" data-icon-visible="expand_less" data-icon-hidden="expand_more"></i>
-        '.translate('MonitorFilters').'
-      </a>'.PHP_EOL;
-echo '<div id="monitorFilterBar">'.$resultMonitorFilters['filterBarWithoutMonitor'].'</div>'.PHP_EOL;
+//
+// The toggle is inline-only: in sidebar mode insertControlModuleMenu() moves the
+// bar's contents into the extruder, which has its own control, so the toggle
+// would be left expanding an emptied container in a panel that is now reachable.
+if ($filter_inline) {
+  echo '<a class="flip" href="#"
+           data-flip-control-object="#monitorFilterBar"
+           data-initial-state-icon="hidden"
+           data-flip-control-run-after-func="applyChosen">
+          <i class="material-icons md-18" data-icon-visible="expand_less" data-icon-hidden="expand_more"></i>
+          '.translate('MonitorFilters').'
+        </a>'.PHP_EOL;
+}
+// The container itself is rendered in both modes: it is where
+// insertControlModuleMenu() collects the attribute filters from, so dropping it
+// in sidebar mode would not move them to the sidebar, it would lose them. With
+// no toggle there to do it, it carries the class that toggle would have applied,
+// keeping the emptied container out of the visible panel.
+echo '<div id="monitorFilterBar"'.($filter_inline ? '' : ' class="hidden-shift"').'>'.
+  $resultMonitorFilters['filterBarWithoutMonitor'].'</div>'.PHP_EOL;
 if (count($filter->terms())) {
   // The monitor selection is what those attribute filters produce, so it stays
   // on show with the event filter terms rather than collapsing with them. It is

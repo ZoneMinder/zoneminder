@@ -182,7 +182,7 @@ if ($check) {
 
   while ( 1 ) {
     my $now = time();
-    $dbh->ping();
+    $dbh = zmDbConnect(undef, { mysql_multi_statements=>1 });
     if ( !$interactive and $lastVersion and $lastCheck and (($now-$lastCheck) <= CHECK_INTERVAL) ) {
       Debug("Not checking for updates since we already have less than " . CHECK_INTERVAL . " seconds ago.");
     } else {

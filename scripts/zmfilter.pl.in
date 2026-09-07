@@ -294,7 +294,7 @@ sub checkFilter {
     last if $zm_terminate;
     my $Event = new ZoneMinder::Event($$event{Id}, $event);
 
-    $dbh->ping();
+    $dbh = zmDbConnect();
 
     # LockRows serialises this filter against the others one event at a time.
     # The lock is a row in Events_Lock rather than a lock on the event itself,

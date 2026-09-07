@@ -280,8 +280,8 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
   foreach ($detprofiles as $profile) {
     $monitor = $camera['monitor'];
 
-    $sourceString = "${profile['Name']} : ${profile['Encoding']}" .
-      " (${profile['Width']}x${profile['Height']} @ ${profile['MaxFPS']}fps ${profile['Transport']})";
+    $sourceString = "{$profile['Name']} : {$profile['Encoding']}" .
+      " ({$profile['Width']}x{$profile['Height']} @ {$profile['MaxFPS']}fps {$profile['Transport']})";
     // copy technical details
     $monitor['Width']  = $profile['Width'];
     $monitor['Height'] = $profile['Height'];

@@ -2727,6 +2727,10 @@ void Monitor::Reload() {
     delete row;
   }  // end if row
 
+  // Actions are otherwise only read during setup, so an action added or edited
+  // in the web UI would not fire until the monitor's daemon was restarted.
+  // Zones are already re-read by Load() above; actions have the same lifetime.
+  LoadActions();
 }  // end void Monitor::Reload()
 
 void Monitor::ReloadZones() {

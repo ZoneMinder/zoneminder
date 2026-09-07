@@ -58,6 +58,7 @@ VideoStore::VideoStore(
   packets_written(0),
   frame_count(0),
   video_encoded(false),
+  video_passthrough_fallback(false),
   hw_device_ctx(nullptr),
   resample_ctx(nullptr),
   fifo(nullptr),
@@ -84,6 +85,10 @@ VideoStore::VideoStore(
 }  // VideoStore::VideoStore
 
 /* Failure to open audio will not be a total failure. */
+bool VideoStore::Encoding() const {
+  return monitor->GetOptVideoWriter() == Monitor::ENCODE and !video_passthrough_fallback;
+}
+
 bool VideoStore::open() {
   Debug(1, "Opening video storage stream %s format: %s", filename.c_str(), format);
 
@@ -420,21 +425,48 @@ bool VideoStore::open() {
       }  // end foreach codec
 
       if (!video_out_codec) {
-        Error("Can't open any video codecs!");
-        return false;
-      }  // end if can't open codec
-      Debug(2, "Success opening codec");
+        // Every candidate encoder refused to open. On a hardware encoder this is
+        // usually the card declining for want of capacity, reported to ffmpeg as
+        // nothing more specific than a generic external error. Returning here
+        // would mean the event records no video at all, so copy the input stream
+        // and write its packets through unchanged instead. If this keeps
+        // happening the card is over-subscribed: fewer concurrent encodes, or a
+        // lower resolution or frame rate.
+        Warning("Can't open any video encoder; falling back to passthrough recording");
+        if (video_out_ctx) avcodec_free_context(&video_out_ctx);
+        video_passthrough_fallback = true;
 
-      video_out_stream = avformat_new_stream(oc, nullptr);
-      if (!video_out_stream) {
-        Error("Unable to create video out stream");
-        return false;
-      }
-      ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
-      if (ret < 0) {
-        Error("Could not initialize stream parameters");
-        return false;
-      }
+        // Same guard the PASSTHROUGH path needs: a stream reporting no size at
+        // all cannot be copied into the muxer, which aborts writing the trailer
+        // rather than returning an error. Record jpegs for this event instead.
+        if (video_in_stream->codecpar->width <= 0 || video_in_stream->codecpar->height <= 0) {
+          Warning("Input video stream has invalid dimensions %dx%d; not recording video",
+              video_in_stream->codecpar->width, video_in_stream->codecpar->height);
+          return false;
+        }
+
+        video_out_stream = avformat_new_stream(oc, nullptr);
+        if (!video_out_stream) {
+          Error("Unable to create video out stream");
+          return false;
+        }
+        avcodec_parameters_copy(video_out_stream->codecpar, video_in_stream->codecpar);
+        video_out_stream->avg_frame_rate = video_in_stream->avg_frame_rate;
+        zm_dump_codecpar(video_out_stream->codecpar);
+      } else {
+        Debug(2, "Success opening codec");
+
+        video_out_stream = avformat_new_stream(oc, nullptr);
+        if (!video_out_stream) {
+          Error("Unable to create video out stream");
+          return false;
+        }
+        ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
+        if (ret < 0) {
+          Error("Could not initialize stream parameters");
+          return false;
+        }
+      }  // end if an encoder opened
     }  // end if copying or transcoding
   }  // end if video_in_stream
 

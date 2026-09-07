@@ -2177,6 +2177,12 @@ function MonitorStream(monitorData) {
     } else {
       let src = zmAuth.applyTo(this.url_to_zms.replace(/mode=single/i, 'mode=jpeg'));
       if (-1 == src.search('connkey')) {
+        /* Quit the previous zms before the connkey that addresses it is
+         * replaced, exactly as the reload path in getStreamCmdResponse() does.
+         * Nothing can reach that process afterwards, so one that missed its
+         * SIGPIPE would sit in its stopped state forever. refs #4706
+         */
+        if (this.connKey) this.quitConnKey(this.connKey);
         this.streamCmdParms.connkey = this.statusCmdParms.connkey = this.connKey = this.genConnKey(); // The "connkey" needs to be replaced, because on the Watch page, when switching the player to ZMS, then to any other player, and then returning to ZMS, playback will not occur, because the socket="previous connkey" will be closed.
         src += '&connkey='+this.connKey;
       }

@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 10;
+use Test::More tests => 15;
 
 require_ok('ZoneMinder::Control::ONVIF');
 
@@ -73,3 +73,33 @@ is($P->can('video_source_token_from_xml')->(
     '<s:Envelope><s:Body><s:Fault><s:Reason><s:Text>Unauthorized</s:Text>'
     .'</s:Reason></s:Fault></s:Body></s:Envelope>'), undef,
   'a SOAP fault yields undef rather than a bogus token');
+
+# --- the config get/set paths must use the same discovered token ---------------
+#
+# %config_types is a file-scoped lexical, so its request bodies cannot be reached
+# from here. Assert on the source instead: the point of these is to catch a new
+# imaging call being added with a literal token again, which is exactly how the
+# get_config/set_config pair reintroduced the bug after the original fix.
+
+my $src = do {
+  my $path = $INC{'ZoneMinder/Control/ONVIF.pm'};
+  open(my $fh, '<', $path) or die "cannot read $path: $!";
+  local $/;
+  <$fh>;
+};
+
+unlike($src, qr/<VideoSourceToken>000</,
+  'no imaging request hardcodes a literal 000 video source token');
+
+my $placeholders = () = $src =~ /__VIDEO_SOURCE_TOKEN__/g;
+cmp_ok($placeholders, '>=', 3,
+  'the imaging config bodies and their substitution use the placeholder');
+
+like($src, qr/GetImagingSettings[^']*<VideoSourceToken>__VIDEO_SOURCE_TOKEN__</,
+  'the ImagingSettings query carries the placeholder');
+like($src, qr/GetOptions[^']*<VideoSourceToken>__VIDEO_SOURCE_TOKEN__</,
+  'the ImagingOptions query carries the placeholder');
+
+like($src, qr/s\/__VIDEO_SOURCE_TOKEN__\/\$vs_token\/g/,
+  'get_config substitutes the placeholder before sending');
+

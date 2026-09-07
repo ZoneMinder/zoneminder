@@ -162,13 +162,13 @@ my %config_types = (
   'ImagingSettings' => {
     endpoint => '/onvif/imaging',
     action   => 'http://www.onvif.org/ver20/imaging/wsdl/GetImagingSettings',
-    body     => '<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><GetImagingSettings xmlns="http://www.onvif.org/ver20/imaging/wsdl"><VideoSourceToken>000</VideoSourceToken></GetImagingSettings></s:Body>',
+    body     => '<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><GetImagingSettings xmlns="http://www.onvif.org/ver20/imaging/wsdl"><VideoSourceToken>__VIDEO_SOURCE_TOKEN__</VideoSourceToken></GetImagingSettings></s:Body>',
     writable => 1,
   },
   'ImagingOptions' => {
     endpoint => '/onvif/imaging',
     action   => 'http://www.onvif.org/ver20/imaging/wsdl/GetOptions',
-    body     => '<s:Body><GetOptions xmlns="http://www.onvif.org/ver20/imaging/wsdl"><VideoSourceToken>000</VideoSourceToken></GetOptions></s:Body>',
+    body     => '<s:Body><GetOptions xmlns="http://www.onvif.org/ver20/imaging/wsdl"><VideoSourceToken>__VIDEO_SOURCE_TOKEN__</VideoSourceToken></GetOptions></s:Body>',
   },
   # --- PTZ service (/onvif/PTZ) ---
   'PTZConfigurations' => {
@@ -555,6 +555,10 @@ sub get_config {
     my $ct = $config_types{$category};
     my $body = $$ct{body};
     $body =~ s/__PROFILE_TOKEN__/$$self{profileToken}/g;
+    if ($body =~ /__VIDEO_SOURCE_TOKEN__/) {
+      my $vs_token = $self->_video_source_token();
+      $body =~ s/__VIDEO_SOURCE_TOKEN__/$vs_token/g;
+    }
     my $res = $self->sendCmd($$ct{endpoint}, $body, $$ct{action});
     if (!$res) {
       Warning("Failed to get config for $category");
@@ -598,7 +602,7 @@ sub set_config {
       my $body = '
 <s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <SetImagingSettings xmlns="http://www.onvif.org/ver20/imaging/wsdl">
-    <VideoSourceToken>000</VideoSourceToken>
+    <VideoSourceToken>' . $self->_video_source_token() . '</VideoSourceToken>
     <ImagingSettings>' . $fields . '</ImagingSettings>
     <ForcePersistence>true</ForcePersistence>
   </SetImagingSettings>

@@ -260,5 +260,67 @@ test('a wide flat object is erased when its height is the problem', () => {
   assert.strictEqual(ZM.objectTooNarrowToFilter(400, 2, 3, 3), true);
 });
 
+console.log('normalizeRatio');
+test('a whole number in range is kept', () => {
+  assert.strictEqual(ZM.normalizeRatio('25'), 25);
+  assert.strictEqual(ZM.normalizeRatio(1), 1);
+  assert.strictEqual(ZM.normalizeRatio(100), 100);
+});
+test('a fraction is rounded rather than truncated by validInt later', () => {
+  // zone.php reads the cookie back through validInt(), which strips the dot:
+  // 70.5 would return as 705 and mean something else entirely.
+  assert.strictEqual(ZM.normalizeRatio('70.5'), 71);
+  assert.strictEqual(ZM.normalizeRatio('70.4'), 70);
+});
+test('out of range and unreadable values are refused', () => {
+  // The caller falls back to the field's rendered default for these.
+  [0, -5, 101, '', 'abc', null, undefined, NaN].forEach((v) => {
+    assert.strictEqual(ZM.normalizeRatio(v), null, 'value ' + v);
+  });
+});
+test('exponent notation cannot smuggle a value through', () => {
+  // validInt('1e2') is 12, not 100. 100 is in range, so it has to round-trip
+  // as the digits that will be read back.
+  assert.strictEqual(ZM.normalizeRatio('1e2'), 100);
+});
+
+console.log('boxPercentForPixels');
+// The frame the drag maps into: a 2560x1920 camera in the editor's 0..100
+// percent space on both axes.
+const FRAME = {width: 2560, height: 1920, maxX: 100, maxY: 100};
+test('a typed size becomes a box of the same capture pixels', () => {
+  const box = ZM.boxPercentForPixels(256, 192, FRAME);
+  // A tenth of the frame on each axis.
+  assert.ok(Math.abs((box.b.x - box.a.x) - 10) < 1e-9);
+  assert.ok(Math.abs((box.b.y - box.a.y) - 10) < 1e-9);
+});
+test('the box is centred, so it is visible wherever the zone is', () => {
+  const box = ZM.boxPercentForPixels(256, 192, FRAME);
+  assert.ok(Math.abs(box.a.x - 45) < 1e-9);
+  assert.ok(Math.abs(box.a.y - 45) < 1e-9);
+});
+test('an object larger than the frame is clamped to it', () => {
+  // Nothing bigger than the image can be measured against it, and a box that
+  // ran off the edge would be drawn outside the drag's own coordinate space.
+  const box = ZM.boxPercentForPixels(9999, 9999, FRAME);
+  assert.strictEqual(box.a.x, 0);
+  assert.strictEqual(box.a.y, 0);
+  assert.strictEqual(box.b.x, 100);
+  assert.strictEqual(box.b.y, 100);
+});
+test('a missing or zero size measures nothing', () => {
+  [[0, 100], [100, 0], [NaN, 100], [-5, 5]].forEach((wh) => {
+    assert.strictEqual(ZM.boxPercentForPixels(wh[0], wh[1], FRAME), null,
+        'size ' + wh);
+  });
+});
+test('an unmeasured frame is refused rather than dividing by zero', () => {
+  // monitorData is not populated until the stream reports its size.
+  assert.strictEqual(ZM.boxPercentForPixels(50, 50, null), null);
+  assert.strictEqual(
+      ZM.boxPercentForPixels(50, 50, {width: 0, height: 0, maxX: 100, maxY: 100}),
+      null);
+});
+
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);

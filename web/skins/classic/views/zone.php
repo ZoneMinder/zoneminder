@@ -338,6 +338,14 @@ if ( count($other_zones) ) {
 							<caption><?php echo translate('RectangleMeasure') ?></caption>
 							<tbody>
 								<tr>
+									<th scope="row"><?php echo translate('RectangleObjectSize') ?></th>
+									<td>
+										<input type="number" id="objectWidthPx" min="1" step="1" title="<?php echo translate('ObjectSizeWidth') ?>" aria-label="<?php echo translate('ObjectSizeWidth') ?>"/>&times;<input type="number" id="objectHeightPx" min="1" step="1" title="<?php echo translate('ObjectSizeHeight') ?>" aria-label="<?php echo translate('ObjectSizeHeight') ?>"/>px
+										<button type="button" id="objectSizeApplyBtn" class="btn btn-normal" title="<?php echo translate('ObjectSizeApply') ?>"><?php echo translate('ObjectSizeApplyLabel') ?></button>
+										<span class="ratioHint"><?php echo translate('RectangleOrTypeSize') ?></span>
+									</td>
+								</tr>
+								<tr>
 									<th scope="row"><?php echo translate('RectangleAlarmedArea') ?></th>
 									<td>
 										<input type="number" id="objectFraction" value="<?php echo $rectangle_ratios['objectFraction']['value'] ?>" min="1" max="100" step="1"/>%

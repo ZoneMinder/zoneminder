@@ -32,6 +32,7 @@
 #include "zm_packet.h"
 #include "zm_packetqueue.h"
 #include "zm_utils.h"
+#include "zm_audio_detector.h"
 #include "zm_zone.h"
 
 #include <atomic>
@@ -50,6 +51,7 @@ class MonitorLinkExpression;
 
 #define SIGNAL_CAUSE "Signal"
 #define MOTION_CAUSE "Motion"
+#define AUDIO_CAUSE "Audio"
 #define LINKED_CAUSE "Linked"
 
 
@@ -219,8 +221,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     uint8_t recording;          /* +95 */
     uint8_t signal;             /* +96 */
     uint8_t format;             /* +97 */
-    uint8_t reserved1;          /* +98 */
-    uint8_t reserved2;          /* +99 */
+    uint8_t audio_level;        /* +98  0-100, written by the capture thread */
+    uint8_t audio_alarm;        /* +99  audio_level crossed AudioThreshold */
     uint32_t imagesize;         /* +100 */
     uint32_t last_frame_score;  /* +104 */
     uint32_t audio_frequency;   /* +108 */
@@ -612,6 +614,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::string     output_container;
   _AVPIXELFORMAT  imagePixFormat;
   bool            record_audio;      // Whether to store the audio that we receive
+  bool            audio_detection;   // Whether to score on how loud the audio is
+  int             audio_threshold;   // 0-100; 0 means detection is off
+  int             audio_alarm_score; // Score contributed while over threshold
+  AudioDetector   audio_detector;
   bool            wallclock_timestamps; // Whether to use wallclock pts/dts instead of values from ffmpeg
   int             output_source_stream;
 

@@ -17,6 +17,7 @@ set(TEST_SOURCES
   zm_db_contention_live.cpp
   zm_db_schema.cpp
   zm_box.cpp
+  zm_audio_detector.cpp
   zm_comms.cpp
   zm_crypt.cpp
   zm_event_hardlink.cpp

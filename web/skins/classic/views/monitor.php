@@ -1260,6 +1260,23 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
               <input type="hidden" name="newMonitor[RecordAudio]" value="<?php echo $monitor->RecordAudio() ? 1 : 0 ?>"/>
 <?php } ?>
             </li>
+            <li class="AudioDetection">
+              <label><?php echo translate('AudioDetection') ?></label>
+<?php if ( $monitor->Type() == 'Ffmpeg' ) { ?>
+              <input type="checkbox" name="newMonitor[AudioDetection]" value="1"<?php if ( $monitor->AudioDetection() ) { ?> checked="checked"<?php } ?>/>
+<?php } else { ?>
+              <?php echo translate('Audio detection only available with FFMPEG')?>
+              <input type="hidden" name="newMonitor[AudioDetection]" value="<?php echo $monitor->AudioDetection() ? 1 : 0 ?>"/>
+<?php } ?>
+            </li>
+            <li class="AudioThreshold">
+              <label><?php echo translate('AudioThreshold') ?></label>
+              <input type="number" name="newMonitor[AudioThreshold]" value="<?php echo validHtmlStr($monitor->AudioThreshold()) ?>" min="0" max="100" step="1"/>
+            </li>
+            <li class="AudioAlarmScore">
+              <label><?php echo translate('AudioAlarmScore') ?></label>
+              <input type="number" name="newMonitor[AudioAlarmScore]" value="<?php echo validHtmlStr($monitor->AudioAlarmScore()) ?>" min="0" max="255" step="1"/>
+            </li>
             <li class="EventStartCommand">
               <label><?php echo translate('Event Start Command') ?></label>
               <input type="text" name="newMonitor[EventStartCommand]" value="<?php echo validHtmlStr($monitor->EventStartCommand()) ?>" />

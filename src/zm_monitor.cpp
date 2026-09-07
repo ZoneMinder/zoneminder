@@ -114,6 +114,7 @@ std::string load_monitor_sql =
   ", `MQTT_Enabled`, `MQTT_Subscriptions`"
 #endif
   ", `StartupDelay`"
+  ", `AudioDetection`, `AudioThreshold`, `AudioAlarmScore`"
   " FROM `Monitors`";
 
 std::string CameraType_Strings[] = {
@@ -231,6 +232,9 @@ Monitor::Monitor() :
   output_container(""),
   imagePixFormat(AV_PIX_FMT_NONE),
   record_audio(false),
+  audio_detection(false),
+  audio_threshold(0),
+  audio_alarm_score(0),
   wallclock_timestamps(false),
 //event_prefix
 //label_format
@@ -725,6 +729,13 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   Debug(1, "Not compiled with MQTT");
 #endif
   startup_delay = dbrow[col] ? atoi(dbrow[col]) : 0;
+  col++;
+
+  audio_detection = dbrow[col] ? atoi(dbrow[col]) : false;
+  col++;
+  audio_threshold = dbrow[col] ? atoi(dbrow[col]) : 0;
+  col++;
+  audio_alarm_score = dbrow[col] ? atoi(dbrow[col]) : 0;
   col++;
 
   // How many frames we need to have before we start analysing.
@@ -2190,6 +2201,20 @@ bool Monitor::Analyse() {
         cause += "AMCREST";
       }
 
+      // Audio is scored from the capture thread's most recent reading rather
+      // than per audio packet: the score belongs to a video frame, and audio
+      // packets do not arrive in step with them.
+      if (audio_detection and shared_data->audio_alarm) {
+        score += audio_alarm_score;
+        Debug(4, "Triggered on AUDIO level %d >= %d, score += %d",
+              shared_data->audio_level, audio_threshold, audio_alarm_score);
+        Event::StringSet noteSet;
+        noteSet.insert(stringtf("level %d", shared_data->audio_level));
+        noteSetMap[AUDIO_CAUSE] = noteSet;
+        if (!cause.empty()) cause += ", ";
+        cause += AUDIO_CAUSE;
+      }
+
       // Specifically told to be on.  Setting the score here is not enough to trigger the alarm. Must jump directly to ALARM
       if (trigger_data->trigger_state == TriggerState::TRIGGER_ON) {
         score += trigger_data->trigger_score;
@@ -3076,6 +3101,24 @@ int Monitor::Capture() {
     } else if (packet->codec_type == AVMEDIA_TYPE_AUDIO) {
       if (audio_fifo)
         audio_fifo->writePacket(*packet);
+
+      if (audio_detection) {
+        // Opened here rather than at camera setup because a stream can gain
+        // audio on a reconnect, and because a monitor with detection off
+        // should not carry a decoder it never uses.
+        if (!audio_detector.IsOpen()) {
+          AVStream *audio_stream = camera->getAudioStream();
+          if (audio_stream) audio_detector.Open(audio_stream->codecpar);
+        }
+        if (audio_detector.IsOpen()) {
+          const int level = audio_detector.Process(packet->packet.get());
+          const bool alarm = AudioDetector::IsAlarm(level, audio_threshold);
+          shared_data->audio_level = static_cast<uint8_t>(level);
+          shared_data->audio_alarm = alarm ? 1 : 0;
+          if (alarm)
+            Debug(3, "Audio level %d over threshold %d", level, audio_threshold);
+        }
+      }
 
       // Only queue if we have some video packets in there. Should push this logic into packetqueue
       if (record_audio and (packetqueue.packet_count(video_stream_id) or event)) {

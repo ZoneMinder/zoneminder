@@ -562,6 +562,10 @@ void MonitorStream::runStream() {
   Image *paused_image = nullptr;
   SystemTimePoint paused_timestamp;
 
+  // Same, for the stopped state. See the stopped branch in the loop below.
+  Image *stopped_image = nullptr;
+  SystemTimePoint stopped_timestamp;
+
   if (connkey && (playback_buffer > 0)) {
     // 15 is the max length for the swap path suffix, /zmswap-whatever, assuming max 6 digits for monitor id
     const int max_swap_len_suffix = 15;
@@ -668,10 +672,49 @@ void MonitorStream::runStream() {
       continue;
     }
     if (stopped) {
-      // In stopped state, do nothing except wait for a new command.
-      // Don't call setLastViewed() so we don't keep capture/decoding active unnecessarily.
+      // Stopped halts playback but keeps the connection, so that a later
+      // command can resume on the same process. Hold the last frame and
+      // re-send it every few seconds, as the paused state does.
+      //
+      // The write is the point: with nothing written, this branch never
+      // touches the socket, so a stream whose client has gone away is never
+      // told about it and never sees EPIPE. Since it also skipped the ttl
+      // check at the bottom of the loop, such a process had no way to exit at
+      // all and stayed until the machine was restarted. refs #4706
+      //
+      // setLastViewed is deliberately still not called: capture and decoding
+      // should not be held active for a stream that is not playing.
+      if (!stopped_image
+          && monitor->shared_data->valid
+          && (monitor->shared_data->last_write_index != monitor->image_buffer_count)) {
+        int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
+        Debug(1, "Saving stopped image from index %d", index);
+        stopped_image = new Image(*monitor->ReadShmFrame(index));
+        stopped_timestamp = SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index]));
+      }
+      if (now - last_frame_sent > Seconds(5)) {
+        if (stopped_image) {
+          Debug(2, "Sending keepalive frame while stopped");
+          if (!sendFrame(stopped_image, stopped_timestamp)) zm_terminate = true;
+        } else if (sendTextFrame("Stopped") <= 0) {
+          // Nothing captured yet to hold, but we still have to write something
+          // to notice a client that is no longer there.
+          Debug(2, "Failed to send stopped keepalive text frame");
+          zm_terminate = true;
+        }
+      }
+      // The ttl check lives at the bottom of the loop, which this branch never
+      // reaches, so a stopped stream would otherwise outlive its own deadline.
+      if (ttl > Seconds(0) && (now - stream_start_time) > ttl) {
+        Debug(2, "Stopped and now - start > ttl. break");
+        break;
+      }
       std::this_thread::sleep_for(MAX_SLEEP);
       continue;
+    }
+    if (stopped_image) {
+      delete stopped_image;
+      stopped_image = nullptr;
     }
     monitor->setLastViewed();
     if (frame_type == FRAME_ANALYSIS)

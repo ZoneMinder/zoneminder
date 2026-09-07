@@ -1592,11 +1592,6 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
           <span class="form-text form-control-sm">When continuous events are closed.&nbsp;(<a id="ZM_EVENT_CLOSE_MODE" class="optionhelp">?</a>)</span>
         </li>
         <li>
-          <label><?php echo translate('FrameSkip') ?></label>
-            <input type="number" name="newMonitor[FrameSkip]" value="<?php echo validHtmlStr($monitor->FrameSkip()) ?>" min="0"/>
-            <?php echo translate('frames')?>
-        </li>
-        <li>
           <label><?php echo translate('MotionFrameSkip') ?></label>
             <input type="number" name="newMonitor[MotionFrameSkip]" value="<?php echo validHtmlStr($monitor->MotionFrameSkip()) ?>" min="0"/>
             <?php echo translate('frames')?>

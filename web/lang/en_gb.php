@@ -56,6 +56,22 @@
 $SLANG = array(
     'SystemLog'             => 'System Log',
     'DateTime'              => 'Date/Time',
+    'DiskSpace'             => 'Disk Space',
+    'FilterDebug'           => 'Filter Debug',
+    'FilterEmailServer'     => 'Email Server',
+    'FirstEvent'            => 'First Event',
+    'HostName'              => 'Host Name',
+    'LastEvent'             => 'Last Event',
+    'MaxGap'                => 'Max Gap',
+    'MinGap'                => 'Min Gap',
+    'MissingFiles'          => 'Missing Files',
+    'DecoderHWAccelDevice'  => 'Decoder HW Accel Device',
+    'DecoderHWAccelName'    => 'Decoder HW Accel Name',
+    'EncoderHWAccelDevice'  => 'Encoder HW Accel Device',
+    'EncoderHWAccelName'    => 'Encoder HW Accel Name',
+    'NewStorage'            => 'New Storage',
+    'OutputCodec'           => 'Output Codec',
+    'OutputContainer'       => 'Output Container',
     'Pid'                   => 'PID',
     '24BitColour'           => '24 bit colour',
     '32BitColour'           => '32 bit colour',
@@ -84,6 +100,7 @@ $SLANG = array(
     'All'                   => 'All',
     'AllTokensRevoked'      => 'All Tokens Revoked',
     'AnalysisFPS'           => 'Analysis FPS',
+    'AnalysisSource'        => 'Analysis Source',
     'AnalysisUpdateDelay'   => 'Analysis Update Delay',
     'AcceptDetection'       => 'Accept',
     'APIEnabled'            => 'API Enabled',
@@ -142,7 +159,6 @@ $SLANG = array(
     'BadEncoderParameters'  => 'Encoder does not work well without at least a value for crf. Please see the help.',
     'BadFormat'             => 'Format must be set to a valid value',
     'BadFPSReportInterval'  => 'FPS report interval buffer count must be an integer of 0 or more',
-    'BadFrameSkip'          => 'Frame skip count must be an integer of zero or more',
     'BadMotionFrameSkip'    => 'Motion Frame skip count must be an integer of zero or more',
     'BadHeight'             => 'Height must be set to a valid value',
     'BadHost'               => 'Host must be set to a valid ip address or hostname, do not include http://',
@@ -211,6 +227,8 @@ $SLANG = array(
     'CanWhiteCon'           => 'Can White Bal. Continuous',
     'CanLight'              => 'Can Light',
     'CanIndicatorLight'     => 'Can Indicator Light',
+    'ConfirmUnarchiveTitle' => 'Confirm Unarchive',
+    'CpuLoad'               => 'CPU Load',
     'Indicator'             => 'Indicator',
     'CanWhiteRel'           => 'Can White Bal. Relative',
     'CanZoomAbs'            => 'Can Zoom Absolute',
@@ -245,6 +263,7 @@ $SLANG = array(
     'ConfirmDeleteGroups'   => 'Are you sure you wish to delete the selected groups?',
     'ConfirmDeleteDevices'  => 'Are you sure you wish to delete the selected devices?',
     'ConfirmDeleteEvents'   => 'Are you sure you wish to delete the selected events?',
+    'MonitorFilters'        => 'Monitor Filters',
     'ConfirmDeleteTrainingData' => 'This will permanently delete ALL training data (images, labels, and class definitions). Type agree to confirm:',
     'ConfirmDeleteLayout'   => 'Are you sure you wish to delete current layout?',
     'ConfirmDeleteTitle'    => 'Delete Confirmation',
@@ -274,6 +293,7 @@ $SLANG = array(
     'DefaultScale'          => 'Default Scale',
     'DefaultCodec'          => 'Default Method For Event View',
     'DefaultView'           => 'Default View',
+    'RecordingSource'       => 'Recording Source',
     'RTSPDescribe'          => 'Use RTSP Response Media URL',
     'DeleteAndNext'         => 'Delete &amp; Next',
     'DeleteAndPrev'         => 'Delete &amp; Prev',
@@ -316,6 +336,7 @@ $SLANG = array(
     'Enter password for QR code' => 'Enter password for QR code',
     'ErrorBrackets'         => 'Error, please check you have an equal number of opening and closing brackets',
     'ErrorDeletingRowFromLogTable' => 'Error deleting row from log table',
+    'ErrorUpdatingEventTable' => 'Error updating event table',
     'ErrorUpdatingLogTable' => 'Error updating log table',
     'ErrorValidValue'       => 'Error, please check that all terms have a valid value',
     'ErrorVerifyingMonitorName'=> 'Unable to verify the monitor name because the name is missing',
@@ -371,7 +392,6 @@ $SLANG = array(
     'FPSReportInterval'     => 'FPS Report Interval',
     'FrameId'               => 'Frame Id',
     'FrameRate'             => 'Frame Rate',
-    'FrameSkip'             => 'Frame Skip',
     'MotionFrameSkip'       => 'Motion Frame Skip',
     'GenerateVideo'         => 'Generate Video',
     'GeneratingVideo'       => 'Generating Video',
@@ -648,6 +668,7 @@ $SLANG = array(
     'Roles'                 => 'Roles',
     'RotateLeft'            => 'Rotate Left',
     'RotateRight'           => 'Rotate Right',
+    'RTSPStreamName'        => 'RTSP Stream Name',
     'RTSPTransport'         => 'RTSP Transport Protocol',
     'RunAudit'              => 'Run Audit Process',
     'RunLocalUpdate'        => 'Please run zmupdate.pl to update',
@@ -682,6 +703,7 @@ $SLANG = array(
     'SortDesc'              => 'Desc',
     'SourceColours'         => 'Source Colours',
     'SourcePath'            => 'Source Path',
+    'SourceSecondPath'      => 'Source Second Path',
     'SourceType'            => 'Source Type',
     'SOAP WSA COMPLIANCE'   => 'SOAP WSA Compliance',
     'SpeedHigh'             => 'High Speed',
@@ -769,6 +791,7 @@ $SLANG = array(
     'UnrecognisedAction'    => 'Unrecognised action',
     'UpdateAvailable'       => 'An update to ZoneMinder is available.',
     'UpdateNotNecessary'    => 'No update is necessary.',
+    'use_Amcrest_API'       => 'Use Amcrest API',
     'UsedPlugins'	          => 'Used Plugins',
     'Username'              => 'Username',
     'UseFilterExprsPost'    => '&nbsp;filter&nbsp;expressions', // This is used at the end of the phrase 'use N filter expressions'
@@ -802,6 +825,7 @@ $SLANG = array(
     'X10InputAlarmString'   => 'X10 Input Alarm String',
     'X10OutputAlarmString'  => 'X10 Output Alarm String',
     'YouNoPerms'            => 'You do not have permissions to access this resource.',
+    'ZeroSize'              => 'Zero Size',
     'ZoneAlarmColour'       => 'Alarm Colour (Red/Green/Blue)',
     'ZoneArea'              => 'Zone Area',
     'ZoneFilterSize'        => 'Filter Width/Height (pixels)',
@@ -1095,7 +1119,11 @@ Always: A zmc process will run and immediately connect and stay connected.~~~~
     ),
   'OPTIONS_WHATTODISPLAY' => array(
      'Help' => '
-     On the Watch, Montage, Event page, you can display either a video stream, or an audio stream visualization, or both a video stream and an audio visualization.
+     On the Watch, Montage, Event page, you can display either a video stream, or an audio stream visualization, or both a video stream and an audio visualization.~~
+     To display the audio motion visualization, install the file "/skins/MySkin/assets/audioMotion-analyzer/src/audioMotion-analyzer.js".~~
+     This file can be downloaded from the following links:~~
+     https://cdn.jsdelivr.net/npm/audiomotion-analyzer@X.X.X where X.X.X is the version number~~
+     https://github.com/hvianna/audioMotion-analyzer/releases
      ',
     ),
   'FUNCTION_ANALYSIS_ENABLED' => array(
@@ -1192,15 +1220,6 @@ None: No frames will be decoded, live view and thumbnails will not be available~
      - SceneTemperature~~
      - Tamper~~
      For more details, see the instructions for your camera, as well as the specifications at the link:~~https://www.onvif.org/specs/core/ONVIF-Core-Specification.pdf
-    '
-   ),
-   'OPTIONS_WHATTODISPLAY' => array(
-    'Help' => '
-     Audio motion visualization can be displayed on the Montage, Watch, and Event pages.~~
-     To do this, install the file "/skins/MySkin/assets/audioMotion-analyzer/src/audioMotion-analyzer.js".~~
-     This file can be downloaded from the following links:~~
-     https://cdn.jsdelivr.net/npm/audiomotion-analyzer@X.X.X where X.X.X is the version number~~
-     https://github.com/hvianna/audioMotion-analyzer/releases
     '
    ),
   'ZM_OPT_TRAINING' => array(

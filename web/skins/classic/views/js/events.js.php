@@ -3,6 +3,12 @@
   global $sortQuery;
 ?>
 
+var translate = {
+  "Reason": "<?php echo translate('Reason') ?>",
+  "ErrorUpdatingEventTable": "<?php echo translate('ErrorUpdatingEventTable') ?>",
+  "AJAXRequestError": "<?php echo translate('AJAXRequestError') ?>",
+};
+
 var filterQuery = '<?php echo isset($filterQuery)?validJsStr(htmlspecialchars_decode($filterQuery)):'' ?>';
 var sortQuery = '<?php echo isset($sortQuery)?validJsStr(htmlspecialchars_decode($sortQuery)):'' ?>';
 

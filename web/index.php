@@ -223,7 +223,7 @@ if (isset($_POST['action'])) {
   # Actions can only be performed on POST because we don't check csrf on GETs.
   $action = detaintPath($_POST['action']);
 } else if (isset($_REQUEST['action']) and $_REQUEST['action'] and empty($_REQUEST['request'])) {
-  ZM\Error('actions can no longer be performed without POST.');
+  ZM\Debug('actions can no longer be performed without POST.');
 }
 
 # The only variable we really need to set is action. The others are informal.
@@ -263,6 +263,7 @@ if ( ZM_OPT_USE_AUTH and (!isset($user) or !($user instanceof ZM\User)) and ($vi
   $postLoginQuery = $_SERVER['QUERY_STRING'];
   $redirect = '?view=login'.($postLoginQuery?'&postLoginQuery=' . urlencode($postLoginQuery):'');
   zm_session_start();
+  zm_session_persist(); // must survive the redirect even if the client had no cookie
   $_SESSION['postLoginQuery'] = $postLoginQuery;
   session_write_close();
   ZM\Debug("Redirecting to $redirect");

@@ -5,7 +5,6 @@ var wrapperEventVideo = $j('#wrapperEventVideo');
 var videoFeed = $j('#videoFeed');
 var eventStatsTable = $j('#eventStatsTable');
 var backBtn = $j('#backBtn');
-var renameBtn = $j('#renameBtn');
 var archiveBtn = $j('#archiveBtn');
 var unarchiveBtn = $j('#unarchiveBtn');
 var editBtn = $j('#editBtn');
@@ -330,7 +329,6 @@ function changeScale() {
     newWidth = parseInt(w);
     newHeight = parseInt(h);
     currentScale = parseInt(w / eventData.Width * 100);
-    currentScale = currentScale;
   }
 
   console.log(`Real dimensions: ${eventData.Width} X ${eventData.Height}, Scale: ${currentScale}, deltaScale: ${deltaScale()}, New dimensions: ${newWidth} X ${newHeight}`);
@@ -1468,7 +1466,6 @@ function initPage() {
   changeStreamQuality();
 
   // enable or disable buttons based on current selection and user rights
-  renameBtn.prop('disabled', !canEdit.Events);
   archiveBtn.prop('disabled', !(!eventData.Archived && canEdit.Events));
   unarchiveBtn.prop('disabled', !(eventData.Archived && canEdit.Events));
   editBtn.prop('disabled', !canEdit.Events);

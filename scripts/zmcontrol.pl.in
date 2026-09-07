@@ -157,6 +157,35 @@ if ($options{command}) {
   # We are the server
   require ZoneMinder::Monitor;
 
+  # Only one control server per monitor. Nothing used to stop a second one, and
+  # it would unlink the live socket further down and bind its own, leaving the
+  # first listening on an unlinked inode that no client can reach while both
+  # still held the camera's control connection open. Take the lock before
+  # anything talks to the camera or the socket.
+  # The lock is a separate file rather than the socket itself so that a socket
+  # left behind by a killed server does not block startup for good.
+  # refs #4423
+  my $lock_file = $Config{ZM_PATH_SOCKS}.'/zmcontrol-'.$id.'.lock';
+  # Held for the lifetime of the process: the lock is released when $lock_fh
+  # goes out of scope, and this block runs until the server exits.
+  my ($lock_fh, $lock_status, $lock_pid) = acquireExclusiveLock($lock_file);
+  if (!$lock_fh) {
+    if ($lock_status eq 'held') {
+      Error("Another zmcontrol server is already running for monitor $id"
+        .(defined($lock_pid) ? " (pid $lock_pid)" : '').', exiting');
+    } else {
+      Error("Can't take the control server lock at $lock_file, so not starting."
+        .' It has to be writable by the user zmcontrol.pl runs as, so check its'
+        .' ownership if it was created by a hand run as another user.');
+    }
+    # zmdc starts us with keepalive, so a non-zero exit here is retried with a
+    # backoff capped at ZM_MAX_RESTART_DELAY rather than staying dead. That is
+    # what we want while a duplicate is still up, since it clears itself once
+    # the other server goes. A lock file we cannot open never clears on its own,
+    # which is why that case says what to look at.
+    exit(1);
+  }
+
   my $monitor = ZoneMinder::Monitor->find_one(Id=>$id);
   Fatal("Unable to load control data for monitor $id") if !$monitor;
 

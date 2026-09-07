@@ -162,8 +162,6 @@ function validateForm(form) {
       errors[errors.length] = "<?php echo translate('BadAnalysisUpdateDelay') ?>";
     if ( !form.elements['newMonitor[FPSReportInterval]'].value || !(parseInt(form.elements['newMonitor[FPSReportInterval]'].value) >= 0 ) )
       errors[errors.length] = "<?php echo translate('BadFPSReportInterval') ?>";
-    if ( !form.elements['newMonitor[FrameSkip]'].value || !(parseInt(form.elements['newMonitor[FrameSkip]'].value) >= 0 ) )
-      errors[errors.length] = "<?php echo translate('BadFrameSkip') ?>";
     if ( !form.elements['newMonitor[MotionFrameSkip]'].value || !(parseInt(form.elements['newMonitor[MotionFrameSkip]'].value) >= 0 ) )
       errors[errors.length] = "<?php echo translate('BadMotionFrameSkip') ?>";
     if ( form.elements['newMonitor[Type]'].value == 'Local' )

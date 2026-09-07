@@ -106,3 +106,19 @@ INSERT INTO `Controls` VALUES (NULL,'HiSilicon Hi3510 CGI','Ffmpeg','HiSilicon_H
 -- each one is defined.
 --
 INSERT INTO `Controls` (`Name`,`Type`,`Protocol`,`CanReset`,`CanReboot`,`HasPresets`,`NumPresets`,`HasHomePreset`,`CanSetPresets`,`CanMove`,`CanMoveCon`,`CanPan`,`HasPanSpeed`,`MinPanSpeed`,`MaxPanSpeed`,`CanTilt`,`HasTiltSpeed`,`MinTiltSpeed`,`MaxTiltSpeed`) VALUES ('Amcrest IP5M-1190EW HTTP','Ffmpeg','Amcrest_HTTP',1,1,1,25,1,1,1,1,1,1,1,4,1,1,1,4);
+
+--
+-- Foscam HD, fixed (no PTZ).
+--
+-- Everything from the FI98xx generation onward answers the CGIProxy.fcgi
+-- settings API, but the only Foscam entries here are for the pan/tilt
+-- models, so a fixed camera of that generation has nothing it can be set
+-- to.  That matters beyond the missing PTZ buttons: without a ControlId a
+-- monitor has no protocol module, so cameratool.pl cannot read or write the
+-- camera's settings - including pointing it at an NTP server - at all.
+--
+-- Every movement flag is left at its default of 0 because the hardware has
+-- no PTZ.  CanReboot is 1 because rebootSystem is accepted.  Verified on an
+-- FI9853EP running firmware 2.22.2.15.
+--
+INSERT INTO `Controls` (`Name`,`Type`,`Protocol`,`CanReset`,`CanReboot`) VALUES ('Foscam HD (fixed)','Ffmpeg','FoscamHD',0,1);

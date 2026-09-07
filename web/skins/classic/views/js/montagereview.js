@@ -2,7 +2,7 @@
 
 var LOADING = true; // Default to true as initial state
 
-var ajax = null;
+var ajaxRequests = [];
 var wait_for_events_interval = null;
 
 var eventStreams = {}; // EventStream instances keyed by monitorId
@@ -1309,34 +1309,53 @@ function loadEventData(e) {
       const name = el.attr('name');
 
       if (name) {
-        const found = name.match(/filter\[Query\]\[terms\]\[(\d)+\]\[val\]/);
+        const found = name.match(/filter\[Query\]\[terms\]\[(\d+)\]\[val\]/);
         if (found) {
           const attr_name = 'filter[Query][terms]['+found[1]+'][attr]';
-          const attr = this.form.elements[attr_name];
           const op_name = 'filter[Query][terms]['+found[1]+'][op]';
-          const op = this.form.elements[op_name];
-          if (attr) {
-            if (attr.value==='Monitor') attr.value='MonitorId';
+          // Looked up by name rather than through this.form: in sidebar filter
+          // mode insertControlModuleMenu() moves #fieldsTable out of
+          // #montagereview_form and into the extruder, leaving these inputs with
+          // no form owner. Scoped to #fieldsTable because term names are unique
+          // within a form, not within the document.
+          const attr = document.querySelector('#fieldsTable [name="'+attr_name+'"]');
+          const op = document.querySelector('#fieldsTable [name="'+op_name+'"]');
+          if (attr && op) {
+            // Translate in a local rather than by writing back to attr.value:
+            // the form is submitted when a filter changes, and
+            // montagereview.php decides whether the range terms are already
+            // present by looking for 'DateTime', so a form left holding a
+            // rewritten name came back with a second, duplicate pair.
+            //
+            // DateTime is deliberately NOT rewritten to StartDateTime.
+            // EventsController::index() treats DateTime as a pseudo-attribute
+            // meaning "the event was running then" and turns the window into an
+            // overlap test against an effective end date; StartDateTime is a
+            // plain column and gives a containment test, which drops the event
+            // that was already recording when the window opened.
+            let apiAttr = attr.value;
+            if (apiAttr === 'Monitor') apiAttr = 'MonitorId';
             let urlVal = val;
             // Normalize date/time values to YYYY-MM-DD HH:mm:ss for the API URL.
             // Locale formats using / as separator break the URL path.
-            if (/Date|Time/.test(attr.value)) {
+            if (/Date|Time/.test(apiAttr)) {
               const m = moment(val);
               if (m.isValid()) {
                 urlVal = m.format('YYYY-MM-DD HH:mm:ss');
               }
             }
-            url += '/'+attr.value+' '+op.value+':'+encodeURIComponent(urlVal);
+            url += '/'+apiAttr+' '+op.value+':'+encodeURIComponent(urlVal);
           } else {
-            console.warn('No attr for '+attr_name);
+            console.warn('No attr/op for '+attr_name);
           }
         //} else {
           //console.log("No match for " + name);
         }
         data[name] = val;
         const cookie = el.attr('data-cookie');
-        // Persist (no expiry) so the shared filter/date range does not silently
-        // expire after an hour and desync from the other views. refs #4976
+        // Persist so the shared filter does not silently expire after an hour
+        // and desync from the other views. setCookie scopes the date-range
+        // cookies to the session; the rest are kept. refs #4976
         if (cookie) setCookie(cookie, val);
       } // end if name
     } // end if val
@@ -1401,37 +1420,44 @@ function loadEventData(e) {
     }
   } // end function receive_events
 
-  //FIXME ajax gets overwrritten by subsequent monitor
-  if (ajax) ajax.abort();
+  // One request is fired per monitor, so every one of them has to be kept.
+  // Assigning them all to a single variable left only the last abortable: a
+  // re-entry while the user scrubbed cancelled one of twelve, and the other
+  // eleven landed and drew events for a window that had already moved.
+  while (ajaxRequests.length) {
+    ajaxRequests.pop().abort();
+  }
 
   if (mon_ids.length) {
     for (let i=0; i < mon_ids.length; i++) {
-      ajax = $j.ajax({
+      ajaxRequests.push($j.ajax({
         url: zmAuth.appendTo(url+'/MonitorId:'+mon_ids[i]+'.json'),
         method: 'GET',
         //url: thisUrl + '?view=request&request=events&task=query&sort=Id&order=ASC',
         //data: data,
         timeout: 0,
         success: receive_events,
-        error: function(jqXHR) {
-          ajax = null;
+        error: function(jqXHR, textStatus) {
+          // An abort is this function replacing its own query, not a failure.
+          if (textStatus === 'abort') return;
           console.error("loadEventData error", jqXHR.status);
         }
-      });
+      }));
     } // end foreach monitor
   } else {
-    ajax = $j.ajax({
+    ajaxRequests.push($j.ajax({
       url: zmAuth.appendTo(url+'.json'),
       method: 'GET',
       //url: thisUrl + '?view=request&request=events&task=query&sort=Id&order=ASC',
       //data: data,
       timeout: 0,
       success: receive_events,
-      error: function(jqXHR) {
-        ajax = null;
+      error: function(jqXHR, textStatus) {
+        // An abort is this function replacing its own query, not a failure.
+        if (textStatus === 'abort') return;
         console.log("error", jqXHR);
       }
-    });
+    }));
   }
   LOADING = false;
   return;
@@ -1775,9 +1801,11 @@ function getMinMaxStartDateTimeElements() {
   $j('#fieldsTable input[value="StartDateTime"], #fieldsTable input[value="DateTime"]').each(function(index) {
     const matches = this.name.match(regexp);
     if (matches && matches.length) {
-      const val = this.form.elements['filter[Query][terms]['+matches[1]+'][val]'];
-      if (val) {
-        const op = this.form.elements['filter[Query][terms]['+matches[1]+'][op]'];
+      // Same reason as in loadEventData(): in sidebar filter mode these inputs have
+      // been moved out of the form, so this.form is null.
+      const val = document.querySelector('#fieldsTable [name="filter[Query][terms]['+matches[1]+'][val]"]');
+      const op = document.querySelector('#fieldsTable [name="filter[Query][terms]['+matches[1]+'][op]"]');
+      if (val && op) {
         if (op.value == '>=') {
           minStartDateTimeElement = val;
         } else if (op.value == '<=') {
@@ -1786,7 +1814,7 @@ function getMinMaxStartDateTimeElements() {
           console.warn('unknown op', op.value);
         }
       } else {
-        console.warn("no val ", matches);
+        console.warn("no val/op ", matches);
       }
     }
   });

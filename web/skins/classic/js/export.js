@@ -10,8 +10,11 @@ function startDownload(exportFile) {
 }
 
 function getFileNameFromURL(url) {
-  const matches = url.match(/file=(.*?)&/) || url.match(/file=(.*)/);
-  return (matches) ? matches[1] : '';
+  // The file parameter is percent-encoded: merged exports are named after the
+  // monitor and so contain spaces, colons and anything else the monitor is
+  // called.
+  const query = url.slice(url.indexOf('?') + 1);
+  return new URLSearchParams(query).get('file') || '';
 }
 
 function exportResponse(data, responseText) {

@@ -16,6 +16,7 @@ class Filter extends ZM_Object {
   protected $Query;
   protected $Terms;
   protected $Query_json;
+  protected $MonitorOptions;
 
 
   protected $defaults = array(
@@ -278,6 +279,22 @@ class Filter extends ZM_Object {
       return $this->Query()['terms'];
     }
     return array();
+  }
+
+  /**
+   * Id => label map limiting which monitors the Monitor term offers.
+   *
+   * The monitor attribute filters (Name, Capturing, Recording, Status, ...) do
+   * not filter events; they narrow which monitors exist to choose between,
+   * which is to say they decide what the Monitor term should offer. A view that
+   * has applied them sets the survivors here before asking for a widget.
+   * Unset, the term offers every monitor the user can view.
+   */
+  public function monitor_options() {
+    if ( func_num_args() ) {
+      $this->MonitorOptions = func_get_arg(0);
+    }
+    return $this->MonitorOptions;
   }
 
   // The following three fields are actually stored in the Query
@@ -1307,10 +1324,13 @@ class Filter extends ZM_Object {
           $html .= $this->addButtonForFilterSelect("filter[Query][terms][$i][val]");
           $html .= '</span>';
         } else if ( $term['attr'] == 'Monitor' ) {
-          $monitors = [];
-          foreach (Monitor::find(['Deleted'=>false], ['order'=>'lower(Name)']) as $m) {
-            if ($m->canView()) {
-              $monitors[$m->Id()] = $m->Id().' '.validHtmlStr($m->Name());
+          $monitors = $this->monitor_options();
+          if ($monitors === null) {
+            $monitors = [];
+            foreach (Monitor::find(['Deleted'=>false], ['order'=>'lower(Name)']) as $m) {
+              if ($m->canView()) {
+                $monitors[$m->Id()] = $m->Id().' '.validHtmlStr($m->Name());
+              }
             }
           }
           $selected = self::decode_multi($term['val']);

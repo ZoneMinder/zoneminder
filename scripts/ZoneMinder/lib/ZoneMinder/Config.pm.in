@@ -186,7 +186,9 @@ sub loadConfigFromDB {
     }
     if ( defined($value) ) {
       if ( $option->{type} == $types{boolean} ) {
-        $option->{value} = $value?'yes':'no';
+        # Booleans are 1/0 in the table and in ConfigData; coerce rather than
+        # take the column verbatim so an empty or absent value lands on '0'.
+        $option->{value} = $value ? '1' : '0';
       } else {
         $option->{value} = $value;
       }
@@ -226,26 +228,18 @@ sub saveConfigToDB {
     $option->{db_hint} = $option->{type}->{hint};
     $option->{db_pattern} = $option->{type}->{pattern};
     $option->{db_format} = $option->{type}->{format};
-    if ( $option->{db_type} eq 'boolean' ) {
-      $option->{db_value} = ($option->{value} eq 'yes') ? '1' : '0';
-    } else {
-      $option->{db_value} = $option->{value};
-    }
+    $option->{db_value} = dbValue($option->{db_type}, $option->{value});
+    $option->{db_default} = dbValue($option->{db_type}, $option->{default});
     if ( my $requires = $option->{requires} ) {
-      $option->{db_requires} = join( ";",
-          map {
-            my $value = $_->{value};
-            $value = ($value eq 'yes') ? 1 : 0 if ( $options_hash{$_->{name}}->{db_type} eq 'boolean' );
-            ( "$_->{name}=$value" )
-          } @$requires
-          );
+      # Requires values are already in stored form, booleans included.
+      $option->{db_requires} = join(';', map { "$_->{name}=$_->{value}" } @$requires);
     }
     my $res = $sth->execute(
         $option->{id},
         $option->{name},
         $option->{db_value},
         $option->{db_type},
-        $option->{default},
+        $option->{db_default},
         $option->{db_hint},
         $option->{db_pattern},
         $option->{db_format},

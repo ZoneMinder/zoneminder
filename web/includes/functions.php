@@ -72,7 +72,9 @@ function CSPHeaders($view, $nonce) {
 }
 
 function CORSHeaders() {
-  if (isset($_SERVER['HTTP_ORIGIN'])) {
+  # An empty Origin cannot match a server and needs no headers, so treat it the
+  # same as no Origin at all rather than warning about a value we cannot print.
+  if (isset($_SERVER['HTTP_ORIGIN']) and $_SERVER['HTTP_ORIGIN'] !== '') {
 # The following is left for future reference/use.
     $valid = false;
     global $Servers;
@@ -103,7 +105,16 @@ function CORSHeaders() {
       }
     }
     if (!$valid) {
-      ZM\Warning($_SERVER['HTTP_ORIGIN'] . ' is not found in servers list.');
+      # Browsers send Origin on same-origin POST/fetch as well.  Such a request
+      # needs no CORS headers, so not finding it in the servers list is normal
+      # and not worth warning about -- it only means the Servers table does not
+      # happen to list the hostname this install is being reached on.
+      if (isset($_SERVER['HTTP_HOST'])
+        and preg_replace('/^https?:\/\//i', '', $_SERVER['HTTP_ORIGIN']) === $_SERVER['HTTP_HOST']) {
+        ZM\Debug('CORS: same-origin request from '.$_SERVER['HTTP_ORIGIN'].', no headers needed');
+      } else {
+        ZM\Warning($_SERVER['HTTP_ORIGIN'] . ' is not found in servers list.');
+      }
     }
   } else {
     ZM\Debug('CORS: NO origin');
@@ -1644,7 +1655,8 @@ function logState() {
       );
 
   # This is an expensive request, as it has to hit every row of the Logs Table
-  $sql = 'SELECT Level, COUNT(Level) AS LevelCount FROM Logs WHERE Level < '.ZM\Logger::INFO.' AND TimeKey > unix_timestamp(now() - interval '.ZM_LOG_CHECK_PERIOD.' second) GROUP BY Level ORDER BY Level ASC';
+  # Level >= PANIC excludes AUDIT and below, which are not error conditions
+  $sql = 'SELECT Level, COUNT(Level) AS LevelCount FROM Logs WHERE Level < '.ZM\Logger::INFO.' AND Level >= '.ZM\Logger::PANIC.' AND TimeKey > unix_timestamp(now() - interval '.ZM_LOG_CHECK_PERIOD.' second) GROUP BY Level ORDER BY Level ASC';
   $counts = dbFetchAll($sql);
   if ( $counts ) {
     foreach ( $counts as $count ) {
@@ -1945,6 +1957,15 @@ function validDevicePath($input) {
 function validStr($input) {
   if (is_null($input)) return '';
   return strip_tags($input);
+}
+
+// The bandwidth profiles a skin is expected to have settings for. The classic
+// skin defines its whole ZM_WEB_* constant set by switching on this value, so
+// anything outside this list leaves those constants undefined and every page
+// fatals on the first one it reaches. Nothing may reach the zmBandwidth cookie
+// without passing this.
+function isValidBandwidth($input) {
+  return in_array($input, array('high', 'medium', 'low'), true);
 }
 
 // For strings in javascript or tags etc, expected to be in quotes so further quotes escaped rather than converted

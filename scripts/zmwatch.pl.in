@@ -45,7 +45,6 @@ use bytes;
 #
 # ==========================================================================
 
-use constant START_DELAY => 30; # To give everything else time to start
 
 # ==========================================================================
 #
@@ -81,11 +80,27 @@ my $dbh = zmDbConnect();
 # We don't need to keep objects cached
 $ZoneMinder::Object::no_cache = 1;
 
-Debug('Watchdog starting, pausing for '.START_DELAY.' seconds');
-sleep(START_DELAY);
-
 # Wall-clock of the last completed check pass, to detect systemic stalls (see below).
 my $last_pass_time = time();
+
+# --- Startup grace --------------------------------------------------------
+# This used to be a flat sleep(30) before the first pass. When we start, zmc
+# has not necessarily created its shared memory or written a heartbeat yet,
+# and neither is distinguishable from a camera that has died, so the sleep was
+# there to stay out of the way while the system came up.
+#
+# A fixed delay is the wrong shape for that. Too short and a busy host with
+# many cameras still gets its whole fleet restarted the moment we wake; too
+# long and a genuinely dead camera goes unwatched for no reason. It also
+# punishes anyone running this by hand.
+#
+# Instead, give each monitor we have not yet seen healthy until
+# ZM_WATCH_MAX_DELAY after we started -- the same threshold used to decide a
+# heartbeat is stale -- before acting on it. Monitors we have seen healthy are
+# handled immediately, so a camera that dies after we start is caught as fast
+# as it ever was, and every other check runs from the first pass.
+my $start_time = time();
+my %seen_healthy;
 
 while (!$zm_terminate) {
   my $db_was_down = 0;
@@ -129,7 +144,16 @@ while (!$zm_terminate) {
 
     my $now = time(); 
     my $restart = 0;
+    # True only while a monitor we have never seen running is still inside the
+    # window it is allowed to take to come up. See the startup grace note above.
+    my $starting_up = (!$seen_healthy{$monitor->{Id}})
+      && (($now - $start_time) < $Config{ZM_WATCH_MAX_DELAY});
+
     if (!zmMemVerify($monitor)) {
+      if ($starting_up) {
+        Debug("Not restarting $monitor->{Id} $monitor->{Name} yet, no shared data but still inside its startup grace");
+        next;
+      }
       Info("Restarting capture daemon for $monitor->{Id} $monitor->{Name}, shared data not valid");
       $monitor->control('restart');
       next;
@@ -138,10 +162,16 @@ while (!$zm_terminate) {
     my $heartbeat_time = zmMemRead($monitor, 'shared_data:heartbeat_time');
     my $heartbeat_elapsed = $now-$heartbeat_time;
     if ($heartbeat_elapsed > $Config{ZM_WATCH_MAX_DELAY}) {
+      if ($starting_up) {
+        Debug("Not restarting $monitor->{Id} $monitor->{Name} yet, no heartbeat but still inside its startup grace");
+        next;
+      }
       Info("Restarting capture daemon for $monitor->{Id} $monitor->{Name}, $now - heartbeat time $heartbeat_time $heartbeat_elapsed > $Config{ZM_WATCH_MAX_DELAY}");
       $monitor->control('restart');
       next;
     } else {
+      # It is up. From here on it is judged immediately, like any other monitor.
+      $seen_healthy{$monitor->{Id}} = 1;
       Debug("Monitor $monitor->{Id} $monitor->{Name}, heartbeat time $now - $heartbeat_time $heartbeat_elapsed < $Config{ZM_WATCH_MAX_DELAY}");
     }
 

@@ -414,7 +414,9 @@ else()
     "ZoneMinder requires jpeg but it was not found on your system")
 endif()
 
-set(CxxUrl_BUILD_SHARED_LIBS "OFF")
+# CxxUrl builds a static library on its own: its option is
+# CxxUrl_BUILD_STATIC_LIBS and it defaults to ON, independently of
+# BUILD_SHARED_LIBS. There is nothing to force here.
 list(APPEND ZM_BIN_LIBS chmike::CxxUrl)
 
 # libjwt
@@ -580,7 +582,7 @@ set(CMAKE_REQUIRED_INCLUDES ${FFMPEG_avutil_INCLUDE_DIRS})
 check_include_file("libavutil/hwcontext.h" HAVE_LIBAVUTIL_HWCONTEXT_H)
 
 set(PATH_FFMPEG "")
-set(OPT_FFMPEG "no")
+set(OPT_FFMPEG "0")
 
 # Find the path to the ffmpeg executable
 find_program(FFMPEG_EXECUTABLE
@@ -588,7 +590,7 @@ find_program(FFMPEG_EXECUTABLE
   PATH_SUFFIXES ffmpeg)
 if(FFMPEG_EXECUTABLE)
   set(PATH_FFMPEG "${FFMPEG_EXECUTABLE}")
-  set(OPT_FFMPEG "yes")
+  set(OPT_FFMPEG "1")
   mark_as_advanced(FFMPEG_EXECUTABLE)
 endif()
 

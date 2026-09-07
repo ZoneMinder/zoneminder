@@ -39,7 +39,7 @@ if ($result) {
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><?php echo translate('AIObjectClass') .' - '. validHtmlStr($class['ClassName']) ?></h5>
+        <h5 class="modal-title"><?php echo translate('AI Object Class') .' - '. validHtmlStr($class['ClassName']) ?></h5>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
@@ -59,11 +59,11 @@ if ($result) {
                 <td><?php echo htmlSelect('newClass[DatasetId]', $datasets, $class['DatasetId']) ?></td>
               </tr>
               <tr class="ClassName">
-                <th scope="row"><?php echo translate('ClassName') ?></th>
+                <th scope="row"><?php echo translate('Class Name') ?></th>
                 <td><input type="text" name="newClass[ClassName]" value="<?php echo validHtmlStr($class['ClassName']) ?>" required/></td>
               </tr>
               <tr class="ClassIndex">
-                <th scope="row"><?php echo translate('ClassIndex') ?></th>
+                <th scope="row"><?php echo translate('Class Index') ?></th>
                 <td><input type="number" name="newClass[ClassIndex]" value="<?php echo validCardinal($class['ClassIndex']) ?>" step="1" min="0" required/></td>
               </tr>
               <tr class="Description">

@@ -58,7 +58,7 @@ foreach( $controls as $control ) {
           <tr>
             <td class="colMark" data-checkbox="true"></td>
             <td class="colId"><?php echo $control['Id'] ?></td>
-            <td class="colName"><?php echo $control['Name'] ?></td>
+            <td class="colName"><?php echo validHtmlStr($control['Name']) ?></td>
             <td class="colType"><?php echo $control['Type'] ?></td>
             <td class="colProtocol"><?php echo validHtmlStr($control['Protocol']) ?></td>
             <td class="colCanMove"><?php echo $control['CanMove']?translate('Yes'):translate('No') ?></td>

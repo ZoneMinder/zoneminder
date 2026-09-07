@@ -101,7 +101,7 @@ std::string load_monitor_sql =
   "`ImageBufferCount`, `MaxImageBufferCount`, `WarmupCount`, `PreEventCount`, "
   "`PostEventCount`, `StreamReplayBuffer`, `AlarmFrameCount`, "
   "`SectionLength`, `SectionLengthWarn`, `MinSectionLength`, `EventCloseMode`+0, "
-  "`FrameSkip`, `MotionFrameSkip`, "
+  "`MotionFrameSkip`, "
   "`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`, "
   "`Latitude`, `Longitude`, "
   "`RTSPServer`, `RTSPStreamName`, `SOAP_wsa_compl`, `ONVIF_Alarm_Text`,"
@@ -245,7 +245,6 @@ Monitor::Monitor() :
   min_section_length(0),
   startstop_on_section_length(false),
   adaptive_skip(false),
-  frame_skip(0),
   motion_frame_skip(0),
   analysis_fps_limit(0),
   analysis_update_delay(0),
@@ -354,29 +353,6 @@ Monitor::Monitor() :
   videoStore = nullptr;
 }  // Monitor::Monitor
 
-/*
-   std::string load_monitor_sql =
-   "SELECT `Id`, `Name`, `Deleted`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0,"
-   "`Recording`+0, `RecordingSource`+0, `Decoding`+0, "
-   " RTSP2WebEnabled, RTSP2WebType, `StreamChannel`+0,"
-   " GO2RTCEnabled, "
-   "JanusEnabled, JanusAudioEnabled, Janus_Profile_Override, Restream, RTSP_User, Janus_RTSP_Session_Timeout,"
-   "LinkedMonitors, `EventStartCommand`, `EventEndCommand`, "
-   "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
-   "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
-   "Protocol, Method, Options, User, Pass, Host, Port, Path, SecondPath, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, "
-   "SaveJPEGs, VideoWriter, EncoderParameters,"
-   "OutputCodecName, Encoder, OutputContainer, RecordAudio, WallClockTimestamps,"
-   "Brightness, Contrast, Hue, Colour, "
-   "EventPrefix, LabelFormat, LabelX, LabelY, LabelSize,"
-   "ImageBufferCount, `MaxImageBufferCount`, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, "
-   "`SectionLength`, `SectionLengthWarn`, `MinSectionLength`, `EventCloseMode`, "
-   "`FrameSkip`, `MotionFrameSkip`, "
-   "FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif,"
-   "`RTSPServer`, `RTSPStreamName`, `SOAP_wsa_compl`,"
-   "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`, "
-   "SignalCheckPoints, SignalCheckColour, Importance-1, ZoneCount, `MQTT_Enabled`, `MQTT_Subscriptions`, StartupDelay FROM Monitors";
-*/
 
 void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   purpose = p;
@@ -618,7 +594,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   packetqueue.setMaxVideoPackets(max_image_buffer_count);
   packetqueue.setKeepKeyframes((videowriter == PASSTHROUGH) && (recording != RECORDING_NONE));
 
-  /* "SectionLength, SectionLengthWarn, MinSectionLength, EventCloseMode, FrameSkip, MotionFrameSkip, " */
+  /* "SectionLength, SectionLengthWarn, MinSectionLength, EventCloseMode, MotionFrameSkip, " */
   section_length = Seconds(atoi(dbrow[col]));
   col++;
   section_length_warn = dbrow[col] ? atoi(dbrow[col]) : false;
@@ -661,8 +637,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
       event_close_mode = CLOSE_IDLE;
   }
 
-  frame_skip = atoi(dbrow[col]);
-  col++;
   motion_frame_skip = atoi(dbrow[col]);
   col++;
 
@@ -1308,6 +1282,16 @@ bool Monitor::connect() {
   last_fps_time = std::chrono::system_clock::now();
   last_analysis_fps_time = std::chrono::system_clock::now();
   last_capture_image_count = 0;
+
+  // Stagger the Monitor_Status writes. Left at its default (the epoch) every
+  // monitor's first UpdateFPS() sees a huge elapsed time and writes at once,
+  // and because the period is fixed they stay in lockstep from then on. A mass
+  // restart therefore lands every monitor on the same second of the cycle
+  // forever after, dropping the whole herd onto the smallest, hottest table in
+  // the schema at the moment the system is least able to absorb it. Phase them
+  // by id, which spreads them over the interval and, unlike a random offset,
+  // survives a restart without re-clustering.
+  last_status_time = last_fps_time - Seconds(id % kStatusUpdateInterval.count());
 
   Debug(3, "Success connecting");
   return true;
@@ -2073,7 +2057,7 @@ void Monitor::UpdateFPS() {
     last_fps_time = now;
 
     FPSeconds db_elapsed = now - last_status_time;
-    if (db_elapsed > Seconds(10)) {
+    if (db_elapsed > kStatusUpdateInterval) {
       std::string sql = stringtf(
 		      "INSERT INTO Monitor_Status (MonitorId, Status,CaptureFPS,CaptureBandwidth, AnalysisFPS, UpdatedOn) VALUES (%u, 'Connected',%.2lf, %u, %.2lf, NOW()) ON DUPLICATE KEY "
           "UPDATE Status='Connected', CaptureFPS = %.2lf, CaptureBandwidth=%u, AnalysisFPS = %.2lf, UpdatedOn=NOW()",
@@ -2376,7 +2360,13 @@ bool Monitor::Analyse() {
                     if (zone.Alarmed()) {
                       if (!packet->alarm_cause.empty()) packet->alarm_cause += ",";
                       packet->alarm_cause += zone.Label();
-                      if (zone.AlarmImage())
+                      // analysis_image is only allocated when the frame scored
+                      // (refs #4996). A preclusive zone alarms and is left marked
+                      // Alarmed() while DetectMotion deliberately zeroes the score,
+                      // so this loop is reachable with no analysis_image at all.
+                      // Overlaying then dereferences null. Nothing consumes an
+                      // analysis image for a zero-score frame anyway.
+                      if (packet->analysis_image and zone.AlarmImage())
                         packet->analysis_image->Overlay(*(zone.AlarmImage()));
                     }
                     Debug(4, "Setting score for zone %d to %d", zone_index, zone.Score());
@@ -3485,7 +3475,7 @@ bool Monitor::Decode() {
 
     // Warn if falling behind
     auto lag = std::chrono::system_clock::now() - packet->timestamp;
-    if (lag > Seconds(ZM_WATCH_MAX_DELAY)) {
+    if (lag > Seconds(static_cast<int>(config.watch_max_delay))) {
       Warning("Decoding is not keeping up. %.2f seconds behind capture.", FPSeconds(lag).count());
     }
   }

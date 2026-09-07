@@ -60,7 +60,7 @@ void Monitor::JanusManager::load_from_monitor() {
       rtsp_path = "rtsp://127.0.0.1";
     }
     rtsp_path += ":" + std::to_string(config.min_rtsp_port) + "/" + parent->rtsp_streamname;
-    if (ZM_OPT_USE_AUTH) {
+    if (config.opt_use_auth) {
       if (parent->rtsp_user) {
         User *rtsp_user = User::find(parent->rtsp_user);
         std::string auth_key = rtsp_user->getAuthHash();

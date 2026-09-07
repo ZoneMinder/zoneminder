@@ -150,7 +150,44 @@ void StreamBase::checkCommandQueue() {
   } // end while !zm_terminate
 }  // end void StreamBase::checkCommandQueue()
 
-Image *StreamBase::prepareImage(Image *image) {
+int StreamBase::preScaleDimensions(int base_width, int base_height, int &width, int &height) const {
+  // Any zoom crops before scaling and needs the full resolution to crop out of.
+  if (zoom.load() != ZM_SCALE_BASE) return 0;
+
+  const int cur_scale = scale.load();
+  if (cur_scale == ZM_SCALE_BASE) return 0;
+
+  const int scaled_width = (base_width * cur_scale) / ZM_SCALE_BASE;
+  const int scaled_height = (base_height * cur_scale) / ZM_SCALE_BASE;
+  // CMD_SCALE stores whatever the client sent, so 0 gets here. Image::Scale
+  // refuses a zero factor, but converting straight to 0x0 would instead put a
+  // negative av_image_get_buffer_size result into an unsigned size and allocate
+  // on it, so leave anything degenerate to the path that already rejects it.
+  if ((scaled_width <= 0) or (scaled_height <= 0)) return 0;
+
+  width = scaled_width;
+  height = scaled_height;
+  return cur_scale;
+}
+
+Image *StreamBase::prepareImage(Image *image, int pre_scaled_by) {
+  if (pre_scaled_by) {
+    // The caller produced the image at exactly the size to send, folding the
+    // scale into a colour conversion it had to do anyway. Send it untouched.
+    //
+    // The command thread can change scale or zoom between the caller reading
+    // them and this call, in which case this one frame goes out at the scale it
+    // was built for and without any new zoom, and the next frame is built from
+    // the new values. Scaling here instead would apply the scale a second time
+    // (a 50% frame of a 640px source would go out at 160px, not 320px), and
+    // cropping here would do it in the reduced image's coordinates and leave
+    // last_crop in the wrong units for every later frame. refs #3681
+    Debug(3, "Sending pre-scaled %dx%d, scale %d", image->Width(), image->Height(), pre_scaled_by);
+    last_scale = pre_scaled_by;
+    last_zoom = ZM_SCALE_BASE;
+    return image;
+  }
+
   /* zooming should happen before scaling to preserve quality
    * scale is relative to base dimensions, and represents the rough ratio between desired view size and base dimensions
    */
@@ -265,7 +302,7 @@ Image *StreamBase::prepareImage(Image *image) {
   last_y = cur_y;
 
   return image;
-}  // end Image *StreamBase::prepareImage(Image *image)
+}  // end Image *StreamBase::prepareImage(Image *image, int pre_scaled_by)
 
 bool StreamBase::sendTextFrame(const char *frame_text) {
   int width = 640;

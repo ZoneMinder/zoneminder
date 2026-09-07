@@ -217,7 +217,7 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
 
   echo htmlSelect('interface', $interfaces,
     (isset($_REQUEST['interface']) ? $_REQUEST['interface'] : $default_interface),
-    array('data-on-change-this'=>'changeInterface', 'class'=>'chosen') );
+    array('id'=>'interface', 'data-on-change-this'=>'changeInterface', 'class'=>'chosen') );
 ?>
         </p>
         <div id="DetectedCameras">
@@ -242,7 +242,7 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
           </p>
           <p>
             <label for="Username"><?php echo translate('Username') ?></label>
-            <input type="text" name="Username" data-on-change-this="configureButtons"/>
+            <input type="text" id="Username" name="Username" data-on-change-this="configureButtons"/>
           </p>
           <p>
             <label for="Password"><?php echo translate('Password') ?></label>
@@ -280,8 +280,8 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
   foreach ($detprofiles as $profile) {
     $monitor = $camera['monitor'];
 
-    $sourceString = "${profile['Name']} : ${profile['Encoding']}" .
-      " (${profile['Width']}x${profile['Height']} @ ${profile['MaxFPS']}fps ${profile['Transport']})";
+    $sourceString = "{$profile['Name']} : {$profile['Encoding']}" .
+      " ({$profile['Width']}x{$profile['Height']} @ {$profile['MaxFPS']}fps {$profile['Transport']})";
     // copy technical details
     $monitor['Width']  = $profile['Width'];
     $monitor['Height'] = $profile['Height'];

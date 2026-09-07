@@ -429,3 +429,40 @@ TEST_CASE("zm_strncpy") {
     REQUIRE(buf[0] == '\0');
   }
 }
+
+TEST_CASE("TimevalToString") {
+  // tv_usec used to go to the format string as %ld. Under glibc's 64 bit time
+  // ABI on a 32 bit platform (Debian trixie on armhf) tv_usec is
+  // __suseconds64_t while long is still 32 bits, so %ld consumed half the
+  // argument and every vararg after it was read from the wrong offset. zmc
+  // crashed on armhf because this result is written into a buffer and then
+  // used. See #4580 and Debian bug 1120447.
+  //
+  // amd64 cannot reproduce the mismatch (long is already 64 bits), so what
+  // this pins is the rendering: six zero padded digits of microseconds, which
+  // is what a wrong conversion would disturb.
+  const char *tz = getenv("TZ");
+  std::string saved_tz = tz ? tz : "";
+  setenv("TZ", "UTC", 1);
+  tzset();
+
+  SECTION("pads microseconds to six digits") {
+    REQUIRE(TimevalToString(timeval{0, 0}) == "1970-01-01 00:00:00.000000");
+    REQUIRE(TimevalToString(timeval{0, 1}) == "1970-01-01 00:00:00.000001");
+    REQUIRE(TimevalToString(timeval{0, 999999}) == "1970-01-01 00:00:00.999999");
+  }
+
+  SECTION("does not truncate or reorder the arguments") {
+    // A conversion that mis-reads tv_usec tends to show up either as a wrong
+    // number here or as the seconds field being wrong, since the bad read
+    // shifts everything after it.
+    REQUIRE(TimevalToString(timeval{1700000000, 123456}) == "2023-11-14 22:13:20.123456");
+  }
+
+  if (saved_tz.empty()) {
+    unsetenv("TZ");
+  } else {
+    setenv("TZ", saved_tz.c_str(), 1);
+  }
+  tzset();
+}

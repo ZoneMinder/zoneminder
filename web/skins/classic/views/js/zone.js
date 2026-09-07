@@ -2,6 +2,10 @@ var pauseBtn = $j('#pauseBtn');
 var playBtn = $j('#playBtn');
 var saveBtn = $j('#saveBtn');
 var cancelBtn = $j('#cancelBtn');
+var resetBtn = $j('#resetBtn');
+var initialState = null; // normalised snapshot of form values taken on load, for change detection
+var initialValues = null; // raw form values as loaded, for restoring on reset
+var initialPoints = null; // snapshot of zone['Points'] taken on load
 var backBtn = $j('#backBtn');
 var refreshBtn = $j('#refreshBtn');
 var analyseBtn = $j('#analyseBtn');
@@ -86,6 +90,24 @@ function syncPixelInputStates() {
   }
 }
 
+/* The colour picker and the R/G/B inputs are two views of the same value */
+function alarmColourFromInputs() {
+  const form = document.zoneForm;
+  const picker = document.getElementById('alarmColour');
+  if (!picker) return;
+  const hex = (value) => ('0'+(parseInt(value) || 0).toString(16)).slice(-2);
+  picker.value = '#'+hex(form.newAlarmRgbR.value)+hex(form.newAlarmRgbG.value)+hex(form.newAlarmRgbB.value);
+  picker.disabled = form.newAlarmRgbR.disabled;
+}
+
+function alarmColourToInputs(picker) {
+  const form = document.zoneForm;
+  form.newAlarmRgbR.value = parseInt(picker.value.substr(1, 2), 16);
+  form.newAlarmRgbG.value = parseInt(picker.value.substr(3, 2), 16);
+  form.newAlarmRgbB.value = parseInt(picker.value.substr(5, 2), 16);
+  checkDirty();
+}
+
 function applyZoneType() {
   var form = document.zoneForm;
   if ( form.elements['newZone[Type]'].value == 'Inactive' || form.elements['newZone[Type]'].value == 'Privacy' ) {
@@ -136,6 +158,7 @@ function applyZoneType() {
     applyCheckMethod();
   }
   syncPixelInputStates();
+  alarmColourFromInputs();
 }
 
 function applyCheckMethod() {
@@ -402,6 +425,7 @@ function updateArea( ) {
   // Area is calculated in percentage coordinate space (0-100 x 0-100)
   zone.Area = Polygon_calcArea(zone['Points']);
   updateAllPixelDisplays();
+  checkDirty();
 }
 
 /* Updates the drawn point based on input from the coordinates text inputs */
@@ -439,8 +463,59 @@ function updateY(input) {
   updateArea();
 }
 
+/* Serialise every named form field so we can tell whether anything changed */
+function formState() {
+  const form = document.zoneForm;
+  const values = [];
+  for ( let i = 0; i < form.elements.length; i++ ) {
+    const el = form.elements[i];
+    if ( el.name && el.name != 'presetSelector' ) {
+      // Compare numbers by value so 100 and 100.00 don't look like a change
+      const value = (el.type == 'number' && el.value !== '') ? parseFloat(el.value) : el.value;
+      values.push(el.name+'='+value);
+    }
+  }
+  return values.join('&');
+}
+
+/* Highlight the coordinate inputs of any point that differs from the loaded zone */
+function markChangedPoints() {
+  if ( initialPoints === null ) return;
+  for ( let i = 0; i < zone['Points'].length; i++ ) {
+    const original = initialPoints[i];
+    const changed = !original ||
+      parseFloat(zone['Points'][i].x).toFixed(2) != parseFloat(original.x).toFixed(2) ||
+      parseFloat(zone['Points'][i].y).toFixed(2) != parseFloat(original.y).toFixed(2);
+    $j('#newZone\\[Points\\]\\['+i+'\\]\\[x\\], #newZone\\[Points\\]\\['+i+'\\]\\[y\\]').toggleClass('changed', changed);
+  }
+}
+
+function checkDirty() {
+  if ( initialState === null ) return;
+  resetBtn.prop('disabled', formState() == initialState);
+  markChangedPoints();
+}
+
+function resetChanges() {
+  const form = document.zoneForm;
+  // drawZonePoints re-creates the point inputs, so they are not restored here
+  zone['Points'] = JSON.parse(JSON.stringify(initialPoints));
+  drawZonePoints();
+
+  for ( const name in initialValues ) {
+    const el = form.elements[name];
+    if ( el ) el.value = initialValues[name];
+  }
+  form.presetSelector.selectedIndex = 0;
+
+  applyZoneType();
+  alarmColourFromInputs();
+  updateArea();
+  checkDirty();
+}
+
 function saveChanges(element) {
-  var form = element.form;
+  var form = document.zoneForm;
   if ( validateForm(form) ) {
     submitForm(form);
     if ( form.elements['newZone[Type]'].value == 'Privacy' ) {
@@ -496,9 +571,10 @@ function drawZonePoints() {
     $j(row).mouseout(highlightOff.bind(i, i));
 
     var cell = document.createElement('td');
-    $j(cell).text(i+1).appendTo(row);
+    $j(cell).addClass('pointIndex').text(i+1).appendTo(row);
 
     cell = document.createElement('td');
+    $j(cell).addClass('pointX');
     var input = document.createElement('input');
     $j(input).attr({
       'id': 'newZone[Points]['+i+'][x]',
@@ -516,6 +592,7 @@ function drawZonePoints() {
     $j(cell).appendTo(row);
 
     cell = document.createElement('td');
+    $j(cell).addClass('pointY');
     input = document.createElement('input');
     $j(input).attr({
       'id': 'newZone[Points]['+i+'][y]',
@@ -533,6 +610,7 @@ function drawZonePoints() {
     $j(cell).appendTo(row);
 
     cell = document.createElement('td');
+    $j(cell).addClass('pointAction');
     var pbtn = document.createElement('button');
     $j(pbtn)
         .attr('type', 'button')
@@ -556,6 +634,7 @@ function drawZonePoints() {
   } // end foreach point
   // Sets up the SVG polygon
   updateZoneImage();
+  checkDirty();
 } // end drawZonePoints()
 
 function streamCmdPause() {
@@ -681,6 +760,13 @@ function initPage() {
   applyCheckMethod();
   updateAllPixelDisplays();
 
+  const picker = document.getElementById('alarmColour');
+  if (picker) {
+    picker.oninput = window['alarmColourToInputs'].bind(picker, picker);
+    $j('input[name^="newAlarmRgb"]').on('input change', alarmColourFromInputs);
+    alarmColourFromInputs();
+  }
+
   pauseBtn.click(streamCmdPause);
   playBtn.click(streamCmdPlay);
   playBtn.hide(); // hide pause initially
@@ -696,6 +782,10 @@ function initPage() {
       }
       window.history.back();
     };
+  }
+
+  if ( el = resetBtn[0] ) {
+    el.onclick = resetChanges;
   }
 
   if ( el = analyseBtn[0] ) {
@@ -748,6 +838,7 @@ function initPage() {
   } else {
     window.addEventListener("resize", drawZonePoints, {passive: true});
   }
+  changeScale();
   drawZonePoints();
 
   // Manage the BACK button
@@ -764,7 +855,43 @@ function initPage() {
     evt.preventDefault();
     window.location.reload(true);
   });
+
+  // Snapshot the loaded state so the Reset button can restore it
+  initialPoints = JSON.parse(JSON.stringify(zone['Points']));
+  initialValues = {};
+  for ( let i = 0; i < form.elements.length; i++ ) {
+    const el = form.elements[i];
+    if ( el.name && el.name.indexOf('newZone[Points]') !== 0 ) {
+      initialValues[el.name] = el.value;
+    }
+  }
+  initialState = formState();
+  $j('#zoneForm').on('input change', checkDirty);
+  checkDirty();
 } // initPage
+
+/* Sizes the feed to the space left above the Save/Reset/Cancel buttons, the same
+ * way the watch view fits its stream.  Called on load and on window resize. */
+function changeScale() {
+  const feed = $j('#imageFeed'+zone.MonitorId);
+  if (!feed.length) return;
+  const controls = $j('#StreamControlButtons');
+  const newSize = scaleToFit(monitorData[0].width, monitorData[0].height, feed, controls, $j('#imageAndPoints'));
+  if (!newSize) return;
+  feed.css('width', newSize.width+'px');
+  // Line the stream controls up with the video, which is centred in the column
+  controls.css({
+    'width': newSize.width+'px',
+    'margin-left': (feed.offset().left - $j('#imageAndPoints').offset().left)+'px'
+  });
+  // Ask for an image close to the size we display it at.  The scale set when the
+  // stream started was calculated before the feed had been sized, so it was far
+  // too small and the browser had to enlarge the image.  Round down by 5: our
+  // scaler is not precise enough for the last few percent to be worth the bytes.
+  if (monitors.length) {
+    monitors[0].setStreamScale(5 * Math.floor(newSize.width / monitorData[0].width * 20));
+  }
+}
 
 function panZoomIn(el) {
   zmPanZoom.zoomIn(el);

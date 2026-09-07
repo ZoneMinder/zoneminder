@@ -84,7 +84,6 @@ $statusData = array(
       'PostEventCount' => true,
       'AlarmFrameCount' => true,
       'SectionLength' => true,
-      'FrameSkip' => true,
       'MotionFrameSkip' => true,
       'MaxFPS' => true,
       'AlarmMaxFPS' => true,

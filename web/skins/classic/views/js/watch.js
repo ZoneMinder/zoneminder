@@ -1550,17 +1550,22 @@ function stopPage() {
 function startPage() {
   // Always clear it because the return to visibility might happen before timeout
   TimerHideShow = clearTimeout(TimerHideShow);
-  if (monitorStream && prevStateStarted == 'played' && !idleTimeoutTriggered) {
-    prevStateStarted = null;
-    onPlay(); //Set the correct state of the player buttons.
-    monitorStream.isActive = true;
-    monitorStream.start(monitorStream.currentChannelStream);
-    monitorsSetScale(monitorId);
-  //} else if (prevStateStarted != 'paused') {
-  } else if (monitorStream && monitorStream.element && ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused) || monitorStream.element.paused)) {
-    prevStateStarted = null;
-  }
-  if (prevStateCycle) cycleStart();
+  // The stream src still carries the auth hash from before we were hidden. If
+  // we were away long enough for it to expire, get a fresh one before starting
+  // anything, otherwise zms 403s the reconnect (auth-helpers.js).
+  whenAuthFresh(function() {
+    if (monitorStream && prevStateStarted == 'played' && !idleTimeoutTriggered) {
+      prevStateStarted = null;
+      onPlay(); //Set the correct state of the player buttons.
+      monitorStream.isActive = true;
+      monitorStream.start(monitorStream.currentChannelStream);
+      monitorsSetScale(monitorId);
+    //} else if (prevStateStarted != 'paused') {
+    } else if (monitorStream && monitorStream.element && ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused) || monitorStream.element.paused)) {
+      prevStateStarted = null;
+    }
+    if (prevStateCycle) cycleStart();
+  });
 }
 
 function setButtonStateWatch(element_id, btnClass) {

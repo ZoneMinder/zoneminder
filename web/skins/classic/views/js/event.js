@@ -329,7 +329,6 @@ function changeScale() {
     newWidth = parseInt(w);
     newHeight = parseInt(h);
     currentScale = parseInt(w / eventData.Width * 100);
-    currentScale = currentScale;
   }
 
   console.log(`Real dimensions: ${eventData.Width} X ${eventData.Height}, Scale: ${currentScale}, deltaScale: ${deltaScale()}, New dimensions: ${newWidth} X ${newHeight}`);

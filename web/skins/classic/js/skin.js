@@ -1118,10 +1118,41 @@ function escapeHTML(text) {
       .replace(/'/g, '&#39;');
 }
 
+// A 401 or 403 from the API used to reach the console and nowhere else, so a
+// view like montagereview looked like it had loaded and was simply empty. Shown
+// once per page load: a view that fetches per monitor would otherwise stack up
+// one dialog per request.
+let apiAuthFailureReported = false;
+function reportApiAuthFailure(jqxhr) {
+  if (apiAuthFailureReported) return;
+  apiAuthFailureReported = true;
+
+  let detail = '';
+  try {
+    const parsed = JSON.parse(jqxhr.responseText);
+    if (parsed && parsed.message) detail = parsed.message;
+  } catch {
+    // Not JSON, so fall back to the generic message below.
+  }
+
+  // The usual one is "API disabled for: <user>", where what to do about it is
+  // not obvious from the message, so point at the setting.
+  alert(
+      (detail ? detail + '\n\n' : '') +
+      'This page could not load its data because the API rejected the request. ' +
+      'If the API is disabled for your account, an administrator can enable it ' +
+      'under Options, Users.');
+}
+
 function logAjaxFail(jqxhr, textStatus, error) {
   if (jqxhr.statusText == 'abort') {
     console.log('request aborted');
     return;
+  }
+  // Before the responseText check below, because an auth failure with an empty
+  // body still needs to reach the user.
+  if ((jqxhr.status === 401) || (jqxhr.status === 403)) {
+    reportApiAuthFailure(jqxhr);
   }
   if (!jqxhr.responseText) {
     console.log("Ajax request failed.  No responseText.  jqxhr follows:\n", jqxhr);

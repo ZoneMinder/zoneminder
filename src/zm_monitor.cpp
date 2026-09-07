@@ -3643,20 +3643,34 @@ Event * Monitor::openEvent(
   return event;
 }
 
+bool Monitor::WaitForEventClose() {
+  std::lock_guard<std::mutex> close_lck(close_event_thread_mutex);
+  if (close_event_thread.joinable()) {
+    Debug(1, "WaitForEventClose: joining in-progress event close");
+    close_event_thread.join();
+    return true;
+  }
+  return false;
+}
+
 /* Caller must hold the event lock */
 void Monitor::closeEvent() {
   if (!event) return;
 
-  if (close_event_thread.joinable()) {
-    Debug(1, "close event thread is joinable");
-    close_event_thread.join();
-  } else {
-    Debug(1, "close event thread is not joinable");
+  {
+    std::lock_guard<std::mutex> close_lck(close_event_thread_mutex);
+    if (close_event_thread.joinable()) {
+      Debug(1, "close event thread is joinable");
+      close_event_thread.join();
+    } else {
+      Debug(1, "close event thread is not joinable");
+    }
   }
 #if MOSQUITTOPP_FOUND
   if (mqtt) mqtt->send(stringtf("event end: %" PRId64, event->Id()));
 #endif
   Debug(1, "Starting thread to close event");
+  std::lock_guard<std::mutex> close_lck(close_event_thread_mutex);
   close_event_thread = std::thread([](Event *e, const std::string &command) {
     int64_t event_id = e->Id();
     int monitor_id = e->MonitorId();
@@ -4090,17 +4104,23 @@ int Monitor::Pause() {
   }
 
   // Must close event before closing camera because it uses in_streams
-  if (close_event_thread.joinable()) {
-    Debug(1, "Joining event thread");
-    close_event_thread.join();
-    Debug(1, "Joined event thread");
+  {
+    std::lock_guard<std::mutex> close_lck(close_event_thread_mutex);
+    if (close_event_thread.joinable()) {
+      Debug(1, "Joining event thread");
+      close_event_thread.join();
+      Debug(1, "Joined event thread");
+    }
   }
   {
     std::lock_guard<std::mutex> lck(event_mutex);
     if (event) {
       Info("%s: image_count:%d - Closing event %" PRIu64 ", shutting down", name.c_str(), shared_data->image_count, event->Id());
       closeEvent();
-      close_event_thread.join();
+      {
+        std::lock_guard<std::mutex> close_lck(close_event_thread_mutex);
+        if (close_event_thread.joinable()) close_event_thread.join();
+      }
     }
   }
   if (camera) {

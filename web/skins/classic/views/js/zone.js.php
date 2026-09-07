@@ -101,6 +101,14 @@ var minBlobLtMinFilterString = '<?php echo addslashes(translate('MinBlobLtMinFil
 var minBlobsUnsetString = '<?php echo addslashes(translate('MinBlobsUnset')) ?>';
 var minBlobsLtMaxString = '<?php echo addslashes(translate('MinBlobsLtMax')) ?>';
 
+var zoneObjectSizeStrings = {
+  'filterTooSmall': '<?php echo addslashes(translate('ObjectSizeFilterTooSmall')) ?>',
+  'inactive': '<?php echo addslashes(translate('ObjectSizeInactive')) ?>',
+  'useImage': '<?php echo addslashes(translate('ObjectImageUse')) ?>',
+  'liveView': '<?php echo addslashes(translate('ObjectImageLive')) ?>',
+  'notAnImage': '<?php echo addslashes(translate('ObjectImageNotAnImage')) ?>'
+};
+
 var deleteString = "<?php echo translate('Delete') ?>";
 //
 // Imported from watch.js.php and modified for new zone edit view

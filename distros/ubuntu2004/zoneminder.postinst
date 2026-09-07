@@ -160,7 +160,30 @@ else
   echo "Not doing database upgrade due to remote db server ($ZM_DB_HOST)."
 fi
 
-if [ ! -f /etc/apt/sources.list.d/zoneminder.list ] && [ ! -f /etc/apt/sources.list.d/zoneminder.sources ]; then
+# Only add the zmrepo source when nothing already provides ZoneMinder. Looking
+# for our own filenames is not enough: the Launchpad PPA installs its source as
+# iconnor-ubuntu-zoneminder-<codename>.list, so a PPA install fell through this
+# check and got a second, competing source added here. zmrepo's versions sort
+# higher (1.38.3+noble1 beats 1.38.3-noble), so the next upgrade replaced the
+# PPA package. See zoneminder/zoneminder#4945.
+zm_apt_source_exists () {
+  [ -f /etc/apt/sources.list.d/zoneminder.list ] && return 0
+  [ -f /etc/apt/sources.list.d/zoneminder.sources ] && return 0
+  # Match on content rather than filename, so a PPA or a hand-written source
+  # under any name is found, in either one-line or deb822 format. Each path is
+  # checked separately and only if it exists: grep exits 2 when any argument is
+  # missing, even after matching in another, and /etc/apt/sources.list is absent
+  # on releases that have moved to deb822.
+  for zm_apt_src in /etc/apt/sources.list /etc/apt/sources.list.d; do
+    [ -e "$zm_apt_src" ] || continue
+    if grep -rqsE 'zmrepo\.zoneminder\.com|ppa\.launchpad(content)?\.net/iconnor' "$zm_apt_src"; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+if ! zm_apt_source_exists; then
   wget -O - https://zmrepo.zoneminder.com/debian/archive-keyring.gpg | sudo tee /etc/apt/trusted.gpg.d/zmrepo.asc
 
   # Resolve the apt codename for the zmrepo source line. Derivatives such as

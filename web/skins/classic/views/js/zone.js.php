@@ -106,7 +106,8 @@ var zoneObjectSizeStrings = {
   'inactive': '<?php echo addslashes(translate('ObjectSizeInactive')) ?>',
   'useImage': '<?php echo addslashes(translate('ObjectImageUse')) ?>',
   'liveView': '<?php echo addslashes(translate('ObjectImageLive')) ?>',
-  'notAnImage': '<?php echo addslashes(translate('ObjectImageNotAnImage')) ?>'
+  'notAnImage': '<?php echo addslashes(translate('ObjectImageNotAnImage')) ?>',
+  'sizeNeeded': '<?php echo addslashes(translate('ObjectSizeNeeded')) ?>'
 };
 
 var deleteString = "<?php echo translate('Delete') ?>";

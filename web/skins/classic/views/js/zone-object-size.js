@@ -90,8 +90,34 @@
         rectHpx < Math.max(filterY || 0, MIN_FILTER_KERNEL);
   }
 
+  // zone.php reads these cookies back through validInt(), which strips
+  // everything that is not a digit: 70.5 returns as 705 and 1e2 as 12. The
+  // live calculation takes the same field through parseFloat, so a ratio that
+  // is not a whole number in range means one thing now and another after a
+  // reload. Settle it here, before it is stored or used.
+  function normalizeRatio(value) {
+    const n = Math.round(parseFloat(value));
+    if (!(n >= 1) || !(n <= 100)) return null;
+    return n;
+  }
+
+  // A box of the given capture-pixel size, centred in the frame, in the
+  // editor's percent space. Lets the tool be driven by typing a size as well
+  // as by dragging, and gives the drag somewhere to write its result back to.
+  function boxPercentForPixels(wPx, hPx, frame) {
+    if (!(wPx > 0) || !(hPx > 0)) return null;
+    if (!frame || !(frame.width > 0) || !(frame.height > 0)) return null;
+    const w = Math.min(frame.maxX, wPx / frame.width * frame.maxX);
+    const h = Math.min(frame.maxY, hPx / frame.height * frame.maxY);
+    const x = (frame.maxX - w) / 2;
+    const y = (frame.maxY - h) / 2;
+    return {a: {x: x, y: y}, b: {x: x + w, y: y + h}};
+  }
+
   const api = {
     MIN_FILTER_KERNEL: MIN_FILTER_KERNEL,
+    normalizeRatio: normalizeRatio,
+    boxPercentForPixels: boxPercentForPixels,
     MANAGED_FIELDS: MANAGED_FIELDS,
     objectThresholdPixels: objectThresholdPixels,
     pixelsToPercent: pixelsToPercent,
@@ -311,7 +337,12 @@
     const panel = document.getElementById('rectangleSettings');
     if (panel) panel.style.display = (on || lastBox) ? '' : 'none';
     const feed = imageFeed();
-    if (feed) feed.style.cursor = on ? 'crosshair' : '';
+    if (feed) {
+      feed.style.cursor = on ? 'crosshair' : '';
+      // Without this the browser claims a touch drag for panning and the
+      // pointermove events stop arriving after the first few pixels.
+      feed.style.touchAction = on ? 'none' : '';
+    }
     // Stop the zone vertices swallowing the drag while measuring.
     const points = document.querySelectorAll('.zonePoint');
     for (let i = 0; i < points.length; i++) {
@@ -387,12 +418,22 @@
     return true;
   }
 
-  // Warnings live here, not in apply(), which runs on every mousemove.
+  // The typed size and the drawn box are two views of one measurement, so
+  // whichever was used last writes to the other.
+  function showBoxSize(wPx, hPx) {
+    const w = document.getElementById('objectWidthPx');
+    const h = document.getElementById('objectHeightPx');
+    if (w) w.value = (wPx > 0) ? Math.round(wPx) : '';
+    if (h) h.value = (hPx > 0) ? Math.round(hPx) : '';
+  }
+
+  // Warnings live here, not in apply(), which runs on every pointermove.
   function finishDrag(a, b) {
     if (!apply(a, b)) return;
     const form = document.zoneForm;
     const wPx = Math.abs(b.x - a.x) / maxX * monitorData[0].width;
     const hPx = Math.abs(b.y - a.y) / maxY * monitorData[0].height;
+    showBoxSize(wPx, hPx);
     const fx = Math.max(
         parseInt(form.elements['newZone[FilterX]'].value, 10) || 0,
         MIN_FILTER_KERNEL);
@@ -489,6 +530,16 @@
       const el = document.getElementById(spec.id);
       if (!el) return;
       el.addEventListener('change', function() {
+        // Normalized first: zone.php reads the cookie back through validInt(),
+        // so anything but a whole number in range would come back as a
+        // different ratio. Write it into the field too, so what is shown, what
+        // is calculated and what is stored are the same number.
+        const pct = normalizeRatio(el.value);
+        if (pct === null) {
+          el.value = el.defaultValue;
+        } else {
+          el.value = pct;
+        }
         // Written here, read back in zone.php when the page next renders, the
         // way the player selector handles zmZonePlayer. No expiry argument, so
         // skin.js stores it with max-age to 2038 as most callers do.
@@ -496,6 +547,36 @@
         if (lastBox) apply(lastBox.a, lastBox.b);
       });
     });
+
+    // Reset restores every field from initialValues and redraws the polygon,
+    // so the measurement it would undo is already gone. Wrapping the handler
+    // rather than adding a listener because ours has to run first: resetChanges
+    // calls updateArea, which re-derives from lastBox (below), and that would
+    // put the measurement straight back.
+    const resetBtn = document.getElementById('resetBtn');
+    if (resetBtn) {
+      const resetHandler = resetBtn.onclick;
+      resetBtn.onclick = function(evt) {
+        if (armed) setArmed(false);
+        forgetMeasurement();
+        showBoxSize(0, 0);
+        if (resetHandler) return resetHandler.call(this, evt);
+      };
+    }
+
+    // The stored thresholds are percentages of the zone, so moving, adding or
+    // removing a vertex changes what they mean in pixels. updateArea is the
+    // one funnel every such edit goes through, so re-derive from the box that
+    // is still drawn and the numbers keep describing the same object.
+    // apply() only reaches updateAllPixelDisplays, never back here.
+    const areaUpdater = global.updateArea;
+    if (typeof areaUpdater === 'function') {
+      global.updateArea = function() {
+        const result = areaUpdater.apply(this, arguments);
+        if (lastBox) apply(lastBox.a, lastBox.b);
+        return result;
+      };
+    }
 
     // A preset rewrites every field we manage. addEventListener rather than
     // patching applyPreset, which skin.js binds by reference at load time.
@@ -544,10 +625,60 @@
       });
     }
 
-    feed.addEventListener('mousedown', function(evt) {
+    // Typing a size is the keyboard-operable equivalent of the drag, and is
+    // also the easier way in when the object is not in front of the camera
+    // right now. Same derivation, same warnings - only the box differs, being
+    // centred in the frame rather than drawn where the object stood.
+    function applyTypedSize() {
+      if (!zoneIsMeasurable()) {
+        alert(zoneObjectSizeStrings.inactive);
+        return;
+      }
+      const w = document.getElementById('objectWidthPx');
+      const h = document.getElementById('objectHeightPx');
+      if (!w || !h) return;
+      const box = boxPercentForPixels(parseFloat(w.value), parseFloat(h.value),
+          {width: monitorData[0].width, height: monitorData[0].height,
+            maxX: maxX, maxY: maxY});
+      if (!box) {
+        alert(zoneObjectSizeStrings.sizeNeeded);
+        return;
+      }
+      drawRect(box.a, box.b);
+      finishDrag(box.a, box.b);
+    }
+
+    const sizeBtn = document.getElementById('objectSizeApplyBtn');
+    if (sizeBtn) sizeBtn.addEventListener('click', applyTypedSize);
+    ['objectWidthPx', 'objectHeightPx'].forEach(function(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      // Enter in a number field would otherwise submit the zone.
+      el.addEventListener('keydown', function(evt) {
+        if (evt.key !== 'Enter') return;
+        evt.preventDefault();
+        applyTypedSize();
+      });
+    });
+
+    // Pointer rather than mouse events, so a touch or a pen draws the box too.
+    // Capture keeps the moves coming when the finger leaves the image, which
+    // is what the old window-level mouseup was for.
+    feed.addEventListener('pointerdown', function(evt) {
       if (!armed) return;
+      // Secondary buttons scroll or open menus; leave them alone.
+      if (evt.pointerType === 'mouse' && evt.button !== 0) return;
+      // Armed state can outlive measurability: applyPreset writes Type
+      // directly and fires no change event, so the type listener never runs.
+      // apply() would then re-enable the fields applyZoneType just disabled.
+      if (!zoneIsMeasurable()) {
+        setArmed(false);
+        forgetMeasurement();
+        return;
+      }
       evt.preventDefault();
       dragging = true;
+      if (feed.setPointerCapture) feed.setPointerCapture(evt.pointerId);
       // snapshotTaken is deliberately not reset: every box in one armed
       // session is measured against the state before the first, so undo and
       // the highlighting stay anchored there.
@@ -555,7 +686,7 @@
       drawRect(startPct, startPct);
     });
 
-    feed.addEventListener('mousemove', function(evt) {
+    feed.addEventListener('pointermove', function(evt) {
       if (!armed || !dragging) return;
       const at = toPercent(evt, feed);
       drawRect(startPct, at);
@@ -563,16 +694,20 @@
       apply(startPct, at);
     });
 
-    // On window, not the feed, so releasing outside the image still finishes.
-    window.addEventListener('mouseup', function(evt) {
+    function endDrag(evt) {
       if (!armed || !dragging) return;
       dragging = false;
       const at = toPercent(evt, feed);
-      // Redraw before measuring: the pointer drifts between the last mousemove
-      // and the release, and the visible box must be the one measured.
+      // Redraw before measuring: the pointer drifts between the last move and
+      // the release, and the visible box must be the one measured.
       drawRect(startPct, at);
       finishDrag(startPct, at);
-    });
+    }
+
+    feed.addEventListener('pointerup', endDrag);
+    // A cancelled pointer - the browser taking over for a scroll or a gesture
+    // - never sends pointerup, and would otherwise leave the drag running.
+    feed.addEventListener('pointercancel', endDrag);
   }
 
   if (typeof document !== 'undefined' && document.addEventListener) {

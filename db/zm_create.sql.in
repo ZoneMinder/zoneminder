@@ -193,7 +193,6 @@ CREATE TABLE `EncoderTemplates` (
   `Description` text,
   `Params` text NOT NULL,
   PRIMARY KEY (`Id`),
-  KEY `Encoder` (`Encoder`),
   UNIQUE KEY `Encoder_Name` (`Encoder`, `Name`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
@@ -529,7 +528,6 @@ CREATE TABLE `Role_Groups_Permissions` (
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 CREATE UNIQUE INDEX `Role_Groups_Permissions_RoleId_GroupId_idx` ON `Role_Groups_Permissions` (`RoleId`,`GroupId`);
-CREATE INDEX `Role_Groups_Permissions_RoleId_idx` ON `Role_Groups_Permissions` (`RoleId`);
 
 --
 -- Table structure for table `Role_Monitors_Permissions`
@@ -547,7 +545,6 @@ CREATE TABLE `Role_Monitors_Permissions` (
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 CREATE UNIQUE INDEX `Role_Monitors_Permissions_RoleId_MonitorId_idx` ON `Role_Monitors_Permissions` (`RoleId`,`MonitorId`);
-CREATE INDEX `Role_Monitors_Permissions_RoleId_idx` ON `Role_Monitors_Permissions` (`RoleId`);
 
 --
 -- Table structure for table `Logs`
@@ -565,8 +562,7 @@ CREATE TABLE `Logs` (
   `Message` text NOT NULL,
   `File` varchar(255) DEFAULT NULL,
   `Line` smallint(5) unsigned DEFAULT NULL,
-  PRIMARY KEY (`Id`),
-  KEY `TimeKey` (`TimeKey`)
+  PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 CREATE INDEX `Logs_TimeKey_idx` ON `Logs` (`TimeKey`);
@@ -792,7 +788,6 @@ CREATE TABLE `Monitor_Status` (
   `UpdatedOn`     TIMESTAMP NOT NULL default CURRENT_TIMESTAMP,
   PRIMARY KEY (`MonitorId`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
-CREATE INDEX Monitor_Status_UpdatedOn_idx on Monitor_Status(UpdatedOn);
 
 DROP TABLE IF EXISTS `Event_Summaries`;
 CREATE TABLE `Event_Summaries` (
@@ -914,9 +909,7 @@ CREATE TABLE `Stats` (
   `MaxY` smallint(5) unsigned NOT NULL default '0',
   `Score` smallint(5) unsigned NOT NULL default '0',
   PRIMARY KEY (`Id`),
-  KEY `EventId_ZoneId` (`EventId`, `ZoneId`),
-  KEY `MonitorId` (`MonitorId`),
-  KEY `ZoneId` (`ZoneId`)
+  KEY `EventId_ZoneId` (`EventId`, `ZoneId`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --

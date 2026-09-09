@@ -565,6 +565,9 @@ function initPage() {
   // Reflect the current Motion Detection (Analysing) setting on load.
   if (form.elements['newMonitor[Analysing]']) {
     Analysing_onChange(form.elements['newMonitor[Analysing]']); // eslint-disable-line new-cap
+  } else if (form.elements['newMonitor[AudioDetection]']) {
+    // Analysis tab not rendered with a select; still reflect audio detection.
+    AudioDetection_onChange(form.elements['newMonitor[AudioDetection]']); // eslint-disable-line new-cap
   }
 } // end function initPage()
 
@@ -817,6 +820,19 @@ function Analysing_onChange(e) {
   // analysis image, analysis fps and ref/alarm blend fields.
   const show = (e.value != 'None');
   $j('#AnalysisImage, li.AnalysisFPS, li.RefBlendPerc, li.AlarmRefBlendPerc, li.AlarmRefImageBlendPct').toggle(show);
+  // Audio detection is scored by the same analysis pass, so it cannot fire
+  // either. Hiding it stops the settings looking configured but inert.
+  $j('li.AudioDetection').toggle(show);
+  AudioDetection_onChange(document.getElementById('contentForm').elements['newMonitor[AudioDetection]']); // eslint-disable-line new-cap
+}
+
+function AudioDetection_onChange(e) {
+  // The threshold and the score only mean anything while detection is on.
+  // The rows are hidden rather than the inputs disabled, because a disabled
+  // input is not submitted and the value would silently fail to save.
+  const parentShown = $j('li.AudioDetection').is(':visible');
+  const show = parentShown && !!(e && e.checked);
+  $j('li.AudioThreshold, li.AudioAlarmScore').toggle(show);
 }
 
 function Recording_onChange(e) {

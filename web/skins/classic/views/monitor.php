@@ -1070,7 +1070,7 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
             <li class="AudioDetection">
               <label><?php echo translate('AudioDetection') ?></label>
 <?php if ( $monitor->Type() == 'Ffmpeg' ) { ?>
-              <input type="checkbox" name="newMonitor[AudioDetection]" value="1"<?php if ( $monitor->AudioDetection() ) { ?> checked="checked"<?php } ?>/>
+              <input type="checkbox" name="newMonitor[AudioDetection]" value="1"<?php if ( $monitor->AudioDetection() ) { ?> checked="checked"<?php } ?> data-on-change-this="AudioDetection_onChange"/>
 <?php } else { ?>
               <?php echo translate('Audio detection only available with FFMPEG')?>
               <input type="hidden" name="newMonitor[AudioDetection]" value="<?php echo $monitor->AudioDetection() ? 1 : 0 ?>"/>

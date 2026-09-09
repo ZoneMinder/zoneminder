@@ -137,3 +137,17 @@ INSERT INTO `Controls` (`Name`,`Type`,`Protocol`,`CanReset`,`CanReboot`) VALUES 
 -- loudspeaker's acoustic output was not confirmed to follow it.
 --
 INSERT INTO `Controls` (`Name`,`Type`,`Protocol`,`CanAudioPlay`,`MinAudioFile`,`MaxAudioFile`,`CanAudioVolume`) VALUES ('ONVIF IP Speaker','Ffmpeg','IPSpeaker',1,10,14,1);
+
+--
+-- AMLINK AL5M-T5171EW and siblings.
+--
+-- The white light is the only thing here worth a control: the camera has no
+-- PTZ, no relay outputs, and its ONVIF imaging settings are reachable through
+-- the ONVIF protocol module instead.  CanReboot is 1 because Dahua_RPC's
+-- magicBox.reboot is inherited and the vocabulary is shared.
+--
+-- Verified on two units (firmware 1.00.U800000.R): lightOn/lightOff/lightStatus
+-- round trip, with CoaxialControlIO.getStatus reporting WhiteLight On/Off.
+--
+INSERT INTO `Controls` (`Name`,`Type`,`Protocol`,`CanReboot`,`CanLight`) VALUES ('AMLINK AL5M (light)','Ffmpeg','AMLink',1,1);
+

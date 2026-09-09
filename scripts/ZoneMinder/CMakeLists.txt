@@ -38,7 +38,8 @@ if(BUILD_MAN)
       ZoneMinder/Control/Trendnet.pm
       ZoneMinder/Control/Instar720p.pm
       ZoneMinder/Control/FoscamHD.pm
-      ZoneMinder/Control/IPSpeaker.pm)
+      ZoneMinder/Control/IPSpeaker.pm
+      ZoneMinder/Control/AMLink.pm)
 
     # Build output uses "/" (safe for GNU make); installed name uses "::" (Perl convention).
     # GNU make treats "::" as double-colon rule syntax, so build-time filenames must avoid it.

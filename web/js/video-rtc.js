@@ -305,7 +305,7 @@ export class VideoRTC extends HTMLElement {
         this.ws.binaryType = 'arraybuffer';
         this.ws.addEventListener('open', () => this.onopen());
         this.ws.addEventListener('close', () => this.onclose());
-        this.ws.addEventListener('error', (ev) => this.onerror(ev));
+        this.ws.addEventListener('error', (ev) => this.onerrorGo2rtc(ev));
 
         return true;
     }
@@ -409,7 +409,7 @@ export class VideoRTC extends HTMLElement {
         return true;
     }
 
-    onerror(ev) {
+    onerrorGo2rtc(ev) {
       console.log("Go2rtc websocket error ", ev);
     }
 

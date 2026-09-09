@@ -142,15 +142,15 @@ class VideoStream extends VideoRTC {
         return super.onclose();
     }
 
-    onerror(ev) {
+    onerrorGo2rtc(ev) {
         clearTimeout(this.waitingWebrtcPlayback);
         this.waitingWebrtcPlayback = null;
-        console.debug('stream.onerror', ev);
+        console.debug('stream.onerrorGo2rtc', ev);
         const monitorStream = getMonitorStream(stringToNumber(this.id));
         if (monitorStream && monitorStream.started) {
             this.errorHandling(this.mode);
         }
-        super.onerror(ev);
+        super.onerrorGo2rtc(ev);
     }
 
     onpcvideo(ev) {

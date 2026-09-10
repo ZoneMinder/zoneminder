@@ -2214,7 +2214,13 @@ bool Monitor::Analyse() {
         Debug(4, "Triggered on AUDIO level %d >= %d, score += %d",
               shared_data->audio_level, audio_threshold, audio_alarm_score);
         Event::StringSet noteSet;
-        noteSet.insert(stringtf("level %d", shared_data->audio_level));
+        // A constant, like the ONVIF and Amcrest notes above. Event::updateNotes
+        // only ever inserts into the set and rewrites the Notes column on each
+        // new string, so a live measurement here added a fresh entry - and a
+        // database write - on nearly every alarmed frame, and the event ended up
+        // carrying "level 10, level 11, level 12, ..." for every value it passed
+        // through. The reading belongs in the log line above, which has it.
+        noteSet.insert(AUDIO_CAUSE);
         noteSetMap[AUDIO_CAUSE] = noteSet;
         if (!cause.empty()) cause += ", ";
         cause += AUDIO_CAUSE;

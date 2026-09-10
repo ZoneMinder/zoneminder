@@ -170,3 +170,16 @@ nav #pills-tab a.nav-link.active {
   color: #b58900;
   margin-top: 4px;
 }
+
+/*
+ * Monitor actions table.
+ *
+ * The Enabled column holds a single checkbox, but the table would otherwise
+ * size it from its header text and let the four selects fight over what is
+ * left, so the checkbox drifts as the target and action names change length.
+ */
+#monitorActionsTable th:first-child,
+#monitorActionsTable td:first-child {
+  width: 5em;
+  text-align: center;
+}

@@ -1720,7 +1720,7 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
           <p class="text-muted"><?php echo translate('ActionsRemoveHelp') ?></p>
         </li>
         <li>
-          <script>
+          <script nonce="<?php echo $cspNonce ?>">
             // What each candidate device can be asked to do, so changing the
             // target updates the action list without a round trip. The server
             // re-checks this on save; here it is convenience, not enforcement.

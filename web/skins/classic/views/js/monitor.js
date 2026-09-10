@@ -1025,17 +1025,21 @@ function updateMonitorActionRow(row) {
     monitorActionTypeLabels : {};
 
   const wanted = type.value;
+  const constrained = !!(caps && caps.Types && caps.Types.length);
+  // With no target chosen there is nothing to constrain the list to. Show the
+  // full set rather than emptying the control: a blank dropdown reads as a
+  // broken page, and the spare row at the bottom of the table always starts
+  // with no target.
+  const available = constrained ? caps.Types : Object.keys(labels);
   type.innerHTML = '';
-  if (caps && caps.Types) {
-    caps.Types.forEach(function(t) {
-      const option = document.createElement('option');
-      option.value = t;
-      option.textContent = labels[t] ? labels[t] : t;
-      if (t == wanted) option.selected = true;
-      type.appendChild(option);
-    });
-  }
-  type.disabled = !(caps && caps.Types && caps.Types.length);
+  available.forEach(function(t) {
+    const option = document.createElement('option');
+    option.value = t;
+    option.textContent = labels[t] ? labels[t] : t;
+    if (t == wanted) option.selected = true;
+    type.appendChild(option);
+  });
+  type.disabled = !constrained;
 
   // Only a sound takes a file, and only within the range that device accepts.
   const takesFile = (type.value == 'AudioPlay');

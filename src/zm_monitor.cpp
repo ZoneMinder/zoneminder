@@ -827,8 +827,8 @@ void Monitor::LoadCamera() {
                record_audio
                                                 );
     } else if (protocol == "rtsp") {
-      Warning("Monitor %u (%s): the Remote/RTSP capture method is deprecated and will be "
-              "removed. Change this monitor to Type 'Ffmpeg' with Source Path %s",
+      Warning("Monitor %u (%s): the Remote/RTSP capture method is deprecated as of 1.40 and "
+              "will be removed in 1.41. Change this monitor to Type 'Ffmpeg' with Source Path %s",
               id, name.c_str(),
               remove_authentication(RtspUrlFromRemote(host, port, path, user, pass)).c_str());
       camera = zm::make_unique<RemoteCameraRtsp>(this,

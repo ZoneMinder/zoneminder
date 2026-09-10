@@ -445,9 +445,14 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
 }  // void Event::updateNotes(const StringSetMap &newNoteSetMap)
 
 void Event::AddPacket_(const std::shared_ptr<ZMPacket>packet) {
+  // Ask the videostore rather than the monitor: when the monitor wanted ENCODE
+  // but no encoder would open, it has fallen back to copying packets, and those
+  // still have to start on a keyframe like any other passthrough recording.
+  const bool encoding = videoStore ? videoStore->Encoding()
+                                   : (monitor->GetOptVideoWriter() == Monitor::ENCODE);
   have_video_keyframe = have_video_keyframe ||
                         ( ( packet->codec_type == AVMEDIA_TYPE_VIDEO ) &&
-                          ( packet->keyframe || monitor->GetOptVideoWriter() == Monitor::ENCODE) );
+                          ( packet->keyframe || encoding ) );
   Debug(2, "have_video_keyframe %d codec_type %d == video? %d packet keyframe %d",
         have_video_keyframe, packet->codec_type, (packet->codec_type == AVMEDIA_TYPE_VIDEO), packet->keyframe);
   ZM_DUMP_PACKET(packet->packet, "Adding to event");

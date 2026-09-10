@@ -31,8 +31,18 @@ function skin_sources($root, $exclude) {
 }
 
 $config_src = file_get_contents($skin_config);
-preg_match_all("/define\(\s*'(ZM_WEB_[A-Z_]+)'/", $config_src, $m);
-$options = array_values(array_unique($m[1]));
+preg_match('/\$bandwidth_settings\s*=\s*array\((.*?)\);/s', $config_src, $required);
+preg_match('/\$bandwidth_optional_settings\s*=\s*array\((.*?)\);/s', $config_src, $optional);
+$names = array();
+if (!empty($required)) {
+  preg_match_all("/'([A-Z_]+)'/", $required[1], $m);
+  $names = array_merge($names, $m[1]);
+}
+if (!empty($optional)) {
+  preg_match_all("/'([A-Z_]+)'\s*=>/", $optional[1], $m);
+  $names = array_merge($names, $m[1]);
+}
+$options = array_values(array_unique(array_map(function($name) { return 'ZM_WEB_'.$name; }, $names)));
 check('the skin defines per-bandwidth web options', count($options) > 0);
 
 $sources = skin_sources($root, $skin_config);

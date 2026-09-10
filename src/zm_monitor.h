@@ -1107,6 +1107,13 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // database, a socket or a device. ActionCommandName maps the DB enum onto a
   // zmcontrol method rather than passing the stored string through, so nothing
   // from the database is interpolated into the message uninspected.
+  // Builds the Ffmpeg-equivalent URL for a Remote/rtsp monitor, so the
+  // deprecation warning can name the exact Source Path to switch to. Pure, so
+  // it is testable without a camera; pass the result through
+  // remove_authentication() before logging it.
+  static std::string RtspUrlFromRemote(const std::string &host, const std::string &port,
+                                       const std::string &path, const std::string &user,
+                                       const std::string &pass);
   static const char *ActionCommandName(const std::string &action_type);
   static std::string ActionMessage(const EventAction &action);
   static const char *ActionTriggerName(EventAction::TriggerOn trigger);

@@ -827,6 +827,10 @@ void Monitor::LoadCamera() {
                record_audio
                                                 );
     } else if (protocol == "rtsp") {
+      Warning("Monitor %u (%s): the Remote/RTSP capture method is deprecated and will be "
+              "removed. Change this monitor to Type 'Ffmpeg' with Source Path %s",
+              id, name.c_str(),
+              remove_authentication(RtspUrlFromRemote(host, port, path, user, pass)).c_str());
       camera = zm::make_unique<RemoteCameraRtsp>(this,
                method,
                host, // Host
@@ -2816,6 +2820,30 @@ void Monitor::ReloadLinkedMonitors() {
   }
 }  // end if p_linked_monitors
 }  // end void Monitor::ReloadLinkedMonitors()
+
+std::string Monitor::RtspUrlFromRemote(
+    const std::string &host, const std::string &port,
+    const std::string &path, const std::string &user, const std::string &pass) {
+  std::string url = "rtsp://";
+  if (!user.empty()) {
+    // Credentials are percent-encoded: a password containing @ or : would
+    // otherwise split the authority in the wrong place.
+    url += UriEncode(user);
+    if (!pass.empty()) url += ":" + UriEncode(pass);
+    url += "@";
+  }
+  url += host;
+  // The stored port is kept even when it is the default, so the operator can
+  // paste the result without having to know what the default is.
+  if (!port.empty()) url += ":" + port;
+  if (path.empty()) {
+    url += "/";
+  } else {
+    if (path[0] != '/') url += "/";
+    url += path;
+  }
+  return url;
+}
 
 const char *Monitor::ActionCommandName(const std::string &action_type) {
   // Deliberately a whitelist keyed off the DB enum rather than passing the

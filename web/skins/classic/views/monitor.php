@@ -155,7 +155,9 @@ if (!ZM_HAS_V4L2)
 
 $remoteProtocols = array(
     'http' => 'HTTP',
-    'rtsp' => 'RTSP'
+    // ZoneMinder's own RTSP/RTP implementation is deprecated in favour of
+    // Ffmpeg, which handles more cameras and is maintained upstream.
+    'rtsp' => 'RTSP ('.translate('Deprecated').')'
     );
 
 $rtspMethods = array(
@@ -774,6 +776,13 @@ include('_monitor_source_nvsocket.php');
           <li class="Protocol">
             <label><?php echo translate('RemoteProtocol') ?></label>
             <?php echo htmlSelect('newMonitor[Protocol]', $remoteProtocols, $monitor->Protocol(), ['data-on-change-this'=>'updateMethods'] ); ?>
+<?php
+          if ( $monitor->Protocol() == 'rtsp' ) {
+?>
+            <div class="form-text text-warning"><?php echo translate('RemoteRtspDeprecated') ?></div>
+<?php
+          }
+?>
           </li>
           <li class="Method">
             <label><?php echo translate('RemoteMethod') ?></label>

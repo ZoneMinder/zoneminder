@@ -100,7 +100,21 @@ TEST_CASE("Monitor action trigger names round trip") {
   REQUIRE(std::string(Monitor::ActionTriggerName(Monitor::EventAction::EVENT_START)) == "EventStart");
   REQUIRE(std::string(Monitor::ActionTriggerName(Monitor::EventAction::EVENT_END)) == "EventEnd");
   REQUIRE(std::string(Monitor::ActionTriggerName(Monitor::EventAction::ALARM)) == "Alarm");
+  REQUIRE(std::string(Monitor::ActionTriggerName(Monitor::EventAction::ALARM_END)) == "AlarmEnd");
   REQUIRE(std::string(Monitor::ActionTriggerName(Monitor::EventAction::MANUAL)) == "Manual");
+
+  // Every name must round trip through the column, or an action saved by the
+  // editor would load with the wrong trigger and fire at the wrong moment.
+  const auto schema = ReadFile(std::filesystem::path(ZM_SOURCE_DIR) / "db" / "zm_create.sql.in");
+  const auto enum_start = schema.find("`TriggerOn` enum(");
+  REQUIRE(enum_start != std::string::npos);
+  const auto enum_body = schema.substr(enum_start, schema.find(')', enum_start) - enum_start);
+  for (const auto trigger : {Monitor::EventAction::EVENT_START, Monitor::EventAction::EVENT_END,
+                             Monitor::EventAction::ALARM, Monitor::EventAction::ALARM_END,
+                             Monitor::EventAction::MANUAL}) {
+    REQUIRE(enum_body.find(std::string("'") + Monitor::ActionTriggerName(trigger) + "'")
+            != std::string::npos);
+  }
 }
 
 TEST_CASE("Monitor action schema") {

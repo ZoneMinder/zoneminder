@@ -178,7 +178,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // identified by target_monitor_id and is frequently NOT this monitor: the
   // point of the feature is that a camera can sound a speaker elsewhere.
   struct EventAction {
-    enum TriggerOn { EVENT_START, EVENT_END, ALARM, MANUAL };
+    enum TriggerOn { EVENT_START, EVENT_END, ALARM, ALARM_END, MANUAL };
     TriggerOn     trigger;
     std::string   action_type;       // zmcontrol command, e.g. audioPlay
     unsigned int  target_monitor_id;
@@ -763,6 +763,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::string   event_start_command;
   std::string   event_end_command;
   std::vector<EventAction> actions;
+  // Whether the Alarm actions have run for the alarm currently in progress.
+  bool alarm_actions_fired;
 
   std::vector<Group *> groups;
 
@@ -1102,6 +1104,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   void ReloadLinkedMonitors();
 
   void LoadActions();
+  // Fires the AlarmEnd actions once per alarm, and only when the Alarm actions
+  // actually ran, so the two stay paired.
+  void EndAlarmActions();
   void RunActions(EventAction::TriggerOn trigger);
   // Pure helpers, separated from RunActions so they can be tested without a
   // database, a socket or a device. ActionCommandName maps the DB enum onto a

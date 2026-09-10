@@ -238,6 +238,7 @@ $SLANG = array(
     'ActionTriggerEventStart' => 'Event starts',
     'ActionTriggerEventEnd'   => 'Event ends',
     'ActionTriggerAlarm'      => 'Alarm begins',
+    'ActionTriggerAlarmEnd'     => 'Alarm ends',
     'ActionTriggerManual'     => 'Manually triggered',
     'ActionLightOn'           => 'Turn light on',
     'ActionLightOff'          => 'Turn light off',

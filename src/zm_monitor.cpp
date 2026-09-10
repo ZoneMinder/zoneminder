@@ -235,6 +235,7 @@ Monitor::Monitor() :
   audio_detection(false),
   audio_threshold(0),
   audio_alarm_score(0),
+  alarm_actions_fired(false),
   wallclock_timestamps(false),
 //event_prefix
 //label_format
@@ -2260,6 +2261,7 @@ bool Monitor::Analyse() {
           }  // end if doing analysing
         }
         shared_data->state = state = IDLE;
+        EndAlarmActions();
       }  // end if signal change
 
       if (signal) {
@@ -2471,6 +2473,7 @@ bool Monitor::Analyse() {
               // Only the genuine entry into alarm fires actions. The
               // ALERT->ALARM path below is a re-trigger within one alarm and
               // would sound a speaker repeatedly through a single incident.
+              alarm_actions_fired = true;
               RunActions(EventAction::ALARM);
             } else if (state != PREALARM) {
               Info("%s: %03d - Gone into prealarm state", name.c_str(), analysis_image_count);
@@ -2508,6 +2511,7 @@ bool Monitor::Analyse() {
               if ((analysis_image_count - last_alarm_count) > post_event_count) {
                 shared_data->state = state = IDLE;
                 Info("%s: %03d - Left alert state", name.c_str(), analysis_image_count);
+                EndAlarmActions();
               }
             } else if (state == PREALARM) {
               // Back to IDLE
@@ -2685,6 +2689,7 @@ bool Monitor::Analyse() {
         closeEvent();
       }
       shared_data->state = state = IDLE;
+      EndAlarmActions();
     } // end if ( trigger_data->trigger_state != TRIGGER_OFF )
 
     if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
@@ -2863,6 +2868,7 @@ const char *Monitor::ActionTriggerName(EventAction::TriggerOn trigger) {
     case EventAction::EVENT_START: return "EventStart";
     case EventAction::EVENT_END:   return "EventEnd";
     case EventAction::ALARM:       return "Alarm";
+    case EventAction::ALARM_END:   return "AlarmEnd";
     case EventAction::MANUAL:      return "Manual";
   }
   return "";
@@ -2902,6 +2908,7 @@ void Monitor::LoadActions() {
     if (trigger == "EventStart") action.trigger = EventAction::EVENT_START;
     else if (trigger == "EventEnd") action.trigger = EventAction::EVENT_END;
     else if (trigger == "Alarm") action.trigger = EventAction::ALARM;
+    else if (trigger == "AlarmEnd") action.trigger = EventAction::ALARM_END;
     else if (trigger == "Manual") action.trigger = EventAction::MANUAL;
     else {
       Warning("Monitor %u: ignoring action with unknown trigger '%s'", id, trigger.c_str());
@@ -2932,6 +2939,15 @@ void Monitor::LoadActions() {
 // Actions are fire-and-forget: a speaker that is offline must never hold up
 // event handling, so a failed connect is logged and skipped rather than
 // retried. Manual actions are driven from the web ui and are never run here.
+void Monitor::EndAlarmActions() {
+  // Every path out of the alarm condition calls this, including the abnormal
+  // ones. A light switched on by an alarm must not stay on because the camera
+  // lost signal or the trigger was turned off.
+  if (!alarm_actions_fired) return;
+  alarm_actions_fired = false;
+  RunActions(EventAction::ALARM_END);
+}
+
 void Monitor::RunActions(EventAction::TriggerOn trigger) {
   for (const EventAction &action : actions) {
     if (action.trigger != trigger) continue;

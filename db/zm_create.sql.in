@@ -802,7 +802,7 @@ DROP TABLE IF EXISTS `Monitor_Status`;
 CREATE TABLE `MonitorActions` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `MonitorId` int(10) unsigned NOT NULL,
-  `TriggerOn` enum('EventStart','EventEnd','Alarm','Manual') NOT NULL default 'EventStart',
+  `TriggerOn` enum('EventStart','EventEnd','Alarm','AlarmEnd','Manual') NOT NULL default 'EventStart',
   `ActionType` enum('LightOn','LightOff','IndicatorLightOn','IndicatorLightOff','AudioPlay','AudioStop') NOT NULL default 'AudioPlay',
   `TargetMonitorId` int(10) unsigned NOT NULL,
   `AudioFile` int(10) unsigned default NULL,

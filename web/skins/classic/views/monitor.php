@@ -1634,6 +1634,7 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
         'EventStart' => translate('ActionTriggerEventStart'),
         'EventEnd'   => translate('ActionTriggerEventEnd'),
         'Alarm'      => translate('ActionTriggerAlarm'),
+        'AlarmEnd'   => translate('ActionTriggerAlarmEnd'),
         'Manual'     => translate('ActionTriggerManual'),
       );
       $all_type_options = array(

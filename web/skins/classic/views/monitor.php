@@ -378,7 +378,10 @@ if ( $monitor->Type() != 'WebSite' ) {
   $tabs['recording'] = translate('Recording');
   $tabs['viewing'] = translate('Viewing');
   $tabs['onvif'] = translate('ONVIF');
-  $tabs['timestamp'] = translate('Timestamp');
+  // A speaker's video is a placeholder image, so a burnt-in timestamp and
+  // motion zones have nothing to describe.
+  if ( $monitor->DeviceClass() != 'Speaker' )
+    $tabs['timestamp'] = translate('Timestamp');
   $tabs['buffers'] = translate('Buffers');
   if ( ZM_OPT_CONTROL && canView('Control') )
     $tabs['control'] = translate('Control');
@@ -388,7 +391,8 @@ if ( $monitor->Type() != 'WebSite' ) {
   // this monitor is itself controllable.
   $tabs['actions'] = translate('Actions');
   $tabs['misc'] = translate('Misc');
-  $tabs['zones'] = translate('Zones');
+  if ( $monitor->DeviceClass() != 'Speaker' )
+    $tabs['zones'] = translate('Zones');
   if (defined('ZM_OPT_USE_GEOLOCATION') and ZM_OPT_USE_GEOLOCATION)
     $tabs['location'] = translate('Location');
   $tabs['mqtt'] = translate('MQTT');
@@ -1055,6 +1059,13 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
         echo htmlSelect('newMonitor[AnalysisSource]', ZM\Monitor::getAnalysisSourceOptions(), $monitor->AnalysisSource());
 ?>
             </li>
+<?php
+      // A speaker analyses no picture: the reference image and the blend
+      // percentages have nothing to work on. Motion Detection itself stays,
+      // because audio detection is scored by the same analysis pass and does
+      // nothing when it is set to None.
+      if ( $monitor->DeviceClass() != 'Speaker' ) {
+?>
             <li id="AnalysisImage" class="AnalysisImage">
               <label><?php echo translate('Analysis Image') ?></label>
               
@@ -1063,6 +1074,9 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
 ?>
               
             </li>
+<?php
+      }
+?>
             <li class="AnalysisFPS">
               <label><?php echo translate('AnalysisFPS') ?></label>
               <input type="number" name="newMonitor[AnalysisFPSLimit]" value="<?php echo validHtmlStr($monitor->AnalysisFPSLimit()) ?>" min="0" step="any"/>
@@ -1085,7 +1099,9 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
               <input type="number" name="newMonitor[AudioAlarmScore]" value="<?php echo validHtmlStr($monitor->AudioAlarmScore()) ?>" min="0" max="255" step="1"/>
             </li>
 <?php
-      if ( ZM_FAST_IMAGE_BLENDS ) {
+      // Reference image blending is picture processing; a speaker has none.
+      if ( $monitor->DeviceClass() != 'Speaker' ) {
+        if ( ZM_FAST_IMAGE_BLENDS ) {
 ?>
               <li class="RefBlendPerc">
                 <label><?php echo translate('RefImageBlendPct') ?></label>
@@ -1096,7 +1112,7 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
                 <?php echo htmlSelect('newMonitor[AlarmRefBlendPerc]', $fastblendopts_alarm, $monitor->AlarmRefBlendPerc()); ?>
               </li>
           <?php
-      } else {
+        } else {
 ?>
             <li class="RefBlendPerc">
               <label><?php echo translate('RefImageBlendPct') ?></label>
@@ -1107,7 +1123,8 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
               <input type="number" name="newMonitor[AlarmRefBlendPerc]" value="<?php echo validHtmlStr($monitor->AlarmRefBlendPerc()) ?>" step="any" min="0"/>
             </li>
 <?php
-      }
+        } // end if ZM_FAST_IMAGE_BLENDS
+      } // end if not a Speaker
 ?>
             <li class="LinkedMonitors">
               <label><?php echo translate('LinkedMonitors'); echo makeHelpLink('OPTIONS_LINKED_MONITORS') ?></label>

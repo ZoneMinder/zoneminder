@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 26;
+use Test::More tests => 38;
 
 require_ok('ZoneMinder::Control::AMLink');
 
@@ -92,3 +92,43 @@ like($numeric_salt->(32), qr/\A[0-9]{32}\z/,
 
 is_deeply($parse_rsa_pub->('N:BDE596CF,E:010001'), { N => 'BDE596CF', e => '010001' },
   'splits the device pub string into modulus and exponent');
+
+# --- NTP -----------------------------------------------------------------
+# The camera keeps these in flash and set_time is meant to be safe to re-run,
+# so the change detection is what stops it burning erase cycles.
+
+my $ntp_table       = $P->can('ntp_table');
+my $ntp_needs_write = $P->can('ntp_needs_write');
+
+# A real section as the camera returns it.
+my %current = (
+  Address => 'time.windows.com', Enable => 1, Port => 123,
+  TimeZone => 26, TimeZoneDesc => 'Middletime', UpdatePeriod => 1440,
+);
+
+my $merged = $ntp_table->(\%current, Address => '10.0.0.1', UpdatePeriod => 1);
+is($merged->{Address}, '10.0.0.1', 'the override is applied');
+is($merged->{UpdatePeriod}, 1, 'the second override is applied too');
+# A partial write would have the camera drop whatever it was not sent, so the
+# untouched fields must survive the merge.
+is($merged->{TimeZone}, 26, 'an untouched field is echoed back');
+is($merged->{TimeZoneDesc}, 'Middletime', 'including the one we deliberately never set');
+is($merged->{Port}, 123, 'and the port');
+is(scalar keys %$merged, 6, 'the merge invents no fields');
+
+# The original must not be modified in place: set_time reads it, compares, then
+# merges, and a mutated copy would defeat the comparison.
+is($current{Address}, 'time.windows.com', 'the current settings are not mutated');
+
+ok($ntp_needs_write->(\%current, {Address => '10.0.0.1'}),
+  'a different server needs writing');
+ok($ntp_needs_write->(\%current, {UpdatePeriod => 1}),
+  'a different interval needs writing');
+ok(!$ntp_needs_write->(\%current, {Address => 'time.windows.com', Port => 123}),
+  'settings that already match need no write');
+ok($ntp_needs_write->(\%current, {Nonexistent => 1}),
+  'a field the camera does not have yet needs writing');
+# 1440 vs "1440" must not read as a change, or every run would rewrite flash.
+ok(!$ntp_needs_write->(\%current, {UpdatePeriod => '1440'}),
+  'a numeric field matching its string form needs no write');
+

@@ -58,6 +58,7 @@ require ZoneMinder::Control::Dahua_RPC;
 require LWP::UserAgent;
 
 use JSON::MaybeXS qw(encode_json decode_json);
+require JSON::MaybeXS;
 use MIME::Base64 qw(encode_base64 decode_base64);
 use Crypt::PK::RSA;
 use Crypt::Mode::CBC;
@@ -314,6 +315,94 @@ sub login {
   return undef if !$self->negotiate_mask_key();
 
   Debug('AMLink: logged in to '.$self->{host});
+  return 1;
+}
+
+# ==========================================================================
+#
+# Time and NTP.
+#
+# The camera keeps NTP in the configManager "NTP" section. Only Address,
+# Enable and UpdatePeriod are touched: TimeZone/TimeZoneDesc are left alone
+# because the camera's own clock display is already correct and the index is
+# not a standard one (26 is "Middletime" here, while the factory default is 25
+# "Easterntime").
+#
+# UpdatePeriod is in minutes. 1 is accepted - verified by writing it and
+# reading it back - so a camera can be kept within a minute of the server.
+#
+# ==========================================================================
+
+# Whole-section merge, so a write echoes every field the camera gave us back
+# and cannot silently drop one. Pure, so the merge and the change detection are
+# testable without a camera.
+sub ntp_table {
+  my ($current, %override) = @_;
+  my %table = %{$current || {}};
+  $table{$_} = $override{$_} for keys %override;
+  return \%table;
+}
+
+# True when the wanted settings differ from what the camera already holds.
+sub ntp_needs_write {
+  my ($current, $wanted) = @_;
+  return 1 if !$current;
+  foreach my $field (keys %$wanted) {
+    return 1 if !exists $current->{$field};
+    # JSON booleans and numbers both stringify usefully for this comparison.
+    return 1 if "$current->{$field}" ne "$wanted->{$field}";
+  }
+  return 0;
+}
+
+sub get_ntp {
+  my $self = shift;
+  my $r = $self->rpc_call('configManager.getConfig', { name => 'NTP' });
+  return ($r and $r->{params}) ? $r->{params}{table} : undef;
+}
+
+sub set_time {
+  my ($self, %opts) = @_;
+
+  my $ntp_server = $opts{ntp_server};
+  if (!defined($ntp_server) or $ntp_server eq '') {
+    Error('AMLink: set_time needs an ntp_server');
+    return undef;
+  }
+  # Minutes. The camera accepts 1, which is as often as it will go.
+  my $period = defined($opts{update_period}) ? int($opts{update_period}) : 1;
+  if ($period < 1) {
+    Error('AMLink: update_period must be at least 1 minute');
+    return undef;
+  }
+
+  my $current = $self->get_ntp();
+  if (!$current) {
+    Error('AMLink: could not read the current NTP settings');
+    return undef;
+  }
+
+  my %wanted = (
+    Address      => $ntp_server,
+    Enable       => JSON::MaybeXS::true,
+    UpdatePeriod => $period,
+  );
+  $wanted{Port} = int($opts{port}) if defined $opts{port};
+
+  # The camera holds this in flash and set_time is meant to be safe to re-run,
+  # so don't spend an erase cycle re-writing settings that already match.
+  if (!ntp_needs_write($current, \%wanted)) {
+    Debug('AMLink: NTP settings already as wanted, not writing them');
+    return 1;
+  }
+
+  my $table = ntp_table($current, %wanted);
+  my $r = $self->rpc_call('configManager.setConfig', { name => 'NTP', table => $table });
+  if (!$r or !$r->{result}) {
+    Error('AMLink: failed to write the NTP settings');
+    return undef;
+  }
+  Debug("AMLink: NTP set to $ntp_server every $period minute(s)");
   return 1;
 }
 

@@ -830,8 +830,17 @@ function AudioDetection_onChange(e) {
   // The threshold and the score only mean anything while detection is on.
   // The rows are hidden rather than the inputs disabled, because a disabled
   // input is not submitted and the value would silently fail to save.
-  const parentShown = $j('li.AudioDetection').is(':visible');
-  const show = parentShown && !!(e && e.checked);
+  //
+  // This asks the Analysing setting, not whether the row is currently on
+  // screen. The tabs are switched client side, so when the editor first loads
+  // the Analysis pane is hidden and every row in it reports as not visible.
+  // Testing visibility here set display:none on both rows during initPage, and
+  // opening the tab did not undo it - they stayed hidden until something else
+  // re-ran this.
+  const form = document.getElementById('contentForm');
+  const analysing = form ? form.elements['newMonitor[Analysing]'] : null;
+  const analysisOn = !analysing || (analysing.value != 'None');
+  const show = analysisOn && !!(e && e.checked);
   $j('li.AudioThreshold, li.AudioAlarmScore').toggle(show);
 }
 

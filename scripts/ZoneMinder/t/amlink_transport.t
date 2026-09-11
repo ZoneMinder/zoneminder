@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 38;
+use Test::More tests => 43;
 
 require_ok('ZoneMinder::Control::AMLink');
 
@@ -131,4 +131,35 @@ ok($ntp_needs_write->(\%current, {Nonexistent => 1}),
 # 1440 vs "1440" must not read as a change, or every run would rewrite flash.
 ok(!$ntp_needs_write->(\%current, {UpdatePeriod => '1440'}),
   'a numeric field matching its string form needs no write');
+
+# --- refusing to send without a key --------------------------------------
+# Dahua_RPC re-logins on error from several places and does not always check
+# whether it worked, so rpc_call can be reached with the key cleared. Sending
+# a Request unmasked gets a masked reply back, which fails as an unreadable
+# JSON decode error instead of saying the session is gone.
+
+{
+  my @sent;
+  my $obj = bless {
+    session => 'abc', mask_key => undef, rpc_id => 0, host => 'h',
+    RPCBase => 'http://h/Onvif/device_service',
+    ua => bless({}, 'FakeUA'),
+  }, $P;
+  # FakeUA records any request that escapes, so the test fails loudly if one does.
+  { no strict 'refs';
+    *{'FakeUA::post'} = sub { push @sent, $_[1]; die "a request escaped without a key\n" };
+    *{'FakeUA::agent'} = sub { }; }
+
+  is($obj->rpc_call('CoaxialControlIO.control', {channel=>0}), undef,
+    'a Request with no mask key returns undef');
+  is(scalar @sent, 0, 'and nothing was put on the wire');
+
+  # The bootstrap channels legitimately have no key and must still go out.
+  eval { $obj->rpc_call('global.login', {}, login => 1) };
+  is(scalar @sent, 1, 'a Login is still sent when there is no key');
+  eval { $obj->rpc_call('Security.getEncryptInfo', undef, outside => 1) };
+  is(scalar @sent, 2, 'an OutsideCmd is still sent when there is no key');
+  eval { $obj->rpc_call('LXSecurity.getGeneralKey', {}) };
+  is(scalar @sent, 3, 'the key exchange is still sent when there is no key');
+}
 

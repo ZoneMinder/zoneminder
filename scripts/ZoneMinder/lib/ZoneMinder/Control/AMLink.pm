@@ -185,6 +185,16 @@ sub rpc_call {
   # exists, and masking them makes the camera drop the connection.
   my $key = ($cmd_type eq 'Request') ? $self->{mask_key} : undef;
 
+  # Without a key a Request cannot be sent at all. Several callers in Dahua_RPC
+  # re-login on error and carry on regardless of whether it worked, so this can
+  # be reached with the key cleared by a failed login. Sending unmasked would
+  # get a masked reply back and fail with a confusing JSON decode error rather
+  # than saying what is actually wrong.
+  if ($cmd_type eq 'Request' and !$key) {
+    Error("AMLink: not logged in, refusing to send $method");
+    return undef;
+  }
+
   my $payload = encode_base64(encode_json($req), '');
   $payload = mask_data($key, $payload) if $key;
 
@@ -279,8 +289,29 @@ sub negotiate_mask_key {
   return 1;
 }
 
+# Release the session. The camera counts connections and reclaims them slowly,
+# so a daemon that logs in repeatedly without this eventually gets told there
+# are "too many connections" and cannot log in at all.
+sub logout {
+  my $self = shift;
+  return if !defined $self->{session} or !$self->{mask_key};
+  $self->rpc_call('global.logout');
+  $self->{session} = undef;
+  $self->{mask_key} = undef;
+}
+
+sub close {
+  my $self = shift;
+  $self->logout();
+  $self->{state} = 'closed';
+}
+
 sub login {
   my $self = shift;
+  # Give back the previous session before asking for another one. zmcontrol
+  # keeps one object for the life of the daemon and Dahua_RPC re-logins when the
+  # camera times the session out, so without this each re-login leaks a slot.
+  $self->logout();
   $self->{rpc_id} = 0;
   $self->{session} = undef;
   $self->{mask_key} = undef;
@@ -305,8 +336,15 @@ sub login {
       realm => $r->{params}{realm}, random => $r->{params}{random} },
     login => 1);
   if (!$r or !$r->{result}) {
-    Error('AMLink: login failed: '
-          .(($r and $r->{error}) ? $r->{error}{message} : 'no/!result response'));
+    my $msg = ($r and $r->{error}) ? $r->{error}{message} : 'no/!result response';
+    if ($msg =~ /too many connections/i) {
+      # Sessions the camera has not reclaimed yet. Reached by anything that logs
+      # in without logging out; it clears on its own once they time out.
+      Error('AMLink: login refused, the camera has too many open connections. '
+            .'They are released on logout or when the camera times them out.');
+    } else {
+      Error("AMLink: login failed: $msg");
+    }
     return undef;
   }
 

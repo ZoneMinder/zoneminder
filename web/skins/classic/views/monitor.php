@@ -1044,6 +1044,7 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
     }
     case 'analysis' : {
 ?>
+            <li class="settingsGroup"><?php echo translate('MotionDetectionSettings') ?></li>
             <li class="Analysing">
               <label><?php echo translate('Motion Detection') ?></label>
               
@@ -1090,23 +1091,6 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
               <label><?php echo translate('AnalysisFPS') ?></label>
               <input type="number" name="newMonitor[AnalysisFPSLimit]" value="<?php echo validHtmlStr($monitor->AnalysisFPSLimit()) ?>" min="0" step="any"/>
             </li>
-            <li class="AudioDetection">
-              <label><?php echo translate('AudioDetection') ?></label>
-<?php if ( $monitor->Type() == 'Ffmpeg' ) { ?>
-              <input type="checkbox" name="newMonitor[AudioDetection]" value="1"<?php if ( $monitor->AudioDetection() ) { ?> checked="checked"<?php } ?> data-on-change-this="AudioDetection_onChange"/>
-<?php } else { ?>
-              <?php echo translate('Audio detection only available with FFMPEG')?>
-              <input type="hidden" name="newMonitor[AudioDetection]" value="<?php echo $monitor->AudioDetection() ? 1 : 0 ?>"/>
-<?php } ?>
-            </li>
-            <li class="AudioThreshold">
-              <label><?php echo translate('AudioThreshold') ?></label>
-              <input type="number" name="newMonitor[AudioThreshold]" value="<?php echo validHtmlStr($monitor->AudioThreshold()) ?>" min="0" max="100" step="1"/>
-            </li>
-            <li class="AudioAlarmScore">
-              <label><?php echo translate('AudioAlarmScore') ?></label>
-              <input type="number" name="newMonitor[AudioAlarmScore]" value="<?php echo validHtmlStr($monitor->AudioAlarmScore()) ?>" min="0" max="255" step="1"/>
-            </li>
 <?php
       // Reference image blending is picture processing; a speaker has none.
       if ( $monitor->DeviceClass() != 'Speaker' ) {
@@ -1135,6 +1119,28 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
         } // end if ZM_FAST_IMAGE_BLENDS
       } // end if not a Speaker
 ?>
+            <li class="settingsGroup AudioGroup"><?php echo translate('AudioDetectionSettings') ?></li>
+            <li class="AudioDetection">
+              <label><?php echo translate('AudioDetection') ?></label>
+<?php if ( $monitor->Type() == 'Ffmpeg' ) { ?>
+              <input type="checkbox" name="newMonitor[AudioDetection]" value="1"<?php if ( $monitor->AudioDetection() ) { ?> checked="checked"<?php } ?> data-on-change-this="AudioDetection_onChange"/>
+<?php } else { ?>
+              <?php echo translate('Audio detection only available with FFMPEG')?>
+              <input type="hidden" name="newMonitor[AudioDetection]" value="<?php echo $monitor->AudioDetection() ? 1 : 0 ?>"/>
+<?php } ?>
+              <div class="form-text"><?php echo translate('AudioDetectionHelp') ?></div>
+            </li>
+            <li class="AudioThreshold">
+              <label><?php echo translate('AudioThreshold') ?></label>
+              <input type="number" name="newMonitor[AudioThreshold]" value="<?php echo validHtmlStr($monitor->AudioThreshold()) ?>" min="0" max="100" step="1"/>
+              <div class="form-text"><?php echo translate('AudioThresholdHelp') ?></div>
+            </li>
+            <li class="AudioAlarmScore">
+              <label><?php echo translate('AudioAlarmScore') ?></label>
+              <input type="number" name="newMonitor[AudioAlarmScore]" value="<?php echo validHtmlStr($monitor->AudioAlarmScore()) ?>" min="0" max="255" step="1"/>
+              <div class="form-text"><?php echo translate('AudioAlarmScoreHelp') ?></div>
+            </li>
+            <li class="settingsGroup"><?php echo translate('OtherAnalysisSettings') ?></li>
             <li class="LinkedMonitors">
               <label><?php echo translate('LinkedMonitors'); echo makeHelpLink('OPTIONS_LINKED_MONITORS') ?></label>
               <input type="text" name="newMonitor[LinkedMonitors]" value="<?php echo $monitor->LinkedMonitors() ?>" data-on-input="updateLinkedMonitorsUI"/><br/>

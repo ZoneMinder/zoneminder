@@ -822,7 +822,7 @@ function Analysing_onChange(e) {
   $j('#AnalysisImage, li.AnalysisFPS, li.RefBlendPerc, li.AlarmRefBlendPerc, li.AlarmRefImageBlendPct').toggle(show);
   // Audio detection is scored by the same analysis pass, so it cannot fire
   // either. Hiding it stops the settings looking configured but inert.
-  $j('li.AudioDetection').toggle(show);
+  $j('li.AudioDetection, li.settingsGroup.AudioGroup').toggle(show);
   AudioDetection_onChange(document.getElementById('contentForm').elements['newMonitor[AudioDetection]']); // eslint-disable-line new-cap
 }
 

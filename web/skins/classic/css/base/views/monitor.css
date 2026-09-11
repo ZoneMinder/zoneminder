@@ -183,3 +183,30 @@ nav #pills-tab a.nav-link.active {
   width: 5em;
   text-align: center;
 }
+
+/*
+ * Group headings inside a settings tab.
+ *
+ * The tabs are a flat <ul> of <li> rows, so a fieldset/legend cannot be used
+ * without breaking the list: a <ul> may only contain <li>. A heading row plus
+ * a rule above it gives the same visual separation while keeping the markup
+ * valid and the existing row layout untouched.
+ */
+li.settingsGroup {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.8em;
+  letter-spacing: 0.05em;
+  opacity: 0.7;
+  margin-top: 1.2em;
+  padding-top: 0.5em;
+  border-top: 1px solid rgba(128, 128, 128, 0.35);
+}
+
+/* The first heading opens the tab, so it needs no separation from what is
+   above it. */
+li.settingsGroup:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}

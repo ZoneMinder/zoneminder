@@ -222,6 +222,7 @@ function MonitorStream(monitorData) {
   this.player = monitorData.DefaultPlayer;
   this.defaultPlayer = (this.player) ? this.player : this.playerPriority[1]['name'];
   this.activePlayer = ''; // Variants: go2rtc, janus, rtsp2web_hls, rtsp2web_mse, rtsp2web_webrtc, zms. Relevant for this.player = ''/Auto
+  this.stoppedPlayer = ''; // What stop() shut down, so a zms it left running can be resumed rather than replaced.
   this.selectedPlayer = ''; // Selected player in the browser
   this.setPlayer = function(p) {
     if (-1 != p.indexOf('go2rtc')) {
@@ -877,6 +878,9 @@ function MonitorStream(monitorData) {
     if (!isZms && !isMse) stream.removeAttribute('src');
     if (!isMse) stream.load?.();
 
+    // Remembered before it is cleared: stop() leaves a zms running, and
+    // select_zms() needs to know that in order to resume it. refs #4706
+    this.stoppedPlayer = this.activePlayer;
     this.activePlayer = '';
     this.started = false;
   };
@@ -980,6 +984,10 @@ function MonitorStream(monitorData) {
 
   this.restart = function(channelStream = "default", delay = 200) {
     this.stop();
+    // Restart is the error path. Whatever went wrong may well be the zms that
+    // stop() just left running, and the img is likely broken, which no
+    // CMD_PLAY repairs - so rebuild the stream rather than resuming it. refs #4706
+    this.stoppedPlayer = '';
     const countErrors = this.getCountStreamErrors(this.player);
     if (countErrors < this.limitCountErrors) {
       const playbackSessionId = this.playbackSessionId;
@@ -2157,19 +2165,41 @@ function MonitorStream(monitorData) {
     // Check if the auth hash in the current img src is still valid.
     // On long-running pages the hash from page load may have expired.
     // zmAuth.hash is '' when authentication is off or under the plain/none relay
-    // forms; there is no hash to compare then, so fall through and rebuild as
-    // this has always done.
-    const srcAuthCurrent = stream.src && zmAuth.hash && authHashFromRelay(stream.src) === zmAuth.hash;
+    // forms. There is no hash to compare then, and equally nothing that can go
+    // stale, so the src is as current as it will ever be - treating that as
+    // "not current" sent every install with auth off down the rebuild path and
+    // gave up the resume below for no reason. refs #4706
+    const srcAuthCurrent = stream.src &&
+        (!zmAuth.hash || authHashFromRelay(stream.src) === zmAuth.hash);
 
     if (!this.isActive) {
       this.kill();
       return;
     }
 
-    if (srcAuthCurrent && this.activePlayer == 'zms') {
-      // Auth is current and zms was already the active player — just resume
+    // stop() clears activePlayer, which is what made this branch unreachable
+    // after one: a stream stopped for a hidden tab could only ever be replaced,
+    // never resumed, so every hide/show cycle abandoned a live zms. The process
+    // stop() left running is still addressable while we hold its connkey, so
+    // ask it to play again instead of building a second one. refs #4706
+    const resumableZms = (this.activePlayer == 'zms') ||
+        ((this.stoppedPlayer == 'zms') && this.connKey);
+
+    if (srcAuthCurrent && resumableZms) {
+      // Auth is current and zms was already the active player — just resume.
+      // started has to be set before the command rather than at the end of this
+      // function with the other players: streamCommand() drops anything sent
+      // while !started, so resuming after a stop - which clears it - silently
+      // sent nothing and left the stream frozen on its keepalive frame.
+      // Resuming after a pause worked only because pause() leaves it set. refs #4706
+      this.started = true;
       this.streamCmdTimer = setInterval(this.streamCmdQuery.bind(this), statusRefreshTimeout);
       this.streamCommand(CMD_PLAY);
+      // img_onload does this on the rebuild path, but resuming leaves src
+      // untouched so no load event fires. Without it the "Loading..." block and
+      // the still image behind it stay over the picture, and a stream that has
+      // in fact resumed looks frozen. refs #4706
+      this.writeTextInfoBlock("");
     } else if (srcAuthCurrent && (-1 != stream.src.indexOf('mode=paused'))) {
       // Initial page load has zms with mode=paused, auth is still valid
       this.streamCmdTimer = setInterval(this.streamCmdQuery.bind(this), statusRefreshTimeout);
@@ -2177,6 +2207,12 @@ function MonitorStream(monitorData) {
     } else {
       let src = zmAuth.applyTo(this.url_to_zms.replace(/mode=single/i, 'mode=jpeg'));
       if (-1 == src.search('connkey')) {
+        /* Quit the previous zms before the connkey that addresses it is
+         * replaced, exactly as the reload path in getStreamCmdResponse() does.
+         * Nothing can reach that process afterwards, so one that missed its
+         * SIGPIPE would sit in its stopped state forever. refs #4706
+         */
+        if (this.connKey) this.quitConnKey(this.connKey);
         this.streamCmdParms.connkey = this.statusCmdParms.connkey = this.connKey = this.genConnKey(); // The "connkey" needs to be replaced, because on the Watch page, when switching the player to ZMS, then to any other player, and then returning to ZMS, playback will not occur, because the socket="previous connkey" will be closed.
         src += '&connkey='+this.connKey;
       }
@@ -2214,6 +2250,7 @@ function MonitorStream(monitorData) {
     this.started = true;
     this.handlerEventListener['killStream'] = this.streamListenerBind();
     this.activePlayer = 'zms';
+    this.stoppedPlayer = '';
     this.updateStreamInfo('ZMS MJPEG');
     hideAudioMotion(this.id);
   };

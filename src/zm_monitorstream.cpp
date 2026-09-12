@@ -558,9 +558,15 @@ void MonitorStream::runStream() {
   std::string swap_path;
   bool buffered_playback = false;
 
-  // Last image and timestamp when paused, will be resent occasionally to prevent timeout
-  Image *paused_image = nullptr;
+  // Last image and timestamp when paused, will be resent occasionally to prevent timeout.
+  // unique_ptr because the loop below has break paths that leave the function
+  // while one of these is still held.
+  std::unique_ptr<Image> paused_image;
   SystemTimePoint paused_timestamp;
+
+  // Same, for the stopped state. See the stopped branch in the loop below.
+  std::unique_ptr<Image> stopped_image;
+  SystemTimePoint stopped_timestamp;
 
   if (connkey && (playback_buffer > 0)) {
     // 15 is the max length for the swap path suffix, /zmswap-whatever, assuming max 6 digits for monitor id
@@ -668,11 +674,51 @@ void MonitorStream::runStream() {
       continue;
     }
     if (stopped) {
-      // In stopped state, do nothing except wait for a new command.
-      // Don't call setLastViewed() so we don't keep capture/decoding active unnecessarily.
+      // Stopped halts playback but keeps the connection, so that a later
+      // command can resume on the same process. Hold the last frame and
+      // re-send it every few seconds, as the paused state does.
+      //
+      // The write is the point: with nothing written, this branch never
+      // touches the socket, so a stream whose client has gone away is never
+      // told about it and never sees EPIPE. Since it also skipped the ttl
+      // check at the bottom of the loop, such a process had no way to exit at
+      // all and stayed until the machine was restarted. refs #4706
+      //
+      // setLastViewed is deliberately still not called: capture and decoding
+      // should not be held active for a stream that is not playing.
+      if (!stopped_image
+          && monitor->shared_data->valid
+          && (monitor->shared_data->last_write_index != monitor->image_buffer_count)) {
+        int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
+        Debug(1, "Saving stopped image from index %d", index);
+        stopped_image = zm::make_unique<Image>(*monitor->ReadShmFrame(index));
+        stopped_timestamp = SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index]));
+      }
+      if (now - last_frame_sent > Seconds(5)) {
+        if (stopped_image) {
+          Debug(2, "Sending keepalive frame while stopped");
+          if (!sendFrame(stopped_image.get(), stopped_timestamp)) zm_terminate = true;
+        } else if (sendTextFrame("Stopped") <= 0) {
+          // Nothing captured yet to hold, but we still have to write something
+          // to notice a client that is no longer there.
+          Debug(2, "Failed to send stopped keepalive text frame");
+          zm_terminate = true;
+        }
+      }
+      // The ttl check lives at the bottom of the loop, which this branch never
+      // reaches, so a stopped stream would otherwise outlive its own deadline.
+      if (ttl > Seconds(0) && (now - stream_start_time) > ttl) {
+        Debug(2, "Stopped and now - start > ttl. break");
+        // checkCommandQueue() only returns when zm_terminate is set, and
+        // runStream() joins it below, so leaving the loop without setting it
+        // hangs in join() forever. See the two breaks at the bottom of the loop.
+        zm_terminate = true;
+        break;
+      }
       std::this_thread::sleep_for(MAX_SLEEP);
       continue;
     }
+    stopped_image.reset();
     monitor->setLastViewed();
     if (frame_type == FRAME_ANALYSIS)
       monitor->setLastAnalysisViewed();
@@ -681,12 +727,11 @@ void MonitorStream::runStream() {
       if (!was_paused) {
         int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
         Debug(1, "Saving paused image from index %d",index);
-        paused_image = new Image(*monitor->ReadShmFrame(index));
+        paused_image = zm::make_unique<Image>(*monitor->ReadShmFrame(index));
         paused_timestamp = SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index]));
       }
-    } else if (paused_image) {
-      delete paused_image;
-      paused_image = nullptr;
+    } else {
+      paused_image.reset();
     }
 
     if (buffered_playback && delayed) {
@@ -826,9 +871,9 @@ void MonitorStream::runStream() {
           }
           if (last_zoom != zoom) {
             Debug(2, "Sending 2 frames because change in zoom %d ?= %d", last_zoom, zoom.load());
-            if (!sendFrame(paused_image, paused_timestamp))
+            if (!sendFrame(paused_image.get(), paused_timestamp))
               zm_terminate = true;
-            if (!sendFrame(paused_image, paused_timestamp))
+            if (!sendFrame(paused_image.get(), paused_timestamp))
               zm_terminate = true;
             frame_count++;
             frame_count++;
@@ -840,7 +885,7 @@ void MonitorStream::runStream() {
                 Debug(2, "Sending keepalive frame because delta time %.2f s > 5 s",
                       FPSeconds(actual_delta_time).count());
                 // Send the next frame
-                if (!sendFrame(paused_image, paused_timestamp))
+                if (!sendFrame(paused_image.get(), paused_timestamp))
                   zm_terminate = true;
                 frame_count++;
               } else {
@@ -951,12 +996,18 @@ void MonitorStream::runStream() {
     if (!zm_terminate)
       std::this_thread::sleep_for(sleep_time);
 
+    // Both of these have to set zm_terminate, not just break: checkCommandQueue()
+    // loops until that flag is set and runStream() joins it below, so a stream
+    // that ended on its ttl or its frame count would sit in join() forever
+    // rather than exiting. That is a way for a zms to outlive its client. refs #4706
     if (ttl > Seconds(0) && (now - stream_start_time) > ttl) {
       Debug(2, "now - start > ttl (%" PRIi64 " us). break",
             static_cast<int64>(std::chrono::duration_cast<Microseconds>(ttl).count()));
+      zm_terminate = true;
       break;
     }
     if (frames_to_send > 0 && frame_count >= frames_to_send) {
+      zm_terminate = true;
       break;
     }
   } // end while ! zm_terminate

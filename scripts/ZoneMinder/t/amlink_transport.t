@@ -1,6 +1,7 @@
 use strict;
 use warnings;
-use Test::More tests => 50;
+use MIME::Base64;
+use Test::More tests => 66;
 
 require_ok('ZoneMinder::Control::AMLink');
 
@@ -183,3 +184,153 @@ is($log_safe->("a\r\nb"), 'a | b', 'CRLF counts as one break, not two');
 is($log_safe->('no newlines here'), 'no newlines here', 'an ordinary message is untouched');
 is($log_safe->(undef), '', 'undef yields an empty string rather than a warning');
 is($log_safe->(''), '', 'an empty message stays empty');
+
+# --- recovering from an undecodable reply ------------------------------------
+# An undecodable reply means we and the camera disagree about the session.
+# Dahua_RPC only re-logs-in when it gets a *parseable* error back, so before
+# this the session stayed poisoned and every later command failed the same way,
+# leaving a light switched on by an alarm on until something forced a re-login.
+
+{
+  package FakeRes;
+  sub new { my ($c, $body, $ok) = @_; bless {body => $body, ok => (defined $ok ? $ok : 1)}, $c }
+  sub is_success { $_[0]{ok} }
+  sub status_line { '500 Boom' }
+  sub decoded_content { $_[0]{body} }
+}
+{
+  package FakeUA2;
+  sub new { bless {queue => [], sent => []}, shift }
+  sub agent { }
+  sub post {
+    my $self = shift;
+    push @{$self->{sent}}, \@_;
+    my $r = shift @{$self->{queue}};
+    return defined $r ? $r : FakeRes->new('<body><cmd>####</cmd></body>');
+  }
+}
+
+my $tkey = $key_from_string->('KEY');
+# A reply the camera would send: json -> base64 -> masked with the session key.
+sub good_reply {
+  my $payload = $mask_data->($tkey, MIME::Base64::encode_base64('{"result":1,"id":1}', ''));
+  return FakeRes->new('<body><cmd>'.$payload.'</cmd></body>');
+}
+# '####' unmasks to bytes that are not base64, so nothing valid comes out.
+sub bad_reply { FakeRes->new('<body><cmd>####</cmd></body>') }
+
+my $logins;
+sub fresh_obj {
+  my %extra = @_;
+  my $ua = FakeUA2->new;
+  my $o = bless {
+    session => 's1', mask_key => $tkey, rpc_id => 0, host => 'h',
+    RPCBase => 'http://h/Onvif/device_service', ua => $ua, %extra,
+  }, $P;
+  return ($o, $ua);
+}
+
+$logins = 0;
+my $login_ok = 1;
+{
+  no strict 'refs'; no warnings 'redefine';
+  *{$P.'::login'} = sub {
+    my $self = shift;
+    $logins++;
+    return 0 if !$login_ok;
+    $self->{session} = 's2';
+    $self->{mask_key} = $tkey;
+    return 1;
+  };
+}
+
+# 1. a decode failure re-establishes the session and retries once
+{
+  my ($o, $ua) = fresh_obj();
+  @{$ua->{queue}} = (bad_reply(), good_reply());
+  $logins = 0;
+  my $r = $o->rpc_call('CoaxialControlIO.control', {channel => 0});
+  is($logins, 1, 'an undecodable reply triggers exactly one re-login');
+  is(scalar @{$ua->{sent}}, 2, 'and the command is sent again on the new session');
+  ok(defined $r, 'the retry result is returned to the caller');
+  is($o->{session}, 's2', 'the object is left holding the new session');
+}
+
+# 2. one retry only - it does not keep going
+{
+  my ($o, $ua) = fresh_obj();
+  @{$ua->{queue}} = (bad_reply(), bad_reply(), good_reply());
+  $logins = 0;
+  my $r = $o->rpc_call('CoaxialControlIO.control', {channel => 0});
+  is($logins, 1, 'a retry that also fails does not start another recovery');
+  is(scalar @{$ua->{sent}}, 2, 'exactly two attempts were made');
+  is($r, undef, 'and the caller is told it failed');
+}
+
+# 3. a failed re-login is reported rather than retried blindly
+{
+  my ($o, $ua) = fresh_obj();
+  @{$ua->{queue}} = (bad_reply(), good_reply());
+  $logins = 0; $login_ok = 0;
+  my $r = $o->rpc_call('CoaxialControlIO.control', {channel => 0});
+  is($r, undef, 'a failed re-login yields undef');
+  is(scalar @{$ua->{sent}}, 1, 'and the command is not resent');
+  $login_ok = 1;
+}
+
+# 4. only an undecodable reply counts - an HTTP error is not a lost session
+{
+  my ($o, $ua) = fresh_obj();
+  @{$ua->{queue}} = (FakeRes->new('', 0), good_reply());
+  $logins = 0;
+  $o->rpc_call('CoaxialControlIO.control', {channel => 0});
+  is($logins, 0, 'an HTTP error does not trigger a re-login');
+}
+
+# 5. the bootstrap channels must never recover: login() issues them
+{
+  my ($o, $ua) = fresh_obj();
+  @{$ua->{queue}} = (bad_reply(), good_reply());
+  $logins = 0;
+  $o->rpc_call('global.login', {}, login => 1);
+  is($logins, 0, 'a Login that fails to decode does not call login again');
+
+  ($o, $ua) = fresh_obj();
+  @{$ua->{queue}} = (bad_reply(), good_reply());
+  $logins = 0;
+  $o->rpc_call('LXSecurity.getGeneralKey', {});
+  is($logins, 0, 'nor does the key exchange');
+}
+
+# 6. no recursion: login() calls logout(), which is a Request on the dead
+# session. Without the guard its own decode failure starts another recovery.
+{
+  my ($o, $ua) = fresh_obj();
+  @{$ua->{queue}} = (bad_reply(), bad_reply(), bad_reply(), good_reply());
+  $logins = 0;
+  {
+    no strict 'refs'; no warnings 'redefine';
+    local *{$P.'::login'} = sub {
+      my $self = shift;
+      $logins++;
+      die "runaway recursion: login called $logins times\n" if $logins > 3;
+      $self->rpc_call('global.logout');      # the real login() does this
+      $self->{session} = 's2'; $self->{mask_key} = $tkey;
+      return 1;
+    };
+    my $r = eval { $o->rpc_call('CoaxialControlIO.control', {channel => 0}) };
+    is($@, '', 'a logout that fails inside login does not recurse');
+    is($logins, 1, 'login runs once, not once per nested failure');
+  }
+}
+
+# 7. backoff stops a camera that always answers unreadably from being hammered
+{
+  my ($o, $ua) = fresh_obj();
+  @{$ua->{queue}} = (bad_reply(), bad_reply(), bad_reply(), bad_reply());
+  $logins = 0;
+  $o->rpc_call('CoaxialControlIO.control', {channel => 0});
+  is($logins, 1, 'the first failure recovers');
+  $o->rpc_call('CoaxialControlIO.control', {channel => 0});
+  is($logins, 1, 'a second failure straight after does not log in again');
+}

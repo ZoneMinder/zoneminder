@@ -172,8 +172,12 @@ sub open {
   return undef;
 }
 
-sub rpc_call {
+# One attempt, no recovery. Records why it failed in {last_failure} so the
+# caller can tell an undecodable reply (the session is probably gone) from an
+# HTTP error or a missing key (re-logging in would not help).
+sub rpc_once {
   my ($self, $method, $params, %opts) = @_;
+  $self->{last_failure} = undef;
   $self->{rpc_id} = ($self->{rpc_id} || 0) + 1;
 
   my $req = { method => $method, id => $self->{rpc_id}, params => $params };
@@ -192,6 +196,7 @@ sub rpc_call {
   # than saying what is actually wrong.
   if ($cmd_type eq 'Request' and !$key) {
     Error("AMLink: not logged in, refusing to send $method");
+    $self->{last_failure} = 'nokey';
     return undef;
   }
 
@@ -204,16 +209,19 @@ sub rpc_call {
   };
   if (!$res) {
     Error("AMLink: request failed for $method: ".log_safe($@));
+    $self->{last_failure} = 'transport';
     return undef;
   }
   if (!$res->is_success) {
     Error('AMLink: HTTP '.$res->status_line." for $method");
+    $self->{last_failure} = 'http';
     return undef;
   }
 
   my $cmd = extract_cmd($res->decoded_content(charset => 'none'));
   if (!defined $cmd) {
     Error("AMLink: no <cmd> element in the reply to $method");
+    $self->{last_failure} = 'nocmd';
     return undef;
   }
   my $raw_cmd = $cmd;
@@ -239,9 +247,68 @@ sub rpc_call {
       ($plain ? 'YES - the camera answered without masking' : 'no'),
       substr($raw_cmd, 0, 24), unpack('H*', substr($decoded, 0, 24))));
     return $plain if $plain;   # usable after all, so do not throw it away
+    $self->{last_failure} = 'decode';
     return undef;
   }
   return $data;
+}
+
+# How long to wait before trying to re-establish the session again. Without
+# this a camera that answers unreadably every time would be hit with a fresh
+# login on every command.
+use constant RECOVERY_BACKOFF => 5;
+
+# An undecodable reply means we and the camera no longer agree about the
+# session, and nothing in the old code put that right: Dahua_RPC only re-logs-in
+# when it gets a *parseable* error back, so rpc_call returning undef left the
+# session poisoned and every later command failed the same way. A light switched
+# on by an alarm would then stay on until something else forced a re-login.
+sub rpc_call {
+  my ($self, $method, $params, %opts) = @_;
+
+  my $data = $self->rpc_once($method, $params, %opts);
+  return $data if defined $data;
+
+  # Only a masked Request carries a session to lose. The bootstrap channels
+  # (Login, OutsideCmd, GetGeneralKey) run before one exists, and login() issues
+  # them, so recovering from those would recurse.
+  return undef if cmd_type_for($method, %opts) ne 'Request';
+  return undef if ($self->{last_failure} // '') ne 'decode';
+
+  # login() calls logout(), which is itself a Request on the poisoned session.
+  # Without this guard its decode failure would start another recovery.
+  return undef if $self->{recovering};
+
+  my $now = time;
+  if (defined $self->{last_recovery} and $now - $self->{last_recovery} < RECOVERY_BACKOFF) {
+    Debug(1, "AMLink: not re-establishing the session for $method, tried under "
+      .RECOVERY_BACKOFF.'s ago');
+    return undef;
+  }
+  $self->{last_recovery} = $now;
+
+  Info("AMLink: reply to $method could not be decoded, re-establishing the session");
+  local $self->{recovering} = 1;
+  # Drop what we have rather than letting logout() try to hand back a session
+  # the camera has evidently already forgotten.
+  $self->{session} = undef;
+  $self->{mask_key} = undef;
+
+  if (!$self->login()) {
+    Error("AMLink: could not re-establish the session after $method");
+    return undef;
+  }
+
+  # One retry only. Re-sending is safe for everything this module issues: the
+  # light commands set an absolute state rather than toggling, and getStatus and
+  # keepAlive are reads.
+  my $retry = $self->rpc_once($method, $params, %opts);
+  if (defined $retry) {
+    Info("AMLink: $method succeeded on the new session");
+  } else {
+    Error("AMLink: $method failed again after re-establishing the session");
+  }
+  return $retry;
 }
 
 # ZoneMinder::Logger writes one line per message and keeps only what precedes

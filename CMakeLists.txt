@@ -917,7 +917,10 @@ add_subdirectory(onvif)
 
 if(BUILD_TEST_SUITE)
   message("Building unit tests: Yes")
-  find_package(Catch2 REQUIRED)
+  # The tests use v3 spellings throughout: catch2/catch_all.hpp, Catch::Approx and
+  # the Catch2WithMain target, none of which exist in v2. Ask for 3 so a v2
+  # install fails here with a clear message instead of a wall of compile errors.
+  find_package(Catch2 3 REQUIRED)
 
   include(CTest)
   add_subdirectory(tests)

@@ -44,7 +44,7 @@ set(TEST_SOURCES
   zm_ffmpeg_camera.cpp
   zm_ffmpeg_fallback.cpp)
 
-add_executable(tests main.cpp ${TEST_SOURCES})
+add_executable(tests ${TEST_SOURCES})
 
 target_link_libraries(tests
   PRIVATE

@@ -44,7 +44,7 @@ TEST_CASE("Audio RMS of signed 16-bit samples") {
 
   SECTION("a full scale square wave is full scale") {
     const auto samples = SquareS16(32767, 64);
-    REQUIRE(AudioDetector::RmsS16(samples.data(), samples.size()) == Approx(1.0).margin(0.001));
+    REQUIRE(AudioDetector::RmsS16(samples.data(), samples.size()) == Catch::Approx(1.0).margin(0.001));
   }
 
   SECTION("the most negative sample does not exceed full scale") {
@@ -58,7 +58,7 @@ TEST_CASE("Audio RMS of signed 16-bit samples") {
     const auto loud = SquareS16(16384, 64);
     const auto quiet = SquareS16(8192, 64);
     REQUIRE(AudioDetector::RmsS16(loud.data(), loud.size()) ==
-            Approx(2.0 * AudioDetector::RmsS16(quiet.data(), quiet.size())));
+            Catch::Approx(2.0 * AudioDetector::RmsS16(quiet.data(), quiet.size())));
   }
 
   SECTION("no samples is zero, not a division by zero") {
@@ -76,14 +76,14 @@ TEST_CASE("Audio RMS of float samples") {
 
   SECTION("full scale is one") {
     const std::vector<float> samples(64, 1.0f);
-    REQUIRE(AudioDetector::RmsFloat(samples.data(), samples.size()) == Approx(1.0));
+    REQUIRE(AudioDetector::RmsFloat(samples.data(), samples.size()) == Catch::Approx(1.0));
   }
 
   SECTION("decoder overshoot is clamped rather than scoring above full scale") {
     // Float decoders are allowed to emit values outside -1..1; without the
     // clamp a hot AAC stream would report a level above 100.
     const std::vector<float> samples(64, 4.0f);
-    REQUIRE(AudioDetector::RmsFloat(samples.data(), samples.size()) == Approx(1.0));
+    REQUIRE(AudioDetector::RmsFloat(samples.data(), samples.size()) == Catch::Approx(1.0));
   }
 }
 

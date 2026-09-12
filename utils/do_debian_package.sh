@@ -181,7 +181,17 @@ else
 
       # Number of commits since the version file was last changed
       numcommits=$(git rev-list ${versionhash}..HEAD --count)
-      SNAPSHOT="`date +%Y%m%d.`$(git rev-list ${versionhash}..HEAD --count)"
+      SNAPSHOT="`date +%Y%m%d.`${numcommits}"
+
+      # date+numcommits is not unique per build: every build of the same tip on
+      # the same day produces the same string, and the repo then holds one
+      # version whose content changed underneath it. A client that read Packages
+      # before a republish and fetched the .deb after it gets a hash mismatch.
+      # GITHUB_RUN_ID is unique and never reused, and appending a component
+      # keeps the version strictly greater than the ones already published.
+      if [ -n "$GITHUB_RUN_ID" ]; then
+        SNAPSHOT="${SNAPSHOT}.${GITHUB_RUN_ID}.${GITHUB_RUN_ATTEMPT:-1}"
+      fi
     fi;
   fi;
 fi;

@@ -147,22 +147,53 @@ if(ASAN AND TSAN)
   message(FATAL_ERROR "ASAN and TSAN options are mutually exclusive")
 endif()
 
-set(ZM_RUNDIR "/var/run/zm" CACHE PATH
-  "Location of transient process files, default: /var/run/zm")
-set(ZM_SOCKDIR "/var/run/zm" CACHE PATH
-  "Location of Unix domain socket files, default /var/run/zm")
-set(ZM_TMPDIR "/var/cache/zoneminder/temp" CACHE PATH
-  "Location of regenerable temporary files, default: /var/cache/zoneminder/temp")
-set(ZM_LOGDIR "/var/log/zm" CACHE PATH
-  "Location of generated log files, default: /var/log/zm")
+# Runtime directory defaults.
+#
+# The Linux values are FHS paths that do not fit macOS: there is no /dev/shm,
+# and /var belongs to the operating system rather than to locally installed
+# software. Derive from CMAKE_INSTALL_FULL_LOCALSTATEDIR (<prefix>/var) there,
+# which is also where Homebrew keeps state.
+#
+# These feed the cache entries below as defaults rather than overwriting them
+# the way the ZM_TARGET_DISTRO ladder does, so an explicit -DZM_RUNDIR=... still
+# wins. A Homebrew formula depends on that: its install prefix is a versioned
+# cellar directory, and etc and var have to sit outside it to survive an upgrade.
+if(APPLE)
+  set(_zm_var "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}")
+  set(_zm_default_rundir "${_zm_var}/run/zm")
+  set(_zm_default_tmpdir "${_zm_var}/cache/zoneminder/temp")
+  set(_zm_default_logdir "${_zm_var}/log/zm")
+  set(_zm_default_cachedir "${_zm_var}/cache/zoneminder")
+  set(_zm_default_contentdir "${_zm_var}/lib/zoneminder")
+  # macOS mounts no tmpfs to put these on. Being cleared at boot is the
+  # property that actually matters for mapped memory files, and var/run is.
+  set(_zm_default_pathmap "${_zm_var}/run/zm")
+  unset(_zm_var)
+else()
+  set(_zm_default_rundir "/var/run/zm")
+  set(_zm_default_tmpdir "/var/cache/zoneminder/temp")
+  set(_zm_default_logdir "/var/log/zm")
+  set(_zm_default_cachedir "/var/cache/zoneminder")
+  set(_zm_default_contentdir "/var/lib/zoneminder")
+  set(_zm_default_pathmap "/dev/shm")
+endif()
+
+set(ZM_RUNDIR "${_zm_default_rundir}" CACHE PATH
+  "Location of transient process files, default: ${_zm_default_rundir}")
+set(ZM_SOCKDIR "${_zm_default_rundir}" CACHE PATH
+  "Location of Unix domain socket files, default ${_zm_default_rundir}")
+set(ZM_TMPDIR "${_zm_default_tmpdir}" CACHE PATH
+  "Location of regenerable temporary files, default: ${_zm_default_tmpdir}")
+set(ZM_LOGDIR "${_zm_default_logdir}" CACHE PATH
+  "Location of generated log files, default: ${_zm_default_logdir}")
 set(ZM_WEBDIR "${CMAKE_INSTALL_FULL_DATADIR}/zoneminder/www" CACHE PATH
   "Location of the web files, default: <prefix>/${CMAKE_INSTALL_DATADIR}/zoneminder/www")
 set(ZM_CGIDIR "${CMAKE_INSTALL_FULL_LIBEXECDIR}/zoneminder/cgi-bin" CACHE PATH
   "Location of the cgi-bin files, default: <prefix>/${CMAKE_INSTALL_LIBEXECDIR}/zoneminder/cgi-bin")
-set(ZM_CACHEDIR "/var/cache/zoneminder" CACHE PATH
-  "Location of the web server cache busting files, default: /var/cache/zoneminder")
-set(ZM_CONTENTDIR "/var/lib/zoneminder" CACHE PATH
-  "Location of dynamic content (events and images), default: /var/lib/zoneminder")
+set(ZM_CACHEDIR "${_zm_default_cachedir}" CACHE PATH
+  "Location of the web server cache busting files, default: ${_zm_default_cachedir}")
+set(ZM_CONTENTDIR "${_zm_default_contentdir}" CACHE PATH
+  "Location of dynamic content (events and images), default: ${_zm_default_contentdir}")
 set(ZM_FONTDIR "${CMAKE_INSTALL_FULL_DATADIR}/zoneminder/fonts" CACHE PATH
   "Location of the font files used for timestamping, default: <prefix>/${CMAKE_INSTALL_DATADIR}/zoneminder/fonts")
 
@@ -199,8 +230,8 @@ set(ZM_PATH_SHUTDOWN "/sbin/shutdown" CACHE PATH
   "Path to shutdown binary, default: /sbin/shutdown")
 
 # Advanced
-set(ZM_PATH_MAP "/dev/shm" CACHE PATH
-  "Location to save mapped memory files, default: /dev/shm")
+set(ZM_PATH_MAP "${_zm_default_pathmap}" CACHE PATH
+  "Location to save mapped memory files, default: ${_zm_default_pathmap}")
 set(ZM_PATH_ARP "" CACHE PATH
   "Full path to compatible arp binary. Leave empty for automatic detection.")
 set(ZM_PATH_ARP_SCAN "" CACHE PATH
@@ -708,8 +739,47 @@ endif()
 # Detect Perl module installation path
 # Prefer vendorlib (standard for distro packages), fall back to sitelib
 # (used on FreeBSD and systems without vendorlib configured)
+#
+# macOS needs a second look. The Perl Apple ships reports a vendorlib of
+# /Network/Library/Perl/<version>, a remnant of NetInfo-era network homes.
+# Nothing along that path exists, and the root volume is a sealed read-only APFS
+# snapshot, so it cannot be created even by root and installing there fails.
+#
+# Merely testing for the directory is not enough, because a Homebrew Perl has no
+# vendorlib either - but its would sit under the Homebrew prefix, where it can
+# simply be created, and it is the better target of the two: Homebrew's sitelib
+# resolves into the versioned Cellar directory and is erased every time Perl is
+# upgraded. So ask whether the path is creatable, by walking up to the nearest
+# ancestor that exists. Reaching / means nothing on the way there exists, which
+# on macOS means it never can.
+set(_perl_lib_config "vendorlib")
+if(APPLE)
+  execute_process(
+    COMMAND ${PERL_EXECUTABLE} -MConfig -e "print \$Config{vendorlib}"
+    OUTPUT_VARIABLE _perl_vendorlib
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    RESULT_VARIABLE _perl_vendorlib_result)
+  if(_perl_vendorlib_result EQUAL 0 AND NOT _perl_vendorlib STREQUAL "")
+    set(_perl_probe "${_perl_vendorlib}")
+    while(NOT EXISTS "${_perl_probe}")
+      get_filename_component(_perl_parent "${_perl_probe}" DIRECTORY)
+      if(_perl_parent STREQUAL _perl_probe)
+        break()
+      endif()
+      set(_perl_probe "${_perl_parent}")
+    endwhile()
+    if(_perl_probe STREQUAL "/")
+      message(STATUS
+        "Perl vendorlib (${_perl_vendorlib}) cannot be created on a sealed "
+        "system volume, using sitelib")
+      set(_perl_lib_config "sitelib")
+    endif()
+    unset(_perl_probe)
+    unset(_perl_parent)
+  endif()
+endif()
 execute_process(
-  COMMAND ${PERL_EXECUTABLE} -MConfig -e "print \$Config{vendorlib}"
+  COMMAND ${PERL_EXECUTABLE} -MConfig -e "print \$Config{${_perl_lib_config}}"
   OUTPUT_VARIABLE _perl_lib_default
   OUTPUT_STRIP_TRAILING_WHITESPACE
   RESULT_VARIABLE _perl_result)
@@ -771,6 +841,9 @@ if(ZM_WEB_USER STREQUAL "")
   # userline in the first match
   file(STRINGS "/etc/passwd" userline_apache REGEX "^apache")
   file(STRINGS "/etc/passwd" userline_www REGEX "^www")
+  # macOS names its service accounts with a leading underscore, so neither of
+  # the patterns above matches the _www that ships with the system Apache.
+  file(STRINGS "/etc/passwd" userline_uwww REGEX "^_www")
   if(NOT (userline_apache STREQUAL ""))
     execute_process(
       COMMAND echo ${userline_apache}
@@ -779,6 +852,11 @@ if(ZM_WEB_USER STREQUAL "")
   elseif(NOT (userline_www STREQUAL ""))
     execute_process(
       COMMAND echo ${userline_www}
+      COMMAND cut -d: -f1 OUTPUT_VARIABLE ZM_WEB_USER
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
+  elseif(NOT (userline_uwww STREQUAL ""))
+    execute_process(
+      COMMAND echo ${userline_uwww}
       COMMAND cut -d: -f1 OUTPUT_VARIABLE ZM_WEB_USER
       OUTPUT_STRIP_TRAILING_WHITESPACE)
   endif()

@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 use MIME::Base64;
-use Test::More tests => 66;
+use Test::More tests => 79;
 
 require_ok('ZoneMinder::Control::AMLink');
 
@@ -333,4 +333,55 @@ my $login_ok = 1;
   is($logins, 1, 'the first failure recovers');
   $o->rpc_call('CoaxialControlIO.control', {channel => 0});
   is($logins, 1, 'a second failure straight after does not log in again');
+}
+
+# --- the plain-text session-expired reply ------------------------------------
+# Seen on the wire 2026-09-11: the camera answers an expired session with a
+# bare printable string where a masked base64 payload belongs, so it can never
+# parse. It used to surface as "malformed JSON string ... at character offset
+# 0", which says nothing about the actual problem.
+
+my $session_error = $P->can('session_error');
+
+ok($session_error->('Invalid session in request'), 'the exact reply seen on the wire is recognised');
+ok($session_error->('invalid session'), 'matching is case insensitive');
+ok($session_error->('Invalid  session in request'), 'and tolerant of extra spacing');
+ok(!$session_error->(''), 'an empty payload is not a session error');
+ok(!$session_error->(undef), 'nor is undef');
+# A real masked payload is binary, and a real base64 payload is printable but
+# says nothing about sessions. Neither may be mistaken for this.
+ok(!$session_error->('eyJyZXN1bHQiOjEsImlkIjoxfQ=='), 'ordinary base64 is not a session error');
+ok(!$session_error->("\x01\x02\xff\xfe"), 'a masked binary payload is not a session error');
+
+# End to end: an expired session recovers, and is not reported as a decode
+# failure.
+{
+  my ($o, $ua) = fresh_obj();
+  @{$ua->{queue}} = (FakeRes->new('<body><cmd>Invalid session in request</cmd></body>'), good_reply());
+  $logins = 0;
+  my $r = $o->rpc_call('CoaxialControlIO.control', {channel => 0});
+  is($logins, 1, 'an expired session triggers a re-login');
+  is(scalar @{$ua->{sent}}, 2, 'and the command is sent again');
+  ok(defined $r, 'the caller gets the result rather than undef');
+  is($o->{last_failure}, undef, 'the retry cleared the failure state');
+}
+
+# The bootstrap channels must not recover from it either.
+{
+  my ($o, $ua) = fresh_obj();
+  @{$ua->{queue}} = (FakeRes->new('<body><cmd>Invalid session in request</cmd></body>'), good_reply());
+  $logins = 0;
+  $o->rpc_call('global.login', {}, login => 1);
+  is($logins, 0, 'a session error on the Login channel does not re-login');
+}
+
+# Backoff applies here too.
+{
+  my ($o, $ua) = fresh_obj();
+  my $expired = sub { FakeRes->new('<body><cmd>Invalid session in request</cmd></body>') };
+  @{$ua->{queue}} = ($expired->(), $expired->(), $expired->(), $expired->());
+  $logins = 0;
+  $o->rpc_call('CoaxialControlIO.control', {channel => 0});
+  $o->rpc_call('CoaxialControlIO.control', {channel => 0});
+  is($logins, 1, 'a second expiry straight after does not log in again');
 }

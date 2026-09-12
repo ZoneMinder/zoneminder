@@ -109,6 +109,16 @@ sub extract_cmd {
   return $xml =~ m{<cmd>[\r\n]*(.*?)[\r\n]*</cmd>}s ? $1 : undef;
 }
 
+# The camera's way of saying a session is gone: plain printable text where a
+# masked base64 payload belongs. Kept pure so the exact wording seen on the
+# wire is pinned by a test rather than by a camera being in the right state.
+sub session_error {
+  my ($cmd) = @_;
+  return 0 if !defined $cmd or $cmd eq '';
+  return 0 if $cmd !~ m{\A[\x20-\x7e]+\z};   # base64 is printable too, so this alone is not enough
+  return $cmd =~ m{invalid\s+session}i ? 1 : 0;
+}
+
 # Which channel a method travels on. Login and the key exchange predate the
 # session key and so must not be masked; OutsideCmd is the pre-auth channel
 # that serves the RSA public key.
@@ -225,6 +235,17 @@ sub rpc_once {
     return undef;
   }
   my $raw_cmd = $cmd;
+
+  # An expired session is not reported as a JSON error: the camera answers with
+  # a bare plain-text string, unmasked and not base64. Unmasking that and
+  # base64-decoding it yields noise, so it used to surface as an alarming JSON
+  # parse failure for what is a routine timeout. Recognise it for what it is.
+  if (session_error($raw_cmd)) {
+    Debug(1, "AMLink: the camera reports the session is no longer valid ($method)");
+    $self->{last_failure} = 'session';
+    return undef;
+  }
+
   $cmd = mask_data($key, $cmd) if $key;
 
   my $decoded = decode_base64($cmd);
@@ -273,7 +294,8 @@ sub rpc_call {
   # (Login, OutsideCmd, GetGeneralKey) run before one exists, and login() issues
   # them, so recovering from those would recurse.
   return undef if cmd_type_for($method, %opts) ne 'Request';
-  return undef if ($self->{last_failure} // '') ne 'decode';
+  my $why = $self->{last_failure} // '';
+  return undef if $why ne 'decode' and $why ne 'session';
 
   # login() calls logout(), which is itself a Request on the poisoned session.
   # Without this guard its decode failure would start another recovery.
@@ -287,7 +309,9 @@ sub rpc_call {
   }
   $self->{last_recovery} = $now;
 
-  Info("AMLink: reply to $method could not be decoded, re-establishing the session");
+  Info($why eq 'session'
+    ? "AMLink: the session expired, re-establishing it for $method"
+    : "AMLink: reply to $method could not be decoded, re-establishing the session");
   local $self->{recovering} = 1;
   # Drop what we have rather than letting logout() try to hand back a session
   # the camera has evidently already forgotten.

@@ -231,6 +231,15 @@ if ($options{command}) {
   # does not expire between commands (Dahua cameras expire after ~60s idle).
   my $timeout = $control->can('keepAlive') ? 30 : MAX_COMMAND_WAIT;
   while (!$zm_terminate) {
+    # Checked every time round rather than only when select times out. A busy
+    # monitor never reaches the idle branch below, and used to hold a session
+    # the camera had already expired, so its next command came back
+    # undecodable. Here so that the 'next' paths in the command handling
+    # cannot skip it.
+    if ($control->can('keepAlive') and $control->keepAliveDue($timeout)) {
+      $control->keepAlive();
+    }
+
     my $nfound = select(my $rout = $rin, undef, undef, $timeout);
     if ( $nfound > 0 ) {
       if ( vec($rout, fileno(SERVER), 1) ) {
@@ -278,7 +287,6 @@ if ($options{command}) {
       }
     } else {
       Debug('Select timed out');
-      $control->keepAlive() if $control->can('keepAlive');
     }
   } # end while !$zm_terminate
   Info("Control server $id/$protocol exiting");

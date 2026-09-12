@@ -539,6 +539,32 @@ sub parse_Path {
   return 1;
 }
 
+# Whether a keepAlive is due, and if so record that one is being sent.
+#
+# zmcontrol used to ping only when its select() timed out, which meant a
+# monitor with steady command traffic never pinged at all: select returns a
+# ready descriptor every time, the idle branch is never reached, and the
+# camera's session expires while the monitor is at its busiest. Cameras that
+# expire a session on a timer refresh it on the keepAlive alone, not on
+# ordinary requests, so the busiest monitors were the ones that lost their
+# session. Timing it from the last ping instead makes the interval hold
+# regardless of how much else is going on.
+#
+# $now is injectable so the interval can be tested without sleeping.
+sub keepAliveDue {
+  my ($self, $interval, $now) = @_;
+  $now = time() if !defined $now;
+  # First call sets the baseline rather than firing immediately: the session
+  # was just established by open().
+  $self->{last_keepalive} = $now if !defined $self->{last_keepalive};
+  # An ntp step backwards would otherwise hold this off until real time caught
+  # up again - minutes with no ping, which is the failure this exists to stop.
+  $self->{last_keepalive} = $now if $now < $self->{last_keepalive};
+  return 0 if $now - $self->{last_keepalive} < $interval;
+  $self->{last_keepalive} = $now;
+  return 1;
+}
+
 sub guess_credentials {
   my $self = shift;
 

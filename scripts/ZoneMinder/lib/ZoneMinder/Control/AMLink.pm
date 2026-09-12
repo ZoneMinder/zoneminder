@@ -203,7 +203,7 @@ sub rpc_call {
                       Content => build_envelope($cmd_type, $payload));
   };
   if (!$res) {
-    Error("AMLink: request failed for $method: $@");
+    Error("AMLink: request failed for $method: ".log_safe($@));
     return undef;
   }
   if (!$res->is_success) {
@@ -219,23 +219,41 @@ sub rpc_call {
   my $raw_cmd = $cmd;
   $cmd = mask_data($key, $cmd) if $key;
 
-  my $data = eval { decode_json(decode_base64($cmd)) };
+  my $decoded = decode_base64($cmd);
+  my $data = eval { decode_json($decoded) };
   if ($@ or !$data) {
     # Say enough to identify the cause rather than only the symptom. The reply
     # is masked base64, so a failure here means it was not what we expected and
     # the interesting question is how: answered unmasked, truncated, or masked
     # with a key we no longer share.
+    #
+    # The error has to be captured before anything else runs an eval, and
+    # flattened: ZoneMinder::Logger drops a message from its first newline
+    # onwards, and $@ ends in one, which would take the diagnosis with it.
+    my $err = log_safe($@ || 'no data');
     my $plain = $key ? eval { decode_json(decode_base64($raw_cmd)) } : undef;
     Error(sprintf(
-      'AMLink: failed to decode the reply to %s: %s (payload %d bytes, %d%%4; '
-      .'decodes unmasked: %s; first bytes %s)',
-      $method, ($@ // 'no data'), length($raw_cmd), length($raw_cmd) % 4,
+      'AMLink: failed to decode the reply to %s: %s (base64 %d bytes, %d%%4; '
+      .'decoded %d bytes; decodes unmasked: %s; base64 starts %s; decoded starts %s)',
+      $method, $err, length($raw_cmd), length($raw_cmd) % 4, length($decoded),
       ($plain ? 'YES - the camera answered without masking' : 'no'),
-      unpack('H*', substr($raw_cmd, 0, 16))));
+      substr($raw_cmd, 0, 24), unpack('H*', substr($decoded, 0, 24))));
     return $plain if $plain;   # usable after all, so do not throw it away
     return undef;
   }
   return $data;
+}
+
+# ZoneMinder::Logger writes one line per message and keeps only what precedes
+# the first newline, so anything appended after an embedded one is lost. Perl
+# error strings routinely carry a trailing newline and "at FILE line N." can be
+# followed by more, so flatten before handing a message over.
+sub log_safe {
+  my $text = shift;
+  return '' if !defined $text;
+  $text =~ s/\s+\z//;
+  $text =~ s/[\r\n]+/ | /g;
+  return $text;
 }
 
 # Ask the device for its RSA public key. This rides the OutsideCmd channel,
@@ -270,7 +288,7 @@ sub negotiate_mask_key {
 
   my $rsa = eval { Crypt::PK::RSA->new({ N => $pub->{N}, e => $pub->{e} }) };
   if (!$rsa) {
-    Error("AMLink: could not build the RSA key: $@");
+    Error("AMLink: could not build the RSA key: ".log_safe($@));
     return undef;
   }
   my $enc_salt = uc(unpack('H*', $rsa->encrypt($salt, 'v1.5')));
@@ -284,7 +302,7 @@ sub negotiate_mask_key {
 
   my $blob = eval { $cbc->decrypt(decode_base64($r->{params}{content}), $salt, AES_IV) };
   if (!defined $blob) {
-    Error("AMLink: could not decrypt the general key: $@");
+    Error("AMLink: could not decrypt the general key: ".log_safe($@));
     return undef;
   }
   $blob =~ s/\0+\z//;

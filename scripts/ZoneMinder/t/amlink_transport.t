@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 43;
+use Test::More tests => 50;
 
 require_ok('ZoneMinder::Control::AMLink');
 
@@ -163,3 +163,23 @@ ok(!$ntp_needs_write->(\%current, {UpdatePeriod => '1440'}),
   is(scalar @sent, 3, 'the key exchange is still sent when there is no key');
 }
 
+
+# --- log messages survive the logger ----------------------------------------
+# ZoneMinder::Logger keeps only what precedes the first newline in a message.
+# Perl errors end in one, and "$@ (extra diagnosis)" therefore threw the
+# diagnosis away silently - the failure looked like it had no instrumentation
+# at all.
+
+my $log_safe = $P->can('log_safe');
+
+is($log_safe->("malformed JSON at AMLink.pm line 221.\n"),
+  'malformed JSON at AMLink.pm line 221.',
+  'a trailing newline is removed');
+unlike($log_safe->("first line\nsecond line\n"), qr/\n/,
+  'an embedded newline cannot truncate the message');
+is($log_safe->("first line\nsecond line"), 'first line | second line',
+  'and both halves are kept, separated visibly');
+is($log_safe->("a\r\nb"), 'a | b', 'CRLF counts as one break, not two');
+is($log_safe->('no newlines here'), 'no newlines here', 'an ordinary message is untouched');
+is($log_safe->(undef), '', 'undef yields an empty string rather than a warning');
+is($log_safe->(''), '', 'an empty message stays empty');

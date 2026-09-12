@@ -215,8 +215,8 @@ rules for the API. The sample files show all three.
 Starting ZoneMinder
 -------------------
 
-There is no launchd job yet. ``zmpkg.pl`` falls back to ``zmdc.pl`` when systemd
-is absent, so this works:
+``zmpkg.pl`` falls back to ``zmdc.pl`` when systemd is absent, so you can start
+and stop ZoneMinder by hand:
 
 ::
 
@@ -224,14 +224,41 @@ is absent, so this works:
     sudo zmpkg.pl status
     sudo zmpkg.pl stop
 
-Nothing restarts ZoneMinder after a reboot. Until there is a plist, that is
-manual too.
+To start it at boot, the build generates a launchd job at
+``build/misc/com.zoneminder.zoneminder.plist`` with your paths and web user
+already filled in. Copy it into place and load it:
+
+::
+
+    sudo install -o root -g wheel -m 644 \
+      build/misc/com.zoneminder.zoneminder.plist /Library/LaunchDaemons/
+    sudo launchctl load -w /Library/LaunchDaemons/com.zoneminder.zoneminder.plist
+
+The job starts ZoneMinder; it does not supervise it. ``zmpkg.pl`` forks
+``zmdc.pl`` and returns — the same shape systemd calls ``Type=forking`` — and
+from there ``zmdc.pl`` and ``zmwatch.pl`` restart the capture and analysis
+daemons themselves. launchd's job is to run that once at boot.
+
+Unloading does not stop ZoneMinder, because launchd has no equivalent of
+``ExecStop``. Stop it first:
+
+::
+
+    sudo zmpkg.pl stop
+    sudo launchctl unload -w /Library/LaunchDaemons/com.zoneminder.zoneminder.plist
+
+There is also no equivalent of the systemd unit's ``After=`` and ``Requires=``.
+launchd only orders jobs it manages itself, and a Homebrew MariaDB is not one of
+them, so at boot ZoneMinder may start before the database is listening.
+``zmdc.pl`` retries, but ``zmdc.log`` is the place to look if monitors come up
+unexpectedly idle.
 
 Known gaps
 ----------
 
-- No launchd plist, so no automatic start and no ``brew services`` integration.
-- No Homebrew formula; installation is from source only.
+- No Homebrew formula, so no ``brew services`` integration; the launchd job
+  above is loaded by hand.
+- Installation is from source only.
 - No log rotation. ``misc/logrotate.conf`` is written for logrotate, which macOS
   does not use — it uses ``newsyslog``, and no configuration is provided.
 - No local camera support, as described at the top.

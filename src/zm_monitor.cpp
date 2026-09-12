@@ -4096,7 +4096,8 @@ int Monitor::Pause() {
       convert_context = nullptr;
     }
     decoding_image_count = 0;
-    if (shared_data) shared_data->last_write_index = image_buffer_count;
+    // Do not reset last_write_index: the last captured image stays in shm so
+    // that mode=single/thumbnails can still be served while paused.
   }
   if (analysis_thread) {
     Debug(1, "Joining analysis");

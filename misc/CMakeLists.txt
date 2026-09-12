@@ -12,6 +12,12 @@ configure_file(com.zoneminder.dnsmasq.rules.in "${CMAKE_CURRENT_BINARY_DIR}/com.
 configure_file(com.zoneminder.arp-scan.policy.in "${CMAKE_CURRENT_BINARY_DIR}/com.zoneminder.arp-scan.policy" @ONLY)
 configure_file(com.zoneminder.arp-scan.rules.in "${CMAKE_CURRENT_BINARY_DIR}/com.zoneminder.arp-scan.rules" @ONLY)
 configure_file(zoneminder.service.in "${CMAKE_CURRENT_BINARY_DIR}/zoneminder.service" @ONLY)
+if(APPLE)
+  # The launchd counterpart to the systemd unit. Generated but not installed,
+  # the same as the unit above: /Library/LaunchDaemons is loaded at boot, so
+  # putting a job there is the installer's decision, not the build's.
+  configure_file(com.zoneminder.zoneminder.plist.in "${CMAKE_CURRENT_BINARY_DIR}/com.zoneminder.zoneminder.plist" @ONLY)
+endif()
 configure_file(zoneminder-tmpfiles.conf.in "${CMAKE_CURRENT_BINARY_DIR}/zoneminder-tmpfiles.conf" @ONLY)
 configure_file(zoneminder.desktop.in "${CMAKE_CURRENT_BINARY_DIR}/zoneminder.desktop" @ONLY)
 configure_file(MacVendors.json "${CMAKE_CURRENT_BINARY_DIR}/MacVendors.json" @ONLY)

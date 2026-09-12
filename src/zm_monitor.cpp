@@ -3824,6 +3824,11 @@ Event * Monitor::openEvent(
 
     if (!starting_packet.packet_) {
       Warning("Unable to get starting packet lock");
+      // Every other path out of here hands start_it to the Event, which frees
+      // it in ~Event. Leaking it leaves a registered iterator pinned to the
+      // front of the queue, which stops clearPackets() removing anything for
+      // the life of the process.
+      packetqueue.free_it(start_it);
       return nullptr;
     }
     packet_lock->unlock();

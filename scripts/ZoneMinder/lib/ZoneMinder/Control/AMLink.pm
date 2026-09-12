@@ -216,11 +216,23 @@ sub rpc_call {
     Error("AMLink: no <cmd> element in the reply to $method");
     return undef;
   }
+  my $raw_cmd = $cmd;
   $cmd = mask_data($key, $cmd) if $key;
 
   my $data = eval { decode_json(decode_base64($cmd)) };
   if ($@ or !$data) {
-    Error("AMLink: failed to decode the reply to $method: $@");
+    # Say enough to identify the cause rather than only the symptom. The reply
+    # is masked base64, so a failure here means it was not what we expected and
+    # the interesting question is how: answered unmasked, truncated, or masked
+    # with a key we no longer share.
+    my $plain = $key ? eval { decode_json(decode_base64($raw_cmd)) } : undef;
+    Error(sprintf(
+      'AMLink: failed to decode the reply to %s: %s (payload %d bytes, %d%%4; '
+      .'decodes unmasked: %s; first bytes %s)',
+      $method, ($@ // 'no data'), length($raw_cmd), length($raw_cmd) % 4,
+      ($plain ? 'YES - the camera answered without masking' : 'no'),
+      unpack('H*', substr($raw_cmd, 0, 16))));
+    return $plain if $plain;   # usable after all, so do not throw it away
     return undef;
   }
   return $data;

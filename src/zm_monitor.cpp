@@ -235,7 +235,6 @@ Monitor::Monitor() :
   audio_detection(false),
   audio_threshold(0),
   audio_alarm_score(0),
-  alarm_actions_fired(false),
   wallclock_timestamps(false),
 //event_prefix
 //label_format
@@ -331,6 +330,7 @@ Monitor::Monitor() :
   //linked_monitors_string
   n_linked_monitors(0),
   linked_monitors(nullptr),
+  alarm_actions_fired(false),
   RTSP2Web_Manager(nullptr),
   Go2RTC_Manager(nullptr),
   Janus_Manager(nullptr),

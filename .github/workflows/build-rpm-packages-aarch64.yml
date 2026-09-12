@@ -7,6 +7,14 @@ on:
 permissions:
   contents: write
 
+# Several merges landing seconds apart used to start a run each, and every
+# one of them published. Keep one build per branch and cancel the ones that
+# a newer push has already superseded.
+concurrency:
+  group: rpm-aarch64-${{ github.ref }}
+  cancel-in-progress: true
+
+
 env:
   GPG_KEY_ID: ${{ secrets.ZMREPO_GPG_KEY_ID }}
   GPG_PASSPHRASE: ${{ secrets.ZMREPO_GPG_PASSPHRASE }}
@@ -133,7 +141,11 @@ jobs:
           # Calculate snapshot version
           versionhash=$(git log -n1 --pretty=format:%h version.txt)
           numcommits=$(git rev-list ${versionhash}..HEAD --count)
-          SNAPSHOT="$(date +%Y%m%d).${numcommits}"
+          # date+numcommits is not unique per build: rebuilding the same commit
+          # on the same day reuses the version, and the repo then holds one
+          # version whose content changed underneath it. GITHUB_RUN_ID is unique
+          # and never reused.
+          SNAPSHOT="$(date +%Y%m%d).${numcommits}.${GITHUB_RUN_ID}.${GITHUB_RUN_ATTEMPT:-1}"
           echo "snapshot=${SNAPSHOT}" >> $GITHUB_OUTPUT
 
           # Update version in spec file

@@ -689,6 +689,40 @@ if(WITH_SYSTEMD)
   endif()
 endif()
 
+# The taint-safe PATH the Perl scripts run external commands with.
+#
+# They run under -T, so they cannot trust the caller's PATH and set their own.
+# That was hardcoded to the FHS locations, which assumes everything they shell
+# out to lives under /usr or /usr/local. ZoneMinder::General::findDbCommand
+# looks for a database client that way, and zmupdate.pl and zmcamtool.pl run it,
+# so an install whose client sits elsewhere - Homebrew on Apple Silicon puts it
+# in /opt/homebrew/bin, and a --prefix=/opt build is the same shape - fails with
+# "sh: mysql: command not found" even though the client is on the caller's PATH.
+#
+# Default to the FHS locations plus wherever a client was actually found, and
+# let a packager override the lot. Every directory named here has to be one only
+# root can write to, or perl's taint checks will refuse to run anything at all.
+set(_zm_script_path "/bin:/usr/bin:/usr/local/bin")
+find_program(ZM_DB_CLIENT_EXECUTABLE NAMES mariadb mysql)
+if(ZM_DB_CLIENT_EXECUTABLE)
+  get_filename_component(_zm_db_client_dir "${ZM_DB_CLIENT_EXECUTABLE}" DIRECTORY)
+  string(FIND ":${_zm_script_path}:" ":${_zm_db_client_dir}:" _zm_db_client_found)
+  if(_zm_db_client_found EQUAL -1)
+    set(_zm_script_path "${_zm_script_path}:${_zm_db_client_dir}")
+  endif()
+  mark_as_advanced(ZM_DB_CLIENT_EXECUTABLE)
+  unset(_zm_db_client_dir)
+  unset(_zm_db_client_found)
+else()
+  message(WARNING
+    "No mariadb or mysql client found. zmupdate.pl applies schema changes by "
+    "running one, so database upgrades will fail until one is on ZM_SCRIPT_PATH.")
+endif()
+set(ZM_SCRIPT_PATH "${_zm_script_path}" CACHE STRING
+  "PATH the Perl scripts use for external commands, default: ${_zm_script_path}")
+unset(_zm_script_path)
+message(STATUS "Perl script PATH: ${ZM_SCRIPT_PATH}")
+
 # Find the path to an arp compatible executable
 if(ZM_PATH_ARP STREQUAL "")
   find_program(ARP_EXECUTABLE arp)

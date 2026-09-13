@@ -242,17 +242,6 @@ test('applyTo only sets the connkey when authentication is off', () => {
       'cgi-bin/nph-zms?monitor=26&connkey=99&mode=jpeg');
 });
 
-test('authIsStale trusts a credential the server just confirmed', () => {
-  const now = Date.now();
-  assert.strictEqual(ZM.authIsStale(now, now), false);
-  assert.strictEqual(ZM.authIsStale(now - 30 * 1000, now), false);
-  assert.strictEqual(ZM.authIsStale(now - ZM.AUTH_STALE_MS, now), false);
-});
-test('authIsStale flags a credential unheard of for longer than the rotation', () => {
-  const now = Date.now();
-  assert.strictEqual(ZM.authIsStale(now - ZM.AUTH_STALE_MS - 1, now), true);
-  assert.strictEqual(ZM.authIsStale(now - 8 * 60 * 60 * 1000, now), true);
-});
 
 // revalidateAuth() reaches for these as bare globals, the way the browser
 // supplies them, so a fake jqXHR here is enough to drive it from node.
@@ -325,6 +314,32 @@ test('a transient failure still runs the callbacks', () => {
   pendingXhr.reject(0);
   assert.strictEqual(ran, 1);
 });
+console.log('whenAuthFresh');
+test('a hash that exists is always revalidated before the callback runs', () => {
+  // The remaining life of a held hash is not knowable here: calculateAuthHash()
+  // keys it to the clock hour it was minted in and generateAuthHash() serves the
+  // cached one until it is half a TTL old, so one handed over at 11:58 can be
+  // refused at 12:00. There is no window to trust, so there is no fast path.
+  probeUrls = [];
+  let ran = 0;
+  global.zmAuth = new ZM.ZMAuth('auth=deadbeef');
+  ZM.whenAuthFresh(() => ran++);
+  assert.strictEqual(probeUrls.length, 1, 'no probe was sent');
+  assert.strictEqual(ran, 0, 'callback ran before the server confirmed anything');
+  pendingXhr.resolve({});
+  assert.strictEqual(ran, 1);
+});
+test('no hash means no probe, because nothing can expire', () => {
+  // Authentication off, or a relay form that carries no hash.
+  probeUrls = [];
+  let ran = 0;
+  global.zmAuth = new ZM.ZMAuth('');
+  ZM.whenAuthFresh(() => ran++);
+  assert.strictEqual(probeUrls.length, 0, 'probed with no hash to refresh');
+  assert.strictEqual(ran, 1, 'callback should run straight away');
+  global.zmAuth = new ZM.ZMAuth('auth=deadbeef');
+});
+
 // Last: goToLogin() latches for the life of the module.
 test('a rejected session goes to login and drops the callbacks', () => {
   let ran = 0;

@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 32;
+use Test::More tests => 35;
 
 require_ok('ZoneMinder::Control::IPSpeaker');
 
@@ -77,3 +77,14 @@ my $sparse_form = $P->can('audio_set_form')->(\%sparse, outvolume => 0);
 is_deeply([sort keys %$sparse_form], [qw(micvolume outvolume)],
   'fields absent from the device response are not invented');
 is($sparse_form->{outvolume}, 0, 'a zero override is applied, not treated as absent');
+
+# --- the http timeout -------------------------------------------------------
+# A speaker that drops off the network must not stall the control daemon. LWP
+# defaults to 180s, and every action for this monitor queues behind the one in
+# flight, so an absent speaker would hold up everything that followed it.
+
+is(ZoneMinder::Control::IPSpeaker::HTTP_TIMEOUT(), 10, 'the http timeout is set, not left to LWP');
+cmp_ok(ZoneMinder::Control::IPSpeaker::HTTP_TIMEOUT(), '<', 180,
+  'and is well under the LWP default that caused the stall');
+cmp_ok(ZoneMinder::Control::IPSpeaker::HTTP_TIMEOUT(), '>', 0,
+  'and is a real timeout rather than "no wait"');

@@ -57,6 +57,10 @@ use constant VOLUME_MIN  => 0;
 use constant VOLUME_MAX  => 100;
 use constant VOLUME_STEP => 5;
 
+# Seconds. The speaker answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
+
 # config=audio.set replaces the whole audio section: any field left out of the
 # POST reverts to a firmware default, silently taking the microphone, codec
 # list and echo-cancellation settings with it.  Every write therefore reads the
@@ -121,7 +125,11 @@ sub open {
   my $self = shift;
   $self->loadMonitor();
 
-  $self->{ua} = LWP::UserAgent->new;
+  # Actions are fire-and-forget from the monitor's point of view, but they are
+  # serialised through this one control daemon, so a speaker that has dropped
+  # off the network must not hold it. LWP's default is 180s, long enough for a
+  # single unreachable speaker to stall every later command behind it.
+  $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
   $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION());
 
   if (!$self->guess_credentials()) {

@@ -707,12 +707,34 @@ find_program(ZM_DB_CLIENT_EXECUTABLE NAMES mariadb mysql)
 if(ZM_DB_CLIENT_EXECUTABLE)
   get_filename_component(_zm_db_client_dir "${ZM_DB_CLIENT_EXECUTABLE}" DIRECTORY)
   string(FIND ":${_zm_script_path}:" ":${_zm_db_client_dir}:" _zm_db_client_found)
-  if(_zm_db_client_found EQUAL -1)
+
+  # Only add a directory nobody but its owner can write to. Perl's own taint
+  # check refuses a world writable directory here, but it permits a group
+  # writable one, and adding one automatically would quietly widen who can
+  # decide what the daemons execute. Homebrew's bin is group writable, so this
+  # is not a theoretical case.
+  execute_process(
+    COMMAND "${PERL_EXECUTABLE}" -e "exit(((stat(\$ARGV[0]))[2] & 022) ? 1 : 0)" "${_zm_db_client_dir}"
+    RESULT_VARIABLE _zm_db_client_dir_unsafe
+    OUTPUT_QUIET ERROR_QUIET)
+
+  if(NOT _zm_db_client_found EQUAL -1)
+    # Already covered by the defaults.
+  elseif(_zm_db_client_dir_unsafe)
+    message(WARNING
+      "Found a database client at ${ZM_DB_CLIENT_EXECUTABLE}, but "
+      "${_zm_db_client_dir} is writable by group or world and has not been "
+      "added to ZM_SCRIPT_PATH: anyone who can write there would choose what "
+      "the Perl daemons run. Tighten its permissions, or set ZM_SCRIPT_PATH "
+      "explicitly if you accept that.")
+  else()
     set(_zm_script_path "${_zm_script_path}:${_zm_db_client_dir}")
   endif()
+
   mark_as_advanced(ZM_DB_CLIENT_EXECUTABLE)
   unset(_zm_db_client_dir)
   unset(_zm_db_client_found)
+  unset(_zm_db_client_dir_unsafe)
 else()
   message(WARNING
     "No mariadb or mysql client found. zmupdate.pl applies schema changes by "

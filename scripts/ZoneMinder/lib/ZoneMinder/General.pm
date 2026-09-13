@@ -37,6 +37,7 @@ our %EXPORT_TAGS = (
       hash_diff
       acquireExclusiveLock
       lockHolderPid
+      startedInteractively
       ) ]
     );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
@@ -61,6 +62,18 @@ use POSIX;
 use Fcntl qw(:flock O_WRONLY O_CREAT);
 
 # The pid recorded in a lock file, or undef when it is empty or unreadable.
+# Whether this process was run by hand rather than started by the daemon
+# manager. zmdc.pl reopens STDIN on /dev/null for everything it starts, so a
+# terminal on STDIN means a person typed this.
+#
+# Used to skip the startup delays that only make sense when the whole system is
+# coming up at once. A run from cron or a unit file has no terminal either and
+# still waits, which is the right way round: those are the unattended cases the
+# delay is for.
+sub startedInteractively {
+  return -t STDIN ? 1 : 0;
+}
+
 sub lockHolderPid {
   my ($path) = @_;
   my $rfh;

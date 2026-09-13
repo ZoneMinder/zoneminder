@@ -165,6 +165,10 @@ CREATE TABLE `Controls` (
   `TurboTiltSpeed` int(10) default NULL,
   `CanAutoScan` tinyint(3) unsigned NOT NULL default '0',
   `NumScanPaths` tinyint(3) unsigned NOT NULL default '0',
+  `CanAudioPlay` tinyint(3) unsigned NOT NULL default '0',
+  `MinAudioFile` int(10) unsigned default NULL,
+  `MaxAudioFile` int(10) unsigned default NULL,
+  `CanAudioVolume` tinyint(3) unsigned NOT NULL default '0',
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
@@ -193,7 +197,6 @@ CREATE TABLE `EncoderTemplates` (
   `Description` text,
   `Params` text NOT NULL,
   PRIMARY KEY (`Id`),
-  KEY `Encoder` (`Encoder`),
   UNIQUE KEY `Encoder_Name` (`Encoder`, `Name`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
@@ -449,9 +452,10 @@ CREATE TABLE `Frames` (
   `Delta` decimal(8,2) NOT NULL default '0.00',
   `Score` smallint(5) unsigned NOT NULL default '0',
   PRIMARY KEY (`Id`),
-  INDEX `EventId_idx` (`EventId`),
-  KEY `Type` (`Type`),
-  KEY `TimeStamp` (`TimeStamp`)
+  /* Every query on Frames is anchored on EventId and orders or ranges by
+     FrameId within the event, so one composite index serves them all. Nothing
+     reads Frames by Type or TimeStamp without EventId. See zm_update-1.39.27. */
+  INDEX `EventId_FrameId_idx` (`EventId`,`FrameId`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --
@@ -528,7 +532,6 @@ CREATE TABLE `Role_Groups_Permissions` (
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 CREATE UNIQUE INDEX `Role_Groups_Permissions_RoleId_GroupId_idx` ON `Role_Groups_Permissions` (`RoleId`,`GroupId`);
-CREATE INDEX `Role_Groups_Permissions_RoleId_idx` ON `Role_Groups_Permissions` (`RoleId`);
 
 --
 -- Table structure for table `Role_Monitors_Permissions`
@@ -546,7 +549,6 @@ CREATE TABLE `Role_Monitors_Permissions` (
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 CREATE UNIQUE INDEX `Role_Monitors_Permissions_RoleId_MonitorId_idx` ON `Role_Monitors_Permissions` (`RoleId`,`MonitorId`);
-CREATE INDEX `Role_Monitors_Permissions_RoleId_idx` ON `Role_Monitors_Permissions` (`RoleId`);
 
 --
 -- Table structure for table `Logs`
@@ -564,8 +566,7 @@ CREATE TABLE `Logs` (
   `Message` text NOT NULL,
   `File` varchar(255) DEFAULT NULL,
   `Line` smallint(5) unsigned DEFAULT NULL,
-  PRIMARY KEY (`Id`),
-  KEY `TimeKey` (`TimeKey`)
+  PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 CREATE INDEX `Logs_TimeKey_idx` ON `Logs` (`TimeKey`);
@@ -644,6 +645,7 @@ CREATE TABLE `Monitors` (
   `ManufacturerId`  int unsigned, FOREIGN KEY (`ManufacturerId`) REFERENCES `Manufacturers` (Id),
   `ModelId`  int unsigned, FOREIGN KEY (`ModelId`) REFERENCES `Models` (Id),
   `Type` enum('Local','Remote','File','Ffmpeg','Libvlc','cURL','WebSite','NVSocket','VNC') NOT NULL default 'Local',
+  `DeviceClass` enum('Camera','Speaker') NOT NULL default 'Camera',
   `Function` enum('None','Monitor','Modect','Record','Mocord','Nodect') NOT NULL default 'Monitor',
   `Capturing` enum('None','Ondemand', 'Always') NOT NULL default 'Always',
   `Analysing` enum('None','Always') NOT NULL default 'Always',
@@ -717,6 +719,9 @@ CREATE TABLE `Monitors` (
   `EncoderParameters` TEXT,
   `WallClockTimestamps` TINYINT NOT NULL DEFAULT '0',
   `RecordAudio` TINYINT NOT NULL DEFAULT '0',
+  `AudioDetection` tinyint(1) unsigned NOT NULL default '0',
+  `AudioThreshold` tinyint(3) unsigned NOT NULL default '0',
+  `AudioAlarmScore` smallint(5) unsigned NOT NULL default '9',
   `RecordingSource`  enum('Primary','Secondary','Both') NOT NULL DEFAULT 'Primary',
   `RTSPDescribe` tinyint(1) unsigned,
   `Brightness` mediumint(7) NOT NULL default '-1',
@@ -782,6 +787,33 @@ CREATE TABLE `Monitors` (
 CREATE INDEX `Monitors_ServerId_idx` ON `Monitors` (`ServerId`);
 
 DROP TABLE IF EXISTS `Monitor_Status`;
+--
+-- Actions a monitor performs when it alarms.  The device acted on is a
+-- monitor in its own right and is usually NOT the monitor that triggered:
+-- a doorbell camera lights its own illuminator but plays a warning through a
+-- separate speaker.  TargetMonitorId therefore carries its own foreign key
+-- and may or may not equal MonitorId.
+--
+-- ActionType names a zmcontrol command; whether it is offered for a given
+-- target is decided by that target's Controls row (CanLight,
+-- CanIndicatorLight, CanAudioPlay), so a device can only be asked to do what
+-- it has been measured to do.
+--
+CREATE TABLE `MonitorActions` (
+  `Id` int(10) unsigned NOT NULL auto_increment,
+  `MonitorId` int(10) unsigned NOT NULL,
+  `TriggerOn` enum('EventStart','EventEnd','Alarm','AlarmEnd','Manual') NOT NULL default 'EventStart',
+  `ActionType` enum('LightOn','LightOff','IndicatorLightOn','IndicatorLightOff','AudioPlay','AudioStop') NOT NULL default 'AudioPlay',
+  `TargetMonitorId` int(10) unsigned NOT NULL,
+  `AudioFile` int(10) unsigned default NULL,
+  `Label` varchar(64) NOT NULL default '',
+  `Enabled` tinyint(1) unsigned NOT NULL default '1',
+  `Sequence` smallint(5) unsigned NOT NULL default '0',
+  PRIMARY KEY (`Id`),
+  KEY `MonitorId_TriggerOn` (`MonitorId`,`TriggerOn`),
+  KEY `TargetMonitorId` (`TargetMonitorId`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
 CREATE TABLE `Monitor_Status` (
   `MonitorId` int(10) unsigned NOT NULL,
   `Status`  enum('Unknown','NotRunning','Running','Connected','Signal') NOT NULL default 'Unknown',
@@ -791,7 +823,6 @@ CREATE TABLE `Monitor_Status` (
   `UpdatedOn`     TIMESTAMP NOT NULL default CURRENT_TIMESTAMP,
   PRIMARY KEY (`MonitorId`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
-CREATE INDEX Monitor_Status_UpdatedOn_idx on Monitor_Status(UpdatedOn);
 
 DROP TABLE IF EXISTS `Event_Summaries`;
 CREATE TABLE `Event_Summaries` (
@@ -913,9 +944,7 @@ CREATE TABLE `Stats` (
   `MaxY` smallint(5) unsigned NOT NULL default '0',
   `Score` smallint(5) unsigned NOT NULL default '0',
   PRIMARY KEY (`Id`),
-  KEY `EventId_ZoneId` (`EventId`, `ZoneId`),
-  KEY `MonitorId` (`MonitorId`),
-  KEY `ZoneId` (`ZoneId`)
+  KEY `EventId_ZoneId` (`EventId`, `ZoneId`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --

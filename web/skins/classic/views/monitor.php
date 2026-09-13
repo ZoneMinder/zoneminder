@@ -155,7 +155,9 @@ if (!ZM_HAS_V4L2)
 
 $remoteProtocols = array(
     'http' => 'HTTP',
-    'rtsp' => 'RTSP'
+    // ZoneMinder's own RTSP/RTP implementation is deprecated in favour of
+    // Ffmpeg, which handles more cameras and is maintained upstream.
+    'rtsp' => 'RTSP ('.translate('Deprecated').')'
     );
 
 $rtspMethods = array(
@@ -378,14 +380,21 @@ if ( $monitor->Type() != 'WebSite' ) {
   $tabs['recording'] = translate('Recording');
   $tabs['viewing'] = translate('Viewing');
   $tabs['onvif'] = translate('ONVIF');
-  $tabs['timestamp'] = translate('Timestamp');
+  // A speaker's video is a placeholder image, so a burnt-in timestamp and
+  // motion zones have nothing to describe.
+  if ( $monitor->DeviceClass() != 'Speaker' )
+    $tabs['timestamp'] = translate('Timestamp');
   $tabs['buffers'] = translate('Buffers');
   if ( ZM_OPT_CONTROL && canView('Control') )
     $tabs['control'] = translate('Control');
   if ( ZM_OPT_X10 )
     $tabs['x10'] = translate('X10');
+  // Actions target other monitors, so this is offered regardless of whether
+  // this monitor is itself controllable.
+  $tabs['actions'] = translate('Actions');
   $tabs['misc'] = translate('Misc');
-  $tabs['zones'] = translate('Zones');
+  if ( $monitor->DeviceClass() != 'Speaker' )
+    $tabs['zones'] = translate('Zones');
   if (defined('ZM_OPT_USE_GEOLOCATION') and ZM_OPT_USE_GEOLOCATION)
     $tabs['location'] = translate('Location');
   $tabs['mqtt'] = translate('MQTT');
@@ -497,6 +506,18 @@ switch ($name) {
               <li class="Notes">
                 <label><?php echo translate('Notes') ?></label>
                 <textarea name="newMonitor[Notes]" rows="4"><?php echo validHtmlStr($monitor->Notes()) ?></textarea>
+              </li>
+              <li class="DeviceClass">
+                <label><?php echo translate('DeviceClass') ?></label>
+<?php
+              // What the device *is*, as opposed to Type, which is how it is
+              // captured. An IP speaker is still captured over Ffmpeg.
+              $device_class_options = array(
+                'Camera'  => translate('DeviceClassCamera'),
+                'Speaker' => translate('DeviceClassSpeaker'),
+              );
+              echo htmlSelect('newMonitor[DeviceClass]', $device_class_options, $monitor->DeviceClass());
+?>
               </li>
               <li class="Manufacturer">
                 <label><?php echo translate('Manufacturer') ?></label>
@@ -755,6 +776,13 @@ include('_monitor_source_nvsocket.php');
           <li class="Protocol">
             <label><?php echo translate('RemoteProtocol') ?></label>
             <?php echo htmlSelect('newMonitor[Protocol]', $remoteProtocols, $monitor->Protocol(), ['data-on-change-this'=>'updateMethods'] ); ?>
+<?php
+          if ( $monitor->Protocol() == 'rtsp' ) {
+?>
+            <div class="form-text text-warning"><?php echo translate('RemoteRtspDeprecated') ?></div>
+<?php
+          }
+?>
           </li>
           <li class="Method">
             <label><?php echo translate('RemoteMethod') ?></label>
@@ -1016,6 +1044,7 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
     }
     case 'analysis' : {
 ?>
+            <li class="settingsGroup"><?php echo translate('MotionDetectionSettings') ?></li>
             <li class="Analysing">
               <label><?php echo translate('Motion Detection') ?></label>
               
@@ -1040,6 +1069,13 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
         echo htmlSelect('newMonitor[AnalysisSource]', ZM\Monitor::getAnalysisSourceOptions(), $monitor->AnalysisSource());
 ?>
             </li>
+<?php
+      // A speaker analyses no picture: the reference image and the blend
+      // percentages have nothing to work on. Motion Detection itself stays,
+      // because audio detection is scored by the same analysis pass and does
+      // nothing when it is set to None.
+      if ( $monitor->DeviceClass() != 'Speaker' ) {
+?>
             <li id="AnalysisImage" class="AnalysisImage">
               <label><?php echo translate('Analysis Image') ?></label>
               
@@ -1048,12 +1084,17 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
 ?>
               
             </li>
+<?php
+      }
+?>
             <li class="AnalysisFPS">
               <label><?php echo translate('AnalysisFPS') ?></label>
               <input type="number" name="newMonitor[AnalysisFPSLimit]" value="<?php echo validHtmlStr($monitor->AnalysisFPSLimit()) ?>" min="0" step="any"/>
             </li>
 <?php
-      if ( ZM_FAST_IMAGE_BLENDS ) {
+      // Reference image blending is picture processing; a speaker has none.
+      if ( $monitor->DeviceClass() != 'Speaker' ) {
+        if ( ZM_FAST_IMAGE_BLENDS ) {
 ?>
               <li class="RefBlendPerc">
                 <label><?php echo translate('RefImageBlendPct') ?></label>
@@ -1064,7 +1105,7 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
                 <?php echo htmlSelect('newMonitor[AlarmRefBlendPerc]', $fastblendopts_alarm, $monitor->AlarmRefBlendPerc()); ?>
               </li>
           <?php
-      } else {
+        } else {
 ?>
             <li class="RefBlendPerc">
               <label><?php echo translate('RefImageBlendPct') ?></label>
@@ -1075,8 +1116,31 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
               <input type="number" name="newMonitor[AlarmRefBlendPerc]" value="<?php echo validHtmlStr($monitor->AlarmRefBlendPerc()) ?>" step="any" min="0"/>
             </li>
 <?php
-      }
+        } // end if ZM_FAST_IMAGE_BLENDS
+      } // end if not a Speaker
 ?>
+            <li class="settingsGroup AudioGroup"><?php echo translate('AudioDetectionSettings') ?></li>
+            <li class="AudioDetection">
+              <label><?php echo translate('AudioDetection') ?></label>
+<?php if ( $monitor->Type() == 'Ffmpeg' ) { ?>
+              <input type="checkbox" name="newMonitor[AudioDetection]" value="1"<?php if ( $monitor->AudioDetection() ) { ?> checked="checked"<?php } ?> data-on-change-this="AudioDetection_onChange"/>
+<?php } else { ?>
+              <?php echo translate('Audio detection only available with FFMPEG')?>
+              <input type="hidden" name="newMonitor[AudioDetection]" value="<?php echo $monitor->AudioDetection() ? 1 : 0 ?>"/>
+<?php } ?>
+              <div class="form-text"><?php echo translate('AudioDetectionHelp') ?></div>
+            </li>
+            <li class="AudioThreshold">
+              <label><?php echo translate('AudioThreshold') ?></label>
+              <input type="number" name="newMonitor[AudioThreshold]" value="<?php echo validHtmlStr($monitor->AudioThreshold()) ?>" min="0" max="100" step="1"/>
+              <div class="form-text"><?php echo translate('AudioThresholdHelp') ?></div>
+            </li>
+            <li class="AudioAlarmScore">
+              <label><?php echo translate('AudioAlarmScore') ?></label>
+              <input type="number" name="newMonitor[AudioAlarmScore]" value="<?php echo validHtmlStr($monitor->AudioAlarmScore()) ?>" min="0" max="255" step="1"/>
+              <div class="form-text"><?php echo translate('AudioAlarmScoreHelp') ?></div>
+            </li>
+            <li class="settingsGroup"><?php echo translate('OtherAnalysisSettings') ?></li>
             <li class="LinkedMonitors">
               <label><?php echo translate('LinkedMonitors'); echo makeHelpLink('OPTIONS_LINKED_MONITORS') ?></label>
               <input type="text" name="newMonitor[LinkedMonitors]" value="<?php echo $monitor->LinkedMonitors() ?>" data-on-input="updateLinkedMonitorsUI"/><br/>
@@ -1565,6 +1629,114 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
               <input type="text" name="newX10Monitor[AlarmOutput]" value="<?php echo validHtmlStr($newX10Monitor['AlarmOutput']) ?>" size="20"/>
             </li>
 <?php
+      break;
+    }
+  case 'actions' :
+    {
+      require_once('includes/MonitorAction.php');
+
+      $candidates = ZM\MonitorAction::targetCandidates();
+      $trigger_options = array(
+        'EventStart' => translate('ActionTriggerEventStart'),
+        'EventEnd'   => translate('ActionTriggerEventEnd'),
+        'Alarm'      => translate('ActionTriggerAlarm'),
+        'AlarmEnd'   => translate('ActionTriggerAlarmEnd'),
+        'Manual'     => translate('ActionTriggerManual'),
+      );
+      $all_type_options = array(
+        'LightOn'           => translate('ActionLightOn'),
+        'LightOff'          => translate('ActionLightOff'),
+        'IndicatorLightOn'  => translate('ActionIndicatorLightOn'),
+        'IndicatorLightOff' => translate('ActionIndicatorLightOff'),
+        'AudioPlay'         => translate('ActionAudioPlay'),
+        'AudioStop'         => translate('ActionAudioStop'),
+      );
+
+      $capabilities_json = array();
+      foreach ($candidates as $candidate) {
+        $capabilities_json[$candidate['Id']] = array(
+          'Types' => $candidate['Types'],
+          'MinAudioFile' => $candidate['MinAudioFile'],
+          'MaxAudioFile' => $candidate['MaxAudioFile'],
+        );
+      }
+
+      $actions = $monitor->Id() ?
+        ZM\MonitorAction::find(array('MonitorId'=>$monitor->Id()), array('order'=>'`Sequence`,`Id`')) :
+        array();
+
+      if (!count($candidates)) {
+?>
+        <li class="warning">
+          <?php echo translate('ActionsNoCapableDevices') ?>
+        </li>
+<?php
+      } else {
+?>
+        <li>
+          <p class="text-muted"><?php echo translate('ActionsHelp') ?></p>
+        </li>
+        <li>
+          <table id="monitorActionsTable" class="table table-sm">
+            <thead>
+              <tr>
+                <th><?php echo translate('Enabled') ?></th>
+                <th><?php echo translate('ActionTrigger') ?></th>
+                <th><?php echo translate('ActionTarget') ?></th>
+                <th><?php echo translate('ActionType') ?></th>
+                <th><?php echo translate('ActionAudioFile') ?></th>
+              </tr>
+            </thead>
+            <tbody>
+<?php
+        // One spare blank row so an action can always be added without js.
+        $rows = $actions;
+        $rows[] = new ZM\MonitorAction();
+        $i = 0;
+        foreach ($rows as $action) {
+          $target_options = array('' => translate('None'));
+          foreach ($candidates as $candidate)
+            $target_options[$candidate['Id']] = $candidate['Name'];
+
+          // Only offer types the chosen target has been measured to support.
+          $type_options = array();
+          foreach ($candidates as $candidate) {
+            if ($candidate['Id'] == $action->TargetMonitorId()) {
+              foreach ($candidate['Types'] as $type)
+                $type_options[$type] = $all_type_options[$type];
+            }
+          }
+          if (!count($type_options)) $type_options = $all_type_options;
+?>
+              <tr class="monitorActionRow">
+                <td><input type="checkbox" name="newAction[<?php echo $i ?>][Enabled]" value="1"<?php echo $action->Enabled() ? ' checked="checked"' : '' ?>/></td>
+                <td><input type="hidden" name="newAction[<?php echo $i ?>][Id]" value="<?php echo validHtmlStr($action->Id()) ?>"/>
+                    <?php echo htmlSelect('newAction['.$i.'][TriggerOn]', $trigger_options, $action->TriggerOn()) ?></td>
+                <td><?php echo htmlSelect('newAction['.$i.'][TargetMonitorId]', $target_options, $action->TargetMonitorId(), array('class'=>'actionTarget')) ?></td>
+                <td><?php echo htmlSelect('newAction['.$i.'][ActionType]', $type_options, $action->ActionType(), array('class'=>'actionType')) ?></td>
+                <td><input class="actionAudioFile" type="number" name="newAction[<?php echo $i ?>][AudioFile]" value="<?php echo validHtmlStr($action->AudioFile()) ?>" min="0" step="1"/></td>
+              </tr>
+<?php
+          $i ++;
+        } // end foreach action
+?>
+            </tbody>
+          </table>
+        </li>
+        <li>
+          <p class="text-muted"><?php echo translate('ActionsRemoveHelp') ?></p>
+        </li>
+        <li>
+          <script nonce="<?php echo $cspNonce ?>">
+            // What each candidate device can be asked to do, so changing the
+            // target updates the action list without a round trip. The server
+            // re-checks this on save; here it is convenience, not enforcement.
+            var monitorActionCapabilities = <?php echo json_encode($capabilities_json) ?>;
+            var monitorActionTypeLabels = <?php echo json_encode($all_type_options) ?>;
+          </script>
+        </li>
+<?php
+      } // end if any capable devices
       break;
     }
   case 'misc' :

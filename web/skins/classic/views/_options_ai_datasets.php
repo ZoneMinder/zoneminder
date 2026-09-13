@@ -28,7 +28,7 @@
                 <th data-sortable="true" class="colId"><?php echo translate('Id') ?></th>
                 <th data-sortable="true" class="colName"><?php echo translate('Name') ?></th>
                 <th data-sortable="true" class="colVersion"><?php echo translate('Version') ?></th>
-                <th data-sortable="true" class="colNumClasses"><?php echo translate('NumClasses') ?></th>
+                <th data-sortable="true" class="colNumClasses"><?php echo translate('Number of Classes') ?></th>
                 <th data-sortable="true" class="colDescription"><?php echo translate('Description') ?></th>
               </tr>
             </thead>

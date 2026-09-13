@@ -695,7 +695,12 @@ function buildControlCommand($monitor) {
       }
     }
   } else {
-    if ( preg_match( '/^presetGoto(\d+)$/', $_REQUEST['control'], $matches ) ) {
+    if ( preg_match( '/^audioPlay(\d+)$/', $_REQUEST['control'], $matches ) ) {
+      // The sound to play is carried in the command name, as presets are,
+      // because a control button has no way to send a separate parameter.
+      $_REQUEST['control'] = 'audioPlay';
+      $ctrlCommand .= ' --file='.$matches[1];
+    } elseif ( preg_match( '/^presetGoto(\d+)$/', $_REQUEST['control'], $matches ) ) {
       $_REQUEST['control'] = 'presetGoto';
       $ctrlCommand .= ' --preset='.$matches[1];
     } elseif ( $_REQUEST['control'] == 'presetGoto' && !empty($_REQUEST['preset']) ) {

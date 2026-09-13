@@ -477,18 +477,6 @@ function startVisibleMonitors() {
   }
 }
 
-function refreshAuthAndStartMonitors() {
-  $j.getJSON(zmAuth.appendTo(thisUrl + '?view=request&request=status&entity=navBar'))
-      .done(function(data) {
-        zmAuth.update(data);
-        startVisibleMonitors();
-      })
-      .fail(function() {
-        // Even if refresh fails, try to start with whatever auth we have
-        startVisibleMonitors();
-      });
-}
-
 function reloadWebSite(ndx) {
   document.getElementById('imageFeed'+ndx).innerHTML = document.getElementById('imageFeed'+ndx).innerHTML;
 }
@@ -701,7 +689,10 @@ function initPage() {
                 ayswModal = insertModalHtml('AYSWModal', data.html);
                 ayswModal.on('hidden.bs.modal', function() {
                   idleTimeoutTriggered = false;
-                  refreshAuthAndStartMonitors();
+                  // The modal may have sat here for hours with the monitors -
+                  // and their status polls - stopped, so the auth hash baked
+                  // into their srcs can be dead (auth-helpers.js).
+                  whenAuthFresh(startVisibleMonitors);
                 });
                 ayswModal.modal('show');
               })
@@ -1099,7 +1090,7 @@ document.onvisibilitychange = () => {
     if (!idleTimeoutTriggered) {
       // Refresh auth hash before restarting streams, since browsers throttle
       // timers for hidden tabs and the auth hash may have gone stale.
-      refreshAuthAndStartMonitors();
+      whenAuthFresh(startVisibleMonitors);
     } // end if not AYSW
   }
 };

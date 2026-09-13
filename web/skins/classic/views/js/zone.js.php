@@ -65,7 +65,7 @@ var monitorPixelArea = <?php echo $monitor->ViewWidth() * $monitor->ViewHeight()
 var monitorData = new Array();
 monitorData[monitorData.length] = {
   'id': <?php echo $monitor->Id() ?>,
-  'name': '<?php echo $monitor->Name() ?>',
+  'name': '<?php echo validJsStr($monitor->Name()) ?>',
   'connKey': <?php echo $monitor->connKey() ?>,
   'width': <?php echo $monitor->ViewWidth() ?>,
   'height':<?php echo $monitor->ViewHeight() ?>,
@@ -100,6 +100,15 @@ var minBlobAreaLtMaxString = '<?php echo addslashes(translate('MinBlobAreaLtMax'
 var minBlobLtMinFilterString = '<?php echo addslashes(translate('MinBlobLtMinFilter')) ?>';
 var minBlobsUnsetString = '<?php echo addslashes(translate('MinBlobsUnset')) ?>';
 var minBlobsLtMaxString = '<?php echo addslashes(translate('MinBlobsLtMax')) ?>';
+
+var zoneObjectSizeStrings = {
+  'filterTooSmall': '<?php echo addslashes(translate('ObjectSizeFilterTooSmall')) ?>',
+  'inactive': '<?php echo addslashes(translate('ObjectSizeInactive')) ?>',
+  'useImage': '<?php echo addslashes(translate('ObjectImageUse')) ?>',
+  'liveView': '<?php echo addslashes(translate('ObjectImageLive')) ?>',
+  'notAnImage': '<?php echo addslashes(translate('ObjectImageNotAnImage')) ?>',
+  'sizeNeeded': '<?php echo addslashes(translate('ObjectSizeNeeded')) ?>'
+};
 
 var deleteString = "<?php echo translate('Delete') ?>";
 //

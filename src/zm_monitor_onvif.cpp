@@ -357,7 +357,8 @@ void ONVIF::Subscribe() {
                        || (fault_string && (std::strstr(fault_string, "authoriz")
                                             || std::strstr(fault_string, "Authoriz"))));
 
-    Error("ONVIF: Couldn't create subscription at %s! %d %s, fault:%s, detail:%s",
+    logPrintf(Logger::ERROR + parent->Importance(), 
+        "ONVIF: Couldn't create subscription at %s! %d %s, fault:%s, detail:%s",
         event_endpoint_url_.c_str(),
         rc, soap_error_name(rc),
         fault_string, detail ? detail : "null");

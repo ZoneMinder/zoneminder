@@ -134,6 +134,56 @@ function controlIndicatorLight($monitor, $cmds) {
   return ob_get_clean();
 }
 
+function controlAudio($monitor, $cmds) {
+  $control = $monitor->Control();
+
+  // One button per sound the device holds, numbered by the file id the
+  // firmware expects, the same way presets are addressed.  The id is carried
+  // in the command name (audioPlay12) because the control request has no
+  // general way to attach a parameter to a button.
+  $min = $control->MinAudioFile();
+  $max = $control->MaxAudioFile();
+
+  ob_start();
+?>
+<div class="audioControls">
+<?php
+  if ( $control->CanAudioPlay() ) {
+    if ( is_numeric($min) && is_numeric($max) && $min <= $max ) {
+?>
+  <div>
+<?php
+      for ( $i = $min; $i <= $max; $i++ ) {
+?>
+    <button type="button" class="ptzNumBtn" data-on-click="controlCmd" value="<?php echo $cmds['AudioPlay'].$i ?>"><?php echo $i ?></button>
+<?php
+      } // end foreach sound
+?>
+  </div>
+<?php
+    } // end if a file range is configured
+?>
+  <div>
+    <button type="button" class="ptzTextBtn" data-on-click="controlCmd" value="<?php echo $cmds['AudioStop'] ?>"><?php echo translate('AudioStop') ?></button>
+  </div>
+<?php
+  } // end if CanAudioPlay
+
+  if ( $control->CanAudioVolume() ) {
+?>
+  <div>
+    <button type="button" class="ptzTextBtn" data-on-click="controlCmd" value="<?php echo $cmds['AudioVolumeDown'] ?>">-</button>
+    <span class="audioVolumeLabel"><?php echo translate('AudioVolume') ?></span>
+    <button type="button" class="ptzTextBtn" data-on-click="controlCmd" value="<?php echo $cmds['AudioVolumeUp'] ?>">+</button>
+  </div>
+<?php
+  } // end if CanAudioVolume
+?>
+</div>
+<?php
+  return ob_get_clean();
+}
+
 function controlPanTilt($monitor, $cmds) {
   $control = $monitor->Control();
   ob_start();
@@ -246,13 +296,56 @@ function controlPower($monitor, $cmds) {
   return ob_get_clean();
 }
 
+// Buttons for this monitor's manually-triggered actions. These drive other
+// monitors - usually a speaker - so they are shown even when this monitor has
+// no control of its own.
+function monitorActionControls($monitor) {
+  require_once('includes/MonitorAction.php');
+
+  $actions = ZM\MonitorAction::find(
+    array('MonitorId'=>$monitor->Id(), 'TriggerOn'=>'Manual', 'Enabled'=>1),
+    array('order'=>'`Sequence`,`Id`'));
+  if ( !count($actions) )
+    return '';
+
+  ob_start();
+?>
+<div class="monitorActionControls">
+<?php
+  foreach ( $actions as $action ) {
+    $target = $action->TargetMonitor();
+    if ( !$target or !canView('Control', $target->Id()) )
+      continue;
+    $label = $action->Label() ? $action->Label() :
+      translate('Action'.$action->ActionType()).' - '.$target->Name();
+?>
+  <button type="button" class="ptzTextBtn monitorActionBtn" data-on-click-this="fireMonitorAction" data-action-id="<?php echo $action->Id() ?>" title="<?php echo validHtmlStr($label) ?>"><?php echo validHtmlStr($label) ?></button>
+<?php
+  } // end foreach action
+?>
+</div>
+<?php
+  return ob_get_clean();
+}
+
 function ptzControls($monitor) {
   $control = $monitor->Control();
+  $actionControls = monitorActionControls($monitor);
+
+  // A monitor with manual actions but no control of its own still gets a
+  // panel; there is simply nothing but the action buttons in it.
+  if ( !$control or !$control->Id() ) {
+    if ( $actionControls === '' )
+      return '';
+    return '<div class="controlsPanel">'.$actionControls.'</div>';
+  }
+
   $cmds = $control->commands();
   ob_start();
 ?>
 <div class="controlsPanel">
 <?php
+  echo $actionControls;
   if ( $control->CanFocus() )
     echo controlFocus($monitor, $cmds);
   if ( $control->CanZoom() )
@@ -265,6 +358,8 @@ function ptzControls($monitor) {
     echo controlLight($monitor, $cmds);
   if ( $control->CanIndicatorLight() )
     echo controlIndicatorLight($monitor, $cmds);
+  if ( $control->CanAudioPlay() || $control->CanAudioVolume() )
+    echo controlAudio($monitor, $cmds);
   if ( $control->CanMove() ) {
 ?>
   <div class="pantiltPanel">

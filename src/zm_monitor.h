@@ -32,6 +32,7 @@
 #include "zm_packet.h"
 #include "zm_packetqueue.h"
 #include "zm_utils.h"
+#include "zm_audio_detector.h"
 #include "zm_zone.h"
 
 #include <atomic>
@@ -50,6 +51,7 @@ class MonitorLinkExpression;
 
 #define SIGNAL_CAUSE "Signal"
 #define MOTION_CAUSE "Motion"
+#define AUDIO_CAUSE "Audio"
 #define LINKED_CAUSE "Linked"
 
 
@@ -172,6 +174,17 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     PASSTHROUGH,
   } VideoWriter;
 
+  // An action this monitor performs when it alarms. The device acted on is
+  // identified by target_monitor_id and is frequently NOT this monitor: the
+  // point of the feature is that a camera can sound a speaker elsewhere.
+  struct EventAction {
+    enum TriggerOn { EVENT_START, EVENT_END, ALARM, ALARM_END, MANUAL };
+    TriggerOn     trigger;
+    std::string   action_type;       // zmcontrol command, e.g. audioPlay
+    unsigned int  target_monitor_id;
+    int           audio_file;        // -1 when the action takes no file
+  };
+
  protected:
   typedef std::set<Zone *> ZoneSet;
 
@@ -208,8 +221,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     uint8_t recording;          /* +95 */
     uint8_t signal;             /* +96 */
     uint8_t format;             /* +97 */
-    uint8_t reserved1;          /* +98 */
-    uint8_t reserved2;          /* +99 */
+    uint8_t audio_level;        /* +98  0-100, written by the capture thread */
+    uint8_t audio_alarm;        /* +99  audio_level crossed AudioThreshold */
     uint32_t imagesize;         /* +100 */
     uint32_t last_frame_score;  /* +104 */
     uint32_t audio_frequency;   /* +108 */
@@ -601,6 +614,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::string     output_container;
   _AVPIXELFORMAT  imagePixFormat;
   bool            record_audio;      // Whether to store the audio that we receive
+  bool            audio_detection;   // Whether to score on how loud the audio is
+  int             audio_threshold;   // 0-100; 0 means detection is off
+  int             audio_alarm_score; // Score contributed while over threshold
+  AudioDetector   audio_detector;
   bool            wallclock_timestamps; // Whether to use wallclock pts/dts instead of values from ffmpeg
   int             output_source_stream;
 
@@ -722,6 +739,11 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::unique_ptr<DecoderThread> decoder;
   SwsContext   *convert_context;
   std::thread  close_event_thread;
+  // Guards close_event_thread itself. closeEvent() runs on the analysis
+  // thread and Pause() on the capture thread, and both join and reassign
+  // it, so the object needs a lock of its own. Not the event lock: that is
+  // held across closeEvent(), which spawns the thread this guards.
+  std::mutex   close_event_thread_mutex;
 
   std::vector<Zone> zones;
 
@@ -740,6 +762,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   //MonitorLink    **linked_monitors;
   std::string   event_start_command;
   std::string   event_end_command;
+  std::vector<EventAction> actions;
+  // Whether the Alarm actions have run for the alarm currently in progress.
+  bool alarm_actions_fired;
 
   std::vector<Group *> groups;
 
@@ -1068,11 +1093,35 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     ZMPacketLock *packet_lock,
     const std::string &cause,
     const Event::StringSetMap &noteSetMap);
+  // Join a close that is still in flight, so whatever it holds -- notably a
+  // hardware encoder session belonging to the previous event -- is released.
+  // Returns true if there was one to wait for.
+  bool WaitForEventClose();
   void closeEvent();
 
   void Reload();
   void ReloadZones();
   void ReloadLinkedMonitors();
+
+  void LoadActions();
+  // Fires the AlarmEnd actions once per alarm, and only when the Alarm actions
+  // actually ran, so the two stay paired.
+  void EndAlarmActions();
+  void RunActions(EventAction::TriggerOn trigger);
+  // Pure helpers, separated from RunActions so they can be tested without a
+  // database, a socket or a device. ActionCommandName maps the DB enum onto a
+  // zmcontrol method rather than passing the stored string through, so nothing
+  // from the database is interpolated into the message uninspected.
+  // Builds the Ffmpeg-equivalent URL for a Remote/rtsp monitor, so the
+  // deprecation warning can name the exact Source Path to switch to. Pure, so
+  // it is testable without a camera; pass the result through
+  // remove_authentication() before logging it.
+  static std::string RtspUrlFromRemote(const std::string &host, const std::string &port,
+                                       const std::string &path, const std::string &user,
+                                       const std::string &pass);
+  static const char *ActionCommandName(const std::string &action_type);
+  static std::string ActionMessage(const EventAction &action);
+  static const char *ActionTriggerName(EventAction::TriggerOn trigger);
 
   bool DumpSettings( char *output, bool verbose );
   void DumpZoneImage( const char *zone_string=0 );

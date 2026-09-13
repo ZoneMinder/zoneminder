@@ -565,6 +565,9 @@ function initPage() {
   // Reflect the current Motion Detection (Analysing) setting on load.
   if (form.elements['newMonitor[Analysing]']) {
     Analysing_onChange(form.elements['newMonitor[Analysing]']); // eslint-disable-line new-cap
+  } else if (form.elements['newMonitor[AudioDetection]']) {
+    // Analysis tab not rendered with a select; still reflect audio detection.
+    AudioDetection_onChange(form.elements['newMonitor[AudioDetection]']); // eslint-disable-line new-cap
   }
 } // end function initPage()
 
@@ -817,6 +820,28 @@ function Analysing_onChange(e) {
   // analysis image, analysis fps and ref/alarm blend fields.
   const show = (e.value != 'None');
   $j('#AnalysisImage, li.AnalysisFPS, li.RefBlendPerc, li.AlarmRefBlendPerc, li.AlarmRefImageBlendPct').toggle(show);
+  // Audio detection is scored by the same analysis pass, so it cannot fire
+  // either. Hiding it stops the settings looking configured but inert.
+  $j('li.AudioDetection, li.settingsGroup.AudioGroup').toggle(show);
+  AudioDetection_onChange(document.getElementById('contentForm').elements['newMonitor[AudioDetection]']); // eslint-disable-line new-cap
+}
+
+function AudioDetection_onChange(e) {
+  // The threshold and the score only mean anything while detection is on.
+  // The rows are hidden rather than the inputs disabled, because a disabled
+  // input is not submitted and the value would silently fail to save.
+  //
+  // This asks the Analysing setting, not whether the row is currently on
+  // screen. The tabs are switched client side, so when the editor first loads
+  // the Analysis pane is hidden and every row in it reports as not visible.
+  // Testing visibility here set display:none on both rows during initPage, and
+  // opening the tab did not undo it - they stayed hidden until something else
+  // re-ran this.
+  const form = document.getElementById('contentForm');
+  const analysing = form ? form.elements['newMonitor[Analysing]'] : null;
+  const analysisOn = !analysing || (analysing.value != 'None');
+  const show = analysisOn && !!(e && e.checked);
+  $j('li.AudioThreshold, li.AudioAlarmScore').toggle(show);
 }
 
 function Recording_onChange(e) {
@@ -988,5 +1013,60 @@ window.addEventListener('DOMContentLoaded', initPage);
 window.addEventListener('pagehide', function() {
   document.querySelectorAll('#contentForm input[type="password"]').forEach(function(el) {
     el.value = '';
+  });
+});
+
+/**
+ * Rebuild one action row's type list and file input to match the device it
+ * targets, so the editor only ever offers what that device supports. The
+ * server re-checks this on save; this is convenience, not enforcement.
+ * @param {HTMLElement} row the tr holding the action's inputs
+ */
+function updateMonitorActionRow(row) {
+  const target = row.querySelector('select[name*="[TargetMonitorId]"]');
+  const type = row.querySelector('select[name*="[ActionType]"]');
+  const file = row.querySelector('input[name*="[AudioFile]"]');
+  if (!target || !type || !file) return;
+
+  const caps = (typeof monitorActionCapabilities !== 'undefined') ?
+    monitorActionCapabilities[target.value] : null;
+  const labels = (typeof monitorActionTypeLabels !== 'undefined') ?
+    monitorActionTypeLabels : {};
+
+  const wanted = type.value;
+  const constrained = !!(caps && caps.Types && caps.Types.length);
+  // With no target chosen there is nothing to constrain the list to. Show the
+  // full set rather than emptying the control: a blank dropdown reads as a
+  // broken page, and the spare row at the bottom of the table always starts
+  // with no target.
+  const available = constrained ? caps.Types : Object.keys(labels);
+  type.innerHTML = '';
+  available.forEach(function(t) {
+    const option = document.createElement('option');
+    option.value = t;
+    option.textContent = labels[t] ? labels[t] : t;
+    if (t == wanted) option.selected = true;
+    type.appendChild(option);
+  });
+  type.disabled = !constrained;
+
+  // Only a sound takes a file, and only within the range that device accepts.
+  const takesFile = (type.value == 'AudioPlay');
+  file.style.visibility = takesFile ? 'visible' : 'hidden';
+  if (takesFile && caps) {
+    if (caps.MinAudioFile !== null) file.min = caps.MinAudioFile;
+    if (caps.MaxAudioFile !== null) file.max = caps.MaxAudioFile;
+    if (file.value === '' && caps.MinAudioFile !== null) file.value = caps.MinAudioFile;
+  }
+}
+
+window.addEventListener('DOMContentLoaded', function initMonitorActions() {
+  document.querySelectorAll('tr.monitorActionRow').forEach(function(row) {
+    updateMonitorActionRow(row);
+    row.querySelectorAll('select').forEach(function(el) {
+      el.addEventListener('change', function() {
+        updateMonitorActionRow(row);
+      });
+    });
   });
 });

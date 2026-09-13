@@ -48,8 +48,8 @@ class Monitor extends ZM_Object {
     'recording'        => [ 'type'=>'uint8', 'offset'=>95, 'size'=>1 ],
     'signal'           => [ 'type'=>'uint8', 'offset'=>96, 'size'=>1 ],
     'format'           => [ 'type'=>'uint8', 'offset'=>97, 'size'=>1 ],
-    'reserved1'        => [ 'type'=>'uint8', 'offset'=>98, 'size'=>1 ],
-    'reserved2'        => [ 'type'=>'uint8', 'offset'=>99, 'size'=>1 ],
+    'audio_level'      => [ 'type'=>'uint8', 'offset'=>98, 'size'=>1 ],
+    'audio_alarm'      => [ 'type'=>'uint8', 'offset'=>99, 'size'=>1 ],
     'imagesize'        => [ 'type'=>'uint32', 'offset'=>100, 'size'=>4 ],
     'last_frame_score' => [ 'type'=>'uint32', 'offset'=>104, 'size'=>4 ],
     'audio_frequency'  => [ 'type'=>'uint32', 'offset'=>108, 'size'=>4 ],
@@ -83,22 +83,6 @@ class Monitor extends ZM_Object {
   ]
   ];
 
-
-  protected static $FunctionTypes = null;
-
-  public static function getFunctionTypes() {
-    if (!isset($FunctionTypes)) {
-      $FunctionTypes = array(
-        'None'    => translate('FnNone'),
-        'Monitor' => translate('FnMonitor'),
-        'Modect'  => translate('FnModect'),
-        'Record'  => translate('FnRecord'),
-        'Mocord'  => translate('FnMocord'),
-        'Nodect'  => translate('FnNodect')
-      );
-    }
-    return $FunctionTypes;
-  }
 
   protected static $CapturingOptions = null;
   public static function getCapturingOptions() {
@@ -235,6 +219,7 @@ class Monitor extends ZM_Object {
     'ManufacturerId'  => null,
     'ModelId'         => null,
     'Type'      => 'Ffmpeg',
+    'DeviceClass' => 'Camera',
     'Capturing' => 'Always',
     'Analysing' => 'Always',
     'Recording' => 'Always',
@@ -301,6 +286,9 @@ class Monitor extends ZM_Object {
     'EncoderParameters' => '',
     'WallClockTimestamps' => array('type'=>'boolean', 'default'=>0),
     'RecordAudio' =>  array('type'=>'boolean', 'default'=>0),
+    'AudioDetection' => array('type'=>'boolean', 'default'=>0),
+    'AudioThreshold' => array('type'=>'integer', 'default'=>0),
+    'AudioAlarmScore' => array('type'=>'integer', 'default'=>9),
     #'OutputSourceStream'  => 'Primary',
     'RTSPDescribe'  =>  array('type'=>'boolean','default'=>0),
     'Brightness'  =>  -1,

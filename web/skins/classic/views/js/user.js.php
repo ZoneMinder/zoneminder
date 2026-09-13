@@ -8,7 +8,7 @@ foreach ($monitors as $m) {
 ?>
 monitors[monitors.length] = {
   'id': <?php echo $m->Id() ?>,
-  'name': '<?php echo $m->Name() ?>'  
+  'name': '<?php echo validJsStr($m->Name()) ?>'  
 };
 <?php
 } // end foreach monitor

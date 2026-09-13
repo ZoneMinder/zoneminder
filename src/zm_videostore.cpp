@@ -58,6 +58,7 @@ VideoStore::VideoStore(
   packets_written(0),
   frame_count(0),
   video_encoded(false),
+  video_passthrough_fallback(false),
   hw_device_ctx(nullptr),
   resample_ctx(nullptr),
   fifo(nullptr),
@@ -84,6 +85,10 @@ VideoStore::VideoStore(
 }  // VideoStore::VideoStore
 
 /* Failure to open audio will not be a total failure. */
+bool VideoStore::Encoding() const {
+  return monitor->GetOptVideoWriter() == Monitor::ENCODE and !video_passthrough_fallback;
+}
+
 bool VideoStore::open() {
   Debug(1, "Opening video storage stream %s format: %s", filename.c_str(), format);
 
@@ -307,134 +312,179 @@ bool VideoStore::open() {
         codec_data = get_encoder_data("", "");
       }
 
-      for (auto it = codec_data.begin(); it != codec_data.end(); it ++) {
-        chosen_codec_data = *it;
-        Debug(1, "Found video codec for %s", chosen_codec_data->codec_name);
+      // Opening an encoder can fail because a previous event on this monitor is
+      // still closing on the close thread and has not yet released the hardware
+      // encoder session it holds. Wrapped so it can be run a second time once
+      // that close has been waited for. Each iteration re-parses its own options
+      // dictionary and frees its context on failure, so a second run starts
+      // clean.
+      auto attempt_open_encoders = [&]() {
+        for (auto it = codec_data.begin(); it != codec_data.end(); it ++) {
+          chosen_codec_data = *it;
+          Debug(1, "Found video codec for %s", chosen_codec_data->codec_name);
 
-        video_out_codec = avcodec_find_encoder_by_name(chosen_codec_data->codec_name);
-        video_out_ctx = avcodec_alloc_context3(video_out_codec);
-        if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
-          video_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
-        }
-
-        // We have to re-parse the options because each attempt to open destroys the dictionary
-        AVDictionary *opts = 0;
-        ret = av_dict_parse_string(&opts, options.c_str(), "=", ",#\n", 0);
-        if (ret < 0) {
-          Warning("Could not parse ffmpeg encoder options list '%s'", options.c_str());
-        } else {
-          const AVDictionaryEntry *entry = av_dict_get(opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
-          if (entry) {
-            reorder_queue_size = std::stoul(entry->value);
-            Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
-            // remove it to prevent complaining later.
-            av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+          video_out_codec = avcodec_find_encoder_by_name(chosen_codec_data->codec_name);
+          video_out_ctx = avcodec_alloc_context3(video_out_codec);
+          if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
+            video_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
           }
-        }
-        const AVDictionaryEntry *opts_bitrate = av_dict_get(opts, "bitrate", nullptr, AV_DICT_MATCH_CASE);
-        if (opts_bitrate) {
-          video_out_ctx->bit_rate = std::stoul(opts_bitrate->value);
-          av_dict_set(&opts, "bitrate", nullptr, AV_DICT_MATCH_CASE);
-        } else {
-          opts_bitrate = av_dict_get(opts, "bit_rate", nullptr, AV_DICT_MATCH_CASE);
+
+          // We have to re-parse the options because each attempt to open destroys the dictionary
+          AVDictionary *opts = 0;
+          ret = av_dict_parse_string(&opts, options.c_str(), "=", ",#\n", 0);
+          if (ret < 0) {
+            Warning("Could not parse ffmpeg encoder options list '%s'", options.c_str());
+          } else {
+            const AVDictionaryEntry *entry = av_dict_get(opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+            if (entry) {
+              reorder_queue_size = std::stoul(entry->value);
+              Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
+              // remove it to prevent complaining later.
+              av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+            }
+          }
+          const AVDictionaryEntry *opts_bitrate = av_dict_get(opts, "bitrate", nullptr, AV_DICT_MATCH_CASE);
           if (opts_bitrate) {
             video_out_ctx->bit_rate = std::stoul(opts_bitrate->value);
-            av_dict_set(&opts, "bit_rate", nullptr, AV_DICT_MATCH_CASE);
+            av_dict_set(&opts, "bitrate", nullptr, AV_DICT_MATCH_CASE);
+          } else {
+            opts_bitrate = av_dict_get(opts, "bit_rate", nullptr, AV_DICT_MATCH_CASE);
+            if (opts_bitrate) {
+              video_out_ctx->bit_rate = std::stoul(opts_bitrate->value);
+              av_dict_set(&opts, "bit_rate", nullptr, AV_DICT_MATCH_CASE);
+            }
           }
-        }
 
-        // When encoding, we are going to use the timestamp values instead of packet pts/dts
-        video_out_ctx->time_base = AV_TIME_BASE_Q;
-        video_out_ctx->codec_id = chosen_codec_data->codec_id;
-        video_out_ctx->pix_fmt = chosen_codec_data->hw_pix_fmt;
-        video_out_ctx->sw_pix_fmt = chosen_codec_data->sw_pix_fmt;
-        Debug(1, "Setting pix fmt to %d %s", video_out_ctx->pix_fmt, av_get_pix_fmt_name(video_out_ctx->pix_fmt));
-        const AVDictionaryEntry *opts_level = av_dict_get(opts, "level", nullptr, AV_DICT_MATCH_CASE);
-        if (opts_level) {
-          video_out_ctx->level = std::stoul(opts_level->value);
-        }
-        const AVDictionaryEntry *opts_gop_size = av_dict_get(opts, "gop_size", nullptr, AV_DICT_MATCH_CASE);
-        if (opts_gop_size) {
-          video_out_ctx->gop_size = std::stoul(opts_gop_size->value);
-          av_dict_set(&opts, "gop_size", nullptr, AV_DICT_MATCH_CASE);
-        }
-
-        // Don't have an input stream, so need to tell it what we are sending it, or are transcoding
-        video_out_ctx->width = monitor->Width();
-        video_out_ctx->height = monitor->Height();
-        video_out_ctx->codec_type = AVMEDIA_TYPE_VIDEO;
-
-        if (video_out_ctx->codec_id == AV_CODEC_ID_H264) {
-          if (!video_out_ctx->bit_rate) video_out_ctx->bit_rate = 2000000;
-          video_out_ctx->max_b_frames = 1;
-        } else if (video_out_ctx->codec_id == AV_CODEC_ID_MPEG2VIDEO) {
-          /* just for testing, we also add B frames */
-          video_out_ctx->max_b_frames = 2;
-        } else if (video_out_ctx->codec_id == AV_CODEC_ID_MPEG1VIDEO) {
-          /* Needed to avoid using macroblocks in which some coeffs overflow.
-           * This does not happen with normal video, it just happens here as
-           * the motion of the chroma plane does not match the luma plane. */
-          video_out_ctx->mb_decision = 2;
-        }
-        if (setup_hwaccel(video_out_ctx,
-              chosen_codec_data, hw_device_ctx, monitor->EncoderHWAccelDevice(), monitor->Width(), monitor->Height())) {
-          avcodec_free_context(&video_out_ctx);
-          av_dict_free(&opts);
-          if (hw_device_ctx) {
-            av_buffer_unref(&hw_device_ctx);
+          // When encoding, we are going to use the timestamp values instead of packet pts/dts
+          video_out_ctx->time_base = AV_TIME_BASE_Q;
+          video_out_ctx->codec_id = chosen_codec_data->codec_id;
+          video_out_ctx->pix_fmt = chosen_codec_data->hw_pix_fmt;
+          video_out_ctx->sw_pix_fmt = chosen_codec_data->sw_pix_fmt;
+          Debug(1, "Setting pix fmt to %d %s", video_out_ctx->pix_fmt, av_get_pix_fmt_name(video_out_ctx->pix_fmt));
+          const AVDictionaryEntry *opts_level = av_dict_get(opts, "level", nullptr, AV_DICT_MATCH_CASE);
+          if (opts_level) {
+            video_out_ctx->level = std::stoul(opts_level->value);
           }
-          continue;
-        }
+          const AVDictionaryEntry *opts_gop_size = av_dict_get(opts, "gop_size", nullptr, AV_DICT_MATCH_CASE);
+          if (opts_gop_size) {
+            video_out_ctx->gop_size = std::stoul(opts_gop_size->value);
+            av_dict_set(&opts, "gop_size", nullptr, AV_DICT_MATCH_CASE);
+          }
 
-        zm_dump_codec(video_out_ctx);
-        if ((ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0) {
-          if (wanted_encoder != "" and wanted_encoder != "auto") {
-            Warning("Can't open video codec (%s) %s",
+          // Don't have an input stream, so need to tell it what we are sending it, or are transcoding
+          video_out_ctx->width = monitor->Width();
+          video_out_ctx->height = monitor->Height();
+          video_out_ctx->codec_type = AVMEDIA_TYPE_VIDEO;
+
+          if (video_out_ctx->codec_id == AV_CODEC_ID_H264) {
+            if (!video_out_ctx->bit_rate) video_out_ctx->bit_rate = 2000000;
+            video_out_ctx->max_b_frames = 1;
+          } else if (video_out_ctx->codec_id == AV_CODEC_ID_MPEG2VIDEO) {
+            /* just for testing, we also add B frames */
+            video_out_ctx->max_b_frames = 2;
+          } else if (video_out_ctx->codec_id == AV_CODEC_ID_MPEG1VIDEO) {
+            /* Needed to avoid using macroblocks in which some coeffs overflow.
+             * This does not happen with normal video, it just happens here as
+             * the motion of the chroma plane does not match the luma plane. */
+            video_out_ctx->mb_decision = 2;
+          }
+          if (setup_hwaccel(video_out_ctx,
+                chosen_codec_data, hw_device_ctx, monitor->EncoderHWAccelDevice(), monitor->Width(), monitor->Height())) {
+            avcodec_free_context(&video_out_ctx);
+            av_dict_free(&opts);
+            if (hw_device_ctx) {
+              av_buffer_unref(&hw_device_ctx);
+            }
+            continue;
+          }
+
+          zm_dump_codec(video_out_ctx);
+          if ((ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0) {
+            if (wanted_encoder != "" and wanted_encoder != "auto") {
+              Warning("Can't open video codec (%s) %s",
+                      video_out_codec->name,
+                      av_make_error_string(ret).c_str()
+                     );
+            } else {
+              Debug(1, "Can't open video codec (%s) %s",
                     video_out_codec->name,
                     av_make_error_string(ret).c_str()
                    );
-          } else {
-            Debug(1, "Can't open video codec (%s) %s",
-                  video_out_codec->name,
-                  av_make_error_string(ret).c_str()
-                 );
+            }
+            video_out_codec = nullptr;
           }
-          video_out_codec = nullptr;
-        }
 
-        AVDictionaryEntry *e = nullptr;
-        while ((e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr) {
-          Warning("Encoder Option %s not recognized by ffmpeg codec", e->key);
-        }
-        av_dict_free(&opts);
+          AVDictionaryEntry *e = nullptr;
+          while ((e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr) {
+            Warning("Encoder Option %s not recognized by ffmpeg codec", e->key);
+          }
+          av_dict_free(&opts);
 
-        if (video_out_codec) {
-          zm_dump_codec(video_out_ctx);
-          break;
-        }
-        // We allocate and copy in newer ffmpeg, so need to free it
-        avcodec_free_context(&video_out_ctx);
-        if (hw_device_ctx) {
-          av_buffer_unref(&hw_device_ctx);
-        }
-      }  // end foreach codec
+          if (video_out_codec) {
+            zm_dump_codec(video_out_ctx);
+            break;
+          }
+          // We allocate and copy in newer ffmpeg, so need to free it
+          avcodec_free_context(&video_out_ctx);
+          if (hw_device_ctx) {
+            av_buffer_unref(&hw_device_ctx);
+          }
+        }  // end foreach codec
+      };  // end lambda attempt_open_encoders
+
+      attempt_open_encoders();
+
+      // Only serialise against a close when we actually have to, and only when
+      // there was one in flight to wait for.
+      if (!video_out_codec and monitor->WaitForEventClose()) {
+        Info("No video encoder would open and a previous event was still closing; "
+             "waited for it to release its encoder, retrying");
+        attempt_open_encoders();
+      }
 
       if (!video_out_codec) {
-        Error("Can't open any video codecs!");
-        return false;
-      }  // end if can't open codec
-      Debug(2, "Success opening codec");
+        // Every candidate encoder refused to open. On a hardware encoder this is
+        // usually the card declining for want of capacity, reported to ffmpeg as
+        // nothing more specific than a generic external error. Returning here
+        // would mean the event records no video at all, so copy the input stream
+        // and write its packets through unchanged instead. If this keeps
+        // happening the card is over-subscribed: fewer concurrent encodes, or a
+        // lower resolution or frame rate.
+        Warning("Can't open any video encoder; falling back to passthrough recording");
+        if (video_out_ctx) avcodec_free_context(&video_out_ctx);
+        video_passthrough_fallback = true;
 
-      video_out_stream = avformat_new_stream(oc, nullptr);
-      if (!video_out_stream) {
-        Error("Unable to create video out stream");
-        return false;
-      }
-      ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
-      if (ret < 0) {
-        Error("Could not initialize stream parameters");
-        return false;
-      }
+        // Same guard the PASSTHROUGH path needs: a stream reporting no size at
+        // all cannot be copied into the muxer, which aborts writing the trailer
+        // rather than returning an error. Record jpegs for this event instead.
+        if (video_in_stream->codecpar->width <= 0 || video_in_stream->codecpar->height <= 0) {
+          Warning("Input video stream has invalid dimensions %dx%d; not recording video",
+              video_in_stream->codecpar->width, video_in_stream->codecpar->height);
+          return false;
+        }
+
+        video_out_stream = avformat_new_stream(oc, nullptr);
+        if (!video_out_stream) {
+          Error("Unable to create video out stream");
+          return false;
+        }
+        avcodec_parameters_copy(video_out_stream->codecpar, video_in_stream->codecpar);
+        video_out_stream->avg_frame_rate = video_in_stream->avg_frame_rate;
+        zm_dump_codecpar(video_out_stream->codecpar);
+      } else {
+        Debug(2, "Success opening codec");
+
+        video_out_stream = avformat_new_stream(oc, nullptr);
+        if (!video_out_stream) {
+          Error("Unable to create video out stream");
+          return false;
+        }
+        ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
+        if (ret < 0) {
+          Error("Could not initialize stream parameters");
+          return false;
+        }
+      }  // end if an encoder opened
     }  // end if copying or transcoding
   }  // end if video_in_stream
 

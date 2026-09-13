@@ -44,6 +44,25 @@
     text-align: center;
 }
 
+.ptzControls .controlsPanel .audioControls {
+    flex-basis: 100%;
+    width: 100%;
+    margin: 5px auto;
+    text-align: center;
+}
+
+.ptzControls .controlsPanel .audioControls button {
+    margin: 1px;
+}
+
+.ptzControls .controlsPanel .audioControls button.ptzNumBtn {
+    width: 45px;
+}
+
+.ptzControls .controlsPanel .audioVolumeLabel {
+    margin: 0 8px;
+}
+
 /* Lit/amber when the camera reports the light is on; clicking then turns it off. */
 .ptzControls .controlsPanel .lightToggleBtn.active,
 .ptzControls .controlsPanel .indicatorLightToggleBtn.active {

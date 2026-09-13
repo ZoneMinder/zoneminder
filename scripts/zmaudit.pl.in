@@ -55,7 +55,7 @@ use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)
 use constant ZM_AUDIT_PID => '@ZM_RUNDIR@/zmaudit.pid';
 
 
-$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
+$ENV{PATH}  = '@ZM_SCRIPT_PATH@';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 

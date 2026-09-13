@@ -146,7 +146,6 @@ $SLANG = array(
     'AutoStopTimeout'       => 'Auto Stop Timeout',
     'Available'             => 'Dostupno',
     'AvgBrScore'            => 'Avg.<br/>Score',
-    'Available'             => 'Dostupno',
     'Background'            => 'Pozadina',
     'BackgroundFilter'      => 'Pokreni filter u pozadini',
     'BadAlarmFrameCount'    => 'Brojač alarm frejmova mora biti tipa integer počevši od jedan ili više',

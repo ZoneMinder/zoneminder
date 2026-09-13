@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  ZoneMinder launchd job, the macOS counterpart to zoneminder.service.
+
+  Install by copying this generated file to /Library/LaunchDaemons, owned by
+  root:wheel and mode 644, then:
+
+      sudo launchctl load -w /Library/LaunchDaemons/com.zoneminder.zoneminder.plist
+
+  This starts ZoneMinder; it does not supervise it. zmpkg.pl forks zmdc.pl and
+  returns, the same shape systemd describes as Type=forking, and from then on
+  zmdc.pl and zmwatch.pl restart the capture and analysis daemons themselves.
+  launchd's part is to run that once at boot.
+
+  Unloading does not stop ZoneMinder, because launchd has no equivalent of
+  ExecStop. Stop it first, then unload:
+
+      sudo zmpkg.pl stop
+      sudo launchctl unload -w /Library/LaunchDaemons/com.zoneminder.zoneminder.plist
+
+  There is also no equivalent of the unit's After= and Requires=. launchd
+  starts jobs when their dependencies are already up only for jobs it manages
+  itself, and a Homebrew MariaDB is not one of them. If ZoneMinder loses the
+  race at boot, zmdc.pl retries the connection, but check zmdc.log if monitors
+  come up unexpectedly idle.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.zoneminder.zoneminder</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>@BINDIR@/zmpkg.pl</string>
+        <string>start</string>
+    </array>
+
+    <key>UserName</key>
+    <string>@WEB_USER@</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!--
+      zmpkg.pl exits as soon as it has forked the daemons. Without this key
+      launchd would take that exit as the job finishing and kill everything
+      remaining in its process group, which is all of ZoneMinder.
+    -->
+    <key>AbandonProcessGroup</key>
+    <true/>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>TZ</key>
+        <string>:/etc/localtime</string>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>@ZM_LOGDIR@/launchd.log</string>
+    <key>StandardErrorPath</key>
+    <string>@ZM_LOGDIR@/launchd.log</string>
+</dict>
+</plist>

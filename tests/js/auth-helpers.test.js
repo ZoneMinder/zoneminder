@@ -242,5 +242,117 @@ test('applyTo only sets the connkey when authentication is off', () => {
       'cgi-bin/nph-zms?monitor=26&connkey=99&mode=jpeg');
 });
 
+
+// revalidateAuth() reaches for these as bare globals, the way the browser
+// supplies them, so a fake jqXHR here is enough to drive it from node.
+function fakeXhr() {
+  const cbs = {done: [], fail: [], always: []};
+  const xhr = {
+    done(fn) {
+      cbs.done.push(fn); return xhr;
+    },
+    fail(fn) {
+      cbs.fail.push(fn); return xhr;
+    },
+    always(fn) {
+      cbs.always.push(fn); return xhr;
+    },
+    resolve(data) {
+      cbs.done.forEach((f) => f(data)); cbs.always.forEach((f) => f());
+    },
+    reject(status) {
+      cbs.fail.forEach((f) => f({status: status})); cbs.always.forEach((f) => f());
+    },
+  };
+  return xhr;
+}
+
+let probeUrls = [];
+let pendingXhr = null;
+global.thisUrl = '/zm/index.php';
+global.setNavBar = function() {};
+// Present, and holding the very hash the probe must not send.
+global.zmAuth = new ZM.ZMAuth('auth=deadbeef');
+global.$j = {
+  getJSON: function(url) {
+    probeUrls.push(url);
+    pendingXhr = fakeXhr();
+    return pendingXhr;
+  },
+};
+
+console.log('revalidateAuth');
+test('the probe carries no credential', () => {
+  // A stale hash in the URL takes the ZM_AUTH_HASH_LOGINS branch of
+  // zm_authenticate_request(), which never falls through to userFromSession(),
+  // so the session cookie would authenticate as nobody and the probe meant to
+  // renew the credential would be the one request guaranteed to fail.
+  assert.strictEqual(
+      ZM.authProbeUrl('/zm/index.php'),
+      '/zm/index.php?view=request&request=status&entity=navBar');
+  probeUrls = [];
+  ZM.revalidateAuth(function() {});
+  assert.strictEqual(probeUrls.length, 1);
+  assert.ok(probeUrls[0].indexOf('auth=') === -1, probeUrls[0]);
+  assert.ok(probeUrls[0].indexOf('password=') === -1, probeUrls[0]);
+  pendingXhr.resolve({});
+});
+test('concurrent callers share one request and all run', () => {
+  probeUrls = [];
+  let ran = 0;
+  ZM.revalidateAuth(() => ran++);
+  ZM.revalidateAuth(() => ran++);
+  assert.strictEqual(probeUrls.length, 1);
+  assert.strictEqual(ran, 0);
+  pendingXhr.resolve({});
+  assert.strictEqual(ran, 2);
+});
+test('a transient failure still runs the callbacks', () => {
+  // A network blip is no reason to leave the page's streams stopped.
+  let ran = 0;
+  ZM.revalidateAuth(() => ran++);
+  pendingXhr.reject(0);
+  assert.strictEqual(ran, 1);
+});
+console.log('whenAuthFresh');
+test('a hash that exists is always revalidated before the callback runs', () => {
+  // The remaining life of a held hash is not knowable here: calculateAuthHash()
+  // keys it to the clock hour it was minted in and generateAuthHash() serves the
+  // cached one until it is half a TTL old, so one handed over at 11:58 can be
+  // refused at 12:00. There is no window to trust, so there is no fast path.
+  probeUrls = [];
+  let ran = 0;
+  global.zmAuth = new ZM.ZMAuth('auth=deadbeef');
+  ZM.whenAuthFresh(() => ran++);
+  assert.strictEqual(probeUrls.length, 1, 'no probe was sent');
+  assert.strictEqual(ran, 0, 'callback ran before the server confirmed anything');
+  pendingXhr.resolve({});
+  assert.strictEqual(ran, 1);
+});
+test('no hash means no probe, because nothing can expire', () => {
+  // Authentication off, or a relay form that carries no hash.
+  probeUrls = [];
+  let ran = 0;
+  global.zmAuth = new ZM.ZMAuth('');
+  ZM.whenAuthFresh(() => ran++);
+  assert.strictEqual(probeUrls.length, 0, 'probed with no hash to refresh');
+  assert.strictEqual(ran, 1, 'callback should run straight away');
+  global.zmAuth = new ZM.ZMAuth('auth=deadbeef');
+});
+
+// Last: goToLogin() latches for the life of the module.
+test('a rejected session goes to login and drops the callbacks', () => {
+  let ran = 0;
+  let assigned = '';
+  global.window = {location: {assign: (u) => {
+    assigned = u;
+  }}};
+  global.currentView = 'watch';
+  ZM.revalidateAuth(() => ran++);
+  pendingXhr.reject(403);
+  assert.strictEqual(ran, 0);
+  assert.ok(assigned.indexOf('view=login') !== -1, assigned);
+});
+
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);

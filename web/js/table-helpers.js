@@ -33,14 +33,29 @@ function deferTableRequestWhileHidden(table) {
   return true;
 }
 
-// Refresh every table whose request was skipped while hidden.
+// Refresh every table whose request was skipped while hidden. The auth hash we
+// were holding may have expired during the hide, so wait for a confirmed one
+// rather than have every deferred table 403 (auth-helpers.js). whenAuthFresh is
+// absent under node; refresh directly there.
 function refreshTablesPendingVisibility() {
   if (document.visibilityState === 'hidden') return;
   // Drain before refreshing: refresh() calls the ajax function synchronously,
   // which would otherwise re-add the table while we are still iterating.
   const tables = tablesPendingVisibility.splice(0, tablesPendingVisibility.length);
-  for (let i = 0; i < tables.length; i++) {
-    tables[i].bootstrapTable('refresh');
+  // Nothing was deferred, so there is nothing to authenticate for. This handler
+  // is bound on every classic page including the unauthenticated ones, and
+  // whenAuthFresh() can send a probe, so becoming visible must stay a no-op
+  // when there is no work.
+  if (!tables.length) return;
+  const refresh = function() {
+    for (let i = 0; i < tables.length; i++) {
+      tables[i].bootstrapTable('refresh');
+    }
+  };
+  if (typeof whenAuthFresh === 'function') {
+    whenAuthFresh(refresh);
+  } else {
+    refresh();
   }
 }
 

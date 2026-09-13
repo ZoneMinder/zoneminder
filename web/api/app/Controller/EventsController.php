@@ -538,7 +538,7 @@ class EventsController extends AppController {
     // The $bw, $thumbs and unset() code is a workaround / temporary
     // until I have a better way of handing per-bandwidth config options
     $bw = (isset($_COOKIE['zmBandwidth']) ? strtoupper(substr($_COOKIE['zmBandwidth'], 0, 1)) : 'L');
-    $thumbs = "ZM_WEB_${bw}_SCALE_THUMBS";
+    $thumbs = "ZM_WEB_{$bw}_SCALE_THUMBS";
 
     $config = $this->Config->find('list', array(
       'conditions' => array('OR' => array(

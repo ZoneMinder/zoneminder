@@ -103,9 +103,16 @@ if (!$cycle and isset($_COOKIE['zmCycleShow'])) {
 }
 #Whether to show the controls button
 $hasPtzControls = false;
+require_once('includes/MonitorAction.php');
 foreach ($monitors as $m) {
   if (( ZM_OPT_CONTROL && $m->Controllable() && canView('Control') && $m->Type() != 'WebSite' )) {
     //If there is control for at least one camera, then we display the block.
+    $hasPtzControls = true;
+  }
+  # A monitor with manual actions needs the panel even when it is not itself
+  # controllable: the actions drive other devices, typically a speaker.
+  if (!$hasPtzControls and ZM_OPT_CONTROL and canView('Control') and
+      count(ZM\MonitorAction::find(array('MonitorId'=>$m->Id(), 'TriggerOn'=>'Manual', 'Enabled'=>1)))) {
     $hasPtzControls = true;
   }
   if ($hasPtzControls) {

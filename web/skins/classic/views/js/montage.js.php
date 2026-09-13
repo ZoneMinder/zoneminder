@@ -22,7 +22,7 @@ foreach ( $monitors as $monitor ) {
 ?>
 monitorData[monitorData.length] = {
   'id': <?php echo $monitor->Id() ?>,
-  'name': '<?php echo $monitor->Name() ?>',
+  'name': '<?php echo validJsStr($monitor->Name()) ?>',
   'server_id': '<?php echo $monitor->ServerId() ?>',
   'connKey': '<?php echo $monitor->connKey() ?>',
   'width': <?php echo $monitor->ViewWidth() ?>,
@@ -55,7 +55,7 @@ global $layouts;
 foreach ( $layouts as $layout ) {
 ?>
 layouts[<?php echo $layout->Id() ?>] = {
-  "Name":"<?php echo $layout->Name()?>",
+  "Name":"<?php echo validJsStr($layout->Name()) ?>",
   "UserId":"<?php echo $layout->UserId()?>",
   "Positions":<?php echo ($layout->Positions() and json_decode($layout->Positions()))?$layout->Positions():'{}' ?>};
 <?php

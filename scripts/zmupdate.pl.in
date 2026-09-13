@@ -86,7 +86,7 @@ use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)?$Config{ZM_DIR_EVENTS}
 
 $| = 1;
 
-$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
+$ENV{PATH}  = '@ZM_SCRIPT_PATH@';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
@@ -182,7 +182,7 @@ if ($check) {
 
   while ( 1 ) {
     my $now = time();
-    $dbh->ping();
+    $dbh = zmDbConnect(undef, { mysql_multi_statements=>1 });
     if ( !$interactive and $lastVersion and $lastCheck and (($now-$lastCheck) <= CHECK_INTERVAL) ) {
       Debug("Not checking for updates since we already have less than " . CHECK_INTERVAL . " seconds ago.");
     } else {

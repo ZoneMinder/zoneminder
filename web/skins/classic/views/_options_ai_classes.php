@@ -20,9 +20,9 @@
     </div> <!-- .row -->
     <div class="row mb-3">
       <div class="col-md-4">
-        <label for="datasetFilter"><?php echo translate('FilterByDataset') ?>:</label>
+        <label for="datasetFilter"><?php echo translate('Filter by Dataset') ?>:</label>
         <select id="datasetFilter" class="form-control">
-          <option value=""><?php echo translate('AllDatasets') ?></option>
+          <option value=""><?php echo translate('All Datasets') ?></option>
 <?php
 $datasets_result = dbQuery('SELECT Id, Name FROM AI_Datasets ORDER BY Name');
 if ($datasets_result) {
@@ -43,8 +43,8 @@ if ($datasets_result) {
                 <th class="colMark"><?php echo translate('Mark') ?></th>
                 <th data-sortable="true" class="colId"><?php echo translate('Id') ?></th>
                 <th data-sortable="true" class="colDataset"><?php echo translate('Dataset') ?></th>
-                <th data-sortable="true" class="colClassName"><?php echo translate('ClassName') ?></th>
-                <th data-sortable="true" class="colClassIndex"><?php echo translate('ClassIndex') ?></th>
+                <th data-sortable="true" class="colClassName"><?php echo translate('Class Name') ?></th>
+                <th data-sortable="true" class="colClassIndex"><?php echo translate('Class Index') ?></th>
                 <th data-sortable="true" class="colDescription"><?php echo translate('Description') ?></th>
               </tr>
             </thead>

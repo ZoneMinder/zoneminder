@@ -143,7 +143,7 @@ echo $navbar;
             <th class="colLastEvent"><?php echo translate('LastEvent') ?></th>
             <th class="colMinGap"><?php echo translate('MinGap') ?></th> 
             <th class="colMaxGap"><?php echo translate('MaxGap') ?></th> 
-            <th class="colMissingFiles"><?php echo translate('MissingFiles') ?></th> 
+            <th class="colFileMissing"><?php echo translate('MissingFiles') ?></th> 
             <th class="colZeroSize"><?php echo translate('ZeroSize') ?></th> 
           </tr>
         </thead>

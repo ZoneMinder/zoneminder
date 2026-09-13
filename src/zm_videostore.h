@@ -64,6 +64,10 @@ class VideoStore {
   unsigned int packets_written;
   unsigned int frame_count;
   bool video_encoded;  // true once at least one frame has been sent to the video encoder
+  // Set in open() when the monitor asked for ENCODE but no encoder would
+  // open. We then copy the input stream and write its packets unchanged,
+  // rather than recording nothing at all.
+  bool video_passthrough_fallback;
 
   AVBufferRef *hw_device_ctx;
 
@@ -138,6 +142,13 @@ class VideoStore {
   // Safe to call once; subsequent calls are no-ops. The destructor will skip
   // the trailer write if finalize() has already run.
   void finalize();
+
+  // Whether we are really re-encoding video. That is the monitor's ENCODE
+  // setting unless every encoder failed to open, in which case open() fell
+  // back to passthrough and this is false. Callers must ask this rather than
+  // the monitor, or they will treat copied packets as encoded ones. Defined
+  // in the .cpp because Monitor is only forward declared here.
+  bool Encoding() const;
 
   const char *get_codec() {
     if (chosen_codec_data)

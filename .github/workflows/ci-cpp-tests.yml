@@ -1,0 +1,65 @@
+name: CI C++ Tests
+
+# Builds the Catch2 suite and runs it. Nothing else in CI does: the packaging
+# workflows and the -Werror job all configure with BUILD_TEST_SUITE off, so
+# tests/ could stop compiling and no job would notice.
+#
+# Pinned to ubuntu-24.04 rather than ubuntu-latest because the suite needs
+# Catch2 v3, which is what noble packages. An older image ships v2, where the
+# v3 spellings the tests use (catch2/catch_all.hpp, Catch::Approx,
+# Catch2::Catch2WithMain) do not exist.
+
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches: [ master ]
+
+permissions:
+  contents: read
+
+jobs:
+  cpp-tests:
+    name: Catch2 suite (gcc, Debug)
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake pkg-config gcc-multilib g++-multilib \
+            catch2 \
+            libavcodec-dev libavformat-dev libavutil-dev libavdevice-dev \
+            libswresample-dev libswscale-dev \
+            default-libmysqlclient-dev \
+            libbz2-dev libcurl4-openssl-dev libjpeg-dev libturbojpeg0-dev \
+            libpcre2-dev libpolkit-gobject-1-dev libssl-dev zlib1g-dev \
+            libv4l-dev libvlc-dev libvncserver-dev \
+            libmosquitto-dev libmosquittopp-dev \
+            gsoap libgsoap-dev
+
+      - name: Configure
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DBUILD_TEST_SUITE=ON \
+            -DBUILD_MAN=0
+
+      - name: Build
+        run: cmake --build build --target tests -j"$(nproc)"
+
+      # Run the binary rather than ctest. Two reasons: the [notCI] tag marks the
+      # cases that need a reachable database or a listening socket, and
+      # catch_discover_tests does not carry Catch2 tags through as ctest labels,
+      # so ctest has no way to skip them. And zm_font.cpp loads its fixtures by
+      # relative path, so the working directory has to be the one the build
+      # copied tests/data into.
+      - name: Run the tests
+        working-directory: build/tests
+        run: ./tests "~[notCI]"

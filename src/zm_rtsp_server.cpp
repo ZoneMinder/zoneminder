@@ -80,6 +80,7 @@ namespace {
 // Wakes the main loop when a HELLO requires (re)building a session
 std::mutex rebuild_mutex;
 std::condition_variable rebuild_cv;
+bool rebuild_pending = false;  // guarded by rebuild_mutex
 
 bool HelloEqual(const HelloInfo &a, const HelloInfo &b) {
   return a.codec_id == b.codec_id
@@ -111,6 +112,12 @@ class MonitorRtspStream {
       } else {
         pending_audio_ = info;
         have_pending_audio_ = true;
+      }
+      // Flag under the wake mutex so a HELLO arriving between the main
+      // loop's Update() pass and its wait cannot be lost until the timeout
+      {
+        std::lock_guard<std::mutex> wake_lock(rebuild_mutex);
+        rebuild_pending = true;
       }
       rebuild_cv.notify_all();
     };
@@ -452,7 +459,8 @@ int main(int argc, char *argv[]) {
       // Sleep until the next periodic pass, or earlier if a HELLO arrives
       // that needs a session (re)build
       std::unique_lock<std::mutex> lock(rebuild_mutex);
-      rebuild_cv.wait_for(lock, std::chrono::seconds(10));
+      rebuild_cv.wait_for(lock, std::chrono::seconds(10), [] { return rebuild_pending; });
+      rebuild_pending = false;
     }
 
     if (zm_reload) {

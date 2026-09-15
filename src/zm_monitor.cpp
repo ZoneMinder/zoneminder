@@ -4541,7 +4541,12 @@ int Monitor::Close() {
 
   // stream_socket deliberately survives Close(): consumers keep their
   // connection across camera reconnects and observe them via generation
-  // bumps when PrimeCapture() re-applies stream parameters.
+  // bumps when PrimeCapture() re-applies stream parameters. The cached
+  // keyframe belongs to the capture session that just ended (its pts may be
+  // ahead of what the next session produces), so drop it now rather than
+  // prime a consumer that connects mid-reconnect with it.
+  if (stream_socket)
+    stream_socket->InvalidateKeyframe();
 
   return 1;
 } // end Monitor::Close()

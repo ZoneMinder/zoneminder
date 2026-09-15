@@ -481,3 +481,36 @@ TEST_CASE("StreamSocket::ParseAllowedUids", "[stream_socket]") {
   REQUIRE(StreamSocket::ParseAllowedUids("33,,1000") == std::vector<uid_t>{33, 1000});
   REQUIRE(StreamSocket::ParseAllowedUids("33,bogus,1000") == std::vector<uid_t>{33, 1000});
 }
+
+TEST_CASE("StreamSocket::InvalidateKeyframe stops replaying a stale keyframe", "[stream_socket]") {
+  StreamSocket server(1, kSockPath);
+  REQUIRE(server.Start());
+
+  codec_parameters_ptr par = make_h264_parameters();
+  server.SetVideoParams(par.get(), {0, 0});
+
+  av_packet_ptr keyframe = make_packet(500, 0x5A);
+  server.SendMedia(keyframe.get(), StreamId::Video, true, 1000);
+
+  // The capture source closes: the cached keyframe belongs to the old session
+  server.InvalidateKeyframe();
+
+  TestClient client;
+  REQUIRE(client.Connect());
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+  ReceivedMessage hello;
+  REQUIRE(client.ReadMessage(hello));
+  REQUIRE(hello.header.type == static_cast<uint8_t>(MessageType::Hello));
+
+  // Nothing else is queued for the new consumer until fresh media arrives
+  av_packet_ptr fresh = make_packet(100, 0x11);
+  server.SendMedia(fresh.get(), StreamId::Video, false, 2000);
+
+  ReceivedMessage next;
+  REQUIRE(client.ReadMessage(next));
+  REQUIRE(next.header.type == static_cast<uint8_t>(MessageType::Media));
+  REQUIRE(next.header.pts_us == 2000);
+
+  server.Stop();
+}

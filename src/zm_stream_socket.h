@@ -89,6 +89,11 @@ class StreamSocket {
   // body of code kEventSnapshot. Caching only; does not broadcast.
   void SetSnapshotEvent(std::vector<uint8_t> payload);
 
+  // Drop the cached keyframe. Called when the capture source closes so a
+  // consumer that connects during a reconnect is not primed with a keyframe
+  // whose pts belongs to the previous capture session.
+  void InvalidateKeyframe();
+
   // Parses the ZM_STREAM_SOCKET_ALLOWED_UIDS setting (comma-separated uids;
   // whitespace tolerated, malformed entries ignored with a warning).
   static std::vector<uid_t> ParseAllowedUids(const std::string &value);

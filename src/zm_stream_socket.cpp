@@ -296,6 +296,11 @@ void StreamSocket::SetSnapshotEvent(std::vector<uint8_t> payload) {
                           event_sequence_, 0, std::move(payload), true);
 }
 
+void StreamSocket::InvalidateKeyframe() {
+  std::lock_guard<std::mutex> lock(mutex_);
+  keyframe_.reset();
+}
+
 StreamSocket::MessagePtr StreamSocket::MakeMessage(
     MessageType type, StreamId stream, uint8_t flags, uint32_t sequence,
     int64_t pts_us, std::vector<uint8_t> payload, bool control) const {

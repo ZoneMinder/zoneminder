@@ -344,8 +344,10 @@ void StreamSocket::EnqueueLocked(Client &client, const MessagePtr &message) {
          and (client.queued_bytes + message->size() > config_.queue_max_bytes
               or client.queue.size() + 1 > config_.queue_max_msgs)) {
     // Drop the oldest non-control message. The front message is unsafe to
-    // drop once partially written - removing it would desync the framing.
-    auto begin = client.queue.begin() + (client.front_offset > 0 ? 1 : 0);
+    // drop once partially written (removing it would desync the framing) or
+    // while the listener is writing it with the lock released.
+    bool front_pinned = client.front_offset > 0 or client.front_in_flight;
+    auto begin = client.queue.begin() + (front_pinned ? 1 : 0);
     auto victim = std::find_if(begin, client.queue.end(),
                                [](const MessagePtr &m) { return !m->control; });
     if (victim == client.queue.end())
@@ -369,10 +371,22 @@ void StreamSocket::EnqueueLocked(Client &client, const MessagePtr &message) {
   client.queued_bytes += message->size();
 }
 
-bool StreamSocket::DrainClientLocked(Client &client) {
-  while (!client.queue.empty()) {
-    const Message &message = *client.queue.front();
-    size_t offset = client.front_offset;
+bool StreamSocket::DrainClient(Client &client) {
+  while (true) {
+    // Peek the front message under the lock and pin it: EnqueueLocked may
+    // drop queued messages to make room while we are writing, but never the
+    // one in flight, so the bookkeeping below always refers to it.
+    MessagePtr front;
+    size_t offset = 0;
+    {
+      std::lock_guard<std::mutex> lock(mutex_);
+      if (client.queue.empty())
+        return true;
+      front = client.queue.front();
+      offset = client.front_offset;
+      client.front_in_flight = true;
+    }
+    const Message &message = *front;
 
     iovec iov[2];
     int iovcnt = 0;
@@ -395,15 +409,20 @@ bool StreamSocket::DrainClientLocked(Client &client) {
     msghdr msg = {};
     msg.msg_iov = iov;
     msg.msg_iovlen = iovcnt;
-    // MSG_NOSIGNAL: a disconnected client must produce EPIPE, not SIGPIPE
+    // MSG_NOSIGNAL: a disconnected client must produce EPIPE, not SIGPIPE.
+    // This is the kernel copy of the payload; it runs unlocked.
     ssize_t written = ::sendmsg(client.sock->getDesc(), &msg, MSG_NOSIGNAL);
+    int error = written < 0 ? errno : 0;
+
+    std::lock_guard<std::mutex> lock(mutex_);
+    client.front_in_flight = false;
     if (written < 0) {
-      if (errno == EAGAIN or errno == EWOULDBLOCK)
+      if (error == EAGAIN or error == EWOULDBLOCK)
         return true;
-      if (errno == EINTR)
+      if (error == EINTR)
         continue;
-      Debug(1, "StreamSocket: writev to client pid %d failed: %s",
-            client.pid, strerror(errno));
+      Debug(1, "StreamSocket: sendmsg to client pid %d failed: %s",
+            client.pid, strerror(error));
       return false;
     }
 
@@ -416,7 +435,6 @@ bool StreamSocket::DrainClientLocked(Client &client) {
       ++client.sent;
     }
   }
-  return true;
 }
 
 void StreamSocket::SendStatsLocked(Client &client, TimePoint now) {
@@ -527,63 +545,67 @@ void StreamSocket::Run() {
     if (fds[0].revents & POLLIN)
       AcceptClient();
 
+    // clients_ and each Client's socket are owned by this thread; only the
+    // queues and counters are shared with producers, so the lock is taken
+    // just around those, never around the socket writes.
     TimePoint now = std::chrono::steady_clock::now();
-    {
-      std::lock_guard<std::mutex> lock(mutex_);
-      size_t fd_index = 2;
-      for (auto it = clients_.begin(); it != clients_.end();) {
-        Client &client = **it;
-        short revents = 0;
-        if (fd_index < fds.size() and fds[fd_index].fd == client.sock->getDesc()) {
-          revents = fds[fd_index].revents;
-          ++fd_index;
-        }
+    size_t fd_index = 2;
+    for (auto it = clients_.begin(); it != clients_.end();) {
+      Client &client = **it;
+      short revents = 0;
+      if (fd_index < fds.size() and fds[fd_index].fd == client.sock->getDesc()) {
+        revents = fds[fd_index].revents;
+        ++fd_index;
+      }
 
-        bool remove = false;
-        if (revents & (POLLERR | POLLHUP | POLLNVAL))
+      bool remove = false;
+      if (revents & (POLLERR | POLLHUP | POLLNVAL))
+        remove = true;
+
+      if (!remove and (revents & POLLIN)) {
+        // Protocol v1 has no client->server messages; discard inbound bytes,
+        // a zero read means the peer closed.
+        uint8_t buffer[256];
+        ssize_t bytes = ::recv(client.sock->getDesc(), buffer, sizeof(buffer), 0);
+        if (bytes == 0)
           remove = true;
+      }
 
-        if (!remove and (revents & POLLIN)) {
-          // Protocol v1 has no client->server messages; discard inbound bytes,
-          // a zero read means the peer closed.
-          uint8_t buffer[256];
-          ssize_t bytes = ::recv(client.sock->getDesc(), buffer, sizeof(buffer), 0);
-          if (bytes == 0)
-            remove = true;
-        }
+      if (!remove)
+        remove = !DrainClient(client);
 
-        if (!remove and !client.queue.empty())
-          remove = !DrainClientLocked(client);
-
-        if (!remove)
-          SendStatsLocked(client, now);
-
-        if (!remove and client.queued_bytes > 0
-            and now - client.last_progress > config_.stall_timeout) {
+      if (!remove) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        SendStatsLocked(client, now);
+        if (client.queued_bytes > 0 and now - client.last_progress > config_.stall_timeout) {
           Warning("StreamSocket: monitor %u disconnecting stalled client uid %u pid %d"
                   " (%zu bytes queued, %" PRIu64 " dropped)",
                   monitor_id_, client.uid, client.pid, client.queued_bytes, client.dropped);
           remove = true;
         }
+      }
 
-        if (remove) {
-          Info("StreamSocket: monitor %u client uid %u pid %d disconnected"
-               " (sent %" PRIu64 ", dropped %" PRIu64 ")",
-               monitor_id_, client.uid, client.pid, client.sent, client.dropped);
-          it = clients_.erase(it);
-        } else {
-          ++it;
-        }
+      if (remove) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        Info("StreamSocket: monitor %u client uid %u pid %d disconnected"
+             " (sent %" PRIu64 ", dropped %" PRIu64 ")",
+             monitor_id_, client.uid, client.pid, client.sent, client.dropped);
+        it = clients_.erase(it);
+      } else {
+        ++it;
       }
     }
   }
 
   // Best-effort BYE so consumers can tell shutdown from failure
-  std::lock_guard<std::mutex> lock(mutex_);
-  MessagePtr bye = MakeMessage(MessageType::Bye, StreamId::Video, 0, 0, 0, {}, true);
-  for (std::unique_ptr<Client> &client : clients_) {
-    EnqueueLocked(*client, bye);
-    DrainClientLocked(*client);
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    MessagePtr bye = MakeMessage(MessageType::Bye, StreamId::Video, 0, 0, 0, {}, true);
+    for (std::unique_ptr<Client> &client : clients_)
+      EnqueueLocked(*client, bye);
   }
+  for (std::unique_ptr<Client> &client : clients_)
+    DrainClient(*client);
+  std::lock_guard<std::mutex> lock(mutex_);
   clients_.clear();
 }

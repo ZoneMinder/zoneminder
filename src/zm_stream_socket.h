@@ -126,6 +126,7 @@ class StreamSocket {
     std::deque<MessagePtr> queue;
     size_t queued_bytes = 0;
     size_t front_offset = 0;             // bytes of queue.front() already written
+    bool front_in_flight = false;        // queue.front() is being written outside the lock
     uint64_t sent = 0;
     uint64_t dropped = 0;
     TimePoint last_progress;
@@ -146,8 +147,13 @@ class StreamSocket {
                          std::vector<uint8_t> payload, bool control) const;
   void EnqueueLocked(Client &client, const MessagePtr &message);
   void BroadcastLocked(const MessagePtr &message);
-  bool DrainClientLocked(Client &client);  // false = disconnect this client
   void SendStatsLocked(Client &client, TimePoint now);
+
+  // Writes as much of the client's queue as the socket accepts. Takes mutex_
+  // itself, and only for bookkeeping: the kernel copy in sendmsg happens with
+  // the lock released so the capture thread's SendMedia never waits on it.
+  // Listener thread only. Returns false when the client must be disconnected.
+  bool DrainClient(Client &client);
 
   void Wake();
 

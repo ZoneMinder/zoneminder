@@ -48,6 +48,7 @@ struct Collector {
   std::condition_variable cv;
   std::vector<std::pair<StreamId, HelloInfo>> hellos;
   std::vector<std::pair<Header, std::vector<uint8_t>>> media;
+  std::vector<std::pair<Header, MonitorEvent>> events;
   int byes = 0;
   int disconnects = 0;
 
@@ -56,6 +57,11 @@ struct Collector {
     callbacks.on_hello = [this](StreamId stream, const HelloInfo &info, uint32_t) {
       std::lock_guard<std::mutex> lock(mutex);
       hellos.emplace_back(stream, info);
+      cv.notify_all();
+    };
+    callbacks.on_event = [this](const Header &header, const MonitorEvent &event) {
+      std::lock_guard<std::mutex> lock(mutex);
+      events.emplace_back(header, event);
       cv.notify_all();
     };
     callbacks.on_media = [this](const Header &header, const uint8_t *data, size_t size) {
@@ -260,4 +266,59 @@ TEST_CASE("StreamSocketClient skips unknown message types", "[stream_socket_clie
   }
   ::close(fds[1]);
   client.Stop();
+}
+
+TEST_CASE("StreamSocketClient delivers EVENT frames", "[stream_socket_client]") {
+  StreamSocket server(7, kSockPath);
+  REQUIRE(server.Start());
+
+  // A cached snapshot is replayed on connect, then a broadcast state change
+  MonitorEvent snapshot;
+  snapshot.code = kEventSnapshot;
+  snapshot.state_id = 0;      snapshot.has_state_id = true;
+  snapshot.state_name = "IDLE";
+  snapshot.health_code = kEventCaptureFailed;  snapshot.has_health_code = true;
+  snapshot.message = "Capture failed";
+  server.SetSnapshotEvent(BuildEvent(snapshot));
+
+  Collector collector;
+  StreamSocketClient client(std::string(kSockPath), collector.MakeCallbacks());
+
+  REQUIRE(collector.WaitFor([&] { return collector.events.size() >= 1; }));
+  {
+    std::lock_guard<std::mutex> lock(collector.mutex);
+    const Header &header = collector.events[0].first;
+    const MonitorEvent &event = collector.events[0].second;
+    REQUIRE(header.stream == static_cast<uint8_t>(StreamId::Monitor));
+    REQUIRE(event.code == kEventSnapshot);
+    REQUIRE(event.state_name == "IDLE");
+    REQUIRE(event.has_health_code);
+    REQUIRE(event.health_code == kEventCaptureFailed);
+    REQUIRE(event.message == "Capture failed");
+  }
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  MonitorEvent change;
+  change.code = kEventStateChanged;
+  change.state_id = 2;       change.has_state_id = true;
+  change.prev_state_id = 0;  change.has_prev_state_id = true;
+  change.state_name = "ALARM";
+  change.wall_clock_us = 1718355103501000ULL;  change.has_wall_clock = true;
+  server.SendMonitorEvent(BuildEvent(change));
+
+  REQUIRE(collector.WaitFor([&] { return collector.events.size() >= 2; }));
+  {
+    std::lock_guard<std::mutex> lock(collector.mutex);
+    const Header &header = collector.events[1].first;
+    const MonitorEvent &event = collector.events[1].second;
+    REQUIRE(header.sequence == 0);  // first event produced by this monitor
+    REQUIRE(event.code == kEventStateChanged);
+    REQUIRE(event.state_id == 2);
+    REQUIRE(event.prev_state_id == 0);
+    REQUIRE(event.state_name == "ALARM");
+    REQUIRE(event.wall_clock_us == 1718355103501000ULL);
+  }
+
+  client.Stop();
+  server.Stop();
 }

@@ -33,7 +33,8 @@
 // a fresh HELLO arrives after every (re)connect.
 //
 // Callbacks run on the client's reader thread. Payload pointers passed to
-// on_media are only valid for the duration of the call.
+// on_media, and the MonitorEvent passed to on_event, are only valid for the
+// duration of the call.
 class StreamSocketClient {
  public:
   struct Callbacks {
@@ -44,6 +45,11 @@ class StreamSocketClient {
     std::function<void(const zm::stream_socket::Header &header,
                        const uint8_t *data, size_t size)> on_media;
     std::function<void(uint64_t sent, uint64_t dropped)> on_stats;
+    // EVENT messages (monitor lifecycle: snapshot, capture faults, state
+    // changes). header.sequence is the per-monitor event counter and
+    // header.generation the media epoch in effect when it was emitted.
+    std::function<void(const zm::stream_socket::Header &header,
+                       const zm::stream_socket::MonitorEvent &event)> on_event;
     std::function<void()> on_bye;
     std::function<void()> on_disconnect;  // EOF or read error; reconnect follows
   };

@@ -180,6 +180,18 @@ void StreamSocketClient::Dispatch(const Header &header,
         callbacks_.on_stats(sent, dropped);
       break;
     }
+    case static_cast<uint8_t>(MessageType::Event): {
+      MonitorEvent event;
+      if (!ParseEvent(payload, size, event)) {
+        Warning("StreamSocketClient: malformed EVENT on %s", path_.c_str());
+        return;
+      }
+      Debug(1, "StreamSocketClient: EVENT 0x%04x sequence %u on %s",
+            event.code, header.sequence, path_.c_str());
+      if (callbacks_.on_event)
+        callbacks_.on_event(header, event);
+      break;
+    }
     case static_cast<uint8_t>(MessageType::Bye):
       Debug(1, "StreamSocketClient: BYE on %s", path_.c_str());
       if (callbacks_.on_bye)

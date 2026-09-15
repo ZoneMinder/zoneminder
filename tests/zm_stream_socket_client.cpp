@@ -27,15 +27,20 @@
 #include <cstring>
 #include <memory>
 #include <mutex>
+#include <string>
 #include <sys/socket.h>
 #include <thread>
+#include <unistd.h>
 #include <vector>
 
 using namespace zm::stream_socket;
 
 namespace {
 
-constexpr char kSockPath[] = "/tmp/zm.stream_socket_client.unittest.sock";
+// Per-process path so concurrent test runs do not share a socket file
+const std::string kSockPathStr =
+    "/tmp/zm.stream_socket_client.unittest." + std::to_string(getpid()) + ".sock";
+const char *kSockPath = kSockPathStr.c_str();
 
 struct AVCodecParametersDeleter {
   void operator()(AVCodecParameters *par) const { avcodec_parameters_free(&par); }

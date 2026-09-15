@@ -19,7 +19,8 @@
 ZM_STREAM_SOCKET_GROUP=@ZM_WEB_GROUP@
 
 # Optional comma-separated list of numeric user ids allowed to connect to
-# the stream sockets, verified via SO_PEERCRED. Empty allows any user that
+# the stream sockets, verified with kernel peer credentials (SO_PEERCRED on
+# Linux, getpeereid on the BSDs and macOS). Empty allows any user that
 # passes the filesystem permissions.
 ZM_STREAM_SOCKET_ALLOWED_UIDS=
 

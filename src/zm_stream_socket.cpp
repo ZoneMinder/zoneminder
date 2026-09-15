@@ -145,7 +145,10 @@ std::vector<uid_t> StreamSocket::ParseAllowedUids(const std::string &value) {
 }
 
 bool StreamSocket::CheckPeer(int fd, uid_t &uid, pid_t &pid) const {
-#ifdef SO_PEERCRED
+  // Kernel-verified peer credentials: SO_PEERCRED on Linux, getpeereid on the
+  // BSDs and macOS (which report no pid). Without either the uid allow-list
+  // cannot be enforced and only the filesystem permissions apply.
+#if defined(SO_PEERCRED)
   ucred cred = {};
   socklen_t len = sizeof(cred);
   if (getsockopt(fd, SOL_SOCKET, SO_PEERCRED, &cred, &len) != 0) {
@@ -154,13 +157,24 @@ bool StreamSocket::CheckPeer(int fd, uid_t &uid, pid_t &pid) const {
   }
   uid = cred.uid;
   pid = cred.pid;
+#elif defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+  gid_t gid = 0;
+  if (getpeereid(fd, &uid, &gid) != 0) {
+    Warning("StreamSocket: getpeereid failed on %s: %s", path_.c_str(), strerror(errno));
+    return config_.allowed_uids.empty();
+  }
+  pid = 0;
+#else
+  if (!config_.allowed_uids.empty()) {
+    Warning("StreamSocket: peer credentials unavailable on this platform,"
+            " ZM_STREAM_SOCKET_ALLOWED_UIDS is not enforced on %s", path_.c_str());
+  }
+  return true;
+#endif
   if (config_.allowed_uids.empty() or uid == geteuid())
     return true;
   return std::find(config_.allowed_uids.begin(), config_.allowed_uids.end(), uid)
          != config_.allowed_uids.end();
-#else
-  return true;
-#endif
 }
 
 void StreamSocket::SetVideoParams(const AVCodecParameters *par, AVRational frame_rate) {

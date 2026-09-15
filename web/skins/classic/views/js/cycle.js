@@ -17,6 +17,9 @@ function cyclePause() {
 }
 
 function cycleStart() {
+  // The play button can be reached without a pause in between, and the old id
+  // is unrecoverable once overwritten. refs #5135
+  clearInterval(intervalId);
   intervalId = setInterval(nextCycleView, cycleRefreshTimeout);
   pauseBtn.prop('disabled', false);
   playBtn.prop('disabled', true);

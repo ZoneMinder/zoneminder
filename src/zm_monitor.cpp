@@ -4353,7 +4353,12 @@ int Monitor::PrimeCapture() {
   if (stream_socket) {
     if (video_stream_id >= 0) {
       AVStream *videoStream = camera->getVideoStream();
-      if (videoStream and videoStream->codecpar) {
+      // Cameras that hand us decoded images (V4L2, MJPEG over HTTP, VNC) have a
+      // stream with no codec id and produce no encoded packets, so there is no
+      // media to announce; a HELLO without a codec would only be rejected by
+      // every consumer. The socket still serves lifecycle events for them.
+      if (videoStream and videoStream->codecpar
+          and videoStream->codecpar->codec_id != AV_CODEC_ID_NONE) {
         AVRational frame_rate = videoStream->avg_frame_rate.num ?
                                 videoStream->avg_frame_rate : videoStream->r_frame_rate;
         stream_socket->SetVideoParams(videoStream->codecpar, frame_rate);
@@ -4361,7 +4366,8 @@ int Monitor::PrimeCapture() {
     }
     if (record_audio and (audio_stream_id >= 0)) {
       AVStream *audioStream = camera->getAudioStream();
-      if (audioStream and audioStream->codecpar)
+      if (audioStream and audioStream->codecpar
+          and audioStream->codecpar->codec_id != AV_CODEC_ID_NONE)
         stream_socket->SetAudioParams(audioStream->codecpar);
     }
     // Priming succeeded: capture is healthy. Cache a current-status snapshot so

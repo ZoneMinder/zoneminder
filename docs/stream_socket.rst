@@ -22,6 +22,11 @@ consumers derive it from ``ZM_PATH_SOCKS`` (zm.conf) and the monitor id, and
 should connect with retry — the socket appears when zmc starts and survives
 camera reconnects.
 
+Only cameras that deliver encoded packets (the Ffmpeg source and anything
+built on it) announce a media stream. Sources that hand zmc decoded images
+(V4L2, MJPEG over HTTP, VNC) have no encoded stream to forward, so their
+socket sends no HELLO or MEDIA and carries lifecycle events only.
+
 Access control
 --------------
 
@@ -29,7 +34,8 @@ Sockets are created with mode 0660, owned by the ZoneMinder user, with the
 group taken from ``ZM_STREAM_SOCKET_GROUP`` (conf.d, defaults to the web
 group). Grant a service access by group membership. Optionally,
 ``ZM_STREAM_SOCKET_ALLOWED_UIDS`` (comma-separated numeric uids) restricts
-connections via kernel-verified ``SO_PEERCRED``.
+connections using kernel-verified peer credentials (``SO_PEERCRED`` on
+Linux, ``getpeereid`` on the BSDs and macOS).
 
 Per-consumer queue limits are tunable in conf.d:
 ``ZM_STREAM_SOCKET_MAX_CLIENTS`` (default 8),
@@ -72,15 +78,22 @@ Message types:
   sample rate/channels (u32), ``0x09``/``0x0A`` profile/level (u32).
 
 ``0x02 MEDIA``
-  One complete video access unit (Annex B for H.264/H.265) or one audio
-  packet (raw, not ADTS-wrapped — the HELLO extradata makes wrapping
-  unnecessary).
+  One complete video access unit or one audio packet (raw, not
+  ADTS-wrapped — the HELLO extradata makes wrapping unnecessary). The
+  bytes are exactly what the camera's demuxer produced, so the H.264/H.265
+  NAL framing follows the source: RTSP cameras deliver Annex B start
+  codes, while MP4/MKV file sources deliver AVCC length-prefixed NALs. A
+  consumer can tell which from the HELLO extradata (an AVCC
+  ``avcC``/``hvcC`` record starts with ``0x01``; Annex B parameter sets
+  start with ``00 00 00 01``). ``zm_rtsp_server`` handles Annex B only.
 
 ``0x03 KEYFRAME``
   Sent once after HELLO to a newly connected consumer: the most recent
   cached video keyframe access unit, carrying its original pts. Lets a
   consumer render a first frame immediately instead of waiting up to a
-  GOP; treat the next MEDIA keyframe as the stream anchor.
+  GOP; treat the next MEDIA keyframe as the stream anchor. The cache is
+  cleared when the camera connection closes, so nothing is replayed from
+  a previous capture session.
 
 ``0x04 STATS``
   Periodic (default every 5 s): u64 messages sent, u64 messages dropped
@@ -128,6 +141,7 @@ There are no client-to-server messages in version 1; zmc ignores inbound
 bytes.
 
 The reference encoder/decoder lives in ``src/zm_stream_socket_protocol.h``;
-``src/zm_stream_socket_client.cpp`` is a reusable C++ consumer, and
+``src/zm_stream_socket_client.cpp`` is a reusable C++ consumer with
+callbacks for HELLO, MEDIA/KEYFRAME, STATS, EVENT, BYE and disconnect, and
 ``tools/zm_stream_socket_dump.py`` is a dependency-free Python example that
 prints every message.

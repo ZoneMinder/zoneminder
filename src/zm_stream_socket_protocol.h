@@ -56,6 +56,9 @@ constexpr size_t kHeaderSize = 24;
 constexpr uint32_t kHeaderLengthBytes = kHeaderSize - sizeof(uint32_t);
 // Sanity cap on the length field; larger values mean a corrupt or hostile peer.
 constexpr uint32_t kMaxMessageLength = 32 * 1024 * 1024;
+// Largest value a TLV can carry (u16 length field). Longer values are
+// omitted (extradata) or clamped (strings) by the builders.
+constexpr size_t kMaxTlvValueSize = 0xffff;
 
 enum class MessageType : uint8_t {
   Hello    = 0x01,

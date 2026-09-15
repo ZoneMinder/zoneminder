@@ -18,6 +18,7 @@
 #include "zm_stream_socket_protocol.h"
 
 #include "zm_ffmpeg.h"
+#include "zm_logger.h"
 
 #include <cstring>
 
@@ -81,7 +82,8 @@ void append_tlv_u64(std::vector<uint8_t> &out, uint8_t tag, uint64_t value) {
 
 void append_tlv_str(std::vector<uint8_t> &out, uint8_t tag, const std::string &value) {
   // TLV length is u16; clamp pathologically long strings rather than overflow.
-  uint16_t len = value.size() > 0xffff ? 0xffff : static_cast<uint16_t>(value.size());
+  uint16_t len = value.size() > kMaxTlvValueSize ? kMaxTlvValueSize
+                                                 : static_cast<uint16_t>(value.size());
   append_tlv(out, tag, reinterpret_cast<const uint8_t *>(value.data()), len);
 }
 
@@ -121,7 +123,15 @@ std::vector<uint8_t> BuildHello(const AVCodecParameters *par, AVRational frame_r
 
   append_tlv_u32(out, kTlvCodecId, static_cast<uint32_t>(par->codec_id));
   if (par->extradata and par->extradata_size > 0) {
-    append_tlv(out, kTlvExtradata, par->extradata, static_cast<uint16_t>(par->extradata_size));
+    if (static_cast<size_t>(par->extradata_size) > kMaxTlvValueSize) {
+      // A TLV value is at most 64 KiB; parameter sets are a few hundred bytes,
+      // so anything bigger is not something a consumer could use anyway.
+      // Omit it rather than send a silently truncated blob.
+      Warning("StreamSocket: extradata of %d bytes exceeds the HELLO TLV limit"
+              " of %zu bytes, omitting it", par->extradata_size, kMaxTlvValueSize);
+    } else {
+      append_tlv(out, kTlvExtradata, par->extradata, static_cast<uint16_t>(par->extradata_size));
+    }
   }
   if (par->codec_type == AVMEDIA_TYPE_VIDEO) {
     if (par->width > 0) append_tlv_u32(out, kTlvWidth, par->width);

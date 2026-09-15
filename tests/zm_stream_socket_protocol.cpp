@@ -381,3 +381,26 @@ TEST_CASE("stream_socket::ParseEvent rejects malformed input") {
     REQUIRE(out.code == kEventCaptureResumed);
   }
 }
+
+TEST_CASE("stream_socket::BuildHello omits extradata larger than a TLV") {
+  codec_parameters_ptr par{avcodec_parameters_alloc()};
+  par->codec_type = AVMEDIA_TYPE_VIDEO;
+  par->codec_id = AV_CODEC_ID_H264;
+  std::vector<uint8_t> huge(kMaxTlvValueSize + 1, 0x42);
+  set_extradata(par.get(), huge);
+
+  std::vector<uint8_t> payload = BuildHello(par.get(), {0, 0});
+  HelloInfo info;
+  REQUIRE(ParseHello(payload.data(), payload.size(), info));
+  REQUIRE(info.codec_id == AV_CODEC_ID_H264);
+  // Rather than a silently truncated blob, the tag is left out entirely
+  REQUIRE(info.extradata.empty());
+
+  // Exactly the limit still travels intact
+  std::vector<uint8_t> limit(kMaxTlvValueSize, 0x24);
+  av_freep(&par->extradata);
+  set_extradata(par.get(), limit);
+  payload = BuildHello(par.get(), {0, 0});
+  REQUIRE(ParseHello(payload.data(), payload.size(), info));
+  REQUIRE(info.extradata == limit);
+}

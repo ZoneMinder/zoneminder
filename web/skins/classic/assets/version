@@ -14,3 +14,10 @@ https://github.com/john-doherty/swiped-events
 ***********************************
 mb.extruder Oct 24, 2018 with magor changes IgorA100
 https://github.com/pupunzi/jquery.mb.extruder
+***********************************
+audioMotion-analyzer - 4.5.4 (required version, see
+SUPPORTED_AUDIO_MOTION_ANALYZER_VERSION in ../js/audioMotionAnalyzer.js)
+NOT BUNDLED - AGPL-3.0-or-later, installed by the administrator.
+See audioMotion-analyzer/src/help.txt
+https://github.com/hvianna/audioMotion-analyzer
+https://cdn.jsdelivr.net/npm/audiomotion-analyzer@4.5.4/src/audioMotion-analyzer.js

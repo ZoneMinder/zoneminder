@@ -219,3 +219,7 @@ _codeql_detected_source_root
 .grepai/
 .codegraph/
 *.bak
+
+# audioMotion-analyzer is AGPL-3.0-or-later and is installed by the
+# administrator rather than shipped; see its src/help.txt.
+web/skins/*/assets/audioMotion-analyzer/src/audioMotion-analyzer.js

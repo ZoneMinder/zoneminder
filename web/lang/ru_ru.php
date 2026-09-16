@@ -139,8 +139,8 @@ $SLANG = array(
     'AttrSystemLoad'       => 'Нагрузка проц.',
     'AttrTotalScore'       => 'Сумм. оценка',
     'AudioMotionVersionOK' => 'Установлена корректная версия "{AudioMotionVersionInstalled}"',
-    'AudioMotionVersionNotInstalled' => 'Требуется установка audio motion analyzer версии "{AudioMotionVersionRequired}"~~Ссылка для загрузки: https://cdn.jsdelivr.net/npm/audiomotion-analyzer@{AudioMotionVersionRequired} или https://github.com/hvianna/audioMotion-analyzer/releases/tag/{AudioMotionVersionRequired}',
-    'AudioMotionVersionWrongVersion' => 'Требуется версия анализатора "{AudioMotionVersionRequired}", но у Вас установлена "{AudioMotionVersionInstalled}"~~Ссылка для загрузки: https://cdn.jsdelivr.net/npm/audiomotion-analyzer@{AudioMotionVersionRequired} или https://github.com/hvianna/audioMotion-analyzer/releases/tag/{AudioMotionVersionRequired}',
+    'AudioMotionVersionNotInstalled' => 'Требуется установка audio motion analyzer версии "{AudioMotionVersionRequired}"~~Ссылка для загрузки: https://cdn.jsdelivr.net/npm/audiomotion-analyzer@{AudioMotionVersionRequired}/src/audioMotion-analyzer.js или https://github.com/hvianna/audioMotion-analyzer/releases/tag/{AudioMotionVersionRequired}',
+    'AudioMotionVersionWrongVersion' => 'Требуется версия анализатора "{AudioMotionVersionRequired}", но у Вас установлена "{AudioMotionVersionInstalled}"~~Ссылка для загрузки: https://cdn.jsdelivr.net/npm/audiomotion-analyzer@{AudioMotionVersionRequired}/src/audioMotion-analyzer.js или https://github.com/hvianna/audioMotion-analyzer/releases/tag/{AudioMotionVersionRequired}',
     'Auth'                 => 'Авторизация',
     'Auto'                 => 'Авто',
     'AutoStopTimeout'      => 'Тайм-аут автоостановки',
@@ -685,7 +685,7 @@ $SLANG = array(
     'ReportEventAudit'     => 'Отчёт о событиях аудита',    // Edited - 2019-03-24
     'Reports'              => 'Отчеты',
     'RequestMissing'       => 'В запросе отсутствует',
-    'RequiresAudioMotionEnabled' => 'Требуется установка файла "audioMotion-analyzer.js"',
+    'RequiresAudioMotionEnabled' => 'Требуется установка файла "skins/classic/assets/audioMotion-analyzer/src/audioMotion-analyzer.js"',
     'Reset'                => 'Сбросить',
     'ResetEventCounts'     => 'Обнулить счетчик событий',
     'Restart'              => 'Перезапустить',
@@ -1232,10 +1232,12 @@ $OLANG = array(
    'OPTIONS_WHATTODISPLAY' => array(
     'Help' => '
      На страницах живого просмотра, монтажа и просмотра события возможно отображение движения аудио.~~
-     Для этого необходимо установить файл "/skins/MySkin/assets/audioMotion-analyzer/src/audioMotion-analyzer.js".~~
-     Указанный файл можно скачать по ссылкам:~~
-     https://cdn.jsdelivr.net/npm/audiomotion-analyzer@X.X.X где X.X.X это номер версии~~
-     https://github.com/hvianna/audioMotion-analyzer/releases
+     Библиотека audioMotion-analyzer распространяется под лицензией AGPL-3.0-or-later и не входит в состав ZoneMinder. Для отображения визуализации необходимо установить файл "skins/classic/assets/audioMotion-analyzer/src/audioMotion-analyzer.js" в веб-каталоге, заменив "classic" на имя используемого скина.~~
+     Указанный файл можно скачать по ссылкам, где X.X.X это номер требуемой версии:~~
+     https://cdn.jsdelivr.net/npm/audiomotion-analyzer@X.X.X/src/audioMotion-analyzer.js~~
+     https://github.com/hvianna/audioMotion-analyzer/releases/tag/X.X.X (файл находится в каталоге src/ архива с исходным кодом)~~
+     Не используйте ссылку https://cdn.jsdelivr.net/npm/audiomotion-analyzer@X.X.X без пути: по ней отдаётся минифицированная UMD-сборка, а не ES-модуль, который ожидается по этому пути.~~
+     Требуемая версия указана ниже, под этой настройкой, и задаётся константой SUPPORTED_AUDIO_MOTION_ANALYZER_VERSION в файле skins/classic/js/audioMotionAnalyzer.js.
     '
    ),
   'FUNCTION_ANALYSIS_ENABLED' => array(

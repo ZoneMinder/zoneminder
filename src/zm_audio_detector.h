@@ -57,6 +57,20 @@ class AudioDetector {
 
   int Level() const { return level_.load(std::memory_order_relaxed); }
 
+  // Highest level seen since the last call, and resets to 0 so the next call
+  // covers the next interval. Frames rows are written well below the capture
+  // rate, so recording Level() at write time would miss a bang that happened
+  // between two rows and had already decayed; the peak survives it.
+  //
+  // Called from the analysis thread while the capture thread is still writing,
+  // hence the exchange rather than a read followed by a store.
+  int TakePeak() { return peak_.exchange(0, std::memory_order_relaxed); }
+
+  // Raises the peak to level if it is higher. Called by Process for each
+  // decoded packet; public so the peak can be exercised without standing up a
+  // decoder, the same reason RmsS16 and LevelFromRms are.
+  void RaisePeak(int level);
+
   // --- Pure helpers, split out so the scale is testable without a decoder ----
 
   // Root-mean-square of interleaved or planar signed 16-bit samples, as a
@@ -81,6 +95,8 @@ class AudioDetector {
   AVCodecContext *codec_context_ = nullptr;
   // Written by the capture thread, read by the analysis thread.
   std::atomic<int> level_{0};
+  // Written by the capture thread, taken and cleared by the analysis thread.
+  std::atomic<int> peak_{0};
 };
 
 #endif // ZM_AUDIO_DETECTOR_H

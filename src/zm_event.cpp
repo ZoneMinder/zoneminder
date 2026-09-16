@@ -82,6 +82,11 @@ Event::Event(
 
   SystemTimePoint now = std::chrono::system_clock::now();
 
+  // Drop whatever the detector accumulated while nothing was recording,
+  // otherwise this event's first row reports the loudest moment since the
+  // previous event ended instead of its own.
+  monitor->TakeAudioPeak();
+
   packetqueue = monitor->GetPacketQueue();
 
   if (start_time.time_since_epoch() == Seconds(0)) {
@@ -524,7 +529,7 @@ void Event::AddPacket_(const std::shared_ptr<ZMPacket>packet) {
 } // end void Event::AddPacket_(const std::shared_ptr<ZMPacket>packet) {
 
 void Event::WriteDbFrames() {
-  std::string frame_insert_sql = "INSERT INTO `Frames` (`EventId`, `FrameId`, `Type`, `TimeStamp`, `Delta`, `Score`) VALUES ";
+  std::string frame_insert_sql = "INSERT INTO `Frames` (`EventId`, `FrameId`, `Type`, `TimeStamp`, `Delta`, `Score`, `AudioLevel`) VALUES ";
   std::string stats_insert_sql = "INSERT INTO `Stats` (`EventId`, `FrameId`, `MonitorId`, `ZoneId`, "
                                  "`PixelDiff`, `AlarmPixels`, `FilterPixels`, `BlobPixels`,"
                                  "`Blobs`,`MinBlobSize`, `MaxBlobSize`, "
@@ -534,12 +539,13 @@ void Event::WriteDbFrames() {
   while (frame_data.size()) {
     Frame *frame = frame_data.front();
     frame_data.pop();
-    frame_insert_sql += stringtf("\n( %" PRIu64 ", %d, '%s', from_unixtime( %jd ), %.2f, %d ),",
+    frame_insert_sql += stringtf("\n( %" PRIu64 ", %d, '%s', from_unixtime( %jd ), %.2f, %d, %d ),",
                                  id, frame->frame_id,
                                  frame_type_names[frame->type],
                                  static_cast<intmax_t>(std::chrono::system_clock::to_time_t(frame->timestamp)),
                                  std::chrono::duration_cast<FPSeconds>(frame->delta).count(),
-                                 frame->score);
+                                 frame->score,
+                                 frame->audio_level);
     if (config.record_event_stats and frame->zone_stats.size()) {
       for (ZoneStats &stats : frame->zone_stats) {
         stats_insert_sql += stringtf("\n(%" PRIu64 ",%d,%u,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%u),",
@@ -673,8 +679,13 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
           score,
           packet->zone_stats.size());
 
+    // Taken here rather than per analysed frame: rows are written well below
+    // the capture rate, so this is the peak over the interval the row actually
+    // represents. Reading it clears it for the next row.
+    const int audio_level = monitor->TakeAudioPeak();
+
     // The idea is to write out 1/sec
-    frame_data.push(new Frame(id, frames, frame_type, packet->timestamp, delta_time, score, packet->zone_stats));
+    frame_data.push(new Frame(id, frames, frame_type, packet->timestamp, delta_time, score, audio_level, packet->zone_stats));
     double fps = monitor->get_capture_fps();
     if (write_to_db
         or

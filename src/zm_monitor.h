@@ -1151,6 +1151,13 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int Importance() const { return importance; }
   int StartupDelay() const { return startup_delay; }
 
+  // Peak audio level since the last call, for the Frames row about to be
+  // written. Clears on read, so each row covers its own interval. Always 0
+  // when the monitor has AudioDetection off, because nothing runs the
+  // detector then, and that is what tells the event view there is no audio
+  // series to draw.
+  int TakeAudioPeak() { return audio_detector.TakePeak(); }
+
  private:
   // True after a keyframe is sent until the decoder outputs the first frame.
   // Used by keyframe-based decoding modes to feed any required follow-up packets.

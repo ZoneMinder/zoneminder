@@ -167,3 +167,53 @@ TEST_CASE("Audio detector with no decoder open") {
     REQUIRE(detector.Level() == 0);
   }
 }
+
+TEST_CASE("Audio peak tracking") {
+  // The peak is what gets persisted in Frames.AudioLevel. Frames rows are
+  // written well below the capture rate -- only alarm, bulk and
+  // score-increasing frames get one -- so sampling Level() when the row is
+  // written would drop a bang that happened between two rows and had already
+  // decayed by the time the row was built.
+  AudioDetector detector;
+
+  SECTION("starts at zero") {
+    REQUIRE(detector.TakePeak() == 0);
+  }
+
+  SECTION("keeps the loudest level seen, not the most recent") {
+    detector.RaisePeak(12);
+    detector.RaisePeak(73);
+    detector.RaisePeak(4);
+    REQUIRE(detector.TakePeak() == 73);
+  }
+
+  SECTION("taking it clears it, so each row covers its own interval") {
+    detector.RaisePeak(73);
+    REQUIRE(detector.TakePeak() == 73);
+    REQUIRE(detector.TakePeak() == 0);
+
+    detector.RaisePeak(5);
+    REQUIRE(detector.TakePeak() == 5);
+  }
+
+  SECTION("a quieter interval after a loud one is not held up by it") {
+    detector.RaisePeak(90);
+    detector.TakePeak();
+    detector.RaisePeak(3);
+    REQUIRE(detector.TakePeak() == 3);
+  }
+
+  SECTION("the peak is independent of the current level") {
+    // Level() is what the alarm threshold compares against and must keep
+    // tracking the present; TakePeak() must not disturb it.
+    detector.RaisePeak(64);
+    REQUIRE(detector.Level() == 0);
+    REQUIRE(detector.TakePeak() == 64);
+    REQUIRE(detector.Level() == 0);
+  }
+
+  SECTION("silence is recorded as silence") {
+    detector.RaisePeak(0);
+    REQUIRE(detector.TakePeak() == 0);
+  }
+}

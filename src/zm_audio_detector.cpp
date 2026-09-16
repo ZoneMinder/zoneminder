@@ -185,5 +185,16 @@ int AudioDetector::Process(const AVPacket *packet) {
   if (level < 0) return Level();
 
   level_.store(level, std::memory_order_relaxed);
+  RaisePeak(level);
   return level;
+}
+
+void AudioDetector::RaisePeak(int level) {
+  int current = peak_.load(std::memory_order_relaxed);
+  while (level > current &&
+         !peak_.compare_exchange_weak(current, level,
+                                      std::memory_order_relaxed,
+                                      std::memory_order_relaxed)) {
+    // compare_exchange_weak refreshed current; loop unless it now wins.
+  }
 }

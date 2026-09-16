@@ -199,6 +199,10 @@ $statusData = array(
       'FrameId' => true,
       'Type' => true,
       'Delta' => true,
+      // elements is a whitelist, so the event view's cue graph was reading an
+      // undefined Score off every frame until these were added.
+      'Score' => true,
+      'AudioLevel' => true,
     ),
   ),
   'frame' => array(

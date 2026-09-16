@@ -56,8 +56,9 @@ test('audio level is clamped to 0-100, the range the detector produces', () => {
 
 test('all-zero audio is reported as no audio, not as measured silence', () => {
   // Every row of every event recorded before Frames.AudioLevel existed, and
-  // every row from a monitor with AudioDetection off, is 0. Drawing a flat
-  // line along the floor for those would claim silence was measured.
+  // every row from a monitor with no audio, is 0. Drawing a flat line along
+  // the floor for those would claim silence was measured. A monitor with
+  // AudioDetection off is not one of these: it still records levels.
   const s = LG.levelGraphSeries([row(0, 'Normal', 5, 0), row(1, 'Alarm', 9, 0)], 10);
   assert.strictEqual(s.hasAudio, false);
   assert.strictEqual(s.hasScores, true);

@@ -46,6 +46,11 @@ class AudioDetector {
   // Takes a reference to the stream's parameters. Returns false if no decoder
   // is available for the codec, in which case the detector stays disabled and
   // Level() keeps reporting 0 rather than the caller having to track that.
+  //
+  // A codec that has already failed is refused immediately and silently. The
+  // caller retries on every audio packet, so without this a stream ZoneMinder
+  // cannot decode logs a warning at the audio packet rate forever. A reconnect
+  // that brings a different codec is still tried.
   bool Open(const AVCodecParameters *codecpar);
   bool IsOpen() const { return codec_context_ != nullptr; }
   void Close();
@@ -93,6 +98,8 @@ class AudioDetector {
   double RmsFromFrame(const AVFrame *frame) const;
 
   AVCodecContext *codec_context_ = nullptr;
+  // The codec a decoder lookup already failed for, or AV_CODEC_ID_NONE.
+  AVCodecID failed_codec_ = AV_CODEC_ID_NONE;
   // Written by the capture thread, read by the analysis thread.
   std::atomic<int> level_{0};
   // Written by the capture thread, taken and cleared by the analysis thread.

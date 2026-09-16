@@ -39,34 +39,43 @@ AudioDetector::~AudioDetector() {
 }
 
 bool AudioDetector::Open(const AVCodecParameters *codecpar) {
+  // Already established that this codec cannot be decoded. Say so without
+  // logging again: Monitor::Capture retries on every audio packet.
+  if (codecpar and (codecpar->codec_id == failed_codec_)) return false;
+
   Close();
 
   if (!codecpar) return false;
 
   const AVCodec *codec = avcodec_find_decoder(codecpar->codec_id);
   if (!codec) {
-    Warning("Audio detection: no decoder for codec %d, detection disabled", codecpar->codec_id);
+    Warning("Audio detection: no decoder for codec %d, level reporting disabled", codecpar->codec_id);
+    failed_codec_ = codecpar->codec_id;
     return false;
   }
 
   codec_context_ = avcodec_alloc_context3(codec);
   if (!codec_context_) {
     Error("Audio detection: could not allocate a decoder context");
+    failed_codec_ = codecpar->codec_id;
     return false;
   }
 
   if (avcodec_parameters_to_context(codec_context_, codecpar) < 0) {
     Error("Audio detection: could not copy stream parameters");
     Close();
+    failed_codec_ = codecpar->codec_id;
     return false;
   }
 
   if (avcodec_open2(codec_context_, codec, nullptr) < 0) {
     Error("Audio detection: could not open the %s decoder", codec->name);
     Close();
+    failed_codec_ = codecpar->codec_id;
     return false;
   }
 
+  failed_codec_ = AV_CODEC_ID_NONE;
   Debug(1, "Audio detection: opened %s decoder", codec->name);
   return true;
 }

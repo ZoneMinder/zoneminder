@@ -16,10 +16,15 @@
 -- sampling at write time would drop exactly the short loud noises that matter
 -- on a surveillance timeline.
 --
--- 0 means silent, and it is also what every existing row gets and what a
--- monitor with AudioDetection off records. The graph treats an all-zero series
--- as "no audio data" and draws no line, so backfilled rows do not appear as a
--- flat line along the bottom claiming silence was measured.
+-- The level is measured whenever the monitor has decodable audio, not only
+-- when AudioDetection is on. A threshold cannot be chosen without first seeing
+-- what the device's floor and peaks are, so the setting governs only whether
+-- crossing the threshold scores, never whether the level is recorded.
+--
+-- 0 therefore means silence, no audio stream, or a codec with no decoder. It
+-- is also what every pre-existing row gets. The graph treats an all-zero
+-- series as "no audio data" and draws no line, so backfilled rows do not
+-- appear as a flat line along the bottom claiming silence was measured.
 --
 
 SELECT 'Checking for AudioLevel in Frames';

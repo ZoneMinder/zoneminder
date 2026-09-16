@@ -74,9 +74,11 @@ function levelGraphSeries(frames, eventLength) {
     motionMax: motionMax,
     audioMax: audioMax,
     // An event recorded before Frames.AudioLevel existed, or by a monitor with
-    // AudioDetection off, has 0 in every row. That is not a measurement of
+    // no audio stream, has 0 in every row. That is not a measurement of
     // silence, so no line is drawn for it -- a flat line along the floor would
-    // claim the audio was listened to and found quiet.
+    // claim the audio was listened to and found quiet. Note that having
+    // AudioDetection off is not one of these cases: the level is recorded
+    // either way, precisely so the graph can be used to pick a threshold.
     hasAudio: audioMax > 0,
     hasScores: motionMax > 0,
   };

@@ -168,6 +168,65 @@ TEST_CASE("Audio detector with no decoder open") {
   }
 }
 
+TEST_CASE("Audio detector does not retry a codec it cannot decode") {
+  // Monitor::Capture calls Open on every audio packet until it succeeds, and
+  // it now does so for every monitor with audio rather than only those with
+  // AudioDetection on. A stream ZoneMinder has no decoder for must therefore
+  // fail quietly after the first attempt, or it warns at the audio packet
+  // rate for as long as the monitor runs.
+  AudioDetector detector;
+
+  AVCodecParameters codecpar = {};
+  codecpar.codec_type = AVMEDIA_TYPE_AUDIO;
+  // Deliberately not a real audio codec, so no decoder can be found for it
+  // whatever ffmpeg build this runs against.
+  codecpar.codec_id = AV_CODEC_ID_FIRST_UNKNOWN;
+
+  SECTION("the first attempt fails and later ones stay failed") {
+    REQUIRE_FALSE(detector.Open(&codecpar));
+    REQUIRE_FALSE(detector.Open(&codecpar));
+    REQUIRE_FALSE(detector.IsOpen());
+  }
+
+  SECTION("a different codec is still tried") {
+    REQUIRE_FALSE(detector.Open(&codecpar));
+
+    // PCM is built into every ffmpeg, so this one really should open. What is
+    // being pinned is that the refusal is specific to the failed codec and
+    // does not disable the detector for the life of the monitor.
+    AVCodecParameters pcm = {};
+    pcm.codec_type = AVMEDIA_TYPE_AUDIO;
+    pcm.codec_id = AV_CODEC_ID_PCM_S16LE;
+    pcm.sample_rate = 8000;
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+    av_channel_layout_default(&pcm.ch_layout, 1);
+#else
+    pcm.channels = 1;
+    pcm.channel_layout = AV_CH_LAYOUT_MONO;
+#endif
+
+    REQUIRE(detector.Open(&pcm));
+    REQUIRE(detector.IsOpen());
+  }
+
+  SECTION("a successful open clears the refusal") {
+    AVCodecParameters pcm = {};
+    pcm.codec_type = AVMEDIA_TYPE_AUDIO;
+    pcm.codec_id = AV_CODEC_ID_PCM_S16LE;
+    pcm.sample_rate = 8000;
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+    av_channel_layout_default(&pcm.ch_layout, 1);
+#else
+    pcm.channels = 1;
+    pcm.channel_layout = AV_CH_LAYOUT_MONO;
+#endif
+
+    REQUIRE(detector.Open(&pcm));
+    REQUIRE(detector.Open(&pcm));
+    REQUIRE(detector.IsOpen());
+  }
+}
+
 TEST_CASE("Audio peak tracking") {
   // The peak is what gets persisted in Frames.AudioLevel. Frames rows are
   // written well below the capture rate -- only alarm, bulk and

@@ -452,8 +452,10 @@ CREATE TABLE `Frames` (
   `Delta` decimal(8,2) NOT NULL default '0.00',
   `Score` smallint(5) unsigned NOT NULL default '0',
   /* Peak audio level since the previous row, 0-100 on the same dBFS-derived
-     scale as Monitors.AudioThreshold. 0 when the monitor has AudioDetection
-     off, which is how the event view knows not to draw an audio line. */
+     scale as Monitors.AudioThreshold. Recorded whenever the monitor has
+     decodable audio, independently of AudioDetection, so a threshold can be
+     chosen by looking at the graph. 0 means silence or no audio, which is how
+     the event view knows not to draw an audio line. */
   `AudioLevel` tinyint(3) unsigned NOT NULL default '0',
   PRIMARY KEY (`Id`),
   /* Every query on Frames is anchored on EventId and orders or ranges by

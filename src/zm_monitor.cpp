@@ -3152,22 +3152,30 @@ int Monitor::Capture() {
       if (audio_fifo)
         audio_fifo->writePacket(*packet);
 
-      if (audio_detection) {
-        // Opened here rather than at camera setup because a stream can gain
-        // audio on a reconnect, and because a monitor with detection off
-        // should not carry a decoder it never uses.
-        if (!audio_detector.IsOpen()) {
-          AVStream *audio_stream = camera->getAudioStream();
-          if (audio_stream) audio_detector.Open(audio_stream->codecpar);
-        }
-        if (audio_detector.IsOpen()) {
-          const int level = audio_detector.Process(packet->packet.get());
-          const bool alarm = AudioDetector::IsAlarm(level, audio_threshold);
-          shared_data->audio_level = static_cast<uint8_t>(level);
-          shared_data->audio_alarm = alarm ? 1 : 0;
-          if (alarm)
-            Debug(3, "Audio level %d over threshold %d", level, audio_threshold);
-        }
+      // Measured for every monitor that has audio, not only those with
+      // AudioDetection on. The level is what the event graph plots, and the
+      // monitor an operator most wants levels from is the one they have not
+      // set a threshold on yet -- AudioThreshold cannot be chosen sensibly
+      // without first seeing what the device's floor and peaks actually are.
+      // AudioDetection now governs only whether crossing it scores.
+      //
+      // This is the capture thread, which runs on whatever Analysing is set
+      // to, so a continuously recording monitor with motion detection off
+      // still gets a level on every frame row.
+      //
+      // Opened here rather than at camera setup because a stream can gain
+      // audio on a reconnect.
+      if (!audio_detector.IsOpen()) {
+        AVStream *audio_stream = camera->getAudioStream();
+        if (audio_stream) audio_detector.Open(audio_stream->codecpar);
+      }
+      if (audio_detector.IsOpen()) {
+        const int level = audio_detector.Process(packet->packet.get());
+        const bool alarm = audio_detection and AudioDetector::IsAlarm(level, audio_threshold);
+        shared_data->audio_level = static_cast<uint8_t>(level);
+        shared_data->audio_alarm = alarm ? 1 : 0;
+        if (alarm)
+          Debug(3, "Audio level %d over threshold %d", level, audio_threshold);
       }
 
       // Only queue if we have some video packets in there. Should push this logic into packetqueue

@@ -1875,6 +1875,7 @@ function xhtmlFooter() {
   'js/dateTimePicker/jquery-ui-timepicker-addon.js',
   'js/auth-helpers.js',
   'js/table-helpers.js',
+  'js/LevelGraph.js',
   'js/Server.js',
 ), true );
 ?>

@@ -15,17 +15,12 @@
     display: inline-block;
 }
 
-#alarmCues,
-.alarmCue {
-  /*
-  position: absolute;
-  */
+/* The level graph under the video. Taller than the 16px band it replaced
+   because two lines need somewhere to go; renderAlarmCues reads this height
+   back out, so a skin changing it here is enough. */
+#alarmCues {
   background: none;
-
-  /*
-    background-color: #222222;
-    */
-  height: 16px;
+  height: 48px;
   text-align: left;
   margin: 0;
   z-index: 10;
@@ -34,30 +29,45 @@
   cursor: pointer;
 }
 
-#alarmCues span {
-  border-left: 1px solid black;
-  top: 0;
-  position: absolute;
-  height: 100%;
-  display: inline-block;
-  border-radius: 0;
-  z-index: 11;
+#alarmCues .level-graph {
+  display: block;
+  /* The graph is a readout, not a control; the click that seeks belongs to
+     #progressBar underneath it. */
+  pointer-events: none;
+}
+
+/* Alarm periods, behind the lines. Light enough to read the lines through:
+   this says "an alarm was running here", the lines carry the numbers. */
+.level-graph-band {
+  fill: #ff0000;
+  fill-opacity: 0.15;
+}
+
+.level-graph-axis {
+  stroke: #999999;
+  stroke-width: 1;
+}
+
+.level-graph-tick {
+  stroke: #999999;
+  stroke-width: 1;
+}
+
+.level-graph-label {
   font-size: 8px;
-  overflow:hidden;
+  fill: #444444;
 }
 
-#alarmCues span.alarmCue {
-  background-color:red;
-  z-index: 9;
-  opacity: 0.66;
-  border-left: none;
+.level-graph-motion {
+  stroke: #cc0000;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
 }
 
-span.noneCue {
-  background: none;
-  z-index: 9;
-  opacity: 0.33;
-  border-left: none;
+.level-graph-audio {
+  stroke: #1e6fd9;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
 }
 
 #header {
@@ -207,7 +217,9 @@ height: 100%;
   /*
   top: -1.25em;
    */
-  height: 1.25em;
+  /* Sized by #alarmCues, which is the tallest thing in here now that it holds
+     the level graph. The old fixed 1.25em would have clipped it. */
+  min-height: 1.25em;
   /*
   margin: 0 auto -1.25em auto;
    */
@@ -227,7 +239,10 @@ height: 100%;
   border-radius: 0 0 .3em .3em;
    */
   z-index: 10;
-  opacity: 0.66;
+  /* Was 0.66, which washed out a 16px cue band harmlessly. The bar now holds
+     the level graph, and at that strength the played part of it is unreadable,
+     so this is a tint over the graph rather than a fill in front of it. */
+  opacity: 0.25;
 }
 
 #eventStills {
@@ -355,10 +370,17 @@ svg.zones {
   font-size: 18px;
 }
 #indicator {
-  height: 2.75em;
+  /* Spans whatever height the bar ended up, so the guide line crosses the
+     whole level graph rather than the 1.25em the bar used to be. */
+  height: 100%;
+  top: 0;
   position: absolute;
   border-left: 2px solid blue;
-  margin-top: -1.25em;
+  font-size: 0.75em;
+  white-space: nowrap;
+  padding-left: 3px;
+  pointer-events: none;
+  z-index: 12;
 }
 .video-js .vjs-text-track-display, .video-js .vjs-big-play-button {
   display: none !important;

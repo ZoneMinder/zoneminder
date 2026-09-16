@@ -25,6 +25,7 @@ var spf = Math.round((eventData.Length / eventData.Frames)*1000000 )/1000000;//S
 var intervalRewind;
 var revSpeed = .5;
 var cueFrames = null; //make cueFrames available even if we don't send another ajax query
+var cueSeries = null; //parsed levels for the cue graph, rebuilt whenever it is rendered
 var streamCmdInterval = null;
 var streamStatus = null;
 var lastEventId = 0;
@@ -178,100 +179,52 @@ function setAlarmCues(data) {
 }
 
 function renderAlarmCues(containerEl) {
-  let html = '';
-
   const event_length = (!cueFrames.length || (eventData.Length > cueFrames[cueFrames.length - 1].Delta)) ? eventData.Length : cueFrames[cueFrames.length - 1].Delta;
-  const span_count = 10;
-  const span_seconds = parseFloat(event_length / span_count);
-  const span_width = parseFloat(containerEl.width() / span_count);
+  const width = containerEl.width();
+
+  const label_count = 10;
+  const label_seconds = parseFloat(event_length / label_count);
   const date = new Date(eventData.StartDateTime);
-  for (let i=0; i < span_count; i += 1) {
-    html += '<span style="left:'+(i*span_width)+'px; width: '+span_width+'px;">'+date.toLocaleTimeString()+'</span>';
-    date.setTime(date.getTime() + span_seconds*1000);
+  const labels = [];
+  for (let i = 0; i < label_count; i += 1) {
+    labels.push({t: i * label_seconds, text: date.toLocaleTimeString()});
+    date.setTime(date.getTime() + label_seconds * 1000);
   }
 
   if (!(cueFrames && cueFrames.length)) {
     console.log('No cue frames for event');
-    return html;
+    cueSeries = null;
+    return renderLevelGraph({
+      samples: [], bands: [], labels: labels,
+      width: width, height: cueGraphHeight(),
+      eventLength: parseFloat(event_length), motionMax: 0,
+      hasAudio: false, hasScores: false,
+    });
   }
-  // This uses the Delta of the last frame to get the length of the event.  I can't help but wonder though
-  // if we shouldn't just use the event length endtime-starttime
-  var cueRatio = containerEl.width() / (event_length * 100);
-  var minAlarm = Math.ceil(1/cueRatio);
-  var spanTime = 0;
-  var spanTimeStart = 0;
-  var spanTimeEnd = 0;
-  var alarmed = 0;
-  var alarmHtml = '';
-  var pix = 0;
-  var pixSkew = 0;
-  var skip = 0;
-  var num_cueFrames = cueFrames.length;
-  let left = 0;
 
-  for (let i=0; i < num_cueFrames; i++) {
-    skip = 0;
-    const frame = cueFrames[i];
+  // Held for the hover readout in progressBarNav, so moving the mouse does not
+  // re-parse every frame row.
+  cueSeries = levelGraphSeries(cueFrames, parseFloat(event_length));
 
-    if ((frame.Type == 'Alarm') && (alarmed == 0)) { //From nothing to alarm.  End nothing and start alarm.
-      alarmed = 1;
-      if (frame.Delta == 0) continue; //If event starts with an alarm or too few for a nonespan
-      spanTimeEnd = frame.Delta * 100;
-      spanTime = spanTimeEnd - spanTimeStart;
-      pix = cueRatio * spanTime;
-      pixSkew += pix - Math.round(pix);//average out the rounding errors.
-      pix = Math.round(pix);
-      if ((pixSkew > 1 || pixSkew < -1) && pix + Math.round(pixSkew) > 0) { //add skew if it's a pixel and won't zero out span.
-        pix += Math.round(pixSkew);
-        pixSkew = pixSkew - Math.round(pixSkew);
-      }
+  return renderLevelGraph({
+    samples: cueSeries.samples,
+    bands: levelGraphBands(cueSeries.samples, parseFloat(event_length)),
+    labels: labels,
+    width: width,
+    height: cueGraphHeight(),
+    eventLength: parseFloat(event_length),
+    motionMax: cueSeries.motionMax,
+    hasAudio: cueSeries.hasAudio,
+    hasScores: cueSeries.hasScores,
+  });
+}
 
-      alarmHtml += '<span class="noneCue" style="left: '+left+'px; width: ' + pix + 'px;"></span>';
-      left = parseInt((frame.Delta / event_length) * containerEl.width());
-      //console.log(left, frame.Delta, event_length, containerEl.width());
-      spanTimeStart = spanTimeEnd;
-    } else if ( (frame.Type !== 'Alarm') && (alarmed == 1) ) { //from alarm to nothing.  End alarm and start nothing.
-      let futNone = 0;
-      let indexPlus = i+1;
-      if (((frame.Delta * 100) - spanTimeStart) < minAlarm && indexPlus < num_cueFrames) {
-        //alarm is too short and there is more event
-        continue;
-      }
-      while ( futNone < minAlarm ) { //check ahead to see if there's enough for a nonespan
-        if ( indexPlus >= cueFrames.length ) break; //check if end of event.
-        futNone = (cueFrames[indexPlus].Delta *100) - (frame.Delta *100);
-        if ( cueFrames[indexPlus].Type == 'Alarm' ) {
-          i = --indexPlus;
-          skip = 1;
-          break;
-        }
-        indexPlus++;
-      }
-      if ( skip == 1 ) continue; //javascript doesn't support continue 2;
-      spanTimeEnd = frame.Delta *100;
-      spanTime = spanTimeEnd - spanTimeStart;
-      alarmed = 0;
-      pix = cueRatio * spanTime;
-      pixSkew += pix - Math.round(pix);
-      pix = Math.round(pix);
-      if ((pixSkew > 1 || pixSkew < -1) && pix + Math.round(pixSkew) > 0) {
-        pix += Math.round(pixSkew);
-        pixSkew = pixSkew - Math.round(pixSkew);
-      }
-      alarmHtml += '<span class="alarmCue" style="left: '+left+'px; width: ' + pix + 'px; height: '+frame.Score+'px;"></span>';
-      left = parseInt((frame.Delta / event_length) * containerEl.width());
-      spanTimeStart = spanTimeEnd;
-    } else if ( (frame.Type == 'Alarm') && (alarmed == 1) && (i + 1 >= cueFrames.length) ) { //event ends on an alarm
-      spanTimeEnd = frame.Delta * 100;
-      spanTime = spanTimeEnd - spanTimeStart;
-      alarmed = 0;
-      pix = Math.round(cueRatio * spanTime);
-      if (pixSkew >= .5 || pixSkew <= -.5) pix += Math.round(pixSkew);
-
-      alarmHtml += '<span class="alarmCue" style="left: '+left+'px; width: ' + pix + 'px; height: '+frame.Score+'px;"></span>';
-    }
-  }
-  return html + alarmHtml;
+// The stylesheet owns the height so a skin can change it; this reads back what
+// it chose rather than duplicating the number in JS.
+function cueGraphHeight() {
+  const el = document.getElementById('alarmCues');
+  const styled = el ? parseFloat(window.getComputedStyle(el).height) : 0;
+  return (styled > 0) ? styled : 48;
 }
 
 function changeCodec() {
@@ -1126,6 +1079,7 @@ function progressBarNav() {
     const indicator = document.getElementById('indicator');
     indicator.style.display = 'block';
     indicator.style.left = x + 'px';
+    indicator.innerHTML = indicatorText(date, seekTime);
     indicator.setAttribute('title', seekTime);
   });
   progressBar.mouseout(function(e) {
@@ -1146,11 +1100,20 @@ function progressBarNav() {
     const date = new Date(eventData.StartDateTime);
     date.setTime(date.getTime() + (seekTime*1000));
 
-    indicator.innerHTML = date.toLocaleTimeString();
+    indicator.innerHTML = indicatorText(date, seekTime);
     indicator.style.left = x+'px';
     indicator.setAttribute('title', seekTime);
   });
 } // end function progressBarNav
+
+// The seek indicator already tracks the mouse across the whole progress bar,
+// which the level graph sits inside, so the levels are appended to it rather
+// than given a second tooltip that would fight it for the same pixels.
+function indicatorText(date, seekTime) {
+  const time = date.toLocaleTimeString();
+  const levels = levelGraphReadout(cueSeries, seekTime);
+  return levels ? (time + ' &mdash; ' + levels) : time;
+}
 
 function handleClick(event) {
   if (panZoomEnabled) {

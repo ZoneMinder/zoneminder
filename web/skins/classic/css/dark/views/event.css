@@ -10,23 +10,32 @@
     display: inline-block;
 }
 
-.alarmCue {
+#alarmCues {
     background-color: #222222;
-    height: 1.25em;
-    text-align: left;
-    margin: 0 auto 0 auto;
     border-radius: 0 0 .3em .3em;
 }
 
-.alarmCue span {
-    background-color:red;
-    height: 100%;
-    display: inline-block;
-    border-radius: 0;
+/* Lighter than the base stroke colours, which are chosen against a pale
+   background and go muddy on this one. */
+.level-graph-motion {
+    stroke: #ff5252;
 }
 
-span.noneCue {
-    background: none;
+.level-graph-audio {
+    stroke: #53a8ff;
+}
+
+.level-graph-tick,
+.level-graph-axis {
+    stroke: #888888;
+}
+
+.level-graph-band {
+    fill-opacity: 0.25;
+}
+
+.level-graph-label {
+    fill: #bbbbbb;
 }
 
 #header {

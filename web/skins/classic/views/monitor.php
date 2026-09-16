@@ -1135,6 +1135,25 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
               <input type="number" name="newMonitor[AudioThreshold]" value="<?php echo validHtmlStr($monitor->AudioThreshold()) ?>" min="0" max="100" step="1"/>
               <div class="form-text"><?php echo translate('AudioThresholdHelp') ?></div>
             </li>
+<?php if ($monitor->Type() == 'Ffmpeg' and $monitor->Id()) { ?>
+            <?php # Shown whether or not AudioDetection is on: the level is
+                  # what you need in order to choose a threshold, so it cannot
+                  # require the threshold to already be set. Polling it is what
+                  # asks zmc to measure at all, and it stops again shortly
+                  # after this page is left. New monitors are excluded because
+                  # they have no shared memory to read yet. ?>
+            <li class="AudioLevelMeter">
+              <label><?php echo translate('AudioLevelNow') ?></label>
+              <div id="audioLevelMeter" class="audioLevelMeter" data-mid="<?php echo validInt($monitor->Id()) ?>">
+                <div class="audioLevelTrack">
+                  <div id="audioLevelFill" class="audioLevelFill"></div>
+                  <div id="audioLevelThresholdMark" class="audioLevelThresholdMark"></div>
+                </div>
+                <span id="audioLevelValue" class="audioLevelValue">&mdash;</span>
+              </div>
+              <div class="form-text"><?php echo translate('AudioLevelNowHelp') ?></div>
+            </li>
+<?php } ?>
             <li class="AudioAlarmScore">
               <label><?php echo translate('AudioAlarmScore') ?></label>
               <input type="number" name="newMonitor[AudioAlarmScore]" value="<?php echo validHtmlStr($monitor->AudioAlarmScore()) ?>" min="0" max="255" step="1"/>

@@ -569,6 +569,7 @@ function initPage() {
     // Analysis tab not rendered with a select; still reflect audio detection.
     AudioDetection_onChange(form.elements['newMonitor[AudioDetection]']); // eslint-disable-line new-cap
   }
+  startAudioLevelMeter();
 } // end function initPage()
 
 async function checkVerAudioMotion() {
@@ -842,6 +843,85 @@ function AudioDetection_onChange(e) {
   const analysisOn = !analysing || (analysing.value != 'None');
   const show = analysisOn && !!(e && e.checked);
   $j('li.AudioThreshold, li.AudioAlarmScore').toggle(show);
+}
+
+// --- Live audio level meter -------------------------------------------------
+//
+// zmc only measures the audio level when something asks for it, so polling
+// this is not just reading a value: each request pushes the deadline in shared
+// memory forward a few seconds, and when the polling stops the decoding stops
+// with it. That is why the interval skips the request whenever the meter is
+// off screen rather than just hiding the result.
+
+var audioLevelTimer = null;
+var audioLevelInFlight = false;
+
+function pollAudioLevel() {
+  const meter = document.getElementById('audioLevelMeter');
+  // Not on this monitor's form at all, or the Analysis tab is not showing.
+  if (!meter || !$j(meter).is(':visible')) return;
+  // A slow reply must not stack up requests behind it.
+  if (audioLevelInFlight) return;
+
+  audioLevelInFlight = true;
+  $j.getJSON(thisUrl, {request: 'monitor', action: 'audioLevel', mid: meter.dataset.mid})
+      .done(function(data) {
+        if (data.result === 'Error') {
+          showAudioLevel(null, data.message);
+          return;
+        }
+        showAudioLevel(data.level, null, data.alarm);
+      })
+      .fail(function() {
+        showAudioLevel(null, 'unavailable');
+      })
+      .always(function() {
+        audioLevelInFlight = false;
+      });
+}
+
+function showAudioLevel(level, message, alarm) {
+  const fill = document.getElementById('audioLevelFill');
+  const value = document.getElementById('audioLevelValue');
+  if (!fill || !value) return;
+
+  // levelMeterState is shared with the event graph so both agree about the
+  // 0-100 scale, and it is what decides that a missing reading says so
+  // instead of showing a confident zero.
+  const state = levelMeterState(level, alarm, message);
+  fill.style.width = state.percent + '%';
+  value.textContent = state.text;
+  value.classList.toggle('alarm', state.alarm);
+}
+
+// The threshold is drawn on the meter so the reading can be compared against
+// it while it is being typed, without saving first.
+function updateAudioThresholdMark() {
+  const mark = document.getElementById('audioLevelThresholdMark');
+  if (!mark) return;
+  const form = document.getElementById('contentForm');
+  const input = form ? form.elements['newMonitor[AudioThreshold]'] : null;
+  const percent = levelThresholdPercent(input ? input.value : null);
+
+  if (percent === null) {
+    mark.style.display = 'none';
+    return;
+  }
+  mark.style.display = 'block';
+  mark.style.left = percent + '%';
+}
+
+function startAudioLevelMeter() {
+  if (!document.getElementById('audioLevelMeter')) return;
+  updateAudioThresholdMark();
+  $j('input[name="newMonitor[AudioThreshold]"]').on('input', updateAudioThresholdMark);
+
+  if (audioLevelTimer) clearInterval(audioLevelTimer);
+  // One second is responsive enough to watch a voice move the bar, and is ten
+  // times inside the request's lifetime in zmc, so a dropped poll or two does
+  // not make the measurement lapse and the bar stall.
+  audioLevelTimer = setInterval(pollAudioLevel, 1000);
+  pollAudioLevel();
 }
 
 function Recording_onChange(e) {

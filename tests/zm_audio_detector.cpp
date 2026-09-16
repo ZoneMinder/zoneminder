@@ -227,6 +227,38 @@ TEST_CASE("Audio detector does not retry a codec it cannot decode") {
   }
 }
 
+TEST_CASE("Audio level is only measured when something wants it") {
+  // Decoding audio costs CPU on every packet, so a monitor nobody is asking
+  // about must not do it. Two things ask: scoring on audio, and the editor's
+  // level meter, which writes a deadline into shared memory and pushes it
+  // forward while it is on screen.
+  const uint32_t now = 1000;
+
+  SECTION("a monitor that scores on audio always wants it") {
+    REQUIRE(AudioDetector::LevelWanted(true, 0, now));
+    // Even with a long expired request, because the setting alone is enough.
+    REQUIRE(AudioDetector::LevelWanted(true, 1, now));
+  }
+
+  SECTION("with detection off and nobody asking, it is not measured") {
+    REQUIRE_FALSE(AudioDetector::LevelWanted(false, 0, now));
+  }
+
+  SECTION("an outstanding request turns it on") {
+    REQUIRE(AudioDetector::LevelWanted(false, now + 10, now));
+  }
+
+  SECTION("the deadline second itself still counts") {
+    REQUIRE(AudioDetector::LevelWanted(false, now, now));
+  }
+
+  SECTION("an expired request turns it off again") {
+    // This is what stops the decoding when the editor is closed: nothing
+    // sends a "stop", the request simply runs out.
+    REQUIRE_FALSE(AudioDetector::LevelWanted(false, now - 1, now));
+  }
+}
+
 TEST_CASE("Audio peak tracking") {
   // The peak is what gets persisted in Frames.AudioLevel. Frames rows are
   // written well below the capture rate -- only alarm, bulk and

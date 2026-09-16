@@ -3077,6 +3077,16 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadFfmpegMonitors(const char *fi
 /* Returns 0 on success, even if no new images are available (transient error)
  * Returns -1 on failure.
  */
+bool Monitor::AudioLevelWanted(SystemTimePoint now) const {
+  // The editor's meter writes a deadline a few seconds out and keeps pushing
+  // it forward while it is on screen, so closing the page stops the decoding
+  // on its own. A clock step backwards costs at most that much extra work.
+  return AudioDetector::LevelWanted(
+      audio_detection,
+      shared_data->audio_level_until,
+      static_cast<uint32_t>(std::chrono::system_clock::to_time_t(now)));
+}
+
 int Monitor::Capture() {
   if (!shared_data->capturing) {
     Debug(1, "Not capturing");
@@ -3152,30 +3162,40 @@ int Monitor::Capture() {
       if (audio_fifo)
         audio_fifo->writePacket(*packet);
 
-      // Measured for every monitor that has audio, not only those with
-      // AudioDetection on. The level is what the event graph plots, and the
-      // monitor an operator most wants levels from is the one they have not
-      // set a threshold on yet -- AudioThreshold cannot be chosen sensibly
-      // without first seeing what the device's floor and peaks actually are.
-      // AudioDetection now governs only whether crossing it scores.
+      // Decoding audio to measure it is not free, and most monitors never
+      // need the number, so it only runs when something is going to use it:
+      // the monitor scores on audio, or the editor's level meter has asked
+      // for a reading. See AudioLevelWanted.
       //
       // This is the capture thread, which runs on whatever Analysing is set
       // to, so a continuously recording monitor with motion detection off
       // still gets a level on every frame row.
-      //
-      // Opened here rather than at camera setup because a stream can gain
-      // audio on a reconnect.
-      if (!audio_detector.IsOpen()) {
-        AVStream *audio_stream = camera->getAudioStream();
-        if (audio_stream) audio_detector.Open(audio_stream->codecpar);
-      }
-      if (audio_detector.IsOpen()) {
-        const int level = audio_detector.Process(packet->packet.get());
-        const bool alarm = audio_detection and AudioDetector::IsAlarm(level, audio_threshold);
-        shared_data->audio_level = static_cast<uint8_t>(level);
-        shared_data->audio_alarm = alarm ? 1 : 0;
-        if (alarm)
-          Debug(3, "Audio level %d over threshold %d", level, audio_threshold);
+      if (AudioLevelWanted(packet->timestamp)) {
+        // Opened here rather than at camera setup because a stream can gain
+        // audio on a reconnect, and because until now there may have been
+        // nobody to decode for.
+        if (!audio_detector.IsOpen()) {
+          AVStream *audio_stream = camera->getAudioStream();
+          if (audio_stream) audio_detector.Open(audio_stream->codecpar);
+        }
+        if (audio_detector.IsOpen()) {
+          const int level = audio_detector.Process(packet->packet.get());
+          const bool alarm = audio_detection and AudioDetector::IsAlarm(level, audio_threshold);
+          shared_data->audio_level = static_cast<uint8_t>(level);
+          shared_data->audio_alarm = alarm ? 1 : 0;
+          if (alarm)
+            Debug(3, "Audio level %d over threshold %d", level, audio_threshold);
+        }
+      } else if (audio_detector.IsOpen()) {
+        // The meter closed, or detection was turned off by a reload. Drop the
+        // decoder rather than keep paying for it, and clear the reading so a
+        // stale number is not left looking current. The accumulated peak goes
+        // too, or it would land on whatever frame row is written next.
+        Debug(2, "Audio level no longer wanted, closing the decoder");
+        audio_detector.Close();
+        audio_detector.TakePeak();
+        shared_data->audio_level = 0;
+        shared_data->audio_alarm = 0;
       }
 
       // Only queue if we have some video packets in there. Should push this logic into packetqueue

@@ -128,6 +128,15 @@ bool AudioDetector::IsAlarm(int level, int threshold) {
   return level >= threshold;
 }
 
+bool AudioDetector::LevelWanted(bool audio_detection, uint32_t request_until, uint32_t now) {
+  // A monitor that scores on audio needs the level on every packet anyway.
+  if (audio_detection) return true;
+  // Nobody has asked. Distinguished from an expired request only for clarity;
+  // the comparison below would reject 0 anyway for any plausible clock.
+  if (!request_until) return false;
+  return now <= request_until;
+}
+
 double AudioDetector::RmsFromFrame(const AVFrame *frame) const {
   const int channels = FrameChannels(frame);
   const int samples = frame->nb_samples;

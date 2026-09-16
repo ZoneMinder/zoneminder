@@ -210,3 +210,52 @@ li.settingsGroup:first-child {
   padding-top: 0;
   border-top: none;
 }
+
+/* Live audio level meter in the audio detection settings. Polling it is what
+   makes zmc measure at all, so it is only drawn on saved Ffmpeg monitors. */
+.audioLevelMeter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.audioLevelTrack {
+  position: relative;
+  flex: 1 1 auto;
+  max-width: 260px;
+  height: 14px;
+  background-color: #dddddd;
+  border: 1px solid #bbbbbb;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.audioLevelFill {
+  height: 100%;
+  width: 0;
+  background-color: #1e6fd9;
+  /* Slower than the 1s poll would make the bar lag the number beside it. */
+  transition: width 0.25s linear;
+}
+
+/* Where the threshold currently in the input sits, so a reading can be judged
+   against it before saving. */
+.audioLevelThresholdMark {
+  display: none;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background-color: #cc0000;
+}
+
+.audioLevelValue {
+  min-width: 5em;
+  font-variant-numeric: tabular-nums;
+}
+
+.audioLevelValue.alarm {
+  color: #cc0000;
+  font-weight: bold;
+}

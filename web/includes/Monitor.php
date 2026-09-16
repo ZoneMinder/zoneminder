@@ -70,6 +70,7 @@ class Monitor extends ZM_Object {
     // so SharedData is now 888 bytes and TriggerData starts at 888.
     'last_analysis_index'  => [ 'type'=>'int32', 'offset'=>872, 'size'=>4 ],
     'analysis_image_count' => [ 'type'=>'int32', 'offset'=>876, 'size'=>4 ],
+    'audio_level_until' => [ 'type'=>'uint32', 'offset'=>880, 'size'=>4 ],
   ],
   'TriggerData' => [
     'size'     => [ 'type'=>'uint32', 'offset'=>888, 'size'=>4 ],
@@ -1501,6 +1502,32 @@ class Monitor extends ZM_Object {
     return fwrite($this->shm_id, $packed_value, $this->shm_offsets[$section][$var]['size']);
   }
   
+  // How long zmc keeps measuring after one request. Long enough that a poll
+  // every couple of seconds never lets it lapse mid-session, short enough
+  // that closing the editor stops the decoding promptly.
+  const AUDIO_LEVEL_REQUEST_SECONDS = 10;
+
+  // Ask the capture thread to measure the audio level even though this
+  // monitor does not score on audio, so the editor can show a live reading
+  // while a threshold is being chosen. Has to be repeated to stay in effect.
+  public function requestAudioLevel() {
+    if (!$this->connect()) return false;
+    return false !== $this->shared_write('SharedData', 'audio_level_until',
+      time() + self::AUDIO_LEVEL_REQUEST_SECONDS);
+  }
+
+  // The reading zmc last published, or null when there is no shared memory to
+  // read (zmc not running). 0 is a real answer: silence, or nothing measured.
+  public function audioLevel() {
+    if (!$this->connect()) return null;
+    return $this->shared_read('SharedData', 'audio_level');
+  }
+
+  public function audioAlarm() {
+    if (!$this->connect()) return null;
+    return $this->shared_read('SharedData', 'audio_alarm') ? true : false;
+  }
+
   public function enable() {
     if (!$this->connect()) return false;
     $action = $this->shared_read('TriggerData', 'action');

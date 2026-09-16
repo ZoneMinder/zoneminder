@@ -187,7 +187,8 @@ our %mem_data = (
     janus_pin        => { type=>'int8[64]', seq=>$mem_seq++ },
     last_analysis_index => { type=>'int32', seq=>$mem_seq++ },
     analysis_image_count => { type=>'int32', seq=>$mem_seq++ },
-    analysis_pad     => { type=>'uint8[8]', seq=>$mem_seq++ },
+    audio_level_until => { type=>'uint32', seq=>$mem_seq++ },
+    analysis_pad     => { type=>'uint8[4]', seq=>$mem_seq++ },
   }
   },
   trigger_data => { type=>'TriggerData', seq=>$mem_seq++, 'contents'=> {

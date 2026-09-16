@@ -275,7 +275,16 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
      * Appended at the end so no earlier SharedData offset shifts. */
     int32_t last_analysis_index;   /* +872 */
     int32_t analysis_image_count;  /* +876 */
-    uint32_t analysis_pad[2];      /* +880   keep 16-byte multiple */
+    /* Wall clock second up to which the capture thread should keep measuring
+     * the audio level even though AudioDetection is off. The monitor editor's
+     * level meter refreshes this while it is on screen and zmc stops decoding
+     * audio once it has passed, so a reading can be watched without paying for
+     * one on every monitor forever. 0 means nobody is asking.
+     *
+     * Carved out of analysis_pad rather than appended, so neither the 888-byte
+     * total nor any existing offset moves. */
+    uint32_t audio_level_until;    /* +880 */
+    uint32_t analysis_pad;         /* +884   keep 16-byte multiple */
     /* 888 total */
   } SharedData;
   // Cross-process ABI guard: zmc/zma/zms plus the Perl (Memory.pm) and PHP
@@ -296,6 +305,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   static_assert(offsetof(SharedData, capture_fps) == 24, "capture_fps offset changed; update Memory.pm and Monitor.php");
   static_assert(offsetof(SharedData, startup_time) == 120, "startup_time offset changed; update Memory.pm and Monitor.php");
   static_assert(offsetof(SharedData, control_state) == 168, "control_state offset changed; update Memory.pm and Monitor.php");
+  static_assert(offsetof(SharedData, audio_level_until) == 880, "audio_level_until offset changed; update Memory.pm and Monitor.php");
 
   enum TriggerState : uint32 {
     TRIGGER_CANCEL,
@@ -1150,6 +1160,12 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   }
   int Importance() const { return importance; }
   int StartupDelay() const { return startup_delay; }
+
+  // Whether anything wants the audio level right now: either the monitor
+  // scores on it, or the editor's meter has asked for a reading and its
+  // request has not expired. Decoding audio is not free, so a monitor nobody
+  // is asking about does not do it.
+  bool AudioLevelWanted(SystemTimePoint now) const;
 
   // Peak audio level since the last call, for the Frames row about to be
   // written. Clears on read, so each row covers its own interval. Always 0

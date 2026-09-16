@@ -288,6 +288,40 @@ function renderLevelGraph(opts) {
 }
 
 /**
+ * What the live level meter in the monitor editor should show.
+ *
+ * Shared with the graph because both render the same 0-100 scale and have to
+ * agree about it. Kept pure so the null case in particular is pinned: zmc not
+ * running must not read as a confident zero.
+ *
+ * @param {?number} level The reading, or null/undefined when there is none.
+ * @param {boolean} alarm Whether that level is over the monitor's threshold.
+ * @param {string=} message What to say when there is no reading.
+ * @return {Object} percent (bar width), text, alarm.
+ */
+function levelMeterState(level, alarm, message) {
+  if (level === null || level === undefined || !isFinite(level)) {
+    return {percent: 0, text: message || 'no reading', alarm: false};
+  }
+  const clamped = Math.min(Math.max(Math.round(level), 0), 100);
+  return {percent: clamped, text: String(clamped), alarm: !!alarm};
+}
+
+/**
+ * Where the threshold marker sits on the meter, as a percentage.
+ *
+ * @param {*} threshold The value currently in the threshold input.
+ * @return {?number} Percentage, or null when there is no marker to draw.
+ */
+function levelThresholdPercent(threshold) {
+  const value = parseInt(threshold, 10);
+  // 0 means detection is off rather than "alarm on silence" (see
+  // AudioDetector::IsAlarm), so there is no line to draw for it.
+  if (!isFinite(value) || value <= 0) return null;
+  return Math.min(value, 100);
+}
+
+/**
  * The hover readout for a point in time, as plain text.
  *
  * Returns the parts rather than a formatted string for the time, because the
@@ -319,6 +353,8 @@ if (typeof module !== 'undefined' && module.exports) {
     levelGraphSampleAt,
     levelGraphPoints,
     levelGraphReadout,
+    levelMeterState,
+    levelThresholdPercent,
     renderLevelGraph,
   };
 }

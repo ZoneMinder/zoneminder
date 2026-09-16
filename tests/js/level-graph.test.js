@@ -314,6 +314,60 @@ test('geometry matches the scale the hover readout uses', () => {
   assert.strictEqual(LG.levelGraphSampleAt(series.samples, sc.tAt(400)).score, 100);
 });
 
+console.log('levelMeterState');
+
+test('a reading becomes a bar width and a label', () => {
+  assert.deepStrictEqual(LG.levelMeterState(42, false), {percent: 42, text: '42', alarm: false});
+});
+
+test('no reading says so rather than showing a confident zero', () => {
+  // zmc not running returns null. Painting that as 0 would claim the mic was
+  // listened to and found silent, which is the one thing it does not mean.
+  assert.deepStrictEqual(LG.levelMeterState(null, false), {percent: 0, text: 'no reading', alarm: false});
+  assert.strictEqual(LG.levelMeterState(undefined, false).text, 'no reading');
+  assert.strictEqual(LG.levelMeterState(null, false, 'unavailable').text, 'unavailable');
+});
+
+test('a real zero is shown as zero', () => {
+  assert.deepStrictEqual(LG.levelMeterState(0, false), {percent: 0, text: '0', alarm: false});
+});
+
+test('out of range readings are clamped', () => {
+  assert.strictEqual(LG.levelMeterState(250, false).percent, 100);
+  assert.strictEqual(LG.levelMeterState(-5, false).percent, 0);
+});
+
+test('the alarm flag is carried through', () => {
+  assert.strictEqual(LG.levelMeterState(80, true).alarm, true);
+  assert.strictEqual(LG.levelMeterState(80, false).alarm, false);
+  // But never on a missing reading.
+  assert.strictEqual(LG.levelMeterState(null, true).alarm, false);
+});
+
+console.log('levelThresholdPercent');
+
+test('a set threshold gives a marker position', () => {
+  assert.strictEqual(LG.levelThresholdPercent(45), 45);
+  assert.strictEqual(LG.levelThresholdPercent('45'), 45);
+});
+
+test('zero draws no marker, because zero means detection off', () => {
+  // AudioDetector::IsAlarm treats 0 as "off", not "alarm on silence", so a
+  // line at 0 would imply a threshold that does not exist.
+  assert.strictEqual(LG.levelThresholdPercent(0), null);
+  assert.strictEqual(LG.levelThresholdPercent('0'), null);
+});
+
+test('an empty or unparseable input draws no marker', () => {
+  assert.strictEqual(LG.levelThresholdPercent(''), null);
+  assert.strictEqual(LG.levelThresholdPercent(null), null);
+  assert.strictEqual(LG.levelThresholdPercent('abc'), null);
+});
+
+test('a threshold above the scale is clamped onto it', () => {
+  assert.strictEqual(LG.levelThresholdPercent(500), 100);
+});
+
 console.log('');
 console.log(passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);

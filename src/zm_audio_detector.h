@@ -94,6 +94,12 @@ class AudioDetector {
   // naive >= comparison would give.
   static bool IsAlarm(int level, int threshold);
 
+  // Whether anything wants a reading: the monitor scores on audio, or someone
+  // asked for one and the request has not expired. request_until is a wall
+  // clock second, 0 meaning nobody asked. Split out from Monitor so the
+  // expiry rule is testable without a monitor or its shared memory.
+  static bool LevelWanted(bool audio_detection, uint32_t request_until, uint32_t now);
+
  private:
   double RmsFromFrame(const AVFrame *frame) const;
 

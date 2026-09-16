@@ -14,10 +14,12 @@ function checkAudioMotionEnabled() {
 
 if (checkAudioMotionEnabled()) {
   import('../assets/audioMotion-analyzer/src/audioMotion-analyzer.js').then((module) => {
-    if (module.AudioMotionAnalyzer) {
-      AudioMotionAnalyzer = module.AudioMotionAnalyzer;
-    } else {
-      AudioMotionAnalyzer = window.AudioMotionAnalyzer;
+    // The ES module in the upstream src/ directory exports the class both by
+    // name and as its default. The UMD bundle from dist/ has no ES exports at
+    // all and assigns window.AudioMotionAnalyzer instead, so accept all three.
+    AudioMotionAnalyzer = module.AudioMotionAnalyzer || module.default || window.AudioMotionAnalyzer;
+    if (!AudioMotionAnalyzer) {
+      throw new Error('audioMotion-analyzer.js exports no AudioMotionAnalyzer class');
     }
     window.CURRENT_AUDIO_MOTION_ANALYZER_VERSION = AudioMotionAnalyzer.version;
   }).catch((error) => {

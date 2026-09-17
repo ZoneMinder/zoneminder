@@ -574,6 +574,44 @@ function streamPlay() {
   setButtonState('fastRevBtn', 'inactive');
 }
 
+// The next rate to step to, as a percentage, or null when there is none.
+//
+// list is the shared rate list from skins/classic/includes/config.php, running
+// -1600 to 1600 with 0 in the middle. Stepping used to index it directly:
+//
+//   rates[rates.indexOf(current) + 1]
+//
+// which walks off the end at the top rate and hands playbackRate
+// undefined/100, i.e. NaN. Firefox refuses that outright with "Value being
+// assigned is not a finite floating-point value", so one click too many at 16x
+// threw instead of doing nothing.
+//
+// indexOf also answers -1 for a rate that is not in the list, and -1 + 1 is 0,
+// so stepping forward from an unlisted rate jumped to rates[0] -- full
+// reverse. Snap to the nearest listed rate instead.
+//
+// Returning null rather than a clamped rate lets the caller tell "nowhere left
+// to go" from "step here", so it can disable the button and leave the player
+// alone rather than reassigning the rate it already has.
+function stepRate(list, current, direction) {
+  if (!Array.isArray(list) || !list.length) return null;
+  // A player that has not started yet can answer with something unusable.
+  // Doing nothing is better than guessing, since the button can be clicked
+  // again once it has.
+  if (typeof current !== 'number' || !isFinite(current)) return null;
+
+  let index = list.indexOf(current);
+  if (index < 0) {
+    index = 0;
+    for (let i = 1; i < list.length; i++) {
+      if (Math.abs(list[i] - current) < Math.abs(list[index] - current)) index = i;
+    }
+  }
+
+  const next = index + direction;
+  return (next < 0 || next >= list.length) ? null : list[next];
+}
+
 function streamFastFwd(action) {
   setButtonState('pauseBtn', 'inactive');
   setButtonState('playBtn', 'inactive');
@@ -583,12 +621,21 @@ function streamFastFwd(action) {
   setButtonState('fastRevBtn', 'inactive');
   if (vid) {
     if (revSpeed != .5) stopFastRev();
-    vid.playbackRate(rates[rates.indexOf(vid.playbackRate()*100)+1]/100);
-    if (rates.indexOf(vid.playbackRate()*100)+1 == rates.length) {
+    const next = stepRate(rates, vid.playbackRate()*100, 1);
+    if (next === null) {
+      // Already at the fastest rate. streamPlay() re-enables this button
+      // whatever rate we are at, so we do get clicked here.
+      setButtonState('fastFwdBtn', 'unavail');
+      return;
+    }
+    vid.playbackRate(next/100);
+    if (stepRate(rates, next, 1) === null) {
       setButtonState('fastFwdBtn', 'unavail');
     }
-    $j('select[name="rate"]').val(vid.playbackRate()*100);
-    setCookie('zmEventRate', vid.playbackRate()*100);
+    // next, rather than reading the rate back: videojs deferred the set until
+    // the tech was ready, so the getter can still answer with the old rate.
+    $j('select[name="rate"]').val(next);
+    setCookie('zmEventRate', next);
   } else {
     streamReq({command: CMD_FASTFWD});
   }
@@ -629,12 +676,20 @@ function streamFastRev(action) {
   setButtonState('slowRevBtn', 'unavail');
   setButtonState('fastRevBtn', 'active');
   if (vid) { //There is no reverse play with mp4.  Set the speed to 0 and manually set the time back.
-    revSpeed = -1*(rates[rates.indexOf(revSpeed*-100)-1]/100);
-    if (rates.indexOf(revSpeed*-100) == 0) {
+    // Same walk off the end as streamFastFwd, at the other end of the list:
+    // rates[0 - 1] is undefined, which made revSpeed NaN and then fed
+    // currentTime a NaN on every tick of the rewind interval.
+    const next = stepRate(rates, revSpeed * -100, -1);
+    if (next === null) {
+      setButtonState('fastRevBtn', 'unavail');
+      return;
+    }
+    revSpeed = -next/100;
+    if (stepRate(rates, next, -1) === null) {
       setButtonState('fastRevBtn', 'unavail');
     }
     clearInterval(intervalRewind);
-    $j('select[name="rate"]').val(-revSpeed*100);
+    $j('select[name="rate"]').val(next);
     setCookie('zmEventRate', vid.playbackRate()*100);
     intervalRewind = setInterval(function() {
       if (vid.currentTime() <= 0) {

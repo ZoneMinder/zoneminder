@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 35;
+use Test::More tests => 40;
 
 require_ok('ZoneMinder::Control::IPSpeaker');
 
@@ -88,3 +88,67 @@ cmp_ok(ZoneMinder::Control::IPSpeaker::HTTP_TIMEOUT(), '<', 180,
   'and is well under the LWP default that caused the stall');
 cmp_ok(ZoneMinder::Control::IPSpeaker::HTTP_TIMEOUT(), '>', 0,
   'and is a real timeout rather than "no wait"');
+
+
+# --- how loudly an unreachable speaker is reported ----------------------------
+#
+# A speaker that has dropped off the network fails on every command until it is
+# fixed, so this is the one error here that repeats forever. It is logged
+# through the monitor's Importance (see ZoneMinder::Logger::importanceLevel,
+# tested on its own in logger_importance.t); what matters here is that this
+# module's call site actually uses it, and that the errors which mean the
+# device answered do not get demoted along with it.
+
+require ZoneMinder::Logger;
+require ZoneMinder::Monitor;
+
+my $log = ZoneMinder::Logger::fetch();
+$log->termLevel(ZoneMinder::Logger::DEBUG1());
+$log->fileLevel(ZoneMinder::Logger::NOLOG());
+$log->databaseLevel(ZoneMinder::Logger::NOLOG());
+$log->syslogLevel(ZoneMinder::Logger::NOLOG());
+$log->{effectiveLevel} = ZoneMinder::Logger::DEBUG1();
+
+# Minimal stand-ins for what LWP hands back.
+{
+  package T::Unreachable;   # a timeout or a refused connection
+  sub is_success { 0 }
+  sub status_line { '500 Internal Server Error' }
+  package T::Refusal;       # the device answered, and said no
+  sub is_success { 1 }
+  sub decoded_content { '{"result":-3,"reason":"music file empty"}' }
+}
+
+# The three letter level code the logger printed, e.g. ERR or INF.
+sub level_of {
+  my ($importance, $res) = @_;
+  my $speaker = bless {
+    Monitor => defined($importance)
+      ? bless({Id => 28, Name => 'IP Speaker', Importance => $importance},
+              'ZoneMinder::Monitor')
+      : undef,
+  }, $P;
+
+  my $captured = '';
+  {
+    local *STDERR;
+    open(STDERR, '>', \$captured) or die "cannot capture STDERR: $!";
+    $speaker->decode_reply($res, 'play 10');
+    close(STDERR);
+  }
+  return $captured =~ /\]\.(\w+) / ? $1 : "no log output: $captured";
+}
+
+my $dead = bless {}, 'T::Unreachable';
+is(level_of('Normal', $dead), 'ERR', 'an unreachable speaker on a Normal monitor is an error');
+is(level_of('Less', $dead), 'WAR', 'on a Less important monitor it is demoted to a warning');
+is(level_of('Not', $dead), 'INF', 'on an unimportant monitor it is demoted to info');
+
+# decode_reply can in principle be reached before open() has loaded the
+# monitor; that must not take the level down with it.
+is(level_of(undef, $dead), 'ERR', 'with no monitor loaded it reports at full severity');
+
+# The device answering with a refusal means it is there and something is
+# actually wrong, which no amount of unimportance makes uninteresting.
+is(level_of('Not', bless({}, 'T::Refusal')), 'ERR',
+  'a refusal from the device stays an error even on an unimportant monitor');

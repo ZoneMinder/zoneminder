@@ -65,7 +65,7 @@ $ENV{PATH}  = '@ZM_SCRIPT_PATH@';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
-my $log = logInit();
+logInit();
 logSetSignal();
 my $zm_terminate = 0;
 sub TermHandler {
@@ -206,7 +206,7 @@ while (!$zm_terminate) {
             }
           }
         }
-        $log->logPrint(ZoneMinder::Logger::WARNING+$monitor->ImportanceNumber(),
+        WarningImportance($monitor->ImportanceNumber(),
           "Restarting capture daemon for $monitor->{Id} $$monitor{Name}, no image since startup. ".
           "Startup time was $startup_time - now $now > $Config{ZM_WATCH_MAX_DELAY}"
         );
@@ -225,7 +225,7 @@ while (!$zm_terminate) {
     my $image_delay = $now - $capture_time;
     Debug("Monitor $monitor->{Id} last captured $image_delay seconds ago, max is $max_image_delay");
     if ($image_delay > $max_image_delay) {
-      $log->logPrint(ZoneMinder::Logger::WARNING+$monitor->ImportanceNumber(),
+      WarningImportance($monitor->ImportanceNumber(),
         'Restarting capture daemon for '.$monitor->{Name}.
         ", time since last capture $image_delay seconds ($now-$capture_time)");
       $monitor->control('restart');
@@ -253,7 +253,7 @@ while (!$zm_terminate) {
         my $image_delay = $now-$image_time;
         Debug("Monitor $monitor->{Id} last analysed $image_delay seconds ago, max is $max_image_delay");
         if ($image_delay > $max_image_delay) {
-          $log->logPrint(ZoneMinder::Logger::WARNING+$monitor->ImportanceNumber(),
+          WarningImportance($monitor->ImportanceNumber(),
             "daemon for $$monitor{Id} $$monitor{Name} needs restarting,"
             ." time since last analysis $image_delay seconds ($now-$image_time)");
           $monitor->control('restart');

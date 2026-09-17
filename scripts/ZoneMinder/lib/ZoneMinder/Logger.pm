@@ -82,6 +82,9 @@ our %EXPORT_TAGS = (
       Fatal
       Panic
       Audit
+      importanceLevel
+      WarningImportance
+      ErrorImportance
       ) ]
     );
 
@@ -758,6 +761,33 @@ sub Error { fetch()->logPrint(ERROR, @_, caller); }
 sub error {
   my $log = shift;
   $log->logPrint(ERROR, @_, caller);
+}
+
+# Demote a level by how much the operator says a monitor matters, so a fault
+# that repeats for as long as a device is broken does not bury the faults
+# worth acting on. Importance runs 0 (Normal), 1 (Less), 2 (Not), as
+# ZoneMinder::Monitor::ImportanceNumber returns it, and the scale here runs
+# the other way -- ERROR -2, WARNING -1, INFO 0 -- so adding it makes the
+# message quieter. Quieter, not silent, from a base of ERROR: the least
+# important monitor still reports at INFO.
+#
+# Anything that is not a number counts as Normal, so a caller with no monitor
+# to ask still reports in full: not knowing how much a monitor matters is no
+# reason to hide its faults.
+sub importanceLevel {
+  my ($level, $importance) = @_;
+  $importance = 0 if !defined($importance) or $importance !~ /^\d+$/;
+  return $level + $importance;
+}
+
+sub WarningImportance {
+  my $importance = shift;
+  fetch()->logPrint(importanceLevel(WARNING, $importance), @_, caller);
+}
+
+sub ErrorImportance {
+  my $importance = shift;
+  fetch()->logPrint(importanceLevel(ERROR, $importance), @_, caller);
 }
 
 sub Fatal {

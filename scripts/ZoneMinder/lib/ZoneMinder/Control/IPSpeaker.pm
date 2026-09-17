@@ -150,7 +150,13 @@ sub decode_reply {
   my ($self, $res, $what) = @_;
 
   if (!$res or !$res->is_success) {
-    Error("IPSpeaker: $what failed: ".($res ? $res->status_line : 'no response'));
+    # A speaker that has dropped off the network fails this way on every
+    # command until somebody fixes it, so how loudly it is worth saying so
+    # depends on how much the operator cares about this monitor. The refusal
+    # and unparseable cases below stay errors: the device answered, so it is
+    # there and something is actually wrong.
+    ErrorImportance($self->{Monitor} ? $self->{Monitor}->ImportanceNumber() : 0,
+      "IPSpeaker: $what failed: ".($res ? $res->status_line : 'no response'));
     return undef;
   }
   my $data = eval { decode_json($res->decoded_content) };

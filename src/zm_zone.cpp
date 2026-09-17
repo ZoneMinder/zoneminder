@@ -406,10 +406,21 @@ bool Zone::CheckAlarms(const Image *delta_image) {
 
     if (check_method >= BLOBS) {
       Debug(5, "Checking for blob pixels");
-      // ICON FIXME Would like to get rid of this memset
-      memset(blob_stats, 0, sizeof(BlobStats)*256);
-      uint8_t *spdiff;
-      uint8_t last_x, last_y;
+      // Where the old 254 tag table gave out. Kept as the point at which a
+      // frame is noisy enough to be worth telling the operator about.
+      constexpr unsigned int kBlobSensitivityWarning = 254;
+      // One label per pixel, held apart from the mask so a label is not limited
+      // to what fits in a pixel. Allocated once per zone and reused; only the
+      // rows this zone covers need clearing.
+      const size_t label_count = static_cast<size_t>(diff_width) * diff_height;
+      if (blob_labels.size() != label_count) blob_labels.assign(label_count, 0);
+      else
+        memset(blob_labels.data() + (static_cast<size_t>(lo_y) * diff_width), 0,
+               static_cast<size_t>(hi_y - lo_y + 1) * diff_width * sizeof(uint16_t));
+
+      // Index 0 is "no blob", so the first real blob lands at 1.
+      blob_stats.assign(1, BlobStats{});
+      uint16_t last_x, last_y;
       BlobStats *bsx, *bsy;
       BlobStats *bsm, *bss;
       for (int y = lo_y; y <= hi_y; y++) {
@@ -424,11 +435,12 @@ bool Zone::CheckAlarms(const Image *delta_image) {
           if (*pdiff == kWhite) {
             Debug(9, "Got white pixel at %d,%d (%p)", x, y, pdiff);
 
-            last_x = ((x > 0) && ( (x-1) >= lo_x )) ? *(pdiff-1) : 0;
+            const size_t label_index = (static_cast<size_t>(y) * diff_width) + x;
+            last_x = ((x > 0) && ( (x-1) >= lo_x )) ? blob_labels[label_index-1] : 0;
             last_y = 0;
             if ( y > 0 ) {
               if ( (y-1) >= lo_y && ranges[(y-1)].lo_x <= x && ranges[(y-1)].hi_x >= x ) {
-                last_y = *(pdiff-diff_width);
+                last_y = blob_labels[label_index-diff_width];
               }
             }
 
@@ -441,7 +453,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                 if (last_x == last_y) {
                   Debug(9, "Matching neighbours, setting to %d", last_x);
                   // Add to the blob from the x side (either side really)
-                  *pdiff = last_x;
+                  blob_labels[label_index] = last_x;
                   stats.alarm_blob_pixels_++;
                   bsx->count++;
                   if (x > bsx->hi_x) bsx->hi_x = x;
@@ -469,17 +481,15 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                           "Changing %d, %d->%d Range %d->%d",
                           sy, lo_sx, hi_sx, ranges[sy].lo_x, ranges[sy].hi_x
                          );
-                    spdiff = diff_buff + ((diff_width * sy) + lo_sx);
-                    for (int sx = lo_sx; sx <= hi_sx; sx++, spdiff++) {
-                      Debug(9, "Pixel at %d,%d (%p) is %d", sx, sy, spdiff, *spdiff);
-                      if (*spdiff == bss->tag) {
-                        Debug(9, "Setting pixel");
-                        *spdiff = bsm->tag;
+                    uint16_t *slabel = blob_labels.data() + ((static_cast<size_t>(diff_width) * sy) + lo_sx);
+                    for (int sx = lo_sx; sx <= hi_sx; sx++, slabel++) {
+                      if (*slabel == bss->tag) {
+                        *slabel = bsm->tag;
                         changed++;
                       }
                     }
                   }  // end for sy = lo_y .. hi_y
-                  *pdiff = bsm->tag;
+                  blob_labels[label_index] = bsm->tag;
                   stats.alarm_blob_pixels_++;
                   if (!changed) {
                     Info(
@@ -517,7 +527,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
               } else {
                 Debug(9, "Setting to left neighbour %d", last_x);
                 // Add to the blob from the x side
-                *pdiff = last_x;
+                blob_labels[label_index] = last_x;
                 stats.alarm_blob_pixels_++;
                 bsx->count++;
                 if (x > bsx->hi_x) bsx->hi_x = x;
@@ -530,65 +540,33 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                 // Add to the blob from the y side
                 BlobStats *bsy = &blob_stats[last_y];
 
-                *pdiff = last_y;
+                blob_labels[label_index] = last_y;
                 stats.alarm_blob_pixels_++;
                 bsy->count++;
                 if (x > bsy->hi_x) bsy->hi_x = x;
                 if (y > bsy->hi_y) bsy->hi_y = y;
               } else {
-                // Create a new blob
-                int i;
-                for (i = (kWhite-1); i > 0; i--) {
-                  BlobStats *bs = &blob_stats[i];
-                  // See if we can recycle one first, only if it's at least two rows up
-                  if (bs->count && bs->hi_y < (y-1)) {
-                    if (
-                      (min_blob_pixels && bs->count < min_blob_pixels)
-                      ||
-                      (max_blob_pixels && bs->count > max_blob_pixels)
-                    ) {
-                      if (( monitor->GetOptSaveJPEGs() > 1 ) || config.record_diag_images) {
-                        for (int sy = bs->lo_y; sy <= bs->hi_y; sy++) {
-                          spdiff = diff_buff + ((diff_width * sy) + bs->lo_x);
-                          for (int sx = bs->lo_x; sx <= bs->hi_x; sx++, spdiff++) {
-                            if (*spdiff == bs->tag) {
-                              *spdiff = kBlack;
-                            }
-                          }
-                        }
-                      }
-                      stats.alarm_blobs_--;
-                      stats.alarm_blob_pixels_ -= bs->count;
+                // A new blob. Labels are their own buffer now, so one is always
+                // available: the old code searched a 254 entry table, recycled
+                // an entry from a blob that had finished and failed its size
+                // limits, and gave up on the rest of the zone when it found
+                // none. Sizing is checked once, after every blob is known.
+                if (blob_stats.size() > std::numeric_limits<uint16_t>::max() - 1) {
+                  Warning("Zone %s: more than %zu blobs in one frame, ignoring the rest. "
+                          "Zone settings may be too sensitive.",
+                          label.c_str(), blob_stats.size());
+                } else {
+                  BlobStats bs = {};
+                  bs.tag = static_cast<uint16_t>(blob_stats.size());
+                  bs.count = 1;
+                  bs.lo_x = bs.hi_x = x;
+                  bs.lo_y = bs.hi_y = y;
+                  blob_labels[label_index] = bs.tag;
+                  blob_stats.push_back(bs);
+                  stats.alarm_blob_pixels_++;
+                  stats.alarm_blobs_++;
 
-                      Debug(6, "Eliminated blob %d, %d pixels (%d,%d - %d,%d), %d current blobs",
-                            i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y, stats.alarm_blobs_);
-
-                      bs->tag = 0;
-                      bs->count = 0;
-                      bs->lo_x = 0;
-                      bs->lo_y = 0;
-                      bs->hi_x = 0;
-                      bs->hi_y = 0;
-                    }
-                  }
-                  if (!bs->count) {
-                    Debug(9, "Creating new blob %d", i);
-                    *pdiff = i;
-                    stats.alarm_blob_pixels_++;
-                    bs->tag = i;
-                    bs->count++;
-                    bs->lo_x = bs->hi_x = x;
-                    bs->lo_y = bs->hi_y = y;
-                    stats.alarm_blobs_++;
-
-                    Debug(6, "Created blob %d at %d,%d, %d current blobs", bs->tag, x, y, stats.alarm_blobs_);
-                    break;
-                  }
-                }
-                if (i == 0) {
-                  Warning("Max blob count reached. Unable to allocate new blobs so terminating. Zone settings may be too sensitive.");
-                  x = hi_x+1;
-                  y = hi_y+1;
+                  Debug(6, "Created blob %d at %d,%d, %d current blobs", bs.tag, x, y, stats.alarm_blobs_);
                 }
               }
             }
@@ -605,6 +583,15 @@ bool Zone::CheckAlarms(const Image *delta_image) {
         return false;
       }
 
+      // The old labeller held 254 tags and, when it ran out, told the operator
+      // the zone might be too sensitive before giving up on the frame. Nothing
+      // runs out now, but that was the only warning a badly tuned zone ever
+      // produced, so it still fires at the count that used to trigger it.
+      if (stats.alarm_blobs_ > kBlobSensitivityWarning) {
+        Warning("Zone %s: %d blobs in one frame. Zone settings may be too sensitive.",
+                label.c_str(), stats.alarm_blobs_);
+      }
+
       Debug(5, "Got %d raw blob pixels, %d raw blobs, need %d -> %d, %d -> %d",
             stats.alarm_blob_pixels_, stats.alarm_blobs_, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs);
 
@@ -614,17 +601,20 @@ bool Zone::CheckAlarms(const Image *delta_image) {
       }
 
       // Now eliminate blobs under the threshold
-      for (uint32 i = 1; i < kWhite; i++) {
+      for (size_t i = 1; i < blob_stats.size(); i++) {
         BlobStats *bs = &blob_stats[i];
         if (bs->count) {
           if ((min_blob_pixels && bs->count < min_blob_pixels) || (max_blob_pixels && bs->count > max_blob_pixels)) {
-            if (( monitor->GetOptSaveJPEGs() > 1 ) || config.record_diag_images) {
-              for (int sy = bs->lo_y; sy <= bs->hi_y; sy++) {
-                spdiff = diff_buff + ((diff_width * sy) + bs->lo_x);
-                for (int sx = bs->lo_x; sx <= bs->hi_x; sx++, spdiff++) {
-                  if (*spdiff == bs->tag) {
-                    *spdiff = kBlack;
-                  }
+            // Unconditional: this used to run only when analysis jpegs were
+            // being written, which left the mask showing blobs the zone had
+            // already discounted whenever they were not.
+            for (int sy = bs->lo_y; sy <= bs->hi_y; sy++) {
+              uint16_t *slabel = blob_labels.data() + ((static_cast<size_t>(diff_width) * sy) + bs->lo_x);
+              uint8_t *smask = diff_buff + ((static_cast<size_t>(diff_width) * sy) + bs->lo_x);
+              for (int sx = bs->lo_x; sx <= bs->hi_x; sx++, slabel++, smask++) {
+                if (*slabel == bs->tag) {
+                  *slabel = 0;
+                  *smask = kBlack;
                 }
               }
             }
@@ -647,7 +637,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
             if (!stats.max_blob_size_ || bs->count > stats.max_blob_size_) stats.max_blob_size_ = bs->count;
           }
         } // end if bs_count
-      } // end for i < WHITE
+      } // end for each blob
 
       if (config.record_diag_images) {
         diff_image->WriteJpeg(diag_path, config.record_diag_images_fifo);
@@ -692,7 +682,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
       alarm_lo_y = polygon.Extent().Hi().y_ + 1;
       alarm_hi_y = polygon.Extent().Lo().y_ - 1;
 
-      for (uint32 i = 1; i < kWhite; i++) {
+      for (size_t i = 1; i < blob_stats.size(); i++) {
         BlobStats *bs = &blob_stats[i];
         if (bs->count) {
           if (bs->count == stats.max_blob_size_) {
@@ -701,9 +691,9 @@ bool Zone::CheckAlarms(const Image *delta_image) {
               unsigned long y_total = 0;
 
               for (int sy = bs->lo_y; sy <= bs->hi_y; sy++) {
-                spdiff = diff_buff + ((diff_width * sy) + bs->lo_x);
-                for (int sx = bs->lo_x; sx <= bs->hi_x; sx++, spdiff++) {
-                  if (*spdiff == bs->tag) {
+                const uint16_t *slabel = blob_labels.data() + ((static_cast<size_t>(diff_width) * sy) + bs->lo_x);
+                for (int sx = bs->lo_x; sx <= bs->hi_x; sx++, slabel++) {
+                  if (*slabel == bs->tag) {
                     x_total += sx;
                     y_total += sy;
                   }
@@ -1197,7 +1187,8 @@ Zone::Zone(const Zone &z) :
   overload_count(z.overload_count),
   extend_alarm_count(z.extend_alarm_count),
   diag_path(z.diag_path) {
-  std::copy(z.blob_stats, z.blob_stats+256, blob_stats);
+  blob_stats = z.blob_stats;
+  blob_labels = z.blob_labels;
   pg_image = z.pg_image ? new Image(*z.pg_image) : nullptr;
   ranges = new Range[monitor->Height()];
   std::copy(z.ranges, z.ranges+monitor->Height(), ranges);

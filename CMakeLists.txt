@@ -689,6 +689,62 @@ if(WITH_SYSTEMD)
   endif()
 endif()
 
+# The taint-safe PATH the Perl scripts run external commands with.
+#
+# They run under -T, so they cannot trust the caller's PATH and set their own.
+# That was hardcoded to the FHS locations, which assumes everything they shell
+# out to lives under /usr or /usr/local. ZoneMinder::General::findDbCommand
+# looks for a database client that way, and zmupdate.pl and zmcamtool.pl run it,
+# so an install whose client sits elsewhere - Homebrew on Apple Silicon puts it
+# in /opt/homebrew/bin, and a --prefix=/opt build is the same shape - fails with
+# "sh: mysql: command not found" even though the client is on the caller's PATH.
+#
+# Default to the FHS locations plus wherever a client was actually found, and
+# let a packager override the lot. Every directory named here has to be one only
+# root can write to, or perl's taint checks will refuse to run anything at all.
+set(_zm_script_path "/bin:/usr/bin:/usr/local/bin")
+find_program(ZM_DB_CLIENT_EXECUTABLE NAMES mariadb mysql)
+if(ZM_DB_CLIENT_EXECUTABLE)
+  get_filename_component(_zm_db_client_dir "${ZM_DB_CLIENT_EXECUTABLE}" DIRECTORY)
+  string(FIND ":${_zm_script_path}:" ":${_zm_db_client_dir}:" _zm_db_client_found)
+
+  # Only add a directory nobody but its owner can write to. Perl's own taint
+  # check refuses a world writable directory here, but it permits a group
+  # writable one, and adding one automatically would quietly widen who can
+  # decide what the daemons execute. Homebrew's bin is group writable, so this
+  # is not a theoretical case.
+  execute_process(
+    COMMAND "${PERL_EXECUTABLE}" -e "exit(((stat(\$ARGV[0]))[2] & 022) ? 1 : 0)" "${_zm_db_client_dir}"
+    RESULT_VARIABLE _zm_db_client_dir_unsafe
+    OUTPUT_QUIET ERROR_QUIET)
+
+  if(NOT _zm_db_client_found EQUAL -1)
+    # Already covered by the defaults.
+  elseif(_zm_db_client_dir_unsafe)
+    message(WARNING
+      "Found a database client at ${ZM_DB_CLIENT_EXECUTABLE}, but "
+      "${_zm_db_client_dir} is writable by group or world and has not been "
+      "added to ZM_SCRIPT_PATH: anyone who can write there would choose what "
+      "the Perl daemons run. Tighten its permissions, or set ZM_SCRIPT_PATH "
+      "explicitly if you accept that.")
+  else()
+    set(_zm_script_path "${_zm_script_path}:${_zm_db_client_dir}")
+  endif()
+
+  mark_as_advanced(ZM_DB_CLIENT_EXECUTABLE)
+  unset(_zm_db_client_dir)
+  unset(_zm_db_client_found)
+  unset(_zm_db_client_dir_unsafe)
+else()
+  message(WARNING
+    "No mariadb or mysql client found. zmupdate.pl applies schema changes by "
+    "running one, so database upgrades will fail until one is on ZM_SCRIPT_PATH.")
+endif()
+set(ZM_SCRIPT_PATH "${_zm_script_path}" CACHE STRING
+  "PATH the Perl scripts use for external commands, default: ${_zm_script_path}")
+unset(_zm_script_path)
+message(STATUS "Perl script PATH: ${ZM_SCRIPT_PATH}")
+
 # Find the path to an arp compatible executable
 if(ZM_PATH_ARP STREQUAL "")
   find_program(ARP_EXECUTABLE arp)

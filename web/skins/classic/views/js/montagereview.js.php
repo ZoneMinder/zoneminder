@@ -100,7 +100,7 @@ foreach ( $monitors as $monitor ) {
 
 monitorData[monitorData.length] = {
   'Id': <?php echo $monitor->Id() ?>,
-  'Name': '<?php echo $monitor->Name() ?>',
+  'Name': '<?php echo validJsStr($monitor->Name()) ?>',
   'connKey': '<?php echo $monitor->connKey() ?>',
   'Width': <?php echo $monitor->ViewWidth() ?>,
   'Height':<?php echo $monitor->ViewHeight() ?>,

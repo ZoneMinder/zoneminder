@@ -78,7 +78,7 @@ use constant SOCK_FILE => $Config{ZM_PATH_SOCKS}.'/zmdc'.($Config{ZM_SERVER_ID}?
 
 $| = 1;
 
-$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
+$ENV{PATH}  = '@ZM_SCRIPT_PATH@';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 if ( $Config{ZM_LD_PRELOAD} ) {
   Debug("Adding ENV{LD_PRELOAD} = $Config{ZM_LD_PRELOAD}");

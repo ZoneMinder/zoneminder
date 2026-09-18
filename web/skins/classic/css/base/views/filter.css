@@ -1,12 +1,21 @@
 #filterSelector {
 }
 
+/* skin.css makes .filterTable a flex container for the <div> variant used on
+   the events toolbar.  Here they really are tables, so keep table layout and
+   centre them. */
 table.filterTable {
+    display: table;
     margin: 0 auto;
 }
 
 #fieldsTable td:first-child {
     width: 5em;
+}
+
+#fieldsTable td:nth-child(2),
+#fieldsTable td:nth-child(6) {
+    width: 4em;
 }
 
 #fieldsTable td:nth-child(3) {
@@ -15,9 +24,20 @@ table.filterTable {
 #fieldsTable td:nth-child(4) {
     width: 15em;
 }
+#fieldsTable td:nth-child(5) {
+    width: 18em;
+}
 
 #fieldsTable td {
-    padding: 0 5px;
+    padding: 2px 5px;
+}
+
+/* Value column holds either a plain input or a chosen select; both fill the cell
+   so every row lines up regardless of which attribute is selected. */
+#fieldsTable td input[type=text],
+#fieldsTable td input[type=number] {
+    width: 100%;
+    box-sizing: border-box;
 }
 
 select {
@@ -41,66 +61,80 @@ select {
     text-align: center;
 }
 
-#sortTable {
-  justify-content: center;
+#QueryOptions {
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+#sortTable td {
+  padding: 2px 8px;
+  white-space: nowrap;
 }
 #sortTable input[type=text] {
     margin-right: 4px;
 }
 
-#actionsTable input[type=text] {
-    margin-left: 4px;
-    width: 60%;
-}
-#actionsTable, #optionsTable {
-  float: left;
-  width: 50%;
-  min-width: 300px;
-}
-#actionsTable p, #optionsTable p {
-  text-align: left;
-}
-#actionsTable label, #optionsTable label {
-  width: 320px;
-  text-align: right;
-}
-@media screen and (max-width:767px) {
-  #actionsTable label,
-  #optionsTable label {
-    width: 220px;
-    text-align: right;
-  }
-}
-input[name="filter[EmailSubject]"],
-input[name="filter[EmailTo]"],
-textarea[name="filter[EmailBody]"] {
-width: 60%;
-}
-select#Id {
-min-width: 500px;
-}
-.Name input {
-min-width: 500px;
-}
-form {
-  border-bottom: 1px solid var(--colorBorder);
-}
+/* Actions and Options are two equal columns that stack below ~740px.  Each
+   column centres a max-content block so the labels stay right-aligned against
+   their controls instead of leaving a gutter in the middle of the page. */
 #ActionsAndOptions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0 2em;
   padding-top: 5px;
   border-top: 1px solid var(--colorBorder);
   border-bottom: 1px solid var(--colorBorder);
 }
+#actionsTable, #optionsTable {
+  flex: 1 1 340px;
+  min-width: 0;
+}
 #ActionsAndOptions fieldset {
   border: none;
-  width: 100%;
+  width: max-content;
+  max-width: 100%;
+  margin: 0 auto;
 }
-#ActionsAndOptions:after {
-  content: ".";
-  display: block;
-  height: 0;
-  font-size: 0;
-  clear: both;
-  visibility: hidden;
+#actionsTable p, #optionsTable p {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  margin-bottom: 0.4em;
+  text-align: left;
+}
+#actionsTable label, #optionsTable label {
+  flex: 0 0 17em;
+  margin: 0;
+  text-align: right;
+}
+#actionsTable input[type=text],
+input[name="filter[EmailSubject]"],
+input[name="filter[EmailTo]"],
+input[name="filter[EmailServer]"],
+textarea[name="filter[EmailBody]"] {
+  flex: 1 1 14em;
+  min-width: 8em;
+  margin-left: 0;
+}
+#optionsTable input[type=number] {
+  width: 6em;
+}
+@media screen and (max-width:767px) {
+  #actionsTable label,
+  #optionsTable label {
+    flex-basis: 12em;
+  }
+}
+select#Id {
+  width: min(500px, 100%);
+}
+.Name input {
+  width: min(500px, 100%);
+}
+form {
+  border-bottom: 1px solid var(--colorBorder);
 }
 body.sticky #content {
   overflow-y: auto;
@@ -114,4 +148,14 @@ body.sticky #content {
 #filterdebugModal table th {
   text-align: left;
   border-bottom: 1px solid #7f7fb2;
+}
+
+/* skin.css floats these right, which clips the last buttons once the row is
+   wider than the form.  Wrap them instead. */
+#contentButtons {
+  float: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
 }

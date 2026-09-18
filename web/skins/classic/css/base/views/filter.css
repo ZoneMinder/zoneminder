@@ -97,17 +97,39 @@ select {
   max-width: 100%;
   margin: 0 auto;
 }
-#actionsTable p, #optionsTable p {
+#actionsTable p, #optionsTable p, #optionsTable .EmailFormat {
   display: flex;
   align-items: center;
   gap: 0.4em;
   margin-bottom: 0.4em;
   text-align: left;
 }
-#actionsTable label, #optionsTable label {
+/* Direct children only: the radios in the Email Format row carry labels of
+   their own, which must not take the row label's width. */
+#actionsTable p > label,
+#optionsTable p > label,
+#optionsTable .EmailFormat > label {
   flex: 0 0 17em;
   margin: 0;
   text-align: right;
+}
+#optionsTable .EmailFormat .form-check {
+  margin: 0;
+  padding: 0;
+}
+#optionsTable .EmailFormat .form-check-label {
+  display: flex;
+  align-items: center;
+  gap: 0.25em;
+  margin: 0;
+}
+
+/* The email settings are a group of their own, so set them off from the
+   options above rather than running straight on from Lock Rows. */
+#EmailOptions {
+  margin-top: 0.75em;
+  padding-top: 0.75em;
+  border-top: 1px solid var(--colorBorder);
 }
 /* Checkboxes are flex items beside a growing text input or select, so without
    this they get squeezed narrower than the ones on rows that have no control

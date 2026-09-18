@@ -362,16 +362,21 @@ if ( ZM_OPT_EMAIL ) {
                 <label for="filter[EmailBody]"><?php echo translate('FilterEmailBody') ?></label>
                 <textarea id="filter[EmailBody]" name="filter[EmailBody]" rows="<?php echo count(explode("\n", $filter->EmailBody())) ?>"><?php echo validHtmlStr($filter->EmailBody()) ?></textarea>
               </p>
-              <p class="EmailFormat">
+              <div class="EmailFormat">
                 <label for="filter[EmailFormat]Individual"><?php echo translate('Email Format') ?></label>
 <?php echo html_radio(
   'filter[EmailFormat]',
   ['Individual'=>translate('Individual'), 'Summary'=>translate('Summary')],
   $filter->EmailFormat()); ?>
-              </p>
+              </div>
               <p>
                 <label for="filter[EmailServer]"><?php echo translate('FilterEmailServer') ?></label>
-                <input type="email" id="filter[EmailServer]" name="filter[EmailServer]" value="<?php echo validHtmlStr($filter->EmailServer()) ?>" />
+<?php
+# zmfilter.pl falls back to ZM_EMAIL_HOST when the filter names no server, so
+# show that as the placeholder rather than leaving the field looking unset.
+$default_email_server = (defined('ZM_EMAIL_HOST') and ZM_EMAIL_HOST) ? ZM_EMAIL_HOST : 'localhost';
+?>
+                <input type="email" id="filter[EmailServer]" name="filter[EmailServer]" value="<?php echo validHtmlStr($filter->EmailServer()) ?>" placeholder="<?php echo validHtmlStr($default_email_server) ?>"/>
               </p>
               
             </div>

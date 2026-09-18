@@ -67,9 +67,17 @@ function getLogPanelHTML($options=array()) {
     $levels[$level] = $level;
   }
 
+  # The panel is loaded on every view, so it cannot rely on a per-view
+  # views/js/<view>.js.php defining a translate object. Carry its own strings.
+  $strings = array();
+  foreach (array('Reason', 'AJAXRequestError', 'ErrorUpdatingLogTable',
+    'ErrorDeletingRowFromLogTable', 'DeletingRowsFromTable') as $string) {
+    $strings[$string] = translate($string);
+  }
+
   ob_start();
 ?>
-<div class="logPanel" id="<?php echo $id ?>Panel" data-components="<?php echo $locked === null ? '' : validHtmlStr(json_encode($locked)) ?>">
+<div class="logPanel" id="<?php echo $id ?>Panel" data-components="<?php echo $locked === null ? '' : validHtmlStr(json_encode($locked)) ?>" data-i18n="<?php echo validHtmlStr(json_encode($strings)) ?>">
   <div class="logPanel-summary text-center">
     <?php echo translate('State') ?>:&nbsp;<span class="logPanel-state"></span>&nbsp;-&nbsp;
     <?php echo translate('Total') ?>:&nbsp;<span class="logPanel-total"></span>&nbsp;-&nbsp;

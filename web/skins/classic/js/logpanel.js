@@ -37,6 +37,8 @@ function initLogPanel(panel) {
   // A panel locked to a set of components queries only those and never writes
   // the user's Log view selection back to the session.
   const lockedComponents = panel.dataset.components ? JSON.parse(panel.dataset.components) : null;
+  // The panel's own strings; a view's views/js/<view>.js.php is not loaded here.
+  const i18n = panel.dataset.i18n ? JSON.parse(panel.dataset.i18n) : {};
 
   let ajax = null;
   let allowRequest = false; // Allow unscheduled AJAX requests
@@ -179,7 +181,7 @@ function initLogPanel(panel) {
           updateRequestStatus("stopped");
         } else {
           updateRequestStatus("error");
-          zmAlert(translate["Reason"] + ": " + jqxhr.statusText + "~~" + translate["ErrorUpdatingLogTable"], translate["AJAXRequestError"]);
+          zmAlert(i18n["Reason"] + ": " + jqxhr.statusText + "~~" + i18n["ErrorUpdatingLogTable"], i18n["AJAXRequestError"]);
         }
         table.bootstrapTable('hideLoading');
         logAjaxFail(jqxhr);
@@ -241,7 +243,7 @@ function initLogPanel(panel) {
       deleteProgressBar.appendChild(fill);
 
       idsLength = log_ids.length;
-      handlerAlert = zmAlert(translate["DeletingRowsFromTable"]);
+      handlerAlert = zmAlert(i18n["DeletingRowsFromTable"]);
 
       waitUntil(() => (document.querySelector('#' + handlerAlert + ' .modal-body')), 10000).then((result) => {
         // We're waiting for the modal information block to appear.
@@ -288,7 +290,7 @@ function initLogPanel(panel) {
         table.bootstrapTable('refresh');
         updateRequestStatus("error");
         if (handlerAlert) closeZmAlert(handlerAlert);
-        zmAlert(translate["Reason"] + ": " + jqxhr.statusText + "~~" + translate["ErrorDeletingRowFromLogTable"], translate["AJAXRequestError"]);
+        zmAlert(i18n["Reason"] + ": " + jqxhr.statusText + "~~" + i18n["ErrorDeletingRowFromLogTable"], i18n["AJAXRequestError"]);
       }
     });
   }

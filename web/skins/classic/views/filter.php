@@ -29,6 +29,7 @@ require_once('includes/FilterTerm.php');
 require_once('includes/Monitor.php');
 require_once('includes/Zone.php');
 require_once('includes/User.php');
+require_once(getSkinFile('includes/logpanel.php'));
 parseSort();
 
 $filterNames = array(''=>translate('ChooseFilter'));
@@ -100,9 +101,6 @@ $archiveTypes = array(
 $booleanValues = ZM\Filter::booleanValues();
 
 $focusWindow = true;
-
-# How many of the filter's most recent log entries the Filter Log section shows.
-define('FILTER_LOG_LIMIT', 50);
 
 $storageareas = array('' => array('Name'=>'NULL Unspecified'), '0' => array('Name'=>'Zero')) + ZM\ZM_Object::Objects_Indexed_By_Id('ZM\Storage');
 
@@ -405,46 +403,16 @@ $canDelete = $filter->Id() and $canEdit;
 # Execute button run "zmfilter.pl --filter_id=N", and zmfilter.pl calls
 # logInit(id => 'zmfilter_N'), so that component is exactly this filter's log.
 if ($filter->Id() and canView('System')) {
-  global $dateTimeFormatter;
-  $log_rows = dbFetchAll(
-    'SELECT `TimeKey`, `Pid`, `Code`, `Message` FROM `Logs` WHERE `Component`=? ORDER BY `TimeKey` DESC LIMIT '.FILTER_LOG_LIMIT,
-    null, array('zmfilter_'.$filter->Id()));
 ?>
       <fieldset id="FilterLog">
         <legend><?php echo translate('FilterLog') ?></legend>
 <?php
-  if (!count($log_rows)) {
-?>
-        <p class="noLogEntries"><?php echo translate('NoneAvailable') ?></p>
-<?php
-  } else {
-?>
-        <table id="filterLogTable">
-          <thead>
-            <tr>
-              <th><?php echo translate('DateTime') ?></th>
-              <th><?php echo translate('Pid') ?></th>
-              <th><?php echo translate('Level') ?></th>
-              <th><?php echo translate('Message') ?></th>
-            </tr>
-          </thead>
-          <tbody>
-<?php
-    foreach ($log_rows as $log_row) {
-?>
-            <tr class="log-<?php echo strtolower($log_row['Code']) ?>">
-              <td><?php echo $dateTimeFormatter->format(intval($log_row['TimeKey'])) ?></td>
-              <td><?php echo validInt($log_row['Pid']) ?></td>
-              <td><?php echo validHtmlStr($log_row['Code']) ?></td>
-              <td><?php echo validHtmlStr($log_row['Message']) ?></td>
-            </tr>
-<?php
-    } # end foreach log row
-?>
-          </tbody>
-        </table>
-<?php
-  } # end if have log rows
+  echo getLogPanelHTML(array(
+    'id' => 'filterLog',
+    'components' => array('zmfilter_'.$filter->Id()),
+    'page_size' => 10,
+    'nav_buttons' => false,
+  ));
 ?>
       </fieldset>
 <?php

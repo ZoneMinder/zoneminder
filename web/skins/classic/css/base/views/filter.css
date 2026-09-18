@@ -164,39 +164,3 @@ body.sticky #content {
   border: none;
   padding: 0 8px;
 }
-#filterLogTable {
-  width: 100%;
-  table-layout: fixed;
-}
-#filterLogTable th,
-#filterLogTable td {
-  padding: 2px 6px;
-  text-align: left;
-  vertical-align: top;
-}
-#filterLogTable td:last-child {
-  word-break: break-word;
-}
-#filterLogTable th:nth-child(1) {
-  width: 14em;
-}
-#filterLogTable th:nth-child(2),
-#filterLogTable th:nth-child(3) {
-  width: 5em;
-}
-/* Same level colours the Log view uses; log.css is not loaded here. */
-#filterLogTable tr.log-fat td,
-#filterLogTable tr.log-pnc td {
-  background-color: #ffcccc;
-  font-weight: bold;
-}
-#filterLogTable tr.log-err td {
-  background-color: #ffcccc;
-}
-#filterLogTable tr.log-war td {
-  background-color: #ffe4b5;
-}
-#filterLogTable tr.log-dbg td {
-  color: #666666;
-  font-style: italic;
-}

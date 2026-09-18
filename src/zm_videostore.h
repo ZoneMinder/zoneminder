@@ -110,6 +110,11 @@ class VideoStore {
   int64_t last_fragment_offset_;    // byte offset where the current (in-progress) fragment starts
   int64_t last_fragment_start_dts_; // DTS of the keyframe that started the current fragment
   int64_t init_segment_end_;        // byte offset where init segment (ftyp+moov) ends
+  // Where open() reserved room for a leading sidx, or -1 when it did not.
+  // finalize() fills that region in; zm_mp4_sidx.h says why the index has to
+  // sit there and be reserved before the first fragment is written.
+  int64_t sidx_region_offset_;
+  bool    fragmented_;              // the movflags in use produce moof fragments
   bool    finalized_;               // true once finalize() has run trailer + last-fragment recording
 
   bool setup_resampler();

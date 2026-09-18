@@ -87,6 +87,12 @@ class VideoStore {
   size_t reorder_queue_size;
   std::map<int, std::list<std::shared_ptr<ZMPacket>>> reorder_queues;
 
+  // Where open() reserved room for a leading sidx, or -1 when it did not.
+  // The destructor fills that region in; zm_mp4_sidx.h says why the index
+  // has to sit there and be reserved before the first fragment is written.
+  int64_t sidx_region_offset_;
+  bool    fragmented_;              // the movflags in use produce moof fragments
+
   bool setup_resampler();
   int write_packet(AVPacket *pkt, AVStream *stream);
 

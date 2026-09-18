@@ -21,7 +21,7 @@
 %global zmtargetdistro %{?rhel:el%{rhel}}%{!?rhel:fc%{fedora}}
 
 Name: zoneminder
-Version: 1.38.4
+Version: 1.38.5
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -452,6 +452,21 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 %dir %attr(755,nginx,nginx) %{_localstatedir}/log/zoneminder
 
 %changelog
+* Fri Sep 18 2026  Isaac Connor <iconnor@zoneminder.com> - 1.38.5-1
+- 1.38.5 maintenance release: web and API authorization fixes (System
+  permission required on the Config API with secrets withheld, on the
+  monitor daemon actions and on the control definition and host load
+  endpoints; user preferences answer to their owner), XSS hardening for
+  names and paths written into html and javascript, a non-string request
+  parameter no longer satisfying auth, taint-safe PATH handling in the
+  Perl scripts, width-vs-linesize corrections in Image::Fill, Outline,
+  Delta and Overlay that striped the alarm highlight in analysis images
+  on widths whose rows are not 32-byte aligned, blob labeller tag
+  exhaustion, deadlock retry with bounded backoff, ONVIF 401 handling,
+  OnDemand capture image availability, staggered Monitor_Status writes,
+  go2rtc credential and JSON escaping, UriEncode of non-ASCII bytes,
+  hard link fallback on filesystems without them, CSV monitor import,
+  findVideoEventFile backport, and export download filename quoting
 * Mon Aug 10 2026  Isaac Connor <iconnor@zoneminder.com> - 1.38.4-1
 - 1.38.4 maintenance release: API and web authorization fixes
   (per-monitor ACL on EventData, Tags, Frames, event/zone endpoints,

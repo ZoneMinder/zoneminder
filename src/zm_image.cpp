@@ -2081,37 +2081,63 @@ bool Image::Delta(const Image &image, Image* targetimage) const {
   TimePoint start = std::chrono::steady_clock::now();
 #endif
 
+  // The delta8_* helpers process a run of contiguous pixels and have no
+  // concept of a row stride. Running them once over width*height pixels
+  // assumed all three buffers were packed, but linesize is
+  // FFALIGN(width*colours, 32), so on a width whose row is not already
+  // aligned each row consumed too few bytes and the delta sheared further
+  // left on every row. A 720-wide RGB24 monitor (linesize 2176,
+  // width*colours 2160) lost 16 bytes per row, smearing the motion delta
+  // ~5px per row and wrapping it diagonally across the frame. Pick the
+  // helper once, then drive it a row at a time.
+  delta_fptr_t delta_fn = nullptr;
+
   switch ( colours ) {
   case ZM_COLOUR_RGB24:
     if ( subpixelorder == ZM_SUBPIX_ORDER_BGR ) {
       /* BGR subpixel order */
-      (*delta8_bgr)(buffer, image.buffer, pdiff, pixels);
+      delta_fn = delta8_bgr;
     } else {
       /* Assume RGB subpixel order */
-      (*delta8_rgb)(buffer, image.buffer, pdiff, pixels);
+      delta_fn = delta8_rgb;
     }
     break;
   case ZM_COLOUR_RGB32:
     if ( subpixelorder == ZM_SUBPIX_ORDER_ARGB ) {
       /* ARGB subpixel order */
-      (*delta8_argb)(buffer, image.buffer, pdiff, pixels);
+      delta_fn = delta8_argb;
     } else if(subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
       /* ABGR subpixel order */
-      (*delta8_abgr)(buffer, image.buffer, pdiff, pixels);
+      delta_fn = delta8_abgr;
     } else if(subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
       /* BGRA subpixel order */
-      (*delta8_bgra)(buffer, image.buffer, pdiff, pixels);
+      delta_fn = delta8_bgra;
     } else {
       /* Assume RGBA subpixel order */
-      (*delta8_rgba)(buffer, image.buffer, pdiff, pixels);
+      delta_fn = delta8_rgba;
     }
     break;
   case ZM_COLOUR_GRAY8:
-    (*delta8_gray8)(buffer, image.buffer, pdiff, pixels);
+    delta_fn = delta8_gray8;
     break;
   default:
     Panic("Delta called with unexpected colours: %d",colours);
     break;
+  }
+
+  const unsigned int target_linesize = targetimage->LineSize();
+  if ( linesize == image.linesize
+       && linesize == width * colours
+       && target_linesize == width ) {
+    /* All three buffers are packed - one call covers the whole image */
+    (*delta_fn)(buffer, image.buffer, pdiff, pixels);
+  } else {
+    for ( unsigned int y = 0; y < height; y++ ) {
+      (*delta_fn)(buffer + (y * linesize),
+                  image.buffer + (y * image.linesize),
+                  pdiff + (y * target_linesize),
+                  width);
+    }
   }
 
 #ifdef ZM_IMAGE_PROFILING

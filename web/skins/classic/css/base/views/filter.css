@@ -166,8 +166,11 @@ body.sticky #content {
   gap: 8px;
 }
 
+/* A fieldset's legend sits in the border box, above the padding, so only a
+   margin lifts it clear of the line the form draws above it. */
 #FilterLog {
   border: none;
+  margin-top: 12px;
   padding: 0 8px;
 }
 

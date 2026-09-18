@@ -319,31 +319,57 @@ sub GenerateVideo {
 
     my $width = $self->{Width};
     my $height = $self->{Height};
-    my $video_size = " ${width}x${height}";
+    my $video_size = "${width}x${height}";
 
     if ( $scale ) {
       if ( $scale != 1.0 ) {
         $width = int($width*$scale);
         $height = int($height*$scale);
-        $video_size = " ${width}x${height}";
+        $video_size = "${width}x${height}";
       }
     } elsif ( $size ) {
       $video_size = $size;
     }
-    my $command = $Config{ZM_PATH_FFMPEG}
-    ." -y -r $frame_rate "
-      .$Config{ZM_FFMPEG_INPUT_OPTIONS}
-    .' -i ' . ( $$self{DefaultVideo} ? $$self{DefaultVideo} : '%0'.$Config{ZM_EVENT_IMAGE_DIGITS} .'d-capture.jpg' )
-#. " -f concat -i /tmp/event_files.txt"
-    #
-   .join(' ', map { ' -vf '.$_ } @transforms)
-       ." -s $video_size "
+    # Built as a list and run without a shell. Two of these arguments are event
+    # fields an operator with Events=Edit can set through the API: DefaultVideo
+    # used to be interpolated into the command line with no quoting at all, and
+    # the name behind $video_file only has whitespace replaced, so a single
+    # quote in it escaped the quoting that was there. Either one gave arbitrary
+    # command execution as the web account. As a list there is no shell to
+    # escape from, whatever the fields hold. See GHSA-pfph-4j9j-7cv7.
+    my $input_file = $$self{DefaultVideo}
+      ? $$self{DefaultVideo}
+      : '%0'.$Config{ZM_EVENT_IMAGE_DIGITS}.'d-capture.jpg';
 
-      .$Config{ZM_FFMPEG_OUTPUT_OPTIONS}
-    ." '$video_file' > ffmpeg.log 2>&1"
-      ;
-    Debug($command);
-    my $output = qx($command);
+    my @command = (
+      $Config{ZM_PATH_FFMPEG},
+      '-y', '-r', $frame_rate,
+      # The configured option strings are admin-set and hold several options
+      # each, so they are split on whitespace rather than passed as one word.
+      grep { $_ ne '' } split(/\s+/, $Config{ZM_FFMPEG_INPUT_OPTIONS}),
+      '-i', $input_file,
+      (map { ('-vf', $_) } @transforms),
+      '-s', $video_size,
+      grep { $_ ne '' } split(/\s+/, $Config{ZM_FFMPEG_OUTPUT_OPTIONS}),
+      $video_file,
+    );
+
+    Debug('Executing: '.join(' ', @command));
+
+    my $pid = fork();
+    if ( !defined $pid ) {
+      Error("Unable to fork for video generation: $!");
+      return;
+    }
+    if ( !$pid ) {
+      # ffmpeg's own output still goes to the log file the error message below
+      # points the operator at.
+      open(STDOUT, '>', 'ffmpeg.log') or exit(1);
+      open(STDERR, '>&', \*STDOUT) or exit(1);
+      exec { $command[0] } @command;
+      exit(1);
+    }
+    waitpid($pid, 0);
 
     my $status = $? >> 8;
     if ( $status ) {

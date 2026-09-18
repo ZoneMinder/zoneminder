@@ -109,6 +109,12 @@ select {
   margin: 0;
   text-align: right;
 }
+/* Checkboxes are flex items beside a growing text input or select, so without
+   this they get squeezed narrower than the ones on rows that have no control
+   after them. */
+#actionsTable input[type=checkbox], #optionsTable input[type=checkbox] {
+  flex: none;
+}
 #actionsTable input[type=text],
 input[name="filter[EmailSubject]"],
 input[name="filter[EmailTo]"],
@@ -163,4 +169,11 @@ body.sticky #content {
 #FilterLog {
   border: none;
   padding: 0 8px;
+}
+
+/* #content is a flex column, so with the log panel below it the form became a
+   shrinkable sibling and grew a scrollbar of its own halfway down the Actions
+   list.  Let it keep its full height and leave the scrolling to #content. */
+#contentForm {
+  flex: none;
 }

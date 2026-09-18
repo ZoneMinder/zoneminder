@@ -48,6 +48,18 @@ $primary_key = 'Id';
 # StartDateTime range tight enough to stay indexed.
 use constant MAX_EVENT_DAYS => 1;
 
+# Quote a filter term's value for inclusion in SQL. The terms are stored
+# verbatim by the web tier and rebuilt into SQL here, so a value reaches this
+# exactly as the user typed it; wrapping it in quotes by hand let a value
+# containing one close the literal and continue the statement.
+# See GHSA-p8h3-4x5c-cv7p.
+sub sql_quote {
+  my $value = shift;
+  return 'NULL' if !defined $value;
+  return $ZoneMinder::Database::dbh->quote($value);
+}
+
+
 # When an event was never closed, EndDateTime is NULL and StartDateTime plus
 # Length is the best available end.  Mirrors the SELECT list in
 # web/ajax/events.php; an event with no Length has no span at all.
@@ -186,6 +198,31 @@ sub Sql {
         # against E.StartDateTime / E.EndDateTime instead of wrapping the
         # column in to_days(), which would prevent index use.  See
         # _dateRangeSQL below.
+        # attr and op are concatenated into the statement further down (the
+        # final else emits 'E.'.$term->{attr}, and the generic operator branch
+        # emits $term->{op} as written), so both are checked here the way
+        # web/includes/FilterTerm.php checks them. A filter carrying anything
+        # else is refused rather than run: this daemon executes unattended and
+        # can delete and move events. See GHSA-p8h3-4x5c-cv7p.
+        if ( defined $term->{attr} ) {
+          my $clean_attr = $term->{attr};
+          $clean_attr =~ s/[^A-Za-z0-9\.]//g;
+          if ( $clean_attr ne $term->{attr} ) {
+            Error("Invalid characters in filter attr '$$term{attr}', skipping filter '$$self{Name}'");
+            return;
+          }
+        }
+        if ( defined $term->{op} and $term->{op} ne '' ) {
+          my %valid_ops = map { $_ => 1 } (
+            '=', '!=', '>=', '<=', '>', '<', 'LIKE', 'NOT LIKE', '=~', '!~',
+            '=[]', '![]', 'IN', 'NOT IN', 'EXISTS', 'IS', 'IS NOT',
+          );
+          if ( !$valid_ops{$term->{op}} ) {
+            Error("Invalid operator '$$term{op}' in filter '$$self{Name}', skipping filter");
+            return;
+          }
+        }
+
         my $date_column = '';
         if ( $term->{attr} eq 'Date' or $term->{attr} eq 'StartDate' ) {
           $date_column = 'E.StartDateTime';
@@ -292,22 +329,22 @@ sub Sql {
           # Empty value will result in () from split
           foreach my $temp_value ( $stripped_value ne '' ? split( /["'\s]*?,["'\s]*?/, $stripped_value ) : $stripped_value ) {
             if ( $term->{attr} eq 'AlarmedZoneId' ) {
-              $value = '(SELECT * FROM Stats WHERE EventId=E.Id AND Score > 0 AND ZoneId='.$value.')';
+              $value = '(SELECT * FROM Stats WHERE EventId=E.Id AND Score > 0 AND ZoneId='.int($value).')';
             } elsif ( $term->{attr} =~ /^MonitorName/ ) {
-              $value = "'$temp_value'";
+              $value = sql_quote($temp_value);
             } elsif (
               $term->{attr} eq 'ServerId' or
               $term->{attr} eq 'MonitorServerId' or
               $term->{attr} eq 'StorageServerId' or
               $term->{attr} eq 'FilterServerId' ) {
               if ( $temp_value eq 'ZM_SERVER_ID' ) {
-                $value = "'$ZoneMinder::Config::Config{ZM_SERVER_ID}'";
+                $value = sql_quote($ZoneMinder::Config::Config{ZM_SERVER_ID});
                 # This gets used later, I forget for what
                 $$self{Server} = new ZoneMinder::Server($ZoneMinder::Config::Config{ZM_SERVER_ID});
               } elsif ( uc($temp_value) eq 'NULL' ) {
                 $value = $temp_value;
               } else {
-                $value = "'$temp_value'";
+                $value = sql_quote($temp_value);
                 # This gets used later, I forget for what
                 $$self{Server} = new ZoneMinder::Server($temp_value);
               }
@@ -325,7 +362,7 @@ sub Sql {
               ) {
                 $temp_value = '%'.$temp_value.'%' if $temp_value !~ /%/;
               }
-              $value = "'$temp_value'";
+              $value = sql_quote($temp_value);
             } elsif ( $term->{attr} eq 'DateTime' or $term->{attr} eq 'StartDateTime' or $term->{attr} eq 'EndDateTime' or $term->{attr} eq 'CurrentDateTime') {
               if ( uc($temp_value) eq 'NULL' ) {
                 $value = $temp_value;
@@ -352,7 +389,7 @@ sub Sql {
                   Error("Error parsing date/time '$temp_value', skipping filter '$self->{Name}'");
                   return;
                 }
-                $value = $date_column ? "'$value'" : "to_days( '$value' )";
+                $value = $date_column ? sql_quote($value) : 'to_days( '.sql_quote($value).' )';
               }
             } elsif ( $term->{attr} eq 'Time' or $term->{attr} eq 'StartTime' or $term->{attr} eq 'EndTime' or $term->{attr} eq 'CurrentTime') {
               if ( uc($temp_value) eq 'NULL' ) {
@@ -363,10 +400,21 @@ sub Sql {
                   Error("Error parsing date/time '$temp_value', skipping filter '$self->{Name}'");
                   return;
                 }
-                $value = "extract( hour_second from '$value' )";
+                $value = 'extract( hour_second from '.sql_quote($value).' )';
               }
             } else {
-              $value = $temp_value;
+              # Everything else is a plain column comparison, and most of those
+              # columns are numeric. A bare number cannot carry SQL, so it is
+              # left as it was to keep the generated statement identical for
+              # the filters people already have; NULL stays a keyword; anything
+              # else is quoted.
+              if ( uc($temp_value) eq 'NULL' ) {
+                $value = 'NULL';
+              } elsif ( $temp_value =~ /^-?\d+(?:\.\d+)?$/ ) {
+                $value = $temp_value;
+              } else {
+                $value = sql_quote($temp_value);
+              }
             }
             push @value_list, $value;
           } # end foreach temp_value

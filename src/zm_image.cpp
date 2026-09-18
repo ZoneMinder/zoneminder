@@ -2499,14 +2499,14 @@ void Image::Fill( Rgb colour, const Box *limits ) {
   unsigned int hi_y = limits ? limits->Hi().y_ : height - 1;
   if ( colours == ZM_COLOUR_GRAY8 ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      unsigned char *p = &buffer[(y*width)+lo_x];
+      unsigned char *p = &buffer[(y*linesize)+lo_x];
       for ( unsigned int x = lo_x; x <= hi_x; x++, p++) {
         *p = colour;
       }
     }
   } else if ( colours == ZM_COLOUR_RGB24 ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      unsigned char *p = &buffer[colours*((y*width)+lo_x)];
+      unsigned char *p = &buffer[(y*linesize)+(colours*lo_x)];
       for ( unsigned int x = lo_x; x <= hi_x; x++, p += 3) {
         RED_PTR_RGBA(p) = RED_VAL_RGBA(colour);
         GREEN_PTR_RGBA(p) = GREEN_VAL_RGBA(colour);
@@ -2515,7 +2515,7 @@ void Image::Fill( Rgb colour, const Box *limits ) {
     }
   } else if ( colours == ZM_COLOUR_RGB32 ) { /* RGB32 */
     for ( unsigned int y = lo_y; y <= (unsigned int)hi_y; y++ ) {
-      Rgb *p = (Rgb*)&buffer[((y*width)+lo_x)<<2];
+      Rgb *p = (Rgb*)&buffer[(y*linesize)+(lo_x<<2)];
 
       for ( unsigned int x = lo_x; x <= (unsigned int)hi_x; x++, p++) {
         /* Fast, copies the entire pixel in a single pass */
@@ -2544,7 +2544,7 @@ void Image::Fill( Rgb colour, int density, const Box *limits ) {
   unsigned int hi_y = limits ? limits->Hi().y_ : height - 1;
   if ( colours == ZM_COLOUR_GRAY8 ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      unsigned char *p = &buffer[(y*width)+lo_x];
+      unsigned char *p = &buffer[(y*linesize)+lo_x];
       for ( unsigned int x = lo_x; x <= hi_x; x++, p++) {
         if ( ( x == lo_x || x == hi_x || y == lo_y || y == hi_y ) || (!(x%density) && !(y%density) ) )
           *p = colour;
@@ -2552,7 +2552,7 @@ void Image::Fill( Rgb colour, int density, const Box *limits ) {
     }
   } else if ( colours == ZM_COLOUR_RGB24 ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      unsigned char *p = &buffer[colours*((y*width)+lo_x)];
+      unsigned char *p = &buffer[(y*linesize)+(colours*lo_x)];
       for ( unsigned int x = lo_x; x <= hi_x; x++, p += 3) {
         if ( ( x == lo_x || x == hi_x || y == lo_y || y == hi_y ) || (!(x%density) && !(y%density) ) ) {
           RED_PTR_RGBA(p) = RED_VAL_RGBA(colour);
@@ -2563,7 +2563,7 @@ void Image::Fill( Rgb colour, int density, const Box *limits ) {
     }
   } else if ( colours == ZM_COLOUR_RGB32 ) { /* RGB32 */
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      Rgb* p = (Rgb*)&buffer[((y*width)+lo_x)<<2];
+      Rgb* p = (Rgb*)&buffer[(y*linesize)+(lo_x<<2)];
 
       for ( unsigned int x = lo_x; x <= hi_x; x++, p++) {
         if ( ( x == lo_x || x == hi_x || y == lo_y || y == hi_y ) || (!(x%density) && !(y%density) ) )
@@ -2610,18 +2610,18 @@ void Image::Outline( Rgb colour, const Polygon &polygon ) {
       grad *= yinc;
       if ( colours == ZM_COLOUR_GRAY8 ) {
         for ( x = x1, y = y1; y != y2; y += yinc, x += grad ) {
-          buffer[(y*width)+int(round(x))] = colour;
+          buffer[(y*linesize)+int(round(x))] = colour;
         }
       } else if ( colours == ZM_COLOUR_RGB24 ) {
         for ( x = x1, y = y1; y != y2; y += yinc, x += grad ) {
-          unsigned char *p = &buffer[colours*((y*width)+int(round(x)))];
+          unsigned char *p = &buffer[(y*linesize)+(colours*int(round(x)))];
           RED_PTR_RGBA(p) = RED_VAL_RGBA(colour);
           GREEN_PTR_RGBA(p) = GREEN_VAL_RGBA(colour);
           BLUE_PTR_RGBA(p) = BLUE_VAL_RGBA(colour);
         }
       } else if ( colours == ZM_COLOUR_RGB32 ) {
         for ( x = x1, y = y1; y != y2; y += yinc, x += grad ) {
-          *(Rgb*)(buffer+(((y*width)+int(round(x)))<<2)) = colour;
+          *(Rgb*)(buffer+(y*linesize)+(int(round(x))<<2)) = colour;
         }
       }
     } else {
@@ -2639,18 +2639,18 @@ void Image::Outline( Rgb colour, const Polygon &polygon ) {
         //Debug( 9, "x1:%d, x2:%d, y1:%d, y2:%d, gr:%.2lf", x1, x2, y1, y2, grad );
         for ( y = y1, x = x1; x != x2; x += xinc, y += grad ) {
           //Debug( 9, "x:%d, y:%.2f", x, y );
-          buffer[(int(round(y))*width)+x] = colour;
+          buffer[(int(round(y))*linesize)+x] = colour;
         }
       } else if ( colours == ZM_COLOUR_RGB24 ) {
         for ( y = y1, x = x1; x != x2; x += xinc, y += grad ) {
-          unsigned char *p = &buffer[colours*((int(round(y))*width)+x)];
+          unsigned char *p = &buffer[(int(round(y))*linesize)+(colours*x)];
           RED_PTR_RGBA(p) = RED_VAL_RGBA(colour);
           GREEN_PTR_RGBA(p) = GREEN_VAL_RGBA(colour);
           BLUE_PTR_RGBA(p) = BLUE_VAL_RGBA(colour);
         }
       } else if ( colours == ZM_COLOUR_RGB32 ) {
         for ( y = y1, x = x1; x != x2; x += xinc, y += grad ) {
-          *(Rgb*)(buffer+(((int(round(y))*width)+x)<<2)) = colour;
+          *(Rgb*)(buffer+(int(round(y))*linesize)+(x<<2)) = colour;
         }
       }
     }
@@ -2732,7 +2732,7 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
         int32 lo_x = static_cast<int32>(it->min_x);
         int32 hi_x = static_cast<int32>((it + 1)->min_x);
         if (colours == ZM_COLOUR_GRAY8) {
-          uint8 *p = &buffer[(scan_line * width) + lo_x];
+          uint8 *p = &buffer[(scan_line * linesize) + lo_x];
 
           for (int32 x = lo_x; x <= hi_x; x++, p++) {
             if (!(x % density)) {
@@ -2741,7 +2741,7 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
           }
         } else if (colours == ZM_COLOUR_RGB24) {
           constexpr uint8 bytesPerPixel = 3;
-          uint8 *ptr = &buffer[((scan_line * width) + lo_x) * bytesPerPixel];
+          uint8 *ptr = &buffer[(scan_line * linesize) + (lo_x * bytesPerPixel)];
 
           for (int32 x = lo_x; x <= hi_x; x++, ptr += bytesPerPixel) {
             if (!(x % density)) {
@@ -2752,7 +2752,7 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
           }
         } else if (colours == ZM_COLOUR_RGB32) {
           constexpr uint8 bytesPerPixel = 4;
-          Rgb *ptr = reinterpret_cast<Rgb *>(&buffer[((scan_line * width) + lo_x) * bytesPerPixel]);
+          Rgb *ptr = reinterpret_cast<Rgb *>(&buffer[(scan_line * linesize) + (lo_x * bytesPerPixel)]);
 
           for (int32 x = lo_x; x <= hi_x; x++, ptr++) {
             if (!(x % density)) {

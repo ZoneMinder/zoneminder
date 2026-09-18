@@ -29,6 +29,8 @@
 #include "zm_vector2.h"
 
 #include <algorithm>
+#include <cstdint>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -49,7 +51,7 @@ class Zone {
     int off_x;
   };
   typedef struct {
-    unsigned char tag;
+    uint16_t tag;
     int count;
     int lo_x;
     int hi_x;
@@ -81,7 +83,14 @@ class Zone {
   int         min_filter_pixels;
   int         max_filter_pixels;
 
-  BlobStats   blob_stats[256];
+  // Blob labels used to live in the mask's own 8-bit pixels, which capped a
+  // frame at 254 blobs: past that CheckAlarms abandoned the rest of the zone
+  // and reported whatever it had counted so far. They live in a buffer of their
+  // own now, so the only limit is how many blobs a frame actually has. Sized
+  // for the zone on first use, and only for zones that look for blobs at all.
+  std::vector<uint16_t> blob_labels;
+  // Index 0 is unused so a label of 0 can mean "not part of a blob".
+  std::vector<BlobStats> blob_stats;
   int         min_blob_pixels;
   int         max_blob_pixels;
   int         min_blobs;

@@ -50,4 +50,20 @@ TEST_CASE("MonitorStreamBufferLevel") {
     // write_index - read_index is negative; modular arithmetic keeps it in range
     REQUIRE(MonitorStreamBufferLevel(2, 7, 10) == 50);
   }
+
+  SECTION("a read that straddles an update still reports in range") {
+    // zoneminder/zoneminder#4939: the command thread reads the three values as
+    // separate atomics, so it can pick up a write index from one moment and a
+    // read index from another. That stays harmless for this percentage as long
+    // as each index is individually within [0, count): the +count before the
+    // modulo covers the whole (-count, count) span the difference can take.
+    const int count = 64;
+    for (int write_index = 0; write_index < count; write_index++) {
+      for (int read_index = 0; read_index < count; read_index++) {
+        const int level = MonitorStreamBufferLevel(write_index, read_index, count);
+        REQUIRE(level >= 0);
+        REQUIRE(level <= 100);
+      }
+    }
+  }
 }

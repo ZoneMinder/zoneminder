@@ -1235,6 +1235,16 @@ bool Monitor::connect() {
   last_analysis_fps_time = std::chrono::system_clock::now();
   last_capture_image_count = 0;
 
+  // Stagger the Monitor_Status writes. Left at its default (the epoch) every
+  // monitor's first UpdateFPS() sees a huge elapsed time and writes at once,
+  // and because the period is fixed they stay in lockstep from then on. A mass
+  // restart therefore lands every monitor on the same second of the cycle
+  // forever after, dropping the whole herd onto the smallest, hottest table in
+  // the schema at the moment the system is least able to absorb it. Phase them
+  // by id, which spreads them over the interval and, unlike a random offset,
+  // survives a restart without re-clustering.
+  last_status_time = last_fps_time - Seconds(id % kStatusUpdateInterval.count());
+
   Debug(3, "Success connecting");
   return true;
 } // Monitor::connect
@@ -1895,7 +1905,7 @@ void Monitor::UpdateFPS() {
     last_fps_time = now;
 
     FPSeconds db_elapsed = now - last_status_time;
-    if (db_elapsed > Seconds(10)) {
+    if (db_elapsed > kStatusUpdateInterval) {
       std::string sql = stringtf(
 		      "INSERT INTO Monitor_Status (MonitorId, Status,CaptureFPS,CaptureBandwidth, AnalysisFPS, UpdatedOn) VALUES (%u, 'Connected',%.2lf, %u, %.2lf, NOW()) ON DUPLICATE KEY "
           "UPDATE Status='Connected', CaptureFPS = %.2lf, CaptureBandwidth=%u, AnalysisFPS = %.2lf, UpdatedOn=NOW()",
@@ -3264,6 +3274,11 @@ Event * Monitor::openEvent(
 
     if (!starting_packet.packet_) {
       Warning("Unable to get starting packet lock");
+      // Every other path out of here hands start_it to the Event, which frees
+      // it in ~Event. Leaking it leaves a registered iterator pinned to the
+      // front of the queue, which stops clearPackets() removing anything for
+      // the life of the process.
+      packetqueue.free_it(start_it);
       return nullptr;
     }
     packet_lock->unlock();
@@ -3315,7 +3330,7 @@ Event * Monitor::openEvent(
         logInit(log_id.c_str());
         Error("Error execing %s: %s", event_start_command.c_str(), strerror(errno));
       }
-      std::quick_exit(0);
+      _exit(0);
     }
   }
 
@@ -3366,7 +3381,7 @@ void Monitor::closeEvent() {
           logInit(log_id.c_str());
           Error("Error execing %s: %s", command.c_str(), strerror(errno));
         }
-        std::quick_exit(0);
+        _exit(0);
       }
     }
   }, event, event_end_command);
@@ -3734,7 +3749,8 @@ int Monitor::Pause() {
       convert_context = nullptr;
     }
     decoding_image_count = 0;
-    if (shared_data) shared_data->last_write_index = image_buffer_count;
+    // Do not reset last_write_index: the last captured image stays in shm so
+    // that mode=single/thumbnails can still be served while paused.
   }
   if (analysis_thread) {
     Debug(1, "Joining analysis");

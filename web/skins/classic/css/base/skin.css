@@ -732,9 +732,25 @@ input[type=submit]:disabled,
     padding-left: 0.5rem;
   }
 }
+/*
+ * renderMenuIcon() emits the material default of 24px, which makes every top
+ * navbar item 40px tall against the 36px the bar was before it had icons, and
+ * wide enough that the collapse toggle wraps onto a row of its own.  18px
+ * matches the statistics bar below and puts the row back where it was.
+ */
+#navbar-one .nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+#navbar-one .nav-link > .material-icons {
+  font-size: 18px;
+  line-height: 18px;
+}
+
 #getHeaderFlipHTML a {
   display: block;
-  padding: .5rem 1rem;
+  padding: .5rem;
 }
 
 .navbar-btn {

@@ -100,8 +100,19 @@ class HostController extends AppController {
     $cred = [];
 
     if ( $username && $password ) {
+      // Mint the token for the account that actually authenticated, never for
+      // a name taken from the request. beforeFilter() authenticates from
+      // user=/pass= (and zm_authenticate_request() from username=/password=),
+      // while the subject used to be read straight out of `user`. Because the
+      // two were never cross-checked, a caller could authenticate with their
+      // own low-privileged credentials and ask for a token issued to admin.
+      // See GHSA-m77q-66v7-j3fq.
+      global $user;
+      if ( !$user ) {
+        throw new UnauthorizedException(__('Not authenticated'));
+      }
       ZM\Debug('Username and password provided, generating access and refresh tokens');
-      $cred = $this->_getCredentials(true, '', $username); // generate refresh
+      $cred = $this->_getCredentials(true, '', $user->Username()); // generate refresh
     } else {
       ZM\Debug('Only generating access token');
       $cred = $this->_getCredentials(false, $token); // don't generate refresh

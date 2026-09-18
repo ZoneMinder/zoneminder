@@ -185,6 +185,9 @@ if (ZM_OPT_USE_AUTH) {
   );
   echo '</p>'.PHP_EOL;
 }
+?>
+        <fieldset id="QueryOptions"><legend><?php echo translate('Query') ?></legend>
+<?php
 echo $filter->widget();
 ?>
         <table id="sortTable" class="filterTable">
@@ -242,6 +245,7 @@ echo htmlSelect('filter[Query][skip_locked]',
             </tr>
           </tbody>
         </table>
+        </fieldset>
 <div id="ActionsAndOptions">
         <div id="actionsTable" class="filterTable">
           <fieldset><legend><?php echo translate('Actions') ?></legend>
@@ -357,13 +361,12 @@ if ( ZM_OPT_EMAIL ) {
                 <label for="filter[EmailBody]"><?php echo translate('FilterEmailBody') ?></label>
                 <textarea id="filter[EmailBody]" name="filter[EmailBody]" rows="<?php echo count(explode("\n", $filter->EmailBody())) ?>"><?php echo validHtmlStr($filter->EmailBody()) ?></textarea>
               </p>
-              <p>
-                <label for="filter[EmailFormat]Individual"><?php echo translate('Email Format') ?>
+              <p class="EmailFormat">
+                <label for="filter[EmailFormat]Individual"><?php echo translate('Email Format') ?></label>
 <?php echo html_radio(
   'filter[EmailFormat]',
   ['Individual'=>translate('Individual'), 'Summary'=>translate('Summary')],
   $filter->EmailFormat()); ?>
-</label>
               </p>
               <p>
                 <label for="filter[EmailServer]"><?php echo translate('FilterEmailServer') ?></label>

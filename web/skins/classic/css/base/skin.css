@@ -1861,3 +1861,45 @@ input.masked-input.unmasked {
   display: none;
 }
 /* --- This block should always be located at the end! */
+
+/*
+ * Log panel (skins/classic/includes/logpanel.php).  Shared by the Log view and
+ * by any view that embeds a panel of its own, so it lives here rather than in a
+ * per-view sheet.
+ */
+.logPanel-summary {
+  margin: 4px auto 0;
+}
+.logPanel th[data-field="DateTime"],
+.logPanel th[data-field="Component"],
+.logPanel th[data-field="Code"],
+.logPanel th[data-field="Message"],
+.logPanel th[data-field="File"],
+.logPanel th[data-field="Server"],
+.logPanel th[data-field="Line"] {
+  text-align: left;
+}
+.logPanel th[data-field="DateTime"] {
+  min-width: 135px;
+}
+.logPanel .search .form-control {
+  font-size: 100%;
+}
+.logPanel .bootstrap-table .fixed-table-container .table td,
+.logPanel .bootstrap-table .fixed-table-container .table th {
+  vertical-align: top!important;
+}
+.logPanel tr.log-fat td {
+  background-color: #ffcccc;
+  font-weight: bold;
+}
+.logPanel tr.log-err td {
+  background-color: #ffcccc;
+}
+.logPanel tr.log-war td {
+  background-color: #ffe4b5;
+}
+.logPanel tr.log-dbg td {
+  color: #666666;
+  font-style: italic;
+}

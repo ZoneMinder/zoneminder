@@ -1835,7 +1835,8 @@ function thisClickOnStreamObject(clickObj) {
     } else return false;
   } else {
     // When using go2rtc there will be a <video> element with no ID wrapped in a <video-stream> with an ID of !
-    if (clickObj.closest('video-stream')) return true;
+    // Also, the ".zoompan" object does not have an ID, but we need to ensure that it contains a stream.
+    if (clickObj.closest('video-stream') || clickObj.querySelector('video[id^="liveStream"], video-stream[id^="liveStream"]')) return true;
   }
   return false;
 }

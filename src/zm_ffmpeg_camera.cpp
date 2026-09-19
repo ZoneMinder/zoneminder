@@ -653,13 +653,17 @@ int FfmpegCamera::OpenFfmpeg() {
     }
   }  // end if have audio stream
 
+  // Ask the stream, not the decoder. Both carry the same dimensions -- the
+  // decoder context is filled from the stream's codecpar -- but the stream is
+  // what the camera is actually sending, and reading it here means this check
+  // does not depend on a decoder having been opened.
   if (
-    ((unsigned int)mVideoCodecContext->width != width)
+    ((unsigned int)mVideoStream->codecpar->width != width)
     ||
-    ((unsigned int)mVideoCodecContext->height != height)
+    ((unsigned int)mVideoStream->codecpar->height != height)
   ) {
     Debug(1, "Monitor dimensions are %dx%d but camera is sending %dx%d",
-          width, height, mVideoCodecContext->width, mVideoCodecContext->height);
+          width, height, mVideoStream->codecpar->width, mVideoStream->codecpar->height);
   }
 
   // Seed fallback per-frame durations (in each stream's time_base) used to space

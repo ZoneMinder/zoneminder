@@ -104,14 +104,16 @@ class MonitorRtspStream {
     monitor_(std::move(monitor)),
     stream_name_(monitor_->GetRTSPStreamName()) {
     StreamSocketClient::Callbacks callbacks;
-    callbacks.on_hello = [this](StreamId stream, const HelloInfo &info, uint32_t) {
+    callbacks.on_hello = [this](StreamId stream, const HelloInfo &info, uint32_t generation) {
       std::lock_guard<std::mutex> lock(mutex_);
       if (stream == StreamId::Video) {
         pending_video_ = info;
         have_pending_video_ = true;
+        pending_video_generation_ = generation;
       } else {
         pending_audio_ = info;
         have_pending_audio_ = true;
+        pending_audio_generation_ = generation;
       }
       // Flag under the wake mutex so a HELLO arriving between the main
       // loop's Update() pass and its wait cannot be lost until the timeout
@@ -123,6 +125,13 @@ class MonitorRtspStream {
     };
     callbacks.on_media = [this](const Header &header, const uint8_t *data, size_t size) {
       std::lock_guard<std::mutex> lock(mutex_);
+      // Drop media from a generation the current session was not built for.
+      // After a parameter change the reader thread sees the new HELLO (and new
+      // generation) before the main thread rebuilds the session; feeding that
+      // media to the old packer produces codec-mismatch garbage. It flows again
+      // once Update() rebuilds at the new generation.
+      if (!session_ or header.generation != built_generation_)
+        return;
       if (header.stream == static_cast<uint8_t>(StreamId::Video)) {
         if (video_source_)
           video_source_->OnPacket(data, size, header.pts_us);
@@ -155,24 +164,38 @@ class MonitorRtspStream {
     std::lock_guard<std::mutex> lock(mutex_);
     if (!have_pending_video_)
       return;  // nothing to serve until video parameters are known
+
+    // Audio counts only when it belongs to the video's current generation. A
+    // generation bump re-issues the video HELLO; audio that is not re-announced
+    // at the new generation (e.g. the source dropped its audio stream) is
+    // stale and must not be built into the new session.
+    bool audio_current = have_pending_audio_
+                         and pending_audio_generation_ == pending_video_generation_;
+
     if (session_
+        and built_generation_ == pending_video_generation_
         and HelloEqual(built_video_, pending_video_)
-        and have_pending_audio_ == built_with_audio_
-        and (!have_pending_audio_ or HelloEqual(built_audio_, pending_audio_)))
+        and audio_current == built_with_audio_
+        and (!audio_current or HelloEqual(built_audio_, pending_audio_)))
       return;
 
     TeardownLocked();
-    BuildLocked();
+    BuildLocked(audio_current);
   }
 
  private:
   // mutex_ must be held
   void TeardownLocked() {
+    // Stop and join each packer's write thread while the object is still the
+    // most-derived type: it calls the virtual PushFrame, which must not run
+    // once destruction has devolved the vtable to the pure base.
     if (video_source_) {
+      video_source_->StopAndJoin();
       delete video_source_;
       video_source_ = nullptr;
     }
     if (audio_source_) {
+      audio_source_->StopAndJoin();
       delete audio_source_;
       audio_source_ = nullptr;
     }
@@ -182,8 +205,9 @@ class MonitorRtspStream {
     }
   }
 
-  // mutex_ must be held; have_pending_video_ is true
-  void BuildLocked() {
+  // mutex_ must be held; have_pending_video_ is true. build_audio says whether
+  // the pending audio HELLO is current (see Update) and should be served.
+  void BuildLocked(bool build_audio) {
     xop::MediaSession *session = xop::MediaSession::CreateNew(stream_name_);
     if (!session) {
       Error("Unable to create session for %s", stream_name_.c_str());
@@ -252,7 +276,7 @@ class MonitorRtspStream {
     if (!video.extradata.empty())
       video_source_->OnPacket(video.extradata.data(), video.extradata.size(), 0);
 
-    if (have_pending_audio_) {
+    if (build_audio) {
       const HelloInfo &audio = pending_audio_;
       bool supported = true;
       switch (audio.codec_id) {
@@ -277,7 +301,15 @@ class MonitorRtspStream {
       }
       if (supported) {
         auto *source = new ADTS_ZoneMinderStreamSource(rtsp_server_, session_id, xop::channel_1);
-        source->setFrequency(audio.sample_rate);
+        // G.711 is always 8 kHz; use that as the fallback when the HELLO
+        // omitted the sample rate, rather than the AAC-oriented 44.1 kHz
+        // default in setFrequency (a wrong rate skews the RTP timestamps).
+        int frequency = audio.sample_rate;
+        if (frequency <= 0
+            and (audio.codec_id == AV_CODEC_ID_PCM_ALAW
+                 or audio.codec_id == AV_CODEC_ID_PCM_MULAW))
+          frequency = 8000;
+        source->setFrequency(frequency);
         source->setChannels(audio.channels);
         audio_source_ = source;
       }
@@ -286,11 +318,13 @@ class MonitorRtspStream {
     session_ = session;
     built_video_ = pending_video_;
     built_audio_ = pending_audio_;
-    built_with_audio_ = have_pending_audio_ and audio_source_;
-    Info("Monitor %u: rtsp session %s serving %s%s%s", monitor_->Id(),
+    built_with_audio_ = build_audio and audio_source_;
+    built_generation_ = pending_video_generation_;
+    Info("Monitor %u: rtsp session %s serving %s%s%s (generation %u)", monitor_->Id(),
          stream_name_.c_str(), avcodec_get_name(built_video_.codec_id),
          audio_source_ ? " + " : "",
-         audio_source_ ? avcodec_get_name(built_audio_.codec_id) : "");
+         audio_source_ ? avcodec_get_name(built_audio_.codec_id) : "",
+         built_generation_);
   }
 
   std::shared_ptr<xop::RtspServer> rtsp_server_;
@@ -305,8 +339,11 @@ class MonitorRtspStream {
   HelloInfo pending_video_, pending_audio_;
   bool have_pending_video_ = false;
   bool have_pending_audio_ = false;
+  uint32_t pending_video_generation_ = 0;
+  uint32_t pending_audio_generation_ = 0;
   HelloInfo built_video_, built_audio_;
   bool built_with_audio_ = false;
+  uint32_t built_generation_ = 0;  // generation the current session was built for
 };
 
 void Usage() {

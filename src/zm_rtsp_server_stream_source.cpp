@@ -34,6 +34,10 @@ ZoneMinderStreamSource::ZoneMinderStreamSource(
 
 ZoneMinderStreamSource::~ZoneMinderStreamSource() {
   Debug(1, "Deleting Stream Source");
+  // Fallback if the owner did not StopAndJoin() first. By the time this base
+  // destructor runs the derived overrides of PushFrame are already gone, so a
+  // write thread still running here would make a pure-virtual call - owners
+  // must StopAndJoin() while the object is whole.
   Stop();
   if (write_thread_.joinable()) {
     Debug(3, "Joining write thread");

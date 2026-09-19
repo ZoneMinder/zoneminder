@@ -33,6 +33,17 @@ class ZoneMinderStreamSource {
     condition_.notify_all();
   };
 
+  // Stop the write thread and join it. Must be called by the owner before the
+  // object is destroyed (the base destructor is a fallback): the write thread
+  // calls the virtual PushFrame, so it has to be gone while the most-derived
+  // object is still whole. Joining only in ~ZoneMinderStreamSource races the
+  // thread against a PushFrame that has already devolved to the pure base.
+  void StopAndJoin() {
+    Stop();
+    if (write_thread_.joinable())
+      write_thread_.join();
+  };
+
   ZoneMinderStreamSource(
     std::shared_ptr<xop::RtspServer>& rtspServer,
     xop::MediaSessionId sessionId,

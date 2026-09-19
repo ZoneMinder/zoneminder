@@ -219,6 +219,9 @@ Monitor::Monitor() :
   deinterlacing_value(0),
   decoder_hwaccel_name(""),
   decoder_hwaccel_device(""),
+  mVideoCodecContext(nullptr),
+  decoder_hw_pix_fmt(AV_PIX_FMT_NONE),
+  decoder_hw_device_ctx(nullptr),
   videoRecording(false),
   rtsp_describe(false),
 
@@ -3428,7 +3431,7 @@ void Monitor::flushDecoderQueue() {
 }
 
 bool Monitor::Decode() {
-  AVCodecContext *context = camera->getVideoCodecContext();
+  AVCodecContext *context = GetVideoCodecContext();
   ZMPacketLock packet_lock;
   std::shared_ptr<ZMPacket> packet;
 
@@ -4374,6 +4377,59 @@ void Monitor::SendStreamHealthEvent(uint16_t code, const std::string &message, i
   RefreshStreamSnapshot();
 }
 
+int Monitor::OpenDecoder() {
+  CloseDecoder();
+
+  if (!camera) return 0;
+
+  AVStream *stream = camera->getVideoStream();
+  if (!stream) {
+    // Cameras that hand over images rather than packets -- LocalCamera, vlc,
+    // vnc -- have nothing to decode.
+    Debug(1, "No video stream to decode");
+    return 0;
+  }
+
+  if (camera->getVideoCodecContext()) {
+    // RemoteCameraRtsp opens its own and decodes through it. Leave it alone
+    // until that capture method is removed in 1.41, rather than running two
+    // decoders over one stream.
+    Debug(1, "Camera brought its own decoder; not opening another");
+    return 0;
+  }
+
+  mVideoCodecContext = open_video_decoder(
+      stream,
+      decoder_name,
+      decoder_hwaccel_name,
+      decoder_hwaccel_device,
+      options,
+      name,
+      decoder_hw_pix_fmt,
+      decoder_hw_device_ctx);
+
+  if (!mVideoCodecContext) {
+    Error("Failed to open a decoder for monitor %s", name.c_str());
+    return -1;
+  }
+  return 1;
+}  // end int Monitor::OpenDecoder()
+
+void Monitor::CloseDecoder() {
+  // Order matters: the context holds a reference to the device, and its opaque
+  // points at decoder_hw_pix_fmt. Free the context first so nothing can read
+  // either afterwards.
+  if (mVideoCodecContext) {
+    avcodec_free_context(&mVideoCodecContext);
+    mVideoCodecContext = nullptr;
+  }
+  if (decoder_hw_device_ctx) {
+    av_buffer_unref(&decoder_hw_device_ctx);
+    decoder_hw_device_ctx = nullptr;
+  }
+  decoder_hw_pix_fmt = AV_PIX_FMT_NONE;
+}  // end void Monitor::CloseDecoder()
+
 int Monitor::PrimeCapture() {
   // Stop the decoder before tearing the codec context down. The decoder
   // thread holds a raw AVCodecContext* it got from
@@ -4391,9 +4447,14 @@ int Monitor::PrimeCapture() {
     packetqueue.notify_all();  // wake the thread if it's blocked on wait_for
     decoder->Join();
   }
+  // Safe now that the only thread holding this pointer has been joined.
+  CloseDecoder();
 
   int ret = camera->PrimeCapture();
   if (ret <= 0) return ret;
+
+  // After the camera, which is what produces the stream to decode from.
+  if (OpenDecoder() < 0) return -1;
 
   if ( -1 != camera->getVideoStreamId() ) {
     video_stream_id = packetqueue.addStream();
@@ -4541,6 +4602,11 @@ int Monitor::Pause() {
       }
     }
   }
+  // The decoder thread was joined at the top of Pause(), so nothing is using
+  // the context any more. Release it with the camera rather than carrying a
+  // decoder for a stream that is gone.
+  CloseDecoder();
+
   if (camera) {
     camera->Close();
   }

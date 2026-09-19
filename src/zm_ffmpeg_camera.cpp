@@ -596,19 +596,10 @@ int FfmpegCamera::OpenFfmpeg() {
   Debug(3, "Found video stream at index %d, audio stream at index %d",
         mVideoStreamId, mAudioStreamId);
 
-  mVideoCodecContext = open_video_decoder(
-      mVideoStream,
-      monitor->DecoderName(),
-      hwaccel_name,
-      hwaccel_device,
-      mOptions,
-      mMaskedPath,
-      hw_pix_fmt,
-      hw_device_ctx);
-  if (!mVideoCodecContext) {
-    Warning("Failed to open codec");
-    return -1;
-  }
+  // No decoder is opened here any more. The monitor opens one against this
+  // stream in Monitor::OpenDecoder() once PrimeCapture() returns, and owns it
+  // for as long as the decoder thread needs it. This camera's job is to
+  // produce packets.
 
   if (mAudioStreamId >= 0) {
     const AVCodec *mAudioCodec = nullptr;

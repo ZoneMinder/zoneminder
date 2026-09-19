@@ -624,6 +624,19 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::string     decoder_name;
   std::string     decoder_hwaccel_name;
   std::string     decoder_hwaccel_device;
+
+  // The decoder belongs here rather than to the camera: the camera's job is to
+  // produce packets, and the decoder thread runs against this context for as
+  // long as the monitor says so. It used to live in FfmpegCamera, where
+  // camera->PrimeCapture() freed and rebuilt it underneath a decoder thread
+  // still holding the pointer.
+  //
+  // decoder_hw_pix_fmt must outlive mVideoCodecContext: the context stores its
+  // address in opaque and get_hw_format reads it back on every format
+  // negotiation. Being a member of the same object gives it that lifetime.
+  AVCodecContext *mVideoCodecContext;
+  AVPixelFormat   decoder_hw_pix_fmt;
+  AVBufferRef    *decoder_hw_device_ctx;
   bool            videoRecording;
   bool            rtsp_describe;
 
@@ -1046,7 +1059,12 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   AVStream *GetAudioStream() const { return camera ? camera->getAudioStream() : nullptr; };
   AVCodecContext *GetAudioCodecContext() const { return camera ? camera->getAudioCodecContext() : nullptr; };
   AVStream *GetVideoStream() const { return camera ? camera->getVideoStream() : nullptr; };
-  AVCodecContext *GetVideoCodecContext() const { return camera ? camera->getVideoCodecContext() : nullptr; };
+  // Prefer the monitor's own decoder. RemoteCameraRtsp still opens one of its
+  // own, so fall back to the camera's until that capture method goes in 1.41.
+  AVCodecContext *GetVideoCodecContext() const {
+    if (mVideoCodecContext) return mVideoCodecContext;
+    return camera ? camera->getVideoCodecContext() : nullptr;
+  };
 
   std::string GetSecondPath() const { return second_path; };
   std::string GetStreamSocketPath() const { return shared_data ? shared_data->stream_socket_path : ""; };
@@ -1118,6 +1136,11 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int actionContrast();
 
   int PrimeCapture();
+  // Open a decoder for the camera's video stream, and tear it down. Safe to
+  // call when there is nothing to decode: cameras that hand over images rather
+  // than packets have no video stream, and RemoteCameraRtsp brings its own.
+  int OpenDecoder();
+  void CloseDecoder();
   int PreCapture() const;
   int Capture();
   int PostCapture() const;

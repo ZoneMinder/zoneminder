@@ -1159,6 +1159,7 @@ class Filter extends ZM_Object {
             </tr>
 ';
     } # end foreach term
+    $html .= '</tbody></table>';
     // Error($html);
     return $html;
   }  # end function widget()

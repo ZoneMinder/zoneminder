@@ -29,6 +29,7 @@ require_once('includes/FilterTerm.php');
 require_once('includes/Monitor.php');
 require_once('includes/Zone.php');
 require_once('includes/User.php');
+require_once(getSkinFile('includes/logpanel.php'));
 parseSort();
 
 $filterNames = array(''=>translate('ChooseFilter'));
@@ -185,6 +186,9 @@ if (ZM_OPT_USE_AUTH) {
   );
   echo '</p>'.PHP_EOL;
 }
+?>
+        <fieldset id="QueryOptions"><legend><?php echo translate('Query') ?></legend>
+<?php
 echo $filter->widget();
 ?>
         <table id="sortTable" class="filterTable">
@@ -242,6 +246,7 @@ echo htmlSelect('filter[Query][skip_locked]',
             </tr>
           </tbody>
         </table>
+        </fieldset>
 <div id="ActionsAndOptions">
         <div id="actionsTable" class="filterTable">
           <fieldset><legend><?php echo translate('Actions') ?></legend>
@@ -357,17 +362,21 @@ if ( ZM_OPT_EMAIL ) {
                 <label for="filter[EmailBody]"><?php echo translate('FilterEmailBody') ?></label>
                 <textarea id="filter[EmailBody]" name="filter[EmailBody]" rows="<?php echo count(explode("\n", $filter->EmailBody())) ?>"><?php echo validHtmlStr($filter->EmailBody()) ?></textarea>
               </p>
-              <p>
-                <label for="filter[EmailFormat]Individual"><?php echo translate('Email Format') ?>
+              <div class="EmailFormat">
+                <label for="filter[EmailFormat]Individual"><?php echo translate('Email Format') ?></label>
 <?php echo html_radio(
   'filter[EmailFormat]',
   ['Individual'=>translate('Individual'), 'Summary'=>translate('Summary')],
   $filter->EmailFormat()); ?>
-</label>
-              </p>
+              </div>
               <p>
                 <label for="filter[EmailServer]"><?php echo translate('FilterEmailServer') ?></label>
-                <input type="email" id="filter[EmailServer]" name="filter[EmailServer]" value="<?php echo validHtmlStr($filter->EmailServer()) ?>" />
+<?php
+# zmfilter.pl falls back to ZM_EMAIL_HOST when the filter names no server, so
+# show that as the placeholder rather than leaving the field looking unset.
+$default_email_server = (defined('ZM_EMAIL_HOST') and ZM_EMAIL_HOST) ? ZM_EMAIL_HOST : 'localhost';
+?>
+                <input type="email" id="filter[EmailServer]" name="filter[EmailServer]" value="<?php echo validHtmlStr($filter->EmailServer()) ?>" placeholder="<?php echo validHtmlStr($default_email_server) ?>"/>
               </p>
               
             </div>
@@ -394,6 +403,26 @@ $canDelete = $filter->Id() and $canEdit;
           <button type="button" value="Reset" data-on-click-this="resetFilter"><?php echo translate('Reset') ?></button>
         </div>
       </form>
+<?php
+# Both the background daemons (zmpkg starts one per background filter) and the
+# Execute button run "zmfilter.pl --filter_id=N", and zmfilter.pl calls
+# logInit(id => 'zmfilter_N'), so that component is exactly this filter's log.
+if ($filter->Id() and canView('System')) {
+?>
+      <fieldset id="FilterLog">
+        <legend><?php echo translate('FilterLog') ?></legend>
+<?php
+  echo getLogPanelHTML(array(
+    'id' => 'filterLog',
+    'components' => array('zmfilter_'.$filter->Id()),
+    'page_size' => 10,
+    'nav_buttons' => false,
+  ));
+?>
+      </fieldset>
+<?php
+} # end if filter has an Id and we may read the log
+?>
     </div><!--content-->
   </div><!--page-->
 <?php xhtmlFooter() ?>

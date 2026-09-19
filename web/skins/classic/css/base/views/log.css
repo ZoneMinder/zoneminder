@@ -1,58 +1,20 @@
-tr.log-fat td {
-    background-color:#ffcccc;
-    font-weight: bold;
-}
-
-tr.log-err td {
-    background-color:#ffcccc;
-}
-
-tr.log-war td {
-    background-color: #ffe4b5;
-}
-
-tr.log-dbg td {
-    color: #666666;
-    font-style: italic;
-}
-
-th[data-field="DateTime"],
-th[data-field="Component"],
-th[data-field="Code"],
-th[data-field="Message"],
-th[data-field="File"],
-th[data-field="Server"],
-th[data-field="Line"] {
-  text-align: left;
-}
-th[data-field="DateTime"] {
-  min-width: 135px;
-}
-.search .form-control {
-    font-size: 100%;
-}
-#logsTable {
+#logPanel .logPanel-table {
   overflow-y: auto;
   height: 100%;
 }
 
-.sticky #logsTable .bootstrap-table {
+.sticky #logPanel .logPanel-table .bootstrap-table {
   display: flex;
   flex-direction: column;
   height: 100%;
   overflow-y: hidden;
 }
 
-.sticky #logsTable .bootstrap-table .fixed-table-container {
+.sticky #logPanel .logPanel-table .bootstrap-table .fixed-table-container {
   overflow-y: auto;
 }
 
-.sticky #logsTable .bootstrap-table .fixed-table-container thead {
+.sticky #logPanel .logPanel-table .bootstrap-table .fixed-table-container thead {
   position: sticky;
   top: -1px;
-}
-
-.bootstrap-table .fixed-table-container .table td,
-.bootstrap-table .fixed-table-container .table th {
-  vertical-align: top!important;
 }

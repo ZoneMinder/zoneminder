@@ -246,10 +246,14 @@ function queryRequest() {
     }
   }
 
-  zm_session_start();
-  $_SESSION['zmLogComponent'] = $requestComponents;
-  $_SESSION['zmLogFilterLevel'] = array_keys($requestLevels);
-  session_write_close();
+  # An embedded panel queries a component of its own choosing, so remembering
+  # what it asked for would overwrite the Log view's selection.
+  if (empty($_REQUEST['embedded'])) {
+    zm_session_start();
+    $_SESSION['zmLogComponent'] = $requestComponents;
+    $_SESSION['zmLogFilterLevel'] = array_keys($requestLevels);
+    session_write_close();
+  }
 
   if ($where) $where = ' WHERE '.$where;
 

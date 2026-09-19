@@ -357,4 +357,25 @@ enum AVPixelFormat get_hw_format(AVCodecContext *ctx, const enum AVPixelFormat *
 // for".
 std::vector<enum AVHWDeviceType> hwaccel_candidate_types(const std::string &hwaccel_name);
 
+// Open a decoder for a video stream, with hardware acceleration if one was
+// asked for and can be had.
+//
+// hw_pix_fmt is taken by reference because the returned context points at it:
+// get_hw_format reads it back through ctx->opaque every time libavcodec picks
+// a format. Whatever the caller passes must therefore outlive the context, and
+// must not be a temporary or a local that goes out of scope first.
+//
+// hw_device_ctx receives the device the caller must unref once the context is
+// gone. label names the source in error messages. Returns nullptr if no
+// decoder could be opened at all.
+AVCodecContext *open_video_decoder(
+    AVStream *stream,
+    const std::string &decoder_name,
+    const std::string &hwaccel_name,
+    const std::string &hwaccel_device,
+    const std::string &options,
+    const std::string &label,
+    AVPixelFormat &hw_pix_fmt,
+    AVBufferRef *&hw_device_ctx);
+
 #endif // ZM_FFMPEG_H

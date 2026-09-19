@@ -181,6 +181,34 @@ AVCodecContext *open_fallback_decoder(const AVCodecParameters *codecpar, const A
 
 // Callback to select hardware pixel format.
 // ctx->opaque must point to an AVPixelFormat containing the desired hw format.
+std::vector<enum AVHWDeviceType> hwaccel_candidate_types(const std::string &hwaccel_name) {
+  std::vector<enum AVHWDeviceType> candidates;
+  if (hwaccel_name.empty()) return candidates;
+
+  const bool auto_detect = (hwaccel_name == "auto");
+
+  // Walked even when not auto-detecting: the list of what this build offers is
+  // the first thing wanted when a named hwaccel turns out not to exist.
+  enum AVHWDeviceType available = AV_HWDEVICE_TYPE_NONE;
+  while ((available = av_hwdevice_iterate_types(available)) != AV_HWDEVICE_TYPE_NONE) {
+    Debug(1, "Available hwdevice type %s", av_hwdevice_get_type_name(available));
+    if (auto_detect) candidates.push_back(available);
+  }
+  if (auto_detect) return candidates;
+
+  for (const std::string &token : Split(hwaccel_name, ',')) {
+    const std::string name = TrimSpaces(token);
+    if (name.empty()) continue;
+    const enum AVHWDeviceType named = av_hwdevice_find_type_by_name(name.c_str());
+    if (named == AV_HWDEVICE_TYPE_NONE) {
+      Warning("Unknown hwaccel device type '%s', skipping.", name.c_str());
+    } else {
+      candidates.push_back(named);
+    }
+  }
+  return candidates;
+}
+
 enum AVPixelFormat get_hw_format(AVCodecContext *ctx, const enum AVPixelFormat *pix_fmts) {
   if (!ctx->opaque) {
     Error("get_hw_format called with null opaque pointer");

@@ -26,6 +26,8 @@
 
 #include <list>
 #include <memory>
+#include <string>
+#include <vector>
 
 extern "C" {
 #include <libswresample/swresample.h>
@@ -342,5 +344,17 @@ AVCodecContext *open_fallback_decoder(const AVCodecParameters *codecpar, const A
 int setup_hwaccel(AVCodecContext *codec_ctx, const CodecData *codec_data,AVBufferRef * &hw_device_ctx, const std::string &device, int width, int height);
 int libjpeg_to_ffmpeg_qv(int libjpeg_quality);
 enum AVPixelFormat get_hw_format(AVCodecContext *ctx, const enum AVPixelFormat *pix_fmts);
+
+// The hwaccel device types a DecoderHWAccelName asks for, in the order they
+// should be tried.
+//
+// "auto" means every type this libavutil was built with, so the caller probes
+// them and takes the first the decoder supports and whose device opens.
+// Anything else is a comma-separated priority list; a single name is the
+// one-element case. Unknown names are dropped with a warning rather than
+// failing the lot, so one typo in a list does not cost the working entries.
+// An empty name yields nothing, which the caller reads as "no hwaccel asked
+// for".
+std::vector<enum AVHWDeviceType> hwaccel_candidate_types(const std::string &hwaccel_name);
 
 #endif // ZM_FFMPEG_H

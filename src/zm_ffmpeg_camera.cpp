@@ -679,24 +679,9 @@ int FfmpegCamera::OpenFfmpeg() {
       // order (e.g. "cuda,vaapi"; a single name like "vaapi" is just the
       // one-element case and behaves as before). If nothing usable is found
       // we transparently fall back to software.
-      std::vector<enum AVHWDeviceType> candidate_types;
-      bool auto_detect = (hwaccel_name == "auto");
-      enum AVHWDeviceType it = AV_HWDEVICE_TYPE_NONE;
-      while ((it = av_hwdevice_iterate_types(it)) != AV_HWDEVICE_TYPE_NONE) {
-        Debug(1, "Available hwdevice type %s", av_hwdevice_get_type_name(it));
-        if (auto_detect) candidate_types.push_back(it);
-      }
-      if (!auto_detect) {
-        for (const std::string &token : Split(hwaccel_name, ',')) {
-          std::string name = TrimSpaces(token);
-          if (name.empty()) continue;
-          enum AVHWDeviceType named = av_hwdevice_find_type_by_name(name.c_str());
-          if (named == AV_HWDEVICE_TYPE_NONE)
-            Warning("Unknown hwaccel device type '%s', skipping.", name.c_str());
-          else
-            candidate_types.push_back(named);
-        }
-      }
+      const bool auto_detect = (hwaccel_name == "auto");
+      const std::vector<enum AVHWDeviceType> candidate_types =
+          hwaccel_candidate_types(hwaccel_name);
 
       for (enum AVHWDeviceType type : candidate_types) {
         Debug(1, "Trying hwdevice %s", av_hwdevice_get_type_name(type));

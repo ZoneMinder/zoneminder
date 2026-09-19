@@ -4620,6 +4620,11 @@ int Monitor::Play() {
   int ret = camera->PrimeCapture();
   if (ret <= 0) return ret;
 
+  // Pause() released the decoder, so resuming has to open another. This is the
+  // on-demand path: an unwatched monitor is paused and played again when
+  // somebody looks at it, without ever going back through PrimeCapture().
+  if (OpenDecoder() < 0) return -1;
+
   if ( -1 != camera->getVideoStreamId() ) {
     video_stream_id = packetqueue.addStream();
   }

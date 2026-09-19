@@ -271,9 +271,14 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
      ** zm.conf. Empty until the socket is served, or if the path does not fit.
      ** Reuses the retired video_fifo_path field, same offset and size. */
     char stream_socket_path[64]; /* +680 */
-    /* Formerly audio_fifo_path; the media FIFOs were replaced by the stream
-     ** socket. Kept as reserved padding so the layout and total size are
-     ** unchanged for out-of-tree shm readers. */
+    /* Formerly audio_fifo_path, retired with video_fifo_path when the media
+     ** FIFOs were replaced by the stream socket. A single socket carries both
+     ** streams, so there is no separate audio path to publish; this slot stays
+     ** reserved. Retiring an shm field means keeping it in place at its
+     ** original offset and size (never removing or reordering it, which would
+     ** shift every field after it for out-of-tree readers): either give it a
+     ** new meaning of the same width, as stream_socket_path above did, or leave
+     ** it reserved like this. Free for a future 64-byte field. */
     char reserved_path2[64]; /* +744 */
     char janus_pin[64]; /* +808 */
     /* Analysis image ring: the annotated/analysis image is published into a

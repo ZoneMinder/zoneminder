@@ -865,18 +865,20 @@ class Event extends ZM_Object {
       $command = ZM_PATH_FFMPEG
       ." -y -r $frame_rate "
         .ZM_FFMPEG_INPUT_OPTIONS
-        .' -i ' . $event_path.'/'.( $this->DefaultVideo() ? $this->DefaultVideo() : '%0'.ZM_EVENT_IMAGE_DIGITS .'d-capture.jpg' )
+        ." -i ".escapeshellarg($event_path.'/'.( $this->DefaultVideo() ? $this->DefaultVideo() : '%0'.ZM_EVENT_IMAGE_DIGITS .'d-capture.jpg' ))
         #. " -f concat -i /tmp/event_files.txt"
         #
-        .implode(' ', array_map(function($t){ return ' -vf '.$t; }, explode(',', $transforms)))
+        .implode(' ', array_map(function($t){ return ' -vf '.escapeshellarg($t); }, array_filter(explode(',', $transforms), 'strlen')))
       ." -s $video_size "
 
         .ZM_FFMPEG_OUTPUT_OPTIONS
-        ." '$event_path/$video_file' > $event_path/ffmpeg.log 2>&1"
+        ." ".escapeshellarg($event_path.'/'.$video_file)." > ".escapeshellarg($event_path.'/ffmpeg.log')." 2>&1"
         ;
       Debug($command);
-      if(!exec(escapeshellcmd($command), $output, $rc)) {
-        Error("Unable to generate video, check $event_path/ffmpeg.log for details");
+      exec($command, $output, $rc);
+      if ($rc !== 0) {
+        $output_text = $output ? ('. Output: ' . implode("\n", $output)) : '';
+        Error("Unable to generate video, check $event_path/ffmpeg.log for details{$output_text} (rc=$rc)");
         return;
       }
 

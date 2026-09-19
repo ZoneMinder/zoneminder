@@ -38,7 +38,8 @@ extern "C" {
 //   u8   flags       bit 0: keyframe (video); other bits reserved, must be 0
 //   u32  sequence    per-stream, counts every message produced (drops appear as gaps)
 //   u32  generation  stream epoch; a bump means re-init the decoder from a new HELLO
-//   u64  pts_us      microseconds, AV_TIME_BASE_Q, shared clock for both streams
+//   i64  pts_us      signed microseconds (two's-complement), AV_TIME_BASE_Q,
+//                    shared clock for both streams; AV_NOPTS_VALUE = unknown
 //   [payload]
 //
 // HELLO payload is a TLV list (u8 tag, u16 length, value); unknown tags must
@@ -97,7 +98,7 @@ struct Header {
   uint8_t  flags;
   uint32_t sequence;
   uint32_t generation;
-  uint64_t pts_us;
+  int64_t  pts_us;      // signed; AV_NOPTS_VALUE means unknown
 
   uint32_t payload_size() const { return length - kHeaderLengthBytes; }
 };

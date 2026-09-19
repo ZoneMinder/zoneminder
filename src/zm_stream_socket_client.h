@@ -51,7 +51,10 @@ class StreamSocketClient {
     std::function<void(const zm::stream_socket::Header &header,
                        const zm::stream_socket::MonitorEvent &event)> on_event;
     std::function<void()> on_bye;
-    std::function<void()> on_disconnect;  // EOF or read error; reconnect follows
+    // EOF or read error after at least one message was received (an adopted
+    // descriptor reports every EOF). A connection the producer closes before
+    // any message - a rejection - retries with backoff and is not reported.
+    std::function<void()> on_disconnect;
   };
 
   // Connect (with retry) to a stream socket path.
@@ -73,11 +76,14 @@ class StreamSocketClient {
   bool ReadExact(int fd, uint8_t *out, size_t len);
   void Dispatch(const zm::stream_socket::Header &header,
                 const uint8_t *payload, size_t size);
+  // Waits kReconnectDelay in small steps so Stop() stays responsive.
+  void SleepBeforeRetry();
 
   std::string path_;
   Callbacks callbacks_;
   int adopted_fd_ = -1;
   int consecutive_failures_ = 0;
+  uint64_t session_messages_ = 0;  // messages received on the current connection
   std::thread thread_;
   std::atomic<bool> terminate_{false};
   std::atomic<bool> connected_{false};

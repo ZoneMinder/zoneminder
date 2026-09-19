@@ -28,7 +28,9 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <sys/select.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 #include <thread>
 #include <unistd.h>
 #include <vector>
@@ -271,6 +273,57 @@ TEST_CASE("StreamSocketClient skips unknown message types", "[stream_socket_clie
   }
   ::close(fds[1]);
   client.Stop();
+}
+
+TEST_CASE("StreamSocketClient backs off when the producer rejects the connection",
+          "[stream_socket_client]") {
+  // A producer that accepts and immediately closes, as StreamSocket does for
+  // a client failing the uid allow-list or the client limit
+  ::unlink(kSockPath);
+  int listener = ::socket(AF_UNIX, SOCK_STREAM, 0);
+  REQUIRE(listener >= 0);
+  sockaddr_un addr = {};
+  addr.sun_family = AF_UNIX;
+  strncpy(addr.sun_path, kSockPath, sizeof(addr.sun_path) - 1);
+  REQUIRE(::bind(listener, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) == 0);
+  REQUIRE(::listen(listener, 8) == 0);
+
+  std::atomic<int> accepts{0};
+  std::atomic<bool> stop{false};
+  std::thread rejecter([&] {
+    while (!stop) {
+      timeval tv = {0, 100000};
+      fd_set fds;
+      FD_ZERO(&fds);
+      FD_SET(listener, &fds);
+      if (::select(listener + 1, &fds, nullptr, nullptr, &tv) > 0) {
+        int fd = ::accept(listener, nullptr, nullptr);
+        if (fd >= 0) {
+          ++accepts;
+          ::close(fd);
+        }
+      }
+    }
+  });
+
+  Collector collector;
+  {
+    StreamSocketClient client(std::string(kSockPath), collector.MakeCallbacks());
+    std::this_thread::sleep_for(std::chrono::milliseconds(2500));
+    client.Stop();
+  }
+  stop = true;
+  rejecter.join();
+  ::close(listener);
+  ::unlink(kSockPath);
+
+  // With the 1s backoff after every rejected connection: the initial attempt
+  // plus two or three retries in 2.5s. Without backoff this is thousands.
+  REQUIRE(accepts >= 2);
+  REQUIRE(accepts <= 5);
+  // A rejection is not a session, so no disconnect was reported
+  std::lock_guard<std::mutex> lock(collector.mutex);
+  REQUIRE(collector.disconnects == 0);
 }
 
 TEST_CASE("StreamSocketClient delivers EVENT frames", "[stream_socket_client]") {

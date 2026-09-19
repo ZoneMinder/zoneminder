@@ -89,16 +89,18 @@ void StreamSocketClient::Run() {
       }
       ++consecutive_failures_;
       ::close(fd);
-      // sleep in small steps so Stop() stays responsive
-      auto deadline = std::chrono::steady_clock::now() + kReconnectDelay;
-      while (!terminate_ and std::chrono::steady_clock::now() < deadline)
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      SleepBeforeRetry();
       continue;
     }
 
-    Info("StreamSocketClient: connected to %s", path_.c_str());
-    consecutive_failures_ = 0;
+    if (consecutive_failures_ == 0) {
+      Info("StreamSocketClient: connected to %s", path_.c_str());
+    } else {
+      Debug(1, "StreamSocketClient: connected to %s (attempt %d)",
+            path_.c_str(), consecutive_failures_ + 1);
+    }
     setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &kReadTimeout, sizeof(kReadTimeout));
+    session_messages_ = 0;
     connected_ = true;
     ReadLoop(fd);
     connected_ = false;
@@ -106,10 +108,32 @@ void StreamSocketClient::Run() {
 
     if (terminate_)
       break;
+
+    if (session_messages_ == 0) {
+      // Accepted and then closed before a single message: the producer
+      // rejected us (uid allow-list, client limit) or died mid-handshake.
+      // Back off like a failed connect, or a rejecting producer turns this
+      // loop into a connect storm.
+      if (consecutive_failures_ == 0 or consecutive_failures_ % 30 == 29) {
+        Warning("StreamSocketClient: %s closed the connection before any message"
+                " (attempt %d), retrying", path_.c_str(), consecutive_failures_ + 1);
+      }
+      ++consecutive_failures_;
+      SleepBeforeRetry();
+      continue;
+    }
+
+    consecutive_failures_ = 0;
     Debug(1, "StreamSocketClient: disconnected from %s, reconnecting", path_.c_str());
     if (callbacks_.on_disconnect)
       callbacks_.on_disconnect();
   }
+}
+
+void StreamSocketClient::SleepBeforeRetry() {
+  auto deadline = std::chrono::steady_clock::now() + kReconnectDelay;
+  while (!terminate_ and std::chrono::steady_clock::now() < deadline)
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }
 
 bool StreamSocketClient::ReadExact(int fd, uint8_t *out, size_t len) {
@@ -149,6 +173,7 @@ bool StreamSocketClient::ReadLoop(int fd) {
     if (payload_size > 0 and !ReadExact(fd, payload_.data(), payload_size))
       return false;
 
+    ++session_messages_;
     Dispatch(header, payload_.data(), payload_size);
   }
   return true;

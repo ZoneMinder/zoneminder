@@ -79,11 +79,12 @@ def main():
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     sock.settimeout(20)
     sock.connect(path)
-    media_seen = {}
+    media_seen = {}  # (stream, generation) -> last MEDIA sequence
     for _ in range(count):
         header = read_exact(sock, 24)
+        # pts is signed (two's-complement) and may be AV_NOPTS_VALUE
         length, version, mtype, stream, flags, seq, gen, pts = \
-            struct.unpack('<IBBBBIIQ', header)
+            struct.unpack('<IBBBBIIq', header)
         assert version == 1, 'unexpected protocol version %d' % version
         payload = read_exact(sock, length - 20)
         line = '%-8s stream=%d flags=%#04x seq=%-6d gen=%d pts=%-16d payload=%dB' % (
@@ -96,11 +97,14 @@ def main():
             sent, dropped = struct.unpack('<QQ', payload)
             line += '  sent=%d dropped=%d' % (sent, dropped)
         elif mtype in (2, 3):
-            prev = media_seen.get(stream)
+            # Sequences restart at 0 on a generation bump, so track per
+            # (stream, generation) to avoid flagging that reset as a gap.
+            key = (stream, gen)
+            prev = media_seen.get(key)
             if prev is not None and mtype == 2 and seq != prev + 1:
                 line += '  <-- SEQ GAP (lost %d)' % (seq - prev - 1)
             if mtype == 2:
-                media_seen[stream] = seq
+                media_seen[key] = seq
         print(line, flush=True)
 
 

@@ -22,8 +22,10 @@
 #include "zm_utils.h"
 
 #include <algorithm>
+#include <cerrno>
 #include <cinttypes>
 #include <cstring>
+#include <limits>
 #include <grp.h>
 #include <poll.h>
 #include <sys/socket.h>
@@ -133,9 +135,15 @@ std::vector<uid_t> StreamSocket::ParseAllowedUids(const std::string &value) {
     std::string trimmed = Trim(token, " \t");
     if (trimmed.empty())
       continue;
+    errno = 0;
     char *end = nullptr;
     unsigned long uid = strtoul(trimmed.c_str(), &end, 10);
-    if (end and *end == '\0') {
+    // strtoul wraps a leading '-' and saturates on overflow; reject both, and
+    // any value that does not round-trip through uid_t, so a typo cannot
+    // silently allow a different uid (e.g. 2^32 truncating to uid 0).
+    bool out_of_range = errno == ERANGE
+                        or uid != static_cast<unsigned long>(static_cast<uid_t>(uid));
+    if (trimmed[0] != '-' and end != trimmed.c_str() and *end == '\0' and !out_of_range) {
       uids.push_back(static_cast<uid_t>(uid));
     } else {
       Warning("StreamSocket: ignoring malformed uid '%s' in allowed uids", trimmed.c_str());
@@ -232,6 +240,29 @@ void StreamSocket::SetAudioParams(const AVCodecParameters *par) {
   Wake();
 }
 
+void StreamSocket::ClearAudioParams() {
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (hello_audio_payload_.empty())
+      return;  // no audio was announced; nothing to forget
+    hello_audio_payload_.clear();
+    hello_audio_.reset();
+    sequence_[static_cast<size_t>(StreamId::Audio)] = 0;
+    // A dropped stream is a parameter change like any other: bump the
+    // generation so consumers re-init, and re-issue the surviving video HELLO
+    // under it.
+    ++generation_;
+    Info("StreamSocket: monitor %u audio stream removed, generation now %u",
+         monitor_id_, generation_);
+    if (!hello_video_payload_.empty()) {
+      hello_video_ = MakeMessage(MessageType::Hello, StreamId::Video, 0, 0, 0,
+                                 std::vector<uint8_t>(hello_video_payload_), true);
+      BroadcastLocked(hello_video_);
+    }
+  }
+  Wake();
+}
+
 void StreamSocket::SendMedia(const AVPacket *packet, StreamId stream,
                              bool keyframe, int64_t pts_us) {
   if (!packet or packet->size <= 0)
@@ -240,6 +271,16 @@ void StreamSocket::SendMedia(const AVPacket *packet, StreamId stream,
   bool video_keyframe = keyframe and stream == StreamId::Video;
 
   std::unique_lock<std::mutex> lock(mutex_);
+
+  // A stream is on the wire only once its parameters are announced. Without a
+  // HELLO a consumer cannot decode the payload (no codec id or extradata), so
+  // dropping here keeps the protocol's "HELLO precedes MEDIA" guarantee for
+  // e.g. audio packets a monitor forwards before record_audio announces them.
+  const std::vector<uint8_t> &hello =
+      stream == StreamId::Audio ? hello_audio_payload_ : hello_video_payload_;
+  if (hello.empty())
+    return;
+
   uint32_t sequence = sequence_[static_cast<size_t>(stream)]++;
   bool have_clients = !clients_.empty();
 
@@ -257,7 +298,7 @@ void StreamSocket::SendMedia(const AVPacket *packet, StreamId stream,
   header.flags = video_keyframe ? kFlagKeyframe : 0;
   header.sequence = sequence;
   header.generation = generation_;
-  header.pts_us = static_cast<uint64_t>(pts_us);
+  header.pts_us = pts_us;  // Header.pts_us is signed
 
   if (video_keyframe) {
     // Cache the keyframe for fast-start of late joiners; the cache references
@@ -327,7 +368,7 @@ StreamSocket::MessagePtr StreamSocket::MakeMessage(
   header.flags = flags;
   header.sequence = sequence;
   header.generation = generation_;
-  header.pts_us = static_cast<uint64_t>(pts_us);
+  header.pts_us = pts_us;  // Header.pts_us is signed
   SerializeHeader(header, message->header.data());
   message->blob_payload = std::move(payload);
   message->control = control;

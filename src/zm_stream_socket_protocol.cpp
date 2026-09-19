@@ -97,7 +97,7 @@ void SerializeHeader(const Header &header, uint8_t out[kHeaderSize]) {
   out[7] = header.flags;
   put_u32(out + 8, header.sequence);
   put_u32(out + 12, header.generation);
-  put_u64(out + 16, header.pts_us);
+  put_u64(out + 16, static_cast<uint64_t>(header.pts_us));  // two's-complement
 }
 
 bool ParseHeader(const uint8_t in[kHeaderSize], Header &header) {
@@ -108,7 +108,7 @@ bool ParseHeader(const uint8_t in[kHeaderSize], Header &header) {
   header.flags = in[7];
   header.sequence = get_u32(in + 8);
   header.generation = get_u32(in + 12);
-  header.pts_us = get_u64(in + 16);
+  header.pts_us = static_cast<int64_t>(get_u64(in + 16));  // two's-complement
 
   if (header.version != kProtocolVersion)
     return false;

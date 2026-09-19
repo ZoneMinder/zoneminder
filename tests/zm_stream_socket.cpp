@@ -104,6 +104,14 @@ codec_parameters_ptr make_h264_parameters() {
   return par;
 }
 
+codec_parameters_ptr make_aac_parameters() {
+  codec_parameters_ptr par{avcodec_parameters_alloc()};
+  par->codec_type = AVMEDIA_TYPE_AUDIO;
+  par->codec_id = AV_CODEC_ID_AAC;
+  par->sample_rate = 48000;
+  return par;
+}
+
 }  // namespace
 
 TEST_CASE("StreamSocket lifecycle", "[stream_socket]") {
@@ -483,6 +491,94 @@ TEST_CASE("StreamSocket::ParseAllowedUids", "[stream_socket]") {
   REQUIRE(StreamSocket::ParseAllowedUids(" 33 , 1000 ") == std::vector<uid_t>{33, 1000});
   REQUIRE(StreamSocket::ParseAllowedUids("33,,1000") == std::vector<uid_t>{33, 1000});
   REQUIRE(StreamSocket::ParseAllowedUids("33,bogus,1000") == std::vector<uid_t>{33, 1000});
+
+  // Values that cannot be a uid are rejected, never wrapped or truncated
+  REQUIRE(StreamSocket::ParseAllowedUids("-1").empty());
+  REQUIRE(StreamSocket::ParseAllowedUids("99999999999999999999").empty());  // > ULONG_MAX
+  if (sizeof(uid_t) < sizeof(unsigned long)) {
+    REQUIRE(StreamSocket::ParseAllowedUids("18446744073709551615").empty());  // ULONG_MAX
+    REQUIRE(StreamSocket::ParseAllowedUids("4294967296").empty());  // 2^32 would truncate to 0
+  }
+  REQUIRE(StreamSocket::ParseAllowedUids("33,-1,1000") == std::vector<uid_t>{33, 1000});
+}
+
+TEST_CASE("StreamSocket drops media for a stream with no HELLO", "[stream_socket]") {
+  StreamSocket server(1, kSockPath);
+  REQUIRE(server.Start());
+
+  // Only video is announced; audio never gets a HELLO.
+  codec_parameters_ptr par = make_h264_parameters();
+  server.SetVideoParams(par.get(), {0, 0});
+
+  TestClient client;
+  REQUIRE(client.Connect());
+  ReceivedMessage hello;
+  REQUIRE(client.ReadMessage(hello));
+  REQUIRE(hello.header.type == static_cast<uint8_t>(MessageType::Hello));
+  REQUIRE(hello.header.stream == static_cast<uint8_t>(StreamId::Video));
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+  // An audio packet arrives before audio is announced: it must not reach the
+  // wire (a consumer could not decode it without a HELLO).
+  av_packet_ptr audio = make_packet(200, 0x33);
+  server.SendMedia(audio.get(), StreamId::Audio, false, 111);
+  // A following video packet does go out; if the audio had leaked we would
+  // read it first.
+  av_packet_ptr video = make_packet(200, 0x44);
+  server.SendMedia(video.get(), StreamId::Video, false, 222);
+
+  ReceivedMessage message;
+  REQUIRE(client.ReadMessage(message));
+  REQUIRE(message.header.type == static_cast<uint8_t>(MessageType::Media));
+  REQUIRE(message.header.stream == static_cast<uint8_t>(StreamId::Video));
+  REQUIRE(message.header.pts_us == 222);
+
+  server.Stop();
+}
+
+TEST_CASE("StreamSocket::ClearAudioParams stops announcing audio", "[stream_socket]") {
+  StreamSocket server(1, kSockPath);
+  REQUIRE(server.Start());
+
+  codec_parameters_ptr vpar = make_h264_parameters();
+  server.SetVideoParams(vpar.get(), {0, 0});
+  codec_parameters_ptr apar = make_aac_parameters();
+  server.SetAudioParams(apar.get());
+
+  // First consumer sees both HELLOs.
+  {
+    TestClient client;
+    REQUIRE(client.Connect());
+    ReceivedMessage m;
+    REQUIRE(client.ReadMessage(m));
+    REQUIRE(m.header.stream == static_cast<uint8_t>(StreamId::Video));
+    REQUIRE(client.ReadMessage(m));
+    REQUIRE(m.header.stream == static_cast<uint8_t>(StreamId::Audio));
+  }
+
+  // Audio goes away on a re-prime: generation bumps and the video HELLO is
+  // re-issued under it.
+  server.ClearAudioParams();
+
+  // A fresh consumer is told about video only, at the new generation.
+  TestClient client;
+  REQUIRE(client.Connect());
+  ReceivedMessage video_hello;
+  REQUIRE(client.ReadMessage(video_hello));
+  REQUIRE(video_hello.header.type == static_cast<uint8_t>(MessageType::Hello));
+  REQUIRE(video_hello.header.stream == static_cast<uint8_t>(StreamId::Video));
+  REQUIRE(video_hello.header.generation == 1);
+
+  // No audio HELLO follows; a video media packet is the next thing on the wire.
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  av_packet_ptr video = make_packet(100, 0x66);
+  server.SendMedia(video.get(), StreamId::Video, false, 900);
+  ReceivedMessage next;
+  REQUIRE(client.ReadMessage(next));
+  REQUIRE(next.header.type == static_cast<uint8_t>(MessageType::Media));
+  REQUIRE(next.header.stream == static_cast<uint8_t>(StreamId::Video));
+
+  server.Stop();
 }
 
 TEST_CASE("StreamSocket::InvalidateKeyframe stops replaying a stale keyframe", "[stream_socket]") {

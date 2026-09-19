@@ -72,6 +72,12 @@ class StreamSocket {
   void SetVideoParams(const AVCodecParameters *par, AVRational frame_rate);
   void SetAudioParams(const AVCodecParameters *par);
 
+  // Forget the audio stream: drops the cached audio HELLO and stops announcing
+  // audio to new consumers. Called when a re-prime finds no audio stream (a
+  // camera that lost audio, or record_audio turned off) so a stale HELLO is not
+  // replayed and the generation bumps like any other parameter change.
+  void ClearAudioParams();
+
   // Queue one access unit / audio packet to every connected client.
   // pts_us must be in AV_TIME_BASE_Q. The packet's payload buffer is
   // reference-counted, not copied. Never blocks.

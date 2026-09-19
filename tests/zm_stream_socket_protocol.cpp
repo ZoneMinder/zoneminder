@@ -93,13 +93,25 @@ TEST_CASE("stream_socket::Header boundary values") {
     in.length = kHeaderLengthBytes;
     in.sequence = std::numeric_limits<uint32_t>::max();
     in.generation = std::numeric_limits<uint32_t>::max();
-    in.pts_us = std::numeric_limits<uint64_t>::max();
+    in.pts_us = std::numeric_limits<int64_t>::max();
     SerializeHeader(in, wire);
     Header out = {};
     REQUIRE(ParseHeader(wire, out));
     REQUIRE(out.sequence == in.sequence);
     REQUIRE(out.generation == in.generation);
     REQUIRE(out.pts_us == in.pts_us);
+  }
+
+  SECTION("negative and AV_NOPTS_VALUE pts survive the wire") {
+    in.length = kHeaderLengthBytes;
+    const int64_t values[] = {-1, -123456, std::numeric_limits<int64_t>::min()};
+    for (int64_t pts : values) {
+      in.pts_us = pts;
+      SerializeHeader(in, wire);
+      Header out = {};
+      REQUIRE(ParseHeader(wire, out));
+      REQUIRE(out.pts_us == pts);
+    }
   }
 
   SECTION("length below fixed header is rejected") {

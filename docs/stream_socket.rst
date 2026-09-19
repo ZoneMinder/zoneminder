@@ -17,9 +17,12 @@ carries monitor lifecycle events (capture faults and analysis-state
 changes) as a push channel. ZoneMinder's own ``zm_rtsp_server`` is a
 consumer of this socket.
 
-The path is a documented convention, not published anywhere at runtime:
-consumers derive it from ``ZM_PATH_SOCKS`` (zm.conf) and the monitor id, and
-should connect with retry — the socket appears when zmc starts and survives
+The path follows a fixed convention, so consumers can derive it from
+``ZM_PATH_SOCKS`` (zm.conf) and the monitor id. It is also published in the
+monitor's shared-memory ``stream_socket_path`` field (exposed by the web
+Monitor object and the ``ZoneMinder::Memory`` Perl module) so a reader with
+shm access does not need the convention or the producer's zm.conf. Either
+way, connect with retry — the socket appears when zmc starts and survives
 camera reconnects.
 
 Only cameras that deliver encoded packets (the Ffmpeg source and anything
@@ -59,7 +62,8 @@ header::
     u8   flags       bit 0: keyframe (video); other bits reserved, 0
     u32  sequence    per-stream, counts every message produced
     u32  generation  stream epoch; a bump means re-init the decoder
-    u64  pts_us      microseconds (AV_TIME_BASE_Q), shared clock
+    i64  pts_us      signed microseconds (AV_TIME_BASE_Q), shared clock;
+                     AV_NOPTS_VALUE (0x8000000000000000) means unknown
 
 ``sequence`` counts messages *produced*, including any dropped from a slow
 consumer's queue, so loss appears as gaps. ``generation`` increments when
@@ -133,7 +137,11 @@ Message types:
   ``snapshot`` is sent to every consumer on connect (after the HELLOs, the
   events analogue of the cached KEYFRAME) and is refreshed on every health
   or state change, so a late subscriber learns current status without
-  waiting for the next transition. The capture-fault edges are emitted by
+  waiting for the next transition. Its ``sequence`` is the number of events
+  produced so far, i.e. the sequence the next broadcast EVENT will carry; the
+  snapshot is a state message, not an event in that series, so a consumer
+  seeds its gap tracking from it and must not treat the following EVENT with
+  the same sequence as a duplicate. The capture-fault edges are emitted by
   zmc once per transition; because the socket survives camera reconnects,
   ``connection_failed`` is observable exactly when media has stopped.
 

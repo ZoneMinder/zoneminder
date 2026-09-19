@@ -888,9 +888,7 @@ void Monitor::LoadCamera() {
                                            hue,
                                            colour,
                                            purpose == CAPTURE,
-                                           record_audio,
-                                           decoder_hwaccel_name,
-                                           decoder_hwaccel_device
+                                           record_audio
                                           );
     break;
   }
@@ -4378,6 +4376,12 @@ void Monitor::SendStreamHealthEvent(uint16_t code, const std::string &message, i
 }
 
 int Monitor::OpenDecoder() {
+  // Always a fresh decoder, which is also how hardware decoding gets retried.
+  // A transient failure -- a GPU still resetting, a driver that finished
+  // initialising after zmc started, a render node not yet permissioned --
+  // would otherwise pin the monitor to software for the life of the process,
+  // long after the hardware is healthy. Reconnects call PrimeCapture(), so
+  // they are the natural retry point.
   CloseDecoder();
 
   if (!camera) return 0;

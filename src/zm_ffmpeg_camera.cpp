@@ -52,9 +52,7 @@ FfmpegCamera::FfmpegCamera(
   int p_hue,
   int p_colour,
   bool p_capture,
-  bool p_record_audio,
-  const std::string &p_hwaccel_name,
-  const std::string &p_hwaccel_device) :
+  bool p_record_audio) :
   Camera(
     monitor,
     FFMPEG_SRC,
@@ -75,8 +73,6 @@ FfmpegCamera::FfmpegCamera(
   mPass(p_pass),
   mMethod(p_method),
   mOptions(p_options),
-  hwaccel_name(p_hwaccel_name),
-  hwaccel_device(p_hwaccel_device),
   mSecondInput(nullptr),
   frameCount(0),
   mConvertContext(nullptr),
@@ -101,8 +97,6 @@ FfmpegCamera::FfmpegCamera(
   }
 
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
-  hw_device_ctx = nullptr;
-  hw_pix_fmt = AV_PIX_FMT_NONE;
 #endif
 
   /* Has to be located inside the constructor so other components such as zma
@@ -695,18 +689,6 @@ int FfmpegCamera::Close() {
     mAudioCodecContext = nullptr;
   }
 
-#if HAVE_LIBAVUTIL_HWCONTEXT_H
-  if ( hw_device_ctx ) {
-    av_buffer_unref(&hw_device_ctx);
-  }
-#endif
-
-  // Re-arm hardware decoding for the next PrimeCapture(). Without this a
-  // single transient failure - a GPU still resetting, a driver that finished
-  // initialising after zmc started, a render node not yet permissioned -
-  // pins the monitor to software decoding for the whole life of the process,
-  // long after the hardware is healthy again. Reconnects are the natural
-  // retry point, so let them retry.
 
   if ( mFormatContext ) {
     avformat_close_input(&mFormatContext);

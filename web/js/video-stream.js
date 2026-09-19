@@ -39,8 +39,10 @@ class VideoStream extends VideoRTC {
 
     set src(value) {
         const monitorStream = getMonitorStream(stringToNumber(this.id));
-        monitorStream.playbackSessionId = generateUUID();
-        this.playbackSessionId = monitorStream.playbackSessionId;
+        if (monitorStream) {
+            monitorStream.playbackSessionId = generateUUID();
+            this.playbackSessionId = monitorStream.playbackSessionId;
+        }
         super.src = value;
     }
 

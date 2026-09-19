@@ -255,6 +255,12 @@ int main(int argc, char *argv[]) {
 
       monitor->LoadCamera();
 
+      // Start the media stream socket before the first connect attempt so a
+      // consumer can observe connection/prime faults that happen before the
+      // camera ever comes up (the listener needs no camera, only lifecycle
+      // events until the first HELLO).
+      monitor->StartStreamSocket();
+
       bool connection_failed = false;
       while (!monitor->connect() and !zm_terminate) {
         Warning("Couldn't connect to monitor %d", monitor->Id());

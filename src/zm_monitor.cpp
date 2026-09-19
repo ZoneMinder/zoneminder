@@ -1220,7 +1220,18 @@ bool Monitor::connect() {
       analysis_image_pixelformats[i] = AV_PIX_FMT_NONE;
     }
     shared_data->alarm_cause[0] = 0;
-    shared_data->reserved_path1[0] = 0;
+    // Publish the media stream socket path for consumers. The socket itself is
+    // served by zmc (StartStreamSocket); the path is the same deterministic
+    // convention regardless, so any reader learns it here. Left empty if it
+    // would not fit the fixed field (a very long PATH_SOCKS).
+    std::string stream_socket_path =
+        stringtf("%s/stream_%u.sock", staticConfig.PATH_SOCKS.c_str(), id);
+    if (stream_socket_path.size() < sizeof(shared_data->stream_socket_path)) {
+      strncpy(shared_data->stream_socket_path, stream_socket_path.c_str(),
+              sizeof(shared_data->stream_socket_path));
+    } else {
+      shared_data->stream_socket_path[0] = 0;
+    }
     shared_data->reserved_path2[0] = 0;
     shared_data->janus_pin[0] = 0;
     shared_data->last_frame_score = 0;
@@ -4212,13 +4223,6 @@ unsigned int Monitor::Colours() const { return camera ? camera->Colours() : colo
 unsigned int Monitor::SubpixelOrder() const { return camera ? camera->SubpixelOrder() : 0; }
 
 namespace {
-// CLOCK_REALTIME in unix-epoch microseconds, the timestamp the API surfaces.
-uint64_t WallClockMicros() {
-  return std::chrono::duration_cast<std::chrono::microseconds>(
-             std::chrono::system_clock::now().time_since_epoch())
-      .count();
-}
-
 std::string StateName(Monitor::State s) {
   // State_Strings is indexed UNKNOWN..ALERT; guard out-of-range defensively.
   size_t index = static_cast<size_t>(s);
@@ -4232,7 +4236,7 @@ void Monitor::RefreshStreamSnapshot() {
     return;
   zm::stream_socket::MonitorEvent ev;
   ev.code = zm::stream_socket::kEventSnapshot;
-  ev.wall_clock_us = WallClockMicros();
+  ev.wall_clock_us = SystemClockMicros();
   ev.has_wall_clock = true;
   ev.state_id = static_cast<uint32_t>(state);
   ev.has_state_id = true;
@@ -4256,7 +4260,7 @@ void Monitor::SetState(State new_state) {
 
   zm::stream_socket::MonitorEvent ev;
   ev.code = zm::stream_socket::kEventStateChanged;
-  ev.wall_clock_us = WallClockMicros();
+  ev.wall_clock_us = SystemClockMicros();
   ev.has_wall_clock = true;
   ev.state_id = static_cast<uint32_t>(new_state);
   ev.has_state_id = true;
@@ -4267,12 +4271,27 @@ void Monitor::SetState(State new_state) {
   RefreshStreamSnapshot();
 }
 
-void Monitor::SendStreamHealthEvent(uint16_t code, const std::string &message, int detail) {
-  if (!stream_socket)
+void Monitor::StartStreamSocket() {
+  if (stream_socket)
     return;
+  stream_socket = zm::make_unique<StreamSocket>(
+      id,
+      stringtf("%s/stream_%u.sock", staticConfig.PATH_SOCKS.c_str(), id),
+      StreamSocket::ConfigFromStatic());
+  if (!stream_socket->Start()) {
+    Error("Unable to start stream socket for monitor %u", id);
+    stream_socket.reset();
+    return;
+  }
+  // Publish an initial snapshot so a consumer that connects before the first
+  // successful prime learns current state and any fault already recorded.
+  RefreshStreamSnapshot();
+}
 
+void Monitor::SendStreamHealthEvent(uint16_t code, const std::string &message, int detail) {
   // A *_failed code records the active fault; any other (restored/resumed)
-  // clears it for the snapshot.
+  // clears it for the snapshot. Recorded even when the socket is not up yet so
+  // its first snapshot reflects a fault seen during startup.
   bool is_failure = (code == zm::stream_socket::kEventConnectionFailed
                      or code == zm::stream_socket::kEventPrimeCaptureFailed
                      or code == zm::stream_socket::kEventCaptureFailed);
@@ -4287,9 +4306,12 @@ void Monitor::SendStreamHealthEvent(uint16_t code, const std::string &message, i
     }
   }
 
+  if (!stream_socket)
+    return;  // health recorded above; a later snapshot will carry it
+
   zm::stream_socket::MonitorEvent ev;
   ev.code = code;
-  ev.wall_clock_us = WallClockMicros();
+  ev.wall_clock_us = SystemClockMicros();
   ev.has_wall_clock = true;
   if (!message.empty())
     ev.message = message;
@@ -4339,17 +4361,10 @@ int Monitor::PrimeCapture() {
   // The stream socket is served for every monitor; consumers connect on
   // demand and an idle socket costs nothing. The listener survives camera
   // reconnects - re-priming only refreshes stream parameters, which bumps
-  // the protocol generation when they actually changed.
-  if (!stream_socket) {
-    stream_socket = zm::make_unique<StreamSocket>(
-        id,
-        stringtf("%s/stream_%u.sock", staticConfig.PATH_SOCKS.c_str(), id),
-        StreamSocket::ConfigFromStatic());
-    if (!stream_socket->Start()) {
-      Error("Unable to start stream socket for monitor %u", id);
-      stream_socket.reset();
-    }
-  }
+  // the protocol generation when they actually changed. zmc normally starts
+  // it before the first connect (so startup faults are observable); this is
+  // the fallback for the first successful prime.
+  StartStreamSocket();
   if (stream_socket) {
     if (video_stream_id >= 0) {
       AVStream *videoStream = camera->getVideoStream();
@@ -4364,11 +4379,17 @@ int Monitor::PrimeCapture() {
         stream_socket->SetVideoParams(videoStream->codecpar, frame_rate);
       }
     }
-    if (record_audio and (audio_stream_id >= 0)) {
-      AVStream *audioStream = camera->getAudioStream();
-      if (audioStream and audioStream->codecpar
-          and audioStream->codecpar->codec_id != AV_CODEC_ID_NONE)
-        stream_socket->SetAudioParams(audioStream->codecpar);
+    // Announce audio whenever the camera has a decodable audio stream, not only
+    // when record_audio is set: Capture() forwards audio packets to the socket
+    // unconditionally, so a consumer needs the matching HELLO regardless of
+    // whether ZM writes the audio to events. Clear a previously announced
+    // stream that a re-prime no longer sees, so no stale HELLO is replayed.
+    AVStream *audioStream = (audio_stream_id >= 0) ? camera->getAudioStream() : nullptr;
+    if (audioStream and audioStream->codecpar
+        and audioStream->codecpar->codec_id != AV_CODEC_ID_NONE) {
+      stream_socket->SetAudioParams(audioStream->codecpar);
+    } else {
+      stream_socket->ClearAudioParams();
     }
     // Priming succeeded: capture is healthy. Cache a current-status snapshot so
     // the first consumer to connect learns the state without waiting for a

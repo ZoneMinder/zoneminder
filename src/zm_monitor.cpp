@@ -31,6 +31,7 @@
 #include "zm_remote_camera_nvsocket.h"
 #include "zm_remote_camera_rtsp.h"
 #include "zm_signal.h"
+#include "zm_stream_socket.h"
 #include "zm_time.h"
 #include "zm_uri.h"
 #include "zm_utils.h"
@@ -309,8 +310,6 @@ Monitor::Monitor() :
   shm_slot_size(0),
   video_stream_id(-1),
   audio_stream_id(-1),
-  video_fifo(nullptr),
-  audio_fifo(nullptr),
   camera(nullptr),
   event(nullptr),
   storage(nullptr),
@@ -1197,7 +1196,7 @@ bool Monitor::connect() {
     shared_data->analysis_fps = 0.0;
     shared_data->latitude = latitude;
     shared_data->longitude = longitude;
-    shared_data->state = state = IDLE;
+    SetState(IDLE);
     shared_data->last_write_index = image_buffer_count;
     shared_data->last_read_index = image_buffer_count;
     shared_data->last_analysis_index = image_buffer_count; // sentinel: nothing published yet
@@ -1221,8 +1220,8 @@ bool Monitor::connect() {
       analysis_image_pixelformats[i] = AV_PIX_FMT_NONE;
     }
     shared_data->alarm_cause[0] = 0;
-    shared_data->video_fifo_path[0] = 0;
-    shared_data->audio_fifo_path[0] = 0;
+    shared_data->reserved_path1[0] = 0;
+    shared_data->reserved_path2[0] = 0;
     shared_data->janus_pin[0] = 0;
     shared_data->last_frame_score = 0;
     shared_data->audio_frequency = -1;
@@ -1397,8 +1396,6 @@ Monitor::~Monitor() {
   delete linked_monitors;
   linked_monitors = nullptr;
 
-  if (video_fifo) delete video_fifo;
-  if (audio_fifo) delete audio_fifo;
   if (convert_context) {
     sws_freeContext(convert_context);
     convert_context = nullptr;
@@ -2266,7 +2263,7 @@ bool Monitor::Analyse() {
             }  // end if y-image or full image
           }  // end if doing analysing
         }
-        shared_data->state = state = IDLE;
+        SetState(IDLE);
         EndAlarmActions();
       }  // end if signal change
 
@@ -2475,7 +2472,7 @@ bool Monitor::Analyse() {
             if ((!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1)) {
               Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u Cause:%s",
                    name.c_str(), packet->image_index, Event::PreAlarmCount(), alarm_frame_count, cause.c_str());
-              shared_data->state = state = ALARM;
+              SetState(ALARM);
               // Only the genuine entry into alarm fires actions. The
               // ALERT->ALARM path below is a re-trigger within one alarm and
               // would sound a speaker repeatedly through a single incident.
@@ -2483,7 +2480,7 @@ bool Monitor::Analyse() {
               RunActions(EventAction::ALARM);
             } else if (state != PREALARM) {
               Info("%s: %03d - Gone into prealarm state", name.c_str(), analysis_image_count);
-              shared_data->state = state = PREALARM;
+              SetState(PREALARM);
               // incremement pre alarm image count
               Event::AddPreAlarmFrame(packet->image, packet->timestamp, score, nullptr);
             } else { // PREALARM
@@ -2496,7 +2493,7 @@ bool Monitor::Analyse() {
                   name.c_str(), analysis_image_count, alert_to_alarm_frame_count);
             if (alert_to_alarm_frame_count == 0) {
               Info("%s: %03d - ExtAlm - Gone back into alarm state", name.c_str(), analysis_image_count);
-              shared_data->state = state = ALARM;
+              SetState(ALARM);
             }
           } else {
             Debug(1, "Staying in %s", State_Strings[state].c_str());
@@ -2512,16 +2509,16 @@ bool Monitor::Analyse() {
 
             if (state == ALARM) {
               Info("%s: %03d - Gone into alert state", name.c_str(), analysis_image_count);
-              shared_data->state = state = ALERT;
+              SetState(ALERT);
             } else if (state == ALERT) {
               if ((analysis_image_count - last_alarm_count) > post_event_count) {
-                shared_data->state = state = IDLE;
+                SetState(IDLE);
                 Info("%s: %03d - Left alert state", name.c_str(), analysis_image_count);
                 EndAlarmActions();
               }
             } else if (state == PREALARM) {
               // Back to IDLE
-              shared_data->state = state = IDLE;
+              SetState(IDLE);
             }
             Debug(1,
                   "State %d %s because analysis_image_count(%d)-last_alarm_count(%d) = %d > post_event_count(%d) and timestamp.tv_sec(%" PRIi64 ") - recording.tv_src(%" PRIi64 ") >= min_section_length(%" PRIi64 ")",
@@ -2694,7 +2691,7 @@ bool Monitor::Analyse() {
         Info("%s: %03d - Closing event %" PRIu64 ", trigger off", name.c_str(), analysis_image_count, event->Id());
         closeEvent();
       }
-      shared_data->state = state = IDLE;
+      SetState(IDLE);
       EndAlarmActions();
     } // end if ( trigger_data->trigger_state != TRIGGER_OFF )
 
@@ -3136,21 +3133,13 @@ int Monitor::Capture() {
 
     if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
       packet->packet->stream_index = video_stream_id; // Convert to packetQueue's index
-      if (video_fifo) {
-        if (packet->keyframe) {
-          // avcodec strips out important nals that describe the stream and
-          // stick them in extradata. Need to send them along with keyframes
-          AVStream *stream = camera->getVideoStream();
-          video_fifo->write(
-            static_cast<unsigned char *>(stream->codecpar->extradata),
-            stream->codecpar->extradata_size,
-            packet->pts);
-        }
-        video_fifo->writePacket(*packet);
-      }
+      if (stream_socket)
+        stream_socket->SendMedia(packet->packet.get(), zm::stream_socket::StreamId::Video,
+                                 packet->keyframe, packet->pts);
     } else if (packet->codec_type == AVMEDIA_TYPE_AUDIO) {
-      if (audio_fifo)
-        audio_fifo->writePacket(*packet);
+      if (stream_socket)
+        stream_socket->SendMedia(packet->packet.get(), zm::stream_socket::StreamId::Audio,
+                                 false, packet->pts);
 
       if (audio_detection) {
         // Opened here rather than at camera setup because a stream can gain
@@ -4222,6 +4211,96 @@ bool Monitor::DumpSettings(char *output, bool verbose) {
 unsigned int Monitor::Colours() const { return camera ? camera->Colours() : colours; }
 unsigned int Monitor::SubpixelOrder() const { return camera ? camera->SubpixelOrder() : 0; }
 
+namespace {
+// CLOCK_REALTIME in unix-epoch microseconds, the timestamp the API surfaces.
+uint64_t WallClockMicros() {
+  return std::chrono::duration_cast<std::chrono::microseconds>(
+             std::chrono::system_clock::now().time_since_epoch())
+      .count();
+}
+
+std::string StateName(Monitor::State s) {
+  // State_Strings is indexed UNKNOWN..ALERT; guard out-of-range defensively.
+  size_t index = static_cast<size_t>(s);
+  size_t count = sizeof(State_Strings) / sizeof(State_Strings[0]);
+  return index < count ? State_Strings[index] : std::string();
+}
+}  // namespace
+
+void Monitor::RefreshStreamSnapshot() {
+  if (!stream_socket)
+    return;
+  zm::stream_socket::MonitorEvent ev;
+  ev.code = zm::stream_socket::kEventSnapshot;
+  ev.wall_clock_us = WallClockMicros();
+  ev.has_wall_clock = true;
+  ev.state_id = static_cast<uint32_t>(state);
+  ev.has_state_id = true;
+  ev.state_name = StateName(state);
+  {
+    std::lock_guard<std::mutex> lock(stream_event_mutex);
+    if (stream_health_code != 0) {
+      ev.health_code = stream_health_code;
+      ev.has_health_code = true;
+      ev.message = stream_health_message;
+    }
+  }
+  stream_socket->SetSnapshotEvent(zm::stream_socket::BuildEvent(ev));
+}
+
+void Monitor::SetState(State new_state) {
+  State prev_state = state;
+  shared_data->state = state = new_state;
+  if (new_state == prev_state or !stream_socket)
+    return;
+
+  zm::stream_socket::MonitorEvent ev;
+  ev.code = zm::stream_socket::kEventStateChanged;
+  ev.wall_clock_us = WallClockMicros();
+  ev.has_wall_clock = true;
+  ev.state_id = static_cast<uint32_t>(new_state);
+  ev.has_state_id = true;
+  ev.prev_state_id = static_cast<uint32_t>(prev_state);
+  ev.has_prev_state_id = true;
+  ev.state_name = StateName(new_state);
+  stream_socket->SendMonitorEvent(zm::stream_socket::BuildEvent(ev));
+  RefreshStreamSnapshot();
+}
+
+void Monitor::SendStreamHealthEvent(uint16_t code, const std::string &message, int detail) {
+  if (!stream_socket)
+    return;
+
+  // A *_failed code records the active fault; any other (restored/resumed)
+  // clears it for the snapshot.
+  bool is_failure = (code == zm::stream_socket::kEventConnectionFailed
+                     or code == zm::stream_socket::kEventPrimeCaptureFailed
+                     or code == zm::stream_socket::kEventCaptureFailed);
+  {
+    std::lock_guard<std::mutex> lock(stream_event_mutex);
+    if (is_failure) {
+      stream_health_code = code;
+      stream_health_message = message;
+    } else {
+      stream_health_code = 0;
+      stream_health_message.clear();
+    }
+  }
+
+  zm::stream_socket::MonitorEvent ev;
+  ev.code = code;
+  ev.wall_clock_us = WallClockMicros();
+  ev.has_wall_clock = true;
+  if (!message.empty())
+    ev.message = message;
+  if (detail != 0) {
+    ev.detail = static_cast<uint32_t>(detail);
+    ev.has_detail = true;
+  }
+  stream_socket->SendMonitorEvent(zm::stream_socket::BuildEvent(ev));
+  RefreshStreamSnapshot();
+}
+
 int Monitor::PrimeCapture() {
   // Stop the decoder before tearing the codec context down. The decoder
   // thread holds a raw AVCodecContext* it got from
@@ -4257,29 +4336,50 @@ int Monitor::PrimeCapture() {
   Debug(2, "Video stream id is %d, audio is %d, minimum_packets to keep in buffer %d",
         video_stream_id, audio_stream_id, pre_event_count);
 
-  if (rtsp_server) {
+  // The stream socket is served for every monitor; consumers connect on
+  // demand and an idle socket costs nothing. The listener survives camera
+  // reconnects - re-priming only refreshes stream parameters, which bumps
+  // the protocol generation when they actually changed.
+  if (!stream_socket) {
+    stream_socket = zm::make_unique<StreamSocket>(
+        id,
+        stringtf("%s/stream_%u.sock", staticConfig.PATH_SOCKS.c_str(), id),
+        StreamSocket::ConfigFromStatic());
+    if (!stream_socket->Start()) {
+      Error("Unable to start stream socket for monitor %u", id);
+      stream_socket.reset();
+    }
+  }
+  if (stream_socket) {
     if (video_stream_id >= 0) {
       AVStream *videoStream = camera->getVideoStream();
-      snprintf(shared_data->video_fifo_path, sizeof(shared_data->video_fifo_path) - 1, "%s/video_fifo_%u.%s",
-               staticConfig.PATH_SOCKS.c_str(),
-               id,
-               avcodec_get_name(videoStream->codecpar->codec_id)
-              );
-      video_fifo = new Fifo(shared_data->video_fifo_path, true);
+      // Cameras that hand us decoded images (V4L2, MJPEG over HTTP, VNC) have a
+      // stream with no codec id and produce no encoded packets, so there is no
+      // media to announce; a HELLO without a codec would only be rejected by
+      // every consumer. The socket still serves lifecycle events for them.
+      if (videoStream and videoStream->codecpar
+          and videoStream->codecpar->codec_id != AV_CODEC_ID_NONE) {
+        AVRational frame_rate = videoStream->avg_frame_rate.num ?
+                                videoStream->avg_frame_rate : videoStream->r_frame_rate;
+        stream_socket->SetVideoParams(videoStream->codecpar, frame_rate);
+      }
     }
     if (record_audio and (audio_stream_id >= 0)) {
       AVStream *audioStream = camera->getAudioStream();
-      if (audioStream && CODEC(audioStream)) {
-        snprintf(shared_data->audio_fifo_path, sizeof(shared_data->audio_fifo_path) - 1, "%s/audio_fifo_%u.%s",
-                 staticConfig.PATH_SOCKS.c_str(), id,
-                 avcodec_get_name(audioStream->codecpar->codec_id)
-                );
-        audio_fifo = new Fifo(shared_data->audio_fifo_path, true);
-      } else {
-        Warning("No audioStream %p or codec?", audioStream);
-      }
+      if (audioStream and audioStream->codecpar
+          and audioStream->codecpar->codec_id != AV_CODEC_ID_NONE)
+        stream_socket->SetAudioParams(audioStream->codecpar);
     }
-  }  // end if rtsp_server
+    // Priming succeeded: capture is healthy. Cache a current-status snapshot so
+    // the first consumer to connect learns the state without waiting for a
+    // transition.
+    {
+      std::lock_guard<std::mutex> lock(stream_event_mutex);
+      stream_health_code = 0;
+      stream_health_message.clear();
+    }
+    RefreshStreamSnapshot();
+  }
 
   //Poller Thread
   if (onvif_event_listener || janus_enabled || RTSP2Web_enabled || use_Amcrest_API || Go2RTC_enabled) {
@@ -4439,17 +4539,14 @@ int Monitor::Close() {
     Janus_Manager = nullptr;
   }
 
-  if (audio_fifo) {
-    delete audio_fifo;
-    audio_fifo = nullptr;
-    Debug(1, "audio fifo deleted");
-  }
-
-  if (video_fifo) {
-    delete video_fifo;
-    Debug(1, "video fifo deleted");
-    video_fifo = nullptr;
-  }
+  // stream_socket deliberately survives Close(): consumers keep their
+  // connection across camera reconnects and observe them via generation
+  // bumps when PrimeCapture() re-applies stream parameters. The cached
+  // keyframe belongs to the capture session that just ended (its pts may be
+  // ahead of what the next session produces), so drop it now rather than
+  // prime a consumer that connects mid-reconnect with it.
+  if (stream_socket)
+    stream_socket->InvalidateKeyframe();
 
   return 1;
 } // end Monitor::Close()

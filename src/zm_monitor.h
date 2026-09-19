@@ -48,6 +48,7 @@
 
 class Group;
 class MonitorLinkExpression;
+class StreamSocket;
 
 #define SIGNAL_CAUSE "Signal"
 #define MOTION_CAUSE "Motion"
@@ -264,8 +265,13 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     uint8_t control_state[256]; /* +168 */
 
     char alarm_cause[256]; /* +424 */
-    char video_fifo_path[64]; /* +680 */
-    char audio_fifo_path[64]; /* +744 */
+    /* Formerly video_fifo_path/audio_fifo_path. The media FIFOs were
+     ** replaced by the stream socket (path is the documented convention
+     ** PATH_SOCKS/stream_{monitor_id}.sock, not published via shm); the
+     ** fields are kept as reserved padding so the layout and total size
+     ** are unchanged for out-of-tree shm readers. */
+    char reserved_path1[64]; /* +680 */
+    char reserved_path2[64]; /* +744 */
     char janus_pin[64]; /* +808 */
     /* Analysis image ring: the annotated/analysis image is published into a
      * ring of image_buffer_count slots (reusing the alarm_images SHM region).
@@ -721,8 +727,17 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   int video_stream_id; // will be filled in PrimeCapture
   int audio_stream_id; // will be filled in PrimeCapture
-  Fifo *video_fifo;
-  Fifo *audio_fifo;
+  // Always-on media output; survives camera reconnects, freed in destructor
+  std::unique_ptr<StreamSocket> stream_socket;
+  // Current capture health for the stream socket snapshot: 0 = healthy, else
+  // the last fault event code, with its message. Guarded by stream_event_mutex
+  // because health events come from the capture thread while state_changed
+  // events come from the analysis thread.
+  uint16_t stream_health_code = 0;
+  std::string stream_health_message;
+  std::mutex stream_event_mutex;
+  // Rebuild and cache the stream socket snapshot from current state + health.
+  void RefreshStreamSnapshot();
 
   std::shared_ptr<Camera> camera;
   Event       *event;
@@ -992,6 +1007,13 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   unsigned int GetPreEventCount() const { return pre_event_count; };
   int32_t GetImageBufferCount() const { return image_buffer_count; };
   State GetState() const { return (State)shared_data->state; }
+  // Set the analysis state, publishing the transition as a stream socket
+  // state_changed event (and refreshing the snapshot) when it actually changes.
+  void SetState(State new_state);
+  // Emit a capture-fault lifecycle event on the stream socket and update the
+  // cached health snapshot. code is one of the kEvent* health codes; a *_failed
+  // code sets the snapshot's active fault, a *_restored/_resumed code clears it.
+  void SendStreamHealthEvent(uint16_t code, const std::string &message, int detail = 0);
 
   AVStream *GetAudioStream() const { return camera ? camera->getAudioStream() : nullptr; };
   AVCodecContext *GetAudioCodecContext() const { return camera ? camera->getAudioCodecContext() : nullptr; };
@@ -999,8 +1021,6 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   AVCodecContext *GetVideoCodecContext() const { return camera ? camera->getVideoCodecContext() : nullptr; };
 
   std::string GetSecondPath() const { return second_path; };
-  std::string GetVideoFifoPath() const { return shared_data ? shared_data->video_fifo_path : ""; };
-  std::string GetAudioFifoPath() const { return shared_data ? shared_data->audio_fifo_path : ""; };
   std::string GetRTSPStreamName() const { return rtsp_streamname; };
 
   const std::string &getONVIF_URL() const { return onvif_url; };

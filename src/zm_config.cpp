@@ -23,6 +23,8 @@
 #include "zm_logger.h"
 #include "zm_utils.h"
 #include <cerrno>
+#include <climits>
+#include <cstdlib>
 #include <cstring>
 #include <dirent.h>
 #include <fstream>
@@ -105,6 +107,21 @@ void zmLoadDBConfig() {
   staticConfig.analyse_file_format = stringtf("%%s/%%0%dd-analyse.jpg", config.event_image_digits);
   staticConfig.general_file_format = stringtf("%%s/%%0%dd-%%s", config.event_image_digits);
   staticConfig.video_file_format = "%s/%s";
+}
+
+// Parses a non-negative integer zm.conf value. Anything else (negative,
+// non-numeric, trailing junk, out of range) keeps the compiled-in default
+// rather than wrapping into a huge unsigned value.
+static unsigned int parse_unsigned_setting(const char *name, const char *value, unsigned int fallback) {
+  errno = 0;
+  char *end = nullptr;
+  unsigned long parsed = strtoul(value, &end, 10);
+  bool negative = value[0] == '-';
+  if (negative or end == value or *end != '\0' or errno == ERANGE or parsed > UINT_MAX) {
+    Warning("Ignoring invalid value '%s' for %s, keeping %u", value, name, fallback);
+    return fallback;
+  }
+  return static_cast<unsigned int>(parsed);
 }
 
 void process_configfile(char const *configFile) {
@@ -215,6 +232,22 @@ void process_configfile(char const *configFile) {
       staticConfig.PATH_SWAP = std::string(val_ptr);
     else if ( strcasecmp(name_ptr, "ZM_PATH_ARP") == 0 )
       staticConfig.PATH_ARP = std::string(val_ptr);
+    else if ( strcasecmp(name_ptr, "ZM_STREAM_SOCKET_GROUP") == 0 )
+      staticConfig.STREAM_SOCKET_GROUP = std::string(val_ptr);
+    else if ( strcasecmp(name_ptr, "ZM_STREAM_SOCKET_ALLOWED_UIDS") == 0 )
+      staticConfig.STREAM_SOCKET_ALLOWED_UIDS = std::string(val_ptr);
+    else if ( strcasecmp(name_ptr, "ZM_STREAM_SOCKET_MAX_CLIENTS") == 0 )
+      staticConfig.STREAM_SOCKET_MAX_CLIENTS =
+        parse_unsigned_setting(name_ptr, val_ptr, staticConfig.STREAM_SOCKET_MAX_CLIENTS);
+    else if ( strcasecmp(name_ptr, "ZM_STREAM_SOCKET_QUEUE_BYTES") == 0 )
+      staticConfig.STREAM_SOCKET_QUEUE_BYTES =
+        parse_unsigned_setting(name_ptr, val_ptr, staticConfig.STREAM_SOCKET_QUEUE_BYTES);
+    else if ( strcasecmp(name_ptr, "ZM_STREAM_SOCKET_QUEUE_MSGS") == 0 )
+      staticConfig.STREAM_SOCKET_QUEUE_MSGS =
+        parse_unsigned_setting(name_ptr, val_ptr, staticConfig.STREAM_SOCKET_QUEUE_MSGS);
+    else if ( strcasecmp(name_ptr, "ZM_STREAM_SOCKET_STALL_SECS") == 0 )
+      staticConfig.STREAM_SOCKET_STALL_SECS =
+        parse_unsigned_setting(name_ptr, val_ptr, staticConfig.STREAM_SOCKET_STALL_SECS);
     else {
       // We ignore this now as there may be more parameters than the
       // c/c++ binaries are bothered about

@@ -92,21 +92,22 @@ bool zm::Pipe::close() {
 }
 
 bool zm::Pipe::setBlocking(bool blocking) {
-  int flags;
+  for (int fd : mFd) {
+    int flags;
 
-  /* Now set it for non-blocking I/O */
-  if ((flags = fcntl(mFd[1], F_GETFL)) < 0) {
-    Error("fcntl(), errno = %d, error = %s", errno, strerror(errno));
-    return false;
-  }
-  if (blocking) {
-    flags &= ~O_NONBLOCK;
-  } else {
-    flags |= O_NONBLOCK;
-  }
-  if (fcntl(mFd[1], F_SETFL, flags) < 0) {
-    Error("fcntl(), errno = %d, error = %s", errno, strerror(errno));
-    return false;
+    if ((flags = fcntl(fd, F_GETFL)) < 0) {
+      Error("fcntl(), errno = %d, error = %s", errno, strerror(errno));
+      return false;
+    }
+    if (blocking) {
+      flags &= ~O_NONBLOCK;
+    } else {
+      flags |= O_NONBLOCK;
+    }
+    if (fcntl(fd, F_SETFL, flags) < 0) {
+      Error("fcntl(), errno = %d, error = %s", errno, strerror(errno));
+      return false;
+    }
   }
 
   return true;
@@ -607,6 +608,14 @@ bool zm::TcpInetServer::accept(TcpInetSocket *&newSocket) {
 
   newSocket = new TcpInetSocket(*this, newSd);
   return true;
+}
+
+bool zm::TcpUnixServer::listen() {
+  return Socket::listen();
+}
+
+bool zm::TcpUnixServer::accept() {
+  return Socket::accept();
 }
 
 bool zm::TcpUnixServer::accept(TcpUnixSocket *&newSocket) {

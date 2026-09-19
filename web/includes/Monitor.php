@@ -62,8 +62,8 @@ class Monitor extends ZM_Object {
     'last_analysis_viewed_time' => [ 'type'=>'time_t64', 'offset'=>160, 'size'=>8 ],
     'control_state'    => [ 'type'=>'uint8[256]', 'offset'=>168, 'size'=>256 ],
     'alarm_cause'      => [ 'type'=>'int8[256]', 'offset'=>424, 'size'=>256 ],
-    'video_fifo'       => [ 'type'=>'int8[64]', 'offset'=>680, 'size'=>64 ],
-    'audio_fifo'       => [ 'type'=>'int8[64]', 'offset'=>744, 'size'=>64 ],
+    'reserved_path1'   => [ 'type'=>'int8[64]', 'offset'=>680, 'size'=>64 ], // was video_fifo; media FIFOs replaced by the stream socket
+    'reserved_path2'   => [ 'type'=>'int8[64]', 'offset'=>744, 'size'=>64 ], // was audio_fifo
     'janus_pin'        => [ 'type'=>'int8[64]', 'offset'=>808, 'size'=>64 ],
     // Analysis image ring counters, appended at the end of SharedData followed
     // by 8 bytes of padding (kept for the 16-byte-multiple layout invariant),

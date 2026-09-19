@@ -28,6 +28,25 @@ require_once('Role_Monitor_Permission.php');
 require_once(__DIR__.'/../vendor/autoload.php');
 use \Firebase\JWT\JWT;
 
+// A request parameter as a string, or null when the client did not send one it
+// can be used as. Request values are whatever arrived: "?user[]=x" makes
+// $_REQUEST['user'] an array, and the first string operation on an array is a
+// fatal TypeError under PHP 8.
+//
+// Not only hostile input. The user edit form posts user[Username],
+// user[Password] and the rest, so $_REQUEST['user'] is an array on every save
+// from that page, which was enough to take the whole auth path down with
+// "strcasecmp(): Argument #1 must be of type string, array given".
+//
+// An array is not a username, a password or an auth hash, so callers treat it
+// the same as a parameter that was never sent.
+function requestString($key) {
+  if (!isset($_REQUEST[$key])) {
+    return null;
+  }
+  return is_string($_REQUEST[$key]) ? $_REQUEST[$key] : null;
+}
+
 function password_type($password) {
   if (!$password || $password === '') {
     return 'plain';
@@ -188,7 +207,8 @@ function getAuthUser($auth) {
     // Prefer the username from the URL (matches what zms uses) so PHP and the
     // C++ side query the same row. Fall back to the session username for
     // page-internal calls that don't carry user= on the URL.
-    $requestedUser = !empty($_REQUEST['user']) ? $_REQUEST['user'] : null;
+    $requestedUser = requestString('user');
+    if ($requestedUser === '') $requestedUser = null;
     $sessionUser = isset($_SESSION['username']) ? $_SESSION['username'] : null;
     $filterUser = $requestedUser !== null ? $requestedUser : $sessionUser;
 
@@ -585,28 +605,33 @@ if (ZM_OPT_USE_AUTH) {
   } else {
     // Non token based auth
 
-    if (ZM_AUTH_HASH_LOGINS && empty($user) && !empty($_REQUEST['auth'])) {
-      $user = getAuthUser($_REQUEST['auth']);
+    $requestAuth = requestString('auth');
+    $requestUser = requestString('user');
+    $requestPass = requestString('pass');
+    $requestUsername = requestString('username');
+    $requestPassword = requestString('password');
+    if (ZM_AUTH_HASH_LOGINS && empty($user) && !empty($requestAuth)) {
+      $user = getAuthUser($requestAuth);
       if ($user) {
         $remoteAddr = ZM_AUTH_HASH_IPS ? $_SESSION['remoteAddr'] : '';
-        if (isset($_SESSION['AuthHash'.$remoteAddr]) and ($_SESSION['AuthHash'.$remoteAddr] != $_REQUEST['auth'])) {
+        if (isset($_SESSION['AuthHash'.$remoteAddr]) and ($_SESSION['AuthHash'.$remoteAddr] != $requestAuth)) {
           unset($_SESSION['AuthHashGeneratedAt']);
           unset($_SESSION['AuthHash'.$remoteAddr]);
         }
         $_SESSION['username'] = $user->Username();
       }
-    } else if (!(empty($_REQUEST['user']) or empty($_REQUEST['pass']))) {
+    } else if (!(empty($requestUser) or empty($requestPass))) {
       # The shortened versions are used in auth_relay = PLAIN
-      $ret = validateUser($_REQUEST['user'], $_REQUEST['pass']);
+      $ret = validateUser($requestUser, $requestPass);
       if (!$ret[0]) {
         ZM\Warning($ret[1]);
         unset($user); // unset should be ok here because we aren't in a function
         return;
       }
       $user = $ret[0];
-    } else if (!(empty($_REQUEST['username']) or empty($_REQUEST['password']))) {
+    } else if (!(empty($requestUsername) or empty($requestPassword))) {
       # Longer versions are used on login page
-      $ret = validateUser($_REQUEST['username'], $_REQUEST['password']);
+      $ret = validateUser($requestUsername, $requestPassword);
       if (!$ret[0]) {
         ZM\Warning($ret[1]);
         unset($user); // unset should be ok here because we aren't in a function
@@ -655,8 +680,8 @@ if (ZM_OPT_USE_AUTH) {
       zm_session_clear(); # Closes session
       zm_session_regenerate_id(); # starts session
 
-      $username = $_REQUEST['username'];
-      $password = $_REQUEST['password'];
+      $username = $requestUsername;
+      $password = $requestPassword;
 
       ZM\Info("Login successful for user \"$username\"");
       $password_type = password_type($user->Password());
@@ -673,7 +698,7 @@ if (ZM_OPT_USE_AUTH) {
       $_SESSION['username'] = $user->Username();
       if (ZM_AUTH_RELAY == 'plain') {
         // Need to save this in session, can't use the value in User because it is hashed
-        $_SESSION['password'] = $_REQUEST['password'];
+        $_SESSION['password'] = $requestPassword;
       }
     } else if ((ZM_AUTH_TYPE == 'remote') and !empty($_SERVER['REMOTE_USER'])) {
       if (ZM_CASE_INSENSITIVE_USERNAMES) {

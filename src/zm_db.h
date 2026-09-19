@@ -28,6 +28,20 @@
 #include <queue>
 #include <string>
 #include <thread>
+#include <unistd.h>
+
+// How many times a query that lost a lock race is re-run before being
+// abandoned. Bounds the stall described on zmDbContentionBackoff.
+constexpr int kMaxDbContentionRetries = 5;
+
+// How long to wait before retry number `attempt`, or 0 once the budget above is
+// spent and the caller should give up. Jittered, so two sessions that deadlocked
+// against each other do not wake together and repeat it.
+//
+// The caller sleeps this while holding db_mutex, which stops every other
+// database user in the process, so the schedule is deliberately short: roughly
+// 3 seconds across the whole budget.
+useconds_t zmDbContentionBackoff(int attempt);
 
 class zmDbQueue {
  private:

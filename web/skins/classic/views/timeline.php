@@ -810,8 +810,8 @@ foreach ( array_keys($monEventSlots) as $monitorId ) {
 <?php
 foreach( array_keys($monEventSlots) as $monitorId ) {
 ?>
-          <span class="keyEntry"><?php echo $monitors[$monitorId]->Name() ?>
-          <div id="keyBox<?php echo $monitorId ?>" class="keyBox monitorColour<?php echo $monitorId ?>" title="<?php echo $monitors[$monitorId]->Name() ?>" style="background-color: <?php echo $monitors[$monitorId]->WebColour() ?>;"></div>
+          <span class="keyEntry"><?php echo validHtmlStr($monitors[$monitorId]->Name()) ?>
+          <div id="keyBox<?php echo $monitorId ?>" class="keyBox monitorColour<?php echo $monitorId ?>" title="<?php echo validHtmlStr($monitors[$monitorId]->Name()) ?>" style="background-color: <?php echo $monitors[$monitorId]->WebColour() ?>;"></div>
           </span>
 <?php
 }

@@ -195,6 +195,66 @@ TEST_CASE("UriEncode") {
   // Round-trip test: encode then decode should return original
   std::string original = "hello world!";
   REQUIRE(UriDecode(UriEncode(original)) == original);
+
+  // Non-ASCII bytes must each be escaped as a single %XX pair. A signed char
+  // sign-extends here and yields "%FF" (truncated from "FFFFFFD0") instead.
+  REQUIRE(UriEncode("\xD0\xB2") == "%D0%B2");
+  REQUIRE(UriEncode("\xFF") == "%FF");
+  REQUIRE(UriEncode("\x80") == "%80");
+
+  // A Cyrillic name (U+0432 U+0445 U+043E U+0434) - the kind of name the
+  // utf8mb4 switch made storable. Written as bytes so this file stays ASCII.
+  REQUIRE(UriEncode("\xD0\xB2\xD1\x85\xD0\xBE\xD0\xB4") == "%D0%B2%D1%85%D0%BE%D0%B4");
+
+  // Mixed ASCII and UTF-8, and a multi-byte round trip.
+  REQUIRE(UriEncode("Cam \xC3\xA9") == "Cam%20%C3%A9");
+  REQUIRE(UriDecode(UriEncode("\xD0\xB2\xD1\x85")) == "\xD0\xB2\xD1\x85");
+}
+
+TEST_CASE("escape_json_string") {
+  // Nothing to do.
+  REQUIRE(escape_json_string("") == "");
+  REQUIRE(escape_json_string("Front Door") == "Front Door");
+
+  // A quote must come out as one backslash then a quote. The previous
+  // implementation escaped quotes before backslashes, so it emitted \\" here:
+  // an escaped backslash followed by a bare quote, which closed the JSON
+  // string it was embedded in.
+  REQUIRE(escape_json_string("\"") == "\\\"");
+  REQUIRE(escape_json_string("Front \"Door\"") == "Front \\\"Door\\\"");
+
+  // A backslash doubles, and that doubling must not itself be re-doubled.
+  REQUIRE(escape_json_string("\\") == "\\\\");
+  REQUIRE(escape_json_string("back\\slash") == "back\\\\slash");
+
+  // A backslash adjacent to a quote is where ordering errors surface.
+  REQUIRE(escape_json_string("\\\"") == "\\\\\\\"");
+
+  // Named control character escapes.
+  REQUIRE(escape_json_string("\n") == "\\n");
+  REQUIRE(escape_json_string("\r") == "\\r");
+  REQUIRE(escape_json_string("\t") == "\\t");
+  REQUIRE(escape_json_string("\b") == "\\b");
+  REQUIRE(escape_json_string("\f") == "\\f");
+  REQUIRE(escape_json_string("line\nbreak") == "line\\nbreak");
+
+  // Control characters without a short form must still be escaped.
+  REQUIRE(escape_json_string(std::string(1, '\a')) == "\\u0007");
+  REQUIRE(escape_json_string(std::string(1, '\x01')) == "\\u0001");
+  REQUIRE(escape_json_string(std::string(1, '\x1f')) == "\\u001f");
+
+  // An embedded NUL is a control character like any other and must survive.
+  REQUIRE(escape_json_string(std::string("a\0b", 3)) == "a\\u0000b");
+
+  // 0x7f is not a JSON control character, and UTF-8 passes through intact.
+  REQUIRE(escape_json_string(std::string(1, '\x7f')) == std::string(1, '\x7f'));
+  REQUIRE(escape_json_string("\xD0\xB2\xD1\x85") == "\xD0\xB2\xD1\x85");
+
+  // Escaping twice is not the same as escaping once. This is the double
+  // escape the go2rtc credential path was hitting.
+  const std::string once = escape_json_string("pa\\ss");
+  REQUIRE(once == "pa\\\\ss");
+  REQUIRE(escape_json_string(once) == "pa\\\\\\\\ss");
 }
 
 TEST_CASE("QueryString") {
@@ -356,4 +416,41 @@ TEST_CASE("zm_strncpy") {
     zm_strncpy(buf, "", sizeof(buf));
     REQUIRE(buf[0] == '\0');
   }
+}
+
+TEST_CASE("TimevalToString") {
+  // tv_usec used to go to the format string as %ld. Under glibc's 64 bit time
+  // ABI on a 32 bit platform (Debian trixie on armhf) tv_usec is
+  // __suseconds64_t while long is still 32 bits, so %ld consumed half the
+  // argument and every vararg after it was read from the wrong offset. zmc
+  // crashed on armhf because this result is written into a buffer and then
+  // used. See #4580 and Debian bug 1120447.
+  //
+  // amd64 cannot reproduce the mismatch (long is already 64 bits), so what
+  // this pins is the rendering: six zero padded digits of microseconds, which
+  // is what a wrong conversion would disturb.
+  const char *tz = getenv("TZ");
+  std::string saved_tz = tz ? tz : "";
+  setenv("TZ", "UTC", 1);
+  tzset();
+
+  SECTION("pads microseconds to six digits") {
+    REQUIRE(TimevalToString(timeval{0, 0}) == "1970-01-01 00:00:00.000000");
+    REQUIRE(TimevalToString(timeval{0, 1}) == "1970-01-01 00:00:00.000001");
+    REQUIRE(TimevalToString(timeval{0, 999999}) == "1970-01-01 00:00:00.999999");
+  }
+
+  SECTION("does not truncate or reorder the arguments") {
+    // A conversion that mis-reads tv_usec tends to show up either as a wrong
+    // number here or as the seconds field being wrong, since the bad read
+    // shifts everything after it.
+    REQUIRE(TimevalToString(timeval{1700000000, 123456}) == "2023-11-14 22:13:20.123456");
+  }
+
+  if (saved_tz.empty()) {
+    unsetenv("TZ");
+  } else {
+    setenv("TZ", saved_tz.c_str(), 1);
+  }
+  tzset();
 }

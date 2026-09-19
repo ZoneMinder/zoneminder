@@ -1719,94 +1719,97 @@ void Image::Overlay( const Image &image ) {
             subpixelorder, image.subpixelorder);
   }
 
+  // Walk both images a row at a time using each one's own linesize.  Linesize
+  // is FFALIGN(width*colours, 32) for images built by the default constructor
+  // but plain width*colours for images built by Assign/WriteBuffer, so the two
+  // sides regularly disagree.  The old code walked linearly from buffer to
+  // buffer+size with a single shared index, which silently sheared the overlay
+  // by (linesize - width*colours) bytes per row whenever either side was
+  // padded -- e.g. a 720-wide RGB24 monitor, where linesize is 2176 and
+  // width*colours is 2160, smeared the alarm highlight ~5px left per row and
+  // wrapped it across the whole frame.  Colourise() below rewrites this
+  // image's linesize, so each branch re-reads it rather than caching it.
+
   /* Grayscale on top of grayscale - complete */
   if ( colours == ZM_COLOUR_GRAY8 && image.colours == ZM_COLOUR_GRAY8 ) {
-    const uint8_t* const max_ptr = buffer+size;
-    const uint8_t* psrc = image.buffer;
-    uint8_t* pdest = buffer;
-
-    while ( pdest < max_ptr ) {
-      if ( *psrc ) {
-        *pdest = *psrc;
+    for ( unsigned int y = 0; y < height; y++ ) {
+      const uint8_t* psrc = image.buffer + (y * image.linesize);
+      uint8_t* pdest = buffer + (y * linesize);
+      for ( unsigned int x = 0; x < width; x++, pdest++, psrc++ ) {
+        if ( *psrc ) {
+          *pdest = *psrc;
+        }
       }
-      pdest++;
-      psrc++;
     }
 
     /* RGB24 on top of grayscale - convert to same format first - complete */
   } else if ( colours == ZM_COLOUR_GRAY8 && image.colours == ZM_COLOUR_RGB24 ) {
     Colourise(image.colours, image.subpixelorder);
 
-    const uint8_t* const max_ptr = buffer+size;
-    const uint8_t* psrc = image.buffer;
-    uint8_t* pdest = buffer;
-
-    while ( pdest < max_ptr ) {
-      if ( RED_PTR_RGBA(psrc) || GREEN_PTR_RGBA(psrc) || BLUE_PTR_RGBA(psrc) ) {
-        RED_PTR_RGBA(pdest) = RED_PTR_RGBA(psrc);
-        GREEN_PTR_RGBA(pdest) = GREEN_PTR_RGBA(psrc);
-        BLUE_PTR_RGBA(pdest) = BLUE_PTR_RGBA(psrc);
+    for ( unsigned int y = 0; y < height; y++ ) {
+      const uint8_t* psrc = image.buffer + (y * image.linesize);
+      uint8_t* pdest = buffer + (y * linesize);
+      for ( unsigned int x = 0; x < width; x++, pdest += 3, psrc += 3 ) {
+        if ( RED_PTR_RGBA(psrc) || GREEN_PTR_RGBA(psrc) || BLUE_PTR_RGBA(psrc) ) {
+          RED_PTR_RGBA(pdest) = RED_PTR_RGBA(psrc);
+          GREEN_PTR_RGBA(pdest) = GREEN_PTR_RGBA(psrc);
+          BLUE_PTR_RGBA(pdest) = BLUE_PTR_RGBA(psrc);
+        }
       }
-      pdest += 3;
-      psrc += 3;
     }
 
     /* RGB32 on top of grayscale - convert to same format first - complete */
   } else if ( colours == ZM_COLOUR_GRAY8 && image.colours == ZM_COLOUR_RGB32 ) {
     Colourise(image.colours, image.subpixelorder);
 
-    const Rgb* const max_ptr = (Rgb*)(buffer+size);
-    const Rgb* prsrc = (Rgb*)image.buffer;
-    Rgb* prdest = (Rgb*)buffer;
-
     if ( subpixelorder == ZM_SUBPIX_ORDER_RGBA || subpixelorder == ZM_SUBPIX_ORDER_BGRA ) {
       /* RGB\BGR\RGBA\BGRA subpixel order - Alpha byte is last */
-      while ( prdest < max_ptr) {
-        if ( RED_PTR_RGBA(prsrc) || GREEN_PTR_RGBA(prsrc) || BLUE_PTR_RGBA(prsrc) ) {
-          *prdest = *prsrc;
+      for ( unsigned int y = 0; y < height; y++ ) {
+        const Rgb* prsrc = (Rgb*)(image.buffer + (y * image.linesize));
+        Rgb* prdest = (Rgb*)(buffer + (y * linesize));
+        for ( unsigned int x = 0; x < width; x++, prdest++, prsrc++ ) {
+          if ( RED_PTR_RGBA(prsrc) || GREEN_PTR_RGBA(prsrc) || BLUE_PTR_RGBA(prsrc) ) {
+            *prdest = *prsrc;
+          }
         }
-        prdest++;
-        prsrc++;
       }
     } else {
       /* ABGR\ARGB subpixel order - Alpha byte is first */
-      while ( prdest < max_ptr) {
-        if ( RED_PTR_ABGR(prsrc) || GREEN_PTR_ABGR(prsrc) || BLUE_PTR_ABGR(prsrc) ) {
-          *prdest = *prsrc;
+      for ( unsigned int y = 0; y < height; y++ ) {
+        const Rgb* prsrc = (Rgb*)(image.buffer + (y * image.linesize));
+        Rgb* prdest = (Rgb*)(buffer + (y * linesize));
+        for ( unsigned int x = 0; x < width; x++, prdest++, prsrc++ ) {
+          if ( RED_PTR_ABGR(prsrc) || GREEN_PTR_ABGR(prsrc) || BLUE_PTR_ABGR(prsrc) ) {
+            *prdest = *prsrc;
+          }
         }
-        prdest++;
-        prsrc++;
       }
     }
 
     /* Grayscale on top of RGB24 - complete */
   } else if ( colours == ZM_COLOUR_RGB24 && image.colours == ZM_COLOUR_GRAY8 ) {
-    const uint8_t* const max_ptr = buffer+size;
-    const uint8_t* psrc = image.buffer;
-    uint8_t* pdest = buffer;
-
-    while ( pdest < max_ptr ) {
-      if ( *psrc ) {
-        RED_PTR_RGBA(pdest) = GREEN_PTR_RGBA(pdest) = BLUE_PTR_RGBA(pdest) = *psrc;
+    for ( unsigned int y = 0; y < height; y++ ) {
+      const uint8_t* psrc = image.buffer + (y * image.linesize);
+      uint8_t* pdest = buffer + (y * linesize);
+      for ( unsigned int x = 0; x < width; x++, pdest += 3, psrc++ ) {
+        if ( *psrc ) {
+          RED_PTR_RGBA(pdest) = GREEN_PTR_RGBA(pdest) = BLUE_PTR_RGBA(pdest) = *psrc;
+        }
       }
-      pdest += 3;
-      psrc++;
     }
 
     /* RGB24 on top of RGB24 - not complete. need to take care of different subpixel orders */
   } else if ( colours == ZM_COLOUR_RGB24 && image.colours == ZM_COLOUR_RGB24 ) {
-    const uint8_t* const max_ptr = buffer+size;
-    const uint8_t* psrc = image.buffer;
-    uint8_t* pdest = buffer;
-
-    while ( pdest < max_ptr ) {
-      if ( RED_PTR_RGBA(psrc) || GREEN_PTR_RGBA(psrc) || BLUE_PTR_RGBA(psrc) ) {
-        RED_PTR_RGBA(pdest) = RED_PTR_RGBA(psrc);
-        GREEN_PTR_RGBA(pdest) = GREEN_PTR_RGBA(psrc);
-        BLUE_PTR_RGBA(pdest) = BLUE_PTR_RGBA(psrc);
+    for ( unsigned int y = 0; y < height; y++ ) {
+      const uint8_t* psrc = image.buffer + (y * image.linesize);
+      uint8_t* pdest = buffer + (y * linesize);
+      for ( unsigned int x = 0; x < width; x++, pdest += 3, psrc += 3 ) {
+        if ( RED_PTR_RGBA(psrc) || GREEN_PTR_RGBA(psrc) || BLUE_PTR_RGBA(psrc) ) {
+          RED_PTR_RGBA(pdest) = RED_PTR_RGBA(psrc);
+          GREEN_PTR_RGBA(pdest) = GREEN_PTR_RGBA(psrc);
+          BLUE_PTR_RGBA(pdest) = BLUE_PTR_RGBA(psrc);
+        }
       }
-      pdest += 3;
-      psrc += 3;
     }
 
     /* RGB32 on top of RGB24 - TO BE DONE */
@@ -1815,28 +1818,28 @@ void Image::Overlay( const Image &image ) {
 
     /* Grayscale on top of RGB32 - complete */
   } else if ( colours == ZM_COLOUR_RGB32 && image.colours == ZM_COLOUR_GRAY8 ) {
-    const Rgb* const max_ptr = (Rgb*)(buffer+size);
-    Rgb* prdest = (Rgb*)buffer;
-    const uint8_t* psrc = image.buffer;
-
     if ( subpixelorder == ZM_SUBPIX_ORDER_RGBA || subpixelorder == ZM_SUBPIX_ORDER_BGRA ) {
       /* RGBA\BGRA subpixel order - Alpha byte is last */
-      while ( prdest < max_ptr ) {
-        if ( *psrc ) {
-          RED_PTR_RGBA(prdest) = *psrc;
-          //RED_PTR_RGBA(prdest) = GREEN_PTR_RGBA(prdest) = BLUE_PTR_RGBA(prdest) = *psrc;
+      for ( unsigned int y = 0; y < height; y++ ) {
+        const uint8_t* psrc = image.buffer + (y * image.linesize);
+        Rgb* prdest = (Rgb*)(buffer + (y * linesize));
+        for ( unsigned int x = 0; x < width; x++, prdest++, psrc++ ) {
+          if ( *psrc ) {
+            RED_PTR_RGBA(prdest) = *psrc;
+            //RED_PTR_RGBA(prdest) = GREEN_PTR_RGBA(prdest) = BLUE_PTR_RGBA(prdest) = *psrc;
+          }
         }
-        prdest++;
-        psrc++;
       }
     } else {
       /* ABGR\ARGB subpixel order - Alpha byte is first */
-      while ( prdest < max_ptr ) {
-        if ( *psrc ) {
-          RED_PTR_ABGR(prdest) = GREEN_PTR_ABGR(prdest) = BLUE_PTR_ABGR(prdest) = *psrc;
+      for ( unsigned int y = 0; y < height; y++ ) {
+        const uint8_t* psrc = image.buffer + (y * image.linesize);
+        Rgb* prdest = (Rgb*)(buffer + (y * linesize));
+        for ( unsigned int x = 0; x < width; x++, prdest++, psrc++ ) {
+          if ( *psrc ) {
+            RED_PTR_ABGR(prdest) = GREEN_PTR_ABGR(prdest) = BLUE_PTR_ABGR(prdest) = *psrc;
+          }
         }
-        prdest++;
-        psrc++;
       }
     }
 
@@ -1846,27 +1849,27 @@ void Image::Overlay( const Image &image ) {
 
     /* RGB32 on top of RGB32 - not complete. need to take care of different subpixel orders */
   } else if ( colours == ZM_COLOUR_RGB32 && image.colours == ZM_COLOUR_RGB32 ) {
-    const Rgb* const max_ptr = (Rgb*)(buffer+size);
-    Rgb* prdest = (Rgb*)buffer;
-    const Rgb* prsrc = (Rgb*)image.buffer;
-
     if ( image.subpixelorder == ZM_SUBPIX_ORDER_RGBA || image.subpixelorder == ZM_SUBPIX_ORDER_BGRA ) {
       /* RGB\BGR\RGBA\BGRA subpixel order - Alpha byte is last */
-      while ( prdest < max_ptr ) {
-        if ( RED_PTR_RGBA(prsrc) || GREEN_PTR_RGBA(prsrc) || BLUE_PTR_RGBA(prsrc) ) {
-          *prdest = *prsrc;
+      for ( unsigned int y = 0; y < height; y++ ) {
+        const Rgb* prsrc = (Rgb*)(image.buffer + (y * image.linesize));
+        Rgb* prdest = (Rgb*)(buffer + (y * linesize));
+        for ( unsigned int x = 0; x < width; x++, prdest++, prsrc++ ) {
+          if ( RED_PTR_RGBA(prsrc) || GREEN_PTR_RGBA(prsrc) || BLUE_PTR_RGBA(prsrc) ) {
+            *prdest = *prsrc;
+          }
         }
-        prdest++;
-        prsrc++;
       }
     } else {
       /* ABGR\ARGB subpixel order - Alpha byte is first */
-      while ( prdest < max_ptr ) {
-        if ( RED_PTR_ABGR(prsrc) || GREEN_PTR_ABGR(prsrc) || BLUE_PTR_ABGR(prsrc) ) {
-          *prdest = *prsrc;
+      for ( unsigned int y = 0; y < height; y++ ) {
+        const Rgb* prsrc = (Rgb*)(image.buffer + (y * image.linesize));
+        Rgb* prdest = (Rgb*)(buffer + (y * linesize));
+        for ( unsigned int x = 0; x < width; x++, prdest++, prsrc++ ) {
+          if ( RED_PTR_ABGR(prsrc) || GREEN_PTR_ABGR(prsrc) || BLUE_PTR_ABGR(prsrc) ) {
+            *prdest = *prsrc;
+          }
         }
-        prdest++;
-        prsrc++;
       }
     }
   }
@@ -2071,6 +2074,15 @@ bool Image::Delta(const Image &image, Image* targetimage) const {
     return false;
   }
 
+  // DumpImgBuffer() nulls buffer while leaving width/height/colours intact, so
+  // the size check above is no guarantee the pixels are present. Without this a
+  // dumped reference image (e.g. dropped on resume) walks the delta helpers from
+  // a null base pointer and faults at address 0 on the first row.
+  if ( buffer == nullptr || image.buffer == nullptr ) {
+    Error("Attempt to get delta with a null buffer (this %p, other %p)", buffer, image.buffer);
+    return false;
+  }
+
   uint8_t *pdiff = targetimage->WriteBuffer(width, height, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE);
   if ( pdiff == nullptr ) {
     Error("Failed requesting writeable buffer for storing the delta image");
@@ -2081,37 +2093,62 @@ bool Image::Delta(const Image &image, Image* targetimage) const {
   TimePoint start = std::chrono::steady_clock::now();
 #endif
 
+  // Pick the delta function once, then drive it a row at a time using each
+  // image's own linesize.  Running it over width*height pixels in one call
+  // assumed all three buffers were packed, but linesize is
+  // FFALIGN(width*colours, 32) for images built by the default constructor,
+  // so on a width whose row is not 32-byte aligned (e.g. 720-wide RGB24:
+  // linesize 2176, width*colours 2160) each row consumed 16 bytes too few and
+  // the delta sheared ~5px further left on every row, wrapping the alarm
+  // highlight diagonally across the frame.
+  delta_fptr_t delta_fn = nullptr;
+
   switch ( colours ) {
   case ZM_COLOUR_RGB24:
     if ( subpixelorder == ZM_SUBPIX_ORDER_BGR ) {
       /* BGR subpixel order */
-      (*delta8_bgr)(buffer, image.buffer, pdiff, pixels);
+      delta_fn = delta8_bgr;
     } else {
       /* Assume RGB subpixel order */
-      (*delta8_rgb)(buffer, image.buffer, pdiff, pixels);
+      delta_fn = delta8_rgb;
     }
     break;
   case ZM_COLOUR_RGB32:
     if ( subpixelorder == ZM_SUBPIX_ORDER_ARGB ) {
       /* ARGB subpixel order */
-      (*delta8_argb)(buffer, image.buffer, pdiff, pixels);
+      delta_fn = delta8_argb;
     } else if(subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
       /* ABGR subpixel order */
-      (*delta8_abgr)(buffer, image.buffer, pdiff, pixels);
+      delta_fn = delta8_abgr;
     } else if(subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
       /* BGRA subpixel order */
-      (*delta8_bgra)(buffer, image.buffer, pdiff, pixels);
+      delta_fn = delta8_bgra;
     } else {
       /* Assume RGBA subpixel order */
-      (*delta8_rgba)(buffer, image.buffer, pdiff, pixels);
+      delta_fn = delta8_rgba;
     }
     break;
   case ZM_COLOUR_GRAY8:
-    (*delta8_gray8)(buffer, image.buffer, pdiff, pixels);
+    delta_fn = delta8_gray8;
     break;
   default:
     Panic("Delta called with unexpected colours: %d",colours);
     break;
+  }
+
+  const unsigned int target_linesize = targetimage->LineSize();
+  if ( linesize == image.linesize
+       && linesize == width * colours
+       && target_linesize == width ) {
+    /* All three buffers are packed - one call covers the whole image */
+    (*delta_fn)(buffer, image.buffer, pdiff, pixels);
+  } else {
+    for ( unsigned int y = 0; y < height; y++ ) {
+      (*delta_fn)(buffer + (y * linesize),
+                  image.buffer + (y * image.linesize),
+                  pdiff + (y * target_linesize),
+                  width);
+    }
   }
 
 #ifdef ZM_IMAGE_PROFILING
@@ -2499,14 +2536,14 @@ void Image::Fill( Rgb colour, const Box *limits ) {
   unsigned int hi_y = limits ? limits->Hi().y_ : height - 1;
   if ( colours == ZM_COLOUR_GRAY8 ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      unsigned char *p = &buffer[(y*width)+lo_x];
+      unsigned char *p = &buffer[(y*linesize)+lo_x];
       for ( unsigned int x = lo_x; x <= hi_x; x++, p++) {
         *p = colour;
       }
     }
   } else if ( colours == ZM_COLOUR_RGB24 ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      unsigned char *p = &buffer[colours*((y*width)+lo_x)];
+      unsigned char *p = &buffer[(y*linesize)+(colours*lo_x)];
       for ( unsigned int x = lo_x; x <= hi_x; x++, p += 3) {
         RED_PTR_RGBA(p) = RED_VAL_RGBA(colour);
         GREEN_PTR_RGBA(p) = GREEN_VAL_RGBA(colour);
@@ -2515,7 +2552,7 @@ void Image::Fill( Rgb colour, const Box *limits ) {
     }
   } else if ( colours == ZM_COLOUR_RGB32 ) { /* RGB32 */
     for ( unsigned int y = lo_y; y <= (unsigned int)hi_y; y++ ) {
-      Rgb *p = (Rgb*)&buffer[((y*width)+lo_x)<<2];
+      Rgb *p = (Rgb*)&buffer[(y*linesize)+(lo_x<<2)];
 
       for ( unsigned int x = lo_x; x <= (unsigned int)hi_x; x++, p++) {
         /* Fast, copies the entire pixel in a single pass */
@@ -2544,7 +2581,7 @@ void Image::Fill( Rgb colour, int density, const Box *limits ) {
   unsigned int hi_y = limits ? limits->Hi().y_ : height - 1;
   if ( colours == ZM_COLOUR_GRAY8 ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      unsigned char *p = &buffer[(y*width)+lo_x];
+      unsigned char *p = &buffer[(y*linesize)+lo_x];
       for ( unsigned int x = lo_x; x <= hi_x; x++, p++) {
         if ( ( x == lo_x || x == hi_x || y == lo_y || y == hi_y ) || (!(x%density) && !(y%density) ) )
           *p = colour;
@@ -2552,7 +2589,7 @@ void Image::Fill( Rgb colour, int density, const Box *limits ) {
     }
   } else if ( colours == ZM_COLOUR_RGB24 ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      unsigned char *p = &buffer[colours*((y*width)+lo_x)];
+      unsigned char *p = &buffer[(y*linesize)+(colours*lo_x)];
       for ( unsigned int x = lo_x; x <= hi_x; x++, p += 3) {
         if ( ( x == lo_x || x == hi_x || y == lo_y || y == hi_y ) || (!(x%density) && !(y%density) ) ) {
           RED_PTR_RGBA(p) = RED_VAL_RGBA(colour);
@@ -2563,7 +2600,7 @@ void Image::Fill( Rgb colour, int density, const Box *limits ) {
     }
   } else if ( colours == ZM_COLOUR_RGB32 ) { /* RGB32 */
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      Rgb* p = (Rgb*)&buffer[((y*width)+lo_x)<<2];
+      Rgb* p = (Rgb*)&buffer[(y*linesize)+(lo_x<<2)];
 
       for ( unsigned int x = lo_x; x <= hi_x; x++, p++) {
         if ( ( x == lo_x || x == hi_x || y == lo_y || y == hi_y ) || (!(x%density) && !(y%density) ) )
@@ -2610,18 +2647,18 @@ void Image::Outline( Rgb colour, const Polygon &polygon ) {
       grad *= yinc;
       if ( colours == ZM_COLOUR_GRAY8 ) {
         for ( x = x1, y = y1; y != y2; y += yinc, x += grad ) {
-          buffer[(y*width)+int(round(x))] = colour;
+          buffer[(y*linesize)+int(round(x))] = colour;
         }
       } else if ( colours == ZM_COLOUR_RGB24 ) {
         for ( x = x1, y = y1; y != y2; y += yinc, x += grad ) {
-          unsigned char *p = &buffer[colours*((y*width)+int(round(x)))];
+          unsigned char *p = &buffer[(y*linesize)+(colours*int(round(x)))];
           RED_PTR_RGBA(p) = RED_VAL_RGBA(colour);
           GREEN_PTR_RGBA(p) = GREEN_VAL_RGBA(colour);
           BLUE_PTR_RGBA(p) = BLUE_VAL_RGBA(colour);
         }
       } else if ( colours == ZM_COLOUR_RGB32 ) {
         for ( x = x1, y = y1; y != y2; y += yinc, x += grad ) {
-          *(Rgb*)(buffer+(((y*width)+int(round(x)))<<2)) = colour;
+          *(Rgb*)(buffer+(y*linesize)+(int(round(x))<<2)) = colour;
         }
       }
     } else {
@@ -2639,18 +2676,18 @@ void Image::Outline( Rgb colour, const Polygon &polygon ) {
         //Debug( 9, "x1:%d, x2:%d, y1:%d, y2:%d, gr:%.2lf", x1, x2, y1, y2, grad );
         for ( y = y1, x = x1; x != x2; x += xinc, y += grad ) {
           //Debug( 9, "x:%d, y:%.2f", x, y );
-          buffer[(int(round(y))*width)+x] = colour;
+          buffer[(int(round(y))*linesize)+x] = colour;
         }
       } else if ( colours == ZM_COLOUR_RGB24 ) {
         for ( y = y1, x = x1; x != x2; x += xinc, y += grad ) {
-          unsigned char *p = &buffer[colours*((int(round(y))*width)+x)];
+          unsigned char *p = &buffer[(int(round(y))*linesize)+(colours*x)];
           RED_PTR_RGBA(p) = RED_VAL_RGBA(colour);
           GREEN_PTR_RGBA(p) = GREEN_VAL_RGBA(colour);
           BLUE_PTR_RGBA(p) = BLUE_VAL_RGBA(colour);
         }
       } else if ( colours == ZM_COLOUR_RGB32 ) {
         for ( y = y1, x = x1; x != x2; x += xinc, y += grad ) {
-          *(Rgb*)(buffer+(((int(round(y))*width)+x)<<2)) = colour;
+          *(Rgb*)(buffer+(int(round(y))*linesize)+(x<<2)) = colour;
         }
       }
     }
@@ -2732,7 +2769,7 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
         int32 lo_x = static_cast<int32>(it->min_x);
         int32 hi_x = static_cast<int32>((it + 1)->min_x);
         if (colours == ZM_COLOUR_GRAY8) {
-          uint8 *p = &buffer[(scan_line * width) + lo_x];
+          uint8 *p = &buffer[(scan_line * linesize) + lo_x];
 
           for (int32 x = lo_x; x <= hi_x; x++, p++) {
             if (!(x % density)) {
@@ -2741,7 +2778,7 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
           }
         } else if (colours == ZM_COLOUR_RGB24) {
           constexpr uint8 bytesPerPixel = 3;
-          uint8 *ptr = &buffer[((scan_line * width) + lo_x) * bytesPerPixel];
+          uint8 *ptr = &buffer[(scan_line * linesize) + (lo_x * bytesPerPixel)];
 
           for (int32 x = lo_x; x <= hi_x; x++, ptr += bytesPerPixel) {
             if (!(x % density)) {
@@ -2752,7 +2789,7 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
           }
         } else if (colours == ZM_COLOUR_RGB32) {
           constexpr uint8 bytesPerPixel = 4;
-          Rgb *ptr = reinterpret_cast<Rgb *>(&buffer[((scan_line * width) + lo_x) * bytesPerPixel]);
+          Rgb *ptr = reinterpret_cast<Rgb *>(&buffer[(scan_line * linesize) + (lo_x * bytesPerPixel)]);
 
           for (int32 x = lo_x; x <= hi_x; x++, ptr++) {
             if (!(x % density)) {

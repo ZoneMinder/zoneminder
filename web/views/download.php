@@ -18,6 +18,8 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
+require_once('includes/download_functions.php');
+
 class downloadingGeneratedEventFile {
     private $filenamePath;
     private $exportDir;
@@ -77,8 +79,10 @@ class downloadingGeneratedEventFile {
     public function removeTmpFiles () {
       if ($this->handle) fclose($this->handle);
 
-      unlink($this->exportDir.'/'.$this->filename.'.lock'); # Delete download flag file
-      unlink($this->filenamePath); # Delete the downloaded file
+      # Silenced: this runs at shutdown, after the body has been sent, so a
+      # warning about an already-missing file would be appended to the download.
+      @unlink($this->exportDir.'/'.$this->filename.'.lock'); # Delete download flag file
+      @unlink($this->filenamePath); # Delete the downloaded file
       # We try to delete the directory (if it is not the main export directory) where the downloaded file was stored.
       if ($this->exportDir != ZM_DIR_EXPORTS)
         if (@rmdir($this->exportDir)) @rmdir(DIR_EXPORTS_DOWNLOAD);
@@ -95,8 +99,8 @@ class downloadingGeneratedEventFile {
         }
 
         header("Content-Type: application/$this->mimetype");
-        header("Content-Length: ". filesize($this->filenamePath).";");
-        header('Content-Disposition: attachment; filename=' . basename($this->filename));
+        header('Content-Length: '.filesize($this->filenamePath));
+        header('Content-Disposition: '.contentDispositionAttachment($this->filename));
         header('Content-Transfer-Encoding: binary');
         header("Connection: close"); # Close connection after downloading
         @ini_set( 'max_execution_time', 0 );
@@ -121,7 +125,7 @@ class downloadingGeneratedEventFile {
         }
       } else {
         header('HTTP/1.0 204 No Content'); # So that there is no blank page! And we need to visually indicate that the file is missing!
-        ZM\Error($filenamePath.' does not exist or is not readable.');
+        ZM\Error($this->filenamePath.' does not exist or is not readable.');
       }
     }
 }

@@ -15,13 +15,21 @@ set(TEST_SOURCES
   zm_box.cpp
   zm_comms.cpp
   zm_crypt.cpp
+  zm_db_contention.cpp
+  zm_db_contention_live.cpp
+  zm_event_hardlink.cpp
   zm_font.cpp
   zm_monitorstream.cpp
+  zm_packetqueue.cpp
+  zm_onvif_auth_error.cpp
   zm_onvif_renewal.cpp
   zm_poly.cpp
   zm_utils.cpp
   zm_vector2.cpp
-  zm_zone.cpp)
+  zm_zone.cpp
+  zm_zone_stride.cpp
+  zm_image_linesize.cpp
+  zm_zone_blobs.cpp)
 
 add_executable(tests main.cpp ${TEST_SOURCES})
 

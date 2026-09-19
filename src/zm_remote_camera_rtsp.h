@@ -84,19 +84,6 @@ class RemoteCameraRtsp : public RemoteCamera {
   int Capture(std::shared_ptr <ZMPacket> &p) override;
   int PostCapture() override;
   int Close() override { return 0; };
-
-  AVStream *get_VideoStream() {
-    if ( mVideoStreamId != -1 )
-      return mFormatContext->streams[mVideoStreamId];
-    return nullptr;
-  }
-  AVStream *get_AudioStream() {
-    if ( mAudioStreamId != -1 )
-      return mFormatContext->streams[mAudioStreamId];
-    return nullptr;
-  }
-  AVCodecContext      *get_VideoCodecContext() { return mVideoCodecContext; };
-  AVCodecContext      *get_AudioCodecContext() { return mAudioCodecContext; };
 };
 
 #endif // ZM_REMOTE_CAMERA_RTSP_H

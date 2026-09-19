@@ -4435,17 +4435,14 @@ void Monitor::CloseDecoder() {
 }  // end void Monitor::CloseDecoder()
 
 int Monitor::PrimeCapture() {
-  // Stop the decoder before tearing the codec context down. The decoder
-  // thread holds a raw AVCodecContext* it got from
-  // camera->getVideoCodecContext(); camera->PrimeCapture() will Close() the
-  // camera (freeing that context) and OpenFfmpeg() a new one. Running the
-  // decoder against the dying context is unsafe; equally important, on
-  // exit the decoder thread releases the in-flight packet locks in
-  // decoder_queue (see DecoderThread::Run). Without that, stale entries
-  // survive the reconnect and create a permanent latency offset against
-  // the new codec context — the analysis thread blocks on
-  // !packet->decoded for those packets and the packetqueue fills to
-  // max_video_packet_count and stays there.
+  // Stop the decoder before tearing the codec context down. The decoder thread
+  // holds a raw AVCodecContext* that CloseDecoder() below frees, and running it
+  // against a dying context is unsafe. Equally important, on exit the decoder
+  // thread releases the in-flight packet locks in decoder_queue (see
+  // DecoderThread::Run). Without that, stale entries survive the reconnect and
+  // create a permanent latency offset against the new codec context — the
+  // analysis thread blocks on !packet->decoded for those packets and the
+  // packetqueue fills to max_video_packet_count and stays there.
   if (decoder) {
     decoder->Stop();
     packetqueue.notify_all();  // wake the thread if it's blocked on wait_for

@@ -235,6 +235,7 @@ class Zone {
   int GetExtendAlarmFrames();
   void SetScore(unsigned int nScore);
   void SetAlarmImage(const Image* srcImage);
+  void BuildAlarmHighlight(Image *mask, bool edges_only);
 
   inline const Image *getPgImage() const { return pg_image; }
   inline const Range *getRanges() const { return ranges; }

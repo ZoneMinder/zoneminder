@@ -946,14 +946,15 @@ void Image::Assign(const Image &image) {
   }
 }
 
-Image *Image::HighlightEdges(
+Image *Image::BuildHighlight(
   Rgb colour,
   unsigned int p_colours,
   unsigned int p_subpixelorder,
-  const Box *limits
+  const Box *limits,
+  bool edges_only
 ) {
   if ( colours != ZM_COLOUR_GRAY8 ) {
-    Panic("Attempt to highlight image edges when colours = %d", colours);
+    Panic("Attempt to highlight image when colours = %d", colours);
   }
 
   /* Convert the colour's RGBA subpixel order into the image's subpixel order */
@@ -971,42 +972,42 @@ Image *Image::HighlightEdges(
   unsigned int hi_x = limits ? limits->Hi().x_ : width - 1;
   unsigned int hi_y = limits ? limits->Hi().y_ : height - 1;
 
+  // Source (this) is GRAY8 with src_linesize per row; the destination image has
+  // its own, wider and independently padded stride. Indexing the destination
+  // with the source's stride sheared the highlight across the frame and ran off
+  // the end of the destination on the last rows. Neighbour lookups (p +/- a
+  // row) must likewise follow the source stride rather than width.
+  const unsigned int src_linesize = linesize;
+  const unsigned int dst_linesize = high_image->LineSize();
+
   if ( p_colours == ZM_COLOUR_GRAY8 ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      const uint8_t* p = buffer + (y * linesize) + lo_x;
-      uint8_t* phigh = high_buff + (y * linesize) + lo_x;
+      const uint8_t* p = buffer + (y * src_linesize) + lo_x;
+      uint8_t* phigh = high_buff + (y * dst_linesize) + lo_x;
       for ( unsigned int x = lo_x; x <= hi_x; x++, p++, phigh++ ) {
-        bool edge = false;
+        bool mark = false;
         if ( *p ) {
-          edge = (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1)) || (y > 0 && !*(p-width)) || (y < (height-1) && !*(p+width));
-#if 0
-          if ( !edge && x > 0 && !*(p-1) ) edge = true;
-          if ( !edge && x < (width-1) && !*(p+1) ) edge = true;
-          if ( !edge && y > 0 && !*(p-width) ) edge = true;
-          if ( !edge && y < (height-1) && !*(p+width) ) edge = true;
-#endif
+          mark = !edges_only
+              || (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1))
+              || (y > 0 && !*(p-src_linesize)) || (y < (height-1) && !*(p+src_linesize));
         }
-        if ( edge ) {
+        if ( mark ) {
           *phigh = colour;
         }
       }
     }
   } else if ( p_colours == ZM_COLOUR_RGB24 ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      const uint8_t* p = buffer + (y * linesize) + lo_x;
-      uint8_t* phigh = high_buff + (((y * linesize) + lo_x) * 3);
+      const uint8_t* p = buffer + (y * src_linesize) + lo_x;
+      uint8_t* phigh = high_buff + (y * dst_linesize) + (lo_x * 3);
       for ( unsigned int x = lo_x; x <= hi_x; x++, p++, phigh += 3 ) {
-        bool edge = false;
+        bool mark = false;
         if ( *p ) {
-          edge = (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1)) || (y > 0 && !*(p-width)) || (y < (height-1) && !*(p+width));
-#if 0
-          if ( !edge && x > 0 && !*(p-1) ) edge = true;
-          if ( !edge && x < (width-1) && !*(p+1) ) edge = true;
-          if ( !edge && y > 0 && !*(p-width) ) edge = true;
-          if ( !edge && y < (height-1) && !*(p+width) ) edge = true;
-#endif
+          mark = !edges_only
+              || (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1))
+              || (y > 0 && !*(p-src_linesize)) || (y < (height-1) && !*(p+src_linesize));
         }
-        if ( edge ) {
+        if ( mark ) {
           RED_PTR_RGBA(phigh) = RED_VAL_RGBA(colour);
           GREEN_PTR_RGBA(phigh) = GREEN_VAL_RGBA(colour);
           BLUE_PTR_RGBA(phigh) = BLUE_VAL_RGBA(colour);
@@ -1015,20 +1016,16 @@ Image *Image::HighlightEdges(
     }
   } else if ( p_colours == ZM_COLOUR_RGB32 ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      const uint8_t* p = buffer + (y * linesize) + lo_x;
-      Rgb* phigh = (Rgb*)(high_buff + (((y * linesize) + lo_x) * 4));
+      const uint8_t* p = buffer + (y * src_linesize) + lo_x;
+      Rgb* phigh = (Rgb*)(high_buff + (y * dst_linesize) + (lo_x << 2));
       for ( unsigned int x = lo_x; x <= hi_x; x++, p++, phigh++ ) {
-        bool edge = false;
+        bool mark = false;
         if ( *p ) {
-          edge = (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1)) || (y > 0 && !*(p-width)) || (y < (height-1) && !*(p+width));
-#if 0
-          if ( !edge && x > 0 && !*(p-1) ) edge = true;
-          if ( !edge && x < (width-1) && !*(p+1) ) edge = true;
-          if ( !edge && y > 0 && !*(p-width) ) edge = true;
-          if ( !edge && y < (height-1) && !*(p+width) ) edge = true;
-#endif
+          mark = !edges_only
+              || (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1))
+              || (y > 0 && !*(p-src_linesize)) || (y < (height-1) && !*(p+src_linesize));
         }
-        if ( edge ) {
+        if ( mark ) {
           *phigh = colour;
         }
       }

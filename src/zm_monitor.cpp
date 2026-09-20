@@ -29,7 +29,6 @@
 #include "zm_remote_camera.h"
 #include "zm_remote_camera_http.h"
 #include "zm_remote_camera_nvsocket.h"
-#include "zm_remote_camera_rtsp.h"
 #include "zm_signal.h"
 #include "zm_stream_socket.h"
 #include "zm_time.h"
@@ -830,28 +829,14 @@ void Monitor::LoadCamera() {
                record_audio
                                                 );
     } else if (protocol == "rtsp") {
-      Warning("Monitor %u (%s): the Remote/RTSP capture method is deprecated as of 1.40 and "
-              "will be removed in 1.41. Change this monitor to Type 'Ffmpeg' with Source Path %s",
-              id, name.c_str(),
-              remove_authentication(RtspUrlFromRemote(host, port, path, user, pass)).c_str());
-      camera = zm::make_unique<RemoteCameraRtsp>(this,
-               method,
-               host, // Host
-               port, // Port
-               path, // Path
-               user,
-               pass,
-               camera_width,
-               camera_height,
-               rtsp_describe,
-               colours,
-               brightness,
-               contrast,
-               hue,
-               colour,
-               purpose == CAPTURE,
-               record_audio
-                                                );
+      // The hand-written rtsp client this used is gone. ffmpeg speaks rtsp
+      // better than it did and is what every other rtsp monitor already uses,
+      // so there is nothing left for a second implementation to do. Name the
+      // exact Source Path to switch to rather than only saying no.
+      Error("Monitor %u (%s): the Remote/RTSP capture method has been removed. "
+            "Change this monitor to Type 'Ffmpeg' with Source Path %s",
+            id, name.c_str(),
+            remove_authentication(RtspUrlFromRemote(host, port, path, user, pass)).c_str());
     } else {
       Error("Unexpected remote camera protocol '%s'", protocol.c_str());
     }

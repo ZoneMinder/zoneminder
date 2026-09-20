@@ -153,12 +153,19 @@ if (!ZM_HAS_V4L2)
   unset($sourceTypes['Local']);
 
 
+// ZoneMinder's own RTSP/RTP implementation has been removed in favour of
+// Ffmpeg. Remote is still the right capture method for mjpeg streams and
+// snapshot-jpeg cameras, which is what http covers.
 $remoteProtocols = array(
     'http' => 'HTTP',
-    // ZoneMinder's own RTSP/RTP implementation is deprecated in favour of
-    // Ffmpeg, which handles more cameras and is maintained upstream.
-    'rtsp' => 'RTSP ('.translate('Deprecated').')'
     );
+
+// A monitor already saved as rtsp keeps the option visible, so that opening it
+// to read the warning does not quietly re-save it as http. New monitors are
+// not offered it.
+if ($monitor->Protocol() == 'rtsp') {
+  $remoteProtocols['rtsp'] = 'RTSP ('.translate('Removed').')';
+}
 
 $rtspMethods = array(
     'rtpUni'      => 'RTP/Unicast',

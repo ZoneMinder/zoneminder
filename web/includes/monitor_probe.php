@@ -201,12 +201,10 @@ function probeActi($ip) {
     'ip'      => $ip,
     'Model'   => 'Acti Camera',
     'monitor' => array(
-      'Type'     => 'Remote',
-      'Protocol' => 'rtsp',
-      'Method'   => 'rtpUni',
-      'Host'     => 'Admin:123456@'.$ip,
-      'Port'     => 7070,
-      'Path'     => '',
+      // Was Type Remote with Protocol rtsp, which no longer captures now that
+      // ZoneMinder's own rtsp client is gone. Same stream, through ffmpeg.
+      'Type'     => 'Ffmpeg',
+      'Path'     => 'rtsp://Admin:123456@'.$ip.':7070',
       'Width'    => 320,
       'Height'   => 240,
     ),

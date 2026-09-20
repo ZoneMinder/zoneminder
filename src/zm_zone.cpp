@@ -154,6 +154,24 @@ void Zone::SetScore(unsigned int nScore) {
   stats.score_ = nScore;
 }  // end void Zone::SetScore(unsigned int nScore)
 
+// Replace the GRAY8 analysis mask with a highlight in the capture's own pixel
+// format, carrying this zone's alarm colour, and take ownership of it in
+// `image`. Overlay() onto the analysis image is then a same-format copy.
+// monitor->Colours()==1 aliases both GRAY8 and planar YUV420P, so resolve the
+// real format first: a true GRAY8 monitor has no colour to carry, so upgrade
+// its highlight to RGB24; YUV420P keeps its format and carries the alarm
+// colour in chroma.
+void Zone::BuildAlarmHighlight(Image *mask, bool edges_only) {
+  AVPixelFormat capture_fmt = zm_pixformat_from_colours(monitor->Colours(), monitor->SubpixelOrder());
+  if (capture_fmt == AV_PIX_FMT_GRAY8) {
+    image = mask->BuildHighlight(alarm_rgb, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB, &polygon.Extent(), edges_only);
+  } else {
+    image = mask->BuildHighlight(alarm_rgb, monitor->Colours(), monitor->SubpixelOrder(), &polygon.Extent(), edges_only);
+  }
+  // 'image' is now detached from the mask we were handed, so that is ours to free.
+  delete mask;
+}
+
 void Zone::SetAlarmImage(const Image* srcImage) {
   if ( image )
     delete image;
@@ -795,15 +813,19 @@ bool Zone::CheckAlarms(const Image *delta_image) {
       // aliases both GRAY8 and planar YUV420P, so resolve the real format first:
       // a true GRAY8 monitor has no colour to carry, so upgrade its highlight to
       // RGB24; YUV420P keeps its format and carries the alarm colour in chroma.
-      AVPixelFormat capture_fmt = zm_pixformat_from_colours(monitor->Colours(), monitor->SubpixelOrder());
-      if (capture_fmt == AV_PIX_FMT_GRAY8) {
-        image = diff_image->HighlightEdges(alarm_rgb, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB, &polygon.Extent());
-      } else {
-        image = diff_image->HighlightEdges(alarm_rgb, monitor->Colours(), monitor->SubpixelOrder(), &polygon.Extent());
-      }
-
-      // Only need to delete this when 'image' becomes detached and points somewhere else
-      delete diff_image;
+      BuildAlarmHighlight(diff_image, true);
+      diff_image = nullptr;
+    } else if ((type < PRECLUSIVE) && (monitor->GetOptSaveJPEGs() > 1)) {
+      // Alarmed/filtered pixels: the mask stays GRAY8 through the analysis
+      // above because the scoring reads it as one byte per pixel. Overlay()
+      // onto the analysis image then keys on a non-zero source pixel, so a
+      // GRAY8 mask painted an undifferentiated highlight -- writing the mask
+      // value into the red channel on an RGB32 monitor (hence "alarms are
+      // always red"), into all three on RGB24 (white), and into luma alone on
+      // YUV420 -- and the zone's configured Alarm Colour was honoured only on
+      // the blob path. Build the same colour highlight the blob path builds,
+      // filled rather than outlined, now that scoring is done with the mask.
+      BuildAlarmHighlight(diff_image, false);
       diff_image = nullptr;
     }  // end if ( (type < PRECLUSIVE) && (check_method >= BLOBS) && (monitor->GetOptSaveJPEGs() > 1)
 

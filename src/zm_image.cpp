@@ -1175,14 +1175,15 @@ void Image::Assign(const Image &image) {
   }
 }
 
-Image *Image::HighlightEdges(
+Image *Image::BuildHighlight(
   Rgb colour,
   unsigned int p_colours,
   unsigned int p_subpixelorder,
-  const Box *limits
+  const Box *limits,
+  bool edges_only
 ) {
   if ( imagePixFormat != AV_PIX_FMT_GRAY8 ) {
-    Panic("Attempt to highlight image edges when colours = %d", colours);
+    Panic("Attempt to highlight image when colours = %d", colours);
   }
 
   /* Convert the colour's RGBA subpixel order into the image's subpixel order */
@@ -1215,12 +1216,13 @@ Image *Image::HighlightEdges(
       const uint8_t* p = buffer + (y * src_linesize) + lo_x;
       uint8_t* phigh = high_buff + (y * dst_linesize) + lo_x;
       for ( unsigned int x = lo_x; x <= hi_x; x++, p++, phigh++ ) {
-        bool edge = false;
+        bool mark = false;
         if ( *p ) {
-          edge = (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1))
+          mark = !edges_only
+              || (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1))
               || (y > 0 && !*(p-src_linesize)) || (y < (height-1) && !*(p+src_linesize));
         }
-        if ( edge ) {
+        if ( mark ) {
           *phigh = colour;
         }
       }
@@ -1230,12 +1232,13 @@ Image *Image::HighlightEdges(
       const uint8_t* p = buffer + (y * src_linesize) + lo_x;
       uint8_t* phigh = high_buff + (y * dst_linesize) + lo_x * 3;
       for ( unsigned int x = lo_x; x <= hi_x; x++, p++, phigh += 3 ) {
-        bool edge = false;
+        bool mark = false;
         if ( *p ) {
-          edge = (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1))
+          mark = !edges_only
+              || (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1))
               || (y > 0 && !*(p-src_linesize)) || (y < (height-1) && !*(p+src_linesize));
         }
-        if ( edge ) {
+        if ( mark ) {
           RED_PTR_RGBA(phigh) = RED_VAL_RGBA(colour);
           GREEN_PTR_RGBA(phigh) = GREEN_VAL_RGBA(colour);
           BLUE_PTR_RGBA(phigh) = BLUE_VAL_RGBA(colour);
@@ -1247,12 +1250,13 @@ Image *Image::HighlightEdges(
       const uint8_t* p = buffer + (y * src_linesize) + lo_x;
       Rgb* phigh = (Rgb*)(high_buff + (y * dst_linesize) + (lo_x << 2));
       for ( unsigned int x = lo_x; x <= hi_x; x++, p++, phigh++ ) {
-        bool edge = false;
+        bool mark = false;
         if ( *p ) {
-          edge = (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1))
+          mark = !edges_only
+              || (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1))
               || (y > 0 && !*(p-src_linesize)) || (y < (height-1) && !*(p+src_linesize));
         }
-        if ( edge ) {
+        if ( mark ) {
           *phigh = colour;
         }
       }
@@ -1260,24 +1264,25 @@ Image *Image::HighlightEdges(
   } else if ( zm_is_yuv420(p_pixfmt) ) {
     // Single alarm colour over a transparent (Y=0) background; Overlay() onto
     // a YUV420 image keys on a non-zero luma marker. Write the colour's luma
-    // at each edge pixel and its chroma at the shared 2x2 chroma sample.
+    // at each marked pixel and its chroma at the shared 2x2 chroma sample.
     const YUV yuv = brg_to_yuv(colour);
     const uint8_t Yc = Y_VAL(yuv), Uc = U_VAL(yuv), Vc = V_VAL(yuv);
     uint8_t *hplane[4] = {};
     int hstride[4] = {};
     if (av_image_fill_arrays(hplane, hstride, high_buff, p_pixfmt, width, height, 32) < 0) {
-      Error("HighlightEdges: av_image_fill_arrays failed for YUV420 %ux%u", width, height);
+      Error("Highlight: av_image_fill_arrays failed for YUV420 %ux%u", width, height);
       return high_image;
     }
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
       const uint8_t* p = buffer + (y * src_linesize) + lo_x;
       for ( unsigned int x = lo_x; x <= hi_x; x++, p++ ) {
-        bool edge = false;
+        bool mark = false;
         if ( *p ) {
-          edge = (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1))
+          mark = !edges_only
+              || (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1))
               || (y > 0 && !*(p-src_linesize)) || (y < (height-1) && !*(p+src_linesize));
         }
-        if ( edge ) {
+        if ( mark ) {
           hplane[0][y * hstride[0] + x] = Yc ? Yc : 1;  // keep the luma marker non-zero
           hplane[1][(y / 2) * hstride[1] + (x / 2)] = Uc;
           hplane[2][(y / 2) * hstride[2] + (x / 2)] = Vc;

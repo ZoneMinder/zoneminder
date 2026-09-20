@@ -277,7 +277,13 @@ class Image {
                 uint8 size = 1,
                 Rgb fg_colour = kRGBWhite,
                 Rgb bg_colour = kRGBBlack);
-  Image *HighlightEdges( Rgb colour, unsigned int p_colours, unsigned int p_subpixelorder, const Box *limits=0 );
+  // Build a colour highlight image from this GRAY8 mask. edges_only traces the
+  // outline of each marked region (what the blob check method shows); false
+  // fills every marked pixel (what the alarmed/filtered pixel methods show).
+  Image *BuildHighlight( Rgb colour, unsigned int p_colours, unsigned int p_subpixelorder, const Box *limits=0, bool edges_only=true );
+  Image *HighlightEdges( Rgb colour, unsigned int p_colours, unsigned int p_subpixelorder, const Box *limits=0 ) {
+    return BuildHighlight(colour, p_colours, p_subpixelorder, limits, true);
+  }
   //Image *HighlightEdges( Rgb colour, const Polygon &polygon );
   void Timestamp(const char *label, SystemTimePoint when, const Vector2 &coord, int label_size);
   void Colourise(const unsigned int p_reqcolours, const unsigned int p_reqsubpixelorder);

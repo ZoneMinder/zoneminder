@@ -41,6 +41,7 @@ set(TEST_SOURCES
   zm_vector2.cpp
   zm_zone.cpp
   zm_zone_stride.cpp
+  zm_zone_highlight.cpp
   zm_image_linesize.cpp
   zm_logger_rotate.cpp
   zm_ffmpeg_camera.cpp

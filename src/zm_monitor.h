@@ -638,7 +638,6 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   AVPixelFormat   decoder_hw_pix_fmt;
   AVBufferRef    *decoder_hw_device_ctx;
   bool            videoRecording;
-  bool            rtsp_describe;
 
   int             savejpegs;
   int             colours;

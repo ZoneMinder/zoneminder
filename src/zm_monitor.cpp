@@ -94,7 +94,7 @@ std::string load_monitor_sql =
   "`Protocol`, `Method`, `Options`, `User`, `Pass`, `Host`, `Port`, `Path`, "
   "`SecondPath`, `Width`, `Height`, `Colours`, `Palette`, `Orientation`+0, "
   "`Deinterlacing`, "
-  "`Decoder`, `DecoderHWAccelName`, `DecoderHWAccelDevice`, `RTSPDescribe`, "
+  "`Decoder`, `DecoderHWAccelName`, `DecoderHWAccelDevice`, "
   "`SaveJPEGs`, `VideoWriter`, `EncoderParameters`, "
   "`OutputCodecName`, `Encoder`, `EncoderHWAccelName`, `EncoderHWAccelDevice`, `OutputContainer`, "
   "`RecordAudio`, WallClockTimestamps,"
@@ -222,7 +222,6 @@ Monitor::Monitor() :
   decoder_hw_pix_fmt(AV_PIX_FMT_NONE),
   decoder_hw_device_ctx(nullptr),
   videoRecording(false),
-  rtsp_describe(false),
 
   savejpegs(0),
   colours(0),
@@ -521,14 +520,12 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   col++;
   deinterlacing_value = deinterlacing & 0xff;
 
-  /*"`Decoder`, `DecoderHWAccelName`, `DecoderHWAccelDevice`, `RTSPDescribe`, " */
+  /*"`Decoder`, `DecoderHWAccelName`, `DecoderHWAccelDevice`, " */
   decoder_name = dbrow[col] ? dbrow[col] : "";
   col++;
   decoder_hwaccel_name = dbrow[col] ? dbrow[col] : "";
   col++;
   decoder_hwaccel_device = dbrow[col] ? dbrow[col] : "";
-  col++;
-  rtsp_describe = (dbrow[col] && *dbrow[col] != '0');
   col++;
 
 

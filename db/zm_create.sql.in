@@ -65,7 +65,6 @@ DROP TABLE IF EXISTS `Controls`;
 CREATE TABLE `Controls` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `Name` varchar(64) NOT NULL default '',
-  `Type` enum('Local','Remote','File','Ffmpeg','cURL','WebSite','VNC') NOT NULL default 'Local',
   `Protocol` varchar(64) default NULL,
   `CanWake` tinyint(3) unsigned NOT NULL default '0',
   `CanSleep` tinyint(3) unsigned NOT NULL default '0',

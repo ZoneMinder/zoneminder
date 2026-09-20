@@ -39,7 +39,6 @@ $controls = dbFetchAll('SELECT * FROM Controls ORDER BY Name');
             <th data-sortable="false" data-field="toggleCheck" data-checkbox="true"></th>
             <th class="colId" data-sortable="true" data-field="Id"><?php echo translate('Id') ?></th>
             <th class="colName" data-sortable="true" data-field="Name"><?php echo translate('Name') ?></th>
-            <th class="colType" data-sortable="true" data-field="Type"><?php echo translate('Type') ?></th>
             <th class="colProtocol" data-sortable="true" data-field="Protocol"><?php echo translate('Protocol') ?></th>
             <th class="colCanMove" data-sortable="true" data-field="CanMove"><?php echo translate('CanMove') ?></th>
             <th class="colCanZoom" data-sortable="true" data-field="CanZoom"><?php echo translate('CanZoom') ?></th>
@@ -60,7 +59,6 @@ foreach( $controls as $control ) {
             <td class="colMark" data-checkbox="true"></td>
             <td class="colId"><?php echo $control['Id'] ?></td>
             <td class="colName"><?php echo validHtmlStr($control['Name']) ?></td>
-            <td class="colType"><?php echo $control['Type'] ?></td>
             <td class="colProtocol"><?php echo validHtmlStr($control['Protocol']) ?></td>
             <td class="colCanMove"><?php echo $control['CanMove']?translate('Yes'):translate('No') ?></td>
             <td class="colCanZoom"><?php echo $control['CanZoom']?translate('Yes'):translate('No') ?></td>

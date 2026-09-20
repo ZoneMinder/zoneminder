@@ -20,7 +20,6 @@ Build-Depends: debhelper (>= 11), sphinx-doc, python3-sphinx, python3-sphinx-rtd
               ,default-libmysqlclient-dev | libmysqlclient-dev | libmariadbclient-dev-compat
               ,libpolkit-gobject-1-dev
               ,libv4l-dev [!hurd-any]
-              ,libvlc-dev
               ,libdate-manip-perl
               ,libdbd-mysql-perl
               ,libphp-serialization-perl

@@ -19,7 +19,6 @@ Build-Depends: debhelper, sphinx-doc, dh-linktree, dh-apache2
               ,libpcre2-dev
               ,libpolkit-gobject-1-dev
               ,libv4l-dev [!hurd-any]
-              ,libvlc-dev
               ,libdate-manip-perl
               ,libdbd-mysql-perl
               ,libphp-serialization-perl

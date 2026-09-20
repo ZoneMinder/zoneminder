@@ -92,15 +92,10 @@ Listed below are the parameters unique to FFmpeg Source. Please also see :ref:`c
 
     Limited GPU support. Note that GPU support has not yet been fully implemented in ZoneMinder. Use at your own risk with expectation that functionality may change in the future.
 
-Source Tab for libVLC
-^^^^^^^^^^^^^^^^^^^^^
-
-    The fields for the LibVLC source type are configured the same way as the FFmpeg source type. We recommend only using this source type if issues are experienced with the FFmpeg type.
-
 Source Tab for Remote
 ^^^^^^^^^^^^^^^^^^^^^
 
-    The Remote source type is mainly used for older IP cameras that stream using HTTP protocol. Past use of this source type supported RTSP protocol. The Remote -> RTSP method is no longer being maintained and may be removed in the future. If camera supports RTSP we recommend using FFmpeg source type.
+    The Remote source type is mainly used for older IP cameras that stream using HTTP protocol. This source type used to support RTSP as well; that implementation has been removed in favour of FFmpeg, which is the source type to use for any camera that speaks RTSP.
 
 .. figure:: images/define-monitor-source-remote.png
 

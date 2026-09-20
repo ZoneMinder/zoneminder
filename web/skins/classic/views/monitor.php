@@ -139,14 +139,18 @@ if (!empty($_REQUEST['probe'])) {
   }
 } # end if apply probe settings
 
+// Libvlc and NVSocket are deprecated in favour of Ffmpeg, which reaches the
+// same cameras without a second streaming library or a vendor-specific socket
+// protocol. They are still offered so existing monitors can be opened and
+// read, and are labelled so nobody picks one for something new.
 $sourceTypes = array(
     'Local'  => translate('Local'),
     'Remote' => translate('Remote'),
     'File'   => translate('File'),
     'Ffmpeg' => translate('Ffmpeg'),
-    'Libvlc' => translate('Libvlc'),
+    'Libvlc' => translate('Libvlc').' ('.translate('Deprecated').')',
     'WebSite'=> 'Web Site',
-    'NVSocket'	=> translate('NVSocket'),
+    'NVSocket'	=> translate('NVSocket').' ('.translate('Deprecated').')',
     'VNC' => translate('VNC'),
     );
 if (!ZM_HAS_V4L2)
@@ -590,6 +594,13 @@ switch ($name) {
               <li class="Type">
                 <label><?php echo translate('SourceType') ?></label>
                 <?php echo htmlSelect('newMonitor[Type]', $sourceTypes, $monitor->Type()); ?>
+<?php
+      if ($monitor->Type() == 'Libvlc' or $monitor->Type() == 'NVSocket') {
+?>
+                <div class="form-text text-warning"><?php echo translate('SourceTypeDeprecated') ?></div>
+<?php
+      }
+?>
               </li>
 <?php
       $groups_dropdown = ZM\Group::get_dropdown_options();

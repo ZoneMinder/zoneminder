@@ -875,6 +875,12 @@ void Monitor::LoadCamera() {
     break;
   }
   case NVSOCKET: {
+    // A bespoke socket protocol for one vendor's nvr, with no users we know of
+    // and no way to test it. Anything it can reach can be reached over rtsp or
+    // http with ffmpeg.
+    Warning("Monitor %u (%s): the NVSocket capture method is deprecated and will be removed. "
+            "Change this monitor to Type 'Ffmpeg' with the camera's rtsp or http url",
+            id, name.c_str());
     camera = zm::make_unique<RemoteCameraNVSocket>(this,
              host.c_str(),
              port.c_str(),
@@ -892,6 +898,13 @@ void Monitor::LoadCamera() {
     break;
   }
   case LIBVLC: {
+    // libvlc reads the same network streams ffmpeg does, through a second
+    // library with its own build dependency, its own threading and its own
+    // bugs. Ffmpeg is the maintained path and every url that works here works
+    // there, so this capture method is on its way out.
+    Warning("Monitor %u (%s): the Libvlc capture method is deprecated and will be removed. "
+            "Change this monitor to Type 'Ffmpeg', keeping the same Source Path",
+            id, name.c_str());
 #if HAVE_LIBVLC
     camera = zm::make_unique<LibvlcCamera>(this,
                                            path.c_str(),

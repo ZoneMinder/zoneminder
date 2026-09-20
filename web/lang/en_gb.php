@@ -776,6 +776,7 @@ $SLANG = array(
     'TargetColorspace'      => 'Target colorspace',
     'Deprecated'                => 'deprecated',
     'Removed'                   => 'removed',
+    'SourceTypeDeprecated'      => 'This capture method is deprecated and will be removed. Change this monitor to Type Ffmpeg, using the camera\'s rtsp or http url as the Source Path. Ffmpeg reaches the same cameras and is the maintained path.',
     'DeprecatedColoursSetting' => 'Deprecated - will be auto-detected in a future release',
     'TimeDelta'             => 'Time Delta',
     'TimelineTip1'          => 'Pass your mouse over the graph to view a snapshot image and event details.',              // Added 2013.08.15.

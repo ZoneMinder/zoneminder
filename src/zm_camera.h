@@ -36,7 +36,7 @@ class ZMPacket;
 //
 class Camera {
  protected:
-  typedef enum { LOCAL_SRC, REMOTE_SRC, FILE_SRC, FFMPEG_SRC, LIBVLC_SRC, CURL_SRC, VNC_SRC } SourceType;
+  typedef enum { LOCAL_SRC, REMOTE_SRC, FILE_SRC, FFMPEG_SRC, CURL_SRC, VNC_SRC } SourceType;
 
   const Monitor *monitor;
   SourceType    type;
@@ -95,7 +95,6 @@ class Camera {
   bool IsRemote() const { return type == REMOTE_SRC; }
   bool IsFile() const { return type == FILE_SRC; }
   bool IsFfmpeg() const { return type == FFMPEG_SRC; }
-  bool IsLibvlc() const { return type == LIBVLC_SRC; }
   bool IscURL() const { return type == CURL_SRC; }
   bool IsVNC() const { return type == VNC_SRC; }
   unsigned int Width() const { return width; }

@@ -260,8 +260,6 @@ set(ZM_MYSQL_ENGINE "InnoDB" CACHE STRING
 set(ZM_NO_MMAP "OFF" CACHE BOOL
   "Set to ON to not use mmap shared memory. Shouldn't be enabled unless you
     experience problems with the shared memory. default: OFF")
-set(ZM_NO_LIBVLC "OFF" CACHE BOOL
-  "Set to ON to skip libvlc checks and force building ZM without libvlc. default: OFF")
 set(ZM_NO_LIBVNC "OFF" CACHE BOOL
   "Set to ON to skip libvnc checks and force building ZM without libvnc. default: OFF")
 set(ZM_NO_CURL "OFF" CACHE BOOL
@@ -628,26 +626,6 @@ if(FFMPEG_EXECUTABLE)
   set(PATH_FFMPEG "${FFMPEG_EXECUTABLE}")
   set(OPT_FFMPEG "1")
   mark_as_advanced(FFMPEG_EXECUTABLE)
-endif()
-
-# Do not check for libvlc if ZM_NO_LIBVLC is on
-if(NOT ZM_NO_LIBVLC)
-  # libvlc (using find_library and find_path)
-  find_library(LIBVLC_LIBRARIES vlc)
-  if(LIBVLC_LIBRARIES)
-    set(HAVE_LIBVLC 1)
-    #list(APPEND ZM_BIN_LIBS "${LIBVLC_LIBRARIES}")
-    find_path(LIBVLC_INCLUDE_DIR "vlc/vlc.h")
-    if(LIBVLC_INCLUDE_DIR)
-      list(APPEND ZM_INCLUDE_DIRS "${LIBVLC_INCLUDE_DIR}")
-      set(CMAKE_REQUIRED_INCLUDES "${LIBVLC_INCLUDE_DIR}")
-    endif()
-    mark_as_advanced(FORCE LIBVLC_LIBRARIES LIBVLC_INCLUDE_DIR)
-    check_include_file("vlc/vlc.h" HAVE_VLC_VLC_H)
-    set(optlibsfound "${optlibsfound} libVLC")
-  else()
-    set(optlibsnotfound "${optlibsnotfound} libVLC")
-  endif()
 endif()
 
 if(NOT ZM_NO_LIBVNC)

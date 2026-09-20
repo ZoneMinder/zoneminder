@@ -130,7 +130,6 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     REMOTE,
     FILE,
     FFMPEG,
-    LIBVLC,
     LIBCURL,
     VNC,
   } CameraType;

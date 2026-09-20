@@ -39,10 +39,6 @@
 #include "zm_local_camera.h"
 #endif  // ZM_HAS_V4L2
 
-#if HAVE_LIBVLC
-#include "zm_libvlc_camera.h"
-#endif  // HAVE_LIBVLC
-
 #if HAVE_LIBVNC
 #include "zm_libvnc_camera.h"
 #endif  // HAVE_LIBVNC
@@ -126,7 +122,6 @@ std::string CameraType_Strings[] = {
   "Remote",
   "File",
   "Ffmpeg",
-  "LibVLC",
   "LibCURL",
   "VNC"
 };
@@ -392,8 +387,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
     type = REMOTE;
   } else if (!strcmp(dbrow[col], "File")) {
     type = FILE;
-  } else if (!strcmp(dbrow[col], "Libvlc")) {
-    type = LIBVLC;
   } else if (!strcmp(dbrow[col], "VNC")) {
     type = VNC;
   } else {
@@ -875,36 +868,6 @@ void Monitor::LoadCamera() {
                                            purpose == CAPTURE,
                                            record_audio
                                           );
-    break;
-  }
-  case LIBVLC: {
-    // libvlc reads the same network streams ffmpeg does, through a second
-    // library with its own build dependency, its own threading and its own
-    // bugs. Ffmpeg is the maintained path and every url that works here works
-    // there, so this capture method is on its way out.
-    Warning("Monitor %u (%s): the Libvlc capture method is deprecated and will be removed. "
-            "Change this monitor to Type 'Ffmpeg', keeping the same Source Path",
-            id, name.c_str());
-#if HAVE_LIBVLC
-    camera = zm::make_unique<LibvlcCamera>(this,
-                                           path.c_str(),
-                                           user,
-                                           pass,
-                                           method,
-                                           options,
-                                           camera_width,
-                                           camera_height,
-                                           colours,
-                                           brightness,
-                                           contrast,
-                                           hue,
-                                           colour,
-                                           purpose == CAPTURE,
-                                           record_audio
-                                          );
-#else // HAVE_LIBVLC
-    Error("You must have vlc libraries installed to use vlc cameras for monitor %d", id);
-#endif // HAVE_LIBVLC
     break;
   }
   case VNC: {

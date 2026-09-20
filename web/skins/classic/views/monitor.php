@@ -139,10 +139,9 @@ if (!empty($_REQUEST['probe'])) {
   }
 } # end if apply probe settings
 
-// Libvlc and NVSocket are deprecated in favour of Ffmpeg, which reaches the
-// same cameras without a second streaming library or a vendor-specific socket
-// protocol. They are still offered so existing monitors can be opened and
-// read, and are labelled so nobody picks one for something new.
+// Libvlc is deprecated in favour of Ffmpeg, which reaches the same cameras
+// without a second streaming library. It is still offered so existing monitors
+// can be opened and read, and is labelled so nobody picks it for something new.
 $sourceTypes = array(
     'Local'  => translate('Local'),
     'Remote' => translate('Remote'),
@@ -150,7 +149,6 @@ $sourceTypes = array(
     'Ffmpeg' => translate('Ffmpeg'),
     'Libvlc' => translate('Libvlc').' ('.translate('Deprecated').')',
     'WebSite'=> 'Web Site',
-    'NVSocket'	=> translate('NVSocket').' ('.translate('Deprecated').')',
     'VNC' => translate('VNC'),
     );
 if (!ZM_HAS_V4L2)
@@ -595,7 +593,7 @@ switch ($name) {
                 <label><?php echo translate('SourceType') ?></label>
                 <?php echo htmlSelect('newMonitor[Type]', $sourceTypes, $monitor->Type()); ?>
 <?php
-      if ($monitor->Type() == 'Libvlc' or $monitor->Type() == 'NVSocket') {
+      if ($monitor->Type() == 'Libvlc') {
 ?>
                 <div class="form-text text-warning"><?php echo translate('SourceTypeDeprecated') ?></div>
 <?php
@@ -759,8 +757,6 @@ if (count($localMethods)>1) {
           </li>
 <?php
 
-      } else if ( $monitor->Type() == 'NVSocket' ) {
-include('_monitor_source_nvsocket.php');
       } else if ( $monitor->Type() == 'VNC' ) {
 ?>
         <li class="Host">
@@ -948,7 +944,7 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
           <li>
 <?php
       }
-      if ( $monitor->Type() != 'NVSocket' && $monitor->Type() != 'WebSite' ) {
+      if ( $monitor->Type() != 'WebSite' ) {
 ?>
         <li class="TargetColorspace">
           <label><?php echo translate('TargetColorspace') ?></label>
@@ -1034,7 +1030,7 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
               <label><?php echo translate('MaximumFPS'); echo makeHelpLink('OPTIONS_MAXFPS') ?></label>
               <input type="number" name="newMonitor[MaxFPS]" value="<?php echo validHtmlStr($monitor->MaxFPS()) ?>" min="0" step="any"/>
 <?php
-      if ( $monitor->Type() != 'Local' && $monitor->Type() != 'File' && $monitor->Type() != 'NVSocket' ) {
+      if ( $monitor->Type() != 'Local' && $monitor->Type() != 'File' ) {
 ?>
                 <span id="newMonitor[MaxFPS]" style="color:red;<?php echo $monitor->MaxFPS() ? '' : 'display:none;' ?>">CAUTION: See the help text</span>
 <?php } ?>
@@ -1044,7 +1040,7 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
               <label><?php echo translate('AlarmMaximumFPS'); echo makeHelpLink('OPTIONS_ALARMMAXFPS') ?></label>
               <input type="number" name="newMonitor[AlarmMaxFPS]" value="<?php echo validHtmlStr($monitor->AlarmMaxFPS()) ?>" min="0" step="any"/>
 <?php
-      if ( $monitor->Type() != 'Local' && $monitor->Type() != 'File' && $monitor->Type() != 'NVSocket' ) {
+      if ( $monitor->Type() != 'Local' && $monitor->Type() != 'File' ) {
 ?>
               <span id="newMonitor[AlarmMaxFPS]" style="color:red;<?php echo $monitor->AlarmMaxFPS() ? '' : 'display:none;' ?>">CAUTION: See the help text</span>
 <?php } ?>

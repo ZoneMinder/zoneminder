@@ -28,7 +28,6 @@
 #include "zm_mqtt.h"
 #include "zm_remote_camera.h"
 #include "zm_remote_camera_http.h"
-#include "zm_remote_camera_nvsocket.h"
 #include "zm_signal.h"
 #include "zm_stream_socket.h"
 #include "zm_time.h"
@@ -129,7 +128,6 @@ std::string CameraType_Strings[] = {
   "Ffmpeg",
   "LibVLC",
   "LibCURL",
-  "NVSOCKET",
   "VNC"
 };
 static_assert(sizeof(CameraType_Strings)/sizeof(CameraType_Strings[0]) == Monitor::VNC + 1,
@@ -394,8 +392,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
     type = REMOTE;
   } else if (!strcmp(dbrow[col], "File")) {
     type = FILE;
-  } else if (!strcmp(dbrow[col], "NVSocket")) {
-    type = NVSOCKET;
   } else if (!strcmp(dbrow[col], "Libvlc")) {
     type = LIBVLC;
   } else if (!strcmp(dbrow[col], "VNC")) {
@@ -879,29 +875,6 @@ void Monitor::LoadCamera() {
                                            purpose == CAPTURE,
                                            record_audio
                                           );
-    break;
-  }
-  case NVSOCKET: {
-    // A bespoke socket protocol for one vendor's nvr, with no users we know of
-    // and no way to test it. Anything it can reach can be reached over rtsp or
-    // http with ffmpeg.
-    Warning("Monitor %u (%s): the NVSocket capture method is deprecated and will be removed. "
-            "Change this monitor to Type 'Ffmpeg' with the camera's rtsp or http url",
-            id, name.c_str());
-    camera = zm::make_unique<RemoteCameraNVSocket>(this,
-             host.c_str(),
-             port.c_str(),
-             path.c_str(),
-             camera_width,
-             camera_height,
-             colours,
-             brightness,
-             contrast,
-             hue,
-             colour,
-             purpose == CAPTURE,
-             record_audio
-                                                  );
     break;
   }
   case LIBVLC: {

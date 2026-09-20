@@ -1000,7 +1000,6 @@ $SLANG = array(
     'Not important' => '重要でない',
     'Not Running' => '実行中ではない',
     'Not Showing Analysis' => '分析を表示していません',
-    'NVSocket' => 'NVSocket',
     'Off' => 'オフ',
     'Offline' => 'オフライン',
     'On' => 'オン',

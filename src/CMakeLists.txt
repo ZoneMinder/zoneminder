@@ -57,7 +57,6 @@ set(ZM_BIN_SRC_FILES
   zm_regexp.cpp
   zm_remote_camera.cpp
   zm_remote_camera_http.cpp
-  zm_remote_camera_nvsocket.cpp
   zm_rtsp_auth.cpp
   zm_rtsp_server_stream_source.cpp
   zm_rtsp_server_stream_adts_source.cpp

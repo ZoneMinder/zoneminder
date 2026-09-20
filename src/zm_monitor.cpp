@@ -117,6 +117,10 @@ std::string load_monitor_sql =
   ", `AudioDetection`, `AudioThreshold`, `AudioAlarmScore`"
   " FROM `Monitors`";
 
+// Indexed by Monitor::CameraType, which starts at 1, so entry 0 covers the
+// unset value. The static_assert is what keeps this honest: the table silently
+// lost its LibCURL entry once already, which shifted every later name onto the
+// wrong type and put VNC one past the end.
 std::string CameraType_Strings[] = {
   "Unknown",
   "Local",
@@ -124,9 +128,12 @@ std::string CameraType_Strings[] = {
   "File",
   "Ffmpeg",
   "LibVLC",
+  "LibCURL",
   "NVSOCKET",
   "VNC"
 };
+static_assert(sizeof(CameraType_Strings)/sizeof(CameraType_Strings[0]) == Monitor::VNC + 1,
+              "CameraType_Strings must have one entry per Monitor::CameraType, plus entry 0");
 
 std::string State_Strings[] = {
   "Unknown",

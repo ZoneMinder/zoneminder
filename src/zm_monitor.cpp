@@ -1227,8 +1227,9 @@ bool Monitor::connect() {
     std::string stream_socket_path =
         stringtf("%s/stream_%u.sock", staticConfig.PATH_SOCKS.c_str(), id);
     if (stream_socket_path.size() < sizeof(shared_data->stream_socket_path)) {
-      strncpy(shared_data->stream_socket_path, stream_socket_path.c_str(),
-              sizeof(shared_data->stream_socket_path));
+      // The guard leaves room for the terminator, so copy it along.
+      memcpy(shared_data->stream_socket_path, stream_socket_path.c_str(),
+             stream_socket_path.size() + 1);
     } else {
       shared_data->stream_socket_path[0] = 0;
     }

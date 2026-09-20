@@ -4366,6 +4366,20 @@ int Monitor::PrimeCapture() {
   // the fallback for the first successful prime.
   StartStreamSocket();
   if (stream_socket) {
+    // Announce audio whenever the camera has a decodable audio stream, not only
+    // when record_audio is set: Capture() forwards audio packets to the socket
+    // unconditionally, so a consumer needs the matching HELLO regardless of
+    // whether ZM writes the audio to events. Clear a previously announced
+    // stream that a re-prime no longer sees, so no stale HELLO is replayed.
+    // Audio goes first: the socket sends the audio HELLO before the video
+    // HELLO of a generation, so consumers build on the video HELLO.
+    AVStream *audioStream = (audio_stream_id >= 0) ? camera->getAudioStream() : nullptr;
+    if (audioStream and audioStream->codecpar
+        and audioStream->codecpar->codec_id != AV_CODEC_ID_NONE) {
+      stream_socket->SetAudioParams(audioStream->codecpar);
+    } else {
+      stream_socket->ClearAudioParams();
+    }
     if (video_stream_id >= 0) {
       AVStream *videoStream = camera->getVideoStream();
       // Cameras that hand us decoded images (V4L2, MJPEG over HTTP, VNC) have a
@@ -4378,18 +4392,6 @@ int Monitor::PrimeCapture() {
                                 videoStream->avg_frame_rate : videoStream->r_frame_rate;
         stream_socket->SetVideoParams(videoStream->codecpar, frame_rate);
       }
-    }
-    // Announce audio whenever the camera has a decodable audio stream, not only
-    // when record_audio is set: Capture() forwards audio packets to the socket
-    // unconditionally, so a consumer needs the matching HELLO regardless of
-    // whether ZM writes the audio to events. Clear a previously announced
-    // stream that a re-prime no longer sees, so no stale HELLO is replayed.
-    AVStream *audioStream = (audio_stream_id >= 0) ? camera->getAudioStream() : nullptr;
-    if (audioStream and audioStream->codecpar
-        and audioStream->codecpar->codec_id != AV_CODEC_ID_NONE) {
-      stream_socket->SetAudioParams(audioStream->codecpar);
-    } else {
-      stream_socket->ClearAudioParams();
     }
     // Priming succeeded: capture is healthy. Cache a current-status snapshot so
     // the first consumer to connect learns the state without waiting for a

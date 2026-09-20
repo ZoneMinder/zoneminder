@@ -199,16 +199,17 @@ void StreamSocket::SetVideoParams(const AVCodecParameters *par, AVRational frame
       Info("StreamSocket: monitor %u video parameters changed, generation now %u",
            monitor_id_, generation_);
     }
-    hello_video_payload_ = payload;
-    hello_video_ = MakeMessage(MessageType::Hello, StreamId::Video, 0, 0, 0,
-                               std::move(payload), true);
-    BroadcastLocked(hello_video_);
     if (reconfigure and !hello_audio_payload_.empty()) {
-      // Re-issue the audio HELLO so both streams carry the new generation
+      // Re-issue the audio HELLO under the new generation, before the video
+      // HELLO: the video HELLO is always the last HELLO of a generation.
       hello_audio_ = MakeMessage(MessageType::Hello, StreamId::Audio, 0, 0, 0,
                                  std::vector<uint8_t>(hello_audio_payload_), true);
       BroadcastLocked(hello_audio_);
     }
+    hello_video_payload_ = payload;
+    hello_video_ = MakeMessage(MessageType::Hello, StreamId::Video, 0, 0, 0,
+                               std::move(payload), true);
+    BroadcastLocked(hello_video_);
   }
   Wake();
 }
@@ -247,11 +248,13 @@ void StreamSocket::ClearAudioParams() {
       return;  // no audio was announced; nothing to forget
     hello_audio_payload_.clear();
     hello_audio_.reset();
-    sequence_[static_cast<size_t>(StreamId::Audio)] = 0;
     // A dropped stream is a parameter change like any other: bump the
-    // generation so consumers re-init, and re-issue the surviving video HELLO
-    // under it.
+    // generation so consumers re-init, restart both sequences, drop the cached
+    // keyframe (its header carries the old generation) and re-issue the
+    // surviving video HELLO under the new one.
     ++generation_;
+    sequence_[0] = sequence_[1] = 0;
+    keyframe_.reset();
     Info("StreamSocket: monitor %u audio stream removed, generation now %u",
          monitor_id_, generation_);
     if (!hello_video_payload_.empty()) {
@@ -521,13 +524,14 @@ void StreamSocket::AcceptClient() {
     client->last_progress = std::chrono::steady_clock::now();
     client->last_stats = client->last_progress;
 
-    // New consumers get the stream parameters first, then the current-status
-    // snapshot, then the cached keyframe so they can render immediately instead
-    // of waiting for the next GOP.
-    if (hello_video_)
-      EnqueueLocked(*client, hello_video_);
+    // New consumers get the stream parameters first (audio HELLO before video
+    // HELLO, the video HELLO always completes a generation's set), then the
+    // current-status snapshot, then the cached keyframe so they can render
+    // immediately instead of waiting for the next GOP.
     if (hello_audio_)
       EnqueueLocked(*client, hello_audio_);
+    if (hello_video_)
+      EnqueueLocked(*client, hello_video_);
     if (snapshot_)
       EnqueueLocked(*client, snapshot_);
     if (keyframe_)

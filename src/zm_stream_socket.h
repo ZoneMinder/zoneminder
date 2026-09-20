@@ -67,8 +67,11 @@ class StreamSocket {
 
   // Configure (or re-configure) stream parameters. Caches and broadcasts a
   // HELLO; if parameters changed from a previous configuration the generation
-  // is bumped and the cached keyframe invalidated. frame_rate is video-only;
-  // pass {0, 0} when unknown.
+  // is bumped and the cached keyframe invalidated. Within a generation the
+  // audio HELLO is always sent before the video HELLO (call SetAudioParams /
+  // ClearAudioParams before SetVideoParams on a re-prime), so a consumer can
+  // treat the video HELLO as completing that generation's parameter set.
+  // frame_rate is video-only; pass {0, 0} when unknown.
   void SetVideoParams(const AVCodecParameters *par, AVRational frame_rate);
   void SetAudioParams(const AVCodecParameters *par);
 

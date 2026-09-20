@@ -43,7 +43,10 @@ extern "C" {
 //   [payload]
 //
 // HELLO payload is a TLV list (u8 tag, u16 length, value); unknown tags must
-// be skipped by consumers.
+// be skipped by consumers. HELLOs are sent per stream on connect and on every
+// generation bump, audio before video: the video HELLO is always the last
+// HELLO of a generation, so a consumer that sees it has that generation's
+// complete parameter set (a stream not re-announced by then is gone).
 
 namespace zm {
 namespace stream_socket {

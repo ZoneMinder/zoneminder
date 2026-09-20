@@ -545,19 +545,29 @@ TEST_CASE("StreamSocket::ClearAudioParams stops announcing audio", "[stream_sock
   codec_parameters_ptr apar = make_aac_parameters();
   server.SetAudioParams(apar.get());
 
-  // First consumer sees both HELLOs.
+  // A keyframe is cached for late joiners under generation 0
+  av_packet_ptr keyframe = make_packet(300, 0x5A);
+  server.SendMedia(keyframe.get(), StreamId::Video, true, 500);
+
+  // First consumer sees both HELLOs, audio first (the video HELLO completes
+  // a generation's parameter set), then the cached keyframe.
   {
     TestClient client;
     REQUIRE(client.Connect());
     ReceivedMessage m;
     REQUIRE(client.ReadMessage(m));
+    REQUIRE(m.header.type == static_cast<uint8_t>(MessageType::Hello));
+    REQUIRE(m.header.stream == static_cast<uint8_t>(StreamId::Audio));
+    REQUIRE(client.ReadMessage(m));
+    REQUIRE(m.header.type == static_cast<uint8_t>(MessageType::Hello));
     REQUIRE(m.header.stream == static_cast<uint8_t>(StreamId::Video));
     REQUIRE(client.ReadMessage(m));
-    REQUIRE(m.header.stream == static_cast<uint8_t>(StreamId::Audio));
+    REQUIRE(m.header.type == static_cast<uint8_t>(MessageType::Keyframe));
+    REQUIRE(m.header.generation == 0);
   }
 
-  // Audio goes away on a re-prime: generation bumps and the video HELLO is
-  // re-issued under it.
+  // Audio goes away on a re-prime: a full generation bump, so the video HELLO
+  // is re-issued under it and the generation-0 keyframe is dropped.
   server.ClearAudioParams();
 
   // A fresh consumer is told about video only, at the new generation.
@@ -569,7 +579,8 @@ TEST_CASE("StreamSocket::ClearAudioParams stops announcing audio", "[stream_sock
   REQUIRE(video_hello.header.stream == static_cast<uint8_t>(StreamId::Video));
   REQUIRE(video_hello.header.generation == 1);
 
-  // No audio HELLO follows; a video media packet is the next thing on the wire.
+  // No audio HELLO and no stale keyframe follow; the next thing on the wire
+  // is fresh video media, with its sequence restarted for the generation.
   std::this_thread::sleep_for(std::chrono::milliseconds(50));
   av_packet_ptr video = make_packet(100, 0x66);
   server.SendMedia(video.get(), StreamId::Video, false, 900);
@@ -577,6 +588,46 @@ TEST_CASE("StreamSocket::ClearAudioParams stops announcing audio", "[stream_sock
   REQUIRE(client.ReadMessage(next));
   REQUIRE(next.header.type == static_cast<uint8_t>(MessageType::Media));
   REQUIRE(next.header.stream == static_cast<uint8_t>(StreamId::Video));
+  REQUIRE(next.header.generation == 1);
+  REQUIRE(next.header.sequence == 0);
+
+  server.Stop();
+}
+
+TEST_CASE("StreamSocket re-issues HELLOs audio first on a video reconfigure", "[stream_socket]") {
+  StreamSocket server(1, kSockPath);
+  REQUIRE(server.Start());
+
+  codec_parameters_ptr apar = make_aac_parameters();
+  server.SetAudioParams(apar.get());
+  codec_parameters_ptr vpar = make_h264_parameters();
+  server.SetVideoParams(vpar.get(), {0, 0});
+
+  TestClient client;
+  REQUIRE(client.Connect());
+  ReceivedMessage m;
+  REQUIRE(client.ReadMessage(m));  // audio HELLO
+  REQUIRE(client.ReadMessage(m));  // video HELLO
+  REQUIRE(m.header.stream == static_cast<uint8_t>(StreamId::Video));
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+  // Video parameters change: both HELLOs are re-issued under generation 1,
+  // the unchanged audio one first so the video HELLO completes the set.
+  vpar->width = 1920;
+  vpar->height = 1080;
+  server.SetVideoParams(vpar.get(), {0, 0});
+
+  REQUIRE(client.ReadMessage(m));
+  REQUIRE(m.header.type == static_cast<uint8_t>(MessageType::Hello));
+  REQUIRE(m.header.stream == static_cast<uint8_t>(StreamId::Audio));
+  REQUIRE(m.header.generation == 1);
+  REQUIRE(client.ReadMessage(m));
+  REQUIRE(m.header.type == static_cast<uint8_t>(MessageType::Hello));
+  REQUIRE(m.header.stream == static_cast<uint8_t>(StreamId::Video));
+  REQUIRE(m.header.generation == 1);
+  HelloInfo info;
+  REQUIRE(ParseHello(m.payload.data(), m.payload.size(), info));
+  REQUIRE(info.width == 1920);
 
   server.Stop();
 }

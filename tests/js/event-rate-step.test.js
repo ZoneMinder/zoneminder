@@ -52,8 +52,8 @@ function makeChainable() {
   return proxy;
 }
 
-function loadEventJs() {
-  const globals = {
+function loadEventJs(overrides) {
+  const globals = Object.assign({
     $j: makeChainable(),
     $: makeChainable(),
     console: {log() {}, warn() {}, error() {}, debug() {}},
@@ -72,7 +72,7 @@ function loadEventJs() {
     setCookie: () => {},
     rates: RATES,
     eventData: {},
-  };
+  }, overrides || {});
   const sandbox = new Proxy(globals, {
     // has:true makes every bare identifier resolve here, so the built-ins
     // event.js uses (Math, Date, JSON) have to be handed back explicitly or
@@ -94,6 +94,84 @@ function loadEventJs() {
 
 const ZM = loadEventJs();
 const stepRate = ZM.stepRate;
+
+// --- a harness for driving changeRate against a stand-in player -------------
+
+// $j, but with a real answer for the rate select, which changeRate reads.
+function makeJq(state) {
+  return function(selector) {
+    if (typeof selector === 'string' && selector.indexOf('name="rate"') >= 0) {
+      return {
+        val: function(value) {
+          if (value === undefined) return state.select;
+          state.select = value;
+          return this;
+        },
+      };
+    }
+    return makeChainable();
+  };
+}
+
+// Enough of the videojs player for the rewind interval to run against.
+function makePlayer(state) {
+  return {
+    playbackRate: function(rate) {
+      if (rate === undefined) return state.rate;
+      state.rate = rate;
+      return undefined;
+    },
+    currentTime: function(time) {
+      if (time === undefined) return state.time;
+      state.time = time;
+      return undefined;
+    },
+    pause: function() {
+      state.paused = true;
+    },
+    paused: function() {
+      return !!state.paused;
+    },
+  };
+}
+
+// Loads a fresh copy of event.js wired to a stand-in player, and returns a
+// handle that can pick a rate and then run rewind ticks.
+function withPlayer(selected, startTime) {
+  const state = {
+    select: String(selected),
+    rate: 1,
+    time: startTime === undefined ? 100 : startTime,
+    paused: false,
+    interval: null,
+  };
+  const env = loadEventJs({
+    $j: makeJq(state),
+    setInterval: (fn) => {
+      state.interval = fn;
+      return 42;
+    },
+    clearInterval: () => {
+      state.interval = null;
+    },
+  });
+  env.vid = makePlayer(state);
+  env.changeRate();
+  return {
+    state: state,
+    env: env,
+    rewinding: () => state.interval !== null,
+    // Run the rewind interval the given number of times, as the browser would
+    // every 500ms.
+    tick: function(times) {
+      for (let i = 0; i < (times || 1); i++) {
+        if (!state.interval) break;
+        state.interval();
+      }
+      return state.time;
+    },
+  };
+}
 
 console.log('stepping forward');
 
@@ -210,6 +288,80 @@ test('walking the list end to end terminates at both ends', () => {
     assert.ok(++steps <= RATES.length, 'backward walk did not terminate');
   }
   assert.strictEqual(current, -1600, 'backward walk should end at the bottom rate');
+});
+
+console.log('changeRate, reverse');
+
+test('the selected reverse rate is the speed it rewinds at', () => {
+  // rates[rates.indexOf(-rate)-1]/100 stepped one entry too far down the list,
+  // so every reverse rate ran a notch slow.
+  assert.strictEqual(withPlayer(-1600).env.revSpeed, 16);
+  assert.strictEqual(withPlayer(-1000).env.revSpeed, 10);
+  assert.strictEqual(withPlayer(-500).env.revSpeed, 5);
+  assert.strictEqual(withPlayer(-200).env.revSpeed, 2);
+  assert.strictEqual(withPlayer(-100).env.revSpeed, 1);
+  assert.strictEqual(withPlayer(-50).env.revSpeed, 0.5);
+});
+
+test('the slowest reverse rate actually moves', () => {
+  // -1/4x was the worst case: one step below 25 in the rate list is 0, so
+  // revSpeed came out 0 and the video sat still while claiming to rewind.
+  const player = withPlayer(-25, 100);
+  assert.strictEqual(player.env.revSpeed, 0.25);
+  assert.ok(player.rewinding(), 'no rewind interval was started');
+  const before = player.state.time;
+  player.tick(4); // 4 ticks of 500ms == 2 seconds of wall clock
+  assert.ok(player.state.time < before,
+      'time did not move: ' + before + ' -> ' + player.state.time);
+});
+
+test('rewinding covers the wall clock time it says it does', () => {
+  // The interval fires every 500ms and moves revSpeed/2 seconds, so 1x over
+  // four ticks is two seconds of footage.
+  const player = withPlayer(-100, 100);
+  player.tick(4);
+  assert.strictEqual(player.state.time, 98);
+
+  const fast = withPlayer(-1600, 100);
+  fast.tick(4);
+  assert.strictEqual(fast.state.time, 100 - 32);
+});
+
+test('rewinding stops at the start of the event', () => {
+  const player = withPlayer(-100, 0.4);
+  player.tick(5);
+  assert.ok(player.state.paused, 'player was not paused at the start');
+  assert.ok(!player.rewinding(), 'rewind interval was left running');
+});
+
+console.log('changeRate, leaving reverse');
+
+test('picking a forward rate stops the rewind', () => {
+  // The interval used to be left running, so it kept dragging currentTime
+  // backwards and setting playbackRate to 0 on every tick while the player
+  // was supposedly going forwards.
+  const player = withPlayer(-100, 100);
+  assert.ok(player.rewinding(), 'no rewind interval to begin with');
+
+  player.state.select = '200';
+  player.env.changeRate();
+
+  assert.ok(!player.rewinding(), 'rewind interval survived a forward rate');
+  assert.strictEqual(player.state.rate, 2, 'forward rate was not applied');
+  assert.strictEqual(player.env.revSpeed, 0.5, 'revSpeed was not reset');
+
+  const before = player.state.time;
+  player.tick(4);
+  assert.strictEqual(player.state.time, before, 'time still moved backwards');
+  assert.strictEqual(player.state.rate, 2, 'playbackRate was reset to 0');
+});
+
+test('picking Stop pauses rather than rewinding', () => {
+  const player = withPlayer(-100, 100);
+  player.state.select = '0';
+  player.env.changeRate();
+  assert.ok(player.state.paused, 'player was not paused');
+  assert.ok(!player.rewinding(), 'rewind interval survived Stop');
 });
 
 console.log('');

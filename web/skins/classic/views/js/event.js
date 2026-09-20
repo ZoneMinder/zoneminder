@@ -407,7 +407,12 @@ function changeRate() {
     pauseClicked();
   } else if (rate < 0) {
     if (vid) { //There is no reverse play with mp4.  Set the speed to 0 and manually set the time back.
-      revSpeed = rates[rates.indexOf(-1*rate)-1]/100;
+      // The rate the user picked is the reverse speed. This used to look it up
+      // as rates[rates.indexOf(-rate)-1]/100, which steps one entry further
+      // down the shared rate list and so ran every reverse rate a notch too
+      // slow: -1/2x played at 1/4x and -16x at 10x. -1/4x was worse than slow,
+      // because one step below 25 in that list is 0, so it did not move at all.
+      revSpeed = -rate/100;
       clearInterval(intervalRewind);
       intervalRewind = setInterval(function() {
         if (vid.currentTime() <= 0) {
@@ -423,6 +428,13 @@ function changeRate() {
     } // end if vid
   } else { // Forward rate
     if ( vid ) {
+      // Leaving reverse has to stop the rewind interval. It was left running,
+      // so picking a forward rate after a reverse one kept dragging
+      // currentTime backwards and resetting playbackRate to 0 on every tick
+      // while the player was supposedly running forwards. stopFastRev() is not
+      // usable here: it rewrites the rate select to 1x, undoing the choice
+      // being applied.
+      stopRewind();
       vid.playbackRate(rate/100);
     } else {
       streamReq({command: CMD_VARPLAY, rate: rate});
@@ -657,12 +669,22 @@ function streamSlowRev(action) {
   }
 }
 
-function stopFastRev() {
+// Stop the rewind interval and forget that we were rewinding, without
+// touching the player or the rate widgets. Separate from stopFastRev because
+// changeRate needs the teardown but is about to set a rate of its own.
+function stopRewind() {
   clearInterval(intervalRewind);
-  vid.playbackRate(1);
-  $j('select[name="rate"]').val(vid.playbackRate()*100);
-  setCookie('zmEventRate', vid.playbackRate()*100);
+  intervalRewind = null;
   revSpeed = .5;
+}
+
+function stopFastRev() {
+  stopRewind();
+  vid.playbackRate(1);
+  // 100, not a read back of playbackRate: videojs can defer the set until the
+  // tech is ready, so the getter may still answer with the rate we just left.
+  $j('select[name="rate"]').val(100);
+  setCookie('zmEventRate', 100);
 }
 
 /* Called when rewind button is clicked

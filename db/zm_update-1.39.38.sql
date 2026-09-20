@@ -3,16 +3,25 @@
 --
 -- Move monitors off capture methods that are going away.
 --
--- NVSocket is removed in this release and Libvlc is deprecated. Both reach
--- cameras that ffmpeg reaches, so the monitors are converted rather than
--- left to fail.
+-- NVSocket and Libvlc are both removed in this release. Every camera they
+-- reached, ffmpeg reaches, so the monitors are converted rather than left to
+-- fail.
 --
 
 --
 -- Libvlc becomes Ffmpeg. Path already holds the full url for this type, and
 -- User and Pass are merged the same way, so only the type changes.
 --
+-- The Options field is deliberately left alone even though its contents are
+-- now meaningless: they are libvlc switches such as --rate=1, which ffmpeg
+-- will not understand. Clearing it would throw away the only record of how
+-- the camera was tuned, and FfmpegCamera passes Options through
+-- av_dict_parse_string, which reports unknown keys and carries on rather
+-- than failing to open. Leaving it costs a log line and keeps the evidence.
+--
 UPDATE `Monitors` SET `Type` = 'Ffmpeg' WHERE `Type` = 'Libvlc';
+UPDATE `Controls` SET `Type` = 'Ffmpeg' WHERE `Type` = 'Libvlc';
+UPDATE `MonitorPresets` SET `Type` = 'Ffmpeg' WHERE `Type` = 'Libvlc';
 
 --
 -- NVSocket has no url to convert: it spoke a bespoke socket protocol to one
@@ -27,13 +36,12 @@ UPDATE `Controls` SET `Type` = 'Ffmpeg' WHERE `Type` = 'NVSocket';
 UPDATE `MonitorPresets` SET `Type` = 'Ffmpeg' WHERE `Type` = 'NVSocket';
 
 --
--- Now that no row uses it, drop the value from the three enums that carry it.
--- Libvlc stays: it is deprecated, not removed, and a monitor can still be set
--- to it by hand.
+-- Now that no row uses either, drop both values from the three enums that
+-- carry them.
 --
 ALTER TABLE `Monitors`
-  MODIFY `Type` enum('Local','Remote','File','Ffmpeg','Libvlc','cURL','WebSite','VNC') NOT NULL default 'Local';
+  MODIFY `Type` enum('Local','Remote','File','Ffmpeg','cURL','WebSite','VNC') NOT NULL default 'Local';
 ALTER TABLE `MonitorPresets`
-  MODIFY `Type` enum('Local','Remote','File','Ffmpeg','Libvlc','cURL','WebSite','VNC') NOT NULL default 'Local';
+  MODIFY `Type` enum('Local','Remote','File','Ffmpeg','cURL','WebSite','VNC') NOT NULL default 'Local';
 ALTER TABLE `Controls`
-  MODIFY `Type` enum('Local','Remote','File','Ffmpeg','Libvlc','cURL','WebSite','VNC') NOT NULL default 'Local';
+  MODIFY `Type` enum('Local','Remote','File','Ffmpeg','cURL','WebSite','VNC') NOT NULL default 'Local';

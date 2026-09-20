@@ -56,10 +56,9 @@ class Camera {
   bool          record_audio;
   int                 mVideoStreamId;
   int                 mAudioStreamId;
-  // No video decoder here: the monitor opens one against mVideoStream and owns
-  // it for as long as its decoder thread needs it. Audio is still decoded by
-  // the camera.
-  AVCodecContext      *mAudioCodecContext;
+  // No decoders here at all. The monitor opens the video decoder against
+  // mVideoStream; audio is decoded by whoever needs it, from the stream's
+  // codecpar. A camera finds streams and produces packets.
   AVStream *mVideoStream;
   AVStream *mAudioStream;
   AVFormatContext *mFormatContext; // One for video, one for audio
@@ -132,7 +131,6 @@ class Camera {
 
   virtual AVStream      *getVideoStream();
   virtual AVStream      *getAudioStream() { return mAudioStream; };
-  virtual AVCodecContext     *getAudioCodecContext() { return mAudioCodecContext; };
   int            getVideoStreamId() { return mVideoStreamId; };
   int            getAudioStreamId() { return mAudioStreamId; };
 

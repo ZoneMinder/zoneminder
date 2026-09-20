@@ -1056,7 +1056,6 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   void SendStreamHealthEvent(uint16_t code, const std::string &message, int detail = 0);
 
   AVStream *GetAudioStream() const { return camera ? camera->getAudioStream() : nullptr; };
-  AVCodecContext *GetAudioCodecContext() const { return camera ? camera->getAudioCodecContext() : nullptr; };
   AVStream *GetVideoStream() const { return camera ? camera->getVideoStream() : nullptr; };
   AVCodecContext *GetVideoCodecContext() const { return mVideoCodecContext; };
 

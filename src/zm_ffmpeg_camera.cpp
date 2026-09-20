@@ -596,20 +596,10 @@ int FfmpegCamera::OpenFfmpeg() {
   // produce packets.
 
   if (mAudioStreamId >= 0) {
-    const AVCodec *mAudioCodec = nullptr;
-    if (!(mAudioCodec = avcodec_find_decoder(mAudioStream->codecpar->codec_id))) {
-      Debug(1, "Can't find codec for audio stream from %s", mMaskedPath.c_str());
-    } else {
-      mAudioCodecContext = avcodec_alloc_context3(mAudioCodec);
-      avcodec_parameters_to_context(mAudioCodecContext, mAudioStream->codecpar);
-
-      zm_dump_stream_format((mSecondFormatContext?mSecondFormatContext:mFormatContext), mAudioStreamId, 0, 0);
-      // Open the codec
-      if (avcodec_open2(mAudioCodecContext, mAudioCodec, nullptr) < 0) {
-        Error("Unable to open codec for audio stream from %s", mMaskedPath.c_str());
-        return -1;
-      }  // end if opened
-    }  // end if found decoder
+    // No audio decoder is opened here. Both things that decode audio build
+    // their own from the stream's codecpar: VideoStore for transcoding to aac,
+    // and AudioDetector for levels. This camera only has to find the stream.
+    zm_dump_stream_format((mSecondFormatContext?mSecondFormatContext:mFormatContext), mAudioStreamId, 0, 0);
   } else if (!monitor->GetSecondPath().empty()) {
     Debug(1, "Trying secondary stream at %s", mMaskedSecondPath.c_str());
     std::string secondPath = mSecondPath;
@@ -632,7 +622,6 @@ int FfmpegCamera::OpenFfmpeg() {
       mSecondFormatContext = mSecondInput->get_format_context();
       mAudioStreamId = mSecondInput->get_audio_stream_id();
       mAudioStream = mSecondInput->get_audio_stream();
-      mAudioCodecContext = mSecondInput->get_audio_codec_context();
     } else {
       Warning("Failed to open secondary input");
     }
@@ -675,13 +664,6 @@ int FfmpegCamera::Close() {
   mLastAudioPTS = 0;
   mLastVideoDTS = AV_NOPTS_VALUE;
   mLastAudioDTS = AV_NOPTS_VALUE;
-
-  if (mAudioCodecContext and !mSecondInput) {
-    // If second input, then these will get freed in FFmpeg_Input's destructor
-    //avcodec_close(mAudioCodecContext);
-    avcodec_free_context(&mAudioCodecContext);
-    mAudioCodecContext = nullptr;
-  }
 
 
   if ( mFormatContext ) {

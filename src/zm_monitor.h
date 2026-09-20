@@ -1059,12 +1059,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   AVStream *GetAudioStream() const { return camera ? camera->getAudioStream() : nullptr; };
   AVCodecContext *GetAudioCodecContext() const { return camera ? camera->getAudioCodecContext() : nullptr; };
   AVStream *GetVideoStream() const { return camera ? camera->getVideoStream() : nullptr; };
-  // Prefer the monitor's own decoder. RemoteCameraRtsp still opens one of its
-  // own, so fall back to the camera's until that capture method goes in 1.41.
-  AVCodecContext *GetVideoCodecContext() const {
-    if (mVideoCodecContext) return mVideoCodecContext;
-    return camera ? camera->getVideoCodecContext() : nullptr;
-  };
+  AVCodecContext *GetVideoCodecContext() const { return mVideoCodecContext; };
 
   std::string GetSecondPath() const { return second_path; };
   std::string GetStreamSocketPath() const { return shared_data ? shared_data->stream_socket_path : ""; };
@@ -1138,7 +1133,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int PrimeCapture();
   // Open a decoder for the camera's video stream, and tear it down. Safe to
   // call when there is nothing to decode: cameras that hand over images rather
-  // than packets have no video stream, and RemoteCameraRtsp brings its own.
+  // than packets have no video stream.
   int OpenDecoder();
   void CloseDecoder();
   int PreCapture() const;

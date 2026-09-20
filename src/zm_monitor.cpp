@@ -4379,14 +4379,6 @@ int Monitor::OpenDecoder() {
     return 0;
   }
 
-  if (camera->getVideoCodecContext()) {
-    // RemoteCameraRtsp opens its own and decodes through it. Leave it alone
-    // until that capture method is removed in 1.41, rather than running two
-    // decoders over one stream.
-    Debug(1, "Camera brought its own decoder; not opening another");
-    return 0;
-  }
-
   mVideoCodecContext = open_video_decoder(
       stream,
       decoder_name,

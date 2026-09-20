@@ -842,14 +842,6 @@ $OLANG = array(
         HTTP - Bruk HTTP tunnellering som transportprotokoll, som er nyttig for bruk gjennom proxy.~~
       '
 	),
-	'OPTIONS_LIBVLC' => array(
-    'Hjelp' => '
-      Parametre i dette feltet formidles til libVLC. Flere parametre kan skilles med ,~~
-      Eksempel (ikke skriv anførselstegn)~~~~
-      "--rtp-client-port=nnn" Setter lokal port for rtp data~~~~
-      "--verbose=2" Setter verbositet for libVLC
-      '
-	),
 	'OPTIONS_EXIF' => array(
 		'Hjelp' => 'Aktiver dette valget for å bake inn EXIT-data i hver JPEG ramme.'
 	),

@@ -220,7 +220,6 @@ switch ( $name ) {
       'Local'=>translate('Local'),
       'Remote'=>translate('Remote'),
       'Ffmpeg'=>translate('Ffmpeg'),
-      'Libvlc'=>translate('Libvlc'),
       'cURL'=>'cURL'
     );
     echo buildSelect('Control[Type]', $types);

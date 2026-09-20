@@ -930,7 +930,6 @@ $SLANG = array(
     'Layout' => 'レイアウト',
     'Less important' => '重要度が低い',
     'Level' => 'レベル',
-    'Libvlc' => 'Libvlc',
     'Line' => 'ライン',
     'Linear' => '線形',
     'List' => 'リスト',
@@ -1363,14 +1362,6 @@ $OLANG = array(
         UDP - UDP をトランスポートプロトコルとして使用します。高解像度カメラでは UDP を使用すると「ぼやけ」が発生することがあります。その場合は TCP を試してください。~~
         UDP Multicast - UDP マルチキャストをトランスポートプロトコルとして使用します~~
         HTTP - HTTP トンネリングをトランスポートプロトコルとして使用します。これはプロキシを通すのに便利です。~~
-      '
-    ),
-    'OPTIONS_LIBVLC' => array(
-        'Help' => '
-      このフィールドに入力されたパラメータは libVLC に渡されます。複数のパラメータは , で区切ることができます。~~
-      例 (引用符は入力しないでください)~~~~
-      "--rtp-client-port=nnn" rtp データ用のローカルポートを設定します~~~~
-      "--verbose=2" libVLC の詳細レベルを設定します
       '
     ),
     'OPTIONS_EXIF' => array(

@@ -773,14 +773,6 @@ $OLANG = array(
 		HTTP - Vekil sunucuları geçirmek için yararlı olan HTTP tünellemesini taşıma protokolü olarak kullanın.~~'
 	),
 	
-	'OPTIONS_LIBVLC'=> array(
-		'Help'=> 
-		'Bu alandaki parametreler libVLC\'ye iletilir. 
-		Birden fazla parametre ,~~ ile ayrılabilir
-		Örnekler (tırnak işareti girmeyin)~~~~
-			"--rtp-client-port=nnn" Rtp verileri için kullanılacak yerel portu ayarlayın~~~~
-			"--verbose=2" libVLC\'nin ayrıntı düzeyini ayarlayın'
-	),
 	
 	'OPTIONS_EXIF'=> array(
 		'Help'=> 'Her JPEG karesine EXIF ​​verilerini yerleştirmek için bu seçeneği etkinleştirin.'

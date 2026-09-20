@@ -150,7 +150,7 @@ class Monitor extends AppModel {
   );
   public $actsAs = array(
     'CakePHP-Enum-Behavior.Enum' => array(
-      'Type'            => array('Local','Remote','File','Ffmpeg','Libvlc','cURL','WebSite', 'VNC'),
+      'Type'            => array('Local','Remote','File','Ffmpeg','cURL','WebSite', 'VNC'),
       'Function'        => array('None','Monitor','Modect','Record','Mocord','Nodect'),
       'Orientation'     => array('ROTATE_0','ROTATE_90','ROTATE_180','ROTATE_270','FLIP_HORI','FLIP_VERT'),
       // mask OutputCodec as its not an Enum in mysql

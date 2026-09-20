@@ -3009,8 +3009,8 @@ our @options = (
     default     => 'Hostname',
     description => 'How to filter information in the source column.',
     help        => q`
-      This option only affects monitors with a source type of Ffmpeg,
-      Libvlc, or WebSite. This setting controls what information is
+      This option only affects monitors with a source type of Ffmpeg
+      or WebSite. This setting controls what information is
       displayed in the Source column on the console. Selecting 'None'
       will not filter anything. The entire source string will be
       displayed, which may contain sensitive information. Selecting

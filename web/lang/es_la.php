@@ -372,7 +372,6 @@ $SLANG = array(
     'Last'                 => 'Ultimo',
     'Layout'               => 'Diseño',                 // Added - 2009-02-08
     'Level'                => 'Nivel',                  // Added - 2011-06-16
-    'Libvlc'               => 'Libvlc',
     'LimitResultsPost'     => 'Resultados;', // This is used at the end of the phrase 'Limit to first N results only'
     'LimitResultsPre'      => 'Solo los primeros', // This is used at the beginning of the phrase 'Limit to first N results only'
     'Line'                 => 'Linea',                   // Added - 2011-06-16
@@ -969,12 +968,6 @@ $OLANG = array(
 		          "\"allowed_media_types=video\" Establecer tipo de datos para solicitar desde la cámara (audio, video, data)~~~~".
 		          "\"reorder_queue_size=nnn\" Establezca el número de paquetes en el búfer para el manejo de paquetes reordenados~~~~".
 		          "\"loglevel=debug\" Establecer nivel info. de FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
-	),
-	'OPTIONS_LIBVLC' => array(
-		'Help' => "Los parámetros en este campo se pasan a libVLC. Múltiples parámetros pueden ser separados por ,~~ ".
-		          "Ejemplos (no ingrese comillas)~~~~".
-		          "\"--rtp-client-port=nnn\" Establecer puerto local para usar para datos rtp~~~~". 
-		          "\"--verbose=2\" Establecer nivel info. de libVLC"
 	),
 	
 //   ****************Prompts *************************

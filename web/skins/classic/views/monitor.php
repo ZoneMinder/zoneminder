@@ -139,15 +139,11 @@ if (!empty($_REQUEST['probe'])) {
   }
 } # end if apply probe settings
 
-// Libvlc is deprecated in favour of Ffmpeg, which reaches the same cameras
-// without a second streaming library. It is still offered so existing monitors
-// can be opened and read, and is labelled so nobody picks it for something new.
 $sourceTypes = array(
     'Local'  => translate('Local'),
     'Remote' => translate('Remote'),
     'File'   => translate('File'),
     'Ffmpeg' => translate('Ffmpeg'),
-    'Libvlc' => translate('Libvlc').' ('.translate('Deprecated').')',
     'WebSite'=> 'Web Site',
     'VNC' => translate('VNC'),
     );
@@ -592,13 +588,6 @@ switch ($name) {
               <li class="Type">
                 <label><?php echo translate('SourceType') ?></label>
                 <?php echo htmlSelect('newMonitor[Type]', $sourceTypes, $monitor->Type()); ?>
-<?php
-      if ($monitor->Type() == 'Libvlc') {
-?>
-                <div class="form-text text-warning"><?php echo translate('SourceTypeDeprecated') ?></div>
-<?php
-      }
-?>
               </li>
 <?php
       $groups_dropdown = ZM\Group::get_dropdown_options();
@@ -845,7 +834,7 @@ if (count($localMethods)>1) {
             <input type="number" name="newMonitor[Refresh]" value="<?php echo validHtmlStr($monitor->Refresh()) ?>" min="1" step="1"/>
           </li>
 <?php
-      } else if ( $monitor->Type() == 'Ffmpeg' || $monitor->Type() == 'Libvlc' ) {
+      } else if ( $monitor->Type() == 'Ffmpeg' ) {
 ?>
           <li class="SourcePath">
             <label><?php echo translate('SourcePath') ?></label>

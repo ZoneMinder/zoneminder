@@ -415,7 +415,6 @@ $SLANG = array(
     'Last'                  => 'Sidste',
     'Layout'                => 'Layout',
     'Level'                 => 'Niveau',
-    'Libvlc'                => 'Libvlc',
     'LimitResultsPost'      => 'resultater', // This is used at the end of the phrase 'Limit to first N results only'
     'LimitResultsPre'       => 'Begræns til kun de første', // This is used at the beginning of the phrase 'Limit to first N results only'
     'Line'                  => 'Linie',
@@ -942,12 +941,6 @@ $OLANG = array(
                           "UDP - Use UDP as transport protocol. Higher resolution cameras have experienced some 'smearing' while using UDP, if so try TCP~~".
                           "UDP Multicast - Use UDP Multicast as transport protocol~~".
                           "HTTP - Use HTTP tunneling as transport protocol, which is useful for passing proxies.~~"
-	),
-	'OPTIONS_LIBVLC' => array(
-		'Help' => "Parameters in this field are passed on to libVLC. Multiple parameters can be separated by ,~~ ".
-		          "Examples (do not enter quotes)~~~~".
-		          "\"--rtp-client-port=nnn\" Set local port to use for rtp data~~~~". 
-		          "\"--verbose=2\" Set verbosity of libVLC"
 	),
 	'OPTIONS_EXIF' => array(
 		'Help' => "Enable this option to embed EXIF data into each jpeg frame."

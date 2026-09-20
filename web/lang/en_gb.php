@@ -774,9 +774,7 @@ $SLANG = array(
     'StorageScheme'         => 'Scheme',
     'StreamReplayBuffer'    => 'Stream Replay Image Buffer',
     'TargetColorspace'      => 'Target colorspace',
-    'Deprecated'                => 'deprecated',
     'Removed'                   => 'removed',
-    'SourceTypeDeprecated'      => 'This capture method is deprecated and will be removed. Change this monitor to Type Ffmpeg, using the camera\'s rtsp or http url as the Source Path. Ffmpeg reaches the same cameras and is the maintained path.',
     'DeprecatedColoursSetting' => 'Deprecated - will be auto-detected in a future release',
     'TimeDelta'             => 'Time Delta',
     'TimelineTip1'          => 'Pass your mouse over the graph to view a snapshot image and event details.',              // Added 2013.08.15.
@@ -1091,14 +1089,6 @@ $OLANG = array(
         UDP - Use UDP as transport protocol. Higher resolution cameras have experienced some \'smearing\' while using UDP, if so try TCP~~
         UDP Multicast - Use UDP Multicast as transport protocol~~
         HTTP - Use HTTP tunneling as transport protocol, which is useful for passing proxies.~~
-      '
-	),
-	'OPTIONS_LIBVLC' => array(
-    'Help' => '
-      Parameters in this field are passed on to libVLC. Multiple parameters can be separated by ,~~
-      Examples (do not enter quotes)~~~~
-      "--rtp-client-port=nnn" Set local port to use for rtp data~~~~
-      "--verbose=2" Set verbosity of libVLC
       '
 	),
 	'OPTIONS_EXIF' => array(

@@ -23,6 +23,7 @@ set(TEST_SOURCES
   zm_event_hardlink.cpp
   zm_font.cpp
   zm_image.cpp
+  zm_monitor_shm.cpp
   zm_monitorstream.cpp
   zm_packetqueue.cpp
   zm_monitor_action.cpp

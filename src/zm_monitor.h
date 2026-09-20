@@ -1040,9 +1040,23 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   void ForceAlarmOff();
   void CancelForced();
   TriggerState GetTriggerState() const { return trigger_data ? trigger_data->trigger_state : TRIGGER_CANCEL; }
-  SystemTimePoint GetStartupTime() const { return std::chrono::system_clock::from_time_t(shared_data->startup_time); }
-  void SetStartupTime(SystemTimePoint time) { shared_data->startup_time = std::chrono::system_clock::to_time_t(time); }
+  // shared_data is null until connect() maps the shm segment, and connect()
+  // fails with it still null whenever the mmap file cannot be opened, grown or
+  // mapped -- wrong ownership, or /dev/shm too small for the requested buffers.
+  // zmc's startup loop calls SetHeartbeatTime() on every failed retry, so
+  // without these guards a monitor that cannot get its shm takes zmc down with
+  // SIGSEGV instead of retrying. The accessors around these already guard the
+  // same way.
+  SystemTimePoint GetStartupTime() const {
+    if (!shared_data) return SystemTimePoint();
+    return std::chrono::system_clock::from_time_t(shared_data->startup_time);
+  }
+  void SetStartupTime(SystemTimePoint time) {
+    if (!shared_data) return;
+    shared_data->startup_time = std::chrono::system_clock::to_time_t(time);
+  }
   void SetHeartbeatTime(SystemTimePoint time) {
+    if (!shared_data) return;
     shared_data->heartbeat_time = std::chrono::system_clock::to_time_t(time);
   }
   void get_ref_image();

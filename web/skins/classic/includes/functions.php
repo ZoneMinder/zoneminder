@@ -516,6 +516,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
           echo getCycleHTML($view);
           echo getMontageHTML($view);
           echo getMontageReviewHTML($view);
+          echo getEventsHTML($view);
           echo getSnapshotsHTML($view);
           echo getReportsHTML($view);
           echo getRprtEvntAuditHTML($view);
@@ -673,6 +674,7 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
             echo getCycleHTML($view);
             echo getMontageHTML($view);
             echo getMontageReviewHTML($view);
+            echo getEventsHTML($view);
             echo getSnapshotsHTML($view);
             echo getReportsHTML($view);
             echo getRprtEvntAuditHTML($view);

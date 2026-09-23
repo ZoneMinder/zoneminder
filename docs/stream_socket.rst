@@ -150,7 +150,10 @@ Message types:
   produced so far, i.e. the sequence the next broadcast EVENT will carry; the
   snapshot is a state message, not an event in that series, so a consumer
   seeds its gap tracking from it and must not treat the following EVENT with
-  the same sequence as a duplicate. The capture-fault edges are emitted by
+  the same sequence as a duplicate. Both that sequence and the header
+  ``generation`` are stamped when the consumer connects, so they describe
+  the moment of connection rather than the last status change. The
+  capture-fault edges are emitted by
   zmc once per transition; because the socket survives camera reconnects,
   ``connection_failed`` is observable exactly when media has stopped.
 

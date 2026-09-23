@@ -809,3 +809,33 @@ TEST_CASE("StreamSocket::SetStreams drops a video stream the source no longer ha
 
   server.Stop();
 }
+
+TEST_CASE("StreamSocket frames the snapshot with the generation and event sequence at connect", "[stream_socket]") {
+  StreamSocket server(1, kSockPath);
+  REQUIRE(server.Start());
+
+  // Snapshot cached while generation 0 and no events produced yet
+  server.SetSnapshotEvent(make_state_event(kEventSnapshot, 0, 0, "IDLE"));
+
+  // Then the stream is reconfigured and two events go by with nobody listening
+  codec_parameters_ptr video = make_h264_parameters();
+  server.SetVideoParams(video.get(), {0, 0});
+  video->width = 1280;
+  server.SetVideoParams(video.get(), {0, 0});
+  server.SendMonitorEvent(make_state_event(kEventConnectionFailed, 0, 0, ""));
+  server.SendMonitorEvent(make_state_event(kEventConnectionRestored, 0, 0, ""));
+
+  TestClient client;
+  REQUIRE(client.Connect());
+  ReceivedMessage message;
+  REQUIRE(client.ReadMessage(message));  // video HELLO
+  REQUIRE(message.header.generation == 1);
+
+  REQUIRE(client.ReadMessage(message));
+  REQUIRE(message.header.type == static_cast<uint8_t>(MessageType::Event));
+  // Header reflects the moment of connect, not the moment the status last moved
+  REQUIRE(message.header.generation == 1);
+  REQUIRE(message.header.sequence == 2);
+
+  server.Stop();
+}

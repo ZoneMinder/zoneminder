@@ -106,7 +106,9 @@ class StreamSocket {
 
   // Cache the current-status snapshot replayed to each new consumer on connect
   // (the events analogue of the cached keyframe). payload is a pre-built EVENT
-  // body of code kEventSnapshot. Caching only; does not broadcast.
+  // body of code kEventSnapshot. Caching only; does not broadcast. The header
+  // is framed when a consumer connects, so it always carries the generation
+  // and event sequence in effect at that moment.
   void SetSnapshotEvent(std::vector<uint8_t> payload);
 
   // Drop the cached keyframe. Called when the capture source closes so a
@@ -195,7 +197,7 @@ class StreamSocket {
   MessagePtr hello_video_;
   MessagePtr hello_audio_;
   MessagePtr keyframe_;
-  MessagePtr snapshot_;            // current-status EVENT, replayed on connect
+  std::vector<uint8_t> snapshot_payload_;  // current-status EVENT body, framed per connect
   std::vector<uint8_t> hello_video_payload_;
   std::vector<uint8_t> hello_audio_payload_;
   uint32_t generation_ = 0;

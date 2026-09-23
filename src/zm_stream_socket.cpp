@@ -365,10 +365,11 @@ void StreamSocket::SendMonitorEvent(std::vector<uint8_t> payload) {
 
 void StreamSocket::SetSnapshotEvent(std::vector<uint8_t> payload) {
   std::lock_guard<std::mutex> lock(mutex_);
-  // The snapshot is the consumer's authoritative current status on connect; it
-  // is tagged with the current event sequence as a baseline and not broadcast.
-  snapshot_ = MakeMessage(MessageType::Event, StreamId::Monitor, 0,
-                          event_sequence_, 0, std::move(payload), true);
+  // The snapshot is the consumer's authoritative current status on connect. It
+  // is not broadcast, and only the body is kept: AcceptClient frames it, so
+  // the header carries the generation and the event-sequence baseline that are
+  // current when the consumer connects rather than when the status last moved.
+  snapshot_payload_ = std::move(payload);
 }
 
 void StreamSocket::InvalidateKeyframe() {
@@ -549,8 +550,11 @@ void StreamSocket::AcceptClient() {
       EnqueueLocked(*client, hello_audio_);
     if (hello_video_)
       EnqueueLocked(*client, hello_video_);
-    if (snapshot_)
-      EnqueueLocked(*client, snapshot_);
+    if (!snapshot_payload_.empty()) {
+      EnqueueLocked(*client, MakeMessage(MessageType::Event, StreamId::Monitor, 0,
+                                         event_sequence_, 0,
+                                         std::vector<uint8_t>(snapshot_payload_), true));
+    }
     if (keyframe_)
       EnqueueLocked(*client, keyframe_);
 

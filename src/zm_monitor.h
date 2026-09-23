@@ -742,6 +742,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // because health events come from the capture thread while state_changed
   // events come from the analysis thread.
   uint16_t stream_health_code = 0;
+  // Mirror of the analysis state for the snapshot, written by SetState() under
+  // stream_event_mutex so the capture thread never reads `state` itself.
+  State stream_snapshot_state = IDLE;
   std::string stream_health_message;
   std::mutex stream_event_mutex;
   // Rebuild and cache the stream socket snapshot from current state + health.

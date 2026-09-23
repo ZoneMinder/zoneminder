@@ -4235,20 +4235,22 @@ std::string StateName(Monitor::State s) {
 void Monitor::RefreshStreamSnapshot() {
   if (!stream_socket)
     return;
+  // State changes come from the analysis thread and health changes from the
+  // capture thread. Build and publish under one lock, from the mirrored state
+  // rather than the analysis thread's own member, so each snapshot is a
+  // consistent view and a slower thread cannot publish an older view last.
+  std::lock_guard<std::mutex> lock(stream_event_mutex);
   zm::stream_socket::MonitorEvent ev;
   ev.code = zm::stream_socket::kEventSnapshot;
   ev.wall_clock_us = SystemClockMicros();
   ev.has_wall_clock = true;
-  ev.state_id = static_cast<uint32_t>(state);
+  ev.state_id = static_cast<uint32_t>(stream_snapshot_state);
   ev.has_state_id = true;
-  ev.state_name = StateName(state);
-  {
-    std::lock_guard<std::mutex> lock(stream_event_mutex);
-    if (stream_health_code != 0) {
-      ev.health_code = stream_health_code;
-      ev.has_health_code = true;
-      ev.message = stream_health_message;
-    }
+  ev.state_name = StateName(stream_snapshot_state);
+  if (stream_health_code != 0) {
+    ev.health_code = stream_health_code;
+    ev.has_health_code = true;
+    ev.message = stream_health_message;
   }
   stream_socket->SetSnapshotEvent(zm::stream_socket::BuildEvent(ev));
 }
@@ -4256,6 +4258,10 @@ void Monitor::RefreshStreamSnapshot() {
 void Monitor::SetState(State new_state) {
   State prev_state = state;
   shared_data->state = state = new_state;
+  {
+    std::lock_guard<std::mutex> lock(stream_event_mutex);
+    stream_snapshot_state = new_state;
+  }
   if (new_state == prev_state or !stream_socket)
     return;
 
@@ -4286,6 +4292,10 @@ void Monitor::StartStreamSocket() {
   }
   // Publish an initial snapshot so a consumer that connects before the first
   // successful prime learns current state and any fault already recorded.
+  {
+    std::lock_guard<std::mutex> lock(stream_event_mutex);
+    stream_snapshot_state = state;  // no analysis thread yet at this point
+  }
   RefreshStreamSnapshot();
 }
 

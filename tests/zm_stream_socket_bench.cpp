@@ -212,7 +212,10 @@ Result RunScenario(size_t consumer_count) {
   auto start = std::chrono::steady_clock::now();
   for (size_t i = 0; i < kPackets; ++i) {
     bool key = (i % kGop) == 0;
-    std::this_thread::sleep_until(start + kPacketInterval * i);
+    // Signed multiplier: a size_t would give the deadline an unsigned rep, and
+    // libc++'s sleep_until underflows to a near-infinite sleep once the
+    // deadline is already in the past.
+    std::this_thread::sleep_until(start + kPacketInterval * static_cast<int64_t>(i));
     double cpu0 = cpu_seconds(CLOCK_THREAD_CPUTIME_ID);
     auto t0 = std::chrono::steady_clock::now();
     server.SendMedia(key ? keyframe.get() : delta.get(), StreamId::Video, key,

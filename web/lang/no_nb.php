@@ -238,7 +238,6 @@ $SLANG = array(
     'DefaultScale'          => 'Standard Skala',
     'DefaultCodec'          => 'Standard Metode For Vis Hendelser',
     'DefaultView'           => 'Standard Visning',
-    'RTSPDescribe'          => 'Bruk RTSP Response Media URL',
     'DeleteAndNext'         => 'Slett &amp; Neste',
     'DeleteAndPrev'         => 'Slett &amp; Forrige',
     'DeleteSavedFilter'     => 'Slett lagret filter',
@@ -854,15 +853,6 @@ $OLANG = array(
 	'OPTIONS_EXIF' => array(
 		'Hjelp' => 'Aktiver dette valget for å bake inn EXIT-data i hver JPEG ramme.'
 	),
-	'OPTIONS_RTSPDESCRIBE' => array(
-    'Hjelp' => '
-    Noen ganger, under første RTSP handshake, vil kameraet sende en oppdatert media URL.
-      Aktiver denne for å be Zoneminder om å bruke denne URL\'en. Deaktiver valget for å ignorere
-      verdien fra kameraet og bruk verdign oppgitt i monitorkonfigurasjonen~~~~
-      Generelt sett bør denne være aktivert. Men, det finnes tilfeller hvor kameraet kan oppgi
-      feil URL, for eksempel dersom strømmen går gjennom en brannmur
-    '
-  ),
 	'OPTIONS_MAXFPS' => array(
     'Hjelp' => '
       Dette feltet har enkelse begrensninger for bruk med ikke-lokale enheter.~~

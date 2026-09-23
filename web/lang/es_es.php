@@ -603,7 +603,6 @@ $SLANG = array(
     'ProfileProbeIntro'    => 'The list below shows the existing stream profiles of the selected camera .<br/><br/>Select the desired entry from the list below.<br/><br/>Please note that ZoneMinder cannot configure additional profiles and that choosing a camera here may overwrite any values you already have configured for the current monitor.<br/><br/>', // Added - 2015-04-18
     'Progress'             => 'Progress',               // Added - 2015-04-18
     'Protocol'              => 'Protocolo',
-    'RTSPDescribe'         => 'Use RTSP Response Media URL', // Added - 2018-08-30
     'RTSPTransport'        => 'RTSP Transport Protocol', // Added - 2018-08-30
     'Rate'                  => 'Valorar',
     'Real'                  => 'Real',

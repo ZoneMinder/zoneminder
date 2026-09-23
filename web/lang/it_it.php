@@ -609,7 +609,6 @@ $SLANG = array(
     'ProfileProbeIntro'    => 'L\'elenco seguente mostra i profili di streaming esistenti della telecamera selezionata.<br/><br/>Selezionare la voce desiderata dall\'elenco seguente.<br/><br/>Si noti che ZoneMinder non è in grado di configurare profili aggiuntivi e che la scelta di una telecamera qui può sovrascrivere qualsiasi valore già configurato per il monitor corrente.<br/><br/>', // Added - 2015-04-18
     'Progress'             => 'Progresso',               // Added - 2015-04-18
     'Protocol'             => 'Protocollo',
-    'RTSPDescribe'         => 'Usa URL multimediale di risposta RTSP', // Added - 2018-08-30
     'RTSPTransport'        => 'RTSP Transport Protocol', // Added - 2018-08-30
     'Rate'                 => 'Velocità',
     'Real'                 => 'Reale',

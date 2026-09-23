@@ -229,11 +229,6 @@ function updateMethods(element) {
       ?>
     break;
   }
-  if (element.value == 'rtsp') {
-    $j('#RTSPDescribe').show();
-  } else {
-    $j('#RTSPDescribe').hide();
-  }
   return true;
 }
 const monitors = <?php global $monitors; echo isset($monitors) ? json_encode($monitors) : '{}' ?>;

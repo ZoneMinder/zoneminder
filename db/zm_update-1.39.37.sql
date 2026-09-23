@@ -26,3 +26,26 @@ UPDATE `Monitors`
                   IF(`Path` IS NULL OR `Path` = '', '/',
                      IF(LEFT(`Path`, 1) = '/', `Path`, CONCAT('/', `Path`))))
  WHERE `Type` = 'Remote' AND `Protocol` = 'rtsp';
+
+--
+-- Monitors.RTSPDescribe goes with the rtsp client that was its only reader.
+--
+-- It chose whether to take the media url from the DESCRIBE response rather
+-- than the configured path, which was a quirk of ZoneMinder's own rtsp
+-- implementation. Ffmpeg handles that itself, so with that client removed the
+-- setting had nothing behind it: the web ui still drew the checkbox and still
+-- saved the value, but nothing read the column.
+--
+-- Guarded so the file stays re-runnable: DROP COLUMN is the one statement
+-- here that fails rather than no-ops the second time. Scoped to DATABASE()
+-- so a same-named column in another schema cannot satisfy the check.
+--
+set @exist := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE table_schema = DATABASE()
+                  AND table_name = 'Monitors' AND column_name = 'RTSPDescribe');
+set @sqlstmt := if(@exist > 0,
+  'ALTER TABLE `Monitors` DROP COLUMN `RTSPDescribe`',
+  "SELECT 'Monitors.RTSPDescribe has already been dropped'");
+PREPARE stmt FROM @sqlstmt;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;

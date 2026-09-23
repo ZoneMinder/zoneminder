@@ -271,7 +271,6 @@ $SLANG = array(
     'DefaultScale'          => 'Podrazumjevani razmjer',
     'DefaultView'           => 'Podrazumjevani prikaz',
     'Deinterlacing'         => 'Deinterlacing',
-    'RTSPDescribe'         => 'Use RTSP Response Media URL',
     'Delay'                 => 'Zadrška',
     'DeleteAndNext'         => 'Izbriši &amp; Sljedeće',
     'DeleteAndPrev'         => 'Izbriši &amp; Preth',
@@ -968,12 +967,6 @@ $OLANG = array(
 	'OPTIONS_EXIF' => array(
 		'Help' => "Enable this option to embed EXIF data into each jpeg frame."
 	),
-	'OPTIONS_RTSPDESCRIBE' => array(
-		'Help' => "Sometimes, during the initial RTSP handshake, the camera will send an updated media URL. ".
-		          "Enable this option to tell ZoneMinder to use this URL. Disable this option to ignore the ".
-		          "value from the camera and use the value as entered in the monitor configuration~~~~". 
-		          "Generally this should be enabled. However, there are cases where the camera can get its".
-		          "own URL incorrect, such as when the camera is streaming through a firewall"),
 	'OPTIONS_MAXFPS' => array(
 		'Help' => "This field has certain limitations when used for non-local devices.~~ ".
 		          "Failure to adhere to these limitations will cause a delay in live video, irregular frame skipping, ".

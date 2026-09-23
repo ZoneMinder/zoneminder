@@ -561,7 +561,6 @@ $SLANG = array(
     'ProfileProbeIntro'    => 'La siguiente lista muestra los perfiles de transmisión existentes de la cámara seleccionada.<br/><br/>Seleccione la entrada deseada de la lista siguiente.<br/><br/>Tenga en cuenta que ZoneMinder no puede configurar perfiles adicionales y que elegir un cámara aquí puede sobrescribir cualquier valor que ya haya configurado para el monitor existente.<br/><br/>', // Added - 2015-04-18
     'Progress'             => 'Progreso',               // Added - 2015-04-18
     'Protocol'             => 'Protocolo',
-    'RTSPDescribe'         => 'Use el URL de RTSP', // Added - 2018-08-30
     'RTSPTransport'        => 'Protocolo Transp. RTSP', // Added - 2018-08-30
     'Rate'                 => 'Tasa',
     'Real'                 => 'Real',

@@ -292,7 +292,6 @@ class Monitor extends ZM_Object {
     'AudioThreshold' => array('type'=>'integer', 'default'=>0),
     'AudioAlarmScore' => array('type'=>'integer', 'default'=>9),
     #'OutputSourceStream'  => 'Primary',
-    'RTSPDescribe'  =>  array('type'=>'boolean','default'=>0),
     'Brightness'  =>  -1,
     'Contrast'    =>  -1,
     'Hue'         =>  -1,

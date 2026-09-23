@@ -728,7 +728,6 @@ CREATE TABLE `Monitors` (
   `AudioThreshold` tinyint(3) unsigned NOT NULL default '0',
   `AudioAlarmScore` smallint(5) unsigned NOT NULL default '9',
   `RecordingSource`  enum('Primary','Secondary','Both') NOT NULL DEFAULT 'Primary',
-  `RTSPDescribe` tinyint(1) unsigned,
   `Brightness` mediumint(7) NOT NULL default '-1',
   `Contrast` mediumint(7) NOT NULL default '-1',
   `Hue` mediumint(7) NOT NULL default '-1',

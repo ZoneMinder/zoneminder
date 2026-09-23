@@ -255,7 +255,6 @@ $SLANG = array(
     'DefaultScale'          => 'デフォルトスケール',
     'DefaultCodec'          => 'イベントビュー用のデフォルト方法',
     'DefaultView'           => 'デフォルトビュー',
-    'RTSPDescribe'          => 'RTSP応答メディアURLを使用',
     'DeleteAndNext'         => '削除 &amp; 次へ',
     'DeleteAndPrev'         => '削除 &amp; 前へ',
     'DeleteSavedFilter'     => '保存されたフィルタを削除',
@@ -1377,13 +1376,6 @@ $OLANG = array(
     ),
     'OPTIONS_EXIF' => array(
         'Help' => 'このオプションを有効にすると、各 JPEG フレームに EXIF データを埋め込むことができます。'
-    ),
-    'OPTIONS_RTSPDESCRIBE' => array(
-        'Help' => '
-      初期 RTSP ハンドシェイク中に、カメラが更新されたメディア URL を送信することがあります。
-      このオプションを有効にすると、ZoneMinder がこの URL を使用するようになります。このオプションを無効にすると、カメラからの値を無視し、モニター設定で入力された値を使用します~~~~
-      一般的にはこれを有効にするべきです。ただし、カメラがファイアウォールを通してストリーミングしている場合など、カメラが自分の URL を間違えることがあります。
-    '
     ),
     'OPTIONS_MAXFPS' => array(
         'Help' => '

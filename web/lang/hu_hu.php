@@ -614,7 +614,6 @@ $SLANG = array(
     'ProfileProbeIntro'    => 'Az alábbi lista a kiválaszott kamera meglévő adatfolyam-profiljait mutatja.<br/><br/>Válassza ki a kívánt opciót az alábbi listából.<br/><br/>Fontos, hogy a ZoneMinder nem tud új profilokat létrehozni, illetve egy kamera kiválasztásával az ehhez eddig beállított értékek felülíródnak.<br/><br/>',
     'Progress'             => 'Folyamat',
     'Protocol'             => 'Protokoll',
-    'RTSPDescribe'         => 'RTSP válasz média URL használata',
     'RTSPTransport'        => 'RTSP átviteli protokoll',
     'Rate'                 => 'FPS',
     'Real'                 => 'Valós',

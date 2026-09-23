@@ -605,7 +605,6 @@ $SLANG = array(
     'ProfileProbeIntro'    => 'Die folgende Liste zeigt die verfügbaren Streamingprofile der ausgewählten Kamera.<br/><br/>Wähle den gewünschten Eintrag aus der folgenden Liste.<br/><br/>Bitte Beachten: Zoneminder kann keine zusätzlichen Profile konfigurieren. Die Auswahl einer Kamera kann bereits eingetragene Werte im aktuellen Monitor überschreiben.<br/><br/>', // Added - 2015-04-18
     'Progress'             => 'Fortschritt',               // Added - 2015-04-18
     'Protocol'             => 'Protokoll',
-    'RTSPDescribe'         => 'Use RTSP Response Media URL', // Added - 2018-08-30
     'RTSPTransport'        => 'RTSP Transport Protocol', // Added - 2018-08-30
     'Rate'                 => 'Abspielgeschwindigkeit',
     'Real'                 => 'Real',

@@ -1018,14 +1018,6 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
             </li>
 <?php
         }
-        if ( $monitor->Type() == 'Remote' ) {
-          ?>
-            <li id="RTSPDescribe"<?php if ( $monitor->Protocol()!= 'rtsp' ) { echo ' style="display:none;"'; } ?>>
-              <label><?php echo translate('RTSPDescribe'); echo makeHelpLink('OPTIONS_RTSPDESCRIBE') ?></label>
-              <input type="checkbox" name="newMonitor[RTSPDescribe]" value="1"<?php if ( $monitor->RTSPDescribe() ) { ?> checked="checked"<?php } ?>/>
-            </li>
-<?php
-      } # end if monitor->Type() == 'Remote'
 ?>
             <li class="MaxFPS">
               <label><?php echo translate('MaximumFPS'); echo makeHelpLink('OPTIONS_MAXFPS') ?></label>

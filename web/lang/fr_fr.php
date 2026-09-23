@@ -587,7 +587,6 @@ $SLANG = array(
     'ProfileProbeIntro'    => 'La liste ci-dessous montre les profils de flux existants pour la caméra sélectionnée.<br/><br/>Sélectionnez le profil désiré dans la liste ci-dessous.<br/><br/>Veuillez noter que ZoneMinder ne peut pas configurer de profils additionels et que la sauvegarde entraînera l\'écrasement des paramètres déjà configurés pour la caméra en cours.<br/><br/>', // Added - 2015-04-18
     'Progress'             => 'Progression',               // Added - 2015-04-18
     'Protocol'             => 'Protocole',
-    'RTSPDescribe'         => 'Use RTSP Response Media URL', // Added - 2018-08-30
     'RTSPTransport'        => 'RTSP Transport Protocol', // Added - 2018-08-30
     'Rate'                 => 'Vitesse',
     'Real'                 => 'Réel',

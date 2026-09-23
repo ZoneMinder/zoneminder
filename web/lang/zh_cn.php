@@ -636,7 +636,6 @@ $SLANG = array(
     'ProfileProbeIntro'    => '以下列表显示了所选摄像头可用的流媒体。<br/><br/>从列表中选择一个你想要的项<br/><br/>请注意ZoneMinder不能设置额外的配置并且选择摄像头可能会覆盖一些你已设置的配置。<br/><br/>', // Added - 2015-04-18
     'Progress'             => 'Progress',               // Added - 2015-04-18
     'Protocol'              => '协议',
-    'RTSPDescribe'         => '使用 RTSP Response 媒体链接', // Added - 2018-08-30
     'RTSPTransport'        => 'RTSP传输协议', // Added - 2018-08-30
     'Rate'                  => '速率',
     'Real'                  => '实际',

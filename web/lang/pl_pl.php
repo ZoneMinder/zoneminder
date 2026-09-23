@@ -588,7 +588,6 @@ $SLANG = array(
     'ProfileProbeIntro'    => 'Poniższa lista pokazuje istniejące profile strumieni wybranej kamery.<br/><br/>Wybierz żądany wpis z listy poniżej.<br/><br/>Należy pamiętać, że ZoneMinder nie może skonfigurować dodatkowych profili i że wybór tutaj kamery może zastąpić wszystkie wartości skonfigurowane dla bieżącego monitora.<br/><br/>',
     'Progress'             => 'Postęp',
     'Protocol'             => 'Protokół',
-    'RTSPDescribe'         => 'Użyj URL nośnika odpowiedzi RTSP',
     'RTSPTransport'        => 'Protokół transportu RTSP',
     'Rate'                 => 'Tempo',
     'Real'                 => 'Rzeczywista',

@@ -540,10 +540,10 @@ TEST_CASE("StreamSocket::ClearAudioParams stops announcing audio", "[stream_sock
   StreamSocket server(1, kSockPath);
   REQUIRE(server.Start());
 
+  // Both streams announced together, as a monitor prime does: generation 0
   codec_parameters_ptr vpar = make_h264_parameters();
-  server.SetVideoParams(vpar.get(), {0, 0});
   codec_parameters_ptr apar = make_aac_parameters();
-  server.SetAudioParams(apar.get());
+  server.SetStreams(vpar.get(), {0, 0}, apar.get());
 
   // A keyframe is cached for late joiners under generation 0
   av_packet_ptr keyframe = make_packet(300, 0x5A);
@@ -661,6 +661,151 @@ TEST_CASE("StreamSocket::InvalidateKeyframe stops replaying a stale keyframe", "
   REQUIRE(client.ReadMessage(next));
   REQUIRE(next.header.type == static_cast<uint8_t>(MessageType::Media));
   REQUIRE(next.header.pts_us == 2000);
+
+  server.Stop();
+}
+
+TEST_CASE("StreamSocket bumps the generation when audio joins an announced video stream", "[stream_socket]") {
+  StreamSocket server(1, kSockPath);
+  REQUIRE(server.Start());
+
+  // A complete video-only generation 0
+  codec_parameters_ptr video = make_h264_parameters();
+  server.SetVideoParams(video.get(), {0, 0});
+
+  TestClient client;
+  REQUIRE(client.Connect());
+  ReceivedMessage message;
+  REQUIRE(client.ReadMessage(message));
+  REQUIRE(message.header.type == static_cast<uint8_t>(MessageType::Hello));
+  REQUIRE(message.header.stream == static_cast<uint8_t>(StreamId::Video));
+  REQUIRE(message.header.generation == 0);
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+  // A re-prime finds audio for the first time. The video HELLO already
+  // completed generation 0, so this is a new generation: audio HELLO first,
+  // then the video HELLO re-issued to complete the new set.
+  codec_parameters_ptr audio = make_aac_parameters();
+  server.SetAudioParams(audio.get());
+
+  REQUIRE(client.ReadMessage(message));
+  REQUIRE(message.header.type == static_cast<uint8_t>(MessageType::Hello));
+  REQUIRE(message.header.stream == static_cast<uint8_t>(StreamId::Audio));
+  REQUIRE(message.header.generation == 1);
+
+  REQUIRE(client.ReadMessage(message));
+  REQUIRE(message.header.type == static_cast<uint8_t>(MessageType::Hello));
+  REQUIRE(message.header.stream == static_cast<uint8_t>(StreamId::Video));
+  REQUIRE(message.header.generation == 1);
+
+  server.Stop();
+}
+
+TEST_CASE("StreamSocket::SetStreams keeps the initial announcement in generation 0", "[stream_socket]") {
+  StreamSocket server(1, kSockPath);
+  REQUIRE(server.Start());
+
+  codec_parameters_ptr video = make_h264_parameters();
+  codec_parameters_ptr audio = make_aac_parameters();
+  server.SetStreams(video.get(), {25, 1}, audio.get());
+  // Re-applying the same set (a camera reconnect with nothing changed) is a no-op
+  server.SetStreams(video.get(), {25, 1}, audio.get());
+
+  TestClient client;
+  REQUIRE(client.Connect());
+  ReceivedMessage message;
+  REQUIRE(client.ReadMessage(message));
+  REQUIRE(message.header.stream == static_cast<uint8_t>(StreamId::Audio));
+  REQUIRE(message.header.generation == 0);
+  REQUIRE(client.ReadMessage(message));
+  REQUIRE(message.header.stream == static_cast<uint8_t>(StreamId::Video));
+  REQUIRE(message.header.generation == 0);
+
+  server.Stop();
+}
+
+TEST_CASE("StreamSocket::SetStreams changes both streams in one generation", "[stream_socket]") {
+  StreamSocket server(1, kSockPath);
+  REQUIRE(server.Start());
+
+  codec_parameters_ptr video = make_h264_parameters();
+  codec_parameters_ptr audio = make_aac_parameters();
+  server.SetStreams(video.get(), {0, 0}, audio.get());
+
+  TestClient client;
+  REQUIRE(client.Connect());
+  ReceivedMessage message;
+  REQUIRE(client.ReadMessage(message));  // audio HELLO, generation 0
+  REQUIRE(client.ReadMessage(message));  // video HELLO, generation 0
+  REQUIRE(message.header.generation == 0);
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+  // The camera comes back with a different resolution and sample rate
+  video->width = 1920;
+  video->height = 1080;
+  audio->sample_rate = 8000;
+  server.SetStreams(video.get(), {0, 0}, audio.get());
+
+  // Exactly one new generation, audio first, and the pairing is consistent:
+  // no intermediate generation that mixes new audio with old video.
+  REQUIRE(client.ReadMessage(message));
+  REQUIRE(message.header.stream == static_cast<uint8_t>(StreamId::Audio));
+  REQUIRE(message.header.generation == 1);
+  HelloInfo info;
+  REQUIRE(ParseHello(message.payload.data(), message.payload.size(), info));
+  REQUIRE(info.sample_rate == 8000);
+
+  REQUIRE(client.ReadMessage(message));
+  REQUIRE(message.header.stream == static_cast<uint8_t>(StreamId::Video));
+  REQUIRE(message.header.generation == 1);
+  REQUIRE(ParseHello(message.payload.data(), message.payload.size(), info));
+  REQUIRE(info.width == 1920);
+
+  // The next thing on the wire is media in generation 1, not another HELLO
+  av_packet_ptr packet = make_packet(100, 0x33);
+  server.SendMedia(packet.get(), StreamId::Video, false, 1);
+  REQUIRE(client.ReadMessage(message));
+  REQUIRE(message.header.type == static_cast<uint8_t>(MessageType::Media));
+  REQUIRE(message.header.generation == 1);
+  REQUIRE(message.header.sequence == 0);
+
+  server.Stop();
+}
+
+TEST_CASE("StreamSocket::SetStreams drops a video stream the source no longer has", "[stream_socket]") {
+  StreamSocket server(1, kSockPath);
+  REQUIRE(server.Start());
+
+  codec_parameters_ptr video = make_h264_parameters();
+  codec_parameters_ptr audio = make_aac_parameters();
+  server.SetStreams(video.get(), {0, 0}, audio.get());
+  av_packet_ptr keyframe = make_packet(500, 0x5A);
+  server.SendMedia(keyframe.get(), StreamId::Video, true, 1000);
+
+  // Re-prime without video (null, or a stream with no codec id)
+  codec_parameters_ptr none{avcodec_parameters_alloc()};
+  none->codec_type = AVMEDIA_TYPE_VIDEO;
+  none->codec_id = AV_CODEC_ID_NONE;
+  server.SetStreams(none.get(), {0, 0}, audio.get());
+
+  // A new consumer is told about audio only: no stale video HELLO, no keyframe
+  TestClient client;
+  REQUIRE(client.Connect());
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  ReceivedMessage message;
+  REQUIRE(client.ReadMessage(message));
+  REQUIRE(message.header.type == static_cast<uint8_t>(MessageType::Hello));
+  REQUIRE(message.header.stream == static_cast<uint8_t>(StreamId::Audio));
+  REQUIRE(message.header.generation == 1);
+
+  // Video packets are no longer forwarded; audio still is
+  av_packet_ptr packet = make_packet(100, 0x44);
+  server.SendMedia(packet.get(), StreamId::Video, true, 2000);
+  server.SendMedia(packet.get(), StreamId::Audio, false, 3000);
+  REQUIRE(client.ReadMessage(message));
+  REQUIRE(message.header.type == static_cast<uint8_t>(MessageType::Media));
+  REQUIRE(message.header.stream == static_cast<uint8_t>(StreamId::Audio));
+  REQUIRE(message.header.pts_us == 3000);
 
   server.Stop();
 }

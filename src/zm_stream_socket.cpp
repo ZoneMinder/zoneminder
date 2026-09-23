@@ -185,85 +185,102 @@ bool StreamSocket::CheckPeer(int fd, uid_t &uid, pid_t &pid) const {
          != config_.allowed_uids.end();
 }
 
-void StreamSocket::SetVideoParams(const AVCodecParameters *par, AVRational frame_rate) {
-  std::vector<uint8_t> payload = BuildHello(par, frame_rate);
+namespace {
+// HELLO body for a stream, or empty when the source has no such stream.
+std::vector<uint8_t> HelloPayload(const AVCodecParameters *par, AVRational frame_rate) {
+  if (!par or par->codec_id == AV_CODEC_ID_NONE)
+    return {};
+  return BuildHello(par, frame_rate);
+}
+}  // namespace
+
+void StreamSocket::SetStreams(const AVCodecParameters *video, AVRational frame_rate,
+                              const AVCodecParameters *audio) {
+  std::vector<uint8_t> video_payload = HelloPayload(video, frame_rate);
+  std::vector<uint8_t> audio_payload = HelloPayload(audio, {0, 0});
+  bool changed;
   {
     std::lock_guard<std::mutex> lock(mutex_);
-    if (payload == hello_video_payload_)
-      return;
-    bool reconfigure = !hello_video_payload_.empty();
-    if (reconfigure) {
-      ++generation_;
-      sequence_[0] = sequence_[1] = 0;
-      keyframe_.reset();
-      Info("StreamSocket: monitor %u video parameters changed, generation now %u",
-           monitor_id_, generation_);
-    }
-    if (reconfigure and !hello_audio_payload_.empty()) {
-      // Re-issue the audio HELLO under the new generation, before the video
-      // HELLO: the video HELLO is always the last HELLO of a generation.
-      hello_audio_ = MakeMessage(MessageType::Hello, StreamId::Audio, 0, 0, 0,
-                                 std::vector<uint8_t>(hello_audio_payload_), true);
-      BroadcastLocked(hello_audio_);
-    }
-    hello_video_payload_ = payload;
-    hello_video_ = MakeMessage(MessageType::Hello, StreamId::Video, 0, 0, 0,
-                               std::move(payload), true);
-    BroadcastLocked(hello_video_);
+    changed = ApplyStreamsLocked(std::move(video_payload), std::move(audio_payload));
   }
-  Wake();
+  if (changed)
+    Wake();
+}
+
+void StreamSocket::SetVideoParams(const AVCodecParameters *par, AVRational frame_rate) {
+  std::vector<uint8_t> payload = HelloPayload(par, frame_rate);
+  bool changed;
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    changed = ApplyStreamsLocked(std::move(payload), std::vector<uint8_t>(hello_audio_payload_));
+  }
+  if (changed)
+    Wake();
 }
 
 void StreamSocket::SetAudioParams(const AVCodecParameters *par) {
-  std::vector<uint8_t> payload = BuildHello(par, {0, 0});
+  std::vector<uint8_t> payload = HelloPayload(par, {0, 0});
+  bool changed;
   {
     std::lock_guard<std::mutex> lock(mutex_);
-    if (payload == hello_audio_payload_)
-      return;
-    bool reconfigure = !hello_audio_payload_.empty();
-    if (reconfigure) {
-      ++generation_;
-      sequence_[0] = sequence_[1] = 0;
-      keyframe_.reset();
-      Info("StreamSocket: monitor %u audio parameters changed, generation now %u",
-           monitor_id_, generation_);
-    }
-    hello_audio_payload_ = payload;
-    hello_audio_ = MakeMessage(MessageType::Hello, StreamId::Audio, 0, 0, 0,
-                               std::move(payload), true);
-    BroadcastLocked(hello_audio_);
-    if (reconfigure and !hello_video_payload_.empty()) {
-      hello_video_ = MakeMessage(MessageType::Hello, StreamId::Video, 0, 0, 0,
-                                 std::vector<uint8_t>(hello_video_payload_), true);
-      BroadcastLocked(hello_video_);
-    }
+    changed = ApplyStreamsLocked(std::vector<uint8_t>(hello_video_payload_), std::move(payload));
   }
-  Wake();
+  if (changed)
+    Wake();
+}
+
+void StreamSocket::ClearVideoParams() {
+  SetVideoParams(nullptr, {0, 0});
 }
 
 void StreamSocket::ClearAudioParams() {
-  {
-    std::lock_guard<std::mutex> lock(mutex_);
-    if (hello_audio_payload_.empty())
-      return;  // no audio was announced; nothing to forget
-    hello_audio_payload_.clear();
-    hello_audio_.reset();
-    // A dropped stream is a parameter change like any other: bump the
-    // generation so consumers re-init, restart both sequences, drop the cached
-    // keyframe (its header carries the old generation) and re-issue the
-    // surviving video HELLO under the new one.
+  SetAudioParams(nullptr);
+}
+
+bool StreamSocket::ApplyStreamsLocked(std::vector<uint8_t> video, std::vector<uint8_t> audio) {
+  bool video_changed = video != hello_video_payload_;
+  bool audio_changed = audio != hello_audio_payload_;
+  if (!video_changed and !audio_changed)
+    return false;
+
+  // A generation is complete once its video HELLO has gone out; from then on
+  // any change - new parameters, a stream appearing, a stream disappearing -
+  // starts a new one. Before that (the initial audio-then-video announcement)
+  // only a change to an already announced stream does.
+  bool bump = !hello_video_payload_.empty()
+              or (audio_changed and !hello_audio_payload_.empty());
+  if (bump) {
     ++generation_;
     sequence_[0] = sequence_[1] = 0;
-    keyframe_.reset();
-    Info("StreamSocket: monitor %u audio stream removed, generation now %u",
-         monitor_id_, generation_);
-    if (!hello_video_payload_.empty()) {
-      hello_video_ = MakeMessage(MessageType::Hello, StreamId::Video, 0, 0, 0,
-                                 std::vector<uint8_t>(hello_video_payload_), true);
-      BroadcastLocked(hello_video_);
-    }
+    keyframe_.reset();  // its header carries the old generation
+    Info("StreamSocket: monitor %u stream parameters changed (video %s, audio %s),"
+         " generation now %u", monitor_id_,
+         video.empty() ? "none" : (video_changed ? "changed" : "same"),
+         audio.empty() ? "none" : (audio_changed ? "changed" : "same"),
+         generation_);
   }
-  Wake();
+
+  hello_video_payload_ = std::move(video);
+  hello_audio_payload_ = std::move(audio);
+
+  // On a bump every remaining stream is re-announced under the new generation;
+  // otherwise only what is new. Audio first: the video HELLO is always the
+  // last HELLO of a generation.
+  if (hello_audio_payload_.empty()) {
+    hello_audio_.reset();
+  } else if (bump or audio_changed) {
+    hello_audio_ = MakeMessage(MessageType::Hello, StreamId::Audio, 0, 0, 0,
+                               std::vector<uint8_t>(hello_audio_payload_), true);
+    BroadcastLocked(hello_audio_);
+  }
+  if (hello_video_payload_.empty()) {
+    hello_video_.reset();
+  } else if (bump or video_changed) {
+    hello_video_ = MakeMessage(MessageType::Hello, StreamId::Video, 0, 0, 0,
+                               std::vector<uint8_t>(hello_video_payload_), true);
+    BroadcastLocked(hello_video_);
+  }
+  return true;
 }
 
 void StreamSocket::SendMedia(const AVPacket *packet, StreamId stream,

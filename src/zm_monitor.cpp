@@ -4367,33 +4367,26 @@ int Monitor::PrimeCapture() {
   // the fallback for the first successful prime.
   StartStreamSocket();
   if (stream_socket) {
-    // Announce audio whenever the camera has a decodable audio stream, not only
-    // when record_audio is set: Capture() forwards audio packets to the socket
-    // unconditionally, so a consumer needs the matching HELLO regardless of
-    // whether ZM writes the audio to events. Clear a previously announced
-    // stream that a re-prime no longer sees, so no stale HELLO is replayed.
-    // Audio goes first: the socket sends the audio HELLO before the video
-    // HELLO of a generation, so consumers build on the video HELLO.
+    // Apply both streams in one step so a re-prime that changes audio and
+    // video costs a single generation, and no consumer ever sees (or is handed
+    // on connect) new audio paired with old video.
+    //
+    // Audio is announced whenever the camera has a decodable audio stream, not
+    // only when record_audio is set: Capture() forwards audio packets to the
+    // socket unconditionally, so a consumer needs the matching HELLO regardless
+    // of whether ZM writes the audio to events. A stream the re-prime no longer
+    // sees is passed as null and drops out of the announcement. Cameras that
+    // hand us decoded images (V4L2, MJPEG over HTTP, VNC) have a video stream
+    // with no codec id and produce no encoded packets; SetStreams treats that
+    // as "no stream", so their socket carries lifecycle events only.
     AVStream *audioStream = (audio_stream_id >= 0) ? camera->getAudioStream() : nullptr;
-    if (audioStream and audioStream->codecpar
-        and audioStream->codecpar->codec_id != AV_CODEC_ID_NONE) {
-      stream_socket->SetAudioParams(audioStream->codecpar);
-    } else {
-      stream_socket->ClearAudioParams();
-    }
-    if (video_stream_id >= 0) {
-      AVStream *videoStream = camera->getVideoStream();
-      // Cameras that hand us decoded images (V4L2, MJPEG over HTTP, VNC) have a
-      // stream with no codec id and produce no encoded packets, so there is no
-      // media to announce; a HELLO without a codec would only be rejected by
-      // every consumer. The socket still serves lifecycle events for them.
-      if (videoStream and videoStream->codecpar
-          and videoStream->codecpar->codec_id != AV_CODEC_ID_NONE) {
-        AVRational frame_rate = videoStream->avg_frame_rate.num ?
-                                videoStream->avg_frame_rate : videoStream->r_frame_rate;
-        stream_socket->SetVideoParams(videoStream->codecpar, frame_rate);
-      }
-    }
+    AVStream *videoStream = (video_stream_id >= 0) ? camera->getVideoStream() : nullptr;
+    AVRational frame_rate = {0, 0};
+    if (videoStream)
+      frame_rate = videoStream->avg_frame_rate.num ? videoStream->avg_frame_rate
+                                                   : videoStream->r_frame_rate;
+    stream_socket->SetStreams(videoStream ? videoStream->codecpar : nullptr, frame_rate,
+                              audioStream ? audioStream->codecpar : nullptr);
     // Priming succeeded: capture is healthy. Cache a current-status snapshot so
     // the first consumer to connect learns the state without waiting for a
     // transition.

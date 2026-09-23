@@ -65,20 +65,31 @@ class StreamSocket {
   bool IsRunning() const { return thread_.joinable(); }
   const std::string &Path() const { return path_; }
 
-  // Configure (or re-configure) stream parameters. Caches and broadcasts a
-  // HELLO; if parameters changed from a previous configuration the generation
-  // is bumped and the cached keyframe invalidated. Within a generation the
-  // audio HELLO is always sent before the video HELLO (call SetAudioParams /
-  // ClearAudioParams before SetVideoParams on a re-prime), so a consumer can
-  // treat the video HELLO as completing that generation's parameter set.
+  // Apply the monitor's complete stream parameter set in one step. Either
+  // pointer may be null (or carry AV_CODEC_ID_NONE) for "this source has no
+  // such stream". Compared against what is currently announced:
+  //  - nothing changed: no-op
+  //  - a change after a video HELLO has gone out (parameters differ, a stream
+  //    appeared or disappeared): exactly one generation bump, sequences
+  //    restart, the cached keyframe is dropped and every remaining stream is
+  //    re-announced
+  //  - the initial announcement: generation stays 0
+  // Within a generation the audio HELLO is always sent before the video
+  // HELLO, so a consumer can treat the video HELLO as completing that
+  // generation's parameter set; a generation that ends without a video HELLO
+  // means the source currently has no video. Because both streams are applied
+  // under one lock, a consumer never sees (and a connecting consumer is never
+  // handed) a generation that mixes new audio with old video or vice versa.
   // frame_rate is video-only; pass {0, 0} when unknown.
+  void SetStreams(const AVCodecParameters *video, AVRational frame_rate,
+                  const AVCodecParameters *audio);
+
+  // Single-stream conveniences over the same logic, leaving the other stream
+  // as it is. A monitor re-prime should use SetStreams so a change to both
+  // streams costs one generation, not two.
   void SetVideoParams(const AVCodecParameters *par, AVRational frame_rate);
   void SetAudioParams(const AVCodecParameters *par);
-
-  // Forget the audio stream: drops the cached audio HELLO and stops announcing
-  // audio to new consumers. Called when a re-prime finds no audio stream (a
-  // camera that lost audio, or record_audio turned off) so a stale HELLO is not
-  // replayed and the generation bumps like any other parameter change.
+  void ClearVideoParams();
   void ClearAudioParams();
 
   // Queue one access unit / audio packet to every connected client.
@@ -156,6 +167,9 @@ class StreamSocket {
                          std::vector<uint8_t> payload, bool control) const;
   void EnqueueLocked(Client &client, const MessagePtr &message);
   void BroadcastLocked(const MessagePtr &message);
+  // Core of SetStreams and its single-stream wrappers; payloads are HELLO
+  // bodies, empty meaning "no such stream". Returns true if anything changed.
+  bool ApplyStreamsLocked(std::vector<uint8_t> video, std::vector<uint8_t> audio);
   void SendStatsLocked(Client &client, TimePoint now);
 
   // Writes as much of the client's queue as the socket accepts. Takes mutex_

@@ -69,7 +69,9 @@ header::
 consumer's queue, so loss appears as gaps. ``generation`` increments when
 stream parameters change (camera reconfigure, a stream added or removed);
 fresh HELLOs follow, sequences restart at 0 and the cached keyframe is
-dropped. Generations restart at 0 when zmc restarts, so a consumer should
+dropped. zmc applies both streams' parameters in one step, so a change to
+audio and video together is a single new generation and no generation ever
+pairs one stream's new parameters with the other's old ones. Generations restart at 0 when zmc restarts, so a consumer should
 key on the HELLOs it receives after a (re)connect, not on the number alone.
 
 Message types:
@@ -78,7 +80,9 @@ Message types:
   Sent per stream on connect and again on every generation bump, audio
   first: the video HELLO is always the last HELLO of a generation, so on
   receiving it a consumer has that generation's complete parameter set (a
-  stream not re-announced by then is gone and its packets stop). The
+  stream not re-announced by then is gone and its packets stop). A
+  generation that carries no video HELLO means the source currently has no
+  video; a consumer that needs video waits for the next generation. The
   payload is a TLV list (u8 tag, u16 length, value; unknown tags must be
   skipped): ``0x01`` codec id (u32, AVCodecID), ``0x02`` extradata (raw
   ``codecpar->extradata``: SPS/PPS/VPS for H.26x, AudioSpecificConfig for

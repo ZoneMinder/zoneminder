@@ -182,8 +182,8 @@ our %mem_data = (
     last_analysis_viewed_time => { type=>'time_t64', seq=>$mem_seq++ },
     control_state    => { type=>'uint8[256]', seq=>$mem_seq++ },
     alarm_cause      => { type=>'int8[256]', seq=>$mem_seq++ },
-    video_fifo       => { type=>'int8[64]', seq=>$mem_seq++ },
-    audio_fifo       => { type=>'int8[64]', seq=>$mem_seq++ },
+    stream_socket_path => { type=>'int8[64]', seq=>$mem_seq++ }, # was video_fifo; now the media stream socket path
+    reserved_path2   => { type=>'int8[64]', seq=>$mem_seq++ }, # retired audio_fifo; kept reserved at this offset/size, free for future reuse
     janus_pin        => { type=>'int8[64]', seq=>$mem_seq++ },
     last_analysis_index => { type=>'int32', seq=>$mem_seq++ },
     analysis_image_count => { type=>'int32', seq=>$mem_seq++ },

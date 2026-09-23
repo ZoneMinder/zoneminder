@@ -32,10 +32,15 @@ set(TEST_SOURCES
   zm_onvif_wsse.cpp
   zm_pixformat.cpp
   zm_rtsp_deprecation.cpp
+  zm_rtsp_server_session_tracker.cpp
   zm_stream.cpp
   zm_stream_races.cpp
   zm_swscale_range.cpp
   zm_poly.cpp
+  zm_stream_socket.cpp
+  zm_stream_socket_bench.cpp
+  zm_stream_socket_client.cpp
+  zm_stream_socket_protocol.cpp
   zm_time.cpp
   zm_utils.cpp
   zm_vector2.cpp

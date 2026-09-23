@@ -71,6 +71,13 @@ void StreamSocketClient::Run() {
     return;
   }
 
+  if (path_.size() >= sizeof(sockaddr_un::sun_path)) {
+    // strncpy below would silently connect to a truncated, different path
+    Error("StreamSocketClient: socket path %s is longer than the %zu bytes a unix"
+          " socket address allows", path_.c_str(), sizeof(sockaddr_un::sun_path) - 1);
+    return;
+  }
+
   while (!terminate_) {
     int fd = ::socket(AF_UNIX, SOCK_STREAM, 0);
     if (fd < 0) {

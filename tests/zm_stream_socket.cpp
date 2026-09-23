@@ -839,3 +839,33 @@ TEST_CASE("StreamSocket frames the snapshot with the generation and event sequen
 
   server.Stop();
 }
+
+TEST_CASE("StreamSocket refuses a path too long for a unix socket address", "[stream_socket]") {
+  std::string long_path = "/tmp/" + std::string(200, 'x') + ".sock";
+  StreamSocket server(1, long_path);
+  REQUIRE_FALSE(server.Start());
+  REQUIRE_FALSE(server.IsRunning());
+}
+
+TEST_CASE("StreamSocket ignores media for a stream id that is not audio or video", "[stream_socket]") {
+  StreamSocket server(1, kSockPath);
+  REQUIRE(server.Start());
+  codec_parameters_ptr video = make_h264_parameters();
+  server.SetVideoParams(video.get(), {0, 0});
+
+  av_packet_ptr packet = make_packet(100, 0x55);
+  server.SendMedia(packet.get(), StreamId::Monitor, false, 1);  // must not index past the sequence counters
+  server.SendMedia(packet.get(), StreamId::Video, false, 2);
+
+  TestClient client;
+  REQUIRE(client.Connect());
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  ReceivedMessage message;
+  REQUIRE(client.ReadMessage(message));  // HELLO
+  server.SendMedia(packet.get(), StreamId::Video, false, 3);
+  REQUIRE(client.ReadMessage(message));
+  REQUIRE(message.header.type == static_cast<uint8_t>(MessageType::Media));
+  REQUIRE(message.header.sequence == 1);  // only the two video packets counted
+
+  server.Stop();
+}

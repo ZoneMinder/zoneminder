@@ -380,3 +380,13 @@ TEST_CASE("StreamSocketClient delivers EVENT frames", "[stream_socket_client]") 
   client.Stop();
   server.Stop();
 }
+
+TEST_CASE("StreamSocketClient refuses a path too long for a unix socket address", "[stream_socket_client]") {
+  Collector collector;
+  StreamSocketClient client("/tmp/" + std::string(200, 'x') + ".sock", collector.MakeCallbacks());
+  // The reader thread gives up instead of connecting to a truncated path
+  std::this_thread::sleep_for(std::chrono::milliseconds(200));
+  REQUIRE_FALSE(client.IsConnected());
+  client.Stop();
+  REQUIRE(collector.disconnects == 0);
+}

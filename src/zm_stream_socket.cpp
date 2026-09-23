@@ -31,6 +31,7 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/uio.h>
+#include <sys/un.h>
 #include <unistd.h>
 
 using namespace zm::stream_socket;
@@ -53,14 +54,26 @@ bool StreamSocket::Start() {
   if (thread_.joinable())
     return true;
 
+  // zm::UnixSocket copies the path with a truncating strncpy, so an over-long
+  // path would bind one file while the chmod, chown and unlink below act on
+  // another. Refuse it instead.
+  if (path_.size() >= sizeof(sockaddr_un::sun_path)) {
+    Error("StreamSocket: socket path %s is longer than the %zu bytes a unix socket"
+          " address allows", path_.c_str(), sizeof(sockaddr_un::sun_path) - 1);
+    return false;
+  }
+
   ::unlink(path_.c_str());
   if (!listener_.bind(path_.c_str())) {
     Error("StreamSocket: failed to bind %s", path_.c_str());
+    listener_.close();
     return false;
   }
   ApplyPermissions();
   if (!listener_.listen()) {
     Error("StreamSocket: failed to listen on %s", path_.c_str());
+    listener_.close();
+    ::unlink(path_.c_str());
     return false;
   }
   listener_.setBlocking(false);
@@ -286,6 +299,10 @@ bool StreamSocket::ApplyStreamsLocked(std::vector<uint8_t> video, std::vector<ui
 void StreamSocket::SendMedia(const AVPacket *packet, StreamId stream,
                              bool keyframe, int64_t pts_us) {
   if (!packet or packet->size <= 0)
+    return;
+
+  // Only the two media streams have a sequence counter and a HELLO
+  if (stream != StreamId::Video and stream != StreamId::Audio)
     return;
 
   bool video_keyframe = keyframe and stream == StreamId::Video;

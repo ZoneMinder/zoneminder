@@ -52,6 +52,7 @@ zmc processes and provide those streams over rtsp
 #include "zm_define.h"
 #include "zm_monitor.h"
 #include "zm_rtsp_server_authenticator.h"
+#include "zm_rtsp_server_session_tracker.h"
 #include "zm_rtsp_server_stream_h264_source.h"
 #include "zm_rtsp_server_stream_av1_source.h"
 #include "zm_rtsp_server_stream_adts_source.h"
@@ -82,14 +83,6 @@ std::mutex rebuild_mutex;
 std::condition_variable rebuild_cv;
 bool rebuild_pending = false;  // guarded by rebuild_mutex
 
-bool HelloEqual(const HelloInfo &a, const HelloInfo &b) {
-  return a.codec_id == b.codec_id
-         and a.extradata == b.extradata
-         and a.width == b.width and a.height == b.height
-         and a.fps_num == b.fps_num and a.fps_den == b.fps_den
-         and a.sample_rate == b.sample_rate and a.channels == b.channels;
-}
-
 // One monitor's path from its stream socket to an xop RTSP session.
 //
 // The StreamSocketClient reader thread records HELLOs and forwards media to
@@ -105,24 +98,9 @@ class MonitorRtspStream {
     stream_name_(monitor_->GetRTSPStreamName()) {
     StreamSocketClient::Callbacks callbacks;
     callbacks.on_hello = [this](StreamId stream, const HelloInfo &info, uint32_t generation) {
-      std::lock_guard<std::mutex> lock(mutex_);
-      // A HELLO from a new generation starts a fresh parameter set: forget the
-      // previous generation's HELLOs so a stream that is not re-announced (the
-      // source dropped its audio) does not linger. The producer sends the audio
-      // HELLO before the video HELLO within a generation, so the video HELLO
-      // always completes the set and Update() can build on it.
-      if (!have_generation_ or generation != latest_generation_) {
-        latest_generation_ = generation;
-        have_generation_ = true;
-        have_pending_video_ = false;
-        have_pending_audio_ = false;
-      }
-      if (stream == StreamId::Video) {
-        pending_video_ = info;
-        have_pending_video_ = true;
-      } else {
-        pending_audio_ = info;
-        have_pending_audio_ = true;
+      {
+        std::lock_guard<std::mutex> lock(mutex_);
+        tracker_.OnHello(stream, info, generation);
       }
       // Flag under the wake mutex so a HELLO arriving between the main
       // loop's Update() pass and its wait cannot be lost until the timeout
@@ -134,12 +112,12 @@ class MonitorRtspStream {
     };
     callbacks.on_media = [this](const Header &header, const uint8_t *data, size_t size) {
       std::lock_guard<std::mutex> lock(mutex_);
-      // Drop media from a generation the current session was not built for.
-      // After a parameter change the reader thread sees the new HELLO (and new
-      // generation) before the main thread rebuilds the session; feeding that
-      // media to the old packer produces codec-mismatch garbage. It flows again
-      // once Update() rebuilds at the new generation.
-      if (!session_ or header.generation != built_generation_)
+      // Feed the packers only once the main thread has reconciled the session
+      // with the latest HELLO set (see RtspSessionTracker). After a parameter
+      // change, or a producer restart that reuses a generation number, the
+      // reader thread sees the new HELLO before the session is rebuilt; media
+      // sent to the old packer in that window is codec-mismatch garbage.
+      if (!session_ or !tracker_.Accepts(header.generation))
         return;
       if (header.stream == static_cast<uint8_t>(StreamId::Video)) {
         if (video_source_)
@@ -149,15 +127,11 @@ class MonitorRtspStream {
           audio_source_->OnPacket(data, size, header.pts_us);
       }
     };
-    // On disconnect forget the recorded HELLOs: the next producer (a restarted
-    // zmc restarts generations at 0) re-announces everything on reconnect, and
-    // stale knowledge could otherwise pass as the new generation's. The built
-    // session is kept; identical parameters just adopt the new generation.
+    // The built session is kept across a disconnect; if the next producer
+    // announces identical parameters it is adopted, clients and all.
     callbacks.on_disconnect = [this]() {
       std::lock_guard<std::mutex> lock(mutex_);
-      have_generation_ = false;
-      have_pending_video_ = false;
-      have_pending_audio_ = false;
+      tracker_.OnDisconnect();
     };
     std::string path = stringtf("%s/stream_%u.sock", staticConfig.PATH_SOCKS.c_str(), monitor_->Id());
     Info("Monitor %u: consuming stream socket %s", monitor_->Id(), path.c_str());
@@ -175,29 +149,17 @@ class MonitorRtspStream {
     return session_ and session_->GetNumClient() > 0;
   }
 
-  // Called from the main loop: (re)build the xop session when the recorded
-  // HELLOs differ from what the current session was built with.
+  // Called from the main loop: bring the xop session in line with the latest
+  // complete HELLO set - keep it when the parameters are unchanged (a zmc
+  // restart, where generations start again at 0), rebuild it otherwise.
   void Update() {
     std::lock_guard<std::mutex> lock(mutex_);
-    // Nothing to serve until the video HELLO of the latest generation is in;
-    // on_hello clears it when a new generation starts, so this also waits out
-    // the window between that generation's audio and video HELLOs.
-    if (!have_pending_video_)
-      return;
-
-    if (session_
-        and HelloEqual(built_video_, pending_video_)
-        and have_pending_audio_ == built_audio_requested_
-        and (!have_pending_audio_ or HelloEqual(built_audio_, pending_audio_))) {
-      // Same parameters: keep the session (and its RTSP clients) and just
-      // adopt the generation so on_media accepts the new epoch. Covers a zmc
-      // restart, where generations restart at 0.
-      built_generation_ = latest_generation_;
-      return;
+    RtspSessionTracker::Action action = tracker_.Plan(session_ != nullptr);
+    if (action == RtspSessionTracker::Action::Rebuild) {
+      TeardownLocked();
+      BuildLocked(tracker_.HavePendingAudio());
     }
-
-    TeardownLocked();
-    BuildLocked(have_pending_audio_);
+    tracker_.Confirm(action, session_ != nullptr);
   }
 
  private:
@@ -220,9 +182,10 @@ class MonitorRtspStream {
       rtsp_server_->RemoveSession(session_->GetMediaSessionId());
       session_ = nullptr;
     }
+    tracker_.SessionGone();
   }
 
-  // mutex_ must be held; have_pending_video_ is true. build_audio says whether
+  // mutex_ must be held; the tracker has a complete HELLO set. build_audio says whether
   // the pending audio HELLO is current (see Update) and should be served.
   void BuildLocked(bool build_audio) {
     xop::MediaSession *session = xop::MediaSession::CreateNew(stream_name_);
@@ -241,7 +204,7 @@ class MonitorRtspStream {
     rtsp_server_->AddSession(session);
     xop::MediaSessionId session_id = session->GetMediaSessionId();
 
-    const HelloInfo &video = pending_video_;
+    const HelloInfo &video = tracker_.PendingVideo();
     int width = video.width ? video.width : monitor_->Width();
     int height = video.height ? video.height : monitor_->Height();
 
@@ -294,7 +257,7 @@ class MonitorRtspStream {
       video_source_->OnPacket(video.extradata.data(), video.extradata.size(), 0);
 
     if (build_audio) {
-      const HelloInfo &audio = pending_audio_;
+      const HelloInfo &audio = tracker_.PendingAudio();
       bool supported = true;
       switch (audio.codec_id) {
         case AV_CODEC_ID_AAC:
@@ -333,15 +296,11 @@ class MonitorRtspStream {
     }
 
     session_ = session;
-    built_video_ = pending_video_;
-    built_audio_ = pending_audio_;
-    built_audio_requested_ = build_audio;
-    built_generation_ = latest_generation_;
     Info("Monitor %u: rtsp session %s serving %s%s%s (generation %u)", monitor_->Id(),
-         stream_name_.c_str(), avcodec_get_name(built_video_.codec_id),
+         stream_name_.c_str(), avcodec_get_name(video.codec_id),
          audio_source_ ? " + " : "",
-         audio_source_ ? avcodec_get_name(built_audio_.codec_id) : "",
-         built_generation_);
+         audio_source_ ? avcodec_get_name(tracker_.PendingAudio().codec_id) : "",
+         tracker_.LatestGeneration());
   }
 
   std::shared_ptr<xop::RtspServer> rtsp_server_;
@@ -353,17 +312,7 @@ class MonitorRtspStream {
   xop::MediaSession *session_ = nullptr;
   ZoneMinderStreamSource *video_source_ = nullptr;
   ZoneMinderStreamSource *audio_source_ = nullptr;
-  HelloInfo pending_video_, pending_audio_;
-  bool have_pending_video_ = false;
-  bool have_pending_audio_ = false;
-  bool have_generation_ = false;      // latest_generation_ is valid
-  uint32_t latest_generation_ = 0;    // generation of the most recent HELLO
-  HelloInfo built_video_, built_audio_;
-  // Whether audio was announced when the session was built (not whether a
-  // packer was created: an unsupported audio codec must not trigger a rebuild
-  // on every pass).
-  bool built_audio_requested_ = false;
-  uint32_t built_generation_ = 0;  // generation the current session was built for
+  RtspSessionTracker tracker_;  // HELLO/generation bookkeeping, guarded by mutex_
 };
 
 void Usage() {

@@ -495,9 +495,20 @@ sub generateImage {
     $image_path = $capture_image_path;
   } elsif ( -r $video_path ) {
     Debug("mp4 exists $video_path");
-    my $command ="ffmpeg -nostdin -ss $$frame{Delta} -i '$video_path' -frames:v 1 '$capture_image_path'";
+    # Run without a shell: $video_path carries the event's DefaultVideo, which
+    # an operator with Events=Edit can set, so a quote in it must not be able
+    # to end the argument. See GHSA-pxq8-5c8j-xf3r.
+    my @command = ('ffmpeg', '-nostdin', '-ss', $$frame{Delta}, '-i', $video_path, '-frames:v', '1', $capture_image_path);
+    my $command = join(' ', @command);
     #$command = "ffmpeg -y -v 0 -i $video_path -vf 'select=gte(n\\,$$frame{FrameId}),setpts=PTS-STARTPTS' -vframes 1 -f image2 $capture_image_path";
-    my $output = qx($command);
+    my $output = '';
+    if ( open(my $fh, '-|', @command) ) {
+      $output = join('', <$fh>);
+      close($fh);
+    } else {
+      $output = "Unable to run ffmpeg: $!";
+      $? = 127 << 8; # what the shell reported for a missing command
+    }
     chomp($output);
     my $status = $? >> 8;
     if ( $status || logDebugging() ) {

@@ -117,7 +117,10 @@ if (!empty($_REQUEST['proxy'])) {
     'http'=>array(
       'method'=>$method,
       #'header'=>"Accept-language: en\r\n" .
-      'ignore_errors'   => true
+      'ignore_errors'   => true,
+      // The SSRF guard above only validated $host. Following a redirect would
+      // connect to a Location the guard never checked (e.g. 127.0.0.1).
+      'follow_location' => 0,
       #"Cookie: foo=bar\r\n"
     ),
     'ssl'=>array(

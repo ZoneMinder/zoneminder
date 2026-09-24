@@ -394,6 +394,50 @@ sub extractInserts {
   return $found;
 }
 
+# Blank the primary key of each INSERT in a mysqldump so the rows can be
+# imported elsewhere without carrying their ids across.
+#
+# Done by parsing rather than by pattern: the value before the first quoted
+# string is not reliably the id. A MonitorPresets row starts id,ModelId and
+# both are unquoted, so a regex reaching for the first ,' swallows the two of
+# them into a single NULL and leaves the row a column short.
+sub nullifyIds {
+  my ($dbh, $sql) = @_;
+  my %columns;
+  my @out;
+
+  foreach my $line (split(/\n/, $sql, -1)) {
+    if ($line =~ /^\s*INSERT\s+INTO\s+`?(\w+)`?\s*(?:\(([^)]*)\))?\s*VALUES\s*\((.*)\)\s*;\s*$/i) {
+      my ($table, $collist, $values) = ($1, $2, $3);
+      my @vals = splitSqlList($values);
+      my @cols;
+
+      if (defined $collist) {
+        @cols = map { my $c = $_; $c =~ s/^\s*`?//; $c =~ s/`?\s*$//; $c } splitSqlList($collist);
+      } else {
+        $columns{$table} = [tableColumns($dbh, $table)] if !$columns{$table};
+        @cols = @{$columns{$table}};
+      }
+
+      if (scalar(@cols) != scalar(@vals)) {
+        warn( "Warning: leaving a $table row as it is: ".scalar(@vals)
+             .' values but '.scalar(@cols)." columns\n" );
+      } else {
+        my ($idIdx) = grep { lc $cols[$_] eq 'id' } 0..$#cols;
+        if (defined $idIdx) {
+          $vals[$idIdx] = 'NULL';
+          $line = 'INSERT INTO `'.$table.'`'
+            .(defined $collist ? ' ('.join(',', map { '`'.$_.'`' } @cols).')' : '')
+            .' VALUES ('.join(',', @vals).');';
+        }
+      }
+    }
+    push @out, $line;
+  }
+
+  return join("\n", @out);
+}
+
 # Import camera control & presets into the zoneminder dB
 sub importsql {
   my @newcontrols;
@@ -512,7 +556,7 @@ sub exportsql {
 		}
   }
 
-  $command .= " zm Controls MonitorPresets";
+  $command .= ' '.$Config{ZM_DB_NAME}.' Controls MonitorPresets';
 
   my $output = qx($command);
   my $status = $? >> 8;
@@ -524,8 +568,7 @@ sub exportsql {
     die( "Command '$command' exited with status: $status\n" );
   } else {
 # NULLify the primary keys before printing the output to STDOUT
-    $output =~ s/VALUES \((.*?),'/VALUES \(NULL,'/ig;
-    print $output;
+    print nullifyIds(zmDbConnect(), $output);
   }
 }
 

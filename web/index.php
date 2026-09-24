@@ -253,7 +253,8 @@ if (
 }
 
 # If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
-if ( ZM_OPT_USE_AUTH and (!isset($user) or !($user instanceof ZM\User)) and ($view != 'login') and ($view != 'none') ) {
+# The login and none views are exempt so they can render, but no request is: view=none&request=... must not reach ajax/.
+if ( ZM_OPT_USE_AUTH and (!isset($user) or !($user instanceof ZM\User)) and ($request or (($view != 'login') and ($view != 'none'))) ) {
   if ($request) {
     # requests only return json
     header('HTTP/1.1 401 Unauthorized');

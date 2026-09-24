@@ -175,7 +175,12 @@ else()
   set(_zm_default_logdir "/var/log/zm")
   set(_zm_default_cachedir "/var/cache/zoneminder")
   set(_zm_default_contentdir "/var/lib/zoneminder")
-  set(_zm_default_pathmap "/dev/shm")
+  if(CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
+    # OpenBSD has no /dev/shm.
+    set(_zm_default_pathmap "/tmp")
+  else()
+    set(_zm_default_pathmap "/dev/shm")
+  endif()
 endif()
 
 set(ZM_RUNDIR "${_zm_default_rundir}" CACHE PATH
@@ -277,7 +282,7 @@ set(ZM_PERL_SEARCH_PATH "" CACHE PATH
 	where ZM_PERL_INSTALL_PATH has been overridden such that ZoneMinder's Perl modules
 	are installed outside Perl's default search path.")
 set(ZM_TARGET_DISTRO "" CACHE STRING
-  "Build ZoneMinder for a specific distribution.  Currently, valid names are: fc, el, OS13, FreeBSD")
+  "Build ZoneMinder for a specific distribution.  Currently, valid names are: fc, el, OS13, FreeBSD, OpenBSD")
 set(ZM_DETECT_SYSTEMD "ON" CACHE BOOL
   "Set to OFF to disable detection of systemd. default: ON")
 set(ZM_SYSTEMD "OFF" CACHE BOOL
@@ -334,7 +339,7 @@ elseif(ZM_TARGET_DISTRO STREQUAL "OS13")
   set(ZM_WEB_GROUP "www")
   set(ZM_WEBDIR "/srv/www/htdocs/zoneminder")
   set(ZM_CGIDIR "/srv/www/cgi-bin")
-elseif(ZM_TARGET_DISTRO STREQUAL "FreeBSD")
+elseif((ZM_TARGET_DISTRO STREQUAL "FreeBSD") OR (ZM_TARGET_DISTRO STREQUAL "OpenBSD"))
   set(ZM_RUNDIR "/var/run/zm")
   set(ZM_SOCKDIR "/var/run/zm")
   set(ZM_TMPDIR "/var/tmp/zm")

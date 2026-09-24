@@ -55,6 +55,9 @@ if ($tab == 'display') {
           <form name="optionsForm" method="get" action="?">
             <input type="hidden" name="view" value="<?php echo $view ?>"/>
             <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
+            <!-- #optionsContainer is a flex row, so this has to live inside the
+                 form rather than beside it, or the two share the width. -->
+            <div class="form-text text-muted mb-3"><?php echo translate('ThisSessionHint') ?></div>
             <div class="col button-block">
               <div id="contentButtons">
                 <button value="Save" type="submit"><?php echo translate('Save') ?></button>

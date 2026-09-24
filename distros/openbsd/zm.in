@@ -1,6 +1,6 @@
 #!/bin/ksh
 
-daemon="/usr/local/bin/zmpkg.pl"
+daemon="@CMAKE_INSTALL_FULL_BINDIR@/zmpkg.pl"
 daemon_flags=""
 
 # Source function library.
@@ -10,7 +10,7 @@ rc_bg=YES
 rc_reload=NO
 
 rc_check() {
-        pgrep -T "${daemon_rtable}" -q -xf "/usr/bin/perl -wT /usr/local/bin/zmdc.pl startup"
+        pgrep -T "${daemon_rtable}" -q -xf "@PERL_EXECUTABLE@ -wT @CMAKE_INSTALL_FULL_BINDIR@/zmdc.pl startup"
 }
 
 rc_stop() {

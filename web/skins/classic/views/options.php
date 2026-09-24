@@ -175,16 +175,6 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
   }
 
   if ($tab == 'web') {
-    $configCats[$tab]['ZM_WEB_HOMEVIEW']['Hint'] = [
-      'console'=>translate('Console'),
-      'events'=>'Events',
-      'map'   =>  'Map',
-      'montage'=>'Montage',
-      'montagereview'=>'Montage Review',
-      'watch' => 'Watch',
-    ];
-  } else if ($tab == 'system') {
-//    $configCats[$tab]['ZM_LANG_DEFAULT']['Hint'] = join('|', getLanguages());
     if (defined('ZM_FORCE_SKIN_DEFAULT'))
       $configCats[$tab]['ZM_SKIN_DEFAULT']['Hint'] = ZM_FORCE_SKIN_DEFAULT;
     else
@@ -202,9 +192,25 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
     foreach ($languagecodelist as $language){
         $languageslist[$language] = translate($language);
        }
-
     $configCats[$tab]['ZM_LANG_DEFAULT']['Hint'] = $languageslist;
 
+    $configCats[$tab]['ZM_LOCALE_DEFAULT']['Hint'] = array(''=> translate('System Default'));
+    $locales = ResourceBundle::getLocales('');
+    if ($locales) {
+      foreach ( $locales as $locale) {
+        $configCats[$tab]['ZM_LOCALE_DEFAULT']['Hint'][$locale] = $locale;
+      }
+    }
+
+    $configCats[$tab]['ZM_WEB_HOMEVIEW']['Hint'] = [
+      'console'=>translate('Console'),
+      'events'=>'Events',
+      'map'   =>  'Map',
+      'montage'=>'Montage',
+      'montagereview'=>'Montage Review',
+      'watch' => 'Watch',
+    ];
+  } else if ($tab == 'system') {
 
     function timezone_list() {
       static $timezones = null;
@@ -238,13 +244,6 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
       return $name;
     }
     $configCats[$tab]['ZM_TIMEZONE']['Hint'] = array(''=> translate('TZUnset')) + timezone_list();
-    $configCats[$tab]['ZM_LOCALE_DEFAULT']['Hint'] = array(''=> translate('System Default'));
-    $locales = ResourceBundle::getLocales('');
-    if ($locales) {
-      foreach ( $locales as $locale) {
-        $configCats[$tab]['ZM_LOCALE_DEFAULT']['Hint'][$locale] = $locale;
-      }
-    }
   } # end if tab == system
 ?>
       <form name="optionsForm" method="post" action="?">

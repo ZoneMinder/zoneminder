@@ -190,7 +190,7 @@ our @options = (
       the default.
       `,
     type        => $types{string},
-    category    => 'system',
+    category    => 'web',
   },
   {
     name        => 'ZM_CSS_DEFAULT',
@@ -204,7 +204,7 @@ our @options = (
       their css later, this merely sets the default.
       `,
     type        => $types{string},
-    category    => 'system',
+    category    => 'web',
   },
   {
     name        => 'ZM_BANDWIDTH_DEFAULT',
@@ -214,7 +214,7 @@ our @options = (
       profiles to use for low, medium, or high bandwidth connections.
       `,
     type        => $types{string},
-    category    => 'system',
+    category    => 'web',
   },
   {
     name        => 'ZM_LANG_DEFAULT',
@@ -228,7 +228,7 @@ our @options = (
       English, to another language
       `,
     type        => $types{string},
-    category    => 'system',
+    category    => 'web',
   },
   {
     name        => 'ZM_LOCALE_DEFAULT',
@@ -239,7 +239,7 @@ our @options = (
       string used when formatting dates and times.
       `,
     type        => $types{string},
-    category    => 'system',
+    category    => 'web',
   },
   {
     name        => 'ZM_DATE_FORMAT_PATTERN',
@@ -250,7 +250,7 @@ our @options = (
       See [unicode-org](https://unicode-org.github.io/icu/userguide/format_parse/datetime/) for values.
       `,
     type        => $types{string},
-    category    => 'system',
+    category    => 'web',
   },
   {
     name        => 'ZM_TIME_FORMAT_PATTERN',
@@ -261,7 +261,7 @@ our @options = (
       See [unicode-org](https://unicode-org.github.io/icu/userguide/format_parse/datetime/) for values.
       `,
     type        => $types{string},
-    category    => 'system',
+    category    => 'web',
   },
   {
     name        => 'ZM_DATETIME_FORMAT_PATTERN',
@@ -272,7 +272,7 @@ our @options = (
       See [unicode-org](https://unicode-org.github.io/icu/userguide/format_parse/datetime/) for values.
       `,
     type        => $types{string},
-    category    => 'system',
+    category    => 'web',
   },
   {
     name        => 'ZM_OPT_USE_AUTH',
@@ -676,7 +676,7 @@ our @options = (
     description =>  'Enable snapshot functionality.',
     help        =>  'Snapshots are a collection of events.  They can be created using the snapshot button in montage view.  All visible monitors will have a short event created, archived and added to the Snapshot.',
     type      =>  $types{boolean},
-    category  =>  'system',
+    category  =>  'web',
   },
   {
     name        => 'ZM_USE_DEEP_STORAGE',

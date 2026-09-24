@@ -466,3 +466,29 @@ TEST_CASE("TimevalToString") {
   }
   tzset();
 }
+
+TEST_CASE("ClientAddress") {
+  SECTION("X-Forwarded-For is ignored unless the peer is a trusted proxy") {
+    REQUIRE(ClientAddress("203.0.113.9", "192.168.1.55", "") == "203.0.113.9");
+    REQUIRE(ClientAddress("203.0.113.9", "192.168.1.55", "10.0.0.1") == "203.0.113.9");
+    REQUIRE(ClientAddress("", "192.168.1.55", "").empty());
+  }
+
+  SECTION("a trusted proxy's X-Forwarded-For is used") {
+    REQUIRE(ClientAddress("10.0.0.1", "192.168.1.55", "10.0.0.1") == "192.168.1.55");
+    REQUIRE(ClientAddress("10.0.0.1", "", "10.0.0.1") == "10.0.0.1");
+    REQUIRE(ClientAddress("10.0.0.1", " , ", "10.0.0.1") == "10.0.0.1");
+  }
+
+  SECTION("the right-most untrusted hop wins, not a spoofed left-most one") {
+    REQUIRE(ClientAddress("10.0.0.1", "1.2.3.4, 192.168.1.55", "10.0.0.1") == "192.168.1.55");
+    REQUIRE(ClientAddress("10.0.0.1", "1.2.3.4,  192.168.1.55 , 10.0.0.9 ", "10.0.0.1, 10.0.0.9")
+            == "192.168.1.55");
+    REQUIRE(ClientAddress("10.0.0.1", "1.2.3.4, 192.168.1.55, 10.0.0.9", "10.0.0.1 10.0.0.9")
+            == "192.168.1.55");
+  }
+
+  SECTION("when every hop is trusted the left-most is the origin") {
+    REQUIRE(ClientAddress("10.0.0.1", "10.0.0.9, 10.0.0.1", "10.0.0.1,10.0.0.9") == "10.0.0.9");
+  }
+}

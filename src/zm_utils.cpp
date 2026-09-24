@@ -121,6 +121,28 @@ std::string Join(const StringVector &values, const std::string &delim) {
   return ss.str();
 }
 
+std::string ClientAddress(const std::string &remote_addr,
+                          const std::string &forwarded_for,
+                          const std::string &trusted_proxies) {
+  const StringVector trusted = Split(trusted_proxies, " \t\r\n,");
+  auto is_trusted = [&trusted](const std::string &addr) {
+    return !addr.empty() && std::find(trusted.begin(), trusted.end(), addr) != trusted.end();
+  };
+  if (forwarded_for.empty() || !is_trusted(remote_addr))
+    return remote_addr;
+
+  StringVector hops;
+  for (const std::string &hop : Split(forwarded_for, ',')) {
+    std::string trimmed = TrimSpaces(hop);
+    if (!trimmed.empty()) hops.push_back(trimmed);
+  }
+  for (auto it = hops.rbegin(); it != hops.rend(); ++it) {
+    if (!is_trusted(*it)) return *it;
+  }
+  // Every hop is a trusted proxy; the left-most is the origin.
+  return hops.empty() ? remote_addr : hops.front();
+}
+
 std::string stringtf(const char* format, ...) {
   va_list args;
   va_start(args, format);

@@ -88,6 +88,15 @@ std::pair<std::string, std::string> PairSplit(const std::string &str, char delim
 
 std::string Join(const StringVector &values, const std::string &delim = ",");
 
+// The effective client address of a CGI request. X-Forwarded-For is only
+// honoured when remote_addr is one of trusted_proxies (comma/space separated,
+// exact match); the right-most hop that is not itself a trusted proxy is then
+// the client. Must match getRemoteAddr() in web/includes/Network.php, which
+// generates the IP-bound auth hashes this is used to validate.
+std::string ClientAddress(const std::string &remote_addr,
+                          const std::string &forwarded_for,
+                          const std::string &trusted_proxies);
+
 // Separator characters between entries in a monitor's Options field. The ui
 // offers a textarea, so an option may be on its own line as well as after a
 // comma. Both consumers - av_dict_parse_string() for Ffmpeg and Split() for

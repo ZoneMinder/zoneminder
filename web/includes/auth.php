@@ -25,6 +25,7 @@ require_once('Monitor_Permission.php');
 require_once('User_Role.php');
 require_once('Role_Group_Permission.php');
 require_once('Role_Monitor_Permission.php');
+require_once('Network.php');
 require_once(__DIR__.'/../vendor/autoload.php');
 use \Firebase\JWT\JWT;
 
@@ -194,10 +195,8 @@ function getAuthUser($auth) {
       : '';
     $directAddr = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '';
     if (ZM_AUTH_HASH_IPS) {
-      // Use HTTP_X_FORWARDED_FOR if available (consistent with session.php which uses it for hash generation)
-      // taking only the first IP to guard against spoofed multi-value headers.
-      // This ensures validation matches generation when behind a reverse proxy.
-      $remoteAddr = $xff !== '' ? $xff : $directAddr;
+      // Same address session.php bound the hash to; see Network.php.
+      $remoteAddr = getRemoteAddr();
       if ( !$remoteAddr ) {
         ZM\Error("Can't determine remote address for authentication, using empty string");
         $remoteAddr = '';

@@ -1,0 +1,5 @@
+--
+-- No schema changes. This file exists so that zmupdate.pl runs on upgrade to
+-- 1.38.5 and loads the new ZM_AUTH_TRUSTED_PROXIES option into the Config
+-- table; the daemons refuse to start while the Config table is missing options.
+--

@@ -393,6 +393,27 @@ our @options = (
     category    => 'auth',
   },
   {
+    name        => 'ZM_AUTH_TRUSTED_PROXIES',
+    default     => '',
+    description => 'Reverse proxy addresses whose X-Forwarded-For header is trusted',
+    help        => q`
+      A comma or space separated list of the exact IP addresses of
+      reverse proxies in front of ZoneMinder, for example 127.0.0.1.
+      X-Forwarded-For is only used to determine the client address,
+      as bound into the authentication hash by ZM_AUTH_HASH_IPS, when
+      the request arrives directly from one of these addresses. The
+      header is then read from the right, skipping any listed proxies,
+      so values a client adds itself are not used. When empty, the
+      default, the header is ignored and the connecting address is
+      always used; a client could otherwise choose the address its
+      hash is bound to. If ZM_AUTH_HASH_IPS is on behind a reverse
+      proxy, list the proxy here or every client will appear to come
+      from the proxy address.
+      `,
+    type        => $types{string},
+    category    => 'auth',
+  },
+  {
     name        => 'ZM_AUTH_HASH_TTL',
     default     => '2',
     description => 'The number of hours that an authentication hash is valid for.',

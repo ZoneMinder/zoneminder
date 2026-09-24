@@ -88,6 +88,16 @@ std::pair<std::string, std::string> PairSplit(const std::string &str, char delim
 
 std::string Join(const StringVector &values, const std::string &delim = ",");
 
+// The effective client address of a CGI request. X-Forwarded-For is only
+// honoured when remote_addr is one of trusted_proxies (comma/space separated,
+// exact match); the right-most hop that is not itself a trusted proxy is then
+// the client. Must match getRemoteAddr() in web/includes/Network.php, which
+// generates the IP-bound auth hashes this is used to validate.
+std::string ClientAddress(const std::string &remote_addr,
+                          const std::string &forwarded_for,
+                          const std::string &trusted_proxies);
+
+
 inline bool StartsWith(const std::string &haystack, const std::string &needle) {
   return (haystack.substr(0, needle.length()) == needle);
 }

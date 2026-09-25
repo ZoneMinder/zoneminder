@@ -831,21 +831,28 @@ class Event extends ZM_Object {
       } else if ( $size ) {
         $video_size = $size;
       }
-      $command = ZM_PATH_FFMPEG
-      ." -y -r $frame_rate "
-        .ZM_FFMPEG_INPUT_OPTIONS
-        .' -i ' . $event_path.'/'.( $this->DefaultVideo() ? $this->DefaultVideo() : '%0'.ZM_EVENT_IMAGE_DIGITS .'d-capture.jpg' )
-        #. " -f concat -i /tmp/event_files.txt"
-        #
-        .implode(' ', array_map(function($t){ return ' -vf '.$t; }, explode(',', $transforms)))
-      ." -s $video_size "
-
-        .ZM_FFMPEG_OUTPUT_OPTIONS
-        ." '$event_path/$video_file' > $event_path/ffmpeg.log 2>&1"
-        ;
-      Debug($command);
-      if(!exec(escapeshellcmd($command), $output, $rc)) {
-        Error("Unable to generate video, check $event_path/ffmpeg.log for details");
+      // Every argument is quoted on its own so no event field can add
+      // arguments or commands. The configured option strings hold several
+      // options each, so they are split on whitespace; shell quoting inside
+      // them is not honoured.
+      $command = array_merge(
+        [ZM_PATH_FFMPEG, '-y', '-r', $frame_rate],
+        preg_split('/\s+/', ZM_FFMPEG_INPUT_OPTIONS, -1, PREG_SPLIT_NO_EMPTY),
+        ['-i', $event_path.'/'.( $this->DefaultVideo() ? $this->DefaultVideo() : '%0'.ZM_EVENT_IMAGE_DIGITS .'d-capture.jpg' )]
+      );
+      foreach (explode(',', $transforms) as $t) {
+        if ($t !== '') array_push($command, '-vf', $t);
+      }
+      array_push($command, '-s', trim($video_size));
+      $command = array_merge($command,
+        preg_split('/\s+/', ZM_FFMPEG_OUTPUT_OPTIONS, -1, PREG_SPLIT_NO_EMPTY),
+        [$event_path.'/'.$video_file]
+      );
+      Debug(implode(' ', $command));
+      $log = $event_path.'/ffmpeg.log';
+      $process = proc_open(implode(' ', array_map('escapeshellarg', $command)), [0=>['file', '/dev/null', 'r'], 1=>['file', $log, 'w'], 2=>['file', $log, 'a']], $pipes);
+      if (!is_resource($process) or proc_close($process) != 0) {
+        Error("Unable to generate video, check $log for details");
         return;
       }
 

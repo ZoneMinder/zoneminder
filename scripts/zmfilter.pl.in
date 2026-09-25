@@ -1235,13 +1235,40 @@ sub executeCommand {
   my $Event = shift;
 
   my $command = $filter->{AutoExecuteCmd};
+  my %tag_env;
   if ($command =~ /%\w+%/) {
-    $command = substituteTags($command, $filter, $Event);
+    # Tag values such as event name, cause, notes, tags and monitor name can be
+    # set by non-admin users (or zmtrigger clients), so the shell must never
+    # parse them. Plain values are inserted as before; anything else is passed
+    # in an environment variable ZM_TAG_n and referenced in a form the shell
+    # expands without re-parsing, chosen by the quoting context the admin put
+    # the tag in: "${ZM_TAG_n}" bare, ${ZM_TAG_n} inside "...", and
+    # '"${ZM_TAG_n}"' inside '...'.
+    my ($n, $state) = (0, '');
+    $command =~ s{(%\w+%)|(\\[^%]|['"])}{
+      if (defined $2) {
+        my $token = $2;
+        # backslash escapes nothing inside single quotes
+        my $c = ($state eq "'") ? substr($token, -1) : $token;
+        $state = !$state ? $c : ($state eq $c ? '' : $state) if $c eq "'" or $c eq '"';
+        $token;
+      } else {
+        my $value = substituteTags($1, $filter, $Event);
+        if ($value =~ /^[\w\/.,:+=@% -]*$/) {
+          $value;
+        } else {
+          my $ref = '${ZM_TAG_'.$n.'}';
+          $tag_env{'ZM_TAG_'.$n++} = $value;
+          $state eq '"' ? $ref : $state eq "'" ? qq('"$ref"') : qq("$ref");
+        }
+      }
+    }gse;
   } else {
     $command .= ' '.$Event->Path();
   }
 
   Info("Executing '$command'");
+  local @ENV{keys %tag_env} = values %tag_env;
   my $output = qx($command);
   my $status = $? >> 8;
   if ($status || logDebugging()) {

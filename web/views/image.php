@@ -74,6 +74,14 @@ if (!empty($_REQUEST['proxy'])) {
       return;
     }
   }
+  // Also covers installs with CSRF magic off: browsers that send Sec-Fetch-Site
+  // say when a request was started by another site. Older browsers omit it.
+  if (isset($_SERVER['HTTP_SEC_FETCH_SITE']) and
+      !in_array($_SERVER['HTTP_SEC_FETCH_SITE'], ['same-origin', 'none'], true)) {
+    ZM\Warning('Image proxy request started by another site');
+    http_response_code(403);
+    return;
+  }
 
   $url = $_REQUEST['proxy'];
   if (!$url) {

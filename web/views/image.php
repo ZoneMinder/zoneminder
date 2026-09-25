@@ -61,6 +61,20 @@ if (!empty($_REQUEST['proxy'])) {
     return;
   }
 
+  // index.php exempts view=image from csrf_check() so images work as <img src>,
+  // and csrf_check() only looks at POSTs anyway. The proxy makes the server
+  // fetch a URL, so require the token here or any site could drive it through
+  // a logged-in user's browser.
+  if (ZM_ENABLE_CSRF_MAGIC) {
+    require_once('includes/csrf/csrf-magic.php');
+    if (!isset($_REQUEST['__csrf_magic']) || !is_string($_REQUEST['__csrf_magic']) ||
+        !csrf_check_tokens($_REQUEST['__csrf_magic'])) {
+      ZM\Warning('Image proxy request without a valid CSRF token');
+      http_response_code(403);
+      return;
+    }
+  }
+
   $url = $_REQUEST['proxy'];
   if (!$url) {
     ZM\Warning('No url passed to image proxy');

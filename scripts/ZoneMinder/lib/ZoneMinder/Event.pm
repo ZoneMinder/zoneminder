@@ -270,7 +270,9 @@ sub GenerateVideo {
 
   my $event_path = $self->Path();
   chdir($event_path);
-  ( my $video_name = $self->{Name} ) =~ s/\s/_/g;
+  # Name is user editable; keep the output file inside the event directory.
+  ( my $video_name = $self->{Name} ) =~ s/[^-A-Za-z0-9_.]/_/g;
+  $video_name =~ s/^\./_/;
 
   my @file_parts;
   if ( $rate ) {
@@ -337,9 +339,9 @@ sub GenerateVideo {
     # quote in it escaped the quoting that was there. Either one gave arbitrary
     # command execution as the web account. As a list there is no shell to
     # escape from, whatever the fields hold. See GHSA-pfph-4j9j-7cv7.
-    my $input_file = $$self{DefaultVideo}
-      ? $$self{DefaultVideo}
-      : '%0'.$Config{ZM_EVENT_IMAGE_DIGITS}.'d-capture.jpg';
+    # DefaultVideo is a bare filename in the event directory; drop any path.
+    (my $input_file = $$self{DefaultVideo} // '') =~ s{.*[/\\]}{}s;
+    $input_file = '%0'.$Config{ZM_EVENT_IMAGE_DIGITS}.'d-capture.jpg' if !$input_file;
 
     my @command = (
       $Config{ZM_PATH_FFMPEG},

@@ -199,7 +199,8 @@ bool EventStream::loadEventData(uint64_t event_id) {
   event_data->start_time = SystemTimePoint(Seconds(atoi(dbrow[3])));
   event_data->end_time = dbrow[4] ? SystemTimePoint(Seconds(atoi(dbrow[4]))) : std::chrono::system_clock::now();
   event_data->duration = std::chrono::duration_cast<Microseconds>(dbrow[5] ? FPSeconds(atof(dbrow[5])) : event_data->end_time - event_data->start_time);
-  event_data->video_file = dbrow[6] ? std::string(dbrow[6]) : std::string();
+  // DefaultVideo is user editable; only use it as a filename in the event dir.
+  event_data->video_file = dbrow[6] ? std::filesystem::path(dbrow[6]).filename().string() : std::string();
   std::string scheme_str = dbrow[7] ? std::string(dbrow[7]) : std::string();
   if ( scheme_str == "Deep" ) {
     event_data->scheme = Storage::DEEP;

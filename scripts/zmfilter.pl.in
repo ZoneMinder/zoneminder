@@ -483,7 +483,7 @@ sub generateImage {
   my $event_path = $Event->Path();
   my $capture_image_path = sprintf('%s/%0'.$Config{ZM_EVENT_IMAGE_DIGITS}.'d-capture.jpg', $event_path, $frame->{FrameId});
   my $analyse_image_path = sprintf('%s/%0'.$Config{ZM_EVENT_IMAGE_DIGITS}.'d-analyse.jpg', $event_path, $frame->{FrameId}) if $analyse;
-  my $video_path =  sprintf('%s/%s', $event_path, $Event->{DefaultVideo});
+  my $video_path =  sprintf('%s/%s', $event_path, ($Event->{DefaultVideo} ? basename($Event->{DefaultVideo}) : ''));
   my $image_path = '';
 
 # check if the image file exists. If the file doesn't exist and we use H264 try to extract it from .mp4 video
@@ -907,7 +907,7 @@ sub substituteTags {
     if ( $attachments_ref ) {
       if ( $text =~ s/%EV%//g ) {
         if ( $$Event{DefaultVideo} ) {
-          push @$attachments_ref, { type=>'video/mp4', path=>join('/', $Event->Path(), $Event->DefaultVideo()) };
+          push @$attachments_ref, { type=>'video/mp4', path=>join('/', $Event->Path(), basename($Event->DefaultVideo())) };
         } elsif ( $Config{ZM_OPT_FFMPEG} ) {
           my ( $format, $path ) = generateVideo($filter, $Event);
           if ( !$format ) {

@@ -126,6 +126,12 @@ class Event extends ZM_Object {
     return strtotime($this->{'EndDateTime'});
   }
 
+  // DefaultVideo is user editable (API); only ever treat it as a filename
+  // inside the event directory.
+  public function DefaultVideo() {
+    return basename($this->{'DefaultVideo'} ?? '');
+  }
+
   public function Path() {
     $Storage = $this->Storage();
     if ( $Storage->Path() and $this->Relative_Path() ) {
@@ -773,7 +779,8 @@ class Event extends ZM_Object {
 
   public function GenerateVideo($rate=0, $fps=0, $scale=0, $size=0, $overwrite=false, $format='mp4', $transforms='')  {
     $event_path = $this->Path();
-    $video_name = preg_replace('/\s/', '_', $this->Name());
+    // Name is user editable; keep the output file inside the event directory.
+    $video_name = preg_replace('/^\./', '_', preg_replace('/[^-A-Za-z0-9_.]/', '_', $this->Name()));
 
     $file_parts = [$video_name];
     if ( $rate ) {

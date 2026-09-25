@@ -189,7 +189,7 @@ class Event extends AppModel {
   } // end function fileExists($event)
 
   public function fileSize($event) {
-    return filesize($this->Path().'/'.$event['DefaultVideo']);
+    return filesize($this->Path().'/'.basename($event['DefaultVideo']));
   }
 
   public function beforeDelete($cascade=true) {

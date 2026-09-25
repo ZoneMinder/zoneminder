@@ -31,6 +31,16 @@ class Event extends AppModel {
  */
 	public $displayField = 'Name';
 
+  // DefaultVideo is joined onto the event directory by readers, so it must be
+  // a bare filename: no path separators, NUL, or . / ..
+  public $validate = array(
+    'DefaultVideo' => array(
+      'rule' => array('custom', '/^(?!\.\.?$)[^\/\\\\\x00]+$/D'),
+      'allowEmpty' => true,
+      'message' => 'DefaultVideo must be a filename without a path',
+    ),
+  );
+
   // For events that never wrote EndDateTime (zmc killed/crashed mid-event),
   // fall back to StartDateTime + Length (Length is flushed to the DB every few
   // seconds during recording, so it reflects the actual recorded duration).
@@ -155,7 +165,7 @@ class Event extends AppModel {
 
   public function fileExists($event) {
     if ($event['DefaultVideo']) {
-      if (file_exists($this->Path().'/'.$event['DefaultVideo'])) {
+      if (file_exists($this->Path().'/'.basename($event['DefaultVideo']))) {
         return 1;
       }
 

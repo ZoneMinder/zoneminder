@@ -85,8 +85,10 @@ if (!empty($_REQUEST['proxy'])) {
   // reserved addresses (127.0.0.1, ::1, 169.254.169.254 cloud metadata) are
   // refused. FILTER_FLAG_NO_RES_RANGE covers exactly those without excluding
   // 10/8, 172.16/12, 192.168/16 or fc00::/7.
-  if (filter_var($host, FILTER_VALIDATE_IP)) {
-    $addresses = array($host);
+  // parse_url keeps the brackets around an IPv6 literal.
+  $host_ip = trim($host, '[]');
+  if (filter_var($host_ip, FILTER_VALIDATE_IP)) {
+    $addresses = array($host_ip);
   } else {
     $addresses = gethostbynamel($host);
     if (!$addresses) $addresses = array();
@@ -108,6 +110,21 @@ if (!empty($_REQUEST['proxy'])) {
     }
   }
 
+  // Connect to the address that was just checked rather than letting fopen()
+  // resolve $host again: a second lookup could return a different answer (DNS
+  // rebinding) such as 127.0.0.1. The original name still goes out in the
+  // Host header and as the TLS peer name/SNI.
+  $connect_ip = $addresses[0];
+  $host_header = 'Host: '.$host.(isset($url_parts['port']) ? ':'.$url_parts['port'] : '');
+  $fetch_url = $url_parts['scheme'].'://';
+  if (isset($url_parts['user'])) {
+    $fetch_url .= $url_parts['user'].(isset($url_parts['pass']) ? ':'.$url_parts['pass'] : '').'@';
+  }
+  $fetch_url .= (strpos($connect_ip, ':') !== false ? '['.$connect_ip.']' : $connect_ip);
+  if (isset($url_parts['port'])) $fetch_url .= ':'.$url_parts['port'];
+  $fetch_url .= isset($url_parts['path']) ? $url_parts['path'] : '/';
+  if (isset($url_parts['query'])) $fetch_url .= '?'.$url_parts['query'];
+
   $username = isset($url_parts['user']) ? $url_parts['user'] : '';
   $password = isset($url_parts['pass']) ? $url_parts['pass'] : '';
 
@@ -116,6 +133,7 @@ if (!empty($_REQUEST['proxy'])) {
   $opts = array(
     'http'=>array(
       'method'=>$method,
+      'header'=>array($host_header),
       #'header'=>"Accept-language: en\r\n" .
       'ignore_errors'   => true,
       // The SSRF guard above only validated $host. Following a redirect would
@@ -126,6 +144,7 @@ if (!empty($_REQUEST['proxy'])) {
     'ssl'=>array(
       "verify_peer"=>false,
       "verify_peer_name"=>false,
+      "peer_name"=>$host_ip,
     )
   );
   $context = stream_context_create($opts);
@@ -136,7 +155,7 @@ if (!empty($_REQUEST['proxy'])) {
   @ini_set('zlib.output_compression', 0);
 
   /* Sends an http request with additional headers shown above */
-  $fp = @fopen($url, 'r', false, $context);
+  $fp = @fopen($fetch_url, 'r', false, $context);
   if ($fp) {
     $meta_data = stream_get_meta_data($fp);
     ZM\Debug(print_r($meta_data, true));
@@ -186,9 +205,9 @@ if (!empty($_REQUEST['proxy'])) {
         ZM\Debug($request);
 
         $request_header = array($request);
-        $opts['http']['header'] = $request;
+        $opts['http']['header'] = array($host_header, $request);
         $context = stream_context_create($opts);
-        $fp = fopen($url, 'r', false, $context);
+        $fp = fopen($fetch_url, 'r', false, $context);
         $meta_data = stream_get_meta_data($fp);
         ZM\Debug(print_r($meta_data, true));
       } # end if have auth

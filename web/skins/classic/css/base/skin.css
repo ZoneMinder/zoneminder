@@ -1109,10 +1109,11 @@ a.flip {
 .tags-container {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   border: 1px solid var(--gray);
   border-radius: 4px;
   /*min-height: 35px;*/
-  margin: 0.25rem 1rem 0.25rem 1rem;
+  margin: 0 0 0.5rem 0;
 }
 
 .tags-container button {
@@ -1146,6 +1147,8 @@ a.flip {
   height: 100%;
   border: none;
   width: 100%;
+  min-width: 0;
+  background: transparent;
 }
 
 .tag-input:focus {
@@ -1155,14 +1158,20 @@ a.flip {
 .tag-dropdown {
   vertical-align: center;
   display: inline-block;
+  position: relative;
   flex-grow: 2;
+  min-width: 4em;
 }
 
 .tag-dropdown-content {
   display: none;
   position: absolute;
+  top: 100%;
+  left: 0;
   background-color: #f9f9f9;
-  min-width: 160px;
+  min-width: 100%;
+  width: max-content;
+  max-width: 300px;
   box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
   z-index: 15;
   padding: 4px 0;

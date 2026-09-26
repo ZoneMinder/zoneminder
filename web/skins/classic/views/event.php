@@ -491,56 +491,59 @@ if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) echo '
                 </audio-motion>
 ' . PHP_EOL;
 ?>
-                <div class="monitorStatus">
-                  <span class="MonitorName"><?php echo validHtmlStr($monitor->Name()) . " (". translate('ID'). "=" . $monitor->Id() . ")"; ?>  </span>
-                  <span class="stream-info-status-track"></span>
-                </div>
-                <p id="dvrControls">
-                  <button type="button" id="prevBtn" title="<?php echo translate('Prev') ?>" class="inactive" data-on-click-true="streamPrev">
-                  <i class="material-icons md-18">skip_previous</i>
-                  </button>
-                  <button type="button" id="fastRevBtn" title="<?php echo translate('Rewind') ?>" class="inactive" data-on-click-true="streamFastRev">
-                  <i class="material-icons md-18">fast_rewind</i>
-                  </button>
-                  <button type="button" id="slowRevBtn" title="<?php echo translate('StepBack') ?>" class="unavail" disabled="disabled" data-on-click-true="streamSlowRev">
-                  <i class="material-icons md-18">chevron_left</i>
-                  </button>
-                  <button type="button" id="pauseBtn" title="<?php echo translate('Pause') ?>" class="inactive" data-on-click="pauseClicked">
-                  <i class="material-icons md-18">pause</i>
-                  </button>
-                  <button type="button" id="playBtn" title="<?php echo translate('Play') ?>" class="active" disabled="disabled" data-on-click="playClicked">
-                  <i class="material-icons md-18">play_arrow</i>
-                  </button>
-                  <button type="button" id="slowFwdBtn" title="<?php echo translate('StepForward') ?>" class="unavail" disabled="disabled" data-on-click-true="streamSlowFwd">
-                  <i class="material-icons md-18">chevron_right</i>
-                  </button>
-                  <button type="button" id="fastFwdBtn" title="<?php echo translate('FastForward') ?>" class="inactive" data-on-click-true="streamFastFwd">
-                  <i class="material-icons md-18">fast_forward</i>
-                  </button>
-                  <!--<button type="button" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="unavail" disabled="disabled" data-on-click="clickZoomOut">
-                  <i class="material-icons md-18">zoom_out</i>
-                  </button>-->
-                  <button type="button" id="fullscreenBtn" title="<?php echo translate('Fullscreen') ?>" class="avail" data-on-click="fullscreenClicked">
-                  <i class="material-icons md-18">fullscreen</i>
-                  </button>
-                  <button type="button" id="nextBtn" title="<?php echo translate('Next') ?>" class="inactive" data-on-click-true="streamNext">
-                  <i class="material-icons md-18">skip_next</i>
-                  </button>
-                </p>
-                <div id="replayStatus">
-                  <span id="mode"><?php echo translate('Mode') ?>: <span id="modeValue">Replay</span></span>
-                  <span id="rate"><?php echo translate('Rate') ?>: 
+                <div id="eventControls">
+                  <div class="monitorStatus">
+                    <span class="MonitorName"><?php echo validHtmlStr($monitor->Name()) . " (". translate('ID'). "=" . $monitor->Id() . ")"; ?>  </span>
+                    <span class="stream-info-status-track"></span>
+                  </div>
+                  <p id="dvrControls">
+                    <button type="button" id="prevBtn" title="<?php echo translate('Prev') ?>" class="inactive" data-on-click-true="streamPrev">
+                    <i class="material-icons md-18">skip_previous</i>
+                    </button>
+                    <button type="button" id="fastRevBtn" title="<?php echo translate('Rewind') ?>" class="inactive" data-on-click-true="streamFastRev">
+                    <i class="material-icons md-18">fast_rewind</i>
+                    </button>
+                    <button type="button" id="slowRevBtn" title="<?php echo translate('StepBack') ?>" class="unavail" disabled="disabled" data-on-click-true="streamSlowRev">
+                    <i class="material-icons md-18">chevron_left</i>
+                    </button>
+                    <button type="button" id="pauseBtn" title="<?php echo translate('Pause') ?>" class="inactive" data-on-click="pauseClicked">
+                    <i class="material-icons md-18">pause</i>
+                    </button>
+                    <button type="button" id="playBtn" title="<?php echo translate('Play') ?>" class="active" disabled="disabled" data-on-click="playClicked">
+                    <i class="material-icons md-18">play_arrow</i>
+                    </button>
+                    <button type="button" id="slowFwdBtn" title="<?php echo translate('StepForward') ?>" class="unavail" disabled="disabled" data-on-click-true="streamSlowFwd">
+                    <i class="material-icons md-18">chevron_right</i>
+                    </button>
+                    <button type="button" id="fastFwdBtn" title="<?php echo translate('FastForward') ?>" class="inactive" data-on-click-true="streamFastFwd">
+                    <i class="material-icons md-18">fast_forward</i>
+                    </button>
+                    <!--<button type="button" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="unavail" disabled="disabled" data-on-click="clickZoomOut">
+                    <i class="material-icons md-18">zoom_out</i>
+                    </button>-->
+                    <button type="button" id="fullscreenBtn" title="<?php echo translate('Fullscreen') ?>" class="avail" data-on-click="fullscreenClicked">
+                    <i class="material-icons md-18">fullscreen</i>
+                    </button>
+                    <button type="button" id="nextBtn" title="<?php echo translate('Next') ?>" class="inactive" data-on-click-true="streamNext">
+                    <i class="material-icons md-18">skip_next</i>
+                    </button>
+                  </p>
+                  <div id="replayStatus">
+                    <span id="mode"><?php echo translate('Mode') ?>: <span id="modeValue">Replay</span></span>
+                    <span id="rate"><?php echo translate('Rate') ?>: 
 <?php 
-  #rates are defined in skins/classic/includes/config.php
-  echo htmlSelect('rate', $rates, intval($rate), array('id'=>'rateValue'));
+    #rates are defined in skins/classic/includes/config.php
+    echo htmlSelect('rate', $rates, intval($rate), array('id'=>'rateValue'));
 ?>
-                  <span id="progress"<?php echo ZM_WEB_SHOW_PROGRESS ? '' : ' style="display:none;"' ?>><?php echo translate('Progress') ?>: <span id="progressValue">0</span>s</span>
-                  <span id="currentTime"><?php echo translate('Time') ?>: <span id="currentTimeValue"></span></span>
-                  <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue">1</span>x</span>
+                    </span>
+                    <span id="progress"<?php echo ZM_WEB_SHOW_PROGRESS ? '' : ' style="display:none;"' ?>><?php echo translate('Progress') ?>: <span id="progressValue">0</span>s</span>
+                    <span id="currentTime"><?php echo translate('Time') ?>: <span id="currentTimeValue"></span></span>
+                    <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue">1</span>x</span>
 <?php if (!$video_tag) { ?>
-                  <span id="fps"><?php echo translate('FPS') ?>: <span id="fpsValue"></span></span>
+                    <span id="fps"><?php echo translate('FPS') ?>: <span id="fpsValue"></span></span>
 <?php } ?>
-                </div>
+                  </div><!--replayStatus-->
+                </div><!--eventControls-->
               </div><!--eventVideo-->
             </div><!--wrapperEventVideo-->
           </div><!-- class="row" -->

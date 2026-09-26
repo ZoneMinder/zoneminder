@@ -6,6 +6,27 @@
 // globals by the time any of them runs. Also CommonJS-exported for node unit
 // tests (tests/js/table-helpers.test.js).
 
+// The icons the bootstrap-table top-right toolbar is built with. Every view
+// that makes a table passes these to bootstrapTable(), so they have to exist
+// before the view scripts run. They used to live in skin.js, which the footer
+// loads last of all: a client that never got that far -- a crawler that stops
+// short, an aborted load -- ran the view's ready handler against an undefined
+// icons and threw.
+var icons = {
+  paginationSwitchDown: 'fa-caret-square-o-down',
+  paginationSwitchUp: 'fa-caret-square-o-up',
+  export: 'fa-download',
+  refresh: 'fa-retweet',
+  autoRefresh: 'fa-clock-o',
+  advancedSearchIcon: 'fa-chevron-down',
+  toggleOff: 'fa-toggle-off',
+  toggleOn: 'fa-toggle-on',
+  columns: 'fa-th-list',
+  fullscreen: 'fa-arrows-alt',
+  detailOpen: 'fa-plus',
+  detailClose: 'fa-minus'
+};
+
 // Tables whose ajax request was skipped because the page was hidden, waiting to
 // be refreshed once it is shown again.
 const tablesPendingVisibility = [];
@@ -65,6 +86,7 @@ if (typeof document !== 'undefined' && document.addEventListener) {
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
+    icons,
     deferTableRequestWhileHidden,
     refreshTablesPendingVisibility,
     tablesPendingVisibility,

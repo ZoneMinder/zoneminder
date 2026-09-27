@@ -12,6 +12,7 @@
 // stopped loading before skin.js ran the view's ready handler against an
 // undefined icons and the table never initialised (issue #5153). A var, so it
 // stays a window property as it was in skin.js.
+
 var icons = {
   paginationSwitchDown: 'fa-caret-square-o-down',
   paginationSwitchUp: 'fa-caret-square-o-up',

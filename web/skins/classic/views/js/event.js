@@ -1381,7 +1381,7 @@ function onStatsResize(vidWidth) {
     if (eventStats.is(':visible')) {
       eventStats.toggle(false);
       wasHidden = true;
-      wrapperEventVideo.removeClass('col-sm-8').addClass('col-sm-12');
+      wrapperEventVideo.removeClass('col-sm-9').addClass('col-sm-12');
     }
   // Show the stats table if we hid it previously and sufficient room becomes available
   } else if (width >= minWidth) {
@@ -1389,7 +1389,7 @@ function onStatsResize(vidWidth) {
     if ( !eventStats.is(':visible') && wasHidden ) {
       eventStats.toggle(true);
       wasHidden = false;
-      wrapperEventVideo.removeClass('col-sm-12').addClass('col-sm-8');
+      wrapperEventVideo.removeClass('col-sm-12').addClass('col-sm-9');
     }
   }
 }
@@ -1413,10 +1413,10 @@ function initPage() {
 
   if (getEvtStatsCookie() != 'on') {
     eventStats.toggle(false);
-    wrapperEventVideo.removeClass('col-sm-8').addClass('col-sm-12');
+    wrapperEventVideo.removeClass('col-sm-9').addClass('col-sm-12');
   } else {
     onStatsResize(eventData.Width);
-    wrapperEventVideo.removeClass('col-sm-12').addClass('col-sm-8');
+    wrapperEventVideo.removeClass('col-sm-12').addClass('col-sm-9');
   }
   if (eventData.DefaultVideo) {
     canPlayCodec(eventData.DefaultVideo);
@@ -1614,11 +1614,11 @@ function initPage() {
     if (eventStats.is(':visible')) {
       setCookie(cookie, 'off');
       eventStats.toggle(false);
-      wrapperEventVideo.removeClass('col-sm-8').addClass('col-sm-12');
+      wrapperEventVideo.removeClass('col-sm-9').addClass('col-sm-12');
     } else {
       setCookie(cookie, 'on');
       eventStats.toggle(true);
-      wrapperEventVideo.removeClass('col-sm-12').addClass('col-sm-8');
+      wrapperEventVideo.removeClass('col-sm-12').addClass('col-sm-9');
     }
     changeScale();
   });

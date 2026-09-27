@@ -146,6 +146,43 @@ height: 100%;
   grid-area: 1/1;
 }
 
+/* The monitor name, the DVR transport buttons and the replay status share one
+   row under the video.  #replayStatus stays the last child because scaleToFit()
+   measures its bottom edge to size the video. */
+#eventControls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    justify-content: space-between;
+    column-gap: 0.5rem;
+}
+
+#eventControls > .monitorStatus,
+#eventControls > #dvrControls,
+#eventControls > #replayStatus {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    margin: 3px 0 2px;
+    clear: none;
+}
+
+#eventControls > .monitorStatus {
+    flex: 1 1 auto;
+    min-width: 0;
+    justify-content: flex-start;
+}
+
+#eventControls > #dvrControls {
+    flex: 0 0 auto;
+    justify-content: center;
+}
+
+#eventControls > #replayStatus {
+    flex: 1 1 auto;
+    justify-content: flex-end;
+}
+
 #monitorStatus {
     width: 100%;
     margin-top: 3px;

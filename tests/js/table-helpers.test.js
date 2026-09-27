@@ -1,7 +1,9 @@
 'use strict';
 
 const assert = require('assert');
+const fs = require('fs');
 const path = require('path');
+const vm = require('vm');
 
 let passed = 0;
 let failed = 0;
@@ -132,6 +134,25 @@ test('is a no-op when nothing was deferred', () => {
   reset();
   fireVisibilityChange();
   assert.strictEqual(ZM.tablesPendingVisibility.length, 0);
+});
+
+console.log('icons');
+test('exports the bootstrap-table toolbar icons', () => {
+  assert.strictEqual(ZM.icons.refresh, 'fa-retweet');
+  assert.strictEqual(ZM.icons.columns, 'fa-th-list');
+  assert.strictEqual(ZM.icons.detailClose, 'fa-minus');
+});
+test('defines icons as a page global without skin.js', () => {
+  // The regression (issue #5153): icons lived in skin.js, which the footer loads
+  // after the view scripts, so a client that stopped loading before it ran the
+  // view's ready handler against an undefined icons. Load table-helpers.js the way
+  // the browser does, as a plain script in a fresh global scope, and check that a
+  // view's bootstrapTable options can be built from it alone.
+  const src = fs.readFileSync(path.join(__dirname, '../../web/js/table-helpers.js'), 'utf8');
+  const page = vm.createContext({document: {visibilityState: 'visible', addEventListener: function() {}}});
+  vm.runInContext(src, page);
+  assert.strictEqual(vm.runInContext('typeof icons', page), 'object');
+  assert.strictEqual(vm.runInContext('({icons: icons}).icons.refresh', page), 'fa-retweet');
 });
 
 console.log('\n' + passed + ' passed, ' + failed + ' failed');

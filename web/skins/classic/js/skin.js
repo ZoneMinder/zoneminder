@@ -22,22 +22,6 @@
 // Use skin.js.php for JavaScript that need pre-processing
 //
 
-// Globally define the icons used in the bootstrap-table top-right toolbar
-var icons = {
-  paginationSwitchDown: 'fa-caret-square-o-down',
-  paginationSwitchUp: 'fa-caret-square-o-up',
-  export: 'fa-download',
-  refresh: 'fa-retweet',
-  autoRefresh: 'fa-clock-o',
-  advancedSearchIcon: 'fa-chevron-down',
-  toggleOff: 'fa-toggle-off',
-  toggleOn: 'fa-toggle-on',
-  columns: 'fa-th-list',
-  fullscreen: 'fa-arrows-alt',
-  detailOpen: 'fa-plus',
-  detailClose: 'fa-minus'
-};
-
 var panZoomEnabled = true; //Add it to settings in the future
 var expiredTap; //Time between touch screen clicks. Used to analyze double clicks
 var shifted = false;

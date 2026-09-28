@@ -1,5 +1,23 @@
 --
--- No schema changes. This file exists so that zmupdate.pl runs on upgrade to
--- 1.38.5 and loads the new ZM_AUTH_TRUSTED_PROXIES option into the Config
--- table; the daemons refuse to start while the Config table is missing options.
+-- Running this file also makes zmupdate.pl load the new ZM_AUTH_TRUSTED_PROXIES
+-- option into the Config table on upgrade to 1.38.5; the daemons refuse to start
+-- while the Config table is missing options.
 --
+
+--
+-- Add an index on Sessions.access to support session garbage collection.
+--
+
+SET @s = (SELECT IF(
+  (SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE table_name = 'Sessions'
+    AND table_schema = DATABASE()
+    AND index_name = 'Sessions_access_idx'
+  ) > 0,
+  "SELECT 'access Index already exists on Sessions table'",
+  "CREATE INDEX Sessions_access_idx ON Sessions (`access`)"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;

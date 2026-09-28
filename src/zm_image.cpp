@@ -1127,10 +1127,10 @@ bool Image::ReadJpeg(const std::string &filename, unsigned int p_colours, unsign
   new_width = readjpg_dcinfo->image_width;
   new_height = readjpg_dcinfo->image_height;
 
+  // Leave width and height to WriteBuffer() below. Assigning them here made it see no size
+  // change and keep the old, smaller buffer, which the decoder then overran.
   if ((width != new_width) || (height != new_height)) {
     Debug(9, "Image dimensions differ. Old: %ux%u New: %ux%u", width, height, new_width, new_height);
-    width = new_width;
-    height = new_height;
   }
 
   switch (p_colours) {

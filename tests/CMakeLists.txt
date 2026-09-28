@@ -31,6 +31,7 @@ set(TEST_SOURCES
   zm_zone_stride.cpp
   zm_zone_highlight.cpp
   zm_image_linesize.cpp
+  zm_image_readjpeg.cpp
   zm_zone_blobs.cpp)
 
 add_executable(tests main.cpp ${TEST_SOURCES})

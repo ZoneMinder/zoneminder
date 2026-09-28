@@ -1,5 +1,6 @@
 <?php
 App::uses('AppController', 'Controller');
+require_once __DIR__ .'/../../../includes/Monitor.php';
 /**
  * Zones Controller
  *
@@ -23,6 +24,32 @@ class ZonesController extends AppController {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
+  }
+
+  // Zones belong to a monitor, so changing one needs edit on that monitor, not just
+  // the global Monitors permission. $monitorId may come from request data.
+  private function requireMonitorEdit($monitorId) {
+    $monitor = new ZM\Monitor($monitorId);
+    if (!$monitor->Id()) {
+      throw new NotFoundException(__('Invalid monitor'));
+    }
+    if (!$monitor->canEdit()) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+    }
+  }
+
+  // The monitor that the zone being edited or deleted currently belongs to.
+  private function zoneMonitorId($id) {
+    $this->Zone->recursive = -1;
+    $zone = $this->Zone->find('first', array('conditions' => array('Zone.'.$this->Zone->primaryKey => $id)));
+    return $zone['Zone']['MonitorId'];
+  }
+
+  // The MonitorId given in request data, if any.
+  private function requestMonitorId() {
+    $data = $this->request->data;
+    if (isset($data['Zone']) and is_array($data['Zone'])) $data = $data['Zone'];
+    return isset($data['MonitorId']) ? $data['MonitorId'] : null;
   }
 
   // Find all zones which belong to a MonitorId
@@ -90,6 +117,12 @@ class ZonesController extends AppController {
       return;
     }
 
+    $monitorId = $this->requestMonitorId();
+    if ($monitorId === null) {
+      throw new BadRequestException(__('MonitorId is required'));
+    }
+    $this->requireMonitorEdit($monitorId);
+
     $zone = null;
 
     $this->Zone->create();
@@ -136,6 +169,9 @@ class ZonesController extends AppController {
         throw new UnauthorizedException(__('Insufficient Privileges'));
         return;
       }
+      $this->requireMonitorEdit($this->zoneMonitorId($id));
+      $monitorId = $this->requestMonitorId();
+      if ($monitorId !== null) $this->requireMonitorEdit($monitorId);
       if ( $this->Zone->save($this->request->data) ) {
         $message = 'The zone has been saved.';
       } else {
@@ -167,6 +203,7 @@ class ZonesController extends AppController {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
+    $this->requireMonitorEdit($this->zoneMonitorId($id));
     if ( $this->Zone->delete() ) {
       return $this->flash(__('The zone has been deleted.'), array('action' => 'index'));
     } else {

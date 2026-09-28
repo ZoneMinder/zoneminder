@@ -15,7 +15,7 @@
   global $booleanValues;
   global $filter;
 ?>
-const filterid = '<?php echo $filter->Id() ?>';
+const filterid = '<?php echo validJsStr($filter->Id()) ?>';
 const filter = <?php echo json_encode($filter) ?>;
 const filterQuery = '<?php echo isset($filterQuery) ? validJsStr(htmlspecialchars_decode($filterQuery)) : '' ?>';
 const sortQuery = '<?php echo isset($sortQuery) ? validJsStr(htmlspecialchars_decode($sortQuery)) : '' ?>';

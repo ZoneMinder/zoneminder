@@ -357,21 +357,23 @@ function deleteEvent($event) {
     return;
   }
 
-  if (gettype($event) != 'array') {
-# $event could be an eid, so turn it into an event hash
+  if (!($event instanceof ZM\Event)) {
+    # $event could be an eid, so load the event
     $event = new ZM\Event($event);
   }
+  if (!$event->Id()) return;
 
   if ($event->Archived()) {
     ZM\Info('Cannot delete Archived event.');
     return;
   } # end if Archived
 
-  global $user;
-
-  if ($user->Events() == 'Edit') {
+  # Needs Events edit and access to the event's monitor, not just the global permission.
+  if ($event->canEdit()) {
     $event->delete();
-  } # CAN EDIT
+  } else {
+    ZM\Warning('No permission to delete event '.$event->Id());
+  }
 }
 
 /**

@@ -677,6 +677,8 @@ if (ZM_OPT_USE_AUTH) {
       } // end if using reCaptcha
 
       zm_session_clear(); # Closes session
+      // The client has no cookie yet on a first login, but this session must be stored.
+      zm_session_persist();
       zm_session_regenerate_id(); # starts session
 
       $username = $requestUsername;

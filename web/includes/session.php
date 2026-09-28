@@ -20,6 +20,26 @@ function zm_setcookie($cookie, $value, $options=array()) {
   //ZM\Debug("Setting cookie for $cookie to $value");
 }
 
+// A session is only worth storing if the client actually carries it. A request
+// that arrives without our cookie - a bot, an image tag or a cross-origin ajax
+// poll authenticated by auth hash or token - still gets a session for the life
+// of the request, but writing it out leaves a Sessions row that nothing will
+// ever load again. Viewing an event polls the event's server every
+// ZM_WEB_REFRESH_STATUS seconds, so a cross-origin poll used to add a row every
+// few seconds. Login is the exception: that is where a session is first issued.
+$zm_session_persist = false;
+
+// Store this session even though the client arrived without our cookie.
+function zm_session_persist() {
+  global $zm_session_persist;
+  $zm_session_persist = true;
+}
+
+function zm_session_is_persistable() {
+  global $zm_session_persist;
+  return $zm_session_persist || !empty($_COOKIE[session_name()]);
+}
+
 // ZM session start function support timestamp management
 function zm_session_start() {
   if (ini_get('session.name') != 'ZMSESSID') {
@@ -158,6 +178,7 @@ class ZMSessionHandler implements SessionHandlerInterface {
     return '';
   }
   public function write($id, $data) : bool {
+    if (!zm_session_is_persistable()) return true;
     // Create time stamp
     $access = time();
 

@@ -7,6 +7,7 @@ require_once('Monitor_Permission.php');
 require_once('User_Preference.php');
 
 class User extends ZM_Object {
+  protected static $setters = array('Monitor_Permissions', 'Preferences', 'Role');
   protected static $table = 'Users';
 
   protected $Id;

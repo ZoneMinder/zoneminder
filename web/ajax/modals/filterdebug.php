@@ -7,6 +7,12 @@
   // any authenticated user. refs GHSA-28mv-hqxw-qw84
   $fid = validInt($_REQUEST['fid']);
 
+  // Authorize before applying any request input to the filter. refs GHSA-vvx7-ghpv-jq98
+  if (!canView('Events')) {
+    $view = 'error';
+    return;
+  }
+
   $filter = null;
   if ($fid) {
     $filter = new ZM\Filter($fid);

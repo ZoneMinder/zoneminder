@@ -2,6 +2,7 @@
 namespace ZM;
 
 class Group extends ZM_Object {
+  protected static $setters = array('depth', 'Permissions');
   protected static $table = 'Groups';
   protected static $permissions = array();
   protected $defaults = array(

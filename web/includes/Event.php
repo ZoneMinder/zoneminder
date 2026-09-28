@@ -7,6 +7,7 @@ require_once('Event_Tag.php');
 require_once('Tag.php');
 
 class Event extends ZM_Object {
+  protected static $setters = array('Storage', 'SecondaryStorage');
   protected static $table = 'Events';
 
   protected $Tags;

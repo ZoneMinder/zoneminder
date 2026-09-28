@@ -11,6 +11,7 @@ require_once('Storage.php');
 require_once('Zone.php');
 
 class Monitor extends ZM_Object {
+  protected static $setters = array('User', 'ViewWidth', 'ViewHeight', 'Storage', 'Groups', 'connKey', 'Model', 'Manufacturer');
   private $shm_id = null;
   private $connected = false;
 

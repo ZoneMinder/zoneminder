@@ -50,6 +50,32 @@ bool ValidateAccess(User *user, int mon_id) {
   return allowed;
 }
 
+// Event access is decided by the monitor the event belongs to, never by a monitor id the
+// client supplies alongside it: an allowed monitor paired with a denied monitor's event id
+// must not stream that event. mon_id is used only when the stream is chosen by monitor and
+// time, in which case it is the monitor whose events are streamed.
+bool ValidateEventAccess(User *user, int mon_id, uint64_t event_id, bool by_monitor_and_time) {
+  if (user->getEvents() < User::PERM_VIEW) {
+    Warning("Insufficient privileges for request user %d %s, user does not have permission view events.",
+            user->Id(), user->getUsername());
+    return false;
+  }
+  if (!by_monitor_and_time) {
+    zmDbRow row;
+    if (!event_id || !row.fetch(stringtf("SELECT `MonitorId` FROM `Events` WHERE `Id` = %" PRIu64, event_id))) {
+      Warning("Unknown event %" PRIu64 " requested by user %d %s", event_id, user->Id(), user->getUsername());
+      return false;
+    }
+    mon_id = row[0] ? atoi(row[0]) : 0;
+  }
+  if (!user->canAccess(mon_id)) {
+    Warning("Insufficient privileges for request user %d %s for event %" PRIu64 " of monitor %d, user does not have permission view this monitor.",
+            user->Id(), user->getUsername(), event_id, mon_id);
+    return false;
+  }
+  return true;
+}
+
 int main(int argc, const char *argv[], char **envp) {
   self = argv[0];
 
@@ -278,7 +304,15 @@ int main(int argc, const char *argv[], char **envp) {
               remote ? remote : "");
       return exit_zm(0);
     }
-    if ( !ValidateAccess(user, monitor_id) ) {
+    bool allowed;
+    if ( source == ZMS_EVENT ) {
+      // Mirrors the setStreamStart() choice below.
+      bool by_monitor_and_time = monitor_id && (event_time != std::chrono::system_clock::time_point::min());
+      allowed = ValidateEventAccess(user, monitor_id, event_id, by_monitor_and_time);
+    } else {
+      allowed = ValidateAccess(user, monitor_id);
+    }
+    if ( !allowed ) {
       delete user;
       user = nullptr;
       fputs("HTTP/1.0 403 Forbidden\r\n\r\n", stdout);

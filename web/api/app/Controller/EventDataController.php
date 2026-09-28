@@ -152,6 +152,7 @@ class EventDataController extends AppController {
 				throw new UnauthorizedException(__('Insufficient Privileges'));
 			}
 			$this->requireRequestEventDataEdit(true);
+			$this->pinRequestId($this->EventData, null);
 			$this->EventData->create();
 			if ($this->EventData->save($this->request->data)) {
 			}
@@ -173,6 +174,7 @@ class EventDataController extends AppController {
 		}
 		$this->requireEventDataEdit($id);
 		if ($this->request->is(array('post', 'put'))) {
+			$this->pinRequestId($this->EventData, $id);
 			$this->requireRequestEventDataEdit(false);
 			if ($this->EventData->save($this->request->data)) {
 			}

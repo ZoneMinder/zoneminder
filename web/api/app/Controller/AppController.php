@@ -191,4 +191,17 @@ class AppController extends Controller {
     }
 
   } # end function beforeFilter()
+
+  # Model::save() takes the record id from a primary key in the data it is given, so an
+  # edit authorized for the id in the URL could otherwise write to whichever id the request
+  # body names. Drop any primary key from the request data and pin the model to $id.
+  protected function pinRequestId($model, $id) {
+    $alias = $model->alias;
+    $key = $model->primaryKey;
+    if (isset($this->request->data[$alias]) and is_array($this->request->data[$alias])) {
+      unset($this->request->data[$alias][$key]);
+    }
+    unset($this->request->data[$key]);
+    $model->id = $id;
+  }
 }

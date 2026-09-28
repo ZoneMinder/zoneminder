@@ -27,6 +27,7 @@ extern "C" {
 
 #include <cstdlib>
 #include <cstring>
+#include <unistd.h>
 
 namespace {
 
@@ -345,4 +346,33 @@ TEST_CASE("Image::HighlightEdges YUV420P output", "[image]") {
   CHECK(hi.data[0][20 * hi.stride[0] + 25] == 0);  // interior, not an edge
   CHECK(hi.data[0][0] == 0);                        // outside the blob
   delete high;
+}
+
+// A File monitor reads its source JPEG into a monitor-sized Image on every
+// capture. A file with larger dimensions must get a buffer sized for the file,
+// not be decoded into the smaller existing one. refs GHSA-rpp4-xmqm-84ff
+TEST_CASE("Image::ReadJpeg reallocates for a larger JPEG", "[image]") {
+  bootstrap_image_config();
+  const unsigned int big_w = 256, big_h = 192;
+  const unsigned int small_w = 64, small_h = 48;
+
+  Image big(big_w, big_h, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA);
+  big.Clear();
+  char path[] = "/tmp/zm_readjpeg_XXXXXX.jpg";
+  int fd = mkstemps(path, 4);
+  REQUIRE(fd >= 0);
+  close(fd);
+  REQUIRE(big.WriteJpeg(path, 90));
+
+  Image small(small_w, small_h, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA);
+  const unsigned int small_size = small.Size();
+  REQUIRE(small.ReadJpeg(path, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA));
+  unlink(path);
+
+  CHECK(small.Width() == big_w);
+  CHECK(small.Height() == big_h);
+  // The buffer must hold every decoded row at the image's stride.
+  CHECK(small.LineSize() >= big_w * 4);
+  CHECK(small.Size() >= small.LineSize() * big_h);
+  CHECK(small.Size() > small_size);
 }

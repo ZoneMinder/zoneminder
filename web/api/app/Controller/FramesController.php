@@ -1,5 +1,6 @@
 <?php
 App::uses('AppController', 'Controller');
+require_once __DIR__ .'/../../../includes/Event.php';
 /**
  * Frames Controller
  *
@@ -46,6 +47,27 @@ class FramesController extends AppController {
       throw new NotFoundException(__('Invalid event'));
     }
     return new ZM\Event($event['Event']);
+  }
+
+  # A frame being added or re-pointed names its event in the request data. Require
+  # edit on that event too, or a user could attach frames to a denied monitor's event.
+  private function requireRequestEventEdit($required) {
+    $data = $this->request->data;
+    if (isset($data['Frame']) and is_array($data['Frame'])) $data = $data['Frame'];
+    if (!isset($data['EventId'])) {
+      if ($required) throw new BadRequestException(__('EventId is required'));
+      return;
+    }
+    $this->loadModel('Event');
+    $this->Event->recursive = -1;
+    $event = $this->Event->find('first', array('conditions' => array('Event.Id' => $data['EventId'])));
+    if (!$event) {
+      throw new NotFoundException(__('Invalid event'));
+    }
+    $event = new ZM\Event($event['Event']);
+    if (!$event->canEdit()) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+    }
   }
 
   # Frame mutation is an Event mutation, so require Events=Edit as well as the
@@ -129,6 +151,11 @@ class FramesController extends AppController {
  */
 	public function add() {
 		if ($this->request->is('post')) {
+			global $user;
+			if ($user and ($user->Events() != 'Edit')) {
+				throw new UnauthorizedException(__('Insufficient Privileges'));
+			}
+			$this->requireRequestEventEdit(true);
 			$this->Frame->create();
 			if ($this->Frame->save($this->request->data)) {
 				return $this->flash(__('The frame has been saved.'), array('action' => 'index'));
@@ -151,6 +178,7 @@ class FramesController extends AppController {
 		}
 		$this->requireFrameEdit($id);
 		if ($this->request->is(array('post', 'put'))) {
+			$this->requireRequestEventEdit(false);
 			if ($this->Frame->save($this->request->data)) {
 				return $this->flash(__('The frame has been saved.'), array('action' => 'index'));
 			}

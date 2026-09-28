@@ -1,5 +1,6 @@
 <?php
 App::uses('AppController', 'Controller');
+require_once __DIR__ .'/../../../includes/Event.php';
 /**
  * EventData Controller
  *
@@ -41,6 +42,35 @@ class EventDataController extends AppController {
       ));
       $monitorId = $row ? $row[$this->EventData->alias]['MonitorId'] : null;
       if ( !in_array($monitorId, $allowedMonitors) ) {
+        throw new UnauthorizedException(__('Insufficient Privileges'));
+      }
+    }
+  }
+
+  # Event_Data being added or re-pointed names its event and monitor in the request
+  # data. Require edit on that event and access to that monitor, or a user could
+  # attach data to a denied monitor's event.
+  private function requireRequestEventDataEdit($required) {
+    $data = $this->request->data;
+    if (isset($data['EventData']) and is_array($data['EventData'])) $data = $data['EventData'];
+    if (!isset($data['EventId'])) {
+      if ($required) throw new BadRequestException(__('EventId is required'));
+    } else {
+      $this->loadModel('Event');
+      $this->Event->recursive = -1;
+      $event = $this->Event->find('first', array('conditions' => array('Event.Id' => $data['EventId'])));
+      if (!$event) {
+        throw new NotFoundException(__('Invalid event'));
+      }
+      $event = new ZM\Event($event['Event']);
+      if (!$event->canEdit()) {
+        throw new UnauthorizedException(__('Insufficient Privileges'));
+      }
+    }
+    if (isset($data['MonitorId'])) {
+      global $user;
+      $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : null;
+      if ($allowedMonitors !== null and !in_array($data['MonitorId'], $allowedMonitors)) {
         throw new UnauthorizedException(__('Insufficient Privileges'));
       }
     }
@@ -117,6 +147,11 @@ class EventDataController extends AppController {
  */
 	public function add() {
 		if ($this->request->is('post')) {
+			global $user;
+			if ($user and ($user->Events() != 'Edit')) {
+				throw new UnauthorizedException(__('Insufficient Privileges'));
+			}
+			$this->requireRequestEventDataEdit(true);
 			$this->EventData->create();
 			if ($this->EventData->save($this->request->data)) {
 			}
@@ -138,6 +173,7 @@ class EventDataController extends AppController {
 		}
 		$this->requireEventDataEdit($id);
 		if ($this->request->is(array('post', 'put'))) {
+			$this->requireRequestEventDataEdit(false);
 			if ($this->EventData->save($this->request->data)) {
 			}
 		} else {

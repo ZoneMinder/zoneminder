@@ -122,6 +122,7 @@ class ZonesController extends AppController {
       throw new BadRequestException(__('MonitorId is required'));
     }
     $this->requireMonitorEdit($monitorId);
+    $this->pinRequestId($this->Zone, null);
 
     $zone = null;
 
@@ -169,6 +170,7 @@ class ZonesController extends AppController {
         throw new UnauthorizedException(__('Insufficient Privileges'));
         return;
       }
+      $this->pinRequestId($this->Zone, $id);
       $this->requireMonitorEdit($this->zoneMonitorId($id));
       $monitorId = $this->requestMonitorId();
       if ($monitorId !== null) $this->requireMonitorEdit($monitorId);

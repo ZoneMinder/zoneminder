@@ -156,6 +156,7 @@ class FramesController extends AppController {
 				throw new UnauthorizedException(__('Insufficient Privileges'));
 			}
 			$this->requireRequestEventEdit(true);
+			$this->pinRequestId($this->Frame, null);
 			$this->Frame->create();
 			if ($this->Frame->save($this->request->data)) {
 				return $this->flash(__('The frame has been saved.'), array('action' => 'index'));
@@ -178,6 +179,7 @@ class FramesController extends AppController {
 		}
 		$this->requireFrameEdit($id);
 		if ($this->request->is(array('post', 'put'))) {
+			$this->pinRequestId($this->Frame, $id);
 			$this->requireRequestEventEdit(false);
 			if ($this->Frame->save($this->request->data)) {
 				return $this->flash(__('The frame has been saved.'), array('action' => 'index'));

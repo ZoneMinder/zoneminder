@@ -108,9 +108,9 @@ monitorData[monitorData.length] = {
   'Url': '<?php echo $monitor->UrlToIndex( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'UrlToZMS': '<?php echo $monitor->UrlToZMS( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'onclick': function(){window.location.assign( '?view=watch&mid=<?php echo $monitor->Id() ?>' );},
-  'Type': '<?php echo $monitor->Type() ?>',
-  'Refresh': '<?php echo $monitor->Refresh() ?>',
-  'Janus_Pin': '<?php echo $monitor->Janus_Pin() ?>',
+  'Type': '<?php echo validJsStr($monitor->Type()) ?>',
+  'Refresh': '<?php echo validJsStr($monitor->Refresh()) ?>',
+  'Janus_Pin': '<?php echo validJsStr($monitor->Janus_Pin()) ?>',
   'WebColour': '<?php echo $monitor->WebColour() ?>'
 };
 <?php

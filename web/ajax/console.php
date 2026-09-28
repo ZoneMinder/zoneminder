@@ -511,14 +511,14 @@ function queryRequest() {
       if ($Monitor->Go2RTCEnabled() && defined('ZM_GO2RTC_PATH') && ZM_GO2RTC_PATH) {
         $liveStreamAttr = ' data-stream-type="go2rtc"'.
           ' data-go2rtc-src="'.htmlspecialchars(ZM_GO2RTC_PATH).'"'.
-          ' data-stream-channel="'.($Monitor->StreamChannel() ?: 'Restream').'"'.
+          ' data-stream-channel="'.validHtmlStr($Monitor->StreamChannel() ?: 'Restream').'"'.
           ' data-monitor-id="'.$monitor['Id'].'"';
         $go2rtcAttr = ' go2rtc_src="'.htmlspecialchars(ZM_GO2RTC_PATH).'" go2rtc_mid="'.$monitor['Id'].'"';
         $debugAttr .= ' data-debug-overlay="go2rtc"';
       } else if ($Monitor->RTSP2WebEnabled() && defined('ZM_RTSP2WEB_PATH') && ZM_RTSP2WEB_PATH) {
         $liveStreamAttr = ' data-stream-type="rtsp2web"'.
           ' data-rtsp2web-src="'.htmlspecialchars(ZM_RTSP2WEB_PATH).'"'.
-          ' data-stream-channel="'.($Monitor->StreamChannel() ?: 'Restream').'"'.
+          ' data-stream-channel="'.validHtmlStr($Monitor->StreamChannel() ?: 'Restream').'"'.
           ' data-monitor-id="'.$monitor['Id'].'"';
         $debugAttr .= ' data-debug-overlay="rtsp2web"';
       } else if ($Monitor->JanusEnabled()) {

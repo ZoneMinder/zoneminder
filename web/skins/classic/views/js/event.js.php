@@ -47,7 +47,7 @@ var eventData = {
     Path: '<?php echo $Event->Path() ?>',
     Latitude: '<?php echo $Event->Latitude() ?>',
     Longitude: '<?php echo $Event->Longitude() ?>',
-    whatDisplay: '<?php echo $monitor->WhatDisplay() ?>'
+    whatDisplay: '<?php echo validJsStr($monitor->WhatDisplay()) ?>'
 <?php } ?>
 };
 

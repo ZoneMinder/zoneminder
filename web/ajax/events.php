@@ -147,9 +147,16 @@ ajaxResponse($data);
 
 function archiveRequest($task, $eid) {
   $archiveVal = ($task == 'archive') ? 1 : 0;
+  $event = new ZM\Event($eid);
+  # Anyone who can view an event may archive it, unarchiving needs edit. Either way
+  # that is checked on the event itself so that its monitor's permission applies.
+  if (!$event->Id() or !($archiveVal ? $event->canView() : $event->canEdit())) {
+    ZM\Warning('No permission to '.$task.' event '.validCardinal($eid));
+    return;
+  }
   dbQuery(
     'UPDATE Events SET Archived = ? WHERE Id = ?',
-    array($archiveVal, $eid)
+    array($archiveVal, $event->Id())
   );
 }
 

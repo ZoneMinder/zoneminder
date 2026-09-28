@@ -140,8 +140,20 @@ function userLogout() {
   zm_session_clear();
 }
 
+// ZM_AUTH_HASH_SECRET as shipped. It is public, so it must never sign or verify a token.
+// zmupdate.pl -f replaces it with a random secret. refs GHSA-wmcc-x64g-jr84
+define('ZM_AUTH_HASH_SECRET_DEFAULT', '...Change me to something unique...');
+
+function authHashSecretIsSet() {
+  return (ZM_AUTH_HASH_SECRET !== '') and (ZM_AUTH_HASH_SECRET !== ZM_AUTH_HASH_SECRET_DEFAULT);
+}
+
 function validateToken($token, $allowed_token_type='access') {
   global $user;
+  if (!authHashSecretIsSet()) {
+    ZM\Error('Refusing token authentication: ZM_AUTH_HASH_SECRET is empty or still the shipped default. Set it in Options->System or run zmupdate.pl -f.');
+    return array(false, 'AUTH_HASH_SECRET is not set');
+  }
   $key = ZM_AUTH_HASH_SECRET;
   //if (ZM_AUTH_HASH_IPS) $key .= $_SERVER['REMOTE_ADDR'];
   try {

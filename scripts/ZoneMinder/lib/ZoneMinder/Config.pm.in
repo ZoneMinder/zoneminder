@@ -200,6 +200,28 @@ sub loadConfigFromDB {
   return $option_count;
 } # end sub loadConfigFromDB
 
+# ZM_AUTH_HASH_SECRET signs API/login tokens and keys the auth hash and CSRF tokens. The
+# shipped default is public, so replace it, or an empty value, with a random secret the
+# first time the config is saved on this system. refs GHSA-wmcc-x64g-jr84
+sub generateAuthHashSecret {
+  my $option = $ZoneMinder::ConfigData::options_hash{ZM_AUTH_HASH_SECRET};
+  return if !$option;
+  return if defined($option->{value}) and $option->{value} ne ''
+    and $option->{value} ne $option->{default};
+
+  my $bytes;
+  if ( open(my $fh, '<:raw', '/dev/urandom') ) {
+    read($fh, $bytes, 32);
+    close($fh);
+  }
+  if ( !defined($bytes) or length($bytes) != 32 ) {
+    print("Warning: unable to read /dev/urandom, ZM_AUTH_HASH_SECRET is still the default. Please set it.\n");
+    return;
+  }
+  $option->{value} = unpack('H*', $bytes);
+  print("Generated a new ZM_AUTH_HASH_SECRET\n");
+}
+
 sub saveConfigToDB {
   print( 'Saving config to DB ' . @options . " entries\n" );
   my $dbh = ZoneMinder::Database::zmDbConnect();
@@ -207,6 +229,8 @@ sub saveConfigToDB {
     print( "Error: unable to save options to database: $DBI::errstr\n" );
     return( 0 );
   }
+
+  generateAuthHashSecret();
 
   my $ac = $dbh->{AutoCommit};
   $dbh->{AutoCommit} = 0;

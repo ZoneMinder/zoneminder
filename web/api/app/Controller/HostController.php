@@ -173,10 +173,10 @@ class HostController extends AppController {
       return;
     }
 
-    if (!ZM_AUTH_HASH_SECRET)
+    require_once __DIR__ .'/../../../includes/auth.php';
+    if (!authHashSecretIsSet())
       throw new ForbiddenException(__('Please create a valid AUTH_HASH_SECRET in ZoneMinder'));
 
-    require_once __DIR__ .'/../../../includes/auth.php';
     require_once __DIR__.'/../../../vendor/autoload.php';
 
     if ($token) {

@@ -310,6 +310,13 @@ User *zmLoadUser(const std::string &username, const std::string &password) {
 }  // end User *zmLoadUser(const char *username, const char *password)
 
 User *zmLoadTokenUser(const std::string &jwt_token_str, bool use_remote_addr) {
+  // The shipped ZM_AUTH_HASH_SECRET is public, so a token signed with it proves nothing.
+  // refs GHSA-wmcc-x64g-jr84
+  if (!config.auth_hash_secret || !*config.auth_hash_secret
+      || !strcmp(config.auth_hash_secret, "...Change me to something unique...")) {
+    Error("Refusing token authentication: ZM_AUTH_HASH_SECRET is empty or still the shipped default.");
+    return nullptr;
+  }
   std::string key = config.auth_hash_secret;
   std::string remote_addr;
 
@@ -323,7 +330,8 @@ User *zmLoadTokenUser(const std::string &jwt_token_str, bool use_remote_addr) {
     }
   }
 
-  Debug(1, "Inside zmLoadTokenUser, formed key=%s", key.c_str());
+  // Don't log the key: it is the token signing secret.
+  Debug(1, "Inside zmLoadTokenUser, remote_addr=%s", remote_addr.c_str());
 
   std::pair<std::string, unsigned int> ans = verifyToken(jwt_token_str, key);
   std::string username = zmDbEscapeString(ans.first);

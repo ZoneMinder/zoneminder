@@ -98,6 +98,9 @@ class AppController extends Controller {
           // validation behind a reverse proxy.
           zm_session_start();
           if ($user) {
+            // A stateful login issues the session cookie, so store the session even
+            // though this request arrived without one.
+            zm_session_persist();
             $_SESSION['username'] = $user->Username();
             if ( ZM_AUTH_RELAY == 'plain' ) {
               // Need to save this in session, can't use the value in User because it is hashed

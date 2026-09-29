@@ -84,6 +84,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libjwt2|libjwt-gnutls2|libjwt-gnutls0|libjwt0
         ,libgsoap-2.8.139|libgsoap-2.8.135|libgsoap-2.8.132t64|libgsoap-2.8.124|libgsoap-2.8.117|libgsoap-2.8.104|libgsoap-2.8.91|libgsoap-2.8.75|libgsoap-2.8.60|libgsoap10
         ,libmosquittopp1
+        ,libcurl3t64-gnutls | libcurl3-gnutls
 Recommends: ${misc:Recommends}
            ,libapache2-mod-php | php-fpm
            ,default-mysql-server | mariadb-server | virtual-mysql-server

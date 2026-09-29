@@ -34,7 +34,7 @@ $builtinKeys = array_keys(getMenuItemFunctions());
 <?php } ?>
       </div>
     </div>
-    <div class="wrapper-scroll-table">
+    <div class="wrapper-scroll-table overflow-auto">
         <div class="col">
           <table class="table table-striped" id="menuItemsTable">
             <thead>

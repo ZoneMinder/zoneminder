@@ -55,6 +55,7 @@ class PacketQueue {
   int frames_since_last_keyframe_;
   std::atomic<bool> clear_packets_pending_;
   uint64_t next_queue_index_;
+  uint64_t first_queue_index_;  // queue_index of the first packet queued since the last clear()
 
  public:
   PacketQueue();

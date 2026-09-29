@@ -41,7 +41,8 @@ PacketQueue::PacketQueue():
   max_keyframe_interval_(0),
   frames_since_last_keyframe_(0),
   clear_packets_pending_(false),
-  next_queue_index_(0)
+  next_queue_index_(0),
+  first_queue_index_(0)
 {
 }
 
@@ -465,6 +466,7 @@ void PacketQueue::clear() {
   packet_counts.reset();
   max_stream_id = -1;
   max_keyframe_interval_ = 0;
+  first_queue_index_ = next_queue_index_;
 
   Debug(1, "Packetqueue is clear, notifying");
   condition.notify_all();
@@ -678,8 +680,9 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
   }
 
   if (pre_event_count) {
-    if (packet->image_index < (int)pre_event_count) {
-      // probably just starting up
+    if (packet->queue_index == first_queue_index_) {
+      // Nothing has been trimmed since startup or the last clear() (e.g. a
+      // capture reconnect), so the queue never held enough packets.
       Debug(1, "Hit end of packetqueue before satisfying pre_event_count. Needed %d more video frames", pre_event_count);
     } else {
       Warning("Hit end of packetqueue before satisfying pre_event_count. Needed %d more video frames", pre_event_count);

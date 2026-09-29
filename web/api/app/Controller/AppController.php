@@ -36,14 +36,11 @@ class AppController extends Controller {
   public $components = [
     'RequestHandler',
     'Crud.Crud' => [
-      'actions' => [
-        'index' => 'Crud.Index',
-        'add'   => 'Crud.Add',
-        'edit'  => 'Crud.Edit',
-        'view'  => 'Crud.View',
-        'keyvalue' => 'Crud.List',
-        'category' => 'Crud.Category'
-      ],
+      # No Crud actions are mapped. CrudControllerTrait would otherwise answer any action a
+      # controller does not define (view, add, edit, keyvalue, ...) with a generic handler
+      # that applies none of the controller's permission or per-monitor checks, e.g.
+      # zones/view/<id> returned any zone. A controller must implement each action itself.
+      'actions' => [],
       'listeners' => ['Api', 'ApiTransformation']
     #],
     #'DebugKit.Toolbar' => [
@@ -203,5 +200,85 @@ class AppController extends Controller {
     }
     unset($this->request->data[$key]);
     $model->id = $id;
+  }
+
+  # A find() condition limiting $field to the monitors the user may view: empty when the user
+  # is not restricted, and matching nothing when the user may view no monitor at all.
+  protected function viewableMonitorCondition($field) {
+    global $user;
+    if (!$user or !$user->unviewableMonitorIds()) return array();
+    $ids = $user->viewableMonitorIds();
+    return array($field => count($ids) ? $ids : array(0));
+  }
+
+  # A field from the request data, whether sent as Model[field] or bare, or null.
+  protected function requestField($alias, $field) {
+    $data = $this->request->data;
+    if (isset($data[$alias]) and is_array($data[$alias])) $data = $data[$alias];
+    return isset($data[$field]) ? $data[$field] : null;
+  }
+
+  # Throw unless the user may view monitor $monitorId.
+  protected function requireMonitorView($monitorId) {
+    require_once __DIR__ .'/../../../includes/Monitor.php';
+    $monitor = new ZM\Monitor($monitorId);
+    if (!$monitor->Id()) {
+      throw new NotFoundException(__('Invalid monitor'));
+    }
+    if (!$monitor->canView()) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+    }
+  }
+
+  # Throw unless the user may edit monitor $monitorId.
+  protected function requireMonitorEdit($monitorId) {
+    require_once __DIR__ .'/../../../includes/Monitor.php';
+    $monitor = new ZM\Monitor($monitorId);
+    if (!$monitor->Id()) {
+      throw new NotFoundException(__('Invalid monitor'));
+    }
+    if (!$monitor->canEdit()) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+    }
+  }
+
+  # The ids of the $assoc records a request associates with $alias, given either as
+  # $alias[$idsField] (comma separated or array) or as HABTM $assoc data; null if neither.
+  protected function requestAssociatedIds($alias, $idsField, $assoc) {
+    $data = $this->request->data;
+    if (isset($data[$alias][$idsField])) {
+      $ids = $data[$alias][$idsField];
+    } else if (isset($data[$assoc])) {
+      $ids = (isset($data[$assoc][$assoc]) and is_array($data[$assoc][$assoc])) ? $data[$assoc][$assoc] : $data[$assoc];
+    } else {
+      return null;
+    }
+    if (!is_array($ids)) $ids = explode(',', $ids);
+    return array_map(function($id) { return intval(is_array($id) ? (isset($id['Id']) ? $id['Id'] : 0) : $id); }, $ids);
+  }
+
+  # Throw unless the user may view every event in $eventIds, which includes its monitor.
+  protected function requireEventsView($eventIds) {
+    require_once __DIR__ .'/../../../includes/Event.php';
+    foreach (array_unique($eventIds) as $eventId) {
+      $event = new ZM\Event($eventId);
+      if (!$event->Id()) {
+        throw new NotFoundException(__('Invalid event'));
+      }
+      if (!$event->canView()) {
+        throw new UnauthorizedException(__('Insufficient Privileges'));
+      }
+    }
+  }
+
+  # Drop the events on monitors the user may not view from a row's contained Event list.
+  protected function filterContainedEvents($row, $key = 'Event') {
+    $condition = $this->viewableMonitorCondition('MonitorId');
+    if (!count($condition) or !isset($row[$key])) return $row;
+    $allowed = $condition['MonitorId'];
+    $row[$key] = array_values(array_filter($row[$key], function($event) use ($allowed) {
+      return isset($event['MonitorId']) and in_array($event['MonitorId'], $allowed);
+    }));
+    return $row;
   }
 }

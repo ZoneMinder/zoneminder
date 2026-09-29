@@ -135,6 +135,7 @@ class MonitorsController extends AppController {
         throw new UnauthorizedException(__('Insufficient privileges'));
         return;
       }
+      $this->pinRequestId($this->Monitor, null);
       $this->Monitor->create();
       if ($this->Monitor->save($this->request->data) ) {
         $this->runDaemonControl($this->Monitor->id, 'start');
@@ -178,6 +179,7 @@ class MonitorsController extends AppController {
       return;
     }
 
+    $this->pinRequestId($this->Monitor, $id);
     $message = '';
     if ($this->Monitor->save($this->request->data)) {
       $message = 'Saved';
@@ -274,6 +276,14 @@ class MonitorsController extends AppController {
         break;      
       default :
         throw new BadRequestException(__('Invalid command'));
+    }
+
+    // zmu only checks that the user can see the monitor, so a monitor the user may only
+    // view could have its alarms forced or disabled. Changing alarm state needs edit.
+    require_once __DIR__ .'/../../../includes/Monitor.php';
+    $zm_monitor = new ZM\Monitor($id);
+    if (!(($cmd == 'status') ? $zm_monitor->canView() : $zm_monitor->canEdit())) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
     }
 
     // form auth key based on auth credentials

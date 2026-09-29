@@ -40,13 +40,7 @@ class EventsController extends AppController {
 
     global $user;
     require_once __DIR__ .'/../../../includes/Event.php';
-    $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : [];
-
-    if (count($allowedMonitors)) {
-      $mon_options = array('Event.MonitorId' => $allowedMonitors);
-    } else {
-      $mon_options = '';
-    }
+    $mon_options = $this->viewableMonitorCondition('Event.MonitorId');
 
     $this->FilterComponent = $this->Components->load('Filter');
     $named_params = $this->request->params['named'];
@@ -259,13 +253,7 @@ class EventsController extends AppController {
     }
 
     global $user;
-    $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : [];
-
-    if ( count($allowedMonitors) ) {
-      $mon_options = array('Event.MonitorId' => $allowedMonitors);
-    } else {
-      $mon_options = '';
-    }
+    $mon_options = $this->viewableMonitorCondition('Event.MonitorId');
 
     $noFrames = $this->request->query('noframes');
     if ($noFrames=='true')
@@ -334,6 +322,12 @@ class EventsController extends AppController {
     }
 
     if ( $this->request->is('post') ) {
+      $monitorId = $this->requestField('Event', 'MonitorId');
+      if ($monitorId === null) {
+        throw new BadRequestException(__('MonitorId is required'));
+      }
+      $this->requireMonitorView($monitorId);
+      $this->pinRequestId($this->Event, null);
       $this->Event->create();
       if ( $this->Event->save($this->request->data) ) {
         return $this->flash(__('The event has been saved.'), array('action' => 'index'));
@@ -375,6 +369,11 @@ class EventsController extends AppController {
     if ( !$EventObj->canEdit() ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
+    }
+    $this->pinRequestId($this->Event, $id);
+    $monitorId = $this->requestField('Event', 'MonitorId');
+    if ($monitorId !== null and $monitorId != $event['Event']['MonitorId']) {
+      $this->requireMonitorView($monitorId);
     }
 
     if ( $this->Event->save($this->request->data) ) {
@@ -459,6 +458,7 @@ class EventsController extends AppController {
     $this->FilterComponent = $this->Components->load('Filter');
     $conditions = $this->FilterComponent->buildFilter($conditions);
     array_push($conditions, $find_conditions);
+    array_push($conditions, $this->viewableMonitorCondition('Event.MonitorId'));
 
     $results = $this->Event->find('all', array(
       'conditions' => $conditions
@@ -493,6 +493,7 @@ class EventsController extends AppController {
       $conditions = array();
     } 
     array_push($conditions, array("StartDateTime >= DATE_SUB(NOW(), INTERVAL $expr $unit)"));
+    array_push($conditions, $this->viewableMonitorCondition('Event.MonitorId'));
     $query = $this->Event->find('all', array(
       'fields' => array('MonitorId', 'COUNT(*) AS Count'),
       'conditions' => $conditions,
@@ -510,7 +511,7 @@ class EventsController extends AppController {
   }
 
   // Create a thumbnail and return the thumbnail's data for a given event id.
-  public function createThumbnail($id = null) {
+  private function createThumbnail($id = null) {
     $this->Event->recursive = -1;
 
     if ( !$this->Event->exists($id) ) {
@@ -612,7 +613,7 @@ class EventsController extends AppController {
     ));
   }
 
-  public function getMaxScoreAlarmFrameId($id = null) {
+  private function getMaxScoreAlarmFrameId($id = null) {
     $this->Event->recursive = -1;
 
     if ( !$this->Event->exists($id) ) {

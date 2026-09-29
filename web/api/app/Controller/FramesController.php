@@ -90,7 +90,7 @@ class FramesController extends AppController {
 		$this->Frame->recursive = -1;
 
     global $user;
-    $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : null;
+    $monitorCondition = $this->viewableMonitorCondition('Event.MonitorId');
 
     $named_params = $this->request->params['named'];
     if ( $named_params ) {
@@ -101,7 +101,7 @@ class FramesController extends AppController {
     }
 
     $findOptions = array('conditions' => $conditions);
-    if ( $allowedMonitors ) {
+    if ( count($monitorCondition) ) {
       // Frame has no MonitorId of its own, and recursive=-1 above means the
       // Event association isn't auto-joined, so the per-monitor ACL has to
       // join through to the owning Event explicitly.
@@ -111,7 +111,7 @@ class FramesController extends AppController {
         'type' => 'inner',
         'conditions' => array('Event.Id = Frame.EventId'),
       ));
-      $findOptions['conditions'][] = array('Event.MonitorId' => $allowedMonitors);
+      $findOptions['conditions'][] = $monitorCondition;
     }
 
     $frames = $this->Frame->find('all', $findOptions);

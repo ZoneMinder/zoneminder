@@ -95,9 +95,9 @@ class EventDataController extends AppController {
     # Without it any user with Events != None reads event data for cameras they
     # are explicitly denied.
     global $user;
-    $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : array();
-    if ( count($allowedMonitors) ) {
-      $conditions[] = array($this->EventData->alias.'.MonitorId' => $allowedMonitors);
+    $monitorCondition = $this->viewableMonitorCondition($this->EventData->alias.'.MonitorId');
+    if ( count($monitorCondition) ) {
+      $conditions[] = $monitorCondition;
     }
 
     $find_array = array(
@@ -123,11 +123,8 @@ class EventDataController extends AppController {
 			throw new NotFoundException(__('Invalid event data'));
 		}
     global $user;
-    $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : array();
     $conditions = array($this->EventData->alias.'.'.$this->EventData->primaryKey => $id);
-    if ( count($allowedMonitors) ) {
-      $conditions[$this->EventData->alias.'.MonitorId'] = $allowedMonitors;
-    }
+    $conditions += $this->viewableMonitorCondition($this->EventData->alias.'.MonitorId');
 		$event_data = $this->EventData->find('first', array('conditions' => $conditions));
     if ( !$event_data ) {
       # exists() above proved the row is present, so an empty result here means

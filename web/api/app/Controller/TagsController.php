@@ -74,9 +74,9 @@ class TagsController extends AppController {
       # cameras they are denied. The plain tag list (no Events.Id filter) is a
       # global label vocabulary and is intentionally left unrestricted.
       global $user;
-      $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : array();
-      if ( count($allowedMonitors) ) {
-        $conditions[] = array('Events.MonitorId' => $allowedMonitors);
+      $monitorCondition = $this->viewableMonitorCondition('Events.MonitorId');
+      if ( count($monitorCondition) ) {
+        $conditions[] = $monitorCondition;
       }
     }
 
@@ -124,6 +124,10 @@ class TagsController extends AppController {
         return;
       }
 
+      # Only events the user may view can be tagged.
+      $eventIds = $this->requestAssociatedIds('Tag', 'EventIds', 'Event');
+      if ($eventIds) $this->requireEventsView($eventIds);
+      $this->pinRequestId($this->Tag, null);
 			$this->Tag->create();
 
       if ( $this->request->data['Tag']['EventIds'] and ! isset($this->request->data['Event']) ) {
@@ -164,7 +168,9 @@ class TagsController extends AppController {
         throw new UnauthorizedException(__('Insufficient Privileges'));
         return;
       }
-      $this->Tag->id = $id;
+      $this->pinRequestId($this->Tag, $id);
+      $eventIds = $this->requestAssociatedIds('Tag', 'EventIds', 'Event');
+      if ($eventIds) $this->requireEventsView($eventIds);
 			if ( $this->Tag->save($this->request->data) ) {
         $message = 'Saved';
       } else {
@@ -229,10 +235,10 @@ class TagsController extends AppController {
     # monitor-restricted user does not learn which events on denied cameras
     # carry a given tag.
     global $user;
-    $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : array();
     $event_contain = array('fields'=>array('Id','Name'));
-    if ( count($allowedMonitors) ) {
-      $event_contain['conditions'] = array('Event.MonitorId' => $allowedMonitors);
+    $monitorCondition = $this->viewableMonitorCondition('Event.MonitorId');
+    if ( count($monitorCondition) ) {
+      $event_contain['conditions'] = $monitorCondition;
     }
 
     $tags = $this->Tag->find('all', array(

@@ -26,17 +26,8 @@ class ZonesController extends AppController {
     }
   }
 
-  // Zones belong to a monitor, so changing one needs edit on that monitor, not just
-  // the global Monitors permission. $monitorId may come from request data.
-  private function requireMonitorEdit($monitorId) {
-    $monitor = new ZM\Monitor($monitorId);
-    if (!$monitor->Id()) {
-      throw new NotFoundException(__('Invalid monitor'));
-    }
-    if (!$monitor->canEdit()) {
-      throw new UnauthorizedException(__('Insufficient Privileges'));
-    }
-  }
+  // Zones belong to a monitor, so changing one needs edit on that monitor (requireMonitorEdit()
+  // in AppController), not just the global Monitors permission.
 
   // The monitor that the zone being edited or deleted currently belongs to.
   private function zoneMonitorId($id) {
@@ -81,17 +72,33 @@ class ZonesController extends AppController {
     ));
   }
 
+  public function view($id = null) {
+    $this->Zone->recursive = -1;
+    $zone = $this->Zone->find('first', array('conditions' => array('Zone.'.$this->Zone->primaryKey => $id)));
+    if (!$zone) {
+      throw new NotFoundException(__('Invalid zone'));
+    }
+    $monitor = new ZM\Monitor($zone['Zone']['MonitorId']);
+    if (!$monitor->canView()) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+    }
+    $this->set(array(
+      'zone' => $zone,
+      '_serialize' => array('zone')
+    ));
+  }
+
   public function index() {
     $this->Zone->recursive = -1;
 
     global $user;
-    $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : [];
-    if (count($allowedMonitors)) {
-      $mon_options = array('Zones.MonitorId' => $allowedMonitors);
-    } else {
-      $mon_options = '';
+    # null means no restriction. An empty list means the user may see no monitor, so no zone.
+    $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : null;
+    $options = array();
+    if ($allowedMonitors !== null) {
+      $options['conditions'] = array('Zone.MonitorId' => $allowedMonitors);
     }
-    $zones = $this->Zone->find('all',$mon_options);
+    $zones = $this->Zone->find('all', $options);
     $this->set(array(
       'zones' => $zones,
       '_serialize' => array('zones')

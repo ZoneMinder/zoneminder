@@ -26,7 +26,6 @@
   z-index: 10;
   border: none;
   border-right: 1px solid black;
-  cursor: pointer;
 }
 
 #alarmCues .level-graph {
@@ -263,6 +262,7 @@ height: 100%;
   margin: 0;
   z-index: 5;
   overflow-x: clip;
+  cursor: pointer;
 }
 
 #progressBar .progressBox {

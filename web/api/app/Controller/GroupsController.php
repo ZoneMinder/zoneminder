@@ -23,6 +23,28 @@ class GroupsController extends AppController {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
+    require_once __DIR__ .'/../../../includes/Group.php';
+  }
+
+  # Group membership decides per-monitor access, so require edit on every monitor moved.
+  private function requireMembershipEdit($monitorIds) {
+    if (!ZM\Group::canEditMembership(array_map('intval', $monitorIds))) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+    }
+  }
+
+  # Drop monitors the user may not view from each group's Monitor list.
+  private function filterGroupMonitors($groups) {
+    $condition = $this->viewableMonitorCondition('Monitor.Id');
+    if (!count($condition)) return $groups;
+    $allowed = $condition['Monitor.Id'];
+    foreach ($groups as &$group) {
+      if (!isset($group['Monitor'])) continue;
+      $group['Monitor'] = array_values(array_filter($group['Monitor'], function($m) use ($allowed) {
+        return in_array($m['Id'], $allowed);
+      }));
+    }
+    return $groups;
   }
 
 /**
@@ -55,7 +77,7 @@ class GroupsController extends AppController {
       'group' => '`Group`.`Id`',
     );
 
-		$groups = $this->Group->find('all', $find_array);
+		$groups = $this->filterGroupMonitors($this->Group->find('all', $find_array));
 		$this->set(array(
 			'groups' => $groups,
 			'_serialize' => array('groups')
@@ -99,6 +121,9 @@ class GroupsController extends AppController {
         return;
       }
 
+      $monitorIds = $this->requestAssociatedIds('Group', 'MonitorIds', 'Monitor');
+      if ($monitorIds) $this->requireMembershipEdit($monitorIds);
+      $this->pinRequestId($this->Group, null);
 			$this->Group->create();
 
       if ( $this->request->data['Group']['MonitorIds'] and ! isset($this->request->data['Monitor']) ) {
@@ -139,7 +164,20 @@ class GroupsController extends AppController {
         throw new UnauthorizedException(__('Insufficient Privileges'));
         return;
       }
-      $this->Group->id = $id;
+      $this->pinRequestId($this->Group, $id);
+      $group = new ZM\Group($id);
+      $moved = array();
+      $newIds = $this->requestAssociatedIds('Group', 'MonitorIds', 'Monitor');
+      if ($newIds !== null) {
+        $oldIds = dbFetchAll('SELECT `MonitorId` FROM `Groups_Monitors` WHERE `GroupId`=?', 'MonitorId', array($id));
+        $moved = array_merge(array_diff($oldIds, $newIds), array_diff($newIds, $oldIds));
+      }
+      $parentId = $this->requestField('Group', 'ParentId');
+      # Re-parenting moves every monitor of this group and its children between ancestors.
+      if (($parentId !== null) and ($parentId != $group->ParentId())) {
+        $moved = array_merge($moved, $group->MonitorIds());
+      }
+      $this->requireMembershipEdit($moved);
 			if ( $this->Group->save($this->request->data) ) {
         $message = 'Saved';
       } else {
@@ -181,6 +219,9 @@ class GroupsController extends AppController {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
+    # Deleting a group removes its monitors from it, which can lift a deny on them.
+    $group = new ZM\Group($id);
+    $this->requireMembershipEdit($group->MonitorIds());
 
 		if ( $this->Group->delete() ) {
       return $this->flash(
@@ -206,6 +247,7 @@ class GroupsController extends AppController {
                                         )
                                       )
                                 );
+            $groups = $this->filterGroupMonitors($groups);
             $this->set(array(
                     'groups' => $groups,
                     '_serialize' => array('groups')

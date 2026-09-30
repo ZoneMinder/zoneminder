@@ -80,7 +80,6 @@ VideoStore::VideoStore(
   last_fragment_start_dts_(AV_NOPTS_VALUE),
   init_segment_end_(0),
   sidx_region_offset_(-1),
-  fragmented_(false),
   finalized_(false) {
   FFMPEGInit();
   swscale.init();
@@ -612,12 +611,8 @@ bool VideoStore::open() {
   if (!movflags_entry) {
     Debug(1, "setting movflags to frag_keyframe+empty_moov+default_base_moof");
     av_dict_set(&opts, "movflags", "frag_keyframe+empty_moov+default_base_moof", 0);
-    fragmented_ = true;
   } else {
     Debug(1, "using movflags %s", movflags_entry->value);
-    // Only a fragmented output has fragments to index, and only then is the
-    // reserved sidx region worth its bytes.
-    fragmented_ = strstr(movflags_entry->value, "frag_") != nullptr;
     // faststart restructures a single non-fragmented moov atom by re-opening the
     // file after the trailer is written. It is incompatible with the fragmented
     // (frag_keyframe/empty_moov) + mfra/HLS output this class produces, and its
@@ -675,26 +670,10 @@ bool VideoStore::open() {
     // `free` box the demuxers skip; finalize() fills it in once the fragments
     // are all on disk. The muxer takes its own offsets from avio_tell, so
     // these bytes are accounted for in every tfhd and tfra it goes on to write.
-    if (fragmented_) {
-      std::vector<uint8_t> region(zm_mp4::kSidxReserve, 0);
-      region[0] = static_cast<uint8_t>(zm_mp4::kSidxReserve >> 24);
-      region[1] = static_cast<uint8_t>(zm_mp4::kSidxReserve >> 16);
-      region[2] = static_cast<uint8_t>(zm_mp4::kSidxReserve >> 8);
-      region[3] = static_cast<uint8_t>(zm_mp4::kSidxReserve);
-      memcpy(region.data() + 4, "free", 4);
-      avio_write(oc->pb, region.data(), static_cast<int>(region.size()));
-      avio_flush(oc->pb);
-      sidx_region_offset_ = init_segment_end_;
-      last_fragment_offset_ = avio_tell(oc->pb);
-      if (last_fragment_offset_ != sidx_region_offset_ + zm_mp4::kSidxReserve) {
-        Warning("Reserved %" PRId64 " bytes for the sidx but the file grew to %" PRId64
-                "; not indexing this event", zm_mp4::kSidxReserve, last_fragment_offset_);
-        sidx_region_offset_ = -1;
-      } else {
-        Debug(1, "Reserved %" PRId64 " bytes for a leading sidx at %" PRId64,
-              zm_mp4::kSidxReserve, sidx_region_offset_);
-      }
-    }
+    // Only an MP4 whose moov is already written and whose fragments follow it
+    // gets one (zm_mp4::fragments_follow_header).
+    sidx_region_offset_ = zm_mp4::reserve_region(oc, zm_mp4::kSidxReserve);
+    last_fragment_offset_ = avio_tell(oc->pb);
   }
   return true;
 } // end bool VideoStore::open()

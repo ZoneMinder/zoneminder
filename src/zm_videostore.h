@@ -114,7 +114,6 @@ class VideoStore {
   // finalize() fills that region in; zm_mp4_sidx.h says why the index has to
   // sit there and be reserved before the first fragment is written.
   int64_t sidx_region_offset_;
-  bool    fragmented_;              // the movflags in use produce moof fragments
   bool    finalized_;               // true once finalize() has run trailer + last-fragment recording
 
   bool setup_resampler();

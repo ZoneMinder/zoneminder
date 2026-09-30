@@ -22,6 +22,8 @@
 #include <string>
 #include <vector>
 
+struct AVFormatContext;
+
 // A leading `sidx` (segment index) for the fragmented MP4s VideoStore writes.
 //
 // Without an index, a player's demuxer cannot know where the fragments are,
@@ -75,6 +77,19 @@ int64_t media_end(int fd, int64_t file_size);
 // but whole fragments, which is what makes a complete index possible.
 bool scan_fragments(int fd, int64_t from, int64_t to, const VideoTrack &track,
                     std::vector<Fragment> *fragments);
+
+// Whether a region reserved right now, after `oc`'s header has been written,
+// could be indexed once the recording ends. That takes the MOV/MP4 muxer, a
+// header that already wrote the moov, fragments of nothing but moof+mdat to
+// follow it, and no movflag of the muxer's own that rewrites the front of the
+// file in the trailer. The answer comes from the flags the muxer settled on,
+// so dash, cmaf and ismv count as the empty_moov they imply.
+bool fragments_follow_header(AVFormatContext *oc);
+
+// Write a region of `reserve` bytes -- one `free` box -- to `oc`'s output right
+// after its header, when fragments_follow_header() says it can be indexed.
+// Returns where the region begins, or -1 when there is none to fill.
+int64_t reserve_region(AVFormatContext *oc, int64_t reserve);
 
 // How many references fit a region of `reserve` bytes.
 size_t max_references(int64_t reserve);

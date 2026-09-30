@@ -25,6 +25,11 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+extern "C" {
+#include <libavformat/avformat.h>
+#include <libavutil/opt.h>
+}
+
 namespace zm_mp4 {
 
 namespace {
@@ -391,6 +396,59 @@ bool scan_fragments(int fd, int64_t from, int64_t to, const VideoTrack &track,
     return false;
   }
   return !fragments->empty();
+}
+
+bool fragments_follow_header(AVFormatContext *oc) {
+  void *muxer = oc ? oc->priv_data : nullptr;
+  int64_t flags = 0;
+  // movflags belongs to the MOV/MP4 muxer alone. Matroska and WebM take the
+  // same encoder options and ignore it, and a `free` box in an EBML stream
+  // would corrupt it.
+  if (!muxer || !av_opt_find(muxer, "movflags", nullptr, 0, 0) ||
+      av_opt_get_int(muxer, "movflags", 0, &flags) < 0) {
+    return false;
+  }
+  // A flag this libavformat does not know is never set.
+  auto has = [muxer, flags](const char *name) {
+    const AVOption *flag = av_opt_find(muxer, name, "movflags", 0, 0);
+    return flag && (flags & flag->default_val.i64);
+  };
+  // empty_moov writes the moov in the header, and fragmenting follows from it.
+  // Without it -- frag_keyframe alone, say -- or with delay_moov, the moov
+  // comes with the first fragment, after the region, where no index can end
+  // at the first moof.
+  if (!has("empty_moov") || has("delay_moov")) return false;
+  // global_sidx shifts the fragments to put an index of its own in front of
+  // them; hybrid_fragmented turns the file into a non-fragmented one.
+  if (has("global_sidx") || has("hybrid_fragmented")) return false;
+  // One index covers bare moof+mdat pairs: dash writes a sidx before every
+  // fragment and write_prft a prft.
+  if (has("dash") && !has("skip_sidx")) return false;
+  int64_t prft = 0;
+  if (av_opt_get_int(muxer, "write_prft", 0, &prft) >= 0 && prft > 0) return false;
+  return true;
+}
+
+int64_t reserve_region(AVFormatContext *oc, int64_t reserve) {
+  if (!oc || !oc->pb || reserve < 8 || reserve > INT32_MAX) return -1;
+  if (!fragments_follow_header(oc)) {
+    Debug(1, "sidx: %s output with these movflags cannot take a leading index",
+          oc->oformat ? oc->oformat->name : "unknown");
+    return -1;
+  }
+  const int64_t offset = avio_tell(oc->pb);
+  std::vector<uint8_t> region(static_cast<size_t>(reserve), 0);
+  wb32(region.data(), static_cast<uint32_t>(reserve));
+  memcpy(region.data() + 4, "free", 4);
+  avio_write(oc->pb, region.data(), static_cast<int>(region.size()));
+  avio_flush(oc->pb);
+  if (avio_tell(oc->pb) != offset + reserve) {
+    Warning("sidx: reserved %" PRId64 " bytes at %" PRId64 " but the file grew to %" PRId64
+            "; not indexing it", reserve, offset, avio_tell(oc->pb));
+    return -1;
+  }
+  Debug(1, "sidx: reserved %" PRId64 " bytes for a leading index at %" PRId64, reserve, offset);
+  return offset;
 }
 
 size_t max_references(int64_t reserve) {

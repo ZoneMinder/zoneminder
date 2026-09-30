@@ -91,7 +91,6 @@ class VideoStore {
   // The destructor fills that region in; zm_mp4_sidx.h says why the index
   // has to sit there and be reserved before the first fragment is written.
   int64_t sidx_region_offset_;
-  bool    fragmented_;              // the movflags in use produce moof fragments
 
   bool setup_resampler();
   int write_packet(AVPacket *pkt, AVStream *stream);

@@ -31,6 +31,7 @@
 
 extern "C" {
 #include <libavformat/avformat.h>
+#include <libavutil/opt.h>
 }
 
 // The fixtures are the reference tool's own output (tools/mp4sidx in the
@@ -45,6 +46,14 @@ constexpr int64_t kFixtureReserve = 4096;   // small, to keep the fixtures small
 
 std::filesystem::path fixture(const std::string &name) {
   return std::filesystem::path(ZM_SOURCE_DIR) / "tests" / "data" / "mp4" / name;
+}
+
+// A file of this process's own in the temp directory. ctest runs each test
+// case as a process of its own and in parallel, so a fixed name would have
+// one case overwrite or remove another's file under it.
+std::filesystem::path scratch(const std::string &name) {
+  return std::filesystem::temp_directory_path() /
+         ("zm-sidx-" + std::to_string(getpid()) + "-" + name);
 }
 
 std::vector<uint8_t> read_file(const std::filesystem::path &path) {
@@ -124,7 +133,7 @@ struct Subject {
     region_offset = static_cast<int64_t>(moov_end);
     region_size = static_cast<int64_t>(offset_of(boxes, "moof") - moov_end);
 
-    path = std::filesystem::temp_directory_path() / ("zm-sidx-" + name);
+    path = scratch(name);
     std::vector<uint8_t> blank = expected;
     std::fill(blank.begin() + region_offset,
               blank.begin() + region_offset + region_size, uint8_t(0));
@@ -289,8 +298,7 @@ TEST_CASE("Mp4SidxIndexesWhatTheMuxerWritesAfterAReservedRegion") {
   // that the muxer's own tfhd and tfra offsets account for the reserved
   // bytes, because it takes every offset from avio_tell.
   const std::filesystem::path source = fixture("sidx-abs.mp4");
-  const std::filesystem::path out =
-      std::filesystem::temp_directory_path() / "zm-sidx-remux.mp4";
+  const std::filesystem::path out = scratch("remux.mp4");
   std::error_code ignored;
   std::filesystem::remove(out, ignored);
 
@@ -316,15 +324,8 @@ TEST_CASE("Mp4SidxIndexesWhatTheMuxerWritesAfterAReservedRegion") {
   REQUIRE(avformat_write_header(oc, &opts) >= 0);
   av_dict_free(&opts);
 
-  const int64_t region_offset = avio_tell(oc->pb);
-  std::vector<uint8_t> region(zm_mp4::kSidxReserve, 0);
-  region[0] = uint8_t(zm_mp4::kSidxReserve >> 24);
-  region[1] = uint8_t(zm_mp4::kSidxReserve >> 16);
-  region[2] = uint8_t(zm_mp4::kSidxReserve >> 8);
-  region[3] = uint8_t(zm_mp4::kSidxReserve);
-  memcpy(region.data() + 4, "free", 4);
-  avio_write(oc->pb, region.data(), int(region.size()));
-  avio_flush(oc->pb);
+  const int64_t region_offset = zm_mp4::reserve_region(oc, zm_mp4::kSidxReserve);
+  REQUIRE(region_offset > 0);
   REQUIRE(avio_tell(oc->pb) == region_offset + zm_mp4::kSidxReserve);
 
   int written = 0;
@@ -415,4 +416,105 @@ TEST_CASE("Mp4SidxStopsTheDemuxerAfterTheFirstFragment") {
   REQUIRE(zm_mp4::write_leading_sidx(subject.path.string(),
                                      subject.region_offset, subject.region_size));
   REQUIRE(position_after_header(subject.path) < second_moof);   // indexed: stops
+}
+
+TEST_CASE("Mp4SidxReservesOnlyWhereFragmentsFollowTheMoov") {
+  // VideoStore hands the monitor's encoder options to whatever muxer the
+  // container picked, so neither the muxer nor the movflags are a given. A
+  // region is only worth its bytes where the header has put the moov down and
+  // bare moof+mdat fragments follow it; anywhere else it is padding nothing
+  // will fill -- and in Matroska a corrupt stream. `moov` is what the header
+  // must look like on disk, checked here against the bytes the muxer wrote,
+  // so the flags the decision reads are held to what they produce.
+  struct Case {
+    const char *muxer;
+    const char *movflags;   // nullptr: none, the muxer's own default
+    bool moov;              // the header ends in a moov announcing fragments
+    bool reserves;
+  };
+  const Case cases[] = {
+    {"mp4", "frag_keyframe+empty_moov+default_base_moof", true, true},   // VideoStore's default
+    {"mp4", "frag_keyframe+empty_moov", true, true},                     // absolute tfhd offsets
+    {"mp4", "frag_keyframe+empty_moov+faststart", true, true},           // 1.38's; no-op once fragmented
+    {"mp4", "cmaf", true, true},                                         // empty_moov implied
+    {"mp4", "dash+skip_sidx", true, true},
+    {"mov", "frag_keyframe+empty_moov", true, true},
+    {"mp4", nullptr, false, false},                                      // not fragmented
+    {"mp4", "frag_keyframe", false, false},                              // moov with the first fragment
+    {"mp4", "frag_keyframe+empty_moov+delay_moov", false, false},
+    {"mp4", "dash", true, false},                                        // a sidx before every fragment
+    {"mp4", "frag_keyframe+empty_moov+global_sidx", true, false},        // the muxer's own index
+    {"mp4", "frag_keyframe+empty_moov+hybrid_fragmented", true, false},  // made non-fragmented at the end
+    {"matroska", "frag_keyframe+empty_moov+default_base_moof", false, false},
+  };
+
+  AVFormatContext *in = nullptr;
+  REQUIRE(avformat_open_input(&in, fixture("sidx-abs.mp4").c_str(), nullptr, nullptr) == 0);
+  REQUIRE(avformat_find_stream_info(in, nullptr) >= 0);
+  const int video_in = av_find_best_stream(in, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
+  REQUIRE(video_in >= 0);
+
+  const std::filesystem::path out = scratch("header.out");
+  std::error_code ignored;
+  for (const Case &c : cases) {
+    INFO(c.muxer << " movflags=" << (c.movflags ? c.movflags : "(none)"));
+    AVFormatContext *oc = nullptr;
+    REQUIRE(avformat_alloc_output_context2(&oc, nullptr, c.muxer, out.c_str()) >= 0);
+
+    // hybrid_fragmented is FFmpeg 7.1's; an older libavformat cannot be asked.
+    bool known = true;
+    if (c.movflags && !strcmp(c.muxer, "mp4")) {
+      std::string flags = c.movflags;
+      for (size_t at = 0; at != std::string::npos;) {
+        const size_t plus = flags.find('+', at);
+        const std::string flag = flags.substr(at, plus == std::string::npos ? plus : plus - at);
+        if (!av_opt_find(oc->priv_data, flag.c_str(), "movflags", 0, 0)) known = false;
+        at = plus == std::string::npos ? plus : plus + 1;
+      }
+    }
+    if (!known) {
+      avformat_free_context(oc);
+      continue;
+    }
+
+    AVStream *video = avformat_new_stream(oc, nullptr);
+    REQUIRE(video != nullptr);
+    REQUIRE(avcodec_parameters_copy(video->codecpar, in->streams[video_in]->codecpar) >= 0);
+    video->codecpar->codec_tag = 0;
+    REQUIRE(avio_open(&oc->pb, out.c_str(), AVIO_FLAG_WRITE) >= 0);
+    AVDictionary *opts = nullptr;
+    if (c.movflags) av_dict_set(&opts, "movflags", c.movflags, 0);
+    REQUIRE(avformat_write_header(oc, &opts) >= 0);
+    av_dict_free(&opts);
+    avio_flush(oc->pb);
+    const int64_t header_end = avio_tell(oc->pb);
+
+    REQUIRE(zm_mp4::fragments_follow_header(oc) == c.reserves);
+
+    if (strcmp(c.muxer, "matroska") != 0) {
+      const std::vector<uint8_t> header = read_file(out);
+      REQUIRE(header.size() == size_t(header_end));
+      const std::vector<TopBox> boxes = top_level(header);
+      bool moov = false;
+      if (!boxes.empty() && boxes.back().type == "moov") {
+        const TopBox &box = boxes.back();
+        const std::vector<uint8_t> body(header.begin() + box.offset + 8,
+                                        header.begin() + box.offset + box.size);
+        for (const TopBox &child : top_level(body)) moov = moov || child.type == "mvex";
+      }
+      REQUIRE(moov == c.moov);
+    }
+
+    // And the decision is what VideoStore acts on: a region exactly where the
+    // header ended, or not a byte.
+    const int64_t region = zm_mp4::reserve_region(oc, zm_mp4::kSidxReserve);
+    avio_flush(oc->pb);
+    REQUIRE(region == (c.reserves ? header_end : -1));
+    REQUIRE(avio_tell(oc->pb) == header_end + (c.reserves ? zm_mp4::kSidxReserve : 0));
+
+    avio_closep(&oc->pb);
+    avformat_free_context(oc);
+    std::filesystem::remove(out, ignored);
+  }
+  avformat_close_input(&in);
 }

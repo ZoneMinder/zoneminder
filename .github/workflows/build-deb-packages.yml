@@ -5,6 +5,14 @@ on:
     branches: [ release-1.38, master ]
 permissions:
   contents: write
+
+# Several merges landing seconds apart used to start a run each, and every
+# one of them published. Keep one build per branch and cancel the ones that
+# a newer push has already superseded.
+concurrency:
+  group: deb-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   GPG_KEY_ID: ${{ secrets.ZMREPO_GPG_KEY_ID }}
   GPG_PASSPHRASE: ${{ secrets.ZMREPO_GPG_PASSPHRASE }}
@@ -61,7 +69,7 @@ jobs:
             libmosquittopp-dev
 
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -128,6 +136,9 @@ jobs:
           echo "artifact_name=binary-${sanitized_distro_name}" >> $GITHUB_ENV
 
       - name: Upload .deb artifacts
+        # Only the tag-only `release` job consumes these. On branch pushes the
+        # packages go straight to ZMREPO below, so uploading is pure storage cost.
+        if: startsWith(github.ref, 'refs/tags/')
         uses: actions/upload-artifact@v7
         with:
           path: artifacts/deb
@@ -145,7 +156,7 @@ jobs:
         uses: easingthemes/ssh-deploy@main
         env:
           SSH_PRIVATE_KEY: ${{ secrets.ZMREPO_SSH_KEY }}
-          ARGS: "-rltgoDzvO"
+          ARGS: "-rltgoDzvOW"
           SOURCE: artifacts/deb/
           REMOTE_HOST: ${{ secrets.ZMREPO_HOST }}
           REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}
@@ -169,7 +180,7 @@ jobs:
         uses: easingthemes/ssh-deploy@main
         env:
           SSH_PRIVATE_KEY: ${{ secrets.ZMREPO_SSH_KEY }}
-          ARGS: "-rltgoDzvO"
+          ARGS: "-rltgoDzvOW"
           SOURCE: dist/
           REMOTE_HOST: ${{ secrets.ZMREPO_HOST }}
           REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}

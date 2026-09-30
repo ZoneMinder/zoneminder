@@ -1,0 +1,31 @@
+name: CI JS Tests
+
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches: [ master ]
+
+permissions:
+  contents: read
+
+jobs:
+  js-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+      # The tests require only node builtins (assert, fs, path, vm) plus files
+      # from web/js, so there is nothing to install and no submodule to fetch.
+      - name: Run the JavaScript tests
+        run: |
+          node --version
+          failed=0
+          for t in tests/js/*.test.js; do
+            echo "--- $t"
+            # Run every file even after one fails: a single CI run should report
+            # all the broken tests, not just the first.
+            node "$t" || failed=1
+          done
+          exit $failed

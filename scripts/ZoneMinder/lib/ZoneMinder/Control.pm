@@ -484,9 +484,10 @@ sub parse_ControlAddress {
       # Has no scheme at the beginning, so won't parse as a URI
       $address = 'http://'.$address;
     }
-    # To support older installs which likely have non-url encoded passwords we use a dumber regexp than URI uses
-    if ($address =~ /^(?<PROTOCOL>(https?|rtsp):\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@(?<ADDRESS>[^:\/]+)/) {
-      $address = $+{PROTOCOL}.($+{USERNAME} ? join(':', $+{USERNAME}, URI::Escape::uri_escape($+{PASSWORD})).'@' : '').$+{ADDRESS};
+    # To support older installs which likely have non-url encoded passwords we use a dumber regexp than URI uses.
+    # Don't escape % so that url-encoded passwords (e.g. %40 for @) pass through and decode below.
+    if ($address =~ /^(?<PROTOCOL>(https?|rtsp):\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@(?<ADDRESS>.+)$/) {
+      $address = $+{PROTOCOL}.($+{USERNAME} ? join(':', $+{USERNAME}, URI::Escape::uri_escape($+{PASSWORD}, '^A-Za-z0-9\-_.~%')).'@' : '').$+{ADDRESS};
     }
     my $uri = URI->new($address);
     $uri = URI->new('http://'.$address) if ref($uri) eq 'URI::_foreign';
@@ -496,17 +497,8 @@ sub parse_ControlAddress {
       @$self{'username','password'} = $uri->userinfo() =~ /^(.*):(.*)$/;
       $$self{password} = URI::Escape::uri_unescape($$self{password});
     }
-    # Check if it is a host and port or just a host
-    if ( $$self{host} =~ /([^:]+):(.+)/ ) {
-      $$self{host} = $1;
-      $$self{port} = $2 ? $2 : $$self{port};
-    } elsif ($uri->scheme() eq 'http') {
-      $$self{port} = 80;
-      $uri->port($$self{port});
-    } elsif ($uri->scheme() eq 'https') {
-      $$self{port} = 443;
-      $uri->port($$self{port});
-    }
+    # URI gives the explicit port if present, otherwise the scheme default (http 80, https 443, rtsp 554)
+    $$self{port} = $uri->port();
     $$self{address} = $uri->host_port();
     $$self{uri} = $uri;
     $$self{BaseURL} = $uri->canonical();
@@ -544,6 +536,32 @@ sub parse_Path {
   $$self{BaseURL} = $uri->canonical();
   $$self{ua}->credentials($uri->host_port(), @$self{'realm', 'username', 'password'});
   Debug("Have base url $$self{BaseURL} with credentials ".$uri->host_port().join(',', @$self{'realm', 'username', 'password'}));
+  return 1;
+}
+
+# Whether a keepAlive is due, and if so record that one is being sent.
+#
+# zmcontrol used to ping only when its select() timed out, which meant a
+# monitor with steady command traffic never pinged at all: select returns a
+# ready descriptor every time, the idle branch is never reached, and the
+# camera's session expires while the monitor is at its busiest. Cameras that
+# expire a session on a timer refresh it on the keepAlive alone, not on
+# ordinary requests, so the busiest monitors were the ones that lost their
+# session. Timing it from the last ping instead makes the interval hold
+# regardless of how much else is going on.
+#
+# $now is injectable so the interval can be tested without sleeping.
+sub keepAliveDue {
+  my ($self, $interval, $now) = @_;
+  $now = time() if !defined $now;
+  # First call sets the baseline rather than firing immediately: the session
+  # was just established by open().
+  $self->{last_keepalive} = $now if !defined $self->{last_keepalive};
+  # An ntp step backwards would otherwise hold this off until real time caught
+  # up again - minutes with no ping, which is the failure this exists to stop.
+  $self->{last_keepalive} = $now if $now < $self->{last_keepalive};
+  return 0 if $now - $self->{last_keepalive} < $interval;
+  $self->{last_keepalive} = $now;
   return 1;
 }
 
@@ -601,9 +619,27 @@ sub get_realm {
   return undef;
 } # end sub get_realm
 
+# Resolve the camera host/ip from the monitor without opening a connection.
+# Returns the cached $self->{host} if open()/guess_credentials() already set it,
+# otherwise parses it out of the monitor's ControlAddress/Path using the shared
+# guess_credentials() (which only needs a UserAgent, no network I/O). This lets
+# callers such as ping() work before open() has been called.
+sub host {
+  my $self = shift;
+  $$self{host} = shift if @_;
+  return $$self{host} if $$self{host};
+
+  if (!$self->{ua}) {
+    require LWP::UserAgent;
+    $self->{ua} = LWP::UserAgent->new();
+  }
+  $self->guess_credentials();
+  return $$self{host};
+}
+
 sub ping {
   my $self = shift;
-  my $ip = @_ ? shift : $$self{host};
+  my $ip = @_ ? shift : $self->host();
   if (!$ip) {
     Warning("No ip to ping. Please either pass ip or populate self{host}");
     return undef;
@@ -650,9 +686,8 @@ Philip Coombes, E<lt>philip.coombes@zoneminder.comE<gt>
 
 Copyright (C) 2001-2008  Philip Coombes
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.3 or,
-at your option, any later version of Perl 5 you may have available.
+Licensed under the GNU General Public License v2 or later; see the COPYING
+file distributed with ZoneMinder for the full text.
 
 
 =cut

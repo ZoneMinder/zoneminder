@@ -65,22 +65,22 @@ var monitorPixelArea = <?php echo $monitor->ViewWidth() * $monitor->ViewHeight()
 var monitorData = new Array();
 monitorData[monitorData.length] = {
   'id': <?php echo $monitor->Id() ?>,
-  'name': '<?php echo $monitor->Name() ?>',
+  'name': '<?php echo validJsStr($monitor->Name()) ?>',
   'connKey': <?php echo $monitor->connKey() ?>,
   'width': <?php echo $monitor->ViewWidth() ?>,
   'height':<?php echo $monitor->ViewHeight() ?>,
   'janusEnabled':<?php echo $monitor->JanusEnabled() ?>,
   'RTSP2WebEnabled': <?php echo $monitor->RTSP2WebEnabled() ?>,
   'RTSPServer':<?php echo $monitor->RTSPServer() ? 'true' : 'false' ?>,
-  'StreamChannel': '<?php echo $monitor->StreamChannel() ?>',
-  'DefaultPlayer':'<?php echo $monitor->DefaultPlayer() ?>',
+  'StreamChannel': '<?php echo validJsStr($monitor->StreamChannel()) ?>',
+  'DefaultPlayer':'<?php echo validJsStr($monitor->DefaultPlayer()) ?>',
   'Go2RTCEnabled': <?php echo $monitor->Go2RTCEnabled() ?>,
   'url': '<?php echo $monitor->UrlToIndex( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'url_to_zms': '<?php echo $monitor->UrlToZMS( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
-  'type': '<?php echo $monitor->Type() ?>',
-  'capturing': '<?php echo $monitor->Capturing() ?>',
-  'refresh': '<?php echo $monitor->Refresh() ?>',
-  'janus_pin': '<?php echo $monitor->Janus_Pin() ?>'
+  'type': '<?php echo validJsStr($monitor->Type()) ?>',
+  'capturing': '<?php echo validJsStr($monitor->Capturing()) ?>',
+  'refresh': '<?php echo validJsStr($monitor->Refresh()) ?>',
+  'janus_pin': '<?php echo validJsStr($monitor->Janus_Pin()) ?>'
 };
 
 var selfIntersecting = <?php echo $selfIntersecting ? 'true' : 'false' ?>;
@@ -100,6 +100,15 @@ var minBlobAreaLtMaxString = '<?php echo addslashes(translate('MinBlobAreaLtMax'
 var minBlobLtMinFilterString = '<?php echo addslashes(translate('MinBlobLtMinFilter')) ?>';
 var minBlobsUnsetString = '<?php echo addslashes(translate('MinBlobsUnset')) ?>';
 var minBlobsLtMaxString = '<?php echo addslashes(translate('MinBlobsLtMax')) ?>';
+
+var zoneObjectSizeStrings = {
+  'filterTooSmall': '<?php echo addslashes(translate('ObjectSizeFilterTooSmall')) ?>',
+  'inactive': '<?php echo addslashes(translate('ObjectSizeInactive')) ?>',
+  'useImage': '<?php echo addslashes(translate('ObjectImageUse')) ?>',
+  'liveView': '<?php echo addslashes(translate('ObjectImageLive')) ?>',
+  'notAnImage': '<?php echo addslashes(translate('ObjectImageNotAnImage')) ?>',
+  'sizeNeeded': '<?php echo addslashes(translate('ObjectSizeNeeded')) ?>'
+};
 
 var deleteString = "<?php echo translate('Delete') ?>";
 //

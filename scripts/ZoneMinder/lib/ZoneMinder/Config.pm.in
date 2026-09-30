@@ -128,12 +128,27 @@ require ZoneMinder::Database;
     }
     open( my $CONFIG, '<', $config_file )
       or croak("Can't open config file '$config_file': $!");
-    foreach my $str ( <$CONFIG> ) {
-      next if ( $str =~ /^\s*$/ );
-      next if ( $str =~ /^\s*#/ );
-      my ( $name, $value ) = $str =~ /^\s*([^=\s]+)\s*=\s*[\'"]*(.*?)[\'"]*\s*$/;
+    my $logical = '';
+    while ( my $str = <$CONFIG> ) {
+      $str =~ s/\r?\n\z//;
+      # A trailing backslash (with optional whitespace before the newline)
+      # means the value continues on the next physical line. Continuation
+      # lines have their leading whitespace stripped so users can indent.
+      if ( $logical ne '' ) {
+        $str =~ s/^[ \t]+//;
+      }
+      if ( $str =~ s/\\[ \t]*\z// ) {
+        $logical .= $str;
+        next;
+      }
+      $logical .= $str;
+      my $line = $logical;
+      $logical = '';
+      next if ( $line =~ /^\s*$/ );
+      next if ( $line =~ /^\s*#/ );
+      my ( $name, $value ) = $line =~ /^\s*([^=\s]+)\s*=\s*[\'"]*(.*?)[\'"]*\s*$/;
       if ( !$name ) {
-        print(STDERR "Warning, bad line in $config_file: $str\n");
+        print(STDERR "Warning, bad line in $config_file: $line\n");
         next;
       } # end if
       $name = uc $name;
@@ -143,7 +158,7 @@ require ZoneMinder::Database;
       #print(STDERR "Warning, known config option name $name in $config_file\n");
       #}
       $Config{$name} = $value;
-    } # end foreach config line
+    } # end while config line
     close($CONFIG);
   } # end sub process_configfile
 
@@ -171,7 +186,9 @@ sub loadConfigFromDB {
     }
     if ( defined($value) ) {
       if ( $option->{type} == $types{boolean} ) {
-        $option->{value} = $value?'yes':'no';
+        # Booleans are 1/0 in the table and in ConfigData; coerce rather than
+        # take the column verbatim so an empty or absent value lands on '0'.
+        $option->{value} = $value ? '1' : '0';
       } else {
         $option->{value} = $value;
       }
@@ -183,6 +200,28 @@ sub loadConfigFromDB {
   return $option_count;
 } # end sub loadConfigFromDB
 
+# ZM_AUTH_HASH_SECRET signs API/login tokens and keys the auth hash and CSRF tokens. The
+# shipped default is public, so replace it, or an empty value, with a random secret the
+# first time the config is saved on this system. refs GHSA-wmcc-x64g-jr84
+sub generateAuthHashSecret {
+  my $option = $ZoneMinder::ConfigData::options_hash{ZM_AUTH_HASH_SECRET};
+  return if !$option;
+  return if defined($option->{value}) and $option->{value} ne ''
+    and $option->{value} ne $option->{default};
+
+  my $bytes;
+  if ( open(my $fh, '<:raw', '/dev/urandom') ) {
+    read($fh, $bytes, 32);
+    close($fh);
+  }
+  if ( !defined($bytes) or length($bytes) != 32 ) {
+    print("Warning: unable to read /dev/urandom, ZM_AUTH_HASH_SECRET is still the default. Please set it.\n");
+    return;
+  }
+  $option->{value} = unpack('H*', $bytes);
+  print("Generated a new ZM_AUTH_HASH_SECRET\n");
+}
+
 sub saveConfigToDB {
   print( 'Saving config to DB ' . @options . " entries\n" );
   my $dbh = ZoneMinder::Database::zmDbConnect();
@@ -190,6 +229,8 @@ sub saveConfigToDB {
     print( "Error: unable to save options to database: $DBI::errstr\n" );
     return( 0 );
   }
+
+  generateAuthHashSecret();
 
   my $ac = $dbh->{AutoCommit};
   $dbh->{AutoCommit} = 0;
@@ -211,26 +252,18 @@ sub saveConfigToDB {
     $option->{db_hint} = $option->{type}->{hint};
     $option->{db_pattern} = $option->{type}->{pattern};
     $option->{db_format} = $option->{type}->{format};
-    if ( $option->{db_type} eq 'boolean' ) {
-      $option->{db_value} = ($option->{value} eq 'yes') ? '1' : '0';
-    } else {
-      $option->{db_value} = $option->{value};
-    }
+    $option->{db_value} = dbValue($option->{db_type}, $option->{value});
+    $option->{db_default} = dbValue($option->{db_type}, $option->{default});
     if ( my $requires = $option->{requires} ) {
-      $option->{db_requires} = join( ";",
-          map {
-            my $value = $_->{value};
-            $value = ($value eq 'yes') ? 1 : 0 if ( $options_hash{$_->{name}}->{db_type} eq 'boolean' );
-            ( "$_->{name}=$value" )
-          } @$requires
-          );
+      # Requires values are already in stored form, booleans included.
+      $option->{db_requires} = join(';', map { "$_->{name}=$_->{value}" } @$requires);
     }
     my $res = $sth->execute(
         $option->{id},
         $option->{name},
         $option->{db_value},
         $option->{db_type},
-        $option->{default},
+        $option->{db_default},
         $option->{db_hint},
         $option->{db_pattern},
         $option->{db_format},
@@ -314,9 +347,8 @@ Philip Coombes, E<lt>philip.coombes@zoneminder.comE<gt>
 
 Copyright (C) 2001-2008  Philip Coombes
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.3 or,
-at your option, any later version of Perl 5 you may have available.
+Licensed under the GNU General Public License v2 or later; see the COPYING
+file distributed with ZoneMinder for the full text.
 
 
 =cut

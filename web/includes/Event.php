@@ -7,6 +7,7 @@ require_once('Event_Tag.php');
 require_once('Tag.php');
 
 class Event extends ZM_Object {
+  protected static $setters = array('Storage', 'SecondaryStorage');
   protected static $table = 'Events';
 
   protected $Tags;
@@ -87,12 +88,42 @@ class Event extends ZM_Object {
     return $this->{'SecondaryStorage'};
   }
 
-  public function Length(){
-    if(! isset($this->{'Length'})){
-      //TODO: Do something when no Length found
+  private function GetFileDuration( $file ) {
+    $duration = 0;
+    if ( $file && file_exists($file) && defined('ZM_PATH_FFMPEG') && ZM_PATH_FFMPEG ) {
+      $ffmpeg = ZM_PATH_FFMPEG;
+      $ffprobe = preg_replace('/ffmpeg(\.exe)?$/i', 'ffprobe$1', $ffmpeg);
+
+      if ( $ffprobe && is_executable($ffprobe) ) {
+        $command = escapeshellarg($ffprobe)
+            . ' -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 '
+            . escapeshellarg($file) . ' 2>&1';
+        $output = shell_exec($command);
+        if ( is_string($output) ) {
+          $output = trim($output);
+          if ( $output !== '' && is_numeric($output) ) {
+            $duration = (float)$output;
+          }
+        }
+      }
     }
-    return $this->{'Length'};
-    
+    return $duration;
+  }
+
+  public function Length(){
+    $duration = 0;
+    if ( !isset($this->{'Length'}) || (float)$this->{'Length'} <= 0 ) {
+      $files = glob($this->Path().'{/incomplete.*,/'.$this->{'Id'}.'-video.*}', GLOB_NOSORT | GLOB_BRACE);
+      if (count($files) > 0) {
+        $duration = $this->GetFileDuration($files[0]);
+      } else {
+        //TODO: IgorA100 Something needs to be done, but what exactly?
+        //$duration = $this->EndDateTimeSecs() - $this->StartDateTimeSecs();
+      }
+    } else {
+      $duration = $this->{'Length'};
+    }
+    return $duration;
   }
 
   public function Frames(){
@@ -124,6 +155,16 @@ class Event extends ZM_Object {
 
   public function EndDateTimeSecs() {
     return strtotime($this->{'EndDateTime'});
+  }
+
+  public function Duration() {
+    return $this->Length();
+  }
+
+  // DefaultVideo is user editable (API); only ever treat it as a filename
+  // inside the event directory.
+  public function DefaultVideo() {
+    return basename($this->{'DefaultVideo'} ?? '');
   }
 
   public function Path() {
@@ -172,7 +213,7 @@ class Event extends ZM_Object {
       return;
     }
 
-    global $dbConn;
+    $dbConn = zmDbConn();
     $dbConn->beginTransaction();
     try {
       $this->lock();
@@ -274,7 +315,7 @@ class Event extends ZM_Object {
     if ( $this->{'DefaultVideo'} and $args['mode'] != 'jpeg' ) {
       $streamSrc .= $Server->PathToIndex();
       $args['eid'] = $this->{'Id'};
-      $args['view'] = 'view_video';
+      $args['view'] = (strtolower($args['mode']) == 'mp4hls') ? 'view_hls' : 'view_video';
     } else {
       $streamSrc .= $Server->PathToZMS();
 
@@ -355,12 +396,14 @@ class Event extends ZM_Object {
     if ( ! ( property_exists($this, 'ThumbnailWidth') ) ) {
       if ( ZM_WEB_LIST_THUMB_WIDTH ) {
         $this->{'ThumbnailWidth'} = ZM_WEB_LIST_THUMB_WIDTH;
-        $scale = intval((SCALE_BASE*ZM_WEB_LIST_THUMB_WIDTH)/$this->{'Width'});
-        $this->{'ThumbnailHeight'} = reScale( $this->{'Height'}, $scale );
+        // Derive the height directly from the aspect ratio. Using an integer
+        // SCALE_BASE scale truncated to 0/1 for high-resolution monitors (e.g.
+        // 2688 wide -> scale 1), producing a squashed, wrong-aspect thumbnail
+        // (and a distorted hover-overlay). refs #3443
+        $this->{'ThumbnailHeight'} = (int)round($this->{'Height'} * ZM_WEB_LIST_THUMB_WIDTH / $this->{'Width'});
       } elseif ( ZM_WEB_LIST_THUMB_HEIGHT ) {
         $this->{'ThumbnailHeight'} = ZM_WEB_LIST_THUMB_HEIGHT;
-        $scale = intval((SCALE_BASE*ZM_WEB_LIST_THUMB_HEIGHT)/$this->{'Height'});
-        $this->{'ThumbnailWidth'} = reScale( $this->{'Width'}, $scale );
+        $this->{'ThumbnailWidth'} = (int)round($this->{'Width'} * ZM_WEB_LIST_THUMB_HEIGHT / $this->{'Height'});
       } else {
         Fatal( "No thumbnail width or height specified, please check in Options->Web" );
       }
@@ -372,12 +415,14 @@ class Event extends ZM_Object {
     if ( ! ( property_exists($this, 'ThumbnailHeight') ) ) {
       if ( ZM_WEB_LIST_THUMB_WIDTH ) {
         $this->{'ThumbnailWidth'} = ZM_WEB_LIST_THUMB_WIDTH;
-        $scale = intval((SCALE_BASE*ZM_WEB_LIST_THUMB_WIDTH)/$this->{'Width'});
-        $this->{'ThumbnailHeight'} = reScale( $this->{'Height'}, $scale );
+        // Derive the height directly from the aspect ratio. Using an integer
+        // SCALE_BASE scale truncated to 0/1 for high-resolution monitors (e.g.
+        // 2688 wide -> scale 1), producing a squashed, wrong-aspect thumbnail
+        // (and a distorted hover-overlay). refs #3443
+        $this->{'ThumbnailHeight'} = (int)round($this->{'Height'} * ZM_WEB_LIST_THUMB_WIDTH / $this->{'Width'});
       } elseif ( ZM_WEB_LIST_THUMB_HEIGHT ) {
         $this->{'ThumbnailHeight'} = ZM_WEB_LIST_THUMB_HEIGHT;
-        $scale = intval((SCALE_BASE*ZM_WEB_LIST_THUMB_HEIGHT)/$this->{'Height'});
-        $this->{'ThumbnailWidth'} = reScale( $this->{'Width'}, $scale );
+        $this->{'ThumbnailWidth'} = (int)round($this->{'Width'} * ZM_WEB_LIST_THUMB_HEIGHT / $this->{'Height'});
       } else {
         Fatal( "No thumbnail width or height specified, please check in Options->Web" );
       }
@@ -773,7 +818,8 @@ class Event extends ZM_Object {
 
   public function GenerateVideo($rate=0, $fps=0, $scale=0, $size=0, $overwrite=false, $format='mp4', $transforms='')  {
     $event_path = $this->Path();
-    $video_name = preg_replace('/\s/', '_', $this->Name());
+    // Name is user editable; keep the output file inside the event directory.
+    $video_name = preg_replace('/^\./', '_', preg_replace('/[^-A-Za-z0-9_.]/', '_', $this->Name()));
 
     $file_parts = [$video_name];
     if ( $rate ) {
@@ -824,21 +870,28 @@ class Event extends ZM_Object {
       } else if ( $size ) {
         $video_size = $size;
       }
-      $command = ZM_PATH_FFMPEG
-      ." -y -r $frame_rate "
-        .ZM_FFMPEG_INPUT_OPTIONS
-        .' -i ' . $event_path.'/'.( $this->DefaultVideo() ? $this->DefaultVideo() : '%0'.ZM_EVENT_IMAGE_DIGITS .'d-capture.jpg' )
-        #. " -f concat -i /tmp/event_files.txt"
-        #
-        .implode(' ', array_map(function($t){ return ' -vf '.$t; }, explode(',', $transforms)))
-      ." -s $video_size "
-
-        .ZM_FFMPEG_OUTPUT_OPTIONS
-        ." '$event_path/$video_file' > $event_path/ffmpeg.log 2>&1"
-        ;
-      Debug($command);
-      if(!exec(escapeshellcmd($command), $output, $rc)) {
-        Error("Unable to generate video, check $event_path/ffmpeg.log for details");
+      // Every argument is quoted on its own so no event field can add
+      // arguments or commands. The configured option strings hold several
+      // options each, so they are split on whitespace; shell quoting inside
+      // them is not honoured.
+      $command = array_merge(
+        [ZM_PATH_FFMPEG, '-y', '-r', $frame_rate],
+        preg_split('/\s+/', ZM_FFMPEG_INPUT_OPTIONS, -1, PREG_SPLIT_NO_EMPTY),
+        ['-i', $event_path.'/'.( $this->DefaultVideo() ? $this->DefaultVideo() : '%0'.ZM_EVENT_IMAGE_DIGITS .'d-capture.jpg' )]
+      );
+      foreach (explode(',', $transforms) as $t) {
+        if ($t !== '') array_push($command, '-vf', $t);
+      }
+      array_push($command, '-s', trim($video_size));
+      $command = array_merge($command,
+        preg_split('/\s+/', ZM_FFMPEG_OUTPUT_OPTIONS, -1, PREG_SPLIT_NO_EMPTY),
+        [$event_path.'/'.$video_file]
+      );
+      Debug(implode(' ', $command));
+      $log = $event_path.'/ffmpeg.log';
+      $process = proc_open(implode(' ', array_map('escapeshellarg', $command)), [0=>['file', '/dev/null', 'r'], 1=>['file', $log, 'w'], 2=>['file', $log, 'a']], $pipes);
+      if (!is_resource($process) or proc_close($process) != 0) {
+        Error("Unable to generate video, check $log for details");
         return;
       }
 

@@ -7,7 +7,7 @@
     <div class="col button-block">
       <div id="contentButtons">
         <button type="button" id="NewServerBtn" value="<?php echo translate('AddNewServer') ?>" disabled="disabled"><?php echo translate('AddNewServer') ?></button>
-        <button type="submit" class="btn-danger" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
+        <button type="button" class="btn-danger" name="deleteBtn" value="Delete" data-on-click-this="DeleteServer" disabled="disabled"><?php echo translate('Delete') ?></button>
       </div>
     </div> <!-- .col -->
     <div class="wrapper-scroll-table">

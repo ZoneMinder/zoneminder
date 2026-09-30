@@ -96,7 +96,7 @@ function downloadEvents(
     }
 
     usort($events_by_monitor_id[$mid], function($a, $b) {
-        return strtotime($a->StartDateTime) <=> strtotime($b->StartDateTime);
+      return strtotime($a->StartDateTime) <=> strtotime($b->StartDateTime);
     });
 
     $eventFileList = '';
@@ -105,17 +105,33 @@ function downloadEvents(
     $maxTimeSecs = -1;
     $maxTime = '';
     foreach ($events_by_monitor_id[$mid] as $event) {
+      $filePath = findVideoEventFile($event, "mp4");
+      if ($filePath ==='') {
+        ZM\Warning('The file path for event '.$event->Id().' was not found.');
+        continue;
+      }
       if ($minTimeSecs == -1 or $minTimeSecs > $event->StartDateTimeSecs()) {
         $minTimeSecs = $event->StartDateTimeSecs();
         $minTime = $event->StartDateTime();
       }
-      if ($maxTimeSecs == -1 or $maxTimeSecs < $event->StartDateTimeSecs()) {
-        $maxTimeSecs = $event->EndDateTimeSecs();
+
+      $endSecs = $event->EndDateTimeSecs();
+      if ($endSecs and ($maxTimeSecs == -1 or $maxTimeSecs < $endSecs)) {
+        $maxTimeSecs = $endSecs;
         $maxTime = $event->EndDateTime();
       }
-      $eventFileList .= 'file \''.$event->Path().'/'.$event->DefaultVideo().'\''.PHP_EOL;
+
+      $fileName = basename($filePath);
+      if (strpos($fileName, 'incomplete') !== false && !$endSecs) $maxTime = date('Y-m-d H:i:s'); # Probably incomplete event.
+      $eventFileList .= 'file \''.$event->Path().'/'.$fileName.'\''.PHP_EOL;
     }
 
+    if ($eventFileList === '') {
+      ZM\Warning('No event files were found for exporting monitor events with ID='.$mid);
+      continue;
+    }
+
+    if (!$maxTime) $maxTime = date('Y-m-d H:i:s'); # For example, we download a single non-incomlete event, but it's missing EndDateTimeSecs() due to a crash
     $mergedFileName = $monitor->Name().' '.$minTime.' to '.$maxTime.'.mp4';
     if (($fp = fopen('event_files.txt', 'w'))) {
       fwrite($fp, $eventFileList);
@@ -152,6 +168,11 @@ function downloadEvents(
     }
   } # end foreach monitor
 
+  if (count($exportFileList) === 0) {
+   ZM\Warning('No events were found for export.');
+   return false;
+  }
+
   generateFileList($exportFormat, $exportStructure, $archive_path, $exportCompressed, $export_dir, $export_root, $exportFileList);
 
   chdir(DIR_EXPORTS_DOWNLOAD);
@@ -175,10 +196,12 @@ function downloadEvents(
   if ($exportFormat == 'noArchive') {
     $returnString = [];
     foreach ($exportFileList as $link) {
-      $returnString[] = '?view=download&type='.'mp4'.'&file='.$link.'&export_root='.$export_root;
+      # The merged name carries spaces, colons and whatever the monitor is
+      # called, so it has to be escaped to survive as a query parameter.
+      $returnString[] = '?view=download&type=mp4&file='.urlencode($link).'&export_root='.urlencode($export_root);
     }
   } else {
-    $returnString = '?view=download&type='.$exportFormat.'&file='.$archiveFileName;
+    $returnString = '?view=download&type='.$exportFormat.'&file='.urlencode($archiveFileName);
   }
   return $returnString;
 } # end function downloadEvents
@@ -248,4 +271,30 @@ function getFlatCommandForTar() {
     $command = ' --xform=\'s#^.+/##x\'';
   }
   return $command;
+}
+
+# Build the value of a Content-Disposition header offering $filename as an
+# attachment.
+#
+# The plain filename= parameter is an RFC 6266 quoted-string of ASCII
+# characters. Merged exports are named '<Monitor> <start> to <end>.mp4', so they
+# carry spaces and colons: emitted unquoted, browsers that parse the header
+# strictly find no usable filename and fall back to naming the download after
+# the last path segment of the URL, which is index.php. Characters that are not
+# legal in a Windows filename are folded to '_' so the quoted name is usable
+# there too, and whenever that folding changed anything the untouched name is
+# offered alongside it as RFC 5987 filename*, which takes precedence in browsers
+# that understand it and keeps non-ASCII monitor names intact.
+function contentDispositionAttachment($filename) {
+  $filename = basename($filename);
+  # The Windows-illegal set - of which '"' and '\' would also terminate or
+  # escape the quoted-string - plus runs of anything outside printable ASCII.
+  # Runs, so that one multi-byte character costs one underscore, not one per
+  # byte.
+  $ascii = preg_replace('/["*\/:<>?\\\\|]|[^\x20-\x7e]+/', '_', $filename);
+  $header = 'attachment; filename="'.$ascii.'"';
+  if ($ascii !== $filename) {
+    $header .= "; filename*=UTF-8''".rawurlencode($filename);
+  }
+  return $header;
 }

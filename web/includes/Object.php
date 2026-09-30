@@ -24,7 +24,7 @@ class ZM_Object {
         $table = $class::$table;
         $row = dbFetchOne("SELECT * FROM `$table` WHERE `Id`=?", NULL, array($IdOrRow));
         if (!$row) {
-          Error("Unable to load $class record for Id=$IdOrRow");
+          Warning("Unable to load $class record for Id=$IdOrRow");
           return;
         }
       } else {
@@ -195,8 +195,22 @@ class ZM_Object {
     return json_encode($json);
   }
 
+  /* Accessor methods that are not in $defaults but may be assigned through set()/changes(). */
+  protected static $setters = array();
+
+  /* Whether a key in data passed to set()/changes() may be dispatched to the method of the
+   * same name. That data is usually a request array, so its keys are attacker-chosen: only
+   * field accessors qualify, never methods like save(), delete() or execute(). */
+  protected function isSetter($field) {
+    return array_key_exists($field, $this->defaults) or in_array($field, static::$setters, true);
+  }
+
   public function set($data) {
     foreach ($data as $field => $value) {
+      if (method_exists($this, $field) and !$this->isSetter($field)) {
+        Warning('Refusing to set '.get_class($this).'::'.$field.', it is not a field');
+        continue;
+      }
       if (method_exists($this, $field) and is_callable(array($this, $field), false)) {
         $this->$field($value);
       } else {
@@ -266,6 +280,10 @@ class ZM_Object {
     } # end if defaults
 
     foreach ($new_values as $field => $value) {
+      if (method_exists($this, $field) and !$this->isSetter($field)) {
+        Warning('Refusing to change '.get_class($this).'::'.$field.', it is not a field');
+        continue;
+      }
       if (method_exists($this, $field)) {
         if (array_key_exists($field, $this->defaults) && is_array($this->defaults[$field]) && isset($this->defaults[$field]['filter_regexp'])) {
           if (is_array($this->defaults[$field]['filter_regexp'])) {
@@ -401,7 +419,9 @@ class ZM_Object {
         return true;
       }
     }
-    $this->_last_error = dbError($sql);
+    # dbQuery swallows the PDOException, so prefer the message it captured.
+    $this->_last_error = dbLastError();
+    if (!$this->_last_error) $this->_last_error = dbError($sql);
     return false;
   } // end function save
 

@@ -51,8 +51,12 @@ use warnings;
  
 require ZoneMinder::Base;
 require ZoneMinder::Control;
+require ZoneMinder::Control::FoscamHD;
  
-our @ISA = qw(ZoneMinder::Control);
+# FoscamHD is itself a ZoneMinder::Control.  It adds get_config, set_config and
+# set_time for the CGIProxy.fcgi settings API this camera shares with the rest
+# of the HD Foscams, and leaves the PTZ below alone.
+our @ISA = qw(ZoneMinder::Control::FoscamHD);
  
 our $VERSION = $ZoneMinder::Base::VERSION;
  
@@ -372,9 +376,8 @@ Philip Coombes, E<lt>philip.coombes@zoneminder.comE<gt>
 
 Copyright (C) 2001-2008  Philip Coombes
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.3 or,
-at your option, any later version of Perl 5 you may have available.
+Licensed under the GNU General Public License v2 or later; see the COPYING
+file distributed with ZoneMinder for the full text.
 
 
 =cut

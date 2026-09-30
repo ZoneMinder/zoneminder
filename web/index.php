@@ -201,6 +201,7 @@ $user = null;
 $request = isset($_REQUEST['request']) ? detaintPath($_REQUEST['request']) : null;
 
 require_once('includes/auth.php');
+zm_authenticate_request();
 
 # Only one request can open the session file at a time, so let's close the session here to improve concurrency.
 # Any file/page that sets session variables must re-open it.
@@ -222,7 +223,7 @@ if (isset($_POST['action'])) {
   # Actions can only be performed on POST because we don't check csrf on GETs.
   $action = detaintPath($_POST['action']);
 } else if (isset($_REQUEST['action']) and $_REQUEST['action'] and empty($_REQUEST['request'])) {
-  ZM\Error('actions can no longer be performed without POST.');
+  ZM\Debug('actions can no longer be performed without POST.');
 }
 
 # The only variable we really need to set is action. The others are informal.
@@ -252,7 +253,8 @@ if (
 }
 
 # If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
-if ( ZM_OPT_USE_AUTH and (!isset($user)) and ($view != 'login') and ($view != 'none') ) {
+# The login and none views are exempt so they can render, but no request is: view=none&request=... must not reach ajax/.
+if ( ZM_OPT_USE_AUTH and (!isset($user) or !($user instanceof ZM\User)) and ($request or (($view != 'login') and ($view != 'none'))) ) {
   if ($request) {
     # requests only return json
     header('HTTP/1.1 401 Unauthorized');
@@ -262,6 +264,7 @@ if ( ZM_OPT_USE_AUTH and (!isset($user)) and ($view != 'login') and ($view != 'n
   $postLoginQuery = $_SERVER['QUERY_STRING'];
   $redirect = '?view=login'.($postLoginQuery?'&postLoginQuery=' . urlencode($postLoginQuery):'');
   zm_session_start();
+  zm_session_persist(); // must survive the redirect even if the client had no cookie
   $_SESSION['postLoginQuery'] = $postLoginQuery;
   session_write_close();
   ZM\Debug("Redirecting to $redirect");

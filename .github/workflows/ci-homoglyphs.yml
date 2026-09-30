@@ -1,0 +1,20 @@
+name: CI Homoglyphs
+
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches: [ master ]
+
+permissions:
+  contents: read
+
+jobs:
+  homoglyphs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check for Cyrillic/Greek homoglyphs in first-party source
+        run: python3 utils/check-homoglyphs.py

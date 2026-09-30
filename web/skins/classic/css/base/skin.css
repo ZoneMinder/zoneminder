@@ -52,33 +52,33 @@ body.sticky {
 }
 
 h1 {
-    font-family: inherit;
-    font-size: 120%;
-    font-weight: bold;
-    text-align: center;
+  font-family: inherit;
+  font-size: 120%;
+  font-weight: bold;
+  text-align: center;
 }
 
 h2 {
-    font-family: inherit;
-    font-size: 110%;
-    font-weight: bold;
+  font-family: inherit;
+  font-size: 110%;
+  font-weight: bold;
 }
 
 h3 {
-    font-family: inherit;
-    font-size: 100%;
-    font-weight: bold;
+  font-family: inherit;
+  font-size: 100%;
+  font-weight: bold;
 }
 
 h4 {
-    font-family: inherit;
-    font-size: 100%;
+  font-family: inherit;
+  font-size: 100%;
 }
 
 p {
-    font-family: inherit;
-    font-size: 100%;
-    font-weight: normal;
+  font-family: inherit;
+  font-size: 100%;
+  font-weight: normal;
 }
 
 /*
@@ -112,23 +112,23 @@ a {
 
 a.optionhelp,
 a:link {
-    color: var(--colorLink);
-    text-decoration: none;
+  color: var(--colorLink);
+  text-decoration: none;
 }
 
 a:visited {
-    color: #44b8eb;
-    text-decoration: none;
+  color: #44b8eb;
+  text-decoration: none;
 }
 
 a:hover {
-    text-decoration: none; 
-    background-color:rgba(72, 84, 96,0.2);
-    border-radius:4px;
+  text-decoration: none; 
+  background-color:rgba(72, 84, 96,0.2);
+  border-radius:4px;
 }
 
 a:not([href]):hover {
-    color: #212529;
+  color: #212529;
 }
 
 label {
@@ -145,25 +145,37 @@ button.btn {
   font-size: 18px;
   margin-bottom: 3px;
 }
+
+#toolbar>button {
+  align-self: flex-start;
+}
+
 #toolbar .btn-normal,
 #toolbar .btn-danger {
   margin-right: 3px;
 }
+
 #rightButtons .btn-normal,
 #leftButtons .btn-normal {
   margin-right: 0px;
 }
+
 input, textarea, select, button, .btn-primary {
-    border: 1px #ccc solid;
-    padding: 5px;
-    border-radius: 1px;
-    font-family: inherit;
-    font-weight: 400;
-    font-size: 100%;
-    color: #333333;
-    background-color: #f8f8f8;
-    text-align: left;
-    border-radius:4px;
+  border: 1px #ccc solid;
+  padding: 5px;
+  border-radius: 1px;
+  font-family: inherit;
+  font-weight: 400;
+  font-size: 100%;
+  color: #333333;
+  background-color: #f8f8f8;
+  text-align: left;
+  border-radius:4px;
+}
+
+/* Required for a customized scrollbar */
+textarea {   
+  cursor: auto;
 }
 
 input.noborder {
@@ -201,49 +213,6 @@ hr {
     border: 0;
     color: var(--colorLink);
     background-color: var(--colorBackgroundButtons);
-}
-
-/*
- * Tabbed headings
- */
-ul.tabList {
-    float: left;
-    list-style: none;
-    padding: 0;
-    margin: 0 0 -4px 0;
-    white-space: nowrap;
-    text-align: left;
-}
-
-ul.tabList li {
-    float: left;
-    border: 1px solid;
-    color: #333333;
-    border: #ccc solid 1px;
-    border-bottom-width: 0;
-    margin: 0 2px 0 0;
-    background: #eee;
-    text-align: center;
-    padding: 5px 10px;
-    border-top-left-radius: 3px;
-    border-top-right-radius: 3px;
-}
-
-ul.tabList li a {
-    text-decoration: none;
-}
-
-ul.tabList li:hover {
-    background-color: #eeeeee;
-}
-
-ul.tabList li.active {
-    background-color: #ffffff;
-    border-bottom: #7f7fb2 dotted 1px;
-}
-
-ul.tabList li.active a {
-  font-weight: bold;
 }
 
 #content {
@@ -763,9 +732,25 @@ input[type=submit]:disabled,
     padding-left: 0.5rem;
   }
 }
+/*
+ * renderMenuIcon() emits the material default of 24px, which makes every top
+ * navbar item 40px tall against the 36px the bar was before it had icons, and
+ * wide enough that the collapse toggle wraps onto a row of its own.  18px
+ * matches the statistics bar below and puts the row back where it was.
+ */
+#navbar-one .nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+#navbar-one .nav-link > .material-icons {
+  font-size: 18px;
+  line-height: 18px;
+}
+
 #getHeaderFlipHTML a {
   display: block;
-  padding: .5rem 1rem;
+  padding: .5rem;
 }
 
 .navbar-btn {
@@ -1123,11 +1108,25 @@ a.flip {
 
 .tags-container {
   display: flex;
-  border: 1px solid;
-  border-color: #ccc;
+  flex-wrap: wrap;
+  align-items: center;
+  border: 1px solid var(--gray);
   border-radius: 4px;
-  min-height: 35px;
-  margin: 0.25rem 1rem 0.25rem 1rem;
+  /*min-height: 35px;*/
+  margin: 0 0 0.5rem 0;
+}
+
+.tags-container button {
+  border-top: none;
+  border-bottom: none;
+}
+
+.tags-container button:first-child {
+  margin-left: 0;
+}
+
+.tags-container button:last-child {
+  margin-right: 0;
 }
 
 .tag {
@@ -1150,10 +1149,11 @@ a.flip {
 }
 
 .tag-input {
-  height: 30px;
-  margin-left: 8px;
+  height: 100%;
   border: none;
   width: 100%;
+  min-width: 0;
+  background: transparent;
 }
 
 .tag-input:focus {
@@ -1162,17 +1162,22 @@ a.flip {
 
 .tag-dropdown {
   vertical-align: center;
-  margin-right: 8px;
   display: inline-block;
+  position: relative;
   flex-grow: 2;
   order: 3;
+  min-width: 4em;
 }
 
 .tag-dropdown-content {
   display: none;
   position: absolute;
+  top: 100%;
+  left: 0;
   background-color: #f9f9f9;
-  min-width: 160px;
+  min-width: 100%;
+  width: max-content;
+  max-width: 300px;
   box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
   z-index: 15;
   padding: 4px 0;
@@ -1200,21 +1205,21 @@ a.flip {
 }
 
 /* Change scrollbar style */
-div::-webkit-scrollbar, nav::-webkit-scrollbar, .chosen-results::-webkit-scrollbar {
+*::-webkit-scrollbar {
   width: 11px;
   height: 11px;
 }
 
-html, div, nav, .chosen-results {
+* {
   scrollbar-width: thin;
   scrollbar-color: var(--sliderBG) var(--scrollbarBG);
 }
 
-html::-webkit-scrollbar-track, div::-webkit-scrollbar-track, nav::-webkit-scrollbar-track, .chosen-results::-webkit-scrollbar-track {
+*::-webkit-scrollbar-track {
   background: var(--scrollbarBG);
 }
 
-html::-webkit-scrollbar-thumb, div::-webkit-scrollbar-thumb, nav::-webkit-scrollbar-thumb, .chosen-results::-webkit-scrollbar-thumb {
+*::-webkit-scrollbar-thumb {
   background-color: var(--sliderBG);
   border-radius: 6px;
   border: 3px solid var(--scrollbarBG);
@@ -1711,6 +1716,150 @@ video-stream[id^='liveStream'] video{
   padding: 0;
 }
 
+.flex-col-2,
+.flex-col-3 {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.flex-col-2 > *,
+.flex-col-3 > * {
+  display: flex;
+  flex-grow: 1;
+  justify-content: center;
+}
+
+.flex-col-2 > * {
+  min-width: 50%; /* For potential 2 columns, to align them by width (if we don't use "col-md/lg-*") */
+}
+
+.flex-col-3 > * {
+  min-width: 33.33333%; /* For potential 3 columns, to align them by width (if we don't use "col-md/lg-*") */
+}
+
+/* +++ IgorA100 For now, let it be like this here, since it might have to be applied to many pages. https://github.com/ZoneMinder/zoneminder/pull/4752 */
+.user-page fieldset legend {
+  width: auto;
+  padding-inline: 0.5em;
+}
+
+.user-page #header {
+  padding-left: 15px;
+  padding-right: 15px;
+}
+
+.user-page form#contentForm {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-page #content-inner {
+  width: 100%;
+  height: auto;
+  padding: 0 15px 15px 15px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+@media (min-width: 992px) {
+  *[class*="flex-col-"]> *[class*="col-lg"] { /* Fix bootstrap for flex-grow: 1 */
+    max-width: 100%;
+  }
+
+  .user-page .col + *[class*="col-lg"],
+  .user-page *[class*="col-lg"] + .col,
+  .user-page *[class*="col-lg"] + *[class*="col-lg"] {
+    padding-left: 0;
+  }
+}
+
+@media (min-width: 768px) {
+  *[class*="flex-col-"]> .col,
+  *[class*="flex-col-"]> *[class*="col-md"] { /* Fix bootstrap for flex-grow: 1 */
+    max-width: 100%;
+  }
+
+  .user-page .col + .col,
+  .user-page .col + *[class*="col-md"],
+  .user-page *[class*="col-md"] + .col,
+  .user-page *[class*="col-md"] + *[class*="col-md"] {
+    padding-left: 0;
+  }
+}
+/* --- */
+
+.btn-danger.disabled, .btn-danger:disabled {
+  color: #888888;
+  background-color: #b1414c;
+}
+
+/* Camera credential fields are type=text masked with CSS instead of
+ * type=password, so browsers do not offer to save them as logins. */
+input.masked-input {
+  -webkit-text-security: disc;
+}
+input.masked-input.unmasked {
+  -webkit-text-security: none;
+}
+
+.fa.slash::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+    to bottom right,
+    transparent calc(50% - 3.0px),
+    #ddddddaa calc(50% - 1.0px),
+    #888888 calc(50% + 1.0px),
+    transparent calc(50% + 3.0px)
+  );
+  margin: 0.5em;
+}
+
+.fa.slash:hover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+    to bottom right,
+    transparent calc(50% - 3.0px),
+    #212529aa calc(50% - 1.0px),
+    #939393 calc(50% + 1.0px),
+    transparent calc(50% + 3.0px)
+  );
+  margin: 0.5em;
+}
+
+.progress-container {
+  width: 100%;
+  height: 10px;
+  background-color: #FAFAFA;
+  border: 1px solid #D3D3D3;
+  border-radius: 4px;
+  box-shadow: inset 0 1px 1px #F0F0F0, 0 3px 6px -5px #BBB;
+  overflow: hidden;
+}
+
+.progress-fill {
+  width: 0%;
+  height: 100%;
+  background-image: linear-gradient(90deg, var(--colorBackgroundButtons), var(--colorBackgroundButtons));
+  border-radius: 4px;
+  transition: width 0.3s ease-in-out;
+}
+
+.modal-backdrop.show ~ .modal-backdrop.show{
+  opacity : 0;
+}
+
+.info-text {
+  position: relative;
+  display: block;
+  z-index: 10001;
+  color: #212529;
+  background-color: beige;
+}
+
 /* +++ This block should always be located at the end! */
 .hidden {
     display: none;
@@ -1743,3 +1892,45 @@ video-stream[id^='liveStream'] video{
   display: none;
 }
 /* --- This block should always be located at the end! */
+
+/*
+ * Log panel (skins/classic/includes/logpanel.php).  Shared by the Log view and
+ * by any view that embeds a panel of its own, so it lives here rather than in a
+ * per-view sheet.
+ */
+.logPanel-summary {
+  margin: 4px auto 0;
+}
+.logPanel th[data-field="DateTime"],
+.logPanel th[data-field="Component"],
+.logPanel th[data-field="Code"],
+.logPanel th[data-field="Message"],
+.logPanel th[data-field="File"],
+.logPanel th[data-field="Server"],
+.logPanel th[data-field="Line"] {
+  text-align: left;
+}
+.logPanel th[data-field="DateTime"] {
+  min-width: 135px;
+}
+.logPanel .search .form-control {
+  font-size: 100%;
+}
+.logPanel .bootstrap-table .fixed-table-container .table td,
+.logPanel .bootstrap-table .fixed-table-container .table th {
+  vertical-align: top!important;
+}
+.logPanel tr.log-fat td {
+  background-color: #ffcccc;
+  font-weight: bold;
+}
+.logPanel tr.log-err td {
+  background-color: #ffcccc;
+}
+.logPanel tr.log-war td {
+  background-color: #ffe4b5;
+}
+.logPanel tr.log-dbg td {
+  color: #666666;
+  font-style: italic;
+}

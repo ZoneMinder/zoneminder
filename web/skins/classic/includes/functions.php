@@ -153,13 +153,27 @@ function xhtmlHeadersEnd() {
   echo '</head>';
 } // end function xhtmlHeaders( $file, $title )
 
+// True when the monitor filter panel should be shown inline (at the top of the
+// view) with its own toggle icon, rather than embedded in the left sidebar.
+// The sidebar can only be used when the navbar is on the left; without a left
+// navbar there is nothing to embed into, so filters are always inline. The
+// effective navbar position is the request/cookie/session value resolved into
+// the global $navbar_type by index.php, not the ZM_WEB_NAVBAR_TYPE default, so
+// the user's live choice is honoured. This mirrors the panel relocation
+// condition in skin.js, which uses the same value.
+function filterSettingsInline() {
+  global $navbar_type;
+  if ($navbar_type != 'left') return true;
+  return defined('ZM_WEB_FILTER_SETTINGS_POSITION') && ZM_WEB_FILTER_SETTINGS_POSITION == 'inline';
+}
+
 // Outputs an opening body tag, and any additional content that should go at the very top, like warnings and error messages.
 function getBodyTopHTML() {
   global $view;
   //Needed for more flexible global governance
   $classes = $view.'-page';
   if (defined('ZM_WEB_NAVBAR_STICKY') and ZM_WEB_NAVBAR_STICKY) $classes .= ' sticky';
-  if (defined('ZM_WEB_FILTER_SETTINGS_POSITION') and ZM_WEB_FILTER_SETTINGS_POSITION == 'inline') $classes .= ' filter-inline';
+  if (filterSettingsInline()) $classes .= ' filter-inline';
   if (defined('ZM_WEB_BUTTON_STYLE') and ZM_WEB_BUTTON_STYLE == 'icons') $classes .= ' btn-icons-only';
   else if (defined('ZM_WEB_BUTTON_STYLE') and ZM_WEB_BUTTON_STYLE == 'text') $classes .= ' btn-text-only';
   if (defined('ZM_WEB_SHOW_NAV_BUTTONS') and !ZM_WEB_SHOW_NAV_BUTTONS) $classes .= ' hide-nav-buttons';
@@ -182,6 +196,52 @@ function getBodyTopHTML() {
     getSidebarTopHTML();
   }
 } // end function getBodyTopHTML
+
+// Map view names to Menu_Items MenuKey values
+function getViewMenuKeyMap() {
+  return array(
+    'console'            => 'Console',
+    'montage'            => 'Montage',
+    'montagereview'      => 'MontageReview',
+    'events'             => 'Events',
+    'options'            => 'Options',
+    'log'                => 'Log',
+    'devices'            => 'Devices',
+    'intelgpu'           => 'IntelGpu',
+    'quadra'             => 'Quadra',
+    'groups'             => 'Groups',
+    'filter'             => 'Filters',
+    'snapshots'          => 'Snapshots',
+    'reports'            => 'Reports',
+    'report_event_audit' => 'ReportEventAudit',
+    'map'                => 'Map',
+  );
+}
+
+// Map a MenuKey to the href the built-in menu builders use for it.
+function getMenuKeyHrefMap() {
+  static $map = null;
+  if ($map === null) {
+    $map = array();
+    foreach (getViewMenuKeyMap() as $viewName => $menuKey) {
+      $map[$menuKey] = '?view='.$viewName;
+    }
+    // Built-in items not covered by the view map / needing extra params.
+    $map['Watch'] = '?view=watch&cycle=true';
+  }
+  return $map;
+}
+
+// The link a menu item resolves to. Uses the explicit Link when set,
+// otherwise applies the same ?view= rule as the built-in items: known
+// MenuKeys use their built-in href, custom keys become ?view=<MenuKey>.
+function menuItemEffectiveLink($item) {
+  $link = $item->Link();
+  if ($link !== null && $link !== '') return $link;
+  $map = getMenuKeyHrefMap();
+  $key = $item->MenuKey();
+  return isset($map[$key]) ? $map[$key] : '?view='.$key;
+}
 
 function renderMenuIcon($icon, $iconType = 'material') {
   if ($iconType == 'none') {
@@ -287,7 +347,22 @@ function renderMenuItems($forLeftBar = false) {
     foreach ($menuItems as $item) {
       if (!$item->Enabled()) continue;
       $key = $item->MenuKey();
-      if (!isset($funcMap[$key])) continue;
+      if (!isset($funcMap[$key])) {
+        // Custom entry: link to its explicit Link, or fall back to the same
+        // ?view= rule the built-in items use.
+        $link = menuItemEffectiveLink($item);
+        $menuIconOverride = ['icon' => $item->effectiveIcon(), 'iconType' => $item->effectiveIconType()];
+        $result .= buildMenuItem(
+          'customMenu-'.$item->Id(),
+          'menuItem-custom-'.$item->Id(),
+          $item->displayLabel(),
+          htmlspecialchars($link),
+          $item->effectiveIcon(),
+          '', '', true, $item->effectiveIconType()
+        );
+        $menuIconOverride = null;
+        continue;
+      }
 
       $funcName = $funcMap[$key];
       $customLabel = ($item->Label() !== null && $item->Label() !== '') ? $item->displayLabel() : null;
@@ -1099,6 +1174,7 @@ function getOptionsHTML($forLeftBar = false, $customLabel = null) {
     'roles',
     'groups',
     'control',
+    'encoderTemplates',
     'privacy',
     'MQTT',
     'telemetry',
@@ -1106,6 +1182,15 @@ function getOptionsHTML($forLeftBar = false, $customLabel = null) {
     'menu'
   ]);
   $zmMenu::buildSubMenuOptions($categoryDisplayOrder);
+
+  // AI object-detection management tabs. These are not Config categories, so
+  // register them explicitly with readable labels instead of the auto-generated
+  // "Ai_datasets" style names.
+  if ( canView('System') ) {
+    $zmMenu::$submenuOptionsItems['ai_datasets'] = translate('AI Datasets');
+    $zmMenu::$submenuOptionsItems['ai_models'] = translate('AI Models');
+    $zmMenu::$submenuOptionsItems['ai_classes'] = translate('AI Classes');
+  }
 
   if ( canView('System') ) {
     if ($forLeftBar) {
@@ -1788,6 +1873,9 @@ function xhtmlFooter() {
   'js/chosen/chosen.jquery.js',
   'js/noUiSlider-15.8.1/dist/nouislider.min.js',
   'js/dateTimePicker/jquery-ui-timepicker-addon.js',
+  'js/auth-helpers.js',
+  'js/table-helpers.js',
+  'js/LevelGraph.js',
   'js/Server.js',
 ), true );
 ?>
@@ -1807,6 +1895,11 @@ function xhtmlFooter() {
   </script>
   <script src="<?php echo cache_bust('js/logger.js')?>"></script>
 <?php
+  # Shared by every view that embeds a log panel (see includes/logpanel.php).
+  # It has to land after $j is defined and before the view's own script, which
+  # may want to drive the panel.
+  echo output_script_if_exists(array('js/logpanel.js'));
+
   $viewJsFile = getSkinFile('views/js/'.$basename.'.js');
   if ( $viewJsFile ) {
 ?>
@@ -1816,7 +1909,7 @@ function xhtmlFooter() {
   $skinJsFile = getSkinFile('js/skin.js');
 ?>
   <script nonce="<?php echo $cspNonce; ?>" src="<?php echo cache_bust($skinJsFile) ?>"></script>
-<?php if ( in_array( $basename, array( 'watch', 'montage', 'event' ) ) ) { ?>
+<?php if ( in_array( $basename, array( 'watch', 'montage', 'event', 'monitor' ) ) ) { ?>
   <script nonce="<?php echo $cspNonce; ?>" type="module" src="skins/<?php echo $skin ?>/js/audioMotionAnalyzer.js"></script>
 <?php } ?>
   </body>
@@ -1863,17 +1956,6 @@ class ZM_Menu {
       array_push($categoriesOptionsInDB, $category_row['Category']);
     }
     self::addCategoryToOptionsMenu($categoriesOptionsInDB, $categoryDisplayOrder);
-  }
-}
-
-if (!function_exists('mb_ucfirst')) { // Available in PHP >= 8.4
-  function mb_ucfirst($str, $encoding='UTF-8') {
-    if (extension_loaded('mbstring')) {
-      $result = mb_strtoupper(mb_substr($str, 0, 1, $encoding)) . mb_substr($str, 1, null, $encoding);
-    } else {
-      $result = (ucfirst($str));
-    }
-    return $result;
   }
 }
 

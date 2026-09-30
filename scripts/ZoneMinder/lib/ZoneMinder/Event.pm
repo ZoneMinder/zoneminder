@@ -270,7 +270,9 @@ sub GenerateVideo {
 
   my $event_path = $self->Path();
   chdir($event_path);
-  ( my $video_name = $self->{Name} ) =~ s/\s/_/g;
+  # Name is user editable; keep the output file inside the event directory.
+  ( my $video_name = $self->{Name} ) =~ s/[^-A-Za-z0-9_.]/_/g;
+  $video_name =~ s/^\./_/;
 
   my @file_parts;
   if ( $rate ) {
@@ -319,31 +321,57 @@ sub GenerateVideo {
 
     my $width = $self->{Width};
     my $height = $self->{Height};
-    my $video_size = " ${width}x${height}";
+    my $video_size = "${width}x${height}";
 
     if ( $scale ) {
       if ( $scale != 1.0 ) {
         $width = int($width*$scale);
         $height = int($height*$scale);
-        $video_size = " ${width}x${height}";
+        $video_size = "${width}x${height}";
       }
     } elsif ( $size ) {
       $video_size = $size;
     }
-    my $command = $Config{ZM_PATH_FFMPEG}
-    ." -y -r $frame_rate "
-      .$Config{ZM_FFMPEG_INPUT_OPTIONS}
-    .' -i ' . ( $$self{DefaultVideo} ? $$self{DefaultVideo} : '%0'.$Config{ZM_EVENT_IMAGE_DIGITS} .'d-capture.jpg' )
-#. " -f concat -i /tmp/event_files.txt"
-    #
-   .join(' ', map { ' -vf '.$_ } @transforms)
-       ." -s $video_size "
+    # Built as a list and run without a shell. Two of these arguments are event
+    # fields an operator with Events=Edit can set through the API: DefaultVideo
+    # used to be interpolated into the command line with no quoting at all, and
+    # the name behind $video_file only has whitespace replaced, so a single
+    # quote in it escaped the quoting that was there. Either one gave arbitrary
+    # command execution as the web account. As a list there is no shell to
+    # escape from, whatever the fields hold. See GHSA-pfph-4j9j-7cv7.
+    # DefaultVideo is a bare filename in the event directory; drop any path.
+    (my $input_file = $$self{DefaultVideo} // '') =~ s{.*[/\\]}{}s;
+    $input_file = '%0'.$Config{ZM_EVENT_IMAGE_DIGITS}.'d-capture.jpg' if !$input_file;
 
-      .$Config{ZM_FFMPEG_OUTPUT_OPTIONS}
-    ." '$video_file' > ffmpeg.log 2>&1"
-      ;
-    Debug($command);
-    my $output = qx($command);
+    my @command = (
+      $Config{ZM_PATH_FFMPEG},
+      '-y', '-r', $frame_rate,
+      # The configured option strings are admin-set and hold several options
+      # each, so they are split on whitespace rather than passed as one word.
+      grep { $_ ne '' } split(/\s+/, $Config{ZM_FFMPEG_INPUT_OPTIONS}),
+      '-i', $input_file,
+      (map { ('-vf', $_) } @transforms),
+      '-s', $video_size,
+      grep { $_ ne '' } split(/\s+/, $Config{ZM_FFMPEG_OUTPUT_OPTIONS}),
+      $video_file,
+    );
+
+    Debug('Executing: '.join(' ', @command));
+
+    my $pid = fork();
+    if ( !defined $pid ) {
+      Error("Unable to fork for video generation: $!");
+      return;
+    }
+    if ( !$pid ) {
+      # ffmpeg's own output still goes to the log file the error message below
+      # points the operator at.
+      open(STDOUT, '>', 'ffmpeg.log') or exit(1);
+      open(STDERR, '>&', \*STDOUT) or exit(1);
+      exec { $command[0] } @command;
+      exit(1);
+    }
+    waitpid($pid, 0);
 
     my $status = $? >> 8;
     if ( $status ) {
@@ -395,34 +423,81 @@ sub delete {
 
     my $in_transaction = $ZoneMinder::Database::dbh->{AutoCommit} ? 0 : 1;
 
-    $ZoneMinder::Database::dbh->begin_work() if ! $in_transaction;
+    # InnoDB X-locks the matched Events row during WHERE evaluation, before
+    # either BEFORE or AFTER trigger bodies fire, so the lock acquisition
+    # order is the same regardless of trigger timing:
+    #   Events[Id] -> Events_Hour/Day/Week/Month[EventId] -> Event_Summaries[MonitorId]
+    # event_delete_trigger (BEFORE DELETE on Events) and event_update_trigger
+    # (AFTER UPDATE on Events) both propagate into the bucket tables, whose
+    # own triggers then UPDATE Event_Summaries — that's the canonical chain.
+    # zmstats.pl prune+resync follows the matching prefix (bucket DELETEs
+    # then UPDATE Event_Summaries) and crucially does NOT pre-lock
+    # Event_Summaries: that would put ES before buckets and re-introduce the
+    # inversion against zma's UPDATE path.
+    #
+    # READ COMMITTED drops the next-key/gap locks that two concurrent filter
+    # workers deleting adjacent EventIds in the bucket tables would otherwise
+    # take. SET TRANSACTION applies to the next transaction only, so it has
+    # to be re-issued before each begin_work (and is skipped when the caller
+    # is managing the TX).
+    #
+    # Retry on deadlock (MariaDB ER_LOCK_DEADLOCK = 1213) only when we own
+    # the TX; if the caller is managing one, bail and let them decide.
+    my $attempt = 0;
+    my $max_attempts = 5;
+    while (1) {
+      $attempt++;
+      if (!$in_transaction) {
+        # Use $dbh->do directly, NOT zmDbDo: zmDbDo's success Debug would
+        # write to the Logs table on this same $dbh, and that INSERT would
+        # become the "next transaction" that consumes the isolation level
+        # directive — silently dropping our delete TX back to the default.
+        $ZoneMinder::Database::dbh->do('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
+        $ZoneMinder::Database::dbh->begin_work();
+      }
 
-    # Going to delete in order of least value to greatest value. Stats is least and references Frames
-    ZoneMinder::Database::zmDbDo('DELETE FROM Stats WHERE EventId=?', $$event{Id});
-    if ( $ZoneMinder::Database::dbh->errstr() ) {
-      $ZoneMinder::Database::dbh->commit() if ! $in_transaction;
-      return;
-    }
-    ZoneMinder::Database::zmDbDo('DELETE FROM Event_Data WHERE EventId=?', $$event{Id});
-    if ( $ZoneMinder::Database::dbh->errstr() ) {
-      $ZoneMinder::Database::dbh->commit() if ! $in_transaction;
-      return;
-    }
-    ZoneMinder::Database::zmDbDo('DELETE FROM Frames WHERE EventId=?', $$event{Id});
-    if ( $ZoneMinder::Database::dbh->errstr() ) {
-      $ZoneMinder::Database::dbh->commit() if ! $in_transaction;
-      return;
+      # Order: Stats -> Event_Data -> Frames -> Events (least to greatest reference depth)
+      my $err = 0;
+      my $errstr = '';
+      foreach my $sql (
+        'DELETE FROM Stats WHERE EventId=?',
+        'DELETE FROM Event_Data WHERE EventId=?',
+        'DELETE FROM Frames WHERE EventId=?',
+        'DELETE FROM Events WHERE Id=?',
+      ) {
+        ZoneMinder::Database::zmDbDo($sql, $$event{Id});
+        $err = $ZoneMinder::Database::dbh->err() // 0;
+        if ($err) {
+          # Capture before rollback, which can clear errstr on some drivers.
+          $errstr = $ZoneMinder::Database::dbh->errstr() // '';
+          last;
+        }
+      }
+
+      if (!$err) {
+        $ZoneMinder::Database::dbh->commit() if !$in_transaction;
+        last;
+      }
+
+      $ZoneMinder::Database::dbh->rollback() if !$in_transaction;
+      if ($in_transaction or $err != 1213 or $attempt >= $max_attempts) { # 1213 = ER_LOCK_DEADLOCK
+        # Surface the final failure ourselves — zmDbDo suppresses its Error
+        # log on 1213 inside a caller-managed TX (we own the retry), and the
+        # exhausted-retries case would otherwise return silently.
+        Error("Failed deleting event $$event{Id} after $attempt attempt(s): err=$err $errstr")
+          if $err;
+        return;
+      }
+      Debug("Deadlock deleting event $$event{Id} attempt $attempt/$max_attempts, retrying");
+      select(undef, undef, undef, 0.05 * (1 << $attempt) + rand(0.05));
     }
 
-    # Do it individually to avoid locking up the table for new events
-    ZoneMinder::Database::zmDbDo('DELETE FROM Events WHERE Id=?', $$event{Id});
-    $ZoneMinder::Database::dbh->commit() if ! $in_transaction;
-
-    my $storage = $event->Storage();
-    if ($event->DiskSpace() and $storage->Id()) {
-      $storage->lock_and_load();
-      $storage->save({DiskSpace=>$storage->DiskSpace()-$event->DiskSpace()});
-    }
+    # Relative, single-statement adjustment.  A lock_and_load + save here would
+    # be a read-modify-write whose FOR UPDATE lock is dropped the moment the
+    # SELECT autocommits, so the absolute value it then writes clobbers any
+    # adjustment zmc or another filter made in between.
+    # See ZoneMinder::Storage::adjust_diskspace.
+    $event->Storage()->adjust_diskspace(-$event->DiskSpace()) if $event->DiskSpace();
   }
 
   if ( ( $in_zmaudit or (!$Config{ZM_OPT_FAST_DELETE})) and $event->Storage()->DoDelete() ) {
@@ -784,15 +859,11 @@ sub MoveTo {
   }
   $ZoneMinder::Database::dbh->commit() if !$was_in_transaction;
 
-  # Update storage diskspace.  The triggers no longer do this. This is ... less important so do it outside the transaction
-  if ($old_diskspace and $$OldStorage{Id}) {
-    $OldStorage->lock_and_load();
-    $OldStorage->save({DiskSpace => $OldStorage->DiskSpace()-$old_diskspace});
-  }
-  if ($new_diskspace and $$NewStorage{Id}) {
-    $NewStorage->lock_and_load();
-    $NewStorage->save({DiskSpace => $NewStorage->DiskSpace()+$new_diskspace});
-  }
+  # Update storage diskspace.  The triggers no longer do this. This is ... less
+  # important, so it is a relative adjustment rather than a read-modify-write:
+  # one statement per storage area, no lock outliving it.
+  $OldStorage->adjust_diskspace(-$old_diskspace) if $old_diskspace;
+  $NewStorage->adjust_diskspace($new_diskspace) if $new_diskspace;
 
   $self->delete_files($OldStorage);
   return $error;
@@ -815,7 +886,7 @@ sub recover_timestamps {
   Debug('Have ' . @contents . ' files in '.$path);
   closedir(DIR);
 
-  my @mp4_files = grep(/^\d+\-video\.\w+\.mp4$/, @contents);
+  my @mp4_files = grep(/^\d+\-video\.(?:\w+\.)?mp4$/, @contents);
   if ( @mp4_files ) {
     $$Event{DefaultVideo} = $mp4_files[0];
   }
@@ -834,7 +905,6 @@ sub recover_timestamps {
     my $first_file = "$path/$capture_jpgs[0]";
     ( $first_file ) = $first_file =~ /^(.*)$/;
     my $first_timestamp = (stat($first_file))[9];
-    $starttime = $first_timestamp if $first_timestamp < $starttime;
 
     my $last_file = $path.'/'.$capture_jpgs[@capture_jpgs-1];
     ( $last_file ) = $last_file =~ /^(.*)$/;
@@ -871,30 +941,54 @@ sub recover_timestamps {
     } # end foreach capture jpg
     $ZoneMinder::Database::dbh->commit();
   } elsif ( @mp4_files ) {
+    # No capture jpgs (e.g. an mp4 plus a snapshot.jpg). Probe the video for
+    # its duration. Length is NOT NULL in the db, so we must always set it.
     my $file = $path.'/'.$mp4_files[0];
-    ( $file ) = $file =~ /^(.*)$/;
+    ( $file ) = $file =~ /^(.*)$/; # de-taint
 
-    my $first_timestamp = (stat($file))[9];
-    $starttime = $first_timestamp if $first_timestamp < $starttime;
-    my $output = `ffprobe $file 2>&1`;
-    my ($duration) = $output =~ /Duration: [:\.0-9]+/gm;
-    Debug("From mp4 have duration $duration, start: $first_timestamp");
+    my $seconds = mp4_duration($file);
+    if ( !defined $seconds ) {
+      Warning("Unable to determine duration of $file from ffprobe. Defaulting Length to 0.");
+      $seconds = 0;
+    }
+    # The mp4 is written as the event records, so its mtime is when recording
+    # finished. The event therefore started $seconds before that.
+    my $last_timestamp = (stat($file))[9];
+    my $first_timestamp = $last_timestamp - $seconds;
+    Debug("From mp4 have duration $seconds seconds, start: $first_timestamp end: $last_timestamp");
 
-    my ( $h, $m, $s, $u );
-      if ( $duration =~ m/(\d+):(\d+):(\d+)\.(\d+)/ ) {
-        ( $h, $m, $s, $u ) = ($1, $2, $3, $4 );
-        Debug("( $h, $m, $s, $u ) from /^(\\d{2}):(\\d{2}):(\\d{2})\.(\\d+)/");
-      }
-    my $seconds = ($h*60*60)+($m*60)+$s;
-    $Event->Length($seconds.'.'.$u);
+    $Event->Length(sprintf('%.2f', $seconds));
     $Event->StartDateTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $first_timestamp) );
-    $Event->EndDateTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $first_timestamp+$seconds) );
+    $Event->EndDateTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $last_timestamp) );
+  } else {
+    # Nothing to derive the times from, so fall back to the directory's mtime.
+    $Event->StartDateTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $starttime) );
   }
   if ( @mp4_files ) {
     $Event->DefaultVideo($mp4_files[0]);
   }
-  $Event->StartDateTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $starttime) );
 }
+
+# Return the duration of a video file in seconds (float), or undef if it
+# cannot be determined. $file must already be de-tainted by the caller.
+sub mp4_duration {
+  my $file = shift;
+
+  # Preferred: ask ffprobe for the machine-readable duration in seconds.
+  my $duration = `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 '$file' 2>/dev/null`;
+  chomp $duration if defined $duration;
+  if ( defined $duration and $duration =~ /^(\d+(?:\.\d+)?)$/ ) {
+    return $1;
+  }
+
+  # Fallback: parse the human-readable "Duration: HH:MM:SS.uu" line.
+  my $output = `ffprobe '$file' 2>&1`;
+  if ( $output =~ /Duration:\s*(\d+):(\d+):(\d+)\.(\d+)/ ) {
+    return ($1*3600) + ($2*60) + $3 + "0.$4";
+  }
+
+  return undef;
+} # end sub mp4_duration
 
 sub guess_EndDateTime {
   my $event = shift;
@@ -921,7 +1015,7 @@ sub fix_DefaultVideo {
     Debug('Have ' . @contents . ' files in '.$path);
     closedir(DIR);
 
-    my @mp4_files = grep(/^\d+\-video\.\w+\.mp4$/, @contents);
+    my @mp4_files = grep(/^\d+\-video\.(?:\w+\.)?mp4$/, @contents);
     if ( @mp4_files ) {
       $$event{DefaultVideo} = $mp4_files[0];
     }
@@ -1039,6 +1133,67 @@ sub tags {
   return wantarray ? @tags : \@tags;
 }
 
+# ==========================================================================
+#
+# Advisory locks over events (the Events_Lock table)
+#
+# Used by filters with LockRows set so that two of them do not work on the same
+# event at once.  Deliberately not a row lock: acquiring is one autocommitted
+# INSERT touching one row of Events_Lock, and nothing is held while the event is
+# actually worked on.  Locking the filter's result set with SELECT ... FOR
+# UPDATE instead accumulates every lock the batch goes on to take - Events, the
+# bucket tables, Event_Summaries, Storage - until it commits, which deadlocks
+# two filters against each other and stalls zmc, which cannot open a new event
+# on a monitor whose Event_Summaries row is being held.
+#
+# Because the lock lives in a table rather than in the session, the filter's
+# selection query can exclude events other filters hold (see
+# ZoneMinder::Filter::Sql), so a filter's LIMIT fills with events it can
+# actually work on instead of being used up by events it will skip.
+#
+# The flip side is that a killed process cannot release what it held, so locks
+# expire after ZM_FILTER_LOCK_TIMEOUT.
+#
+# ==========================================================================
+
+sub lock_owner {
+  return ($Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID} : 0).'.'.$$;
+}
+
+# Returns 1 if we now hold the lock on this event, 0 if another process does.
+sub acquire_lock {
+  my $self = shift;
+  my $timeout = shift;
+  $timeout = ($Config{ZM_FILTER_LOCK_TIMEOUT} || 3600) if !defined $timeout;
+
+  # Clear an expired lock first so the INSERT below can take it.  Two separate
+  # autocommitted statements on purpose, each touching one row and holding
+  # nothing afterwards.  If another process gets in between them, our INSERT
+  # IGNORE reports no rows and we leave the event alone - which is the safe
+  # direction.
+  zmDbDo('DELETE FROM Events_Lock WHERE EventId=? AND ExpiresAt<NOW()', $$self{Id});
+
+  my $rows = zmDbDo(
+    'INSERT IGNORE INTO Events_Lock (EventId,LockedBy,LockedAt,ExpiresAt) VALUES (?,?,NOW(),NOW() + INTERVAL ? SECOND)',
+    $$self{Id}, lock_owner(), $timeout);
+
+  # DBI reports 0E0 rather than 0 for a statement that affected nothing, and it
+  # numifies to 0, so this distinguishes "inserted" from "already locked".
+  return (defined $rows and $rows > 0) ? 1 : 0;
+}
+
+sub release_lock {
+  my $self = shift;
+  return zmDbDo('DELETE FROM Events_Lock WHERE EventId=? AND LockedBy=?',
+    $$self{Id}, lock_owner());
+}
+
+# Drop locks whose holder went away without releasing them, so the table does
+# not accumulate rows.  Covered by the ExpiresAt index.
+sub reap_expired_locks {
+  return zmDbDo('DELETE FROM Events_Lock WHERE ExpiresAt<NOW()');
+}
+
 1;
 __END__
 
@@ -1062,9 +1217,8 @@ Isaac Connor, E<lt>isaac@zoneminder.comE<gt>
 
 Copyright (C) 2001-2017  ZoneMinder LLC
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.3 or,
-at your option, any later version of Perl 5 you may have available.
+Licensed under the GNU General Public License v2 or later; see the COPYING
+file distributed with ZoneMinder for the full text.
 
 
 =cut

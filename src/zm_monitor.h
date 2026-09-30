@@ -32,8 +32,10 @@
 #include "zm_packet.h"
 #include "zm_packetqueue.h"
 #include "zm_utils.h"
+#include "zm_audio_detector.h"
 #include "zm_zone.h"
 
+#include <atomic>
 #include <list>
 #include <memory>
 #include <sys/time.h>
@@ -46,9 +48,11 @@
 
 class Group;
 class MonitorLinkExpression;
+class StreamSocket;
 
 #define SIGNAL_CAUSE "Signal"
 #define MOTION_CAUSE "Motion"
+#define AUDIO_CAUSE "Audio"
 #define LINKED_CAUSE "Linked"
 
 
@@ -171,6 +175,17 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     PASSTHROUGH,
   } VideoWriter;
 
+  // An action this monitor performs when it alarms. The device acted on is
+  // identified by target_monitor_id and is frequently NOT this monitor: the
+  // point of the feature is that a camera can sound a speaker elsewhere.
+  struct EventAction {
+    enum TriggerOn { EVENT_START, EVENT_END, ALARM, ALARM_END, MANUAL };
+    TriggerOn     trigger;
+    std::string   action_type;       // zmcontrol command, e.g. audioPlay
+    unsigned int  target_monitor_id;
+    int           audio_file;        // -1 when the action takes no file
+  };
+
  protected:
   typedef std::set<Zone *> ZoneSet;
 
@@ -178,37 +193,41 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   typedef enum { CLOSE_UNKNOWN=0, CLOSE_SYSTEM, CLOSE_TIME, CLOSE_DURATION, CLOSE_IDLE, CLOSE_ALARM } EventCloseMode;
 
-  /* sizeof(SharedData) expected to be 472 bytes on 32bit and 64bit */
+  /* sizeof(SharedData) is 888 bytes on both 32bit and 64bit */
   typedef struct {
-    uint32_t size;              /* +0    */
-    int32_t  last_write_index;  /* +4    */
-    int32_t  last_read_index;   /* +8    */
-    int32_t  image_count;       /* +12   */
-    uint32_t state;             /* +16   */
-    double      capture_fps;    /* +20   Current capturing fps */
-    double      analysis_fps;   /* +28   Current analysis fps */
-    double      latitude;       /* +36   */
-    double      longitude;      /* +44   */
-    uint64_t last_event_id;     /* +52   */
-    uint32_t action;            /* +60   */
-    int32_t brightness;         /* +64   */
-    int32_t hue;                /* +68   */
-    int32_t colour;             /* +72   */
-    int32_t contrast;           /* +76   */
-    int32_t alarm_x;            /* +80   */
-    int32_t alarm_y;            /* +84   */
-    uint8_t valid;              /* +88   */
-    uint8_t capturing;          /* +89   */
-    uint8_t analysing;          /* +90   */
-    uint8_t recording;          /* +91   */
-    uint8_t signal;             /* +92   */
-    uint8_t format;             /* +93   */
-    uint8_t reserved1;          /* +94   */
-    uint8_t reserved2;          /* +95   */
-    uint32_t imagesize;         /* +96   */
-    uint32_t last_frame_score;  /* +100   */
-    uint32_t audio_frequency;   /* +104   */
-    uint32_t audio_channels;    /* +108   */
+    uint32_t size;              /* +0 */
+    int32_t  last_write_index;  /* +4 */
+    int32_t  last_read_index;   /* +8 */
+    int32_t  image_count;       /* +12 */
+    uint32_t state;             /* +16 */
+    /* Explicit pad. x86-64 aligns double to 8 and inserts this implicitly, but
+     * the i386 SysV ABI aligns double to 4 and would not, shifting every later
+     * member by 4. Making it explicit keeps the layout identical on both. */
+    uint32_t epadding1;         /* +20 */
+    double      capture_fps;    /* +24   Current capturing fps */
+    double      analysis_fps;   /* +32   Current analysis fps */
+    double      latitude;       /* +40 */
+    double      longitude;      /* +48 */
+    uint64_t last_event_id;     /* +56 */
+    uint32_t action;            /* +64 */
+    int32_t brightness;         /* +68 */
+    int32_t hue;                /* +72 */
+    int32_t colour;             /* +76 */
+    int32_t contrast;           /* +80 */
+    int32_t alarm_x;            /* +84 */
+    int32_t alarm_y;            /* +88 */
+    uint8_t valid;              /* +92 */
+    uint8_t capturing;          /* +93 */
+    uint8_t analysing;          /* +94 */
+    uint8_t recording;          /* +95 */
+    uint8_t signal;             /* +96 */
+    uint8_t format;             /* +97 */
+    uint8_t audio_level;        /* +98  0-100, written by the capture thread */
+    uint8_t audio_alarm;        /* +99  audio_level crossed AudioThreshold */
+    uint32_t imagesize;         /* +100 */
+    uint32_t last_frame_score;  /* +104 */
+    uint32_t audio_frequency;   /* +108 */
+    uint32_t audio_channels;    /* +112 */
     //uint32_t reserved3;         /* +0   */
     /*
      ** This keeps 32bit time_t and 64bit time_t identical and compatible as long as time is before 2038.
@@ -216,38 +235,91 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
      ** Because startup_time is 64bit it may be aligned to a 64bit boundary.  So it's offset SHOULD be a multiple
      ** of 8. Add or delete epadding's to achieve this.
      */
-    union {                     /* +112   */
+    /* Explicit pad, same reasoning as epadding1: the following union is
+     * 8-aligned on x86-64 but only 4-aligned on i386. */
+    uint32_t epadding2;         /* +116 */
+    union {                     /* +120  */
       time_t startup_time;			/* When the zmc process started.  zmwatch uses this to see how long the process has been running without getting any images */
       uint64_t extrapad1;
     };
-    union {                     /* +120   */
+    union {                     /* +128  */
       time_t heartbeat_time;			/* Constantly updated by zmc.  Used to determine if the process is alive or hung or dead */
       uint64_t extrapad2;
     };
-    union {                     /* +128   */
+    union {                     /* +136  */
       time_t last_write_time;
       uint64_t extrapad3;
     };
-    union {                     /* +136  */
+    union {                     /* +144  */
       time_t last_read_time;
       uint64_t extrapad4;
     };
-    union {                     /* +144  */
+    union {                     /* +152  */
       time_t last_viewed_time;
       uint64_t extrapad5;
     };
-    union {                     /* +152  */
+    union {                     /* +160  */
       time_t last_analysis_viewed_time;
       uint64_t extrapad6;
     };
-    uint8_t control_state[256]; /* +160  */
+    uint8_t control_state[256]; /* +168 */
 
-    char alarm_cause[256]; /* +416 */
-    char video_fifo_path[64]; /* +672 */
-    char audio_fifo_path[64]; /* +736 */
-    char janus_pin[64]; /* +800 */
-    /* 864 total */
+    char alarm_cause[256]; /* +424 */
+    /* Absolute path of the per-monitor media stream socket
+     ** (PATH_SOCKS/stream_{monitor_id}.sock), published so consumers discover
+     ** it without hard-coding the convention or reading the producer's
+     ** zm.conf. Empty until the socket is served, or if the path does not fit.
+     ** Reuses the retired video_fifo_path field, same offset and size. */
+    char stream_socket_path[64]; /* +680 */
+    /* Formerly audio_fifo_path, retired with video_fifo_path when the media
+     ** FIFOs were replaced by the stream socket. A single socket carries both
+     ** streams, so there is no separate audio path to publish; this slot stays
+     ** reserved. Retiring an shm field means keeping it in place at its
+     ** original offset and size (never removing or reordering it, which would
+     ** shift every field after it for out-of-tree readers): either give it a
+     ** new meaning of the same width, as stream_socket_path above did, or leave
+     ** it reserved like this. Free for a future 64-byte field. */
+    char reserved_path2[64]; /* +744 */
+    char janus_pin[64]; /* +808 */
+    /* Analysis image ring: the annotated/analysis image is published into a
+     * ring of image_buffer_count slots (reusing the alarm_images SHM region).
+     * last_analysis_index is the slot most recently written (or
+     * image_buffer_count as the "nothing written yet" sentinel);
+     * analysis_image_count is a monotonic counter of analysis images published.
+     * Appended at the end so no earlier SharedData offset shifts. */
+    int32_t last_analysis_index;   /* +872 */
+    int32_t analysis_image_count;  /* +876 */
+    /* Wall clock second up to which the capture thread should keep measuring
+     * the audio level even though AudioDetection is off. The monitor editor's
+     * level meter refreshes this while it is on screen and zmc stops decoding
+     * audio once it has passed, so a reading can be watched without paying for
+     * one on every monitor forever. 0 means nobody is asking.
+     *
+     * Carved out of analysis_pad rather than appended, so neither the 888-byte
+     * total nor any existing offset moves. */
+    uint32_t audio_level_until;    /* +880 */
+    uint32_t analysis_pad;         /* +884   keep 16-byte multiple */
+    /* 888 total */
   } SharedData;
+  // Cross-process ABI guard: zmc/zma/zms plus the Perl (Memory.pm) and PHP
+  // (Monitor.php) SHM readers all assume this exact layout. If it changes,
+  // update those readers in lockstep and bump the size below.
+  //
+  // The struct is naturally aligned (NOT packed). Both interior pads are now
+  // declared explicitly as epadding1/epadding2, so the /* +N */ comments above
+  // are the real offsets on every supported ABI. Those pads are what keep i386
+  // (which aligns double and uint64_t to 4, not 8) byte-identical to x86-64;
+  // without them i386 produced a 880-byte struct that disagreed with the Perl
+  // and PHP readers, both of which assume 8-byte alignment unconditionally.
+  static_assert(sizeof(SharedData) == 888, "SharedData layout changed; update Memory.pm and Monitor.php offsets");
+  // The two members whose alignment differs between x86-64 and i386, asserted
+  // individually so an ABI divergence points at the culprit rather than only
+  // reporting a size mismatch. These must match the hardcoded offsets in
+  // web/includes/Monitor.php and the computed ones in Memory.pm.
+  static_assert(offsetof(SharedData, capture_fps) == 24, "capture_fps offset changed; update Memory.pm and Monitor.php");
+  static_assert(offsetof(SharedData, startup_time) == 120, "startup_time offset changed; update Memory.pm and Monitor.php");
+  static_assert(offsetof(SharedData, control_state) == 168, "control_state offset changed; update Memory.pm and Monitor.php");
+  static_assert(offsetof(SharedData, audio_level_until) == 880, "audio_level_until offset changed; update Memory.pm and Monitor.php");
 
   enum TriggerState : uint32 {
     TRIGGER_CANCEL,
@@ -566,6 +638,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::string     output_container;
   _AVPIXELFORMAT  imagePixFormat;
   bool            record_audio;      // Whether to store the audio that we receive
+  bool            audio_detection;   // Whether to score on how loud the audio is
+  int             audio_threshold;   // 0-100; 0 means detection is off
+  int             audio_alarm_score; // Score contributed while over threshold
+  AudioDetector   audio_detector;
   bool            wallclock_timestamps; // Whether to use wallclock pts/dts instead of values from ffmpeg
   int             output_source_stream;
 
@@ -590,7 +666,6 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   Seconds    min_section_length;   // Minimum event length when using event_close_mode == ALARM
   bool       startstop_on_section_length; // Whether to start/stop events on time % section_length
   bool       adaptive_skip;        // Whether to use the newer adaptive algorithm for this monitor
-  int        frame_skip;        // How many frames to skip in continuous modes
   int        motion_frame_skip;      // How many frames to skip in motion detection
   double     analysis_fps_limit;     // Target framerate for video analysis
   Microseconds analysis_update_delay;  //  How long we wait before updating analysis parameters
@@ -635,6 +710,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   State      state;
   SystemTimePoint start_time;
   SystemTimePoint last_fps_time;
+  // How often each monitor writes its row of Monitor_Status, and the width of
+  // the window the writes are staggered across (see Monitor::connect).
+  static constexpr Seconds kStatusUpdateInterval = Seconds(10);
   SystemTimePoint last_status_time;
   SystemTimePoint last_analysis_fps_time;
   SystemTimePoint auto_resume_time;
@@ -659,11 +737,28 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   unsigned char *shared_images;
   std::vector<Image *> image_buffer;
   AVPixelFormat *image_pixelformats;
+  // Per-slot cross-process format for the analysis image ring (one entry per
+  // analysis_image_buffer slot), mirroring image_pixelformats for the capture
+  // ring. Replaces the former single alarm_image_pixelformat.
+  AVPixelFormat *analysis_image_pixelformats;
+  size_t shm_slot_size;  // per-slot byte capacity, sized to RGBA upper bound
 
   int video_stream_id; // will be filled in PrimeCapture
   int audio_stream_id; // will be filled in PrimeCapture
-  Fifo *video_fifo;
-  Fifo *audio_fifo;
+  // Always-on media output; survives camera reconnects, freed in destructor
+  std::unique_ptr<StreamSocket> stream_socket;
+  // Current capture health for the stream socket snapshot: 0 = healthy, else
+  // the last fault event code, with its message. Guarded by stream_event_mutex
+  // because health events come from the capture thread while state_changed
+  // events come from the analysis thread.
+  uint16_t stream_health_code = 0;
+  // Mirror of the analysis state for the snapshot, written by SetState() under
+  // stream_event_mutex so the capture thread never reads `state` itself.
+  State stream_snapshot_state = IDLE;
+  std::string stream_health_message;
+  std::mutex stream_event_mutex;
+  // Rebuild and cache the stream socket snapshot from current state + health.
+  void RefreshStreamSnapshot();
 
   std::shared_ptr<Camera> camera;
   Event       *event;
@@ -680,6 +775,11 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::unique_ptr<DecoderThread> decoder;
   SwsContext   *convert_context;
   std::thread  close_event_thread;
+  // Guards close_event_thread itself. closeEvent() runs on the analysis
+  // thread and Pause() on the capture thread, and both join and reassign
+  // it, so the object needs a lock of its own. Not the event lock: that is
+  // held across closeEvent(), which spawns the thread this guards.
+  std::mutex   close_event_thread_mutex;
 
   std::vector<Zone> zones;
 
@@ -698,12 +798,25 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   //MonitorLink    **linked_monitors;
   std::string   event_start_command;
   std::string   event_end_command;
+  std::vector<EventAction> actions;
+  // Whether the Alarm actions have run for the alarm currently in progress.
+  bool alarm_actions_fired;
 
   std::vector<Group *> groups;
 
   Image        delta_image;
   Image        ref_image;
-  Image        alarm_image;  // Used in creating analysis images, will be initialized in Analysis
+  // ref_image is owned by the analysis thread (Analyse/DetectMotion). The
+  // capture thread (CheckAction) must not touch its buffer directly; on
+  // suspend-resume it sets this flag instead and the analysis thread drops the
+  // stale reference itself on its next pass. Prevents a use-after-free/null
+  // deref race in Image::Delta (refs #4983).
+  std::atomic<bool> ref_image_reset_{false};
+  // Analysis image ring: the annotated/analysis image is published into a ring
+  // of image_buffer_count slots living in the alarm_images SHM region. Readers
+  // pick up the newest via shared_data->last_analysis_index. Replaces the
+  // former single alarm_image.
+  std::vector<Image *> analysis_image_buffer;
   Image        write_image;    // Used when creating snapshot images
   std::string diag_path_ref;
   std::string diag_path_delta;
@@ -767,6 +880,13 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   RecordingOption Recording() const { return recording; }
 
   inline PacketQueue * GetPacketQueue() { return &packetqueue; }
+
+  // Called by the decoder thread as it exits. Releases packet locks for
+  // anything it sent to the codec context but never received as a frame
+  // (codec context is about to be torn down for Pause/reconnect, so those
+  // packets will never produce output). Marks them decoded so the analysis
+  // thread can advance past them.
+  void flushDecoderQueue();
   inline bool Enabled() const {
     return shared_data->capturing;
   }
@@ -908,6 +1028,19 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   unsigned int GetPreEventCount() const { return pre_event_count; };
   int32_t GetImageBufferCount() const { return image_buffer_count; };
   State GetState() const { return (State)shared_data->state; }
+  // Set the analysis state, publishing the transition as a stream socket
+  // state_changed event (and refreshing the snapshot) when it actually changes.
+  void SetState(State new_state);
+  // Start the per-monitor media stream socket listener if it is not already
+  // running. Independent of the camera: the socket carries lifecycle events
+  // (capture faults) before any media, so zmc starts it before the first
+  // connect attempt to make startup faults observable. PrimeCapture() calls it
+  // too, then adds stream parameters. Producer side only (zmc).
+  void StartStreamSocket();
+  // Emit a capture-fault lifecycle event on the stream socket and update the
+  // cached health snapshot. code is one of the kEvent* health codes; a *_failed
+  // code sets the snapshot's active fault, a *_restored/_resumed code clears it.
+  void SendStreamHealthEvent(uint16_t code, const std::string &message, int detail = 0);
 
   AVStream *GetAudioStream() const { return camera ? camera->getAudioStream() : nullptr; };
   AVCodecContext *GetAudioCodecContext() const { return camera ? camera->getAudioCodecContext() : nullptr; };
@@ -915,8 +1048,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   AVCodecContext *GetVideoCodecContext() const { return camera ? camera->getVideoCodecContext() : nullptr; };
 
   std::string GetSecondPath() const { return second_path; };
-  std::string GetVideoFifoPath() const { return shared_data ? shared_data->video_fifo_path : ""; };
-  std::string GetAudioFifoPath() const { return shared_data ? shared_data->audio_fifo_path : ""; };
+  std::string GetStreamSocketPath() const { return shared_data ? shared_data->stream_socket_path : ""; };
   std::string GetRTSPStreamName() const { return rtsp_streamname; };
 
   const std::string &getONVIF_URL() const { return onvif_url; };
@@ -925,9 +1057,12 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   const std::string &getONVIF_Options() const { return onvif_options; };
 
   Image *GetAlarmImage();
+  // Writer-side helper: copies src into alarm_image and publishes its
+  // AVPixelFormat so reader processes can correctly interpret the SHM bytes.
+  void WriteAlarmImage(const Image &src);
   int GetImage(int32_t index=-1, int scale=100);
-  std::shared_ptr<ZMPacket> getSnapshot( int index=-1 ) const;
-  SystemTimePoint GetTimestamp(int index = -1) const;
+  std::shared_ptr<ZMPacket> getSnapshot( int index=-1 );
+  SystemTimePoint GetTimestamp(int index = -1);
   void UpdateAdaptiveSkip();
   useconds_t GetAnalysisRate();
   Microseconds GetAnalysisUpdateDelay() const { return analysis_update_delay; }
@@ -943,9 +1078,23 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   void ForceAlarmOff();
   void CancelForced();
   TriggerState GetTriggerState() const { return trigger_data ? trigger_data->trigger_state : TRIGGER_CANCEL; }
-  SystemTimePoint GetStartupTime() const { return std::chrono::system_clock::from_time_t(shared_data->startup_time); }
-  void SetStartupTime(SystemTimePoint time) { shared_data->startup_time = std::chrono::system_clock::to_time_t(time); }
+  // shared_data is null until connect() maps the shm segment, and connect()
+  // fails with it still null whenever the mmap file cannot be opened, grown or
+  // mapped -- wrong ownership, or /dev/shm too small for the requested buffers.
+  // zmc's startup loop calls SetHeartbeatTime() on every failed retry, so
+  // without these guards a monitor that cannot get its shm takes zmc down with
+  // SIGSEGV instead of retrying. The accessors around these already guard the
+  // same way.
+  SystemTimePoint GetStartupTime() const {
+    if (!shared_data) return SystemTimePoint();
+    return std::chrono::system_clock::from_time_t(shared_data->startup_time);
+  }
+  void SetStartupTime(SystemTimePoint time) {
+    if (!shared_data) return;
+    shared_data->startup_time = std::chrono::system_clock::to_time_t(time);
+  }
   void SetHeartbeatTime(SystemTimePoint time) {
+    if (!shared_data) return;
     shared_data->heartbeat_time = std::chrono::system_clock::to_time_t(time);
   }
   void get_ref_image();
@@ -985,6 +1134,16 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   bool CheckSignal( const Image *image );
   bool Analyse();
   bool setupConvertContext(const AVFrame *input_frame, const Image *image);
+  // Write capture_image into image_buffer[index] without conversion and
+  // record its AVPixelFormat in image_pixelformats[index] so reading
+  // processes can adopt that format via ReadShmFrame.
+  void WriteShmFrame(unsigned int index, Image *capture_image);
+
+  // Read-side counterpart: ensures image_buffer[index]'s metadata matches
+  // the format zmc wrote via image_pixelformats[index] before returning
+  // it. Use this from zms / zma / event paths instead of touching
+  // image_buffer[index] directly.
+  Image *ReadShmFrame(unsigned int index);
   void applyOrientation(Image *image);
   bool applyDeinterlacing(std::shared_ptr<ZMPacket> &packet, Image *capture_image);
   bool Decode();
@@ -996,11 +1155,35 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     ZMPacketLock *packet_lock,
     const std::string &cause,
     const Event::StringSetMap &noteSetMap);
+  // Join a close that is still in flight, so whatever it holds -- notably a
+  // hardware encoder session belonging to the previous event -- is released.
+  // Returns true if there was one to wait for.
+  bool WaitForEventClose();
   void closeEvent();
 
   void Reload();
   void ReloadZones();
   void ReloadLinkedMonitors();
+
+  void LoadActions();
+  // Fires the AlarmEnd actions once per alarm, and only when the Alarm actions
+  // actually ran, so the two stay paired.
+  void EndAlarmActions();
+  void RunActions(EventAction::TriggerOn trigger);
+  // Pure helpers, separated from RunActions so they can be tested without a
+  // database, a socket or a device. ActionCommandName maps the DB enum onto a
+  // zmcontrol method rather than passing the stored string through, so nothing
+  // from the database is interpolated into the message uninspected.
+  // Builds the Ffmpeg-equivalent URL for a Remote/rtsp monitor, so the
+  // deprecation warning can name the exact Source Path to switch to. Pure, so
+  // it is testable without a camera; pass the result through
+  // remove_authentication() before logging it.
+  static std::string RtspUrlFromRemote(const std::string &host, const std::string &port,
+                                       const std::string &path, const std::string &user,
+                                       const std::string &pass);
+  static const char *ActionCommandName(const std::string &action_type);
+  static std::string ActionMessage(const EventAction &action);
+  static const char *ActionTriggerName(EventAction::TriggerOn trigger);
 
   bool DumpSettings( char *output, bool verbose );
   void DumpZoneImage( const char *zone_string=0 );
@@ -1029,6 +1212,26 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   }
   int Importance() const { return importance; }
   int StartupDelay() const { return startup_delay; }
+
+  // Whether anything wants the audio level right now: either the monitor
+  // scores on it, or the editor's meter has asked for a reading and its
+  // request has not expired. Decoding audio is not free, so a monitor nobody
+  // is asking about does not do it.
+  bool AudioLevelWanted(SystemTimePoint now) const;
+
+  // Peak audio level since the last call, for the Frames row about to be
+  // written. Clears on read, so each row covers its own interval. Always 0
+  // when the monitor has AudioDetection off, because nothing runs the
+  // detector then, and that is what tells the event view there is no audio
+  // series to draw.
+  int TakeAudioPeak() { return audio_detector.TakePeak(); }
+
+ private:
+  // True after a keyframe is sent until the decoder outputs the first frame.
+  // Used by keyframe-based decoding modes to feed any required follow-up packets.
+  // A future improvement could eliminate mode-specific checks by relying solely
+  // on this flag to track the decoder state.
+  bool decoder_requires_next_packet = false;
 };
 
 #define MOD_ADD( var, delta, limit ) (((var)+(limit)+(delta))%(limit))

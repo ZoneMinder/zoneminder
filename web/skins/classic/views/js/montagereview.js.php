@@ -37,7 +37,6 @@ var lastSpeedIndex=0;
 // for history, and fps for live, and dynamically determined (in ms)
 
 var currentDisplayInterval=<?php echo $initialDisplayInterval?>;
-var playSecsPerInterval=1;       // How many seconds of recorded image we play per refresh determined by speed (replay rate) and display interval; (default=1 if coming from live)
 var timerInterval;               // milliseconds between interrupts
 var timerObj;                    // object to hold timer interval;
 var freeTimeLastIntervals=[];    // Percentage of current interval used in loading most recent image
@@ -101,17 +100,17 @@ foreach ( $monitors as $monitor ) {
 
 monitorData[monitorData.length] = {
   'Id': <?php echo $monitor->Id() ?>,
-  'Name': '<?php echo $monitor->Name() ?>',
+  'Name': '<?php echo validJsStr($monitor->Name()) ?>',
   'connKey': '<?php echo $monitor->connKey() ?>',
   'Width': <?php echo $monitor->ViewWidth() ?>,
   'Height':<?php echo $monitor->ViewHeight() ?>,
   'JanusEnabled':<?php echo $monitor->JanusEnabled() ?>,
   'Url': '<?php echo $monitor->UrlToIndex( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
-  'UrlToZms': '<?php echo $monitor->UrlToZMS( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
+  'UrlToZMS': '<?php echo $monitor->UrlToZMS( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'onclick': function(){window.location.assign( '?view=watch&mid=<?php echo $monitor->Id() ?>' );},
-  'Type': '<?php echo $monitor->Type() ?>',
-  'Refresh': '<?php echo $monitor->Refresh() ?>',
-  'Janus_Pin': '<?php echo $monitor->Janus_Pin() ?>',
+  'Type': '<?php echo validJsStr($monitor->Type()) ?>',
+  'Refresh': '<?php echo validJsStr($monitor->Refresh()) ?>',
+  'Janus_Pin': '<?php echo validJsStr($monitor->Janus_Pin()) ?>',
   'WebColour': '<?php echo $monitor->WebColour() ?>'
 };
 <?php
@@ -157,7 +156,7 @@ foreach ( $monitors as $m ) {
   echo "  monitorHeight["          . $m->Id() . "]=" . validHtmlStr($m->ViewHeight()) . ";\n";
   echo "  monitorIndex["           . $m->Id() . "]=" . $numMonitors . ";\n";
   echo "  monitorServerId["        . $m->Id() . "]='" .($m->ServerId() ?  $m->ServerId() : '0'). "';\n";
-  echo "  monitorName["            . $m->Id() . "]=\"" . validHtmlStr($m->Name()) . "\";\n";
+  echo "  monitorName["            . $m->Id() . "]=\"" . validJsStr($m->Name()) . "\";\n";
   echo "  monitorLoadStartTimems[" . $m->Id() . "]=0;\n";
   echo "  monitorLoadEndTimems["   . $m->Id() . "]=0;\n";
   echo "  monitorNormalizeScale["  . $m->Id() . "]=" . sqrt($avgArea / ($m->Width() * $m->Height() )) . ";\n";

@@ -30,8 +30,7 @@ if ( ($action == 'setgroup') && canView('Groups')) {
 }
 
 // Group edit actions
-# Should probably verify that each monitor id is a valid monitor, that we have access to.
-# However at the moment, you have to have System permissions to do this
+# Deleting a group also needs edit on each of its monitors, checked below.
 if ( ! canEdit('Groups') ) {
   ZM\Warning('Need group edit permissions to edit groups');
   return;
@@ -40,6 +39,11 @@ if ( ! canEdit('Groups') ) {
 if ( $action == 'delete' ) {
   if ( !empty($_REQUEST['gid']) ) {
     foreach ( ZM\Group::find(array('Id'=>$_REQUEST['gid'])) as $Group ) {
+      // Deleting a group removes its monitors from it, which can lift a deny on them.
+      if (!ZM\Group::canEditMembership($Group->MonitorIds())) {
+        ZM\Warning('Need edit permission on every monitor in group '.$Group->Id().' to delete it');
+        continue;
+      }
       $Group->delete();
       ZM\AuditAction('delete', 'group', $Group->Id(), 'Name: '.$Group->Name());
     }

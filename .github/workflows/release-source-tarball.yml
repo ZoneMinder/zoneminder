@@ -1,0 +1,77 @@
+name: release-source-tarball
+
+# GitHub's auto-generated "Source code" release assets are plain `git archive`
+# output and do not contain submodules, so they cannot be built (see #3781,
+# #4725). This workflow attaches a complete source tarball, submodules
+# included, to every release. It can also be dispatched manually to backfill
+# the asset onto an existing release tag.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag to build and attach the tarball to'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  tarball:
+    name: Build full source tarball
+    if: github.repository == 'ZoneMinder/zoneminder' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determine release tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.tag.outputs.tag }}
+          submodules: recursive
+
+      - name: Create tarball
+        id: tarball
+        run: |
+          set -eux
+          TAG="${{ steps.tag.outputs.tag }}"
+          TARBALL="zoneminder-${TAG}.tar.gz"
+          # Reproducible: fixed mtime from the tagged commit, sorted entries,
+          # no owner info, no gzip timestamp. Re-running the workflow for the
+          # same tag produces byte-identical output.
+          COMMIT_TS="$(git log -1 --format=%ct)"
+          tar --exclude-vcs \
+              --sort=name \
+              --mtime="@${COMMIT_TS}" \
+              --owner=0 --group=0 --numeric-owner \
+              --transform "s,^\.,zoneminder-${TAG}," \
+              -cf - . | gzip -n > "../${TARBALL}"
+          mv "../${TARBALL}" .
+          sha256sum "${TARBALL}" > "${TARBALL}.sha256"
+          echo "tarball=${TARBALL}" >> "$GITHUB_OUTPUT"
+
+      - name: Sanity check submodules are populated
+        run: |
+          set -eux
+          TARBALL="${{ steps.tarball.outputs.tarball }}"
+          # The same file CMakeLists.txt checks before allowing a build
+          tar -tzf "${TARBALL}" | grep -q 'web/api/app/Plugin/Crud/Lib/CrudControllerTrait.php'
+          tar -tzf "${TARBALL}" | grep -q 'dep/RtspServer/CMakeLists.txt'
+          tar -tzf "${TARBALL}" | grep -q 'dep/CxxUrl/CMakeLists.txt'
+
+      - name: Attach to release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          files: |
+            ${{ steps.tarball.outputs.tarball }}
+            ${{ steps.tarball.outputs.tarball }}.sha256

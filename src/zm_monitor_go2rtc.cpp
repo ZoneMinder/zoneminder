@@ -53,7 +53,7 @@ Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
     }
     rtsp_restream_base_path += ":" + std::to_string(config.min_rtsp_port) + "/" + parent->rtsp_streamname;
     rtsp_restream_path = rtsp_restream_base_path;
-    if (ZM_OPT_USE_AUTH) {
+    if (config.opt_use_auth) {
       if (parent->rtsp_user) {
         User *rtsp_user = User::find(parent->rtsp_user);
         std::string auth_key = rtsp_user->getAuthHash();
@@ -62,15 +62,19 @@ Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
       } else {
         Warning("No user selected for RTSP_Server authentication!");
       }
-    }  // end if ZM_OPT_USE_AUTH
+    }  // end if config.opt_use_auth
   }  // end if User_RTSP_REstream
 
   rtsp_path = parent->path;
   rtsp_second_path = parent->GetSecondPath();
 
   if (!parent->user.empty()) {
-    rtsp_username = escape_json_string(parent->user);
-    rtsp_password = escape_json_string(parent->pass);
+    // Stored raw. These end up in an RTSP URL, not in JSON, and the JSON
+    // payloads that embed the assembled path escape it themselves at the point
+    // it becomes JSON. Escaping here as well meant a password containing a
+    // backslash reached go2rtc doubled.
+    rtsp_username = parent->user;
+    rtsp_password = parent->pass;
     if (rtsp_path.find("rtsp://") == 0) {
       rtsp_path = "rtsp://" + rtsp_username + ":" + rtsp_password + "@" + rtsp_path.substr(7, std::string::npos);
     } else {
@@ -170,7 +174,7 @@ int Monitor::Go2RTCManager::check_Go2RTC() {
 
 bool Monitor::Go2RTCManager::refresh_auth_if_needed() {
   // Only refresh if using RTSP restream with auth
-  if (!Use_RTSP_Restream || !ZM_OPT_USE_AUTH || !parent->rtsp_user) {
+  if (!Use_RTSP_Restream || !config.opt_use_auth || !parent->rtsp_user) {
     return false;
   }
 
@@ -227,7 +231,7 @@ int Monitor::Go2RTCManager::add_to_Go2RTC() {
   Debug(1, "Go2RTC: Adding primary stream (monitor ID) - path: %s%s",
         primary_path.c_str(), Use_RTSP_Restream ? " (via RTSP restreamer)" : "");
   std::string endpoint = Go2RTC_endpoint + "/streams?name=" + id_str + "&src=" + UriEncode(primary_path);
-  std::string postData = "{\"name\" : \"" + std::string(parent->Name()) + "\", \"src\": \"" + primary_path + "\" }";
+  std::string postData = "{\"name\" : \"" + escape_json_string(parent->Name()) + "\", \"src\": \"" + escape_json_string(primary_path) + "\" }";
   Debug(2, "Go2RTC: PUT to %s with data: %s", endpoint.c_str(), postData.c_str());
   std::pair<CURLcode, std::string> response = CURL_PUT(endpoint, postData);
   if (response.first != CURLE_OK) {
@@ -237,11 +241,29 @@ int Monitor::Go2RTCManager::add_to_Go2RTC() {
   }
   Debug(1, "Go2RTC: Successfully added primary stream (monitor ID), response: %s", response.second.c_str());
 
+  // Add a lazily-transcoded H.264 variant of the primary stream.  Browsers that
+  // cannot decode the camera's native codec (Chrome, for example, decodes H.265
+  // over neither WebRTC nor MSE) request "<id>_h264"; go2rtc only spawns ffmpeg
+  // when such a client actually connects, so H.264 cameras never pay for it.  The
+  // source references the primary stream by name so the existing camera connection
+  // is reused rather than opened a second time.
+  {
+    std::string transcode_src = "ffmpeg:" + id_str + "#video=h264";
+    Debug(1, "Go2RTC: Adding H.264 transcode stream - src: %s", transcode_src.c_str());
+    endpoint = Go2RTC_endpoint + "/streams?name=" + id_str + "_h264&src=" + UriEncode(transcode_src);
+    postData = "{\"name\" : \"" + escape_json_string(parent->Name()) + " H264\", \"src\": \"" + escape_json_string(transcode_src) + "\" }";
+    Debug(2, "Go2RTC: PUT to %s", endpoint.c_str());
+    response = CURL_PUT(endpoint, postData);
+    if (response.first == CURLE_OK) {
+      Debug(1, "Go2RTC: Successfully added H.264 transcode stream, response: %s", response.second.c_str());
+    }
+  }
+
   // Add ZoneMinder restream paths (when RTSP restreamer is enabled)
   if (Use_RTSP_Restream) {
     Debug(1, "Go2RTC: Adding ZoneMinderPrimary stream - path: %s", rtsp_restream_path.c_str());
     endpoint = Go2RTC_endpoint + "/streams?name=" + id_str + "_ZoneMinderPrimary&src=" + UriEncode(rtsp_restream_path);
-    postData = "{\"name\" : \"" + std::string(parent->Name()) + " ZoneMinder Primary\", \"src\": \"" + rtsp_restream_path + "\" }";
+    postData = "{\"name\" : \"" + escape_json_string(parent->Name()) + " ZoneMinder Primary\", \"src\": \"" + escape_json_string(rtsp_restream_path) + "\" }";
     Debug(2, "Go2RTC: PUT to %s", endpoint.c_str());
     response = CURL_PUT(endpoint, postData);
     if (response.first == CURLE_OK) {
@@ -253,7 +275,7 @@ int Monitor::Go2RTCManager::add_to_Go2RTC() {
   if (!rtsp_path.empty()) {
     Debug(1, "Go2RTC: Adding CameraDirectPrimary stream - path: %s", rtsp_path.c_str());
     endpoint = Go2RTC_endpoint + "/streams?name=" + id_str + "_CameraDirectPrimary&src=" + UriEncode(rtsp_path);
-    postData = "{\"name\" : \"" + std::string(parent->Name()) + " Camera Direct Primary\", \"src\": \"" + rtsp_path + "\" }";
+    postData = "{\"name\" : \"" + escape_json_string(parent->Name()) + " Camera Direct Primary\", \"src\": \"" + escape_json_string(rtsp_path) + "\" }";
     Debug(2, "Go2RTC: PUT to %s", endpoint.c_str());
     response = CURL_PUT(endpoint, postData);
     if (response.first == CURLE_OK) {
@@ -264,7 +286,7 @@ int Monitor::Go2RTCManager::add_to_Go2RTC() {
   if (!rtsp_second_path.empty()) {
     Debug(1, "Go2RTC: Adding CameraDirectSecondary stream - path: %s", rtsp_second_path.c_str());
     endpoint = Go2RTC_endpoint + "/streams?name=" + id_str + "_CameraDirectSecondary&src=" + UriEncode(rtsp_second_path);
-    postData = "{\"name\" : \"" + std::string(parent->Name()) + " Camera Direct Secondary\", \"src\": \"" + rtsp_second_path + "\" }";
+    postData = "{\"name\" : \"" + escape_json_string(parent->Name()) + " Camera Direct Secondary\", \"src\": \"" + escape_json_string(rtsp_second_path) + "\" }";
     Debug(2, "Go2RTC: PUT to %s", endpoint.c_str());
     response = CURL_PUT(endpoint, postData);
     if (response.first == CURLE_OK) {

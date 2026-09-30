@@ -367,7 +367,17 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const {
       codec_context->extradata= nullptr;
       char pvalue[1024], *value = pvalue;
 
-      strcpy(pvalue, mediaDesc->getSprops().c_str());
+      // sprop-parameter-sets comes from the (untrusted) camera SDP. A real
+      // H.264 SPS/PPS base64 blob is small; anything approaching the buffer
+      // size is malformed or hostile, so refuse it rather than overflow the
+      // stack with an unbounded strcpy.
+      if (mediaDesc->getSprops().size() >= sizeof(pvalue)) {
+        Warning("Ignoring oversized sprop-parameter-sets (%zu bytes) from SDP",
+                mediaDesc->getSprops().size());
+        pvalue[0] = '\0';
+      } else {
+        strcpy(pvalue, mediaDesc->getSprops().c_str());
+      }
 
       while ( *value ) {
         char base64packet[1024];

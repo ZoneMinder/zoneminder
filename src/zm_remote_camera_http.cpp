@@ -719,21 +719,18 @@ int RemoteCameraHttp::GetResponse() {
           start_ptr = http_header;
           end_ptr = start_ptr+strspn(start_ptr, "10.");
 
-          // FIXME Why are we memsetting every time?  Can we not do it once?
-          //memset(http_version, 0, sizeof(http_version));
-          strncpy(http_version, start_ptr, end_ptr-start_ptr);
+          zm_strncpy(http_version, start_ptr, sizeof(http_version), end_ptr-start_ptr);
 
           start_ptr = end_ptr;
           start_ptr += strspn(start_ptr, " ");
           end_ptr = start_ptr+strspn(start_ptr, "0123456789");
 
-          memset(status_code, 0, sizeof(status_code));
-          strncpy(status_code, start_ptr, end_ptr-start_ptr);
+          zm_strncpy(status_code, start_ptr, sizeof(status_code), end_ptr-start_ptr);
           int status = atoi(status_code);
 
           start_ptr = end_ptr;
           start_ptr += strspn(start_ptr, " ");
-          strcpy(status_mesg, start_ptr);
+          zm_strncpy(status_mesg, start_ptr, sizeof(status_mesg));
 
           if (status == 401) {
             if (mNeedAuth) {
@@ -771,10 +768,8 @@ int RemoteCameraHttp::GetResponse() {
           Debug(3, "Got status '%d' (%s), http version %s", status, status_mesg, http_version);
 
           if (connection_header) {
-            memset(connection_type, 0, sizeof(connection_type));
             start_ptr = connection_header + strspn(connection_header, " ");
-            // FIXME Should we not use strncpy?
-            strcpy(connection_type, start_ptr);
+            zm_strncpy(connection_type, start_ptr, sizeof(connection_type));
             Debug(3, "Got connection '%s'", connection_type);
           }
           if (content_length_header) {
@@ -786,7 +781,7 @@ int RemoteCameraHttp::GetResponse() {
             //memset(content_type, 0, sizeof(content_type));
             start_ptr = content_type_header + strspn(content_type_header, " ");
             if ( (end_ptr = strchr(start_ptr, ';')) ) {
-              strncpy(content_type, start_ptr, end_ptr-start_ptr);
+              zm_strncpy(content_type, start_ptr, sizeof(content_type), end_ptr-start_ptr);
               Debug(3, "Got content type '%s'", content_type);
 
               start_ptr = end_ptr + strspn(end_ptr, "; ");
@@ -794,13 +789,15 @@ int RemoteCameraHttp::GetResponse() {
               if (strncasecmp(start_ptr, boundary_match, boundary_match_len) == 0) {
                 start_ptr += boundary_match_len;
                 start_ptr += strspn(start_ptr, "-");
-                content_boundary_len = sprintf(content_boundary, "--%s", start_ptr);
+                zm_strncpy(content_boundary, "--", sizeof(content_boundary));
+                zm_strncpy(content_boundary+2, start_ptr, sizeof(content_boundary)-2);
+                content_boundary_len = strlen(content_boundary);
                 Debug(3, "Got content boundary '%s'", content_boundary);
               } else {
                 Error("No content boundary found in header '%s'", content_type_header);
               }
             } else {
-              strcpy(content_type, start_ptr);
+              zm_strncpy(content_type, start_ptr, sizeof(content_type));
               Debug(3, "Got content type '%s'", content_type);
             }
           } // end if content_type_header
@@ -940,7 +937,7 @@ int RemoteCameraHttp::GetResponse() {
           if (subcontent_type_header[0]) {
             //memset(content_type, 0, sizeof(content_type));
             start_ptr = subcontent_type_header + strspn(subcontent_type_header, " ");
-            strcpy(content_type, start_ptr);
+            zm_strncpy(content_type, start_ptr, sizeof(content_type));
             Debug(3, "Got subcontent type '%s'", content_type);
           }
           state = CONTENT;

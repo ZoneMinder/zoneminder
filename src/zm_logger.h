@@ -23,6 +23,7 @@
 #include "zm_db.h"
 #include "zm_config.h"
 #include "zm_define.h"
+#include <atomic>
 #include <map>
 #include <mutex>
 #include <string>
@@ -93,6 +94,10 @@ class Logger {
 
   static StringMap smCodes;
   static IntMap smSyslogPriorities;
+
+  // Set by the SIGWINCH handler, acted on by the next logPrint. Reopening the
+  // file is far too heavy to do in a signal handler.
+  static std::atomic<bool> smDoLogRotate;
 
   bool mInitialised;
 

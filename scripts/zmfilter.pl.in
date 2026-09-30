@@ -73,6 +73,7 @@ if ( $version ) {
 
 require ZoneMinder::Event;
 require ZoneMinder::Filter;
+require ZoneMinder::Storage;
 
 use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)
   ? $Config{ZM_DIR_EVENTS}
@@ -123,7 +124,7 @@ if ( $Config{ZM_OPT_UPLOAD} ) {
 
 $| = 1;
 
-$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
+$ENV{PATH}  = '@ZM_SCRIPT_PATH@';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
@@ -153,7 +154,15 @@ if ( $filter_name ) {
   Info('Scanning for events using all filters');
 }
 
-if ( ! ( $filter_name or $filter_id ) ) {
+# The delay is for the unattended case: zmpkg brings this up as one of several
+# daemons at once, as "zmdc.pl start zmfilter.pl --filter_id=N --daemon", and
+# --daemon is what marks that. Running it for a single pass is someone asking
+# for something now, and so is a terminal on stdin.
+#
+# This used to test for a named filter instead, which is backwards -- zmpkg
+# always names one, so the boot path never waited and the only invocation that
+# did was a hand-run scan of every filter.
+if ( $daemon and !startedInteractively() ) {
   Debug('Sleeping due to start delay: ' . START_DELAY . ' seconds...');
   $sleeping = 1;
   sleep(START_DELAY);
@@ -170,6 +179,10 @@ while (!$zm_terminate) {
     $last_reload = $now;
     @filters = getFilters({ Name=>$filter_name, Id=>$filter_id });
   }
+
+  # Clear out event locks belonging to filters that were killed before they
+  # could release them, so those events don't stay skipped past their expiry.
+  ZoneMinder::Event::reap_expired_locks() if grep { $$_{LockRows} } @filters;
 
   foreach my $filter (@filters) {
     last if $zm_terminate;
@@ -256,7 +269,6 @@ FILTER: while( my $db_filter = $sth->fetchrow_hashref() ) {
 sub checkFilter {
   my $filter = shift;
 
-  my $in_transaction = ZoneMinder::Database::start_transaction($dbh) if $$filter{LockRows}; 
   my @Events = $filter->Execute();
   Debug(
       join(' ',
@@ -282,98 +294,123 @@ sub checkFilter {
     last if $zm_terminate;
     my $Event = new ZoneMinder::Event($$event{Id}, $event);
 
-    Debug('Checking event '.$Event->{Id});
-    my $delete_ok = !undef;
-    $dbh->ping();
-    if ( $filter->{AutoArchive} ) {
-      Info("Archiving event $Event->{Id}");
-      # Do it individually to avoid locking up the table for new events
-      $Event->save({Archived=>1});
-    }
-    if ( $filter->{AutoUnarchive} ) {
-      Info("Unarchiving event $Event->{Id}");
-      # Do it individually to avoid locking up the table for new events
-      $Event->save({Archived=>0});
-    }
-    if ( $Config{ZM_OPT_FFMPEG} && $filter->{AutoVideo} ) {
-      if ( !$Event->{Videoed} ) {
-        $delete_ok = undef if !generateVideo($filter, $Event);
-      }
-    }
-    if ( $Config{ZM_OPT_EMAIL} && $filter->{AutoEmail} and $filter->{EmailFormat} eq 'Individual') {
-      if ( !$Event->{Emailed} ) {
-        $delete_ok = undef if !sendEmail($filter, $Event);
-      }
-    }
-    if ( $Config{ZM_OPT_MESSAGE} && $filter->{AutoMessage} ) {
-      if ( !$Event->{Messaged} ) {
-        $delete_ok = undef if !sendMessage($filter, $Event);
-      }
-    }
-    if ( $Config{ZM_OPT_UPLOAD} && $filter->{AutoUpload} ) {
-      if ( !$Event->{Uploaded} ) {
-        $delete_ok = undef if !uploadArchFile($filter, $Event);
-      }
-    }
-    if ( $filter->{AutoExecute} ) {
-      if ( !$Event->{Executed} ) {
-        $delete_ok = undef if !executeCommand($filter, $Event);
-      }
-    }
-    if ( $filter->{AutoDelete} ) {
-      if ( $delete_ok ) {
-        $Event->delete();
-        next; # If someone has configured the filter to do something in addition to delete, errors will be logged.
-      } else {
-        Error("Unable to delete event $Event->{Id} as previous operations failed");
-      }
-    } # end if AutoDelete
+    $dbh = zmDbConnect();
 
-
-    if ( $filter->{AutoMove} ) {
-      my $NewStorage = new ZoneMinder::Storage($filter->{AutoMoveTo});
-      Info("Moving event $Event->{Id} from ".$Event->Storage(undef)->Path().' to '.$NewStorage->Path());
-      $_ = $Event->MoveTo($NewStorage);
-      Error($_) if $_;
+    # LockRows serialises this filter against the others one event at a time.
+    # The lock is a row in Events_Lock rather than a lock on the event itself,
+    # so it can be held for the whole of an event's work - which may be an
+    # ffmpeg encode, an upload or an executed command - without holding any
+    # InnoDB lock. zmc goes on opening events on the same monitor throughout.
+    if ($$filter{LockRows} and !$Event->acquire_lock()) {
+      Debug("Skipping event $$Event{Id}, another filter is working on it");
+      next;
     }
-    if ( $filter->{AutoCopy} ) {
-      # Copy To is different from MoveTo in that it JUST copies the files
-      # So we still need to update the Event object with the new SecondaryStorageId
-      my $NewStorage = ZoneMinder::Storage->find_one(Id=>$filter->{AutoCopyTo});
-      if ( $NewStorage ) {
-        Info("Copying event $Event->{Id} to datastore $filter->{AutoCopyTo}");
-        $_ = $Event->CopyTo($NewStorage);
-        if ( $_ ) {
-          $ZoneMinder::Database::dbh->commit();
-          Error($_);
-        } else {
-          $Event->save({SecondaryStorageId=>$$NewStorage{Id}});
-          $ZoneMinder::Database::dbh->commit();
-        }
-      } else {
-        Error("No storage area found for copy to operation.  AutoCopyTo was $$filter{AutoCopyTo}");
-      }
-    } # end if AutoCopy
 
-    if ( $filter->{UpdateDiskSpace} ) {
-      my $old_diskspace = $$Event{DiskSpace};
-			my $new_diskspace = $Event->DiskSpace(undef);
-
-      if (
-					( (!defined $old_diskspace) and defined $new_diskspace)
-					or
-					( (defined $old_diskspace) and (defined $new_diskspace) and ($old_diskspace != $new_diskspace) )
-					) {
-        $Event->save();
-      }
-    } # end if UpdateDiskSpace
+    eval { checkFilterEvent($filter, $Event) };
+    my $error = $@;
+    $Event->release_lock() if $$filter{LockRows};
+    Error("Error processing event $$Event{Id}: $error") if $error;
   } # end foreach event
 
   if ($Config{ZM_OPT_EMAIL} and $filter->{AutoEmail} and ($filter->{EmailFormat} eq 'Summary') and @Events) {
     sendSummaryEmail($filter, @Events);
   }
-  ZoneMinder::Database::end_transaction($dbh, $in_transaction) if $$filter{LockRows}; 
 } # end sub checkFilter
+
+# Everything a filter does to one event. Called with that event's Events_Lock
+# row held when the filter has LockRows set.
+#
+# Nothing here opens a transaction: each statement stands on its own so that no
+# lock outlives it. Event::delete manages its own short transaction around the
+# row deletes, which is the only place several statements have to be atomic.
+sub checkFilterEvent {
+  my ($filter, $Event) = @_;
+
+  Debug('Checking event '.$Event->{Id});
+  my $delete_ok = !undef;
+  if ( $filter->{AutoArchive} ) {
+    Info("Archiving event $Event->{Id}");
+    # Do it individually to avoid locking up the table for new events
+    $Event->save({Archived=>1});
+  }
+  if ( $filter->{AutoUnarchive} ) {
+    Info("Unarchiving event $Event->{Id}");
+    # Do it individually to avoid locking up the table for new events
+    $Event->save({Archived=>0});
+  }
+  if ( $Config{ZM_OPT_FFMPEG} && $filter->{AutoVideo} ) {
+    if ( !$Event->{Videoed} ) {
+      $delete_ok = undef if !generateVideo($filter, $Event);
+    }
+  }
+  if ( $Config{ZM_OPT_EMAIL} && $filter->{AutoEmail} and $filter->{EmailFormat} eq 'Individual') {
+    if ( !$Event->{Emailed} ) {
+      $delete_ok = undef if !sendEmail($filter, $Event);
+    }
+  }
+  if ( $Config{ZM_OPT_MESSAGE} && $filter->{AutoMessage} ) {
+    if ( !$Event->{Messaged} ) {
+      $delete_ok = undef if !sendMessage($filter, $Event);
+    }
+  }
+  if ( $Config{ZM_OPT_UPLOAD} && $filter->{AutoUpload} ) {
+    if ( !$Event->{Uploaded} ) {
+      $delete_ok = undef if !uploadArchFile($filter, $Event);
+    }
+  }
+  if ( $filter->{AutoExecute} ) {
+    if ( !$Event->{Executed} ) {
+      $delete_ok = undef if !executeCommand($filter, $Event);
+    }
+  }
+  if ( $filter->{AutoDelete} ) {
+    if ( $delete_ok ) {
+      $Event->delete();
+      return; # If someone has configured the filter to do something in addition to delete, errors will be logged.
+    } else {
+      Error("Unable to delete event $Event->{Id} as previous operations failed");
+    }
+  } # end if AutoDelete
+
+
+  if ( $filter->{AutoMove} ) {
+    my $NewStorage = new ZoneMinder::Storage($filter->{AutoMoveTo});
+    Info("Moving event $Event->{Id} from ".$Event->Storage(undef)->Path().' to '.$NewStorage->Path());
+    $_ = $Event->MoveTo($NewStorage);
+    Error($_) if $_;
+  }
+  if ( $filter->{AutoCopy} ) {
+    # Copy To is different from MoveTo in that it JUST copies the files
+    # So we still need to update the Event object with the new SecondaryStorageId
+    my $NewStorage = ZoneMinder::Storage->find_one(Id=>$filter->{AutoCopyTo});
+    if ( $NewStorage ) {
+      Info("Copying event $Event->{Id} to datastore $filter->{AutoCopyTo}");
+      $_ = $Event->CopyTo($NewStorage);
+      if ( $_ ) {
+        Error($_);
+      } else {
+        # No commit: each statement autocommits now that LockRows no longer
+        # wraps the whole filter run in one transaction.
+        $Event->save({SecondaryStorageId=>$$NewStorage{Id}});
+      }
+    } else {
+      Error("No storage area found for copy to operation.  AutoCopyTo was $$filter{AutoCopyTo}");
+    }
+  } # end if AutoCopy
+
+  if ( $filter->{UpdateDiskSpace} ) {
+    my $old_diskspace = $$Event{DiskSpace};
+    my $new_diskspace = $Event->DiskSpace(undef);
+
+    if (
+      ( (!defined $old_diskspace) and defined $new_diskspace)
+      or
+      ( (defined $old_diskspace) and (defined $new_diskspace) and ($old_diskspace != $new_diskspace) )
+      ) {
+      $Event->save();
+    }
+  } # end if UpdateDiskSpace
+} # end sub checkFilterEvent
 
 sub generateVideo {
   my $filter = shift;
@@ -446,7 +483,7 @@ sub generateImage {
   my $event_path = $Event->Path();
   my $capture_image_path = sprintf('%s/%0'.$Config{ZM_EVENT_IMAGE_DIGITS}.'d-capture.jpg', $event_path, $frame->{FrameId});
   my $analyse_image_path = sprintf('%s/%0'.$Config{ZM_EVENT_IMAGE_DIGITS}.'d-analyse.jpg', $event_path, $frame->{FrameId}) if $analyse;
-  my $video_path =  sprintf('%s/%s', $event_path, $Event->{DefaultVideo});
+  my $video_path =  sprintf('%s/%s', $event_path, ($Event->{DefaultVideo} ? basename($Event->{DefaultVideo}) : ''));
   my $image_path = '';
 
 # check if the image file exists. If the file doesn't exist and we use H264 try to extract it from .mp4 video
@@ -458,9 +495,20 @@ sub generateImage {
     $image_path = $capture_image_path;
   } elsif ( -r $video_path ) {
     Debug("mp4 exists $video_path");
-    my $command ="ffmpeg -nostdin -ss $$frame{Delta} -i '$video_path' -frames:v 1 '$capture_image_path'";
+    # Run without a shell: $video_path carries the event's DefaultVideo, which
+    # an operator with Events=Edit can set, so a quote in it must not be able
+    # to end the argument. See GHSA-pxq8-5c8j-xf3r.
+    my @command = ('ffmpeg', '-nostdin', '-ss', $$frame{Delta}, '-i', $video_path, '-frames:v', '1', $capture_image_path);
+    my $command = join(' ', @command);
     #$command = "ffmpeg -y -v 0 -i $video_path -vf 'select=gte(n\\,$$frame{FrameId}),setpts=PTS-STARTPTS' -vframes 1 -f image2 $capture_image_path";
-    my $output = qx($command);
+    my $output = '';
+    if ( open(my $fh, '-|', @command) ) {
+      $output = join('', <$fh>);
+      close($fh);
+    } else {
+      $output = "Unable to run ffmpeg: $!";
+      $? = 127 << 8; # what the shell reported for a missing command
+    }
     chomp($output);
     my $status = $? >> 8;
     if ( $status || logDebugging() ) {
@@ -859,7 +907,7 @@ sub substituteTags {
     if ( $attachments_ref ) {
       if ( $text =~ s/%EV%//g ) {
         if ( $$Event{DefaultVideo} ) {
-          push @$attachments_ref, { type=>'video/mp4', path=>join('/', $Event->Path(), $Event->DefaultVideo()) };
+          push @$attachments_ref, { type=>'video/mp4', path=>join('/', $Event->Path(), basename($Event->DefaultVideo())) };
         } elsif ( $Config{ZM_OPT_FFMPEG} ) {
           my ( $format, $path ) = generateVideo($filter, $Event);
           if ( !$format ) {
@@ -996,7 +1044,7 @@ sub sendTheEmail {
       } else {
         my $text = MIME::Lite->new(
           'Content-Transfer-Encoding' => 'quoted-printable',
-          Type => 'TEXT', Data => $body
+          Type => 'TEXT', Data => MIME::QuotedPrint::encode_qp($body)
         );
         $related->attach($text);
       } # end if html or not
@@ -1224,13 +1272,40 @@ sub executeCommand {
   my $Event = shift;
 
   my $command = $filter->{AutoExecuteCmd};
+  my %tag_env;
   if ($command =~ /%\w+%/) {
-    $command = substituteTags($command, $filter, $Event);
+    # Tag values such as event name, cause, notes, tags and monitor name can be
+    # set by non-admin users (or zmtrigger clients), so the shell must never
+    # parse them. Plain values are inserted as before; anything else is passed
+    # in an environment variable ZM_TAG_n and referenced in a form the shell
+    # expands without re-parsing, chosen by the quoting context the admin put
+    # the tag in: "${ZM_TAG_n}" bare, ${ZM_TAG_n} inside "...", and
+    # '"${ZM_TAG_n}"' inside '...'.
+    my ($n, $state) = (0, '');
+    $command =~ s{(%\w+%)|(\\[^%]|['"])}{
+      if (defined $2) {
+        my $token = $2;
+        # backslash escapes nothing inside single quotes
+        my $c = ($state eq "'") ? substr($token, -1) : $token;
+        $state = !$state ? $c : ($state eq $c ? '' : $state) if $c eq "'" or $c eq '"';
+        $token;
+      } else {
+        my $value = substituteTags($1, $filter, $Event);
+        if ($value =~ /^[\w\/.,:+=@% -]*$/) {
+          $value;
+        } else {
+          my $ref = '${ZM_TAG_'.$n.'}';
+          $tag_env{'ZM_TAG_'.$n++} = $value;
+          $state eq '"' ? $ref : $state eq "'" ? qq('"$ref"') : qq("$ref");
+        }
+      }
+    }gse;
   } else {
     $command .= ' '.$Event->Path();
   }
 
   Info("Executing '$command'");
+  local @ENV{keys %tag_env} = values %tag_env;
   my $output = qx($command);
   my $status = $? >> 8;
   if ($status || logDebugging()) {

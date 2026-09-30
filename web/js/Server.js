@@ -45,14 +45,20 @@ var Server = function() {
       key: 'urlToApi',
       value: function urlToApi() {
         const port = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
-        return (location.protocol=='https:'? 'https:' : this.Protocol+':') + '//' + this.Hostname + (port ? ':' + port : (this.Port ? ':' + this.Port : (location.port ? ':' + location.port : ''))) + ((this.PathToApi && (this.PathToApi != 'null')) ? this.PathToApi : '');
+        const protocol = (location.protocol == 'https:' ? 'https:' : this.Protocol + ':');
+        const path = (this.PathToApi && (this.PathToApi != 'null')) ? this.PathToApi : '';
+        // Single-server: match browser's host:port (this.Hostname/Port may be wrong behind a proxy).
+        if (!this.Id) {
+          return protocol + '//' + (port ? location.hostname + ':' + port : location.host) + path;
+        }
+        return protocol + '//' + this.Hostname + (port ? ':' + port : (this.Port ? ':' + this.Port : (location.port ? ':' + location.port : ''))) + path;
       }
     },
     {
       key: 'getFromApi',
       value: function getFromApi() {
         const url = this.urlToApi() + (arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '');
-        return fetch(url + '?' + auth_relay + (arguments.length > 1 && arguments[1] !== undefined ? '&'+arguments[1] : ''));
+        return fetch(appendQuery(zmAuth.appendTo(url), arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : ''));
       }
     },
     {

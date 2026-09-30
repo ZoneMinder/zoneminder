@@ -74,10 +74,20 @@ tr td input[type="radio"] {
   text-align: right;
 }
 
+#content {
+  padding-top: 0.5rem;
+}
+
+#contentForm {
+  height: 100%;
+  overflow: visible;
+}
+
 body.sticky #content {
   overflow-y: auto;
   height: 100%;
 }
+
 nav ul.nav {
   height: 100%;
   flex-direction: column;
@@ -89,12 +99,34 @@ ul.form > li {
   padding-left: 300px;
   margin: 10px 0;
 }
+
 ul.form > li > label:first-child {
   width: 290px;
   margin-left: -300px;
   text-align: right;
 }
-.EncoderParameters label {
+
+nav #pills-tab a.nav-link {
+  margin-top: -0.5em;
+  margin-bottom: -0.5em;
+}
+
+nav #pills-tab .nav-item.form-control-sm {
+  height: auto;
+}
+
+nav #pills-tab a.nav-link.active {
+  background-color: var(--colorBackgroundButtons);
+  border: 1px #ccc solid;
+}
+
+/* The label is inline-block next to its field, so it lines up with the bottom
+ * of a field taller than one row - the textareas, and the chosen container the
+ * Groups multi-select is replaced by. They all want their label at the top. */
+.EncoderParameters label,
+.Notes label,
+.SourceOptions label,
+.Groups label {
   vertical-align: top;
 }
 
@@ -130,4 +162,100 @@ ul.form > li > label:first-child {
   input[name="newMonitor[LabelFormat]"] {
     min-width: unset;
   }
+}
+
+/* Encoder preset diagnostics — advisory text under the EncoderParameters textarea */
+.encoderParameterDiagnostics {
+  font-size: 0.9em;
+  color: #b58900;
+  margin-top: 4px;
+}
+
+/*
+ * Monitor actions table.
+ *
+ * The Enabled column holds a single checkbox, but the table would otherwise
+ * size it from its header text and let the four selects fight over what is
+ * left, so the checkbox drifts as the target and action names change length.
+ */
+#monitorActionsTable th:first-child,
+#monitorActionsTable td:first-child {
+  width: 5em;
+  text-align: center;
+}
+
+/*
+ * Group headings inside a settings tab.
+ *
+ * The tabs are a flat <ul> of <li> rows, so a fieldset/legend cannot be used
+ * without breaking the list: a <ul> may only contain <li>. A heading row plus
+ * a rule above it gives the same visual separation while keeping the markup
+ * valid and the existing row layout untouched.
+ */
+li.settingsGroup {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.8em;
+  letter-spacing: 0.05em;
+  opacity: 0.7;
+  margin-top: 1.2em;
+  padding-top: 0.5em;
+  border-top: 1px solid rgba(128, 128, 128, 0.35);
+}
+
+/* The first heading opens the tab, so it needs no separation from what is
+   above it. */
+li.settingsGroup:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+/* Live audio level meter in the audio detection settings. Polling it is what
+   makes zmc measure at all, so it is only drawn on saved Ffmpeg monitors. */
+.audioLevelMeter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.audioLevelTrack {
+  position: relative;
+  flex: 1 1 auto;
+  max-width: 260px;
+  height: 14px;
+  background-color: #dddddd;
+  border: 1px solid #bbbbbb;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.audioLevelFill {
+  height: 100%;
+  width: 0;
+  background-color: #1e6fd9;
+  /* Slower than the 1s poll would make the bar lag the number beside it. */
+  transition: width 0.25s linear;
+}
+
+/* Where the threshold currently in the input sits, so a reading can be judged
+   against it before saving. */
+.audioLevelThresholdMark {
+  display: none;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background-color: #cc0000;
+}
+
+.audioLevelValue {
+  min-width: 5em;
+  font-variant-numeric: tabular-nums;
+}
+
+.audioLevelValue.alarm {
+  color: #cc0000;
+  font-weight: bold;
 }

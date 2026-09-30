@@ -40,6 +40,7 @@ require ZoneMinder::Zone;
 require ZoneMinder::Manufacturer;
 require ZoneMinder::Model;
 use ZoneMinder::Logger qw(:all);
+use ZoneMinder::Database qw(:all);
 
 use parent qw(ZoneMinder::Object);
 
@@ -131,7 +132,6 @@ $serial = $primary_key = 'Id';
   SectionLength
   SectionLengthWarn
   MinSectionLength
-  FrameSkip
   MotionFrameSkip
   AnalysisFPSLimit
   AnalysisUpdateDelay
@@ -258,7 +258,6 @@ $fields{model} = undef;
     SectionLength      =>  600,
     SectionLengthWarn => 1,
     MinSectionLength    =>  10,
-    FrameSkip           =>  0,
     MotionFrameSkip     =>  0,
     AnalysisFPSLimit  =>  undef,
     AnalysisUpdateDelay  =>  0,
@@ -310,7 +309,10 @@ sub save {
   my $model = $self->Model();
 
   if ($manufacturer->Name() and !$manufacturer->Id()) {
-    if ($manufacturer->save()) {
+    # save() returns the error string on failure, '' on success.
+    if (my $error = $manufacturer->save()) {
+      Error('Failed saving Manufacturer '.$manufacturer->Name().": $error");
+    } else {
       $$self{ManufacturerId} = $manufacturer->Id();
       if ($model->Name()) {
         $model->ManufacturerId($$self{ManufacturerId});
@@ -318,8 +320,10 @@ sub save {
     }
   }
   if ($model->Name() and !$model->Id()) {
-    if ($model->save()) {
-      $$self{ModelId} = $model->Id()
+    if (my $error = $model->save()) {
+      Error('Failed saving Model '.$model->Name().": $error");
+    } else {
+      $$self{ModelId} = $model->Id();
     }
   }
 
@@ -350,6 +354,24 @@ sub control {
   if ($monitor->{Type} eq 'Local') {
     if (!defined $monitor->{Device} or $monitor->{Device} !~ /^\/dev\/[\w\/.\-]+$/) {
       Error("Invalid device path rejected: $monitor->{Device}");
+      return;
+    }
+  }
+
+  # Callers hold a Monitor object for a while before acting on it: zmwatch
+  # fetches its whole list at the top of a pass and then walks it, so a monitor
+  # deleted mid-pass is still restarted from that stale list. The web ui already
+  # stopped its zmc, so the restart resurrects a capture daemon for a monitor
+  # nothing will ever ask about again - an orphan zmc that survives until the
+  # next zmpkg restart. Re-read Deleted from the db before starting anything.
+  if (($command eq 'start' or $command eq 'restart') and $$monitor{Id}) {
+    my $row = zmDbFetchOne('SELECT `Deleted` FROM `Monitors` WHERE `Id`=?', $$monitor{Id});
+    if (!$row) {
+      Info("Not running $command for monitor $$monitor{Id}: no longer exists");
+      return;
+    }
+    if ($$row{Deleted}) {
+      Info("Not running $command for monitor $$monitor{Id}: has been deleted");
       return;
     }
   }
@@ -637,9 +659,8 @@ Isaac Connor, E<lt>isaac@zoneminder.comE<gt>
 
 Copyright (C) 2001-2017  ZoneMinder LLC
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.3 or,
-at your option, any later version of Perl 5 you may have available.
+Licensed under the GNU General Public License v2 or later; see the COPYING
+file distributed with ZoneMinder for the full text.
 
 
 =cut

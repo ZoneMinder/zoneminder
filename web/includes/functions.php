@@ -21,6 +21,26 @@
 require_once('Filter.php');
 require_once('FilterTerm.php');
 
+// Polyfills for PHP 8.0+ string functions, so views and callers don't have to
+// guard each use. ZoneMinder still supports PHP 7.x in some distros.
+if (!function_exists('str_starts_with')) {
+  function str_starts_with(string $haystack, string $needle): bool {
+    return $needle === '' || strncmp($haystack, $needle, strlen($needle)) === 0;
+  }
+}
+if (!function_exists('str_ends_with')) {
+  function str_ends_with(string $haystack, string $needle): bool {
+    if ($needle === '' || $needle === $haystack) return true;
+    $nlen = strlen($needle);
+    return $nlen <= strlen($haystack) && substr_compare($haystack, $needle, -$nlen) === 0;
+  }
+}
+if (!function_exists('str_contains')) {
+  function str_contains(string $haystack, string $needle): bool {
+    return $needle === '' || strpos($haystack, $needle) !== false;
+  }
+}
+
 function noCacheHeaders() {
   header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');    // Date in the past
   header('Last-Modified: '.gmdate( 'D, d M Y H:i:s' ).' GMT'); // always modified
@@ -52,7 +72,9 @@ function CSPHeaders($view, $nonce) {
 }
 
 function CORSHeaders() {
-  if (isset($_SERVER['HTTP_ORIGIN'])) {
+  # An empty Origin cannot match a server and needs no headers, so treat it the
+  # same as no Origin at all rather than warning about a value we cannot print.
+  if (isset($_SERVER['HTTP_ORIGIN']) and $_SERVER['HTTP_ORIGIN'] !== '') {
 # The following is left for future reference/use.
     $valid = false;
     global $Servers;
@@ -83,7 +105,16 @@ function CORSHeaders() {
       }
     }
     if (!$valid) {
-      ZM\Warning($_SERVER['HTTP_ORIGIN'] . ' is not found in servers list.');
+      # Browsers send Origin on same-origin POST/fetch as well.  Such a request
+      # needs no CORS headers, so not finding it in the servers list is normal
+      # and not worth warning about -- it only means the Servers table does not
+      # happen to list the hostname this install is being reached on.
+      if (isset($_SERVER['HTTP_HOST'])
+        and preg_replace('/^https?:\/\//i', '', $_SERVER['HTTP_ORIGIN']) === $_SERVER['HTTP_HOST']) {
+        ZM\Debug('CORS: same-origin request from '.$_SERVER['HTTP_ORIGIN'].', no headers needed');
+      } else {
+        ZM\Warning($_SERVER['HTTP_ORIGIN'] . ' is not found in servers list.');
+      }
     }
   } else {
     ZM\Debug('CORS: NO origin');
@@ -337,21 +368,23 @@ function deleteEvent($event) {
     return;
   }
 
-  if (gettype($event) != 'array') {
-# $event could be an eid, so turn it into an event hash
+  if (!($event instanceof ZM\Event)) {
+    # $event could be an eid, so load the event
     $event = new ZM\Event($event);
   }
+  if (!$event->Id()) return;
 
   if ($event->Archived()) {
     ZM\Info('Cannot delete Archived event.');
     return;
   } # end if Archived
 
-  global $user;
-
-  if ($user->Events() == 'Edit') {
+  # Needs Events edit and access to the event's monitor, not just the global permission.
+  if ($event->canEdit()) {
     $event->delete();
-  } # CAN EDIT
+  } else {
+    ZM\Warning('No permission to delete event '.$event->Id());
+  }
 }
 
 /**
@@ -404,7 +437,7 @@ function htmlOptions($options, $values) {
   $has_selected = false;
   foreach ( $options as $value=>$option ) {
     $disabled = 0;
-    $text = '';
+    $text = $class = '';
     if ( is_array($option) ) {
 
       if ( isset($option['Name']) )
@@ -414,6 +447,9 @@ function htmlOptions($options, $values) {
 
       if ( isset($option['disabled']) ) {
         $disabled = $option['disabled'];
+      }
+      if ( isset($option['class']) ) {
+        $class = $option['class'];
       }
     } else if ( is_object($option) ) {
       $text = $option->Name();
@@ -430,6 +466,7 @@ function htmlOptions($options, $values) {
     $options_html .= '<option value="'.htmlspecialchars($value, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'"'.
       ($selected?' selected="selected"':'').
       ($disabled?' disabled="disabled"':'').
+      ($class?' class="'.htmlspecialchars($class, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'"':'').
       '>'.htmlspecialchars($text, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'</option>'.PHP_EOL;
   } # end foreach options
   if ( $values and ((!is_array($values)) or count($values) ) and ! $has_selected ) {
@@ -1101,7 +1138,7 @@ function sortHeader($field, $querySep='&amp;') {
   global $view;
   return implode($querySep, array(
     '?view='.$view,
-    'page=1'.((isset($_REQUEST['filter']) and isset($_REQUEST['filter']['query'])) ? $_REQUEST['filter']['query'] : ''),
+    'page=1'.((isset($_REQUEST['filter']) and isset($_REQUEST['filter']['query'])) ? validHtmlStr($_REQUEST['filter']['query']) : ''),
     'sort_field='.$field,
     'sort_asc='.( ( isset($_REQUEST['sort_field']) and ( $_REQUEST['sort_field'] == $field ) ) ? !validInt($_REQUEST['sort_asc']) : 0),
     'limit='.(isset($_REQUEST['limit']) ? validInt($_REQUEST['limit']) : ''),
@@ -1620,7 +1657,8 @@ function logState() {
       );
 
   # This is an expensive request, as it has to hit every row of the Logs Table
-  $sql = 'SELECT Level, COUNT(Level) AS LevelCount FROM Logs WHERE Level < '.ZM\Logger::INFO.' AND TimeKey > unix_timestamp(now() - interval '.ZM_LOG_CHECK_PERIOD.' second) GROUP BY Level ORDER BY Level ASC';
+  # Level >= PANIC excludes AUDIT and below, which are not error conditions
+  $sql = 'SELECT Level, COUNT(Level) AS LevelCount FROM Logs WHERE Level < '.ZM\Logger::INFO.' AND Level >= '.ZM\Logger::PANIC.' AND TimeKey > unix_timestamp(now() - interval '.ZM_LOG_CHECK_PERIOD.' second) GROUP BY Level ORDER BY Level ASC';
   $counts = dbFetchAll($sql);
   if ( $counts ) {
     foreach ( $counts as $count ) {
@@ -1767,13 +1805,20 @@ define('HTTP_STATUS_OK', 200);
 define('HTTP_STATUS_BAD_REQUEST', 400);
 define('HTTP_STATUS_FORBIDDEN', 403);
 
-function ajaxError($message, $code=HTTP_STATUS_OK) {
+/* $reason is an optional machine-readable classification of the failure, for
+ * callers that need to react differently to different errors instead of
+ * parsing $message.  It is named $reason rather than $code because $code is
+ * already taken by the HTTP status.  Included in the response only when set,
+ * so existing callers and their clients are unaffected.
+ */
+function ajaxError($message, $code=HTTP_STATUS_OK, $reason=null) {
   $backTrace = debug_backtrace();
   ZM\Debug($message.' from '.print_r($backTrace, true));
   if ( function_exists('ajaxCleanup') )
     ajaxCleanup();
   if ( $code == HTTP_STATUS_OK ) {
     $response = array('result'=>'Error', 'message'=>$message);
+    if ($reason !== null) $response['reason'] = $reason;
     header('Content-type: application/json');
     exit(jsonEncode($response));
   }
@@ -1799,8 +1844,12 @@ function generateConnKey() {
 }
 
 function detaintPathAllowAbsolute($path) {
-  // Strip out :// because php:// is a way to inject code apparently
-  $path = str_replace('://', '', $path);
+  // Strip out :// because php:// is a way to inject code apparently.
+  // This must loop: a single pass lets the removal re-form the sequence it
+  // just removed, so '::////' collapses back into '://'.
+  do {
+    $path = str_replace('://', '', $path, $count);
+  } while($count);
   // Remove any absolute paths, or relative ones that want to go up
   do {
     $path = str_replace('../', '', $path, $count);
@@ -1810,8 +1859,12 @@ function detaintPathAllowAbsolute($path) {
 
 function detaintPath($path) {
 
-  // Strip out :// because php:// is a way to inject code apparently
-  $path = str_replace('://', '', $path);
+  // Strip out :// because php:// is a way to inject code apparently.
+  // This must loop: a single pass lets the removal re-form the sequence it
+  // just removed, so '::////' collapses back into '://'.
+  do {
+    $path = str_replace('://', '', $path, $count);
+  } while($count);
   // Remove any absolute paths, or relative ones that want to go up
   do {
     $path = str_replace('../', '', $path, $count);
@@ -1906,6 +1959,15 @@ function validDevicePath($input) {
 function validStr($input) {
   if (is_null($input)) return '';
   return strip_tags($input);
+}
+
+// The bandwidth profiles a skin is expected to have settings for. The classic
+// skin defines its whole ZM_WEB_* constant set by switching on this value, so
+// anything outside this list leaves those constants undefined and every page
+// fatals on the first one it reaches. Nothing may reach the zmBandwidth cookie
+// without passing this.
+function isValidBandwidth($input) {
+  return in_array($input, array('high', 'medium', 'low'), true);
 }
 
 // For strings in javascript or tags etc, expected to be in quotes so further quotes escaped rather than converted
@@ -2367,22 +2429,38 @@ function output_file($path, $chunkSize=1024) {
   header("Content-Disposition: $contentDisposition;filename=\"$file\"");
 
   header('Accept-Ranges: bytes');
-  $range = 0;
   $size = filesize($path);
+  $start = 0;
+  $end = $size - 1;
 
   if (isset($_SERVER['HTTP_RANGE'])) {
-    list($a, $range) = explode('=', $_SERVER['HTTP_RANGE']);
-    str_replace($range, '-', $range);
-    $range = (int)$range; #fseek etc require integers not strings
-    $size2 = $size - 1;
-    $new_length = $size - $range;
+    # RFC 7233: bytes=start-end | bytes=start- | bytes=-suffix
+    if (preg_match('/^bytes=(\d*)-(\d*)$/', trim($_SERVER['HTTP_RANGE']), $m)
+        and ($m[1] !== '' or $m[2] !== '')) {
+      if ($m[1] === '') {
+        # Suffix range: last N bytes
+        $suffix = (int)$m[2];
+        if ($suffix > $size) $suffix = $size;
+        $start = $size - $suffix;
+      } else {
+        $start = (int)$m[1];
+        if ($m[2] !== '') $end = (int)$m[2];
+      }
+      if ($end > $size - 1) $end = $size - 1;
+    }
+    if ($start > $end or $start >= $size) {
+      header('HTTP/1.1 416 Range Not Satisfiable');
+      header("Content-Range: bytes */$size");
+      return false;
+    }
+    $length = $end - $start + 1;
     header('HTTP/1.1 206 Partial Content');
-    header("Content-Length: $new_length");
-    header("Content-Range: bytes $range-$size2/$size");
+    header("Content-Length: $length");
+    header("Content-Range: bytes $start-$end/$size");
   } else {
-    $size2 = $size - 1;
-    header("Content-Range: bytes 0-$size2/$size");
-    header('Content-Length: ' . $size);
+    $length = $size;
+    header("Content-Range: bytes 0-$end/$size");
+    header("Content-Length: $size");
   }
 
   if ($size == 0) {
@@ -2391,13 +2469,18 @@ function output_file($path, $chunkSize=1024) {
   @ini_set('magic_quotes_runtime', 0);
   $fp = fopen($path, 'rb');
 
-  fseek($fp, $range);
+  fseek($fp, $start);
 
-  while (!feof($fp) and (connection_status() == 0)) {
+  $remaining = $length;
+  $buffer = 1024 * $chunkSize;
+  while ($remaining > 0 and !feof($fp) and (connection_status() == 0)) {
     set_time_limit(0);
-    print(@fread($fp, 1024*$chunkSize));
+    $data = @fread($fp, min($buffer, $remaining));
+    if ($data === false or $data === '') break;
+    print($data);
     flush();
-    ob_flush();
+    if (ob_get_level() > 0) ob_flush();
+    $remaining -= strlen($data);
   }
   fclose($fp);
 
@@ -2461,5 +2544,52 @@ function to_string($thing) {
   if (empty($thing)) return '';
   if (is_array($thing)) return implode(', ', $thing);
   return strval($thing);
+}
+
+if (!function_exists('mb_ucfirst')) { // Available in PHP >= 8.4
+  function mb_ucfirst($str, $encoding='UTF-8') {
+    if (extension_loaded('mbstring')) {
+      $result = mb_strtoupper(mb_substr($str, 0, 1, $encoding), $encoding) . mb_substr($str, 1, null, $encoding);
+    } else {
+      $result = (ucfirst($str));
+    }
+    return $result;
+  }
+}
+
+if (!function_exists('mb_lcfirst')) { // Available in PHP >= 8.4
+  function mb_lcfirst($str, $encoding='UTF-8') {
+    if (extension_loaded('mbstring')) {
+      $result = mb_strtolower(mb_substr($str, 0, 1, $encoding), $encoding) . mb_substr($str, 1, null, $encoding);
+    } else {
+      $result = (lcfirst($str));
+    }
+    return $result;
+  }
+}
+
+function findVideoEventFile ($Event, $ext="*") {
+  $dir = $Event->Path();
+  $eventDefaultVideo = to_string($Event->DefaultVideo());
+  $path = '';
+  if ($eventDefaultVideo !== '' &&
+    !str_ends_with($eventDefaultVideo, '.m3u8') &&
+    ($ext === "*" || str_ends_with(strtolower($eventDefaultVideo), '.' . $ext))) {
+      $path = $dir.'/'.$eventDefaultVideo;
+  }
+  if (!is_file($path)) $path = ''; # So we don't return a reference to a non-existent file.
+
+  if ($path === '') {
+    # By default, we search for files with any extension, such as mp4, mkv, or webm.
+    # Look for the final renamed first, then incomplete.
+    # Incomplete files may exist as either incomplete.<container> or incomplete.<codec>.<container>.
+    $candidates = glob($dir.'/'.$Event->Id().'-video.*.'.$ext);
+    if (!$candidates) $candidates = glob($dir.'/incomplete.'.$ext);
+    if (!$candidates) $candidates = glob($dir.'/incomplete.*.'.$ext);
+    if ($candidates) {
+      $path = $candidates[0];
+    }
+  }
+  return $path;
 }
 ?>

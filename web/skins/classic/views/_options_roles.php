@@ -10,7 +10,7 @@ require_once('includes/User_Role.php');
       <div class="col button-block">
         <div id="contentButtons">
           <?php echo makeButton('?view=role&rid=0', 'AddNewRole', $canEdit); ?>
-          <button type="submit" class="btn-danger" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
+          <button type="button" class="btn-danger" name="deleteBtn" value="Delete" data-on-click-this="DeleteRole" disabled="disabled"><?php echo translate('Delete') ?></button>
         </div>
       </div>
     <div class="wrapper-scroll-table">

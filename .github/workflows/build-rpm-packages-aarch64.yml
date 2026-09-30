@@ -7,6 +7,14 @@ on:
 permissions:
   contents: write
 
+# Several merges landing seconds apart used to start a run each, and every
+# one of them published. Keep one build per branch and cancel the ones that
+# a newer push has already superseded.
+concurrency:
+  group: rpm-aarch64-${{ github.ref }}
+  cancel-in-progress: true
+
+
 env:
   GPG_KEY_ID: ${{ secrets.ZMREPO_GPG_KEY_ID }}
   GPG_PASSPHRASE: ${{ secrets.ZMREPO_GPG_PASSPHRASE }}
@@ -29,6 +37,9 @@ jobs:
           - distro: "rockylinux:8"
             releasever: "8"
             family: "el"
+          - distro: "fedora:44"
+            releasever: "44"
+            family: "fedora"
           - distro: "fedora:43"
             releasever: "43"
             family: "fedora"
@@ -89,7 +100,7 @@ jobs:
           rpmdev-setuptree
 
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -118,7 +129,7 @@ jobs:
       - name: Install build dependencies
         run: |
           set -eux
-          dnf -y builddep distros/redhat/zoneminder.spec
+          dnf -y builddep --allowerasing distros/redhat/zoneminder.spec
 
       - name: Determine version and prepare sources
         id: version
@@ -130,7 +141,11 @@ jobs:
           # Calculate snapshot version
           versionhash=$(git log -n1 --pretty=format:%h version.txt)
           numcommits=$(git rev-list ${versionhash}..HEAD --count)
-          SNAPSHOT="$(date +%Y%m%d).${numcommits}"
+          # date+numcommits is not unique per build: rebuilding the same commit
+          # on the same day reuses the version, and the repo then holds one
+          # version whose content changed underneath it. GITHUB_RUN_ID is unique
+          # and never reused.
+          SNAPSHOT="$(date +%Y%m%d).${numcommits}.${GITHUB_RUN_ID}.${GITHUB_RUN_ATTEMPT:-1}"
           echo "snapshot=${SNAPSHOT}" >> $GITHUB_OUTPUT
 
           # Update version in spec file
@@ -214,11 +229,24 @@ jobs:
           echo "artifact_name=rpm-aarch64-${sanitized_distro_name}" >> $GITHUB_ENV
 
       - name: Upload RPM artifacts
+        # Only the tag-only `release` job consumes these. On branch pushes the
+        # packages go straight to ZMREPO below, so uploading is pure storage cost.
+        if: startsWith(github.ref, 'refs/tags/')
         uses: actions/upload-artifact@v7
         with:
           path: artifacts/rpm
           name: ${{ env.artifact_name }}
           retention-days: 1
+
+      - name: Ensure ZMREPO target directory exists
+        run: |
+          set -eux
+          mkdir -p ~/.ssh
+          echo "${{ secrets.ZMREPO_SSH_KEY }}" > ~/.ssh/zmrepo_deploy_key
+          chmod 600 ~/.ssh/zmrepo_deploy_key
+          ssh -i ~/.ssh/zmrepo_deploy_key -o StrictHostKeyChecking=no \
+            "${{ secrets.ZMREPO_SSH_USER }}@${{ secrets.ZMREPO_HOST }}" \
+            "mkdir -p rpm/master/${{ matrix.family }}/${{ matrix.releasever }}/aarch64/"
 
       - name: Publish to ZMREPO
         uses: easingthemes/ssh-deploy@main

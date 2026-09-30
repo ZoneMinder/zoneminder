@@ -21,12 +21,12 @@ var connKey = '<?php echo $connkey ?>';
 var eventData = {
 <?php if ( $Event->Id() ) { ?>
     Id: '<?php echo $Event->Id() ?>',
-    Name: '<?php echo $Event->Name() ?>',
+    Name: <?php echo json_encode($Event->Name(), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) ?>,
     MonitorId: '<?php echo $Event->MonitorId() ?>',
     MonitorName: '<?php echo validJsStr($monitor->Name()) ?>',
     Cause: '<?php echo validHtmlStr($Event->Cause()) ?>',
     <!-- Tags: '<?php echo validHtmlStr(implode(', ', array_map(function($t){return $t->Name();}, $Event->Tags()))); ?>', -->
-    Notes: `<?php echo $Event->Notes()?>`,
+    Notes: <?php echo json_encode($Event->Notes(), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) ?>,
     Width: '<?php echo $Event->Width() ?>',
     Height: '<?php echo $Event->Height() ?>',
     Length: '<?php echo $Event->Length() ?>',
@@ -47,7 +47,7 @@ var eventData = {
     Path: '<?php echo $Event->Path() ?>',
     Latitude: '<?php echo $Event->Latitude() ?>',
     Longitude: '<?php echo $Event->Longitude() ?>',
-    whatDisplay: '<?php echo $monitor->WhatDisplay() ?>'
+    whatDisplay: '<?php echo validJsStr($monitor->WhatDisplay()) ?>'
 <?php } ?>
 };
 

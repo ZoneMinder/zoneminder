@@ -8,6 +8,9 @@ const statusRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;
 
 const canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;
 
+const showZonesString = "<?php echo validJsStr(translate('Show Zones')) ?>";
+const hideZonesString = "<?php echo validJsStr(translate('Hide Zones')) ?>";
+
 var monitorData = new Array();
 
 <?php
@@ -19,16 +22,16 @@ foreach ( $monitors as $monitor ) {
 ?>
 monitorData[monitorData.length] = {
   'id': <?php echo $monitor->Id() ?>,
-  'name': '<?php echo $monitor->Name() ?>',
+  'name': '<?php echo validJsStr($monitor->Name()) ?>',
   'server_id': '<?php echo $monitor->ServerId() ?>',
   'connKey': '<?php echo $monitor->connKey() ?>',
   'width': <?php echo $monitor->ViewWidth() ?>,
   'height':<?php echo $monitor->ViewHeight() ?>,
-  'scale': '<?php echo $monitor->initial_scale() ?>',
+  'scale': '<?php echo validJsStr($monitor->initial_scale()) ?>',
   'RTSP2WebEnabled':<?php echo $monitor->RTSP2WebEnabled() ?>,
-  'DefaultPlayer':'<?php echo $monitor->DefaultPlayer() ?>',
+  'DefaultPlayer':'<?php echo validJsStr($monitor->DefaultPlayer()) ?>',
   'RTSPServer':<?php echo $monitor->RTSPServer() ? 'true' : 'false' ?>,
-  'StreamChannel':'<?php echo $monitor->StreamChannel() ?>',
+  'StreamChannel':'<?php echo validJsStr($monitor->StreamChannel()) ?>',
   'Go2RTCEnabled': <?php echo $monitor->Go2RTCEnabled() ?>,
   'janusEnabled':<?php echo $monitor->JanusEnabled() ?>,
   'url': '<?php echo $monitor->UrlToIndex( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
@@ -36,11 +39,11 @@ monitorData[monitorData.length] = {
   'url_to_stream': '<?php echo $monitor->UrlToZMS(ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '').'&mode=jpeg&connkey='.$monitor->connKey() ?>',
   'url_to_snapshot': '<?php echo $monitor->UrlToZMS(ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '').'&mode=single' ?>',
   'onclick': function(){window.location.assign( '?view=watch&mid=<?php echo $monitor->Id() ?>' );},
-  'type': '<?php echo $monitor->Type() ?>',
-  'capturing': '<?php echo $monitor->Capturing() ?>',
-  'refresh': '<?php echo $monitor->Refresh() ?>',
-  'janus_pin': '<?php echo $monitor->Janus_Pin() ?>',
-  'whatDisplay': '<?php echo $monitor->WhatDisplay() ?>'
+  'type': '<?php echo validJsStr($monitor->Type()) ?>',
+  'capturing': '<?php echo validJsStr($monitor->Capturing()) ?>',
+  'refresh': '<?php echo validJsStr($monitor->Refresh()) ?>',
+  'janus_pin': '<?php echo validJsStr($monitor->Janus_Pin()) ?>',
+  'whatDisplay': '<?php echo validJsStr($monitor->WhatDisplay()) ?>'
 };
 <?php
 } // end foreach monitor
@@ -52,13 +55,17 @@ global $layouts;
 foreach ( $layouts as $layout ) {
 ?>
 layouts[<?php echo $layout->Id() ?>] = {
-  "Name":"<?php echo $layout->Name()?>",
+  "Name":"<?php echo validJsStr($layout->Name()) ?>",
   "UserId":"<?php echo $layout->UserId()?>",
-  "Positions":<?php echo ($layout->Positions() and json_decode($layout->Positions()))?$layout->Positions():'{}' ?>};
+  "Positions":<?php
+    # Re-encode rather than echo the stored JSON, so a string in it cannot close the script.
+    $positions = $layout->Positions() ? json_decode($layout->Positions()) : null;
+    echo $positions ? json_encode($positions, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) : '{}';
+  ?>};
 <?php
 } // end foreach layout
 global $AutoLayoutName;
-echo 'const autoLayoutName="'.$AutoLayoutName.'";'.PHP_EOL;
+echo 'const autoLayoutName="'.validJsStr($AutoLayoutName).'";'.PHP_EOL;
 global $players;
 echo 'players = '.json_encode($players).PHP_EOL;
 ?>

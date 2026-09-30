@@ -103,7 +103,7 @@ echo getNavBarHTML();
 ?>
   <div id="page">
     <div id="header">
-      <h2><?php echo translate('Monitor') ?> <?php echo $monitor->Name() ?> - <?php echo translate('Zone') ?> <?php echo $newZone['Name'] ?> - <?php echo translate('Plugin') ?> <?php echo validHtmlStr($plugin) ?></h2>
+      <h2><?php echo translate('Monitor') ?> <?php echo validHtmlStr($monitor->Name()) ?> - <?php echo translate('Zone') ?> <?php echo validHtmlStr($newZone['Name']) ?> - <?php echo translate('Plugin') ?> <?php echo validHtmlStr($plugin) ?></h2>
     </div>
     <div id="content">
       <form name="pluginForm" id="pluginForm" method="post" action="?">

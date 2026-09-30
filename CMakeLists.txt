@@ -10,7 +10,14 @@ set(zoneminder_API_VERSION "${zoneminder_VERSION}.1")
 
 # Make sure the submodules are there
 if(NOT EXISTS "${CMAKE_SOURCE_DIR}/web/api/app/Plugin/Crud/Lib/CrudControllerTrait.php")
-  message(SEND_ERROR "The git submodules are not available. Please run git submodule update --init --recursive")
+  if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
+    message(SEND_ERROR "The git submodules are not available. Please run\n  git submodule update --init --recursive")
+  else()
+    message(SEND_ERROR "This source tree is missing the bundled submodules and cannot be built."
+      " GitHub's auto-generated 'Source code' archives do not include submodules."
+      " Download the complete zoneminder-<version>.tar.gz from the release assets instead,"
+      " or clone the repository with git clone --recurse-submodules.")
+  endif()
 endif()
 
 # CMake does not allow out-of-source build if CMakeCache.exists 
@@ -38,6 +45,11 @@ set(CMAKE_C_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_C_FLAGS_OPTIMISED "-O3")
 set(CMAKE_CXX_FLAGS_OPTIMISED "-O3")
+# Profile: release-level optimization, plus debug symbols and frame pointers
+# so perf/flamegraph can walk stacks accurately. Use with:
+#   cmake -DCMAKE_BUILD_TYPE=Profile ..
+set(CMAKE_C_FLAGS_PROFILE "-O2 -g -fno-omit-frame-pointer")
+set(CMAKE_CXX_FLAGS_PROFILE "-O2 -g -fno-omit-frame-pointer")
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 set(CMAKE_CXX_STANDARD 17)
@@ -135,22 +147,58 @@ if(ASAN AND TSAN)
   message(FATAL_ERROR "ASAN and TSAN options are mutually exclusive")
 endif()
 
-set(ZM_RUNDIR "/var/run/zm" CACHE PATH
-  "Location of transient process files, default: /var/run/zm")
-set(ZM_SOCKDIR "/var/run/zm" CACHE PATH
-  "Location of Unix domain socket files, default /var/run/zm")
-set(ZM_TMPDIR "/var/tmp/zm" CACHE PATH
-  "Location of temporary files, default: /tmp/zm")
-set(ZM_LOGDIR "/var/log/zm" CACHE PATH
-  "Location of generated log files, default: /var/log/zm")
+# Runtime directory defaults.
+#
+# The Linux values are FHS paths that do not fit macOS: there is no /dev/shm,
+# and /var belongs to the operating system rather than to locally installed
+# software. Derive from CMAKE_INSTALL_FULL_LOCALSTATEDIR (<prefix>/var) there,
+# which is also where Homebrew keeps state.
+#
+# These feed the cache entries below as defaults rather than overwriting them
+# the way the ZM_TARGET_DISTRO ladder does, so an explicit -DZM_RUNDIR=... still
+# wins. A Homebrew formula depends on that: its install prefix is a versioned
+# cellar directory, and etc and var have to sit outside it to survive an upgrade.
+if(APPLE)
+  set(_zm_var "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}")
+  set(_zm_default_rundir "${_zm_var}/run/zm")
+  set(_zm_default_tmpdir "${_zm_var}/cache/zoneminder/temp")
+  set(_zm_default_logdir "${_zm_var}/log/zm")
+  set(_zm_default_cachedir "${_zm_var}/cache/zoneminder")
+  set(_zm_default_contentdir "${_zm_var}/lib/zoneminder")
+  # macOS mounts no tmpfs to put these on. Being cleared at boot is the
+  # property that actually matters for mapped memory files, and var/run is.
+  set(_zm_default_pathmap "${_zm_var}/run/zm")
+  unset(_zm_var)
+else()
+  set(_zm_default_rundir "/var/run/zm")
+  set(_zm_default_tmpdir "/var/cache/zoneminder/temp")
+  set(_zm_default_logdir "/var/log/zm")
+  set(_zm_default_cachedir "/var/cache/zoneminder")
+  set(_zm_default_contentdir "/var/lib/zoneminder")
+  if(CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
+    # OpenBSD has no /dev/shm.
+    set(_zm_default_pathmap "/tmp")
+  else()
+    set(_zm_default_pathmap "/dev/shm")
+  endif()
+endif()
+
+set(ZM_RUNDIR "${_zm_default_rundir}" CACHE PATH
+  "Location of transient process files, default: ${_zm_default_rundir}")
+set(ZM_SOCKDIR "${_zm_default_rundir}" CACHE PATH
+  "Location of Unix domain socket files, default ${_zm_default_rundir}")
+set(ZM_TMPDIR "${_zm_default_tmpdir}" CACHE PATH
+  "Location of regenerable temporary files, default: ${_zm_default_tmpdir}")
+set(ZM_LOGDIR "${_zm_default_logdir}" CACHE PATH
+  "Location of generated log files, default: ${_zm_default_logdir}")
 set(ZM_WEBDIR "${CMAKE_INSTALL_FULL_DATADIR}/zoneminder/www" CACHE PATH
   "Location of the web files, default: <prefix>/${CMAKE_INSTALL_DATADIR}/zoneminder/www")
 set(ZM_CGIDIR "${CMAKE_INSTALL_FULL_LIBEXECDIR}/zoneminder/cgi-bin" CACHE PATH
   "Location of the cgi-bin files, default: <prefix>/${CMAKE_INSTALL_LIBEXECDIR}/zoneminder/cgi-bin")
-set(ZM_CACHEDIR "/var/cache/zoneminder" CACHE PATH
-  "Location of the web server cache busting files, default: /var/cache/zoneminder")
-set(ZM_CONTENTDIR "/var/lib/zoneminder" CACHE PATH
-  "Location of dynamic content (events and images), default: /var/lib/zoneminder")
+set(ZM_CACHEDIR "${_zm_default_cachedir}" CACHE PATH
+  "Location of the web server cache busting files, default: ${_zm_default_cachedir}")
+set(ZM_CONTENTDIR "${_zm_default_contentdir}" CACHE PATH
+  "Location of dynamic content (events and images), default: ${_zm_default_contentdir}")
 set(ZM_FONTDIR "${CMAKE_INSTALL_FULL_DATADIR}/zoneminder/fonts" CACHE PATH
   "Location of the font files used for timestamping, default: <prefix>/${CMAKE_INSTALL_DATADIR}/zoneminder/fonts")
 
@@ -164,6 +212,9 @@ set(ZM_DB_USER "zmuser" CACHE STRING
   "Name of the ZoneMinder database user, default: zmuser")
 set(ZM_DB_PASS "zmpass" CACHE STRING
   "Password of the ZoneMinder database user, default: zmpass")
+set(ZM_DB_SSL_VERIFY_SERVER_CERT "1" CACHE STRING
+  "Verify the database server's SSL certificate against the CA when ZM_DB_SSL_CA_CERT is set.
+     Set to 0 to allow a self-signed server certificate. default: 1")
 set(ZM_WEB_USER "" CACHE STRING
   "The user apache or the local web server runs on. Leave empty for automatic detection.
      If that fails, you can use this variable to force")
@@ -184,8 +235,8 @@ set(ZM_PATH_SHUTDOWN "/sbin/shutdown" CACHE PATH
   "Path to shutdown binary, default: /sbin/shutdown")
 
 # Advanced
-set(ZM_PATH_MAP "/dev/shm" CACHE PATH
-  "Location to save mapped memory files, default: /dev/shm")
+set(ZM_PATH_MAP "${_zm_default_pathmap}" CACHE PATH
+  "Location to save mapped memory files, default: ${_zm_default_pathmap}")
 set(ZM_PATH_ARP "" CACHE PATH
   "Full path to compatible arp binary. Leave empty for automatic detection.")
 set(ZM_PATH_ARP_SCAN "" CACHE PATH
@@ -231,7 +282,7 @@ set(ZM_PERL_SEARCH_PATH "" CACHE PATH
 	where ZM_PERL_INSTALL_PATH has been overridden such that ZoneMinder's Perl modules
 	are installed outside Perl's default search path.")
 set(ZM_TARGET_DISTRO "" CACHE STRING
-  "Build ZoneMinder for a specific distribution.  Currently, valid names are: fc, el, OS13, FreeBSD")
+  "Build ZoneMinder for a specific distribution.  Currently, valid names are: fc, el, OS13, FreeBSD, OpenBSD")
 set(ZM_DETECT_SYSTEMD "ON" CACHE BOOL
   "Set to OFF to disable detection of systemd. default: ON")
 set(ZM_SYSTEMD "OFF" CACHE BOOL
@@ -288,7 +339,7 @@ elseif(ZM_TARGET_DISTRO STREQUAL "OS13")
   set(ZM_WEB_GROUP "www")
   set(ZM_WEBDIR "/srv/www/htdocs/zoneminder")
   set(ZM_CGIDIR "/srv/www/cgi-bin")
-elseif(ZM_TARGET_DISTRO STREQUAL "FreeBSD")
+elseif((ZM_TARGET_DISTRO STREQUAL "FreeBSD") OR (ZM_TARGET_DISTRO STREQUAL "OpenBSD"))
   set(ZM_RUNDIR "/var/run/zm")
   set(ZM_SOCKDIR "/var/run/zm")
   set(ZM_TMPDIR "/var/tmp/zm")
@@ -399,7 +450,9 @@ else()
     "ZoneMinder requires jpeg but it was not found on your system")
 endif()
 
-set(CxxUrl_BUILD_SHARED_LIBS "OFF")
+# CxxUrl builds a static library on its own: its option is
+# CxxUrl_BUILD_STATIC_LIBS and it defaults to ON, independently of
+# BUILD_SHARED_LIBS. There is nothing to force here.
 list(APPEND ZM_BIN_LIBS chmike::CxxUrl)
 
 # libjwt
@@ -535,6 +588,18 @@ if(MYSQLCLIENT_LIBRARIES)
   if(NOT HAVE_MYSQL_H)
     message(FATAL_ERROR "ZoneMinder requires MySQL headers - check that MySQL development packages are installed")
   endif()
+  # The option controlling server-certificate verification differs by client:
+  # MySQL 8.0 removed MYSQL_OPT_SSL_VERIFY_SERVER_CERT in favour of
+  # MYSQL_OPT_SSL_MODE, while older MariaDB/MySQL only have the former. These are
+  # enum values, not macros, so detect them by compiling rather than with #ifdef.
+  check_cxx_source_compiles("
+    #include <mysql.h>
+    int main() { enum mysql_option opt = MYSQL_OPT_SSL_MODE; (void)opt; return 0; }
+  " HAVE_MYSQL_OPT_SSL_MODE)
+  check_cxx_source_compiles("
+    #include <mysql.h>
+    int main() { enum mysql_option opt = MYSQL_OPT_SSL_VERIFY_SERVER_CERT; (void)opt; return 0; }
+  " HAVE_MYSQL_OPT_SSL_VERIFY_SERVER_CERT)
 else()
   message(FATAL_ERROR "ZoneMinder requires mysqlclient but it was not found on your system")
 endif()
@@ -553,7 +618,7 @@ set(CMAKE_REQUIRED_INCLUDES ${FFMPEG_avutil_INCLUDE_DIRS})
 check_include_file("libavutil/hwcontext.h" HAVE_LIBAVUTIL_HWCONTEXT_H)
 
 set(PATH_FFMPEG "")
-set(OPT_FFMPEG "no")
+set(OPT_FFMPEG "0")
 
 # Find the path to the ffmpeg executable
 find_program(FFMPEG_EXECUTABLE
@@ -561,7 +626,7 @@ find_program(FFMPEG_EXECUTABLE
   PATH_SUFFIXES ffmpeg)
 if(FFMPEG_EXECUTABLE)
   set(PATH_FFMPEG "${FFMPEG_EXECUTABLE}")
-  set(OPT_FFMPEG "yes")
+  set(OPT_FFMPEG "1")
   mark_as_advanced(FFMPEG_EXECUTABLE)
 endif()
 
@@ -679,8 +744,47 @@ endif()
 # Detect Perl module installation path
 # Prefer vendorlib (standard for distro packages), fall back to sitelib
 # (used on FreeBSD and systems without vendorlib configured)
+#
+# macOS needs a second look. The Perl Apple ships reports a vendorlib of
+# /Network/Library/Perl/<version>, a remnant of NetInfo-era network homes.
+# Nothing along that path exists, and the root volume is a sealed read-only APFS
+# snapshot, so it cannot be created even by root and installing there fails.
+#
+# Merely testing for the directory is not enough, because a Homebrew Perl has no
+# vendorlib either - but its would sit under the Homebrew prefix, where it can
+# simply be created, and it is the better target of the two: Homebrew's sitelib
+# resolves into the versioned Cellar directory and is erased every time Perl is
+# upgraded. So ask whether the path is creatable, by walking up to the nearest
+# ancestor that exists. Reaching / means nothing on the way there exists, which
+# on macOS means it never can.
+set(_perl_lib_config "vendorlib")
+if(APPLE)
+  execute_process(
+    COMMAND ${PERL_EXECUTABLE} -MConfig -e "print \$Config{vendorlib}"
+    OUTPUT_VARIABLE _perl_vendorlib
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    RESULT_VARIABLE _perl_vendorlib_result)
+  if(_perl_vendorlib_result EQUAL 0 AND NOT _perl_vendorlib STREQUAL "")
+    set(_perl_probe "${_perl_vendorlib}")
+    while(NOT EXISTS "${_perl_probe}")
+      get_filename_component(_perl_parent "${_perl_probe}" DIRECTORY)
+      if(_perl_parent STREQUAL _perl_probe)
+        break()
+      endif()
+      set(_perl_probe "${_perl_parent}")
+    endwhile()
+    if(_perl_probe STREQUAL "/")
+      message(STATUS
+        "Perl vendorlib (${_perl_vendorlib}) cannot be created on a sealed "
+        "system volume, using sitelib")
+      set(_perl_lib_config "sitelib")
+    endif()
+    unset(_perl_probe)
+    unset(_perl_parent)
+  endif()
+endif()
 execute_process(
-  COMMAND ${PERL_EXECUTABLE} -MConfig -e "print \$Config{vendorlib}"
+  COMMAND ${PERL_EXECUTABLE} -MConfig -e "print \$Config{${_perl_lib_config}}"
   OUTPUT_VARIABLE _perl_lib_default
   OUTPUT_STRIP_TRAILING_WHITESPACE
   RESULT_VARIABLE _perl_result)
@@ -705,11 +809,33 @@ message(STATUS "Perl module install path: ${ZM_PERL_INSTALL_PATH}")
 # Check all required modules at once
 # TODO: Add checking for the optional modules
 find_package(
-  PerlModules COMPONENTS Sys::Syslog DBI DBD::mysql
+  PerlModules COMPONENTS Sys::Syslog DBI
   Getopt::Long Time::HiRes Date::Manip LWP::UserAgent
   ${ZM_MMAP_PERLPACKAGE})
 if(NOT PERLMODULES_FOUND)
   message(WARNING "Not all required perl modules were found on your system")
+endif()
+
+# Either DBD will do, so they cannot go in the list above, which requires all of
+# its components. DBD::mysql 5 refuses to connect to a MariaDB server, so such a
+# system needs DBD::MariaDB. Check in the same order ZoneMinder::Database
+# prefers them, since DBD::MariaDB drives both servers.
+foreach(zm_dbd DBD::MariaDB DBD::mysql)
+  if(NOT ZM_PERL_DBD)
+    execute_process(
+      COMMAND "${PERL_EXECUTABLE}" "-e" "use ${zm_dbd};"
+      RESULT_VARIABLE zm_dbd_result OUTPUT_QUIET ERROR_QUIET)
+    if(zm_dbd_result EQUAL 0)
+      set(ZM_PERL_DBD "${zm_dbd}")
+    endif()
+  endif()
+endforeach()
+if(ZM_PERL_DBD)
+  message(STATUS "Checking for a perl database driver - found ${ZM_PERL_DBD}")
+else()
+  message(WARNING
+    "Neither DBD::MariaDB nor DBD::mysql was found. The perl scripts will not be"
+    " able to reach the database. Install DBD::MariaDB for a MariaDB server.")
 endif()
 
 # Attempt to check which user apache (or other web server) runs on by 
@@ -720,6 +846,9 @@ if(ZM_WEB_USER STREQUAL "")
   # userline in the first match
   file(STRINGS "/etc/passwd" userline_apache REGEX "^apache")
   file(STRINGS "/etc/passwd" userline_www REGEX "^www")
+  # macOS names its service accounts with a leading underscore, so neither of
+  # the patterns above matches the _www that ships with the system Apache.
+  file(STRINGS "/etc/passwd" userline_uwww REGEX "^_www")
   if(NOT (userline_apache STREQUAL ""))
     execute_process(
       COMMAND echo ${userline_apache}
@@ -728,6 +857,11 @@ if(ZM_WEB_USER STREQUAL "")
   elseif(NOT (userline_www STREQUAL ""))
     execute_process(
       COMMAND echo ${userline_www}
+      COMMAND cut -d: -f1 OUTPUT_VARIABLE ZM_WEB_USER
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
+  elseif(NOT (userline_uwww STREQUAL ""))
+    execute_process(
+      COMMAND echo ${userline_uwww}
       COMMAND cut -d: -f1 OUTPUT_VARIABLE ZM_WEB_USER
       OUTPUT_STRIP_TRAILING_WHITESPACE)
   endif()
@@ -747,6 +881,62 @@ if(WITH_SYSTEMD)
     message(WARNING "Running ZoneMinder requires polkit. Building ZoneMinder requires the polkit development package.")
   endif()
 endif()
+
+# The taint-safe PATH the Perl scripts run external commands with.
+#
+# They run under -T, so they cannot trust the caller's PATH and set their own.
+# That was hardcoded to the FHS locations, which assumes everything they shell
+# out to lives under /usr or /usr/local. ZoneMinder::General::findDbCommand
+# looks for a database client that way, and zmupdate.pl and zmcamtool.pl run it,
+# so an install whose client sits elsewhere - Homebrew on Apple Silicon puts it
+# in /opt/homebrew/bin, and a --prefix=/opt build is the same shape - fails with
+# "sh: mysql: command not found" even though the client is on the caller's PATH.
+#
+# Default to the FHS locations plus wherever a client was actually found, and
+# let a packager override the lot. Every directory named here has to be one only
+# root can write to, or perl's taint checks will refuse to run anything at all.
+set(_zm_script_path "/bin:/usr/bin:/usr/local/bin")
+find_program(ZM_DB_CLIENT_EXECUTABLE NAMES mariadb mysql)
+if(ZM_DB_CLIENT_EXECUTABLE)
+  get_filename_component(_zm_db_client_dir "${ZM_DB_CLIENT_EXECUTABLE}" DIRECTORY)
+  string(FIND ":${_zm_script_path}:" ":${_zm_db_client_dir}:" _zm_db_client_found)
+
+  # Only add a directory nobody but its owner can write to. Perl's own taint
+  # check refuses a world writable directory here, but it permits a group
+  # writable one, and adding one automatically would quietly widen who can
+  # decide what the daemons execute. Homebrew's bin is group writable, so this
+  # is not a theoretical case.
+  execute_process(
+    COMMAND "${PERL_EXECUTABLE}" -e "exit(((stat(\$ARGV[0]))[2] & 022) ? 1 : 0)" "${_zm_db_client_dir}"
+    RESULT_VARIABLE _zm_db_client_dir_unsafe
+    OUTPUT_QUIET ERROR_QUIET)
+
+  if(NOT _zm_db_client_found EQUAL -1)
+    # Already covered by the defaults.
+  elseif(_zm_db_client_dir_unsafe)
+    message(WARNING
+      "Found a database client at ${ZM_DB_CLIENT_EXECUTABLE}, but "
+      "${_zm_db_client_dir} is writable by group or world and has not been "
+      "added to ZM_SCRIPT_PATH: anyone who can write there would choose what "
+      "the Perl daemons run. Tighten its permissions, or set ZM_SCRIPT_PATH "
+      "explicitly if you accept that.")
+  else()
+    set(_zm_script_path "${_zm_script_path}:${_zm_db_client_dir}")
+  endif()
+
+  mark_as_advanced(ZM_DB_CLIENT_EXECUTABLE)
+  unset(_zm_db_client_dir)
+  unset(_zm_db_client_found)
+  unset(_zm_db_client_dir_unsafe)
+else()
+  message(WARNING
+    "No mariadb or mysql client found. zmupdate.pl applies schema changes by "
+    "running one, so database upgrades will fail until one is on ZM_SCRIPT_PATH.")
+endif()
+set(ZM_SCRIPT_PATH "${_zm_script_path}" CACHE STRING
+  "PATH the Perl scripts use for external commands, default: ${_zm_script_path}")
+unset(_zm_script_path)
+message(STATUS "Perl script PATH: ${ZM_SCRIPT_PATH}")
 
 # Find the path to an arp compatible executable
 if(ZM_PATH_ARP STREQUAL "")
@@ -847,6 +1037,7 @@ endif()
 # Generate files from the .in files
 configure_file(zm.conf.in "${CMAKE_CURRENT_BINARY_DIR}/zm.conf" @ONLY)
 configure_file(conf.d/01-system-paths.conf.in "${CMAKE_CURRENT_BINARY_DIR}/conf.d/01-system-paths.conf" @ONLY)
+configure_file(conf.d/03-stream-socket.conf.in "${CMAKE_CURRENT_BINARY_DIR}/conf.d/03-stream-socket.conf" @ONLY)
 configure_file(zoneminder-config.cmake "${CMAKE_CURRENT_BINARY_DIR}/config.h" @ONLY)
 configure_file(zmconfgen.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmconfgen.pl" @ONLY)
 configure_file(zmlinkcontent.sh.in "${CMAKE_CURRENT_BINARY_DIR}/zmlinkcontent.sh" @ONLY)
@@ -866,7 +1057,10 @@ add_subdirectory(onvif)
 
 if(BUILD_TEST_SUITE)
   message("Building unit tests: Yes")
-  find_package(Catch2 REQUIRED)
+  # The tests use v3 spellings throughout: catch2/catch_all.hpp, Catch::Approx and
+  # the Catch2WithMain target, none of which exist in v2. Ask for 3 so a v2
+  # install fails here with a clear message instead of a wall of compile errors.
+  find_package(Catch2 3 REQUIRED)
 
   include(CTest)
   add_subdirectory(tests)

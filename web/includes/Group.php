@@ -2,6 +2,7 @@
 namespace ZM;
 
 class Group extends ZM_Object {
+  protected static $setters = array('depth', 'Permissions');
   protected static $table = 'Groups';
   protected static $permissions = array();
   protected $defaults = array(
@@ -46,6 +47,18 @@ class Group extends ZM_Object {
     }
     return $this->{'depth'};
   } // end public function depth
+
+  // Group membership feeds per-monitor access through Groups_Permissions, so moving a monitor
+  // into or out of a group can grant access to it or lift a deny. Such a change needs edit on
+  // every monitor it moves. Ids that are not monitors are ignored.
+  public static function canEditMembership($monitor_ids, $u=null) {
+    require_once(__DIR__.'/Monitor.php');
+    foreach (array_unique($monitor_ids) as $mid) {
+      $monitor = Monitor::find_one(array('Id'=>$mid));
+      if ($monitor and !$monitor->canEdit($u)) return false;
+    }
+    return true;
+  }
 
   public function MonitorIds( ) {
     if (!property_exists($this, 'MonitorIds')) {

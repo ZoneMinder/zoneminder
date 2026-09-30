@@ -31,11 +31,27 @@ class Event extends AppModel {
  */
 	public $displayField = 'Name';
 
+  // DefaultVideo is joined onto the event directory by readers, so it must be
+  // a bare filename: no path separators, NUL, or . / ..
+  public $validate = array(
+    'DefaultVideo' => array(
+      'rule' => array('custom', '/^(?!\.\.?$)[^\/\\\\\x00]+$/D'),
+      'allowEmpty' => true,
+      'message' => 'DefaultVideo must be a filename without a path',
+    ),
+  );
+
+  // For events that never wrote EndDateTime (zmc killed/crashed mid-event),
+  // fall back to StartDateTime + Length (Length is flushed to the DB every few
+  // seconds during recording, so it reflects the actual recorded duration).
+  // Only fall back to NOW() if Length is also 0 (event has no recorded data
+  // yet, e.g. just started). This prevents montagereview and other consumers
+  // from painting an event bar across hours/days of no real recording.
   public $virtualFields = array(
     'StartTimeSecs' => 'UNIX_TIMESTAMP(StartDateTime)',
-    'EndTimeSecs' => 'UNIX_TIMESTAMP(EndDateTime)',
+    'EndTimeSecs' => '(CASE WHEN Event.EndDateTime IS NOT NULL THEN UNIX_TIMESTAMP(Event.EndDateTime) WHEN Event.Length > 0 THEN UNIX_TIMESTAMP(Event.StartDateTime) + Event.Length ELSE UNIX_TIMESTAMP(Event.StartDateTime) END)',
     'StartTime' => 'StartDateTime',
-    'EndTime' => 'EndDateTime'
+    'EndTime' => '(CASE WHEN Event.EndDateTime IS NOT NULL THEN Event.EndDateTime WHEN Event.Length > 0 THEN DATE_ADD(Event.StartDateTime, INTERVAL FLOOR(Event.Length) SECOND) ELSE NOW() END)'
   );
 
 	//The Associations below have been created with all possible keys, those that are not needed can be removed
@@ -149,19 +165,31 @@ class Event extends AppModel {
 
   public function fileExists($event) {
     if ($event['DefaultVideo']) {
-      if (file_exists($this->Path().'/'.$event['DefaultVideo'])) {
+      if (file_exists($this->Path().'/'.basename($event['DefaultVideo']))) {
         return 1;
-      } else {
-        ZM\Warning('File does not exist at ' . $this->Path().'/'.$event['DefaultVideo'] );
-        ZM\Warning(print_r($this, true));
       }
+
+      // While an event is recording its DefaultVideo is incomplete.mp4. When
+      // the event closes the file is renamed to <Id>-video.* and the DB row is
+      // updated. If we still see incomplete.mp4 the model is likely stale, so
+      // reload the event from the database and re-check the new DefaultVideo.
+      if (preg_match('/^incomplete\./', basename($event['DefaultVideo']))) {
+        ZM\Event::clear_cache();
+        $Event = ZM\Event::find_one(array('Id'=>$this->id));
+        if ($Event and $Event->DefaultVideo() and $Event->DefaultVideo() != $event['DefaultVideo']
+            and file_exists($Event->Path().'/'.$Event->DefaultVideo())) {
+          return 1;
+        }
+      }
+
+      ZM\Warning('File does not exist at ' . $this->Path().'/'.$event['DefaultVideo'] );
     } else {
       return 0;
     }
   } // end function fileExists($event)
 
   public function fileSize($event) {
-    return filesize($this->Path().'/'.$event['DefaultVideo']);
+    return filesize($this->Path().'/'.basename($event['DefaultVideo']));
   }
 
   public function beforeDelete($cascade=true) {

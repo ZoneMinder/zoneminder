@@ -56,6 +56,19 @@ function dbConnect() {
         PDO::MYSQL_ATTR_SSL_KEY  => ZM_DB_SSL_CLIENT_KEY,
         PDO::MYSQL_ATTR_SSL_CERT => ZM_DB_SSL_CLIENT_CERT,
       );
+      // Identity-verify the server certificate when ZM_DB_SSL_VERIFY_SERVER_CERT
+      // is set: truthy verifies, false-y (0/false/no/off) allows a self-signed
+      // or non-matching cert. An empty/unset value leaves PDO's default in place
+      // so existing installs are not changed on upgrade. Guarded with defined()
+      // so an upgraded zm.conf that predates this option does not fatal on PHP 8.
+      // Refs #3816.
+      if ( defined('ZM_DB_SSL_VERIFY_SERVER_CERT') ) {
+        $verify_value = strtolower(trim((string)ZM_DB_SSL_VERIFY_SERVER_CERT));
+        if ( $verify_value !== '' ) {
+          $dbOptions[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] =
+            !in_array($verify_value, array('0', 'false', 'no', 'off'), true);
+        }
+      }
       $dbConn = new PDO($dsn, ZM_DB_USER, ZM_DB_PASS, $dbOptions);
     } else {
       $dbConn = new PDO($dsn, ZM_DB_USER, ZM_DB_PASS);
@@ -72,14 +85,45 @@ function dbConnect() {
   return $dbConn;
 }  // end function dbConnect
 
-if ( !dbConnect() ) {
-  include('views/no_database_connection.php');
-  exit();
+// $dbConn is tri-state: false means no connection has been attempted, null means
+// an attempt was made and failed, and a PDO means we are connected.
+//
+// Connecting happens on first use rather than when this file is included. Every
+// model in web/includes requires database.php, so connecting at include time
+// meant that merely loading a class opened a socket - and, on failure, rendered
+// an error page and killed the request from inside a library include. Deferring
+// it means code that only needs the functions here never touches the database.
+
+// Return the connection, opening it if needed. A request that cannot reach the
+// database cannot be served, so this renders the error view and stops, which is
+// what including this file used to do - just at the point a query is actually
+// attempted.
+function zmDbConn() {
+  global $dbConn;
+  if ($dbConn === false) dbConnect();
+  if (!$dbConn) {
+    // Absolute path: the previous relative include only resolved when the cwd
+    // was web/, so it failed for anything served out of web/api/.
+    include(__DIR__.'/../views/no_database_connection.php');
+    exit();
+  }
+  return $dbConn;
+}
+
+// As above, but returns null instead of ending the request. For callers that
+// have something useful to do without a database - the logger falls back to
+// error_log() - and must not turn a logging call into a fatal error.
+function zmDbConnOrNull() {
+  global $dbConn;
+  if ($dbConn === false) dbConnect();
+  return $dbConn ? $dbConn : null;
 }
 
 function dbDisconnect() {
   global $dbConn;
-  $dbConn = null;
+  // false, not null: this is "no longer connected", not "connecting failed", so
+  // a later query is free to open a new connection.
+  $dbConn = false;
 }
 
 function dbLogOff() {
@@ -110,7 +154,8 @@ function dbLog($sql, $update=false) {
 }
 
 function dbError($sql) {
-  global $dbConn;
+  $dbConn = zmDbConnOrNull();
+  if (!$dbConn) return '';
   $error = $dbConn->errorInfo();
   if (!$error[0])
     return '';
@@ -121,7 +166,7 @@ function dbError($sql) {
 }
 
 function dbEscape( $string ) {
-  global $dbConn;
+  $dbConn = zmDbConn();
   if ( version_compare(phpversion(), '5.4', '<=') and get_magic_quotes_gpc() ) 
     return $dbConn->quote(stripslashes($string));
   else
@@ -129,7 +174,7 @@ function dbEscape( $string ) {
 }
 
 function dbQuery($sql, $params=NULL, $debug = false) {
-  global $dbConn;
+  $dbConn = zmDbConn();
   if (dbLog($sql, true))
     return;
   $result = NULL;
@@ -137,11 +182,14 @@ function dbQuery($sql, $params=NULL, $debug = false) {
     if (isset($params)) {
       if (!$result = $dbConn->prepare($sql)) {
         ZM\Error("SQL: Error preparing $sql: " . $pdo->errorInfo);
+        // Set after logging: a DB log target would call dbQuery and clobber this.
+        $GLOBALS['dbLastError'] = implode(' ', $dbConn->errorInfo());
         return NULL;
       }
 
       if (!$result->execute($params)) {
         ZM\Error("SQL: Error executing $sql: " . print_r($result->errorInfo(), true));
+        $GLOBALS['dbLastError'] = implode(' ', $result->errorInfo());
         return NULL;
       }
     } else {
@@ -151,6 +199,7 @@ function dbQuery($sql, $params=NULL, $debug = false) {
       $result = $dbConn->query($sql);
       if ( ! $result ) {
         ZM\Error("SQL: Error preparing $sql: " . $pdo->errorInfo);
+        $GLOBALS['dbLastError'] = implode(' ', $dbConn->errorInfo());
         return NULL;
       }
     }
@@ -159,9 +208,17 @@ function dbQuery($sql, $params=NULL, $debug = false) {
     }
   } catch(PDOException $e) {
     ZM\Error("SQL-ERR '".$e->getMessage()."', statement was '".$sql."' params:" . ($params?implode(',',$params):''));
+    $GLOBALS['dbLastError'] = $e->getMessage();
     return NULL;
   }
+  $GLOBALS['dbLastError'] = null;
   return $result;
+}
+
+// Human-readable text of the most recent dbQuery() failure, or '' if the last
+// query succeeded. Only meaningful immediately after dbQuery() returns NULL.
+function dbLastError() {
+  return isset($GLOBALS['dbLastError']) ? $GLOBALS['dbLastError'] : '';
 }
 
 function dbFetchOne($sql, $col=false, $params=NULL) {
@@ -230,7 +287,7 @@ function dbNumRows($sql, $params=NULL) {
 }
 
 function dbInsertId() {
-  global $dbConn;
+  $dbConn = zmDbConn();
   return $dbConn->lastInsertId();
 }
 

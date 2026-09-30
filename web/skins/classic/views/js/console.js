@@ -1,10 +1,18 @@
 "use strict";
 const table = $j('#consoleTable');
+// Upper bound for the Columns dropdown height, matching bootstrap-table's own
+// stylesheet. There is deliberately no lower bound: the menu scrolls, so a short
+// one is still usable, whereas forcing a minimum taller than the room available
+// makes Popper shove the menu back up over the clipped area.
+const MAX_COLUMNS_MENU_HEIGHT = 300;
+const COLUMNS_MENU_GAP = 10;
 var ajax = null;
 var monitors = {}; // Store monitors by ID for function modal
+var lastFooter = null; // Cached footer payload for re-applying after column toggles
 
 // Update footer with dynamic totals
 function updateFooter(footer) {
+  lastFooter = footer;
   // Target the footer within the bootstrap-table wrapper
   // Bootstrap-table may transform td to th and wrap content in divs
   var footerRow = $j('#consoleTable').closest('.bootstrap-table').find('tfoot tr');
@@ -32,35 +40,33 @@ function updateFooter(footer) {
   // Update bandwidth/FPS (in Function column)
   updateCell('td.colFunction, th.colFunction', footer.bandwidth_fps);
 
-  // Update event totals
+  // Update event totals. Target each period by its unique col<Period>Events
+  // class rather than by positional index: bootstrap-table drops hidden columns
+  // from the tfoot DOM entirely, so an index-based lookup would shift every
+  // period after the hidden one into the wrong cell.
   var eventPeriods = ['Total', 'Hour', 'Day', 'Week', 'Month', 'Archived'];
-  var eventCells = footerRow.find('td.colEvents, th.colEvents');
-  eventPeriods.forEach(function(period, index) {
-    if (eventCells.length > index) {
-      var cell = $j(eventCells[index]);
-      // Only update the th-inner div if it exists
-      var innerDiv = cell.find('.th-inner');
-      var target = innerDiv.length ? innerDiv : cell;
+  eventPeriods.forEach(function(period) {
+    var sel = 'td.col' + period + 'Events, th.col' + period + 'Events';
+    var cell = footerRow.find(sel);
+    if (!cell.length) return;
 
-      var contentHtml = footer[period + 'Events'] + '<br/><div class="small text-nowrap text-muted">' +
-                        footer[period + 'EventDiskSpace'] + '</div>';
+    var innerDiv = cell.find('.th-inner');
+    var target = innerDiv.length ? innerDiv : cell;
 
-      // Create or update link with filter querystring
-      if (canView.Events && footer[period + 'FilterQuery']) {
-        var link = target.find('a');
-        if (link.length) {
-          // Update existing link href and content
-          link.attr('href', '?view=' + ZM_WEB_EVENTS_VIEW + footer[period + 'FilterQuery']);
-          link.html(contentHtml);
-        } else {
-          // Create new link
-          target.html('<a href="?view=' + ZM_WEB_EVENTS_VIEW + footer[period + 'FilterQuery'] + '">' +
-                      contentHtml + '</a>');
-        }
+    var contentHtml = footer[period + 'Events'] + '<br/><div class="small text-nowrap text-muted">' +
+                      footer[period + 'EventDiskSpace'] + '</div>';
+
+    if (canView.Events && footer[period + 'FilterQuery']) {
+      var link = target.find('a');
+      if (link.length) {
+        link.attr('href', '?view=' + ZM_WEB_EVENTS_VIEW + footer[period + 'FilterQuery']);
+        link.html(contentHtml);
       } else {
-        // No permission or no filter query, just show text
-        target.html(contentHtml);
+        target.html('<a href="?view=' + ZM_WEB_EVENTS_VIEW + footer[period + 'FilterQuery'] + '">' +
+                    contentHtml + '</a>');
       }
+    } else {
+      target.html(contentHtml);
     }
   });
 
@@ -74,6 +80,7 @@ function updateFooter(footer) {
 
 // Called by bootstrap-table to retrieve monitor data
 function ajaxRequest(params) {
+  if (deferTableRequestWhileHidden(table)) return;
   if (ajax) ajax.abort();
 
   // Get filter selections from the form and add to params.data
@@ -144,6 +151,8 @@ function ajaxRequest(params) {
     timeout: 0,
     success: function(data) {
       if (data.result == 'Error') {
+        // Settle the loading overlay before bailing, otherwise it stays up.
+        table.bootstrapTable('hideLoading');
         alert(data.message);
         return;
       }
@@ -156,15 +165,31 @@ function ajaxRequest(params) {
       // rearrange the result into what bootstrap-table expects
       params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
 
+      // Always clear the loading overlay. params.success only hides it for
+      // non-silent requests, but a silent request (background refresh /
+      // silentSort) can supersede and abort the non-silent request that
+      // painted the overlay. Without this the rows load but stay masked
+      // behind a stuck spinner, so the table appears not to populate.
+      table.bootstrapTable('hideLoading');
+
       // Update footer with totals from response after table is rendered
       if (data.footer) {
         updateFooter(data.footer);
       }
     },
     error: function(jqXHR) {
-      if (jqXHR.statusText != 'abort') {
-        console.log("error", jqXHR);
+      // An aborted request is superseded by a newer one; that newer request
+      // owns the loading overlay, so leave it alone here.
+      if (jqXHR.statusText == 'abort') return;
+      // A dead session returns 401 here; go to login rather than silently
+      // leaving stale thumbnails that keep 403ing against zms.
+      if (typeof authFailureAction === 'function' && authFailureAction(jqXHR.status) == 'login') {
+        goToLogin();
+        return;
       }
+      // Clear the overlay so a failed load doesn't leave the table masked.
+      table.bootstrapTable('hideLoading');
+      console.log("error", jqXHR);
     }
   });
 }
@@ -176,7 +201,10 @@ function processRows(rows) {
     // Store original ID for later use
     row._id = mid;
 
-    var stream_available = canView.Stream && (row.Type == 'WebSite' || (row.CaptureFPS && row.Capturing != 'None'));
+    // A deleted monitor has no capture daemon, so any fps left on its stale
+    // status row does not mean there is a stream to link to.
+    var stream_available = !row.Deleted && canView.Stream &&
+      (row.Type == 'WebSite' || (row.CaptureFPS && row.Capturing != 'None'));
 
     // Determine status classes
     var source_class = 'infoText';
@@ -184,7 +212,12 @@ function processRows(rows) {
     // FPS report interval: 60 seconds base + 30 seconds buffer for FPSReportInterval
     var fps_report_seconds = 90;
 
-    if ((!row.Status || row.Status == 'NotRunning') && row.Type != 'WebSite') {
+    if (row.Deleted) {
+      // Only reachable via the Deleted entry in the Status filter. Nothing is
+      // running for it, so the fps checks below say nothing useful.
+      source_class = 'errorText';
+      source_class_reason = 'Deleted';
+    } else if ((!row.Status || row.Status == 'NotRunning') && row.Type != 'WebSite') {
       source_class = 'errorText';
       source_class_reason = 'Not Running';
     } else {
@@ -218,6 +251,10 @@ function processRows(rows) {
       nameHtml += row.Name;
     }
 
+    if (row.Deleted) {
+      nameHtml += ' <span class="errorText">(deleted)</span>';
+    }
+
     // Add groups
     if (row.Groups) {
       nameHtml += '<br/><div class="small text-nowrap text-muted">' + row.Groups + '</div>';
@@ -240,7 +277,7 @@ function processRows(rows) {
         functionHtml += 'Analysing: ' + row.Analysing + '<br/>';
       }
       if (row.ONVIF_Event_Listener) {
-        functionHtml += ' Use ONVIF Events<br/>';
+        functionHtml += ' Use ONVIF \'' + row.ONVIF_Event_Listener + '\'<br/>';
       }
       if (row.Recording && row.Recording != 'None') {
         functionHtml += 'Recording: ' + row.Recording + '<br/>';
@@ -396,74 +433,6 @@ function reloadWindow() {
   }
 }
 
-// Manage the the Function modal and its buttons
-function manageFunctionModal(evt) {
-  evt.preventDefault();
-
-  if ( !canEdit.Events ) {
-    enoperm();
-    return;
-  }
-
-  if ( ! $j('#modalFunction').length ) {
-    // Load the Function modal on page load
-    $j.getJSON(thisUrl + '?request=modal&modal=function')
-        .done(function(data) {
-          insertModalHtml('modalFunction', data.html);
-          // Manage the CANCEL modal buttons
-          $j('.funcCancelBtn').click(function(evt) {
-            evt.preventDefault();
-            $j('#modalFunction').modal('hide');
-          });
-          // Manage the SAVE modal buttons
-          $j('.funcSaveBtn').click(function(evt) {
-            evt.preventDefault();
-            $j('#function_form').submit();
-          });
-
-          manageFunctionModal(evt);
-        })
-        .fail(logAjaxFail);
-    return;
-  }
-
-  var mid = evt.currentTarget.getAttribute('data-mid');
-  monitor = monitors[mid];
-  if ( !monitor ) {
-    console.error("No monitor found for mid " + mid);
-    return;
-  }
-
-  var function_form = document.getElementById('function_form');
-  if ( !function_form ) {
-    console.error("Unable to find form with id function_form");
-    return;
-  }
-  function_form.elements['newFunction'].onchange=function() {
-    $j('#function_help div').hide();
-    $j('#'+this.value+'Help').show();
-    if ( this.value == 'Monitor' || this.value == 'None' ) {
-      $j('#FunctionAnalysisEnabled').hide();
-    } else {
-      $j('#FunctionAnalysisEnabled').show();
-    }
-    if ( this.value == 'Record' || this.value == 'Nodect' ) {
-      $j('#FunctionDecodingEnabled').show();
-    } else {
-      $j('#FunctionDecodingEnabled').hide();
-    }
-  };
-  function_form.elements['newFunction'].value = monitor.Function;
-  function_form.elements['newFunction'].onchange();
-
-  function_form.elements['newEnabled'].checked = monitor.Enabled == '1';
-  function_form.elements['newDecodingEnabled'].checked = monitor.DecodingEnabled == '1';
-  function_form.elements['mid'].value = mid;
-  document.getElementById('function_monitor_name').innerHTML = monitor.Name;
-
-  $j('#modalFunction').modal('show');
-} // end function manageFunctionModal
-
 function exportMonitors() {
   var link = document.createElement('a');
   link.href = thisUrl + '?request=console&task=export';
@@ -559,7 +528,12 @@ function initPage() {
   // Setup the thumbnail video animation after table loads
   table.on('post-body.bs.table', function() {
     if (!isMobile()) initThumbAnimation();
-    $j('.functionLnk').click(manageFunctionModal);
+  });
+
+  // Re-apply cached footer totals when columns are toggled, because
+  // bootstrap-table rebuilds tfoot on column-switch and clears our content.
+  table.on('column-switch.bs.table column-switch-all.bs.table', function() {
+    if (lastFooter) updateFooter(lastFooter);
   });
 
   // Makes table sortable - disabled by default, enabled by Sort button
@@ -587,7 +561,46 @@ function initPage() {
       inner.html('<a href="?view=zones">' + text + '</a>');
     }
   });
+
+  constrainColumnsDropdown();
 } // end function initPage
+
+// #monitorList and its .bootstrap-table are overflow:hidden so the table body
+// scrolls on its own, which means anything Popper moves above the toolbar gets
+// clipped. In a short window Popper would flip the Columns menu up, or shift it
+// up to keep its full 300px inside the viewport, hiding the first entries. Keep
+// it anchored below the button and only ever as tall as the room beneath it.
+function constrainColumnsDropdown() {
+  var toggle = $j('#monitorList .fixed-table-toolbar .columns button.dropdown-toggle');
+  if (!toggle.length) return;
+
+  toggle.attr('data-flip', 'false');
+
+  // The show class lands on .keep-open, the toggle's parent, not on .columns.
+  toggle.parent().on('show.bs.dropdown', function() {
+    sizeColumnsMenu(toggle);
+  });
+
+  // Popper repositions an open menu on resize but keeps the max-height it was
+  // given when it opened, so a window dragged shorter pulls the menu back over
+  // the clipped area. Re-measure whenever the menu is open as the window changes.
+  $j(window).on('resize', function() {
+    if (!toggle.parent().hasClass('show')) return;
+    sizeColumnsMenu(toggle);
+  });
+}
+
+function sizeColumnsMenu(toggle) {
+  var menu = toggle.parent().find('.dropdown-menu');
+  if (!menu.length) return;
+  // Leave a small gap so the menu never sits flush against the window edge.
+  var available = window.innerHeight - toggle[0].getBoundingClientRect().bottom - COLUMNS_MENU_GAP;
+  menu.css('max-height', Math.max(0, Math.min(MAX_COLUMNS_MENU_HEIGHT, available)) + 'px');
+  // Let Popper re-place the menu against the height we just set. On first open
+  // Popper does not exist yet, and positions itself correctly straight after.
+  var dropdown = toggle.data('bs.dropdown');
+  if (dropdown && dropdown._popper) dropdown._popper.scheduleUpdate();
+}
 
 function sortMonitors(button) {
   if (button.classList.contains('btn-success')) {

@@ -62,7 +62,8 @@ bool RtspThread::recvResponse(std::string &response) {
   float respVer = 0;
   respCode = -1;
   char respText[ZM_NETWORK_BUFSIZ];
-  if ( sscanf(response.c_str(), "RTSP/%f %3d %[^\r\n]\r\n", &respVer, &respCode, respText) != 3 ) {
+  static_assert(ZM_NETWORK_BUFSIZ == 32768, "respText field width must be ZM_NETWORK_BUFSIZ-1");
+  if ( sscanf(response.c_str(), "RTSP/%f %3d %32767[^\r\n]\r\n", &respVer, &respCode, respText) != 3 ) {
     if ( !response.empty() && isalnum(response[0]) ) {
       Error("Response parse failure in '%s'", response.c_str());
     } else {
@@ -256,7 +257,7 @@ void RtspThread::Run() {
       Debug(2, "Received HTTP response: %s (%zd bytes)", response.c_str(), response.size());
       float respVer = 0;
       respCode = -1;
-      if ( sscanf(response.c_str(), "HTTP/%f %3d %[^\r\n]\r\n", &respVer, &respCode, respText) != 3 ) {
+      if ( sscanf(response.c_str(), "HTTP/%f %3d %255[^\r\n]\r\n", &respVer, &respCode, respText) != 3 ) {
         if ( isalnum(response[0]) ) {
           Error("Response parse failure in '%s'", response.c_str());
         } else {
@@ -323,7 +324,7 @@ void RtspThread::Run() {
   char publicLine[256] = "";
   StringVector lines = Split(response, "\r\n");
   for ( size_t i = 0; i < lines.size(); i++ )
-    sscanf(lines[i].c_str(), "Public: %[^\r\n]\r\n", publicLine);
+    sscanf(lines[i].c_str(), "Public: %255[^\r\n]\r\n", publicLine);
 
   // Check if the server supports the GET_PARAMETER command
   // If yes, it is likely that the server will request this command as a keepalive message
@@ -456,7 +457,7 @@ void RtspThread::Run() {
         timeout = Seconds(timeout_val);
       }
     }
-    sscanf(lines[i].c_str(), "Transport: %s", transport);
+    sscanf(lines[i].c_str(), "Transport: %255s", transport);
   }
 
   if ( session.empty() )

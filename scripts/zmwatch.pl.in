@@ -45,7 +45,6 @@ use bytes;
 #
 # ==========================================================================
 
-use constant START_DELAY => 30; # To give everything else time to start
 
 # ==========================================================================
 #
@@ -62,11 +61,11 @@ use autouse 'Data::Dumper'=>qw(Dumper);
 
 $| = 1;
 
-$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
+$ENV{PATH}  = '@ZM_SCRIPT_PATH@';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
-my $log = logInit();
+logInit();
 logSetSignal();
 my $zm_terminate = 0;
 sub TermHandler {
@@ -81,23 +80,80 @@ my $dbh = zmDbConnect();
 # We don't need to keep objects cached
 $ZoneMinder::Object::no_cache = 1;
 
-Debug('Watchdog starting, pausing for '.START_DELAY.' seconds');
-sleep(START_DELAY);
+# Wall-clock of the last completed check pass, to detect systemic stalls (see below).
+my $last_pass_time = time();
+
+# --- Startup grace --------------------------------------------------------
+# This used to be a flat sleep(30) before the first pass. When we start, zmc
+# has not necessarily created its shared memory or written a heartbeat yet,
+# and neither is distinguishable from a camera that has died, so the sleep was
+# there to stay out of the way while the system came up.
+#
+# A fixed delay is the wrong shape for that. Too short and a busy host with
+# many cameras still gets its whole fleet restarted the moment we wake; too
+# long and a genuinely dead camera goes unwatched for no reason. It also
+# punishes anyone running this by hand.
+#
+# Instead, give each monitor we have not yet seen healthy until
+# ZM_WATCH_MAX_DELAY after we started -- the same threshold used to decide a
+# heartbeat is stale -- before acting on it. Monitors we have seen healthy are
+# handled immediately, so a camera that dies after we start is caught as fast
+# as it ever was, and every other check runs from the first pass.
+my $start_time = time();
+my %seen_healthy;
 
 while (!$zm_terminate) {
+  my $db_was_down = 0;
   while (!($dbh and $dbh->ping()) and !$zm_terminate) {
+    $db_was_down = 1;
     if (!($dbh = zmDbConnect())) {
       sleep($Config{ZM_WATCH_CHECK_INTERVAL});
     }
   }
 
+  # --- Systemic-stall guard -------------------------------------------------
+  # The capture daemons and this watchdog share the database. If the DB (or the
+  # host/network) drops out, EVERY zmc stops updating its shared-memory
+  # heartbeat at the same instant. When the DB returns, this loop would see the
+  # whole fleet as simultaneously "stale" and restart -- and reboot -- every
+  # camera, even though nothing is wrong with any of them. That is the cause of
+  # the fleet-wide restart storms (each one coincided with a DB outage).
+  #
+  # Distinguish "this camera died" from "the thing we both depend on died": if
+  # we just came out of a DB reconnect, or far more wall-clock than a normal
+  # cycle has elapsed (host stall / clock step), skip restart+reboot actions for
+  # ONE pass so the daemons can refresh their heartbeats. A genuinely dead
+  # camera is still stale next pass (~check interval later) and gets handled
+  # then -- reboot behaviour is preserved, just no longer fired on a false
+  # fleet-wide positive.
+  my $pass_now = time();
+  my $since_last_pass = $pass_now - $last_pass_time;
+  $last_pass_time = $pass_now;
+  my $stall_grace = $db_was_down
+    || ($since_last_pass > 2 * $Config{ZM_WATCH_CHECK_INTERVAL});
+  if ($stall_grace) {
+    Warning("zmwatch: systemic stall detected (db_was_down=$db_was_down, "
+      ."${since_last_pass}s since last check) - skipping restart/reboot actions "
+      ."this pass so capture daemons can refresh their heartbeats");
+  }
+
   foreach my $monitor (ZoneMinder::Monitor->find(Deleted=>0, $Config{ZM_SERVER_ID} ? (ServerId=>$Config{ZM_SERVER_ID}) : ())) {
+    next if $stall_grace; # systemic DB/host stall this pass: don't restart/reboot on false staleness
     next if $monitor->{Capturing} eq 'None';
     next if $monitor->{Type} eq 'WebSite';
 
     my $now = time(); 
     my $restart = 0;
+    # True only while a monitor we have never seen running is still inside the
+    # window it is allowed to take to come up. See the startup grace note above.
+    my $starting_up = (!$seen_healthy{$monitor->{Id}})
+      && (($now - $start_time) < $Config{ZM_WATCH_MAX_DELAY});
+
     if (!zmMemVerify($monitor)) {
+      if ($starting_up) {
+        Debug("Not restarting $monitor->{Id} $monitor->{Name} yet, no shared data but still inside its startup grace");
+        next;
+      }
       Info("Restarting capture daemon for $monitor->{Id} $monitor->{Name}, shared data not valid");
       $monitor->control('restart');
       next;
@@ -106,10 +162,16 @@ while (!$zm_terminate) {
     my $heartbeat_time = zmMemRead($monitor, 'shared_data:heartbeat_time');
     my $heartbeat_elapsed = $now-$heartbeat_time;
     if ($heartbeat_elapsed > $Config{ZM_WATCH_MAX_DELAY}) {
+      if ($starting_up) {
+        Debug("Not restarting $monitor->{Id} $monitor->{Name} yet, no heartbeat but still inside its startup grace");
+        next;
+      }
       Info("Restarting capture daemon for $monitor->{Id} $monitor->{Name}, $now - heartbeat time $heartbeat_time $heartbeat_elapsed > $Config{ZM_WATCH_MAX_DELAY}");
       $monitor->control('restart');
       next;
     } else {
+      # It is up. From here on it is judged immediately, like any other monitor.
+      $seen_healthy{$monitor->{Id}} = 1;
       Debug("Monitor $monitor->{Id} $monitor->{Name}, heartbeat time $now - $heartbeat_time $heartbeat_elapsed < $Config{ZM_WATCH_MAX_DELAY}");
     }
 
@@ -132,11 +194,19 @@ while (!$zm_terminate) {
         Debug("Monitor $monitor->{Id} $monitor->{Name}, startup time $now - $startup_time $startup_elapsed <? $Config{ZM_WATCH_MAX_DELAY}");
         if ($monitor->ControlId()) {
           my $control = $monitor->Control();
-          if ($control and $control->CanReboot() and $control->open()) {
-            $control->reboot();
+          # Only try to reboot the camera if it actually answers. Otherwise
+          # open() blocks until it times out on a camera that is down (the
+          # common reason there is no image since startup). ping() resolves the
+          # host from the monitor itself, so no need to dig the ip out here.
+          if ($control and $control->CanReboot()) {
+            if (!$control->ping()) {
+              Debug("Not rebooting $monitor->{Id} $monitor->{Name}: camera is not reachable");
+            } elsif ($control->open()) {
+              $control->reboot();
+            }
           }
         }
-        $log->logPrint(ZoneMinder::Logger::WARNING+$monitor->ImportanceNumber(),
+        WarningImportance($monitor->ImportanceNumber(),
           "Restarting capture daemon for $monitor->{Id} $$monitor{Name}, no image since startup. ".
           "Startup time was $startup_time - now $now > $Config{ZM_WATCH_MAX_DELAY}"
         );
@@ -155,7 +225,7 @@ while (!$zm_terminate) {
     my $image_delay = $now - $capture_time;
     Debug("Monitor $monitor->{Id} last captured $image_delay seconds ago, max is $max_image_delay");
     if ($image_delay > $max_image_delay) {
-      $log->logPrint(ZoneMinder::Logger::WARNING+$monitor->ImportanceNumber(),
+      WarningImportance($monitor->ImportanceNumber(),
         'Restarting capture daemon for '.$monitor->{Name}.
         ", time since last capture $image_delay seconds ($now-$capture_time)");
       $monitor->control('restart');
@@ -183,7 +253,7 @@ while (!$zm_terminate) {
         my $image_delay = $now-$image_time;
         Debug("Monitor $monitor->{Id} last analysed $image_delay seconds ago, max is $max_image_delay");
         if ($image_delay > $max_image_delay) {
-          $log->logPrint(ZoneMinder::Logger::WARNING+$monitor->ImportanceNumber(),
+          WarningImportance($monitor->ImportanceNumber(),
             "daemon for $$monitor{Id} $$monitor{Name} needs restarting,"
             ." time since last analysis $image_delay seconds ($now-$image_time)");
           $monitor->control('restart');

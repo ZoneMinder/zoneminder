@@ -58,11 +58,12 @@ VideoStore::VideoStore(
   packets_written(0),
   frame_count(0),
   video_encoded(false),
+  video_passthrough_fallback(false),
   hw_device_ctx(nullptr),
   resample_ctx(nullptr),
   fifo(nullptr),
   converted_in_samples(nullptr),
-  filename(filename_in),
+  filename(filename_in ? filename_in : ""),
   format(format_in),
   video_first_pts(AV_NOPTS_VALUE),
   video_first_dts(AV_NOPTS_VALUE),
@@ -76,32 +77,37 @@ VideoStore::VideoStore(
   reorder_queue_size(0),
   last_fragment_offset_(0),
   last_fragment_start_dts_(AV_NOPTS_VALUE),
-  init_segment_end_(0) {
+  init_segment_end_(0),
+  finalized_(false) {
   FFMPEGInit();
   swscale.init();
   opkt = av_packet_ptr{av_packet_alloc()};
 }  // VideoStore::VideoStore
 
 /* Failure to open audio will not be a total failure. */
-bool VideoStore::open() {
-  Debug(1, "Opening video storage stream %s format: %s", filename, format);
+bool VideoStore::Encoding() const {
+  return monitor->GetOptVideoWriter() == Monitor::ENCODE and !video_passthrough_fallback;
+}
 
-  int ret = avformat_alloc_output_context2(&oc, nullptr, nullptr, filename);
+bool VideoStore::open() {
+  Debug(1, "Opening video storage stream %s format: %s", filename.c_str(), format);
+
+  int ret = avformat_alloc_output_context2(&oc, nullptr, nullptr, filename.c_str());
   if (ret < 0) {
     Warning(
       "Could not create video storage stream %s as no out ctx"
       " could be assigned based on filename: %s",
-      filename, av_make_error_string(ret).c_str());
+      filename.c_str(), av_make_error_string(ret).c_str());
   }
 
   // Couldn't deduce format from filename, trying from format name
   if (!oc) {
-    avformat_alloc_output_context2(&oc, nullptr, format, filename);
+    avformat_alloc_output_context2(&oc, nullptr, format, filename.c_str());
     if (!oc) {
       Error(
         "Could not create video storage stream %s as no out ctx"
         " could not be assigned based on filename or format %s",
-        filename, format);
+        filename.c_str(), format);
       return false;
     }
   } // end if ! oc
@@ -164,16 +170,30 @@ bool VideoStore::open() {
       if (orientation > 1) { // 1 is ROTATE_0
 #if LIBAVCODEC_VERSION_CHECK(59, 37, 100, 37, 100)
         int32_t* displaymatrix = static_cast<int32_t*>(av_malloc(sizeof(int32_t)*9));
+        // Initialise to identity so the matrix is always fully written before
+        // it is attached as side data; av_display_rotation_set(.,0) yields the
+        // identity matrix.
+        av_display_rotation_set(displaymatrix, 0);
         Debug(3, "Have orientation %d", orientation);
-        if (orientation == Monitor::ROTATE_0) {
-        } else if (orientation == Monitor::ROTATE_90) {
-          av_display_rotation_set(displaymatrix, 90);
-        } else if (orientation == Monitor::ROTATE_180) {
-          av_display_rotation_set(displaymatrix, 180);
-        } else if (orientation == Monitor::ROTATE_270) {
-          av_display_rotation_set(displaymatrix, 270);
-        } else {
-          Warning("Unsupported Orientation(%d)", orientation);
+        switch (orientation) {
+          case Monitor::ROTATE_90:
+            av_display_rotation_set(displaymatrix, 90);
+            break;
+          case Monitor::ROTATE_180:
+            av_display_rotation_set(displaymatrix, 180);
+            break;
+          case Monitor::ROTATE_270:
+            av_display_rotation_set(displaymatrix, 270);
+            break;
+          case Monitor::FLIP_HORI:
+            av_display_matrix_flip(displaymatrix, 1, 0);
+            break;
+          case Monitor::FLIP_VERT:
+            av_display_matrix_flip(displaymatrix, 0, 1);
+            break;
+          default:
+            Warning("Unsupported Orientation(%d)", orientation);
+            break;
         }
 #endif
 #if LIBAVCODEC_VERSION_CHECK(60, 31, 102, 31, 102)
@@ -190,18 +210,23 @@ bool VideoStore::open() {
 					sizeof(int32_t) * 9);
 #endif
 #endif
-        if (orientation == Monitor::ROTATE_0) {
-        } else if (orientation == Monitor::ROTATE_90) {
-          ret = av_dict_set(&video_out_stream->metadata, "rotate", "90", 0);
-          if (ret < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__);
-        } else if (orientation == Monitor::ROTATE_180) {
-          ret = av_dict_set(&video_out_stream->metadata, "rotate", "180", 0);
-          if (ret < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__);
-        } else if (orientation == Monitor::ROTATE_270) {
-          ret = av_dict_set(&video_out_stream->metadata, "rotate", "270", 0);
-          if (ret < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__);
-        } else {
-          Warning("Unsupported Orientation(%d)", orientation);
+        // The legacy "rotate" metadata tag only expresses rotation. Flips are
+        // carried by the display matrix side data above, so don't warn for them.
+        switch (orientation) {
+          case Monitor::ROTATE_90:
+            ret = av_dict_set(&video_out_stream->metadata, "rotate", "90", 0);
+            if (ret < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+            break;
+          case Monitor::ROTATE_180:
+            ret = av_dict_set(&video_out_stream->metadata, "rotate", "180", 0);
+            if (ret < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+            break;
+          case Monitor::ROTATE_270:
+            ret = av_dict_set(&video_out_stream->metadata, "rotate", "270", 0);
+            if (ret < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+            break;
+          default:
+            break;
         }
       } // end if orientation
 
@@ -287,130 +312,179 @@ bool VideoStore::open() {
         codec_data = get_encoder_data("", "");
       }
 
-      for (auto it = codec_data.begin(); it != codec_data.end(); it ++) {
-        chosen_codec_data = *it;
-        Debug(1, "Found video codec for %s", chosen_codec_data->codec_name);
+      // Opening an encoder can fail because a previous event on this monitor is
+      // still closing on the close thread and has not yet released the hardware
+      // encoder session it holds. Wrapped so it can be run a second time once
+      // that close has been waited for. Each iteration re-parses its own options
+      // dictionary and frees its context on failure, so a second run starts
+      // clean.
+      auto attempt_open_encoders = [&]() {
+        for (auto it = codec_data.begin(); it != codec_data.end(); it ++) {
+          chosen_codec_data = *it;
+          Debug(1, "Found video codec for %s", chosen_codec_data->codec_name);
 
-        video_out_codec = avcodec_find_encoder_by_name(chosen_codec_data->codec_name);
-        video_out_ctx = avcodec_alloc_context3(video_out_codec);
-        if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
-          video_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
-        }
-
-        // We have to re-parse the options because each attempt to open destroys the dictionary
-        AVDictionary *opts = 0;
-        ret = av_dict_parse_string(&opts, options.c_str(), "=", ",#\n", 0);
-        if (ret < 0) {
-          Warning("Could not parse ffmpeg encoder options list '%s'", options.c_str());
-        } else {
-          const AVDictionaryEntry *entry = av_dict_get(opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
-          if (entry) {
-            reorder_queue_size = std::stoul(entry->value);
-            Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
-            // remove it to prevent complaining later.
-            av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+          video_out_codec = avcodec_find_encoder_by_name(chosen_codec_data->codec_name);
+          video_out_ctx = avcodec_alloc_context3(video_out_codec);
+          if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
+            video_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
           }
-        }
-        const AVDictionaryEntry *opts_bitrate = av_dict_get(opts, "bitrate", nullptr, AV_DICT_MATCH_CASE);
-        if (opts_bitrate) {
-          video_out_ctx->bit_rate = std::stoul(opts_bitrate->value);
-          av_dict_set(&opts, "bitrate", nullptr, AV_DICT_MATCH_CASE);
-        } else {
-          opts_bitrate = av_dict_get(opts, "bit_rate", nullptr, AV_DICT_MATCH_CASE);
+
+          // We have to re-parse the options because each attempt to open destroys the dictionary
+          AVDictionary *opts = 0;
+          ret = av_dict_parse_string(&opts, options.c_str(), "=", ",#\n", 0);
+          if (ret < 0) {
+            Warning("Could not parse ffmpeg encoder options list '%s'", options.c_str());
+          } else {
+            const AVDictionaryEntry *entry = av_dict_get(opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+            if (entry) {
+              reorder_queue_size = std::stoul(entry->value);
+              Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
+              // remove it to prevent complaining later.
+              av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+            }
+          }
+          const AVDictionaryEntry *opts_bitrate = av_dict_get(opts, "bitrate", nullptr, AV_DICT_MATCH_CASE);
           if (opts_bitrate) {
             video_out_ctx->bit_rate = std::stoul(opts_bitrate->value);
-            av_dict_set(&opts, "bit_rate", nullptr, AV_DICT_MATCH_CASE);
+            av_dict_set(&opts, "bitrate", nullptr, AV_DICT_MATCH_CASE);
+          } else {
+            opts_bitrate = av_dict_get(opts, "bit_rate", nullptr, AV_DICT_MATCH_CASE);
+            if (opts_bitrate) {
+              video_out_ctx->bit_rate = std::stoul(opts_bitrate->value);
+              av_dict_set(&opts, "bit_rate", nullptr, AV_DICT_MATCH_CASE);
+            }
           }
-        }
 
-        // When encoding, we are going to use the timestamp values instead of packet pts/dts
-        video_out_ctx->time_base = AV_TIME_BASE_Q;
-        video_out_ctx->codec_id = chosen_codec_data->codec_id;
-        video_out_ctx->pix_fmt = chosen_codec_data->hw_pix_fmt;
-        video_out_ctx->sw_pix_fmt = chosen_codec_data->sw_pix_fmt;
-        Debug(1, "Setting pix fmt to %d %s", video_out_ctx->pix_fmt, av_get_pix_fmt_name(video_out_ctx->pix_fmt));
-        const AVDictionaryEntry *opts_level = av_dict_get(opts, "level", nullptr, AV_DICT_MATCH_CASE);
-        if (opts_level) {
-          video_out_ctx->level = std::stoul(opts_level->value);
-        }
-        const AVDictionaryEntry *opts_gop_size = av_dict_get(opts, "gop_size", nullptr, AV_DICT_MATCH_CASE);
-        if (opts_gop_size) {
-          video_out_ctx->gop_size = std::stoul(opts_gop_size->value);
-          av_dict_set(&opts, "gop_size", nullptr, AV_DICT_MATCH_CASE);
-        }
-
-        // Don't have an input stream, so need to tell it what we are sending it, or are transcoding
-        video_out_ctx->width = monitor->Width();
-        video_out_ctx->height = monitor->Height();
-        video_out_ctx->codec_type = AVMEDIA_TYPE_VIDEO;
-
-        if (video_out_ctx->codec_id == AV_CODEC_ID_H264) {
-          if (!video_out_ctx->bit_rate) video_out_ctx->bit_rate = 2000000;
-          video_out_ctx->max_b_frames = 1;
-        } else if (video_out_ctx->codec_id == AV_CODEC_ID_MPEG2VIDEO) {
-          /* just for testing, we also add B frames */
-          video_out_ctx->max_b_frames = 2;
-        } else if (video_out_ctx->codec_id == AV_CODEC_ID_MPEG1VIDEO) {
-          /* Needed to avoid using macroblocks in which some coeffs overflow.
-           * This does not happen with normal video, it just happens here as
-           * the motion of the chroma plane does not match the luma plane. */
-          video_out_ctx->mb_decision = 2;
-        }
-        if (setup_hwaccel(video_out_ctx,
-              chosen_codec_data, hw_device_ctx, monitor->EncoderHWAccelDevice(), monitor->Width(), monitor->Height())) {
-          avcodec_free_context(&video_out_ctx);
-          av_dict_free(&opts);
-          if (hw_device_ctx) {
-            av_buffer_unref(&hw_device_ctx);
+          // When encoding, we are going to use the timestamp values instead of packet pts/dts
+          video_out_ctx->time_base = AV_TIME_BASE_Q;
+          video_out_ctx->codec_id = chosen_codec_data->codec_id;
+          video_out_ctx->pix_fmt = chosen_codec_data->hw_pix_fmt;
+          video_out_ctx->sw_pix_fmt = chosen_codec_data->sw_pix_fmt;
+          Debug(1, "Setting pix fmt to %d %s", video_out_ctx->pix_fmt, av_get_pix_fmt_name(video_out_ctx->pix_fmt));
+          const AVDictionaryEntry *opts_level = av_dict_get(opts, "level", nullptr, AV_DICT_MATCH_CASE);
+          if (opts_level) {
+            video_out_ctx->level = std::stoul(opts_level->value);
           }
-          continue;
-        }
+          const AVDictionaryEntry *opts_gop_size = av_dict_get(opts, "gop_size", nullptr, AV_DICT_MATCH_CASE);
+          if (opts_gop_size) {
+            video_out_ctx->gop_size = std::stoul(opts_gop_size->value);
+            av_dict_set(&opts, "gop_size", nullptr, AV_DICT_MATCH_CASE);
+          }
 
-        zm_dump_codec(video_out_ctx);
-        if ((ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0) {
-          if (wanted_encoder != "" and wanted_encoder != "auto") {
-            Warning("Can't open video codec (%s) %s",
+          // Don't have an input stream, so need to tell it what we are sending it, or are transcoding
+          video_out_ctx->width = monitor->Width();
+          video_out_ctx->height = monitor->Height();
+          video_out_ctx->codec_type = AVMEDIA_TYPE_VIDEO;
+
+          if (video_out_ctx->codec_id == AV_CODEC_ID_H264) {
+            if (!video_out_ctx->bit_rate) video_out_ctx->bit_rate = 2000000;
+            video_out_ctx->max_b_frames = 1;
+          } else if (video_out_ctx->codec_id == AV_CODEC_ID_MPEG2VIDEO) {
+            /* just for testing, we also add B frames */
+            video_out_ctx->max_b_frames = 2;
+          } else if (video_out_ctx->codec_id == AV_CODEC_ID_MPEG1VIDEO) {
+            /* Needed to avoid using macroblocks in which some coeffs overflow.
+             * This does not happen with normal video, it just happens here as
+             * the motion of the chroma plane does not match the luma plane. */
+            video_out_ctx->mb_decision = 2;
+          }
+          if (setup_hwaccel(video_out_ctx,
+                chosen_codec_data, hw_device_ctx, monitor->EncoderHWAccelDevice(), monitor->Width(), monitor->Height())) {
+            avcodec_free_context(&video_out_ctx);
+            av_dict_free(&opts);
+            if (hw_device_ctx) {
+              av_buffer_unref(&hw_device_ctx);
+            }
+            continue;
+          }
+
+          zm_dump_codec(video_out_ctx);
+          if ((ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0) {
+            if (wanted_encoder != "" and wanted_encoder != "auto") {
+              Warning("Can't open video codec (%s) %s",
+                      video_out_codec->name,
+                      av_make_error_string(ret).c_str()
+                     );
+            } else {
+              Debug(1, "Can't open video codec (%s) %s",
                     video_out_codec->name,
                     av_make_error_string(ret).c_str()
                    );
-          } else {
-            Debug(1, "Can't open video codec (%s) %s",
-                  video_out_codec->name,
-                  av_make_error_string(ret).c_str()
-                 );
+            }
+            video_out_codec = nullptr;
           }
-          video_out_codec = nullptr;
-        }
 
-        AVDictionaryEntry *e = nullptr;
-        while ((e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr) {
-          Warning("Encoder Option %s not recognized by ffmpeg codec", e->key);
-        }
-        av_dict_free(&opts);
+          AVDictionaryEntry *e = nullptr;
+          while ((e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr) {
+            Warning("Encoder Option %s not recognized by ffmpeg codec", e->key);
+          }
+          av_dict_free(&opts);
 
-        if (video_out_codec) {
-          zm_dump_codec(video_out_ctx);
-          break;
-        }
-        // We allocate and copy in newer ffmpeg, so need to free it
-        avcodec_free_context(&video_out_ctx);
-        if (hw_device_ctx) {
-          av_buffer_unref(&hw_device_ctx);
-        }
-      }  // end foreach codec
+          if (video_out_codec) {
+            zm_dump_codec(video_out_ctx);
+            break;
+          }
+          // We allocate and copy in newer ffmpeg, so need to free it
+          avcodec_free_context(&video_out_ctx);
+          if (hw_device_ctx) {
+            av_buffer_unref(&hw_device_ctx);
+          }
+        }  // end foreach codec
+      };  // end lambda attempt_open_encoders
+
+      attempt_open_encoders();
+
+      // Only serialise against a close when we actually have to, and only when
+      // there was one in flight to wait for.
+      if (!video_out_codec and monitor->WaitForEventClose()) {
+        Info("No video encoder would open and a previous event was still closing; "
+             "waited for it to release its encoder, retrying");
+        attempt_open_encoders();
+      }
 
       if (!video_out_codec) {
-        Error("Can't open any video codecs!");
-        return false;
-      }  // end if can't open codec
-      Debug(2, "Success opening codec");
+        // Every candidate encoder refused to open. On a hardware encoder this is
+        // usually the card declining for want of capacity, reported to ffmpeg as
+        // nothing more specific than a generic external error. Returning here
+        // would mean the event records no video at all, so copy the input stream
+        // and write its packets through unchanged instead. If this keeps
+        // happening the card is over-subscribed: fewer concurrent encodes, or a
+        // lower resolution or frame rate.
+        Warning("Can't open any video encoder; falling back to passthrough recording");
+        if (video_out_ctx) avcodec_free_context(&video_out_ctx);
+        video_passthrough_fallback = true;
 
-      video_out_stream = avformat_new_stream(oc, nullptr);
-      ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
-      if (ret < 0) {
-        Error("Could not initialize stream parameters");
-        return false;
-      }
+        // Same guard the PASSTHROUGH path needs: a stream reporting no size at
+        // all cannot be copied into the muxer, which aborts writing the trailer
+        // rather than returning an error. Record jpegs for this event instead.
+        if (video_in_stream->codecpar->width <= 0 || video_in_stream->codecpar->height <= 0) {
+          Warning("Input video stream has invalid dimensions %dx%d; not recording video",
+              video_in_stream->codecpar->width, video_in_stream->codecpar->height);
+          return false;
+        }
+
+        video_out_stream = avformat_new_stream(oc, nullptr);
+        if (!video_out_stream) {
+          Error("Unable to create video out stream");
+          return false;
+        }
+        avcodec_parameters_copy(video_out_stream->codecpar, video_in_stream->codecpar);
+        video_out_stream->avg_frame_rate = video_in_stream->avg_frame_rate;
+        zm_dump_codecpar(video_out_stream->codecpar);
+      } else {
+        Debug(2, "Success opening codec");
+
+        video_out_stream = avformat_new_stream(oc, nullptr);
+        if (!video_out_stream) {
+          Error("Unable to create video out stream");
+          return false;
+        }
+        ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
+        if (ret < 0) {
+          Error("Could not initialize stream parameters");
+          return false;
+        }
+      }  // end if an encoder opened
     }  // end if copying or transcoding
   }  // end if video_in_stream
 
@@ -521,9 +595,9 @@ bool VideoStore::open() {
 
   /* open the out file, if needed */
   if (!(out_format->flags & AVFMT_NOFILE)) {
-    ret = avio_open2(&oc->pb, filename, AVIO_FLAG_WRITE, nullptr, nullptr);
+    ret = avio_open2(&oc->pb, filename.c_str(), AVIO_FLAG_WRITE, nullptr, nullptr);
     if (ret < 0) {
-      Error("Could not open out file '%s': %s", filename, av_make_error_string(ret).c_str());
+      Error("Could not open out file '%s': %s", filename.c_str(), av_make_error_string(ret).c_str());
       return false;
     }
   }
@@ -537,6 +611,16 @@ bool VideoStore::open() {
     av_dict_set(&opts, "movflags", "frag_keyframe+empty_moov+default_base_moof", 0);
   } else {
     Debug(1, "using movflags %s", movflags_entry->value);
+    // faststart restructures a single non-fragmented moov atom by re-opening the
+    // file after the trailer is written. It is incompatible with the fragmented
+    // (frag_keyframe/empty_moov) + mfra/HLS output this class produces, and its
+    // re-open-by-name pass fails if the file was renamed while open. Warn so it
+    // is removed from the monitor's encoder options.
+    if (strstr(movflags_entry->value, "faststart")) {
+      Warning("movflags contains 'faststart', which is incompatible with the "
+              "fragmented MP4 / HLS output used here. Remove it from the "
+              "monitor's encoder options to avoid trailer-write failures.");
+    }
   }
   if ((ret = avformat_write_header(oc, &opts)) < 0) {
     // we crash if we try again
@@ -562,7 +646,7 @@ bool VideoStore::open() {
   av_dict_free(&opts);
   if (ret < 0) {
     Error("Error occurred when writing out file header to %s: %s",
-          filename, av_make_error_string(ret).c_str());
+          filename.c_str(), av_make_error_string(ret).c_str());
     avio_closep(&oc->pb);
     return false;
   }
@@ -578,6 +662,16 @@ bool VideoStore::open() {
   }
   return true;
 } // end bool VideoStore::open()
+
+void VideoStore::set_filename(const std::string &new_filename) {
+  filename = new_filename;
+  // oc->url is what FFmpeg's MOV muxer re-opens during the faststart trailer
+  // pass; keep it pointing at the real on-disk name.
+  if (oc) {
+    av_freep(&oc->url);
+    oc->url = av_strdup(new_filename.c_str());
+  }
+}
 
 void VideoStore::flush_codecs() {
   // The codec queues data.  We need to send a flush command and out
@@ -691,49 +785,11 @@ Debug(1, "Done flushing");
 
 VideoStore::~VideoStore() {
 
-  for (auto &n : reorder_queues) {
-    auto &queue = n.second;
-    Debug(1, "Queue for %d length is %zu", n.first, queue.size());
-    while (!queue.empty()) {
-      auto pkt = queue.front();
-      queue.pop_front();
-      if (pkt->codec_type == AVMEDIA_TYPE_VIDEO) {
-        writeVideoFramePacket(pkt);
-      } else if (pkt->codec_type == AVMEDIA_TYPE_AUDIO) {
-        writeAudioFramePacket(pkt);
-      }
-      //delete pkt;
-    }
-  }
-
-  if (oc->pb) {
-    flush_codecs();
-
-    // Flush Queues
-    Debug(4, "Flushing interleaved queues");
-    av_interleaved_write_frame(oc, nullptr);
-
-    Debug(1, "Writing trailer");
-    /* Write the trailer before close */
-    int rc;
-    if ((rc = av_write_trailer(oc)) < 0) {
-      Error("Error writing trailer %s", av_err2str(rc));
-    } else {
-      Debug(3, "Success Writing trailer");
-    }
-
-    // When will we not be using a file ?
-    if (!(out_format->flags & AVFMT_NOFILE)) {
-      /* Close the out file. */
-      Debug(4, "Closing");
-      if ((rc = avio_close(oc->pb)) < 0) {
-        Error("Error closing avio %s", av_err2str(rc));
-      }
-    } else {
-      Debug(3, "Not closing avio because we are not writing to a file.");
-    }
-    oc->pb = nullptr;
-  }  // end if oc->pb
+  // Run the shutdown path through finalize() so the queue-drain / trailer /
+  // close logic lives in one place. finalize() is idempotent and bails early
+  // if oc was never allocated, so the legacy "caller didn't call finalize"
+  // path and the open()-failed-before-allocating-oc path both work.
+  finalize();
 
   // I wonder if we should be closing the file first.
   // I also wonder if we really need to be doing all the ctx
@@ -1190,6 +1246,10 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
           zm_packet->get_out_frame(video_out_ctx->width, video_out_ctx->height, chosen_codec_data->sw_pix_fmt);
           av_frame_ref(frame.get(), zm_packet->out_frame.get());
 
+          // The destination is out_frame's buffer, which get_out_frame laid
+          // out at alignment (width % 32 ? 1 : 32) — mirror that choice here
+          // so sws writes the layout the encoder will read via
+          // out_frame->linesize.
           swscale.Convert(
               zm_packet->image,
               frame->buf[0]->data,
@@ -1197,7 +1257,8 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
               zm_packet->image->AVPixFormat(),
               chosen_codec_data->sw_pix_fmt,
               video_out_ctx->width,
-              video_out_ctx->height
+              video_out_ctx->height,
+              (video_out_ctx->width % 32) ? 1 : 32
               );
         }
       } else if (zm_packet->in_frame) {
@@ -1515,8 +1576,9 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
   } else {
     if (last_dts[stream->index] != AV_NOPTS_VALUE) {
       if (pkt->dts < last_dts[stream->index]) {
-        Warning("non increasing dts, fixing. our dts %" PRId64 " stream %d last_dts %" PRId64 " last_duration %" PRId64 ". reorder_queue_size=%zu",
-            pkt->dts, stream->index, last_dts[stream->index], last_duration[stream->index], reorder_queue_size);
+        Warning("non increasing dts, fixing. our dts %" PRId64 " stream %d last_dts %" PRId64 " last_duration %" PRId64 " (%.3f seconds back). reorder_queue_size=%zu",
+            pkt->dts, stream->index, last_dts[stream->index], last_duration[stream->index],
+            (last_dts[stream->index] - pkt->dts) * av_q2d(stream->time_base), reorder_queue_size);
         pkt->dts = last_dts[stream->index]+last_duration[stream->index];
         if (pkt->dts > pkt->pts) pkt->pts = pkt->dts; // Do it here to avoid warning below
       } else if (pkt->dts == last_dts[stream->index]) {
@@ -1551,26 +1613,31 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
   Debug(3, "next_dts for stream %d has become %" PRId64 " last_dts %" PRId64,
         stream->index, next_dts[stream->index], last_dts[stream->index]);
 
-  // HLS fragment tracking: with frag_keyframe movflag, FFmpeg creates a new
-  // moof+mdat at each video keyframe. We record the byte range of each fragment
-  // by checking the file position before and after the write call.
-  //
-  // Strategy: before writing a video keyframe, snapshot the file position.
-  // This marks the end of the previous fragment. We record that fragment and
-  // start tracking the new one.
   bool is_video_keyframe = (stream == video_out_stream) && (pkt->flags & AV_PKT_FLAG_KEY);
+  // Snapshot the keyframe's dts before the write call may modify the packet.
+  int64_t this_keyframe_dts = is_video_keyframe ? pkt->dts : AV_NOPTS_VALUE;
 
+  int ret = av_interleaved_write_frame(oc, pkt);
+  if (ret != 0) {
+    Error("Error writing packet: %s", av_make_error_string(ret).c_str());
+  } else {
+    Debug(4, "Success writing packet");
+  }
+
+  // HLS fragment tracking: with movflags=frag_keyframe, the muxer flushes the
+  // previous fragment to disk inside av_interleaved_write_frame() when a new
+  // keyframe arrives. So the position *after* this call equals the end of the
+  // just-flushed fragment, and last_fragment_offset_/_dts_ describe that
+  // fragment. Record it, then move tracking to the new fragment.
   if (is_video_keyframe && oc && oc->pb) {
-    // Force flush any buffered data so the file position reflects all previous writes
     avio_flush(oc->pb);
-    int64_t pos_now = avio_tell(oc->pb);
+    int64_t pos_after = avio_tell(oc->pb);
 
-    if (last_fragment_start_dts_ != AV_NOPTS_VALUE && pos_now > last_fragment_offset_) {
-      // Record the completed fragment
-      int64_t frag_size = pos_now - last_fragment_offset_;
+    if (last_fragment_start_dts_ != AV_NOPTS_VALUE && pos_after > last_fragment_offset_) {
+      int64_t frag_size = pos_after - last_fragment_offset_;
       double duration = 0;
       if (video_out_stream->time_base.den > 0) {
-        duration = static_cast<double>(pkt->dts - last_fragment_start_dts_)
+        duration = static_cast<double>(this_keyframe_dts - last_fragment_start_dts_)
                    * video_out_stream->time_base.num
                    / video_out_stream->time_base.den;
       }
@@ -1580,49 +1647,118 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
               fragments_.size() - 1, last_fragment_offset_, frag_size, duration);
       }
     }
-    // New fragment starts here
-    last_fragment_offset_ = pos_now;
-    last_fragment_start_dts_ = pkt->dts;
-  }
-
-  // Initialize tracking after init segment is written
-  if (last_fragment_start_dts_ == AV_NOPTS_VALUE && is_video_keyframe) {
-    if (oc && oc->pb) {
-      last_fragment_offset_ = avio_tell(oc->pb);
-    }
-    last_fragment_start_dts_ = pkt->dts;
-  }
-
-  int ret = av_interleaved_write_frame(oc, pkt);
-  if (ret != 0) {
-    Error("Error writing packet: %s", av_make_error_string(ret).c_str());
-  } else {
-    Debug(4, "Success writing packet");
+    last_fragment_offset_ = pos_after;
+    last_fragment_start_dts_ = this_keyframe_dts;
   }
 
   return ret;
 }  // end int VideoStore::write_packet(AVPacket *pkt, AVStream *stream)
 
-void VideoStore::writeM3U8(const std::string &m3u8_path, const std::string &video_url, bool is_complete) {
-  // Finalize last fragment if there's data after the last recorded fragment
-  if (oc && oc->pb) {
-    int64_t file_end = avio_tell(oc->pb);
-    if (file_end > last_fragment_offset_ && last_fragment_start_dts_ != AV_NOPTS_VALUE) {
-      int64_t frag_size = file_end - last_fragment_offset_;
-      // Estimate duration from last known DTS
-      double duration = 0;
-      if (video_out_stream && video_out_stream->time_base.den > 0 &&
-          last_dts.count(video_out_stream->index) && last_dts[video_out_stream->index] != AV_NOPTS_VALUE) {
-        duration = static_cast<double>(last_dts[video_out_stream->index] + last_duration[video_out_stream->index] - last_fragment_start_dts_)
-                   * video_out_stream->time_base.num
-                   / video_out_stream->time_base.den;
-      }
-      if (duration > 0 && frag_size > 0) {
-        fragments_.push_back({last_fragment_offset_, frag_size, duration});
+void VideoStore::finalize() {
+  if (finalized_) return;
+  finalized_ = true;
+
+  if (!oc || !oc->pb) return;
+
+  // Drain reorder queues before writing the trailer — the destructor would
+  // otherwise try to run these packets through av_interleaved_write_frame()
+  // after we've already closed oc->pb here.
+  for (auto &n : reorder_queues) {
+    auto &queue = n.second;
+    Debug(1, "Queue for %d length is %zu", n.first, queue.size());
+    while (!queue.empty()) {
+      auto pkt = queue.front();
+      queue.pop_front();
+      if (pkt->codec_type == AVMEDIA_TYPE_VIDEO) {
+        writeVideoFramePacket(pkt);
+      } else if (pkt->codec_type == AVMEDIA_TYPE_AUDIO) {
+        writeAudioFramePacket(pkt);
       }
     }
   }
 
+  flush_codecs();
+
+  Debug(4, "Flushing interleaved queues");
+  av_interleaved_write_frame(oc, nullptr);
+
+  Debug(1, "Writing trailer");
+  int rc = av_write_trailer(oc);
+  if (rc < 0) {
+    Error("Error writing trailer %s", av_err2str(rc));
+  } else {
+    Debug(3, "Success Writing trailer");
+  }
+
+  // After av_write_trailer, the file contains init+fragments_1..N + mfra trailer.
+  // Capture the on-disk length so we can size the final fragment.
+  avio_flush(oc->pb);
+  int64_t file_size = avio_tell(oc->pb);
+
+  // Close the output file before reading it back to inspect the mfra box.
+  if (!(out_format->flags & AVFMT_NOFILE)) {
+    Debug(4, "Closing");
+    if ((rc = avio_close(oc->pb)) < 0) {
+      Error("Error closing avio %s", av_err2str(rc));
+    }
+  }
+  oc->pb = nullptr;
+
+  // The MOV muxer writes an mfra (Movie Fragment Random Access) box at the end
+  // of the file when fragmentation is on. Its trailing mfro box is exactly 16
+  // bytes and contains the mfra size, so we can subtract that to find where
+  // the final fragment's mdat actually ends.
+  int64_t fragment_n_end = file_size;
+  if (!filename.empty() && file_size >= 16) {
+    FILE *fp = fopen(filename.c_str(), "rb");
+    if (fp) {
+      if (fseeko(fp, file_size - 16, SEEK_SET) == 0) {
+        uint8_t mfro[16];
+        if (fread(mfro, 1, 16, fp) == 16) {
+          uint32_t box_size = (static_cast<uint32_t>(mfro[0]) << 24)
+                            | (static_cast<uint32_t>(mfro[1]) << 16)
+                            | (static_cast<uint32_t>(mfro[2]) << 8)
+                            | static_cast<uint32_t>(mfro[3]);
+          if (box_size == 16
+              && mfro[4] == 'm' && mfro[5] == 'f' && mfro[6] == 'r' && mfro[7] == 'o') {
+            uint32_t mfra_size = (static_cast<uint32_t>(mfro[12]) << 24)
+                               | (static_cast<uint32_t>(mfro[13]) << 16)
+                               | (static_cast<uint32_t>(mfro[14]) << 8)
+                               | static_cast<uint32_t>(mfro[15]);
+            if (mfra_size > 0 && static_cast<int64_t>(mfra_size) <= file_size) {
+              fragment_n_end = file_size - mfra_size;
+              Debug(1, "mfra trailer is %u bytes; final fragment ends at %" PRId64,
+                    mfra_size, fragment_n_end);
+            }
+          }
+        }
+      }
+      fclose(fp);
+    }
+  }
+
+  // Record the final fragment that no subsequent keyframe was around to record.
+  if (last_fragment_start_dts_ != AV_NOPTS_VALUE
+      && fragment_n_end > last_fragment_offset_
+      && video_out_stream && video_out_stream->time_base.den > 0
+      && last_dts.count(video_out_stream->index)
+      && last_dts[video_out_stream->index] != AV_NOPTS_VALUE) {
+    int64_t frag_size = fragment_n_end - last_fragment_offset_;
+    double duration = static_cast<double>(
+        last_dts[video_out_stream->index]
+        + last_duration[video_out_stream->index]
+        - last_fragment_start_dts_)
+        * video_out_stream->time_base.num
+        / video_out_stream->time_base.den;
+    if (duration > 0 && frag_size > 0) {
+      fragments_.push_back({last_fragment_offset_, frag_size, duration});
+      Debug(1, "HLS final fragment: offset=%" PRId64 " size=%" PRId64 " duration=%.3f",
+            last_fragment_offset_, frag_size, duration);
+    }
+  }
+}
+
+void VideoStore::writeM3U8(const std::string &m3u8_path, const std::string &video_url, bool is_complete) {
   if (fragments_.empty()) return;
 
   // Calculate max duration for EXT-X-TARGETDURATION (must be integer, rounded up)

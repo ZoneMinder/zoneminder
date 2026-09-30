@@ -89,9 +89,13 @@ if ( canView('Events') or canView('Snapshots') ) {
       $exportIds = [validCardinal($_REQUEST['id'])];
     }
 
+    $exportRoot = !empty($_REQUEST['exportFile']) ? preg_replace('/[^\w\-.]/', '', $_REQUEST['exportFile']) : '';
+    if (empty($exportRoot)) $exportRoot = 'zmExport';
+    $exportConnkey = preg_replace('/[^\w\-.]/', '', isset($_REQUEST['connkey']) ? $_REQUEST['connkey'] : '');
+
     if ($exportFile = exportEvents(
       $exportIds,
-      (isset($_REQUEST['connkey'])?$_REQUEST['connkey']:''),
+      $exportConnkey,
       $exportDetail,
       $exportFrames,
       $exportImages,
@@ -100,7 +104,7 @@ if ( canView('Events') or canView('Snapshots') ) {
       $exportFormat,
       $exportCompress,
       $exportStructure,
-      (!empty($_REQUEST['exportFile'])?$_REQUEST['exportFile']:'zmExport')
+      $exportRoot
     )) {
       ajaxResponse(array('exportFile'=>$exportFile));
     } else {
@@ -109,10 +113,11 @@ if ( canView('Events') or canView('Snapshots') ) {
     break;
   case 'download' :
     require_once('includes/download_functions.php');
-    $exportFormat = isset($_REQUEST['exportFormat']) ? $_REQUEST['exportFormat'] : 'zip';
+    $exportFormat = (isset($_REQUEST['exportFormat']) and ($_REQUEST['exportFormat'] === 'tar' or $_REQUEST['exportFormat'] === 'zip')) ? $_REQUEST['exportFormat'] : 'zip';
+    $exportConnkey = preg_replace('/[^\w\-.]/', '', isset($_REQUEST['connkey']) ? $_REQUEST['connkey'] : '');
     $exportFileName = isset($_REQUEST['exportFileName']) ? $_REQUEST['exportFileName'] : '';
 
-    if (!$exportFileName) $exportFileName = 'Export'.(isset($_REQUEST['connkey'])?$_REQUEST['connkey']:'');
+    if (!$exportFileName) $exportFileName = 'Export'.$exportConnkey;
     $exportFileName = preg_replace('/[^\p{L}\p{N}\-\.\(\)]/u', '', $exportFileName);
 
     $exportIds = [];
@@ -144,7 +149,7 @@ if ( canView('Events') or canView('Snapshots') ) {
     ajaxResponse(array(
       'exportFile'=>$exportFile,
       'exportFormat'=>$exportFormat,
-      'connkey'=>(isset($_REQUEST['connkey'])?$_REQUEST['connkey']:'')
+      'connkey'=>$exportConnkey
     ));
 
     } else {
@@ -167,13 +172,24 @@ if ( canView('Events') or canView('Snapshots') ) {
     ajaxResponse(array('response'=>$response));
     break;
   case 'addtag' :
+    // Validate once and reuse; $_REQUEST values are strings at best and can be
+    // arrays, so anything non-scalar is rejected outright.
+    $tagId = is_scalar($_REQUEST['tid'] ?? null) ? validCardinal($_REQUEST['tid']) : '';
+    $eventId = is_scalar($_REQUEST['id'] ?? null) ? validCardinal($_REQUEST['id']) : '';
+    if ($tagId === '' or $eventId === '') ajaxError('addtag requires a numeric tid and id');
+
     $sql = 'INSERT INTO Events_Tags (TagId, EventId, AssignedBy) VALUES (?, ?, ?)';
-    $values = array($_REQUEST['tid'], $_REQUEST['id'], $user->Id());
+    $values = array($tagId, $eventId, $user->Id());
     $response = dbFetchAll($sql, NULL, $values);
 
     $sql = 'UPDATE Tags SET LastAssignedDate = NOW() WHERE Id = ?';
-    $values = array($_REQUEST['tid']);
+    $values = array($tagId);
     dbFetchAll($sql, NULL, $values);
+
+    // Record this tag against the user's personal recency order so it
+    // sorts to the top of THEIR dropdown next time, on any device.
+    require_once('includes/TagOrder.php');
+    \ZM\TagOrder::recordUsage($user->Id(), $tagId);
 
     ajaxResponse(array('response'=>$response));
     break;
@@ -186,6 +202,22 @@ if ( canView('Events') or canView('Snapshots') ) {
       ajaxResponse(array('response'=>$response));
     }
     ajaxResponse();
+    break;
+  case 'file_existence_check' :
+    $fileNameArray = $_REQUEST['file_name_array'] ?? [];
+    if (!is_array($fileNameArray)) ajaxError('The "file_name_array" request parameter is not an array');
+    if (count($fileNameArray) > 100) ajaxError('Too many files requested');
+    $result = [];
+    foreach ($fileNameArray as $fileName) {
+      if (!is_string($fileName) || $fileName === '' || strlen($fileName) > 4096 || strpos($fileName, "\0") !== false) continue;
+
+      // Only allow relative paths under DIR_EXPORTS_DOWNLOAD; reject traversal/absolute paths.
+      $fileName = ltrim($fileName, "/\\");
+      if (preg_match('#(^|[\\/])\.\.([\\/]|$)#', $fileName)) continue;
+      $path = DIR_EXPORTS_DOWNLOAD . DIRECTORY_SEPARATOR . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $fileName);
+      $result[] = [$fileName, file_exists($path)];
+    }
+    ajaxResponse(array('response'=>$result));
     break;
   }
 } // end if canView('Events')
@@ -227,5 +259,5 @@ if ( canEdit('Events') ) {
   } // end switch action
 } // end if canEdit('Events')
 
-ajaxError('Unrecognised action '.$_REQUEST['action'].' or insufficient permissions for user '.$user->Username());
+ajaxError('Unrecognised action '.validHtmlStr($_REQUEST['action']).' or insufficient permissions for user '.validHtmlStr($user->Username()));
 ?>

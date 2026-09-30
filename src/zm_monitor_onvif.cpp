@@ -23,9 +23,30 @@
 #include "zm_time.h"
 #include "zm_utils.h"
 
+#include <algorithm>
+#include <cstdint>
 #include <cstring>
 
 #ifdef WITH_GSOAP
+
+namespace {
+// The reason wording cameras use for an authentication refusal. Matched against
+// both the fault string and the fault detail because the split between them is
+// not consistent across vendors.
+bool mentions_authorization(const char *text) {
+  if (!text) return false;
+  return std::strstr(text, "authorization")
+      or std::strstr(text, "authorized")
+      or std::strstr(text, "Unauthorized")
+      or std::strstr(text, "NotAuthorized");
+}
+}  // namespace
+
+bool ONVIFIsAuthError(int result, const char *fault_string, const char *detail) {
+  if (result == 401) return true;
+  if (result != SOAP_FAULT) return false;
+  return mentions_authorization(fault_string) or mentions_authorization(detail);
+}
 #include "url.hpp"
 
 // ONVIF configuration constants
@@ -37,27 +58,58 @@ namespace {
   const int ONVIF_COOLDOWN_RESET_SECONDS = 300;  // Reset retry_count after 5 minutes of failure
   const int ONVIF_DEFAULT_TIMESTAMP_VALIDITY = 60;  // WS-Security timestamp validity in seconds
 
+  // SOAP socket-level timeout (connect/recv/send). zmdc sends SIGTERM and waits
+  // 30s before SIGKILL, so every SOAP operation must be able to unblock within
+  // that window or zmc gets killed before the polling thread can join. Kept
+  // safely below 30s. Must exceed ONVIF_MAX_PULL_TIMEOUT_SECONDS so a normal
+  // long-poll is not aborted prematurely by the recv timeout.
+  const int ONVIF_SOAP_TIMEOUT_SECONDS = 25;
+  // Upper bound for the ONVIF PullMessages long-poll. Strictly less than
+  // ONVIF_SOAP_TIMEOUT_SECONDS so a quiet long-poll (camera holding the
+  // connection open with no events) returns before the socket recv timeout, and
+  // so a stuck PullMessages cannot keep zmc from terminating in time.
+  const int ONVIF_MAX_PULL_TIMEOUT_SECONDS = 20;
+
   // Format seconds as ISO 8601 duration string (e.g., 5 -> "PT5S")
   inline std::string FormatDurationSeconds(int seconds) {
     return "PT" + std::to_string(seconds) + "S";
   }
-}
 
-std::string SOAP_STRINGS[] = {
-    "SOAP_OK",              // 0
-    "SOAP_CLI_FAULT",       // 1
-    "SOAP_SVR_FAULT",       // 2
-    "SOAP_TAG_MISMATCH",    // 3
-    "SOAP_TYPE",            // 4
-    "SOAP_SYNTAX_ERROR",    // 5
-    "SOAP_NO_TAG",          // 6
-    "SOAP_IOB",             // 7
-    "SOAP_MUSTUNDERSTAND",  // 8
-    "SOAP_NAMESPACE",       // 9
-    "SOAP_USER_ERROR",      // 10
-    "SOAP_FATAL_ERROR",     // 11
-    "SOAP_FAULT",           // 12
-};
+  // gsoap error codes are sparse (range -1..1000 with gaps), so a lookup
+  // table is the wrong shape. Cover the codes that show up in practice for
+  // ONVIF cameras; everything else falls through to "UNKNOWN".
+  const char *soap_error_name(int rc) {
+    switch (rc) {
+      case SOAP_EOF:             return "SOAP_EOF";          // -1, also a timeout/disconnect
+      case SOAP_OK:              return "SOAP_OK";           // 0
+      case SOAP_CLI_FAULT:       return "SOAP_CLI_FAULT";    // 1
+      case SOAP_SVR_FAULT:       return "SOAP_SVR_FAULT";    // 2
+      case SOAP_TAG_MISMATCH:    return "SOAP_TAG_MISMATCH"; // 3
+      case SOAP_TYPE:            return "SOAP_TYPE";         // 4
+      case SOAP_SYNTAX_ERROR:    return "SOAP_SYNTAX_ERROR"; // 5
+      case SOAP_NO_TAG:          return "SOAP_NO_TAG";       // 6
+      case SOAP_IOB:             return "SOAP_IOB";          // 7
+      case SOAP_MUSTUNDERSTAND:  return "SOAP_MUSTUNDERSTAND"; // 8
+      case SOAP_NAMESPACE:       return "SOAP_NAMESPACE";    // 9
+      case SOAP_USER_ERROR:      return "SOAP_USER_ERROR";   // 10
+      case SOAP_FATAL_ERROR:     return "SOAP_FATAL_ERROR";  // 11
+      case SOAP_FAULT:           return "SOAP_FAULT";        // 12
+      case SOAP_NO_METHOD:       return "SOAP_NO_METHOD";    // 13
+      case SOAP_GET_METHOD:      return "SOAP_GET_METHOD";   // 15
+      case SOAP_EOM:             return "SOAP_EOM";          // 20
+      case SOAP_HDR:             return "SOAP_HDR";          // 22
+      case SOAP_NULL:            return "SOAP_NULL";         // 23
+      case SOAP_UDP_ERROR:       return "SOAP_UDP_ERROR";    // 27
+      case SOAP_TCP_ERROR:       return "SOAP_TCP_ERROR";    // 28
+      case SOAP_HTTP_ERROR:      return "SOAP_HTTP_ERROR";   // 29
+      case SOAP_SSL_ERROR:       return "SOAP_SSL_ERROR";    // 30
+      case SOAP_ZLIB_ERROR:      return "SOAP_ZLIB_ERROR";   // 31
+      case SOAP_VERSIONMISMATCH: return "SOAP_VERSIONMISMATCH"; // 39
+      case SOAP_STOP:            return "SOAP_STOP";         // 1000
+      default:                   return "UNKNOWN";
+    }
+  }
+}
 
 ONVIF::ONVIF(Monitor *parent_) :
   parent(parent_)
@@ -85,11 +137,16 @@ ONVIF::ONVIF(Monitor *parent_) :
 {
   parse_onvif_options();
 
-  // Clamp pull_timeout_seconds to be less than renewal advance time
-  if (pull_timeout_seconds >= ONVIF_RENEWAL_ADVANCE_SECONDS) {
-    Warning("ONVIF: pull_timeout %ds must be less than renewal advance time (%ds). Adjusting.",
-            pull_timeout_seconds, ONVIF_RENEWAL_ADVANCE_SECONDS);
-    pull_timeout_seconds = ONVIF_RENEWAL_ADVANCE_SECONDS - 1;
+  // Clamp pull_timeout_seconds. It must stay below the renewal advance time (so
+  // we renew before the subscription lapses) and below the SOAP socket timeout
+  // (so a quiet long-poll completes before the recv timeout aborts it, and so a
+  // stuck PullMessages cannot block zmc termination past zmdc's 30s kill window).
+  const int pull_timeout_max =
+      std::min(ONVIF_RENEWAL_ADVANCE_SECONDS - 1, ONVIF_MAX_PULL_TIMEOUT_SECONDS);
+  if (pull_timeout_seconds > pull_timeout_max) {
+    Warning("ONVIF: pull_timeout %ds too large; clamping to %ds to stay within renewal and termination limits.",
+            pull_timeout_seconds, pull_timeout_max);
+    pull_timeout_seconds = pull_timeout_max;
   }
 
   // Build endpoint URL before initializing soap context (InitSoapContext needs it)
@@ -229,9 +286,13 @@ bool ONVIF::InitSoapContext() {
     return false;
   }
 
-  soap->connect_timeout = 0;
-  soap->recv_timeout = 0;
-  soap->send_timeout = 0;
+  // Bound socket operations so a hung camera connection cannot block the polling
+  // thread indefinitely. Kept below zmdc's 30s SIGTERM->SIGKILL window so zmc can
+  // always terminate in time. Must exceed pull_timeout_seconds so a normal
+  // long-poll is not aborted prematurely (see pull_timeout clamp in constructor).
+  soap->connect_timeout = ONVIF_SOAP_TIMEOUT_SECONDS;
+  soap->recv_timeout = ONVIF_SOAP_TIMEOUT_SECONDS;
+  soap->send_timeout = ONVIF_SOAP_TIMEOUT_SECONDS;
   soap_register_plugin(soap, soap_wsse);
   soap_register_plugin(soap, soap_wsa);
 
@@ -246,6 +307,25 @@ bool ONVIF::InitSoapContext() {
 }
 
 void ONVIF::Subscribe() {
+  // Drop any prior subscription on the camera and reopen the TCP connection.
+  // Cameras typically cap pull-point subscriptions per user and only release
+  // the slot when the originating socket closes; reusing soap here leaks slots
+  // across failed cycles and eventually surfaces as NotAuthorized on
+  // CreatePullPointSubscription even though credentials are fine.
+  if (has_valid_subscription_) {
+    cleanup_subscription();
+    if (soap) {
+      soap_destroy(soap);
+      soap_end(soap);
+      soap_free(soap);
+      soap = nullptr;
+    }
+  }
+
+  // Start each cycle with the preferred auth method; a transient plain-auth
+  // fallback shouldn't pin for the rest of the process.
+  try_usernametoken_auth = false;
+
   if (!InitSoapContext()) {
     setHealthy(false);
     return;
@@ -269,16 +349,19 @@ void ONVIF::Subscribe() {
 
   if (rc != SOAP_OK) {
     const char *detail = soap_fault_detail(soap);
-    bool auth_error = (rc == 401 || (detail && std::strstr(detail, "NotAuthorized")));
+    const char *fault_string = soap_fault_string(soap);
+    // Many cameras report the ONVIF NotAuthorized condition as a SOAP_FAULT
+    // with the explanation in fault_string and detail=null, so check both.
+    bool auth_error = (rc == 401
+                       || (detail && std::strstr(detail, "NotAuthorized"))
+                       || (fault_string && (std::strstr(fault_string, "authoriz")
+                                            || std::strstr(fault_string, "Authoriz"))));
 
-    if (rc > 8) {
-      Error("ONVIF: Couldn't create subscription at %s! %d, fault:%s, detail:%s", event_endpoint_url_.c_str(),
-          rc, soap_fault_string(soap), detail ? detail : "null");
-    } else {
-      Error("ONVIF: Couldn't create subscription at %s! %d %s, fault:%s, detail:%s", event_endpoint_url_.c_str(),
-          rc, SOAP_STRINGS[rc].c_str(),
-          soap_fault_string(soap), detail ? detail : "null");
-    }
+    logPrintf(Logger::ERROR + parent->Importance(), 
+        "ONVIF: Couldn't create subscription at %s! %d %s, fault:%s, detail:%s",
+        event_endpoint_url_.c_str(),
+        rc, soap_error_name(rc),
+        fault_string, detail ? detail : "null");
 
     // If authentication failed and we were using digest, try plain authentication
     if (auth_error && !try_usernametoken_auth) {
@@ -435,11 +518,7 @@ void ONVIF::WaitForMessage() {
       const char *fault_string = soap_fault_string(soap);
 
       if (soap->error != SOAP_EOF) { //Ignore the timeout error
-        // Check if this is an authorization failure (SOAP_FAULT with auth-related message)
-        bool is_auth_error = (result == SOAP_FAULT &&
-            fault_string && (std::strstr(fault_string, "authorization") ||
-                            std::strstr(fault_string, "authorized") ||
-                            std::strstr(fault_string, "NotAuthorized")));
+        bool is_auth_error = ONVIFIsAuthError(result, fault_string, detail);
 
         if (is_auth_error) {
           // Authorization failure - likely due to clock drift or expired credentials
@@ -468,6 +547,10 @@ void ONVIF::WaitForMessage() {
         } else {
           Info("ONVIF: PullMessages failed (attempt %d/%d), will continue trying", retry_count, max_retries);
         }
+        // Best-effort unsubscribe so the camera doesn't keep this slot reserved
+        // while Run() loops back into Subscribe(). Subscribe() will also drop
+        // the soap context to force a fresh TCP connection.
+        cleanup_subscription();
         setHealthy(false);
       } else {
         // SOAP_EOF - this is just a timeout, not an error
@@ -1014,9 +1097,9 @@ void ONVIF::log_subscription_timing(const char* context) {
   auto seconds_until_renewal = std::chrono::duration_cast<std::chrono::seconds>(
     next_renewal_time - now).count();
 
-  Debug(1, "ONVIF [%s]: Subscription terminates at %s (in %lds), renewal at %s (in %lds)",
+  Debug(1, "ONVIF [%s]: Subscription terminates at %s (in %jds), renewal at %s (in %jds)",
        context, SystemTimePointToString(subscription_termination_time).c_str(),
-       seconds_until_termination,
+       static_cast<intmax_t>(seconds_until_termination),
        SystemTimePointToString(next_renewal_time).c_str(),
        static_cast<intmax_t>(seconds_until_renewal));
   // Log at debug level when we're getting close to termination
@@ -1130,7 +1213,8 @@ bool ONVIF::IsRenewalNeeded() {
     // Time to renew
     auto seconds_overdue = std::chrono::duration_cast<std::chrono::seconds>(
       now - next_renewal_time).count();
-    Debug(1, "ONVIF: Subscription renewal needed (overdue by %ld seconds)", seconds_overdue);
+    Debug(1, "ONVIF: Subscription renewal needed (overdue by %jd seconds)",
+          static_cast<intmax_t>(seconds_overdue));
     return true;
   }
 
@@ -1175,10 +1259,33 @@ void ONVIF::set_credentials(struct soap *soap) {
     return;
   }
   soap_wsse_delete_Security(soap);
+
+  // Pin a single timestamp for the whole security header. gSOAP's
+  // soap_wsse_add_Timestamp() and soap_wsse_add_UsernameTokenDigest() each call
+  // time(NULL) independently, so when the two calls straddle a one-second
+  // boundary the wsu:Timestamp Created and the UsernameToken Created differ by a
+  // second. Hikvision (and some other cameras) reject that mismatch as
+  // NotAuthorized, which surfaced as intermittent PullMessages auth failures
+  // every few thousand requests despite correct credentials and synced clocks.
+  // Capturing time(NULL) once and forcing both Created values to it removes the
+  // race.
+  time_t wsse_now = time(nullptr);
+
   // Use configurable timestamp validity (default 60 seconds) to handle clock drift
   // between ZoneMinder and the camera. The old value of 10 seconds was too short
   // and caused "not authorized" errors when clocks were slightly out of sync.
   soap_wsse_add_Timestamp(soap, "Time", timestamp_validity_seconds);
+
+  // soap_wsse_add_Timestamp() stamped Created/Expires from its own time(NULL).
+  // Re-stamp them from wsse_now so they match the UsernameToken Created below.
+  _wsse__Security *security = soap_wsse_add_Security(soap);
+  if (security && security->wsu__Timestamp) {
+    security->wsu__Timestamp->Created = soap_strdup(soap, soap_dateTime2s(soap, wsse_now));
+    if (security->wsu__Timestamp->Expires) {
+      security->wsu__Timestamp->Expires =
+          soap_strdup(soap, soap_dateTime2s(soap, wsse_now + timestamp_validity_seconds));
+    }
+  }
 
   const char *username = parent->onvif_username.empty() ? parent->user.c_str() : parent->onvif_username.c_str();
   const char *password = parent->onvif_username.empty() ? parent->pass.c_str() : parent->onvif_password.c_str();
@@ -1188,9 +1295,11 @@ void ONVIF::set_credentials(struct soap *soap) {
     Debug(2, "ONVIF: Using UsernameToken (plain) authentication");
     soap_wsse_add_UsernameTokenText(soap, "Auth", username, password);
   } else {
-    // Try UsernameTokenDigest authentication (default)
+    // Try UsernameTokenDigest authentication (default).
+    // Use the _at variant so the token's Created (and the password digest
+    // computed from it) is pinned to the same wsse_now as the Timestamp above.
     Debug(2, "ONVIF: Using UsernameTokenDigest authentication");
-    soap_wsse_add_UsernameTokenDigest(soap, "Auth", username, password);
+    soap_wsse_add_UsernameTokenDigest_at(soap, "Auth", username, password, wsse_now);
   }
 }
 

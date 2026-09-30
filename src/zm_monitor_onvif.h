@@ -34,6 +34,18 @@
 #include "plugin/wsaapi.h"
 #include "plugin/logging.h"
 #include <openssl/err.h>
+
+// Whether a failed ONVIF request was refused for authentication reasons.
+//
+// gSOAP surfaces this two ways. A rejection at the HTTP layer never reaches the
+// SOAP envelope, so there is no fault to inspect and the result is the status
+// code itself -- 401 for a request the camera wants credentials on. A camera
+// that answers at the SOAP layer returns SOAP_FAULT instead, and names the
+// reason in the fault string, or, on several models, only in the fault detail.
+//
+// Free rather than a member so it can be tested without an ONVIF object and a
+// live soap context. fault_string and detail may be null.
+bool ONVIFIsAuthError(int result, const char *fault_string, const char *detail);
 #endif
 
 // Forward declaration

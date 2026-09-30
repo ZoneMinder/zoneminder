@@ -129,20 +129,8 @@ int FFmpeg_Input::Open(const char *filepath) {
  
     if (!streams[i].context) {
       Debug(1, "Failed with known codecs, trying harder");
-      if ((streams[i].codec = avcodec_find_decoder(input_format_context->streams[i]->codecpar->codec_id))) {
-        Debug(1, "Using codec (%s) for stream %d", streams[i].codec->name, i);
-        streams[i].context = avcodec_alloc_context3(streams[i].codec);
-        avcodec_parameters_to_context(streams[i].context, input_format_context->streams[i]->codecpar);
-
-        zm_dump_codec(streams[i].context);
-
-        error = avcodec_open2(streams[i].context, streams[i].codec, nullptr);
-        if (error < 0) {
-          Error("Could not open input codec (error '%s')", av_make_error_string(error).c_str());
-          avcodec_free_context(&streams[i].context);
-          streams[i].context = nullptr;
-        }
-      }
+      streams[i].context = open_fallback_decoder(
+          input_format_context->streams[i]->codecpar, &streams[i].codec);
     }
 
     if (!streams[i].context) {

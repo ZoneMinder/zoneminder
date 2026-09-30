@@ -317,7 +317,9 @@ $log->debug("No serial") if $debug;
         $command =~ s/\?/\%s/g;
         $log->debug('SQL DEBUG: ('.sprintf($command, map { defined $_ ? $_ : 'undef' } ( @sql{@keys} ) ).'):' );
       } # end if
-      $$self{Id} = $local_dbh->{'mysql_insertid'} if !$$self{Id};
+      # DBI's portable accessor: DBD::MariaDB has no mysql_insertid, and
+      # would hand back undef, leaving the new row's Id unset.
+      $$self{Id} = $local_dbh->last_insert_id(undef, undef, undef, undef) if !$$self{Id};
     } else {
       delete $sql{created_on};
       my @keys = keys %sql;
@@ -990,9 +992,8 @@ Isaac Connor, E<lt>isaac@zoneminder.comE<gt>
 
 Copyright (C) 2001-2017  ZoneMinder LLC
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.3 or,
-at your option, any later version of Perl 5 you may have available.
+Licensed under the GNU General Public License v2 or later; see the COPYING
+file distributed with ZoneMinder for the full text.
 
 
 =cut

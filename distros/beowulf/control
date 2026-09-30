@@ -13,7 +13,7 @@ Build-Depends: debhelper, sphinx-doc, dh-linktree, dh-apache2
               ,ffmpeg
               ,net-tools
               ,libbz2-dev
-              ,libcurl4-gnutls-dev
+              ,libcurl4-gnutls-dev | libcurl4-openssl-dev | libcurl4-nss-dev
               ,libturbojpeg0-dev
               ,default-libmysqlclient-dev | libmysqlclient-dev | libmariadbclient-dev-compat
               ,libpcre2-dev

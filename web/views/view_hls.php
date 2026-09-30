@@ -22,19 +22,34 @@ if (!$Event->Id()) {
   header('HTTP/1.1 404 Not Found');
   die('Event not found');
 }
+// Per-event ACL: coarse canView('Events') isn't enough — the user may be denied
+// access to the monitor that owns this event (GHSA-vj5r-pc2v-gfwv). Return the
+// same 404 as a missing event so the id isn't leaked.
+if (!$Event->canView()) {
+  ZM\Warning('Event '.$_REQUEST['eid'].' HLS access denied');
+  header('HTTP/1.1 404 Not Found');
+  die('Event not found');
+}
 
 $m3u8_path = $Event->Path() . '/index.m3u8';
 
 if (!file_exists($m3u8_path)) {
-  header('HTTP/1.1 404 Not Found');
-  die('HLS manifest not available for this event');
+  header('HTTP/1.1 204 No Content');
+  header('Cache-Control: no-cache');
+  exit;
 }
 
-// Don't serve an m3u8 with no fragments — the event may have just started
 $m3u8_content_check = file_get_contents($m3u8_path);
-if (strpos($m3u8_content_check, '#EXTINF:') === false) {
-  header('HTTP/1.1 404 Not Found');
-  die('HLS manifest has no fragments yet');
+if ($m3u8_content_check === false) {
+  header('HTTP/1.1 204 No Content');
+  header('Cache-Control: no-cache');
+  ZM\Debug('HLS manifest ' . $m3u8_path . ' is not available yet');
+  exit;
+} else if (strpos($m3u8_content_check, '#EXTINF:') === false) {
+  header('HTTP/1.1 204 No Content');
+  header('Cache-Control: no-cache');
+  ZM\Debug('HLS manifest ' . $m3u8_path .' has no fragments yet');
+  exit;
 }
 
 // Build auth query string for segment URLs
@@ -57,16 +72,19 @@ $content = file_get_contents($m3u8_path);
 $Server = $Event->Server();
 $base_url = $Server->PathToIndex();
 
-// Replace bare URLs with full paths including auth
+// Replace bare relative segment URLs with full paths including auth.
+// The m3u8 has lines like "index.php?view=view_video&eid=N&file=F" — capture
+// only the query string (after "index.php?") so the replacement doesn't emit
+// "/zm/index.php?index.php?view=…".
 $content = preg_replace(
-  '/^(index\.php\?.+)$/m',
+  '/^index\.php\?(.+)$/m',
   $base_url . '?$1' . $auth_query,
   $content
 );
 
-// Also fix the EXT-X-MAP URI
+// Also fix the EXT-X-MAP URI (initialization segment) the same way.
 $content = preg_replace(
-  '/URI="(index\.php\?[^"]+)"/m',
+  '/URI="index\.php\?([^"]+)"/m',
   'URI="' . $base_url . '?$1' . $auth_query . '"',
   $content
 );

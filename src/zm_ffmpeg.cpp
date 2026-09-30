@@ -20,6 +20,7 @@
 #include "zm_ffmpeg.h"
 
 #include "zm_logger.h"
+#include "zm_pixformat.h"
 #include "zm_rgb.h"
 #include "zm_utils.h"
 
@@ -146,6 +147,33 @@ std::list<const CodecData*> get_decoder_data(int wanted_codec, const std::string
     results.push_back(chosen_codec_data);
   }
   return results;
+}
+
+AVCodecContext *open_fallback_decoder(const AVCodecParameters *codecpar, const AVCodec **codec_out) {
+  const AVCodec *codec = avcodec_find_decoder(codecpar->codec_id);
+  if (!codec) {
+    Debug(1, "No fallback decoder available for codec %s",
+        avcodec_get_name(codecpar->codec_id));
+    return nullptr;
+  }
+  Debug(1, "Trying fallback decoder %s for codec %s",
+      codec->name, avcodec_get_name(codecpar->codec_id));
+  AVCodecContext *ctx = avcodec_alloc_context3(codec);
+  if (!ctx) {
+    Error("Failed to allocate context for fallback decoder %s", codec->name);
+    return nullptr;
+  }
+  avcodec_parameters_to_context(ctx, codecpar);
+  zm_dump_codec(ctx);
+  int ret = avcodec_open2(ctx, codec, nullptr);
+  if (ret < 0) {
+    Error("Could not open fallback decoder %s (error '%s')",
+        codec->name, av_make_error_string(ret).c_str());
+    avcodec_free_context(&ctx);
+    return nullptr;
+  }
+  if (codec_out) *codec_out = codec;
+  return ctx;
 }
 
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
@@ -327,46 +355,9 @@ void FFMPEGDeInit() {
   bInit = false;
 }
 
+// DEPRECATED: use zm_pixformat_from_colours() from zm_pixformat.h instead.
 enum _AVPIXELFORMAT GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subpixelorder) {
-  enum _AVPIXELFORMAT pf;
-
-  Debug(8,"Colours: %d SubpixelOrder: %d",p_colours,p_subpixelorder);
-
-  switch (p_colours) {
-  case ZM_COLOUR_RGB24:
-    if(p_subpixelorder == ZM_SUBPIX_ORDER_BGR) {
-      /* BGR subpixel order */
-      pf = AV_PIX_FMT_BGR24;
-    } else {
-      /* Assume RGB subpixel order */
-      pf = AV_PIX_FMT_RGB24;
-    }
-    break;
-  case ZM_COLOUR_RGB32:
-    if (p_subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
-      /* ARGB subpixel order */
-      pf = AV_PIX_FMT_ARGB;
-    } else if (p_subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
-      /* ABGR subpixel order */
-      pf = AV_PIX_FMT_ABGR;
-    } else if (p_subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
-      /* BGRA subpixel order */
-      pf = AV_PIX_FMT_BGRA;
-    } else {
-      /* Assume RGBA subpixel order */
-      pf = AV_PIX_FMT_RGBA;
-    }
-    break;
-  case ZM_COLOUR_GRAY8:
-    pf = AV_PIX_FMT_GRAY8;
-    break;
-  default:
-    Panic("Unexpected colours: %d", p_colours);
-    pf = AV_PIX_FMT_GRAY8; /* Just to shush gcc variable may be unused warning */
-    break;
-  }
-
-  return pf;
+  return zm_pixformat_from_colours(p_colours, p_subpixelorder);
 }
 
 #if LIBAVUTIL_VERSION_CHECK(56, 0, 0, 17, 100)
@@ -611,6 +602,49 @@ enum AVPixelFormat fix_deprecated_pix_fmt(enum AVPixelFormat fmt) {
   default:
     return fmt;
   }
+}
+
+bool pix_fmt_is_jpeg_range(enum AVPixelFormat fmt) {
+  // The deprecated YUVJ* formats carry full-range (0-255) luma/chroma, as
+  // opposed to the limited/broadcast range (16-235) of their non-J equivalents.
+  switch (fmt) {
+  case AV_PIX_FMT_YUVJ411P:
+  case AV_PIX_FMT_YUVJ420P:
+  case AV_PIX_FMT_YUVJ422P:
+  case AV_PIX_FMT_YUVJ440P:
+  case AV_PIX_FMT_YUVJ444P:
+    return true;
+  default:
+    return false;
+  }
+}
+
+void zm_sws_set_ranges(struct SwsContext *ctx,
+                       enum AVPixelFormat original_src_fmt,
+                       enum AVPixelFormat original_dst_fmt) {
+  // swscale assumes limited (MPEG) range by default. When a side of the
+  // conversion was a full-range JPEG format (YUVJ*) that got mapped to its
+  // non-J equivalent by fix_deprecated_pix_fmt(), swscale would otherwise
+  // treat full-range samples as limited (or crush full-range output into
+  // limited range) and wash the colours out. Tell it which sides are full
+  // range. Pass the ORIGINAL (pre-fix) formats.
+  const bool src_full = pix_fmt_is_jpeg_range(original_src_fmt);
+  const bool dst_full = pix_fmt_is_jpeg_range(original_dst_fmt);
+  if (!src_full && !dst_full) return;
+
+  int *inv_table, *table;
+  int srcRange, dstRange, brightness, contrast, saturation;
+  // Returns < 0 when the conversion does not expose colorspace details (e.g.
+  // RGB->RGB); nothing to correct in that case.
+  if (sws_getColorspaceDetails(ctx, &inv_table, &srcRange, &table, &dstRange,
+                               &brightness, &contrast, &saturation) < 0)
+    return;
+  bool changed = false;
+  if (src_full && srcRange != 1) { srcRange = 1; changed = true; }
+  if (dst_full && dstRange != 1) { dstRange = 1; changed = true; }
+  if (!changed) return;
+  sws_setColorspaceDetails(ctx, inv_table, srcRange, table, dstRange,
+                           brightness, contrast, saturation);
 }
 
 bool is_video_stream(const AVStream * stream) {

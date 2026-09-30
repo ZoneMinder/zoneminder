@@ -23,6 +23,20 @@ class ControlsController extends AppController {
  */
 	public $components = array('Paginator', 'RequestHandler');
 
+  # Control definitions describe how to drive a camera and are edited under
+  # Options, which requires System. Manufacturers, CameraModels and
+  # EncoderTemplates all gate their reference data the same way; this one was
+  # left open.
+  public function beforeFilter() {
+    parent::beforeFilter();
+    global $user;
+    $canView = (!$user) || ($user->System() != 'None');
+    if (!$canView) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+      return;
+    }
+  }
+
 /**
  * index method
  *

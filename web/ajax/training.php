@@ -785,7 +785,9 @@ switch ($action) {
     // Copy to temp file so the script can read it.
     // tempnam() creates the base file; rename it to add .jpg extension
     // so the detection script receives a proper image filename.
-    $tmpBase = tempnam(sys_get_temp_dir(), 'zm_detect_');
+    // Use ZoneMinder's configured temp dir (ZM_DIR_TEMP) rather than the PHP
+    // system temp, so the file stays inside ZM's controlled/cleaned tree.
+    $tmpBase = tempnam(ZM_DIR_TEMP, 'zm_detect_');
     $tmpFile = $tmpBase.'.jpg';
     rename($tmpBase, $tmpFile);
     if (!copy($srcImage, $tmpFile)) {

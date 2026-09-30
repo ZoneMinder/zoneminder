@@ -1,0 +1,79 @@
+name: CI macOS Build
+
+# Builds ZoneMinder natively on macOS and runs the Catch2 suite. Nothing else
+# in CI compiles for anything but Linux, so Linux-only APIs reach master
+# unnoticed - dep/RtspServer calling pipe2() is the case that prompted this.
+#
+# Runs on macos-latest, so the job tracks whatever macOS GitHub currently
+# ships (arm64, macOS 26 as of this writing). The bare label is a standard
+# runner and free on public repositories; the -large and -xlarge variants are
+# billed even here, so do not reach for those to get a bigger machine.
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches: [ master ]
+
+permissions:
+  contents: read
+
+jobs:
+  macos-build:
+    name: Build and test (macos-latest, arm64)
+    runs-on: macos-latest
+
+    env:
+      # brew update on first install costs more than the packages themselves,
+      # and cleanup buys nothing on a throwaway runner.
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      HOMEBREW_NO_INSTALL_CLEANUP: 1
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Install build dependencies
+        # cmake and pkg-config ship with the image. curl comes from the SDK.
+        # gsoap is optional - the build works without it, minus the ONVIF tests
+        # - but it is installed here so ONVIF gets covered on macOS too.
+        run: |
+          brew install \
+            catch2 \
+            ffmpeg \
+            gsoap \
+            jpeg-turbo \
+            mosquitto \
+            mysql-client \
+            nlohmann-json \
+            openssl@3 \
+            pcre2
+
+      - name: Configure
+        # mysql-client is keg-only, so it is neither on the default include path
+        # nor picked up from CMAKE_PREFIX_PATH alone by the bare find_library
+        # call in CMakeLists.txt. Without the explicit -I the build dies on
+        # "'mysql/mysql.h' file not found".
+        run: |
+          MYSQL_PREFIX="$(brew --prefix mysql-client)"
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DBUILD_TEST_SUITE=ON \
+            -DBUILD_MAN=0 \
+            -DCMAKE_PREFIX_PATH="${MYSQL_PREFIX};$(brew --prefix)" \
+            -DOPENSSL_ROOT_DIR="$(brew --prefix openssl@3)" \
+            -DCMAKE_C_FLAGS="-I${MYSQL_PREFIX}/include" \
+            -DCMAKE_CXX_FLAGS="-I${MYSQL_PREFIX}/include"
+
+      - name: Build
+        run: cmake --build build -j"$(sysctl -n hw.ncpu)"
+
+      # Run the binary rather than ctest, for the reasons ci-cpp-tests.yml
+      # gives: catch_discover_tests does not map Catch2 tags onto ctest labels,
+      # so ctest cannot skip the [notCI] cases that want a database or a
+      # listening socket, and zm_font.cpp loads its fixtures by relative path.
+      - name: Run the tests
+        working-directory: build/tests
+        run: ./tests "~[notCI]"

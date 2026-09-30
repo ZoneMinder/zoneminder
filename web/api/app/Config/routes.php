@@ -25,6 +25,7 @@
  */
 	Router::mapResources('configs');
 	Router::mapResources('controls');
+	Router::mapResources('encoder_templates');
 	Router::mapResources('events');
 	Router::mapResources('event_data');
 	Router::mapResources('frames');

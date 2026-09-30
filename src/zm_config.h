@@ -24,6 +24,7 @@
 #include "zm_config_data.h"
 #include "zm_config_defines.h"
 #include <string>
+#include <unordered_map>
 
 #define ZM_MAX_IMAGE_WIDTH    2048        // The largest image we imagine ever handling
 #define ZM_MAX_IMAGE_HEIGHT    1536        // The largest image we imagine ever handling
@@ -53,6 +54,7 @@ struct StaticConfig {
   std::string DB_SSL_CA_CERT;
   std::string DB_SSL_CLIENT_KEY;
   std::string DB_SSL_CLIENT_CERT;
+  std::string DB_SSL_VERIFY_SERVER_CERT;
   std::string PATH_WEB;
   std::string SERVER_NAME;
   unsigned int SERVER_ID;
@@ -65,6 +67,12 @@ struct StaticConfig {
   std::string PATH_LOGS;
   std::string PATH_SWAP;
   std::string PATH_ARP;
+  std::string STREAM_SOCKET_GROUP;
+  std::string STREAM_SOCKET_ALLOWED_UIDS;
+  unsigned int STREAM_SOCKET_MAX_CLIENTS = 8;
+  unsigned int STREAM_SOCKET_QUEUE_BYTES = 8 * 1024 * 1024;
+  unsigned int STREAM_SOCKET_QUEUE_MSGS = 256;
+  unsigned int STREAM_SOCKET_STALL_SECS = 10;
   std::string capture_file_format;
   std::string analyse_file_format;
   std::string general_file_format;
@@ -75,63 +83,50 @@ extern StaticConfig staticConfig;
 
 class ConfigItem {
  private:
-  char *name;
-  char *value;
-  char *type;
+  std::string name_;
+  std::string value_;
+  std::string type_;
 
-  mutable enum { CFG_UNKNOWN, CFG_BOOLEAN, CFG_INTEGER, CFG_DECIMAL, CFG_STRING } cfg_type;
+  mutable enum { CFG_UNKNOWN, CFG_BOOLEAN, CFG_INTEGER, CFG_DECIMAL, CFG_STRING } cfg_type_;
   mutable union {
     bool boolean_value;
     int integer_value;
     double decimal_value;
-    char *string_value;
-  } cfg_value;
-  mutable bool accessed;
+  } cfg_value_;
+  mutable bool accessed_;
 
  public:
-  ConfigItem(const char *p_name, const char *p_value, const char *const p_type);
-  ConfigItem(const ConfigItem &);
-  ~ConfigItem();
-  void Copy(const ConfigItem&);
+  ConfigItem();
+  ConfigItem(const char *p_name, const char *p_value, const char *p_type);
+
   void ConvertValue() const;
   bool BooleanValue() const;
   int IntegerValue() const;
   double DecimalValue() const;
   const char *StringValue() const;
-
-  ConfigItem &operator=(const ConfigItem &item) {
-    Copy(item);
-    return *this;
-  }
-  inline operator bool() const {
-    return BooleanValue();
-  }
-  inline operator int() const {
-    return IntegerValue();
-  }
-  inline operator double() const {
-    return DecimalValue();
-  }
-  inline operator const char *() const {
-    return StringValue();
-  }
 };
 
 class Config {
  public:
+  struct MemberBinding {
+    enum Type { BOOL, INT, DOUBLE, STRING } type;
+    void *ptr;
+  };
+
   ZM_CFG_DECLARE_LIST
 
  private:
-  int n_items;
-  ConfigItem **items;
+  std::unordered_map<std::string, MemberBinding> bindings_;
+  std::unordered_map<std::string, ConfigItem> items_;
+
+  void RegisterBinding(const char *name, MemberBinding::Type type, void *ptr);
+  void ApplyItem(const char *name, const char *value, const char *type);
 
  public:
   Config();
-  ~Config();
+  ~Config() = default;
 
   void Load();
-  void Assign();
-  const ConfigItem &Item( int id );
 };
 
 extern Config config;

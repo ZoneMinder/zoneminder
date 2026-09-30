@@ -156,7 +156,7 @@ WHERE NOT isnull(StartDateTime)';
 $eventsValues = array();
 
 if ( count($user->unviewableMonitorIds()) ) {
-  $monFilterSql = ' AND E.MonitorId IN ('.$user->viewableMonitorIds().')';
+  $monFilterSql = ' AND E.MonitorId IN (' . implode(',', $user->viewableMonitorIds()) . ')';
   $rangeSql .= $monFilterSql;
   $eventsSql .= $monFilterSql;
   $eventIdsSql .= $monFilterSql;
@@ -810,8 +810,8 @@ foreach ( array_keys($monEventSlots) as $monitorId ) {
 <?php
 foreach( array_keys($monEventSlots) as $monitorId ) {
 ?>
-          <span class="keyEntry"><?php echo $monitors[$monitorId]->Name() ?>
-          <div id="keyBox<?php echo $monitorId ?>" class="keyBox monitorColour<?php echo $monitorId ?>" title="<?php echo $monitors[$monitorId]->Name() ?>" style="background-color: <?php echo $monitors[$monitorId]->WebColour() ?>;"></div>
+          <span class="keyEntry"><?php echo validHtmlStr($monitors[$monitorId]->Name()) ?>
+          <div id="keyBox<?php echo $monitorId ?>" class="keyBox monitorColour<?php echo $monitorId ?>" title="<?php echo validHtmlStr($monitors[$monitorId]->Name()) ?>" style="background-color: <?php echo $monitors[$monitorId]->WebColour() ?>;"></div>
           </span>
 <?php
 }

@@ -19,13 +19,15 @@
 //
 
 // If there is an action on an event, then we must have an id.
-if ( !empty($_REQUEST['eid']) ) {
+if ( empty($_REQUEST['eid']) ) {
   ZM\Warning('No eid in action on event view');
   return;
 }
 
-// Event scope actions, view permissions only required
-if ( canEdit('Events') ) {
+// Event scope actions. Require edit on this event, which includes access to its monitor.
+$event = new ZM\Event($_REQUEST['eid']);
+if ( $event->Id() and $event->canEdit() ) {
+  $_REQUEST['eid'] = $event->Id();
 
   if ( ($action == 'rename') && isset($_REQUEST['eventName']) ) {
     dbQuery('UPDATE Events SET Name=? WHERE Id=?', array($_REQUEST['eventName'], $_REQUEST['eid']));
@@ -50,5 +52,5 @@ if ( canEdit('Events') ) {
     ZM\AuditAction('delete', 'event', $_REQUEST['eid'], '');
     $refreshParent = true;
   }
-} // end if canEdit(Events)
+} // end if event canEdit
 ?>

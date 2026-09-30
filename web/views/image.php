@@ -53,6 +53,36 @@ if ( !function_exists('imagescale') ) {
 }
 
 if (!empty($_REQUEST['proxy'])) {
+  // The only consumer is the camera discovery thumbnail on add_monitors, which
+  // already requires monitor editing rights. Don't hand an outbound fetch
+  // primitive to plain event viewers.
+  if (!canEdit('Monitors')) {
+    ZM\Warning('Insufficient privileges to use the image proxy');
+    return;
+  }
+
+  // index.php exempts view=image from csrf_check() so images work as <img src>,
+  // and csrf_check() only looks at POSTs anyway. The proxy makes the server
+  // fetch a URL, so require the token here or any site could drive it through
+  // a logged-in user's browser.
+  if (ZM_ENABLE_CSRF_MAGIC) {
+    require_once('includes/csrf/csrf-magic.php');
+    if (!isset($_REQUEST['__csrf_magic']) || !is_string($_REQUEST['__csrf_magic']) ||
+        !csrf_check_tokens($_REQUEST['__csrf_magic'])) {
+      ZM\Warning('Image proxy request without a valid CSRF token');
+      http_response_code(403);
+      return;
+    }
+  }
+  // Also covers installs with CSRF magic off: browsers that send Sec-Fetch-Site
+  // say when a request was started by another site. Older browsers omit it.
+  if (isset($_SERVER['HTTP_SEC_FETCH_SITE']) and
+      !in_array($_SERVER['HTTP_SEC_FETCH_SITE'], ['same-origin', 'none'], true)) {
+    ZM\Warning('Image proxy request started by another site');
+    http_response_code(403);
+    return;
+  }
+
   $url = $_REQUEST['proxy'];
   if (!$url) {
     ZM\Warning('No url passed to image proxy');
@@ -65,7 +95,59 @@ if (!empty($_REQUEST['proxy'])) {
     ZM\Warning('Image proxy only supports http/https URLs');
     return;
   }
-  $username = $url_parts['user'];
+
+  $host = isset($url_parts['host']) ? $url_parts['host'] : '';
+  if ($host === '') {
+    ZM\Warning('Image proxy requires a host in the url');
+    return;
+  }
+
+  // Guard against SSRF. Discovery legitimately proxies cameras on the local
+  // LAN, so private ranges stay reachable, but loopback, link-local and other
+  // reserved addresses (127.0.0.1, ::1, 169.254.169.254 cloud metadata) are
+  // refused. FILTER_FLAG_NO_RES_RANGE covers exactly those without excluding
+  // 10/8, 172.16/12, 192.168/16 or fc00::/7.
+  // parse_url keeps the brackets around an IPv6 literal.
+  $host_ip = trim($host, '[]');
+  if (filter_var($host_ip, FILTER_VALIDATE_IP)) {
+    $addresses = array($host_ip);
+  } else {
+    $addresses = gethostbynamel($host);
+    if (!$addresses) $addresses = array();
+    $aaaa = @dns_get_record($host, DNS_AAAA);
+    if ($aaaa) {
+      foreach ($aaaa as $rr) {
+        if (!empty($rr['ipv6'])) $addresses[] = $rr['ipv6'];
+      }
+    }
+  }
+  if (!$addresses) {
+    ZM\Warning('Image proxy could not resolve '.$host);
+    return;
+  }
+  foreach ($addresses as $address) {
+    if (!filter_var($address, FILTER_VALIDATE_IP, FILTER_FLAG_NO_RES_RANGE)) {
+      ZM\Warning('Image proxy refusing reserved address '.$address.' for host '.$host);
+      return;
+    }
+  }
+
+  // Connect to the address that was just checked rather than letting fopen()
+  // resolve $host again: a second lookup could return a different answer (DNS
+  // rebinding) such as 127.0.0.1. The original name still goes out in the
+  // Host header and as the TLS peer name/SNI.
+  $connect_ip = $addresses[0];
+  $host_header = 'Host: '.$host.(isset($url_parts['port']) ? ':'.$url_parts['port'] : '');
+  $fetch_url = $url_parts['scheme'].'://';
+  if (isset($url_parts['user'])) {
+    $fetch_url .= $url_parts['user'].(isset($url_parts['pass']) ? ':'.$url_parts['pass'] : '').'@';
+  }
+  $fetch_url .= (strpos($connect_ip, ':') !== false ? '['.$connect_ip.']' : $connect_ip);
+  if (isset($url_parts['port'])) $fetch_url .= ':'.$url_parts['port'];
+  $fetch_url .= isset($url_parts['path']) ? $url_parts['path'] : '/';
+  if (isset($url_parts['query'])) $fetch_url .= '?'.$url_parts['query'];
+
+  $username = isset($url_parts['user']) ? $url_parts['user'] : '';
   $password = isset($url_parts['pass']) ? $url_parts['pass'] : '';
 
   $method = 'GET';
@@ -73,13 +155,18 @@ if (!empty($_REQUEST['proxy'])) {
   $opts = array(
     'http'=>array(
       'method'=>$method,
+      'header'=>array($host_header),
       #'header'=>"Accept-language: en\r\n" .
-      'ignore_errors'   => true
+      'ignore_errors'   => true,
+      // The SSRF guard above only validated $host. Following a redirect would
+      // connect to a Location the guard never checked (e.g. 127.0.0.1).
+      'follow_location' => 0,
       #"Cookie: foo=bar\r\n"
     ),
     'ssl'=>array(
       "verify_peer"=>false,
       "verify_peer_name"=>false,
+      "peer_name"=>$host_ip,
     )
   );
   $context = stream_context_create($opts);
@@ -90,7 +177,7 @@ if (!empty($_REQUEST['proxy'])) {
   @ini_set('zlib.output_compression', 0);
 
   /* Sends an http request with additional headers shown above */
-  $fp = @fopen($url, 'r', false, $context);
+  $fp = @fopen($fetch_url, 'r', false, $context);
   if ($fp) {
     $meta_data = stream_get_meta_data($fp);
     ZM\Debug(print_r($meta_data, true));
@@ -140,9 +227,9 @@ if (!empty($_REQUEST['proxy'])) {
         ZM\Debug($request);
 
         $request_header = array($request);
-        $opts['http']['header'] = $request;
+        $opts['http']['header'] = array($host_header, $request);
         $context = stream_context_create($opts);
-        $fp = fopen($url, 'r', false, $context);
+        $fp = fopen($fetch_url, 'r', false, $context);
         $meta_data = stream_get_meta_data($fp);
         ZM\Debug(print_r($meta_data, true));
       } # end if have auth
@@ -229,6 +316,13 @@ if ( empty($_REQUEST['path']) ) {
     if ( !$Event ) {
       header('HTTP/1.0 404 Not Found');
       ZM\Error('Event '.$_REQUEST['eid'].' Not found');
+      return;
+    }
+    // Per-event ACL: coarse Events/Snapshots role isn't enough, must also check
+    // monitor-level permission (GHSA-vj5r-pc2v-gfwv). 404 to avoid leaking the id.
+    if (!$Event->canView()) {
+      header('HTTP/1.0 404 Not Found');
+      ZM\Warning('Event '.$_REQUEST['eid'].' access denied');
       return;
     }
 
@@ -336,7 +430,11 @@ if ( empty($_REQUEST['path']) ) {
           $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d', $Frame->FrameId()).'-'.$show.'.jpg';
         } else {
           if ( $Event->DefaultVideo() ) {
-            $file_path = $Event->Path().'/'.$Event->DefaultVideo();
+            if($Event->DefaultVideo() !== 'index.m3u8') {
+              $file_path = $Event->Path().'/'.$Event->DefaultVideo();
+            } else {
+              $file_path = $Event->Path().'/'.find_video($Event->Path());
+            }
 
             if (!file_exists($file_path)) {
               if ($file = find_video($Event->Path())) {
@@ -357,7 +455,7 @@ if ( empty($_REQUEST['path']) ) {
               $retval = 0;
               exec($command, $output, $retval);
               ZM\Debug("Command: $command, retval: $retval, output: " . implode("\n", $output));
-              if ( ! file_exists($path) ) {
+              if ( $Event->DefaultVideo() !== 'index.m3u8' && ! file_exists($path) ) {
                 header('HTTP/1.0 404 Not Found');
                 ZM\Error('Can\'t create frame images from video for this event '.$Event->DefaultVideo().'
 
@@ -414,6 +512,13 @@ if ( empty($_REQUEST['path']) ) {
       ZM\Error('Event ' . $Frame->EventId() . ' Not Found');
       return;
     }
+    // Per-event ACL: see GHSA-vj5r-pc2v-gfwv. The frame id is user-supplied so the
+    // event/monitor it resolves to may be one the user is denied from viewing.
+    if (!$Event->canView()) {
+      header('HTTP/1.0 404 Not Found');
+      ZM\Warning('Event '.$Frame->EventId().' access denied via frame '.$_REQUEST['fid']);
+      return;
+    }
     $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d',$Frame->FrameId()).'-'.$show.'.jpg';
   } # end if have eid
     
@@ -447,7 +552,7 @@ if ( empty($_REQUEST['path']) ) {
       $retval = 0;
       exec($command, $output, $retval);
       ZM\Debug("Command: $command, retval: $retval, output: " . implode("\n", $output));
-      if ( ! file_exists($path) ) {
+      if ($Event->DefaultVideo() !== 'index.m3u8' && ! file_exists($path) ) {
         header('HTTP/1.0 404 Not Found');
         $message = 'Can\'t create frame images from video for this event '.$Event->DefaultVideo().'
 
@@ -506,6 +611,11 @@ if ( $errorText ) {
   ZM\Error($errorText);
 } else {
   # Must lock it because zmc may be still writing the jpg and will have a lock on it.
+  if (!file_exists($path)) {
+    header('HTTP/1.0 404 Not Found');
+    ZM\Warning("File '$path' cannot be locked because it does not exist.");
+    return;
+  }
   $fp_path = fopen($path, 'r');
   $lock = flock($fp_path, LOCK_SH);
   if (!$lock) ZM\Warning("Unable to get a read lock on $path, continuing.");
@@ -514,7 +624,7 @@ if ( $errorText ) {
   header('Cache-Control: max-age=86400');
   header('Expires: '.gmdate('D, d M Y H:i:s \G\M\T', time() + (60 * 60))); // Default set to 1 hour
   header('Pragma: cache');
-  if (($scale==0 || $scale==100) && ($width==0) && ($height==0)) {
+  if ((($scale==0 || $scale==100) && ($width==0) && ($height==0)) or !function_exists('imagecreatefromjpeg')) {
     # This is so that Save Image As give a useful filename
     if ($Event) {
       $filename = $Event->MonitorId().'_'.$Event->Id().'_'.$Frame->FrameId().'.jpg';

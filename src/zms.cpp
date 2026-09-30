@@ -50,6 +50,32 @@ bool ValidateAccess(User *user, int mon_id) {
   return allowed;
 }
 
+// Event access is decided by the monitor the event belongs to, never by a monitor id the
+// client supplies alongside it: an allowed monitor paired with a denied monitor's event id
+// must not stream that event. mon_id is used only when the stream is chosen by monitor and
+// time, in which case it is the monitor whose events are streamed.
+bool ValidateEventAccess(User *user, int mon_id, uint64_t event_id, bool by_monitor_and_time) {
+  if (user->getEvents() < User::PERM_VIEW) {
+    Warning("Insufficient privileges for request user %d %s, user does not have permission view events.",
+            user->Id(), user->getUsername());
+    return false;
+  }
+  if (!by_monitor_and_time) {
+    zmDbRow row;
+    if (!event_id || !row.fetch(stringtf("SELECT `MonitorId` FROM `Events` WHERE `Id` = %" PRIu64, event_id))) {
+      Warning("Unknown event %" PRIu64 " requested by user %d %s", event_id, user->Id(), user->getUsername());
+      return false;
+    }
+    mon_id = row[0] ? atoi(row[0]) : 0;
+  }
+  if (!user->canAccess(mon_id)) {
+    Warning("Insufficient privileges for request user %d %s for event %" PRIu64 " of monitor %d, user does not have permission view this monitor.",
+            user->Id(), user->getUsername(), event_id, mon_id);
+    return false;
+  }
+  return true;
+}
+
 int main(int argc, const char *argv[], char **envp) {
   self = argv[0];
 
@@ -236,6 +262,21 @@ int main(int argc, const char *argv[], char **envp) {
   }
   logInit(log_id_string);
 
+  // Summarise the decoded request so a runaway nph-zms can be tied to its
+  // stream type/params. Debug level because this fires once per process and
+  // there can be many (one per montage tile). refs #5006 (nph-zms
+  // occasionally consuming excessive memory).
+  {
+    static const char *source_names[] = {"unknown", "monitor", "event", "fifo"};
+    static const char *mode_names[] = {"jpeg", "mpeg", "raw", "zip", "single"};
+    Debug(1, "zms request: source=%s mode=%s monitor=%d event=%" PRIu64
+         " frame=%u frames=%d connkey=%u scale=%u rate=%u maxfps=%.2f"
+         " buffer=%u ttl=%u rss=%zuKB",
+         source_names[source], mode_names[mode], monitor_id, event_id,
+         frame_id, frames_to_send, connkey, scale, rate, maxfps,
+         playback_buffer, ttl, zm_get_rss_kb());
+  }
+
   if ( config.opt_use_auth ) {
     User *user = nullptr;
 
@@ -259,10 +300,33 @@ int main(int argc, const char *argv[], char **envp) {
       fputs("HTTP/1.0 403 Forbidden\r\n\r\n", stdout);
 
       const char *referer = getenv("HTTP_REFERER");
-      Warning("Unable to authenticate user from %s", referer);
+      const char *request_uri = getenv("REQUEST_URI");
+      const char *xff = getenv("HTTP_X_FORWARDED_FOR");
+      const char *remote = getenv("REMOTE_ADDR");
+      // Most failures here are stale auth hashes on long-lived <img src=nph-zms?...>
+      // streams whose hash TTL expired; the browser keeps reconnecting with the
+      // baked-in URL. Including user/auth-prefix/uri/xff makes the noise diagnosable
+      // without flipping on Debug.
+      // Log only the first 8 chars of the hash: enough to correlate, not enough to replay.
+      Warning("Unable to authenticate user (user='%s' auth='%.8s%s' uri='%s' referer='%s' xff='%s' remote='%s')",
+              username.c_str(),
+              auth,
+              (*auth && strlen(auth) > 8) ? "..." : "",
+              request_uri ? request_uri : "",
+              referer ? referer : "",
+              xff ? xff : "",
+              remote ? remote : "");
       return exit_zm(0);
     }
-    if ( !ValidateAccess(user, monitor_id) ) {
+    bool allowed;
+    if ( source == ZMS_EVENT ) {
+      // Mirrors the setStreamStart() choice below.
+      bool by_monitor_and_time = monitor_id && (event_time != std::chrono::system_clock::time_point::min());
+      allowed = ValidateEventAccess(user, monitor_id, event_id, by_monitor_and_time);
+    } else {
+      allowed = ValidateAccess(user, monitor_id);
+    }
+    if ( !allowed ) {
       delete user;
       user = nullptr;
       fputs("HTTP/1.0 403 Forbidden\r\n\r\n", stdout);

@@ -477,25 +477,6 @@ function startVisibleMonitors() {
   }
 }
 
-function refreshAuthAndStartMonitors() {
-  $j.getJSON(thisUrl + '?view=request&request=status&entity=navBar' + (auth_relay ? '&' + auth_relay : ''))
-      .done(function(data) {
-        if (data) {
-          if (data.auth) {
-            auth_hash = data.auth;
-          }
-          if (data.auth_relay) {
-            auth_relay = data.auth_relay;
-          }
-        }
-        startVisibleMonitors();
-      })
-      .fail(function() {
-        // Even if refresh fails, try to start with whatever auth we have
-        startVisibleMonitors();
-      });
-}
-
 function reloadWebSite(ndx) {
   document.getElementById('imageFeed'+ndx).innerHTML = document.getElementById('imageFeed'+ndx).innerHTML;
 }
@@ -708,7 +689,10 @@ function initPage() {
                 ayswModal = insertModalHtml('AYSWModal', data.html);
                 ayswModal.on('hidden.bs.modal', function() {
                   idleTimeoutTriggered = false;
-                  refreshAuthAndStartMonitors();
+                  // The modal may have sat here for hours with the monitors -
+                  // and their status polls - stopped, so the auth hash baked
+                  // into their srcs can be dead (auth-helpers.js).
+                  whenAuthFresh(startVisibleMonitors);
                 });
                 ayswModal.modal('show');
               })
@@ -915,6 +899,16 @@ function panZoomOut(el) {
   zmPanZoom.zoomOut(el);
 }
 
+function toggleZones(button) {
+  // Zone overlays are always in the DOM; #monitors.hide-zones controls them.
+  const hidden = document.getElementById('monitors').classList.toggle('hide-zones');
+  setCookie('zmMontageShowZones', hidden ? '0' : '1');
+  button.setAttribute('title', hidden ? showZonesString : hideZonesString);
+  button.classList.toggle('btn-normal', !hidden);
+  button.classList.toggle('btn-secondary', hidden);
+  $j(button).find('.material-icons').text(hidden ? 'layers' : 'layers_clear');
+}
+
 function changeStreamQuality() {
   const streamQuality = $j('#streamQuality').val();
   setCookie('zmStreamQuality', streamQuality);
@@ -1096,7 +1090,7 @@ document.onvisibilitychange = () => {
     if (!idleTimeoutTriggered) {
       // Refresh auth hash before restarting streams, since browsers throttle
       // timers for hidden tabs and the auth hash may have gone stale.
-      refreshAuthAndStartMonitors();
+      whenAuthFresh(startVisibleMonitors);
     } // end if not AYSW
   }
 };

@@ -125,7 +125,7 @@ var ZMMap = function() {
                 const res = monitor["Width"]+"x"+monitor["Height"];
                 const events = event_summary["TotalEvents"];
 
-                const url_to_zms = server.urlToZMS()+'?scale=60&mode=single&monitor='+id+(auth_relay?'&'+auth_relay:'');
+                const url_to_zms = zmAuth.appendTo(server.urlToZMS()+'?scale=60&mode=single&monitor='+id);
                 const popup = '<a href="'+thisUrl+'?view=watch&mid='+monitor.Id+'">'+monitor.Name+'</a><br>Resolution: '+res+'<br>FPS: '+fps+'<br><a href="?view=watch&mid='+id+'"><img width="400" style="width: 200px;" src="'+url_to_zms+'"/></a><br/>Events: '+events;
                 if (event_summary.TotalEvents > 0) {
                   if (monitor_status.Status == 'Connected') {

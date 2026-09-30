@@ -1,6 +1,14 @@
+fieldset {
+  width: 100%;
+}
+
+fieldset .table {
+  margin-bottom: 0;
+}
+
 .BasicInformation, .Permissions {
-  width: 50%;
-  float: left;
+  width: auto;
+  float: unset;
 }
 
 #GroupsPermissions,

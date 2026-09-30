@@ -38,6 +38,7 @@ var params =
 
 // Called by bootstrap-table to retrieve zm event data
 function ajaxRequest(params) {
+  if (deferTableRequestWhileHidden(table)) return;
   if (params.data && params.data.filter) {
     params.data.advsearch = params.data.filter;
     delete params.data.filter;
@@ -54,6 +55,10 @@ function ajaxRequest(params) {
     timeout: 0,
     success: function(data) {
       if (data.result == 'Error') {
+        // ajaxError() answers 200 with result=Error for things like a
+        // permission failure, so this returns without params.success() and
+        // would leave the table loading for ever, same as the error path below.
+        table.bootstrapTable('hideLoading');
         alert(data.message);
         return;
       }
@@ -65,12 +70,19 @@ function ajaxRequest(params) {
       // rearrange the result into what bootstrap-table expects
       params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
     },
-    error: function(jqXHR) {
-      if (jqXHR.statusText != 'abort') {
-        console.log("error", jqXHR);
-      }
-      //logAjaxFail(jqXHR);
-      //$j('#eventTable').bootstrapTable('refresh');
+    error: function(jqXHR, textStatus, errorThrown) {
+      // Every reload aborts the request in flight, so those are not failures.
+      if (jqXHR.statusText == 'abort') return;
+      // Without this the table sits on "Loading, please wait" for good, which
+      // is what a large result set exhausting the PHP memory limit looks like
+      // from here: the request 500s and nothing ever says so. logAjaxFail only
+      // writes to the console, and events.php suppresses display_errors, so a
+      // memory fatal arrives with an empty body and not even that says
+      // anything useful. Hence the alert as well. See #3301.
+      table.bootstrapTable('hideLoading');
+      zmAlert(translate['Reason'] + ': ' + jqXHR.statusText + '~~' +
+        translate['ErrorUpdatingEventTable'], translate['AJAXRequestError']);
+      logAjaxFail(jqXHR, textStatus, errorThrown);
     }
   });
 }
@@ -585,10 +597,25 @@ function buildFilterQuery() {
   return query;
 }
 
+// Persist every filter term that carries a data-cookie (Monitor, Group,
+// StartDateTime, Notes, Tags, ...) so the selection is shared with the console,
+// montage and montage review views. setCookie JSON-encodes arrays, matching how
+// getFilterSelection() reads the zmFilter_* cookies. refs #4976
+function persistFilterCookies() {
+  $j('#fieldsTable [data-cookie]').each(function persistOne() {
+    const el = $j(this);
+    setCookie(el.attr('data-cookie'), el.val());
+  });
+}
+
 function filterEvents(clickedElement, options) {
   options = options || {};
   if (clickedElement.target && clickedElement.target.id == 'filterArchived') {
     setCookie('zmFilterArchived', clickedElement.target.value);
+  }
+  // Don't rewrite cookies when restoring state from a back/forward navigation.
+  if (!options.skipPushState) {
+    persistFilterCookies();
   }
   filterQuery = buildFilterQuery();
 

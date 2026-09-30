@@ -1,4 +1,5 @@
 <?php
+if (!canView('Events')) ajaxError('Insufficient permissions');
 if (empty($_REQUEST['eid'])) ajaxError('Event Id Not Provided');
 if (empty($_REQUEST['fid'])) ajaxError('Frame Id Not Provided');
 

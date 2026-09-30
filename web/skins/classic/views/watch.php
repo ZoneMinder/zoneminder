@@ -103,9 +103,16 @@ if (!$cycle and isset($_COOKIE['zmCycleShow'])) {
 }
 #Whether to show the controls button
 $hasPtzControls = false;
+require_once('includes/MonitorAction.php');
 foreach ($monitors as $m) {
   if (( ZM_OPT_CONTROL && $m->Controllable() && canView('Control') && $m->Type() != 'WebSite' )) {
     //If there is control for at least one camera, then we display the block.
+    $hasPtzControls = true;
+  }
+  # A monitor with manual actions needs the panel even when it is not itself
+  # controllable: the actions drive other devices, typically a speaker.
+  if (!$hasPtzControls and ZM_OPT_CONTROL and canView('Control') and
+      count(ZM\MonitorAction::find(array('MonitorId'=>$m->Id(), 'TriggerOn'=>'Manual', 'Enabled'=>1)))) {
     $hasPtzControls = true;
   }
   if ($hasPtzControls) {
@@ -226,17 +233,14 @@ echo getNavBarHTML() ?>
 <div id="page">
   <div id="header">
 <?php
-    $filter_inline = defined('ZM_WEB_FILTER_SETTINGS_POSITION') && ZM_WEB_FILTER_SETTINGS_POSITION == 'inline';
-    $html = '';
-    if (!$filter_inline) {
-      $html .= '<a class="flip" href="#"
-               data-flip-control-object="#mfbpanel"
-               data-flip-control-run-after-func="applyChosen"
-               data-flip-control-run-after-complet-func="changeScale">
-                 <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
-               </a>'.PHP_EOL;
-    }
-    $html .= '<div id="mfbpanel" class="'.($filter_inline ? '' : 'hidden-shift ').'container-fluid">'.PHP_EOL;
+    $filter_inline = filterSettingsInline();
+    $html = '<a class="flip" href="#"
+             data-flip-control-object="#mfbpanel"
+             data-flip-control-run-after-func="applyChosen"
+             data-flip-control-run-after-complet-func="changeScale">
+               <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
+             </a>
+             <div id="mfbpanel" class="'.($filter_inline ? '' : 'hidden-shift ').'container-fluid">'.PHP_EOL;
     echo $html;
 ?>
     <div class="controlHeader">

@@ -14,7 +14,8 @@ function updateMonitorDimensions(element) {
     var monitorWidth = parseInt(form.elements['newMonitor[Width]'].value);
     var monitorHeight = parseInt(form.elements['newMonitor[Height]'].value);
 
-    if ( form.elements['preserveAspectRatio'].checked ) {
+    // The WebSite monitor type renders Width/Height without a preserveAspectRatio checkbox.
+    if ( form.elements['preserveAspectRatio'] && form.elements['preserveAspectRatio'].checked ) {
       switch ( element.name ) {
         case 'newMonitor[Width]':
           if ( monitorWidth >= 0 ) {
@@ -37,7 +38,7 @@ function updateMonitorDimensions(element) {
     // If we find a matching option in the dropdown, select it or select custom
 
     var option = $j('select[name="dimensions_select"] option[value="'+monitorWidth+'x'+monitorHeight+'"]');
-    if ( !option.size() ) {
+    if ( !option.length ) {
       $j('select[name="dimensions_select"]').val('');
     } else {
       $j('select[name="dimensions_select"]').val(monitorWidth+'x'+monitorHeight);
@@ -175,11 +176,10 @@ function initPage() {
   document.querySelectorAll('select[name="newMonitor[Devices]"]').forEach(function(el) {
     el.onchange = window['devices_onchange'].bind(el, el);
   });
-  document.querySelectorAll('input[name="newMonitor[Width]"]').forEach(function(el) {
-    el.oninput = window['updateMonitorDimensions'].bind(el, el);
-  });
-  document.querySelectorAll('input[name="newMonitor[Height]"]').forEach(function(el) {
-    el.oninput = window['updateMonitorDimensions'].bind(el, el);
+  // Width/Height also get a buffer_setting_oninput listener below, so use
+  // addEventListener rather than oninput= to avoid one clobbering the other.
+  document.querySelectorAll('input[name="newMonitor[Width]"],input[name="newMonitor[Height]"]').forEach(function(el) {
+    el.addEventListener('input', window['updateMonitorDimensions'].bind(el, el));
   });
   document.querySelectorAll('select[name="dimensions_select"]').forEach(function(el) {
     el.onchange = window['updateMonitorDimensions'].bind(el, el);
@@ -192,13 +192,19 @@ function initPage() {
   });
   document.querySelectorAll('select[name="newMonitor[Type]"]').forEach(function(el) {
     el.onchange = function() {
+      // Reload the form to render the type-specific fields WITHOUT saving. The
+      // monitor view repopulates from the posted newMonitor values, so the
+      // selected Type and anything already entered are preserved. Saving here
+      // would fail for a brand-new monitor whose Width/Height are not set yet
+      // (both are NOT NULL), leaving the type change unpersisted. A plain
+      // submit posts no action=save, matching the Method field's submitTab.
       const form = document.getElementById('contentForm');
       form.tab.value = 'general';
       form.submit();
     };
   });
   document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"],input[name="newMonitor[MaxImageBufferCount]"],input[name="newMonitor[Width]"],input[name="newMonitor[Height]"],input[name="newMonitor[PreEventCount]"]').forEach(function(el) {
-    el.oninput = window['buffer_setting_oninput'].bind(el);
+    el.addEventListener('input', window['buffer_setting_oninput'].bind(el));
   });
   update_estimated_ram_use();
 
@@ -311,39 +317,42 @@ function initPage() {
     window.location.assign('?view=console');
   });
 
-  var sourceFormMonitor = $j('#contentForm').serialize();
+  sourceFormMonitor = $j('#contentForm').serialize();
   // Manage the ZONES Button
-  document.getElementById("zones-tab").addEventListener("click", function onZonesClick(evt) {
-    if ($j('#contentForm').serialize() !== sourceFormMonitor) {
-      evt.preventDefault();
-      const data = {
-        request: "modal",
-        modal: "saveconfirm",
-        key: messageSavingDataWhenLeavingPage
-      };
+  const zonesTab = document.getElementById("zones-tab");
+  if (zonesTab) {
+    zonesTab.addEventListener("click", function onZonesClick(evt) {
+      if ($j('#contentForm').serialize() !== sourceFormMonitor) {
+        evt.preventDefault();
+        const data = {
+          request: "modal",
+          modal: "saveconfirm",
+          key: messageSavingDataWhenLeavingPage
+        };
 
-      if (!document.getElementById('saveConfirm')) {
-        // Load the save confirmation modal into the DOM
-        $j.getJSON(thisUrl, data)
-            .done(function(data) {
-              insertModalHtml('saveConfirm', data.html);
-              manageSaveConfirmModalBtns();
-              $j('#saveConfirm').modal('show');
-            })
-            .fail(function(jqXHR) {
-              console.log('error getting saveconfirm', jqXHR);
-              logAjaxFail(jqXHR);
-            });
-        return;
+        if (!document.getElementById('saveConfirm')) {
+          // Load the save confirmation modal into the DOM
+          $j.getJSON(thisUrl, data)
+              .done(function(data) {
+                insertModalHtml('saveConfirm', data.html);
+                manageSaveConfirmModalBtns();
+                $j('#saveConfirm').modal('show');
+              })
+              .fail(function(jqXHR) {
+                console.log('error getting saveconfirm', jqXHR);
+                logAjaxFail(jqXHR);
+              });
+          return;
+        } else {
+          document.getElementById('saveConfirmBtn').disabled = false; // re-enable the button
+          $j('#saveConfirm').modal('show');
+        }
       } else {
-        document.getElementById('saveConfirmBtn').disabled = false; // re-enable the button
-        $j('#saveConfirm').modal('show');
+        const href = '?view=zones&mid='+mid;
+        window.location.assign(href);
       }
-    } else {
-      const href = '?view=zones&mid='+mid;
-      window.location.assign(href);
-    }
-  });
+    });
+  }
 
   // Manage the SAVE CONFIRMATION modal button
   function manageSaveConfirmModalBtns() {
@@ -351,7 +360,7 @@ function initPage() {
     document.getElementById('saveConfirmBtn').addEventListener('click', function onSaveConfirmClick(evt) {
       document.getElementById('saveConfirmBtn').disabled = true; // prevent double click
       evt.preventDefault();
-      saveMonitorData(href);
+      saveMonitorDataPrepare(document.getElementById('contentForm'), true, href);
     });
 
     // Manage the Don't SAVE modal button
@@ -368,21 +377,44 @@ function initPage() {
 
   // Manage the SAVE Button
   document.getElementById("saveBtn").addEventListener("click", function onSaveClick(evt) {
-    const form = document.getElementById('contentForm');
-    if (validateForm(form)) {
-      saveMonitorData();
-    }
+    saveMonitorDataPrepare(document.getElementById('contentForm'), true);
   });
 
   // Manage the SAVE AND CLOSE Button - use AJAX instead of native form
   // submit so Chrome doesn't trigger its "save password" prompt.
   document.getElementById("saveAndCloseBtn").addEventListener("click", function onSaveAndCloseClick(evt) {
-    const form = document.getElementById('contentForm');
-    if (validateForm(form)) {
-      $j('#contentButtons').hide();
-      saveMonitorData('?view=console');
-    }
+    saveMonitorDataPrepare(document.getElementById('contentForm'), true, '?view=console');
   });
+
+  /*
+  * href - Link to follow after saving
+  */
+  function saveMonitorDataPrepare(form, formValidation, href = null) {
+    $j.getJSON(thisUrl, {
+      request: "monitor",
+      action: "validateName",
+      mid: mid,
+      monitorName: form.elements['newMonitor[Name]'].value
+    })
+        .done(function(data) {
+          if (data.response === false) {
+            alert(data.messageBadNameChars.replace(/~~/, '\r\n'));
+          } else if (data.result === 'Error') {
+            alert(data.message);
+          } else {
+            const successfulFormValidation = (formValidation) ? validateForm(form) : true;
+            if (successfulFormValidation) {
+              if (!href || href === '') {
+                saveMonitorData();
+              } else {
+                $j('#contentButtons').hide();
+                saveMonitorData(href);
+              }
+            }
+          }
+        })
+        .fail(logAjaxFail);
+  }
 
   const form = document.getElementById('contentForm');
 
@@ -528,7 +560,46 @@ function initPage() {
   if (!isMobile()) initThumbAnimation();
 
   manageChannelStream();
+  checkVerAudioMotion();
+
+  // Reflect the current Motion Detection (Analysing) setting on load.
+  if (form.elements['newMonitor[Analysing]']) {
+    Analysing_onChange(form.elements['newMonitor[Analysing]']); // eslint-disable-line new-cap
+  } else if (form.elements['newMonitor[AudioDetection]']) {
+    // Analysis tab not rendered with a select; still reflect audio detection.
+    AudioDetection_onChange(form.elements['newMonitor[AudioDetection]']); // eslint-disable-line new-cap
+  }
+  startAudioLevelMeter();
 } // end function initPage()
+
+async function checkVerAudioMotion() {
+  const result = await waitUntil(() => window.CURRENT_AUDIO_MOTION_ANALYZER_VERSION, 20000);
+  if (result === false) {
+    console.warn("Unable to obtain the current version number of audio motion analyzer.");
+    return;
+  }
+  const whatDisplayInfo = document.getElementById("WhatDisplayInfo");
+  whatDisplayInfo.classList.remove("text-success");
+  whatDisplayInfo.classList.remove("text-info");
+  whatDisplayInfo.classList.remove("text-danger");
+
+  if (window.SUPPORTED_AUDIO_MOTION_ANALYZER_VERSION === window.CURRENT_AUDIO_MOTION_ANALYZER_VERSION) {
+    whatDisplayInfo.innerHTML = applyTemplateAudioMotionTranslation(audioMotionVersionOK);
+    whatDisplayInfo.classList.add("text-success");
+  } else if (window.CURRENT_AUDIO_MOTION_ANALYZER_VERSION === "NotInstalled") {
+    whatDisplayInfo.innerHTML = applyTemplateAudioMotionTranslation(audioMotionVersionNotInstalled);
+    whatDisplayInfo.classList.add("text-info");
+  } else { //The versions do not match
+    whatDisplayInfo.innerHTML = applyTemplateAudioMotionTranslation(audioMotionVersionWrongVersion);
+    whatDisplayInfo.classList.add("text-danger");
+  }
+}
+
+function applyTemplateAudioMotionTranslation(str) {
+  str = str.replaceAll('{AudioMotionVersionInstalled}', window.CURRENT_AUDIO_MOTION_ANALYZER_VERSION);
+  str = str.replaceAll('{AudioMotionVersionRequired}', window.SUPPORTED_AUDIO_MOTION_ANALYZER_VERSION);
+  return createClickableLink(replaceDoubleTildeToBR(str));
+}
 
 function saveMonitorData(href = '') {
   const alertBlock = $j("#alertSaveMonitorData");
@@ -541,7 +612,14 @@ function saveMonitorData(href = '') {
     data: form_data,
     success: function() {
       alertBlock.fadeOut({duration: 'fast'});
-      if (href) window.location.assign(href);
+      sourceFormMonitor = $j('#contentForm').serialize();
+      if (href) {
+        if (href == 'reload') {
+          window.location.reload();
+        } else {
+          window.location.assign(href);
+        }
+      }
       //document.getElementById('zones-tab').classList.remove("disabled");
     },
     error: function() {
@@ -739,6 +817,111 @@ function Capturing_onChange(e) {
 }
 
 function Analysing_onChange(e) {
+  // When motion detection is None there is no analysis, so hide the
+  // analysis image, analysis fps and ref/alarm blend fields.
+  const show = (e.value != 'None');
+  $j('#AnalysisImage, li.AnalysisFPS, li.RefBlendPerc, li.AlarmRefBlendPerc, li.AlarmRefImageBlendPct').toggle(show);
+  // Audio detection is scored by the same analysis pass, so it cannot fire
+  // either. Hiding it stops the settings looking configured but inert.
+  $j('li.AudioDetection, li.settingsGroup.AudioGroup').toggle(show);
+  AudioDetection_onChange(document.getElementById('contentForm').elements['newMonitor[AudioDetection]']); // eslint-disable-line new-cap
+}
+
+function AudioDetection_onChange(e) {
+  // The threshold and the score only mean anything while detection is on.
+  // The rows are hidden rather than the inputs disabled, because a disabled
+  // input is not submitted and the value would silently fail to save.
+  //
+  // This asks the Analysing setting, not whether the row is currently on
+  // screen. The tabs are switched client side, so when the editor first loads
+  // the Analysis pane is hidden and every row in it reports as not visible.
+  // Testing visibility here set display:none on both rows during initPage, and
+  // opening the tab did not undo it - they stayed hidden until something else
+  // re-ran this.
+  const form = document.getElementById('contentForm');
+  const analysing = form ? form.elements['newMonitor[Analysing]'] : null;
+  const analysisOn = !analysing || (analysing.value != 'None');
+  const show = analysisOn && !!(e && e.checked);
+  $j('li.AudioThreshold, li.AudioAlarmScore').toggle(show);
+}
+
+// --- Live audio level meter -------------------------------------------------
+//
+// zmc only measures the audio level when something asks for it, so polling
+// this is not just reading a value: each request pushes the deadline in shared
+// memory forward a few seconds, and when the polling stops the decoding stops
+// with it. That is why the interval skips the request whenever the meter is
+// off screen rather than just hiding the result.
+
+var audioLevelTimer = null;
+var audioLevelInFlight = false;
+
+function pollAudioLevel() {
+  const meter = document.getElementById('audioLevelMeter');
+  // Not on this monitor's form at all, or the Analysis tab is not showing.
+  if (!meter || !$j(meter).is(':visible')) return;
+  // A slow reply must not stack up requests behind it.
+  if (audioLevelInFlight) return;
+
+  audioLevelInFlight = true;
+  $j.getJSON(thisUrl, {request: 'monitor', action: 'audioLevel', mid: meter.dataset.mid})
+      .done(function(data) {
+        if (data.result === 'Error') {
+          showAudioLevel(null, data.message);
+          return;
+        }
+        showAudioLevel(data.level, null, data.alarm);
+      })
+      .fail(function() {
+        showAudioLevel(null, 'unavailable');
+      })
+      .always(function() {
+        audioLevelInFlight = false;
+      });
+}
+
+function showAudioLevel(level, message, alarm) {
+  const fill = document.getElementById('audioLevelFill');
+  const value = document.getElementById('audioLevelValue');
+  if (!fill || !value) return;
+
+  // levelMeterState is shared with the event graph so both agree about the
+  // 0-100 scale, and it is what decides that a missing reading says so
+  // instead of showing a confident zero.
+  const state = levelMeterState(level, alarm, message);
+  fill.style.width = state.percent + '%';
+  value.textContent = state.text;
+  value.classList.toggle('alarm', state.alarm);
+}
+
+// The threshold is drawn on the meter so the reading can be compared against
+// it while it is being typed, without saving first.
+function updateAudioThresholdMark() {
+  const mark = document.getElementById('audioLevelThresholdMark');
+  if (!mark) return;
+  const form = document.getElementById('contentForm');
+  const input = form ? form.elements['newMonitor[AudioThreshold]'] : null;
+  const percent = levelThresholdPercent(input ? input.value : null);
+
+  if (percent === null) {
+    mark.style.display = 'none';
+    return;
+  }
+  mark.style.display = 'block';
+  mark.style.left = percent + '%';
+}
+
+function startAudioLevelMeter() {
+  if (!document.getElementById('audioLevelMeter')) return;
+  updateAudioThresholdMark();
+  $j('input[name="newMonitor[AudioThreshold]"]').on('input', updateAudioThresholdMark);
+
+  if (audioLevelTimer) clearInterval(audioLevelTimer);
+  // One second is responsive enough to watch a voice move the bar, and is ten
+  // times inside the request's lifetime in zmc, so a dropped poll or two does
+  // not make the measurement lapse and the bar stall.
+  audioLevelTimer = setInterval(pollAudioLevel, 1000);
+  pollAudioLevel();
 }
 
 function Recording_onChange(e) {
@@ -891,7 +1074,10 @@ function ControlId_onChange(ddm) {
 function ControlEdit_onClick() {
   const ControlId = document.getElementById('ControlId');
   if (ControlId) {
-    window.location = '?view=controlcap&cid='+ControlId.value;
+    const cid = parseInt(ControlId.value, 10);
+    if (Number.isInteger(cid) && cid > 0) {
+      window.location = '?view=controlcap&cid=' + cid;
+    }
   }
 }
 
@@ -907,5 +1093,60 @@ window.addEventListener('DOMContentLoaded', initPage);
 window.addEventListener('pagehide', function() {
   document.querySelectorAll('#contentForm input[type="password"]').forEach(function(el) {
     el.value = '';
+  });
+});
+
+/**
+ * Rebuild one action row's type list and file input to match the device it
+ * targets, so the editor only ever offers what that device supports. The
+ * server re-checks this on save; this is convenience, not enforcement.
+ * @param {HTMLElement} row the tr holding the action's inputs
+ */
+function updateMonitorActionRow(row) {
+  const target = row.querySelector('select[name*="[TargetMonitorId]"]');
+  const type = row.querySelector('select[name*="[ActionType]"]');
+  const file = row.querySelector('input[name*="[AudioFile]"]');
+  if (!target || !type || !file) return;
+
+  const caps = (typeof monitorActionCapabilities !== 'undefined') ?
+    monitorActionCapabilities[target.value] : null;
+  const labels = (typeof monitorActionTypeLabels !== 'undefined') ?
+    monitorActionTypeLabels : {};
+
+  const wanted = type.value;
+  const constrained = !!(caps && caps.Types && caps.Types.length);
+  // With no target chosen there is nothing to constrain the list to. Show the
+  // full set rather than emptying the control: a blank dropdown reads as a
+  // broken page, and the spare row at the bottom of the table always starts
+  // with no target.
+  const available = constrained ? caps.Types : Object.keys(labels);
+  type.innerHTML = '';
+  available.forEach(function(t) {
+    const option = document.createElement('option');
+    option.value = t;
+    option.textContent = labels[t] ? labels[t] : t;
+    if (t == wanted) option.selected = true;
+    type.appendChild(option);
+  });
+  type.disabled = !constrained;
+
+  // Only a sound takes a file, and only within the range that device accepts.
+  const takesFile = (type.value == 'AudioPlay');
+  file.style.visibility = takesFile ? 'visible' : 'hidden';
+  if (takesFile && caps) {
+    if (caps.MinAudioFile !== null) file.min = caps.MinAudioFile;
+    if (caps.MaxAudioFile !== null) file.max = caps.MaxAudioFile;
+    if (file.value === '' && caps.MinAudioFile !== null) file.value = caps.MinAudioFile;
+  }
+}
+
+window.addEventListener('DOMContentLoaded', function initMonitorActions() {
+  document.querySelectorAll('tr.monitorActionRow').forEach(function(row) {
+    updateMonitorActionRow(row);
+    row.querySelectorAll('select').forEach(function(el) {
+      el.addEventListener('change', function() {
+        updateMonitorActionRow(row);
+      });
+    });
   });
 });

@@ -241,6 +241,14 @@ int Monitor::MonitorLink::score() {
     Debug(1, "Checking all zones score is %d", shared_data->last_frame_score);
     return shared_data->last_frame_score;
   }
+  if (shared_data->state == ALERT) {
+    // Linked monitor's event is still open in its post-event window — motion
+    // has paused but may resume. Return a sentinel so our event stays open;
+    // do not latch last_frame_score, which would inflate the receiving
+    // monitor's accumulated score and bias snapshot.jpg selection.
+    Debug(1, "Linked monitor in ALERT, returning sentinel to keep event open");
+    return 1;
+  }
   Debug(1, "not alarmed. %d", shared_data->state);
   return 0;
 }

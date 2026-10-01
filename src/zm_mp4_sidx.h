@@ -59,6 +59,7 @@ struct VideoTrack {
   uint32_t id = 0;
   uint32_t timescale = 0;
   uint32_t default_sample_duration = 0;
+  uint32_t default_sample_flags = 0;
 };
 
 struct Fragment {
@@ -67,9 +68,10 @@ struct Fragment {
   int64_t tfdt = 0;            // the video track's baseMediaDecodeTime
   int64_t trun_duration = 0;   // its summed sample durations
   int64_t first_cts = 0;       // composition offset of the first sample
+  bool starts_with_sap = false;  // its first video sample is a sync sample
 };
 
-// The video track's id, timescale and `trex` default sample duration.
+// The video track's id, timescale and `trex` default sample duration and flags.
 bool read_video_track(int fd, int64_t file_size, VideoTrack *track);
 
 // Where the media ends: the `mfra` offset when there is one, else file_size.

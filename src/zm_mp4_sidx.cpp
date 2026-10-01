@@ -46,6 +46,8 @@ constexpr uint32_t kMaxSamplesPerTrun = 1u << 20;   // sanity, not a spec limit
 constexpr uint32_t kTfhdBaseDataOffset = 0x000001;
 constexpr uint32_t kTfhdSampleDescriptionIndex = 0x000002;
 constexpr uint32_t kTfhdDefaultSampleDuration = 0x000008;
+constexpr uint32_t kTfhdDefaultSampleSize = 0x000010;
+constexpr uint32_t kTfhdDefaultSampleFlags = 0x000020;
 
 // trun flags, 14496-12 8.8.8
 constexpr uint32_t kTrunDataOffset = 0x000001;
@@ -54,6 +56,9 @@ constexpr uint32_t kTrunSampleDuration = 0x000100;
 constexpr uint32_t kTrunSampleSize = 0x000200;
 constexpr uint32_t kTrunSampleFlags = 0x000400;
 constexpr uint32_t kTrunSampleCts = 0x000800;
+
+// sample_is_non_sync_sample in sample flags, 14496-12 8.8.3.1
+constexpr uint32_t kSampleIsNonSync = 0x00010000;
 
 uint32_t rb32(const uint8_t *p) {
   return (static_cast<uint32_t>(p[0]) << 24) | (static_cast<uint32_t>(p[1]) << 16)
@@ -252,10 +257,11 @@ bool read_video_track(int fd, int64_t file_size, VideoTrack *track) {
       if (!read_box(fd, at, mvex.end(), &trex)) break;
       at = trex.end();
       if (!trex.is("trex")) continue;
-      uint8_t body[16];
-      if (!read_exact(fd, body, 16, trex.body() + 4)) break;
+      uint8_t body[20];
+      if (!read_exact(fd, body, 20, trex.body() + 4)) break;
       if (rb32(body) == track->id) {
         track->default_sample_duration = rb32(body + 8);
+        track->default_sample_flags = rb32(body + 16);
         break;
       }
     }
@@ -266,10 +272,12 @@ bool read_video_track(int fd, int64_t file_size, VideoTrack *track) {
 namespace {
 
 // One `traf`: which track it belongs to, and -- for the video track -- the
-// decode time it starts at and how long its samples last.
+// decode time it starts at, how long its samples last and whether the first
+// of them is a sync sample.
 bool parse_traf(int fd, const Box &traf, const VideoTrack &track,
                 bool want_first_cts, uint32_t *track_id,
-                int64_t *tfdt, int64_t *duration, int64_t *first_cts) {
+                int64_t *tfdt, int64_t *duration, int64_t *first_cts,
+                bool *first_is_sync) {
   Box tfhd;
   if (!find_box(fd, traf.body(), traf.end(), "tfhd", &tfhd)) return false;
   uint8_t head[8];
@@ -286,6 +294,13 @@ bool parse_traf(int fd, const Box &traf, const VideoTrack &track,
     if (!read_exact(fd, word, 4, at)) return false;
     default_duration = rb32(word);
     at += 4;
+  }
+  if (flags & kTfhdDefaultSampleSize) at += 4;
+  uint32_t default_flags = track.default_sample_flags;
+  if (flags & kTfhdDefaultSampleFlags) {
+    uint8_t word[4];
+    if (!read_exact(fd, word, 4, at)) return false;
+    default_flags = rb32(word);
   }
 
   *tfdt = -1;
@@ -305,7 +320,9 @@ bool parse_traf(int fd, const Box &traf, const VideoTrack &track,
 
   *duration = 0;
   *first_cts = 0;
+  *first_is_sync = false;
   bool have_first = false;
+  bool have_first_flags = false;
   int64_t pos = traf.body();
   while (pos + 8 <= traf.end()) {
     Box trun;
@@ -322,6 +339,25 @@ bool parse_traf(int fd, const Box &traf, const VideoTrack &track,
 
     int64_t entry = trun.body() + 8;
     if (trun_flags & kTrunDataOffset) entry += 4;
+    // The first sample's flags: its own field, else the table's, else the
+    // defaults. A trun of no samples leaves the question to the next one.
+    if (!have_first_flags && count > 0) {
+      uint32_t sample_flags = default_flags;
+      if (trun_flags & kTrunFirstSampleFlags) {
+        uint8_t word[4];
+        if (entry + 4 > trun.end() || !read_exact(fd, word, 4, entry)) return false;
+        sample_flags = rb32(word);
+      } else if (trun_flags & kTrunSampleFlags) {
+        const int64_t field = entry
+            + ((trun_flags & kTrunSampleDuration) ? 4 : 0)
+            + ((trun_flags & kTrunSampleSize) ? 4 : 0);
+        uint8_t word[4];
+        if (field + 4 > trun.end() || !read_exact(fd, word, 4, field)) return false;
+        sample_flags = rb32(word);
+      }
+      *first_is_sync = !(sample_flags & kSampleIsNonSync);
+      have_first_flags = true;
+    }
     if (trun_flags & kTrunFirstSampleFlags) entry += 4;
     const int per_sample =
         ((trun_flags & kTrunSampleDuration) ? 4 : 0)
@@ -389,8 +425,10 @@ bool scan_fragments(int fd, int64_t from, int64_t to, const VideoTrack &track,
       int64_t tfdt = -1;
       int64_t duration = 0;
       int64_t first_cts = 0;
+      bool first_is_sync = false;
       const bool want_cts = fragments->empty();
-      if (!parse_traf(fd, traf, track, want_cts, &track_id, &tfdt, &duration, &first_cts)) {
+      if (!parse_traf(fd, traf, track, want_cts, &track_id, &tfdt, &duration, &first_cts,
+                      &first_is_sync)) {
         Debug(1, "sidx: cannot parse a traf at %" PRId64, traf.offset);
         return false;
       }
@@ -402,6 +440,7 @@ bool scan_fragments(int fd, int64_t from, int64_t to, const VideoTrack &track,
       fragment.tfdt = tfdt;
       fragment.trun_duration = duration;
       fragment.first_cts = want_cts ? first_cts : 0;
+      fragment.starts_with_sap = first_is_sync;
       have_video = true;
     }
     if (!have_video) {
@@ -518,12 +557,13 @@ std::vector<uint8_t> build_sidx_region(const VideoTrack &track,
   struct Reference {
     int64_t size;
     int64_t duration;
+    bool starts_with_sap;   // a merged reference starts where its first fragment does
   };
   std::vector<Reference> references;
   references.reserve((fragments.size() + per_reference - 1) / per_reference);
 
   for (size_t i = 0; i < fragments.size(); i += per_reference) {
-    Reference reference{0, 0};
+    Reference reference{0, 0, fragments[i].starts_with_sap};
     for (size_t j = i; j < i + per_reference && j < fragments.size(); j++) {
       reference.size += fragments[j].size;
       // A fragment lasts until the next one starts, which its `tfdt` states
@@ -578,7 +618,9 @@ std::vector<uint8_t> build_sidx_region(const VideoTrack &track,
   for (const Reference &reference : references) {
     wb32(entry, static_cast<uint32_t>(reference.size));      // type 0 + size
     wb32(entry + 4, static_cast<uint32_t>(reference.duration));
-    wb32(entry + 8, 0x90000000);  // starts with a SAP, type 1
+    // starts_with_SAP and SAP type 1 for a fragment that opens on a sync
+    // sample; otherwise none, as a fragment cut mid-GOP (frag_duration) has.
+    wb32(entry + 8, reference.starts_with_sap ? 0x90000000 : 0);
     entry += kSidxReferenceBytes;
   }
   return region;

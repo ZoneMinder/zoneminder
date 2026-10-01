@@ -329,15 +329,19 @@ TEST_CASE("Mp4SidxLeavesTheFileAloneWhenItCannotIndex") {
   REQUIRE(first_difference(read_file(subject.path), before) == kSame);
 }
 
-TEST_CASE("Mp4SidxIndexesWhatTheMuxerWritesAfterAReservedRegion") {
-  // The sequence VideoStore follows, against the real muxer: write the
-  // header, put the `free` region on the muxer's own AVIOContext before any
-  // packet, remux a recording through it, write the trailer, then fill the
-  // region. What this proves is the part unit tests of the parser cannot:
-  // that the muxer's own tfhd and tfra offsets account for the reserved
-  // bytes, because it takes every offset from avio_tell.
-  const std::filesystem::path source = fixture("sidx-abs.mp4");
-  const std::filesystem::path out = scratch("remux.mp4");
+namespace {
+
+// Remux the video of `source` into `out` the way VideoStore writes an event:
+// header, a reserved region on the muxer's own AVIOContext, packets, trailer.
+// `frag_duration` (microseconds, 0 for none) cuts fragments mid-GOP as well.
+struct Remuxed {
+  int64_t region_offset = -1;
+  int written = 0;
+};
+
+Remuxed remux_with_region(const std::filesystem::path &source,
+                          const std::filesystem::path &out,
+                          const char *movflags, int64_t frag_duration) {
   std::error_code ignored;
   std::filesystem::remove(out, ignored);
 
@@ -359,15 +363,16 @@ TEST_CASE("Mp4SidxIndexesWhatTheMuxerWritesAfterAReservedRegion") {
   REQUIRE(avio_open(&oc->pb, out.c_str(), AVIO_FLAG_WRITE) >= 0);
 
   AVDictionary *opts = nullptr;
-  av_dict_set(&opts, "movflags", "frag_keyframe+empty_moov+default_base_moof", 0);
+  av_dict_set(&opts, "movflags", movflags, 0);
+  if (frag_duration > 0) av_dict_set_int(&opts, "frag_duration", frag_duration, 0);
   REQUIRE(avformat_write_header(oc, &opts) >= 0);
   av_dict_free(&opts);
 
-  const int64_t region_offset = zm_mp4::reserve_region(oc, zm_mp4::kSidxReserve);
-  REQUIRE(region_offset > 0);
-  REQUIRE(avio_tell(oc->pb) == region_offset + zm_mp4::kSidxReserve);
+  Remuxed result;
+  result.region_offset = zm_mp4::reserve_region(oc, zm_mp4::kSidxReserve);
+  REQUIRE(result.region_offset > 0);
+  REQUIRE(avio_tell(oc->pb) == result.region_offset + zm_mp4::kSidxReserve);
 
-  int written = 0;
   AVPacket *packet = av_packet_alloc();
   REQUIRE(packet != nullptr);
   while (av_read_frame(in, packet) >= 0) {
@@ -376,16 +381,34 @@ TEST_CASE("Mp4SidxIndexesWhatTheMuxerWritesAfterAReservedRegion") {
       packet->stream_index = 0;
       packet->pos = -1;
       REQUIRE(av_interleaved_write_frame(oc, packet) >= 0);
-      written++;
+      result.written++;
     }
     av_packet_unref(packet);
   }
   av_packet_free(&packet);
-  REQUIRE(written > 0);
+  REQUIRE(result.written > 0);
   REQUIRE(av_write_trailer(oc) >= 0);
   avio_closep(&oc->pb);
   avformat_free_context(oc);
   avformat_close_input(&in);
+  return result;
+}
+
+}  // namespace
+
+TEST_CASE("Mp4SidxIndexesWhatTheMuxerWritesAfterAReservedRegion") {
+  // The sequence VideoStore follows, against the real muxer: write the
+  // header, put the `free` region on the muxer's own AVIOContext before any
+  // packet, remux a recording through it, write the trailer, then fill the
+  // region. What this proves is the part unit tests of the parser cannot:
+  // that the muxer's own tfhd and tfra offsets account for the reserved
+  // bytes, because it takes every offset from avio_tell.
+  const std::filesystem::path out = scratch("remux.mp4");
+  std::error_code ignored;
+  const Remuxed remuxed = remux_with_region(
+      fixture("sidx-abs.mp4"), out, "frag_keyframe+empty_moov+default_base_moof", 0);
+  const int64_t region_offset = remuxed.region_offset;
+  const int written = remuxed.written;
 
   // Before: the demuxer has to walk the fragments. After: it stops.
   const std::vector<uint8_t> muxed = read_file(out);
@@ -426,6 +449,86 @@ TEST_CASE("Mp4SidxIndexesWhatTheMuxerWritesAfterAReservedRegion") {
   REQUIRE(packets_readable(out) == written);   // nothing lost by indexing
 
   std::filesystem::remove(out, ignored);
+}
+
+TEST_CASE("Mp4SidxMarksOnlyKeyframeFragmentsAsSaps") {
+  // frag_duration cuts a fragment every 250 ms as well as at each keyframe,
+  // so the 3 s, 1 s GOP fixture becomes about a dozen fragments of which
+  // exactly the three that begin at a keyframe start with a SAP. A reference
+  // that claims one where there is none sends a seek to a frame that cannot
+  // be decoded on its own.
+  const std::filesystem::path out = scratch("mid-gop.mp4");
+  std::error_code ignored;
+  const Remuxed remuxed = remux_with_region(
+      fixture("sidx-abs.mp4"), out, "frag_keyframe+empty_moov+default_base_moof", 250000);
+  REQUIRE(zm_mp4::write_leading_sidx(out.string(), remuxed.region_offset, zm_mp4::kSidxReserve));
+
+  const std::vector<uint8_t> file = read_file(out);
+  const size_t sidx = offset_of(top_level(file), "sidx");
+  const size_t count = (size_t(file[sidx + 38]) << 8) | file[sidx + 39];
+  REQUIRE(count > 3);
+  size_t saps = 0;
+  for (size_t i = 0; i < count; i++) {
+    const uint32_t sap = be32(&file[sidx + 40 + 12 * i + 8]);
+    if (sap == 0x90000000) {
+      saps++;
+    } else {
+      REQUIRE(sap == 0);   // no SAP, no type, no delta
+    }
+  }
+  REQUIRE(be32(&file[sidx + 40 + 8]) == 0x90000000);   // the event opens on a keyframe
+  REQUIRE(saps == 3);
+
+  std::filesystem::remove(out, ignored);
+}
+
+TEST_CASE("Mp4SidxFindsTheSapsOfAKeyframeRecording") {
+  Subject subject("sidx-abs.mp4");
+  const int fd = subject.open_read();
+  const int64_t size = int64_t(std::filesystem::file_size(subject.path));
+  zm_mp4::VideoTrack track;
+  REQUIRE(zm_mp4::read_video_track(fd, size, &track));
+  std::vector<zm_mp4::Fragment> fragments;
+  REQUIRE(zm_mp4::scan_fragments(fd, subject.region_offset + subject.region_size,
+                                 zm_mp4::media_end(fd, size), track, &fragments));
+  close(fd);
+  REQUIRE(fragments.size() == 3);
+  for (const zm_mp4::Fragment &fragment : fragments) REQUIRE(fragment.starts_with_sap);
+}
+
+TEST_CASE("Mp4SidxMergedReferenceTakesItsFirstFragmentsSap") {
+  std::vector<zm_mp4::Fragment> fragments;
+  for (int i = 0; i < 4; i++) {
+    zm_mp4::Fragment fragment;
+    fragment.offset = 1000 + i * 100;
+    fragment.size = 100;
+    fragment.tfdt = i * 90000;
+    fragment.trun_duration = 90000;
+    fragment.starts_with_sap = (i == 0 || i == 3);
+    fragments.push_back(fragment);
+  }
+  zm_mp4::VideoTrack track;
+  track.id = 1;
+  track.timescale = 90000;
+
+  SECTION("one reference each") {
+    const std::vector<uint8_t> region =
+        zm_mp4::build_sidx_region(track, fragments, zm_mp4::kSidxMinReserve);
+    const uint8_t *entries = region.data() + zm_mp4::kSidxMinReserve - 12 * 4;
+    REQUIRE(be32(entries + 8) == 0x90000000);
+    REQUIRE(be32(entries + 12 + 8) == 0);
+    REQUIRE(be32(entries + 24 + 8) == 0);
+    REQUIRE(be32(entries + 36 + 8) == 0x90000000);
+  }
+
+  SECTION("merged in pairs") {
+    const int64_t reserve = 40 + 12 * 2 + 8;
+    const std::vector<uint8_t> region = zm_mp4::build_sidx_region(track, fragments, reserve);
+    REQUIRE(region.size() == size_t(reserve));
+    const uint8_t *entries = region.data() + 8 + 40;
+    REQUIRE(be32(entries + 8) == 0x90000000);   // fragments 0 and 1
+    REQUIRE(be32(entries + 12 + 8) == 0);       // fragments 2 and 3
+  }
 }
 
 TEST_CASE("Mp4SidxStopsTheDemuxerAfterTheFirstFragment") {

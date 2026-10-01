@@ -929,14 +929,14 @@ sub recover_timestamps {
         my $file = $path.'/'.$jpg;
         ( $file ) = $file =~ /^(.*)$/;
         my $timestamp = (stat($file))[9];
-        my $Frame = new ZoneMinder::Frame();
-        $Frame->save({
+        my $Frame = new ZoneMinder::Frame(\@ZoneMinder::Frame::identified_by, {
             EventId=>$$Event{Id}, FrameId=>$id,
             TimeStamp=>Date::Format::time2str('%Y-%m-%d %H:%M:%S',$timestamp),
             Delta => $timestamp - $first_timestamp,
             Type=>'Normal',
             Score=>0,
           });
+        $Frame->save();
       } # end if Frame not found
     } # end foreach capture jpg
     $ZoneMinder::Database::dbh->commit();

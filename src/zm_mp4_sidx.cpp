@@ -108,7 +108,8 @@ bool write_exact(int fd, const void *buffer, size_t bytes, int64_t offset) {
 // hundreds of MB -- just to order a 64 KiB write before an 8-byte one. Linux
 // can write back the range alone; it does not flush the drive's own cache,
 // which is the ordering the kernel itself gives data=ordered writes. Elsewhere,
-// or where the filesystem refuses, fall back to the whole file.
+// or where the filesystem refuses, fall back to the whole file; fsync rather
+// than fdatasync, which macOS does not declare.
 bool sync_range(int fd, int64_t offset, int64_t bytes) {
 #if defined(__linux__)
   if (sync_file_range(fd, offset, bytes, SYNC_FILE_RANGE_WAIT_BEFORE
@@ -117,7 +118,7 @@ bool sync_range(int fd, int64_t offset, int64_t bytes) {
   }
   if (errno != EINVAL && errno != ENOSYS && errno != ESPIPE) return false;
 #endif
-  return fdatasync(fd) == 0;
+  return fsync(fd) == 0;
 }
 
 struct Box {

@@ -80,6 +80,7 @@ VideoStore::VideoStore(
   last_fragment_start_dts_(AV_NOPTS_VALUE),
   init_segment_end_(0),
   sidx_region_offset_(-1),
+  sidx_region_size_(0),
   finalized_(false) {
   FFMPEGInit();
   swscale.init();
@@ -672,7 +673,17 @@ bool VideoStore::open() {
     // these bytes are accounted for in every tfhd and tfra it goes on to write.
     // Only an MP4 whose moov is already written and whose fragments follow it
     // gets one (zm_mp4::fragments_follow_header).
-    sidx_region_offset_ = zm_mp4::reserve_region(oc, zm_mp4::kSidxReserve);
+    //
+    // It is sized for a section's worth of fragments, one per GOP. The GOP is
+    // the encoder's when encoding, else the longest the camera has sent so
+    // far. Events that run past the section length, or GOPs shorter than
+    // that, only merge references in the index. When either is unknown the
+    // full kSidxReserve is taken.
+    const double fps = monitor->get_capture_fps();
+    const int gop_frames = Encoding() ? video_out_ctx->gop_size : monitor->get_max_keyframe_interval();
+    const double gop_seconds = (fps > 0 && gop_frames > 0) ? gop_frames / fps : 0;
+    sidx_region_size_ = zm_mp4::reserve_size(monitor->GetSectionLength().count(), gop_seconds);
+    sidx_region_offset_ = zm_mp4::reserve_region(oc, sidx_region_size_);
     last_fragment_offset_ = avio_tell(oc->pb);
   }
   return true;
@@ -1778,7 +1789,7 @@ void VideoStore::finalize() {
   // doubt the region stays the `free` box it already is, and the file is
   // exactly what ZoneMinder wrote before.
   if (sidx_region_offset_ >= 0 && !filename.empty()) {
-    if (!zm_mp4::write_leading_sidx(filename, sidx_region_offset_, zm_mp4::kSidxReserve)) {
+    if (!zm_mp4::write_leading_sidx(filename, sidx_region_offset_, sidx_region_size_)) {
       Warning("Could not index %s; it will play, but a player must read it all "
               "before the first frame", filename.c_str());
     }

@@ -40,18 +40,20 @@ struct AVFormatContext;
 // and fills it once the fragments are all on disk:
 //
 //   ftyp | moov | free (padding) | sidx | moof mdat | ... | mfra
-//                 \____ the reserved region, kSidxReserve bytes ____/
+//                 \______ the reserved region, reserve_size() ______/
 //
 // Nothing about the recorded video changes, and a failure at any step leaves
 // the region as the `free` box it started as -- exactly the file ZoneMinder
 // wrote before this existed.
 namespace zm_mp4 {
 
-// 64 KiB, which holds 5458 references and is a whole number of filesystem
-// blocks. A one-hour event at a one-second GOP has ~3600 fragments, so the
-// common case fits with room to spare; anything longer merges neighbouring
-// fragments into one reference rather than giving up (see BuildSidxRegion).
+// The most a region takes: 64 KiB, which holds 5458 references. A one-hour
+// event at a one-second GOP has ~3600 fragments, so the common case fits with
+// room to spare; anything longer merges neighbouring fragments into one
+// reference rather than giving up (see build_sidx_region).
 constexpr int64_t kSidxReserve = 65536;
+// The least: one filesystem block, 337 references.
+constexpr int64_t kSidxMinReserve = 4096;
 
 struct VideoTrack {
   uint32_t id = 0;
@@ -90,6 +92,12 @@ bool fragments_follow_header(AVFormatContext *oc);
 // after its header, when fragments_follow_header() says it can be indexed.
 // Returns where the region begins, or -1 when there is none to fill.
 int64_t reserve_region(AVFormatContext *oc, int64_t reserve);
+
+// The region for a recording of about `seconds`, cut into fragments of about
+// `fragment_seconds` each: room for twice that many references, in whole 4 KiB
+// blocks from kSidxMinReserve to kSidxReserve. kSidxReserve when either is
+// unknown. Guessing short only merges references, which coarsens seeking.
+int64_t reserve_size(double seconds, double fragment_seconds);
 
 // How many references fit a region of `reserve` bytes.
 size_t max_references(int64_t reserve);

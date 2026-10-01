@@ -19,6 +19,7 @@
 
 #include "zm_mp4_sidx.h"
 
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <fcntl.h>
@@ -272,6 +273,44 @@ TEST_CASE("Mp4SidxMergesWhenTheRegionIsTight") {
   SECTION("no room at all") {
     REQUIRE(zm_mp4::max_references(40) == 0);
     REQUIRE(zm_mp4::build_sidx_region(track, fragments, 40).empty());
+  }
+}
+
+TEST_CASE("Mp4SidxSizesTheRegionForTheEvent") {
+  SECTION("unknown length or GOP takes the most") {
+    REQUIRE(zm_mp4::reserve_size(0, 1) == zm_mp4::kSidxReserve);
+    REQUIRE(zm_mp4::reserve_size(600, 0) == zm_mp4::kSidxReserve);
+    REQUIRE(zm_mp4::reserve_size(-1, 1) == zm_mp4::kSidxReserve);
+    REQUIRE(zm_mp4::reserve_size(600, std::nan("")) == zm_mp4::kSidxReserve);
+  }
+
+  SECTION("a default 600 s section at a 1 s GOP") {
+    // 1200 references, 14448 bytes, rounded up to whole 4 KiB blocks.
+    REQUIRE(zm_mp4::reserve_size(600, 1) == 16384);
+  }
+
+  SECTION("short events take the least") {
+    REQUIRE(zm_mp4::reserve_size(10, 1) == zm_mp4::kSidxMinReserve);
+  }
+
+  SECTION("long events take no more than the most") {
+    REQUIRE(zm_mp4::reserve_size(3600, 1) == zm_mp4::kSidxReserve);
+    REQUIRE(zm_mp4::reserve_size(600, 0.001) == zm_mp4::kSidxReserve);
+  }
+
+  SECTION("the region holds twice the expected fragments") {
+    for (double seconds : {30.0, 120.0, 600.0, 1200.0}) {
+      for (double gop : {0.5, 1.0, 2.0, 4.0}) {
+        INFO(seconds << " s at a " << gop << " s GOP");
+        const int64_t reserve = zm_mp4::reserve_size(seconds, gop);
+        REQUIRE(reserve % 4096 == 0);
+        REQUIRE(reserve >= zm_mp4::kSidxMinReserve);
+        REQUIRE(reserve <= zm_mp4::kSidxReserve);
+        if (reserve < zm_mp4::kSidxReserve) {
+          REQUIRE(zm_mp4::max_references(reserve) >= size_t(2 * std::ceil(seconds / gop)));
+        }
+      }
+    }
   }
 }
 

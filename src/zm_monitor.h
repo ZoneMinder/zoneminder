@@ -1026,6 +1026,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   }
 
   unsigned int GetPreEventCount() const { return pre_event_count; };
+  Seconds GetSectionLength() const { return section_length; };
   int32_t GetImageBufferCount() const { return image_buffer_count; };
   State GetState() const { return (State)shared_data->state; }
   // Set the analysis state, publishing the transition as a stream socket

@@ -19,7 +19,9 @@
 
 #include "zm_logger.h"
 
+#include <algorithm>
 #include <cerrno>
+#include <cmath>
 #include <cstring>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -467,6 +469,16 @@ int64_t reserve_region(AVFormatContext *oc, int64_t reserve) {
   }
   Debug(1, "sidx: reserved %" PRId64 " bytes for a leading index at %" PRId64, reserve, offset);
   return offset;
+}
+
+int64_t reserve_size(double seconds, double fragment_seconds) {
+  if (!(seconds > 0) || !(fragment_seconds > 0)) return kSidxReserve;
+  const double references = 2 * std::ceil(seconds / fragment_seconds);
+  // Room for a whole `free` box header as well, so any count up to this fits.
+  const double bytes = kSidxHeaderBytes + 8 + kSidxReferenceBytes * references;
+  if (!(bytes < kSidxReserve)) return kSidxReserve;
+  const int64_t blocks = (static_cast<int64_t>(bytes) + kSidxMinReserve - 1) / kSidxMinReserve;
+  return std::max(blocks * kSidxMinReserve, kSidxMinReserve);
 }
 
 size_t max_references(int64_t reserve) {

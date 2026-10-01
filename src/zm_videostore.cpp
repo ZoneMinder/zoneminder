@@ -22,6 +22,7 @@
 
 #include "zm_logger.h"
 #include "zm_monitor.h"
+#include "zm_mp4_sidx.h"
 #include "zm_signal.h"
 #include "zm_time.h"
 
@@ -78,6 +79,7 @@ VideoStore::VideoStore(
   last_fragment_offset_(0),
   last_fragment_start_dts_(AV_NOPTS_VALUE),
   init_segment_end_(0),
+  sidx_region_offset_(-1),
   finalized_(false) {
   FFMPEGInit();
   swscale.init();
@@ -659,6 +661,19 @@ bool VideoStore::open() {
     init_segment_end_ = avio_tell(oc->pb);
     last_fragment_offset_ = init_segment_end_;
     Debug(1, "Init segment ends at byte %" PRId64, init_segment_end_);
+
+    // Reserve room for a leading sidx, right here between moov and the first
+    // fragment. It has to be here, and it has to be reserved up front: the
+    // index must END where the fragments BEGIN for a player to accept it
+    // (zm_mp4_sidx.h), and once a fragment is written nothing can be inserted
+    // ahead of it without rewriting every offset in the file. For now it is a
+    // `free` box the demuxers skip; finalize() fills it in once the fragments
+    // are all on disk. The muxer takes its own offsets from avio_tell, so
+    // these bytes are accounted for in every tfhd and tfra it goes on to write.
+    // Only an MP4 whose moov is already written and whose fragments follow it
+    // gets one (zm_mp4::fragments_follow_header).
+    sidx_region_offset_ = zm_mp4::reserve_region(oc, zm_mp4::kSidxReserve);
+    last_fragment_offset_ = avio_tell(oc->pb);
   }
   return true;
 } // end bool VideoStore::open()
@@ -1754,6 +1769,18 @@ void VideoStore::finalize() {
       fragments_.push_back({last_fragment_offset_, frag_size, duration});
       Debug(1, "HLS final fragment: offset=%" PRId64 " size=%" PRId64 " duration=%.3f",
             last_fragment_offset_, frag_size, duration);
+    }
+  }
+
+  // Now that every fragment is on disk, fill the region open() reserved with
+  // an index of them. Without it a player has to read the whole file before
+  // it can show the first frame. Nothing here can lose a recording: on any
+  // doubt the region stays the `free` box it already is, and the file is
+  // exactly what ZoneMinder wrote before.
+  if (sidx_region_offset_ >= 0 && !filename.empty()) {
+    if (!zm_mp4::write_leading_sidx(filename, sidx_region_offset_, zm_mp4::kSidxReserve)) {
+      Warning("Could not index %s; it will play, but a player must read it all "
+              "before the first frame", filename.c_str());
     }
   }
 }

@@ -103,6 +103,23 @@ bool write_exact(int fd, const void *buffer, size_t bytes, int64_t offset) {
   return true;
 }
 
+// Put [offset, offset + bytes) on disk. The rest of the event is still in the
+// page cache when finalize() runs, and an fsync would write all of it -- often
+// hundreds of MB -- just to order a 64 KiB write before an 8-byte one. Linux
+// can write back the range alone; it does not flush the drive's own cache,
+// which is the ordering the kernel itself gives data=ordered writes. Elsewhere,
+// or where the filesystem refuses, fall back to the whole file.
+bool sync_range(int fd, int64_t offset, int64_t bytes) {
+#if defined(__linux__)
+  if (sync_file_range(fd, offset, bytes, SYNC_FILE_RANGE_WAIT_BEFORE
+                      | SYNC_FILE_RANGE_WRITE | SYNC_FILE_RANGE_WAIT_AFTER) == 0) {
+    return true;
+  }
+  if (errno != EINVAL && errno != ENOSYS && errno != ESPIPE) return false;
+#endif
+  return fdatasync(fd) == 0;
+}
+
 struct Box {
   char type[5] = {0};
   int64_t offset = 0;
@@ -593,21 +610,21 @@ bool write_leading_sidx(const std::string &path, int64_t region_offset,
 
     // The region is one `free` box until the moment its first eight bytes
     // change, so write the body first and that header last: a write cut short
-    // anywhere leaves a file that still parses exactly as it did before.
+    // anywhere leaves a file that still parses exactly as it did before. The
+    // body must reach the disk before the header: a header without its body
+    // would leave zeros where the sidx should be, a box that runs to EOF. The
+    // header needs no sync of its own -- if it is lost, the region is still
+    // the `free` box it was.
     if (!write_exact(fd, region.data() + 8, region.size() - 8, region_offset + 8)) {
       Warning("sidx: cannot write the index into %s: %s", path.c_str(), strerror(errno));
       break;
     }
-    if (fsync(fd) != 0) {
+    if (!sync_range(fd, region_offset + 8, region_size - 8)) {
       Warning("sidx: cannot flush %s: %s", path.c_str(), strerror(errno));
       break;
     }
     if (!write_exact(fd, region.data(), 8, region_offset)) {
       Warning("sidx: cannot commit the index in %s: %s", path.c_str(), strerror(errno));
-      break;
-    }
-    if (fsync(fd) != 0) {
-      Warning("sidx: cannot flush %s: %s", path.c_str(), strerror(errno));
       break;
     }
 

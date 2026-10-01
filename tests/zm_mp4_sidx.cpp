@@ -229,6 +229,42 @@ TEST_CASE("Mp4SidxIndexesAFileWithNoMfra") {
   REQUIRE(first_difference(read_file(subject.path), subject.expected) == kSame);
 }
 
+TEST_CASE("Mp4SidxMediaEndTrustsOnlyAnMfraThatIsThere") {
+  // finalize() sizes the last HLS fragment from this, so an mfro whose size
+  // does not land on an mfra of that size must not cut the media short.
+  std::vector<uint8_t> file = read_file(fixture("sidx-abs.mp4"));
+  const int64_t size = static_cast<int64_t>(file.size());
+  const int64_t mfra = static_cast<int64_t>(offset_of(top_level(file), "mfra"));
+  const std::filesystem::path path = scratch("mfro.mp4");
+
+  auto end_of = [&path](const std::vector<uint8_t> &bytes) {
+    write_file(path, bytes);
+    const int fd = open(path.c_str(), O_RDONLY);
+    REQUIRE(fd >= 0);
+    const int64_t end = zm_mp4::media_end(fd, static_cast<int64_t>(bytes.size()));
+    close(fd);
+    return end;
+  };
+
+  REQUIRE(end_of(file) == mfra);
+
+  SECTION("an mfro size off by four") {
+    file[size - 1] = uint8_t(file[size - 1] + 4);
+    REQUIRE(end_of(file) == size);
+  }
+  SECTION("an mfro size larger than the file") {
+    file[size - 4] = 0xFF;
+    REQUIRE(end_of(file) == size);
+  }
+  SECTION("no mfro at all") {
+    memcpy(&file[size - 12], "xxxx", 4);
+    REQUIRE(end_of(file) == size);
+  }
+
+  std::error_code ignored;
+  std::filesystem::remove(path, ignored);
+}
+
 TEST_CASE("Mp4SidxMergesWhenTheRegionIsTight") {
   std::vector<zm_mp4::Fragment> fragments;
   for (int i = 0; i < 8; i++) {

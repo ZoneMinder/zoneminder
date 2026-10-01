@@ -31,7 +31,9 @@ extern "C" {
 #include <libavutil/display.h>
 }
 
+#include <fcntl.h>
 #include <string>
+#include <unistd.h>
 
 VideoStore::VideoStore(
   const char *filename_in,
@@ -1731,35 +1733,18 @@ void VideoStore::finalize() {
   oc->pb = nullptr;
 
   // The MOV muxer writes an mfra (Movie Fragment Random Access) box at the end
-  // of the file when fragmentation is on. Its trailing mfro box is exactly 16
-  // bytes and contains the mfra size, so we can subtract that to find where
-  // the final fragment's mdat actually ends.
+  // of the file when fragmentation is on, so the final fragment's mdat ends
+  // where the mfra begins.
   int64_t fragment_n_end = file_size;
-  if (!filename.empty() && file_size >= 16) {
-    FILE *fp = fopen(filename.c_str(), "rb");
-    if (fp) {
-      if (fseeko(fp, file_size - 16, SEEK_SET) == 0) {
-        uint8_t mfro[16];
-        if (fread(mfro, 1, 16, fp) == 16) {
-          uint32_t box_size = (static_cast<uint32_t>(mfro[0]) << 24)
-                            | (static_cast<uint32_t>(mfro[1]) << 16)
-                            | (static_cast<uint32_t>(mfro[2]) << 8)
-                            | static_cast<uint32_t>(mfro[3]);
-          if (box_size == 16
-              && mfro[4] == 'm' && mfro[5] == 'f' && mfro[6] == 'r' && mfro[7] == 'o') {
-            uint32_t mfra_size = (static_cast<uint32_t>(mfro[12]) << 24)
-                               | (static_cast<uint32_t>(mfro[13]) << 16)
-                               | (static_cast<uint32_t>(mfro[14]) << 8)
-                               | static_cast<uint32_t>(mfro[15]);
-            if (mfra_size > 0 && static_cast<int64_t>(mfra_size) <= file_size) {
-              fragment_n_end = file_size - mfra_size;
-              Debug(1, "mfra trailer is %u bytes; final fragment ends at %" PRId64,
-                    mfra_size, fragment_n_end);
-            }
-          }
-        }
+  if (!filename.empty()) {
+    const int fd = ::open(filename.c_str(), O_RDONLY | O_CLOEXEC);
+    if (fd >= 0) {
+      fragment_n_end = zm_mp4::media_end(fd, file_size);
+      close(fd);
+      if (fragment_n_end != file_size) {
+        Debug(1, "mfra trailer is %" PRId64 " bytes; final fragment ends at %" PRId64,
+              file_size - fragment_n_end, fragment_n_end);
       }
-      fclose(fp);
     }
   }
 

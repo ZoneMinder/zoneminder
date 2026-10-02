@@ -1350,7 +1350,7 @@ class Monitor extends ZM_Object {
       $html .= $this->getMonitorStateHTML();
     }
     $htmlAudioMotion = '
-      <audio-motion id="audioVisualization'.$this->Id().'" class="audio-visualization">
+      <audio-motion id="audioVisualization'.$this->Id().'" class="hidden audio-visualization">
     '.PHP_EOL;
     if ($view == 'montage') {
       $htmlAudioMotion .= '

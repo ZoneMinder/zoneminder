@@ -298,6 +298,7 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
                   <i class="material-icons md-18">label</i>
                 </button>
               </div><!--tags-container-->
+              <div id="eventStatsDetails">
               <!-- VIDEO STATISTICS TABLE -->
               <table id="eventStatsTable" class="table-sm table-borderless">
                 <!-- EVENT STATISTICS POPULATED BY JAVASCRIPT -->
@@ -335,6 +336,7 @@ if (file_exists($Event->Path().'/objdetect.jpg')) {
 }
 ?>
               </div><!-- id="frames" -->
+              </div><!-- id="eventStatsDetails" -->
             </div><!-- id="eventStats" -->
             <div id="wrapperEventVideo" class="col col-sm-9 pl-0 pr-0">
               <div id="eventVideo">

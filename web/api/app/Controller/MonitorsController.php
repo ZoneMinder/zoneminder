@@ -223,9 +223,12 @@ class MonitorsController extends AppController {
     }
     $this->request->allowMethod('post', 'delete');
 
-    $this->runDaemonControl($this->Monitor->id, 'stop');
-
-    if ( $this->Monitor->delete() ) {
+    // Delete the way the console does: ZM\Monitor::delete() stops zmc and
+    // zmcontrol and marks the monitor Deleted. A hard delete of the row left
+    // its events pointing at a monitor that no longer exists.
+    require_once __DIR__ .'/../../../includes/Monitor.php';
+    $monitor = new ZM\Monitor($id);
+    if ( $monitor->delete() ) {
       return $this->flash(__('The monitor has been deleted.'), array('action' => 'index'));
     } else {
       return $this->flash(__('The monitor could not be deleted. Please, try again.'), array('action' => 'index'));

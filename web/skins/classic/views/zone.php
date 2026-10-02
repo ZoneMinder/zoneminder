@@ -212,26 +212,28 @@ if ( count($other_zones) ) {
 ?>
 
             <div id="StreamControlButtons">
-              <button type="button" id="analyseBtn" class="btn btn-primary" title="<?php echo translate('Showing Analysis') ?>">
-                <i class="material-icons md-18">assessment</i>
-              </button>
-              <button type="button" id="pauseBtn" class="btn btn-primary" title="<?php echo translate('Pause') ?>">
-                <i class="material-icons md-18">pause</i>
-              </button>
-              <button type="button" id="playBtn" class="btn btn-primary" title="<?php echo translate('Play') ?>">
-                <i class="material-icons md-18">play_arrow</i>
-              </button>
-              <button type="button" id="objectImageBtn" class="btn btn-normal" title="<?php echo translate('ObjectImageUse') ?>">
-                <i class="material-icons md-18">image</i>
-              </button>
-              <input type="file" id="objectImageFile" accept="image/*" style="display:none"/>
-              <button type="button" id="objectSizeBtn" class="btn btn-normal" title="<?php echo translate('ObjectSizeMeasure') ?>">
-                <i class="material-icons md-18">highlight_alt</i>
-              </button>
-              <button type="button" id="objectSizeUndoBtn" class="btn btn-normal" style="display:none" title="<?php echo translate('ObjectSizeUndo') ?>">
-                <i class="material-icons md-18">undo</i>
-              </button>
-              <span id="playerControl">
+              <div id="controlButtons">
+                <button type="button" id="analyseBtn" class="btn btn-primary" title="<?php echo translate('Showing Analysis') ?>">
+                  <i class="material-icons md-18">assessment</i>
+                </button>
+                <button type="button" id="pauseBtn" class="btn btn-primary" title="<?php echo translate('Pause') ?>">
+                  <i class="material-icons md-18">pause</i>
+                </button>
+                <button type="button" id="playBtn" class="btn btn-primary" title="<?php echo translate('Play') ?>">
+                  <i class="material-icons md-18">play_arrow</i>
+                </button>
+                <button type="button" id="objectImageBtn" class="btn btn-normal" title="<?php echo translate('ObjectImageUse') ?>">
+                  <i class="material-icons md-18">image</i>
+                </button>
+                <input type="file" id="objectImageFile" accept="image/*" style="display:none"/>
+                <button type="button" id="objectSizeBtn" class="btn btn-normal" title="<?php echo translate('ObjectSizeMeasure') ?>">
+                  <i class="material-icons md-18">highlight_alt</i>
+                </button>
+                <button type="button" id="objectSizeUndoBtn" class="btn btn-normal" style="display:none" title="<?php echo translate('ObjectSizeUndo') ?>">
+                  <i class="material-icons md-18">undo</i>
+                </button>
+              </div>
+              <div id="playerControl">
                 <label for="player"><?php echo translate('Player') ?></label>
 <?php
                 $players = [''=>translate('Auto'), 'zms'=>'ZMS MJPEG'];
@@ -249,7 +251,7 @@ if ( count($other_zones) ) {
                 }
                 echo htmlSelect('codec', $players, $player, array('data-on-change'=>'changePlayer','id'=>'player','class'=>'chosen'));
 ?>
-              </span>
+              </div>
             </div>
           </div><!--image & buttons-->
 

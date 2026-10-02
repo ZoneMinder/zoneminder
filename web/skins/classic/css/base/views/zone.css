@@ -319,12 +319,13 @@ svg circle {
 /* Sized to the video by changeScale() so its left edge lines up with the image */
 /* Sized and positioned to the video by changeScale() so the two line up */
 #StreamControlButtons {
-  display: block;
-  overflow: hidden;
+  display: flex;
+  /*overflow: hidden;*/
   text-align: left;
 }
 #StreamControlButtons #playerControl {
   float: right;
+  margin-left: auto;
 }
 
 /* Rectangle measurement ratios. Its own table, shown only while the measuring

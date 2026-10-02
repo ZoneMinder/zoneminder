@@ -443,12 +443,11 @@ CREATE TABLE `Filters` (
 
 DROP TABLE IF EXISTS `Frames`;
 CREATE TABLE `Frames` (
-  `Id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `EventId` BIGINT UNSIGNED NOT NULL default '0',
   /* FOREIGN KEY (`EventId`) REFERENCES `Events` (`Id`) ON DELETE CASCADE,*/
   `FrameId` int(10) unsigned NOT NULL default '0',
   `Type` enum('Normal','Bulk','Alarm') NOT NULL default 'Normal',
-  `TimeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
+  `TimeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP,
   `Delta` decimal(8,2) NOT NULL default '0.00',
   `Score` smallint(5) unsigned NOT NULL default '0',
   /* Peak audio level since the previous row, 0-100 on the same dBFS-derived
@@ -457,11 +456,11 @@ CREATE TABLE `Frames` (
      chosen by looking at the graph. 0 means silence or no audio, which is how
      the event view knows not to draw an audio line. */
   `AudioLevel` tinyint(3) unsigned NOT NULL default '0',
-  PRIMARY KEY (`Id`),
   /* Every query on Frames is anchored on EventId and orders or ranges by
-     FrameId within the event, so one composite index serves them all. Nothing
-     reads Frames by Type or TimeStamp without EventId. See zm_update-1.39.27. */
-  INDEX `EventId_FrameId_idx` (`EventId`,`FrameId`)
+     FrameId within the event, so the clustered key serves them all and keeps
+     an event's rows together. Nothing reads Frames by Type or TimeStamp
+     without EventId. See zm_update-1.39.27 and zm_update-1.39.36. */
+  PRIMARY KEY (`EventId`,`FrameId`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --

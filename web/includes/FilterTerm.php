@@ -335,7 +335,6 @@ class FilterTerm {
     case 'StartDateTime':
       return 'E.StartDateTime';
     case 'FrameId':
-      return 'Id';
     case 'Type':
     case 'TimeStamp':
     case 'Delta':

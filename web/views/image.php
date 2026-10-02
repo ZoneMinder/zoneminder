@@ -498,28 +498,10 @@ if ( empty($_REQUEST['path']) ) {
     }  # if special frame (snapshot, alarm etc) or identified by id
 
   } else {
-# If we are only specifying fid, then the fid must be the primary key into the frames table. But when the event is specified, then it is the frame #
-    $Frame = ZM\Frame::find_one(array('Id'=>$_REQUEST['fid']));
-    if ( !$Frame ) {
-      header('HTTP/1.0 404 Not Found');
-      ZM\Error('Frame ' . $_REQUEST['fid'] . ' Not Found');
-      return;
-    }
-
-    $Event = ZM\Event::find_one(array('Id'=>$Frame->EventId()));
-    if ( !$Event ) {
-      header('HTTP/1.0 404 Not Found');
-      ZM\Error('Event ' . $Frame->EventId() . ' Not Found');
-      return;
-    }
-    // Per-event ACL: see GHSA-vj5r-pc2v-gfwv. The frame id is user-supplied so the
-    // event/monitor it resolves to may be one the user is denied from viewing.
-    if (!$Event->canView()) {
-      header('HTTP/1.0 404 Not Found');
-      ZM\Warning('Event '.$Frame->EventId().' access denied via frame '.$_REQUEST['fid']);
-      return;
-    }
-    $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d',$Frame->FrameId()).'-'.$show.'.jpg';
+    # A frame is only identified by its event and its number within the event.
+    header('HTTP/1.0 404 Not Found');
+    ZM\Error('No Event ID specified for frame '.validInt($_REQUEST['fid']));
+    return;
   } # end if have eid
     
   if ( !file_exists($path) ) {

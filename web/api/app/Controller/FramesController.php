@@ -27,17 +27,22 @@ class FramesController extends AppController {
     }
   }
 
-  # Frames are addressed by their own Id, so the parent Event's per-monitor ACL
-  # has to be resolved explicitly. Without this a user denied a monitor can
-  # reach that monitor's frames by guessing frame Ids.
-  private function eventForFrame($id) {
+  # A single frame is addressed by (EventId, FrameId), its primary key.
+  private function findFrame($eventId, $frameId) {
     $this->Frame->recursive = -1;
     $frame = $this->Frame->find('first', array(
-      'conditions' => array('Frame.' . $this->Frame->primaryKey => $id)
+      'conditions' => array('Frame.EventId' => $eventId, 'Frame.FrameId' => $frameId)
     ));
     if (!$frame) {
       throw new NotFoundException(__('Invalid frame'));
     }
+    return $frame;
+  }
+
+  # Frames carry no MonitorId, so the parent Event's per-monitor ACL has to be
+  # resolved explicitly.
+  private function eventForFrame($eventId, $frameId) {
+    $frame = $this->findFrame($eventId, $frameId);
     $this->loadModel('Event');
     $this->Event->recursive = -1;
     $event = $this->Event->find('first', array(
@@ -49,18 +54,16 @@ class FramesController extends AppController {
     return new ZM\Event($event['Event']);
   }
 
-  # A frame being added or re-pointed names its event in the request data. Require
-  # edit on that event too, or a user could attach frames to a denied monitor's event.
-  private function requireRequestEventEdit($required) {
-    $data = $this->request->data;
-    if (isset($data['Frame']) and is_array($data['Frame'])) $data = $data['Frame'];
-    if (!isset($data['EventId'])) {
-      if ($required) throw new BadRequestException(__('EventId is required'));
-      return;
+  # A frame being added names its event in the request data. Require edit on
+  # that event too, or a user could attach frames to a denied monitor's event.
+  private function requireRequestEventEdit() {
+    $eventId = $this->requestField('Frame', 'EventId');
+    if ($eventId === null) {
+      throw new BadRequestException(__('EventId is required'));
     }
     $this->loadModel('Event');
     $this->Event->recursive = -1;
-    $event = $this->Event->find('first', array('conditions' => array('Event.Id' => $data['EventId'])));
+    $event = $this->Event->find('first', array('conditions' => array('Event.Id' => $eventId)));
     if (!$event) {
       throw new NotFoundException(__('Invalid event'));
     }
@@ -72,14 +75,27 @@ class FramesController extends AppController {
 
   # Frame mutation is an Event mutation, so require Events=Edit as well as the
   # per-monitor ACL. beforeFilter() only guarantees Events != None.
-  private function requireFrameEdit($id) {
+  private function requireFrameEdit($eventId, $frameId) {
     global $user;
     if ($user and ($user->Events() != 'Edit')) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
     }
-    if (!$this->eventForFrame($id)->canEdit()) {
+    if (!$this->eventForFrame($eventId, $frameId)->canEdit()) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
     }
+  }
+
+  # The request's Frame fields that are real columns. Model save() cannot be
+  # used to write them: it would match rows on the single-column primaryKey.
+  private function requestColumns($exclude = array()) {
+    $data = $this->request->data;
+    if (isset($data['Frame']) and is_array($data['Frame'])) $data = $data['Frame'];
+    $columns = array();
+    foreach (array_keys($this->Frame->schema()) as $field) {
+      if (in_array($field, $exclude) or !array_key_exists($field, $data)) continue;
+      $columns[$field] = $data[$field];
+    }
+    return $columns;
   }
 
 /**
@@ -125,21 +141,16 @@ class FramesController extends AppController {
  * view method
  *
  * @throws NotFoundException
- * @param string $id
+ * @param string $eventId
+ * @param string $frameId
  * @return void
  */
-	public function view($id = null) {
-		$this->Frame->recursive = -1;
-		if (!$this->Frame->exists($id)) {
-			throw new NotFoundException(__('Invalid frame'));
-		}
-		if (!$this->eventForFrame($id)->canView()) {
+	public function view($eventId = null, $frameId = null) {
+		if (!$this->eventForFrame($eventId, $frameId)->canView()) {
 			throw new UnauthorizedException(__('Insufficient Privileges'));
 		}
-		$options = array('conditions' => array('Frame.' . $this->Frame->primaryKey => $id));
-		$frame = $this->Frame->find('first', $options);
 		$this->set(array(
-			'frame' => $frame,
+			'frame' => $this->findFrame($eventId, $frameId),
 			'_serialize' => array('frame')
 		));
 	}
@@ -155,10 +166,11 @@ class FramesController extends AppController {
 			if ($user and ($user->Events() != 'Edit')) {
 				throw new UnauthorizedException(__('Insufficient Privileges'));
 			}
-			$this->requireRequestEventEdit(true);
-			$this->pinRequestId($this->Frame, null);
-			$this->Frame->create();
-			if ($this->Frame->save($this->request->data)) {
+			$this->requireRequestEventEdit();
+			$columns = $this->requestColumns();
+			$this->Frame->set($columns);
+			if ($this->Frame->validates() and
+				$this->Frame->getDataSource()->create($this->Frame, array_keys($columns), array_values($columns))) {
 				return $this->flash(__('The frame has been saved.'), array('action' => 'index'));
 			}
 		}
@@ -169,24 +181,28 @@ class FramesController extends AppController {
 /**
  * edit method
  *
+ * EventId and FrameId are the key and cannot be changed.
+ *
  * @throws NotFoundException
- * @param string $id
+ * @param string $eventId
+ * @param string $frameId
  * @return void
  */
-	public function edit($id = null) {
-		if (!$this->Frame->exists($id)) {
-			throw new NotFoundException(__('Invalid frame'));
-		}
-		$this->requireFrameEdit($id);
+	public function edit($eventId = null, $frameId = null) {
+		$this->requireFrameEdit($eventId, $frameId);
 		if ($this->request->is(array('post', 'put'))) {
-			$this->pinRequestId($this->Frame, $id);
-			$this->requireRequestEventEdit(false);
-			if ($this->Frame->save($this->request->data)) {
+			# updateAll() takes SQL expressions, so the values must be quoted here.
+			$db = $this->Frame->getDataSource();
+			$columns = array();
+			foreach ($this->requestColumns(array('EventId', 'FrameId')) as $field => $value) {
+				$columns[$field] = $db->value($value, $this->Frame->getColumnType($field));
+			}
+			if (count($columns) and $this->Frame->updateAll($columns,
+				array('Frame.EventId' => $eventId, 'Frame.FrameId' => $frameId))) {
 				return $this->flash(__('The frame has been saved.'), array('action' => 'index'));
 			}
 		} else {
-			$options = array('conditions' => array('Frame.' . $this->Frame->primaryKey => $id));
-			$this->request->data = $this->Frame->find('first', $options);
+			$this->request->data = $this->findFrame($eventId, $frameId);
 		}
 		$events = $this->Frame->Event->find('list');
 		$this->set(compact('events'));
@@ -196,17 +212,14 @@ class FramesController extends AppController {
  * delete method
  *
  * @throws NotFoundException
- * @param string $id
+ * @param string $eventId
+ * @param string $frameId
  * @return void
  */
-	public function delete($id = null) {
-		$this->Frame->id = $id;
-		if (!$this->Frame->exists()) {
-			throw new NotFoundException(__('Invalid frame'));
-		}
+	public function delete($eventId = null, $frameId = null) {
 		$this->request->allowMethod('post', 'delete');
-		$this->requireFrameEdit($id);
-		if ($this->Frame->delete()) {
+		$this->requireFrameEdit($eventId, $frameId);
+		if ($this->Frame->deleteAll(array('Frame.EventId' => $eventId, 'Frame.FrameId' => $frameId), false)) {
 			return $this->flash(__('The frame has been deleted.'), array('action' => 'index'));
 		} else {
 			return $this->flash(__('The frame could not be deleted. Please, try again.'), array('action' => 'index'));

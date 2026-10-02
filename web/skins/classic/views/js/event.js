@@ -4,6 +4,7 @@ var eventVideo = $j('#eventVideo');
 var wrapperEventVideo = $j('#wrapperEventVideo');
 var videoFeed = $j('#videoFeed');
 var eventStatsTable = $j('#eventStatsTable');
+var eventStatsDetails = $j('#eventStatsDetails');
 var backBtn = $j('#backBtn');
 var archiveBtn = $j('#archiveBtn');
 var unarchiveBtn = $j('#unarchiveBtn');
@@ -1363,6 +1364,19 @@ function getStat() {
 }
 
 
+// The tags input lives in the eventStats column, so hiding the stats only hides
+// eventStatsDetails. The column then spans the full width above the video so the tags stay usable.
+function showEventStats(visible) {
+  eventStatsDetails.toggle(visible);
+  if (visible) {
+    eventStats.removeClass('col-sm-12').addClass('col-sm-3');
+    wrapperEventVideo.removeClass('col-sm-12').addClass('col-sm-9');
+  } else {
+    eventStats.removeClass('col-sm-3').addClass('col-sm-12');
+    wrapperEventVideo.removeClass('col-sm-9').addClass('col-sm-12');
+  }
+}
+
 function onStatsResize(vidWidth) {
   if (!vidWidth) return;
   var minWidth = 200; // An arbitrary value in pixels used to hide the stats table
@@ -1378,18 +1392,16 @@ function onStatsResize(vidWidth) {
   // Hide the stats table if we have run out of room to show it properly
   if (width < minWidth) {
     statsBtn.prop('disabled', true);
-    if (eventStats.is(':visible')) {
-      eventStats.toggle(false);
+    if (eventStatsDetails.is(':visible')) {
+      showEventStats(false);
       wasHidden = true;
-      wrapperEventVideo.removeClass('col-sm-9').addClass('col-sm-12');
     }
   // Show the stats table if we hid it previously and sufficient room becomes available
   } else if (width >= minWidth) {
     statsBtn.prop('disabled', false);
-    if ( !eventStats.is(':visible') && wasHidden ) {
-      eventStats.toggle(true);
+    if (!eventStatsDetails.is(':visible') && wasHidden) {
+      showEventStats(true);
       wasHidden = false;
-      wrapperEventVideo.removeClass('col-sm-12').addClass('col-sm-9');
     }
   }
 }
@@ -1412,11 +1424,10 @@ function initPage() {
   zmPanZoom.init();
 
   if (getEvtStatsCookie() != 'on') {
-    eventStats.toggle(false);
-    wrapperEventVideo.removeClass('col-sm-9').addClass('col-sm-12');
+    showEventStats(false);
   } else {
+    showEventStats(true);
     onStatsResize(eventData.Width);
-    wrapperEventVideo.removeClass('col-sm-12').addClass('col-sm-9');
   }
   if (eventData.DefaultVideo) {
     canPlayCodec(eventData.DefaultVideo);
@@ -1611,14 +1622,12 @@ function initPage() {
     var cookie = 'zmEventStats';
 
     // Toggle the visiblity of the stats table and write an appropriate cookie
-    if (eventStats.is(':visible')) {
+    if (eventStatsDetails.is(':visible')) {
       setCookie(cookie, 'off');
-      eventStats.toggle(false);
-      wrapperEventVideo.removeClass('col-sm-9').addClass('col-sm-12');
+      showEventStats(false);
     } else {
       setCookie(cookie, 'on');
-      eventStats.toggle(true);
-      wrapperEventVideo.removeClass('col-sm-12').addClass('col-sm-9');
+      showEventStats(true);
     }
     changeScale();
   });

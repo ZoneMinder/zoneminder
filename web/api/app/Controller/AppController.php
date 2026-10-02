@@ -81,6 +81,7 @@ class AppController extends Controller {
             return;
           } 
           ZM\Debug("Login successful for user \"$username\"");
+          migrateHash($username, $password);
         }
       }
 

@@ -2264,7 +2264,7 @@ var doubleClickOnStream = function(event, touchEvent) {
       if (getCookie('zmEventStats') && typeof eventStats !== "undefined") {
         //Event page
         eventStats.toggle(true);
-        wrapperEventVideo.removeClass('col-sm-12').addClass('col-sm-8');
+        showEventStats(eventStatsDetails.is(':visible'));
         changeScale();
       } else if (getCookie('zmCycleShow') && typeof sidebarView !== "undefined") {
         //Watch page
@@ -2276,7 +2276,7 @@ var doubleClickOnStream = function(event, touchEvent) {
       if (getCookie('zmEventStats') && typeof eventStats !== "undefined") {
         //Event page
         eventStats.toggle(false);
-        wrapperEventVideo.removeClass('col-sm-8').addClass('col-sm-12');
+        wrapperEventVideo.removeClass('col-sm-9').addClass('col-sm-12');
         changeScale();
       } else if (getCookie('zmCycleShow') && typeof sidebarView !== "undefined") {
         //Watch page

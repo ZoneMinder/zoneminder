@@ -1041,17 +1041,7 @@ sub patchDB {
 
 sub migratePasswords {
   use Crypt::Eksblowfish::Bcrypt;
-  my $random;
-  eval {
-    require Bytes::Random::Secure;
-    $random = Bytes::Random::Secure->new( Bits        => 16*8);
-  };
-  if ($@ or !$random) {
-    eval {
-      require Data::Entropy::Algorithms;
-      $random =Data::Entropy::Algorithms::rand_bits(16*8);
-    };
-  }
+  my $urandom;
 
   print("Migratings passwords, if any...\n");
   my $sql = 'SELECT * FROM `Users`';
@@ -1061,7 +1051,18 @@ sub migratePasswords {
     my $scheme = substr($user->{Password}, 0, 1);
     if ($scheme eq '*') {
       print('-->'.$user->{Username}." password will be migrated\n");
-      my $salt = Crypt::Eksblowfish::Bcrypt::en_base64($random);
+      # Each user gets their own 16 byte bcrypt salt from the kernel CSPRNG.
+      # Without one, leave the legacy hash alone; auth.php still accepts it.
+      if ( !$urandom and open(my $fh, '<:raw', '/dev/urandom') ) {
+        $urandom = $fh;
+      }
+      my $salt_bytes;
+      read($urandom, $salt_bytes, 16) if $urandom;
+      if ( !defined($salt_bytes) or length($salt_bytes) != 16 ) {
+        print('Warning: unable to read /dev/urandom, not migrating '.$user->{Username}."'s password\n");
+        next;
+      }
+      my $salt = Crypt::Eksblowfish::Bcrypt::en_base64($salt_bytes);
       my $settings = '$2a$10$'.$salt;
       my $pass_hash = Crypt::Eksblowfish::Bcrypt::bcrypt($user->{Password},$settings);
       my $new_pass_hash = '-ZM-'.$pass_hash;

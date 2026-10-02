@@ -1041,27 +1041,37 @@ sub patchDB {
 
 sub migratePasswords {
   use Crypt::Eksblowfish::Bcrypt;
-  my $random;
-  eval {
-    require Bytes::Random::Secure;
-    $random = Bytes::Random::Secure->new( Bits        => 16*8);
-  };
-  if ($@ or !$random) {
-    eval {
-      require Data::Entropy::Algorithms;
-      $random =Data::Entropy::Algorithms::rand_bits(16*8);
-    };
-  }
+  my $urandom;
+  my @overlay_users;
 
   print("Migratings passwords, if any...\n");
   my $sql = 'SELECT * FROM `Users`';
   my $sth = $dbh->prepare_cached($sql) or die( "Can't prepare '$sql': ".$dbh->errstr() );
   my $res = $sth->execute() or die("Can't execute: ".$sth->errstr());
   while ( my $user = $sth->fetchrow_hashref() ) {
+    # Hashes migrated by earlier releases can't be told apart from good ones, and
+    # all of them shared one salt per run: from Data::Entropy, seeded with rand()
+    # before its 0.008 (CVE-2025-1860), or a constant derived from the class name
+    # when Bytes::Random::Secure was installed.
+    if ( substr($user->{Password}, 0, 4) eq '-ZM-' ) {
+      push @overlay_users, $user->{Username};
+      next;
+    }
     my $scheme = substr($user->{Password}, 0, 1);
     if ($scheme eq '*') {
       print('-->'.$user->{Username}." password will be migrated\n");
-      my $salt = Crypt::Eksblowfish::Bcrypt::en_base64($random);
+      # Each user gets their own 16 byte bcrypt salt from the kernel CSPRNG.
+      # Without one, leave the legacy hash alone; auth.php still accepts it.
+      if ( !$urandom and open(my $fh, '<:raw', '/dev/urandom') ) {
+        $urandom = $fh;
+      }
+      my $salt_bytes;
+      read($urandom, $salt_bytes, 16) if $urandom;
+      if ( !defined($salt_bytes) or length($salt_bytes) != 16 ) {
+        print('Warning: unable to read /dev/urandom, not migrating '.$user->{Username}."'s password\n");
+        next;
+      }
+      my $salt = Crypt::Eksblowfish::Bcrypt::en_base64($salt_bytes);
       my $settings = '$2a$10$'.$salt;
       my $pass_hash = Crypt::Eksblowfish::Bcrypt::bcrypt($user->{Password},$settings);
       my $new_pass_hash = '-ZM-'.$pass_hash;
@@ -1069,6 +1079,14 @@ sub migratePasswords {
       my $sth = $dbh->prepare_cached($sql) or die("Can't prepare '$sql': ".$dbh->errstr());
       my $res = $sth->execute($new_pass_hash, $user->{Username}) or die("Can't execute: ".$sth->errstr());
     }
+  }
+  # The original hash input is gone, so these can only be rehashed when the user
+  # next logs in, which auth.php does automatically, or by resetting the password.
+  if ( @overlay_users ) {
+    Warning('User(s) '.join(', ', @overlay_users).' still use a legacy password hash from'
+      .' zmupdate.pl. It is upgraded to a standard bcrypt hash automatically the next time the'
+      .' user logs in to the web UI or API, or when the password is reset. Accounts that are no'
+      .' longer used can be disabled or deleted.');
   }
 } # end sub migratePasswords
 

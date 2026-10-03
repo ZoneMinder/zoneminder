@@ -33,6 +33,7 @@
   /* The graph is a readout, not a control; the click that seeks belongs to
      #progressBar underneath it. */
   pointer-events: none;
+  max-width: 100%;
 }
 
 /* Alarm periods, behind the lines. Light enough to read the lines through:

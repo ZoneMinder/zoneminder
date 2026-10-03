@@ -1757,18 +1757,18 @@ function loadFrames(zm_events) {
                   last_frame = null;
                 }
                 if (last_frame) {
-                  frame.PrevFrameId = last_frame.Id;
-                  last_frame.NextFrameId = frame.Id;
+                  frame.PrevFrameId = last_frame.FrameId;
+                  last_frame.NextFrameId = frame.FrameId;
                   if (frame.TimeStampSecs >= last_frame.TimeStampSecs) {
                     last_frame.NextTimeStampSecs = frame.TimeStampSecs;
                   } else {
-                    console.warn("Out of order timestamps?", frame.EventId, frame.Id);
+                    console.warn("Out of order timestamps?", frame.EventId, frame.FrameId);
                   }
                 }
                 last_frame = frame;
 
                 //if (!zm_event.FramesById) zm_event.FramesById = [];
-                zm_event.FramesById[frame.Id] = frame;
+                zm_event.FramesById[frame.FrameId] = frame;
                 // Remember how far this event has been read, so getFrame() can
                 // tell when a recording event has outgrown what we hold.
                 const frameSecs = parseFloat(frame.TimeStampSecs);

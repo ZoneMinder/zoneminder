@@ -23,14 +23,32 @@ if (!canView('System')) {
   return;
 }
 
+// Under a threaded Apache MPM the worker thread blocks signals and exec()
+// children inherit that mask, so intel_gpu_top never sees the SIGTERM from
+// timeout and the page hangs. Every call therefore has a SIGKILL backstop,
+// which cannot be blocked, and the sampling run stops itself with -n where
+// intel_gpu_top supports it (not in 1.26/1.27, as shipped by Ubuntu 22.04 and
+// Debian 12).
+function intelGpuTopHasSampleCount() {
+  $output = [];
+  exec('timeout -s KILL 3 intel_gpu_top -h 2>&1', $output);
+  return preg_match('/^\s*\[-n\s/m', implode("\n", $output)) === 1;
+}
+
 // Parse intel_gpu_top JSON output
 function parseIntelGpuTop() {
   $output = [];
   $returnCode = 0;
 
-  // Run intel_gpu_top for one sample with JSON output
-  // -s 1000 = 1 second sample, -J = JSON output
-  exec('timeout 2 intel_gpu_top -J -s 1000 -o - 2>&1', $output, $returnCode);
+  // -J = JSON output, -s 1000 = 1 second sample period
+  if (intelGpuTopHasSampleCount()) {
+    // -n 2: an initial sample and one full period, then exit
+    exec('timeout -s KILL 5 intel_gpu_top -J -s 1000 -n 2 -o - 2>&1', $output, $returnCode);
+  } else {
+    // SIGTERM after 2s lets intel_gpu_top flush its output; SIGKILL 3s later
+    // if the signal was blocked
+    exec('timeout -k 3 2 intel_gpu_top -J -s 1000 -o - 2>&1', $output, $returnCode);
+  }
 
   $jsonOutput = implode("\n", $output);
 
@@ -66,6 +84,11 @@ function parseIntelGpuTop() {
   }
 
   if (empty($jsonObjects)) {
+    if ($returnCode == 137) {
+      // Killed by the timeout backstop. The samples it printed before that are
+      // still usable, so this only matters when there were none.
+      return ['error' => 'intel_gpu_top did not stop when asked and had to be killed before it produced any output. This happens under a threaded Apache MPM (event/worker) when /bin/sh is bash. Install an intel-gpu-tools version whose intel_gpu_top supports -n, or run PHP under the prefork MPM or php-fpm.'];
+    }
     return ['error' => 'No valid JSON output from intel_gpu_top. Raw output: ' . substr($jsonOutput, 0, 500)];
   }
 
@@ -85,7 +108,7 @@ function getIntelGpuDevices() {
   $output = [];
   $returnCode = 0;
 
-  exec('intel_gpu_top -L 2>&1', $output, $returnCode);
+  exec('timeout -s KILL 3 intel_gpu_top -L 2>&1', $output, $returnCode);
 
   if ($returnCode != 0 || empty($output)) {
     return [];
@@ -120,17 +143,15 @@ function getIntelGpuInfo() {
     }
   }
 
-  // Try to get driver version
-  $output = [];
-  exec('cat /sys/module/i915/version 2>/dev/null', $output);
-  if (!empty($output)) {
-    $info['driver'] = trim($output[0]);
-  } else {
-    // Try modinfo
-    $output = [];
-    exec('modinfo i915 2>/dev/null | grep "^version:"', $output);
-    if (!empty($output)) {
-      $info['driver'] = trim(str_replace('version:', '', $output[0]));
+  // i915 and xe have no module version (not even when loadable), and nothing
+  // under /sys/module or modinfo exists when they are built into the kernel.
+  // Report the driver bound to the Intel DRM device and the kernel it ships in.
+  foreach (glob('/sys/class/drm/card[0-9]*', GLOB_NOSORT) as $card) {
+    if (trim(@file_get_contents($card.'/device/vendor')) != '0x8086') continue;
+    $driver = @readlink($card.'/device/driver');
+    if ($driver) {
+      $info['driver'] = basename($driver).' (kernel '.php_uname('r').')';
+      break;
     }
   }
 

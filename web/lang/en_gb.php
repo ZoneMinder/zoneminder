@@ -257,6 +257,7 @@ $SLANG = array(
     'CronAdvanced'              => 'Enter as cron',
     'CronAdvancedHelp'          => 'Set by the pickers, or type five cron fields directly for anything they cannot express.',
     'CronAnyServer'             => 'Every server',
+    'CronScheduleAsCron'        => '(as the cron field below)',
     'CronNoTasks'               => 'No scheduled tasks yet.',
     'CronBadSchedule'           => 'That is not a schedule this can run. Five cron fields are expected, for example "0 3 * * *".',
     'CronBadCommand'            => 'That is not a command this can run. It must not be empty, must stay on one line, and any percent sign must be written \\%.',

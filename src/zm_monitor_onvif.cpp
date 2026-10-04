@@ -129,10 +129,11 @@ SystemTimePoint ONVIFNextRenewalTime(const SystemTimePoint &now, const SystemTim
   return termination - advance;
 }
 
-std::chrono::seconds ONVIFAssumedLifetime(int requested_seconds, std::chrono::seconds last_granted) {
-  std::chrono::seconds requested(requested_seconds);
-  if (last_granted.count() <= 0) return requested;
-  return std::min(requested, last_granted);
+SystemTimePoint ONVIFAssumedTermination(const SystemTimePoint &request_time,
+                                        const SystemTimePoint &requested_termination,
+                                        std::chrono::seconds last_granted) {
+  if (last_granted.count() <= 0) return requested_termination;
+  return std::min(requested_termination, request_time + last_granted);
 }
 
 std::chrono::seconds ONVIFGrantedLifetime(const SystemTimePoint &now, const SystemTimePoint &termination) {
@@ -1111,13 +1112,12 @@ void ONVIF::update_renewal_times(time_t camera_current_time, time_t termination_
 // Schedule the next renewal after a Renew whose response did not say when the
 // subscription now ends. Without this next_renewal_time stays in the past and
 // every PullMessages is followed by another Renew.
-void ONVIF::assume_renewal_times() {
-  auto now = std::chrono::system_clock::now();
-  std::chrono::seconds lifetime = ONVIFAssumedLifetime(subscription_timeout_seconds, granted_lifetime);
-  subscription_termination_time = now + lifetime;
-  next_renewal_time = ONVIFNextRenewalTime(now, subscription_termination_time);
-  Debug(1, "ONVIF: No TerminationTime in RenewResponse, assuming the subscription lasts %jds",
-        static_cast<intmax_t>(lifetime.count()));
+void ONVIF::assume_renewal_times(const SystemTimePoint &request_time, const SystemTimePoint &requested_termination) {
+  subscription_termination_time = ONVIFAssumedTermination(request_time, requested_termination, granted_lifetime);
+  // If the response was slow this can already be past, and the next poll renews
+  next_renewal_time = ONVIFNextRenewalTime(request_time, subscription_termination_time);
+  Debug(1, "ONVIF: No TerminationTime in RenewResponse, assuming the subscription ends at %s",
+        SystemTimePointToString(subscription_termination_time).c_str());
 }
 
 // Check if renewal tracking has been initialized
@@ -1165,11 +1165,16 @@ bool ONVIF::Renew() {
   _wsnt__RenewResponse wsnt__RenewResponse;
 
   std::string termination_time_str;
+  // When the request goes out and the deadline it asks for, in case the
+  // response does not say when the subscription now ends
+  SystemTimePoint request_time = std::chrono::system_clock::now();
+  SystemTimePoint requested_termination = request_time + std::chrono::seconds(subscription_timeout_seconds);
 
   if (use_absolute_time_for_renewal) {
     // Calculate absolute termination time: current time + subscription duration
-    time_t now = time(nullptr);
+    time_t now = std::chrono::system_clock::to_time_t(request_time);
     time_t absolute_termination = now + subscription_timeout_seconds;
+    requested_termination = std::chrono::system_clock::from_time_t(absolute_termination);
     termination_time_str = format_absolute_time_iso8601(absolute_termination);
 
     if (termination_time_str.empty()) {
@@ -1228,7 +1233,7 @@ bool ONVIF::Renew() {
     update_renewal_times(current_time, wsnt__RenewResponse.TerminationTime);
     log_subscription_timing("renewed");
   } else {
-    assume_renewal_times();
+    assume_renewal_times(request_time, requested_termination);
     log_subscription_timing("renewed");
   }
 

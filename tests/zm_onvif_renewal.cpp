@@ -380,19 +380,45 @@ TEST_CASE("ONVIFNextRenewalTime", "[onvif]") {
   }
 }
 
-TEST_CASE("ONVIFAssumedLifetime", "[onvif]") {
-  SECTION("Camera never reported a lifetime: assume what we asked for") {
-    REQUIRE(ONVIFAssumedLifetime(300, std::chrono::seconds(0)) == std::chrono::seconds(300));
+TEST_CASE("ONVIFAssumedTermination", "[onvif]") {
+  using std::chrono::seconds;
+  // The moment Renew() sent the request
+  const SystemTimePoint request_time = std::chrono::system_clock::from_time_t(1790880716);
+  const SystemTimePoint requested = request_time + seconds(300);
+
+  SECTION("Camera never reported a lifetime: assume the deadline we asked for") {
+    REQUIRE(ONVIFAssumedTermination(request_time, requested, seconds(0)) == requested);
   }
 
   SECTION("Camera granted less than we asked for before: assume it does so again") {
     // The #5179 Beward granted 60 seconds on Subscribe and sends no
     // TerminationTime on Renew.
-    REQUIRE(ONVIFAssumedLifetime(300, std::chrono::seconds(60)) == std::chrono::seconds(60));
+    REQUIRE(ONVIFAssumedTermination(request_time, requested, seconds(60)) == request_time + seconds(60));
   }
 
   SECTION("Camera granted more than we asked for: assume only what we asked for") {
-    REQUIRE(ONVIFAssumedLifetime(300, std::chrono::seconds(3600)) == std::chrono::seconds(300));
+    REQUIRE(ONVIFAssumedTermination(request_time, requested, seconds(3600)) == requested);
+  }
+
+  SECTION("An absolute deadline we sent is kept exactly") {
+    // Absolute renewal requests a whole-second time, which can be slightly
+    // less than request_time + subscription_timeout.
+    const SystemTimePoint absolute = std::chrono::system_clock::from_time_t(1790880716 + 10);
+    REQUIRE(ONVIFAssumedTermination(request_time + std::chrono::milliseconds(700), absolute, seconds(0)) == absolute);
+  }
+
+  SECTION("A slow response does not push the deadline or renewal later") {
+    // subscription_timeout=10 and the response arrives 6 seconds after the
+    // request. Counting from the response put the renewal at request+11,
+    // after the camera's deadline at request+10.
+    const SystemTimePoint deadline = request_time + seconds(10);
+    const SystemTimePoint response_time = request_time + seconds(6);
+    SystemTimePoint termination = ONVIFAssumedTermination(request_time, deadline, seconds(0));
+    REQUIRE(termination == deadline);
+    SystemTimePoint renewal = ONVIFNextRenewalTime(request_time, termination);
+    REQUIRE(renewal < termination);
+    // Already due when the response arrives, so the next poll renews
+    REQUIRE(renewal <= response_time);
   }
 }
 
@@ -412,8 +438,10 @@ TEST_CASE("ONVIFGrantedLifetime", "[onvif]") {
     // Truncating to zero would read as "never reported" and make the next
     // TerminationTime-less Renew assume the full requested lifetime.
     REQUIRE(ONVIFGrantedLifetime(termination - std::chrono::milliseconds(300), termination) == std::chrono::seconds(1));
-    REQUIRE(ONVIFAssumedLifetime(300, ONVIFGrantedLifetime(termination - std::chrono::milliseconds(300), termination))
-            == std::chrono::seconds(1));
+    const SystemTimePoint request_time = termination - std::chrono::milliseconds(300);
+    REQUIRE(ONVIFAssumedTermination(request_time, request_time + std::chrono::seconds(300),
+                                    ONVIFGrantedLifetime(request_time, termination))
+            == request_time + std::chrono::seconds(1));
   }
 }
 

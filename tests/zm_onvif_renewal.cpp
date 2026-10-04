@@ -396,4 +396,47 @@ TEST_CASE("ONVIFAssumedLifetime", "[onvif]") {
   }
 }
 
+TEST_CASE("ONVIFGrantedLifetime", "[onvif]") {
+  // Termination times have whole-second precision; now does not.
+  const SystemTimePoint termination = std::chrono::system_clock::from_time_t(1790880776);
+
+  SECTION("Whole seconds are kept") {
+    REQUIRE(ONVIFGrantedLifetime(termination - std::chrono::seconds(60), termination) == std::chrono::seconds(60));
+  }
+
+  SECTION("A fraction of a second rounds up, not down") {
+    REQUIRE(ONVIFGrantedLifetime(termination - std::chrono::milliseconds(59200), termination) == std::chrono::seconds(60));
+  }
+
+  SECTION("Less than a second left is still a known, positive lifetime") {
+    // Truncating to zero would read as "never reported" and make the next
+    // TerminationTime-less Renew assume the full requested lifetime.
+    REQUIRE(ONVIFGrantedLifetime(termination - std::chrono::milliseconds(300), termination) == std::chrono::seconds(1));
+    REQUIRE(ONVIFAssumedLifetime(300, ONVIFGrantedLifetime(termination - std::chrono::milliseconds(300), termination))
+            == std::chrono::seconds(1));
+  }
+}
+
+TEST_CASE("ONVIFIsActionNotSupported", "[onvif]") {
+  SECTION("WS-Addressing and ONVIF ActionNotSupported faults") {
+    REQUIRE(ONVIFIsActionNotSupported(SOAP_FAULT, "wsa:ActionNotSupported", nullptr));
+    REQUIRE(ONVIFIsActionNotSupported(SOAP_FAULT, "wsa5:ActionNotSupported", nullptr));
+    REQUIRE(ONVIFIsActionNotSupported(SOAP_FAULT, "ter:ActionNotSupported", "Optional Action Not Implemented"));
+    REQUIRE(ONVIFIsActionNotSupported(SOAP_FAULT, nullptr, "ActionNotSupported"));
+  }
+
+  SECTION("Other SOAP faults are not ActionNotSupported") {
+    // SOAP_FAULT (12) covers every fault. Treating them all as unsupported
+    // disabled renewal for good after e.g. an authorization failure.
+    REQUIRE_FALSE(ONVIFIsActionNotSupported(SOAP_FAULT, "ter:NotAuthorized", "Sender not authorized"));
+    REQUIRE_FALSE(ONVIFIsActionNotSupported(SOAP_FAULT, "ter:InvalidArgVal", nullptr));
+    REQUIRE_FALSE(ONVIFIsActionNotSupported(SOAP_FAULT, nullptr, nullptr));
+  }
+
+  SECTION("Non-fault results are never ActionNotSupported") {
+    REQUIRE_FALSE(ONVIFIsActionNotSupported(SOAP_EOF, "wsa:ActionNotSupported", nullptr));
+    REQUIRE_FALSE(ONVIFIsActionNotSupported(401, nullptr, "ActionNotSupported"));
+  }
+}
+
 #endif  // WITH_GSOAP

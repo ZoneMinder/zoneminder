@@ -69,6 +69,17 @@ SystemTimePoint ONVIFNextRenewalTime(const SystemTimePoint &now, const SystemTim
 // TerminationTime: what we asked for, but no more than the camera last granted
 // (last_granted, zero when it never said).
 std::chrono::seconds ONVIFAssumedLifetime(int requested_seconds, std::chrono::seconds last_granted);
+
+// Lifetime the camera granted, from a termination after now, in whole seconds
+// rounded up. Termination times have one-second precision and now does not,
+// so truncating would turn a short grant into zero, which means unknown.
+std::chrono::seconds ONVIFGrantedLifetime(const SystemTimePoint &now, const SystemTimePoint &termination);
+
+// Whether a failed Renew means the camera does not support renewal. gSOAP
+// reports every SOAP fault as SOAP_FAULT; the reason is in the subcode
+// (wsa:ActionNotSupported, ter:ActionNotSupported) or the fault string.
+// subcode and fault_string may be null.
+bool ONVIFIsActionNotSupported(int result, const char *subcode, const char *fault_string);
 #endif
 
 // Forward declaration

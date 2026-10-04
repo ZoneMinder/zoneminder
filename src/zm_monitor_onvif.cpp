@@ -135,6 +135,16 @@ std::chrono::seconds ONVIFAssumedLifetime(int requested_seconds, std::chrono::se
   return std::min(requested, last_granted);
 }
 
+std::chrono::seconds ONVIFGrantedLifetime(const SystemTimePoint &now, const SystemTimePoint &termination) {
+  return std::chrono::ceil<std::chrono::seconds>(termination - now);
+}
+
+bool ONVIFIsActionNotSupported(int result, const char *subcode, const char *fault_string) {
+  if (result != SOAP_FAULT) return false;
+  return (subcode and std::strstr(subcode, "ActionNotSupported")) or
+         (fault_string and std::strstr(fault_string, "ActionNotSupported"));
+}
+
 ONVIF::ONVIF(Monitor *parent_) :
   parent(parent_)
   ,alarmed_(false)
@@ -1092,7 +1102,7 @@ void ONVIF::update_renewal_times(time_t camera_current_time, time_t termination_
     return;
   }
 
-  granted_lifetime = std::chrono::duration_cast<std::chrono::seconds>(subscription_termination_time - now);
+  granted_lifetime = ONVIFGrantedLifetime(now, subscription_termination_time);
   next_renewal_time = ONVIFNextRenewalTime(now, subscription_termination_time);
 
   log_subscription_timing("Updated subscription");
@@ -1188,7 +1198,7 @@ bool ONVIF::Renew() {
 
   if (proxyEvent.Renew(subscription_address_.c_str(), nullptr, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK) {
     Debug(1, "ONVIF: Couldn't do Renew! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-    if (soap->error == 12) {  // ActionNotSupported
+    if (ONVIFIsActionNotSupported(soap->error, soap_fault_subcode(soap), soap_fault_string(soap))) {
       // Renewal is checked after every PullMessages, so keep asking and every
       // poll would carry a doomed Renew.
       Debug(2, "ONVIF: Renew not supported by device, disabling renewal - will re-subscribe when subscription expires");

@@ -90,6 +90,28 @@ function cronScheduleIsValid($spec) {
   return true;
 }
 
+// Is $command one we are willing to put in a crontab line?
+//
+// The command itself is not inspected: a scheduled job exists to run things,
+// and deciding which of them are wise is not this function's business. What it
+// does enforce is that the command stays on its own line and means in cron
+// what it means to the person who typed it.
+//
+// A newline would end the entry and start another, so a command could smuggle
+// in a schedule of its own. A bare '%' is where cron stops the command and
+// begins feeding the rest to it as standard input, which silently truncates
+// anything after it -- cron's own escape is '\%', which is accepted here.
+function cronCommandIsValid($command) {
+  if (!is_string($command)) return false;
+  $command = trim($command);
+  if ($command === '') return false;
+  if (preg_match('/[\r\n]/', $command)) return false;
+  // Every % must be escaped. Count unescaped ones by removing the escaped
+  // pairs first, which also stops a trailing backslash from hiding one.
+  if (strpos(str_replace('\\%', '', str_replace('\\\\', '', $command)), '%') !== false) return false;
+  return true;
+}
+
 // Replace ZoneMinder's block in $existing with $lines, leaving every other
 // line exactly as it was.
 //
@@ -206,20 +228,28 @@ function cronWrite($content) {
   return true;
 }
 
-// Rebuild the ZoneMinder block from the scheduled actions in the database.
+// Rebuild the ZoneMinder block from everything in the database that cron runs:
+// scheduled monitor actions and cron jobs alike.
 //
-// Called whenever an action is saved or deleted, so the crontab is a
-// projection of the table rather than a second place to keep the truth. The
-// whole block is regenerated each time, which is why cronSpliceBlock has to
-// leave everything around it alone.
+// Called whenever either is saved or deleted, so the crontab is a projection
+// of the tables rather than a second place to keep the truth. The whole block
+// is regenerated each time, which is why cronSpliceBlock has to leave
+// everything around it alone.
 //
 // Returns an array of the lines installed, or false if the crontab could not
 // be written.
-function cronRebuildScheduledActions() {
+function cronRebuild() {
   require_once('MonitorAction.php');
+  require_once('CronJob.php');
 
   $lines = array();
   $skipped_remote = 0;
+
+  foreach (ZM\CronJob::find(array('Enabled'=>1), array('order'=>'Id')) as $job) {
+    if (!$job->belongsOnThisServer()) { $skipped_remote++; continue; }
+    $line = $job->cronLine();
+    if ($line) $lines[] = $line;
+  }
 
   foreach (ZM\MonitorAction::find(array('TriggerOn'=>'Schedule', 'Enabled'=>1),
                                   array('order'=>'Id')) as $action) {
@@ -241,14 +271,19 @@ function cronRebuildScheduledActions() {
   }
 
   if ($skipped_remote) {
-    Warning($skipped_remote.' scheduled action(s) target a monitor on another server '.
+    Warning($skipped_remote.' scheduled item(s) belong to another server '.
             'and were not written to this server\'s crontab');
   }
 
   if (!cronWrite(cronSpliceBlock(cronRead(), $lines))) return false;
 
-  Debug('Installed '.count($lines).' scheduled action(s) into the crontab');
+  Debug('Installed '.count($lines).' scheduled item(s) into the crontab');
   return $lines;
+}
+
+// The name this had when scheduled actions were the only thing in the block.
+function cronRebuildScheduledActions() {
+  return cronRebuild();
 }
 
 // --- Saying it in English ---------------------------------------------------

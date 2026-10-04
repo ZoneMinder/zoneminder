@@ -205,5 +205,30 @@ foreach (array_keys(cronFrequencies()) as $freq) {
 }
 check('every schedule the editor can build survives a round trip', $bad, array());
 
+echo "commands we will put in a crontab line\n";
+// The command is not judged on what it does -- running things is the point --
+// only on whether it stays on its own line and means in cron what it meant to
+// whoever typed it.
+check('a script', cronCommandIsValid('/usr/local/bin/backup.sh'), true);
+check('a script with arguments', cronCommandIsValid('/usr/bin/zmaudit.pl -f -d 2'), true);
+check('a pipeline', cronCommandIsValid('zmstats.pl | logger -t zm'), true);
+check('an escaped percent, which is how cron spells one',
+  cronCommandIsValid('date +\%F >> /tmp/zm.log'), true);
+
+echo "commands we refuse\n";
+check('empty', cronCommandIsValid(''), false);
+check('only whitespace', cronCommandIsValid('   '), false);
+check('not a string', cronCommandIsValid(null), false);
+// A newline ends the entry, so the rest would become a crontab line of its own
+// with a schedule of its own choosing.
+check('a newline could add an entry of its own',
+  cronCommandIsValid("echo hi\n0 0 * * * rm -rf /"), false);
+check('a carriage return likewise', cronCommandIsValid("echo hi\r0 0 * * * id"), false);
+// cron stops the command at an unescaped % and feeds the rest in as stdin, so
+// accepting one would silently run less than was typed.
+check('a bare percent truncates the command', cronCommandIsValid('date +%F'), false);
+check('a bare percent anywhere', cronCommandIsValid('echo 50% done'), false);
+check('a backslash cannot hide one', cronCommandIsValid('echo \\\\%F'), false);
+
 echo "\n$passed passed, $failed failed\n";
 exit($failed ? 1 : 0);

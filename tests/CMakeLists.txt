@@ -24,6 +24,7 @@ set(TEST_SOURCES
   zm_packetqueue.cpp
   zm_onvif_auth_error.cpp
   zm_onvif_renewal.cpp
+  zm_onvif_alarm_termination.cpp
   zm_poly.cpp
   zm_utils.cpp
   zm_vector2.cpp

@@ -46,6 +46,18 @@ bool ONVIFIsAuthError(int result, const char *fault_string, const char *detail) 
   if (result != SOAP_FAULT) return false;
   return mentions_authorization(fault_string) or mentions_authorization(detail);
 }
+
+bool ONVIFAlarmTermination(time_t termination_time, time_t camera_current_time, const SystemTimePoint &now,
+                           time_t &clock_offset, SystemTimePoint &termination) {
+  if (termination_time == 0) return false;
+  if (camera_current_time != 0) {
+    clock_offset = std::chrono::system_clock::to_time_t(now) - camera_current_time;
+  }
+  SystemTimePoint adjusted = std::chrono::system_clock::from_time_t(termination_time + clock_offset);
+  if (adjusted <= now) return false;
+  termination = adjusted;
+  return true;
+}
 #include "url.hpp"
 
 // ONVIF configuration constants
@@ -556,23 +568,15 @@ void ONVIF::WaitForMessage() {
       // This is the camera's indication of how long the current subscription/response is valid.
       // Apply the camera clock offset to account for timezone/clock differences.
       SystemTimePoint response_termination;
-      bool have_response_termination = false;
-      if (tev__PullMessagesResponse.TerminationTime != 0) {
-        // Update clock offset from CurrentTime if available
-        if (tev__PullMessagesResponse.CurrentTime != 0) {
-          time_t our_current_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-          camera_clock_offset = our_current_time - tev__PullMessagesResponse.CurrentTime;
-        }
-        // Apply offset to termination time
-        time_t adjusted_termination = tev__PullMessagesResponse.TerminationTime + camera_clock_offset;
-        response_termination = std::chrono::system_clock::from_time_t(adjusted_termination);
-        have_response_termination = true;
-        Debug(2, "ONVIF: PullMessagesResponse TerminationTime=%ld adjusted=%ld (offset=%ld) (%s)",
-              static_cast<long>(tev__PullMessagesResponse.TerminationTime),
-              static_cast<long>(adjusted_termination),
-              static_cast<long>(camera_clock_offset),
-              SystemTimePointToString(response_termination).c_str());
-      }
+      bool have_response_termination = ONVIFAlarmTermination(
+          tev__PullMessagesResponse.TerminationTime, tev__PullMessagesResponse.CurrentTime,
+          std::chrono::system_clock::now(), camera_clock_offset, response_termination);
+      Debug(2, "ONVIF: PullMessagesResponse TerminationTime=%ld CurrentTime=%ld (offset=%ld) %s",
+            static_cast<long>(tev__PullMessagesResponse.TerminationTime),
+            static_cast<long>(tev__PullMessagesResponse.CurrentTime),
+            static_cast<long>(camera_clock_offset),
+            have_response_termination ? SystemTimePointToString(response_termination).c_str()
+                                      : "not in the future, not used for alarm expiry");
 
       {  // Scope for lock
         std::unique_lock<std::mutex> lck(alarms_mutex);

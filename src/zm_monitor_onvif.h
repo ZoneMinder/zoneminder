@@ -46,6 +46,17 @@
 // Free rather than a member so it can be tested without an ONVIF object and a
 // live soap context. fault_string and detail may be null.
 bool ONVIFIsAuthError(int result, const char *fault_string, const char *detail);
+
+// Turn a PullMessagesResponse TerminationTime into the expiry time for the
+// alarms it carries, on our clock.
+//
+// camera_current_time, when non-zero, refreshes clock_offset (our time minus
+// the camera's). Returns false, leaving termination untouched, when there is no
+// TerminationTime or it is not in the future. Some cameras (Beward) send their
+// CurrentTime as the TerminationTime, which would expire each alarm in the
+// same pass that raised it.
+bool ONVIFAlarmTermination(time_t termination_time, time_t camera_current_time, const SystemTimePoint &now,
+                           time_t &clock_offset, SystemTimePoint &termination);
 #endif
 
 // Forward declaration

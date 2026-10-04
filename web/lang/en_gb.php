@@ -54,6 +54,8 @@
 
 // Simple String Replacements
 $SLANG = array(
+    'AJAXRequestError' => 'AJAX request error',
+    'Reason' => 'Reason',
     'SystemLog'             => 'System Log',
     'DateTime'              => 'Date/Time',
     'Pid'                   => 'PID',

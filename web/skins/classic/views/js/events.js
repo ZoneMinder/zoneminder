@@ -79,8 +79,8 @@ function ajaxRequest(params) {
       // memory fatal arrives with an empty body and not even that says
       // anything useful. Hence the alert as well. See #3301.
       table.bootstrapTable('hideLoading');
-      zmAlert(translate['Reason'] + ': ' + jqXHR.statusText + '~~' +
-        translate['ErrorUpdatingEventTable'], translate['AJAXRequestError']);
+      alert(translate['AJAXRequestError'] + ': ' + translate['ErrorUpdatingEventTable'] + '. ' +
+        translate['Reason'] + ': ' + jqXHR.statusText);
       logAjaxFail(jqXHR, textStatus, errorThrown);
     }
   });

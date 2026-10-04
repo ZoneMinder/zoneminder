@@ -32,6 +32,7 @@ if (!canEdit('System')) {
 
 require_once('includes/CronJob.php');
 require_once('includes/CronTab.php');
+require_once('includes/Command.php');
 
 $cron_error = '';
 
@@ -49,6 +50,8 @@ if ($action == 'save') {
     $cron_error = translate('CronBadSchedule');
   } else if (!cronCommandIsValid($command)) {
     $cron_error = translate('CronBadCommand');
+  } else if (!commandAllowedByConfig($command)) {
+    $cron_error = commandRefusedMessage();
   } else {
     $values = array(
       'Name'     => $name !== '' ? $name : $command,

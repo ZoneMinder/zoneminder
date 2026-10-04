@@ -19,6 +19,8 @@ our @ISA = qw(Exporter ZoneMinder::Base);
 # will save memory.
 our %EXPORT_TAGS = (
     functions => [ qw(
+      commandIsAllowed
+      commandProgram
       executeShellCommand
       findDbCommand
       getCmdFormat
@@ -747,6 +749,69 @@ sub systemStatus {
     Debug("Command: $command Output: $output");
   }
   return $output;
+}
+
+# --- Which commands a filter or scheduled task may run ----------------------
+#
+# ZM_ALLOWED_COMMANDS narrows "Execute command" and the scheduled tasks to a
+# list the administrator chose. Empty, the default and what every existing
+# install has, places no restriction and keeps the behaviour ZoneMinder has
+# always had.
+#
+# The same rule lives in web/includes/Command.php, because the web ui refuses
+# a command when it is saved and this refuses one when it is about to run --
+# and a row can reach the database without passing through the web ui.
+# tests/php/test_allowed_commands.php checks the two against each other.
+
+# The characters that let one command start another. Refused outright while a
+# list is in force: a program being on the list says nothing about what else
+# runs alongside it if the command can chain. Redirection is deliberately not
+# here; it starts no program.
+our @COMMAND_CHAINING = (';', '|', '&', '`', '$(');
+
+# The program a command invokes: its first word, with any surrounding quotes
+# removed. undef when there is not one. Only the program is matched, so
+# arguments may vary -- which they must, since zmfilter.pl appends the event
+# path to whatever the filter has stored.
+sub commandProgram {
+  my $command = shift;
+  return undef if !defined $command;
+  $command =~ s/^\s+|\s+$//g;
+  return undef if $command eq '';
+
+  # A quoted path may contain spaces, so the quoted run has to be taken before
+  # splitting on whitespace -- splitting first would cut
+  # "/usr/local/bin/my script.sh" in half and compare the wrong thing.
+  if ($command =~ /^(["'])/) {
+    my $quote = $1;
+    # An unterminated quote is not a program name we can read.
+    return undef if $command !~ /^\Q$quote\E([^\Q$quote\E]*)\Q$quote\E/;
+    my $program = $1;
+    return ($program eq '') ? undef : $program;
+  }
+
+  my ($program) = split(/\s+/, $command, 2);
+  return undef if !defined $program or $program eq '';
+  return ($program eq '') ? undef : $program;
+}
+
+# May $command be run, given the configured list? $allowed is the raw setting;
+# an empty one means no restriction.
+sub commandIsAllowed {
+  my ($command, $allowed) = @_;
+  $allowed = '' if !defined $allowed;
+
+  my @list = grep { $_ ne '' } map { my $e = $_; $e =~ s/^\s+|\s+$//g; $e } split(/,/, $allowed);
+  return 1 if !@list;
+
+  return 0 if !defined $command;
+  foreach my $chain (@COMMAND_CHAINING) {
+    return 0 if index($command, $chain) >= 0;
+  }
+
+  my $program = commandProgram($command);
+  return 0 if !defined $program;
+  return (grep { $_ eq $program } @list) ? 1 : 0;
 }
 
 1;

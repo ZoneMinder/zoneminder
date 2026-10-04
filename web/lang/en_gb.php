@@ -246,6 +246,7 @@ $SLANG = array(
     'ActionTriggerSchedule'     => 'At a time',
     'ActionSchedule'            => 'Schedule',
     'ActionScheduleAdvanced'    => 'This schedule was set outside the editor and is shown as it stands. Clear the row and add it again to use the pickers.',
+    'CommandNotAllowed'         => 'That command is not permitted. ZM_ALLOWED_COMMANDS limits this to:',
     'ScheduledTasks'            => 'Scheduled Tasks',
     'ScheduledTasksHelp'        => 'Commands run on a schedule by cron, from the web user\'s own crontab. ZoneMinder rewrites only its own block there and leaves any other entries alone. These run as the web user, so adding one is the same level of trust as a filter that runs a command.',
     'CronCommand'               => 'Command',

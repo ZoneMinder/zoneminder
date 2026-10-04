@@ -2739,6 +2739,33 @@ our @options = (
     category    => 'auth',
   },
   {
+    name        => 'ZM_ALLOWED_COMMANDS',
+    default     => '',
+    description => 'Programs that filters and scheduled tasks are allowed to run',
+    help        => q`
+      Filters with "Execute command" and the scheduled tasks under
+      Options/Scheduled Tasks both run a command as the web user, which is
+      close to shell access on the server. This setting narrows that to a
+      list you choose.
+
+      Give a comma separated list of the programs you are willing to have
+      run, written exactly as they will be invoked, for example:
+      /usr/local/bin/backup.sh,/usr/bin/zmaudit.pl
+
+      Only the program is matched, so arguments may still be given and may
+      differ from run to run; a command whose first word is not on the list is
+      refused. While the list is in force a command may also not contain the
+      characters that would let it start a second program -- semicolon, pipe,
+      ampersand, backtick and dollar-paren -- because the program being on the
+      list would otherwise say nothing about what else ran alongside it.
+
+      Leave this empty, which is the default, to place no restriction and keep
+      the behaviour ZoneMinder has always had.
+      `,
+    type        => $types{string},
+    category    => 'system',
+  },
+  {
     name        => 'ZM_OPT_CONTROL',
     default     => '1',
     description => 'Support controllable (e.g. PTZ) cameras',

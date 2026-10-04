@@ -4,6 +4,7 @@ namespace ZM;
 require_once('database.php');
 require_once('Object.php');
 require_once('CronTab.php');
+require_once('Command.php');
 
 // A command ZoneMinder puts in the web user's crontab for cron to run.
 //
@@ -55,6 +56,13 @@ class CronJob extends ZM_Object {
     if (!$this->{'Enabled'}) return null;
     if (!cronScheduleIsValid($this->{'Schedule'})) return null;
     if (!cronCommandIsValid($this->{'Command'})) return null;
+    // Asked again on every rebuild, so narrowing ZM_ALLOWED_COMMANDS drops
+    // the jobs it no longer covers out of the crontab rather than leaving
+    // them running until somebody edits each one.
+    if (!commandAllowedByConfig($this->{'Command'})) {
+      Warning('Scheduled task '.$this->{'Id'}.' is not in ZM_ALLOWED_COMMANDS, leaving it out of the crontab');
+      return null;
+    }
 
     $line = trim($this->{'Schedule'}).' '.trim($this->{'Command'});
     // Named so somebody reading the crontab can find the row it came from.

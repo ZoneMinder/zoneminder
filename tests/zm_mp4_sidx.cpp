@@ -18,6 +18,7 @@
 #include "zm_catch2.h"
 
 #include "zm_mp4_sidx.h"
+#include "zm_videostore.h"
 
 #include <cmath>
 #include <cstdio>
@@ -695,4 +696,81 @@ TEST_CASE("Mp4SidxReservesOnlyWhereFragmentsFollowTheMoov") {
     std::filesystem::remove(out, ignored);
   }
   avformat_close_input(&in);
+}
+
+
+TEST_CASE("Mp4SidxManifestRangesCoverWholeFragments") {
+  // Issue #5174 reported a manifest as invalid and proposed moving each
+  // fragment's byte range 8 bytes further into the file. That reads ffprobe's
+  // trace column as the box offset when it is the offset plus the 8 byte box
+  // header, and acting on it would cut the `moof` header off every segment.
+  //
+  // What the ranges actually have to be, checked against a box walker of the
+  // test's own rather than against the code that writes them: the init range
+  // is exactly ftyp+moov, and a fragment is a whole `moof` and the `mdat`
+  // that follows it, header included.
+  const std::vector<uint8_t> file = read_file(fixture("sidx-moof.mp4"));
+  const std::vector<TopBox> boxes = top_level(file);
+
+  // The init segment is the boxes the muxer wrote for the header, which is
+  // what VideoStore records as init_segment_end_ before it reserves anything.
+  int64_t init_end = 0;
+  for (const TopBox &box : boxes) {
+    if (box.type != "ftyp" and box.type != "moov") break;
+    init_end = static_cast<int64_t>(box.offset + box.size);
+  }
+  REQUIRE(init_end > 0);
+
+  std::vector<VideoStore::Fragment> frags;
+  for (size_t i = 0; i + 1 < boxes.size(); i++) {
+    if (boxes[i].type == "moof" and boxes[i + 1].type == "mdat") {
+      frags.push_back({static_cast<int64_t>(boxes[i].offset),
+                       static_cast<int64_t>(boxes[i + 1].offset + boxes[i + 1].size
+                                            - boxes[i].offset),
+                       1.0});
+    }
+  }
+  REQUIRE(frags.size() >= 2);
+
+  const int64_t first_moof = static_cast<int64_t>(offset_of(boxes, "moof"));
+
+  SECTION("a fragment starts at its moof box, not past its header") {
+    REQUIRE(frags[0].offset == first_moof);
+    // Spelled out because it is the change #5174 asked for.
+    REQUIRE(frags[0].offset != first_moof + 8);
+  }
+
+  SECTION("fragments run back to back, so no media byte is missed") {
+    for (size_t i = 1; i < frags.size(); i++) {
+      REQUIRE(frags[i].offset == frags[i - 1].offset + frags[i - 1].size);
+    }
+  }
+
+  SECTION("the init range is the header boxes and nothing else") {
+    const std::string header = VideoStore::m3u8Header(
+        VideoStore::m3u8TargetDuration(frags), "v.mp4", init_end, true);
+    REQUIRE(header.find("BYTERANGE=\"" + std::to_string(init_end) + "@0\"")
+            != std::string::npos);
+    // ftyp+moov, which stops short of the reserved region.
+    REQUIRE(init_end == static_cast<int64_t>(offset_of(boxes, "free")));
+  }
+
+  SECTION("the reserved index region is the gap between them") {
+    // The sidx has to END where the fragments BEGIN, so it sits in a gap that
+    // neither the init range nor any fragment covers. A player skips it; this
+    // is why the manifest is not contiguous and does not need to be.
+    REQUIRE(init_end < frags[0].offset);
+    REQUIRE(static_cast<int64_t>(offset_of(boxes, "sidx")) > init_end);
+    const int64_t sidx_end = static_cast<int64_t>(
+        offset_of(boxes, "sidx")
+        + be32(&file[offset_of(boxes, "sidx")]));
+    REQUIRE(sidx_end == frags[0].offset);
+  }
+
+  SECTION("the written line names that range exactly") {
+    REQUIRE(VideoStore::m3u8Fragment(frags[0], "v.mp4")
+            == "#EXTINF:1.000,\n#EXT-X-BYTERANGE:"
+               + std::to_string(frags[0].size) + "@"
+               + std::to_string(frags[0].offset) + "\nv.mp4\n");
+  }
 }

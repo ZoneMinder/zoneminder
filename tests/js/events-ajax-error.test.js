@@ -115,7 +115,8 @@ test('and says so where the user can see it', () => {
   errorHandler(sandbox, state)({status: 500, statusText: 'Internal Server Error'});
   assert.strictEqual(state.alerts.length, 1);
   assert.ok(state.alerts[0].message.includes('Error updating event table'));
-  assert.strictEqual(state.alerts[0].title, 'AJAX request error');
+  // 1.38 has no zmAlert(), so the title goes at the front of the alert() text.
+  assert.ok(state.alerts[0].message.startsWith('AJAX request error'));
 });
 test('and logs it with all three callback arguments', () => {
   const {sandbox, state} = loadEvents();

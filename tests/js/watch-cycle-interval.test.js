@@ -127,24 +127,8 @@ test('cyclePause after repeated starts leaves nothing running', () => {
       'cyclePause could not stop every interval cycleStart armed');
 });
 
-test('startPage clears prevStateCycle so a second restore does not re-arm', () => {
-  // A restore fires more than one of visibilitychange/resume/pageshow, so
-  // startPage() runs twice. prevStateStarted is nulled on the way through;
-  // prevStateCycle has to be too, or the second run starts cycling again.
-  const {globals, timers} = loadWatch();
-  // Run the auth gate synchronously; it is not what this test is about.
-  globals.whenAuthFresh = (cb) => cb();
-  globals.prevStateCycle = true;
-
-  globals.startPage();
-  assert.strictEqual(timers.live.size, 1, 'first restore should arm one interval');
-  assert.strictEqual(globals.prevStateCycle, null,
-      'prevStateCycle should be cleared once acted on');
-
-  globals.startPage();
-  assert.strictEqual(timers.live.size, 1,
-      'second restore left ' + timers.live.size + ' intervals running');
-});
+// 1.38's watch.js has no startPage()/prevStateCycle restore path, so master's
+// test of it does not apply here.
 
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);

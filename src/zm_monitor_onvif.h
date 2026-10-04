@@ -57,6 +57,18 @@ bool ONVIFIsAuthError(int result, const char *fault_string, const char *detail);
 // same pass that raised it.
 bool ONVIFAlarmTermination(time_t termination_time, time_t camera_current_time, const SystemTimePoint &now,
                            time_t &clock_offset, SystemTimePoint &termination);
+
+// When to renew a subscription that ends at termination, given that we learnt
+// of it at now: ONVIF_RENEWAL_ADVANCE_SECONDS before the end, or halfway
+// through for a subscription shorter than twice that. A fixed advance put the
+// renewal of a 60 second subscription at its creation time, so it was always
+// due.
+SystemTimePoint ONVIFNextRenewalTime(const SystemTimePoint &now, const SystemTimePoint &termination);
+
+// Subscription lifetime to assume after a Renew whose response carries no
+// TerminationTime: what we asked for, but no more than the camera last granted
+// (last_granted, zero when it never said).
+std::chrono::seconds ONVIFAssumedLifetime(int requested_seconds, std::chrono::seconds last_granted);
 #endif
 
 // Forward declaration
@@ -119,6 +131,7 @@ class ONVIF {
   // Subscription renewal tracking
   SystemTimePoint subscription_termination_time;
   SystemTimePoint next_renewal_time;
+  std::chrono::seconds granted_lifetime;  // Lifetime the camera last reported granting, 0 if never
   bool use_absolute_time_for_renewal;
   bool renewal_enabled;
   time_t camera_clock_offset;  // Offset in seconds: our_time - camera_time
@@ -152,6 +165,7 @@ class ONVIF {
   void parse_onvif_options();
   int get_retry_delay();
   void update_renewal_times(time_t camera_current_time, time_t termination_time);
+  void assume_renewal_times();
   bool is_renewal_tracking_initialized() const;
   void log_subscription_timing(const char* context);
   bool Renew();

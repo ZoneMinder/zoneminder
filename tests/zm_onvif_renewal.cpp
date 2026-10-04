@@ -16,6 +16,7 @@
  */
 
 #include "zm_catch2.h"
+#include "zm_monitor_onvif.h"
 #include "zm_time.h"
 #include <chrono>
 #include <string>
@@ -352,3 +353,47 @@ TEST_CASE("ONVIF Per-Topic Alarm Expiry") {
     }
   }
 }
+
+#ifdef WITH_GSOAP
+
+TEST_CASE("ONVIFNextRenewalTime", "[onvif]") {
+  const SystemTimePoint now = std::chrono::system_clock::from_time_t(1790880716);
+
+  SECTION("Long subscription renews 60 seconds before it ends") {
+    SystemTimePoint termination = now + std::chrono::seconds(300);
+    REQUIRE(ONVIFNextRenewalTime(now, termination) == now + std::chrono::seconds(240));
+  }
+
+  SECTION("Subscription no longer than the advance renews halfway through") {
+    // The #5179 Beward grants 60 seconds. A fixed 60 second advance put the
+    // renewal at the creation time, so it was due immediately.
+    SystemTimePoint termination = now + std::chrono::seconds(60);
+    REQUIRE(ONVIFNextRenewalTime(now, termination) == now + std::chrono::seconds(30));
+
+    termination = now + std::chrono::seconds(10);
+    REQUIRE(ONVIFNextRenewalTime(now, termination) == now + std::chrono::seconds(5));
+  }
+
+  SECTION("Renewal is always strictly in the future for a future termination") {
+    SystemTimePoint termination = now + std::chrono::seconds(1);
+    REQUIRE(ONVIFNextRenewalTime(now, termination) > now);
+  }
+}
+
+TEST_CASE("ONVIFAssumedLifetime", "[onvif]") {
+  SECTION("Camera never reported a lifetime: assume what we asked for") {
+    REQUIRE(ONVIFAssumedLifetime(300, std::chrono::seconds(0)) == std::chrono::seconds(300));
+  }
+
+  SECTION("Camera granted less than we asked for before: assume it does so again") {
+    // The #5179 Beward granted 60 seconds on Subscribe and sends no
+    // TerminationTime on Renew.
+    REQUIRE(ONVIFAssumedLifetime(300, std::chrono::seconds(60)) == std::chrono::seconds(60));
+  }
+
+  SECTION("Camera granted more than we asked for: assume only what we asked for") {
+    REQUIRE(ONVIFAssumedLifetime(300, std::chrono::seconds(3600)) == std::chrono::seconds(300));
+  }
+}
+
+#endif  // WITH_GSOAP

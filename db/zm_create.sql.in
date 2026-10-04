@@ -805,7 +805,11 @@ DROP TABLE IF EXISTS `Monitor_Status`;
 CREATE TABLE `MonitorActions` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `MonitorId` int(10) unsigned NOT NULL,
-  `TriggerOn` enum('EventStart','EventEnd','Alarm','AlarmEnd','Manual') NOT NULL default 'EventStart',
+  `TriggerOn` enum('EventStart','EventEnd','Alarm','AlarmEnd','Manual','Schedule') NOT NULL default 'EventStart',
+  /* Five field cron spec, used only when TriggerOn='Schedule'. Written into
+     the web user's crontab; validate with cronScheduleIsValid() before it
+     gets here. */
+  `Schedule` varchar(64) NOT NULL default '',
   `ActionType` enum('LightOn','LightOff','IndicatorLightOn','IndicatorLightOff','AudioPlay','AudioStop') NOT NULL default 'AudioPlay',
   `TargetMonitorId` int(10) unsigned NOT NULL,
   `AudioFile` int(10) unsigned default NULL,

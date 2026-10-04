@@ -1108,6 +1108,16 @@ function updateMonitorActionRow(row) {
   const file = row.querySelector('input[name*="[AudioFile]"]');
   if (!target || !type || !file) return;
 
+  // A schedule only means anything for the time-based trigger. Hidden rather
+  // than removed so a row that is switched back to "At a time" still has
+  // whatever was typed, and so the field is still submitted: the server
+  // clears it for the other triggers rather than trusting the browser to.
+  const trigger = row.querySelector('select[name*="[TriggerOn]"]');
+  const schedule = row.querySelector('input[name*="[Schedule]"]');
+  if (trigger && schedule) {
+    schedule.style.visibility = (trigger.value == 'Schedule') ? 'visible' : 'hidden';
+  }
+
   const caps = (typeof monitorActionCapabilities !== 'undefined') ?
     monitorActionCapabilities[target.value] : null;
   const labels = (typeof monitorActionTypeLabels !== 'undefined') ?

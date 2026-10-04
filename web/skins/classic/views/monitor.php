@@ -1660,6 +1660,7 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
         'Alarm'      => translate('ActionTriggerAlarm'),
         'AlarmEnd'   => translate('ActionTriggerAlarmEnd'),
         'Manual'     => translate('ActionTriggerManual'),
+        'Schedule'   => translate('ActionTriggerSchedule'),
       );
       $all_type_options = array(
         'LightOn'           => translate('ActionLightOn'),
@@ -1700,6 +1701,7 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
               <tr>
                 <th><?php echo translate('Enabled') ?></th>
                 <th><?php echo translate('ActionTrigger') ?></th>
+                <th><?php echo translate('ActionSchedule') ?></th>
                 <th><?php echo translate('ActionTarget') ?></th>
                 <th><?php echo translate('ActionType') ?></th>
                 <th><?php echo translate('ActionAudioFile') ?></th>
@@ -1729,7 +1731,12 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
               <tr class="monitorActionRow">
                 <td><input type="checkbox" name="newAction[<?php echo $i ?>][Enabled]" value="1"<?php echo $action->Enabled() ? ' checked="checked"' : '' ?>/></td>
                 <td><input type="hidden" name="newAction[<?php echo $i ?>][Id]" value="<?php echo validHtmlStr($action->Id()) ?>"/>
-                    <?php echo htmlSelect('newAction['.$i.'][TriggerOn]', $trigger_options, $action->TriggerOn()) ?></td>
+                    <?php echo htmlSelect('newAction['.$i.'][TriggerOn]', $trigger_options, $action->TriggerOn(), array('class'=>'actionTrigger')) ?></td>
+                <td><input class="actionSchedule" type="text" size="14"
+                      name="newAction[<?php echo $i ?>][Schedule]"
+                      value="<?php echo validHtmlStr($action->Schedule()) ?>"
+                      placeholder="30 22 * * *"
+                      title="<?php echo translate('ActionScheduleHelp') ?>"/></td>
                 <td><?php echo htmlSelect('newAction['.$i.'][TargetMonitorId]', $target_options, $action->TargetMonitorId(), array('class'=>'actionTarget')) ?></td>
                 <td><?php echo htmlSelect('newAction['.$i.'][ActionType]', $type_options, $action->ActionType(), array('class'=>'actionType')) ?></td>
                 <td><input class="actionAudioFile" type="number" name="newAction[<?php echo $i ?>][AudioFile]" value="<?php echo validHtmlStr($action->AudioFile()) ?>" min="0" step="1"/></td>

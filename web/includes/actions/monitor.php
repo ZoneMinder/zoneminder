@@ -378,6 +378,7 @@ if ($action == 'save') {
 
   if ( isset($_REQUEST['newAction']) and is_array($_REQUEST['newAction']) ) {
     require_once('includes/MonitorAction.php');
+    require_once('includes/CronTab.php');
 
     $submitted_ids = array();
     foreach ( $_REQUEST['newAction'] as $posted ) {
@@ -398,6 +399,22 @@ if ($action == 'save') {
       $action_type = isset($posted['ActionType']) ? $posted['ActionType'] : '';
       $trigger_on = isset($posted['TriggerOn']) ? $posted['TriggerOn'] : 'EventStart';
 
+      # A schedule is written verbatim into the web user's crontab, so it is
+      # checked here and not merely in the browser. An unusable one drops the
+      # action rather than storing a row that would never fire, or worse,
+      # would fire something that was not asked for.
+      $schedule = isset($posted['Schedule']) ? trim($posted['Schedule']) : '';
+      if ( $trigger_on == 'Schedule' ) {
+        if ( !cronScheduleIsValid($schedule) ) {
+          $error_message .= 'Ignoring action: "'.validHtmlStr($schedule).
+            '" is not a valid schedule. Five cron fields are expected, '.
+            'for example "30 22 * * *" for 22:30 daily.<br/>';
+          continue;
+        }
+      } else {
+        $schedule = '';
+      }
+
       $target_monitor = ZM\Monitor::find_one(array('Id'=>$target));
       $allowed = ZM\MonitorAction::typesForMonitor($target_monitor);
       if ( !in_array($action_type, $allowed) ) {
@@ -409,6 +426,7 @@ if ($action == 'save') {
         'MonitorId'       => $mid,
         'TargetMonitorId' => $target,
         'TriggerOn'       => $trigger_on,
+        'Schedule'        => $schedule,
         'ActionType'      => $action_type,
         'AudioFile'       => (!isset($posted['AudioFile']) or $posted['AudioFile'] === '')
                                ? null : validInt($posted['AudioFile']),
@@ -431,6 +449,13 @@ if ($action == 'save') {
 
     # zmc re-reads the action list on restart, so a change here needs one.
     $restart = true;
+
+    # cron owns the scheduled ones, so the crontab is rebuilt from the table
+    # on every save. Doing it here rather than on a timer means the crontab
+    # cannot drift from what the operator just agreed to.
+    if ( cronRebuildScheduledActions() === false )
+      $error_message .= 'Saved, but the crontab could not be updated, so '.
+        'scheduled actions will not run. See the log for why.<br/>';
   } # end if newAction
 
   if ( $restart ) {

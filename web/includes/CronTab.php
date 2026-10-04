@@ -250,3 +250,85 @@ function cronRebuildScheduledActions() {
   Debug('Installed '.count($lines).' scheduled action(s) into the crontab');
   return $lines;
 }
+
+// --- Saying it in English ---------------------------------------------------
+//
+// A cron spec is the wrong thing to show an operator, so the editor offers
+// "Every <when> at <time>" and these convert between that and the five fields
+// that actually go in the crontab. Cron stays the stored form: it is what the
+// crontab needs, and it can express schedules the two controls cannot.
+//
+// cronToParts is deliberately partial. Anything outside the shapes the editor
+// can draw -- "every 15 minutes", "the first of the month" -- comes back null,
+// and the caller falls back to showing the raw spec rather than quietly
+// rewriting someone's schedule into the nearest thing it understands.
+
+// The frequencies the editor offers, mapped to the day-of-week field.
+// Cron numbers Sunday 0 through Saturday 6.
+function cronFrequencies() {
+  return array(
+    'daily'    => '*',
+    'weekdays' => '1-5',
+    'weekends' => '0,6',
+    'sunday'   => '0',
+    'monday'   => '1',
+    'tuesday'  => '2',
+    'wednesday'=> '3',
+    'thursday' => '4',
+    'friday'   => '5',
+    'saturday' => '6',
+    'hourly'   => '*',   // distinguished from daily by the hour field
+  );
+}
+
+// Build a cron spec from what the editor collected. Returns null if the parts
+// do not describe a time.
+function cronFromParts($frequency, $hour, $minute) {
+  $map = cronFrequencies();
+  if (!isset($map[$frequency])) return null;
+  if (!preg_match('/^\d+$/', (string)$minute)) return null;
+  $minute = intval($minute);
+  if (($minute < 0) or ($minute > 59)) return null;
+
+  if ($frequency == 'hourly') {
+    // Every hour, at this many minutes past. The hour control is not used.
+    return $minute.' * * * *';
+  }
+
+  if (!preg_match('/^\d+$/', (string)$hour)) return null;
+  $hour = intval($hour);
+  if (($hour < 0) or ($hour > 23)) return null;
+
+  return $minute.' '.$hour.' * * '.$map[$frequency];
+}
+
+// The reverse, for loading a saved schedule back into the editor. Returns
+// array('frequency'=>..., 'hour'=>..., 'minute'=>...) or null when the spec is
+// something the two controls cannot represent.
+function cronToParts($spec) {
+  if (!cronScheduleIsValid($spec)) return null;
+  $fields = preg_split('/\s+/', trim($spec), -1, PREG_SPLIT_NO_EMPTY);
+  list($minute, $hour, $dom, $month, $dow) = $fields;
+
+  // Only a plain day-of-month and month can be drawn; anything narrower is a
+  // schedule the editor would misrepresent.
+  if (($dom !== '*') or ($month !== '*')) return null;
+  if (!preg_match('/^\d+$/', $minute)) return null;
+
+  if ($hour === '*') {
+    if ($dow !== '*') return null;   // "every hour, but only on Tuesdays"
+    return array('frequency'=>'hourly', 'hour'=>0, 'minute'=>intval($minute));
+  }
+  if (!preg_match('/^\d+$/', $hour)) return null;
+
+  // 7 is Sunday too; normalise so a spec written either way loads.
+  if ($dow === '7') $dow = '0';
+  $frequency = null;
+  foreach (cronFrequencies() as $name => $field) {
+    if ($name == 'hourly') continue;
+    if ($field === $dow) { $frequency = $name; break; }
+  }
+  if ($frequency === null) return null;
+
+  return array('frequency'=>$frequency, 'hour'=>intval($hour), 'minute'=>intval($minute));
+}

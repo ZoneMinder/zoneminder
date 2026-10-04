@@ -399,20 +399,40 @@ if ($action == 'save') {
       $action_type = isset($posted['ActionType']) ? $posted['ActionType'] : '';
       $trigger_on = isset($posted['TriggerOn']) ? $posted['TriggerOn'] : 'EventStart';
 
-      # A schedule is written verbatim into the web user's crontab, so it is
-      # checked here and not merely in the browser. An unusable one drops the
-      # action rather than storing a row that would never fire, or worse,
-      # would fire something that was not asked for.
-      $schedule = isset($posted['Schedule']) ? trim($posted['Schedule']) : '';
+      # The editor collects "Every <when> at <time>"; cron's five fields are
+      # what gets stored and written to the crontab. A schedule it could not
+      # draw comes back untouched in ScheduleRaw so editing a row does not
+      # destroy one that was set another way.
+      #
+      # Built and validated here rather than trusted from the browser: this
+      # string ends up in a crontab line, so the one check that matters has to
+      # be on this side of the request.
+      $schedule = '';
       if ( $trigger_on == 'Schedule' ) {
+        if ( isset($posted['ScheduleRaw']) and (trim($posted['ScheduleRaw']) !== '') ) {
+          $schedule = trim($posted['ScheduleRaw']);
+        } else {
+          $frequency = isset($posted['ScheduleFrequency']) ? $posted['ScheduleFrequency'] : '';
+          $time = isset($posted['ScheduleTime']) ? trim($posted['ScheduleTime']) : '';
+          # <input type="time"> gives HH:MM, and HH:MM:SS where seconds are on.
+          if ( !preg_match('/^(\d{1,2}):(\d{2})(?::\d{2})?$/', $time, $hm) ) {
+            $error_message .= 'Ignoring action: "'.validHtmlStr($time).
+              '" is not a time of day.<br/>';
+            continue;
+          }
+          $schedule = cronFromParts($frequency, intval($hm[1]), intval($hm[2]));
+          if ($schedule === null) {
+            $error_message .= 'Ignoring action: could not make a schedule from "'.
+              validHtmlStr($frequency).'" at "'.validHtmlStr($time).'".<br/>';
+            continue;
+          }
+        }
+
         if ( !cronScheduleIsValid($schedule) ) {
           $error_message .= 'Ignoring action: "'.validHtmlStr($schedule).
-            '" is not a valid schedule. Five cron fields are expected, '.
-            'for example "30 22 * * *" for 22:30 daily.<br/>';
+            '" is not a schedule this can run.<br/>';
           continue;
         }
-      } else {
-        $schedule = '';
       }
 
       $target_monitor = ZM\Monitor::find_one(array('Id'=>$target));

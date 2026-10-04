@@ -139,5 +139,71 @@ check('the line after stays after',
   strpos($resliced, '/bin/last') > strpos($resliced, ZM_CRONTAB_END), true);
 check('the old body is gone', strpos($resliced, 'old line'), false);
 
+echo "saying it the way the editor does\n";
+// The editor shows "Every <when> at <time>", never cron. These build the spec
+// from what it collected.
+check('every day at 8am', cronFromParts('daily', 8, 0), '0 8 * * *');
+check('every monday at 7pm', cronFromParts('monday', 19, 0), '0 19 * * 1');
+check('every sunday', cronFromParts('sunday', 6, 30), '30 6 * * 0');
+check('every saturday', cronFromParts('saturday', 23, 59), '59 23 * * 6');
+check('every weekday at 7am', cronFromParts('weekdays', 7, 0), '0 7 * * 1-5');
+check('every weekend day', cronFromParts('weekends', 9, 15), '15 9 * * 0,6');
+check('every hour at quarter past', cronFromParts('hourly', 0, 15), '15 * * * *');
+check('midnight is a time like any other', cronFromParts('daily', 0, 0), '0 0 * * *');
+
+echo "parts the editor could not have produced\n";
+check('an unknown frequency', cronFromParts('fortnightly', 8, 0), null);
+check('hour 24', cronFromParts('daily', 24, 0), null);
+check('minute 60', cronFromParts('daily', 8, 60), null);
+check('a negative hour', cronFromParts('daily', -1, 0), null);
+check('a non-numeric time', cronFromParts('daily', 'eight', 0), null);
+
+echo "loading a saved schedule back into the editor\n";
+check('every day at 8am',
+  cronToParts('0 8 * * *'), array('frequency'=>'daily', 'hour'=>8, 'minute'=>0));
+check('every monday at 7pm',
+  cronToParts('0 19 * * 1'), array('frequency'=>'monday', 'hour'=>19, 'minute'=>0));
+check('every weekday',
+  cronToParts('0 7 * * 1-5'), array('frequency'=>'weekdays', 'hour'=>7, 'minute'=>0));
+check('every weekend day',
+  cronToParts('15 9 * * 0,6'), array('frequency'=>'weekends', 'hour'=>9, 'minute'=>15));
+check('every hour',
+  cronToParts('15 * * * *'), array('frequency'=>'hourly', 'hour'=>0, 'minute'=>15));
+// Cron accepts 7 for Sunday as well as 0, so a spec written either way loads.
+check('sunday written as 7',
+  cronToParts('0 6 * * 7'), array('frequency'=>'sunday', 'hour'=>6, 'minute'=>0));
+
+echo "schedules the two controls cannot draw\n";
+// These come back null so the editor falls back to showing the raw spec,
+// rather than quietly rewriting someone's schedule into the nearest thing it
+// happens to understand.
+check('every fifteen minutes', cronToParts('*/15 * * * *'), null);
+check('the first of the month', cronToParts('0 9 1 * *'), null);
+check('one month only', cronToParts('0 9 * 6 *'), null);
+check('a pair of weekdays', cronToParts('0 9 * * 1,3'), null);
+check('hourly but only on tuesdays', cronToParts('0 * * * 2'), null);
+check('an invalid spec is not parts either', cronToParts('nonsense'), null);
+
+echo "round trip\n";
+// Anything the editor can draw must survive being saved and loaded back,
+// or editing a row would silently change when it runs.
+$bad = array();
+foreach (array_keys(cronFrequencies()) as $freq) {
+  foreach (array(array(0, 0), array(8, 0), array(19, 30), array(23, 59)) as $t) {
+    list($h, $m) = $t;
+    $spec = cronFromParts($freq, $h, $m);
+    if ($spec === null) { $bad[] = "$freq $h:$m did not build"; continue; }
+    if (!cronScheduleIsValid($spec)) { $bad[] = "$freq $h:$m built invalid '$spec'"; continue; }
+    $parts = cronToParts($spec);
+    if ($parts === null) { $bad[] = "$freq $h:$m -> '$spec' did not load back"; continue; }
+    $expect_hour = ($freq == 'hourly') ? 0 : $h;
+    if (($parts['frequency'] !== $freq) or ($parts['hour'] !== $expect_hour)
+        or ($parts['minute'] !== $m)) {
+      $bad[] = "$freq $h:$m -> '$spec' -> ".json_encode($parts);
+    }
+  }
+}
+check('every schedule the editor can build survives a round trip', $bad, array());
+
 echo "\n$passed passed, $failed failed\n";
 exit($failed ? 1 : 0);

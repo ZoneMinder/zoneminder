@@ -1652,6 +1652,7 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
   case 'actions' :
     {
       require_once('includes/MonitorAction.php');
+      require_once('includes/CronTab.php');
 
       $candidates = ZM\MonitorAction::targetCandidates();
       $trigger_options = array(
@@ -1661,6 +1662,21 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
         'AlarmEnd'   => translate('ActionTriggerAlarmEnd'),
         'Manual'     => translate('ActionTriggerManual'),
         'Schedule'   => translate('ActionTriggerSchedule'),
+      );
+      // Reads as a sentence with the controls that follow it: "Every <this>
+      // at <time>". Cron's own syntax is never shown; it is only what gets
+      // stored and written to the crontab.
+      $frequency_options = array(
+        'daily'     => translate('ScheduleEveryDay'),
+        'weekdays'  => translate('ScheduleEveryWeekday'),
+        'weekends'  => translate('ScheduleEveryWeekend'),
+        'monday'    => translate('ScheduleEveryMonday'),
+        'tuesday'   => translate('ScheduleEveryTuesday'),
+        'wednesday' => translate('ScheduleEveryWednesday'),
+        'thursday'  => translate('ScheduleEveryThursday'),
+        'friday'    => translate('ScheduleEveryFriday'),
+        'saturday'  => translate('ScheduleEverySaturday'),
+        'sunday'    => translate('ScheduleEverySunday'),
       );
       $all_type_options = array(
         'LightOn'           => translate('ActionLightOn'),
@@ -1732,11 +1748,34 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
                 <td><input type="checkbox" name="newAction[<?php echo $i ?>][Enabled]" value="1"<?php echo $action->Enabled() ? ' checked="checked"' : '' ?>/></td>
                 <td><input type="hidden" name="newAction[<?php echo $i ?>][Id]" value="<?php echo validHtmlStr($action->Id()) ?>"/>
                     <?php echo htmlSelect('newAction['.$i.'][TriggerOn]', $trigger_options, $action->TriggerOn(), array('class'=>'actionTrigger')) ?></td>
-                <td><input class="actionSchedule" type="text" size="14"
-                      name="newAction[<?php echo $i ?>][Schedule]"
+<?php
+          // A schedule the two controls cannot draw -- one hand written into
+          // the database, or an hourly one -- is shown as it stands and kept
+          // as it stands, rather than being silently rounded to the nearest
+          // thing the editor happens to understand.
+          $schedule_parts = cronToParts($action->Schedule());
+          if ($schedule_parts and !isset($frequency_options[$schedule_parts['frequency']]))
+            $schedule_parts = null;
+          $drawable = ($action->Schedule() === '') or ($schedule_parts !== null);
+?>
+                <td class="actionScheduleCell">
+<?php if (!$drawable) { ?>
+                  <input class="actionScheduleRaw" type="text" size="14" readonly="readonly"
+                      name="newAction[<?php echo $i ?>][ScheduleRaw]"
                       value="<?php echo validHtmlStr($action->Schedule()) ?>"
-                      placeholder="30 22 * * *"
-                      title="<?php echo translate('ActionScheduleHelp') ?>"/></td>
+                      title="<?php echo translate('ActionScheduleAdvanced') ?>"/>
+<?php } else { ?>
+                  <?php echo translate('ScheduleEvery') ?>
+                  <?php echo htmlSelect('newAction['.$i.'][ScheduleFrequency]', $frequency_options,
+                        $schedule_parts ? $schedule_parts['frequency'] : 'daily',
+                        array('class'=>'actionScheduleFrequency')) ?>
+                  <?php echo translate('ScheduleAt') ?>
+                  <input class="actionScheduleTime" type="time"
+                      name="newAction[<?php echo $i ?>][ScheduleTime]"
+                      value="<?php echo $schedule_parts ?
+                        sprintf('%02d:%02d', $schedule_parts['hour'], $schedule_parts['minute']) : '08:00' ?>"/>
+<?php } ?>
+                </td>
                 <td><?php echo htmlSelect('newAction['.$i.'][TargetMonitorId]', $target_options, $action->TargetMonitorId(), array('class'=>'actionTarget')) ?></td>
                 <td><?php echo htmlSelect('newAction['.$i.'][ActionType]', $type_options, $action->ActionType(), array('class'=>'actionType')) ?></td>
                 <td><input class="actionAudioFile" type="number" name="newAction[<?php echo $i ?>][AudioFile]" value="<?php echo validHtmlStr($action->AudioFile()) ?>" min="0" step="1"/></td>

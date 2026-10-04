@@ -1113,9 +1113,9 @@ function updateMonitorActionRow(row) {
   // whatever was typed, and so the field is still submitted: the server
   // clears it for the other triggers rather than trusting the browser to.
   const trigger = row.querySelector('select[name*="[TriggerOn]"]');
-  const schedule = row.querySelector('input[name*="[Schedule]"]');
-  if (trigger && schedule) {
-    schedule.style.visibility = (trigger.value == 'Schedule') ? 'visible' : 'hidden';
+  const scheduleCell = row.querySelector('td.actionScheduleCell');
+  if (trigger && scheduleCell) {
+    scheduleCell.style.visibility = (trigger.value == 'Schedule') ? 'visible' : 'hidden';
   }
 
   const caps = (typeof monitorActionCapabilities !== 'undefined') ?

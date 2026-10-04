@@ -47,6 +47,13 @@
 // live soap context. fault_string and detail may be null.
 bool ONVIFIsAuthError(int result, const char *fault_string, const char *detail);
 
+// How long to wait before the next PullMessages when one came back with no
+// messages after elapsed, having asked the camera to hold it for up to
+// pull_timeout_seconds. Some cameras (Beward) answer at once instead of holding
+// the long-poll, and polling again immediately loops at tens of requests a
+// second.
+std::chrono::milliseconds ONVIFEarlyPollWait(std::chrono::steady_clock::duration elapsed, int pull_timeout_seconds);
+
 // Turn a PullMessagesResponse TerminationTime into the expiry time for the
 // alarms it carries, on our clock.
 //

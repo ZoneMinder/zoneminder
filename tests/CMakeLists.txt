@@ -23,6 +23,7 @@ set(TEST_SOURCES
   zm_monitorstream.cpp
   zm_packetqueue.cpp
   zm_onvif_auth_error.cpp
+  zm_onvif_poll_wait.cpp
   zm_onvif_renewal.cpp
   zm_onvif_alarm_termination.cpp
   zm_poly.cpp

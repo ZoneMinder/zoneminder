@@ -47,6 +47,12 @@ bool ONVIFIsAuthError(int result, const char *fault_string, const char *detail) 
   return mentions_authorization(fault_string) or mentions_authorization(detail);
 }
 
+std::chrono::milliseconds ONVIFEarlyPollWait(std::chrono::steady_clock::duration elapsed, int pull_timeout_seconds) {
+  auto remaining = std::chrono::seconds(pull_timeout_seconds) - elapsed;
+  if (remaining <= std::chrono::steady_clock::duration::zero()) return std::chrono::milliseconds(0);
+  return std::chrono::duration_cast<std::chrono::milliseconds>(remaining);
+}
+
 bool ONVIFAlarmTermination(time_t termination_time, time_t camera_current_time, const SystemTimePoint &now,
                            time_t &clock_offset, SystemTimePoint &termination) {
   if (termination_time == 0) return false;
@@ -501,7 +507,11 @@ void ONVIF::WaitForMessage() {
   tev__PullMessages.MessageLimit = 10;
   Debug(1, "ONVIF: Starting PullMessageRequest with Timeout=%ds, MessageLimit=%d ...",
         pull_timeout_seconds, tev__PullMessages.MessageLimit);
+  auto pull_start = std::chrono::steady_clock::now();
   int result = proxyEvent.PullMessages(subscription_address_.c_str(), nullptr, &tev__PullMessages, tev__PullMessagesResponse);
+  auto pull_elapsed = std::chrono::steady_clock::now() - pull_start;
+  bool empty_poll = (result == SOAP_OK) ? tev__PullMessagesResponse.wsnt__NotificationMessage.empty()
+                                        : (soap->error == SOAP_EOF);
     if (result != SOAP_OK) {
       const char *detail = soap_fault_detail(soap);
       const char *fault_string = soap_fault_string(soap);
@@ -756,7 +766,22 @@ void ONVIF::WaitForMessage() {
   soap_destroy(soap);
   soap_end(soap);
 
-  return;
+  // A camera that answers an empty PullMessages before the Timeout we asked
+  // for would otherwise be polled again immediately, in a tight loop.
+  if (empty_poll) {
+    std::chrono::milliseconds wait = ONVIFEarlyPollWait(pull_elapsed, pull_timeout_seconds);
+    if (wait.count() > 0) {
+      Debug(2, "ONVIF: PullMessages returned empty after %jdms of a %ds Timeout, waiting %jdms before the next",
+            static_cast<intmax_t>(std::chrono::duration_cast<std::chrono::milliseconds>(pull_elapsed).count()),
+            pull_timeout_seconds, static_cast<intmax_t>(wait.count()));
+      // Sleep in short steps to remain responsive to termination signals
+      auto wait_until = std::chrono::steady_clock::now() + wait;
+      while (!terminate_ && !zm_terminate && std::chrono::steady_clock::now() < wait_until) {
+        std::this_thread::sleep_for(std::min<std::chrono::steady_clock::duration>(
+            std::chrono::milliseconds(100), wait_until - std::chrono::steady_clock::now()));
+      }
+    }
+  }
 }
 
 // Enable SOAP message logging to a file using the gSOAP logging plugin

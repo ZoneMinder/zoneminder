@@ -117,6 +117,17 @@ class VideoStore {
   int64_t sidx_region_size_;        // how many bytes open() reserved there
   bool    finalized_;               // true once finalize() has run trailer + last-fragment recording
 
+  // What of the manifest is already on disk, and what it was written with, so
+  // writeM3U8 can add the new fragments to the end instead of rewriting it.
+  // Zeroed state means "rewrite from scratch", which is also the self-healing
+  // answer to anything unexpected.
+  size_t      m3u8_fragments_written_;
+  int         m3u8_target_duration_;
+  int64_t     m3u8_init_segment_end_;
+  int64_t     m3u8_bytes_written_;
+  std::string m3u8_path_;
+  std::string m3u8_video_url_;
+
   bool setup_resampler();
   int write_packet(AVPacket *pkt, AVStream *stream);
 
@@ -142,6 +153,22 @@ class VideoStore {
   const std::vector<Fragment> &fragments() const { return fragments_; }
   int64_t init_segment_end() const { return init_segment_end_; }
   void writeM3U8(const std::string &path, const std::string &video_url, bool is_complete);
+
+  // --- Manifest text, split out so it is testable without a VideoStore ------
+  //
+  // An EVENT playlist is append only: the lines for a fragment never change
+  // once written, and only the header depends on anything global. So the
+  // header and a fragment's three lines are generated separately, and
+  // writeM3U8 appends when nothing above the new fragments would differ.
+
+  // Rounded up, and never below 1, as EXT-X-TARGETDURATION must be a positive
+  // integer no smaller than any fragment.
+  static int m3u8TargetDuration(const std::vector<Fragment> &frags);
+  static std::string m3u8Header(int target_duration,
+                                const std::string &video_url,
+                                int64_t init_segment_end,
+                                bool is_complete);
+  static std::string m3u8Fragment(const Fragment &frag, const std::string &video_url);
   // Flush queues, write trailer, close output, and record the final fragment.
   // Call this before writeM3U8(true) so the manifest contains every fragment.
   // Safe to call once; subsequent calls are no-ops. The destructor will skip

@@ -44,6 +44,7 @@ set(TEST_SOURCES
   zm_stream_socket_protocol.cpp
   zm_time.cpp
   zm_utils.cpp
+  zm_videostore_m3u8.cpp
   zm_vector2.cpp
   zm_zone.cpp
   zm_zone_stride.cpp

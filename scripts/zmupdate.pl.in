@@ -939,7 +939,7 @@ if ( $version ) {
       if ( version->parse('v'.$v) >= version->parse('v'.$version) ) {
         print("Upgrading DB to $v from $version\n");
         if ( patchDB($dbh, $v) ) {
-          my $res = $sth->execute($version) or die( "Can't execute: ".$sth->errstr() );
+          my $res = $sth->execute($v) or die( "Can't execute: ".$sth->errstr() );
         }
         #patchDB_using_do( $dbh, $version, $updateDir.'/'.$patch );
       } # end if newer version

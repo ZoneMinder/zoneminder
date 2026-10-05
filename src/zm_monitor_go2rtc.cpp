@@ -34,9 +34,9 @@ Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
   Debug(1, "Go2RTC: Initializing Go2RTCManager for monitor %s (%d)", parent->Name(), parent->Id());
 
   if ((config.go2rtc_path != nullptr) && (config.go2rtc_path[0] != '\0')) {
-    Go2RTC_endpoint = config.go2rtc_path;
-    // remove the trailing slash if present
-    if (Go2RTC_endpoint.back() == '/') Go2RTC_endpoint.pop_back();
+    // Accept the server address as well as its /api path; the requests below
+    // append /streams to the API base.
+    Go2RTC_endpoint = Go2RTCApiEndpoint(config.go2rtc_path);
     Debug(1, "Go2RTC: Using configured endpoint: %s", Go2RTC_endpoint.c_str());
   } else {
     Go2RTC_endpoint = "demo:demo@127.0.0.1:1984";

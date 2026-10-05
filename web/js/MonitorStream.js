@@ -408,7 +408,7 @@ function MonitorStream(monitorData) {
 
     if (this.Go2RTCEnabled && ((!this.player) || (-1 !== this.player.indexOf('go2rtc')))) {
       if (ZM_GO2RTC_PATH) {
-        const url = new URL(ZM_GO2RTC_PATH);
+        const url = go2rtcApiUrl(ZM_GO2RTC_PATH);
 
         const stream = this.element = replaceDOMElement(this.getElement(), 'video-stream');
         stream.srcObject = null;

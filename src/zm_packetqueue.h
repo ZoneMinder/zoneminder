@@ -56,6 +56,7 @@ class PacketQueue {
   std::atomic<bool> clear_packets_pending_;
   uint64_t next_queue_index_;
   uint64_t first_queue_index_;  // queue_index of the first packet queued since the last clear()
+  uint64_t released_before_;    // releaseDecoded() has handled every packet before this queue_index
 
  public:
   PacketQueue();
@@ -81,6 +82,9 @@ class PacketQueue {
   int get_max_keyframe_interval() const { return max_keyframe_interval_; };
 
   bool clearPackets(const std::shared_ptr<ZMPacket> &packet);
+  // Frees the decoded copies of packets no consumer can read again; see the
+  // definition. Call from the thread that opens events (analysis).
+  void releaseDecoded();
 
   // Lock-free gate for callers: returns false when a clearPackets() call would
   // certainly early-return. When keep_keyframes is on we only have work to do

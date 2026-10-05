@@ -42,7 +42,8 @@ PacketQueue::PacketQueue():
   frames_since_last_keyframe_(0),
   clear_packets_pending_(false),
   next_queue_index_(0),
-  first_queue_index_(0)
+  first_queue_index_(0),
+  released_before_(0)
 {
 }
 
@@ -413,6 +414,63 @@ bool PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
   // packets_to_destroy goes out of scope here, destroying packets without holding the mutex
   return !clear_packets_pending_;
 } // end bool PacketQueue::clearPackets(ZMPacket* zm_packet)
+
+// Packets stay queued after every consumer has read them: passthrough needs the
+// compressed data back to a keyframe, and an event may still open with
+// pre-event frames. Their decoded copies (images, decoder frames) are needed
+// far less: only from where an event could still start. That is
+// pre_event_video_packet_count video packets before the analysis iterator,
+// back to a keyframe when passthrough needs one (see get_event_start_packet_it).
+// The earliest iterator is never ahead of the analysis one, so starting from
+// it is conservative. Everything before that point keeps its compressed packet
+// and loses its decoded data, which at high resolutions is several MB a frame
+// (refs #4860). Events only open on the analysis thread, which calls this, so
+// the boundary can't move back underneath us.
+void PacketQueue::releaseDecoded() {
+  std::vector<std::shared_ptr<ZMPacket>> to_release;
+  {
+    std::unique_lock<std::mutex> lck(mutex);
+    if (deleting or pktQueue.empty() or iterators.empty()) return;
+
+    uint64_t min_iterator_queue_index = UINT64_MAX;
+    for (const packetqueue_iterator *iterator_it : iterators) {
+      if (*iterator_it != pktQueue.end()) {
+        uint64_t qi = (*(*iterator_it))->queue_index;
+        if (qi < min_iterator_queue_index) min_iterator_queue_index = qi;
+      }
+    }
+
+    // Walk back from the earliest iterator's packet (or the newest packet when
+    // every iterator is at the end) as openEvent would.
+    auto it = pktQueue.end();
+    --it;
+    while (it != pktQueue.begin() and (*it)->queue_index > min_iterator_queue_index) --it;
+    int pre_event = pre_event_video_packet_count;
+    while (pre_event > 0 and it != pktQueue.begin()) {
+      if ((*it)->packet->stream_index == video_stream_id) pre_event--;
+      --it;
+    }
+    if (pre_event > 0) return;  // the whole queue is still within reach of an event
+    if (keep_keyframes) {
+      while (it != pktQueue.begin() and !((*it)->packet->stream_index == video_stream_id and (*it)->keyframe)) --it;
+    }
+    const uint64_t boundary = (*it)->queue_index;
+    if (boundary <= released_before_) return;
+
+    for (auto p = pktQueue.begin(); p != it; ++p) {
+      if ((*p)->queue_index < released_before_) continue;
+      to_release.push_back(*p);
+    }
+    released_before_ = boundary;
+  }
+
+  // Free outside the queue lock, like clearPackets(). Nothing should hold these
+  // packets, but never wait on one that is.
+  for (const auto &packet : to_release) {
+    std::unique_lock<std::mutex> plck(packet->mutex_, std::try_to_lock);
+    if (plck.owns_lock()) packet->release_decoded();
+  }
+}
 
 void PacketQueue::stop() {
   std::lock_guard<std::mutex> lck(mutex);

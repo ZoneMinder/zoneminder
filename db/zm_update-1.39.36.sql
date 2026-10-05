@@ -57,10 +57,40 @@ set @sqlstmt := if( @idx > 0, 'DROP INDEX `AI_Detections_EventId_idx` ON `AI_Det
 PREPARE stmt FROM @sqlstmt;
 EXECUTE stmt;
 
+-- Removing duplicates must not take row locks across the whole table: an
+-- unbatched self-join DELETE locks every row it scans and fails with
+-- ERROR 1206 on a large Frames table, duplicates or not. So first look for
+-- duplicates with a plain SELECT ... INTO, which is a non-locking read, and
+-- only if there are any, delete them a range of events at a time so each
+-- statement locks just that range.
+
+DELIMITER //
+
+DROP PROCEDURE IF EXISTS `zm_remove_duplicate_frames` //
+
+CREATE PROCEDURE `zm_remove_duplicate_frames`()
+BEGIN
+  DECLARE v_start, v_max BIGINT UNSIGNED;
+  DECLARE v_dups INT DEFAULT 0;
+
+  SELECT COUNT(*) INTO v_dups FROM (SELECT 1 FROM `Frames` GROUP BY `EventId`, `FrameId` HAVING COUNT(*) > 1 LIMIT 1) AS d;
+  IF v_dups > 0 THEN
+    SELECT MIN(`EventId`), MAX(`EventId`) INTO v_start, v_max FROM `Frames`;
+    WHILE v_start <= v_max DO
+      DELETE F1 FROM `Frames` F1 JOIN `Frames` F2 ON F1.`EventId` = F2.`EventId` AND F1.`FrameId` = F2.`FrameId` AND F1.`Id` > F2.`Id`
+        WHERE F1.`EventId` >= v_start AND F1.`EventId` < v_start + 100;
+      SET v_start = v_start + 100;
+    END WHILE;
+  END IF;
+END //
+
+DELIMITER ;
+
 SELECT IF(@exist > 0, 'Removing duplicate (EventId, FrameId) rows from Frames.', 'Frames.Id already removed.');
-set @sqlstmt := if( @exist > 0, 'DELETE F1 FROM `Frames` F1 JOIN `Frames` F2 ON F1.`EventId` = F2.`EventId` AND F1.`FrameId` = F2.`FrameId` AND F1.`Id` > F2.`Id`', "SELECT 1");
+set @sqlstmt := if( @exist > 0, 'CALL zm_remove_duplicate_frames()', "SELECT 1");
 PREPARE stmt FROM @sqlstmt;
 EXECUTE stmt;
+DROP PROCEDURE IF EXISTS `zm_remove_duplicate_frames`;
 
 SELECT IF(@exist > 0, 'Rebuilding Frames with (EventId, FrameId) as primary key. On a large Frames table this will take some time.', '');
 set @sqlstmt := if( @exist > 0, 'ALTER TABLE `Frames`

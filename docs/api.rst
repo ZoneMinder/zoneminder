@@ -325,21 +325,22 @@ Return a list of all events
   http://server/zm/api/events.json
 
 
-Note that events list can be quite large and this API (as with all other APIs in ZM)
-uses pagination. Each page returns a specific set of entries. By default this is 25
-and ties into WEB_EVENTS_PER_PAGE in the ZM options menu. 
+Note that the events list can be quite large. Without any parameters this endpoint
+returns the full, unpaginated list. To paginate, pass ``limit`` (entries per page)
+and/or ``page`` query parameters; supplying either enables pagination. The
+WEB_EVENTS_PER_PAGE option only affects the web event list, not the API.
 
 So the logic to iterate through all events should be something like this (pseudocode):
 (unfortunately there is no way to get pageCount without getting the first page)
 
 ::
 
-  data = http://server/zm/api/events.json?page=1 # this returns the first page
+  data = http://server/zm/api/events.json?limit=100&page=1 # this returns the first page
   # The json object returned now has a property called data.pagination.pageCount
   count = data.pagination.pageCount;
   for (i=1, i<count, i++)
   {
-    data = http://server/zm/api/events.json?page=i;
+    data = http://server/zm/api/events.json?limit=100&page=i;
      doStuff(data);
   }
 

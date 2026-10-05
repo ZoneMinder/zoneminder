@@ -34,16 +34,22 @@ Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
   Debug(1, "Go2RTC: Initializing Go2RTCManager for monitor %s (%d)", parent->Name(), parent->Id());
 
   if ((config.go2rtc_path != nullptr) && (config.go2rtc_path[0] != '\0')) {
-    Go2RTC_endpoint = config.go2rtc_path;
-    // remove the trailing slash if present
-    if (Go2RTC_endpoint.back() == '/') Go2RTC_endpoint.pop_back();
+    // Accept the server address as well as its /api path; the requests below
+    // append /streams to the API base.
+    Go2RTC_endpoint = Go2RTCApiEndpoint(config.go2rtc_path);
     Debug(1, "Go2RTC: Using configured endpoint: %s", Go2RTC_endpoint.c_str());
   } else {
     Go2RTC_endpoint = "demo:demo@127.0.0.1:1984";
     Warning("Go2RTC: No endpoint configured in ZM_GO2RTC_PATH, using default: %s", Go2RTC_endpoint.c_str());
   }
 
-  Use_RTSP_Restream = parent->RTSPServer();
+  // ZoneMinder's RTSP server only runs when ZM_MIN_RTSP_PORT is set, so without it
+  // there is no restream to point go2rtc at; use the camera's own stream instead.
+  Use_RTSP_Restream = parent->RTSPServer() && config.min_rtsp_port;
+  if (parent->RTSPServer() && !config.min_rtsp_port) {
+    Warning("Go2RTC: monitor %u has RTSP Server enabled but ZM_MIN_RTSP_PORT is not set, "
+            "so there is no restream; using the camera stream", parent->Id());
+  }
   if (Use_RTSP_Restream) {
     if (parent->server_id) {
       Server server(parent->server_id);

@@ -39,7 +39,12 @@ Monitor::JanusManager::~JanusManager() {
 
 void Monitor::JanusManager::load_from_monitor() {
   //constructor takes care of init and calls add_to
-  Use_RTSP_Restream = parent->restream;
+  // The restream needs ZoneMinder's RTSP server, which only runs when ZM_MIN_RTSP_PORT is set.
+  Use_RTSP_Restream = parent->restream && config.min_rtsp_port;
+  if (parent->restream && !config.min_rtsp_port) {
+    Warning("Janus: monitor %u is set to use the RTSP restream but ZM_MIN_RTSP_PORT is not set, "
+            "so there is no restream; using the camera stream", parent->Id());
+  }
   profile_override = parent->janus_profile_override;
   rtsp_session_timeout = parent->janus_rtsp_session_timeout;
   if ((config.janus_path != nullptr) && (config.janus_path[0] != '\0')) {

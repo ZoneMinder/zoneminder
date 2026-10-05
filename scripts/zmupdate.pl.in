@@ -935,11 +935,18 @@ if ( $version ) {
 
     foreach my $patch ( @files ) {
       my ( $v ) = $patch =~ /^zm_update\-([\d\.]+)\.sql$/;
+      # A migration newer than the ZoneMinder being installed belongs to some later
+      # release; one left in the update directory (a downgrade, or files from a newer
+      # build installed over this one) must not be applied to this schema.
+      if ( version->parse('v'.$v) > version->parse('v'.ZM_VERSION) ) {
+        print("Skipping $patch, it is newer than this version of ZoneMinder (".ZM_VERSION.")\n");
+        next;
+      }
 #PP make sure we use version compare 
       if ( version->parse('v'.$v) >= version->parse('v'.$version) ) {
         print("Upgrading DB to $v from $version\n");
         if ( patchDB($dbh, $v) ) {
-          my $res = $sth->execute($version) or die( "Can't execute: ".$sth->errstr() );
+          my $res = $sth->execute($v) or die( "Can't execute: ".$sth->errstr() );
         }
         #patchDB_using_do( $dbh, $version, $updateDir.'/'.$patch );
       } # end if newer version

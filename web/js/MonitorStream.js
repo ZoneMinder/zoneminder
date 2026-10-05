@@ -35,7 +35,10 @@ function MonitorStream(monitorData) {
   this.RTSP2WebEnabled = monitorData.RTSP2WebEnabled;
   this.RTSP2WebType = null;
   this.StreamChannel = monitorData.StreamChannel;
-  this.RTSPServer = monitorData.RTSPServer;
+  // ZoneMinder's RTSP restream only exists when its RTSP server runs, which needs
+  // ZM_MIN_RTSP_PORT; without it zmc registers no ZoneMinderPrimary stream.
+  this.RTSPServer = monitorData.RTSPServer &&
+    (typeof ZM_MIN_RTSP_PORT !== 'undefined') && !!ZM_MIN_RTSP_PORT;
   this.Go2RTCEnabled = monitorData.Go2RTCEnabled;
   this.Go2RTCMSEBufferCleared = true;
   this.currentChannelStream = null;
@@ -1912,7 +1915,7 @@ function MonitorStream(monitorData) {
 
   this.select_go2rtc = function(streamChannel) {
     if (ZM_GO2RTC_PATH) {
-      const url = new URL(ZM_GO2RTC_PATH);
+      const url = go2rtcApiUrl(ZM_GO2RTC_PATH);
 
       const stream = this.element = replaceDOMElement(this.getElement(), 'video-stream');
       stream.srcObject = null;
@@ -2316,7 +2319,10 @@ function MonitorStream(monitorData) {
         while (idx !== -1 && idx + 1 < keys.length) {
           const nextKey = keys[++idx];
           const nextName = this.playerPriority[nextKey]['name'];
-          if (nextName.indexOf('go2rtc') !== -1 && !this.Go2RTCEnabled) continue;
+          // Skip an unconfigured go2rtc here rather than letting select_go2rtc() alert:
+          // this is the Auto path, so nobody chose go2rtc. A monitor or browser that
+          // did choose it reaches select_go2rtc() directly and still gets the alert.
+          if (nextName.indexOf('go2rtc') !== -1 && (!this.Go2RTCEnabled || !ZM_GO2RTC_PATH)) continue;
           if (nextName.indexOf('rtsp2web') !== -1 && !this.RTSP2WebEnabled) continue;
           if (nextName.indexOf('janus') !== -1 && !this.janusEnabled) continue;
           if (this.selectedPlayer === 'go2rtc' && nextName.indexOf('go2rtc') === -1 && nextName.indexOf('zms') === -1 ) continue;

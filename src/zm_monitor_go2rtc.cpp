@@ -43,7 +43,13 @@ Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
     Warning("Go2RTC: No endpoint configured in ZM_GO2RTC_PATH, using default: %s", Go2RTC_endpoint.c_str());
   }
 
-  Use_RTSP_Restream = parent->RTSPServer();
+  // ZoneMinder's RTSP server only runs when ZM_MIN_RTSP_PORT is set, so without it
+  // there is no restream to point go2rtc at; use the camera's own stream instead.
+  Use_RTSP_Restream = parent->RTSPServer() && config.min_rtsp_port;
+  if (parent->RTSPServer() && !config.min_rtsp_port) {
+    Warning("Go2RTC: monitor %u has RTSP Server enabled but ZM_MIN_RTSP_PORT is not set, "
+            "so there is no restream; using the camera stream", parent->Id());
+  }
   if (Use_RTSP_Restream) {
     if (parent->server_id) {
       Server server(parent->server_id);

@@ -444,8 +444,13 @@ function MonitorStream(monitorData) {
         if (typeof observerMontage !== 'undefined') observerMontage.observe(stream);
         this.activePlayer = 'go2rtc';
         return;
-      } else {
+      } else if (this.player && (-1 !== this.player.indexOf('go2rtc'))) {
+        // go2rtc was chosen explicitly, so say why it can't play.
         alert("ZM_GO2RTC_PATH is empty. Go to Options->System and set ZM_GO2RTC_PATH accordingly.");
+      } else {
+        // Auto: go2rtc isn't configured, so fall through to the next player rather
+        // than interrupting with an alert for every monitor that has it enabled.
+        console.log("ZM_GO2RTC_PATH is empty, skipping go2rtc for monitor " + this.id);
       }
     }
 

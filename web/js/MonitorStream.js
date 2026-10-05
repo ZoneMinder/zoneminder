@@ -35,7 +35,10 @@ function MonitorStream(monitorData) {
   this.RTSP2WebEnabled = monitorData.RTSP2WebEnabled;
   this.RTSP2WebType = null;
   this.StreamChannel = monitorData.StreamChannel;
-  this.RTSPServer = monitorData.RTSPServer;
+  // ZoneMinder's RTSP restream only exists when its RTSP server runs, which needs
+  // ZM_MIN_RTSP_PORT; without it zmc registers no ZoneMinderPrimary stream.
+  this.RTSPServer = monitorData.RTSPServer &&
+    (typeof ZM_MIN_RTSP_PORT !== 'undefined') && !!ZM_MIN_RTSP_PORT;
   this.Go2RTCEnabled = monitorData.Go2RTCEnabled;
   this.Go2RTCMSEBufferCleared = true;
   this.currentChannelStream = null;

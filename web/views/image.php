@@ -447,14 +447,9 @@ if ( empty($_REQUEST['path']) ) {
                 ZM\Error('ZM_PATH_FFMPEG is not a valid executable: '.ZM_PATH_FFMPEG);
                 return;
               }
-              $command = ZM_PATH_FFMPEG.' -ss '.escapeshellarg($Frame->Delta()).' -i '.escapeshellarg($file_path).' -frames:v 1 '.escapeshellarg($path).' 2>&1';
-              #$command ='ffmpeg -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
-              #$command ='ffmpeg -v 0 -i '.$Storage->Path().'/'.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
-              ZM\Debug("Running $command");
-              $output = array();
-              $retval = 0;
-              exec($command, $output, $retval);
-              ZM\Debug("Command: $command, retval: $retval, output: " . implode("\n", $output));
+
+              create_frame_from_video($file_path, $path, $Frame->Delta());
+
               if ( $Event->DefaultVideo() !== 'index.m3u8' && ! file_exists($path) ) {
                 header('HTTP/1.0 404 Not Found');
                 ZM\Error('Can\'t create frame images from video for this event '.$Event->DefaultVideo().'
@@ -525,15 +520,9 @@ if ( empty($_REQUEST['path']) ) {
         ZM\Error('ZM_PATH_FFMPEG is not a valid executable: '.ZM_PATH_FFMPEG);
         return;
       }
-      // Use escapeshellarg() to prevent command injection
-      $command = ZM_PATH_FFMPEG.' -ss '.escapeshellarg($Frame->Delta()).' -i '.escapeshellarg($file_path).' -frames:v 1 '.escapeshellarg($path).' 2>&1';
-      #$command ='ffmpeg -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
-#$command ='ffmpeg -v 0 -i '.$Storage->Path().'/'.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
-      ZM\Debug("Running $command");
-      $output = array();
-      $retval = 0;
-      exec($command, $output, $retval);
-      ZM\Debug("Command: $command, retval: $retval, output: " . implode("\n", $output));
+
+      create_frame_from_video($file_path, $path, $Frame->Delta());
+
       if ($Event->DefaultVideo() !== 'index.m3u8' && ! file_exists($path) ) {
         header('HTTP/1.0 404 Not Found');
         $message = 'Can\'t create frame images from video for this event '.$Event->DefaultVideo().'
@@ -706,4 +695,128 @@ function find_video($path) {
     }
   }
 }
+
+function create_frame_from_video($file_path, $path, $frame_time) {
+  $ffmpeg = ZM_PATH_FFMPEG;
+
+  # First try the requested timestamp.
+  # Use escapeshellarg() to prevent command injection
+  #$command ='ffmpeg -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
+  #$command ='ffmpeg -v 0 -i '.$Storage->Path().'/'.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
+  $command = $ffmpeg
+    .' -ss '.escapeshellarg(sprintf('%.6f', $frame_time))
+    .' -i '.escapeshellarg($file_path)
+    .' -frames:v 1 -y '.escapeshellarg($path)
+    .' 2>&1';
+
+  ZM\Debug("Running $command");
+
+  $output = array();
+  $retval = 0;
+
+  exec($command, $output, $retval);
+
+  ZM\Debug(
+    "Command: $command, retval: $retval, output: ".
+    implode("\n", $output)
+  );
+
+  if ($retval === 0 && file_exists($path) && filesize($path) > 0) {
+    return true;
+  }
+
+  if (file_exists($path)) @unlink($path);
+
+  # Derive ffprobe from ZM_PATH_FFMPEG.
+  $ffprobe = preg_replace('/ffmpeg(\.exe)?$/i', 'ffprobe$1', $ffmpeg);
+
+  if (!$ffprobe || !is_executable($ffprobe)) {
+    ZM\Warning("ffprobe executable not found: $ffprobe");
+    return false;
+  }
+
+  # Get video packet PTS values.
+  $probe_command = escapeshellarg($ffprobe)
+    .' -v error'
+    .' -select_streams v:0'
+    .' -show_packets'
+    .' -show_entries packet=pts_time'
+    .' -of csv=p=0 '
+    .escapeshellarg($file_path);
+
+  ZM\Debug("Finding video packets around $frame_time: $probe_command");
+
+  $probe_output = array();
+  $probe_retval = 0;
+
+  exec($probe_command, $probe_output, $probe_retval);
+
+  if ($probe_retval !== 0) {
+    ZM\Warning(
+      "ffprobe failed for $file_path, retval: $probe_retval"
+    );
+    return false;
+  }
+
+  # Find the nearest packet before and the first packet at or after the requested timestamp.
+  $before_pts = null;
+  $after_pts = null;
+
+  foreach ($probe_output as $line) {
+    $line = trim($line);
+    if ($line === '' || !is_numeric($line)) continue;
+    $pts = (float)$line;
+
+    if ($pts < $frame_time) {
+      $before_pts = $pts;
+      continue;
+    }
+
+    # First packet at or after the requested timestamp.
+    $after_pts = $pts;
+    break;
+  }
+
+  ZM\Debug(
+    "Nearest video packet before requested time: ".
+    ($before_pts === null ? 'none' : sprintf('%.6f', $before_pts))
+  );
+
+  ZM\Debug(
+    "Nearest video packet at/after requested time: ".
+    ($after_pts === null ? 'none' : sprintf('%.6f', $after_pts))
+  );
+
+  # Try the nearest packet before the requested timestamp, then the first packet at or after it.
+  foreach (array($before_pts, $after_pts) as $pts) {
+    if ($pts === null) continue;
+
+    $command = $ffmpeg
+      .' -ss '.escapeshellarg(sprintf('%.6f', $pts))
+      .' -i '.escapeshellarg($file_path)
+      .' -frames:v 1 -y '.escapeshellarg($path)
+      .' 2>&1';
+
+    ZM\Debug("Trying video frame at PTS ".sprintf('%.6f', $pts).": $command");
+
+    $output = array();
+    $retval = 0;
+
+    exec($command, $output, $retval);
+
+    ZM\Debug(
+      "Frame command: $command, retval: $retval, output: ".
+      implode("\n", $output)
+    );
+
+    if ($retval === 0 && file_exists($path) && filesize($path) > 0) {
+      return true;
+    }
+
+    if (file_exists($path)) @unlink($path);
+  }
+
+  return false;
+}
+
 exit();

@@ -472,7 +472,9 @@ our @options = (
     default     => '',
     description => 'URL for Go2RTC API.',
     help        => q`This value points to the location of the Go2RTC API
-    install, including username and password.
+    install, including username and password, for example
+    http://localhost:1984. Go2RTC serves its API under /api; that suffix
+    may be included or left off.
     `,
     type        => $types{string},
     category    => 'system',

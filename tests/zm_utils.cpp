@@ -492,3 +492,16 @@ TEST_CASE("ClientAddress") {
     REQUIRE(ClientAddress("10.0.0.1", "10.0.0.9, 10.0.0.1", "10.0.0.1,10.0.0.9") == "10.0.0.9");
   }
 }
+
+// ZM_GO2RTC_PATH is the go2rtc API base. Its API lives under /api, but the
+// natural thing to enter is the server address, so either form is accepted.
+TEST_CASE("Go2RTCApiEndpoint", "[utils]") {
+  REQUIRE(Go2RTCApiEndpoint("http://localhost:1984") == "http://localhost:1984/api");
+  REQUIRE(Go2RTCApiEndpoint("http://localhost:1984/") == "http://localhost:1984/api");
+  REQUIRE(Go2RTCApiEndpoint("http://localhost:1984/api") == "http://localhost:1984/api");
+  REQUIRE(Go2RTCApiEndpoint("http://localhost:1984/api/") == "http://localhost:1984/api");
+  REQUIRE(Go2RTCApiEndpoint("https://host/go2rtc") == "https://host/go2rtc/api");
+  REQUIRE(Go2RTCApiEndpoint("https://host/go2rtc/api") == "https://host/go2rtc/api");
+  REQUIRE(Go2RTCApiEndpoint("http://user:pass@cam:1984") == "http://user:pass@cam:1984/api");
+  REQUIRE(Go2RTCApiEndpoint("") == "");
+}

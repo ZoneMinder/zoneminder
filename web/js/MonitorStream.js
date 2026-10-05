@@ -1912,7 +1912,7 @@ function MonitorStream(monitorData) {
 
   this.select_go2rtc = function(streamChannel) {
     if (ZM_GO2RTC_PATH) {
-      const url = new URL(ZM_GO2RTC_PATH);
+      const url = go2rtcApiUrl(ZM_GO2RTC_PATH);
 
       const stream = this.element = replaceDOMElement(this.getElement(), 'video-stream');
       stream.srcObject = null;

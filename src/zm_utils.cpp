@@ -425,6 +425,15 @@ std::string UriDecode(const std::string &encoded) {
   return retbuf;
 }
 
+std::string Go2RTCApiEndpoint(std::string path) {
+  while (!path.empty() && path.back() == '/') path.pop_back();
+  if (path.empty()) return path;
+  const std::string api = "/api";
+  if (path.size() < api.size() || path.compare(path.size() - api.size(), api.size(), api) != 0)
+    path += api;
+  return path;
+}
+
 std::string UriEncode(const std::string &value) {
   const char *src = value.c_str();
   std::string retbuf;

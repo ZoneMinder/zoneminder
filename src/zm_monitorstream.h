@@ -81,6 +81,9 @@ class MonitorStream : public StreamBase {
     playback_buffer(0),
     delayed(false)
   {}
+  ~MonitorStream() override {
+    delete[] temp_image_buffer;
+  }
 
   void setStreamBuffer(int p_playback_buffer) {
     playback_buffer = p_playback_buffer;

@@ -210,7 +210,7 @@ function cronWrite($content) {
   $pipes = array();
   $process = @proc_open('crontab -', $descriptors, $pipes);
   if (!is_resource($process)) {
-    Error('Unable to run crontab to install scheduled actions');
+    \ZM\Error('Unable to run crontab to install scheduled actions');
     return false;
   }
   fwrite($pipes[0], $content);
@@ -222,7 +222,7 @@ function cronWrite($content) {
   $status = proc_close($process);
 
   if ($status !== 0) {
-    Error('crontab refused the scheduled actions (status '.$status.'): '.trim($err.' '.$out));
+    \ZM\Error('crontab refused the scheduled actions (status '.$status.'): '.trim($err.' '.$out));
     return false;
   }
   return true;
@@ -271,13 +271,13 @@ function cronRebuild() {
   }
 
   if ($skipped_remote) {
-    Warning($skipped_remote.' scheduled item(s) belong to another server '.
-            'and were not written to this server\'s crontab');
+    \ZM\Warning($skipped_remote.' scheduled item(s) belong to another server '.
+              'and were not written to this server\'s crontab');
   }
 
   if (!cronWrite(cronSpliceBlock(cronRead(), $lines))) return false;
 
-  Debug('Installed '.count($lines).' scheduled item(s) into the crontab');
+  \ZM\Debug('Installed '.count($lines).' scheduled item(s) into the crontab');
   return $lines;
 }
 

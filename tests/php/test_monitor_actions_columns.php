@@ -75,7 +75,7 @@ foreach ($m as $rule) {
     $pinned[(int)$rule[1]] = trim($w[1]);
 }
 ksort($pinned);
-check('three columns are pinned', count($pinned), 3);
+check('four columns are pinned', count($pinned), 4);
 
 // The point of the exercise: each pin is on the column it was written for.
 // Read out of the view by position rather than restated, so a reordering
@@ -85,8 +85,13 @@ function column_at($columns, $n) {
 }
 $pinned_columns = array();
 foreach ($pinned as $n => $width) $pinned_columns[column_at($columns, $n)] = $width;
-check('and they are Enabled, Schedule and Sound', array_keys($pinned_columns),
-      array('Enabled', 'ActionSchedule', 'ActionAudioFile'));
+check('and they are Enabled, When, Schedule and Sound', array_keys($pinned_columns),
+      array('Enabled', 'ActionTrigger', 'ActionSchedule', 'ActionAudioFile'));
+// Device is left loose on purpose: monitor names are the only contents here
+// of unpredictable length, so that is the column that should absorb whatever
+// the pinned ones do not take.
+check('and Device is not among them',
+      in_array('ActionTarget', array_keys($pinned_columns), true), false);
 
 echo "the widths suit what is in the columns\n";
 // Not exact values -- those are a judgement and may be tuned -- but the
@@ -125,7 +130,7 @@ require_once($root.'/web/lang/en_gb.php');
 $th_scale = 0.8;
 $per_char = 0.65;  // an average uppercase advance, in the header's own em
 $padding = 0.6;
-foreach (array('Enabled', 'ActionAudioFile') as $name) {
+foreach (array_keys($pinned_columns) as $name) {
   $text = isset($SLANG[$name]) ? $SLANG[$name] : $name;
   // strlen rather than mb_strlen: this php has no mbstring, and counting
   // bytes only over-counts a multibyte translation, which errs towards
@@ -134,6 +139,61 @@ foreach (array('Enabled', 'ActionAudioFile') as $name) {
   check($name.' ('.strtoupper($text).') is wider than its header needs',
         $ems[$name] > $needed, true);
 }
+
+echo "the two select columns fit their longest option\n";
+// What actually sets these two widths is not the header but the widest
+// <option> in the select, since a select is as wide as its longest choice and
+// a fixed layout will not grow the column to suit. That is the measurement
+// these were sized from, so it is the one worth holding on to: a label
+// reworded longer would start truncating with nothing to say it had.
+//
+// The option keys are read out of the view and the text out of the language
+// file, so neither is restated here.
+function widest_option($view, $array_name, $SLANG) {
+  if (!preg_match('/\$'.$array_name.' = array\((.*?)\);/s', $view, $m)) return null;
+  preg_match_all("/translate\('([A-Za-z]+)'\)/", $m[1], $keys);
+  $widest = '';
+  foreach ($keys[1] as $key) {
+    $text = isset($SLANG[$key]) ? $SLANG[$key] : $key;
+    if (strlen($text) > strlen($widest)) $widest = $text;
+  }
+  return ($widest === '') ? null : $widest;
+}
+
+// A select's chrome -- its padding and its arrow -- on top of the text. Crude,
+// like the header estimate, and for the same reason.
+$select_chrome = 1.8;
+$per_char_lower = 0.5;
+
+$trigger = widest_option($view, 'trigger_options', $SLANG);
+check('the When options were found', $trigger, 'Manually triggered');
+check('and When fits the longest of them',
+      $ems['ActionTrigger'] > (strlen($trigger) * $per_char_lower) + $select_chrome, true);
+
+$frequency = widest_option($view, 'frequency_options', $SLANG);
+check('the frequency options were found', $frequency, 'weekend day (Sat & Sun)');
+// Schedule holds that select plus "Every", "at" and a time input, all on one
+// line, so the select is only part of what has to fit.
+$every = isset($SLANG['ScheduleEvery']) ? $SLANG['ScheduleEvery'] : 'ScheduleEvery';
+$at = isset($SLANG['ScheduleAt']) ? $SLANG['ScheduleAt'] : 'ScheduleAt';
+$time_input = 7;
+// The four controls sit on separate source lines, so there is a collapsed
+// space between each pair, and the cell has .table-sm's padding either side.
+// Both are easy to leave out of a sum like this and together they come to
+// most of an em and a half -- which is about what the difference was between
+// Schedule looking right and looking squeezed.
+$inline_gaps = 3 * 0.25;
+$cell_padding = 0.6;
+$schedule_needs = (strlen($frequency) * $per_char_lower) + $select_chrome +
+                  (strlen($every) * $per_char_lower) + (strlen($at) * $per_char_lower) +
+                  $time_input + $inline_gaps + $cell_padding;
+check('and Schedule fits the whole sentence',
+      $ems['ActionSchedule'] > $schedule_needs, true);
+// Calibration, not a property of the css: the 24em Schedule was set to before
+// any of this was measured has to come out short, or the estimate above is
+// too generous to have caught what was actually reported as a squeeze.
+check('and the estimate is tight enough to fail the 24em that was reported',
+      24 > $schedule_needs, false);
 
 echo "a fixed layout is what makes those widths bind\n";
 // Under the default automatic layout a width on a cell is only a suggestion,

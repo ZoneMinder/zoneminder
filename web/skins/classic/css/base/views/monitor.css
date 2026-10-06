@@ -199,11 +199,18 @@ nav #pills-tab a.nav-link.active {
  * Sun) at 08:00" across a label, a select and a time input -- and is the
  * column that ends up squeezed.
  *
- * So the layout is made fixed, which binds the widths below exactly. Enabled
- * and Sound are pinned to what a checkbox and a number need, Schedule is
- * pinned to what its sentence needs, and When, Device and Does divide
- * whatever is left: those three are selects, and a select that runs short
- * truncates its option text rather than breaking the row.
+ * So the layout is made fixed, which binds the widths below exactly. Four
+ * columns are pinned to what their contents need and Device and Does divide
+ * whatever is left. Device is deliberately one of the two left loose: it
+ * holds monitor names, which are the only contents here of unpredictable
+ * length, and a select that runs short truncates its option text rather than
+ * breaking the row.
+ *
+ * The figures are what the widest thing in each column measures, so they are
+ * worth rechecking if a label changes. Schedule is as wide as it is almost
+ * entirely because of one frequency option, "weekend day (Sat & Sun)", which
+ * sets the select's width on its own; a shorter wording for that one label
+ * would give several em back to the rest of the table.
  */
 #monitorActionsTable {
   table-layout: fixed;
@@ -220,11 +227,19 @@ nav #pills-tab a.nav-link.active {
   text-align: center;
 }
 
-/* Schedule: "Every <frequency> at <time>", or a cron spec shown as it
-   stands for a schedule the two controls cannot draw. */
+/* When: a select, so as wide as its longest option, "Manually triggered". */
+#monitorActionsTable th:nth-child(2),
+#monitorActionsTable td:nth-child(2) {
+  width: 11em;
+}
+
+/* Schedule: "Every <frequency> at <time>" -- a label, a select as wide as
+   "weekend day (Sat & Sun)", another label and a time input, all on one line.
+   Or a cron spec shown as it stands, for a schedule the two controls cannot
+   draw. */
 #monitorActionsTable th:nth-child(3),
 #monitorActionsTable td:nth-child(3) {
-  width: 24em;
+  width: 28em;
 }
 
 /* Sound: a file number. */

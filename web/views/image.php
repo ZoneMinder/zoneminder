@@ -847,7 +847,7 @@ function create_frame_from_video($file_path, $path, $frame_time) {
   # If the nearby packets could not be decoded, progressively expand the search backwards.
   $lookback = 4;
 
-  while ($lookback > 0 && $lookback <= $frame_time) {
+  while ($lookback > 0) {
     list($before_pts, $after_pts) = find_video_packet_pts(
       $ffprobe,
       $file_path,

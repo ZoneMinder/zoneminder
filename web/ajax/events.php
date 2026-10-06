@@ -72,7 +72,7 @@ if (isset($_REQUEST['order'])) {
   } else if (strtolower($_REQUEST['order']) == 'desc') {
     $order = 'DESC';
   } else {
-    Warning('Invalid value for order ' . $_REQUEST['order']);
+    \ZM\Warning('Invalid value for order ' . $_REQUEST['order']);
   }
 }
 

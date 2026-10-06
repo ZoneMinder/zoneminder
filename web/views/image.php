@@ -452,11 +452,7 @@ if ( empty($_REQUEST['path']) ) {
 
               if ( $Event->DefaultVideo() !== 'index.m3u8' && ! file_exists($path) ) {
                 header('HTTP/1.0 404 Not Found');
-                ZM\Error('Can\'t create frame images from video for this event '.$Event->DefaultVideo().'
-
-                  Command was: '.$command.'
-
-                  Output was: '.implode(PHP_EOL,$output) );
+                ZM\Error('Can\'t create frame images from video for this event '.$Event->DefaultVideo());
                 return;
               }
               # Generating an image file will use up more disk space, so update the Event record.
@@ -525,11 +521,7 @@ if ( empty($_REQUEST['path']) ) {
 
       if ($Event->DefaultVideo() !== 'index.m3u8' && ! file_exists($path) ) {
         header('HTTP/1.0 404 Not Found');
-        $message = 'Can\'t create frame images from video for this event '.$Event->DefaultVideo().'
-
-Command was: '.$command.'
-
-Output was: '.implode(PHP_EOL,$output);
+        $message = 'Can\'t create frame images from video for this event '.$Event->DefaultVideo();
         if (str_contains($Event->DefaultVideo(), 'incomplete')) {
           ZM\Warning($message);
         } else {
@@ -704,7 +696,7 @@ function create_frame_from_video($file_path, $path, $frame_time) {
   #$command ='ffmpeg -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
   #$command ='ffmpeg -v 0 -i '.$Storage->Path().'/'.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
   $command = $ffmpeg
-    .' -ss '.escapeshellarg(sprintf('%.6f', $frame_time))
+    .' -ss '.escapeshellarg(sprintf('%.6F', $frame_time))
     .' -i '.escapeshellarg($file_path)
     .' -frames:v 1 -y '.escapeshellarg($path)
     .' 2>&1';
@@ -735,9 +727,16 @@ function create_frame_from_video($file_path, $path, $frame_time) {
     return false;
   }
 
-  # Get video packet PTS values.
+  # Get video packet PTS values from 2 seconds before to 2 seconds after the requested timestamp.
+  # This bounded 4-second window avoids scanning the entire video file.
+  $interval_start = max(0, $frame_time - 2);
+
   $probe_command = escapeshellarg($ffprobe)
     .' -v error'
+    .' -read_intervals '
+    .escapeshellarg(
+        sprintf('%.6F%%+4', $interval_start)
+      )
     .' -select_streams v:0'
     .' -show_packets'
     .' -show_entries packet=pts_time'
@@ -746,29 +745,49 @@ function create_frame_from_video($file_path, $path, $frame_time) {
 
   ZM\Debug("Finding video packets around $frame_time: $probe_command");
 
-  $probe_output = array();
-  $probe_retval = 0;
-
-  exec($probe_command, $probe_output, $probe_retval);
-
-  if ($probe_retval !== 0) {
-    ZM\Warning(
-      "ffprobe failed for $file_path, retval: $probe_retval"
-    );
-    return false;
-  }
-
   # Find the nearest packet before and the first packet at or after the requested timestamp.
   $before_pts = null;
   $after_pts = null;
 
-  foreach ($probe_output as $line) {
+  $probe = popen($probe_command, 'r');
+  if ($probe === false) {
+    ZM\Warning("Unable to run ffprobe for $file_path");
+    return false;
+  }
+
+  # Packet output is not guaranteed to be sorted by PTS.
+  # Find the closest packet before and the closest packet after the requested timestamp.
+  while (($line = fgets($probe)) !== false) {
     $line = trim($line);
     if ($line === '' || !is_numeric($line)) continue;
-    $pts = (float)$line;
 
-    if ($pts < $frame_time) {
-      $before_pts = $pts;
+    $pts = (float)$line;
+    # Ignore a packet exactly at the requested timestamp because it was
+    # already tried above. Only packets strictly before it can be a fallback.
+    if ($pts <= $frame_time) {
+      if ($pts < $frame_time &&
+          ($before_pts === null || $pts > $before_pts)) {
+        $before_pts = $pts;
+      }
+      continue;
+    }
+
+    if ($after_pts === null || $pts < $after_pts) {
+      $after_pts = $pts;
+    }
+  }
+
+  while (($line = fgets($probe)) !== false) {
+    $line = trim($line);
+    if ($line === '' || !is_numeric($line)) continue;
+
+    $pts = (float)$line;
+    # Ignore a packet exactly at the requested timestamp because it was
+    # already tried above. Only packets strictly before it can be a fallback.
+    if ($pts <= $frame_time) {
+      if ($pts < $frame_time) {
+        $before_pts = $pts;
+      }
       continue;
     }
 
@@ -776,15 +795,16 @@ function create_frame_from_video($file_path, $path, $frame_time) {
     $after_pts = $pts;
     break;
   }
+  pclose($probe);
 
   ZM\Debug(
     "Nearest video packet before requested time: ".
-    ($before_pts === null ? 'none' : sprintf('%.6f', $before_pts))
+    ($before_pts === null ? 'none' : sprintf('%.6F', $before_pts))
   );
 
   ZM\Debug(
     "Nearest video packet at/after requested time: ".
-    ($after_pts === null ? 'none' : sprintf('%.6f', $after_pts))
+    ($after_pts === null ? 'none' : sprintf('%.6F', $after_pts))
   );
 
   # Try the nearest packet before the requested timestamp, then the first packet at or after it.
@@ -792,12 +812,12 @@ function create_frame_from_video($file_path, $path, $frame_time) {
     if ($pts === null) continue;
 
     $command = $ffmpeg
-      .' -ss '.escapeshellarg(sprintf('%.6f', $pts))
+      .' -ss '.escapeshellarg(sprintf('%.6F', $pts))
       .' -i '.escapeshellarg($file_path)
       .' -frames:v 1 -y '.escapeshellarg($path)
       .' 2>&1';
 
-    ZM\Debug("Trying video frame at PTS ".sprintf('%.6f', $pts).": $command");
+    ZM\Debug("Trying video frame at PTS ".sprintf('%.6F', $pts).": $command");
 
     $output = array();
     $retval = 0;

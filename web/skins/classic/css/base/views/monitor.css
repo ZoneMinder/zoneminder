@@ -174,14 +174,51 @@ nav #pills-tab a.nav-link.active {
 /*
  * Monitor actions table.
  *
- * The Enabled column holds a single checkbox, but the table would otherwise
- * size it from its header text and let the four selects fight over what is
- * left, so the checkbox drifts as the target and action names change length.
+ * Under the default automatic layout a width on a cell is only a suggestion:
+ * the browser sizes each column from its contents and may hand a column more
+ * than it was asked for. That is the wrong behaviour for this table, where
+ * what each column needs is known in advance and differs wildly. Enabled
+ * holds one checkbox but claims space on the strength of its header text,
+ * while Schedule has to fit a whole sentence -- "Every weekend day (Sat &
+ * Sun) at 08:00" across a label, a select and a time input -- and is the
+ * column that ends up squeezed.
+ *
+ * So the layout is made fixed, which binds the widths below exactly. Enabled
+ * and Sound are pinned to what a checkbox and a number need, Schedule is
+ * pinned to what its sentence needs, and When, Device and Does divide
+ * whatever is left: those three are selects, and a select that runs short
+ * truncates its option text rather than breaking the row.
  */
-#monitorActionsTable th:first-child,
-#monitorActionsTable td:first-child {
-  width: 5em;
+#monitorActionsTable {
+  table-layout: fixed;
+}
+
+/* Enabled: one checkbox. */
+#monitorActionsTable th:nth-child(1),
+#monitorActionsTable td:nth-child(1) {
+  width: 4em;
   text-align: center;
+}
+
+/* Schedule: "Every <frequency> at <time>", or a cron spec shown as it
+   stands for a schedule the two controls cannot draw. */
+#monitorActionsTable th:nth-child(3),
+#monitorActionsTable td:nth-child(3) {
+  width: 24em;
+}
+
+/* Sound: a file number. */
+#monitorActionsTable th:nth-child(6),
+#monitorActionsTable td:nth-child(6) {
+  width: 6em;
+}
+
+/* A fixed layout does not shrink a control to fit its column, so the controls
+   are told to fit it themselves. Without this a long monitor name in the
+   Device select would spill over the column beside it. */
+#monitorActionsTable select,
+#monitorActionsTable input {
+  max-width: 100%;
 }
 
 /*

@@ -570,7 +570,47 @@ function initPage() {
     AudioDetection_onChange(form.elements['newMonitor[AudioDetection]']); // eslint-disable-line new-cap
   }
   startAudioLevelMeter();
+  rememberSelectedTab();
 } // end function initPage()
+
+/**
+ * Keep the url in step with the tab on screen, so a reload comes back to it.
+ *
+ * The view already honours ?tab=<name> on the way in: it marks that pill
+ * active and renders its pane shown. What was missing is the other half.
+ * The pills are switched client side, so the url kept saying whatever it said
+ * when the page loaded, and a reload -- or a shared link, or the browser
+ * restoring the page -- dropped you back on General.
+ *
+ * replaceState rather than pushState, as elsewhere in the skin: switching
+ * tabs in a settings form is not navigation, and making Back walk back
+ * through it would be actively unhelpful on a form holding unsaved edits.
+ */
+function rememberSelectedTab() {
+  $j('#pills-tab a[data-toggle="pill"]').on('shown.bs.tab', function(evt) {
+    const href = evt.target.getAttribute('href');
+    // The panes are #pills-<name>. The Zones pill is href="#" and leaves the
+    // page rather than showing a pane, so it never reaches here.
+    if (!href || !href.startsWith('#pills-')) return;
+    const name = href.substring('#pills-'.length);
+
+    // Only the tab changes. The url carries mid, and may carry a good deal
+    // more, none of which this has any business rewriting.
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('tab') === name) return;
+    params.set('tab', name);
+    history.replaceState(null, '', '?' + params.toString());
+
+    // The same answer again, for the form rather than the url. A submit that
+    // is not a save re-renders the view -- changing Type or Method does this
+    // to draw the fields that type needs -- and the hidden tab field is what
+    // tells it where to come back to. Php writes it once, with the tab the
+    // page loaded on, so without this that submit also lands you back on
+    // whichever tab you arrived on rather than the one you were working in.
+    const form = document.getElementById('contentForm');
+    if (form && form.tab) form.tab.value = name;
+  });
+}
 
 async function checkVerAudioMotion() {
   const result = await waitUntil(() => window.CURRENT_AUDIO_MOTION_ANALYZER_VERSION, 20000);

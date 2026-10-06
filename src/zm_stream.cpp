@@ -36,6 +36,9 @@ StreamBase::~StreamBase() {
   delete vid_stream;
   delete[] temp_img_buffer;
   closeComms();
+  // The monitor's zones each hold a shared_ptr back to it, so releasing ours
+  // alone never frees it. disconnect() clears the zones, as zmc does on exit.
+  if (monitor) monitor->disconnect();
 }
 
 bool StreamBase::loadMonitor(int p_monitor_id) {

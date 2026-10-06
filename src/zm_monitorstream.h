@@ -23,6 +23,7 @@
 #include "zm_stream.h"
 
 #include <atomic>
+#include <memory>
 
 // Returns the playback buffer fill level as a percentage (0-100).
 // Guards against buffer_count <= 0, which would otherwise raise SIGFPE via
@@ -45,7 +46,7 @@ class MonitorStream : public StreamBase {
   };
 
  private:
-  SwapImage *temp_image_buffer;
+  std::unique_ptr<SwapImage[]> temp_image_buffer;
   // runStream() owns every write to these; processCommand() reads them on the
   // command thread to report the buffer level. Atomic so those reads are
   // defined. Each stays within [0, count) on its own, so a read of the three

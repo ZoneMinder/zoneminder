@@ -19,6 +19,13 @@
 
 #include "zm_monitorstream.h"
 
+#include "zm_config.h"
+#include "zm_monitor.h"
+#include "zm_zone.h"
+
+#include <memory>
+#include <vector>
+
 TEST_CASE("MonitorStreamBufferLevel") {
   SECTION("zero buffer count does not divide by zero") {
     // Regression for zoneminder/zoneminder#4936: processCommand() could run on
@@ -66,4 +73,65 @@ TEST_CASE("MonitorStreamBufferLevel") {
       }
     }
   }
+}
+
+namespace {
+
+// No zm.conf is loaded under the test harness, so config strings are null.
+// Image::Initialise() dereferences config.font_file_location and the Monitor
+// constructor strcmp()s config.event_close_mode; both segfault on null.
+void EnsureConfig() {
+  if (!config.font_file_location) config.font_file_location = "";
+  if (!config.event_close_mode) config.event_close_mode = "idle";
+}
+
+// Monitor's dimensions and zones are protected and normally come from the
+// database.
+class TestMonitor : public Monitor {
+ public:
+  TestMonitor(unsigned int w, unsigned int h) : Monitor() {
+    width = w;
+    height = h;
+    colours = ZM_COLOUR_GRAY8;
+  }
+  // A full-frame zone. Like every Zone, it holds a shared_ptr to this monitor.
+  static void AddZone(const std::shared_ptr<TestMonitor> &monitor) {
+    const int w = monitor->width, h = monitor->height;
+    std::vector<Vector2> vertices = {
+        Vector2(0, 0), Vector2(w - 1, 0), Vector2(w - 1, h - 1), Vector2(0, h - 1)};
+    monitor->zones.emplace_back(monitor, 1, "full", Zone::ACTIVE, Polygon(vertices));
+  }
+};
+
+// The stream's monitor is protected; nph-zms sets it through loadMonitor(),
+// which needs the database. Hand one in directly instead.
+class TestMonitorStream : public MonitorStream {
+ public:
+  void setMonitor(const std::shared_ptr<Monitor> &p_monitor) {
+    monitor = p_monitor;
+  }
+};
+
+}  // namespace
+
+TEST_CASE("MonitorStream releases its monitor when destroyed", "[Stream]") {
+  // Each Zone holds a shared_ptr back to its Monitor, so a monitor with zones
+  // keeps itself alive after the stream drops its reference. nph-zms leaked
+  // the monitor, its zones and their full-frame images on every exit until
+  // ~StreamBase called disconnect() to break the cycle, as zmc does.
+  EnsureConfig();
+  std::weak_ptr<Monitor> watched;
+
+  {
+    TestMonitorStream stream;
+    {
+      auto monitor = std::make_shared<TestMonitor>(64, 48);
+      TestMonitor::AddZone(monitor);
+      watched = monitor;
+      stream.setMonitor(monitor);
+    }
+    REQUIRE_FALSE(watched.expired());
+  }
+
+  REQUIRE(watched.expired());
 }

@@ -95,6 +95,23 @@ ZMPacket::~ZMPacket() {
   delete y_image;
 }
 
+void ZMPacket::release_frames() {
+  // y_image points into in_frame's Y plane, so it goes first.
+  delete y_image;
+  y_image = nullptr;
+  in_frame = nullptr;
+  hw_frame = nullptr;
+}
+
+void ZMPacket::release_decoded() {
+  release_frames();
+  delete image;
+  image = nullptr;
+  delete analysis_image;
+  analysis_image = nullptr;
+  out_frame = nullptr;
+}
+
 ssize_t ZMPacket::ram() {
   return packet->size +
          (in_frame ? in_frame->linesize[0] * in_frame->height : 0) +

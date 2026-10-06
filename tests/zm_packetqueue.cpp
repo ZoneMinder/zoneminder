@@ -17,10 +17,13 @@
 
 #include "zm_catch2.h"
 
+#include "zm_config.h"
+#include "zm_image.h"
 #include "zm_packet.h"
 #include "zm_packetqueue.h"
 
 #include <memory>
+#include <vector>
 
 namespace {
 
@@ -30,6 +33,16 @@ std::shared_ptr<ZMPacket> video_packet(int keyframe) {
   packet->keyframe = keyframe;
   packet->codec_type = AVMEDIA_TYPE_VIDEO;
   packet->timestamp = std::chrono::system_clock::now();
+  return packet;
+}
+
+// A video packet holding a decoded image, so a test can see releaseDecoded()
+// free it. Image::Initialise() needs config.font_file_location, which is null
+// without a zm.conf.
+std::shared_ptr<ZMPacket> decoded_video_packet(int keyframe) {
+  if (!config.font_file_location) config.font_file_location = "";
+  auto packet = video_packet(keyframe);
+  packet->image = new Image(16, 16, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE);
   return packet;
 }
 
@@ -124,6 +137,98 @@ TEST_CASE("PacketQueue: free_it unregisters an event start iterator") {
   queue.free_it(start_it);
   REQUIRE_FALSE(queue.is_there_an_iterator_pointing_to_packet(front));
 
+  queue.stop();
+  queue.clear();
+}
+
+// releaseDecoded() frees the decoded data of packets before the earliest point
+// an event could start, computed with the current pre-event window. A RELOAD
+// (zmu --reload) can widen that window without clearing the queue; the next
+// event must then start at the oldest packet that still has its data, not on
+// released ones, which would have no image (no capture JPEGs) and, for
+// encoding, nothing to encode. refs #4860
+TEST_CASE("PacketQueue: an event never starts on a released packet") {
+  PacketQueue queue;
+  queue.addStream();
+  queue.setMaxVideoPackets(0);
+  queue.setPreEventVideoPackets(5);
+
+  // queuePacket() drops everything when no iterator is registered.
+  packetqueue_iterator *holder_it = queue.get_video_it(false);
+  REQUIRE(holder_it != nullptr);
+  packetqueue_iterator *analysis_it = nullptr;
+
+  // Keyframes every 10 packets; analysis on the last one, which is also the
+  // event's snapshot packet.
+  auto fill = [&](int count) {
+    std::vector<std::shared_ptr<ZMPacket>> packets;
+    for (int i = 0; i < count; i++) {
+      packets.push_back(decoded_video_packet(i % 10 == 0));
+      REQUIRE(queue.queuePacket(packets.back()));
+    }
+    // The holder was moved onto the first packet queued; take it past the
+    // last one so only analysis_it bounds what may be released.
+    while (queue.increment_it(holder_it, false)) {}
+    analysis_it = queue.get_video_it(false);
+    for (int i = 1; i < count; i++) REQUIRE(queue.increment_it(analysis_it, false));
+    REQUIRE(*(*analysis_it) == packets.back());
+    return packets;
+  };
+
+  SECTION("passthrough: a widened window stops at the release boundary") {
+    queue.setKeepKeyframes(true);
+    auto packets = fill(30);
+    // 5 back from packet 29 is 24, then back to the keyframe at 20.
+    queue.releaseDecoded();
+    REQUIRE(packets[19]->image == nullptr);
+    REQUIRE(packets[20]->image != nullptr);
+
+    // Same window: the start is the keyframe at 20, as before the change.
+    packetqueue_iterator *start = queue.get_event_start_packet_it(*analysis_it, 5);
+    REQUIRE(*(*start) == packets[20]);
+    queue.free_it(start);
+
+    // Widened to 25 by a reload: unchanged code walked back to the keyframe at
+    // 0, onto 20 packets without images.
+    queue.setPreEventVideoPackets(25);
+    start = queue.get_event_start_packet_it(*analysis_it, 25);
+    REQUIRE(*(*start) == packets[20]);
+    REQUIRE((*(*start))->image != nullptr);
+    queue.free_it(start);
+  }
+
+  SECTION("encode: a widened window stops at the release boundary") {
+    queue.setKeepKeyframes(false);
+    auto packets = fill(30);
+    // No keyframe needed: 5 back from packet 29 is 24.
+    queue.releaseDecoded();
+    REQUIRE(packets[23]->image == nullptr);
+    REQUIRE(packets[24]->image != nullptr);
+
+    queue.setPreEventVideoPackets(25);
+    packetqueue_iterator *start = queue.get_event_start_packet_it(*analysis_it, 25);
+    REQUIRE(*(*start) == packets[24]);
+    queue.free_it(start);
+  }
+
+  SECTION("encode reloaded to passthrough: forward to the next keyframe") {
+    queue.setKeepKeyframes(false);
+    auto packets = fill(35);
+    // Released before 29, which is no keyframe.
+    queue.releaseDecoded();
+    REQUIRE(packets[28]->image == nullptr);
+    REQUIRE(packets[29]->image != nullptr);
+
+    queue.setKeepKeyframes(true);
+    queue.setPreEventVideoPackets(25);
+    packetqueue_iterator *start = queue.get_event_start_packet_it(*analysis_it, 25);
+    REQUIRE(*(*start) == packets[30]);
+    REQUIRE((*(*start))->keyframe);
+    queue.free_it(start);
+  }
+
+  queue.free_it(analysis_it);
+  queue.free_it(holder_it);
   queue.stop();
   queue.clear();
 }

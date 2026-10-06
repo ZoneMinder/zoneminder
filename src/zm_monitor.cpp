@@ -2711,6 +2711,7 @@ bool Monitor::Analyse() {
       if (packetqueue.should_try_clear(packet->keyframe)) {
         packetqueue.clearPackets(packet);
       }
+      packetqueue.releaseDecoded();
       // Only do these if it's a video packet.
       shared_data->last_read_index = packet->image_index;
       analysis_image_count++;
@@ -2741,6 +2742,15 @@ bool Monitor::Analyse() {
       }
       // Free up the decoded frame as well, we won't be using it for anything at this time.
       //packet->out_frame = nullptr;
+    }
+
+    // The decoded frame has been written to shm and analysed (y_image points
+    // into it). From here on everything reads packet->image, so the frame is
+    // only still needed by an encoder that has no image to work from. Keeping
+    // it holds a decoder pool buffer for every queued packet (refs #4860).
+    if (packet->in_frame and (packet->image or videowriter == PASSTHROUGH
+                              or shared_data->recording == RECORDING_NONE)) {
+      packet->release_frames();
     }
   }  // end scope for event_lock
   packet->analyzed = true;

@@ -1759,7 +1759,10 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
           $schedule_parts = cronToParts($action->Schedule());
           if ($schedule_parts and !isset($frequency_options[$schedule_parts['frequency']]))
             $schedule_parts = null;
-          $drawable = ($action->Schedule() === '') or ($schedule_parts !== null);
+          # || and not "or": "or" binds looser than "=", so the assignment would
+          # take only the left clause and discard the rest, leaving every saved
+          # schedule undrawable and shown as cron.
+          $drawable = ($action->Schedule() === '') || ($schedule_parts !== null);
 ?>
                 <td class="actionScheduleCell">
 <?php if (!$drawable) { ?>

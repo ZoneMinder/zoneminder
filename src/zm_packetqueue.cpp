@@ -424,8 +424,15 @@ bool PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
 // The earliest iterator is never ahead of the analysis one, so starting from
 // it is conservative. Everything before that point keeps its compressed packet
 // and loses its decoded data, which at high resolutions is several MB a frame
-// (refs #4860). Events only open on the analysis thread, which calls this, so
-// the boundary can't move back underneath us.
+// (refs #4860). Events only open on the analysis thread, which also calls
+// this, so no event starts behind the boundary while it is being computed. The
+// window itself can change from another thread: a RELOAD action (zmu --reload)
+// runs Monitor::Reload() on zmc's main loop, which can widen
+// pre_event_video_packet_count or set keep_keyframes without clearing the
+// queue. An event right after such a reload can reach packets released under
+// the old window; on passthrough its video is complete but those frames get no
+// capture JPEGs (on encode clearPackets() has already deleted them). A restart,
+// SIGHUP or capture reconnect clears the queue, so only RELOAD can do this.
 void PacketQueue::releaseDecoded() {
   std::vector<std::shared_ptr<ZMPacket>> to_release;
   {

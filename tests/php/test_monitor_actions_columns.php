@@ -120,5 +120,48 @@ check('the controls are told to fit their columns',
       (bool)preg_match('/#monitorActionsTable select,\s*'.
                        '#monitorActionsTable input\s*\{[^}]*max-width:\s*100%/s', $css), true);
 
+echo "the table gets the full width to divide up\n";
+// The widths above divide whatever the table is given, so they are only half
+// the story. ul.form indents every row by 300px to make a gutter for its
+// label, and pulls the label back into that gutter with an equal negative
+// margin. The actions rows have no label, so the table started 300px in with
+// the space beside it empty -- and the columns were dividing a table 300px
+// narrower than the page.
+//
+// A class cancels the indent for those rows. Which class is read out of the
+// css rather than named here, so the two cannot drift apart silently: if they
+// did, the indent would come back and nothing would error.
+check('ul.form indents its rows for a label',
+      (bool)preg_match('/ul\.form\s*>\s*li\s*\{[^}]*padding-left:\s*300px/s', $css), true);
+check('and pulls the label back into that gutter',
+      (bool)preg_match('/ul\.form\s*>\s*li\s*>\s*label:first-child\s*\{[^}]*margin-left:\s*-300px/s',
+                       $css), true);
+
+preg_match('/ul\.form\s*>\s*li\.([\w-]+)\s*\{[^}]*padding-left:\s*0/s', $css, $m);
+$no_label_class = isset($m[1]) ? $m[1] : null;
+check('a class cancels the indent', $no_label_class !== null, true);
+
+if ($no_label_class !== null) {
+  // The row holding the table must carry it, or the table is still indented.
+  check('and the table\'s row carries it',
+        (bool)preg_match('/<li class="[^"]*\b'.preg_quote($no_label_class, '/').'\b[^"]*">\s*'.
+                         '<table id="monitorActionsTable"/s', $view), true);
+
+  // The help text above and below the table reads as a caption for it, so it
+  // has to start where the table starts rather than at the old indent.
+  $rows = preg_match_all('/<li class="[^"]*\b'.preg_quote($no_label_class, '/').'\b/', $view);
+  check('as do the other label-less rows of the tab', $rows >= 4, true);
+
+  // Every row the class is on must genuinely have no label, otherwise the
+  // label loses the gutter it is pulled into and hangs off the left edge.
+  preg_match_all('/<li class="[^"]*\b'.preg_quote($no_label_class, '/').
+                 '\b[^"]*">(.*?)<\/li>/s', $view, $m);
+  $with_label = array();
+  foreach ($m[1] as $body) {
+    if (preg_match('/<label/', $body)) $with_label[] = trim(substr($body, 0, 60));
+  }
+  check('and none of them has one', $with_label, array());
+}
+
 echo "\n$passed passed, $failed failed\n";
 exit($failed ? 1 : 0);

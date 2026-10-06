@@ -106,6 +106,22 @@ ul.form > li > label:first-child {
   text-align: right;
 }
 
+/*
+ * A row with no label.
+ *
+ * The indent above is a gutter for the label, which is pulled back into it by
+ * an equal negative margin. That works for a labelled field and is wrong for
+ * anything else: a row holding a paragraph of help, or a table that wants the
+ * full width, has nothing to put in the gutter, so it starts 300px in with
+ * the space beside it left empty.
+ *
+ * The mobile rules below drop the indent for every row, so this needs no
+ * counterpart there.
+ */
+ul.form > li.noLabel {
+  padding-left: 0;
+}
+
 nav #pills-tab a.nav-link {
   margin-top: -0.5em;
   margin-bottom: -0.5em;

@@ -1705,16 +1705,16 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
 
       if (!count($candidates)) {
 ?>
-        <li class="warning">
+        <li class="warning noLabel">
           <?php echo translate('ActionsNoCapableDevices') ?>
         </li>
 <?php
       } else {
 ?>
-        <li>
+        <li class="noLabel">
           <p class="text-muted"><?php echo translate('ActionsHelp') ?></p>
         </li>
-        <li>
+        <li class="noLabel">
           <table id="monitorActionsTable" class="table table-sm">
             <thead>
               <tr>
@@ -1790,7 +1790,7 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
             </tbody>
           </table>
         </li>
-        <li>
+        <li class="noLabel">
           <p class="text-muted"><?php echo translate('ActionsRemoveHelp') ?></p>
         </li>
         <li>

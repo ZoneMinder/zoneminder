@@ -209,10 +209,14 @@ nav #pills-tab a.nav-link.active {
   table-layout: fixed;
 }
 
-/* Enabled: one checkbox. */
+/* Enabled: one checkbox, but the header is what sets the floor. A fixed
+   layout will not widen a column to fit its header, it just lets the text
+   run on into the next one, and skin.css renders every th uppercase -- so
+   what has to fit here is "ENABLED" and the cell padding, not a checkbox.
+   At 4em it fit so exactly that it touched the When header. */
 #monitorActionsTable th:nth-child(1),
 #monitorActionsTable td:nth-child(1) {
-  width: 4em;
+  width: 5.5em;
   text-align: center;
 }
 

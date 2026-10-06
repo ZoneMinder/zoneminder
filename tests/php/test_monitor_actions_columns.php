@@ -100,8 +100,40 @@ foreach ($pinned_columns as $name => $width) {
 check('Schedule is the widest of the three',
       ($ems['ActionSchedule'] > $ems['Enabled']) and
       ($ems['ActionSchedule'] > $ems['ActionAudioFile']), true);
-check('and Enabled is the narrowest, being one checkbox',
-      ($ems['Enabled'] < $ems['ActionAudioFile']), true);
+// The other two are the narrow ones. No ordering is asserted between them:
+// under a fixed layout a column has to fit its header, which skin.css renders
+// uppercase, and "ENABLED" is a wider word than "SOUND" whatever the cells
+// below them hold. An earlier version of this test had Enabled as the
+// narrowest "being one checkbox", which is the reasoning that got it set too
+// narrow to clear its own header in the first place.
+check('and the other two are narrow by comparison',
+      ($ems['Enabled'] < $ems['ActionSchedule'] / 2) and
+      ($ems['ActionAudioFile'] < $ems['ActionSchedule'] / 2), true);
+// A column narrower than its header runs its text into the next column, which
+// is how Enabled came to sit against When. The estimate below is crude on
+// purpose: it is here to catch a width chosen from what the cells hold while
+// forgetting the header above them, not to predict text metrics.
+//
+// Calibrated so that the 4em Enabled started out with fails it and the 5.5em
+// it has now passes. The header text is taken from the language file rather
+// than written out here, so a translation long enough to break the layout
+// fails this too -- under a fixed layout it really would break it.
+$SLANG = array();
+require_once($root.'/web/lang/en_gb.php');
+// skin.css renders every th uppercase at 0.8em, so that is what has to fit,
+// along with .table-sm's 0.3rem of padding on each side.
+$th_scale = 0.8;
+$per_char = 0.65;  // an average uppercase advance, in the header's own em
+$padding = 0.6;
+foreach (array('Enabled', 'ActionAudioFile') as $name) {
+  $text = isset($SLANG[$name]) ? $SLANG[$name] : $name;
+  // strlen rather than mb_strlen: this php has no mbstring, and counting
+  // bytes only over-counts a multibyte translation, which errs towards
+  // demanding more width rather than less.
+  $needed = (strlen($text) * $per_char * $th_scale) + $padding;
+  check($name.' ('.strtoupper($text).') is wider than its header needs',
+        $ems[$name] > $needed, true);
+}
 
 echo "a fixed layout is what makes those widths bind\n";
 // Under the default automatic layout a width on a cell is only a suggestion,

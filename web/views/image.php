@@ -695,10 +695,15 @@ function create_frame_from_video($file_path, $path, $frame_time) {
   # Use escapeshellarg() to prevent command injection
   #$command ='ffmpeg -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
   #$command ='ffmpeg -v 0 -i '.$Storage->Path().'/'.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
+
+  # Use a unique temporary file so a failed attempt cannot delete a file
+  # created by another concurrent request for the same frame.
+  $tmp_path = $path.'.'.getmypid().'.'.uniqid('', true).'.tmp';
+
   $command = $ffmpeg
     .' -ss '.escapeshellarg(sprintf('%.6F', $frame_time))
     .' -i '.escapeshellarg($file_path)
-    .' -frames:v 1 -y '.escapeshellarg($path)
+    .' -frames:v 1 -y '.escapeshellarg($tmp_path)
     .' 2>&1';
 
   ZM\Debug("Running $command");
@@ -713,11 +718,15 @@ function create_frame_from_video($file_path, $path, $frame_time) {
     implode("\n", $output)
   );
 
-  if ($retval === 0 && file_exists($path) && filesize($path) > 0) {
-    return true;
-  }
+  if ($retval === 0 && file_exists($tmp_path) && filesize($tmp_path) > 0) {
+    if (@rename($tmp_path, $path)) {
+      return true;
+    }
 
-  if (file_exists($path)) @unlink($path);
+    @unlink($tmp_path);
+  } elseif (file_exists($tmp_path)) {
+    @unlink($tmp_path);
+  }
 
   # Derive ffprobe from ZM_PATH_FFMPEG.
   $ffprobe = preg_replace('/ffmpeg(\.exe)?$/i', 'ffprobe$1', $ffmpeg);
@@ -745,7 +754,7 @@ function create_frame_from_video($file_path, $path, $frame_time) {
 
   ZM\Debug("Finding video packets around $frame_time: $probe_command");
 
-  # Find the nearest packet before and the first packet at or after the requested timestamp.
+  # Find the nearest packet before and the nearest packet at or after the requested timestamp.
   $before_pts = null;
   $after_pts = null;
 
@@ -776,25 +785,6 @@ function create_frame_from_video($file_path, $path, $frame_time) {
       $after_pts = $pts;
     }
   }
-
-  while (($line = fgets($probe)) !== false) {
-    $line = trim($line);
-    if ($line === '' || !is_numeric($line)) continue;
-
-    $pts = (float)$line;
-    # Ignore a packet exactly at the requested timestamp because it was
-    # already tried above. Only packets strictly before it can be a fallback.
-    if ($pts <= $frame_time) {
-      if ($pts < $frame_time) {
-        $before_pts = $pts;
-      }
-      continue;
-    }
-
-    # First packet at or after the requested timestamp.
-    $after_pts = $pts;
-    break;
-  }
   pclose($probe);
 
   ZM\Debug(
@@ -807,14 +797,18 @@ function create_frame_from_video($file_path, $path, $frame_time) {
     ($after_pts === null ? 'none' : sprintf('%.6F', $after_pts))
   );
 
-  # Try the nearest packet before the requested timestamp, then the first packet at or after it.
+  # Try the nearest packet before the requested timestamp, then the nearest packet at or after it.
   foreach (array($before_pts, $after_pts) as $pts) {
     if ($pts === null) continue;
+
+    # Use a unique temporary file so a failed attempt cannot delete a file
+    # created by another concurrent request for the same frame.
+    $tmp_path = $path.'.'.getmypid().'.'.uniqid('', true).'.tmp';
 
     $command = $ffmpeg
       .' -ss '.escapeshellarg(sprintf('%.6F', $pts))
       .' -i '.escapeshellarg($file_path)
-      .' -frames:v 1 -y '.escapeshellarg($path)
+      .' -frames:v 1 -y '.escapeshellarg($tmp_path)
       .' 2>&1';
 
     ZM\Debug("Trying video frame at PTS ".sprintf('%.6F', $pts).": $command");
@@ -829,11 +823,16 @@ function create_frame_from_video($file_path, $path, $frame_time) {
       implode("\n", $output)
     );
 
-    if ($retval === 0 && file_exists($path) && filesize($path) > 0) {
-      return true;
+    if ($retval === 0 && file_exists($tmp_path) && filesize($tmp_path) > 0) {
+      if (@rename($tmp_path, $path)) {
+        return true;
+      }
+
+      @unlink($tmp_path);
+      continue;
     }
 
-    if (file_exists($path)) @unlink($path);
+    if (file_exists($tmp_path)) @unlink($tmp_path);
   }
 
   return false;

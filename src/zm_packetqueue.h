@@ -116,6 +116,7 @@ class PacketQueue {
   void wait_for(Microseconds duration);
  private:
   packetqueue_iterator deletePacket(packetqueue_iterator it, std::vector<std::shared_ptr<ZMPacket>> &deferred);
+  packetqueue_iterator *start_on_keyframe(packetqueue_iterator *it, packetqueue_iterator snapshot_it);
 };
 
 #endif /* ZM_PACKETQUEUE_H */

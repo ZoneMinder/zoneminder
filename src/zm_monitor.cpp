@@ -2656,7 +2656,7 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadLocalMonitors
   std::string where = "`Capturing` != 'None' AND `Type` = 'Local'";
 
   if (device[0])
-    where += " AND `Device`='" + std::string(device) + "'";
+    where += " AND `Device`='" + zmDbEscapeString(device) + "'";
   if (staticConfig.SERVER_ID)
     where += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
   return LoadMonitors(where, purpose);
@@ -2669,14 +2669,16 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadRemoteMonitors
   if (staticConfig.SERVER_ID)
     where += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
   if (protocol)
-    where += stringtf(" AND `Protocol` = '%s' AND `Host` = '%s' AND `Port` = '%s' AND `Path` = '%s'", protocol, host, port, path);
+    where += stringtf(" AND `Protocol` = '%s' AND `Host` = '%s' AND `Port` = '%s' AND `Path` = '%s'",
+                      zmDbEscapeString(protocol).c_str(), zmDbEscapeString(host).c_str(),
+                      zmDbEscapeString(port).c_str(), zmDbEscapeString(path).c_str());
   return LoadMonitors(where, purpose);
 }
 
 std::vector<std::shared_ptr<Monitor>> Monitor::LoadFileMonitors(const char *file, Purpose purpose) {
   std::string where = "`Capturing` != 'None' AND `Type` = 'File'";
   if (file[0])
-    where += " AND `Path`='" + std::string(file) + "'";
+    where += " AND `Path`='" + zmDbEscapeString(file) + "'";
   if (staticConfig.SERVER_ID)
     where += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
   return LoadMonitors(where, purpose);
@@ -2685,7 +2687,7 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadFileMonitors(const char *file
 std::vector<std::shared_ptr<Monitor>> Monitor::LoadFfmpegMonitors(const char *file, Purpose purpose) {
   std::string where = "`Capturing` != 'None' AND `Type` = 'Ffmpeg'";
   if (file[0])
-    where += " AND `Path` = '" + std::string(file) + "'";
+    where += " AND `Path` = '" + zmDbEscapeString(file) + "'";
   if (staticConfig.SERVER_ID)
     where += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
   return LoadMonitors(where, purpose);

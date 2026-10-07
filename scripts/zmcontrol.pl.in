@@ -291,7 +291,7 @@ if ($options{command}) {
         Fatal("Can't select: $!");
       }
     } else {
-      Debug('Select timed out');
+      Debug(3, 'Select timed out');
     }
   } # end while !$zm_terminate
   Info("Control server $id/$protocol exiting");

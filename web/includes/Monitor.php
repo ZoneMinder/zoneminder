@@ -953,6 +953,25 @@ class Monitor extends ZM_Object {
     return $this->connKey;
   }
 
+  // Fields whose value zmc runs as a command. Setting one is equivalent to shell access
+  // on the server, so it needs System=Edit, not just edit on this monitor, the same rule
+  // Filter::canEdit() applies to AutoExecuteCmd. refs GHSA-vcrj-35c6-g97c
+  public static $commandFields = array('EventStartCommand', 'EventEndCommand');
+
+  // The command fields $data would change on this monitor that the user may not set.
+  // Submitting the current value is not a change, since the monitor form always posts it.
+  public function commandFieldChangesNotAllowed($data, $u=null) {
+    global $user;
+    if (!$u) $u = $user;
+    if (!$u or $u->System() == 'Edit') return array();
+    $refused = array();
+    foreach (self::$commandFields as $field) {
+      if (!array_key_exists($field, $data)) continue;
+      if ((string)$data[$field] !== (string)$this->{$field}()) $refused[] = $field;
+    }
+    return $refused;
+  }
+
   function canEdit($u=null) {
     global $user;
     if ($u===null or $u->Id() == $user->Id())

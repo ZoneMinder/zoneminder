@@ -1328,14 +1328,18 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
               <input type="hidden" name="newMonitor[RecordAudio]" value="<?php echo $monitor->RecordAudio() ? 1 : 0 ?>"/>
 <?php } ?>
             </li>
+<?php
+      // zmc runs these as commands, so only System editors may change them.
+      $commandReadonly = canEdit('System') ? '' : ' readonly="readonly" title="'.validHtmlStr(translate('Requires System edit permission')).'"';
+?>
             <li class="EventStartCommand">
               <label><?php echo translate('Event Start Command') ?></label>
-              <input type="text" name="newMonitor[EventStartCommand]" value="<?php echo validHtmlStr($monitor->EventStartCommand()) ?>" />
+              <input type="text" name="newMonitor[EventStartCommand]" value="<?php echo validHtmlStr($monitor->EventStartCommand()) ?>"<?php echo $commandReadonly ?>/>
             </li>
             <li class="EventEndCommand">
               <label><?php echo translate('Event End Command') ?></label>
-              <input type="text" name="newMonitor[EventEndCommand]" value="<?php echo validHtmlStr($monitor->EventEndCommand()) ?>" />
-            <li>
+              <input type="text" name="newMonitor[EventEndCommand]" value="<?php echo validHtmlStr($monitor->EventEndCommand()) ?>"<?php echo $commandReadonly ?>/>
+            </li>
 <?php
       break;
     }

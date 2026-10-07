@@ -126,6 +126,17 @@ class MonitorsController extends AppController {
  *
  * @return void
  */
+  // The EventStartCommand / EventEndCommand values the request supplies, if any.
+  private function requestCommandFields() {
+    require_once __DIR__ .'/../../../includes/Monitor.php';
+    $fields = array();
+    foreach (ZM\Monitor::$commandFields as $field) {
+      $value = $this->requestField('Monitor', $field);
+      if ($value !== null) $fields[$field] = $value;
+    }
+    return $fields;
+  }
+
   public function add() {
     if ( $this->request->is('post') ) {
 
@@ -134,6 +145,12 @@ class MonitorsController extends AppController {
       if ( !$canAdd ) {
         throw new UnauthorizedException(__('Insufficient privileges'));
         return;
+      }
+      // A new monitor's command fields start empty, so any value is a change.
+      require_once __DIR__ .'/../../../includes/Monitor.php';
+      $new_monitor = new ZM\Monitor();
+      if (count($new_monitor->commandFieldChangesNotAllowed($this->requestCommandFields()))) {
+        throw new UnauthorizedException(__('Setting the event commands requires System edit permission'));
       }
       $this->pinRequestId($this->Monitor, null);
       $this->Monitor->create();
@@ -177,6 +194,9 @@ class MonitorsController extends AppController {
     if (!$zm_monitor->canEdit()) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
+    }
+    if (count($zm_monitor->commandFieldChangesNotAllowed($this->requestCommandFields()))) {
+      throw new UnauthorizedException(__('Changing the event commands requires System edit permission'));
     }
 
     $this->pinRequestId($this->Monitor, $id);

@@ -255,6 +255,15 @@ function loadConfig( $defineConsts=true ) {
       }
     }
   }
+  # What is left exists only in zm.conf / conf.d: database credentials, paths and the
+  # like. Those have no Private column, and consumers such as skin.js.php export every
+  # entry that is not marked Private to the browser, so mark them Private unless they
+  # are known to be needed client side. refs GHSA-jv9c-pg2m-5m6m
+  $public_file_config = array('ZM_DIR_SOUNDS');
+  foreach ($initial_config as $name => $c) {
+    if (!isset($initial_config[$name]['Private']))
+      $initial_config[$name]['Private'] = in_array($name, $public_file_config) ? 0 : 1;
+  }
   return array_merge($config, $initial_config); # Merge any remaining config not in db
 } # end function loadConfig
 

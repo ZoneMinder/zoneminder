@@ -54,6 +54,7 @@
 
 // Simple String Replacements
 $SLANG = array(
+    'PrivateValueHidden'    => 'This value is private and is shown only to users who can edit System settings.',
     'SystemLog'             => 'System Log',
     'DateTime'              => 'Date/Time',
     'DiskSpace'             => 'Disk Space',

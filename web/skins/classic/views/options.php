@@ -259,6 +259,11 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
               $shortName = preg_replace( '/^ZM_/', '', $name );
               $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]['Prompt']:$value['Prompt'];
               $optionCanEdit = $canEdit && !$value['System'];
+              // A Private value (ZM_AUTH_HASH_SECRET and other credentials) is only for
+              // those who may change it: System=View can read this page, and the auth
+              // secret alone is enough to sign an admin token. refs GHSA-7g3f-93q8-fhwj
+              $valueHidden = !empty($value['Private']) && !$canEdit;
+              if ($valueHidden) $value['Value'] = '';
               if ($optionCanEdit && !empty($value['Requires'])) {
                 // Requires can be compound: "ZM_A=1;ZM_B=hashed" (all must be true)
                 $requiresMet = true;
@@ -338,7 +343,9 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
               } else {
                 echo '<input type="text" class="form-control-sm" id="'.$name.'" name="newConfig['.$name.']" value="'.validHtmlStr($value['Value']).'" '.($optionCanEdit?'':' disabled="disabled"' ).'/>'.PHP_EOL;
               }
-              if ($value['Value'] != constant($name)) {
+              if ($valueHidden) {
+                echo '<p class="form-text">'.translate('PrivateValueHidden').'</p>'.PHP_EOL;
+              } else if ($value['Value'] != constant($name)) {
                 echo '<p class="warning">Note: This value has been overriden via configuration files in '.ZM_CONFIG. ' or ' . ZM_CONFIG_SUBDIR.'.<br/>The overriden value is: '.constant($name).'</p>'.PHP_EOL;
               }
 ?>

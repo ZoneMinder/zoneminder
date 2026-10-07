@@ -76,7 +76,7 @@ void zmLoadDBConfig() {
 
       Debug(1, "Fetching ZM_SERVER_ID For Name = %s", staticConfig.SERVER_NAME.c_str());
       std::string sql = stringtf("SELECT `Id` FROM `Servers` WHERE `Name`='%s'",
-                                 staticConfig.SERVER_NAME.c_str());
+                                 zmDbEscapeString(staticConfig.SERVER_NAME).c_str());
       zmDbRow dbrow;
       if (dbrow.fetch(sql)) {
         staticConfig.SERVER_ID = atoi(dbrow[0]);

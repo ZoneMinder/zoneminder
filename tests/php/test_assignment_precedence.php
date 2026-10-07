@@ -88,7 +88,15 @@ function cut_short_assignments($src) {
       if ($depth !== 0) continue;
       if (is_array($token) and
           in_array($token[0], array(T_LOGICAL_AND, T_LOGICAL_OR, T_LOGICAL_XOR), true)) {
-        $found[] = $target[2].' '.$target[1].' = ... '.strtolower($token[1]);
+        // The line is for the report; the key is what gets compared. A line
+        // number is not a stable identity for a finding -- anything inserted
+        // above it renumbers it, and a known-issues list keyed on one goes
+        // stale the next time the file is edited, which is exactly what
+        // happened to this test's first version.
+        $found[] = array(
+          'key' => $target[1].' = ... '.strtolower($token[1]),
+          'line' => $target[2],
+        );
         break;
       }
     }
@@ -99,31 +107,37 @@ function cut_short_assignments($src) {
 echo "the scan can tell the difference\n";
 // Given before the tree-wide check, because a scan that matched nothing would
 // pass that check on its own.
+// A helper so the self-checks read as the keys they are about.
+function keys_of($found) {
+  $keys = array();
+  foreach ($found as $f) $keys[] = $f['key'];
+  return $keys;
+}
 check('an assignment cut short by or is caught',
-      cut_short_assignments('<?php $a = f() or g();'), array('1 $a = ... or'));
+      keys_of(cut_short_assignments('<?php $a = f() or g();')), array('$a = ... or'));
 check('and one cut short by and',
-      cut_short_assignments('<?php $a = f() and g();'), array('1 $a = ... and'));
+      keys_of(cut_short_assignments('<?php $a = f() and g();')), array('$a = ... and'));
 check('the same expression with || is fine',
-      cut_short_assignments('<?php $a = f() || g();'), array());
+      keys_of(cut_short_assignments('<?php $a = f() || g();')), array());
 check('an or inside brackets is fine',
-      cut_short_assignments('<?php $a = ($x or $y);'), array());
+      keys_of(cut_short_assignments('<?php $a = ($x or $y);')), array());
 check('including in a ternary condition',
-      cut_short_assignments('<?php $a = ($x or $y) ? 1 : 2;'), array());
+      keys_of(cut_short_assignments('<?php $a = ($x or $y) ? 1 : 2;')), array());
 check('and in a call\'s arguments',
-      cut_short_assignments('<?php $a = f($x or $y);'), array());
+      keys_of(cut_short_assignments('<?php $a = f($x or $y);')), array());
 check('an or in a condition is not an assignment',
-      cut_short_assignments('<?php if ($x or $y) { $a = 1; }'), array());
+      keys_of(cut_short_assignments('<?php if ($x or $y) { $a = 1; }')), array());
 check('nor is one in a while',
-      cut_short_assignments('<?php while ($x or $y) { $a = 1; }'), array());
+      keys_of(cut_short_assignments('<?php while ($x or $y) { $a = 1; }')), array());
 check('a comparison is not an assignment',
-      cut_short_assignments('<?php if ($a == f() or g()) { }'), array());
+      keys_of(cut_short_assignments('<?php if ($a == f() or g()) { }')), array());
 check('a later statement does not leak into an earlier one',
-      cut_short_assignments('<?php $a = 1; if ($x or $y) { }'), array());
+      keys_of(cut_short_assignments('<?php $a = 1; if ($x or $y) { }')), array());
 // The line that prompted all this, as it was written.
 check('the reported line is caught',
-      cut_short_assignments(
-          '<?php $drawable = ($action->Schedule() === \'\') or ($parts !== null);'),
-      array('1 $drawable = ... or'));
+      keys_of(cut_short_assignments(
+          '<?php $drawable = ($action->Schedule() === \'\') or ($parts !== null);')),
+      array('$drawable = ... or'));
 
 echo "nothing new under web/ cuts an assignment short\n";
 
@@ -157,15 +171,16 @@ echo "nothing new under web/ cuts an assignment short\n";
 // Anything not on this list fails, so a new one cannot be added -- including
 // the one this test was written for, which is deliberately absent.
 $known = array(
-  'web/includes/config.php:302 $cfg = ... or',
-  'web/skins/classic/views/_options_dnsmasq.php:107 $cfg = ... or',
-  'web/skins/classic/views/filter.php:400 $canSave = ... or',
-  'web/skins/classic/views/filter.php:401 $canDelete = ... and',
-  'web/skins/classic/views/console.php:110 $show_storage_areas = ... and',
-  'web/skins/classic/views/monitor.php:1483 $stream_available = ... and',
+  'web/includes/config.php $cfg = ... or',
+  'web/skins/classic/views/_options_dnsmasq.php $cfg = ... or',
+  'web/skins/classic/views/filter.php $canSave = ... or',
+  'web/skins/classic/views/filter.php $canDelete = ... and',
+  'web/skins/classic/views/console.php $show_storage_areas = ... and',
+  'web/skins/classic/views/monitor.php $stream_available = ... and',
 );
 
 $offenders = array();
+$where = array();   // key => path:line, for the report only
 $scanned = 0;
 $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root.'/web'));
 foreach ($iterator as $file) {
@@ -176,7 +191,9 @@ foreach ($iterator as $file) {
   if (strpos($path, '/assets/') !== false) continue;
   $scanned++;
   foreach (cut_short_assignments(file_get_contents($path)) as $find) {
-    $offenders[] = substr($path, strlen($root) + 1).':'.$find;
+    $relative = substr($path, strlen($root) + 1);
+    $offenders[] = $relative.' '.$find['key'];
+    $where[$relative.' '.$find['key']] = $relative.':'.$find['line'];
   }
 }
 check('a useful number of files were scanned', $scanned > 100, true);

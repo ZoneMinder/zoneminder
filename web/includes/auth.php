@@ -915,6 +915,13 @@ function zm_authenticate_request() {
             unset($_SESSION['AuthHashGeneratedAt']);
             unset($_SESSION['AuthHash'.$remoteAddr]);
           }
+          if (!empty($_COOKIE[session_name()]) and (!isset($_SESSION['username']) or ($_SESSION['username'] !== $user->Username()))) {
+            // The client's session becomes this user's: give it a new id first, so
+            // an id planted in the client beforehand doesn't become a logged-in
+            // session (session fixation). Without our cookie the session isn't
+            // stored, so there is nothing to take over.
+            zm_session_regenerate_id_login();
+          }
           $_SESSION['username'] = $user->Username();
         }
       } else if (!(empty($requestUser) or empty($requestPass))) {

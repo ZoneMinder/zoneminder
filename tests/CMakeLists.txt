@@ -13,6 +13,7 @@ include(Catch)
 
 set(TEST_SOURCES
   zm_box.cpp
+  zm_buffer.cpp
   zm_comms.cpp
   zm_crypt.cpp
   zm_db_contention.cpp

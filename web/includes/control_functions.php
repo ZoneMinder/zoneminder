@@ -6,6 +6,14 @@ function buildControlCommand($monitor) {
   $ctrlCommand = '';
   $control = $monitor->Control();
 
+  // control names the control module method zmcontrol calls, and the options are parsed back
+  // out of this string by spaces, so refuse anything that is not a plain method name.
+  // refs GHSA-qcm7-vq92-f86f
+  if ( !isset($_REQUEST['control']) or !preg_match('/^[A-Za-z][A-Za-z0-9_]*$/', $_REQUEST['control']) ) {
+    ZM\Warning('Invalid control command');
+    return '';
+  }
+
   if ( isset($_REQUEST['xge']) || isset($_REQUEST['yge']) ) {
     $slow = 0.9; // Threshold for slow speed/timeouts
     $turbo = 0.9; // Threshold for turbo speed
@@ -704,6 +712,11 @@ function buildControlCommand($monitor) {
       $_REQUEST['control'] = 'presetGoto';
       $ctrlCommand .= ' --preset='.$matches[1];
     } elseif ( $_REQUEST['control'] == 'presetGoto' && !empty($_REQUEST['preset']) ) {
+      // Control modules look the preset up in SQL and send it to the camera.
+      if ( !ctype_digit((string)$_REQUEST['preset']) ) {
+        ZM\Warning('Invalid preset');
+        return '';
+      }
       $ctrlCommand .= ' --preset='.$_REQUEST['preset'];
     } elseif ( $_REQUEST['control'] == 'presetSet' ) {
       if ( canEdit( 'Control' ) ) {

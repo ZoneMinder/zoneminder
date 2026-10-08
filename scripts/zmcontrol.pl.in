@@ -258,6 +258,11 @@ if ($options{command}) {
         if ( $command eq 'quit' ) {
           close(CLIENT);
           last;
+        } elsif ( $command and $command !~ /^[A-Za-z]\w*$/ ) {
+          # The name comes from a web request and is called as a method; a qualified name
+          # (Package::sub) would call a sub outside the control module. refs GHSA-qcm7-vq92-f86f
+          Warning('Invalid control command');
+          close(CLIENT);
         } elsif ( $command ) {
           my $result = $control->$command($params);
           # Opt-in response: only write back when the caller asked for one, so

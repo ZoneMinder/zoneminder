@@ -1908,7 +1908,8 @@ function formatTag(tag) {
   tagElement.data('tag', tag);
   tagElement.append($j('<span>', {class: 'tag-text', text: tagName}));
   tagElement.append($j('<span>', {class: 'tag-remove', text: '\u00D7'}));
-  $j('.tag-dropdown').before(tagElement);
+  $j('#tags').append(tagElement);
+  //$j('.tag-dropdown').before(tagElement);
 }
 
 function addTag(tag, buttonPressed = null) {

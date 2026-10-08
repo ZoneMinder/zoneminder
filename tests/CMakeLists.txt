@@ -19,6 +19,7 @@ set(TEST_SOURCES
   zm_db_contention_live.cpp
   zm_event_hardlink.cpp
   zm_font.cpp
+  zm_image_annotate.cpp
   zm_monitor_shm.cpp
   zm_monitorstream.cpp
   zm_packetqueue.cpp

@@ -439,6 +439,40 @@ button.btn.btn-view-watch, button.btn.btn-fullscreen, .ratioControl {
   display: none;
 }
 
+#tags{
+  display:flex;
+  flex-wrap:wrap;
+}
+
+.tag-controls {
+  display: flex;
+  flex-wrap: nowrap;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: center;
+}
+
+.tag-dropdown {
+  position: relative;
+  flex: 1 1 4em;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  overflow-wrap: anywhere;
+}
+
+#wrapperTagBtn {
+  display:flex;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.tag-text {
+  overflow-wrap: anywhere;
+}
+
 /*Video.js override*/
 .vjs-tech {
   pointer-events: auto;

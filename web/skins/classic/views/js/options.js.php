@@ -2,7 +2,7 @@
 global $restartWarning;
 global $tab;
 ?>
-  const tab = '<?php echo $tab ?>';
+  const tab = '<?php echo validJsStr($tab) ?>';
 var restartWarning = <?php echo empty($restartWarning)?'false':'true' ?>;
 if ( restartWarning ) {
   alert( "<?php echo translate('OptionRestartWarning') ?>" );

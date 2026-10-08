@@ -152,7 +152,10 @@ function zm_session_clear() {
   session_write_close();
 } // function zm_session_clear()
 
-class ZMSessionHandler implements SessionHandlerInterface {
+// SessionUpdateTimestampHandlerInterface is what makes PHP call validateId():
+// without it session.use_strict_mode has no effect for a user handler, and an
+// id the client made up became its session id.
+class ZMSessionHandler implements SessionHandlerInterface, SessionUpdateTimestampHandlerInterface {
   private $db;
   public function __construct() {
     global $dbConn;
@@ -236,7 +239,20 @@ class ZMSessionHandler implements SessionHandlerInterface {
     $del = $this->db->prepare("DELETE FROM Sessions WHERE id IN ($placeholders)");
     return $del->execute($ids) ? true : false;
   }
-  public function validateId($key) : bool {return true;}
+  // Whether $id names a stored session. With session.use_strict_mode (set in
+  // zm_session_start()) PHP replaces an id that doesn't with a new one, so a
+  // client can't choose its session id and nobody can plant one (session
+  // fixation).
+  public function validateId($id) : bool {
+    if (!$this->db) return false;
+    $sth = $this->db->prepare('SELECT 1 FROM Sessions WHERE id = :id');
+    $sth->bindParam(':id', $id, PDO::PARAM_STR, 32);
+    return $sth->execute() and ($sth->fetch() !== false);
+  }
+  // Called instead of write() when the session data didn't change.
+  public function updateTimestamp($id, $data) : bool {
+    return $this->write($id, $data);
+  }
 } # end class Session
 
 $session = new ZMSessionHandler;

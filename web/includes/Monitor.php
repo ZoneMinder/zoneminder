@@ -963,7 +963,7 @@ class Monitor extends ZM_Object {
   public function commandFieldChangesNotAllowed($data, $u=null) {
     global $user;
     if (!$u) $u = $user;
-    if (!$u or $u->System() == 'Edit') return array();
+    if (!$u or $u->canEdit('System')) return array();
     $refused = array();
     foreach (self::$commandFields as $field) {
       if (!array_key_exists($field, $data)) continue;

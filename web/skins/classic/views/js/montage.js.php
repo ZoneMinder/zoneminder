@@ -23,8 +23,8 @@ foreach ( $monitors as $monitor ) {
 monitorData[monitorData.length] = {
   'id': <?php echo $monitor->Id() ?>,
   'name': '<?php echo validJsStr($monitor->Name()) ?>',
-  'server_id': '<?php echo $monitor->ServerId() ?>',
-  'connKey': '<?php echo $monitor->connKey() ?>',
+  'server_id': '<?php echo validJsStr($monitor->ServerId()) ?>',
+  'connKey': '<?php echo validJsStr($monitor->connKey()) ?>',
   'width': <?php echo $monitor->ViewWidth() ?>,
   'height':<?php echo $monitor->ViewHeight() ?>,
   'scale': '<?php echo validJsStr($monitor->initial_scale()) ?>',
@@ -56,7 +56,7 @@ foreach ( $layouts as $layout ) {
 ?>
 layouts[<?php echo $layout->Id() ?>] = {
   "Name":"<?php echo validJsStr($layout->Name()) ?>",
-  "UserId":"<?php echo $layout->UserId()?>",
+  "UserId":"<?php echo validJsStr($layout->UserId()) ?>",
   "Positions":<?php
     # Re-encode rather than echo the stored JSON, so a string in it cannot close the script.
     $positions = $layout->Positions() ? json_decode($layout->Positions()) : null;

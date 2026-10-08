@@ -16,37 +16,37 @@
 //
 // PHP variables to JS
 //
-var connKey = '<?php echo $connkey ?>';
+var connKey = '<?php echo validJsStr($connkey) ?>';
 
 var eventData = {
 <?php if ( $Event->Id() ) { ?>
-    Id: '<?php echo $Event->Id() ?>',
+    Id: '<?php echo validJsStr($Event->Id()) ?>',
     Name: <?php echo json_encode($Event->Name(), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) ?>,
-    MonitorId: '<?php echo $Event->MonitorId() ?>',
+    MonitorId: '<?php echo validJsStr($Event->MonitorId()) ?>',
     MonitorName: '<?php echo validJsStr($monitor->Name()) ?>',
     Cause: '<?php echo validHtmlStr($Event->Cause()) ?>',
     <!-- Tags: '<?php echo validHtmlStr(implode(', ', array_map(function($t){return $t->Name();}, $Event->Tags()))); ?>', -->
     Notes: <?php echo json_encode($Event->Notes(), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) ?>,
-    Width: '<?php echo $Event->Width() ?>',
-    Height: '<?php echo $Event->Height() ?>',
-    Length: '<?php echo $Event->Length() ?>',
-    StartDateTime: '<?php echo $Event->StartDateTime() ?>',
+    Width: '<?php echo validJsStr($Event->Width()) ?>',
+    Height: '<?php echo validJsStr($Event->Height()) ?>',
+    Length: '<?php echo validJsStr($Event->Length()) ?>',
+    StartDateTime: '<?php echo validJsStr($Event->StartDateTime()) ?>',
     StartDateTimeFormatted: '<?php echo $dateTimeFormatter->format(strtotime($Event->StartDateTime())) ?>',
-    EndDateTime: '<?php echo $Event->EndDateTime() ?>',
+    EndDateTime: '<?php echo validJsStr($Event->EndDateTime()) ?>',
     EndDateTimeFormatted: '<?php echo $Event->EndDateTime()? $dateTimeFormatter->format(strtotime($Event->EndDateTime())) : '' ?>',
-    Frames: '<?php echo $Event->Frames() ?>',
-    AlarmFrames: '<?php echo $Event->AlarmFrames() ?>',
-    TotScore: '<?php echo $Event->TotScore() ?>',
-    AvgScore: '<?php echo $Event->AvgScore() ?>',
-    MaxScore: '<?php echo $Event->MaxScore() ?>',
+    Frames: '<?php echo validJsStr($Event->Frames()) ?>',
+    AlarmFrames: '<?php echo validJsStr($Event->AlarmFrames()) ?>',
+    TotScore: '<?php echo validJsStr($Event->TotScore()) ?>',
+    AvgScore: '<?php echo validJsStr($Event->AvgScore()) ?>',
+    MaxScore: '<?php echo validJsStr($Event->MaxScore()) ?>',
     DiskSpace: '<?php echo human_filesize($Event->DiskSpace(null)) ?>',
     Storage: '<?php echo validHtmlStr($Event->Storage()->Name()).( $Event->SecondaryStorageId() ? ', '.validHtmlStr($Event->SecondaryStorage()->Name()) : '' ) ?>',
     DefaultVideo: '<?php echo validHtmlStr($Event->DefaultVideo()) ?>',
     Archived: <?php echo $Event->Archived?'true':'false' ?>,
     Emailed: <?php echo $Event->Emailed?'true':'false' ?>,
-    Path: '<?php echo $Event->Path() ?>',
-    Latitude: '<?php echo $Event->Latitude() ?>',
-    Longitude: '<?php echo $Event->Longitude() ?>',
+    Path: '<?php echo validJsStr($Event->Path()) ?>',
+    Latitude: '<?php echo validJsStr($Event->Latitude()) ?>',
+    Longitude: '<?php echo validJsStr($Event->Longitude()) ?>',
     whatDisplay: '<?php echo validJsStr($monitor->WhatDisplay()) ?>'
 <?php } ?>
 };
@@ -90,14 +90,14 @@ var filterQuery = '<?php echo isset($filterQuery)?validJsStr(htmlspecialchars_de
 var sortQuery = '<?php echo isset($sortQuery)?validJsStr(htmlspecialchars_decode($sortQuery)):'' ?>';
 
 var rates = <?php echo json_encode(array_keys($rates)) ?>;
-var rate = '<?php echo $rate ?>'; // really only used when setting up initial playback rate.
-var scale = "<?php echo $scale ?>";
+var rate = '<?php echo validJsStr($rate) ?>'; // really only used when setting up initial playback rate.
+var scale = "<?php echo validJsStr($scale) ?>";
 var LabelFormat = "<?php echo validJsStr($monitor->LabelFormat())?>";
 
 var streamTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;
 
 var canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;
-var streamMode = '<?php echo $streamMode ?>';
+var streamMode = '<?php echo validJsStr($streamMode) ?>';
 
 //
 // Strings
@@ -108,7 +108,7 @@ var showZonesString = "<?php echo validJsStr(translate('Show Zones'))?>";
 var hideZonesString = "<?php echo validJsStr(translate('Hide Zones'))?>";
 var WEB_LIST_THUMB_WIDTH = '<?php echo ZM_WEB_LIST_THUMB_WIDTH ?>';
 var WEB_LIST_THUMB_HEIGHT = '<?php echo ZM_WEB_LIST_THUMB_HEIGHT ?>';
-var popup = '<?php echo $popup ?>';
+var popup = '<?php echo validJsStr($popup) ?>';
 
 var translate = {
   "seconds": "<?php echo translate('seconds') ?>",

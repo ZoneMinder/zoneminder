@@ -28,6 +28,7 @@ Build-Depends: debhelper, sphinx-doc, dh-linktree, dh-apache2
               ,libdata-uuid-perl
               ,libssl-dev
               ,libcrypt-eksblowfish-perl
+              ,nlohmann-json3-dev | nlohmann-json-dev
 # Unbundled (dh_linktree):
         ,libjs-jquery
 Standards-Version: 3.9.8

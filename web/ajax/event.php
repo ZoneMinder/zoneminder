@@ -171,38 +171,6 @@ if ( canView('Events') or canView('Snapshots') ) {
     $response = dbFetchAll($sql, NULL, $values);
     ajaxResponse(array('response'=>$response));
     break;
-  case 'addtag' :
-    // Validate once and reuse; $_REQUEST values are strings at best and can be
-    // arrays, so anything non-scalar is rejected outright.
-    $tagId = is_scalar($_REQUEST['tid'] ?? null) ? validCardinal($_REQUEST['tid']) : '';
-    $eventId = is_scalar($_REQUEST['id'] ?? null) ? validCardinal($_REQUEST['id']) : '';
-    if ($tagId === '' or $eventId === '') ajaxError('addtag requires a numeric tid and id');
-
-    $sql = 'INSERT INTO Events_Tags (TagId, EventId, AssignedBy) VALUES (?, ?, ?)';
-    $values = array($tagId, $eventId, $user->Id());
-    $response = dbFetchAll($sql, NULL, $values);
-
-    $sql = 'UPDATE Tags SET LastAssignedDate = NOW() WHERE Id = ?';
-    $values = array($tagId);
-    dbFetchAll($sql, NULL, $values);
-
-    // Record this tag against the user's personal recency order so it
-    // sorts to the top of THEIR dropdown next time, on any device.
-    require_once('includes/TagOrder.php');
-    \ZM\TagOrder::recordUsage($user->Id(), $tagId);
-
-    ajaxResponse(array('response'=>$response));
-    break;
-  case 'removetag' :
-    $tagId = validCardinal($_REQUEST['tid']);
-    dbQuery('DELETE FROM Events_Tags WHERE TagId = ? AND EventId = ?', array($tagId, $_REQUEST['id']));
-    $rowCount = dbNumRows('SELECT * FROM Events_Tags WHERE TagId=?', [ $tagId ]);
-    if ($rowCount < 1) {
-      $response = dbNumRows('DELETE FROM Tags WHERE Id=?', [$tagId]);
-      ajaxResponse(array('response'=>$response));
-    }
-    ajaxResponse();
-    break;
   case 'file_existence_check' :
     $fileNameArray = $_REQUEST['file_name_array'] ?? [];
     if (!is_array($fileNameArray)) ajaxError('The "file_name_array" request parameter is not an array');
@@ -246,6 +214,40 @@ if ( canEdit('Events') ) {
       array($archiveVal, $_REQUEST['id'])
     );
     ajaxResponse(array('refreshEvent'=>true, 'refreshParent'=>false));
+    break;
+  // Tagging changes the event's metadata (and removetag can delete the Tag
+  // itself), so it needs the same Events edit permission as rename/archive.
+  case 'addtag' :
+    // Validate once and reuse; $_REQUEST values are strings at best and can be
+    // arrays, so anything non-scalar is rejected outright.
+    $tagId = is_scalar($_REQUEST['tid'] ?? null) ? validCardinal($_REQUEST['tid']) : '';
+    $eventId = is_scalar($_REQUEST['id'] ?? null) ? validCardinal($_REQUEST['id']) : '';
+    if ($tagId === '' or $eventId === '') ajaxError('addtag requires a numeric tid and id');
+
+    $sql = 'INSERT INTO Events_Tags (TagId, EventId, AssignedBy) VALUES (?, ?, ?)';
+    $values = array($tagId, $eventId, $user->Id());
+    $response = dbFetchAll($sql, NULL, $values);
+
+    $sql = 'UPDATE Tags SET LastAssignedDate = NOW() WHERE Id = ?';
+    $values = array($tagId);
+    dbFetchAll($sql, NULL, $values);
+
+    // Record this tag against the user's personal recency order so it
+    // sorts to the top of THEIR dropdown next time, on any device.
+    require_once('includes/TagOrder.php');
+    \ZM\TagOrder::recordUsage($user->Id(), $tagId);
+
+    ajaxResponse(array('response'=>$response));
+    break;
+  case 'removetag' :
+    $tagId = validCardinal($_REQUEST['tid']);
+    dbQuery('DELETE FROM Events_Tags WHERE TagId = ? AND EventId = ?', array($tagId, $_REQUEST['id']));
+    $rowCount = dbNumRows('SELECT * FROM Events_Tags WHERE TagId=?', [ $tagId ]);
+    if ($rowCount < 1) {
+      $response = dbNumRows('DELETE FROM Tags WHERE Id=?', [$tagId]);
+      ajaxResponse(array('response'=>$response));
+    }
+    ajaxResponse();
     break;
   case 'delete' :
     $Event = new ZM\Event(validCardinal($_REQUEST['id']));

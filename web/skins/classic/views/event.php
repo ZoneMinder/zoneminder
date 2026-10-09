@@ -296,10 +296,10 @@ $showEventStats = !(isset($_COOKIE['zmEventStats']) and $_COOKIE['zmEventStats']
               <div class="tags-container">
                 <div class="tag-dropdown">
                   <!-- input type has to be "search" (not "text") so that the Enter button (not Next) works on mobile Chrome browser. -->
-                  <input type="search" id="tagInput" class="tag-input" placeholder="Add tag" data-role="tagsinput">
+                  <input type="search" id="tagInput" class="tag-input" placeholder="Add tag" data-role="tagsinput"<?php echo canEdit('Events') ? '' : ' disabled="disabled"' ?>>
                   <div class="tag-dropdown-content"></div>
                 </div>
-                <button type="button" id="tagPrevBtn" title="<?php echo translate('Apply the last tag, then play the previous event') ?>" class="inactive" data-on-click-true="tagAndPrev">
+                <button type="button" id="tagPrevBtn"<?php echo canEdit('Events') ? '' : ' disabled="disabled"' ?> title="<?php echo translate('Apply the last tag, then play the previous event') ?>" class="inactive" data-on-click-true="tagAndPrev">
                   <i class="material-icons md-18"
                     style="-moz-transform: scaleX(-1);
                       -o-transform: scaleX(-1);
@@ -309,7 +309,7 @@ $showEventStats = !(isset($_COOKIE['zmEventStats']) and $_COOKIE['zmEventStats']
                       -ms-filter: 'FlipH';">
                       label</i>
                 </button>
-                <button type="button" id="tagNextBtn" title="<?php echo translate('Apply the last tag, then play the next event') ?>" class="inactive" data-on-click-true="tagAndNext">
+                <button type="button" id="tagNextBtn"<?php echo canEdit('Events') ? '' : ' disabled="disabled"' ?> title="<?php echo translate('Apply the last tag, then play the next event') ?>" class="inactive" data-on-click-true="tagAndNext">
                   <i class="material-icons md-18">label</i>
                 </button>
               </div><!--tags-container-->

@@ -76,9 +76,15 @@ if ($dir = opendir($event_path)) {
 
 
 if (isset($_REQUEST['deleteIndex'])) {
+  // The list includes the event's own recording (ZM_FFMPEG_FORMATS has mp4), so
+  // deleting needs Events edit, not the Events view this page opens with.
   $deleteIndex = validCardinal($_REQUEST['deleteIndex']);
-  unlink($videoFiles[$deleteIndex]);
-  unset($videoFiles[$deleteIndex]);
+  if (!canEdit('Events')) {
+    ZM\Warning('Must have Events edit permission to delete event videos');
+  } else if (isset($videoFiles[$deleteIndex])) {
+    unlink($videoFiles[$deleteIndex]);
+    unset($videoFiles[$deleteIndex]);
+  }
 } else if (isset($_REQUEST['downloadIndex'])) {
   if (!count($videoFiles)) {
     ZM\Warning("No video files found for $eid. Downloading not possible.");
@@ -238,8 +244,10 @@ if (isset($_REQUEST['showIndex'])) {
           <td><?php echo $scaleText ?></td>
           <td>
             <a href="?view=video&eid=<?php echo $event->Id() ?>&downloadIndex=<?php echo $index ?>"><?php echo translate('Download') ?></a>
+<?php if (canEdit('Events')) { ?>
                &nbsp;/&nbsp;
             <a href="?view=video&eid=<?php echo $event->Id() ?>&deleteIndex=<?php echo $index ?>"><?php echo translate('Delete') ?></a>
+<?php } ?>
           </td>
         </tr>
 <?php

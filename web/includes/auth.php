@@ -874,9 +874,9 @@ function get_auth_relay() {
 // usable ZM_AUTH_HASH_SECRET this is an access token minted for the call that
 // lives a minute, never the password or an auth hash, which logs in for
 // ZM_AUTH_HASH_TTL hours. Without the secret zmu refuses tokens: then what zmu
-// got before, an auth hash, or with ZM_AUTH_RELAY=plain the password from the
-// session (the API's stateful login no longer stores it: set the secret).
-function zmuCredentials() {
+// got before, an auth hash, or with ZM_AUTH_RELAY=plain the password: $password
+// when the caller has it (an API request's own pass=), else the session's.
+function zmuCredentials($password = null) {
   global $user;
   if (!ZM_OPT_USE_AUTH) return '';
   if (authHashSecretIsSet()) {
@@ -889,7 +889,8 @@ function zmuCredentials() {
   if (ZM_AUTH_RELAY == 'hashed') {
     $credentials .= ' -A '.generateAuthHash(false, true);
   } else if (ZM_AUTH_RELAY == 'plain') {
-    $credentials .= ' -P '.escapeshellarg(isset($_SESSION['password']) ? $_SESSION['password'] : '');
+    if ($password === null or $password === '') $password = isset($_SESSION['password']) ? $_SESSION['password'] : '';
+    $credentials .= ' -P '.escapeshellarg($password);
   }
   return $credentials;
 }

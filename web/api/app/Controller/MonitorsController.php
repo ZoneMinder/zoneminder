@@ -351,7 +351,9 @@ class MonitorsController extends AppController {
       .($verbose ? " $verbose" : '')
       .' -m'.escapeshellarg($id)
       ." $q";
-    $status = exec($shellcmd.zmuCredentials(), $output, $rc);
+    $password = $this->request->query('pass') ? $this->request->query('pass') : $this->request->data('pass');
+    if (!$password) $password = $this->request->query('password') ? $this->request->query('password') : $this->request->data('password');
+    $status = exec($shellcmd.zmuCredentials($password ? $password : null), $output, $rc);
     // Logged without the credentials.
     ZM\Debug("Command: $shellcmd output: ".implode(PHP_EOL, $output)." rc: $rc");
     if ($rc) {

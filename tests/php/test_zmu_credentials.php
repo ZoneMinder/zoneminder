@@ -65,6 +65,10 @@ check('that lives a minute', $claims['exp'] - $claims['iat'], 60);
 $secretIsSet = false;
 check('without a secret, plain relay: user and password from the session', zmuCredentials(),
   " -U 'admin' -P 'correct horse'");
+check('without a secret, plain relay: the password the caller passes comes first', zmuCredentials('from request'),
+  " -U 'admin' -P 'from request'");
+$secretIsSet = true;
+check('with a secret, a password the caller passes is still not used', strpos(zmuCredentials('from request'), 'from request'), false);
 
 echo "\n$passes passed, $failures failed\n";
 exit($failures ? 1 : 0);

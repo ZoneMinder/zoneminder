@@ -55,7 +55,6 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
     , libpolkit-gobject-1-0, php5-gd
     , libssl
     ,libcrypt-eksblowfish-perl
-
 Recommends: mysql-server | mariadb-server
 Description: Video camera security and surveillance solution
  ZoneMinder is intended for use in single or multi-camera video security 

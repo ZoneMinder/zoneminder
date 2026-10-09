@@ -190,6 +190,55 @@ sub delete_path {
   }
 } # end sub delete_path
 
+# ==========================================================================
+#
+# Storage.DiskSpace accounting
+#
+# ==========================================================================
+#
+# Storage.DiskSpace is a running total, adjusted relative to its current value
+# as events are deleted or moved. It must NOT be maintained with the
+# read-modify-write pattern (lock_and_load + save): outside a transaction the
+# SELECT ... FOR UPDATE autocommits and drops its lock immediately, so the
+# absolute value written afterwards clobbers anything zmc, zmaudit or another
+# filter did in between. A single relative UPDATE is atomic on its own, needs no
+# pre-read, and holds the row lock only for the length of that one statement.
+#
+# Keeping it to one statement also keeps Storage[Id] out of the lock chain that
+# deleting an event walks (see db/triggers.sql):
+#   Events[Id] -> Events_Hour/Day/Week/Month[EventId] -> Event_Summaries[MonitorId]
+#
+# The value remains an approximation: it is a cache of SUM(Events.DiskSpace),
+# and zmaudit.pl resyncs it (with a CAS so it does not clobber concurrent
+# writers).
+
+# $delta is signed: negative when an event leaves this storage area.
+# A storage area with no Id isn't stored anywhere, so there is nothing to adjust
+# - Event::Storage() hands back a blank object when the event has no StorageId.
+sub adjust_diskspace {
+  my ($self, $delta) = @_;
+  return if !$$self{Id} or !$delta;
+
+  my $rows = ZoneMinder::Database::zmDbDo(
+    'UPDATE Storage SET DiskSpace=GREATEST(COALESCE(DiskSpace,0)+?,0) WHERE Id=?',
+    $delta, $$self{Id});
+
+  # Read the new total back rather than adding $delta to whatever we are already
+  # holding. ZoneMinder::Object caches objects for the life of the process and
+  # its accessors never re-load, so that value can be arbitrarily old; adjusting
+  # it locally would keep it wrong while making it look authoritative, and its
+  # clamp at zero could disagree with the GREATEST above. This is still only a
+  # snapshot - another process may adjust the row before anyone reads it - but
+  # it is the value that was actually stored rather than a guess at it.
+  if (defined $rows) {
+    my $row = ZoneMinder::Database::zmDbFetchOne(
+      'SELECT DiskSpace FROM Storage WHERE Id=?', $$self{Id});
+    $$self{DiskSpace} = $$row{DiskSpace} if $row;
+  }
+
+  return $rows;
+}
+
 1;
 __END__
 

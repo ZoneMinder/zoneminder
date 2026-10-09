@@ -910,12 +910,17 @@ void MonitorStream::runStream() {
     }
     std::this_thread::sleep_for(sleep_time);
 
+    // Both of these end the stream, so they have to set zm_terminate as the other
+    // exits do: checkCommandQueue() loops until it is set, and the join on the
+    // command processor below would otherwise wait forever, leaving the zms behind.
     if (ttl > Seconds(0) && (now - stream_start_time) > ttl) {
       Debug(2, "now - start > ttl (%" PRIi64 " us). break",
             static_cast<int64>(std::chrono::duration_cast<Microseconds>(ttl).count()));
+      zm_terminate = true;
       break;
     }
     if (frames_to_send > 0 && frame_count >= frames_to_send) {
+      zm_terminate = true;
       break;
     }
   } // end while ! zm_terminate

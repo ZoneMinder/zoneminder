@@ -6,7 +6,7 @@
 ?>
 var monIdx = '<?php echo $monIdx; ?>';
 var nextMid = "<?php echo isset($nextMid)?$nextMid:'' ?>";
-var mode = "<?php echo $options['mode'] ?>";
+var mode = "<?php echo validJsStr($options['mode']) ?>";
 
 var cycleRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_CYCLE ?>;
 var statusRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;
@@ -17,16 +17,16 @@ foreach ( $monitors as $monitor ) {
 monitorData[monitorData.length] = {
   'id': <?php echo $monitor->Id() ?>,
   'name': '<?php echo validJsStr($monitor->Name()) ?>',
-  'connKey': '<?php echo $monitor->connKey() ?>',
+  'connKey': '<?php echo validJsStr($monitor->connKey()) ?>',
   'width': <?php echo $monitor->ViewWidth() ?>,
   'height':<?php echo $monitor->ViewHeight() ?>,
-  'url': '<?php echo $monitor->UrlToIndex() ?>',
+  'url': '<?php echo validJsStr($monitor->UrlToIndex()) ?>',
   'onclick': function(){window.location.assign( '?view=watch&mid=<?php echo $monitor->Id() ?>' );},
   'type': '<?php echo validJsStr($monitor->Type()) ?>',
   'capturing': '<?php echo validJsStr($monitor->Capturing()) ?>',
   'refresh': '<?php echo validJsStr($monitor->Refresh()) ?>',
   'RTSP2WebEnabled': <?php echo $monitor->RTSP2WebEnabled() ?>,
-  'RTSP2WebType': '<?php echo $monitor->RTSP2WebType() ?>',
+  'RTSP2WebType': '<?php echo validJsStr($monitor->RTSP2WebType()) ?>',
   'RTSPServer':<?php echo $monitor->RTSPServer() ? 'true' : 'false' ?>,
   'StreamChannel': '<?php echo validJsStr($monitor->StreamChannel()) ?>',
   'janusEnabled': <?php echo $monitor->JanusEnabled() ?>,

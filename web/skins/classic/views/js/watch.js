@@ -1186,6 +1186,11 @@ function cyclePause() {
 
 function cycleStart() {
   if (secondsToCycle == 0) secondsToCycle = $j('#cyclePeriod').val();
+  // Drop any interval already running before taking a new id. Several callers
+  // can reach this without a cyclePause() in between, and the old id is
+  // unrecoverable once overwritten, so the orphan ticks on and cyclePause() can
+  // only ever stop the last one. refs #5135
+  clearInterval(cycleIntervalId);
   cycleIntervalId = setInterval(nextCycleView, 1000);
   cycle = true;
   $j('#cyclePauseBtn').show();

@@ -27,10 +27,21 @@
 
 TEST_CASE("ErrnoMeansNoHardLinkSupport") {
   SECTION("errnos that mean the filesystem has no hard links") {
-    // What exFAT/FAT report; see zoneminder/zoneminder#5048.
-    REQUIRE(ErrnoMeansNoHardLinkSupport(EPERM));
     REQUIRE(ErrnoMeansNoHardLinkSupport(ENOSYS));
     REQUIRE(ErrnoMeansNoHardLinkSupport(EOPNOTSUPP));
+    REQUIRE(ErrnoMeansNoHardLinkSupport(ENOTSUP));
+  }
+
+  SECTION("EPERM is Linux only") {
+#ifndef __FreeBSD__
+    // What exFAT and FAT report; see zoneminder/zoneminder#5048.
+    REQUIRE(ErrnoMeansNoHardLinkSupport(EPERM));
+#else
+    // FreeBSD reports absent link support as EOPNOTSUPP and uses EPERM only for
+    // a directory source, an immutable or append-only source, and an immutable
+    // target directory. Renaming on those would paper over a real error.
+    REQUIRE_FALSE(ErrnoMeansNoHardLinkSupport(EPERM));
+#endif
   }
 
   SECTION("errnos that mean something else went wrong") {

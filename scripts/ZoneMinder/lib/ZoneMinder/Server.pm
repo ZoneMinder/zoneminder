@@ -80,11 +80,26 @@ sub CpuLoad {
   return (undef, undef, undef);
 } # end sub CpuLoad
 
+# These conditions do not clear themselves, so only complain about them once
+# per process instead of every ZM_STATS_UPDATE_INTERVAL.
+my $warned_cpu_usage = 0;
+
 sub CpuUsage {
 
   my $fileNameCurStat = '/proc/stat';
   # If we fail, fall through to using top
-  if (-e $fileNameCurStat and open(STAT, $fileNameCurStat)) {
+  my $stat_error;
+  if (!-e $fileNameCurStat) {
+    # /proc/stat is hidden from us when we are in a mount namespace that was
+    # set up with ProcSubset=pid, which is systemd's default hardening for
+    # apache. Daemons started from the web ui inherit it. top reads /proc/stat
+    # as well, so the fallback below cannot work either.
+    $stat_error = "$fileNameCurStat does not exist. Are we in a mount namespace with ProcSubset=pid? If we were started from the web ui, add ProcSubset=all to the web server's service.";
+  } elsif (!open(STAT, $fileNameCurStat)) {
+    $stat_error = "Failed to open $fileNameCurStat: $!";
+  }
+
+  if (!$stat_error) {
     my ($self, $prev_user, $prev_nice, $prev_sys, $prev_idle, $prev_total, $cpu_user, $cpu_nice, $cpu_sys, $cpu_idle);
     my ($user_percent, $nice_percent, $sys_percent, $idle_percent, $usage_percent);
 
@@ -127,27 +142,29 @@ sub CpuUsage {
 
   } else {
     # Get CPU utilization percentages
-    my $top_output = '';
     my $uname_output = lc(qx($ZoneMinder::Config{ZM_PATH_UNAME} -s));
     chomp($uname_output);
-    ## FreeBSD
-    if ($uname_output eq "freebsd") {
-      $top_output = `top -b -n 1 | grep "^CPU" | sed 's/%//g' | awk '{print \$2, \$6, \$4, \$10}'`;
+    my $top_cmd = '';
+    if ($uname_output eq 'freebsd') {
+      $top_cmd = q`top -b -n 1 | grep "^CPU" | sed 's/%//g' | awk '{print $2, $6, $4, $10}'`;
     } else {
-      $top_output = `top -b -n 1 | grep -i "^%Cpu(s)" | awk '{print \$2, \$4, \$6, \$8}'`;
+      $top_cmd = q`top -b -n 1 | grep -i "^%Cpu(s)" | awk '{print $2, $4, $6, $8}'`;
     }
+    my $top_output = `$top_cmd` // '';
+
+    # split on an empty $top_output returns an empty list, so default all four
+    # before touching them or we warn under -w on every interval.
     my ($user, $system, $nice, $idle) = split(/ /, $top_output);
-    $user =~ s/[^\d\.]//g;
-    $system =~ s/[^\d\.]//g;
-    $nice =~ s/[^\d\.]//g;
-    $idle =~ s/[^\d\.]//g;
-    if (!$user) {
-      ZoneMinder::Logger::Warning("Failed getting user_utilization from $top_output");
-      $user = 0;
+    foreach ($user, $system, $nice, $idle) {
+      $_ = defined($_) ? $_ : '';
+      s/[^\d\.]//g;
+      $_ = 0 if $_ eq '';
     }
-    if (!$system) {
-      ZoneMinder::Logger::Warning("Failed getting system_utilization from $top_output");
-      $system = 0;
+    if (!$user or !$system) {
+      if (!$warned_cpu_usage) {
+        $warned_cpu_usage = 1;
+        ZoneMinder::Logger::Warning("$stat_error Falling back to top also failed: $top_cmd gave output '$top_output'.");
+      }
     }
     return ($user, $nice, $system, $idle, $user + $system);
   }

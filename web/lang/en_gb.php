@@ -54,6 +54,9 @@
 
 // Simple String Replacements
 $SLANG = array(
+    'PrivateValueHidden'    => 'This value is private and is shown only to users who can edit System settings.',
+    'AJAXRequestError' => 'AJAX request error',
+    'Reason' => 'Reason',
     'SystemLog'             => 'System Log',
     'DateTime'              => 'Date/Time',
     'Pid'                   => 'PID',
@@ -274,6 +277,7 @@ $SLANG = array(
     'EnterNewFilterName'    => 'Enter new filter name',
     'Enter password for QR code' => 'Enter password for QR code',
     'ErrorBrackets'         => 'Error, please check you have an equal number of opening and closing brackets',
+    'ErrorUpdatingEventTable' => 'Error updating event table',
     'ErrorValidValue'       => 'Error, please check that all terms have a valid value',
     'Etc'                   => 'etc',
     'EventFilter'           => 'Event Filter',

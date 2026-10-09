@@ -407,7 +407,7 @@ class Monitor extends ZM_Object {
     if (!$this->{'JanusEnabled'}) return '';
 
     if ((!defined('ZM_SERVER_ID')) or ( property_exists($this, 'ServerId') and (ZM_SERVER_ID==$this->{'ServerId'}) )) {
-      $cmd = getZmuCommand(' --janus-pin -m '.$this->{'Id'});
+      $cmd = getZmuCommand(' --janus-pin -m '.validCardinal($this->{'Id'}));
       $output = shell_exec($cmd);
       Debug("Running $cmd output: $output");
       return $output ? trim($output) : $output;
@@ -712,7 +712,10 @@ class Monitor extends ZM_Object {
         $this->sendControlCommand('stop');
       }
     }
-    $this->save(['Deleted'=>true]);
+    // Hand back whether it actually saved. This is a soft delete, so a failing
+    // UPDATE (an out of range Importance, for one) leaves the monitor in place,
+    // and the caller has no other way to notice. See #4215.
+    return $this->save(['Deleted'=>true]);
   }
   public function destroy() {
     if (!$this->{'Id'}) {
@@ -902,6 +905,25 @@ class Monitor extends ZM_Object {
       }
     }
     return $this->connKey;
+  }
+
+  // Fields whose value zmc runs as a command. Setting one is equivalent to shell access
+  // on the server, so it needs System=Edit, not just edit on this monitor, the same rule
+  // Filter::canEdit() applies to AutoExecuteCmd. refs GHSA-vcrj-35c6-g97c
+  public static $commandFields = array('EventStartCommand', 'EventEndCommand');
+
+  // The command fields $data would change on this monitor that the user may not set.
+  // Submitting the current value is not a change, since the monitor form always posts it.
+  public function commandFieldChangesNotAllowed($data, $u=null) {
+    global $user;
+    if (!$u) $u = $user;
+    if (!$u or $u->canEdit('System')) return array();
+    $refused = array();
+    foreach (self::$commandFields as $field) {
+      if (!array_key_exists($field, $data)) continue;
+      if ((string)$data[$field] !== (string)$this->{$field}()) $refused[] = $field;
+    }
+    return $refused;
   }
 
   function canEdit($u=null) {

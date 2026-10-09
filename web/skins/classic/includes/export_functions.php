@@ -912,7 +912,9 @@ function exportEvents(
   if (!(@mkdir(ZM_DIR_EXPORTS) or file_exists(ZM_DIR_EXPORTS))) {
     ZM\Fatal('Can\'t create exports dir at \''.ZM_DIR_EXPORTS.'\'');
   }
-  chmod(ZM_DIR_EXPORTS, 0700);
+  if (!chmod(ZM_DIR_EXPORTS, 0700)) {
+    ZM\Error('Can\'t chmod '.ZM_DIR_EXPORTS.' to 0700');
+  }
   $export_dir = ZM_DIR_EXPORTS.'/'.$export_root.($connkey?'_'.$connkey:'');
 
   # Ensure that we are going to be able to do this.
@@ -920,7 +922,9 @@ function exportEvents(
     ZM\Error("Can't create exports dir at '$export_dir'");
     return false;
   }
-  chmod($export_dir, 0700);
+  if (!chmod($export_dir, 0700)) {
+    ZM\Error("Can't chmod $export_dir to 0700");
+  }
   if (!chdir($export_dir)) {
     ZM\Error("Can't chdir to $export_dir");
     return;
@@ -940,9 +944,25 @@ function exportEvents(
       ZM\Warning('User '.($user?$user->Username():'').' cannot view event '.$event->Id());
       continue;
     }
-    $event_dir = $export_dir.'/'.$event->Id();
-    if (!(@mkdir($event_dir) or file_exists($event_dir))) {
-      ZM\Error("Can't mkdir $event_dir");
+    // Only the non-flat structure writes into a per-event directory. A flat
+    // export copies straight into $export_dir below, so creating this one, and
+    // skipping the event when that fails, would drop events that would have
+    // exported perfectly well.
+    if ($exportStructure != 'flat') {
+      $event_dir = $export_dir.'/'.$event->Id();
+      if (!(@mkdir($event_dir) or file_exists($event_dir))) {
+        ZM\Error("Can't mkdir $event_dir");
+        continue;
+      }
+      // Exports hold event footage, and this code keeps export directories to
+      // the owning user: ZM_DIR_EXPORTS and $export_dir above are both set to
+      // 0700, as are all three directories in download_functions.php. mkdir()
+      // takes its mode from the umask instead, which for the usual 0022 leaves
+      // this one 0755, so the footage is world readable and only the 0700
+      // parent is keeping anyone out. See #5074.
+      if (!chmod($event_dir, 0700)) {
+        ZM\Error("Can't chmod $event_dir to 0700");
+      }
     }
     $event_exportFileList = exportFileList($event, $exportDetail, $exportFrames, $exportImages, $exportVideo, $exportMisc);
     #$exportFileList = array_merge($exportFileList, $event_exportFileList);

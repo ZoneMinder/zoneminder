@@ -67,15 +67,22 @@ function password_type($password) {
 }
 
 // this function migrates mysql hashing to bcrypt, if you are using PHP >= 5.5
-// will be called after successful login, only if mysql hashing is detected
-function migrateHash($user, $pass) {
+// will be called after a successful password login, once the global $user is set.
+// Only mysql and mysql+bcrypt (zmupdate.pl) hashes are rehashed.
+function migrateHash($username, $pass) {
+  global $user;
+  $password_type = password_type($user->Password());
+  if ($password_type != 'mysql' and $password_type != 'mysql+bcrypt') return;
+
   if (function_exists('password_hash')) {
-    ZM\Info("Migrating $user to bcrypt scheme");
+    ZM\Info("Migrating $username to bcrypt scheme");
     // let it generate its own salt, and ensure bcrypt as PASSWORD_DEFAULT may change later
     // we can modify this later to support argon2 etc as switch to its own password signature detection
     $bcrypt_hash = password_hash($pass, PASSWORD_BCRYPT);
-    dbQuery('UPDATE Users SET Password=? WHERE Username=?', array($bcrypt_hash, $user));
-    # Since password field has changed, existing auth_hash is no longer valid
+    dbQuery('UPDATE Users SET Password=? WHERE Id=?', array($bcrypt_hash, $user->Id()));
+    # Since password field has changed, existing auth_hash is no longer valid.
+    # getAuthUser() checks it against the new hash, so build it from that one.
+    $user->Password($bcrypt_hash);
     generateAuthHash(ZM_AUTH_HASH_IPS, true);
   } else {
     ZM\Info('Cannot migrate password scheme to bcrypt, as you are using PHP < 5.5');
@@ -418,7 +425,11 @@ function visibleMonitor($mid) {
 function canView($area, $mid=false) {
   global $user;
   if (!$user) return false;
-  if ($mid) return visibleMonitor($mid);
+  // With a monitor the user needs both the area permission and that monitor. Monitors is the
+  // area visibleMonitor() already decides; any other area (Control) used to be ignored, so
+  // canView('Control', $mid) passed for anyone who could see the monitor.
+  // refs GHSA-qcm7-vq92-f86f
+  if ($mid) return visibleMonitor($mid) and (($area == 'Monitors') or canView($area));
 
   # Check user's direct permission first
   if ($user->$area() && ($user->$area() != 'None')) {
@@ -514,7 +525,7 @@ function canEdit($area, $mid=false) {
   global $user;
 
   if (!$user) return false;
-  if ($mid) return editableMonitor($mid);
+  if ($mid) return editableMonitor($mid) and (($area == 'Monitors') or canEdit($area));
 
   # Check user's direct permission first
   if ($user->$area() == 'Edit' or $user->$area() == 'Create') {
@@ -640,6 +651,7 @@ if (ZM_OPT_USE_AUTH) {
         return;
       }
       $user = $ret[0];
+      migrateHash($requestUser, $requestPass);
     } else if (!(empty($requestUsername) or empty($requestPassword))) {
       # Longer versions are used on login page
       $ret = validateUser($requestUsername, $requestPassword);

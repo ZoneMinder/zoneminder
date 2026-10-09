@@ -136,8 +136,10 @@ Event::Event(
                       now_str.c_str(),
                       monitor->Width(),
                       monitor->Height(),
-                      cause.c_str(),
-                      notes.c_str(),
+                      // Both come from outside the daemon: zone names (Monitors=Edit in the
+                      // web UI) and the external trigger's cause and text. refs GHSA-hc5x-7jfw-r692
+                      zmDbEscapeString(cause).c_str(),
+                      zmDbEscapeString(notes).c_str(),
                       state_id,
                       monitor->getOrientation(),
                       0,
@@ -228,9 +230,12 @@ Event::~Event() {
       // hard links there is no way to have the file under both names at once,
       // and a brief window beats every event on the system being named as
       // though it never finished recording.
+      const int link_errno = errno;
       if (rename(video_incomplete_path.c_str(), video_path.c_str()) == 0) {
-        Debug(1, "Filesystem does not support hard links, renamed %s to %s",
-              video_incomplete_path.c_str(), video_path.c_str());
+        // Reports the errno rather than asserting the cause: on Linux EPERM
+        // usually means something other than a filesystem without hard links.
+        Debug(1, "Renamed %s to %s, link was refused: %s",
+              video_incomplete_path.c_str(), video_path.c_str(), strerror(link_errno));
       } else {
         Error("Failed renaming %s to %s, reason: %s",
               video_incomplete_path.c_str(), video_path.c_str(), strerror(errno));
@@ -426,7 +431,7 @@ void Event::AddPacket_(const std::shared_ptr<ZMPacket>packet) {
   }
 #if HAS_NLOHMANN_JSON
   if (packet->detections.size()) {
-    std::string sql = stringtf("INSERT INTO Event_Data (EventId,MonitorId,FrameId,Timestamp,Data) VALUES (%" PRId64 ", %d, %d, NOW(), '%s')", id, monitor->Id(), frames, packet->detections.dump().c_str());
+    std::string sql = stringtf("INSERT INTO Event_Data (EventId,MonitorId,FrameId,Timestamp,Data) VALUES (%" PRId64 ", %d, %d, NOW(), '%s')", id, monitor->Id(), frames, zmDbEscapeString(packet->detections.dump()).c_str());
     dbQueue.push(std::move(sql));
 
     for (auto it = packet->detections.begin(); it != packet->detections.end(); ++it) {
@@ -826,7 +831,7 @@ void Event::Run() {
       }
       // Surface the (codec-bearing if rename succeeded) name to consumers before close
       zmDbDo(stringtf("UPDATE Events SET DefaultVideo='%s' WHERE Id=%" PRIu64,
-                      video_incomplete_file.c_str(), id));
+                      zmDbEscapeString(video_incomplete_file).c_str(), id));
     }
   }  // end if GetOptVideoWriter
 

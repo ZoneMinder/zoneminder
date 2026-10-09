@@ -172,6 +172,9 @@ std::string mask_authentication(const std::string &url);
 std::string remove_authentication(const std::string &url);
 
 std::string UriEncode(const std::string &value);
+// The go2rtc API base for a ZM_GO2RTC_PATH. go2rtc serves its API under /api, so
+// "http://host:1984" and "http://host:1984/api" both give the latter.
+std::string Go2RTCApiEndpoint(std::string path);
 std::string UriDecode(const std::string &encoded);
 
 class QueryParameter {

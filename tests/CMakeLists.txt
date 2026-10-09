@@ -13,18 +13,22 @@ include(Catch)
 
 set(TEST_SOURCES
   zm_box.cpp
+  zm_buffer.cpp
   zm_comms.cpp
   zm_crypt.cpp
   zm_db_contention.cpp
   zm_db_contention_live.cpp
   zm_event_hardlink.cpp
   zm_font.cpp
+  zm_image_annotate.cpp
   zm_monitor_shm.cpp
   zm_monitorstream.cpp
   zm_mp4_sidx.cpp
   zm_packetqueue.cpp
   zm_onvif_auth_error.cpp
+  zm_onvif_poll_wait.cpp
   zm_onvif_renewal.cpp
+  zm_onvif_alarm_termination.cpp
   zm_poly.cpp
   zm_utils.cpp
   zm_vector2.cpp

@@ -44,6 +44,26 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# GCC < 9 requires linking stdc++fs for std::filesystem support
+include(CheckCXXSourceCompiles)
+set(CMAKE_REQUIRED_FLAGS "-std=c++17")
+check_cxx_source_compiles("
+  #include <filesystem>
+  int main() { std::filesystem::path p(\"/tmp\"); return 0; }
+" FILESYSTEM_NO_EXTRA_LIB)
+if(NOT FILESYSTEM_NO_EXTRA_LIB)
+  set(CMAKE_REQUIRED_LIBRARIES stdc++fs)
+  check_cxx_source_compiles("
+    #include <filesystem>
+    int main() { std::filesystem::path p(\"/tmp\"); return 0; }
+  " FILESYSTEM_NEEDS_STDC_FS)
+  unset(CMAKE_REQUIRED_LIBRARIES)
+  if(FILESYSTEM_NEEDS_STDC_FS)
+    set(FILESYSTEM_LIBRARY stdc++fs)
+  endif()
+endif()
+unset(CMAKE_REQUIRED_FLAGS)
+
 add_compile_options(-D_FILE_OFFSET_BITS=64)
 
 include(ConfigureBaseTargets)

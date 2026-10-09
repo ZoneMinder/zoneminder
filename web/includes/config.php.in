@@ -255,6 +255,15 @@ function loadConfig( $defineConsts=true ) {
       }
     }
   }
+  # What is left exists only in zm.conf / conf.d: database credentials, paths and the
+  # like. Those have no Private column, and consumers such as skin.js.php export every
+  # entry that is not marked Private to the browser, so mark them Private unless they
+  # are known to be needed client side. refs GHSA-jv9c-pg2m-5m6m
+  $public_file_config = array('ZM_DIR_SOUNDS');
+  foreach ($initial_config as $name => $c) {
+    if (!isset($initial_config[$name]['Private']))
+      $initial_config[$name]['Private'] = in_array($name, $public_file_config) ? 0 : 1;
+  }
   return array_merge($config, $initial_config); # Merge any remaining config not in db
 } # end function loadConfig
 
@@ -269,10 +278,10 @@ if (!defined('ZM_SERVER_ID')) {
     foreach ($Servers as $s) {
       if ($s->Name() == ZM_SERVER_NAME) {
         $thisServer = $s;
-        define('ZM_SERVER_ID', $Server->Id());
+        define('ZM_SERVER_ID', $s->Id());
       }
     }
-    if (!$thisServer) {
+    if (!$thisServer->Id()) {
       error_log('Invalid Multi-Server configration detected. ZM_SERVER_NAME set to ' . ZM_SERVER_NAME . ' in zm.conf, but no corresponding entry found in Servers table.');
     }
   } else if (defined('ZM_SERVER_HOST') and ZM_SERVER_HOST) {
@@ -282,14 +291,14 @@ if (!defined('ZM_SERVER_ID')) {
         define('ZM_SERVER_ID', $s->Id());
       }
     }
-    if (!$thisServer) {
+    if (!$thisServer->Id()) {
       error_log('Invalid Multi-Server configration detected. ZM_SERVER_HOST set to ' . ZM_SERVER_HOST . ' in zm.conf, but no corresponding entry found in Servers table.');
     }
   }
 } else {
   $thisServer = ZM\Server::find_one(['Id'=>ZM_SERVER_ID]); // Should be cached
   if(!$thisServer) {
-    error_log('No server found for ZM_SERVER_ID '+ZM_SERVER_ID);
+    error_log('No server found for ZM_SERVER_ID '.ZM_SERVER_ID);
   }
 }
 

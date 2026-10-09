@@ -21,3 +21,13 @@ SET @s = (SELECT IF(
 
 PREPARE stmt FROM @s;
 EXECUTE stmt;
+
+--
+-- ZoneMinder::Control::onvif has been removed. It collided with
+-- ZoneMinder::Control::ONVIF on case insensitive filesystems, where only one of
+-- the two files can exist. Fresh installs have seeded Protocol='ONVIF' since the
+-- unified module landed, but nothing ever moved the rows on upgraded installs,
+-- so any install created before then still points at the deleted module.
+--
+
+UPDATE `Controls` SET `Protocol`='ONVIF' WHERE `Protocol`='onvif';

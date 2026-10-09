@@ -1534,11 +1534,24 @@ function formatDateTime(date) {
   return date.toLocaleString(undefined, options);
 }
 
+// The go2rtc API base for a ZM_GO2RTC_PATH, as a URL. go2rtc serves its API, and
+// the /ws websocket under it, at /api, but the natural thing to enter is the server
+// address, so "http://host:1984" and "http://host:1984/api" both work.
+function go2rtcApiUrl(path) {
+  const url = new URL(path);
+  // Build the path in one go: a URL's pathname is never empty, so stripping the
+  // slash from "/" and appending to it would give "//api".
+  let pathname = url.pathname.replace(/\/+$/, '');
+  if (!pathname.endsWith('/api')) pathname += '/api';
+  url.pathname = pathname;
+  return url;
+}
+
 function createGo2rtcStream(container, src, mid, fallbackToMjpeg) {
   ensureVideoStreamLoaded().then(function() {
     if (!document.getElementById('thumb-overlay')) return;
 
-    const url = new URL(src);
+    const url = go2rtcApiUrl(src);
     url.protocol = (url.protocol === 'https:') ? 'wss:' : 'ws:';
     url.pathname += '/ws';
     //url.search = 'src=' + mid + '_0';
@@ -1835,7 +1848,8 @@ function thisClickOnStreamObject(clickObj) {
     } else return false;
   } else {
     // When using go2rtc there will be a <video> element with no ID wrapped in a <video-stream> with an ID of !
-    if (clickObj.closest('video-stream')) return true;
+    // Also, the ".zoompan" object does not have an ID, but we need to ensure that it contains a stream.
+    if (clickObj.closest('video-stream') || clickObj.querySelector('video[id^="liveStream"], video-stream[id^="liveStream"]')) return true;
   }
   return false;
 }

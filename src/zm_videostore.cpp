@@ -22,6 +22,7 @@
 
 #include "zm_logger.h"
 #include "zm_monitor.h"
+#include "zm_mp4_sidx.h"
 #include "zm_signal.h"
 #include "zm_time.h"
 
@@ -73,7 +74,8 @@ VideoStore::VideoStore(
   next_dts(nullptr),
   audio_next_pts(0),
   max_stream_index(-1),
-  reorder_queue_size(0) {
+  reorder_queue_size(0),
+  sidx_region_offset_(-1) {
   FFMPEGInit();
   swscale.init();
   opkt = av_packet_ptr{av_packet_alloc()};
@@ -577,6 +579,18 @@ bool VideoStore::open() {
 
   zm_dump_stream_format(oc, 0, 0, 1);
   if (audio_out_stream) zm_dump_stream_format(oc, 1, 0, 1);
+
+  // Reserve room for a leading sidx, right here between moov and the first
+  // fragment. It has to be here, and it has to be reserved up front: the
+  // index must END where the fragments BEGIN for a player to accept it
+  // (zm_mp4_sidx.h), and once a fragment is written nothing can be inserted
+  // ahead of it without rewriting every offset in the file. For now it is a
+  // free box the demuxers skip; the destructor fills it in once the fragments
+  // are all on disk. The muxer takes its own offsets from avio_tell, so these
+  // bytes are accounted for in every tfhd and tfra it goes on to write. Only
+  // an MP4 whose moov is already written and whose fragments follow it gets
+  // one (zm_mp4::fragments_follow_header).
+  sidx_region_offset_ = zm_mp4::reserve_region(oc, zm_mp4::kSidxReserve);
   return true;
 } // end bool VideoStore::open()
 
@@ -748,6 +762,18 @@ VideoStore::~VideoStore() {
       Debug(3, "Not closing avio because we are not writing to a file.");
     }
     oc->pb = nullptr;
+
+    // Every fragment is on disk now, so fill the region open() reserved with
+    // an index of them. Without it a player has to read the whole file before
+    // it can show the first frame. Nothing here can lose a recording: on any
+    // doubt the region stays the free box it already is, and the file is
+    // exactly what ZoneMinder wrote before.
+    if (sidx_region_offset_ >= 0 && !filename.empty()) {
+      if (!zm_mp4::write_leading_sidx(filename, sidx_region_offset_, zm_mp4::kSidxReserve)) {
+        Warning("Could not index %s; it will play, but a player must read it all "
+                "before the first frame", filename.c_str());
+      }
+    }
   }  // end if oc->pb
 
   // I wonder if we should be closing the file first.

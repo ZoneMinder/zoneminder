@@ -23,6 +23,7 @@ set(TEST_SOURCES
   zm_image_annotate.cpp
   zm_monitor_shm.cpp
   zm_monitorstream.cpp
+  zm_mp4_sidx.cpp
   zm_packetqueue.cpp
   zm_onvif_auth_error.cpp
   zm_onvif_poll_wait.cpp
@@ -51,6 +52,10 @@ target_link_libraries(tests
 target_include_directories(tests
   PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR})
+
+target_compile_definitions(tests
+  PRIVATE
+    ZM_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 
 catch_discover_tests(tests)
 

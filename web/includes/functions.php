@@ -20,6 +20,7 @@
 //
 require_once('Filter.php');
 require_once('FilterTerm.php');
+require_once('Network.php');
 
 // Polyfills for PHP 8.0+ string functions, so views and callers don't have to
 // guard each use. ZoneMinder still supports PHP 7.x in some distros.
@@ -75,46 +76,26 @@ function CORSHeaders() {
   # An empty Origin cannot match a server and needs no headers, so treat it the
   # same as no Origin at all rather than warning about a value we cannot print.
   if (isset($_SERVER['HTTP_ORIGIN']) and $_SERVER['HTTP_ORIGIN'] !== '') {
-# The following is left for future reference/use.
-    $valid = false;
-    global $Servers;
-    if (sizeof($Servers) < 1) {
-# Only need CORSHeaders in the event that there are multiple servers in use.
-      # ICON: Might not be true. multi-port?
-      if (ZM_MIN_STREAMING_PORT) {
-        ZM\Debug('Setting default Access-Control-Allow-Origin from ' . $_SERVER['HTTP_ORIGIN']);
-        header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
-        header('Access-Control-Allow-Credentials: true');
-        header('Access-Control-Allow-Headers: x-requested-with,x-request');
-      }
+    $origin = corsAllowedOrigin();
+    if ($origin !== '') {
+      ZM\Debug('CORS Setting Access-Control-Allow-Origin from '.$origin);
+      header('Access-Control-Allow-Origin: ' . $origin);
+      header('Access-Control-Allow-Credentials: true');
+      header('Access-Control-Allow-Headers: x-requested-with,x-request');
       return;
     }
-    foreach ($Servers as $Server) {
-      if (
-        preg_match('/^(https?:\/\/)?'.preg_quote($Server->Hostname(),'/').'/i', $_SERVER['HTTP_ORIGIN'])
-        or
-        preg_match('/^(https?:\/\/)?'.preg_quote($Server->Name(),'/').'/i', $_SERVER['HTTP_ORIGIN'])
-      ) {
-        $valid = true;
-        ZM\Debug('CORS Setting Access-Control-Allow-Origin from '.$_SERVER['HTTP_ORIGIN']);
-        header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
-        header('Access-Control-Allow-Credentials: true');
-        header('Access-Control-Allow-Headers: x-requested-with,x-request');
-
-        break;
-      }
-    }
-    if (!$valid) {
-      # Browsers send Origin on same-origin POST/fetch as well.  Such a request
-      # needs no CORS headers, so not finding it in the servers list is normal
-      # and not worth warning about -- it only means the Servers table does not
-      # happen to list the hostname this install is being reached on.
-      if (isset($_SERVER['HTTP_HOST'])
-        and preg_replace('/^https?:\/\//i', '', $_SERVER['HTTP_ORIGIN']) === $_SERVER['HTTP_HOST']) {
-        ZM\Debug('CORS: same-origin request from '.$_SERVER['HTTP_ORIGIN'].', no headers needed');
-      } else {
-        ZM\Warning($_SERVER['HTTP_ORIGIN'] . ' is not found in servers list.');
-      }
+    global $Servers;
+    # Browsers send Origin on same-origin POST/fetch as well.  Such a request
+    # needs no CORS headers, so not finding it in the servers list is normal
+    # and not worth warning about -- it only means the Servers table does not
+    # happen to list the hostname this install is being reached on.
+    if (isset($_SERVER['HTTP_HOST'])
+      and preg_replace('/^https?:\/\//i', '', $_SERVER['HTTP_ORIGIN']) === $_SERVER['HTTP_HOST']) {
+      ZM\Debug('CORS: same-origin request from '.$_SERVER['HTTP_ORIGIN'].', no headers needed');
+    } else if (sizeof($Servers)) {
+      ZM\Warning($_SERVER['HTTP_ORIGIN'] . ' is not found in servers list.');
+    } else {
+      ZM\Debug('CORS: '.$_SERVER['HTTP_ORIGIN'].' is not this host, no headers sent');
     }
   } else {
     ZM\Debug('CORS: NO origin');

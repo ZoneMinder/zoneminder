@@ -77,6 +77,17 @@ check('camera passwords replaced', array($out['newMonitor']['Pass'], $out['newMo
   array('[redacted]', '[redacted]'));
 check('credentials removed from a URL value', $out['newMonitor']['Path'], 'rtsp://192.0.2.7/stream');
 
+
+// index.php's login redirect carries the original query string, credentials
+// included, as postLoginQuery; the next request's dump would log it.
+$plq = ZM\redactForLog(array('postLoginQuery' => 'view=console&auth='.$auth.'&user=admin&password=hunter2&token=eyJx.y.z'));
+check('a nested query string is redacted', $plq['postLoginQuery'],
+  'view=console&auth='.ZM\logFingerprint($auth).'&user=admin&password=[redacted]&token='.ZM\logFingerprint('eyJx.y.z'));
+check('redactQueryString on a redirect target',
+  ZM\redactQueryString('?view=login&postLoginQuery=view=console&auth='.$auth),
+  '?view=login&postLoginQuery=view=console&auth='.ZM\logFingerprint($auth));
+check('plain text with = is left alone', ZM\redactForLog(array('q' => 'a=b and c'))['q'], 'a=b and c');
+
 $dump = print_r($out, true);
 foreach (array('hunter2', $auth, 'eyJ', 'pw1', 'campw', 'onvifpw', 'sid:abc') as $secret) {
   check("no '$secret' anywhere in the dump", strpos($dump, $secret), false);

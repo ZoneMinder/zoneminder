@@ -580,9 +580,21 @@ sub start {
     logTerm();
     zmDbDisconnect();
 
-    my $fd = 3; # leave stdin,stdout,stderr open.  Closing them causes problems with libx264
-    while ( $fd < POSIX::sysconf(&POSIX::_SC_OPEN_MAX) ) {
-      POSIX::close($fd++);
+    # leave stdin,stdout,stderr open.  Closing them causes problems with libx264
+    # Close only the descriptors that are open where /proc lists them: walking
+    # every number up to _SC_OPEN_MAX takes seconds with a high open-file limit.
+    if ( opendir(my $fd_dir, '/proc/self/fd') ) {
+      my @fds = map { /^(\d+)$/ ? $1 : () } readdir($fd_dir);
+      closedir($fd_dir);
+      foreach my $fd ( @fds ) {
+        POSIX::close($fd) if $fd > 2;
+      }
+    } else {
+      my $fd = 3;
+      my $max = POSIX::sysconf(&POSIX::_SC_OPEN_MAX);
+      while ( $fd < $max ) {
+        POSIX::close($fd++);
+      }
     }
 
     $SIG{CHLD} = 'DEFAULT';

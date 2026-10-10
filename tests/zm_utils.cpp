@@ -507,6 +507,28 @@ TEST_CASE("Go2RTCApiEndpoint", "[utils]") {
   REQUIRE(Go2RTCApiEndpoint("") == "");
 }
 
+TEST_CASE("authentication with a raw @ in the password") {
+  // ffmpeg splits the authority at its last '@', so such a password works;
+  // all of it must be removed, not just the part before the first '@'.
+  SECTION("remove_authentication") {
+    REQUIRE(remove_authentication("rtsp://admin:p@ss@192.168.1.1:554/s") == "rtsp://192.168.1.1:554/s");
+    REQUIRE(remove_authentication("admin:p@ss@192.168.1.1") == "192.168.1.1");
+  }
+  SECTION("mask_authentication") {
+    std::string masked = mask_authentication("rtsp://admin:p@ss@192.168.1.1:554/s");
+    REQUIRE(masked.find("ss") == std::string::npos);
+    REQUIRE(masked.find("@192.168.1.1:554/s") != std::string::npos);
+  }
+  SECTION("url_for_log") {
+    REQUIRE(url_for_log("rtsp://admin:p@ss@192.168.1.1/s?x=1") == "rtsp://192.168.1.1/s?...");
+  }
+  SECTION("an @ in the path or query is not userinfo") {
+    REQUIRE(remove_authentication("http://192.168.1.1/a@b") == "http://192.168.1.1/a@b");
+    REQUIRE(remove_authentication("http://192.168.1.1/x?mail=a@b") == "http://192.168.1.1/x?mail=a@b");
+    REQUIRE(mask_authentication("http://192.168.1.1/x?mail=a@b") == "http://192.168.1.1/x?mail=a@b");
+  }
+}
+
 TEST_CASE("url_for_log") {
   SECTION("plain url is unchanged") {
     REQUIRE(url_for_log("rtsp://127.0.0.1:8554/cam") == "rtsp://127.0.0.1:8554/cam");

@@ -24,6 +24,18 @@
 
 
 
+# Alarms are accepted only from an address that belongs to a monitor: the
+# camera address in its Path, or one listed for it in /etc/zm/secrets.ini:
+#
+#   [alarmserver]
+#   monitor_5 = 203.0.113.7 10.0.0.5
+#
+# Every address listed is trusted to send alarms for that monitor. A camera
+# behind NAT whose Path holds the NAT address needs no entry. Several
+# cameras behind one NAT address each need the LAN address they report in
+# their packets listed for their monitor, or their alarms go to the last of
+# those monitors.
+
 import os, sys, struct, json, re
 from time import sleep
 from socket import *
@@ -127,9 +139,19 @@ def parse_header(header):
 def parse_alarm(data, source_ip, list_monit):
     """Return (monitor id, event) for an alarm body sent from source_ip.
 
+    The packet's Address field carries no credential: any host can write any
+    address into it. What identifies the camera is the address the packet came
+    from, so the alarm goes to a monitor that source_ip belongs to, never to
+    one it does not. list_monit maps an address to the ids of the monitors
+    that use it (camera address in the Path, or a configured alarm source).
+
+    The Address field only chooses among the monitors of source_ip, for
+    several cameras behind one address. A camera behind NAT reports its own
+    LAN address there while its packets arrive from the NAT address, so a
+    mismatch is accepted as long as source_ip itself belongs to a monitor.
+
     Raise ValueError when the body is not a JSON object with Address and
-    Event, when its Address is not the address it was sent from, or when no
-    monitor uses that address.
+    Event, or when source_ip belongs to no monitor.
     """
     try:
         reply = json.loads(data)
@@ -145,11 +167,53 @@ def parse_alarm(data, source_ip, list_monit):
         ip_v4 = GetIP(address)
     except (ValueError, struct.error, OverflowError):
         raise ValueError('Address %r is not an IPv4 address' % address)
-    if ip_v4 != source_ip:
-        raise ValueError('Address %s does not match sender %s' % (ip_v4, source_ip))
-    if ip_v4 not in list_monit:
-        raise ValueError('no monitor uses address %s' % ip_v4)
-    return list_monit[ip_v4], alarm_desc
+    senders = list_monit.get(source_ip, [])
+    if not senders:
+        raise ValueError('no monitor uses sender address %s (packet Address %s)' % (source_ip, ip_v4))
+    claimed = [m for m in senders if m in list_monit.get(ip_v4, [])]
+    # Several monitors on one address: the last one listed, as before.
+    return (claimed or senders)[-1], alarm_desc
+
+
+def alarm_sources(conf):
+    """Extra addresses per monitor id from the [alarmserver] section of
+    secrets.ini: monitor_<id> = <address> [<address> ...]. A monitor's alarms
+    are accepted from these as well as from the camera address in its Path:
+    the NAT address its packets arrive from, or the LAN address a camera
+    behind a shared NAT address reports in its packets."""
+    sources = {}
+    try:
+        items = conf.items('alarmserver')
+    except Exception:
+        return sources
+    for key, value in items:
+        match = re.fullmatch(r'monitor_(\d+)', key.strip().lower())
+        if not match:
+            continue
+        for host in value.replace(',', ' ').split():
+            try:
+                ip = gethostbyname(host)
+            except (OSError, UnicodeError):
+                print('[alarmserver] %s: cannot resolve %s, skipped' % (key, host))
+                continue
+            sources.setdefault(int(match.group(1)), []).append(ip)
+    return sources
+
+
+def map_monitors(monitors, sources):
+    """address -> ids of the monitors that use it, in listing order."""
+    list_monit = {}
+    for monid, path in monitors:
+        addresses = []
+        ip_v4 = monitor_address(path)
+        if ip_v4 is not None:
+            addresses.append(ip_v4)
+        addresses += [ip for ip in sources.get(monid, []) if ip not in addresses]
+        if not addresses:
+            print('Monitor %s: no camera address in its Path and no alarm source, skipped' % monid)
+        for ip in addresses:
+            list_monit.setdefault(ip, []).append(monid)
+    return list_monit
 
 
 def main(argv):
@@ -203,15 +267,10 @@ def main(argv):
 
     api = zmapi.ZMApi(options=api_options)
 
-    # map camera address -> monitor id
-    list_monit = {}
+    # map camera address -> monitor ids
     zm_monitors = api.monitors()
-    for m in zm_monitors.list():
-        ip_v4 = monitor_address(m.get().get('Path'))
-        if ip_v4 is None:
-            print('Monitor %s: no camera address in its Path, skipped' % m.id())
-            continue
-        list_monit[ip_v4]=m.id()
+    list_monit = map_monitors([(m.id(), m.get().get('Path')) for m in zm_monitors.list()],
+                              alarm_sources(conf))
 
     server = socket(AF_INET, SOCK_STREAM)
     server.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)

@@ -17,8 +17,15 @@ spec = importlib.util.spec_from_file_location('zmalarm_server', SCRIPT)
 als = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(als)
 
+import configparser
+
 CAMERA = '192.168.1.10'
-MONITORS = {CAMERA: 3}
+OTHER_CAMERA = '192.168.1.11'
+MONITORS = {CAMERA: [3], OTHER_CAMERA: [4]}
+# Two cameras behind one NAT address, as map_monitors() builds it when both
+# Paths point at the NAT address and secrets.ini names each camera's LAN address.
+NAT = '203.0.113.7'
+NAT_MONITORS = {NAT: [5, 6], '10.0.0.5': [5], '10.0.0.6': [6]}
 
 
 def address_field(ip):
@@ -55,6 +62,26 @@ class ParseAlarm(unittest.TestCase):
         with self.assertRaises(ValueError):
             als.parse_alarm(data, '192.168.1.99', MONITORS)
 
+    def test_camera_claiming_another_gets_its_own_monitor(self):
+        data = body(Address=address_field(OTHER_CAMERA), Event='HumanDetect')
+        self.assertEqual(als.parse_alarm(data, CAMERA, MONITORS), (3, 'HumanDetect'))
+
+    def test_behind_nat(self):
+        # Path holds the NAT address; the camera reports its LAN address.
+        data = body(Address=address_field('10.1.1.20'), Event='HumanDetect')
+        self.assertEqual(als.parse_alarm(data, NAT, {NAT: [7]}), (7, 'HumanDetect'))
+
+    def test_shared_nat_address_uses_the_reported_address(self):
+        for lan, monid in (('10.0.0.5', 5), ('10.0.0.6', 6)):
+            data = body(Address=address_field(lan), Event='HumanDetect')
+            self.assertEqual(als.parse_alarm(data, NAT, NAT_MONITORS), (monid, 'HumanDetect'))
+
+    def test_forged_from_lan_address_of_nat_camera_rejected(self):
+        # A host that is not the NAT address cannot use a camera's LAN address.
+        data = body(Address=address_field('10.0.0.5'), Event='HumanDetect')
+        with self.assertRaises(ValueError):
+            als.parse_alarm(data, '198.51.100.9', NAT_MONITORS)
+
     def test_unknown_camera(self):
         data = body(Address=address_field('192.168.1.99'), Event='HumanDetect')
         with self.assertRaises(ValueError):
@@ -87,6 +114,27 @@ class RecvExact(unittest.TestCase):
             als.recv_exact(b, 5)
         a.close()
         b.close()
+
+
+class AlarmSources(unittest.TestCase):
+    def conf(self, text):
+        c = configparser.ConfigParser(interpolation=None)
+        c.read_string(text)
+        return c
+
+    def test_none(self):
+        self.assertEqual(als.alarm_sources(self.conf('[secrets]\nZM_USER=admin\n')), {})
+
+    def test_listed(self):
+        conf = self.conf('[alarmserver]\nmonitor_5 = 203.0.113.7 10.0.0.5\nmonitor_6 = 10.0.0.6, 203.0.113.7\nother = 1.2.3.4\n')
+        self.assertEqual(als.alarm_sources(conf), {5: ['203.0.113.7', '10.0.0.5'], 6: ['10.0.0.6', '203.0.113.7']})
+
+    def test_map_monitors(self):
+        monitors = [(5, 'rtsp://203.0.113.7:5541/s'), (6, 'rtsp://203.0.113.7:5542/s'),
+                    (3, 'rtsp://u:p@192.168.1.10/x'), (8, '/dev/video0')]
+        sources = {5: ['10.0.0.5'], 6: ['10.0.0.6']}
+        self.assertEqual(als.map_monitors(monitors, sources),
+                         {NAT: [5, 6], '10.0.0.5': [5], '10.0.0.6': [6], CAMERA: [3]})
 
 
 class MonitorAddress(unittest.TestCase):

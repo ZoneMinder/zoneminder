@@ -356,7 +356,7 @@ function probeNetwork() {
       ZM\Debug("Ffmpeg monitor {$url_parts['host']} = {$monitor['Id']} {$monitor['Name']}");
       $monitors[gethostbyname($url_parts['host'])] = $monitor;
     } else {
-      ZM\Debug("Unable to parse {$monitor['Path']}");
+      ZM\Debug('Unable to parse '.ZM\urlForLog($monitor['Path']));
     }
   }
 

@@ -57,6 +57,15 @@ check('HTML-escaped separator is matched',
 check('names are matched whole, not as a suffix',
   ZmErrorHandler::redact('/a?mytoken=1&passive=2&bypass=3'),
   '/a?mytoken=1&passive=2&bypass=3');
+check('names are matched whole, not as a prefix',
+  ZmErrorHandler::redact('/a?authority=1&tokenize=2&password2=3&pass_hint=4&token_type=5&passwd=6'),
+  '/a?authority=1&tokenize=2&password2=3&pass_hint=4&token_type=5&passwd=6');
+check('a name sent as an array is redacted',
+  ZmErrorHandler::redact('/a?token[]=eyJ0.x.y&pass%5B0%5D=s3cret&x=1'),
+  '/a?token[]=[redacted]&pass%5B0%5D=[redacted]&x=1');
+check('an empty value is left empty',
+  ZmErrorHandler::redact('/a?token=&user=u'),
+  '/a?token=&user=u');
 check('text without credentials is unchanged',
   ZmErrorHandler::redact('/zm/api/monitors/view/1.json?p=%2Fmonitors'),
   '/zm/api/monitors/view/1.json?p=%2Fmonitors');

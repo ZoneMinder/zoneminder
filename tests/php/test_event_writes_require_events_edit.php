@@ -11,7 +11,8 @@
 //   * views/video.php lists its files with links whose index is the file's key
 //     (empty files used to shift every later link onto the next file)
 //   * views/video.php deleteIndex (unlink() of a file in the event folder; the
-//     list includes the event's own recording since ZM_FFMPEG_FORMATS has mp4)
+//     list includes the event's own recording since ZM_FFMPEG_FORMATS has mp4):
+//     the recording needs Events edit, a generated video Events view
 //
 // Includes the real files with the web helpers stubbed, records the SQL they
 // send, and checks whether the event's video file survives.
@@ -35,6 +36,7 @@ namespace ZM {
     public function MonitorId() { return 1; }
     public function Monitor() { return new Monitor(); }
     public function Path() { return $GLOBALS['event_path']; }
+    public function DefaultVideo() { return $GLOBALS['default_video'] ?? ''; }
   }
 }
 
@@ -177,6 +179,34 @@ namespace {
   file_put_contents($recording, 'x');
   run_request('skins/classic/views/video.php', 'Edit', array('view' => 'video', 'eid' => '7', 'deleteIndex' => '5'));
   check('Events=Edit deleteIndex out of range removes nothing', file_exists($recording), true);
+
+  // ---- views/video.php: Events view deletes generated videos, not the recording
+  function index_of($name) {
+    $order = array_values(array_filter(scandir($GLOBALS['event_path'], SCANDIR_SORT_NONE),
+      function($n) { return is_file($GLOBALS['event_path'].'/'.$n); }));
+    return (string)array_search($name, $order, true);
+  }
+  $p = $GLOBALS['event_path'];
+  $files = array('7-video.h264.mp4', 'incomplete.mp4', 'custom.mp4', 'Event-7-r1-s1.mp4');
+  foreach ($files as $f) file_put_contents("$p/$f", 'x');
+  $GLOBALS['default_video'] = 'custom.mp4';
+  foreach (array('7-video.h264.mp4' => true, 'incomplete.mp4' => true, 'custom.mp4' => true,
+                 'Event-7-r1-s1.mp4' => false) as $f => $kept) {
+    run_request('skins/classic/views/video.php', 'View', array('view' => 'video', 'eid' => '7', 'deleteIndex' => index_of($f)));
+    check("Events=View deleteIndex ".($kept ? 'keeps the recording' : 'removes the generated video')." $f", file_exists("$p/$f"), $kept);
+  }
+  file_put_contents("$p/Event-7-r1-s1.mp4", 'x');
+  $GLOBALS['render'] = true;
+  run_request('skins/classic/views/video.php', 'View', array('view' => 'video', 'eid' => '7'));
+  preg_match_all('/showIndex=\d+">([^<]+)<\/a>(.*?)<\/tr>/s', $GLOBALS['output'], $rows, PREG_SET_ORDER);
+  $deletable = array();
+  foreach ($rows as $r) if (strpos($r[2], 'deleteIndex=') !== false) $deletable[] = $r[1];
+  check('Events=View list offers Delete only for the generated video', $deletable, array('Event-7-r1-s1.mp4'));
+  run_request('skins/classic/views/video.php', 'Edit', array('view' => 'video', 'eid' => '7'));
+  check('Events=Edit list offers Delete for every file', substr_count($GLOBALS['output'], 'deleteIndex='), 4);
+  $GLOBALS['render'] = false;
+  $GLOBALS['default_video'] = '';
+  foreach ($files as $f) @unlink("$p/$f");
 
   // ---- views/video.php list: each row's links point at that row's file -----
   // Empty and non-empty files interleaved, so readdir order puts some empty file

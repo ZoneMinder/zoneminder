@@ -75,13 +75,27 @@ if ($dir = opendir($event_path)) {
 
 
 
+// The list holds the videos generated on this page and, since ZM_FFMPEG_FORMATS
+// has mp4, the event's own recording: the file zmc writes (incomplete.<ext> while
+// recording, then <Id>-video.<codec>.<ext>, kept in DefaultVideo). Deleting the
+// recording needs Events edit; a generated video can be made again from it, so
+// anyone who may generate one (Events view) may delete one.
+$canDeleteVideo = function($file) use ($event) {
+  if (canEdit('Events')) return true;
+  $name = basename($file);
+  $isRecording = ($event->DefaultVideo() && $name == $event->DefaultVideo())
+    || preg_match('/^incomplete\./', $name)
+    || preg_match('/^'.preg_quote($event->Id(), '/').'-video\./', $name);
+  return !$isRecording;
+};
+
 if (isset($_REQUEST['deleteIndex'])) {
-  // The list includes the event's own recording (ZM_FFMPEG_FORMATS has mp4), so
-  // deleting needs Events edit, not the Events view this page opens with.
   $deleteIndex = validCardinal($_REQUEST['deleteIndex']);
-  if (!canEdit('Events')) {
-    ZM\Warning('Must have Events edit permission to delete event videos');
-  } else if (isset($videoFiles[$deleteIndex])) {
+  if (!isset($videoFiles[$deleteIndex])) {
+    ZM\Warning('No video file at index '.$deleteIndex);
+  } else if (!$canDeleteVideo($videoFiles[$deleteIndex])) {
+    ZM\Warning('Must have Events edit permission to delete an event\'s recording');
+  } else {
     unlink($videoFiles[$deleteIndex]);
     unset($videoFiles[$deleteIndex]);
   }
@@ -245,7 +259,7 @@ if (isset($_REQUEST['showIndex'])) {
           <td><?php echo $scaleText ?></td>
           <td>
             <a href="?view=video&eid=<?php echo $event->Id() ?>&downloadIndex=<?php echo $index ?>"><?php echo translate('Download') ?></a>
-<?php if (canEdit('Events')) { ?>
+<?php if ($canDeleteVideo($file)) { ?>
                &nbsp;/&nbsp;
             <a href="?view=video&eid=<?php echo $event->Id() ?>&deleteIndex=<?php echo $index ?>"><?php echo translate('Delete') ?></a>
 <?php } ?>

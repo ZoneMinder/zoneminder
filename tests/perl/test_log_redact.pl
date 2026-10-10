@@ -104,6 +104,16 @@ sub logged {
   check('logged lines keep the host and path', ($out =~ m{http://cam-1/x\?pwd=\[redacted\]} ? 'kept' : $out), 'kept');
 }
 
+print "\nStorage\n";
+{
+  require ZoneMinder::Storage;
+  my $storage = bless {Id => 9, Url => 's3fs://AKIAEXAMPLE:wJalrSECRETKEY@https://s3.example.com/zm-bucket/events'},
+    'ZoneMinder::Storage';
+  my $out = logged(sub { $storage->s3(); });
+  check('S3 secret not logged', ($out =~ /wJalrSECRETKEY/ ? $out : 'absent'), 'absent');
+  check('S3 host and bucket still logged', ($out =~ /s3\.example\.com.*zm-bucket/ ? 'kept' : $out), 'kept');
+}
+
 logTerm();
 print "\n$passes passed, $failures failed\n";
 exit($failures ? 1 : 0);

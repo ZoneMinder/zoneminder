@@ -189,7 +189,6 @@ function validateUser($username='', $password='') {
     ZM\Debug("Detected bcrypt overlay hashing for $username");
     $bcrypt_hash = substr($user['Password'], 4);
     $mysql_encoded_password = '*'.strtoupper(sha1(sha1($password, true)));
-    ZM\Debug("Comparing password $mysql_encoded_password to bcrypt hash: $bcrypt_hash");
     $password_correct = password_verify($mysql_encoded_password, $bcrypt_hash);
     break;
   default:

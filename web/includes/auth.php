@@ -811,8 +811,6 @@ if (ZM_OPT_USE_AUTH) {
         $requestPassword = requestString('new_password');
       }
 
-      // The client has no cookie yet on a first login, but this session must be stored.
-      zm_session_persist();
       # Drop the pre-auth session and issue a fresh id in a single Set-Cookie
       zm_session_regenerate_id_login();
 

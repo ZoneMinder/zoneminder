@@ -112,15 +112,16 @@ function zm_session_regenerate_id() {
 // cookie. Assumes zm_session_start() has been called previously.
 function zm_session_regenerate_id_login() {
   if (!is_session_started()) zm_session_start();
+  // The client has no cookie yet on a first login, but this session must be stored.
+  zm_session_persist();
   // Discard any pre-auth session contents so nothing carries across the
   // authentication boundary.
   $_SESSION = array();
   // New id + delete the old session file server-side. Emits a single Set-Cookie.
   session_regenerate_id(true);
   $_SESSION['generated_at'] = time();
-  $_SESSION['remoteAddr'] = !empty($_SERVER['HTTP_X_FORWARDED_FOR'])
-    ? trim(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0])
-    : $_SERVER['REMOTE_ADDR'];
+  // See Network.php for the X-Forwarded-For handling.
+  $_SESSION['remoteAddr'] = getRemoteAddr();
 } // function zm_session_regenerate_id_login()
 
 function is_session_started() {

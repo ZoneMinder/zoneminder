@@ -8,6 +8,8 @@
 //     view, and answer a missing and a hidden event alike
 //   * ajax/tags.php lists tags for the users the event view serves (Events or
 //     Snapshots view)
+//   * views/video.php lists its files with links whose index is the file's key
+//     (empty files used to shift every later link onto the next file)
 //   * views/video.php deleteIndex (unlink() of a file in the event folder; the
 //     list includes the event's own recording since ZM_FFMPEG_FORMATS has mp4)
 //
@@ -79,7 +81,12 @@ namespace {
   function dbInsertId() { return 1; }
   function ajaxResponse($data = array()) { throw new StopRequest('response'); }
   function ajaxError($message, $code = 200) { throw new StopRequest('error'); }
-  function xhtmlHeaders($file, $title) { throw new StopRequest('render'); }
+  function xhtmlHeaders($file, $title) { if (empty($GLOBALS['render'])) throw new StopRequest('render'); }
+  function getBodyTopHTML() {}
+  function getNavBarHTML() { return ''; }
+  function buildSelect($name, $options) { return ''; }
+  function human_filesize($n) { return $n.'B'; }
+  function xhtmlFooter() {}
 
   $failures = 0;
   $passes = 0;
@@ -101,13 +108,15 @@ namespace {
     $GLOBALS['warnings'] = array();
     $_REQUEST = $request;
     $outcome = 'fell through';
+    $rates = $scales = array();  // set by the skin around a real view
+    $skin = 'classic';
     ob_start();
     try {
       include __DIR__.'/../../web/'.$file;
     } catch (StopRequest $e) {
       $outcome = $e->getMessage();
     }
-    ob_end_clean();
+    $GLOBALS['output'] = ob_get_clean();
     return $outcome;
   }
 
@@ -168,6 +177,30 @@ namespace {
   file_put_contents($recording, 'x');
   run_request('skins/classic/views/video.php', 'Edit', array('view' => 'video', 'eid' => '7', 'deleteIndex' => '5'));
   check('Events=Edit deleteIndex out of range removes nothing', file_exists($recording), true);
+
+  // ---- views/video.php list: each row's links point at that row's file -----
+  // Empty and non-empty files interleaved, so readdir order puts some empty file
+  // before a listed one whatever the filesystem's order is.
+  @unlink($recording);
+  $made = array();
+  foreach (array('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h') as $i => $n) {
+    $f = $GLOBALS['event_path']."/gen-$n.mp4";
+    file_put_contents($f, $i % 2 ? 'x' : '');
+    $made[] = $f;
+  }
+  $order = array_values(array_filter(scandir($GLOBALS['event_path'], SCANDIR_SORT_NONE),
+    function($n) { return is_file($GLOBALS['event_path'].'/'.$n); }));
+  $GLOBALS['render'] = true;
+  run_request('skins/classic/views/video.php', 'Edit', array('view' => 'video', 'eid' => '7'));
+  $GLOBALS['render'] = false;
+  preg_match_all('/showIndex=(\d+)">([^<]+)<\/a>.*?downloadIndex=(\d+).*?deleteIndex=(\d+)/s', $GLOBALS['output'], $rows, PREG_SET_ORDER);
+  check('video list shows the 4 non-empty files', count($rows), 4);
+  $aligned = 0;
+  foreach ($rows as $r) {
+    if ($order[$r[1]] === $r[2] and $order[$r[3]] === $r[2] and $order[$r[4]] === $r[2]) $aligned++;
+  }
+  check('video list links point at the file in their row', $aligned, count($rows));
+  foreach ($made as $f) @unlink($f);
 
   @unlink($recording);
   @rmdir($GLOBALS['event_path']);

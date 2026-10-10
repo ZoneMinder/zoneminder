@@ -215,8 +215,9 @@ if (isset($_REQUEST['showIndex'])) {
       <td>No Video Files Found</td>
       <?php
   } else {
-    $index = 0;
-    foreach ( $videoFiles as $file ) {
+    // The links carry the file's key in $videoFiles, which deleteIndex/downloadIndex/
+    // showIndex look up; a running counter skipped empty files and drifted from it.
+    foreach ( $videoFiles as $index => $file ) {
       if ( filesize($file) > 0 ) {
         $rateText = '';
         $scaleText = '';
@@ -251,7 +252,6 @@ if (isset($_REQUEST['showIndex'])) {
           </td>
         </tr>
 <?php
-        $index++;
       } # end if filesize
     } # end foreach videoFile
   }

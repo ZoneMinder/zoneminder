@@ -9,6 +9,7 @@ import json
 import os
 import socket
 import struct
+import time
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -135,6 +136,76 @@ class AlarmSources(unittest.TestCase):
         sources = {5: ['10.0.0.5'], 6: ['10.0.0.6']}
         self.assertEqual(als.map_monitors(monitors, sources),
                          {NAT: [5, 6], '10.0.0.5': [5], '10.0.0.6': [6], CAMERA: [3]})
+
+
+class FakeMonitor:
+    def __init__(self, fail_arm=False):
+        self.calls = []
+        self.fail_arm = fail_arm
+
+    def arm(self):
+        self.calls.append('arm')
+        if self.fail_arm:
+            raise OSError('API down')
+
+    def disarm(self):
+        self.calls.append('disarm')
+
+
+class ForcedAlarms(unittest.TestCase):
+    LENGTH = 0.3
+
+    def alarms(self, alarmed=False):
+        return als.ForcedAlarms(self.LENGTH, already_alarmed=lambda monid: alarmed)
+
+    def test_ends_after_its_length(self):
+        alarms, m = self.alarms(), FakeMonitor()
+        self.assertTrue(alarms.trigger(3, m))
+        self.assertEqual(m.calls, ['arm'])
+        time.sleep(self.LENGTH + 0.3)
+        self.assertEqual(m.calls, ['arm', 'disarm'])
+        self.assertEqual(alarms.active, {})
+
+    def test_new_alarm_extends_with_one_timer(self):
+        alarms, m = self.alarms(), FakeMonitor()
+        alarms.trigger(3, m)
+        time.sleep(self.LENGTH * 0.6)
+        self.assertFalse(alarms.trigger(3, m))
+        time.sleep(self.LENGTH * 0.6)
+        # Armed again (it may have been cancelled from the web), not disarmed
+        # by the first alarm's timer.
+        self.assertEqual(m.calls, ['arm', 'arm'], 'cancelled before the extended deadline')
+        time.sleep(self.LENGTH)
+        self.assertEqual(m.calls, ['arm', 'arm', 'disarm'])
+
+    def test_stop_cancels_running_alarms(self):
+        alarms, m3, m4 = self.alarms(), FakeMonitor(), FakeMonitor()
+        alarms.trigger(3, m3)
+        alarms.trigger(4, m4)
+        alarms.stop()
+        self.assertEqual((m3.calls, m4.calls), (['arm', 'disarm'], ['arm', 'disarm']))
+        time.sleep(self.LENGTH + 0.3)
+        self.assertEqual((m3.calls, m4.calls), (['arm', 'disarm'], ['arm', 'disarm']), 'disarmed twice')
+
+    def test_no_alarm_after_stop(self):
+        alarms, m = self.alarms(), FakeMonitor()
+        alarms.stop()
+        self.assertFalse(alarms.trigger(3, m))
+        self.assertEqual(m.calls, [])
+
+    def test_arm_failure_is_not_tracked(self):
+        alarms, m = self.alarms(), FakeMonitor(fail_arm=True)
+        self.assertFalse(alarms.trigger(3, m))
+        self.assertEqual(alarms.active, {})
+
+    def test_monitor_already_in_alarm_left_alone(self):
+        alarms, m = self.alarms(alarmed=True), FakeMonitor()
+        self.assertFalse(alarms.trigger(3, m))
+        self.assertEqual(m.calls, [])
+
+    def test_sigterm_handler_exits(self):
+        with self.assertRaises(SystemExit):
+            als.terminate(15, None)
 
 
 class MonitorAddress(unittest.TestCase):

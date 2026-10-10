@@ -36,12 +36,12 @@
 # their packets listed for their monitor, or their alarms go to the last of
 # those monitors.
 
-import os, sys, struct, json, re
-from time import sleep
+import os, sys, struct, json, re, signal
+from time import sleep, monotonic
 from socket import *
 from urllib.parse import urlsplit
 # multi threading
-from threading import Thread
+from threading import Thread, Lock, Event
 
 # Header of a NETSurveillance alarm packet: head, version, session,
 # sequence number, message id, length of the JSON body that follows.
@@ -60,18 +60,92 @@ def writezmlog(m,s):
     zmlog.Info(m+s)
 
 
-def alarm_thread(m, monid,eventlenght):
+def already_alarmed(monid):
     import subprocess
-    print("Monitor " + str(monid)+" entered alarm_thread...")
     result = subprocess.run(['zmu','-m', str(monid), '-s'] ,stdout=subprocess.PIPE)
-    if result.stdout.decode('utf-8') != '3\n':
-        print('Changing monitor '+ str(monid) + ' status to Alarm...')
-        m.arm()
-        sleep(eventlenght)
-        m.disarm()
-    else:
-        print('Monitor '+ str(monid) + ' already in status Alarm...')
-    print('Finishing thread...')
+    return result.stdout.decode('utf-8') == '3\n'
+
+
+class ForcedAlarms:
+    """The forced alarms this server raised, one per monitor.
+
+    Each ends length seconds after the last alarm packet for its monitor. The
+    server used to arm, sleep and disarm in a thread, so when zmdc stopped or
+    restarted it inside that window the disarm never ran and the monitor
+    stayed in forced alarm, recording, until someone cancelled it. stop()
+    cancels every alarm still running; main() calls it on the way out,
+    SIGTERM included.
+    """
+
+    def __init__(self, length, already_alarmed=already_alarmed):
+        self.length = length
+        self.already_alarmed = already_alarmed
+        self.lock = Lock()
+        self.stopping = Event()
+        self.active = {}  # monitor id -> [monitor, deadline]
+
+    def trigger(self, monid, monitor):
+        """Raise a forced alarm on monitor, or extend the one running. True if raised."""
+        with self.lock:
+            if self.stopping.is_set():
+                return False
+            if monid in self.active:
+                # Arm again, as every alarm packet did: the forced alarm may
+                # have been cancelled from the web meanwhile.
+                self.active[monid][1] = monotonic() + self.length
+                print('Monitor %s: forced alarm extended' % monid)
+                try:
+                    monitor.arm()
+                except Exception as e:
+                    print('Monitor %s: arm failed: %s' % (monid, e))
+                return False
+            if self.already_alarmed(monid):
+                print('Monitor %s already in status Alarm...' % monid)
+                return False
+            # Recorded before arming, so stop() also cancels an alarm whose
+            # arm() was interrupted.
+            self.active[monid] = [monitor, monotonic() + self.length]
+            print('Changing monitor %s status to Alarm...' % monid)
+            try:
+                monitor.arm()
+            except Exception as e:
+                del self.active[monid]
+                print('Monitor %s: arm failed: %s' % (monid, e))
+                return False
+        Thread(target=self._expire, args=(monid,), daemon=True).start()
+        return True
+
+    def _expire(self, monid):
+        while True:
+            with self.lock:
+                entry = self.active.get(monid)
+                if entry is None:
+                    return
+                left = entry[1] - monotonic()
+                if left <= 0:
+                    del self.active[monid]
+                    self._disarm(monid, entry[0])
+                    return
+            self.stopping.wait(left)
+
+    def _disarm(self, monid, monitor):
+        try:
+            monitor.disarm()
+            print('Monitor %s: forced alarm cancelled' % monid)
+        except Exception as e:
+            print('Monitor %s: disarm failed: %s' % (monid, e))
+
+    def stop(self):
+        """Cancel every forced alarm still running; refuse new ones."""
+        self.stopping.set()
+        with self.lock:
+            for monid, (monitor, deadline) in list(self.active.items()):
+                self._disarm(monid, monitor)
+            self.active.clear()
+
+
+def terminate(signum, frame):
+    raise SystemExit(0)
 
 
 def event_thread(m_id,eventlenght,alarm_desc):
@@ -279,7 +353,22 @@ def main(argv):
 
     writezmlog('Listening on '+bind_address+':'+port,' AlarmServer.py')
     print ('Listening on '+bind_address+':'+port)
+    alarms = ForcedAlarms(eventlenght)
+    # zmdc stops its daemons with SIGTERM; leave through the finally below.
+    signal.signal(signal.SIGTERM, terminate)
     #run Alarm Server
+    try:
+        serve(server, list_monit, zm_monitors, alarms, wrzmlog, rsealm, wrzmevent, eventlenght)
+    finally:
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
+        alarms.stop()
+        server.close()
+    # needs to be closed again... otherwise it will crash on exit.
+    zmlog.close()
+    return 0
+
+
+def serve(server, list_monit, zm_monitors, alarms, wrzmlog, rsealm, wrzmevent, eventlenght):
     while True:
         try:
             conn, addr = server.accept()
@@ -305,16 +394,11 @@ def main(argv):
                writezmlog(alarm_desc+' in monitor ',str(monid))
             if rsealm == 'y':
                print ("Triggering Alarm...")
-               mthread = Thread(target=alarm_thread, args=(zm_monitors.find(monid),monid,eventlenght))
-               mthread.start()
+               alarms.trigger(monid, zm_monitors.find(monid))
             elif wrzmevent == 'y':
                print ("Triggering Event Rec on zmtrigger...")
                mthread = Thread(target=event_thread, args=(monid,eventlenght,alarm_desc))
                mthread.start()
-    server.close()
-    # needs to be closed again... otherwise it will crash on exit.
-    zmlog.close()
-    return 1
 
 
 if __name__ == '__main__':

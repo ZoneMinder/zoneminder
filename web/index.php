@@ -268,7 +268,7 @@ if ( ZM_OPT_USE_AUTH and (!isset($user) or !($user instanceof ZM\User)) and ($re
   zm_session_persist(); // must survive the redirect even if the client had no cookie
   $_SESSION['postLoginQuery'] = $postLoginQuery;
   session_write_close();
-  ZM\Debug("Redirecting to $redirect");
+  ZM\Debug('Redirecting to '.ZM\redactQueryString(urldecode($redirect)));
   header('Location: '.$redirect);
   return;
 } else if ( ZM_SHOW_PRIVACY && ($view != 'privacy') && ($view != 'options') && (!$request) && canEdit('System') ) {
@@ -292,7 +292,7 @@ if ( isset($_REQUEST['redirect']) ) {
 }
 
 if ($redirect) {
-  ZM\Debug("Redirecting to $redirect");
+  ZM\Debug('Redirecting to '.ZM\redactQueryString(urldecode($redirect)));
   header('Location: '.$redirect);
   return;
 }

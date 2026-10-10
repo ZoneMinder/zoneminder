@@ -46,6 +46,28 @@ function urlForLog($url) {
   return preg_replace('#^([a-z][a-z0-9+.-]*://)[^/@]*@#i', '$1', $url).$suffix;
 }
 
+// Whether a request parameter of this name holds a password or secret (to be
+// replaced) or a token, auth hash, session id or CSRF token (fingerprinted).
+function logKeyKind($key) {
+  $key = (string)$key;
+  if (preg_match('/pass|pwd|secret/i', $key)) return 'secret';
+  if (preg_match('/^(auth|token|access_token|refresh_token|jwt|ZMSESSID|__csrf_magic)$|^AuthHash(?!GeneratedAt)/i', $key)) {
+    return 'token';
+  }
+  return null;
+}
+
+// A query string (a=1&b=2) with the values of credential parameters replaced,
+// for a string that carries one: postLoginQuery, a redirect target.
+function redactQueryString($query) {
+  return preg_replace_callback('/(^|[?&])([^=&?#]+)=([^&#]*)/', function ($m) {
+    $kind = logKeyKind(urldecode($m[2]));
+    if ($kind === null) return $m[0];
+    $value = ($kind === 'secret') ? '[redacted]' : logFingerprint(urldecode($m[3]));
+    return $m[1].$m[2].'='.$value;
+  }, (string)$query);
+}
+
 // A copy of $data (such as $_REQUEST or $_SESSION) fit for print_r() into a
 // log: passwords and secrets replaced, tokens, auth hashes, session ids and
 // CSRF tokens replaced by their fingerprint, credentials removed from URLs.
@@ -57,14 +79,14 @@ function redactForLog($data, $key = null) {
   }
   if (is_object($data)) return '['.get_class($data).']';
   if ($key !== null) {
-    $k = (string)$key;
-    if (preg_match('/pass|pwd|secret/i', $k)) return '[redacted]';
-    if (preg_match('/^(auth|token|access_token|refresh_token|jwt|ZMSESSID|__csrf_magic)$|^AuthHash(?!GeneratedAt)/i', $k)) {
-      return logFingerprint($data);
-    }
+    $kind = logKeyKind($key);
+    if ($kind === 'secret') return '[redacted]';
+    if ($kind === 'token') return logFingerprint($data);
   }
-  if (is_string($data) and preg_match('#^[a-z][a-z0-9+.-]*://[^/@\s]*@#i', $data)) {
-    return preg_replace('#^([a-z][a-z0-9+.-]*://)[^/@\s]*@#i', '$1', $data);
+  if (is_string($data)) {
+    $data = preg_replace('#^([a-z][a-z0-9+.-]*://)[^/@\s]*@#i', '$1', $data);
+    // A value that is itself a query string, such as postLoginQuery.
+    if (strpos($data, '=') !== false) $data = redactQueryString($data);
   }
   return $data;
 }

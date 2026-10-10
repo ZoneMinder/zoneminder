@@ -95,12 +95,12 @@ Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
     }
   }  // end if !user.empty
 
-  Debug(1, "Go2RTC: Primary RTSP path: %s", rtsp_path.c_str());
+  Debug(1, "Go2RTC: Primary RTSP path: %s", url_for_log(rtsp_path).c_str());
   if (!rtsp_second_path.empty()) {
-    Debug(1, "Go2RTC: Secondary RTSP path: %s", rtsp_second_path.c_str());
+    Debug(1, "Go2RTC: Secondary RTSP path: %s", url_for_log(rtsp_second_path).c_str());
   }
   if (!rtsp_restream_path.empty()) {
-    Debug(1, "Go2RTC: ZM RTSP restream path: %s", rtsp_restream_path.c_str());
+    Debug(1, "Go2RTC: ZM RTSP restream path: %s", url_for_log(rtsp_restream_path).c_str());
   }
 }
 
@@ -166,11 +166,12 @@ int Monitor::Go2RTCManager::check_Go2RTC() {
   // Check for the primary path (restream if enabled, otherwise direct camera path)
   const std::string &primary_path = Use_RTSP_Restream ? rtsp_restream_path : rtsp_path;
 
-  Debug(2, "Go2RTC: Check response: %s", response.c_str());
-  Debug(2, "Go2RTC: Looking for primary path: %s", primary_path.c_str());
+  // The stream list holds every source URL, with camera credentials and auth hashes.
+  Debug(2, "Go2RTC: Check response: %zu bytes", response.size());
+  Debug(2, "Go2RTC: Looking for primary path: %s", url_for_log(primary_path).c_str());
 
   if (response.find(primary_path) == std::string::npos) {
-    Debug(1, "Go2RTC: Stream not found in Go2RTC (expected path '%s' not in response)", primary_path.c_str());
+    Debug(1, "Go2RTC: Stream not found in Go2RTC (expected path '%s' not in response)", url_for_log(primary_path).c_str());
     return 0;
   }
 
@@ -206,7 +207,9 @@ bool Monitor::Go2RTCManager::refresh_auth_if_needed() {
   rtsp_restream_path = rtsp_restream_base_path + "?auth=" + auth_key;
   last_auth_refresh = now;
 
-  Debug(1, "Go2RTC: Auth refreshed, new restream path: %s", rtsp_restream_path.c_str());
+  // rtsp_restream_path carries the auth hash: log the base path and a fingerprint.
+  Debug(1, "Go2RTC: Auth refreshed, new restream path: %s?auth=<%s>",
+        rtsp_restream_base_path.c_str(), zm::crypto::LogFingerprint(auth_key).c_str());
 
   // Re-register with go2rtc using the updated auth
   if (add_to_Go2RTC() == 0) {
@@ -235,10 +238,9 @@ int Monitor::Go2RTCManager::add_to_Go2RTC() {
 
   // Add primary stream using just the monitor ID (for backward compatibility)
   Debug(1, "Go2RTC: Adding primary stream (monitor ID) - path: %s%s",
-        primary_path.c_str(), Use_RTSP_Restream ? " (via RTSP restreamer)" : "");
+        url_for_log(primary_path).c_str(), Use_RTSP_Restream ? " (via RTSP restreamer)" : "");
   std::string endpoint = Go2RTC_endpoint + "/streams?name=" + id_str + "&src=" + UriEncode(primary_path);
   std::string postData = "{\"name\" : \"" + escape_json_string(parent->Name()) + "\", \"src\": \"" + escape_json_string(primary_path) + "\" }";
-  Debug(2, "Go2RTC: PUT to %s with data: %s", endpoint.c_str(), postData.c_str());
   std::pair<CURLcode, std::string> response = CURL_PUT(endpoint, postData);
   if (response.first != CURLE_OK) {
     curl_easy_cleanup(curl);
@@ -258,7 +260,6 @@ int Monitor::Go2RTCManager::add_to_Go2RTC() {
     Debug(1, "Go2RTC: Adding H.264 transcode stream - src: %s", transcode_src.c_str());
     endpoint = Go2RTC_endpoint + "/streams?name=" + id_str + "_h264&src=" + UriEncode(transcode_src);
     postData = "{\"name\" : \"" + escape_json_string(parent->Name()) + " H264\", \"src\": \"" + escape_json_string(transcode_src) + "\" }";
-    Debug(2, "Go2RTC: PUT to %s", endpoint.c_str());
     response = CURL_PUT(endpoint, postData);
     if (response.first == CURLE_OK) {
       Debug(1, "Go2RTC: Successfully added H.264 transcode stream, response: %s", response.second.c_str());
@@ -267,10 +268,9 @@ int Monitor::Go2RTCManager::add_to_Go2RTC() {
 
   // Add ZoneMinder restream paths (when RTSP restreamer is enabled)
   if (Use_RTSP_Restream) {
-    Debug(1, "Go2RTC: Adding ZoneMinderPrimary stream - path: %s", rtsp_restream_path.c_str());
+    Debug(1, "Go2RTC: Adding ZoneMinderPrimary stream - path: %s", url_for_log(rtsp_restream_path).c_str());
     endpoint = Go2RTC_endpoint + "/streams?name=" + id_str + "_ZoneMinderPrimary&src=" + UriEncode(rtsp_restream_path);
     postData = "{\"name\" : \"" + escape_json_string(parent->Name()) + " ZoneMinder Primary\", \"src\": \"" + escape_json_string(rtsp_restream_path) + "\" }";
-    Debug(2, "Go2RTC: PUT to %s", endpoint.c_str());
     response = CURL_PUT(endpoint, postData);
     if (response.first == CURLE_OK) {
       Debug(1, "Go2RTC: Successfully added ZoneMinderPrimary, response: %s", response.second.c_str());
@@ -279,10 +279,9 @@ int Monitor::Go2RTCManager::add_to_Go2RTC() {
 
   // Add direct camera paths
   if (!rtsp_path.empty()) {
-    Debug(1, "Go2RTC: Adding CameraDirectPrimary stream - path: %s", rtsp_path.c_str());
+    Debug(1, "Go2RTC: Adding CameraDirectPrimary stream - path: %s", url_for_log(rtsp_path).c_str());
     endpoint = Go2RTC_endpoint + "/streams?name=" + id_str + "_CameraDirectPrimary&src=" + UriEncode(rtsp_path);
     postData = "{\"name\" : \"" + escape_json_string(parent->Name()) + " Camera Direct Primary\", \"src\": \"" + escape_json_string(rtsp_path) + "\" }";
-    Debug(2, "Go2RTC: PUT to %s", endpoint.c_str());
     response = CURL_PUT(endpoint, postData);
     if (response.first == CURLE_OK) {
       Debug(1, "Go2RTC: Successfully added CameraDirectPrimary, response: %s", response.second.c_str());
@@ -290,10 +289,9 @@ int Monitor::Go2RTCManager::add_to_Go2RTC() {
   }
 
   if (!rtsp_second_path.empty()) {
-    Debug(1, "Go2RTC: Adding CameraDirectSecondary stream - path: %s", rtsp_second_path.c_str());
+    Debug(1, "Go2RTC: Adding CameraDirectSecondary stream - path: %s", url_for_log(rtsp_second_path).c_str());
     endpoint = Go2RTC_endpoint + "/streams?name=" + id_str + "_CameraDirectSecondary&src=" + UriEncode(rtsp_second_path);
     postData = "{\"name\" : \"" + escape_json_string(parent->Name()) + " Camera Direct Secondary\", \"src\": \"" + escape_json_string(rtsp_second_path) + "\" }";
-    Debug(2, "Go2RTC: PUT to %s", endpoint.c_str());
     response = CURL_PUT(endpoint, postData);
     if (response.first == CURLE_OK) {
       Debug(1, "Go2RTC: Successfully added CameraDirectSecondary, response: %s", response.second.c_str());
@@ -387,7 +385,9 @@ std::pair<CURLcode, std::string> Monitor::Go2RTCManager::CURL_PUT(const std::str
     Error("Go2RTC: Failed to init curl");
     return std::make_pair(CURLE_FAILED_INIT, response);
   }
-  Debug(1, "Go2RTC Sending %s to %s", data.c_str(), endpoint.c_str());
+  // The endpoint's src= and the payload carry the stream URL, with the camera's
+  // credentials or the restream auth hash: log only the stream name part.
+  Debug(1, "Go2RTC Sending %zu bytes to %s", data.size(), endpoint.substr(0, endpoint.find("&src=")).c_str());
   curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
   curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT"); /* !!! */
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);

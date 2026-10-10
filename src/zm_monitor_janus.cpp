@@ -22,6 +22,7 @@
 #include "zm_server.h"
 #include "zm_time.h"
 #include "zm_user.h"
+#include "zm_utils.h"
 #include <regex>
 
 #if HAVE_LIBCURL
@@ -83,7 +84,10 @@ void Monitor::JanusManager::load_from_monitor() {
     rtsp_path = parent->path;
   }
   parent->janus_pin = generateKey(16);
-  Debug(1, "JANUS Monitor %u assigned secret %s, rtsp url is %s", parent->id, parent->janus_pin.c_str(), rtsp_path.c_str());
+  // The pin, the auth hash in a restream URL and any credentials in a camera
+  // URL are secrets: log fingerprints and the URL without them.
+  Debug(1, "JANUS Monitor %u assigned secret %s, rtsp url is %s", parent->id,
+        zm::crypto::LogFingerprint(parent->janus_pin).c_str(), url_for_log(rtsp_path).c_str());
   strncpy(parent->shared_data->janus_pin, parent->janus_pin.c_str(), 17); //copy the null termination, as we're in C land
 }
 
@@ -145,7 +149,8 @@ int Monitor::JanusManager::check_janus() {
   curl_easy_cleanup(curl);
 
   if (res != CURLE_OK) { //may mean an error code thrown by Janus, because of a bad session
-    Warning("JANUS Attempted to send %s to %s and got %s", postData.c_str(), endpoint.c_str(), curl_easy_strerror(res));
+    // postData holds ZM_JANUS_SECRET: never log it.
+    Warning("JANUS Attempted to query stream %u at %s and got %s", parent->id, endpoint.c_str(), curl_easy_strerror(res));
     janus_session = "";
     janus_handle = "";
     return -1;
@@ -222,7 +227,9 @@ int Monitor::JanusManager::add_to_janus() {
     postData += rtsp_timeout;
   }
   postData += ", \"video\" : true}}";
-  Debug(1, "JANUS Sending %s to %s", postData.c_str(), endpoint.c_str());
+  // postData holds ZM_JANUS_SECRET, the stream pin, the camera's credentials
+  // and the restream auth hash: log what is sent, not the values.
+  Debug(1, "JANUS Sending create for stream %u (%s) to %s", parent->id, url_for_log(rtsp_path).c_str(), endpoint.c_str());
 
   CURLcode res;
   std::string response;

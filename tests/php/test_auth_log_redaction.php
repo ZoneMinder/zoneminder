@@ -8,6 +8,12 @@
 // ("-ZM-" prefix). The MySQL-encoded form is SHA1(SHA1(password)): unsalted,
 // so it falls to an offline dictionary attack.
 //
+// getAuthUser() logged the presented auth hash at debug level on every check,
+// and at Info level (which reaches the Logs table at the default database log
+// level) whenever a check failed. A hash that fails here can still be valid:
+// bound to another client address (ZM_AUTH_HASH_IPS) or checked by another
+// server. Both lines now carry its fingerprint instead.
+//
 // auth.php's dependencies are replaced by stubs; ZM\Debug() and friends record
 // every line so the test can search them.
 //
@@ -86,6 +92,8 @@ namespace {
   }
   function getRemoteAddr($trustedProxies = null) { return '192.0.2.10'; }
 
+  // In the web UI logger.php loads this; the stubs above replace logger.php.
+  require_once __DIR__.'/../../web/includes/log_redact.php';
   require_once __DIR__.'/../../web/includes/auth.php';
 
   $password = 'Correct-Horse-7';
@@ -111,6 +119,31 @@ namespace {
     $hits = leaked(array('wrong-password', '*'.strtoupper(sha1(sha1('wrong-password', true))), $stored));
     check("$type: nothing of a wrong password in the log", !count($hits), implode(' | ', $hits));
   }
+
+  echo "\ngetAuthUser() logs a fingerprint of the auth hash, not the hash\n";
+  $users = array(array('Id' => 1, 'Username' => 'alice', 'Password' => $bcrypt, 'Enabled' => 1));
+  $hashFor = function ($addr) use ($bcrypt) {
+    $t = localtime(time());
+    return md5(ZM_AUTH_HASH_SECRET.'alice'.$bcrypt.$addr.$t[2].$t[3].$t[4].$t[5]);
+  };
+
+  $good = $hashFor('');
+  $GLOBALS['logged'] = array();
+  check('a valid hash authenticates', getAuthUser($good) instanceof ZM\User);
+  $lines = $GLOBALS['logged'];
+  $hits = leaked(array($good, ZM_AUTH_HASH_SECRET, $bcrypt));
+  check('valid hash: not in the log', !count($hits), implode(' | ', $hits));
+  check('valid hash: its fingerprint is', count(preg_grep('/'.preg_quote(ZM\logFingerprint($good), '/').'/', $lines)) > 0);
+
+  // Valid for the address it was issued to, refused here: the line that says
+  // so is an Info line and lands in the Logs table by default.
+  $elsewhere = $hashFor('198.51.100.9');
+  check('a hash for another address is refused', getAuthUser($elsewhere) === null);
+  $lines = $GLOBALS['logged'];
+  $hits = leaked(array($elsewhere, ZM_AUTH_HASH_SECRET, $bcrypt));
+  check('refused hash: not in the log', !count($hits), implode(' | ', $hits));
+  check('refused hash: the Info line carries its fingerprint',
+    count(preg_grep('/^INF Unable to authenticate user from auth hash '.preg_quote(ZM\logFingerprint($elsewhere), '/').' /', $lines)) === 1);
 
   echo "\n$passes passed, $failures failed\n";
   exit($failures ? 1 : 0);

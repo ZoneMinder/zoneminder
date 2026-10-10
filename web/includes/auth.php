@@ -454,7 +454,8 @@ function getAuthUser($auth) {
     $sessionUser = isset($_SESSION['username']) ? $_SESSION['username'] : null;
     $filterUser = $requestedUser !== null ? $requestedUser : $sessionUser;
 
-    ZM\Debug("getAuthUser: validating auth='$auth' filterUser='".($filterUser ?? '')."' liveAddr='$liveAddr' candidateAddrs='".implode(',', $candidateAddrs)."' session_username='".($sessionUser ?? '')."'");
+    // The hash is a credential: log its fingerprint (zms logs the same tag).
+    ZM\Debug("getAuthUser: validating auth ".ZM\logFingerprint($auth)." filterUser='".($filterUser ?? '')."' liveAddr='$liveAddr' candidateAddrs='".implode(',', $candidateAddrs)."' session_username='".($sessionUser ?? '')."'");
 
     $sql = 'SELECT * FROM Users WHERE Enabled = 1';
     $values = array();
@@ -509,11 +510,11 @@ function getAuthUser($auth) {
       } // end foreach user
     } // end if
 
-    ZM\Info("Unable to authenticate user from auth hash '$auth' (filterUser='".($filterUser ?? '')."' sessionUser='".($sessionUser ?? '')."' liveAddr='$liveAddr' candidateAddrs='".implode(',', $candidateAddrs)."' rowsTried=$rowsTried ttl=".ZM_AUTH_HASH_TTL.'h)');
+    ZM\Info('Unable to authenticate user from auth hash '.ZM\logFingerprint($auth)." (filterUser='".($filterUser ?? '')."' sessionUser='".($sessionUser ?? '')."' liveAddr='$liveAddr' candidateAddrs='".implode(',', $candidateAddrs)."' rowsTried=$rowsTried ttl=".ZM_AUTH_HASH_TTL.'h)');
     return null;
   } // end if using auth hash
 
-  ZM\Info("Unable to authenticate user from auth hash '$auth'");
+  ZM\Info('Unable to authenticate user from auth hash '.ZM\logFingerprint($auth));
   return null;
 } // end getAuthUser($auth)
 

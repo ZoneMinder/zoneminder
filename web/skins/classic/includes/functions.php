@@ -280,6 +280,12 @@ function buildMenuItem($viewItemName, $id, $itemName, $href, $icon, $classNameFo
     $activeClass = $view == $viewItemName ? ' active' : '';
   }
   if (!$skipTranslate) $itemName = translate($itemName);
+  // Escape the attribute values here rather than trust every caller to. An
+  // entity a caller already wrote (&amp;) is kept as it is, so a pre-escaped
+  // href is not escaped twice.
+  $id = htmlspecialchars((string)$id, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', false);
+  $href = htmlspecialchars((string)$href, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', false);
+  $classNameForTag_A = htmlspecialchars((string)$classNameForTag_A, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', false);
   $result = '
             <li id="' . $id . '" class="menu-item '.$activeClass.'">
               <a href="' . $href . '" class="' . $classNameForTag_A . '">

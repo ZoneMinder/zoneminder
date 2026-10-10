@@ -860,15 +860,6 @@ function get_auth_relay() {
   return '';
 } // end function get_auth_relay
 
-// Authenticate the current request and populate the global $user.
-//
-// This used to run at file scope, so merely including auth.php authenticated
-// the request: it read $_REQUEST, opened a session, queried the database, could
-// log a user in and rewrite their stored password hash, all as a side effect of
-// wanting one of the functions above. Callers now ask for it explicitly.
-//
-// Returns the ZM\User on success, or null when the request is unauthenticated;
-// the global is set either way for the callers that read it directly.
 // Credentials for zmu, as arguments to append to its command line, for the
 // current user. A command line is visible to every local user (ps), so with a
 // usable ZM_AUTH_HASH_SECRET this is an access token minted for the call that
@@ -895,6 +886,15 @@ function zmuCredentials($password = null) {
   return $credentials;
 }
 
+// Authenticate the current request and populate the global $user.
+//
+// This used to run at file scope, so merely including auth.php authenticated
+// the request: it read $_REQUEST, opened a session, queried the database, could
+// log a user in and rewrite their stored password hash, all as a side effect of
+// wanting one of the functions above. Callers now ask for it explicitly.
+//
+// Returns the ZM\User on success, or null when the request is unauthenticated;
+// the global is set either way for the callers that read it directly.
 function zm_authenticate_request() {
   global $user;
 

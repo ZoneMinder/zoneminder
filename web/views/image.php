@@ -180,7 +180,7 @@ if (!empty($_REQUEST['proxy'])) {
   $fp = @fopen($fetch_url, 'r', false, $context);
   if ($fp) {
     $meta_data = stream_get_meta_data($fp);
-    ZM\Debug(print_r($meta_data, true));
+    ZM\Debug(print_r(ZM\redactForLog($meta_data), true));
     foreach ($meta_data['wrapper_data'] as $header) {
       preg_match('/WWW-Authenticate: Digest (.*)/i', $header, $matches);
       $nc = 1;
@@ -224,14 +224,14 @@ if (!empty($_REQUEST['proxy'])) {
           $request .= ', cnonce="'.$cnonce.'"';
         }
         $request .= ', algorithm="MD5"';
-        ZM\Debug($request);
+        ZM\Debug("Retrying with digest authentication for user $username, realm $response_realm");
 
         $request_header = array($request);
         $opts['http']['header'] = array($host_header, $request);
         $context = stream_context_create($opts);
         $fp = fopen($fetch_url, 'r', false, $context);
         $meta_data = stream_get_meta_data($fp);
-        ZM\Debug(print_r($meta_data, true));
+        ZM\Debug(print_r(ZM\redactForLog($meta_data), true));
       } # end if have auth
     } # end foreach header
 
@@ -274,7 +274,7 @@ if (!empty($_REQUEST['proxy'])) {
 
     fclose($fp);
   } else {
-    ZM\Debug("Failed to open $url");
+    ZM\Debug('Failed to open '.ZM\urlForLog($url));
     $img = imagecreate(320, 200);
 
     $textbgcolor = imagecolorallocate($img, 0, 0, 0);

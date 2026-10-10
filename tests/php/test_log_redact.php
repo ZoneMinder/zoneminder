@@ -49,6 +49,11 @@ check('token fingerprinted', ZM\urlForLog('http://zm2/zm/api/x.json?token=eyJa.b
 check('userinfo removed', ZM\urlForLog('rtsp://admin:hunter2@192.0.2.5:554/s'), 'rtsp://192.0.2.5:554/s');
 check('@ in the query does not cut the host', ZM\urlForLog('http://zm2/x?token=a@b'),
   'http://zm2/x?token='.ZM\logFingerprint('a@b'));
+// Camera passwords with a raw @ work with cameras and ffmpeg (they split at
+// the last @ of the authority), so the userinfo ends at the last one.
+check('password with a raw @', ZM\urlForLog('rtsp://admin:p@ss@192.0.2.5:554/s'), 'rtsp://192.0.2.5:554/s');
+check('ControlAddress without a scheme', ZM\urlForLog('admin:hunter2@192.0.2.5:8080'), '192.0.2.5:8080');
+check('host:port alone unchanged', ZM\urlForLog('192.0.2.5:8080'), '192.0.2.5:8080');
 
 echo "\nredactForLog\n";
 $request = array(
@@ -81,6 +86,26 @@ check('nested user password replaced', array($out['newUser']['Password'], $out['
 check('camera passwords replaced', array($out['newMonitor']['Pass'], $out['newMonitor']['ONVIF_Password']),
   array('[redacted]', '[redacted]'));
 check('credentials removed from a URL value', $out['newMonitor']['Path'], 'rtsp://192.0.2.7/stream');
+
+// actions/monitor.php logs the changes a monitor save makes, and index.php the
+// request: camera user:password@ in a ControlAddress has no scheme.
+$changes = ZM\redactForLog(array(
+  'Name' => 'Front',
+  'ControlAddress' => 'admin:campw@192.0.2.7:80',
+  'Path' => 'rtsp://admin:cam@pw@192.0.2.7:554/stream',
+  'Pass' => 'campw',
+  'ONVIF_Password' => 'onvifpw',
+  'Function' => 'Modect',
+));
+check('monitor changes: credentials gone, the rest kept', $changes, array(
+  'Name' => 'Front',
+  'ControlAddress' => '192.0.2.7:80',
+  'Path' => 'rtsp://192.0.2.7:554/stream',
+  'Pass' => '[redacted]',
+  'ONVIF_Password' => '[redacted]',
+  'Function' => 'Modect',
+));
+check('an e-mail address is kept', ZM\redactForLog(array('Email' => 'bob@example.com'))['Email'], 'bob@example.com');
 
 
 // index.php's login redirect carries the original query string, credentials
@@ -143,6 +168,32 @@ foreach (array('Event.php', 'Server.php', 'Filter.php') as $name) {
   }
 }
 check('no raw $url in a log call', $raw, array());
+
+echo "\ncamera credentials are not logged\n";
+// The monitor probe, ONVIF probe, CSV import, image proxy and monitor save
+// logged camera passwords and URLs with user:password@ in them.
+$raw = array();
+$files = array(
+  'includes/monitor_probe.php', 'includes/actions/monitor.php', 'ajax/add_monitors.php', 'views/image.php',
+  'skins/classic/views/monitorprobe.php', 'skins/classic/views/onvifprobe.php',
+  'skins/classic/views/_options_dnsmasq.php',
+);
+foreach ($files as $name) {
+  foreach (file(__DIR__.'/../../web/'.$name) as $n => $line) {
+    if (preg_match('#^\s*(//|\#)#', $line)) continue;
+    if (!preg_match('/\b(Debug|Info|Warning|Error|Fatal)\s*\(/', $line)) continue;
+    $bare = preg_replace('/\b(urlForLog|redactForLog)\((?:[^()]|\((?:[^()]|\([^()]*\))*\))*\)/', '', $line);
+    if (preg_match('/\$password\b|->Pass\(\)|\$(url|stream_uri)\b|\$stream\[.url.\]|\$monitor->Path\(\)|\$monitor\[.Path.\]|print_r\(\$(changes|probe|meta_data)\b|\$request\)|\$shell_command/', $bare)) {
+      $raw[] = "$name:".($n + 1).': '.trim($line);
+    }
+  }
+}
+check('no camera password or credential-bearing URL in a log call', $raw, array());
+// execONVIF() logs the failing zmonvif-probe command at Error level; for
+// 'profiles' that command line carries the camera password.
+$onvif = file_get_contents(__DIR__.'/../../web/skins/classic/views/onvifprobe.php');
+check('the ONVIF probe does not log the command with the password',
+  preg_match('/Error\((?:(?!\);).)*\$shell_command/s', $onvif), 0);
 
 echo "\n$passes passed, $failures failed\n";
 exit($failures ? 1 : 0);

@@ -79,8 +79,11 @@ if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
       }
     } // end if changes
     # HTTP_REFERER will typically be ?view=zone so no good.
-    # if a referer is passed in $_REQUEST then use it otherwise go to ?view=zones
-    $redirect = isset($_REQUEST['REFERER']) ? $_REQUEST['REFERER'] : '?view=zones';
+    # if a referer is passed in $_REQUEST then use it otherwise go to ?view=zones.
+    # The zone form always posts REFERER, empty when the form had no Referer
+    # (a typed URL or bookmark); an empty $redirect renders the zone view with
+    # this action's $zone, which has no Points.
+    $redirect = !empty($_REQUEST['REFERER']) ? $_REQUEST['REFERER'] : '?view=zones&mid='.$mid;
   } // end if action 
 } // end if $mid and canEdit($mid)
 ?>

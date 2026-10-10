@@ -229,7 +229,7 @@ if (!empty($_REQUEST['proxy'])) {
         $request_header = array($request);
         $opts['http']['header'] = array($host_header, $request);
         $context = stream_context_create($opts);
-        $fp = fopen($fetch_url, 'r', false, $context);
+        $fp = @fopen($fetch_url, 'r', false, $context);
         $meta_data = stream_get_meta_data($fp);
         ZM\Debug(print_r(ZM\redactForLog($meta_data), true));
       } # end if have auth

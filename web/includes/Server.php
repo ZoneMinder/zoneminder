@@ -235,7 +235,7 @@ class Server extends ZM_Object {
     try {
       $result = @file_get_contents($url, false, $context);
       if ($result === FALSE) { /* Handle error */
-        Error('Error using '.urlForLog($url));
+        Error('Error using '.urlForLog($url).': '.lastErrorForLog());
       }
     } catch (Exception $e) {
       Error("Except $e thrown sending to ".urlForLog($url));

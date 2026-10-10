@@ -419,9 +419,9 @@ class Filter extends ZM_Object {
         );
         $context  = stream_context_create($options);
         try {
-          $result = file_get_contents($url, false, $context);
+          $result = @file_get_contents($url, false, $context);
           if ( $result === FALSE ) { /* Handle error */
-            Error('Error restarting zmfilter.pl using '.urlForLog($url));
+            Error('Error restarting zmfilter.pl using '.urlForLog($url).': '.lastErrorForLog());
           }
         } catch ( Exception $e ) {
           Error("Except $e thrown trying to restart zmfilter");

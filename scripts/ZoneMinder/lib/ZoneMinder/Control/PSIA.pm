@@ -30,7 +30,7 @@ sub open
         $PASSWORD = $+{PASSWORD} if $+{PASSWORD};
         $ADDRESS = $+{ADDRESS} if $+{ADDRESS};
     } else {
-        Error('Failed to parse auth from address ' . $self->{Monitor}->{ControlAddress});
+        Error('Failed to parse auth from address ' . urlForLog($self->{Monitor}->{ControlAddress}));
         $ADDRESS = $self->{Monitor}->{ControlAddress};
     }
     if ( !($ADDRESS =~ /:/) ) {
@@ -44,7 +44,6 @@ sub open
     Debug( "sendCmd credentials control address:'".$ADDRESS
             ."'  realm:'" . $REALM
             . "'  username:'" . $USERNAME
-            . "'  password:'".$PASSWORD
             ."'"
     ); 
     $self->{ua}->credentials($ADDRESS, $REALM, $USERNAME, $PASSWORD);
@@ -107,7 +106,7 @@ sub sendGetRequest {
         $result = !undef;
     } else {
         if ( $res->status_line() eq '401 Unauthorized' ) {
-            Error( "Error check failed, trying again: USERNAME: $USERNAME realm: $REALM password: " . $PASSWORD );
+            Error( "Error check failed, trying again: USERNAME: $USERNAME realm: $REALM" );
             Error("Content was " . $res->content() );
             my $res = $self->{ua}->request($req);
             if ( $res->is_success ) {
@@ -142,7 +141,7 @@ sub sendPutRequest {
         $result = !undef;
     } else {
         if ( $res->status_line() eq '401 Unauthorized' ) {
-            Error( "Error check failed, trying again: USERNAME: $USERNAME realm: $REALM password: " . $PASSWORD );
+            Error( "Error check failed, trying again: USERNAME: $USERNAME realm: $REALM" );
             Error("Content was " . $res->content() );
             my $res = $self->{ua}->request($req);
             if ( $res->is_success ) {
@@ -170,7 +169,7 @@ sub sendDeleteRequest {
         $result = !undef;
     } else {
         if ( $res->status_line() eq '401 Unauthorized' ) {
-            Error( "Error check failed, trying again: USERNAME: $USERNAME realm: $REALM password: " . $PASSWORD );
+            Error( "Error check failed, trying again: USERNAME: $USERNAME realm: $REALM" );
             Error("Content was " . $res->content() );
             my $res = $self->{ua}->request($req);
             if ( $res->is_success ) {

@@ -171,7 +171,10 @@ sub login {
 
   if ($res->is_success) {
     my $content = $res->decoded_content;
-    Debug("Login response: $content");
+    # The answer carries the session token as Token.name.
+    my $logged = $content;
+    $logged =~ s/("name"\s*:\s*")([^"]*)/$1.logFingerprint($2)/ge;
+    Debug("Login response: $logged");
     
     my $response;
     eval {
@@ -188,7 +191,7 @@ sub login {
 		    $$self{token_lease_time} = $result->{value}->{Token}->{leaseTime} || 3600;
 		    $$self{token_expiry} = time() + $$self{token_lease_time};
 
-		    Debug("Reolink login successful, token: $$self{token}, expires in: $$self{token_lease_time}s");
+		    Debug('Reolink login successful, token: '.logFingerprint($$self{token}).", expires in: $$self{token_lease_time}s");
 		    return !undef;
 	    } else {
 		    my $code = $result->{code} || 'unknown';

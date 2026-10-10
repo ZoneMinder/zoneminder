@@ -103,10 +103,10 @@ sub open {
       and
     $self->{Monitor}{ControlAddress} ne 'user:port@ip'
   ) {
-    Debug("Using ControlAddress for credentials: $self->{Monitor}{ControlAddress}");
+    Debug('Using ControlAddress for credentials: '.urlForLog($self->{Monitor}{ControlAddress}));
     parseControlAddress($self->{Monitor}->{ControlAddress});
   } elsif ($self->{Monitor}{Path}) {
-    Debug("Using Path for credentials: $self->{Monitor}{Path}");
+    Debug('Using Path for credentials: '.urlForLog($self->{Monitor}{Path}));
     if (($self->{Monitor}->{Path} =~ /^(?<PROTOCOL>(https?|rtsp):\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@(?<ADDRESS>[^:\/]+)/)) {
       if (!$username) {
         $username = $+{USERNAME} if $+{USERNAME};
@@ -132,7 +132,7 @@ sub open {
     $address = $uri->host();
   }
 
-  Debug("Using $username:$password for credentials");
+  Debug("Using credentials for user $username");
 
   $self->{ua} = LWP::UserAgent->new;
   $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);

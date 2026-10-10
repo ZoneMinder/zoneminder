@@ -1950,14 +1950,19 @@ function formatTag(tag) {
   const tagElement = $j('<div>', {class: 'tag'});
   tagElement.data('tag', tag);
   tagElement.append($j('<span>', {class: 'tag-text', text: tagName}));
-  tagElement.append($j('<span>', {class: 'tag-remove', text: '\u00D7'}));
+  // Removing a tag needs Events edit; don't offer it to users who can't.
+  if (canEdit.Events) tagElement.append($j('<span>', {class: 'tag-remove', text: '\u00D7'}));
   $j('.tag-dropdown').before(tagElement);
 }
 
 function addTag(tag, buttonPressed = null) {
-  if (tag && (tag.Name.trim() !== '') && !isDup(tag.Name)) {
+  if (canEdit.Events && tag && (tag.Name.trim() !== '') && !isDup(tag.Name)) {
     $j.getJSON(thisUrl + '?request=event&action=addtag&tid=' + tag.Id + '&id=' + eventData.Id)
         .done(function(data) {
+          if (data.result != 'Ok') {
+            console.error('addtag refused', data.message);
+            return;
+          }
           formatTag(tag);
           selectedTags.push(tag);
 
@@ -1975,8 +1980,13 @@ function addTag(tag, buttonPressed = null) {
 }
 
 function removeTag(tag) {
+  if (!canEdit.Events) return;
   $j.getJSON(thisUrl + '?request=event&action=removetag&tid=' + tag.Id + '&id=' + eventData.Id)
       .done(function(data) {
+        if (data.result != 'Ok') {
+          console.error('removetag refused', data.message);
+          return;
+        }
         $j('.tag-text').filter(function() {
           return $j(this).text() === tag.Name;
         }).parent().remove();
@@ -1988,8 +1998,13 @@ function removeTag(tag) {
 }
 
 function createTag(tagName, buttonPressed = null) {
+  if (!canEdit.Events) return;
   $j.getJSON(thisUrl + '?request=tags&action=createtag&tname=' + tagName)
       .done(function(data) {
+        if (data.result != 'Ok') {
+          console.error('createtag refused', data.message);
+          return;
+        }
         if (data.response.length > 0) {
           var tag = data.response[0];
           if (availableTags) {

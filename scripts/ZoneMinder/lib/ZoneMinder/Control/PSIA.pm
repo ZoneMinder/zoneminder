@@ -151,7 +151,7 @@ sub sendPutRequest {
             }
         }
         if ( ! $result ) {
-            Error( "Error check failed: '".$res->status_line()."' cmd:'".$cmd."'" );
+            Error( "Error check failed: '".$res->status_line()."' url:'".$url_path."'" );
         }
     }
     return($result);
@@ -179,7 +179,7 @@ sub sendDeleteRequest {
             }
         }
         if ( ! $result ) {
-            Error( "Error check failed: '".$res->status_line()."' cmd:'".$cmd."'" );
+            Error( "Error check failed: '".$res->status_line()."' url:'".$url_path."'" );
         }
     }
     return($result);
@@ -192,7 +192,6 @@ sub move
     my $tiltPercentage = shift;
     my $zoomPercentage = shift;
 
-    my $cmd = "set_relative_pos&posX=$panSteps&posY=$tiltSteps";
     my $ptzdata = '<PTZData version="1.0" xmlns="urn:psialliance-org">';
     $ptzdata .= '<pan>' . $panPercentage . '</pan>';
     $ptzdata .= '<tilt>' . $tiltPercentage . '</tilt>';

@@ -390,16 +390,19 @@ void zmDbQueue::process() {
       mCondition.wait(lock);
     }
     while (!mQueue.empty()) {
-      if (mQueue.size() > 40) {
-        // A row about the backlog would only add to it.
-        Logger::DatabaseLogPause pause_db_logging;
-        Warning("db queue size has grown larger %zu than 40 entries", mQueue.size());
-      }
-      std::string sql = mQueue.front();
+      size_t backlog = mQueue.size();
+      std::string sql = std::move(mQueue.front());
       mQueue.pop();
       // My idea for leaving the locking around each sql statement is to allow
       // other db writers to get a chance
       lock.unlock();
+      if (backlog > 40) {
+        // Not while holding mMutex: logging takes the logger's mutex, and a
+        // thread already holding that one waits on mMutex to push its row.
+        // A row about the backlog would only add to it, so none is written.
+        Logger::DatabaseLogPause pause_db_logging;
+        Warning("db queue size has grown larger %zu than 40 entries", backlog);
+      }
       zmDbDo(sql);
       lock.lock();
     }

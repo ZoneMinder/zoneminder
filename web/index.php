@@ -30,7 +30,9 @@ if ( 0 and ZM\Logger::fetch()->debugOn() ) {
   ZM\Debug(ob_get_contents());
   ob_end_clean();
 }
-ZM\Debug(print_r($_REQUEST, true));
+// The request carries the login password, auth hashes, tokens and camera
+// credentials: log it redacted.
+ZM\Debug(print_r(ZM\redactForLog($_REQUEST), true));
 
 if (
   (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on')

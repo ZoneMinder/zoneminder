@@ -114,6 +114,24 @@ print "\nStorage\n";
   check('S3 host and bucket still logged', ($out =~ /s3\.example\.com.*zm-bucket/ ? 'kept' : $out), 'kept');
 }
 
+print "\nPerl modules\n";
+# A log call must not interpolate a password, secret or session token. The
+# logger would catch most URL forms, but not "username X password Y".
+my $lib = "$FindBin::Bin/../../scripts/ZoneMinder/lib/ZoneMinder";
+my @files = (glob("$lib/*.pm"), glob("$lib/Control/*.pm"));
+my $secret_var = qr/\$[\$\w\->{}+]*?\b(?:password|PASSWORD|Pass|PASS|aws_secret)\b(?!_)|\{token\}|'password'/;
+my @hits;
+foreach my $file (@files) {
+  open(my $fh, '<', $file) or die "$file: $!";
+  while (my $line = <$fh>) {
+    next if $line =~ /^\s*#/;
+    next if $line !~ /\b(?:Debug|Info|Warning|Warn|Error|Fatal|Panic|printMsg)\s*\(/;
+    (my $bare = $line) =~ s/\blogFingerprint\([^)]*\)//g;
+    push @hits, ($file =~ s{.*/ZoneMinder/}{}r).":$.: ".($line =~ s/^\s+|\s+$//gr) if $bare =~ $secret_var;
+  }
+}
+check('no log call interpolates a password, secret or token', join("\n", @hits), '');
+
 logTerm();
 print "\n$passes passed, $failures failed\n";
 exit($failures ? 1 : 0);

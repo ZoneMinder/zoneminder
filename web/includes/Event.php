@@ -685,6 +685,10 @@ class Event extends ZM_Object {
       # auth turned on and not logged in
       return false;
     }
+    # An Event with no Id (an empty or failed lookup) has no monitor, and an
+    # empty Monitor passes canView() on the global Monitors permission. Refuse
+    # it, so a caller that skips its own Id() check does not fail open.
+    if (!$this->Id()) return false;
     if (!$this->Monitor()->canView($u)) return false;
 
     if ($u->Events() != 'None') {
@@ -705,6 +709,7 @@ class Event extends ZM_Object {
       # auth turned on and not logged in
       return false;
     }
+    if (!$this->Id()) return false;
     if (!$this->Monitor()->canView($u)) return false;
     if ($u->Events() != 'Edit') {
       return false;

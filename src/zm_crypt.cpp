@@ -144,7 +144,6 @@ bool verifyPassword(const char *username, const char *input_password, const char
     SHA1::Digest digest = SHA1::GetDigestOf(SHA1::GetDigestOf(input_password));
     std::string hex_digest = '*' + StringToUpper(ByteArrayToHexString(digest));
 
-    Debug(1, "Computed password_hash: %s, stored password_hash: %s", hex_digest.c_str(), db_password_hash);
     password_correct = (strcmp(db_password_hash, hex_digest.c_str()) == 0);
   } else if (
     (db_password_hash[0] == '$')

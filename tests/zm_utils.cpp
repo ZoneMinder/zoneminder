@@ -506,3 +506,34 @@ TEST_CASE("Go2RTCApiEndpoint", "[utils]") {
   REQUIRE(Go2RTCApiEndpoint("http://user:pass@cam:1984") == "http://user:pass@cam:1984/api");
   REQUIRE(Go2RTCApiEndpoint("") == "");
 }
+
+// zmc calls this for every video packet, so it must only trim once enough
+// frame memory was freed and not more often than the interval (refs #4860).
+TEST_CASE("zm_trim_freed_frame_memory: threshold and rate limit", "[utils]") {
+  using std::chrono::seconds;
+#if defined(__GLIBC__)
+  // Start from a clean count, whatever earlier tests freed.
+  REQUIRE(zm_trim_freed_frame_memory(0, seconds(0)));
+
+  SECTION("nothing freed: no trim") {
+    REQUIRE_FALSE(zm_trim_freed_frame_memory(1024, seconds(0)));
+  }
+  SECTION("below the threshold: no trim") {
+    zm_note_freed_frame_memory(512);
+    REQUIRE_FALSE(zm_trim_freed_frame_memory(1024, seconds(0)));
+  }
+  SECTION("over the threshold: one trim, then the count starts again") {
+    zm_note_freed_frame_memory(2048);
+    REQUIRE(zm_trim_freed_frame_memory(1024, seconds(0)));
+    REQUIRE_FALSE(zm_trim_freed_frame_memory(1024, seconds(0)));
+  }
+  SECTION("within the interval: deferred, not dropped") {
+    zm_note_freed_frame_memory(2048);
+    REQUIRE_FALSE(zm_trim_freed_frame_memory(1024, seconds(3600)));
+    REQUIRE(zm_trim_freed_frame_memory(1024, seconds(0)));
+  }
+#else
+  zm_note_freed_frame_memory(2048);
+  REQUIRE_FALSE(zm_trim_freed_frame_memory(0, seconds(0)));
+#endif
+}

@@ -84,6 +84,9 @@ class ZMPacket {
   void release_frames();
   // Drop every decoded copy: frames and images. The compressed packet stays.
   void release_decoded();
+  // Count the images' bytes as freed (zm_note_freed_frame_memory), just before
+  // they are deleted.
+  void note_freed_images() const;
   ssize_t ram();
 
   int is_keyframe() { return keyframe; };

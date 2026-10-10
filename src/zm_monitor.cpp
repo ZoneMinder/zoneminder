@@ -2669,12 +2669,14 @@ bool Monitor::Analyse() {
           if (!savejpegs && !packet->keyframe) {
             Debug(1, "Deleting image data for %d", packet->image_index);
             // Don't need raw images anymore
+            zm_note_freed_frame_memory(packet->image->Size());
             delete packet->image;
             packet->image = nullptr;
           }
         }
         if (packet->analysis_image and !(savejpegs & 2)) {
           Debug(1, "Deleting analysis image data for %d", packet->image_index);
+          zm_note_freed_frame_memory(packet->analysis_image->Size());
           delete packet->analysis_image;
           packet->analysis_image = nullptr;
         }
@@ -2697,6 +2699,15 @@ bool Monitor::Analyse() {
 
   shared_data->last_read_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
   packetqueue.increment_it(analysis_it, false);
+
+  // clearPackets() and releaseDecoded() above, and the capture thread when the
+  // queue overflows, free decoded images. Hand that memory back to the OS once
+  // enough of it has piled up (rate limited, see zm_utils.h; refs #4860).
+  if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
+    // openEvent() may have unlocked it already, and unlocking twice throws.
+    if (packet_lock.is_locked()) packet_lock.unlock();
+    zm_trim_freed_frame_memory();
+  }
 
   return true;
 } // end Monitor::Analyse

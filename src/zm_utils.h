@@ -128,6 +128,24 @@ void touch(const char *pathname);
 // enough to call periodically from a stream loop to trace memory growth.
 size_t zm_get_rss_kb();
 
+// Decoded frames are several MB each at high resolutions. Once glibc has freed
+// a few blocks that large it raises its mmap threshold, and from then on frame
+// buffers come from the heap, where freed ones stay mapped instead of going
+// back to the OS. A capture daemon whose packet queue held many decoded frames
+// for a while (viewers watching, or a keyframe interval above
+// MaxImageBufferCount) keeps that memory until it restarts, although nothing
+// uses it (refs #4860).
+//
+// zm_note_freed_frame_memory() counts the bytes of decoded frame data freed;
+// it is cheap and safe from any thread. zm_trim_freed_frame_memory() returns
+// free heap memory to the OS with malloc_trim(), at most once per min_interval
+// and only after at least min_bytes were freed since the last trim, so it can
+// be called for every packet. Returns true if it trimmed. Without glibc both
+// do nothing.
+void zm_note_freed_frame_memory(size_t bytes);
+bool zm_trim_freed_frame_memory(size_t min_bytes = 64 * 1024 * 1024,
+                                std::chrono::seconds min_interval = std::chrono::seconds(10));
+
 namespace zm {
 // C++14 std::make_unique (TODO: remove this once C++14 is supported)
 template<typename T, typename ...Args>

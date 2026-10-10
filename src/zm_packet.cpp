@@ -21,6 +21,7 @@
 #include "zm_ffmpeg.h"
 #include "zm_image.h"
 #include "zm_logger.h"
+#include "zm_utils.h"
 
 extern "C" {
 #include <libavutil/pixdesc.h>
@@ -90,6 +91,7 @@ ZMPacket::ZMPacket(ZMPacket &p) :
 }
 
 ZMPacket::~ZMPacket() {
+  note_freed_images();
   delete analysis_image;
   delete image;
   delete y_image;
@@ -103,7 +105,12 @@ void ZMPacket::release_frames() {
   hw_frame = nullptr;
 }
 
+void ZMPacket::note_freed_images() const {
+  zm_note_freed_frame_memory((image ? image->Size() : 0) + (analysis_image ? analysis_image->Size() : 0));
+}
+
 void ZMPacket::release_decoded() {
+  note_freed_images();
   release_frames();
   delete image;
   image = nullptr;

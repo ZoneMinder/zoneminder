@@ -22,6 +22,7 @@
 #include "zm_config.h"
 #include "zm_logger.h"
 #include <array>
+#include <atomic>
 #include <cctype>
 #include <cstdarg>
 #include <cstdio>
@@ -34,6 +35,11 @@
 
 #if defined(__arm__)
 #include <sys/auxv.h>
+#endif
+
+// __GLIBC__ comes from <features.h>, which the libc headers above include.
+#if defined(__GLIBC__)
+#include <malloc.h>
 #endif
 
 unsigned int sse_version = 0;
@@ -393,6 +399,41 @@ size_t zm_get_rss_kb() {
   if (page_kb <= 0) page_kb = 4;  // sane default if sysconf fails
   return static_cast<size_t>(rss_pages) * static_cast<size_t>(page_kb);
 }
+
+#if defined(__GLIBC__)
+namespace {
+std::atomic<size_t> freed_frame_bytes{0};
+std::atomic<int64_t> last_trim_ns{0};  // steady_clock, 0 = never
+}  // namespace
+
+void zm_note_freed_frame_memory(size_t bytes) {
+  if (bytes) freed_frame_bytes.fetch_add(bytes, std::memory_order_relaxed);
+}
+
+bool zm_trim_freed_frame_memory(size_t min_bytes, std::chrono::seconds min_interval) {
+  if (freed_frame_bytes.load(std::memory_order_relaxed) < min_bytes) return false;
+
+  int64_t now = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                  std::chrono::steady_clock::now().time_since_epoch()).count();
+  int64_t last = last_trim_ns.load(std::memory_order_relaxed);
+  if (last and now - last < std::chrono::duration_cast<std::chrono::nanoseconds>(min_interval).count())
+    return false;
+  // One caller wins when several monitors' threads get here at once.
+  if (!last_trim_ns.compare_exchange_strong(last, now)) return false;
+
+  size_t freed = freed_frame_bytes.exchange(0, std::memory_order_relaxed);
+  size_t rss_before = zm_get_rss_kb();
+  auto start = std::chrono::steady_clock::now();
+  malloc_trim(0);
+  Debug(1, "malloc_trim after %zu kB of frame data freed: RSS %zu -> %zu kB in %.3f ms",
+        freed / 1024, rss_before, zm_get_rss_kb(),
+        std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count());
+  return true;
+}
+#else
+void zm_note_freed_frame_memory(size_t) {}
+bool zm_trim_freed_frame_memory(size_t, std::chrono::seconds) { return false; }
+#endif
 
 std::string UriDecode(const std::string &encoded) {
   const char *src = encoded.c_str();

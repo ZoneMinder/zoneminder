@@ -27,8 +27,11 @@ class ZmErrorHandler extends ErrorHandler {
  */
 	public static function redact($text) {
 		$names = implode('|', array_map('preg_quote', static::$secretParams));
-		// The URL Cake puts in error bodies is HTML-escaped, so & may be &amp;
-		return preg_replace('/((?:[?&]|&amp;)(?:'.$names.')=)[^&#\s]*/i', '$1[redacted]', $text);
+		// The URL Cake puts in error bodies is HTML-escaped, so & may be &amp;.
+		// A name sent as an array (token[]=, token%5B0%5D=) still carries the
+		// value. An empty value is left as it is, so the log still shows that
+		// the client sent none.
+		return preg_replace('/((?:[?&]|&amp;)(?:'.$names.')(?:\[[^\]=&]*\]|%5B[^=&]*?%5D)*=)[^&#\s]+/i', '$1[redacted]', $text);
 	}
 
 /**

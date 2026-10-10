@@ -272,9 +272,10 @@ int zmDbDo(const std::string &query) {
   if (!zmDbConnected and !zmDbConnect())
     return 0;
   int rc;
-  Logger *logger = Logger::fetch();
-  Logger::Level oldLevel = logger->databaseLevel();
-  logger->databaseLevel(Logger::NOLOG);
+  // Keep this thread's lines about the query out of the database. Only this
+  // thread: lowering the process-wide database level instead dropped every
+  // other thread's lines for as long as the query ran.
+  Logger::DatabaseLogPause pause_db_logging;
 
   int contention_attempts = 0;
 
@@ -290,10 +291,7 @@ int zmDbDo(const std::string &query) {
         // If we failed. Sleeping 1 sec may be way too much.
         sleep(1);
       }
-      if (zm_terminate) {
-        logger->databaseLevel(oldLevel);
-        return 0;
-      }
+      if (zm_terminate) return 0;
       continue;
     }
 
@@ -301,12 +299,10 @@ int zmDbDo(const std::string &query) {
     if (retry_after_contention(err, query, contention_attempts)) continue;
 
     Error("Can't run query %s: %d %s", query.c_str(), rc, reason.c_str());
-    logger->databaseLevel(oldLevel);
     return rc;
   }
 
   Debug(1, "Success running sql query %s, thread_id: %lu", query.c_str(), db_thread_id);
-  logger->databaseLevel(oldLevel);
   return 1;
 }
 
@@ -395,11 +391,9 @@ void zmDbQueue::process() {
     }
     while (!mQueue.empty()) {
       if (mQueue.size() > 40) {
-        Logger *log = Logger::fetch();
-        Logger::Level db_level = log->databaseLevel();
-        log->databaseLevel(Logger::NOLOG);
+        // A row about the backlog would only add to it.
+        Logger::DatabaseLogPause pause_db_logging;
         Warning("db queue size has grown larger %zu than 40 entries", mQueue.size());
-        log->databaseLevel(db_level);
       }
       std::string sql = mQueue.front();
       mQueue.pop();

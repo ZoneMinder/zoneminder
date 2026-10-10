@@ -184,7 +184,7 @@ foreach (ZM\Monitor::find(['Type'=>'Ffmpeg']) as $monitor) {
   if ($url_parts !== false) {
     $monitors_by_ip[gethostbyname($url_parts['host'])] = $monitor;
   } else {
-    ZM\Debug('Unable to parse '.$monitor->Path());
+    ZM\Debug('Unable to parse '.ZM\urlForLog($monitor->Path()));
   }
 }
 $leases = read_leasefile('/var/lib/misc/dnsmasq.leases');

@@ -44,7 +44,16 @@ function urlForLog($url) {
     $query = redactQueryString(substr($url, $query_at));
     $url = substr($url, 0, $query_at);
   }
-  return preg_replace('#^([a-z][a-z0-9+.-]*://)[^/@]*@#i', '$1', $url).$query;
+  return removeUserinfo($url).$query;
+}
+
+// $value without the user:password@ of a URL (scheme://user:pw@host/...) or
+// of a host spec such as a ControlAddress (user:pw@host:port). Up to the last
+// @ before the path: older installs have camera passwords with a raw @ in
+// them, which cameras and ffmpeg accept.
+function removeUserinfo($value) {
+  $value = preg_replace('#^([a-z][a-z0-9+.-]*://)[^/?\#\s]*@#i', '$1', (string)$value);
+  return preg_replace('#^[^\s/:@]+:[^\s/?\#]*@(?=[a-z0-9\[])#i', '', $value);
 }
 
 // Whether a request parameter of this name holds a password or secret (to be
@@ -85,7 +94,7 @@ function redactForLog($data, $key = null) {
     if ($kind === 'token') return logFingerprint($data);
   }
   if (is_string($data)) {
-    $data = preg_replace('#^([a-z][a-z0-9+.-]*://)[^/@\s]*@#i', '$1', $data);
+    $data = removeUserinfo($data);
     // A value that is itself a query string, such as postLoginQuery.
     if (strpos($data, '=') !== false) $data = redactQueryString($data);
   }

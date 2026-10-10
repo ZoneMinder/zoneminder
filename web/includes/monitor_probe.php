@@ -167,7 +167,7 @@ function probeAxis($ip, $username, $password) {
       }
     }
   } else {
-    ZM\Debug("No content from $url");
+    ZM\Debug('No content from '.ZM\urlForLog($url));
   }
   $cameras[] = $camera;
   return $cameras;
@@ -282,7 +282,7 @@ function curl($method, $url, $username, $password) {
       if ($errno == CURLE_SSL_CACERT || $errno == CURLE_SSL_PEER_CERTIFICATE || 
           $errno == CURLE_SSL_CACERT_BADFILE || $errno == CURLE_SSL_CERTPROBLEM ||
           $errno == 51 || strpos($error, 'SSL') !== false) {
-        ZM\Warning("SSL certificate verification failed for $url ($error), retrying without verification");
+        ZM\Warning('SSL certificate verification failed for '.ZM\urlForLog($url)." ($error), retrying without verification");
         curl_close($ch);
         
         // Retry without SSL verification
@@ -474,7 +474,7 @@ function probeHikvision($ip, $username, $password) {
     }
     
   } else {
-    ZM\Debug("No xml from $url");
+    ZM\Debug('No xml from '.ZM\urlForLog($url));
   }
 
   $url = 'http://'.$username.':'.$password.'@'.$ip.'/ISAPI/System/deviceInfo';
@@ -486,7 +486,7 @@ function probeHikvision($ip, $username, $password) {
     $camera['Name'] = (string) $xml->deviceName;
     ZM\Debug(print_r($xml, true));
   } else {
-    ZM\Debug("No xml from $url");
+    ZM\Debug('No xml from '.ZM\urlForLog($url));
   }
 
   $cameras[] = $camera;
@@ -725,7 +725,7 @@ function probeVivotek($ip, $username, $password) {
         }
       }
     } else {
-      ZM\Debug("Failed to load config from camera using $url");
+      ZM\Debug('Failed to load config from camera using '.ZM\urlForLog($url));
     }
   #} catch (Exception $e) {
     #ZM\Debug($e->getMessage());
@@ -877,7 +877,7 @@ function probeNetwork() {
       #ZM\Debug("Ffmpeg monitor ${url_parts['host']} = ${monitor['Id']} ${monitor['Name']}");
       $monitors[gethostbyname($url_parts['host'])] = $monitor;
     } else {
-      ZM\Debug('Unable to parse '.$monitor->Path());
+      ZM\Debug('Unable to parse '.ZM\urlForLog($monitor->Path()));
     }
   }
   //ZM\Debug(print_r($monitors, true));
@@ -927,7 +927,7 @@ function probeNetwork() {
       if (function_exists('probe'.$macBase['type'])) {
         if (!$username and isset($monitors[$ip])) {
           $monitor = $monitors[$ip];
-          ZM\Debug("Using auth from monitor $ip ".$monitor->User().' '. $monitor->Pass());
+          ZM\Debug("Using auth from monitor $ip for user ".$monitor->User());
           $new_cameras = call_user_func('probe'.$macBase['type'], $ip, $monitors[$ip]->User(), $monitors[$ip]->Pass());
           if (!$new_cameras) {
             ZM\Warning('probe'.$macBase['type'].' returned nothing');
@@ -935,7 +935,7 @@ function probeNetwork() {
             $cameras[$mac] = $new_cameras;
           }
         } else {
-          ZM\Debug("Not Using auth from monitor $ip $username $password");
+          ZM\Debug("Not Using auth from monitor $ip, user $username");
           $cameras[$mac] = call_user_func('probe'.$macBase['type'], $ip, $username, $password);
         }
       } else {
@@ -975,7 +975,7 @@ function probeNetwork() {
             if (!$username and isset($monitors[$ip])) {
               $found_cameras = call_user_func('probe'.$macBase['type'], $ip, $monitors[$ip]->User(), $monitors[$ip]->Pass());
             } else {
-              ZM\Debug("Not Using auth from monitor $ip $username $password");
+              ZM\Debug("Not Using auth from monitor $ip, user $username");
               $found_cameras = call_user_func('probe'.$macBase['type'], $ip, $username, $password);
             }
             if (count($found_cameras)) {

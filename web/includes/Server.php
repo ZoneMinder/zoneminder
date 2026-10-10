@@ -223,7 +223,7 @@ class Server extends ZM_Object {
     $url = $this->UrlToApi().$path;
     $auth_relay = get_auth_relay();
     if ($auth_relay) $url .= '?'.$auth_relay;
-    Debug('sending command to '.$url);
+    Debug('sending command to '.urlForLog($url));
 
     $context_options=array(
       "ssl"=>array(
@@ -235,10 +235,10 @@ class Server extends ZM_Object {
     try {
       $result = @file_get_contents($url, false, $context);
       if ($result === FALSE) { /* Handle error */
-        Error("Error using $url");
+        Error('Error using '.urlForLog($url));
       }
     } catch (Exception $e) {
-      Error("Except $e thrown sending to $url");
+      Error("Except $e thrown sending to ".urlForLog($url));
     }
     return $result;
   }

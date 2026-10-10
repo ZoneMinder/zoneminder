@@ -113,5 +113,20 @@ foreach ($it as $file) {
 }
 check('none found', $raw, array());
 
+echo "\nmulti-server request URLs are logged through urlForLog()\n";
+// Event.php, Server.php and Filter.php append ?auth=<hash> (or, with
+// ZM_AUTH_RELAY=plain, the user's password) to the URL they call on another
+// server, and logged that URL: at Error level, which reaches the Logs table by
+// default, when the other server did not answer.
+$raw = array();
+foreach (array('Event.php', 'Server.php', 'Filter.php') as $name) {
+  foreach (file(__DIR__.'/../../web/includes/'.$name) as $n => $line) {
+    if (preg_match('/\b(Debug|Info|Warning|Error)\s*\(.*\$url\b/', $line) and strpos($line, 'urlForLog($url)') === false) {
+      $raw[] = "$name:".($n + 1);
+    }
+  }
+}
+check('no raw $url in a log call', $raw, array());
+
 echo "\n$passes passed, $failures failed\n";
 exit($failures ? 1 : 0);

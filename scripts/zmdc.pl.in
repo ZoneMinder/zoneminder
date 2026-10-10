@@ -514,9 +514,12 @@ sub start {
     return;
   }
 
-  # We have to block SIGCHLD during fork to prevent races while we setup our records for it
+  # We have to block SIGCHLD during fork to prevent races while we setup our records for it.
+  # TERM, INT and ABRT are blocked too: the child starts with our handlers, which
+  # only set $zm_terminate, so a stop sent to it before it resets them would be
+  # lost and the daemon it execs would keep running until KILL_DELAY.
   my $sigset = POSIX::SigSet->new;
-  my $blockset = POSIX::SigSet->new(SIGCHLD);
+  my $blockset = POSIX::SigSet->new(SIGCHLD, SIGTERM, SIGINT, SIGABRT);
   sigprocmask(SIG_BLOCK, $blockset, $sigset) or Fatal("Can't block SIGCHLD: $!");
   # Apparently the child closing the db connection can affect the parent.
   zmDbDisconnect();
@@ -539,7 +542,16 @@ sub start {
     sigprocmask(SIG_SETMASK, $sigset) or Fatal("Can't restore SIGCHLD: $!");
   } elsif ( defined($child_pid) ) {
     # Child process
-    
+
+    # Take the stop signals back to their defaults first, then unblock them, so
+    # a TERM sent while we are still getting ready to exec (connecting to the
+    # db, closing descriptors) ends this child and zmdc's reaper sees it go.
+    $SIG{INT} = 'DEFAULT';
+    $SIG{TERM} = 'DEFAULT';
+    $SIG{ABRT} = 'DEFAULT';
+    sigprocmask(SIG_UNBLOCK, POSIX::SigSet->new(SIGTERM, SIGINT, SIGABRT))
+      or Fatal("Can't unblock stop signals: $!");
+
     # Force reconnection to the db. $dbh got copied, but isn't really valid anymore.
     $dbh = zmDbConnect(1);
     logReinit();
@@ -575,9 +587,6 @@ sub start {
 
     $SIG{CHLD} = 'DEFAULT';
     $SIG{HUP} = 'DEFAULT';
-    $SIG{INT} = 'DEFAULT';
-    $SIG{TERM} = 'DEFAULT';
-    $SIG{ABRT} = 'DEFAULT';
 
     exec($daemon, @good_args) or Fatal("Can't exec: $!");
   } else {

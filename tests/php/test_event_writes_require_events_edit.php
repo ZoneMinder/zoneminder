@@ -4,6 +4,10 @@
 //   * ajax/event.php addtag / removetag (Events_Tags rows, and removetag deletes
 //     the Tag itself once it is unused)
 //   * ajax/tags.php createtag (had no permission check at all)
+//   * the Edit-level tag actions only touch events on monitors the user can
+//     view, and answer a missing and a hidden event alike
+//   * ajax/tags.php lists tags for the users the event view serves (Events or
+//     Snapshots view)
 //   * views/video.php deleteIndex (unlink() of a file in the event folder; the
 //     list includes the event's own recording since ZM_FFMPEG_FORMATS has mp4)
 //
@@ -25,7 +29,7 @@ namespace ZM {
   }
   class Event {
     public function __construct($id) {}
-    public function Id() { return 7; }
+    public function Id() { return $GLOBALS['event_exists'] ? 7 : null; }
     public function MonitorId() { return 1; }
     public function Monitor() { return new Monitor(); }
     public function Path() { return $GLOBALS['event_path']; }
@@ -54,6 +58,8 @@ namespace {
   define('ZM_FFMPEG_FORMATS', 'mp4* mpg mpeg wmv asf avi mov swf 3gp**');
 
   $GLOBALS['perms'] = array();
+  $GLOBALS['event_exists'] = true;
+  $GLOBALS['monitor_visible'] = true;
   $GLOBALS['queries'] = array();
   $GLOBALS['warnings'] = array();
   $user = new StubUser();
@@ -61,6 +67,7 @@ namespace {
   function level($area) { return $GLOBALS['perms'][$area] ?? 'None'; }
   function canView($area, $mid = false) { return in_array(level($area), array('View', 'Edit'), true); }
   function canEdit($area, $mid = false) { return level($area) === 'Edit'; }
+  function visibleMonitor($mid) { return $GLOBALS['monitor_visible']; }
   function validCardinal($v) { return preg_match('/^\d+$/', (string)$v) ? (int)$v : ''; }
   function validInt($v) { return (int)$v; }
   function reScale($a, $b, $c) { return $a; }
@@ -87,9 +94,9 @@ namespace {
     }
   }
 
-  function run_request($file, $eventsPerm, array $request) {
+  function run_request($file, $eventsPerm, array $request, array $otherPerms = array()) {
     global $user;
-    $GLOBALS['perms'] = array('Events' => $eventsPerm, 'Monitors' => 'View');
+    $GLOBALS['perms'] = array_merge(array('Events' => $eventsPerm, 'Monitors' => 'View'), $otherPerms);
     $GLOBALS['queries'] = array();
     $GLOBALS['warnings'] = array();
     $_REQUEST = $request;
@@ -117,6 +124,17 @@ namespace {
     check("Events=View $action sends no write", writes(), array());
     check("Events=Edit $action is answered", run_request('ajax/event.php', 'Edit', $req), 'response');
     check("Events=Edit $action writes", count(writes()) > 0, true);
+
+    $GLOBALS['monitor_visible'] = false;
+    check("Events=Edit $action on a hidden monitor's event is refused", run_request('ajax/event.php', 'Edit', $req), 'error');
+    check("Events=Edit $action on a hidden monitor's event sends no write", writes(), array());
+    $GLOBALS['monitor_visible'] = true;
+    $GLOBALS['event_exists'] = false;
+    check("Events=Edit $action on a missing event is refused", run_request('ajax/event.php', 'Edit', $req), 'error');
+    check("Events=Edit $action on a missing event sends no write", writes(), array());
+    $GLOBALS['event_exists'] = true;
+    check("Events=Edit $action with an array id is refused",
+      run_request('ajax/event.php', 'Edit', array_merge($req, array('id' => array('7')))), 'error');
   }
 
   // ---- ajax/tags.php -------------------------------------------------------
@@ -127,6 +145,9 @@ namespace {
   check('Events=View createtag is refused', run_request('ajax/tags.php', 'View', $create), 'error');
   check('Events=View createtag sends no write', writes(), array());
   check('Events=View getavailabletags is answered', run_request('ajax/tags.php', 'View', $list), 'response');
+  check('Snapshots=View getavailabletags is answered (the event view serves them too)',
+    run_request('ajax/tags.php', 'None', $list, array('Snapshots' => 'View')), 'response');
+  check('Snapshots=View createtag is refused', run_request('ajax/tags.php', 'None', $create, array('Snapshots' => 'View')), 'error');
   check('Events=Edit createtag is answered', run_request('ajax/tags.php', 'Edit', $create), 'response');
   check('Events=Edit createtag inserts', writes(), array('INSERT INTO Tags (Name, CreatedBy) VALUES (?, ?)'));
 

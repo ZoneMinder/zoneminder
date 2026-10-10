@@ -1,7 +1,8 @@
 <?php
 
-// Tags are attached to events: listing them needs Events view, creating one Events edit.
-if (!canView('Events')) {
+// Tags are attached to events: listing them needs what the event view needs (Events
+// or Snapshots view, as ajax/event.php), creating one Events edit.
+if (!(canView('Events') or canView('Snapshots'))) {
   ajaxError('Insufficient permissions to view tags');
 }
 

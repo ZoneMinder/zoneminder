@@ -215,14 +215,21 @@ if ( canEdit('Events') ) {
     );
     ajaxResponse(array('refreshEvent'=>true, 'refreshParent'=>false));
     break;
-  // Tagging changes the event's metadata (and removetag can delete the Tag
-  // itself), so it needs the same Events edit permission as rename/archive.
+  // Tagging changes the event's metadata, and filters select events by tag (a
+  // purge filter can keep tagged events, or delete them), so it needs the same
+  // Events edit permission as rename/archive. removetag also deletes the Tag
+  // once no event uses it.
   case 'addtag' :
     // Validate once and reuse; $_REQUEST values are strings at best and can be
     // arrays, so anything non-scalar is rejected outright.
     $tagId = is_scalar($_REQUEST['tid'] ?? null) ? validCardinal($_REQUEST['tid']) : '';
     $eventId = is_scalar($_REQUEST['id'] ?? null) ? validCardinal($_REQUEST['id']) : '';
     if ($tagId === '' or $eventId === '') ajaxError('addtag requires a numeric tid and id');
+    // Only events on monitors the user can view; a missing and a hidden event get
+    // the same answer.
+    require_once('includes/Event.php');
+    $Event = new ZM\Event($eventId);
+    if (!$Event->Id() or !visibleMonitor($Event->MonitorId())) ajaxError('No such event');
 
     $sql = 'INSERT INTO Events_Tags (TagId, EventId, AssignedBy) VALUES (?, ?, ?)';
     $values = array($tagId, $eventId, $user->Id());
@@ -240,8 +247,13 @@ if ( canEdit('Events') ) {
     ajaxResponse(array('response'=>$response));
     break;
   case 'removetag' :
-    $tagId = validCardinal($_REQUEST['tid']);
-    dbQuery('DELETE FROM Events_Tags WHERE TagId = ? AND EventId = ?', array($tagId, $_REQUEST['id']));
+    $tagId = is_scalar($_REQUEST['tid'] ?? null) ? validCardinal($_REQUEST['tid']) : '';
+    $eventId = is_scalar($_REQUEST['id'] ?? null) ? validCardinal($_REQUEST['id']) : '';
+    if ($tagId === '' or $eventId === '') ajaxError('removetag requires a numeric tid and id');
+    require_once('includes/Event.php');
+    $Event = new ZM\Event($eventId);
+    if (!$Event->Id() or !visibleMonitor($Event->MonitorId())) ajaxError('No such event');
+    dbQuery('DELETE FROM Events_Tags WHERE TagId = ? AND EventId = ?', array($tagId, $eventId));
     $rowCount = dbNumRows('SELECT * FROM Events_Tags WHERE TagId=?', [ $tagId ]);
     if ($rowCount < 1) {
       $response = dbNumRows('DELETE FROM Tags WHERE Id=?', [$tagId]);

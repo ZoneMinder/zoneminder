@@ -370,7 +370,7 @@ class Filter extends ZM_Object {
         try {
           $result = file_get_contents($url, false, $context);
           if ( $result === FALSE ) { /* Handle error */
-            Error("Error restarting zmfilter.pl using $url");
+            Error('Error restarting zmfilter.pl using '.urlForLog($url));
           }
         } catch ( Exception $e ) {
           Error("Except $e thrown trying to restart zmfilter");

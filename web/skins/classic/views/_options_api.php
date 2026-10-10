@@ -92,8 +92,8 @@ foreach (ZM\User::find([], ['order'=>'Username']) as $u) {
 ?>
           <tr>
             <td class="colUsername"><?php echo validHtmlStr($u->Username()) ?></td>
-            <td class="colMark"><input type="checkbox" name="tokenUids[]" value="<?php echo $u->Id() ?>" /></td>
-            <td class="colMark"><input type="checkbox" name="apiUids[]" value="<?php echo $u->Id() ?>" <?php echo $u->APIEnabled()?'checked':''?> /></td>
+            <td class="colMark"><input type="checkbox" name="tokenUids[]" value="<?php echo $u->Id() ?>"<?php echo $canEdit ? '' : ' disabled="disabled"' ?>/></td>
+            <td class="colMark"><input type="checkbox" name="apiUids[]" value="<?php echo $u->Id() ?>" <?php echo $u->APIEnabled()?'checked':''?><?php echo $canEdit ? '' : ' disabled="disabled"' ?>/></td>
           </tr>
 <?php
 }

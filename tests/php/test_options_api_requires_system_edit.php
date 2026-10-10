@@ -12,7 +12,10 @@ namespace ZM {
   $GLOBALS['warnings'] = array();
   function Warning($s) { $GLOBALS['warnings'][] = $s; }
   class User {
-    public static function find($a = array(), $b = array()) { return array(); }
+    public static function find($a = array(), $b = array()) { return array(new User()); }
+    public function Id() { return 1; }
+    public function Username() { return 'admin'; }
+    public function APIEnabled() { return 1; }
   }
 }
 
@@ -87,7 +90,9 @@ namespace {
 
   $html = render_api_tab('View', array());
   check('System=View sees the write buttons disabled',
-    substr_count($html, 'disabled="disabled"'), 2);
+    preg_match_all('/id="(updateSelected|revokeAllTokens)" disabled="disabled"/', $html), 2);
+  check('System=View sees the per-user checkboxes disabled',
+    preg_match_all('/name="(tokenUids|apiUids)\[\]"[^>]*disabled="disabled"/', $html), 2);
   $html = render_api_tab('Edit', array());
   check('System=Edit sees the write buttons enabled',
     substr_count($html, 'disabled="disabled"'), 0);

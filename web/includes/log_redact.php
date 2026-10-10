@@ -56,6 +56,16 @@ function removeUserinfo($value) {
   return preg_replace('#^[^\s/:@]+:[^\s/?\#]*@(?=[a-z0-9\[])#i', '', $value);
 }
 
+// Why the last PHP call failed (error_get_last()), for a log line, without the
+// call itself: for file_get_contents($url) or fopen($url) PHP's message starts
+// with the call and its URL, ?auth= or user:password@ included. Callers use @ so
+// that PHP does not write that message to the web server's error log either.
+function lastErrorForLog() {
+  $error = error_get_last();
+  if (!$error) return '';
+  return preg_replace('/^[\w:]+\(.*?\):\s*/s', '', $error['message']);
+}
+
 // Whether a request parameter of this name holds a password or secret (to be
 // replaced) or a token, auth hash, session id or CSRF token (fingerprinted).
 function logKeyKind($key) {

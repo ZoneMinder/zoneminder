@@ -169,6 +169,29 @@ foreach (array('Event.php', 'Server.php', 'Filter.php') as $name) {
 }
 check('no raw $url in a log call', $raw, array());
 
+echo "\nfailed remote requests do not put their URL in PHP warnings\n";
+// file_get_contents($url) and fopen($url) raise a warning whose text starts
+// with the call and its URL (?auth=, user:password@); PHP writes it to the web
+// server's error log. The multi-server calls now use @ and log
+// lastErrorForLog(), which keeps only the reason.
+$r = @file_get_contents('http://admin:hunter2@127.0.0.1:1/zm/index.php?view=filter&auth='.$auth, false,
+  stream_context_create(array('http' => array('timeout' => 2))));
+check('the request failed', $r, false);
+$reason = ZM\lastErrorForLog();
+check('reason kept', (bool)preg_match('/^Failed to open stream/i', $reason), true);
+check('no URL, password or auth hash in the reason',
+  array(strpos($reason, 'hunter2'), strpos($reason, $auth), strpos($reason, '127.0.0.1')), array(false, false, false));
+$raw = array();
+foreach (array('includes/Event.php', 'includes/Filter.php', 'includes/Server.php', 'includes/functions.php', 'views/image.php') as $name) {
+  foreach (file(__DIR__.'/../../web/'.$name) as $n => $line) {
+    if (preg_match('#^\s*(//|\#)#', $line)) continue;
+    if (preg_match('/(?<![@\w>:])(file_get_contents|get_headers)\(\s*\$(url|src)\b|(?<![@\w>:])fopen\(\s*\$(url|fetch_url)\b/', $line)) {
+      $raw[] = "$name:".($n + 1).': '.trim($line);
+    }
+  }
+}
+check('remote URLs are fetched with @', $raw, array());
+
 echo "\ncamera credentials are not logged\n";
 // The monitor probe, ONVIF probe, CSV import, image proxy and monitor save
 // logged camera passwords and URLs with user:password@ in them.

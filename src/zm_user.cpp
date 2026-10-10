@@ -398,8 +398,10 @@ User *zmLoadAuthUser(const std::string &auth, const std::string &username, bool 
     remote_addr = client_addr.c_str();
   }
 
-  Debug(1, "Attempting to authenticate user %s from auth hash, remote addr(%s)",
-        username.c_str(), remote_addr);
+  // The hash is a credential: log its fingerprint so this line can be matched
+  // with the web side's, not the hash.
+  Debug(1, "Attempting to authenticate user %s from auth hash %s, remote addr(%s)",
+        username.c_str(), zm::crypto::LogFingerprint(auth).c_str(), remote_addr);
   std::string sql = "SELECT `Id`, `Username`, `Password`, `Enabled`,"
                     " `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0,"
                     " COALESCE(`RoleId`, 0)"
@@ -470,7 +472,7 @@ User *zmLoadAuthUser(const std::string &auth, const std::string &username, bool 
   }  // end foreach user
   mysql_free_result(result);
 
-  Debug(1, "No user found for auth hash");
+  Debug(1, "No user found for auth hash %s", zm::crypto::LogFingerprint(auth).c_str());
   return nullptr;
 }  // end User *zmLoadAuthUser( const std::string &auth, const std::string &username, bool use_remote_addr )
 

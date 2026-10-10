@@ -4,8 +4,11 @@
 //
 // Kept dependency-free so it can be included from anywhere - session.php pulls
 // it in before the rest of the web bootstrap exists - and unit tested
-// standalone. Policy decisions that happen to involve addresses do not belong
-// here; the auth hash's use of getRemoteAddr() lives in auth.php.
+// standalone. Policy decisions that happen to involve addresses mostly live
+// with their callers (the auth hash's use of getRemoteAddr() is in auth.php).
+// corsAllowedOrigin() is the exception: the web UI's CORSHeaders() and the
+// API's AppController share it, and functions.php cannot be loaded without
+// the web bootstrap, so its tests could not reach it there.
 //
 
 // Return the effective client address.

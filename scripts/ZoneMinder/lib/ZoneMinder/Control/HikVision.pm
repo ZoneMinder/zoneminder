@@ -78,7 +78,7 @@ sub open {
       and
     $self->{Monitor}{ControlAddress} ne 'user:port@ip'
   ) {
-    Debug("Using ControlAddress for credentials: $self->{Monitor}{ControlAddress}");
+    Debug('Using ControlAddress for credentials: '.urlForLog($self->{Monitor}{ControlAddress}));
     $uri = URI->new($self->{Monitor}->{ControlAddress});
     $uri = URI->new('http://'.$self->{Monitor}->{ControlAddress}) if ref($uri) eq 'URI::_foreign';
     $$self{host} = $uri->host();
@@ -94,10 +94,9 @@ sub open {
       $$self{port} = $2 ? $2 : $$self{port};
     }
   } elsif ($self->{Monitor}{Path}) {
-    Debug("Using Path for credentials: $self->{Monitor}{Path}");
+    Debug('Using Path for credentials: '.urlForLog($self->{Monitor}{Path}));
     if (($self->{Monitor}->{Path} =~ /^(?<PROTOCOL>(https?|rtsp):\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@(?<ADDRESS>[^:\/]+)/)) {
 Debug("Have " . $+{USERNAME});
-Debug("Have " . $+{PASSWORD});
       $$self{username} = $+{USERNAME} if $+{USERNAME} and !$$self{username};
       $$self{password} = $+{PASSWORD} if $+{PASSWORD} and !$$self{password};
       $$self{host} = $+{ADDRESS} if $+{ADDRESS};
@@ -124,7 +123,7 @@ Debug("Have " . $+{PASSWORD});
 
   # Save and test the credentials
   if (defined($$self{username})) {
-    Debug("Credentials: $$self{host}:$$self{port}, realm:$$self{realm}, $$self{username}, $$self{password}");
+    Debug("Credentials: $$self{host}:$$self{port}, realm:$$self{realm}, user $$self{username}");
     $self->{ua}->credentials("$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
   } # end if defined user
 

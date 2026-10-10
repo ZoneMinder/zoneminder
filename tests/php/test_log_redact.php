@@ -169,6 +169,26 @@ foreach (array('Event.php', 'Server.php', 'Filter.php') as $name) {
 }
 check('no raw $url in a log call', $raw, array());
 
+echo "\nobject properties and failed SQL statements\n";
+// ZM_Object::apply_defaults() logs every property of a Monitor or User it
+// loads (Pass, ONVIF_Password, Path, Password); a failed statement logged its
+// bound values at Error level (Logs table), the values of a monitor or user
+// save included.
+check('a property is redacted by its name', array(ZM\redactForLog('campw', 'Pass'), ZM\redactForLog('rtsp://u:campw@192.0.2.7/s', 'Path'),
+  ZM\redactForLog('$2y$10$abc', 'Password'), ZM\redactForLog('Front', 'Name')),
+  array('[redacted]', 'rtsp://192.0.2.7/s', '[redacted]', 'Front'));
+$raw = array();
+foreach (array('includes/Object.php', 'includes/database.php') as $name) {
+  foreach (file(__DIR__.'/../../web/'.$name) as $n => $line) {
+    if (preg_match('#^\s*(//|\#)#', $line)) continue;
+    if (preg_match('/\b(Info|Warning|Error)\s*\(.*(implode|join)\([^)]*\$params/', $line)
+      or preg_match('/\b(Debug|Info|Warning|Error)\s*\(.*print_r\(\s*\$(this->\$field|row|dbRow)\b/', $line)) {
+      $raw[] = "$name:".($n + 1).': '.trim($line);
+    }
+  }
+}
+check('no raw property values or bound SQL values in log calls', $raw, array());
+
 echo "\nfailed remote requests do not put their URL in PHP warnings\n";
 // file_get_contents($url) and fopen($url) raise a warning whose text starts
 // with the call and its URL (?auth=, user:password@); PHP writes it to the web

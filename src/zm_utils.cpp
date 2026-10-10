@@ -563,6 +563,12 @@ std::string remove_authentication(const std::string &url) {
   return result;
 }
 
+std::string url_for_log(const std::string &url) {
+  std::size_t query_at = url.find('?');
+  if (query_at == std::string::npos) return remove_authentication(url);
+  return remove_authentication(url.substr(0, query_at)) + "?...";
+}
+
 std::string remove_newlines( std::string str ) {
   while (!str.empty() && str.find("\n") != std::string::npos)
     str.erase(std::remove(str.begin(), str.end(), '\n'), str.cend());

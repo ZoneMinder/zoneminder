@@ -493,3 +493,25 @@ TEST_CASE("Go2RTCApiEndpoint", "[utils]") {
   REQUIRE(Go2RTCApiEndpoint("http://user:pass@cam:1984") == "http://user:pass@cam:1984/api");
   REQUIRE(Go2RTCApiEndpoint("") == "");
 }
+
+TEST_CASE("url_for_log") {
+  SECTION("plain url is unchanged") {
+    REQUIRE(url_for_log("rtsp://127.0.0.1:8554/cam") == "rtsp://127.0.0.1:8554/cam");
+  }
+  SECTION("credentials are removed") {
+    REQUIRE(url_for_log("rtsp://admin:secret@192.168.1.1/stream") == "rtsp://192.168.1.1/stream");
+  }
+  SECTION("the query string is removed") {
+    REQUIRE(url_for_log("rtsp://127.0.0.1:8554/cam?auth=0123456789abcdef") == "rtsp://127.0.0.1:8554/cam?...");
+    REQUIRE(url_for_log("rtsp://127.0.0.1:8554/cam?username=u&password=p") == "rtsp://127.0.0.1:8554/cam?...");
+  }
+  SECTION("an @ in the query does not cut the host") {
+    REQUIRE(url_for_log("http://host/x?token=a@b") == "http://host/x?...");
+  }
+  SECTION("both") {
+    std::string out = url_for_log("rtsp://u:pw@10.0.0.2/s?token=eyJabc");
+    REQUIRE(out == "rtsp://10.0.0.2/s?...");
+    REQUIRE(out.find("pw") == std::string::npos);
+    REQUIRE(out.find("eyJ") == std::string::npos);
+  }
+}

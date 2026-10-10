@@ -182,3 +182,9 @@ std::string generateKey(const int length) {
 
 
 }
+
+std::string zm::crypto::LogFingerprint(const std::string &secret) {
+  if (secret.empty()) return "fp:none";
+  SHA256::Digest digest = SHA256::GetDigestOf(secret);
+  return "fp:" + ByteArrayToHexString(digest).substr(0, 8);
+}

@@ -284,12 +284,13 @@ function getWebSiteUrl($id, $src, $width, $height, $title='') {
   ]);
   # The End User can turn off the following warning under Options -> Web
   if ( ZM_WEB_XFRAME_WARN ) {
-    $header = get_headers($src, 1);
+    # @: on failure PHP's warning carries the URL, credentials included.
+    $header = @get_headers($src, 1);
     # If the target website has set X-Frame-Options, check it for "sameorigin" and warn the end user
-    if ( array_key_exists('X-Frame-Options', $header) ) {
+    if ( is_array($header) and array_key_exists('X-Frame-Options', $header) ) {
       $header = $header['X-Frame-Options'];
       if ( stripos($header, 'sameorigin') === 0 )
-        ZM\Warning('Web site '.$src.' has X-Frame-Options set to sameorigin. An X-Frame-Options browser plugin is required to display this site.');
+        ZM\Warning('Web site '.ZM\urlForLog($src).' has X-Frame-Options set to sameorigin. An X-Frame-Options browser plugin is required to display this site.');
     }
   }
   return '<object id="'.$id.'" data="'.$src.'" alt="'.$title.'" width="'.$width.'" height="'.$height.'"></object>';

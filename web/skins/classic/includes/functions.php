@@ -1649,8 +1649,10 @@ function getAdditionalLinksHTML($view, $forLeftBar = false) {
             $icon_ = $url->getAttribute('data-icon');
             $class_ = $url->getAttribute('class');
             $parts = parse_url($href_);
-            parse_str($parts['query'], $query);
-            $queryView = $query['view'];
+            if (isset($parts['query'])) {
+              parse_str($parts['query'], $query);
+              if (isset($query['view'])) $queryView = $query['view'];
+            }
           }
 
           $result .= buildMenuItem(

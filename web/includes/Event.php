@@ -618,7 +618,7 @@ class Event extends ZM_Object {
           return;
         }
       }
-      Debug("sending command to $url");
+      Debug('sending command to '.urlForLog($url));
       // use key 'http' even if you send the request to https://...
       $options = array(
           'http' => array(
@@ -631,7 +631,7 @@ class Event extends ZM_Object {
       try {
         $result = file_get_contents($url, false, $context);
         if ($result === FALSE) { /* Handle error */
-          Error("Error restarting zmc using $url");
+          Error('Error restarting zmc using '.urlForLog($url));
         }
         $event_data = json_decode($result,true);
         Debug(print_r($event_data['event']['Event'],1));
@@ -666,7 +666,7 @@ class Event extends ZM_Object {
           return;
         }
       }
-      Debug("sending command to $url");
+      Debug('sending command to '.urlForLog($url));
       // use key 'http' even if you send the request to https://...
       $options = array(
           'http' => array(
@@ -679,7 +679,7 @@ class Event extends ZM_Object {
       try {
         $result = file_get_contents($url, false, $context);
         if ( $result === FALSE ) { /* Handle error */
-          Error("Error restarting zmc using $url");
+          Error('Error restarting zmc using '.urlForLog($url));
         }
         $event_data = json_decode($result,true);
         Debug(print_r($event_data['event']['Event'], 1));

@@ -43,7 +43,6 @@ VideoStore::VideoStore(
   AVStream *p_video_in_stream,
   AVCodecContext *p_video_in_ctx,
   AVStream *p_audio_in_stream,
-  AVCodecContext *p_audio_in_ctx,
   Monitor *p_monitor
 ) :
   chosen_codec_data(nullptr),
@@ -57,6 +56,8 @@ VideoStore::VideoStore(
   video_in_stream(p_video_in_stream),
   audio_in_stream(p_audio_in_stream),
   audio_in_codec(nullptr),
+  // Opened in open() from audio_in_stream's codecpar, not handed in. The
+  // caller used to pass a context as well and this ignored it.
   audio_in_ctx(nullptr),
   audio_out_codec(nullptr),
   audio_out_ctx(nullptr),

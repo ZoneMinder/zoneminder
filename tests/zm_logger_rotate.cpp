@@ -66,3 +66,61 @@ TEST_CASE("SIGWINCH reopens the log file after rotation") {
   unlink(path.c_str());
   unlink(rotated.c_str());
 }
+
+// Without ZM_LOG_DEBUG the overall level is capped at INFO, but each target
+// keeps its configured level. SIGUSR1 raises the overall level, as if
+// ZM_LOG_DEBUG_LEVEL had been bumped, so debug reaches the targets configured
+// for it. It used to clamp every target to INFO too, so SIGUSR1 did nothing.
+TEST_CASE("SIGUSR1 turns on debug logging for targets configured for debug") {
+  std::string path = stringtf("/tmp/zm_test_logusr1_%d.log", getpid());
+  unlink(path.c_str());
+
+  setenv("LOG_FLUSH", "1", 1);
+  Logger::Options options(Logger::NOLOG, Logger::NOLOG, Logger::DEBUG9, Logger::NOLOG);
+  options.mLogFile = path;
+  logInit("zm_test_logusr1", options);
+
+  Debug(1, "debug before signal");
+  REQUIRE(slurp(path).find("debug before signal") == std::string::npos);
+
+  raise(SIGUSR1);
+  Debug(1, "debug after signal");
+  Debug(2, "too verbose for one signal");
+
+  std::string contents = slurp(path);
+  REQUIRE(contents.find("debug after signal") != std::string::npos);
+  REQUIRE(contents.find("too verbose for one signal") == std::string::npos);
+
+  raise(SIGUSR2);
+  Debug(1, "debug after lowering");
+  Info("info after lowering");
+
+  contents = slurp(path);
+  REQUIRE(contents.find("debug after lowering") == std::string::npos);
+  REQUIRE(contents.find("info after lowering") != std::string::npos);
+
+  logTerm();
+  unlink(path.c_str());
+}
+
+TEST_CASE("SIGUSR1 leaves targets configured for INFO at INFO") {
+  std::string path = stringtf("/tmp/zm_test_logusr1_info_%d.log", getpid());
+  unlink(path.c_str());
+
+  setenv("LOG_FLUSH", "1", 1);
+  Logger::Options options(Logger::NOLOG, Logger::NOLOG, Logger::INFO, Logger::NOLOG);
+  options.mLogFile = path;
+  logInit("zm_test_logusr1_info", options);
+
+  raise(SIGUSR1);
+  Debug(1, "debug after signal");
+  Info("info after signal");
+
+  std::string contents = slurp(path);
+  REQUIRE(contents.find("debug after signal") == std::string::npos);
+  REQUIRE(contents.find("info after signal") != std::string::npos);
+
+  raise(SIGUSR2);
+  logTerm();
+  unlink(path.c_str());
+}

@@ -138,7 +138,6 @@ class VideoStore {
     AVStream *video_in_stream,
     AVCodecContext  *video_in_ctx,
     AVStream *audio_in_stream,
-    AVCodecContext  *audio_in_ctx,
     Monitor * p_monitor);
   ~VideoStore();
   bool  open();

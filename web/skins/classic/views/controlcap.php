@@ -45,7 +45,6 @@ if ( isset($_REQUEST['Control']) ) {
   } else {
     $Control = array(
       'Name' => translate('New'),
-      'Type' => 'Local',
       'Protocol' => '',
       'CanWake' => '',
       'CanSleep' => '',
@@ -211,21 +210,6 @@ switch ( $name ) {
             <tr>
               <th class="text-right pr-3" scope="row"><?php echo translate('Name') ?></th>
               <td><input type="text" name="Control[Name]" value="<?php echo validHtmlStr($Control['Name']) ?>"/></td>
-            </tr>
-            <tr>
-              <th class="text-right pr-3" scope="row"><?php echo translate('Type') ?></th>
-              <td>
-<?php 
-    $types = array(
-      'Local'=>translate('Local'),
-      'Remote'=>translate('Remote'),
-      'Ffmpeg'=>translate('Ffmpeg'),
-      'Libvlc'=>translate('Libvlc'),
-      'cURL'=>'cURL'
-    );
-    echo buildSelect('Control[Type]', $types);
-?>
-              </td>
             </tr>
             <tr>
               <th class="text-right pr-3" scope="row"><?php echo translate('Protocol') ?></th>

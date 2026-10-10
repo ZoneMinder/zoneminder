@@ -43,7 +43,7 @@ jobs:
             default-libmysqlclient-dev \
             libbz2-dev libcurl4-openssl-dev libjpeg-dev libturbojpeg0-dev \
             libpcre2-dev libpolkit-gobject-1-dev libssl-dev zlib1g-dev \
-            libv4l-dev libvlc-dev libvncserver-dev \
+            libv4l-dev libvncserver-dev \
             libmosquitto-dev libmosquittopp-dev \
             gsoap libgsoap-dev
 

@@ -50,8 +50,6 @@ Camera::Camera(
   record_audio(p_record_audio),
   mVideoStreamId(-1),
   mAudioStreamId(-1),
-  mVideoCodecContext(nullptr),
-  mAudioCodecContext(nullptr),
   mVideoStream(nullptr),
   mAudioStream(nullptr),
   mFormatContext(nullptr),

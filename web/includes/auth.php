@@ -455,7 +455,11 @@ function visibleMonitor($mid) {
 function canView($area, $mid=false) {
   global $user;
   if (!$user) return false;
-  if ($mid) return visibleMonitor($mid);
+  // With a monitor the user needs both the area permission and that monitor. Monitors is the
+  // area visibleMonitor() already decides; any other area (Control) used to be ignored, so
+  // canView('Control', $mid) passed for anyone who could see the monitor.
+  // refs GHSA-qcm7-vq92-f86f
+  if ($mid) return visibleMonitor($mid) and (($area == 'Monitors') or canView($area));
 
   # Check user's direct permission first
   if ($user->$area() && ($user->$area() != 'None')) {
@@ -551,7 +555,7 @@ function canEdit($area, $mid=false) {
   global $user;
 
   if (!$user) return false;
-  if ($mid) return editableMonitor($mid);
+  if ($mid) return editableMonitor($mid) and (($area == 'Monitors') or canEdit($area));
 
   # Check user's direct permission first
   if ($user->$area() == 'Edit' or $user->$area() == 'Create') {

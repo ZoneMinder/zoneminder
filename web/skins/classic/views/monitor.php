@@ -144,21 +144,26 @@ $sourceTypes = array(
     'Remote' => translate('Remote'),
     'File'   => translate('File'),
     'Ffmpeg' => translate('Ffmpeg'),
-    'Libvlc' => translate('Libvlc'),
     'WebSite'=> 'Web Site',
-    'NVSocket'	=> translate('NVSocket'),
     'VNC' => translate('VNC'),
     );
 if (!ZM_HAS_V4L2)
   unset($sourceTypes['Local']);
 
 
+// ZoneMinder's own RTSP/RTP implementation has been removed in favour of
+// Ffmpeg. Remote is still the right capture method for mjpeg streams and
+// snapshot-jpeg cameras, which is what http covers.
 $remoteProtocols = array(
     'http' => 'HTTP',
-    // ZoneMinder's own RTSP/RTP implementation is deprecated in favour of
-    // Ffmpeg, which handles more cameras and is maintained upstream.
-    'rtsp' => 'RTSP ('.translate('Deprecated').')'
     );
+
+// A monitor already saved as rtsp keeps the option visible, so that opening it
+// to read the warning does not quietly re-save it as http. New monitors are
+// not offered it.
+if ($monitor->Protocol() == 'rtsp') {
+  $remoteProtocols['rtsp'] = 'RTSP ('.translate('Removed').')';
+}
 
 $rtspMethods = array(
     'rtpUni'      => 'RTP/Unicast',
@@ -741,8 +746,6 @@ if (count($localMethods)>1) {
           </li>
 <?php
 
-      } else if ( $monitor->Type() == 'NVSocket' ) {
-include('_monitor_source_nvsocket.php');
       } else if ( $monitor->Type() == 'VNC' ) {
 ?>
         <li class="Host">
@@ -831,7 +834,7 @@ include('_monitor_source_nvsocket.php');
             <input type="number" name="newMonitor[Refresh]" value="<?php echo validHtmlStr($monitor->Refresh()) ?>" min="1" step="1"/>
           </li>
 <?php
-      } else if ( $monitor->Type() == 'Ffmpeg' || $monitor->Type() == 'Libvlc' ) {
+      } else if ( $monitor->Type() == 'Ffmpeg' ) {
 ?>
           <li class="SourcePath">
             <label><?php echo translate('SourcePath') ?></label>
@@ -930,7 +933,7 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
           <li>
 <?php
       }
-      if ( $monitor->Type() != 'NVSocket' && $monitor->Type() != 'WebSite' ) {
+      if ( $monitor->Type() != 'WebSite' ) {
 ?>
         <li class="TargetColorspace">
           <label><?php echo translate('TargetColorspace') ?></label>
@@ -1011,20 +1014,12 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
             </li>
 <?php
         }
-        if ( $monitor->Type() == 'Remote' ) {
-          ?>
-            <li id="RTSPDescribe"<?php if ( $monitor->Protocol()!= 'rtsp' ) { echo ' style="display:none;"'; } ?>>
-              <label><?php echo translate('RTSPDescribe'); echo makeHelpLink('OPTIONS_RTSPDESCRIBE') ?></label>
-              <input type="checkbox" name="newMonitor[RTSPDescribe]" value="1"<?php if ( $monitor->RTSPDescribe() ) { ?> checked="checked"<?php } ?>/>
-            </li>
-<?php
-      } # end if monitor->Type() == 'Remote'
 ?>
             <li class="MaxFPS">
               <label><?php echo translate('MaximumFPS'); echo makeHelpLink('OPTIONS_MAXFPS') ?></label>
               <input type="number" name="newMonitor[MaxFPS]" value="<?php echo validHtmlStr($monitor->MaxFPS()) ?>" min="0" step="any"/>
 <?php
-      if ( $monitor->Type() != 'Local' && $monitor->Type() != 'File' && $monitor->Type() != 'NVSocket' ) {
+      if ( $monitor->Type() != 'Local' && $monitor->Type() != 'File' ) {
 ?>
                 <span id="newMonitor[MaxFPS]" style="color:red;<?php echo $monitor->MaxFPS() ? '' : 'display:none;' ?>">CAUTION: See the help text</span>
 <?php } ?>
@@ -1034,7 +1029,7 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
               <label><?php echo translate('AlarmMaximumFPS'); echo makeHelpLink('OPTIONS_ALARMMAXFPS') ?></label>
               <input type="number" name="newMonitor[AlarmMaxFPS]" value="<?php echo validHtmlStr($monitor->AlarmMaxFPS()) ?>" min="0" step="any"/>
 <?php
-      if ( $monitor->Type() != 'Local' && $monitor->Type() != 'File' && $monitor->Type() != 'NVSocket' ) {
+      if ( $monitor->Type() != 'Local' && $monitor->Type() != 'File' ) {
 ?>
               <span id="newMonitor[AlarmMaxFPS]" style="color:red;<?php echo $monitor->AlarmMaxFPS() ? '' : 'display:none;' ?>">CAUTION: See the help text</span>
 <?php } ?>

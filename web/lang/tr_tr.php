@@ -460,7 +460,6 @@ $SLANG = array(
 	'Probe'=> 'Sondaj',
 	'ProfileProbe'=> 'Akış Sondası',
 	'ProfileProbeIntro'=> 'Aşağıdaki liste seçili kameranın mevcut akış profillerini gösterir.<br/><br/> Aşağıdaki listeden istediğiniz girişi seçin.<br/><br/> ZoneMinder\'ın ek profiller yapılandıramayacağını ve burada bir kamera seçmenin, geçerli monitör için daha önce yapılandırdığınız değerlerin üzerine yazabileceğini lütfen unutmayın.<br/><br/>',
-	'RTSPDescribe'=> 'RTSP Yanıt Medya URL\'sini kullanın',
 	'RTSPTransport'=> 'RTSP Taşıma Protokolü',
 	'RecaptchaWarning'=> 'reCaptcha gizli anahtarınız geçersiz. Lütfen düzeltin, aksi takdirde reCaptcha çalışmayacaktır',
 	'RecordAudio'=> 'Bir etkinliği kaydederken ses akışının saklanıp saklanmayacağı.',
@@ -774,26 +773,11 @@ $OLANG = array(
 		HTTP - Vekil sunucuları geçirmek için yararlı olan HTTP tünellemesini taşıma protokolü olarak kullanın.~~'
 	),
 	
-	'OPTIONS_LIBVLC'=> array(
-		'Help'=> 
-		'Bu alandaki parametreler libVLC\'ye iletilir. 
-		Birden fazla parametre ,~~ ile ayrılabilir
-		Örnekler (tırnak işareti girmeyin)~~~~
-			"--rtp-client-port=nnn" Rtp verileri için kullanılacak yerel portu ayarlayın~~~~
-			"--verbose=2" libVLC\'nin ayrıntı düzeyini ayarlayın'
-	),
 	
 	'OPTIONS_EXIF'=> array(
 		'Help'=> 'Her JPEG karesine EXIF ​​verilerini yerleştirmek için bu seçeneği etkinleştirin.'
 	),
 	
-	'OPTIONS_RTSPDESCRIBE'=> array(
-		'Help'=>
-		'Bazen, ilk RTSP el sıkışması sırasında kamera güncellenmiş bir medya URL\'si gönderecektir.
-		ZoneMinder\'a bu URL\'yi kullanmasını söylemek için bu seçeneği etkinleştirin.
-		Kameradan gelen değeri yoksaymak ve monitör yapılandırmasında girilen değeri kullanmak için bu seçeneği devre dışı bırakın~~~~
-		Genellikle bu etkinleştirilmelidir. Ancak, kameranın kendi URL\'sini yanlış alabileceği durumlar vardır, örneğin kamera bir güvenlik duvarından geçerken.'
-  ),
   
 	'OPTIONS_MAXFPS'=> array(
 		'Help'=> 

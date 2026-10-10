@@ -193,11 +193,9 @@ void Logger::initialise(const std::string &id, const Options &options) {
       }
     }  // end foreach target
   } else {
-    // if we don't have debug turned on, then the max effective log level is INFO
-    if ( tempSyslogLevel > INFO ) tempSyslogLevel = INFO;
-    if ( tempFileLevel > INFO ) tempFileLevel = INFO;
-    if ( tempTerminalLevel > INFO ) tempTerminalLevel = INFO;
-    if ( tempDatabaseLevel > INFO ) tempDatabaseLevel = INFO;
+    // if we don't have debug turned on, then the max effective log level is INFO.
+    // Only cap the overall level. The per-target levels stay as configured so
+    // that raising the level with SIGUSR1 sends debug to the targets set for it.
     if ( tempLevel > INFO ) tempLevel = INFO;
   }  // end if config.log_debug
 

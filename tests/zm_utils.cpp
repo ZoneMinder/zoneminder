@@ -129,9 +129,10 @@ TEST_CASE("Split (string delimiter)") {
   items = Split("a b c", " ", 2);
   REQUIRE(items == std::vector<std::string>{"a", "b c"});
 
-  // LibvlcCamera splits the monitor Options field this way. The field is a
-  // textarea, so an option may be on its own line rather than after a comma,
-  // and runs of separators (a blank line, or crlf) must not become entries.
+  // A monitor's Options field is a textarea, so an entry may be on its own
+  // line rather than after a comma, and runs of separators (a blank line, or
+  // crlf) must not become empty entries. Split() is no longer the reader of
+  // that field, but this is the contract kOptionSeparators is chosen for.
   items = Split("--rate=1\n--no-audio", kOptionSeparators);
   REQUIRE(items == std::vector<std::string>{"--rate=1", "--no-audio"});
 

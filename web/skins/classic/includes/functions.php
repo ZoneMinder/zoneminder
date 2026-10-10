@@ -455,8 +455,6 @@ function buildSidebarMenu() {
               </a>
             </li>
 ';
-  } else if (defined('ZM_SIDEBAR_FOOTER') and ZM_SIDEBAR_FOOTER) {
-    $menu .= ZM_SIDEBAR_FOOTER;
   }
   $menu .= '
           </ul>
@@ -1920,6 +1918,20 @@ function xhtmlFooter() {
 class ZM_Menu {
   public static $submenuOptionsItems = [];
 
+  // A tab is not always named after its category key. 'display' holds
+  // per-browser state kept in a cookie rather than stored configuration, and
+  // 'web' holds the display settings that are stored, so labelling either one
+  // after its key tells the user the wrong thing.
+  private static $categoryLabels = [
+    'version' => 'Versions',
+    'display' => 'ThisSession',
+    'web'     => 'Display',
+  ];
+
+  private static function categoryLabel($cat) {
+    return translate(isset(self::$categoryLabels[$cat]) ? self::$categoryLabels[$cat] : mb_ucfirst($cat));
+  }
+
   public function __construct(string $typeMenu, array $menuItems) {
 
   }
@@ -1936,7 +1948,7 @@ class ZM_Menu {
         $added = true;
       }
       if ($added) {
-        self::$submenuOptionsItems[$cat] = translate(mb_ucfirst(($cat == 'version') ? 'Versions' : $cat));
+        self::$submenuOptionsItems[$cat] = self::categoryLabel($cat);
         unset($categoriesOptionsInDB[$key]);
       }
     }
@@ -1945,7 +1957,7 @@ class ZM_Menu {
     if (count($categoriesOptionsInDB)) {
       foreach ($categoriesOptionsInDB as $cat) {
         if (!in_array(strtolower($cat), ['dynamic', 'hidden'], $strict = false)) // Prohibited categories
-          self::$submenuOptionsItems[$cat] = translate(mb_ucfirst($cat));
+          self::$submenuOptionsItems[$cat] = self::categoryLabel($cat);
       }
     }
   }

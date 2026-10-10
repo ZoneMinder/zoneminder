@@ -430,7 +430,6 @@ svg.zones {
 */
 #frames img {
   float: left;
-  z-index: 1000;
   border: 1px solid var(--gray);
   border-radius: 5px;
   margin: 3px;

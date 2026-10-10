@@ -68,7 +68,7 @@ jobs:
             libavcodec-dev libavdevice-dev libavformat-dev libavutil-dev \
             libswresample-dev libswscale-dev libbz2-dev \
             libturbojpeg0-dev default-libmysqlclient-dev \
-            libpolkit-gobject-1-dev libv4l-dev libvlc-dev libssl-dev \
+            libpolkit-gobject-1-dev libv4l-dev libssl-dev \
             libvncserver-dev libjwt-gnutls-dev libgsoap-dev gsoap \
             libmosquittopp-dev
 

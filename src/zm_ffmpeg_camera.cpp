@@ -52,9 +52,7 @@ FfmpegCamera::FfmpegCamera(
   int p_hue,
   int p_colour,
   bool p_capture,
-  bool p_record_audio,
-  const std::string &p_hwaccel_name,
-  const std::string &p_hwaccel_device) :
+  bool p_record_audio) :
   Camera(
     monitor,
     FFMPEG_SRC,
@@ -75,11 +73,8 @@ FfmpegCamera::FfmpegCamera(
   mPass(p_pass),
   mMethod(p_method),
   mOptions(p_options),
-  hwaccel_name(p_hwaccel_name),
-  hwaccel_device(p_hwaccel_device),
   mSecondInput(nullptr),
   frameCount(0),
-  use_hwaccel(true),
   mConvertContext(nullptr),
   error_count(0),
   stream_width(0),
@@ -102,8 +97,6 @@ FfmpegCamera::FfmpegCamera(
   }
 
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
-  hw_device_ctx = nullptr;
-  hw_pix_fmt = AV_PIX_FMT_NONE;
 #endif
 
   /* Has to be located inside the constructor so other components such as zma
@@ -597,225 +590,16 @@ int FfmpegCamera::OpenFfmpeg() {
   Debug(3, "Found video stream at index %d, audio stream at index %d",
         mVideoStreamId, mAudioStreamId);
 
-  const AVCodec *mVideoCodec = nullptr;
-  std::list<const CodecData *>codec_data = get_decoder_data(mVideoStream->codecpar->codec_id, monitor->DecoderName().c_str());
-  if (codec_data.size() == 0 and (!monitor->DecoderName().empty() and (monitor->DecoderName() != "auto"))) {
-    Warning("No decoder for codec %d found with name %s. Trying auto.", mVideoStream->codecpar->codec_id, monitor->DecoderName().c_str());
-    codec_data = get_decoder_data(mVideoStream->codecpar->codec_id, "auto");
-  }
-
-  for (auto it = codec_data.begin(); it != codec_data.end(); it ++) {
-    const CodecData *chosen_codec_data = *it;
-    Debug(1, "Found codec %s", chosen_codec_data->codec_name);
-
-    mVideoCodec = avcodec_find_decoder_by_name(chosen_codec_data->codec_name);
-
-    if (!mVideoCodec) {
-      mVideoCodec = avcodec_find_decoder(mVideoStream->codecpar->codec_id);
-      if (!mVideoCodec) {
-        // Try and get the codec from the codec context
-        Error("Can't find codec for video stream from %s", mMaskedPath.c_str());
-        continue;
-      }
-    }
-
-    mVideoCodecContext = avcodec_alloc_context3(mVideoCodec);
-    avcodec_parameters_to_context(mVideoCodecContext, mFormatContext->streams[mVideoStreamId]->codecpar);
-    mVideoCodecContext->framerate = mVideoStream->r_frame_rate;
-    mVideoCodecContext->sw_pix_fmt = chosen_codec_data->sw_pix_fmt;
-
-    // libavcodec defaults thread_count to 1, making software 1080p H.264
-    // decode hit ~60ms/frame and saturate a core per camera.  Default to 2
-    // frame-threads instead.  User can override (including 0 = auto) via
-    // thread_count in monitor Options.
-    mVideoCodecContext->thread_count = 2;
-    mVideoCodecContext->thread_type = FF_THREAD_FRAME | FF_THREAD_SLICE;
-
-    // Set default options for this codec
-    if (chosen_codec_data->options_defaults) {
-      AVDictionary *opts_defaults = nullptr;
-      av_dict_parse_string(&opts_defaults, chosen_codec_data->options_defaults, "=", ",", 0);
-      AVDictionaryEntry *e = nullptr;
-      while ((e = av_dict_get(opts_defaults, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr) {
-        const AVDictionaryEntry *entry = av_dict_get(opts, e->key, nullptr, AV_DICT_MATCH_CASE);
-        if (!entry) {
-          int ret;
-          if ((ret = av_dict_set(&opts, e->key, e->value, 0)) < 0) {
-            Error("Couldn't set default Option %s set to %s", e->key, e->value);
-          }
-          Debug(1, "Option %s set to %s from default", e->key, e->value);
-        }
-      }
-      av_dict_free(&opts_defaults);
-    }
-
-    //Set user-specified options, which may override codec defaults
-    if (!mOptions.empty()) {
-      av_dict_parse_string(&opts, mOptions.c_str(), "=", kOptionSeparators, 0);
-      const AVDictionaryEntry *entry = av_dict_get(opts, "thread_count", nullptr, AV_DICT_MATCH_CASE);
-      if (entry) {
-        mVideoCodecContext->thread_count = std::stoul(entry->value);
-        Debug(1, "Setting codec thread_count to %d", mVideoCodecContext->thread_count);
-        av_dict_set(&opts, "thread_count", nullptr, AV_DICT_MATCH_CASE);
-      }
-      // reorder_queparse for avforpts, mOpcodec
-      av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
-      av_dict_set(&opts, "probesize", nullptr, AV_DICT_MATCH_CASE);
-      // loop / realtime (re) are consumed by FfmpegCamera, not the decoder;
-      // strip them so avcodec_open2 doesn't report them as unrecognized.
-      av_dict_set(&opts, "loop", nullptr, AV_DICT_MATCH_CASE);
-      av_dict_set(&opts, "realtime", nullptr, AV_DICT_MATCH_CASE);
-      av_dict_set(&opts, "re", nullptr, AV_DICT_MATCH_CASE);
-    }
-
-    if (use_hwaccel && (hwaccel_name != "")) {
-#if HAVE_LIBAVUTIL_HWCONTEXT_H
-      // 3.2 doesn't seem to have all the bits in place, so let's require 3.4 and up
-#if LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
-      // Build the list of hw device types to try. A DecoderHWAccelName of
-      // "auto" probes every hwaccel libav offers and uses the first that both
-      // the decoder supports and whose device can be created; any other value
-      // is a comma-separated priority list of device-type names, tried in
-      // order (e.g. "cuda,vaapi"; a single name like "vaapi" is just the
-      // one-element case and behaves as before). If nothing usable is found
-      // we transparently fall back to software.
-      std::vector<enum AVHWDeviceType> candidate_types;
-      bool auto_detect = (hwaccel_name == "auto");
-      enum AVHWDeviceType it = AV_HWDEVICE_TYPE_NONE;
-      while ((it = av_hwdevice_iterate_types(it)) != AV_HWDEVICE_TYPE_NONE) {
-        Debug(1, "Available hwdevice type %s", av_hwdevice_get_type_name(it));
-        if (auto_detect) candidate_types.push_back(it);
-      }
-      if (!auto_detect) {
-        for (const std::string &token : Split(hwaccel_name, ',')) {
-          std::string name = TrimSpaces(token);
-          if (name.empty()) continue;
-          enum AVHWDeviceType named = av_hwdevice_find_type_by_name(name.c_str());
-          if (named == AV_HWDEVICE_TYPE_NONE)
-            Warning("Unknown hwaccel device type '%s', skipping.", name.c_str());
-          else
-            candidate_types.push_back(named);
-        }
-      }
-
-      for (enum AVHWDeviceType type : candidate_types) {
-        Debug(1, "Trying hwdevice %s", av_hwdevice_get_type_name(type));
-        hw_pix_fmt = AV_PIX_FMT_NONE;
-#if LIBAVUTIL_VERSION_CHECK(56, 22, 0, 14, 0)
-        // Does this decoder advertise a hw config for this device type?
-        for (int i = 0;; i++) {
-          const AVCodecHWConfig *config = avcodec_get_hw_config(mVideoCodec, i);
-          if (!config) break;
-          if ((config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX)
-              && (config->device_type == type)) {
-            hw_pix_fmt = config->pix_fmt;
-            Debug(1, "Decoder %s supports type %s (pix_fmt %s).",
-                mVideoCodec->name, av_hwdevice_get_type_name(type),
-                zm_get_pix_fmt_name(hw_pix_fmt));
-          }
-        }  // end foreach hwconfig
-#else
-        hw_pix_fmt = find_fmt_by_hw_type(type);
-#endif
-        if (hw_pix_fmt == AV_PIX_FMT_NONE) {
-          Debug(1, "Decoder %s has no hw_pix_fmt for %s, skipping.",
-              mVideoCodec->name, av_hwdevice_get_type_name(type));
-          continue;
-        }
-
-        ret = av_hwdevice_ctx_create(&hw_device_ctx, type,
-            (hwaccel_device != "" ? hwaccel_device.c_str() : nullptr), nullptr, 0);
-        if (ret < 0 and hwaccel_device != "")
-          ret = av_hwdevice_ctx_create(&hw_device_ctx, type, nullptr, nullptr, 0);
-        if (ret < 0) {
-          Warning("Failed to create %s hwaccel device: %s",
-              av_hwdevice_get_type_name(type), av_make_error_string(ret).c_str());
-          hw_pix_fmt = AV_PIX_FMT_NONE;
-          hw_device_ctx = nullptr;
-          continue;  // try the next candidate
-        }
-
-        // Success: wire up hardware decoding and stop searching.
-        Info("Using %s hardware decoding for %s",
-            av_hwdevice_get_type_name(type), mVideoCodec->name);
-        mVideoCodecContext->hwaccel_flags |= AV_HWACCEL_FLAG_IGNORE_LEVEL;
-        //if (!lavc_param->check_hw_profile)
-        mVideoCodecContext->hwaccel_flags |= AV_HWACCEL_FLAG_ALLOW_PROFILE_MISMATCH;
-        // Set opaque to point to our hw_pix_fmt so callback can access it
-        mVideoCodecContext->opaque = &hw_pix_fmt;
-        mVideoCodecContext->get_format = get_hw_format;
-        mVideoCodecContext->hw_device_ctx = av_buffer_ref(hw_device_ctx);
-        break;
-      }  // end foreach candidate type
-
-      if (hw_pix_fmt == AV_PIX_FMT_NONE) {
-        // "auto" asks us to probe, so finding nothing is unremarkable. But if
-        // the admin named hwaccels explicitly and none of them worked, this
-        // monitor now decodes on the CPU and nothing else will ever say so:
-        // a default install does not log Debug, and we only get here once, at
-        // capture start. That silence hides a dead GPU for as long as nobody
-        // wonders why the load average doubled.
-        if (auto_detect) {
-          Debug(1, "No usable hardware decoder found; falling back to software decoding.");
-        } else {
-          Warning("None of the requested hwaccels (%s) are usable for %s; "
-              "falling back to software decoding.",
-              hwaccel_name.c_str(), mVideoCodec->name);
-        }
-        use_hwaccel = false;
-      }
-#else
-      Debug(1, "AVCodec not new enough for hwaccel");
-#endif
-#else
-      Warning("HWAccel support not compiled in.");
-#endif
-    }  // end if hwaccel_name
-
-    ret = avcodec_open2(mVideoCodecContext, mVideoCodec, &opts);
-
-    e = nullptr;
-    while ((e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr) {
-      Warning("Option %s not recognized by ffmpeg", e->key);
-    }
-    av_dict_free(&opts);
-
-    if (ret < 0) {
-      Error("Unable to open codec for video stream from %s", mMaskedPath.c_str());
-      avcodec_free_context(&mVideoCodecContext);
-      mVideoCodecContext = nullptr;
-      continue;
-    }
-    Debug(1, "Thread count? %d", mVideoCodecContext->thread_count);
-    zm_dump_codec(mVideoCodecContext);
-    break;
-  } // end foreach codec
-
-  if (!mVideoCodecContext) {
-    Debug(1, "Failed with known codecs, trying harder");
-    mVideoCodecContext = open_fallback_decoder(mVideoStream->codecpar, &mVideoCodec);
-  }
-
-  if (!mVideoCodecContext) {
-    Warning("Failed to open codec");
-    return -1;
-  }
+  // No decoder is opened here any more. The monitor opens one against this
+  // stream in Monitor::OpenDecoder() once PrimeCapture() returns, and owns it
+  // for as long as the decoder thread needs it. This camera's job is to
+  // produce packets.
 
   if (mAudioStreamId >= 0) {
-    const AVCodec *mAudioCodec = nullptr;
-    if (!(mAudioCodec = avcodec_find_decoder(mAudioStream->codecpar->codec_id))) {
-      Debug(1, "Can't find codec for audio stream from %s", mMaskedPath.c_str());
-    } else {
-      mAudioCodecContext = avcodec_alloc_context3(mAudioCodec);
-      avcodec_parameters_to_context(mAudioCodecContext, mAudioStream->codecpar);
-
-      zm_dump_stream_format((mSecondFormatContext?mSecondFormatContext:mFormatContext), mAudioStreamId, 0, 0);
-      // Open the codec
-      if (avcodec_open2(mAudioCodecContext, mAudioCodec, nullptr) < 0) {
-        Error("Unable to open codec for audio stream from %s", mMaskedPath.c_str());
-        return -1;
-      }  // end if opened
-    }  // end if found decoder
+    // No audio decoder is opened here. Both things that decode audio build
+    // their own from the stream's codecpar: VideoStore for transcoding to aac,
+    // and AudioDetector for levels. This camera only has to find the stream.
+    zm_dump_stream_format((mSecondFormatContext?mSecondFormatContext:mFormatContext), mAudioStreamId, 0, 0);
   } else if (!monitor->GetSecondPath().empty()) {
     Debug(1, "Trying secondary stream at %s", mMaskedSecondPath.c_str());
     std::string secondPath = mSecondPath;
@@ -838,19 +622,22 @@ int FfmpegCamera::OpenFfmpeg() {
       mSecondFormatContext = mSecondInput->get_format_context();
       mAudioStreamId = mSecondInput->get_audio_stream_id();
       mAudioStream = mSecondInput->get_audio_stream();
-      mAudioCodecContext = mSecondInput->get_audio_codec_context();
     } else {
       Warning("Failed to open secondary input");
     }
   }  // end if have audio stream
 
+  // Ask the stream, not the decoder. Both carry the same dimensions -- the
+  // decoder context is filled from the stream's codecpar -- but the stream is
+  // what the camera is actually sending, and reading it here means this check
+  // does not depend on a decoder having been opened.
   if (
-    ((unsigned int)mVideoCodecContext->width != width)
+    ((unsigned int)mVideoStream->codecpar->width != width)
     ||
-    ((unsigned int)mVideoCodecContext->height != height)
+    ((unsigned int)mVideoStream->codecpar->height != height)
   ) {
     Debug(1, "Monitor dimensions are %dx%d but camera is sending %dx%d",
-          width, height, mVideoCodecContext->width, mVideoCodecContext->height);
+          width, height, mVideoStream->codecpar->width, mVideoStream->codecpar->height);
   }
 
   // Seed fallback per-frame durations (in each stream's time_base) used to space
@@ -878,32 +665,6 @@ int FfmpegCamera::Close() {
   mLastVideoDTS = AV_NOPTS_VALUE;
   mLastAudioDTS = AV_NOPTS_VALUE;
 
-  if (mVideoCodecContext) {
-    //avcodec_close(mVideoCodecContext);
-    avcodec_free_context(&mVideoCodecContext);
-    mVideoCodecContext = nullptr;
-  }
-
-  if (mAudioCodecContext and !mSecondInput) {
-    // If second input, then these will get freed in FFmpeg_Input's destructor
-    //avcodec_close(mAudioCodecContext);
-    avcodec_free_context(&mAudioCodecContext);
-    mAudioCodecContext = nullptr;
-  }
-
-#if HAVE_LIBAVUTIL_HWCONTEXT_H
-  if ( hw_device_ctx ) {
-    av_buffer_unref(&hw_device_ctx);
-  }
-#endif
-
-  // Re-arm hardware decoding for the next PrimeCapture(). Without this a
-  // single transient failure - a GPU still resetting, a driver that finished
-  // initialising after zmc started, a render node not yet permissioned -
-  // pins the monitor to software decoding for the whole life of the process,
-  // long after the hardware is healthy again. Reconnects are the natural
-  // retry point, so let them retry.
-  use_hwaccel = true;
 
   if ( mFormatContext ) {
     avformat_close_input(&mFormatContext);

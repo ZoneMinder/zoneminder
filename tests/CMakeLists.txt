@@ -17,12 +17,15 @@ set(TEST_SOURCES
   zm_db_contention_live.cpp
   zm_db_schema.cpp
   zm_box.cpp
+  zm_buffer.cpp
   zm_audio_detector.cpp
   zm_comms.cpp
   zm_crypt.cpp
   zm_event_hardlink.cpp
   zm_font.cpp
+  zm_hwaccel_candidates.cpp
   zm_image.cpp
+  zm_image_annotate.cpp
   zm_monitor_shm.cpp
   zm_monitorstream.cpp
   zm_mp4_sidx.cpp

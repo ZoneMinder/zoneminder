@@ -115,7 +115,6 @@ if ($action == 'save') {
       'Restream' => 0,
 //       'Janus_RTSP_Session_Timeout' => 0,
       'Exif' => 0,
-      'RTSPDescribe' => 0,
       'V4LMultiBuffer'  => '',
       'WallClockTimestamps' => '',
       'RecordAudio' => 0,

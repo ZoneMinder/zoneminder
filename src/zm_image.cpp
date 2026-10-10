@@ -86,6 +86,12 @@ imgbufcpy_fptr_t fptr_imgbufcpy;
 /* Font */
 static ZmFont font;
 
+// Label sizes run from 1 to kNumFontSizes; the size is a monitor setting, so map anything
+// outside that to the nearest valid font variant instead of letting variants_.at() throw.
+static uint8 FontVariantIndex(int size) {
+  return static_cast<uint8>(zm::clamp(size, 1, static_cast<int>(kNumFontSizes)) - 1);
+}
+
 std::mutex              jpeg_mutex;
 
 void Image::update_function_pointers() {
@@ -2538,7 +2544,7 @@ const Vector2 Image::centreCoord(const char *text, int size = 1) const {
     line_no++;
   }
 
-  FontVariant const &font_variant = font.GetFontVariant(size - 1);
+  FontVariant const &font_variant = font.GetFontVariant(FontVariantIndex(size));
   uint16_t char_width = font_variant.GetCharWidth();
   uint16_t char_height = font_variant.GetCharHeight();
   int x = (width - (max_line_len * char_width )) / 2;
@@ -2657,7 +2663,7 @@ void Image::Annotate(
   const Rgb fg_rgb_col = rgb_convert(fg_colour, subpixelorder);
   const Rgb bg_rgb_col = rgb_convert(bg_colour, subpixelorder);
 
-  FontVariant const &font_variant = font.GetFontVariant(size - 1);
+  FontVariant const &font_variant = font.GetFontVariant(FontVariantIndex(size));
   const uint16 char_width = font_variant.GetCharWidth();
   const uint16 char_height = font_variant.GetCharHeight();
 
@@ -2667,16 +2673,20 @@ void Image::Annotate(
     max_line_length = std::max(max_line_length, s.size());
   }
 
-  uint32 x0_max = width - (max_line_length * char_width);
-  uint32 y0_max = height - (lines.size() * char_height);
-
   // Calculate initial coordinates of annotation so that everything is displayed even if the
-  // user set coordinates would prevent that.
-  uint32 x0 = zm::clamp(static_cast<uint32>(coord.x_), 0u, x0_max);
-  uint32 y0 = zm::clamp(static_cast<uint32>(coord.y_), 0u, y0_max);
+  // user set coordinates would prevent that. The label text, position and size are monitor
+  // settings, so a label wider or taller than the frame must not wrap the bound: it starts at
+  // the frame edge and glyphs that don't fit are not drawn. refs GHSA-j5gf-rfm2-vhw9
+  const int64 x0_max = std::max<int64>(0, static_cast<int64>(width) - static_cast<int64>(max_line_length * char_width));
+  const int64 y0_max = std::max<int64>(0, static_cast<int64>(height) - static_cast<int64>(lines.size() * char_height));
+  const uint32 x0 = static_cast<uint32>(zm::clamp<int64>(coord.x_, 0, x0_max));
+  const uint32 y0 = static_cast<uint32>(zm::clamp<int64>(coord.y_, 0, y0_max));
 
   uint32 y = y0;
   for (const std::string &line : lines) {
+    if (y + char_height > height) {
+      break;
+    }
     uint32 x = x0;
 
     // Use linesize (which may include FFALIGN'd padding) for row stride
@@ -2685,6 +2695,11 @@ void Image::Annotate(
     if (zm_bytes_per_pixel(imagePixFormat) == 1) {
       uint8 *ptr = &buffer[y * linesize + x0];
       for (char c : line) {
+        if (x + char_width > width) {
+          break;
+        }
+        // A glyph's foreground can reach one column past its cell; keep every pixel inside the row.
+        const uint32 columns_left = width - x;
         for (uint64 cp_row : font_variant.GetCodepoint(c)) {
           if (bg_colour != kRGBTransparent) {
             std::fill(ptr, ptr + char_width, static_cast<uint8>(bg_colour & 0xff));
@@ -2692,23 +2707,27 @@ void Image::Annotate(
 
           while (cp_row != 0) {
             uint32 column_idx = char_width - __builtin_ctzll(cp_row) + font_variant.GetCharPadding();
-            *(ptr + column_idx) = fg_colour & 0xff;
             cp_row = cp_row & (cp_row - 1);
+            if (column_idx < columns_left) {
+              *(ptr + column_idx) = fg_colour & 0xff;
+            }
           }
           ptr += linesize;
         }
         ptr -= (linesize * char_height);
         ptr += char_width;
         x += char_width;
-        if (x >= width) {
-          break;
-        }
       }
     } else if (zm_is_rgb24(imagePixFormat)) {
       constexpr uint8 bytesPerPixel = 3;
       uint8 *ptr = &buffer[y * linesize + x0 * bytesPerPixel];
 
       for (char c : line) {
+        if (x + char_width > width) {
+          break;
+        }
+        // A glyph's foreground can reach one column past its cell; keep every pixel inside the row.
+        const uint32 columns_left = width - x;
         for (uint64 cp_row : font_variant.GetCodepoint(c)) {
           if (bg_colour != kRGBTransparent) {
             for (uint16 i = 0; i < char_width; i++) {  // We need to set individual r,g,b components
@@ -2721,20 +2740,19 @@ void Image::Annotate(
 
           while (cp_row != 0) {
             uint32 column_idx = char_width - __builtin_ctzll(cp_row) + font_variant.GetCharPadding();
-            uint8 *colour_ptr = ptr + (column_idx * bytesPerPixel);
-            RED_PTR_RGBA(colour_ptr) = RED_VAL_RGBA(fg_colour);
-            GREEN_PTR_RGBA(colour_ptr) = GREEN_VAL_RGBA(fg_colour);
-            BLUE_PTR_RGBA(colour_ptr) = BLUE_VAL_RGBA(fg_colour);
             cp_row = cp_row & (cp_row - 1);
+            if (column_idx < columns_left) {
+              uint8 *colour_ptr = ptr + (column_idx * bytesPerPixel);
+              RED_PTR_RGBA(colour_ptr) = RED_VAL_RGBA(fg_colour);
+              GREEN_PTR_RGBA(colour_ptr) = GREEN_VAL_RGBA(fg_colour);
+              BLUE_PTR_RGBA(colour_ptr) = BLUE_VAL_RGBA(fg_colour);
+            }
           }
           ptr += linesize;
         }
         ptr -= (linesize * char_height);
         ptr += char_width * bytesPerPixel;
         x += char_width;
-        if (x >= width) {
-          break;
-        }
       }
     } else if (zm_is_rgb32(imagePixFormat)) {
       constexpr uint8 bytesPerPixel = 4;
@@ -2743,6 +2761,11 @@ void Image::Annotate(
       Rgb *ptr = reinterpret_cast<Rgb *>(&buffer[y * linesize + x0 * bytesPerPixel]);
 
       for (char c : line) {
+        if (x + char_width > width) {
+          break;
+        }
+        // A glyph's foreground can reach one column past its cell; keep every pixel inside the row.
+        const uint32 columns_left = width - x;
         for (uint64 cp_row : font_variant.GetCodepoint(c)) {
           if (bg_colour != kRGBTransparent) {
             std::fill(ptr, ptr + char_width, bg_rgb_col);
@@ -2750,26 +2773,22 @@ void Image::Annotate(
 
           while (cp_row != 0) {
             uint32 column_idx = char_width - __builtin_ctzll(cp_row) + font_variant.GetCharPadding();
-            *(ptr + column_idx) = fg_rgb_col;
             cp_row = cp_row & (cp_row - 1);
+            if (column_idx < columns_left) {
+              *(ptr + column_idx) = fg_rgb_col;
+            }
           }
           ptr += rgb_stride;
         }
         ptr -= (rgb_stride * char_height);
         ptr += char_width;
         x += char_width;
-        if (x >= width) {
-          break;
-        }
       }
     } else {
       Error("Annotate called with unexpected colours: %d", colours);
       return;
     }
     y += char_height;
-    if (y >= height) {
-      break;
-    }
   }
 }
 

@@ -28,8 +28,6 @@
 #include "zm_mqtt.h"
 #include "zm_remote_camera.h"
 #include "zm_remote_camera_http.h"
-#include "zm_remote_camera_nvsocket.h"
-#include "zm_remote_camera_rtsp.h"
 #include "zm_signal.h"
 #include "zm_stream_socket.h"
 #include "zm_time.h"
@@ -40,10 +38,6 @@
 #if ZM_HAS_V4L2
 #include "zm_local_camera.h"
 #endif  // ZM_HAS_V4L2
-
-#if HAVE_LIBVLC
-#include "zm_libvlc_camera.h"
-#endif  // HAVE_LIBVLC
 
 #if HAVE_LIBVNC
 #include "zm_libvnc_camera.h"
@@ -95,7 +89,7 @@ std::string load_monitor_sql =
   "`Protocol`, `Method`, `Options`, `User`, `Pass`, `Host`, `Port`, `Path`, "
   "`SecondPath`, `Width`, `Height`, `Colours`, `Palette`, `Orientation`+0, "
   "`Deinterlacing`, "
-  "`Decoder`, `DecoderHWAccelName`, `DecoderHWAccelDevice`, `RTSPDescribe`, "
+  "`Decoder`, `DecoderHWAccelName`, `DecoderHWAccelDevice`, "
   "`SaveJPEGs`, `VideoWriter`, `EncoderParameters`, "
   "`OutputCodecName`, `Encoder`, `EncoderHWAccelName`, `EncoderHWAccelDevice`, `OutputContainer`, "
   "`RecordAudio`, WallClockTimestamps,"
@@ -118,16 +112,21 @@ std::string load_monitor_sql =
   ", `AudioDetection`, `AudioThreshold`, `AudioAlarmScore`"
   " FROM `Monitors`";
 
+// Indexed by Monitor::CameraType, which starts at 1, so entry 0 covers the
+// unset value. The static_assert is what keeps this honest: the table silently
+// lost its LibCURL entry once already, which shifted every later name onto the
+// wrong type and put VNC one past the end.
 std::string CameraType_Strings[] = {
   "Unknown",
   "Local",
   "Remote",
   "File",
   "Ffmpeg",
-  "LibVLC",
-  "NVSOCKET",
+  "LibCURL",
   "VNC"
 };
+static_assert(sizeof(CameraType_Strings)/sizeof(CameraType_Strings[0]) == Monitor::VNC + 1,
+              "CameraType_Strings must have one entry per Monitor::CameraType, plus entry 0");
 
 std::string State_Strings[] = {
   "Unknown",
@@ -219,8 +218,10 @@ Monitor::Monitor() :
   deinterlacing_value(0),
   decoder_hwaccel_name(""),
   decoder_hwaccel_device(""),
+  mVideoCodecContext(nullptr),
+  decoder_hw_pix_fmt(AV_PIX_FMT_NONE),
+  decoder_hw_device_ctx(nullptr),
   videoRecording(false),
-  rtsp_describe(false),
 
   savejpegs(0),
   colours(0),
@@ -386,10 +387,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
     type = REMOTE;
   } else if (!strcmp(dbrow[col], "File")) {
     type = FILE;
-  } else if (!strcmp(dbrow[col], "NVSocket")) {
-    type = NVSOCKET;
-  } else if (!strcmp(dbrow[col], "Libvlc")) {
-    type = LIBVLC;
   } else if (!strcmp(dbrow[col], "VNC")) {
     type = VNC;
   } else {
@@ -519,14 +516,12 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   col++;
   deinterlacing_value = deinterlacing & 0xff;
 
-  /*"`Decoder`, `DecoderHWAccelName`, `DecoderHWAccelDevice`, `RTSPDescribe`, " */
+  /*"`Decoder`, `DecoderHWAccelName`, `DecoderHWAccelDevice`, " */
   decoder_name = dbrow[col] ? dbrow[col] : "";
   col++;
   decoder_hwaccel_name = dbrow[col] ? dbrow[col] : "";
   col++;
   decoder_hwaccel_device = dbrow[col] ? dbrow[col] : "";
-  col++;
-  rtsp_describe = (dbrow[col] && *dbrow[col] != '0');
   col++;
 
 
@@ -827,28 +822,14 @@ void Monitor::LoadCamera() {
                record_audio
                                                 );
     } else if (protocol == "rtsp") {
-      Warning("Monitor %u (%s): the Remote/RTSP capture method is deprecated as of 1.40 and "
-              "will be removed in 1.41. Change this monitor to Type 'Ffmpeg' with Source Path %s",
-              id, name.c_str(),
-              remove_authentication(RtspUrlFromRemote(host, port, path, user, pass)).c_str());
-      camera = zm::make_unique<RemoteCameraRtsp>(this,
-               method,
-               host, // Host
-               port, // Port
-               path, // Path
-               user,
-               pass,
-               camera_width,
-               camera_height,
-               rtsp_describe,
-               colours,
-               brightness,
-               contrast,
-               hue,
-               colour,
-               purpose == CAPTURE,
-               record_audio
-                                                );
+      // The hand-written rtsp client this used is gone. ffmpeg speaks rtsp
+      // better than it did and is what every other rtsp monitor already uses,
+      // so there is nothing left for a second implementation to do. Name the
+      // exact Source Path to switch to rather than only saying no.
+      Error("Monitor %u (%s): the Remote/RTSP capture method has been removed. "
+            "Change this monitor to Type 'Ffmpeg' with Source Path %s",
+            id, name.c_str(),
+            remove_authentication(RtspUrlFromRemote(host, port, path, user, pass)).c_str());
     } else {
       Error("Unexpected remote camera protocol '%s'", protocol.c_str());
     }
@@ -885,50 +866,8 @@ void Monitor::LoadCamera() {
                                            hue,
                                            colour,
                                            purpose == CAPTURE,
-                                           record_audio,
-                                           decoder_hwaccel_name,
-                                           decoder_hwaccel_device
-                                          );
-    break;
-  }
-  case NVSOCKET: {
-    camera = zm::make_unique<RemoteCameraNVSocket>(this,
-             host.c_str(),
-             port.c_str(),
-             path.c_str(),
-             camera_width,
-             camera_height,
-             colours,
-             brightness,
-             contrast,
-             hue,
-             colour,
-             purpose == CAPTURE,
-             record_audio
-                                                  );
-    break;
-  }
-  case LIBVLC: {
-#if HAVE_LIBVLC
-    camera = zm::make_unique<LibvlcCamera>(this,
-                                           path.c_str(),
-                                           user,
-                                           pass,
-                                           method,
-                                           options,
-                                           camera_width,
-                                           camera_height,
-                                           colours,
-                                           brightness,
-                                           contrast,
-                                           hue,
-                                           colour,
-                                           purpose == CAPTURE,
                                            record_audio
                                           );
-#else // HAVE_LIBVLC
-    Error("You must have vlc libraries installed to use vlc cameras for monitor %d", id);
-#endif // HAVE_LIBVLC
     break;
   }
   case VNC: {
@@ -3428,7 +3367,7 @@ void Monitor::flushDecoderQueue() {
 }
 
 bool Monitor::Decode() {
-  AVCodecContext *context = camera->getVideoCodecContext();
+  AVCodecContext *context = GetVideoCodecContext();
   ZMPacketLock packet_lock;
   std::shared_ptr<ZMPacket> packet;
 
@@ -4374,26 +4313,79 @@ void Monitor::SendStreamHealthEvent(uint16_t code, const std::string &message, i
   RefreshStreamSnapshot();
 }
 
+int Monitor::OpenDecoder() {
+  // Always a fresh decoder, which is also how hardware decoding gets retried.
+  // A transient failure -- a GPU still resetting, a driver that finished
+  // initialising after zmc started, a render node not yet permissioned --
+  // would otherwise pin the monitor to software for the life of the process,
+  // long after the hardware is healthy. Reconnects call PrimeCapture(), so
+  // they are the natural retry point.
+  CloseDecoder();
+
+  if (!camera) return 0;
+
+  AVStream *stream = camera->getVideoStream();
+  if (!stream) {
+    // Cameras that hand over images rather than packets -- LocalCamera, vlc,
+    // vnc -- have nothing to decode.
+    Debug(1, "No video stream to decode");
+    return 0;
+  }
+
+  mVideoCodecContext = open_video_decoder(
+      stream,
+      decoder_name,
+      decoder_hwaccel_name,
+      decoder_hwaccel_device,
+      options,
+      name,
+      decoder_hw_pix_fmt,
+      decoder_hw_device_ctx);
+
+  if (!mVideoCodecContext) {
+    Error("Failed to open a decoder for monitor %s", name.c_str());
+    return -1;
+  }
+  return 1;
+}  // end int Monitor::OpenDecoder()
+
+void Monitor::CloseDecoder() {
+  // Order matters: the context holds a reference to the device, and its opaque
+  // points at decoder_hw_pix_fmt. Free the context first so nothing can read
+  // either afterwards.
+  if (mVideoCodecContext) {
+    avcodec_free_context(&mVideoCodecContext);
+    mVideoCodecContext = nullptr;
+  }
+  if (decoder_hw_device_ctx) {
+    av_buffer_unref(&decoder_hw_device_ctx);
+    decoder_hw_device_ctx = nullptr;
+  }
+  decoder_hw_pix_fmt = AV_PIX_FMT_NONE;
+}  // end void Monitor::CloseDecoder()
+
 int Monitor::PrimeCapture() {
-  // Stop the decoder before tearing the codec context down. The decoder
-  // thread holds a raw AVCodecContext* it got from
-  // camera->getVideoCodecContext(); camera->PrimeCapture() will Close() the
-  // camera (freeing that context) and OpenFfmpeg() a new one. Running the
-  // decoder against the dying context is unsafe; equally important, on
-  // exit the decoder thread releases the in-flight packet locks in
-  // decoder_queue (see DecoderThread::Run). Without that, stale entries
-  // survive the reconnect and create a permanent latency offset against
-  // the new codec context — the analysis thread blocks on
-  // !packet->decoded for those packets and the packetqueue fills to
-  // max_video_packet_count and stays there.
+  // Stop the decoder before tearing the codec context down. The decoder thread
+  // holds a raw AVCodecContext* that CloseDecoder() below frees, and running it
+  // against a dying context is unsafe. Equally important, on exit the decoder
+  // thread releases the in-flight packet locks in decoder_queue (see
+  // DecoderThread::Run). Without that, stale entries survive the reconnect and
+  // create a permanent latency offset against the new codec context — the
+  // analysis thread blocks on !packet->decoded for those packets and the
+  // packetqueue fills to max_video_packet_count and stays there.
   if (decoder) {
     decoder->Stop();
     packetqueue.notify_all();  // wake the thread if it's blocked on wait_for
     decoder->Join();
   }
+  // Safe now that the only thread holding this pointer has been joined.
+  CloseDecoder();
 
   int ret = camera->PrimeCapture();
   if (ret <= 0) return ret;
+
+  // After the camera, which is what produces the stream to decode from.
+  if (OpenDecoder() < 0) return -1;
 
   if ( -1 != camera->getVideoStreamId() ) {
     video_stream_id = packetqueue.addStream();
@@ -4541,6 +4533,11 @@ int Monitor::Pause() {
       }
     }
   }
+  // The decoder thread was joined at the top of Pause(), so nothing is using
+  // the context any more. Release it with the camera rather than carrying a
+  // decoder for a stream that is gone.
+  CloseDecoder();
+
   if (camera) {
     camera->Close();
   }
@@ -4552,6 +4549,11 @@ int Monitor::Pause() {
 int Monitor::Play() {
   int ret = camera->PrimeCapture();
   if (ret <= 0) return ret;
+
+  // Pause() released the decoder, so resuming has to open another. This is the
+  // on-demand path: an unwatched monitor is paused and played again when
+  // somebody looks at it, without ever going back through PrimeCapture().
+  if (OpenDecoder() < 0) return -1;
 
   if ( -1 != camera->getVideoStreamId() ) {
     video_stream_id = packetqueue.addStream();

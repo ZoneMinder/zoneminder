@@ -109,7 +109,6 @@ class Control extends ZM_Object {
     'HasHomePreset' => 0,
     'CanSetPresets' => 0,
     'Name' => 'New',
-    'Type' => 'Local',
     'Protocol' => NULL
     );
 

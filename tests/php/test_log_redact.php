@@ -38,12 +38,17 @@ check('stable', ZM\logFingerprint($auth), ZM\logFingerprint($auth));
 echo "\nurlForLog\n";
 check('plain URL unchanged', ZM\urlForLog('https://zm2.example/zm/api/events/5.json'),
   'https://zm2.example/zm/api/events/5.json');
-check('auth hash removed', ZM\urlForLog('https://zm2.example/zm/api/events/5.json?auth=0123abcd'),
-  'https://zm2.example/zm/api/events/5.json?...');
+check('auth hash fingerprinted, other parameters kept',
+  ZM\urlForLog('https://zm2.example/zm/index.php?view=filter&auth=0123abcd&user=admin'),
+  'https://zm2.example/zm/index.php?view=filter&auth='.ZM\logFingerprint('0123abcd').'&user=admin');
+// Event.php builds the plain relay as ?user=..?pass=.. (two '?').
 check('plain relay password removed', ZM\urlForLog('http://zm2/zm/api/x.json?user=admin?pass=hunter2'),
-  'http://zm2/zm/api/x.json?...');
+  'http://zm2/zm/api/x.json?user=admin?pass=[redacted]');
+check('token fingerprinted', ZM\urlForLog('http://zm2/zm/api/x.json?token=eyJa.b.c'),
+  'http://zm2/zm/api/x.json?token='.ZM\logFingerprint('eyJa.b.c'));
 check('userinfo removed', ZM\urlForLog('rtsp://admin:hunter2@192.0.2.5:554/s'), 'rtsp://192.0.2.5:554/s');
-check('@ in the query does not cut the host', ZM\urlForLog('http://zm2/x?token=a@b'), 'http://zm2/x?...');
+check('@ in the query does not cut the host', ZM\urlForLog('http://zm2/x?token=a@b'),
+  'http://zm2/x?token='.ZM\logFingerprint('a@b'));
 
 echo "\nredactForLog\n";
 $request = array(

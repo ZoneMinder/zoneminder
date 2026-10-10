@@ -33,17 +33,18 @@ function logFingerprint($value) {
   return 'fp:'.substr(hash('sha256', (string)$value), 0, 8);
 }
 
-// A URL as it may be logged: no user:password@ and no query string, which may
-// carry an auth hash, a token or a password. "?..." marks a removed query.
+// A URL as it may be logged: no user:password@, and its query string through
+// redactQueryString(), so the auth relay (auth=, token=, pass=) is not logged
+// but the other parameters still are.
 function urlForLog($url) {
   $url = (string)$url;
   $query_at = strpos($url, '?');
-  $suffix = '';
+  $query = '';
   if ($query_at !== false) {
+    $query = redactQueryString(substr($url, $query_at));
     $url = substr($url, 0, $query_at);
-    $suffix = '?...';
   }
-  return preg_replace('#^([a-z][a-z0-9+.-]*://)[^/@]*@#i', '$1', $url).$suffix;
+  return preg_replace('#^([a-z][a-z0-9+.-]*://)[^/@]*@#i', '$1', $url).$query;
 }
 
 // Whether a request parameter of this name holds a password or secret (to be
@@ -60,7 +61,7 @@ function logKeyKind($key) {
 // A query string (a=1&b=2) with the values of credential parameters replaced,
 // for a string that carries one: postLoginQuery, a redirect target.
 function redactQueryString($query) {
-  return preg_replace_callback('/(^|[?&])([^=&?#]+)=([^&#]*)/', function ($m) {
+  return preg_replace_callback('/(^|[?&])([^=&?#]+)=([^&?#]*)/', function ($m) {
     $kind = logKeyKind(urldecode($m[2]));
     if ($kind === null) return $m[0];
     $value = ($kind === 'secret') ? '[redacted]' : logFingerprint(urldecode($m[3]));

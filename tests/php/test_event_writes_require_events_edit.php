@@ -13,6 +13,10 @@
 //   * views/video.php deleteIndex (unlink() of a file in the event folder; the
 //     list includes the event's own recording since ZM_FFMPEG_FORMATS has mp4):
 //     the recording needs Events edit, a generated video Events view
+//   * the other Edit-level ajax/event.php actions (rename, eventdetail, archive,
+//     unarchive, delete) and includes/actions/eventdetail.php take only events on
+//     monitors the user can view, like the tag actions; getselectedtags lists no
+//     tags of a hidden event
 //
 // Includes the real files with the web helpers stubbed, records the SQL they
 // send, and checks whether the event's video file survives.
@@ -31,12 +35,23 @@ namespace ZM {
     public function DefaultScale() { return 100; }
   }
   class Event {
-    public function __construct($id) {}
-    public function Id() { return $GLOBALS['event_exists'] ? 7 : null; }
-    public function MonitorId() { return 1; }
+    // Object::__construct() takes an array as the row itself, without loading it.
+    private $row = null;
+    public function __construct($id) { if (is_array($id)) $this->row = $id; }
+    public function Id() {
+      if ($this->row !== null) return $this->row['Id'] ?? null;
+      return $GLOBALS['event_exists'] ? 7 : null;
+    }
+    // Event::canEdit(): Events=Edit and the event's monitor visible. A row built
+    // from the request names whatever monitor the caller chose.
+    public function canEdit() {
+      return visibleMonitor($this->MonitorId()) and level('Events') === 'Edit';
+    }
+    public function MonitorId() { return ($this->row !== null) ? ($this->row['MonitorId'] ?? null) : 1; }
     public function Monitor() { return new Monitor(); }
     public function Path() { return $GLOBALS['event_path']; }
     public function DefaultVideo() { return $GLOBALS['default_video'] ?? ''; }
+    public function delete() { $GLOBALS['queries'][] = 'Event::delete'; }
   }
 }
 
@@ -71,9 +86,12 @@ namespace {
   function level($area) { return $GLOBALS['perms'][$area] ?? 'None'; }
   function canView($area, $mid = false) { return in_array(level($area), array('View', 'Edit'), true); }
   function canEdit($area, $mid = false) { return level($area) === 'Edit'; }
-  function visibleMonitor($mid) { return $GLOBALS['monitor_visible']; }
+  // monitor_visible is the event's monitor; monitor 2 stands for another one the user can view
+  function visibleMonitor($mid) { return ((string)$mid === '2') or $GLOBALS['monitor_visible']; }
   function validCardinal($v) { return preg_match('/^\d+$/', (string)$v) ? (int)$v : ''; }
-  function validInt($v) { return (int)$v; }
+  // as includes/functions.php: an array goes through element by element
+  function validInt($v) { return preg_replace('/[^\-\d]/', '', $v); }
+  function localRedirectUrl($url, $fallback) { return $fallback; }
   function reScale($a, $b, $c) { return $a; }
   function validHtmlStr($s) { return htmlspecialchars((string)$s); }
   function translate($s) { return $s; }
@@ -124,7 +142,7 @@ namespace {
 
   function writes() {
     return array_values(array_filter($GLOBALS['queries'], function($q) {
-      return preg_match('/^(INSERT|UPDATE|DELETE)\b/', $q) or $q === 'TagOrder::recordUsage';
+      return preg_match('/^(INSERT|UPDATE|DELETE)\b/', $q) or $q === 'TagOrder::recordUsage' or $q === 'Event::delete';
     }));
   }
 
@@ -147,6 +165,75 @@ namespace {
     check("Events=Edit $action with an array id is refused",
       run_request('ajax/event.php', 'Edit', array_merge($req, array('id' => array('7')))), 'error');
   }
+
+  // ---- ajax/event.php: the other Edit-level actions -------------------------
+  $edits = array(
+    'rename' => array('eventName' => 'n'),
+    'eventdetail' => array('newEvent' => array('Cause' => 'c', 'Notes' => 'n')),
+    'archive' => array(),
+    'unarchive' => array(),
+    'delete' => array(),
+  );
+  foreach ($edits as $action => $extra) {
+    $req = array_merge(array('request' => 'event', 'action' => $action, 'id' => '7'), $extra);
+    check("Events=View $action is refused", run_request('ajax/event.php', 'View', $req), 'error');
+    check("Events=View $action sends no write", writes(), array());
+    check("Events=Edit $action is answered", run_request('ajax/event.php', 'Edit', $req), 'response');
+    check("Events=Edit $action writes", count(writes()), 1);
+    // a hidden and a missing event: no write, and the same answer
+    $GLOBALS['monitor_visible'] = false;
+    $hidden = run_request('ajax/event.php', 'Edit', $req);
+    check("Events=Edit $action on a hidden monitor's event sends no write", writes(), array());
+    $GLOBALS['monitor_visible'] = true;
+    $GLOBALS['event_exists'] = false;
+    $missing = run_request('ajax/event.php', 'Edit', $req);
+    check("Events=Edit $action on a missing event sends no write", writes(), array());
+    $GLOBALS['event_exists'] = true;
+    check("Events=Edit $action answers a hidden event as a missing one", $hidden, $missing);
+    check("Events=Edit $action with an array id sends no write",
+      array(run_request('ajax/event.php', 'Edit', array_merge($req, array('id' => array('7')))), writes()),
+      array($action == 'delete' ? 'response' : 'error', array()));
+  }
+
+  // ---- ajax/event.php getselectedtags (read) --------------------------------
+  function tag_reads() {
+    return count(array_filter($GLOBALS['queries'], function($q) { return strpos($q, 'Events_Tags') !== false; }));
+  }
+  $req = array('request' => 'event', 'action' => 'getselectedtags', 'id' => '7');
+  check('Events=View getselectedtags is answered', run_request('ajax/event.php', 'View', $req), 'response');
+  check('Events=View getselectedtags reads the tags', tag_reads(), 1);
+  $GLOBALS['monitor_visible'] = false;
+  check("getselectedtags on a hidden monitor's event is answered", run_request('ajax/event.php', 'View', $req), 'response');
+  check("getselectedtags on a hidden monitor's event reads no tags", tag_reads(), 0);
+  $GLOBALS['monitor_visible'] = true;
+
+  // ---- includes/actions/eventdetail.php (the eventdetail modal's form) ------
+  class StubConn { public function beginTransaction() {} public function commit() {} }
+  function run_eventdetail_action($eventsPerm, $markEids) {
+    $GLOBALS['perms'] = array('Events' => $eventsPerm, 'Monitors' => 'View');
+    $GLOBALS['queries'] = array();
+    $GLOBALS['warnings'] = array();
+    $_REQUEST = array('view' => 'eventdetail', 'action' => 'eventdetail', 'markEids' => $markEids,
+      'newEvent' => array('Name' => 'n', 'Cause' => 'c', 'Notes' => 'x'));
+    $_SERVER['HTTP_REFERER'] = '';
+    $action = 'eventdetail';
+    $dbConn = new StubConn();
+    include __DIR__.'/../../web/includes/actions/eventdetail.php';
+    return writes();
+  }
+  $upd = 'UPDATE Events SET Name=?, Cause=?, Notes=? WHERE Id=?';
+  check('actions/eventdetail.php Events=View writes nothing', run_eventdetail_action('View', array('7')), array());
+  check('actions/eventdetail.php Events=Edit updates the event', run_eventdetail_action('Edit', array('7', '7')), array($upd, $upd));
+  $GLOBALS['monitor_visible'] = false;
+  check("actions/eventdetail.php skips a hidden monitor's event", run_eventdetail_action('Edit', array('7')), array());
+  $GLOBALS['monitor_visible'] = true;
+  $GLOBALS['event_exists'] = false;
+  check('actions/eventdetail.php skips a missing event', run_eventdetail_action('Edit', array('7')), array());
+  $GLOBALS['event_exists'] = true;
+  check('actions/eventdetail.php skips an array id', run_eventdetail_action('Edit', array(array('7'))), array());
+  $GLOBALS['monitor_visible'] = false;
+  check('actions/eventdetail.php skips an id given as an event row', run_eventdetail_action('Edit', array(array('Id' => '7', 'MonitorId' => '2'))), array());
+  $GLOBALS['monitor_visible'] = true;
 
   // ---- ajax/tags.php -------------------------------------------------------
   $create = array('request' => 'tags', 'action' => 'createtag', 'tname' => 'x');

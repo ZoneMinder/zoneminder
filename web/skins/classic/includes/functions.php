@@ -1815,19 +1815,11 @@ function getCSRFinputHTML() {
 
 function fixAmps(&$html) {
   //https://stackoverflow.com/questions/1685277/warning-domdocumentloadhtml-htmlparseentityref-expecting-in-entity
-  $positionAmp = strpos($html, '&');
-  $positionSemiColumn = strpos($html, ';', $positionAmp+1);
-  $string = substr($html, $positionAmp, $positionSemiColumn-$positionAmp+1);
-  if ($positionAmp !== false) { // If an '&' can be found.
-    if ($positionSemiColumn === false) { // If no ';' can be found.
-      $html = substr_replace($html, '&amp;', $positionAmp, 1); // Replace straight away.
-    } else if (preg_match('/&(#[0-9]+|[A-Z|a-z|0-9]+);/', $string) === 0) { // If a standard escape cannot be found.
-      $html = substr_replace($html, '&amp;', $positionAmp, 1); // This mean we need to escape the '&' sign.
-      fixAmps($html, $positionAmp+5); // Recursive call from the new position.
-    } else {
-      fixAmps($html, $positionAmp+1); // Recursive call from the new position.
-    }
-  }
+  // Escape every '&' that does not start a character reference, so that
+  // DOMDocument::loadHTML() does not warn about it. One pass over the string:
+  // the recursive version restarted at the first '&' on every call and never
+  // returned once the string held an entity.
+  $html = preg_replace('/&(?!#[0-9]+;|#x[0-9a-f]+;|[a-z][a-z0-9]*;)/i', '&amp;', $html);
 }
 
 function xhtmlFooter() {

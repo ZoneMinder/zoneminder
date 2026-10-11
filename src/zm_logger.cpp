@@ -41,6 +41,7 @@ Logger *Logger::smInstance = nullptr;
 
 Logger::StringMap Logger::smCodes;
 Logger::IntMap Logger::smSyslogPriorities;
+thread_local int Logger::smDatabaseLogPaused = 0;
 
 void Logger::usrHandler(int sig) {
   Logger *logger = fetch();
@@ -523,7 +524,7 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
     }
   }  // end if level <= mFileLevel
 
-  if (level <= mDatabaseLevel) {
+  if (level <= mDatabaseLevel and !smDatabaseLogPaused) {
     if (zmDbConnected) {
       std::string escapedString = zmDbEscapeString({syslogStart, syslogEnd});
 

@@ -422,7 +422,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
       Debug(5, "Checking for blob pixels");
       // Where the old 254 tag table gave out. Kept as the point at which a
       // frame is noisy enough to be worth telling the operator about.
-      constexpr unsigned int kBlobSensitivityWarning = 254;
+      constexpr int kBlobSensitivityWarning = 254;
       // One label per pixel, held apart from the mask so a label is not limited
       // to what fits in a pixel. Allocated once per zone and reused; only the
       // rows this zone covers need clearing.
@@ -597,15 +597,6 @@ bool Zone::CheckAlarms(const Image *delta_image) {
         return false;
       }
 
-      // The old labeller held 254 tags and, when it ran out, told the operator
-      // the zone might be too sensitive before giving up on the frame. Nothing
-      // runs out now, but that was the only warning a badly tuned zone ever
-      // produced, so it still fires at the count that used to trigger it.
-      if (stats.alarm_blobs_ > kBlobSensitivityWarning) {
-        Warning("Zone %s: %d blobs in one frame. Zone settings may be too sensitive.",
-                label.c_str(), stats.alarm_blobs_);
-      }
-
       Debug(5, "Got %d raw blob pixels, %d raw blobs, need %d -> %d, %d -> %d",
             stats.alarm_blob_pixels_, stats.alarm_blobs_, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs);
 
@@ -635,7 +626,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
             stats.alarm_blobs_--;
             stats.alarm_blob_pixels_ -= bs->count;
 
-            Debug(6, "Eliminated blob %d, %d pixels (%d,%d - %d,%d), %d current blobs",
+            Debug(6, "Eliminated blob %zu, %d pixels (%d,%d - %d,%d), %d current blobs",
                   i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y, stats.alarm_blobs_);
 
             bs->tag = 0;
@@ -645,7 +636,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
             bs->hi_x = 0;
             bs->hi_y = 0;
           } else {
-            Debug(6, "Preserved blob %d, %d pixels (%d,%d - %d,%d), %d current blobs",
+            Debug(6, "Preserved blob %zu, %d pixels (%d,%d - %d,%d), %d current blobs",
                   i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y, stats.alarm_blobs_);
             if (!stats.min_blob_size_ || bs->count < stats.min_blob_size_) stats.min_blob_size_ = bs->count;
             if (!stats.max_blob_size_ || bs->count > stats.max_blob_size_) stats.max_blob_size_ = bs->count;
@@ -655,6 +646,19 @@ bool Zone::CheckAlarms(const Image *delta_image) {
 
       if (config.record_diag_images) {
         diff_image->WriteJpeg(diag_path, config.record_diag_images_fifo);
+      }
+
+      // The old labeller held 254 tags and, when it ran out, told the operator
+      // the zone might be too sensitive before giving up on the frame. Nothing
+      // runs out now, but that was the only warning a badly tuned zone ever
+      // produced, so it still fires at the count that used to trigger it.
+      // Count only blobs that pass the size limits: the old table recycled the
+      // tag of a blob that had finished and failed them, so speckle below
+      // MinBlobPixels never filled it, and counting raw blobs warned on nearly
+      // every frame of an ordinary noisy camera.
+      if (stats.alarm_blobs_ > kBlobSensitivityWarning) {
+        Warning("Zone %s: %d blobs in one frame. Zone settings may be too sensitive.",
+                label.c_str(), stats.alarm_blobs_);
       }
 
       Debug(5, "Got %d blob pixels, %d blobs, need %d -> %d, %d -> %d",

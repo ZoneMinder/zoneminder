@@ -68,6 +68,15 @@ if (isset($_REQUEST['scale'])) {
 //}
 $scale = '10'; // temporarily to adapt the new algorithm, not used in new calculations!
 
+# The size changeScale() last gave this monitor's video. Opening the page at it keeps the video
+# from resizing after load, which in gapless playback (a page load per event) happened on every
+# event. changeScale() still corrects it if the window or the layout has changed.
+$videoSizeStyle = '';
+$videoSizeCookie = 'zmEventVideoSize'.$Event->MonitorId();
+if (isset($_COOKIE[$videoSizeCookie]) and preg_match('/^(\d{1,5})x(\d{1,5})$/', $_COOKIE[$videoSizeCookie], $videoSize)) {
+  $videoSizeStyle = ' style="width:'.intval($videoSize[1]).'px;height:'.intval($videoSize[2]).'px;"';
+}
+
 $streamQualitySelected = '0';
 if (isset($_REQUEST['streamQuality'])) {
   $streamQualitySelected = $_REQUEST['streamQuality'];
@@ -265,7 +274,13 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
       <div class="d-flex flex-row px-3">
         <div class="container-fluid">
           <div class="row row-cols-1 row-cols-sm-2">
-            <div id = "eventStats" class="col col-sm-4 eventStats">
+<?php
+# Lay the stats panel out the way initPage() would, so the video's column has its final
+# width at the first paint instead of widening after load. The panel shows unless the
+# cookie says off, matching getEvtStatsCookie().
+$showEventStats = !(isset($_COOKIE['zmEventStats']) and $_COOKIE['zmEventStats'] == 'off');
+?>
+            <div id = "eventStats" class="col col-sm-4 eventStats"<?php echo $showEventStats ? '' : ' style="display:none;"' ?>>
               <!-- VIDEO STATISTICS TABLE -->
               <table id="eventStatsTable" class="table-sm table-borderless">
                 <!-- EVENT STATISTICS POPULATED BY JAVASCRIPT -->
@@ -304,7 +319,7 @@ if (file_exists($Event->Path().'/objdetect.jpg')) {
 ?>
               </div><!-- id="frames" -->
             </div><!-- id="eventStats" -->
-            <div id="wrapperEventVideo" class="col col-sm-8 pl-0 pr-0">
+            <div id="wrapperEventVideo" class="col <?php echo $showEventStats ? 'col-sm-8' : 'col-sm-12' ?> pl-0 pr-0">
               <div id="eventVideo">
               <!-- VIDEO CONTENT -->
                 <div id="videoFeed">
@@ -322,7 +337,7 @@ if (file_exists($Event->Path().'/objdetect.jpg')) {
 <?php
 if ($video_tag) {
 ?>
-                  <video id="videoobj" class="video-js"
+                  <video id="videoobj" class="video-js"<?php echo $videoSizeStyle ?>
                    <?php echo $scale ? 'width="'.reScale($Event->Width(), $scale).'"' : '' ?>
                    <?php echo $scale ? 'height="'.reScale($Event->Height(), $scale).'"' : '' ?>
                     controls autoplay preload="auto"

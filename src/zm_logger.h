@@ -93,6 +93,9 @@ class Logger {
   static StringMap smCodes;
   static IntMap smSyslogPriorities;
 
+  // How many DatabaseLogPause are alive on this thread.
+  static thread_local int smDatabaseLogPaused;
+
   bool mInitialised;
 
   std::string mId;
@@ -140,6 +143,20 @@ class Logger {
  public:
   friend void logInit(const char *name, const Options &options);
   friend void logTerm();
+
+  // While one of these is alive, lines logged on the thread that created it
+  // are not written to the database. Every other thread keeps logging there.
+  //
+  // zmDbDo and the database queue use it for their own lines: at a debug
+  // database level, inserting a Logs row logs a line about that insert, which
+  // would queue another insert, and so on without end.
+  class DatabaseLogPause {
+   public:
+    DatabaseLogPause() { ++smDatabaseLogPaused; }
+    ~DatabaseLogPause() { --smDatabaseLogPaused; }
+    DatabaseLogPause(const DatabaseLogPause &) = delete;
+    DatabaseLogPause &operator=(const DatabaseLogPause &) = delete;
+  };
 
   static Logger *fetch() {
     if ( !smInstance ) {

@@ -80,8 +80,8 @@ if (!$filter->Id()) {
     $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '>=',
       'val' => $storedStartTime, 'cnj' => 'and', 'cookie'=>'zmFilter_StartDateTime'));
   }
-  if (!$filter->has_term('StartDateTime', '<=')) {
-    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '<=',
+  if (!$filter->has_term('EndDateTime', '<=')) {
+    $filter->addTerm(array('attr' => 'EndDateTime', 'op' => '<=',
       'val' => $storedEndTime, 'cnj' => 'and', 'cookie'=>'zmFilter_EndDateTime'));
   }
   if (!$filter->has_term('Tags')) {

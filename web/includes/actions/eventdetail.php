@@ -42,6 +42,7 @@ if ( $action == 'eventdetail' ) {
     );
   }
   $dbConn->commit();
-  $redirect = $_SERVER['HTTP_REFERER'];
+  // Back to the page the edit came from, if that is on this server.
+  $redirect = localRedirectUrl(isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '', '?view=events');
 }
 ?>

@@ -272,10 +272,6 @@ int zmDbDo(const std::string &query) {
   if (!zmDbConnected and !zmDbConnect())
     return 0;
   int rc;
-  // Keep this thread's lines about the query out of the database. Only this
-  // thread: lowering the process-wide database level instead dropped every
-  // other thread's lines for as long as the query ran.
-  Logger::DatabaseLogPause pause_db_logging;
 
   int contention_attempts = 0;
 
@@ -383,6 +379,12 @@ void zmDbQueue::stop() {
 }
 
 void zmDbQueue::process() {
+  // This thread runs the inserts into Logs. A line it logged would queue another
+  // insert, and at a debug database level the "Success running sql query" line
+  // of each insert would do so without end, so nothing it logs goes to the
+  // database. Other threads log there as usual, including the errors and debug
+  // lines of their own queries.
+  Logger::DatabaseLogPause pause_db_logging;
   std::unique_lock<std::mutex> lock(mMutex);
 
   while (!mTerminate and !zm_terminate) {
@@ -399,8 +401,6 @@ void zmDbQueue::process() {
       if (backlog > 40) {
         // Not while holding mMutex: logging takes the logger's mutex, and a
         // thread already holding that one waits on mMutex to push its row.
-        // A row about the backlog would only add to it, so none is written.
-        Logger::DatabaseLogPause pause_db_logging;
         Warning("db queue size has grown larger %zu than 40 entries", backlog);
       }
       zmDbDo(sql);

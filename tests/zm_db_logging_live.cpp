@@ -101,20 +101,36 @@ TEST_CASE("a line logged while another thread runs a query reaches Logs", "[notC
   CHECK(WaitForLog(Marker("during"), std::chrono::seconds(5)));
 }
 
-TEST_CASE("zmDbDo's own debug lines stay out of Logs", "[notCI][dblive]") {
+TEST_CASE("the queue thread's inserts into Logs do not log themselves", "[notCI][dblive]") {
   // With the database level at debug, every insert into Logs would log its own
-  // "Success running sql query INSERT INTO Logs ..." line, which would be
-  // inserted in turn, and so on without end. zmDbDo keeps those lines out.
+  // "Success running sql query INSERT INTO `Logs` ..." line, which would be
+  // inserted in turn, and so on without end. The queue thread keeps its lines
+  // out; a query on any other thread still logs to the database.
   LiveLogger live(Logger::DEBUG9);
 
   REQUIRE(zmDbDo("DO 1") == 1);
   Debug(1, "%s", Marker("debug").c_str());
   REQUIRE(WaitForLog(Marker("debug"), std::chrono::seconds(5)));
+  CHECK(WaitForLog("Success running sql query DO 1%", std::chrono::seconds(5)));
+
   // Give a loop, if there were one, time to show.
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
+  CHECK(CountLogs("Success running sql query INSERT INTO `Logs`%") == 0);
+  const int rows = CountLogs("%");
+  std::this_thread::sleep_for(std::chrono::milliseconds(500));
+  CHECK(CountLogs("%") == rows);
+}
 
-  CHECK(CountLogs("Success running sql%") == 0);
-  CHECK(CountLogs("Failed running sql%") == 0);
+TEST_CASE("an error from a query on another thread reaches Logs", "[notCI][dblive]") {
+  // zmDbDo used to keep the calling thread out of the database for the whole
+  // query, so "Can't run query" errors were only in the log files.
+  LiveLogger live(Logger::INFO);
+
+  const std::string table = stringtf("zm_test_dblog_missing_%d", getpid());
+  // zmDbDo returns mysql_query's error code on failure, which is also 1, so
+  // the log line is the only sign of the failure.
+  zmDbDo(stringtf("SELECT 1 FROM `%s`", table.c_str()));
+  CHECK(WaitForLog("Can't run query%" + table + "%", std::chrono::seconds(5)));
 }
 
 TEST_CASE("a backlog in dbQueue does not deadlock threads that log", "[notCI][dblive]") {

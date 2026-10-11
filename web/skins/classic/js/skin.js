@@ -47,6 +47,9 @@ var mainContent = document.getElementById('content');
 
 const showExtruderPanelOnMouseHover = false;
 const NAVBAR_RELOAD = document.getElementById('reload'); // Top panel with statistics
+// Set by a view that reloads itself in place of navigating (the event view moving to the next
+// event), so the page-leave roll-up in addListenerGlobalBeforeunload() is skipped.
+var skipPageLeaveAnimation = false;
 const BTN_COLLAPSE = document.getElementById('btn-collapse'); // Button to switch the menu view collapsed/expanded
 const SIDEBAR_MAIN = document.getElementById('sidebarMain'); // Left Sidebar with Menu
 const SIDEBAR_MAIN_EXTRUDER = document.getElementById('extruderLeft'); // Sliding extruder panel from the left Sidebar
@@ -2578,8 +2581,15 @@ function initPageGeneral() {
     });
   }
 
+  // The stats panel can wrap to another line, which moves everything below the navbar, so
+  // rescale then. Only a change of height matters: a ResizeObserver also reports the size it
+  // starts with, and the figures change width on every refresh, and rescaling for either
+  // resized the video on the event and watch views for nothing.
+  let navbarReloadHeight = null;
   var observerNavbarReload = new window.ResizeObserver((entries) => {
-    endOfResize();
+    const height = entries[entries.length - 1].contentRect.height;
+    if (navbarReloadHeight !== null && height != navbarReloadHeight) endOfResize();
+    navbarReloadHeight = height;
   });
   if (NAVBAR_RELOAD) {
     observerNavbarReload.observe(NAVBAR_RELOAD);
@@ -2652,7 +2662,7 @@ function initPageGeneral() {
       return;
     }
 
-    if (mainContent) {
+    if (mainContent && !skipPageLeaveAnimation) {
       if (mainContentJ.css('display') == 'flex') {
         // If flex-grow is set to a value > 0 then "height" will be ignored!
         mainContentJ.css({flex: "0 1 auto"});

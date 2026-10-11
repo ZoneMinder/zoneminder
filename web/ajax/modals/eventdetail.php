@@ -11,8 +11,16 @@ $null = '';
   
 if ( !canEdit('Events') ) return;
 
+// Only events the user may edit: Events=Edit alone isn't enough, the event's
+// monitor has to be one they may see.
+function eventDetailEditable($eid) {
+  $event = new ZM\Event($eid);
+  return $event->Id() and $event->canEdit();
+}
+
 if ( $eid ){ // Single Event Mode
   $eid = validInt($eid);
+  if (!eventDetailEditable($eid)) return;
   $title = translate('Event').' '.$eid.PHP_EOL;
   $inputs .= '<input type="hidden" name="markEids[]" value="' .$eid. '"/>';
   $newEvent = dbFetchOne('SELECT E.* FROM Events AS E WHERE E.Id = ?', NULL, array($eid));
@@ -25,11 +33,13 @@ if ( $eid ){ // Single Event Mode
   $sqlValues = array();
   foreach ( $eids as $eid ) {
     $eid = validInt($eid);
+    if (!eventDetailEditable($eid)) continue;
     $inputs .= '<input type="hidden" name="markEids[]" value="' .$eid. '"/>';
     $sqlWhere[] = 'E.Id = ?';
     $sqlValues[] = $eid;
   }
   unset($eid);
+  if (!count($sqlWhere)) return;
   $sql .= join(' OR ', $sqlWhere);
   foreach( dbFetchAll( $sql, NULL, $sqlValues ) as $row ) {
     if ( !isset($newEvent) ) {

@@ -44,6 +44,14 @@ struct RealtimePaceDecision {
 };
 RealtimePaceDecision ComputeRealtimePace(
     int64_t ts_us, int64_t anchor_ts_us, Microseconds elapsed, Microseconds cap);
+
+// A dts step back larger than recording can reorder (a camera clock reset or
+// NTP sync, not decode-order jitter) is treated as a short break in capture:
+// the packet is marked so the event ends there and a new one starts, instead
+// of the recording patching every following dts (refs #4242). `dts_step` is
+// this packet's dts minus the stream's previous dts.
+constexpr Microseconds kCaptureBreakDtsStep = Microseconds(1000000);
+bool IsDtsCaptureBreak(Microseconds dts_step);
 //
 // Class representing 'ffmpeg' cameras, i.e. those which are
 // accessed using ffmpeg multimedia framework

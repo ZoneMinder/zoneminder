@@ -724,9 +724,11 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
   // releaseDecoded(), so an event must not start on one: treat the first packet
   // after them as the front of the queue. With the window unchanged the walk
   // never gets that far; it only can after a RELOAD widened the window or set
-  // keep_keyframes (refs #4860).
+  // keep_keyframes (refs #4860). Nor before a capture break: the packets
+  // before it belong to the previous event's timeline (refs #4242).
   auto at_front = [this, &it]() {
-    return (*it) == pktQueue.begin() or (*std::prev(*it))->queue_index < released_before_;
+    return (*it) == pktQueue.begin() or (*std::prev(*it))->queue_index < released_before_
+      or (*(*it))->capture_break;
   };
   //ZM_DUMP_PACKET(packet->packet, "snapshot packet");
   // Step one count back pre_event_count frames as the minimum
@@ -753,7 +755,10 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
   }
 
   if (pre_event_count) {
-    if ((*it) != pktQueue.begin()) {
+    if (packet->capture_break) {
+      Debug(1, "Hit a capture break before satisfying pre_event_count. Needed %d more video frames", pre_event_count);
+      return start_on_keyframe(it, snapshot_it);
+    } else if ((*it) != pktQueue.begin()) {
       Warning("Hit packets released under a smaller pre-event window before satisfying pre_event_count. "
               "Needed %d more video frames", pre_event_count);
       return start_on_keyframe(it, snapshot_it);
@@ -802,7 +807,11 @@ packetqueue_iterator *PacketQueue::start_on_keyframe(packetqueue_iterator *it, p
     }
     if (k == snapshot_it or std::next(k) == pktQueue.end()) break;
   }
-  Warning("No keyframe between the oldest packet with decoded data and the event's snapshot");
+  if ((*(*it))->capture_break) {
+    Debug(1, "No keyframe yet since the capture break, the event writes video from the next one");
+  } else {
+    Warning("No keyframe between the oldest packet with decoded data and the event's snapshot");
+  }
   return it;
 }
 

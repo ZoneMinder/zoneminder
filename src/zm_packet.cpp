@@ -43,7 +43,8 @@ ZMPacket::ZMPacket() :
   codec_imgsize(0),
   pts(0),
   decoded(false),
-  analyzed(false) {
+  analyzed(false),
+  capture_break(false) {
   packet = av_packet_ptr{av_packet_alloc()};
 }
 
@@ -62,7 +63,8 @@ ZMPacket::ZMPacket(Image *i, SystemTimePoint tv) :
   codec_imgsize(0),
   pts(0),
   decoded(false),
-  analyzed(false) {
+  analyzed(false),
+  capture_break(false) {
   packet = av_packet_ptr{av_packet_alloc()};
 }
 
@@ -81,7 +83,8 @@ ZMPacket::ZMPacket(ZMPacket &p) :
   codec_imgsize(0),
   pts(p.pts),
   decoded(p.decoded),
-  analyzed(p.analyzed) {
+  analyzed(p.analyzed),
+  capture_break(p.capture_break) {
   packet = av_packet_ptr{av_packet_alloc()};
 
   if (av_packet_ref(packet.get(), p.packet.get()) < 0) {

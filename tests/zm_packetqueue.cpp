@@ -232,3 +232,79 @@ TEST_CASE("PacketQueue: an event never starts on a released packet") {
   queue.stop();
   queue.clear();
 }
+
+// FfmpegCamera marks the packet where the camera's clock stepped back as a
+// capture break, and analysis ends the event there. The next event must not
+// reach back past it for pre-event frames or a keyframe, or its recording
+// would hold the step back again (refs #4242).
+TEST_CASE("PacketQueue: an event never starts before a capture break") {
+  PacketQueue queue;
+  queue.addStream();
+  queue.setMaxVideoPackets(0);
+  queue.setPreEventVideoPackets(5);
+
+  packetqueue_iterator *holder_it = queue.get_video_it(false);
+  REQUIRE(holder_it != nullptr);
+
+  // Keyframes every 10 packets, the break on packet `brk`.
+  auto fill = [&](int count, int brk) {
+    std::vector<std::shared_ptr<ZMPacket>> packets;
+    for (int i = 0; i < count; i++) {
+      packets.push_back(video_packet(i % 10 == 0));
+      packets.back()->capture_break = (i == brk);
+      REQUIRE(queue.queuePacket(packets.back()));
+    }
+    return packets;
+  };
+  auto analysis_at = [&](int index) {
+    packetqueue_iterator *it = queue.get_video_it(false);
+    for (int i = 0; i < index; i++) REQUIRE(queue.increment_it(it, false));
+    return it;
+  };
+
+  SECTION("passthrough, continuous: starts on the break, not the keyframe before it") {
+    queue.setKeepKeyframes(true);
+    auto packets = fill(30, 24);
+    packetqueue_iterator *analysis_it = analysis_at(24);
+    // Unchanged code walked back to the keyframe at 20, before the break.
+    packetqueue_iterator *start = queue.get_event_start_packet_it(*analysis_it, 0);
+    REQUIRE(*(*start) == packets[24]);
+    queue.free_it(start);
+    queue.free_it(analysis_it);
+  }
+
+  SECTION("passthrough, pre-event: forward to the first keyframe after the break") {
+    queue.setKeepKeyframes(true);
+    auto packets = fill(35, 24);
+    packetqueue_iterator *analysis_it = analysis_at(32);
+    // 10 back from 32 would be 22, then back to the keyframe at 20.
+    packetqueue_iterator *start = queue.get_event_start_packet_it(*analysis_it, 10);
+    REQUIRE(*(*start) == packets[30]);
+    queue.free_it(start);
+    queue.free_it(analysis_it);
+  }
+
+  SECTION("encode, pre-event: stops on the break") {
+    queue.setKeepKeyframes(false);
+    auto packets = fill(30, 24);
+    packetqueue_iterator *analysis_it = analysis_at(28);
+    packetqueue_iterator *start = queue.get_event_start_packet_it(*analysis_it, 10);
+    REQUIRE(*(*start) == packets[24]);
+    queue.free_it(start);
+    queue.free_it(analysis_it);
+  }
+
+  SECTION("no break: unchanged") {
+    queue.setKeepKeyframes(true);
+    auto packets = fill(30, -1);
+    packetqueue_iterator *analysis_it = analysis_at(24);
+    packetqueue_iterator *start = queue.get_event_start_packet_it(*analysis_it, 0);
+    REQUIRE(*(*start) == packets[20]);
+    queue.free_it(start);
+    queue.free_it(analysis_it);
+  }
+
+  queue.free_it(holder_it);
+  queue.stop();
+  queue.clear();
+}

@@ -66,6 +66,9 @@ class ZMPacket {
   int64_t   pts;                // pts in the packet can be in another time base. This MUST be in AV_TIME_BASE_Q
   bool decoded;
   bool analyzed;
+  // Set by capture when the timestamps jumped back further than recording can
+  // reorder: analysis ends the event here and the next one starts here.
+  bool capture_break;
   std::vector<ZoneStats> zone_stats;
   std::string  alarm_cause;
 #if HAS_NLOHMANN_JSON

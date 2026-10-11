@@ -210,6 +210,10 @@ RealtimePaceDecision ComputeRealtimePace(
   return {false, delay};
 }
 
+bool IsDtsCaptureBreak(Microseconds dts_step) {
+  return dts_step < -kCaptureBreakDtsStep;
+}
+
 void FfmpegCamera::paceRealtime(int64_t ts_us) {
   if (!mRealtime || (ts_us == AV_NOPTS_VALUE)) return;
 
@@ -357,6 +361,7 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
 
   // Check DTS for significant backward jumps. Some cameras/encoders produce
   // non-monotonic DTS (B-frames, stream restarts) that PTS checks won't catch.
+  bool capture_break = false;
   if (packet->dts != AV_NOPTS_VALUE) {
     int64_t lastDTS = (packet->stream_index == mVideoStreamId) ? mLastVideoDTS : mLastAudioDTS;
     if (lastDTS != AV_NOPTS_VALUE) {
@@ -371,6 +376,14 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
           return -1;
         error_count += 1;
         return 0;
+      }
+      // Only the video stream marks a break: the event has to restart on video,
+      // and an audio stream stepping back as well must not split it twice.
+      Microseconds dts_step(av_rescale_q(dts_delta, stream->time_base, AV_TIME_BASE_Q));
+      if ((packet->stream_index == mVideoStreamId) and IsDtsCaptureBreak(dts_step)) {
+        Info("Stream dts jumped back %.2f seconds, treating it as a break in capture",
+             -FPSeconds(dts_step).count());
+        capture_break = true;
       }
     }
   }
@@ -391,6 +404,7 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
 
   bytes += packet->size;
   zm_packet->set_packet(packet.get());
+  zm_packet->capture_break = capture_break;
   zm_packet->stream = stream;
   zm_packet->pts = av_rescale_q(packet->pts, stream->time_base, AV_TIME_BASE_Q);
   if (packet->pts != AV_NOPTS_VALUE) {

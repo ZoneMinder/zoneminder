@@ -88,6 +88,22 @@ TEST_CASE("ComputeRealtimePace: a delay right at the cap still sleeps") {
   REQUIRE(d.sleep == kCap);
 }
 
+// IsDtsCaptureBreak() decides when a video dts step back is a break in capture
+// (the event ends and a new one starts) rather than jitter the recording's
+// reorder queue sorts out (refs #4242).
+TEST_CASE("IsDtsCaptureBreak: jitter and equal dts are not a break") {
+  REQUIRE_FALSE(IsDtsCaptureBreak(Microseconds(0)));
+  REQUIRE_FALSE(IsDtsCaptureBreak(Microseconds(66667)));
+  REQUIRE_FALSE(IsDtsCaptureBreak(Microseconds(-100000)));
+  REQUIRE_FALSE(IsDtsCaptureBreak(-kCaptureBreakDtsStep));
+}
+
+TEST_CASE("IsDtsCaptureBreak: a clock step back beyond the threshold is a break") {
+  // 94320 ticks at 90 kHz, as in the #4242 report, and the lab probe's 8.933 s.
+  REQUIRE(IsDtsCaptureBreak(Microseconds(-1048000)));
+  REQUIRE(IsDtsCaptureBreak(Microseconds(-8933000)));
+}
+
 // The Options field is entered as a textarea so an option can go on its own
 // line, but ffmpeg gets it as one string. av_dict_parse_string() takes a set of
 // pair separator characters, so this needs no parsing of our own - but only if

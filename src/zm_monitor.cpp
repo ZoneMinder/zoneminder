@@ -2185,6 +2185,14 @@ bool Monitor::Analyse() {
         noteSetMap[trigger_data->trigger_cause] = noteSet;
       }  // end if trigger_on
 
+      // Capture saw the timestamps jump back further than recording can
+      // reorder. End the event here; a new one starts on this packet with its
+      // own timeline, without re-priming the capture (refs #4242).
+      if (packet->capture_break and event) {
+        Info("%s: %03d - Closing event %" PRIu64 ", capture break", name.c_str(), analysis_image_count, event->Id());
+        closeEvent();
+      }
+
       // FIXME this packet might not be the one that caused the signal change.  Need to store that in the packet.
       if (signal_change) {
         Debug(2, "Signal change, new signal is %d", signal);

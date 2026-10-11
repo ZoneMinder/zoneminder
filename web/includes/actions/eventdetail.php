@@ -32,12 +32,19 @@ if ( !canEdit('Events') ) {
 if ( $action == 'eventdetail' ) {
   $dbConn->beginTransaction();
   foreach ( $_REQUEST['markEids'] as $markEid ) {
+    // Events=Edit alone isn't enough: the event's monitor has to be one the user
+    // may see, as for archiving in actions/events.php.
+    $event = new ZM\Event(validInt($markEid));
+    if (!$event->Id() or !$event->canEdit()) {
+      ZM\Warning('No permission to edit event '.validInt($markEid));
+      continue;
+    }
     dbQuery('UPDATE Events SET Name=?, Cause=?, Notes=? WHERE Id=?',
       array(
         $_REQUEST['newEvent']['Name'],
         $_REQUEST['newEvent']['Cause'],
         $_REQUEST['newEvent']['Notes'],
-        $markEid
+        $event->Id()
       )
     );
   }

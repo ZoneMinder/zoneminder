@@ -42,6 +42,7 @@ Logger *Logger::smInstance = nullptr;
 Logger::StringMap Logger::smCodes;
 Logger::IntMap Logger::smSyslogPriorities;
 std::atomic<bool> Logger::smDoLogRotate(false);
+thread_local int Logger::smDatabaseLogPaused = 0;
 
 void Logger::usrHandler(int sig) {
   // SIGHUP means reload, which for zmc costs a camera reconnect and a gap in
@@ -541,7 +542,7 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
     }
   }  // end if level <= mFileLevel
 
-  if (level <= mDatabaseLevel) {
+  if (level <= mDatabaseLevel and !smDatabaseLogPaused) {
     if (zmDbConnected) {
       std::string escapedString = zmDbEscapeString({syslogStart, syslogEnd});
 

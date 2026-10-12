@@ -869,7 +869,10 @@ void MonitorStream::runStream() {
             Debug(2, "Can't delay when not buffering.");
             delayed = false;
           }
-          if (last_zoom != zoom) {
+          // paused_image is only held while paused. PLAY after PAUSE leaves
+          // delayed set without a buffer for one pass of the loop, and the
+          // next live frame carries the new zoom anyway.
+          if (paused_image && (last_zoom != zoom)) {
             Debug(2, "Sending 2 frames because change in zoom %d ?= %d", last_zoom, zoom.load());
             if (!sendFrame(paused_image.get(), paused_timestamp))
               zm_terminate = true;

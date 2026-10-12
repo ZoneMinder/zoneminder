@@ -371,7 +371,11 @@ bool MonitorStream::sendFrame(const std::string &filepath, SystemTimePoint times
     // Calculate how long it takes to actually send the frame
     TimePoint send_start_time = std::chrono::steady_clock::now();
 
+    // Same part headers as sendFrame(Image *): send_raw is only set for
+    // STREAM_JPEG, which is multipart.
     if (
+      (0 > fputs("--" BOUNDARY "\r\nContent-Type: image/jpeg\r\n", stdout))
+      ||
       (0 > fprintf(stdout, "Content-Length: %d\r\nX-Timestamp: %.6f\r\n\r\n",
                    img_buffer_size, std::chrono::duration_cast<FPSeconds>(timestamp.time_since_epoch()).count()))
       ||

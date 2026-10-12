@@ -117,6 +117,7 @@ Requires: php-mysqli
 Requires: php-common
 Requires: php-gd
 Requires: php-intl
+Requires: php-mbstring
 Requires: php-process
 Requires: php-json
 Requires: php-pecl-apcu

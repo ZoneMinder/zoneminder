@@ -209,6 +209,60 @@ TEST_CASE("Image::Flip YUV420P", "[image]") {
   }
 }
 
+// Regression: Image::Crop built a tightly packed width * colours buffer.
+// AssignDirect wants 32-byte aligned rows and, for YUV420P, the chroma planes
+// as well, so it refused that buffer whenever the cropped row wasn't a
+// multiple of 32 bytes or the image was planar: "Attempt to directly assign
+// buffer from an undersized buffer", the image stayed uncropped and the new
+// buffer leaked. nph-zms crops every frame of a zoomed live stream.
+TEST_CASE("Image::Crop YUV420P", "[image]") {
+  bootstrap_image_config();
+  const int w = 1280, h = 720;
+  Image image(w, h, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_YUV420P);
+
+  Planes src = plane_view(image, AV_PIX_FMT_YUV420P, w, h);
+  memset(src.data[0], 0x10, static_cast<size_t>(src.stride[0]) * h);
+  memset(src.data[1], 0x20, static_cast<size_t>(src.stride[1]) * (h / 2));
+  memset(src.data[2], 0x30, static_cast<size_t>(src.stride[2]) * (h / 2));
+  src.data[0][120 * src.stride[0] + 100] = 200;  // luma (100, 120)
+  src.data[1][61 * src.stride[1] + 51] = 210;    // U (51, 61)
+  src.data[2][62 * src.stride[2] + 52] = 220;    // V (52, 62)
+
+  // 1164x656 from (58, 32): the crop nph-zms makes at the first zoom step.
+  const unsigned int lo_x = 58, lo_y = 32, cw = 1164, ch = 656;
+  REQUIRE(image.Crop(lo_x, lo_y, lo_x + cw - 1, lo_y + ch - 1));
+  REQUIRE(image.Width() == cw);
+  REQUIRE(image.Height() == ch);
+  REQUIRE(image.Size() == static_cast<unsigned int>(
+            av_image_get_buffer_size(AV_PIX_FMT_YUV420P, cw, ch, 32)));
+
+  Planes dst = plane_view(image, AV_PIX_FMT_YUV420P, cw, ch);
+  REQUIRE(dst.data[0][(120 - lo_y) * dst.stride[0] + (100 - lo_x)] == 200);
+  REQUIRE(dst.data[1][(61 - lo_y / 2) * dst.stride[1] + (51 - lo_x / 2)] == 210);
+  REQUIRE(dst.data[2][(62 - lo_y / 2) * dst.stride[2] + (52 - lo_x / 2)] == 220);
+  REQUIRE(dst.data[1][0] == 0x20);
+  REQUIRE(dst.data[2][0] == 0x30);
+}
+
+TEST_CASE("Image::Crop RGBA with a row that is not a multiple of 32 bytes", "[image]") {
+  bootstrap_image_config();
+  const int w = 64, h = 16;
+  Image image(w, h, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA);
+  for (int y = 0; y < h; y++)
+    for (int x = 0; x < w; x++)
+      for (int c = 0; c < 4; c++)
+        image.Buffer()[y * image.LineSize() + x * 4 + c] = static_cast<uint8_t>(y * 16 + x + c);
+
+  // 13 pixels = 52 bytes per row; AssignDirect wants 64.
+  REQUIRE(image.Crop(5, 3, 17, 10));
+  REQUIRE(image.Width() == 13u);
+  REQUIRE(image.Height() == 8u);
+  REQUIRE(image.LineSize() == 64u);
+  for (int y = 0; y < 8; y++)
+    for (int x = 0; x < 13; x++)
+      REQUIRE(image.Buffer()[y * image.LineSize() + x * 4] == static_cast<uint8_t>((y + 3) * 16 + (x + 5)));
+}
+
 // Regression: a zone alarm highlight (RGB) overlaid onto a planar YUV420P
 // analysis image used to call Colourise() — which only handles GRAY8, so it
 // bailed with "already colourised, colours: 1" (the GRAY8/YUV420P alias) and

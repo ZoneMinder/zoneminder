@@ -4504,7 +4504,6 @@ int Monitor::Pause() {
       sws_freeContext(convert_context);
       convert_context = nullptr;
     }
-    decoding_image_count = 0;
     // Do not reset last_write_index: the last captured image stays in shm so
     // that mode=single/thumbnails can still be served while paused.
   }
@@ -4512,6 +4511,8 @@ int Monitor::Pause() {
     Debug(1, "Joining analysis");
     analysis_thread->Join();
   }
+  // After both joins: Ready() on the analysis thread reads it.
+  if (decoder) decoding_image_count = 0;
 
   // Must close event before closing camera because it uses in_streams
   {

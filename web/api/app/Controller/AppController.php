@@ -112,8 +112,6 @@ class AppController extends Controller {
           if ( ! is_session_started() )
             zm_session_start();
 
-          // The session holds auth hashes and, with ZM_AUTH_RELAY=plain, the password.
-          ZM\Debug(print_r(ZM\redactForLog($_SESSION), true));
           $user = userFromSession();
           session_write_close();
         }

@@ -1113,8 +1113,7 @@ FROM `Frames` WHERE `EventId`=?';
   my $tot_score = List::Util::max($frame->{TotScore} // 0, $self->{TotScore} // 0);
   my $max_score = List::Util::max($frame->{MaxScore} // 0, $self->{MaxScore} // 0);
 
-  return $self->save({
-      Name => sprintf('%s%d%s', $self->Monitor()->EventPrefix(), $self->{Id}, $tag),
+  my %changes = (
       EndDateTime => $end_date_time,
       Length => $length,
       Frames => $frames,
@@ -1123,7 +1122,13 @@ FROM `Frames` WHERE `EventId`=?';
       AvgScore => ($alarm_frames ? int($tot_score / $alarm_frames) : 0),
       MaxScore => $max_score,
       Notes => $self->Notes() . ' ' . $text,
-    });
+    );
+  # Like zmc's own close (~Event: Name = IF(Name='New Event', ...)), keep a name
+  # the user gave the event; only the placeholder gets the recovered name.
+  if (($self->{Name} // 'New Event') eq 'New Event') {
+    $changes{Name} = sprintf('%s%d%s', $self->Monitor()->EventPrefix(), $self->{Id}, $tag);
+  }
+  return $self->save(\%changes);
 } # end sub Close
 
 sub Event_Tags {

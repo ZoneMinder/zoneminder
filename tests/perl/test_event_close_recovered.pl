@@ -108,6 +108,16 @@ my $no_frames = {EndDateTime => undef, EndTimeStamp => undef, Frames => undef,
   check('each score is the larger of the two', join(',', @$saved{qw(AlarmFrames TotScore AvgScore MaxScore)}), '5,80,16,25');
 }
 
+# The user renamed the event while it was recording: zmwatch closes it on its
+# own now, so it keeps that name; the note still says it was recovered.
+{
+  $frame_row = $no_frames; $saved = undef;
+  my $event = event(Name => 'Front door delivery', Length => 4.6, Frames => 70);
+  $event->Close();
+  check('keeps a name the user gave the event', exists $$saved{Name} ? $$saved{Name} : '(not changed)', '(not changed)');
+  check('notes still say it was recovered', $$saved{Notes}, ' Recovered.');
+}
+
 # No start time: nothing to anchor the end to.
 {
   $frame_row = $no_frames; $saved = undef;

@@ -35,6 +35,7 @@
 #include "zm_zone.h"
 
 #include <list>
+#include <map>
 #include <memory>
 #include <sys/time.h>
 #include <vector>
@@ -637,6 +638,17 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   VideoStore          *videoStore;
   PacketQueue      packetqueue;
+  // Stream timestamps kept going forward across a jump back in the camera's
+  // clock: an offset (microseconds) added to every packet's dts and pts, and
+  // each stream's last dts with the offset applied and its last step.
+  int64_t dts_offset_ = 0;
+  std::map<int, int64_t> last_dts_;
+  std::map<int, int64_t> last_dts_step_;
+  // A step back of more than this in a stream's dts is a jump in the camera's
+  // clock, not reordering jitter.
+  static constexpr int64_t kDtsStepBack = 1000000;
+  // Moves the packet onto the continuous timeline; returns the offset applied.
+  int64_t KeepDtsContinuous(AVPacket *packet, AVRational time_base);
   std::unique_ptr<PollThread> Poller;
   std::list<ZMPacketLock> decoder_queue;
   packetqueue_iterator  *analysis_it;

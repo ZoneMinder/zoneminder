@@ -31,6 +31,7 @@ set(TEST_SOURCES
   zm_monitorstream.cpp
   zm_mp4_sidx.cpp
   zm_packetqueue.cpp
+  zm_packet_lock.cpp
   zm_monitor_action.cpp
   zm_onvif_alarm_termination.cpp
   zm_onvif_auth_error.cpp

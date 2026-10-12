@@ -471,19 +471,4 @@ echo getNavBarHTML();
   </div><!-- content -->
 </div>
 
-<script>
-document.getElementById('refreshBtn').addEventListener('click', function() {
-  location.reload();
-});
-
-document.getElementById('backBtn').addEventListener('click', function() {
-  window.history.back();
-});
-
-// Enable back button if there's history
-if (window.history.length > 1) {
-  document.getElementById('backBtn').disabled = false;
-}
-</script>
-
 <?php xhtmlFooter() ?>

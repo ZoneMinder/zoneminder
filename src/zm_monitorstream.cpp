@@ -814,6 +814,9 @@ void MonitorStream::runStream() {
               zm_terminate = true;
             }
             frame_count++;
+            // got_command asks for one frame after a command. Left set, it
+            // made every later pass re-send this frame instead of every 5 s.
+            got_command = false;
             // frame_sent = true;
           }
         }  // end if (!paused) or step or paused

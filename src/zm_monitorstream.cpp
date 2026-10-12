@@ -88,6 +88,10 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     return;
   }
 
+  // This runs on the command thread: read the clock here rather than the
+  // streaming loop's `now`.
+  const TimePoint cmd_now = std::chrono::steady_clock::now();
+
   // Check for incoming command
   switch ((MsgCommand)msg->msg_data[0]) {
   case CMD_PAUSE :
@@ -95,7 +99,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     stopped = false;
     paused = true;
     delayed = true;
-    last_frame_sent = now;
+    last_frame_sent = cmd_now;
     break;
   case CMD_PLAY :
     Debug(1, "Got PLAY command");
@@ -286,11 +290,11 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
       status_data.analysing = 0;
       status_data.score = 0;
     } else {
-      FPSeconds elapsed = now - last_fps_update;
+      FPSeconds elapsed = cmd_now - last_fps_update;
       if (elapsed.count()) {
         actual_fps = (actual_fps + (frame_count - last_frame_count) / elapsed.count())/2;
         last_frame_count = frame_count;
-        last_fps_update = now;
+        last_fps_update = cmd_now;
       }
 
       status_data.fps = actual_fps;
@@ -310,7 +314,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
   status_data.paused = paused;
   status_data.stopped = stopped;
   status_data.rate = replay_rate;
-  status_data.delay = FPSeconds(now - last_frame_sent).count();
+  status_data.delay = FPSeconds(cmd_now - last_frame_sent.load()).count();
   status_data.zoom = zoom;
   status_data.scale = scale;
   status_data.analysis_image = (frame_type == FRAME_ANALYSIS) &&
@@ -481,7 +485,7 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
 
   last_frame_sent = std::chrono::steady_clock::now();
   if (maxfps > 0.0) {
-    TimePoint::duration frame_send_time = last_frame_sent - send_start_time;
+    TimePoint::duration frame_send_time = last_frame_sent.load() - send_start_time;
     TimePoint::duration maxfps_milliseconds = Milliseconds(lround(Milliseconds::period::den / maxfps));
 
     if (frame_send_time > maxfps_milliseconds) {
@@ -633,7 +637,7 @@ void MonitorStream::runStream() {
     if (now - last_mem_report >= mem_report_interval) {
       last_mem_report = now;
       Debug(1, "mem trace m%d: rss=%zuKB frame_count=%d buffer_level=%d temp_count=%d paused=%d delayed=%d",
-           monitor_id, zm_get_rss_kb(), frame_count,
+           monitor_id, zm_get_rss_kb(), frame_count.load(),
            MonitorStreamBufferLevel(temp_write_index.load(), temp_read_index.load(), temp_image_buffer_count.load()),
            temp_image_buffer_count.load(), paused.load(), delayed.load());
     }
@@ -694,7 +698,7 @@ void MonitorStream::runStream() {
         stopped_image = zm::make_unique<Image>(*monitor->ReadShmFrame(index));
         stopped_timestamp = SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index]));
       }
-      if (now - last_frame_sent > Seconds(5)) {
+      if (now - last_frame_sent.load() > Seconds(5)) {
         if (stopped_image) {
           Debug(2, "Sending keepalive frame while stopped");
           if (!sendFrame(stopped_image.get(), stopped_timestamp)) zm_terminate = true;
@@ -752,7 +756,7 @@ void MonitorStream::runStream() {
             temp_read_index = MOD_ADD(temp_read_index, (replay_rate>=0?-1:1), temp_image_buffer_count);
           } else {
             FPSeconds expected_delta_time = ((FPSeconds(swap_image->timestamp - last_frame_timestamp)) * ZM_RATE_BASE) / replay_rate.load();
-            TimePoint::duration actual_delta_time = now - last_frame_sent;
+            TimePoint::duration actual_delta_time = now - last_frame_sent.load();
 
             // If the next frame is due
             if (actual_delta_time > expected_delta_time) {
@@ -791,7 +795,7 @@ void MonitorStream::runStream() {
           //paused?
           int temp_index = MOD_ADD(temp_read_index, 0, temp_image_buffer_count);
 
-          if (got_command || (now - last_frame_sent > Seconds(5))) {
+          if (got_command || (now - last_frame_sent.load() > Seconds(5))) {
             // Send keepalive
             Debug(2, "Sending keepalive frame %d", temp_index);
             // Send the next frame
@@ -823,7 +827,7 @@ void MonitorStream::runStream() {
       if ( now >= when_to_send_next_frame ) {
         if (!paused && !delayed) {
           Debug(2, "Sending frame index: %d(%d%%%d): frame_mod: %d frame count: %d last image count %d image count %d paused %d delayed %d",
-                index, last_write_index, monitor->image_buffer_count, frame_mod, frame_count, last_image_count, monitor->shared_data->image_count, paused.load(), delayed.load());
+                index, last_write_index, monitor->image_buffer_count, frame_mod, frame_count.load(), last_image_count, monitor->shared_data->image_count, paused.load(), delayed.load());
           last_read_index = last_write_index;
           last_image_count = monitor->shared_data->image_count;
           // Send the next frame
@@ -878,7 +882,7 @@ void MonitorStream::runStream() {
             frame_count++;
             frame_count++;
           } else {
-            TimePoint::duration actual_delta_time = now - last_frame_sent;
+            TimePoint::duration actual_delta_time = now - last_frame_sent.load();
             if (actual_delta_time > Seconds(5)) {
               if (paused_image) {
                 // Send keepalive
@@ -933,7 +937,7 @@ void MonitorStream::runStream() {
             monitor->shared_data->last_write_index,
             last_read_index);
 
-      if (now - last_frame_sent > Seconds(5)) {
+      if (now - last_frame_sent.load() > Seconds(5)) {
         if (last_read_index == monitor->GetImageBufferCount()) {
           sendTextFrame("Waiting for initial capture");
           // Timeout if we've never received a frame from capture
@@ -972,8 +976,9 @@ void MonitorStream::runStream() {
       }
 
 
-      if (last_frame_sent > now) {
-        FPSeconds elapsed = last_frame_sent - now;
+      const TimePoint sent = last_frame_sent.load();
+      if (sent > now) {
+        FPSeconds elapsed = sent - now;
         if (sleep_time > elapsed) {
           Debug(2, "Adjusting sleep time by %f elapsed", elapsed.count());
           sleep_time -= elapsed;

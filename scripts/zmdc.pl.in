@@ -570,6 +570,10 @@ sub start {
     $SIG{CHLD} = 'DEFAULT';
     $SIG{HUP} = 'DEFAULT';
 
+    # SIGCHLD is still blocked from the fork above, and a blocked signal stays
+    # blocked across exec, so the daemon would start with it blocked. Hand it the
+    # mask zmdc had before the fork.
+    sigprocmask(SIG_SETMASK, $sigset) or Fatal("Can't restore the signal mask: $!");
     exec($daemon, @good_args) or Fatal("Can't exec: $!");
   } else {
     Fatal("Can't fork: $!");
@@ -755,8 +759,11 @@ sub reaper {
     delete $process->{pid};
 
     my $exit_status = $status>>8;
-    my $exit_signal = $status&0xfe;
-    my $core_dumped = $status&0x01;
+    # The low 7 bits of a wait status are the signal and 0x80 is the core dump
+    # flag. Masking with 0xfe dropped the signal's low bit, so TERM was logged
+    # as 14 and KILL as 8.
+    my $exit_signal = $status&0x7f;
+    my $core_dumped = $status&0x80;
 
     my $out_str = "'$process->{command}' ";
     if ( $exit_signal ) {

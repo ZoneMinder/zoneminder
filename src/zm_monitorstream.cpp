@@ -775,17 +775,24 @@ void MonitorStream::runStream() {
 
           SwapImage *swap_image = &temp_image_buffer[temp_read_index];
 
-          // Send the next frame
-          if (!sendFrame(
-                temp_image_buffer[temp_read_index].file_name,
-                temp_image_buffer[temp_read_index].timestamp)
-             ) {
-            zm_terminate = true;
-          }
-          frame_count++;
+          if (!swap_image->valid) {
+            // Nothing stored in that slot yet: stepping forward from the
+            // newest stored frame, or back past the oldest. Stay on the
+            // current frame, as the playback branch above does.
+            temp_read_index = MOD_ADD(temp_read_index, (step>0?-1:1), temp_image_buffer_count);
+          } else {
+            // Send the next frame
+            if (!sendFrame(
+                  temp_image_buffer[temp_read_index].file_name,
+                  temp_image_buffer[temp_read_index].timestamp)
+               ) {
+              zm_terminate = true;
+            }
+            frame_count++;
 
-          last_frame_timestamp = swap_image->timestamp;
-          // frame_sent = true;
+            last_frame_timestamp = swap_image->timestamp;
+            // frame_sent = true;
+          }
           step = 0;
         } else {
           //paused?

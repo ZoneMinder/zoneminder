@@ -709,8 +709,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int        event_count;
   int        last_capture_image_count; // last value of image_count when calculating capture fps
   int        analysis_image_count;    // How many frames have been processed by analysis thread.
-  int        decoding_image_count;    // How many frames have been processed by analysis thread.
-  int        motion_frame_count;      // How many frames have had motion detection performed on them.
+  // Written by the decoder / analysis thread, read by the others: atomic.
+  std::atomic<int> decoding_image_count;    // How many frames the decoder has written to shm.
+  std::atomic<int> motion_frame_count;      // How many frames have had motion detection performed on them.
   int         last_motion_frame_count; // last value of motion_frame_count when calculating fps
   int        ready_count;
   int        first_alarm_count;
@@ -941,10 +942,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
       return false;
     }
     if (decoding_image_count > ready_count) {
-      Debug(4, "Ready because decoding_image_count(%d) > ready_count(%d)", decoding_image_count, ready_count);
+      Debug(4, "Ready because decoding_image_count(%d) > ready_count(%d)", decoding_image_count.load(), ready_count);
       return true;
     }
-    Debug(4, "Not ready because decoding_image_count(%d) <= ready_count(%d)", decoding_image_count, ready_count);
+    Debug(4, "Not ready because decoding_image_count(%d) <= ready_count(%d)", decoding_image_count.load(), ready_count);
     return false;
   }
   inline bool Active() const {

@@ -36,11 +36,10 @@ static std::string slurp(const std::string &path) {
 }
 
 // zmc and zm_rtsp_server reload their configuration on SIGHUP and call
-// logReload() from their main loop. Other threads keep running through that:
-// the dbQueue thread writing Logs rows (zmDbDo holds the Logger pointer across
-// its query to restore the database level), stream socket threads, and
-// anything else that logs. The reload must leave the instance those threads
-// hold valid. When the reload deleted and recreated the logger
+// logReload() from their main loop. Other threads keep logging through that,
+// the dbQueue thread and the stream socket threads among them, each through
+// the instance Logger::fetch() gave it. The reload must leave that instance
+// valid. When the reload deleted and recreated the logger
 // (logTerm(); logInit()), AddressSanitizer reported a heap-use-after-free here.
 TEST_CASE("logReload while other threads log keeps the logger they hold") {
   std::string path = stringtf("/tmp/zm_test_logreload_%d.log", getpid());
@@ -58,12 +57,7 @@ TEST_CASE("logReload while other threads log keeps the logger they hold") {
   for (int t = 0; t < 4; t++) {
     workers.emplace_back([&stop, &lines, t]() {
       while (!stop) {
-        // What zmDbDo does around every query.
-        Logger *logger = Logger::fetch();
-        Logger::Level old_level = logger->databaseLevel();
-        logger->databaseLevel(Logger::NOLOG);
         Info("worker %d line %d", t, lines++);
-        logger->databaseLevel(old_level);
       }
     });
   }

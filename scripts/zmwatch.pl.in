@@ -87,6 +87,14 @@ sleep(START_DELAY);
 # Wall-clock of the last completed check pass, to detect systemic stalls (see below).
 my $last_pass_time = time();
 
+# A monitor added or restarted (web UI, API, zmdc, or us) has no shared data
+# until its new zmc has loaded the monitor and mapped it, which takes a few
+# seconds. So a missing or invalid shared data block is given
+# ZM_WATCH_MAX_DELAY, counted from the pass that first found it that way,
+# before we restart the daemon. Restarting it earlier only replaces a zmc that
+# was about to come up with another one.
+my %no_shared_data_since;
+
 while (!$zm_terminate) {
   my $db_was_down = 0;
   while (!($dbh and $dbh->ping()) and !$zm_terminate) {
@@ -130,10 +138,17 @@ while (!$zm_terminate) {
     my $now = time(); 
     my $restart = 0;
     if (!zmMemVerify($monitor)) {
-      Info("Restarting capture daemon for $monitor->{Id} $monitor->{Name}, shared data not valid");
+      my $since = $no_shared_data_since{$monitor->{Id}} //= $now;
+      if (($now - $since) < $Config{ZM_WATCH_MAX_DELAY}) {
+        Debug("Not restarting $monitor->{Id} $monitor->{Name} yet, no shared data for ".($now - $since)."s, giving its zmc time to start");
+        next;
+      }
+      Info("Restarting capture daemon for $monitor->{Id} $monitor->{Name}, shared data not valid for ".($now - $since).'s');
+      delete $no_shared_data_since{$monitor->{Id}};
       $monitor->control('restart');
       next;
     }
+    delete $no_shared_data_since{$monitor->{Id}};
 
     my $heartbeat_time = zmMemRead($monitor, 'shared_data:heartbeat_time');
     my $heartbeat_elapsed = $now-$heartbeat_time;

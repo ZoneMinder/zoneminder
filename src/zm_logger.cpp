@@ -553,7 +553,7 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
                                  "( %jd.%06" PRIi64 ", '%s', %d, %d, %d, '%s', '%s', '%s', %d )",
                                  static_cast<intmax_t>(now_sec), static_cast<int64>(now_frac.count()), mId.c_str(), staticConfig.SERVER_ID, tid, level, classString,
                                  escapedString.c_str(), file, line);
-      dbQueue.push(std::move(sql_string));
+      dbQueue.push(std::move(sql_string), true);
     }
   }  // end if level <= mDatabaseLevel
 

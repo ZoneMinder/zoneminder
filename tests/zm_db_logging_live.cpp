@@ -133,6 +133,16 @@ TEST_CASE("an error from a query on another thread reaches Logs", "[notCI][dbliv
   CHECK(WaitForLog("Can't run query%" + table + "%", std::chrono::seconds(5)));
 }
 
+TEST_CASE("an error from a queued write reaches Logs", "[notCI][dblive]") {
+  // Events, frames and stats are written through dbQueue too. Only the queue's
+  // inserts into Logs are kept from logging; its other writes report errors.
+  LiveLogger live(Logger::INFO);
+
+  const std::string table = stringtf("zm_test_dblog_queued_missing_%d", getpid());
+  dbQueue.push(stringtf("UPDATE `%s` SET x=1", table.c_str()));
+  CHECK(WaitForLog("Can't run query%" + table + "%", std::chrono::seconds(5)));
+}
+
 TEST_CASE("a backlog in dbQueue does not deadlock threads that log", "[notCI][dblive]") {
   // With more than 40 rows waiting, the queue thread warns about the backlog.
   // It used to do that while holding the queue's mutex, and logPrint takes the

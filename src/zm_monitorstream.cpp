@@ -638,7 +638,6 @@ void MonitorStream::runStream() {
            temp_image_buffer_count.load(), paused.load(), delayed.load());
     }
 
-    bool was_paused = paused;
     if (!checkInitialised()) {
       int rc = -1;
       if (!loadMonitor(monitor_id)) {
@@ -724,7 +723,12 @@ void MonitorStream::runStream() {
       monitor->setLastAnalysisViewed();
 
     if (paused) {
-      if (!was_paused) {
+      // Commands arrive on their own thread, so paused can't be compared with
+      // its value at the top of this pass to find the moment it was set. Take
+      // the image on the first pass that sees paused without one, once
+      // capture has written a frame (as the stopped branch above does).
+      if (!paused_image
+          && (monitor->shared_data->last_write_index != monitor->image_buffer_count)) {
         int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
         Debug(1, "Saving paused image from index %d",index);
         paused_image = zm::make_unique<Image>(*monitor->ReadShmFrame(index));
@@ -869,7 +873,10 @@ void MonitorStream::runStream() {
             Debug(2, "Can't delay when not buffering.");
             delayed = false;
           }
-          if (last_zoom != zoom) {
+          // paused_image is only held while paused. PLAY after PAUSE leaves
+          // delayed set without a buffer for one pass of the loop, and the
+          // next live frame carries the new zoom anyway.
+          if (paused_image && (last_zoom != zoom)) {
             Debug(2, "Sending 2 frames because change in zoom %d ?= %d", last_zoom, zoom.load());
             if (!sendFrame(paused_image.get(), paused_timestamp))
               zm_terminate = true;

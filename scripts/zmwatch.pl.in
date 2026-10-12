@@ -99,8 +99,16 @@ my $last_pass_time = time();
 # heartbeat is stale -- before acting on it. Monitors we have seen healthy are
 # handled immediately, so a camera that dies after we start is caught as fast
 # as it ever was, and every other check runs from the first pass.
+#
+# The same applies whenever a zmc starts later: a monitor added or restarted
+# (web UI, API, zmdc, or us) has no shared data until its new zmc has loaded
+# the monitor and mapped it, which takes a few seconds. So a missing or invalid
+# shared data block is also given ZM_WATCH_MAX_DELAY, counted from the pass
+# that first found it that way, before we restart the daemon. Restarting it
+# earlier only replaces a zmc that was about to come up with another one.
 my $start_time = time();
 my %seen_healthy;
+my %no_shared_data_since;
 
 while (!$zm_terminate) {
   my $db_was_down = 0;
@@ -150,14 +158,17 @@ while (!$zm_terminate) {
       && (($now - $start_time) < $Config{ZM_WATCH_MAX_DELAY});
 
     if (!zmMemVerify($monitor)) {
-      if ($starting_up) {
-        Debug("Not restarting $monitor->{Id} $monitor->{Name} yet, no shared data but still inside its startup grace");
+      my $since = $no_shared_data_since{$monitor->{Id}} //= $now;
+      if ($starting_up or (($now - $since) < $Config{ZM_WATCH_MAX_DELAY})) {
+        Debug("Not restarting $monitor->{Id} $monitor->{Name} yet, no shared data for ".($now - $since)."s, still inside its startup grace");
         next;
       }
-      Info("Restarting capture daemon for $monitor->{Id} $monitor->{Name}, shared data not valid");
+      Info("Restarting capture daemon for $monitor->{Id} $monitor->{Name}, shared data not valid for ".($now - $since).'s');
+      delete $no_shared_data_since{$monitor->{Id}};
       $monitor->control('restart');
       next;
     }
+    delete $no_shared_data_since{$monitor->{Id}};
 
     my $heartbeat_time = zmMemRead($monitor, 'shared_data:heartbeat_time');
     my $heartbeat_elapsed = $now-$heartbeat_time;

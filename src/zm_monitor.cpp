@@ -2725,6 +2725,15 @@ void Monitor::Reload() {
     delete row;
   }  // end if row
 
+  // Load() replaced linked_monitors_string, but the expression parsed from it
+  // is otherwise only rebuilt by connect(), so a changed LinkedMonitors did not
+  // apply until the next reconnect. Analyse() reads linked_monitors under
+  // event_mutex.
+  {
+    std::lock_guard<std::mutex> lck(event_mutex);
+    ReloadLinkedMonitors();
+  }
+
   // Actions are otherwise only read during setup, so an action added or edited
   // in the web UI would not fire until the monitor's daemon was restarted.
   // Zones are already re-read by Load() above; actions have the same lifetime.

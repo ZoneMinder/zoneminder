@@ -1,8 +1,11 @@
 <?php
 // Tests FilterComponent::qualifyFields(), which MonitorsController::index()
 // runs on its named parameters before buildFilter():
-//   - a bare field must be a Monitors column and is written Monitor.Field,
-//     so Id and Name are no longer ambiguous with the joined tables
+//   - a bare Monitors column is written Monitor.Field, so Id and Name are no
+//     longer ambiguous with the joined tables
+//   - a bare column of exactly one joined table (Status, CaptureFPS from
+//     Monitor_Status) is left bare, as before; one that two joined tables
+//     have (MonitorId) is a 400
 //   - Model.Field must be a column of the queried or a joined model
 //   - GroupId is left bare for the controller's Groups_Monitors join
 //   - anything else is a 400 naming the field, instead of reaching MySQL as
@@ -38,7 +41,8 @@ function run($named) {
   $f = new FilterComponent();
   $fields = array(
     'Monitor' => array('Id', 'Name', 'Type', 'Enabled', 'Deleted', 'Capturing', 'ServerId'),
-    'Monitor_Status' => array('MonitorId', 'Status'),
+    'Monitor_Status' => array('MonitorId', 'Status', 'CaptureFPS', 'AnalysisFPS'),
+    'Event_Summary' => array('MonitorId', 'TotalEvents'),
     'Manufacturer' => array('Id', 'Name'),
   );
   try {
@@ -66,6 +70,18 @@ check('GroupId stays bare',
   run(array('GroupId' => '3')), array('GroupId' => '3'));
 check('paging parameters are skipped as before',
   run(array('Deleted' => '0', 'limit' => '5', 'page' => '2')), array('Monitor.Deleted' => '0'));
+check('bare column of one joined table is left bare',
+  run(array('Status' => 'Connected')), array('Status' => 'Connected'));
+check('bare joined column with an operator',
+  run(array('CaptureFPS >' => '0')), array('CaptureFPS >' => '0'));
+check('bare joined column case follows the schema',
+  run(array('analysisfps <' => '5')), array('AnalysisFPS <' => '5'));
+check('bare joined column next to a Monitors column',
+  run(array('Status' => 'Connected', 'Deleted' => '0')), array('Status' => 'Connected', 'Monitor.Deleted' => '0'));
+check('bare column of two joined tables is a 400',
+  run(array('MonitorId' => '1')), '400 Ambiguous filter field: MonitorId');
+check('a joined model column can still be qualified',
+  run(array('Manufacturer.Id' => '1')), array('Manufacturer.Id' => '1'));
 check('unknown column is a 400',
   run(array('NoSuchField' => '1')), '400 Unknown filter field: NoSuchField');
 check('unknown model is a 400',

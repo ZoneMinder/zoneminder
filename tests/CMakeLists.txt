@@ -45,6 +45,7 @@ set(TEST_SOURCES
   zm_stream_races.cpp
   zm_swscale_range.cpp
   zm_poly.cpp
+  zm_poll_thread.cpp
   zm_stream_socket.cpp
   zm_stream_socket_bench.cpp
   zm_stream_socket_client.cpp

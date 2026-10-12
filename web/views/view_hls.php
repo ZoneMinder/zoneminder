@@ -17,7 +17,7 @@ if (empty($_REQUEST['eid'])) {
   die('Missing eid parameter');
 }
 
-$Event = new ZM\Event($_REQUEST['eid']);
+$Event = new ZM\Event(validCardinal($_REQUEST['eid']));
 if (!$Event->Id()) {
   header('HTTP/1.1 404 Not Found');
   die('Event not found');

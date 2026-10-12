@@ -1,7 +1,7 @@
 <?php
 // This is the HTML representing the Event Detail modal on the Events page
 
-$eid = isset($_REQUEST['eid']) ? $_REQUEST['eid'] : '';
+$eid = isset($_REQUEST['eid']) ? validCardinal($_REQUEST['eid']) : '';
 $eids = isset($_REQUEST['eids']) ? $_REQUEST['eids'] : '';
 
 $result = '';

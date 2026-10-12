@@ -195,11 +195,11 @@ class Token {
     return is(first) || is(second);
   }
 
-  [[ nodiscard ]] constexpr bool hasAlarmed() const {
+  [[ nodiscard ]] bool hasAlarmed() const {
     return (monitor_link_ && monitor_link_->connect() && monitor_link_->hasAlarmed());
   }
 
-  [[ nodiscard ]] constexpr int score() const {
+  [[ nodiscard ]] int score() const {
     if ( monitor_link_ ) {
       if (!monitor_link_->isConnected() ) {
         Debug(1, "connecting");

@@ -23,6 +23,7 @@
 #include "zm_db.h"
 #include "zm_config.h"
 #include "zm_define.h"
+#include <atomic>
 #include <map>
 #include <mutex>
 #include <string>
@@ -93,6 +94,10 @@ class Logger {
   static StringMap smCodes;
   static IntMap smSyslogPriorities;
 
+  // Net level change asked for by SIGUSR1 (+1) and SIGUSR2 (-1) since the
+  // last log call. The handler only touches this; fetch() applies it.
+  static std::atomic<int> smLevelChange;
+
   // How many DatabaseLogPause are alive on this thread.
   static thread_local int smDatabaseLogPaused;
 
@@ -139,6 +144,7 @@ class Logger {
 
   void loadEnv();
   static void usrHandler(int sig);
+  void applyLevelChange();
 
  public:
   friend void logInit(const char *name, const Options &options);
@@ -164,6 +170,8 @@ class Logger {
       Options options;
       smInstance->initialise("undef", options);
     }
+    if (smLevelChange.load(std::memory_order_relaxed))
+      smInstance->applyLevelChange();
     return smInstance;
   }
 

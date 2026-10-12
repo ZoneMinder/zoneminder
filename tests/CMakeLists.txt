@@ -18,6 +18,7 @@ set(TEST_SOURCES
   zm_crypt.cpp
   zm_db_contention.cpp
   zm_db_contention_live.cpp
+  zm_logger_level.cpp
   zm_monitor_dts.cpp
   zm_db_logging_live.cpp
   zm_event_hardlink.cpp

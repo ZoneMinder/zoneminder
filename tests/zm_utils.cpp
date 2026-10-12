@@ -496,17 +496,6 @@ TEST_CASE("ClientAddress") {
 
 // ZM_GO2RTC_PATH is the go2rtc API base. Its API lives under /api, but the
 // natural thing to enter is the server address, so either form is accepted.
-TEST_CASE("Go2RTCApiEndpoint", "[utils]") {
-  REQUIRE(Go2RTCApiEndpoint("http://localhost:1984") == "http://localhost:1984/api");
-  REQUIRE(Go2RTCApiEndpoint("http://localhost:1984/") == "http://localhost:1984/api");
-  REQUIRE(Go2RTCApiEndpoint("http://localhost:1984/api") == "http://localhost:1984/api");
-  REQUIRE(Go2RTCApiEndpoint("http://localhost:1984/api/") == "http://localhost:1984/api");
-  REQUIRE(Go2RTCApiEndpoint("https://host/go2rtc") == "https://host/go2rtc/api");
-  REQUIRE(Go2RTCApiEndpoint("https://host/go2rtc/api") == "https://host/go2rtc/api");
-  REQUIRE(Go2RTCApiEndpoint("http://user:pass@cam:1984") == "http://user:pass@cam:1984/api");
-  REQUIRE(Go2RTCApiEndpoint("") == "");
-}
-
 // zmc calls this for every video packet, so it must only trim once enough
 // frame memory was freed and not more often than the interval (refs #4860).
 TEST_CASE("zm_trim_freed_frame_memory: threshold and rate limit", "[utils]") {
@@ -536,4 +525,15 @@ TEST_CASE("zm_trim_freed_frame_memory: threshold and rate limit", "[utils]") {
   zm_note_freed_frame_memory(2048);
   REQUIRE_FALSE(zm_trim_freed_frame_memory(0, seconds(0)));
 #endif
+}
+
+TEST_CASE("Go2RTCApiEndpoint", "[utils]") {
+  REQUIRE(Go2RTCApiEndpoint("http://localhost:1984") == "http://localhost:1984/api");
+  REQUIRE(Go2RTCApiEndpoint("http://localhost:1984/") == "http://localhost:1984/api");
+  REQUIRE(Go2RTCApiEndpoint("http://localhost:1984/api") == "http://localhost:1984/api");
+  REQUIRE(Go2RTCApiEndpoint("http://localhost:1984/api/") == "http://localhost:1984/api");
+  REQUIRE(Go2RTCApiEndpoint("https://host/go2rtc") == "https://host/go2rtc/api");
+  REQUIRE(Go2RTCApiEndpoint("https://host/go2rtc/api") == "https://host/go2rtc/api");
+  REQUIRE(Go2RTCApiEndpoint("http://user:pass@cam:1984") == "http://user:pass@cam:1984/api");
+  REQUIRE(Go2RTCApiEndpoint("") == "");
 }

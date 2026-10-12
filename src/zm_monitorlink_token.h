@@ -102,7 +102,7 @@ class Token {
       Debug(1, "Have linked monitor %d zone %d", monitor_id, zone_id);
 
       std::shared_ptr<Monitor> monitor = Monitor::Load(monitor_id, false, Monitor::QUERY);
-      monitor_link_ = new Monitor::MonitorLink(monitor, zone_id);
+      monitor_link_ = std::make_shared<Monitor::MonitorLink>(monitor, zone_id);
     } else {
       Debug( 1, "Not a monitor link value is %s", std::string(value_).c_str());
     }
@@ -115,8 +115,9 @@ class Token {
   { }
   //Token( TokenType const type, std::string_view const value );
 
-  constexpr Token( Token       && rhs ) noexcept = default;
-  constexpr Token( Token const  & rhs ) noexcept = default;
+  // Copies share the MonitorLink: parse() copies tokens into the tree.
+  Token( Token       && rhs ) noexcept = default;
+  Token( Token const  & rhs ) noexcept = default;
 
   constexpr Token( TokenType const type ) noexcept
     : type_ ( type )
@@ -145,7 +146,7 @@ class Token {
       Debug(1, "Have linked monitor %d zone %d", monitor_id, zone_id);
 
       std::shared_ptr<Monitor> monitor = Monitor::Load(monitor_id, false, Monitor::QUERY);
-      monitor_link_ = new Monitor::MonitorLink(monitor, zone_id);
+      monitor_link_ = std::make_shared<Monitor::MonitorLink>(monitor, zone_id);
     } else {
       Debug( 1, "Not a monitor link value is %s", std::string(value_).c_str());
     }
@@ -194,11 +195,11 @@ class Token {
     return is(first) || is(second);
   }
 
-  [[ nodiscard ]] constexpr bool hasAlarmed() const {
+  [[ nodiscard ]] bool hasAlarmed() const {
     return (monitor_link_ && monitor_link_->connect() && monitor_link_->hasAlarmed());
   }
 
-  [[ nodiscard ]] constexpr int score() const {
+  [[ nodiscard ]] int score() const {
     if ( monitor_link_ ) {
       if (!monitor_link_->isConnected() ) {
         Debug(1, "connecting");
@@ -217,6 +218,6 @@ class Token {
  private:
   TokenType         type_;
   std::string_view  value_;
-  Monitor::MonitorLink       *monitor_link_;
+  std::shared_ptr<Monitor::MonitorLink> monitor_link_;
 };
 #endif

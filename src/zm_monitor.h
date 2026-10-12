@@ -37,6 +37,7 @@
 
 #include <atomic>
 #include <list>
+#include <map>
 #include <memory>
 #include <sys/time.h>
 #include <vector>
@@ -709,8 +710,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int        event_count;
   int        last_capture_image_count; // last value of image_count when calculating capture fps
   int        analysis_image_count;    // How many frames have been processed by analysis thread.
-  int        decoding_image_count;    // How many frames have been processed by analysis thread.
-  int        motion_frame_count;      // How many frames have had motion detection performed on them.
+  // Written by the decoder / analysis thread, read by the others: atomic.
+  std::atomic<int> decoding_image_count;    // How many frames the decoder has written to shm.
+  std::atomic<int> motion_frame_count;      // How many frames have had motion detection performed on them.
   int         last_motion_frame_count; // last value of motion_frame_count when calculating fps
   int        ready_count;
   int        first_alarm_count;
@@ -781,6 +783,17 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   VideoStore          *videoStore;
   PacketQueue      packetqueue;
+  // Stream timestamps kept going forward across a jump back in the camera's
+  // clock: an offset (microseconds) added to every packet's dts and pts, and
+  // each stream's last dts with the offset applied and its last step.
+  int64_t dts_offset_ = 0;
+  std::map<int, int64_t> last_dts_;
+  std::map<int, int64_t> last_dts_step_;
+  // A step back of more than this in a stream's dts is a jump in the camera's
+  // clock, not reordering jitter.
+  static constexpr int64_t kDtsStepBack = 1000000;
+  // Moves the packet onto the continuous timeline; returns the offset applied.
+  int64_t KeepDtsContinuous(AVPacket *packet, AVRational time_base);
   std::unique_ptr<PollThread> Poller;
   std::list<ZMPacketLock> decoder_queue;
   packetqueue_iterator  *analysis_it;
@@ -945,10 +958,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
       return false;
     }
     if (decoding_image_count > ready_count) {
-      Debug(4, "Ready because decoding_image_count(%d) > ready_count(%d)", decoding_image_count, ready_count);
+      Debug(4, "Ready because decoding_image_count(%d) > ready_count(%d)", decoding_image_count.load(), ready_count);
       return true;
     }
-    Debug(4, "Not ready because decoding_image_count(%d) <= ready_count(%d)", decoding_image_count, ready_count);
+    Debug(4, "Not ready because decoding_image_count(%d) <= ready_count(%d)", decoding_image_count.load(), ready_count);
     return false;
   }
   inline bool Active() const {

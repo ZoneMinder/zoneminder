@@ -71,7 +71,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libnumber-bytes-human-perl
         ,libfile-slurp-perl
         ,default-mysql-client | mariadb-client | virtual-mysql-client
-        ,php-mysql, php-gd, php-apcu, php-json, php-intl, php-xml, php-curl
+        ,php-mysql, php-gd, php-apcu, php-json, php-intl, php-xml, php-curl, php-mbstring
         ,policykit-1|pkexec
         ,rsyslog | system-log-daemon
         ,zip
@@ -86,6 +86,7 @@ Recommends: ${misc:Recommends}
            ,libapache2-mod-php | php-fpm
            ,default-mysql-server | mariadb-server | virtual-mysql-server
            ,zoneminder-doc (>= ${source:Version})
+           ,libjs-leaflet
 Suggests: fcgiwrap, logrotate
 Description: video camera security and surveillance solution
  ZoneMinder is intended for use in single or multi-camera video security

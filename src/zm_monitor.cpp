@@ -3063,6 +3063,47 @@ bool Monitor::AudioLevelWanted(SystemTimePoint now) const {
       static_cast<uint32_t>(std::chrono::system_clock::to_time_t(now)));
 }
 
+// Keeps a camera's timestamps going forward across a jump back in its clock (an
+// NTP sync or a clock reset), the way ffmpeg's demuxer does with its timestamp
+// offset: when a stream's dts steps back by more than kDtsStepBack, the offset
+// shared by all the camera's streams moves so that the stream carries on one
+// frame after where it was, and every packet gets the offset from then on. The
+// queue, the event's choice of first keyframe and the video store then see one
+// continuous timeline, with nothing to split or patch (refs #4242). Smaller
+// steps are reordering jitter, left to the video store's reorder queue; steps of
+// 10 s or more never get here, FfmpegCamera drops them.
+int64_t Monitor::KeepDtsContinuous(AVPacket *packet, AVRational time_base) {
+  if (packet->dts == AV_NOPTS_VALUE) return dts_offset_;
+
+  int64_t dts = av_rescale_q(packet->dts, time_base, AV_TIME_BASE_Q) + dts_offset_;
+  auto last = last_dts_.find(packet->stream_index);
+  if (last != last_dts_.end()) {
+    int64_t step = dts - last->second;
+    if (step < -kDtsStepBack) {
+      // One frame on from the last packet: this packet's duration, else the
+      // stream's last step.
+      int64_t frame = (packet->duration > 0) ? av_rescale_q(packet->duration, time_base, AV_TIME_BASE_Q)
+                                             : last_dts_step_[packet->stream_index];
+      if (frame <= 0) frame = 1;
+      int64_t shift = last->second + frame - dts;
+      dts_offset_ += shift;
+      dts += shift;
+      Info("%s: stream %d timestamps jumped back %.3f seconds, continuing them from where they were",
+           name.c_str(), packet->stream_index, -step / 1000000.0);
+    } else if (step > 0) {
+      last_dts_step_[packet->stream_index] = step;
+    }
+  }
+  last_dts_[packet->stream_index] = dts;
+
+  if (dts_offset_) {
+    int64_t shift = av_rescale_q(dts_offset_, AV_TIME_BASE_Q, time_base);
+    packet->dts += shift;
+    if (packet->pts != AV_NOPTS_VALUE) packet->pts += shift;
+  }
+  return dts_offset_;
+}
+
 int Monitor::Capture() {
   if (!shared_data->capturing) {
     Debug(1, "Not capturing");
@@ -3109,6 +3150,13 @@ int Monitor::Capture() {
     // Don't want to do analysis on it, but we won't due to signal
     return -1;
   } else if (captureResult > 0) {
+    // Before anything else sees the packet: a jump back in the camera's clock is
+    // taken out of the timestamps here, so the queue, the event and the video
+    // store all see one continuous timeline (refs #4242).
+    if (packet->stream) {
+      int64_t offset = KeepDtsContinuous(packet->packet.get(), packet->stream->time_base);
+      if (offset and (packet->packet->pts != AV_NOPTS_VALUE)) packet->pts += offset;
+    }
     // Getting packets: assume signal unless the decoder measures it
     // (SignalCheckPoints). Writing true here as well made a lost-signal
     // picture flip back to "signal" between decoded frames.
@@ -4525,7 +4573,6 @@ int Monitor::Pause() {
       sws_freeContext(convert_context);
       convert_context = nullptr;
     }
-    decoding_image_count = 0;
     // Do not reset last_write_index: the last captured image stays in shm so
     // that mode=single/thumbnails can still be served while paused.
   }
@@ -4533,6 +4580,8 @@ int Monitor::Pause() {
     Debug(1, "Joining analysis");
     analysis_thread->Join();
   }
+  // After both joins: Ready() on the analysis thread reads it.
+  if (decoder) decoding_image_count = 0;
 
   // Must close event before closing camera because it uses in_streams
   {
@@ -4564,6 +4613,10 @@ int Monitor::Pause() {
   }
 
   packetqueue.clear();
+  // The next capture session's timestamps start over.
+  dts_offset_ = 0;
+  last_dts_.clear();
+  last_dts_step_.clear();
   return 1;
 } // end int Monitor::Pause()
 

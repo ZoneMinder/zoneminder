@@ -107,11 +107,13 @@ class Event {
   PacketQueue * packetqueue;
   packetqueue_iterator * packetqueue_it;
   SystemTimePoint start_time;
-  SystemTimePoint end_time;
+  // Written by the event thread (AddPacket_), read by Analyse through
+  // Duration()/Frames()/AlarmFrames(): atomic.
+  std::atomic<SystemTimePoint> end_time;
   std::string     cause;
   StringSetMap    noteSetMap;
-  int        frames;
-  int        alarm_frames;
+  std::atomic<int> frames;
+  std::atomic<int> alarm_frames;
   bool alarm_frame_written;
   int  tot_score;
   int  max_score;
@@ -160,8 +162,8 @@ class Event {
   int AlarmFrames() const { return alarm_frames; }
 
   SystemTimePoint StartTime() const { return start_time; }
-  SystemTimePoint EndTime() const { return end_time; }
-  TimePoint::duration Duration() const { return end_time - start_time; };
+  SystemTimePoint EndTime() const { return end_time.load(); }
+  TimePoint::duration Duration() const { return end_time.load() - start_time; };
 
   void AddPacket_(const std::shared_ptr<ZMPacket> p);
   bool WritePacket(const std::shared_ptr<ZMPacket> p);

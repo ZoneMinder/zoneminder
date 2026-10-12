@@ -371,7 +371,11 @@ bool MonitorStream::sendFrame(const std::string &filepath, SystemTimePoint times
     // Calculate how long it takes to actually send the frame
     TimePoint send_start_time = std::chrono::steady_clock::now();
 
+    // Same part headers as sendFrame(Image *): send_raw is only set for
+    // STREAM_JPEG, which is multipart.
     if (
+      (0 > fputs("--" BOUNDARY "\r\nContent-Type: image/jpeg\r\n", stdout))
+      ||
       (0 > fprintf(stdout, "Content-Length: %d\r\nX-Timestamp: %.6f\r\n\r\n",
                    img_buffer_size, std::chrono::duration_cast<FPSeconds>(timestamp.time_since_epoch()).count()))
       ||
@@ -638,7 +642,6 @@ void MonitorStream::runStream() {
            temp_image_buffer_count.load(), paused.load(), delayed.load());
     }
 
-    bool was_paused = paused;
     if (!checkInitialised()) {
       int rc = -1;
       if (!loadMonitor(monitor_id)) {
@@ -724,7 +727,12 @@ void MonitorStream::runStream() {
       monitor->setLastAnalysisViewed();
 
     if (paused) {
-      if (!was_paused) {
+      // Commands arrive on their own thread, so paused can't be compared with
+      // its value at the top of this pass to find the moment it was set. Take
+      // the image on the first pass that sees paused without one, once
+      // capture has written a frame (as the stopped branch above does).
+      if (!paused_image
+          && (monitor->shared_data->last_write_index != monitor->image_buffer_count)) {
         int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
         Debug(1, "Saving paused image from index %d",index);
         paused_image = zm::make_unique<Image>(*monitor->ReadShmFrame(index));
@@ -775,17 +783,24 @@ void MonitorStream::runStream() {
 
           SwapImage *swap_image = &temp_image_buffer[temp_read_index];
 
-          // Send the next frame
-          if (!sendFrame(
-                temp_image_buffer[temp_read_index].file_name,
-                temp_image_buffer[temp_read_index].timestamp)
-             ) {
-            zm_terminate = true;
-          }
-          frame_count++;
+          if (!swap_image->valid) {
+            // Nothing stored in that slot yet: stepping forward from the
+            // newest stored frame, or back past the oldest. Stay on the
+            // current frame, as the playback branch above does.
+            temp_read_index = MOD_ADD(temp_read_index, (step>0?-1:1), temp_image_buffer_count);
+          } else {
+            // Send the next frame
+            if (!sendFrame(
+                  temp_image_buffer[temp_read_index].file_name,
+                  temp_image_buffer[temp_read_index].timestamp)
+               ) {
+              zm_terminate = true;
+            }
+            frame_count++;
 
-          last_frame_timestamp = swap_image->timestamp;
-          // frame_sent = true;
+            last_frame_timestamp = swap_image->timestamp;
+            // frame_sent = true;
+          }
           step = 0;
         } else {
           //paused?
@@ -869,7 +884,10 @@ void MonitorStream::runStream() {
             Debug(2, "Can't delay when not buffering.");
             delayed = false;
           }
-          if (last_zoom != zoom) {
+          // paused_image is only held while paused. PLAY after PAUSE leaves
+          // delayed set without a buffer for one pass of the loop, and the
+          // next live frame carries the new zoom anyway.
+          if (paused_image && (last_zoom != zoom)) {
             Debug(2, "Sending 2 frames because change in zoom %d ?= %d", last_zoom, zoom.load());
             if (!sendFrame(paused_image.get(), paused_timestamp))
               zm_terminate = true;

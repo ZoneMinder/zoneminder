@@ -122,7 +122,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
         frames_since_last_keyframe_ ++;
         if (frames_since_last_keyframe_ > max_keyframe_interval_) {
           max_keyframe_interval_ = frames_since_last_keyframe_;
-          Debug(1, "Have new keyframe interval %d", max_keyframe_interval_);
+          Debug(1, "Have new keyframe interval %d", max_keyframe_interval_.load());
         }
       } else {
         frames_since_last_keyframe_ = 0;
@@ -162,7 +162,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
         Warning("You have set the max video packets in the queue to %u."
                 " The queue is full %u. Either Analysis is not keeping up or"
                 " your camera's keyframe interval %d is larger than this setting."
-                , max_video_packet_count, packet_counts[video_stream_id], max_keyframe_interval_);
+                , max_video_packet_count, packet_counts[video_stream_id], max_keyframe_interval_.load());
       }
 
       // Going to delete a GOP of packets. So find another keyframe and delete everything before it.

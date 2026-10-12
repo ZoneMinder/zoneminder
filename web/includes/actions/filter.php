@@ -33,7 +33,7 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
     $_REQUEST['filter'] = delFilterTerm($_REQUEST['filter'], $_REQUEST['line']);
   } else if (canView('Events')) {
     require_once('includes/Filter.php');
-    $filter = new ZM\Filter($_REQUEST['Id']);
+    $filter = new ZM\Filter(validCardinal($_REQUEST['Id']));
 
     if ($action == 'delete') {
       if (!empty($_REQUEST['Id'])) {

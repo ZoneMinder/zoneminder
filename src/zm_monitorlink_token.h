@@ -105,6 +105,11 @@ class Token {
     Debug(1, "Have linked monitor %d zone %d", monitor_id, zone_id);
 
     std::shared_ptr<Monitor> monitor = Monitor::Load(monitor_id, false, Monitor::QUERY);
+    if (!monitor) {
+      // No such row (a removed monitor, or a typo); MonitorLink dereferences it.
+      Warning("Ignoring linked monitor %u: unable to load it", monitor_id);
+      return;
+    }
     monitor_link_ = std::make_shared<Monitor::MonitorLink>(monitor, zone_id);
   }
 

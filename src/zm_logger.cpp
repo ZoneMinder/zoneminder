@@ -42,6 +42,9 @@ Logger *Logger::smInstance = nullptr;
 Logger::StringMap Logger::smCodes;
 Logger::IntMap Logger::smSyslogPriorities;
 std::atomic<bool> Logger::smDoLogRotate(false);
+std::atomic<int> Logger::smLevelChange(0);
+// Changed from a signal handler, which is only safe on a lock-free atomic.
+static_assert(std::atomic<int>::is_always_lock_free, "SIGUSR1/2 handler needs a lock-free atomic");
 thread_local int Logger::smDatabaseLogPaused = 0;
 
 void Logger::usrHandler(int sig) {
@@ -52,12 +55,26 @@ void Logger::usrHandler(int sig) {
     smDoLogRotate = true;
     return;
   }
-  Logger *logger = fetch();
+  // Logging from here takes log_mutex, glibc's syslog and tzset locks and
+  // dbQueue's mutex. A signal landing on a thread that already holds one of
+  // them waits on itself forever. Only record the change; the next log call
+  // applies it from normal context (see fetch()).
   if (sig == SIGUSR1)
-    logger->level(logger->level()+1);
+    smLevelChange++;
   else if (sig == SIGUSR2)
-    logger->level(logger->level()-1);
-  Info("Logger - Level changed to %d %s", logger->level(), smCodes[logger->level()].c_str());
+    smLevelChange--;
+}
+
+void Logger::applyLevelChange() {
+  int change = smLevelChange.exchange(0);
+  if (!change) return;
+  Level new_level;
+  {
+    std::lock_guard<std::recursive_mutex> lck(log_mutex);
+    // limit() first: level() ignores anything at or below NOOPT.
+    new_level = level(limit(mLevel + change));
+  }
+  Info("Logger - Level changed to %d %s", new_level, smCodes[new_level].c_str());
 }
 
 Logger::Logger() :
@@ -119,6 +136,9 @@ Logger::~Logger() {
 
 void Logger::initialise(const std::string &id, const Options &options) {
   char *envPtr;
+
+  // A level change still pending was meant for the configuration being replaced.
+  smLevelChange = 0;
 
   if ( !id.empty() )
     this->id(id);

@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # The tests require only node builtins (assert, fs, path, vm) plus files
       # from web/js, so there is nothing to install and no submodule to fetch.
       - name: Run the JavaScript tests

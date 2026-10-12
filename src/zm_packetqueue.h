@@ -21,6 +21,7 @@
 
 #include "zm_time.h"
 
+#include <atomic>
 #include <condition_variable>
 #include <list>
 #include <memory>
@@ -52,7 +53,9 @@ class PacketQueue {
   std::condition_variable condition;
   int warned_count;
   bool has_out_of_order_packets_;
-  int max_keyframe_interval_;
+  // Written under `mutex`, read without it by get_max_keyframe_interval()
+  // (decoder throttle, Monitor::Ready()): atomic.
+  std::atomic<int> max_keyframe_interval_;
   int frames_since_last_keyframe_;
   bool clear_packets_pending_;
   uint64_t next_queue_index_;
@@ -80,7 +83,7 @@ class PacketQueue {
   bool has_out_of_order_packets() {
     std::unique_lock<std::mutex> lck(mutex);
     return has_out_of_order_packets_; };
-  int get_max_keyframe_interval() const { return max_keyframe_interval_; };
+  int get_max_keyframe_interval() const { return max_keyframe_interval_.load(); };
 
   bool clearPackets(const std::shared_ptr<ZMPacket> &packet);
   int packet_count(int stream_id);

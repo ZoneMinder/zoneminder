@@ -287,7 +287,9 @@ int main(int argc, char *argv[]) {
       zmDbDo(sql);
     }  // end foreach monitor
 
-    if (zm_terminate) break;
+    // No break on zm_terminate here: the capture loop below doesn't run then,
+    // and the Close()/disconnect() loop after it must, or the monitors started
+    // so far keep their threads and are never freed (their zones hold them).
 
     std::vector<SystemTimePoint> last_capture_times = std::vector<SystemTimePoint>(monitors.size());
     Microseconds sleep_time = Microseconds(0);

@@ -453,6 +453,7 @@ $SLANG = array(
     'LoggingIn'             => 'Logging In',
     'Lowband'               => 'Low&nbsp;B/W',
     'Mail'                  => 'Email',
+    'MapUnavailable'        => 'Map unavailable: the Leaflet library is not installed (js/leaflet in the web root).',
     'MaxBandwidth'          => 'Max Bandwidth',
     'MaxBrScore'            => 'Max.<br/>Score',
     'MaxFocusRange'         => 'Max Focus Range',

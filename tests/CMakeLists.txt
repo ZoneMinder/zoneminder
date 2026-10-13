@@ -28,6 +28,7 @@ set(TEST_SOURCES
   zm_monitor_shm.cpp
   zm_monitorstream.cpp
   zm_packetqueue.cpp
+  zm_packet_lock.cpp
   zm_monitor_signal.cpp
   zm_stream_races.cpp
   zm_onvif_auth_error.cpp

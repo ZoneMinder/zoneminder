@@ -356,7 +356,7 @@ AVFrame *ZMPacket::get_out_frame(int width, int height, AVPixelFormat format) {
 
 std::unique_lock<std::mutex> ZMPacket::lock() {
   std::unique_lock<std::mutex> lck_(mutex_, std::defer_lock);
-  Debug(4, "locking packet %d %p %d owns %d", image_index, this, locked, lck_.owns_lock());
+  Debug(4, "locking packet %d %p %d owns %d", image_index, this, locked.load(), lck_.owns_lock());
   lck_.lock();
   locked = true;
   Debug(4, "packet %d locked", image_index);
@@ -364,33 +364,36 @@ std::unique_lock<std::mutex> ZMPacket::lock() {
 };
 
 void ZMPacket::lock(std::unique_lock<std::mutex> &lck_) {
-  Debug(4, "locking packet %d %p %d owns %d", image_index, this, locked, lck_.owns_lock());
+  Debug(4, "locking packet %d %p %d owns %d", image_index, this, locked.load(), lck_.owns_lock());
   lck_.lock();
   locked = true;
   Debug(4, "packet %d locked", image_index);
 };
 
 bool ZMPacket::trylock(std::unique_lock<std::mutex> &lck_) {
-  Debug(4, "TryLocking packet %d %p locked: %d owns: %d", image_index, this, locked, lck_.owns_lock());
-  locked = lck_.try_lock();
-  Debug(4, "TryLocking packet %d %p %d, owns: %d", image_index, this, locked, lck_.owns_lock());
-  return locked;
+  Debug(4, "TryLocking packet %d %p locked: %d owns: %d", image_index, this, locked.load(), lck_.owns_lock());
+  // A failed try_lock must not touch `locked`: another thread holds the
+  // mutex, and the caller's result must not depend on what others write.
+  const bool got = lck_.try_lock();
+  if (got) locked = true;
+  Debug(4, "TryLocking packet %d %p %d, owns: %d", image_index, this, got, lck_.owns_lock());
+  return got;
 };
 
 void ZMPacket::unlock(std::unique_lock<std::mutex> &lck_) {
-  Debug(4, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, lck_.owns_lock());
+  Debug(4, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked.load(), lck_.owns_lock());
   locked = false;
   lck_.unlock();
-  Debug(4, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, lck_.owns_lock());
+  Debug(4, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked.load(), lck_.owns_lock());
   condition_.notify_all();
 };
 
 void ZMPacket::unlock() {
   if (locked) {
-    Debug(4, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, our_lck_.owns_lock());
+    Debug(4, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked.load(), our_lck_.owns_lock());
     our_lck_.unlock();
   } else {
-    Error("Attempt to unlock already unlocked packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, our_lck_.owns_lock());
+    Error("Attempt to unlock already unlocked packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked.load(), our_lck_.owns_lock());
   }
 }
 

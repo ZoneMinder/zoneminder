@@ -651,8 +651,8 @@ sub jsonLoad {
       Error("No contents for $file");
       return $json;
     }
-    require JSON;
-    $json = JSON::decode_json($contents);
+    require JSON::MaybeXS;
+    $json = JSON::MaybeXS::decode_json($contents);
   };
   Error($@) if $@;
   return $json;

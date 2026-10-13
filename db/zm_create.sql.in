@@ -1147,6 +1147,8 @@ INSERT INTO `Controls` VALUES (NULL,'Dahua','Ffmpeg','Dahua',0,0,1,1,1,0,0,1,0,0
 INSERT INTO `Controls` VALUES (NULL,'FOSCAMR2C','Libvlc','FOSCAMR2C',1,1,1,0,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,1,12,0,1,1,1,0,0,0,1,1,NULL,NULL,NULL,NULL,1,0,4,0,NULL,1,NULL,NULL,NULL,NULL,1,0,4,0,NULL,0,0);
 INSERT INTO `Controls` VALUES (NULL,'Amcrest HTTP API','Ffmpeg','Amcrest_HTTP',0,0,1,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,5,0,0,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,5);
 INSERT INTO `Controls` VALUES (NULL,'ONVIF','Ffmpeg','ONVIF',0,0,1,1,1,0,0,0,1,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,1,0,1,0,0,0,100,1,1,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,1,0,1,0,0,0,100,1,1,0,NULL,NULL,1,20,1,1,1,1,1,0,1,1,1,NULL,NULL,NULL,NULL,0,NULL,NULL,0,NULL,1,NULL,NULL,NULL,NULL,0,NULL,NULL,0,NULL,0,0);
+-- Reolink cameras through their HTTP API (api.cgi), ZoneMinder::Control::Reolink_HTTP.
+INSERT INTO `Controls` (`Name`,`Type`,`Protocol`,`CanReboot`,`CanZoom`,`CanZoomCon`,`HasZoomSpeed`,`MinZoomSpeed`,`MaxZoomSpeed`,`CanFocus`,`CanAutoFocus`,`CanFocusCon`,`HasPresets`,`NumPresets`,`HasHomePreset`,`CanSetPresets`,`CanMove`,`CanMoveDiag`,`CanMoveCon`,`CanPan`,`HasPanSpeed`,`MinPanSpeed`,`MaxPanSpeed`,`CanTilt`,`HasTiltSpeed`,`MinTiltSpeed`,`MaxTiltSpeed`) VALUES ('Reolink HTTP API','Ffmpeg','Reolink_HTTP',1,1,1,1,1,64,1,1,1,1,64,1,1,1,1,1,1,1,1,64,1,1,1,64);
 
 --
 -- Add some monitor preset values

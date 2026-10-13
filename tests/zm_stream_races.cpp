@@ -59,6 +59,35 @@ class PlaybackStateProbe : public StreamBase {
     }
   }
 
+  // What processCommand does with the frame bookkeeping on the command thread:
+  // CMD_PAUSE stores last_frame_sent, every status reply reads frame_count and
+  // last_frame_sent, and checkCommandQueue sets got_command.
+  int64 commandFrameState(int iterations) {
+    int64 sink = 0;
+    for (int i = 0; i < iterations; i++) {
+      if (i % 4 == 0) last_frame_sent = std::chrono::steady_clock::now();
+      got_command = true;  // checkCommandQueue, after each command
+      sink += frame_count;
+      const TimePoint sent = last_frame_sent;
+      sink += sent.time_since_epoch().count() & 1;
+    }
+    return sink;
+  }
+
+  // And runStream()'s side: count each frame sent and stamp it, and check
+  // got_command for the paused keepalive.
+  int64 streamFrameState(int iterations) {
+    int64 sink = 0;
+    for (int i = 0; i < iterations; i++) {
+      frame_count++;
+      last_frame_sent = std::chrono::steady_clock::now();
+      sink += got_command ? 1 : 0;
+      const TimePoint sent = last_frame_sent;
+      sink += (std::chrono::steady_clock::now() - sent).count() & 1;
+    }
+    return sink;
+  }
+
   // The reads runStream() performs on the streaming thread. The accumulator
   // exists so none of this is optimised away.
   int64 readPlaybackState(int iterations) {
@@ -104,5 +133,23 @@ TEST_CASE("StreamBase playback state is shared safely between the command and st
   // The exact total is timing dependent and deliberately not asserted. What
   // matters is that both threads completed and that, under TSan, the run
   // produced no race report.
+  REQUIRE(observed.load() >= 0);
+}
+
+TEST_CASE("StreamBase frame bookkeeping is shared safely between the command and stream threads", "[races]") {
+  // processCommand reads frame_count and last_frame_sent for its status reply
+  // and CMD_PAUSE stores last_frame_sent, while runStream() updates both for
+  // every frame. Like the case above, this only shows something under TSan.
+  PlaybackStateProbe probe;
+
+  constexpr int kIterations = 20000;
+  std::atomic<int64> observed{0};
+
+  std::thread command_thread([&probe, &observed]() { observed += probe.commandFrameState(kIterations); });
+  std::thread stream_thread([&probe, &observed]() { observed += probe.streamFrameState(kIterations); });
+
+  command_thread.join();
+  stream_thread.join();
+
   REQUIRE(observed.load() >= 0);
 }

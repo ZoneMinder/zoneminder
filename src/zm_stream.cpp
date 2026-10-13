@@ -126,9 +126,12 @@ void StreamBase::updateFrameRate(double fps) {
 void StreamBase::checkCommandQueue() {
   while (!zm_terminate) {
     // Update modified time of the socket .lock file so that we can tell which ones are stale.
-    if (now - last_comm_update > Hours(1)) {
+    // This is the command thread: read the clock here rather than the
+    // streaming loop's `now`.
+    TimePoint cmd_now = std::chrono::steady_clock::now();
+    if (cmd_now - last_comm_update > Hours(1)) {
       touch(sock_path_lock);
-      last_comm_update = now;
+      last_comm_update = cmd_now;
     }
 
     if (sd >= 0) {

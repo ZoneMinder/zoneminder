@@ -22,6 +22,7 @@ set(TEST_SOURCES
   zm_monitor_dts.cpp
   zm_db_logging_live.cpp
   zm_event_hardlink.cpp
+  zm_event_score.cpp
   zm_font.cpp
   zm_image_annotate.cpp
   zm_monitor_shm.cpp

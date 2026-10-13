@@ -809,14 +809,16 @@ void MonitorStream::runStream() {
           if (got_command || (now - last_frame_sent > Seconds(5))) {
             // Send keepalive
             Debug(2, "Sending keepalive frame %d", temp_index);
+            // got_command asks for one frame after a command. Left set, it
+            // made every later pass re-send this frame instead of every 5 s.
+            // Cleared before the send, so a command that arrives while the
+            // frame goes out asks for one more.
+            got_command = false;
             // Send the next frame
             if (!sendFrame(temp_image_buffer[temp_index].file_name, temp_image_buffer[temp_index].timestamp)) {
               zm_terminate = true;
             }
             frame_count++;
-            // got_command asks for one frame after a command. Left set, it
-            // made every later pass re-send this frame instead of every 5 s.
-            got_command = false;
             // frame_sent = true;
           }
         }  // end if (!paused) or step or paused

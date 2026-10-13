@@ -159,7 +159,7 @@ class Logger {
   // While one of these is alive, lines logged on the thread that created it
   // are not written to the database. Every other thread keeps logging there.
   //
-  // zmDbDo and the database queue use it for their own lines: at a debug
+  // The database queue holds one around each insert into Logs: at a debug
   // database level, inserting a Logs row logs a line about that insert, which
   // would queue another insert, and so on without end.
   class DatabaseLogPause {

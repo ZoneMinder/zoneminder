@@ -162,23 +162,28 @@ INSERT INTO `Controls` (`Name`,`Protocol`,`CanReboot`,`CanZoom`,`CanZoomCon`,`Ha
 
 
 --
--- Herospeed / LS Vision cameras (e.g. the L5TW), driven through their own web
--- api rather than ONVIF.  These also speak ONVIF, and the ONVIF entry remains
--- the right choice when only pan/tilt/zoom and imaging are wanted; this entry
--- is for what ONVIF cannot reach on this hardware:
+-- Herospeed / LS Vision cameras, driven through their own web api rather than
+-- ONVIF. These also speak ONVIF, and that entry stays the right choice when
+-- only pan/tilt/zoom and imaging are wanted; this protocol exists for what
+-- ONVIF cannot reach on the hardware: the white supplement floodlight used for
+-- active deterrence (dayNightMode.ledMode in /api/image/image-param), and
+-- pan/tilt/zoom position read-back.
 --
---   * the white supplement floodlight used for active deterrence.  ONVIF
---     exposes no light at all here - GetRelayOutputs and the PTZ auxiliary
---     Wiper command are both accepted by the camera and neither does anything
---     measurable.  The light is dayNightMode.ledMode in /api/image/image-param.
---   * pan/tilt/zoom position read-back, and presets addressed by name.
+-- ONVIF exposes no light here at all - GetRelayOutputs and the PTZ auxiliary
+-- Wiper command are both accepted by the camera and neither does anything.
+--
+-- Two entries, because /api/image/ptz-ctrl accepts every command on every
+-- model. A fixed camera answers code 0 to pan, zoom, focus and iris and moves
+-- nothing, so capabilities cannot be probed from the api and have to come from
+-- knowing the model. Measured on an L5TW (fixed turret, firmware
+-- V2.0.13.260306_R2): panPos/tiltPos/zoomPos never changed, and sharpness
+-- moved less than its own noise, for all six directions plus focus and iris.
+-- Pointing such a camera at the ptz entry gives an operator a panel of buttons
+-- that silently do nothing.
 --
 -- Speeds are 1-8: the device advertises no range in its api or its ui, so the
--- module clamps to the window every optType was observed to accept.
--- NumPresets is 255, the largest index the vendor ui will store.
---
--- No absolute, relative or map move: /api/image/ptz-ctrl offers continuous
--- directions and presets only, so CanMoveAbs/Rel/Map stay 0.
+-- module clamps to the window every optType was observed to accept. No
+-- absolute, relative or map move exists in the api, so those stay 0.
 --
 INSERT INTO `Controls` (
   `Name`,`Protocol`,
@@ -192,7 +197,7 @@ INSERT INTO `Controls` (
   `HasPresets`,`NumPresets`,`HasHomePreset`,`CanSetPresets`,
   `CanLight`
 ) VALUES (
-  'Herospeed / LS Vision (web api)','Herospeed',
+  'Herospeed / LS Vision (ptz)','Herospeed',
   1,1,
   1,1,1,1,1,
   1,1,8,
@@ -202,4 +207,10 @@ INSERT INTO `Controls` (
   1,1,1,1,8,
   1,255,1,1,
   1
+);
+
+INSERT INTO `Controls` (
+  `Name`,`Protocol`,`CanReset`,`CanReboot`,`CanLight`
+) VALUES (
+  'Herospeed / LS Vision (fixed, light only)','Herospeed',1,1,1
 );

@@ -274,9 +274,11 @@ if ($options{command}) {
           # behind: a LightOn action pointing at a protocol with no lightOn,
           # which used to die with "Can't locate object method".
           if ( !$control->can($command) ) {
+            # ${id} braced: "$id's" parses as $id::s, the old package
+            # separator, so the id silently vanished from the message.
             Error("Control protocol $protocol does not implement '$command',"
-              ." ignoring it. Check monitor $id's control type and the actions"
-              .' configured against it.');
+              ." ignoring it. Check monitor ${id}'s control type and the"
+              .' actions configured against it.');
             if ( $params->{wants_response} ) {
               local $SIG{PIPE} = 'IGNORE';
               print(CLIENT jsonEncode({result => undef, error => "unsupported command $command"}));

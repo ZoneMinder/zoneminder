@@ -159,3 +159,47 @@ INSERT INTO `Controls` (`Name`,`Protocol`,`CanReboot`,`CanLight`) VALUES ('AMLIN
 -- camera, whose API takes 1 to 64; it uses 32 when none is given.
 --
 INSERT INTO `Controls` (`Name`,`Protocol`,`CanReboot`,`CanZoom`,`CanZoomCon`,`HasZoomSpeed`,`MinZoomSpeed`,`MaxZoomSpeed`,`CanFocus`,`CanAutoFocus`,`CanFocusCon`,`HasPresets`,`NumPresets`,`HasHomePreset`,`CanSetPresets`,`CanMove`,`CanMoveDiag`,`CanMoveCon`,`CanPan`,`HasPanSpeed`,`MinPanSpeed`,`MaxPanSpeed`,`CanTilt`,`HasTiltSpeed`,`MinTiltSpeed`,`MaxTiltSpeed`) VALUES ('Reolink HTTP API','Reolink_HTTP',1,1,1,1,1,64,1,1,1,1,64,1,1,1,1,1,1,1,1,64,1,1,1,64);
+
+
+--
+-- Herospeed / LS Vision cameras (e.g. the L5TW), driven through their own web
+-- api rather than ONVIF.  These also speak ONVIF, and the ONVIF entry remains
+-- the right choice when only pan/tilt/zoom and imaging are wanted; this entry
+-- is for what ONVIF cannot reach on this hardware:
+--
+--   * the white supplement floodlight used for active deterrence.  ONVIF
+--     exposes no light at all here - GetRelayOutputs and the PTZ auxiliary
+--     Wiper command are both accepted by the camera and neither does anything
+--     measurable.  The light is dayNightMode.ledMode in /api/image/image-param.
+--   * pan/tilt/zoom position read-back, and presets addressed by name.
+--
+-- Speeds are 1-8: the device advertises no range in its api or its ui, so the
+-- module clamps to the window every optType was observed to accept.
+-- NumPresets is 255, the largest index the vendor ui will store.
+--
+-- No absolute, relative or map move: /api/image/ptz-ctrl offers continuous
+-- directions and presets only, so CanMoveAbs/Rel/Map stay 0.
+--
+INSERT INTO `Controls` (
+  `Name`,`Protocol`,
+  `CanReset`,`CanReboot`,
+  `CanMove`,`CanMoveCon`,`CanMoveDiag`,`CanPan`,`CanTilt`,
+  `HasPanSpeed`,`MinPanSpeed`,`MaxPanSpeed`,
+  `HasTiltSpeed`,`MinTiltSpeed`,`MaxTiltSpeed`,
+  `CanZoom`,`CanZoomCon`,`HasZoomSpeed`,`MinZoomSpeed`,`MaxZoomSpeed`,
+  `CanFocus`,`CanFocusCon`,`CanAutoFocus`,`HasFocusSpeed`,`MinFocusSpeed`,`MaxFocusSpeed`,
+  `CanIris`,`CanIrisCon`,`HasIrisSpeed`,`MinIrisSpeed`,`MaxIrisSpeed`,
+  `HasPresets`,`NumPresets`,`HasHomePreset`,`CanSetPresets`,
+  `CanLight`
+) VALUES (
+  'Herospeed / LS Vision (web api)','Herospeed',
+  1,1,
+  1,1,1,1,1,
+  1,1,8,
+  1,1,8,
+  1,1,1,1,8,
+  1,1,1,1,1,8,
+  1,1,1,1,8,
+  1,255,1,1,
+  1
+);

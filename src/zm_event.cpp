@@ -337,7 +337,7 @@ Event::~Event() {
       delta_time.count(),
       frames.load(), alarm_frames.load(),
       tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0),
-      max_score, max_score_frame_id,
+      EventMaxScoreForDb(max_score), max_score_frame_id,
       video_file.c_str(), // defaults to ""
       video_size,
       id);

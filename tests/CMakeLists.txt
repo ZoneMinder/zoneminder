@@ -24,6 +24,7 @@ set(TEST_SOURCES
   zm_comms.cpp
   zm_crypt.cpp
   zm_event_hardlink.cpp
+  zm_event_score.cpp
   zm_font.cpp
   zm_hwaccel_candidates.cpp
   zm_image.cpp

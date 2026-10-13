@@ -72,6 +72,14 @@ inline bool ErrnoMeansNoHardLinkSupport(int err) {
   return false;
 }
 
+// Event::max_score starts at -1 so that the first frame, even with score 0,
+// becomes the max-score frame. Events.MaxScore is unsigned: an event closed
+// before its first frame has to store 0, or strict SQL mode rejects the
+// whole closing UPDATE and the event stays open in the database.
+inline int EventMaxScoreForDb(int max_score) {
+  return max_score < 0 ? 0 : max_score;
+}
+
 // Maximum number of prealarm frames that can be stored
 #define MAX_PRE_ALARM_FRAMES  16
 

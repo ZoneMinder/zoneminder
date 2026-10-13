@@ -149,3 +149,13 @@ INSERT INTO `Controls` (`Name`,`Protocol`,`CanAudioPlay`,`MinAudioFile`,`MaxAudi
 --
 INSERT INTO `Controls` (`Name`,`Protocol`,`CanReboot`,`CanLight`) VALUES ('AMLINK AL5M (light)','AMLink',1,1);
 
+
+--
+-- Reolink cameras through their HTTP API (api.cgi), ZoneMinder::Control::Reolink_HTTP.
+--
+-- The flags follow what the module implements: reboot, continuous pan, tilt
+-- and diagonal moves, continuous zoom and focus plus autofocus, and presets
+-- (goto, set, home as preset 0).  The module passes the speed through to the
+-- camera, whose API takes 1 to 64; it uses 32 when none is given.
+--
+INSERT INTO `Controls` (`Name`,`Protocol`,`CanReboot`,`CanZoom`,`CanZoomCon`,`HasZoomSpeed`,`MinZoomSpeed`,`MaxZoomSpeed`,`CanFocus`,`CanAutoFocus`,`CanFocusCon`,`HasPresets`,`NumPresets`,`HasHomePreset`,`CanSetPresets`,`CanMove`,`CanMoveDiag`,`CanMoveCon`,`CanPan`,`HasPanSpeed`,`MinPanSpeed`,`MaxPanSpeed`,`CanTilt`,`HasTiltSpeed`,`MinTiltSpeed`,`MaxTiltSpeed`) VALUES ('Reolink HTTP API','Reolink_HTTP',1,1,1,1,1,64,1,1,1,1,64,1,1,1,1,1,1,1,1,64,1,1,1,64);

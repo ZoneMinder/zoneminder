@@ -601,8 +601,9 @@ void logReload(const char *name, const Logger::Options &options) {
     logInit(name, options);
     return;
   }
-  // Other threads may be logging or hold the pointer (zmDbDo does across its
-  // query), so re-initialise the instance in place instead of deleting it.
+  // Other threads keep logging through the instance Logger::fetch() gave them
+  // (the dbQueue thread, the stream socket threads), so re-initialise it in
+  // place instead of deleting it.
   Logger::smInstance->reinitialise(name, options);
 }
 

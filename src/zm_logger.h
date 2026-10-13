@@ -153,6 +153,7 @@ class Logger {
 
  public:
   friend void logInit(const char *name, const Options &options);
+  friend void logReload(const char *name, const Options &options);
   friend void logTerm();
 
   // While one of these is alive, lines logged on the thread that created it
@@ -181,6 +182,7 @@ class Logger {
   }
 
   void initialise(const std::string &id, const Options &options);
+  void reinitialise(const std::string &id, const Options &options);
   void terminate();
 
   const std::string &id(const std::string &id);
@@ -214,6 +216,12 @@ class Logger {
 };
 
 void logInit(
+  const char *name,
+  const Logger::Options &options = Logger::Options()
+);
+// For a configuration reload while other threads may be logging: keeps the
+// existing instance instead of deleting and recreating it as logInit() does.
+void logReload(
   const char *name,
   const Logger::Options &options = Logger::Options()
 );

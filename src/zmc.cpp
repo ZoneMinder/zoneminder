@@ -452,8 +452,8 @@ int main(int argc, char *argv[]) {
       for (std::shared_ptr<Monitor> &monitor : monitors) {
         monitor->Reload();
       }
-      logTerm();
-      logInit(log_id_string);
+      // The dbQueue and stream socket threads are still running and logging.
+      logReload(log_id_string);
 
       zm_reload = false;
     }  // end if zm_reload

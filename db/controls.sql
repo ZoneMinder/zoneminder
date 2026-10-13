@@ -172,45 +172,29 @@ INSERT INTO `Controls` (`Name`,`Protocol`,`CanReboot`,`CanZoom`,`CanZoomCon`,`Ha
 -- ONVIF exposes no light here at all - GetRelayOutputs and the PTZ auxiliary
 -- Wiper command are both accepted by the camera and neither does anything.
 --
--- Two entries, because /api/image/ptz-ctrl accepts every command on every
--- model. A fixed camera answers code 0 to pan, zoom, focus and iris and moves
--- nothing, so capabilities cannot be probed from the api and have to come from
--- knowing the model. Measured on an L5TW (fixed turret, firmware
--- V2.0.13.260306_R2): panPos/tiltPos/zoomPos never changed, and sharpness
--- moved less than its own noise, for all six directions plus focus and iris.
--- Pointing such a camera at the ptz entry gives an operator a panel of buttons
--- that silently do nothing.
+-- One entry per model, because /api/image/ptz-ctrl accepts every command on
+-- every model and moves nothing on the fixed ones. Capability cannot be
+-- probed from the api - code 0 means understood, not performed - so it has to
+-- come from knowing the model, and an entry that overstates it hands the
+-- operator a panel of buttons that silently do nothing.
 --
--- Speeds are 1-8: the device advertises no range in its api or its ui, so the
--- module clamps to the window every optType was observed to accept. No
--- absolute, relative or map move exists in the api, so those stay 0.
+-- Both models below are fixed turrets, measured rather than assumed:
+-- panPos/tiltPos/zoomPos never moved across all eight directions and both
+-- zoom directions, and image sharpness stayed inside its own noise for focus
+-- and iris. On the L5BW the pan samples were checked against five no-command
+-- intervals of the same length, and they overlap.
+--
+--   L5TW  firmware V2.0.13.260306_R2
+--   L5BW  firmware V2.0.0.260723_R6
 --
 INSERT INTO `Controls` (
-  `Name`,`Protocol`,
-  `CanReset`,`CanReboot`,
-  `CanMove`,`CanMoveCon`,`CanMoveDiag`,`CanPan`,`CanTilt`,
-  `HasPanSpeed`,`MinPanSpeed`,`MaxPanSpeed`,
-  `HasTiltSpeed`,`MinTiltSpeed`,`MaxTiltSpeed`,
-  `CanZoom`,`CanZoomCon`,`HasZoomSpeed`,`MinZoomSpeed`,`MaxZoomSpeed`,
-  `CanFocus`,`CanFocusCon`,`CanAutoFocus`,`HasFocusSpeed`,`MinFocusSpeed`,`MaxFocusSpeed`,
-  `CanIris`,`CanIrisCon`,`HasIrisSpeed`,`MinIrisSpeed`,`MaxIrisSpeed`,
-  `HasPresets`,`NumPresets`,`HasHomePreset`,`CanSetPresets`,
-  `CanLight`
+  `Name`,`Protocol`,`CanReset`,`CanReboot`,`CanLight`
 ) VALUES (
-  'Herospeed / LS Vision (ptz)','Herospeed',
-  1,1,
-  1,1,1,1,1,
-  1,1,8,
-  1,1,8,
-  1,1,1,1,8,
-  1,1,1,1,1,8,
-  1,1,1,1,8,
-  1,255,1,1,
-  1
+  'HeroSpeed L5TW','Herospeed',1,1,1
 );
 
 INSERT INTO `Controls` (
   `Name`,`Protocol`,`CanReset`,`CanReboot`,`CanLight`
 ) VALUES (
-  'Herospeed / LS Vision (fixed, light only)','Herospeed',1,1,1
+  'HeroSpeed L5BW','Herospeed',1,1,1
 );

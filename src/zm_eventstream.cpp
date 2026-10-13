@@ -1159,16 +1159,20 @@ void EventStream::runStream() {
                 FPSeconds(delta).count(),
                 FPSeconds(last_frame_data->offset).count(),
                 FPSeconds(next_frame_data->offset).count());
-          // if effective > base we should speed up frame delivery
-          if (base_fps < effective_fps) {
+          // effective_fps is base_fps times the replay rate, divided by frame_mod
+          // when maxfps makes us skip frames, so this turns delta into the time
+          // per frame sent: shorter for fast replay, longer for slow replay or
+          // when frames are skipped.
+          if ((effective_fps > 0.0) && (base_fps != effective_fps)) {
             delta = std::chrono::duration_cast<Microseconds>((delta * base_fps) / effective_fps);
             Debug(3, "delta %" PRIi64 " us = base_fps (%f) / effective_fps (%f)",
                   static_cast<int64>(std::chrono::duration_cast<Microseconds>(delta).count()),
                   base_fps,
                   effective_fps);
 
-            // but must not exceed maxfps
-            delta = std::max(delta, Microseconds(lround(Microseconds::period::den / maxfps)));
+            // but must not exceed maxfps (0 means no limit)
+            if (maxfps > 0.0)
+              delta = std::max(delta, Microseconds(lround(Microseconds::period::den / maxfps)));
             Debug(3, "delta %" PRIi64 " us = base_fps (%f) / effective_fps (%f) from 30fps",
                   static_cast<int64>(std::chrono::duration_cast<Microseconds>(delta).count()),
                   base_fps,

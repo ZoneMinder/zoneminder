@@ -220,3 +220,48 @@ TEST_CASE("Zone: pixel values through ParsePercentagePolygon produce wrong resul
   REQUIRE(verts[1] == Vector2(static_cast<int>(width) - 1, 0));
   REQUIRE(verts[2] == Vector2(static_cast<int>(width) - 1, static_cast<int>(height) - 1));
 }
+
+// Pixel coordinates are used unscaled, so a zone drawn on a larger monitor
+// lies partly outside a smaller one. Zone::Setup rasterises the polygon into a
+// monitor-sized image, which overflowed the heap before clamping.
+TEST_CASE("Zone::ClampPolygon: pixel zone larger than the monitor", "[Zone]") {
+  Polygon polygon;
+  REQUIRE(Zone::ParsePolygonString("0,0 1279,0 1279,719 0,719", polygon));
+
+  REQUIRE(Zone::ClampPolygon(polygon, 640, 360) == true);
+  REQUIRE(polygon.GetVertices().size() == 4);
+  REQUIRE(polygon.GetVertices()[0] == Vector2(0, 0));
+  REQUIRE(polygon.GetVertices()[1] == Vector2(639, 0));
+  REQUIRE(polygon.GetVertices()[2] == Vector2(639, 359));
+  REQUIRE(polygon.GetVertices()[3] == Vector2(0, 359));
+  REQUIRE(polygon.Extent().Hi() == Vector2(639, 359));
+}
+
+TEST_CASE("Zone::ClampPolygon: negative pixel coordinates", "[Zone]") {
+  Polygon polygon;
+  REQUIRE(Zone::ParsePolygonString("-10,-5 100,-5 100,50", polygon));
+
+  REQUIRE(Zone::ClampPolygon(polygon, 640, 360) == true);
+  REQUIRE(polygon.GetVertices()[0] == Vector2(0, 0));
+  REQUIRE(polygon.GetVertices()[1] == Vector2(100, 0));
+  REQUIRE(polygon.GetVertices()[2] == Vector2(100, 50));
+  REQUIRE(polygon.Extent().Lo() == Vector2(0, 0));
+}
+
+TEST_CASE("Zone::ClampPolygon: zone inside the monitor is unchanged", "[Zone]") {
+  Polygon polygon;
+  REQUIRE(Zone::ParsePolygonString("0,0 639,0 639,359 0,359", polygon));
+
+  REQUIRE(Zone::ClampPolygon(polygon, 640, 360) == false);
+  REQUIRE(polygon.GetVertices()[2] == Vector2(639, 359));
+}
+
+TEST_CASE("Zone::ClampPolygon: full-frame percentage zone is unchanged", "[Zone]") {
+  // Zone::Load clamps whatever the Units; percentage coordinates must already
+  // be within the monitor so that this is a no-op for them.
+  Polygon polygon;
+  REQUIRE(Zone::ParsePercentagePolygon("0,0 100,0 100,100 0,100", 640, 360, polygon));
+
+  REQUIRE(Zone::ClampPolygon(polygon, 640, 360) == false);
+  REQUIRE(polygon.GetVertices()[2] == Vector2(639, 359));
+}

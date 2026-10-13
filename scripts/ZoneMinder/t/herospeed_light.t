@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 89;
+use Test::More tests => 128;
 use MIME::Base64 qw(encode_base64);
 use Digest::SHA qw(sha256_hex);
 
@@ -139,3 +139,84 @@ is($P->can('CMD_MOVEPOINT')->(), 40, 'goto preset is 40');
 is($P->can('CMD_PRESET_SET')->(), 44, 'store preset is 44');
 is($P->can('LED_WARM')->(), 0, 'warm light is ledMode 0');
 is($P->can('LED_IR')->(), 1, 'ir light is ledMode 1');
+
+
+# --- time configuration ---------------------------------------------------
+
+ok($P->can('get_time') && $P->can('set_time') && $P->can('get_dst'),
+  'the time methods exist');
+
+# The vendor's timezone list starts at GMT-12:00 and steps every 30 minutes,
+# so the index is derived rather than hardcoded. Verified against the labels
+# the camera's own language pack carries:
+#   GMT12 "(GMT-06:00) Central Time (US&Canada)"
+#   GMT14 "(GMT-05:00) Eastern Time(US&Canada)"
+#   GMT24 "(GMT+00:00) Dublin, Edinburgh, London"
+my $tzi = $P->can('tz_index');
+is($tzi->(-6), 12, 'US Central is index 12');
+is($tzi->(-5), 14, 'US Eastern is index 14');
+is($tzi->(0), 24, 'UTC is index 24');
+is($tzi->(-12), 0, 'the bottom of the list is index 0');
+is($tzi->(5.5), 35, 'a half hour zone lands on an odd index');
+is($tzi->(-9.5), 5, 'and a negative half hour zone');
+is($tzi->(-13), undef, 'an offset below the list is rejected');
+is($tzi->(15), undef, 'and one above it');
+is($tzi->(1.25), undef, 'a quarter hour offset has no index, so it is refused');
+is($tzi->(undef), undef, 'undef is refused');
+is($tzi->('east'), undef, 'and a non numeric offset');
+
+my $tzo = $P->can('tz_offset');
+is($tzo->(12), -6, 'index 12 reads back as -6');
+is($tzo->(24), 0, 'index 24 as UTC');
+# Round tripping is what makes the log line trustworthy.
+is($tzo->($tzi->(-6)), -6, 'offset survives a round trip');
+is($tzo->(99), undef, 'an out of range index yields undef, not a bogus offset');
+
+# --- change detection -----------------------------------------------------
+# These settings live in flash and set_time is meant to be re-runnable, so a
+# no-op call must not write.
+
+my $tnw = $P->can('time_needs_write');
+my %cur = (sntpServerAddr => 'time.windows.com', timeZone => 24, model => 2,
+           ntpAutomatic => 5, hour => 19);
+ok($tnw->(\%cur, {sntpServerAddr => '10.10.50.72'}), 'a different server needs writing');
+ok($tnw->(\%cur, {timeZone => 12}), 'a different timezone needs writing');
+ok(!$tnw->(\%cur, {sntpServerAddr => 'time.windows.com', timeZone => 24}),
+  'settings that already match need no write');
+ok($tnw->(\%cur, {somethingNew => 1}), 'a field the camera lacks needs writing');
+# 24 vs "24" must not read as a change, or every run would rewrite flash.
+ok(!$tnw->(\%cur, {timeZone => '24'}), 'a number matching its string form is no change');
+ok($tnw->(undef, {timeZone => 12}), 'no current settings means write');
+
+# The dst rules are nested, so the comparison has to recurse rather than
+# compare hash references, which would always differ.
+my %dst = (enable => 0, offsetTime => 30,
+           start => {month => 3, day => 0, hour => 2, weekDay => 0, weekNumber => 1});
+ok($tnw->(\%dst, {start => {month => 3, day => 0, hour => 2, weekDay => 0, weekNumber => 2}}),
+  'a changed week number inside the nested rule is detected');
+ok(!$tnw->(\%dst, {start => {month => 3, day => 0, hour => 2, weekDay => 0, weekNumber => 1}}),
+  'an identical nested rule is not a change');
+ok($tnw->(\%dst, {start => 'notahash'}), 'a type change counts as a change');
+ok($tnw->({start => 'scalar'}, {start => {month => 3}}),
+  'and so does the reverse, without dying');
+
+# --- the merge ------------------------------------------------------------
+my $tt = $P->can('time_table');
+my $merged = $tt->(\%cur, sntpServerAddr => '10.10.50.72', timeZone => 12);
+is($merged->{sntpServerAddr}, '10.10.50.72', 'the override is applied');
+is($merged->{timeZone}, 12, 'and the second one');
+is($merged->{model}, 2, 'an untouched field is echoed back');
+is($merged->{ntpAutomatic}, 5, 'including one we never set');
+is(scalar keys %$merged, 5, 'the merge invents no fields');
+is($cur{timeZone}, 24, 'and does not mutate the original');
+
+# --- the US rule ----------------------------------------------------------
+# Second Sunday in March to first Sunday in November, 02:00, one hour.
+my %us = $P->can('us_dst_rules')->();
+is($us{offsetTime}, 60, 'the offset is a full hour, not the factory 30 minutes');
+is($us{start}{month}, 3, 'dst starts in March');
+is($us{start}{weekNumber}, 2, 'on the second week');
+is($us{start}{weekDay}, 0, 'on a Sunday');
+is($us{end}{month}, 11, 'and ends in November');
+is($us{end}{weekNumber}, 1, 'on the first week');
+ok(!exists $us{dstType}, 'dstType is left to the camera, which normalises it');

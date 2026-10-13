@@ -161,6 +161,71 @@ sub with_led_mode {
   return \%copy;
 }
 
+# --- time configuration ---------------------------------------------------
+#
+# The timezone is an index into the vendor's own list, which starts at
+# GMT-12:00 and steps every 30 minutes: GMT0 is -12:00, GMT24 is +00:00,
+# GMT12 is "(GMT-06:00) Central Time (US&Canada)". Deriving it from an offset
+# beats hardcoding a number nobody can check.
+sub tz_index {
+  my ($offset_hours) = @_;
+  return undef if !defined $offset_hours;
+  return undef if $offset_hours !~ /\A-?\d+(?:\.5)?\z/;
+  return undef if $offset_hours < -12 or $offset_hours > 14;
+  my $index = ($offset_hours + 12) * 2;
+  return undef if $index != int($index);
+  return int($index);
+}
+
+# The inverse, for logging what an index actually means.
+sub tz_offset {
+  my ($index) = @_;
+  return undef if !defined $index or $index !~ /\A\d+\z/ or $index > 52;
+  return $index / 2 - 12;
+}
+
+# Merge overrides into a section read from the camera. A partial write makes
+# it drop whatever it was not sent, so a change has to carry everything back.
+sub time_table {
+  my ($current, %override) = @_;
+  my %table = %{$current || {}};
+  $table{$_} = $override{$_} for keys %override;
+  return \%table;
+}
+
+# These live in flash, and set_time is meant to be safe to re-run, so only
+# write when something actually differs. Compared as strings: the camera
+# returns numbers and JSON booleans interchangeably across firmwares.
+sub time_needs_write {
+  my ($current, $wanted) = @_;
+  return 1 if !$current;
+  foreach my $field (keys %$wanted) {
+    return 1 if !exists $current->{$field};
+    my ($a, $b) = ($current->{$field}, $wanted->{$field});
+    # Nested sections (the dst start/end rules) compare field by field.
+    if (ref $b eq 'HASH') {
+      return 1 if ref $a ne 'HASH';
+      return 1 if time_needs_write($a, $b);
+      next;
+    }
+    return 1 if "$a" ne "$b";
+  }
+  return 0;
+}
+
+# The United States rule since 2007: second Sunday in March to first Sunday
+# in November, both at 02:00 local, one hour forward. weekDay 0 is Sunday and
+# weekNumber counts from 1. Passing week based rules makes the camera set
+# dstType itself, so it is deliberately not sent.
+sub us_dst_rules {
+  return (
+    enable     => JSON::MaybeXS::true,
+    offsetTime => 60,
+    start      => {month => 3,  day => 0, hour => 2, weekDay => 0, weekNumber => 2},
+    end        => {month => 11, day => 0, hour => 2, weekDay => 0, weekNumber => 1},
+  );
+}
+
 # ==========================================================================
 # Transport
 # ==========================================================================
@@ -457,6 +522,91 @@ sub lightStatus {
   return {WhiteLight => undef} if !$section;
   my $mode = $section->{ledMode};
   return {WhiteLight => (defined $mode ? ($mode == LED_WARM ? 'On' : 'Off') : undef)};
+}
+
+# --- time -----------------------------------------------------------------
+
+sub get_time {
+  my $self = shift;
+  my $r = $self->api_retry('/system/system-time', 'get', undef);
+  if (!$r or ($r->{code} // -1) != 0 or !$r->{data}) {
+    Error('Herospeed: could not read the system time settings');
+    return undef;
+  }
+  return $r->{data};
+}
+
+sub get_dst {
+  my $self = shift;
+  my $r = $self->api_retry('/system/summer-time', 'get', undef);
+  if (!$r or ($r->{code} // -1) != 0 or !$r->{data}) {
+    Error('Herospeed: could not read the summer time settings');
+    return undef;
+  }
+  return $r->{data};
+}
+
+# Point the camera at an ntp server and set its timezone, optionally with
+# daylight saving rules. Safe to re-run: nothing is written unless it differs
+# from what the camera already holds.
+#
+#   ntp_server    required
+#   offset_hours  standard time offset from UTC, e.g. -6 for US Central
+#   tz_index      alternative to offset_hours, the vendor's own index
+#   dst           hashref of summer time fields, or 'us' for the US rule
+sub set_time {
+  my ($self, %opts) = @_;
+
+  my $ntp = $opts{ntp_server};
+  if (!defined $ntp or $ntp eq '') {
+    Error('Herospeed: set_time needs an ntp_server');
+    return undef;
+  }
+
+  my $index = $opts{tz_index};
+  if (!defined $index and defined $opts{offset_hours}) {
+    $index = tz_index($opts{offset_hours});
+    if (!defined $index) {
+      Error("Herospeed: $opts{offset_hours} is not a usable UTC offset");
+      return undef;
+    }
+  }
+
+  my $current = $self->get_time() or return undef;
+  my %wanted = (sntpServerAddr => $ntp);
+  $wanted{timeZone} = $index if defined $index;
+
+  if (time_needs_write($current, \%wanted)) {
+    my $r = $self->api_retry('/system/system-time', 'set',
+      time_table($current, %wanted));
+    if (!$r or ($r->{code} // -1) != 0) {
+      Error('Herospeed: writing the system time settings failed'
+        .($r ? ' (code '.($r->{code} // '?').')' : ''));
+      return undef;
+    }
+    Debug(1, "Herospeed: ntp server $ntp"
+      .(defined $index ? ', timezone index '.$index
+         .' (UTC'.(tz_offset($index) >= 0 ? '+' : '').tz_offset($index).')' : ''));
+  } else {
+    Debug(1, 'Herospeed: system time settings already correct');
+  }
+
+  return 1 if !$opts{dst};
+
+  my %rules = (ref $opts{dst} eq 'HASH') ? %{$opts{dst}} : us_dst_rules();
+  my $dst = $self->get_dst() or return undef;
+  if (!time_needs_write($dst, \%rules)) {
+    Debug(1, 'Herospeed: summer time settings already correct');
+    return 1;
+  }
+  my $r = $self->api_retry('/system/summer-time', 'set', time_table($dst, %rules));
+  if (!$r or ($r->{code} // -1) != 0) {
+    Error('Herospeed: writing the summer time settings failed'
+      .($r ? ' (code '.($r->{code} // '?').')' : ''));
+    return undef;
+  }
+  Debug(1, 'Herospeed: summer time rules written');
+  return 1;
 }
 
 sub reboot {

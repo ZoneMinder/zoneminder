@@ -703,6 +703,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   uint8_t green_val;
   uint8_t blue_val;
   uint8_t grayscale_val; /* 8bit grayscale color */
+  uint8_t luma_val;      /* luma of the RGB colour, limited range */
+  uint8_t luma_full_val; /* luma of the RGB colour, full range */
   Rgb colour_val; /* RGB32 color */
   int usedsubpixorder;
 

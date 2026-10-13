@@ -914,6 +914,23 @@ bool Zone::ParsePercentagePolygon(const char *poly_string, unsigned int width, u
   return false;
 }  // end bool Zone::ParsePercentagePolygon
 
+// Clamp every vertex to [0, width-1] x [0, height-1], as ParsePercentagePolygon
+// does for percentage coordinates. Returns true if any vertex was moved.
+bool Zone::ClampPolygon(Polygon &polygon, unsigned int width, unsigned int height) {
+  bool clamped = false;
+  std::vector<Vector2> vertices = polygon.GetVertices();
+  for (Vector2 &vertex : vertices) {
+    int32 x = std::clamp(vertex.x_, static_cast<int32>(0), static_cast<int32>(width) - 1);
+    int32 y = std::clamp(vertex.y_, static_cast<int32>(0), static_cast<int32>(height) - 1);
+    if (x != vertex.x_ || y != vertex.y_) {
+      vertex = Vector2(x, y);
+      clamped = true;
+    }
+  }
+  if (clamped) polygon = Polygon(vertices);
+  return clamped;
+}  // end bool Zone::ClampPolygon
+
 bool Zone::ParseZoneString(const char *zone_string, unsigned int &zone_id, int &colour, Polygon &polygon) {
   Debug(3, "Parsing zone string '%s'", zone_string);
 
@@ -1030,6 +1047,13 @@ std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
         Error("Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring",
               Coords, Id, Name, monitor->Name());
         continue;
+      }
+      // Pixel coordinates are not scaled to the monitor, so they can lie outside
+      // it (zone drawn at a larger size, or written through the API). Setup()
+      // rasterises the polygon into a monitor-sized image.
+      if (ClampPolygon(polygon, monitor->Width(), monitor->Height())) {
+        Warning("Zone %d/%s for monitor %s has coordinates '%s' outside %ux%u, clamping",
+                Id, Name, monitor->Name(), Coords, monitor->Width(), monitor->Height());
       }
     }
 

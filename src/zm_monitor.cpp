@@ -282,6 +282,7 @@ Monitor::Monitor() :
   first_alarm_count(0),
   last_alarm_count(0),
   last_signal(false),
+  assume_signal_on_next_packet(false),
   buffer_count(0),
   state(IDLE),
   last_motion_score(0),
@@ -1142,6 +1143,7 @@ bool Monitor::connect() {
     shared_data->capturing = capturing;
     shared_data->recording = recording;
     shared_data->signal = false;
+    assume_signal_on_next_packet = true;
     shared_data->capture_fps = 0.0;
     shared_data->analysis_fps = 0.0;
     shared_data->latitude = latitude;
@@ -1813,6 +1815,20 @@ bool Monitor::CheckSignal(const Image *image) {
   Debug(1, "SignalCheck: %d points, colour_val(%d)", signal_check_points, colour_val);
   return false;
 } // end bool Monitor::CheckSignal(const Image *image)
+
+bool Monitor::DecoderChecksSignal(DecodingOption decoding, int signal_check_points, bool has_viewers) {
+  if (signal_check_points <= 0) return false;
+  switch (decoding) {
+    case DECODING_ALWAYS:
+    case DECODING_KEYFRAMES:
+    case DECODING_KEYFRAMESONDEMAND:
+      return true;
+    case DECODING_ONDEMAND:
+      return has_viewers;
+    default:
+      return false;
+  }
+}
 
 void Monitor::CheckAction() {
 
@@ -2784,8 +2800,13 @@ int Monitor::Capture() {
       int64_t offset = KeepDtsContinuous(packet->packet.get(), packet->stream->time_base);
       if (offset and (packet->packet->pts != AV_NOPTS_VALUE)) packet->pts += offset;
     }
-    shared_data->signal = true;   // Assume if getting packets that we are getting something useful. CheckSignalPoints can correct this later.
-    // If we captured, let's assume signal, Decode will detect further
+    // Getting packets: assume signal unless the decoder measures it
+    // (SignalCheckPoints). Writing true here as well made a lost-signal
+    // picture flip back to "signal" between decoded frames.
+    if (assume_signal_on_next_packet or !DecoderChecksSignal(decoding, signal_check_points, hasViewers())) {
+      shared_data->signal = true;
+      assume_signal_on_next_packet = false;
+    }
     if (decoding == DECODING_NONE) {
       shared_data->last_write_index = index;
       shared_data->last_write_time = std::chrono::system_clock::to_time_t(packet->timestamp);

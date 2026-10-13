@@ -718,6 +718,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int        first_alarm_count;
   int        last_alarm_count;
   bool       last_signal;
+  // Capture assumes signal on the first packet after connect() cleared it,
+  // even when the decoder measures it, so Analyse doesn't see a signal loss
+  // before the first decoded frame. Capture thread only.
+  bool       assume_signal_on_next_packet;
   int        buffer_count;
   State      state;
   SystemTimePoint start_time;
@@ -1160,6 +1164,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // DetectBlack seems to be unused. Check it on zm_monitor.cpp for more info.
   //unsigned int DetectBlack( const Image &comp_image, Event::StringSet &zoneSet );
   bool CheckSignal( const Image *image );
+  // True when the decoder measures shared_data->signal (SignalCheckPoints)
+  // for the packets it decodes; Capture then leaves the flag to it, so the
+  // two threads don't overwrite each other's value. Pure, for tests.
+  static bool DecoderChecksSignal(DecodingOption decoding, int signal_check_points, bool has_viewers);
   bool Analyse();
   bool setupConvertContext(const AVFrame *input_frame, const Image *image);
   // Write capture_image into image_buffer[index] without conversion and

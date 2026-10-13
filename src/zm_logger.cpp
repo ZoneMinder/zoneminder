@@ -256,6 +256,20 @@ void Logger::initialise(const std::string &id, const Options &options) {
        );
 }
 
+void Logger::reinitialise(const std::string &id, const Options &options) {
+  // Under log_mutex, so no thread writes through a target while it is reopened.
+  std::lock_guard<std::recursive_mutex> lck(log_mutex);
+  // Start from what a new instance would have: the log path from the static
+  // config, and syslog closed so that openlog() is called again with the id.
+  mLogPath = staticConfig.PATH_LOGS;
+  if (mSyslogLevel > NOLOG) {
+    closeSyslog();
+    mSyslogLevel = NOLOG;
+  }
+  // initialise() closes the log file; the next write reopens it.
+  initialise(id, options);
+}
+
 void Logger::terminate() {
   if ( mFileLevel > NOLOG )
     closeFile();
@@ -583,6 +597,17 @@ void logInit(const char *name, const Logger::Options &options) {
 
   Logger::smInstance = new Logger();
   Logger::smInstance->initialise(name, options);
+}
+
+void logReload(const char *name, const Logger::Options &options) {
+  if (!Logger::smInstance) {
+    logInit(name, options);
+    return;
+  }
+  // Other threads keep logging through the instance Logger::fetch() gave them
+  // (the dbQueue thread, the stream socket threads), so re-initialise it in
+  // place instead of deleting it.
+  Logger::smInstance->reinitialise(name, options);
 }
 
 void logTerm() {

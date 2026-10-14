@@ -2068,10 +2068,8 @@ void Monitor::UpdateFPS() {
 
 //Thread where ONVIF polling, and other similar status polling can happen.
 //Since these can be blocking, run here to avoid intefering with other processing.
-//Loop runs every 10 seconds.
+//PollThread::Run() calls this every 10 seconds.
 bool Monitor::Poll() {
-  std::chrono::system_clock::time_point loop_start_time = std::chrono::system_clock::now();
-
   if (use_Amcrest_API) {
     if (Amcrest_Manager->isHealthy()) {
       Amcrest_Manager->WaitForMessage();
@@ -2100,7 +2098,6 @@ bool Monitor::Poll() {
       Janus_Manager->add_to_janus();
     }
   }
-  std::this_thread::sleep_until(loop_start_time + std::chrono::seconds(10));
   return true;
 } //end Poll
 

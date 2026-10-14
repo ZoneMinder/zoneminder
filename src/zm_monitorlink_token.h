@@ -79,19 +79,17 @@ class Token {
     return TokenType::monitorlink;
   } // end constexpr TokenType to_token_type( std::string_view const value )
 
- public:
+  // A monitorlink token is "<monitor id>" or "<monitor id>:<zone id>". The
+  // value comes from the LinkedMonitors column as typed, so one that isn't a
+  // number is logged and leaves the token without a link (it scores 0).
+  // std::stoul throws on it, and the constructor parse() uses is noexcept, so
+  // letting the exception out ended zmc in std::terminate.
+  void load_monitor_link() noexcept {
+    auto colon_position = value_.find(':');
+    unsigned int monitor_id = 0;
+    unsigned int zone_id = 0;
 
-  Token(TokenType const type, std::string_view const value)
-    : type_(type)
-    , value_(value)
-    , monitor_link_(nullptr) {
-    if (type_ == TokenType::monitorlink) {
-      auto colon_position = value_.find(':');
-      unsigned int monitor_id = 0;
-      unsigned int zone_id = 0;
-      std::string monitor_name;
-      std::string zone_name;
-
+    try {
       if (colon_position != std::string::npos) {
         // Has a zone specification
         monitor_id = std::stoul(std::string(value_.substr(0, colon_position)));
@@ -99,10 +97,30 @@ class Token {
       } else {
         monitor_id = std::stoul(std::string(value_));
       }
-      Debug(1, "Have linked monitor %d zone %d", monitor_id, zone_id);
+    } catch (const std::exception &) {
+      Warning("Ignoring linked monitor '%s': not a monitor id or monitor id:zone id",
+              std::string(value_).c_str());
+      return;
+    }
+    Debug(1, "Have linked monitor %d zone %d", monitor_id, zone_id);
 
-      std::shared_ptr<Monitor> monitor = Monitor::Load(monitor_id, false, Monitor::QUERY);
-      monitor_link_ = std::make_shared<Monitor::MonitorLink>(monitor, zone_id);
+    std::shared_ptr<Monitor> monitor = Monitor::Load(monitor_id, false, Monitor::QUERY);
+    if (!monitor) {
+      // No such row (a removed monitor, or a typo); MonitorLink dereferences it.
+      Warning("Ignoring linked monitor %u: unable to load it", monitor_id);
+      return;
+    }
+    monitor_link_ = std::make_shared<Monitor::MonitorLink>(monitor, zone_id);
+  }
+
+ public:
+
+  Token(TokenType const type, std::string_view const value)
+    : type_(type)
+    , value_(value)
+    , monitor_link_(nullptr) {
+    if (type_ == TokenType::monitorlink) {
+      load_monitor_link();
     } else {
       Debug( 1, "Not a monitor link value is %s", std::string(value_).c_str());
     }
@@ -130,23 +148,7 @@ class Token {
     , value_(value)
     , monitor_link_(nullptr) {
     if (type_ == TokenType::monitorlink) {
-      auto colon_position = value_.find(':');
-      unsigned int monitor_id = 0;
-      unsigned int zone_id = 0;
-      std::string monitor_name;
-      std::string zone_name;
-
-      if (colon_position != std::string::npos) {
-        // Has a zone specification
-        monitor_id = std::stoul(std::string(value_.substr(0, colon_position)));
-        zone_id = std::stoul(std::string(value_.substr(colon_position+1, std::string::npos)));
-      } else {
-        monitor_id = std::stoul(std::string(value_));
-      }
-      Debug(1, "Have linked monitor %d zone %d", monitor_id, zone_id);
-
-      std::shared_ptr<Monitor> monitor = Monitor::Load(monitor_id, false, Monitor::QUERY);
-      monitor_link_ = std::make_shared<Monitor::MonitorLink>(monitor, zone_id);
+      load_monitor_link();
     } else {
       Debug( 1, "Not a monitor link value is %s", std::string(value_).c_str());
     }

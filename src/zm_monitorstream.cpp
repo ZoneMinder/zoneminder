@@ -787,10 +787,13 @@ void MonitorStream::runStream() {
 
           SwapImage *swap_image = &temp_image_buffer[temp_read_index];
 
-          if (!swap_image->valid) {
-            // Nothing stored in that slot yet: stepping forward from the
-            // newest stored frame, or back past the oldest. Stay on the
-            // current frame, as the playback branch above does.
+          if (!swap_image->valid || (temp_read_index == temp_write_index)) {
+            // Nothing stored in that slot yet, or it is the slot the next
+            // live frame goes into, which holds the oldest frame once the
+            // buffer has wrapped (sending it and then hitting the check below
+            // showed the oldest frame and resumed live play): stepping forward
+            // from the newest stored frame, or back past the oldest. Stay on
+            // the current frame, as the playback branch above does.
             temp_read_index = MOD_ADD(temp_read_index, (step>0?-1:1), temp_image_buffer_count);
           } else {
             // Send the next frame

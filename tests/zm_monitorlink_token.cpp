@@ -40,3 +40,27 @@ TEST_CASE("Token ignores a monitor link that isn't a number", "[MonitorLink]") {
   REQUIRE(token.score() == 0);
   REQUIRE_FALSE(token.hasAlarmed());
 }
+
+TEST_CASE("Token::parse_monitor_link", "[MonitorLink]") {
+  unsigned int monitor_id = 0, zone_id = 0;
+
+  REQUIRE(Token::parse_monitor_link("3", monitor_id, zone_id));
+  REQUIRE(monitor_id == 3);
+  REQUIRE(zone_id == 0);
+
+  REQUIRE(Token::parse_monitor_link("3:7", monitor_id, zone_id));
+  REQUIRE(monitor_id == 3);
+  REQUIRE(zone_id == 7);
+
+  REQUIRE(Token::parse_monitor_link("4294967295", monitor_id, zone_id));
+  REQUIRE(monitor_id == 4294967295u);
+
+  // Fit an unsigned long but not an unsigned int: truncated, they named some
+  // other monitor or zone.
+  REQUIRE_FALSE(Token::parse_monitor_link("4294967296", monitor_id, zone_id));
+  REQUIRE_FALSE(Token::parse_monitor_link("99999999999", monitor_id, zone_id));
+  REQUIRE_FALSE(Token::parse_monitor_link("1:99999999999", monitor_id, zone_id));
+
+  REQUIRE_FALSE(Token::parse_monitor_link("abc", monitor_id, zone_id));
+  REQUIRE_FALSE(Token::parse_monitor_link("1:x", monitor_id, zone_id));
+}

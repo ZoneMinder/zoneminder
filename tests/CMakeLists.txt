@@ -27,6 +27,7 @@ set(TEST_SOURCES
   zm_image_annotate.cpp
   zm_monitor_shm.cpp
   zm_monitor_check_action.cpp
+  zm_monitorlink_expression.cpp
   zm_monitorstream.cpp
   zm_packetqueue.cpp
   zm_packet_lock.cpp

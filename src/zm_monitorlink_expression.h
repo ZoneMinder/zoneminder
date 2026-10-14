@@ -91,14 +91,21 @@ class MonitorLinkExpression {
 
  public:
   MonitorLinkExpression();
-  MonitorLinkExpression(const std::string &expression) : expression_(expression) {
+  // Keeps its own copy of the expression: the tokens parse() builds are views
+  // into it, and the caller's string (Monitor::linked_monitors_string) is
+  // reassigned by Monitor::Load() on every reload.
+  MonitorLinkExpression(const std::string &expression)
+    : expression_string_(expression), expression_(expression_string_) {
   };
+  MonitorLinkExpression(const MonitorLinkExpression &) = delete;
+  MonitorLinkExpression &operator=(const MonitorLinkExpression &) = delete;
   int score() { return score_; }
   bool evaluate();
   const Result result();
   bool parse();
  private:
   const std::string_view delimiters_ = "|&(),";
+  const std::string expression_string_;
   std::string_view expression_;
 };
 

@@ -99,16 +99,16 @@ class SnapshotsController extends AppController {
         return;
       }
 
-      # A snapshot exposes its events to Snapshots viewers, so only viewable events may be added.
-      $eventIds = $this->requestAssociatedIds('Snapshot', 'EventIds', 'Event');
-      if ($eventIds) $this->requireEventsView($eventIds);
-      $this->pinRequestId($this->Snapshot, null);
-			$this->Snapshot->create();
-
       if ( $this->request->data['Snapshot']['EventIds'] and ! isset($this->request->data['Event']) ) {
         $this->request->data['Event'] = explode(',', $this->request->data['Snapshot']['EventIds']);
         unset($this->request->data['Snapshot']['EventIds']);
       }
+      # A snapshot exposes its events to Snapshots viewers, so only viewable events may be added.
+      $eventIds = $this->requestAssociatedIds('Snapshot', 'Event');
+      if ($eventIds) $this->requireEventsView($eventIds);
+      $this->pinRequestId($this->Snapshot, null);
+			$this->Snapshot->create();
+
       if ( $this->Snapshot->saveAssociated($this->request->data, array('atomic'=>true)) ) {
         return $this->flash(
           __('The snapshot has been saved.'),
@@ -144,7 +144,7 @@ class SnapshotsController extends AppController {
         return;
       }
       $this->pinRequestId($this->Snapshot, $id);
-      $eventIds = $this->requestAssociatedIds('Snapshot', 'EventIds', 'Event');
+      $eventIds = $this->requestAssociatedIds('Snapshot', 'Event');
       if ($eventIds) $this->requireEventsView($eventIds);
 			if ( $this->Snapshot->save($this->request->data) ) {
         $message = 'Saved';

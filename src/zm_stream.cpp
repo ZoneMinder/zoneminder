@@ -142,7 +142,8 @@ void StreamBase::checkCommandQueue() {
       } else {
         Debug(2, "Message length is (%d)", nbytes);
         processCommand(&msg);
-        got_command = true;
+        // A status query doesn't change the picture, so it doesn't need a frame.
+        if (msg.msg_data[0] != CMD_QUERY) got_command = true;
       }
     } else if (connkey) {
       Warning("No sd in checkCommandQueue, comms not open for connkey %06d?", connkey);

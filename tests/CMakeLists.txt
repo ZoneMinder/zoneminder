@@ -30,6 +30,7 @@ set(TEST_SOURCES
   zm_image.cpp
   zm_image_annotate.cpp
   zm_monitor_shm.cpp
+  zm_monitor_check_action.cpp
   zm_monitorlink_expression.cpp
   zm_monitorstream.cpp
   zm_monitorlink_token.cpp

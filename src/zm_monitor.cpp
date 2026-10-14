@@ -1967,7 +1967,11 @@ void Monitor::CheckAction() {
     if (shared_data->action & RELOAD) {
       Info("Received reload indication at count %d", shared_data->image_count);
       shared_data->action &= ~RELOAD;
-      Reload();
+      // Not Reload() here: this runs on zmc's capture thread while the
+      // decoder and analysis threads read the settings Load() rewrites. Ask
+      // for the reload SIGHUP does instead; zmc runs it after Close() has
+      // stopped those threads. refs #5239
+      zm_reload = true;
     }
     if (shared_data->action & SUSPEND) {
       if (Active()) {

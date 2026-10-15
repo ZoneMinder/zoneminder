@@ -110,7 +110,7 @@ function validateUser($username='', $password='') {
     // https://blog.pythian.com/hashing-algorithm-in-mysql-password-2/
     ZM\Debug('Saved password is using MYSQL password function');
     $input_password_hash = '*'.strtoupper(sha1(sha1($password, true)));
-    $password_correct = ($user['Password'] == $input_password_hash);
+    $password_correct = hash_equals($user['Password'], $input_password_hash);
     break;
   case 'bcrypt' :
     ZM\Debug('bcrypt signature found, assumed bcrypt password');
@@ -130,7 +130,7 @@ function validateUser($username='', $password='') {
   default:
     // we really should nag the user not to use plain
     ZM\Warning('assuming plain text password as signature is not known. Please do not use plain, it is very insecure');
-    $password_correct = ($user['Password'] == $password);
+    $password_correct = is_string($password) && hash_equals($user['Password'], $password);
   } // switch password_type
 
   if ($password_correct) {

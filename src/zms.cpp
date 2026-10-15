@@ -18,6 +18,7 @@
 //
 
 #include "zm.h"
+#include "zm_crypt.h"
 #include "zm_db.h"
 #include "zm_user.h"
 #include "zm_signal.h"
@@ -123,7 +124,19 @@ int main(int argc, const char *argv[], char **envp) {
 
   for (char **env = envp; *env != 0; env++) {
     char *thisEnv = *env;
-    Debug(1, "env: %s", thisEnv);
+    // The query string (user=/pass=, auth=, token=) also appears in
+    // REQUEST_URI and can appear in HTTP_REFERER, and the cookie holds the
+    // web session: log those without their credentials.
+    const char *equals = strchr(thisEnv, '=');
+    std::string name = equals ? std::string(thisEnv, equals - thisEnv) : thisEnv;
+    if (equals && (name == "HTTP_COOKIE" || name.find("QUERY_STRING") != std::string::npos
+                   || name.find("AUTHORIZATION") != std::string::npos)) {
+      Debug(1, "env: %s=<not logged>", name.c_str());
+    } else if (equals && strchr(equals, '?')) {
+      Debug(1, "env: %s=%s", name.c_str(), url_for_log(equals + 1).c_str());
+    } else {
+      Debug(1, "env: %s", thisEnv);
+    }
   }
 
   const char *query = getenv("QUERY_STRING");
@@ -131,8 +144,6 @@ int main(int argc, const char *argv[], char **envp) {
     Fatal("No query string.");
     return exit_zm(0);
   }  // end if query
-
-  Debug(1, "Query: %s", query);
 
   char *q_ptr = (char *)query;
   char *parms[16];  // Shouldn't be more than this
@@ -239,17 +250,17 @@ int main(int argc, const char *argv[], char **envp) {
       strncpy(auth, value, sizeof(auth)-1);
     } else if ( !strcmp(name, "token") ) {
       jwt_token_str = value;
-      Debug(1, "ZMS: JWT token found: %s", jwt_token_str.c_str());
+      Debug(1, "ZMS: JWT token found: %s", zm::crypto::LogFingerprint(jwt_token_str).c_str());
     } else if ( !strcmp(name, "user") ) {
       username = UriDecode(value);
     } else if ( !strcmp(name, "username") ) {
       username = UriDecode(value);
     } else if ( !strcmp(name, "pass") ) {
       password = UriDecode(value);
-      Debug(1, "Have %s for password", password.c_str());
+      Debug(1, "Have a password");
     } else if ( !strcmp(name, "password") ) {
       password = UriDecode(value);
-      Debug(1, "Have %s for password", password.c_str());
+      Debug(1, "Have a password");
     } else {
       Debug(1, "Unknown parameter passed to zms %s=%s", name, value);
     }  // end if possible parameter names
@@ -308,12 +319,17 @@ int main(int argc, const char *argv[], char **envp) {
       // baked-in URL. Including user/auth-prefix/uri/xff makes the noise diagnosable
       // without flipping on Debug.
       // Log only the first 8 chars of the hash: enough to correlate, not enough to replay.
-      Warning("Unable to authenticate user (user='%s' auth='%.8s%s' uri='%s' referer='%s' xff='%s' remote='%s')",
+      // The uri and referer go without their query string, which holds the
+      // credentials (pass=, the full auth=, token=); monitor and event say
+      // which stream it was. This Warning reaches the Logs table by default.
+      Warning("Unable to authenticate user (user='%s' auth='%.8s%s' monitor=%d event=%" PRIu64
+              " uri='%s' referer='%s' xff='%s' remote='%s')",
               username.c_str(),
               auth,
               (*auth && strlen(auth) > 8) ? "..." : "",
-              request_uri ? request_uri : "",
-              referer ? referer : "",
+              monitor_id, event_id,
+              request_uri ? url_for_log(request_uri).c_str() : "",
+              referer ? url_for_log(referer).c_str() : "",
               xff ? xff : "",
               remote ? remote : "");
       return exit_zm(0);

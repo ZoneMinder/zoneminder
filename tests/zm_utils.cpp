@@ -543,6 +543,13 @@ TEST_CASE("url_for_log") {
   SECTION("an @ in the query does not cut the host") {
     REQUIRE(url_for_log("http://host/x?token=a@b") == "http://host/x?...");
   }
+  SECTION("a request URI without scheme or host (zms REQUEST_URI)") {
+    REQUIRE(url_for_log("/zm/cgi-bin/nph-zms?mode=single&monitor=1&user=u&pass=p")
+            == "/zm/cgi-bin/nph-zms?...");
+    REQUIRE(url_for_log("/zm/cgi-bin/nph-zms?monitor=1&auth=0123456789abcdef&user=a@b")
+            == "/zm/cgi-bin/nph-zms?...");
+    REQUIRE(url_for_log("/zm/cgi-bin/nph-zms") == "/zm/cgi-bin/nph-zms");
+  }
   SECTION("both") {
     std::string out = url_for_log("rtsp://u:pw@10.0.0.2/s?token=eyJabc");
     REQUIRE(out == "rtsp://10.0.0.2/s?...");

@@ -278,6 +278,20 @@ class AppController extends Controller {
     return $ids;
   }
 
+  # The event list to save for record $id of $table, from the $eventIds an edit asks for: saving
+  # replaces all of the record's links, so its links to events the user may not view, which the
+  # API does not show them, are kept. Throw unless the user may view every event in $eventIds.
+  # Links to events that no longer exist are dropped.
+  protected function eventLinksToSave($table, $key, $id, $eventIds) {
+    $this->requireEventsView($eventIds);
+    $oldIds = dbFetchAll('SELECT `EventId` FROM `'.$table.'` WHERE `'.$key.'`=?', 'EventId', array($id));
+    foreach (array_diff($oldIds, $eventIds) as $eventId) {
+      $event = new ZM\Event($eventId);
+      if ($event->Id() and !$event->canView()) $eventIds[] = intval($eventId);
+    }
+    return $eventIds;
+  }
+
   # Throw unless the user may view every event in $eventIds, which includes its monitor.
   protected function requireEventsView($eventIds) {
     require_once __DIR__ .'/../../../includes/Event.php';

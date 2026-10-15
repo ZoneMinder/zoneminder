@@ -1,12 +1,14 @@
 <?php
 // Security regression test: Groups, Snapshots and Tags API writes must check the links the
-// save will write.
+// save will write, and an edit must keep the links the user may not change.
 //
 // AppController::requestAssociatedIds() took the ids from $alias[MonitorIds|EventIds] when
 // present, while Model::save() links what the request gives as the HABTM entry (Monitor,
 // Event) and ignores those fields on edit. So {"Group":{"MonitorIds":"2,3"},"Monitor":[]}
 // passed the membership check of group 2,3 as "nothing moved" and emptied the group, and
-// {"Snapshot":{"EventIds":"1"},"Event":[2]} added an event the user may not view.
+// {"Snapshot":{"EventIds":"1"},"Event":[2]} added an event the user may not view. An edit
+// also replaces all links, but Snapshots and Tags checked only the new list, so {"Event":[]}
+// unlinked events of monitors the user is denied. Those links are now kept.
 //
 // AppController can't be loaded without CakePHP, so the methods are taken from the source and
 // run in a stand-in with the same $this->request->data.
@@ -30,7 +32,7 @@ function check($name, $got, $want) {
 $controllers = __DIR__.'/../../web/api/app/Controller';
 $source = file_get_contents($controllers.'/AppController.php');
 $methods = '';
-foreach (array('requestAssociatedIds') as $fn) {
+foreach (array('requestAssociatedIds', 'eventLinksToSave') as $fn) {
   if (!preg_match('/^  protected function '.$fn.'\(.*?^  }\n/ms', $source, $m)) {
     echo "FAIL - could not find $fn in AppController.php\n";
     exit(1);
@@ -94,6 +96,27 @@ check('a join record links only its MonitorId',
 check('a record without MonitorId links nothing', ids(array('Monitor' => array(array('Id' => 7))))[0], array());
 check('events for a snapshot', ids(array('Snapshot' => array('EventIds' => '1'), 'Event' => array(2)), 'Snapshot', 'Event')[0], array(2));
 
+// An edit may link only events the user may view, and keeps the links to events they may not.
+function linksSaved($old, $new) {
+  global $links;
+  $links = array(9 => $old);
+  try {
+    return harness(array())->eventLinksToSave('Snapshots_Events', 'SnapshotId', 9, $new);
+  } catch (UnauthorizedException $e) {
+    return 'refused';
+  }
+}
+$viewable = array(1, 3);
+check('emptying keeps the event the user may not view', linksSaved(array(1, 2), array()), array(2));
+check('keeping only the visible ones keeps the hidden one too', linksSaved(array(1, 2), array(1)), array(1, 2));
+check('changing the visible ones keeps the hidden one', linksSaved(array(1, 2), array(3)), array(3, 2));
+check('linking an event the user may not view is refused', linksSaved(array(1), array(1, 2)), 'refused');
+check('naming a hidden linked event is refused', linksSaved(array(1, 2), array(1, 2)), 'refused');
+check('unlinking a visible event', linksSaved(array(1, 3), array(1)), array(1));
+check('a link to a deleted event is dropped', linksSaved(array(1, 99), array(1)), array(1));
+$viewable = array(1, 2, 3);
+check('an unrestricted user may replace the list', linksSaved(array(1, 2), array()), array());
+
 // The controllers use them that way.
 foreach (array('Groups' => array('Group', 'MonitorIds', 'Monitor'), 'Snapshots' => array('Snapshot', 'EventIds', 'Event'), 'Tags' => array('Tag', 'EventIds', 'Event')) as $name => $a) {
   list($alias, $field, $assoc) = $a;
@@ -101,6 +124,9 @@ foreach (array('Groups' => array('Group', 'MonitorIds', 'Monitor'), 'Snapshots' 
   $copy = strpos($c, "\$this->request->data['$assoc'] = explode(',', \$this->request->data['$alias']['$field']);");
   $first = strpos($c, "requestAssociatedIds('$alias', '$assoc')");
   check("$name add copies $field to $assoc before the check", $copy !== false and $first !== false and $copy < $first, true);
+  if ($name != 'Groups') {
+    check("$name edit keeps the links the user may not change", strpos($c, "\$this->request->data['Event'] = array('Event' => \$this->eventLinksToSave(") !== false, true);
+  }
 }
 
 echo "\n$passes passed, $failures failed\n";

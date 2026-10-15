@@ -858,7 +858,7 @@ function MonitorStream(monitorData) {
       if (janus && streaming[this.id]) {
         //streaming[this.id].detach(); // This will result in an error! This requires a more detailed study of Janus, or perhaps it has been fixed in a version higher than 1.1.2.
       }
-      janus.destroy();
+      janus.destroy && janus.destroy();
       janus = null;
     } else {
       console.log("Unknown activePlayer", this.activePlayer);

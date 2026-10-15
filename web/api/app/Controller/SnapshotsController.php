@@ -145,7 +145,9 @@ class SnapshotsController extends AppController {
       }
       $this->pinRequestId($this->Snapshot, $id);
       $eventIds = $this->requestAssociatedIds('Snapshot', 'Event');
-      if ($eventIds) $this->requireEventsView($eventIds);
+      if ($eventIds !== null) {
+        $this->request->data['Event'] = array('Event' => $this->eventLinksToSave('Snapshots_Events', 'SnapshotId', $id, $eventIds));
+      }
 			if ( $this->Snapshot->save($this->request->data) ) {
         $message = 'Saved';
       } else {

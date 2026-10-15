@@ -36,6 +36,7 @@
 #include "zm_zone.h"
 
 #include <atomic>
+#include <functional>
 #include <list>
 #include <map>
 #include <memory>
@@ -839,6 +840,12 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // stale reference itself on its next pass. Prevents a use-after-free/null
   // deref race in Image::Delta (refs #4983).
   std::atomic<bool> ref_image_reset_{false};
+  // Set by CheckOndemand() when a linked monitor's alarm wakes this on-demand
+  // monitor from its pause: steady_clock nanoseconds until which Analyse()
+  // counts the link as alarmed, 0 for none. The link only reports an alarm while
+  // it lasts, which can be shorter than reopening the camera takes, so the wake
+  // has to be remembered until the first packet acts on it.
+  std::atomic<int64_t> linked_wake_until_{0};
   // Analysis image ring: the annotated/analysis image is published into a ring
   // of image_buffer_count slots living in the alarm_images SHM region. Readers
   // pick up the newest via shared_data->last_analysis_index. Replaces the
@@ -982,6 +989,20 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
       shared_data->last_viewed_time =
         static_cast<int64>(std::chrono::duration_cast<Seconds>(new_time.time_since_epoch()).count());
   }
+  // What zmc's capture loop does with an on-demand monitor on this pass.
+  enum class OndemandStep { CAPTURE, PLAY, PAUSE, SLEEP };
+  // viewed: watched in the last 10 s. has_image: an image has been written, so
+  // thumbnails have something to show. primed: the camera is open. busy:
+  // alarmed, in its post-event frames, or woken by a link that Analyse() hasn't
+  // acted on yet. link_alarmed is asked only while the camera is closed, when
+  // the analysis thread that otherwise reads the links is stopped.
+  static OndemandStep DecideOndemand(bool viewed, bool has_image, bool primed, bool busy,
+                                     const std::function<bool()> &link_alarmed);
+  OndemandStep CheckOndemand();
+  bool LinkedWakePending() const;
+  // How long a link wake waits for the camera to reopen and a packet to act on it.
+  static constexpr std::chrono::seconds kLinkedWakeTimeout{30};
+
   bool hasViewers() {
     if (shared_data && shared_data->valid) {
       SystemTimePoint now = std::chrono::system_clock::now();

@@ -292,9 +292,9 @@ function getAuthUser($auth) {
         $time = localtime($now);
         foreach ($candidateAddrs as $remoteAddr) {
           $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$remoteAddr.$time[2].$time[3].$time[4].$time[5];
-          if ($auth == md5($authKey)) {
+          if (hash_equals(md5($authKey), $auth)) {
             return new ZM\User($user);
-          } // end if $auth == $authHash
+          } // end if the hash matches
         } // end foreach candidate address
       } // end foreach hour
     } // end foreach user
@@ -315,10 +315,10 @@ function getAuthUser($auth) {
           $time = localtime($now);
           foreach ($candidateAddrs as $remoteAddr) {
             $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$remoteAddr.$time[2].$time[3].$time[4].$time[5];
-            if ($auth == md5($authKey)) {
+            if (hash_equals(md5($authKey), $auth)) {
               ZM\Debug("getAuthUser: matched user '".$user['Username']."' from fallback (filter was '$filterUser')");
               return new ZM\User($user);
-            } // end if $auth == $authHash
+            } // end if the hash matches
           } // end foreach candidate address
         } // end foreach hour
       } // end foreach user

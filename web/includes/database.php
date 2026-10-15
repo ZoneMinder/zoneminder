@@ -136,7 +136,7 @@ function dbQuery($sql, $params=NULL, $debug = false) {
   try {
     if (isset($params)) {
       if (!$result = $dbConn->prepare($sql)) {
-        ZM\Error("SQL: Error preparing $sql: " . $pdo->errorInfo);
+        ZM\Error("SQL: Error preparing $sql: " . implode(' ', $dbConn->errorInfo()));
         return NULL;
       }
 
@@ -150,7 +150,7 @@ function dbQuery($sql, $params=NULL, $debug = false) {
       }
       $result = $dbConn->query($sql);
       if ( ! $result ) {
-        ZM\Error("SQL: Error preparing $sql: " . $pdo->errorInfo);
+        ZM\Error("SQL: Error running $sql: " . implode(' ', $dbConn->errorInfo()));
         return NULL;
       }
     }

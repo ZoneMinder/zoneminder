@@ -42,6 +42,19 @@ OPT_USE_EVENT_NOTIFICATION - zmeventnotification is a 3rd party event notificati
 
 OPT_USE_GOOG_RECAPTCHA - This option allows you to include a google reCaptcha validation at login. This means in addition to providing a valid username and password, you will also have to pass the reCaptcha test. Please note that enabling this option results in the zoneminder login page reaching out to google servers for captcha validation. Also please note that enabling this option may break 3rd party clients if they rely on web based logins (Note that zmNinja now uses the API based token method and will not be affected if reCAPTCHA is enabled). If you enable this, you also need to specify your site and secret key (please refer to context help in the ZoneMinder system screen).
 
+.. note:: With reCAPTCHA on, the login page refuses every login when the reCAPTCHA check can't
+   complete: a wrong site key, a browser that can't load the reCAPTCHA script, or a server that can't
+   reach ``www.google.com``. To turn reCAPTCHA off without the web UI, on the ZoneMinder server either:
+
+   * add a file to ``/etc/zm/conf.d``, for example ``99-no-recaptcha.conf``, containing
+     ``ZM_OPT_USE_GOOG_RECAPTCHA=0``. Values in ``conf.d`` override the database, so the next page
+     load shows the login page without reCAPTCHA. Once logged in, open Options > Authentication:
+     the box still shows the stored setting (ticked). Untick it, save, then remove the file;
+     otherwise reCAPTCHA returns when the file is removed. Or
+   * change the stored setting in the database, with the database name and credentials from
+     ``/etc/zm/zm.conf`` (``zm`` and ``zmuser`` by default):
+     ``mysql -u zmuser -p zm -e "UPDATE Config SET Value='0' WHERE Name='ZM_OPT_USE_GOOG_RECAPTCHA'"``
+
 SYSTEM_SHUTDOWN - this option puts a poweroff icon in the header of the ZM UI for users with System privilege accessi. This icon will allow the user to shutdown the full system via the ZM UI. The system will need to have sudo installed and the following added to /etc/sudoers:
 
 :: 

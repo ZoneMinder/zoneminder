@@ -48,10 +48,21 @@ function dbConnect() {
   }
   $dsn .= 'dbname='.ZM_DB_NAME.';charset=utf8mb4';
 
+  // From PHP 8.1, pdo_mysql returns integers and floats as PHP ints and floats
+  // with emulated prepares too, as it does with server-side ones. There, let
+  // PDO bind the parameters itself: one round trip per statement instead of
+  // three (prepare, execute, close). Older PHP would return every value as a
+  // string, so it keeps server-side prepares. Emulated prepares would accept
+  // several statements in one string, so that is turned off.
+  $emulatePrepares = PHP_VERSION_ID >= 80100;
+
   try {
-    $dbOptions = null;
+    $dbOptions = array();
+    if ( $emulatePrepares ) {
+      $dbOptions[PDO::MYSQL_ATTR_MULTI_STATEMENTS] = false;
+    }
     if ( defined('ZM_DB_SSL_CA_CERT') and ZM_DB_SSL_CA_CERT ) {
-      $dbOptions = array(
+      $dbOptions += array(
         PDO::MYSQL_ATTR_SSL_CA   => ZM_DB_SSL_CA_CERT,
         PDO::MYSQL_ATTR_SSL_KEY  => ZM_DB_SSL_CLIENT_KEY,
         PDO::MYSQL_ATTR_SSL_CERT => ZM_DB_SSL_CLIENT_CERT,
@@ -69,12 +80,10 @@ function dbConnect() {
             !in_array($verify_value, array('0', 'false', 'no', 'off'), true);
         }
       }
-      $dbConn = new PDO($dsn, ZM_DB_USER, ZM_DB_PASS, $dbOptions);
-    } else {
-      $dbConn = new PDO($dsn, ZM_DB_USER, ZM_DB_PASS);
     }
+    $dbConn = new PDO($dsn, ZM_DB_USER, ZM_DB_PASS, $dbOptions);
 
-    $dbConn->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
+    $dbConn->setAttribute(PDO::ATTR_EMULATE_PREPARES, $emulatePrepares);
     $dbConn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
   } catch(PDOException $ex) {
     global $error_message;
@@ -187,7 +196,12 @@ function dbQuery($sql, $params=NULL, $debug = false) {
         return NULL;
       }
 
-      if (!$result->execute($params)) {
+      // Integers are bound as integers, so that LIMIT ? still works when
+      // prepares are emulated (a string would be quoted).
+      foreach ($params as $key => $value) {
+        $result->bindValue(is_int($key) ? $key + 1 : $key, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
+      }
+      if (!$result->execute()) {
         ZM\Error("SQL: Error executing $sql: " . print_r($result->errorInfo(), true));
         $GLOBALS['dbLastError'] = implode(' ', $result->errorInfo());
         return NULL;

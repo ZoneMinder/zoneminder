@@ -67,7 +67,7 @@ if ( $action == 'create' ) {
 
 // Event scope actions, view permissions only required
 if ( isset($_REQUEST['id']) ) {
-  $snapshot = new ZM\Snapshot($_REQUEST['id']);
+  $snapshot = new ZM\Snapshot(validCardinal($_REQUEST['id']));
   if ( ($action == 'save') ) {
     if ( canEdit('Events') or $snapshot->CreatedBy() == $user->Id() ) {
 

@@ -23,8 +23,14 @@
 #include "zm_monitor.h"
 #include "zm_zone.h"
 
+#include <cstdio>
+#include <fstream>
+#include <iterator>
 #include <memory>
+#include <string>
 #include <vector>
+
+#include <unistd.h>
 
 TEST_CASE("MonitorStreamBufferLevel") {
   SECTION("zero buffer count does not divide by zero") {
@@ -107,10 +113,31 @@ class TestMonitor : public Monitor {
 // which needs the database. Hand one in directly instead.
 class TestMonitorStream : public MonitorStream {
  public:
+  using MonitorStream::sendFrame;
   void setMonitor(const std::shared_ptr<Monitor> &p_monitor) {
     monitor = p_monitor;
   }
 };
+
+// What a call writes to stdout, through a temporary file.
+template <typename F>
+std::string CaptureStdout(F f) {
+  char path[] = "/tmp/zm_test_stdout_XXXXXX";
+  int fd = mkstemp(path);
+  REQUIRE(fd >= 0);
+  fflush(stdout);
+  int saved = dup(fileno(stdout));
+  dup2(fd, fileno(stdout));
+  f();
+  fflush(stdout);
+  dup2(saved, fileno(stdout));
+  close(saved);
+  close(fd);
+  std::ifstream in(path, std::ios::binary);
+  std::string out((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+  unlink(path);
+  return out;
+}
 
 }  // namespace
 
@@ -134,4 +161,34 @@ TEST_CASE("MonitorStream releases its monitor when destroyed", "[Stream]") {
   }
 
   REQUIRE(watched.expired());
+}
+
+TEST_CASE("MonitorStream sends stored JPEGs as multipart parts", "[Stream]") {
+  // Buffered playback at scale 100 without zoom sends the swap file as it is
+  // (sendFrame(filepath)'s raw path). Each part needs the boundary and its
+  // Content-Type like the frames sendFrame(Image *) writes, or the
+  // multipart/x-mixed-replace stream breaks during rewind or step.
+  EnsureConfig();
+  config.timestamp_on_capture = true;
+
+  char jpeg_path[] = "/tmp/zm_test_swap_XXXXXX";
+  int fd = mkstemp(jpeg_path);
+  REQUIRE(fd >= 0);
+  const std::string jpeg = "\xff\xd8not really a jpeg\xff\xd9";
+  REQUIRE(write(fd, jpeg.data(), jpeg.size()) == static_cast<ssize_t>(jpeg.size()));
+  close(fd);
+
+  TestMonitorStream stream;
+  stream.setStreamType(StreamBase::STREAM_JPEG);
+  bool sent = false;
+  const std::string out = CaptureStdout([&] {
+    sent = stream.sendFrame(std::string(jpeg_path), SystemTimePoint(Seconds(1700000000)));
+  });
+  unlink(jpeg_path);
+
+  REQUIRE(sent);
+  const std::string head = "--" BOUNDARY "\r\nContent-Type: image/jpeg\r\nContent-Length: " +
+                           std::to_string(jpeg.size()) + "\r\n";
+  REQUIRE(out.compare(0, head.size(), head) == 0);
+  REQUIRE(out.find(jpeg) != std::string::npos);
 }

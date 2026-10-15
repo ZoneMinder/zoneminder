@@ -124,3 +124,57 @@ TEST_CASE("SIGUSR1 leaves targets configured for INFO at INFO") {
   logTerm();
   unlink(path.c_str());
 }
+
+// Logging takes log_mutex, glibc's syslog and tzset locks and the database
+// queue's mutex, so the SIGUSR1/2 handler must not log: a signal landing on a
+// thread that holds one of them would wait on itself. The handler only records
+// the change; the next log call applies it and logs the new level.
+TEST_CASE("SIGUSR1 changes the level at the next log call, not in the handler") {
+  std::string path = stringtf("/tmp/zm_test_logusr1_defer_%d.log", getpid());
+  unlink(path.c_str());
+
+  setenv("LOG_FLUSH", "1", 1);
+  Logger::Options options(Logger::NOLOG, Logger::NOLOG, Logger::DEBUG9, Logger::NOLOG);
+  options.mLogFile = path;
+  logInit("zm_test_logusr1_defer", options);
+
+  Info("before signal");
+  raise(SIGUSR1);
+  REQUIRE(slurp(path).find("Level changed") == std::string::npos);
+
+  Debug(1, "debug after signal");
+  std::string contents = slurp(path);
+  size_t changed = contents.find("Level changed to 1 DB1");
+  size_t debug = contents.find("debug after signal");
+  REQUIRE(changed != std::string::npos);
+  REQUIRE(debug != std::string::npos);
+  REQUIRE(changed < debug);
+
+  // Several signals before the next log call add up to one change.
+  raise(SIGUSR1);
+  raise(SIGUSR1);
+  raise(SIGUSR2);
+  REQUIRE(logLevel() == Logger::DEBUG2);
+
+  // Lowering is clamped at NOLOG, as one signal at a time was.
+  for (int i = 0; i < 12; i++) raise(SIGUSR2);
+  REQUIRE(logLevel() == Logger::NOLOG);
+  raise(SIGUSR1);
+  REQUIRE(logLevel() == Logger::AUDIT);
+
+  logTerm();
+  unlink(path.c_str());
+}
+
+TEST_CASE("A level change still pending doesn't carry over to a new logger") {
+  Logger::Options options(Logger::NOLOG, Logger::NOLOG, Logger::NOLOG, Logger::NOLOG);
+  logInit("zm_test_logusr1_pending", options);
+  REQUIRE(logLevel() == Logger::INFO);
+
+  raise(SIGUSR1);
+  logTerm();
+  logInit("zm_test_logusr1_pending", options);
+  REQUIRE(logLevel() == Logger::INFO);
+
+  logTerm();
+}

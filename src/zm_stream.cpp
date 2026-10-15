@@ -126,9 +126,12 @@ void StreamBase::updateFrameRate(double fps) {
 void StreamBase::checkCommandQueue() {
   while (!zm_terminate) {
     // Update modified time of the socket .lock file so that we can tell which ones are stale.
-    if (now - last_comm_update > Hours(1)) {
+    // This is the command thread: read the clock here rather than the
+    // streaming loop's `now`.
+    TimePoint cmd_now = std::chrono::steady_clock::now();
+    if (cmd_now - last_comm_update > Hours(1)) {
       touch(sock_path_lock);
-      last_comm_update = now;
+      last_comm_update = cmd_now;
     }
 
     if (sd >= 0) {
@@ -276,7 +279,7 @@ Image *StreamBase::prepareImage(Image *image, int pre_scaled_by) {
 
     Debug(3, "Cropping to %d,%d -> %d,%d %dx%din blown up image", lo_x, lo_y, hi_x, hi_y, hi_x-lo_x, hi_y-lo_y);
     // Scaled back to base_image dimensions
-    last_crop = Box({lo_x*ZM_SCALE_BASE/zoom, lo_y*ZM_SCALE_BASE/zoom}, {hi_x*ZM_SCALE_BASE/zoom, hi_y*ZM_SCALE_BASE/zoom});
+    last_crop = Box({lo_x*ZM_SCALE_BASE/cur_zoom, lo_y*ZM_SCALE_BASE/cur_zoom}, {hi_x*ZM_SCALE_BASE/cur_zoom, hi_y*ZM_SCALE_BASE/cur_zoom});
 
     Debug(3, "Cropping to %d,%d -> %d,%d", last_crop.Lo().x_, last_crop.Lo().y_, last_crop.Hi().x_, last_crop.Hi().y_);
     if ( !image_copied ) {

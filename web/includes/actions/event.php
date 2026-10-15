@@ -25,7 +25,7 @@ if ( empty($_REQUEST['eid']) ) {
 }
 
 // Event scope actions. Require edit on this event, which includes access to its monitor.
-$event = new ZM\Event($_REQUEST['eid']);
+$event = new ZM\Event(validCardinal($_REQUEST['eid']));
 if ( $event->Id() and $event->canEdit() ) {
   $_REQUEST['eid'] = $event->Id();
 

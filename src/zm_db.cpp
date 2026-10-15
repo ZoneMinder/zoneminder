@@ -272,10 +272,6 @@ int zmDbDo(const std::string &query) {
   if (!zmDbConnected and !zmDbConnect())
     return 0;
   int rc;
-  // Keep this thread's lines about the query out of the database. Only this
-  // thread: lowering the process-wide database level instead dropped every
-  // other thread's lines for as long as the query ran.
-  Logger::DatabaseLogPause pause_db_logging;
 
   int contention_attempts = 0;
 
@@ -391,7 +387,8 @@ void zmDbQueue::process() {
     }
     while (!mQueue.empty()) {
       size_t backlog = mQueue.size();
-      std::string sql = std::move(mQueue.front());
+      std::string sql = std::move(mQueue.front().first);
+      bool log_row = mQueue.front().second;
       mQueue.pop();
       // My idea for leaving the locking around each sql statement is to allow
       // other db writers to get a chance
@@ -403,17 +400,26 @@ void zmDbQueue::process() {
         Logger::DatabaseLogPause pause_db_logging;
         Warning("db queue size has grown larger %zu than 40 entries", backlog);
       }
-      zmDbDo(sql);
+      if (log_row) {
+        // An insert into Logs. A line about it would queue another insert, and at
+        // a debug database level its "Success running sql query" line would do
+        // so without end, so lines about these inserts stay out of the database.
+        // Lines about the other queued writes (events, frames, stats) go there.
+        Logger::DatabaseLogPause pause_db_logging;
+        zmDbDo(sql);
+      } else {
+        zmDbDo(sql);
+      }
       lock.lock();
     }
   }
 }  // end void zmDbQueue::process()
 
-void zmDbQueue::push(std::string &&sql) {
+void zmDbQueue::push(std::string &&sql, bool log_row) {
   {
     std::unique_lock<std::mutex> lock(mMutex);
     if (mTerminate) return;
-    mQueue.push(std::move(sql));
+    mQueue.emplace(std::move(sql), log_row);
   }
   mCondition.notify_all();
 }

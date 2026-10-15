@@ -576,6 +576,15 @@ std::vector<uint8_t> build_sidx_region(const VideoTrack &track,
       Debug(1, "sidx: a reference would cover %" PRId64 " bytes", reference.size);
       return empty;
     }
+    // An event that closes on a keyframe ends in a fragment of that frame
+    // alone, and the muxer gives the last sample the packet's duration,
+    // often 0. Fold it into the reference before rather than refuse the file.
+    if (reference.duration == 0 && i + per_reference >= fragments.size()
+        && !references.empty()
+        && references.back().size + reference.size <= kMaxReferencedSize) {
+      references.back().size += reference.size;
+      break;
+    }
     if (reference.duration <= 0 || reference.duration > 0xFFFFFFFF) {
       Debug(1, "sidx: a reference would last %" PRId64 " ticks", reference.duration);
       return empty;

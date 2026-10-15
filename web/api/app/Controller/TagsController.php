@@ -170,7 +170,9 @@ class TagsController extends AppController {
       }
       $this->pinRequestId($this->Tag, $id);
       $eventIds = $this->requestAssociatedIds('Tag', 'Event');
-      if ($eventIds) $this->requireEventsView($eventIds);
+      if ($eventIds !== null) {
+        $this->request->data['Event'] = array('Event' => $this->eventLinksToSave('Events_Tags', 'TagId', $id, $eventIds));
+      }
 			if ( $this->Tag->save($this->request->data) ) {
         $message = 'Saved';
       } else {

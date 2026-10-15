@@ -38,7 +38,12 @@ if ( ('login' == $action) && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == '
 
   zm_session_start();
   if (!isset($user) ) {
-    $_SESSION['loginFailed'] = true;
+    # A default password is not a failed login: the view asks for a new one.
+    if (empty($defaultPasswordChange)) {
+      $_SESSION['loginFailed'] = true;
+    } else {
+      unset($_SESSION['loginFailed']);
+    }
   } else {
     unset($_SESSION['loginFailed']);
     $view = 'postlogin';

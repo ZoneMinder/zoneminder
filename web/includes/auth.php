@@ -758,7 +758,15 @@ function zm_authenticate_request() {
             'response'  => $_REQUEST['g-recaptcha-response'],
             'remoteip'  => $_SERVER['REMOTE_ADDR']
           );
-          $res = do_post_request($url, http_build_query($fields));
+          try {
+            $res = do_post_request($url, http_build_query($fields));
+          } catch (Exception $e) {
+            // do_post_request() throws when siteverify can't be reached or
+            // answers with an HTTP error. Uncaught, that was a 500 page.
+            ZM\Error('reCaptcha authentication failed. Could not reach '.$url);
+            $user = null; // null, not unset: in a function unset() drops only the local binding
+            return;
+          }
           if (!recaptchaAllowsLogin(json_decode($res, true))) {
             $user = null; // null, not unset: in a function unset() drops only the local binding
             return;

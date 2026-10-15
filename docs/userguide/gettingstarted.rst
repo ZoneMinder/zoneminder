@@ -29,7 +29,7 @@ ZoneMinder allows you to specify the Timezone in the web interface. Please set u
 Enabling Authentication
 -----------------------
 
-We strongly recommend enabling authentication during initial setup of ZoneMinder. There are some situations where certain users don't enable authentication, such as instances where the server is in a LAN not directly exposed to the Internet. In most cases authentication should be enabled. Follow the steps below.
+New installs have authentication turned on (**OPT_USE_AUTH**), so the first page you see is the login screen shown below. An install upgraded from an older version keeps the setting it had. If yours has authentication off, we strongly recommend turning it on: with it off, anyone who can reach ZoneMinder can do everything, and so can any web page opened in a browser on the same network. To turn it on:
 
 * Click on the :guilabel:`Options` link in the top bar of the web interface.
 * You will now be presented with a sidebar full of Option tabs. Click on the :guilabel:`System` tab and scroll down to the section containing authentication parameters.
@@ -39,9 +39,9 @@ We strongly recommend enabling authentication during initial setup of ZoneMinder
     Authentication Parameters in System Tab
 
 * **OPT_USE_AUTH:** Enable by checking the box. This enables user authentication.
-* **AUTH_HASH_SECRET:** Enter a random string. This makes authentication logic more secure.
+* **AUTH_HASH_SECRET:** Installing or upgrading with ``zmupdate.pl -f`` (the packages do this) sets a random secret. If it still reads ``...Change me to something unique...``, enter a random string.
 * Remaining items should be left as default.
-* Click on :guilabel:`Save` at the top of list and that's it! The next time you refresh that page, you will now be presented with a login screen as shown below. Job well done!
+* Click on :guilabel:`Save` at the top of list and that's it! The next time you refresh that page, you will now be presented with a login screen as shown below.
 
 .. image:: images/getting-started-login.png
     :width: 350px

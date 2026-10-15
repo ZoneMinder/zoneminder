@@ -280,7 +280,7 @@ Note that SELinux may cause errors other than those listed above. If you are in 
 
 How do I enable ZoneMinder's security?
 -------------------------------------------
-In the console, click on ``Options->System``. Check the box next to ``ZM_OPT_USE_AUTH``. You will immediately be asked to login. The default username is 'admin' and the password is 'admin'.
+New installs have authentication on. An install upgraded from an older version keeps its setting; to turn it on, in the console click on ``Options->System`` and check the box next to ``ZM_OPT_USE_AUTH``. You will immediately be asked to login. The default username is 'admin' and the password is 'admin'.
 
 To Manage Users:
 In main console, go to ``Options->Users``.

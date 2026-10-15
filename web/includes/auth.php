@@ -624,6 +624,31 @@ function userFromSession() {
   return $user;
 }
 
+// Decide from Google's siteverify answer (already JSON-decoded) whether a
+// password login that passed may go ahead. Only an explicit success lets it
+// through: an answer that can't be read, or has no success field, is a
+// failure, not a pass.
+//
+// The one exception is kept from before: when Google says the secret key
+// itself is wrong, the admin mistyped it, and refusing would lock everyone
+// out, so the login goes ahead with an Error asking for the key to be fixed.
+// There is no such check for a wrong site key: Google answers that the same
+// way as a challenge nobody solved.
+// credit: https://github.com/google/recaptcha/blob/master/src/ReCaptcha/Response.php
+function recaptchaAllowsLogin($responseData) {
+  if (is_array($responseData) && isset($responseData['success']) && $responseData['success'] === true) {
+    return true;
+  }
+  $errors = (is_array($responseData) && isset($responseData['error-codes']) && is_array($responseData['error-codes']))
+    ? $responseData['error-codes'] : array();
+  if (in_array('invalid-input-secret', $errors, true)) {
+    ZM\Error('Invalid recaptcha secret detected');
+    return true;
+  }
+  ZM\Error('reCaptcha authentication failed. response was: '.(is_array($responseData) ? json_encode($responseData) : 'not JSON'));
+  return false;
+}
+
 function get_auth_relay() {
   if (ZM_OPT_USE_AUTH) {
     if (ZM_AUTH_RELAY == 'hashed') {
@@ -734,25 +759,10 @@ function zm_authenticate_request() {
             'remoteip'  => $_SERVER['REMOTE_ADDR']
           );
           $res = do_post_request($url, http_build_query($fields));
-          $responseData = json_decode($res, true);
-          // credit: https://github.com/google/recaptcha/blob/master/src/ReCaptcha/Response.php
-          // if recaptcha resulted in error, we might have to deny login
-          if ( isset($responseData['success']) && ($responseData['success'] == false) ) {
-            // PP - before we deny auth, let's make sure the error was not 'invalid secret'
-            // because that means the user did not configure the secret key correctly
-            // in this case, we prefer to let him login in and display a message to correct
-            // the key. Unfortunately, there is no way to check for invalid site key in code
-            // as it produces the same error as when you don't answer a recaptcha
-            if ( isset($responseData['error-codes']) && is_array($responseData['error-codes']) ) {
-              if ( !in_array('invalid-input-secret', $responseData['error-codes']) ) {
-                ZM\Error('reCaptcha authentication failed. response was: ' . print_r($responseData['error-codes'],true));
-                $user = null; // null, not unset: in a function unset() drops only the local binding
-                return;
-              } else {
-                ZM\Error('Invalid recaptcha secret detected');
-              }
-            }
-          } // end if success==false
+          if (!recaptchaAllowsLogin(json_decode($res, true))) {
+            $user = null; // null, not unset: in a function unset() drops only the local binding
+            return;
+          }
         } // end if using reCaptcha
 
         # Drop the pre-auth session and issue a fresh id in a single Set-Cookie

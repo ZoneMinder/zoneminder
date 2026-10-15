@@ -631,15 +631,14 @@ function get_auth_relay() {
       // Include username so zms can filter by indexed Username column
       // instead of iterating all users to validate the auth hash
       if (!empty($_SESSION['username'])) {
-        $relay .= '&user='.$_SESSION['username'];
+        $relay .= '&user='.urlencode($_SESSION['username']);
       }
       return $relay;
     } else if (ZM_AUTH_RELAY == 'plain') {
-      // password probably needs to be escaped
-      return 'username='.(isset($_SESSION['username'])?$_SESSION['username']:'').'&password='.urlencode(isset($_SESSION['password']) ? $_SESSION['password'] : '');
+      return 'username='.urlencode(isset($_SESSION['username']) ? $_SESSION['username'] : '').'&password='.urlencode(isset($_SESSION['password']) ? $_SESSION['password'] : '');
     } else if (ZM_AUTH_RELAY == 'none') {
       if (isset($_SESSION['username'])) {
-        return 'username='.$_SESSION['username'];
+        return 'username='.urlencode($_SESSION['username']);
       } else {
         ZM\Warning("ZM_AUTH_RELAY==none but there is no username in session.");
       }

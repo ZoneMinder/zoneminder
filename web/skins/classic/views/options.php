@@ -261,10 +261,19 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
           if (!isset($configCats[$tab])) {
             echo 'There are no config entries for category '.$tab.'.<br/>';
           } else {
+            // Options set in zm.conf or conf.d belong to the system owner and win over the database
+            // everywhere, so they are shown with the value in effect and can't be changed here.
+            // Their Config row is left as is.
+            $fileConfig = loadConfigFiles();
+            foreach ($fileConfig as $fileName => $fileEntry) {
+              if (isset($config[$fileName]))
+                $config[$fileName]['Value'] = configFileValue($fileEntry['Value'], $config[$fileName]['Type']);
+            }
             foreach ($configCats[$tab] as $name=>$value) {
               $shortName = preg_replace( '/^ZM_/', '', $name );
               $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]['Prompt']:$value['Prompt'];
-              $optionCanEdit = $canEdit && !$value['System'];
+              $fileSet = isset($fileConfig[$name]);
+              $optionCanEdit = $canEdit && !$value['System'] && !$fileSet;
               // A Private value (ZM_AUTH_HASH_SECRET and other credentials) is only for
               // those who may change it: System=View can read this page, and the auth
               // secret alone is enough to sign an admin token. refs GHSA-7g3f-93q8-fhwj
@@ -293,7 +302,7 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
                 }
               }
 ?>
-            <div class="form-group form-row <?php echo $name ?>"<?php if ($canEdit && !$value['System'] && !empty($value['Requires'])) echo ' data-requires="'.htmlspecialchars($value['Requires'], ENT_QUOTES).'"' ?>>
+            <div class="form-group form-row <?php echo $name ?>"<?php if ($canEdit && !$value['System'] && !$fileSet && !empty($value['Requires'])) echo ' data-requires="'.htmlspecialchars($value['Requires'], ENT_QUOTES).'"' ?>>
               <label for="<?php echo $name ?>" class="col-md-4 control-label text-md-right"><?php echo $shortName ?></label>
               <div class="col-md">
 <?php   
@@ -351,8 +360,9 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
               }
               if ($valueHidden) {
                 echo '<p class="form-text">'.translate('PrivateValueHidden').'</p>'.PHP_EOL;
-              } else if ($value['Value'] != constant($name)) {
-                echo '<p class="warning">Note: This value has been overriden via configuration files in '.ZM_CONFIG. ' or ' . ZM_CONFIG_SUBDIR.'.<br/>The overriden value is: '.constant($name).'</p>'.PHP_EOL;
+              }
+              if ($fileSet) {
+                echo '<p class="form-text text-warning font-weight-bold optionfileset">'.validHtmlStr(sprintf(translate('OptionSetInConfigFile'), $fileConfig[$name]['File'])).'</p>'.PHP_EOL;
               }
 ?>
                 <span class="form-text"><?php echo validHtmlStr($optionPromptText); echo makeHelpLink($name) ?></span>

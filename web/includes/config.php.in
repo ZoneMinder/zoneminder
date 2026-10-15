@@ -205,7 +205,9 @@ function configFileValue($value, $type) {
   return $word === null ? $value : $word;
 }
 
-function loadConfig( $defineConsts=true ) {
+// Reads zm.conf, then every conf.d/*.conf in order, later files winning. Each entry
+// keeps the file it came from in 'File', so callers can tell what was set locally.
+function loadConfigFiles() {
   $configFile = ZM_CONFIG;
   $localConfigFile = basename($configFile);
   if ( file_exists($localConfigFile) && filesize($localConfigFile) > 0 ) {
@@ -217,8 +219,8 @@ function loadConfig( $defineConsts=true ) {
   }
 
   # Process name, value pairs from the main config file first
-  $initial_config = process_configfile($configFile);
-  if (!$initial_config) $initial_config = [];
+  $file_config = process_configfile($configFile);
+  if (!$file_config) $file_config = [];
 
   # Search for user created config files. If one or more are found then
   # update our config value array with those values
@@ -226,7 +228,7 @@ function loadConfig( $defineConsts=true ) {
     if ( is_readable(ZM_CONFIG_SUBDIR) ) {
       foreach ( glob(ZM_CONFIG_SUBDIR.'/*.conf') as $filename ) {
         $newconfig = process_configfile($filename);
-        if ($newconfig) $initial_config = array_merge($initial_config, $newconfig);
+        if ($newconfig) $file_config = array_merge($file_config, $newconfig);
       }
     } else {
       error_log('WARNING: ZoneMinder configuration subfolder found but is not readable. Check folder permissions on '.$configSubFolder);
@@ -234,6 +236,11 @@ function loadConfig( $defineConsts=true ) {
   } else {
     error_log('WARNING: ZoneMinder configuration subfolder found but is not a directory. Check '.$configSubFolder);
   }
+  return $file_config;
+}
+
+function loadConfig( $defineConsts=true ) {
+  $initial_config = loadConfigFiles();
 
   # Need initial config defines in order to connect to db
   # Now that our array our finalized, define each key => value
@@ -294,6 +301,7 @@ function loadConfig( $defineConsts=true ) {
   # are known to be needed client side. refs GHSA-jv9c-pg2m-5m6m
   $public_file_config = array('ZM_DIR_SOUNDS');
   foreach ($initial_config as $name => $c) {
+    unset($initial_config[$name]['File']); # the API returns these entries whole
     if (!isset($initial_config[$name]['Private']))
       $initial_config[$name]['Private'] = in_array($name, $public_file_config) ? 0 : 1;
   }
@@ -363,7 +371,7 @@ function process_configfile($configFile) {
       if ( preg_match('/^\s*(#.*)?$/', $line) ) {
         continue;
       } else if ( preg_match('/^\s*([^=\s]+)\s*=\s*[\'"]*(.*?)[\'"]*\s*$/', $line, $matches) ) {
-        $config[$matches[1]] = ['Name'=>$matches[1], 'Value'=>$matches[2]];
+        $config[$matches[1]] = ['Name'=>$matches[1], 'Value'=>$matches[2], 'File'=>$configFile];
 			} else {
 				error_log("Malformed line in config $configFile\n$line");
 			}

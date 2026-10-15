@@ -244,6 +244,34 @@ TEST_CASE("Image::Crop YUV420P", "[image]") {
   REQUIRE(dst.data[2][0] == 0x30);
 }
 
+// A YUV420P chroma sample covers 2x2 luma pixels, so a crop starting on an odd
+// luma column or row can't start its chroma with it: the chroma would be half a
+// pixel off. Crop moves the window to the even position instead, keeping its
+// size.
+TEST_CASE("Image::Crop YUV420P from an odd position keeps chroma aligned", "[image]") {
+  bootstrap_image_config();
+  const int w = 128, h = 64;
+  Image image(w, h, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_YUV420P);
+
+  Planes src = plane_view(image, AV_PIX_FMT_YUV420P, w, h);
+  for (int y = 0; y < h; y++)
+    for (int x = 0; x < w; x++)
+      src.data[0][y * src.stride[0] + x] = static_cast<uint8_t>(x + y);
+  for (int y = 0; y < h / 2; y++)
+    for (int x = 0; x < w / 2; x++)
+      src.data[1][y * src.stride[1] + x] = static_cast<uint8_t>(x * 2 + y);
+
+  const unsigned int lo_x = 11, lo_y = 7, cw = 40, ch = 20;
+  REQUIRE(image.Crop(lo_x, lo_y, lo_x + cw - 1, lo_y + ch - 1));
+  REQUIRE(image.Width() == cw);
+  REQUIRE(image.Height() == ch);
+
+  // Starts at (10, 6), whose chroma sample is (5, 3).
+  Planes dst = plane_view(image, AV_PIX_FMT_YUV420P, cw, ch);
+  REQUIRE(dst.data[0][0] == static_cast<uint8_t>(10 + 6));
+  REQUIRE(dst.data[1][0] == static_cast<uint8_t>(5 * 2 + 3));
+}
+
 TEST_CASE("Image::Crop RGBA with a row that is not a multiple of 32 bytes", "[image]") {
   bootstrap_image_config();
   const int w = 64, h = 16;

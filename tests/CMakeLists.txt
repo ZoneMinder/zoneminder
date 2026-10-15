@@ -31,6 +31,7 @@ set(TEST_SOURCES
   zm_monitorlink_expression.cpp
   zm_monitorstream.cpp
   zm_monitorlink_token.cpp
+  zm_monitorlink_score.cpp
   zm_packetqueue.cpp
   zm_packet_lock.cpp
   zm_monitor_signal.cpp

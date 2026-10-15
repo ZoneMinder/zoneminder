@@ -306,7 +306,6 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     volatile int * zone_scores;
 
     int        last_state;
-    uint64_t   last_event_id;
     std::vector<Zone> zones;
 
    public:

@@ -190,9 +190,12 @@ function dbQuery($sql, $params=NULL, $debug = false) {
   try {
     if (isset($params)) {
       if (!$result = $dbConn->prepare($sql)) {
-        ZM\Error("SQL: Error preparing $sql: " . $pdo->errorInfo);
-        // Set after logging: a DB log target would call dbQuery and clobber this.
-        $GLOBALS['dbLastError'] = implode(' ', $dbConn->errorInfo());
+        // Read before logging: a DB log target writes through the same
+        // connection, which replaces its errorInfo, and calls dbQuery, which
+        // clears dbLastError.
+        $error = implode(' ', $dbConn->errorInfo());
+        ZM\Error("SQL: Error preparing $sql: $error");
+        $GLOBALS['dbLastError'] = $error;
         return NULL;
       }
 
@@ -212,8 +215,10 @@ function dbQuery($sql, $params=NULL, $debug = false) {
       }
       $result = $dbConn->query($sql);
       if ( ! $result ) {
-        ZM\Error("SQL: Error preparing $sql: " . $pdo->errorInfo);
-        $GLOBALS['dbLastError'] = implode(' ', $dbConn->errorInfo());
+        // Read before logging, as for prepare() above.
+        $error = implode(' ', $dbConn->errorInfo());
+        ZM\Error("SQL: Error running $sql: $error");
+        $GLOBALS['dbLastError'] = $error;
         return NULL;
       }
     }

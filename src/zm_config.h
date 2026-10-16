@@ -23,6 +23,7 @@
 #include "config.h"
 #include "zm_config_data.h"
 #include "zm_config_defines.h"
+#include <map>
 #include <string>
 
 #define ZM_MAX_IMAGE_WIDTH    2048        // The largest image we imagine ever handling
@@ -65,6 +66,10 @@ struct StaticConfig {
   std::string PATH_LOGS;
   std::string PATH_SWAP;
   std::string PATH_ARP;
+  // Every name = value in zm.conf and conf.d, later files winning. The owner of
+  // the box sets these and the ZoneMinder admin the Config table, so
+  // Config::Load() uses them in place of the database values.
+  std::map<std::string, std::string> file_options;
   std::string capture_file_format;
   std::string analyse_file_format;
   std::string general_file_format;
@@ -72,6 +77,10 @@ struct StaticConfig {
 };
 
 extern StaticConfig staticConfig;
+
+// A value from zm.conf or conf.d as the Config table would hold it for an
+// option of `type`: a boolean may be written yes/no, true/false or on/off.
+std::string ConfigFileValue(const std::string &value, const char *type);
 
 class ConfigItem {
  private:

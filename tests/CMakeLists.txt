@@ -15,6 +15,7 @@ set(TEST_SOURCES
   zm_box.cpp
   zm_buffer.cpp
   zm_comms.cpp
+  zm_config_file_options.cpp
   zm_crypt.cpp
   zm_db_contention.cpp
   zm_db_contention_live.cpp

@@ -447,11 +447,24 @@ if ( ZM_OPT_MESSAGE ) {
 <?php
 }
 ?>
+<?php
+// AutoExecuteCmd is run verbatim as an OS command by zmfilter.pl, so only System
+// editors see these inputs; others carry the existing values along unchanged.
+if ( canEdit('System') ) {
+?>
             <p>
               <label><?php echo translate('FilterExecuteEvents') ?></label>
               <input type="checkbox" name="filter[AutoExecute]" value="1"<?php if ( $filter->AutoExecute() ) { ?> checked="checked"<?php } ?>/>
               <input type="text" name="filter[AutoExecuteCmd]" value="<?php echo (null !==$filter->AutoExecuteCmd())?validHtmlStr($filter->AutoExecuteCmd()):'' ?>" maxlength="255" data-on-change-this="updateButtons"/>
             </p>
+<?php
+} else {
+?>
+            <input type="hidden" name="filter[AutoExecute]" value="<?php echo $filter->AutoExecute() ? 1 : 0 ?>"/>
+            <input type="hidden" name="filter[AutoExecuteCmd]" value="<?php echo validHtmlStr($filter->AutoExecuteCmd()) ?>"/>
+<?php
+}
+?>
             <p>
               <label><?php echo translate('FilterDeleteEvents') ?></label>
               <input type="checkbox" name="filter[AutoDelete]" value="1"<?php if ( $filter->AutoDelete() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>

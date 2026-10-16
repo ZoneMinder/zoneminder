@@ -23,6 +23,23 @@ class Filter extends ZM_Object {
   // System viewers can inspect any filter; otherwise only its owner. An unsaved filter is
   // built from the requester's own input (the filterdebug modal), so it is viewable.
   // refs GHSA-28mv-hqxw-qw84
+  // AutoExecuteCmd is run verbatim as an OS command by zmfilter.pl, so a filter that
+  // executes one is for System editors only. Anyone else may only change their own
+  // filters, and a View-only user only filters that change nothing.
+  public function canEdit() {
+    global $user;
+    if (canEdit('System')) return true;
+    if (!$user or ($this->UserId() != $user['Id'])) return false;
+    if ($this->AutoExecute()) return false;
+    if (canEdit('Events')) return true;
+    if (canView('Events')) {
+      return !($this->AutoDelete() or $this->AutoUnarchive() or $this->AutoArchive() or
+        $this->AutoMove() or $this->AutoCopy() or $this->AutoVideo() or $this->AutoUpload() or
+        $this->AutoEmail() or $this->AutoMessage());
+    }
+    return false;
+  }
+
   public function canView() {
     global $user;
     if (!$this->Id() or canView('System')) return true;

@@ -33,7 +33,12 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
     $_REQUEST['filter'] = delFilterTerm($_REQUEST['filter'], $_REQUEST['line']);
   } else if (canEdit('Events')) {
     require_once('includes/Filter.php');
-    $filter = new ZM\Filter($_REQUEST['Id']);
+    // An array Id would build the filter from the request rather than load it.
+    $filter = new ZM\Filter(empty($_REQUEST['Id']) ? null : validCardinal($_REQUEST['Id']));
+    if ($filter->Id() and !$filter->canEdit()) {
+      ZM\Warning('No permission to change filter '.$filter->Id());
+      return;
+    }
 
     if ($action == 'delete') {
       if (!empty($_REQUEST['Id'])) {
@@ -65,6 +70,14 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
       $_REQUEST['filter']['Background'] = empty($_REQUEST['filter']['Background']) ? 0 : 1;
       $_REQUEST['filter']['Concurrent'] = empty($_REQUEST['filter']['Concurrent']) ? 0 : 1;
       $changes = $filter->changes($_REQUEST['filter']);
+      // Turning on AutoExecute or changing its command is the same as shell access on the
+      // server, so it needs System edit.
+      $newCmd = isset($_REQUEST['filter']['AutoExecuteCmd']) ? $_REQUEST['filter']['AutoExecuteCmd'] : '';
+      if (!canEdit('System') and ($_REQUEST['filter']['AutoExecute']
+          or (($newCmd != '') and ($newCmd != $filter->AutoExecuteCmd())))) {
+        ZM\Warning('Only users who can edit System settings may set AutoExecute');
+        return;
+      }
       ZM\Debug('Changes: ' . print_r($changes, true));
 
       if (count($changes)) {

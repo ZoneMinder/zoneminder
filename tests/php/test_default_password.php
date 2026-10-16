@@ -21,6 +21,8 @@ foreach (array(
   "/^define\('ZM_DEFAULT_PASSWORD',.*?;$/m",
   "/^define\('ZM_DEFAULT_PASSWORD_REFUSED',.*?;$/m",
   '/^function isDefaultPassword\(.*?^}$/ms',
+  '/^function passwordProblem\(.*?^}$/ms',
+  '/^function passwordProblemText\(.*?^}$/ms',
   '/^function newPasswordProblem\(.*?^}$/ms',
   '/^function requestString\(.*?^}$/ms',
   '/^function isDefaultPasswordChangePost\(.*?^}$/ms',
@@ -61,6 +63,15 @@ check('trailing space', isDefaultPassword('admin '), false);
 check('empty', isDefaultPassword(''), false);
 check('null (parameter not sent)', isDefaultPassword(null), false);
 check('array (?password[]=admin)', isDefaultPassword(array('admin')), false);
+
+echo "passwordProblem (user page, API, login forms)\n";
+check('an ordinary password', passwordProblem('n3w-pass'), null);
+check('admin', passwordProblem('admin'), 'NewPasswordIsDefault');
+check('Admin (case differs)', passwordProblem('Admin'), null);
+check('empty', passwordProblem(''), 'NewPasswordRequired');
+check('array (user[Password][]=x)', passwordProblem(array('x')), 'NewPasswordRequired');
+check('API text without a language file', passwordProblemText('NewPasswordIsDefault'), 'The new password must not be admin.');
+check('API text, unknown key', passwordProblemText('Other'), 'Other');
 
 echo "newPasswordProblem\n";
 check('a new password that matches its confirmation', newPasswordProblem('n3w-pass', 'n3w-pass'), null);

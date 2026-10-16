@@ -38,6 +38,7 @@ foreach (array(
   array($auth_src, "/^define\('ZM_DEFAULT_PASSWORD',.*?;$/m"),
   array($auth_src, '/^function requestString\(.*?^}$/ms'),
   array($auth_src, '/^function isDefaultPassword\(.*?^}$/ms'),
+  array($auth_src, '/^function passwordProblem\(.*?^}$/ms'),
   array($auth_src, '/^function newPasswordProblem\(.*?^}$/ms'),
   array($auth_src, '/^function firstRunAccount\(.*?^}$/ms'),
   array($auth_src, '/^function authSetInConfigFile\(.*?^}$/ms'),

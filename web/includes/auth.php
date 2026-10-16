@@ -111,13 +111,33 @@ function isDefaultPasswordChangePost() {
   return ($nonce !== null) and is_string($expected) and hash_equals($expected, $nonce);
 }
 
-// Why $new can't replace the default password, as a translation key, or null
-// when it can.
+// Why $password can't be set as an account's password, as a translation key,
+// or null when it can. Every way to set one checks it: the user page
+// (includes/actions/user.php), the API (api/app/Model/User.php), the login
+// page's change form and the first-run page, so a password one of them
+// refuses can't be set through another.
+function passwordProblem($password) {
+  if (!is_string($password) or ($password === '')) return 'NewPasswordRequired';
+  if (isDefaultPassword($password)) return 'NewPasswordIsDefault';
+  return null;
+}
+
+// passwordProblem()'s answer as text. The API loads no language file, so it
+// gets the English.
+function passwordProblemText($problem) {
+  if (function_exists('translate')) return translate($problem);
+  $english = array(
+    'NewPasswordRequired' => 'Enter a new password.',
+    'NewPasswordIsDefault' => 'The new password must not be admin.',
+  );
+  return isset($english[$problem]) ? $english[$problem] : $problem;
+}
+
+// passwordProblem() for a form that asks for the new password twice.
 function newPasswordProblem($new, $confirm) {
   if (!is_string($new) or ($new === '')) return 'NewPasswordRequired';
   if (!is_string($confirm) or !hash_equals($new, $confirm)) return 'PasswordsDifferent';
-  if (isDefaultPassword($new)) return 'NewPasswordIsDefault';
-  return null;
+  return passwordProblem($new);
 }
 
 // core function used to load a User record by username and password

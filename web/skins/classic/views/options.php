@@ -263,16 +263,8 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
           } else {
             // Options set in zm.conf or conf.d belong to the system owner and win over the database
             // everywhere, so they are shown with the value in effect and can't be changed here.
-            // Their Config row is left as is. A secret set in a file never reaches the browser:
-            // a placeholder stands in for it, so the masked input still shows as set.
+            // Their Config row is left as is.
             $fileConfig = loadConfigFiles();
-            foreach ($fileConfig as $fileName => $fileEntry) {
-              if (!isset($config[$fileName])) continue;
-              if (!empty($config[$fileName]['Private']) || $config[$fileName]['Type'] == 'password')
-                $config[$fileName]['Value'] = '<set in config file>';
-              else
-                $config[$fileName]['Value'] = configFileValue($fileEntry['Value'], $config[$fileName]['Type']);
-            }
             foreach ($configCats[$tab] as $name=>$value) {
               $shortName = preg_replace( '/^ZM_/', '', $name );
               $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]['Prompt']:$value['Prompt'];
@@ -284,6 +276,11 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
               // secret alone is enough to sign an admin token. refs GHSA-7g3f-93q8-fhwj
               $valueHidden = !empty($value['Private']) && !$canEdit;
               if ($valueHidden) $value['Value'] = '';
+              // $value is this row's copy, so $config keeps the Config rows. A secret set in
+              // a file never reaches the browser: a placeholder stands in for it, so the masked input
+              // still shows as set.
+              if ($fileSet)
+                $value['Value'] = $secret ? '<set in config file>' : configFileValue($fileConfig[$name]['Value'], $value['Type']);
               if ($optionCanEdit && !empty($value['Requires'])) {
                 // Requires can be compound: "ZM_A=1;ZM_B=hashed" (all must be true)
                 $requiresMet = true;
@@ -296,7 +293,11 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
                   }
                   $reqName = $reqMatch[1];
                   $expectedValue = $reqMatch[2];
-                  if (!isset($config[$reqName]) || $config[$reqName]['Value'] != $expectedValue) {
+                  // Against the value in effect: a file's value wins over the Config row.
+                  $reqValue = isset($config[$reqName]) ? (isset($fileConfig[$reqName])
+                    ? configFileValue($fileConfig[$reqName]['Value'], $config[$reqName]['Type'])
+                    : $config[$reqName]['Value']) : null;
+                  if ($reqValue === null || $reqValue != $expectedValue) {
                     // Missing or mismatched requirement: treat as unmet
                     $requiresMet = false;
                     break;
@@ -368,12 +369,12 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
               } else {
                 echo '<input type="text" class="form-control-sm" id="'.$name.'" name="newConfig['.$name.']" value="'.validHtmlStr($value['Value']).'" '.($optionCanEdit?'':' disabled="disabled"' ).'/>'.PHP_EOL;
               }
-              if ($valueHidden) {
-                echo '<p class="form-text">'.translate('PrivateValueHidden').'</p>'.PHP_EOL;
-              }
               if ($fileSet) {
                 $fileText = $secret ? 'OptionSetInConfigFileHidden' : 'OptionSetInConfigFile';
                 echo '<p class="form-text text-warning font-weight-bold optionfileset">'.validHtmlStr(sprintf(translate($fileText), $fileConfig[$name]['File'])).'</p>'.PHP_EOL;
+              } else if ($valueHidden) {
+                // One note: for a file-set secret, OptionSetInConfigFileHidden already says it isn't shown.
+                echo '<p class="form-text">'.translate('PrivateValueHidden').'</p>'.PHP_EOL;
               }
 ?>
                 <span class="form-text"><?php echo validHtmlStr($optionPromptText); echo makeHelpLink($name) ?></span>

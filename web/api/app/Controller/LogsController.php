@@ -115,6 +115,7 @@ class LogsController extends AppController {
  * @return void
  */
 	public function delete($id = null) {
+    global $user; // was missing, so $user was null here and the check always passed
     $canDelete = (!$user) || ($user['System'] == 'Edit');
     if (!$canDelete) {
       throw new UnauthorizedException(__('Insufficient privileges'));

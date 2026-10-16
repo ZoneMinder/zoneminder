@@ -601,6 +601,38 @@ std::string url_for_log(const std::string &url) {
   return remove_authentication(url.substr(0, query_at)) + "?...";
 }
 
+std::string request_for_log(const std::string &request) {
+  std::string out;
+  out.reserve(request.size());
+  std::size_t start = 0;
+  bool first = true;
+  while (start < request.size()) {
+    std::size_t eol = request.find('\n', start);
+    std::size_t next = (eol == std::string::npos) ? request.size() : eol + 1;
+    std::size_t end = next;
+    while (end > start and (request[end-1] == '\n' or request[end-1] == '\r')) end--;
+    std::string line = request.substr(start, end - start);
+    if (first) {
+      // METHOD SP target SP version
+      std::size_t sp1 = line.find(' ');
+      std::size_t sp2 = (sp1 == std::string::npos) ? sp1 : line.find(' ', sp1 + 1);
+      if (sp2 != std::string::npos)
+        line = line.substr(0, sp1 + 1) + url_for_log(line.substr(sp1 + 1, sp2 - sp1 - 1)) + line.substr(sp2);
+      first = false;
+    } else {
+      std::size_t colon = line.find(':');
+      if (colon != std::string::npos) {
+        std::string name = StringToLower(line.substr(0, colon));
+        if (name == "authorization" or name == "proxy-authorization")
+          line = line.substr(0, colon) + ": <not logged>";
+      }
+    }
+    out += line + request.substr(end, next - end);
+    start = next;
+  }
+  return out;
+}
+
 std::string remove_newlines( std::string str ) {
   while (!str.empty() && str.find("\n") != std::string::npos)
     str.erase(std::remove(str.begin(), str.end(), '\n'), str.cend());

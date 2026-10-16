@@ -816,6 +816,7 @@ function initPage() {
 
   for ( let i = 0, length = monitorData.length; i < length; i++ ) {
     monitors[i] = new MonitorStream(monitorData[i]);
+    monitors[i].manageAvailablePlayers();
     if (cookiePlayer !== undefined && cookiePlayer !== null) {
       monitors[i].setPlayer(cookiePlayer);
     }

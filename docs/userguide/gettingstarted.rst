@@ -3,7 +3,7 @@ Getting Started
 
 The intent of this section is to provide a simplified introduction to some of the basic configuration tasks that most ZoneMinder servers will require. This will include setting your Timezone, enabling Authentication, adding a Monitor (camera), adding a Zone and changing the web display Theme. Detailed explanations about each particular item can be found in their respective sections of the ZoneMinder documentation.
 
-Having followed the :doc:`/installationguide/index` for your distribution you should now be able to load the ZoneMinder web interface which can be found at ``http://hostname-or-ip/zm``. The image below shows an example of the ZoneMinder Console which is displayed after starting. The ZoneMinder Console is the central location from which all ZoneMinder configuration and functionality can be accessed.
+Having followed the :doc:`/installationguide/index` for your distribution you should now be able to load the ZoneMinder web interface which can be found at ``http://hostname-or-ip/zm``. On a new install the first page asks whether to require a login (see `First Run`_). The image below shows an example of the ZoneMinder Console, which is displayed after that. The ZoneMinder Console is the central location from which all ZoneMinder configuration and functionality can be accessed.
 
 .. figure::  images/getting-started-first-screen.png
 
@@ -12,6 +12,18 @@ Having followed the :doc:`/installationguide/index` for your distribution you sh
 .. note::
 
     Please note that in this guide the notation of :guilabel:`Link` means that you click on the specified link on the web interface to perform the specified action.
+
+.. _first_run:
+
+First Run
+---------
+
+On a new install the first page ZoneMinder shows is :guilabel:`Set up ZoneMinder`, which asks whether ZoneMinder should require a login:
+
+* **Require a login (recommended):** choose a password for the **admin** account (at least 8 characters unless **PASSWORD_MIN_LENGTH** says otherwise) and click :guilabel:`Set password and continue`. ZoneMinder logs you in as admin. You can add users with their own permissions later, see :doc:`/userguide/options/options_users`.
+* **Don't require a login:** click :guilabel:`Continue without a login`. Anyone who can reach the server, including any web page opened in a browser on the same network, can then view and control every camera and change every setting. Choose this only where access to the server is limited in other ways. You can turn logins on later, see `Enabling Authentication`_.
+
+Until one of them is chosen, the web interface, the API and camera streams can't be used, and whoever opens the page first makes the choice, so open it yourself right after installing. When ``ZM_OPT_USE_AUTH`` is set in ``zm.conf`` or ``conf.d`` (see :doc:`/userguide/configfiles`), the system owner has already decided: with it on the page only asks for the admin password, with it off the page doesn't appear. The privacy and telemetry page follows.
 
 .. _timezone_config:
 
@@ -29,7 +41,7 @@ ZoneMinder allows you to specify the Timezone in the web interface. Please set u
 Enabling Authentication
 -----------------------
 
-We strongly recommend enabling authentication during initial setup of ZoneMinder. There are some situations where certain users don't enable authentication, such as instances where the server is in a LAN not directly exposed to the Internet. In most cases authentication should be enabled. Follow the steps below.
+Authentication (**OPT_USE_AUTH**) is set on the first-run page of a new install (see `First Run`_). An install upgraded from an older version keeps the setting it had, and one set up without a login has it off. If yours has authentication off, we strongly recommend turning it on: with it off, anyone who can reach ZoneMinder can do everything, and so can any web page opened in a browser on the same network. To turn it on:
 
 * Click on the :guilabel:`Options` link in the top bar of the web interface.
 * You will now be presented with a sidebar full of Option tabs. Click on the :guilabel:`System` tab and scroll down to the section containing authentication parameters.
@@ -39,9 +51,9 @@ We strongly recommend enabling authentication during initial setup of ZoneMinder
     Authentication Parameters in System Tab
 
 * **OPT_USE_AUTH:** Enable by checking the box. This enables user authentication.
-* **AUTH_HASH_SECRET:** Enter a random string. This makes authentication logic more secure.
+* **AUTH_HASH_SECRET:** Installing or upgrading with ``zmupdate.pl -f`` (the packages do this) sets a random secret. If it still reads ``...Change me to something unique...``, enter a random string.
 * Remaining items should be left as default.
-* Click on :guilabel:`Save` at the top of list and that's it! The next time you refresh that page, you will now be presented with a login screen as shown below. Job well done!
+* Click on :guilabel:`Save` at the top of list and that's it! The next time you refresh that page, you will now be presented with a login screen as shown below.
 
 .. image:: images/getting-started-login.png
     :width: 350px
@@ -49,12 +61,12 @@ We strongly recommend enabling authentication during initial setup of ZoneMinder
 
 .. sidebar:: Note
 
-    For initial login authentication the default username is **admin** and default password is **admin**.
+    If the **admin** account still has the password **admin** (installs set up before the first-run page, or set up without a login), log in with it once: ZoneMinder then asks you to choose a new password before it logs you in.
 
 Establish Login Password
 ------------------------
 
-ZoneMinder defines a default user with username of **admin** and password of **admin**. Use these credentials to login to ZoneMinder for the first time. This is not very secure for a server so let's change this before continuing setting up ZoneMinder. The password for the admin user can be changed by following the steps below.
+ZoneMinder creates a user with username **admin** and password **admin**. On a new install the first-run page replaces that password. Where it is still **admin**, ZoneMinder accepts it only to replace it, because everyone knows it: the login page asks you to enter it again and choose a new one, and logs you in with the new one. Until then the API, stream URLs and ``zmu`` refuse it, for every account. The password for the admin user, and any other user, can be changed later by following the steps below.
 
 * Click on the :guilabel:`Options` link in the top bar of the web interface.
 * Locate and click on the :guilabel:`Users` tab link.

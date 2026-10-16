@@ -276,18 +276,34 @@ our @options = (
   },
   {
     name        => 'ZM_OPT_USE_AUTH',
-    default     => '0',
+    default     => '1',
     description => 'Authenticate user logins to ZoneMinder',
     help        => q`
-      ZoneMinder can run in two modes. The simplest is an entirely
-      unauthenticated mode where anyone can access ZoneMinder and
-      perform all tasks. This is most suitable for installations
-      where the web server access is limited in other ways. The other
-      mode enables user accounts with varying sets of permissions.
-      Users must login or authenticate to access ZoneMinder and are
-      limited by their defined permissions.
+      ZoneMinder can run in two modes. The default mode enables user
+      accounts with varying sets of permissions. Users must login or
+      authenticate to access ZoneMinder and are limited by their
+      defined permissions. The other is an entirely unauthenticated
+      mode where anyone who can reach ZoneMinder, including any web
+      page opened in a browser on the same network, can perform all
+      tasks. Only turn this off where access to the web server is
+      limited in other ways.
       `,
     type        => $types{boolean},
+    category    => 'auth',
+  },
+  {
+    name        => 'ZM_PASSWORD_MIN_LENGTH',
+    default     => '8',
+    description => 'Minimum length of a new password',
+    help        => q`
+      A password set from now on, on the user page, through the API or
+      at login, must have at least this many characters. Existing
+      passwords keep working. Length does more for a password than
+      rules about character classes, which lead people to predictable
+      variations, so there is no setting for those. 0 turns the check
+      off; the password admin is refused whatever this says.
+      `,
+    type        => $types{integer},
     category    => 'auth',
   },
   {

@@ -110,7 +110,7 @@ function validateUser($username='', $password='') {
     // https://blog.pythian.com/hashing-algorithm-in-mysql-password-2/
     ZM\Debug('Saved password is using MYSQL password function');
     $input_password_hash = '*'.strtoupper(sha1(sha1($password, true)));
-    $password_correct = ($user['Password'] == $input_password_hash);
+    $password_correct = hash_equals($user['Password'], $input_password_hash);
     break;
   case 'bcrypt' :
     ZM\Debug('bcrypt signature found, assumed bcrypt password');
@@ -130,7 +130,7 @@ function validateUser($username='', $password='') {
   default:
     // we really should nag the user not to use plain
     ZM\Warning('assuming plain text password as signature is not known. Please do not use plain, it is very insecure');
-    $password_correct = ($user['Password'] == $password);
+    $password_correct = is_string($password) && hash_equals($user['Password'], $password);
   } // switch password_type
 
   if ($password_correct) {
@@ -292,9 +292,9 @@ function getAuthUser($auth) {
         $time = localtime($now);
         foreach ($candidateAddrs as $remoteAddr) {
           $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$remoteAddr.$time[2].$time[3].$time[4].$time[5];
-          if ($auth == md5($authKey)) {
+          if (hash_equals(md5($authKey), $auth)) {
             return new ZM\User($user);
-          } // end if $auth == $authHash
+          } // end if the hash matches
         } // end foreach candidate address
       } // end foreach hour
     } // end foreach user
@@ -315,10 +315,10 @@ function getAuthUser($auth) {
           $time = localtime($now);
           foreach ($candidateAddrs as $remoteAddr) {
             $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$remoteAddr.$time[2].$time[3].$time[4].$time[5];
-            if ($auth == md5($authKey)) {
+            if (hash_equals(md5($authKey), $auth)) {
               ZM\Debug("getAuthUser: matched user '".$user['Username']."' from fallback (filter was '$filterUser')");
               return new ZM\User($user);
-            } // end if $auth == $authHash
+            } // end if the hash matches
           } // end foreach candidate address
         } // end foreach hour
       } // end foreach user
@@ -624,6 +624,31 @@ function userFromSession() {
   return $user;
 }
 
+// Decide from Google's siteverify answer (already JSON-decoded) whether a
+// password login that passed may go ahead. Only an explicit success lets it
+// through: an answer that can't be read, or has no success field, is a
+// failure, not a pass.
+//
+// The one exception is kept from before: when Google says the secret key
+// itself is wrong, the admin mistyped it, and refusing would lock everyone
+// out, so the login goes ahead with an Error asking for the key to be fixed.
+// There is no such check for a wrong site key: Google answers that the same
+// way as a challenge nobody solved.
+// credit: https://github.com/google/recaptcha/blob/master/src/ReCaptcha/Response.php
+function recaptchaAllowsLogin($responseData) {
+  if (is_array($responseData) && isset($responseData['success']) && $responseData['success'] === true) {
+    return true;
+  }
+  $errors = (is_array($responseData) && isset($responseData['error-codes']) && is_array($responseData['error-codes']))
+    ? $responseData['error-codes'] : array();
+  if (in_array('invalid-input-secret', $errors, true)) {
+    ZM\Error('Invalid recaptcha secret detected');
+    return true;
+  }
+  ZM\Error('reCaptcha authentication failed. response was: '.(is_array($responseData) ? json_encode($responseData) : 'not JSON'));
+  return false;
+}
+
 function get_auth_relay() {
   if (ZM_OPT_USE_AUTH) {
     if (ZM_AUTH_RELAY == 'hashed') {
@@ -631,15 +656,14 @@ function get_auth_relay() {
       // Include username so zms can filter by indexed Username column
       // instead of iterating all users to validate the auth hash
       if (!empty($_SESSION['username'])) {
-        $relay .= '&user='.$_SESSION['username'];
+        $relay .= '&user='.urlencode($_SESSION['username']);
       }
       return $relay;
     } else if (ZM_AUTH_RELAY == 'plain') {
-      // password probably needs to be escaped
-      return 'username='.(isset($_SESSION['username'])?$_SESSION['username']:'').'&password='.urlencode(isset($_SESSION['password']) ? $_SESSION['password'] : '');
+      return 'username='.urlencode(isset($_SESSION['username']) ? $_SESSION['username'] : '').'&password='.urlencode(isset($_SESSION['password']) ? $_SESSION['password'] : '');
     } else if (ZM_AUTH_RELAY == 'none') {
       if (isset($_SESSION['username'])) {
-        return 'username='.$_SESSION['username'];
+        return 'username='.urlencode($_SESSION['username']);
       } else {
         ZM\Warning("ZM_AUTH_RELAY==none but there is no username in session.");
       }
@@ -734,26 +758,19 @@ function zm_authenticate_request() {
             'response'  => $_REQUEST['g-recaptcha-response'],
             'remoteip'  => $_SERVER['REMOTE_ADDR']
           );
-          $res = do_post_request($url, http_build_query($fields));
-          $responseData = json_decode($res, true);
-          // credit: https://github.com/google/recaptcha/blob/master/src/ReCaptcha/Response.php
-          // if recaptcha resulted in error, we might have to deny login
-          if ( isset($responseData['success']) && ($responseData['success'] == false) ) {
-            // PP - before we deny auth, let's make sure the error was not 'invalid secret'
-            // because that means the user did not configure the secret key correctly
-            // in this case, we prefer to let him login in and display a message to correct
-            // the key. Unfortunately, there is no way to check for invalid site key in code
-            // as it produces the same error as when you don't answer a recaptcha
-            if ( isset($responseData['error-codes']) && is_array($responseData['error-codes']) ) {
-              if ( !in_array('invalid-input-secret', $responseData['error-codes']) ) {
-                ZM\Error('reCaptcha authentication failed. response was: ' . print_r($responseData['error-codes'],true));
-                $user = null; // null, not unset: in a function unset() drops only the local binding
-                return;
-              } else {
-                ZM\Error('Invalid recaptcha secret detected');
-              }
-            }
-          } // end if success==false
+          try {
+            $res = do_post_request($url, http_build_query($fields));
+          } catch (Exception $e) {
+            // do_post_request() throws when siteverify can't be reached or
+            // answers with an HTTP error. Uncaught, that was a 500 page.
+            ZM\Error('reCaptcha authentication failed. Could not reach '.$url);
+            $user = null; // null, not unset: in a function unset() drops only the local binding
+            return;
+          }
+          if (!recaptchaAllowsLogin(json_decode($res, true))) {
+            $user = null; // null, not unset: in a function unset() drops only the local binding
+            return;
+          }
         } // end if using reCaptcha
 
         # Drop the pre-auth session and issue a fresh id in a single Set-Cookie

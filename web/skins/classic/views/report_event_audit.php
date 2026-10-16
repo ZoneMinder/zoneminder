@@ -78,7 +78,7 @@ if ( !empty($user['MonitorIds']) ) {
   $eventsSql .= ' AND MonitorId IN ('.$user['MonitorIds'].')';
 }
 if ( count($selected_monitor_ids) ) {
-  $eventsSql .= ' AND MonitorId IN ('.implode(',', $selected_monitor_ids).')';
+  $eventsSql .= ' AND MonitorId IN ('.implode(',', array_map('intval', $selected_monitor_ids)).')';
 }
 if ( isset($minTime) && isset($maxTime) ) {
   $eventsSql .= " AND EndDateTime > '" . $minTime . "' AND StartDateTime < '" . $maxTime . "'";

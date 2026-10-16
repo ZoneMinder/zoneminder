@@ -180,7 +180,7 @@ if ( !empty($user['MonitorIds']) ) {
   $framesSql .= ' AND E.MonitorId IN ('.$user['MonitorIds'].')';
 }
 if ( count($selected_monitor_ids) ) {
-  $monitor_ids_sql = ' IN (' . implode(',',$selected_monitor_ids).')';
+  $monitor_ids_sql = ' IN (' . implode(',', array_map('intval', $selected_monitor_ids)).')';
   $eventsSql .= ' AND E.MonitorId '.$monitor_ids_sql;
   $framesSql .= ' AND E.MonitorId '.$monitor_ids_sql;
 }

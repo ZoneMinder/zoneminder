@@ -104,7 +104,7 @@ jobs:
           gpg --verify artifacts/deb/*.buildinfo || true
 
       - name: Publish to ZMREPO
-        uses: easingthemes/ssh-deploy@main
+        uses: easingthemes/ssh-deploy@2cc5b27bf3029d0455dd5e09fe02633904031447 # v6.0.3
         env:
           SSH_PRIVATE_KEY: ${{ secrets.ZMREPO_SSH_KEY }}
           ARGS: "-rltgoDzvO"

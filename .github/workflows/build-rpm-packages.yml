@@ -218,7 +218,7 @@ jobs:
           retention-days: 1
 
       - name: Publish to ZMREPO
-        uses: easingthemes/ssh-deploy@main
+        uses: easingthemes/ssh-deploy@2cc5b27bf3029d0455dd5e09fe02633904031447 # v6.0.3
         env:
           SSH_PRIVATE_KEY: ${{ secrets.ZMREPO_SSH_KEY }}
           ARGS: "-rltgoDzvO"
@@ -239,6 +239,6 @@ jobs:
           path: dist
 
       - name: Create release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
         with:
           files: dist/**/*

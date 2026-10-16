@@ -516,6 +516,31 @@ TEST_CASE("authentication with a raw @ in the password") {
   }
 }
 
+TEST_CASE("request_for_log") {
+  SECTION("Basic credentials and the query string are removed") {
+    std::string req = "GET /snap.cgi?user=admin&pwd=CamPw1 HTTP/1.0\r\n"
+                      "User-Agent: ZoneMinder\r\n"
+                      "Host: 192.168.1.10\r\n"
+                      "Authorization: Basic YWRtaW46Q2FtUHcx\r\n\r\n";
+    REQUIRE(request_for_log(req) == "GET /snap.cgi?... HTTP/1.0\r\n"
+                                    "User-Agent: ZoneMinder\r\n"
+                                    "Host: 192.168.1.10\r\n"
+                                    "Authorization: <not logged>\r\n\r\n");
+  }
+  SECTION("a Digest header and an RTSP request with userinfo") {
+    std::string req = "DESCRIBE rtsp://u:pw@10.0.0.2:554/s RTSP/1.0\r\n"
+                      "CSeq: 2\r\n"
+                      "authorization: Digest username=\"u\", response=\"0123abcd\"\r\n\r\n";
+    std::string out = request_for_log(req);
+    REQUIRE(out == "DESCRIBE rtsp://10.0.0.2:554/s RTSP/1.0\r\nCSeq: 2\r\nauthorization: <not logged>\r\n\r\n");
+  }
+  SECTION("a request without credentials is unchanged") {
+    std::string req = "GET /video.mjpg HTTP/1.1\r\nHost: cam\r\n\r\n";
+    REQUIRE(request_for_log(req) == req);
+    REQUIRE(request_for_log("") == "");
+  }
+}
+
 TEST_CASE("url_for_log") {
   SECTION("plain url is unchanged") {
     REQUIRE(url_for_log("rtsp://127.0.0.1:8554/cam") == "rtsp://127.0.0.1:8554/cam");

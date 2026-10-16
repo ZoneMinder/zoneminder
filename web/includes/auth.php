@@ -213,6 +213,87 @@ function replaceDefaultPassword($account) {
   return false;
 }
 
+// First run. A new install starts with authentication on and the admin
+// account's password admin, which is refused everywhere, so nothing (web, API,
+// streams) can be used yet. The login page offers whoever opens it first the
+// choice instead of the login form: keep authentication on and set the admin
+// password, or turn authentication off. Returns that admin account, or null
+// once the first run is over: the privacy page was answered, the password was
+// changed, or authentication is off.
+function firstRunAccount() {
+  if (!(ZM_OPT_USE_AUTH and ZM_SHOW_PRIVACY and (ZM_AUTH_TYPE == 'builtin'))) return null;
+  $row = dbFetchOne('SELECT * FROM Users WHERE Enabled=1 AND Username=?', NULL, array('admin'));
+  if (!$row or !password_verify(ZM_DEFAULT_PASSWORD, $row['Password'])) return null;
+  return new ZM\User($row);
+}
+
+// True when ZM_OPT_USE_AUTH is set in zm.conf or conf.d. The owner of the box
+// has chosen then, so the first run doesn't offer to turn authentication off.
+function authSetInConfigFile() {
+  $files = array(ZM_CONFIG);
+  if (is_dir(ZM_CONFIG_SUBDIR)) {
+    $conf_d = glob(ZM_CONFIG_SUBDIR.'/*.conf');
+    if ($conf_d) $files = array_merge($files, $conf_d);
+  }
+  foreach ($files as $file) {
+    if (isset(process_configfile($file)['ZM_OPT_USE_AUTH'])) return true;
+  }
+  return false;
+}
+
+// A nonce for the first-run form, kept in the session so another site can't
+// submit the form for whoever has it open.
+function firstRunNonce() {
+  zm_session_start();
+  zm_session_persist(); // the visitor may have no cookie yet
+  $_SESSION['firstRunNonce'] = bin2hex(random_bytes(16));
+  $nonce = $_SESSION['firstRunNonce'];
+  session_write_close();
+  return $nonce;
+}
+
+// The first-run form's answer (action=setup; first_run_auth, since auth= is
+// the auth hash parameter). With first_run_auth=on, sets the admin password
+// and returns array(username, password) for the caller to log in with. With
+// first_run_auth=off, turns authentication off in the database and returns
+// null; the next request runs without it. Anything else returns null and, as
+// a translation key in the global $firstRunProblem, why the form is shown
+// again.
+function applyFirstRunSetup() {
+  global $firstRunProblem;
+
+  $nonce = requestString('first_run_nonce');
+  $expected = isset($_SESSION['firstRunNonce']) ? $_SESSION['firstRunNonce'] : null;
+  unset($_SESSION['firstRunNonce']);
+  $account = firstRunAccount();
+  if (!$account or ($nonce === null) or !is_string($expected) or !hash_equals($expected, $nonce)) {
+    ZM\Warning('First-run setup refused: '.($account ? 'stale or missing form nonce' : 'the first run is over'));
+    return null;
+  }
+
+  $choice = requestString('first_run_auth');
+  if ($choice === 'off') {
+    if (authSetInConfigFile()) {
+      ZM\Warning('First-run setup: not turning authentication off, ZM_OPT_USE_AUTH is set in a config file');
+      return null;
+    }
+    dbQuery("UPDATE Config SET Value='0' WHERE Name='ZM_OPT_USE_AUTH'");
+    ZM\AuditAction('update', 'config', 0, 'Changed: ZM_OPT_USE_AUTH 1 to 0 (first-run setup)');
+    ZM\Warning('First-run setup: authentication turned off');
+    return null;
+  }
+  if ($choice !== 'on') return null;
+
+  $new = requestString('new_password');
+  $firstRunProblem = newPasswordProblem($new, requestString('new_password_confirm'));
+  if ($firstRunProblem !== null) return null;
+  $hash = password_hash($new, PASSWORD_BCRYPT);
+  dbQuery('UPDATE Users SET Password=? WHERE Id=?', array($hash, $account->Id()));
+  ZM\AuditAction('update', 'user', $account->Id(), 'Changed: Password (first-run setup)');
+  ZM\Info('First-run setup: password set for user "'.$account->Username().'"');
+  return array($account->Username(), $new);
+}
+
 function userLogout() {
   global $user;
   ZM\Info('User "'.($user?$user->Username():'no one').'" logged out');
@@ -762,6 +843,15 @@ function zm_authenticate_request() {
       $requestPass = requestString('pass');
       $requestUsername = requestString('username');
       $requestPassword = requestString('password');
+      # The first-run form: when it sets the admin password, log in with it.
+      $firstRunLogin = false;
+      if ((requestString('action') === 'setup') and ($_SERVER['REQUEST_METHOD'] === 'POST')) {
+        $setup = applyFirstRunSetup();
+        if ($setup) {
+          list($requestUsername, $requestPassword) = $setup;
+          $firstRunLogin = true;
+        }
+      }
       if (ZM_AUTH_HASH_LOGINS && empty($user) && !empty($requestAuth)) {
         $user = getAuthUser($requestAuth);
         if ($user) {
@@ -798,6 +888,7 @@ function zm_authenticate_request() {
         if (
           defined('ZM_OPT_USE_GOOG_RECAPTCHA') && ZM_OPT_USE_GOOG_RECAPTCHA
           && !($mustReplaceDefault and isDefaultPasswordChangePost())
+          && !$firstRunLogin // the first-run form has no reCAPTCHA widget
           && defined('ZM_OPT_GOOG_RECAPTCHA_SECRETKEY') && ZM_OPT_GOOG_RECAPTCHA_SECRETKEY
           && defined('ZM_OPT_GOOG_RECAPTCHA_SITEKEY') && ZM_OPT_GOOG_RECAPTCHA_SITEKEY
         ) {

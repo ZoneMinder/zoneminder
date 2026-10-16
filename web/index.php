@@ -239,6 +239,7 @@ ZM\Debug("View: $view Request: $request Action: $action User: " . ( isset($user)
 if (
   ZM_ENABLE_CSRF_MAGIC &&
   ( $action != 'login' ) &&
+  ( $action != 'setup' ) && // first-run form: checked against its own session nonce, applyFirstRunSetup()
   ( $view != 'view_video' ) && // only video no html
   ( $view != 'view_hls' ) && // HLS manifest, not html
   ( $view != 'image' ) && // view=image doesn't return html, just image data.

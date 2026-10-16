@@ -234,7 +234,7 @@ if (
 # view=login or view=none, request= reached web/ajax/<name>.php with no user, and handlers
 # without a check of their own (ajax/stats.php's raw branch) answered anonymous clients.
 # refs GHSA-vvw3-j4p4-4rgx
-if ( ZM_OPT_USE_AUTH and (!isset($user)) and ($request or (($view != 'login') and ($view != 'none'))) ) {
+if ( ZM_OPT_USE_AUTH and (!isset($user) or !is_array($user)) and ($request or (($view != 'login') and ($view != 'none'))) ) {
   if ($request) {
     # requests only return json
     header('HTTP/1.1 401 Unauthorized');

@@ -324,7 +324,15 @@ if (ZM_OPT_USE_AUTH) {
     // don't know the token type. That will
     // be checked later 
     $ret = validateToken($_REQUEST['token'], 'any');
-    $user = $ret[0];
+    if (!$ret[0]) {
+      // validateToken() returns array(false, $error) for a bad token. Assigning false to
+      // $user left isset($user) true, so index.php's ZM_OPT_USE_AUTH gate let the request
+      // through unauthenticated. Leave $user undefined instead.
+      ZM\Warning($ret[1]);
+      unset($user);
+    } else {
+      $user = $ret[0];
+    }
   } else {
     // Non token based auth
 

@@ -23,7 +23,7 @@ var connKey = '<?php echo $connkey ?>';
 var eventData = {
 <?php if ( $Event->Id() ) { ?>
     Id: '<?php echo $Event->Id() ?>',
-    Name: '<?php echo $Event->Name() ?>',
+    Name: '<?php echo validJsStr($Event->Name()) ?>',
     MonitorId: '<?php echo $Event->MonitorId() ?>',
     MonitorName: '<?php echo validJsStr($Monitor->Name()) ?>',
     Cause: '<?php echo validHtmlStr($Event->Cause()) ?>',

@@ -246,7 +246,7 @@ if ( canView('System') ) {
 foreach ( $monitors as $monitor ) {
 ?>
           <div id="monitor<?php echo $monitor->Id() ?>" class="monitor idle"
-          title="<?php echo $monitor->Id() . ' ' .$monitor->Name() ?>"
+          title="<?php echo validHtmlStr($monitor->Id() . ' ' .$monitor->Name()) ?>"
           style="<?php echo ($options['width'] and $options['width'] != 'auto') ? 'width:'.$options['width']:''?>"
 >
             <div

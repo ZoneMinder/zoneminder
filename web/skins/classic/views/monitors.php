@@ -47,7 +47,7 @@ echo getNavBarHTML();
     <h2 class="pt-2"><?php echo translate('Monitors') ?></h2>
     <div id="content">
 The following monitors will have these settings update when you click Save:<br/><br/>
-      <?php echo implode('<br/>', array_map(function($m){return $m->Id().' ' .$m->Name();}, $monitors)); ?>
+      <?php echo implode('<br/>', array_map(function($m){return validHtmlStr($m->Id().' ' .$m->Name());}, $monitors)); ?>
       <form name="contentForm" id="contentForm" method="post" action="?" onsubmit="$j('#contentButtons').hide();return true;">
         <input type="hidden" name="view" value="monitors"/>
         <input type="hidden" name="action" value="save"/>
@@ -56,7 +56,7 @@ The following monitors will have these settings update when you click Save:<br/>
   echo implode(
     "\n",
     array_map(function($m){
-      return '<input type="hidden" name="mids[]" value="'.$m->Id().'"/>';
+      return '<input type="hidden" name="mids[]" value="'.validCardinal($m->Id()).'"/>';
     }, $monitors)
   );
   if ( count($ServersById) > 0 ) { ?>

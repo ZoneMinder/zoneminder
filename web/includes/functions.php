@@ -280,7 +280,7 @@ function getHelperStream($id, $src, $width, $height, $title='') {
     align="middle"
     width="'. $width .'"
     height="'. $height .'"
-    title="'. $title .'">
+    title="'. validHtmlStr($title) .'">
     <param name="accessories" value="none"/>
     <param name="url" value="'. $src .'"/>
     </object>';
@@ -290,7 +290,7 @@ function outputImageStill($id, $src, $width, $height, $title='') {
   echo getImageStill($id, $src, $width, $height, $title='');
 }
 function getImageStill($id, $src, $width, $height, $title='') {
-  return '<img id="'.$id.'" src="'.$src.'" alt="'.$title.'"'.
+  return '<img id="'.$id.'" src="'.$src.'" alt="'.validHtmlStr($title).'"'.
     (validInt($width)?' width="'.$width.'"':'').
     (validInt($height)?' height="'.$height.'"':'').' />';
 }
@@ -313,7 +313,7 @@ function getWebSiteUrl($id, $src, $width, $height, $title='') {
         ZM\Warning('Web site '.$src.' has X-Frame-Options set to sameorigin. An X-Frame-Options browser plugin is required to display this site.');
     }
   }
-  return '<object id="'.$id.'" data="'.$src.'" alt="'.$title.'" width="'.$width.'" height="'.$height.'"></object>';
+  return '<object id="'.$id.'" data="'.$src.'" alt="'.validHtmlStr($title).'" width="'.$width.'" height="'.$height.'"></object>';
 }
 
 function outputControlStill($src, $width, $height, $monitor, $scale, $target) {

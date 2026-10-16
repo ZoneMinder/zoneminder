@@ -18,7 +18,7 @@ var monitors = new Array();
 ?>
   monitors[<?php echo $monitor->Id() ?>] = {
   'Id': <?php echo $monitor->Id() ?>,
-  'Name': '<?php echo $monitor->Name() ?>',
+  'Name': '<?php echo validJsStr($monitor->Name()) ?>',
   'ViewWidth': <?php echo $monitor->ViewWidth() ?>,
   'ViewHeight':<?php echo $monitor->ViewHeight() ?>,
   'Url': '<?php echo $monitor->UrlToIndex( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',

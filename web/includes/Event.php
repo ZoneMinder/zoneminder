@@ -122,6 +122,12 @@ class Event extends ZM_Object {
     return $event_path;
   } // end function Relative_Path()
 
+  // DefaultVideo is user-editable through the API, and readers join it onto the
+  // event directory, so only ever treat it as a bare filename. refs 1999c0fc7
+  public function DefaultVideo() {
+    return basename($this->{'DefaultVideo'} ?? '');
+  }
+
   public function Link_Path() {
     if ( $this->{'Scheme'} == 'Deep' ) {
       return $this->{'MonitorId'}.'/'.date('y/m/d/.', $this->Time()).$this->{'Id'};

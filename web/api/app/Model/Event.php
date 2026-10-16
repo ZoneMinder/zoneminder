@@ -24,6 +24,16 @@ class Event extends AppModel {
  */
 	public $primaryKey = 'Id';
 
+  // DefaultVideo is joined onto the event directory by readers, so it must be a
+  // bare filename: no path separators, NUL, or . / .. refs 1999c0fc7
+  public $validate = array(
+    'DefaultVideo' => array(
+      'rule' => array('custom', '/^(?!\.\.?$)[^\/\\\x00]+$/D'),
+      'allowEmpty' => true,
+      'message' => 'DefaultVideo must be a filename without a path',
+    ),
+  );
+
 /**
  * Display field
  *
@@ -130,7 +140,7 @@ class Event extends AppModel {
 
   public function fileExists($event) {
     if ($event['DefaultVideo']) {
-      if (file_exists($this->Path().'/'.$event['DefaultVideo'])) {
+      if (file_exists($this->Path().'/'.basename($event['DefaultVideo']))) {
         return 1;
       } else {
         ZM\Warning('File does not exist at ' . $this->Path().'/'.$event['DefaultVideo'] );

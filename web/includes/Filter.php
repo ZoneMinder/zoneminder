@@ -6,6 +6,29 @@ require_once('FilterTerm.php');
 class Filter extends ZM_Object {
   protected static $table = 'Filters';
 
+  // A sort_field value is concatenated into an ORDER BY clause, so only a bare column name,
+  // optionally followed by IS [NOT] NULL and/or ASC/DESC, comma-separated, is accepted.
+  // refs GHSA-4wvq-7mj5-49q2
+  const SORT_PART_RE = '/^\s*([A-Za-z][A-Za-z0-9_]*)(\s+IS\s+(?:NOT\s+)?NULL)?(\s+(?:ASC|DESC))?\s*$/i';
+
+  public static function isValidSortExpression($sf) {
+    if ($sf === '' || $sf === null) return true;
+    if (!is_string($sf)) return false;
+    foreach (explode(',', $sf) as $part) {
+      if (!preg_match(self::SORT_PART_RE, $part)) return false;
+    }
+    return true;
+  }
+
+  // System viewers can inspect any filter; otherwise only its owner. An unsaved filter is
+  // built from the requester's own input (the filterdebug modal), so it is viewable.
+  // refs GHSA-28mv-hqxw-qw84
+  public function canView() {
+    global $user;
+    if (!$this->Id() or canView('System')) return true;
+    return $user and ($this->UserId() == $user['Id']);
+  }
+
   protected $defaults = array(
     'Id'              =>  null,
     'Name'            =>  '',
@@ -200,7 +223,10 @@ class Filter extends ZM_Object {
       $this->Query($Query);
     }
     if ( isset( $this->Query()['sort_field'] ) ) {
-      return $this->{'Query'}['sort_field'];
+      $sf = $this->{'Query'}['sort_field'];
+      // Validated on read, so a value stored in an existing filter is neutralised too.
+      if ( self::isValidSortExpression($sf) ) return $sf;
+      Warning('Ignoring malformed Filter sort_field "'.$sf.'"');
     }
     return ZM_WEB_EVENT_SORT_FIELD;
     #return $this->defaults{'sort_field'};
@@ -225,8 +251,10 @@ class Filter extends ZM_Object {
       $Query['limit'] = func_get_arg(0);
       $this->Query($Query);
     }
+    // limit comes from the request and callers concatenate it into SQL (LIMIT ...),
+    // so it is always an integer here. refs GHSA-28mv-hqxw-qw84
     if ( isset( $this->Query()['limit'] ) )
-      return $this->{'Query'}['limit'];
+      return (int)$this->{'Query'}['limit'];
     return 0;
     #return $this->defaults{'limit'};
   }

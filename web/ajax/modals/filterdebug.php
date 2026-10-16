@@ -1,3 +1,22 @@
+<?php
+  require_once('includes/Filter.php');
+
+  // Build the filter first so the request can be authorized against it: this modal shows
+  // the filter's SQL and its EXPLAIN, so only someone who may view the filter (its owner
+  // or a System viewer) gets it. refs GHSA-28mv-hqxw-qw84
+  $fid = validInt($_REQUEST['fid']);
+  $filter = null;
+  if ($fid) {
+    $filter = new ZM\Filter($fid);
+  } else if (isset($_REQUEST['filter'])) {
+    $filter = new ZM\Filter();
+    $filter->set($_REQUEST['filter']);
+  }
+  if (!$filter or !$filter->canView()) {
+    $view = 'error';
+    return;
+  }
+?>
 <div class="modal fade" id="filterdebugModal" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -9,22 +28,8 @@
      </div>
      <div class="modal-body">
 <?php
-  require_once('includes/Filter.php');
-  $fid = validInt($_REQUEST['fid']);
-
-  $filter = null;
-  if ($fid) {
-    $filter = new ZM\Filter($fid);
-    if (!$filter->Id()) {
-      echo '<div class="error">Filter not found for id '.$_REQUEST['fid'].'</div>';
-    }
-  } else {
-   $filter = new ZM\Filter();
-   if ( isset($_REQUEST['filter'])) {
-     $filter->set($_REQUEST['filter']);
-   } else {
-     echo '<div class="error">No filter id or contents specified.</div>';
-   }
+  if ($fid and !$filter->Id()) {
+    echo '<div class="error">Filter not found for id '.$fid.'</div>';
   }
 ?>
        <form name="contentForm" id="filterdebugForm" method="post" action="?">

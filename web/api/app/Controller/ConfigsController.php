@@ -15,6 +15,33 @@ class ConfigsController extends AppController {
 	public $components = array('RequestHandler');
 
 /**
+ * Reading configuration requires the same System permission as the web ui's
+ * Options page. Without it any API-enabled account could read the effective
+ * configuration, secrets included.
+ */
+  private function requireSystemView() {
+    global $user;
+    if ($user and ($user['System'] == 'None')) {
+      throw new UnauthorizedException(__('Insufficient privileges'));
+    }
+  }
+
+/**
+ * Values that never leave the API, whatever the caller's permission: rows
+ * flagged Private (ZM_AUTH_HASH_SECRET, enough to forge authentication for any
+ * user, and the reCaptcha keys), and the database credentials, which come from
+ * zm.conf ($configvals) and have no row to flag.
+ */
+  private function redactSecret($config) {
+    $secret_names = array('ZM_DB_HOST', 'ZM_DB_NAME', 'ZM_DB_USER', 'ZM_DB_PASS', 'ZM_DB_TYPE');
+    $name = isset($config['Name']) ? $config['Name'] : '';
+    if (!empty($config['Private']) or in_array($name, $secret_names, true)) {
+      $config['Value'] = '';
+    }
+    return $config;
+  }
+
+/**
  * resolves the issue of not returning all config parameters
  * refer https://github.com/ZoneMinder/ZoneMinder/issues/953
  * index method
@@ -22,12 +49,17 @@ class ConfigsController extends AppController {
  * @return void
  */      
   public function index() {
+    $this->requireSystemView();
     global $configvals;
     $this->Config->recursive = 0;
     $configs = $this->Config->find('all');
     foreach ( $configvals as $k=>$v ) {
       $configs[] = array( 'Config'=>array('Name'=>$k, 'Value'=>$v ) );
     }
+    foreach ($configs as &$config) {
+      $config['Config'] = $this->redactSecret($config['Config']);
+    }
+    unset($config);
     $this->set(array(
       'configs' => $configs,
       '_serialize' => array('configs')
@@ -42,11 +74,13 @@ class ConfigsController extends AppController {
  * @return void
  */
 	public function view($id = null) {
+		$this->requireSystemView();
 		if (!$this->Config->exists($id)) {
 			throw new NotFoundException(__('Invalid config'));
 		}
 		$options = array('conditions' => array('Config.' . $this->Config->primaryKey => $id));
 		$config = $this->Config->find('first', $options);
+		$config['Config'] = $this->redactSecret($config['Config']);
 		$this->set(array(
 			'config' => $config,
 			'_serialize' => array('config')
@@ -54,17 +88,20 @@ class ConfigsController extends AppController {
 	}
 
 	public function viewByName($name = null) {
-		$config = $this->Config->findByName($name, array('fields' => 'Value'));
+		$this->requireSystemView();
+		$config = $this->Config->findByName($name, array('Name', 'Value', 'Private'));
 
 		if ( !$config ) {
       global $configvals;
-      if ( $configvals[$name] ) {
-        $config = array( 'Config'=>array('Value'=>$configvals[$name]) );
+      if ( isset($configvals[$name]) and $configvals[$name] ) {
+        $config = array( 'Config'=>array('Name'=>$name, 'Value'=>$configvals[$name]) );
       } else {
         throw new NotFoundException(__('Invalid config'));
       }
-    } else {
-		}
+    }
+		// The response keeps its shape: just the Value.
+		$redacted = $this->redactSecret($config['Config']);
+		$config['Config'] = array('Value' => $redacted['Value']);
 
 		$this->set(array(
 			'config' => $config['Config'],
@@ -144,6 +181,7 @@ class ConfigsController extends AppController {
  */
 
 	public function categories($category = null) {
+		$this->requireSystemView();
 		$categories = $this->Config->find('all', array(
 			'fields' => array('DISTINCT Config.Category'),
 			'conditions' => array('Config.Category !=' => 'hidden'),

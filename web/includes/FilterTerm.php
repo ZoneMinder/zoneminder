@@ -31,7 +31,13 @@ class FilterTerm {
     $this->attr = $term['attr'];
     $this->attr = preg_replace('/[^A-Za-z0-9\.]/', '', $term['attr'], -1, $count);
     if ($count) Error("Invalid characters removed from filter attr ${term['attr']}, possible hacking attempt.");
-    $this->op = $term['op'];
+    $this->op = isset($term['op']) ? $term['op'] : '=';
+    $valid_ops = array('=', '!=', '>=', '<=', '>', '<', 'LIKE', 'NOT LIKE', '=~', '!~',
+      '=[]', '![]', 'IN', 'NOT IN', 'EXISTS', 'IS', 'IS NOT');
+    if (!in_array($this->op, $valid_ops, true)) {
+      Warning('Invalid operator in filter term: '.$this->op);
+      $this->op = '=';
+    }
     $this->val = $term['val'];
     if ( isset($term['cnj']) ) {
       if ( array_key_exists($term['cnj'], $validConjunctionTypes) ) {
@@ -357,6 +363,24 @@ class FilterTerm {
     return $html;
   } # end public function hiddens_fields
 
+  // Compares a measured value with the term's value. The operator was checked against an
+  // allowlist in the constructor; this replaces evaluating them as PHP source.
+  // refs 43dc96a10
+  private function compare($left, $op, $right) {
+    $right = floatval($right);
+    switch ($op) {
+    case '=':  return $left == $right;
+    case '!=': return $left != $right;
+    case '>':  return $left > $right;
+    case '>=': return $left >= $right;
+    case '<':  return $left < $right;
+    case '<=': return $left <= $right;
+    default:
+      Warning("Invalid operator '$op' in compare");
+      return false;
+    }
+  }
+
   public function test($event=null) {
     if ( !isset($event) ) {
       # Is a Pre Condition
@@ -364,10 +388,10 @@ class FilterTerm {
       if ( $this->attr == 'DiskPercent' ) {
         # The logic on this is really ugly.  We are going to treat it as an OR
         foreach ( $this->filter->get_StorageAreas() as $storage ) {
-          $string_to_eval = 'return $storage->disk_usage_percent() '.$this->op.' '.$this->val.';';
+          $string_to_eval = '$storage->disk_usage_percent() '.$this->op.' '.$this->val;
           try {
-            $ret = eval($string_to_eval);
-            Debug("Evalled $string_to_eval = $ret");
+            $ret = $this->compare($storage->disk_usage_percent(), $this->op, $this->val);
+            Debug("Compared $string_to_eval = $ret");
             if ( $ret )
               return true;
           } catch ( Throwable $t ) {
@@ -376,10 +400,10 @@ class FilterTerm {
           }
         } # end foreach Storage Area
       } else if ( $this->attr == 'SystemLoad' ) {
-        $string_to_eval = 'return getLoad() '.$this->op.' '.$this->val.';';
+        $string_to_eval = 'getLoad() '.$this->op.' '.$this->val;
         try {
-          $ret = eval($string_to_eval);
-          Debug("Evaled $string_to_eval = $ret");
+          $ret = $this->compare(getLoad(), $this->op, $this->val);
+          Debug("Compared $string_to_eval = $ret");
           if ( $ret )
             return true;
         } catch ( Throwable $t ) {
@@ -402,10 +426,10 @@ class FilterTerm {
           return !file_exists($event->Path());
         }
       } else if ( $this->attr == 'DiskPercent' ) {
-        $string_to_eval = 'return $event->Storage()->disk_usage_percent() '.$this->op.' '.$this->val.';';
+        $string_to_eval = '$event->Storage()->disk_usage_percent() '.$this->op.' '.$this->val;
         try {
-          $ret = eval($string_to_eval);
-          Debug("Evalled $string_to_eval = $ret");
+          $ret = $this->compare($event->Storage()->disk_usage_percent(), $this->op, $this->val);
+          Debug("Compared $string_to_eval = $ret");
           if ( $ret )
             return true;
         } catch ( Throwable $t ) {
@@ -413,10 +437,10 @@ class FilterTerm {
           return false;
         }
       } else if ( $this->attr == 'DiskBlocks' ) {
-        $string_to_eval = 'return $event->Storage()->disk_usage_blocks() '.$this->op.' '.$this->val.';';
+        $string_to_eval = '$event->Storage()->disk_usage_blocks() '.$this->op.' '.$this->val;
         try {
-          $ret = eval($string_to_eval);
-          Debug("Evalled $string_to_eval = $ret");
+          $ret = $this->compare($event->Storage()->disk_usage_blocks(), $this->op, $this->val);
+          Debug("Compared $string_to_eval = $ret");
           if ( $ret )
             return true;
         } catch ( Throwable $t ) {

@@ -2295,7 +2295,7 @@ function MonitorStream(monitorData) {
     if ((currentPlayer && countErrors === 0) || (this.selectedPlayer && this.selectedPlayer === currentPlayer)) { // selectedPlayer pins only when it matches the active selection
       if (this.Go2RTCEnabled && (-1 !== currentPlayer.indexOf('go2rtc'))) {
         this.select_go2rtc(streamChannel);
-      } else if (this.janusEnabled && (-1 !== currentPlayer.indexOf('janus')) && (streamChannel.toLowerCase().indexOf("primary") > -1 || currentView == 'montage') && this.selectedPlayer !== 'go2rtc') { // To avoid confusion, since Janus can only work with the first channel & selectedPlayer !== "Go2RTC Auto"
+      } else if (this.janusEnabled && (-1 !== currentPlayer.indexOf('janus')) && (streamChannel.toLowerCase().indexOf("primary") > -1 || currentView == 'montage' || currentView == 'zone') && this.selectedPlayer !== 'go2rtc') { // To avoid confusion, since Janus can only work with the first channel & selectedPlayer !== "Go2RTC Auto"
         this.select_janus(streamChannel);
       } else if (this.RTSP2WebEnabled && (-1 !== currentPlayer.indexOf('rtsp2web')) && this.selectedPlayer !== 'go2rtc') {
         this.select_rtsp2web(streamChannel);

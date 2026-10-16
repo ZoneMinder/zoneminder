@@ -130,6 +130,9 @@ if ($user) {
   // Only include config if logged in or auth turned off. The login view doesn't require any config.
   global $config;
   foreach ($config as $name=>$c) {
+    // A password option is never exported, whatever its Private flag says: a table made
+    // from an older zm_create.sql has every flag 0 until zmupdate.pl repairs it.
+    if (isset($c['Type']) and ($c['Type'] == 'password')) continue;
     if (!(isset($c['Private']) and $c['Private'])) {
       if (empty($c['Value'])) {
         echo 'const '. $name . ' = \'\';'.PHP_EOL;

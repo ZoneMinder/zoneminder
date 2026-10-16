@@ -50,6 +50,7 @@ our %EXPORT_TAGS = (
       zmConfigLoad
       loadConfigFromDB
       saveConfigToDB
+      syncConfigFlags
       ) ],
     constants => [ qw(
       ZM_PID
@@ -182,6 +183,34 @@ sub loadConfigFromDB {
   print( " $option_count entries\n" );
   return $option_count;
 } # end sub loadConfigFromDB
+
+# Set each Config row's Private and System flags from ConfigData, leaving its value
+# alone. The web UI hides and never exports a Private option, and won't edit a
+# System one; a table created from zm_create.sql before it wrote these columns has
+# them all 0, which showed ZM_AUTH_HASH_SECRET to anyone. zmupdate.pl calls this on
+# every update; saveConfigToDB() (zmupdate.pl -f) writes them along with the rest.
+sub syncConfigFlags {
+  my $dbh = ZoneMinder::Database::zmDbConnect();
+  if ( !$dbh ) {
+    print( "Error: unable to update option flags in database: $DBI::errstr\n" );
+    return( 0 );
+  }
+  my $rows = $dbh->selectall_hashref('SELECT Name, Private, `System` FROM Config', 'Name')
+    or croak( "Can't read option flags: ".$dbh->errstr() );
+  my $sth = $dbh->prepare_cached('UPDATE Config SET Private=?, `System`=? WHERE Name=?')
+    or croak( "Can't prepare: ".$dbh->errstr() );
+  my $changed = 0;
+  foreach my $option ( @options ) {
+    my $row = $rows->{$option->{name}} or next;
+    my ( $private, $system ) = ( $option->{private} ? 1 : 0, $option->{system} ? 1 : 0 );
+    next if ( ($row->{Private} // 0) == $private ) and ( ($row->{System} // 0) == $system );
+    $sth->execute($private, $system, $option->{name})
+      or croak( "Can't update flags of $$option{name}: ".$sth->errstr() );
+    $changed++;
+  }
+  $sth->finish();
+  return $changed;
+} # end sub syncConfigFlags
 
 sub saveConfigToDB {
   print( 'Saving config to DB ' . @options . " entries\n" );

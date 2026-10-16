@@ -7,7 +7,6 @@ require_once('Object.php');
 class Frame extends ZM_Object {
   protected static $table = 'Frames';
   protected $defaults = array(
-    'Id' => null,
     'EventId' => 0,
     'FrameId' => 0,
     'Type' => 'Normal',

@@ -193,6 +193,14 @@ body.sticky #monitorList thead {
   position: relative;
 }
 
+div.colThumbnail {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  min-width: 100%;
+}
+
 /* Make the boot-strap table monitor list scrollable instead of content div */
 #content {
   display: flex;

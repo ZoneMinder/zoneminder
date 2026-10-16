@@ -38,10 +38,28 @@ class MonitorsController extends AppController {
       $conditions = array();
     }
 
+    // Only join Groups_Monitors when the request actually filters by group, so
+    // a bare GroupId named param can resolve against that table. Joining it
+    // unconditionally multiplied rows for monitors in multiple groups, which we
+    // used to collapse with GROUP BY `Monitor`.`Id`. That GROUP BY fails under
+    // ONLY_FULL_GROUP_BY on engines without functional-dependency detection
+    // (e.g. MariaDB), which rejects the non-grouped SELECT columns. Refs #3633.
+    $group_filter = false;
+    foreach ($conditions as $key => $value) {
+      if (strpos((string)$key, 'GroupId') !== false) { $group_filter = true; break; }
+      if (is_array($value)) {
+        foreach ($value as $sub_key => $sub_value) {
+          if (strpos((string)$sub_key, 'GroupId') !== false) { $group_filter = true; break 2; }
+        }
+      }
+    }
+
     $find_array = array(
       'conditions' => &$conditions,
       'contain'    => array('Group'),
-      'joins'      => array(
+    );
+    if ($group_filter) {
+      $find_array['joins'] = array(
         array(
           'table' => 'Groups_Monitors',
           'type'  => 'left',
@@ -49,13 +67,19 @@ class MonitorsController extends AppController {
             'Groups_Monitors.MonitorId = Monitor.Id',
           ),
         ),
-      ),
-      'group' => '`Monitor`.`Id`'
-    );
+      );
+    }
+
     $monitors = $this->Monitor->find('all', $find_array);
     $allowed_monitors = [];
+    $seen_monitor_ids = [];
     require_once __DIR__ .'/../../../includes/Monitor.php';
     foreach ($monitors as $m) {
+      // A monitor matching multiple GroupId values appears once per match;
+      // collapse those here rather than with a GROUP BY (see note above).
+      $monitor_id = $m['Monitor']['Id'];
+      if (isset($seen_monitor_ids[$monitor_id])) continue;
+      $seen_monitor_ids[$monitor_id] = true;
       $monitor = new ZM\Monitor($m['Monitor']);
       if (!$monitor->canView()) continue;
       array_push($allowed_monitors, $m);
@@ -102,6 +126,17 @@ class MonitorsController extends AppController {
  *
  * @return void
  */
+  // The EventStartCommand / EventEndCommand values the request supplies, if any.
+  private function requestCommandFields() {
+    require_once __DIR__ .'/../../../includes/Monitor.php';
+    $fields = array();
+    foreach (ZM\Monitor::$commandFields as $field) {
+      $value = $this->requestField('Monitor', $field);
+      if ($value !== null) $fields[$field] = $value;
+    }
+    return $fields;
+  }
+
   public function add() {
     if ( $this->request->is('post') ) {
 
@@ -111,9 +146,16 @@ class MonitorsController extends AppController {
         throw new UnauthorizedException(__('Insufficient privileges'));
         return;
       }
+      // A new monitor's command fields start empty, so any value is a change.
+      require_once __DIR__ .'/../../../includes/Monitor.php';
+      $new_monitor = new ZM\Monitor();
+      if (count($new_monitor->commandFieldChangesNotAllowed($this->requestCommandFields()))) {
+        throw new UnauthorizedException(__('Setting the event commands requires System edit permission'));
+      }
+      $this->pinRequestId($this->Monitor, null);
       $this->Monitor->create();
       if ($this->Monitor->save($this->request->data) ) {
-        $this->daemonControl($this->Monitor->id, 'start');
+        $this->runDaemonControl($this->Monitor->id, 'start');
         //return $this->flash(__('The monitor has been saved.'), array('action' => 'index'));
         $message = 'Saved';
       } else {
@@ -153,19 +195,36 @@ class MonitorsController extends AppController {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
+    if (count($zm_monitor->commandFieldChangesNotAllowed($this->requestCommandFields()))) {
+      throw new UnauthorizedException(__('Changing the event commands requires System edit permission'));
+    }
 
+    $this->pinRequestId($this->Monitor, $id);
     $message = '';
     if ($this->Monitor->save($this->request->data)) {
       $message = 'Saved';
 
-      // Stop the monitor. Should happen before saving
-      $this->Monitor->daemonControl($monitor, 'stop');
-      $monitor = $this->Monitor->find('first', array(
+      // Restart the daemons the way the console's save does
+      // (includes/actions/monitor.php): zmc, and the control server of a
+      // controllable monitor, which otherwise keeps the ControlAddress,
+      // ControlDevice and Control it read when it started. ZM\Monitor sends
+      // the commands to the monitor's own server in a multi-server setup.
+      // Stopped with the old row, started with the saved one.
+      if ($zm_monitor->Type() != 'WebSite') {
+        $zm_monitor->zmcControl('stop');
+        if ($zm_monitor->Controllable()) {
+          $zm_monitor->sendControlCommand('stop');
+        }
+      }
+      $saved = new ZM\Monitor($this->Monitor->find('first', array(
         'conditions' => array('Id' => $id)
-      ))['Monitor'];
-
-      if ($monitor['Capturing'] != 'None')
-        $this->Monitor->daemonControl($monitor, 'start');
+      ))['Monitor']);
+      if ($saved->Capturing() != 'None' and $saved->Type() != 'WebSite' and !$saved->Deleted()) {
+        $saved->zmcControl('start');
+        if ($saved->Controllable()) {
+          $saved->sendControlCommand('start');
+        }
+      }
     } else {
       $message = 'Error ' . print_r($this->Monitor->invalidFields(), true);
     }
@@ -197,9 +256,12 @@ class MonitorsController extends AppController {
     }
     $this->request->allowMethod('post', 'delete');
 
-    $this->daemonControl($this->Monitor->id, 'stop');
-
-    if ( $this->Monitor->delete() ) {
+    // Delete the way the console does: ZM\Monitor::delete() stops zmc and
+    // zmcontrol and marks the monitor Deleted. A hard delete of the row left
+    // its events pointing at a monitor that no longer exists.
+    require_once __DIR__ .'/../../../includes/Monitor.php';
+    $monitor = new ZM\Monitor($id);
+    if ( $monitor->delete() ) {
       return $this->flash(__('The monitor has been deleted.'), array('action' => 'index'));
     } else {
       return $this->flash(__('The monitor could not be deleted. Please, try again.'), array('action' => 'index'));
@@ -252,6 +314,14 @@ class MonitorsController extends AppController {
         throw new BadRequestException(__('Invalid command'));
     }
 
+    // zmu only checks that the user can see the monitor, so a monitor the user may only
+    // view could have its alarms forced or disabled. Changing alarm state needs edit.
+    require_once __DIR__ .'/../../../includes/Monitor.php';
+    $zm_monitor = new ZM\Monitor($id);
+    if (!(($cmd == 'status') ? $zm_monitor->canView() : $zm_monitor->canEdit())) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+    }
+
     // form auth key based on auth credentials
     $auth = '';
     
@@ -259,7 +329,7 @@ class MonitorsController extends AppController {
       global $user;
       $mToken = $this->request->query('token') ? $this->request->query('token') : $this->request->data('token');;
       if ($mToken) {
-        $auth = ' -T '.$mToken;
+        $auth = ' -T '.escapeshellarg($mToken);
       } else if (ZM_AUTH_RELAY == 'hashed') {
         $auth = ' -A '.calculateAuthHash(''); # Can't do REMOTE_IP because zmu doesn't normally have access to it.
       } else if (ZM_AUTH_RELAY == 'plain') {
@@ -278,13 +348,17 @@ class MonitorsController extends AppController {
           $password = $_SESSION['password'];
         }
 
-        $auth = ' -U ' .$user->Username().' -P '.$password;
+        $auth = ' -U '.escapeshellarg($user->Username()).' -P '.escapeshellarg($password);
       } else if (ZM_AUTH_RELAY == 'none') {
-        $auth = ' -U ' .$user->Username();
+        $auth = ' -U '.escapeshellarg($user->Username());
       }
     }
-    
-    $shellcmd = escapeshellcmd(ZM_PATH_BIN."/zmu $verbose -m$id $q $auth");
+
+    $shellcmd = ZM_PATH_BIN.'/zmu'
+      .($verbose ? " $verbose" : '')
+      .' -m'.escapeshellarg($id)
+      ." $q"
+      .$auth;
     $status = exec($shellcmd, $output, $rc);
     ZM\Debug("Command: $shellcmd output: ".implode(PHP_EOL, $output)." rc: $rc");
     if ($rc) {
@@ -312,13 +386,59 @@ class MonitorsController extends AppController {
   }
 
   // Check if a daemon is running for the monitor id
+/**
+ * Load a monitor the caller is allowed to act on.
+ *
+ * daemonStatus() and daemonControl() checked nothing at all, so any enabled,
+ * API-enabled account could read the state of, and start or stop, the daemons
+ * of a monitor it is not permitted even to see. index() and view() have always
+ * filtered on ZM\Monitor::canView(), so the two daemon actions were the odd
+ * ones out.
+ *
+ * @param int $id monitor id
+ * @param bool $for_edit whether the caller intends to change the monitor's state
+ * @throws NotFoundException|UnauthorizedException
+ * @return array the Monitor row
+ */
+  private function monitorForDaemonAction($id, $for_edit) {
+    if (!$this->Monitor->exists($id)) {
+      throw new NotFoundException(__('Invalid monitor'));
+    }
+    require_once __DIR__ .'/../../../includes/Monitor.php';
+    $monitor = $this->Monitor->find('first', array(
+      'conditions' => array('Monitor.'.$this->Monitor->primaryKey => $id)
+    ));
+    $zm_monitor = new ZM\Monitor($monitor['Monitor']);
+    # Reporting state needs view; starting or stopping capture is a change to
+    # the monitor, so it needs edit, the same as any other mutation here.
+    if ($for_edit ? !$zm_monitor->canEdit() : !$zm_monitor->canView()) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+    }
+    return $monitor['Monitor'];
+  }
+
+/**
+ * zmdc.pl takes the daemon and command as separate arguments, and they are
+ * interpolated into the command line, so both are restricted to known values
+ * rather than merely escaped.
+ */
+  private function assertDaemonAndCommand($daemon, $command) {
+    $daemons = array('zmc', 'zma', 'zmfilter.pl', 'zmaudit.pl', 'zmtrigger.pl',
+      'zmwatch.pl', 'zmupdate.pl', 'zmtrack.pl', 'zmcontrol.pl', 'zmstats.pl', 'zmeventnotification.pl');
+    $commands = array('start', 'stop', 'restart', 'reload', 'status', 'check', 'logrot');
+    if (($daemon !== null) and !in_array($daemon, $daemons, true)) {
+      throw new BadRequestException(__('Invalid daemon'));
+    }
+    if (!in_array($command, $commands, true)) {
+      throw new BadRequestException(__('Invalid command'));
+    }
+  }
+
   public function daemonStatus() {
     $id = $this->request->params['named']['id'];
     $daemon = $this->request->params['named']['daemon'];
 
-    if ( !$this->Monitor->exists($id) ) {
-      throw new NotFoundException(__('Invalid monitor'));
-    }
+    $this->monitorForDaemonAction($id, false);
 
     if (preg_match('/^[a-z]+$/i', $daemon) !== 1) {
       throw new BadRequestException(__('Invalid command'));
@@ -342,9 +462,9 @@ class MonitorsController extends AppController {
 
     // Pass -d for local, otherwise -m
     if ( $monitor[0]['Type'] == 'Local' ) {
-      $args = '-d '. $monitor[0]['Device'];  
+      $args = '-d '. escapeshellarg($monitor[0]['Device']);
     } else {
-      $args = '-m '. $monitor[0]['Id'];
+      $args = '-m '. escapeshellarg($monitor[0]['Id']);
     }
 
     // Build the command, and execute it
@@ -366,15 +486,27 @@ class MonitorsController extends AppController {
     ));
   }
 
-  public function daemonControl($id, $command, $daemon=null) {
+/**
+ * Stop or start a monitor's daemons, with no permission check of its own.
+ *
+ * Kept separate from the daemonControl() route so that delete(), which has
+ * already required System Edit, is not additionally required to pass the
+ * per-monitor edit check that the route applies. A System Edit account need not
+ * hold Monitors Edit, and re-gating here would have stopped it deleting.
+ */
+  private function runDaemonControl($id, $command, $daemon=null) {
     // Need to see if it is local or remote
     $monitor = $this->Monitor->find('first', array(
       'fields' => array('Id', 'Type', 'Capturing', 'Device', 'ServerId'),
       'conditions' => array('Id' => $id)
     ));
-    $monitor = $monitor['Monitor'];
+    return $this->Monitor->daemonControl($monitor['Monitor'], $command, $daemon);
+  }
 
-    $status_text = $this->Monitor->daemonControl($monitor, $command, $daemon);
+  public function daemonControl($id, $command, $daemon=null) {
+    $this->assertDaemonAndCommand($daemon, $command);
+    $this->monitorForDaemonAction($id, true);
+    $status_text = $this->runDaemonControl($id, $command, $daemon);
 
     $this->set(array(
       'status' => 'ok',

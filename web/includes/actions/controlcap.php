@@ -79,6 +79,8 @@ if ( $action == 'Save' ) {
     'CanSetPresets' =>  0,
     'CanLed' => 0,
     'CanLight' => 0,
+    'CanAudioPlay' => 0,
+    'CanAudioVolume' => 0,
   );
 
   # Checkboxes don't return an element in the POST data, so won't be present in newControl.
@@ -94,6 +96,7 @@ if ( $action == 'Save' ) {
     global $error_message;
      $error_message .= "Error saving control: " . $Control->get_last_error().'</br>';
   } else {
+    ZM\AuditAction((!empty($_REQUEST['cid']) ? 'update' : 'create'), 'control', $Control->Id(), 'Name: '.($Control->Name() ?? ''));
     $redirect = '?view=options&tab=control';
   }
 } // end if action

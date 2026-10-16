@@ -67,6 +67,17 @@ class TagsController extends AppController {
           'type'  => 'inner',
           'conditions' => ['Events.Id = Events_Tags.EventId'],
         ];
+
+      # The join to Events exposes the tag/event association, which is
+      # per-monitor data. Restrict it to monitors the caller may view so a
+      # monitor-restricted user cannot confirm which tags attach to events on
+      # cameras they are denied. The plain tag list (no Events.Id filter) is a
+      # global label vocabulary and is intentionally left unrestricted.
+      global $user;
+      $monitorCondition = $this->viewableMonitorCondition('Events.MonitorId');
+      if ( count($monitorCondition) ) {
+        $conditions[] = $monitorCondition;
+      }
     }
 
 		$tags = $this->Tag->find('all', $find_array);
@@ -113,6 +124,10 @@ class TagsController extends AppController {
         return;
       }
 
+      # Only events the user may view can be tagged.
+      $eventIds = $this->requestAssociatedIds('Tag', 'EventIds', 'Event');
+      if ($eventIds) $this->requireEventsView($eventIds);
+      $this->pinRequestId($this->Tag, null);
 			$this->Tag->create();
 
       if ( $this->request->data['Tag']['EventIds'] and ! isset($this->request->data['Event']) ) {
@@ -153,7 +168,9 @@ class TagsController extends AppController {
         throw new UnauthorizedException(__('Insufficient Privileges'));
         return;
       }
-      $this->Tag->id = $id;
+      $this->pinRequestId($this->Tag, $id);
+      $eventIds = $this->requestAssociatedIds('Tag', 'EventIds', 'Event');
+      if ($eventIds) $this->requireEventsView($eventIds);
 			if ( $this->Tag->save($this->request->data) ) {
         $message = 'Saved';
       } else {
@@ -212,11 +229,21 @@ class TagsController extends AppController {
   // returns monitor associations
   public function associations() {
     $this->Tag->recursive = -1;
+
+    # Each tag is returned with its associated Events, which is per-monitor
+    # data. Restrict the contained events to monitors the caller may view so a
+    # monitor-restricted user does not learn which events on denied cameras
+    # carry a given tag.
+    global $user;
+    $event_contain = array('fields'=>array('Id','Name'));
+    $monitorCondition = $this->viewableMonitorCondition('Event.MonitorId');
+    if ( count($monitorCondition) ) {
+      $event_contain['conditions'] = $monitorCondition;
+    }
+
     $tags = $this->Tag->find('all', array(
                                         'contain'=> array(
-                                          'Event' => array(
-                                            'fields'=>array('Id','Name')
-                                          )
+                                          'Event' => $event_contain
                                         )
                                       )
                                 );

@@ -7,9 +7,12 @@ CREATE TABLE `User_Preferences` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `UserId` int(10) unsigned NOT NULL,
   FOREIGN KEY (UserId) REFERENCES Users(Id),
-  `Name`  varchar(64),
+  `Name`  varchar(64) NOT NULL,
   `Value` TEXT,
   PRIMARY KEY (Id)
 );
 
-CREATE INDEX User_Preferences_UserID_idx on User_Preferences (`UserId`);
+-- A user has at most one value per preference name. This also serves
+-- UserId-only lookups (and the UserId foreign key) as a leftmost prefix, so
+-- no separate UserId index is needed.
+CREATE UNIQUE INDEX User_Preferences_UserId_Name_idx on User_Preferences (`UserId`, `Name`);

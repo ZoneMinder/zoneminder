@@ -26,7 +26,7 @@
 #define TRACE_SIZE 16
 
 bool zm_reload = false;
-bool zm_terminate = false;
+std::atomic<bool> zm_terminate = false;
 bool zm_panic = false;
 
 RETSIGTYPE zm_hup_handler(int signal) {
@@ -38,6 +38,13 @@ RETSIGTYPE zm_hup_handler(int signal) {
 RETSIGTYPE zm_term_handler(int signal) {
   // Shouldn't do complex things in signal handlers, logging is complex and can block due to mutexes.
   //Info("Got signal %d (%s), exiting", signal, strsignal(signal));
+  zm_terminate = true;
+}
+
+RETSIGTYPE zm_pipe_handler(int signal) {
+  // Raised when writing to a closed pipe (browser disconnect during streaming).
+  // Treat as a request to shut down cleanly so main() runs exit_zm() and
+  // closes the DB handle and log.
   zm_terminate = true;
 }
 
@@ -116,7 +123,9 @@ RETSIGTYPE zm_die_handler(int signal)
 
     ucontext_t *uc = (ucontext_t *) context;
 #if defined(__x86_64__)
-#if defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
+#if defined(__APPLE__)
+    ip = (void *)(uc->uc_mcontext->__ss.__rip);
+#elif defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
     ip = (void *)(uc->uc_mcontext.mc_rip);
 #elif defined(__OpenBSD__)
     ip = (void *)(uc->sc_rip);
@@ -130,9 +139,19 @@ RETSIGTYPE zm_die_handler(int signal)
     ip = (void *)(uc->uc_mcontext.gregs[REG_EIP]);
 #endif
 #elif defined(__aarch64__)
+#if defined(__APPLE__)
+    ip = (void *)(uc->uc_mcontext->__ss.__pc);
+#elif defined(__FreeBSD__)
+    ip = (void *)(uc->uc_mcontext.mc_gpregs.gp_elr);
+#else
     ip = (void *)(uc->uc_mcontext.pc);
+#endif
 #elif defined(__arm__)
+#if defined(__FreeBSD__)
+    ip = (void *)(uc->uc_mcontext.__gregs[_REG_PC]);
+#else
     ip = (void *)(uc->uc_mcontext.arm_pc);
+#endif
 #endif
 
     // Print the fault address and instruction pointer
@@ -262,6 +281,17 @@ void zmSetTermHandler(SigHandler * handler) {
   sigaction(SIGQUIT, &action, &old_action);
 }
 
+void zmSetPipeHandler(SigHandler * handler) {
+  sigset_t block_set;
+  sigemptyset(&block_set);
+  struct sigaction action, old_action;
+
+  action.sa_handler = (SigHandler *) handler;
+  action.sa_mask = block_set;
+  action.sa_flags = SA_RESTART;
+  sigaction(SIGPIPE, &action, &old_action);
+}
+
 void zmSetDieHandler(
 #if ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )
     SigActionHandler *handler
@@ -295,6 +325,10 @@ void zmSetDefaultHupHandler() {
 
 void zmSetDefaultTermHandler() {
   zmSetTermHandler((SigHandler *) zm_term_handler);
+}
+
+void zmSetDefaultPipeHandler() {
+  zmSetPipeHandler((SigHandler *) zm_pipe_handler);
 }
 
 void zmSetDefaultDieHandler() {

@@ -153,7 +153,6 @@ $SLANG = array(
     'BadDevice'            => 'Il dispositivo deve essere impostato con un valore valido',
     'BadFPSReportInterval' => 'L\'intervallo di FPS per i report deve essere un numero intero superiore a 0',
     'BadFormat'            => 'Il formato deve essere impostato con un numero intero come 0 o maggiore',
-    'BadFrameSkip'         => 'Il numero di Frame da scartare deve essere un intero uguale a 0 o superiore',
     'BadHeight'            => 'L\'altezza deve essere impostata con un valore valido',
     'BadHost'              => 'L\'host deve essere impostato con un indirizzo ip valido o con un hostname, non includendo http://',
     'BadImageBufferCount'  => 'La dimensione del buffer dell\'immagine deve essere impostata con un numero intero pari a 2 o maggiore',
@@ -168,7 +167,7 @@ $SLANG = array(
     'BadPostEventCount'    => 'Il buffer d\'immagine successivo ad un evento deve essere un numero maggiore o uguale a zero',
     'BadPreEventCount'     => 'Il buffer d\'immagine antecedente ad un evento deve essere minimo 0 e comunque minore della dimensione del buffer d\'immagine',
     'BadRefBlendPerc'      => 'La percentuale di miscela di riferimento deve essere un intero positivo',
-    'BadSectionLength'     => 'La lunghezza della sezione deve essere un numero intero pari a 30 o maggiore',
+    'BadSectionLength'     => 'La lunghezza della sezione deve essere un numero intero pari a 10 o maggiore',
     'BadSignalCheckColour' => 'Il colore di controllo del segnale deve essere una stringa di colore RGB valida',
     'BadSourceType'        => 'Il tipo di origine \"Sito Web\" richiede che la funzione sia impostata su \"Monitor\"', // Added - 2018-08-30
     'BadStreamReplayBuffer'=> 'Il buffer di riproduzione dello stream deve essere un numero intero pari a zero o superiore',
@@ -375,7 +374,6 @@ $SLANG = array(
     'Frame'                => 'Immagini',
     'FrameId'              => 'Id Immagine',
     'FrameRate'            => 'Immagini al secondo',
-    'FrameSkip'            => 'Immagini saltate',
     'Frames'               => 'Immagini',
     'Func'                 => 'Funz',
     'Function'             => 'Funzione',
@@ -422,7 +420,6 @@ $SLANG = array(
     'Last'                 => 'Ultimo',
     'Layout'               => 'Layout',                 // Added - 2009-02-08
     'Level'                => 'Livello',                  // Added - 2011-06-16
-    'Libvlc'               => 'Libvlc',
     'LimitResultsPost'     => 'risultati;', // This is used at the end of the phrase 'Limit to first N results only'
     'LimitResultsPre'      => 'Limita ai primi', // This is used at the beginning of the phrase 'Limit to first N results only'
     'Line'                 => 'Line',                   // Added - 2011-06-16
@@ -611,7 +608,6 @@ $SLANG = array(
     'ProfileProbeIntro'    => 'L\'elenco seguente mostra i profili di streaming esistenti della telecamera selezionata.<br/><br/>Selezionare la voce desiderata dall\'elenco seguente.<br/><br/>Si noti che ZoneMinder non è in grado di configurare profili aggiuntivi e che la scelta di una telecamera qui può sovrascrivere qualsiasi valore già configurato per il monitor corrente.<br/><br/>', // Added - 2015-04-18
     'Progress'             => 'Progresso',               // Added - 2015-04-18
     'Protocol'             => 'Protocollo',
-    'RTSPDescribe'         => 'Usa URL multimediale di risposta RTSP', // Added - 2018-08-30
     'RTSPTransport'        => 'RTSP Transport Protocol', // Added - 2018-08-30
     'Rate'                 => 'Velocità',
     'Real'                 => 'Reale',
@@ -946,12 +942,6 @@ $OLANG = array(
 		          "\"allowed_media_types=video\" Imposta il tipo di dati da richiedere dalla telecamera (audio, video, data)~~~~".
 		          "\"reorder_queue_size=nnn\" Imposta il numero di pacchetti nel buffer per la gestione dei pacchetti riordinati~~~~".
 		          "\"loglevel=debug\" Imposta la verbosità di FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
-	),
-	'OPTIONS_LIBVLC' => array(
-		'Help' => "I parametri in questo campo vengono passati a libVLC. Più parametri possono essere separati da ,~~ ".
-		          "Esempi (non inserire virgolette)~~~~".
-		          "\"--rtp-client-port=nnn\" Imposta la porta locale da utilizzare per i dati RTP~~~~". 
-		          "\"--verbose=2\" Imposta la verbosità di of libVLC"
 	),
 
 	

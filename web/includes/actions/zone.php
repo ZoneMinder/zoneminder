@@ -31,16 +31,28 @@ if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
       $zone = array();
     }
 
-    if ( $_REQUEST['newZone']['Units'] == 'Percent' ) {
-			foreach (array(
-						'MinAlarmPixels','MaxAlarmPixels',
-						'MinFilterPixels','MaxFilterPixels',
-						'MinBlobPixels','MaxBlobPixels'
-						) as $field ) {
-				if ( isset($_REQUEST['newZone'][$field]) and $_REQUEST['newZone'][$field] )
-					$_REQUEST['newZone'][$field] = intval(($_REQUEST['newZone'][$field]*$_REQUEST['newZone']['Area'])/100);
-			}
-		}
+    // Ensure threshold values are always stored as percentages of zone area (0-100).
+    // Values > 100 are pixel counts; convert them using the zone's pixel area.
+    $thresholdFields = array('MinAlarmPixels', 'MaxAlarmPixels', 'MinFilterPixels', 'MaxFilterPixels', 'MinBlobPixels', 'MaxBlobPixels');
+    if (isset($_REQUEST['newZone']['Coords'])) {
+      $points = coordsToPoints($_REQUEST['newZone']['Coords']);
+      if ($points) {
+        $zoneArea = getPolyArea($points);
+        $zonePixelArea = $zoneArea / 10000.0 * $monitor->ViewWidth() * $monitor->ViewHeight();
+        if ($zonePixelArea > 0) {
+          foreach ($thresholdFields as $field) {
+            if (isset($_REQUEST['newZone'][$field]) && $_REQUEST['newZone'][$field] !== '' && floatval($_REQUEST['newZone'][$field]) > 100) {
+              $_REQUEST['newZone'][$field] = round(floatval($_REQUEST['newZone'][$field]) / $zonePixelArea * 100, 2);
+            }
+          }
+        }
+      }
+    }
+    foreach ($thresholdFields as $field) {
+      if (isset($_REQUEST['newZone'][$field]) && $_REQUEST['newZone'][$field] !== '') {
+        $_REQUEST['newZone'][$field] = max(0, min(100, floatval($_REQUEST['newZone'][$field])));
+      }
+    }
 
     unset($_REQUEST['newZone']['Points']);
 
@@ -58,6 +70,7 @@ if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
       } else {
         dbQuery('INSERT INTO Zones SET MonitorId=?, '.implode(', ', $changes), array($mid));
       }
+      ZM\AuditAction(($zid > 0 ? 'update' : 'create'), 'zone', $zid, 'MonitorId: '.$mid);
       if ( daemonCheck() && ($monitor->Type() != 'WebSite') ) {
         $monitor->zmcControl('reload');
       }
@@ -66,8 +79,13 @@ if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
       }
     } // end if changes
     # HTTP_REFERER will typically be ?view=zone so no good.
-    # if a referer is passed in $_REQUEST then use it otherwise go to ?view=zones
-    $redirect = isset($_REQUEST['REFERER']) ? $_REQUEST['REFERER'] : '?view=zones';
+    # if a referer is passed in $_REQUEST then use it otherwise go to ?view=zones.
+    # The zone form always posts REFERER, empty when the form had no Referer
+    # (a typed URL or bookmark); an empty $redirect renders the zone view with
+    # this action's $zone, which has no Points. The form fills it from the
+    # Referer its page was loaded with, which can be another site, so only go
+    # back to it when it is on this server.
+    $redirect = localRedirectUrl(isset($_REQUEST['REFERER']) ? $_REQUEST['REFERER'] : '', '?view=zones&mid='.$mid);
   } // end if action 
 } // end if $mid and canEdit($mid)
 ?>

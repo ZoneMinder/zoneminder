@@ -4,8 +4,8 @@ var eventVideo = $j('#eventVideo');
 var wrapperEventVideo = $j('#wrapperEventVideo');
 var videoFeed = $j('#videoFeed');
 var eventStatsTable = $j('#eventStatsTable');
+var eventStatsDetails = $j('#eventStatsDetails');
 var backBtn = $j('#backBtn');
-var renameBtn = $j('#renameBtn');
 var archiveBtn = $j('#archiveBtn');
 var unarchiveBtn = $j('#unarchiveBtn');
 var editBtn = $j('#editBtn');
@@ -26,6 +26,7 @@ var spf = Math.round((eventData.Length / eventData.Frames)*1000000 )/1000000;//S
 var intervalRewind;
 var revSpeed = .5;
 var cueFrames = null; //make cueFrames available even if we don't send another ajax query
+var cueSeries = null; //parsed levels for the cue graph, rebuilt whenever it is rendered
 var streamCmdInterval = null;
 var streamStatus = null;
 var lastEventId = 0;
@@ -94,12 +95,12 @@ $j(document).on("keydown", "", function(e) {
 });
 
 function streamReq(data) {
-  if (auth_hash) data.auth = auth_hash;
+  if (zmAuth.hash) data.auth = zmAuth.hash;
   data.connkey = connKey;
   data.view = 'request';
   data.request = 'stream';
 
-  $j.getJSON(monitorUrl+'?'+auth_relay, data)
+  $j.getJSON(zmAuth.appendTo(monitorUrl), data)
       .done(getCmdResponse)
       .fail(logAjaxFail);
 }
@@ -168,9 +169,9 @@ function initialAlarmCues(eventId) {
 
 function setAlarmCues(data) {
   if (!data) {
-    Error('No data in setAlarmCues for event ' + eventData.Id);
+    zmError('No data in setAlarmCues for event ' + eventData.Id);
   } else if (!data.frames) {
-    Error('No data.frames in setAlarmCues for event ' + eventData.Id);
+    zmError('No data.frames in setAlarmCues for event ' + eventData.Id);
   } else {
     cueFrames = data.frames;
     const alarmSpans = renderAlarmCues(vid ? $j("#videoobj") : $j("#evtStream"));//use videojs width or zms width
@@ -179,100 +180,52 @@ function setAlarmCues(data) {
 }
 
 function renderAlarmCues(containerEl) {
-  let html = '';
-
   const event_length = (!cueFrames.length || (eventData.Length > cueFrames[cueFrames.length - 1].Delta)) ? eventData.Length : cueFrames[cueFrames.length - 1].Delta;
-  const span_count = 10;
-  const span_seconds = parseFloat(event_length / span_count);
-  const span_width = parseFloat(containerEl.width() / span_count);
+  const width = containerEl.width();
+
+  const label_count = 10;
+  const label_seconds = parseFloat(event_length / label_count);
   const date = new Date(eventData.StartDateTime);
-  for (let i=0; i < span_count; i += 1) {
-    html += '<span style="left:'+(i*span_width)+'px; width: '+span_width+'px;">'+date.toLocaleTimeString()+'</span>';
-    date.setTime(date.getTime() + span_seconds*1000);
+  const labels = [];
+  for (let i = 0; i < label_count; i += 1) {
+    labels.push({t: i * label_seconds, text: date.toLocaleTimeString()});
+    date.setTime(date.getTime() + label_seconds * 1000);
   }
 
   if (!(cueFrames && cueFrames.length)) {
     console.log('No cue frames for event');
-    return html;
+    cueSeries = null;
+    return renderLevelGraph({
+      samples: [], bands: [], labels: labels,
+      width: width, height: cueGraphHeight(),
+      eventLength: parseFloat(event_length), motionMax: 0,
+      hasAudio: false, hasScores: false,
+    });
   }
-  // This uses the Delta of the last frame to get the length of the event.  I can't help but wonder though
-  // if we shouldn't just use the event length endtime-starttime
-  var cueRatio = containerEl.width() / (event_length * 100);
-  var minAlarm = Math.ceil(1/cueRatio);
-  var spanTime = 0;
-  var spanTimeStart = 0;
-  var spanTimeEnd = 0;
-  var alarmed = 0;
-  var alarmHtml = '';
-  var pix = 0;
-  var pixSkew = 0;
-  var skip = 0;
-  var num_cueFrames = cueFrames.length;
-  let left = 0;
 
-  for (let i=0; i < num_cueFrames; i++) {
-    skip = 0;
-    const frame = cueFrames[i];
+  // Held for the hover readout in progressBarNav, so moving the mouse does not
+  // re-parse every frame row.
+  cueSeries = levelGraphSeries(cueFrames, parseFloat(event_length));
 
-    if ((frame.Type == 'Alarm') && (alarmed == 0)) { //From nothing to alarm.  End nothing and start alarm.
-      alarmed = 1;
-      if (frame.Delta == 0) continue; //If event starts with an alarm or too few for a nonespan
-      spanTimeEnd = frame.Delta * 100;
-      spanTime = spanTimeEnd - spanTimeStart;
-      pix = cueRatio * spanTime;
-      pixSkew += pix - Math.round(pix);//average out the rounding errors.
-      pix = Math.round(pix);
-      if ((pixSkew > 1 || pixSkew < -1) && pix + Math.round(pixSkew) > 0) { //add skew if it's a pixel and won't zero out span.
-        pix += Math.round(pixSkew);
-        pixSkew = pixSkew - Math.round(pixSkew);
-      }
+  return renderLevelGraph({
+    samples: cueSeries.samples,
+    bands: levelGraphBands(cueSeries.samples, parseFloat(event_length)),
+    labels: labels,
+    width: width,
+    height: cueGraphHeight(),
+    eventLength: parseFloat(event_length),
+    motionMax: cueSeries.motionMax,
+    hasAudio: cueSeries.hasAudio,
+    hasScores: cueSeries.hasScores,
+  });
+}
 
-      alarmHtml += '<span class="noneCue" style="left: '+left+'px; width: ' + pix + 'px;"></span>';
-      left = parseInt((frame.Delta / event_length) * containerEl.width());
-      //console.log(left, frame.Delta, event_length, containerEl.width());
-      spanTimeStart = spanTimeEnd;
-    } else if ( (frame.Type !== 'Alarm') && (alarmed == 1) ) { //from alarm to nothing.  End alarm and start nothing.
-      let futNone = 0;
-      let indexPlus = i+1;
-      if (((frame.Delta * 100) - spanTimeStart) < minAlarm && indexPlus < num_cueFrames) {
-        //alarm is too short and there is more event
-        continue;
-      }
-      while ( futNone < minAlarm ) { //check ahead to see if there's enough for a nonespan
-        if ( indexPlus >= cueFrames.length ) break; //check if end of event.
-        futNone = (cueFrames[indexPlus].Delta *100) - (frame.Delta *100);
-        if ( cueFrames[indexPlus].Type == 'Alarm' ) {
-          i = --indexPlus;
-          skip = 1;
-          break;
-        }
-        indexPlus++;
-      }
-      if ( skip == 1 ) continue; //javascript doesn't support continue 2;
-      spanTimeEnd = frame.Delta *100;
-      spanTime = spanTimeEnd - spanTimeStart;
-      alarmed = 0;
-      pix = cueRatio * spanTime;
-      pixSkew += pix - Math.round(pix);
-      pix = Math.round(pix);
-      if ((pixSkew > 1 || pixSkew < -1) && pix + Math.round(pixSkew) > 0) {
-        pix += Math.round(pixSkew);
-        pixSkew = pixSkew - Math.round(pixSkew);
-      }
-      alarmHtml += '<span class="alarmCue" style="left: '+left+'px; width: ' + pix + 'px; height: '+frame.Score+'px;"></span>';
-      left = parseInt((frame.Delta / event_length) * containerEl.width());
-      spanTimeStart = spanTimeEnd;
-    } else if ( (frame.Type == 'Alarm') && (alarmed == 1) && (i + 1 >= cueFrames.length) ) { //event ends on an alarm
-      spanTimeEnd = frame.Delta * 100;
-      spanTime = spanTimeEnd - spanTimeStart;
-      alarmed = 0;
-      pix = Math.round(cueRatio * spanTime);
-      if (pixSkew >= .5 || pixSkew <= -.5) pix += Math.round(pixSkew);
-
-      alarmHtml += '<span class="alarmCue" style="left: '+left+'px; width: ' + pix + 'px; height: '+frame.Score+'px;"></span>';
-    }
-  }
-  return html + alarmHtml;
+// The stylesheet owns the height so a skin can change it; this reads back what
+// it chose rather than duplicating the number in JS.
+function cueGraphHeight() {
+  const el = document.getElementById('alarmCues');
+  const styled = el ? parseFloat(window.getComputedStyle(el).height) : 0;
+  return (styled > 0) ? styled : 48;
 }
 
 function changeCodec() {
@@ -330,13 +283,17 @@ function changeScale() {
     newWidth = parseInt(w);
     newHeight = parseInt(h);
     currentScale = parseInt(w / eventData.Width * 100);
-    currentScale = currentScale;
   }
 
   console.log(`Real dimensions: ${eventData.Width} X ${eventData.Height}, Scale: ${currentScale}, deltaScale: ${deltaScale()}, New dimensions: ${newWidth} X ${newHeight}`);
 
   eventViewer.width(newWidth);
   eventViewer.height(newHeight);
+  if (vid) {
+    // event.php opens the next page at this size, so in gapless playback, where each event is
+    // a page load, the video doesn't resize once the page has loaded.
+    setCookie('zmEventVideoSize'+eventData.MonitorId, newWidth + 'x' + newHeight);
+  }
   if (!vid) { // zms needs extra sizing
     streamScale(currentScale);
     drawProgressBar();
@@ -409,7 +366,12 @@ function changeRate() {
     pauseClicked();
   } else if (rate < 0) {
     if (vid) { //There is no reverse play with mp4.  Set the speed to 0 and manually set the time back.
-      revSpeed = rates[rates.indexOf(-1*rate)-1]/100;
+      // The rate the user picked is the reverse speed. This used to look it up
+      // as rates[rates.indexOf(-rate)-1]/100, which steps one entry further
+      // down the shared rate list and so ran every reverse rate a notch too
+      // slow: -1/2x played at 1/4x and -16x at 10x. -1/4x was worse than slow,
+      // because one step below 25 in that list is 0, so it did not move at all.
+      revSpeed = -rate/100;
       clearInterval(intervalRewind);
       intervalRewind = setInterval(function() {
         if (vid.currentTime() <= 0) {
@@ -425,6 +387,13 @@ function changeRate() {
     } // end if vid
   } else { // Forward rate
     if ( vid ) {
+      // Leaving reverse has to stop the rewind interval. It was left running,
+      // so picking a forward rate after a reverse one kept dragging
+      // currentTime backwards and resetting playbackRate to 0 on every tick
+      // while the player was supposedly running forwards. stopFastRev() is not
+      // usable here: it rewrites the rate select to 1x, undoing the choice
+      // being applied.
+      stopRewind();
       vid.playbackRate(rate/100);
     } else {
       streamReq({command: CMD_VARPLAY, rate: rate});
@@ -498,15 +467,13 @@ function getCmdResponse(respObj, respText) {
     fps.innerHTML = streamStatus.fps;
   }
 
-  updateProgressBar();
+  if (!vid) {
+    updateProgressBar();
+  }
 
-  if (streamStatus.auth) {
-    if (streamStatus.auth != auth_hash) {
-      console.log("Changed auth from " + auth_hash + " to " + streamStatus.auth);
-      auth_hash = streamStatus.auth;
-      auth_relay = streamStatus.auth_relay;
-    }
-  } // end if have a new auth hash
+  if (zmAuth.update(streamStatus)) {
+    console.log("Changed auth to " + zmAuth.hash);
+  }
 } // end function getCmdResponse( respObj, respText )
 
 function pauseClicked() {
@@ -517,8 +484,8 @@ function pauseClicked() {
     vid.pause();
   } else {
     streamReq({command: CMD_PAUSE});
+    streamPause();
   }
-  streamPause();
 }
 
 function streamPause() {
@@ -532,6 +499,8 @@ function streamPause() {
   setButtonState('slowFwdBtn', 'inactive');
   setButtonState('slowRevBtn', 'inactive');
   setButtonState('fastRevBtn', 'unavail');
+  const audioMotion = document.querySelector('audio-motion#audioVisualization' + eventData.MonitorId);
+  if (audioMotion && audioMotion.pause) audioMotion.pause();
 }
 
 function playClicked( ) {
@@ -552,8 +521,8 @@ function playClicked( ) {
     } else {
       streamReq({command: CMD_PLAY});
     }
+    streamPlay();
   }
-  streamPlay();
 }
 
 function vjsPlay() { //catches if we change mode programatically
@@ -576,6 +545,44 @@ function streamPlay() {
   setButtonState('fastRevBtn', 'inactive');
 }
 
+// The next rate to step to, as a percentage, or null when there is none.
+//
+// list is the shared rate list from skins/classic/includes/config.php, running
+// -1600 to 1600 with 0 in the middle. Stepping used to index it directly:
+//
+//   rates[rates.indexOf(current) + 1]
+//
+// which walks off the end at the top rate and hands playbackRate
+// undefined/100, i.e. NaN. Firefox refuses that outright with "Value being
+// assigned is not a finite floating-point value", so one click too many at 16x
+// threw instead of doing nothing.
+//
+// indexOf also answers -1 for a rate that is not in the list, and -1 + 1 is 0,
+// so stepping forward from an unlisted rate jumped to rates[0] -- full
+// reverse. Snap to the nearest listed rate instead.
+//
+// Returning null rather than a clamped rate lets the caller tell "nowhere left
+// to go" from "step here", so it can disable the button and leave the player
+// alone rather than reassigning the rate it already has.
+function stepRate(list, current, direction) {
+  if (!Array.isArray(list) || !list.length) return null;
+  // A player that has not started yet can answer with something unusable.
+  // Doing nothing is better than guessing, since the button can be clicked
+  // again once it has.
+  if (typeof current !== 'number' || !isFinite(current)) return null;
+
+  let index = list.indexOf(current);
+  if (index < 0) {
+    index = 0;
+    for (let i = 1; i < list.length; i++) {
+      if (Math.abs(list[i] - current) < Math.abs(list[index] - current)) index = i;
+    }
+  }
+
+  const next = index + direction;
+  return (next < 0 || next >= list.length) ? null : list[next];
+}
+
 function streamFastFwd(action) {
   setButtonState('pauseBtn', 'inactive');
   setButtonState('playBtn', 'inactive');
@@ -585,12 +592,21 @@ function streamFastFwd(action) {
   setButtonState('fastRevBtn', 'inactive');
   if (vid) {
     if (revSpeed != .5) stopFastRev();
-    vid.playbackRate(rates[rates.indexOf(vid.playbackRate()*100)+1]/100);
-    if (rates.indexOf(vid.playbackRate()*100)+1 == rates.length) {
+    const next = stepRate(rates, vid.playbackRate()*100, 1);
+    if (next === null) {
+      // Already at the fastest rate. streamPlay() re-enables this button
+      // whatever rate we are at, so we do get clicked here.
+      setButtonState('fastFwdBtn', 'unavail');
+      return;
+    }
+    vid.playbackRate(next/100);
+    if (stepRate(rates, next, 1) === null) {
       setButtonState('fastFwdBtn', 'unavail');
     }
-    $j('select[name="rate"]').val(vid.playbackRate()*100);
-    setCookie('zmEventRate', vid.playbackRate()*100);
+    // next, rather than reading the rate back: videojs deferred the set until
+    // the tech was ready, so the getter can still answer with the old rate.
+    $j('select[name="rate"]').val(next);
+    setCookie('zmEventRate', next);
   } else {
     streamReq({command: CMD_FASTFWD});
   }
@@ -612,12 +628,22 @@ function streamSlowRev(action) {
   }
 }
 
-function stopFastRev() {
+// Stop the rewind interval and forget that we were rewinding, without
+// touching the player or the rate widgets. Separate from stopFastRev because
+// changeRate needs the teardown but is about to set a rate of its own.
+function stopRewind() {
   clearInterval(intervalRewind);
-  vid.playbackRate(1);
-  $j('select[name="rate"]').val(vid.playbackRate()*100);
-  setCookie('zmEventRate', vid.playbackRate()*100);
+  intervalRewind = null;
   revSpeed = .5;
+}
+
+function stopFastRev() {
+  stopRewind();
+  vid.playbackRate(1);
+  // 100, not a read back of playbackRate: videojs can defer the set until the
+  // tech is ready, so the getter may still answer with the rate we just left.
+  $j('select[name="rate"]').val(100);
+  setCookie('zmEventRate', 100);
 }
 
 /* Called when rewind button is clicked
@@ -631,12 +657,20 @@ function streamFastRev(action) {
   setButtonState('slowRevBtn', 'unavail');
   setButtonState('fastRevBtn', 'active');
   if (vid) { //There is no reverse play with mp4.  Set the speed to 0 and manually set the time back.
-    revSpeed = -1*(rates[rates.indexOf(revSpeed*-100)-1]/100);
-    if (rates.indexOf(revSpeed*-100) == 0) {
+    // Same walk off the end as streamFastFwd, at the other end of the list:
+    // rates[0 - 1] is undefined, which made revSpeed NaN and then fed
+    // currentTime a NaN on every tick of the rewind interval.
+    const next = stepRate(rates, revSpeed * -100, -1);
+    if (next === null) {
+      setButtonState('fastRevBtn', 'unavail');
+      return;
+    }
+    revSpeed = -next/100;
+    if (stepRate(rates, next, -1) === null) {
       setButtonState('fastRevBtn', 'unavail');
     }
     clearInterval(intervalRewind);
-    $j('select[name="rate"]').val(-revSpeed*100);
+    $j('select[name="rate"]').val(next);
     setCookie('zmEventRate', vid.playbackRate()*100);
     intervalRewind = setInterval(function() {
       if (vid.currentTime() <= 0) {
@@ -652,12 +686,19 @@ function streamFastRev(action) {
   }
 }
 
+// Load another event. Each event is a page load of its own, so skip skin.js's page-leave
+// roll-up: between events, as in gapless playback, it only shows as a wipe of the page.
+function goToEvent(eventId) {
+  skipPageLeaveAnimation = true;
+  location.replace(thisUrl + '?view=event&eid=' + eventId + filterQuery + sortQuery);
+}
+
 function streamPrev(action) {
   if (action) {
     $j(".vjsMessage").remove();
     if (prevEventId != 0) {
       if (vid==null) streamReq({command: CMD_QUIT});
-      location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
+      goToEvent(prevEventId);
       return;
     }
 
@@ -694,7 +735,7 @@ function streamNext(action) {
   // Ic0n 2024-09-20: because it is annoying and now that we have fullscreen mode, we need to just update instead of reloading
   if (1) {
     if (vid==null) streamReq({command: CMD_QUIT});
-    location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
+    goToEvent(nextEventId);
     return;
   }
   if (vid && ( NextEventDefVideoPath.indexOf('view_video') > 0 )) {
@@ -823,6 +864,10 @@ function streamPan(x, y) {
 // invoked at that point to send queued commands (e.g. CMD_SEEK).
 function restartZmsStream(onReady) {
   const img = document.getElementById('evtStream');
+  if (!img) {
+    console.warn('restartZmsStream: no evtStream element found');
+    return;
+  }
   const url = new URL(img.src);
   url.searchParams.set('scale', currentScale);
   img.src = '';
@@ -890,7 +935,7 @@ function getEventResponse(respObj, respText) {
 function eventQuery(eventId) {
   var data = {};
   data.id = eventId;
-  if (auth_hash) data.auth = auth_hash;
+  if (zmAuth.hash) data.auth = zmAuth.hash;
 
   $j.getJSON(thisUrl + '?view=request&request=status&entity=event', data)
       .done(getEventResponse)
@@ -939,7 +984,7 @@ function getFrameResponse(respObj, respText) {
 
 function frameQuery(eventId, frameId, loadImage) {
   var data = {};
-  if (auth_hash) data.auth = auth_hash;
+  if (zmAuth.hash) data.auth = zmAuth.hash;
   data.loopback = loadImage;
   data.eid = eventId;
   data.fid = frameId;
@@ -998,6 +1043,12 @@ function updateProgressBar() {
   if (!eventData) return;
   if (vid) {
     var currentTime = vid.currentTime();
+    // For live HLS, the video duration grows as new fragments arrive.
+    // Keep eventData.Length in sync so the progress bar scales correctly.
+    var videoDuration = vid.duration();
+    if (videoDuration && isFinite(videoDuration) && videoDuration > parseFloat(eventData.Length)) {
+      eventData.Length = videoDuration;
+    }
     var progressDate = new Date(eventData.StartDateTime);
     progressDate.setTime(progressDate.getTime() + (currentTime * 1000));
   } else {
@@ -1041,6 +1092,7 @@ function progressBarNav() {
     const indicator = document.getElementById('indicator');
     indicator.style.display = 'block';
     indicator.style.left = x + 'px';
+    indicator.innerHTML = indicatorText(date, seekTime);
     indicator.setAttribute('title', seekTime);
   });
   progressBar.mouseout(function(e) {
@@ -1061,11 +1113,20 @@ function progressBarNav() {
     const date = new Date(eventData.StartDateTime);
     date.setTime(date.getTime() + (seekTime*1000));
 
-    indicator.innerHTML = date.toLocaleTimeString();
+    indicator.innerHTML = indicatorText(date, seekTime);
     indicator.style.left = x+'px';
     indicator.setAttribute('title', seekTime);
   });
 } // end function progressBarNav
+
+// The seek indicator already tracks the mouse across the whole progress bar,
+// which the level graph sits inside, so the levels are appended to it rather
+// than given a second tooltip that would fight it for the same pixels.
+function indicatorText(date, seekTime) {
+  const time = date.toLocaleTimeString();
+  const levels = levelGraphReadout(cueSeries, seekTime);
+  return levels ? (time + ' &mdash; ' + levels) : time;
+}
 
 function handleClick(event) {
   if (panZoomEnabled) {
@@ -1315,6 +1376,19 @@ function getStat() {
 }
 
 
+// The tags input lives in the eventStats column, so hiding the stats only hides
+// eventStatsDetails. The column then spans the full width above the video so the tags stay usable.
+function showEventStats(visible) {
+  eventStatsDetails.toggle(visible);
+  if (visible) {
+    eventStats.removeClass('col-sm-12').addClass('col-sm-3');
+    wrapperEventVideo.removeClass('col-sm-12').addClass('col-sm-9');
+  } else {
+    eventStats.removeClass('col-sm-3').addClass('col-sm-12');
+    wrapperEventVideo.removeClass('col-sm-9').addClass('col-sm-12');
+  }
+}
+
 function onStatsResize(vidWidth) {
   if (!vidWidth) return;
   var minWidth = 200; // An arbitrary value in pixels used to hide the stats table
@@ -1330,23 +1404,30 @@ function onStatsResize(vidWidth) {
   // Hide the stats table if we have run out of room to show it properly
   if (width < minWidth) {
     statsBtn.prop('disabled', true);
-    if (eventStats.is(':visible')) {
-      eventStats.toggle(false);
+    if (eventStatsDetails.is(':visible')) {
+      showEventStats(false);
       wasHidden = true;
-      wrapperEventVideo.removeClass('col-sm-8').addClass('col-sm-12');
     }
   // Show the stats table if we hid it previously and sufficient room becomes available
   } else if (width >= minWidth) {
     statsBtn.prop('disabled', false);
-    if ( !eventStats.is(':visible') && wasHidden ) {
-      eventStats.toggle(true);
+    if (!eventStatsDetails.is(':visible') && wasHidden) {
+      showEventStats(true);
       wasHidden = false;
-      wrapperEventVideo.removeClass('col-sm-12').addClass('col-sm-8');
     }
   }
 }
 
 function initPage() {
+  const stream = document.getElementById('videoFeedStream' + eventData.MonitorId);
+  if (stream) {
+    stream.addEventListener('zm:tracksReceived', (e) => {
+      if (e.detail.stream.audioTrack) connectAudioMotion(e.detail.monitorId);
+    });
+  } else {
+    console.warn(`No stream found for monitor with ID=${eventData.MonitorId}. Listener for 'zm:tracksReceived' not added.`);
+  }
+
   getAvailableTags();
   getSelectedTags();
 
@@ -1355,11 +1436,10 @@ function initPage() {
   zmPanZoom.init();
 
   if (getEvtStatsCookie() != 'on') {
-    eventStats.toggle(false);
-    wrapperEventVideo.removeClass('col-sm-8').addClass('col-sm-12');
+    showEventStats(false);
   } else {
+    showEventStats(true);
     onStatsResize(eventData.Width);
-    wrapperEventVideo.removeClass('col-sm-12').addClass('col-sm-8');
   }
   if (eventData.DefaultVideo) {
     canPlayCodec(eventData.DefaultVideo);
@@ -1371,9 +1451,23 @@ function initPage() {
     vid = videojs('videoobj');
     addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartDateTime);
     //$j('.vjs-progress-control').append('<div id="alarmCues" class="alarmCues"></div>');//add a place for videojs only on first load
-    vid.on('ended', vjsReplay);
-    vid.on('play', playClicked);
-    vid.on('pause', pauseClicked);
+    vid.on('ended', function(event) {
+      vjsReplay();
+      eventData._playing = false;
+    });
+    vid.on('play', function(event) {
+      streamPlay();
+      if (!eventData._playing) getTracksFromStream(getMonitorStream(eventData.MonitorId));
+      eventData._playing = true;
+    });
+    vid.on('playing', function(event) { // Required for HLS with AUTOPLAY in Firefox, as on.play doesn't work in this case.
+      if (!eventData._playing) getTracksFromStream(getMonitorStream(eventData.MonitorId));
+      eventData._playing = true;
+    });
+    vid.on('pause', function(event) {
+      streamPause();
+      eventData._playing = false;
+    });
     vid.on('click', function(event) {
       handleClick(event);
     });
@@ -1387,10 +1481,8 @@ function initPage() {
     if (cookie) vid.volume(cookie);
 
     vid.on('timeupdate', function() {
+      updateProgressBar();
       $j('#progressValue').html(secsToTime(Math.floor(vid.currentTime())));
-      var clockTime = new Date(eventData.StartDateTime);
-      clockTime.setTime(clockTime.getTime() + (vid.currentTime() * 1000));
-      $j('#currentTimeValue').html(clockTime.toLocaleTimeString());
     });
     vid.on('ratechange', function() {
       rate = vid.playbackRate() * 100;
@@ -1437,7 +1529,6 @@ function initPage() {
   changeStreamQuality();
 
   // enable or disable buttons based on current selection and user rights
-  renameBtn.prop('disabled', !canEdit.Events);
   archiveBtn.prop('disabled', !(!eventData.Archived && canEdit.Events));
   unarchiveBtn.prop('disabled', !(eventData.Archived && canEdit.Events));
   editBtn.prop('disabled', !canEdit.Events);
@@ -1543,14 +1634,12 @@ function initPage() {
     var cookie = 'zmEventStats';
 
     // Toggle the visiblity of the stats table and write an appropriate cookie
-    if (eventStats.is(':visible')) {
+    if (eventStatsDetails.is(':visible')) {
       setCookie(cookie, 'off');
-      eventStats.toggle(false);
-      wrapperEventVideo.removeClass('col-sm-8').addClass('col-sm-12');
+      showEventStats(false);
     } else {
       setCookie(cookie, 'on');
-      eventStats.toggle(true);
-      wrapperEventVideo.removeClass('col-sm-12').addClass('col-sm-8');
+      showEventStats(true);
     }
     changeScale();
   });
@@ -1645,14 +1734,34 @@ function initPage() {
           const tagInput = $j(this);
           tagValue = tagInput.val().trim();
         }
-        addOrCreateTag(tagValue);
+        addOrCreateTag(tagValue, event.key);
       } else if (event.key === " " || event.key === ",") {
         const tagInput = $j(this);
         const tagValue = tagInput.val().trim();
-        addOrCreateTag(tagValue);
+        addOrCreateTag(tagValue, event.key);
         event.preventDefault(); // Prevent the key from being entered in the input field
       } else if (event.key === "Escape") {
         $j("#tagInput").blur();
+      } else if (event.key === "ArrowLeft") {
+        if (ctrled) {
+          var tagValue = $hlight.text();
+          if (!tagValue) {
+            const tagInput = $j(this);
+            tagValue = tagInput.val().trim();
+          }
+          addOrCreateTag(tagValue, event.key);
+          tagAndPrev(true);
+        }
+      } else if (event.key === "ArrowRight") {
+        if (ctrled) {
+          var tagValue = $hlight.text();
+          if (!tagValue) {
+            const tagInput = $j(this);
+            tagValue = tagInput.val().trim();
+          }
+          addOrCreateTag(tagValue, event.key);
+          tagAndNext(true);
+        }
       }
     });
   }
@@ -1724,7 +1833,10 @@ function initPage() {
         //const id = stringToNumber(this.id); //Montage & Watch page
         const id = eventData.MonitorId; // Event page
         //$j('#button_zoom' + id).stop(true, true).slideDown('fast');
-        $j('#button_zoom' + id).removeClass('hidden');
+        const _imageFeed = document.getElementById('videoFeedStream'+id);
+        if (!_imageFeed || (_imageFeed && _imageFeed.getAttribute('data-not-display-video') !== 'true')) {
+          $j('#button_zoom' + id).removeClass('hidden');
+        }
       },
       function() {
         //const id = stringToNumber(this.id); //Montage & Watch page
@@ -1747,21 +1859,18 @@ function initPage() {
     }
   }, 500);
 
-  if (vid) {
-    setInterval(() => {
-      updateProgressBar();
-    }, streamTimeout);
-  }
+  const toggleZonesButton = document.getElementById('toggleZonesButton');
+  if (toggleZonesButton) toggleZonesButton.addEventListener('click', toggleZones);
 } // end initPage
 
-function addOrCreateTag(tagValue) {
+function addOrCreateTag(tagValue, buttonPressed = null) {
   const tagNames = availableTags.map((t) => t.Name.toLowerCase());
   const index = tagNames.indexOf(tagValue.toLowerCase());
   if (index > -1) {
-    addTag(availableTags[index]);
+    addTag(availableTags[index], buttonPressed);
     $j('.tag-dropdown-content').hide();
   } else if (tagValue.trim().length > 0) {
-    createTag(tagValue);
+    createTag(tagValue, buttonPressed);
   }
 }
 
@@ -1814,7 +1923,7 @@ function formatTag(tag) {
   $j('.tag-dropdown').before(tagElement);
 }
 
-function addTag(tag) {
+function addTag(tag, buttonPressed = null) {
   if (tag && (tag.Name.trim() !== '') && !isDup(tag.Name)) {
     $j.getJSON(thisUrl + '?request=event&action=addtag&tid=' + tag.Id + '&id=' + eventData.Id)
         .done(function(data) {
@@ -1824,6 +1933,7 @@ function addTag(tag) {
           // Move the added tag to the front(top) of the availableTags array
           const index = availableTags.map((t) => t.Id).indexOf(tag.Id);
           availableTags.splice(0, 0, availableTags.splice(index, 1)[0]);
+          if (["Enter", " ", ","].includes(buttonPressed)) $j('#tagInput').focus();
         })
         .fail(logAjaxFail);
   } else {
@@ -1846,7 +1956,7 @@ function removeTag(tag) {
       .fail(logAjaxFail);
 }
 
-function createTag(tagName) {
+function createTag(tagName, buttonPressed = null) {
   $j.getJSON(thisUrl + '?request=tags&action=createtag&tname=' + tagName)
       .done(function(data) {
         if (data.response.length > 0) {
@@ -1856,6 +1966,7 @@ function createTag(tagName) {
           }
           addTag(tag);
         }
+        if (["Enter", " ", ","].includes(buttonPressed)) $j('#tagInput').focus();
       })
       .fail(logAjaxFail);
 }
@@ -1880,9 +1991,6 @@ function getSelectedTags() {
       })
       .fail(logAjaxFail);
 }
-
-var toggleZonesButton = document.getElementById('toggleZonesButton');
-if (toggleZonesButton) toggleZonesButton.addEventListener('click', toggleZones);
 
 function toggleZones(e) {
   const zones = $j('#zones'+eventData.MonitorId);
@@ -1931,6 +2039,23 @@ function panZoomIn(el) {
 function panZoomOut(el) {
   zmPanZoom.zoomOut(el);
 }
+
+function changeWhatDisplay() {
+  setCookie('zmWhatDisplay', $j('#whatDisplay').val());
+  location.reload();
+}
+
+// Size the video as soon as the DOM is ready. video.js has just replaced the <video> (on
+// DOMContentLoaded, in event.php) and leaves it without a size, and initPage() waits for every
+// image and stylesheet to load, so sizing it there let the browser paint a collapsed video with
+// the controls drawn up under it first. Both run before the first paint.
+document.addEventListener('DOMContentLoaded', function() {
+  const player = (typeof videojs !== 'undefined') ? videojs.getPlayer('videoobj') : null;
+  if (player) {
+    vid = player; // changeScale() tells video.js from zms by vid; initPage() sets the same player
+    changeScale();
+  }
+});
 
 // Kick everything off
 $j( window ).on("load", initPage);

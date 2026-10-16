@@ -44,8 +44,13 @@ int FFmpeg_Input::Open(const char *filepath) {
   /** Open the input file to read from it. */
   error = avformat_open_input(&input_format_context, filepath, nullptr, nullptr);
   if ( error < 0 ) {
-    Error("Could not open input file '%s' (error '%s')",
-          filepath, av_make_error_string(error).c_str());
+    if (std::string(filepath).find("incomplete") != std::string::npos) {
+      Warning("Could not open input file '%s' (error '%s')",
+              filepath, av_make_error_string(error).c_str());
+    } else {
+      Error("Could not open input file '%s' (error '%s')",
+            filepath, av_make_error_string(error).c_str());
+    }
     input_format_context = nullptr;
     return error;
   }
@@ -124,20 +129,8 @@ int FFmpeg_Input::Open(const char *filepath) {
  
     if (!streams[i].context) {
       Debug(1, "Failed with known codecs, trying harder");
-      if ((streams[i].codec = avcodec_find_decoder(input_format_context->streams[i]->codecpar->codec_id))) {
-        Debug(1, "Using codec (%s) for stream %d", streams[i].codec->name, i);
-        streams[i].context = avcodec_alloc_context3(streams[i].codec);
-        avcodec_parameters_to_context(streams[i].context, input_format_context->streams[i]->codecpar);
-
-        zm_dump_codec(streams[i].context);
-
-        error = avcodec_open2(streams[i].context, streams[i].codec, nullptr);
-        if (error < 0) {
-          Error("Could not open input codec (error '%s')", av_make_error_string(error).c_str());
-          avcodec_free_context(&streams[i].context);
-          streams[i].context = nullptr;
-        }
-      }
+      streams[i].context = open_fallback_decoder(
+          input_format_context->streams[i]->codecpar, &streams[i].codec);
     }
 
     if (!streams[i].context) {
@@ -282,6 +275,18 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
     if (!frame) {
       Warning("Unable to get frame.");
       return nullptr;
+    }
+
+    // If the initial seek landed past the target (on a future keyframe),
+    // re-seek backward to get the keyframe before the target instead.
+    if (frame->pts > seek_target) {
+      Debug(1, "Initial seek overshot: frame pts %" PRId64 " > seek_target %" PRId64 ", seeking backward",
+            frame->pts, seek_target);
+      ret = av_seek_frame(input_format_context, stream_id, seek_target,
+                          AVSEEK_FLAG_BACKWARD);
+      if (ret >= 0) {
+        get_frame(stream_id);
+      }
     }
   }  // end if ! frame
 

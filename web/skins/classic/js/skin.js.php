@@ -31,6 +31,7 @@ const navBarRefresh = <?php echo 1000*ZM_WEB_REFRESH_NAVBAR ?>;
 const currentView = '<?php echo $view ?>';
 const homeView = '<?php echo getHomeView() ?>';
 const navbar_type = '<?php echo $navbar_type ?>';
+const filter_settings_position = '<?php echo defined('ZM_WEB_FILTER_SETTINGS_POSITION') ? ZM_WEB_FILTER_SETTINGS_POSITION : 'sidebar' ?>';
 
 const exportProgressString = '<?php echo addslashes(translate('Exporting')) ?>';
 const exportFailedString = '<?php echo translate('ExportFailed') ?>';
@@ -96,8 +97,9 @@ var focusWindow = <?php echo !empty($focusWindow)?'true':'false' ?>;
 
 const imagePrefix = '<?php echo '?view=image&eid=' ?>';
 
-var auth_hash = '<?php echo generateAuthHash(ZM_AUTH_HASH_IPS) ?>';
-var auth_relay = '<?php echo get_auth_relay() ?>';
+// The page's one copy of the authentication credential. ZMAuth derives the bare
+// hash from the relay, so the two can never disagree; see web/js/auth-helpers.js.
+var zmAuth = new ZMAuth(<?php echo json_encode(get_auth_relay()) ?>);
 var user = <?php echo $user ? json_encode($user->expose(['Password'])) : '{}'; ?>;
 var running = <?php echo daemonCheck()?'true':'false' ?>;
 
@@ -132,6 +134,7 @@ const CMD_SEEK = <?php echo CMD_SEEK ?>;
 const CMD_QUERY = <?php echo CMD_QUERY ?>;
 const CMD_QUIT = <?php echo CMD_QUIT ?>;
 const CMD_MAXFPS = <?php echo CMD_MAXFPS ?>;
+const AUDIO_MOTION_ENABLED = "<?php echo (AUDIO_MOTION_ENABLED) ? 'true' : 'false' ?>";
 
 const stateStrings = new Array();
 stateStrings[STATE_UNKNOWN] = "<?php echo translate('Unknown') ?>";
@@ -146,6 +149,9 @@ if ($user) {
   // Only include config if logged in or auth turned off. The login view doesn't require any config.
   global $zm_config;
   foreach ($zm_config as $name=>$c) {
+    // A password option is never exported, whatever its Private flag says: a table made
+    // from an older zm_create.sql has every flag 0 until zmupdate.pl repairs it.
+    if (isset($c['Type']) and ($c['Type'] == 'password')) continue;
     if (empty($c['Private'])) {
       if (empty($c['Value'])) {
         echo 'const '. $name . ' = \'\';'.PHP_EOL;

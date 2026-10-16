@@ -16,7 +16,7 @@ if (!file_exists(ZM_DIR_EXPORTS)) {
 }
 chmod(ZM_DIR_EXPORTS, 0700);
 
-$eid = isset($_REQUEST['eid']) ? $_REQUEST['eid'] : '';
+$eid = isset($_REQUEST['eid']) ? validCardinal($_REQUEST['eid']) : '';
 $eids = isset($_REQUEST['eids']) ? $_REQUEST['eids'] : array();
 $generated = isset($_REQUEST['generated']) ? $_REQUEST['generated'] : '';
 $exportFileName = 'zmDownload';
@@ -42,18 +42,6 @@ if ($filter) {
       }
     }
     $filter->addTerm(array('attr' => 'Monitor', 'op' => 'IN', 'val' => implode(',', $monitor_ids), 'cnj' => 'and'));
-  }
-  if (isset($_REQUEST['minTimeSecs'])) {
-  }
-  if (isset($_REQUEST['maxTimeSecs'])) {
-  }
-  if (isset($_REQUEST['minTime']) and !$filter->has_term('DateTime', '>=')) {
-    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $_REQUEST['minTime'], 'cnj' => 'and'));
-    $exportFileName .= ' '.$_REQUEST['minTime']; 
-  }
-  if (isset($_REQUEST['maxTime']) and !$filter->has_term('DateTime', '<=')) {
-    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $_REQUEST['maxTime'], 'cnj' => 'and'));
-    $exportFileName .= ' '.$_REQUEST['maxTime']; 
   }
 }
 $total_size = 0;

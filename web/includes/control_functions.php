@@ -6,6 +6,14 @@ function buildControlCommand($monitor) {
   $ctrlCommand = '';
   $control = $monitor->Control();
 
+  // control names the control module method zmcontrol calls, and the options are parsed back
+  // out of this string by spaces, so refuse anything that is not a plain method name.
+  // refs GHSA-qcm7-vq92-f86f
+  if ( !isset($_REQUEST['control']) or !preg_match('/^[A-Za-z][A-Za-z0-9_]*$/', $_REQUEST['control']) ) {
+    ZM\Warning('Invalid control command');
+    return '';
+  }
+
   if ( isset($_REQUEST['xge']) || isset($_REQUEST['yge']) ) {
     $slow = 0.9; // Threshold for slow speed/timeouts
     $turbo = 0.9; // Threshold for turbo speed
@@ -695,10 +703,20 @@ function buildControlCommand($monitor) {
       }
     }
   } else {
-    if ( preg_match( '/^presetGoto(\d+)$/', $_REQUEST['control'], $matches ) ) {
+    if ( preg_match( '/^audioPlay(\d+)$/', $_REQUEST['control'], $matches ) ) {
+      // The sound to play is carried in the command name, as presets are,
+      // because a control button has no way to send a separate parameter.
+      $_REQUEST['control'] = 'audioPlay';
+      $ctrlCommand .= ' --file='.$matches[1];
+    } elseif ( preg_match( '/^presetGoto(\d+)$/', $_REQUEST['control'], $matches ) ) {
       $_REQUEST['control'] = 'presetGoto';
       $ctrlCommand .= ' --preset='.$matches[1];
     } elseif ( $_REQUEST['control'] == 'presetGoto' && !empty($_REQUEST['preset']) ) {
+      // Control modules look the preset up in SQL and send it to the camera.
+      if ( !ctype_digit((string)$_REQUEST['preset']) ) {
+        ZM\Warning('Invalid preset');
+        return '';
+      }
       $ctrlCommand .= ' --preset='.$_REQUEST['preset'];
     } elseif ( $_REQUEST['control'] == 'presetSet' ) {
       if ( canEdit( 'Control' ) ) {

@@ -1,6 +1,5 @@
 #inner-content {
-  display: flex;
-  justify-content: center;
+  display: block;
 }
 #contentForm {
   height: 100%;
@@ -42,4 +41,12 @@ th[data-field="ip"] {
   margin-left: auto;
   float:none;
   margin-top: 0;
+}
+
+.AddMonitors .fixed-table-container .fixed-table-body {
+  overflow: visible;
+}
+
+.AddMonitors .fixed-table-container {
+  overflow: visible;
 }

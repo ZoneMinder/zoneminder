@@ -42,4 +42,10 @@ void DecoderThread::Run() {
       }
     }
   }
+
+  // Release any packets we sent to the codec but never received frames for.
+  // The codec context is about to be (or has been) torn down for Pause /
+  // reconnect; leaving stale entries would create a permanent latency
+  // offset against the next codec context on resume.
+  monitor_->flushDecoderQueue();
 }

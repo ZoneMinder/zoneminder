@@ -149,7 +149,6 @@ $SLANG = array(
     'BadDevice'             => 'Enhed skal sættes til en gyldig værdi',
     'BadFPSReportInterval'  => 'Antal FPS report interval buffere skal være et heltal på 0 eller mere',
     'BadFormat'             => 'Format skal sættes til en gyldig værdi',
-    'BadFrameSkip'          => 'Antal Frame skip skal være et heltal på 0 eller mere',
     'BadHeight'             => 'Højde skal sættes til en gyldig værdi',
     'BadHost'               => 'Host skal vare en gyldig IP adresse eller hostname, inkludér ikke http://',
     'BadImageBufferCount'   => 'Billed buffer størrelse skal være et heltal på 2 eller mere',
@@ -164,7 +163,7 @@ $SLANG = array(
     'BadPostEventCount'     => 'Antal rammer efter hændelsen skal være et heltal på 0 eller mere',
     'BadPreEventCount'      => 'Antal rammer før hændelsen skal være mindst 0 samt mindre en billedbufferstørrelsen',
     'BadRefBlendPerc'       => 'Reference blandings procentdelen skal være et positivt heltal',
-    'BadSectionLength'      => 'Sektionslængden skal være et heltal på 30 eller mere',
+    'BadSectionLength'      => 'Sektionslængden skal være et heltal på 10 eller mere',
     'BadSignalCheckColour'  => 'Signal check farve skal være en gyldig RGB farve streng',
     'BadSourceType'        => 'Source Type \"Web Site\" requires the Function to be set to \"Monitor\"', // Added - 2018-08-30
     'BadStreamReplayBuffer' => 'Videostrøm genspilsbufferen skal sættes til et heltal på 0 eller mere',
@@ -371,7 +370,6 @@ $SLANG = array(
     'Frame'                 => 'Ramme',
     'FrameId'               => 'Ramme Id',
     'FrameRate'             => 'Billedhastighed',
-    'FrameSkip'             => 'Spring over antal rammer',
     'Frames'                => 'Rammer',
     'Func'                  => 'Funk',
     'Function'              => 'Funktion',
@@ -417,7 +415,6 @@ $SLANG = array(
     'Last'                  => 'Sidste',
     'Layout'                => 'Layout',
     'Level'                 => 'Niveau',
-    'Libvlc'                => 'Libvlc',
     'LimitResultsPost'      => 'resultater', // This is used at the end of the phrase 'Limit to first N results only'
     'LimitResultsPre'       => 'Begræns til kun de første', // This is used at the beginning of the phrase 'Limit to first N results only'
     'Line'                  => 'Linie',
@@ -606,7 +603,6 @@ $SLANG = array(
     'ProfileProbeIntro'     => 'The list below shows the existing stream profiles of the selected camera .<br/><br/>Select the desired entry from the list below.<br/><br/>Please note that ZoneMinder cannot configure additional profiles and that choosing a camera here may overwrite any values you already have configured for the current monitor.<br/><br/>',
     'Progress'              => 'Position',
     'Protocol'              => 'Protokol',
-    'RTSPDescribe'          => 'Brug RTSP Response Media URL',
     'RTSPTransport'         => 'RTSP Transport Protocol',
     'Rate'                  => 'Rate',
     'Real'                  => 'Naturtro',
@@ -946,21 +942,9 @@ $OLANG = array(
                           "UDP Multicast - Use UDP Multicast as transport protocol~~".
                           "HTTP - Use HTTP tunneling as transport protocol, which is useful for passing proxies.~~"
 	),
-	'OPTIONS_LIBVLC' => array(
-		'Help' => "Parameters in this field are passed on to libVLC. Multiple parameters can be separated by ,~~ ".
-		          "Examples (do not enter quotes)~~~~".
-		          "\"--rtp-client-port=nnn\" Set local port to use for rtp data~~~~". 
-		          "\"--verbose=2\" Set verbosity of libVLC"
-	),
 	'OPTIONS_EXIF' => array(
 		'Help' => "Enable this option to embed EXIF data into each jpeg frame."
 	),
-	'OPTIONS_RTSPDESCRIBE' => array(
-		'Help' => "Sometimes, during the initial RTSP handshake, the camera will send an updated media URL. ".
-		          "Enable this option to tell ZoneMinder to use this URL. Disable this option to ignore the ".
-		          "value from the camera and use the value as entered in the monitor configuration~~~~". 
-		          "Generally this should be enabled. However, there are cases where the camera can get its".
-		          "own URL incorrect, such as when the camera is streaming through a firewall"),
 	'OPTIONS_MAXFPS' => array(
 		'Help' => "This field has certain limitations when used for non-local devices.~~ ".
 		          "Failure to adhere to these limitations will cause a delay in live video, irregular frame skipping, ".

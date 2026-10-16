@@ -42,7 +42,7 @@ Camera -> zmc (capture) -> Shared Memory -> zma (analysis) -> Event Recording
 
 - **Shared Memory**: `zmc` writes frames to `/dev/shm`; `zma` and `zms` read from same buffers. Zero-copy for performance — this is why ZM can handle many cameras on modest hardware.
 - **Monitor-Centric**: `Monitor` class (`src/zm_monitor.cpp/h`) is the central orchestrator. One monitor = one DB row = one set of daemons. Most changes to camera handling flow through this class.
-- **Pluggable Cameras**: Abstract `Camera` base with: `LocalCamera` (V4L2), `RemoteCameraRTSP`, `RemoteCameraHTTP`, `FFmpegCamera`, `LibVLCCamera`, `LibVNCCamera`. Add new camera types by subclassing Camera.
+- **Pluggable Cameras**: Abstract `Camera` base with: `LocalCamera` (V4L2), `RemoteCameraHTTP`, `FFmpegCamera`, `LibVNCCamera`. Add new camera types by subclassing Camera.
 - **Event-Driven Recording**: Motion detection triggers `Event` objects with pre/post alarm buffers. Lifecycle: Create -> Record -> Close -> Archive/Delete. Events are the core unit of recorded footage.
 - **Multi-Server Clustering**: Database-coordinated distributed architecture with shared monitors and storage.
 
@@ -98,7 +98,7 @@ git checkout master && git pull && git checkout -b 42-event-favorites
 
 # Write test first, implement, build & test
 cd build && cmake --build . && ctest
-npx eslint --ext .js.php,.js .
+npx eslint .
 
 # Commit
 git add <files>
@@ -132,7 +132,7 @@ cmake --build . --target zmc
 
 | Option | Values | Default | Notes |
 |--------|--------|---------|-------|
-| `CMAKE_BUILD_TYPE` | Release/Debug/Optimised | Release | |
+| `CMAKE_BUILD_TYPE` | Release/Debug/Optimised/Profile | Release | `Profile` = `-O2 -g -fno-omit-frame-pointer` for perf/flamegraph |
 | `BUILD_TEST_SUITE` | ON/OFF | OFF | Enables Catch2 tests |
 | `ENABLE_WERROR` | ON/OFF | OFF | Warnings as errors (CI uses ON) |
 | `ASAN` | ON/OFF | OFF | AddressSanitizer |
@@ -179,11 +179,11 @@ ctest
 ### JavaScript Linting
 
 ```bash
-npx eslint --ext .js.php,.js .        # Lint all
+npx eslint .        # Lint all
 npx eslint --fix web/js/              # Auto-fix
 ```
 
-ESLint config: `.eslintrc.js` (Google style guide). Runs in CI via `.github/workflows/ci-eslint.yml`.
+ESLint config: `eslint.config.js` (ESLint 9 flat config, Google style guide). Runs in CI via `.github/workflows/ci-eslint.yml`.
 
 ### PHP/API Testing
 
@@ -257,7 +257,7 @@ Before committing or claiming complete:
 - [ ] Tests written/updated BEFORE or DURING implementation
 - [ ] Build succeeds: `cmake --build .` (C++ changes)
 - [ ] C++ tests pass: `ctest` or `./tests/tests`
-- [ ] JavaScript linting passes: `npx eslint --ext .js.php,.js .`
+- [ ] JavaScript linting passes: `npx eslint .`
 - [ ] Manual testing done (PHP/web changes)
 - [ ] No compiler warnings or linter errors
 - [ ] Code follows existing patterns

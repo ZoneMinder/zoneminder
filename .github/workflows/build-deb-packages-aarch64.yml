@@ -2,9 +2,17 @@ name: build-deb-packages-aarch64
 
 on:
   push:
-    branches: [ master ]
+    branches: [ release-1.38, master ]
 permissions:
   contents: write
+
+# Several merges landing seconds apart used to start a run each, and every
+# one of them published. Keep one build per branch and cancel the ones that
+# a newer push has already superseded.
+concurrency:
+  group: deb-aarch64-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   GPG_KEY_ID: ${{ secrets.ZMREPO_GPG_KEY_ID }}
   GPG_PASSPHRASE: ${{ secrets.ZMREPO_GPG_PASSPHRASE }}
@@ -23,7 +31,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distro: ["debian:sid", "debian:13", "debian:12", "ubuntu:25.10", "ubuntu:devel", "ubuntu:24.04", "ubuntu:22.04"]
+        distro: ["debian:sid", "debian:13", "debian:12", "ubuntu:26.04", "ubuntu:devel", "ubuntu:24.04", "ubuntu:22.04"]
     runs-on: self-hosted
 
     container:
@@ -60,17 +68,17 @@ jobs:
             libavcodec-dev libavdevice-dev libavformat-dev libavutil-dev \
             libswresample-dev libswscale-dev libbz2-dev \
             libturbojpeg0-dev default-libmysqlclient-dev \
-            libpolkit-gobject-1-dev libv4l-dev libvlc-dev libssl-dev \
+            libpolkit-gobject-1-dev libv4l-dev libssl-dev \
             libvncserver-dev libjwt-gnutls-dev libgsoap-dev gsoap \
             libmosquittopp-dev
 
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
 
       - name: Import GPG key
-        uses: crazy-max/ghaction-import-gpg@v6
+        uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # v7
         with:
           gpg_private_key: ${{ secrets.ZMREPO_GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.ZMREPO_GPG_PASSPHRASE }}
@@ -97,13 +105,18 @@ jobs:
           #git submodule update --init --recursive
           # Cleanup previous builds
           rm -rf ZoneMinder_zoneminder_release
-          curl -s -o do_debian_package.sh https://raw.githubusercontent.com/ZoneMinder/zoneminder/refs/heads/master/utils/do_debian_package.sh
+          curl -s -o do_debian_package.sh https://raw.githubusercontent.com/ZoneMinder/zoneminder/refs/heads/${GITHUB_REF_NAME}/utils/do_debian_package.sh
           chmod +x do_debian_package.sh
 
           # Tell gpg to use loopback + passphrase
           export GPG_TTY=$(tty || true)
           ls -l /bin/bash
-          ./do_debian_package.sh -s=CURRENT -t=binary 
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+            ./do_debian_package.sh -r="$TAG" -t=binary-arch -b=${GITHUB_REF_NAME} -v=1
+          else
+            ./do_debian_package.sh -s=CURRENT -t=binary-arch -b=${GITHUB_REF_NAME} -v=1
+          fi
       - name: Cleanup
         run: |
           rm -rf *_zoneminder_release *.build
@@ -111,7 +124,11 @@ jobs:
         run: |
           set -eux
           mkdir -p artifacts/deb
-          mv ../*.deb ../*.buildinfo ../*.changes ../*.dsc ../*.tar.xz ../*.tar.gz artifacts/deb/ || true
+          # Only collect binary artifacts. Source files (.dsc, .orig.tar.*,
+          # .debian.tar.*) are not needed for binary uploads and the orig
+          # tarball has the same filename across distros which confuses
+          # mini-dinstall.
+          mv ../*.deb ../*.buildinfo ../*.changes artifacts/deb/ || true
           # quick verify signatures (non-fatal)
           gpg --verify artifacts/deb/*.changes || true
           gpg --verify artifacts/deb/*.buildinfo || true
@@ -123,19 +140,31 @@ jobs:
           echo "artifact_name=binary-${sanitized_distro_name}" >> $GITHUB_ENV
 
       - name: Upload .deb artifacts
-        uses: actions/upload-artifact@v6
+        # Only the tag-only `release` job consumes these. On branch pushes the
+        # packages go straight to ZMREPO below, so uploading is pure storage cost.
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           path: artifacts/deb
           name: ${{ env.artifact_name }}
+          retention-days: 1
+      - name: Compute deploy target
+        run: |
+          VERSION="${GITHUB_REF_NAME#release-}"
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            echo "DEPLOY_TARGET=debian/release-${VERSION}/mini-dinstall/incoming/" >> $GITHUB_ENV
+          else
+            echo "DEPLOY_TARGET=debian/master/mini-dinstall/incoming/" >> $GITHUB_ENV
+          fi
       - name: Publish to ZMREPO
-        uses: easingthemes/ssh-deploy@main
+        uses: easingthemes/ssh-deploy@2cc5b27bf3029d0455dd5e09fe02633904031447 # v6.0.3
         env:
           SSH_PRIVATE_KEY: ${{ secrets.ZMREPO_SSH_KEY }}
-          ARGS: "-rltgoDzvO"
+          ARGS: "-rltgoDzvOW"
           SOURCE: artifacts/deb/
           REMOTE_HOST: ${{ secrets.ZMREPO_HOST }}
           REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}
-          TARGET: debian/master/mini-dinstall/incoming/
+          TARGET: ${{ env.DEPLOY_TARGET }}
 
   release:
     name: Create GitHub Release (on tag)
@@ -144,10 +173,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           path: dist
+      - name: Compute deploy target
+        run: |
+          VERSION="${GITHUB_REF_NAME#release-}"
+          echo "DEPLOY_TARGET=debian/release-${VERSION}/mini-dinstall/incoming/" >> $GITHUB_ENV
+      - name: Publish release to ZMREPO
+        uses: easingthemes/ssh-deploy@2cc5b27bf3029d0455dd5e09fe02633904031447 # v6.0.3
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.ZMREPO_SSH_KEY }}
+          ARGS: "-rltgoDzvOW"
+          SOURCE: dist/
+          REMOTE_HOST: ${{ secrets.ZMREPO_HOST }}
+          REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}
+          TARGET: ${{ env.DEPLOY_TARGET }}
       - name: Create release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
         with:
           files: dist/**/*

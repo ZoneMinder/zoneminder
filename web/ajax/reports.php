@@ -190,7 +190,7 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
     $report = new ZM\Report($row);
 
     $row['Name'] = validHtmlStr($row['Name']);
-    $row['StartDateTime'] = $dateTimeFormatter->format(strtotime($row['StartDateTime']));
+    $row['StartDateTime'] = $row['StartDateTime'] ? $dateTimeFormatter->format(strtotime($row['StartDateTime'])) : null;
     $row['EndDateTime'] = $row['EndDateTime'] ? $dateTimeFormatter->format(strtotime($row['EndDateTime'])) : null;
     $returned_rows[] = $row;
   } # end foreach row matching search

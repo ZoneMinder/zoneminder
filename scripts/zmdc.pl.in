@@ -78,7 +78,7 @@ use constant SOCK_FILE => $Config{ZM_PATH_SOCKS}.'/zmdc'.($Config{ZM_SERVER_ID}?
 
 $| = 1;
 
-$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
+$ENV{PATH}  = '@ZM_SCRIPT_PATH@';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 if ( $Config{ZM_LD_PRELOAD} ) {
   Debug("Adding ENV{LD_PRELOAD} = $Config{ZM_LD_PRELOAD}");
@@ -266,6 +266,35 @@ our %terminating_processes;
 our %pids_to_reap;
 our $zm_terminate = 0;
 
+# Re-assert the pid file so systemd (PIDFile=) keeps tracking us even if it
+# was removed out-of-band (e.g. tmpfiles cleanup of /run, or a partial/aborted
+# stop that unlinked the pid but left us running). Cheap: only writes when the
+# file is missing or its contents don't match our pid. Shutdown-safe: the
+# shutdown unlink runs only after the main loop exits, so this can never
+# recreate the pid file after termination has begun.
+my $pid_reassert_failed = 0;
+sub ensure_pid {
+  my $current;
+  if ( open(my $fh, '<', ZM_PID) ) {
+    $current = <$fh>;
+    close($fh);
+    chomp $current if defined $current;
+  }
+  return if defined($current) and $current eq "$$";
+  if ( open(my $PID, '>', ZM_PID) ) {
+    print($PID $$);
+    close($PID);
+    Warning('Re-asserted pid file '.ZM_PID.' (was missing or stale)');
+    $pid_reassert_failed = 0;
+  } elsif ( !$pid_reassert_failed ) {
+    # Warn only on the first failure while the condition persists, so a
+    # permanently unwritable ZM_PID (e.g. /run/zm removed) does not flood the
+    # log every loop tick. Reset above once a write succeeds again.
+    Warning('Unable to (re)write pid file '.ZM_PID.": $!");
+    $pid_reassert_failed = 1;
+  }
+}
+
 sub run {
 
   # Call this first otherwise stdout/stderror redirects to the pidfile = bad
@@ -277,9 +306,16 @@ sub run {
     die 'Can\'t open pid file at '.ZM_PID."\n";
   }
 
-  my $fd = 0;
+  # Redirect stdin/stdout/stderr to /dev/null rather than closing them.
+  # Closing them causes the FDs to be reused, which led to memory corruption
+  # when libx264 wrote to a reused stderr FD (66f11435b). Redirecting to
+  # /dev/null keeps valid FDs that children inherit safely.
+  open(STDIN, '<', '/dev/null') or die "Can't redirect STDIN: $!";
+  open(STDOUT, '>', '/dev/null') or die "Can't redirect STDOUT: $!";
+  open(STDERR, '>', '/dev/null') or die "Can't redirect STDERR: $!";
 
-  # This also closes dbh and CLIENT and SERVER
+  # Close all remaining FDs (dbh, CLIENT, SERVER, etc.)
+  my $fd = 3;
   while ( $fd < POSIX::sysconf(&POSIX::_SC_OPEN_MAX) ) {
     POSIX::close($fd++);
   }
@@ -404,6 +440,7 @@ sub run {
     restartPending();
     check_for_processes_to_kill() if %terminating_processes;
     reaper() if %pids_to_reap;
+    ensure_pid();
   } # end while
 
   dPrint(ZoneMinder::Logger::INFO, 'Server exiting at '.strftime('%y/%m/%d %H:%M:%S', localtime())."\n");
@@ -477,9 +514,12 @@ sub start {
     return;
   }
 
-  # We have to block SIGCHLD during fork to prevent races while we setup our records for it
+  # We have to block SIGCHLD during fork to prevent races while we setup our records for it.
+  # TERM, INT and ABRT are blocked too: the child starts with our handlers, which
+  # only set $zm_terminate, so a stop sent to it before it resets them would be
+  # lost and the daemon it execs would keep running until KILL_DELAY.
   my $sigset = POSIX::SigSet->new;
-  my $blockset = POSIX::SigSet->new(SIGCHLD);
+  my $blockset = POSIX::SigSet->new(SIGCHLD, SIGTERM, SIGINT, SIGABRT);
   sigprocmask(SIG_BLOCK, $blockset, $sigset) or Fatal("Can't block SIGCHLD: $!");
   # Apparently the child closing the db connection can affect the parent.
   zmDbDisconnect();
@@ -502,7 +542,16 @@ sub start {
     sigprocmask(SIG_SETMASK, $sigset) or Fatal("Can't restore SIGCHLD: $!");
   } elsif ( defined($child_pid) ) {
     # Child process
-    
+
+    # Take the stop signals back to their defaults first, then unblock them, so
+    # a TERM sent while we are still getting ready to exec (connecting to the
+    # db, closing descriptors) ends this child and zmdc's reaper sees it go.
+    $SIG{INT} = 'DEFAULT';
+    $SIG{TERM} = 'DEFAULT';
+    $SIG{ABRT} = 'DEFAULT';
+    sigprocmask(SIG_UNBLOCK, POSIX::SigSet->new(SIGTERM, SIGINT, SIGABRT))
+      or Fatal("Can't unblock stop signals: $!");
+
     # Force reconnection to the db. $dbh got copied, but isn't really valid anymore.
     $dbh = zmDbConnect(1);
     logReinit();
@@ -531,17 +580,30 @@ sub start {
     logTerm();
     zmDbDisconnect();
 
-    my $fd = 3; # leave stdin,stdout,stderr open.  Closing them causes problems with libx264
-    while ( $fd < POSIX::sysconf(&POSIX::_SC_OPEN_MAX) ) {
-      POSIX::close($fd++);
+    # leave stdin,stdout,stderr open.  Closing them causes problems with libx264
+    # Close only the descriptors that are open where /proc lists them: walking
+    # every number up to _SC_OPEN_MAX takes seconds with a high open-file limit.
+    if ( opendir(my $fd_dir, '/proc/self/fd') ) {
+      my @fds = map { /^(\d+)$/ ? $1 : () } readdir($fd_dir);
+      closedir($fd_dir);
+      foreach my $fd ( @fds ) {
+        POSIX::close($fd) if $fd > 2;
+      }
+    } else {
+      my $fd = 3;
+      my $max = POSIX::sysconf(&POSIX::_SC_OPEN_MAX);
+      while ( $fd < $max ) {
+        POSIX::close($fd++);
+      }
     }
 
     $SIG{CHLD} = 'DEFAULT';
     $SIG{HUP} = 'DEFAULT';
-    $SIG{INT} = 'DEFAULT';
-    $SIG{TERM} = 'DEFAULT';
-    $SIG{ABRT} = 'DEFAULT';
 
+    # SIGCHLD is still blocked from the fork above, and a blocked signal stays
+    # blocked across exec, so the daemon would start with it blocked. Hand it the
+    # mask zmdc had before the fork.
+    sigprocmask(SIG_SETMASK, $sigset) or Fatal("Can't restore the signal mask: $!");
     exec($daemon, @good_args) or Fatal("Can't exec: $!");
   } else {
     Fatal("Can't fork: $!");
@@ -683,11 +745,13 @@ sub logrot {
   logReinit();
   foreach my $process ( values %pid_hash ) {
     if ( $process->{pid} ) {
-      Debug("Hupping $$process{command} at $$process{pid}");
-      # && $process->{command} =~ /^zm.*\.pl/ ) {
-      kill('HUP', $process->{pid});
+      Debug("Rotating logs of $$process{command} at $$process{pid}");
+      # WINCH, not HUP: HUP means reload, which makes zmc drop its camera
+      # connection and the perl daemons exit for zmdc to restart. Rotating logs
+      # nightly must not interrupt capture. See issue #5063.
+      kill('WINCH', $process->{pid});
     } else {
-      Debug("Not Hupping $$process{command}");
+      Debug("Not rotating logs of $$process{command}");
     }
   }
 }
@@ -727,8 +791,11 @@ sub reaper {
     delete $process->{pid};
 
     my $exit_status = $status>>8;
-    my $exit_signal = $status&0xfe;
-    my $core_dumped = $status&0x01;
+    # The low 7 bits of a wait status are the signal and 0x80 is the core dump
+    # flag. Masking with 0xfe dropped the signal's low bit, so TERM was logged
+    # as 14 and KILL as 8.
+    my $exit_signal = $status&0x7f;
+    my $core_dumped = $status&0x80;
 
     my $out_str = "'$process->{command}' ";
     if ( $exit_signal ) {

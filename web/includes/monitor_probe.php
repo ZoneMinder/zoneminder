@@ -126,7 +126,7 @@ function probeV4L() {
 } # end function probeV4L
 
 function probeAxisCommunicationsAB($ip, $username, $password) {
-	return probeAxis($ip, $username, $password);
+  return probeAxis($ip, $username, $password);
 }
 
 // Probe Network Cameras
@@ -167,7 +167,7 @@ function probeAxis($ip, $username, $password) {
       }
     }
   } else {
-	  ZM\Debug("No content from $url");
+    ZM\Debug("No content from $url");
   }
   $cameras[] = $camera;
   return $cameras;
@@ -201,12 +201,10 @@ function probeActi($ip) {
     'ip'      => $ip,
     'Model'   => 'Acti Camera',
     'monitor' => array(
-      'Type'     => 'Remote',
-      'Protocol' => 'rtsp',
-      'Method'   => 'rtpUni',
-      'Host'     => 'Admin:123456@'.$ip,
-      'Port'     => 7070,
-      'Path'     => '',
+      // Was Type Remote with Protocol rtsp, which no longer captures now that
+      // ZoneMinder's own rtsp client is gone. Same stream, through ffmpeg.
+      'Type'     => 'Ffmpeg',
+      'Path'     => 'rtsp://Admin:123456@'.$ip.':7070',
       'Width'    => 320,
       'Height'   => 240,
     ),
@@ -253,7 +251,7 @@ function probeAmcrest($ip, $username='', $password='') {
 }
 
 function wget($method, $url, $username, $password) {
-  exec("wget --keep-session-cookies -O - $url", $output, $result_code);
+  exec('wget --keep-session-cookies -O - '.escapeshellarg($url), $output, $result_code);
   return implode("\n", $output);
 }
 
@@ -610,12 +608,12 @@ function probeFoscam($ip, $username, $password) {
   $rtsp_port = 0;
   $http_port = 0;
   if (port_open($ip, 554)) {
-	  $rtsp_port = 554;
+    $rtsp_port = 554;
   }
   if (port_open($ip, 88)) {
-	  $http_port = 88;
+    $http_port = 88;
   } else if (port_open($ip, 80)) {
-	  $http_port = 80;
+    $http_port = 80;
   }
   if (!$rtsp_port) $rtsp_port = $http_port;
   $cameras = [];
@@ -921,14 +919,14 @@ function probeNetwork() {
       ZM\Debug("Have match for $ip $mac $macRoot ".$macBases[$macRoot]['type']);
       $macBase = $macBases[$macRoot];
       if ($filter_manufacturer and ($filter_manufacturer != $macBase['type'])) {
-	      ZM\Debug("Continuing because offilter $filter_manufacturer == ".$macBase['type']);
-	      continue;
+        ZM\Debug("Continuing because offilter $filter_manufacturer == ".$macBase['type']);
+        continue;
       } else {
-	      ZM\Debug("Not Continuing because offilter $filter_manufacturer != ".$macBase['type']);
+        ZM\Debug("Not Continuing because offilter $filter_manufacturer != ".$macBase['type']);
       }
       if (function_exists('probe'.$macBase['type'])) {
         if (!$username and isset($monitors[$ip])) {
-		$monitor = $monitors[$ip];
+          $monitor = $monitors[$ip];
           ZM\Debug("Using auth from monitor $ip ".$monitor->User().' '. $monitor->Pass());
           $new_cameras = call_user_func('probe'.$macBase['type'], $ip, $monitors[$ip]->User(), $monitors[$ip]->Pass());
           if (!$new_cameras) {
@@ -1023,7 +1021,7 @@ function probeNetwork() {
     }
 
     $results[] = [
-	    'mac' => $mac,
+      'mac' => $mac,
       'description' => $sourceString,
       'url'         => (isset($camera['monitor']) ? $camera['monitor']['Path'] : ''),
       'IP'          => $camera['ip'],

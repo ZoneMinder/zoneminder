@@ -163,14 +163,21 @@ export class VideoRTC extends HTMLElement {
      * https://developer.chrome.com/blog/autoplay/
      */
     play() {
-        this.video.play().catch(() => {
-            if (!this.video.muted) {
+        this.video.play().then(_ => {
+            this.onplay();
+        })
+        .catch(er => {
+            if (er.name === 'NotAllowedError' && !this.video.muted) {
                 this.video.muted = true;
-                this.video.play().catch(er => {
-                    console.warn(er);
-                });
+                this.play();
+            } else {
+                console.warn(er);
             }
         });
+    }
+
+    onplay() {
+
     }
 
     /**
@@ -298,6 +305,7 @@ export class VideoRTC extends HTMLElement {
         this.ws.binaryType = 'arraybuffer';
         this.ws.addEventListener('open', () => this.onopen());
         this.ws.addEventListener('close', () => this.onclose());
+        this.ws.addEventListener('error', (ev) => this.onerror(ev));
 
         return true;
     }
@@ -318,7 +326,7 @@ export class VideoRTC extends HTMLElement {
             this.pc = null;
         }
 
-        this.video.src = '';
+        this.video.removeAttribute('src');
         this.video.srcObject = null;
     }
 
@@ -328,6 +336,8 @@ export class VideoRTC extends HTMLElement {
     onopen() {
         // CONNECTING => OPEN
         this.wsState = WebSocket.OPEN;
+
+        if (!this.ws) return;
 
         this.ws.addEventListener('message', ev => {
             if (typeof ev.data === 'string') {
@@ -399,6 +409,10 @@ export class VideoRTC extends HTMLElement {
         return true;
     }
 
+    onerror(ev) {
+      console.log("Go2rtc websocket error ", ev);
+    }
+
     onmse() {
         /** @type {MediaSource} */
         let ms;
@@ -432,6 +446,12 @@ export class VideoRTC extends HTMLElement {
             if (msg.type !== 'mse') return;
 
             this.mseCodecs = msg.value;
+
+            // MediaSource may no longer be 'open' if WebRTC already took over
+            // this.video.srcObject (see onpcvideo), which detaches the MSE.
+            // Calling addSourceBuffer on a non-open MediaSource throws
+            // InvalidStateError, so bail out — WebRTC is handling playback.
+            if (ms.readyState !== 'open') return;
 
             const sb = ms.addSourceBuffer(msg.value);
             sb.mode = 'segments'; // segments or sequence
@@ -475,6 +495,8 @@ export class VideoRTC extends HTMLElement {
                 }
             };
         };
+
+        this.ms = ms;
     }
 
     onwebrtc() {

@@ -51,6 +51,7 @@ class VideoStream {
   uint8_t *video_outbuf;
   int video_outbuf_size;
   double last_pts;
+  bool stream_opened;
 
   pthread_t streaming_thread;
   bool do_streaming;

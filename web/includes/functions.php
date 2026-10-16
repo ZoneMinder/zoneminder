@@ -21,6 +21,26 @@
 require_once('Filter.php');
 require_once('FilterTerm.php');
 
+// Polyfills for PHP 8.0+ string functions, so views and callers don't have to
+// guard each use. ZoneMinder still supports PHP 7.x in some distros.
+if (!function_exists('str_starts_with')) {
+  function str_starts_with(string $haystack, string $needle): bool {
+    return $needle === '' || strncmp($haystack, $needle, strlen($needle)) === 0;
+  }
+}
+if (!function_exists('str_ends_with')) {
+  function str_ends_with(string $haystack, string $needle): bool {
+    if ($needle === '' || $needle === $haystack) return true;
+    $nlen = strlen($needle);
+    return $nlen <= strlen($haystack) && substr_compare($haystack, $needle, -$nlen) === 0;
+  }
+}
+if (!function_exists('str_contains')) {
+  function str_contains(string $haystack, string $needle): bool {
+    return $needle === '' || strpos($haystack, $needle) !== false;
+  }
+}
+
 function noCacheHeaders() {
   header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');    // Date in the past
   header('Last-Modified: '.gmdate( 'D, d M Y H:i:s' ).' GMT'); // always modified
@@ -52,7 +72,9 @@ function CSPHeaders($view, $nonce) {
 }
 
 function CORSHeaders() {
-  if (isset($_SERVER['HTTP_ORIGIN'])) {
+  # An empty Origin cannot match a server and needs no headers, so treat it the
+  # same as no Origin at all rather than warning about a value we cannot print.
+  if (isset($_SERVER['HTTP_ORIGIN']) and $_SERVER['HTTP_ORIGIN'] !== '') {
 # The following is left for future reference/use.
     $valid = false;
     global $Servers;
@@ -83,7 +105,16 @@ function CORSHeaders() {
       }
     }
     if (!$valid) {
-      ZM\Warning($_SERVER['HTTP_ORIGIN'] . ' is not found in servers list.');
+      # Browsers send Origin on same-origin POST/fetch as well.  Such a request
+      # needs no CORS headers, so not finding it in the servers list is normal
+      # and not worth warning about -- it only means the Servers table does not
+      # happen to list the hostname this install is being reached on.
+      if (isset($_SERVER['HTTP_HOST'])
+        and preg_replace('/^https?:\/\//i', '', $_SERVER['HTTP_ORIGIN']) === $_SERVER['HTTP_HOST']) {
+        ZM\Debug('CORS: same-origin request from '.$_SERVER['HTTP_ORIGIN'].', no headers needed');
+      } else {
+        ZM\Warning($_SERVER['HTTP_ORIGIN'] . ' is not found in servers list.');
+      }
     }
   } else {
     ZM\Debug('CORS: NO origin');
@@ -321,8 +352,8 @@ function deletePath( $path ) {
   if (is_link($path)) {
     if (!unlink($path)) ZM\Debug("Failed to unlink $path");
   } else if (is_dir($path)) {
-    if (false === ($output = system('rm -rf "'.escapeshellcmd($path).'"'))) {
-      ZM\Warning('Failed doing rm -rf "'.escapeshellcmd($path).'"');
+    if (false === ($output = system('rm -rf '.escapeshellarg($path)))) {
+      ZM\Warning('Failed doing rm -rf '.escapeshellarg($path));
     }
   } else if (file_exists($path)) {
     if (!unlink($path)) ZM\Debug("Failed to delete $path");
@@ -337,21 +368,23 @@ function deleteEvent($event) {
     return;
   }
 
-  if (gettype($event) != 'array') {
-# $event could be an eid, so turn it into an event hash
+  if (!($event instanceof ZM\Event)) {
+    # $event could be an eid, so load the event
     $event = new ZM\Event($event);
   }
+  if (!$event->Id()) return;
 
   if ($event->Archived()) {
     ZM\Info('Cannot delete Archived event.');
     return;
   } # end if Archived
 
-  global $user;
-
-  if ($user->Events() == 'Edit') {
+  # Needs Events edit and access to the event's monitor, not just the global permission.
+  if ($event->canEdit()) {
     $event->delete();
-  } # CAN EDIT
+  } else {
+    ZM\Warning('No permission to delete event '.$event->Id());
+  }
 }
 
 /**
@@ -404,7 +437,7 @@ function htmlOptions($options, $values) {
   $has_selected = false;
   foreach ( $options as $value=>$option ) {
     $disabled = 0;
-    $text = '';
+    $text = $class = '';
     if ( is_array($option) ) {
 
       if ( isset($option['Name']) )
@@ -414,6 +447,9 @@ function htmlOptions($options, $values) {
 
       if ( isset($option['disabled']) ) {
         $disabled = $option['disabled'];
+      }
+      if ( isset($option['class']) ) {
+        $class = $option['class'];
       }
     } else if ( is_object($option) ) {
       $text = $option->Name();
@@ -430,6 +466,7 @@ function htmlOptions($options, $values) {
     $options_html .= '<option value="'.htmlspecialchars($value, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'"'.
       ($selected?' selected="selected"':'').
       ($disabled?' disabled="disabled"':'').
+      ($class?' class="'.htmlspecialchars($class, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'"':'').
       '>'.htmlspecialchars($text, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'</option>'.PHP_EOL;
   } # end foreach options
   if ( $values and ((!is_array($values)) or count($values) ) and ! $has_selected ) {
@@ -501,6 +538,12 @@ function getFormChanges($values, $newValues, $types=false, $columns=false) {
     if ( $columns && !isset($columns[$key]) )
       continue;
 
+    # Validate column name to prevent SQL injection via array keys
+    if ( !preg_match('/^[a-zA-Z0-9_]+$/', $key) ) {
+      ZM\Warning("Invalid column name rejected in getFormChanges: $key");
+      continue;
+    }
+
     if ( !isset($types[$key]) )
       $types[$key] = false;
 
@@ -517,10 +560,14 @@ function getFormChanges($values, $newValues, $types=false, $columns=false) {
       case 'image' :
           if ( is_array( $newValues[$key] ) ) {
             $imageData = getimagesize( $newValues[$key]['tmp_name'] );
-            $changes[$key.'Width'] = $key.'Width = '.$imageData[0];
-            $changes[$key.'Height'] = $key.'Height = '.$imageData[1];
-            $changes[$key.'Type'] = $key.'Type = \''.$newValues[$key]['type'].'\'';
-            $changes[$key.'Size'] = $key.'Size = '.$newValues[$key]['size'];
+            if ( !is_array($imageData) ) {
+              ZM\Warning("getimagesize failed for uploaded field '$key'; skipping width/height update.");
+            } else {
+              $changes[$key.'Width'] = $key.'Width = '.intval($imageData[0]);
+              $changes[$key.'Height'] = $key.'Height = '.intval($imageData[1]);
+            }
+            $changes[$key.'Type'] = $key.'Type = '.dbEscape($newValues[$key]['type']);
+            $changes[$key.'Size'] = $key.'Size = '.intval($newValues[$key]['size']);
             ob_start();
             readfile( $newValues[$key]['tmp_name'] );
             $changes[$key] = $key." = ".dbEscape( ob_get_contents() );
@@ -531,9 +578,8 @@ function getFormChanges($values, $newValues, $types=false, $columns=false) {
           break;
       case 'document' :
           if ( is_array( $newValues[$key] ) ) {
-            $imageData = getimagesize( $newValues[$key]['tmp_name'] );
-            $changes[$key.'Type'] = $key.'Type = \''.$newValues[$key]['type'].'\'';
-            $changes[$key.'Size'] = $key.'Size = '.$newValues[$key]['size'];
+            $changes[$key.'Type'] = $key.'Type = '.dbEscape($newValues[$key]['type']);
+            $changes[$key.'Size'] = $key.'Size = '.intval($newValues[$key]['size']);
             ob_start();
             readfile( $newValues[$key]['tmp_name'] );
             $changes[$key] = $key.' = '.dbEscape( ob_get_contents() );
@@ -755,9 +801,9 @@ function daemonStatus($daemon, $args=false) {
 
 function zmcStatus($monitor) {
   if ( $monitor['Type'] == 'Local' ) {
-    $zmcArgs = '-d '.$monitor['Device'];
+    $zmcArgs = '-d '.escapeshellarg($monitor['Device']);
   } else {
-    $zmcArgs = '-m '.$monitor['Id'];
+    $zmcArgs = '-m '.escapeshellarg($monitor['Id']);
   }
   return daemonStatus('zmc', $zmcArgs);
 }
@@ -776,9 +822,9 @@ function daemonCheck($daemon=false, $args=false) {
 
 function zmcCheck($monitor) {
   if ( $monitor['Type'] == 'Local' ) {
-    $zmcArgs = '-d '.$monitor['Device'];
+    $zmcArgs = '-d '.escapeshellarg($monitor['Device']);
   } else {
-    $zmcArgs = '-m '.$monitor['Id'];
+    $zmcArgs = '-m '.escapeshellarg($monitor['Id']);
   }
   return daemonCheck('zmc', $zmcArgs);
 }
@@ -1092,7 +1138,7 @@ function sortHeader($field, $querySep='&amp;') {
   global $view;
   return implode($querySep, array(
     '?view='.$view,
-    'page=1'.((isset($_REQUEST['filter']) and isset($_REQUEST['filter']['query'])) ? $_REQUEST['filter']['query'] : ''),
+    'page=1'.((isset($_REQUEST['filter']) and isset($_REQUEST['filter']['query'])) ? validHtmlStr($_REQUEST['filter']['query']) : ''),
     'sort_field='.$field,
     'sort_asc='.( ( isset($_REQUEST['sort_field']) and ( $_REQUEST['sort_field'] == $field ) ) ? !validInt($_REQUEST['sort_asc']) : 0),
     'limit='.(isset($_REQUEST['limit']) ? validInt($_REQUEST['limit']) : ''),
@@ -1384,96 +1430,16 @@ function _CompareX($a, $b) {
 }
 
 function getPolyArea($points) {
-  global $debug;
-
-  $n_coords = count($points);
-  $global_edges = array();
-  for ( $j = 0, $i = $n_coords-1; $j < $n_coords; $i = $j++ ) {
-    $x1 = $points[$i]['x'];
-    $x2 = $points[$j]['x'];
-    $y1 = $points[$i]['y'];
-    $y2 = $points[$j]['y'];
-
-    //printf( "x1:%d,y1:%d x2:%d,y2:%d\n", x1, y1, x2, y2 );
-    if ( $y1 == $y2 )
-      continue;
-
-    $dx = $x2 - $x1;
-    $dy = $y2 - $y1;
-
-    $global_edges[] = array(
-        'min_y' => $y1<$y2?$y1:$y2,
-        'max_y' => ($y1<$y2?$y2:$y1)+1,
-        'min_x' => $y1<$y2?$x1:$x2,
-        '_1_m' => $dx/$dy,
-        );
-  }
-
-  usort($global_edges, '_CompareXY');
-
-  if ( $debug ) {
-    for ( $i = 0; $i < count($global_edges); $i++ ) {
-      printf('%d: min_y: %d, max_y:%d, min_x:%.2f, 1/m:%.2f<br>',
-        $i,
-        $global_edges[$i]['min_y'],
-        $global_edges[$i]['max_y'],
-        $global_edges[$i]['min_x'],
-        $global_edges[$i]['_1_m']);
-    }
-  }
-
+  // Shoelace formula - works correctly with both integer and float coordinates
+  $n = count($points);
   $area = 0.0;
-  $active_edges = array();
-  $y = $global_edges[0]['min_y'];
-  do {
-    for ( $i = 0; $i < count($global_edges); $i++ ) {
-      if ( $global_edges[$i]['min_y'] == $y ) {
-        if ( $debug ) printf('Moving global edge<br>');
-        $active_edges[] = $global_edges[$i];
-        array_splice($global_edges, $i, 1);
-        $i--;
-      } else {
-        break;
-      }
-    }
-    usort($active_edges, '_CompareX');
-    if ( $debug ) {
-      for ( $i = 0; $i < count($active_edges); $i++ ) {
-        printf('%d - %d: min_y: %d, max_y:%d, min_x:%.2f, 1/m:%.2f<br>',
-          $y, $i,
-          $active_edges[$i]['min_y'],
-          $active_edges[$i]['max_y'],
-          $active_edges[$i]['min_x'],
-          $active_edges[$i]['_1_m']);
-      }
-    }
-    $last_x = 0;
-    $row_area = 0;
-    $parity = false;
-    for ( $i = 0; $i < count($active_edges); $i++ ) {
-      $x = intval(round($active_edges[$i]['min_x']));
-      if ( $parity ) {
-        $row_area += ($x - $last_x)+1;
-        $area += $row_area;
-      }
-      if ( $active_edges[$i]['max_y'] != $y )
-        $parity = !$parity;
-      $last_x = $x;
-    }
-    if ( $debug ) printf('%d: Area:%d<br>', $y, $row_area);
-    $y++;
-    for ( $i = 0; $i < count($active_edges); $i++ ) {
-      if ( $y >= $active_edges[$i]['max_y'] ) { // Or >= as per sheets
-        if ( $debug ) printf('Deleting active_edge<br>');
-        array_splice($active_edges, $i, 1);
-        $i--;
-      } else {
-        $active_edges[$i]['min_x'] += $active_edges[$i]['_1_m'];
-      }
-    }
-  } while ( count($global_edges) || count($active_edges) );
-  if ( $debug ) printf('Area:%d<br>', $area);
-  return $area;
+  for ($i = 0; $i < $n - 1; $i++) {
+    $area += ((float)$points[$i]['x'] * (float)$points[$i+1]['y']
+            - (float)$points[$i+1]['x'] * (float)$points[$i]['y']);
+  }
+  $area += ((float)$points[$n-1]['x'] * (float)$points[0]['y']
+          - (float)$points[0]['x'] * (float)$points[$n-1]['y']);
+  return round(abs($area) / 2.0);
 }
 
 function getPolyAreaOld($points) {
@@ -1502,7 +1468,7 @@ function getPolyAreaOld($points) {
 }
 
 function mapCoords($a) {
-  return $a['x'].','.$a['y'];
+  return number_format((float)$a['x'], 2, '.', '').','.number_format((float)$a['y'], 2, '.', '');
 }
 
 function pointsToCoords($points) {
@@ -1511,10 +1477,10 @@ function pointsToCoords($points) {
 
 function coordsToPoints($coords) {
   $points = array();
-  if ( preg_match_all('/(\d+,\d+)+/', $coords, $matches) ) {
+  if ( preg_match_all('/([\d.]+,[\d.]+)+/', $coords, $matches) ) {
     for ( $i = 0; $i < count($matches[1]); $i++ ) {
-      if ( preg_match('/(\d+),(\d+)/', $matches[1][$i], $cmatches) ) {
-        $points[] = array('x'=>$cmatches[1], 'y'=>$cmatches[2]);
+      if ( preg_match('/([\d.]+),([\d.]+)/', $matches[1][$i], $cmatches) ) {
+        $points[] = array('x'=>(float)$cmatches[1], 'y'=>(float)$cmatches[2]);
       } else {
         echo('Bogus coordinates ('.$matches[$i].')');
         return false;
@@ -1545,6 +1511,25 @@ function limitPoints(&$points, $min_x, $min_y, $max_x, $max_y) {
     }
   } // end foreach point
 } // end function limitPoints( $points, $min_x, $min_y, $max_x, $max_y )
+
+function convertPixelPointsToPercent(&$points, $width, $height) {
+  if (!$width || !$height) return false;
+  $isPixel = false;
+  foreach ($points as $point) {
+    if ($point['x'] > 100 || $point['y'] > 100) {
+      $isPixel = true;
+      break;
+    }
+  }
+  if ($isPixel) {
+    foreach ($points as &$point) {
+      $point['x'] = round($point['x'] / $width * 100, 2);
+      $point['y'] = round($point['y'] / $height * 100, 2);
+    }
+    unset($point);
+  }
+  return $isPixel;
+}
 
 function scalePoints(&$points, $scale) {
   foreach ( $points as &$point ) {
@@ -1672,7 +1657,8 @@ function logState() {
       );
 
   # This is an expensive request, as it has to hit every row of the Logs Table
-  $sql = 'SELECT Level, COUNT(Level) AS LevelCount FROM Logs WHERE Level < '.ZM\Logger::INFO.' AND TimeKey > unix_timestamp(now() - interval '.ZM_LOG_CHECK_PERIOD.' second) GROUP BY Level ORDER BY Level ASC';
+  # Level >= PANIC excludes AUDIT and below, which are not error conditions
+  $sql = 'SELECT Level, COUNT(Level) AS LevelCount FROM Logs WHERE Level < '.ZM\Logger::INFO.' AND Level >= '.ZM\Logger::PANIC.' AND TimeKey > unix_timestamp(now() - interval '.ZM_LOG_CHECK_PERIOD.' second) GROUP BY Level ORDER BY Level ASC';
   $counts = dbFetchAll($sql);
   if ( $counts ) {
     foreach ( $counts as $count ) {
@@ -1819,13 +1805,20 @@ define('HTTP_STATUS_OK', 200);
 define('HTTP_STATUS_BAD_REQUEST', 400);
 define('HTTP_STATUS_FORBIDDEN', 403);
 
-function ajaxError($message, $code=HTTP_STATUS_OK) {
+/* $reason is an optional machine-readable classification of the failure, for
+ * callers that need to react differently to different errors instead of
+ * parsing $message.  It is named $reason rather than $code because $code is
+ * already taken by the HTTP status.  Included in the response only when set,
+ * so existing callers and their clients are unaffected.
+ */
+function ajaxError($message, $code=HTTP_STATUS_OK, $reason=null) {
   $backTrace = debug_backtrace();
   ZM\Debug($message.' from '.print_r($backTrace, true));
   if ( function_exists('ajaxCleanup') )
     ajaxCleanup();
   if ( $code == HTTP_STATUS_OK ) {
     $response = array('result'=>'Error', 'message'=>$message);
+    if ($reason !== null) $response['reason'] = $reason;
     header('Content-type: application/json');
     exit(jsonEncode($response));
   }
@@ -1851,8 +1844,12 @@ function generateConnKey() {
 }
 
 function detaintPathAllowAbsolute($path) {
-  // Strip out :// because php:// is a way to inject code apparently
-  $path = str_replace('://', '', $path);
+  // Strip out :// because php:// is a way to inject code apparently.
+  // This must loop: a single pass lets the removal re-form the sequence it
+  // just removed, so '::////' collapses back into '://'.
+  do {
+    $path = str_replace('://', '', $path, $count);
+  } while($count);
   // Remove any absolute paths, or relative ones that want to go up
   do {
     $path = str_replace('../', '', $path, $count);
@@ -1860,10 +1857,29 @@ function detaintPathAllowAbsolute($path) {
   return $path;
 }
 
+// A redirect target taken from the request ($url) if it stays on this server, else $fallback.
+// Accepts a query-only URL (?view=...) or an absolute http(s) URL whose host and port are the
+// ones this request was made to; refuses anything a browser could resolve to another site:
+// another host, //host, backslashes, user@host, other schemes, and control characters.
+function localRedirectUrl($url, $fallback) {
+  if (!is_string($url) or $url === '' or preg_match('/[\x00-\x1f\x7f\\\\]/', $url)) return $fallback;
+  if ($url[0] == '?') return $url;
+  $parts = parse_url($url);
+  if (!$parts or !isset($parts['scheme']) or !isset($parts['host']) or isset($parts['user'])) return $fallback;
+  if (!in_array(strtolower($parts['scheme']), array('http', 'https'), true)) return $fallback;
+  if (!isset($_SERVER['HTTP_HOST'])) return $fallback;
+  $host = $parts['host'].(isset($parts['port']) ? ':'.$parts['port'] : '');
+  return strcasecmp($host, $_SERVER['HTTP_HOST']) ? $fallback : $url;
+}
+
 function detaintPath($path) {
 
-  // Strip out :// because php:// is a way to inject code apparently
-  $path = str_replace('://', '', $path);
+  // Strip out :// because php:// is a way to inject code apparently.
+  // This must loop: a single pass lets the removal re-form the sequence it
+  // just removed, so '::////' collapses back into '://'.
+  do {
+    $path = str_replace('://', '', $path, $count);
+  } while($count);
   // Remove any absolute paths, or relative ones that want to go up
   do {
     $path = str_replace('../', '', $path, $count);
@@ -1886,7 +1902,7 @@ function cache_bust($file) {
   ) {
     return 'cache/'.$cacheFile;
   } else {
-    ZM\Warning('Failed linking '.$file.' to '.$cacheFile);
+    ZM\Warning('Failed linking '.ZM_PATH_WEB.'/'.$file.' to '.ZM_DIR_CACHE.'/'.$cacheFile);
   }
   return $file;
 }
@@ -1930,11 +1946,19 @@ function requestVar($name, $default='') {
 }
 
 // For numbers etc in javascript or tags etc
+// Request values can be arrays (id[]=1, id[Id]=1). preg_replace() returns an
+// array as it is, and ZM_Object's constructor takes an array as the object's
+// row, so new ZM\Event(validInt($_REQUEST['id'])) built an event from the
+// request whose Id and MonitorId the sender chose, and the permission checks
+// then looked at those. Anything that isn't a single value is no number.
 function validInt($input) {
+  if (!is_scalar($input)) return '';
   return preg_replace('/[^\-\d]/', '', $input);
 }
 
+// Like validInt(), and for the same reason gives '' for an array.
 function validCardinal($input) {
+  if (!is_scalar($input)) return '';
   return preg_replace('/\D/', '', $input);
 }
 
@@ -1942,10 +1966,31 @@ function validNum( $input ) {
   return preg_replace('/[^\d.-]/', '', $input);
 }
 
+// For device path strings - must be a valid Unix device path
+function validDevicePath($input) {
+  if (is_null($input) || $input === '') return '';
+  // Only allow typical device paths: /dev/video0, /dev/v4l/by-id/..., etc.
+  // Reject any shell metacharacters
+  if (!preg_match('#^/dev/[\w/.\-]+$#', $input)) {
+    ZM\Warning("Invalid device path rejected: ".validHtmlStr($input));
+    return '';
+  }
+  return $input;
+}
+
 // For general strings
 function validStr($input) {
   if (is_null($input)) return '';
   return strip_tags($input);
+}
+
+// The bandwidth profiles a skin is expected to have settings for. The classic
+// skin defines its whole ZM_WEB_* constant set by switching on this value, so
+// anything outside this list leaves those constants undefined and every page
+// fatals on the first one it reaches. Nothing may reach the zmBandwidth cookie
+// without passing this.
+function isValidBandwidth($input) {
+  return in_array($input, array('high', 'medium', 'low'), true);
 }
 
 // For strings in javascript or tags etc, expected to be in quotes so further quotes escaped rather than converted
@@ -2407,22 +2452,38 @@ function output_file($path, $chunkSize=1024) {
   header("Content-Disposition: $contentDisposition;filename=\"$file\"");
 
   header('Accept-Ranges: bytes');
-  $range = 0;
   $size = filesize($path);
+  $start = 0;
+  $end = $size - 1;
 
   if (isset($_SERVER['HTTP_RANGE'])) {
-    list($a, $range) = explode('=', $_SERVER['HTTP_RANGE']);
-    str_replace($range, '-', $range);
-    $range = (int)$range; #fseek etc require integers not strings
-    $size2 = $size - 1;
-    $new_length = $size - $range;
+    # RFC 7233: bytes=start-end | bytes=start- | bytes=-suffix
+    if (preg_match('/^bytes=(\d*)-(\d*)$/', trim($_SERVER['HTTP_RANGE']), $m)
+        and ($m[1] !== '' or $m[2] !== '')) {
+      if ($m[1] === '') {
+        # Suffix range: last N bytes
+        $suffix = (int)$m[2];
+        if ($suffix > $size) $suffix = $size;
+        $start = $size - $suffix;
+      } else {
+        $start = (int)$m[1];
+        if ($m[2] !== '') $end = (int)$m[2];
+      }
+      if ($end > $size - 1) $end = $size - 1;
+    }
+    if ($start > $end or $start >= $size) {
+      header('HTTP/1.1 416 Range Not Satisfiable');
+      header("Content-Range: bytes */$size");
+      return false;
+    }
+    $length = $end - $start + 1;
     header('HTTP/1.1 206 Partial Content');
-    header("Content-Length: $new_length");
-    header("Content-Range: bytes $range$size2/$size");
+    header("Content-Length: $length");
+    header("Content-Range: bytes $start-$end/$size");
   } else {
-    $size2 = $size - 1;
-    header("Content-Range: bytes 0-$size2/$size");
-    header('Content-Length: ' . $size);
+    $length = $size;
+    header("Content-Range: bytes 0-$end/$size");
+    header("Content-Length: $size");
   }
 
   if ($size == 0) {
@@ -2431,13 +2492,18 @@ function output_file($path, $chunkSize=1024) {
   @ini_set('magic_quotes_runtime', 0);
   $fp = fopen($path, 'rb');
 
-  fseek($fp, $range);
+  fseek($fp, $start);
 
-  while (!feof($fp) and (connection_status() == 0)) {
+  $remaining = $length;
+  $buffer = 1024 * $chunkSize;
+  while ($remaining > 0 and !feof($fp) and (connection_status() == 0)) {
     set_time_limit(0);
-    print(@fread($fp, 1024*$chunkSize));
+    $data = @fread($fp, min($buffer, $remaining));
+    if ($data === false or $data === '') break;
+    print($data);
     flush();
-    ob_flush();
+    if (ob_get_level() > 0) ob_flush();
+    $remaining -= strlen($data);
   }
   fclose($fp);
 
@@ -2501,5 +2567,52 @@ function to_string($thing) {
   if (empty($thing)) return '';
   if (is_array($thing)) return implode(', ', $thing);
   return strval($thing);
+}
+
+if (!function_exists('mb_ucfirst')) { // Available in PHP >= 8.4
+  function mb_ucfirst($str, $encoding='UTF-8') {
+    if (extension_loaded('mbstring')) {
+      $result = mb_strtoupper(mb_substr($str, 0, 1, $encoding), $encoding) . mb_substr($str, 1, null, $encoding);
+    } else {
+      $result = (ucfirst($str));
+    }
+    return $result;
+  }
+}
+
+if (!function_exists('mb_lcfirst')) { // Available in PHP >= 8.4
+  function mb_lcfirst($str, $encoding='UTF-8') {
+    if (extension_loaded('mbstring')) {
+      $result = mb_strtolower(mb_substr($str, 0, 1, $encoding), $encoding) . mb_substr($str, 1, null, $encoding);
+    } else {
+      $result = (lcfirst($str));
+    }
+    return $result;
+  }
+}
+
+function findVideoEventFile ($Event, $ext="*") {
+  $dir = $Event->Path();
+  $eventDefaultVideo = to_string($Event->DefaultVideo());
+  $path = '';
+  if ($eventDefaultVideo !== '' &&
+    !str_ends_with($eventDefaultVideo, '.m3u8') &&
+    ($ext === "*" || str_ends_with(strtolower($eventDefaultVideo), '.' . $ext))) {
+      $path = $dir.'/'.$eventDefaultVideo;
+  }
+  if (!is_file($path)) $path = ''; # So we don't return a reference to a non-existent file.
+
+  if ($path === '') {
+    # By default, we search for files with any extension, such as mp4, mkv, or webm.
+    # Look for the final renamed first, then incomplete.
+    # Incomplete files may exist as either incomplete.<container> or incomplete.<codec>.<container>.
+    $candidates = glob($dir.'/'.$Event->Id().'-video.*.'.$ext);
+    if (!$candidates) $candidates = glob($dir.'/incomplete.'.$ext);
+    if (!$candidates) $candidates = glob($dir.'/incomplete.*.'.$ext);
+    if ($candidates) {
+      $path = $candidates[0];
+    }
+  }
+  return $path;
 }
 ?>

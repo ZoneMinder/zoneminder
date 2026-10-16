@@ -73,8 +73,16 @@ class FilterComponent extends Component {
   );
 
 	// Build a CakePHP find() condition based on the named parameters
-	// that are passed in
-	public function buildFilter($namedParams) {
+	// that are passed in.
+	//
+	// $validFields, when given, is the list of field names a caller may filter
+	// on. Without it an unknown name is passed straight through into the SQL and
+	// surfaces as a PDOException, so a caller asking for a field that does not
+	// exist - or one that lives on Monitors rather than the model being queried,
+	// such as MonitorName - got an opaque 500 with a stack trace rather than a
+	// message naming the field. Callers that have not been given a list keep the
+	// old behaviour.
+	public function buildFilter($namedParams, $validFields = null) {
 		$conditions = array();
 		if ($namedParams) {
 			foreach ($namedParams as $attribute => $value) {
@@ -85,14 +93,25 @@ class FilterComponent extends Component {
         }
 				$matches = NULL;
 				if (preg_match('/^(?P<field>[a-z0-9\.]+)(?P<operator>.+)?$/i', $lhs, $matches) !== 1) {
-					throw new Exception('Invalid argument before `:`: ' . $lhs);
+					throw new BadRequestException('Invalid argument before `:`: ' . $lhs);
 				}
 				$operator = isset($matches['operator']) ? trim($matches['operator']) : '';
 
 				// Only allow operators on our allow list. No operator
 				// specified defaults to `=` by cakePHP.
 				if ($operator != '' && !in_array($operator, $this->twoOperandSQLOperands)) {
-					throw new Exception('Invalid operator: ' . $operator);
+					throw new BadRequestException('Invalid operator: ' . $operator);
+				}
+
+				if ($validFields !== null) {
+					// A field may be written Model.Field; only the column is checked.
+					$field = $matches['field'];
+					$bare = (false !== strpos($field, '.'))
+						? substr($field, strrpos($field, '.') + 1)
+						: $field;
+					if (!in_array($bare, $validFields)) {
+						throw new BadRequestException('Unknown filter field: ' . $bare);
+					}
 				}
         if (($operator == 'LIKE') and (false === strpos($value, '%'))) {
           $value = '%'.$value.'%';

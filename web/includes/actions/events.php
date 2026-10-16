@@ -34,7 +34,12 @@ if ( $action == 'archive' ) {
   $eids = getAffectedIds('eids');
   ZM\Debug("E IDS" . print_r($eids, true));
   foreach ( $eids as $markEid ) {
-    dbQuery('UPDATE Events SET Archived=? WHERE Id=?', array(1, $markEid));
+    $event = new ZM\Event($markEid);
+    if (!$event->Id() or !$event->canEdit()) {
+      ZM\Warning('No permission to archive event '.$markEid);
+      continue;
+    }
+    dbQuery('UPDATE Events SET Archived=? WHERE Id=?', array(1, $event->Id()));
   }
   $dbConn->commit();
   $refreshParent = true;
@@ -43,14 +48,21 @@ if ( $action == 'archive' ) {
   $eids = getAffectedIds('eids');
   ZM\Debug("E IDS" . print_r($eids, true));
   foreach ( $eids as $markEid ) {
-    dbQuery('UPDATE Events SET Archived=? WHERE Id=?', array(0, $markEid));
+    $event = new ZM\Event($markEid);
+    if (!$event->Id() or !$event->canEdit()) {
+      ZM\Warning('No permission to unarchive event '.$markEid);
+      continue;
+    }
+    dbQuery('UPDATE Events SET Archived=? WHERE Id=?', array(0, $event->Id()));
   }
   $dbConn->commit();
   $refreshParent = true;
 } else if ( $action == 'delete' ) {
-  foreach ( getAffectedIds('eids') as $markEid ) {
+  $deletedEids = getAffectedIds('eids');
+  foreach ( $deletedEids as $markEid ) {
     deleteEvent($markEid);
   }
+  ZM\AuditAction('delete', 'events', 0, 'Count: '.count($deletedEids));
   $refreshParent = true;
 } else {
   ZM\Warning("Unsupported action $action in events");

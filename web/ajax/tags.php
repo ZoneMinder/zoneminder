@@ -3,8 +3,34 @@
 switch ( $_REQUEST['action'] ) {
   case 'getavailabletags' :
     $sql = 'SELECT * FROM Tags ORDER BY LastAssignedDate DESC';
-    $dbFetchResult = dbFetchAll($sql);
-    ajaxResponse(array('response'=>$dbFetchResult));
+    $tags = dbFetchAll($sql);
+
+    // Re-sort so tags THIS user has applied recently come first, ahead of
+    // the global "most recently applied by anyone" fallback order. The
+    // recency list is stored server-side (User_Preferences), keyed by Tag
+    // Id, so it's correct even on a device this user has never used before.
+    require_once('includes/TagOrder.php');
+    $tagOrderIds = \ZM\TagOrder::load($user->Id());
+    if ($tagOrderIds) {
+      $byId = array();
+      foreach ($tags as $tag) {
+        $byId[$tag['Id']] = $tag;
+      }
+      $personal = array();
+      $used = array();
+      foreach ($tagOrderIds as $tid) {
+        if (isset($byId[$tid]) and !isset($used[$tid])) {
+          $personal[] = $byId[$tid];
+          $used[$tid] = true;
+        }
+      }
+      $rest = array_values(array_filter($tags, function($tag) use ($used) {
+        return !isset($used[$tag['Id']]);
+      }));
+      $tags = array_merge($personal, $rest);
+    }
+
+    ajaxResponse(array('response'=>$tags));
     break;
   case 'createtag' :
     $sql = 'INSERT INTO Tags (Name, CreatedBy) VALUES (?, ?)';

@@ -16,6 +16,10 @@ if [ "$1" = "configure" ]; then
         chown www-data:www-data /var/cache/zoneminder /var/cache/zoneminder/*
 	fi
 
+    # Allow zoneminder access to local video sources and serial ports
+    adduser --quiet www-data video || true
+    adduser --quiet www-data dialout || true
+
     # Do this every time the package is installed or upgraded
 
     if [ "$ZM_DB_HOST" = "localhost" ]; then

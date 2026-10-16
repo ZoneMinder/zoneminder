@@ -7,7 +7,7 @@ const playBtn = $j('#playBtn');
 var monitor;
 
 function nextCycleView() {
-  window.location.replace('?view=cycle&mid='+nextMid+'&mode='+mode+'&'+auth_relay, cycleRefreshTimeout);
+  window.location.replace(zmAuth.appendTo('?view=cycle&mid='+nextMid+'&mode='+mode), cycleRefreshTimeout);
 }
 
 function cyclePause() {
@@ -17,6 +17,9 @@ function cyclePause() {
 }
 
 function cycleStart() {
+  // The play button can be reached without a pause in between, and the old id
+  // is unrecoverable once overwritten. refs #5135
+  clearInterval(intervalId);
   intervalId = setInterval(nextCycleView, cycleRefreshTimeout);
   pauseBtn.prop('disabled', false);
   playBtn.prop('disabled', true);
@@ -31,7 +34,7 @@ function cycleNext() {
     console.log('No monitorData for ' + monIdx);
   }
 
-  window.location.replace('?view=cycle&mid='+monitorData[monIdx].id+'&mode='+mode+'&'+auth_relay, cycleRefreshTimeout);
+  window.location.replace(zmAuth.appendTo('?view=cycle&mid='+monitorData[monIdx].id+'&mode='+mode), cycleRefreshTimeout);
 }
 
 function cyclePrev() {
@@ -43,7 +46,7 @@ function cyclePrev() {
     console.log('No monitorData for ' + monIdx);
   }
 
-  window.location.replace('?view=cycle&mid='+monitorData[monIdx].id+'&mode='+mode+'&'+auth_relay, cycleRefreshTimeout);
+  window.location.replace(zmAuth.appendTo('?view=cycle&mid='+monitorData[monIdx].id+'&mode='+mode), cycleRefreshTimeout);
 }
 
 function initCycle() {

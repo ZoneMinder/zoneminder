@@ -95,6 +95,23 @@ ZMPacket::~ZMPacket() {
   delete y_image;
 }
 
+void ZMPacket::release_frames() {
+  // y_image points into in_frame's Y plane, so it goes first.
+  delete y_image;
+  y_image = nullptr;
+  in_frame = nullptr;
+  hw_frame = nullptr;
+}
+
+void ZMPacket::release_decoded() {
+  release_frames();
+  delete image;
+  image = nullptr;
+  delete analysis_image;
+  analysis_image = nullptr;
+  out_frame = nullptr;
+}
+
 ssize_t ZMPacket::ram() {
   return packet->size +
          (in_frame ? in_frame->linesize[0] * in_frame->height : 0) +
@@ -299,7 +316,12 @@ Image *ZMPacket::get_y_image() {
       return nullptr;
     }
 
-    y_image = new Image(in_frame->width, in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, in_frame->data[0], 0, 0);
+    // Wrap the decoder's Y plane with its real stride (linesize[0]). The plane
+    // is packed at the decoder's alignment, which may be smaller than the
+    // FFALIGN(width,32) a plain Image would assume; recording the true stride
+    // keeps stride-aware reads (motion analysis) and Rotate/Flip correct.
+    y_image = new Image(in_frame->width, in_frame->linesize[0], in_frame->height,
+                        1, ZM_SUBPIX_ORDER_NONE, in_frame->data[0], 0);
   }
   return y_image;
 }
@@ -356,7 +378,7 @@ AVFrame *ZMPacket::get_out_frame(int width, int height, AVPixelFormat format) {
 
 std::unique_lock<std::mutex> ZMPacket::lock() {
   std::unique_lock<std::mutex> lck_(mutex_, std::defer_lock);
-  Debug(4, "locking packet %d %p %d owns %d", image_index, this, locked, lck_.owns_lock());
+  Debug(4, "locking packet %d %p %d owns %d", image_index, this, locked.load(), lck_.owns_lock());
   lck_.lock();
   locked = true;
   Debug(4, "packet %d locked", image_index);
@@ -364,33 +386,36 @@ std::unique_lock<std::mutex> ZMPacket::lock() {
 };
 
 void ZMPacket::lock(std::unique_lock<std::mutex> &lck_) {
-  Debug(4, "locking packet %d %p %d owns %d", image_index, this, locked, lck_.owns_lock());
+  Debug(4, "locking packet %d %p %d owns %d", image_index, this, locked.load(), lck_.owns_lock());
   lck_.lock();
   locked = true;
   Debug(4, "packet %d locked", image_index);
 };
 
 bool ZMPacket::trylock(std::unique_lock<std::mutex> &lck_) {
-  Debug(4, "TryLocking packet %d %p locked: %d owns: %d", image_index, this, locked, lck_.owns_lock());
-  locked = lck_.try_lock();
-  Debug(4, "TryLocking packet %d %p %d, owns: %d", image_index, this, locked, lck_.owns_lock());
-  return locked;
+  Debug(4, "TryLocking packet %d %p locked: %d owns: %d", image_index, this, locked.load(), lck_.owns_lock());
+  // A failed try_lock must not touch `locked`: another thread holds the
+  // mutex, and the caller's result must not depend on what others write.
+  const bool got = lck_.try_lock();
+  if (got) locked = true;
+  Debug(4, "TryLocking packet %d %p %d, owns: %d", image_index, this, got, lck_.owns_lock());
+  return got;
 };
 
 void ZMPacket::unlock(std::unique_lock<std::mutex> &lck_) {
-  Debug(4, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, lck_.owns_lock());
+  Debug(4, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked.load(), lck_.owns_lock());
   locked = false;
   lck_.unlock();
-  Debug(4, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, lck_.owns_lock());
+  Debug(4, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked.load(), lck_.owns_lock());
   condition_.notify_all();
 };
 
 void ZMPacket::unlock() {
   if (locked) {
-    Debug(4, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, our_lck_.owns_lock());
+    Debug(4, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked.load(), our_lck_.owns_lock());
     our_lck_.unlock();
   } else {
-    Error("Attempt to unlock already unlocked packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, our_lck_.owns_lock());
+    Error("Attempt to unlock already unlocked packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked.load(), our_lck_.owns_lock());
   }
 }
 

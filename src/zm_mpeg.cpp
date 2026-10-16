@@ -20,6 +20,7 @@
 #include "zm_mpeg.h"
 
 #include "zm_logger.h"
+#include "zm_pixformat.h"
 #include "zm_rgb.h"
 #include "zm_time.h"
 
@@ -58,38 +59,10 @@ int VideoStream::SetupCodec(
   int bitrate,
   double frame_rate
 ) {
-  /* ffmpeg format matching */
-  switch (colours) {
-  case ZM_COLOUR_RGB24:
-    if (subpixelorder == ZM_SUBPIX_ORDER_BGR) {
-      /* BGR subpixel order */
-      pf = AV_PIX_FMT_BGR24;
-    } else {
-      /* Assume RGB subpixel order */
-      pf = AV_PIX_FMT_RGB24;
-    }
-    break;
-  case ZM_COLOUR_RGB32:
-    if (subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
-      /* ARGB subpixel order */
-      pf = AV_PIX_FMT_ARGB;
-    } else if (subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
-      /* ABGR subpixel order */
-      pf = AV_PIX_FMT_ABGR;
-    } else if (subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
-      /* BGRA subpixel order */
-      pf = AV_PIX_FMT_BGRA;
-    } else {
-      /* Assume RGBA subpixel order */
-      pf = AV_PIX_FMT_RGBA;
-    }
-    break;
-  case ZM_COLOUR_GRAY8:
-    pf = AV_PIX_FMT_GRAY8;
-    break;
-  default:
-    Panic("Unexpected colours: %d",colours);
-    break;
+  pf = zm_pixformat_from_colours(colours, subpixelorder);
+  if (pf == AV_PIX_FMT_NONE) {
+    Panic("Unsupported (colours, subpixelorder) pair: colours=%d subpixelorder=%d",
+          colours, subpixelorder);
   }
 
   if (strcmp("rtp", of->name) == 0) {
@@ -151,6 +124,10 @@ int VideoStream::SetupCodec(
        of which frame timestamps are represented. for fixed-fps content,
        timebase should be 1/framerate and timestamp increments should be
        identically 1. */
+    if (frame_rate <= 0.0) {
+      Warning("Invalid frame_rate %.2f in SetupCodec, defaulting to 1fps", frame_rate);
+      frame_rate = 1.0;
+    }
     codec_context->time_base.den = frame_rate;
     codec_context->time_base.num = 1;
     ost->time_base.den = frame_rate;
@@ -291,6 +268,7 @@ bool VideoStream::OpenStream( ) {
     Error("?_write_header failed with error %d \"%s\"", ret, av_err2str(ret));
     return false;
   }
+  stream_opened = true;
   return true;
 }
 
@@ -300,6 +278,7 @@ VideoStream::VideoStream( const char *in_filename, const char *in_format, int bi
   video_outbuf(nullptr),
   video_outbuf_size(0),
   last_pts( -1 ),
+  stream_opened(false),
   streaming_thread(0),
   do_streaming(true),
   add_timestamp(false),
@@ -375,7 +354,9 @@ VideoStream::~VideoStream( ) {
   }
 
   /* write the trailer, if any */
-  av_write_trailer( ofc );
+  if ( stream_opened ) {
+    av_write_trailer( ofc );
+  }
 
   /* free the streams */
   for ( unsigned int i = 0; i < ofc->nb_streams; i++ ) {

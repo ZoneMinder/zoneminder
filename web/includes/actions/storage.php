@@ -27,12 +27,13 @@ if ( !canEdit('System') ) {
 global $error_message;
 
 if ($action == 'save') {
-  $storage = new ZM\Storage($_REQUEST['id']);
+  $storage = new ZM\Storage(validCardinal($_REQUEST['id']));
 
   $changes = $storage->changes($_REQUEST['newStorage']);
 
   if (count($changes)) {
     if ($storage->save($changes)) {
+      ZM\AuditAction(($_REQUEST['id'] ? 'update' : 'create'), 'storage', $storage->Id(), 'Changed: '.implode(', ', array_keys($changes)));
     } else {
       $error_message .= $storage->get_last_error();
     } // end if successful save

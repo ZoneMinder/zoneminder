@@ -148,7 +148,6 @@ $SLANG = array(
     'BadDevice'             => 'El dispositivo debe tener un valor válido',
     'BadFPSReportInterval'  => 'El registro de intervalo de recuento búfer de MPS debe ser un entero de 100 o más',
     'BadFormat'             => 'El formato debe tener un valor válido',
-    'BadFrameSkip'          => 'El número de omisión de marcos debe ser un entero de cero o más',
     'BadHeight'             => 'La altura debe tener un valor válido',
     'BadHost'               => 'El host debe tener una dirección ip o nombre de host válidos, no incluir http://',
     'BadImageBufferCount'   => 'El tamaño de búfer de imagen debe serun entero de 2 o más',
@@ -163,7 +162,7 @@ $SLANG = array(
     'BadPostEventCount'     => 'El número de imágenes post evento debe ser un entero de cero o más',
     'BadPreEventCount'      => 'El número de imágenes pre evento debe ser al menos cero, y menor que el tamaño búfer de imagen',
     'BadRefBlendPerc'       => 'El porcentaje de la referencia de mezcla debe ser un entero positivo',
-    'BadSectionLength'      => 'La duración de la sección debe ser un entero de 30 o más',
+    'BadSectionLength'      => 'La duración de la sección debe ser un entero de 10 o más',
     'BadSignalCheckColour'  => 'El color de verificación de señal debe ser una cadena de color RGB válida',
     'BadSourceType'        => 'Source Type \"Web Site\" requires the Function to be set to \"Monitor\"', // Added - 2018-08-30
     'BadStreamReplayBuffer' => 'La secuencia de búfer de reproducción debe ser un entero de cero o más',
@@ -370,7 +369,6 @@ $SLANG = array(
     'Frame'                 => 'Marco',
     'FrameId'               => 'Id del marco',
     'FrameRate'             => 'Ratío del marco',
-    'FrameSkip'             => 'Omisión de marcos',
     'Frames'                => 'Marcos',
     'Func'                  => 'Func',
     'Function'              => 'Función',
@@ -416,7 +414,6 @@ $SLANG = array(
     'Last'                  => 'Último',
     'Layout'                => 'Diseño',
     'Level'                 => 'Nivel',
-    'Libvlc'               => 'Libvlc',
     'LimitResultsPost'      => 'Sólo resultados', // This is used at the end of the phrase 'Limit to first N results only'
     'LimitResultsPre'       => 'Limitar al primero', // This is used at the beginning of the phrase 'Limit to first N results only'
     'Line'                  => 'Línea',
@@ -605,7 +602,6 @@ $SLANG = array(
     'ProfileProbeIntro'    => 'The list below shows the existing stream profiles of the selected camera .<br/><br/>Select the desired entry from the list below.<br/><br/>Please note that ZoneMinder cannot configure additional profiles and that choosing a camera here may overwrite any values you already have configured for the current monitor.<br/><br/>', // Added - 2015-04-18
     'Progress'             => 'Progress',               // Added - 2015-04-18
     'Protocol'              => 'Protocolo',
-    'RTSPDescribe'         => 'Use RTSP Response Media URL', // Added - 2018-08-30
     'RTSPTransport'        => 'RTSP Transport Protocol', // Added - 2018-08-30
     'Rate'                  => 'Valorar',
     'Real'                  => 'Real',
@@ -845,12 +841,6 @@ $OLANG = array(
 		          "\"allowed_media_types=video\" Set datatype to request fromcam (audio, video, data)~~~~".
 		          "\"reorder_queue_size=nnn\" Set number of packets to buffer for handling of reordered packets~~~~".
 		          "\"loglevel=debug\" Set verbosity of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
-	),
-	'OPTIONS_LIBVLC' => array(
-		'Help' => "Parameters in this field are passed on to libVLC. Multiple parameters can be separated by ,~~ ".
-		          "Examples (do not enter quotes)~~~~".
-		          "\"--rtp-client-port=nnn\" Set local port to use for rtp data~~~~". 
-		          "\"--verbose=2\" Set verbosity of libVLC"
 	),
 	
 );

@@ -20,6 +20,7 @@
 
 
 if ( $action == 'logout' ) {
+  ZM\Audit("user=".($user ? $user->Username() : 'unknown')." action=logout id=".($user ? $user->Id() : 0)." from=".($_SERVER['REMOTE_ADDR'] ?? 'local'));
   userLogout();
   $view = 'login';
 } elseif ( $action == 'config' ) {

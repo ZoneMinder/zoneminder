@@ -89,7 +89,7 @@ void Zone::Setup(
         if ( ranges[y].lo_x == -1 ) {
           ranges[y].lo_x = x;
         }
-        if ( (unsigned int)ranges[y].hi_x < x ) {
+        if ( ranges[y].hi_x < (int)x ) {
           ranges[y].hi_x = x;
         }
       }
@@ -154,6 +154,24 @@ void Zone::SetScore(unsigned int nScore) {
   stats.score_ = nScore;
 }  // end void Zone::SetScore(unsigned int nScore)
 
+// Replace the GRAY8 analysis mask with a highlight in the capture's own pixel
+// format, carrying this zone's alarm colour, and take ownership of it in
+// `image`. Overlay() onto the analysis image is then a same-format copy.
+// monitor->Colours()==1 aliases both GRAY8 and planar YUV420P, so resolve the
+// real format first: a true GRAY8 monitor has no colour to carry, so upgrade
+// its highlight to RGB24; YUV420P keeps its format and carries the alarm
+// colour in chroma.
+void Zone::BuildAlarmHighlight(Image *mask, bool edges_only) {
+  AVPixelFormat capture_fmt = zm_pixformat_from_colours(monitor->Colours(), monitor->SubpixelOrder());
+  if (capture_fmt == AV_PIX_FMT_GRAY8) {
+    image = mask->BuildHighlight(alarm_rgb, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB, &polygon.Extent(), edges_only);
+  } else {
+    image = mask->BuildHighlight(alarm_rgb, monitor->Colours(), monitor->SubpixelOrder(), &polygon.Extent(), edges_only);
+  }
+  // 'image' is now detached from the mask we were handed, so that is ours to free.
+  delete mask;
+}
+
 void Zone::SetAlarmImage(const Image* srcImage) {
   if ( image )
     delete image;
@@ -203,6 +221,13 @@ bool Zone::CheckAlarms(const Image *delta_image) {
     return false;
   }
 
+  // Validate delta_image dimensions
+  if (!delta_image->Buffer() || delta_image->Width() == 0 || delta_image->Height() == 0) {
+    Debug(1, "Zone %s: delta_image has no buffer or zero dimensions (%dx%d), skipping",
+          label.c_str(), delta_image->Width(), delta_image->Height());
+    return false;
+  }
+
   // Allocate a persistent grayscale mask buffer (same dimensions as delta).
   // Unlike the old code that copied the entire delta_image, we only zero the
   // bounding-box rows and let alarmedpixels_row read from delta_image directly.
@@ -227,6 +252,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
   }
   Image *diff_image = image;
   int diff_width = diff_image->Width();
+  int diff_height = diff_image->Height();
   uint8_t* diff_buff = diff_image->Buffer();
   uint8_t* pdiff;
 
@@ -240,10 +266,28 @@ bool Zone::CheckAlarms(const Image *delta_image) {
   int alarm_mid_x = -1;
   int alarm_mid_y = -1;
 
-  //unsigned int lo_x = polygon.Extent().Lo().x_;
-  unsigned int lo_y = polygon.Extent().Lo().y_;
-  unsigned int hi_x = polygon.Extent().Hi().x_;
-  unsigned int hi_y = polygon.Extent().Hi().y_;
+  //int lo_x = polygon.Extent().Lo().x_;
+  int lo_y = polygon.Extent().Lo().y_;
+  int hi_x = polygon.Extent().Hi().x_;
+  int hi_y = polygon.Extent().Hi().y_;
+
+  // Clamp polygon extents to image dimensions to prevent buffer overflows.
+  // This can happen if zone polygon coordinates exceed the actual frame size
+  // (e.g., camera reconnected at a different resolution).
+  if (hi_y >= diff_height) {
+    Warning("Zone %s: polygon hi_y (%d) >= image height (%d), clamping",
+            label.c_str(), hi_y, diff_height);
+    hi_y = diff_height - 1;
+  }
+  if (hi_x >= diff_width) {
+    Warning("Zone %s: polygon hi_x (%d) >= image width (%d), clamping",
+            label.c_str(), hi_x, diff_width);
+    hi_x = diff_width - 1;
+  }
+  if (lo_y > hi_y) {
+    Debug(1, "Zone %s: lo_y (%d) > hi_y (%d) after clamping, skipping", label.c_str(), lo_y, hi_y);
+    return false;
+  }
 
   // Zero the bbox rows so filter/blob stages see kBlack for pixels outside
   // each row's per-polygon ranges. alarmedpixels_row will write kWhite/kBlack
@@ -300,9 +344,12 @@ bool Zone::CheckAlarms(const Image *delta_image) {
       unsigned char *cpdiff;
       int ldx, hdx, ldy, hdy;
       bool block;
-      for (unsigned int y = lo_y; y <= hi_y; y++) {
+      for (int y = lo_y; y <= hi_y; y++) {
         int lo_x = ranges[y].lo_x;
         int hi_x = ranges[y].hi_x;
+
+        // Skip rows with no polygon pixels (lo_x == -1 means no pixels)
+        if (lo_x < 0 || lo_x > hi_x) continue;
 
         pdiff = diff_image->Buffer(lo_x, y);
 
@@ -383,9 +430,12 @@ bool Zone::CheckAlarms(const Image *delta_image) {
       uint8_t last_x, last_y;
       BlobStats *bsx, *bsy;
       BlobStats *bsm, *bss;
-      for (unsigned int y = lo_y; y <= hi_y; y++) {
+      for (int y = lo_y; y <= hi_y; y++) {
         int lo_x = ranges[y].lo_x;
         int hi_x = ranges[y].hi_x;
+
+        // Skip rows with no polygon pixels
+        if (lo_x < 0 || lo_x > hi_x) continue;
 
         pdiff = diff_image->Buffer(lo_x, y);
         for (int x = lo_x; x <= hi_x; x++, pdiff++) {
@@ -413,7 +463,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                   stats.alarm_blob_pixels_++;
                   bsx->count++;
                   if (x > bsx->hi_x) bsx->hi_x = x;
-                  if ((int)y > bsx->hi_y) bsx->hi_y = y;
+                  if (y > bsx->hi_y) bsx->hi_y = y;
                 } else {
                   // Aggregate blobs
                   bsm = bsx->count>=bsy->count?bsx:bsy;
@@ -463,7 +513,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                   // Merge the slave blob into the master
                   bsm->count += bss->count+1;
                   if (x > bsm->hi_x) bsm->hi_x = x;
-                  if ((int)y > bsm->hi_y) bsm->hi_y = y;
+                  if (y > bsm->hi_y) bsm->hi_y = y;
                   if (bss->lo_x < bsm->lo_x) bsm->lo_x = bss->lo_x;
                   if (bss->lo_y < bsm->lo_y) bsm->lo_y = bss->lo_y;
                   if (bss->hi_x > bsm->hi_x) bsm->hi_x = bss->hi_x;
@@ -489,7 +539,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                 stats.alarm_blob_pixels_++;
                 bsx->count++;
                 if (x > bsx->hi_x) bsx->hi_x = x;
-                if ((int)y > bsx->hi_y) bsx->hi_y = y;
+                if (y > bsx->hi_y) bsx->hi_y = y;
               }
             } else {
               if (last_y) {
@@ -502,14 +552,14 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                 stats.alarm_blob_pixels_++;
                 bsy->count++;
                 if (x > bsy->hi_x) bsy->hi_x = x;
-                if ((int)y > bsy->hi_y) bsy->hi_y = y;
+                if (y > bsy->hi_y) bsy->hi_y = y;
               } else {
                 // Create a new blob
                 int i;
                 for (i = (kWhite-1); i > 0; i--) {
                   BlobStats *bs = &blob_stats[i];
                   // See if we can recycle one first, only if it's at least two rows up
-                  if (bs->count && bs->hi_y < (int)(y-1)) {
+                  if (bs->count && bs->hi_y < (y-1)) {
                     if (
                       (min_blob_pixels && bs->count < min_blob_pixels)
                       ||
@@ -720,13 +770,16 @@ bool Zone::CheckAlarms(const Image *delta_image) {
 
     if ((type < PRECLUSIVE) && (check_method >= BLOBS) && (monitor->GetOptSaveJPEGs() > 1)) {
 
-      unsigned int lo_x = polygon.Extent().Lo().x_;
+      int lo_x = polygon.Extent().Lo().x_;
       // First mask out anything we don't want
-      for (unsigned int y = lo_y; y <= hi_y; y++) {
-        pdiff = diff_buff + ((diff_width * y) + lo_x);
-
+      for (int y = lo_y; y <= hi_y; y++) {
         int lo_x2 = ranges[y].lo_x;
         int hi_x2 = ranges[y].hi_x;
+
+        // Skip rows with no polygon pixels
+        if (lo_x2 < 0 || lo_x2 > hi_x2) continue;
+
+        pdiff = diff_buff + ((diff_width * y) + lo_x);
 
         int lo_gap = lo_x2-lo_x;
         if (lo_gap > 0) {
@@ -755,14 +808,24 @@ bool Zone::CheckAlarms(const Image *delta_image) {
         }
       }  // end for y
 
-      if (monitor->Colours() == ZM_COLOUR_GRAY8) {
-        image = diff_image->HighlightEdges(alarm_rgb, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB, &polygon.Extent());
-      } else {
-        image = diff_image->HighlightEdges(alarm_rgb, monitor->Colours(), monitor->SubpixelOrder(), &polygon.Extent());
-      }
-
-      // Only need to delete this when 'image' becomes detached and points somewhere else
-      delete diff_image;
+      // Build the alarm highlight in the capture's own pixel format so Overlay()
+      // onto the analysis image is a same-format copy. monitor->Colours()==1
+      // aliases both GRAY8 and planar YUV420P, so resolve the real format first:
+      // a true GRAY8 monitor has no colour to carry, so upgrade its highlight to
+      // RGB24; YUV420P keeps its format and carries the alarm colour in chroma.
+      BuildAlarmHighlight(diff_image, true);
+      diff_image = nullptr;
+    } else if ((type < PRECLUSIVE) && (monitor->GetOptSaveJPEGs() > 1)) {
+      // Alarmed/filtered pixels: the mask stays GRAY8 through the analysis
+      // above because the scoring reads it as one byte per pixel. Overlay()
+      // onto the analysis image then keys on a non-zero source pixel, so a
+      // GRAY8 mask painted an undifferentiated highlight -- writing the mask
+      // value into the red channel on an RGB32 monitor (hence "alarms are
+      // always red"), into all three on RGB24 (white), and into luma alone on
+      // YUV420 -- and the zone's configured Alarm Colour was honoured only on
+      // the blob path. Build the same colour highlight the blob path builds,
+      // filled rather than outlined, now that scoring is done with the mask.
+      BuildAlarmHighlight(diff_image, false);
       diff_image = nullptr;
     }  // end if ( (type < PRECLUSIVE) && (check_method >= BLOBS) && (monitor->GetOptSaveJPEGs() > 1)
 
@@ -827,9 +890,10 @@ bool Zone::ParsePercentagePolygon(const char *poly_string, unsigned int width, u
     int32 px_x = static_cast<int32>(std::lround(pct_x * mon_w / 100.0));
     int32 px_y = static_cast<int32>(std::lround(pct_y * mon_h / 100.0));
 
-    // Clamp to monitor bounds
-    px_x = std::clamp(px_x, static_cast<int32>(0), static_cast<int32>(width));
-    px_y = std::clamp(px_y, static_cast<int32>(0), static_cast<int32>(height));
+    // Clamp to monitor bounds. Max valid pixel index is width-1/height-1;
+    // values equal to width/height cause out-of-bounds warnings in the rasterizer.
+    px_x = std::clamp(px_x, static_cast<int32>(0), static_cast<int32>(width) - 1);
+    px_y = std::clamp(px_y, static_cast<int32>(0), static_cast<int32>(height) - 1);
 
     Debug(3, "Percentage coord %.2f,%.2f -> pixel %d,%d", pct_x, pct_y, px_x, px_y);
     vertices.emplace_back(px_x, px_y);
@@ -849,6 +913,23 @@ bool Zone::ParsePercentagePolygon(const char *poly_string, unsigned int width, u
   Error("Not enough coordinates to form a polygon from '%s'", poly_string);
   return false;
 }  // end bool Zone::ParsePercentagePolygon
+
+// Clamp every vertex to [0, width-1] x [0, height-1], as ParsePercentagePolygon
+// does for percentage coordinates. Returns true if any vertex was moved.
+bool Zone::ClampPolygon(Polygon &polygon, unsigned int width, unsigned int height) {
+  bool clamped = false;
+  std::vector<Vector2> vertices = polygon.GetVertices();
+  for (Vector2 &vertex : vertices) {
+    int32 x = std::clamp(vertex.x_, static_cast<int32>(0), static_cast<int32>(width) - 1);
+    int32 y = std::clamp(vertex.y_, static_cast<int32>(0), static_cast<int32>(height) - 1);
+    if (x != vertex.x_ || y != vertex.y_) {
+      vertex = Vector2(x, y);
+      clamped = true;
+    }
+  }
+  if (clamped) polygon = Polygon(vertices);
+  return clamped;
+}  // end bool Zone::ClampPolygon
 
 bool Zone::ParseZoneString(const char *zone_string, unsigned int &zone_id, int &colour, Polygon &polygon) {
   Debug(3, "Parsing zone string '%s'", zone_string);
@@ -921,21 +1002,21 @@ std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
     col++;
     int MaxPixelThreshold = dbrow[col]?atoi(dbrow[col]):0;
     col++;
-    int MinAlarmPixels = dbrow[col]?atoi(dbrow[col]):0;
+    double MinAlarmPixels_pct = dbrow[col] ? atof(dbrow[col]) : 0;
     col++;
-    int MaxAlarmPixels = dbrow[col]?atoi(dbrow[col]):0;
+    double MaxAlarmPixels_pct = dbrow[col] ? atof(dbrow[col]) : 0;
     col++;
     int FilterX = dbrow[col]?atoi(dbrow[col]):0;
     col++;
     int FilterY = dbrow[col]?atoi(dbrow[col]):0;
     col++;
-    int MinFilterPixels = dbrow[col]?atoi(dbrow[col]):0;
+    double MinFilterPixels_pct = dbrow[col] ? atof(dbrow[col]) : 0;
     col++;
-    int MaxFilterPixels = dbrow[col]?atoi(dbrow[col]):0;
+    double MaxFilterPixels_pct = dbrow[col] ? atof(dbrow[col]) : 0;
     col++;
-    int MinBlobPixels = dbrow[col]?atoi(dbrow[col]):0;
+    double MinBlobPixels_pct = dbrow[col] ? atof(dbrow[col]) : 0;
     col++;
-    int MaxBlobPixels = dbrow[col]?atoi(dbrow[col]):0;
+    double MaxBlobPixels_pct = dbrow[col] ? atof(dbrow[col]) : 0;
     col++;
     int MinBlobs = dbrow[col]?atoi(dbrow[col]):0;
     col++;
@@ -949,22 +1030,52 @@ std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
     /* HTML colour code is actually BGR in memory, we want RGB */
     AlarmRGB = rgb_convert(AlarmRGB, ZM_SUBPIX_ORDER_BGR);
 
+    // Auto-detect coordinate format: decimal points mean percentages,
+    // integer-only means legacy pixel values. Units field is not trusted.
     Debug(5, "Parsing polygon %s (Units=%s)", Coords, Units);
     Polygon polygon;
-    if (!strcmp(Units, "Pixels")) {
-      // Legacy pixel-based coordinates: parse as integer pixel values
-      if (!ParsePolygonString(Coords, polygon)) {
-        Error("Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring",
-              Coords, Id, Name, monitor->Name());
-        continue;
-      }
-    } else {
-      // Percentage-based coordinates (default): convert to pixels using monitor dimensions
+    if (strchr(Coords, '.')) {
+      // Decimal values present — treat as percentages regardless of Units field
       if (!ParsePercentagePolygon(Coords, monitor->Width(), monitor->Height(), polygon)) {
         Error("Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring",
               Coords, Id, Name, monitor->Name());
         continue;
       }
+    } else {
+      // Integer-only coordinates — treat as pixel values
+      if (!ParsePolygonString(Coords, polygon)) {
+        Error("Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring",
+              Coords, Id, Name, monitor->Name());
+        continue;
+      }
+      // Pixel coordinates are not scaled to the monitor, so they can lie outside
+      // it (zone drawn at a larger size, or written through the API). Setup()
+      // rasterises the polygon into a monitor-sized image.
+      if (ClampPolygon(polygon, monitor->Width(), monitor->Height())) {
+        Warning("Zone %d/%s for monitor %s has coordinates '%s' outside %ux%u, clamping",
+                Id, Name, monitor->Name(), Coords, monitor->Width(), monitor->Height());
+      }
+    }
+
+    // Convert threshold values from DB format to pixel counts for runtime use.
+    // Percentage coordinates: thresholds are stored as % of zone area, convert to pixels.
+    // Legacy pixel coordinates: thresholds are already pixel counts.
+    int MinAlarmPixels, MaxAlarmPixels, MinFilterPixels, MaxFilterPixels, MinBlobPixels, MaxBlobPixels;
+    if (strchr(Coords, '.') && polygon.Area() > 0) {
+      int zpa = polygon.Area();
+      MinAlarmPixels = MinAlarmPixels_pct > 0 ? static_cast<int>(MinAlarmPixels_pct * zpa / 100.0 + 0.5) : 0;
+      MaxAlarmPixels = MaxAlarmPixels_pct > 0 ? static_cast<int>(MaxAlarmPixels_pct * zpa / 100.0 + 0.5) : 0;
+      MinFilterPixels = MinFilterPixels_pct > 0 ? static_cast<int>(MinFilterPixels_pct * zpa / 100.0 + 0.5) : 0;
+      MaxFilterPixels = MaxFilterPixels_pct > 0 ? static_cast<int>(MaxFilterPixels_pct * zpa / 100.0 + 0.5) : 0;
+      MinBlobPixels = MinBlobPixels_pct > 0 ? static_cast<int>(MinBlobPixels_pct * zpa / 100.0 + 0.5) : 0;
+      MaxBlobPixels = MaxBlobPixels_pct > 0 ? static_cast<int>(MaxBlobPixels_pct * zpa / 100.0 + 0.5) : 0;
+    } else {
+      MinAlarmPixels = static_cast<int>(MinAlarmPixels_pct);
+      MaxAlarmPixels = static_cast<int>(MaxAlarmPixels_pct);
+      MinFilterPixels = static_cast<int>(MinFilterPixels_pct);
+      MaxFilterPixels = static_cast<int>(MaxFilterPixels_pct);
+      MinBlobPixels = static_cast<int>(MinBlobPixels_pct);
+      MaxBlobPixels = static_cast<int>(MaxBlobPixels_pct);
     }
 
     if (atoi(dbrow[2]) == Zone::INACTIVE) {
@@ -1064,20 +1175,30 @@ void Zone::std_alarmedpixels(
   const uint8_t calc_max = max_pixel_threshold ? max_pixel_threshold : 255;
   const uint8_t calc_min = min_pixel_threshold;
 
-  const unsigned int lo_y = polygon.Extent().Lo().y_;
-  const unsigned int hi_y = polygon.Extent().Hi().y_;
+  const int img_width = static_cast<int>(pdelta_image->Width());
+  const int img_height = static_cast<int>(pdelta_image->Height());
 
-  for (unsigned int y = lo_y; y <= hi_y; y++) {
-    const unsigned int lo_x = ranges[y].lo_x;
-    const unsigned int hi_x = ranges[y].hi_x;
+  int lo_y = polygon.Extent().Lo().y_;
+  int hi_y = polygon.Extent().Hi().y_;
 
-    if (lo_x > hi_x) continue;
+  // Clamp to image bounds
+  if (hi_y >= img_height) hi_y = img_height - 1;
+  if (lo_y > hi_y) { *pixel_count = 0; *pixel_sum = 0; return; }
+
+  for (int y = lo_y; y <= hi_y; y++) {
+    const int lo_x = ranges[y].lo_x;
+    const int hi_x = ranges[y].hi_x;
+
+    if (lo_x < 0 || lo_x > hi_x) continue;
+
+    // Clamp hi_x to image width
+    const int clamped_hi_x = (hi_x >= img_width) ? img_width - 1 : hi_x;
 
     alarmedpixels_row(
         pdelta_image->Buffer(lo_x, y),
         pmask_image->Buffer(lo_x, y),
         ppoly_image->Buffer(lo_x, y),
-        hi_x - lo_x + 1,
+        clamped_hi_x - lo_x + 1,
         calc_min, calc_max,
         pixelsalarmed, pixelsdifference);
   }  // end for y = lo_y to hi_y

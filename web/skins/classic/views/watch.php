@@ -103,9 +103,16 @@ if (!$cycle and isset($_COOKIE['zmCycleShow'])) {
 }
 #Whether to show the controls button
 $hasPtzControls = false;
+require_once('includes/MonitorAction.php');
 foreach ($monitors as $m) {
   if (( ZM_OPT_CONTROL && $m->Controllable() && canView('Control') && $m->Type() != 'WebSite' )) {
     //If there is control for at least one camera, then we display the block.
+    $hasPtzControls = true;
+  }
+  # A monitor with manual actions needs the panel even when it is not itself
+  # controllable: the actions drive other devices, typically a speaker.
+  if (!$hasPtzControls and ZM_OPT_CONTROL and canView('Control') and
+      count(ZM\MonitorAction::find(array('MonitorId'=>$m->Id(), 'TriggerOn'=>'Manual', 'Enabled'=>1)))) {
     $hasPtzControls = true;
   }
   if ($hasPtzControls) {
@@ -226,13 +233,14 @@ echo getNavBarHTML() ?>
 <div id="page">
   <div id="header">
 <?php
-    $html = '<a class="flip" href="#" 
-             data-flip-control-object="#mfbpanel" 
-             data-flip-сontrol-run-after-func="applyChosen" 
-             data-flip-сontrol-run-after-complet-func="changeScale">
+    $filter_inline = filterSettingsInline();
+    $html = '<a class="flip" href="#"
+             data-flip-control-object="#mfbpanel"
+             data-flip-control-run-after-func="applyChosen"
+             data-flip-control-run-after-complet-func="changeScale">
                <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
-             </a>'.PHP_EOL;
-    $html .= '<div id="mfbpanel" class="hidden-shift container-fluid">'.PHP_EOL;
+             </a>
+             <div id="mfbpanel" class="'.($filter_inline ? '' : 'hidden-shift ').'container-fluid">'.PHP_EOL;
     echo $html;
 ?>
     <div class="controlHeader">
@@ -328,14 +336,31 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], ['class'=>'ch
               echo htmlSelect('codec', $players, $player, array('data-on-change'=>'changePlayer','id'=>'player','class'=>'chosen'));
 ?>
         </span>
-
+        <span id="whatDisplayControl">
+          <label for="whatDisplay"><?php if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) echo translate('Show') ?></label>
+<?php 
+            $whatDisplay = [
+              'Default'=>translate('Default'),
+              'OnlyVideo'=>translate('Only video'),
+              'OnlyAudioVisualization'=>translate('Only audio visualization'),
+              'VideoAudioVisualization'=>translate('Video and audio visualization')
+            ];
+            $whatDisplaySelected = 'Default'; // Default
+            if (isset($_REQUEST['whatDisplay']) and isset($whatDisplay[$_REQUEST['whatDisplay']])) {
+              $whatDisplaySelected = validHtmlStr($_REQUEST['whatDisplay']);
+            } else if (isset($_COOKIE['zmWhatDisplay']) and isset($whatDisplay[$_COOKIE['zmWhatDisplay']])) {
+              $whatDisplaySelected = validHtmlStr($_COOKIE['zmWhatDisplay']);
+            }
+            if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) echo htmlSelect('whatDisplay', $whatDisplay, $whatDisplaySelected, array('data-on-change'=>'changeWhatDisplay','id'=>'whatDisplay','class'=>'chosen'));
+?>
+        </span><!--#whatDisplayControl-->
       </div><!--sizeControl-->
     </div><!--control header-->
     </div><!--flip-->
   </div><!--header-->
   <div id="content">
     <div class="container-fluid">
-      <div class="row flex-nowrap" >
+      <div class="row flex-md-nowrap" >
 <?php if (count($monitors)) { ?>
         <nav id="sidebar" <?php echo $showCycle?'':' style="display:none;"'?>>
           <div id="cycleButtons" class="buttons">
@@ -457,19 +482,18 @@ $muted = (isset($_REQUEST['muted']) and $_REQUEST['muted'] == 'true') ? true :
   ((isset($_COOKIE['zmWatchMuted']) and $_COOKIE['zmWatchMuted'] == 'true') ? true : false);
 ZM\Debug("Muted $muted");
 ?>
-            <span id="volumeControls<?php echo $mid; ?>" class="volume disabled">
+            <div id="volumeControls<?php echo $mid; ?>" class="volume disabled">
               <div id="volumeSlider<?php echo $mid; ?>" data-volume="<?php echo $volume; ?>" data-muted="<?php echo $muted ? 'true' : 'false'; ?>" class="volumeSlider noUi-horizontal noUi-base noUi-round"></div>
               <i id="controlMute<?php echo $mid; ?>" class="audio-control-mute material-icons md-22"></i>
-            </span>
-          </div><!-- id="extButton" --><div><!-- id="bottomBlock" -->
+            </div>
+          </div><!-- id="extButton" --></div><!-- id="bottomBlock" -->
         </div><!-- id="wrapperMonitor" -->
 
 <!-- START Control -->
 <?php
 if ( $hasPtzControls ) {
 ?>
-        <div id="ptzControls" class="col-sm-2 ptzControls"<?php echo $showPtzControls ? '' : ' style="display:none;"'?>>
-        </div>
+        <div id="ptzControls" class="col-sm-2 ptzControls"<?php echo $showPtzControls ? '' : ' style="display:none;"'?>> </div>
 <?php
 }
 ?>
@@ -510,9 +534,9 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
               <th data-sortable="false" data-field="EndDateTime"><?php echo translate('AttrEndTime') ?></th>
               <th data-sortable="false" data-field="Length"><?php echo translate('Duration') ?></th>
               <th data-sortable="false" data-field="Frames"><?php echo translate('Frames') ?></th>
-              <th data-sortable="false" data-field="AlarmFrames"><?php echo translate('AlarmBrFrames') ?></th>
-              <th data-sortable="false" data-field="AvgScore"><?php echo translate('AvgBrScore') ?></th>
-              <th data-sortable="false" data-field="MaxScore"><?php echo translate('MaxBrScore') ?></th>
+              <th data-sortable="false" data-field="AlarmFrames" data-switchable-label="<?php echo str_replace('<br/>', ' ', translate('AlarmBrFrames')) ?>"><?php echo translate('AlarmBrFrames') ?></th>
+              <th data-sortable="false" data-field="AvgScore" data-switchable-label="<?php echo str_replace('<br/>', ' ', translate('AvgBrScore')) ?>"><?php echo translate('AvgBrScore') ?></th>
+              <th data-sortable="false" data-field="MaxScore" data-switchable-label="<?php echo str_replace('<br/>', ' ', translate('MaxBrScore')) ?>"><?php echo translate('MaxBrScore') ?></th>
 <?php if (ZM_WEB_LIST_THUMBS) { ?>
               <th data-sortable="false" data-field="Thumbnail"><?php echo translate('Thumbnail') ?></th>
 <?php } ?>

@@ -37,17 +37,23 @@ use constant MAX_COMMAND_WAIT => 1800;
 
 $| = 1;
 
-$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
+$ENV{PATH}  = '@ZM_SCRIPT_PATH@';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 my $arg_string = join(' ', @ARGV);
 
 my $id;
+my $protocol;
+my $address;
+my $device;
 my %options;
 
 GetOptions(
   'id=i'          =>\$id,
+  'protocol=s'    =>\$protocol,
+  'address=s'     =>\$address,
+  'device=s'      =>\$device,
   'command=s'     =>\$options{command},
   'xcoord=f'      =>\$options{xcoord},
   'ycoord=f'      =>\$options{ycoord},
@@ -58,11 +64,59 @@ GetOptions(
   'panstep=i'     =>\$options{panstep},
   'tiltstep=i'    =>\$options{tiltstep},
   'preset=i'      =>\$options{preset},
+  'file=i'        =>\$options{file},
   'autostop'      =>\$options{autostop},
 ) or pod2usage(-exitstatus => -1);
 
+if ($protocol) {
+  # Direct protocol mode: bypass DB and socket, load module and run command directly
+  logInit(id=>'zmcontrol_protocol');
+
+  my $command = $options{command};
+  if (!$command) {
+    print(STDERR "Please supply a --command when using --protocol mode\n");
+    pod2usage(-exitstatus => -1);
+  }
+
+  # Validate protocol name (alphanumeric and underscore only)
+  ($protocol) = $protocol =~ /^(\w+)$/;
+  if (!$protocol) {
+    Fatal('Invalid protocol name');
+  }
+
+  my $module = "ZoneMinder::Control::$protocol";
+  eval "require $module"
+    or Fatal("Failed to load protocol module $module: $@");
+
+  my $control = bless {
+    Monitor => {
+      ControlDevice   => $device // '',
+      ControlAddress  => $address // '',
+      AutoStopTimeout => $options{autostop} // 0,
+    },
+  }, $module;
+
+  if (!$control->open()) {
+    Fatal('Failed to open control');
+  }
+
+  Info("Direct protocol mode: $module -> $command");
+  my $result = $control->$command(\%options);
+
+  if (defined $result) {
+    if (ref $result) {
+      print(Dumper($result));
+    } else {
+      print("$result\n");
+    }
+  }
+
+  $control->close();
+  exit(0);
+}
+
 if (!$id) {
-  print(STDERR "Please give a valid monitor id\n");
+  print(STDERR "Please give a valid monitor id or use --protocol for direct mode\n");
   pod2usage(-exitstatus => -1);
 }
 
@@ -104,6 +158,35 @@ if ($options{command}) {
   # We are the server
   require ZoneMinder::Monitor;
 
+  # Only one control server per monitor. Nothing used to stop a second one, and
+  # it would unlink the live socket further down and bind its own, leaving the
+  # first listening on an unlinked inode that no client can reach while both
+  # still held the camera's control connection open. Take the lock before
+  # anything talks to the camera or the socket.
+  # The lock is a separate file rather than the socket itself so that a socket
+  # left behind by a killed server does not block startup for good.
+  # refs #4423
+  my $lock_file = $Config{ZM_PATH_SOCKS}.'/zmcontrol-'.$id.'.lock';
+  # Held for the lifetime of the process: the lock is released when $lock_fh
+  # goes out of scope, and this block runs until the server exits.
+  my ($lock_fh, $lock_status, $lock_pid) = acquireExclusiveLock($lock_file);
+  if (!$lock_fh) {
+    if ($lock_status eq 'held') {
+      Error("Another zmcontrol server is already running for monitor $id"
+        .(defined($lock_pid) ? " (pid $lock_pid)" : '').', exiting');
+    } else {
+      Error("Can't take the control server lock at $lock_file, so not starting."
+        .' It has to be writable by the user zmcontrol.pl runs as, so check its'
+        .' ownership if it was created by a hand run as another user.');
+    }
+    # zmdc starts us with keepalive, so a non-zero exit here is retried with a
+    # backoff capped at ZM_MAX_RESTART_DELAY rather than staying dead. That is
+    # what we want while a duplicate is still up, since it clears itself once
+    # the other server goes. A lock file we cannot open never clears on its own,
+    # which is why that case says what to look at.
+    exit(1);
+  }
+
   my $monitor = ZoneMinder::Monitor->find_one(Id=>$id);
   Fatal("Unable to load control data for monitor $id") if !$monitor;
 
@@ -144,27 +227,56 @@ if ($options{command}) {
   vec($rin, fileno(SERVER), 1) = 1;
   my $win = $rin;
   my $ein = $win;
-  my $timeout = MAX_COMMAND_WAIT;
+  # Use a short timeout if the module supports keepAlive so the session
+  # does not expire between commands (Dahua cameras expire after ~60s idle).
+  my $timeout = $control->can('keepAlive') ? 30 : MAX_COMMAND_WAIT;
   while (!$zm_terminate) {
+    # Checked every time round rather than only when select times out. A busy
+    # monitor never reaches the idle branch below, and used to hold a session
+    # the camera had already expired, so its next command came back
+    # undecodable. Here so that the 'next' paths in the command handling
+    # cannot skip it.
+    if ($control->can('keepAlive') and $control->keepAliveDue($timeout)) {
+      $control->keepAlive();
+    }
+
     my $nfound = select(my $rout = $rin, undef, undef, $timeout);
     if ( $nfound > 0 ) {
       if ( vec($rout, fileno(SERVER), 1) ) {
         my $paddr = accept(CLIENT, SERVER);
         my $message = <CLIENT>;
-        close(CLIENT);
 
-        next if !$message;
+        if ( !$message ) {
+          close(CLIENT);
+          next;
+        }
 
         my $params = jsonDecode($message);
         Debug(Dumper($params));
 
         my $command = $params->{command};
         if ( $command eq 'quit' ) {
+          close(CLIENT);
           last;
+        } elsif ( $command and $command !~ /^[A-Za-z]\w*$/ ) {
+          # The name comes from a web request and is called as a method; a qualified name
+          # (Package::sub) would call a sub outside the control module. refs GHSA-qcm7-vq92-f86f
+          Warning('Invalid control command');
+          close(CLIENT);
         } elsif ( $command ) {
-          $control->$command($params);
+          my $result = $control->$command($params);
+          # Opt-in response: only write back when the caller asked for one, so
+          # fire-and-forget callers (which have already closed their end) never
+          # get a write -> no SIGPIPE. Ignore PIPE defensively in case a query
+          # client gave up before reading.
+          if ( $params->{wants_response} ) {
+            local $SIG{PIPE} = 'IGNORE';
+            print(CLIENT jsonEncode({result => $result}));
+          }
+          close(CLIENT);
         } else {
           Warning("No command in $message");
+          close(CLIENT);
         }
       } else {
         Fatal('Bogus descriptor');
@@ -199,13 +311,27 @@ zmcontrol.pl - ZoneMinder control script
 =head1 SYNOPSIS
 
  zmcontrol.pl --id {monitor_id} [--command={command}] [various options]
+ zmcontrol.pl --protocol {module} --address {addr} [--device {dev}] --command {cmd}
 
 =head1 DESCRIPTION
 
-FIXME FIXME
+ZoneMinder camera control script. Operates in two modes:
+
+B<Monitor mode> (--id): Connects to the control daemon for the given monitor,
+or starts the daemon if run without --command. Requires a running ZoneMinder
+instance with database access.
+
+B<Direct protocol mode> (--protocol): Loads a ZoneMinder::Control module
+directly and executes a single command without requiring database access or a
+running ZoneMinder instance. Useful for testing control modules.
 
 =head1 OPTIONS
 
+ --id [ monitor_id ] - Monitor ID (monitor mode)
+ --protocol [ name ] - Control module name, e.g. ONVIF (direct mode)
+ --address [ addr ]  - ControlAddress, e.g. user:pass@host:port (direct mode)
+ --device [ dev ]    - ControlDevice / profile token (direct mode)
+ --command [ cmd ]   - Command to execute (e.g. moveConUp, get_config)
  --autostop          -
  --xcoord [ arg ]    - X-coord
  --ycoord [ arg ]    - Y-coord
@@ -216,5 +342,16 @@ FIXME FIXME
  --tiltspeed [ arg ] -
  --tiltstep [ arg ]  -
  --preset [ arg ]    -
+
+=head1 EXAMPLES
+
+ # Direct protocol testing (no database needed)
+ zmcontrol.pl --protocol ONVIF --address admin:pass@192.168.1.100 --command get_config
+
+ # With profile token
+ zmcontrol.pl --protocol ONVIF --address admin:pass@cam:8080 --device prof0 --command get_config
+
+ # Send command to running monitor daemon
+ zmcontrol.pl --id 1 --command moveConUp
 
 =cut

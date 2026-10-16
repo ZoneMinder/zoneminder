@@ -1,5 +1,6 @@
 .zones polygon {
   fill-opacity: 0.25;
+  vector-effect: non-scaling-stroke;
 }
 .Active {
   stroke: #ff0000;

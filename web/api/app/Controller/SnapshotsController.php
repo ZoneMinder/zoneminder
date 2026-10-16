@@ -55,7 +55,7 @@ class SnapshotsController extends AppController {
       'snapshot' => '`Snapshot`.`Id`',
     );
 
-		$snapshots = $this->Snapshot->find('all', $find_array);
+		$snapshots = array_map(array($this, 'filterContainedEvents'), $this->Snapshot->find('all', $find_array));
 		$this->set(array(
 			'snapshots' => $snapshots,
 			'_serialize' => array('snapshots')
@@ -75,7 +75,7 @@ class SnapshotsController extends AppController {
 			throw new NotFoundException(__('Invalid snapshot'));
 		}
 		$options = array('conditions' => array('Snapshot.' . $this->Snapshot->primaryKey => $id));
-		$snapshot = $this->Snapshot->find('first', $options);
+		$snapshot = $this->filterContainedEvents($this->Snapshot->find('first', $options));
 		$this->set(array(
 			'snapshot' => $snapshot,
 			'_serialize' => array('snapshot')
@@ -99,6 +99,10 @@ class SnapshotsController extends AppController {
         return;
       }
 
+      # A snapshot exposes its events to Snapshots viewers, so only viewable events may be added.
+      $eventIds = $this->requestAssociatedIds('Snapshot', 'EventIds', 'Event');
+      if ($eventIds) $this->requireEventsView($eventIds);
+      $this->pinRequestId($this->Snapshot, null);
 			$this->Snapshot->create();
 
       if ( $this->request->data['Snapshot']['EventIds'] and ! isset($this->request->data['Event']) ) {
@@ -139,7 +143,9 @@ class SnapshotsController extends AppController {
         throw new UnauthorizedException(__('Insufficient Privileges'));
         return;
       }
-      $this->Snapshot->id = $id;
+      $this->pinRequestId($this->Snapshot, $id);
+      $eventIds = $this->requestAssociatedIds('Snapshot', 'EventIds', 'Event');
+      if ($eventIds) $this->requireEventsView($eventIds);
 			if ( $this->Snapshot->save($this->request->data) ) {
         $message = 'Saved';
       } else {
@@ -201,11 +207,12 @@ class SnapshotsController extends AppController {
     $snapshots = $this->Snapshot->find('all', array(
                                         'contain'=> array(
                                           'Event' => array(
-                                            'fields'=>array('Id','Name')
+                                            'fields'=>array('Id','Name','MonitorId')
                                           )
                                         )
                                       )
                                 );
+            $snapshots = array_map(array($this, 'filterContainedEvents'), $snapshots);
             $this->set(array(
                     'snapshots' => $snapshots,
                     '_serialize' => array('snapshots')

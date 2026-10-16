@@ -25,6 +25,7 @@
 #include "zm_time.h"
 #include "zm_zone.h"
 
+#include <atomic>
 #include <condition_variable>
 #include <mutex>
 #include <vector>
@@ -46,7 +47,9 @@ class ZMPacket {
   std::unique_lock<std::mutex> our_lck_;
   // The condition has to be in the packet because it is shared between locks
   std::condition_variable condition_;
-  bool locked;
+  // Diagnostic only (Debug lines and the no-argument unlock()); read without
+  // the mutex, so atomic. ZMPacketLock::locked is the lock state callers use.
+  std::atomic<bool> locked;
 
   int keyframe;
   AVStream  *stream;            // Input stream
@@ -79,6 +82,11 @@ class ZMPacket {
   Image *get_image(Image *i = nullptr);
   Image *set_image(Image *);
   Image *get_y_image();
+  // Drop the decoded frames (and the Y plane view into in_frame), returning
+  // their buffers to the decoder's pool. The packet's Image stays.
+  void release_frames();
+  // Drop every decoded copy: frames and images. The compressed packet stays.
+  void release_decoded();
   ssize_t ram();
 
   int is_keyframe() { return keyframe; };

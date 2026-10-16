@@ -29,9 +29,11 @@ require_once('includes/Zone.php');
 $showControl = false;
 $showZones = false;
 if (isset($_REQUEST['showZones'])) {
-  if ($_REQUEST['showZones'] == 1) {
-    $showZones = true;
-  }
+  $showZones = $_SESSION['zmMontageShowZones'] = $_REQUEST['showZones'] == 1;
+} else if (isset($_COOKIE['zmMontageShowZones'])) {
+  $showZones = $_SESSION['zmMontageShowZones'] = $_COOKIE['zmMontageShowZones'] == 1;
+} else if (isset($_SESSION['zmMontageShowZones'])) {
+  $showZones = $_SESSION['zmMontageShowZones'];
 }
 $widths = array( 
   'auto'  => 'auto',
@@ -213,7 +215,7 @@ foreach ($displayMonitors as &$row) {
   }
   $monitor = $monitors[] = new ZM\Monitor($row);
 
-  if ( $monitor->RTSP2WebEnabled() and $monitor->RTSP2WebType == "HLS") {
+  if ($monitor->RTSP2WebEnabled()) {
     $need_hls = true;
   }
   if ($monitor->JanusEnabled()) {
@@ -249,33 +251,16 @@ echo getNavBarHTML();
   <div id="page">
   <div id="header"<?php echo (isset($_REQUEST['header']) and ($_REQUEST['header']=='0' or $_REQUEST['header']=='hidden')) ? ' style="display:none;"' : '' ?>>
 <?php
-    $html = '<a class="flip" href="#" 
-             data-flip-control-object="#mfbpanel" 
-             data-flip-сontrol-run-after-func="applyChosen" 
-             data-flip-сontrol-run-after-complet-func="changeScale">
+    $filter_inline = filterSettingsInline();
+    $html = '<a class="flip" href="#"
+             data-flip-control-object="#mfbpanel"
+             data-flip-control-run-after-func="applyChosen"
+             data-flip-control-run-after-complet-func="changeScale">
                <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
-             </a>'.PHP_EOL;
-    $html .= '<div id="mfbpanel" class="hidden-shift container-fluid">'.PHP_EOL;
+             </a>
+             <div id="mfbpanel" class="'.($filter_inline ? '' : 'hidden-shift ').'container-fluid">'.PHP_EOL;
     echo $html;
 ?>
-      <div id="headerButtons">
-<?php
-if ($showControl) {
-  echo makeLink('?view=control', translate('Control'));
-}
-if (canView('System')) {
-  if ($showZones) {
-  ?>
-    <a id="HideZones" href="?view=montage&amp;showZones=0"><?php echo translate('Hide Zones')?></a>
-  <?php
-  } else {
-  ?>
-    <a id="ShowZones" href="?view=montage&amp;showZones=1"><?php echo translate('Show Zones')?></a>
-  <?php
-  }
-}
-?>
-      </div>
       <form method="get" name="monitorFiltersForm" id="monitorFiltersForm">
         <input type="hidden" name="view" value="montage"/>
         <?php echo $filterbar ?>
@@ -312,6 +297,41 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'
             <label for="streamQuality"><?php echo translate('Stream quality') ?></label>
             <?php echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality', 'class'=>'chosen')); ?>
           </span>
+          <span id="whatDisplayControl">
+            <label for="whatDisplay"><?php if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) echo translate('Show') ?></label>
+<?php 
+            $whatDisplay = [
+              'Default'=>translate('Default'),
+              'OnlyVideo'=>translate('Only video'),
+              'OnlyAudioVisualization'=>translate('Only audio visualization'),
+              'VideoAudioVisualization'=>translate('Video and audio visualization')
+            ];
+            $whatDisplaySelected = 'Default'; // Default
+            if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) {
+              if (isset($_REQUEST['whatDisplay']) and isset($whatDisplay[$_REQUEST['whatDisplay']])) {
+                $whatDisplaySelected = validHtmlStr($_REQUEST['whatDisplay']);
+              } else if (isset($_COOKIE['zmWhatDisplay']) and isset($whatDisplay[$_COOKIE['zmWhatDisplay']])) {
+                $whatDisplaySelected = validHtmlStr($_COOKIE['zmWhatDisplay']);
+              }
+            } else {
+              $whatDisplaySelected = 'OnlyVideo';
+            }
+            if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) echo htmlSelect('whatDisplay', $whatDisplay, $whatDisplaySelected, array('data-on-change'=>'changeWhatDisplay','id'=>'whatDisplay','class'=>'chosen'));
+?>
+          </span>
+<?php
+      if ((defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) && strpos(strtolower($whatDisplaySelected), 'onlyvideo') !== 0) {
+        $htmlAudioControlPanel = '
+          <span id="audioControlPanel" class="audio-control-panel">
+            <div id="volumeControls" class="disabled volume">
+              <div id="volumeSlider" data-volume="50" data-muted="true" class="volumeSlider noUi-horizontal noUi-base noUi-round"></div>
+              <i id="controlMute" class="audio-control-mute material-icons md-22"></i>
+            </div>
+          </span>
+        '.PHP_EOL;
+        echo $htmlAudioControlPanel;
+      }
+?>
           <span id="layoutControl">
             <label for="zmMontageLayout"><?php echo translate('Layout') ?></label>
             <?php echo htmlSelect('zmMontageLayout', $layoutsById, $layout_id, array('id'=>'zmMontageLayout', 'data-on-change'=>'selectLayout', 'class'=>'chosen')); ?>
@@ -334,12 +354,22 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'
           <button type="button" id="fullscreenBtn" title="<?php echo translate('Fullscreen') ?>" class="avail" data-on-click="watchFullscreen">
           <i class="material-icons md-18">fullscreen</i>
           </button>
+<?php
+if ($showControl) {
+  echo makeLink('?view=control', translate('Control'));
+}
+if (canView('System')) {
+  echo '<button type="button" id="toggleZonesButton" class="btn btn-'.($showZones?'normal':'secondary').
+    '" title="'.translate(($showZones?'Hide':'Show').' Zones').'" data-on-click-this="toggleZones">'.
+    '<i class="material-icons md-18">'.($showZones?'layers_clear':'layers').'</i></button>';
+}
+?>
         </form>
       </div>
     </div><!--header-->
   </div>
   <div id="content">
-    <div id="monitors" class="grid-stack hidden-shift">
+    <div id="monitors" class="grid-stack hidden-shift<?php echo $showZones ? '' : ' hide-zones' ?>">
 <?php
 foreach ($monitors as $monitor) {
   $monitor_options = $options;
@@ -356,7 +386,9 @@ foreach ($monitors as $monitor) {
     );
   } else {
     $monitor_options['state'] = true;
-    $monitor_options['zones'] = $showZones;
+    # Always emit the zone overlays so toggleZones can show/hide them without a
+    # page reload; #monitors.hide-zones keeps them hidden until asked for.
+    $monitor_options['zones'] = canView('System');
     # If we start up in a streaming mode, even paused, the content-type=mixed etc makes Chrome queue the requests for 15s.  We are stuck with just getting a single image to start, then switching to streaming in js.
     $monitor_options['mode'] = 'single';
     $monitor_options['connkey'] = $monitor->connKey();

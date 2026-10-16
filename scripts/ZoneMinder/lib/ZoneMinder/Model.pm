@@ -29,6 +29,7 @@ require ZoneMinder::Base;
 require ZoneMinder::Object;
 
 #our @ISA = qw(Exporter ZoneMinder::Base);
+use ZoneMinder::Logger qw(:all);
 use parent qw(ZoneMinder::Object);
 
 use vars qw/ $table $primary_key %fields $serial %defaults $debug/;
@@ -50,7 +51,10 @@ sub save {
   my $manufacturer = $self->Manufacturer();
 
   if ($manufacturer->Name() and !$self->ManufacturerId()) {
-    if ($manufacturer->save()) {
+    # save() returns the error string on failure, '' on success.
+    if (my $error = $manufacturer->save()) {
+      Error('Failed saving Manufacturer '.$manufacturer->Name().": $error");
+    } else {
       $$self{ManufacturerId} = $manufacturer->Id();
     }
   }
@@ -79,9 +83,8 @@ Isaac Connor, E<lt>isaac@zoneminder.comE<gt>
 
 Copyright (C) 2023  ZoneMinder Inc
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.3 or,
-at your option, any later version of Perl 5 you may have available.
+Licensed under the GNU General Public License v2 or later; see the COPYING
+file distributed with ZoneMinder for the full text.
 
 
 =cut

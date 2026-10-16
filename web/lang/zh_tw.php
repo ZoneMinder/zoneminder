@@ -151,7 +151,6 @@ $SLANG = array(
     'AutoStopTimeout'       => '超時自動停止',
     'Available'             => 'Available',
     'AvgBrScore'            => '平均<br/>分數',
-    'Available'             => 'Available',
     'Background'            => '背景',
     'BackgroundFilter'      => 'Run filter in background',
     'BadAlarmFrameCount'    => '警報 frame count must be an integer of one or more',
@@ -162,7 +161,6 @@ $SLANG = array(
     'BadDevice'             => 'Device must be set to a valid value',
     'BadFormat'             => 'Format must be set to a valid value',
     'BadFPSReportInterval'  => 'FPS report interval buffer count must be an integer of 0 or more',
-    'BadFrameSkip'          => 'Frame skip count must be an integer of zero or more',
     'BadMotionFrameSkip'    => 'Motion Frame skip count must be an integer of zero or more',
     'BadHeight'             => '高度必須設定正確的值',
     'BadHost'               => 'Host must be set to a valid ip address or hostname, do not include http://',
@@ -179,7 +177,7 @@ $SLANG = array(
     'BadPreEventCount'      => 'Pre event image count must be at least zero, and less than image buffer size',
     'BadRefBlendPerc'       => 'Reference blend percentage must be a positive integer',
     'BadNoSaveJPEGsOrVideoWriter' => 'SaveJPEGs and VideoWriter are both set to disabled.  Nothing will be recorded!',
-    'BadSectionLength'      => 'Section length must be an integer of 30 or more',
+    'BadSectionLength'      => 'Section length must be an integer of 10 or more',
     'BadSignalCheckColour'  => 'Signal check colour must be a valid RGB colour string',
     'BadStreamReplayBuffer' => 'Stream replay buffer must be an integer of zero or more',
     'BadSourceType'         => 'Source Type \"Web Site\" requires the Function to be set to \"Monitor\"',
@@ -281,7 +279,6 @@ $SLANG = array(
     'DefaultCodec'          => '預設 Method For Event View',
     'DefaultView'           => '預設 View',
     'Deinterlacing'         => 'Deinterlacing',
-    'RTSPDescribe'          => 'Use RTSP Response Media URL',
     'Delay'                 => 'Delay',
     'DeleteAndNext'         => 'Delete &amp; Next',
     'DeleteAndPrev'         => 'Delete &amp; Prev',
@@ -389,7 +386,6 @@ $SLANG = array(
     'FrameId'               => 'Frame Id',
     'FrameRate'             => 'Frame Rate',
     'Frames'                => 'Frames',
-    'FrameSkip'             => 'Frame Skip',
     'MotionFrameSkip'       => 'Motion Frame Skip',
     'FTP'                   => 'FTP',
     'Func'                  => '功能',
@@ -435,7 +431,6 @@ $SLANG = array(
     'Language'              => '語言',
     'Last'                  => '最後',
     'Layout'                => '布局',
-    'Libvlc'                => 'Libvlc',
     'LimitResultsPost'      => 'results only', // This is used at the end of the phrase 'Limit to first N results only'
     'LimitResultsPre'       => 'Limit to first', // This is used at the beginning of the phrase 'Limit to first N results only'
     'LinkedMonitors'        => 'Linked Monitors',
@@ -1013,26 +1008,9 @@ $OLANG = array(
         HTTP - Use HTTP tunneling as transport protocol, which is useful for passing proxies.~~
       '
 	),
-	'OPTIONS_LIBVLC' => array(
-    'Help' => '
-      Parameters in this field are passed on to libVLC. Multiple parameters can be separated by ,~~
-      Examples (do not enter quotes)~~~~
-      "--rtp-client-port=nnn" Set local port to use for rtp data~~~~
-      "--verbose=2" Set verbosity of libVLC
-      '
-	),
 	'OPTIONS_EXIF' => array(
 		'Help' => 'Enable this option to embed EXIF data into each jpeg frame.'
 	),
-	'OPTIONS_RTSPDESCRIBE' => array(
-    'Help' => '
-      Sometimes, during the initial RTSP handshake, the camera will send an updated media URL.
-      Enable this option to tell ZoneMinder to use this URL. Disable this option to ignore the
-      value from the camera and use the value as entered in the monitor configuration~~~~
-      Generally this should be enabled. However, there are cases where the camera can get its
-      own URL incorrect, such as when the camera is streaming through a firewall
-    '
-  ),
 	'OPTIONS_MAXFPS' => array(
     'Help' => '
       This field has certain limitations when used for non-local devices.~~

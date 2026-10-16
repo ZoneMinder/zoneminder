@@ -54,13 +54,35 @@
 
 // Simple String Replacements
 $SLANG = array(
+    'PrivateValueHidden'    => 'This value is private and is shown only to users who can edit System settings.',
+    'OptionSetInConfigFile' => 'Set by the system owner in %s.',
+    'OptionSetInConfigFileHidden' => 'Set by the system owner in %s. The value is not shown.',
     'SystemLog'             => 'System Log',
     'DateTime'              => 'Date/Time',
+    'DiskSpace'             => 'Disk Space',
+    'FilterDebug'           => 'Filter Debug',
+    'FilterEmailServer'     => 'Email Server',
+    'FirstEvent'            => 'First Event',
+    'HostName'              => 'Host Name',
+    'LastEvent'             => 'Last Event',
+    'MaxGap'                => 'Max Gap',
+    'MinGap'                => 'Min Gap',
+    'MissingFiles'          => 'Missing Files',
+    'DecoderHWAccelDevice'  => 'Decoder HW Accel Device',
+    'DecoderHWAccelName'    => 'Decoder HW Accel Name',
+    'EncoderHWAccelDevice'  => 'Encoder HW Accel Device',
+    'EncoderHWAccelName'    => 'Encoder HW Accel Name',
+    'NewStorage'            => 'New Storage',
+    'OutputCodec'           => 'Output Codec',
+    'OutputContainer'       => 'Output Container',
     'Pid'                   => 'PID',
     '24BitColour'           => '24 bit colour',
     '32BitColour'           => '32 bit colour',
     '8BitGrey'              => '8 bit greyscale',
+    'AddNewClass'           => 'Add New Class',
     'AddNewControl'         => 'Add New Control',
+    'AddNewDataset'         => 'Add New Dataset',
+    'AddNewModel'           => 'Add New Model',
     'AddNewMonitor'         => 'Add',
     'AddMonitorDisabled'    => 'Your user is not allowed to add a new monitor',
     'AddNewServer'          => 'Add New Server',
@@ -68,6 +90,8 @@ $SLANG = array(
     'AddNewRole'            => 'Add New Role',
     'AddNewUser'            => 'Add New User',
     'AddNewZone'            => 'Add New Zone',
+    'AddLabel'              => 'Add Label',
+    'AJAXRequestError'      => 'AJAX request error',
     'AlarmBrFrames'         => 'Alarm<br/>Frames',
     'AlarmFrame'            => 'Alarm Frame',
     'AlarmFrameCount'       => 'Alarm Frame Count',
@@ -79,8 +103,11 @@ $SLANG = array(
     'All'                   => 'All',
     'AllTokensRevoked'      => 'All Tokens Revoked',
     'AnalysisFPS'           => 'Analysis FPS',
+    'AnalysisSource'        => 'Analysis Source',
     'AnalysisUpdateDelay'   => 'Analysis Update Delay',
+    'AcceptDetection'       => 'Accept',
     'APIEnabled'            => 'API Enabled',
+    'ApplyEncoderTemplate'  => 'Apply template',
     'ApplyingStateChange'   => 'Applying State Change',
     'ArchArchived'          => 'Archived Only',
     'Assigned Users'        => 'Assigned Users',
@@ -119,6 +146,9 @@ $SLANG = array(
     'AttrTotalScore'        => 'Total Score',
     'AttrStartWeekday'      => 'Start Weekday',
     'AttrEndWeekday'        => 'End Weekday',
+    'AudioMotionVersionOK'  => 'Correct version installed "{AudioMotionVersionInstalled}"',
+    'AudioMotionVersionNotInstalled' => 'Requires audio motion analyzer version "{AudioMotionVersionRequired}" to be installed~~Download link: https://cdn.jsdelivr.net/npm/audiomotion-analyzer@{AudioMotionVersionRequired}/src/audioMotion-analyzer.js or https://github.com/hvianna/audioMotion-analyzer/releases/tag/{AudioMotionVersionRequired}',
+    'AudioMotionVersionWrongVersion' => 'The required analyzer version is "{AudioMotionVersionRequired}", but you have "{AudioMotionVersionInstalled}" installed~~Download link: https://cdn.jsdelivr.net/npm/audiomotion-analyzer@{AudioMotionVersionRequired}/src/audioMotion-analyzer.js or https://github.com/hvianna/audioMotion-analyzer/releases/tag/{AudioMotionVersionRequired}',
     'Auth'                  => 'Authentication',
     'AutoStopTimeout'       => 'Auto Stop Timeout',
     'AvgBrScore'            => 'Avg.<br/>Score',
@@ -132,7 +162,6 @@ $SLANG = array(
     'BadEncoderParameters'  => 'Encoder does not work well without at least a value for crf. Please see the help.',
     'BadFormat'             => 'Format must be set to a valid value',
     'BadFPSReportInterval'  => 'FPS report interval buffer count must be an integer of 0 or more',
-    'BadFrameSkip'          => 'Frame skip count must be an integer of zero or more',
     'BadMotionFrameSkip'    => 'Motion Frame skip count must be an integer of zero or more',
     'BadHeight'             => 'Height must be set to a valid value',
     'BadHost'               => 'Host must be set to a valid ip address or hostname, do not include http://',
@@ -140,7 +169,8 @@ $SLANG = array(
     'BadLabelX'             => 'Label X co-ordinate must be set to an integer of zero or more',
     'BadLabelY'             => 'Label Y co-ordinate must be set to an integer of zero or more',
     'BadMaxFPS'             => 'Maximum FPS must be a positive integer or floating point value',
-    'BadNameChars'          => 'Names may only contain alphanumeric characters plus spaces, hyphen and underscore',
+    'BadNameChars'          => 'Names may only contain letters, numbers, parentheses, slashes, and the space, period, minus, colon, and underscore characters.',
+    'BadNameCharsList'      => 'The monitor name contains invalid characters, such as:',
     'BadPalette'            => 'Palette must be set to a valid value',
     'BadColours'            => 'Target colour must be set to a valid value',
     'BadPassthrough'        => 'Recording -> Passthrough only works with ffmpeg type monitors.',
@@ -152,7 +182,7 @@ $SLANG = array(
     'BadPreEventCountMaxImageBufferCount'      => 'Max Image Buffer Count should be greater than Pre event image count or else it cannot be satisfied',
     'BadRefBlendPerc'       => 'Reference blend percentage must be a positive integer',
     'BadNoSaveJPEGsOrVideoWriter' => 'SaveJPEGs and VideoWriter are both set to disabled.  Nothing will be recorded!',
-    'BadSectionLength'      => 'Section length must be an integer of 30 or more',
+    'BadSectionLength'      => 'Section length must be an integer of 10 or more',
     'BadSignalCheckColour'  => 'Signal check colour must be a valid RGB colour string',
     'BadStreamReplayBuffer' => 'Stream replay buffer must be an integer of zero or more',
     'BadSourceType'         => 'Source Type \"Web Site\" requires the Function to be set to \"Monitor\"',
@@ -198,6 +228,39 @@ $SLANG = array(
     'CanWhiteBal'           => 'Can White Bal.',
     'CanWhite'              => 'Can White Balance',
     'CanWhiteCon'           => 'Can White Bal. Continuous',
+    'CanLight'              => 'Can Light',
+    'CanIndicatorLight'     => 'Can Indicator Light',
+    'ConfirmUnarchiveTitle' => 'Confirm Unarchive',
+    'CpuLoad'               => 'CPU Load',
+    'Indicator'             => 'Indicator',
+    'Actions'               => 'Actions',
+    'ActionTrigger'         => 'When',
+    'ActionTarget'          => 'Device',
+    'ActionType'            => 'Does',
+    'ActionAudioFile'       => 'Sound',
+    'ActionTriggerEventStart' => 'Event starts',
+    'ActionTriggerEventEnd'   => 'Event ends',
+    'ActionTriggerAlarm'      => 'Alarm begins',
+    'ActionTriggerAlarmEnd'     => 'Alarm ends',
+    'ActionTriggerManual'     => 'Manually triggered',
+    'ActionLightOn'           => 'Turn light on',
+    'ActionLightOff'          => 'Turn light off',
+    'ActionIndicatorLightOn'  => 'Turn indicator on',
+    'ActionIndicatorLightOff' => 'Turn indicator off',
+    'ActionAudioPlay'         => 'Play sound',
+    'ActionAudioStop'         => 'Stop sound',
+    'ActionsHelp'             => 'Actions this monitor performs when it alarms. The device acted on need not be this monitor - a camera can sound a speaker elsewhere. Only devices whose control capabilities support an action are offered.',
+    'ActionsRemoveHelp'       => 'To remove an action, set its device to None and save.',
+    'ActionsNoCapableDevices' => 'No monitor has a control that supports a light or audio playback, so there is nothing to act on yet. Give a monitor a Control entry with Can Light or Can Play Audio first.',
+    'DeviceClass'           => 'Device Class',
+    'DeviceClassCamera'     => 'Camera',
+    'DeviceClassSpeaker'    => 'Speaker',
+    'CanAudioPlay'          => 'Can Play Audio',
+    'CanAudioVolume'        => 'Can Set Audio Volume',
+    'MinAudioFile'          => 'Min Audio File Id',
+    'MaxAudioFile'          => 'Max Audio File Id',
+    'AudioStop'             => 'Stop Audio',
+    'AudioVolume'           => 'Volume',
     'CanWhiteRel'           => 'Can White Bal. Relative',
     'CanZoomAbs'            => 'Can Zoom Absolute',
     'CanZoom'               => 'Can Zoom',
@@ -215,6 +278,8 @@ $SLANG = array(
     'ChooseLogFormat'       => 'Choose a log format',
     'ChooseLogSelection'    => 'Choose a log selection',
     'ChoosePreset'          => 'Choose Preset',
+    'ClassLabel'            => 'Label',
+    'ClearLogs'             => 'Clear Logs',
     'CloneMonitor'          => 'Clone',
     'ConcurrentFilter'      => 'Run filter concurrently',
     'ConfigOptions'         => 'ConfigOptions',
@@ -222,11 +287,27 @@ $SLANG = array(
     'ConfiguredFor'         => 'Configured for',
     'ConfigURL'             => 'Config Base URL',
     'ConfirmAction'         => 'Action Confirmation',
+    'ConfirmClearLogs'      => 'Are you sure you wish to delete the selected log entries?',
+    'ConfirmClearLogsTitle' => 'Clear Logs Confirmation',
     'ConfirmDeleteControl'  => 'Warning, deleting a control will reset all monitors that use it to be uncontrollable.<br><br>Are you sure you wish to delete?',
+    'ConfirmDeleteFiles'    => 'Are you sure you wish to delete the selected files?',
+    'ConfirmDeleteGroups'   => 'Are you sure you wish to delete the selected groups?',
     'ConfirmDeleteDevices'  => 'Are you sure you wish to delete the selected devices?',
     'ConfirmDeleteEvents'   => 'Are you sure you wish to delete the selected events?',
+    'MonitorFilters'        => 'Monitor Filters',
+    'ConfirmDeleteTrainingData' => 'This will permanently delete ALL training data (images, labels, and class definitions). Type agree to confirm:',
     'ConfirmDeleteLayout'   => 'Are you sure you wish to delete current layout?',
     'ConfirmDeleteTitle'    => 'Delete Confirmation',
+    'ConfirmDeleteUserTitle'=> 'Confirm User Deletion',
+    'ConfirmDeleteUser'     => 'Are you sure you wish to delete the selected users?',
+    'ConfirmDeleteServerTitle'=> 'Confirm Server Deletion',
+    'ConfirmDeleteServer'   => 'Are you sure you wish to delete the selected servers?',
+    'ConfirmDeleteReport'   => 'Are you sure you wish to delete the selected reports?',
+    'ConfirmDeleteStorage'  => 'Are you sure you wish to delete the selected storages?',
+    'ConfirmDeleteStorageTitle'=> 'Confirm Storage Deletion',
+    'ConfirmDeleteRole'     => 'Are you sure you wish to delete the selected roles?',
+    'ConfirmDeleteRoleTitle'=> 'Confirm Role Deletion',
+    'ConfirmDeleteSnapshots'=> 'Are you sure you wish to delete the selected snapshots?',
     'ConfirmPassword'       => 'Confirm Password',
     'ConfirmUnarchiveEvents'=> 'Are you sure you wish to unarchive the selected events?',
     'ConjAnd'               => 'and',
@@ -243,10 +324,11 @@ $SLANG = array(
     'DefaultScale'          => 'Default Scale',
     'DefaultCodec'          => 'Default Method For Event View',
     'DefaultView'           => 'Default View',
-    'RTSPDescribe'          => 'Use RTSP Response Media URL',
+    'RecordingSource'       => 'Recording Source',
     'DeleteAndNext'         => 'Delete &amp; Next',
     'DeleteAndPrev'         => 'Delete &amp; Prev',
     'DeleteSavedFilter'     => 'Delete saved filter',
+    'DeletingRowsFromTable' => 'Deleting rows from the table',
     'DetectedCameras'       => 'Detected Cameras',
     'DetectedProfiles'      => 'Detected Profiles',
     'DeviceChannel'         => 'Device Channel',
@@ -267,14 +349,27 @@ $SLANG = array(
     'DoNativeMotionDetection'=> 'Do Native Motion Detection',
     'DontSave'              => 'Do not save',
     'DuplicateMonitorName'  => 'Duplicate Monitor Name',
+    'DrawBox'               => 'Draw a bounding box around the object',
     'DuplicateRTSPStreamName' =>  'Duplicate RTSP Stream Name',
     'EditControl'           => 'Edit Control',
     'EditLayout'            => 'Edit Layout',
     'EnableAlarms'          => 'Enable Alarms',
+    'EncoderTemplate'       => 'Encoder Template',
+    'EncoderTemplates'      => 'Encoder Templates',
+    'EncoderTemplatesDescription' => 'Curated parameter sets for ffmpeg encoders. Apply one to a monitor\'s Encoder Parameters from the monitor edit page.',
+    'EditEncoderTemplate'   => 'Edit Encoder Template',
+    'NewEncoderTemplate'    => 'New Encoder Template',
+    'AddNewEncoderTemplate' => 'Add New Template',
+    'AllEncoders'           => 'All Encoders',
+    'FilterByEncoder'       => 'Filter by Encoder',
     'EnterNewFilterName'    => 'Enter new filter name',
     'Enter password for QR code' => 'Enter password for QR code',
     'ErrorBrackets'         => 'Error, please check you have an equal number of opening and closing brackets',
+    'ErrorDeletingRowFromLogTable' => 'Error deleting row from log table',
+    'ErrorUpdatingEventTable' => 'Error updating event table',
+    'ErrorUpdatingLogTable' => 'Error updating log table',
     'ErrorValidValue'       => 'Error, please check that all terms have a valid value',
+    'ErrorVerifyingMonitorName'=> 'Unable to verify the monitor name because the name is missing',
     'Etc'                   => 'etc',
     'EventFilter'           => 'Event Filter',
     'EventId'               => 'Event Id',
@@ -327,12 +422,12 @@ $SLANG = array(
     'FPSReportInterval'     => 'FPS Report Interval',
     'FrameId'               => 'Frame Id',
     'FrameRate'             => 'Frame Rate',
-    'FrameSkip'             => 'Frame Skip',
     'MotionFrameSkip'       => 'Motion Frame Skip',
     'GenerateVideo'         => 'Generate Video',
     'GeneratingVideo'       => 'Generating Video',
     'Generate QR Code'      => 'Generate QR Code',
     'GetCurrentLocation'    => 'Get Current Location',
+    'GoToFrame'             => 'Go to Frame',
     'GoToZoneMinder'        => 'Go to ZoneMinder.com',
     'HasFocusSpeed'         => 'Has Focus Speed',
     'HasGainSpeed'          => 'Has Gain Speed',
@@ -347,6 +442,8 @@ $SLANG = array(
     'HasZoomSpeed'          => 'Has Zoom Speed',
     'Highband'              => 'High&nbsp;B/W',
     'ImageBufferSize'       => 'Image Buffer Size (frames)',
+    'ImagesPerClass'        => 'Images per class',
+    'InsufficientPermissionsUser'=> 'Insufficient permissions for user',
     'MaxImageBufferCount'   => 'Maximum Image Buffer Size (frames)',
     'InvalidateTokens'      => 'Invalidate all generated tokens',
     'KeyString'             => 'Key String',
@@ -358,6 +455,7 @@ $SLANG = array(
     'LoggingIn'             => 'Logging In',
     'Lowband'               => 'Low&nbsp;B/W',
     'Mail'                  => 'Email',
+    'MapUnavailable'        => 'Map unavailable: the Leaflet library is not installed (js/leaflet in the web root).',
     'MaxBandwidth'          => 'Max Bandwidth',
     'MaxBrScore'            => 'Max.<br/>Score',
     'MaxFocusRange'         => 'Max Focus Range',
@@ -443,9 +541,11 @@ $SLANG = array(
     'NewPassword'           => 'New Password',
     'NewState'              => 'New State',
     'NewUser'               => 'New User',
+    'NextFrame'             => 'Next Frame',
     'NextMonitor'           => 'Next Monitor',
     'NoDetectedCameras'     => 'No Detected Cameras',
     'NoDetectedProfiles'    => 'No Detected Profiles',
+    'NoDetectionData'       => 'No detection data available for this event',
     'NoFramesRecorded'      => 'There are no frames recorded for this event',
     'NoGroup'               => 'No Group',
     'NoRole'                => 'No Role (Direct Permissions Only)',
@@ -456,15 +556,34 @@ $SLANG = array(
     'Any Tag'               => 'Any Tag',
     'No Tag'                => 'No Tag',
     'NumPresets'            => 'Num Presets',
+    'ObjDetect'             => 'ObjDetect',
+    'ObjectImageLive'       => 'Go back to the live view',
+    'ObjectImageLoad'       => 'Replace this image',
+    'ObjectImageNotAnImage' => 'That file could not be read as an image',
+    'ObjectImageUse'        => 'Measure against a still image instead of the live view',
+    'ObjectSizeApply'       => 'Derive the detection settings from this object size',
+    'ObjectSizeApplyLabel'  => 'Apply',
+    'ObjectSizeFilterTooSmall' => 'That object is narrower than the %sx%s filter, which erases it entirely. Reduce the filter size, or draw a box around a larger object.',
+    'ObjectSizeHeight'      => 'Object height in pixels',
+    'ObjectSizeInactive'    => 'Object measuring does not apply to Inactive or Privacy zones',
+    'ObjectSizeMeasure'     => 'Drag a box around the smallest object that should trigger an alarm, or type its size below',
+    'ObjectSizeNeeded'      => 'Enter the width and height of the object in pixels first',
+    'ObjectSizeUndo'        => 'Undo the last object measurement',
+    'ObjectSizeWidth'       => 'Object width in pixels',
     'OnvifProbe'            => 'ONVIF',
     'OnvifProbeIntro'       => 'The list below shows detected ONVIF cameras and whether they are already being used or available for selection.<br/><br/>Select the desired entry from the list below.<br/><br/>Please note that not all cameras may be detected and that choosing a camera here may overwrite any values you already have configured for the current monitor.<br/><br/>',
-    'OnvifCredentialsIntro' => 'Please supply user name and password for the selected camera.<br/>If no user has been created for the camera then the user given here will be created with the given password.<br/><br/>',
+    'OnvifCredentialsIntro' => 'Optionally supply user name and password for the selected camera. Leave blank if the camera does not require authentication.<br/>If no user has been created for the camera then the user given here will be created with the given password.<br/><br/>',
+    'OnvifManualOr'         => 'Or connect to an ONVIF camera directly:',
+    'OnvifManualLabel'      => 'Camera IP / URL',
+    'OnvifManualPlaceholder' => 'e.g. 192.168.1.100 or http://192.168.1.100/onvif/device_service',
+    'OnvifManualConnect'    => 'Connect ONVIF',
     'ONVIF'                 => 'ONVIF',
     'ONVIF_Alarm_Text'      => 'ONVIF Alarm Text',
     'ONVIF_Event_Listener'  => 'ONVIF Event Listener',
     'ONVIF_EVENTS_PATH'     => 'ONVIF Events Path',
     'ONVIF_Options'         => 'ONVIF Options',
     'ONVIF_URL'             => 'ONVIF URL',
+    'ObjectTraining'        => 'Object Training',
     'OpBlank'               => 'is blank',
     'OpEq'                  => 'equal to',
     'OpGtEq'                => 'greater than or equal to',
@@ -509,6 +628,7 @@ $SLANG = array(
     'PreEventImageBuffer'   => 'Pre Event Image Count',
     'PreserveAspect'        => 'Preserve Aspect Ratio',
     'PreviewRate'           => 'Preview Rate',
+    'PreviousFrame'         => 'Previous Frame',
     'PreviousMonitor'       => 'Previous Monitor',
     'PrivacyAbout'          => 'About',
     'PrivacyAboutText'      => 'Since 2002, ZoneMinder has been the premier free and open-source Video Management System (VMS) solution for Linux platforms. ZoneMinder is supported by the community and is managed by those who choose to volunteer their spare time to the project. The best way to improve ZoneMinder is to get involved.',
@@ -538,12 +658,14 @@ $SLANG = array(
     <li>Manufacturer</li>
     <li>Model</li>
     <li>Type</li>
-    <li>Function</li>
+    <li>Capturing, Analysing and Recording</li>
+    <li>Source path, with the user name, password and host removed</li>
     <li>Width</li>
     <li>Height</li>
     <li>Colours</li>
     <li>MaxFPS</li>
     <li>AlarmMaxFPS</li>
+    <li>Whether Janus, Go2RTC, RTSP2Web and the RTSP server are enabled</li>
    </ul>',
     'PrivacyConclusionText' => 'We are <u>NOT</u> collecting any image specific data from your cameras. We don’t know what your cameras are watching. This data will not be sold or used for any purpose not stated herein. By clicking accept, you agree to send us this data to help make ZoneMinder a better product. By clicking decline, you can still freely use ZoneMinder and all its features.',
     'Probe'                 => 'Probe',
@@ -551,7 +673,29 @@ $SLANG = array(
     'ProfileProbeIntro'     => 'The list below shows the existing stream profiles of the selected camera .<br/><br/>Select the desired entry from the list below.<br/><br/>Please note that ZoneMinder cannot configure additional profiles and that choosing a camera here may overwrite any values you already have configured for the current monitor.<br/><br/>',
     'RecaptchaWarning'      => 'Your reCaptcha secret key is invalid. Please correct it, or reCaptcha will not work', // added Sep 24 2015 - PP
     'RecordAudio'		       	=> 'Whether to store the audio stream when saving an event.',
+    'AudioDetection'            => 'Audio Detection',
+    'AudioDetectionHelp'        => 'Score the monitor on how loud its audio is, alongside motion.',
+    'MotionDetectionSettings'   => 'Motion detection',
+    'AudioDetectionSettings'    => 'Audio detection',
+    'OtherAnalysisSettings'     => 'Other',
+    'AudioThreshold'            => 'Audio Threshold',
+    'AudioThresholdHelp'        => 'Level, 0-100, at or above which the monitor alarms. 0 turns audio detection off. Measure the device\'s quiet level first and set this above it.',
+    'AudioLevelNow'             => 'Current Level',
+    'AudioLevelNowHelp'         => 'Live reading from the capture process, on the same 0-100 scale as the threshold. Watch it while the room is quiet to find the floor, then make some noise to see the range. Measuring only runs while this page is open, so it costs nothing the rest of the time.',
+    'AudioAlarmScore'           => 'Audio Alarm Score',
+    'AudioAlarmScoreHelp'       => 'Score contributed to a frame while the audio level is over the threshold.',
+    'Audio detection only available with FFMPEG' => 'Audio detection only available with FFMPEG',
+    'RectangleAlarmedArea'  => 'Alarmed area',
+    'RectangleBlobArea'     => 'Blob area',
+    'RectangleFilteredArea' => 'Filtered area',
+    'RectangleMeasure'      => 'Rectangle measurement',
+    'RectangleOfAlarmed'    => 'of alarmed area',
+    'RectangleOfFiltered'   => 'of filtered area',
+    'RectangleObjectSize'   => 'Object size',
+    'RectangleOfRectangle'  => 'of the drawn rectangle',
+    'RectangleOrTypeSize'   => 'in capture pixels, if you would rather not draw',
     'RefImageBlendPct'      => 'Reference Image Blend %ge',
+    'RememberMe'            => 'Remember Me',
     'RemoteHostName'        => 'Host Name',
     'RemoteHostPath'        => 'Path',
     'RemoteHostSubPath'     => 'SubPath',
@@ -559,10 +703,13 @@ $SLANG = array(
     'RemoteImageColours'    => 'Image Colours',
     'RemoteMethod'          => 'Method',
     'RemoteProtocol'        => 'Protocol',
+    'RemoteRtspDeprecated'      => 'ZoneMinder\'s own RTSP support has been removed in favour of Ffmpeg. This monitor will not capture until you change it to Type Ffmpeg, putting the full rtsp:// URL in Source Path. The capture log names the exact URL to use.',
     'ReplayAll'             => 'All Events',
     'ReplayGapless'         => 'Gapless Events',
     'ReplaySingle'          => 'Single Event',
     'ReportEventAudit'      => 'Audit Events Report',
+    'RequestMissing'        => 'The request is missing',
+    'RequiresAudioMotionEnabled' => 'Requires installation of the file "skins/classic/assets/audioMotion-analyzer/src/audioMotion-analyzer.js"',
     'ResetEventCounts'      => 'Reset Event Counts',
     'RestrictedCameraIds'   => 'Restricted Camera Ids',
     'RestrictedMonitors'    => 'Restricted Monitors',
@@ -574,6 +721,7 @@ $SLANG = array(
     'Roles'                 => 'Roles',
     'RotateLeft'            => 'Rotate Left',
     'RotateRight'           => 'Rotate Right',
+    'RTSPStreamName'        => 'RTSP Stream Name',
     'RTSPTransport'         => 'RTSP Transport Protocol',
     'RunAudit'              => 'Run Audit Process',
     'RunLocalUpdate'        => 'Please run zmupdate.pl to update',
@@ -590,6 +738,7 @@ $SLANG = array(
     'Sectionlength'         => 'Section length',
     'SelectMonitors'        => 'Select Monitors',
     'SelectFormat'          => 'Select Format',
+    'SelectLabel'           => 'Select a label for this object',
     'SelectLog'             => 'Select Log',
     'SelfIntersecting'      => 'Polygon edges must not intersect',
     'SetNewBandwidth'       => 'Set New Bandwidth',
@@ -607,12 +756,14 @@ $SLANG = array(
     'SortDesc'              => 'Desc',
     'SourceColours'         => 'Source Colours',
     'SourcePath'            => 'Source Path',
+    'SourceSecondPath'      => 'Source Second Path',
     'SourceType'            => 'Source Type',
     'SOAP WSA COMPLIANCE'   => 'SOAP WSA Compliance',
     'SpeedHigh'             => 'High Speed',
     'SpeedLow'              => 'Low Speed',
     'SpeedMedium'           => 'Medium Speed',
     'SpeedTurbo'            => 'Turbo Speed',
+    'StatusDeleted'         => 'Deleted',
     'StatusUnknown'         => 'Unknown',
     'StatusConnected'       => 'Capturing',
     'StatusNotRunning'      => 'Not Running',
@@ -628,6 +779,10 @@ $SLANG = array(
     'StorageScheme'         => 'Scheme',
     'StreamReplayBuffer'    => 'Stream Replay Image Buffer',
     'TargetColorspace'      => 'Target colorspace',
+    'Removed'                   => 'removed',
+    'DeprecatedColoursSetting' => 'Deprecated - will be auto-detected in a future release',
+    'ThisSession'           => 'This Session',
+    'ThisSessionHint'       => 'These settings apply to this browser session only. They are kept in a cookie rather than saved on the server, so they do not affect other sessions or other users.',
     'TimeDelta'             => 'Time Delta',
     'TimelineTip1'          => 'Pass your mouse over the graph to view a snapshot image and event details.',              // Added 2013.08.15.
     'TimelineTip2'          => 'Click on the coloured sections of the graph, or the image, to view the event.',              // Added 2013.08.15.
@@ -642,11 +797,57 @@ $SLANG = array(
     'TotalBrScore'          => 'Total<br/>Score',
     'TrackDelay'            => 'Track Delay',
     'TrackMotion'           => 'Track Motion',
+    'TrainingBackgroundConfirm' => 'No objects marked. Save as a background image (no objects)? Background images help the model learn to reduce false positives.',
+    'TrainingBackgroundImages' => 'Background images (no objects)',
+    'TrainingBrowse'        => 'Browse Training Data',
+    'TrainingBrowseFrames'  => 'Browse Frames',
+    'TrainingConfirmDeleteFile' => 'Delete this file and its paired image/label?',
+    'TrainingDataDeleted'   => 'All training data has been deleted.',
+    'TrainingDataStats'     => 'Training Data Statistics',
+    'TrainingDeleteAll'     => 'Delete All Training Data',
+    'TrainingDeleteBox'     => 'Delete Box',
+    'TrainingDeleteFailed'  => 'Failed to delete',
+    'TrainingDetect'        => 'Detect',
+    'TrainingEditAnnotation' => 'Edit annotation',
+    'TrainingDetectFailed'  => 'Detection failed',
+    'TrainingDetectNoResults' => 'No objects detected in this frame.',
+    'TrainingDetectNoScript' => 'No detection script configured. Set ZM_TRAINING_DETECT_SCRIPT in Options.',
+    'TrainingDetectObjects' => 'Run object detection on current frame',
+    'TrainingDetectRunning' => 'Running detection...',
+    'TrainingDetectedObjects' => 'object(s) detected — accept or reject each',
+    'TrainingFailedToLoadEvent' => 'Failed to load event data',
+    'TrainingFailedToLoadFrame' => 'Failed to load frame image',
+    'TrainingGuidance'      => 'Training is generally possible with at least 50+ images per class. For best results, aim for 100+ images per class.',
+    'TrainingLoadFrameFirst' => 'Load a frame first',
+    'TrainingLoading'       => 'Loading...',
+    'TrainingNoData'        => 'No training data yet. Save annotations to build your dataset.',
+    'TrainingPendingDiscard' => '%1 unaccepted detection(s) (orange boxes) will not be saved. Continue?',
+    'TrainingPendingOnly'   => 'You have %1 unaccepted detection(s) (orange boxes). Accept them first, or save as a background image with no objects?',
+    'TrainingNoFiles'       => 'No files',
+    'TrainingNoObjects'     => 'No annotated objects yet',
+    'TrainingObjects'       => 'Objects',
+    'TrainingNoFrameLoaded' => 'No frame loaded',
+    'TrainingPreviewUnavailable' => 'Preview not available for this file type',
+    'TrainingRemoved'       => 'Training annotation removed',
+    'TrainingSave'          => 'Save for Training',
+    'TrainingSaved'         => 'Training annotation saved',
+    'TrainingSavedLoaded'   => 'saved annotation(s) loaded',
+    'TrainingShiftDrawHint' => 'Hold Shift to draw a box inside another box',
+    'TrainingSaveFailed'    => 'Save failed',
+    'TrainingSaving'        => 'Saving...',
+    'TrainingSelectBoxFirst' => 'Select a box first',
+    'TrainingSkipBack'      => 'Back 10 frames',
+    'TrainingSkipForward'   => 'Forward 10 frames',
+    'TrainingTotalClasses'  => 'Total classes',
+    'TrainingTotalImages'   => 'Total annotated images',
+    'TrainingUnsaved'       => 'You have unsaved annotations. Discard changes?',
     'TurboPanSpeed'         => 'Turbo Pan Speed',
     'TurboTiltSpeed'        => 'Turbo Tilt Speed',
     'TZUnset'               => 'Unset - use value in php.ini',
+    'UnrecognisedAction'    => 'Unrecognised action',
     'UpdateAvailable'       => 'An update to ZoneMinder is available.',
     'UpdateNotNecessary'    => 'No update is necessary.',
+    'use_Amcrest_API'       => 'Use Amcrest API',
     'UsedPlugins'	          => 'Used Plugins',
     'Username'              => 'Username',
     'UseFilterExprsPost'    => '&nbsp;filter&nbsp;expressions', // This is used at the end of the phrase 'use N filter expressions'
@@ -680,6 +881,7 @@ $SLANG = array(
     'X10InputAlarmString'   => 'X10 Input Alarm String',
     'X10OutputAlarmString'  => 'X10 Output Alarm String',
     'YouNoPerms'            => 'You do not have permissions to access this resource.',
+    'ZeroSize'              => 'Zero Size',
     'ZoneAlarmColour'       => 'Alarm Colour (Red/Green/Blue)',
     'ZoneArea'              => 'Zone Area',
     'ZoneFilterSize'        => 'Filter Width/Height (pixels)',
@@ -778,16 +980,18 @@ $VLANG = array(
 //
 // In languages such as English this is fairly simple
 // Note this still has to be used with printf etc to get the right formatting
-function zmVlang($langVarArray, $count) {
-  krsort($langVarArray);
-  foreach ($langVarArray as $key=>$value) {
-    if (abs($count) >= $key) {
-      return $value;
+if (!function_exists('zmVlang')) {
+  // To avoid overriding the function, this file may be loaded alongside another language translation file.
+  function zmVlang($langVarArray, $count) {
+    krsort($langVarArray);
+    foreach ($langVarArray as $key=>$value) {
+      if (abs($count) >= $key) {
+        return $value;
+      }
     }
+    ZM\Error('Unable to correlate variable language string');
   }
-  ZM\Error('Unable to correlate variable language string');
 }
-
 // This is an version that could be used in the Russian example above
 // The rules are that the first word form is used if the count ends in
 // 0, 5-9 or 11-19. The second form is used then the count ends in 1
@@ -894,26 +1098,9 @@ $OLANG = array(
         HTTP - Use HTTP tunneling as transport protocol, which is useful for passing proxies.~~
       '
 	),
-	'OPTIONS_LIBVLC' => array(
-    'Help' => '
-      Parameters in this field are passed on to libVLC. Multiple parameters can be separated by ,~~
-      Examples (do not enter quotes)~~~~
-      "--rtp-client-port=nnn" Set local port to use for rtp data~~~~
-      "--verbose=2" Set verbosity of libVLC
-      '
-	),
 	'OPTIONS_EXIF' => array(
 		'Help' => 'Enable this option to embed EXIF data into each jpeg frame.'
 	),
-	'OPTIONS_RTSPDESCRIBE' => array(
-    'Help' => '
-      Sometimes, during the initial RTSP handshake, the camera will send an updated media URL.
-      Enable this option to tell ZoneMinder to use this URL. Disable this option to ignore the
-      value from the camera and use the value as entered in the monitor configuration~~~~
-      Generally this should be enabled. However, there are cases where the camera can get its
-      own URL incorrect, such as when the camera is streaming through a firewall
-    '
-  ),
 	'OPTIONS_MAXFPS' => array(
     'Help' => '
       This field has certain limitations when used for non-local devices.~~
@@ -967,6 +1154,17 @@ Always: A zmc process will run and immediately connect and stay connected.~~~~
      If RTSPServer is enabled, this will be the endpoint it will be available at.
      For example, if this is monitor ID 6, MIN_RTSP_PORT=20000 and RTSPServerName
      is set to "my_camera", access the stream at rtsp://ZM_HOST:20006/my_camera
+     ',
+    ),
+  'OPTIONS_WHATTODISPLAY' => array(
+     'Help' => '
+     On the Watch, Montage, Event page, you can display either a video stream, or an audio stream visualization, or both a video stream and an audio visualization.~~
+     The visualization is drawn by the audioMotion-analyzer library, which is licensed AGPL-3.0-or-later and so is not shipped with ZoneMinder. To display it, install the library as "skins/classic/assets/audioMotion-analyzer/src/audioMotion-analyzer.js" under your web directory, substituting your own skin name for "classic" if you use a different skin.~~
+     Download it from one of the following, where X.X.X is the required version:~~
+     https://cdn.jsdelivr.net/npm/audiomotion-analyzer@X.X.X/src/audioMotion-analyzer.js~~
+     https://github.com/hvianna/audioMotion-analyzer/releases/tag/X.X.X (the file is under src/ in the source tarball)~~
+     Do not use the bare https://cdn.jsdelivr.net/npm/audiomotion-analyzer@X.X.X URL: it serves the minified UMD bundle rather than the ES module this path expects.~~
+     The required version is reported below this setting, and is set by SUPPORTED_AUDIO_MOTION_ANALYZER_VERSION in skins/classic/js/audioMotionAnalyzer.js.
      ',
     ),
   'FUNCTION_ANALYSIS_ENABLED' => array(
@@ -1045,6 +1243,38 @@ None: No frames will be decoded, live view and thumbnails will not be available~
      help to get it to work... it is confirmed to work in some chinese cameras that do not implement ONVIF entirely
     '
    ),
+   'OPTIONS_ONVIF_Alarm_Text' => array(
+    'Help' => '
+     Text associated with event when alarm is activated.~~
+     Some standard values:~~
+     - AnalyticsService~~
+     - ConfigurationChanged~~
+     - Crossed~~
+     - DetectedSound~~
+     - Face~~
+     - FireAlarm~~
+     - IPConflict~~
+     - Motion~~
+     - MotionAlarm (set by default)~~
+     - ObjectsInside~~
+     - ProfileChanged~~
+     - SceneTemperature~~
+     - Tamper~~
+     For more details, see the instructions for your camera, as well as the specifications at the link:~~https://www.onvif.org/specs/core/ONVIF-Core-Specification.pdf
+    '
+   ),
+  'ZM_OPT_TRAINING' => array(
+    'Prompt' => 'Enable custom model training features',
+    'Help' => 'Enable annotation tools on the event view for correcting object detection results.~~Corrected annotations are saved in YOLO format for training custom models via pyzm.~~When enabled, an Annotate button appears on the event view toolbar.'
+  ),
+  'ZM_TRAINING_DATA_DIR' => array(
+    'Prompt' => 'Training data directory',
+    'Help' => 'Filesystem path where corrected annotation images and YOLO label files are stored.~~The directory will be created automatically if it does not exist.~~Uses Roboflow-compatible YOLO directory layout:~~images/all/ - annotated frame images~~labels/all/ - YOLO format label files~~data.yaml - class definitions'
+  ),
+  'ZM_TRAINING_DETECT_SCRIPT' => array(
+    'Prompt' => 'Object detection script location',
+    'Help' => 'Full path to the object detection script (e.g. /var/lib/zmeventnotification/bin/zm_detect.py).~~When set, a Detect button appears in the annotation editor that runs detection on the current frame.~~The script is called as: script -f image -m monitor_id~~Leave empty to disable automatic detection.'
+  ),
 
 //    'LANG_DEFAULT' => array(
 //        'Prompt' => "This is a new prompt for this option",

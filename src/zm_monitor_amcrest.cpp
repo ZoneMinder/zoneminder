@@ -21,6 +21,8 @@
 #include "zm_signal.h"
 #include "url.hpp"
 
+#if HAVE_LIBCURL
+
 Monitor::AmcrestAPI::AmcrestAPI(Monitor *parent_) :
   parent(parent_),
   alarmed(false),
@@ -202,3 +204,4 @@ void Monitor::AmcrestAPI::SetNoteSet(Event::StringSet &noteSet) {
   }
 }
 
+#endif  // HAVE_LIBCURL

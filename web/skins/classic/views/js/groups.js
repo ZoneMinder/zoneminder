@@ -33,17 +33,15 @@ function editGroup( element ) {
 }
 
 function deleteGroup(element) {
-  const form = element.form;
-  form.elements['action'].value = 'delete';
-  form.submit();
+  getDelConfirmModal('ConfirmDeleteGroups', 'Delete', 'groupsForm');
 }
 
 function configureButtons(element) {
   if (canEdit.Groups) {
+    configureDeleteButton(element);
+  } else {
     const form = element.form;
-    if (element.checked) {
-      form.deleteBtn.disabled = (element.value == 0);
-    }
+    if (form) form.deleteBtn.disabled = true;
   }
 }
 

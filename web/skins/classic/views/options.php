@@ -35,6 +35,9 @@ echo getNavBarHTML();
 ?>
   <div class="container-fluid" id="content">
     <div class="row flex-nowrap h-100">
+<?php
+if (!(defined('ZM_WEB_LEFT_MENU_OPTIONS_SUBMENU') and ZM_WEB_LEFT_MENU_OPTIONS_SUBMENU)) {
+?>
       <nav id="sidebar">
         <ul class="nav nav-pills flex-column">
 <?php
@@ -44,18 +47,20 @@ foreach ($zmMenu::$submenuOptionsItems as $name=>$value) {
 ?>
         </ul>
       </nav>
-      <div id="optionsContainer" class="col">
+<?php } ?>
+      <div id="optionsContainer">
 <?php 
 if ($tab == 'display') {
 ?>
           <form name="optionsForm" method="get" action="?">
             <input type="hidden" name="view" value="<?php echo $view ?>"/>
             <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
-            <div class="row">
-              <div class="col">
-                <div id="contentButtons">
-                  <button value="Save" type="submit"><?php echo translate('Save') ?></button>
-                </div>
+            <!-- #optionsContainer is a flex row, so this has to live inside the
+                 form rather than beside it, or the two share the width. -->
+            <div class="form-text text-muted mb-3"><?php echo translate('ThisSessionHint') ?></div>
+            <div class="col button-block">
+              <div id="contentButtons">
+                <button value="Save" type="submit"><?php echo translate('Save') ?></button>
               </div>
             </div>
             <div class="form-group row">
@@ -141,8 +146,18 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
   include('_options_roles.php');
 } else if ($tab == 'API') {
   include('_options_api.php');
-}  // $tab == API
-  else { 
+} else if ($tab == 'menu') {
+  include('_options_menu.php');
+} else if ($tab == 'encoderTemplates') {
+  include('_options_encoderTemplates.php');
+} else if ($tab == 'ai_datasets') {
+  include('_options_ai_datasets.php');
+} else if ($tab == 'ai_models') {
+  include('_options_ai_models.php');
+} else if ($tab == 'ai_classes') {
+  include('_options_ai_classes.php');
+}  // $tab == API/menu/encoderTemplates/ai_*
+  else {
   $config = array();
   $configCats = array();
 
@@ -160,16 +175,6 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
   }
 
   if ($tab == 'web') {
-    $configCats[$tab]['ZM_WEB_HOMEVIEW']['Hint'] = [
-      'console'=>translate('Console'),
-      'events'=>'Events',
-      'map'   =>  'Map',
-      'montage'=>'Montage',
-      'montagereview'=>'Montage Review',
-      'watch' => 'Watch',
-    ];
-  } else if ($tab == 'system') {
-//    $configCats[$tab]['ZM_LANG_DEFAULT']['Hint'] = join('|', getLanguages());
     if (defined('ZM_FORCE_SKIN_DEFAULT'))
       $configCats[$tab]['ZM_SKIN_DEFAULT']['Hint'] = ZM_FORCE_SKIN_DEFAULT;
     else
@@ -187,9 +192,25 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
     foreach ($languagecodelist as $language){
         $languageslist[$language] = translate($language);
        }
-
     $configCats[$tab]['ZM_LANG_DEFAULT']['Hint'] = $languageslist;
 
+    $configCats[$tab]['ZM_LOCALE_DEFAULT']['Hint'] = array(''=> translate('System Default'));
+    $locales = ResourceBundle::getLocales('');
+    if ($locales) {
+      foreach ( $locales as $locale) {
+        $configCats[$tab]['ZM_LOCALE_DEFAULT']['Hint'][$locale] = $locale;
+      }
+    }
+
+    $configCats[$tab]['ZM_WEB_HOMEVIEW']['Hint'] = [
+      'console'=>translate('Console'),
+      'events'=>'Events',
+      'map'   =>  'Map',
+      'montage'=>'Montage',
+      'montagereview'=>'Montage Review',
+      'watch' => 'Watch',
+    ];
+  } else if ($tab == 'system') {
 
     function timezone_list() {
       static $timezones = null;
@@ -223,40 +244,73 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
       return $name;
     }
     $configCats[$tab]['ZM_TIMEZONE']['Hint'] = array(''=> translate('TZUnset')) + timezone_list();
-    $configCats[$tab]['ZM_LOCALE_DEFAULT']['Hint'] = array(''=> translate('System Default'));
-    $locales = ResourceBundle::getLocales('');
-    if ($locales) {
-      foreach ( $locales as $locale) {
-        $configCats[$tab]['ZM_LOCALE_DEFAULT']['Hint'][$locale] = $locale;
-      }
-    }
   } # end if tab == system
 ?>
       <form name="optionsForm" method="post" action="?">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
         <input type="hidden" name="action" value="options"/>
-          <div class="row pb-2">
-            <div class="col">
-              <div id="contentButtons">
-                <button type="submit" <?php echo $canEdit?'':' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
-              </div>
+        <div id="options">
+          <div class="col button-block">
+            <div id="contentButtons">
+              <button type="submit" <?php echo $canEdit?'':' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
             </div>
           </div>
-        <div class="row h-100">
-          <div id="options">
+          <div class="wrapper-scroll-table">
 <?php
           if (!isset($configCats[$tab])) {
             echo 'There are no config entries for category '.$tab.'.<br/>';
           } else {
+            // Options set in zm.conf or conf.d belong to the system owner and win over the database
+            // everywhere, so they are shown with the value in effect and can't be changed here.
+            // Their Config row is left as is.
+            $fileConfig = loadConfigFiles();
             foreach ($configCats[$tab] as $name=>$value) {
               $shortName = preg_replace( '/^ZM_/', '', $name );
               $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]['Prompt']:$value['Prompt'];
-              $optionCanEdit = $canEdit && !$value['System'];
+              $fileSet = isset($fileConfig[$name]);
+              $optionCanEdit = $canEdit && !$value['System'] && !$fileSet;
+              $secret = !empty($value['Private']) || $value['Type'] == 'password';
+              // A Private value (ZM_AUTH_HASH_SECRET and other credentials) is only for
+              // those who may change it: System=View can read this page, and the auth
+              // secret alone is enough to sign an admin token. refs GHSA-7g3f-93q8-fhwj
+              $valueHidden = !empty($value['Private']) && !$canEdit;
+              if ($valueHidden) $value['Value'] = '';
+              // $value is this row's copy, so $config keeps the Config rows. A secret set in
+              // a file never reaches the browser: a placeholder stands in for it, so the masked input
+              // still shows as set.
+              if ($fileSet)
+                $value['Value'] = $secret ? '<set in config file>' : configFileValue($fileConfig[$name]['Value'], $value['Type']);
+              if ($optionCanEdit && !empty($value['Requires'])) {
+                // Requires can be compound: "ZM_A=1;ZM_B=hashed" (all must be true)
+                $requiresMet = true;
+                foreach (explode(';', $value['Requires']) as $req) {
+                  $req = trim($req);
+                  if (!preg_match('/^(ZM_\w+)=(.+)$/', $req, $reqMatch)) {
+                    // Malformed requirement: treat as unmet
+                    $requiresMet = false;
+                    break;
+                  }
+                  $reqName = $reqMatch[1];
+                  $expectedValue = $reqMatch[2];
+                  // Against the value in effect: a file's value wins over the Config row.
+                  $reqValue = isset($config[$reqName]) ? (isset($fileConfig[$reqName])
+                    ? configFileValue($fileConfig[$reqName]['Value'], $config[$reqName]['Type'])
+                    : $config[$reqName]['Value']) : null;
+                  if ($reqValue === null || $reqValue != $expectedValue) {
+                    // Missing or mismatched requirement: treat as unmet
+                    $requiresMet = false;
+                    break;
+                  }
+                }
+                if (!$requiresMet) {
+                  $optionCanEdit = false;
+                }
+              }
 ?>
-          <div class="form-group form-row <?php echo $name ?>">
-            <label for="<?php echo $name ?>" class="col-md-4 control-label text-md-right"><?php echo $shortName ?></label>
-            <div class="col-md">
+            <div class="form-group form-row <?php echo $name ?>"<?php if ($canEdit && !$value['System'] && !$fileSet && !empty($value['Requires'])) echo ' data-requires="'.htmlspecialchars($value['Requires'], ENT_QUOTES).'"' ?>>
+              <label for="<?php echo $name ?>" class="col-md-4 control-label text-md-right"><?php echo $shortName ?></label>
+              <div class="col-md">
 <?php   
               if ($value['Type'] == 'boolean') {
                 echo '<input type="checkbox" id="'.$name.'" name="newConfig['.$name.']" value="1"'.
@@ -289,10 +343,10 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
                       $optionLabel = $optionValue = $option;
                     }
 ?>
-                  <label class="font-weight-bold form-control-sm">
-                    <input type="radio" id="<?php echo $name.'_'.preg_replace('/[^a-zA-Z0-9]/', '', $optionValue) ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo $optionValue ?>"<?php if ( $value['Value'] == $optionValue ) { ?> checked="checked"<?php } ?><?php echo $optionCanEdit?'':' disabled="disabled"' ?>/>
-                    <?php echo htmlspecialchars($optionLabel) ?>
-                  </label>
+                    <label class="font-weight-bold form-control-sm">
+                      <input type="radio" id="<?php echo $name.'_'.preg_replace('/[^a-zA-Z0-9]/', '', $optionValue) ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo $optionValue ?>"<?php if ( $value['Value'] == $optionValue ) { ?> checked="checked"<?php } ?><?php echo $optionCanEdit?'':' disabled="disabled"' ?>/>
+                      <?php echo htmlspecialchars($optionLabel) ?>
+                    </label>
 <?php
                   } # end foreach option
                 } # end if count options > 3
@@ -304,26 +358,82 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
                 echo '<input type="text" class="form-control-sm" id="'.$name.'" name="newConfig['.$name.']" value="'.validHtmlStr($value['Value']).'" '.($optionCanEdit?'':' disabled="disabled"' ).'/>'.PHP_EOL;
               } else if ( $value['Type'] == 'decimal' ) {
                 echo '<input type="text" class="form-control-sm" id="'.$name.'" name="newConfig['.$name.']" value="'.validHtmlStr($value['Value']).'" '.($optionCanEdit?'':' disabled="disabled"' ).'/>'.PHP_EOL;
-              } else if ( $value['Type'] == 'password' ) {
-                echo '<input type="password" class="form-control-sm" id="'.$name.'" name="newConfig['.$name.']" value="'.validHtmlStr($value['Value']).'" '.($optionCanEdit?'':' disabled="disabled"' ).'/>'.PHP_EOL;
-                echo '<span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="'.$name.'">visibility</span>';
+              } else if ($secret) {
+                // Password options and Private ones such as ZM_AUTH_HASH_SECRET are masked, with a
+                // toggle to show the value; none for a file's placeholder, or for an empty value the
+                // user can't edit. new-password stops the browser filling in a saved login password,
+                // which a save would then store as this option.
+                echo '<input type="password" class="form-control-sm" id="'.$name.'" name="newConfig['.$name.']" value="'.validHtmlStr($value['Value']).'" autocomplete="new-password" '.($optionCanEdit?'':' disabled="disabled"' ).'/>'.PHP_EOL;
+                if (!$fileSet && ($optionCanEdit || $value['Value'] !== ''))
+                  echo '<span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="'.$name.'">visibility</span>';
               } else {
                 echo '<input type="text" class="form-control-sm" id="'.$name.'" name="newConfig['.$name.']" value="'.validHtmlStr($value['Value']).'" '.($optionCanEdit?'':' disabled="disabled"' ).'/>'.PHP_EOL;
               }
-              if ($value['Value'] != constant($name)) {
-                echo '<p class="warning">Note: This value has been overriden via configuration files in '.ZM_CONFIG. ' or ' . ZM_CONFIG_SUBDIR.'.<br/>The overriden value is: '.constant($name).'</p>'.PHP_EOL;
+              if ($fileSet) {
+                $fileText = $secret ? 'OptionSetInConfigFileHidden' : 'OptionSetInConfigFile';
+                echo '<p class="form-text text-warning font-weight-bold optionfileset">'.validHtmlStr(sprintf(translate($fileText), $fileConfig[$name]['File'])).'</p>'.PHP_EOL;
+              } else if ($valueHidden) {
+                // One note: for a file-set secret, OptionSetInConfigFileHidden already says it isn't shown.
+                echo '<p class="form-text">'.translate('PrivateValueHidden').'</p>'.PHP_EOL;
               }
 ?>
-              <span class="form-text form-control-sm"><?php echo validHtmlStr($optionPromptText); echo makeHelpLink($name) ?></span>
-            </div><!-- End .col-md -->
-          </div><!-- End .form-group -->
+                <span class="form-text"><?php echo validHtmlStr($optionPromptText); echo makeHelpLink($name) ?></span>
+              </div><!-- End .col-md -->
+            </div><!-- End .form-group -->
 <?php
             } # end foreach config entry in the category
         } # end if category exists
 ?>
-          </div><!--options-->
-        </div><!-- .row h-100 -->
+          </div>
+        </div><!--#options-->
       </form>
+<script nonce="<?php echo $cspNonce ?>">
+// Dynamic enable/disable of config fields based on data-requires attribute.
+// Supports compound requires: "ZM_A=1;ZM_B=hashed" (all conditions must be met).
+document.addEventListener('DOMContentLoaded', function() {
+  const $opts = $j('#options');
+  if (!$opts.length) return;
+  const $depRows = $opts.find('[data-requires]');
+
+  function getVal(name) {
+    const $el = $opts.find('[name="newConfig[' + name + ']"]');
+    if (!$el.length) return '';
+    if ($el.is(':checkbox')) return $el.is(':checked') ? '1' : '0';
+    if ($el.is(':radio')) return $el.filter(':checked').val() || '';
+    return $el.val();
+  }
+
+  function evalRequires(req) {
+    for (const chunk of req.split(';')) {
+      const part = chunk.trim();
+      if (!part) continue;
+      const m = part.match(/^(ZM_\w+)=(.+)$/);
+      if (!m) return false;
+      if (getVal(m[1]) !== m[2]) return false;
+    }
+    return true;
+  }
+
+  function refresh() {
+    $depRows.each(function() {
+      const $row = $j(this);
+      const met = evalRequires($row.attr('data-requires'));
+      $row.find('input, select, textarea').each(function() {
+        const $input = $j(this);
+        $input.prop('disabled', !met);
+        if ($input.is('select.chosen')) {
+          $input.trigger('chosen:updated');
+        }
+      });
+    });
+  }
+
+  $opts.on('change', refresh);
+
+  // Apply initial state so dependents match current values on first render.
+  refresh();
+});
+</script>
 <?php
 }
 ?>

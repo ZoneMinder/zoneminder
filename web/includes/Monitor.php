@@ -11,78 +11,80 @@ require_once('Storage.php');
 require_once('Zone.php');
 
 class Monitor extends ZM_Object {
+  protected static $setters = array('User', 'ViewWidth', 'ViewHeight', 'Storage', 'Groups', 'connKey', 'Model', 'Manufacturer');
   private $shm_id = null;
   private $connected = false;
 
+  // These offsets are the REAL (naturally-aligned) byte offsets of the C++
+  // SharedData/TriggerData structs, not the packed-layout ideal implied by the
+  // struct's /* +N */ comments. The C++ struct is not packed, so the compiler
+  // inserts a 4-byte pad before capture_fps (after state) and another before
+  // the startup_time union (after audio_channels); every field from capture_fps
+  // onward therefore sits 4 or 8 bytes later than the naive packed offset. With
+  // the analysis image ring counters appended, SharedData is 888 bytes and
+  // TriggerData starts at 888. The authoritative source is the same alignment
+  // computation ZoneMinder::Memory (Memory.pm) performs; a
+  // sizeof(SharedData)==888 static_assert in zm_monitor.h guards the layout.
   private $shm_offsets = ['SharedData' => [
     'size'             => [ 'type'=>'uint32', 'offset'=>0, 'size'=>4 ],
     'last_write_index' => [ 'type'=>'int32', 'offset'=>4, 'size'=>4 ],
     'last_read_index'  => [ 'type'=>'int32', 'offset'=>8, 'size'=>4 ],
     'image_count'      => [ 'type'=>'int32', 'offset'=>12, 'size'=>4 ],
     'state'            => [ 'type'=>'uint32', 'offset'=>16, 'size'=>4 ],
-    'capture_fps'      => [ 'type'=>'double', 'offset'=>20, 'size'=>8 ],
-    'analysis_fps'     => [ 'type'=>'double', 'offset'=>28, 'size'=>8 ],
-    'latitude'         => [ 'type'=>'double', 'offset'=>36, 'size'=>8 ],
-    'longitude'        => [ 'type'=>'double', 'offset'=>44, 'size'=>8 ],
-    'last_event'       => [ 'type'=>'uint64', 'offset'=>52, 'size'=>8 ],
-    'action'           => [ 'type'=>'uint32', 'offset'=>60, 'size'=>4 ],
-    'brightness'       => [ 'type'=>'int32', 'offset'=>64, 'size'=>4 ],
-    'hue'              => [ 'type'=>'int32', 'offset'=>68, 'size'=>4 ],
-    'colour'           => [ 'type'=>'int32', 'offset'=>72, 'size'=>4 ],
-    'contrast'         => [ 'type'=>'int32', 'offset'=>76, 'size'=>4 ],
-    'alarm_x'          => [ 'type'=>'int32', 'offset'=>80, 'size'=>4 ],
-    'alarm_y'          => [ 'type'=>'int32', 'offset'=>84, 'size'=>4 ],
-    'valid'            => [ 'type'=>'uint8', 'offset'=>88, 'size'=>1 ],
-    'capturing'        => [ 'type'=>'uint8', 'offset'=>89, 'size'=>1 ],
-    'analysing'        => [ 'type'=>'uint8', 'offset'=>90, 'size'=>1 ],
-    'recording'        => [ 'type'=>'uint8', 'offset'=>91, 'size'=>1 ],
-    'signal'           => [ 'type'=>'uint8', 'offset'=>92, 'size'=>1 ],
-    'format'           => [ 'type'=>'uint8', 'offset'=>93, 'size'=>1 ],
-    'reserved1'        => [ 'type'=>'uint8', 'offset'=>94, 'size'=>1 ],
-    'reserved2'        => [ 'type'=>'uint8', 'offset'=>95, 'size'=>1 ],
-    'imagesize'        => [ 'type'=>'uint32', 'offset'=>96, 'size'=>4 ],
-    'last_frame_score' => [ 'type'=>'uint32', 'offset'=>100, 'size'=>4 ],
-    'audio_frequency'  => [ 'type'=>'uint32', 'offset'=>104, 'size'=>4 ],
-    'audio_channels'   => [ 'type'=>'uint32', 'offset'=>108, 'size'=>4 ],
-    'startup_time'     => [ 'type'=>'time_t64', 'offset'=>112, 'size'=>8 ],
-    'heartbeat_time'   => [ 'type'=>'time_t64', 'offset'=>120, 'size'=>8 ],
-    'last_write_time'  => [ 'type'=>'time_t64', 'offset'=>128, 'size'=>8 ],
-    'last_read_time'   => [ 'type'=>'time_t64', 'offset'=>136, 'size'=>8 ],
-    'last_viewed_time' => [ 'type'=>'time_t64', 'offset'=>144, 'size'=>8 ],
-    'control_state'    => [ 'type'=>'uint8[256]', 'offset'=>152, 'size'=>256 ],
-    'alarm_cause'      => [ 'type'=>'int8[256]', 'offset'=>408, 'size'=>256 ],
-    'video_fifo'       => [ 'type'=>'int8[64]', 'offset'=>664, 'size'=>64 ],
-    'audio_fifo'       => [ 'type'=>'int8[64]', 'offset'=>728, 'size'=>64 ],
-    'janus_pin'        => [ 'type'=>'int8[64]', 'offset'=>792, 'size'=>64 ],
-  ], 
+    'capture_fps'      => [ 'type'=>'double', 'offset'=>24, 'size'=>8 ],
+    'analysis_fps'     => [ 'type'=>'double', 'offset'=>32, 'size'=>8 ],
+    'latitude'         => [ 'type'=>'double', 'offset'=>40, 'size'=>8 ],
+    'longitude'        => [ 'type'=>'double', 'offset'=>48, 'size'=>8 ],
+    'last_event'       => [ 'type'=>'uint64', 'offset'=>56, 'size'=>8 ],
+    'action'           => [ 'type'=>'uint32', 'offset'=>64, 'size'=>4 ],
+    'brightness'       => [ 'type'=>'int32', 'offset'=>68, 'size'=>4 ],
+    'hue'              => [ 'type'=>'int32', 'offset'=>72, 'size'=>4 ],
+    'colour'           => [ 'type'=>'int32', 'offset'=>76, 'size'=>4 ],
+    'contrast'         => [ 'type'=>'int32', 'offset'=>80, 'size'=>4 ],
+    'alarm_x'          => [ 'type'=>'int32', 'offset'=>84, 'size'=>4 ],
+    'alarm_y'          => [ 'type'=>'int32', 'offset'=>88, 'size'=>4 ],
+    'valid'            => [ 'type'=>'uint8', 'offset'=>92, 'size'=>1 ],
+    'capturing'        => [ 'type'=>'uint8', 'offset'=>93, 'size'=>1 ],
+    'analysing'        => [ 'type'=>'uint8', 'offset'=>94, 'size'=>1 ],
+    'recording'        => [ 'type'=>'uint8', 'offset'=>95, 'size'=>1 ],
+    'signal'           => [ 'type'=>'uint8', 'offset'=>96, 'size'=>1 ],
+    'format'           => [ 'type'=>'uint8', 'offset'=>97, 'size'=>1 ],
+    'audio_level'      => [ 'type'=>'uint8', 'offset'=>98, 'size'=>1 ],
+    'audio_alarm'      => [ 'type'=>'uint8', 'offset'=>99, 'size'=>1 ],
+    'imagesize'        => [ 'type'=>'uint32', 'offset'=>100, 'size'=>4 ],
+    'last_frame_score' => [ 'type'=>'uint32', 'offset'=>104, 'size'=>4 ],
+    'audio_frequency'  => [ 'type'=>'uint32', 'offset'=>108, 'size'=>4 ],
+    'audio_channels'   => [ 'type'=>'uint32', 'offset'=>112, 'size'=>4 ],
+    'startup_time'     => [ 'type'=>'time_t64', 'offset'=>120, 'size'=>8 ],
+    'heartbeat_time'   => [ 'type'=>'time_t64', 'offset'=>128, 'size'=>8 ],
+    'last_write_time'  => [ 'type'=>'time_t64', 'offset'=>136, 'size'=>8 ],
+    'last_read_time'   => [ 'type'=>'time_t64', 'offset'=>144, 'size'=>8 ],
+    'last_viewed_time' => [ 'type'=>'time_t64', 'offset'=>152, 'size'=>8 ],
+    'last_analysis_viewed_time' => [ 'type'=>'time_t64', 'offset'=>160, 'size'=>8 ],
+    'control_state'    => [ 'type'=>'uint8[256]', 'offset'=>168, 'size'=>256 ],
+    'alarm_cause'      => [ 'type'=>'int8[256]', 'offset'=>424, 'size'=>256 ],
+    'stream_socket_path' => [ 'type'=>'int8[64]', 'offset'=>680, 'size'=>64 ], // was video_fifo; now the media stream socket path
+    'reserved_path2'   => [ 'type'=>'int8[64]', 'offset'=>744, 'size'=>64 ], // retired audio_fifo; kept reserved at this offset/size, free for future reuse
+    'janus_pin'        => [ 'type'=>'int8[64]', 'offset'=>808, 'size'=>64 ],
+    // Analysis image ring counters, appended at the end of SharedData followed
+    // by 8 bytes of padding (kept for the 16-byte-multiple layout invariant),
+    // so SharedData is now 888 bytes and TriggerData starts at 888.
+    'last_analysis_index'  => [ 'type'=>'int32', 'offset'=>872, 'size'=>4 ],
+    'analysis_image_count' => [ 'type'=>'int32', 'offset'=>876, 'size'=>4 ],
+    'audio_level_until' => [ 'type'=>'uint32', 'offset'=>880, 'size'=>4 ],
+  ],
   'TriggerData' => [
-    'size'     => [ 'type'=>'uint32', 'offset'=>864, 'size'=>4 ],
-    'state'    => [ 'type'=>'uint32', 'offset'=>868, 'size'=>4 ],
-    'score'    => [ 'type'=>'uint32', 'offset'=>872, 'size'=>4 ],
-    'padding'  => [ 'type'=>'uint32', 'offset'=>876, 'size'=>4 ],
-    'cause'    => [ 'type'=>'int8[32]', 'offset'=>880, 'size'=>32 ],
-    'text'     => [ 'type'=>'int8[256]', 'offset'=>912, 'size'=>256 ],
-    'showtext' => [ 'type'=>'int8[256]', 'offset'=>1268, 'size'=>256 ],
-    // 1424
+    'size'     => [ 'type'=>'uint32', 'offset'=>888, 'size'=>4 ],
+    'state'    => [ 'type'=>'uint32', 'offset'=>892, 'size'=>4 ],
+    'score'    => [ 'type'=>'uint32', 'offset'=>896, 'size'=>4 ],
+    'padding'  => [ 'type'=>'uint32', 'offset'=>900, 'size'=>4 ],
+    'cause'    => [ 'type'=>'int8[32]', 'offset'=>904, 'size'=>32 ],
+    'text'     => [ 'type'=>'int8[256]', 'offset'=>936, 'size'=>256 ],
+    'showtext' => [ 'type'=>'int8[256]', 'offset'=>1192, 'size'=>256 ],
+    // 1448
   ]
   ];
 
-
-  protected static $FunctionTypes = null;
-
-  public static function getFunctionTypes() {
-    if (!isset($FunctionTypes)) {
-      $FunctionTypes = array(
-        'None'    => translate('FnNone'),
-        'Monitor' => translate('FnMonitor'),
-        'Modect'  => translate('FnModect'),
-        'Record'  => translate('FnRecord'),
-        'Mocord'  => translate('FnMocord'),
-        'Nodect'  => translate('FnNodect')
-      );
-    }
-    return $FunctionTypes;
-  }
 
   protected static $CapturingOptions = null;
   public static function getCapturingOptions() {
@@ -211,7 +213,7 @@ class Monitor extends ZM_Object {
 
   protected $defaults = array(
     'Id' => null,
-    'Name' => array('type'=>'text','filter_regexp'=>'/[^\w\-\.\(\)\:\/ ]/', 'default'=>'Monitor'),
+    'Name' => array('type'=>'text','filter_regexp'=>'/[^\w\p{L}\p{M}\p{N}\-\.\(\)\:\/ ]/u', 'default'=>'Monitor'),
     'Deleted' => 0,
     'Notes' => '',
     'ServerId' => 0,
@@ -219,6 +221,7 @@ class Monitor extends ZM_Object {
     'ManufacturerId'  => null,
     'ModelId'         => null,
     'Type'      => 'Ffmpeg',
+    'DeviceClass' => 'Camera',
     'Capturing' => 'Always',
     'Analysing' => 'Always',
     'Recording' => 'Always',
@@ -227,6 +230,7 @@ class Monitor extends ZM_Object {
     'AnalysisImage' => 'FullColour',
     'Enabled'   => array('type'=>'boolean','default'=>1),
     'Decoding'  => 'Always',
+    'WhatDisplay'   => 'OnlyVideo',
     'RTSP2WebEnabled'   => array('type'=>'integer','default'=>0),
     'DefaultPlayer' => '',
     'StreamChannel'   => 'Restream',
@@ -284,8 +288,10 @@ class Monitor extends ZM_Object {
     'EncoderParameters' => '',
     'WallClockTimestamps' => array('type'=>'boolean', 'default'=>0),
     'RecordAudio' =>  array('type'=>'boolean', 'default'=>0),
+    'AudioDetection' => array('type'=>'boolean', 'default'=>0),
+    'AudioThreshold' => array('type'=>'integer', 'default'=>0),
+    'AudioAlarmScore' => array('type'=>'integer', 'default'=>9),
     #'OutputSourceStream'  => 'Primary',
-    'RTSPDescribe'  =>  array('type'=>'boolean','default'=>0),
     'Brightness'  =>  -1,
     'Contrast'    =>  -1,
     'Hue'         =>  -1,
@@ -306,7 +312,6 @@ class Monitor extends ZM_Object {
     'SectionLengthWarn'   =>  true,
     'MinSectionLength'    =>  10,
     'EventCloseMode'    => 'system',
-    'FrameSkip'           =>  0,
     'MotionFrameSkip'     =>  0,
     'AnalysisFPSLimit'  =>  [ 'default'=>null, 'initial_default'=>2, 'type'=>'float' ],
     'AnalysisUpdateDelay'  =>  0,
@@ -373,7 +378,11 @@ class Monitor extends ZM_Object {
     'ArchivedEventDiskSpace' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
   );
 
-  protected $Id;
+  public $Id;
+
+  public function getDefaults() {
+    return $this->defaults;
+  }
 
   public function save($data = null) {
     if ($data) $this->set($data);
@@ -394,7 +403,7 @@ class Monitor extends ZM_Object {
     if (!$this->{'JanusEnabled'}) return '';
 
     if ((!defined('ZM_SERVER_ID')) or ( property_exists($this, 'ServerId') and (ZM_SERVER_ID==$this->{'ServerId'}) )) {
-      $cmd = getZmuCommand(' --janus-pin -m '.$this->{'Id'});
+      $cmd = getZmuCommand(' --janus-pin -m '.validCardinal($this->{'Id'}));
       $output = shell_exec($cmd);
       Debug("Running $cmd output: $output");
       return $output ? trim($output) : $output;
@@ -553,8 +562,9 @@ class Monitor extends ZM_Object {
     if (ZM_OPT_USE_AUTH) {
       if (ZM_AUTH_RELAY == 'hashed') {
         $args['auth'] = generateAuthHash(ZM_AUTH_HASH_IPS);
-        # Include user so that db lookups can be more efficient
-        $args['user'] = isset($_SESSION['username']) ? $_SESSION['username'] : '';
+        // Include username so zms can filter by indexed Username column
+        // instead of iterating all users to validate the auth hash
+        if (!empty($_SESSION['username'])) $args['user'] = $_SESSION['username'];
       } elseif ( ZM_AUTH_RELAY == 'plain' ) {
         $args['user'] = isset($_SESSION['username']) ? $_SESSION['username'] : '';
         $args['pass'] = isset($_SESSION['password']) ? $_SESSION['password'] : '';
@@ -646,9 +656,9 @@ class Monitor extends ZM_Object {
     }
     if ((!defined('ZM_SERVER_ID')) or ( property_exists($this, 'ServerId') and (ZM_SERVER_ID==$this->{'ServerId'}) )) {
       if ($this->Type() == 'Local') {
-        $zmcArgs = '-d '.$this->{'Device'};
+        $zmcArgs = '-d '.escapeshellarg($this->{'Device'});
       } else {
-        $zmcArgs = '-m '.$this->{'Id'};
+        $zmcArgs = '-m '.escapeshellarg($this->{'Id'});
       }
 
       if ($mode == 'stop') {
@@ -698,7 +708,10 @@ class Monitor extends ZM_Object {
         $this->sendControlCommand('stop');
       }
     }
-    $this->save(['Deleted'=>true]);
+    // Hand back whether it actually saved. This is a soft delete, so a failing
+    // UPDATE (an out of range Importance, for one) leaves the monitor in place,
+    // and the caller has no other way to notice. See #4215.
+    return $this->save(['Deleted'=>true]);
   }
   public function destroy() {
     if (!$this->{'Id'}) {
@@ -766,7 +779,7 @@ class Monitor extends ZM_Object {
       if ($this->{'Port'} != '5900') {
         $source .= ':'.$this->{'Port'};
       }
-    } else if ($this->{'Type'} == 'Ffmpeg' || $this->{'Type'} == 'Libvlc' || $this->{'Type'} == 'WebSite') {
+    } else if ($this->{'Type'} == 'Ffmpeg' || $this->{'Type'} == 'WebSite') {
       if ($this->{'Path'}) {
         $url_parts = parse_url($this->{'Path'});
         if (ZM_WEB_FILTER_SOURCE == 'Hostname') {
@@ -868,6 +881,55 @@ class Monitor extends ZM_Object {
     return true;
   } // end function sendControlCommand($mid, $command)
 
+  // Send an opt-in query command to the local zmcontrol daemon and return the
+  // decoded 'result' it writes back (e.g. a light status). Returns null if no
+  // running daemon, a remote server, or no reply. Fire-and-forget commands are
+  // unaffected; only this path sets wants_response so zmcontrol replies.
+  public function sendControlCommandWithResponse($command) {
+    $options = array();
+    foreach (explode(' ', $command) as $option) {
+      if (preg_match('/--([^=]+)(?:=(.+))?/', $option, $matches)) {
+        $options[$matches[1]] = isset($matches[2]) ? $matches[2] : 1;
+      }
+    }
+    if (!count($options))
+      return null;
+    $options['wants_response'] = 1;
+
+    # Live status is only available from the local recording server's daemon.
+    if (defined('ZM_SERVER_ID') and property_exists($this, 'ServerId') and ZM_SERVER_ID != $this->{'ServerId'})
+      return null;
+
+    $sockFile = ZM_PATH_SOCKS.'/zmcontrol-'.$this->{'Id'}.'.sock';
+    $socket = socket_create(AF_UNIX, SOCK_STREAM, 0);
+    if ($socket < 0) {
+      Error('socket_create() failed: '.socket_strerror($socket));
+      return null;
+    }
+    if (!@socket_connect($socket, $sockFile)) {
+      # No running control daemon to answer.
+      socket_close($socket);
+      return null;
+    }
+    socket_set_option($socket, SOL_SOCKET, SO_RCVTIMEO, array('sec'=>5, 'usec'=>0));
+    if (!socket_write($socket, jsonEncode($options))) {
+      Error('Cannot write to control socket: '.socket_strerror(socket_last_error($socket)));
+      socket_close($socket);
+      return null;
+    }
+    # Signal end-of-write so zmcontrol's readline completes, but keep reading.
+    socket_shutdown($socket, 1);
+    $response = '';
+    while (($chunk = @socket_read($socket, 4096)) !== false and $chunk !== '') {
+      $response .= $chunk;
+    }
+    socket_close($socket);
+    if ($response === '')
+      return null;
+    $decoded = json_decode($response, true);
+    return (is_array($decoded) and array_key_exists('result', $decoded)) ? $decoded['result'] : null;
+  } // end function sendControlCommandWithResponse($command)
+
   function Groups($new='') {
     if ($new != '')
       $this->Groups = $new;
@@ -888,6 +950,25 @@ class Monitor extends ZM_Object {
       }
     }
     return $this->connKey;
+  }
+
+  // Fields whose value zmc runs as a command. Setting one is equivalent to shell access
+  // on the server, so it needs System=Edit, not just edit on this monitor, the same rule
+  // Filter::canEdit() applies to AutoExecuteCmd. refs GHSA-vcrj-35c6-g97c
+  public static $commandFields = array('EventStartCommand', 'EventEndCommand');
+
+  // The command fields $data would change on this monitor that the user may not set.
+  // Submitting the current value is not a change, since the monitor form always posts it.
+  public function commandFieldChangesNotAllowed($data, $u=null) {
+    global $user;
+    if (!$u) $u = $user;
+    if (!$u or $u->canEdit('System')) return array();
+    $refused = array();
+    foreach (self::$commandFields as $field) {
+      if (!array_key_exists($field, $data)) continue;
+      if ((string)$data[$field] !== (string)$this->{$field}()) $refused[] = $field;
+    }
+    return $refused;
   }
 
   function canEdit($u=null) {
@@ -911,7 +992,7 @@ class Monitor extends ZM_Object {
         return false;
       }
     }
-    return ($u['Monitors'] == 'Edit');
+    return ($u['Monitors'] == 'Edit' || $u['Monitors'] == 'Create');
   }
 
   function canView($u=null) {
@@ -939,7 +1020,40 @@ class Monitor extends ZM_Object {
         $group_permission_value = $value;
       }
     }
-  if ($group_permission_value != 'Inherit') return true;
+    if ($group_permission_value != 'Inherit') return true;
+
+    # Check role permissions if user has a role
+    $role = $u->Role();
+    if ($role) {
+      $role_monitor_permissions = $role->Monitor_Permissions();
+      foreach ($role_monitor_permissions as $rmp) {
+        if ($rmp->MonitorId() == $this->Id()) {
+          $permission = $rmp->Permission();
+          if ($permission != 'Inherit') {
+            return ($permission != 'None');
+          }
+        }
+      }
+
+      $role_group_permissions = $role->Group_Permissions();
+      $role_group_permission_value = 'Inherit';
+      foreach ($role_group_permissions as $permission) {
+        $value = $permission->MonitorPermission($this->Id());
+        if ($value == 'None') {
+          Debug('Can\'t view monitor '.$this->{'Id'}.' because of role group '.$permission->Group()->Name().' '.$permission->Permission());
+          return false;
+        }
+        if ($value == 'Edit' or $value == 'View') {
+          $role_group_permission_value = $value;
+        }
+      }
+      if ($role_group_permission_value != 'Inherit') return true;
+
+      if ($u->Monitors() == 'None' and $role->Monitors() != 'None') {
+        return true;
+      }
+    }
+
     return ($u->Monitors() != 'None');
   } # end function canView
 
@@ -996,7 +1110,7 @@ class Monitor extends ZM_Object {
         $model = new Model();
         $model->set(['Name'=>$new, 'ManufacturerId'=>$this->ManufacturerId()]);
         $this->Model = $model;
-        if ($this->ModelId) $this->ModelId = null;
+        if (property_exists($this, 'ModelId') and $this->ModelId) $this->ModelId = null;
         Debug("model: " . $model->Name() . ' ' . $model->Id() . ' ' . $this->ModelId());
       } else {
         $this->ModelId = $model->Id();
@@ -1044,6 +1158,7 @@ class Monitor extends ZM_Object {
     $html = '
 <div id="monitorStatus'.$this->Id().'" class="monitorStatus">
   <div class="stream-info">
+    <div class="stream-info-status-track"></div>
     <div class="stream-info-status"></div>
     <div class="stream-info-mode"></div>
   </div>
@@ -1075,6 +1190,21 @@ class Monitor extends ZM_Object {
  */
   function getStreamHTML($options) {
     global $basename;
+    global $view;
+
+    $whatDisplay = null;
+    if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) {
+      $whatDisplay = (isset($_COOKIE["zmWhatDisplay"])) ? strtolower($_COOKIE["zmWhatDisplay"]) : 'default';
+    } else {
+      $whatDisplay = 'OnlyVideo';
+    }
+    $dataNotDisplayVideo = 'false';
+
+    if (false !== strpos($whatDisplay, 'default')) { // Default monitor settings
+      if (false === (strpos(strtolower($this->WhatDisplay()), 'video'))) $dataNotDisplayVideo = 'true';
+    } else {
+      if (false === (strpos(strtolower($whatDisplay), 'video'))) $dataNotDisplayVideo = 'true';
+    }
 
     if (isset($options['scale']) and $options['scale'] != '' and $options['scale'] != 'fixed') {
       if ($options['scale'] != 'auto' && $options['scale'] != '0') {
@@ -1141,6 +1271,7 @@ class Monitor extends ZM_Object {
               class="monitorStream imageFeed"
               data-monitor-id="'. $this->Id() .'"
               data-width="'. $this->ViewWidth() .'"
+              data-not-display-video="'. $dataNotDisplayVideo .'"
               data-height="'.$this->ViewHeight() .'" style="'.
 #(($options['width'] and ($options['width'] != '0px')) ? 'width: '.$options['width'].';' : '').
 #(($options['height'] and ($options['height'] != '0px')) ? 'height: '.$options['height'].';' : '').
@@ -1208,10 +1339,24 @@ class Monitor extends ZM_Object {
     }
 
     if (isset($options['zones']) and $options['zones']) {
-      $html .= '<svg class="zones" id="zones'.$this->Id().'" viewBox="0 0 '.$this->ViewWidth().' '.$this->ViewHeight() .'" preserveAspectRatio="none">'.PHP_EOL;
-      foreach (Zone::find(array('MonitorId'=>$this->Id()), array('order'=>'Area DESC')) as $zone) {
-        $html .= $zone->svg_polygon();
-      } // end foreach zone
+      $html .= '<svg class="zones" id="zones'.$this->Id().'" viewBox="0 0 100 100" preserveAspectRatio="none">'.PHP_EOL;
+      if (is_array($options['zones'])) {
+        // Render specific zone IDs only
+        foreach ($options['zones'] as $zone_id) {
+          $zone = new Zone($zone_id);
+          if ($zone->Id() and $zone->MonitorId() == $this->Id()) {
+            $html .= $zone->svg_polygon($this->ViewWidth(), $this->ViewHeight());
+          }
+        }
+      } else {
+        // true: render all zones for this monitor
+        foreach (Zone::find(array('MonitorId'=>$this->Id()), array('order'=>'Area DESC')) as $zone) {
+          $html .= $zone->svg_polygon($this->ViewWidth(), $this->ViewHeight());
+        }
+      }
+      if (isset($options['zones_extra'])) {
+        $html .= $options['zones_extra'];
+      }
       $html .= '
   Sorry, your browser does not support inline SVG
 </svg>
@@ -1222,6 +1367,23 @@ class Monitor extends ZM_Object {
     //if ((!ZM_WEB_COMPACT_MONTAGE) && ($this->Type() != 'WebSite')) {
       $html .= $this->getMonitorStateHTML();
     }
+    $htmlAudioMotion = '
+      <audio-motion id="audioVisualization'.$this->Id().'" class="hidden audio-visualization">
+    '.PHP_EOL;
+    if ($view == 'montage') {
+      $htmlAudioMotion .= '
+        <div id="audioControlPanel'.$this->Id().'" class="audio-control-panel">
+          <div id="volumeControls'.$this->Id().'" class="disabled volume">
+            <div id="volumeSlider'.$this->Id().'" data-volume="50" data-muted="true" class="volumeSlider noUi-horizontal noUi-base noUi-round"></div>
+            <i id="controlMute'.$this->Id().'" class="audio-control-mute material-icons md-22"></i>
+          </div>
+        </div>
+      '.PHP_EOL;
+    }
+    $htmlAudioMotion .= '
+        <canvas></canvas>
+      </audio-motion>'.PHP_EOL;
+    if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) $html .= $htmlAudioMotion;
     $html .= PHP_EOL.'</div></div><!--.grid-stack-item-content--></div><!--.grid-stack-item-->'.PHP_EOL;
     return $html;
   } // end getStreamHTML
@@ -1359,6 +1521,32 @@ class Monitor extends ZM_Object {
     return fwrite($this->shm_id, $packed_value, $this->shm_offsets[$section][$var]['size']);
   }
   
+  // How long zmc keeps measuring after one request. Long enough that a poll
+  // every couple of seconds never lets it lapse mid-session, short enough
+  // that closing the editor stops the decoding promptly.
+  const AUDIO_LEVEL_REQUEST_SECONDS = 10;
+
+  // Ask the capture thread to measure the audio level even though this
+  // monitor does not score on audio, so the editor can show a live reading
+  // while a threshold is being chosen. Has to be repeated to stay in effect.
+  public function requestAudioLevel() {
+    if (!$this->connect()) return false;
+    return false !== $this->shared_write('SharedData', 'audio_level_until',
+      time() + self::AUDIO_LEVEL_REQUEST_SECONDS);
+  }
+
+  // The reading zmc last published, or null when there is no shared memory to
+  // read (zmc not running). 0 is a real answer: silence, or nothing measured.
+  public function audioLevel() {
+    if (!$this->connect()) return null;
+    return $this->shared_read('SharedData', 'audio_level');
+  }
+
+  public function audioAlarm() {
+    if (!$this->connect()) return null;
+    return $this->shared_read('SharedData', 'audio_alarm') ? true : false;
+  }
+
   public function enable() {
     if (!$this->connect()) return false;
     $action = $this->shared_read('TriggerData', 'action');

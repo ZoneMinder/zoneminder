@@ -20,7 +20,10 @@ Binaries
   This is the ZoneMinder Streaming server. The web interface connects with this to get real-time or historical streamed images. It runs only when a live monitor stream or event stream is actually being viewed and dies when the event finishes or the associate web page is closed. If you find you have several zms processes running when nothing is being viewed then it is likely you need a patch for apache (see the Troubleshooting section). A non-parsed header version of zms, called nph-zms, is also installed and may be used instead depending on your web server configuration.
 
 **zmu**
-  This is the ZoneMinder Utility. It's basically a handy command line interface to several useful functions. It’s not really meant to be used by anyone except the web page (there's only limited 'help' in it so far) but can be if necessary, especially for debugging video problems.
+  This is the ZoneMinder Utility. It’s basically a handy command line interface to several useful functions. It’s not really meant to be used by anyone except the web page (there’s only limited ‘help’ in it so far) but can be if necessary, especially for debugging video problems.
+
+**zma**
+  This is the ZoneMinder Event Re-Analysis utility. It re-analyses a previously recorded event using the current zone settings for a monitor, running the full motion detection pipeline on each frame from the stored video or JPEG files. This allows you to tune zone settings and re-run analysis on existing footage without needing live cameras. See :doc:`zma` for full usage details.
 
 PHP
 ---

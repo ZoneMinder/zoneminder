@@ -38,6 +38,7 @@ if ($action == 'delete') {
       # Could use true but store the object instead for easy access later
       $monitors_to_restart[] = $monitor;
       $error_message .= $zone->delete();
+      ZM\AuditAction('delete', 'zone', $markZid, 'MonitorId: '.$monitor->Id());
     } # end foreach Zone
 
     if (daemonCheck()) {

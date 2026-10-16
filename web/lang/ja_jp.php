@@ -146,7 +146,6 @@ $SLANG = array(
     'BadEncoderParameters'  => 'エンコーダーは、少なくともcrfの値が必要です。詳細はヘルプを参照してください。',
     'BadFormat'             => 'フォーマットは有効な値で設定する必要があります',
     'BadFPSReportInterval'  => 'FPSレポート間隔バッファ数は0以上の整数である必要があります',
-    'BadFrameSkip'          => 'フレームスキップ数は0以上の整数である必要があります',
     'BadMotionFrameSkip'    => 'モーションフレームスキップ数は0以上の整数である必要があります',
     'BadHeight'             => '高さは有効な値で設定する必要があります',
     'BadHost'               => 'ホストは有効なIPアドレスまたはホスト名で設定する必要があります。http://を含めないでください。',
@@ -166,7 +165,7 @@ $SLANG = array(
     'BadPreEventCountMaxImageBufferCount' => '最大イメージバッファサイズは、プレイベント画像数よりも大きくなければなりません。さもなければ満たされません。',
     'BadRefBlendPerc'       => '参照ブレンド割合は正の整数である必要があります',
     'BadNoSaveJPEGsOrVideoWriter' => 'SaveJPEGsとVideoWriterの両方が無効に設定されています。何も記録されません！',
-    'BadSectionLength'      => 'セクションの長さは30以上の整数である必要があります',
+    'BadSectionLength'      => 'セクションの長さは10以上の整数である必要があります',
     'BadSignalCheckColour'  => '信号チェックカラーは有効なRGBカラー文字列である必要があります',
     'BadStreamReplayBuffer' => 'ストリームリプレイバッファは0以上の整数である必要があります',
     'BadSourceType'         => 'ソースタイプ「Webサイト」は、機能を「モニター」に設定する必要があります',
@@ -256,7 +255,6 @@ $SLANG = array(
     'DefaultScale'          => 'デフォルトスケール',
     'DefaultCodec'          => 'イベントビュー用のデフォルト方法',
     'DefaultView'           => 'デフォルトビュー',
-    'RTSPDescribe'          => 'RTSP応答メディアURLを使用',
     'DeleteAndNext'         => '削除 &amp; 次へ',
     'DeleteAndPrev'         => '削除 &amp; 前へ',
     'DeleteSavedFilter'     => '保存されたフィルタを削除',
@@ -337,7 +335,6 @@ $SLANG = array(
     'FPSReportInterval'     => 'FPSレポート間隔',
     'FrameId'               => 'フレームID',
     'FrameRate'             => 'フレームレート',
-    'FrameSkip'             => 'フレームスキップ',
     'MotionFrameSkip'       => 'モーションフレームスキップ',
     'GenerateVideo'         => 'ビデオを生成',
     'GeneratingVideo'       => 'ビデオを生成中',
@@ -933,7 +930,6 @@ $SLANG = array(
     'Layout' => 'レイアウト',
     'Less important' => '重要度が低い',
     'Level' => 'レベル',
-    'Libvlc' => 'Libvlc',
     'Line' => 'ライン',
     'Linear' => '線形',
     'List' => 'リスト',
@@ -1003,7 +999,6 @@ $SLANG = array(
     'Not important' => '重要でない',
     'Not Running' => '実行中ではない',
     'Not Showing Analysis' => '分析を表示していません',
-    'NVSocket' => 'NVSocket',
     'Off' => 'オフ',
     'Offline' => 'オフライン',
     'On' => 'オン',
@@ -1369,23 +1364,8 @@ $OLANG = array(
         HTTP - HTTP トンネリングをトランスポートプロトコルとして使用します。これはプロキシを通すのに便利です。~~
       '
     ),
-    'OPTIONS_LIBVLC' => array(
-        'Help' => '
-      このフィールドに入力されたパラメータは libVLC に渡されます。複数のパラメータは , で区切ることができます。~~
-      例 (引用符は入力しないでください)~~~~
-      "--rtp-client-port=nnn" rtp データ用のローカルポートを設定します~~~~
-      "--verbose=2" libVLC の詳細レベルを設定します
-      '
-    ),
     'OPTIONS_EXIF' => array(
         'Help' => 'このオプションを有効にすると、各 JPEG フレームに EXIF データを埋め込むことができます。'
-    ),
-    'OPTIONS_RTSPDESCRIBE' => array(
-        'Help' => '
-      初期 RTSP ハンドシェイク中に、カメラが更新されたメディア URL を送信することがあります。
-      このオプションを有効にすると、ZoneMinder がこの URL を使用するようになります。このオプションを無効にすると、カメラからの値を無視し、モニター設定で入力された値を使用します~~~~
-      一般的にはこれを有効にするべきです。ただし、カメラがファイアウォールを通してストリーミングしている場合など、カメラが自分の URL を間違えることがあります。
-    '
     ),
     'OPTIONS_MAXFPS' => array(
         'Help' => '

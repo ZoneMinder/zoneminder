@@ -21,7 +21,7 @@
 %global zmtargetdistro %{?rhel:el%{rhel}}%{!?rhel:fc%{fedora}}
 
 Name: zoneminder
-Version: 1.38.0
+Version: 1.39.20
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -64,7 +64,6 @@ BuildRequires: perl(Archive::Tar)
 BuildRequires: perl(Archive::Zip)
 BuildRequires: perl(Date::Manip)
 BuildRequires: perl(DBD::mysql)
-BuildRequires: perl(ExtUtils::MakeMaker)
 BuildRequires: perl(LWP::UserAgent)
 BuildRequires: perl(MIME::Entity)
 BuildRequires: perl(MIME::Lite)
@@ -76,7 +75,6 @@ BuildRequires: perl(Expect)
 BuildRequires: perl(Sys::Syslog)
 BuildRequires: gcc 
 BuildRequires: gcc-c++
-BuildRequires: vlc-devel
 BuildRequires: libcurl-devel
 BuildRequires: libv4l-devel
 BuildRequires: desktop-file-utils
@@ -119,6 +117,7 @@ Requires: php-mysqli
 Requires: php-common
 Requires: php-gd
 Requires: php-intl
+Requires: php-mbstring
 Requires: php-process
 Requires: php-json
 Requires: php-pecl-apcu
@@ -126,7 +125,6 @@ Requires: net-tools
 Requires: psmisc
 Requires: polkit
 Requires: libjpeg-turbo
-Requires: vlc-core
 Requires: %{_bindir}/ffmpeg
 Requires: perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires: perl(DBD::mysql)
@@ -377,6 +375,7 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 %{_bindir}/zmsystemctl.pl
 
 %{_bindir}/zmaudit.pl
+%{_bindir}/zma
 %{_bindir}/zmc
 %{_bindir}/zmcontrol.pl
 %{_bindir}/zmdc.pl

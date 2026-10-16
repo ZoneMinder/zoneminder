@@ -37,7 +37,6 @@ var lastSpeedIndex=0;
 // for history, and fps for live, and dynamically determined (in ms)
 
 var currentDisplayInterval=<?php echo $initialDisplayInterval?>;
-var playSecsPerInterval=1;       // How many seconds of recorded image we play per refresh determined by speed (replay rate) and display interval; (default=1 if coming from live)
 var timerInterval;               // milliseconds between interrupts
 var timerObj;                    // object to hold timer interval;
 var freeTimeLastIntervals=[];    // Percentage of current interval used in loading most recent image
@@ -101,18 +100,18 @@ foreach ( $monitors as $monitor ) {
 
 monitorData[monitorData.length] = {
   'Id': <?php echo $monitor->Id() ?>,
-  'Name': '<?php echo $monitor->Name() ?>',
-  'connKey': '<?php echo $monitor->connKey() ?>',
+  'Name': '<?php echo validJsStr($monitor->Name()) ?>',
+  'connKey': '<?php echo validJsStr($monitor->connKey()) ?>',
   'Width': <?php echo $monitor->ViewWidth() ?>,
   'Height':<?php echo $monitor->ViewHeight() ?>,
   'JanusEnabled':<?php echo $monitor->JanusEnabled() ?>,
   'Url': '<?php echo $monitor->UrlToIndex( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
-  'UrlToZms': '<?php echo $monitor->UrlToZMS( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
+  'UrlToZMS': '<?php echo $monitor->UrlToZMS( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'onclick': function(){window.location.assign( '?view=watch&mid=<?php echo $monitor->Id() ?>' );},
-  'Type': '<?php echo $monitor->Type() ?>',
-  'Refresh': '<?php echo $monitor->Refresh() ?>',
-  'Janus_Pin': '<?php echo $monitor->Janus_Pin() ?>',
-  'WebColour': '<?php echo $monitor->WebColour() ?>'
+  'Type': '<?php echo validJsStr($monitor->Type()) ?>',
+  'Refresh': '<?php echo validJsStr($monitor->Refresh()) ?>',
+  'Janus_Pin': '<?php echo validJsStr($monitor->Janus_Pin()) ?>',
+  'WebColour': '<?php echo validJsStr($monitor->WebColour()) ?>'
 };
 <?php
 } // end foreach monitor
@@ -152,12 +151,12 @@ foreach ( $monitors as $m ) {
   echo "  monitorLoading["         . $m->Id() . "]=false;\n";
   echo "  monitorImageURL["        . $m->Id() . "]='".$m->getStreamSrc( array('mode'=>'single','scale'=>$defaultScale*100), '&' )."';\n";
   echo "  monitorLoadingStageURL[" . $m->Id() . "] = '';\n";
-  echo "  monitorColour["          . $m->Id() . "]=\"" . validHtmlStr($m->WebColour()) . "\";\n";
+  echo "  monitorColour["          . $m->Id() . "]=" . json_encode((string)$m->WebColour(), JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) . ";\n";
   echo "  monitorWidth["           . $m->Id() . "]=" . validHtmlStr($m->ViewWidth()) . ";\n";
   echo "  monitorHeight["          . $m->Id() . "]=" . validHtmlStr($m->ViewHeight()) . ";\n";
   echo "  monitorIndex["           . $m->Id() . "]=" . $numMonitors . ";\n";
   echo "  monitorServerId["        . $m->Id() . "]='" .($m->ServerId() ?  $m->ServerId() : '0'). "';\n";
-  echo "  monitorName["            . $m->Id() . "]=\"" . validHtmlStr($m->Name()) . "\";\n";
+  echo "  monitorName["            . $m->Id() . "]=\"" . validJsStr($m->Name()) . "\";\n";
   echo "  monitorLoadStartTimems[" . $m->Id() . "]=0;\n";
   echo "  monitorLoadEndTimems["   . $m->Id() . "]=0;\n";
   echo "  monitorNormalizeScale["  . $m->Id() . "]=" . sqrt($avgArea / ($m->Width() * $m->Height() )) . ";\n";
@@ -172,14 +171,14 @@ echo "
 var numMonitors = $numMonitors;
 var minTimeSecs =parseInt($minTimeSecs);
 var maxTimeSecs =parseInt($maxTimeSecs);
-var minTime='$minTime';
-var maxTime='$maxTime';
+var minTime=".json_encode((string)$minTime, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT).";
+var maxTime=".json_encode((string)$maxTime, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT).";
 ";
 echo 'var rangeTimeSecs='.($maxTimeSecs - $minTimeSecs + 1).";\n";
 if ( isset($defaultCurrentTimeSecs) ) {
-  echo 'var currentTimeSecs=parseInt('.$defaultCurrentTimeSecs.");\n";
+  echo 'var currentTimeSecs=parseFloat('.$defaultCurrentTimeSecs.");\n";
 } else {
-  echo 'var currentTimeSecs=parseInt('.$minTimeSecs.");\n";
+  echo 'var currentTimeSecs=parseFloat('.$minTimeSecs.");\n";
 }
 
 echo 'var speeds=[';

@@ -2,8 +2,16 @@
 
 var LOADING = true; // Default to true as initial state
 
-var ajax = null;
+var ajaxRequests = [];
 var wait_for_events_interval = null;
+
+var eventStreams = {}; // EventStream instances keyed by monitorId
+var eventStreamsActive = false; // True when using EventStream mode
+var isScrubbing = false; // True during mouse drag on timeline
+var lastTimerFireMs = 0; // Epoch ms of the previous timerFire, to advance the clock by real elapsed time
+var streamDriftThreshold = 2; // Seconds of drift before we seek to correct
+var lastDriftCorrection = {}; // Epoch ms of last drift correction per monitorId
+var driftCorrectionCooldown = 3000; // ms to wait between drift corrections
 
 var minStartDateTimeElement = null;
 var maxStartDateTimeElement = null;
@@ -83,6 +91,15 @@ function evaluateLoadTimes() {
   $j('#fps').text("Display refresh rate is " + (1000 / currentDisplayInterval).toFixed(1) + " per second, avgFrac=" + avgFrac.toFixed(3) + ".");
 } // end evaluateLoadTimes()
 
+/* An event that is still recording has no end yet. For lookup and drawing it
+ * runs to the end of the window under review. Every comparison against an
+ * event's end has to go through here: a bare `EndTimeSecs >= time` is false when
+ * the value is null, which silently excludes the recording event - the timeline
+ * would draw it while playback reported "No event" over the same span. */
+function eventEndTimeSecs(zm_event) {
+  return zm_event.EndTimeSecs ? zm_event.EndTimeSecs : maxTimeSecs;
+}
+
 function findEventByTime(arr, time, debug=false) {
   let start = 0;
   let end = arr.length-1; // -1 because 0 based indexing
@@ -95,7 +112,7 @@ function findEventByTime(arr, time, debug=false) {
     }
   }
   // Iterate while start not meets end
-  while ((start <= end) && (arr[start].StartTimeSecs <= time) && (!arr[end].EndTimeSecs || (arr[end].EndTimeSecs >= time))) {
+  while ((start <= end) && (arr[start].StartTimeSecs <= time) && (eventEndTimeSecs(arr[end]) >= time)) {
     if (debug) {
       console.log("looking for "+time+" Start: " + arr[start].StartTimeSecs + ' End: ' + arr[end].EndTimeSecs);
     }
@@ -105,7 +122,7 @@ function findEventByTime(arr, time, debug=false) {
 
     // If element is present at mid, return True
     if (debug) console.log(middle, zm_event, time);
-    if ((zm_event.StartTimeSecs <= time) && (!zm_event.EndTimeSecs || (zm_event.EndTimeSecs >= time))) {
+    if ((zm_event.StartTimeSecs <= time) && (eventEndTimeSecs(zm_event) >= time)) {
       if (debug) console.log("Found it at ", zm_event);
       return zm_event;
     }
@@ -114,7 +131,7 @@ function findEventByTime(arr, time, debug=false) {
     // Else look in left or right half accordingly
     if (zm_event.StartTimeSecs < time) {
       start = middle + 1;
-    } else if (zm_event.EndTimeSecs > time) {
+    } else if (eventEndTimeSecs(zm_event) > time) {
       end = middle - 1;
     } else {
       break;
@@ -125,7 +142,7 @@ function findEventByTime(arr, time, debug=false) {
 
 function findFrameByTime(arr, time, debug=false) {
   if (!arr) {
-    console.log("No array in findFrameByTime");
+    console.warn("No array in findFrameByTime");
     return false;
   }
   const keys = Object.keys(arr);
@@ -138,7 +155,7 @@ function findFrameByTime(arr, time, debug=false) {
   if (debug) console.log("Looking for "+ time+ "start: " + start + ' end ' + end, arr[keys[start]]);
   while ((start <= end)) {
     if ((arr[keys[start]].TimeStampSecs > time) || (arr[keys[end]].NextTimeStampSecs < time)) {
-      console.log(time + " not found in array of frames.", arr[keys[start]], arr[keys[end]]);
+      // console.log(time + " not found in array of frames.", arr[keys[start]], arr[keys[end]]);
       return false;
     }
     // Find the mid index
@@ -160,14 +177,14 @@ function findFrameByTime(arr, time, debug=false) {
       if (debug) console.log("Found it at ", frame);
       const e = events[frame.EventId];
       if (!e) {
-        console.log("No event for ", frame.EventId);
+        console.warn("No event for ", frame.EventId);
         return frame;
       }
 
       if (frame.NextFrameId && e.FramesById) {
         var NextFrame = e.FramesById[frame.NextFrameId];
         if (!NextFrame) {
-          console.log("No nextframe for ", frame.NextFrameId);
+          // console.log("No nextframe for ", frame.NextFrameId);
           return frame;
         }
         //console.log(NextFrame);
@@ -191,7 +208,7 @@ function findFrameByTime(arr, time, debug=false) {
     } else if (frame.TimeStampSecs > time) {
       end = middle - 1;
     } else {
-      console.log('Error');
+      console.warn('findFrameByTime: unexpected state');
       break;
     }
   } // end while
@@ -235,26 +252,13 @@ function getFrame(monId, time, last_Frame) {
         console.error('No event found for ', event_id);
         break;
       }
-      if (e.StartTimeSecs <= time && e.EndTimeSecs >= time) {
+      if (e.StartTimeSecs <= time && eventEndTimeSecs(e) >= time) {
         Event = e;
         break;
       }
     }
     if (Event) {
-      console.log("Failed to find event for ", time, " but found it using linear search");
-      if (!findEventByTime(events_for_monitor[monId], time, true)) {
-        for (let i=0, len=events_for_monitor[monId].length; i<len; i++) {
-          const event_id = events_for_monitor[monId][i].Id;
-          const e = events[event_id];
-          if ((e.StartTimeSecs <= time) && (e.EndTimeSecs >= time)) {
-            console.log("Found at " + e.Id + ' start: ' + e.StartTimeSecs + ' end: ' + e.EndTimeSecs);
-            break;
-          } else {
-            console.log("Not Found at " + e.Id + ' start: ' + e.StartTimeSecs + ' end: ' + e.EndTimeSecs);
-            currentSpeed=0;
-          }
-        }
-      }
+      console.warn("Failed to find event for ", time, " but found it using linear search");
     }
   }
   if (!Event) {
@@ -265,21 +269,27 @@ function getFrame(monId, time, last_Frame) {
 
   if (!Event.FramesById) {
     // It is assumed at this time that every event has frames
-    console.log('No FramesById for event ', Event.Id);
+    // console.log('No FramesById for event ', Event.Id);
     var event_list = {};
     event_list[Event.Id] = Event;
     loadFrames(event_list).then(function() {
       if (!Event.FramesById) {
-        console.log("No FramesById after loadFrames!", Event);
+        console.warn("No FramesById after loadFrames!", Event);
       }
       return findFrameByTime(Event.FramesById, time);
     }, function(Error) {
-      console.log(Error);
+      console.warn(Error);
     });
     return;
   } else if (!Event.FramesById.length) {
-    console.log("frames loading for event " + Event.Id);
+    // console.log("frames loading for event " + Event.Id);
     return;
+  }
+
+  // Recording events outgrow the frames we hold; pick up the rest once the
+  // cursor reaches the end of them.
+  if (!Event.EndDateTime && Event.NewestFrameTimeSecs && (time > Event.NewestFrameTimeSecs)) {
+    refreshOpenEventFrames(Event);
   }
 
   // Need to get frame by time, not some fun calc that assumes frames have the same length.
@@ -288,7 +298,7 @@ function getFrame(monId, time, last_Frame) {
   // Then move forward or backwards as appropriate
   let Frame = findFrameByTime(Event.FramesById, time);
   if (!Frame) {
-    console.log("Didn't find frame by binary search");
+    // console.log("Didn't find frame by binary search");
     for (const frame_id in Event.FramesById) {
       // Again need binary search
       if (
@@ -308,7 +318,7 @@ function getFrame(monId, time, last_Frame) {
   }
 
   if (!Frame) {
-    console.log("Didn't find frame for " + time);
+    // console.log("Didn't find frame for " + time);
   }
   return Frame;
 }
@@ -316,15 +326,7 @@ function getFrame(monId, time, last_Frame) {
 // time is seconds since epoch
 function getImageSource(monId, time) {
   if (liveMode == 1) {
-    let new_url = monitorImageObject[monId].src.replace(
-        /rand=\d+/i,
-        'rand='+Math.floor(Math.random() * 1000000)
-    );
-    if (auth_hash) {
-      // update auth hash
-      new_url = new_url.replace(/auth=[a-z0-9]+/i, 'auth='+auth_hash);
-    }
-    return new_url;
+    return zmAuth.applyTo(addOrUpdateRandParam(monitorImageObject[monId].src));
   }
   let frame_id;
 
@@ -332,19 +334,19 @@ function getImageSource(monId, time) {
   if (Frame) {
     const e = events[Frame.EventId];
     if (!e) {
-      console.log('No event found for ' + Frame.EventId, Frame);
+      console.warn('No event found for ' + Frame.EventId);
       return '';
     }
 
     // Adjust for bulk frames
     if (Frame.NextFrameId) {
       if (!e.FramesById) {
-        console.log("No FramesById in event ", e, e.FramesById);
+        console.warn("No FramesById in event ", e.Id);
         return '';
       }
       const NextFrame = e.FramesById[Frame.NextFrameId];
       if (!NextFrame) {
-        console.log("No next frame for " + Frame.NextFrameId);
+        // console.log("No next frame for " + Frame.NextFrameId);
       } else if (NextFrame.Type == 'Bulk') {
         // There is time between this frame and a bulk frame
         const duration = Frame.NextTimeStampSecs - Frame.TimeStampSecs;
@@ -358,23 +360,17 @@ function getImageSource(monId, time) {
     }
 
     if (!parseInt(frame_id)) {
-      console.log("No frame_id from ", Frame);
+      // console.log("No frame_id from ", Frame);
       return;
     }
 
-    let scale = parseInt(100 * monitorCanvasObj[monId].width / monitorWidth[monId]);
-    if (scale > 100) {
-      scale = 100;
-    } else {
-      scale = 10 * parseInt(scale/10); // Round to nearest 10
-      // May need to limit how small we can go to maintain fidelity
-    }
+    const scale = streamScaleForMonitor(monId);
 
     // Storage[0] is guaranteed to exist as we make sure it is there in montagereview.js.php
     const storage = Storage[e.StorageId] ? Storage[e.StorageId] : Storage[0];
     // monitorServerId may be 0, which gives us the default Server entry
     const server = storage.ServerId ? Servers[storage.ServerId] : Servers[monitorServerId[monId]];
-    return server.PathToZMS + '?' +
+    return zmAuth.appendTo(server.PathToZMS + '?' +
     //mode=jpeg
       "mode=single" +
       "&event=" + Frame.EventId +
@@ -385,15 +381,14 @@ function getImageSource(monId, time) {
       "&scale=" + scale +
       "&monitor=" + monId +
       "&frames=1" +
-      "&rate=" + 100*speeds[speedIndex] +
-      (auth_relay ? '&' + auth_relay : '');
+      "&rate=" + 100*speeds[speedIndex]);
   } // end found Frame
   return '';
 } // end function getImageSource
 
 // callback when loading an image. Will load itself to the canvas, or draw no data
 function imagedone( obj, monId, success ) {
-  console.log("imagedone", obj, monId, success);
+  // console.log("imagedone", obj, monId, success);
   if (success) {
     const canvasCtx = monitorCanvasCtx[monId];
     const canvasObj = monitorCanvasObj[monId];
@@ -441,7 +436,7 @@ function writeText(monId, text) {
     var textWidth = canvasCtx.measureText(text).width;
     canvasCtx.fillText(text, canvasObj.width/2 - textWidth/2, canvasObj.height/2);
   } else {
-    console.log('No monId in writeText');
+    console.warn('No monId in writeText');
   }
 }
 
@@ -450,10 +445,10 @@ function loadImage2Monitor(monId, url) {
   if ( monitorLoading[monId] && (monitorImageObject[monId].src != url) ) {
     // never queue the same image twice (if it's loading it has to be defined, right?
     monitorLoadingStageURL[monId] = url; // we don't care if we are overriting, it means it didn't change fast enough
-    console.log("staging", monitorLoading[monId], monitorImageObject[monId].src, url);
+    // console.log("staging", monitorLoading[monId], monitorImageObject[monId].src, url);
   } else {
     if ( monitorImageObject[monId].src == url ) {
-      console.log("No change in url");
+      // console.log("No change in url");
       return; // do nothing if it's the same
     }
     if ( url == 'no data' ) {
@@ -462,7 +457,7 @@ function loadImage2Monitor(monId, url) {
       //writeText(monId, 'Loading...');
       monitorLoading[monId] = true;
       monitorLoadStartTimems[monId] = new Date().getTime();
-      console.log("Loading", monitorImageObject[monId], url);
+      // console.log("Loading", monitorImageObject[monId], url);
       monitorImageObject[monId].src = url; // starts a load but doesn't refresh yet, wait until ready
     }
   }
@@ -471,31 +466,38 @@ function loadImage2Monitor(monId, url) {
 function timerFire() {
   // See if we need to reschedule
   if ( ( currentDisplayInterval != timerInterval ) || ( currentSpeed == 0 ) ) {
-    console.log("Turn off interrupts timerInterval", timerInterval, 'display interval:', currentDisplayInterval, 'speed', currentSpeed);
+    // console.log("Turn off interrupts timerInterval", timerInterval, 'display interval:', currentDisplayInterval, 'speed', currentSpeed);
     // zero just turn off interrupts
     clearInterval(timerObj);
     timerObj = null;
     timerInterval = currentDisplayInterval;
   }
 
+  // Advance by the time that actually elapsed rather than by the nominal
+  // interval. setInterval fires late under load, so accumulating the nominal
+  // value lets our clock fall behind real time. The zms streams play at real
+  // time, so that gap shows up as drift and gets corrected by a seek, which
+  // is visible as a jump. lastTimerFireMs is reset whenever playback starts
+  // or the speed changes, so a resume doesn't replay the paused time.
+  const nowMs = Date.now();
+  const playSecs = lastTimerFireMs ? currentSpeed * (nowMs - lastTimerFireMs) / 1000 : 0;
+  lastTimerFireMs = nowMs;
+
   if (liveMode) {
     //outputUpdate(currentTimeSecs); // In live mode we basically do nothing but redisplay
-  } else if (currentTimeSecs + playSecsPerInterval >= maxTimeSecs) {
+  } else if (currentTimeSecs + playSecs >= maxTimeSecs) {
     // beyond the end just stop
     if (speedIndex) setSpeed(0);
     //outputUpdate(currentTimeSecs);
-  } else if (playSecsPerInterval || (currentTimeSecs==minTimeSecs)) {
-    currentTimeSecs = playSecsPerInterval + currentTimeSecs;
-    //outputUpdate(playSecsPerInterval + currentTimeSecs);
+  } else if (playSecs || (currentTimeSecs==minTimeSecs)) {
+    currentTimeSecs = playSecs + currentTimeSecs;
   } else {
-    console.log("Not updating");
+    // console.log("Not updating");
   }
   outputUpdate(currentTimeSecs);
 
   if ((currentSpeed > 0 || liveMode != 0) && !timerObj) {
     timerObj = setInterval(timerFire, timerInterval); // don't fire out of live mode if speed is zero
-  } else {
-    console.log("timefire", "CurrentSpeed", currentSpeed, "liveMode", liveMode, 'timerObj', timerObj);
   }
 } // end function timerFire()
 
@@ -582,17 +584,20 @@ function drawFrameOnGraph(frame) {
 
 function drawEventOnGraph(zm_event) {
   if (!zm_event.StartTimeSecs) {
-    console.log("No time data in event", zm_event);
+    console.warn("No time data in event", zm_event.Id);
     return;
   }
 
   // round low end down
   const x1 = parseInt((zm_event.StartTimeSecs - minTimeSecs) / rangeTimeSecs * cWidth);
-  if (!zm_event.EndTimeSecs) zm_event.EndTimeSecs = maxTimeSecs;
+  // An event still recording has no end yet, so it runs to the edge of the
+  // window. Kept local: writing it back would give the event a concrete end and
+  // stop findEventByTime() matching it once the window moved on.
+  const endTimeSecs = eventEndTimeSecs(zm_event);
   // round high end up to be sure consecutive ones connect
-  const x2 = parseInt((zm_event.EndTimeSecs - minTimeSecs) / rangeTimeSecs * cWidth + 0.5 );
+  const x2 = parseInt((endTimeSecs - minTimeSecs) / rangeTimeSecs * cWidth + 0.5 );
   if (!monitorColour[zm_event.MonitorId]) {
-    console.log("No colour for ", zm_event.MonitorId, monitorColour, zm_event);
+    console.warn("No colour for monitor", zm_event.MonitorId);
     ctx.fillStyle = '#43bcf2';
   } else {
     ctx.fillStyle = monitorColour[zm_event.MonitorId];
@@ -608,7 +613,7 @@ function drawEventOnGraph(zm_event) {
 function drawGraph() {
   if (!canvas) {
     // Likely live mode
-    console.log("Called drawGraph while in live mode");
+    // console.log("Called drawGraph while in live mode");
     return;
   }
   underSlider = undefined; // flag we don't have a slider cached
@@ -642,7 +647,7 @@ function drawGraph() {
   scruboutput.style.bottom = labbottom;
   scruboutput.style.font = labfont;
   var len = scruboutput.offsetWidth;
-  console.log('sruboutput.offsetWidth', len);
+  // console.log('sruboutput.offsetWidth', len);
 
   // This displays (or not) the left/right limits depending on how close the slider is.
   // Because these change widths if the slider is too close, use the slider width as an estimate for the left/right label length (i.e. don't recalculate len from above)
@@ -702,7 +707,7 @@ function drawGraph() {
         drawFrameOnGraph(frame);
       } // end foreach frame
     } else {
-      console.log("No FramesById", zm_event);
+      // console.log("No FramesById", zm_event);
     }
   } // end foreach Event
 
@@ -713,7 +718,7 @@ function drawGraph() {
     ctx.fillStyle = "white";
     // This should roughly center font in row
     ctx.fillText(monitorName[monitorPtr[i]], 0, (i + 1 - (1 - timeLabelsFractOfRow)/2 ) * rowHeight);
-    console.log("Drawing ", monitorName[monitorPtr[i]], 0, (i + 1 - (1 - timeLabelsFractOfRow)/2 ) * rowHeight);
+    // console.log("Drawing ", monitorName[monitorPtr[i]], 0, (i + 1 - (1 - timeLabelsFractOfRow)/2 ) * rowHeight);
   }
 
   drawSliderOnGraph(currentTimeSecs);
@@ -756,7 +761,7 @@ function redrawScreen() {
     monitors.height(mh.toString() + 'px'); // leave a small gap at bottom
 
     if (maxfit2(monitors.outerWidth(), monitors.outerHeight()) == 0) { /// if we fail to fix we back out of fit mode -- ??? This may need some better handling
-      console.log("Failed to fit, dropping back to scaled mode");
+      console.warn("Failed to fit, dropping back to scaled mode");
       fitMode=1-fitMode;
     }
   } else {
@@ -770,18 +775,65 @@ function redrawScreen() {
     fit.text('fit');
     setScale(currentScale);
   }
+  updateStreamScales(); // fit mode resizes canvases via maxfit2, bypassing setScale
   timerFire(); // force a fire in case it's not timing. timerFirst will call outputUpdate
 } // end function redrawScreen
 
 function outputUpdate(time) {
-  if (Object.keys(events).length !== 0) {
-    for ( let i=0; i < numMonitors; i++ ) {
+  if (eventStreamsActive && currentSpeed >= 1 && Object.keys(events).length !== 0) {
+    // EventStream path — persistent MJPEG streaming for speeds >= 1x.
+    // zms handles frame delivery and timing at the correct rate.
+    for (let i = 0; i < numMonitors; i++) {
+      const monId = monitorPtr[i];
+      const es = eventStreams[monId];
+      if (!es) continue;
+
+      if (!(monId in events_for_monitor) || !events_for_monitor[monId].length) {
+        if (es.started) es.stop();
+        writeText(monId, 'No Event');
+        continue;
+      }
+
+      const ev = findEventByTime(events_for_monitor[monId], time);
+
+      if (ev) {
+        if (!es.started) {
+          // Stream not running — start it on this event
+          es.start(ev.Id, {
+            rate: 100 * currentSpeed,
+            maxfps: 15,
+            time: time
+          });
+        } else if (es.currentEventId != ev.Id) {
+          // Crossed event boundary — switch to new event
+          es.switchEvent(ev.Id, {
+            rate: 100 * currentSpeed,
+            maxfps: 15,
+            time: time
+          });
+        } else if (isScrubbing) {
+          // User is dragging the timeline — seek within current event
+          const offset = time - ev.StartTimeSecs;
+          es.seek(Math.max(0, offset));
+        }
+      } else {
+        // No event at this time for this monitor
+        if (es.started) es.stop();
+        writeText(monId, 'No Event');
+      }
+    }
+  } else if (Object.keys(events).length !== 0) {
+    // Per-frame loading path — used for speeds < 1x, speed 0, live
+    // mode, or when EventStreams are not active.  Each frame is an
+    // independent mode=single HTTP request to zms.  This works well
+    // at slow speeds where there is ample time between frames and
+    // avoids fighting zms's lack of slow-motion support.
+    for (let i = 0; i < numMonitors; i++) {
       const src = getImageSource(monitorPtr[i], time);
       loadImage2Monitor(monitorPtr[i], src);
     }
   }
   currentTimeSecs = time;
-  console.log('outputUpdate', time);
   drawSliderOnGraph(time);
 }
 
@@ -808,13 +860,40 @@ HTMLCanvasElement.prototype.relMouseCoords = relMouseCoords;
 var mouseisdown=false;
 function mdown(event) {
   mouseisdown=true;
+  isScrubbing = true;
+  // Pause EventStreams during scrub for responsive seeking
+  if (eventStreamsActive) {
+    for (let i = 0; i < numMonitors; i++) {
+      const monId = monitorPtr[i];
+      if (eventStreams[monId] && eventStreams[monId].started) eventStreams[monId].pause();
+    }
+  }
   mmove(event);
 }
 function mup(event) {
   mouseisdown=false;
+  isScrubbing = false;
+  // Sync and resume EventStreams after scrub (only if streaming mode)
+  if (eventStreamsActive && currentSpeed >= 1) {
+    syncEventStreamsToTime(currentTimeSecs);
+    for (let i = 0; i < numMonitors; i++) {
+      const monId = monitorPtr[i];
+      if (eventStreams[monId] && eventStreams[monId].started) eventStreams[monId].play();
+    }
+  }
 }
 function mout(event) {
   mouseisdown=false;
+  if (isScrubbing) {
+    isScrubbing = false;
+    if (eventStreamsActive && currentSpeed >= 1) {
+      syncEventStreamsToTime(currentTimeSecs);
+      for (let i = 0; i < numMonitors; i++) {
+        const monId = monitorPtr[i];
+        if (eventStreams[monId] && eventStreams[monId].started) eventStreams[monId].play();
+      }
+    }
+  }
 } // if we go outside treat it as release
 function tmove(event) {
   mouseisdown=true;
@@ -825,37 +904,13 @@ function mmove(event) {
   if ( mouseisdown ) {
     // only do anything if the mouse is depressed while on the sheet
     const relx = event.target.relMouseCoords(event).x;
-    const sec = Math.floor(minTimeSecs + rangeTimeSecs / event.target.width * relx);
-    if (parseInt(sec)) outputUpdate(sec);
+    const sec = minTimeSecs + rangeTimeSecs / event.target.width * relx;
+    if (sec) outputUpdate(sec);
   }
 }
 
-function secs2inputstr(s) {
-  if ( ! parseInt(s) ) {
-    console.log("Invalid value for " + s + " seconds");
-    return '';
-  }
-
-  var m = moment(s*1000);
-  if ( ! m ) {
-    console.log("No valid date for " + s + " seconds");
-    return '';
-  }
-  return m.format("YYYY-MM-DDTHH:mm:ss");
-}
-
-function secs2dbstr(s) {
-  if (!parseInt(s)) {
-    console.log("Invalid value for " + s + " seconds");
-    return '';
-  }
-  var m = moment(s*1000);
-  if ( ! m ) {
-    console.log("No valid date for " + s + " milliseconds");
-    return '';
-  }
-  return m.format("YYYY-MM-DD HH:mm:ss");
-}
+// secs2inputstr(), secs2dbstr(), inputstr2dt() and serverTimeZone() live in
+// skins/classic/js/skin.js so they can be reused outside montagereview.
 
 function setFit(value) {
   fitMode = value;
@@ -876,6 +931,31 @@ function setScale(newscale) {
     monitorCanvasObj[monitorPtr[i]].height = monitorHeight[monitorPtr[i]]*monitorNormalizeScale[monitorPtr[i]]*monitorZoomScale[monitorPtr[i]]*newscale;
   }
   currentScale = newscale;
+  updateStreamScales();
+}
+
+// Percentage of the monitor's native size needed to fill its canvas. Rounded
+// UP to the next 10 so the streamed image is at least the canvas size:
+// rounding down makes zms send fewer pixels than the canvas shows, and the
+// browser then upscales the image, blurring it. Streaming much larger than the
+// canvas would instead waste bandwidth and decode time on pixels thrown away.
+function streamScaleForMonitor(monId) {
+  const canvasObj = monitorCanvasObj[monId];
+  if (!canvasObj || !monitorWidth[monId]) return 100;
+  const scale = 10 * Math.ceil(100 * canvasObj.width / monitorWidth[monId] / 10);
+  return Math.min(100, Math.max(10, scale));
+}
+
+// Canvas sizes change with the scale slider, fit mode and zoom, and the canvas
+// starts out at the monitor's native size, so the scale a stream was created
+// with goes stale. Push the current size to the streams.
+function updateStreamScales() {
+  for (let i = 0; i < numMonitors; i++) {
+    const monId = monitorPtr[i];
+    if (!eventStreams[monId]) continue;
+    const scale = streamScaleForMonitor(monId);
+    if (scale != eventStreams[monId].scale) eventStreams[monId].setScale(scale);
+  }
 }
 
 function showSpeed(val) {
@@ -883,20 +963,77 @@ function showSpeed(val) {
   $j('#speedslideroutput').text(parseFloat(speeds[val]).toFixed(2).toString() + " x");
 }
 
+// Seek all running EventStreams to match the current slider position.
+// Called after speed changes and during periodic drift correction.
+function syncEventStreamsToTime(time) {
+  for (let i = 0; i < numMonitors; i++) {
+    const monId = monitorPtr[i];
+    if (!eventStreams[monId] || !eventStreams[monId].started) continue;
+    if (!(monId in events_for_monitor) || !events_for_monitor[monId].length) continue;
+    const ev = findEventByTime(events_for_monitor[monId], time);
+    if (ev) {
+      const offset = time - ev.StartTimeSecs;
+      eventStreams[monId].seek(Math.max(0, offset));
+    }
+  }
+}
+
 function setSpeed(speed_index) {
   if (liveMode == 1) {
-    console.log("setSpeed in liveMode?");
+    console.warn("setSpeed in liveMode?");
     return; // we shouldn't actually get here but just in case
   }
   currentSpeed = parseFloat(speeds[speed_index]);
   speedIndex = speed_index;
-  playSecsPerInterval = Math.floor( 1000 * currentSpeed * currentDisplayInterval ) / 1000000;
-  setCookie('speed', speedIndex);
+  lastTimerFireMs = Date.now(); // don't count time spent at the previous speed at the new one
+  setCookie('speed', currentSpeed);
   showSpeed(speed_index);
+
+  // Manage EventStream mode transitions.
+  // >= 1x: zms streams MJPEG at the correct rate (EventStream path)
+  // < 1x:  zms can't slow down, so stop streams and let outputUpdate
+  //         fall back to per-frame mode=single loading.
+  if (eventStreamsActive) {
+    if (currentSpeed >= 1) {
+      // Normal/fast — ensure streams are running at the right rate.
+      // Streams that were stopped (from slow mode) will be restarted
+      // automatically by outputUpdate() on the next call.
+      for (let i = 0; i < numMonitors; i++) {
+        const monId = monitorPtr[i];
+        if (!eventStreams[monId] || !eventStreams[monId].started) continue;
+        eventStreams[monId].setRate(100 * currentSpeed);
+        if (eventStreams[monId].paused) eventStreams[monId].play();
+      }
+      // Re-sync position after rate change
+      setTimeout(function() {
+        syncEventStreamsToTime(currentTimeSecs);
+      }, 500);
+    } else {
+      // Stopped or slow — stop EventStreams so their rAF draw loop
+      // doesn't compete with per-frame canvas drawing.
+      for (let i = 0; i < numMonitors; i++) {
+        const monId = monitorPtr[i];
+        if (eventStreams[monId] && eventStreams[monId].started) {
+          eventStreams[monId].stop();
+        }
+      }
+    }
+  }
+
   timerFire();
 }
 
 function setLive(value) {
+  // Stop all EventStreams before switching modes
+  if (eventStreamsActive) {
+    for (let i = 0; i < numMonitors; i++) {
+      const monId = monitorPtr[i];
+      if (eventStreams[monId] && eventStreams[monId].started) {
+        eventStreams[monId].stop();
+      }
+    }
+    eventStreamsActive = false;
+  }
   // When we submit the context etc goes away but we may still be trying to update
   // So kill the timer.
   clearInterval(timerObj);
@@ -912,10 +1049,9 @@ function setLive(value) {
 // The section below are to reload this program with new parameters
 
 function clicknav(minSecs, maxSecs, live) {// we use the current time if we can
-  var date = new Date();
-  var now = Math.floor(date.getTime() / 1000);
-  var tz_difference = (-1 * date.getTimezoneOffset() * 60) - server_utc_offset;
-  now -= tz_difference;
+  // minSecs/maxSecs are epoch seconds; secs2inputstr renders them in the server
+  // timezone, so compare against the real epoch now (no timezone shift). refs #4977
+  var now = Math.floor(Date.now() / 1000);
 
   var minStr = "";
   var maxStr = "";
@@ -925,15 +1061,15 @@ function clicknav(minSecs, maxSecs, live) {// we use the current time if we can
       maxSecs = parseInt(now);
     }
     maxStr = "&maxTime=" + secs2inputstr(maxSecs);
-    $j('#maxTime').val(secs2inputstr(maxSecs));
-  }
-  if ( minSecs > 0 ) {
-    $j('#minTime').val(secs2inputstr(minSecs));
     minStr = "&minTime=" + secs2inputstr(minSecs);
+    // Persist the range to the shared date cookies so a pan/zoom here carries to
+    // the events list (minTime/maxTime in the URL are deprecated). refs #4976
+    setCookie('zmFilter_StartDateTime', secs2dbstr(minSecs));
+    setCookie('zmFilter_EndDateTime', secs2dbstr(maxSecs));
   }
   if ( maxSecs == 0 && minSecs == 0 ) {
-    minStr = "&minTime=01/01/1950T12:00:00";
-    maxStr = "&maxTime=12/31/2035T12:00:00";
+    minStr = "&minTime=1950-01-01+12:00:00";
+    maxStr = "&maxTime=2035-12-31+12:00:00";
   }
   var intervalStr="&displayinterval=" + currentDisplayInterval.toString();
   if ( minSecs && maxSecs ) {
@@ -958,23 +1094,18 @@ function clicknav(minSecs, maxSecs, live) {// we use the current time if we can
   window.location = uri;
 } // end function clicknav
 
+// now is epoch seconds; clicknav/secs2inputstr render it in the server timezone,
+// so no browser-vs-server timezone shift is needed here. refs #4977
 function click_lastHour() {
-  var date = new Date();
-  var now = Math.floor( date.getTime() / 1000 );
-  now -= -1 * date.getTimezoneOffset() * 60;
-  now += server_utc_offset;
+  var now = Math.floor( Date.now() / 1000 );
   clicknav(now - 3599, now, 0);
 }
 function click_lastEight() {
-  var date = new Date();
-  var now = Math.floor( date.getTime() / 1000 );
-  now -= -1 * date.getTimezoneOffset() * 60 - server_utc_offset;
+  var now = Math.floor( Date.now() / 1000 );
   clicknav(now - 3600*8 + 1, now, 0);
 }
 function click_last24() {
-  var date = new Date();
-  var now = Math.floor( date.getTime() / 1000 );
-  now -= -1 * date.getTimezoneOffset() * 60 - server_utc_offset;
+  var now = Math.floor( Date.now() / 1000 );
   clicknav(now - 3600*24 + 1, now, 0);
 }
 function click_zoomin() {
@@ -1007,13 +1138,8 @@ function click_download() {
 
   const data = form.serializeArray();
   data[data.length] = {name: 'mergeevents', value: true};
-  data[data.length] = {name: 'minTime', value: minTime};
-  data[data.length] = {name: 'maxTime', value: maxTime};
-  data[data.length] = {name: 'minTimeSecs', value: minTimeSecs};
-  data[data.length] = {name: 'maxTimeSecs', value: maxTimeSecs};
-  console.log(data);
   $j.ajax({
-    url: thisUrl+'?request=modal&modal=download'+(auth_relay?'&'+auth_relay:''),
+    url: zmAuth.appendTo(thisUrl+'?request=modal&modal=download'),
     data: data
   })
       .done(function(data) {
@@ -1094,8 +1220,16 @@ function changeFilters(e) {
   // Also, if StartDateTime <= or >= are changed, limit max duration to 24h
 
   if (minStartDateTimeElement && maxStartDateTimeElement) {
-    let minStartDateTime = DateTime.fromFormat(minStartDateTimeElement.value, 'yyyy-MM-dd HH:mm:ss', {zone: ZM_TIMEZONE});
-    let maxStartDateTime = DateTime.fromFormat(maxStartDateTimeElement.value, 'yyyy-MM-dd HH:mm:ss', {zone: ZM_TIMEZONE});
+    let minStartDateTime = inputstr2dt(minStartDateTimeElement.value);
+    let maxStartDateTime = inputstr2dt(maxStartDateTimeElement.value);
+
+    // If either input is empty or malformed, bail out rather than letting
+    // NaN propagate into minTimeSecs/rangeTimeSecs and crash getImageData
+    // in drawSliderOnGraph.
+    if (!minStartDateTime.isValid || !maxStartDateTime.isValid) {
+      console.warn("changeFilters: invalid date input, skipping update");
+      return;
+    }
 
     if (this === minStartDateTimeElement) {
       if (minStartDateTime > maxStartDateTime) {
@@ -1120,7 +1254,7 @@ function changeFilters(e) {
         }
       }
     } else {
-      console.log("Not changed min/max", this, minStartDateTimeElement, maxStartDateTimeElement);
+      console.warn("Not changed min/max");
     } // end if a datetime or something else
 
     minTime = minStartDateTime.toFormat('yyyy-MM-dd HH:mm:ss');
@@ -1130,14 +1264,14 @@ function changeFilters(e) {
     rangeTimeSecs = maxTimeSecs - minTimeSecs;
     // On any change, jump to beginning ? No...
     if (currentTimeSecs < minTimeSecs) {
-      console.log("currentTimeSecs < minTimeSecs setting to ", minTimeSecs, minTime);
+      // console.log("currentTimeSecs < minTimeSecs setting to ", minTimeSecs, minTime);
       currentTimeSecs = minTimeSecs;
     } else if (currentTimeSecs > maxTimeSecs) {
-      console.log("currentTimeSecs > maxTimeSecs setting to ", maxTimeSecs, maxTime);
+      // console.log("currentTimeSecs > maxTimeSecs setting to ", maxTimeSecs, maxTime);
       currentTimeSecs = minTimeSecs; // Not sure about this one.
     }
   } else {
-    console.log("Don't have min/max date elements");
+    console.warn("Don't have min/max date elements");
   }
 
   for (var key in events) {
@@ -1175,24 +1309,54 @@ function loadEventData(e) {
       const name = el.attr('name');
 
       if (name) {
-        const found = name.match(/filter\[Query\]\[terms\]\[(\d)+\]\[val\]/);
+        const found = name.match(/filter\[Query\]\[terms\]\[(\d+)\]\[val\]/);
         if (found) {
           const attr_name = 'filter[Query][terms]['+found[1]+'][attr]';
-          const attr = this.form.elements[attr_name];
           const op_name = 'filter[Query][terms]['+found[1]+'][op]';
-          const op = this.form.elements[op_name];
-          if (attr) {
-            if (attr.value==='Monitor') attr.value='MonitorId';
-            url += '/'+attr.value+' '+op.value+':'+encodeURIComponent(val);
+          // Looked up by name rather than through this.form: in sidebar filter
+          // mode insertControlModuleMenu() moves #fieldsTable out of
+          // #montagereview_form and into the extruder, leaving these inputs with
+          // no form owner. Scoped to #fieldsTable because term names are unique
+          // within a form, not within the document.
+          const attr = document.querySelector('#fieldsTable [name="'+attr_name+'"]');
+          const op = document.querySelector('#fieldsTable [name="'+op_name+'"]');
+          if (attr && op) {
+            // Translate in a local rather than by writing back to attr.value:
+            // the form is submitted when a filter changes, and
+            // montagereview.php decides whether the range terms are already
+            // present by looking for 'DateTime', so a form left holding a
+            // rewritten name came back with a second, duplicate pair.
+            //
+            // DateTime is deliberately NOT rewritten to StartDateTime.
+            // EventsController::index() treats DateTime as a pseudo-attribute
+            // meaning "the event was running then" and turns the window into an
+            // overlap test against an effective end date; StartDateTime is a
+            // plain column and gives a containment test, which drops the event
+            // that was already recording when the window opened.
+            let apiAttr = attr.value;
+            if (apiAttr === 'Monitor') apiAttr = 'MonitorId';
+            let urlVal = val;
+            // Normalize date/time values to YYYY-MM-DD HH:mm:ss for the API URL.
+            // Locale formats using / as separator break the URL path.
+            if (/Date|Time/.test(apiAttr)) {
+              const m = moment(val);
+              if (m.isValid()) {
+                urlVal = m.format('YYYY-MM-DD HH:mm:ss');
+              }
+            }
+            url += '/'+apiAttr+' '+op.value+':'+encodeURIComponent(urlVal);
           } else {
-            console.log('No attr for '+attr_name);
+            console.warn('No attr/op for '+attr_name);
           }
         //} else {
           //console.log("No match for " + name);
         }
         data[name] = val;
         const cookie = el.attr('data-cookie');
-        if (cookie) setCookie(cookie, val, 3600);
+        // Persist so the shared filter does not silently expire after an hour
+        // and desync from the other views. setCookie scopes the date-range
+        // cookies to the session; the rest are kept. refs #4976
+        if (cookie) setCookie(cookie, val);
       } // end if name
     } // end if val
   });
@@ -1203,18 +1367,29 @@ function loadEventData(e) {
       return;
     }
     if (!data.events) {
-      console.log(data);
+      console.warn("No events in response", data.result);
       return;
     }
-    console.log("Event data ", data);
 
     if (data.events.length) {
       // event_list is solely for sending to loadFrames
       const event_list = {};
       for (let i=0, len = data.events.length; i<len; i++) {
         const ev = data.events[i].Event;
+        // Skip empty events. A capture crash can leave events with no frames
+        // and no end time; there is nothing to review and, reported with an
+        // open end, they overlap real events and confuse event selection.
+        if (!parseInt(ev.Frames)) continue;
         ev.Id = parseInt(ev.Id);
         ev.MonitorId = parseInt(ev.MonitorId);
+        // An event still being written has no end. The API reports EndTimeSecs
+        // for it anyway, derived from the Length last flushed by zmc, which is
+        // seconds behind what has actually been captured. Taken as a real end it
+        // makes findEventByTime() reject the newest part of a recording event,
+        // so scrubbing to now says "No event" while the camera is recording.
+        // Clearing it restores the open-ended handling the rest of this file
+        // already implements for a missing EndTimeSecs.
+        if (!ev.EndDateTime) ev.EndTimeSecs = null;
         event_list[ev.Id] = events[ev.Id] = ev;
 
         if ((!(ev.MonitorId in events_for_monitor)) || !events_for_monitor[ev.MonitorId]) {
@@ -1225,7 +1400,7 @@ function loadEventData(e) {
         //drawEventOnGraph(ev);
       }
       loadFrames(event_list).then(function() {
-        console.log("have ffaremes, drawing graph");
+        // console.log("have frames, drawing graph");
         drawGraph();
         /*
         // HACK to refresh monitor names over event data
@@ -1241,41 +1416,48 @@ function loadEventData(e) {
         */
       });
     } else {
-      console.log("No events in data?");
+      // console.log("No events in data?");
     }
   } // end function receive_events
 
-  //FIXME ajax gets overwrritten by subsequent monitor
-  if (ajax) ajax.abort();
+  // One request is fired per monitor, so every one of them has to be kept.
+  // Assigning them all to a single variable left only the last abortable: a
+  // re-entry while the user scrubbed cancelled one of twelve, and the other
+  // eleven landed and drew events for a window that had already moved.
+  while (ajaxRequests.length) {
+    ajaxRequests.pop().abort();
+  }
 
   if (mon_ids.length) {
     for (let i=0; i < mon_ids.length; i++) {
-      ajax = $j.ajax({
-        url: url+ '/MonitorId:'+mon_ids[i]+ '.json'+'?'+auth_relay,
+      ajaxRequests.push($j.ajax({
+        url: zmAuth.appendTo(url+'/MonitorId:'+mon_ids[i]+'.json'),
         method: 'GET',
         //url: thisUrl + '?view=request&request=events&task=query&sort=Id&order=ASC',
         //data: data,
         timeout: 0,
         success: receive_events,
-        error: function(jqXHR) {
-          ajax = null;
-          console.log("error", jqXHR);
+        error: function(jqXHR, textStatus) {
+          // An abort is this function replacing its own query, not a failure.
+          if (textStatus === 'abort') return;
+          console.error("loadEventData error", jqXHR.status);
         }
-      });
+      }));
     } // end foreach monitor
   } else {
-    ajax = $j.ajax({
-      url: url+'.json'+'?'+auth_relay,
+    ajaxRequests.push($j.ajax({
+      url: zmAuth.appendTo(url+'.json'),
       method: 'GET',
       //url: thisUrl + '?view=request&request=events&task=query&sort=Id&order=ASC',
       //data: data,
       timeout: 0,
       success: receive_events,
-      error: function(jqXHR) {
-        ajax = null;
+      error: function(jqXHR, textStatus) {
+        // An abort is this function replacing its own query, not a failure.
+        if (textStatus === 'abort') return;
         console.log("error", jqXHR);
       }
-    });
+    }));
   }
   LOADING = false;
   return;
@@ -1308,7 +1490,7 @@ function initPage() {
     // draw an empty timeline
     drawGraph();
   } else {
-    console.log("Live mode");
+    // console.log("Live mode");
   }
 
   for (let i = 0, len = monitorPtr.length; i < len; i += 1) {
@@ -1321,7 +1503,7 @@ function initPage() {
       alert("Couldn't find DOM element for Monitor" + monId + "monitorPtr.length=" + len);
       continue;
     }
-    console.log("Setting up imagedone for ", monId);
+    // console.log("Setting up imagedone for ", monId);
     monitorCanvasCtx[monId] = monitorCanvasObj[monId].getContext('2d');
 
     const imageObject = monitorImageObject[monId] = new Image();
@@ -1337,6 +1519,86 @@ function initPage() {
     }
     canvasObj.addEventListener('click', clickMonitor, false);
   } // end foreach monitor
+
+  // Create EventStream instances for replay mode
+  if (liveMode != 1) {
+    for (let i = 0; i < numMonitors; i++) {
+      const monId = monitorPtr[i];
+      if (!monId || !monitorCanvasObj[monId]) continue;
+      const server = Servers[monitorServerId[monId]] || Servers[0];
+      const monitor = monitorData[i];
+
+      eventStreams[monId] = new EventStream({
+        monitorId: monId,
+        monitorWidth: monitorWidth[monId],
+        monitorHeight: monitorHeight[monId],
+        url: monitor?monitor.Url:thisUrl,
+        url_to_zms: monitor?monitor.UrlToZMS:server.PathToZMS,
+        canvas: monitorCanvasObj[monId],
+        // Canvases are still at their native size here; redrawScreen() sizes
+        // them and updateStreamScales() corrects this before the first start().
+        scale: streamScaleForMonitor(monId)
+      });
+
+      // Draw zoom +/- icons after each frame
+      eventStreams[monId].onFrameDrawn = function(canvas) {
+        const ctx = canvas.getContext('2d');
+        const iconSize = Math.max(canvas.width, canvas.height) * 0.10;
+        ctx.font = '600 ' + iconSize.toString() + 'px Arial';
+        ctx.fillStyle = 'white';
+        ctx.globalCompositeOperation = 'difference';
+        ctx.fillText('+', iconSize * 0.2, iconSize * 1.2);
+        ctx.fillText('-', canvas.width - iconSize * 1.2, iconSize * 1.2);
+        ctx.globalCompositeOperation = 'source-over';
+      };
+
+      // Drift correction: for speeds >= 1x, periodically check zms
+      // position vs slider and seek if they diverge.  For speeds < 1x,
+      // outputUpdate() handles positioning via periodic seeks so we
+      // skip drift correction here to avoid conflicting commands.
+      eventStreams[monId].onStatus = (function(mid) {
+        return function(status) {
+          // Only drift-correct during normal/fast streaming
+          if (isScrubbing || !eventStreamsActive) return;
+          if (currentSpeed < 1) return;
+          if (!status.progress && status.progress !== 0) return;
+          if (!status.event) return;
+
+          // Compute where zms actually is in wall-clock time
+          const ev = events[status.event];
+          if (!ev || !ev.StartTimeSecs) return;
+          const zmsTimeSecs = ev.StartTimeSecs + status.progress;
+
+          // Compare to where the JS timer thinks we are
+          const drift = Math.abs(zmsTimeSecs - currentTimeSecs);
+          if (drift > streamDriftThreshold) {
+            const now = Date.now();
+            if (!lastDriftCorrection[mid] ||
+                (now - lastDriftCorrection[mid]) > driftCorrectionCooldown) {
+              lastDriftCorrection[mid] = now;
+              // Seek zms to match the slider position
+              const targetEv = findEventByTime(events_for_monitor[mid], currentTimeSecs);
+              if (targetEv) {
+                if (targetEv.Id == status.event) {
+                  // Same event, just seek within it
+                  const offset = currentTimeSecs - targetEv.StartTimeSecs;
+                  eventStreams[mid].seek(Math.max(0, offset));
+                } else {
+                  // zms is on a different event than expected — switch
+                  eventStreams[mid].switchEvent(targetEv.Id, {
+                    rate: 100 * currentSpeed,
+                    maxfps: 15,
+                    time: currentTimeSecs
+                  });
+                }
+              }
+            }
+          }
+        };
+      })(monId);
+    }
+    eventStreamsActive = true;
+  }
 
   setSpeed(speedIndex);
   //setFit(fitMode);  // will redraw
@@ -1396,7 +1658,7 @@ function wait_for_events() {
   } else {
     clearInterval(wait_for_events_interval);
     wait_for_events_interval = null;
-    console.log("Have events, starting time");
+    // console.log("Have events, starting time");
     timerFire();
   }
 }
@@ -1413,7 +1675,7 @@ function takeSnapshot() {
   server = new Server(Servers[serverId]);
   $j.ajax({
     method: 'POST',
-    url: server.urlToApi()+'/snapshots.json' + (auth_relay ? '?' + auth_relay : ''),
+    url: zmAuth.appendTo(server.urlToApi()+'/snapshots.json'),
     data: { 'monitor_ids[]': monitorIndex.keys()},
     success: function(response) {
       console.log(response);
@@ -1428,31 +1690,59 @@ window.addEventListener("resize", redrawScreen, {passive: true});
 // Kick everything off
 window.addEventListener('DOMContentLoaded', initPage);
 
+/* An event that is still recording keeps gaining frames after montage review
+ * read them. Once the cursor passes the newest frame we hold, ask for the rest.
+ * Throttled because getFrame() runs for every monitor on every timer tick, and
+ * rate limited per event rather than globally so one monitor cannot starve
+ * another. */
+const OPEN_EVENT_FRAME_REFRESH_MS = 5000;
+function refreshOpenEventFrames(zm_event) {
+  const now = Date.now();
+  if (zm_event.FramesRefreshedAt && ((now - zm_event.FramesRefreshedAt) < OPEN_EVENT_FRAME_REFRESH_MS)) {
+    return;
+  }
+  zm_event.FramesRefreshedAt = now;
+  const event_list = {};
+  event_list[zm_event.Id] = zm_event;
+  loadFrames(event_list).catch(function(e) {
+    console.warn('Failed to refresh frames for recording event '+zm_event.Id, e);
+  });
+}
+
 /* Expects an Object, not an array, of EventId=>Event mappings. */
 function loadFrames(zm_events) {
   return new Promise(function(resolve, reject) {
     const url = Servers[serverId].urlToApi()+'/frames/index';
 
-    let query = '';
-    const ids = Object.keys(zm_events);
+    // Decide what needs fetching before batching, so that an event skipped here
+    // can't swallow the batch built up for the ones before it. Testing the
+    // remaining count inside the skip meant a trailing already-loaded event
+    // dropped the whole accumulated query and those frames never arrived.
+    const ids = Object.keys(zm_events).filter(function(event_id) {
+      const zm_event = zm_events[event_id];
+      // A closed event's frame set is final, so load it once. An event still
+      // recording keeps gaining frames, and skipping it here is what left the
+      // newest part of a live recording unreachable until a page reload.
+      // Re-reading is safe: frames are stored by id, so this overwrites rather
+      // than duplicates.
+      if (zm_event.FramesById && zm_event.EndDateTime) return false;
+      if (!zm_event.FramesById) zm_event.FramesById = []; //Signal that we are loading them
+      return true;
+    });
 
+    if (!ids.length) {
+      resolve();
+      return;
+    }
+
+    let query = '';
     while (ids.length) {
-      const event_id = ids.shift();
-      {
-        const zm_event = zm_events[event_id];
-        if (zm_event.FramesById) {
-          console.log('already loaded FramesById', zm_event);
-          continue;
-        }
-        zm_event.FramesById = []; //Signal that we are loading them
-      }
-      query += '/EventId:'+event_id;
+      query += '/EventId:'+ids.shift();
 
       if ((!ids.length) || (query.length > 1000)) {
-        $j.ajax(url+query+'.json?'+auth_relay, {
+        $j.ajax(zmAuth.appendTo(url+query+'.json'), {
           timeout: 0,
           success: function(data) {
-            console.log(data);
             if (data && data.frames && data.frames.length) {
               let last_frame = null;
 
@@ -1466,24 +1756,29 @@ function loadFrames(zm_events) {
                 if (last_frame && (frame.EventId != last_frame.EventId)) {
                   last_frame = null;
                 }
-                //console.log(date, frame.TimeStamp, frame.Delta, frame.TimeStampSecs);
                 if (last_frame) {
-                  frame.PrevFrameId = last_frame.Id;
-                  last_frame.NextFrameId = frame.Id;
+                  frame.PrevFrameId = last_frame.FrameId;
+                  last_frame.NextFrameId = frame.FrameId;
                   if (frame.TimeStampSecs >= last_frame.TimeStampSecs) {
                     last_frame.NextTimeStampSecs = frame.TimeStampSecs;
                   } else {
-                    console.log("Out of order timestamps?", last_frame, frame);
+                    console.warn("Out of order timestamps?", frame.EventId, frame.FrameId);
                   }
                 }
                 last_frame = frame;
 
                 //if (!zm_event.FramesById) zm_event.FramesById = [];
-                zm_event.FramesById[frame.Id] = frame;
+                zm_event.FramesById[frame.FrameId] = frame;
+                // Remember how far this event has been read, so getFrame() can
+                // tell when a recording event has outgrown what we hold.
+                const frameSecs = parseFloat(frame.TimeStampSecs);
+                if (!zm_event.NewestFrameTimeSecs || (frameSecs > zm_event.NewestFrameTimeSecs)) {
+                  zm_event.NewestFrameTimeSecs = frameSecs;
+                }
                 //drawFrameOnGraph(frame);
               } // end foreach frame
             } else {
-              console.log("No frames in data", data);
+              // console.log("No frames in data", data);
             } // end if there are frames
             resolve();
           },
@@ -1501,30 +1796,32 @@ function loadFrames(zm_events) {
 
 function getMinMaxStartDateTimeElements() {
   const regexp = /^filter\[Query\]\[terms\]\[(\d+)\]\[attr\]$/;
-  $j('#fieldsTable input[value="StartDateTime"]').each(function(index) {
+  // montagereview renders DateTime (overlap) terms; the events list renders
+  // StartDateTime terms. Bind either so the timeline range tracks the terms. refs #4976
+  $j('#fieldsTable input[value="StartDateTime"], #fieldsTable input[value="DateTime"]').each(function(index) {
     const matches = this.name.match(regexp);
     if (matches && matches.length) {
-      const val = this.form.elements['filter[Query][terms]['+matches[1]+'][val]'];
-      if (val) {
-        const op = this.form.elements['filter[Query][terms]['+matches[1]+'][op]'];
+      // Same reason as in loadEventData(): in sidebar filter mode these inputs have
+      // been moved out of the form, so this.form is null.
+      const val = document.querySelector('#fieldsTable [name="filter[Query][terms]['+matches[1]+'][val]"]');
+      const op = document.querySelector('#fieldsTable [name="filter[Query][terms]['+matches[1]+'][op]"]');
+      if (val && op) {
         if (op.value == '>=') {
           minStartDateTimeElement = val;
         } else if (op.value == '<=') {
           maxStartDateTimeElement = val;
         } else {
-          console.log('unknown op', op.value);
+          console.warn('unknown op', op.value);
         }
       } else {
-        console.log("no val ", matches);
+        console.warn("no val/op ", matches);
       }
-    } else {
-      console.log("No matches for ", this.name);
     }
   });
   if (!(minStartDateTimeElement && maxStartDateTimeElement)) {
-    console.log("Didn't find a min/max StartDateTime");
+    console.warn("Didn't find a min/max StartDateTime");
   }
   if (minStartDateTimeElement == maxStartDateTimeElement) {
-    console.log("Have same a min/max StartDateTime");
+    console.warn("Have same a min/max StartDateTime");
   }
 }

@@ -100,15 +100,18 @@ constexpr Rgb kRGBTransparent = 0x01000000;
 // #define RGB_FASTLUM_SINGLE_ITU601(v)    ((RED(v)+RED(v)+RED(v)+BLUE(v)+GREEN(v)+GREEN(v)+GREEN(v)+GREEN(v))>>3)
 // #define RGB_FASTLUM_VALUES_ITU601(ra,ga,ba)  (((ra)+(ra)+(ra)+(ba)+(ga)+(ga)+(ga)+(ga))>>3)
 
-/* ZM colours */
+// DEPRECATED: ZM_COLOUR_* and ZM_SUBPIX_ORDER_* are being replaced by
+// AVPixelFormat throughout the codebase. Use the helpers in zm_pixformat.h for
+// format identification. These values are retained only for byte-per-pixel
+// stride arithmetic and backwards compatibility with the DB Monitors.Colours
+// column which stores {1, 3, 4}.
 #define ZM_COLOUR_RGB32 4
 #define ZM_COLOUR_RGB24 3
 #define ZM_COLOUR_GRAY8 1
-#define ZM_COLOUR_YUV420P 1
-#define ZM_COLOUR_YUVJ420P 1
+#define ZM_COLOUR_YUV420P 1   // DEPRECATED: collides with GRAY8; use AVPixelFormat
+#define ZM_COLOUR_YUVJ420P 1  // DEPRECATED: collides with GRAY8; use AVPixelFormat
 
-/* Subpixel ordering */
-/* Based on byte order naming. For example, for ARGB (on both little endian or big endian) byte+0 should be alpha, byte+1 should be red, and so on. */
+// DEPRECATED: Subpixel ordering constants. Use AVPixelFormat directly.
 #define ZM_SUBPIX_ORDER_NONE 2
 #define ZM_SUBPIX_ORDER_RGB 6
 #define ZM_SUBPIX_ORDER_BGR 5
@@ -118,9 +121,11 @@ constexpr Rgb kRGBTransparent = 0x01000000;
 #define ZM_SUBPIX_ORDER_ARGB 10
 #define ZM_SUBPIX_ORDER_YUV420P 11
 #define ZM_SUBPIX_ORDER_YUVJ420P 12
+#define ZM_SUBPIX_ORDER_YUV422P 13
+#define ZM_SUBPIX_ORDER_YUVJ422P 14
 
-/* A macro to use default subpixel order for a specified colour. */
-/* for grayscale it will use NONE, for 3 colours it will use R,G,B, for 4 colours it will use R,G,B,A */
+// DEPRECATED: Use zm_pixformat_from_colours() in zm_pixformat.h instead.
+// Only valid for DB-persisted colours values {1, 3, 4}.
 #define ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(c)  ((c)<<1)
 
 /* Convert RGB colour value into BGR\ARGB\ABGR */
@@ -167,6 +172,15 @@ inline YUV brg_to_yuv(Rgb colour) {
   float U = -0.148*R - 0.291*G + 0.439*B + 128;
   float V = 0.439*R -0.368*G - 0.071*B + 128;
   return (static_cast<uint8_t>(Y)<<16) + (static_cast<uint8_t>(U) << 8) + static_cast<uint8_t>(V);
+}
+
+// Luma (Y) a decoder writes for an RGB colour: ITU-R BT.601, rounded, in the
+// limited (16-235) range of YUV420P/YUV422P or the full (0-255) range of the
+// J formats and GRAY8.
+inline uint8_t rgb_to_luma(uint8_t r, uint8_t g, uint8_t b, bool full_range) {
+  if (full_range)
+    return static_cast<uint8_t>(0.299 * r + 0.587 * g + 0.114 * b + 0.5);
+  return static_cast<uint8_t>(16 + (65.481 * r + 128.553 * g + 24.966 * b) / 255 + 0.5);
 }
 
 #define Y_VAL(v)  (((v)>>16)&0xff)

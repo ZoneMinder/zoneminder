@@ -6,25 +6,44 @@ import {VideoRTC} from './video-rtc.js';
  */
 class VideoStream extends VideoRTC {
     set divMode(value) {
-        const modeEl = this.closest('[id ^= "monitor"]').querySelector('.stream-info-mode');
-        const statusEl = this.closest('[id ^= "monitor"]').querySelector('.stream-info-status');
+      const monitor = this.closest('[id ^= "monitor"]');
+      if (monitor) {
+        const modeEl = monitor.querySelector('.stream-info-mode');
+        const statusEl = monitor.querySelector('.stream-info-status');
         if (modeEl) modeEl.innerText = 'Go2RTC ' + value;
         if (statusEl) statusEl.innerText = '';
-        this.setAttribute('current-mode', value.toUpperCase());
-        this.currentMode = value.toUpperCase();
+      } else {
+        console.log("NO monitor div");
+      }
+      this.currentMode = value.toUpperCase();
+      this.setAttribute('current-mode', this.currentMode);
     }
 
     set divError(value) {
-        const modeEl = this.closest('[id ^= "monitor"]').querySelector('.stream-info-mode');
-        const statusEl = this.closest('[id ^= "monitor"]').querySelector('.stream-info-status');
-        if (modeEl) {
-          const state = modeEl.innerText;
-          if (state !== 'Go2RTC loading') return;
-          modeEl.innerText = 'Go2RTC ' + 'error';
+        const monitor = this.closest('[id ^= "monitor"]');
+        if (monitor) {
+          const modeEl = monitor.querySelector('.stream-info-mode');
+          const statusEl = monitor.querySelector('.stream-info-status');
+          if (modeEl) {
+            const state = modeEl.innerText;
+            if (state !== 'Go2RTC loading') return;
+            modeEl.innerText = 'Go2RTC error';
+          }
+          if (statusEl) statusEl.innerText = 'Go2RTC ' + value;
+        } else {
+          console.log("NO monitor div");
         }
-        if (statusEl) statusEl.innerText = 'Go2RTC ' + value;
         this.setAttribute('current-mode', 'ERROR');
         this.currentMode = 'ERROR';
+    }
+
+    set src(value) {
+        const monitorStream = getMonitorStream(stringToNumber(this.id));
+        if (monitorStream) {
+            monitorStream.playbackSessionId = generateUUID();
+            this.playbackSessionId = monitorStream.playbackSessionId;
+        }
+        super.src = value;
     }
 
     /**
@@ -32,7 +51,26 @@ class VideoStream extends VideoRTC {
      */
     oninit() {
         console.debug('stream.oninit');
+        this.visibilityCheck = false;
         super.oninit();
+    }
+
+    onplay() {
+        const container = document.getElementById('monitor-thumb-overlay');
+        const monitorStream = getMonitorStream(stringToNumber(this.id));
+        if (monitorStream) {
+            monitorStream.streamStartTime = (Date.now() / 1000).toFixed(2);
+            monitorStream.resetCountStreamErrors(monitorStream.activePlayer);
+        }
+
+        if (container) {
+            const dimensions = calculateOverlayDimensions(this.video);
+            if (dimensions) {
+                container.style.width = dimensions.width+'px';
+                container.style.height = dimensions.height+'px';
+            }
+        }
+        super.onplay();
     }
 
     onconnect() {
@@ -47,25 +85,57 @@ class VideoStream extends VideoRTC {
         super.ondisconnect();
     }
 
+    connectedCallback() {
+        console.debug('stream.connectedCallback');
+        super.connectedCallback(); 
+    }
+
     onopen() {
         console.debug('stream.onopen');
         const result = super.onopen();
+        if (result !== undefined) {
+            // An available player mode should return.
+            if ((!("length" in result)) || (("length" in result) && !result.length)) {
+                this.errorHandling(this.mode, `Playback using Go2RTC in mode "${this.mode}" is not possible.`);
+            }
+        } else {
+            // TODO: Something needs to be done, but what exactly?
+            console.warn(`stream.onopen returned RESULT=UNDEFINED for monitor with ID=${stringToNumber(this.id)} and mode="${this.mode}"`);
+        }
 
         this.onmessage['stream'] = msg => {
             console.debug('stream.onmessge', msg);
             switch (msg.type) {
                 case 'error':
                     this.divError = msg.value;
+                    if (msg.value.indexOf("webrtc") > -1) {
+                        this.errorHandling("webrtc");
+                    } else if (msg.value.indexOf("mse") > -1) {
+                        this.errorHandling("mse");
+                    } else if (msg.value.indexOf("hls") > -1) {
+                        this.errorHandling("hls");
+                    }
                     break;
                 case 'mse':
                 case 'hls':
                 case 'mp4':
                 case 'mjpeg':
                     this.divMode = msg.type.toUpperCase();
+                    const monitorStream = getMonitorStream(stringToNumber(this.id));
+                    if (monitorStream) {
+                        monitorStream.player = "go2rtc_" + msg.type;
+                    }
+                    break;
+                case 'webrtc/candidate':
+                    if (!this.waitingWebrtcPlayback) {
+                        // webrtc/candidate can be multiple times, we only need one
+                        this.waitingWebrtcPlayback = setTimeout(function(self) {
+                            self.errorHandling("webrtc", 'No video - trying next player');
+                        }, 3000, this);
+                    }
                     break;
             }
         };
-
         return result;
     }
 
@@ -74,7 +144,20 @@ class VideoStream extends VideoRTC {
         return super.onclose();
     }
 
+    onerror(ev) {
+        clearTimeout(this.waitingWebrtcPlayback);
+        this.waitingWebrtcPlayback = null;
+        console.debug('stream.onerror', ev);
+        const monitorStream = getMonitorStream(stringToNumber(this.id));
+        if (monitorStream && monitorStream.started) {
+            this.errorHandling(this.mode);
+        }
+        super.onerror(ev);
+    }
+
     onpcvideo(ev) {
+        clearTimeout(this.waitingWebrtcPlayback);
+        this.waitingWebrtcPlayback = null;
         console.debug('stream.onpcvideo');
         super.onpcvideo(ev);
 
@@ -83,12 +166,35 @@ class VideoStream extends VideoRTC {
         }
     }
 
-  pause() {
-    this.video.pause();
-  }
-  close() {
-    this.video.pause();
-  }
+    pause() {
+        this.video.pause();
+    }
+    close() {
+        this.video.pause();
+    }
+
+    errorHandling(currentMode, message = null) {
+        const monitorStream = getMonitorStream(stringToNumber(this.id));
+        if (monitorStream) {
+            if (!streamSessionActive(monitorStream, this.playbackSessionId)) return;
+            monitorStream.player = "go2rtc_" + currentMode;
+            monitorStream.streamErrorRegistration();
+            monitorStream.restart(monitorStream.currentChannelStream);
+            monitorStream.writeTextInfoBlock("Error");
+            if (message) monitorStream.showText(message);
+        }
+
+        this.dispatchEvent(
+            new CustomEvent('go2rtc.events.error', {
+                detail: {
+                    mode: currentMode,
+                    message: message
+                },
+                bubbles: true,
+                cancelable: false
+            })
+        );
+    }
 }
 
 customElements.define('video-stream', VideoStream);

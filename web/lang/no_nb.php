@@ -129,7 +129,6 @@ $SLANG = array(
     'BadEncoderParameters'  => 'Encoder virker ikke optimalt uten en verdi for CRF. Se hjelp.',
     'BadFormat'             => 'Format må settes til en gyldig verdi',
     'BadFPSReportInterval'  => 'FPS rapportintervall bufferantall må være et tall som er 0 eller høyere',
-    'BadFrameSkip'          => 'Rammehopp må være et tall som er 0 eller høyere',
     'BadMotionFrameSkip'    => 'Bevegelse rammehopp må være et tall som er 0 eller høyere',
     'BadHeight'             => 'Høyde må settes til en gyldig verdi',
     'BadHost'               => 'Host må settes til en gyldig IP-adresse eller hostnavn, ikke inkluder http://',
@@ -149,7 +148,7 @@ $SLANG = array(
     'BadPreEventCountMaxImageBufferCount'      => 'Maks Bilde Bufferantall bør være større enn Før-event bildeantall for å tilfredsstilles',
     'BadRefBlendPerc'       => 'Referanse blenderprosent må være et positivt tall',
     'BadNoSaveJPEGsOrVideoWriter' => 'SaveJPEGs og VideoWriter er begge deaktivert. Ingenting vil bli tatt opp!',
-    'BadSectionLength'      => 'Seksjonslengde må være et heltall som er 30 eller høyere',
+    'BadSectionLength'      => 'Seksjonslengde må være et heltall som er 10 eller høyere',
     'BadSignalCheckColour'  => 'Signal sjekkfarge må være en gyldig RGB fargestreng',
     'BadStreamReplayBuffer' => 'Strøm avspillingsbuffer må være et tall som er 0 eller høyere',
     'BadSourceType'         => 'Kildetype \"Web Site\" krever at Funksjon er satt til \"Monitor\"',
@@ -239,7 +238,6 @@ $SLANG = array(
     'DefaultScale'          => 'Standard Skala',
     'DefaultCodec'          => 'Standard Metode For Vis Hendelser',
     'DefaultView'           => 'Standard Visning',
-    'RTSPDescribe'          => 'Bruk RTSP Response Media URL',
     'DeleteAndNext'         => 'Slett &amp; Neste',
     'DeleteAndPrev'         => 'Slett &amp; Forrige',
     'DeleteSavedFilter'     => 'Slett lagret filter',
@@ -320,7 +318,6 @@ $SLANG = array(
     'FPSReportInterval'     => 'FPS Rapporteringsintervall',
     'FrameId'               => 'Bilde Id',
     'FrameRate'             => 'Bildeskala',
-    'FrameSkip'             => 'Bilde hopp',
     'MotionFrameSkip'       => 'Bevegelsesbilde hopp',
     'GenerateVideo'         => 'Generer Video',
     'GeneratingVideo'       => 'Genererer Video',
@@ -845,26 +842,9 @@ $OLANG = array(
         HTTP - Bruk HTTP tunnellering som transportprotokoll, som er nyttig for bruk gjennom proxy.~~
       '
 	),
-	'OPTIONS_LIBVLC' => array(
-    'Hjelp' => '
-      Parametre i dette feltet formidles til libVLC. Flere parametre kan skilles med ,~~
-      Eksempel (ikke skriv anførselstegn)~~~~
-      "--rtp-client-port=nnn" Setter lokal port for rtp data~~~~
-      "--verbose=2" Setter verbositet for libVLC
-      '
-	),
 	'OPTIONS_EXIF' => array(
 		'Hjelp' => 'Aktiver dette valget for å bake inn EXIT-data i hver JPEG ramme.'
 	),
-	'OPTIONS_RTSPDESCRIBE' => array(
-    'Hjelp' => '
-    Noen ganger, under første RTSP handshake, vil kameraet sende en oppdatert media URL.
-      Aktiver denne for å be Zoneminder om å bruke denne URL\'en. Deaktiver valget for å ignorere
-      verdien fra kameraet og bruk verdign oppgitt i monitorkonfigurasjonen~~~~
-      Generelt sett bør denne være aktivert. Men, det finnes tilfeller hvor kameraet kan oppgi
-      feil URL, for eksempel dersom strømmen går gjennom en brannmur
-    '
-  ),
 	'OPTIONS_MAXFPS' => array(
     'Hjelp' => '
       Dette feltet har enkelse begrensninger for bruk med ikke-lokale enheter.~~

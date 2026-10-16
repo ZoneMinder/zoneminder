@@ -114,10 +114,8 @@ function queryRequest($eid, $search, $advsearch, $sort, $offset, $order, $limit)
 
   $unfiltered_rows = array();
   $frame_ids = array();
-  require_once('includes/Frame.php');
   foreach ( dbFetchAll($sql, NULL, $values) as $row ) {
-    $frame = new ZM\Frame($row);
-    $frame_ids[] = $frame->Id();
+    $frame_ids[] = $row['FrameId'];
     $unfiltered_rows[] = $row;
   }
 
@@ -152,7 +150,7 @@ function queryRequest($eid, $search, $advsearch, $sort, $offset, $order, $limit)
       $search_filter = $search_filter->addTerms($terms, array('obr'=>1, 'cbr'=>1, 'op'=>'OR'));
     } # end if search
 
-    $sql = 'SELECT * FROM `Frames` WHERE '.$search_filter->sql().' ORDER BY ' .$sort. ' ' .$order;
+    $sql = 'SELECT * FROM `Frames` '.$where.' AND '.$search_filter->sql().' ORDER BY ' .$sort. ' ' .$order;
     $filtered_rows = dbFetchAll($sql);
     ZM\Debug('Have ' . count($filtered_rows) . ' frames matching search filter.');
   } else {
@@ -170,7 +168,7 @@ function queryRequest($eid, $search, $advsearch, $sort, $offset, $order, $limit)
       $hasAnalysisImage = $alarmFrame && file_exists($analysisPath) && filesize($analysisPath);
 
       # Our base img source component, which we will add on to
-      $base_img_src = '?view=image&amp;fid=' .$row['Id'];
+      $base_img_src = '?view=image&amp;eid=' .$row['EventId']. '&amp;fid=' .$row['FrameId'];
 
       # if an analysis images exists, use it as the thumbnail
       if ( $hasAnalysisImage ) $base_img_src .= '&amp;show=analyse';

@@ -18,17 +18,17 @@
 var POPUP_ON_ALARM = <?php echo ZM_WEB_POPUP_ON_ALARM ?>;
 var LIST_THUMBS = <?php echo ZM_WEB_LIST_THUMBS?'true':'false' ?>;
 
-var streamMode = "<?php echo $streamMode ?>";
+var streamMode = "<?php echo validJsStr($streamMode) ?>";
 var showMode = "<?php echo ($showPtzControls && !empty($control))?"control":"events" ?>";
 var cycle = <?php echo $cycle ? 'true' : 'false' ?>;
-var player = '<?php echo $player ?>';
+var player = '<?php echo validJsStr($player) ?>';
 
 var maxDisplayEvents = <?php echo 2 * MAX_EVENTS ?>;
-var monitorId = parseInt('<?php echo $monitor->Id() ?>');
+var monitorId = parseInt('<?php echo validJsStr($monitor->Id()) ?>');
 var monitorUrl = '<?php echo $monitor->UrlToIndex(ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>';
 
 var monIdx = '<?php echo $monitor_index; ?>';
-var mode = '<?php echo $options['mode'] ?>';
+var mode = '<?php echo validJsStr($options['mode']) ?>';
 
 var monitorData = new Array();
 <?php
@@ -36,15 +36,15 @@ foreach ($monitors as $m) {
 ?>
 monitorData[monitorData.length] = {
   'id': <?php echo $m->Id() ?>,
-  'name': '<?php echo $m->Name() ?>',
-  'server_id': '<?php echo $m->ServerId() ?>',
+  'name': '<?php echo validJsStr($m->Name()) ?>',
+  'server_id': '<?php echo validJsStr($m->ServerId()) ?>',
   'connKey': <?php echo $m->connKey() ?>,
   'width': <?php echo $m->ViewWidth() ?>,
   'height':<?php echo $m->ViewHeight() ?>,
   'RTSP2WebEnabled':<?php echo $m->RTSP2WebEnabled() ?>,
-  'DefaultPlayer':'<?php echo $m->DefaultPlayer() ?>',
+  'DefaultPlayer':'<?php echo validJsStr($m->DefaultPlayer()) ?>',
   'RTSPServer':<?php echo $m->RTSPServer() ? 'true' : 'false' ?>,
-  'StreamChannel':'<?php echo $m->StreamChannel() ?>',
+  'StreamChannel':'<?php echo validJsStr($m->StreamChannel()) ?>',
   'Go2RTCEnabled': <?php echo $m->Go2RTCEnabled() ?>,
   'Path':'<?php echo validJsStr($m->Path()) ?>',
   'SecondPath':'<?php echo validJsStr($m->SecondPath()) ?>',
@@ -53,26 +53,27 @@ monitorData[monitorData.length] = {
   'url': '<?php echo $m->UrlToIndex(ZM_MIN_STREAMING_PORT ? ($m->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'url_to_zms': '<?php echo $m->UrlToZMS( ZM_MIN_STREAMING_PORT ? ($m->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'onclick': function(){window.location.assign( '?view=watch&mid=<?php echo $m->Id() ?>' );},
-  'type': '<?php echo $m->Type() ?>',
-  'capturing': '<?php echo $m->Capturing() ?>',
-  'refresh': '<?php echo $m->Refresh() ?>',
-  'janus_pin': '<?php echo $m->Janus_Pin() ?>',
+  'type': '<?php echo validJsStr($m->Type()) ?>',
+  'capturing': '<?php echo validJsStr($m->Capturing()) ?>',
+  'refresh': '<?php echo validJsStr($m->Refresh()) ?>',
+  'janus_pin': '<?php echo validJsStr($m->Janus_Pin()) ?>',
   'streamHTML': '<?php echo str_replace(array("\r\n", "\r", "\n"), '', $monitorsExtraData[$m->Id()]['StreamHTML']) ?>',
   'urlForAllEvents': '<?php echo $monitorsExtraData[$m->Id()]['urlForAllEvents'] ?>',
   'ptzControls': '<?php echo str_replace(array("\r\n", "\r", "\n"), '', $monitorsExtraData[$m->Id()]['ptzControls']) ?>',
-  'monitorWidth': parseInt('<?php echo $m->ViewWidth() ?>'),
-  'monitorHeight': parseInt('<?php echo $m->ViewHeight() ?>'),
-  'monitorType': '<?php echo $m->Type() ?>',
-  'monitorRefresh': '<?php echo $m->Refresh() ?>',
-  'monitorStreamReplayBuffer': parseInt('<?php echo $m->StreamReplayBuffer() ?>'),
+  'monitorWidth': parseInt('<?php echo validJsStr($m->ViewWidth()) ?>'),
+  'monitorHeight': parseInt('<?php echo validJsStr($m->ViewHeight()) ?>'),
+  'monitorType': '<?php echo validJsStr($m->Type()) ?>',
+  'monitorRefresh': '<?php echo validJsStr($m->Refresh()) ?>',
+  'monitorStreamReplayBuffer': parseInt('<?php echo validJsStr($m->StreamReplayBuffer()) ?>'),
   'monitorControllable': <?php echo $m->Controllable()?'true':'false' ?>,
-  'streamMode': '<?php echo $m->getStreamMode(); ?>'
+  'streamMode': '<?php echo $m->getStreamMode(); ?>',
+  'whatDisplay': '<?php echo validJsStr($m->WhatDisplay()) ?>'
 };
 <?php
 } // end foreach monitor
 ?>
 
-var scale = '<?php echo $scale ?>';
+var scale = '<?php echo validJsStr($scale) ?>';
 
 const statusRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;
 const eventsRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_EVENTS ?>;
@@ -112,4 +113,5 @@ var translate = {
   "Exit Fullscreen": "<?php echo translate('Exit Fullscreen') ?>",
   "Showing Analysis": "<?php echo translate('Showing Analysis') ?>",
   "Show Analysis": "<?php echo translate('Show Analysis') ?>",
+  "Not Showing Analysis": "<?php echo translate('Not Showing Analysis') ?>",
 };

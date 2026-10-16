@@ -25,7 +25,7 @@
 #include "zm_utils.h"
 #include <cstring>
 
-User::User() : id(0), enabled(false) {
+User::User() : id(0), enabled(false), role_id(0) {
   username[0] = password[0] = 0;
   stream = events = control = monitors = system = PERM_NONE;
 }
@@ -41,8 +41,15 @@ User::User(const MYSQL_ROW &dbrow) {
   control = (Permission)atoi(dbrow[index++]);
   monitors = (Permission)atoi(dbrow[index++]);
   system = (Permission)atoi(dbrow[index++]);
+  role_id = atoi(dbrow[index++]);
   monitor_permissions_loaded = false;
   group_permissions_loaded = false;
+  role_monitor_permissions_loaded = false;
+  role_group_permissions_loaded = false;
+
+  if (role_id > 0) {
+    loadRoleBasePermissions();
+  }
 }
 
 User::~User() {
@@ -58,10 +65,15 @@ void User::Copy(const User &u) {
   control = u.control;
   monitors = u.monitors;
   system = u.system;
+  role_id = u.role_id;
   monitor_permissions_loaded = u.monitor_permissions_loaded;
   monitor_permissions = u.monitor_permissions;
   group_permissions_loaded = u.group_permissions_loaded;
   group_permissions = u.group_permissions;
+  role_monitor_permissions_loaded = u.role_monitor_permissions_loaded;
+  role_monitor_permissions = u.role_monitor_permissions;
+  role_group_permissions_loaded = u.role_group_permissions_loaded;
+  role_group_permissions = u.role_group_permissions;
 }
 
 void User::loadMonitorPermissions() {
@@ -74,6 +86,48 @@ void User::loadMonitorPermissions() {
 void User::loadGroupPermissions() {
   group_permissions = Group_Permission::find(id);
   Debug(1, "# of Group_Permissions %zu", group_permissions.size());
+}
+
+void User::loadRoleBasePermissions() {
+  std::string sql = stringtf("SELECT `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0"
+                             " FROM `User_Roles` WHERE `Id` = %d", role_id);
+  MYSQL_RES *result = zmDbFetch(sql);
+  if (!result) return;
+  if (mysql_num_rows(result) != 1) {
+    mysql_free_result(result);
+    return;
+  }
+  MYSQL_ROW dbrow = mysql_fetch_row(result);
+  Permission role_stream = (Permission)atoi(dbrow[0]);
+  Permission role_events = (Permission)atoi(dbrow[1]);
+  Permission role_control = (Permission)atoi(dbrow[2]);
+  Permission role_monitors = (Permission)atoi(dbrow[3]);
+  Permission role_system = (Permission)atoi(dbrow[4]);
+  mysql_free_result(result);
+
+  // Use role permission as fallback when user permission is PERM_NONE
+  if (stream == PERM_NONE && role_stream > PERM_NONE) stream = role_stream;
+  if (events == PERM_NONE && role_events > PERM_NONE) events = role_events;
+  if (control == PERM_NONE && role_control > PERM_NONE) control = role_control;
+  if (monitors == PERM_NONE && role_monitors > PERM_NONE) monitors = role_monitors;
+  if (system == PERM_NONE && role_system > PERM_NONE) system = role_system;
+
+  Debug(1, "Merged role %d base permissions: stream=%d events=%d control=%d monitors=%d system=%d",
+        role_id, stream, events, control, monitors, system);
+}
+
+void User::loadRoleMonitorPermissions() {
+  for (const Monitor_Permission &p : Monitor_Permission::findByRole(role_id)) {
+    role_monitor_permissions[p.MonitorId()] = p;
+  }
+  role_monitor_permissions_loaded = true;
+  Debug(1, "# of Role_Monitor_Permissions %zu", role_monitor_permissions.size());
+}
+
+void User::loadRoleGroupPermissions() {
+  role_group_permissions = Group_Permission::findByRole(role_id);
+  role_group_permissions_loaded = true;
+  Debug(1, "# of Role_Group_Permissions %zu", role_group_permissions.size());
 }
 
 bool User::canAccess(int monitor_id) {
@@ -124,6 +178,56 @@ bool User::canAccess(int monitor_id) {
     }
   }  // end foreach Group_Permission
 
+  // Check role permissions if user has a role
+  if (role_id > 0) {
+    if (!role_monitor_permissions_loaded) loadRoleMonitorPermissions();
+    auto rit = role_monitor_permissions.find(monitor_id);
+
+    if (rit != role_monitor_permissions.end()) {
+      auto permission = rit->second.getPermission();
+      switch (permission) {
+      case Monitor_Permission::PERM_NONE :
+        Debug(1, "Returning None from role_monitor_permission");
+        return false;
+      case Monitor_Permission::PERM_VIEW :
+        Debug(1, "Returning true because VIEW from role_monitor_permission");
+        return true;
+      case Monitor_Permission::PERM_EDIT :
+        Debug(1, "Returning true because EDIT from role_monitor_permission");
+        return true;
+      case Monitor_Permission::PERM_INHERIT :
+        Debug(1, "INHERIT from role_monitor_permission");
+        break;
+      default:
+        Warning("UNKNOWN permission %d from role_monitor_permission", permission);
+        break;
+      }
+    }
+
+    if (!role_group_permissions_loaded) loadRoleGroupPermissions();
+
+    for (Group_Permission &gp : role_group_permissions) {
+      auto permission = gp.getPermission(monitor_id);
+      switch (permission) {
+      case Group_Permission::PERM_NONE :
+        Debug(1, "Returning None from role_group_permission");
+        return false;
+      case Group_Permission::PERM_VIEW :
+        Debug(1, "Returning true because VIEW from role_group_permission");
+        return true;
+      case Group_Permission::PERM_EDIT :
+        Debug(1, "Returning true because EDIT from role_group_permission");
+        return true;
+      case Group_Permission::PERM_INHERIT :
+        Debug(1, "INHERIT from role_group_permission %d", gp.GroupId());
+        break;
+      default :
+        Warning("UNKNOWN permission %d from role_group_permission %d", permission, gp.GroupId());
+        break;
+      }
+    }  // end foreach role Group_Permission
+  }  // end if role_id
+
   return (monitors != PERM_NONE);
 }
 
@@ -131,7 +235,8 @@ User *User::find(const std::string &username) {
   std::string escaped_username = zmDbEscapeString(username);
 
   std::string sql = stringtf("SELECT `Id`, `Username`, `Password`, `Enabled`,"
-                             " `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0"
+                             " `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0,"
+                             " COALESCE(`RoleId`, 0)"
                              " FROM `Users` WHERE `Username` = '%s' AND `Enabled` = 1",
                              escaped_username.c_str());
   MYSQL_RES *result = zmDbFetch(sql);
@@ -149,7 +254,8 @@ User *User::find(const std::string &username) {
 
 User *User::find(int id) {
   std::string sql = stringtf("SELECT `Id`, `Username`, `Password`, `Enabled`,"
-                             " `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0"
+                             " `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0,"
+                             " COALESCE(`RoleId`, 0)"
                              " FROM `Users` WHERE `Id` = %d AND `Enabled` = 1",
                              id);
   MYSQL_RES *result = zmDbFetch(sql);
@@ -204,6 +310,13 @@ User *zmLoadUser(const std::string &username, const std::string &password) {
 }  // end User *zmLoadUser(const char *username, const char *password)
 
 User *zmLoadTokenUser(const std::string &jwt_token_str, bool use_remote_addr) {
+  // The shipped ZM_AUTH_HASH_SECRET is public, so a token signed with it proves nothing.
+  // refs GHSA-wmcc-x64g-jr84
+  if (!config.auth_hash_secret || !*config.auth_hash_secret
+      || !strcmp(config.auth_hash_secret, "...Change me to something unique...")) {
+    Error("Refusing token authentication: ZM_AUTH_HASH_SECRET is empty or still the shipped default.");
+    return nullptr;
+  }
   std::string key = config.auth_hash_secret;
   std::string remote_addr;
 
@@ -217,7 +330,8 @@ User *zmLoadTokenUser(const std::string &jwt_token_str, bool use_remote_addr) {
     }
   }
 
-  Debug(1, "Inside zmLoadTokenUser, formed key=%s", key.c_str());
+  // Don't log the key: it is the token signing secret.
+  Debug(1, "Inside zmLoadTokenUser, remote_addr=%s", remote_addr.c_str());
 
   std::pair<std::string, unsigned int> ans = verifyToken(jwt_token_str, key);
   std::string username = zmDbEscapeString(ans.first);
@@ -229,7 +343,8 @@ User *zmLoadTokenUser(const std::string &jwt_token_str, bool use_remote_addr) {
   }
 
   std::string sql = stringtf("SELECT `Id`, `Username`, `Password`, `Enabled`, `Stream`+0, `Events`+0,"
-                             " `Control`+0, `Monitors`+0, `System`+0, `TokenMinExpiry`"
+                             " `Control`+0, `Monitors`+0, `System`+0, COALESCE(`RoleId`, 0),"
+                             " `TokenMinExpiry`"
                              " FROM `Users` WHERE `Username` = '%s' AND `Enabled` = 1", username.c_str());
 
   MYSQL_RES *result = zmDbFetch(sql);
@@ -263,18 +378,25 @@ User *zmLoadTokenUser(const std::string &jwt_token_str, bool use_remote_addr) {
 // Function to validate an authentication string
 User *zmLoadAuthUser(const std::string &auth, const std::string &username, bool use_remote_addr) {
   const char *remote_addr = "";
+  std::string client_addr; // must outlive remote_addr
   if (use_remote_addr) {
-    remote_addr = getenv("REMOTE_ADDR");
-    if (!remote_addr) {
+    // Same rule as getRemoteAddr() in web/includes/Network.php, which bound the
+    // hash: X-Forwarded-For only counts when it came from a trusted proxy.
+    const char *direct_addr = getenv("REMOTE_ADDR");
+    const char *forwarded_for = getenv("HTTP_X_FORWARDED_FOR");
+    client_addr = ClientAddress(direct_addr ? direct_addr : "",
+                                forwarded_for ? forwarded_for : "",
+                                config.auth_trusted_proxies);
+    if (client_addr.empty())
       Warning("Can't determine remote address, using null");
-      remote_addr = "";
-    }
+    remote_addr = client_addr.c_str();
   }
 
   Debug(1, "Attempting to authenticate user %s from auth string '%s', remote addr(%s)",
         username.c_str(), auth.c_str(), remote_addr);
   std::string sql = "SELECT `Id`, `Username`, `Password`, `Enabled`,"
-                    " `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0"
+                    " `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0,"
+                    " COALESCE(`RoleId`, 0)"
                     " FROM `Users` WHERE `Enabled` = 1";
   if (!username.empty()) {
     sql += " AND `Username`='"+zmDbEscapeString(username)+"'";

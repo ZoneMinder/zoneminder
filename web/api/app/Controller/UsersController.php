@@ -20,6 +20,10 @@ class UsersController extends AppController {
     global $user;
     # We already tested for auth in appController, so we just need to test for specific permission
     $canView = (!$user) || ($user->System() != 'None');
+    if (!$canView and $this->isSelfEdit()) {
+      # view() and edit() check what a user may see and change about themselves
+      $canView = true;
+    }
     if (!$canView) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
@@ -56,8 +60,8 @@ class UsersController extends AppController {
 		$this->User->recursive = 1;
 
     global $user;
-    # We can view ourselves
-    $canView = ($user->System() != 'None') or ($user->Id() == $id);
+    # We can view ourselves when ZM_USER_SELF_EDIT allows us to edit ourselves
+    $canView = ($user->System() != 'None') || (ZM_USER_SELF_EDIT && ($user->Id() == $id));
     if (!$canView) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
@@ -120,7 +124,8 @@ class UsersController extends AppController {
 		$this->User->id = $id;
 
     global $user;
-    $canEdit = ($user->System() == 'Edit') or (($user->Id() == $id) and ZM_USER_SELF_EDIT);
+    $selfEdit = ($user->System() != 'Edit');
+    $canEdit = ($user->System() == 'Edit') || (ZM_USER_SELF_EDIT && ($user->Id() == $id));
     if (!$canEdit) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
@@ -131,7 +136,16 @@ class UsersController extends AppController {
 		}
 
 		if ($this->request->is('post') || $this->request->is('put')) {
-			if ( $this->User->save($this->request->data) ) {
+      $data = $this->request->data;
+      $fieldList = array();
+      if ($selfEdit) {
+        # Same fields the web UI lets a user change about themselves (includes/actions/user.php)
+        $data = $this->selfEditData($data);
+        $fieldList = array_keys($data['User']);
+      }
+			if ($selfEdit and !count($fieldList)) {
+				$message = 'Error';
+			} else if ( $this->User->save($data, true, $fieldList) ) {
 				$message = 'Saved';
 			} else {
 				$message = 'Error';
@@ -182,4 +196,26 @@ class UsersController extends AppController {
 			'_serialize' => array('message')
 		));
 	}
+
+  # True for view or edit of the logged in user's own record while ZM_USER_SELF_EDIT is on
+  private function isSelfEdit() {
+    global $user;
+    if (!$user or !ZM_USER_SELF_EDIT) return false;
+    if (!in_array($this->request->params['action'], array('view', 'edit'))) return false;
+    $pass = $this->request->params['pass'];
+    return isset($pass[0]) && ($pass[0] == $user->Id());
+  }
+
+  # Keep only Password, Language and HomeView from the request, as the web UI does for self edit
+  private function selfEditData($data) {
+    $in = (isset($data['User']) and is_array($data['User'])) ? $data['User'] : $data;
+    if (!is_array($in)) $in = array();
+    $fields = array_intersect_key($in, array('Password'=>'', 'Language'=>'', 'HomeView'=>''));
+    if (empty($fields['Password'])) unset($fields['Password']);
+    if (!empty($fields['Language']) and
+      (!is_string($fields['Language']) or !file_exists(ZM_PATH_WEB.'/lang/'.$fields['Language'].'.php'))) {
+      throw new BadRequestException(__('Invalid Language'));
+    }
+    return array('User' => $fields);
+  }
 }  # end class UsersController

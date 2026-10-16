@@ -17,6 +17,10 @@ input[type="password"] {
   color: #dddddd;
 }
 
+.input-group .input-group-text.material-icons {
+  color: #dddddd;
+}
+
 form {
   border: 1px solid #303030;
   background-color: #303030;
@@ -29,4 +33,10 @@ border-bottom: 1px solid #303030;
 
 .form-control::placeholder {
   color: #dddddd;
+}
+
+#loginMessage {
+  border-left-color: #444444;
+  background-color: #2a2a2a;
+  color: #bbbbbb;
 }

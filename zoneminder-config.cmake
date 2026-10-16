@@ -35,9 +35,9 @@
 #cmakedefine HAVE_LIBGNUTLS 1
 #cmakedefine HAVE_LIBMYSQLCLIENT 1
 #cmakedefine HAVE_MYSQL_H 1
+#cmakedefine HAVE_MYSQL_OPT_SSL_MODE 1
+#cmakedefine HAVE_MYSQL_OPT_SSL_VERIFY_SERVER_CERT 1
 #cmakedefine HAVE_LIBAVUTIL_HWCONTEXT_H 1
-#cmakedefine HAVE_LIBVLC 1
-#cmakedefine HAVE_VLC_VLC_H 1
 #cmakedefine HAVE_LIBVNC 1
 #cmakedefine HAVE_RFB_RFB_H 1
 #cmakedefine HAVE_LIBJWT 1

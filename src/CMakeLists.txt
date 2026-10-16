@@ -6,6 +6,7 @@ configure_file(zm_config_data.h.in "${CMAKE_BINARY_DIR}/zm_config_data.h" @ONLY)
 # Group together all the source files that are used by all the binaries (zmc, zmu, zms etc)
 set(ZM_BIN_SRC_FILES
   zm_analysis_thread.cpp
+  zm_audio_detector.cpp
   zm_poll_thread.cpp
   zm_buffer.cpp
   zm_camera.cpp
@@ -17,6 +18,7 @@ set(ZM_BIN_SRC_FILES
   zm_decoder_thread.cpp
   zm_group_permission.cpp
   zm_monitor_permission.cpp
+  zm_mp4_sidx.cpp
   zm_logger.cpp
   zm_event.cpp
   zm_eventstream.cpp
@@ -31,7 +33,6 @@ set(ZM_BIN_SRC_FILES
   zm_group.cpp
   zm_image.cpp
   zm_jpeg.cpp
-  zm_libvlc_camera.cpp
   zm_libvnc_camera.cpp
   zm_local_camera.cpp
   zm_monitor.cpp
@@ -55,24 +56,19 @@ set(ZM_BIN_SRC_FILES
   zm_regexp.cpp
   zm_remote_camera.cpp
   zm_remote_camera_http.cpp
-  zm_remote_camera_nvsocket.cpp
-  zm_remote_camera_rtsp.cpp
-  zm_rtp.cpp
-  zm_rtp_ctrl.cpp
-  zm_rtp_data.cpp
-  zm_rtp_source.cpp
-  zm_rtsp.cpp
   zm_rtsp_auth.cpp
-  zm_rtsp_server_fifo_source.cpp
-  zm_rtsp_server_fifo_adts_source.cpp
-  zm_rtsp_server_fifo_h264_source.cpp
-  zm_rtsp_server_fifo_av1_source.cpp
-  zm_rtsp_server_fifo_audio_source.cpp
-  zm_rtsp_server_fifo_video_source.cpp
-  zm_sdp.cpp
+  zm_rtsp_server_stream_source.cpp
+  zm_rtsp_server_stream_adts_source.cpp
+  zm_rtsp_server_stream_h264_source.cpp
+  zm_rtsp_server_stream_av1_source.cpp
+  zm_rtsp_server_stream_audio_source.cpp
+  zm_rtsp_server_stream_video_source.cpp
   zm_server.cpp
   zm_signal.cpp
   zm_stream.cpp
+  zm_stream_socket.cpp
+  zm_stream_socket_client.cpp
+  zm_stream_socket_protocol.cpp
   zm_swscale.cpp
   zm_tag.cpp
   zm_time.cpp
@@ -181,6 +177,7 @@ target_link_libraries(zm
     chmike::CxxUrl
     martinmoene::span-lite
     ${ZM_BIN_LIBS}
+    ${FILESYSTEM_LIBRARY}
   PRIVATE
     zm-core-interface)
 
@@ -214,6 +211,7 @@ if(TARGET V4L2::videodev2)
 endif()
 
 add_executable(zmc zmc.cpp)
+add_executable(zma zma.cpp)
 add_executable(zms zms.cpp)
 add_executable(zmu zmu.cpp)
 add_executable(zmbenchmark zmbenchmark.cpp)
@@ -224,6 +222,13 @@ if(GSOAP_FOUND)
 endif()
 
 target_link_libraries(zmc
+  PRIVATE
+    zm-core-interface
+    zm
+    ${ZM_EXTRA_LIBS}
+    ${CMAKE_DL_LIBS})
+
+target_link_libraries(zma
   PRIVATE
     zm-core-interface
     zm
@@ -258,7 +263,7 @@ if(BUILD_MAN)
   endforeach(CBINARY zmc zmu)
 endif()
 
-install(TARGETS zmc zmu RUNTIME DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+install(TARGETS zmc zma zmu RUNTIME DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 install(TARGETS zms RUNTIME DESTINATION "${ZM_CGIDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 install(CODE "execute_process(COMMAND ln -sf zms nph-zms WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})")
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/nph-zms DESTINATION "${ZM_CGIDIR}")

@@ -24,6 +24,7 @@ if ( !canEdit('Devices') ) {
   return;
 }
 
+$action = validStr($_REQUEST['action'] ?? '');
 if ( $action == 'delete' ) {
   if ( isset($_REQUEST['markDids']) ) {
     foreach( $_REQUEST['markDids'] as $markDid ) {
@@ -32,7 +33,7 @@ if ( $action == 'delete' ) {
   }
   ajaxResponse();
 } else {
-  ajaxError('Unrecognised action '.$_REQUEST['action']);
+  ajaxError('Unrecognised action "'.$action.'"');
 }
 
 ?>

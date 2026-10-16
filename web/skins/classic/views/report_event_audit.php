@@ -76,7 +76,7 @@ if ( count($user->unviewableMonitorIds()) ) {
   $eventsSql .= ' AND MonitorId IN ('.implode(',', $user->viewableMonitorIds()).')';
 }
 if ( count($selected_monitor_ids) ) {
-  $eventsSql .= ' AND MonitorId IN ('.implode(',', $selected_monitor_ids).')';
+  $eventsSql .= ' AND MonitorId IN ('.implode(',', array_map('intval', $selected_monitor_ids)).')';
 }
 if ( isset($minTime) && isset($maxTime) ) {
   $eventsSql .= " AND EndDateTime > '" . $minTime . "' AND StartDateTime < '" . $maxTime . "'";
@@ -143,7 +143,7 @@ echo $navbar;
             <th class="colLastEvent"><?php echo translate('LastEvent') ?></th>
             <th class="colMinGap"><?php echo translate('MinGap') ?></th> 
             <th class="colMaxGap"><?php echo translate('MaxGap') ?></th> 
-            <th class="colMissingFiles"><?php echo translate('MissingFiles') ?></th> 
+            <th class="colFileMissing"><?php echo translate('MissingFiles') ?></th> 
             <th class="colZeroSize"><?php echo translate('ZeroSize') ?></th> 
           </tr>
         </thead>

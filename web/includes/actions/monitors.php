@@ -33,11 +33,19 @@ if ($action == 'save') {
       continue;
     }
     $Monitor = new ZM\Monitor($mid);
+    // Before stopping it, so a refused save leaves the monitor running.
+    $refused = $Monitor->commandFieldChangesNotAllowed($_REQUEST['newMonitor']);
+    if (count($refused)) {
+      $error_message .= 'Changing '.implode(', ', $refused).' requires System edit permission.<br/>';
+      continue;
+    }
     if ($Monitor->Type() != 'WebSite') {
       $Monitor->zmcControl('stop');
     }
     if (!$Monitor->save($_REQUEST['newMonitor'])) {
       $error_message .= 'Error saving monitor: ' . $Monitor->get_last_error().'<br/>';
+    } else {
+      ZM\AuditAction('update', 'monitor', $mid, 'Bulk update: '.implode(', ', array_keys($_REQUEST['newMonitor'])));
     }
     if ($Monitor->Capturing() != 'None' && $Monitor->Type() != 'WebSite') {
       $Monitor->zmcControl('start');

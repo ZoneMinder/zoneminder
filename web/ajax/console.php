@@ -11,6 +11,11 @@ if (!empty($_REQUEST['task'])) {
     ajaxResponse($data);
     return;
   }
+
+  if ($task == 'export') {
+    exportMonitorsJSON();
+    return;
+  }
 }
 
 // Handle legacy action-based requests
@@ -20,7 +25,7 @@ if ( canEdit('Monitors') ) {
   {
     $monitor_ids = $_POST['monitor_ids'];
     # Two concurrent sorts could generate odd sorting... so lock the table.
-    global $dbConn;
+    $dbConn = zmDbConn();
     $dbConn->beginTransaction();
     $dbConn->exec('LOCK TABLES Monitors WRITE');
     for ( $i = 0; $i < count($monitor_ids); $i += 1 ) {
@@ -53,7 +58,9 @@ ajaxError('Unrecognised action '.$_REQUEST['action'].' or insufficient permissio
 function queryRequest() {
   global $user, $Servers;
   require_once('includes/Monitor.php');
+  require_once('includes/Group.php');
   require_once('includes/Group_Monitor.php');
+  require_once getSkinFile('views/_monitor_filters.php');
   
   $data = array(
     'total' => 0,
@@ -87,34 +94,46 @@ function queryRequest() {
   $sort = isset($_REQUEST['sort']) ? $_REQUEST['sort'] : 'Sequence';
   $order = isset($_REQUEST['order']) ? strtoupper($_REQUEST['order']) : 'ASC';
   
-  // Build monitor query with filters from request parameters (stateless)
+  // Build monitor query with filters from request parameters, falling back to cookies
   $conditions = array();
   $values = array();
   
-  // Get filter values directly from request
+  // Get filter values from request, falling back to cookies for persistence after page refresh.
+  // getFilterSelection() reads $_REQUEST first, then the zmFilter_* cookie.
   $request_filters = array(
-    'GroupId' => isset($_REQUEST['GroupId']) ? $_REQUEST['GroupId'] : null,
-    'ServerId' => isset($_REQUEST['ServerId']) ? $_REQUEST['ServerId'] : null,
-    'StorageId' => isset($_REQUEST['StorageId']) ? $_REQUEST['StorageId'] : null,
-    'Capturing' => isset($_REQUEST['Capturing']) ? $_REQUEST['Capturing'] : null,
-    'Analysing' => isset($_REQUEST['Analysing']) ? $_REQUEST['Analysing'] : null,
-    'Recording' => isset($_REQUEST['Recording']) ? $_REQUEST['Recording'] : null,
-    'Status' => isset($_REQUEST['Status']) ? $_REQUEST['Status'] : null,
-    'MonitorId' => isset($_REQUEST['MonitorId']) ? $_REQUEST['MonitorId'] : null,
-    'MonitorName' => isset($_REQUEST['MonitorName']) ? $_REQUEST['MonitorName'] : null,
-    'Source' => isset($_REQUEST['Source']) ? $_REQUEST['Source'] : null
+    'GroupId' => getFilterSelection('GroupId'),
+    'ServerId' => getFilterSelection('ServerId'),
+    'StorageId' => getFilterSelection('StorageId'),
+    'Capturing' => getFilterSelection('Capturing'),
+    'Analysing' => getFilterSelection('Analysing'),
+    'Recording' => getFilterSelection('Recording'),
+    'Status' => getFilterSelection('Status'),
+    'MonitorId' => getFilterSelection('MonitorId'),
+    'MonitorName' => getFilterSelection('MonitorName'),
+    'Source' => getFilterSelection('Source')
   );
+  // Text filters must be strings; guard against a cookie value that happens to be valid JSON.
+  if (is_array($request_filters['MonitorName'])) $request_filters['MonitorName'] = '';
+  if (is_array($request_filters['Source'])) $request_filters['Source'] = '';
   
-  // Apply request filters to SQL
+  // Apply GroupId filter using get_group_sql() to include child groups.
+  // Use validCardinal() to sanitize ID values before use.
   if ($request_filters['GroupId']) {
-    $GroupIds = is_array($request_filters['GroupId']) ? $request_filters['GroupId'] : array($request_filters['GroupId']);
-    $conditions[] = 'M.Id IN (SELECT MonitorId FROM Groups_Monitors WHERE GroupId IN (' . implode(',', array_fill(0, count($GroupIds), '?')) . '))';
-    $values = array_merge($values, $GroupIds);
+    $groupIds = is_array($request_filters['GroupId']) ? $request_filters['GroupId'] : array($request_filters['GroupId']);
+    $groupIds = array_values(array_filter(array_map('validCardinal', $groupIds)));
+    if (count($groupIds)) {
+      $groupSql = ZM\Group::get_group_sql($groupIds);
+      if ($groupSql) {
+        $conditions[] = $groupSql;
+      }
+    }
   }
   
   foreach (array('ServerId','StorageId') as $filter) {
     if ($request_filters[$filter]) {
       $filter_values = is_array($request_filters[$filter]) ? $request_filters[$filter] : array($request_filters[$filter]);
+      // Use validCardinal() to sanitize ID values
+      $filter_values = array_values(array_filter(array_map('validCardinal', $filter_values)));
       if (count($filter_values)) {
         $conditions[] = 'M.'.$filter.' IN (' . implode(',', array_fill(0, count($filter_values), '?')) . ')';
         $values = array_merge($values, $filter_values);
@@ -132,25 +151,18 @@ function queryRequest() {
     }
   }
   
-  if ($request_filters['Status']) {
-    $status_values = is_array($request_filters['Status']) ? $request_filters['Status'] : array($request_filters['Status']);
-    if (count($status_values)) {
-      $conditions[] = 'COALESCE(S.Status, IF(M.Type="WebSite","Running","NotRunning")) IN (' . implode(',', array_fill(0, count($status_values), '?')) . ')';
-      $values = array_merge($values, $status_values);
-    }
-  }
-  
+  // Carries the Deleted restriction as well as the status match, so that
+  // selecting the 'Deleted' pseudo status is what surfaces deleted monitors.
+  $conditions[] = monitorStatusFilterSql($request_filters['Status'], $values,
+    'COALESCE(S.Status, IF(M.Type="WebSite","Running","NotRunning"))');
+
   // Build SQL query
   $sql = 'SELECT M.*, S.*, E.*, (SELECT Name FROM Manufacturers WHERE Manufacturers.Id=M.ManufacturerId) AS Manufacturer, (SELECT Name FROM Models where Models.Id=M.ModelId) AS Model
     FROM Monitors AS M
-    LEFT JOIN Monitor_Status AS S ON S.MonitorId=M.Id 
-    LEFT JOIN Event_Summaries AS E ON E.MonitorId=M.Id 
-    WHERE M.`Deleted`=false';
-  
-  if (count($conditions)) {
-    $sql .= ' AND ' . implode(' AND ', $conditions);
-  }
-  
+    LEFT JOIN Monitor_Status AS S ON S.MonitorId=M.Id
+    LEFT JOIN Event_Summaries AS E ON E.MonitorId=M.Id
+    WHERE ' . implode(' AND ', $conditions);
+
   // Get total count before filtering
   $monitors = dbFetchAll($sql, null, $values);
   $unfiltered_monitors = array();
@@ -198,12 +210,15 @@ function queryRequest() {
     });
   }
   
-  // Apply MonitorId filter
+  // Apply MonitorId filter (use validCardinal() to sanitize ID values)
   if ($request_filters['MonitorId']) {
     $monitor_ids = is_array($request_filters['MonitorId']) ? $request_filters['MonitorId'] : array($request_filters['MonitorId']);
-    $filtered_monitors = array_filter($filtered_monitors, function($monitor) use ($monitor_ids) {
-      return in_array($monitor['Id'], $monitor_ids);
-    });
+    $monitor_ids = array_values(array_filter(array_map('validCardinal', $monitor_ids)));
+    if (count($monitor_ids)) {
+      $filtered_monitors = array_filter($filtered_monitors, function($monitor) use ($monitor_ids) {
+        return in_array($monitor['Id'], $monitor_ids);
+      });
+    }
   }
   
   $data['total'] = count($filtered_monitors);
@@ -293,8 +308,13 @@ function queryRequest() {
     $row['Model'] = $monitor['Model'];
     $row['Sequence'] = isset($monitor['Sequence']) ? $monitor['Sequence'] : 0;
     
-    // Status
-    if (!$monitor['Status']) {
+    // Status. A deleted monitor has no daemons, so whatever Monitor_Status row
+    // it left behind is stale - report it as Deleted instead of a status the
+    // row cannot actually be in.
+    $row['Deleted'] = $monitor['Deleted'] ? 1 : 0;
+    if ($monitor['Deleted']) {
+      $monitor['Status'] = 'Deleted';
+    } else if (!$monitor['Status']) {
       if ($monitor['Type'] == 'WebSite')
         $monitor['Status'] = 'Running';
       else
@@ -385,7 +405,10 @@ function queryRequest() {
     }
     $row['Analysing'] = isset($monitor['Analysing']) ? $monitor['Analysing'] : 'None';
     $row['Recording'] = isset($monitor['Recording']) ? $monitor['Recording'] : 'None';
-    $row['ONVIF_Event_Listener'] = isset($monitor['ONVIF_Event_Listener']) ? $monitor['ONVIF_Event_Listener'] : 0;
+    // console.js treats this as both an enable flag AND the text to display:
+    //   if (row.ONVIF_Event_Listener) html += "Use ONVIF '" + row.ONVIF_Event_Listener + "'"
+    // So send the alarm text only when the listener is actually enabled, else 0.
+    $row['ONVIF_Event_Listener'] = !empty($monitor['ONVIF_Event_Listener']) ? $monitor['ONVIF_Alarm_Text'] : 0;
     $row['UpdatedOn'] = isset($monitor['UpdatedOn']) ? $monitor['UpdatedOn'] : '';
     $row['Type'] = $monitor['Type'];
     $row['Capturing'] = isset($monitor['Capturing']) ? $monitor['Capturing'] : 'None';
@@ -423,8 +446,7 @@ function queryRequest() {
         'width'  => ZM_WEB_LIST_THUMB_WIDTH,
         'height' => ZM_WEB_LIST_THUMB_HEIGHT ? ZM_WEB_LIST_THUMB_HEIGHT : ZM_WEB_LIST_THUMB_WIDTH * $ratio_factor,
         'scale'  => $Monitor->ViewWidth() ? intval(100 * ZM_WEB_LIST_THUMB_WIDTH / $Monitor->ViewWidth()) : 100,
-        'mode'   => 'jpeg',
-        'frames' => 1,
+        'mode'   => 'single',
       );
 
       $stillSrc = $Monitor->getStreamSrc($options);
@@ -441,7 +463,7 @@ function queryRequest() {
       $options['scale'] = $Monitor->ViewWidth() ? intval(100 * $target_width / $Monitor->ViewWidth()) : 100;
       if ($options['scale'] > 100) $options['scale'] = 100;
       else if ($options['scale'] < 10) $options['scale'] = 10;
-      unset($options['frames']);
+      $options['mode'] = 'jpeg';
       $streamSrc = $Monitor->getStreamSrc($options);
 
       $videoAttr = '';
@@ -489,13 +511,14 @@ function queryRequest() {
       if ($Monitor->Go2RTCEnabled() && defined('ZM_GO2RTC_PATH') && ZM_GO2RTC_PATH) {
         $liveStreamAttr = ' data-stream-type="go2rtc"'.
           ' data-go2rtc-src="'.htmlspecialchars(ZM_GO2RTC_PATH).'"'.
+          ' data-stream-channel="'.validHtmlStr($Monitor->StreamChannel() ?: 'Restream').'"'.
           ' data-monitor-id="'.$monitor['Id'].'"';
         $go2rtcAttr = ' go2rtc_src="'.htmlspecialchars(ZM_GO2RTC_PATH).'" go2rtc_mid="'.$monitor['Id'].'"';
         $debugAttr .= ' data-debug-overlay="go2rtc"';
       } else if ($Monitor->RTSP2WebEnabled() && defined('ZM_RTSP2WEB_PATH') && ZM_RTSP2WEB_PATH) {
         $liveStreamAttr = ' data-stream-type="rtsp2web"'.
           ' data-rtsp2web-src="'.htmlspecialchars(ZM_RTSP2WEB_PATH).'"'.
-          ' data-stream-channel="'.($Monitor->StreamChannel() ?: 'Restream').'"'.
+          ' data-stream-channel="'.validHtmlStr($Monitor->StreamChannel() ?: 'Restream').'"'.
           ' data-monitor-id="'.$monitor['Id'].'"';
         $debugAttr .= ' data-debug-overlay="rtsp2web"';
       } else if ($Monitor->JanusEnabled()) {
@@ -518,6 +541,7 @@ function queryRequest() {
       $row['Thumbnail'] = '<div class="colThumbnail" style="'.$thmbHeight.'"><a href="?view=watch&amp;mid='.$monitor['Id'].'">'.
         '<img id="thumbnail'.$Monitor->Id().'" src="'.$stillSrc.'" style="'.$thmbWidth.$thmbHeight.
         '" stream_src="'.$streamSrc.'" still_src="'.$stillSrc.'"'.$videoAttr.$go2rtcAttr.$liveStreamAttr.$debugAttr.
+        ' data-monitor-width="'.$Monitor->ViewWidth().'" data-monitor-height="'.$Monitor->ViewHeight().'"'.
         ($options['width'] ? ' width="'.$options['width'].'"' : '').
         ($options['height'] ? ' height="'.$options['height'].'"' : '').
         ' loading="lazy" /></a></div>';
@@ -586,5 +610,84 @@ function queryRequest() {
   }
   
   return $data;
+}
+
+function exportMonitorsJSON() {
+  require_once('includes/Monitor.php');
+  require_once('includes/Zone.php');
+  require_once('includes/Group.php');
+  require_once('includes/Group_Monitor.php');
+
+  if (!canView('Monitors')) {
+    ajaxError('Insufficient permissions');
+    return;
+  }
+
+  // Fields to exclude from export (runtime/instance-specific, not useful for import)
+  $exclude_fields = array('Id', 'Deleted', 'ServerId', 'StorageId', 'Sequence', 'ZoneCount');
+  $zone_exclude_fields = array('Id', 'MonitorId');
+
+  // Get all non-deleted visible monitors
+  $sql = 'SELECT M.* FROM Monitors AS M WHERE M.Deleted=false ORDER BY M.Sequence ASC';
+  $db_monitors = dbFetchAll($sql);
+
+  // Build group name lookup: MonitorId => array of group names
+  $group_names_by_monitor = array();
+  $all_groups = ZM\Group::find();
+  $groups_by_id = array();
+  foreach ($all_groups as $G) {
+    $groups_by_id[$G->Id()] = $G;
+  }
+  foreach (ZM\Group_Monitor::find() as $GM) {
+    $mid = $GM->MonitorId();
+    $gid = $GM->GroupId();
+    if (isset($groups_by_id[$gid])) {
+      if (!isset($group_names_by_monitor[$mid])) {
+        $group_names_by_monitor[$mid] = array();
+      }
+      $group_names_by_monitor[$mid][] = $groups_by_id[$gid]->Name();
+    }
+  }
+
+  $export = array(
+    'version' => ZM_VERSION,
+    'exported' => date('c'),
+    'monitors' => array()
+  );
+
+  foreach ($db_monitors as $db_row) {
+    if (!visibleMonitor($db_row['Id'])) continue;
+
+    $Monitor = new ZM\Monitor($db_row);
+
+    // Serialize all monitor fields via to_json, then filter
+    $monitor_data = json_decode($Monitor->to_json(), true);
+    foreach ($exclude_fields as $field) {
+      unset($monitor_data[$field]);
+    }
+
+    // Add group names
+    $monitor_data['Groups'] = isset($group_names_by_monitor[$db_row['Id']])
+      ? $group_names_by_monitor[$db_row['Id']]
+      : array();
+
+    // Add zones
+    $zones = ZM\Zone::find(array('MonitorId' => $db_row['Id']));
+    $monitor_data['Zones'] = array();
+    foreach ($zones as $zone) {
+      $zone_data = json_decode($zone->to_json(), true);
+      foreach ($zone_exclude_fields as $field) {
+        unset($zone_data[$field]);
+      }
+      $monitor_data['Zones'][] = $zone_data;
+    }
+
+    $export['monitors'][] = $monitor_data;
+  }
+
+  header('Content-Type: application/json; charset=utf-8');
+  header('Content-Disposition: attachment; filename="zm_monitors_export.json"');
+  echo json_encode($export, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+  exit();
 }
 ?>

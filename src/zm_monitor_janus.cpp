@@ -24,6 +24,8 @@
 #include "zm_user.h"
 #include <regex>
 
+#if HAVE_LIBCURL
+
 
 Monitor::JanusManager::JanusManager(Monitor *parent_) :
   parent(parent_),
@@ -37,7 +39,12 @@ Monitor::JanusManager::~JanusManager() {
 
 void Monitor::JanusManager::load_from_monitor() {
   //constructor takes care of init and calls add_to
-  Use_RTSP_Restream = parent->restream;
+  // The restream needs ZoneMinder's RTSP server, which only runs when ZM_MIN_RTSP_PORT is set.
+  Use_RTSP_Restream = parent->restream && config.min_rtsp_port;
+  if (parent->restream && !config.min_rtsp_port) {
+    Warning("Janus: monitor %u is set to use the RTSP restream but ZM_MIN_RTSP_PORT is not set, "
+            "so there is no restream; using the camera stream", parent->Id());
+  }
   profile_override = parent->janus_profile_override;
   rtsp_session_timeout = parent->janus_rtsp_session_timeout;
   if ((config.janus_path != nullptr) && (config.janus_path[0] != '\0')) {
@@ -58,7 +65,7 @@ void Monitor::JanusManager::load_from_monitor() {
       rtsp_path = "rtsp://127.0.0.1";
     }
     rtsp_path += ":" + std::to_string(config.min_rtsp_port) + "/" + parent->rtsp_streamname;
-    if (ZM_OPT_USE_AUTH) {
+    if (config.opt_use_auth) {
       if (parent->rtsp_user) {
         User *rtsp_user = User::find(parent->rtsp_user);
         std::string auth_key = rtsp_user->getAuthHash();
@@ -444,4 +451,6 @@ int Monitor::JanusManager::get_janus_handle() {
   janus_handle = response.substr(pos + 6, 16);
   return 1;
 } //get_janus_handle
+
+#endif  // HAVE_LIBCURL
 

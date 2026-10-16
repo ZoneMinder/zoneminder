@@ -28,6 +28,7 @@ if ( $action == 'create' ) {
   }
   $snapshot = new ZM\Snapshot();
   $snapshot->save(array('CreatedBy'=>$user->Id()));
+  ZM\AuditAction('create', 'snapshot', $snapshot->Id(), '');
 
   foreach ( $_REQUEST['monitor_ids'] as $monitor_id ) {
     if (!validCardinal($monitor_id)) {
@@ -66,19 +67,21 @@ if ( $action == 'create' ) {
 
 // Event scope actions, view permissions only required
 if ( isset($_REQUEST['id']) ) {
-  $snapshot = new ZM\Snapshot($_REQUEST['id']);
+  $snapshot = new ZM\Snapshot(validCardinal($_REQUEST['id']));
   if ( ($action == 'save') ) {
     if ( canEdit('Events') or $snapshot->CreatedBy() == $user->Id() ) {
 
       $changes = $snapshot->changes($_REQUEST['snapshot']);
       if ( count($changes) ) {
         $snapshot->save($changes);
+        ZM\AuditAction('update', 'snapshot', $snapshot->Id(), 'Changed: '.implode(', ', array_keys($changes)));
       }
       $redirect = '?view=snapshots';
     }
   } else if ( $action == 'delete' ) {
     if ( canEdit('Events') ) {
       $snapshot->delete();
+      ZM\AuditAction('delete', 'snapshot', $_REQUEST['id'], '');
       $redirect = '?view=snapshots';
     }
   }

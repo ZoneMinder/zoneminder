@@ -119,7 +119,7 @@ class MonitorsController extends AppController {
       }
       $this->Monitor->create();
       if ($this->Monitor->save($this->request->data) ) {
-        $this->daemonControl($this->Monitor->id, 'start');
+        $this->runDaemonControl($this->Monitor->id, 'start');
         //return $this->flash(__('The monitor has been saved.'), array('action' => 'index'));
         $message = 'Saved';
       } else {
@@ -149,28 +149,17 @@ class MonitorsController extends AppController {
     if ( !$this->Monitor->exists($id) ) {
       throw new NotFoundException(__('Invalid monitor'));
     }
-    global $user;
-    $canEdit = (!$user) || ($user['Monitors'] == 'Edit');
-    if ( !$canEdit ) {
-      throw new UnauthorizedException(__('Insufficient privileges'));
-      return;
-    }
-
-    $monitor = $this->Monitor->find('first', array(
-      'conditions' => array('Id' => $id)
-    ))['Monitor'];
+    // A user restricted to certain monitors (MonitorIds) must not edit others, so this
+    // checks edit on the specific monitor rather than the global Monitors permission.
+    $monitor = $this->monitorForDaemonAction($id, true);
 
     $message = '';
     if ( $this->Monitor->save($this->request->data) ) {
       $message = 'Saved';
 
       // Stop the monitor. Should happen before saving
-      $this->Monitor->daemonControl($monitor, 'stop');
-      $monitor = $this->Monitor->find('first', array(
-        'conditions' => array('Id' => $id)
-      ))['Monitor'];
-
-      $this->Monitor->daemonControl($monitor, 'start');
+      $this->runDaemonControl($id, 'stop');
+      $this->runDaemonControl($id, 'start');
     } else {
       $message = 'Error ' . print_r($this->Monitor->invalidFields(), true);
     }
@@ -202,7 +191,7 @@ class MonitorsController extends AppController {
     }
     $this->request->allowMethod('post', 'delete');
 
-    $this->daemonControl($this->Monitor->id, 'stop');
+    $this->runDaemonControl($this->Monitor->id, 'stop');
 
     if ( $this->Monitor->delete() ) {
       return $this->flash(__('The monitor has been deleted.'), array('action' => 'index'));
@@ -323,13 +312,45 @@ class MonitorsController extends AppController {
   }
 
   // Check if a daemon is running for the monitor id
+  // Load a monitor the caller may act on. daemonStatus() and daemonControl()
+  // checked nothing, so any API user could read or control the daemons of a
+  // monitor it could not even see. Reporting state needs view; starting or
+  // stopping it is a change, so it needs edit. refs GHSA (daemon API)
+  private function monitorForDaemonAction($id, $for_edit) {
+    if ( !$this->Monitor->exists($id) ) {
+      throw new NotFoundException(__('Invalid monitor'));
+    }
+    require_once __DIR__ .'/../../../includes/Monitor.php';
+    $monitor = $this->Monitor->find('first', array(
+      'conditions' => array('Id' => $id)
+    ));
+    $zm_monitor = new ZM\Monitor($monitor['Monitor']);
+    if ($for_edit ? !$zm_monitor->canEdit() : !$zm_monitor->canView()) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+    }
+    return $monitor['Monitor'];
+  }
+
+  // zmdc.pl takes the daemon and command as separate arguments, interpolated
+  // into the command line, so both are restricted to known values rather than
+  // just escaped.
+  private function assertDaemonAndCommand($daemon, $command) {
+    $daemons = array('zmc', 'zma', 'zmfilter.pl', 'zmaudit.pl', 'zmtrigger.pl',
+      'zmwatch.pl', 'zmupdate.pl', 'zmtrack.pl', 'zmcontrol.pl', 'zmstats.pl', 'zmeventnotification.pl');
+    $commands = array('start', 'stop', 'restart', 'reload', 'status', 'check', 'logrot');
+    if (($daemon !== null) and !in_array($daemon, $daemons, true)) {
+      throw new BadRequestException(__('Invalid daemon'));
+    }
+    if (!in_array($command, $commands, true)) {
+      throw new BadRequestException(__('Invalid command'));
+    }
+  }
+
   public function daemonStatus() {
     $id = $this->request->params['named']['id'];
     $daemon = $this->request->params['named']['daemon'];
 
-    if ( !$this->Monitor->exists($id) ) {
-      throw new NotFoundException(__('Invalid monitor'));
-    }
+    $this->monitorForDaemonAction($id, false);
 
     if (preg_match('/^[a-z]+$/i', $daemon) !== 1) {
       throw new BadRequestException(__('Invalid command'));
@@ -377,15 +398,22 @@ class MonitorsController extends AppController {
     ));
   }
 
-  public function daemonControl($id, $command, $daemon=null) {
-    // Need to see if it is local or remote
+  // Stop or start a monitor's daemons, with no permission check of its own.
+  // add(), edit() and delete() call this after their own permission decision;
+  // a System Edit account need not hold Monitors Edit, so re-gating here would
+  // wrongly block them.
+  private function runDaemonControl($id, $command, $daemon=null) {
     $monitor = $this->Monitor->find('first', array(
       'fields' => array('Id', 'Type', 'Function', 'Device', 'ServerId'),
       'conditions' => array('Id' => $id)
     ));
-    $monitor = $monitor['Monitor'];
+    return $this->Monitor->daemonControl($monitor['Monitor'], $command, $daemon);
+  }
 
-    $status_text = $this->Monitor->daemonControl($monitor, $command, $daemon);
+  public function daemonControl($id, $command, $daemon=null) {
+    $this->assertDaemonAndCommand($daemon, $command);
+    $this->monitorForDaemonAction($id, true);
+    $status_text = $this->runDaemonControl($id, $command, $daemon);
 
     $this->set(array(
       'status' => 'ok',

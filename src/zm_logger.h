@@ -99,6 +99,13 @@ class Logger {
   // file is far too heavy to do in a signal handler.
   static std::atomic<bool> smDoLogRotate;
 
+  // Net level change asked for by SIGUSR1 (+1) and SIGUSR2 (-1) since the
+  // last log call. The handler only touches this; fetch() applies it.
+  static std::atomic<int> smLevelChange;
+
+  // How many DatabaseLogPause are alive on this thread.
+  static thread_local int smDatabaseLogPaused;
+
   bool mInitialised;
 
   std::string mId;
@@ -142,10 +149,26 @@ class Logger {
 
   void loadEnv();
   static void usrHandler(int sig);
+  void applyLevelChange();
 
  public:
   friend void logInit(const char *name, const Options &options);
+  friend void logReload(const char *name, const Options &options);
   friend void logTerm();
+
+  // While one of these is alive, lines logged on the thread that created it
+  // are not written to the database. Every other thread keeps logging there.
+  //
+  // The database queue holds one around each insert into Logs: at a debug
+  // database level, inserting a Logs row logs a line about that insert, which
+  // would queue another insert, and so on without end.
+  class DatabaseLogPause {
+   public:
+    DatabaseLogPause() { ++smDatabaseLogPaused; }
+    ~DatabaseLogPause() { --smDatabaseLogPaused; }
+    DatabaseLogPause(const DatabaseLogPause &) = delete;
+    DatabaseLogPause &operator=(const DatabaseLogPause &) = delete;
+  };
 
   static Logger *fetch() {
     if ( !smInstance ) {
@@ -153,10 +176,13 @@ class Logger {
       Options options;
       smInstance->initialise("undef", options);
     }
+    if (smLevelChange.load(std::memory_order_relaxed))
+      smInstance->applyLevelChange();
     return smInstance;
   }
 
   void initialise(const std::string &id, const Options &options);
+  void reinitialise(const std::string &id, const Options &options);
   void terminate();
 
   const std::string &id(const std::string &id);
@@ -190,6 +216,12 @@ class Logger {
 };
 
 void logInit(
+  const char *name,
+  const Logger::Options &options = Logger::Options()
+);
+// For a configuration reload while other threads may be logging: keeps the
+// existing instance instead of deleting and recreating it as logInit() does.
+void logReload(
   const char *name,
   const Logger::Options &options = Logger::Options()
 );

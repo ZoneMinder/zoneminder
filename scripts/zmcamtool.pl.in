@@ -239,6 +239,205 @@ sub checkExists {
   return $result;
 }
 
+# Split a sql list on its top level commas, leaving quoted strings and
+# parenthesised subqueries alone. The seed data contains both -- a Name may
+# hold a comma, and a MonitorPresets row resolves its control with a SELECT --
+# so a plain split would cut a value in half.
+sub splitSqlList {
+  my ($str) = @_;
+  my (@parts, $quote);
+  my $cur = '';
+  my $depth = 0;
+  my @chars = split //, $str;
+
+  for (my $i = 0; $i < @chars; $i++) {
+    my $ch = $chars[$i];
+
+    if (defined $quote) {
+      if ($ch eq '\\' and $i+1 < @chars) {
+        $cur .= $ch.$chars[++$i];
+        next;
+      }
+      $cur .= $ch;
+      if ($ch eq $quote) {
+        if ($i+1 < @chars and $chars[$i+1] eq $quote) {
+          $cur .= $chars[++$i];   # '' is an escaped quote, still inside
+          next;
+        }
+        undef $quote;
+      }
+      next;
+    }
+
+    if ($ch eq "'" or $ch eq '"') {
+      $quote = $ch;
+      $cur .= $ch;
+      next;
+    }
+    if ($ch eq '(') {
+      $depth++;
+    } elsif ($ch eq ')') {
+      $depth--;
+    } elsif ($ch eq ',' and !$depth) {
+      push @parts, $cur;
+      $cur = '';
+      next;
+    }
+    $cur .= $ch;
+  }
+  push @parts, $cur;
+
+  return @parts;
+}
+
+# Turn one sql value back into the plain string it represents.
+sub sqlUnquote {
+  my ($val) = @_;
+
+  $val =~ s/^\s+//;
+  $val =~ s/\s+$//;
+  if ($val =~ /^'(.*)'$/s) {
+    $val = $1;
+    $val =~ s/''/'/g;
+    $val =~ s/\\(.)/$1/g;
+  }
+  return $val;
+}
+
+# Ask the database where each column of a table actually sits, so a positional
+# INSERT can be read without assuming an order. Name is the second column of
+# Controls but the third of MonitorPresets, which is the sort of thing that
+# quietly stops being true.
+sub tableColumns {
+  my ($dbh, $table) = @_;
+
+  my $sql = 'SELECT `COLUMN_NAME` FROM `information_schema`.`COLUMNS`
+              WHERE `TABLE_SCHEMA` = DATABASE() AND `TABLE_NAME` = ?
+              ORDER BY `ORDINAL_POSITION`';
+  my $sth = $dbh->prepare_cached($sql)
+    or die( "Can't prepare '$sql': ".$dbh->errstr() );
+  $sth->execute($table)
+    or die( "Can't execute: ".$sth->errstr() );
+
+  my @cols;
+  while (my $row = $sth->fetchrow_arrayref()) {
+    push @cols, $row->[0];
+  }
+  $sth->finish();
+
+  return @cols;
+}
+
+# Collect the INSERT statements for the given tables out of an sql file,
+# keyed by the Name they carry, with any primary key blanked so the row gets a
+# fresh one. Follows `source` directives: the seed rows for Controls live in
+# controls.sql, which zm_create.sql only pulls in by reference.
+sub extractInserts {
+  my ($dbh, $file, $tables, $found, $seen) = @_;
+
+  $found ||= {};
+  $seen  ||= {};
+  return $found if $seen->{$file}++;
+
+  my $FH;
+  if (!open($FH, '<', $file)) {
+    warn( "Warning: unable to read $file: $!\n" );
+    return $found;
+  }
+
+  my ($dir) = $file =~ m{^(.*)/[^/]*$};
+  $dir = '.' if !defined $dir;
+
+  while (my $line = <$FH>) {
+    chomp $line;
+
+    if ($line =~ /^\s*source\s+(.+?)\s*;?\s*$/i) {
+      my $included = $1;
+      $included = $dir.'/'.$included if $included !~ m{^/};
+      extractInserts($dbh, $included, $tables, $found, $seen);
+      next;
+    }
+
+    next if $line !~ /^\s*INSERT\s+INTO\s+`?(\w+)`?\s*(?:\(([^)]*)\))?\s*VALUES\s*\((.*)\)\s*;\s*$/i;
+    my ($table, $collist, $values) = ($1, $2, $3);
+    next if !grep { lc $_ eq lc $table } @$tables;
+
+    my @vals = splitSqlList($values);
+    my @cols;
+    if (defined $collist) {
+      @cols = map { my $c = $_; $c =~ s/^\s*`?//; $c =~ s/`?\s*$//; $c } splitSqlList($collist);
+    } else {
+      @cols = tableColumns($dbh, $table);
+      if (scalar(@cols) != scalar(@vals)) {
+        warn( "Warning: skipping a $table row in $file: it has ".scalar(@vals)
+             .' values but the table has '.scalar(@cols)." columns\n" );
+        next;
+      }
+    }
+
+    my ($nameIdx) = grep { lc $cols[$_] eq 'name' } 0..$#cols;
+    if (!defined $nameIdx) {
+      warn( "Warning: skipping a $table row in $file: no Name column\n" );
+      next;
+    }
+    my $name = sqlUnquote($vals[$nameIdx]);
+
+    # Let the database assign the id rather than carrying the seed file's.
+    my ($idIdx) = grep { lc $cols[$_] eq 'id' } 0..$#cols;
+    $vals[$idIdx] = 'NULL' if defined $idIdx;
+
+    $found->{$table}{$name} = 'INSERT INTO `'.$table.'` ('
+      .join(',', map { '`'.$_.'`' } @cols).') VALUES ('.join(',', @vals).')';
+  }
+  close $FH;
+
+  return $found;
+}
+
+# Blank the primary key of each INSERT in a mysqldump so the rows can be
+# imported elsewhere without carrying their ids across.
+#
+# Done by parsing rather than by pattern: the value before the first quoted
+# string is not reliably the id. A MonitorPresets row starts id,ModelId and
+# both are unquoted, so a regex reaching for the first ,' swallows the two of
+# them into a single NULL and leaves the row a column short.
+sub nullifyIds {
+  my ($dbh, $sql) = @_;
+  my %columns;
+  my @out;
+
+  foreach my $line (split(/\n/, $sql, -1)) {
+    if ($line =~ /^\s*INSERT\s+INTO\s+`?(\w+)`?\s*(?:\(([^)]*)\))?\s*VALUES\s*\((.*)\)\s*;\s*$/i) {
+      my ($table, $collist, $values) = ($1, $2, $3);
+      my @vals = splitSqlList($values);
+      my @cols;
+
+      if (defined $collist) {
+        @cols = map { my $c = $_; $c =~ s/^\s*`?//; $c =~ s/`?\s*$//; $c } splitSqlList($collist);
+      } else {
+        $columns{$table} = [tableColumns($dbh, $table)] if !$columns{$table};
+        @cols = @{$columns{$table}};
+      }
+
+      if (scalar(@cols) != scalar(@vals)) {
+        warn( "Warning: leaving a $table row as it is: ".scalar(@vals)
+             .' values but '.scalar(@cols)." columns\n" );
+      } else {
+        my ($idIdx) = grep { lc $cols[$_] eq 'id' } 0..$#cols;
+        if (defined $idIdx) {
+          $vals[$idIdx] = 'NULL';
+          $line = 'INSERT INTO `'.$table.'`'
+            .(defined $collist ? ' ('.join(',', map { '`'.$_.'`' } @cols).')' : '')
+            .' VALUES ('.join(',', @vals).');';
+        }
+      }
+    }
+    push @out, $line;
+  }
+
+  return join("\n", @out);
+}
+
 # Import camera control & presets into the zoneminder dB
 sub importsql {
   my @newcontrols;
@@ -256,19 +455,13 @@ sub importsql {
     $sqlfile = $Config{ZM_PATH_DATA}.'/db/zm_create.sql';
   }
 
-  open(my $SQLFILE,'<',$sqlfile)
-    or die( "Can't Open file: $!\n" );
+# Connect first: reading a positional INSERT needs the table's column order.
+  my $dbh = zmDbConnect();
 
 # Find and extract ptz control and monitor preset records
-  while (<$SQLFILE>) {
-# Our regex replaces the primary key with NULL
-    if (s/^(INSERT INTO .*?Controls.*? VALUES \().*?(,')(.*?)(',.*)/$1NULL$2$3$4/i) {   
-      $controls{$3} = $_;
-    } elsif (s/^(INSERT INTO .*?MonitorPresets.*? VALUES \().*?(,')(.*?)(',.*)/$1NULL$2$3$4/i) {
-      $monitorpresets{$3} = $_;
-    }
-  }
-  close $SQLFILE;
+  my $found = extractInserts($dbh, $sqlfile, ['Controls', 'MonitorPresets']);
+  %controls = %{$found->{Controls}} if $found->{Controls};
+  %monitorpresets = %{$found->{MonitorPresets}} if $found->{MonitorPresets};
 
   if ( ! (%controls || %monitorpresets) ) {
     die( "Error: No relevant data found in $sqlfile.\n" );
@@ -277,7 +470,6 @@ sub importsql {
 # Now that we've got what we were looking for,
 # compare to what is already in the dB
 
-  my $dbh = zmDbConnect();
   foreach (keys %controls) {
     if (!checkExists($dbh,'Controls',$_)) {
 # No existing Control was found. Add new control to dB.
@@ -364,7 +556,7 @@ sub exportsql {
 		}
   }
 
-  $command .= " zm Controls MonitorPresets";
+  $command .= ' '.$Config{ZM_DB_NAME}.' Controls MonitorPresets';
 
   my $output = qx($command);
   my $status = $? >> 8;
@@ -376,8 +568,7 @@ sub exportsql {
     die( "Command '$command' exited with status: $status\n" );
   } else {
 # NULLify the primary keys before printing the output to STDOUT
-    $output =~ s/VALUES \((.*?),'/VALUES \(NULL,'/ig;
-    print $output;
+    print nullifyIds(zmDbConnect(), $output);
   }
 }
 

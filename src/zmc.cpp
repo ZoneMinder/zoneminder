@@ -325,7 +325,9 @@ int main(int argc, char *argv[]) {
       zmDbDo(sql);
     }  // end foreach monitor
 
-    if (zm_terminate) break;
+    // No break on zm_terminate here: the capture loop below doesn't run then,
+    // and the Close()/disconnect() loop after it must, or the monitors started
+    // so far keep their threads and are never freed (their zones hold them).
 
     std::vector<SystemTimePoint> last_capture_times = std::vector<SystemTimePoint>(monitors.size());
     Microseconds sleep_time = Microseconds(0);
@@ -338,24 +340,17 @@ int main(int argc, char *argv[]) {
           SystemTimePoint now = std::chrono::system_clock::now();
           monitors[i]->SetHeartbeatTime(now);
 
-          time_t last_viewed = monitors[i]->getLastViewed();
-          int64 since_last_view = static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count()) - last_viewed;
-          Debug(1, "Last view %jd= %" PRId64 " seconds since last view", last_viewed, since_last_view);
-          if (!last_viewed or (since_last_view > 10)) {
-            // Nobody is watching — pause if running, otherwise stay paused.
-            // Keep capturing until we have written at least one image so that
-            // the console thumbnail and mode=single have something to show.
-            // Pause() no longer resets last_write_index, so once we have an
-            // image this stays true and we don't Pause/Play cycle.
-            if (monitors[i]->GetLastWriteIndex() != -1) {
-              if (monitors[i]->getCamera()->isPrimed()) {
-                monitors[i]->Pause();
-              }
-              std::this_thread::sleep_for(Microseconds(100000));
-              result = 0;
-              continue;
-            }
-          } else if (!monitors[i]->getCamera()->isPrimed()) {
+          // Captures while watched, through an alarm and its post-event frames,
+          // and when a linked monitor alarms; otherwise pauses once it has one
+          // image for thumbnails and mode=single.
+          const Monitor::OndemandStep step = monitors[i]->CheckOndemand();
+          if (step == Monitor::OndemandStep::PAUSE) monitors[i]->Pause();
+          if (step == Monitor::OndemandStep::PAUSE or step == Monitor::OndemandStep::SLEEP) {
+            std::this_thread::sleep_for(Microseconds(100000));
+            result = 0;
+            continue;
+          }
+          if (step == Monitor::OndemandStep::PLAY) {
             if (1 > (result = monitors[i]->Play())) {
               Debug(1, "Failed to play");
               break;
@@ -450,8 +445,8 @@ int main(int argc, char *argv[]) {
       for (std::shared_ptr<Monitor> &monitor : monitors) {
         monitor->Reload();
       }
-      logTerm();
-      logInit(log_id_string);
+      // The dbQueue and stream socket threads are still running and logging.
+      logReload(log_id_string);
 
       zm_reload = false;
     }  // end if zm_reload

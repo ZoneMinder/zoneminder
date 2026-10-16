@@ -323,7 +323,6 @@ $SLANG = array(
     'DefaultCodec'          => 'Default Method For Event View',
     'DefaultView'           => 'Default View',
     'RecordingSource'       => 'Recording Source',
-    'RTSPDescribe'          => 'Use RTSP Response Media URL',
     'DeleteAndNext'         => 'Delete &amp; Next',
     'DeleteAndPrev'         => 'Delete &amp; Prev',
     'DeleteSavedFilter'     => 'Delete saved filter',
@@ -454,6 +453,7 @@ $SLANG = array(
     'LoggingIn'             => 'Logging In',
     'Lowband'               => 'Low&nbsp;B/W',
     'Mail'                  => 'Email',
+    'MapUnavailable'        => 'Map unavailable: the Leaflet library is not installed (js/leaflet in the web root).',
     'MaxBandwidth'          => 'Max Bandwidth',
     'MaxBrScore'            => 'Max.<br/>Score',
     'MaxFocusRange'         => 'Max Focus Range',
@@ -656,12 +656,14 @@ $SLANG = array(
     <li>Manufacturer</li>
     <li>Model</li>
     <li>Type</li>
-    <li>Function</li>
+    <li>Capturing, Analysing and Recording</li>
+    <li>Source path, with the user name, password and host removed</li>
     <li>Width</li>
     <li>Height</li>
     <li>Colours</li>
     <li>MaxFPS</li>
     <li>AlarmMaxFPS</li>
+    <li>Whether Janus, Go2RTC, RTSP2Web and the RTSP server are enabled</li>
    </ul>',
     'PrivacyConclusionText' => 'We are <u>NOT</u> collecting any image specific data from your cameras. We don’t know what your cameras are watching. This data will not be sold or used for any purpose not stated herein. By clicking accept, you agree to send us this data to help make ZoneMinder a better product. By clicking decline, you can still freely use ZoneMinder and all its features.',
     'Probe'                 => 'Probe',
@@ -699,7 +701,7 @@ $SLANG = array(
     'RemoteImageColours'    => 'Image Colours',
     'RemoteMethod'          => 'Method',
     'RemoteProtocol'        => 'Protocol',
-    'RemoteRtspDeprecated'      => 'ZoneMinder\'s own RTSP support is deprecated as of 1.40 and will be removed in 1.41. Change this monitor to Type Ffmpeg, putting the full rtsp:// URL in Source Path. The capture log names the exact URL to use.',
+    'RemoteRtspDeprecated'      => 'ZoneMinder\'s own RTSP support has been removed in favour of Ffmpeg. This monitor will not capture until you change it to Type Ffmpeg, putting the full rtsp:// URL in Source Path. The capture log names the exact URL to use.',
     'ReplayAll'             => 'All Events',
     'ReplayGapless'         => 'Gapless Events',
     'ReplaySingle'          => 'Single Event',
@@ -775,8 +777,10 @@ $SLANG = array(
     'StorageScheme'         => 'Scheme',
     'StreamReplayBuffer'    => 'Stream Replay Image Buffer',
     'TargetColorspace'      => 'Target colorspace',
-    'Deprecated'                => 'deprecated',
+    'Removed'                   => 'removed',
     'DeprecatedColoursSetting' => 'Deprecated - will be auto-detected in a future release',
+    'ThisSession'           => 'This Session',
+    'ThisSessionHint'       => 'These settings apply to this browser session only. They are kept in a cookie rather than saved on the server, so they do not affect other sessions or other users.',
     'TimeDelta'             => 'Time Delta',
     'TimelineTip1'          => 'Pass your mouse over the graph to view a snapshot image and event details.',              // Added 2013.08.15.
     'TimelineTip2'          => 'Click on the coloured sections of the graph, or the image, to view the event.',              // Added 2013.08.15.
@@ -1092,26 +1096,9 @@ $OLANG = array(
         HTTP - Use HTTP tunneling as transport protocol, which is useful for passing proxies.~~
       '
 	),
-	'OPTIONS_LIBVLC' => array(
-    'Help' => '
-      Parameters in this field are passed on to libVLC. Multiple parameters can be separated by ,~~
-      Examples (do not enter quotes)~~~~
-      "--rtp-client-port=nnn" Set local port to use for rtp data~~~~
-      "--verbose=2" Set verbosity of libVLC
-      '
-	),
 	'OPTIONS_EXIF' => array(
 		'Help' => 'Enable this option to embed EXIF data into each jpeg frame.'
 	),
-	'OPTIONS_RTSPDESCRIBE' => array(
-    'Help' => '
-      Sometimes, during the initial RTSP handshake, the camera will send an updated media URL.
-      Enable this option to tell ZoneMinder to use this URL. Disable this option to ignore the
-      value from the camera and use the value as entered in the monitor configuration~~~~
-      Generally this should be enabled. However, there are cases where the camera can get its
-      own URL incorrect, such as when the camera is streaming through a firewall
-    '
-  ),
 	'OPTIONS_MAXFPS' => array(
     'Help' => '
       This field has certain limitations when used for non-local devices.~~

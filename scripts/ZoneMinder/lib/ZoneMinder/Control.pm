@@ -56,7 +56,6 @@ $serial = $primary_key = 'Id';
 %fields = map { $_ => $_ } qw(
   Id
   Name
-  Type
   Protocol
   CanWake
   CanSleep
@@ -157,7 +156,6 @@ $serial = $primary_key = 'Id';
   );
 %defaults = (
 	Name => '',
-    Type => q`'Ffmpeg'`,
     CanWake => '0',
     CanSleep => '0',
     CanReset => '0',

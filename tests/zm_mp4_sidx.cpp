@@ -313,6 +313,37 @@ TEST_CASE("Mp4SidxMergesWhenTheRegionIsTight") {
   }
 }
 
+TEST_CASE("Mp4SidxFoldsAZeroLengthLastFragmentIntoTheOneBefore") {
+  // An event that closes on a keyframe ends with a fragment of that one
+  // frame, which the muxer gives the packet's duration -- often 0.
+  std::vector<zm_mp4::Fragment> fragments;
+  for (int i = 0; i < 3; i++) {
+    zm_mp4::Fragment fragment;
+    fragment.offset = 1000 + i * 100;
+    fragment.size = 100;
+    fragment.tfdt = i * 90000;
+    fragment.trun_duration = i < 2 ? 90000 : 0;
+    fragments.push_back(fragment);
+  }
+  zm_mp4::VideoTrack track;
+  track.id = 1;
+  track.timescale = 90000;
+
+  const std::vector<uint8_t> region =
+      zm_mp4::build_sidx_region(track, fragments, zm_mp4::kSidxReserve);
+  REQUIRE(region.size() == size_t(zm_mp4::kSidxReserve));
+  const uint8_t *sidx = region.data() + zm_mp4::kSidxReserve - (40 + 12 * 2);
+  REQUIRE(memcmp(sidx + 4, "sidx", 4) == 0);
+  REQUIRE(be32(sidx + 36) == 2);                         // reserved + count
+  REQUIRE(be32(sidx + 40 + 12) == 200);                  // last reference covers both
+  REQUIRE(be32(sidx + 44 + 12) == 90000);
+
+  SECTION("a lone zero-length fragment is still refused") {
+    fragments.erase(fragments.begin(), fragments.begin() + 2);
+    REQUIRE(zm_mp4::build_sidx_region(track, fragments, zm_mp4::kSidxReserve).empty());
+  }
+}
+
 TEST_CASE("Mp4SidxSizesTheRegionForTheEvent") {
   SECTION("unknown length or GOP takes the most") {
     REQUIRE(zm_mp4::reserve_size(0, 1) == zm_mp4::kSidxReserve);

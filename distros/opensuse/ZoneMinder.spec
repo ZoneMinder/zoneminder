@@ -127,7 +127,6 @@ BuildRequires:  config(udev)
 
 BuildRequires:  unzip
 BuildRequires:  update-desktop-files
-BuildRequires:  vlc-devel
 BuildRequires:  vorbis-tools
 BuildRequires:  pkgconfig(libvncclient)
 

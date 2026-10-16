@@ -36,7 +36,9 @@
 #include "zm_zone.h"
 
 #include <atomic>
+#include <functional>
 #include <list>
+#include <map>
 #include <memory>
 #include <sys/time.h>
 #include <vector>
@@ -130,9 +132,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     REMOTE,
     FILE,
     FFMPEG,
-    LIBVLC,
     LIBCURL,
-    NVSOCKET,
     VNC,
   } CameraType;
 
@@ -375,7 +375,6 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     volatile int * zone_scores;
 
     int        last_state;
-    uint64_t   last_event_id;
     std::vector<Zone> zones;
 
    public:
@@ -624,8 +623,20 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::string     decoder_name;
   std::string     decoder_hwaccel_name;
   std::string     decoder_hwaccel_device;
+
+  // The decoder belongs here rather than to the camera: the camera's job is to
+  // produce packets, and the decoder thread runs against this context for as
+  // long as the monitor says so. It used to live in FfmpegCamera, where
+  // camera->PrimeCapture() freed and rebuilt it underneath a decoder thread
+  // still holding the pointer.
+  //
+  // decoder_hw_pix_fmt must outlive mVideoCodecContext: the context stores its
+  // address in opaque and get_hw_format reads it back on every format
+  // negotiation. Being a member of the same object gives it that lifetime.
+  AVCodecContext *mVideoCodecContext;
+  AVPixelFormat   decoder_hw_pix_fmt;
+  AVBufferRef    *decoder_hw_device_ctx;
   bool            videoRecording;
-  bool            rtsp_describe;
 
   int             savejpegs;
   int             colours;
@@ -699,13 +710,18 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int        event_count;
   int        last_capture_image_count; // last value of image_count when calculating capture fps
   int        analysis_image_count;    // How many frames have been processed by analysis thread.
-  int        decoding_image_count;    // How many frames have been processed by analysis thread.
-  int        motion_frame_count;      // How many frames have had motion detection performed on them.
+  // Written by the decoder / analysis thread, read by the others: atomic.
+  std::atomic<int> decoding_image_count;    // How many frames the decoder has written to shm.
+  std::atomic<int> motion_frame_count;      // How many frames have had motion detection performed on them.
   int         last_motion_frame_count; // last value of motion_frame_count when calculating fps
   int        ready_count;
   int        first_alarm_count;
   int        last_alarm_count;
   bool       last_signal;
+  // Capture assumes signal on the first packet after connect() cleared it,
+  // even when the decoder measures it, so Analyse doesn't see a signal loss
+  // before the first decoded frame. Capture thread only.
+  bool       assume_signal_on_next_packet;
   int        buffer_count;
   State      state;
   SystemTimePoint start_time;
@@ -767,6 +783,17 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   VideoStore          *videoStore;
   PacketQueue      packetqueue;
+  // Stream timestamps kept going forward across a jump back in the camera's
+  // clock: an offset (microseconds) added to every packet's dts and pts, and
+  // each stream's last dts with the offset applied and its last step.
+  int64_t dts_offset_ = 0;
+  std::map<int, int64_t> last_dts_;
+  std::map<int, int64_t> last_dts_step_;
+  // A step back of more than this in a stream's dts is a jump in the camera's
+  // clock, not reordering jitter.
+  static constexpr int64_t kDtsStepBack = 1000000;
+  // Moves the packet onto the continuous timeline; returns the offset applied.
+  int64_t KeepDtsContinuous(AVPacket *packet, AVRational time_base);
   std::unique_ptr<PollThread> Poller;
   std::list<ZMPacketLock> decoder_queue;
   packetqueue_iterator  *analysis_it;
@@ -812,6 +839,12 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // stale reference itself on its next pass. Prevents a use-after-free/null
   // deref race in Image::Delta (refs #4983).
   std::atomic<bool> ref_image_reset_{false};
+  // Set by CheckOndemand() when a linked monitor's alarm wakes this on-demand
+  // monitor from its pause: steady_clock nanoseconds until which Analyse()
+  // counts the link as alarmed, 0 for none. The link only reports an alarm while
+  // it lasts, which can be shorter than reopening the camera takes, so the wake
+  // has to be remembered until the first packet acts on it.
+  std::atomic<int64_t> linked_wake_until_{0};
   // Analysis image ring: the annotated/analysis image is published into a ring
   // of image_buffer_count slots living in the alarm_images SHM region. Readers
   // pick up the newest via shared_data->last_analysis_index. Replaces the
@@ -832,6 +865,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   uint8_t green_val;
   uint8_t blue_val;
   uint8_t grayscale_val; /* 8bit grayscale color */
+  uint8_t luma_val;      /* luma of the RGB colour, limited range */
+  uint8_t luma_full_val; /* luma of the RGB colour, full range */
   Rgb colour_val; /* RGB32 color */
   int usedsubpixorder;
 
@@ -931,10 +966,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
       return false;
     }
     if (decoding_image_count > ready_count) {
-      Debug(4, "Ready because decoding_image_count(%d) > ready_count(%d)", decoding_image_count, ready_count);
+      Debug(4, "Ready because decoding_image_count(%d) > ready_count(%d)", decoding_image_count.load(), ready_count);
       return true;
     }
-    Debug(4, "Not ready because decoding_image_count(%d) <= ready_count(%d)", decoding_image_count, ready_count);
+    Debug(4, "Not ready because decoding_image_count(%d) <= ready_count(%d)", decoding_image_count.load(), ready_count);
     return false;
   }
   inline bool Active() const {
@@ -953,6 +988,20 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
       shared_data->last_viewed_time =
         static_cast<int64>(std::chrono::duration_cast<Seconds>(new_time.time_since_epoch()).count());
   }
+  // What zmc's capture loop does with an on-demand monitor on this pass.
+  enum class OndemandStep { CAPTURE, PLAY, PAUSE, SLEEP };
+  // viewed: watched in the last 10 s. has_image: an image has been written, so
+  // thumbnails have something to show. primed: the camera is open. busy:
+  // alarmed, in its post-event frames, or woken by a link that Analyse() hasn't
+  // acted on yet. link_alarmed is asked only while the camera is closed, when
+  // the analysis thread that otherwise reads the links is stopped.
+  static OndemandStep DecideOndemand(bool viewed, bool has_image, bool primed, bool busy,
+                                     const std::function<bool()> &link_alarmed);
+  OndemandStep CheckOndemand();
+  bool LinkedWakePending() const;
+  // How long a link wake waits for the camera to reopen and a packet to act on it.
+  static constexpr std::chrono::seconds kLinkedWakeTimeout{30};
+
   bool hasViewers() {
     if (shared_data && shared_data->valid) {
       SystemTimePoint now = std::chrono::system_clock::now();
@@ -1044,9 +1093,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   void SendStreamHealthEvent(uint16_t code, const std::string &message, int detail = 0);
 
   AVStream *GetAudioStream() const { return camera ? camera->getAudioStream() : nullptr; };
-  AVCodecContext *GetAudioCodecContext() const { return camera ? camera->getAudioCodecContext() : nullptr; };
   AVStream *GetVideoStream() const { return camera ? camera->getVideoStream() : nullptr; };
-  AVCodecContext *GetVideoCodecContext() const { return camera ? camera->getVideoCodecContext() : nullptr; };
+  AVCodecContext *GetVideoCodecContext() const { return mVideoCodecContext; };
 
   std::string GetSecondPath() const { return second_path; };
   std::string GetStreamSocketPath() const { return shared_data ? shared_data->stream_socket_path : ""; };
@@ -1118,6 +1166,11 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int actionContrast();
 
   int PrimeCapture();
+  // Open a decoder for the camera's video stream, and tear it down. Safe to
+  // call when there is nothing to decode: cameras that hand over images rather
+  // than packets have no video stream.
+  int OpenDecoder();
+  void CloseDecoder();
   int PreCapture() const;
   int Capture();
   int PostCapture() const;
@@ -1133,6 +1186,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // DetectBlack seems to be unused. Check it on zm_monitor.cpp for more info.
   //unsigned int DetectBlack( const Image &comp_image, Event::StringSet &zoneSet );
   bool CheckSignal( const Image *image );
+  // True when the decoder measures shared_data->signal (SignalCheckPoints)
+  // for the packets it decodes; Capture then leaves the flag to it, so the
+  // two threads don't overwrite each other's value. Pure, for tests.
+  static bool DecoderChecksSignal(DecodingOption decoding, int signal_check_points, bool has_viewers);
   bool Analyse();
   bool setupConvertContext(const AVFrame *input_frame, const Image *image);
   // Write capture_image into image_buffer[index] without conversion and

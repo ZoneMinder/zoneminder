@@ -50,7 +50,7 @@ if ( isset($_REQUEST['action']) and ($_REQUEST['action'] == 'monitorAction') ) {
 }
 
 if ( canView('Control', $_REQUEST['id']) ) {
-  $monitor = new ZM\Monitor($_REQUEST['id']);
+  $monitor = new ZM\Monitor(validCardinal($_REQUEST['id']));
 
   $ctrlCommand = buildControlCommand($monitor);
 

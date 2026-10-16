@@ -1,5 +1,4 @@
 "use strict";
-var janus = null;
 const streaming = [];
 
 /* Does this ajax/stream.php failure mean the zms behind our connkey is gone?
@@ -47,6 +46,7 @@ function MonitorStream(monitorData) {
   this.hls = null;
   this.mse = null;
   this.wsMSE = null;
+  this.janus = null;
   this.streamStartTime = 0; // Initial point of flow start time. Used for flow lag time analysis.
   this.waitingStart;
   this.handlerEventListener = {};
@@ -855,11 +855,13 @@ function MonitorStream(monitorData) {
         });
       }
     } else if (-1 !== this.activePlayer.indexOf('janus')) {
-      if (janus && streaming[this.id]) {
-        //streaming[this.id].detach(); // This will result in an error! This requires a more detailed study of Janus, or perhaps it has been fixed in a version higher than 1.1.2.
+      if (this.janus) {
+        if (streaming[this.id]) {
+          //streaming[this.id].detach(); // This will result in an error! This requires a more detailed study of Janus, or perhaps it has been fixed in a version higher than 1.1.2.
+        }
+        this.janus.destroy && this.janus.destroy();
+        this.janus = null;
       }
-      janus.destroy();
-      janus = null;
     } else {
       console.log("Unknown activePlayer", this.activePlayer);
     }
@@ -2126,11 +2128,23 @@ function MonitorStream(monitorData) {
       return;
     }
 
-    if (janus == null) {
-      Janus.init({debug: "all", callback: function() {
-        janus = new Janus({server: server}); //new Janus
-      }});
+    if (this.janus == null) {
+      const self = this;
+      Janus.init({
+        debug: "all",
+        callback: function() {
+          if (self.starting) {
+            self.janus = new Janus({server: server});
+            self.continueRunningJanus();
+          }
+        }
+      });
+    } else {
+      this.continueRunningJanus();
     }
+  };
+
+  this.continueRunningJanus = function() {
     attachVideo(this);
     this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
     this.started = true;
@@ -2281,7 +2295,7 @@ function MonitorStream(monitorData) {
     if ((currentPlayer && countErrors === 0) || (this.selectedPlayer && this.selectedPlayer === currentPlayer)) { // selectedPlayer pins only when it matches the active selection
       if (this.Go2RTCEnabled && (-1 !== currentPlayer.indexOf('go2rtc'))) {
         this.select_go2rtc(streamChannel);
-      } else if (this.janusEnabled && (-1 !== currentPlayer.indexOf('janus')) && streamChannel.toLowerCase().indexOf("primary") > -1 && this.selectedPlayer !== 'go2rtc') { // To avoid confusion, since Janus can only work with the first channel & selectedPlayer !== "Go2RTC Auto"
+      } else if (this.janusEnabled && (-1 !== currentPlayer.indexOf('janus')) && (streamChannel.toLowerCase().indexOf("primary") > -1 || currentView == 'montage') && this.selectedPlayer !== 'go2rtc') { // To avoid confusion, since Janus can only work with the first channel & selectedPlayer !== "Go2RTC Auto"
         this.select_janus(streamChannel);
       } else if (this.RTSP2WebEnabled && (-1 !== currentPlayer.indexOf('rtsp2web')) && this.selectedPlayer !== 'go2rtc') {
         this.select_rtsp2web(streamChannel);
@@ -2390,6 +2404,7 @@ function MonitorStream(monitorData) {
 async function attachVideo(monitorStream) {
   const id = parseInt(monitorStream.id);
   const pin = monitorStream.janusPin;
+  const janus = monitorStream.janus;
   if (!janus || !('isConnected' in janus)) {
     console.log(`The Janus object for the camera with ID=${id} does not exist.`);
     return;

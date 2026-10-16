@@ -204,14 +204,27 @@ class MonitorsController extends AppController {
     if ($this->Monitor->save($this->request->data)) {
       $message = 'Saved';
 
-      // Stop the monitor. Should happen before saving
-      $this->Monitor->daemonControl($monitor, 'stop');
-      $monitor = $this->Monitor->find('first', array(
+      // Restart the daemons the way the console's save does
+      // (includes/actions/monitor.php): zmc, and the control server of a
+      // controllable monitor, which otherwise keeps the ControlAddress,
+      // ControlDevice and Control it read when it started. ZM\Monitor sends
+      // the commands to the monitor's own server in a multi-server setup.
+      // Stopped with the old row, started with the saved one.
+      if ($zm_monitor->Type() != 'WebSite') {
+        $zm_monitor->zmcControl('stop');
+        if ($zm_monitor->Controllable()) {
+          $zm_monitor->sendControlCommand('stop');
+        }
+      }
+      $saved = new ZM\Monitor($this->Monitor->find('first', array(
         'conditions' => array('Id' => $id)
-      ))['Monitor'];
-
-      if ($monitor['Capturing'] != 'None')
-        $this->Monitor->daemonControl($monitor, 'start');
+      ))['Monitor']);
+      if ($saved->Capturing() != 'None' and $saved->Type() != 'WebSite' and !$saved->Deleted()) {
+        $saved->zmcControl('start');
+        if ($saved->Controllable()) {
+          $saved->sendControlCommand('start');
+        }
+      }
     } else {
       $message = 'Error ' . print_r($this->Monitor->invalidFields(), true);
     }

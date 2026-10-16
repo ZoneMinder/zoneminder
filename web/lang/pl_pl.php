@@ -399,7 +399,6 @@ $SLANG = array(
     'Last'                 => 'Ostatni',
     'Layout'               => 'Układ',
     'Level'                => 'Poziom',
-    'Libvlc'               => 'Libvlc',
     'LimitResultsPost'     => 'wyników;', // This is used at the end of the phrase 'Limit to first N results only'
     'LimitResultsPre'      => 'Ogranicz do początkowych', // This is used at the beginning of the phrase 'Limit to first N results only'
     'Line'                 => 'Linia',
@@ -588,7 +587,6 @@ $SLANG = array(
     'ProfileProbeIntro'    => 'Poniższa lista pokazuje istniejące profile strumieni wybranej kamery.<br/><br/>Wybierz żądany wpis z listy poniżej.<br/><br/>Należy pamiętać, że ZoneMinder nie może skonfigurować dodatkowych profili i że wybór tutaj kamery może zastąpić wszystkie wartości skonfigurowane dla bieżącego monitora.<br/><br/>',
     'Progress'             => 'Postęp',
     'Protocol'             => 'Protokół',
-    'RTSPDescribe'         => 'Użyj URL nośnika odpowiedzi RTSP',
     'RTSPTransport'        => 'Protokół transportu RTSP',
     'Rate'                 => 'Tempo',
     'Real'                 => 'Rzeczywista',
@@ -900,12 +898,6 @@ $OLANG = array(
 		          "\"allowed_media_types=video\" Ustaw typ danych na żądanie z kamery (audio, video, data)~~~~".
 		          "\"reorder_queue_size=nnn\" Ustaw liczbę pakietów do buforowania do obsługi zmienionych pakietów~~~~".
 		          "\"loglevel=debug\" Ustaw gadatliwość FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
-	),
-	'OPTIONS_LIBVLC' => array(
-		'Help' => "Parametry w tym polu są przekazywane do libVLC. Wiele parametrów może być rozdzielone przez ,~~ ".
-		          "Przykłady (nie wpisuj cytatów)~~~~".
-		          "\"--rtp-client-port=nnn\" Ustaw port lokalny, który ma być używany dla danych rtp~~~~".
-		          "\"--verbose=2\" Ustaw gadatliwość libVLC"
 	),
 
 //    'LANG_DEFAULT' => array(

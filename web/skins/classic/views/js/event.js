@@ -289,6 +289,11 @@ function changeScale() {
 
   eventViewer.width(newWidth);
   eventViewer.height(newHeight);
+  if (vid) {
+    // event.php opens the next page at this size, so in gapless playback, where each event is
+    // a page load, the video doesn't resize once the page has loaded.
+    setCookie('zmEventVideoSize'+eventData.MonitorId, newWidth + 'x' + newHeight);
+  }
   if (!vid) { // zms needs extra sizing
     streamScale(currentScale);
     drawProgressBar();
@@ -681,12 +686,19 @@ function streamFastRev(action) {
   }
 }
 
+// Load another event. Each event is a page load of its own, so skip skin.js's page-leave
+// roll-up: between events, as in gapless playback, it only shows as a wipe of the page.
+function goToEvent(eventId) {
+  skipPageLeaveAnimation = true;
+  location.replace(thisUrl + '?view=event&eid=' + eventId + filterQuery + sortQuery);
+}
+
 function streamPrev(action) {
   if (action) {
     $j(".vjsMessage").remove();
     if (prevEventId != 0) {
       if (vid==null) streamReq({command: CMD_QUIT});
-      location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
+      goToEvent(prevEventId);
       return;
     }
 
@@ -723,7 +735,7 @@ function streamNext(action) {
   // Ic0n 2024-09-20: because it is annoying and now that we have fullscreen mode, we need to just update instead of reloading
   if (1) {
     if (vid==null) streamReq({command: CMD_QUIT});
-    location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
+    goToEvent(nextEventId);
     return;
   }
   if (vid && ( NextEventDefVideoPath.indexOf('view_video') > 0 )) {
@@ -2033,6 +2045,18 @@ function changeWhatDisplay() {
   setCookie('zmWhatDisplay', $j('#whatDisplay').val());
   location.reload();
 }
+
+// Size the video as soon as the DOM is ready. video.js has just replaced the <video> (on
+// DOMContentLoaded, in event.php) and leaves it without a size, and initPage() waits for every
+// image and stylesheet to load, so sizing it there let the browser paint a collapsed video with
+// the controls drawn up under it first. Both run before the first paint.
+document.addEventListener('DOMContentLoaded', function() {
+  const player = (typeof videojs !== 'undefined') ? videojs.getPlayer('videoobj') : null;
+  if (player) {
+    vid = player; // changeScale() tells video.js from zms by vid; initPage() sets the same player
+    changeScale();
+  }
+});
 
 // Kick everything off
 $j( window ).on("load", initPage);

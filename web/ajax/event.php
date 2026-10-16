@@ -248,7 +248,7 @@ if ( canEdit('Events') ) {
     ajaxResponse(array('refreshEvent'=>true, 'refreshParent'=>false));
     break;
   case 'delete' :
-    $Event = new ZM\Event($_REQUEST['id']);
+    $Event = new ZM\Event(validCardinal($_REQUEST['id']));
     if ( !$Event->Id() ) {
       ajaxResponse(array('refreshEvent'=>false, 'refreshParent'=>true, 'message'=> 'Event not found.'));
     } else {

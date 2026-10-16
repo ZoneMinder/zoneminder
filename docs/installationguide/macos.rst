@@ -307,8 +307,8 @@ Known gaps
 - No log rotation. ``misc/logrotate.conf`` is written for logrotate, which macOS
   does not use — it uses ``newsyslog``, and no configuration is provided.
 - No local camera support, as described at the top.
-- ``libunwind``, ``libVLC`` and ``libVNC`` are not found by default. All three
-  are optional; the first only affects backtrace detail in crash logs.
+- ``libunwind`` and ``libVNC`` are not found by default. Both are optional; the
+  first only affects backtrace detail in crash logs.
 - Configure warns that it cannot find ``arp-scan`` and ``ip``. Neither is fatal:
   ``brew install arp-scan`` covers the first, and ``ip`` is a Linux tool that
   macOS has no equivalent of, so monitor probing is a little less capable.

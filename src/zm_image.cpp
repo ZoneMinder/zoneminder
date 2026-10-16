@@ -86,6 +86,12 @@ imgbufcpy_fptr_t fptr_imgbufcpy;
 /* Font */
 static ZmFont font;
 
+// Label sizes run from 1 to kNumFontSizes; the size is a monitor setting, so map anything
+// outside that to the nearest valid font variant instead of letting variants_.at() throw.
+static uint8 FontVariantIndex(int size) {
+  return static_cast<uint8>(zm::clamp(size, 1, static_cast<int>(kNumFontSizes)) - 1);
+}
+
 std::mutex              jpeg_mutex;
 
 void Image::update_function_pointers() {
@@ -1973,6 +1979,17 @@ bool Image::Zip( Bytef *outbuffer, unsigned long *outbuffer_size, int compressio
 }
 #endif // HAVE_ZLIB_H
 
+namespace {
+// Ceiling-divide an unsigned dimension by 2^shift. AV_CEIL_RSHIFT must NOT
+// be used here: its runtime form is -((-(a)) >> (b)), which relies on
+// arithmetic shift of a negative value and silently produces 2^31 + a/2^b
+// when `a` is unsigned (logical shift), sending plane loops billions of
+// samples out of bounds.
+inline unsigned int ceil_rshift(unsigned int a, unsigned int shift) {
+  return (a + (1u << shift) - 1) >> shift;
+}
+}  // namespace
+
 bool Image::Crop( unsigned int lo_x, unsigned int lo_y, unsigned int hi_x, unsigned int hi_y ) {
   unsigned int new_width = (hi_x-lo_x)+1;
   unsigned int new_height = (hi_y-lo_y)+1;
@@ -1990,14 +2007,70 @@ bool Image::Crop( unsigned int lo_x, unsigned int lo_y, unsigned int hi_x, unsig
     return true;
   }
 
-  unsigned int new_stride = new_width * colours;
-  unsigned int new_size = new_stride * new_height;
-  uint8_t *new_buffer = AllocBuffer(new_size);
+  const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(imagePixFormat);
+  if (!desc) {
+    Error("Crop: av_pix_fmt_desc_get failed for %s", av_get_pix_fmt_name(imagePixFormat));
+    return false;
+  }
+  if (desc->flags & AV_PIX_FMT_FLAG_PLANAR) {
+    // A chroma sample covers 2x2 luma pixels in YUV420P, so a crop starting on
+    // an odd column or row would start its chroma half a pixel off. Move the
+    // window back to the chroma grid, keeping its size.
+    const unsigned int off_x = lo_x & ((1u << desc->log2_chroma_w) - 1);
+    const unsigned int off_y = lo_y & ((1u << desc->log2_chroma_h) - 1);
+    lo_x -= off_x;
+    hi_x -= off_x;
+    lo_y -= off_y;
+    hi_y -= off_y;
+  }
 
-  for ( unsigned int y = lo_y, ny = 0; y <= hi_y; y++, ny++ ) {
-    unsigned char *pbuf = &buffer[((y*linesize)+(lo_x*colours))];
-    unsigned char *pnbuf = &new_buffer[ny*new_stride];
-    memcpy(pnbuf, pbuf, new_stride);
+  // Lay the result out as AssignDirect expects it: every row 32-byte aligned
+  // and, for planar formats such as YUV420P, the chroma planes after the luma
+  // plane. A tightly packed width * colours buffer is smaller than that
+  // whenever the row isn't a multiple of 32 bytes (and holds only the luma
+  // plane of a planar image), so AssignDirect refused it: the crop was
+  // dropped and the new buffer leaked on every call.
+  int new_size_signed = av_image_get_buffer_size(imagePixFormat, new_width, new_height, 32);
+  if (new_size_signed < 0) {
+    Error("Crop: av_image_get_buffer_size failed for %s %ux%u",
+          av_get_pix_fmt_name(imagePixFormat), new_width, new_height);
+    return false;
+  }
+  const size_t new_size = static_cast<size_t>(new_size_signed);
+
+  uint8_t *src_planes[4] = {nullptr, nullptr, nullptr, nullptr};
+  int src_strides[4] = {0, 0, 0, 0};
+  uint8_t *dst_planes[4] = {nullptr, nullptr, nullptr, nullptr};
+  int dst_strides[4] = {0, 0, 0, 0};
+  uint8_t *new_buffer = AllocBuffer(new_size);
+  if (av_image_fill_arrays(src_planes, src_strides, buffer, imagePixFormat, width, height, 32) < 0
+      || av_image_fill_arrays(dst_planes, dst_strides, new_buffer, imagePixFormat, new_width, new_height, 32) < 0) {
+    Error("Crop: av_image_fill_arrays failed for %s", av_get_pix_fmt_name(imagePixFormat));
+    DumpBuffer(new_buffer, ZM_BUFTYPE_ZM);
+    return false;
+  }
+  // The Image's own stride for plane 0, as in Image::Rotate.
+  src_strides[0] = linesize;
+
+  if (desc->flags & AV_PIX_FMT_FLAG_PLANAR) {
+    for (int plane = 0; plane < 3; plane++) {
+      const unsigned int shift_w = plane ? desc->log2_chroma_w : 0;
+      const unsigned int shift_h = plane ? desc->log2_chroma_h : 0;
+      av_image_copy_plane(dst_planes[plane], dst_strides[plane],
+                          src_planes[plane] + (lo_y >> shift_h) * src_strides[plane] + (lo_x >> shift_w),
+                          src_strides[plane],
+                          ceil_rshift(new_width, shift_w), ceil_rshift(new_height, shift_h));
+    }
+  } else {
+    const unsigned int bpp = zm_bytes_per_pixel(imagePixFormat);
+    if (bpp == 0) {
+      Error("Crop: bytes_per_pixel unknown for %s", av_get_pix_fmt_name(imagePixFormat));
+      DumpBuffer(new_buffer, ZM_BUFTYPE_ZM);
+      return false;
+    }
+    av_image_copy_plane(dst_planes[0], dst_strides[0],
+                        src_planes[0] + lo_y * src_strides[0] + lo_x * bpp, src_strides[0],
+                        new_width * bpp, new_height);
   }
 
   AssignDirect(new_width, new_height, colours, subpixelorder, new_buffer, new_size, ZM_BUFTYPE_ZM);
@@ -2538,7 +2611,7 @@ const Vector2 Image::centreCoord(const char *text, int size = 1) const {
     line_no++;
   }
 
-  FontVariant const &font_variant = font.GetFontVariant(size - 1);
+  FontVariant const &font_variant = font.GetFontVariant(FontVariantIndex(size));
   uint16_t char_width = font_variant.GetCharWidth();
   uint16_t char_height = font_variant.GetCharHeight();
   int x = (width - (max_line_len * char_width )) / 2;
@@ -2657,7 +2730,7 @@ void Image::Annotate(
   const Rgb fg_rgb_col = rgb_convert(fg_colour, subpixelorder);
   const Rgb bg_rgb_col = rgb_convert(bg_colour, subpixelorder);
 
-  FontVariant const &font_variant = font.GetFontVariant(size - 1);
+  FontVariant const &font_variant = font.GetFontVariant(FontVariantIndex(size));
   const uint16 char_width = font_variant.GetCharWidth();
   const uint16 char_height = font_variant.GetCharHeight();
 
@@ -2667,16 +2740,20 @@ void Image::Annotate(
     max_line_length = std::max(max_line_length, s.size());
   }
 
-  uint32 x0_max = width - (max_line_length * char_width);
-  uint32 y0_max = height - (lines.size() * char_height);
-
   // Calculate initial coordinates of annotation so that everything is displayed even if the
-  // user set coordinates would prevent that.
-  uint32 x0 = zm::clamp(static_cast<uint32>(coord.x_), 0u, x0_max);
-  uint32 y0 = zm::clamp(static_cast<uint32>(coord.y_), 0u, y0_max);
+  // user set coordinates would prevent that. The label text, position and size are monitor
+  // settings, so a label wider or taller than the frame must not wrap the bound: it starts at
+  // the frame edge and glyphs that don't fit are not drawn. refs GHSA-j5gf-rfm2-vhw9
+  const int64 x0_max = std::max<int64>(0, static_cast<int64>(width) - static_cast<int64>(max_line_length * char_width));
+  const int64 y0_max = std::max<int64>(0, static_cast<int64>(height) - static_cast<int64>(lines.size() * char_height));
+  const uint32 x0 = static_cast<uint32>(zm::clamp<int64>(coord.x_, 0, x0_max));
+  const uint32 y0 = static_cast<uint32>(zm::clamp<int64>(coord.y_, 0, y0_max));
 
   uint32 y = y0;
   for (const std::string &line : lines) {
+    if (y + char_height > height) {
+      break;
+    }
     uint32 x = x0;
 
     // Use linesize (which may include FFALIGN'd padding) for row stride
@@ -2685,6 +2762,11 @@ void Image::Annotate(
     if (zm_bytes_per_pixel(imagePixFormat) == 1) {
       uint8 *ptr = &buffer[y * linesize + x0];
       for (char c : line) {
+        if (x + char_width > width) {
+          break;
+        }
+        // A glyph's foreground can reach one column past its cell; keep every pixel inside the row.
+        const uint32 columns_left = width - x;
         for (uint64 cp_row : font_variant.GetCodepoint(c)) {
           if (bg_colour != kRGBTransparent) {
             std::fill(ptr, ptr + char_width, static_cast<uint8>(bg_colour & 0xff));
@@ -2692,23 +2774,27 @@ void Image::Annotate(
 
           while (cp_row != 0) {
             uint32 column_idx = char_width - __builtin_ctzll(cp_row) + font_variant.GetCharPadding();
-            *(ptr + column_idx) = fg_colour & 0xff;
             cp_row = cp_row & (cp_row - 1);
+            if (column_idx < columns_left) {
+              *(ptr + column_idx) = fg_colour & 0xff;
+            }
           }
           ptr += linesize;
         }
         ptr -= (linesize * char_height);
         ptr += char_width;
         x += char_width;
-        if (x >= width) {
-          break;
-        }
       }
     } else if (zm_is_rgb24(imagePixFormat)) {
       constexpr uint8 bytesPerPixel = 3;
       uint8 *ptr = &buffer[y * linesize + x0 * bytesPerPixel];
 
       for (char c : line) {
+        if (x + char_width > width) {
+          break;
+        }
+        // A glyph's foreground can reach one column past its cell; keep every pixel inside the row.
+        const uint32 columns_left = width - x;
         for (uint64 cp_row : font_variant.GetCodepoint(c)) {
           if (bg_colour != kRGBTransparent) {
             for (uint16 i = 0; i < char_width; i++) {  // We need to set individual r,g,b components
@@ -2721,20 +2807,19 @@ void Image::Annotate(
 
           while (cp_row != 0) {
             uint32 column_idx = char_width - __builtin_ctzll(cp_row) + font_variant.GetCharPadding();
-            uint8 *colour_ptr = ptr + (column_idx * bytesPerPixel);
-            RED_PTR_RGBA(colour_ptr) = RED_VAL_RGBA(fg_colour);
-            GREEN_PTR_RGBA(colour_ptr) = GREEN_VAL_RGBA(fg_colour);
-            BLUE_PTR_RGBA(colour_ptr) = BLUE_VAL_RGBA(fg_colour);
             cp_row = cp_row & (cp_row - 1);
+            if (column_idx < columns_left) {
+              uint8 *colour_ptr = ptr + (column_idx * bytesPerPixel);
+              RED_PTR_RGBA(colour_ptr) = RED_VAL_RGBA(fg_colour);
+              GREEN_PTR_RGBA(colour_ptr) = GREEN_VAL_RGBA(fg_colour);
+              BLUE_PTR_RGBA(colour_ptr) = BLUE_VAL_RGBA(fg_colour);
+            }
           }
           ptr += linesize;
         }
         ptr -= (linesize * char_height);
         ptr += char_width * bytesPerPixel;
         x += char_width;
-        if (x >= width) {
-          break;
-        }
       }
     } else if (zm_is_rgb32(imagePixFormat)) {
       constexpr uint8 bytesPerPixel = 4;
@@ -2743,6 +2828,11 @@ void Image::Annotate(
       Rgb *ptr = reinterpret_cast<Rgb *>(&buffer[y * linesize + x0 * bytesPerPixel]);
 
       for (char c : line) {
+        if (x + char_width > width) {
+          break;
+        }
+        // A glyph's foreground can reach one column past its cell; keep every pixel inside the row.
+        const uint32 columns_left = width - x;
         for (uint64 cp_row : font_variant.GetCodepoint(c)) {
           if (bg_colour != kRGBTransparent) {
             std::fill(ptr, ptr + char_width, bg_rgb_col);
@@ -2750,26 +2840,22 @@ void Image::Annotate(
 
           while (cp_row != 0) {
             uint32 column_idx = char_width - __builtin_ctzll(cp_row) + font_variant.GetCharPadding();
-            *(ptr + column_idx) = fg_rgb_col;
             cp_row = cp_row & (cp_row - 1);
+            if (column_idx < columns_left) {
+              *(ptr + column_idx) = fg_rgb_col;
+            }
           }
           ptr += rgb_stride;
         }
         ptr -= (rgb_stride * char_height);
         ptr += char_width;
         x += char_width;
-        if (x >= width) {
-          break;
-        }
       }
     } else {
       Error("Annotate called with unexpected colours: %d", colours);
       return;
     }
     y += char_height;
-    if (y >= height) {
-      break;
-    }
   }
 }
 
@@ -3255,15 +3341,6 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
 }
 
 namespace {
-// Ceiling-divide an unsigned dimension by 2^shift. AV_CEIL_RSHIFT must NOT
-// be used here: its runtime form is -((-(a)) >> (b)), which relies on
-// arithmetic shift of a negative value and silently produces 2^31 + a/2^b
-// when `a` is unsigned (logical shift), sending plane loops billions of
-// samples out of bounds.
-inline unsigned int ceil_rshift(unsigned int a, unsigned int shift) {
-  return (a + (1u << shift) - 1) >> shift;
-}
-
 // Rotate `src_w` × `src_h` plane (bpp bytes per sample, src_linesize stride)
 // into dst (dst_linesize stride) according to angle (90/180/270).
 // For 90/270: dst dims are src_h × src_w. For 180: dst dims are src_w × src_h.

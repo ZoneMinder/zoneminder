@@ -24,7 +24,7 @@ if ( empty($_REQUEST['mid']) ) {
 if ( ( !is_int($_REQUEST['limit']) and !ctype_digit($_REQUEST['limit']) ) ) {
   $message = 'Invalid value for limit: '.$_REQUEST['limit'];
 } else {
-  $limit = $_REQUEST['limit'];
+  $limit = (int)$_REQUEST['limit'];
 }
 
 if ($message) {

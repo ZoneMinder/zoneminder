@@ -46,6 +46,7 @@ require POSIX;
 use Date::Format qw(time2str);
 use Time::HiRes qw(gettimeofday tv_interval stat);
 use Scalar::Util qw(looks_like_number);
+use List::Util ();
 
 #our @ISA = qw(ZoneMinder::Object);
 use parent qw(ZoneMinder::Object);
@@ -1092,20 +1093,42 @@ FROM `Frames` WHERE `EventId`=?';
   if (!$frame) {
     return 'Unable to retrieve frame data.';
   }
-  if (!$frame->{EndDateTime}) {
-    return 'Unable to retrieve EndDateTime from Frames Table.';
+  my $start = $self->Time();
+  if (!$start) {
+    return 'Unable to determine the start time of the event.';
   }
-  return $self->save({
-      Name => sprintf('%s%d%s', $self->Monitor()->EventPrefix(), $self->{Id}, $tag),
-      EndDateTime => $frame->{EndDateTime},
-      Length => $frame->{EndTimeStamp} - $self->Time(),
-      Frames => $frame->{Frames},
-      AlarmFrames => $frame->{AlarmFrames},
-      TotScore => $frame->{TotScore},
-      AvgScore => ($frame->{AlarmFrames} ? int($frame->{TotScore} / $frame->{AlarmFrames}) : 0),
-      MaxScore => $frame->{MaxScore},
+
+  # zmc writes Frames rows in batches and updates the event row's Length,
+  # Frames and scores with each batch, so either can be ahead of the other when
+  # zmc dies. An event killed before its first batch has no Frames rows at all.
+  # Take the larger of the two for each.
+  my $end_date_time = $frame->{EndDateTime};
+  my $length = $end_date_time ? $frame->{EndTimeStamp} - $start : 0;
+  if (!$end_date_time or ($self->{Length} // 0) > $length) {
+    $length = $self->{Length} // 0;
+    $end_date_time = time2str('%Y-%m-%d %H:%M:%S', $start + $length);
+  }
+  my $frames = List::Util::max($frame->{Frames} // 0, $self->{Frames} // 0);
+  my $alarm_frames = List::Util::max($frame->{AlarmFrames} // 0, $self->{AlarmFrames} // 0);
+  my $tot_score = List::Util::max($frame->{TotScore} // 0, $self->{TotScore} // 0);
+  my $max_score = List::Util::max($frame->{MaxScore} // 0, $self->{MaxScore} // 0);
+
+  my %changes = (
+      EndDateTime => $end_date_time,
+      Length => $length,
+      Frames => $frames,
+      AlarmFrames => $alarm_frames,
+      TotScore => $tot_score,
+      AvgScore => ($alarm_frames ? int($tot_score / $alarm_frames) : 0),
+      MaxScore => $max_score,
       Notes => $self->Notes() . ' ' . $text,
-    });
+    );
+  # Like zmc's own close (~Event: Name = IF(Name='New Event', ...)), keep a name
+  # the user gave the event; only the placeholder gets the recovered name.
+  if (($self->{Name} // 'New Event') eq 'New Event') {
+    $changes{Name} = sprintf('%s%d%s', $self->Monitor()->EventPrefix(), $self->{Id}, $tag);
+  }
+  return $self->save(\%changes);
 } # end sub Close
 
 sub Event_Tags {

@@ -14,7 +14,6 @@ Build-Depends: debhelper (>= 9), cmake
     , ffmpeg | libav-tools
     , net-tools
     , libnetpbm10-dev | libnetpbm-dev
-    , libvlccore-dev, libvlc-dev
     , libcurl4-gnutls-dev | libcurl4-nss-dev | libcurl4-openssl-dev
     , libpolkit-gobject-1-dev
     , libphp-serialization-perl
@@ -27,6 +26,7 @@ Build-Depends: debhelper (>= 9), cmake
     , libdata-uuid-perl
     , libssl-dev
     , libcrypt-eksblowfish-perl
+    , nlohmann-json3-dev | nlohmann-json-dev
 Standards-Version: 3.9.4
 
 Package: zoneminder
@@ -50,11 +50,9 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
     , rsyslog | system-log-daemon
     , netpbm
     , zip
-    , libvlccore5 | libvlccore7 | libvlccore8, libvlc5
     , libpolkit-gobject-1-0, php5-gd
     , libssl
     ,libcrypt-eksblowfish-perl
-
 Recommends: mysql-server | mariadb-server
 Description: Video camera security and surveillance solution
  ZoneMinder is intended for use in single or multi-camera video security 

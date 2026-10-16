@@ -455,8 +455,6 @@ function buildSidebarMenu() {
               </a>
             </li>
 ';
-  } else if (defined('ZM_SIDEBAR_FOOTER') and ZM_SIDEBAR_FOOTER) {
-    $menu .= ZM_SIDEBAR_FOOTER;
   }
   $menu .= '
           </ul>
@@ -1651,8 +1649,10 @@ function getAdditionalLinksHTML($view, $forLeftBar = false) {
             $icon_ = $url->getAttribute('data-icon');
             $class_ = $url->getAttribute('class');
             $parts = parse_url($href_);
-            parse_str($parts['query'], $query);
-            $queryView = $query['view'];
+            if (isset($parts['query'])) {
+              parse_str($parts['query'], $query);
+              if (isset($query['view'])) $queryView = $query['view'];
+            }
           }
 
           $result .= buildMenuItem(
@@ -1817,19 +1817,11 @@ function getCSRFinputHTML() {
 
 function fixAmps(&$html) {
   //https://stackoverflow.com/questions/1685277/warning-domdocumentloadhtml-htmlparseentityref-expecting-in-entity
-  $positionAmp = strpos($html, '&');
-  $positionSemiColumn = strpos($html, ';', $positionAmp+1);
-  $string = substr($html, $positionAmp, $positionSemiColumn-$positionAmp+1);
-  if ($positionAmp !== false) { // If an '&' can be found.
-    if ($positionSemiColumn === false) { // If no ';' can be found.
-      $html = substr_replace($html, '&amp;', $positionAmp, 1); // Replace straight away.
-    } else if (preg_match('/&(#[0-9]+|[A-Z|a-z|0-9]+);/', $string) === 0) { // If a standard escape cannot be found.
-      $html = substr_replace($html, '&amp;', $positionAmp, 1); // This mean we need to escape the '&' sign.
-      fixAmps($html, $positionAmp+5); // Recursive call from the new position.
-    } else {
-      fixAmps($html, $positionAmp+1); // Recursive call from the new position.
-    }
-  }
+  // Escape every '&' that does not start a character reference, so that
+  // DOMDocument::loadHTML() does not warn about it. One pass over the string:
+  // the recursive version restarted at the first '&' on every call and never
+  // returned once the string held an entity.
+  $html = preg_replace('/&(?!#[0-9]+;|#x[0-9a-f]+;|[a-z][a-z0-9]*;)/i', '&amp;', $html);
 }
 
 function xhtmlFooter() {
@@ -1920,6 +1912,20 @@ function xhtmlFooter() {
 class ZM_Menu {
   public static $submenuOptionsItems = [];
 
+  // A tab is not always named after its category key. 'display' holds
+  // per-browser state kept in a cookie rather than stored configuration, and
+  // 'web' holds the display settings that are stored, so labelling either one
+  // after its key tells the user the wrong thing.
+  private static $categoryLabels = [
+    'version' => 'Versions',
+    'display' => 'ThisSession',
+    'web'     => 'Display',
+  ];
+
+  private static function categoryLabel($cat) {
+    return translate(isset(self::$categoryLabels[$cat]) ? self::$categoryLabels[$cat] : mb_ucfirst($cat));
+  }
+
   public function __construct(string $typeMenu, array $menuItems) {
 
   }
@@ -1936,7 +1942,7 @@ class ZM_Menu {
         $added = true;
       }
       if ($added) {
-        self::$submenuOptionsItems[$cat] = translate(mb_ucfirst(($cat == 'version') ? 'Versions' : $cat));
+        self::$submenuOptionsItems[$cat] = self::categoryLabel($cat);
         unset($categoriesOptionsInDB[$key]);
       }
     }
@@ -1945,7 +1951,7 @@ class ZM_Menu {
     if (count($categoriesOptionsInDB)) {
       foreach ($categoriesOptionsInDB as $cat) {
         if (!in_array(strtolower($cat), ['dynamic', 'hidden'], $strict = false)) // Prohibited categories
-          self::$submenuOptionsItems[$cat] = translate(mb_ucfirst($cat));
+          self::$submenuOptionsItems[$cat] = self::categoryLabel($cat);
       }
     }
   }

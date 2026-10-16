@@ -255,7 +255,6 @@ $SLANG = array(
     'DefaultScale'          => 'デフォルトスケール',
     'DefaultCodec'          => 'イベントビュー用のデフォルト方法',
     'DefaultView'           => 'デフォルトビュー',
-    'RTSPDescribe'          => 'RTSP応答メディアURLを使用',
     'DeleteAndNext'         => '削除 &amp; 次へ',
     'DeleteAndPrev'         => '削除 &amp; 前へ',
     'DeleteSavedFilter'     => '保存されたフィルタを削除',
@@ -931,7 +930,6 @@ $SLANG = array(
     'Layout' => 'レイアウト',
     'Less important' => '重要度が低い',
     'Level' => 'レベル',
-    'Libvlc' => 'Libvlc',
     'Line' => 'ライン',
     'Linear' => '線形',
     'List' => 'リスト',
@@ -1001,7 +999,6 @@ $SLANG = array(
     'Not important' => '重要でない',
     'Not Running' => '実行中ではない',
     'Not Showing Analysis' => '分析を表示していません',
-    'NVSocket' => 'NVSocket',
     'Off' => 'オフ',
     'Offline' => 'オフライン',
     'On' => 'オン',
@@ -1367,23 +1364,8 @@ $OLANG = array(
         HTTP - HTTP トンネリングをトランスポートプロトコルとして使用します。これはプロキシを通すのに便利です。~~
       '
     ),
-    'OPTIONS_LIBVLC' => array(
-        'Help' => '
-      このフィールドに入力されたパラメータは libVLC に渡されます。複数のパラメータは , で区切ることができます。~~
-      例 (引用符は入力しないでください)~~~~
-      "--rtp-client-port=nnn" rtp データ用のローカルポートを設定します~~~~
-      "--verbose=2" libVLC の詳細レベルを設定します
-      '
-    ),
     'OPTIONS_EXIF' => array(
         'Help' => 'このオプションを有効にすると、各 JPEG フレームに EXIF データを埋め込むことができます。'
-    ),
-    'OPTIONS_RTSPDESCRIBE' => array(
-        'Help' => '
-      初期 RTSP ハンドシェイク中に、カメラが更新されたメディア URL を送信することがあります。
-      このオプションを有効にすると、ZoneMinder がこの URL を使用するようになります。このオプションを無効にすると、カメラからの値を無視し、モニター設定で入力された値を使用します~~~~
-      一般的にはこれを有効にするべきです。ただし、カメラがファイアウォールを通してストリーミングしている場合など、カメラが自分の URL を間違えることがあります。
-    '
     ),
     'OPTIONS_MAXFPS' => array(
         'Help' => '

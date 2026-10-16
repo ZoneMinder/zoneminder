@@ -166,6 +166,39 @@ class User extends ZM_Object {
     return $this->Role;
   }
 
+  // The permission areas a user (or their role) holds a None/View/Edit/Create level for.
+  protected static $permissionAreas = array('Stream', 'Events', 'Control', 'Monitors', 'Groups', 'Devices',
+    'Snapshots', 'System');
+
+  // The levels granted for $area by the user's own field and by their role. Without these
+  // methods $u->canEdit('System') fell through to ZM_Object::__call(), which returned the area
+  // name, so every user passed as a System editor. refs GHSA-ff93-w6fm-vqxr
+  private function permissionLevels($area) {
+    if (!in_array($area, self::$permissionAreas, true)) return array();
+    $levels = array($this->$area());
+    $role = $this->Role();
+    if ($role) $levels[] = $role->$area();
+    return $levels;
+  }
+
+  public function canView($area) {
+    foreach ($this->permissionLevels($area) as $level) {
+      if ($level and ($level != 'None')) return true;
+    }
+    return false;
+  }
+
+  public function canEdit($area) {
+    foreach ($this->permissionLevels($area) as $level) {
+      if (($level == 'Edit') or ($level == 'Create')) return true;
+    }
+    return false;
+  }
+
+  public function canCreate($area) {
+    return in_array('Create', $this->permissionLevels($area), true);
+  }
+
   public function viewableMonitorIds() {
     if (!property_exists($this, 'viewableMonitorIds')) {
       $this->viewableMonitorIds = [];

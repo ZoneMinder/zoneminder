@@ -213,10 +213,15 @@ class AppController extends Controller {
     return array($field => count($ids) ? $ids : array(0));
   }
 
-  # A field from the request data, whether sent as Model[field] or bare, or null.
+  # A field from the request data, or null, read the way Model::set() will save it: from
+  # Model[field] when the request has a non-empty Model entry, otherwise from the bare field.
+  # Reading Model[field] whenever Model was an array let {"Monitor":[],"EventEndCommand":"x"}
+  # pass a check that found no value while save() stored x. refs GHSA-fp33-8fx5-4j6c
   protected function requestField($alias, $field) {
     $data = $this->request->data;
-    if (isset($data[$alias]) and is_array($data[$alias])) $data = $data[$alias];
+    if (!empty($data[$alias])) {
+      $data = is_array($data[$alias]) ? $data[$alias] : array();
+    }
     return isset($data[$field]) ? $data[$field] : null;
   }
 

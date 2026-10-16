@@ -1857,6 +1857,21 @@ function detaintPathAllowAbsolute($path) {
   return $path;
 }
 
+// A redirect target taken from the request ($url) if it stays on this server, else $fallback.
+// Accepts a query-only URL (?view=...) or an absolute http(s) URL whose host and port are the
+// ones this request was made to; refuses anything a browser could resolve to another site:
+// another host, //host, backslashes, user@host, other schemes, and control characters.
+function localRedirectUrl($url, $fallback) {
+  if (!is_string($url) or $url === '' or preg_match('/[\x00-\x1f\x7f\\\\]/', $url)) return $fallback;
+  if ($url[0] == '?') return $url;
+  $parts = parse_url($url);
+  if (!$parts or !isset($parts['scheme']) or !isset($parts['host']) or isset($parts['user'])) return $fallback;
+  if (!in_array(strtolower($parts['scheme']), array('http', 'https'), true)) return $fallback;
+  if (!isset($_SERVER['HTTP_HOST'])) return $fallback;
+  $host = $parts['host'].(isset($parts['port']) ? ':'.$parts['port'] : '');
+  return strcasecmp($host, $_SERVER['HTTP_HOST']) ? $fallback : $url;
+}
+
 function detaintPath($path) {
 
   // Strip out :// because php:// is a way to inject code apparently.
@@ -1931,11 +1946,19 @@ function requestVar($name, $default='') {
 }
 
 // For numbers etc in javascript or tags etc
+// Request values can be arrays (id[]=1, id[Id]=1). preg_replace() returns an
+// array as it is, and ZM_Object's constructor takes an array as the object's
+// row, so new ZM\Event(validInt($_REQUEST['id'])) built an event from the
+// request whose Id and MonitorId the sender chose, and the permission checks
+// then looked at those. Anything that isn't a single value is no number.
 function validInt($input) {
+  if (!is_scalar($input)) return '';
   return preg_replace('/[^\-\d]/', '', $input);
 }
 
+// Like validInt(), and for the same reason gives '' for an array.
 function validCardinal($input) {
+  if (!is_scalar($input)) return '';
   return preg_replace('/\D/', '', $input);
 }
 

@@ -99,9 +99,8 @@ std::string ClientAddress(const std::string &remote_addr,
 
 // Separator characters between entries in a monitor's Options field. The ui
 // offers a textarea, so an option may be on its own line as well as after a
-// comma. Both consumers - av_dict_parse_string() for Ffmpeg and Split() for
-// Libvlc - take a set of separator characters and skip empty entries, so a
-// blank line, crlf or a trailing newline all just work.
+// comma. av_dict_parse_string() takes a set of separator characters and skips
+// empty entries, so a blank line, crlf or a trailing newline all just work.
 constexpr const char kOptionSeparators[] = ",\r\n";
 
 inline bool StartsWith(const std::string &haystack, const std::string &needle) {

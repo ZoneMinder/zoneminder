@@ -97,7 +97,7 @@ function queryRequest() {
     if ((!is_int($_REQUEST['offset']) and !ctype_digit($_REQUEST['offset']))) {
       ZM\Error('Invalid value for offset: ' . $_REQUEST['offset']);
     } else {
-      $offset = $_REQUEST['offset'];
+      $offset = (int)$_REQUEST['offset'];
     }
   }
 
@@ -107,7 +107,7 @@ function queryRequest() {
     if ((!is_int($_REQUEST['limit']) and !ctype_digit($_REQUEST['limit']))) {
       ZM\Error('Invalid value for limit: ' . $_REQUEST['limit']);
     } else {
-      $limit = $_REQUEST['limit'];
+      $limit = (int)$_REQUEST['limit'];
     }
   }
   // The table we want our data from

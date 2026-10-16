@@ -272,9 +272,6 @@ int zmDbDo(const std::string &query) {
   if (!zmDbConnected and !zmDbConnect())
     return 0;
   int rc;
-  Logger *logger = Logger::fetch();
-  Logger::Level oldLevel = logger->databaseLevel();
-  logger->databaseLevel(Logger::NOLOG);
 
   int contention_attempts = 0;
 
@@ -290,10 +287,7 @@ int zmDbDo(const std::string &query) {
         // If we failed. Sleeping 1 sec may be way too much.
         sleep(1);
       }
-      if (zm_terminate) {
-        logger->databaseLevel(oldLevel);
-        return 0;
-      }
+      if (zm_terminate) return 0;
       continue;
     }
 
@@ -301,12 +295,10 @@ int zmDbDo(const std::string &query) {
     if (retry_after_contention(err, query, contention_attempts)) continue;
 
     Error("Can't run query %s: %d %s", query.c_str(), rc, reason.c_str());
-    logger->databaseLevel(oldLevel);
     return rc;
   }
 
   Debug(1, "Success running sql query %s, thread_id: %lu", query.c_str(), db_thread_id);
-  logger->databaseLevel(oldLevel);
   return 1;
 }
 
@@ -394,29 +386,40 @@ void zmDbQueue::process() {
       mCondition.wait(lock);
     }
     while (!mQueue.empty()) {
-      if (mQueue.size() > 40) {
-        Logger *log = Logger::fetch();
-        Logger::Level db_level = log->databaseLevel();
-        log->databaseLevel(Logger::NOLOG);
-        Warning("db queue size has grown larger %zu than 40 entries", mQueue.size());
-        log->databaseLevel(db_level);
-      }
-      std::string sql = mQueue.front();
+      size_t backlog = mQueue.size();
+      std::string sql = std::move(mQueue.front().first);
+      bool log_row = mQueue.front().second;
       mQueue.pop();
       // My idea for leaving the locking around each sql statement is to allow
       // other db writers to get a chance
       lock.unlock();
-      zmDbDo(sql);
+      if (backlog > 40) {
+        // Not while holding mMutex: logging takes the logger's mutex, and a
+        // thread already holding that one waits on mMutex to push its row.
+        // A row about the backlog would only add to it, so none is written.
+        Logger::DatabaseLogPause pause_db_logging;
+        Warning("db queue size has grown larger %zu than 40 entries", backlog);
+      }
+      if (log_row) {
+        // An insert into Logs. A line about it would queue another insert, and at
+        // a debug database level its "Success running sql query" line would do
+        // so without end, so lines about these inserts stay out of the database.
+        // Lines about the other queued writes (events, frames, stats) go there.
+        Logger::DatabaseLogPause pause_db_logging;
+        zmDbDo(sql);
+      } else {
+        zmDbDo(sql);
+      }
       lock.lock();
     }
   }
 }  // end void zmDbQueue::process()
 
-void zmDbQueue::push(std::string &&sql) {
+void zmDbQueue::push(std::string &&sql, bool log_row) {
   {
     std::unique_lock<std::mutex> lock(mMutex);
     if (mTerminate) return;
-    mQueue.push(std::move(sql));
+    mQueue.emplace(std::move(sql), log_row);
   }
   mCondition.notify_all();
 }

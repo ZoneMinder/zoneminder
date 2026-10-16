@@ -75,7 +75,6 @@ BuildRequires: perl(Expect)
 BuildRequires: perl(Sys::Syslog)
 BuildRequires: gcc 
 BuildRequires: gcc-c++
-BuildRequires: vlc-devel
 BuildRequires: libcurl-devel
 BuildRequires: libv4l-devel
 BuildRequires: desktop-file-utils
@@ -118,6 +117,7 @@ Requires: php-mysqli
 Requires: php-common
 Requires: php-gd
 Requires: php-intl
+Requires: php-mbstring
 Requires: php-process
 Requires: php-json
 Requires: php-pecl-apcu
@@ -125,7 +125,6 @@ Requires: net-tools
 Requires: psmisc
 Requires: polkit
 Requires: libjpeg-turbo
-Requires: vlc-core
 Requires: %{_bindir}/ffmpeg
 Requires: perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires: perl(DBD::mysql)

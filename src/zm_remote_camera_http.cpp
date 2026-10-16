@@ -112,7 +112,7 @@ void RemoteCameraHttp::Initialise() {
     if ( !auth.empty() )
       request += stringtf( "Authorization: Basic %s\r\n", auth64.c_str() );
     request += "\r\n";
-    Debug( 2, "Request: %s", request.c_str() );
+    Debug( 2, "Request: %s", request_for_log(request).c_str() );
   }
 
   if ( !timeout.tv_sec ) {
@@ -197,7 +197,7 @@ int RemoteCameraHttp::Disconnect() {
 }
 
 int RemoteCameraHttp::SendRequest() {
-  Debug(2, "Sending request: %s", request.c_str());
+  Debug(2, "Sending request: %s", request_for_log(request).c_str());
   if ( write(sd, request.data(), request.length()) < 0 ) {
     Error("Can't write: %s", strerror(errno));
     Disconnect();
@@ -402,7 +402,7 @@ int RemoteCameraHttp::GetResponse() {
               request += mAuthenticator->getAuthHeader("GET", path);
               request += "\r\n";
 
-              Debug( 2, "New request header: %s", request.c_str() );
+              Debug( 2, "New request header: %s", request_for_log(request).c_str() );
               return( 0 );
             }
 
@@ -782,7 +782,7 @@ int RemoteCameraHttp::GetResponse() {
               request += mAuthenticator->getAuthHeader("GET", path);
               request += "\r\n";
 
-              Debug(2, "New request header: %s", request.c_str());
+              Debug(2, "New request header: %s", request_for_log(request).c_str());
               return 0;
             } else {
               Debug(2, "Need some other kind of Authentication");

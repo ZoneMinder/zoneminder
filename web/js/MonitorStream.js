@@ -2151,7 +2151,7 @@ function MonitorStream(monitorData) {
     this.handlerEventListener['killStream'] = this.streamListenerBind();
     this.activePlayer = 'janus';
     this.updateStreamInfo('Janus', 'loading');
-  }
+  };
 
   this.select_zms = function() {
     // zms stream

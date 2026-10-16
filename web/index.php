@@ -230,7 +230,11 @@ if (
 }
 
 # If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
-if ( ZM_OPT_USE_AUTH and (!isset($user)) and ($view != 'login') and ($view != 'none') ) {
+# The login and none views render without a user, but an ajax request never does: with
+# view=login or view=none, request= reached web/ajax/<name>.php with no user, and handlers
+# without a check of their own (ajax/stats.php's raw branch) answered anonymous clients.
+# refs GHSA-vvw3-j4p4-4rgx
+if ( ZM_OPT_USE_AUTH and (!isset($user)) and ($request or (($view != 'login') and ($view != 'none'))) ) {
   if ($request) {
     # requests only return json
     header('HTTP/1.1 401 Unauthorized');

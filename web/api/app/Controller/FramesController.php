@@ -14,6 +14,27 @@ class FramesController extends AppController {
  */
 	public $components = array('RequestHandler');
 
+	// Frames belong to an event, so a user without Events permission, or restricted to
+	// certain monitors, must not read arbitrary frames. index() returned the whole Frames
+	// table and view() any frame, with no check. refs per-monitor ACL (425e472ec).
+	public function beforeFilter() {
+		parent::beforeFilter();
+		global $user;
+		if ($user and ($user['Events'] == 'None')) {
+			throw new UnauthorizedException(__('Insufficient Privileges'));
+		}
+	}
+
+	// For a user restricted to specific monitors: a condition limiting frames to events of
+	// those monitors, or '' when the user is not restricted.
+	private function allowedFrameCondition() {
+		global $user;
+		$allowed = $user ? preg_split('@,@', $user['MonitorIds'], NULL, PREG_SPLIT_NO_EMPTY) : [];
+		if (!count($allowed)) return '';
+		$ids = implode(',', array_map('intval', $allowed));
+		return array('Frame.EventId IN (SELECT Id FROM Events WHERE MonitorId IN ('.$ids.'))');
+	}
+
 /**
  * index method
  *
@@ -21,7 +42,8 @@ class FramesController extends AppController {
  */
 	public function index() {
 		$this->Frame->recursive = -1;
-		$frames = $this->Frame->find('all');
+		$cond = $this->allowedFrameCondition();
+		$frames = $this->Frame->find('all', $cond ? array('conditions' => $cond) : array());
 		$this->set(array(
 			'frames' => $frames,
 			'_serialize' => array('frames')
@@ -40,8 +62,11 @@ class FramesController extends AppController {
 		if (!$this->Frame->exists($id)) {
 			throw new NotFoundException(__('Invalid frame'));
 		}
-		$options = array('conditions' => array('Frame.' . $this->Frame->primaryKey => $id));
-		$frame = $this->Frame->find('first', $options);
+		$conditions = array('Frame.' . $this->Frame->primaryKey => $id);
+		$cond = $this->allowedFrameCondition();
+		if ($cond) $conditions = array_merge($conditions, $cond);
+		$frame = $this->Frame->find('first', array('conditions' => $conditions));
+		if (!$frame) throw new UnauthorizedException(__('Insufficient Privileges'));
 		$this->set(array(
 			'frame' => $frame,
 			'_serialize' => array('frame')

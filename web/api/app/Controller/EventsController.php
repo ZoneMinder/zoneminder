@@ -35,6 +35,27 @@ class EventsController extends AppController {
    * @return void
    * This also creates a thumbnail for each event.
    */
+  // Events of monitors the user may view: a condition on Event.MonitorId, or '' when
+  // the user is not restricted to specific monitors. Mirrors index()/view().
+  private function allowedMonitorCondition() {
+    global $user;
+    $allowedMonitors = $user ? preg_split('@,@', $user['MonitorIds'], NULL, PREG_SPLIT_NO_EMPTY) : [];
+    return count($allowedMonitors) ? array('Event.MonitorId' => $allowedMonitors) : '';
+  }
+
+  // Load an event and require the user may view (or edit) its monitor, like archive() does.
+  private function requireEventPermission($id, $for_edit) {
+    require_once __DIR__ .'/../../../includes/Event.php';
+    $this->Event->recursive = -1;
+    $event = $this->Event->find('first', array('conditions' => array('Event.Id' => $id)));
+    if (!$event) throw new NotFoundException(__('Invalid event'));
+    $EventObj = new ZM\Event($event['Event']);
+    if ($for_edit ? !$EventObj->canEdit() : !$EventObj->canView()) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+    }
+    return $event;
+  }
+
   public function index() {
     $this->Event->recursive = -1;
 
@@ -201,6 +222,14 @@ class EventsController extends AppController {
     }
 
     if ( $this->request->is('post') ) {
+      // A user restricted to certain monitors may only add an event on one of them.
+      $data = $this->request->data;
+      $mid = isset($data['Event']['MonitorId']) ? $data['Event']['MonitorId']
+        : (isset($data['MonitorId']) ? $data['MonitorId'] : null);
+      $mon_options = $this->allowedMonitorCondition();
+      if ($mon_options and (($mid === null) or !in_array($mid, $mon_options['Event.MonitorId']))) {
+        throw new UnauthorizedException(__('Insufficient Privileges'));
+      }
       $this->Event->create();
       if ( $this->Event->save($this->request->data) ) {
         return $this->flash(__('The event has been saved.'), array('action' => 'index'));
@@ -226,11 +255,8 @@ class EventsController extends AppController {
       return;
     }
 
+    $this->requireEventPermission($id, true);
     $this->Event->id = $id;
-
-    if ( !$this->Event->exists($id) ) {
-      throw new NotFoundException(__('Invalid event'));
-    }
 
     if ( $this->Event->save($this->request->data) ) {
       $message = 'Saved';
@@ -258,10 +284,8 @@ class EventsController extends AppController {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
     }
+    $this->requireEventPermission($id, true);
     $this->Event->id = $id;
-    if ( !$this->Event->exists() ) {
-      throw new NotFoundException(__('Invalid event'));
-    }
     $this->request->allowMethod('post', 'delete');
     if ( $this->Event->delete() ) {
       //$this->loadModel('Frame');
@@ -301,6 +325,8 @@ class EventsController extends AppController {
     $this->FilterComponent = $this->Components->load('Filter');
     $conditions = $this->FilterComponent->buildFilter($conditions);
     array_push($conditions, $find_conditions);
+    $mon_options = $this->allowedMonitorCondition();
+    if ($mon_options) array_push($conditions, $mon_options);
 
     $results = $this->Event->find('all', array(
       'conditions' => $conditions
@@ -335,6 +361,8 @@ class EventsController extends AppController {
       $conditions = array();
     } 
     array_push($conditions, array("StartDateTime >= DATE_SUB(NOW(), INTERVAL $expr $unit)"));
+    $mon_options = $this->allowedMonitorCondition();
+    if ($mon_options) array_push($conditions, $mon_options);
     $query = $this->Event->find('all', array(
       'fields' => array('MonitorId', 'COUNT(*) AS Count'),
       'conditions' => $conditions,

@@ -93,12 +93,25 @@ require ZoneMinder::Database;
 	my $dbh = ZoneMinder::Database::zmDbConnect();
   die "Unable to connect to DB. ZM Cannot continue.\n" if !$dbh;
 
-  my $sql = 'SELECT Name,Value FROM Config';
+  my $sql = 'SELECT Name,Value,Type FROM Config';
   my $sth = $dbh->prepare_cached($sql) or croak("Can't prepare '$sql': ".$dbh->errstr());
   my $res = $sth->execute() or croak("Can't execute: ".$sth->errstr());
   while ( my $config = $sth->fetchrow_hashref() ) {
-    # If already defined skip it because we want the values in /etc/zm.conf to override the values in Config Table
-    next if exists $Config{$config->{Name}};
+    # A value from zm.conf or conf.d is set by the owner of the box, so it wins over the
+    # Config table. A boolean may be written yes/no, true/false or on/off there; same
+    # rule as ConfigFileValue() in src/zm_config.cpp and configFileValue() in PHP.
+    if ( exists $Config{$config->{Name}} ) {
+      if ( $config->{Type} eq 'boolean' ) {
+        my $word = lc($Config{$config->{Name}});
+        $word =~ s/^\s+|\s+$//g;
+        if ( $word eq 'yes' or $word eq 'true' or $word eq 'on' ) {
+          $Config{$config->{Name}} = 1;
+        } elsif ( $word eq 'no' or $word eq 'false' or $word eq 'off' ) {
+          $Config{$config->{Name}} = 0;
+        }
+      }
+      next;
+    }
     $Config{$config->{Name}} = $config->{Value};
   }
   $sth->finish();

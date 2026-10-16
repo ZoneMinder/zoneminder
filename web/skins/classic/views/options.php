@@ -263,10 +263,14 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
           } else {
             // Options set in zm.conf or conf.d belong to the system owner and win over the database
             // everywhere, so they are shown with the value in effect and can't be changed here.
-            // Their Config row is left as is.
+            // Their Config row is left as is. A secret set in a file never reaches the browser:
+            // a placeholder stands in for it, so the masked input still shows as set.
             $fileConfig = loadConfigFiles();
             foreach ($fileConfig as $fileName => $fileEntry) {
-              if (isset($config[$fileName]))
+              if (!isset($config[$fileName])) continue;
+              if (!empty($config[$fileName]['Private']) || $config[$fileName]['Type'] == 'password')
+                $config[$fileName]['Value'] = '<set in config file>';
+              else
                 $config[$fileName]['Value'] = configFileValue($fileEntry['Value'], $config[$fileName]['Type']);
             }
             foreach ($configCats[$tab] as $name=>$value) {
@@ -274,6 +278,7 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
               $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]['Prompt']:$value['Prompt'];
               $fileSet = isset($fileConfig[$name]);
               $optionCanEdit = $canEdit && !$value['System'] && !$fileSet;
+              $secret = !empty($value['Private']) || $value['Type'] == 'password';
               // A Private value (ZM_AUTH_HASH_SECRET and other credentials) is only for
               // those who may change it: System=View can read this page, and the auth
               // secret alone is enough to sign an admin token. refs GHSA-7g3f-93q8-fhwj
@@ -352,9 +357,14 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
                 echo '<input type="text" class="form-control-sm" id="'.$name.'" name="newConfig['.$name.']" value="'.validHtmlStr($value['Value']).'" '.($optionCanEdit?'':' disabled="disabled"' ).'/>'.PHP_EOL;
               } else if ( $value['Type'] == 'decimal' ) {
                 echo '<input type="text" class="form-control-sm" id="'.$name.'" name="newConfig['.$name.']" value="'.validHtmlStr($value['Value']).'" '.($optionCanEdit?'':' disabled="disabled"' ).'/>'.PHP_EOL;
-              } else if ( $value['Type'] == 'password' ) {
-                echo '<input type="password" class="form-control-sm" id="'.$name.'" name="newConfig['.$name.']" value="'.validHtmlStr($value['Value']).'" '.($optionCanEdit?'':' disabled="disabled"' ).'/>'.PHP_EOL;
-                echo '<span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="'.$name.'">visibility</span>';
+              } else if ($secret) {
+                // Password options and Private ones such as ZM_AUTH_HASH_SECRET are masked, with a
+                // toggle to show the value; none for a file's placeholder, or for an empty value the
+                // user can't edit. new-password stops the browser filling in a saved login password,
+                // which a save would then store as this option.
+                echo '<input type="password" class="form-control-sm" id="'.$name.'" name="newConfig['.$name.']" value="'.validHtmlStr($value['Value']).'" autocomplete="new-password" '.($optionCanEdit?'':' disabled="disabled"' ).'/>'.PHP_EOL;
+                if (!$fileSet && ($optionCanEdit || $value['Value'] !== ''))
+                  echo '<span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="'.$name.'">visibility</span>';
               } else {
                 echo '<input type="text" class="form-control-sm" id="'.$name.'" name="newConfig['.$name.']" value="'.validHtmlStr($value['Value']).'" '.($optionCanEdit?'':' disabled="disabled"' ).'/>'.PHP_EOL;
               }
@@ -362,7 +372,8 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
                 echo '<p class="form-text">'.translate('PrivateValueHidden').'</p>'.PHP_EOL;
               }
               if ($fileSet) {
-                echo '<p class="form-text text-warning font-weight-bold optionfileset">'.validHtmlStr(sprintf(translate('OptionSetInConfigFile'), $fileConfig[$name]['File'])).'</p>'.PHP_EOL;
+                $fileText = $secret ? 'OptionSetInConfigFileHidden' : 'OptionSetInConfigFile';
+                echo '<p class="form-text text-warning font-weight-bold optionfileset">'.validHtmlStr(sprintf(translate($fileText), $fileConfig[$name]['File'])).'</p>'.PHP_EOL;
               }
 ?>
                 <span class="form-text"><?php echo validHtmlStr($optionPromptText); echo makeHelpLink($name) ?></span>

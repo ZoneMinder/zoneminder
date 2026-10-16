@@ -56,6 +56,7 @@
 $SLANG = array(
     'PrivateValueHidden'    => 'This value is private and is shown only to users who can edit System settings.',
     'OptionSetInConfigFile' => 'Set by the system owner in %s.',
+    'OptionSetInConfigFileHidden' => 'Set by the system owner in %s. The value is not shown.',
     'SystemLog'             => 'System Log',
     'DateTime'              => 'Date/Time',
     'DiskSpace'             => 'Disk Space',

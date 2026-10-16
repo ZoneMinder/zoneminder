@@ -48,6 +48,10 @@ file it comes from. The value saved in the database is kept and applies again on
 removed from the file. The web interface reads the files on every request; the scripts and daemons
 read them when they start, so restart ZoneMinder after changing a file.
 
+Secrets such as ``ZM_AUTH_HASH_SECRET`` are masked on the Options page, with a toggle to show them
+to users who can edit System settings. A secret set in a file is never sent to the browser: the
+page shows it as set, masked, without the toggle.
+
 Timezone Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
 Earlier versions of ZoneMinder relied on ``php.ini`` to set Date/Time Zone. This is no longer the case. You can (and must) set the Timezone via the Web UI, starting ZoneMinder version 1.34. See :ref:`here <timezone_config>`.

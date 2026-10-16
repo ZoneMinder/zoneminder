@@ -901,6 +901,12 @@ function exportEvents(
     ZM\Fatal('Can\'t create exports dir at \''.ZM_DIR_EXPORTS.'\'');
   }
   chmod(ZM_DIR_EXPORTS, 0700);
+  // These come from the request and end up in file paths and shell commands, so only
+  // word characters, '-' and '.' are kept.
+  $export_root = preg_replace('/[^\w\-.]/', '', $export_root);
+  if (empty($export_root)) $export_root = 'zmExport';
+  $connkey = preg_replace('/[^\w\-.]/', '', $connkey);
+
   $export_dir = ZM_DIR_EXPORTS.'/'.$export_root.($connkey?'_'.$connkey:'');
 
   # Ensure that we are going to be able to do this.
@@ -938,9 +944,9 @@ function exportEvents(
      #if ( preg_match('/\.html$/', $file) )
         #continue;
       if ($exportStructure == 'flat') {
-        $cmd = 'cp -as '.$event->Path().'/'.$file.' '.$export_dir.'/'.$event->Id().'_'.$file. ' 2>&1';
+        $cmd = 'cp -as '.escapeshellarg($event->Path().'/'.$file).' '.escapeshellarg($export_dir.'/'.$event->Id().'_'.$file). ' 2>&1';
       } else {
-        $cmd = 'cp -as '.$event->Path().'/'.$file.' '.$export_dir.'/'.$event->Id().'/'.$file. ' 2>&1';
+        $cmd = 'cp -as '.escapeshellarg($event->Path().'/'.$file).' '.escapeshellarg($export_dir.'/'.$event->Id().'/'.$file). ' 2>&1';
       }
       exec($cmd, $output, $return);
       ZM\Debug($cmd.' return code: '.$return.' output: '.print_r($output,true));
@@ -1011,7 +1017,7 @@ function exportEvents(
   } // if $exportFormat
 
   @unlink($archive_path);
-  $command .= ' '.$export_root.($connkey?'_'.$connkey:'').'/';
+  $command .= ' '.escapeshellarg($export_root.($connkey?'_'.$connkey:'').'/');
   ZM\Debug($command);
   exec($command, $output, $status);
   if ($status) {

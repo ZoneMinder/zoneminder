@@ -84,7 +84,7 @@ if ( canView('Events') or canView('Snapshots') ) {
     $exportIds = !empty($_REQUEST['eids']) ? $_REQUEST['eids'] : $_REQUEST['id'];
     if ($exportFile = exportEvents(
       $exportIds,
-      (isset($_REQUEST['connkey'])?$_REQUEST['connkey']:''),
+      preg_replace('/[^\w\-.]/', '', isset($_REQUEST['connkey']) ? $_REQUEST['connkey'] : ''),
       $exportDetail,
       $exportFrames,
       $exportImages,
@@ -93,7 +93,7 @@ if ( canView('Events') or canView('Snapshots') ) {
       $exportFormat,
       $exportCompress,
       $exportStructure,
-      (!empty($_REQUEST['exportFile'])?$_REQUEST['exportFile']:'zmExport')
+      (!empty($_REQUEST['exportFile']) ? preg_replace('/[^\w\-.]/', '', $_REQUEST['exportFile']) : 'zmExport')
     )) {
       ajaxResponse(array('exportFile'=>$exportFile));
     } else {
@@ -108,7 +108,7 @@ if ( canView('Events') or canView('Snapshots') ) {
     $exportIds = !empty($_REQUEST['eids'])?$_REQUEST['eids']:$_REQUEST['id'];
     if ( $exportFile = exportEvents(
       $exportIds,
-      (isset($_REQUEST['connkey'])?$_REQUEST['connkey']:''),
+      preg_replace('/[^\w\-.]/', '', isset($_REQUEST['connkey']) ? $_REQUEST['connkey'] : ''),
       false,#detail
       false,#frames
       false,#images
@@ -121,7 +121,7 @@ if ( canView('Events') or canView('Snapshots') ) {
     ajaxResponse(array(
       'exportFile'=>$exportFile,
       'exportFormat'=>$exportFormat,
-      'connkey'=>(isset($_REQUEST['connkey'])?$_REQUEST['connkey']:'')
+      'connkey'=>preg_replace('/[^\w\-.]/', '', isset($_REQUEST['connkey']) ? $_REQUEST['connkey'] : '')
     ));
     } else {
       ajaxError('Export Failed');

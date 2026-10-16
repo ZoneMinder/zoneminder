@@ -620,6 +620,7 @@ $SLANG = array(
     'PanRight'              => 'Pan Right',
     'PanTilt'               => 'Pan/Tilt',
     'ParentGroup'           => 'Parent Group',
+    'PasswordTooShort'      => 'The new password must have at least %d characters.',
     'PasswordsDifferent'    => 'The new and confirm passwords are different',
     'Password'              => 'Password',
     'PathToIndex'           => 'Path To Index',

@@ -20,7 +20,7 @@ First Run
 
 On a new install the first page ZoneMinder shows is :guilabel:`Set up ZoneMinder`, which asks whether ZoneMinder should require a login:
 
-* **Require a login (recommended):** choose a password for the **admin** account and click :guilabel:`Set password and continue`. ZoneMinder logs you in as admin. You can add users with their own permissions later, see :doc:`/userguide/options/options_users`.
+* **Require a login (recommended):** choose a password for the **admin** account (at least 8 characters unless **PASSWORD_MIN_LENGTH** says otherwise) and click :guilabel:`Set password and continue`. ZoneMinder logs you in as admin. You can add users with their own permissions later, see :doc:`/userguide/options/options_users`.
 * **Don't require a login:** click :guilabel:`Continue without a login`. Anyone who can reach the server, including any web page opened in a browser on the same network, can then view and control every camera and change every setting. Choose this only where access to the server is limited in other ways. You can turn logins on later, see `Enabling Authentication`_.
 
 Until one of them is chosen, the web interface, the API and camera streams can't be used, and whoever opens the page first makes the choice, so open it yourself right after installing. When ``ZM_OPT_USE_AUTH`` is set in ``zm.conf`` or ``conf.d`` (see :doc:`/userguide/configfiles`), the system owner has already decided: with it on the page only asks for the admin password, with it off the page doesn't appear. The privacy and telemetry page follows.

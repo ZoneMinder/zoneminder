@@ -292,6 +292,21 @@ our @options = (
     category    => 'auth',
   },
   {
+    name        => 'ZM_PASSWORD_MIN_LENGTH',
+    default     => '8',
+    description => 'Minimum length of a new password',
+    help        => q`
+      A password set from now on, on the user page, through the API or
+      at login, must have at least this many characters. Existing
+      passwords keep working. Length does more for a password than
+      rules about character classes, which lead people to predictable
+      variations, so there is no setting for those. 0 turns the check
+      off; the password admin is refused whatever this says.
+      `,
+    type        => $types{integer},
+    category    => 'auth',
+  },
+  {
     name        => 'ZM_AUTH_TYPE',
     default     => 'builtin',
     description => 'What is used to authenticate ZoneMinder users',

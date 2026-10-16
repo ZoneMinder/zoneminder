@@ -119,18 +119,29 @@ function isDefaultPasswordChangePost() {
 function passwordProblem($password) {
   if (!is_string($password) or ($password === '')) return 'NewPasswordRequired';
   if (isDefaultPassword($password)) return 'NewPasswordIsDefault';
+  if (mb_strlen($password, 'UTF-8') < passwordMinLength()) return 'PasswordTooShort';
   return null;
+}
+
+// ZM_PASSWORD_MIN_LENGTH, or 0 on a database that doesn't have the option yet.
+function passwordMinLength() {
+  return defined('ZM_PASSWORD_MIN_LENGTH') ? max(0, intval(ZM_PASSWORD_MIN_LENGTH)) : 0;
 }
 
 // passwordProblem()'s answer as text. The API loads no language file, so it
 // gets the English.
 function passwordProblemText($problem) {
-  if (function_exists('translate')) return translate($problem);
   $english = array(
     'NewPasswordRequired' => 'Enter a new password.',
     'NewPasswordIsDefault' => 'The new password must not be admin.',
+    'PasswordTooShort' => 'The new password must have at least %d characters.',
   );
-  return isset($english[$problem]) ? $english[$problem] : $problem;
+  if (function_exists('translate')) {
+    $text = translate($problem);
+  } else {
+    $text = isset($english[$problem]) ? $english[$problem] : $problem;
+  }
+  return ($problem === 'PasswordTooShort') ? sprintf($text, passwordMinLength()) : $text;
 }
 
 // passwordProblem() for a form that asks for the new password twice.

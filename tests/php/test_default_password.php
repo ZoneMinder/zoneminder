@@ -23,6 +23,7 @@ foreach (array(
   '/^function isDefaultPassword\(.*?^}$/ms',
   '/^function passwordProblem\(.*?^}$/ms',
   '/^function passwordProblemText\(.*?^}$/ms',
+  '/^function passwordMinLength\(.*?^}$/ms',
   '/^function newPasswordProblem\(.*?^}$/ms',
   '/^function requestString\(.*?^}$/ms',
   '/^function isDefaultPasswordChangePost\(.*?^}$/ms',
@@ -72,6 +73,18 @@ check('empty', passwordProblem(''), 'NewPasswordRequired');
 check('array (user[Password][]=x)', passwordProblem(array('x')), 'NewPasswordRequired');
 check('API text without a language file', passwordProblemText('NewPasswordIsDefault'), 'The new password must not be admin.');
 check('API text, unknown key', passwordProblemText('Other'), 'Other');
+
+echo "ZM_PASSWORD_MIN_LENGTH\n";
+check('option missing (upgrade without zmupdate -f): no minimum', passwordMinLength(), 0);
+check('option missing: a short password is fine', passwordProblem('abc'), null);
+define('ZM_PASSWORD_MIN_LENGTH', '8');
+check('minimum 8', passwordMinLength(), 8);
+check('7 characters', passwordProblem('abcdefg'), 'PasswordTooShort');
+check('8 characters', passwordProblem('abcdefgh'), null);
+check('8 characters, multibyte', passwordProblem('ééééèèèè'), null);
+check('admin is still the reason for admin', passwordProblem('admin'), 'NewPasswordIsDefault');
+check('API text has the number', passwordProblemText('PasswordTooShort'), 'The new password must have at least 8 characters.');
+check('form: too short after a matching confirmation', newPasswordProblem('short', 'short'), 'PasswordTooShort');
 
 echo "newPasswordProblem\n";
 check('a new password that matches its confirmation', newPasswordProblem('n3w-pass', 'n3w-pass'), null);

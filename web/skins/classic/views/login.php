@@ -27,7 +27,7 @@ if ( defined('ZM_OPT_USE_AUTH') and ZM_OPT_USE_AUTH ) {
         <h1><i class="material-icons md-36">settings</i> <?php echo translate('FirstRunTitle') ?></h1>
         <p><?php echo translate('FirstRunIntro') ?></p>
 <?php if (!empty($firstRunProblem)) { ?>
-        <div id="firstRunProblem" class="alarm" role="alert"><?php echo translate($firstRunProblem) ?></div>
+        <div id="firstRunProblem" class="alarm" role="alert"><?php echo passwordProblemText($firstRunProblem) ?></div>
 <?php } ?>
         <form name="firstRunAuthOnForm" id="firstRunAuthOn" method="post" action="?view=login">
           <input type="hidden" name="action" value="setup"/>
@@ -38,7 +38,7 @@ if ( defined('ZM_OPT_USE_AUTH') and ZM_OPT_USE_AUTH ) {
           <p><?php echo translate('FirstRunAuthOnText') ?></p>
           <p><?php echo translate('Username').': '.validHtmlStr($firstRunAccount->Username()) ?></p>
           <label for="inputNewPassword"><?php echo translate('NewPassword') ?></label>
-          <input type="password" id="inputNewPassword" name="new_password" class="form-control" placeholder="<?php echo translate('NewPassword') ?>" required autofocus autocomplete="new-password"/>
+          <input type="password" id="inputNewPassword" name="new_password" minlength="<?php echo passwordMinLength() ?>" class="form-control" placeholder="<?php echo translate('NewPassword') ?>" required autofocus autocomplete="new-password"/>
           <label for="inputNewPasswordConfirm"><?php echo translate('ConfirmPassword') ?></label>
           <input type="password" id="inputNewPasswordConfirm" name="new_password_confirm" class="form-control" placeholder="<?php echo translate('ConfirmPassword') ?>" required autocomplete="new-password"/>
           <button class="btn btn-lg btn-primary btn-block mt-2" type="submit"><?php echo translate('FirstRunSetPassword') ?></button>
@@ -72,14 +72,14 @@ if ( defined('ZM_OPT_USE_AUTH') and ZM_OPT_USE_AUTH ) {
         <h1><i class="material-icons md-36">account_circle</i> <?php echo validHtmlStr(ZM_WEB_TITLE) . ' ' . translate('Login') ?></h1>
         <div id="passwordChangeRequired" class="alarm" role="alert"><?php echo translate('DefaultPasswordChange') ?></div>
 <?php if ($defaultPasswordChange['problem']) { ?>
-        <div id="passwordChangeProblem" class="alarm" role="alert"><?php echo translate($defaultPasswordChange['problem']) ?></div>
+        <div id="passwordChangeProblem" class="alarm" role="alert"><?php echo passwordProblemText($defaultPasswordChange['problem']) ?></div>
 <?php } ?>
         <p><?php echo translate('Username').': '.validHtmlStr($defaultPasswordChange['username']) ?></p>
 
         <label for="inputPassword"><?php echo translate('Password') ?></label>
         <input type="password" id="inputPassword" name="password" class="form-control" placeholder="<?php echo translate('Password') ?>" required autocomplete="current-password"/>
         <label for="inputNewPassword"><?php echo translate('NewPassword') ?></label>
-        <input type="password" id="inputNewPassword" name="new_password" class="form-control" placeholder="<?php echo translate('NewPassword') ?>" required autofocus autocomplete="new-password"/>
+        <input type="password" id="inputNewPassword" name="new_password" minlength="<?php echo passwordMinLength() ?>" class="form-control" placeholder="<?php echo translate('NewPassword') ?>" required autofocus autocomplete="new-password"/>
         <label for="inputNewPasswordConfirm"><?php echo translate('ConfirmPassword') ?></label>
         <input type="password" id="inputNewPasswordConfirm" name="new_password_confirm" class="form-control" placeholder="<?php echo translate('ConfirmPassword') ?>" required autocomplete="new-password"/>
         <button class="btn btn-lg btn-primary btn-block mt-2" type="submit"><?php echo translate('Save') ?></button>

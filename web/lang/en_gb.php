@@ -656,12 +656,14 @@ $SLANG = array(
     <li>Manufacturer</li>
     <li>Model</li>
     <li>Type</li>
-    <li>Function</li>
+    <li>Capturing, Analysing and Recording</li>
+    <li>Source path, with the user name, password and host removed</li>
     <li>Width</li>
     <li>Height</li>
     <li>Colours</li>
     <li>MaxFPS</li>
     <li>AlarmMaxFPS</li>
+    <li>Whether Janus, Go2RTC, RTSP2Web and the RTSP server are enabled</li>
    </ul>',
     'PrivacyConclusionText' => 'We are <u>NOT</u> collecting any image specific data from your cameras. We don’t know what your cameras are watching. This data will not be sold or used for any purpose not stated herein. By clicking accept, you agree to send us this data to help make ZoneMinder a better product. By clicking decline, you can still freely use ZoneMinder and all its features.',
     'Probe'                 => 'Probe',

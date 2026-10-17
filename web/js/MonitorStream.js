@@ -233,13 +233,7 @@ function MonitorStream(monitorData) {
     if (-1 != p.indexOf('go2rtc')) {
 
     } else if (-1 != p.indexOf('rtsp2web')) {
-      if (-1 != p.indexOf('_hls')) {
-        this.RTSP2WebType = 'HLS';
-      } else if (-1 != p.indexOf('_mse')) {
-        this.RTSP2WebType = 'MSE';
-      } else if (-1 != p.indexOf('_webrtc')) {
-        this.RTSP2WebType = 'WebRTC';
-      }
+      this.setRTSP2WebType(p);
     } else if (-1 != p.indexOf('janus')) {
 
     }
@@ -255,6 +249,16 @@ function MonitorStream(monitorData) {
     return this.player = p;
   };
 
+  this.setRTSP2WebType = function(player) {
+    if (-1 != player.indexOf('_hls')) {
+      this.RTSP2WebType = 'HLS';
+    } else if (-1 != player.indexOf('_mse')) {
+      this.RTSP2WebType = 'MSE';
+    } else if (-1 != player.indexOf('_webrtc')) {
+      this.RTSP2WebType = 'WebRTC';
+    }
+  };
+
   this.manageAvailablePlayersOptions = function(action, opt) {
     if (action == 'disable') {
       opt.setAttribute('disabled', '');
@@ -265,7 +269,7 @@ function MonitorStream(monitorData) {
     }
   };
 
-  this.manageAvailablePlayers = function() {
+  this.manageAvailablePlayers = function(candidate = '') {
     const selectPlayers = document.querySelector('[id="player"][name="codec"]');
     const opts = selectPlayers.options;
 
@@ -290,13 +294,12 @@ function MonitorStream(monitorData) {
         }
       }
     }
-    let selectedPlayerOption = selectPlayers.options[selectPlayers.selectedIndex];
+    let selectedPlayerOption = opts[selectPlayers.selectedIndex];
     if (selectedPlayerOption) {
       if (selectedPlayerOption.value == '') {
         // Perhaps "Auto" is left from the previous monitor, we will change it according to the cookies.
-        const zmWatchPlayer = getCookie('zmWatchPlayer');
-        if (zmWatchPlayer) {
-          selectPlayers.value = zmWatchPlayer;
+        if (candidate !== "" && candidate !== undefined && candidate !== null) {
+          selectPlayers.value = candidate;
           selectedPlayerOption = selectPlayers.options[selectPlayers.selectedIndex];
         }
       }
@@ -305,7 +308,7 @@ function MonitorStream(monitorData) {
         selectPlayers.value = ''; // Auto
       }
     }
-    this.player = selectPlayers.value;
+    this.setPlayer(selectPlayers.value);
   };
 
   this.element = null;
@@ -1999,6 +2002,9 @@ function MonitorStream(monitorData) {
         this.kill();
         return;
       }
+      if (!this.RTSP2WebType) { // This could happen, for example, on the Zones page, where `setPlayer` is not executed.
+        this.setRTSP2WebType(this.player);
+      }
       if (-1 !== this.player.indexOf('hls')) {
         const hlsUrl = rtsp2webModUrl;
         hlsUrl.pathname = "/stream/" + this.id + "/channel/" + numericChannel + "/hls/live/index.m3u8";
@@ -2009,6 +2015,12 @@ function MonitorStream(monitorData) {
           hlsUrl = "http://" + rtsp2webModUrl + "/stream/" + this.id + "/channel/0/hls/live/index.m3u8";
         }
         */
+        if (typeof Hls === 'undefined') {
+          console.warn("The HLS library is not loaded");
+          this.streamErrorRegistration(true);
+          this.restart(this.currentChannelStream);
+          return;
+        }
         if (Hls.isSupported()) {
           // Save the playback session ID so asynchronous HLS callbacks
           // can ignore events from obsolete playback sessions.
@@ -2295,7 +2307,7 @@ function MonitorStream(monitorData) {
     if ((currentPlayer && countErrors === 0) || (this.selectedPlayer && this.selectedPlayer === currentPlayer)) { // selectedPlayer pins only when it matches the active selection
       if (this.Go2RTCEnabled && (-1 !== currentPlayer.indexOf('go2rtc'))) {
         this.select_go2rtc(streamChannel);
-      } else if (this.janusEnabled && (-1 !== currentPlayer.indexOf('janus')) && (streamChannel.toLowerCase().indexOf("primary") > -1 || currentView == 'montage') && this.selectedPlayer !== 'go2rtc') { // To avoid confusion, since Janus can only work with the first channel & selectedPlayer !== "Go2RTC Auto"
+      } else if (this.janusEnabled && (-1 !== currentPlayer.indexOf('janus')) && (streamChannel.toLowerCase().indexOf("primary") > -1 || currentView == 'montage' || currentView == 'zone') && this.selectedPlayer !== 'go2rtc') { // To avoid confusion, since Janus can only work with the first channel & selectedPlayer !== "Go2RTC Auto"
         this.select_janus(streamChannel);
       } else if (this.RTSP2WebEnabled && (-1 !== currentPlayer.indexOf('rtsp2web')) && this.selectedPlayer !== 'go2rtc') {
         this.select_rtsp2web(streamChannel);

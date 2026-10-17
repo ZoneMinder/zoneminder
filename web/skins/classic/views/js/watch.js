@@ -890,8 +890,7 @@ function handleMouseLeave(event) {
 function streamStart(monitor = null) {
   monitorStream = new MonitorStream(monitor ? monitor : monitorData[monIdx]);
 
-  monitorStream.manageAvailablePlayers();
-  monitorStream.setPlayer($j('#player').val());
+  monitorStream.manageAvailablePlayers(getCookie('zmWatchPlayer'));
   monitorStream.setBottomElement(document.getElementById('bottomBlock'));
   const cookieMuted = getCookie('zmWatchMuted');
   monitorStream.muted = (cookieMuted === null || cookieMuted === 'true') ? true : false; // default to muted
@@ -1459,7 +1458,7 @@ function changePlayer() {
 
   monitorStream.destroyVolumeSlider();
   streamCmdStop(); // takes care of button state and calls stream.kill()
-  monitorStream.setPlayer($j('#player').val());
+  monitorStream.setPlayer(player);
   setChannelStream();
   setTimeout(function() {
     streamCmdPlay(true);

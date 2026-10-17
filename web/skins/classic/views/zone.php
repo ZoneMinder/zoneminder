@@ -419,6 +419,11 @@ if ($monitor->JanusEnabled()) {
 if ($monitor->Go2RTCEnabled()) {
   echo '<script type="module" src="js/video-stream.js"></script>'.PHP_EOL;
 }
+if ($monitor->Go2RTCEnabled() || $monitor->RTSP2WebEnabled()) {
+?>
+  <script src="<?php echo cache_bust('js/hls-1.6.13/hls.min.js') ?>"></script>
+<?php
+}
 ?>
   <script src="<?php echo cache_bust('js/MonitorStream.js') ?>"></script>
   <script src="<?php echo cache_bust('skins/classic/views/js/zone-object-size.js') ?>"></script>

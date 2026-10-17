@@ -19,6 +19,8 @@
 //
 #include "zm_eventstream.h"
 
+#include <cstdint>
+
 #include "zm_db.h"
 #include "zm_image.h"
 #include "zm_logger.h"

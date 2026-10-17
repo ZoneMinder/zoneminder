@@ -99,7 +99,7 @@ const imagePrefix = '<?php echo '?view=image&eid=' ?>';
 
 // The page's one copy of the authentication credential. ZMAuth derives the bare
 // hash from the relay, so the two can never disagree; see web/js/auth-helpers.js.
-var zmAuth = new ZMAuth('<?php echo get_auth_relay() ?>');
+var zmAuth = new ZMAuth(<?php echo json_encode(get_auth_relay()) ?>);
 var user = <?php echo $user ? json_encode($user->expose(['Password'])) : '{}'; ?>;
 var running = <?php echo daemonCheck()?'true':'false' ?>;
 
@@ -149,6 +149,9 @@ if ($user) {
   // Only include config if logged in or auth turned off. The login view doesn't require any config.
   global $zm_config;
   foreach ($zm_config as $name=>$c) {
+    // A password option is never exported, whatever its Private flag says: a table made
+    // from an older zm_create.sql has every flag 0 until zmupdate.pl repairs it.
+    if (isset($c['Type']) and ($c['Type'] == 'password')) continue;
     if (empty($c['Private'])) {
       if (empty($c['Value'])) {
         echo 'const '. $name . ' = \'\';'.PHP_EOL;

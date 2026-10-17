@@ -973,6 +973,11 @@ if ( $version ) {
   #my $res = $sth->execute( ) or die( "Can't execute: ".$sth->errstr() );
   #$sth->finish();
   
+  # Older zm_create.sql left every option's Private and System flag 0, and only -f
+  # rewrote them, so a database created that way exposed its Private options.
+  my $flags = ZoneMinder::Config::syncConfigFlags();
+  print("Updated the Private/System flags of $flags options.\n") if $flags;
+
   print("\nDatabase upgrade to version ".ZM_VERSION." successful.\n\n");
   if ( $start_zm ) {
     print("Starting ZM since we stopped it for the update\n");

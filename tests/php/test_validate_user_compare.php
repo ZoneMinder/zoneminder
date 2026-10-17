@@ -10,9 +10,11 @@
 //
 // Run: php tests/php/test_validate_user_compare.php
 //
-// Including auth.php needs a database, so validateUser() and password_type()
+// Including auth.php needs a database, so validateUser() and the functions and
+// constants it calls (password_type(), isDefaultPassword(), ZM_DEFAULT_PASSWORD*)
 // are lifted out of the file, as test_auth_request_string.php does, and
-// evaluated in a namespace where the database and logger are stubs.
+// evaluated in a namespace where the database and logger are stubs. Whatever
+// validateUser() starts calling must be lifted here too.
 
 namespace ValidateUserTest\ZM {
   class User {
@@ -35,7 +37,14 @@ namespace {
     echo "FAIL could not read auth.php\n";
     exit(1);
   }
-  foreach (array('password_type', 'validateUser') as $fn) {
+  foreach (array('ZM_DEFAULT_PASSWORD', 'ZM_DEFAULT_PASSWORD_REFUSED') as $const) {
+    if (!preg_match("/^define\\('$const', .*?\\);$/m", $auth_src, $matches)) {
+      echo "FAIL $const not found in auth.php\n";
+      exit(1);
+    }
+    eval($matches[0]);
+  }
+  foreach (array('password_type', 'isDefaultPassword', 'validateUser') as $fn) {
     if (!preg_match('/^function '.$fn.'\(.*?^}/ms', $auth_src, $matches)) {
       echo "FAIL $fn() not found in auth.php\n";
       exit(1);
@@ -81,6 +90,18 @@ namespace {
   $bcrypt = password_hash('secret', PASSWORD_BCRYPT);
   check('bcrypt: the right password is accepted', accepts($bcrypt, 'secret'), true);
   check('bcrypt: a wrong password is refused', accepts($bcrypt, 'nope'), false);
+
+  // The documented default password is refused even when it matches, with
+  // its own message (the login page then asks for a new one).
+  $GLOBALS['row'] = array('Id' => 1, 'Username' => 'admin', 'Password' => 'admin');
+  $ret = ValidateUserTest\validateUser('admin', 'admin');
+  check('default: plain "admin" is refused', $ret[0], false);
+  check('default: with its own message', $ret[1], ZM_DEFAULT_PASSWORD_REFUSED);
+  $GLOBALS['row'] = array('Id' => 1, 'Username' => 'admin', 'Password' => '*'.strtoupper(sha1(sha1('admin', true))));
+  check('default: MySQL-hashed "admin" is refused', ValidateUserTest\validateUser('admin', 'admin')[1],
+        ZM_DEFAULT_PASSWORD_REFUSED);
+  check('default: a wrong password still reads as one', ValidateUserTest\validateUser('admin', 'nope')[1],
+        'Invalid username or password');
 
   // No such user.
   $GLOBALS['row'] = null;

@@ -154,7 +154,6 @@ bool ONVIFIsActionNotSupported(int result, const char *subcode, const char *faul
 
 ONVIF::ONVIF(Monitor *parent_) :
   parent(parent_)
-  ,alarmed_(false)
   ,healthy_(false)
   ,closes_event(false)
   ,soap(nullptr)
@@ -725,7 +724,7 @@ void ONVIF::WaitForMessage() {
               // Camera reports an existing alarm we didn't know about
               Debug(2, "ONVIF Syncing with camera: alarm is already active for topic: %s", last_topic.c_str());
               alarms[last_topic] = AlarmEntry{last_value, alarm_termination(last_topic)};
-              if (!isAlarmed()) {
+              if (!alarm_.active()) {
                 setAlarmed(true);
                 Info("ONVIF Alarm already active on subscription (Initialized): %s", last_topic.c_str());
               }
@@ -765,7 +764,7 @@ void ONVIF::WaitForMessage() {
               Info("ONVIF Alarm On (Changed to active): topic=%s value=%s", last_topic.c_str(), last_value.c_str());
               if (alarms.count(last_topic) == 0) {
                 alarms[last_topic] = AlarmEntry{last_value, alarm_termination(last_topic)};
-                if (!isAlarmed()) {
+                if (!alarm_.active()) {
                   Info("ONVIF Triggered Start Event on topic: %s", last_topic.c_str());
                   setAlarmed(true);
                 }
@@ -789,7 +788,7 @@ void ONVIF::WaitForMessage() {
             } else {
               if (alarms.count(last_topic) == 0) {
                 alarms[last_topic] = AlarmEntry{last_value, alarm_termination(last_topic)};
-                if (!isAlarmed()) {
+                if (!alarm_.active()) {
                   setAlarmed(true);
                 }
               } else {
@@ -1823,7 +1822,6 @@ void ONVIF::SetNoteSet(Event::StringSet &noteSet) {
 
 ONVIF::ONVIF(Monitor *parent_) :
   parent(parent_)
-  ,alarmed_(false)
   ,healthy_(false)
   ,closes_event(false)
 {

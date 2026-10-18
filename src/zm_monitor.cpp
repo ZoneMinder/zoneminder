@@ -2172,9 +2172,13 @@ bool Monitor::Analyse() {
         onvif->setNotes(noteSet);
         noteSetMap[MOTION_CAUSE] = noteSet;
         cause += "ONVIF";
-        // If the camera isn't going to send an event close, we need to close it here, but only after it has actually triggered an alarm.
-        //if (!Event_Poller_Closes_Event && state == ALARM)
-        //onvif->setAlarmed(false);
+        // This frame has recorded the alarm, so release the latch. A momentary
+        // alarm (a DetectedSound pulse the camera has already cleared) was held
+        // until a frame sampled it, instead of being missed between two frames
+        // (refs #5301); a still-active alarm stays alarmed for the next frame.
+        // Released only on a frame that scored, so a pulse arriving after the
+        // isAlarmed() check above is kept for the next frame rather than lost.
+        onvif->observeAlarm();
       }  // end ONVIF_Trigger
 #endif
 

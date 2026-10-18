@@ -96,6 +96,39 @@ bool ONVIFIsActionNotSupported(int result, const char *subcode, const char *faul
 // Forward declaration
 class Monitor;
 
+// A level alarm raised by one thread and sampled by a slower one.
+//
+// The ONVIF poll thread raises and clears the alarm as the camera reports a
+// topic active or inactive; the analysis thread samples it once per frame. A
+// momentary alarm -- a DetectedSound pulse that goes active then inactive
+// between two analysis frames -- was raised and cleared on the raw level before
+// any frame sampled it, so the event recorded no alarm frames (refs #5301). A
+// motion alarm stays active for seconds and so was always sampled.
+//
+// raise() marks the level active and remembers that an activation is waiting to
+// be seen. clear() drops the level. observe() is the analysis thread saying it
+// has sampled the alarm. alarmed() stays true from a raise() until the level is
+// down AND the activation has been observed, so a pulse is reported on at least
+// one frame however short it was. observe() while the level is still up is a
+// no-op on the outcome -- it stays alarmed until clear().
+class AlarmLatch {
+ public:
+  void raise()   { active_.store(true, std::memory_order_release);
+                   pending_.store(true, std::memory_order_release); }
+  void clear()   { active_.store(false, std::memory_order_release); }
+  void observe() { pending_.store(false, std::memory_order_release); }
+  bool alarmed() const {
+    return active_.load(std::memory_order_acquire) ||
+           pending_.load(std::memory_order_acquire);
+  }
+  // The raw level, ignoring an unobserved pulse: whether a topic is active now.
+  bool active() const { return active_.load(std::memory_order_acquire); }
+
+ private:
+  std::atomic<bool> active_{false};   // a topic is currently active
+  std::atomic<bool> pending_{false};  // an activation not yet seen by the observer
+};
+
 class ONVIF {
   friend class Monitor;
 
@@ -103,8 +136,11 @@ class ONVIF {
   explicit ONVIF(Monitor *parent_);
   ~ONVIF();
   void start();
-  bool isAlarmed() const { return alarmed_.load(std::memory_order_acquire); }
-  void setAlarmed(bool p_alarmed) { alarmed_.store(p_alarmed, std::memory_order_release); }
+  bool isAlarmed() const { return alarm_.alarmed(); }
+  void setAlarmed(bool p_alarmed) { if (p_alarmed) alarm_.raise(); else alarm_.clear(); }
+  // The analysis thread has sampled isAlarmed(); release the latch so a
+  // momentary pulse clears once it has been seen (refs #5301).
+  void observeAlarm() { alarm_.observe(); }
   bool isHealthy() const { return healthy_.load(std::memory_order_acquire); }
   void setHealthy(bool p_healthy) { healthy_.store(p_healthy, std::memory_order_release); }
 #ifdef WITH_GSOAP
@@ -115,7 +151,7 @@ class ONVIF {
 
  protected:
   Monitor *parent;
-  std::atomic<bool> alarmed_;
+  AlarmLatch alarm_;
   std::atomic<bool> healthy_;
   bool closes_event;
   std::string last_topic;

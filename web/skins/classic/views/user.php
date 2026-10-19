@@ -45,7 +45,7 @@ $nve = array( 'None'=>translate('None'), 'View'=>translate('View'), 'Edit'=>tran
 $nvec = array( 'None'=>translate('None'), 'View'=>translate('View'), 'Edit'=>translate('Edit'), 'Create'=>translate('Create') );
 $inve = array( 'Inherit'=>translate('Inherit'),'None'=>translate('None'), 'View'=>translate('View'), 'Edit'=>translate('Edit') );
 $bandwidths = array_merge( array( ''=>'' ), $bandwidth_options );
-$langs = array_merge( array( ''=>'' ), getLanguages() );
+$langs = array_merge( array( ''=>translate('Default') ), getLanguages() );
 
 
 $focusWindow = true;

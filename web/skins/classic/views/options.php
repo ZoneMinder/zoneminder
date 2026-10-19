@@ -186,13 +186,7 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
     $configCats[$tab]['ZM_BANDWIDTH_DEFAULT']['Hint'] = $bandwidth_options;
 
 // create new multidim array for languages (code1|translation)
-    $languagecodess=join('|', getLanguages());
-    $languagecodelist=explode('|',$languagecodess);
-    $languageslist = array();
-    foreach ($languagecodelist as $language){
-        $languageslist[$language] = translate($language);
-       }
-    $configCats[$tab]['ZM_LANG_DEFAULT']['Hint'] = $languageslist;
+    $configCats[$tab]['ZM_LANG_DEFAULT']['Hint'] = getLanguages();
 
     $configCats[$tab]['ZM_LOCALE_DEFAULT']['Hint'] = array(''=> translate('System Default'));
     $locales = ResourceBundle::getLocales('');

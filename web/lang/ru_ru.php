@@ -324,6 +324,7 @@ $SLANG = array(
     'DateTime'             => 'Дата/Время',              // Added - 2011-06-16
     'Day'                  => 'День',
     'Debug'                => 'Отладка', // Added - 2019-03-25
+    'Default'              => 'По умолчанию',
     'Default Player'       => 'Плеер по умолчанию',
     'DefaultRate'          => 'Скорость по умолчанию',
     'DefaultScale'         => 'Масштаб по умолчанию',

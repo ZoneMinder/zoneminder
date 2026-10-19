@@ -13,6 +13,7 @@
 #   <root>/rpm/master/el/10/{x86_64,aarch64}/
 #   <root>/rpm/master/el/9/{x86_64,aarch64}/
 #   <root>/rpm/master/el/8/{x86_64,aarch64}/
+#   <root>/rpm/master/fedora/45/{x86_64,aarch64}/
 #   <root>/rpm/master/fedora/44/{x86_64,aarch64}/
 #   <root>/rpm/master/fedora/43/{x86_64,aarch64}/
 #
@@ -56,6 +57,7 @@ DISTROS=(
   "el 10"
   "el 9"
   "el 8"
+  "fedora 45"
   "fedora 44"
   "fedora 43"
 )

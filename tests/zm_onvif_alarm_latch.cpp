@@ -121,3 +121,64 @@ TEST_CASE("AlarmLatch re-raise before observe is still reported", "[onvif]") {
   latch.observe();
   REQUIRE_FALSE(latch.alarmed());
 }
+
+TEST_CASE("AlarmLatch minimum hold reports a pulse across several samples", "[onvif]") {
+  // With a hold of 3, a momentary pulse stays alarmed for three samples, so its
+  // scored frames survive the close-on-alarm event split (refs #5301).
+  AlarmLatch latch;
+  latch.set_minimum_hold(3);
+
+  latch.raise();
+  latch.clear();  // ON then OFF before any frame sampled it
+
+  for (int i = 0; i < 3; i++) {
+    REQUIRE(latch.alarmed());  // frames N..N+2 each see the pulse
+    latch.observe();
+  }
+  REQUIRE_FALSE(latch.alarmed());  // frame N+3 does not
+}
+
+TEST_CASE("AlarmLatch minimum hold: active level outlasts a spent hold", "[onvif]") {
+  // An ongoing alarm sampled more times than the hold stays alarmed on the raw
+  // level; only clear() ends it.
+  AlarmLatch latch;
+  latch.set_minimum_hold(2);
+
+  latch.raise();
+  latch.observe();
+  latch.observe();
+  latch.observe();  // hold spent, but the topic is still active
+  REQUIRE(latch.alarmed());
+  REQUIRE(latch.active());
+
+  latch.clear();
+  REQUIRE_FALSE(latch.alarmed());
+}
+
+TEST_CASE("AlarmLatch minimum hold: re-raise restores the full hold", "[onvif]") {
+  AlarmLatch latch;
+  latch.set_minimum_hold(3);
+
+  latch.raise();
+  latch.clear();
+  latch.observe();  // spend one unit of the first pulse's hold
+
+  latch.raise();    // a new pulse restores the full hold
+  latch.clear();
+  for (int i = 0; i < 3; i++) {
+    REQUIRE(latch.alarmed());
+    latch.observe();
+  }
+  REQUIRE_FALSE(latch.alarmed());
+}
+
+TEST_CASE("AlarmLatch minimum hold of zero is clamped to one", "[onvif]") {
+  AlarmLatch latch;
+  latch.set_minimum_hold(0);
+
+  latch.raise();
+  latch.clear();
+  REQUIRE(latch.alarmed());  // still reported on at least one frame
+  latch.observe();
+  REQUIRE_FALSE(latch.alarmed());
+}

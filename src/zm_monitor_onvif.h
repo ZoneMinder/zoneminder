@@ -105,28 +105,50 @@ class Monitor;
 // any frame sampled it, so the event recorded no alarm frames (refs #5301). A
 // motion alarm stays active for seconds and so was always sampled.
 //
-// raise() marks the level active and remembers that an activation is waiting to
-// be seen. clear() drops the level. observe() is the analysis thread saying it
-// has sampled the alarm. alarmed() stays true from a raise() until the level is
-// down AND the activation has been observed, so a pulse is reported on at least
-// one frame however short it was. observe() while the level is still up is a
-// no-op on the outcome -- it stays alarmed until clear().
+// raise() marks the level active and arms a hold of minimum_hold_ observations.
+// clear() drops the level. observe() is the analysis thread saying it has
+// sampled the alarm, which spends one unit of the hold. alarmed() stays true
+// from a raise() until the level is down AND the hold is spent, so a pulse is
+// reported on at least minimum_hold_ frames however short it was. observe()
+// while the level is still up does not end the alarm -- it stays alarmed until
+// clear().
+//
+// minimum_hold_ defaults to one frame. Holding for more (set_minimum_hold)
+// keeps a momentary pulse alarmed across an event split: with close-on-alarm
+// and continuous recording the running event is closed and a new one opened
+// when the alarm begins, and a one-frame pulse otherwise leaves all its scored
+// frames in the event that is closing, so the new event records none (refs
+// #5301).
 class AlarmLatch {
  public:
-  void raise()   { active_.store(true, std::memory_order_release);
-                   pending_.store(true, std::memory_order_release); }
-  void clear()   { active_.store(false, std::memory_order_release); }
-  void observe() { pending_.store(false, std::memory_order_release); }
+  // Report a momentary pulse for at least this many observe() calls. Clamped to
+  // a minimum of one so a raise is always seen on at least one frame.
+  void set_minimum_hold(unsigned int frames) {
+    minimum_hold_.store(frames < 1 ? 1 : frames, std::memory_order_release);
+  }
+  void raise() {
+    active_.store(true, std::memory_order_release);
+    hold_.store(minimum_hold_.load(std::memory_order_acquire), std::memory_order_release);
+  }
+  void clear() { active_.store(false, std::memory_order_release); }
+  void observe() {
+    unsigned int remaining = hold_.load(std::memory_order_acquire);
+    while (remaining > 0 &&
+           !hold_.compare_exchange_weak(remaining, remaining - 1,
+                                        std::memory_order_acq_rel, std::memory_order_acquire)) {
+    }
+  }
   bool alarmed() const {
     return active_.load(std::memory_order_acquire) ||
-           pending_.load(std::memory_order_acquire);
+           hold_.load(std::memory_order_acquire) > 0;
   }
-  // The raw level, ignoring an unobserved pulse: whether a topic is active now.
+  // The raw level, ignoring an unspent hold: whether a topic is active now.
   bool active() const { return active_.load(std::memory_order_acquire); }
 
  private:
-  std::atomic<bool> active_{false};   // a topic is currently active
-  std::atomic<bool> pending_{false};  // an activation not yet seen by the observer
+  std::atomic<bool> active_{false};          // a topic is currently active
+  std::atomic<unsigned int> hold_{0};        // observe() calls still owed to a pulse
+  std::atomic<unsigned int> minimum_hold_{1};  // frames a pulse is held for
 };
 
 class ONVIF {
@@ -138,9 +160,17 @@ class ONVIF {
   void start();
   bool isAlarmed() const { return alarm_.alarmed(); }
   void setAlarmed(bool p_alarmed) { if (p_alarmed) alarm_.raise(); else alarm_.clear(); }
-  // The analysis thread has sampled isAlarmed(); release the latch so a
-  // momentary pulse clears once it has been seen (refs #5301).
+  // The analysis thread has sampled isAlarmed(); spend one unit of the hold so a
+  // momentary pulse clears once it has been reported for long enough (refs #5301).
   void observeAlarm() { alarm_.observe(); }
+  // Hold a momentary alarm for one frame beyond alarm_frame_count observations.
+  // Reaching ALARM takes alarm_frame_count scored frames, which is where a
+  // continuous event is split on close-on-alarm; holding one frame longer leaves
+  // at least one scored frame for the new event rather than all of them in the
+  // event that is closing (refs #5301).
+  void setMinimumAlarmFrames(int alarm_frame_count) {
+    alarm_.set_minimum_hold(alarm_frame_count > 0 ? alarm_frame_count + 1 : 2);
+  }
   bool isHealthy() const { return healthy_.load(std::memory_order_acquire); }
   void setHealthy(bool p_healthy) { healthy_.store(p_healthy, std::memory_order_release); }
 #ifdef WITH_GSOAP

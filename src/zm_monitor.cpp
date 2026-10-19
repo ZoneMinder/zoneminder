@@ -1229,6 +1229,7 @@ bool Monitor::connect() {
         onvif = nullptr;
       }
       onvif = new ONVIF(this);
+      onvif->setMinimumAlarmFrames(alarm_frame_count);
       onvif->start();
     }  // End ONVIF Setup
 

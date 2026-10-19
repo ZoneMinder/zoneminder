@@ -135,6 +135,10 @@ label {
     margin: 0 4px;
 }
 
+label.radio-inline, [data-on-click]:not([data-on-click=""]) {
+    cursor: pointer;
+}
+
 button {
   line-height: 18.5px;
 }

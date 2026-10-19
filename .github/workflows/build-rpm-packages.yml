@@ -30,6 +30,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Rocky stopped publishing the official rockylinux image after 9.
+          - distro: "rockylinux/rockylinux:10"
+            releasever: "10"
+            family: "el"
           - distro: "rockylinux:9"
             releasever: "9"
             family: "el"
@@ -41,12 +45,6 @@ jobs:
             family: "fedora"
           - distro: "fedora:43"
             releasever: "43"
-            family: "fedora"
-          - distro: "fedora:42"
-            releasever: "42"
-            family: "fedora"
-          - distro: "fedora:41"
-            releasever: "41"
             family: "fedora"
     container:
       image: ${{ matrix.distro }}

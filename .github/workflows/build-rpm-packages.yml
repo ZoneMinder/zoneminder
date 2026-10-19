@@ -256,6 +256,18 @@ jobs:
           REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}
           TARGET: rpm/master/${{ matrix.family }}/${{ matrix.releasever }}/x86_64/
 
+      - name: Update ZMREPO metadata
+        # rsync only copies the packages; dnf can't see them until the repo
+        # metadata is rebuilt. The script survives this job being cancelled
+        # and clears what an interrupted earlier run left behind.
+        env:
+          ZMREPO_DEST: ${{ secrets.ZMREPO_SSH_USER }}@${{ secrets.ZMREPO_HOST }}
+          ZMREPO_DIR: rpm/master/${{ matrix.family }}/${{ matrix.releasever }}/x86_64/
+        run: |
+          set -eux
+          ssh -i ~/.ssh/zmrepo_deploy_key -o StrictHostKeyChecking=no \
+            "$ZMREPO_DEST" "bash -s -- $ZMREPO_DIR" < utils/zmrepo_createrepo.sh
+
   release:
     name: Create GitHub Release (on tag)
     needs: build-rpm

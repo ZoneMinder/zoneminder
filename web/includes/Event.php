@@ -725,7 +725,8 @@ class Event extends ZM_Object {
     }
     if (!$this->Monitor()->canView($u)) return false;
 
-    if ($u->Events() != 'None') {
+    # canView() counts the user's role as well as their own field. refs #5189
+    if ($u->canView('Events')) {
       return true;
     }
     if ($u->Snapshots() != 'None') {
@@ -744,7 +745,7 @@ class Event extends ZM_Object {
       return false;
     }
     if (!$this->Monitor()->canView($u)) return false;
-    if ($u->Events() != 'Edit') {
+    if (!$u->canEdit('Events')) {
       return false;
     }
     return true;

@@ -2150,6 +2150,13 @@ bool Monitor::Analyse() {
     // Need to guard around event creation/deletion from Reload()
     std::lock_guard<std::mutex> lck(event_mutex);
     int score = 0;
+#ifdef WITH_GSOAP
+    // Whether the ONVIF alarm was sampled for this packet. The latch is only
+    // released once the packet is committed (packet->score set), not here,
+    // because Analyse() can return early at the decode gate and retry the same
+    // packet (refs #5301).
+    bool onvif_alarmed = false;
+#endif
     // A link wake (see CheckOndemand) counted on this packet, cleared once the
     // packet's score has been applied.
     bool linked_wake = false;
@@ -2172,9 +2179,14 @@ bool Monitor::Analyse() {
         onvif->setNotes(noteSet);
         noteSetMap[MOTION_CAUSE] = noteSet;
         cause += "ONVIF";
-        // If the camera isn't going to send an event close, we need to close it here, but only after it has actually triggered an alarm.
-        //if (!Event_Poller_Closes_Event && state == ALARM)
-        //onvif->setAlarmed(false);
+        // Remember that we sampled the alarm, but do not release the latch here.
+        // For a video packet that is not yet decoded, Analyse() returns below at
+        // the decode gate before this packet's score is committed, and the same
+        // packet is retried. Releasing here would spend a momentary DetectedSound
+        // pulse on a frame that is never recorded, so the decoded retry sees no
+        // alarm and the event gets no alarm frame (refs #5301). Release only once
+        // the packet is actually scored, below.
+        onvif_alarmed = true;
       }  // end ONVIF_Trigger
 #endif
 
@@ -2679,6 +2691,15 @@ bool Monitor::Analyse() {
       } // end if signal
 
       packet->score = score;
+#ifdef WITH_GSOAP
+      // Release the latch only once a video packet is committed with its score,
+      // because alarm_frames counts video frames. Releasing at the isAlarmed()
+      // check above would spend a momentary pulse on a packet that Analyse()
+      // discards and retries at the decode gate, or on an audio packet that is
+      // never counted as an alarm frame, leaving the event with none (refs #5301).
+      if (onvif and onvif_alarmed and packet->codec_type == AVMEDIA_TYPE_VIDEO)
+        onvif->observeAlarm();
+#endif
     } else {
       Debug(3, "trigger == off");
       if (event) {

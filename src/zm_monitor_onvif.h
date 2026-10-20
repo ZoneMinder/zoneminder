@@ -200,6 +200,11 @@ class ONVIF {
     SystemTimePoint termination_time;
   };
   std::unordered_map<std::string, AlarmEntry> alarms;
+  // The topic/value of the most recent activation, kept so SetNoteSet can still
+  // name the cause of a momentary pulse that has already been erased from
+  // `alarms` by the time the analysis thread samples it (refs #5301).
+  std::string last_alarm_topic_;
+  std::string last_alarm_value_;
   bool expire_alarms_enabled;
   int timestamp_validity_seconds;  // WS-Security timestamp validity window
   std::mutex alarms_mutex;

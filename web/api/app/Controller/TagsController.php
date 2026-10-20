@@ -18,7 +18,7 @@ class TagsController extends AppController {
     parent::beforeFilter();
     global $user;
     # We already tested for auth in appController, so we just need to test for specific permission
-    $canView = (!$user) || ($user->Events() != 'None');
+    $canView = (!$user) || ($user->canView('Events'));
     if ( !$canView ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;

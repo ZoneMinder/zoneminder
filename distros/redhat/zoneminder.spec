@@ -122,6 +122,11 @@ Requires: php-process
 Requires: php-json
 Requires: php-pecl-apcu
 Requires: net-tools
+# arp-scan powers the optional "probe network for cameras" feature. A weak
+# dependency rather than a hard one: the monitor probe degrades gracefully when
+# it is absent, and EPEL 10 has no arp-scan package, where a hard Requires would
+# make the package uninstallable.
+Recommends: arp-scan
 Requires: psmisc
 Requires: polkit
 Requires: libjpeg-turbo

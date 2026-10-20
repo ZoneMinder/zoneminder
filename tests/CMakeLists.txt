@@ -36,6 +36,7 @@ set(TEST_SOURCES
   zm_packetqueue.cpp
   zm_packet_lock.cpp
   zm_monitor_signal.cpp
+  zm_stream.cpp
   zm_stream_races.cpp
   zm_onvif_auth_error.cpp
   zm_onvif_poll_wait.cpp

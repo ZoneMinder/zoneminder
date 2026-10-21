@@ -86,14 +86,20 @@ Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
     } else {
       rtsp_path = "rtsp://" + rtsp_username + ":" + rtsp_password + "@" + rtsp_path;
     }
-    if (parent->device_class == "Camera")
-      rtsp_path += "#backchannel=0";
     if (!rtsp_second_path.empty()) {
       if (rtsp_second_path.find("rtsp://") == 0) {
         rtsp_second_path = "rtsp://" + rtsp_username + ":" + rtsp_password + "@" + rtsp_second_path.substr(7, std::string::npos);
       } else {
         rtsp_second_path = "rtsp://" + rtsp_username + ":" + rtsp_password + "@" + rtsp_second_path;
       }
+    }
+    // Disable RTSP backchannel for cameras to prevent issues with Dahua cameras,
+    // such as events not being recorded and ONVIF not working when viewing the
+    // camera on the Watch page using go2rtc.
+    if (parent->device_class == "Camera") {
+      rtsp_path += "#backchannel=0";
+      if (!rtsp_second_path.empty())
+        rtsp_second_path += "#backchannel=0";
     }
   }  // end if !user.empty
 

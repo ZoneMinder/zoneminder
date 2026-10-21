@@ -729,9 +729,9 @@ class Event extends ZM_Object {
     if ($u->canView('Events')) {
       return true;
     }
-    if ($u->Snapshots() != 'None') {
+    if ($u->canView('Snapshots')) {
       # If the event is contained in a snapshot, then we can still view it.
-      if (dbFetchOne('SELECT * FROM Snapshot_Events WHERE EventId=?', $this->Id()))
+      if (dbFetchOne('SELECT * FROM Snapshots_Events WHERE EventId=?', false, array($this->Id())))
         return true;
     }
     return false;

@@ -6,8 +6,12 @@
 // but whose role had Events=View or Edit could not view or edit any event, even on a monitor
 // they may view. refs #5189
 //
-// Drives the real ZM\Event, ZM\User and ZM\User_Role. Monitor is stubbed: only its per-monitor
-// answer matters here.
+// The snapshot lookup in Event::canView() named a table that does not exist (Snapshot_Events)
+// and passed the event id where dbFetchOne() takes a column name, so it never matched: a user
+// allowed only through Snapshots could not view the events in a snapshot.
+//
+// Drives the real ZM\Event, ZM\User and ZM\User_Role. Monitor and dbFetchOne() are stubbed: only
+// their answers (per monitor, per snapshot) matter here.
 //
 // Run as: php tests/php/test_event_role_permissions.php
 
@@ -50,6 +54,16 @@ class Monitor {
     global $visibleMonitorIds;
     return in_array($this->id, $visibleMonitorIds, true);
   }
+}
+
+// Event ids held in a snapshot. Answers only the query Event::canView() should send: the
+// Snapshots_Events table with the event id bound as a parameter.
+$snapshotEventIds = array(7, 8);
+function dbFetchOne($sql, $col=false, $params=NULL) {
+  global $snapshotEventIds;
+  if ($sql != 'SELECT * FROM Snapshots_Events WHERE EventId=?' or $col !== false or !is_array($params))
+    return false;
+  return in_array($params[0], $snapshotEventIds, true) ? array('SnapshotId' => 1, 'EventId' => $params[0]) : false;
 }
 
 require_once __DIR__.'/../../web/includes/User.php';
@@ -102,6 +116,22 @@ check('no role, Events=None cannot edit an event', $event->canEdit($noRole), fal
 check('own Events=View can view an event', $event->canView($ownView), true);
 check('own Events=View cannot edit an event', $event->canEdit($ownView), false);
 check('own Events=Edit can edit an event', $event->canEdit($ownEdit), true);
+
+// ---- events held in a snapshot ---------------------------------------------------
+// A Snapshots grant lets a user view the events in a snapshot, not edit them.
+
+$snapEvent = new Event(array('Id' => 7, 'MonitorId' => 1));
+$hiddenSnapEvent = new Event(array('Id' => 8, 'MonitorId' => 2));
+$ownSnapshots = make_user(27, array('Events' => 'None', 'Snapshots' => 'View'));
+$roleSnapshots = make_user(28, $none, make_role(5, array('Events' => 'None', 'Snapshots' => 'View')));
+
+check('own Snapshots=View can view an event in a snapshot', $snapEvent->canView($ownSnapshots), true);
+check('role Snapshots=View can view an event in a snapshot', $snapEvent->canView($roleSnapshots), true);
+check('own Snapshots=View cannot view an event outside a snapshot', $event->canView($ownSnapshots), false);
+check('role Snapshots=View cannot view an event outside a snapshot', $event->canView($roleSnapshots), false);
+check('own Snapshots=View cannot view a snapshot event of a monitor it may not view', $hiddenSnapEvent->canView($ownSnapshots), false);
+check('own Snapshots=View cannot edit an event in a snapshot', $snapEvent->canEdit($ownSnapshots), false);
+check('no grant cannot view an event in a snapshot', $snapEvent->canView($noRole), false);
 
 array_map('unlink', glob($stubdir.'/*'));
 @rmdir($stubdir);

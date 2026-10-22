@@ -20,7 +20,7 @@
 
 require_once('includes/Report.php');
 if (!empty($_REQUEST['id'])) {
-  $report = new ZM\Report($_REQUEST['id']);
+  $report = new ZM\Report(validCardinal($_REQUEST['id']));
 } else {
   $report = new ZM\Report();
 }

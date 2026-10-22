@@ -659,7 +659,9 @@ function changePlayer() {
   for (let i = 0, length = monitors.length; i < length; i++) {
     monitors[i].stop();
     monitors[i].setPlayer(player);
-    monitors[i].start();
+    setTimeout(function() {
+      monitors[i].start();
+    }, 200);
   }
 }
 
@@ -812,13 +814,11 @@ function initPage() {
     console.log('Analyse button not found');
   }
 
-  var cookiePlayer = getCookie('zmZonePlayer');
+  const cookiePlayer = getCookie('zmZonePlayer');
 
   for ( let i = 0, length = monitorData.length; i < length; i++ ) {
     monitors[i] = new MonitorStream(monitorData[i]);
-    if (cookiePlayer !== undefined && cookiePlayer !== null) {
-      monitors[i].setPlayer(cookiePlayer);
-    }
+    monitors[i].manageAvailablePlayers(cookiePlayer);
     monitors[i].setButton('analyseBtn', analyseBtn);
     monitors[i].setStreamScale();
     monitors[i].show_analyse_frames(analyse_frames);

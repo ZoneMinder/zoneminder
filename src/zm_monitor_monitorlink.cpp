@@ -68,7 +68,6 @@ Monitor::MonitorLink::MonitorLink(std::shared_ptr<Monitor>p_monitor, unsigned in
   mem_size = 0;
   mem_ptr = nullptr;
 
-  last_event_id = 0;
   last_state = IDLE;
 
   last_connect_time = 0;
@@ -154,7 +153,6 @@ bool Monitor::MonitorLink::connect() {
     }
 
     last_state = shared_data->state;
-    last_event_id = shared_data->last_event_id;
     connected = true;
 
     return true;
@@ -223,18 +221,6 @@ int Monitor::MonitorLink::score() {
   if (zone_id and (zone_index >= 0)) {
     Debug(1, "Checking zone %u, zone_index is %d, score is %d", zone_id, zone_index, zone_scores[zone_index]);
     return zone_scores[zone_index];
-  }
-
-  // Latch: detect if a new event started since we last checked.
-  // This catches alarms even if the linked monitor transitioned through
-  // ALARM -> ALERT -> IDLE between our analysis cycles.
-  if (shared_data->last_event_id != last_event_id) {
-    Debug(1, "New event %" PRIu64 " on linked monitor (was %" PRIu64 "), last_frame_score %d",
-          shared_data->last_event_id, last_event_id, shared_data->last_frame_score);
-    last_event_id = shared_data->last_event_id;
-    // Return last_frame_score if still available, otherwise minimum of 1
-    // to ensure the alarm is not silently missed
-    return shared_data->last_frame_score > 0 ? shared_data->last_frame_score : 1;
   }
 
   if (shared_data->state == ALARM) {

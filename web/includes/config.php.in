@@ -188,7 +188,26 @@ $GLOBALS['defaultUser'] = array(
   'MonitorIds'   => false
 );
 
-function loadConfig( $defineConsts=true ) {
+// A boolean written as a word in zm.conf or conf.d: '1' or '0', or null if $value isn't one.
+function configFileWord($value) {
+  $word = strtolower(trim($value));
+  if (in_array($word, array('yes', 'true', 'on'), true)) return '1';
+  if (in_array($word, array('no', 'false', 'off'), true)) return '0';
+  return null;
+}
+
+// A value from zm.conf or conf.d as the Config table would hold it for an option of $type:
+// a boolean may be written yes/no, true/false or on/off. Same rule as ConfigFileValue() in
+// src/zm_config.cpp and ZoneMinder::Config.
+function configFileValue($value, $type) {
+  if ($type != 'boolean') return $value;
+  $word = configFileWord($value);
+  return $word === null ? $value : $word;
+}
+
+// Reads zm.conf, then every conf.d/*.conf in order, later files winning. Each entry
+// keeps the file it came from in 'File', so callers can tell what was set locally.
+function loadConfigFiles() {
   $configFile = ZM_CONFIG;
   $localConfigFile = basename($configFile);
   if ( file_exists($localConfigFile) && filesize($localConfigFile) > 0 ) {
@@ -200,8 +219,8 @@ function loadConfig( $defineConsts=true ) {
   }
 
   # Process name, value pairs from the main config file first
-  $initial_config = process_configfile($configFile);
-  if (!$initial_config) $initial_config = [];
+  $file_config = process_configfile($configFile);
+  if (!$file_config) $file_config = [];
 
   # Search for user created config files. If one or more are found then
   # update our config value array with those values
@@ -209,7 +228,7 @@ function loadConfig( $defineConsts=true ) {
     if ( is_readable(ZM_CONFIG_SUBDIR) ) {
       foreach ( glob(ZM_CONFIG_SUBDIR.'/*.conf') as $filename ) {
         $newconfig = process_configfile($filename);
-        if ($newconfig) $initial_config = array_merge($initial_config, $newconfig);
+        if ($newconfig) $file_config = array_merge($file_config, $newconfig);
       }
     } else {
       error_log('WARNING: ZoneMinder configuration subfolder found but is not readable. Check folder permissions on '.$configSubFolder);
@@ -217,12 +236,25 @@ function loadConfig( $defineConsts=true ) {
   } else {
     error_log('WARNING: ZoneMinder configuration subfolder found but is not a directory. Check '.$configSubFolder);
   }
+  return $file_config;
+}
+
+function loadConfig( $defineConsts=true ) {
+  $initial_config = loadConfigFiles();
 
   # Need initial config defines in order to connect to db
   # Now that our array our finalized, define each key => value
   # pair in the array as a constant
+  # A boolean option may be written as a word in a file (yes/no, true/false, on/off), and
+  # its type is only known once the Config table has been read, so a word waits until
+  # then. Database settings can't wait, and database.php reads their words itself.
+  $deferred = array();
   if ($defineConsts) {
     foreach ( $initial_config as $key => $config ) {
+      if (configFileWord($config['Value']) !== null and strpos($key, 'ZM_DB_') !== 0) {
+        $deferred[$key] = $config['Value'];
+        continue;
+      }
       define($key, $config['Value']);
     }
   }
@@ -242,8 +274,13 @@ function loadConfig( $defineConsts=true ) {
 
     $config[$name] = $row;
     if (isset($initial_config[$name])) {
-      $config[$name]['Value'] = $initial_config[$name]['Value'];
+      # Set by the owner of the box, so it wins over the database value.
+      $config[$name]['Value'] = configFileValue($initial_config[$name]['Value'], $row['Type']);
       unset($initial_config[$name]);
+      if (isset($deferred[$name])) {
+        define($name, $config[$name]['Value']);
+        unset($deferred[$name]);
+      }
     }
 
     if ( $defineConsts ) {
@@ -255,12 +292,16 @@ function loadConfig( $defineConsts=true ) {
       }
     }
   }
+  # A word for an option the Config table doesn't have stays as written.
+  foreach ($deferred as $name => $value) define($name, $value);
+
   # What is left exists only in zm.conf / conf.d: database credentials, paths and the
   # like. Those have no Private column, and consumers such as skin.js.php export every
   # entry that is not marked Private to the browser, so mark them Private unless they
   # are known to be needed client side. refs GHSA-jv9c-pg2m-5m6m
   $public_file_config = array('ZM_DIR_SOUNDS');
   foreach ($initial_config as $name => $c) {
+    unset($initial_config[$name]['File']); # the API returns these entries whole
     if (!isset($initial_config[$name]['Private']))
       $initial_config[$name]['Private'] = in_array($name, $public_file_config) ? 0 : 1;
   }
@@ -330,7 +371,7 @@ function process_configfile($configFile) {
       if ( preg_match('/^\s*(#.*)?$/', $line) ) {
         continue;
       } else if ( preg_match('/^\s*([^=\s]+)\s*=\s*[\'"]*(.*?)[\'"]*\s*$/', $line, $matches) ) {
-        $config[$matches[1]] = ['Name'=>$matches[1], 'Value'=>$matches[2]];
+        $config[$matches[1]] = ['Name'=>$matches[1], 'Value'=>$matches[2], 'File'=>$configFile];
 			} else {
 				error_log("Malformed line in config $configFile\n$line");
 			}

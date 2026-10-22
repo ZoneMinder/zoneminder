@@ -17,9 +17,19 @@ class User extends AppModel {
             'required' => array(
                 'rule' => array('notEmpty'),
                 'message' => 'A password is required'
+            ),
+            'acceptable' => array(
+                'rule' => array('acceptablePassword')
             )
         )
     );
+
+    # The same check as the web interface (passwordProblem() in includes/auth.php):
+    # true, or the reason as the validation message.
+    public function acceptablePassword($check) {
+      $problem = passwordProblem(reset($check));
+      return ($problem === null) ? true : passwordProblemText($problem);
+    }
 
     function beforeFind($query) {
       if ( empty($query['fields']) ) {

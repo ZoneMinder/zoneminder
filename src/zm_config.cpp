@@ -27,6 +27,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <dirent.h>
+#include <cctype>
 #include <fstream>
 #include <glob.h>
 #include <string>
@@ -37,6 +38,8 @@
 // config.
 
 void zmLoadStaticConfig() {
+  // Start over, so that a reload forgets a line that has been removed.
+  staticConfig.file_options.clear();
   // Process name, value pairs from the main config file first
   process_configfile(ZM_CONFIG);
 
@@ -190,6 +193,8 @@ void process_configfile(char const *configFile) {
     white_len += strspn(val_ptr, "\'\"");
     val_ptr += white_len;
 
+    staticConfig.file_options[name_ptr] = val_ptr;
+
     if ( strcasecmp(name_ptr, "ZM_DB_HOST") == 0 )
       staticConfig.DB_HOST = std::string(val_ptr);
     else if ( strcasecmp(name_ptr, "ZM_DB_NAME") == 0 )
@@ -249,9 +254,7 @@ void process_configfile(char const *configFile) {
       staticConfig.STREAM_SOCKET_STALL_SECS =
         parse_unsigned_setting(name_ptr, val_ptr, staticConfig.STREAM_SOCKET_STALL_SECS);
     else {
-      // We ignore this now as there may be more parameters than the
-      // c/c++ binaries are bothered about
-      // Warning( "Invalid parameter '%s' in %s", name_ptr, ZM_CONFIG );
+      // Any other option is in file_options, which Config::Load() applies.
     }
   } // end foreach line of the config
 }
@@ -394,6 +397,7 @@ void Config::Load() {
       " OR `DefaultValue` IS NULL");
   if (!result) {
     Warning("Failed to load config from database, using compiled-in defaults");
+    ApplyFileOptions();
     return;
   }
 
@@ -410,6 +414,35 @@ void Config::Load() {
 
   Debug(1, "Config loaded: %d items overriding compiled-in defaults (%zu registered)",
         loaded, bindings_.size());
+  ApplyFileOptions();
+}
+
+std::string ConfigFileValue(const std::string &value, const char *type) {
+  if (strcmp(type, "boolean") != 0) return value;
+  // The Config table stores 1/0; a person editing a file may write a word.
+  std::string word;
+  for (char c : value) word += static_cast<char>(tolower(static_cast<unsigned char>(c)));
+  if (word == "yes" or word == "true" or word == "on") return "1";
+  if (word == "no" or word == "false" or word == "off") return "0";
+  return value;
+}
+
+void Config::ApplyFileOptions() {
+  for (const auto &option : staticConfig.file_options) {
+    auto bind_it = bindings_.find(option.first);
+    if (bind_it == bindings_.end()) continue;  // a static setting, or not one zmc uses
+
+    const char *type = "string";
+    switch (bind_it->second.type) {
+      case MemberBinding::BOOL: type = "boolean"; break;
+      case MemberBinding::INT: type = "integer"; break;
+      case MemberBinding::DOUBLE: type = "decimal"; break;
+      case MemberBinding::STRING: break;
+    }
+    // Name only: the value may be a secret such as ZM_AUTH_HASH_SECRET.
+    Debug(1, "%s is set in a config file, overriding the database", option.first.c_str());
+    ApplyItem(option.first.c_str(), ConfigFileValue(option.second, type).c_str(), type);
+  }
 }
 
 Config config;

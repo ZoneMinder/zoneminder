@@ -2,7 +2,9 @@
 #define ZM_POLL_THREAD_H
 
 #include <atomic>
+#include <condition_variable>
 #include <memory>
+#include <mutex>
 #include <thread>
 
 class Monitor;
@@ -23,6 +25,8 @@ class PollThread {
 
   Monitor *monitor_;
   std::atomic<bool> terminate_;
+  std::mutex mutex_;
+  std::condition_variable cv_;
   std::thread thread_;
 };
 

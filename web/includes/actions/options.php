@@ -82,9 +82,18 @@ if ( $action == 'delete' ) {
     return;
   }
 
+  // Options set in zm.conf or conf.d belong to the system owner and can't be changed here: skip
+  // a submitted value, and a boolean left out of the form (a disabled checkbox isn't sent),
+  // which would otherwise be saved as 0.
+  $fileConfig = loadConfigFiles();
   $changed = false;
   while ($config = dbFetchNext($result)) {
     unset($newValue);
+    if (isset($fileConfig[$config['Name']])) {
+      if (isset($_REQUEST['newConfig'][$config['Name']]))
+        ZM\Debug('Not saving '.$config['Name'].': it is set in '.$fileConfig[$config['Name']]['File']);
+      continue;
+    }
     if ( ($config['Type'] == 'boolean') and empty($_REQUEST['newConfig'][$config['Name']]) ) {
       $newValue = 0;
     } else if (isset($_REQUEST['newConfig'][$config['Name']])) {

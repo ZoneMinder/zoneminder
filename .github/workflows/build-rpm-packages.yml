@@ -30,23 +30,24 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Rocky stopped publishing the official rockylinux image after 9.
+          - distro: "rockylinux/rockylinux:10"
+            releasever: "10"
+            family: "el"
           - distro: "rockylinux:9"
             releasever: "9"
             family: "el"
           - distro: "rockylinux:8"
             releasever: "8"
             family: "el"
+          - distro: "fedora:45"
+            releasever: "45"
+            family: "fedora"
           - distro: "fedora:44"
             releasever: "44"
             family: "fedora"
           - distro: "fedora:43"
             releasever: "43"
-            family: "fedora"
-          - distro: "fedora:42"
-            releasever: "42"
-            family: "fedora"
-          - distro: "fedora:41"
-            releasever: "41"
             family: "fedora"
     container:
       image: ${{ matrix.distro }}
@@ -79,7 +80,6 @@ jobs:
           # in container images (needed by net-tools, mosquitto, etc.)
           dnf -y install --allowerasing systemd
           dnf -y install \
-            arp-scan \
             git \
             rpm-build \
             rpmdevtools \
@@ -99,12 +99,12 @@ jobs:
           rpmdev-setuptree
 
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
 
       - name: Import GPG key
-        uses: crazy-max/ghaction-import-gpg@v7
+        uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # v7
         with:
           gpg_private_key: ${{ secrets.ZMREPO_GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.ZMREPO_GPG_PASSPHRASE }}
@@ -230,7 +230,7 @@ jobs:
         # Only the tag-only `release` job consumes these. On branch pushes the
         # packages go straight to ZMREPO below, so uploading is pure storage cost.
         if: startsWith(github.ref, 'refs/tags/')
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           path: artifacts/rpm
           name: ${{ env.artifact_name }}
@@ -247,7 +247,7 @@ jobs:
             "mkdir -p rpm/master/${{ matrix.family }}/${{ matrix.releasever }}/x86_64/"
 
       - name: Publish to ZMREPO
-        uses: easingthemes/ssh-deploy@main
+        uses: easingthemes/ssh-deploy@2cc5b27bf3029d0455dd5e09fe02633904031447 # v6.0.3
         env:
           SSH_PRIVATE_KEY: ${{ secrets.ZMREPO_SSH_KEY }}
           ARGS: "-rltgoDzvO"
@@ -256,6 +256,18 @@ jobs:
           REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}
           TARGET: rpm/master/${{ matrix.family }}/${{ matrix.releasever }}/x86_64/
 
+      - name: Update ZMREPO metadata
+        # rsync only copies the packages; dnf can't see them until the repo
+        # metadata is rebuilt. The script survives this job being cancelled
+        # and clears what an interrupted earlier run left behind.
+        env:
+          ZMREPO_DEST: ${{ secrets.ZMREPO_SSH_USER }}@${{ secrets.ZMREPO_HOST }}
+          ZMREPO_DIR: rpm/master/${{ matrix.family }}/${{ matrix.releasever }}/x86_64/
+        run: |
+          set -eux
+          ssh -i ~/.ssh/zmrepo_deploy_key -o StrictHostKeyChecking=no \
+            "$ZMREPO_DEST" "bash -s -- $ZMREPO_DIR" < utils/zmrepo_createrepo.sh
+
   release:
     name: Create GitHub Release (on tag)
     needs: build-rpm
@@ -263,11 +275,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           path: dist
 
       - name: Create release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
         with:
           files: dist/**/*

@@ -55,6 +55,8 @@
 // Simple String Replacements
 $SLANG = array(
     'PrivateValueHidden'    => 'This value is private and is shown only to users who can edit System settings.',
+    'OptionSetInConfigFile' => 'Set by the system owner in %s.',
+    'OptionSetInConfigFileHidden' => 'Set by the system owner in %s. The value is not shown.',
     'SystemLog'             => 'System Log',
     'DateTime'              => 'Date/Time',
     'DiskSpace'             => 'Disk Space',
@@ -322,6 +324,7 @@ $SLANG = array(
     'DefaultScale'          => 'Default Scale',
     'DefaultCodec'          => 'Default Method For Event View',
     'DefaultView'           => 'Default View',
+    'DefaultPasswordChange' => 'This account uses the password admin, which everyone knows. Enter it again and choose a new password to log in.',
     'RecordingSource'       => 'Recording Source',
     'DeleteAndNext'         => 'Delete &amp; Next',
     'DeleteAndPrev'         => 'Delete &amp; Prev',
@@ -413,6 +416,15 @@ $SLANG = array(
     'FilterUploadEvents'    => 'Upload all matches',
     'FilterUser'            => 'User to run filter as',
     'FilterVideoEvents'     => 'Create video for all matches',
+    'FirstRunAuthFixed'     => 'A setting in zm.conf or conf.d requires a login, so it can\'t be turned off here.',
+    'FirstRunAuthOff'       => 'Don\'t require a login',
+    'FirstRunAuthOffText'   => 'Anyone who can reach this server, including any web page opened in a browser on the same network, can view and control every camera and change every setting. You can turn logins on later in Options, System (OPT_USE_AUTH).',
+    'FirstRunAuthOn'        => 'Require a login (recommended)',
+    'FirstRunAuthOnText'    => 'Choose a password for the admin account. You can add users with their own permissions later in Options, Users.',
+    'FirstRunContinue'      => 'Continue without a login',
+    'FirstRunIntro'         => 'Choose whether ZoneMinder asks for a login. Until you do, the web interface, the API and camera streams can\'t be used.',
+    'FirstRunSetPassword'   => 'Set password and continue',
+    'FirstRunTitle'         => 'Set up ZoneMinder',
     'FlippedHori'           => 'Flipped Horizontally',
     'FlippedVert'           => 'Flipped Vertically',
     'ForceAlarm'            => 'Force Alarm',
@@ -453,6 +465,7 @@ $SLANG = array(
     'LoggingIn'             => 'Logging In',
     'Lowband'               => 'Low&nbsp;B/W',
     'Mail'                  => 'Email',
+    'MapUnavailable'        => 'Map unavailable: the Leaflet library is not installed (js/leaflet in the web root).',
     'MaxBandwidth'          => 'Max Bandwidth',
     'MaxBrScore'            => 'Max.<br/>Score',
     'MaxFocusRange'         => 'Max Focus Range',
@@ -536,6 +549,8 @@ $SLANG = array(
     'NewLabel'              => 'New Label',
     'NewRole'               => 'New Role',
     'NewPassword'           => 'New Password',
+    'NewPasswordIsDefault'  => 'The new password must not be admin.',
+    'NewPasswordRequired'   => 'Enter a new password.',
     'NewState'              => 'New State',
     'NewUser'               => 'New User',
     'NextFrame'             => 'Next Frame',
@@ -607,6 +622,7 @@ $SLANG = array(
     'PanRight'              => 'Pan Right',
     'PanTilt'               => 'Pan/Tilt',
     'ParentGroup'           => 'Parent Group',
+    'PasswordTooShort'      => 'The new password must have at least %d characters.',
     'PasswordsDifferent'    => 'The new and confirm passwords are different',
     'Password'              => 'Password',
     'PathToIndex'           => 'Path To Index',
@@ -655,12 +671,14 @@ $SLANG = array(
     <li>Manufacturer</li>
     <li>Model</li>
     <li>Type</li>
-    <li>Function</li>
+    <li>Capturing, Analysing and Recording</li>
+    <li>Source path, with the user name, password and host removed</li>
     <li>Width</li>
     <li>Height</li>
     <li>Colours</li>
     <li>MaxFPS</li>
     <li>AlarmMaxFPS</li>
+    <li>Whether Janus, Go2RTC, RTSP2Web and the RTSP server are enabled</li>
    </ul>',
     'PrivacyConclusionText' => 'We are <u>NOT</u> collecting any image specific data from your cameras. We don’t know what your cameras are watching. This data will not be sold or used for any purpose not stated herein. By clicking accept, you agree to send us this data to help make ZoneMinder a better product. By clicking decline, you can still freely use ZoneMinder and all its features.',
     'Probe'                 => 'Probe',

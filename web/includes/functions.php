@@ -1541,9 +1541,11 @@ function scalePoints(&$points, $scale) {
 
 function getLanguages() {
   $langs = array();
+  $getNameLanguage = class_exists('Locale');
   foreach ( glob('lang/*_*.php') as $file ) {
     preg_match('/([^\/]+_.+)\.php/', $file, $matches);
-    $langs[$matches[1]] = $matches[1];
+    $lang = $matches[1];
+    $langs[$lang] = $getNameLanguage ? mb_ucfirst(Locale::getDisplayName($lang, $lang) ?: $lang) : translate($lang);
   }
   return $langs;
 }
@@ -1947,11 +1949,19 @@ function requestVar($name, $default='') {
 }
 
 // For numbers etc in javascript or tags etc
+// Request values can be arrays (id[]=1, id[Id]=1). preg_replace() returns an
+// array as it is, and ZM_Object's constructor takes an array as the object's
+// row, so new ZM\Event(validInt($_REQUEST['id'])) built an event from the
+// request whose Id and MonitorId the sender chose, and the permission checks
+// then looked at those. Anything that isn't a single value is no number.
 function validInt($input) {
+  if (!is_scalar($input)) return '';
   return preg_replace('/[^\-\d]/', '', $input);
 }
 
+// Like validInt(), and for the same reason gives '' for an array.
 function validCardinal($input) {
+  if (!is_scalar($input)) return '';
   return preg_replace('/\D/', '', $input);
 }
 

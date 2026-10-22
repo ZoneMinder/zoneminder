@@ -19,6 +19,8 @@
 //
 #include "zm_eventstream.h"
 
+#include <cstdint>
+
 #include "zm_db.h"
 #include "zm_image.h"
 #include "zm_logger.h"
@@ -736,13 +738,15 @@ void EventStream::processCommand(const CmdMsg *msg) {
     status_data.paused = paused;
     status_data.stopped = stopped;
 
-    FPSeconds elapsed = now - last_fps_update;
+    // The command thread: read the clock here rather than the streaming loop's `now`.
+    const TimePoint cmd_now = std::chrono::steady_clock::now();
+    FPSeconds elapsed = cmd_now - last_fps_update;
     if (elapsed.count() > 0) {
       actual_fps = (actual_fps + (frame_count - last_frame_count) / elapsed.count())/2;
-      Debug(1, "actual_fps %f = old + frame_count %d - last %d / elapsed %.2f from %.2f - %.2f scale %d", actual_fps, frame_count, last_frame_count,
-          elapsed.count(), FPSeconds(now.time_since_epoch()).count(), FPSeconds(last_fps_update.time_since_epoch()).count(), scale.load());
+      Debug(1, "actual_fps %f = old + frame_count %d - last %d / elapsed %.2f from %.2f - %.2f scale %d", actual_fps, frame_count.load(), last_frame_count,
+          elapsed.count(), FPSeconds(cmd_now.time_since_epoch()).count(), FPSeconds(last_fps_update.time_since_epoch()).count(), scale.load());
       last_frame_count = frame_count;
-      last_fps_update = now;
+      last_fps_update = cmd_now;
     }
 
     status_data.fps = actual_fps;
@@ -848,7 +852,7 @@ bool EventStream::checkEventLoaded() {
     // Reset last_frame_sent so the next loop iteration sends a keepalive
     // immediately, rather than leaving a 5-second gap (MAX_STREAM_DELAY)
     // during which the HTTP connection can time out and break the pipe.
-    last_frame_sent = {};
+    last_frame_sent = TimePoint();
   }
   return false;
 }  // void EventStream::checkEventLoaded()
@@ -1101,14 +1105,14 @@ void EventStream::runStream() {
            event_data ? event_data->event_id : 0,
            event_data ? event_data->frames.size() : 0,
            event_data ? event_data->frame_count : 0,
-           curr_frame_id, frame_count);
+           curr_frame_id, frame_count.load());
     }
 
     {
       std::scoped_lock lck{mutex};
 
       send_frame = false;
-      TimePoint::duration time_since_last_send = now - last_frame_sent;
+      TimePoint::duration time_since_last_send = now - last_frame_sent.load();
 
       if (stopped) {
         // In stopped state, skip all frame processing until a new command is received.
@@ -1138,7 +1142,7 @@ void EventStream::runStream() {
         } else {
           Debug(4, "Not Sending keepalive frame now %.2f - %.2f last = %.2f > Max %.2f",
               FPSeconds(now.time_since_epoch()).count(),
-              FPSeconds(last_frame_sent.time_since_epoch()).count(),
+              FPSeconds(last_frame_sent.load().time_since_epoch()).count(),
               FPSeconds(time_since_last_send).count(),
               FPSeconds(MAX_STREAM_DELAY).count()
               );
@@ -1230,16 +1234,20 @@ void EventStream::runStream() {
                 FPSeconds(delta).count(),
                 FPSeconds(last_frame_data->offset).count(),
                 FPSeconds(next_frame_data->offset).count());
-          // if effective > base we should speed up frame delivery
-          if (base_fps < effective_fps) {
+          // effective_fps is base_fps times the replay rate, divided by frame_mod
+          // when maxfps makes us skip frames, so this turns delta into the time
+          // per frame sent: shorter for fast replay, longer for slow replay or
+          // when frames are skipped.
+          if ((effective_fps > 0.0) && (base_fps != effective_fps)) {
             delta = std::chrono::duration_cast<Microseconds>((delta * base_fps) / effective_fps);
             Debug(3, "delta %" PRIi64 " us = base_fps (%f) / effective_fps (%f)",
                   static_cast<int64>(std::chrono::duration_cast<Microseconds>(delta).count()),
                   base_fps,
                   effective_fps);
 
-            // but must not exceed maxfps
-            delta = std::max(delta, Microseconds(lround(Microseconds::period::den / maxfps)));
+            // but must not exceed maxfps (0 means no limit)
+            if (maxfps > 0.0)
+              delta = std::max(delta, Microseconds(lround(Microseconds::period::den / maxfps)));
             Debug(3, "delta %" PRIi64 " us = base_fps (%f) / effective_fps (%f) from 30fps",
                   static_cast<int64>(std::chrono::duration_cast<Microseconds>(delta).count()),
                   base_fps,

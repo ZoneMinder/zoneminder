@@ -1979,6 +1979,17 @@ bool Image::Zip( Bytef *outbuffer, unsigned long *outbuffer_size, int compressio
 }
 #endif // HAVE_ZLIB_H
 
+namespace {
+// Ceiling-divide an unsigned dimension by 2^shift. AV_CEIL_RSHIFT must NOT
+// be used here: its runtime form is -((-(a)) >> (b)), which relies on
+// arithmetic shift of a negative value and silently produces 2^31 + a/2^b
+// when `a` is unsigned (logical shift), sending plane loops billions of
+// samples out of bounds.
+inline unsigned int ceil_rshift(unsigned int a, unsigned int shift) {
+  return (a + (1u << shift) - 1) >> shift;
+}
+}  // namespace
+
 bool Image::Crop( unsigned int lo_x, unsigned int lo_y, unsigned int hi_x, unsigned int hi_y ) {
   unsigned int new_width = (hi_x-lo_x)+1;
   unsigned int new_height = (hi_y-lo_y)+1;
@@ -1996,14 +2007,70 @@ bool Image::Crop( unsigned int lo_x, unsigned int lo_y, unsigned int hi_x, unsig
     return true;
   }
 
-  unsigned int new_stride = new_width * colours;
-  unsigned int new_size = new_stride * new_height;
-  uint8_t *new_buffer = AllocBuffer(new_size);
+  const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(imagePixFormat);
+  if (!desc) {
+    Error("Crop: av_pix_fmt_desc_get failed for %s", av_get_pix_fmt_name(imagePixFormat));
+    return false;
+  }
+  if (desc->flags & AV_PIX_FMT_FLAG_PLANAR) {
+    // A chroma sample covers 2x2 luma pixels in YUV420P, so a crop starting on
+    // an odd column or row would start its chroma half a pixel off. Move the
+    // window back to the chroma grid, keeping its size.
+    const unsigned int off_x = lo_x & ((1u << desc->log2_chroma_w) - 1);
+    const unsigned int off_y = lo_y & ((1u << desc->log2_chroma_h) - 1);
+    lo_x -= off_x;
+    hi_x -= off_x;
+    lo_y -= off_y;
+    hi_y -= off_y;
+  }
 
-  for ( unsigned int y = lo_y, ny = 0; y <= hi_y; y++, ny++ ) {
-    unsigned char *pbuf = &buffer[((y*linesize)+(lo_x*colours))];
-    unsigned char *pnbuf = &new_buffer[ny*new_stride];
-    memcpy(pnbuf, pbuf, new_stride);
+  // Lay the result out as AssignDirect expects it: every row 32-byte aligned
+  // and, for planar formats such as YUV420P, the chroma planes after the luma
+  // plane. A tightly packed width * colours buffer is smaller than that
+  // whenever the row isn't a multiple of 32 bytes (and holds only the luma
+  // plane of a planar image), so AssignDirect refused it: the crop was
+  // dropped and the new buffer leaked on every call.
+  int new_size_signed = av_image_get_buffer_size(imagePixFormat, new_width, new_height, 32);
+  if (new_size_signed < 0) {
+    Error("Crop: av_image_get_buffer_size failed for %s %ux%u",
+          av_get_pix_fmt_name(imagePixFormat), new_width, new_height);
+    return false;
+  }
+  const size_t new_size = static_cast<size_t>(new_size_signed);
+
+  uint8_t *src_planes[4] = {nullptr, nullptr, nullptr, nullptr};
+  int src_strides[4] = {0, 0, 0, 0};
+  uint8_t *dst_planes[4] = {nullptr, nullptr, nullptr, nullptr};
+  int dst_strides[4] = {0, 0, 0, 0};
+  uint8_t *new_buffer = AllocBuffer(new_size);
+  if (av_image_fill_arrays(src_planes, src_strides, buffer, imagePixFormat, width, height, 32) < 0
+      || av_image_fill_arrays(dst_planes, dst_strides, new_buffer, imagePixFormat, new_width, new_height, 32) < 0) {
+    Error("Crop: av_image_fill_arrays failed for %s", av_get_pix_fmt_name(imagePixFormat));
+    DumpBuffer(new_buffer, ZM_BUFTYPE_ZM);
+    return false;
+  }
+  // The Image's own stride for plane 0, as in Image::Rotate.
+  src_strides[0] = linesize;
+
+  if (desc->flags & AV_PIX_FMT_FLAG_PLANAR) {
+    for (int plane = 0; plane < 3; plane++) {
+      const unsigned int shift_w = plane ? desc->log2_chroma_w : 0;
+      const unsigned int shift_h = plane ? desc->log2_chroma_h : 0;
+      av_image_copy_plane(dst_planes[plane], dst_strides[plane],
+                          src_planes[plane] + (lo_y >> shift_h) * src_strides[plane] + (lo_x >> shift_w),
+                          src_strides[plane],
+                          ceil_rshift(new_width, shift_w), ceil_rshift(new_height, shift_h));
+    }
+  } else {
+    const unsigned int bpp = zm_bytes_per_pixel(imagePixFormat);
+    if (bpp == 0) {
+      Error("Crop: bytes_per_pixel unknown for %s", av_get_pix_fmt_name(imagePixFormat));
+      DumpBuffer(new_buffer, ZM_BUFTYPE_ZM);
+      return false;
+    }
+    av_image_copy_plane(dst_planes[0], dst_strides[0],
+                        src_planes[0] + lo_y * src_strides[0] + lo_x * bpp, src_strides[0],
+                        new_width * bpp, new_height);
   }
 
   AssignDirect(new_width, new_height, colours, subpixelorder, new_buffer, new_size, ZM_BUFTYPE_ZM);
@@ -3274,15 +3341,6 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
 }
 
 namespace {
-// Ceiling-divide an unsigned dimension by 2^shift. AV_CEIL_RSHIFT must NOT
-// be used here: its runtime form is -((-(a)) >> (b)), which relies on
-// arithmetic shift of a negative value and silently produces 2^31 + a/2^b
-// when `a` is unsigned (logical shift), sending plane loops billions of
-// samples out of bounds.
-inline unsigned int ceil_rshift(unsigned int a, unsigned int shift) {
-  return (a + (1u << shift) - 1) >> shift;
-}
-
 // Rotate `src_w` × `src_h` plane (bpp bytes per sample, src_linesize stride)
 // into dst (dst_linesize stride) according to angle (90/180/270).
 // For 90/270: dst dims are src_h × src_w. For 180: dst dims are src_w × src_h.

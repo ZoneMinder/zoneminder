@@ -23,6 +23,7 @@
 #include "config.h"
 #include "zm_config_data.h"
 #include "zm_config_defines.h"
+#include <map>
 #include <string>
 #include <unordered_map>
 
@@ -73,6 +74,10 @@ struct StaticConfig {
   unsigned int STREAM_SOCKET_QUEUE_BYTES = 8 * 1024 * 1024;
   unsigned int STREAM_SOCKET_QUEUE_MSGS = 256;
   unsigned int STREAM_SOCKET_STALL_SECS = 10;
+  // Every name = value in zm.conf and conf.d, later files winning. The owner of
+  // the box sets these and the ZoneMinder admin the Config table, so
+  // Config::Load() applies them over the database values.
+  std::map<std::string, std::string> file_options;
   std::string capture_file_format;
   std::string analyse_file_format;
   std::string general_file_format;
@@ -80,6 +85,10 @@ struct StaticConfig {
 };
 
 extern StaticConfig staticConfig;
+
+// A value from zm.conf or conf.d as the Config table would hold it for an
+// option of `type`: a boolean may be written yes/no, true/false or on/off.
+std::string ConfigFileValue(const std::string &value, const char *type);
 
 class ConfigItem {
  private:
@@ -127,6 +136,8 @@ class Config {
   ~Config() = default;
 
   void Load();
+  // Applies StaticConfig::file_options to the options they name.
+  void ApplyFileOptions();
 };
 
 extern Config config;

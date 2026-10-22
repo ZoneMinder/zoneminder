@@ -95,5 +95,8 @@ User *zmLoadAuthUser(const std::string &auth, const std::string &user, bool use_
 User *zmLoadTokenUser(const std::string &jwt, bool use_remote_addr);
 bool checkUser(const std::string &username);
 bool checkPass(const std::string &password);
+// True for the password db/zm_create.sql gives the admin account ("admin").
+// zmLoadUser() refuses it: the web login asks for a new one first.
+bool isDefaultPassword(const std::string &password);
 
 #endif // ZM_USER_H

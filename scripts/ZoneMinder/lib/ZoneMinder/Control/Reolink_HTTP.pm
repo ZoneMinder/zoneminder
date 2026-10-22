@@ -59,7 +59,7 @@ our %CamParams = ();
 
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
-use JSON;
+use JSON::MaybeXS qw(encode_json decode_json);
 
 sub new {
   my $class = shift;

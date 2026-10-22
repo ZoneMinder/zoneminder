@@ -55,6 +55,7 @@ use bytes;
 @EXTRA_PERL_LIB@
 use ZoneMinder;
 use ZoneMinder::Monitor;
+use ZoneMinder::Event;
 use POSIX;
 use DBI;
 use autouse 'Data::Dumper'=>qw(Dumper);
@@ -99,8 +100,41 @@ my $last_pass_time = time();
 # heartbeat is stale -- before acting on it. Monitors we have seen healthy are
 # handled immediately, so a camera that dies after we start is caught as fast
 # as it ever was, and every other check runs from the first pass.
+#
+# The same applies whenever a zmc starts later: a monitor added or restarted
+# (web UI, API, zmdc, or us) has no shared data until its new zmc has loaded
+# the monitor and mapped it, which takes a few seconds. So a missing or invalid
+# shared data block is also given ZM_WATCH_MAX_DELAY, counted from the pass
+# that first found it that way, before we restart the daemon. Restarting it
+# earlier only replaces a zmc that was about to come up with another one.
 my $start_time = time();
 my %seen_healthy;
+my %no_shared_data_since;
+
+# --- Events left open by a zmc that died ------------------------------------
+# A zmc that is killed (or crashes) mid-event never writes the event's end, and
+# nothing else closes it: zmaudit only does when ZM_RUN_AUDIT is on, and only a
+# day later. A running zmc closes every event it opened before it reconnects,
+# and records the time it connected as startup_time in shared memory, so any
+# event of its monitor that started before then and is still open belongs to a
+# process that is gone. Look once per zmc start, when its heartbeat shows it is
+# up. Events from zma's re-analysis are created on the monitor too, with their
+# original times, and are left to zma.
+my %recovered_before;
+
+sub close_abandoned_events {
+  my ($monitor, $before) = @_;
+  foreach my $event (ZoneMinder::Event->find(custom => [
+        '`MonitorId`=? AND `EndDateTime` IS NULL AND `StartDateTime` < FROM_UNIXTIME(?) AND NOT (`Cause` <=> ?)',
+        $$monitor{Id}, $before, 'Re-analysis'])) {
+    my $error = $event->Close();
+    if ($error) {
+      Warning("Unable to close event $$event{Id} left open on monitor $$monitor{Id} $$monitor{Name}: $error");
+    } else {
+      Info("Closed event $$event{Id} on monitor $$monitor{Id} $$monitor{Name}, left open since $$event{StartDateTime} by a capture daemon that is gone");
+    }
+  }
+}
 
 while (!$zm_terminate) {
   my $db_was_down = 0;
@@ -150,14 +184,17 @@ while (!$zm_terminate) {
       && (($now - $start_time) < $Config{ZM_WATCH_MAX_DELAY});
 
     if (!zmMemVerify($monitor)) {
-      if ($starting_up) {
-        Debug("Not restarting $monitor->{Id} $monitor->{Name} yet, no shared data but still inside its startup grace");
+      my $since = $no_shared_data_since{$monitor->{Id}} //= $now;
+      if ($starting_up or (($now - $since) < $Config{ZM_WATCH_MAX_DELAY})) {
+        Debug("Not restarting $monitor->{Id} $monitor->{Name} yet, no shared data for ".($now - $since)."s, still inside its startup grace");
         next;
       }
-      Info("Restarting capture daemon for $monitor->{Id} $monitor->{Name}, shared data not valid");
+      Info("Restarting capture daemon for $monitor->{Id} $monitor->{Name}, shared data not valid for ".($now - $since).'s');
+      delete $no_shared_data_since{$monitor->{Id}};
       $monitor->control('restart');
       next;
     }
+    delete $no_shared_data_since{$monitor->{Id}};
 
     my $heartbeat_time = zmMemRead($monitor, 'shared_data:heartbeat_time');
     my $heartbeat_elapsed = $now-$heartbeat_time;
@@ -173,6 +210,12 @@ while (!$zm_terminate) {
       # It is up. From here on it is judged immediately, like any other monitor.
       $seen_healthy{$monitor->{Id}} = 1;
       Debug("Monitor $monitor->{Id} $monitor->{Name}, heartbeat time $now - $heartbeat_time $heartbeat_elapsed < $Config{ZM_WATCH_MAX_DELAY}");
+    }
+
+    my $zmc_startup_time = zmGetStartupTime($monitor);
+    if ($zmc_startup_time and (($recovered_before{$monitor->{Id}} // 0) != $zmc_startup_time)) {
+      close_abandoned_events($monitor, $zmc_startup_time);
+      $recovered_before{$monitor->{Id}} = $zmc_startup_time;
     }
 
     next if $monitor->{Capturing} eq 'Ondemand';

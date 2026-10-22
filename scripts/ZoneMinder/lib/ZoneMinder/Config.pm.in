@@ -50,6 +50,7 @@ our %EXPORT_TAGS = (
       zmConfigLoad
       loadConfigFromDB
       saveConfigToDB
+      syncConfigFlags
       ) ],
     constants => [ qw(
       ZM_PID
@@ -93,12 +94,25 @@ require ZoneMinder::Database;
 	my $dbh = ZoneMinder::Database::zmDbConnect();
   die "Unable to connect to DB. ZM Cannot continue.\n" if !$dbh;
 
-  my $sql = 'SELECT Name,Value FROM Config';
+  my $sql = 'SELECT Name,Value,Type FROM Config';
   my $sth = $dbh->prepare_cached($sql) or croak("Can't prepare '$sql': ".$dbh->errstr());
   my $res = $sth->execute() or croak("Can't execute: ".$sth->errstr());
   while ( my $config = $sth->fetchrow_hashref() ) {
-    # If already defined skip it because we want the values in /etc/zm.conf to override the values in Config Table
-    next if exists $Config{$config->{Name}};
+    # A value from zm.conf or conf.d is set by the owner of the box, so it wins over the
+    # Config table. A boolean may be written yes/no, true/false or on/off there; same
+    # rule as ConfigFileValue() in src/zm_config.cpp and configFileValue() in PHP.
+    if ( exists $Config{$config->{Name}} ) {
+      if ( $config->{Type} eq 'boolean' ) {
+        my $word = lc($Config{$config->{Name}});
+        $word =~ s/^\s+|\s+$//g;
+        if ( $word eq 'yes' or $word eq 'true' or $word eq 'on' ) {
+          $Config{$config->{Name}} = 1;
+        } elsif ( $word eq 'no' or $word eq 'false' or $word eq 'off' ) {
+          $Config{$config->{Name}} = 0;
+        }
+      }
+      next;
+    }
     $Config{$config->{Name}} = $config->{Value};
   }
   $sth->finish();
@@ -221,6 +235,34 @@ sub generateAuthHashSecret {
   $option->{value} = unpack('H*', $bytes);
   print("Generated a new ZM_AUTH_HASH_SECRET\n");
 }
+
+# Set each Config row's Private and System flags from ConfigData, leaving its value
+# alone. The web UI hides and never exports a Private option, and won't edit a
+# System one; a table created from zm_create.sql before it wrote these columns has
+# them all 0, which showed ZM_AUTH_HASH_SECRET to anyone. zmupdate.pl calls this on
+# every update; saveConfigToDB() (zmupdate.pl -f) writes them along with the rest.
+sub syncConfigFlags {
+  my $dbh = ZoneMinder::Database::zmDbConnect();
+  if ( !$dbh ) {
+    print( "Error: unable to update option flags in database: $DBI::errstr\n" );
+    return( 0 );
+  }
+  my $rows = $dbh->selectall_hashref('SELECT Name, Private, `System` FROM Config', 'Name')
+    or croak( "Can't read option flags: ".$dbh->errstr() );
+  my $sth = $dbh->prepare_cached('UPDATE Config SET Private=?, `System`=? WHERE Name=?')
+    or croak( "Can't prepare: ".$dbh->errstr() );
+  my $changed = 0;
+  foreach my $option ( @options ) {
+    my $row = $rows->{$option->{name}} or next;
+    my ( $private, $system ) = ( $option->{private} ? 1 : 0, $option->{system} ? 1 : 0 );
+    next if ( ($row->{Private} // 0) == $private ) and ( ($row->{System} // 0) == $system );
+    $sth->execute($private, $system, $option->{name})
+      or croak( "Can't update flags of $$option{name}: ".$sth->errstr() );
+    $changed++;
+  }
+  $sth->finish();
+  return $changed;
+} # end sub syncConfigFlags
 
 sub saveConfigToDB {
   print( 'Saving config to DB ' . @options . " entries\n" );

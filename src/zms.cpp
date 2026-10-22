@@ -30,6 +30,17 @@
 #include <string>
 #include <unistd.h>
 
+// Refuses the request with 403. As nph-zms under Apache (nph- handling) the
+// raw status line reaches the client as written. Where the CGI headers are
+// parsed, the Status header sets the status instead: plain zms under any
+// server, and nph-zms behind nginx + fcgiwrap, where the raw line alone is not
+// taken as the status and the refusal went out as an empty 200. In NPH mode
+// both are written, so either server answers 403.
+static void Forbidden(bool nph) {
+  if (nph) fputs("HTTP/1.0 403 Forbidden\r\n", stdout);
+  fputs("Status: 403 Forbidden\r\n\r\n", stdout);
+}
+
 bool ValidateAccess(User *user, int mon_id) {
   bool allowed = true;
 
@@ -308,7 +319,7 @@ int main(int argc, const char *argv[], char **envp) {
       }
     }
     if ( !user ) {
-      fputs("HTTP/1.0 403 Forbidden\r\n\r\n", stdout);
+      Forbidden(nph);
 
       const char *referer = getenv("HTTP_REFERER");
       const char *request_uri = getenv("REQUEST_URI");
@@ -345,7 +356,7 @@ int main(int argc, const char *argv[], char **envp) {
     if ( !allowed ) {
       delete user;
       user = nullptr;
-      fputs("HTTP/1.0 403 Forbidden\r\n\r\n", stdout);
+      Forbidden(nph);
       return exit_zm(0);
     }
     delete user;

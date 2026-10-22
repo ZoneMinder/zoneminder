@@ -27,23 +27,29 @@ jobs:
     steps:
       - name: Determine release tag
         id: tag
+        # Expressions go through env: so the shell sees them as data; inline
+        # ${{ }} in run: is pasted into the script before the shell parses it.
+        env:
+          DISPATCH_TAG: ${{ inputs.tag }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "tag=${DISPATCH_TAG}" >> "$GITHUB_OUTPUT"
           else
-            echo "tag=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
+            echo "tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
           fi
 
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ steps.tag.outputs.tag }}
           submodules: recursive
 
       - name: Create tarball
         id: tarball
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
         run: |
           set -eux
-          TAG="${{ steps.tag.outputs.tag }}"
           TARBALL="zoneminder-${TAG}.tar.gz"
           # Reproducible: fixed mtime from the tagged commit, sorted entries,
           # no owner info, no gzip timestamp. Re-running the workflow for the
@@ -60,16 +66,17 @@ jobs:
           echo "tarball=${TARBALL}" >> "$GITHUB_OUTPUT"
 
       - name: Sanity check submodules are populated
+        env:
+          TARBALL: ${{ steps.tarball.outputs.tarball }}
         run: |
           set -eux
-          TARBALL="${{ steps.tarball.outputs.tarball }}"
           # The same file CMakeLists.txt checks before allowing a build
           tar -tzf "${TARBALL}" | grep -q 'web/api/app/Plugin/Crud/Lib/CrudControllerTrait.php'
           tar -tzf "${TARBALL}" | grep -q 'dep/RtspServer/CMakeLists.txt'
           tar -tzf "${TARBALL}" | grep -q 'dep/CxxUrl/CMakeLists.txt'
 
       - name: Attach to release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
           files: |

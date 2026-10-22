@@ -240,8 +240,8 @@ function deltaScale() {
 
 function changeScale() {
   // `eventData.Width` & `eventData.Height` may be set incorrectly in the monitor settings (in terms of both resolution and aspect ratio), while `realEventWidth` might not yet be defined because the video has not finished loading.
-  const eventDataWidth = (realEventWidth !=0) ? realEventWidth : eventData.Width ;
-  const eventDataHeight = (realEventHeight !=0) ? realEventHeight : eventData.Height ;
+  const eventDataWidth = (realEventWidth !=0) ? realEventWidth : eventData.Width;
+  const eventDataHeight = (realEventHeight !=0) ? realEventHeight : eventData.Height;
   const scaleSel = $j('#scale').val();
   const stream = document.getElementById('videoFeedStream' + eventData.MonitorId);
   let newWidth;

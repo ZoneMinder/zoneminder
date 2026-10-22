@@ -71,6 +71,10 @@ class TestUser {
   public function Events() { return $this->perms['Events']; }
   public function Snapshots() { return $this->perms['Snapshots']; }
   public function Monitors() { return $this->perms['Monitors']; }
+  // Same answers as User::canView()/canEdit() for a user without a role, for
+  // an Event::canView() that asks the user rather than reading the field.
+  public function canView($area) { return $this->perms[$area] != 'None'; }
+  public function canEdit($area) { return in_array($this->perms[$area], array('Edit', 'Create')); }
 }
 
 require_once __DIR__.'/../../web/includes/Event.php';

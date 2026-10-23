@@ -309,7 +309,7 @@ function changeScale() {
   }
   if (cueFrames) {
     //just re-render alarmCues.  skip ajax call
-    alarmCue.html(renderAlarmCues(videoFeed));
+    alarmCue.html(renderAlarmCues(eventViewer));
   }
 
   setButtonSizeOnStream();

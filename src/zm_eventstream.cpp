@@ -458,6 +458,14 @@ bool EventStream::loadEventData(uint64_t event_id) {
   return true;
 } // bool EventStream::loadEventData( int event_id )
 
+bool EventStream::eventExists(uint64_t event_id) {
+  MYSQL_RES *result = zmDbFetch(stringtf("SELECT 1 FROM `Events` WHERE `Id` = %" PRIu64, event_id));
+  if (!result) return false;
+  bool exists = mysql_num_rows(result) > 0;
+  mysql_free_result(result);
+  return exists;
+}
+
 void EventStream::processCommand(const CmdMsg *msg) {
   Debug(2, "Got message, type %d, msg %d", msg->msg_type, msg->msg_data[0]);
 
@@ -698,6 +706,41 @@ void EventStream::processCommand(const CmdMsg *msg) {
     send_frame = true;
     break;
   }
+  case CMD_SET_EVENT : {
+    // The UI tells us which event is next/prev in the filter/sort it is showing,
+    // so gapless advance follows that order rather than our same-monitor query
+    // (refs #4186). Payload: msg_data[1] = direction (0 next, 1 prev),
+    // msg_data[2..9] = target event id (64-bit big-endian, 0 = no neighbour in
+    // the filter), msg_data[10..15] = source event id (48-bit big-endian) this
+    // hint was computed against, so a hint for an event we have already left is
+    // discarded rather than applied to the wrong event.
+    unsigned char direction = (unsigned char)msg->msg_data[1];
+    uint64_t event_id = 0;
+    for (int i = 0; i < 8; i++)
+      event_id = (event_id << 8) | (unsigned char)msg->msg_data[2 + i];
+    uint64_t source_event_id = 0;
+    for (int i = 0; i < 6; i++)
+      source_event_id = (source_event_id << 8) | (unsigned char)msg->msg_data[10 + i];
+    // next and prev are sent as two separate AJAX requests and can arrive out of
+    // order. Only install a hint computed for the event we are currently playing;
+    // a command for an event we have already left (or have not reached) would
+    // otherwise overwrite the valid hint for the current event and make the next
+    // transition fall back to the same-monitor query (refs #4186). The 48-bit
+    // source truncates the id, but a collision only drops a legitimate hint (safe
+    // fallback), never installs a wrong one.
+    if (source_event_id != (event_data->event_id & 0xFFFFFFFFFFFFULL)) {
+      Debug(1, "Ignoring stale SET_EVENT %s = %" PRIu64 " for source %" PRIu64 "; current event is %" PRIu64,
+            direction == 0 ? "next" : "prev", event_id, source_event_id, event_data->event_id);
+      break;
+    }
+    EventHint &hint = (direction == 0) ? ui_next_hint : ui_prev_hint;
+    hint.have = true;
+    hint.event_id = event_id;
+    hint.source_event_id = source_event_id;
+    Debug(1, "Got SET_EVENT command, %s event = %" PRIu64 " (for source event %" PRIu64 ")",
+          direction == 0 ? "next" : "prev", event_id, source_event_id);
+    break;
+  }
   case CMD_QUERY :
     Debug(1, "Got QUERY command, sending STATUS");
     break;
@@ -782,8 +825,13 @@ void EventStream::processCommand(const CmdMsg *msg) {
 
 bool EventStream::checkEventLoaded() {
   std::string sql;
+  // The neighbour hint the UI gave us for the direction we are moving, if any
+  // (CMD_SET_EVENT). It is honoured only while it is still bound to the event
+  // playing; otherwise we fall back to the same-monitor query (refs #4186).
+  const EventHint *hint = nullptr;
 
   if (curr_frame_id <= 0) {
+    hint = &ui_prev_hint;
     sql = stringtf(
             "SELECT `Id` FROM `Events` WHERE `MonitorId` = %d AND `Id` < %" PRIu64 " ORDER BY `Id` DESC LIMIT 1",
             event_data->monitor_id, event_data->event_id);
@@ -796,6 +844,7 @@ bool EventStream::checkEventLoaded() {
         curr_frame_id = num_frames > 0 ? num_frames : 1;
       return false;
     }
+    hint = &ui_next_hint;
     sql = stringtf(
             "SELECT `Id` FROM `Events` WHERE `MonitorId` = %d AND `Id` > %" PRIu64 " ORDER BY `Id` ASC LIMIT 1",
             event_data->monitor_id, event_data->event_id);
@@ -805,44 +854,75 @@ bool EventStream::checkEventLoaded() {
           curr_frame_id, event_data->frames.size());
     return false;
   }
+  const char *direction = (curr_frame_id <= 0) ? "prev" : "next";
 
   // Event change required.
   if (forceEventChange || ((mode != MODE_SINGLE) && (mode != MODE_NONE))) {
-    Debug(1, "Checking for next event %s", sql.c_str());
+    // A hint applies only if the UI computed it for the event we are still on;
+    // a hint bound to an event we have already left is stale and ignored. It is
+    // not cleared on use: once we advance, its source no longer matches and the
+    // UI pushes a fresh pair for the new event.
+    // source_event_id is the 48-bit-truncated id the hint was computed for; mask
+    // the current id the same way processCommand does so the two comparisons agree.
+    bool use_hint = hint->have && (hint->source_event_id == (event_data->event_id & 0xFFFFFFFFFFFFULL));
+    uint64_t new_event_id = 0;
 
-    MYSQL_RES *result = zmDbFetch(sql);
-    if (!result) exit(-1);
-
-    if (mysql_num_rows(result) != 1) {
-      Debug(1, "No rows returned for %s", sql.c_str());
+    if (use_hint) {
+      // The UI told us explicitly. event_id 0 means the filter has no neighbour
+      // in this direction, so stop at the boundary rather than falling back to
+      // the unfiltered same-monitor query (which would leave the filtered list).
+      new_event_id = hint->event_id;
+      if (new_event_id && !eventExists(new_event_id)) {
+        // Deleted since the UI fetched its neighbours: drop the hint and fall
+        // back rather than reaching loadEventData's fatal "not found" path.
+        Warning("UI-provided %s event %" PRIu64 " no longer exists; falling back to same-monitor query",
+                direction, new_event_id);
+        new_event_id = 0;
+        use_hint = false;
+      } else {
+        Debug(1, "Loading UI-provided %s event %" PRIu64 " (filter boundary if 0)", direction, new_event_id);
+      }
     }
-    MYSQL_ROW dbrow = mysql_fetch_row(result);
 
-    if (mysql_errno(&dbconn)) {
-      Error("Can't fetch row: %s", mysql_error(&dbconn));
-      exit(mysql_errno(&dbconn));
+    if (!use_hint) {
+      Debug(1, "Checking for next event %s", sql.c_str());
+
+      MYSQL_RES *result = zmDbFetch(sql);
+      if (!result) exit(-1);
+
+      if (mysql_num_rows(result) != 1) {
+        Debug(1, "No rows returned for %s", sql.c_str());
+      }
+      MYSQL_ROW dbrow = mysql_fetch_row(result);
+
+      if (mysql_errno(&dbconn)) {
+        Error("Can't fetch row: %s", mysql_error(&dbconn));
+        exit(mysql_errno(&dbconn));
+      }
+
+      if (dbrow) new_event_id = atoll(dbrow[0]);
+      mysql_free_result(result);
     }
 
-    if (dbrow) {
-      uint64_t event_id = atoll(dbrow[0]);
-      Debug(1, "Loading new event %" PRIu64, event_id);
+    if (new_event_id) {
+      Debug(1, "Loading new event %" PRIu64, new_event_id);
 
-      loadEventData(event_id);
+      loadEventData(new_event_id);
 
       int num_frames = (int)event_data->frames.size();
       curr_frame_id = replay_rate < 0 ? (num_frames > 0 ? num_frames : 1) : 1;
       Debug(2, "New frame id = %d", curr_frame_id);
       start = std::chrono::steady_clock::now();
-      mysql_free_result(result);
       return true;
     } else {
-      Debug(2, "No next event loaded using %s. Pausing", sql.c_str());
+      // Either an explicit filter boundary (the UI sent 0) or no same-monitor
+      // event in this direction. Either way, pause here.
+      Debug(2, "No %s event to load (boundary or none). Pausing", direction);
       int num_frames = (int)event_data->frames.size();
       curr_frame_id = curr_frame_id <= 0 ? 1 : (num_frames > 0 ? num_frames : 1);
       paused = true;
       sendTextFrame("No more event data found");
     }  // end if found a new event or not
-    mysql_free_result(result);
     forceEventChange = false;
   } else {
     Debug(2, "Pausing because mode is %s", StreamMode_Strings[mode].c_str());
@@ -921,6 +1001,8 @@ bool EventStream::sendFrame(Microseconds delta_us) {
     if ( !vid_stream ) {
       vid_stream = new VideoStream("pipe:", format, bitrate, effective_fps,
                                    send_image->Colours(), send_image->SubpixelOrder(), send_image->Width(), send_image->Height());
+      vid_stream_width = send_image->Width();
+      vid_stream_height = send_image->Height();
       fprintf(stdout, "Content-type: %s\r\n\r\n", vid_stream->MimeType());
       if (!vid_stream->OpenStream()) {
         Error("Failed to open video stream");
@@ -928,6 +1010,14 @@ bool EventStream::sendFrame(Microseconds delta_us) {
         vid_stream = nullptr;
         return false;
       }
+    } else {
+      // The encoder is fixed at the first event's dimensions and cannot resize
+      // mid-stream (the Content-type header is already sent). A later event of a
+      // different resolution -- reachable now that gapless advance can cross
+      // monitors -- would otherwise be encoded against buffers sized for the
+      // original, overrunning them for a larger frame. Scale it to the encoder's
+      // dimensions instead (refs #4186). The text-frame path does the same.
+      scaleToEncoder(send_image);
     }
     vid_stream->EncodeFrame(send_image->Buffer(),
                             send_image->Size(),

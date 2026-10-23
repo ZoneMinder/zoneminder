@@ -311,6 +311,14 @@ Image *StreamBase::prepareImage(Image *image, int pre_scaled_by) {
   return image;
 }  // end Image *StreamBase::prepareImage(Image *image, int pre_scaled_by)
 
+void StreamBase::scaleToEncoder(Image *image) {
+  if (!vid_stream) return;  // not opened yet; this frame will define the size
+  if (image->Width() == vid_stream_width && image->Height() == vid_stream_height) return;
+  Debug(2, "Scaling %ux%u frame to MPEG encoder dimensions %ux%u",
+        image->Width(), image->Height(), vid_stream_width, vid_stream_height);
+  image->Scale(vid_stream_width, vid_stream_height);
+}
+
 bool StreamBase::sendTextFrame(const char *frame_text) {
   int width = 640;
   int height = 480;
@@ -346,6 +354,12 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
         vid_stream = nullptr;
         return false;
       }
+      vid_stream_width = image.Width();
+      vid_stream_height = image.Height();
+    } else {
+      // A text frame for a later, larger monitor (after a cross-monitor gapless
+      // advance) would otherwise overrun the encoder's fixed buffers (refs #4186).
+      scaleToEncoder(&image);
     }
     /* double pts = */ vid_stream->EncodeFrame(image.Buffer(), image.Size());
   } else {

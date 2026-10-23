@@ -96,6 +96,44 @@ case CMD_MAXFPS :
     intval($_REQUEST['maxfps']),
     1000000*( $_REQUEST['maxfps']-intval($_REQUEST['maxfps'])));
   break;
+case CMD_SET_EVENT :
+  # Tell zms which event is next (dir=0) or prev (dir=1) in the UI's filter/sort
+  # (refs #4186). Payload: dir byte, target event id (big-endian uint64, 0 = no
+  # neighbour in the filter), then the source event id the hint was computed
+  # against (big-endian 48-bit) so zms can discard stale hints.
+  global $user;
+  $dir = intval($_REQUEST['dir']);
+  # Keep ids as strings so packEventId*() need not go through a 32-bit intval().
+  $eventid = isset($_REQUEST['eventid']) ? $_REQUEST['eventid'] : 0;
+  $srcid = isset($_REQUEST['srcid']) ? $_REQUEST['srcid'] : 0;
+
+  # zms authorises only the event the stream started on; it loads whatever
+  # target we forward without re-checking. So a client could hand us an event
+  # from a monitor it cannot view and advance into that footage. Resolve the
+  # target's monitor and require view permission here, where the session user is
+  # known. Gated on ZM_OPT_USE_AUTH to match zms, which only validates event
+  # access when auth is on; 0 carries no event (filter boundary) and needs no
+  # check.
+  if (ZM_OPT_USE_AUTH && $eventid) {
+    $monitorId = dbFetchOne('SELECT `MonitorId` FROM `Events` WHERE `Id`=?', 'MonitorId', array($eventid));
+    if (!$monitorId) {
+      # Retention or another user deleted the neighbour between getNearEvents and
+      # now. That is a benign race, not a privilege problem, so do not ajaxError:
+      # getCmdResponse() would set zmsBroke=true and can stop the UI's status
+      # polling even though zms is fine. Forward it as a filter boundary (0) so
+      # zms pauses cleanly instead of advancing.
+      ZM\Debug('SET_EVENT target '.$eventid.' no longer exists; treating as filter boundary');
+      $eventid = 0;
+    } else if (!canView('Events', $monitorId)) {
+      if ($semaphore) sem_release($semaphore);
+      ajaxError('Insufficient privileges for event '.$eventid, HTTP_STATUS_OK, STREAM_ERR_INVALID);
+    }
+  }
+  ZM\Debug('Setting '.($dir ? 'prev' : 'next').' event to '.$eventid.' (source '.$srcid.')');
+  $msg = pack('lcC', MSG_CMD, $_REQUEST['command'], $dir)
+    .packEventId64($eventid)
+    .packEventId48($srcid);
+  break;
 default :
   ZM\Debug('Sending command ' . $_REQUEST['command']);
   $msg = pack('lc', MSG_CMD, $_REQUEST['command']);
@@ -233,5 +271,28 @@ function ajaxCleanup() {
     @socket_close($socket);
   if ( !empty($localSocketFile) )
     @unlink($localSocketFile);
+}
+
+# Big-endian uint64 as two 32-bit words. Avoids pack('J') (needs a 64-bit PHP
+# int) and intval() truncation on 32-bit PHP, which this endpoint still supports
+# (see the two-word MSG_DATA_EVENT decode above). On 32-bit PHP an id above 2^31
+# cannot be represented at all, so the high word is simply 0.
+function packEventId64($value) {
+  if (PHP_INT_SIZE >= 8) {
+    $v = intval($value);
+    return pack('NN', ($v >> 32) & 0xFFFFFFFF, $v & 0xFFFFFFFF);
+  }
+  return pack('NN', 0, intval($value));
+}
+
+# Big-endian 48-bit id (16-bit high word + 32-bit low word = 6 bytes), used for
+# the source event id, which only needs to match zms' current event; see
+# packEventId64 for the 32/64-bit handling.
+function packEventId48($value) {
+  if (PHP_INT_SIZE >= 8) {
+    $v = intval($value);
+    return pack('nN', ($v >> 32) & 0xFFFF, $v & 0xFFFFFFFF);
+  }
+  return pack('nN', 0, intval($value));
 }
 ?>

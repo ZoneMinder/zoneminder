@@ -1448,7 +1448,6 @@ function initPage() {
     showEventStats(false);
   } else {
     showEventStats(true);
-    onStatsResize(eventData.Width);
   }
   if (eventData.DefaultVideo) {
     canPlayCodec(eventData.DefaultVideo);

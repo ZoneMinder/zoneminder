@@ -2002,9 +2002,8 @@ function MonitorStream(monitorData) {
         this.kill();
         return;
       }
-      if (!this.RTSP2WebType) { // This could happen, for example, on the Zones page, where `setPlayer` is not executed.
-        this.setRTSP2WebType(this.player);
-      }
+      this.setRTSP2WebType(this.player);
+
       if (-1 !== this.player.indexOf('hls')) {
         const hlsUrl = rtsp2webModUrl;
         hlsUrl.pathname = "/stream/" + this.id + "/channel/" + numericChannel + "/hls/live/index.m3u8";
@@ -2581,7 +2580,7 @@ function startRTSP2WebPlay(videoEl, url, stream) {
     const msg = `Your browser does not support 'RTCPeerConnection'. Monitor '${stream.name}' ID=${stream.id} not started.`;
     console.log(msg);
     stream.getElement().before(document.createTextNode(msg));
-    stream.RTSP2WebType = null; // Avoid repeated restarts.
+    stream.RTSP2WebType = null; // Avoid repeated restarts. IgorA100: This is likely no longer required, as RTSP2WebType is used only for displaying the type.
     return;
   }
   const playbackSessionId = stream.playbackSessionId;
@@ -2760,7 +2759,7 @@ function mseListenerSourceopen(context, videoEl, url) {
         const msg = `WebSocket MSE for a video object ID=${context.id} codec '${mimeCodec}' not supported. Monitor '${context.name}' ID=${context.id} not starting.`;
         console.warn(msg);
         context.showText(msg);
-        context.RTSP2WebType = null; // Avoid repeated restarts
+        context.RTSP2WebType = null; // Avoid repeated restarts. IgorA100: This is likely no longer required, as RTSP2WebType is used only for displaying the type.
         context.streamErrorRegistration(true);
         if (context.selectedPlayer) {
           context.stop();

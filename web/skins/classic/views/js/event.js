@@ -955,6 +955,23 @@ function getNearEventsResponse(respObj, respText) {
 
   $j('#prevBtn').prop('disabled', prevEventId == 0 ? true : false).attr('class', prevEventId == 0 ? 'unavail' : 'inactive');
   $j('#nextBtn').prop('disabled', nextEventId == 0 ? true : false).attr('class', nextEventId == 0 ? 'unavail' : 'inactive');
+
+  // When playback is served by zms (not the video.js player), tell it which
+  // events are next/prev in the current filter/sort so its gapless auto-advance
+  // follows that order across monitors instead of its own same-monitor query
+  // (refs #4186). dir: 0 = next, 1 = prev. eventid 0 means the filter has no
+  // neighbour in that direction (zms then stops at the boundary). srcid binds
+  // the hint to the event these neighbours were computed for -- the response's
+  // own EventId, NOT the current eventData.Id. A slow nearevents response can
+  // arrive after the page has moved to another event; tagging it with the
+  // current id could send "for event B, next = B" (if B was A's next) and loop
+  // zms on B. Bound to its own source, zms discards a hint that no longer
+  // matches the event it is playing, so a superseded response is simply ignored.
+  var srcEventId = parseInt(respObj.nearevents.EventId);
+  if (vid == null && srcEventId == parseInt(eventData.Id)) {
+    streamReq({command: CMD_SET_EVENT, dir: 0, eventid: nextEventId, srcid: srcEventId});
+    streamReq({command: CMD_SET_EVENT, dir: 1, eventid: prevEventId, srcid: srcEventId});
+  }
 }
 
 function nearEventsQuery(eventId) {

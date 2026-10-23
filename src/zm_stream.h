@@ -110,6 +110,21 @@ class StreamBase {
     CMD_ANALYZE_ON,
     CMD_ANALYZE_OFF,
     CMD_ZOOMSTOP,
+    // Tell an event stream which event to load next/prev, computed UI-side so the
+    // filter/sort the user is viewing is honoured without reimplementing filters
+    // in C++ (refs #4186). MSG payload:
+    //   msg_data[1]     = direction (0 = next, 1 = prev)
+    //   msg_data[2..9]  = target event id, big-endian uint64 (0 = the filter has
+    //                     no neighbour in this direction -> stop at the boundary)
+    //   msg_data[10..15]= the event the UI computed this against, big-endian
+    //                     48-bit (source event id). The stream honours a hint
+    //                     only while this still matches the event playing, so a
+    //                     hint that arrives after playback has moved on is
+    //                     ignored instead of mis-steering the next transition.
+    //                     48 bits is ample for any real event id; a larger id
+    //                     would simply fail the match and fall back, never
+    //                     mis-match to a wrong event.
+    CMD_SET_EVENT,
     CMD_QUERY=99
   } MsgCommand;
 
@@ -170,6 +185,15 @@ class StreamBase {
   TimePoint when_to_send_next_frame;  // When to send next frame so if now < send_next_frame, skip
 
   VideoStream *vid_stream;
+  // Dimensions vid_stream (the MPEG encoder) was opened with. It is created once
+  // from the first frame and cannot resize, and ActuallyEncodeFrame copies a
+  // buffer sized for these, so a later frame of a different size -- a
+  // cross-monitor gapless advance, or a text frame built at a different
+  // monitor's dimensions -- is scaled to these before encoding or it overruns
+  // that buffer (refs #4186). 0 until the encoder is created; every site that
+  // creates vid_stream must set them.
+  unsigned int vid_stream_width;
+  unsigned int vid_stream_height;
 
   CmdMsg msg;
   std::atomic<bool> got_command; // commands like zoom should output a frame even if paused; set on the command thread
@@ -196,6 +220,11 @@ class StreamBase {
   void checkCommandQueue();
   virtual void processCommand(const CmdMsg *msg)=0;
   void reserveTempImgBuffer(size_t size);
+  // Scale image to the dimensions vid_stream was opened with, if it differs, so
+  // the MPEG encoder is never handed a frame sized differently from the buffers
+  // it allocated. A no-op until vid_stream exists (the first frame defines the
+  // size) and when the image already matches. See vid_stream_width/height.
+  void scaleToEncoder(Image *image);
 
  public:
   StreamBase():
@@ -243,6 +272,8 @@ class StreamBase {
     last_fps_update = std::chrono::steady_clock::now();
 
     vid_stream = nullptr;
+    vid_stream_width = 0;
+    vid_stream_height = 0;
     msg = { 0, { 0 } };
   }
   virtual ~StreamBase();

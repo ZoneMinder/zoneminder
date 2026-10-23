@@ -131,6 +131,7 @@ const CMD_SCALE = <?php echo CMD_SCALE ?>;
 const CMD_PREV = <?php echo CMD_PREV ?>;
 const CMD_NEXT = <?php echo CMD_NEXT ?>;
 const CMD_SEEK = <?php echo CMD_SEEK ?>;
+const CMD_SET_EVENT = <?php echo CMD_SET_EVENT ?>;
 const CMD_QUERY = <?php echo CMD_QUERY ?>;
 const CMD_QUIT = <?php echo CMD_QUIT ?>;
 const CMD_MAXFPS = <?php echo CMD_MAXFPS ?>;

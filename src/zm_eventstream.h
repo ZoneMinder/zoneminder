@@ -82,6 +82,31 @@ class EventStream : public StreamBase {
   StreamMode mode;
   bool forceEventChange;
 
+  // A neighbour-event hint the UI pushes via CMD_SET_EVENT. The UI computes
+  // next/prev from the filter and sort the user is viewing and sends them here,
+  // so gapless advance follows that order across monitors instead of our own
+  // same-monitor query (refs #4186). Each hint is bound to the event it was
+  // computed for (source_event_id); checkEventLoaded honours it only while that
+  // source is still the event playing, so a hint that arrives after we have left
+  // that event is ignored rather than mis-steering the next transition. `have`
+  // separates "the UI says there is no neighbour here" (event_id 0 -> stop at
+  // the filter boundary) from "the UI has not told us" (fall back to the
+  // same-monitor query). Read and written only under mutex.
+  //
+  // Known limitation: in a multi-server install with non-shared storage a
+  // cross-monitor neighbour can live on another server, whose recording this
+  // zms cannot read (loadEventData builds local paths only). Such an advance
+  // degrades to failed frames; it is not re-routed to the serving server the
+  // way the video.js player's reload path is. zms self-advance is effectively
+  // same-server (or shared-storage) only; routing it is a separate change.
+  struct EventHint {
+    bool     have = false;
+    uint64_t event_id = 0;
+    uint64_t source_event_id = 0;
+  };
+  EventHint ui_next_hint;
+  EventHint ui_prev_hint;
+
   std::mutex  mutex;
   int curr_frame_id;
   SystemTimePoint curr_stream_time;
@@ -92,6 +117,10 @@ class EventStream : public StreamBase {
 
  protected:
   bool loadEventData(uint64_t event_id);
+  // Cheap existence check so a UI-provided neighbour that retention (or another
+  // user) has deleted since the UI fetched it does not reach loadEventData's
+  // fatal "not found" path and kill the stream (refs #4186).
+  bool eventExists(uint64_t event_id);
   bool loadInitialEventData(uint64_t init_event_id, int init_frame_id);
   bool loadInitialEventData(int monitor_id, SystemTimePoint event_time);
 

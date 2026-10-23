@@ -497,7 +497,7 @@ if ($video_tag) {
                 </div><!--videoFeed-->
 <?php
 if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) echo '
-                <audio-motion id="audioVisualization'.$monitor->Id().'" class="audio-visualization">
+                <audio-motion id="audioVisualization'.$monitor->Id().'" class="audio-visualization hidden">
                   <div id="audioControlPanel'.$monitor->Id().'" class="audio-control-panel">
                     <div id="volumeControls'.$monitor->Id().'" class="disabled volume">
                       <div id="volumeSlider'.$monitor->Id().'" data-volume="50" data-muted="true" class="volumeSlider noUi-horizontal noUi-base noUi-round"></div>

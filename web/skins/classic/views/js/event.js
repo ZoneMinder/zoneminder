@@ -262,21 +262,21 @@ function changeScale() {
     newWidth = eventDataWidth;
     newHeight = eventDataHeight;
     currentScale = 100;
-    stream.style.overflow = 'auto';
+    stream.style.overflow = 'auto hidden';
   } else if (scaleSel == '0') {
     //Auto, Width is calculated based on the occupied height so that the image and control buttons occupy the visible part of the screen.
     newSize = scaleToFit(eventDataWidth, eventDataHeight, eventViewer, bottomEl, $j('#wrapperEventVideo'));
     newWidth = newSize.width;
     newHeight = newSize.height;
     currentScale = newSize.autoScale ? newSize.autoScale : 100;
-    stream.style.overflow = 'unset';
+    stream.style.overflow = 'hidden';
   } else if (scaleSel == 'fit_to_width') {
     //Fit to screen width
     newSize = scaleToFit(eventDataWidth, eventDataHeight, eventViewer, false, $j('#wrapperEventVideo'));
     newWidth = newSize.width;
     newHeight = newSize.height;
     currentScale = newSize.autoScale ? newSize.autoScale : 100;
-    stream.style.overflow = 'unset';
+    stream.style.overflow = 'hidden';
   } else if (scaleSel.indexOf("px") > -1) {
     newSize = scaleToFit(eventDataWidth, eventDataHeight, eventViewer, false, $j('#wrapperEventVideo')); // Only for calculating the maximum width!
     let w = 0;
@@ -291,7 +291,7 @@ function changeScale() {
     newWidth = parseInt(w);
     newHeight = parseInt(h);
     currentScale = parseInt(w / eventDataWidth * 100);
-    stream.style.overflow = 'unset';
+    stream.style.overflow = 'hidden';
   }
 
   console.log(`Real dimensions: ${eventDataWidth} X ${eventDataHeight}, Scale: ${currentScale}, deltaScale: ${deltaScale()}, New dimensions: ${newWidth} X ${newHeight}`);

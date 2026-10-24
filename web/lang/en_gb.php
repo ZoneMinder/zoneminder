@@ -790,6 +790,8 @@ $SLANG = array(
     'StorageArea'           => 'Storage Area',
     'StorageDoDelete'       => 'Do Deletes',
     'StorageScheme'         => 'Scheme',
+    'StreamEncoder'         => 'Stream Encoder',
+    'StreamEncoderPassthrough' => 'Camera passthrough (this camera sends encoded video)',
     'StreamReplayBuffer'    => 'Stream Replay Image Buffer',
     'TargetColorspace'      => 'Target colorspace',
     'Removed'                   => 'removed',
@@ -1167,6 +1169,22 @@ Always: A zmc process will run and immediately connect and stay connected.~~~~
      If RTSPServer is enabled, this will be the endpoint it will be available at.
      For example, if this is monitor ID 6, MIN_RTSP_PORT=20000 and RTSPServerName
      is set to "my_camera", access the stream at rtsp://ZM_HOST:20006/my_camera
+     ',
+    ),
+  'OPTIONS_STREAMENCODER' => array(
+     'Help' => '
+     zmc publishes each monitor\'s video on a local stream socket, which zm-api and
+     the ZoneMinder RTSP server use for live view and snapshots. A camera that
+     sends encoded video (Ffmpeg) is forwarded as it is. A camera that hands zmc
+     decoded pictures (Local, Remote HTTP, VNC...) has to be encoded first, and
+     this chooses how.~~
+     MJPEG is the default: cheap, and available everywhere.~~
+     A hardware encoder (VAAPI, Quick Sync, NVENC, V4L2 M2M) gives H.264 or
+     H.265, which uses far less bandwidth and plays in WebRTC and HLS. It uses
+     the Encoder HWAccel Device from the Recording tab. If it will not open on
+     this machine, zmc falls back to MJPEG and logs a warning.~~
+     Encoding only runs while something is connected to the socket.
+     None publishes no video for this monitor.
      ',
     ),
   'OPTIONS_WHATTODISPLAY' => array(

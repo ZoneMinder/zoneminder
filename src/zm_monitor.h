@@ -51,6 +51,7 @@
 class Group;
 class MonitorLinkExpression;
 class StreamSocket;
+class StreamEncoder;
 
 #define SIGNAL_CAUSE "Signal"
 #define MOTION_CAUSE "Motion"
@@ -776,6 +777,20 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::mutex stream_event_mutex;
   // Rebuild and cache the stream socket snapshot from current state + health.
   void RefreshStreamSnapshot();
+  // The StreamEncoder setting: how a camera that hands zmc decoded images
+  // (Local, MJPEG over HTTP, VNC...) publishes video on the stream socket:
+  // "mjpeg", a hardware encoder, or "none". Cameras that deliver encoded
+  // packets forward those and ignore it.
+  std::string stream_encoder_name;
+  // Opened by the decoder thread on the first image. Guarded by
+  // stream_encoder_mutex because PrimeCapture, on the capture thread, reads
+  // its parameters; taken before the stream socket's own lock.
+  std::unique_ptr<StreamEncoder> stream_encoder;
+  std::mutex stream_encoder_mutex;
+  bool stream_encoder_failed = false;  // not even mjpeg would open; don't retry every image
+  bool stream_encoder_idle = true;     // nobody was connected: the next image is encoded as a keyframe
+  // Encode a decoded-image camera's processed image onto the stream socket.
+  void PublishStreamImage(const std::shared_ptr<ZMPacket> &packet);
 
   std::shared_ptr<Camera> camera;
   Event       *event;

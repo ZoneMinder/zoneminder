@@ -92,6 +92,14 @@ bool User::canAccess(int monitor_id) {
   return false;
 }
 
+// True for the password db/zm_create.sql gives the admin account ("admin").
+// Every install ships with it, so it proves nothing; zmLoadUser() refuses it so
+// zms, zmu and the RTSP server never accept admin/admin. Mirrors
+// isDefaultPassword() in web/includes/auth.php.
+bool isDefaultPassword(const char *password) {
+  return password and !strcmp(password, "admin");
+}
+
 // Function to load a user from username and password
 // Please note that in auth relay mode = none, password is NULL
 User *zmLoadUser(const char *username, const char *password) {
@@ -115,10 +123,17 @@ User *zmLoadUser(const char *username, const char *password) {
         (! password )  // relay type must be none
         ||
         verifyPassword(username, password, user->getPassword()) ) {
+      if (isDefaultPassword(password)) {
+        Warning("Refusing user %s: it uses the password admin, which is not accepted. Set a new one (see the FAQ).",
+                username);
+        delete user;
+        mysql_free_result(result);
+        return nullptr;
+      }
       mysql_free_result(result);
       Info("Authenticated user '%s'", user->getUsername());
       return user;
-    } 
+    }
   }  // end if 1 result from db
   mysql_free_result(result);
 

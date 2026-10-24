@@ -122,6 +122,7 @@ std::vector<uint8_t> BuildHello(const AVCodecParameters *par, AVRational frame_r
   out.reserve(64 + (par->extradata ? par->extradata_size : 0));
 
   append_tlv_u32(out, kTlvCodecId, static_cast<uint32_t>(par->codec_id));
+  append_tlv_str(out, kTlvCodecName, avcodec_get_name(par->codec_id));
   if (par->extradata and par->extradata_size > 0) {
     if (static_cast<size_t>(par->extradata_size) > kMaxTlvValueSize) {
       // A TLV value is at most 64 KiB; parameter sets are a few hundred bytes,
@@ -184,8 +185,17 @@ bool ParseHello(const uint8_t *data, size_t len, HelloInfo &info) {
       case kTlvChannels:   info.channels = get_u32(value); break;
       case kTlvProfile:    info.profile = get_u32(value); break;
       case kTlvLevel:      info.level = get_u32(value); break;
+      case kTlvCodecName:  info.codec_name.assign(reinterpret_cast<const char *>(value), value_len); break;
       default: break;  // unknown tag: skip
     }
+  }
+  // The name is stable across FFmpeg versions and the number is not, so the
+  // name wins whenever this build knows it. A name this build does not know
+  // (a codec newer than our FFmpeg) leaves the numeric id as the best guess.
+  if (!info.codec_name.empty()) {
+    const AVCodecDescriptor *descriptor = avcodec_descriptor_get_by_name(info.codec_name.c_str());
+    if (descriptor)
+      info.codec_id = descriptor->id;
   }
   return info.codec_id != AV_CODEC_ID_NONE;
 }

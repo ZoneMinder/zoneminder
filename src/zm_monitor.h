@@ -597,6 +597,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::string pass;
   std::string path;
   std::string second_path;
+  std::string device_class;
 
   std::string onvif_url;
   std::string onvif_events_path;

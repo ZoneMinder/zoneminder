@@ -526,8 +526,15 @@ MAIN: while( $loop ) {
       aud_print("Filesystem monitor link '$link' does not point to valid monitor directory");
       if ( confirm() ) {
         ( $link ) = ( $link =~ /^(.*)$/ ); # De-taint
-        executeShellCommand($Config{ZM_PATH_RM}.qq` "$link"`);
-        $cleaned = 1;
+        # unlink(), not a shell rm: the link name is the monitor name, which a
+        # user with Monitors create/edit controls and which is not shell-escaped
+        # here, so rm "$link" would expand $(...) or backticks embedded in it
+        # (refs GHSA-746p-4622-p3fr). unlink removes the symlink itself, no shell.
+        if ( unlink($link) ) {
+          $cleaned = 1;
+        } else {
+          Error("Unable to remove monitor link '$link': $!");
+        }
       }
     } # end foreach monitor link
   } # end foreach Storage Area

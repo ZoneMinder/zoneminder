@@ -301,6 +301,12 @@ User *zmLoadUser(const std::string &username, const std::string &password) {
       (password.empty() and (!strcmp(config.auth_relay, "none")))  // relay type must be none
       ||
       verifyPassword(username.c_str(), password.c_str(), user->getPassword()) ) {
+    if (isDefaultPassword(password)) {
+      Warning("Refusing user %s: it uses the password admin, which is not accepted. Log in to the web interface to set a new one.",
+              username.c_str());
+      delete user;
+      return nullptr;
+    }
     Debug(1, "Authenticated user '%s'", user->getUsername());
     return user;
   }
@@ -485,4 +491,11 @@ bool checkPass(const std::string &password) {
     return false;
 
   return true;
+}
+
+// The password db/zm_create.sql gives the admin account, as the user guide
+// states it. Every install starts with it, so it proves nothing; see
+// isDefaultPassword() in web/includes/auth.php.
+bool isDefaultPassword(const std::string &password) {
+  return password == "admin";
 }

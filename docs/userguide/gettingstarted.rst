@@ -49,12 +49,12 @@ We strongly recommend enabling authentication during initial setup of ZoneMinder
 
 .. sidebar:: Note
 
-    For initial login authentication the default username is **admin** and default password is **admin**.
+    For initial login authentication the default username is **admin** and default password is **admin**. ZoneMinder then asks you to choose a new password before it logs you in.
 
 Establish Login Password
 ------------------------
 
-ZoneMinder defines a default user with username of **admin** and password of **admin**. Use these credentials to login to ZoneMinder for the first time. This is not very secure for a server so let's change this before continuing setting up ZoneMinder. The password for the admin user can be changed by following the steps below.
+ZoneMinder defines a default user with username of **admin** and password of **admin**. Use these credentials to login to ZoneMinder for the first time. Because everyone knows this password, ZoneMinder accepts it only to replace it: the login page asks you to enter it again and choose a new one, and logs you in with the new one. Until then the API, stream URLs and ``zmu`` refuse it too. The password for the admin user, and any other user, can be changed later by following the steps below.
 
 * Click on the :guilabel:`Options` link in the top bar of the web interface.
 * Locate and click on the :guilabel:`Users` tab link.

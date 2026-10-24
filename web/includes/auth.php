@@ -90,7 +90,41 @@ function migrateHash($username, $pass) {
   }
 }
 
+// The password db/zm_create.sql gives the admin account, as the user guide
+// states it. Every install starts with it, so a login with it proves nothing:
+// it is refused as a credential everywhere, and the web login asks for a new
+// one instead (replaceDefaultPassword()). zmLoadUser() in src/zm_user.cpp does
+// the same for zms, zmu and the RTSP server.
+define('ZM_DEFAULT_PASSWORD', 'admin');
+define('ZM_DEFAULT_PASSWORD_REFUSED', 'This account uses the password admin, which ZoneMinder does not accept. Log in to the web interface to set a new one.');
+
+function isDefaultPassword($password) {
+  return is_string($password) and hash_equals(ZM_DEFAULT_PASSWORD, $password);
+}
+
+// True when this request answers the change form replaceDefaultPassword() showed
+// earlier in this session. That form follows a login that already passed
+// reCAPTCHA, so its POST doesn't need to pass it again.
+function isDefaultPasswordChangePost() {
+  $nonce = requestString('password_change_nonce');
+  $expected = isset($_SESSION['passwordChangeNonce']) ? $_SESSION['passwordChangeNonce'] : null;
+  return ($nonce !== null) and is_string($expected) and hash_equals($expected, $nonce);
+}
+
+// Why $new can't replace the default password, as a translation key, or null
+// when it can.
+function newPasswordProblem($new, $confirm) {
+  if (!is_string($new) or ($new === '')) return 'NewPasswordRequired';
+  if (!is_string($confirm) or !hash_equals($new, $confirm)) return 'PasswordsDifferent';
+  if (isDefaultPassword($new)) return 'NewPasswordIsDefault';
+  return null;
+}
+
 // core function used to load a User record by username and password
+//
+// A correct password that is the default one is refused: the result is
+// array(false, ZM_DEFAULT_PASSWORD_REFUSED, $account), the third element so
+// the web login can offer to replace it.
 function validateUser($username='', $password='') {
   if (ZM_CASE_INSENSITIVE_USERNAMES) {
     $sql = 'SELECT * FROM Users WHERE Enabled=1 AND LOWER(Username)=LOWER(?)';
@@ -134,10 +168,49 @@ function validateUser($username='', $password='') {
   } // switch password_type
 
   if ($password_correct) {
+    if (isDefaultPassword($password)) {
+      return array(false, ZM_DEFAULT_PASSWORD_REFUSED, new ZM\User($user));
+    }
     return array(new ZM\User($user), 'OK');
   }
   return array(false, 'Invalid username or password');
 } # end function validateUser
+
+// The web login's answer to a correct but default password. The login page
+// asks for a new one; its form carries a nonce kept in the session, so another
+// site can't submit it on the user's behalf. Returns true once the account's
+// password was replaced. Otherwise sets the global $defaultPasswordChange for
+// the login view and returns false; the account is not logged in.
+function replaceDefaultPassword($account) {
+  global $defaultPasswordChange;
+
+  $new = requestString('new_password');
+  $nonce = requestString('password_change_nonce');
+  $expected = isset($_SESSION['passwordChangeNonce']) ? $_SESSION['passwordChangeNonce'] : null;
+  unset($_SESSION['passwordChangeNonce']);
+
+  $problem = null;
+  if (($new !== null) and ($nonce !== null) and is_string($expected) and hash_equals($expected, $nonce)) {
+    $problem = newPasswordProblem($new, requestString('new_password_confirm'));
+    if ($problem === null) {
+      $hash = password_hash($new, PASSWORD_BCRYPT);
+      dbQuery('UPDATE Users SET Password=? WHERE Id=?', array($hash, $account->Id()));
+      $account->Password($hash);
+      ZM\Info('User "'.$account->Username().'" replaced the password admin');
+      return true;
+    }
+  }
+
+  ZM\Warning('Login for user "'.$account->Username().'" stopped: it uses the password admin');
+  zm_session_persist(); // the nonce must survive even if the client had no cookie yet
+  $_SESSION['passwordChangeNonce'] = bin2hex(random_bytes(16));
+  $defaultPasswordChange = array(
+    'username' => $account->Username(),
+    'nonce' => $_SESSION['passwordChangeNonce'],
+    'problem' => $problem,
+  );
+  return false;
+}
 
 function userLogout() {
   global $user;
@@ -655,15 +728,19 @@ if (ZM_OPT_USE_AUTH) {
     } else if (!(empty($requestUsername) or empty($requestPassword))) {
       # Longer versions are used on login page
       $ret = validateUser($requestUsername, $requestPassword);
-      if (!$ret[0]) {
+      # The right password, but the default one: on the login page the account
+      # replaces it first; anywhere else it is refused like a wrong one.
+      $mustReplaceDefault = (!$ret[0] and isset($ret[2]) and (requestString('action') === 'login'));
+      if (!$ret[0] and !$mustReplaceDefault) {
         ZM\Warning($ret[1]);
         unset($user); // unset should be ok here because we aren't in a function
         return;
       }
-      $user = $ret[0];
+      $user = $mustReplaceDefault ? $ret[2] : $ret[0];
 
       if (
         defined('ZM_OPT_USE_GOOG_RECAPTCHA') && ZM_OPT_USE_GOOG_RECAPTCHA
+        && !($mustReplaceDefault and isDefaultPasswordChangePost())
         && defined('ZM_OPT_GOOG_RECAPTCHA_SECRETKEY') && ZM_OPT_GOOG_RECAPTCHA_SECRETKEY
         && defined('ZM_OPT_GOOG_RECAPTCHA_SITEKEY') && ZM_OPT_GOOG_RECAPTCHA_SITEKEY
       ) {
@@ -699,6 +776,14 @@ if (ZM_OPT_USE_AUTH) {
           }
         } // end if success==false
       } // end if using reCaptcha
+
+      if ($mustReplaceDefault) {
+        if (!replaceDefaultPassword($user)) {
+          unset($user); // unset should be ok here because we aren't in a function
+          return;
+        }
+        $requestPassword = requestString('new_password');
+      }
 
       zm_session_clear(); # Closes session
       // The client has no cookie yet on a first login, but this session must be stored.

@@ -2998,10 +2998,11 @@ function initPageGeneral() {
   // rescale then. Only a change of height matters: a ResizeObserver also reports the size it
   // starts with, and the figures change width on every refresh, and rescaling for either
   // resized the video on the event and watch views for nothing.
+  // The left navbar can be collapsed and expanded, which will change the space available for displaying the stream.
   let navbarReloadHeight = null;
   var observerNavbarReload = new window.ResizeObserver((entries) => {
     const height = entries[entries.length - 1].contentRect.height;
-    if (navbarReloadHeight !== null && height != navbarReloadHeight) endOfResize();
+    if ((navbarReloadHeight !== null && height != navbarReloadHeight) || navbar_type == 'left') endOfResize();
     navbarReloadHeight = height;
   });
   if (NAVBAR_RELOAD) {

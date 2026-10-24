@@ -257,26 +257,25 @@ function changeScale() {
   /*!!! Because of this, the Scale is not correct. For example, when recording in 4k, Capture Resolution = FHD, the image with a width of 600px looks terrible! */
 
   let newSize;
+  let streamOverflow = 'hidden';
   if (scaleSel == '100') {
     //Actual, 100% of original size
     newWidth = eventDataWidth;
     newHeight = eventDataHeight;
     currentScale = 100;
-    stream.style.overflow = 'auto hidden';
+    streamOverflow = 'auto hidden';
   } else if (scaleSel == '0') {
     //Auto, Width is calculated based on the occupied height so that the image and control buttons occupy the visible part of the screen.
     newSize = scaleToFit(eventDataWidth, eventDataHeight, eventViewer, bottomEl, $j('#wrapperEventVideo'));
     newWidth = newSize.width;
     newHeight = newSize.height;
     currentScale = newSize.autoScale ? newSize.autoScale : 100;
-    stream.style.overflow = 'hidden';
   } else if (scaleSel == 'fit_to_width') {
     //Fit to screen width
     newSize = scaleToFit(eventDataWidth, eventDataHeight, eventViewer, false, $j('#wrapperEventVideo'));
     newWidth = newSize.width;
     newHeight = newSize.height;
     currentScale = newSize.autoScale ? newSize.autoScale : 100;
-    stream.style.overflow = 'hidden';
   } else if (scaleSel.indexOf("px") > -1) {
     newSize = scaleToFit(eventDataWidth, eventDataHeight, eventViewer, false, $j('#wrapperEventVideo')); // Only for calculating the maximum width!
     let w = 0;
@@ -291,8 +290,12 @@ function changeScale() {
     newWidth = parseInt(w);
     newHeight = parseInt(h);
     currentScale = parseInt(w / eventDataWidth * 100);
-    stream.style.overflow = 'hidden';
   }
+
+  // videoFeedStream is absent when the player is sized before the page DOM is
+  // built (gapless playback sizes on DOMContentLoaded), so guard the element
+  // rather than dereferencing a null style.
+  if (stream) stream.style.overflow = streamOverflow;
 
   console.log(`Real dimensions: ${eventDataWidth} X ${eventDataHeight}, Scale: ${currentScale}, deltaScale: ${deltaScale()}, New dimensions: ${newWidth} X ${newHeight}`);
 

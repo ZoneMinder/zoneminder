@@ -345,6 +345,7 @@ class Monitor extends ZM_Object {
     'Longitude' =>  null,
     'RTSPServer' => array('type'=>'boolean', 'default'=>0),
     'RTSPStreamName'  => '',
+    'StreamEncoder'   => 'mjpeg',
     'SOAP_wsa_compl' => array('type'=>'boolean', 'default'=>0), 
     'Importance'      =>  'Normal',
     'MQTT_Enabled'   => array('type'=>'boolean','default'=>0),

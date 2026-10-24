@@ -296,6 +296,11 @@ bool StreamSocket::ApplyStreamsLocked(std::vector<uint8_t> video, std::vector<ui
   return true;
 }
 
+bool StreamSocket::HasClients() {
+  std::lock_guard<std::mutex> lock(mutex_);
+  return !clients_.empty();
+}
+
 void StreamSocket::SendMedia(const AVPacket *packet, StreamId stream,
                              bool keyframe, int64_t pts_us) {
   if (!packet or packet->size <= 0)

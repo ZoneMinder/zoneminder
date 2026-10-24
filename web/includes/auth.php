@@ -56,7 +56,22 @@ function migrateHash($username, $password) {
   }
 }
 
+// The password db/zm_create.sql gives the admin account, as the user guide
+// states it. Every install starts with it, so a login with it proves nothing:
+// it is refused as a credential everywhere. zmLoadUser() in src/zm_user.cpp
+// does the same for zms, zmu and the RTSP server. Set a new password to log in
+// (see the FAQ: it can be done with SQL or zmupdate.pl).
+define('ZM_DEFAULT_PASSWORD', 'admin');
+define('ZM_DEFAULT_PASSWORD_REFUSED', 'This account uses the password admin, which ZoneMinder does not accept. Set a new password (see the FAQ) to log in.');
+
+function isDefaultPassword($password) {
+  return is_string($password) and hash_equals(ZM_DEFAULT_PASSWORD, $password);
+}
+
 // core function used to load a User record by username and password
+//
+// A correct password that is the default one is refused, so admin/admin never
+// grants access.
 function validateUser($username='', $password='') {
   if (ZM_CASE_INSENSITIVE_USERNAMES) {
       $sql = 'SELECT * FROM Users WHERE Enabled=1 AND LOWER(Username)=LOWER(?)';
@@ -100,6 +115,9 @@ function validateUser($username='', $password='') {
   } // switch password_type
 
   if ($password_correct) {
+    if (isDefaultPassword($password)) {
+      return array(false, ZM_DEFAULT_PASSWORD_REFUSED);
+    }
     return array($user, 'OK');
   }
   return array(false, "Login denied for user \"$username\"");

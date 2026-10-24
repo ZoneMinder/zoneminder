@@ -64,6 +64,9 @@ class User {
   bool canAccess(int monitor_id);
 };
 
+// True for the password db/zm_create.sql gives the admin account ("admin").
+// zmLoadUser() refuses it so admin/admin never authenticates.
+bool isDefaultPassword(const char *password);
 User *zmLoadUser(const char *username, const char *password=0);
 User *zmLoadAuthUser(const char *auth, bool use_remote_addr);
 User *zmLoadTokenUser(const std::string &jwt, bool use_remote_addr);

@@ -280,10 +280,20 @@ Note that SELinux may cause errors other than those listed above. If you are in 
 
 How do I enable ZoneMinder's security?
 -------------------------------------------
-In the console, click on ``Options->System``. Check the box next to ``ZM_OPT_USE_AUTH``. You will immediately be asked to login. The default username is 'admin' and the password is 'admin'.
+In the console, click on ``Options->System``. Check the box next to ``ZM_OPT_USE_AUTH``. You will immediately be asked to login. The default username is 'admin' and the password is 'admin'. ZoneMinder refuses the password ``admin`` as a credential everywhere (the web interface, the API, stream URLs, ``zmu``), so you must set a new password before you can log in.
 
 To Manage Users:
 In main console, go to ``Options->Users``.
+
+How do I set the admin password without the web interface?
+----------------------------------------------------------------
+Because the password ``admin`` is refused, a fresh install needs a real password set
+another way before the first login. The account lives in the database. Make a bcrypt
+hash and store it, for example
+``php -r 'echo password_hash("your new password", PASSWORD_BCRYPT), "\n";'`` and then
+``UPDATE Users SET Password='<the hash>' WHERE Username='admin';`` -- or use
+``zmupdate.pl`` to set it. Choose anything other than ``admin``, which is refused however
+it is set.
 
 You may also consider to use the web server security, for example, htaccess files under Apache scope; You may even use this as an additional/redundant security on top of Zoneminders built-in security features. Note that if you choose to enable webserver auth, zmNinja may have issues. Please read the `zmNinja FAQ on basic authentication <https://zmninja.readthedocs.io/en/latest/guides/FAQ.html#i-can-t-see-streams-i-use-basic-auth>`__ for more information. Also please note that zmNinja does not support digest authentication.
 

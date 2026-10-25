@@ -1384,16 +1384,55 @@ bool Monitor::StartWebSocketServer() {
     return false;
   }
 
+  // Record what is in effect so a later config reload can detect a change.
+  websocket_active_port = websocket_port;
+  websocket_active_cert = tls_cert;
+  websocket_active_key = tls_key;
   return true;
 }
 
 void Monitor::StopWebSocketServer() {
+  websocket_active_port = 0;
+  websocket_active_cert.clear();
+  websocket_active_key.clear();
   if (!websocket_server) {
     return;
   }
 
   websocket_server->Stop();
   websocket_server.reset();
+}
+
+void Monitor::ReloadWebSocketServer() {
+  const unsigned int desired_port = config.min_websocket_port
+      ? zm::websocket::MonitorWebSocketPort(config.min_websocket_port, id) : 0;
+  const std::string desired_cert = config.websocket_tls_cert ? config.websocket_tls_cert : "";
+  const std::string desired_key = config.websocket_tls_key ? config.websocket_tls_key : "";
+
+  const bool want_enabled = (desired_port != 0);
+  const bool running = (websocket_server != nullptr);
+
+  // Nothing relevant changed: leave the listener and its clients alone.
+  if ((running == want_enabled)
+      && (desired_port == websocket_active_port)
+      && (desired_cert == websocket_active_cert)
+      && (desired_key == websocket_active_key)) {
+    return;
+  }
+
+  Debug(1, "Monitor %u: reconciling websocket listener after reload (port %u->%u, tls %s->%s)",
+        id, websocket_active_port, desired_port,
+        websocket_active_cert.empty() ? "off" : "on",
+        desired_cert.empty() ? "off" : "on");
+
+  // A deliberate reconfigure; connected clients are dropped so they reconnect
+  // against the new port/TLS.
+  if (running) {
+    StopWebSocketServer();
+  }
+  if (want_enabled) {
+    StartWebSocketServer();
+  }
 }
 
 void Monitor::RefreshWebSocketStatus() {

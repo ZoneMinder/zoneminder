@@ -474,6 +474,9 @@ int main(int argc, char *argv[]) {
       zmLoadDBConfig();
       for (std::shared_ptr<Monitor> &monitor : monitors) {
         monitor->Reload();
+        // Pick up any change to the websocket listener's port or TLS material;
+        // the listener is otherwise long-lived across reconnect cycles.
+        monitor->ReloadWebSocketServer();
       }
       // The dbQueue and stream socket threads are still running and logging.
       logReload(log_id_string);

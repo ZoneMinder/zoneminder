@@ -900,6 +900,11 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // thread and read by the websocket server thread so that thread never
   // dereferences the camera or a live AVStream (refs #2875).
   zm::websocket::VideoStreamInfo websocket_video_info;
+  // The websocket listener settings currently in effect, so a config reload can
+  // tell whether port/TLS changed and reconcile the running listener.
+  unsigned int websocket_active_port = 0;
+  std::string websocket_active_cert;
+  std::string websocket_active_key;
 
   // Used in check signal
   uint8_t red_val;
@@ -1162,6 +1167,11 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::shared_ptr<ZMPacket> getSnapshot( int index=-1 );
   bool StartWebSocketServer();
   void StopWebSocketServer();
+  // Reconciles the running websocket listener with the current config after a
+  // reload: restarts it when the port or TLS material changed, stops it when it
+  // was disabled, starts it when it was enabled, and leaves it (and its
+  // connected clients) untouched when nothing relevant changed. zmc only.
+  void ReloadWebSocketServer();
   void RefreshWebSocketStatus();
   std::string GetWebSocketStatusJson();
   void QueueWebSocketEvent(const std::string &event_type, const std::string &message);

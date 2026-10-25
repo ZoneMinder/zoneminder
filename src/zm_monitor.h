@@ -647,6 +647,17 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::string     encoder;
   std::string     encoder_hwaccel_name;
   std::string     encoder_hwaccel_device;
+  // Hardware device contexts used by the encoder (VideoStore), one per
+  // (hwdevice type, device) and shared by every event's VideoStore rather than
+  // created and destroyed per event: a per-event create/destroy opened and
+  // closed /dev/dri/renderD128 each time, and on some VAAPI drivers the
+  // teardown leaked the fd, so a long-running monitor eventually hit the
+  // open-file limit (refs #5300). Keyed, and never evicted, so that probing a
+  // second encoder type (the auto encoder list interleaves VAAPI and QSV)
+  // cannot drop the context an earlier probe created. Owned here; VideoStore
+  // borrows a reference through GetEncoderHWDeviceContext.
+  std::map<std::pair<int, std::string>, AVBufferRef *> encoder_hw_device_ctxs;
+  std::mutex      encoder_hw_device_ctx_mutex;
   std::string     output_container;
   _AVPIXELFORMAT  imagePixFormat;
   bool            record_audio;      // Whether to store the audio that we receive
@@ -1061,6 +1072,14 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   const std::string &GetEncoderOptions() const { return encoderparams; }
   const std::string &EncoderHWAccelName() const { return encoder_hwaccel_name; }
   const std::string &EncoderHWAccelDevice() const { return encoder_hwaccel_device; }
+#if HAVE_LIBAVUTIL_HWCONTEXT_H && LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
+  // Return a new reference to the encoder hardware device context for (type,
+  // device), creating and caching it on first use so every event's VideoStore
+  // reuses one device instead of opening the render node again (refs #5300).
+  // The caller owns the returned reference and must unref it. Returns nullptr
+  // if the device cannot be created.
+  AVBufferRef *GetEncoderHWDeviceContext(AVHWDeviceType type, const std::string &device);
+#endif
   const std::string &OutputCodec() const { return output_codec; }
   const std::string &Encoder() const { return encoder; }
   const std::string &OutputContainer() const { return output_container; }

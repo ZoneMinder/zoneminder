@@ -54,6 +54,7 @@ function check($name, $got, $want) {
 $request = array(
   'view' => 'request', 'request' => 'control', 'id' => '4', 'control' => 'moveConLeft',
   'xge' => '50', 'yge' => '50', 'token' => 'jwt', 'username' => 'admin', 'password' => 'secret',
+  'ZMSESSID' => 'abc', 'stray' => '1',
 );
 
 check('monitor on this server is handled here', remoteControlUrl(new StubMonitor(1), $request), null);
@@ -77,6 +78,8 @@ check('the control request is passed on', array(
 ), array('request', 'control', '4', 'moveConLeft', '50', '1'));
 check('the caller\'s credentials are not passed on', array(
   isset($sent['token']), isset($sent['password'])), array(false, false));
+check('only known control parameters are forwarded, nothing else', array(
+  isset($sent['ZMSESSID']), isset($sent['stray'])), array(false, false));
 check('the auth relay says who is asking', array(
   isset($sent['auth']) ? $sent['auth'] : null, isset($sent['user']) ? $sent['user'] : null),
   array('0123456789abcdef', 'admin'));

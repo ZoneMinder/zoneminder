@@ -16,12 +16,14 @@ function remoteControlUrl($monitor, $request) {
   $server = $monitor->Server();
   if ( !$server->Id() ) return null;
 
-  // The other server learns who is asking from the auth relay, not from the
-  // credentials this request came with.
+  // Forward only the known control parameters, rebuilt as a fresh request. An
+  // allowlist rather than a denylist, so nothing else the caller sent -- the
+  // credentials this request came with (the other server learns who is asking
+  // from the auth relay below), a stray key, a value PHP folded in from a
+  // cookie -- rides along to the other server.
   $params = array('view'=>'request', 'request'=>'control');
-  foreach ( $request as $name => $value ) {
-    if ( !in_array($name, array('view', 'request', 'token', 'auth', 'user', 'username', 'password', 'pass', 'forwarded')) )
-      $params[$name] = $value;
+  foreach ( array('id', 'control', 'xge', 'yge', 'x', 'y', 'scale', 'preset', 'newLabel', 'action', 'aid', 'response') as $name ) {
+    if ( isset($request[$name]) ) $params[$name] = $request[$name];
   }
   $params['forwarded'] = 1;
   $url = $server->UrlToIndex().'?'.http_build_query($params);
@@ -31,14 +33,25 @@ function remoteControlUrl($monitor, $request) {
 }
 
 // Sends a control request to the server that records the monitor and returns
-// its JSON reply, or false when that server can't be reached.
+// its reply, or false when that server can't be reached or answers with an
+// error status. A control click is interactive, so cap the wait rather than
+// letting an unreachable server hang the request for default_socket_timeout.
 function forwardControlRequest($url) {
   $context = stream_context_create(array(
     'ssl'=>array('verify_peer'=>false, 'verify_peer_name'=>false),
+    'http'=>array('timeout'=>15, 'ignore_errors'=>true),
   ));
   $reply = @file_get_contents($url, false, $context);
   if ( $reply === false ) {
     ZM\Error('Could not forward the control request to '.strtok($url, '?'));
+    return false;
+  }
+  // ignore_errors=true returns the body even on a 4xx/5xx; treat anything but a
+  // 2xx (e.g. a login redirect's HTML when the auth relay was rejected) as a
+  // failure rather than relaying it to the browser as a control reply.
+  if ( isset($http_response_header[0]) && !preg_match('#^HTTP/\S+\s+2\d\d#', $http_response_header[0]) ) {
+    ZM\Error('Control request to '.strtok($url, '?').' answered '.$http_response_header[0]);
+    return false;
   }
   return $reply;
 }

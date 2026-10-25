@@ -85,6 +85,11 @@ function relayControlReply($url) {
   $reply = forwardControlRequest($url);
   if ( $reply === false )
     ajaxError('Failed');
+  // The other server answers with an ajaxResponse/ajaxError JSON object. Don't
+  // pass a non-JSON body (e.g. an unexpected HTML error page) back under a JSON
+  // content-type; report a clean error instead.
+  if ( json_decode($reply) === null && trim($reply) !== 'null' )
+    ajaxError('Recording server returned an unexpected reply');
   if ( function_exists('ajaxCleanup') )
     ajaxCleanup();
   header('Content-type: application/json');

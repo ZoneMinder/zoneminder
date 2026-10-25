@@ -122,7 +122,7 @@ Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
     };
 
     if (parent->device_class == "Camera") {
-      if (Go2RTC_disable_backchannel) {
+      if (parent->Go2RTC_disable_backchannel) {
         // Disable backchannel for both RTSP stream paths.
         set_rtsp_param(rtsp_path, "backchannel", "0");
 

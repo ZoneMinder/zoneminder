@@ -537,8 +537,16 @@ void MonitorWebSocketServer::run() {
     pollfds.push_back({server.getReadDesc(), POLLIN, 0});
 
     for (const Client &client : clients) {
+      // Always ready to read inbound frames and commands. Add POLLOUT only for
+      // a direction that actually needs to write: an inbound TLS op waiting to
+      // write, or a queued write that is not itself waiting for readability (if
+      // it is, the always-on POLLIN wakes us to re-drive it - requesting POLLOUT
+      // there would spin, since the socket stays writable).
       short events = POLLIN;
-      if (!client.send_queue.empty() || client.tls_want_write) {
+      if (client.tls_in_wants_write) {
+        events |= POLLOUT;
+      }
+      if (!client.send_queue.empty() && !client.tls_out_wants_read) {
         events |= POLLOUT;
       }
       pollfds.push_back({client.fd, events, 0});
@@ -567,12 +575,23 @@ void MonitorWebSocketServer::run() {
         closeClient(&clients[i]);
         continue;
       }
-      if ((revents & POLLIN) && !handleRead(&clients[i])) {
-        closeClient(&clients[i]);
-        continue;
+      Client &client = clients[i];
+      // Drive the inbound side (handshake, then read) when readable, or when an
+      // inbound TLS op that was waiting to write finally can: handleRead
+      // re-attempts whichever operation stalled.
+      if ((revents & POLLIN) || ((revents & POLLOUT) && client.tls_in_wants_write)) {
+        if (!handleRead(&client)) {
+          closeClient(&client);
+          continue;
+        }
       }
-      if ((revents & POLLOUT) && !flushWrites(&clients[i])) {
-        closeClient(&clients[i]);
+      // Drive the outbound queue when writable, or when a queued write that was
+      // waiting to read finally can.
+      if (!client.send_queue.empty() &&
+          ((revents & POLLOUT) || ((revents & POLLIN) && client.tls_out_wants_read))) {
+        if (!flushWrites(&client)) {
+          closeClient(&client);
+        }
       }
     }
 
@@ -645,14 +664,14 @@ bool MonitorWebSocketServer::handleTlsHandshake(Client *client, bool *done) {
   const zm::tls::Result result = client->tls->Handshake();
   switch (result) {
   case zm::tls::Result::kOk:
-    client->tls_want_write = false;
+    client->tls_in_wants_write = false;
     *done = true;
     return true;
   case zm::tls::Result::kWantRead:
-    client->tls_want_write = false;
+    client->tls_in_wants_write = false;
     return true;
   case zm::tls::Result::kWantWrite:
-    client->tls_want_write = true;
+    client->tls_in_wants_write = true;
     return true;
   default:
     Debug(1, "Dropping websocket client for monitor %u: TLS handshake failed", monitor->Id());
@@ -670,12 +689,12 @@ bool MonitorWebSocketServer::readAvailable(Client *client, bool *closed) {
     if (client->tls) {
       const zm::tls::Result result = client->tls->Read(buffer, sizeof(buffer), &bytes_read);
       if (result == zm::tls::Result::kWantRead) {
-        client->tls_want_write = false;
+        client->tls_in_wants_write = false;
         break;
       }
       if (result == zm::tls::Result::kWantWrite) {
         // A renegotiation can make a read need the socket to be writable.
-        client->tls_want_write = true;
+        client->tls_in_wants_write = true;
         break;
       }
       if (result == zm::tls::Result::kClosed) {
@@ -685,7 +704,7 @@ bool MonitorWebSocketServer::readAvailable(Client *client, bool *closed) {
       if (result != zm::tls::Result::kOk) {
         return false;
       }
-      client->tls_want_write = false;
+      client->tls_in_wants_write = false;
     } else {
       const ssize_t raw = ::recv(client->fd, buffer, sizeof(buffer), 0);
       if (raw == 0) {
@@ -737,7 +756,17 @@ bool MonitorWebSocketServer::handleRead(Client *client) {
   }
 
   if (!client->handshake_complete) {
-    return handleHandshake(client);
+    if (!handleHandshake(client)) {
+      return false;
+    }
+    // handleHandshake keeps any bytes the client pipelined after the request.
+    // If the handshake is now complete, fall through to decode those frames in
+    // this same call; a client that sent its first frame in the same segment
+    // and then waits for our reply would otherwise stall until more data
+    // arrives (which it will not).
+    if (!client->handshake_complete) {
+      return true;
+    }
   }
 
   while (!client->recv_buffer.empty()) {
@@ -903,7 +932,10 @@ bool MonitorWebSocketServer::handleFrame(Client *client, const websocket::Frame 
           client->status_interval = Milliseconds(interval_ms);
         }
         client->subscribe_status = true;
-        client->next_status_at = std::chrono::steady_clock::now();
+        // The first status goes out here with the ack; schedule the periodic
+        // broadcast a full interval out so broadcastStatus does not also send
+        // one this same loop iteration (a duplicate status frame).
+        client->next_status_at = std::chrono::steady_clock::now() + client->status_interval;
         if (!queueFrame(client, websocket::Opcode::TEXT, statusAckJson(topic, client->status_interval.count())) ||
             !queueFrame(client, websocket::Opcode::TEXT, monitor->GetWebSocketStatusJson())) {
           return false;
@@ -1039,12 +1071,13 @@ bool MonitorWebSocketServer::flushWrites(Client *client) {
       const zm::tls::Result result = client->tls->Write(
           pending.data.data() + pending.offset, pending.data.size() - pending.offset, &bytes_sent);
       if (result == zm::tls::Result::kWantWrite) {
-        client->tls_want_write = true;
+        client->tls_out_wants_read = false;
         return true;
       }
       if (result == zm::tls::Result::kWantRead) {
-        // Mid-renegotiation the write needs readable data first.
-        client->tls_want_write = false;
+        // Mid-renegotiation the write needs readable data first; wait for
+        // POLLIN rather than spinning on a writable socket.
+        client->tls_out_wants_read = true;
         return true;
       }
       if (result == zm::tls::Result::kClosed) {
@@ -1053,7 +1086,7 @@ bool MonitorWebSocketServer::flushWrites(Client *client) {
       if (result != zm::tls::Result::kOk) {
         return false;
       }
-      client->tls_want_write = false;
+      client->tls_out_wants_read = false;
     } else {
       const ssize_t raw =
         ::send(client->fd, pending.data.data() + pending.offset, pending.data.size() - pending.offset, MSG_NOSIGNAL);

@@ -91,10 +91,17 @@ class MonitorWebSocketServer {
     // or HTTP handshake can be reaped instead of occupying a slot forever.
     TimePoint accepted_at = std::chrono::steady_clock::now();
     // Null when the listener is plaintext. When set, every byte to and from
-    // this client goes through it, and tls_want_write records which direction
-    // the last call wanted so poll() can be told.
+    // this client goes through it. TLS can want the socket readable to write or
+    // writable to read (handshake, renegotiation), so each direction records
+    // which poll condition its pending operation is waiting on:
+    //   tls_in_wants_write  - the handshake or a read is waiting to write
+    //   tls_out_wants_read  - a queued write is waiting to read
+    // The poll() request and the ready-event dispatch honour both, otherwise a
+    // write blocked on readability spins on POLLOUT and an inbound op blocked on
+    // writability is never re-driven.
     std::unique_ptr<zm::tls::Session> tls;
-    bool tls_want_write = false;
+    bool tls_in_wants_write = false;
+    bool tls_out_wants_read = false;
     bool handshake_complete = false;
     bool subscribe_status = false;
     bool subscribe_events = false;

@@ -306,6 +306,14 @@ This command will force an alarm on Monitor 1:
 
   curl http://server/zm/api/monitors/alarm/id:1/command:on.json
 
+The event records "Forced Web" as its cause. To record another cause, pass it as ``cause``.
+ZoneMinder keeps letters, digits, spaces and plain punctuation (``_ . , : ; ! ? ( ) [ ] / + # @ % = -``),
+drops anything else, and keeps the first 31 bytes:
+
+::
+
+  curl "http://server/zm/api/monitors/alarm/id:1/command:on.json?cause=Doorbell"
+
 This command will disable the  alarm on Monitor 1:
 
 ::

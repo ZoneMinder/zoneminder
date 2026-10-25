@@ -2,6 +2,47 @@
 
 require_once('logger.php');
 
+// In a multi-server setup only the server that records a monitor can drive its
+// camera: zmcontrol.pl runs there. When that is another server, returns the URL
+// that hands it this same control request, or null to handle it here. The other
+// server checks the permissions and builds the command itself. A request that
+// was forwarded once is handled where it lands, so two servers that disagree
+// about the monitor's server don't pass it back and forth.
+function remoteControlUrl($monitor, $request) {
+  if ( !defined('ZM_SERVER_ID') or !ZM_SERVER_ID ) return null;
+  if ( !$monitor->ServerId() or ($monitor->ServerId() == ZM_SERVER_ID) ) return null;
+  if ( !empty($request['forwarded']) ) return null;
+
+  $server = $monitor->Server();
+  if ( !$server->Id() ) return null;
+
+  // The other server learns who is asking from the auth relay, not from the
+  // credentials this request came with.
+  $params = array('view'=>'request', 'request'=>'control');
+  foreach ( $request as $name => $value ) {
+    if ( !in_array($name, array('view', 'request', 'token', 'auth', 'user', 'username', 'password', 'pass', 'forwarded')) )
+      $params[$name] = $value;
+  }
+  $params['forwarded'] = 1;
+  $url = $server->UrlToIndex().'?'.http_build_query($params);
+  $auth_relay = get_auth_relay();
+  if ( $auth_relay ) $url .= '&'.$auth_relay;
+  return $url;
+}
+
+// Sends a control request to the server that records the monitor and returns
+// its JSON reply, or false when that server can't be reached.
+function forwardControlRequest($url) {
+  $context = stream_context_create(array(
+    'ssl'=>array('verify_peer'=>false, 'verify_peer_name'=>false),
+  ));
+  $reply = @file_get_contents($url, false, $context);
+  if ( $reply === false ) {
+    ZM\Error('Could not forward the control request to '.strtok($url, '?'));
+  }
+  return $reply;
+}
+
 function buildControlCommand($monitor) {
   $ctrlCommand = '';
   $control = $monitor->Control();

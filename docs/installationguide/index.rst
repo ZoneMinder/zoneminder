@@ -12,6 +12,7 @@ Contents:
    ubuntu
    debian
    redhat
+   docker
    windows_wsl
    multiserver
    dedicateddrive

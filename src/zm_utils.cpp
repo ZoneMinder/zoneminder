@@ -296,19 +296,10 @@ std::string ByteArrayToHexString(nonstd::span<const uint8> bytes) {
 }
 
 std::string Base64Encode(nonstd::span<const uint8> bytes) {
-  static char base64_table[64] = {'\0'};
-
-  if (!base64_table[0]) {
-    int i = 0;
-    for (char c = 'A'; c <= 'Z'; c++)
-      base64_table[i++] = c;
-    for (char c = 'a'; c <= 'z'; c++)
-      base64_table[i++] = c;
-    for (char c = '0'; c <= '9'; c++)
-      base64_table[i++] = c;
-    base64_table[i++] = '+';
-    base64_table[i++] = '/';
-  }
+  // Compile-time constant: a lazily-filled static was a data race when two
+  // threads (e.g. per-monitor websocket handshakes) first called this at once.
+  static constexpr char base64_table[] =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
   std::string outString;
   outString.reserve(2 * bytes.size());

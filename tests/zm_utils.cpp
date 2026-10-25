@@ -20,7 +20,10 @@
 #include "zm_utils.h"
 
 #include <array>
+#include <atomic>
 #include <sstream>
+#include <thread>
+#include <vector>
 
 TEST_CASE("Trim") {
   REQUIRE(Trim("", "") == "");
@@ -178,6 +181,33 @@ TEST_CASE("Base64Encode") {
 
   const std::array<uint8, 3> binary = {{0x00, 0xff, 0x10}};
   REQUIRE(Base64Encode(nonstd::span<const uint8>(binary.data(), binary.size())) == "AP8Q");
+}
+
+// Base64Encode used to fill a static lookup table on first call under no lock,
+// so concurrent first callers (per-monitor websocket handshakes) raced on it.
+// Passes trivially in a normal build; its value is under ThreadSanitizer:
+//
+//   cmake -DTSAN=ON -DBUILD_TEST_SUITE=ON .. && cmake --build .
+//   ./tests/tests "[races]"
+TEST_CASE("Base64Encode is safe across threads", "[races]") {
+  constexpr int kThreads = 8;
+  std::atomic<bool> go{false};
+  std::atomic<int> wrong{0};
+  std::vector<std::thread> threads;
+  for (int t = 0; t < kThreads; t++) {
+    threads.emplace_back([&]() {
+      while (!go.load(std::memory_order_acquire)) {
+      }
+      for (int i = 0; i < 2000; i++) {
+        if (Base64Encode("foobar") != "Zm9vYmFy") {
+          wrong.fetch_add(1, std::memory_order_relaxed);
+        }
+      }
+    });
+  }
+  go.store(true, std::memory_order_release);
+  for (auto &th : threads) th.join();
+  REQUIRE(wrong.load() == 0);
 }
 
 TEST_CASE("JsonExtractQuotedField") {

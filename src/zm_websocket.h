@@ -7,6 +7,8 @@
 #include "zm_time.h"
 #include "zm_websocket_stream_info.h"
 
+#include <sys/socket.h>
+
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
@@ -50,6 +52,12 @@ std::string EncodeFrame(Opcode opcode, const std::string &payload, bool fin = tr
 DecodeResult DecodeFrame(const std::string &buffer, Frame *frame, size_t *consumed);
 unsigned int MonitorWebSocketPort(int base_port, unsigned int monitor_id);
 
+// Formats the numeric IP of an accepted peer (the sockaddr accept() filled in),
+// or "" when it cannot be determined. An IPv4-mapped IPv6 address is reduced to
+// its plain dotted form so it matches the REMOTE_ADDR the web server would have
+// recorded when it generated an IP-bound auth hash.
+std::string PeerAddressString(const sockaddr_storage &addr, socklen_t addr_len);
+
 }  // namespace websocket
 
 class MonitorWebSocketServer {
@@ -76,6 +84,9 @@ class MonitorWebSocketServer {
     explicit Client(int p_fd) : fd(p_fd) {}
 
     int fd;
+    // Numeric IP of the peer, captured at accept(). Used to validate an
+    // IP-bound auth hash, which zmc has no CGI REMOTE_ADDR for (refs #2875).
+    std::string peer_addr;
     // When the connection was accepted, so a peer that never finishes the TLS
     // or HTTP handshake can be reaped instead of occupying a slot forever.
     TimePoint accepted_at = std::chrono::steady_clock::now();

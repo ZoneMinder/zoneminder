@@ -12,7 +12,10 @@
 #include <climits>
 #include <cstdint>
 #include <cstring>
+#include <arpa/inet.h>
 #include <fcntl.h>
+#include <netdb.h>
+#include <netinet/in.h>
 #include <sstream>
 #include <poll.h>
 #include <sys/socket.h>
@@ -141,7 +144,8 @@ bool validateStreamAccess(User *user, unsigned int monitor_id) {
   return true;
 }
 
-User *authenticateWebSocketRequest(const std::string &request, unsigned int monitor_id, int *http_status) {
+User *authenticateWebSocketRequest(const std::string &request, unsigned int monitor_id,
+                                   const std::string &peer_addr, int *http_status) {
   *http_status = 401;
   if (!config.opt_use_auth) {
     return nullptr;
@@ -182,7 +186,12 @@ User *authenticateWebSocketRequest(const std::string &request, unsigned int moni
         const std::string auth_hash = query.get("auth")->firstValue();
         const std::string username = query.has("username") ? query.get("username")->firstValue() : "";
         if (!auth_hash.empty()) {
-          user = zmLoadAuthUser(auth_hash, username, config.auth_hash_ips);
+          // zmc has no CGI REMOTE_ADDR, so pass the peer address accept() gave
+          // us (and any X-Forwarded-For from the handshake, resolved against the
+          // trusted proxies) for an IP-bound hash to validate against (refs #2875).
+          std::string forwarded_for;
+          ExtractHeaderValue(request, "x-forwarded-for", &forwarded_for);
+          user = zmLoadAuthUser(auth_hash, username, config.auth_hash_ips, peer_addr, forwarded_for);
         }
       }
 
@@ -396,6 +405,36 @@ unsigned int MonitorWebSocketPort(int base_port, unsigned int monitor_id) {
   return static_cast<unsigned int>(base_port) + monitor_id;
 }
 
+std::string PeerAddressString(const sockaddr_storage &addr, socklen_t addr_len) {
+  if ((addr.ss_family != AF_INET) && (addr.ss_family != AF_INET6)) {
+    return "";
+  }
+
+  char host[NI_MAXHOST] = {};
+  const int rc = getnameinfo(reinterpret_cast<const sockaddr *>(&addr), addr_len,
+                             host, sizeof(host), nullptr, 0, NI_NUMERICHOST);
+  if (rc != 0) {
+    return "";
+  }
+
+  std::string result(host);
+  // getnameinfo keeps the scope id on a link-local address (fe80::1%eth0); the
+  // hash was bound to the bare address, so drop it.
+  const size_t scope = result.find('%');
+  if (scope != std::string::npos) {
+    result.erase(scope);
+  }
+  // Reduce an IPv4-mapped IPv6 address (::ffff:a.b.c.d) to its dotted form, so
+  // it matches the REMOTE_ADDR the web server recorded for the same client.
+  const std::string mapped_prefix = "::ffff:";
+  if ((result.compare(0, mapped_prefix.size(), mapped_prefix) == 0) &&
+      (result.find(':', mapped_prefix.size()) == std::string::npos) &&
+      (result.find('.', mapped_prefix.size()) != std::string::npos)) {
+    result.erase(0, mapped_prefix.size());
+  }
+  return result;
+}
+
 void VideoStreamInfo::Update(const AVCodecParameters *codecpar,
                              uint32_t fallback_width, uint32_t fallback_height) {
   Snapshot next;
@@ -592,6 +631,7 @@ bool MonitorWebSocketServer::acceptClients(std::vector<Client> *clients) {
     }
 
     clients->emplace_back(fd);
+    clients->back().peer_addr = websocket::PeerAddressString(addr, addr_len);
     if (tls_context) {
       clients->back().tls.reset(new zm::tls::Session(*tls_context, fd));
     }
@@ -741,7 +781,7 @@ bool MonitorWebSocketServer::handleHandshake(Client *client) {
 
   if (config.opt_use_auth) {
     int http_status = 401;
-    User *user = authenticateWebSocketRequest(request, monitor->Id(), &http_status);
+    User *user = authenticateWebSocketRequest(request, monitor->Id(), client->peer_addr, &http_status);
     if (!user) {
       if (http_status == 403) {
         writeImmediate(client, httpResponse("HTTP/1.1 403 Forbidden", "Forbidden"));

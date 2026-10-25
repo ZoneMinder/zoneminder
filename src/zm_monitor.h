@@ -47,6 +47,7 @@
 #endif  // HAVE_LIBCURL
 
 #include "zm_monitor_onvif.h"
+#include "zm_websocket_stream_info.h"
 
 class Group;
 class MonitorLinkExpression;
@@ -895,6 +896,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::mutex websocket_message_mutex;
   std::vector<std::string> websocket_messages;
   std::atomic<uint32_t> websocket_capture_bandwidth;
+  // Owned snapshot of the capture video stream, published by the capture
+  // thread and read by the websocket server thread so that thread never
+  // dereferences the camera or a live AVStream (refs #2875).
+  zm::websocket::VideoStreamInfo websocket_video_info;
 
   // Used in check signal
   uint8_t red_val;
@@ -1165,6 +1170,11 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   packetqueue_iterator *CreateWebSocketVideoIterator(const std::string &codec);
   bool GetNextWebSocketVideoPayload(packetqueue_iterator *it, const std::string &codec, WebSocketPayload *payload);
   void FreeWebSocketIterator(packetqueue_iterator *it);
+  // Publishes/clears the websocket video stream snapshot from the capture
+  // thread. UpdateVideoStreamInfo runs while the camera is valid (after a
+  // prime); InvalidateVideoStreamInfo runs before the camera is closed.
+  void UpdateVideoStreamInfo();
+  void InvalidateVideoStreamInfo();
   SystemTimePoint GetTimestamp(int index = -1);
   void UpdateAdaptiveSkip();
   useconds_t GetAnalysisRate();

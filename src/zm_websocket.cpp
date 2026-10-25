@@ -396,6 +396,46 @@ unsigned int MonitorWebSocketPort(int base_port, unsigned int monitor_id) {
   return static_cast<unsigned int>(base_port) + monitor_id;
 }
 
+void VideoStreamInfo::Update(const AVCodecParameters *codecpar,
+                             uint32_t fallback_width, uint32_t fallback_height) {
+  Snapshot next;
+  bool valid = false;
+  if (codecpar && codecpar->codec_id != AV_CODEC_ID_NONE) {
+    valid = true;
+    next.codec_id = codecpar->codec_id;
+    next.width = codecpar->width > 0 ? static_cast<uint32_t>(codecpar->width) : fallback_width;
+    next.height = codecpar->height > 0 ? static_cast<uint32_t>(codecpar->height) : fallback_height;
+    if (codecpar->extradata && codecpar->extradata_size > 0) {
+      next.extradata.assign(reinterpret_cast<const char *>(codecpar->extradata),
+                            codecpar->extradata_size);
+    }
+  }
+
+  std::lock_guard<std::mutex> lock(mutex_);
+  valid_ = valid;
+  snapshot_ = std::move(next);
+}
+
+void VideoStreamInfo::Invalidate() {
+  std::lock_guard<std::mutex> lock(mutex_);
+  valid_ = false;
+  snapshot_ = Snapshot();
+}
+
+bool VideoStreamInfo::Get(AVCodecID requested_codec, Snapshot *out) const {
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (!valid_ || snapshot_.codec_id != requested_codec) {
+    return false;
+  }
+  *out = snapshot_;
+  return true;
+}
+
+bool VideoStreamInfo::Valid() const {
+  std::lock_guard<std::mutex> lock(mutex_);
+  return valid_;
+}
+
 }  // namespace websocket
 
 MonitorWebSocketServer::MonitorWebSocketServer(Monitor *p_monitor) :

@@ -1755,16 +1755,15 @@ bool Monitor::GetWebSocketImagePayload(const std::string &format, WebSocketPaylo
 }
 
 packetqueue_iterator *Monitor::CreateWebSocketVideoIterator(const std::string &codec) {
-  if (!camera || !camera->getVideoStream()) {
-    return nullptr;
-  }
-
   AVCodecID requested_codec = AV_CODEC_ID_NONE;
   if (!requestedWebSocketVideoCodec(codec, &requested_codec)) {
     return nullptr;
   }
 
-  if (camera->getVideoStream()->codecpar->codec_id != requested_codec) {
+  // Validate against the published snapshot rather than the live camera: the
+  // capture thread may be tearing the camera down on a reconnect (refs #2875).
+  zm::websocket::VideoStreamInfo::Snapshot info;
+  if (!websocket_video_info.Get(requested_codec, &info)) {
     return nullptr;
   }
 
@@ -1817,7 +1816,7 @@ packetqueue_iterator *Monitor::CreateWebSocketVideoIterator(const std::string &c
 }
 
 bool Monitor::GetNextWebSocketVideoPayload(packetqueue_iterator *it, const std::string &codec, WebSocketPayload *payload) {
-  if (!it || !payload || !camera || !camera->getVideoStream()) {
+  if (!it || !payload) {
     return false;
   }
 
@@ -1827,13 +1826,20 @@ bool Monitor::GetNextWebSocketVideoPayload(packetqueue_iterator *it, const std::
     return false;
   }
 
-  ZMPacketLock packet_lock = packetqueue.get_packet_no_wait(it);
-  if (!packet_lock.packet_ || !packet_lock.packet_->packet || !packet_lock.packet_->stream) {
+  // Everything describing the stream comes from the owned snapshot, never the
+  // camera or the packet's stream back-pointer: both are freed by
+  // camera->Close() on a reconnect (refs #2875). The packet's own refcounted
+  // AVPacket data survives and is all we read from the queue.
+  zm::websocket::VideoStreamInfo::Snapshot info;
+  if (!websocket_video_info.Get(requested_codec, &info)) {
     return false;
   }
 
-  const AVCodecID codec_id = packet_lock.packet_->stream->codecpar->codec_id;
-  if (codec_id != requested_codec) {
+  ZMPacketLock packet_lock = packetqueue.get_packet_no_wait(it);
+  if (!packet_lock.packet_ || !packet_lock.packet_->packet) {
+    return false;
+  }
+  if (packet_lock.packet_->packet->stream_index != video_stream_id) {
     packetqueue.increment_it(it, video_stream_id);
     return false;
   }
@@ -1841,8 +1847,8 @@ bool Monitor::GetNextWebSocketVideoPayload(packetqueue_iterator *it, const std::
   payload->type = "stream";
   payload->format = codec;
   payload->content_type = content_type;
-  payload->width = packet_lock.packet_->stream->codecpar->width ? packet_lock.packet_->stream->codecpar->width : Width();
-  payload->height = packet_lock.packet_->stream->codecpar->height ? packet_lock.packet_->stream->codecpar->height : Height();
+  payload->width = info.width ? info.width : Width();
+  payload->height = info.height ? info.height : Height();
   payload->line_size = 0;
   payload->colours = 0;
   payload->subpixel_order = 0;
@@ -1851,13 +1857,8 @@ bool Monitor::GetNextWebSocketVideoPayload(packetqueue_iterator *it, const std::
   payload->keyframe = packet_lock.packet_->keyframe;
   payload->payload.clear();
 
-  if (packet_lock.packet_->keyframe) {
-    AVStream *stream = camera->getVideoStream();
-    if (stream->codecpar->extradata && stream->codecpar->extradata_size > 0) {
-      payload->payload.append(
-          reinterpret_cast<const char *>(stream->codecpar->extradata),
-          stream->codecpar->extradata_size);
-    }
+  if (packet_lock.packet_->keyframe && !info.extradata.empty()) {
+    payload->payload.append(info.extradata);
   }
 
   payload->payload.append(
@@ -1865,6 +1866,21 @@ bool Monitor::GetNextWebSocketVideoPayload(packetqueue_iterator *it, const std::
       packet_lock.packet_->packet->size);
   packetqueue.increment_it(it, video_stream_id);
   return !payload->payload.empty();
+}
+
+void Monitor::UpdateVideoStreamInfo() {
+  const AVCodecParameters *codecpar = nullptr;
+  if (camera) {
+    AVStream *stream = camera->getVideoStream();
+    if (stream) {
+      codecpar = stream->codecpar;
+    }
+  }
+  websocket_video_info.Update(codecpar, Width(), Height());
+}
+
+void Monitor::InvalidateVideoStreamInfo() {
+  websocket_video_info.Invalidate();
 }
 
 void Monitor::FreeWebSocketIterator(packetqueue_iterator *it) {
@@ -5177,6 +5193,10 @@ int Monitor::PrimeCapture() {
     RefreshStreamSnapshot();
   }
 
+  // Publish the video stream snapshot for the websocket server while the camera
+  // is valid; the websocket thread reads this, never the camera (refs #2875).
+  UpdateVideoStreamInfo();
+
   //Poller Thread
   if (onvif_event_listener || janus_enabled || RTSP2Web_enabled || use_Amcrest_API || Go2RTC_enabled) {
     if (!Poller) {
@@ -5276,6 +5296,11 @@ int Monitor::Pause() {
   // decoder for a stream that is gone.
   CloseDecoder();
 
+  // Stop the websocket thread reading the stream before the camera frees its
+  // AVStream (refs #2875). The snapshot owns its data, so the thread is safe
+  // whether it reads just before or just after this.
+  InvalidateVideoStreamInfo();
+
   if (camera) {
     camera->Close();
   }
@@ -5310,6 +5335,11 @@ int Monitor::Play() {
 
   Debug(2, "Video stream id is %d, audio is %d, minimum_packets to keep in buffer %d",
         video_stream_id, audio_stream_id, pre_event_count);
+
+  // Re-publish the websocket video stream snapshot: Play() re-primes the camera
+  // on the on-demand path without going through Monitor::PrimeCapture() (refs #2875).
+  UpdateVideoStreamInfo();
+
   if (decoding != DECODING_NONE) {
     Debug(1, "Starting decoder thread");
     decoder->Start();

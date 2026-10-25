@@ -5,6 +5,7 @@
 #include "zm_monitor.h"
 #include "zm_tls.h"
 #include "zm_time.h"
+#include "zm_websocket_stream_info.h"
 
 #include <atomic>
 #include <cstddef>

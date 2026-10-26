@@ -151,7 +151,8 @@ existing `command`/subscription fields rather than a separate `topic`.
 
 1. **This branch — live + status.** Per-monitor WebSocket carrying status,
    events, and live video from `zmc`; harden #4830 (done, see below); event-
-   driven status (done); proxy-path documentation.
+   driven status (done); proxy-path documentation (done — see
+   `docs/api_monitor_websocket.rst`). Phase 1 complete pending review.
 2. **UI cutover.** Montage/watch views open the per-monitor WebSocket for video
    and status instead of `zms` streams + status polling. Measure against the
    6-limit and latency goals.

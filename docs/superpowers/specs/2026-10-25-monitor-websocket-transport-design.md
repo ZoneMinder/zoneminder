@@ -151,7 +151,7 @@ existing `command`/subscription fields rather than a separate `topic`.
 
 1. **This branch — live + status.** Per-monitor WebSocket carrying status,
    events, and live video from `zmc`; harden #4830 (done, see below); event-
-   driven status; proxy-path documentation.
+   driven status (done); proxy-path documentation.
 2. **UI cutover.** Montage/watch views open the per-monitor WebSocket for video
    and status instead of `zms` streams + status polling. Measure against the
    6-limit and latency goals.
@@ -171,6 +171,9 @@ PR #4830 merged onto `master` (authorship preserved), then hardened:
   pipelined first frame drained, duplicate status-on-subscribe removed.
 - Listener reconciled on config reload (port/TLS/enable change).
 - Docs corrected to state the listener does terminate TLS and enforce auth.
+- Status is now pushed on state change (open question #2): `zmc` bumps a status
+  generation on a significant change and the server pushes as soon as it
+  advances, coalesced by a short floor, with `interval_ms` kept as keepalive.
 
 Builds clean (`zmc`/`zms`/`zmu`/`zma`/`tests`); WebSocket unit tests cover
 framing, handshake, the stream-info snapshot, and peer-address parsing, with

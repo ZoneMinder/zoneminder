@@ -155,6 +155,16 @@ void StreamBase::checkCommandQueue() {
       Debug(1, "No sd in checkCommandQueue, comms not open.");
     }
   } // end while !zm_terminate
+
+  // Nothing reads the socket from here on, but the stream thread can take a
+  // while to wind down (blocked writing to a client that has gone away, say),
+  // and the destructor that would otherwise close it runs only after that.
+  // Until then a command sent to us is accepted and never answered, so
+  // web/ajax/stream.php sits out its whole MSG_TIMEOUT before reporting a
+  // timeout. Closing now makes it see a missing socket and report no_socket
+  // straight away. sd is only used from this thread, and closeComms() leaves
+  // nothing for the destructor's call to do.
+  closeComms();
 }  // end void StreamBase::checkCommandQueue()
 
 int StreamBase::preScaleDimensions(int base_width, int base_height, int &width, int &height) const {

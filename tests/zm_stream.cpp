@@ -21,8 +21,15 @@
 
 #include "zm_config.h"
 #include "zm_image.h"
+#include "zm_signal.h"
 
+#include <cerrno>
+#include <cstdlib>
+#include <cstring>
 #include <fcntl.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <thread>
 #include <unistd.h>
 
 namespace {
@@ -44,6 +51,9 @@ class TestStream : public StreamBase {
   void setView(int p_scale, int p_zoom) {
     scale = p_scale;
     zoom = p_zoom;
+  }
+  void commandLoop() {
+    checkCommandQueue();
   }
 
  protected:
@@ -80,7 +90,57 @@ bool stdin_survives_destruction(int connkey) {
   return survived;
 }
 
+// Send one datagram to path and return 0, or the errno sendto() failed with.
+int send_to_socket(const std::string &path) {
+  int fd = socket(AF_UNIX, SOCK_DGRAM, 0);
+  REQUIRE(fd >= 0);
+  sockaddr_un addr = {};
+  addr.sun_family = AF_UNIX;
+  strncpy(addr.sun_path, path.c_str(), sizeof(addr.sun_path) - 1);
+  char byte = 0;
+  int rc = sendto(fd, &byte, 1, MSG_DONTWAIT, reinterpret_cast<sockaddr *>(&addr), sizeof(addr));
+  int err = rc < 0 ? errno : 0;
+  close(fd);
+  return err;
+}
+
 }  // namespace
+
+TEST_CASE("StreamBase closes its command socket when the command thread stops") {
+  // Regression: the command socket stayed bound until ~StreamBase(), which runs
+  // only after the stream thread has finished. A zms that was shutting down but
+  // still blocked in the stream thread therefore accepted commands it would
+  // never answer, and web/ajax/stream.php waited out its full 5 second
+  // MSG_TIMEOUT on each one ("Timed out waiting for msg").
+  char dir[] = "/tmp/zm_stream_test_XXXXXX";
+  REQUIRE(mkdtemp(dir) != nullptr);
+  const std::string saved_socks = staticConfig.PATH_SOCKS;
+  staticConfig.PATH_SOCKS = dir;
+  const std::string sock_path = std::string(dir) + "/zms-123457s.sock";
+
+  {
+    TestStream stream;
+    stream.setStreamQueue(123457);
+    stream.openComms();
+    REQUIRE(access(sock_path.c_str(), F_OK) == 0);
+    REQUIRE(send_to_socket(sock_path) == 0);
+
+    zm_terminate = false;
+    std::thread command_thread(&TestStream::commandLoop, &stream);
+    zm_terminate = true;
+    command_thread.join();
+
+    // The stream object, and so its destructor's closeComms(), is still alive.
+    CHECK(access(sock_path.c_str(), F_OK) != 0);
+    CHECK(send_to_socket(sock_path) != 0);
+  }
+
+  zm_terminate = false;
+  staticConfig.PATH_SOCKS = saved_socks;
+  unlink((std::string(dir) + "/zms-123457.lock").c_str());
+  unlink(sock_path.c_str());
+  rmdir(dir);
+}
 
 TEST_CASE("StreamBase comms teardown") {
   SECTION("destructing without openComms() leaves stdin alone") {

@@ -330,21 +330,21 @@ if (defined('ZM_OPT_USE_GEOLOCATION') and ZM_OPT_USE_GEOLOCATION) {
 <?php 
 if (file_exists($Event->Path().'/alarm.jpg')) {
   echo '
-<a href="?view=image&eid='. $Event->Id().'&amp;fid=alarm">
+<a href="?view=image&eid='. $Event->Id().'&amp;fid=alarm" class="glightbox">
   <img src="?view=image&eid='. $Event->Id().'&amp;fid=alarm&width='.ZM_WEB_LIST_THUMB_WIDTH.'" width="'.ZM_WEB_LIST_THUMB_WIDTH.'" alt="First alarmed frame" title="First alarmed frame"/>
 </a>    
 ';
 }
 if (file_exists($Event->Path().'/snapshot.jpg')) {
   echo '
-<a href="?view=image&eid='. $Event->Id().'&amp;fid=snapshot">
+<a href="?view=image&eid='. $Event->Id().'&amp;fid=snapshot class="glightbox"">
   <img src="?view=image&eid='. $Event->Id().'&amp;fid=snapshot&width='.ZM_WEB_LIST_THUMB_WIDTH.'" width="'.ZM_WEB_LIST_THUMB_WIDTH.'" alt="Frame with the most motion" title="Frame with the most motion"/>
 </a>
 ';
 }
 if (file_exists($Event->Path().'/objdetect.jpg')) {
   echo '
-<a href="?view=image&eid='. $Event->Id().'&amp;fid=objdetect">
+<a href="?view=image&eid='. $Event->Id().'&amp;fid=objdetect class="glightbox"">
   <img src="?view=image&eid='. $Event->Id().'&amp;fid=objdetect" width="'.ZM_WEB_LIST_THUMB_WIDTH.'" alt="Detected Objects" title="Detected Objects"/>
 </a>
 ';

@@ -3120,6 +3120,27 @@ function initPageGeneral() {
       }
     });
   });
+
+  var lightbox;
+  if (typeof GLightbox === 'function') {
+    // Otherwise, GLightbox will not be able to determine the type of object being returned by the PHP script.
+    document.querySelectorAll('a.glightbox[href*="view=image"]').forEach(link => {
+      link.dataset.type = 'image';
+    });
+
+    lightbox = GLightbox({
+      touchNavigation: true,
+      loop: true
+    });
+
+    lightbox.on('slide_before_load', ({trigger, slideConfig}) => {
+      // We will retrieve the 'title' attribute from the <img> element, provided it exists there and is not already present in the link.
+      const img = trigger?.querySelector('img');
+      if (img?.title && !slideConfig.title) {
+        slideConfig.title = img.title;
+      }
+    });
+  }
 }
 
 // Called when monitor filters change - refreshes table via AJAX instead of full page reload

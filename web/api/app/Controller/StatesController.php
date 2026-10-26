@@ -159,7 +159,11 @@ public function change() {
   ));
 }
 
-public function packageControl( $command ) {
+// protected, not public: a public controller method is directly routable
+// (GET /api/states/packageControl/<cmd>), which would skip the System=Edit
+// check in change() and let any user with System>=View run zmpkg.pl. change()
+// still calls it after that check (refs GHSA-9gc6-9xg2-5636).
+protected function packageControl( $command ) {
   $zm_path_bin = Configure::read('ZM_PATH_BIN');
   $string = $zm_path_bin.'/zmpkg.pl '.escapeshellarg( $command );
   $status = exec( $string );

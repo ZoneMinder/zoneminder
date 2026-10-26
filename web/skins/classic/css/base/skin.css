@@ -1608,6 +1608,10 @@ audio-motion, audio-motion canvas {
   width: 100%;
 }
 
+audio-motion canvas { /* Prevent the background from disappearing when stream playback is paused and the browser window is resized in Chromium. Relevant for Event pages. */
+  background-color: #34495e;
+}
+
 .imageFeed[data-not-display-video="true"], .imageFeed[data-not-display-video="true"] video-stream, .imageFeed[data-not-display-video="true"] video, /* monitor */
 *[id^="videoFeedStream"][data-not-display-video="true"] video { /* event */
   max-width:25px !important; /* Otherwise, the stream will not start playing, especially for RTSP2Web-MSE. You can't set it below 21px, as we have an analysis of 20px as a starting point for playback. */

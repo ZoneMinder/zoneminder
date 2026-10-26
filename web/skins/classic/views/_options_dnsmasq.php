@@ -20,6 +20,7 @@ if (canEdit('System')) {
 <?php
 }
 ?>
+</div>
 <div class="service"><h2><?php echo translate('Service') ?></h2>
 <?php 
 if (!file_exists('/usr/sbin/dnsmasq')) {

@@ -2,6 +2,60 @@
 
 require_once('logger.php');
 
+// In a multi-server setup only the server that records a monitor can drive its
+// camera: zmcontrol.pl runs there. When that is another server, returns the URL
+// that hands it this same control request, or null to handle it here. The other
+// server checks the permissions and builds the command itself. A request that
+// was forwarded once is handled where it lands, so two servers that disagree
+// about the monitor's server don't pass it back and forth.
+function remoteControlUrl($monitor, $request) {
+  if ( !defined('ZM_SERVER_ID') or !ZM_SERVER_ID ) return null;
+  if ( !$monitor->ServerId() or ($monitor->ServerId() == ZM_SERVER_ID) ) return null;
+  if ( !empty($request['forwarded']) ) return null;
+
+  $server = $monitor->Server();
+  if ( !$server->Id() ) return null;
+
+  // Forward only the known control parameters, rebuilt as a fresh request. An
+  // allowlist rather than a denylist, so nothing else the caller sent -- the
+  // credentials this request came with (the other server learns who is asking
+  // from the auth relay below), a stray key, a value PHP folded in from a
+  // cookie -- rides along to the other server.
+  $params = array('view'=>'request', 'request'=>'control');
+  foreach ( array('id', 'control', 'xge', 'yge', 'x', 'y', 'scale', 'preset', 'newLabel', 'action', 'aid', 'response') as $name ) {
+    if ( isset($request[$name]) ) $params[$name] = $request[$name];
+  }
+  $params['forwarded'] = 1;
+  $url = $server->UrlToIndex().'?'.http_build_query($params);
+  $auth_relay = get_auth_relay();
+  if ( $auth_relay ) $url .= '&'.$auth_relay;
+  return $url;
+}
+
+// Sends a control request to the server that records the monitor and returns
+// its reply, or false when that server can't be reached or answers with an
+// error status. A control click is interactive, so cap the wait rather than
+// letting an unreachable server hang the request for default_socket_timeout.
+function forwardControlRequest($url) {
+  $context = stream_context_create(array(
+    'ssl'=>array('verify_peer'=>false, 'verify_peer_name'=>false),
+    'http'=>array('timeout'=>15, 'ignore_errors'=>true),
+  ));
+  $reply = @file_get_contents($url, false, $context);
+  if ( $reply === false ) {
+    ZM\Error('Could not forward the control request to '.strtok($url, '?'));
+    return false;
+  }
+  // ignore_errors=true returns the body even on a 4xx/5xx; treat anything but a
+  // 2xx (e.g. a login redirect's HTML when the auth relay was rejected) as a
+  // failure rather than relaying it to the browser as a control reply.
+  if ( isset($http_response_header[0]) && !preg_match('#^HTTP/\S+\s+2\d\d#', $http_response_header[0]) ) {
+    ZM\Error('Control request to '.strtok($url, '?').' answered '.$http_response_header[0]);
+    return false;
+  }
+  return $reply;
+}
+
 function buildControlCommand($monitor) {
   $ctrlCommand = '';
   $control = $monitor->Control();

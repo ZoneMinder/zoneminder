@@ -9,6 +9,7 @@ ZoneMinder Documentation
    api
    web_ui_api
    stream_socket
+   api_monitor_websocket
    faq
    contributing
 
@@ -30,6 +31,9 @@ If you are facing issues that are not covered in the documentation, please feel 
 
 :doc:`stream_socket`
   The per-monitor media stream socket: live compressed video/audio for local consumers, and its wire protocol
+
+:doc:`api_monitor_websocket`
+  The per-monitor websocket transport served from zmc: live status, events, and video over a websocket, and its JSON command protocol
 
 :doc:`faq`
   Frequently Asked Questions

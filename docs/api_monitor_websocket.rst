@@ -51,6 +51,61 @@ private keys at the web server, at the cost of extra proxy configuration.
    can reach the port. Restrict access with firewall rules whether or not TLS
    is enabled.
 
+Reverse proxy
+^^^^^^^^^^^^^
+
+Because each monitor listens on its own port (``MIN_WEBSOCKET_PORT +
+MonitorId``), exposing the transport directly would mean opening a port range to
+clients. The recommended deployment instead fronts the per-monitor listeners
+with a single reverse-proxy path on the normal web server vhost, mapping a
+monitor id in the path to its internal port:
+
+::
+
+   /live/ws/<MonitorId>  ->  127.0.0.1:(MIN_WEBSOCKET_PORT + MonitorId)
+
+Clients then connect to one external origin, for example
+``wss://your-server/live/ws/5``, and never see the port range. The proxy also
+lets the web server terminate TLS (leave ``WEBSOCKET_TLS_CERT`` and
+``WEBSOCKET_TLS_KEY`` unset and forward to the plaintext port), keeping private
+keys at the web server.
+
+nginx, mapping the id captured from the path to ``MIN_WEBSOCKET_PORT`` ``31000``
+plus that id:
+
+.. code-block:: nginx
+
+   # /live/ws/5 -> 127.0.0.1:31005
+   location ~ ^/live/ws/(?<monitor_id>\d+)$ {
+       # resolver needed because the upstream is computed at request time
+       set $ws_port 31000;
+       proxy_pass http://127.0.0.1:$ws_port$monitor_id/;
+       proxy_http_version 1.1;
+       proxy_set_header Upgrade $http_upgrade;
+       proxy_set_header Connection "upgrade";
+       proxy_set_header Host $host;
+       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+       proxy_read_timeout 3600s;
+   }
+
+Apache with ``mod_proxy_wstunnel`` and ``mod_rewrite``, listing the monitors you
+serve (Apache cannot do the arithmetic, so map each id to its port):
+
+.. code-block:: apache
+
+   RewriteEngine On
+   RewriteCond %{HTTP:Upgrade} =websocket [NC]
+   RewriteRule ^/live/ws/5$  ws://127.0.0.1:31005/  [P,L]
+   RewriteRule ^/live/ws/6$  ws://127.0.0.1:31006/  [P,L]
+   ProxyPassReverse /live/ws/5  ws://127.0.0.1:31005/
+   ProxyPassReverse /live/ws/6  ws://127.0.0.1:31006/
+
+The listeners bind to all interfaces, so bind-restrict them to localhost with a
+firewall when the proxy and ``zmc`` share a host. When the proxy terminates TLS
+and forwards the client address in ``X-Forwarded-For``, ``zmc`` uses that
+address for IP-bound auth hashes (``AUTH_HASH_IPS``); otherwise it uses the
+socket peer, which would be the proxy.
+
 Connection model
 ^^^^^^^^^^^^^^^^
 
@@ -128,6 +183,26 @@ Status subscription:
 
    {"command":"subscribe","topic":"status","interval_ms":1000}
 
+A status subscription is **event driven**: the server pushes a status frame as
+soon as the monitor's state changes - an alarm or analysing transition, a
+capture connect or disconnect, a signal change, a new event, or a shift in
+capture/analysis fps or bandwidth beyond a small threshold. This is the latency
+improvement over polling ``/ajax``; a change reaches subscribers without waiting
+for the next interval.
+
+``interval_ms`` does not drive the push. It serves two bounds:
+
+* **Coalesce floor.** Successive pushes to one client are spaced by at least a
+  short floor (and never more often than ``interval_ms`` if that is smaller), so
+  a burst of rapid state changes cannot flood a client.
+* **Keepalive.** If nothing changes, a status frame is still sent every
+  ``interval_ms`` so a client can tell the monitor and connection are alive and
+  receives periodic fps/bandwidth figures.
+
+``interval_ms`` is clamped to between 100 and 60000 milliseconds. Frame-rate
+churn - the per-frame ``image_count``, ``last_frame_score``, and heartbeat time
+- does not by itself trigger a push.
+
 Event subscription:
 
 ::
@@ -168,12 +243,18 @@ Status replies are JSON text frames with fields such as:
 * ``connected``
 * ``shm_valid``
 * ``state`` / ``state_id``
+* ``analysing``
+* ``capturing``
+* ``recording``
 * ``capture_fps``
 * ``analysis_fps``
 * ``capture_bandwidth``
 * ``image_count``
 * ``signal``
+* ``last_frame_score``
 * ``last_event_id``
+* ``heartbeat_time``
+* ``startup_time``
 
 Event messages
 ^^^^^^^^^^^^^^

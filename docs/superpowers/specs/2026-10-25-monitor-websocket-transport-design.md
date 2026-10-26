@@ -2,7 +2,7 @@
 
 Date: 2026-10-25
 Branch: `2875-websocket` (based on `master`, builds on PR #4830 by AJ0070)
-Status: Proposed contract — pending agreement before further implementation
+Status: Agreed contract (open questions resolved 2026-10-25) — implementing phase 1
 Issue: refs #2875
 
 ## Problem
@@ -60,11 +60,10 @@ does exactly this. This note fixes the contract for finishing it.
 - **Shinobi** uses a socket.io `f`/`ff` event model tied to its `ke`/`uid`
   account scheme. Not mimicked: it would add a socket.io dependency and an alien
   account model.
-- **Borrowed:** Frigate's idea that the control/event channel should be a flat,
-  uniformly routable envelope. We keep ZoneMinder's richer command model
-  (explicit subscribe/unsubscribe, interval, request correlation) but may add a
-  top-level `topic` to server→client messages so a Frigate-shaped consumer can
-  route the same way (see Envelope).
+- **Considered and declined:** Frigate's flat, uniformly routable envelope. We
+  keep ZoneMinder's richer command model (explicit subscribe/unsubscribe,
+  interval, request correlation) and do **not** add a top-level `topic` to
+  server→client messages (open question #3 resolved — see Envelope).
 
 ## Key decisions
 
@@ -135,10 +134,9 @@ Keep the command model: `{"command":"subscribe","topic":"status|events|stream",
 `{"command":"status|image|stream",...}`. Image/stream payloads are a JSON
 metadata text frame followed by a binary frame.
 
-Optional, cheap, integrator-facing: give **server→client** messages a top-level
-`topic` (`status`/`event`/`image`/`stream`) alongside the existing fields so a
-consumer can route on `topic` the way a Frigate client does, without losing
-ZoneMinder's richer semantics. Decide before clients exist.
+Decided: **no** added top-level `topic` on server→client messages (open question
+#3). The command model is kept as-is; a Frigate-shaped consumer routes on the
+existing `command`/subscription fields rather than a separate `topic`.
 
 ### TLS and auth (already settled and implemented)
 
@@ -178,15 +176,23 @@ Builds clean (`zmc`/`zms`/`zmu`/`zma`/`tests`); WebSocket unit tests cover
 framing, handshake, the stream-info snapshot, and peer-address parsing, with
 `[races]` cases for ThreadSanitizer.
 
-## Open questions (for @connortechnology / @AJ0070)
+## Open questions — resolved 2026-10-25
 
-1. Confirm **per-monitor listeners + single reverse-proxy path**, rejecting the
-   single-multiplexed endpoint.
-2. Confirm **event-driven status push** (vs #4830's interval-only) for phase 1.
-3. Add the optional top-level `topic` to server→client messages, or keep the
-   command-only shape?
-4. Confirm **playback is phase 2** and out of scope here.
-5. MJPEG as the documented baseline, passthrough as the upgrade — agreed?
+1. **Resolved (2026-10-25, @connortechnology): per-monitor listeners + single
+   reverse-proxy path.** The single-multiplexed endpoint is rejected.
+2. **Resolved (2026-10-25, @connortechnology): event-driven status push.** `zmc`
+   pushes a status frame on state change; `interval_ms` is the coalesce/keepalive
+   bound, not the trigger. Replaces #4830's interval-only push for phase 1.
+3. **Resolved (2026-10-25, @connortechnology): keep the richer command model, no
+   added top-level `topic`.** Server→client messages stay command-shaped; we do
+   not bolt on a Frigate-style `topic` field.
+4. **Resolved (2026-10-25, @connortechnology): playback is phase 2, out of scope
+   here.** The WebSocket stays live-only this phase; `zms` keeps serving recorded
+   events. The live API must not be shaped so it boxes playback out later.
+5. **Resolved (2026-10-25, @connortechnology): MJPEG is the documented baseline,
+   passthrough (`h264`/`h265`/`av1`) is the efficiency/latency upgrade.** MJPEG is
+   the compatibility floor (no client decoder); passthrough serves MSE/WebCodecs
+   clients.
 
 ## Files (orientation, not a change list)
 

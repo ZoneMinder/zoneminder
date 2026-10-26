@@ -67,6 +67,7 @@ set(TEST_SOURCES
   zm_videostore_m3u8.cpp
   zm_websocket.cpp
   zm_websocket_peer_addr.cpp
+  zm_websocket_status.cpp
   zm_websocket_stream_info.cpp
   zm_vector2.cpp
   zm_zone.cpp

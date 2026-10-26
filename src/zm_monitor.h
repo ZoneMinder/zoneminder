@@ -48,6 +48,7 @@
 
 #include "zm_monitor_onvif.h"
 #include "zm_websocket_stream_info.h"
+#include "zm_websocket_status.h"
 
 class Group;
 class MonitorLinkExpression;
@@ -893,6 +894,17 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::unique_ptr<zm::MonitorWebSocketServer> websocket_server;
   mutable std::mutex websocket_status_mutex;
   std::string websocket_status_json;
+  // Bumped by RefreshWebSocketStatus whenever a status field that matters for
+  // display changes (state/analysing/recording/signal/connect/last_event, or
+  // fps/bandwidth beyond a threshold), so the websocket server can push status
+  // on change instead of only on an interval (refs #2875). Frame-rate churn
+  // (image_count, heartbeat, per-frame score) does not bump it.
+  std::atomic<uint64_t> websocket_status_generation{0};
+  // The significant-field snapshot the generation was last bumped from, and
+  // whether one has been taken yet. Guarded by websocket_status_mutex (only
+  // touched inside RefreshWebSocketStatus).
+  bool websocket_status_seen = false;
+  zm::websocket::StatusSnapshot websocket_status_prev;
   std::mutex websocket_message_mutex;
   std::vector<std::string> websocket_messages;
   std::atomic<uint32_t> websocket_capture_bandwidth;
@@ -1174,6 +1186,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   void ReloadWebSocketServer();
   void RefreshWebSocketStatus();
   std::string GetWebSocketStatusJson();
+  // Monotonic counter bumped by RefreshWebSocketStatus on a significant state
+  // change. The websocket server pushes status when this advances (refs #2875).
+  uint64_t GetWebSocketStatusGeneration() const { return websocket_status_generation.load(std::memory_order_relaxed); }
   void QueueWebSocketEvent(const std::string &event_type, const std::string &message);
   std::vector<std::string> DrainWebSocketMessages();
   bool GetWebSocketImagePayload(const std::string &format, WebSocketPayload *payload);

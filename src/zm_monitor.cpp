@@ -1458,6 +1458,30 @@ void Monitor::RefreshWebSocketStatus() {
   }
 
   std::lock_guard<std::mutex> status_lock(websocket_status_mutex);
+
+  // Bump the generation when anything that matters for display changed since
+  // the last bump, so the websocket server can push status on change rather
+  // than only on an interval (refs #2875). Frame-rate churn (image_count,
+  // score, heartbeat) is excluded by StatusSnapshot and never triggers a push.
+  zm::websocket::StatusSnapshot current;
+  current.connected = connected;
+  current.shm_valid = shm_valid;
+  current.state = current_state;
+  current.analysing = analysing_state;
+  current.capturing = capture_state;
+  current.recording = recording_state;
+  current.signal = signal_state;
+  current.last_event_id = last_event_id;
+  current.capture_fps = capture_fps;
+  current.analysis_fps = analysis_fps;
+  current.capture_bandwidth = capture_bandwidth;
+  if (!websocket_status_seen ||
+      zm::websocket::StatusSignificantlyChanged(websocket_status_prev, current)) {
+    websocket_status_seen = true;
+    websocket_status_prev = current;
+    websocket_status_generation.fetch_add(1, std::memory_order_relaxed);
+  }
+
   websocket_status_json = stringtf(
       "{\"type\":\"status\",\"monitor_id\":%u,\"monitor_name\":\"%s\","
       "\"connected\":%s,\"shm_valid\":%s,\"state_id\":%u,\"state\":\"%s\","

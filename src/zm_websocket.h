@@ -108,6 +108,13 @@ class MonitorWebSocketServer {
     bool subscribe_stream = false;
     Milliseconds status_interval = Milliseconds(1000);
     Milliseconds stream_interval = Milliseconds(1000);
+    // next_status_at is the keepalive deadline: a status frame goes out by then
+    // even when nothing changed. status_generation is the monitor generation
+    // last sent to this client; a status frame also goes out as soon as the
+    // monitor's generation advances past it, bounded by status_coalesce_until so
+    // a burst of changes cannot flood the client (refs #2875).
+    uint64_t status_generation = 0;
+    TimePoint status_coalesce_until = {};
     TimePoint next_status_at = {};
     TimePoint next_stream_at = {};
     std::string stream_codec = "mjpeg";

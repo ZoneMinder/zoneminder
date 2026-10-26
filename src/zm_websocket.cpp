@@ -29,6 +29,10 @@ static constexpr size_t kMaxMessageSize = 1024 * 1024;
 static constexpr size_t kMaxQueuedBytesPerClient = 8 * 1024 * 1024;
 static constexpr size_t kMaxClientsPerMonitor = 32;
 static constexpr int kPollTimeoutMs = 100;
+// Shortest gap between change-driven status pushes to one client, so rapid
+// state flapping cannot flood it. A client's keepalive interval shorter than
+// this caps the floor instead (refs #2875).
+static constexpr Milliseconds kStatusCoalesceFloor = Milliseconds(100);
 // A peer that opens a socket and then says nothing would otherwise hold its slot
 // against kMaxClientsPerMonitor forever, so 32 idle connections could deny the
 // service to everyone. Generous enough for a slow TLS handshake over a bad link.
@@ -932,10 +936,15 @@ bool MonitorWebSocketServer::handleFrame(Client *client, const websocket::Frame 
           client->status_interval = Milliseconds(interval_ms);
         }
         client->subscribe_status = true;
-        // The first status goes out here with the ack; schedule the periodic
-        // broadcast a full interval out so broadcastStatus does not also send
-        // one this same loop iteration (a duplicate status frame).
-        client->next_status_at = std::chrono::steady_clock::now() + client->status_interval;
+        // The first status goes out here with the ack, so record the generation
+        // it reflects and schedule the keepalive a full interval out; the
+        // coalesce floor also starts now so broadcastStatus does not send a
+        // duplicate this same loop iteration (refs #2875).
+        const TimePoint subscribe_now = std::chrono::steady_clock::now();
+        client->status_generation = monitor->GetWebSocketStatusGeneration();
+        client->next_status_at = subscribe_now + client->status_interval;
+        client->status_coalesce_until =
+            subscribe_now + std::min(client->status_interval, kStatusCoalesceFloor);
         if (!queueFrame(client, websocket::Opcode::TEXT, statusAckJson(topic, client->status_interval.count())) ||
             !queueFrame(client, websocket::Opcode::TEXT, monitor->GetWebSocketStatusJson())) {
           return false;
@@ -1162,18 +1171,33 @@ bool MonitorWebSocketServer::queueFrame(Client *client, websocket::Opcode opcode
 }
 
 void MonitorWebSocketServer::broadcastStatus(std::vector<Client> *clients, TimePoint now) {
-  const std::string status = monitor->GetWebSocketStatusJson();
+  const uint64_t generation = monitor->GetWebSocketStatusGeneration();
+  std::string status;  // built on demand, reused across clients
   for (Client &client : *clients) {
     if ((client.fd < 0) || !client.handshake_complete || !client.subscribe_status) {
       continue;
     }
-    if ((client.next_status_at.time_since_epoch().count() == 0) || (now >= client.next_status_at)) {
-      if (!queueFrame(&client, websocket::Opcode::TEXT, status)) {
-        closeClient(&client);
-        continue;
-      }
-      client.next_status_at = now + client.status_interval;
+    // Keepalive: a status frame is due by next_status_at regardless of changes.
+    const bool keepalive_due =
+        (client.next_status_at.time_since_epoch().count() == 0) || (now >= client.next_status_at);
+    // On change: push as soon as the monitor's generation moves past what this
+    // client last saw, but no more often than the coalesce floor.
+    const bool changed = generation != client.status_generation;
+    const bool coalesce_ok = now >= client.status_coalesce_until;
+    if (!keepalive_due && !(changed && coalesce_ok)) {
+      continue;
     }
+    if (status.empty()) {
+      status = monitor->GetWebSocketStatusJson();
+    }
+    if (!queueFrame(&client, websocket::Opcode::TEXT, status)) {
+      closeClient(&client);
+      continue;
+    }
+    client.status_generation = generation;
+    client.next_status_at = now + client.status_interval;
+    const Milliseconds floor = std::min(client.status_interval, kStatusCoalesceFloor);
+    client.status_coalesce_until = now + floor;
   }
 }
 

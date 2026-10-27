@@ -132,6 +132,14 @@ class Buffer {
   // Add bytes to the end of the buffer
   unsigned int append(const unsigned char *pStorage, unsigned int pSize) {
     expand(pSize);
+    // expand() refuses to grow past kMaxAllocation and returns without making
+    // room; copying anyway would write past the allocation. Mirror read_into()
+    // and bail when the space is not there. refs GHSA-4p3h-p7rr-838r
+    if (static_cast<size_t>(mStorage + mAllocation - mTail) < pSize) {
+      Error("Refusing to append %u bytes to buffer, only %zu bytes free",
+            pSize, static_cast<size_t>(mStorage + mAllocation - mTail));
+      return mSize;
+    }
     std::memcpy(mTail, pStorage, pSize);
     mTail += pSize;
     mSize += pSize;

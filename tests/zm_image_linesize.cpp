@@ -19,6 +19,7 @@
 
 #include "zm_config.h"
 #include "zm_image.h"
+#include "zm_packet.h"
 #include "zm_rgb.h"
 
 #include <cstdint>
@@ -142,4 +143,28 @@ TEST_CASE("Image::Rotate 270 honors a non-32-aligned source linesize", "[Image]"
       REQUIRE(*img.Buffer(X, Y) == expected);
     }
   }
+}
+
+// The decoder pads each Y row to its own alignment: a 720 wide frame comes out
+// with linesize[0] 736 or 768. get_y_image() must carry that stride, otherwise
+// every row of the Y-channel analysis image starts further into the previous
+// row and motion is found, and alarm pixels drawn, on a sheared picture.
+TEST_CASE("ZMPacket::get_y_image keeps the decoder's Y plane stride", "[Image]") {
+  EnsureImageInit();
+  ZMPacket packet;
+  packet.in_frame = av_frame_ptr{av_frame_alloc()};
+  AVFrame *frame = packet.in_frame.get();
+  frame->format = AV_PIX_FMT_YUV420P;
+  frame->width = 720;
+  frame->height = 480;
+  REQUIRE(av_frame_get_buffer(frame, 64) == 0);
+  REQUIRE(frame->linesize[0] > frame->width);
+  frame->data[0][frame->linesize[0]] = 42;  // first pixel of row 1
+
+  Image *y_image = packet.get_y_image();
+
+  REQUIRE(y_image != nullptr);
+  REQUIRE(y_image->Width() == 720);
+  REQUIRE(y_image->LineSize() == static_cast<unsigned int>(frame->linesize[0]));
+  REQUIRE(*y_image->Buffer(0, 1) == 42);
 }

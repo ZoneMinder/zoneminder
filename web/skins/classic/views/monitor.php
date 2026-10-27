@@ -521,7 +521,7 @@ switch ($name) {
                 'Camera'  => translate('DeviceClassCamera'),
                 'Speaker' => translate('DeviceClassSpeaker'),
               );
-              echo htmlSelect('newMonitor[DeviceClass]', $device_class_options, $monitor->DeviceClass());
+              echo htmlSelect('newMonitor[DeviceClass]', $device_class_options, $monitor->DeviceClass(), ['data-on-change'=>'manageGo2RTCDisableBackChannel']);
 ?>
               </li>
               <li class="Manufacturer">
@@ -1363,6 +1363,15 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
 <?php
   if ( isset($OLANG['FUNCTION_GO2RTC_ENABLED']) ) {
     echo '<div class="form-text">'.$OLANG['FUNCTION_GO2RTC_ENABLED']['Help'].'</div>';
+  }
+?>
+            </li>
+            <li id="Go2RTCDisableBackChannel">
+              <label><?php echo translate('Go2RTCDisableBackchannel'); if ( isset($OLANG['FUNCTION_GO2RTC_DISABLE_BACKCHANNEL_FULL']) ) echo makeHelpLink('FUNCTION_GO2RTC_DISABLE_BACKCHANNEL_FULL'); ?></label>
+              <input type="checkbox" name="newMonitor[Go2RTCDisableBackChannel]" value="1"<?php echo $monitor->Go2RTCDisableBackChannel() ? ' checked="checked"' : '' ?>/>
+<?php
+  if ( isset($OLANG['FUNCTION_GO2RTC_DISABLE_BACKCHANNEL_SHORT']) ) {
+    echo '<div class="form-text">'.$OLANG['FUNCTION_GO2RTC_DISABLE_BACKCHANNEL_SHORT']['Help'].'</div>';
   }
 ?>
             </li>

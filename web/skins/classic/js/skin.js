@@ -3124,7 +3124,7 @@ function initPageGeneral() {
   var lightbox;
   if (typeof GLightbox === 'function') {
     // Otherwise, GLightbox will not be able to determine the type of object being returned by the PHP script.
-    document.querySelectorAll('a.glightbox[href*="view=image"]').forEach(link => {
+    document.querySelectorAll('a.glightbox[href*="view=image"]').forEach((link) => {
       link.dataset.type = 'image';
     });
 

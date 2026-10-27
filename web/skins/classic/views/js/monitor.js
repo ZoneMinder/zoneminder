@@ -986,7 +986,7 @@ function manageGo2RTCDisableBackChannel() {
     }
   }
   if (Go2RTCDisableBackChannelElement) {
-    if(go2rtc_enabled) {
+    if (go2rtc_enabled) {
       Go2RTCDisableBackChannelElement.hidden = false;
     } else {
       Go2RTCDisableBackChannelElement.hidden = true;

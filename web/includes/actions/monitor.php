@@ -110,6 +110,7 @@ if ($action == 'save') {
       'DecodingEnabled' => 0,
       'RTSP2WebEnabled' => 0,
       'Go2RTCEnabled' => 0,
+      'Go2RTCDisableBackChannel' => 0,
       'JanusEnabled' => 0,
       'JanusAudioEnabled' => 0,
       'Restream' => 0,

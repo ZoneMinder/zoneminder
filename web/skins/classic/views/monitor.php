@@ -521,7 +521,7 @@ switch ($name) {
                 'Camera'  => translate('DeviceClassCamera'),
                 'Speaker' => translate('DeviceClassSpeaker'),
               );
-              echo htmlSelect('newMonitor[DeviceClass]', $device_class_options, $monitor->DeviceClass(), ['data-on-change'=>'manageGo2RTCDisableBackChannel']);
+              echo htmlSelect('newMonitor[DeviceClass]', $device_class_options, $monitor->DeviceClass(), ['data-on-change'=>'changeDeviceClass']);
 ?>
               </li>
               <li class="Manufacturer">

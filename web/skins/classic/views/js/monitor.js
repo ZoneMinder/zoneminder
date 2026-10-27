@@ -968,10 +968,14 @@ function update_players() {
   dropdown.val(selected_value);
   if (dropdown[0].selectedIndex==-1) dropdown[0].selectedIndex = 0;
 
-  manageGo2RTCDisableBackChannel();
+  manageGo2RTCDisableBackChannel(false);
 }
 
-function manageGo2RTCDisableBackChannel() {
+function changeDeviceClass() {
+  manageGo2RTCDisableBackChannel(true);
+}
+
+function manageGo2RTCDisableBackChannel(setDefaultGo2RTCDisableBackChannel = false) {
   const go2rtc_enabled = document.querySelector('[name="newMonitor[Go2RTCEnabled]"]')?.checked ?? false;
   const deviceClassValue = document.querySelector('[name="newMonitor[DeviceClass]"]')?.value ?? '';
   const Go2RTCDisableBackChannel = document.querySelector('[name="newMonitor[Go2RTCDisableBackChannel]"]');
@@ -979,7 +983,7 @@ function manageGo2RTCDisableBackChannel() {
   if (Go2RTCDisableBackChannel) {
     if (deviceClassValue == "Camera") {
       Go2RTCDisableBackChannel.removeAttribute('disabled');
-      Go2RTCDisableBackChannel.checked = true;
+      if (setDefaultGo2RTCDisableBackChannel) Go2RTCDisableBackChannel.checked = true;
     } else {
       Go2RTCDisableBackChannel.setAttribute('disabled', '');
       Go2RTCDisableBackChannel.checked = false;

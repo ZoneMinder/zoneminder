@@ -336,6 +336,15 @@ bool VideoStore::open() {
           Debug(1, "Found video codec for %s", chosen_codec_data->codec_name);
 
           video_out_codec = avcodec_find_encoder_by_name(chosen_codec_data->codec_name);
+          if (!video_out_codec) {
+            // This ffmpeg build has no encoder by that name -- common for a hardware
+            // encoder on a box that lacks it. Skip this candidate rather than allocate
+            // a context with a null codec and later dereference video_out_codec->name
+            // when avcodec_open2() fails. If every candidate is missing, video_out_codec
+            // stays null and the passthrough fallback below takes over.
+            Warning("No encoder named %s is available in this ffmpeg build; skipping", chosen_codec_data->codec_name);
+            continue;
+          }
           video_out_ctx = avcodec_alloc_context3(video_out_codec);
           if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
             video_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
@@ -400,6 +409,20 @@ bool VideoStore::open() {
              * the motion of the chroma plane does not match the luma plane. */
             video_out_ctx->mb_decision = 2;
           }
+#if HAVE_LIBAVUTIL_HWCONTEXT_H && LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
+          // Borrow the monitor's shared encoder device context rather than
+          // letting setup_hwaccel open the render node again for this event.
+          // Creating and destroying a VAAPI device per event leaked a
+          // /dev/dri/renderD128 fd each time on some drivers (refs #5300). If
+          // the monitor can't provide one, hw_device_ctx stays null and
+          // setup_hwaccel falls back to creating its own.
+          if (chosen_codec_data->hwdevice_type != AV_HWDEVICE_TYPE_NONE) {
+            std::string hw_device = monitor->EncoderHWAccelDevice();
+            if (hw_device.empty() and chosen_codec_data->hwdevice_default)
+              hw_device = chosen_codec_data->hwdevice_default;
+            hw_device_ctx = monitor->GetEncoderHWDeviceContext(chosen_codec_data->hwdevice_type, hw_device);
+          }
+#endif
           if (setup_hwaccel(video_out_ctx,
                 chosen_codec_data, hw_device_ctx, monitor->EncoderHWAccelDevice(), monitor->Width(), monitor->Height())) {
             avcodec_free_context(&video_out_ctx);

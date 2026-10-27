@@ -34,6 +34,8 @@ var zmsBroke = false; //Use alternate navigation if zms has crashed
 var wasHidden = false;
 var availableTags = [];
 var selectedTags = [];
+var realEventWidth = 0;
+var realEventHeight = 0;
 
 var PrevCoordinatFrame = {x: null, y: null};
 var coordinateMouse = {
@@ -237,14 +239,17 @@ function deltaScale() {
 }
 
 function changeScale() {
+  // `eventData.Width` & `eventData.Height` may be set incorrectly in the monitor settings (in terms of both resolution and aspect ratio), while `realEventWidth` might not yet be defined because the video has not finished loading.
+  const eventDataWidth = (realEventWidth !=0) ? realEventWidth : eventData.Width;
+  const eventDataHeight = (realEventHeight !=0) ? realEventHeight : eventData.Height;
   const scaleSel = $j('#scale').val();
+  const stream = document.getElementById('videoFeedStream' + eventData.MonitorId);
   let newWidth;
   let newHeight;
   const eventViewer = $j(vid ? '#videoobj' : '#evtStream');
-
   const alarmCue = $j('#alarmCues');
   const bottomEl = $j('#replayStatus');
-  const landscape = eventData.width / eventData.height > 1 ? true : false; //Image orientation.
+  const landscape = eventDataWidth / eventDataHeight > 1 ? true : false; //Image orientation.
 
   setCookie('zmEventScale'+eventData.MonitorId, scaleSel);
 
@@ -252,40 +257,47 @@ function changeScale() {
   /*!!! Because of this, the Scale is not correct. For example, when recording in 4k, Capture Resolution = FHD, the image with a width of 600px looks terrible! */
 
   let newSize;
+  let streamOverflow = 'hidden';
   if (scaleSel == '100') {
     //Actual, 100% of original size
-    newWidth = eventData.Width;
-    newHeight = eventData.Height;
+    newWidth = eventDataWidth;
+    newHeight = eventDataHeight;
     currentScale = 100;
+    streamOverflow = 'auto hidden';
   } else if (scaleSel == '0') {
     //Auto, Width is calculated based on the occupied height so that the image and control buttons occupy the visible part of the screen.
-    newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, bottomEl, $j('#wrapperEventVideo'));
+    newSize = scaleToFit(eventDataWidth, eventDataHeight, eventViewer, bottomEl, $j('#wrapperEventVideo'));
     newWidth = newSize.width;
     newHeight = newSize.height;
     currentScale = newSize.autoScale ? newSize.autoScale : 100;
   } else if (scaleSel == 'fit_to_width') {
     //Fit to screen width
-    newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, false, $j('#wrapperEventVideo'));
+    newSize = scaleToFit(eventDataWidth, eventDataHeight, eventViewer, false, $j('#wrapperEventVideo'));
     newWidth = newSize.width;
     newHeight = newSize.height;
     currentScale = newSize.autoScale ? newSize.autoScale : 100;
   } else if (scaleSel.indexOf("px") > -1) {
-    newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, false, $j('#wrapperEventVideo')); // Only for calculating the maximum width!
+    newSize = scaleToFit(eventDataWidth, eventDataHeight, eventViewer, false, $j('#wrapperEventVideo')); // Only for calculating the maximum width!
     let w = 0;
     let h = 0;
     if (landscape) {
       w = Math.min(stringToNumber(scaleSel), newSize.width);
-      h = w / (eventData.Width / eventData.Height);
+      h = w / (eventDataWidth / eventDataHeight);
     } else {
       h = Math.min(stringToNumber(scaleSel), newSize.height);
-      w = h * (eventData.Width / eventData.Height);
+      w = h * (eventDataWidth / eventDataHeight);
     }
     newWidth = parseInt(w);
     newHeight = parseInt(h);
-    currentScale = parseInt(w / eventData.Width * 100);
+    currentScale = parseInt(w / eventDataWidth * 100);
   }
 
-  console.log(`Real dimensions: ${eventData.Width} X ${eventData.Height}, Scale: ${currentScale}, deltaScale: ${deltaScale()}, New dimensions: ${newWidth} X ${newHeight}`);
+  // videoFeedStream is absent when the player is sized before the page DOM is
+  // built (gapless playback sizes on DOMContentLoaded), so guard the element
+  // rather than dereferencing a null style.
+  if (stream) stream.style.overflow = streamOverflow;
+
+  console.log(`Real dimensions: ${eventDataWidth} X ${eventDataHeight}, Scale: ${currentScale}, deltaScale: ${deltaScale()}, New dimensions: ${newWidth} X ${newHeight}`);
 
   eventViewer.width(newWidth);
   eventViewer.height(newHeight);
@@ -300,7 +312,7 @@ function changeScale() {
   }
   if (cueFrames) {
     //just re-render alarmCues.  skip ajax call
-    alarmCue.html(renderAlarmCues(videoFeed));
+    alarmCue.html(renderAlarmCues(eventViewer));
   }
 
   setButtonSizeOnStream();
@@ -1439,7 +1451,6 @@ function initPage() {
     showEventStats(false);
   } else {
     showEventStats(true);
-    onStatsResize(eventData.Width);
   }
   if (eventData.DefaultVideo) {
     canPlayCodec(eventData.DefaultVideo);
@@ -1449,9 +1460,24 @@ function initPage() {
   const video_element = document.getElementById('videoobj');
   if (video_element) {
     vid = videojs('videoobj');
+    vid.ready(function() { // We cannot use vid.on('ready', function(event), because the initial setup is already being performed in event.php.
+      const videoElement = this.tech().el();
+      // We are waiting for the metadata in order to obtain the actual dimensions of the video frame.
+      videoElement.addEventListener('loadedmetadata', function() {
+        realEventWidth = videoElement.videoWidth;
+        realEventHeight = videoElement.videoHeight;
+      });
+
+      // It is necessary to reset the hardcoded dimensions in `event.php` via `$videoSizeStyle`, because `video.js` modifies the DOM structure, and in `changeScale()` we specify dimensions specifically for `#videoobj`.
+      // #videoobj will be assigned to the video tag wrapper, while #videoobj_html5_api will be assigned to the video tag itself.
+      videoElement.style.width = '100%';
+      videoElement.style.height = 'auto';
+    });
     addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartDateTime);
     //$j('.vjs-progress-control').append('<div id="alarmCues" class="alarmCues"></div>');//add a place for videojs only on first load
     vid.on('ended', function(event) {
+      const progressBox = $j("#progressBox");
+      progressBox.css('width', '100%');
       vjsReplay();
       eventData._playing = false;
     });
@@ -1523,8 +1549,11 @@ function initPage() {
   });
   console.log('progress');
   progressBarNav();
-  console.log('changescale');
-  changeScale();
+  // For video.js, we are already calling changeScale() from the 'DOMContentLoaded' event listener; we shouldn't duplicate these calls.
+  if (!vid) {
+    console.log('changescale');
+    changeScale();
+  }
   console.log('changeStreamQality');
   changeStreamQuality();
 
@@ -1641,7 +1670,9 @@ function initPage() {
       setCookie(cookie, 'on');
       showEventStats(true);
     }
-    changeScale();
+    setTimeout(function() {// Time required for DOM repainting
+      changeScale();
+    }, 200);
   });
 
   // Manage the FRAMES Button

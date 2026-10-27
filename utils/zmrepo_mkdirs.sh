@@ -10,12 +10,12 @@
 #
 # Target layout (matches workflow TARGET: rpm/master/<family>/<releasever>/<arch>/):
 #
+#   <root>/rpm/master/el/10/{x86_64,aarch64}/
 #   <root>/rpm/master/el/9/{x86_64,aarch64}/
 #   <root>/rpm/master/el/8/{x86_64,aarch64}/
+#   <root>/rpm/master/fedora/45/{x86_64,aarch64}/
 #   <root>/rpm/master/fedora/44/{x86_64,aarch64}/
 #   <root>/rpm/master/fedora/43/{x86_64,aarch64}/
-#   <root>/rpm/master/fedora/42/{x86_64,aarch64}/
-#   <root>/rpm/master/fedora/41/{x86_64,aarch64}/
 #
 # Usage:
 #   # Run directly on zmrepo (root defaults to the SSH user's home, ".")
@@ -54,12 +54,12 @@ done
 # Build matrix, mirrors the matrix in .github/workflows/build-rpm-packages*.yml
 # Format: "family releasever"
 DISTROS=(
+  "el 10"
   "el 9"
   "el 8"
+  "fedora 45"
   "fedora 44"
   "fedora 43"
-  "fedora 42"
-  "fedora 41"
 )
 ARCHES=(x86_64 aarch64)
 

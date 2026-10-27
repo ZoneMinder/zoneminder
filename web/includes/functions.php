@@ -1540,9 +1540,11 @@ function scalePoints(&$points, $scale) {
 
 function getLanguages() {
   $langs = array();
+  $getNameLanguage = class_exists('Locale');
   foreach ( glob('lang/*_*.php') as $file ) {
     preg_match('/([^\/]+_.+)\.php/', $file, $matches);
-    $langs[$matches[1]] = $matches[1];
+    $lang = $matches[1];
+    $langs[$lang] = $getNameLanguage ? mb_ucfirst(Locale::getDisplayName($lang, $lang) ?: $lang) : translate($lang);
   }
   return $langs;
 }
@@ -2188,7 +2190,16 @@ function getAffectedIds( $name ) {
 			$ids = array($_REQUEST[$name]);
 		}
 	}
-	return $ids;
+	// These ids feed new ZM\Event($id) / new ZM\Monitor($id) etc. in the callers.
+	// An element that is itself an array would be taken as a forged DB row rather
+	// than an id, bypassing per-id permission and path checks, so reduce every
+	// element to a plain integer id and drop anything that is not one
+	// (refs GHSA-6h8f-gx4m-qqw4).
+	foreach ($ids as &$id) {
+		$id = is_scalar($id) ? validCardinal($id) : '';
+	}
+	unset($id);
+	return array_values(array_filter($ids, function($id) { return $id !== ''; }));
 }
 
 function format_duration($time, $separator=':') {

@@ -1343,9 +1343,20 @@ function MonitorStream(monitorData) {
     }
   };
 
-  this.getStreamCmdResponse = function(respObj, respText) {
+  this.getStreamCmdResponse = function(respObj, connKey) {
     const stream = this.getElement();
     if (!stream) return;
+
+    /* A reply for a connkey we no longer hold describes a zms we have already
+     * replaced. Requests share one queue and a no_socket reply takes over a
+     * second, so a poll for a dead zms is often still queued when the first
+     * reply reloads the stream. Acting on its reply reloaded it a second time,
+     * abandoning the zms the first reload had just started.
+     */
+    if (connKey !== undefined && connKey !== this.connKey) {
+      console.log('Ignoring reply for replaced connkey '+connKey+' on monitor ID='+this.id);
+      return;
+    }
 
     //watchdogOk('stream');
     //this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
@@ -1796,7 +1807,7 @@ function MonitorStream(monitorData) {
       data: alarmCmdParms,
       dataType: 'json'
     })
-        .done(this.getStreamCmdResponse.bind(this))
+        .done((respObj) => this.getStreamCmdResponse(respObj, alarmCmdParms.connkey))
         .fail(this.onFailure.bind(this));
   };
 
@@ -1813,17 +1824,20 @@ function MonitorStream(monitorData) {
       }
       if (!(streamCmdParms.command == CMD_STOP && ((-1 !== this.activePlayer.indexOf('go2rtc')) || (-1 !== this.activePlayer.indexOf('rtsp2web'))))) {
         //Otherwise, there will be errors in the console "Socket ... does not exist" when quickly switching stop->start and we also do not need to replace SRC in getStreamCmdResponse
+        // Snapshot: ajaxQueue defers $.ajax (and therefore data serialization)
+        // until earlier queued requests finish. Callers that pass this.streamCmdParms
+        // directly would otherwise have their command clobbered by the
+        // streamCmdQuery timer setting command=CMD_QUERY before the request fires.
+        const params = Object.assign({}, streamCmdParms);
         this.ajaxQueue = jQuery.ajaxQueue({
           url: zmAuth.appendTo(this.url),
           xhrFields: {withCredentials: true},
-          // Snapshot: ajaxQueue defers $.ajax (and therefore data serialization)
-          // until earlier queued requests finish. Callers that pass this.streamCmdParms
-          // directly would otherwise have their command clobbered by the
-          // streamCmdQuery timer setting command=CMD_QUERY before the request fires.
-          data: Object.assign({}, streamCmdParms),
+          data: params,
           dataType: 'json'
         })
-            .done(this.getStreamCmdResponse.bind(this))
+            // The reply can land after a reload has replaced the connkey; see
+            // getStreamCmdResponse().
+            .done((respObj) => this.getStreamCmdResponse(respObj, params.connkey))
             .fail(this.onFailure.bind(this));
       };
     };
@@ -2002,9 +2016,8 @@ function MonitorStream(monitorData) {
         this.kill();
         return;
       }
-      if (!this.RTSP2WebType) { // This could happen, for example, on the Zones page, where `setPlayer` is not executed.
-        this.setRTSP2WebType(this.player);
-      }
+      this.setRTSP2WebType(this.player);
+
       if (-1 !== this.player.indexOf('hls')) {
         const hlsUrl = rtsp2webModUrl;
         hlsUrl.pathname = "/stream/" + this.id + "/channel/" + numericChannel + "/hls/live/index.m3u8";
@@ -2581,7 +2594,7 @@ function startRTSP2WebPlay(videoEl, url, stream) {
     const msg = `Your browser does not support 'RTCPeerConnection'. Monitor '${stream.name}' ID=${stream.id} not started.`;
     console.log(msg);
     stream.getElement().before(document.createTextNode(msg));
-    stream.RTSP2WebType = null; // Avoid repeated restarts.
+    stream.RTSP2WebType = null; // Avoid repeated restarts. IgorA100: This is likely no longer required, as RTSP2WebType is used only for displaying the type.
     return;
   }
   const playbackSessionId = stream.playbackSessionId;
@@ -2760,7 +2773,7 @@ function mseListenerSourceopen(context, videoEl, url) {
         const msg = `WebSocket MSE for a video object ID=${context.id} codec '${mimeCodec}' not supported. Monitor '${context.name}' ID=${context.id} not starting.`;
         console.warn(msg);
         context.showText(msg);
-        context.RTSP2WebType = null; // Avoid repeated restarts
+        context.RTSP2WebType = null; // Avoid repeated restarts. IgorA100: This is likely no longer required, as RTSP2WebType is used only for displaying the type.
         context.streamErrorRegistration(true);
         if (context.selectedPlayer) {
           context.stop();

@@ -557,11 +557,17 @@ function getNearEvents() {
   # e.g. several monitors starting events in the same second, so Prev/Next must compare the full
   # (sort value, Id) tuple. Comparing the sort value alone with >= / <= lets the event after a tie
   # pick the one before it as its Next, and playback loops between them forever.
+  #
+  # That tuple is the whole ordering: do not also constrain E.StartDateTime. When the sort is not
+  # StartDateTime (e.g. MonitorName, grouping cameras, or Id) a time constraint drops events that
+  # are correctly next in the chosen order but started earlier or later than the current one -- the
+  # next monitor's first event, or a concurrently recorded event with a higher Id, was skipped
+  # (refs #4186).
   $after = ($sortOrder == 'ASC') ? '>' : '<';
   $before = ($sortOrder == 'ASC') ? '<' : '>';
   $reverseOrder = ($sortOrder == 'ASC') ? 'DESC' : 'ASC';
 
-  $nearEvent = function($cmp, $idCmp, $startCmp, $order, $idOrder) use ($eventId, $event, $filter, $sortColumn, $sortValue) {
+  $nearEvent = function($cmp, $idCmp, $order, $idOrder) use ($eventId, $filter, $sortColumn, $sortValue) {
     $sql = '
     SELECT E.Id AS Id, E.StartDateTime AS StartDateTime
     FROM Events AS E
@@ -579,8 +585,6 @@ function getNearEvents() {
     if ($filter->sql()) {
       $sql .= ' AND ('.$filter->sql().')';
     }
-    $sql .= ' AND E.StartDateTime '.$startCmp.' ?';
-    $values[] = $event['StartDateTime'];
     $sql .= ' ORDER BY '.$sortColumn.' '.$order;
     if ($sortColumn != 'E.Id') {
       $sql .= ', E.Id '.$idOrder;
@@ -594,8 +598,8 @@ function getNearEvents() {
     return dbFetchNext($result);
   };
 
-  $prevEvent = $nearEvent($before, '<', '<=', $reverseOrder, 'DESC');
-  $nextEvent = $nearEvent($after, '>', '>=', $sortOrder, 'ASC');
+  $prevEvent = $nearEvent($before, '<', $reverseOrder, 'DESC');
+  $nextEvent = $nearEvent($after, '>', $sortOrder, 'ASC');
 
   if ( $prevEvent ) {
     $NearEvents['PrevEventId'] = $prevEvent['Id'];

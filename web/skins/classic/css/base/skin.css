@@ -135,6 +135,10 @@ label {
     margin: 0 4px;
 }
 
+label.radio-inline, [data-on-click]:not([data-on-click=""]) {
+    cursor: pointer;
+}
+
 button {
   line-height: 18.5px;
 }
@@ -1602,6 +1606,10 @@ video-stream {
 audio-motion, audio-motion canvas {
   display: block;
   width: 100%;
+}
+
+audio-motion canvas { /* Prevent the background from disappearing when stream playback is paused and the browser window is resized in Chromium. Relevant for Event pages. */
+  background-color: #34495e;
 }
 
 .imageFeed[data-not-display-video="true"], .imageFeed[data-not-display-video="true"] video-stream, .imageFeed[data-not-display-video="true"] video, /* monitor */

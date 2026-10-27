@@ -41,6 +41,7 @@ set(TEST_SOURCES
   zm_packet_lock.cpp
   zm_monitor_action.cpp
   zm_monitor_signal.cpp
+  zm_onvif_alarm_latch.cpp
   zm_onvif_alarm_termination.cpp
   zm_onvif_auth_error.cpp
   zm_onvif_poll_wait.cpp

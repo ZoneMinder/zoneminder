@@ -109,7 +109,7 @@ std::string load_monitor_sql =
   ", `MQTT_Enabled`, `MQTT_Subscriptions`"
 #endif
   ", `StartupDelay`"
-  ", `AudioDetection`, `AudioThreshold`, `AudioAlarmScore`"
+  ", `AudioDetection`, `AudioThreshold`, `AudioAlarmScore`, `DeviceClass`"
   " FROM `Monitors`";
 
 // Indexed by Monitor::CameraType, which starts at 1, so entry 0 covers the
@@ -738,6 +738,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   col++;
   audio_alarm_score = dbrow[col] ? atoi(dbrow[col]) : 0;
   col++;
+  device_class = dbrow[col] ? dbrow[col] : "Camera";
+  col++;
 
   // How many frames we need to have before we start analysing.
   // Must account for alarm_frame_count because openEvent walks back
@@ -1362,6 +1364,13 @@ Monitor::~Monitor() {
     delete Amcrest_Manager;
   }
   if (onvif) delete onvif;
+
+  // Release the shared encoder device contexts now that no VideoStore can be
+  // borrowing them (refs #5300).
+  for (auto &entry : encoder_hw_device_ctxs) {
+    if (entry.second) av_buffer_unref(&entry.second);
+  }
+  encoder_hw_device_ctxs.clear();
 }  // end Monitor::~Monitor()
 
 void Monitor::AddPrivacyBitmask() {
@@ -2150,6 +2159,13 @@ bool Monitor::Analyse() {
     // Need to guard around event creation/deletion from Reload()
     std::lock_guard<std::mutex> lck(event_mutex);
     int score = 0;
+#ifdef WITH_GSOAP
+    // Whether the ONVIF alarm was sampled for this packet. The latch is only
+    // released once the packet is committed (packet->score set), not here,
+    // because Analyse() can return early at the decode gate and retry the same
+    // packet (refs #5301).
+    bool onvif_alarmed = false;
+#endif
     // A link wake (see CheckOndemand) counted on this packet, cleared once the
     // packet's score has been applied.
     bool linked_wake = false;
@@ -2172,9 +2188,14 @@ bool Monitor::Analyse() {
         onvif->setNotes(noteSet);
         noteSetMap[MOTION_CAUSE] = noteSet;
         cause += "ONVIF";
-        // If the camera isn't going to send an event close, we need to close it here, but only after it has actually triggered an alarm.
-        //if (!Event_Poller_Closes_Event && state == ALARM)
-        //onvif->setAlarmed(false);
+        // Remember that we sampled the alarm, but do not release the latch here.
+        // For a video packet that is not yet decoded, Analyse() returns below at
+        // the decode gate before this packet's score is committed, and the same
+        // packet is retried. Releasing here would spend a momentary DetectedSound
+        // pulse on a frame that is never recorded, so the decoded retry sees no
+        // alarm and the event gets no alarm frame (refs #5301). Release only once
+        // the packet is actually scored, below.
+        onvif_alarmed = true;
       }  // end ONVIF_Trigger
 #endif
 
@@ -2679,6 +2700,15 @@ bool Monitor::Analyse() {
       } // end if signal
 
       packet->score = score;
+#ifdef WITH_GSOAP
+      // Release the latch only once a video packet is committed with its score,
+      // because alarm_frames counts video frames. Releasing at the isAlarmed()
+      // check above would spend a momentary pulse on a packet that Analyse()
+      // discards and retries at the decode gate, or on an audio packet that is
+      // never counted as an alarm frame, leaving the event with none (refs #5301).
+      if (onvif and onvif_alarmed and packet->codec_type == AVMEDIA_TYPE_VIDEO)
+        onvif->observeAlarm();
+#endif
     } else {
       Debug(3, "trigger == off");
       if (event) {
@@ -4494,6 +4524,35 @@ void Monitor::CloseDecoder() {
   }
   decoder_hw_pix_fmt = AV_PIX_FMT_NONE;
 }  // end void Monitor::CloseDecoder()
+
+#if HAVE_LIBAVUTIL_HWCONTEXT_H && LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
+AVBufferRef *Monitor::GetEncoderHWDeviceContext(AVHWDeviceType type, const std::string &device) {
+  if (type == AV_HWDEVICE_TYPE_NONE) return nullptr;
+
+  std::lock_guard<std::mutex> lck(encoder_hw_device_ctx_mutex);
+
+  // One cached context per (type, device). A failed probe of another encoder
+  // type never drops the one a previous probe created, so the device survives
+  // for the monitor's life and is not reopened per event (refs #5300).
+  auto key = std::make_pair(static_cast<int>(type), device);
+  auto it = encoder_hw_device_ctxs.find(key);
+  if (it == encoder_hw_device_ctxs.end()) {
+    AVBufferRef *ctx = nullptr;
+    int ret = av_hwdevice_ctx_create(&ctx, type,
+        device.empty() ? nullptr : device.c_str(), nullptr, 0);
+    if (ret < 0) {
+      Error("Failed to create encoder hwdevice_ctx %s", av_make_error_string(ret).c_str());
+      return nullptr;
+    }
+    Debug(1, "Created shared encoder hwdevice_ctx type %d device %s",
+        static_cast<int>(type), device.c_str());
+    it = encoder_hw_device_ctxs.emplace(key, ctx).first;
+  }
+
+  // Hand out a reference the caller owns; the cached context stays with us.
+  return av_buffer_ref(it->second);
+}  // end AVBufferRef *Monitor::GetEncoderHWDeviceContext()
+#endif
 
 int Monitor::PrimeCapture() {
   // Stop the decoder before tearing the codec context down. The decoder thread

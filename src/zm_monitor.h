@@ -721,6 +721,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   int        event_count;
   int        last_capture_image_count; // last value of image_count when calculating capture fps
+  // Whether an fps line has been logged yet. A fresh process reports once
+  // promptly rather than staying silent for a whole fps_report_interval.
+  bool       fps_reported;
   int        analysis_image_count;    // How many frames have been processed by analysis thread.
   // Written by the decoder / analysis thread, read by the others: atomic.
   std::atomic<int> decoding_image_count;    // How many frames the decoder has written to shm.

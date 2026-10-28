@@ -164,6 +164,7 @@ $serial = $primary_key = 'Id';
   Longitude
   RTSPServer
   RTSPStreamName
+  StreamEncoder
   Importance
   MQTT_Enabled
   MQTT_Subscriptions
@@ -289,6 +290,7 @@ $fields{model} = undef;
     Longitude =>  undef,
     RTSPStreamName => '',
     RTSPServer => 0,
+    StreamEncoder => q`'mjpeg'`,
     Importance => q`'Normal'`,
     MQTT_Enabled => 0,
     MQTT_Subscriptions => q`''`,

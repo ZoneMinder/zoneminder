@@ -29,6 +29,7 @@
 #include "zm_remote_camera.h"
 #include "zm_remote_camera_http.h"
 #include "zm_signal.h"
+#include "zm_stream_encoder.h"
 #include "zm_stream_socket.h"
 #include "zm_time.h"
 #include "zm_uri.h"
@@ -110,6 +111,7 @@ std::string load_monitor_sql =
 #endif
   ", `StartupDelay`"
   ", `AudioDetection`, `AudioThreshold`, `AudioAlarmScore`, `DeviceClass`"
+  ", `StreamEncoder`"
   " FROM `Monitors`";
 
 // Indexed by Monitor::CameraType, which starts at 1, so entry 0 covers the
@@ -739,6 +741,20 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   audio_alarm_score = dbrow[col] ? atoi(dbrow[col]) : 0;
   col++;
   device_class = dbrow[col] ? dbrow[col] : "Camera";
+  col++;
+  {
+    std::string new_stream_encoder = dbrow[col] ? dbrow[col] : "mjpeg";
+    std::lock_guard<std::mutex> lock(stream_encoder_mutex);
+    if (new_stream_encoder != stream_encoder_name) {
+      // A reload that changes the setting: the decoder thread opens the new
+      // encoder on its next image, which re-announces the video stream.
+      stream_encoder_name = new_stream_encoder;
+      stream_encoder.reset();
+      stream_encoder_failed = false;
+      if (stream_socket and stream_encoder_name == "none")
+        stream_socket->ClearVideoParams();
+    }
+  }
   col++;
 
   // How many frames we need to have before we start analysing.
@@ -3853,6 +3869,12 @@ bool Monitor::Decode() {
     shared_data->last_write_index = index;
     shared_data->last_write_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
+    // A camera that hands us decoded images has nothing encoded to forward
+    // to the stream socket. Publish this image, as processed above, so
+    // rotation and privacy masks apply to the stream as they do to shm.
+    if (stream_socket and (!packet->packet or packet->packet->size <= 0))
+      PublishStreamImage(packet);
+
     // Warn if falling behind
     auto lag = std::chrono::system_clock::now() - packet->timestamp;
     if (lag > Seconds(static_cast<int>(config.watch_max_delay))) {
@@ -4418,6 +4440,57 @@ void Monitor::SetState(State new_state) {
   RefreshStreamSnapshot();
 }
 
+void Monitor::PublishStreamImage(const std::shared_ptr<ZMPacket> &packet) {
+  std::lock_guard<std::mutex> lock(stream_encoder_mutex);
+  if (stream_encoder_name.empty() or stream_encoder_name == "none")
+    return;
+  const Image *image = packet->image;
+
+  if (!stream_encoder)
+    stream_encoder = zm::make_unique<StreamEncoder>(stream_encoder_name, encoder_hwaccel_device, config.jpeg_stream_quality);
+  if (stream_encoder->IsOpen()
+      and (static_cast<int>(image->Width()) != stream_encoder->Width()
+           or static_cast<int>(image->Height()) != stream_encoder->Height())) {
+    // The camera came back at another size. Reopening re-announces the
+    // stream, which is a new generation for consumers.
+    stream_encoder->Close();
+    stream_encoder_failed = false;
+  }
+  if (!stream_encoder->IsOpen()) {
+    if (stream_encoder_failed)
+      return;
+    // The measured capture rate once there is one, else the configured limit.
+    double fps = get_capture_fps();
+    if (fps <= 0 and capture_delay != Seconds(0)) fps = 1 / FPSeconds(capture_delay).count();
+    AVRational frame_rate = fps > 0 ? av_d2q(fps, 1000) : AVRational{0, 0};
+    if (!stream_encoder->Open(image->Width(), image->Height(), frame_rate)) {
+      Error("No stream encoder would open; the stream socket will carry no video");
+      stream_encoder_failed = true;
+      return;
+    }
+    stream_socket->SetVideoParams(stream_encoder->Parameters(), stream_encoder->FrameRate());
+    stream_encoder_idle = true;
+  }
+
+  // Encoding costs CPU, or a hardware encoder's time, so it only runs while
+  // a consumer is connected. When the last one leaves, drop the cached
+  // keyframe so the next consumer is not handed a stale picture; its first
+  // image is encoded as a keyframe instead.
+  if (!stream_socket->HasClients()) {
+    if (!stream_encoder_idle) {
+      stream_socket->InvalidateKeyframe();
+      stream_encoder_idle = true;
+    }
+    return;
+  }
+  bool force_keyframe = stream_encoder_idle;
+  stream_encoder_idle = false;
+  stream_encoder->Encode(image, packet->timestamp, force_keyframe,
+      [this](const AVPacket *pkt, bool keyframe, int64_t pts_us) {
+        stream_socket->SendMedia(pkt, zm::stream_socket::StreamId::Video, keyframe, pts_us);
+      });
+}
+
 void Monitor::StartStreamSocket() {
   if (stream_socket)
     return;
@@ -4610,15 +4683,27 @@ int Monitor::PrimeCapture() {
     // sees is passed as null and drops out of the announcement. Cameras that
     // hand us decoded images (V4L2, MJPEG over HTTP, VNC) have a video stream
     // with no codec id and produce no encoded packets; SetStreams treats that
-    // as "no stream", so their socket carries lifecycle events only.
+    // as "no stream" until PublishStreamImage opens the StreamEncoder that
+    // encodes their images for the socket.
     AVStream *audioStream = (audio_stream_id >= 0) ? camera->getAudioStream() : nullptr;
     AVStream *videoStream = (video_stream_id >= 0) ? camera->getVideoStream() : nullptr;
     AVRational frame_rate = {0, 0};
     if (videoStream)
       frame_rate = videoStream->avg_frame_rate.num ? videoStream->avg_frame_rate
                                                    : videoStream->r_frame_rate;
-    stream_socket->SetStreams(videoStream ? videoStream->codecpar : nullptr, frame_rate,
-                              audioStream ? audioStream->codecpar : nullptr);
+    {
+      const AVCodecParameters *video_par = videoStream ? videoStream->codecpar : nullptr;
+      std::lock_guard<std::mutex> encoder_lock(stream_encoder_mutex);
+      // A camera that hands us decoded images has no codec of its own. Once
+      // PublishStreamImage has opened an encoder for it, keep announcing that
+      // across the re-prime instead of withdrawing the stream.
+      if (video_par and video_par->codec_id == AV_CODEC_ID_NONE and stream_encoder and stream_encoder->IsOpen()) {
+        video_par = stream_encoder->Parameters();
+        frame_rate = stream_encoder->FrameRate();
+      }
+      stream_socket->SetStreams(video_par, frame_rate,
+                                audioStream ? audioStream->codecpar : nullptr);
+    }
     // Priming succeeded: capture is healthy. Cache a current-status snapshot so
     // the first consumer to connect learns the state without waiting for a
     // transition.

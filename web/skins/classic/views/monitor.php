@@ -1357,6 +1357,27 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
               <label><?php echo translate('RTSPStreamName'); echo makeHelpLink('OPTIONS_RTSPSTREAMNAME') ?></label>
               <input type="text" name="newMonitor[RTSPStreamName]" value="<?php echo validHtmlStr($monitor->RTSPStreamName()) ?>"/>
             </li>
+            <li class="StreamEncoder">
+              <label><?php echo translate('StreamEncoder'); echo makeHelpLink('OPTIONS_STREAMENCODER') ?></label>
+<?php
+  if ($monitor->Type() == 'Ffmpeg') {
+    echo '<span class="text-info">'.translate('StreamEncoderPassthrough').'</span>';
+  } else {
+    $stream_encoders = array(
+      'mjpeg'        => 'MJPEG',
+      'h264_vaapi'   => 'H.264 (VAAPI)',
+      'hevc_vaapi'   => 'H.265 (VAAPI)',
+      'h264_qsv'     => 'H.264 (Quick Sync)',
+      'hevc_qsv'     => 'H.265 (Quick Sync)',
+      'h264_nvenc'   => 'H.264 (NVENC)',
+      'hevc_nvenc'   => 'H.265 (NVENC)',
+      'h264_v4l2m2m' => 'H.264 (V4L2 M2M)',
+      'none'         => translate('None'),
+    );
+    echo htmlSelect('newMonitor[StreamEncoder]', $stream_encoders, $monitor->StreamEncoder());
+  }
+?>
+            </li>
             <li id="FunctionGo2RTCEnabled">
               <label><?php echo translate('Go2RTC Live Stream') ?></label>
               <input type="checkbox" name="newMonitor[Go2RTCEnabled]" value="1"<?php echo $monitor->Go2RTCEnabled() ? ' checked="checked"' : '' ?> on_click="update_players"/>

@@ -808,6 +808,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int64_t KeepDtsContinuous(AVPacket *packet, AVRational time_base);
   std::unique_ptr<PollThread> Poller;
   std::list<ZMPacketLock> decoder_queue;
+  // The decoder_queue entry a decoded frame with this pts came from; releases
+  // the entries before it that the codec consumed without returning a frame.
+  std::list<ZMPacketLock>::iterator MatchDecodedFrame(int64_t frame_pts);
   packetqueue_iterator  *analysis_it;
   std::unique_ptr<AnalysisThread> analysis_thread;
   packetqueue_iterator  *decoder_it;

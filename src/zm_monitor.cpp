@@ -3534,6 +3534,49 @@ void Monitor::flushDecoderQueue() {
   packetqueue.notify_all();  // wake the analysis thread if it's waiting
 }
 
+// The codec can consume packets without ever returning a frame for them: after
+// lost or corrupt slices (RTP over UDP) H.264 drops pictures until it has one it
+// can reference again. Pairing each frame with the oldest entry would leave those
+// entries in decoder_queue for good, pair every later frame with an older packet,
+// and once the queue passes the throttle in Decode() stop decoding altogether.
+// Returns the entry whose packet has frame_pts, after releasing the entries before
+// it with an earlier pts (decoded, no image). end() when the frame is older than
+// every entry; begin() when there is no pts to go by or no entry has it.
+std::list<ZMPacketLock>::iterator Monitor::MatchDecodedFrame(int64_t frame_pts) {
+  if (frame_pts == AV_NOPTS_VALUE) return decoder_queue.begin();
+
+  auto match = std::find_if(decoder_queue.begin(), decoder_queue.end(),
+      [frame_pts](const ZMPacketLock &lock) {
+        return lock.packet_ && lock.packet_->packet->pts == frame_pts;
+      });
+  if (match == decoder_queue.end()) {
+    bool older_than_all = std::all_of(decoder_queue.begin(), decoder_queue.end(),
+        [frame_pts](const ZMPacketLock &lock) {
+          return lock.packet_ && lock.packet_->packet->pts != AV_NOPTS_VALUE &&
+                 lock.packet_->packet->pts > frame_pts;
+        });
+    return older_than_all ? decoder_queue.end() : decoder_queue.begin();
+  }
+
+  size_t released = 0;
+  for (auto it = decoder_queue.begin(); it != match;) {
+    if (it->packet_->packet->pts != AV_NOPTS_VALUE && it->packet_->packet->pts < frame_pts) {
+      it->packet_->decoded = true;
+      it->packet_->notify_all();
+      it = decoder_queue.erase(it);
+      released++;
+    } else {
+      ++it;  // reordered (B-frame) reference still to come out
+    }
+  }
+  if (released) {
+    Debug(1, "Codec returned no frame for %zu packets before pts %" PRId64 ", released them, decoder queue size=%zu",
+          released, frame_pts, decoder_queue.size());
+    packetqueue.notify_all();
+  }
+  return match;
+}
+
 bool Monitor::Decode() {
   AVCodecContext *context = GetVideoCodecContext();
   ZMPacketLock packet_lock;
@@ -3575,10 +3618,17 @@ bool Monitor::Decode() {
 
       int ret = front_packet->receive_frame(context);
       if (ret > 0) {
-        // Success - got a decoded frame, take ownership and process it
-        packet_lock = std::move(decoder_queue.front());
-        decoder_queue.pop_front();
-        packet = front_packet;
+        // Success - got a decoded frame; hand it to the packet it came from
+        av_frame_ptr frame = std::move(front_packet->in_frame);
+        auto match = MatchDecodedFrame(frame->pts);
+        if (match == decoder_queue.end()) {
+          Debug(1, "Dropping decoded frame pts %" PRId64 ", older than every packet in the decoder queue", frame->pts);
+          return true;
+        }
+        packet_lock = std::move(*match);
+        decoder_queue.erase(match);
+        packet = packet_lock.packet_;
+        packet->in_frame = std::move(frame);
         Debug(2, "Received frame for packet %d, decoder queue pop size=%zu", packet->image_index, decoder_queue.size());
         // Continue to PHASE 3 (frame processing)
       } else if (ret < 0) {

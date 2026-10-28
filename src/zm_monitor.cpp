@@ -3519,8 +3519,8 @@ bool Monitor::applyDeinterlacing(std::shared_ptr<ZMPacket> &packet, Image *captu
 }
 
 void Monitor::flushDecoderQueue() {
-  // Called from DecoderThread::Run() as the decoder thread exits, so no
-  // concurrent access to decoder_queue: the thread that mutates it is us.
+  // Called on the decoder thread (as it exits, and from Decode() when the
+  // queue is full), so no concurrent access to decoder_queue.
   decoder_requires_next_packet = false;
   if (decoder_queue.empty()) return;
   Debug(1, "Flushing %zu in-flight entries from decoder_queue", decoder_queue.size());
@@ -3652,8 +3652,11 @@ bool Monitor::Decode() {
     int max_keyframe = packetqueue.get_max_keyframe_interval();
     if ((max_keyframe > 0) &&
         (decoder_queue.size() > 2 * static_cast<size_t>(max_keyframe))) {
-      Debug(1, "Decoder queue full (%zu packets), throttling", decoder_queue.size());
-      return false;
+      // Only reached when receiving above came back EAGAIN: the codec waits for
+      // input, so holding it back would stop decoding for good. Start over.
+      Warning("Decoder queue full (%zu packets) and the codec wants more input, flushing it", decoder_queue.size());
+      avcodec_flush_buffers(context);
+      flushDecoderQueue();
     }
 
     // Get next packet from the main packet queue

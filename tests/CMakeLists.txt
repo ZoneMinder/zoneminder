@@ -44,6 +44,7 @@ set(TEST_SOURCES
   zm_rgb_luma.cpp
   zm_poly.cpp
   zm_poll_thread.cpp
+  zm_rtp_source.cpp
   zm_user_default_password.cpp
   zm_utils.cpp
   zm_vector2.cpp

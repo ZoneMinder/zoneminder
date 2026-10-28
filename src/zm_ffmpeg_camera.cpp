@@ -540,8 +540,9 @@ int FfmpegCamera::OpenFfmpeg() {
 
   ret = avformat_find_stream_info(mFormatContext, nullptr);
   if (ret < 0) {
-    Error("Unable to find stream info from %s due to: %s",
-          mMaskedPath.c_str(), av_make_error_string(ret).c_str());
+    logPrintf(Logger::ERROR + monitor->Importance(),
+              "Unable to find stream info from %s due to: %s",
+              mMaskedPath.c_str(), av_make_error_string(ret).c_str());
     avformat_close_input(&mFormatContext);
     return -1;
   }
@@ -554,7 +555,7 @@ int FfmpegCamera::OpenFfmpeg() {
     zm_dump_stream_format(mFormatContext, i, 0, 0);
     if (is_video_stream(stream)) {
       if (!(stream->codecpar->width && stream->codecpar->height)) {
-        Warning("No width and height in video stream. Trying again");
+        logPrintf(Logger::WARNING + monitor->Importance(), "No width and height in video stream. Trying again");
         continue;
       }
       if (mVideoStreamId == -1) {

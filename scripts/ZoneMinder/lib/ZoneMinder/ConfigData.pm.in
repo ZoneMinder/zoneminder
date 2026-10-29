@@ -2099,6 +2099,7 @@ our @options = (
       `,
     requires    => [ { name => 'ZM_OPT_UPLOAD', value => 'yes' } ],
     type        => $types{string},
+    private     => 1,
     category    => 'upload',
   },
   {

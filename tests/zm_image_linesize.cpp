@@ -19,6 +19,7 @@
 
 #include "zm_config.h"
 #include "zm_image.h"
+#include "zm_packet.h"
 #include "zm_rgb.h"
 
 #include <cstdint>
@@ -141,5 +142,59 @@ TEST_CASE("Image::Rotate 270 honors a non-32-aligned source linesize", "[Image]"
       const uint8_t expected = static_cast<uint8_t>(X * kW + (kW - 1 - Y));
       REQUIRE(*img.Buffer(X, Y) == expected);
     }
+  }
+}
+
+// The decoder pads each Y row to its own alignment: a 720 wide frame comes out
+// with linesize[0] 736 or 768. get_y_image() must carry that stride, otherwise
+// every row of the Y-channel analysis image starts further into the previous
+// row and motion is found, and alarm pixels drawn, on a sheared picture.
+TEST_CASE("ZMPacket::get_y_image keeps the decoder's Y plane stride", "[Image]") {
+  EnsureImageInit();
+  ZMPacket packet;
+  packet.in_frame = av_frame_ptr{av_frame_alloc()};
+  AVFrame *frame = packet.in_frame.get();
+  frame->format = AV_PIX_FMT_YUV420P;
+  frame->width = 720;
+  frame->height = 480;
+  REQUIRE(av_frame_get_buffer(frame, 64) == 0);
+  REQUIRE(frame->linesize[0] > frame->width);
+  frame->data[0][frame->linesize[0]] = 42;  // first pixel of row 1
+
+  Image *y_image = packet.get_y_image();
+
+  REQUIRE(y_image != nullptr);
+  REQUIRE(y_image->Width() == 720);
+  REQUIRE(y_image->LineSize() == static_cast<unsigned int>(frame->linesize[0]));
+  REQUIRE(*y_image->Buffer(0, 1) == 42);
+}
+
+// When the camera's resolution differs from the monitor's, Monitor::Decode
+// scales the Y-channel image get_y_image() made. That image borrows the
+// decoder's Y plane, whose stride is neither the tight width nor
+// FFALIGN(width,32), so Scale must read rows at the Image's own linesize.
+// Each source row is one flat value and the row padding is 255: read at the
+// wrong stride, output rows pick up neighbouring rows and padding and stop
+// being flat.
+TEST_CASE("Image::Scale honors a borrowed source linesize", "[Image]") {
+  EnsureImageInit();
+  constexpr unsigned int kSrcW = 40;  // FFALIGN(40,32) = 64
+  constexpr unsigned int kStride = 48;
+  constexpr unsigned int kSrcH = 8;
+  std::vector<uint8_t> backing(kStride * kSrcH, 255);
+  for (unsigned int y = 0; y < kSrcH; y++)
+    for (unsigned int x = 0; x < kSrcW; x++)
+      backing[y * kStride + x] = static_cast<uint8_t>(20 * (y + 1));
+  Image img(kSrcW, kStride, kSrcH, /*colours*/ 1, ZM_SUBPIX_ORDER_NONE, backing.data(), /*padding*/ 0);
+
+  img.Scale(kSrcW / 2, kSrcH / 2);
+
+  REQUIRE(img.Width() == kSrcW / 2);
+  REQUIRE(img.Height() == kSrcH / 2);
+  for (unsigned int y = 0; y < kSrcH / 2; y++) {
+    const uint8_t first = *img.Buffer(0, y);
+    REQUIRE(first < 200);
+    for (unsigned int x = 1; x < kSrcW / 2; x++)
+      REQUIRE(*img.Buffer(x, y) == first);
   }
 }

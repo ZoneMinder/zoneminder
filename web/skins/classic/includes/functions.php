@@ -1855,7 +1855,7 @@ function xhtmlFooter() {
   echo output_script_if_exists(array(
   'js/tableExport.min.js',
   'assets/bootstrap-table/bootstrap-table.min.js',
-  'assets/bootstrap-table/extensions/locale/bootstrap-table-locale-all.min.js',
+  'assets/bootstrap-table/bootstrap-table-locale-all.min.js',
   'assets/bootstrap-table/extensions/export/bootstrap-table-export.min.js',
   'assets/bootstrap-table/extensions/page-jump-to/bootstrap-table-page-jump-to.min.js',
   'assets/bootstrap-table/extensions/cookie/bootstrap-table-cookie.js',
@@ -1878,6 +1878,9 @@ function xhtmlFooter() {
   <script nonce="<?php echo $cspNonce; ?>">
     var $j = jQuery.noConflict();
     var DateTime = luxon.DateTime;
+    // locale-all leaves its last locale (zh-TW) as the default. Restore en-US so
+    // tables whose data-locale has no match (dk, no, se, ...) don't fall back to it.
+    if (jQuery.fn.bootstrapTable) jQuery.extend(jQuery.fn.bootstrapTable.defaults, jQuery.fn.bootstrapTable.locales['en-US']);
 <?php
   $skinJsPhpFile = getSkinFile('js/skin.js.php');
   if ( $skinJsPhpFile ) require_once( $skinJsPhpFile );

@@ -106,6 +106,22 @@ ul.form > li > label:first-child {
   text-align: right;
 }
 
+/*
+ * A row with no label.
+ *
+ * The indent above is a gutter for the label, which is pulled back into it by
+ * an equal negative margin. That works for a labelled field and is wrong for
+ * anything else: a row holding a paragraph of help, or a table that wants the
+ * full width, has nothing to put in the gutter, so it starts 300px in with
+ * the space beside it left empty.
+ *
+ * The mobile rules below drop the indent for every row, so this needs no
+ * counterpart there.
+ */
+ul.form > li.noLabel {
+  padding-left: 0;
+}
+
 nav #pills-tab a.nav-link {
   margin-top: -0.5em;
   margin-bottom: -0.5em;
@@ -174,14 +190,70 @@ nav #pills-tab a.nav-link.active {
 /*
  * Monitor actions table.
  *
- * The Enabled column holds a single checkbox, but the table would otherwise
- * size it from its header text and let the four selects fight over what is
- * left, so the checkbox drifts as the target and action names change length.
+ * Under the default automatic layout a width on a cell is only a suggestion:
+ * the browser sizes each column from its contents and may hand a column more
+ * than it was asked for. That is the wrong behaviour for this table, where
+ * what each column needs is known in advance and differs wildly. Enabled
+ * holds one checkbox but claims space on the strength of its header text,
+ * while Schedule has to fit a whole sentence -- "Every weekend day (Sat &
+ * Sun) at 08:00" across a label, a select and a time input -- and is the
+ * column that ends up squeezed.
+ *
+ * So the layout is made fixed, which binds the widths below exactly. Four
+ * columns are pinned to what their contents need and Device and Does divide
+ * whatever is left. Device is deliberately one of the two left loose: it
+ * holds monitor names, which are the only contents here of unpredictable
+ * length, and a select that runs short truncates its option text rather than
+ * breaking the row.
+ *
+ * The figures are what the widest thing in each column measures, so they are
+ * worth rechecking if a label changes. Schedule is as wide as it is almost
+ * entirely because of one frequency option, "weekend day (Sat & Sun)", which
+ * sets the select's width on its own; a shorter wording for that one label
+ * would give several em back to the rest of the table.
  */
-#monitorActionsTable th:first-child,
-#monitorActionsTable td:first-child {
-  width: 5em;
+#monitorActionsTable {
+  table-layout: fixed;
+}
+
+/* Enabled: one checkbox, but the header is what sets the floor. A fixed
+   layout will not widen a column to fit its header, it just lets the text
+   run on into the next one, and skin.css renders every th uppercase -- so
+   what has to fit here is "ENABLED" and the cell padding, not a checkbox.
+   At 4em it fit so exactly that it touched the When header. */
+#monitorActionsTable th:nth-child(1),
+#monitorActionsTable td:nth-child(1) {
+  width: 5.5em;
   text-align: center;
+}
+
+/* When: a select, so as wide as its longest option, "Manually triggered". */
+#monitorActionsTable th:nth-child(2),
+#monitorActionsTable td:nth-child(2) {
+  width: 11em;
+}
+
+/* Schedule: "Every <frequency> at <time>" -- a label, a select as wide as
+   "weekend day (Sat & Sun)", another label and a time input, all on one line.
+   Or a cron spec shown as it stands, for a schedule the two controls cannot
+   draw. */
+#monitorActionsTable th:nth-child(3),
+#monitorActionsTable td:nth-child(3) {
+  width: 28em;
+}
+
+/* Sound: a file number. */
+#monitorActionsTable th:nth-child(6),
+#monitorActionsTable td:nth-child(6) {
+  width: 6em;
+}
+
+/* A fixed layout does not shrink a control to fit its column, so the controls
+   are told to fit it themselves. Without this a long monitor name in the
+   Device select would spill over the column beside it. */
+#monitorActionsTable select,
+#monitorActionsTable input {
+  max-width: 100%;
 }
 
 /*

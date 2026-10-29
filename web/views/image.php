@@ -658,7 +658,7 @@ ZM\Debug("Figuring out height using width: $height = ($width * $oldHeight) / $ol
     } else {
       $fp_scaled_path = fopen($scaled_path, 'r');
       $lock = flock($fp_scaled_path, LOCK_SH);
-      if (!$lock) Warning("Unable to get a read lock on $scaled_path, trying to send anyways.");
+      if (!$lock) \ZM\Warning("Unable to get a read lock on $scaled_path, trying to send anyways.");
 
       ZM\Debug("Sending $scaled_path");
       $bytes = readfile($scaled_path);

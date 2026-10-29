@@ -708,7 +708,10 @@ if (!ZM_HAS_V4L2)
 if (!isset($localMethods[$monitor->Method()])) $monitor->Method(array_keys($localMethods)[0]);
 if (count($localMethods)>1) {
   echo '<li><label>'.translate('CaptureMethod').'</label>';
-  echo htmlSelect('newMonitor[Method]', $localMethods, $monitor->Method(), ['data-on-change'=>'submitTab', 'data-tab-name'=>$tab] );
+  # data-tab-name is gone: submitTab() reads the tab out of the form's hidden
+  # field, which tracks the tab on screen, rather than out of an attribute
+  # holding the tab the page loaded on.
+  echo htmlSelect('newMonitor[Method]', $localMethods, $monitor->Method(), ['data-on-change'=>'submitTab'] );
   echo '</li>'.PHP_EOL;
 } else {
   echo '<input type="hidden" name="newMonitor[Method]" value="'.validHtmlStr($monitor->Method()).'"/>'.PHP_EOL;
@@ -1652,6 +1655,7 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
   case 'actions' :
     {
       require_once('includes/MonitorAction.php');
+      require_once('includes/CronTab.php');
 
       $candidates = ZM\MonitorAction::targetCandidates();
       $trigger_options = array(
@@ -1660,6 +1664,22 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
         'Alarm'      => translate('ActionTriggerAlarm'),
         'AlarmEnd'   => translate('ActionTriggerAlarmEnd'),
         'Manual'     => translate('ActionTriggerManual'),
+        'Schedule'   => translate('ActionTriggerSchedule'),
+      );
+      // Reads as a sentence with the controls that follow it: "Every <this>
+      // at <time>". Cron's own syntax is never shown; it is only what gets
+      // stored and written to the crontab.
+      $frequency_options = array(
+        'daily'     => translate('ScheduleEveryDay'),
+        'weekdays'  => translate('ScheduleEveryWeekday'),
+        'weekends'  => translate('ScheduleEveryWeekend'),
+        'monday'    => translate('ScheduleEveryMonday'),
+        'tuesday'   => translate('ScheduleEveryTuesday'),
+        'wednesday' => translate('ScheduleEveryWednesday'),
+        'thursday'  => translate('ScheduleEveryThursday'),
+        'friday'    => translate('ScheduleEveryFriday'),
+        'saturday'  => translate('ScheduleEverySaturday'),
+        'sunday'    => translate('ScheduleEverySunday'),
       );
       $all_type_options = array(
         'LightOn'           => translate('ActionLightOn'),
@@ -1685,21 +1705,22 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
 
       if (!count($candidates)) {
 ?>
-        <li class="warning">
+        <li class="warning noLabel">
           <?php echo translate('ActionsNoCapableDevices') ?>
         </li>
 <?php
       } else {
 ?>
-        <li>
+        <li class="noLabel">
           <p class="text-muted"><?php echo translate('ActionsHelp') ?></p>
         </li>
-        <li>
+        <li class="noLabel">
           <table id="monitorActionsTable" class="table table-sm">
             <thead>
               <tr>
                 <th><?php echo translate('Enabled') ?></th>
                 <th><?php echo translate('ActionTrigger') ?></th>
+                <th><?php echo translate('ActionSchedule') ?></th>
                 <th><?php echo translate('ActionTarget') ?></th>
                 <th><?php echo translate('ActionType') ?></th>
                 <th><?php echo translate('ActionAudioFile') ?></th>
@@ -1729,7 +1750,38 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
               <tr class="monitorActionRow">
                 <td><input type="checkbox" name="newAction[<?php echo $i ?>][Enabled]" value="1"<?php echo $action->Enabled() ? ' checked="checked"' : '' ?>/></td>
                 <td><input type="hidden" name="newAction[<?php echo $i ?>][Id]" value="<?php echo validHtmlStr($action->Id()) ?>"/>
-                    <?php echo htmlSelect('newAction['.$i.'][TriggerOn]', $trigger_options, $action->TriggerOn()) ?></td>
+                    <?php echo htmlSelect('newAction['.$i.'][TriggerOn]', $trigger_options, $action->TriggerOn(), array('class'=>'actionTrigger')) ?></td>
+<?php
+          // A schedule the two controls cannot draw -- one hand written into
+          // the database, or an hourly one -- is shown as it stands and kept
+          // as it stands, rather than being silently rounded to the nearest
+          // thing the editor happens to understand.
+          $schedule_parts = cronToParts($action->Schedule());
+          if ($schedule_parts and !isset($frequency_options[$schedule_parts['frequency']]))
+            $schedule_parts = null;
+          # || and not "or": "or" binds looser than "=", so the assignment would
+          # take only the left clause and discard the rest, leaving every saved
+          # schedule undrawable and shown as cron.
+          $drawable = ($action->Schedule() === '') || ($schedule_parts !== null);
+?>
+                <td class="actionScheduleCell">
+<?php if (!$drawable) { ?>
+                  <input class="actionScheduleRaw" type="text" size="14" readonly="readonly"
+                      name="newAction[<?php echo $i ?>][ScheduleRaw]"
+                      value="<?php echo validHtmlStr($action->Schedule()) ?>"
+                      title="<?php echo translate('ActionScheduleAdvanced') ?>"/>
+<?php } else { ?>
+                  <?php echo translate('ScheduleEvery') ?>
+                  <?php echo htmlSelect('newAction['.$i.'][ScheduleFrequency]', $frequency_options,
+                        $schedule_parts ? $schedule_parts['frequency'] : 'daily',
+                        array('class'=>'actionScheduleFrequency')) ?>
+                  <?php echo translate('ScheduleAt') ?>
+                  <input class="actionScheduleTime" type="time"
+                      name="newAction[<?php echo $i ?>][ScheduleTime]"
+                      value="<?php echo $schedule_parts ?
+                        sprintf('%02d:%02d', $schedule_parts['hour'], $schedule_parts['minute']) : '08:00' ?>"/>
+<?php } ?>
+                </td>
                 <td><?php echo htmlSelect('newAction['.$i.'][TargetMonitorId]', $target_options, $action->TargetMonitorId(), array('class'=>'actionTarget')) ?></td>
                 <td><?php echo htmlSelect('newAction['.$i.'][ActionType]', $type_options, $action->ActionType(), array('class'=>'actionType')) ?></td>
                 <td><input class="actionAudioFile" type="number" name="newAction[<?php echo $i ?>][AudioFile]" value="<?php echo validHtmlStr($action->AudioFile()) ?>" min="0" step="1"/></td>
@@ -1741,7 +1793,7 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
             </tbody>
           </table>
         </li>
-        <li>
+        <li class="noLabel">
           <p class="text-muted"><?php echo translate('ActionsRemoveHelp') ?></p>
         </li>
         <li>

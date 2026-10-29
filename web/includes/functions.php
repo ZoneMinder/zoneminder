@@ -2498,7 +2498,7 @@ function output_file($path, $chunkSize=1024) {
   }
 
   if ($size == 0) {
-    Error('Zero byte file! Aborting download');
+    \ZM\Error('Zero byte file! Aborting download');
   }
   @ini_set('magic_quotes_runtime', 0);
   $fp = fopen($path, 'rb');

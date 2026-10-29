@@ -48,7 +48,7 @@ if ( 0 ) {
             )
           );
       $new_stream = null;
-      Info('Testing connection to '.$url_bits['host'].':'.$port);
+      \ZM\Info('Testing connection to '.$url_bits['host'].':'.$port);
       if ( socket_connect( $socket, $url_bits['host'], $port ) ) {
         $new_stream = $url_bits; // make a copy
         $new_stream['port'] = $port;

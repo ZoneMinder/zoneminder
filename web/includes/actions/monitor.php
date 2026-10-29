@@ -378,6 +378,7 @@ if ($action == 'save') {
 
   if ( isset($_REQUEST['newAction']) and is_array($_REQUEST['newAction']) ) {
     require_once('includes/MonitorAction.php');
+    require_once('includes/CronTab.php');
 
     $submitted_ids = array();
     foreach ( $_REQUEST['newAction'] as $posted ) {
@@ -398,6 +399,42 @@ if ($action == 'save') {
       $action_type = isset($posted['ActionType']) ? $posted['ActionType'] : '';
       $trigger_on = isset($posted['TriggerOn']) ? $posted['TriggerOn'] : 'EventStart';
 
+      # The editor collects "Every <when> at <time>"; cron's five fields are
+      # what gets stored and written to the crontab. A schedule it could not
+      # draw comes back untouched in ScheduleRaw so editing a row does not
+      # destroy one that was set another way.
+      #
+      # Built and validated here rather than trusted from the browser: this
+      # string ends up in a crontab line, so the one check that matters has to
+      # be on this side of the request.
+      $schedule = '';
+      if ( $trigger_on == 'Schedule' ) {
+        if ( isset($posted['ScheduleRaw']) and (trim($posted['ScheduleRaw']) !== '') ) {
+          $schedule = trim($posted['ScheduleRaw']);
+        } else {
+          $frequency = isset($posted['ScheduleFrequency']) ? $posted['ScheduleFrequency'] : '';
+          $time = isset($posted['ScheduleTime']) ? trim($posted['ScheduleTime']) : '';
+          # <input type="time"> gives HH:MM, and HH:MM:SS where seconds are on.
+          if ( !preg_match('/^(\d{1,2}):(\d{2})(?::\d{2})?$/', $time, $hm) ) {
+            $error_message .= 'Ignoring action: "'.validHtmlStr($time).
+              '" is not a time of day.<br/>';
+            continue;
+          }
+          $schedule = cronFromParts($frequency, intval($hm[1]), intval($hm[2]));
+          if ($schedule === null) {
+            $error_message .= 'Ignoring action: could not make a schedule from "'.
+              validHtmlStr($frequency).'" at "'.validHtmlStr($time).'".<br/>';
+            continue;
+          }
+        }
+
+        if ( !cronScheduleIsValid($schedule) ) {
+          $error_message .= 'Ignoring action: "'.validHtmlStr($schedule).
+            '" is not a schedule this can run.<br/>';
+          continue;
+        }
+      }
+
       $target_monitor = ZM\Monitor::find_one(array('Id'=>$target));
       $allowed = ZM\MonitorAction::typesForMonitor($target_monitor);
       if ( !in_array($action_type, $allowed) ) {
@@ -409,6 +446,7 @@ if ($action == 'save') {
         'MonitorId'       => $mid,
         'TargetMonitorId' => $target,
         'TriggerOn'       => $trigger_on,
+        'Schedule'        => $schedule,
         'ActionType'      => $action_type,
         'AudioFile'       => (!isset($posted['AudioFile']) or $posted['AudioFile'] === '')
                                ? null : validInt($posted['AudioFile']),
@@ -431,6 +469,13 @@ if ($action == 'save') {
 
     # zmc re-reads the action list on restart, so a change here needs one.
     $restart = true;
+
+    # cron owns the scheduled ones, so the crontab is rebuilt from the table
+    # on every save. Doing it here rather than on a timer means the crontab
+    # cannot drift from what the operator just agreed to.
+    if ( cronRebuildScheduledActions() === false )
+      $error_message .= 'Saved, but the crontab could not be updated, so '.
+        'scheduled actions will not run. See the log for why.<br/>';
   } # end if newAction
 
   if ( $restart ) {

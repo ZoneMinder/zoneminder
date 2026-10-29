@@ -3151,6 +3151,7 @@ function initPageGeneral() {
       link.dataset.type = 'image';
     });
 
+    // eslint-disable-next-line new-cap
     lightbox = GLightbox({
       touchNavigation: true,
       loop: true

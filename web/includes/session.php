@@ -158,7 +158,7 @@ function is_session_started() {
       return session_id() === '' ? FALSE : TRUE;
     }
   } else {
-    Warning("php_sapi_name === 'cli'");
+    \ZM\Warning("php_sapi_name === 'cli'");
   }
   return FALSE;
 } // function is_session_started()

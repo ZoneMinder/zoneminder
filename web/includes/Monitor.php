@@ -873,6 +873,12 @@ class Monitor extends ZM_Object {
       }
       socket_close($socket);
     } else if ($this->ServerId()) {
+      # The API only starts and stops zmcontrol.pl there; a camera command has to
+      # go to that server's web request (ajax/control.php forwards those).
+      if (!in_array($command, array('quit', 'start', 'stop'))) {
+        Error('Control command for monitor '.$this->{'Id'}.' not sent: it is recorded by server '.$this->{'ServerId'});
+        return false;
+      }
       $result = $this->Server()->SendToApi('/monitors/daemonControl/'.$this->{'Id'}.'/'.$command.'/zmcontrol.pl.json');
       return $result;
     } else {

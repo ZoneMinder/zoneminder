@@ -83,6 +83,19 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
 
       if (count($changes)) {
         $filter->set($changes); // apply changes so that canEdit can use new values
+
+        // ZM_ALLOWED_COMMANDS narrows what "Execute command" may run. Refused
+        // here so the operator is told now rather than finding out from a log
+        // line the next time the filter runs; zmfilter.pl asks again at that
+        // point, because a row can reach the database another way.
+        if ($filter->AutoExecute() and $filter->AutoExecuteCmd()) {
+          require_once('includes/Command.php');
+          if (!commandAllowedByConfig($filter->AutoExecuteCmd())) {
+            $error_message .= commandRefusedMessage().'<br/>';
+            return;
+          }
+        }
+
         if ($filter->canEdit()) {
           if ($filter->Id() and ($action == 'Save')) {
             $filter->control('stop');

@@ -282,10 +282,31 @@ class MonitorsController extends AppController {
     ));
   }
 
+  // The cause given to alarm on, as zmu records it: letters, digits, spaces and plain
+  // punctuation only, at most 31 bytes (the size of the shared trigger_cause field), cut on
+  // a character boundary. The cause is stored as the event's Cause and in its Notes, so it
+  // is kept to plain text: markup, quotes, backslashes and control characters are dropped.
+  // Returns '' when nothing usable is left, which keeps the default "Forced Web".
+  private function alarmCause($cause) {
+    if (!is_string($cause)) return '';
+    // Fails (null) on invalid UTF-8
+    $cause = preg_replace('/[^\p{L}\p{M}\p{N} _.,:;!?()\[\]\/+#@%=-]+/u', '', $cause);
+    if ($cause === null) return '';
+    $cause = trim(preg_replace('/ {2,}/', ' ', $cause));
+    $cut = '';
+    foreach (preg_split('//u', $cause, -1, PREG_SPLIT_NO_EMPTY) as $char) {
+      if (strlen($cut) + strlen($char) > 31) break;
+      $cut .= $char;
+    }
+    return rtrim($cut);
+  }
+
   // arm/disarm alarms
   // expected format: http(s):/portal-api-url/monitors/alarm/id:M/command:C.json
   // where M=monitorId
   // where C=on|off|status|disable
+  // command:on takes an optional cause (query or POST data), recorded on the event in
+  // place of "Forced Web" after alarmCause() has filtered it
   public function alarm() {
     $id = $this->request->params['named']['id'];
     if ( !$this->Monitor->exists($id) ) {
@@ -297,6 +318,10 @@ class MonitorsController extends AppController {
       case 'on':
         $q = '-a';
         $verbose = '-v';
+        $cause = $this->alarmCause($this->request->query('cause') ? $this->request->query('cause') : $this->request->data('cause'));
+        if ($cause !== '') {
+          $q .= ' --cause '.escapeshellarg($cause);
+        }
         break;
       case 'off':
         $q = '-c';

@@ -803,10 +803,34 @@ DROP TABLE IF EXISTS `Monitor_Status`;
 -- CanIndicatorLight, CanAudioPlay), so a device can only be asked to do what
 -- it has been measured to do.
 --
+--
+-- Arbitrary commands on a schedule. Written into the same marked block of the
+-- web user's crontab as the scheduled MonitorActions, so cron does the timing
+-- and ZoneMinder needs no daemon of its own for this.
+--
+-- Command runs as the web user, so editing these takes System edit rights and
+-- must pass cronCommandIsValid() on the way in. ServerId NULL means every
+-- server writes it into its own crontab.
+--
+CREATE TABLE `CronJobs` (
+  `Id` int(10) unsigned NOT NULL auto_increment,
+  `Name` varchar(64) NOT NULL default '',
+  `Enabled` tinyint(1) unsigned NOT NULL default '1',
+  `Schedule` varchar(64) NOT NULL default '',
+  `Command` text NOT NULL,
+  `ServerId` int(10) unsigned default NULL,
+  PRIMARY KEY (`Id`),
+  KEY `Enabled` (`Enabled`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
 CREATE TABLE `MonitorActions` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `MonitorId` int(10) unsigned NOT NULL,
-  `TriggerOn` enum('EventStart','EventEnd','Alarm','AlarmEnd','Manual') NOT NULL default 'EventStart',
+  `TriggerOn` enum('EventStart','EventEnd','Alarm','AlarmEnd','Manual','Schedule') NOT NULL default 'EventStart',
+  /* Five field cron spec, used only when TriggerOn='Schedule'. Written into
+     the web user's crontab; validate with cronScheduleIsValid() before it
+     gets here. */
+  `Schedule` varchar(64) NOT NULL default '',
   `ActionType` enum('LightOn','LightOff','IndicatorLightOn','IndicatorLightOff','AudioPlay','AudioStop') NOT NULL default 'AudioPlay',
   `TargetMonitorId` int(10) unsigned NOT NULL,
   `AudioFile` int(10) unsigned default NULL,

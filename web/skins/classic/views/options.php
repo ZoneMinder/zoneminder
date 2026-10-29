@@ -134,6 +134,14 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
   }
   // Have to do this 
   header('Location: '.$redirect);
+} else if ($tab == 'cron') {
+  if (canView('System')) {
+    $redirect = '?view=cron';
+  } else {
+    $redirect = '?view=error';
+  }
+  // Have to do this
+  header('Location: '.$redirect);
 } else if ($tab == 'servers') {
   include('_options_servers.php');
 } else if ($tab == 'storage') { 

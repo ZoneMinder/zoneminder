@@ -32,12 +32,12 @@ if ( $action == 'create' ) {
 
   foreach ( $_REQUEST['monitor_ids'] as $monitor_id ) {
     if (!validCardinal($monitor_id)) {
-      Error("Monitor Id value is invalid $monitor_id");
+      \ZM\Error("Monitor Id value is invalid $monitor_id");
       continue;
     }
     $monitor = ZM\Monitor::find_one(['Id'=>$monitor_id]);
     if (!$monitor) {
-      Error("Monitor not found for id $monitor_id");
+      \ZM\Error("Monitor not found for id $monitor_id");
       continue;
     }
     $snapshot_event = new ZM\Snapshot_Event();

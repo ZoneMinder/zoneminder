@@ -1185,6 +1185,7 @@ function getOptionsHTML($forLeftBar = false, $customLabel = null) {
   // register them explicitly with readable labels instead of the auto-generated
   // "Ai_datasets" style names.
   if ( canView('System') ) {
+    $zmMenu::$submenuOptionsItems['cron'] = translate('ScheduledTasks');
     $zmMenu::$submenuOptionsItems['ai_datasets'] = translate('AI Datasets');
     $zmMenu::$submenuOptionsItems['ai_models'] = translate('AI Models');
     $zmMenu::$submenuOptionsItems['ai_classes'] = translate('AI Classes');

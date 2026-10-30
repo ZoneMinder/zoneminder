@@ -298,44 +298,14 @@ class MonitorsController extends AppController {
       throw new UnauthorizedException(__('Insufficient Privileges'));
     }
 
-    // form auth key based on auth credentials
-    $auth = '';
-    
-    if (ZM_OPT_USE_AUTH) {
-      global $user;
-      $mToken = $this->request->query('token') ? $this->request->query('token') : $this->request->data('token');;
-      if ($mToken) {
-        $auth = ' -T '.escapeshellarg($mToken);
-      } else if (ZM_AUTH_RELAY == 'hashed') {
-        $auth = ' -A '.calculateAuthHash(''); # Can't do REMOTE_IP because zmu doesn't normally have access to it.
-      } else if (ZM_AUTH_RELAY == 'plain') {
-        # Plain requires the plain text password which must either be in request or stored in session
-        $password = $this->request->query('pass') ? $this->request->query('pass') : $this->request->data('pass');;
-        if (!$password) 
-          $password = $this->request->query('password') ? $this->request->query('password') : $this->request->data('password');
-
-        if (!$password) {
-          # during auth the session will have been populated with the plaintext password
-          $stateful = $this->request->query('stateful') ? $this->request->query('stateful') : $this->request->data('stateful');
-          if ($stateful) {
-            $password = $_SESSION['password'];
-          }
-        } else if ($_COOKIE['ZMSESSID']) {
-          $password = $_SESSION['password'];
-        }
-
-        $auth = ' -U '.escapeshellarg($user->Username()).' -P '.escapeshellarg($password);
-      } else if (ZM_AUTH_RELAY == 'none') {
-        $auth = ' -U '.escapeshellarg($user->Username());
-      }
-    }
-
     $shellcmd = ZM_PATH_BIN.'/zmu'
       .($verbose ? " $verbose" : '')
       .' -m'.escapeshellarg($id)
-      ." $q"
-      .$auth;
-    $status = exec($shellcmd, $output, $rc);
+      ." $q";
+    $password = $this->request->query('pass') ? $this->request->query('pass') : $this->request->data('pass');
+    if (!$password) $password = $this->request->query('password') ? $this->request->query('password') : $this->request->data('password');
+    $status = exec($shellcmd.zmuCredentials($password ? $password : null), $output, $rc);
+    // Logged without the credentials.
     ZM\Debug("Command: $shellcmd output: ".implode(PHP_EOL, $output)." rc: $rc");
     if ($rc) {
       $this->set(array(

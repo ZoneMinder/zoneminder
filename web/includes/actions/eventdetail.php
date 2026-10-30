@@ -30,13 +30,23 @@ if ( !canEdit('Events') ) {
 } // end if ! canEdit(Events)
 
 if ( $action == 'eventdetail' ) {
+  require_once('includes/Event.php');
   $dbConn->beginTransaction();
-  foreach ( $_REQUEST['markEids'] as $markEid ) {
+  foreach ( (array)$_REQUEST['markEids'] as $markEid ) {
+    // Events=Edit alone isn't enough: the event's monitor has to be one the user
+    // may see, as for archiving in actions/events.php. Only a plain id: an array
+    // would build the Event from the request instead of loading it.
+    $markEid = is_scalar($markEid) ? validCardinal($markEid) : '';
+    $event = ($markEid === '') ? null : new ZM\Event($markEid);
+    if (!$event or !$event->Id() or !$event->canEdit()) {
+      ZM\Warning('No permission to edit event '.validHtmlStr($markEid));
+      continue;
+    }
     dbQuery('UPDATE Events SET Cause=?, Notes=? WHERE Id=?',
       array(
         $_REQUEST['newEvent']['Cause'],
         $_REQUEST['newEvent']['Notes'],
-        $markEid
+        $event->Id()
       )
     );
   }

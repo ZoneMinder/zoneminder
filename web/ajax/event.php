@@ -131,10 +131,26 @@ if ( canView('Events') or canView('Snapshots') ) {
 } // end if canView('Events')
 
 if ( canEdit('Events') ) {
+  // Every action below changes or deletes one event. Events=Edit is per area, so
+  // also require that the event's monitor is one the user can view, as the web
+  // action (actions/event.php) does; a missing and a hidden event get the same
+  // answer. $_REQUEST values can be arrays, so non-scalars are rejected.
+  $editActions = array('rename', 'eventdetail', 'archive', 'unarchive', 'delete');
+  if (in_array($_REQUEST['action'] ?? null, $editActions, true)) {
+    $eventId = is_scalar($_REQUEST['id'] ?? null) ? validCardinal($_REQUEST['id']) : '';
+    require_once('includes/Event.php');
+    $Event = ($eventId === '') ? null : new ZM\Event($eventId);
+    if (!$Event or !$Event->Id() or !visibleMonitor($Event->MonitorId())) {
+      if ($_REQUEST['action'] == 'delete')
+        ajaxResponse(array('refreshEvent'=>false, 'refreshParent'=>true, 'message'=> 'Event not found.'));
+      ajaxError('No such event');
+    }
+  }
+
   switch ( $_REQUEST['action'] ) {
   case 'rename' :
-    if ( !empty($_REQUEST['eventName']) )
-      dbQuery('UPDATE Events SET Name = ? WHERE Id = ?', array($_REQUEST['eventName'], $_REQUEST['id']));
+    if ( !empty($_REQUEST['eventName']) and is_scalar($_REQUEST['eventName']) )
+      dbQuery('UPDATE Events SET Name = ? WHERE Id = ?', array($_REQUEST['eventName'], $Event->Id()));
     else
       ajaxError('No new event name supplied');
     ajaxResponse(array('refreshEvent'=>true, 'refreshParent'=>true));
@@ -142,7 +158,7 @@ if ( canEdit('Events') ) {
   case 'eventdetail' :
     dbQuery(
       'UPDATE Events SET Cause = ?, Notes = ? WHERE Id = ?',
-      array($_REQUEST['newEvent']['Cause'], $_REQUEST['newEvent']['Notes'], $_REQUEST['id'])
+      array($_REQUEST['newEvent']['Cause'], $_REQUEST['newEvent']['Notes'], $Event->Id())
     );
     ajaxResponse(array('refreshEvent'=>true, 'refreshParent'=>true));
     break;
@@ -151,18 +167,13 @@ if ( canEdit('Events') ) {
     $archiveVal = ($_REQUEST['action'] == 'archive')?1:0;
     dbQuery(
       'UPDATE Events SET Archived = ? WHERE Id = ?',
-      array($archiveVal, $_REQUEST['id'])
+      array($archiveVal, $Event->Id())
     );
     ajaxResponse(array('refreshEvent'=>true, 'refreshParent'=>false));
     break;
   case 'delete' :
-    $Event = new ZM\Event($_REQUEST['id']);
-    if ( !$Event->Id() ) {
-      ajaxResponse(array('refreshEvent'=>false, 'refreshParent'=>true, 'message'=> 'Event not found.'));
-    } else {
-      $Event->delete();
-      ajaxResponse(array('refreshEvent'=>false, 'refreshParent'=>true));
-    }
+    $Event->delete();
+    ajaxResponse(array('refreshEvent'=>false, 'refreshParent'=>true));
     break;
   } // end switch action
 } // end if canEdit('Events')

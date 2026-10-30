@@ -486,6 +486,7 @@ our @options = (
       and match the admin_key value in janus.plugin.streaming.config.
       `,
     type        => $types{string},
+    private     => 1,
     category    => 'system',
   },
   {
@@ -2179,6 +2180,7 @@ our @options = (
       `,
     requires    => [ { name => 'ZM_OPT_UPLOAD', value => 'yes' } ],
     type        => $types{string},
+    private     => 1,
     category    => 'upload',
   },
   {
@@ -4012,6 +4014,7 @@ our @options = (
     description => 'MQTT broker password',
     help        => 'MQTT uses a central server to send/receive messages. This is the password to authenticate with.',
     type        => $types{password},
+    private     => 1,
     category    => 'MQTT',
   },
   {

@@ -230,7 +230,7 @@ if ( canView('System') ) {
             <button type="button" value="Cancel" data-on-click-this="cancel_layout"><?php echo translate('Cancel') ?></button>
           </span>
 
-<?php if (defined('ZM_FEATURES_SNAPSHOTS') and ZM_FEATURES_SNAPSHOTS) { ?>
+<?php if (defined('ZM_FEATURES_SNAPSHOTS') and ZM_FEATURES_SNAPSHOTS and canEdit('Snapshots')) { ?>
           <button type="button" name="snapshotBtn" data-on-click-this="takeSnapshot">
             <i class="material-icons md-18">camera_enhance</i>
             &nbsp;<?php echo translate('Snapshot') ?>

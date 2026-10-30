@@ -73,10 +73,30 @@ if ( $dir = opendir($event_path) ) {
   closedir($dir);
 }
 
+// The list holds the videos generated on this page and, since ZM_FFMPEG_FORMATS
+// has mp4, the event's own recording: the file zmc writes (incomplete.<ext> while
+// recording, then <Id>-video.<codec>.<ext>, kept in DefaultVideo). Deleting the
+// recording needs Events edit; a generated video can be made again from it, so
+// anyone who may generate one (Events view) may delete one.
+$canDeleteVideo = function($file) use ($event) {
+  if (canEdit('Events')) return true;
+  $name = basename($file);
+  $isRecording = ($event->DefaultVideo() && $name == $event->DefaultVideo())
+    || preg_match('/^incomplete\./', $name)
+    || preg_match('/^'.preg_quote($event->Id(), '/').'-video\./', $name);
+  return !$isRecording;
+};
+
 if ( isset($_REQUEST['deleteIndex']) ) {
   $deleteIndex = validInt($_REQUEST['deleteIndex']);
-  unlink($videoFiles[$deleteIndex]);
-  unset($videoFiles[$deleteIndex]);
+  if (!isset($videoFiles[$deleteIndex])) {
+    ZM\Warning('No video file at index '.$deleteIndex);
+  } else if (!$canDeleteVideo($videoFiles[$deleteIndex])) {
+    ZM\Warning('Must have Events edit permission to delete an event\'s recording');
+  } else {
+    unlink($videoFiles[$deleteIndex]);
+    unset($videoFiles[$deleteIndex]);
+  }
 } else if (isset($_REQUEST['downloadIndex'])) {
   $downloadIndex = validInt($_REQUEST['downloadIndex']);
   ZM\Debug("Download $downloadIndex, file: " . $videoFiles[$downloadIndex]);
@@ -175,8 +195,9 @@ if ( isset($_REQUEST['showIndex']) ) {
       <td>No Video Files Found</td>
       <?php
   } else {
-    $index = 0;
-    foreach ( $videoFiles as $file ) {
+    // The links carry the file's key in $videoFiles, which deleteIndex/downloadIndex
+    // look up; a running counter skipped empty files and drifted from it.
+    foreach ( $videoFiles as $index => $file ) {
       if ( filesize($file) > 0 ) {
         preg_match('/^(.+)-((?:r[_\d]+)|(?:F[_\d]+))-((?:s[_\d]+)|(?:S[0-9a-z]+))\.([^.]+)$/', $file, $matches);
         if ( preg_match('/^r(.+)$/', $matches[2], $temp_matches) ) {
@@ -201,12 +222,13 @@ if ( isset($_REQUEST['showIndex']) ) {
           <td><?php echo $scaleText ?></td>
           <td>
             <a href="?view=video&eid=<?php echo $event->Id() ?>&downloadIndex=<?php echo $index ?>"><?php echo translate('Download') ?></a>
+<?php if ($canDeleteVideo($file)) { ?>
                &nbsp;/&nbsp;
             <a href="?view=video&eid=<?php echo $event->Id() ?>&deleteIndex=<?php echo $index ?>"><?php echo translate('Delete') ?></a>
+<?php } ?>
           </td>
         </tr>
 <?php
-        $index++;
       } # end if filesize
     } # end foreach videoFile
   }

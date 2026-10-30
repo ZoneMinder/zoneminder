@@ -19,7 +19,8 @@ jobs:
   build-rpm:
     name: Build & sign RPM (${{ matrix.distro }})
     if: github.repository == 'ZoneMinder/zoneminder'
-    runs-on: self-hosted
+    # Pin the arch: x64 self-hosted runners (fw2) also serve this repo.
+    runs-on: [self-hosted, Linux, ARM64]
     strategy:
       fail-fast: false
       matrix:

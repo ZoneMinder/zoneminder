@@ -106,6 +106,14 @@ jobs:
         run: |
           git config --global --add safe.directory /__w/zoneminder/zoneminder
 
+      # The runner-provided $HOME (/github/home) persists between jobs on
+      # self-hosted runners, so stale gpg lock files left by an earlier job can
+      # stall the import when their recorded PID is reused in the new container.
+      - name: Use a per-job GnuPG home
+        run: |
+          GNUPGHOME=$(mktemp -d)
+          echo "GNUPGHOME=${GNUPGHOME}" >> "$GITHUB_ENV"
+
       - name: Import GPG key
         uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # v7
         with:

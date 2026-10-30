@@ -1272,6 +1272,15 @@ sub executeCommand {
   my $Event = shift;
 
   my $command = $filter->{AutoExecuteCmd};
+
+  # Checked here and not only where the filter was saved: a row can reach the
+  # database without passing through the web ui, and the restriction may have
+  # been tightened since this filter was written.
+  if (!commandIsAllowed($command, $Config{ZM_ALLOWED_COMMANDS})) {
+    Error("Filter $filter->{Name}: command '$command' is not in ZM_ALLOWED_COMMANDS, refusing to run it");
+    return 0;
+  }
+
   my %tag_env;
   if ($command =~ /%\w+%/) {
     # Tag values such as event name, cause, notes, tags and monitor name can be

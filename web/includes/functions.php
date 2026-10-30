@@ -345,17 +345,7 @@ function outputControlStill($src, $width, $height, $monitor, $scale, $target) {
 
 // Incoming args are shell-escaped. This function must escape any further arguments it cannot guarantee.
 function getZmuCommand($args) {
-  $zmuCommand = ZMU_PATH;
-
-  if ( ZM_OPT_USE_AUTH ) {
-    if ( ZM_AUTH_RELAY == 'hashed' ) {
-      $zmuCommand .= ' -A '.generateAuthHash(false, true);
-    } elseif ( ZM_AUTH_RELAY == 'plain' ) {
-      $zmuCommand .= ' -U ' .escapeshellarg($_SESSION['username']).' -P '.escapeshellarg($_SESSION['password']);
-    } elseif ( ZM_AUTH_RELAY == 'none' ) {
-      $zmuCommand .= ' -U '.escapeshellarg($_SESSION['username']);
-    }
-  }
+  $zmuCommand = ZMU_PATH.zmuCredentials();
 
   $zmuCommand .= $args;
 

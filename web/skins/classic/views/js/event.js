@@ -827,7 +827,8 @@ function getStat() {
         tdString = eventData[key] ? yesStr : noStr;
         break;
       default:
-        tdString = eventData[key];
+        // Values from the event (Name, Cause, Notes, dates) are text, not markup
+        tdString = escapeHTML(eventData[key]);
     }
 
     var td = $j('<td>').html(tdString);

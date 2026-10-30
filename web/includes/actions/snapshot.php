@@ -22,23 +22,36 @@ require_once('includes/Snapshot.php');
 require_once('includes/Monitor.php');
 
 if ( $action == 'create' ) {
-  if ( ! (isset($_REQUEST['monitor_ids']) and count($_REQUEST['monitor_ids']) > 0 ) ) {
+  // A snapshot forces an alarm on each monitor and archives the events it
+  // records, so it needs Snapshots edit, and only monitors the user can view.
+  if (!canEdit('Snapshots')) {
+    ZM\Warning('Creating a snapshot requires Snapshots edit permission');
+    return;
+  }
+  if ( ! (isset($_REQUEST['monitor_ids']) and is_array($_REQUEST['monitor_ids']) and count($_REQUEST['monitor_ids']) > 0 ) ) {
     ZM\Error('No monitor ids given in snapshot creation request');
     return;
   }
-  $snapshot = new ZM\Snapshot();
-  $snapshot->save(array('CreatedBy'=>$user->Id()));
-
+  $monitors = array();
   foreach ( $_REQUEST['monitor_ids'] as $monitor_id ) {
-    if (!validCardinal($monitor_id)) {
-      Error("Monitor Id value is invalid $monitor_id");
+    if (!is_scalar($monitor_id) or !preg_match('/^\d+$/', (string)$monitor_id)) {
+      ZM\Error('Monitor Id value is invalid in snapshot creation request');
       continue;
     }
     $monitor = ZM\Monitor::find_one(['Id'=>$monitor_id]);
-    if (!$monitor) {
-      Error("Monitor not found for id $monitor_id");
+    if (!$monitor or !visibleMonitor($monitor->Id())) {
+      ZM\Error('Monitor not found for id '.$monitor_id);
       continue;
     }
+    $monitors[] = $monitor;
+  }
+  if (!count($monitors)) return;
+
+  $snapshot = new ZM\Snapshot();
+  $snapshot->save(array('CreatedBy'=>$user->Id()));
+
+  foreach ( $monitors as $monitor ) {
+    $monitor_id = $monitor->Id();
     $snapshot_event = new ZM\Snapshot_Event();
     $event_id = $monitor->TriggerOn();
     ZM\Debug("Have event $event_id for monitor $monitor_id");
@@ -49,9 +62,7 @@ if ( $action == 'create' ) {
       ));
     }
   }  # end foreach monitor
-  foreach ( $_REQUEST['monitor_ids'] as $monitor_id ) {
-    $monitor = ZM\Monitor::find_one(['Id'=>$monitor_id]);
-    if (!$monitor) continue;
+  foreach ( $monitors as $monitor ) {
     $monitor->TriggerOff();
   }
   $dbConn->beginTransaction();

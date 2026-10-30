@@ -247,6 +247,10 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   int ret;
   AVFormatContext *formatContextPtr;
   int64_t lastPTS = -1;
+  // Unref the packet on every return, including the early ones for packets we
+  // drop. Before FFmpeg 7, av_read_frame() resets the packet it is given
+  // without unreferencing it, so a packet left holding data leaks its buffer.
+  av_packet_guard pkt_guard{packet};
 
   if ( mSecondFormatContext and mAudioStream and
        (
@@ -374,8 +378,6 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
       }
     }
   }
-
-  av_packet_guard pkt_guard{packet};
 
   // Real-time pacing: throttle delivery to the stream's native rate. Use dts
   // (monotonic in read order) when available, otherwise pts. Sleep happens here,

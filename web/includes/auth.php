@@ -668,6 +668,14 @@ function editableMonitor($mid) {
     return false;
   }
 
+  # A monitor the user can't see can't be edited either. The checks below only
+  # look for an Edit grant, so a None deny on a group (the user's or the role's)
+  # used to fall through to the global Monitors permission.
+  if (!visibleMonitor($mid)) {
+    ZM\Debug("Can't edit monitor $mid because it isn't visible");
+    return false;
+  }
+
   global $monitor_permissions;
 
   # First check for direct monitor permission

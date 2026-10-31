@@ -45,7 +45,8 @@ PacketQueue::PacketQueue():
   next_queue_index_(0),
   first_queue_index_(0),
   released_before_(0),
-  capped_before_(0)
+  capped_before_(0),
+  keyframe_interval_over_limit_(false)
 {
 }
 
@@ -125,6 +126,18 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
         if (frames_since_last_keyframe_ > max_keyframe_interval_) {
           max_keyframe_interval_ = frames_since_last_keyframe_;
           Debug(1, "Have new keyframe interval %d", max_keyframe_interval_.load());
+        }
+        // Passthrough keeps every packet back to a keyframe, so a GOP longer
+        // than MaxImageBufferCount can't be trimmed: the queue holds all of it,
+        // and releaseDecoded() can only bound the decoded copies.
+        if (keep_keyframes and (max_video_packet_count > 0) and !keyframe_interval_over_limit_
+            and (frames_since_last_keyframe_ + 1 > max_video_packet_count)) {
+          keyframe_interval_over_limit_ = true;
+          Error("The camera's keyframe interval is longer than MaxImageBufferCount (%d frames). "
+                "Passthrough recording has to keep a whole keyframe interval of packets, so the packet queue "
+                "can't stay within MaxImageBufferCount. Raise MaxImageBufferCount above the keyframe interval "
+                "or shorten the camera's keyframe interval (GOP).",
+                max_video_packet_count);
         }
       } else {
         frames_since_last_keyframe_ = 0;
@@ -562,6 +575,7 @@ void PacketQueue::clear() {
   packet_counts.reset();
   max_stream_id = -1;
   max_keyframe_interval_ = 0;
+  keyframe_interval_over_limit_ = false;
   first_queue_index_ = next_queue_index_;
 
   Debug(1, "Packetqueue is clear, notifying");
@@ -929,6 +943,13 @@ void PacketQueue::setMaxVideoPackets(int p) {
   Debug(1, "Setting max_video_packet_count to %d", p);
   if (max_video_packet_count < 0)
     max_video_packet_count = 0;
+  keyframe_interval_over_limit_ = false;
+}
+
+void PacketQueue::setKeepKeyframes(bool k) {
+  std::lock_guard<std::mutex> lck(mutex);
+  keep_keyframes = k;
+  keyframe_interval_over_limit_ = false;
 }
 
 void PacketQueue::setPreEventVideoPackets(int p) {

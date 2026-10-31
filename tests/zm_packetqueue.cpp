@@ -303,3 +303,52 @@ TEST_CASE("PacketQueue: decoded data is bounded by MaxImageBufferCount") {
   queue.stop();
   queue.clear();
 }
+
+// With passthrough the queue keeps every packet back to a keyframe, so a camera
+// keyframe interval longer than MaxImageBufferCount leaves queuePacket() nothing
+// to trim to: the queue holds the whole GOP whatever MaxImageBufferCount says.
+// That is a misconfiguration, reported once as an Error.
+TEST_CASE("PacketQueue: a keyframe interval longer than MaxImageBufferCount is reported") {
+  PacketQueue queue;
+  queue.addStream();
+  queue.setMaxVideoPackets(10);
+  packetqueue_iterator *it = queue.get_video_it(false);
+  REQUIRE(it != nullptr);
+
+  auto gop = [&](int count) {
+    for (int i = 0; i < count; i++) REQUIRE(queue.queuePacket(video_packet(i == 0)));
+  };
+
+  SECTION("passthrough, GOP within the limit") {
+    queue.setKeepKeyframes(true);
+    gop(10);
+    gop(10);
+    REQUIRE_FALSE(queue.keyframe_interval_over_limit());
+  }
+
+  SECTION("passthrough, GOP over the limit") {
+    queue.setKeepKeyframes(true);
+    gop(11);
+    REQUIRE(queue.keyframe_interval_over_limit());
+  }
+
+  SECTION("not passthrough: the queue trims to the limit itself") {
+    queue.setKeepKeyframes(false);
+    gop(30);
+    REQUIRE_FALSE(queue.keyframe_interval_over_limit());
+  }
+
+  SECTION("raising MaxImageBufferCount clears it") {
+    queue.setKeepKeyframes(true);
+    gop(11);
+    REQUIRE(queue.keyframe_interval_over_limit());
+    queue.setMaxVideoPackets(20);
+    REQUIRE_FALSE(queue.keyframe_interval_over_limit());
+    gop(11);
+    REQUIRE_FALSE(queue.keyframe_interval_over_limit());
+  }
+
+  queue.free_it(it);
+  queue.stop();
+  queue.clear();
+}

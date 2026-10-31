@@ -254,19 +254,42 @@ class AppController extends Controller {
     }
   }
 
-  # The ids of the $assoc records a request associates with $alias, given either as
-  # $alias[$idsField] (comma separated or array) or as HABTM $assoc data; null if neither.
-  protected function requestAssociatedIds($alias, $idsField, $assoc) {
-    $data = $this->request->data;
-    if (isset($data[$alias][$idsField])) {
-      $ids = $data[$alias][$idsField];
-    } else if (isset($data[$assoc])) {
-      $ids = (isset($data[$assoc][$assoc]) and is_array($data[$assoc][$assoc])) ? $data[$assoc][$assoc] : $data[$assoc];
-    } else {
+  # The ids of the $assoc records a save of the request links to $alias through its HABTM
+  # association, read the way Model::save() reads them, or null when the save leaves the links
+  # alone. Model::set() skips a non-array $assoc entry; save() takes $assoc[$assoc] when present,
+  # else $assoc, and replaces all links with it. $alias[EventIds]-style fields are not saved
+  # (add() copies them to $assoc first). The entry is rewritten to the plain list returned, so a
+  # row given as a join record, which save() would store as given, can only link the id checked.
+  protected function requestAssociatedIds($alias, $assoc) {
+    if (!isset($this->request->data[$assoc])) return null;
+    $rows = $this->request->data[$assoc];
+    if (!is_array($rows)) {
+      unset($this->request->data[$assoc]);
       return null;
     }
-    if (!is_array($ids)) $ids = explode(',', $ids);
-    return array_map(function($id) { return intval(is_array($id) ? (isset($id['Id']) ? $id['Id'] : 0) : $id); }, $ids);
+    if (isset($rows[$assoc])) $rows = $rows[$assoc];
+    $key = $this->{$alias}->hasAndBelongsToMany[$assoc]['associationForeignKey'];
+    $ids = array();
+    foreach ((array)$rows as $row) {
+      if (is_array($row)) $row = isset($row[$key]) ? $row[$key] : null;
+      if (is_numeric($row)) $ids[] = intval($row);
+    }
+    $this->request->data[$assoc] = array($assoc => $ids);
+    return $ids;
+  }
+
+  # The event list to save for record $id of $table, from the $eventIds an edit asks for: saving
+  # replaces all of the record's links, so its links to events the user may not view, which the
+  # API does not show them, are kept. Throw unless the user may view every event in $eventIds.
+  # Links to events that no longer exist are dropped.
+  protected function eventLinksToSave($table, $key, $id, $eventIds) {
+    $this->requireEventsView($eventIds);
+    $oldIds = dbFetchAll('SELECT `EventId` FROM `'.$table.'` WHERE `'.$key.'`=?', 'EventId', array($id));
+    foreach (array_diff($oldIds, $eventIds) as $eventId) {
+      $event = new ZM\Event($eventId);
+      if ($event->Id() and !$event->canView()) $eventIds[] = intval($eventId);
+    }
+    return $eventIds;
   }
 
   # Throw unless the user may view every event in $eventIds, which includes its monitor.

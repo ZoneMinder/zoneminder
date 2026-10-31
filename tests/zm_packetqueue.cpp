@@ -232,3 +232,74 @@ TEST_CASE("PacketQueue: an event never starts on a released packet") {
   queue.stop();
   queue.clear();
 }
+
+// With passthrough the queue keeps every packet back to a keyframe. A keyframe
+// interval longer than MaxImageBufferCount leaves queuePacket() no later
+// keyframe to trim to, so the whole GOP stays queued; releaseDecoded() keeps the
+// decoded data of only the newest MaxImageBufferCount video packets, never less
+// than the pre-event window, and leaves the compressed packets for the event's
+// video. refs #4860
+TEST_CASE("PacketQueue: decoded data is bounded by MaxImageBufferCount") {
+  PacketQueue queue;
+  queue.addStream();
+  queue.setKeepKeyframes(true);
+
+  packetqueue_iterator *holder_it = queue.get_video_it(false);
+  REQUIRE(holder_it != nullptr);
+  packetqueue_iterator *analysis_it = nullptr;
+
+  // One keyframe, then a GOP longer than the queue's limit; analysis on the
+  // newest packet.
+  auto fill = [&](int count) {
+    std::vector<std::shared_ptr<ZMPacket>> packets;
+    for (int i = 0; i < count; i++) {
+      packets.push_back(decoded_video_packet(i == 0));
+      REQUIRE(queue.queuePacket(packets.back()));
+    }
+    while (queue.increment_it(holder_it, false)) {}
+    analysis_it = queue.get_video_it(false);
+    for (int i = 1; i < count; i++) REQUIRE(queue.increment_it(analysis_it, false));
+    REQUIRE(*(*analysis_it) == packets.back());
+    return packets;
+  };
+
+  SECTION("the newest MaxImageBufferCount packets keep their images") {
+    queue.setMaxVideoPackets(20);
+    queue.setPreEventVideoPackets(5);
+    auto packets = fill(30);
+    // queuePacket() found no second keyframe to trim to: everything is queued.
+    REQUIRE(queue.size() == 30);
+    queue.releaseDecoded();
+    REQUIRE(packets[9]->image == nullptr);
+    REQUIRE(packets[10]->image != nullptr);
+    REQUIRE(packets[29]->image != nullptr);
+
+    // The event still starts on the keyframe, for the whole of its video.
+    packetqueue_iterator *start = queue.get_event_start_packet_it(*analysis_it, 5);
+    REQUIRE(*(*start) == packets[0]);
+    queue.free_it(start);
+  }
+
+  SECTION("the pre-event window keeps its images above the limit") {
+    queue.setMaxVideoPackets(10);
+    queue.setPreEventVideoPackets(15);
+    auto packets = fill(30);
+    queue.releaseDecoded();
+    // 15 back from packet 29 is 14.
+    REQUIRE(packets[13]->image == nullptr);
+    REQUIRE(packets[14]->image != nullptr);
+  }
+
+  SECTION("no limit: images back to the keyframe stay") {
+    queue.setMaxVideoPackets(0);
+    queue.setPreEventVideoPackets(5);
+    auto packets = fill(30);
+    queue.releaseDecoded();
+    REQUIRE(packets[0]->image != nullptr);
+  }
+
+  queue.free_it(analysis_it);
+  queue.free_it(holder_it);
+  queue.stop();
+  queue.clear();
+}

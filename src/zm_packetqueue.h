@@ -59,6 +59,7 @@ class PacketQueue {
   uint64_t next_queue_index_;
   uint64_t first_queue_index_;  // queue_index of the first packet queued since the last clear()
   uint64_t released_before_;    // releaseDecoded() has handled every packet before this queue_index
+  uint64_t capped_before_;      // decoded data freed under max_video_packet_count before this queue_index
 
  public:
   PacketQueue();

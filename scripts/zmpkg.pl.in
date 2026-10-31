@@ -192,6 +192,12 @@ if ( $command =~ /^(?:start|restart)$/ ) {
          );
     } # end if version mismatch
 
+    if ( $Config{ZM_OPT_USE_AUTH} and ( $Config{ZM_AUTH_RELAY} eq 'plain' ) ) {
+      Warning('ZM_AUTH_RELAY=plain is deprecated: it puts the user\'s password'
+        .' in stream URLs and the web session. Set it to hashed (with'
+        .' ZM_AUTH_HASH_SECRET set) in Options > Authentication.');
+    }
+
 # Recreate the temporary directory if it's been wiped
     verifyFolder('@ZM_TMPDIR@');
 

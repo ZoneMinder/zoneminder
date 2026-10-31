@@ -34,6 +34,7 @@ void EnsureConfig() {
 class DecoderQueue : public Monitor {
  public:
   DecoderQueue() : Monitor() {}
+  using Monitor::DecoderQueueLimit;
 
   // Packets sent to the codec, in decode order, by pts.
   std::vector<std::shared_ptr<ZMPacket>> Send(const std::vector<int64_t> &pts) {
@@ -135,3 +136,28 @@ TEST_CASE("Monitor decoder queue: without a pts the oldest entry is used", "[Mon
   CHECK(q.Receive(99999) == 3600);
   CHECK(q.Queued().empty());
 }
+
+TEST_CASE("Monitor decoder queue: the limit allows for the codec's own delay", "[Monitor][decoder]") {
+  CHECK(DecoderQueue::DecoderQueueLimit(25, nullptr) == 50);
+
+  AVCodecContext *context = avcodec_alloc_context3(nullptr);
+  REQUIRE(context);
+  CHECK(DecoderQueue::DecoderQueueLimit(25, context) == 50);
+
+  context->has_b_frames = 2;
+  CHECK(DecoderQueue::DecoderQueueLimit(25, context) == 52);
+
+  // All-intra stream (keyframe interval 1) decoded with 8 frame threads: the
+  // codec holds 7 frames before returning one, more than 2 x 1.
+  context->has_b_frames = 0;
+  context->thread_count = 8;
+  context->active_thread_type = FF_THREAD_FRAME;
+  CHECK(DecoderQueue::DecoderQueueLimit(1, context) == 9);
+
+  // Slice threads add no delay
+  context->active_thread_type = FF_THREAD_SLICE;
+  CHECK(DecoderQueue::DecoderQueueLimit(1, context) == 2);
+
+  avcodec_free_context(&context);
+}
+

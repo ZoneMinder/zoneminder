@@ -739,6 +739,15 @@ if (ZM_OPT_USE_AUTH) {
           unset($_SESSION['AuthHashGeneratedAt']);
           unset($_SESSION['AuthHash'.$remoteAddr]);
         }
+        if (is_session_started() and !empty($_COOKIE[session_name()])
+          and (!isset($_SESSION['username']) or ($_SESSION['username'] !== $user->Username()))) {
+          // The client's session becomes this user's: give it a new id first, so
+          // an id planted in the client beforehand doesn't become a logged-in
+          // session (session fixation). Without our cookie the session isn't
+          // stored, so there is nothing to take over. The API includes this file
+          // before it starts a session; there is no session to take over then.
+          zm_session_regenerate_id_login();
+        }
         $_SESSION['username'] = $user->Username();
       }
     } else if (!(empty($requestUser) or empty($requestPass))) {
@@ -811,10 +820,8 @@ if (ZM_OPT_USE_AUTH) {
         $requestPassword = requestString('new_password');
       }
 
-      zm_session_clear(); # Closes session
-      // The client has no cookie yet on a first login, but this session must be stored.
-      zm_session_persist();
-      zm_session_regenerate_id(); # starts session
+      # Drop the pre-auth session and issue a fresh id in a single Set-Cookie
+      zm_session_regenerate_id_login();
 
       $username = $requestUsername;
       $password = $requestPassword;

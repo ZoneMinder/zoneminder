@@ -95,14 +95,21 @@ class AppController extends Controller {
           // validation behind a reverse proxy.
           zm_session_start();
           if ($user) {
-            // A stateful login issues the session cookie, so store the session even
-            // though this request arrived without one.
-            zm_session_persist();
-            $_SESSION['username'] = $user->Username();
-            if ( ZM_AUTH_RELAY == 'plain' ) {
-              // Need to save this in session, can't use the value in User because it is hashed
-              $_SESSION['password'] = $_REQUEST['password'];
+            if ((!empty($username) and !empty($password))
+                or empty($_SESSION['username']) or $_SESSION['username'] !== $user->Username()) {
+              // The session takes on a user it did not hold: a password login, or a
+              // stateful request with a token or an auth hash. A new session id, the
+              // old session dropped, so an id planted in the client beforehand (any
+              // anonymous request stores one) doesn't become this user's session
+              // (session fixation). This also stores the session.
+              zm_session_regenerate_id_login();
+            } else {
+              // The session already is this user's: keep it, and store it even though
+              // this request arrived without a cookie.
+              zm_session_persist();
             }
+            $_SESSION['username'] = $user->Username();
+            // No password in the session: zmu gets a token (zmuCredentials()).
             generateAuthHash(ZM_AUTH_HASH_IPS);
           }
           session_write_close();
@@ -111,7 +118,6 @@ class AppController extends Controller {
           if ( ! is_session_started() )
             zm_session_start();
 
-          ZM\Debug(print_r($_SESSION, true));
           $user = userFromSession();
           session_write_close();
         }

@@ -104,6 +104,26 @@ function zm_session_regenerate_id() {
   $_SESSION['remoteAddr'] = getRemoteAddr();
 } // function zm_session_regenerate_id()
 
+// Regenerate the session id at a privilege boundary (login) in a single
+// Set-Cookie. Unlike zm_session_clear()+zm_session_regenerate_id(), which emit
+// three Set-Cookie headers (a delete plus two fresh starts), this drops any
+// pre-auth session data and uses session_regenerate_id(true) to issue one new id
+// while deleting the old session server-side. Same anti-fixation guarantee, one
+// cookie. Assumes zm_session_start() has been called previously.
+function zm_session_regenerate_id_login() {
+  if (!is_session_started()) zm_session_start();
+  // The client has no cookie yet on a first login, but this session must be stored.
+  zm_session_persist();
+  // Discard any pre-auth session contents so nothing carries across the
+  // authentication boundary.
+  $_SESSION = array();
+  // New id + delete the old session file server-side. Emits a single Set-Cookie.
+  session_regenerate_id(true);
+  $_SESSION['generated_at'] = time();
+  // See Network.php for the X-Forwarded-For handling.
+  $_SESSION['remoteAddr'] = getRemoteAddr();
+} // function zm_session_regenerate_id_login()
+
 function is_session_started() {
   if ( php_sapi_name() !== 'cli' ) {
     if ( version_compare(phpversion(), '5.4.0', '>=') ) {
@@ -132,7 +152,10 @@ function zm_session_clear() {
   session_write_close();
 } // function zm_session_clear()
 
-class ZMSessionHandler implements SessionHandlerInterface {
+// SessionUpdateTimestampHandlerInterface is what makes PHP call validateId():
+// without it session.use_strict_mode has no effect for a user handler, and an
+// id the client made up became its session id.
+class ZMSessionHandler implements SessionHandlerInterface, SessionUpdateTimestampHandlerInterface {
   private $db;
   public function __construct() {
     global $dbConn;
@@ -216,7 +239,20 @@ class ZMSessionHandler implements SessionHandlerInterface {
     $del = $this->db->prepare("DELETE FROM Sessions WHERE id IN ($placeholders)");
     return $del->execute($ids) ? true : false;
   }
-  public function validateId($key) : bool {return true;}
+  // Whether $id names a stored session. With session.use_strict_mode (set in
+  // zm_session_start()) PHP replaces an id that doesn't with a new one, so a
+  // client can't choose its session id and nobody can plant one (session
+  // fixation).
+  public function validateId($id) : bool {
+    if (!$this->db) return false;
+    $sth = $this->db->prepare('SELECT 1 FROM Sessions WHERE id = :id');
+    $sth->bindParam(':id', $id, PDO::PARAM_STR, 32);
+    return $sth->execute() and ($sth->fetch() !== false);
+  }
+  // Called instead of write() when the session data didn't change.
+  public function updateTimestamp($id, $data) : bool {
+    return $this->write($id, $data);
+  }
 } # end class Session
 
 $session = new ZMSessionHandler;

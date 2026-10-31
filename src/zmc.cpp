@@ -67,6 +67,7 @@ possible, this should run at more or less constant speed.
 #include <getopt.h>
 #include <iostream>
 #include <unistd.h>
+#include <vector>
 
 void Usage() {
   fprintf(stderr, "zmc -d <device_path> or -r <proto> -H <host> -P <port> -p <path> or -f <file_path> or -m <monitor_id>\n");
@@ -239,7 +240,8 @@ int main(int argc, char *argv[]) {
   // Tracks whether a monitor's capture pipeline has faulted since it was last
   // healthy, so a single capture_resumed fires once the pipeline recovers. The
   // per-edge events ride the monitor stream socket (no-op until it exists,
-  // which is after the first successful prime; observable on every reconnect).
+  // which is after the first successful prime; observable on every reconnect)
+  // and the per-monitor websocket.
   std::vector<bool> monitor_faulted(monitors.size(), false);
 
   while (!zm_terminate) {
@@ -254,6 +256,8 @@ int main(int argc, char *argv[]) {
       zmDbDo(sql);
 
       monitor->LoadCamera();
+      monitor->StartWebSocketServer();
+      monitor->RefreshWebSocketStatus();
 
       // Start the media stream socket before the first connect attempt so a
       // consumer can observe connection/prime faults that happen before the
@@ -267,6 +271,8 @@ int main(int argc, char *argv[]) {
         if (!connection_failed) {
           monitor->SendStreamHealthEvent(zm::stream_socket::kEventConnectionFailed,
                                          "Unable to connect to the capture source");
+          monitor->QueueWebSocketEvent("connection_failed", "Unable to connect to the capture source");
+          monitor->RefreshWebSocketStatus();
           connection_failed = true;
           monitor_faulted[monitor_index] = true;
         }
@@ -274,9 +280,11 @@ int main(int argc, char *argv[]) {
         sleep(1);
       }
       if (zm_terminate) break;
-      if (connection_failed)
+      if (connection_failed) {
         monitor->SendStreamHealthEvent(zm::stream_socket::kEventConnectionRestored,
                                        "Capture source connection restored");
+        monitor->QueueWebSocketEvent("connection_restored", "Capture source connection restored");
+      }
 
       SystemTimePoint now = std::chrono::system_clock::now();
       monitor->SetStartupTime(now);
@@ -301,6 +309,13 @@ int main(int argc, char *argv[]) {
           monitor_faulted[monitor_index] = true;
         }
 
+        if (!priming_failed) {
+          monitor->QueueWebSocketEvent("prime_capture_failed", "Unable to prime the capture source");
+          monitor->RefreshWebSocketStatus();
+          priming_failed = true;
+          monitor_faulted[monitor_index] = true;
+        }
+
         prime_capture_log_count++;
         if (sleep_time < Seconds(static_cast<int>(config.watch_max_delay))) {
           sleep_time++;
@@ -310,14 +325,18 @@ int main(int argc, char *argv[]) {
         monitor->SetHeartbeatTime(std::chrono::system_clock::now());
       }
       if (zm_terminate) break;
-      if (priming_failed)
+      if (priming_failed) {
         monitor->SendStreamHealthEvent(zm::stream_socket::kEventPrimeCaptureRestored,
                                        "Capture priming restored");
+        monitor->QueueWebSocketEvent("prime_capture_restored", "Capture priming restored");
+      }
       if (monitor_faulted[monitor_index]) {
         monitor->SendStreamHealthEvent(zm::stream_socket::kEventCaptureResumed,
                                        "Capture pipeline resumed");
+        monitor->QueueWebSocketEvent("capture_resumed", "Capture pipeline resumed");
         monitor_faulted[monitor_index] = false;
       }
+      monitor->RefreshWebSocketStatus();
 
       sql = stringtf(
               "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%u, 'Connected') ON DUPLICATE KEY UPDATE Status='Connected'",
@@ -363,6 +382,8 @@ int main(int argc, char *argv[]) {
                 monitors[i]->Id(), monitors[i]->Name(), i + 1, monitors.size());
           monitors[i]->SendStreamHealthEvent(zm::stream_socket::kEventCaptureFailed,
                                              "Pre-capture failed");
+          monitors[i]->QueueWebSocketEvent("capture_failed", "Pre-capture failed");
+          monitors[i]->RefreshWebSocketStatus();
           monitor_faulted[i] = true;
           result = -1;
           break;
@@ -373,6 +394,8 @@ int main(int argc, char *argv[]) {
                 monitors[i]->Id(), monitors[i]->Name(), i + 1, monitors.size());
           monitors[i]->SendStreamHealthEvent(zm::stream_socket::kEventCaptureFailed,
                                              "Capture failed");
+          monitors[i]->QueueWebSocketEvent("capture_failed", "Capture failed");
+          monitors[i]->RefreshWebSocketStatus();
           monitor_faulted[i] = true;
           result = -1;
           break;
@@ -382,6 +405,8 @@ int main(int argc, char *argv[]) {
                 monitors[i]->Id(), monitors[i]->Name(), i + 1, monitors.size());
           monitors[i]->SendStreamHealthEvent(zm::stream_socket::kEventCaptureFailed,
                                              "Post-capture failed");
+          monitors[i]->QueueWebSocketEvent("capture_failed", "Post-capture failed");
+          monitors[i]->RefreshWebSocketStatus();
           monitor_faulted[i] = true;
           result = -1;
           break;
@@ -432,6 +457,11 @@ int main(int argc, char *argv[]) {
       }
     }  // end while ! zm_terminate and connected
 
+    // Note: the websocket server is intentionally not stopped here. It must
+    // outlive a single capture/reconnect cycle so that queued capture failure
+    // and recovery events are delivered to subscribers and clients are not
+    // dropped every time capture reconnects. It is stopped once on shutdown
+    // after the outer loop.
     for (std::shared_ptr<Monitor> & monitor : monitors) {
       monitor->SetHeartbeatTime(std::chrono::system_clock::now());
       monitor->Close();
@@ -444,6 +474,9 @@ int main(int argc, char *argv[]) {
       zmLoadDBConfig();
       for (std::shared_ptr<Monitor> &monitor : monitors) {
         monitor->Reload();
+        // Pick up any change to the websocket listener's port or TLS material;
+        // the listener is otherwise long-lived across reconnect cycles.
+        monitor->ReloadWebSocketServer();
       }
       // The dbQueue and stream socket threads are still running and logging.
       logReload(log_id_string);
@@ -451,6 +484,10 @@ int main(int argc, char *argv[]) {
       zm_reload = false;
     }  // end if zm_reload
   }  // end while ! zm_terminate outer connection loop
+
+  for (std::shared_ptr<Monitor> &monitor : monitors) {
+    monitor->StopWebSocketServer();
+  }
 
   for (std::shared_ptr<Monitor> &monitor : monitors) {
     std::string sql = stringtf(

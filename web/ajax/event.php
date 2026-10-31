@@ -17,13 +17,14 @@ if ( canView('Events') or canView('Snapshots') ) {
       INNER JOIN Monitors AS M ON E.MonitorId = M.Id
       LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId
       LEFT JOIN Tags AS T ON T.Id = ET.TagId
-      WHERE E.Id = ? GROUP BY E.Id '.monitorLimitSql();
-      if (!($event = dbFetchOne($sql, NULL, array( $_REQUEST['id'])))) {
+      WHERE E.Id = ?'.monitorLimitSql().' GROUP BY E.Id';
+      require_once('includes/Event.php');
+      // The monitor limit used to follow GROUP BY, where it only changed the
+      // grouping; check the event itself too, as the other event actions do.
+      if (!($event = dbFetchOne($sql, NULL, array( $_REQUEST['id'])))
+        or !($Event = new ZM\Event($event))->canView()) {
         ajaxError('Video Generation Failure, Unable to load event');
       } else {
-        require_once('includes/Event.php');
-        $Event = new ZM\Event($event);
-
         if ( $videoFile = $Event->createVideo( $_REQUEST['videoFormat'], $_REQUEST['rate'], $_REQUEST['scale'], $_REQUEST['transform'], !empty($_REQUEST['overwrite'])) ) {
           ajaxResponse(array('response'=>$videoFile));
         } else {

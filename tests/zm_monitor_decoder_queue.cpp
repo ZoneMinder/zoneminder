@@ -59,6 +59,10 @@ class DecoderQueue : public Monitor {
     return pts;
   }
 
+  // Decode()'s full-queue flush, as far as what goes to the codec next.
+  void Flushed() { decoder_needs_keyframe = true; }
+  bool Skip(bool keyframe) { return SkipUntilKeyframe(keyframe); }
+
   std::vector<int64_t> Queued() const {
     std::vector<int64_t> pts;
     for (const auto &lock : decoder_queue) pts.push_back(lock.packet_->packet->pts);
@@ -161,3 +165,15 @@ TEST_CASE("Monitor decoder queue: the limit allows for the codec's own delay", "
   avcodec_free_context(&context);
 }
 
+TEST_CASE("Monitor decoder queue: after a flush nothing is sent until a keyframe", "[Monitor][decoder]") {
+  EnsureConfig();
+  DecoderQueue q;
+  CHECK_FALSE(q.Skip(false));
+
+  q.Flushed();
+  CHECK(q.Skip(false));
+  CHECK(q.Skip(false));
+  CHECK_FALSE(q.Skip(true));
+  // The wait is over once the keyframe went to the codec
+  CHECK_FALSE(q.Skip(false));
+}

@@ -725,12 +725,13 @@ class Event extends ZM_Object {
     }
     if (!$this->Monitor()->canView($u)) return false;
 
-    if ($u->Events() != 'None') {
+    # canView() counts the user's role as well as their own field. refs #5189
+    if ($u->canView('Events')) {
       return true;
     }
-    if ($u->Snapshots() != 'None') {
+    if ($u->canView('Snapshots')) {
       # If the event is contained in a snapshot, then we can still view it.
-      if (dbFetchOne('SELECT * FROM Snapshot_Events WHERE EventId=?', $this->Id()))
+      if (dbFetchOne('SELECT * FROM Snapshots_Events WHERE EventId=?', false, array($this->Id())))
         return true;
     }
     return false;
@@ -744,7 +745,7 @@ class Event extends ZM_Object {
       return false;
     }
     if (!$this->Monitor()->canView($u)) return false;
-    if ($u->Events() != 'Edit') {
+    if (!$u->canEdit('Events')) {
       return false;
     }
     return true;

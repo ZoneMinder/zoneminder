@@ -251,6 +251,13 @@ class EventsController extends AppController {
 
     $options = array('conditions' => array(array('Event.' . $this->Event->primaryKey => $id), $mon_options));
     $event = $this->Event->find('first', $options);
+    # The event exists (checked above), so an empty result means the monitor
+    # condition filtered it out. Refuse here: an empty ZM\Event has no monitor
+    # and passes canView(), and the code below would then fill in the hidden
+    # event's neighbours and frame ids by $id alone.
+    if (!$event) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+    }
     $EventObj = new ZM\Event($event['Event']);
     if (!$EventObj->canView()) {
       throw new UnauthorizedException(__('Insufficient Privileges'));

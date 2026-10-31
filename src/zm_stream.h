@@ -110,6 +110,9 @@ protected:
   bool send_analysis;
   bool send_objdetect;
   int connkey;
+  // Id of the user zms authenticated (0 without authentication). Part of the
+  // socket and lock names, so stream commands reach only that user's streams.
+  int owner;
   int sd;
   char loc_sock_path[108];
   struct sockaddr_un loc_addr;
@@ -172,6 +175,7 @@ public:
     send_analysis(false),
     send_objdetect(false),
     connkey(0),
+    owner(0),
     sd(-1),
     lock_fd(0),
     paused(false),
@@ -232,6 +236,9 @@ public:
   }
   void setStreamQueue(int p_connkey) {
     connkey = p_connkey;
+  }
+  void setStreamOwner(int p_owner) {
+    owner = p_owner;
   }
   bool sendTextFrame(const char *text);
   virtual void openComms();

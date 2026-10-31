@@ -19,6 +19,7 @@ set(TEST_SOURCES
   zm_font.cpp
   zm_poly.cpp
   zm_rtp_source.cpp
+  zm_stream.cpp
   zm_utils.cpp
   zm_vector2.cpp)
 

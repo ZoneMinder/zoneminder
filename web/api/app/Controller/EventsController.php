@@ -172,6 +172,12 @@ class EventsController extends AppController {
 
     $options = array('conditions' => array(array('Event.' . $this->Event->primaryKey => $id), $mon_options));
     $event = $this->Event->find('first', $options);
+    # The event exists (checked above), so an empty result means the MonitorIds
+    # restriction removed it. Refuse rather than build a stub from the id alone,
+    # which would leak the hidden event's neighbours and frame ids.
+    if ( !$event ) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+    }
 
     # Get the previous and next events for any monitor
     $this->Event->id = $id;

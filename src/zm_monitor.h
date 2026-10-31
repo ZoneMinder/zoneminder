@@ -811,6 +811,15 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // The decoder_queue entry a decoded frame with this pts came from; releases
   // the entries before it that the codec consumed without returning a frame.
   std::list<ZMPacketLock>::iterator MatchDecodedFrame(int64_t frame_pts);
+  // How many packets decoder_queue may hold, waiting on the codec, before
+  // Decode() gives up on it and flushes.
+  static size_t DecoderQueueLimit(int max_keyframe_interval, const AVCodecContext *context);
+  // Set when Decode() flushed a full decoder_queue: nothing goes to the codec
+  // until a keyframe, as it has no reference frames to decode the rest against.
+  bool decoder_needs_keyframe = false;
+  // Whether a packet must be held back from the codec while it waits for a
+  // keyframe; clears the wait once the keyframe comes.
+  bool SkipUntilKeyframe(bool keyframe);
   packetqueue_iterator  *analysis_it;
   std::unique_ptr<AnalysisThread> analysis_thread;
   packetqueue_iterator  *decoder_it;

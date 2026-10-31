@@ -3577,6 +3577,27 @@ std::list<ZMPacketLock>::iterator Monitor::MatchDecodedFrame(int64_t frame_pts) 
   return match;
 }
 
+// 2 x the keyframe interval, plus the frames the codec holds back before it
+// returns one: reordering (B-frames) and one per extra frame thread. Without the
+// delay, an all-intra stream (keyframe interval 1) decoded with frame threads
+// would pass the limit with nothing wrong and be flushed every few frames.
+size_t Monitor::DecoderQueueLimit(int max_keyframe_interval, const AVCodecContext *context) {
+  size_t delay = 0;
+  if (context) {
+    if (context->has_b_frames > 0) delay += context->has_b_frames;
+    if ((context->active_thread_type & FF_THREAD_FRAME) && (context->thread_count > 1))
+      delay += context->thread_count - 1;
+  }
+  return 2 * static_cast<size_t>(max_keyframe_interval) + delay;
+}
+
+bool Monitor::SkipUntilKeyframe(bool keyframe) {
+  if (!decoder_needs_keyframe) return false;
+  if (!keyframe) return true;
+  decoder_needs_keyframe = false;
+  return false;
+}
+
 bool Monitor::Decode() {
   AVCodecContext *context = GetVideoCodecContext();
   ZMPacketLock packet_lock;
@@ -3651,12 +3672,14 @@ bool Monitor::Decode() {
     // Throttle: don't queue too many packets in the decoder
     int max_keyframe = packetqueue.get_max_keyframe_interval();
     if ((max_keyframe > 0) &&
-        (decoder_queue.size() > 2 * static_cast<size_t>(max_keyframe))) {
+        (decoder_queue.size() > DecoderQueueLimit(max_keyframe, context))) {
       // Only reached when receiving above came back EAGAIN: the codec waits for
-      // input, so holding it back would stop decoding for good. Start over.
+      // input, so holding it back would stop decoding for good. Start over from
+      // the next keyframe.
       Warning("Decoder queue full (%zu packets) and the codec wants more input, flushing it", decoder_queue.size());
       avcodec_flush_buffers(context);
       flushDecoderQueue();
+      decoder_needs_keyframe = true;
     }
 
     // Get next packet from the main packet queue
@@ -3685,6 +3708,10 @@ bool Monitor::Decode() {
       ((decoding == DECODING_KEYFRAMES) && (packet->keyframe || decoder_requires_next_packet)) ||
       ((decoding == DECODING_KEYFRAMESONDEMAND) && (hasViewers() || packet->keyframe || decoder_requires_next_packet))
     );
+    if (should_decode && SkipUntilKeyframe(packet->keyframe)) {
+      Debug(2, "Not sending packet %d to the decoder, waiting for a keyframe after the flush", packet->image_index);
+      should_decode = false;
+    }
 
     if (!should_decode && !decoder_queue.empty()) {
       // Viewer stopped (or decoding no longer needed) while packets were

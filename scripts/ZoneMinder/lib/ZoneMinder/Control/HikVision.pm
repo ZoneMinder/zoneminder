@@ -52,6 +52,7 @@ use HTTP::Cookies;
 use URI;
 use URI::Encode qw(uri_encode);
 use Data::Dumper;
+use XML::LibXML;
 #use Crypt::Mode::CBC;
 #use Crypt::Cipher::AES;
 

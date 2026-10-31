@@ -47,10 +47,15 @@
 #endif  // HAVE_LIBCURL
 
 #include "zm_monitor_onvif.h"
+#include "zm_websocket_stream_info.h"
+#include "zm_websocket_status.h"
 
 class Group;
 class MonitorLinkExpression;
 class StreamSocket;
+namespace zm {
+class MonitorWebSocketServer;
+}
 
 #define SIGNAL_CAUSE "Signal"
 #define MOTION_CAUSE "Motion"
@@ -68,6 +73,21 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   friend class ONVIF;
 
  public:
+  struct WebSocketPayload {
+    std::string type;
+    std::string format;
+    std::string content_type;
+    std::string payload;
+    uint32_t width = 0;
+    uint32_t height = 0;
+    uint32_t line_size = 0;
+    uint32_t colours = 0;
+    uint32_t subpixel_order = 0;
+    uint32_t image_count = 0;
+    uint64_t sequence = 0;
+    bool keyframe = false;
+  };
+
   typedef enum {
     QUERY=0,
     CAPTURE,
@@ -883,6 +903,32 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   JanusManager *Janus_Manager;
   AmcrestAPI *Amcrest_Manager;
   ONVIF *onvif;
+  std::unique_ptr<zm::MonitorWebSocketServer> websocket_server;
+  mutable std::mutex websocket_status_mutex;
+  std::string websocket_status_json;
+  // Bumped by RefreshWebSocketStatus whenever a status field that matters for
+  // display changes (state/analysing/recording/signal/connect/last_event, or
+  // fps/bandwidth beyond a threshold), so the websocket server can push status
+  // on change instead of only on an interval (refs #2875). Frame-rate churn
+  // (image_count, heartbeat, per-frame score) does not bump it.
+  std::atomic<uint64_t> websocket_status_generation{0};
+  // The significant-field snapshot the generation was last bumped from, and
+  // whether one has been taken yet. Guarded by websocket_status_mutex (only
+  // touched inside RefreshWebSocketStatus).
+  bool websocket_status_seen = false;
+  zm::websocket::StatusSnapshot websocket_status_prev;
+  std::mutex websocket_message_mutex;
+  std::vector<std::string> websocket_messages;
+  std::atomic<uint32_t> websocket_capture_bandwidth;
+  // Owned snapshot of the capture video stream, published by the capture
+  // thread and read by the websocket server thread so that thread never
+  // dereferences the camera or a live AVStream (refs #2875).
+  zm::websocket::VideoStreamInfo websocket_video_info;
+  // The websocket listener settings currently in effect, so a config reload can
+  // tell whether port/TLS changed and reconcile the running listener.
+  unsigned int websocket_active_port = 0;
+  std::string websocket_active_cert;
+  std::string websocket_active_key;
 
   // Used in check signal
   uint8_t red_val;
@@ -1143,6 +1189,29 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   void WriteAlarmImage(const Image &src);
   int GetImage(int32_t index=-1, int scale=100);
   std::shared_ptr<ZMPacket> getSnapshot( int index=-1 );
+  bool StartWebSocketServer();
+  void StopWebSocketServer();
+  // Reconciles the running websocket listener with the current config after a
+  // reload: restarts it when the port or TLS material changed, stops it when it
+  // was disabled, starts it when it was enabled, and leaves it (and its
+  // connected clients) untouched when nothing relevant changed. zmc only.
+  void ReloadWebSocketServer();
+  void RefreshWebSocketStatus();
+  std::string GetWebSocketStatusJson();
+  // Monotonic counter bumped by RefreshWebSocketStatus on a significant state
+  // change. The websocket server pushes status when this advances (refs #2875).
+  uint64_t GetWebSocketStatusGeneration() const { return websocket_status_generation.load(std::memory_order_relaxed); }
+  void QueueWebSocketEvent(const std::string &event_type, const std::string &message);
+  std::vector<std::string> DrainWebSocketMessages();
+  bool GetWebSocketImagePayload(const std::string &format, WebSocketPayload *payload);
+  packetqueue_iterator *CreateWebSocketVideoIterator(const std::string &codec);
+  bool GetNextWebSocketVideoPayload(packetqueue_iterator *it, const std::string &codec, WebSocketPayload *payload);
+  void FreeWebSocketIterator(packetqueue_iterator *it);
+  // Publishes/clears the websocket video stream snapshot from the capture
+  // thread. UpdateVideoStreamInfo runs while the camera is valid (after a
+  // prime); InvalidateVideoStreamInfo runs before the camera is closed.
+  void UpdateVideoStreamInfo();
+  void InvalidateVideoStreamInfo();
   SystemTimePoint GetTimestamp(int index = -1);
   void UpdateAdaptiveSkip();
   useconds_t GetAnalysisRate();

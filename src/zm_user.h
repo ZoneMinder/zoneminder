@@ -92,6 +92,11 @@ class User {
 
 User *zmLoadUser(const std::string&username, const std::string &password="");
 User *zmLoadAuthUser(const std::string &auth, const std::string &user, bool use_remote_addr);
+// As above, but the client address is resolved from explicit values - the
+// socket peer and any X-Forwarded-For - rather than the CGI environment, for
+// listeners that are not reached through a web server (refs #2875).
+User *zmLoadAuthUser(const std::string &auth, const std::string &user, bool use_remote_addr,
+                     const std::string &direct_addr, const std::string &forwarded_for);
 User *zmLoadTokenUser(const std::string &jwt, bool use_remote_addr);
 bool checkUser(const std::string &username);
 bool checkPass(const std::string &password);

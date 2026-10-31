@@ -205,6 +205,9 @@ int main(int argc, const char *argv[], char **envp) {
   }
   logInit(log_id_string);
 
+  // The user zms serves; it names the command socket, so only that user's
+  // ajax/stream.php requests reach this stream.
+  int owner_id = 0;
   if ( config.opt_use_auth ) {
     User *user = nullptr;
 
@@ -245,6 +248,7 @@ int main(int argc, const char *argv[], char **envp) {
       }
       return exit_zms(0);
     }
+    owner_id = user->Id();
     delete user;
     user = nullptr;
   }  // end if config.opt_use_auth
@@ -282,6 +286,7 @@ int main(int argc, const char *argv[], char **envp) {
     stream.setStreamMaxFPS(maxfps);
     stream.setStreamTTL(ttl);
     stream.setStreamQueue(connkey);
+    stream.setStreamOwner(owner_id);
     stream.setStreamBuffer(playback_buffer);
     stream.setStreamStart(monitor_id);
 
@@ -324,6 +329,7 @@ int main(int argc, const char *argv[], char **envp) {
     stream.setStreamMaxFPS(maxfps);
     stream.setStreamMode(replay);
     stream.setStreamQueue(connkey);
+    stream.setStreamOwner(owner_id);
     if ( monitor_id && event_time ) {
       stream.setStreamStart(monitor_id, event_time);
     } else {

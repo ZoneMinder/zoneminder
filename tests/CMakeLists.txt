@@ -21,6 +21,7 @@ set(TEST_SOURCES
   zm_db_contention_live.cpp
   zm_logger_level.cpp
   zm_monitor_dts.cpp
+  zm_monitor_decoder_queue.cpp
   zm_db_logging_live.cpp
   zm_event_hardlink.cpp
   zm_event_score.cpp

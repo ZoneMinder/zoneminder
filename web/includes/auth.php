@@ -860,6 +860,32 @@ function get_auth_relay() {
   return '';
 } // end function get_auth_relay
 
+// Credentials for zmu, as arguments to append to its command line, for the
+// current user. A command line is visible to every local user (ps), so with a
+// usable ZM_AUTH_HASH_SECRET this is an access token minted for the call that
+// lives a minute, never the password or an auth hash, which logs in for
+// ZM_AUTH_HASH_TTL hours. Without the secret zmu refuses tokens: then what zmu
+// got before, an auth hash, or with ZM_AUTH_RELAY=plain the password: $password
+// when the caller has it (an API request's own pass=), else the session's.
+function zmuCredentials($password = null) {
+  global $user;
+  if (!ZM_OPT_USE_AUTH) return '';
+  if (authHashSecretIsSet()) {
+    $now = time();
+    $token = \Firebase\JWT\JWT::encode(array('iss' => 'ZoneMinder', 'iat' => $now, 'exp' => $now + 60,
+      'user' => $user->Username(), 'type' => 'access'), ZM_AUTH_HASH_SECRET, 'HS256');
+    return ' -T '.escapeshellarg($token);
+  }
+  $credentials = ' -U '.escapeshellarg($user->Username());
+  if (ZM_AUTH_RELAY == 'hashed') {
+    $credentials .= ' -A '.generateAuthHash(false, true);
+  } else if (ZM_AUTH_RELAY == 'plain') {
+    if ($password === null or $password === '') $password = isset($_SESSION['password']) ? $_SESSION['password'] : '';
+    $credentials .= ' -P '.escapeshellarg($password);
+  }
+  return $credentials;
+}
+
 // Authenticate the current request and populate the global $user.
 //
 // This used to run at file scope, so merely including auth.php authenticated
@@ -914,6 +940,13 @@ function zm_authenticate_request() {
           if (isset($_SESSION['AuthHash'.$remoteAddr]) and ($_SESSION['AuthHash'.$remoteAddr] != $requestAuth)) {
             unset($_SESSION['AuthHashGeneratedAt']);
             unset($_SESSION['AuthHash'.$remoteAddr]);
+          }
+          if (!empty($_COOKIE[session_name()]) and (!isset($_SESSION['username']) or ($_SESSION['username'] !== $user->Username()))) {
+            // The client's session becomes this user's: give it a new id first, so
+            // an id planted in the client beforehand doesn't become a logged-in
+            // session (session fixation). Without our cookie the session isn't
+            // stored, so there is nothing to take over.
+            zm_session_regenerate_id_login();
           }
           $_SESSION['username'] = $user->Username();
         }

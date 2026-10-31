@@ -1,5 +1,11 @@
 <?php
 
+// Tags are attached to events: listing them needs what the event view needs (Events
+// or Snapshots view, as ajax/event.php), creating one Events edit.
+if (!(canView('Events') or canView('Snapshots'))) {
+  ajaxError('Insufficient permissions to view tags');
+}
+
 switch ( $_REQUEST['action'] ) {
   case 'getavailabletags' :
     $sql = 'SELECT * FROM Tags ORDER BY LastAssignedDate DESC';
@@ -33,6 +39,9 @@ switch ( $_REQUEST['action'] ) {
     ajaxResponse(array('response'=>$tags));
     break;
   case 'createtag' :
+    if (!canEdit('Events')) {
+      ajaxError('Insufficient permissions to create tags');
+    }
     $sql = 'INSERT INTO Tags (Name, CreatedBy) VALUES (?, ?)';
     $values = array($_REQUEST['tname'], $user->Id());
     $result = dbFetchAll($sql, NULL, $values);

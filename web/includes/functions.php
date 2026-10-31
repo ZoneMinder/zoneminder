@@ -324,18 +324,7 @@ function outputControlStill($src, $width, $height, $monitor, $scale, $target) {
 
 // Incoming args are shell-escaped. This function must escape any further arguments it cannot guarantee.
 function getZmuCommand($args) {
-  $zmuCommand = ZMU_PATH;
-
-  if ( ZM_OPT_USE_AUTH ) {
-    global $user;
-    // Always include username, so that we can do lookups faster
-    $zmuCommand .= ' -U '.escapeshellarg($user->Username());
-    if ( ZM_AUTH_RELAY == 'hashed' ) {
-      $zmuCommand .= ' -A '.generateAuthHash(false, true);
-    } else if ( ZM_AUTH_RELAY == 'plain' ) {
-      $zmuCommand .= ' -P '.escapeshellarg($_SESSION['password']);
-    }
-  }
+  $zmuCommand = ZMU_PATH.zmuCredentials();
 
   $zmuCommand .= $args;
 
@@ -1843,6 +1832,13 @@ function ajaxResponse($result=false) {
 
 function generateConnKey() {
   return rand(1, 999999);
+}
+
+// The unix socket and lock names zms uses for a stream (StreamBase::openComms()
+// in src/zm_stream.cpp). The owner is the id of the user zms authenticated (0
+// without authentication), so a connkey reaches only that user's streams.
+function zmsSocketPath($connkey, $owner, $suffix) {
+  return ZM_PATH_SOCKS.'/zms-'.sprintf('%06d', $connkey).'-'.intval($owner).$suffix;
 }
 
 function detaintPathAllowAbsolute($path) {

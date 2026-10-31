@@ -157,6 +157,12 @@ if ( canView('Events') or canView('Snapshots') ) {
     }
     break;
   case 'getselectedtags' :
+    // Tag names of events the user can see only; a hidden event lists none, as a
+    // missing one does.
+    $eventId = is_scalar($_REQUEST['id'] ?? null) ? validCardinal($_REQUEST['id']) : '';
+    require_once('includes/Event.php');
+    $Event = ($eventId === '') ? null : new ZM\Event($eventId);
+    if (!$Event or !$Event->Id() or !visibleMonitor($Event->MonitorId())) ajaxResponse(array('response'=>array()));
     $sql = '
       SELECT 
         T.* 
@@ -167,41 +173,9 @@ if ( canView('Events') or canView('Snapshots') ) {
         ON ET.TagId = T.Id 
       WHERE ET.EventId = ?
     ';
-    $values = array($_REQUEST['id']);
+    $values = array($Event->Id());
     $response = dbFetchAll($sql, NULL, $values);
     ajaxResponse(array('response'=>$response));
-    break;
-  case 'addtag' :
-    // Validate once and reuse; $_REQUEST values are strings at best and can be
-    // arrays, so anything non-scalar is rejected outright.
-    $tagId = is_scalar($_REQUEST['tid'] ?? null) ? validCardinal($_REQUEST['tid']) : '';
-    $eventId = is_scalar($_REQUEST['id'] ?? null) ? validCardinal($_REQUEST['id']) : '';
-    if ($tagId === '' or $eventId === '') ajaxError('addtag requires a numeric tid and id');
-
-    $sql = 'INSERT INTO Events_Tags (TagId, EventId, AssignedBy) VALUES (?, ?, ?)';
-    $values = array($tagId, $eventId, $user->Id());
-    $response = dbFetchAll($sql, NULL, $values);
-
-    $sql = 'UPDATE Tags SET LastAssignedDate = NOW() WHERE Id = ?';
-    $values = array($tagId);
-    dbFetchAll($sql, NULL, $values);
-
-    // Record this tag against the user's personal recency order so it
-    // sorts to the top of THEIR dropdown next time, on any device.
-    require_once('includes/TagOrder.php');
-    \ZM\TagOrder::recordUsage($user->Id(), $tagId);
-
-    ajaxResponse(array('response'=>$response));
-    break;
-  case 'removetag' :
-    $tagId = validCardinal($_REQUEST['tid']);
-    dbQuery('DELETE FROM Events_Tags WHERE TagId = ? AND EventId = ?', array($tagId, $_REQUEST['id']));
-    $rowCount = dbNumRows('SELECT * FROM Events_Tags WHERE TagId=?', [ $tagId ]);
-    if ($rowCount < 1) {
-      $response = dbNumRows('DELETE FROM Tags WHERE Id=?', [$tagId]);
-      ajaxResponse(array('response'=>$response));
-    }
-    ajaxResponse();
     break;
   case 'file_existence_check' :
     $fileNameArray = $_REQUEST['file_name_array'] ?? [];
@@ -223,10 +197,26 @@ if ( canView('Events') or canView('Snapshots') ) {
 } // end if canView('Events')
 
 if ( canEdit('Events') ) {
+  // Every action below changes or deletes one event. Events=Edit is per area, so
+  // also require that the event's monitor is one the user can view, as the web
+  // action (actions/event.php) and the API do; a missing and a hidden event get
+  // the same answer. $_REQUEST values can be arrays, so non-scalars are rejected.
+  $editActions = array('rename', 'eventdetail', 'archive', 'unarchive', 'addtag', 'removetag', 'delete');
+  if (in_array($_REQUEST['action'] ?? null, $editActions, true)) {
+    $eventId = is_scalar($_REQUEST['id'] ?? null) ? validCardinal($_REQUEST['id']) : '';
+    require_once('includes/Event.php');
+    $Event = ($eventId === '') ? null : new ZM\Event($eventId);
+    if (!$Event or !$Event->Id() or !visibleMonitor($Event->MonitorId())) {
+      if ($_REQUEST['action'] == 'delete')
+        ajaxResponse(array('refreshEvent'=>false, 'refreshParent'=>true, 'message'=> 'Event not found.'));
+      ajaxError('No such event');
+    }
+  }
+
   switch ( $_REQUEST['action'] ) {
   case 'rename' :
-    if ( !empty($_REQUEST['eventName']) )
-      dbQuery('UPDATE Events SET Name = ? WHERE Id = ?', array($_REQUEST['eventName'], $_REQUEST['id']));
+    if ( !empty($_REQUEST['eventName']) and is_scalar($_REQUEST['eventName']) )
+      dbQuery('UPDATE Events SET Name = ? WHERE Id = ?', array($_REQUEST['eventName'], $Event->Id()));
     else
       ajaxError('No new event name supplied');
     ajaxResponse(array('refreshEvent'=>true, 'refreshParent'=>true));
@@ -234,7 +224,7 @@ if ( canEdit('Events') ) {
   case 'eventdetail' :
     dbQuery(
       'UPDATE Events SET Cause = ?, Notes = ? WHERE Id = ?',
-      array($_REQUEST['newEvent']['Cause'], $_REQUEST['newEvent']['Notes'], $_REQUEST['id'])
+      array($_REQUEST['newEvent']['Cause'], $_REQUEST['newEvent']['Notes'], $Event->Id())
     );
     ajaxResponse(array('refreshEvent'=>true, 'refreshParent'=>true));
     break;
@@ -243,18 +233,52 @@ if ( canEdit('Events') ) {
     $archiveVal = ($_REQUEST['action'] == 'archive')?1:0;
     dbQuery(
       'UPDATE Events SET Archived = ? WHERE Id = ?',
-      array($archiveVal, $_REQUEST['id'])
+      array($archiveVal, $Event->Id())
     );
     ajaxResponse(array('refreshEvent'=>true, 'refreshParent'=>false));
     break;
-  case 'delete' :
-    $Event = new ZM\Event(validCardinal($_REQUEST['id']));
-    if ( !$Event->Id() ) {
-      ajaxResponse(array('refreshEvent'=>false, 'refreshParent'=>true, 'message'=> 'Event not found.'));
-    } else {
-      $Event->delete();
-      ajaxResponse(array('refreshEvent'=>false, 'refreshParent'=>true));
+  // Tagging changes the event's metadata, and filters select events by tag (a
+  // purge filter can keep tagged events, or delete them), so it needs the same
+  // Events edit permission as rename/archive. removetag also deletes the Tag
+  // once no event uses it.
+  case 'addtag' :
+    // Validate once and reuse; $_REQUEST values are strings at best and can be
+    // arrays, so anything non-scalar is rejected outright.
+    // ($Event, the event on a visible monitor, was checked above.)
+    $tagId = is_scalar($_REQUEST['tid'] ?? null) ? validCardinal($_REQUEST['tid']) : '';
+    if ($tagId === '') ajaxError('addtag requires a numeric tid and id');
+    $eventId = $Event->Id();
+
+    $sql = 'INSERT INTO Events_Tags (TagId, EventId, AssignedBy) VALUES (?, ?, ?)';
+    $values = array($tagId, $eventId, $user->Id());
+    $response = dbFetchAll($sql, NULL, $values);
+
+    $sql = 'UPDATE Tags SET LastAssignedDate = NOW() WHERE Id = ?';
+    $values = array($tagId);
+    dbFetchAll($sql, NULL, $values);
+
+    // Record this tag against the user's personal recency order so it
+    // sorts to the top of THEIR dropdown next time, on any device.
+    require_once('includes/TagOrder.php');
+    \ZM\TagOrder::recordUsage($user->Id(), $tagId);
+
+    ajaxResponse(array('response'=>$response));
+    break;
+  case 'removetag' :
+    $tagId = is_scalar($_REQUEST['tid'] ?? null) ? validCardinal($_REQUEST['tid']) : '';
+    if ($tagId === '') ajaxError('removetag requires a numeric tid and id');
+    $eventId = $Event->Id();
+    dbQuery('DELETE FROM Events_Tags WHERE TagId = ? AND EventId = ?', array($tagId, $eventId));
+    $rowCount = dbNumRows('SELECT * FROM Events_Tags WHERE TagId=?', [ $tagId ]);
+    if ($rowCount < 1) {
+      $response = dbNumRows('DELETE FROM Tags WHERE Id=?', [$tagId]);
+      ajaxResponse(array('response'=>$response));
     }
+    ajaxResponse();
+    break;
+  case 'delete' :
+    $Event->delete();
+    ajaxResponse(array('refreshEvent'=>false, 'refreshParent'=>true));
     break;
   } // end switch action
 } // end if canEdit('Events')

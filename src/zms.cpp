@@ -288,6 +288,9 @@ int main(int argc, const char *argv[], char **envp) {
          playback_buffer, ttl, zm_get_rss_kb());
   }
 
+  // The user zms serves; it names the command socket, so only that user's
+  // ajax/stream.php requests reach this stream.
+  int owner_id = 0;
   if ( config.opt_use_auth ) {
     User *user = nullptr;
 
@@ -343,6 +346,7 @@ int main(int argc, const char *argv[], char **envp) {
       Forbidden(nph);
       return exit_zm(0);
     }
+    owner_id = user->Id();
     delete user;
     user = nullptr;
   }  // end if config.opt_use_auth
@@ -381,6 +385,7 @@ int main(int argc, const char *argv[], char **envp) {
     stream.setStreamMaxFPS(maxfps);
     stream.setStreamTTL(ttl);
     stream.setStreamQueue(connkey);
+    stream.setStreamOwner(owner_id);
     stream.setStreamBuffer(playback_buffer);
     stream.setFramesToSend(frames_to_send);
     stream.setStreamStart(monitor_id);
@@ -412,6 +417,7 @@ int main(int argc, const char *argv[], char **envp) {
     stream.setStreamMaxFPS(maxfps);
     stream.setStreamMode(replay);
     stream.setStreamQueue(connkey);
+    stream.setStreamOwner(owner_id);
     stream.setFramesToSend(frames_to_send);
     if ( monitor_id && (event_time != std::chrono::system_clock::time_point::min())) {
       stream.setStreamStart(monitor_id, event_time);

@@ -26,7 +26,7 @@ var eventData = {
     Name: '<?php echo validJsStr($Event->Name()) ?>',
     MonitorId: '<?php echo $Event->MonitorId() ?>',
     MonitorName: '<?php echo validJsStr($Monitor->Name()) ?>',
-    Cause: '<?php echo validHtmlStr($Event->Cause()) ?>',
+    Cause: <?php echo json_encode($Event->Cause(), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) ?>,
     Width: '<?php echo $Event->Width() ?>',
     Height: '<?php echo $Event->Height() ?>',
     Length: '<?php echo $Event->Length() ?>',
@@ -40,7 +40,7 @@ var eventData = {
     AvgScore: '<?php echo $Event->AvgScore() ?>',
     MaxScore: '<?php echo $Event->MaxScore() ?>',
     DiskSpace: '<?php echo human_filesize($Event->DiskSpace(null)) ?>',
-    Storage: '<?php echo validHtmlStr($Event->Storage()->Name()).( $Event->SecondaryStorageId() ? ', '.validHtmlStr($Event->SecondaryStorage()->Name()) : '' ) ?>',
+    Storage: <?php echo json_encode($Event->Storage()->Name().( $Event->SecondaryStorageId() ? ', '.$Event->SecondaryStorage()->Name() : '' ), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) ?>,
     Archived: <?php echo $Event->Archived?'true':'false' ?>,
     Emailed: <?php echo $Event->Emailed?'true':'false' ?>
 <?php } ?>

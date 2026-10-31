@@ -25,6 +25,7 @@
 #include "zm_packet.h"
 #include "zm_signal.h"
 
+#include <algorithm>
 #include <climits>
 #include <vector>
 
@@ -43,7 +44,8 @@ PacketQueue::PacketQueue():
   clear_packets_pending_(false),
   next_queue_index_(0),
   first_queue_index_(0),
-  released_before_(0)
+  released_before_(0),
+  capped_before_(0)
 {
 }
 
@@ -458,17 +460,46 @@ void PacketQueue::releaseDecoded() {
       --it;
     }
     if (pre_event > 0) return;  // the whole queue is still within reach of an event
+    const uint64_t pre_event_start = (*it)->queue_index;
     if (keep_keyframes) {
       while (it != pktQueue.begin() and !((*it)->packet->stream_index == video_stream_id and (*it)->keyframe)) --it;
     }
     const uint64_t boundary = (*it)->queue_index;
-    if (boundary <= released_before_) return;
-
-    for (auto p = pktQueue.begin(); p != it; ++p) {
-      if ((*p)->queue_index < released_before_) continue;
-      to_release.push_back(*p);
+    if (boundary > released_before_) {
+      for (auto p = pktQueue.begin(); p != it; ++p) {
+        if ((*p)->queue_index < released_before_ or (*p)->queue_index < capped_before_) continue;
+        to_release.push_back(*p);
+      }
+      released_before_ = boundary;
     }
-    released_before_ = boundary;
+
+    // Passthrough keeps every packet back to a keyframe. When the keyframe
+    // interval is longer than MaxImageBufferCount, queuePacket() finds no later
+    // keyframe to trim to and the queue holds the whole GOP, each packet with a
+    // decoded frame: several MB each at high resolutions, GBs per queue. Bound
+    // the decoded data instead: only the newest max_video_packet_count video
+    // packets keep it, and never less than the pre-event window. The compressed
+    // packets stay, so an event still starts on the keyframe with all its video;
+    // it writes no capture JPEGs for the frames that lost their image, as for
+    // frames before released_before_ (refs #4860).
+    if (keep_keyframes and max_video_packet_count > 0) {
+      auto oldest_kept = pktQueue.end();
+      int video_packets = 0;
+      while (oldest_kept != pktQueue.begin() and video_packets < max_video_packet_count) {
+        --oldest_kept;
+        if ((*oldest_kept)->packet->stream_index == video_stream_id) video_packets++;
+      }
+      if (video_packets == max_video_packet_count) {
+        const uint64_t cap = std::min((*oldest_kept)->queue_index, pre_event_start);
+        if (cap > capped_before_) {
+          for (auto p = pktQueue.begin(); p != pktQueue.end() and (*p)->queue_index < cap; ++p) {
+            if ((*p)->queue_index < released_before_ or (*p)->queue_index < capped_before_) continue;
+            to_release.push_back(*p);
+          }
+          capped_before_ = cap;
+        }
+      }
+    }
   }
 
   // Free outside the queue lock, like clearPackets(). Nothing should hold these

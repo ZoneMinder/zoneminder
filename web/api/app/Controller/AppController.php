@@ -92,20 +92,26 @@ class AppController extends Controller {
         $stateful = $this->request->query('stateful') ? $this->request->query('stateful') : $this->request->data('stateful');
         if ( $stateful ) {
           zm_session_start();
-          $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
-          $_SESSION['username'] = $user['Username'];
-          if ( ZM_AUTH_RELAY == 'plain' ) {
-            // Need to save this in session, can't use the value in User because it is hashed
-            $_SESSION['password'] = $_REQUEST['password'];
+          if ( $user ) {
+            if ((!empty($username) and !empty($password))
+                or empty($_SESSION['username']) or ($_SESSION['username'] !== $user['Username'])) {
+              // The session takes on a user it did not hold: a password login, or a
+              // stateful request with a token or an auth hash. A new session id, the
+              // old session dropped, so an id planted in the client beforehand (any
+              // anonymous request stores one) doesn't become this user's session
+              // (session fixation).
+              zm_session_regenerate_id_login();
+            }
+            $_SESSION['username'] = $user['Username'];
+            // No password in the session: zmu gets a token (zmuCredentials()).
+            generateAuthHash(ZM_AUTH_HASH_IPS);
           }
-          generateAuthHash(ZM_AUTH_HASH_IPS);
           session_write_close();
         } else if ( isset($_COOKIE['ZMSESSID']) and !$user ) {
           # Have a cookie set, try to load user by session
           if ( ! is_session_started() )
             zm_session_start();
 
-          ZM\Debug(print_r($_SESSION, true));
           $user = userFromSession();
           session_write_close();
         }

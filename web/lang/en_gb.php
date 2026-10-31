@@ -469,6 +469,7 @@ $SLANG = array(
     'GeneratingVideo'       => 'Generating Video',
     'Generate QR Code'      => 'Generate QR Code',
     'GetCurrentLocation'    => 'Get Current Location',
+    'Go2RTCDisableBackchannel' => 'Disable Go2RTC audio backchannel',
     'GoToFrame'             => 'Go to Frame',
     'GoToZoneMinder'        => 'Go to ZoneMinder.com',
     'HasFocusSpeed'         => 'Has Focus Speed',
@@ -1240,6 +1241,18 @@ None: No frames will be decoded, live view and thumbnails will not be available~
     'Help' => '
       RTSP2Web supports MSE (Media Source Extensions), HLS (HTTP Live Streaming), and WebRTC.
       Each has its advantages, with WebRTC probably being the most performant, but also the most picky about codecs.'
+  ),
+  'FUNCTION_GO2RTC_DISABLE_BACKCHANNEL_FULL' => array(
+    'Help' => '
+      Enabled by default to prevent compatibility issues with some cameras, particularly Dahua models.~~
+      When live viewing through go2rtc is active, these issues may cause ONVIF events (such as motion or sound detection) to stop working and prevent ZoneMinder from recording events.~~~~
+      Disable this option if your camera requires RTSP backchannel functionality, or if you need two-way audio (talkback) through go2rtc.~~
+      If your camera works correctly with ONVIF events and recording while live viewing is active, you can also disable this option to retain the default backchannel behavior.'
+  ),
+  'FUNCTION_GO2RTC_DISABLE_BACKCHANNEL_SHORT' => array(
+    'Help' => '
+      Disable RTSP backchannel to prevent ONVIF event and recording issues with some cameras (particularly Dahua). 
+      Disable this option if two-way audio is required or your camera works correctly with backchannel enabled.'
   ),
   'FUNCTION_JANUS_ENABLED' => array(
     'Help' => '

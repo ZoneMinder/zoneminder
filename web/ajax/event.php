@@ -16,7 +16,12 @@ if ( canView('Events') or canView('Snapshots') ) {
       ajaxError('Video Generation Failure, no scale given');
     } else {
       $sql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultRate,M.DefaultScale FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = ?'.monitorLimitSql();
-      if ( !($event = dbFetchOne($sql, NULL, array( $_REQUEST['id']))) ) {
+      require_once('includes/Event.php');
+      // The per-monitor limit is already in the WHERE clause here; also check
+      // the event itself, as the other event actions do, so a Snapshots-only
+      // user cannot encode events outside their snapshots.
+      if ( !($event = dbFetchOne($sql, NULL, array( $_REQUEST['id'])))
+        or !($Event = new ZM\Event($event))->canView() ) {
         ajaxError('Video Generation Failure, Unable to load event');
       } else {
         if ( $videoFile = createVideo($event, $_REQUEST['videoFormat'], $_REQUEST['rate'], $_REQUEST['scale'], !empty($_REQUEST['overwrite'])) )

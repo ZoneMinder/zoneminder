@@ -233,13 +233,7 @@ function MonitorStream(monitorData) {
     if (-1 != p.indexOf('go2rtc')) {
 
     } else if (-1 != p.indexOf('rtsp2web')) {
-      if (-1 != p.indexOf('_hls')) {
-        this.RTSP2WebType = 'HLS';
-      } else if (-1 != p.indexOf('_mse')) {
-        this.RTSP2WebType = 'MSE';
-      } else if (-1 != p.indexOf('_webrtc')) {
-        this.RTSP2WebType = 'WebRTC';
-      }
+      this.setRTSP2WebType(p);
     } else if (-1 != p.indexOf('janus')) {
 
     }
@@ -255,6 +249,16 @@ function MonitorStream(monitorData) {
     return this.player = p;
   };
 
+  this.setRTSP2WebType = function(player) {
+    if (-1 != player.indexOf('_hls')) {
+      this.RTSP2WebType = 'HLS';
+    } else if (-1 != player.indexOf('_mse')) {
+      this.RTSP2WebType = 'MSE';
+    } else if (-1 != player.indexOf('_webrtc')) {
+      this.RTSP2WebType = 'WebRTC';
+    }
+  };
+
   this.manageAvailablePlayersOptions = function(action, opt) {
     if (action == 'disable') {
       opt.setAttribute('disabled', '');
@@ -265,7 +269,7 @@ function MonitorStream(monitorData) {
     }
   };
 
-  this.manageAvailablePlayers = function() {
+  this.manageAvailablePlayers = function(candidate = '') {
     const selectPlayers = document.querySelector('[id="player"][name="codec"]');
     const opts = selectPlayers.options;
 
@@ -290,13 +294,12 @@ function MonitorStream(monitorData) {
         }
       }
     }
-    let selectedPlayerOption = selectPlayers.options[selectPlayers.selectedIndex];
+    let selectedPlayerOption = opts[selectPlayers.selectedIndex];
     if (selectedPlayerOption) {
       if (selectedPlayerOption.value == '') {
         // Perhaps "Auto" is left from the previous monitor, we will change it according to the cookies.
-        const zmWatchPlayer = getCookie('zmWatchPlayer');
-        if (zmWatchPlayer) {
-          selectPlayers.value = zmWatchPlayer;
+        if (candidate !== "" && candidate !== undefined && candidate !== null) {
+          selectPlayers.value = candidate;
           selectedPlayerOption = selectPlayers.options[selectPlayers.selectedIndex];
         }
       }
@@ -305,7 +308,7 @@ function MonitorStream(monitorData) {
         selectPlayers.value = ''; // Auto
       }
     }
-    this.player = selectPlayers.value;
+    this.setPlayer(selectPlayers.value);
   };
 
   this.element = null;
@@ -1340,9 +1343,20 @@ function MonitorStream(monitorData) {
     }
   };
 
-  this.getStreamCmdResponse = function(respObj, respText) {
+  this.getStreamCmdResponse = function(respObj, connKey) {
     const stream = this.getElement();
     if (!stream) return;
+
+    /* A reply for a connkey we no longer hold describes a zms we have already
+     * replaced. Requests share one queue and a no_socket reply takes over a
+     * second, so a poll for a dead zms is often still queued when the first
+     * reply reloads the stream. Acting on its reply reloaded it a second time,
+     * abandoning the zms the first reload had just started.
+     */
+    if (connKey !== undefined && connKey !== this.connKey) {
+      console.log('Ignoring reply for replaced connkey '+connKey+' on monitor ID='+this.id);
+      return;
+    }
 
     //watchdogOk('stream');
     //this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
@@ -1793,7 +1807,7 @@ function MonitorStream(monitorData) {
       data: alarmCmdParms,
       dataType: 'json'
     })
-        .done(this.getStreamCmdResponse.bind(this))
+        .done((respObj) => this.getStreamCmdResponse(respObj, alarmCmdParms.connkey))
         .fail(this.onFailure.bind(this));
   };
 
@@ -1810,17 +1824,20 @@ function MonitorStream(monitorData) {
       }
       if (!(streamCmdParms.command == CMD_STOP && ((-1 !== this.activePlayer.indexOf('go2rtc')) || (-1 !== this.activePlayer.indexOf('rtsp2web'))))) {
         //Otherwise, there will be errors in the console "Socket ... does not exist" when quickly switching stop->start and we also do not need to replace SRC in getStreamCmdResponse
+        // Snapshot: ajaxQueue defers $.ajax (and therefore data serialization)
+        // until earlier queued requests finish. Callers that pass this.streamCmdParms
+        // directly would otherwise have their command clobbered by the
+        // streamCmdQuery timer setting command=CMD_QUERY before the request fires.
+        const params = Object.assign({}, streamCmdParms);
         this.ajaxQueue = jQuery.ajaxQueue({
           url: zmAuth.appendTo(this.url),
           xhrFields: {withCredentials: true},
-          // Snapshot: ajaxQueue defers $.ajax (and therefore data serialization)
-          // until earlier queued requests finish. Callers that pass this.streamCmdParms
-          // directly would otherwise have their command clobbered by the
-          // streamCmdQuery timer setting command=CMD_QUERY before the request fires.
-          data: Object.assign({}, streamCmdParms),
+          data: params,
           dataType: 'json'
         })
-            .done(this.getStreamCmdResponse.bind(this))
+            // The reply can land after a reload has replaced the connkey; see
+            // getStreamCmdResponse().
+            .done((respObj) => this.getStreamCmdResponse(respObj, params.connkey))
             .fail(this.onFailure.bind(this));
       };
     };
@@ -1999,6 +2016,8 @@ function MonitorStream(monitorData) {
         this.kill();
         return;
       }
+      this.setRTSP2WebType(this.player);
+
       if (-1 !== this.player.indexOf('hls')) {
         const hlsUrl = rtsp2webModUrl;
         hlsUrl.pathname = "/stream/" + this.id + "/channel/" + numericChannel + "/hls/live/index.m3u8";
@@ -2009,6 +2028,12 @@ function MonitorStream(monitorData) {
           hlsUrl = "http://" + rtsp2webModUrl + "/stream/" + this.id + "/channel/0/hls/live/index.m3u8";
         }
         */
+        if (typeof Hls === 'undefined') {
+          console.warn("The HLS library is not loaded");
+          this.streamErrorRegistration(true);
+          this.restart(this.currentChannelStream);
+          return;
+        }
         if (Hls.isSupported()) {
           // Save the playback session ID so asynchronous HLS callbacks
           // can ignore events from obsolete playback sessions.
@@ -2295,7 +2320,7 @@ function MonitorStream(monitorData) {
     if ((currentPlayer && countErrors === 0) || (this.selectedPlayer && this.selectedPlayer === currentPlayer)) { // selectedPlayer pins only when it matches the active selection
       if (this.Go2RTCEnabled && (-1 !== currentPlayer.indexOf('go2rtc'))) {
         this.select_go2rtc(streamChannel);
-      } else if (this.janusEnabled && (-1 !== currentPlayer.indexOf('janus')) && (streamChannel.toLowerCase().indexOf("primary") > -1 || currentView == 'montage') && this.selectedPlayer !== 'go2rtc') { // To avoid confusion, since Janus can only work with the first channel & selectedPlayer !== "Go2RTC Auto"
+      } else if (this.janusEnabled && (-1 !== currentPlayer.indexOf('janus')) && (streamChannel.toLowerCase().indexOf("primary") > -1 || currentView == 'montage' || currentView == 'zone') && this.selectedPlayer !== 'go2rtc') { // To avoid confusion, since Janus can only work with the first channel & selectedPlayer !== "Go2RTC Auto"
         this.select_janus(streamChannel);
       } else if (this.RTSP2WebEnabled && (-1 !== currentPlayer.indexOf('rtsp2web')) && this.selectedPlayer !== 'go2rtc') {
         this.select_rtsp2web(streamChannel);
@@ -2569,7 +2594,7 @@ function startRTSP2WebPlay(videoEl, url, stream) {
     const msg = `Your browser does not support 'RTCPeerConnection'. Monitor '${stream.name}' ID=${stream.id} not started.`;
     console.log(msg);
     stream.getElement().before(document.createTextNode(msg));
-    stream.RTSP2WebType = null; // Avoid repeated restarts.
+    stream.RTSP2WebType = null; // Avoid repeated restarts. IgorA100: This is likely no longer required, as RTSP2WebType is used only for displaying the type.
     return;
   }
   const playbackSessionId = stream.playbackSessionId;
@@ -2748,7 +2773,7 @@ function mseListenerSourceopen(context, videoEl, url) {
         const msg = `WebSocket MSE for a video object ID=${context.id} codec '${mimeCodec}' not supported. Monitor '${context.name}' ID=${context.id} not starting.`;
         console.warn(msg);
         context.showText(msg);
-        context.RTSP2WebType = null; // Avoid repeated restarts
+        context.RTSP2WebType = null; // Avoid repeated restarts. IgorA100: This is likely no longer required, as RTSP2WebType is used only for displaying the type.
         context.streamErrorRegistration(true);
         if (context.selectedPlayer) {
           context.stop();

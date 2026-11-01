@@ -302,7 +302,7 @@ $showEventStats = !(isset($_COOKIE['zmEventStats']) and $_COOKIE['zmEventStats']
                     <div class="tag-dropdown-content"></div>
                   </div>
                   <div id="wrapperTagBtn">
-                    <button type="button" id="tagPrevBtn" title="<?php echo translate('Apply the last tag, then play the previous event') ?>" class="inactive" data-on-click-true="tagAndPrev">
+                    <button type="button" id="tagPrevBtn"<?php echo canEdit('Events') ? '' : ' disabled="disabled"' ?> title="<?php echo translate('Apply the last tag, then play the previous event') ?>" class="inactive" data-on-click-true="tagAndPrev">
                       <i class="material-icons md-18"
                         style="-moz-transform: scaleX(-1);
                           -o-transform: scaleX(-1);
@@ -312,7 +312,7 @@ $showEventStats = !(isset($_COOKIE['zmEventStats']) and $_COOKIE['zmEventStats']
                           -ms-filter: 'FlipH';">
                           label</i>
                     </button>
-                    <button type="button" id="tagNextBtn" title="<?php echo translate('Apply the last tag, then play the next event') ?>" class="inactive" data-on-click-true="tagAndNext">
+                    <button type="button" id="tagNextBtn"<?php echo canEdit('Events') ? '' : ' disabled="disabled"' ?> title="<?php echo translate('Apply the last tag, then play the next event') ?>" class="inactive" data-on-click-true="tagAndNext">
                       <i class="material-icons md-18">label</i>
                     </button>
                   </div>
@@ -502,7 +502,7 @@ if ($video_tag) {
                 </div><!--videoFeed-->
 <?php
 if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) echo '
-                <audio-motion id="audioVisualization'.$monitor->Id().'" class="audio-visualization">
+                <audio-motion id="audioVisualization'.$monitor->Id().'" class="audio-visualization hidden">
                   <div id="audioControlPanel'.$monitor->Id().'" class="audio-control-panel">
                     <div id="volumeControls'.$monitor->Id().'" class="disabled volume">
                       <div id="volumeSlider'.$monitor->Id().'" data-volume="50" data-muted="true" class="volumeSlider noUi-horizontal noUi-base noUi-round"></div>

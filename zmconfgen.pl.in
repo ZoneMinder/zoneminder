@@ -200,7 +200,7 @@ sub generateConfigSQL {
       $option->{db_requires} = '';
     }
     printf( CFG_TEMP_SQL_FILE
-      "INSERT INTO Config SET Id = %d, Name = '%s', Value = '%s', Type = '%s', DefaultValue = '%s', Hint = '%s', Pattern = '%s', Format = '%s', Prompt = '%s', Help = '%s', Category = '%s', Readonly = '%s', Requires = '%s';\n",
+      "INSERT INTO Config SET Id = %d, Name = '%s', Value = '%s', Type = '%s', DefaultValue = '%s', Hint = '%s', Pattern = '%s', Format = '%s', Prompt = '%s', Help = '%s', Category = '%s', Readonly = '%s', Private = '%s', `System` = '%s', Requires = '%s';\n",
       $option->{id},
       $option->{name},
       addSlashes($option->{db_value}),
@@ -213,6 +213,11 @@ sub generateConfigSQL {
       addSlashes($option->{help}),
       $option->{category},
       $option->{readonly}?1:0,
+      # Without these a fresh install from zm_create.sql had no Private or System
+      # option until zmupdate.pl -f rewrote the table, and the web UI showed and
+      # exported ZM_AUTH_HASH_SECRET as an ordinary option.
+      $option->{private}?1:0,
+      $option->{system}?1:0,
       $option->{db_requires}
     );
   } # end foreach option

@@ -282,10 +282,31 @@ class MonitorsController extends AppController {
     ));
   }
 
+  // The cause given to alarm on, as zmu records it: letters, digits, spaces and plain
+  // punctuation only, at most 31 bytes (the size of the shared trigger_cause field), cut on
+  // a character boundary. The cause is stored as the event's Cause and in its Notes, so it
+  // is kept to plain text: markup, quotes, backslashes and control characters are dropped.
+  // Returns '' when nothing usable is left, which keeps the default "Forced Web".
+  private function alarmCause($cause) {
+    if (!is_string($cause)) return '';
+    // Fails (null) on invalid UTF-8
+    $cause = preg_replace('/[^\p{L}\p{M}\p{N} _.,:;!?()\[\]\/+#@%=-]+/u', '', $cause);
+    if ($cause === null) return '';
+    $cause = trim(preg_replace('/ {2,}/', ' ', $cause));
+    $cut = '';
+    foreach (preg_split('//u', $cause, -1, PREG_SPLIT_NO_EMPTY) as $char) {
+      if (strlen($cut) + strlen($char) > 31) break;
+      $cut .= $char;
+    }
+    return rtrim($cut);
+  }
+
   // arm/disarm alarms
   // expected format: http(s):/portal-api-url/monitors/alarm/id:M/command:C.json
   // where M=monitorId
   // where C=on|off|status|disable
+  // command:on takes an optional cause (query or POST data), recorded on the event in
+  // place of "Forced Web" after alarmCause() has filtered it
   public function alarm() {
     $id = $this->request->params['named']['id'];
     if ( !$this->Monitor->exists($id) ) {
@@ -297,6 +318,18 @@ class MonitorsController extends AppController {
       case 'on':
         $q = '-a';
         $verbose = '-v';
+        // Read cause from the query string, falling back to POST data. Compare to
+        // null rather than testing truthiness so a literal "0" is not discarded.
+        $cause_raw = $this->request->query('cause');
+        if ($cause_raw === null) $cause_raw = $this->request->data('cause');
+        $cause = $this->alarmCause($cause_raw);
+        if ($cause !== '') {
+          // Wrap in single quotes with POSIX quote escaping rather than
+          // escapeshellarg(), which drops bytes that are invalid in the server's
+          // locale and so mangles a UTF-8 cause under a C/POSIX locale. This stays
+          // safe independently of what alarmCause() lets through.
+          $q .= " --cause '".str_replace("'", "'\\''", $cause)."'";
+        }
         break;
       case 'off':
         $q = '-c';
@@ -322,44 +355,14 @@ class MonitorsController extends AppController {
       throw new UnauthorizedException(__('Insufficient Privileges'));
     }
 
-    // form auth key based on auth credentials
-    $auth = '';
-    
-    if (ZM_OPT_USE_AUTH) {
-      global $user;
-      $mToken = $this->request->query('token') ? $this->request->query('token') : $this->request->data('token');;
-      if ($mToken) {
-        $auth = ' -T '.escapeshellarg($mToken);
-      } else if (ZM_AUTH_RELAY == 'hashed') {
-        $auth = ' -A '.calculateAuthHash(''); # Can't do REMOTE_IP because zmu doesn't normally have access to it.
-      } else if (ZM_AUTH_RELAY == 'plain') {
-        # Plain requires the plain text password which must either be in request or stored in session
-        $password = $this->request->query('pass') ? $this->request->query('pass') : $this->request->data('pass');;
-        if (!$password) 
-          $password = $this->request->query('password') ? $this->request->query('password') : $this->request->data('password');
-
-        if (!$password) {
-          # during auth the session will have been populated with the plaintext password
-          $stateful = $this->request->query('stateful') ? $this->request->query('stateful') : $this->request->data('stateful');
-          if ($stateful) {
-            $password = $_SESSION['password'];
-          }
-        } else if ($_COOKIE['ZMSESSID']) {
-          $password = $_SESSION['password'];
-        }
-
-        $auth = ' -U '.escapeshellarg($user->Username()).' -P '.escapeshellarg($password);
-      } else if (ZM_AUTH_RELAY == 'none') {
-        $auth = ' -U '.escapeshellarg($user->Username());
-      }
-    }
-
     $shellcmd = ZM_PATH_BIN.'/zmu'
       .($verbose ? " $verbose" : '')
       .' -m'.escapeshellarg($id)
-      ." $q"
-      .$auth;
-    $status = exec($shellcmd, $output, $rc);
+      ." $q";
+    $password = $this->request->query('pass') ? $this->request->query('pass') : $this->request->data('pass');
+    if (!$password) $password = $this->request->query('password') ? $this->request->query('password') : $this->request->data('password');
+    $status = exec($shellcmd.zmuCredentials($password ? $password : null), $output, $rc);
+    // Logged without the credentials.
     ZM\Debug("Command: $shellcmd output: ".implode(PHP_EOL, $output)." rc: $rc");
     if ($rc) {
       $this->set(array(

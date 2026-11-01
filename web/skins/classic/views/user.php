@@ -45,7 +45,7 @@ $nve = array( 'None'=>translate('None'), 'View'=>translate('View'), 'Edit'=>tran
 $nvec = array( 'None'=>translate('None'), 'View'=>translate('View'), 'Edit'=>translate('Edit'), 'Create'=>translate('Create') );
 $inve = array( 'Inherit'=>translate('Inherit'),'None'=>translate('None'), 'View'=>translate('View'), 'Edit'=>translate('Edit') );
 $bandwidths = array_merge( array( ''=>'' ), $bandwidth_options );
-$langs = array_merge( array( ''=>'' ), getLanguages() );
+$langs = array_merge( array( ''=>translate('Default') ), getLanguages() );
 
 
 $focusWindow = true;
@@ -87,7 +87,7 @@ echo getNavBarHTML();
                       <th scope="row"><?php echo translate('NewPassword') ?></th>
                       <td>
                         <div class="input-group input-group-sm">
-                          <input type="password" class="form-control" name="user[Password]" id="user[Password]" autocomplete="new-password"/>
+                          <input type="password" class="form-control" name="user[Password]" id="user[Password]" minlength="<?php echo passwordMinLength() ?>" autocomplete="new-password"/>
                           <div class="input-group-append">
                             <span class="input-group-text material-icons md-18" style="cursor: pointer;" data-on-click-this="toggle_password_visibility" data-password-input="user[Password]">visibility</span>
                           </div>

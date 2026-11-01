@@ -18,7 +18,7 @@ class TagsController extends AppController {
     parent::beforeFilter();
     global $user;
     # We already tested for auth in appController, so we just need to test for specific permission
-    $canView = (!$user) || ($user->Events() != 'None');
+    $canView = (!$user) || ($user->canView('Events'));
     if ( !$canView ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
@@ -124,16 +124,16 @@ class TagsController extends AppController {
         return;
       }
 
-      # Only events the user may view can be tagged.
-      $eventIds = $this->requestAssociatedIds('Tag', 'EventIds', 'Event');
-      if ($eventIds) $this->requireEventsView($eventIds);
-      $this->pinRequestId($this->Tag, null);
-			$this->Tag->create();
-
       if ( $this->request->data['Tag']['EventIds'] and ! isset($this->request->data['Event']) ) {
         $this->request->data['Event'] = explode(',', $this->request->data['Tag']['EventIds']);
         unset($this->request->data['Tag']['EventIds']);
       }
+      # Only events the user may view can be tagged.
+      $eventIds = $this->requestAssociatedIds('Tag', 'Event');
+      if ($eventIds) $this->requireEventsView($eventIds);
+      $this->pinRequestId($this->Tag, null);
+			$this->Tag->create();
+
       if ( $this->Tag->saveAssociated($this->request->data, array('atomic'=>true)) ) {
         return $this->flash(
           __('The tag has been saved.'),
@@ -169,8 +169,10 @@ class TagsController extends AppController {
         return;
       }
       $this->pinRequestId($this->Tag, $id);
-      $eventIds = $this->requestAssociatedIds('Tag', 'EventIds', 'Event');
-      if ($eventIds) $this->requireEventsView($eventIds);
+      $eventIds = $this->requestAssociatedIds('Tag', 'Event');
+      if ($eventIds !== null) {
+        $this->request->data['Event'] = array('Event' => $this->eventLinksToSave('Events_Tags', 'TagId', $id, $eventIds));
+      }
 			if ( $this->Tag->save($this->request->data) ) {
         $message = 'Saved';
       } else {

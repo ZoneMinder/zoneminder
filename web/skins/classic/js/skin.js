@@ -630,11 +630,33 @@ function secs2dbstr(s) {
   return dt.toFormat('yyyy-MM-dd HH:mm:ss');
 }
 
+// Resubmit contentForm without saving, so the view re-renders for a value that
+// changes which fields it should show. The monitor view's Method select is the
+// only thing that uses it.
+//
+// The tab to come back on travels in contentForm's hidden "tab" field, which
+// is what the view reads out of $_REQUEST. This used to do
+// form.attr('tab', tab), which set an attribute named "tab" on the <form>
+// element and had no effect whatever: an attribute on a form is not a
+// submitted value.
+//
+// It is not written here at all now, rather than written correctly, because
+// the value it was being given is the wrong one. data-tab-name holds the tab
+// the page loaded on, while the hidden field holds the tab that is on screen:
+// the view writes it, and on the monitor view the pill handler keeps it in
+// step as tabs are clicked. Assigning the attribute's value would have undone
+// that tracking and sent anyone who had switched tabs back to the one they
+// arrived on -- the bug this looks like it would fix.
+//
+// It went unnoticed for the same reason it was harmless: until something
+// tracked tab changes, the two always agreed.
+//
+// $j(...).submit() rather than the element's own submit(), so contentForm's
+// submit handler still runs -- it validates the form and blanks the password
+// fields, and a native submit skips both.
 function submitTab(evt) {
-  var tab = this.getAttribute("data-tab-name");
   var form = $j('#contentForm');
   form.attr('action', '');
-  form.attr('tab', tab);
   form.submit();
   evt.preventDefault();
 }
@@ -2998,10 +3020,11 @@ function initPageGeneral() {
   // rescale then. Only a change of height matters: a ResizeObserver also reports the size it
   // starts with, and the figures change width on every refresh, and rescaling for either
   // resized the video on the event and watch views for nothing.
+  // The left navbar can be collapsed and expanded, which will change the space available for displaying the stream.
   let navbarReloadHeight = null;
   var observerNavbarReload = new window.ResizeObserver((entries) => {
     const height = entries[entries.length - 1].contentRect.height;
-    if (navbarReloadHeight !== null && height != navbarReloadHeight) endOfResize();
+    if ((navbarReloadHeight !== null && height != navbarReloadHeight) || navbar_type == 'left') endOfResize();
     navbarReloadHeight = height;
   });
   if (NAVBAR_RELOAD) {

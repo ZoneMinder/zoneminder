@@ -34,6 +34,8 @@ var zmsBroke = false; //Use alternate navigation if zms has crashed
 var wasHidden = false;
 var availableTags = [];
 var selectedTags = [];
+var realEventWidth = 0;
+var realEventHeight = 0;
 
 var PrevCoordinatFrame = {x: null, y: null};
 var coordinateMouse = {
@@ -237,14 +239,17 @@ function deltaScale() {
 }
 
 function changeScale() {
+  // `eventData.Width` & `eventData.Height` may be set incorrectly in the monitor settings (in terms of both resolution and aspect ratio), while `realEventWidth` might not yet be defined because the video has not finished loading.
+  const eventDataWidth = (realEventWidth !=0) ? realEventWidth : eventData.Width;
+  const eventDataHeight = (realEventHeight !=0) ? realEventHeight : eventData.Height;
   const scaleSel = $j('#scale').val();
+  const stream = document.getElementById('videoFeedStream' + eventData.MonitorId);
   let newWidth;
   let newHeight;
   const eventViewer = $j(vid ? '#videoobj' : '#evtStream');
-
   const alarmCue = $j('#alarmCues');
   const bottomEl = $j('#replayStatus');
-  const landscape = eventData.width / eventData.height > 1 ? true : false; //Image orientation.
+  const landscape = eventDataWidth / eventDataHeight > 1 ? true : false; //Image orientation.
 
   setCookie('zmEventScale'+eventData.MonitorId, scaleSel);
 
@@ -252,40 +257,47 @@ function changeScale() {
   /*!!! Because of this, the Scale is not correct. For example, when recording in 4k, Capture Resolution = FHD, the image with a width of 600px looks terrible! */
 
   let newSize;
+  let streamOverflow = 'hidden';
   if (scaleSel == '100') {
     //Actual, 100% of original size
-    newWidth = eventData.Width;
-    newHeight = eventData.Height;
+    newWidth = eventDataWidth;
+    newHeight = eventDataHeight;
     currentScale = 100;
+    streamOverflow = 'auto hidden';
   } else if (scaleSel == '0') {
     //Auto, Width is calculated based on the occupied height so that the image and control buttons occupy the visible part of the screen.
-    newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, bottomEl, $j('#wrapperEventVideo'));
+    newSize = scaleToFit(eventDataWidth, eventDataHeight, eventViewer, bottomEl, $j('#wrapperEventVideo'));
     newWidth = newSize.width;
     newHeight = newSize.height;
     currentScale = newSize.autoScale ? newSize.autoScale : 100;
   } else if (scaleSel == 'fit_to_width') {
     //Fit to screen width
-    newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, false, $j('#wrapperEventVideo'));
+    newSize = scaleToFit(eventDataWidth, eventDataHeight, eventViewer, false, $j('#wrapperEventVideo'));
     newWidth = newSize.width;
     newHeight = newSize.height;
     currentScale = newSize.autoScale ? newSize.autoScale : 100;
   } else if (scaleSel.indexOf("px") > -1) {
-    newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, false, $j('#wrapperEventVideo')); // Only for calculating the maximum width!
+    newSize = scaleToFit(eventDataWidth, eventDataHeight, eventViewer, false, $j('#wrapperEventVideo')); // Only for calculating the maximum width!
     let w = 0;
     let h = 0;
     if (landscape) {
       w = Math.min(stringToNumber(scaleSel), newSize.width);
-      h = w / (eventData.Width / eventData.Height);
+      h = w / (eventDataWidth / eventDataHeight);
     } else {
       h = Math.min(stringToNumber(scaleSel), newSize.height);
-      w = h * (eventData.Width / eventData.Height);
+      w = h * (eventDataWidth / eventDataHeight);
     }
     newWidth = parseInt(w);
     newHeight = parseInt(h);
-    currentScale = parseInt(w / eventData.Width * 100);
+    currentScale = parseInt(w / eventDataWidth * 100);
   }
 
-  console.log(`Real dimensions: ${eventData.Width} X ${eventData.Height}, Scale: ${currentScale}, deltaScale: ${deltaScale()}, New dimensions: ${newWidth} X ${newHeight}`);
+  // videoFeedStream is absent when the player is sized before the page DOM is
+  // built (gapless playback sizes on DOMContentLoaded), so guard the element
+  // rather than dereferencing a null style.
+  if (stream) stream.style.overflow = streamOverflow;
+
+  console.log(`Real dimensions: ${eventDataWidth} X ${eventDataHeight}, Scale: ${currentScale}, deltaScale: ${deltaScale()}, New dimensions: ${newWidth} X ${newHeight}`);
 
   eventViewer.width(newWidth);
   eventViewer.height(newHeight);
@@ -300,7 +312,7 @@ function changeScale() {
   }
   if (cueFrames) {
     //just re-render alarmCues.  skip ajax call
-    alarmCue.html(renderAlarmCues(videoFeed));
+    alarmCue.html(renderAlarmCues(eventViewer));
   }
 
   setButtonSizeOnStream();
@@ -1300,7 +1312,7 @@ function getStat() {
     //switch ( ( eventData[key] && eventData[key].length ) ? key : 'n/a') {
     switch (key) {
       case 'Name':
-        tdString = eventData[key] + ' (Id:' + eventData['Id'] + ')';
+        tdString = escapeHTML(eventData[key]) + ' (Id:' + eventData['Id'] + ')';
         break;
       case 'Frames':
         tdString = '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData[key] + '</a>';
@@ -1321,14 +1333,14 @@ function getStat() {
       //  break;
       case 'MonitorName':
         if (canView["Monitors"]) {
-          tdString = '('+ eventData.MonitorId +') '+ eventData.MonitorName+ '&nbsp';
+          tdString = '('+ eventData.MonitorId +') '+ escapeHTML(eventData.MonitorName)+ '&nbsp';
           tdString += '<div style="display:inline-block">';
           tdString += '<button id="eventLiveBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="'+translate["Live"]+'" ><i class="fa fa-television"></i></button>';
           tdString += '<button id="eventEditBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="'+translate["Edit"]+'" ><i class="fa fa-edit"></i></button>';
           tdString += '<button id="eventAllEvents" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="'+translate["All Events"]+'" ><i class="fa fa-film"></i></button>';
           tdString += '</div>';
         } else {
-          tdString = eventData[key];
+          tdString = escapeHTML(eventData[key]);
         }
         break;
       //case 'MaxScore':
@@ -1344,10 +1356,10 @@ function getStat() {
         tdString = eventData.Width + 'x' + eventData.Height;
         break;
       case 'DiskSpace':
-        tdString = eventData[key] + ' on ' + eventData['Storage'];
+        tdString = escapeHTML(eventData[key]) + ' on ' + escapeHTML(eventData['Storage']);
         break;
       case 'Path':
-        tdString = '<a href="?view=files&amp;path='+eventData.Path+'">'+eventData.Path+'</a>';
+        tdString = '<a href="?view=files&amp;path='+encodeURIComponent(eventData.Path)+'">'+escapeHTML(eventData.Path)+'</a>';
         break;
       //case 'Archived':
       //case 'Emailed':
@@ -1365,7 +1377,8 @@ function getStat() {
         }
         break;
       default:
-        tdString = eventData[key];
+        // Values from the event (Cause, Notes, dates) are text, not markup
+        tdString = escapeHTML(eventData[key]);
     }
 
     var td = $j('<td>').html(tdString);
@@ -1439,7 +1452,6 @@ function initPage() {
     showEventStats(false);
   } else {
     showEventStats(true);
-    onStatsResize(eventData.Width);
   }
   if (eventData.DefaultVideo) {
     canPlayCodec(eventData.DefaultVideo);
@@ -1449,9 +1461,24 @@ function initPage() {
   const video_element = document.getElementById('videoobj');
   if (video_element) {
     vid = videojs('videoobj');
+    vid.ready(function() { // We cannot use vid.on('ready', function(event), because the initial setup is already being performed in event.php.
+      const videoElement = this.tech().el();
+      // We are waiting for the metadata in order to obtain the actual dimensions of the video frame.
+      videoElement.addEventListener('loadedmetadata', function() {
+        realEventWidth = videoElement.videoWidth;
+        realEventHeight = videoElement.videoHeight;
+      });
+
+      // It is necessary to reset the hardcoded dimensions in `event.php` via `$videoSizeStyle`, because `video.js` modifies the DOM structure, and in `changeScale()` we specify dimensions specifically for `#videoobj`.
+      // #videoobj will be assigned to the video tag wrapper, while #videoobj_html5_api will be assigned to the video tag itself.
+      videoElement.style.width = '100%';
+      videoElement.style.height = 'auto';
+    });
     addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartDateTime);
     //$j('.vjs-progress-control').append('<div id="alarmCues" class="alarmCues"></div>');//add a place for videojs only on first load
     vid.on('ended', function(event) {
+      const progressBox = $j("#progressBox");
+      progressBox.css('width', '100%');
       vjsReplay();
       eventData._playing = false;
     });
@@ -1523,8 +1550,11 @@ function initPage() {
   });
   console.log('progress');
   progressBarNav();
-  console.log('changescale');
-  changeScale();
+  // For video.js, we are already calling changeScale() from the 'DOMContentLoaded' event listener; we shouldn't duplicate these calls.
+  if (!vid) {
+    console.log('changescale');
+    changeScale();
+  }
   console.log('changeStreamQality');
   changeStreamQuality();
 
@@ -1641,7 +1671,9 @@ function initPage() {
       setCookie(cookie, 'on');
       showEventStats(true);
     }
-    changeScale();
+    setTimeout(function() {// Time required for DOM repainting
+      changeScale();
+    }, 200);
   });
 
   // Manage the FRAMES Button
@@ -1919,15 +1951,20 @@ function formatTag(tag) {
   const tagElement = $j('<div>', {class: 'tag'});
   tagElement.data('tag', tag);
   tagElement.append($j('<span>', {class: 'tag-text', text: tagName}));
-  tagElement.append($j('<span>', {class: 'tag-remove', text: '\u00D7'}));
+  // Removing a tag needs Events edit; don't offer it to users who can't.
+  if (canEdit.Events) tagElement.append($j('<span>', {class: 'tag-remove', text: '\u00D7'}));
   $j('#tags').append(tagElement);
   //$j('.tag-dropdown').before(tagElement);
 }
 
 function addTag(tag, buttonPressed = null) {
-  if (tag && (tag.Name.trim() !== '') && !isDup(tag.Name)) {
+  if (canEdit.Events && tag && (tag.Name.trim() !== '') && !isDup(tag.Name)) {
     $j.getJSON(thisUrl + '?request=event&action=addtag&tid=' + tag.Id + '&id=' + eventData.Id)
         .done(function(data) {
+          if (data.result != 'Ok') {
+            console.error('addtag refused', data.message);
+            return;
+          }
           formatTag(tag);
           selectedTags.push(tag);
 
@@ -1945,8 +1982,13 @@ function addTag(tag, buttonPressed = null) {
 }
 
 function removeTag(tag) {
+  if (!canEdit.Events) return;
   $j.getJSON(thisUrl + '?request=event&action=removetag&tid=' + tag.Id + '&id=' + eventData.Id)
       .done(function(data) {
+        if (data.result != 'Ok') {
+          console.error('removetag refused', data.message);
+          return;
+        }
         $j('.tag-text').filter(function() {
           return $j(this).text() === tag.Name;
         }).parent().remove();
@@ -1958,8 +2000,13 @@ function removeTag(tag) {
 }
 
 function createTag(tagName, buttonPressed = null) {
+  if (!canEdit.Events) return;
   $j.getJSON(thisUrl + '?request=tags&action=createtag&tname=' + tagName)
       .done(function(data) {
+        if (data.result != 'Ok') {
+          console.error('createtag refused', data.message);
+          return;
+        }
         if (data.response.length > 0) {
           var tag = data.response[0];
           if (availableTags) {

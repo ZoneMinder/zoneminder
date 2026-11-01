@@ -285,7 +285,7 @@ std::string User::getAuthHash() {
       now_tm.tm_mday,
       now_tm.tm_mon,
       now_tm.tm_year);
-  Debug(1, "Creating auth_key '%s'", auth_key.c_str());
+  // auth_key holds ZM_AUTH_HASH_SECRET and the stored password hash: never log it.
 
   zm::crypto::MD5::Digest md5_digest = zm::crypto::MD5::GetDigestOf(auth_key);
   return ByteArrayToHexString(md5_digest);
@@ -301,6 +301,12 @@ User *zmLoadUser(const std::string &username, const std::string &password) {
       (password.empty() and (!strcmp(config.auth_relay, "none")))  // relay type must be none
       ||
       verifyPassword(username.c_str(), password.c_str(), user->getPassword()) ) {
+    if (isDefaultPassword(password)) {
+      Warning("Refusing user %s: it uses the password admin, which is not accepted. Log in to the web interface to set a new one.",
+              username.c_str());
+      delete user;
+      return nullptr;
+    }
     Debug(1, "Authenticated user '%s'", user->getUsername());
     return user;
   }
@@ -392,8 +398,10 @@ User *zmLoadAuthUser(const std::string &auth, const std::string &username, bool 
     remote_addr = client_addr.c_str();
   }
 
-  Debug(1, "Attempting to authenticate user %s from auth string '%s', remote addr(%s)",
-        username.c_str(), auth.c_str(), remote_addr);
+  // The hash is a credential: log its fingerprint so this line can be matched
+  // with the web side's, not the hash.
+  Debug(1, "Attempting to authenticate user %s from auth hash %s, remote addr(%s)",
+        username.c_str(), zm::crypto::LogFingerprint(auth).c_str(), remote_addr);
   std::string sql = "SELECT `Id`, `Username`, `Password`, `Enabled`,"
                     " `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0,"
                     " COALESCE(`RoleId`, 0)"
@@ -448,7 +456,8 @@ User *zmLoadAuthUser(const std::string &auth, const std::string &username, bool 
       zm::crypto::MD5::Digest md5_digest = zm::crypto::MD5::GetDigestOf(auth_key);
       std::string auth_md5 = ByteArrayToHexString(md5_digest);
 
-      Debug(1, "Checking auth_key '%s' -> auth_md5 '%s' == '%s'", auth_key.c_str(), auth_md5.c_str(), auth.c_str());
+      // auth_key holds ZM_AUTH_HASH_SECRET and the stored password hash: never log it.
+      Debug(1, "Checking auth hash for user '%s'", db_username);
 
       if (auth == auth_md5) {
         // We have a match
@@ -457,13 +466,13 @@ User *zmLoadAuthUser(const std::string &auth, const std::string &username, bool 
         mysql_free_result(result);
         return user;
       } else {
-        Debug(1, "No match for %s", auth.c_str());
+        Debug(1, "No match for user '%s'", db_username);
       }
     }  // end foreach hour
   }  // end foreach user
   mysql_free_result(result);
 
-  Debug(1, "No user found for auth_key %s", auth.c_str());
+  Debug(1, "No user found for auth hash %s", zm::crypto::LogFingerprint(auth).c_str());
   return nullptr;
 }  // end User *zmLoadAuthUser( const std::string &auth, const std::string &username, bool use_remote_addr )
 
@@ -485,4 +494,11 @@ bool checkPass(const std::string &password) {
     return false;
 
   return true;
+}
+
+// The password db/zm_create.sql gives the admin account, as the user guide
+// states it. Every install starts with it, so it proves nothing; see
+// isDefaultPassword() in web/includes/auth.php.
+bool isDefaultPassword(const std::string &password) {
+  return password == "admin";
 }

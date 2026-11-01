@@ -247,6 +247,10 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   int ret;
   AVFormatContext *formatContextPtr;
   int64_t lastPTS = -1;
+  // Unref the packet on every return, including the early ones for packets we
+  // drop. Before FFmpeg 7, av_read_frame() resets the packet it is given
+  // without unreferencing it, so a packet left holding data leaks its buffer.
+  av_packet_guard pkt_guard{packet};
 
   if ( mSecondFormatContext and mAudioStream and
        (
@@ -374,8 +378,6 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
       }
     }
   }
-
-  av_packet_guard pkt_guard{packet};
 
   // Real-time pacing: throttle delivery to the stream's native rate. Use dts
   // (monotonic in read order) when available, otherwise pts. Sleep happens here,
@@ -540,8 +542,9 @@ int FfmpegCamera::OpenFfmpeg() {
 
   ret = avformat_find_stream_info(mFormatContext, nullptr);
   if (ret < 0) {
-    Error("Unable to find stream info from %s due to: %s",
-          mMaskedPath.c_str(), av_make_error_string(ret).c_str());
+    logPrintf(Logger::ERROR + monitor->Importance(),
+              "Unable to find stream info from %s due to: %s",
+              mMaskedPath.c_str(), av_make_error_string(ret).c_str());
     avformat_close_input(&mFormatContext);
     return -1;
   }
@@ -554,7 +557,7 @@ int FfmpegCamera::OpenFfmpeg() {
     zm_dump_stream_format(mFormatContext, i, 0, 0);
     if (is_video_stream(stream)) {
       if (!(stream->codecpar->width && stream->codecpar->height)) {
-        Warning("No width and height in video stream. Trying again");
+        logPrintf(Logger::WARNING + monitor->Importance(), "No width and height in video stream. Trying again");
         continue;
       }
       if (mVideoStreamId == -1) {

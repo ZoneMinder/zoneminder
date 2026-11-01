@@ -96,14 +96,21 @@ class AppController extends Controller {
           // validation behind a reverse proxy.
           zm_session_start();
           if ($user) {
-            // A stateful login issues the session cookie, so store the session even
-            // though this request arrived without one.
-            zm_session_persist();
-            $_SESSION['username'] = $user->Username();
-            if ( ZM_AUTH_RELAY == 'plain' ) {
-              // Need to save this in session, can't use the value in User because it is hashed
-              $_SESSION['password'] = $_REQUEST['password'];
+            if ((!empty($username) and !empty($password))
+                or empty($_SESSION['username']) or $_SESSION['username'] !== $user->Username()) {
+              // The session takes on a user it did not hold: a password login, or a
+              // stateful request with a token or an auth hash. A new session id, the
+              // old session dropped, so an id planted in the client beforehand (any
+              // anonymous request stores one) doesn't become this user's session
+              // (session fixation). This also stores the session.
+              zm_session_regenerate_id_login();
+            } else {
+              // The session already is this user's: keep it, and store it even though
+              // this request arrived without a cookie.
+              zm_session_persist();
             }
+            $_SESSION['username'] = $user->Username();
+            // No password in the session: zmu gets a token (zmuCredentials()).
             generateAuthHash(ZM_AUTH_HASH_IPS);
           }
           session_write_close();
@@ -112,7 +119,6 @@ class AppController extends Controller {
           if ( ! is_session_started() )
             zm_session_start();
 
-          ZM\Debug(print_r($_SESSION, true));
           $user = userFromSession();
           session_write_close();
         }
@@ -249,19 +255,42 @@ class AppController extends Controller {
     }
   }
 
-  # The ids of the $assoc records a request associates with $alias, given either as
-  # $alias[$idsField] (comma separated or array) or as HABTM $assoc data; null if neither.
-  protected function requestAssociatedIds($alias, $idsField, $assoc) {
-    $data = $this->request->data;
-    if (isset($data[$alias][$idsField])) {
-      $ids = $data[$alias][$idsField];
-    } else if (isset($data[$assoc])) {
-      $ids = (isset($data[$assoc][$assoc]) and is_array($data[$assoc][$assoc])) ? $data[$assoc][$assoc] : $data[$assoc];
-    } else {
+  # The ids of the $assoc records a save of the request links to $alias through its HABTM
+  # association, read the way Model::save() reads them, or null when the save leaves the links
+  # alone. Model::set() skips a non-array $assoc entry; save() takes $assoc[$assoc] when present,
+  # else $assoc, and replaces all links with it. $alias[EventIds]-style fields are not saved
+  # (add() copies them to $assoc first). The entry is rewritten to the plain list returned, so a
+  # row given as a join record, which save() would store as given, can only link the id checked.
+  protected function requestAssociatedIds($alias, $assoc) {
+    if (!isset($this->request->data[$assoc])) return null;
+    $rows = $this->request->data[$assoc];
+    if (!is_array($rows)) {
+      unset($this->request->data[$assoc]);
       return null;
     }
-    if (!is_array($ids)) $ids = explode(',', $ids);
-    return array_map(function($id) { return intval(is_array($id) ? (isset($id['Id']) ? $id['Id'] : 0) : $id); }, $ids);
+    if (isset($rows[$assoc])) $rows = $rows[$assoc];
+    $key = $this->{$alias}->hasAndBelongsToMany[$assoc]['associationForeignKey'];
+    $ids = array();
+    foreach ((array)$rows as $row) {
+      if (is_array($row)) $row = isset($row[$key]) ? $row[$key] : null;
+      if (is_numeric($row)) $ids[] = intval($row);
+    }
+    $this->request->data[$assoc] = array($assoc => $ids);
+    return $ids;
+  }
+
+  # The event list to save for record $id of $table, from the $eventIds an edit asks for: saving
+  # replaces all of the record's links, so its links to events the user may not view, which the
+  # API does not show them, are kept. Throw unless the user may view every event in $eventIds.
+  # Links to events that no longer exist are dropped.
+  protected function eventLinksToSave($table, $key, $id, $eventIds) {
+    $this->requireEventsView($eventIds);
+    $oldIds = dbFetchAll('SELECT `EventId` FROM `'.$table.'` WHERE `'.$key.'`=?', 'EventId', array($id));
+    foreach (array_diff($oldIds, $eventIds) as $eventId) {
+      $event = new ZM\Event($eventId);
+      if ($event->Id() and !$event->canView()) $eventIds[] = intval($eventId);
+    }
+    return $eventIds;
   }
 
   # Throw unless the user may view every event in $eventIds, which includes its monitor.

@@ -124,7 +124,7 @@ TEST_CASE("Config members hold compiled-in defaults before any database load") {
   // cannot shift anything. Values mirror ConfigData.pm.in.
   Config fresh;
 
-  REQUIRE(fresh.opt_use_auth == false);
+  REQUIRE(fresh.opt_use_auth == true);
   REQUIRE(fresh.auth_hash_ttl == 2);
   REQUIRE(fresh.watch_max_delay == Catch::Approx(45));
   REQUIRE(fresh.font_file_location != nullptr);

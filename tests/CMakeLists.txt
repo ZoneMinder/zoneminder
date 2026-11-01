@@ -18,6 +18,7 @@ set(TEST_SOURCES
   zm_db_logging_live.cpp
   zm_db_schema.cpp
   zm_monitor_dts.cpp
+  zm_monitor_decoder_queue.cpp
   zm_box.cpp
   zm_buffer.cpp
   zm_audio_detector.cpp
@@ -41,6 +42,7 @@ set(TEST_SOURCES
   zm_packet_lock.cpp
   zm_monitor_action.cpp
   zm_monitor_signal.cpp
+  zm_onvif_alarm_latch.cpp
   zm_onvif_alarm_termination.cpp
   zm_onvif_auth_error.cpp
   zm_onvif_poll_wait.cpp
@@ -60,6 +62,7 @@ set(TEST_SOURCES
   zm_stream_socket_client.cpp
   zm_stream_socket_protocol.cpp
   zm_time.cpp
+  zm_user_default_password.cpp
   zm_utils.cpp
   zm_videostore_m3u8.cpp
   zm_vector2.cpp

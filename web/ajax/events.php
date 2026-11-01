@@ -72,7 +72,7 @@ if (isset($_REQUEST['order'])) {
   } else if (strtolower($_REQUEST['order']) == 'desc') {
     $order = 'DESC';
   } else {
-    Warning('Invalid value for order ' . $_REQUEST['order']);
+    \ZM\Warning('Invalid value for order ' . $_REQUEST['order']);
   }
 }
 
@@ -147,6 +147,11 @@ ajaxResponse($data);
 
 function archiveRequest($task, $eid) {
   $archiveVal = ($task == 'archive') ? 1 : 0;
+  // $eids elements come straight from the request and an element may itself be
+  // an array; passed to new ZM\Event() it would be taken as a forged DB row,
+  // bypassing the per-event permission check below. Reduce it to a plain id
+  // (an array becomes '') so ZM\Event loads the real row (refs GHSA-6h8f-gx4m-qqw4).
+  $eid = validCardinal($eid);
   $event = new ZM\Event($eid);
   # Anyone who can view an event may archive it, unarchiving needs edit. Either way
   # that is checked on the event itself so that its monitor's permission applies.
@@ -161,6 +166,10 @@ function archiveRequest($task, $eid) {
 }
 
 function deleteRequest($eid) {
+  // See archiveRequest(): reduce a possibly-array request element to a plain id
+  // so it can't be taken as a forged row and delete a denied event's files
+  // (refs GHSA-6h8f-gx4m-qqw4).
+  $eid = validCardinal($eid);
   $event = new ZM\Event($eid);
   if (!$event->Id()) {
     return 'Event '.$eid.' not found.';

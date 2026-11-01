@@ -618,7 +618,7 @@ class Event extends ZM_Object {
           return;
         }
       }
-      Debug("sending command to $url");
+      Debug('sending command to '.urlForLog($url));
       // use key 'http' even if you send the request to https://...
       $options = array(
           'http' => array(
@@ -629,9 +629,9 @@ class Event extends ZM_Object {
           );
       $context  = stream_context_create($options);
       try {
-        $result = file_get_contents($url, false, $context);
+        $result = @file_get_contents($url, false, $context);
         if ($result === FALSE) { /* Handle error */
-          Error("Error restarting zmc using $url");
+          Error('Error restarting zmc using '.urlForLog($url).': '.lastErrorForLog());
         }
         $event_data = json_decode($result,true);
         Debug(print_r($event_data['event']['Event'],1));
@@ -666,7 +666,7 @@ class Event extends ZM_Object {
           return;
         }
       }
-      Debug("sending command to $url");
+      Debug('sending command to '.urlForLog($url));
       // use key 'http' even if you send the request to https://...
       $options = array(
           'http' => array(
@@ -677,9 +677,9 @@ class Event extends ZM_Object {
           );
       $context = stream_context_create($options);
       try {
-        $result = file_get_contents($url, false, $context);
+        $result = @file_get_contents($url, false, $context);
         if ( $result === FALSE ) { /* Handle error */
-          Error("Error restarting zmc using $url");
+          Error('Error restarting zmc using '.urlForLog($url).': '.lastErrorForLog());
         }
         $event_data = json_decode($result,true);
         Debug(print_r($event_data['event']['Event'], 1));
@@ -723,14 +723,19 @@ class Event extends ZM_Object {
       # auth turned on and not logged in
       return false;
     }
+    # An Event with no Id (an empty or failed lookup) has no monitor, and an
+    # empty Monitor passes canView() on the global Monitors permission. Refuse
+    # it, so a caller that skips its own Id() check does not fail open.
+    if (!$this->Id()) return false;
     if (!$this->Monitor()->canView($u)) return false;
 
-    if ($u->Events() != 'None') {
+    # canView() counts the user's role as well as their own field. refs #5189
+    if ($u->canView('Events')) {
       return true;
     }
-    if ($u->Snapshots() != 'None') {
+    if ($u->canView('Snapshots')) {
       # If the event is contained in a snapshot, then we can still view it.
-      if (dbFetchOne('SELECT * FROM Snapshot_Events WHERE EventId=?', $this->Id()))
+      if (dbFetchOne('SELECT * FROM Snapshots_Events WHERE EventId=?', false, array($this->Id())))
         return true;
     }
     return false;
@@ -743,8 +748,9 @@ class Event extends ZM_Object {
       # auth turned on and not logged in
       return false;
     }
+    if (!$this->Id()) return false;
     if (!$this->Monitor()->canView($u)) return false;
-    if ($u->Events() != 'Edit') {
+    if (!$u->canEdit('Events')) {
       return false;
     }
     return true;

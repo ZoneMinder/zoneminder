@@ -276,18 +276,34 @@ our @options = (
   },
   {
     name        => 'ZM_OPT_USE_AUTH',
-    default     => '0',
+    default     => '1',
     description => 'Authenticate user logins to ZoneMinder',
     help        => q`
-      ZoneMinder can run in two modes. The simplest is an entirely
-      unauthenticated mode where anyone can access ZoneMinder and
-      perform all tasks. This is most suitable for installations
-      where the web server access is limited in other ways. The other
-      mode enables user accounts with varying sets of permissions.
-      Users must login or authenticate to access ZoneMinder and are
-      limited by their defined permissions.
+      ZoneMinder can run in two modes. The default mode enables user
+      accounts with varying sets of permissions. Users must login or
+      authenticate to access ZoneMinder and are limited by their
+      defined permissions. The other is an entirely unauthenticated
+      mode where anyone who can reach ZoneMinder, including any web
+      page opened in a browser on the same network, can perform all
+      tasks. Only turn this off where access to the web server is
+      limited in other ways.
       `,
     type        => $types{boolean},
+    category    => 'auth',
+  },
+  {
+    name        => 'ZM_PASSWORD_MIN_LENGTH',
+    default     => '8',
+    description => 'Minimum length of a new password',
+    help        => q`
+      A password set from now on, on the user page, through the API or
+      at login, must have at least this many characters. Existing
+      passwords keep working. Length does more for a password than
+      rules about character classes, which lead people to predictable
+      variations, so there is no setting for those. 0 turns the check
+      off; the password admin is refused whatever this says.
+      `,
+    type        => $types{integer},
     category    => 'auth',
   },
   {
@@ -329,18 +345,20 @@ our @options = (
   {
     name        => 'ZM_AUTH_RELAY',
     default     => 'hashed',
-    description => 'Method used to relay authentication information',
+    description => 'Method used to relay authentication information (plain is deprecated)',
     help        => q`
       When ZoneMinder is running in authenticated mode it can pass
       user details between the web pages and the back end processes.
       There are two methods for doing this. This first is to use a
       time limited hashed string which contains no direct username or
       password details, the second method is to pass the username and
-      passwords around in plaintext. This method is not recommend
-      except where you do not have the md5 libraries available on
-      your system or you have a completely isolated system with no
-      external access. You can also switch off authentication
-      relaying if your system is isolated in other ways.
+      passwords around in plaintext. You can also switch off
+      authentication relaying if your system is isolated in other ways.
+      The plain method is deprecated: it keeps the user's password in
+      the web session and puts it in every stream, video and
+      multi-server URL. Use hashed, with ZM_AUTH_HASH_SECRET set to a
+      unique value. Multi-server installs that use plain must move to
+      hashed.
       `,
     requires    => [ { name=>'ZM_OPT_USE_AUTH', value=>'1' } ],
     type        => {
@@ -487,6 +505,7 @@ our @options = (
       and match the admin_key value in janus.plugin.streaming.config.
       `,
     type        => $types{string},
+    private     => 1,
     category    => 'system',
   },
   {
@@ -2197,6 +2216,7 @@ our @options = (
       `,
     requires    => [ { name => 'ZM_OPT_UPLOAD', value => '1' } ],
     type        => $types{string},
+    private     => 1,
     category    => 'upload',
   },
   {
@@ -2721,6 +2741,33 @@ our @options = (
       `,
     type        => $types{boolean},
     category    => 'auth',
+  },
+  {
+    name        => 'ZM_ALLOWED_COMMANDS',
+    default     => '',
+    description => 'Programs that filters and scheduled tasks are allowed to run',
+    help        => q`
+      Filters with "Execute command" and the scheduled tasks under
+      Options/Scheduled Tasks both run a command as the web user, which is
+      close to shell access on the server. This setting narrows that to a
+      list you choose.
+
+      Give a comma separated list of the programs you are willing to have
+      run, written exactly as they will be invoked, for example:
+      /usr/local/bin/backup.sh,/usr/bin/zmaudit.pl
+
+      Only the program is matched, so arguments may still be given and may
+      differ from run to run; a command whose first word is not on the list is
+      refused. While the list is in force a command may also not contain the
+      characters that would let it start a second program -- semicolon, pipe,
+      ampersand, backtick and dollar-paren -- because the program being on the
+      list would otherwise say nothing about what else ran alongside it.
+
+      Leave this empty, which is the default, to place no restriction and keep
+      the behaviour ZoneMinder has always had.
+      `,
+    type        => $types{string},
+    category    => 'system',
   },
   {
     name        => 'ZM_OPT_CONTROL',
@@ -4172,6 +4219,7 @@ our @options = (
     description => 'MQTT broker password',
     help        => 'MQTT uses a central server to send/receive messages. This is the password to authenticate with.',
     type        => $types{password},
+    private     => 1,
     category    => 'MQTT',
   },
   {

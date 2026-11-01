@@ -1,4 +1,10 @@
 <?php
+// First run (firstRunAccount() in auth.php): ask whether to require a login
+// instead of showing the login form. The form's nonce goes in the session
+// before any output, since the visitor may have no session cookie yet.
+$firstRunAccount = (ZM_OPT_USE_AUTH and empty($defaultPasswordChange)) ? firstRunAccount() : null;
+if ($firstRunAccount) $firstRunNonce = firstRunNonce();
+
 xhtmlHeaders(__FILE__, translate('Login'));
 getBodyTopHTML();
 echo getNavBarHTML();
@@ -14,6 +20,73 @@ if ( defined('ZM_OPT_USE_AUTH') and ZM_OPT_USE_AUTH ) {
   } else if (isset($_SESSION['postLoginQuery'])) {
     $postLoginQuery = validStr($_SESSION['postLoginQuery']);
   }
+  if ($firstRunAccount) {
+?>
+    <div class="center-block" id="firstRun">
+      <div id="loginform">
+        <h1><i class="material-icons md-36">settings</i> <?php echo translate('FirstRunTitle') ?></h1>
+        <p><?php echo translate('FirstRunIntro') ?></p>
+<?php if (!empty($firstRunProblem)) { ?>
+        <div id="firstRunProblem" class="alarm" role="alert"><?php echo passwordProblemText($firstRunProblem) ?></div>
+<?php } ?>
+        <form name="firstRunAuthOnForm" id="firstRunAuthOn" method="post" action="?view=login">
+          <input type="hidden" name="action" value="setup"/>
+          <input type="hidden" name="first_run_auth" value="on"/>
+          <input type="hidden" name="first_run_nonce" value="<?php echo validHtmlStr($firstRunNonce) ?>"/>
+          <input type="hidden" name="username" value="<?php echo validHtmlStr($firstRunAccount->Username()) ?>" autocomplete="username"/>
+          <h2 class="h5 mt-3"><?php echo translate('FirstRunAuthOn') ?></h2>
+          <p><?php echo translate('FirstRunAuthOnText') ?></p>
+          <p><?php echo translate('Username').': '.validHtmlStr($firstRunAccount->Username()) ?></p>
+          <label for="inputNewPassword"><?php echo translate('NewPassword') ?></label>
+          <input type="password" id="inputNewPassword" name="new_password" minlength="<?php echo passwordMinLength() ?>" class="form-control" placeholder="<?php echo translate('NewPassword') ?>" required autofocus autocomplete="new-password"/>
+          <label for="inputNewPasswordConfirm"><?php echo translate('ConfirmPassword') ?></label>
+          <input type="password" id="inputNewPasswordConfirm" name="new_password_confirm" class="form-control" placeholder="<?php echo translate('ConfirmPassword') ?>" required autocomplete="new-password"/>
+          <button class="btn btn-lg btn-primary btn-block mt-2" type="submit"><?php echo translate('FirstRunSetPassword') ?></button>
+        </form>
+<?php if (authSetInConfigFile()) { ?>
+        <p class="mt-3" id="firstRunAuthFixed"><?php echo translate('FirstRunAuthFixed') ?></p>
+<?php } else { ?>
+        <form name="firstRunAuthOffForm" id="firstRunAuthOff" method="post" action="?view=login">
+          <input type="hidden" name="action" value="setup"/>
+          <input type="hidden" name="first_run_auth" value="off"/>
+          <input type="hidden" name="first_run_nonce" value="<?php echo validHtmlStr($firstRunNonce) ?>"/>
+          <h2 class="h5 mt-4"><?php echo translate('FirstRunAuthOff') ?></h2>
+          <p><?php echo translate('FirstRunAuthOffText') ?></p>
+          <button class="btn btn-lg btn-secondary btn-block" type="submit"><?php echo translate('FirstRunContinue') ?></button>
+        </form>
+<?php } ?>
+      </div>
+    </div>
+<?php
+  } else if (!empty($defaultPasswordChange)) {
+    // The password was right but is the default one (auth.php,
+    // replaceDefaultPassword()): ask for a new one before logging in.
+?>
+    <form class="center-block" name="loginForm" id="loginForm" method="post" action="?view=login">
+      <input type="hidden" name="action" value="login"/>
+      <input type="hidden" name="postLoginQuery" value="<?php echo validHtmlStr($postLoginQuery); ?>" />
+      <input type="hidden" name="password_change_nonce" value="<?php echo validHtmlStr($defaultPasswordChange['nonce']) ?>"/>
+      <input type="hidden" name="username" value="<?php echo validHtmlStr($defaultPasswordChange['username']) ?>"/>
+
+      <div id="loginform">
+        <h1><i class="material-icons md-36">account_circle</i> <?php echo validHtmlStr(ZM_WEB_TITLE) . ' ' . translate('Login') ?></h1>
+        <div id="passwordChangeRequired" class="alarm" role="alert"><?php echo translate('DefaultPasswordChange') ?></div>
+<?php if ($defaultPasswordChange['problem']) { ?>
+        <div id="passwordChangeProblem" class="alarm" role="alert"><?php echo passwordProblemText($defaultPasswordChange['problem']) ?></div>
+<?php } ?>
+        <p><?php echo translate('Username').': '.validHtmlStr($defaultPasswordChange['username']) ?></p>
+
+        <label for="inputPassword"><?php echo translate('Password') ?></label>
+        <input type="password" id="inputPassword" name="password" class="form-control" placeholder="<?php echo translate('Password') ?>" required autocomplete="current-password"/>
+        <label for="inputNewPassword"><?php echo translate('NewPassword') ?></label>
+        <input type="password" id="inputNewPassword" name="new_password" minlength="<?php echo passwordMinLength() ?>" class="form-control" placeholder="<?php echo translate('NewPassword') ?>" required autofocus autocomplete="new-password"/>
+        <label for="inputNewPasswordConfirm"><?php echo translate('ConfirmPassword') ?></label>
+        <input type="password" id="inputNewPasswordConfirm" name="new_password_confirm" class="form-control" placeholder="<?php echo translate('ConfirmPassword') ?>" required autocomplete="new-password"/>
+        <button class="btn btn-lg btn-primary btn-block mt-2" type="submit"><?php echo translate('Save') ?></button>
+      </div>
+    </form>
+<?php
+  } else {
 ?>
     <form class="center-block" name="loginForm" id="loginForm" method="post" action="?view=login">
       <input type="hidden" name="action" value="login"/>
@@ -70,7 +143,8 @@ if (
         <button class="btn btn-lg btn-primary btn-block" type="submit"><?php echo translate('Login') ?></button>
       </div>
     </form>
-<?php 
+<?php
+  } # end if default password change
 } else {
 ?>
 <div class="error">

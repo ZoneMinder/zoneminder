@@ -361,6 +361,8 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $filtered_rows = $unfiltered_rows;
   } # end if search_filter->terms() > 1
 
+  // Counted before the page is cut out of them
+  $filtered_total = count($filtered_rows);
   if ($limit and ($limit < count($filtered_rows))) {
     ZM\Debug("Filtering rows due to limit rows: " . count($filtered_rows)." offset: $offset limit: $limit");
     $filtered_rows = array_slice($filtered_rows, $offset, $limit);
@@ -411,7 +413,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   # totalNotFiltered must equal total, except when either search bar has been used
   $data['totalNotFiltered'] = count($unfiltered_rows);
   if ( $search != '' || count($advsearch) ) {
-    $data['total'] = count($filtered_rows);
+    $data['total'] = $filtered_total;
   } else {
     $data['total'] = $data['totalNotFiltered'];
   }

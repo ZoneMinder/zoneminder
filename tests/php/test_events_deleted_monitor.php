@@ -180,6 +180,7 @@ namespace {
     check('search total counts only the listed events', $search['total'], 5);
     $search = query(array('search' => 'test5417', 'limit' => '2', 'offset' => '0'));
     check('search page is full', ids($search), array_slice($live_ids, 0, 2));
+    check('search page reports the total of all its pages', $search['total'], 5);
   } finally {
     $db->rollBack();
   }

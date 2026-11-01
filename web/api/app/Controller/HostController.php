@@ -96,6 +96,12 @@ class HostController extends AppController {
     if ( !($username && $password) && !$token ) {
       throw new UnauthorizedException(__('No identity provided'));
     }
+    if ( $username && $password && $token ) {
+      // beforeFilter() authenticates the token after the password and keeps the token's
+      // user, so the refresh token minted below would be issued to whoever the token
+      // belongs to. A login takes one or the other.
+      throw new UnauthorizedException(__('Log in with a user name and password or with a token, not both'));
+    }
 
     $cred = [];
 

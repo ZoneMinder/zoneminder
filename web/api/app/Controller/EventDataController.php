@@ -19,7 +19,7 @@ class EventDataController extends AppController {
     parent::beforeFilter();
     global $user;
     # We already tested for auth in appController, so we just need to test for specific permission
-    $canView = (!$user) || ($user->Events() != 'None');
+    $canView = (!$user) || ($user->canView('Events'));
     if (!$canView) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
@@ -31,7 +31,7 @@ class EventDataController extends AppController {
   # user denied a monitor cannot alter that monitor's event data by Id.
   private function requireEventDataEdit($id) {
     global $user;
-    if ( $user and ($user->Events() != 'Edit') ) {
+    if ( $user and (!$user->canEdit('Events')) ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
     }
     $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : null;
@@ -145,7 +145,7 @@ class EventDataController extends AppController {
 	public function add() {
 		if ($this->request->is('post')) {
 			global $user;
-			if ($user and ($user->Events() != 'Edit')) {
+			if ($user and (!$user->canEdit('Events'))) {
 				throw new UnauthorizedException(__('Insufficient Privileges'));
 			}
 			$this->requireRequestEventDataEdit(true);

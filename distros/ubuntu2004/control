@@ -70,6 +70,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libdata-uuid-perl
         ,libnumber-bytes-human-perl
         ,libfile-slurp-perl
+        ,libxml-libxml-perl
         ,default-mysql-client | mariadb-client | virtual-mysql-client
         ,php-mysql, php-gd, php-apcu, php-json, php-intl, php-xml, php-curl, php-mbstring
         ,policykit-1|pkexec

@@ -1312,7 +1312,7 @@ function getStat() {
     //switch ( ( eventData[key] && eventData[key].length ) ? key : 'n/a') {
     switch (key) {
       case 'Name':
-        tdString = eventData[key] + ' (Id:' + eventData['Id'] + ')';
+        tdString = escapeHTML(eventData[key]) + ' (Id:' + eventData['Id'] + ')';
         break;
       case 'Frames':
         tdString = '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData[key] + '</a>';
@@ -1333,14 +1333,14 @@ function getStat() {
       //  break;
       case 'MonitorName':
         if (canView["Monitors"]) {
-          tdString = '('+ eventData.MonitorId +') '+ eventData.MonitorName+ '&nbsp';
+          tdString = '('+ eventData.MonitorId +') '+ escapeHTML(eventData.MonitorName)+ '&nbsp';
           tdString += '<div style="display:inline-block">';
           tdString += '<button id="eventLiveBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="'+translate["Live"]+'" ><i class="fa fa-television"></i></button>';
           tdString += '<button id="eventEditBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="'+translate["Edit"]+'" ><i class="fa fa-edit"></i></button>';
           tdString += '<button id="eventAllEvents" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="'+translate["All Events"]+'" ><i class="fa fa-film"></i></button>';
           tdString += '</div>';
         } else {
-          tdString = eventData[key];
+          tdString = escapeHTML(eventData[key]);
         }
         break;
       //case 'MaxScore':
@@ -1356,10 +1356,10 @@ function getStat() {
         tdString = eventData.Width + 'x' + eventData.Height;
         break;
       case 'DiskSpace':
-        tdString = eventData[key] + ' on ' + eventData['Storage'];
+        tdString = escapeHTML(eventData[key]) + ' on ' + escapeHTML(eventData['Storage']);
         break;
       case 'Path':
-        tdString = '<a href="?view=files&amp;path='+eventData.Path+'">'+eventData.Path+'</a>';
+        tdString = '<a href="?view=files&amp;path='+encodeURIComponent(eventData.Path)+'">'+escapeHTML(eventData.Path)+'</a>';
         break;
       //case 'Archived':
       //case 'Emailed':
@@ -1377,7 +1377,8 @@ function getStat() {
         }
         break;
       default:
-        tdString = eventData[key];
+        // Values from the event (Cause, Notes, dates) are text, not markup
+        tdString = escapeHTML(eventData[key]);
     }
 
     var td = $j('<td>').html(tdString);
@@ -1950,14 +1951,19 @@ function formatTag(tag) {
   const tagElement = $j('<div>', {class: 'tag'});
   tagElement.data('tag', tag);
   tagElement.append($j('<span>', {class: 'tag-text', text: tagName}));
-  tagElement.append($j('<span>', {class: 'tag-remove', text: '\u00D7'}));
+  // Removing a tag needs Events edit; don't offer it to users who can't.
+  if (canEdit.Events) tagElement.append($j('<span>', {class: 'tag-remove', text: '\u00D7'}));
   $j('.tag-dropdown').before(tagElement);
 }
 
 function addTag(tag, buttonPressed = null) {
-  if (tag && (tag.Name.trim() !== '') && !isDup(tag.Name)) {
+  if (canEdit.Events && tag && (tag.Name.trim() !== '') && !isDup(tag.Name)) {
     $j.getJSON(thisUrl + '?request=event&action=addtag&tid=' + tag.Id + '&id=' + eventData.Id)
         .done(function(data) {
+          if (data.result != 'Ok') {
+            console.error('addtag refused', data.message);
+            return;
+          }
           formatTag(tag);
           selectedTags.push(tag);
 
@@ -1975,8 +1981,13 @@ function addTag(tag, buttonPressed = null) {
 }
 
 function removeTag(tag) {
+  if (!canEdit.Events) return;
   $j.getJSON(thisUrl + '?request=event&action=removetag&tid=' + tag.Id + '&id=' + eventData.Id)
       .done(function(data) {
+        if (data.result != 'Ok') {
+          console.error('removetag refused', data.message);
+          return;
+        }
         $j('.tag-text').filter(function() {
           return $j(this).text() === tag.Name;
         }).parent().remove();
@@ -1988,8 +1999,13 @@ function removeTag(tag) {
 }
 
 function createTag(tagName, buttonPressed = null) {
+  if (!canEdit.Events) return;
   $j.getJSON(thisUrl + '?request=tags&action=createtag&tname=' + tagName)
       .done(function(data) {
+        if (data.result != 'Ok') {
+          console.error('createtag refused', data.message);
+          return;
+        }
         if (data.response.length > 0) {
           var tag = data.response[0];
           if (availableTags) {

@@ -64,7 +64,8 @@ function CSPHeaders($view, $nonce) {
       // fall through
     default:
       // Enforce script-src on pages where inline scripts and event handlers have been fixed.
-      header("Content-Security-Policy: object-src 'self'; worker-src 'self' blob:; script-src 'self' 'nonce-$nonce' $additionalScriptSrc".
+      // base-uri: an injected <base> would otherwise re-point the nonced relative script srcs at another host.
+      header("Content-Security-Policy: object-src 'self'; base-uri 'self'; worker-src 'self' blob:; script-src 'self' 'nonce-$nonce' $additionalScriptSrc".
         (ZM_CSP_REPORT_URI ? '; report-uri '.ZM_CSP_REPORT_URI : '' )
       );
       break;
@@ -284,12 +285,13 @@ function getWebSiteUrl($id, $src, $width, $height, $title='') {
   ]);
   # The End User can turn off the following warning under Options -> Web
   if ( ZM_WEB_XFRAME_WARN ) {
-    $header = get_headers($src, 1);
+    # @: on failure PHP's warning carries the URL, credentials included.
+    $header = @get_headers($src, 1);
     # If the target website has set X-Frame-Options, check it for "sameorigin" and warn the end user
-    if ( array_key_exists('X-Frame-Options', $header) ) {
+    if ( is_array($header) and array_key_exists('X-Frame-Options', $header) ) {
       $header = $header['X-Frame-Options'];
       if ( stripos($header, 'sameorigin') === 0 )
-        ZM\Warning('Web site '.$src.' has X-Frame-Options set to sameorigin. An X-Frame-Options browser plugin is required to display this site.');
+        ZM\Warning('Web site '.ZM\urlForLog($src).' has X-Frame-Options set to sameorigin. An X-Frame-Options browser plugin is required to display this site.');
     }
   }
   return '<object id="'.$id.'" data="'.$src.'" alt="'.$title.'" width="'.$width.'" height="'.$height.'"></object>';
@@ -324,18 +326,7 @@ function outputControlStill($src, $width, $height, $monitor, $scale, $target) {
 
 // Incoming args are shell-escaped. This function must escape any further arguments it cannot guarantee.
 function getZmuCommand($args) {
-  $zmuCommand = ZMU_PATH;
-
-  if ( ZM_OPT_USE_AUTH ) {
-    global $user;
-    // Always include username, so that we can do lookups faster
-    $zmuCommand .= ' -U '.escapeshellarg($user->Username());
-    if ( ZM_AUTH_RELAY == 'hashed' ) {
-      $zmuCommand .= ' -A '.generateAuthHash(false, true);
-    } else if ( ZM_AUTH_RELAY == 'plain' ) {
-      $zmuCommand .= ' -P '.escapeshellarg($_SESSION['password']);
-    }
-  }
+  $zmuCommand = ZMU_PATH.zmuCredentials();
 
   $zmuCommand .= $args;
 
@@ -1843,6 +1834,13 @@ function ajaxResponse($result=false) {
 
 function generateConnKey() {
   return rand(1, 999999);
+}
+
+// The unix socket and lock names zms uses for a stream (StreamBase::openComms()
+// in src/zm_stream.cpp). The owner is the id of the user zms authenticated (0
+// without authentication), so a connkey reaches only that user's streams.
+function zmsSocketPath($connkey, $owner, $suffix) {
+  return ZM_PATH_SOCKS.'/zms-'.sprintf('%06d', $connkey).'-'.intval($owner).$suffix;
 }
 
 function detaintPathAllowAbsolute($path) {

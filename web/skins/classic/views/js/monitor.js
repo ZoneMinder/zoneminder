@@ -1007,6 +1007,35 @@ function update_players() {
   //dropdown.chosen();
   dropdown.val(selected_value);
   if (dropdown[0].selectedIndex==-1) dropdown[0].selectedIndex = 0;
+
+  manageGo2RTCDisableBackChannel(false);
+}
+
+function changeDeviceClass() {
+  manageGo2RTCDisableBackChannel(true);
+}
+
+function manageGo2RTCDisableBackChannel(setDefaultGo2RTCDisableBackChannel = false) {
+  const go2rtc_enabled = document.querySelector('[name="newMonitor[Go2RTCEnabled]"]')?.checked ?? false;
+  const deviceClassValue = document.querySelector('[name="newMonitor[DeviceClass]"]')?.value ?? '';
+  const Go2RTCDisableBackChannel = document.querySelector('[name="newMonitor[Go2RTCDisableBackChannel]"]');
+  const Go2RTCDisableBackChannelElement = document.getElementById('Go2RTCDisableBackChannel');
+  if (Go2RTCDisableBackChannel) {
+    if (deviceClassValue == "Camera") {
+      Go2RTCDisableBackChannel.removeAttribute('disabled');
+      if (setDefaultGo2RTCDisableBackChannel) Go2RTCDisableBackChannel.checked = true;
+    } else {
+      Go2RTCDisableBackChannel.setAttribute('disabled', '');
+      Go2RTCDisableBackChannel.checked = false;
+    }
+  }
+  if (Go2RTCDisableBackChannelElement) {
+    if (go2rtc_enabled) {
+      Go2RTCDisableBackChannelElement.hidden = false;
+    } else {
+      Go2RTCDisableBackChannelElement.hidden = true;
+    }
+  }
 }
 
 function populate_models(ManufacturerId) {

@@ -79,6 +79,12 @@ namespace {
   define('ZM_AUTH_HASH_TTL', 2);
   define('ZM_AUTH_HASH_SECRET', 'test-secret-0123456789abcdef0123456789ab');
   define('ZM_CASE_INSENSITIVE_USERNAMES', false);
+  // release-1.38's auth.php runs its auth block at file scope on require, so the
+  // constants that block reads must exist before it is included.
+  define('ZM_AUTH_HASH_LOGINS', true);
+  define('ZM_AUTH_TYPE', 'builtin');
+  define('ZM_OPT_USE_GOOG_RECAPTCHA', false);
+  define('ZM_AUTH_HASH_SECRET_DEFAULT', '');
 
   $users = array();
   function dbFetchOne($sql, $col = null, $values = array()) {

@@ -55,7 +55,8 @@ function CSPHeaders($view, $nonce) {
       // fall through
     default:
       // Enforce script-src on pages where inline scripts and event handlers have been fixed.
-      header("Content-Security-Policy: object-src 'self'; script-src 'self' 'nonce-$nonce' $additionalScriptSrc".
+      // base-uri: an injected <base> would otherwise re-point the nonced relative script srcs at another host.
+      header("Content-Security-Policy: object-src 'self'; base-uri 'self'; script-src 'self' 'nonce-$nonce' $additionalScriptSrc".
         (ZM_CSP_REPORT_URI ? '; report-uri '.ZM_CSP_REPORT_URI : '' )
       );
       break;

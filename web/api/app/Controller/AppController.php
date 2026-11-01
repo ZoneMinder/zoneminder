@@ -56,6 +56,11 @@ class AppController extends Controller {
   // for role and deny API access in future 
   // Also checking to do this only if ZM_OPT_USE_AUTH is on
   public function beforeFilter() {
+    // Crud's ApiListener registers its exception renderer for API requests when
+    // the component starts; use ours, which keeps internals out of 5xx bodies.
+    if ( Configure::read('Exception.renderer') == 'Crud.CrudExceptionRenderer' ) {
+      Configure::write('Exception.renderer', 'ZmExceptionRenderer');
+    }
     if ( ! ZM_OPT_USE_API ) {
       throw new UnauthorizedException(__('API Disabled'));
       return; 

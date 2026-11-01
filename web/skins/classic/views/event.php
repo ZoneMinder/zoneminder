@@ -294,24 +294,29 @@ $showEventStats = !(isset($_COOKIE['zmEventStats']) and $_COOKIE['zmEventStats']
 ?>
             <div id = "eventStats" class="col <?php echo $showEventStats ? 'col-sm-3' : 'col-sm-12' ?> eventStats">
               <div class="tags-container">
-                <div class="tag-dropdown">
-                  <!-- input type has to be "search" (not "text") so that the Enter button (not Next) works on mobile Chrome browser. -->
-                  <input type="search" id="tagInput" class="tag-input" placeholder="Add tag" data-role="tagsinput"<?php echo canEdit('Events') ? '' : ' disabled="disabled"' ?>>
-                  <div class="tag-dropdown-content"></div>
+                <div id="tags"></div>
+                <div class="tag-controls">
+                  <div class="tag-dropdown">
+                    <!-- input type has to be "search" (not "text") so that the Enter button (not Next) works on mobile Chrome browser. -->
+                    <input type="search" id="tagInput" class="tag-input" placeholder="Add tag" data-role="tagsinput">
+                    <div class="tag-dropdown-content"></div>
+                  </div>
+                  <div id="wrapperTagBtn">
+                    <button type="button" id="tagPrevBtn"<?php echo canEdit('Events') ? '' : ' disabled="disabled"' ?> title="<?php echo translate('Apply the last tag, then play the previous event') ?>" class="inactive" data-on-click-true="tagAndPrev">
+                      <i class="material-icons md-18"
+                        style="-moz-transform: scaleX(-1);
+                          -o-transform: scaleX(-1);
+                          -webkit-transform: scaleX(-1);
+                          transform: scaleX(-1);
+                          filter: FlipH;
+                          -ms-filter: 'FlipH';">
+                          label</i>
+                    </button>
+                    <button type="button" id="tagNextBtn"<?php echo canEdit('Events') ? '' : ' disabled="disabled"' ?> title="<?php echo translate('Apply the last tag, then play the next event') ?>" class="inactive" data-on-click-true="tagAndNext">
+                      <i class="material-icons md-18">label</i>
+                    </button>
+                  </div>
                 </div>
-                <button type="button" id="tagPrevBtn"<?php echo canEdit('Events') ? '' : ' disabled="disabled"' ?> title="<?php echo translate('Apply the last tag, then play the previous event') ?>" class="inactive" data-on-click-true="tagAndPrev">
-                  <i class="material-icons md-18"
-                    style="-moz-transform: scaleX(-1);
-                      -o-transform: scaleX(-1);
-                      -webkit-transform: scaleX(-1);
-                      transform: scaleX(-1);
-                      filter: FlipH;
-                      -ms-filter: 'FlipH';">
-                      label</i>
-                </button>
-                <button type="button" id="tagNextBtn"<?php echo canEdit('Events') ? '' : ' disabled="disabled"' ?> title="<?php echo translate('Apply the last tag, then play the next event') ?>" class="inactive" data-on-click-true="tagAndNext">
-                  <i class="material-icons md-18">label</i>
-                </button>
               </div><!--tags-container-->
               <div id="eventStatsDetails"<?php echo $showEventStats ? '' : ' style="display:none;"' ?>>
               <!-- VIDEO STATISTICS TABLE -->

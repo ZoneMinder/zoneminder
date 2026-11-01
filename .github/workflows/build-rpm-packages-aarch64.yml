@@ -28,6 +28,9 @@ jobs:
     if: github.repository == 'ZoneMinder/zoneminder'
     # Pin the arch: x64 self-hosted runners (fw2) also serve this repo.
     runs-on: [self-hosted, Linux, ARM64]
+    # Self-hosted runners don't reliably enforce the 6h default; a hung
+    # step (gpg import once wedged a runner for 34h) must not hold one forever.
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
@@ -109,7 +112,16 @@ jobs:
         run: |
           git config --global --add safe.directory /__w/zoneminder/zoneminder
 
+      # The runner-provided $HOME (/github/home) persists between jobs on
+      # self-hosted runners, so stale gpg lock files left by an earlier job can
+      # stall the import when their recorded PID is reused in the new container.
+      - name: Use a per-job GnuPG home
+        run: |
+          GNUPGHOME=$(mktemp -d)
+          echo "GNUPGHOME=${GNUPGHOME}" >> "$GITHUB_ENV"
+
       - name: Import GPG key
+        timeout-minutes: 5
         uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # v7
         with:
           gpg_private_key: ${{ secrets.ZMREPO_GPG_PRIVATE_KEY }}

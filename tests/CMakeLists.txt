@@ -18,6 +18,7 @@ set(TEST_SOURCES
   zm_db_logging_live.cpp
   zm_db_schema.cpp
   zm_monitor_dts.cpp
+  zm_monitor_decoder_queue.cpp
   zm_box.cpp
   zm_buffer.cpp
   zm_audio_detector.cpp

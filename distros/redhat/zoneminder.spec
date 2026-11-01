@@ -141,6 +141,7 @@ Requires: perl(Net::SMTP)
 Requires: perl(Net::FTP)
 Requires: perl(LWP::Protocol::https)
 Requires: perl(Module::Load::Conditional)
+Requires: perl(XML::LibXML)
 Requires: ca-certificates
 Requires: zip
 %{?systemd_requires}

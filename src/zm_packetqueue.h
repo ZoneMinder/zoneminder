@@ -59,6 +59,10 @@ class PacketQueue {
   uint64_t next_queue_index_;
   uint64_t first_queue_index_;  // queue_index of the first packet queued since the last clear()
   uint64_t released_before_;    // releaseDecoded() has handled every packet before this queue_index
+  uint64_t capped_before_;      // decoded data freed under max_video_packet_count before this queue_index
+  // A GOP longer than max_video_packet_count was seen with keep_keyframes on and
+  // reported; cleared when either setting changes or the queue is cleared.
+  bool keyframe_interval_over_limit_;
 
  public:
   PacketQueue();
@@ -69,7 +73,8 @@ class PacketQueue {
   int addStream();
   void setMaxVideoPackets(int p);
   void setPreEventVideoPackets(int p);
-  void setKeepKeyframes(bool k) { keep_keyframes = k; };
+  void setKeepKeyframes(bool k);
+  bool keyframe_interval_over_limit() const { return keyframe_interval_over_limit_; }
 
   bool queuePacket(std::shared_ptr<ZMPacket> packet);
   void stop();

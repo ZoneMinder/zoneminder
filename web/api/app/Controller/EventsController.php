@@ -22,7 +22,7 @@ class EventsController extends AppController {
   public function beforeFilter() {
     parent::beforeFilter();
     global $user;
-    $canView = (!$user) || ($user->Events() != 'None');
+    $canView = (!$user) || ($user->canView('Events'));
     if ( !$canView ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
@@ -261,6 +261,13 @@ class EventsController extends AppController {
 
     $options = array('conditions' => array(array('Event.' . $this->Event->primaryKey => $id), $mon_options));
     $event = $this->Event->find('first', $options);
+    # The event exists (checked above), so an empty result means the monitor
+    # condition filtered it out. Refuse here: an empty ZM\Event has no monitor
+    # and passes canView(), and the code below would then fill in the hidden
+    # event's neighbours and frame ids by $id alone.
+    if (!$event) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+    }
     $EventObj = new ZM\Event($event['Event']);
     if (!$EventObj->canView()) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
@@ -315,7 +322,7 @@ class EventsController extends AppController {
   public function add() {
 
     global $user;
-    $canEdit = (!$user) || ($user->Events() == 'Edit');
+    $canEdit = (!$user) || ($user->canEdit('Events'));
     if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
@@ -347,7 +354,7 @@ class EventsController extends AppController {
   public function edit($id = null) {
 
     global $user;
-    $canEdit = (!$user) || ($user->Events() == 'Edit');
+    $canEdit = (!$user) || ($user->canEdit('Events'));
     if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
@@ -397,7 +404,7 @@ class EventsController extends AppController {
    */
   public function delete($id = null) {
     global $user;
-    $canEdit = (!$user) || ($user->Events() == 'Edit');
+    $canEdit = (!$user) || ($user->canEdit('Events'));
     if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;

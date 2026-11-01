@@ -72,6 +72,80 @@ class FilterComponent extends Component {
     'direction'
   );
 
+	// Check the fields of named parameters against the tables a find() reads,
+	// and write each one so MySQL finds exactly one column.
+	//
+	// $fields maps a model alias to its column names, the queried model first.
+	// A bare field that is a column of the queried model is written Model.Field,
+	// so a name that is also a column of a joined table (Id, Name) is not
+	// ambiguous. Otherwise it must be a column of exactly one joined model
+	// (Status, CaptureFPS from Monitor_Status) and is left bare, which MySQL
+	// resolves to that table; buildFilter() does not accept an alias with an
+	// underscore such as Monitor_Status. A field written Model.Field must be a
+	// column of one of the models in $fields. Names in $unqualified are left as
+	// they are for the caller to resolve (GroupId; matched exactly, as the
+	// caller looks for it). Column names match without regard to case, as in
+	// MySQL, and are written as the schema spells them.
+	//
+	// A field no model has, or a bare field two joined models have and the
+	// queried model does not, is a 400 naming the field. It used to reach MySQL
+	// as an unknown or ambiguous column and come back as a 500 carrying the SQL
+	// error. Parameters buildFilter() skips or rejects are passed through to it.
+	public function qualifyFields($namedParams, $fields, $unqualified = array()) {
+		if (!$namedParams) {
+			return $namedParams;
+		}
+		reset($fields);
+		$model = key($fields);
+		$scoped = array();
+		foreach ($namedParams as $attribute => $value) {
+			$lhs = trim($attribute);
+			$matches = NULL;
+			if (in_array($lhs, $this->paramsToFilterOut)
+				or preg_match('/^(?P<field>[a-z0-9\.]+)(?P<rest>.*)$/is', $lhs, $matches) !== 1) {
+				$scoped[$attribute] = $value;
+				continue;
+			}
+			$field = $matches['field'];
+			$dot = strrpos($field, '.');
+			if ($dot === false) {
+				if (in_array($field, $unqualified, true)) {
+					$scoped[$attribute] = $value;
+					continue;
+				}
+				$alias = false;
+				$column = $field;
+			} else {
+				$alias = substr($field, 0, $dot);
+				$column = substr($field, $dot + 1);
+			}
+			$found = array();
+			foreach ($fields as $name => $columns) {
+				if ($alias !== false and strcasecmp($name, $alias)) {
+					continue;
+				}
+				foreach ($columns as $c) {
+					if (!strcasecmp($c, $column)) {
+						$found[] = ($alias === false and $name != $model) ? $c : $name.'.'.$c;
+						break;
+					}
+				}
+				if ($alias === false and $name == $model and count($found)) {
+					break;
+				}
+			}
+			if (!count($found)) {
+				throw new BadRequestException('Unknown filter field: ' . $field);
+			}
+			if (count($found) > 1) {
+				throw new BadRequestException('Ambiguous filter field: ' . $field);
+			}
+			$found = $found[0];
+			$scoped[$found.$matches['rest']] = $value;
+		}
+		return $scoped;
+	}
+
 	// Build a CakePHP find() condition based on the named parameters
 	// that are passed in.
 	//

@@ -24,11 +24,13 @@ class ZM_RtspServer_Authenticator : public xop::Authenticator {
         return true;
       }
       std::string url = request->GetRtspUrl();
-      Debug(1, "Doing auth %s", url.c_str());
 
       User *user = nullptr;
 
       size_t found = url.find("?");
+      // The query string carries the credentials (password, auth hash, token),
+      // so only the part before it is logged.
+      Debug(1, "Doing auth %s", url.substr(0, found).c_str());
       if (found == std::string::npos) return false;
 
       std::string queryString = url.substr(found+1, std::string::npos);
@@ -39,7 +41,6 @@ class ZM_RtspServer_Authenticator : public xop::Authenticator {
           suffix_string = suffix_string.substr(0, found);
 #endif
 
-      Debug(1, "suffix %s", queryString.c_str());
       std::istringstream requestStream(queryString);
       QueryString query(requestStream);
 
@@ -68,7 +69,7 @@ class ZM_RtspServer_Authenticator : public xop::Authenticator {
         if ((!user) and query.has("username") and query.has("password")) {
           std::string username = query.get("username")->firstValue();
           std::string password = query.get("password")->firstValue();
-          Debug(1, "username %s password %s", username.c_str(), password.c_str());
+          Debug(1, "Checking password for username %s", username.c_str());
           user = zmLoadUser(username.c_str(), password.c_str());
         }
       }  // end if query string

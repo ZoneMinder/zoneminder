@@ -307,7 +307,7 @@ class Filter extends ZM_Object {
           }
         }
         $url .= '&view=filter&object=filter&action=control&command='.$command.'&Id='.$this->Id().'&ServerId='.$Server->Id();
-        Debug("sending command to $url");
+        Debug("sending command to ".urlForLog($url));
         $data = array();
         if ( defined('ZM_ENABLE_CSRF_MAGIC') ) {
           require_once( 'includes/csrf/csrf-magic.php' );
@@ -324,9 +324,9 @@ class Filter extends ZM_Object {
         );
         $context  = stream_context_create($options);
         try {
-          $result = file_get_contents($url, false, $context);
+          $result = @file_get_contents($url, false, $context);
           if ( $result === FALSE ) { /* Handle error */
-            Error("Error restarting zmfilter.pl using $url");
+            Error("Error restarting zmfilter.pl using ".urlForLog($url));
           }
         } catch ( Exception $e ) {
           Error("Except $e thrown trying to restart zmfilter");

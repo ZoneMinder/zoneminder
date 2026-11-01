@@ -103,7 +103,8 @@ sub delete_path {
     my $url = $$self{Url};
     $url =~ s/^(s3|s3fs):\/\///ig;
     my ( $aws_id, $aws_secret, $aws_host, $aws_bucket, $subpath ) = ( $url =~ /^\s*([^:]+):([^@]+)@([^\/]*)\/([^\/]+)(\/.+)?\s*$/ );
-    Debug("S3 url parsed to id:$aws_id secret:$aws_secret host:$aws_host, bucket:$aws_bucket, subpath:$subpath\n from $url");
+    # The S3 secret key is a credential: log the id, host and bucket only.
+    Debug("S3 url parsed to id:$aws_id host:$aws_host, bucket:$aws_bucket, subpath:$subpath");
     eval {
       require Net::Amazon::S3;
       my $s3 = Net::Amazon::S3->new( {

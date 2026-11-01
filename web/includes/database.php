@@ -128,6 +128,15 @@ function dbEscape( $string ) {
     return $dbConn->quote($string);
 }
 
+// The bound values of a failed statement go to the Logs table, which every
+// System=View user can read; for a Users or Monitors write those values are
+// password hashes and camera passwords. Log them only with SQL debugging on.
+function dbParamsForLog($params) {
+  if ( !$params ) return '';
+  if ( defined('ZM_DB_DEBUG') ) return implode(',', $params);
+  return count($params).' values, logged with ZM_DB_DEBUG';
+}
+
 function dbQuery($sql, $params=NULL, $debug = false) {
   global $dbConn;
   if (dbLog($sql, true))
@@ -158,7 +167,7 @@ function dbQuery($sql, $params=NULL, $debug = false) {
       ZM\Debug('SQL: '.$sql.' '.($params?implode(',',$params):'').' rows: '.$result->rowCount());
     }
   } catch(PDOException $e) {
-    ZM\Error("SQL-ERR '".$e->getMessage()."', statement was '".$sql."' params:" . ($params?implode(',',$params):''));
+    ZM\Error("SQL-ERR '".$e->getMessage()."', statement was '".$sql."' params:" . dbParamsForLog($params));
     return NULL;
   }
   return $result;
@@ -167,7 +176,7 @@ function dbQuery($sql, $params=NULL, $debug = false) {
 function dbFetchOne($sql, $col=false, $params=NULL) {
   $result = dbQuery($sql, $params);
   if ( !$result ) {
-    ZM\Error("SQL-ERR dbFetchOne no result, statement was '".$sql."'".($params ? 'params: ' . join(',',$params) : ''));
+    ZM\Error("SQL-ERR dbFetchOne no result, statement was '".$sql."'".($params ? ' params: '.dbParamsForLog($params) : ''));
     return false;
   }
   if ( !$result->rowCount() ) {
@@ -178,7 +187,7 @@ function dbFetchOne($sql, $col=false, $params=NULL) {
   if ( $result && ($dbRow = $result->fetch(PDO::FETCH_ASSOC)) ) {
     if ( $col ) {
       if ( ! array_key_exists($col, $dbRow) ) {
-        ZM\Warning("$col does not exist in the returned row " . print_r($dbRow, true));
+        ZM\Warning("$col does not exist in the returned row " . print_r(ZM\redactForLog($dbRow), true));
         return false;
       }
       return $dbRow[$col];
@@ -192,7 +201,7 @@ function dbFetchAll($sql, $col=false, $params=NULL) {
   $dbRows = array();
   $result = dbQuery($sql, $params);
   if ( ! $result ) {
-    ZM\Error("SQL-ERR dbFetchAll no result, statement was '".$sql."'".($params ? 'params: '.join(',', $params) : ''));
+    ZM\Error("SQL-ERR dbFetchAll no result, statement was '".$sql."'".($params ? ' params: '.dbParamsForLog($params) : ''));
     return $dbRows;
   }
 

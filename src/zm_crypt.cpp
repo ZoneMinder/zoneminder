@@ -182,7 +182,7 @@ bool verifyPassword(const char *username, const char *input_password, const char
       sprintf(&final_hash[i*2]+1, "%02X", (unsigned int)digest_final[i]);
     final_hash[SHA_DIGEST_LENGTH *2 + 1] = 0;
 
-    Debug(1, "Computed password_hash:%s, stored password_hash:%s", final_hash, db_password_hash);
+    // The computed and stored password hashes are credentials: never log them.
     password_correct = (strcmp(db_password_hash, final_hash)==0);
   } else if (
       (db_password_hash[0] == '$')

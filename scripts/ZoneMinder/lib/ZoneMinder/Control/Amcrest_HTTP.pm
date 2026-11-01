@@ -71,7 +71,7 @@ sub open {
     $self->{ua}->credentials($uri->host_port(), $realm, $username, $password);
     # Testing seems to show that we need the username/password in each url as well as credentials
     $$self{base_url} = $uri->canonical();
-    Debug('Using initial credentials for '.$uri->host_port().", $realm, $username, $password, base_url: $$self{base_url} auth:".$uri->authority());
+    Debug('Using initial credentials for '.$uri->host_port().", $realm, $username, base_url: $$self{base_url}");
   }
 
   # Detect REALM, has to be /cgi-bin/ptz.cgi because just / accepts no auth

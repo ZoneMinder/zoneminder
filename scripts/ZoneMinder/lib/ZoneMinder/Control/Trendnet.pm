@@ -151,7 +151,7 @@ sub sendCmdPost {
     Content=>$form
   );
 
-  Debug("sendCmdPost credentials control to: $PROTOCOL$ADDRESS$url realm:'" . $REALM . "'  username:'" . $USERNAME . "' password:'".$PASSWORD."'");
+  Debug("sendCmdPost credentials control to: $PROTOCOL$ADDRESS$url realm:'" . $REALM . "'  username:'" . $USERNAME . "'");
 
   if ( $res->is_success ) {
     Debug($res->content);

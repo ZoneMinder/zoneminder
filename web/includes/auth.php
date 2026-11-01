@@ -105,7 +105,7 @@ function validateUser($username='', $password='') {
     ZM\Debug("Detected bcrypt overlay hashing for $username");
     $bcrypt_hash = substr($user['Password'], 4);
     $mysql_encoded_password = '*'.strtoupper(sha1(sha1($password, true)));
-    ZM\Debug("Comparing password $mysql_encoded_password to bcrypt hash: $bcrypt_hash");
+    // The encoded password and the stored hash are credentials: never log them.
     $password_correct = password_verify($mysql_encoded_password, $bcrypt_hash);
     break;
   default:
@@ -244,7 +244,7 @@ function getAuthUser($auth) {
     } // end if 
   } // end if using auth hash
 
-  ZM\Error("Unable to authenticate user from auth hash '$auth'");
+  ZM\Error('Unable to authenticate user from auth hash '.ZM\logFingerprint($auth));
   return null;
 } // end getAuthUser($auth)
 

@@ -27,7 +27,7 @@ class ZM_Object {
 
       if ( $row ) {
         if (!isset($row['Id'])) {
-          Error("No Id in " . print_r($row, true));
+          Error("No Id in " . print_r(redactForLog($row), true));
           return;
         }
         foreach ($row as $k => $v) {

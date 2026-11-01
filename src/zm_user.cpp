@@ -225,7 +225,7 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
     }
   }
 
-  Debug(1, "Attempting to authenticate user from auth string '%s', remote addr(%s)", auth, remote_addr);
+  Debug(1, "Attempting to authenticate user from auth hash, remote addr(%s)", remote_addr);
   std::string sql = "SELECT `Id`, `Username`, `Password`, `Enabled`,"
                     " `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0,"
                     " `MonitorIds` FROM `Users` WHERE `Enabled` = 1";
@@ -292,8 +292,8 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
       }
       *auth_md5_ptr = 0;
 
-      Debug(1, "Checking auth_key '%s' -> auth_md5 '%s' == '%s'",
-          auth_key, auth_md5, auth);
+      // auth_key holds ZM_AUTH_HASH_SECRET and the stored password hash: never log it.
+      Debug(1, "Checking auth hash for user '%s'", username);
 
       if ( !strcmp(auth, auth_md5) ) {
         // We have a match
@@ -302,7 +302,7 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
         mysql_free_result(result);
         return user;
       } else {
-        Debug(1, "No match for %s", auth);
+        Debug(1, "No match for user '%s'", username);
       }
     }  // end foreach hour
   }  // end foreach user
@@ -310,7 +310,7 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
 #else  // HAVE_DECL_MD5 || HAVE_DECL_GNUTLS_FINGERPRINT
   Error("You need to build with gnutls or openssl to use hash based auth");
 #endif  // HAVE_DECL_MD5 || HAVE_DECL_GNUTLS_FINGERPRINT
-  Debug(1, "No user found for auth_key %s", auth);
+  Debug(1, "No user found for auth hash");
   return nullptr;
 }  // end User *zmLoadAuthUser( const char *auth, bool use_remote_addr )
 

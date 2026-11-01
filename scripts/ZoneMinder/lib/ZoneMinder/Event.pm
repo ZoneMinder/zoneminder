@@ -446,7 +446,7 @@ sub delete_files {
         my $url = $$Storage{Url};
         $url =~ s/^(s3|s3fs):\/\///ig;
         my ( $aws_id, $aws_secret, $aws_host, $aws_bucket, $subpath ) = ( $url =~ /^\s*([^:]+):([^@]+)@([^\/]*)\/([^\/]+)(\/.+)?\s*$/ );
-        Debug("S3 url parsed to id:$aws_id secret:$aws_secret host:$aws_host, bucket:$aws_bucket, subpath:$subpath\n from $url");
+        Debug("S3 url parsed to id:$aws_id host:$aws_host, bucket:$aws_bucket, subpath:$subpath");
         eval {
           require Net::Amazon::S3;
           my $s3 = Net::Amazon::S3->new( {
@@ -637,7 +637,7 @@ sub CopyTo {
       my $url = $$NewStorage{Url};
       $url =~ s/^(s3|s3fs):\/\///ig;
       my ( $aws_id, $aws_secret, $aws_host, $aws_bucket, $subpath ) = ( $url =~ /^\s*([^:]+):([^@]+)@([^\/]*)\/([^\/]+)(\/.+)?\s*$/ );
-      Debug("S3 url parsed to id:$aws_id secret:$aws_secret host:$aws_host, bucket:$aws_bucket, subpath:$subpath\n from $url");
+      Debug("S3 url parsed to id:$aws_id host:$aws_host, bucket:$aws_bucket, subpath:$subpath");
       if ( $aws_id and $aws_secret and $aws_host and $aws_bucket ) {
         eval {
           require Net::Amazon::S3;

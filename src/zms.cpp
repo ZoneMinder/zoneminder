@@ -234,8 +234,10 @@ int main(int argc, const char *argv[], char **envp) {
         fputs("Status: 403\r\nContent-Type: text/html\r\n", stdout);
       }
 
-      const char *referer = getenv("HTTP_REFERER");
-      Error("Unable to authenticate user from %s", referer);
+      // The referer URL can carry the request's credentials (pass=, auth=,
+      // token=) in its query string; this Error reaches the Logs table by
+      // default, so it is no longer logged.
+      Error("Unable to authenticate user");
       return exit_zms(0);
     }
     if ( !ValidateAccess(user, monitor_id) ) {

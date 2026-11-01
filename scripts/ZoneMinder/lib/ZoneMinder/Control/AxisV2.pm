@@ -74,7 +74,7 @@ sub open {
   $self->{state} = 'closed';
 
   my ( $username, $password, $host ) = ( $uri->authority() =~ /^([^:]+):([^@]*)@(.+)$/ );
-  Debug("Have username: $username password: $password host: $host from authority:" . $uri->authority());
+  Debug("Have username: $username host: $host");
   
   $uri->userinfo(undef);
 

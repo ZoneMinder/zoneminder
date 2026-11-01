@@ -20,6 +20,7 @@
 //
 require_once('Filter.php');
 require_once('FilterTerm.php');
+require_once('Network.php');
 
 // Compatibility functions
 if ( version_compare(phpversion(), '4.3.0', '<') ) {
@@ -64,40 +65,20 @@ function CSPHeaders($view, $nonce) {
 }
 
 function CORSHeaders() {
-  if ( isset($_SERVER['HTTP_ORIGIN']) ) {
-
-# The following is left for future reference/use.
-    $valid = false;
+  if ( isset($_SERVER['HTTP_ORIGIN']) and $_SERVER['HTTP_ORIGIN'] !== '' ) {
     global $Servers;
     if ( ! $Servers )
       $Servers = ZM\Server::find();
-    if ( sizeof($Servers) < 1 ) {
-# Only need CORSHeaders in the event that there are multiple servers in use.
-      # ICON: Might not be true. multi-port?
-      if ( ZM_MIN_STREAMING_PORT ) {
-        ZM\Debug('Setting default Access-Control-Allow-Origin from ' . $_SERVER['HTTP_ORIGIN']);
-        header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
-        header('Access-Control-Allow-Credentials: true');
-        header('Access-Control-Allow-Headers: x-requested-with,x-request');
-      }
-      return;
-    }
-    foreach ( $Servers as $Server ) {
-      if (
-        preg_match('/^(https?:\/\/)?'.preg_quote($Server->Hostname(),'/').'/i', $_SERVER['HTTP_ORIGIN'])
-        or
-        preg_match('/^(https?:\/\/)?'.preg_quote($Server->Name(),'/').'/i', $_SERVER['HTTP_ORIGIN'])
-      ) {
-        $valid = true;
-        ZM\Debug('Setting Access-Control-Allow-Origin from '.$_SERVER['HTTP_ORIGIN']);
-        header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
-        header('Access-Control-Allow-Credentials: true');
-        header('Access-Control-Allow-Headers: x-requested-with,x-request');
-        break;
-      }
-    }
-    if ( !$valid ) {
+    $origin = corsAllowedOrigin();
+    if ( $origin !== '' ) {
+      ZM\Debug('Setting Access-Control-Allow-Origin from '.$origin);
+      header('Access-Control-Allow-Origin: ' . $origin);
+      header('Access-Control-Allow-Credentials: true');
+      header('Access-Control-Allow-Headers: x-requested-with,x-request');
+    } else if ( sizeof($Servers) ) {
       ZM\Warning($_SERVER['HTTP_ORIGIN'] . ' is not found in servers list.');
+    } else {
+      ZM\Debug('CORS: '.$_SERVER['HTTP_ORIGIN'].' is not this host, no headers sent');
     }
   }
 }

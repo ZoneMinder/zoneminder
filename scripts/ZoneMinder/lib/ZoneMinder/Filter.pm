@@ -239,6 +239,8 @@ sub Sql {
           $self->{Sql} .= 'extract( hour_second from NOW())';
         } elsif ( $term->{attr} eq 'CurrentDate' ) {
           $self->{Sql} .= 'to_days(NOW())';
+        } elsif ( $term->{attr} eq 'CurrentWeekday' ) {
+          $self->{Sql} .= 'weekday(NOW())';
         } elsif ( $term->{attr} eq 'DateTime' ) {
           $self->{Sql} .= 'E.StartDateTime';
         } elsif ( $term->{attr} eq 'Date' ) {

@@ -130,6 +130,8 @@ echo output_cache_busted_stylesheet_links(array(
     echo output_link_if_exists(array('/css/base/views/control.css'));
     if ( $css != 'base' )
       echo output_link_if_exists(array('/css/'.$css.'/views/control.css'));
+  } else if ( $basename == 'event' ) {
+    echo output_link_if_exists(array('/assets/glightbox/dist/css/glightbox.min.css'));
   }
 ?>
   <style>
@@ -1855,6 +1857,9 @@ function xhtmlFooter() {
     echo output_script_if_exists(array('assets/pro-sidebar-template/dist/main.js'));
     echo output_script_if_exists(array('assets/mb.extruder/inc/mbExtruder.js'));
     echo output_script_if_exists(array('assets/swiped-events/dist/swiped-events.min.js'));
+  }
+  if ( $basename == 'event' ) {
+    echo output_script_if_exists(array('assets/glightbox/dist/js/glightbox.min.js'));
   }
   if ( $basename == 'montage' ) {
   } else if ( $basename == 'watch' || $basename == 'event') {

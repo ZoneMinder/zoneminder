@@ -241,7 +241,9 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   $values = array();
   $likes = array();
   // ZM\Error($filter->sql());
-  $where = $filter->sql()?' WHERE ('.$filter->sql().')' : '';
+  // Monitors are only soft-deleted and their events are not listed. Leave them out here,
+  // before the filter limit, the paging and the totals, so the counts match the rows shown.
+  $where = ' WHERE M.Deleted = false'.($filter->sql() ? ' AND ('.$filter->sql().')' : '');
   $has_post_sql_conditions = count($filter->post_sql_conditions());
 
 
@@ -349,7 +351,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     INNER JOIN Monitors AS M ON E.MonitorId = M.Id 
     LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId 
     LEFT JOIN Tags AS T ON T.Id = ET.TagId 
-    WHERE '.$search_filter->sql().'
+    WHERE M.Deleted = false AND ('.$search_filter->sql().')
     GROUP BY E.Id'
     .($sort ? ' ORDER BY '.$sort : '');
 
@@ -369,7 +371,6 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $event = new ZM\Event($row);
     $event->remove_from_cache();
     if (!$event->canView()) continue;
-    if ($event->Monitor()->Deleted()) continue;
 
     $scale = $event->Width() ? intval(5*100*ZM_WEB_LIST_THUMB_WIDTH / $event->Width()) : 100;
     $imgSrc = $event->getThumbnailSrc(array(), '&amp;');

@@ -185,6 +185,12 @@ function buildMenuItem($viewItemName, $id, $itemName, $href, $icon, $classNameFo
     $activeClass = $view == $viewItemName ? ' active' : '';
   }
   $itemName = translate($itemName);
+  // Escape the attribute values here rather than trust every caller to. An
+  // entity a caller already wrote (&amp;) is kept as it is, so a pre-escaped
+  // href is not escaped twice.
+  $id = htmlspecialchars((string)$id, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', false);
+  $href = htmlspecialchars((string)$href, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', false);
+  $classNameForTag_A = htmlspecialchars((string)$classNameForTag_A, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', false);
   $result = '
             <li id="' . $id . '" class="menu-item '.$activeClass.'">
               <a href="' . $href . '" class="' . $classNameForTag_A . '">
@@ -1239,30 +1245,33 @@ function getMontageReviewHTML($view, $forLeftBar = false) {
       $terms = $_REQUEST['filter']['Query']['terms'];
       $count = 0;
       foreach ($terms as $term) {
+        if (!is_array($term) or !isset($term['attr'], $term['op'], $term['val'])) continue;
         if ( $term['attr'] == 'StartDateTime' ) {
           $count += 1;
           if ($term['op'] == '>=') $minTime = $term['val'];
           if ($term['op'] == '<=') $maxTime = $term['val'];
         }
       }
-      if ( $count == 2 ) {
-        $montageReviewQuery = '&minTime='.$minTime.'&maxTime='.$maxTime;
+      if ( $count == 2 and isset($minTime, $maxTime) and is_string($minTime) and is_string($maxTime) ) {
+        // Request values: encode them for the query string here, the whole href is HTML-escaped below.
+        $montageReviewQuery = '&minTime='.urlencode($minTime).'&maxTime='.urlencode($maxTime);
       }
     }
     $live = isset($montageReviewQuery) ? '&fit=1'.$montageReviewQuery.'&live=0' : '';
+    $href = validHtmlStr('?view=montagereview'.$live);
     $class = $view == 'montagereview' ? ' selected' : '';
     if ($forLeftBar) {
       $result .= buildMenuItem(
         $viewItemName = 'montagereview',
         $id = 'getMontageReviewHTML',
         $itemName = 'MontageReview',
-        $href = '?view=montagereview' .$live,
+        $href,
         $icon = 'movie',
         $classNameForTag_A = '',
         $subMenu = ''
       );
     } else {
-      $result .= '<li id="getMontageReviewHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=montagereview' .$live. '">'.translate('MontageReview').'</a></li>'.PHP_EOL;
+      $result .= '<li id="getMontageReviewHTML" class="nav-item"><a class="nav-link'.$class.'" href="'.$href.'">'.translate('MontageReview').'</a></li>'.PHP_EOL;
     }
   }
 

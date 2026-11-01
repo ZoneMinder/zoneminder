@@ -493,3 +493,79 @@ TEST_CASE("Go2RTCApiEndpoint", "[utils]") {
   REQUIRE(Go2RTCApiEndpoint("http://user:pass@cam:1984") == "http://user:pass@cam:1984/api");
   REQUIRE(Go2RTCApiEndpoint("") == "");
 }
+
+TEST_CASE("authentication with a raw @ in the password") {
+  // ffmpeg splits the authority at its last '@', so such a password works;
+  // all of it must be removed, not just the part before the first '@'.
+  SECTION("remove_authentication") {
+    REQUIRE(remove_authentication("rtsp://admin:p@ss@192.168.1.1:554/s") == "rtsp://192.168.1.1:554/s");
+    REQUIRE(remove_authentication("admin:p@ss@192.168.1.1") == "192.168.1.1");
+  }
+  SECTION("mask_authentication") {
+    std::string masked = mask_authentication("rtsp://admin:p@ss@192.168.1.1:554/s");
+    REQUIRE(masked.find("ss") == std::string::npos);
+    REQUIRE(masked.find("@192.168.1.1:554/s") != std::string::npos);
+  }
+  SECTION("url_for_log") {
+    REQUIRE(url_for_log("rtsp://admin:p@ss@192.168.1.1/s?x=1") == "rtsp://192.168.1.1/s?...");
+  }
+  SECTION("an @ in the path or query is not userinfo") {
+    REQUIRE(remove_authentication("http://192.168.1.1/a@b") == "http://192.168.1.1/a@b");
+    REQUIRE(remove_authentication("http://192.168.1.1/x?mail=a@b") == "http://192.168.1.1/x?mail=a@b");
+    REQUIRE(mask_authentication("http://192.168.1.1/x?mail=a@b") == "http://192.168.1.1/x?mail=a@b");
+  }
+}
+
+TEST_CASE("request_for_log") {
+  SECTION("Basic credentials and the query string are removed") {
+    std::string req = "GET /snap.cgi?user=admin&pwd=CamPw1 HTTP/1.0\r\n"
+                      "User-Agent: ZoneMinder\r\n"
+                      "Host: 192.168.1.10\r\n"
+                      "Authorization: Basic YWRtaW46Q2FtUHcx\r\n\r\n";
+    REQUIRE(request_for_log(req) == "GET /snap.cgi?... HTTP/1.0\r\n"
+                                    "User-Agent: ZoneMinder\r\n"
+                                    "Host: 192.168.1.10\r\n"
+                                    "Authorization: <not logged>\r\n\r\n");
+  }
+  SECTION("a Digest header and an RTSP request with userinfo") {
+    std::string req = "DESCRIBE rtsp://u:pw@10.0.0.2:554/s RTSP/1.0\r\n"
+                      "CSeq: 2\r\n"
+                      "authorization: Digest username=\"u\", response=\"0123abcd\"\r\n\r\n";
+    std::string out = request_for_log(req);
+    REQUIRE(out == "DESCRIBE rtsp://10.0.0.2:554/s RTSP/1.0\r\nCSeq: 2\r\nauthorization: <not logged>\r\n\r\n");
+  }
+  SECTION("a request without credentials is unchanged") {
+    std::string req = "GET /video.mjpg HTTP/1.1\r\nHost: cam\r\n\r\n";
+    REQUIRE(request_for_log(req) == req);
+    REQUIRE(request_for_log("") == "");
+  }
+}
+
+TEST_CASE("url_for_log") {
+  SECTION("plain url is unchanged") {
+    REQUIRE(url_for_log("rtsp://127.0.0.1:8554/cam") == "rtsp://127.0.0.1:8554/cam");
+  }
+  SECTION("credentials are removed") {
+    REQUIRE(url_for_log("rtsp://admin:secret@192.168.1.1/stream") == "rtsp://192.168.1.1/stream");
+  }
+  SECTION("the query string is removed") {
+    REQUIRE(url_for_log("rtsp://127.0.0.1:8554/cam?auth=0123456789abcdef") == "rtsp://127.0.0.1:8554/cam?...");
+    REQUIRE(url_for_log("rtsp://127.0.0.1:8554/cam?username=u&password=p") == "rtsp://127.0.0.1:8554/cam?...");
+  }
+  SECTION("an @ in the query does not cut the host") {
+    REQUIRE(url_for_log("http://host/x?token=a@b") == "http://host/x?...");
+  }
+  SECTION("a request URI without scheme or host (zms REQUEST_URI)") {
+    REQUIRE(url_for_log("/zm/cgi-bin/nph-zms?mode=single&monitor=1&user=u&pass=p")
+            == "/zm/cgi-bin/nph-zms?...");
+    REQUIRE(url_for_log("/zm/cgi-bin/nph-zms?monitor=1&auth=0123456789abcdef&user=a@b")
+            == "/zm/cgi-bin/nph-zms?...");
+    REQUIRE(url_for_log("/zm/cgi-bin/nph-zms") == "/zm/cgi-bin/nph-zms");
+  }
+  SECTION("both") {
+    std::string out = url_for_log("rtsp://u:pw@10.0.0.2/s?token=eyJabc");
+    REQUIRE(out == "rtsp://10.0.0.2/s?...");
+    REQUIRE(out.find("pw") == std::string::npos);
+    REQUIRE(out.find("eyJ") == std::string::npos);
+  }
+}

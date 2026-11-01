@@ -60,7 +60,7 @@ Monitor::RTSP2WebManager::RTSP2WebManager(Monitor *parent_) :
       }
     }
   }  // end if !user.empty
-  Debug(1, "Monitor %u rtsp url is %s", parent->id, rtsp_path.c_str());
+  Debug(1, "Monitor %u rtsp url is %s", parent->id, url_for_log(rtsp_path).c_str());
 }
 
 Monitor::RTSP2WebManager::~RTSP2WebManager() {
@@ -148,7 +148,8 @@ int Monitor::RTSP2WebManager::add_to_RTSP2Web() {
    }
    postData += "}" "}";
 
-  Debug(1, "Sending %s to %s", postData.c_str(), endpoint.c_str());
+  // postData carries the camera URLs with their credentials: do not log it.
+  Debug(1, "Sending stream %s (%s) to %s", parent->Name(), url_for_log(rtsp_path).c_str(), endpoint.c_str());
 
   CURLcode res;
   std::string response;

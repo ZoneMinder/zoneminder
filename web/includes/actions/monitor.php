@@ -157,7 +157,7 @@ if ($action == 'save') {
   }
 
   $changes = $monitor->changes($newMonitor);
-  ZM\Debug('Changes: '. print_r($changes, true));
+  ZM\Debug('Changes: '. print_r(ZM\redactForLog($changes), true));
   $restart = false;
 
   if (count($changes)) {

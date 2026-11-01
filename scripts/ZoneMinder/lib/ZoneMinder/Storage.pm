@@ -103,7 +103,7 @@ sub s3 {
     $$self{aws_bucket} = $aws_bucket;
     $$self{aws_subpath} = $subpath;
     $subpath = '' if !$subpath;
-    Debug("S3 url parsed to id:$aws_id secret:$aws_secret host:$aws_host, bucket:$aws_bucket, subpath:$subpath\n from $url");
+    Debug("S3 url parsed to id:$aws_id host:$aws_host, bucket:$aws_bucket, subpath:$subpath from ".urlForLog($$self{Url}));
     if ($aws_id and $aws_secret and $aws_host and $aws_bucket) {
       eval {
         require Net::Amazon::S3;

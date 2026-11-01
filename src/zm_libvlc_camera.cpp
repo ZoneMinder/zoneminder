@@ -214,7 +214,7 @@ void LibvlcCamera::Terminate() {
 }
 
 int LibvlcCamera::PrimeCapture() {
-  Debug(1, "Priming capture from %s, libvlc version %s", mPath.c_str(), (*libvlc_get_version_f)());
+  Debug(1, "Priming capture from %s, libvlc version %s", remove_authentication(mPath).c_str(), (*libvlc_get_version_f)());
 
   opVect = Split(Options(), ",");
 
@@ -255,19 +255,19 @@ int LibvlcCamera::PrimeCapture() {
     if ( protocol == "RTSP" ) {
       // build the actual uri string with encoded parameters (from the user and pass fields)
       mPath = StringToLower(protocol) + "://" + mUser + ":" + mPass + "@" + mMaskedPath.substr(7, std::string::npos);
-      Debug(1, "Rebuilt URI with encoded parameters: '%s'", mPath.c_str());
+      Debug(1, "Rebuilt URI with encoded parameters: '%s'", remove_authentication(mPath).c_str());
     }
   }
 
   mLibvlcMedia = (*libvlc_media_new_location_f)(mLibvlcInstance, mPath.c_str());
   if ( mLibvlcMedia == nullptr ) {
-    Error("Unable to open input %s due to: %s", mPath.c_str(), (*libvlc_errmsg_f)());
+    Error("Unable to open input %s due to: %s", remove_authentication(mPath).c_str(), (*libvlc_errmsg_f)());
     return -1;
   }
 
   mLibvlcMediaPlayer = (*libvlc_media_player_new_from_media_f)(mLibvlcMedia);
   if ( mLibvlcMediaPlayer == nullptr ) {
-    Error("Unable to create player for %s due to: %s", mPath.c_str(), (*libvlc_errmsg_f)());
+    Error("Unable to create player for %s due to: %s", remove_authentication(mPath).c_str(), (*libvlc_errmsg_f)());
     return -1;
   }
 

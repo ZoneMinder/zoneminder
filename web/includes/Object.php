@@ -1,6 +1,8 @@
 <?php
 namespace ZM;
 require_once('database.php');
+// No dependencies; loaded here too for includes that stub database.php.
+require_once(__DIR__.'/log_redact.php');
 
 $object_cache = array();
 
@@ -36,7 +38,7 @@ class ZM_Object {
           $this->$k = $v;
         }
         if (!isset($row['Id'])) {
-          Debug("No Id in " . print_r($row, true));
+          Debug("No Id in " . print_r(redactForLog($row), true));
           return;
         }
         global $object_cache;
@@ -357,7 +359,7 @@ class ZM_Object {
           $this->$field = $default;
         }
       } else {
-        Debug("Property $field exists ".print_r($this->$field, true));
+        Debug("Property $field exists ".print_r(redactForLog($this->$field, $field), true));
       }
     } # end foreach default
   }

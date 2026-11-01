@@ -68,7 +68,7 @@ sub open {
       and
     $self->{Monitor}{ControlAddress} ne 'user:port@ip'
   ) {
-    Debug("Using ControlAddress for credentials: $self->{Monitor}{ControlAddress}");
+    Debug('Using ControlAddress for credentials: '.urlForLog($self->{Monitor}{ControlAddress}));
 
     if (($self->{Monitor}->{ControlAddress} =~ /^(?<PROTOCOL>https?:\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@?(?<ADDRESS>.*)$/)) {
       $PROTOCOL = $+{PROTOCOL} if $+{PROTOCOL};
@@ -78,7 +78,7 @@ sub open {
     }
   } elsif ( $self->{Monitor}{Path}) {
     my $uri = URI->new($self->{Monitor}{Path});
-    Debug("Using Path for credentials: $self->{Monitor}{Path} $self->{Monitor}{User} $self->{Monitor}{Pass}");
+    Debug('Using Path for credentials: '.urlForLog($self->{Monitor}{Path}).' '.($self->{Monitor}{User} // ''));
     if ($self->{Monitor}{User}) {
       ( $USERNAME, $PASSWORD ) = ($self->{Monitor}{User}, $self->{Monitor}{Pass});
     } else {
@@ -87,7 +87,7 @@ sub open {
 
     $ADDRESS = $uri->host();
   } else {
-    Error('Failed to parse auth from address ' . $self->{Monitor}->{ControlAddress});
+    Error('Failed to parse auth from address ' . urlForLog($self->{Monitor}->{ControlAddress}));
     $ADDRESS = $self->{Monitor}->{ControlAddress};
   }
   if ( !($ADDRESS =~ /:/) ) {
@@ -95,7 +95,7 @@ sub open {
     $ADDRESS .= ':80';
   }
   $BASE_URL = $PROTOCOL.($USERNAME?$USERNAME.':'.$PASSWORD.'@':'').$ADDRESS;
-  Debug("Base url: $BASE_URL");
+  Debug('Base url: '.urlForLog($BASE_URL));
 
   use LWP::UserAgent;
   $self->{ua} = LWP::UserAgent->new;
@@ -155,7 +155,7 @@ sub close {
 sub get {
   my $self = shift;
   my $url = shift;
-  Debug("Getting $url");
+  Debug('Getting '.urlForLog($url));
   my $response = $self->{ua}->get($url);
   Debug('Response: '. $response->status_line . ' ' . $response->content);
   return $response;
@@ -171,7 +171,7 @@ sub sendCmd {
   my $res = $self->{ua}->request($req);
 
   if (!$res->is_success) {
-    Error('Request failed: '.$res->status_line().' (URI: '.$req->as_string().')');
+    Error('Request failed: '.$res->status_line().' (URI: '.urlForLog($req->uri()).')');
   }
   return $res->is_success;
 }
@@ -233,7 +233,7 @@ sub get_config {
     my $resp = $response->decoded_content;
     return ZoneMinder::General::parseNameEqualsValueToHash($resp);
   }
-  Warning("Failed to get config from $url: " . $response->status_line());
+  Warning('Failed to get config from '.urlForLog($url).': ' . $response->status_line());
   return;
 } # end sub get_config
 

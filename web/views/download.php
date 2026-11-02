@@ -58,10 +58,12 @@ class downloadingGeneratedEventFile {
       }
 
       $this->connkey = isset($_REQUEST['connkey'])?$_REQUEST['connkey']:'';
-      $this->filename = isset($_REQUEST['file'])?$_REQUEST['file']:"zmExport_$this->connkey.$this->fileExt";
-      $this->filename = str_replace('/', '', $this->filename); # protect system files. must be a filename, not a path
-      $this->exportRoot = isset($_REQUEST['export_root'])?$_REQUEST['export_root']."/":"";
-      $this->exportRoot = str_replace('/', '', $this->exportRoot); # protect system files. must be a export_root, not a path
+      # Both must be a single path component, not a path. Stripping only '/' used
+      # to leave '..' intact, so export_root=.. climbed out of the downloads
+      # directory into an arbitrary-file read and delete (GHSA-fvx4-86xp-9v22).
+      $this->filename = isset($_REQUEST['file']) ? safeExportComponent($_REQUEST['file']) : '';
+      if ($this->filename === '') $this->filename = "zmExport_$this->connkey.$this->fileExt";
+      $this->exportRoot = isset($_REQUEST['export_root']) ? safeExportComponent($_REQUEST['export_root']) : '';
 
       if ($this->exportRoot) {
         $this->filenamePath = DIR_EXPORTS_DOWNLOAD.'/'. $this->exportRoot . '/' . $this->filename;
@@ -82,14 +84,17 @@ class downloadingGeneratedEventFile {
       # Silenced: this runs at shutdown, after the body has been sent, so a
       # warning about an already-missing file would be appended to the download.
       @unlink($this->exportDir.'/'.$this->filename.'.lock'); # Delete download flag file
-      @unlink($this->filenamePath); # Delete the downloaded file
+      # Refuse to delete anything the request managed to point outside the
+      # downloads directory (GHSA-fvx4-86xp-9v22).
+      if (pathWithinExportDir($this->filenamePath, DIR_EXPORTS_DOWNLOAD))
+        @unlink($this->filenamePath); # Delete the downloaded file
       # We try to delete the directory (if it is not the main export directory) where the downloaded file was stored.
       if ($this->exportDir != ZM_DIR_EXPORTS)
         if (@rmdir($this->exportDir)) @rmdir(DIR_EXPORTS_DOWNLOAD);
     }
 
     public function download() {
-      if (is_readable($this->filenamePath)) {
+      if (is_readable($this->filenamePath) and pathWithinExportDir($this->filenamePath, DIR_EXPORTS_DOWNLOAD)) {
         # Let's set a flag that the file has started downloading and mark the download start time.
         # In the future, we will delete generated files that have not started downloading within XX minutes.
         file_put_contents($this->exportDir.'/'.$this->filename.'.lock', strtotime(date("Y-m-d H:i:s")), LOCK_EX);

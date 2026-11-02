@@ -93,17 +93,51 @@ Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
         rtsp_second_path = "rtsp://" + rtsp_username + ":" + rtsp_password + "@" + rtsp_second_path;
       }
     }
-    // Disable RTSP backchannel for cameras to prevent issues with Dahua cameras,
-    // such as events not being recorded and ONVIF not working when viewing the
-    // camera on the Watch page using go2rtc.
-    // Only when the path has no go2rtc option fragment yet: a user who already
-    // put "#backchannel=0" (or any "#media="/"#video=" option) on the url would
-    // otherwise get a second "#backchannel=0" appended, which is not valid.
+    // Helper to add or update a Go2RTC URL option while preserving other options.
+    // For cameras, disable RTSP backchannel by default to prevent issues with
+    // Dahua cameras, such as events not being recorded and ONVIF not working
+    // when viewing the camera on the Watch page using go2rtc.
+    // Unlike simply appending "#backchannel=0", this helper updates an existing
+    // backchannel option without adding a duplicate, and preserves other Go2RTC
+    // options such as "#media=" or "#video=" in the URL.
+    // The Go2RTC_disable_backchannel setting controls this behavior:
+    // when enabled, set backchannel=0, adding the option if it does not exist;
+    // when disabled, set an existing backchannel option to 1, but do not add
+    // the option if it is absent from the RTSP path.
+    auto set_rtsp_param = [](std::string& path,
+                             const std::string& name,
+                             const std::string& value) {
+      const std::string param = "#" + name + "=";
+      size_t pos = path.find(param);
+
+      if (pos != std::string::npos) {
+        size_t value_start = pos + param.size();
+        size_t value_end = path.find('#', value_start);
+        path.replace(value_start,
+                     value_end == std::string::npos ? std::string::npos : value_end - value_start,
+                     value);
+      } else {
+        path += param + value;
+      }
+    };
+
     if (parent->device_class == "Camera") {
-      if (rtsp_path.find('#') == std::string::npos)
-        rtsp_path += "#backchannel=0";
-      if (!rtsp_second_path.empty() && rtsp_second_path.find('#') == std::string::npos)
-        rtsp_second_path += "#backchannel=0";
+      if (parent->Go2RTC_disable_backchannel) {
+        // Disable backchannel for both RTSP stream paths.
+        set_rtsp_param(rtsp_path, "backchannel", "0");
+
+        if (!rtsp_second_path.empty())
+          set_rtsp_param(rtsp_second_path, "backchannel", "0");
+      } else {
+        // Re-enable backchannel only if explicitly configured in the RTSP path.
+        // Do not add the option when absent, as backchannel is enabled by default.
+        if (rtsp_path.find("#backchannel=") != std::string::npos)
+          set_rtsp_param(rtsp_path, "backchannel", "1");
+
+        if (!rtsp_second_path.empty() &&
+            rtsp_second_path.find("#backchannel=") != std::string::npos)
+          set_rtsp_param(rtsp_second_path, "backchannel", "1");
+      }
     }
   }  // end if !user.empty
 

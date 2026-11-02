@@ -109,7 +109,7 @@ std::string load_monitor_sql =
   ", `MQTT_Enabled`, `MQTT_Subscriptions`"
 #endif
   ", `StartupDelay`"
-  ", `AudioDetection`, `AudioThreshold`, `AudioAlarmScore`, `DeviceClass`"
+  ", `AudioDetection`, `AudioThreshold`, `AudioAlarmScore`, `DeviceClass`, `Go2RTCDisableBackChannel`"
   " FROM `Monitors`";
 
 // Indexed by Monitor::CameraType, which starts at 1, so entry 0 covers the
@@ -188,6 +188,7 @@ Monitor::Monitor() :
   RTSP2Web_enabled(false),
   RTSP2Web_type(WEBRTC),
   Go2RTC_enabled(false),
+  Go2RTC_disable_backchannel(true),
   janus_enabled(false),
   janus_audio_enabled(false),
   janus_profile_override(""),
@@ -739,6 +740,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   audio_alarm_score = dbrow[col] ? atoi(dbrow[col]) : 0;
   col++;
   device_class = dbrow[col] ? dbrow[col] : "Camera";
+  col++;
+  Go2RTC_disable_backchannel = dbrow[col] && atoi(dbrow[col]);
   col++;
 
   // How many frames we need to have before we start analysing.

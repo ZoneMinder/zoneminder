@@ -580,6 +580,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int             RTSP2Web_type;      // Whether we set the h264/h265 stream up on RTSP2Web
   StreamChannelOption stream_channel;      // Which stream source to use: Restream, CameraDirectPrimary, or CameraDirectSecondary
   bool            Go2RTC_enabled;     // Whether we set the h264/h265 stream up on Go2RTC
+  bool            Go2RTC_disable_backchannel;
   bool            janus_enabled;      // Whether we set the h264/h265 stream up on janus
   bool            janus_audio_enabled;      // Whether we tell Janus to try to include audio.
   std::string     janus_profile_override;   // The Profile-ID to force the stream to use.

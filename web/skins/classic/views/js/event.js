@@ -1432,19 +1432,6 @@ function onStatsResize(vidWidth) {
   }
 }
 
-// Opens the event's alarm, snapshot and objdetect images in a zoomable viewer.
-// GLightbox writes data-title with innerHTML: keep the titles fixed strings,
-// never event or monitor text (Name, Cause, Notes).
-function initLightbox() {
-  if (typeof GLightbox !== 'function') return;
-  // eslint-disable-next-line new-cap
-  GLightbox({
-    selector: '#frames a.glightbox',
-    touchNavigation: true,
-    loop: true
-  });
-}
-
 function initPage() {
   const stream = document.getElementById('videoFeedStream' + eventData.MonitorId);
   if (stream) {
@@ -1461,7 +1448,6 @@ function initPage() {
   // Load the event stats
   getStat();
   zmPanZoom.init();
-  initLightbox();
 
   if (getEvtStatsCookie() != 'on') {
     showEventStats(false);

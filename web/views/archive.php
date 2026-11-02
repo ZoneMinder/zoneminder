@@ -54,11 +54,23 @@ if ( !$mimetype ) {
 
 $connkey = isset($_REQUEST['connkey'])?$_REQUEST['connkey']:'';
 $filename = isset($_REQUEST['file'])?$_REQUEST['file']:"zmExport_$connkey.$file_ext";
-$filename = str_replace('/', '', $filename); # protect system files. must be a filename, not a path
+# The archive name must be a single path component, not a path. Stripping only
+# '/' left '..' intact (GHSA-fvx4-86xp-9v22); a value with a directory
+# separator, a null byte, or a '.'/'..' traversal is a crafted request, so fall
+# back to the generated default.
+if ( $filename === '' or $filename === '.' or $filename === '..'
+    or preg_match('@[/\\\\]@', $filename) or strpos($filename, "\0") !== false )
+  $filename = "zmExport_$connkey.$file_ext";
 
 $filename_path = ZM_DIR_EXPORTS.'/'.$filename;
 ZM\Debug('downloading archive from '.$filename_path);
-if ( is_readable($filename_path) ) {
+# Backstop: resolve the final path and refuse anything that is not at or below
+# ZM_DIR_EXPORTS, including through a symlink.
+$real_base = realpath(ZM_DIR_EXPORTS);
+$real_path = realpath($filename_path);
+$within_exports = ($real_base !== false and $real_path !== false
+    and ($real_path === $real_base or strpos($real_path, $real_base.DIRECTORY_SEPARATOR) === 0));
+if ( is_readable($filename_path) and $within_exports ) {
   while (ob_get_level()) {
     ob_end_clean();
   }

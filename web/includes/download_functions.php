@@ -280,3 +280,29 @@ function contentDispositionAttachment($filename) {
   }
   return $header;
 }
+
+# Return $value if it is a single, safe path component, otherwise ''. The export
+# file and directory names handled by download.php and archive.php are always
+# plain names (e.g. zmExport_<connkey>.zip or a merged '<Monitor> <start> to
+# <end>.mp4'); a value with a directory separator, a null byte, or a '.'/'..'
+# traversal is a crafted request, not one of ours. Stripping only '/' left '..'
+# intact, which let export_root/file climb out of the downloads directory
+# (GHSA-fvx4-86xp-9v22).
+function safeExportComponent($value) {
+  $value = (string)$value;
+  if ($value === '' or $value === '.' or $value === '..') return '';
+  if (preg_match('@[/\\\\]@', $value) or strpos($value, "\0") !== false) return '';
+  return $value;
+}
+
+# Return the canonical path of $path if it exists at or below $base, otherwise
+# false. Both are resolved with realpath(), so symlinks cannot be used to reach
+# a file outside $base either. A backstop in front of readfile()/unlink() so a
+# path that somehow still escapes the export directory is refused.
+function pathWithinExportDir($path, $base) {
+  $realBase = realpath($base);
+  $realPath = realpath($path);
+  if ($realBase === false or $realPath === false) return false;
+  if ($realPath !== $realBase and strpos($realPath, $realBase.DIRECTORY_SEPARATOR) !== 0) return false;
+  return $realPath;
+}

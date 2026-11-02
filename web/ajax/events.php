@@ -123,6 +123,11 @@ ajaxResponse($data);
 
 function archiveRequest($task, $eid) {
   $archiveVal = ($task == 'archive') ? 1 : 0;
+  // 1.36's archiveRequest updates the Archived flag by id directly and builds
+  // no ZM\Event, so the forged-row sink is not present here; still reduce a
+  // possibly-array request element to a plain id before it reaches the query
+  // (refs GHSA-6h8f-gx4m-qqw4).
+  $eid = validCardinal($eid);
   dbQuery(
     'UPDATE Events SET Archived = ? WHERE Id = ?',
     array($archiveVal, $eid)
@@ -131,6 +136,9 @@ function archiveRequest($task, $eid) {
 
 function deleteRequest($eid) {
   $message = array();
+  // Reduce a possibly-array request element to a plain id so it can't be taken
+  // as a forged row and delete a denied event's files (refs GHSA-6h8f-gx4m-qqw4).
+  $eid = validCardinal($eid);
   $event = new ZM\Event($eid);
   if ( !$event->Id() ) {
     $message[] = array($eid=>'Event not found.');

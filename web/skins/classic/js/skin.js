@@ -29,6 +29,7 @@ var ctrled = false;
 var alted = false;
 var mainContent = document.getElementById('content');
 var timeOutExtruderChange;
+var lightbox;
 
 const showExtruderPanelOnMouseHover = false;
 const NAVBAR_RELOAD = document.getElementById('reload'); // Top panel with statistics
@@ -3144,25 +3145,29 @@ function initPageGeneral() {
     });
   });
 
-  var lightbox;
+  // Opens images in a zoomable GLightbox viewer.
+  // GLightbox inserts data-title as HTML. Use only trusted, fixed titles;
+  // never pass event or monitor text (Name, Cause, Notes).  var lightbox;
   if (typeof GLightbox === 'function') {
     // Otherwise, GLightbox will not be able to determine the type of object being returned by the PHP script.
-    document.querySelectorAll('a.glightbox[href*="view=image"]').forEach((link) => {
-      link.dataset.type = 'image';
+    document.querySelectorAll('a.glightbox').forEach((link) => {
+      if (link.href.includes('view=image')) link.dataset.type = 'image';
+
+      // Prefer data-title, falling back to the link's title and then the nested image's title.
+      const title = link.dataset.title ||
+        link.getAttribute('title') ||
+        link.querySelector('img')?.title;
+
+      if (title) {
+        // Strip HTML markup from the selected title before passing it to GLightbox.
+        link.dataset.title = strip_html(title);
+      }
     });
 
     // eslint-disable-next-line new-cap
     lightbox = GLightbox({
       touchNavigation: true,
       loop: true
-    });
-
-    lightbox.on('slide_before_load', ({trigger, slideConfig}) => {
-      // We will retrieve the 'title' attribute from the <img> element, provided it exists there and is not already present in the link.
-      const img = trigger?.querySelector('img');
-      if (img?.title && !slideConfig.title) {
-        slideConfig.title = img.title;
-      }
     });
   }
 }

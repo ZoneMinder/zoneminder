@@ -50,7 +50,7 @@ var currentScale = 100; // Temporarily, because need to put things in order with
 $j(document).on("keydown", "", function(e) {
   e = e || window.event;
   // The image viewer (GLightbox) handles its own keys while it is open.
-  if ($j('body').hasClass('glightbox-open')) return;
+  if (isLightboxOpen()) return;
   if (!$j(".tag-input").is(":focus")) {
     if ( $j(".modal").is(":visible") ) {
       if (e.key === "Enter") {

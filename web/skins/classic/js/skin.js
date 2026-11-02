@@ -2784,6 +2784,7 @@ function handleTouchActionGeneral(action, evt) {
 
 /* Processing any key press*/
 function handleKeydownGeneral(evt) {
+  if (isLightboxOpen()) return;
   const target = evt.target;
   const key = evt.key;
   // Controls pressing "Enter" inside the sliding panel from Sidebar. Used to submit the form to the Console page.
@@ -2815,6 +2816,10 @@ function handleMouseout(evt) {
   if (navbar_type == 'left') {
     manageVisibilitySidebarExtruderPanel(evt, 'hide');
   }
+}
+
+function isLightboxOpen() {
+  return $j('body').hasClass('glightbox-open');
 }
 
 function manageVisibilitySidebarExtruderPanel(evt, action) {

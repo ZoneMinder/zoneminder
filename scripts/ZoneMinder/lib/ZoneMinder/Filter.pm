@@ -272,6 +272,8 @@ sub Sql {
           $self->{Sql} .= 'extract( hour_second from NOW())';
         } elsif ( $term->{attr} eq 'CurrentDate' ) {
           $self->{Sql} .= 'to_days(NOW())';
+        } elsif ( $term->{attr} eq 'CurrentWeekday' ) {
+          $self->{Sql} .= 'weekday(NOW())';
         } elsif ( $term->{attr} eq 'DateTime' ) {
           # Mirror web/includes/FilterTerm.php: DateTime is an "event overlaps
           # this instant/window" idiom, not a plain StartDateTime comparison. A

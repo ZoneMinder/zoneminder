@@ -33,7 +33,16 @@ class MonitorsController extends AppController {
 
     if ($this->request->params['named']) {
       $this->FilterComponent = $this->Components->load('Filter');
-      $conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+      // The columns of Monitors and of the tables find() joins at recursive 0
+      // (hasOne, belongsTo), plus GroupId, served by the Groups_Monitors join
+      // below. Anything else would reach MySQL as an unknown column and come
+      // back as a 500.
+      $fields = array('Monitor' => array_keys($this->Monitor->schema()));
+      foreach (array_merge(array_keys($this->Monitor->hasOne), array_keys($this->Monitor->belongsTo)) as $alias) {
+        $fields[$alias] = array_keys($this->Monitor->{$alias}->schema());
+      }
+      $named = $this->FilterComponent->qualifyFields($this->request->params['named'], $fields, array('GroupId'));
+      $conditions = $this->FilterComponent->buildFilter($named);
     } else {
       $conditions = array();
     }

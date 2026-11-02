@@ -56,6 +56,11 @@ class AppController extends Controller {
   // for role and deny API access in future 
   // Also checking to do this only if ZM_OPT_USE_AUTH is on
   public function beforeFilter() {
+    // Crud's ApiListener registers its exception renderer for API requests when
+    // the component starts; use ours, which keeps internals out of 5xx bodies.
+    if ( Configure::read('Exception.renderer') == 'Crud.CrudExceptionRenderer' ) {
+      Configure::write('Exception.renderer', 'ZmExceptionRenderer');
+    }
     if ( ! ZM_OPT_USE_API ) {
       throw new UnauthorizedException(__('API Disabled'));
       return; 
@@ -167,32 +172,12 @@ class AppController extends Controller {
     } # end if ZM_OPT_AUTH
     // make sure populated user object has APIs enabled
 
-    if (isset($_SERVER['HTTP_ORIGIN'])) {
-      global $Servers;
-      if ( sizeof($Servers) < 1 ) {
-        # Only need CORSHeaders in the event that there are multiple servers in use.
-        # ICON: Might not be true. multi-port?
-        if ( ZM_MIN_STREAMING_PORT ) {
-          ZM\Debug('Setting default Access-Control-Allow-Origin from ' . $_SERVER['HTTP_ORIGIN']);
-          $this->response->header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
-          $this->response->header('Access-Control-Allow-Credentials: true');
-          $this->response->header('Access-Control-Allow-Headers: x-requested-with,x-request');
-        }
-        return;
-      }
-      foreach ($Servers as $Server) {
-        if (
-          preg_match('/^(https?:\/\/)?'.preg_quote($Server->Hostname(),'/').'/i', $_SERVER['HTTP_ORIGIN'])
-          or
-          preg_match('/^(https?:\/\/)?'.preg_quote($Server->Name(),'/').'/i', $_SERVER['HTTP_ORIGIN'])
-        ) {
-          ZM\Debug('Setting Access-Control-Allow-Origin from '.$_SERVER['HTTP_ORIGIN']);
-          $this->response->header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
-          $this->response->header('Access-Control-Allow-Credentials: true');
-          $this->response->header('Access-Control-Allow-Headers: x-requested-with,x-request');
-          break;
-        }
-      }
+    $origin = corsAllowedOrigin();
+    if ($origin !== '') {
+      ZM\Debug('Setting Access-Control-Allow-Origin from '.$origin);
+      $this->response->header('Access-Control-Allow-Origin: ' . $origin);
+      $this->response->header('Access-Control-Allow-Credentials: true');
+      $this->response->header('Access-Control-Allow-Headers: x-requested-with,x-request');
     }
 
   } # end function beforeFilter()

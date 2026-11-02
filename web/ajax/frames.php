@@ -22,6 +22,11 @@ if ( empty($_REQUEST['eid']) ) {
   $message = 'No event id supplied';
 } else {
   $eid = validInt($_REQUEST['eid']);
+  # canView('Events') above is global; a user with Events=View can still be
+  # denied individual monitors. Require the per-event permission before listing
+  # its frame records, as ajax/event.php and the Frames API already do.
+  if ( !$message and !(new ZM\Event($eid))->canView() )
+    $message = 'Insufficient permissions to view frames for event '.$eid;
 }
 
 if ( $message ) {

@@ -78,7 +78,6 @@ class Filter extends ZM_Object {
   protected $_hidden_fields;
   public $_pre_sql_conditions;
   public $_post_sql_conditions;
-  protected $_Terms;
 
   public function sql() {
     if ( ! isset($this->_sql) ) {
@@ -195,7 +194,7 @@ class Filter extends ZM_Object {
       unset($this->_hidden_fields);
       unset($this->_pre_sql_conditions);
       unset($this->_post_sql_conditions);
-      unset($this->_Terms);
+      unset($this->Terms);
     }
     if ( !property_exists($this, 'Query') ) {
       if ( property_exists($this, 'Query_json') and $this->{'Query_json'} ) {

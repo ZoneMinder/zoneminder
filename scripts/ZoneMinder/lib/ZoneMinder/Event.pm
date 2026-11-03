@@ -501,10 +501,10 @@ sub delete {
     $event->Storage()->adjust_diskspace(-$event->DiskSpace()) if $event->DiskSpace();
   }
 
-  if ( ( $in_zmaudit or (!$Config{ZM_OPT_FAST_DELETE})) and $event->Storage()->DoDelete() ) {
+  if ( $event->Storage()->DoDelete() ) {
     $event->delete_files();
   } else {
-    Debug('Not deleting event files from '.$event->Path().' for speed.');
+    Debug('Not deleting event files from '.$event->Path().' because the storage area has DoDelete off.');
   }
 } # end sub delete
 

@@ -1904,7 +1904,7 @@ function initPage() {
   } else {
     document.addEventListener('zm:lightboxReady', (event) => {
       bindLightboxEvents(event.detail);
-    }, { once: true });
+    }, {once: true});
   }
 } // end initPage
 

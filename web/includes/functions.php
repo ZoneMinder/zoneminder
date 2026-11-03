@@ -1968,10 +1968,16 @@ function requestVar($name, $default='') {
 
 // For numbers etc in javascript or tags etc
 function validInt($input) {
+  // An array would otherwise come back from preg_replace() as an array and be
+  // taken as a forged record by ZM_Object's constructor; give '' for anything
+  // that isn't a single value (refs GHSA-6h8f-gx4m-qqw4).
+  if (!is_scalar($input)) return '';
   return preg_replace('/[^\-\d]/', '', $input);
 }
 
 function validCardinal($input) {
+  // Like validInt(), and for the same reason gives '' for an array.
+  if (!is_scalar($input)) return '';
   return preg_replace('/\D/', '', $input);
 }
 
@@ -2284,7 +2290,16 @@ function getAffectedIds( $name ) {
 			$ids = array($_REQUEST[$name]);
 		}
 	}
-	return $ids;
+	// These ids feed new ZM\Event($id) / new ZM\Monitor($id) etc. in the callers.
+	// An element that is itself an array would be taken as a forged DB row rather
+	// than an id, bypassing per-id permission and path checks, so reduce every
+	// element to a plain integer id and drop anything that is not one
+	// (refs GHSA-6h8f-gx4m-qqw4).
+	foreach ($ids as &$id) {
+		$id = is_scalar($id) ? validCardinal($id) : '';
+	}
+	unset($id);
+	return array_values(array_filter($ids, function($id) { return $id !== ''; }));
 }
 
 function format_duration($time, $separator=':') {

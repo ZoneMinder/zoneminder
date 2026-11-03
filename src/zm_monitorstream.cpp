@@ -760,7 +760,7 @@ void MonitorStream::runStream() {
       if ( now >= when_to_send_next_frame ) {
         if (!paused && !delayed) {
           Debug(2, "Sending frame index: %d(%d%%%d): frame_mod: %d frame count: %d last image count %d image count %d paused %d delayed %d",
-                index, last_write_index, monitor->image_buffer_count, frame_mod, frame_count.load(), last_image_count, monitor->shared_data->image_count, paused.load(), delayed.load());
+                index, last_write_index, monitor->image_buffer_count, frame_mod, frame_count.load(), last_image_count, monitor->shared_data->image_count.load(), paused.load(), delayed.load());
           last_read_index = last_write_index;
           last_image_count = monitor->shared_data->image_count;
           // Send the next frame
@@ -870,7 +870,7 @@ void MonitorStream::runStream() {
       } // end if buffered playback
     } else {
       Debug(3, "Waiting for capture last_write_index=%u == last_read_index=%u",
-            monitor->shared_data->last_write_index,
+            monitor->shared_data->last_write_index.load(),
             last_read_index);
 
       if (now - last_frame_sent.load() > Seconds(5)) {
@@ -1007,7 +1007,7 @@ void MonitorStream::SingleImage(int scale) {
   int count = 10; // Give it 1 second to connect or else send text frame.
   while (count and (monitor->shared_data->last_write_index >= monitor->image_buffer_count) and !zm_terminate) {
     Debug(1, "Waiting for capture to begin. last write index %d >=? %d",
-          monitor->shared_data->last_write_index, monitor->image_buffer_count);
+          monitor->shared_data->last_write_index.load(), monitor->image_buffer_count);
     std::this_thread::sleep_for(Milliseconds(100));
     count--;
   }

@@ -36,6 +36,7 @@ var availableTags = [];
 var selectedTags = [];
 var realEventWidth = 0;
 var realEventHeight = 0;
+var prevStateStarted = null;
 
 var PrevCoordinatFrame = {x: null, y: null};
 var coordinateMouse = {
@@ -503,6 +504,7 @@ function pauseClicked() {
 }
 
 function streamPause() {
+  if (!isLightboxOpen()) prevStateStarted = 'paused';
   $j('#modeValue').html('Paused');
 
   $j('#pauseBtn').hide();
@@ -549,6 +551,7 @@ function vjsPlay() { //catches if we change mode programatically
 }
 
 function streamPlay() {
+  if (!isLightboxOpen()) prevStateStarted = 'played';
   $j('#pauseBtn').show();
   $j('#playBtn').hide();
   setButtonState('pauseBtn', 'inactive');
@@ -1895,7 +1898,27 @@ function initPage() {
 
   const toggleZonesButton = document.getElementById('toggleZonesButton');
   if (toggleZonesButton) toggleZonesButton.addEventListener('click', toggleZones);
+
+  if (window.lightbox) {
+    bindLightboxEvents(window.lightbox);
+  } else {
+    document.addEventListener('zm:lightboxReady', (event) => {
+      bindLightboxEvents(event.detail);
+    }, { once: true });
+  }
 } // end initPage
+
+function bindLightboxEvents(lightbox) {
+  lightbox.on('open', () => {
+    // Viewer opened.
+    if (prevStateStarted == 'played') pauseClicked();
+  });
+
+  lightbox.on('close', () => {
+    // Viewer closed.
+    if (prevStateStarted == 'played') playClicked();
+  });
+}
 
 function addOrCreateTag(tagValue, buttonPressed = null) {
   const tagNames = availableTags.map((t) => t.Name.toLowerCase());

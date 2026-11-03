@@ -3152,7 +3152,7 @@ function initPageGeneral() {
 
   // Opens images in a zoomable GLightbox viewer.
   // GLightbox inserts data-title as HTML. Use only trusted, fixed titles;
-  // never pass event or monitor text (Name, Cause, Notes).  var lightbox;
+  // never pass event or monitor text (Name, Cause, Notes).
   if (typeof GLightbox === 'function') {
     // Otherwise, GLightbox will not be able to determine the type of object being returned by the PHP script.
     document.querySelectorAll('a.glightbox').forEach((link) => {
@@ -3164,16 +3164,25 @@ function initPageGeneral() {
         link.querySelector('img')?.title;
 
       if (title) {
-        // Strip HTML markup from the selected title before passing it to GLightbox.
-        link.dataset.title = strip_html(title);
+        // Escape HTML special characters to ensure the title is displayed as plain text by GLightbox.
+        link.dataset.title = escapeHTML(title);
       }
     });
 
-    // eslint-disable-next-line new-cap
-    lightbox = GLightbox({
-      touchNavigation: true,
-      loop: true
-    });
+    try {
+      // eslint-disable-next-line new-cap
+      lightbox = GLightbox({
+        touchNavigation: true,
+        loop: true
+      });
+      if (lightbox && typeof lightbox.on === 'function') {
+        document.dispatchEvent(new CustomEvent('zm:lightboxReady', {
+          detail: lightbox
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to initialize GLightbox:', error);
+    }
   }
 }
 

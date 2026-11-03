@@ -1922,7 +1922,9 @@ our @options = (
       option which means that the browser client only deletes the key
       entries in the events table, which means the events will no
       longer appear in the listing, and leaves the zmaudit daemon to
-      clear up the rest later. Note that this feature is less relevant
+      clear up the rest later. zmaudit only runs when ZM_RUN_AUDIT is
+      on; without it the event's frames, stats and files are never
+      removed. Note that this feature is less relevant
       with modern hardware. Recommend this feature be left off.
       `,
     type        => $types{boolean},

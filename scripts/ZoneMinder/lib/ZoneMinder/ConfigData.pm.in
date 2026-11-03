@@ -1963,25 +1963,6 @@ our @options = (
     category    => 'web',
   },
   {
-    name        => 'ZM_OPT_FAST_DELETE',
-    default     => '0',
-    description => 'Delete only event database records for speed',
-    help        => q`
-      Normally an event created as the result of an alarm consists of
-      entries in one or more database tables plus the various files
-      associated with it. When deleting events in the browser it can
-      take a long time to remove all of this if your are trying to do
-      a lot of events at once. It is recommended that you set this
-      option which means that the browser client only deletes the key
-      entries in the events table, which means the events will no
-      longer appear in the listing, and leaves the zmaudit daemon to
-      clear up the rest later. Note that this feature is less relevant
-      with modern hardware. Recommend this feature be left off.
-      `,
-    type        => $types{boolean},
-    category    => 'system',
-  },
-  {
     name        => 'ZM_STRICT_VIDEO_CONFIG',
     default     => '1',
     description => 'Allow errors in setting video config to be fatal',
@@ -2546,9 +2527,8 @@ our @options = (
     help        => q`
       The zmaudit daemon exists to check that the saved information
       in the database and on the filesystem match and are consistent
-      with each other. If an error occurs or if you are using 'fast
-      deletes' it may be that database records are deleted but files
-      remain. In this case, and similar, zmaudit will remove
+      with each other. If an error occurs it may be that database
+      records are deleted but files remain. In this case, and similar, zmaudit will remove
       redundant information to synchronise the two data stores. This
       option controls whether zmaudit is run in the background and
       performs these checks and fixes continuously. This is
@@ -2569,9 +2549,8 @@ our @options = (
     help        => q`
       The zmaudit daemon exists to check that the saved information
       in the database and on the filesystem match and are consistent
-      with each other. If an error occurs or if you are using 'fast
-      deletes' it may be that database records are deleted but files
-      remain. In this case, and similar, zmaudit will remove
+      with each other. If an error occurs it may be that database
+      records are deleted but files remain. In this case, and similar, zmaudit will remove
       redundant information to synchronise the two data stores. The
       default check interval of 900 seconds (15 minutes) is fine for
       most systems however if you have a very large number of events

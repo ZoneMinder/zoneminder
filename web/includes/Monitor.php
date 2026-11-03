@@ -724,24 +724,21 @@ class Monitor extends ZM_Object {
       $this->sendControlCommand('stop');
     }
 
-    // If fast deletes are on, then zmaudit will clean everything else up later
-    // If fast deletes are off and there are lots of events then this step may
-    // well time out before completing, in which case zmaudit will still tidy up
-    if (!ZM_OPT_FAST_DELETE) {
-      $markEids = dbFetchAll('SELECT Id FROM Events WHERE MonitorId=?', 'Id', array($this->{'Id'}));
-      foreach ($markEids as $markEid)
-        deleteEvent($markEid);
+    // With lots of events this step may well time out before completing, in
+    // which case zmaudit will still tidy up
+    $markEids = dbFetchAll('SELECT Id FROM Events WHERE MonitorId=?', 'Id', array($this->{'Id'}));
+    foreach ($markEids as $markEid)
+      deleteEvent($markEid);
 
+    if ($this->{'Name'})
+      deletePath(ZM_DIR_EVENTS.'/'.basename($this->{'Name'}));
+    deletePath(ZM_DIR_EVENTS.'/'.$this->{'Id'});
+    $Storage = $this->Storage();
+    if ($Storage->Path() != ZM_DIR_EVENTS) {
       if ($this->{'Name'})
-        deletePath(ZM_DIR_EVENTS.'/'.basename($this->{'Name'}));
-      deletePath(ZM_DIR_EVENTS.'/'.$this->{'Id'});
-      $Storage = $this->Storage();
-      if ($Storage->Path() != ZM_DIR_EVENTS) {
-        if ($this->{'Name'})
-          deletePath($Storage->Path().'/'.basename($this->{'Name'}));
-        deletePath($Storage->Path().'/'.$this->{'Id'});
-      }
-    } // end if !ZM_OPT_FAST_DELETE
+        deletePath($Storage->Path().'/'.basename($this->{'Name'}));
+      deletePath($Storage->Path().'/'.$this->{'Id'});
+    }
 
     // This is the important stuff
     dbQuery('DELETE FROM Zones WHERE MonitorId = ?', array($this->{'Id'}));

@@ -208,11 +208,6 @@ class Event extends ZM_Object {
       Error('Cannot delete an Archived event.');
       return;
     }
-    if ( ZM_OPT_FAST_DELETE ) {
-      dbQuery('DELETE FROM Events WHERE Id = ?', array($this->{'Id'}));
-      return;
-    }
-
     $dbConn = zmDbConn();
     $dbConn->beginTransaction();
     try {

@@ -1977,7 +1977,7 @@ void Monitor::CheckAction() {
   if (shared_data->action) {
     // Can there be more than 1 bit set in the action?  Shouldn't these be elseifs?
     if (shared_data->action & RELOAD) {
-      Info("Received reload indication at count %d", shared_data->image_count);
+      Info("Received reload indication at count %d", shared_data->image_count.load());
       shared_data->action &= ~RELOAD;
       // Not Reload() here: this runs on zmc's capture thread while the
       // decoder and analysis threads read the settings Load() rewrites. Ask
@@ -1987,10 +1987,10 @@ void Monitor::CheckAction() {
     }
     if (shared_data->action & SUSPEND) {
       if (Active()) {
-        Info("Received suspend indication at count %d", shared_data->image_count);
+        Info("Received suspend indication at count %d", shared_data->image_count.load());
         shared_data->analysing = ANALYSING_NONE;
       } else {
-        Info("Received suspend indication at count %d, but wasn't active", shared_data->image_count);
+        Info("Received suspend indication at count %d, but wasn't active", shared_data->image_count.load());
       }
       if (config.max_suspend_time) {
         SystemTimePoint now = std::chrono::system_clock::now();
@@ -1999,7 +1999,7 @@ void Monitor::CheckAction() {
       shared_data->action &= ~SUSPEND;
     } else if (shared_data->action & RESUME) {
       if ( Enabled() && !Active() ) {
-        Info("Received resume indication at count %d", shared_data->image_count);
+        Info("Received resume indication at count %d", shared_data->image_count.load());
         shared_data->analysing = analysing;
         // Analysis thread owns ref_image; ask it to drop the pre-suspend
         // reference rather than freeing the buffer under it here (refs #4983).
@@ -2013,7 +2013,7 @@ void Monitor::CheckAction() {
   if (auto_resume_time.time_since_epoch() != Seconds(0)) {
     SystemTimePoint now = std::chrono::system_clock::now();
     if (now >= auto_resume_time) {
-      Info("Auto resuming at count %d", shared_data->image_count);
+      Info("Auto resuming at count %d", shared_data->image_count.load());
       auto_resume_time = {};
       shared_data->analysing = analysing;
       // See RESUME above: defer the reference-image reset to the analysis thread.
@@ -2037,9 +2037,9 @@ void Monitor::UpdateFPS() {
     double new_analysis_fps = (motion_frame_count - last_motion_frame_count) / elapsed.count();
 
     Debug(4, "FPS: capture count %d - last capture count %d = %d now:%lf, last %lf, elapsed %lf = capture: %lf fps analysis: %lf fps",
-        shared_data->image_count,
+        shared_data->image_count.load(),
         last_capture_image_count,
-        shared_data->image_count - last_capture_image_count,
+        shared_data->image_count.load() - last_capture_image_count,
         FPSeconds(now.time_since_epoch()).count(),
         FPSeconds(last_fps_time.time_since_epoch()).count(),
         elapsed.count(),
@@ -2054,7 +2054,7 @@ void Monitor::UpdateFPS() {
         )
        ) {
       Info("%s: %d - Capturing at %.2lf fps, capturing bandwidth %ubytes/sec Analysing at %.2lf fps",
-          name.c_str(), shared_data->image_count, new_capture_fps, new_capture_bandwidth, new_analysis_fps);
+          name.c_str(), shared_data->image_count.load(), new_capture_fps, new_capture_bandwidth, new_analysis_fps);
 
 #if MOSQUITTOPP_FOUND
       if (mqtt) mqtt->send(stringtf("Capturing at %.2lf fps, capturing bandwidth %ubytes/sec Analysing at %.2lf fps",
@@ -2155,7 +2155,7 @@ bool Monitor::Analyse() {
   last_signal = signal;
 
   Debug(3, "Motion detection is enabled?(%d) signal(%d) signal_change(%d) trigger state(%s) image index %d",
-        shared_data->analysing, signal, signal_change, TriggerState_Strings[trigger_data->trigger_state].c_str(), packet->image_index);
+        shared_data->analysing.load(), signal, signal_change, TriggerState_Strings[trigger_data->trigger_state].c_str(), packet->image_index);
 
   {
     // scope for event lock
@@ -2218,7 +2218,7 @@ bool Monitor::Analyse() {
       if (audio_detection and shared_data->audio_alarm) {
         score += audio_alarm_score;
         Debug(4, "Triggered on AUDIO level %d >= %d, score += %d",
-              shared_data->audio_level, audio_threshold, audio_alarm_score);
+              shared_data->audio_level.load(), audio_threshold, audio_alarm_score);
         Event::StringSet noteSet;
         // A constant, like the ONVIF and Amcrest notes above. Event::updateNotes
         // only ever inserts into the set and rewrites the Notes column on each
@@ -2353,7 +2353,7 @@ bool Monitor::Analyse() {
 
           // Ready means that we have captured the warmup # of frames
           if ((shared_data->analysing > ANALYSING_NONE) && Ready()) {
-            Debug(3, "signal and capturing and doing motion detection %d", shared_data->analysing);
+            Debug(3, "signal and capturing and doing motion detection %d", shared_data->analysing.load());
 
             if (analysis_fps_limit) {
               double capture_fps = get_capture_fps();
@@ -2475,7 +2475,7 @@ bool Monitor::Analyse() {
               Debug(1, "no image so skipping motion detection");
             }  // end if has image
           } else {
-            Debug(1, "Not analysing %d", shared_data->analysing);
+            Debug(1, "Not analysing %d", shared_data->analysing.load());
           } // end if active and doing motion detection
 
         } // end if videostream
@@ -2676,7 +2676,7 @@ bool Monitor::Analyse() {
                       event->Id(), event->AlarmFrames(), alarm_frame_count);
               }
             } else {
-              Warning("Recording mode unknown %d", shared_data->recording);
+              Warning("Recording mode unknown %d", shared_data->recording.load());
             }
           }  // end if event->Duration > min_section_length
         }  // end if event
@@ -2786,7 +2786,7 @@ void Monitor::Reload() {
   {
     std::lock_guard<std::mutex> lck(event_mutex);
     if (event) {
-      Info("%s: %03d - Closing event %" PRIu64 ", reloading", name.c_str(), shared_data->image_count, event->Id());
+      Info("%s: %03d - Closing event %" PRIu64 ", reloading", name.c_str(), shared_data->image_count.load(), event->Id());
       closeEvent();
     }
   }
@@ -3222,7 +3222,7 @@ int Monitor::Capture() {
   packet->timestamp = std::chrono::system_clock::now();
   shared_data->heartbeat_time = std::chrono::system_clock::to_time_t(packet->timestamp);
   int captureResult = camera->Capture(packet);
-  Debug(4, "Back from capture result=%d image count %d timestamp %" PRId64, captureResult, shared_data->image_count,
+  Debug(4, "Back from capture result=%d image count %d timestamp %" PRId64, captureResult, shared_data->image_count.load(),
       static_cast<int64>(std::chrono::duration_cast<Microseconds>(packet->timestamp.time_since_epoch()).count())
       );
 
@@ -3273,7 +3273,7 @@ int Monitor::Capture() {
       packet->notify_all();
     }
     Debug(2, "Have packet stream_index:%d ?= videostream_id: %d q.vpktcount %d event? %d image_count %d",
-          packet->packet->stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ), shared_data->image_count);
+          packet->packet->stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ), shared_data->image_count.load());
 
     if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
       packet->packet->stream_index = video_stream_id; // Convert to packetQueue's index
@@ -4323,7 +4323,7 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
       shared_data->alarm_y = alarm_centre.y_;
 
       Info("Got alarm centre at %d,%d, at count %d",
-           shared_data->alarm_x, shared_data->alarm_y, analysis_image_count);
+           shared_data->alarm_x.load(), shared_data->alarm_y.load(), analysis_image_count);
     } else {
       shared_data->alarm_x = shared_data->alarm_y = -1;
     }
@@ -4806,7 +4806,7 @@ int Monitor::Pause() {
   {
     std::lock_guard<std::mutex> lck(event_mutex);
     if (event) {
-      Info("%s: image_count:%d - Closing event %" PRIu64 ", shutting down", name.c_str(), shared_data->image_count, event->Id());
+      Info("%s: image_count:%d - Closing event %" PRIu64 ", shutting down", name.c_str(), shared_data->image_count.load(), event->Id());
       closeEvent();
       {
         std::lock_guard<std::mutex> close_lck(close_event_thread_mutex);
@@ -4928,7 +4928,7 @@ void Monitor::get_ref_image() {
     and !zm_terminate) {
 
     Debug(1, "Waiting for capture daemon lastwriteindex(%d) lastwritetime(%" PRIi64 ")",
-          shared_data->last_write_index, static_cast<int64>(shared_data->last_write_time));
+          shared_data->last_write_index.load(), static_cast<int64>(shared_data->last_write_time));
     if (packet_lock.packet_ and ! packet_lock.packet_->image) {
       packet_lock.unlock();
       // can't analyse it anyways, incremement

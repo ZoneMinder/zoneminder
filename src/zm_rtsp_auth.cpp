@@ -63,6 +63,12 @@ void Authenticator::authHandleHeader(const std::string &headerData) {
     // subparts are key="value"
     for ( size_t i = 0; i < subparts.size(); i++ ) {
       StringVector kvPair = Split(TrimSpaces(subparts[i]), "=");
+      // A directive with no '=' (or an empty one) yields fewer than two parts, so
+      // reading kvPair[0]/kvPair[1] below would run off the end. The header comes
+      // from a camera's 401 response, which on an HTTP source is unauthenticated,
+      // so a malformed directive would otherwise crash the capture daemon
+      // (refs GHSA-r8cq-jgx6-gr5p). Skip anything that is not key=value.
+      if ( kvPair.size() < 2 ) continue;
       std::string key = TrimSpaces(kvPair[0]);
       if ( key == "realm" ) {
         fRealm = Trim(kvPair[1], "\"");

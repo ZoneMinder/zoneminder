@@ -154,7 +154,7 @@ for ( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   $Monitor = new ZM\Monitor($monitor);
   $montagereview_link = '?view=montagereview&live=0&MonitorId='.$monitor['Id'].'&minTime='.$minTime.'&maxTime='.$maxTime;
 
-  $monitor_filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'=', 'val'=>$monitor['Id']));
+  $monitor_filter = (clone $filter)->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'=', 'val'=>$monitor['Id']));
 
   if ( isset($EventsByMonitor[$Monitor->Id()]) ) {
     $EventCounts = $EventsByMonitor[$Monitor->Id()];

@@ -112,4 +112,4 @@ jobs:
           SOURCE: artifacts/deb/
           REMOTE_HOST: ${{ secrets.ZMREPO_HOST }}
           REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}
-          TARGET: debian/proposed/mini-dinstall/incoming/
+          TARGET: debian/release-1.36/mini-dinstall/incoming/

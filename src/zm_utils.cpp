@@ -523,9 +523,25 @@ std::string QueryString::parseValue(std::istream &input) {
   return UriDecode(url_encoded_value);
 }
 
+// Where the userinfo of url ends: the last '@' before the path, query or
+// fragment, or npos if there is none. ffmpeg and cameras split the authority
+// at its last '@', so a password with a raw '@' in it works; ending at the
+// first one would leave the rest of that password in the masked url. An '@'
+// in the path or query is not userinfo.
+static std::size_t userinfo_end(const std::string &url) {
+  std::size_t scheme_at = url.find("://");
+  std::size_t start = (scheme_at == std::string::npos) ? 0 : scheme_at + 3;
+  std::size_t end = url.find_first_of("/?#", start);
+  if (end == std::string::npos) end = url.size();
+  if (end == start) return std::string::npos;
+  std::size_t at_at = url.rfind('@', end - 1);
+  if (at_at == std::string::npos or at_at < start) return std::string::npos;
+  return at_at;
+}
+
 std::string mask_authentication(const std::string &url) {
   std::string masked_url = url;
-  std::size_t at_at = masked_url.find("@");
+  std::size_t at_at = userinfo_end(masked_url);
   if (at_at == std::string::npos) {
     return masked_url;
   }
@@ -553,7 +569,7 @@ std::string mask_authentication(const std::string &url) {
 }
 
 std::string remove_authentication(const std::string &url) {
-  std::size_t at_at = url.find("@");
+  std::size_t at_at = userinfo_end(url);
   if (at_at == std::string::npos) {
     return url;
   }
@@ -577,6 +593,44 @@ std::string remove_authentication(const std::string &url) {
     }
   }
   return result;
+}
+
+std::string url_for_log(const std::string &url) {
+  std::size_t query_at = url.find('?');
+  if (query_at == std::string::npos) return remove_authentication(url);
+  return remove_authentication(url.substr(0, query_at)) + "?...";
+}
+
+std::string request_for_log(const std::string &request) {
+  std::string out;
+  out.reserve(request.size());
+  std::size_t start = 0;
+  bool first = true;
+  while (start < request.size()) {
+    std::size_t eol = request.find('\n', start);
+    std::size_t next = (eol == std::string::npos) ? request.size() : eol + 1;
+    std::size_t end = next;
+    while (end > start and (request[end-1] == '\n' or request[end-1] == '\r')) end--;
+    std::string line = request.substr(start, end - start);
+    if (first) {
+      // METHOD SP target SP version
+      std::size_t sp1 = line.find(' ');
+      std::size_t sp2 = (sp1 == std::string::npos) ? sp1 : line.find(' ', sp1 + 1);
+      if (sp2 != std::string::npos)
+        line = line.substr(0, sp1 + 1) + url_for_log(line.substr(sp1 + 1, sp2 - sp1 - 1)) + line.substr(sp2);
+      first = false;
+    } else {
+      std::size_t colon = line.find(':');
+      if (colon != std::string::npos) {
+        std::string name = StringToLower(line.substr(0, colon));
+        if (name == "authorization" or name == "proxy-authorization")
+          line = line.substr(0, colon) + ": <not logged>";
+      }
+    }
+    out += line + request.substr(end, next - end);
+    start = next;
+  }
+  return out;
 }
 
 std::string remove_newlines( std::string str ) {

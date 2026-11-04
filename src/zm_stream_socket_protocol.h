@@ -92,6 +92,12 @@ constexpr uint8_t kTlvSampleRate = 0x07;  // u32
 constexpr uint8_t kTlvChannels   = 0x08;  // u32
 constexpr uint8_t kTlvProfile    = 0x09;  // u32
 constexpr uint8_t kTlvLevel      = 0x0A;  // u32
+// utf8, the FFmpeg codec name (avcodec_get_name: "h264", "hevc", "aac"...).
+// AVCodecID values are renumbered between FFmpeg major versions (HEVC is 173
+// in libavcodec 61 and 172 in libavcodec 63), so a consumer linked against a
+// different FFmpeg than zmc must identify the codec by name. ParseHello
+// prefers it.
+constexpr uint8_t kTlvCodecName  = 0x0B;
 
 struct Header {
   uint32_t length;      // bytes following the length field == kHeaderLengthBytes + payload size
@@ -113,9 +119,12 @@ void SerializeHeader(const Header &header, uint8_t out[kHeaderSize]);
 bool ParseHeader(const uint8_t in[kHeaderSize], Header &header);
 
 // Decoded HELLO parameters. Zero means "not present on the wire" for every
-// field except codec_id, which is required.
+// field except codec_id, which is required. codec_id is resolved from
+// codec_name when this FFmpeg knows the name, and from the numeric id
+// otherwise.
 struct HelloInfo {
   AVCodecID codec_id = AV_CODEC_ID_NONE;
+  std::string codec_name;  // as sent; empty from a zmc that predates the tag
   std::vector<uint8_t> extradata;
   uint32_t width = 0;
   uint32_t height = 0;
@@ -132,7 +141,7 @@ struct HelloInfo {
 std::vector<uint8_t> BuildHello(const AVCodecParameters *par, AVRational frame_rate);
 
 // Parses a HELLO payload, skipping unknown tags. Returns false on a truncated
-// TLV or a missing codec id.
+// TLV, or when neither the codec name nor the codec id identifies a codec.
 bool ParseHello(const uint8_t *data, size_t len, HelloInfo &info);
 
 // STATS payload: u64 messages_sent, u64 messages_dropped_for_this_client.

@@ -1272,6 +1272,15 @@ sub executeCommand {
   my $Event = shift;
 
   my $command = $filter->{AutoExecuteCmd};
+
+  # Checked here and not only where the filter was saved: a row can reach the
+  # database without passing through the web ui, and the restriction may have
+  # been tightened since this filter was written.
+  if (!commandIsAllowed($command, $Config{ZM_ALLOWED_COMMANDS})) {
+    Error("Filter $filter->{Name}: command '$command' is not in ZM_ALLOWED_COMMANDS, refusing to run it");
+    return 0;
+  }
+
   my %tag_env;
   if ($command =~ /%\w+%/) {
     # Tag values such as event name, cause, notes, tags and monitor name can be
@@ -1291,7 +1300,12 @@ sub executeCommand {
         $token;
       } else {
         my $value = substituteTags($1, $filter, $Event);
-        if ($value =~ /^[\w\/.,:+=@% -]*$/) {
+        # \z, not $: $ also matches just before a trailing newline, so a value
+        # like "foo\n" would be treated as plain and inserted unquoted. The
+        # newline then ends the command line, and a second plain tag after it is
+        # run as its own shell command (refs GHSA-9v28-c6w5-v8w6). \z anchors at
+        # the true end of the string, so any trailing newline forces quoting.
+        if ($value =~ /^[\w\/.,:+=@% -]*\z/) {
           $value;
         } else {
           my $ref = '${ZM_TAG_'.$n.'}';

@@ -18,6 +18,7 @@ set(TEST_SOURCES
   zm_db_logging_live.cpp
   zm_db_schema.cpp
   zm_monitor_dts.cpp
+  zm_monitor_decoder_queue.cpp
   zm_box.cpp
   zm_buffer.cpp
   zm_audio_detector.cpp
@@ -30,6 +31,8 @@ set(TEST_SOURCES
   zm_image.cpp
   zm_image_annotate.cpp
   zm_monitor_shm.cpp
+  zm_monitor_capture_failure.cpp
+  zm_monitor_shared_value.cpp
   zm_monitor_check_action.cpp
   zm_monitor_ondemand.cpp
   zm_monitorlink_expression.cpp

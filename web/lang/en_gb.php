@@ -243,6 +243,38 @@ $SLANG = array(
     'ActionTriggerAlarm'      => 'Alarm begins',
     'ActionTriggerAlarmEnd'     => 'Alarm ends',
     'ActionTriggerManual'     => 'Manually triggered',
+    'ActionTriggerSchedule'     => 'At a time',
+    'ActionSchedule'            => 'Schedule',
+    'ActionScheduleAdvanced'    => 'This schedule was set outside the editor and is shown as it stands. Clear the row and add it again to use the pickers.',
+    'CommandNotAllowed'         => 'That command is not permitted. ZM_ALLOWED_COMMANDS limits this to:',
+    'ScheduledTasks'            => 'Scheduled Tasks',
+    'ScheduledTasksHelp'        => 'Commands run on a schedule by cron, from the web user\'s own crontab. ZoneMinder rewrites only its own block there and leaves any other entries alone. These run as the web user, so adding one is the same level of trust as a filter that runs a command.',
+    'CronCommand'               => 'Command',
+    'CronCommandHelp'           => 'Run as the web user. A literal percent sign must be written \\%, because cron treats an unescaped one as the end of the command.',
+    'CronWhen'                  => 'When',
+    'CronAddTask'               => 'Add a scheduled task',
+    'CronEditTask'              => 'Edit scheduled task',
+    'CronAdvanced'              => 'Enter as cron',
+    'CronAdvancedHelp'          => 'Set by the pickers, or type five cron fields directly for anything they cannot express.',
+    'CronAnyServer'             => 'Every server',
+    'CronScheduleAsCron'        => '(as the cron field below)',
+    'CronNoTasks'               => 'No scheduled tasks yet.',
+    'CronBadSchedule'           => 'That is not a schedule this can run. Five cron fields are expected, for example "0 3 * * *".',
+    'CronBadCommand'            => 'That is not a command this can run. It must not be empty, must stay on one line, and any percent sign must be written \\%.',
+    'CronWriteFailed'           => 'Saved, but the crontab could not be written, so this will not run. See the log for why.',
+    'CronConfirmDelete'         => 'Delete the selected scheduled tasks?',
+    'ScheduleEvery'             => 'Every',
+    'ScheduleAt'                => 'at',
+    'ScheduleEveryDay'          => 'day',
+    'ScheduleEveryWeekday'      => 'weekday (Mon-Fri)',
+    'ScheduleEveryWeekend'      => 'weekend day (Sat & Sun)',
+    'ScheduleEveryMonday'       => 'Monday',
+    'ScheduleEveryTuesday'      => 'Tuesday',
+    'ScheduleEveryWednesday'    => 'Wednesday',
+    'ScheduleEveryThursday'     => 'Thursday',
+    'ScheduleEveryFriday'       => 'Friday',
+    'ScheduleEverySaturday'     => 'Saturday',
+    'ScheduleEverySunday'       => 'Sunday',
     'ActionLightOn'           => 'Turn light on',
     'ActionLightOff'          => 'Turn light off',
     'ActionIndicatorLightOn'  => 'Turn indicator on',
@@ -437,6 +469,7 @@ $SLANG = array(
     'GeneratingVideo'       => 'Generating Video',
     'Generate QR Code'      => 'Generate QR Code',
     'GetCurrentLocation'    => 'Get Current Location',
+    'Go2RTCDisableBackchannel' => 'Disable Go2RTC audio backchannel',
     'GoToFrame'             => 'Go to Frame',
     'GoToZoneMinder'        => 'Go to ZoneMinder.com',
     'HasFocusSpeed'         => 'Has Focus Speed',
@@ -1208,6 +1241,18 @@ None: No frames will be decoded, live view and thumbnails will not be available~
     'Help' => '
       RTSP2Web supports MSE (Media Source Extensions), HLS (HTTP Live Streaming), and WebRTC.
       Each has its advantages, with WebRTC probably being the most performant, but also the most picky about codecs.'
+  ),
+  'FUNCTION_GO2RTC_DISABLE_BACKCHANNEL_FULL' => array(
+    'Help' => '
+      Enabled by default to prevent compatibility issues with some cameras, particularly Dahua models.~~
+      When live viewing through go2rtc is active, these issues may cause ONVIF events (such as motion or sound detection) to stop working and prevent ZoneMinder from recording events.~~~~
+      Disable this option if your camera requires RTSP backchannel functionality, or if you need two-way audio (talkback) through go2rtc.~~
+      If your camera works correctly with ONVIF events and recording while live viewing is active, you can also disable this option to retain the default backchannel behavior.'
+  ),
+  'FUNCTION_GO2RTC_DISABLE_BACKCHANNEL_SHORT' => array(
+    'Help' => '
+      Disable RTSP backchannel to prevent ONVIF event and recording issues with some cameras (particularly Dahua). 
+      Disable this option if two-way audio is required or your camera works correctly with backchannel enabled.'
   ),
   'FUNCTION_JANUS_ENABLED' => array(
     'Help' => '

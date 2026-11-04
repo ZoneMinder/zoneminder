@@ -155,6 +155,16 @@ void StreamBase::checkCommandQueue() {
       Debug(1, "No sd in checkCommandQueue, comms not open.");
     }
   } // end while !zm_terminate
+
+  // Nothing reads the socket from here on, but the stream thread can take a
+  // while to wind down (blocked writing to a client that has gone away, say),
+  // and the destructor that would otherwise close it runs only after that.
+  // Until then a command sent to us is accepted and never answered, so
+  // web/ajax/stream.php sits out its whole MSG_TIMEOUT before reporting a
+  // timeout. Closing now makes it see a missing socket and report no_socket
+  // straight away. sd is only used from this thread, and closeComms() leaves
+  // nothing for the destructor's call to do.
+  closeComms();
 }  // end void StreamBase::checkCommandQueue()
 
 int StreamBase::preScaleDimensions(int base_width, int base_height, int &width, int &height) const {
@@ -404,9 +414,10 @@ void StreamBase::openComms() {
     unsigned int length = snprintf(
                             sock_path_lock,
                             sizeof(sock_path_lock),
-                            "%s/zms-%06d.lock",
+                            "%s/zms-%06d-%d.lock",
                             staticConfig.PATH_SOCKS.c_str(),
-                            connkey
+                            connkey,
+                            owner
                           );
     if ( length >= sizeof(sock_path_lock) ) {
       Warning("Socket lock path was truncated.");
@@ -447,9 +458,10 @@ void StreamBase::openComms() {
     length = snprintf(
                loc_sock_path,
                sizeof(loc_sock_path),
-               "%s/zms-%06ds.sock",
+               "%s/zms-%06d-%ds.sock",
                staticConfig.PATH_SOCKS.c_str(),
-               connkey
+               connkey,
+               owner
              );
     if ( length >= sizeof(loc_sock_path) ) {
       Warning("Socket path was truncated.");
@@ -468,7 +480,7 @@ void StreamBase::openComms() {
       Fatal("Can't bind: %s", strerror(errno));
     }
 
-    snprintf(rem_sock_path, sizeof(rem_sock_path), "%s/zms-%06dw.sock", staticConfig.PATH_SOCKS.c_str(), connkey);
+    snprintf(rem_sock_path, sizeof(rem_sock_path), "%s/zms-%06d-%dw.sock", staticConfig.PATH_SOCKS.c_str(), connkey, owner);
     strncpy(rem_addr.sun_path, rem_sock_path, sizeof(rem_addr.sun_path));
     rem_addr.sun_family = AF_UNIX;
 
@@ -489,8 +501,8 @@ void StreamBase::closeComms() {
     // Remove our command socket, but only while we still hold the lock, and only
     // if we actually got the lock.
     //
-    // Note this is zms-<connkey>s.sock, not the .lock file. A second zms sharing
-    // this connkey is blocked in flock(LOCK_EX) on the .lock file, and the first
+    // Note this is zms-<connkey>-<owner>s.sock, not the .lock file. A second zms sharing
+    // this connkey and owner is blocked in flock(LOCK_EX) on the .lock file, and the first
     // thing it does after winning that lock is unlink this very path itself
     // ("Unlink before bind" in openComms()). It never reads our socket file, so
     // removing it here only does early what our successor would do anyway.

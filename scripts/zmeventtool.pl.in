@@ -122,7 +122,7 @@ foreach my $event_id (@ARGV) {
     my $old_path = $event->Path();
     if (! -e $old_path) {
       Warning("Event $event_id does not exist at $old_path. Skipping renumbering.");
-      continue;
+      next;
     }
 
     my $new_event = $event->clone();

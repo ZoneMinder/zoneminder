@@ -88,7 +88,16 @@ Message types:
   ``codecpar->extradata``: SPS/PPS/VPS for H.26x, AudioSpecificConfig for
   AAC, sequence header OBU for AV1), ``0x03``/``0x04`` width/height (u32),
   ``0x05``/``0x06`` fps numerator/denominator (u32), ``0x07``/``0x08``
-  sample rate/channels (u32), ``0x09``/``0x0A`` profile/level (u32).
+  sample rate/channels (u32), ``0x09``/``0x0A`` profile/level (u32),
+  ``0x0B`` codec name (utf8, FFmpeg's ``avcodec_get_name()``, e.g.
+  ``h264``, ``hevc``, ``aac``, ``pcm_mulaw``).
+
+  Identify the codec by **name** when it is present. ``AVCodecID`` values
+  are renumbered between FFmpeg major versions (HEVC is 173 in libavcodec
+  61 and 172 in libavcodec 63), so a consumer linked against a different
+  FFmpeg than zmc, or not using FFmpeg at all, cannot rely on the number.
+  The numeric id is still sent for consumers that predate the name; fall
+  back to it only when the name is absent.
 
 ``0x02 MEDIA``
   One complete video access unit or one audio packet (raw, not

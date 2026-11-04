@@ -180,6 +180,13 @@ constexpr std::size_t size(const T(&)[N]) noexcept { return N; }
 
 std::string mask_authentication(const std::string &url);
 std::string remove_authentication(const std::string &url);
+// A URL as it may be logged: no user:password@ and no query string (which may
+// carry an auth hash, a token or a password). "?..." marks a removed query.
+std::string url_for_log(const std::string &url);
+// An HTTP or RTSP request as it may be logged: the request target through
+// url_for_log() and the value of any Authorization or Proxy-Authorization
+// header (Basic carries user:password, only base64-encoded) replaced.
+std::string request_for_log(const std::string &request);
 
 std::string UriEncode(const std::string &value);
 // The go2rtc API base for a ZM_GO2RTC_PATH. go2rtc serves its API under /api, so

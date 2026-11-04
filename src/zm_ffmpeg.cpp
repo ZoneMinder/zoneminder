@@ -476,13 +476,22 @@ int setup_hwaccel(
   if (codec_data->hwdevice_type == AV_HWDEVICE_TYPE_NONE) {
     return 0;
   }
-  int ret = av_hwdevice_ctx_create(&hw_device_ctx,
-      codec_data->hwdevice_type,
-      device.empty() ? codec_data->hwdevice_default : device.c_str(),
-      nullptr, 0);
-  if (0>ret) {
-    Error("Failed to create hwdevice_ctx %s", av_make_error_string(ret).c_str());
-    return ret;
+  int ret = 0;
+  // Reuse a device context the caller already owns (one cached on the Monitor
+  // and shared across events) when it supplies one; only open the render node
+  // ourselves when it does not. Creating and destroying a device per event
+  // leaked a /dev/dri/renderD128 fd each time on some VAAPI drivers (refs
+  // #5300). The reference handed in is consumed here either way (unref'd at the
+  // end), matching the create path's previous ownership.
+  if (!hw_device_ctx) {
+    ret = av_hwdevice_ctx_create(&hw_device_ctx,
+        codec_data->hwdevice_type,
+        device.empty() ? codec_data->hwdevice_default : device.c_str(),
+        nullptr, 0);
+    if (0>ret) {
+      Error("Failed to create hwdevice_ctx %s", av_make_error_string(ret).c_str());
+      return ret;
+    }
   }
   codec_ctx->get_format = get_hw_format;
   codec_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);

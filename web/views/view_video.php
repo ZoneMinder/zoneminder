@@ -41,8 +41,14 @@ $mode = (!empty($_REQUEST['mode'])) ? $_REQUEST['mode'] : '';
 
 $Event = null;
 
-$event_id = !empty($_REQUEST['eid']) ? $_REQUEST['eid']
-  : (!empty($_REQUEST['event_id']) ? $_REQUEST['event_id'] : null);
+// validInt, not the raw request value: an array (eid[Id]=..&eid[MonitorId]=..)
+// would otherwise be handed to new ZM\Event() and taken as a forged DB row,
+// letting the request choose MonitorId (to pass canView) and the StorageId /
+// Scheme / Id that Path() builds from -- an arbitrary file read below
+// (refs GHSA-6h8f-gx4m-qqw4). An array reduces to '', so the id must be a plain
+// number that ZM\Event loads from the database.
+$event_id = !empty($_REQUEST['eid']) ? validInt($_REQUEST['eid'])
+  : (!empty($_REQUEST['event_id']) ? validInt($_REQUEST['event_id']) : null);
 
 if ($event_id !== null) {
   $Event = new ZM\Event($event_id);

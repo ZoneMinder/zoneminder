@@ -47,7 +47,7 @@ class ConfigsController extends AppController {
  * @param string $name the config name, for callers whose row omits it
  * @return array the same array, with any secret Value emptied
  */
-  private function redactSecret($config, $name = null) {
+  private function isSecretConfig($config, $name = null) {
     $secret_names = array('ZM_DB_HOST', 'ZM_DB_NAME', 'ZM_DB_USER', 'ZM_DB_PASS', 'ZM_DB_TYPE');
     if ($name === null) $name = isset($config['Name']) ? $config['Name'] : '';
 
@@ -55,10 +55,30 @@ class ConfigsController extends AppController {
     $private = !empty($config['Private'])
       || (isset($zm_config[$name]) && !empty($zm_config[$name]['Private']));
 
-    if ($private or in_array($name, $secret_names, true)) {
+    return $private or in_array($name, $secret_names, true);
+  }
+
+  private function redactSecret($config, $name = null) {
+    if ($this->isSecretConfig($config, $name)) {
       $config['Value'] = '';
     }
     return $config;
+  }
+
+  // Whether the caller's named filter tests the Value column (as Value, or
+  // Model.Value, with any operator). buildFilter() parses the field the same
+  // way. refs GHSA-8g63-hqg8-82cv
+  private function filterReferencesValue($namedParams) {
+    foreach (array_keys($namedParams) as $attribute) {
+      if (preg_match('/^(?P<field>[a-z0-9.]+)/i', trim($attribute), $m)) {
+        $field = $m['field'];
+        $bare = (false !== strpos($field, '.'))
+          ? substr($field, strrpos($field, '.') + 1)
+          : $field;
+        if (strcasecmp($bare, 'Value') === 0) return true;
+      }
+    }
+    return false;
   }
 
 /**
@@ -73,12 +93,28 @@ class ConfigsController extends AppController {
     $this->Config->recursive = -1; // Configs have no associations anyways
 
     $conditions = [];
+    $filters_value = false;
     if ( $this->request->params['named'] ) {
       $this->FilterComponent = $this->Components->load('Filter');
       $conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+      $filters_value = $this->filterReferencesValue($this->request->params['named']);
     }
 
     $configs = $this->Config->find('all', ['conditions' => &$conditions]);
+
+    // redactSecret() blanks a secret Value in the response, but the caller's
+    // WHERE clause is applied first, so a filter on Value (e.g. Value LIKE 'a%')
+    // turns the returned row count into an oracle that leaks a secret such as
+    // ZM_AUTH_HASH_SECRET one character at a time. When the filter tests Value,
+    // drop the secret rows so their presence reveals nothing; a filter on any
+    // other column is unaffected. refs GHSA-8g63-hqg8-82cv
+    if ($filters_value) {
+      $visible = array();
+      foreach ($configs as $c) {
+        if (!$this->isSecretConfig($c['Config'])) $visible[] = $c;
+      }
+      $configs = $visible;
+    }
 
     $config_by_name = [];
     foreach ($configs as $c) {

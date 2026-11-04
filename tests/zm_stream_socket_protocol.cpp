@@ -153,6 +153,7 @@ TEST_CASE("stream_socket::Hello video roundtrip") {
   HelloInfo info;
   REQUIRE(ParseHello(payload.data(), payload.size(), info));
   REQUIRE(info.codec_id == AV_CODEC_ID_H264);
+  REQUIRE(info.codec_name == "h264");
   REQUIRE(info.extradata == extradata);
   REQUIRE(info.width == 1920);
   REQUIRE(info.height == 1080);
@@ -183,6 +184,7 @@ TEST_CASE("stream_socket::Hello audio roundtrip") {
   HelloInfo info;
   REQUIRE(ParseHello(payload.data(), payload.size(), info));
   REQUIRE(info.codec_id == AV_CODEC_ID_AAC);
+  REQUIRE(info.codec_name == "aac");
   REQUIRE(info.extradata == asc);
   REQUIRE(info.sample_rate == 16000);
   REQUIRE(info.channels == 1);
@@ -217,6 +219,64 @@ TEST_CASE("stream_socket::ParseHello skips unknown tags") {
   HelloInfo info;
   REQUIRE(ParseHello(payload.data(), payload.size(), info));
   REQUIRE(info.codec_id == AV_CODEC_ID_HEVC);
+}
+
+TEST_CASE("stream_socket::ParseHello identifies the codec by name") {
+  // A zmc linked against another FFmpeg major numbers its codecs differently.
+  // Stand in for that by sending an id this build has never heard of.
+  const uint8_t foreign_id[] = {0xf0, 0xff, 0xff, 0x7f};
+  auto tlv = [](uint8_t tag, const std::string &value) {
+    std::vector<uint8_t> out = {tag, static_cast<uint8_t>(value.size()), 0x00};
+    out.insert(out.end(), value.begin(), value.end());
+    return out;
+  };
+
+  SECTION("the name wins over a numeric id from another FFmpeg") {
+    std::vector<uint8_t> payload = {kTlvCodecId, 0x04, 0x00};
+    payload.insert(payload.end(), foreign_id, foreign_id + 4);
+    std::vector<uint8_t> name = tlv(kTlvCodecName, "hevc");
+    payload.insert(payload.end(), name.begin(), name.end());
+
+    HelloInfo info;
+    REQUIRE(ParseHello(payload.data(), payload.size(), info));
+    REQUIRE(info.codec_id == AV_CODEC_ID_HEVC);
+    REQUIRE(info.codec_name == "hevc");
+  }
+
+  SECTION("a name this build does not know leaves the numeric id") {
+    std::vector<uint8_t> payload = {kTlvCodecId, 0x04, 0x00, 0x1b, 0x00, 0x00, 0x00};
+    std::vector<uint8_t> name = tlv(kTlvCodecName, "not_a_codec");
+    payload.insert(payload.end(), name.begin(), name.end());
+
+    HelloInfo info;
+    REQUIRE(ParseHello(payload.data(), payload.size(), info));
+    REQUIRE(info.codec_id == static_cast<AVCodecID>(0x1b));
+    REQUIRE(info.codec_name == "not_a_codec");
+  }
+
+  SECTION("a name alone is enough") {
+    std::vector<uint8_t> payload = tlv(kTlvCodecName, "pcm_mulaw");
+
+    HelloInfo info;
+    REQUIRE(ParseHello(payload.data(), payload.size(), info));
+    REQUIRE(info.codec_id == AV_CODEC_ID_PCM_MULAW);
+  }
+
+  SECTION("an unknown name and no id is rejected") {
+    std::vector<uint8_t> payload = tlv(kTlvCodecName, "not_a_codec");
+
+    HelloInfo info;
+    REQUIRE_FALSE(ParseHello(payload.data(), payload.size(), info));
+  }
+
+  SECTION("a HELLO without the name still parses") {
+    std::vector<uint8_t> payload = {kTlvCodecId, 0x04, 0x00, 0x1b, 0x00, 0x00, 0x00};
+
+    HelloInfo info;
+    REQUIRE(ParseHello(payload.data(), payload.size(), info));
+    REQUIRE(info.codec_id == static_cast<AVCodecID>(0x1b));
+    REQUIRE(info.codec_name.empty());
+  }
 }
 
 TEST_CASE("stream_socket::ParseHello rejects malformed input") {

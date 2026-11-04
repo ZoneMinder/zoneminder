@@ -386,7 +386,9 @@ export class _AudioMotionAnalyzer extends HTMLElement {
       const currentMode = streamNode.getAttribute('current-mode'); // This go2RTC indicates either "error" or MSE, RTC, etc.
       const h = (this.querySelector('canvas')) ? this.querySelector('canvas').getBoundingClientRect().height : 0;
       if ((currentMode && -1 !== currentMode.toLowerCase().indexOf('error')) || (this.audioMotion && h > 0)) {
-        this.monitorGridRedrawTrigger();
+        setTimeout(function(self) {
+          self.monitorGridRedrawTrigger();
+        }, 100, this);
         ready = true;
       }
     }

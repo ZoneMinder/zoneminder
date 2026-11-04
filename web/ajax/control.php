@@ -37,6 +37,9 @@ if ( isset($_REQUEST['action']) and ($_REQUEST['action'] == 'monitorAction') ) {
   if ( !canView('Control', $target->Id()) )
     ajaxError('Insufficient permissions on the target monitor');
 
+  if ( $url = remoteControlUrl($target, $_REQUEST) )
+    relayControlReply($url);
+
   $ctrlCommand = $monitorAction->controlCommand();
   if ( !$ctrlCommand )
     ajaxError('Action has no usable command');
@@ -51,6 +54,9 @@ if ( isset($_REQUEST['action']) and ($_REQUEST['action'] == 'monitorAction') ) {
 
 if ( canView('Control', $_REQUEST['id']) ) {
   $monitor = new ZM\Monitor(validCardinal($_REQUEST['id']));
+
+  if ( $url = remoteControlUrl($monitor, $_REQUEST) )
+    relayControlReply($url);
 
   $ctrlCommand = buildControlCommand($monitor);
 
@@ -73,4 +79,20 @@ if ( canView('Control', $_REQUEST['id']) ) {
 }
 
 ajaxError('Unrecognised action or insufficient permissions');
+
+// Hands the request to the server that records the monitor and answers with its reply.
+function relayControlReply($url) {
+  $reply = forwardControlRequest($url);
+  if ( $reply === false )
+    ajaxError('Failed');
+  // The other server answers with an ajaxResponse/ajaxError JSON object. Don't
+  // pass a non-JSON body (e.g. an unexpected HTML error page) back under a JSON
+  // content-type; report a clean error instead.
+  if ( json_decode($reply) === null && trim($reply) !== 'null' )
+    ajaxError('Recording server returned an unexpected reply');
+  if ( function_exists('ajaxCleanup') )
+    ajaxCleanup();
+  header('Content-type: application/json');
+  exit($reply);
+}
 ?>

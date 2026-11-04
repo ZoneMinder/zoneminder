@@ -113,7 +113,7 @@ sub open {
   # was consumed as the username, the port as the password, and ADDRESS
   # backtracked to a single digit, producing failures like "Can't connect to 4:80".
   if (!$self->guess_credentials()) {
-    Error("Monitor $self->{Monitor}{Id} ($self->{Monitor}{Name}): Failed to parse connection details from ControlAddress '".($self->{Monitor}{ControlAddress} // '')."' or Path '".($self->{Monitor}{Path} // '')."'");
+    Error("Monitor $self->{Monitor}{Id} ($self->{Monitor}{Name}): Failed to parse connection details from ControlAddress '".urlForLog($self->{Monitor}{ControlAddress} // '')."' or Path '".urlForLog($self->{Monitor}{Path} // '')."'");
     return 0;
   }
   $USERNAME = $self->{username} if $self->{username};
@@ -181,7 +181,7 @@ sub sendCmd {
   my $res = $self->{ua}->request($req);
 
   if (!$res->is_success) {
-    Error("Monitor $self->{Monitor}{Id} ($self->{Monitor}{Name}): Request failed: ".$res->status_line().' (URI: '.$req->as_string().')');
+    Error("Monitor $self->{Monitor}{Id} ($self->{Monitor}{Name}): Request failed: ".$res->status_line().' (URI: '.urlForLog($req->uri()).')');
   }
   return $res->is_success;
 }

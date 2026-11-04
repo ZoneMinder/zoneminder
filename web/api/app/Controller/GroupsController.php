@@ -121,15 +121,15 @@ class GroupsController extends AppController {
         return;
       }
 
-      $monitorIds = $this->requestAssociatedIds('Group', 'MonitorIds', 'Monitor');
-      if ($monitorIds) $this->requireMembershipEdit($monitorIds);
-      $this->pinRequestId($this->Group, null);
-			$this->Group->create();
-
       if ( $this->request->data['Group']['MonitorIds'] and ! isset($this->request->data['Monitor']) ) {
         $this->request->data['Monitor'] = explode(',', $this->request->data['Group']['MonitorIds']);
         unset($this->request->data['Group']['MonitorIds']);
       }
+      $monitorIds = $this->requestAssociatedIds('Group', 'Monitor');
+      if ($monitorIds) $this->requireMembershipEdit($monitorIds);
+      $this->pinRequestId($this->Group, null);
+			$this->Group->create();
+
       if ( $this->Group->saveAssociated($this->request->data, array('atomic'=>true)) ) {
         return $this->flash(
           __('The group has been saved.'),
@@ -167,7 +167,7 @@ class GroupsController extends AppController {
       $this->pinRequestId($this->Group, $id);
       $group = new ZM\Group($id);
       $moved = array();
-      $newIds = $this->requestAssociatedIds('Group', 'MonitorIds', 'Monitor');
+      $newIds = $this->requestAssociatedIds('Group', 'Monitor');
       if ($newIds !== null) {
         $oldIds = dbFetchAll('SELECT `MonitorId` FROM `Groups_Monitors` WHERE `GroupId`=?', 'MonitorId', array($id));
         $moved = array_merge(array_diff($oldIds, $newIds), array_diff($newIds, $oldIds));

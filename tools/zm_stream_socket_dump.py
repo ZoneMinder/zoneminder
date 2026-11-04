@@ -10,7 +10,7 @@ import sys
 TYPES = {1: 'HELLO', 2: 'MEDIA', 3: 'KEYFRAME', 4: 'STATS', 5: 'BYE', 6: 'EVENT'}
 TLV_NAMES = {1: 'codec_id', 2: 'extradata', 3: 'width', 4: 'height',
              5: 'fps_num', 6: 'fps_den', 7: 'sample_rate', 8: 'channels',
-             9: 'profile', 10: 'level'}
+             9: 'profile', 10: 'level', 11: 'codec_name'}
 EVENT_CODES = {0x0001: 'snapshot', 0x0101: 'connection_failed',
                0x0102: 'connection_restored', 0x0103: 'prime_capture_failed',
                0x0104: 'prime_capture_restored', 0x0105: 'capture_failed',
@@ -41,6 +41,8 @@ def parse_hello(payload):
         name = TLV_NAMES.get(tag, 'tag%#x' % tag)
         if tag == 2:
             parts.append('extradata=%dB[%s...]' % (len(value), value[:8].hex()))
+        elif tag == 11:
+            parts.append('%s=%s' % (name, value.decode('utf-8', 'replace')))
         elif len(value) == 4:
             parts.append('%s=%d' % (name, struct.unpack('<I', value)[0]))
         else:

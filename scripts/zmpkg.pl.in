@@ -192,6 +192,19 @@ if ( $command =~ /^(?:start|restart)$/ ) {
          );
     } # end if version mismatch
 
+    if ( $Config{ZM_OPT_USE_AUTH} and ( $Config{ZM_AUTH_RELAY} eq 'plain' ) ) {
+      Warning('ZM_AUTH_RELAY=plain is deprecated: it puts the user\'s password'
+        .' in stream URLs and the web session. Set it to hashed (with'
+        .' ZM_AUTH_HASH_SECRET set) in Options > Authentication.');
+    }
+
+    if ( $Config{ZM_OPT_FAST_DELETE} and !$Config{ZM_RUN_AUDIT} ) {
+      Warning('ZM_OPT_FAST_DELETE is on but ZM_RUN_AUDIT is off: events deleted'
+        .' in the web interface leave their Frames and Stats rows and their files'
+        .' for zmaudit to remove, and zmaudit is not running, so they are never'
+        .' removed. Turn on ZM_RUN_AUDIT or turn off ZM_OPT_FAST_DELETE in Options > System.');
+    }
+
 # Recreate the temporary directory if it's been wiped
     verifyFolder('@ZM_TMPDIR@');
 

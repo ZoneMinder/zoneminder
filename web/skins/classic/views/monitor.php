@@ -1958,6 +1958,7 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
 
   <script src="<?php echo cache_bust('js/MonitorLinkExpression.js') ?>"></script>
   <script src="<?php echo cache_bust('skins/classic/views/js/monitor-encoder-templates.js') ?>"></script>
+  <script src="<?php echo cache_bust('skins/classic/views/js/monitor-ffmpeg-options.js') ?>"></script>
 <script type="module" nonce="<?php echo $cspNonce ?>">
   import DmsCoordinates, {parseDms} from "./js/dms.js";
   window.DmsCoordinates = DmsCoordinates;

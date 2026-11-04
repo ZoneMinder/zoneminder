@@ -60,6 +60,12 @@ if ($action == 'Save') {
       }
     }
     $changes = $dbUser->changes($_REQUEST['newUser']);
+    if (isset($changes['Password'])) {
+      # Changing the password revokes the user's existing API tokens, matching
+      # the options page's revoke action: validateToken() rejects any token
+      # issued before TokenMinExpiry (refs GHSA-5w6w-qp25-2qqh).
+      $changes['TokenMinExpiry'] = time();
+    }
     ZM\Debug('Changes: ' . print_r($changes, true));
 
     if (count($changes)) {
@@ -100,6 +106,11 @@ if ($action == 'Save') {
     $fields = array('Password'=>'', 'Language'=>'', 'HomeView'=>'');
     ZM\Debug("changes: ".print_r(array_intersect_key($_REQUEST['newUser'], $fields),true));
     $changes = $dbUser->changes(array_intersect_key($_REQUEST['newUser'], $fields));
+    if (isset($changes['Password'])) {
+      # A self-service password change revokes the user's existing API tokens
+      # (refs GHSA-5w6w-qp25-2qqh).
+      $changes['TokenMinExpiry'] = time();
+    }
     ZM\Debug("changes: ".print_r($changes, true));
 
     if (count($changes)) {

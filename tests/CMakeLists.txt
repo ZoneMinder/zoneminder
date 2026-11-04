@@ -28,6 +28,7 @@ set(TEST_SOURCES
   zm_font.cpp
   zm_image_annotate.cpp
   zm_monitor_shm.cpp
+  zm_monitor_capture_failure.cpp
   zm_monitor_check_action.cpp
   zm_monitor_ondemand.cpp
   zm_monitorlink_expression.cpp

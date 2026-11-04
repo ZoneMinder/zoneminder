@@ -2836,15 +2836,21 @@ int Monitor::Capture() {
       );
 
   if (captureResult < 0) {
-    // Unable to capture image
+    // Unable to capture image. zmc closes the monitor and reconnects, and
+    // connect() clears the image ring.
+    shared_data->signal = false;
+    // With a decoder thread running, it is the ring's only writer: it picks
+    // its slot from last_write_index, this thread from image_count, so both
+    // could write the same slot or move last_write_index backwards. Viewers
+    // keep its last frame until the reconnect. refs #5237
+    if (decoding != DECODING_NONE) return -1;
+
     // Fake a signal loss image
-    // Not sure what to do here.  We will close monitor and kill analysis_thread but what about rtsp server?
     Rgb signalcolor;
     /* HTML colour code is actually BGR in memory, we want RGB */
     signalcolor = rgb_convert(signal_check_colour, ZM_SUBPIX_ORDER_BGR);
     Image *capture_image = new Image(width, height, camera->Colours(), camera->SubpixelOrder());
     capture_image->Fill(signalcolor);
-    shared_data->signal = false;
     shared_data->last_write_index = index;
     shared_data->last_write_time = shared_timestamps[index].tv_sec;
     image_buffer[index]->Assign(*capture_image);

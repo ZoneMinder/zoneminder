@@ -142,6 +142,11 @@ class UsersController extends AppController {
         # Same fields the web UI lets a user change about themselves (includes/actions/user.php)
         $data = $this->selfEditData($data);
         $fieldList = array_keys($data['User']);
+        # A self-service password change must also persist TokenMinExpiry, which
+        # the User model sets in beforeSave to revoke the user's existing API
+        # tokens; it is not a field the user submitted, so the self-edit
+        # whitelist has to admit it (refs GHSA-5w6w-qp25-2qqh).
+        if (in_array('Password', $fieldList)) $fieldList[] = 'TokenMinExpiry';
       }
 			if ($selfEdit and !count($fieldList)) {
 				$message = 'Error';

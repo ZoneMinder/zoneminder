@@ -17,6 +17,7 @@ set(TEST_SOURCES
   zm_comms.cpp
   zm_crypt.cpp
   zm_font.cpp
+  zm_image_annotate.cpp
   zm_poly.cpp
   zm_rtp_source.cpp
   zm_rtsp_auth.cpp

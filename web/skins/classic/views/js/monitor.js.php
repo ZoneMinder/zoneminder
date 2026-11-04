@@ -84,6 +84,13 @@ function validateForm(form) {
     } else if (form.elements['newMonitor[Path]'].value.match(/[\!\*'\(\)\$ ,#]/)) {
       warnings[warnings.length] = "<?php echo translate('BadPathNotEncoded') ?>";
     }
+    if (form.elements['newMonitor[Options]']) {
+      const badOptions = ZM_FfmpegOptions.badEntries(form.elements['newMonitor[Options]'].value);
+      if (badOptions.length) {
+        errors[errors.length] = "<?php echo translate('BadFfmpegOptions') ?>" + "\n" +
+          badOptions.map((entry) => JSON.stringify(entry)).join("\n");
+      }
+    }
 /*
  * Alternate way of testing for bad urls
     let url = new URL(form.elements['newMonitor[Path]'].value);

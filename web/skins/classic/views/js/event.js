@@ -1028,13 +1028,16 @@ function sendZmsHints(eventId) {
 }
 
 function nearEventsQuery(eventId) {
-  const src = parseInt(eventId);
-  zmsHints.lookingUp(src, Date.now());
+  const lookup = zmsHints.lookingUp(parseInt(eventId), Date.now());
   $j.getJSON(thisUrl + '?view=request&request=status&entity=nearevents&id='+eventId+filterQuery+sortQuery)
-      .done(getNearEventsResponse)
+      .done(function(respObj, respText) {
+        // A lookup given up on can answer after its retry; its neighbours are
+        // older, and would replace the retry's.
+        if (zmsHints.isLatestLookup(lookup)) getNearEventsResponse(respObj, respText);
+      })
       .fail(logAjaxFail)
       .always(function() {
-        zmsHints.lookupDone(src);
+        zmsHints.lookupDone(lookup);
       });
 }
 

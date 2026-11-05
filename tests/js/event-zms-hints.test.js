@@ -162,8 +162,8 @@ test('one lookup at a time', () => {
 test('a failed lookup is retried, not at once', () => {
   // Without neighbours zms waits at the end of the event and then stops.
   const hints = ZM.create();
-  hints.lookingUp(10, 0);
-  hints.lookupDone(10);
+  const lookup10 = hints.lookingUp(10, 0);
+  hints.lookupDone(lookup10);
   assert.strictEqual(hints.needsLookup(10, false, retry - 1), false);
   assert.strictEqual(hints.needsLookup(10, false, retry), true);
 });
@@ -176,8 +176,8 @@ test('neighbours of the previous event do not count', () => {
   // The lookup after an event change failed: the hints still name event 10.
   const hints = ZM.create();
   hints.set(10, 11, 9, 0);
-  hints.lookingUp(11, 0);
-  hints.lookupDone(11);
+  const lookup11 = hints.lookingUp(11, 0);
+  hints.lookupDone(lookup11);
   assert.strictEqual(hints.needsLookup(11, false, retry), true);
 });
 test('a new event is looked up at once even while another lookup is out', () => {
@@ -188,9 +188,9 @@ test('a new event is looked up at once even while another lookup is out', () => 
 });
 test('neighbours in hand are not looked up again', () => {
   const hints = ZM.create();
-  hints.lookingUp(10, 0);
+  const lookup10 = hints.lookingUp(10, 0);
   hints.set(10, 11, 9, 1);
-  hints.lookupDone(10);
+  hints.lookupDone(lookup10);
   assert.strictEqual(hints.needsLookup(10, false, 10 * later), false);
 });
 test('a boundary ahead is asked for again after a while', () => {
@@ -211,10 +211,22 @@ test('only in the direction of play', () => {
 test('a boundary refresh waits a full interval before the next request', () => {
   const hints = ZM.create();
   hints.set(10, 0, 9, 0);
-  hints.lookingUp(10, later);
-  hints.lookupDone(10);
+  const lookup10 = hints.lookingUp(10, later);
+  hints.lookupDone(lookup10);
   assert.strictEqual(hints.needsLookup(10, false, later + 1), false);
   assert.strictEqual(hints.needsLookup(10, false, 2 * later), true);
+});
+
+test('only the last lookup counts', () => {
+  // A lookup given up on and retried can answer after the retry.
+  const hints = ZM.create();
+  const first = hints.lookingUp(10, 0);
+  const retry = hints.lookingUp(10, ZM.LOOKUP_TIMEOUT_MS);
+  assert.strictEqual(hints.isLatestLookup(first), false);
+  assert.strictEqual(hints.isLatestLookup(retry), true);
+  // The first's completion does not end the retry's wait.
+  hints.lookupDone(first);
+  assert.strictEqual(hints.needsLookup(10, false, ZM.LOOKUP_TIMEOUT_MS + 1), false);
 });
 
 console.log('\n' + passed + ' passed, ' + failed + ' failed');

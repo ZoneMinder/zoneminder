@@ -21,7 +21,8 @@
 // - A restarted zms has none of them, so they are sent again.
 // - The neighbours of the event zms is playing are looked up again when the
 //   last lookup failed or was for another event, at most every
-//   LOOKUP_RETRY_MS, and one request at a time.
+//   LOOKUP_RETRY_MS, and one request at a time. Lookups are numbered, so the
+//   reply to one given up on cannot overwrite a newer one's.
 // - A boundary (no next event) is asked for again every BOUNDARY_REFRESH_MS
 //   while it is in the direction of play, since an event may have been
 //   recorded since.
@@ -38,8 +39,9 @@
   function create() {
     // {src, next, prev, fetched, state: 'unsent'|'sending'|'sent', batch, inflight, failed}
     let hints = null;
-    // The last neighbour lookup: {src, at, pending}
+    // The last neighbour lookup: {src, at, pending, id}
     let lookup = null;
+    let lookups = 0;
     let batches = 0;
     // Batch number -> commands of it sent to this zms and not yet answered.
     let unanswered = new Map();
@@ -111,14 +113,22 @@
         return now - asked >= BOUNDARY_REFRESH_MS;
       },
 
-      // A lookup for src's neighbours was sent at time now.
+      // A lookup for src's neighbours was sent at time now. Returns its
+      // number, for isLatestLookup() and lookupDone().
       lookingUp: function(src, now) {
-        lookup = {src: src, at: now, pending: true};
+        lookup = {src: src, at: now, pending: true, id: ++lookups};
+        return lookup.id;
       },
 
-      // The lookup for src got a reply or failed.
-      lookupDone: function(src) {
-        if (lookup && lookup.src == src) lookup.pending = false;
+      // Whether lookup id is the last one sent. A reply to an earlier one is
+      // older than what the last one will bring, and is dropped.
+      isLatestLookup: function(id) {
+        return lookup != null && lookup.id == id;
+      },
+
+      // Lookup id got a reply or failed.
+      lookupDone: function(id) {
+        if (lookup && lookup.id == id) lookup.pending = false;
       },
     };
   }

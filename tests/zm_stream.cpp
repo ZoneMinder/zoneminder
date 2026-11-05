@@ -56,6 +56,11 @@ class TestStream : public StreamBase {
     scale = p_scale;
     zoom = p_zoom;
   }
+  void setClick(unsigned short p_x, unsigned short p_y) {
+    x = p_x;
+    y = p_y;
+  }
+  const Box &crop() const { return last_crop; }
   void commandLoop() {
     checkCommandQueue();
   }
@@ -308,6 +313,33 @@ TEST_CASE("StreamBase::prepareImage pre-scaled frames") {
       REQUIRE(scaled.Height() == (kHeight * scale) / ZM_SCALE_BASE);
     }
   }
+}
+
+TEST_CASE("StreamBase::prepareImage keeps a zoom across a change of resolution") {
+  // Event playback can move on to another monitor's event. The crop is kept in
+  // the previous frame's pixels; a 1280x960 crop does not fit a 640x480 frame,
+  // so Crop refused it on every frame and the zoom was lost.
+  EnsureImageInit();
+  TestStream stream;
+  stream.setView(ZM_SCALE_BASE, 150);
+  stream.setClick(640, 480);
+  Image large(1280, 960, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA);
+  stream.prepare(&large);
+  const Box first = stream.crop();
+  REQUIRE(first.Hi().x_ > 639);
+
+  stream.setClick(320, 240);
+  Image small(640, 480, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA);
+  Image *sent = stream.prepare(&small);
+
+  const Box &second = stream.crop();
+  CHECK(second.Hi().x_ <= 639);
+  CHECK(second.Hi().y_ <= 479);
+  // The same part of the picture: half the coordinates, give or take rounding.
+  CHECK(std::abs(second.Lo().x_ - first.Lo().x_ / 2) <= 2);
+  CHECK(std::abs(second.Lo().y_ - first.Lo().y_ / 2) <= 2);
+  CHECK(sent->Width() == 640);
+  CHECK(sent->Height() == 480);
 }
 
 TEST_CASE("StreamBase::preScaleDimensions") {

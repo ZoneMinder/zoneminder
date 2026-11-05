@@ -144,6 +144,9 @@ class StreamBase {
   std::atomic<int> zoom;
   int last_zoom;
   Box last_crop;
+  // The frame size last_crop is in. Event playback can move to a monitor with
+  // a different resolution.
+  int last_crop_width, last_crop_height;
   int bitrate;
   unsigned short last_x, last_y;
   std::atomic<unsigned short> x, y;
@@ -227,6 +230,8 @@ class StreamBase {
     last_scale(DEFAULT_SCALE),
     zoom(DEFAULT_ZOOM),
     last_zoom(DEFAULT_ZOOM),
+    last_crop_width(0),
+    last_crop_height(0),
     bitrate(DEFAULT_BITRATE),
     last_x(0),
     last_y(0),

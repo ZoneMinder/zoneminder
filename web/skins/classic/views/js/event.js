@@ -30,6 +30,8 @@ var cueSeries = null; //parsed levels for the cue graph, rebuilt whenever it is 
 var streamCmdInterval = null;
 var streamStatus = null;
 var lastEventId = 0;
+// The next/prev events we tell zms about; see event-zms-hints.js. Set in initPage.
+let zmsHints = null;
 var zmsBroke = false; //Use alternate navigation if zms has crashed
 var wasHidden = false;
 var availableTags = [];
@@ -443,12 +445,22 @@ function getCmdResponse(respObj, respText) {
     if (eventId != lastEventId) {
       //Doesn't run on first load, prevents a double hit on event and nearEvents ajax
       eventQuery(eventId);
+      // Ask for the new event's neighbours now rather than after eventQuery
+      // returns: zms waits at the end of this event until we send them.
+      nearEventsQuery(eventId);
       initialAlarmCues(eventId); //zms uses this instead of a page reload, must call ajax+render
       lastEventId = eventId;
     }
   } else {
     lastEventId = eventId; //Only fires on first load.
   }
+
+  // zms is answering for eventId, so its hints can be sent now.
+  if (zmsHints.needsRefresh(eventId, streamStatus.rate < 0, Date.now())) {
+    zmsHints.refreshing(Date.now());
+    nearEventsQuery(eventId);
+  }
+  sendZmsHints(eventId);
 
   if (streamStatus.paused == true) {
     streamPause();
@@ -886,6 +898,9 @@ function restartZmsStream(onReady) {
   img.onload = function() {
     img.onload = null;
     zmsBroke = false;
+    // The new zms has none of the next/prev hints; resend them with its first
+    // status reply.
+    zmsHints.reset();
     if (onReady) onReady();
   };
   img.src = url.href;
@@ -941,7 +956,6 @@ function getEventResponse(respObj, respText) {
   } else {
     drawProgressBar();
   }
-  nearEventsQuery(eventData.Id);
 } // end function getEventResponse
 
 function eventQuery(eventId) {
@@ -958,6 +972,13 @@ function getNearEventsResponse(respObj, respText) {
   if (checkStreamForErrors('getNearEventsResponse', respObj)) {
     return;
   }
+  // On the zms path the event can change under us. A response for an event zms
+  // has already left would set the wrong Prev/Next and hints, so drop it; the
+  // query for the event playing now is already on its way.
+  const srcEventId = parseInt(respObj.nearevents.EventId);
+  if (vid == null && lastEventId && srcEventId != parseInt(lastEventId)) {
+    return;
+  }
   prevEventId = parseInt(respObj.nearevents.PrevEventId);
   nextEventId = parseInt(respObj.nearevents.NextEventId);
   prevEventStartTime = Date.parse(respObj.nearevents.PrevEventStartTime);
@@ -968,21 +989,43 @@ function getNearEventsResponse(respObj, respText) {
   $j('#prevBtn').prop('disabled', prevEventId == 0 ? true : false).attr('class', prevEventId == 0 ? 'unavail' : 'inactive');
   $j('#nextBtn').prop('disabled', nextEventId == 0 ? true : false).attr('class', nextEventId == 0 ? 'unavail' : 'inactive');
 
-  // When playback is served by zms (not the video.js player), tell it which
-  // events are next/prev in the current filter/sort so its gapless auto-advance
-  // follows that order across monitors instead of its own same-monitor query
-  // (refs #4186). dir: 0 = next, 1 = prev. eventid 0 means the filter has no
-  // neighbour in that direction (zms then stops at the boundary). srcid binds
-  // the hint to the event these neighbours were computed for -- the response's
-  // own EventId, NOT the current eventData.Id. A slow nearevents response can
-  // arrive after the page has moved to another event; tagging it with the
-  // current id could send "for event B, next = B" (if B was A's next) and loop
-  // zms on B. Bound to its own source, zms discards a hint that no longer
-  // matches the event it is playing, so a superseded response is simply ignored.
-  var srcEventId = parseInt(respObj.nearevents.EventId);
-  if (vid == null && srcEventId == parseInt(eventData.Id)) {
-    streamReq({command: CMD_SET_EVENT, dir: 0, eventid: nextEventId, srcid: srcEventId});
-    streamReq({command: CMD_SET_EVENT, dir: 1, eventid: prevEventId, srcid: srcEventId});
+  // When zms is playing (not video.js), tell it which events are next/prev in
+  // this filter and sort, so its gapless advance follows them across monitors
+  // (refs #4186). Before zms has answered a status query they wait for its
+  // first reply; see getCmdResponse.
+  if (vid == null) {
+    zmsHints.set(srcEventId, nextEventId, prevEventId, Date.now());
+    if (lastEventId) sendZmsHints(lastEventId);
+  }
+}
+
+// Send zms the hints for eventId, the event it reports playing, if they have
+// not reached it yet.
+function sendZmsHints(eventId) {
+  for (const hint of zmsHints.take(parseInt(eventId))) {
+    const data = {
+      command: CMD_SET_EVENT,
+      dir: hint.dir,
+      eventid: hint.eventid,
+      srcid: hint.srcid,
+      connkey: connKey,
+      view: 'request',
+      request: 'stream',
+    };
+    if (zmAuth.hash) data.auth = zmAuth.hash;
+    // Not getCmdResponse: a hint that fails to reach zms is sent again on the
+    // next status reply, and must not mark zms broken, which stops the polling.
+    // A refusal (bad id, no permission) won't change on retry, so it is final.
+    $j.getJSON(zmAuth.appendTo(monitorUrl), data)
+        .done(function(respObj) {
+          const refused = respObj && respObj.result == 'Error' && respObj.reason == 'invalid';
+          const delivered = respObj && (respObj.result != 'Error' || refused);
+          if (!delivered || refused) console.log('SET_EVENT not applied', respObj);
+          zmsHints.response(hint.srcid, delivered);
+        })
+        .fail(function() {
+          zmsHints.response(hint.srcid, false);
+        });
   }
 }
 
@@ -1449,6 +1492,7 @@ function onStatsResize(vidWidth) {
 }
 
 function initPage() {
+  zmsHints = ZM_EventZmsHints.create();
   const stream = document.getElementById('videoFeedStream' + eventData.MonitorId);
   if (stream) {
     stream.addEventListener('zm:tracksReceived', (e) => {

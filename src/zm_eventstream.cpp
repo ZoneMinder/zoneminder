@@ -409,10 +409,15 @@ bool EventStream::loadEventData(uint64_t event_id) {
   }
   mysql_free_result(result);
 
+  // Replace the previous event's decoder, or drop it when this event has no
+  // video: sendFrame falls back to ffmpeg_input for a missing jpeg, and a
+  // leftover decoder would show the previous event's (possibly another
+  // camera's) footage under this event.
+  delete ffmpeg_input;
+  ffmpeg_input = nullptr;
   if (!event_data->video_file.empty()) {
     std::string filepath = event_data->path + "/" + event_data->video_file;
     Debug(1, "Loading video file from %s", filepath.c_str());
-    delete ffmpeg_input;
 
     ffmpeg_input = new FFmpeg_Input();
     if (ffmpeg_input->Open(filepath.c_str()) < 0) {
@@ -466,10 +471,39 @@ bool EventStream::eventExists(uint64_t event_id) {
   return exists;
 }
 
+EventStream::SetEventCommand EventStream::DecodeSetEvent(const char *msg_data) {
+  SetEventCommand command;
+  command.prev = msg_data[1] != 0;
+  command.event_id = 0;
+  for (int i = 0; i < 8; i++)
+    command.event_id = (command.event_id << 8) | static_cast<unsigned char>(msg_data[2 + i]);
+  command.source_event_id = 0;
+  for (int i = 0; i < 6; i++)
+    command.source_event_id = (command.source_event_id << 8) | static_cast<unsigned char>(msg_data[10 + i]);
+  return command;
+}
+
+bool EventStream::HintIsFor(const EventHint &hint, uint64_t current_event_id) {
+  return hint.have && (hint.source_event_id == (current_event_id & 0xFFFFFFFFFFFFULL));
+}
+
+EventStream::NeighbourChoice EventStream::ChooseNeighbour(const EventHint &hint, uint64_t current_event_id,
+                                                          bool ui_managed, Microseconds waited) {
+  if (HintIsFor(hint, current_event_id))
+    return hint.event_id ? NeighbourChoice::kHint : NeighbourChoice::kBoundary;
+  if (!ui_managed) return NeighbourChoice::kSameMonitor;
+  return waited < kHintWait ? NeighbourChoice::kWait : NeighbourChoice::kTimedOut;
+}
+
 void EventStream::processCommand(const CmdMsg *msg) {
   Debug(2, "Got message, type %d, msg %d", msg->msg_type, msg->msg_data[0]);
 
   std::scoped_lock lck{mutex};
+
+  // Any command that can move or redirect playback ends a wait for the UI's
+  // hint; checkEventLoaded starts a new one if we are still at the end.
+  if (((MsgCommand)msg->msg_data[0] != CMD_QUERY) && ((MsgCommand)msg->msg_data[0] != CMD_SET_EVENT))
+    hint_wait_start = TimePoint();
 
   // Check for incoming command
   switch ((MsgCommand)msg->msg_data[0]) {
@@ -707,38 +741,27 @@ void EventStream::processCommand(const CmdMsg *msg) {
     break;
   }
   case CMD_SET_EVENT : {
-    // The UI tells us which event is next/prev in the filter/sort it is showing,
-    // so gapless advance follows that order rather than our same-monitor query
-    // (refs #4186). Payload: msg_data[1] = direction (0 next, 1 prev),
-    // msg_data[2..9] = target event id (64-bit big-endian, 0 = no neighbour in
-    // the filter), msg_data[10..15] = source event id (48-bit big-endian) this
-    // hint was computed against, so a hint for an event we have already left is
-    // discarded rather than applied to the wrong event.
-    unsigned char direction = (unsigned char)msg->msg_data[1];
-    uint64_t event_id = 0;
-    for (int i = 0; i < 8; i++)
-      event_id = (event_id << 8) | (unsigned char)msg->msg_data[2 + i];
-    uint64_t source_event_id = 0;
-    for (int i = 0; i < 6; i++)
-      source_event_id = (source_event_id << 8) | (unsigned char)msg->msg_data[10 + i];
-    // next and prev are sent as two separate AJAX requests and can arrive out of
-    // order. Only install a hint computed for the event we are currently playing;
-    // a command for an event we have already left (or have not reached) would
-    // otherwise overwrite the valid hint for the current event and make the next
-    // transition fall back to the same-monitor query (refs #4186). The 48-bit
-    // source truncates the id, but a collision only drops a legitimate hint (safe
-    // fallback), never installs a wrong one.
-    if (source_event_id != (event_data->event_id & 0xFFFFFFFFFFFFULL)) {
+    // The UI tells us which event is next/prev in the filter/sort it is showing
+    // (refs #4186). From now on this stream follows the UI's order and never the
+    // same-monitor query; see ChooseNeighbour.
+    ui_managed = true;
+    SetEventCommand command = DecodeSetEvent(msg->msg_data);
+    const char *direction = command.prev ? "prev" : "next";
+    EventHint hint;
+    hint.have = true;
+    hint.event_id = command.event_id;
+    hint.source_event_id = command.source_event_id;
+    // next and prev are sent as separate requests and can arrive out of order, or
+    // after we have moved on. Only keep a hint computed for the event playing, so
+    // a late one cannot replace the current event's hint.
+    if (!HintIsFor(hint, event_data->event_id)) {
       Debug(1, "Ignoring stale SET_EVENT %s = %" PRIu64 " for source %" PRIu64 "; current event is %" PRIu64,
-            direction == 0 ? "next" : "prev", event_id, source_event_id, event_data->event_id);
+            direction, command.event_id, command.source_event_id, event_data->event_id);
       break;
     }
-    EventHint &hint = (direction == 0) ? ui_next_hint : ui_prev_hint;
-    hint.have = true;
-    hint.event_id = event_id;
-    hint.source_event_id = source_event_id;
+    (command.prev ? ui_prev_hint : ui_next_hint) = hint;
     Debug(1, "Got SET_EVENT command, %s event = %" PRIu64 " (for source event %" PRIu64 ")",
-          direction == 0 ? "next" : "prev", event_id, source_event_id);
+          direction, command.event_id, command.source_event_id);
     break;
   }
   case CMD_QUERY :
@@ -824,17 +847,13 @@ void EventStream::processCommand(const CmdMsg *msg) {
 }  // void EventStream::processCommand(const CmdMsg *msg)
 
 bool EventStream::checkEventLoaded() {
-  std::string sql;
-  // The neighbour hint the UI gave us for the direction we are moving, if any
-  // (CMD_SET_EVENT). It is honoured only while it is still bound to the event
-  // playing; otherwise we fall back to the same-monitor query (refs #4186).
-  const EventHint *hint = nullptr;
+  bool prev;
 
-  if (curr_frame_id <= 0) {
-    hint = &ui_prev_hint;
-    sql = stringtf(
-            "SELECT `Id` FROM `Events` WHERE `MonitorId` = %d AND `Id` < %" PRIu64 " ORDER BY `Id` DESC LIMIT 1",
-            event_data->monitor_id, event_data->event_id);
+  if (waitingForHint()) {
+    // Holding at the end of the event until the UI sends the neighbour.
+    prev = hint_wait_prev;
+  } else if (curr_frame_id <= 0) {
+    prev = true;
   } else if (curr_frame_id > (int)event_data->frames.size()) {
     if (event_data->end_time.time_since_epoch() == Seconds(0)) {
       // We are viewing an in-process event, so just reload it.
@@ -844,48 +863,59 @@ bool EventStream::checkEventLoaded() {
         curr_frame_id = num_frames > 0 ? num_frames : 1;
       return false;
     }
-    hint = &ui_next_hint;
-    sql = stringtf(
-            "SELECT `Id` FROM `Events` WHERE `MonitorId` = %d AND `Id` > %" PRIu64 " ORDER BY `Id` ASC LIMIT 1",
-            event_data->monitor_id, event_data->event_id);
+    prev = false;
   } else {
     // No event change required
     Debug(4, "No event change required, as curr frame %d <=> event frames %zu",
           curr_frame_id, event_data->frames.size());
     return false;
   }
-  const char *direction = (curr_frame_id <= 0) ? "prev" : "next";
+  const char *direction = prev ? "prev" : "next";
+  int num_frames = (int)event_data->frames.size();
+  int boundary_frame = prev ? 1 : (num_frames > 0 ? num_frames : 1);
 
   // Event change required.
   if (forceEventChange || ((mode != MODE_SINGLE) && (mode != MODE_NONE))) {
-    // A hint applies only if the UI computed it for the event we are still on;
-    // a hint bound to an event we have already left is stale and ignored. It is
-    // not cleared on use: once we advance, its source no longer matches and the
-    // UI pushes a fresh pair for the new event.
-    // source_event_id is the 48-bit-truncated id the hint was computed for; mask
-    // the current id the same way processCommand does so the two comparisons agree.
-    bool use_hint = hint->have && (hint->source_event_id == (event_data->event_id & 0xFFFFFFFFFFFFULL));
+    const EventHint &hint = prev ? ui_prev_hint : ui_next_hint;
+    TimePoint now = std::chrono::steady_clock::now();
+    Microseconds waited = waitingForHint()
+                          ? std::chrono::duration_cast<Microseconds>(now - hint_wait_start) : Microseconds(0);
     uint64_t new_event_id = 0;
 
-    if (use_hint) {
-      // The UI told us explicitly. event_id 0 means the filter has no neighbour
-      // in this direction, so stop at the boundary rather than falling back to
-      // the unfiltered same-monitor query (which would leave the filtered list).
-      new_event_id = hint->event_id;
-      if (new_event_id && !eventExists(new_event_id)) {
-        // Deleted since the UI fetched its neighbours: drop the hint and fall
-        // back rather than reaching loadEventData's fatal "not found" path.
-        Warning("UI-provided %s event %" PRIu64 " no longer exists; falling back to same-monitor query",
-                direction, new_event_id);
-        new_event_id = 0;
-        use_hint = false;
-      } else {
-        Debug(1, "Loading UI-provided %s event %" PRIu64 " (filter boundary if 0)", direction, new_event_id);
+    switch (ChooseNeighbour(hint, event_data->event_id, ui_managed, waited)) {
+    case NeighbourChoice::kWait :
+      if (!waitingForHint()) {
+        Debug(1, "Waiting for the UI's %s event after event %" PRIu64, direction, event_data->event_id);
+        hint_wait_start = now;
+        hint_wait_prev = prev;
+        curr_frame_id = boundary_frame;
       }
-    }
-
-    if (!use_hint) {
-      Debug(1, "Checking for next event %s", sql.c_str());
+      return false;
+    case NeighbourChoice::kHint :
+      new_event_id = hint.event_id;
+      if (!eventExists(new_event_id)) {
+        // Deleted since the UI fetched its neighbours. Stop here rather than
+        // reaching loadEventData's fatal "not found" path, or leaving the filter.
+        Warning("UI-provided %s event %" PRIu64 " no longer exists; stopping", direction, new_event_id);
+        new_event_id = 0;
+      } else {
+        Debug(1, "Loading UI-provided %s event %" PRIu64, direction, new_event_id);
+      }
+      break;
+    case NeighbourChoice::kBoundary :
+      Debug(1, "The UI's filter has no %s event after event %" PRIu64, direction, event_data->event_id);
+      break;
+    case NeighbourChoice::kTimedOut :
+      Warning("The UI sent no %s event for event %" PRIu64 " within %" PRIi64 "s; stopping",
+              direction, event_data->event_id, static_cast<int64>(kHintWait.count()));
+      break;
+    case NeighbourChoice::kSameMonitor : {
+      std::string sql = prev
+                        ? stringtf("SELECT `Id` FROM `Events` WHERE `MonitorId` = %d AND `Id` < %" PRIu64
+                                   " ORDER BY `Id` DESC LIMIT 1", event_data->monitor_id, event_data->event_id)
+                        : stringtf("SELECT `Id` FROM `Events` WHERE `MonitorId` = %d AND `Id` > %" PRIu64
+                                   " ORDER BY `Id` ASC LIMIT 1", event_data->monitor_id, event_data->event_id);
+      Debug(1, "Checking for %s event %s", direction, sql.c_str());
 
       MYSQL_RES *result = zmDbFetch(sql);
       if (!result) exit(-1);
@@ -902,32 +932,31 @@ bool EventStream::checkEventLoaded() {
 
       if (dbrow) new_event_id = atoll(dbrow[0]);
       mysql_free_result(result);
+      break;
     }
+    }  // end switch
+    hint_wait_start = TimePoint();
+    forceEventChange = false;
 
     if (new_event_id) {
       Debug(1, "Loading new event %" PRIu64, new_event_id);
 
       loadEventData(new_event_id);
 
-      int num_frames = (int)event_data->frames.size();
+      num_frames = (int)event_data->frames.size();
       curr_frame_id = replay_rate < 0 ? (num_frames > 0 ? num_frames : 1) : 1;
       Debug(2, "New frame id = %d", curr_frame_id);
       start = std::chrono::steady_clock::now();
       return true;
-    } else {
-      // Either an explicit filter boundary (the UI sent 0) or no same-monitor
-      // event in this direction. Either way, pause here.
-      Debug(2, "No %s event to load (boundary or none). Pausing", direction);
-      int num_frames = (int)event_data->frames.size();
-      curr_frame_id = curr_frame_id <= 0 ? 1 : (num_frames > 0 ? num_frames : 1);
-      paused = true;
-      sendTextFrame("No more event data found");
-    }  // end if found a new event or not
-    forceEventChange = false;
+    }
+    Debug(2, "No %s event to load. Pausing", direction);
+    curr_frame_id = boundary_frame;
+    paused = true;
+    sendTextFrame("No more event data found");
   } else {
     Debug(2, "Pausing because mode is %s", StreamMode_Strings[mode].c_str());
-    int num_frames = (int)event_data->frames.size();
-    curr_frame_id = curr_frame_id <= 0 ? 1 : (num_frames > 0 ? num_frames : 1);
+    hint_wait_start = TimePoint();
+    curr_frame_id = boundary_frame;
     paused = true;
     // Reset last_frame_sent so the next loop iteration sends a keepalive
     // immediately, rather than leaving a 5-second gap (MAX_STREAM_DELAY)
@@ -943,6 +972,69 @@ Image * EventStream::getImage( ) {
   Image *image = new Image(path.c_str());
   return image;
 }
+
+Image *EventStream::loadFrameImage(std::unique_ptr<Image> &owned_image, int &pre_scaled_by, bool &failed) {
+  failed = false;
+  if (!reuse_filepath_.empty()) {
+    // Decode into the reused member instead of allocating a fresh Image each
+    // frame. ReadJpeg's WriteBuffer reuses the pixel allocation when the
+    // dimensions match (every frame of a given event), eliminating a ~2MB
+    // malloc/free per streamed frame.
+    reuse_image_.ReadJpeg(reuse_filepath_, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
+    return &reuse_image_;
+  }
+  if (!ffmpeg_input) return nullptr;
+
+  // Get the frame from the mp4 input
+  const FrameData *frame_data = &event_data->frames[curr_frame_id-1];
+  AVFrame *frame = ffmpeg_input->get_frame(
+                     ffmpeg_input->get_video_stream_id(),
+                     FPSeconds(frame_data->offset).count());
+  if (!frame) {
+    failed = true;
+    return nullptr;
+  }
+  // Convert straight to the size being sent. The decode is unchanged,
+  // but the RGBA conversion sws_scale was doing anyway can resize in
+  // the same pass, so converting at full size and then scaling cost an
+  // extra full frame conversion plus a full frame copy for every frame
+  // streamed. refs #3681
+  int convert_width = monitor->Width();
+  int convert_height = monitor->Height();
+  pre_scaled_by = preScaleDimensions(monitor->Width(), monitor->Height(),
+                                     convert_width, convert_height);
+  owned_image = std::make_unique<Image>(frame, convert_width, convert_height);
+  Image *image = owned_image.get();
+
+  // when stored as an mp4, we just have the rotation as a flag in the headers
+  // so we need to rotate it before outputting
+  if (
+    (monitor->GetOptVideoWriter() == Monitor::PASSTHROUGH)
+    and
+    (event_data->Orientation != Monitor::ROTATE_0)
+  ) {
+    Debug(2, "Rotating image %d", event_data->Orientation);
+    switch ( event_data->Orientation ) {
+    case Monitor::ROTATE_0 :
+      // No action required
+      break;
+    case Monitor::ROTATE_90 :
+    case Monitor::ROTATE_180 :
+    case Monitor::ROTATE_270 :
+      image->Rotate((event_data->Orientation-1)*90);
+      break;
+    case Monitor::FLIP_HORI :
+    case Monitor::FLIP_VERT :
+      image->Flip(event_data->Orientation==Monitor::FLIP_HORI);
+      break;
+    default:
+      Error("Invalid Orientation: %d", event_data->Orientation);
+    }
+  } else {
+    Debug(2, "Not Rotating image %d", event_data->Orientation);
+  } // end if have rotation
+  return image;
+}  // Image *EventStream::loadFrameImage
 
 bool EventStream::sendFrame(Microseconds delta_us) {
   Debug(2, "Sending frame %d", curr_frame_id);
@@ -991,18 +1083,25 @@ bool EventStream::sendFrame(Microseconds delta_us) {
   }
 
   if ( type == STREAM_MPEG ) {
-    // Decode into the reused member rather than a fresh per-frame stack Image;
-    // ReadJpeg reuses its buffer when dimensions match, avoiding a ~2MB
-    // malloc/free each frame.
-    reuse_image_.ReadJpeg(reuse_filepath_, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
-
-    Image *send_image = prepareImage(&reuse_image_);
+    std::unique_ptr<Image> owned_image;
+    int pre_scaled_by = 0;
+    bool failed = false;
+    Image *image = loadFrameImage(owned_image, pre_scaled_by, failed);
+    if (!image) {
+      if (failed) {
+        Error("Failed getting a frame.");
+        sendTextFrame("Failed getting frame");
+        return false;
+      }
+      Debug(1, "Unable to get frame %d (no jpeg file and no ffmpeg_input)", curr_frame_id);
+      sendTextFrame("No frame available");
+      return true;
+    }
+    Image *send_image = prepareImage(image, pre_scaled_by);
 
     if ( !vid_stream ) {
       vid_stream = new VideoStream("pipe:", format, bitrate, effective_fps,
                                    send_image->Colours(), send_image->SubpixelOrder(), send_image->Width(), send_image->Height());
-      vid_stream_width = send_image->Width();
-      vid_stream_height = send_image->Height();
       fprintf(stdout, "Content-type: %s\r\n\r\n", vid_stream->MimeType());
       if (!vid_stream->OpenStream()) {
         Error("Failed to open video stream");
@@ -1010,17 +1109,11 @@ bool EventStream::sendFrame(Microseconds delta_us) {
         vid_stream = nullptr;
         return false;
       }
-    } else {
-      // The encoder is fixed at the first event's dimensions and cannot resize
-      // mid-stream (the Content-type header is already sent). A later event of a
-      // different resolution -- reachable now that gapless advance can cross
-      // monitors -- would otherwise be encoded against buffers sized for the
-      // original, overrunning them for a larger frame. Scale it to the encoder's
-      // dimensions instead (refs #4186). The text-frame path does the same.
-      scaleToEncoder(send_image);
     }
-    vid_stream->EncodeFrame(send_image->Buffer(),
-                            send_image->Size(),
+    // The stream keeps the size and format it was opened with, so an event from
+    // another monitor or a video-backed frame (RGBA, not the jpegs' RGB24) is
+    // converted to them (refs #4186).
+    vid_stream->EncodeImage(*send_image,
                             config.mpeg_timed_frames,
                             delta_us.count() * 1000);
   } else {
@@ -1042,65 +1135,14 @@ bool EventStream::sendFrame(Microseconds delta_us) {
       // old new/delete pair and frees automatically at scope exit.
       std::unique_ptr<Image> owned_image;
 
-      if (!reuse_filepath_.empty()) {
-        // Decode into the reused member instead of allocating a fresh Image each
-        // frame. ReadJpeg's WriteBuffer reuses the pixel allocation when the
-        // dimensions match (every frame of a given event), eliminating a ~2MB
-        // malloc/free per streamed frame.
-        reuse_image_.ReadJpeg(reuse_filepath_, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
-        image = &reuse_image_;
-      } else if (ffmpeg_input) {
-        // Get the frame from the mp4 input
-        const FrameData *frame_data = &event_data->frames[curr_frame_id-1];
-        AVFrame *frame = ffmpeg_input->get_frame(
-                           ffmpeg_input->get_video_stream_id(),
-                           FPSeconds(frame_data->offset).count());
-        if (frame) {
-          // Convert straight to the size being sent. The decode is unchanged,
-          // but the RGBA conversion sws_scale was doing anyway can resize in
-          // the same pass, so converting at full size and then scaling cost an
-          // extra full frame conversion plus a full frame copy for every frame
-          // streamed. refs #3681
-          int convert_width = monitor->Width();
-          int convert_height = monitor->Height();
-          pre_scaled_by = preScaleDimensions(monitor->Width(), monitor->Height(),
-                                             convert_width, convert_height);
-          owned_image = std::make_unique<Image>(frame, convert_width, convert_height);
-          image = owned_image.get();
-        } else {
+      bool failed = false;
+      image = loadFrameImage(owned_image, pre_scaled_by, failed);
+      if (!image) {
+        if (failed) {
           Error("Failed getting a frame.");
-	  sendTextFrame("Failed getting frame");
+          sendTextFrame("Failed getting frame");
           return false;
         }
-
-        // when stored as an mp4, we just have the rotation as a flag in the headers
-        // so we need to rotate it before outputting
-        if (
-          (monitor->GetOptVideoWriter() == Monitor::PASSTHROUGH)
-          and
-          (event_data->Orientation != Monitor::ROTATE_0)
-        ) {
-          Debug(2, "Rotating image %d", event_data->Orientation);
-          switch ( event_data->Orientation ) {
-          case Monitor::ROTATE_0 :
-            // No action required
-            break;
-          case Monitor::ROTATE_90 :
-          case Monitor::ROTATE_180 :
-          case Monitor::ROTATE_270 :
-            image->Rotate((event_data->Orientation-1)*90);
-            break;
-          case Monitor::FLIP_HORI :
-          case Monitor::FLIP_VERT :
-            image->Flip(event_data->Orientation==Monitor::FLIP_HORI);
-            break;
-          default:
-            Error("Invalid Orientation: %d", event_data->Orientation);
-          }
-        } else {
-          Debug(2, "Not Rotating image %d", event_data->Orientation);
-        } // end if have rotation
-      } else {
         Debug(1, "Unable to get frame %d (no jpeg file and no ffmpeg_input)", curr_frame_id);
         sendTextFrame("No frame available");
         return true;
@@ -1208,7 +1250,7 @@ void EventStream::runStream() {
         // In stopped state, skip all frame processing until a new command is received.
         // send_frame is already false from initialization above.
         delta = MAX_SLEEP;
-      } else if (!paused) {
+      } else if (!paused && !waitingForHint()) {
         // Figure out if we should send this frame
         Debug(3, "not paused at curr_frame_id (%d-1) mod frame_mod(%d)", curr_frame_id, frame_mod);
         // If we are streaming and this frame is due to be sent
@@ -1288,7 +1330,7 @@ void EventStream::runStream() {
         frame_count++;
       }
 
-      if (!paused && !stopped && !event_data->frames.empty()
+      if (!paused && !stopped && !waitingForHint() && !event_data->frames.empty()
           && curr_frame_id >= 1 && curr_frame_id <= (int)event_data->frames.size()) {
         // Get current frame data, curr_frame_id may have changed
         FrameData *last_frame_data = &event_data->frames[curr_frame_id-1];
@@ -1354,6 +1396,10 @@ void EventStream::runStream() {
                 FPSeconds(elapsed).count()
                );
         }  // end if not at end of event
+      } else if (waitingForHint()) {
+        // Holding on the last frame, like a pause, until the UI's hint arrives.
+        // Check back soon: the hint is usually a request or two away.
+        delta = STREAM_PAUSE_WAIT;
       } else {
         // Paused or stopped
         delta = MAX_SLEEP;
@@ -1370,7 +1416,9 @@ void EventStream::runStream() {
       break;
     }
 
-    if (type != STREAM_MPEG) {
+    // MPEG streams pace themselves by encoding, but there is nothing to encode
+    // while holding for a hint.
+    if ((type != STREAM_MPEG) || waitingForHint()) {
       if (delta > Seconds(0)) {
         if (delta > MAX_SLEEP) {
           Debug(1, "Limiting sleep to %" PRIi64 " ms because calculated sleep is too long %" PRIi64,

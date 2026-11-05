@@ -19,6 +19,7 @@
 
 #include "zm_mpeg.h"
 
+#include "zm_image.h"
 #include "zm_logger.h"
 #include "zm_pixformat.h"
 #include "zm_rgb.h"
@@ -287,7 +288,8 @@ VideoStream::VideoStream( const char *in_filename, const char *in_format, int bi
   buffer_copy_lock(new pthread_mutex_t),
   buffer_copy_size(0),
   buffer_copy_used(0),
-  packet_index(0) {
+  packet_index(0),
+  pack_context(nullptr) {
   if ( !initialised ) {
     Initialise( );
   }
@@ -338,6 +340,7 @@ VideoStream::~VideoStream( ) {
   if ( buffer_copy != nullptr ) {
     av_free( buffer_copy );
   }
+  sws_freeContext(pack_context);
 
   if ( buffer_copy_lock ) {
     if ( pthread_mutex_destroy( buffer_copy_lock ) != 0 ) {
@@ -419,6 +422,46 @@ double VideoStream::EncodeFrame( const uint8_t *buffer, int buffer_size, bool _a
   //return ActuallyEncodeFrame( buffer, buffer_size, add_timestamp, timestamp);
 
   return _timestamp;
+}
+
+bool VideoStream::PackImage(const Image &image, AVPixelFormat pf, int width, int height,
+                            std::vector<uint8_t> &out, SwsContext **context) {
+  int size = av_image_get_buffer_size(pf, width, height, 1);
+  if (size <= 0) {
+    Error("Can't size a %dx%d %s frame for the video stream", width, height, av_get_pix_fmt_name(pf));
+    return false;
+  }
+  out.resize(size);
+  uint8_t *dst_data[4];
+  int dst_linesize[4];
+  av_image_fill_arrays(dst_data, dst_linesize, out.data(), pf, width, height, 1);
+
+  // Image lays its rows out on a 32-byte stride, as Image::PopulateFrame does.
+  uint8_t *src_data[4];
+  int src_linesize[4];
+  if (av_image_fill_arrays(src_data, src_linesize, image.Buffer(), image.PixFormat(),
+                           image.Width(), image.Height(), 32) < 0) {
+    Error("Can't map a %ux%u %s image for the video stream",
+          image.Width(), image.Height(), av_get_pix_fmt_name(image.PixFormat()));
+    return false;
+  }
+
+  *context = sws_getCachedContext(*context, image.Width(), image.Height(), image.PixFormat(),
+                                  width, height, pf, SWS_BICUBIC, nullptr, nullptr, nullptr);
+  if (!*context) {
+    Error("Can't convert %ux%u %s to %dx%d %s for the video stream",
+          image.Width(), image.Height(), av_get_pix_fmt_name(image.PixFormat()),
+          width, height, av_get_pix_fmt_name(pf));
+    return false;
+  }
+  sws_scale(*context, src_data, src_linesize, 0, image.Height(), dst_data, dst_linesize);
+  return true;
+}
+
+double VideoStream::EncodeImage(const Image &image, bool p_add_timestamp, unsigned int p_timestamp) {
+  if (!PackImage(image, pf, codec_context->width, codec_context->height, packed_image, &pack_context))
+    return 0.0;
+  return EncodeFrame(packed_image.data(), packed_image.size(), p_add_timestamp, p_timestamp);
 }
 
 double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size, bool add_timestamp, unsigned int timestamp ) {

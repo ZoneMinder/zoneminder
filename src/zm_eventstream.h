@@ -32,6 +32,7 @@ extern "C" {
 #include <libavcodec/avcodec.h>
 }
 
+#include <memory>
 #include <mutex>
 
 class EventStream : public StreamBase {
@@ -74,6 +75,47 @@ class EventStream : public StreamBase {
     Monitor::Orientation Orientation;
   };
 
+ public:
+  // A neighbour event the UI computed from the filter and sort the user is
+  // viewing, so gapless advance follows that order across monitors instead of
+  // our own same-monitor query (refs #4186). source_event_id is the event it was
+  // computed for: it applies only while that event is playing. `have` separates
+  // "the UI says there is no neighbour" (event_id 0, the filter boundary) from
+  // "the UI has not said".
+  struct EventHint {
+    bool     have = false;
+    uint64_t event_id = 0;
+    uint64_t source_event_id = 0;
+  };
+
+  // A decoded CMD_SET_EVENT payload; see MsgCommand in zm_stream.h for the layout.
+  struct SetEventCommand {
+    bool     prev;
+    uint64_t event_id;
+    uint64_t source_event_id;  // only the low 48 bits are sent
+  };
+  static SetEventCommand DecodeSetEvent(const char *msg_data);
+  // Whether a hint was computed for current_event_id, comparing the 48 bits sent.
+  static bool HintIsFor(const EventHint &hint, uint64_t current_event_id);
+
+  enum class NeighbourChoice {
+    kHint,         // load hint.event_id
+    kBoundary,     // the UI says the filter ends here: stop
+    kWait,         // the UI has not sent this event's hint yet: hold and wait
+    kTimedOut,     // waited kHintWait for the UI with no hint: stop
+    kSameMonitor,  // no UI sends hints: use the same-monitor query
+  };
+  // How long to hold at the end of an event for the UI's hint. The UI learns
+  // that we moved on from its next status poll, then asks for the new event's
+  // neighbours and sends them, so this covers ZM_WEB_REFRESH_STATUS plus a few
+  // requests with room to spare.
+  static constexpr Seconds kHintWait = Seconds(10);
+  // Chooses where to go at the end of current_event_id. Once a UI has sent hints
+  // (ui_managed) we never fall back to the same-monitor query, which ignores the
+  // filter: an event that ends before its hint arrives waits for it instead.
+  static NeighbourChoice ChooseNeighbour(const EventHint &hint, uint64_t current_event_id,
+                                         bool ui_managed, Microseconds waited);
+
  protected:
   static constexpr Milliseconds STREAM_PAUSE_WAIT = Milliseconds(250);
 
@@ -82,16 +124,9 @@ class EventStream : public StreamBase {
   StreamMode mode;
   bool forceEventChange;
 
-  // A neighbour-event hint the UI pushes via CMD_SET_EVENT. The UI computes
-  // next/prev from the filter and sort the user is viewing and sends them here,
-  // so gapless advance follows that order across monitors instead of our own
-  // same-monitor query (refs #4186). Each hint is bound to the event it was
-  // computed for (source_event_id); checkEventLoaded honours it only while that
-  // source is still the event playing, so a hint that arrives after we have left
-  // that event is ignored rather than mis-steering the next transition. `have`
-  // separates "the UI says there is no neighbour here" (event_id 0 -> stop at
-  // the filter boundary) from "the UI has not told us" (fall back to the
-  // same-monitor query). Read and written only under mutex.
+  // The neighbour hints the UI pushes via CMD_SET_EVENT, one per direction, and
+  // whether this stream has a UI sending them at all. See ChooseNeighbour.
+  // Read and written only under mutex.
   //
   // Known limitation: in a multi-server install with non-shared storage a
   // cross-monitor neighbour can live on another server, whose recording this
@@ -99,13 +134,14 @@ class EventStream : public StreamBase {
   // degrades to failed frames; it is not re-routed to the serving server the
   // way the video.js player's reload path is. zms self-advance is effectively
   // same-server (or shared-storage) only; routing it is a separate change.
-  struct EventHint {
-    bool     have = false;
-    uint64_t event_id = 0;
-    uint64_t source_event_id = 0;
-  };
   EventHint ui_next_hint;
   EventHint ui_prev_hint;
+  bool ui_managed;
+  // When this stream reached the end of an event and began waiting for the UI
+  // to say which event follows it, and in which direction. TimePoint() when
+  // not waiting.
+  TimePoint hint_wait_start;
+  bool hint_wait_prev;
 
   std::mutex  mutex;
   int curr_frame_id;
@@ -125,13 +161,20 @@ class EventStream : public StreamBase {
   bool loadInitialEventData(int monitor_id, SystemTimePoint event_time);
 
   bool checkEventLoaded();
+  bool waitingForHint() const { return hint_wait_start != TimePoint(); }
   void processCommand(const CmdMsg *msg) override;
   bool sendFrame(Microseconds delta);
+  // The current frame as an Image: its jpeg when there is one, otherwise decoded
+  // from the event's video and rotated as recorded. Returns nullptr when there is
+  // neither; failed is then set if the video exists but the frame would not decode.
+  Image *loadFrameImage(std::unique_ptr<Image> &owned_image, int &pre_scaled_by, bool &failed);
 
  public:
   EventStream() :
     mode(DEFAULT_MODE),
     forceEventChange(false),
+    ui_managed(false),
+    hint_wait_prev(false),
     curr_frame_id(0),
     send_frame(false),
     event_data(nullptr),

@@ -122,8 +122,10 @@ Event::Event(
       start_time.tv_sec,
       monitor->Width(),
       monitor->Height(),
-      cause.c_str(),
-      notes.c_str(), 
+      // Both come from outside the daemon: zone names (Monitors=Edit in the web UI)
+      // and the external trigger's cause and text. refs GHSA-hc5x-7jfw-r692
+      zmDbEscapeString(cause).c_str(),
+      zmDbEscapeString(notes).c_str(),
       state_id,
       monitor->getOrientation(),
       0,

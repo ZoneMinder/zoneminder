@@ -936,12 +936,14 @@ bool EventStream::checkEventLoaded() {
     }
     }  // end switch
     hint_wait_start = TimePoint();
-    forceEventChange = false;
 
     if (new_event_id) {
       Debug(1, "Loading new event %" PRIu64, new_event_id);
 
+      // loadEventData moves curr_stream_time to the new event while
+      // forceEventChange is set, so an explicit next/prev jumps over the gap.
       loadEventData(new_event_id);
+      forceEventChange = false;
 
       num_frames = (int)event_data->frames.size();
       curr_frame_id = replay_rate < 0 ? (num_frames > 0 ? num_frames : 1) : 1;
@@ -950,6 +952,7 @@ bool EventStream::checkEventLoaded() {
       return true;
     }
     Debug(2, "No %s event to load. Pausing", direction);
+    forceEventChange = false;
     curr_frame_id = boundary_frame;
     paused = true;
     sendTextFrame("No more event data found");
@@ -1240,9 +1243,13 @@ void EventStream::runStream() {
            curr_frame_id, frame_count.load());
     }
 
+    // Whether we are holding for the UI's hint, read under the mutex: the
+    // command thread clears it.
+    bool holding_for_hint;
     {
       std::scoped_lock lck{mutex};
 
+      holding_for_hint = waitingForHint();
       send_frame = false;
       TimePoint::duration time_since_last_send = now - last_frame_sent.load();
 
@@ -1250,7 +1257,7 @@ void EventStream::runStream() {
         // In stopped state, skip all frame processing until a new command is received.
         // send_frame is already false from initialization above.
         delta = MAX_SLEEP;
-      } else if (!paused && !waitingForHint()) {
+      } else if (!paused && !holding_for_hint) {
         // Figure out if we should send this frame
         Debug(3, "not paused at curr_frame_id (%d-1) mod frame_mod(%d)", curr_frame_id, frame_mod);
         // If we are streaming and this frame is due to be sent
@@ -1330,7 +1337,7 @@ void EventStream::runStream() {
         frame_count++;
       }
 
-      if (!paused && !stopped && !waitingForHint() && !event_data->frames.empty()
+      if (!paused && !stopped && !holding_for_hint && !event_data->frames.empty()
           && curr_frame_id >= 1 && curr_frame_id <= (int)event_data->frames.size()) {
         // Get current frame data, curr_frame_id may have changed
         FrameData *last_frame_data = &event_data->frames[curr_frame_id-1];
@@ -1396,7 +1403,7 @@ void EventStream::runStream() {
                 FPSeconds(elapsed).count()
                );
         }  // end if not at end of event
-      } else if (waitingForHint()) {
+      } else if (holding_for_hint) {
         // Holding on the last frame, like a pause, until the UI's hint arrives.
         // Check back soon: the hint is usually a request or two away.
         delta = STREAM_PAUSE_WAIT;
@@ -1418,7 +1425,7 @@ void EventStream::runStream() {
 
     // MPEG streams pace themselves by encoding, but there is nothing to encode
     // while holding for a hint.
-    if ((type != STREAM_MPEG) || waitingForHint()) {
+    if ((type != STREAM_MPEG) || holding_for_hint) {
       if (delta > Seconds(0)) {
         if (delta > MAX_SLEEP) {
           Debug(1, "Limiting sleep to %" PRIi64 " ms because calculated sleep is too long %" PRIi64,

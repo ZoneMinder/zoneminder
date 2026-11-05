@@ -7,7 +7,7 @@ if ( empty($_REQUEST['id']) )
   ajaxError('No monitor id supplied');
 
 if ( canView('Control', $_REQUEST['id']) ) {
-  $monitor = new ZM\Monitor($_REQUEST['id']);
+  $monitor = new ZM\Monitor(validCardinal($_REQUEST['id']));
 
   $ctrlCommand = buildControlCommand($monitor);
 

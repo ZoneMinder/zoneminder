@@ -32,7 +32,7 @@ if ( isset($_REQUEST['object']) ) {
         $Layout = new ZM\MontageLayout();
         $Layout->Name($_REQUEST['Name']);
       } else {
-        $Layout = new ZM\MontageLayout($_REQUEST['zmMontageLayout']);
+        $Layout = new ZM\MontageLayout(validCardinal($_REQUEST['zmMontageLayout']));
       }
       $Layout->Positions($_REQUEST['Positions']);
       $Layout->save();

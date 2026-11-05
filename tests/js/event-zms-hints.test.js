@@ -106,10 +106,24 @@ test('a reply to an earlier send of the same event does not settle a later one',
   hints.set(10, 0, 9, 0);
   const first = hints.take(10);
   hints.set(10, 14, 9, 6000);
-  const second = hints.take(10);
   for (const cmd of first) hints.response(cmd.batch, true);
+  const second = hints.take(10);
   hints.response(second[0].batch, false);
   hints.response(second[1].batch, true);
+  assert.deepStrictEqual(cmds(hints.take(10)), both(10, 14, 9));
+});
+
+test('a new send waits for the replies to the one before it', () => {
+  // Separate requests can reach zms out of order; a boundary 0 arriving after
+  // the event found since would leave zms with the 0.
+  const hints = ZM.create();
+  hints.set(10, 0, 9, 0);
+  const first = hints.take(10);
+  hints.set(10, 14, 9, 6000);
+  assert.deepStrictEqual(cmds(hints.take(10)), []);
+  hints.response(first[0].batch, true);
+  assert.deepStrictEqual(cmds(hints.take(10)), []);
+  hints.response(first[1].batch, false);
   assert.deepStrictEqual(cmds(hints.take(10)), both(10, 14, 9));
 });
 

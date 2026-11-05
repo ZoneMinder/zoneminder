@@ -15,7 +15,9 @@
 //   that has already moved on.
 // - A hint that did not reach zms is sent again on the next status reply.
 //   Each send is numbered, so a late reply to an earlier send cannot settle a
-//   later one.
+//   later one. A send waits for the replies to the one before it: the commands
+//   are separate requests, and could otherwise reach zms out of order and leave
+//   it with the older hint.
 // - A restarted zms has none of them, so they are sent again.
 // - The neighbours of the event zms is playing are looked up again when the
 //   last lookup failed or was for another event, at most every
@@ -29,8 +31,9 @@
 
   const BOUNDARY_REFRESH_MS = 5000;
   const LOOKUP_RETRY_MS = 2000;
-  // A lookup with no reply after this long is taken as lost.
-  const LOOKUP_TIMEOUT_MS = 10000;
+  // A lookup with no reply after this long is taken as lost. Well inside the
+  // 10s zms waits at the end of an event, so a retry still reaches it.
+  const LOOKUP_TIMEOUT_MS = 5000;
 
   function create() {
     // {src, next, prev, fetched, state: 'unsent'|'sending'|'sent', batch, inflight, failed}
@@ -38,6 +41,8 @@
     // The last neighbour lookup: {src, at, pending}
     let lookup = null;
     let batches = 0;
+    // Batch number -> commands of it sent to this zms and not yet answered.
+    let unanswered = new Map();
 
     return {
       // Neighbours from getNearEvents for event src, fetched at time now.
@@ -53,9 +58,10 @@
       // directions, once, if the hints are for that event and not yet sent.
       // Each carries the batch number to pass back to response().
       take: function(current) {
-        if (!hints || hints.src != current || hints.state != 'unsent') return [];
+        if (!hints || hints.src != current || hints.state != 'unsent' || unanswered.size) return [];
         hints.state = 'sending';
         hints.batch = ++batches;
+        unanswered.set(hints.batch, 2);
         hints.inflight = 2;
         hints.failed = false;
         return [
@@ -67,6 +73,11 @@
       // The reply to one command from take(). delivered is false when it did
       // not reach zms; both are then sent again.
       response: function(batch, delivered) {
+        if (unanswered.has(batch)) {
+          const left = unanswered.get(batch) - 1;
+          if (left > 0) unanswered.set(batch, left);
+          else unanswered.delete(batch);
+        }
         if (!hints || hints.batch != batch || hints.state != 'sending') return;
         if (!delivered) hints.failed = true;
         if (--hints.inflight > 0) return;
@@ -74,8 +85,10 @@
       },
 
       // zms was restarted: the new process has none of the hints. Replies to
-      // sends to the old process no longer count.
+      // sends to the old process no longer count, and need not be waited for:
+      // those commands were sent to the old process before this one started.
       reset: function() {
+        unanswered = new Map();
         if (hints) {
           hints.state = 'unsent';
           hints.batch = 0;

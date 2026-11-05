@@ -495,6 +495,10 @@ EventStream::NeighbourChoice EventStream::ChooseNeighbour(const EventHint &hint,
   return waited < kHintWait ? NeighbourChoice::kWait : NeighbourChoice::kTimedOut;
 }
 
+bool EventStream::HintResumes(const SetEventCommand &command, bool end_stop, bool end_prev) {
+  return end_stop && command.event_id && (command.prev == end_prev);
+}
+
 void EventStream::processCommand(const CmdMsg *msg) {
   Debug(2, "Got message, type %d, msg %d", msg->msg_type, msg->msg_data[0]);
 
@@ -502,8 +506,10 @@ void EventStream::processCommand(const CmdMsg *msg) {
 
   // Any command that can move or redirect playback ends a wait for the UI's
   // hint; checkEventLoaded starts a new one if we are still at the end.
-  if (((MsgCommand)msg->msg_data[0] != CMD_QUERY) && ((MsgCommand)msg->msg_data[0] != CMD_SET_EVENT))
+  if (((MsgCommand)msg->msg_data[0] != CMD_QUERY) && ((MsgCommand)msg->msg_data[0] != CMD_SET_EVENT)) {
     hint_wait_start = TimePoint();
+    end_stop = false;
+  }
 
   // Check for incoming command
   switch ((MsgCommand)msg->msg_data[0]) {
@@ -762,6 +768,15 @@ void EventStream::processCommand(const CmdMsg *msg) {
     (command.prev ? ui_prev_hint : ui_next_hint) = hint;
     Debug(1, "Got SET_EVENT command, %s event = %" PRIu64 " (for source event %" PRIu64 ")",
           direction, command.event_id, command.source_event_id);
+    if (HintResumes(command, end_stop, end_stop_prev)) {
+      // Take the hint through the end-of-event wait, which loads it.
+      Debug(1, "Resuming with %s event %" PRIu64 " after stopping at the end of event %" PRIu64,
+            direction, command.event_id, event_data->event_id);
+      end_stop = false;
+      paused = false;
+      hint_wait_start = std::chrono::steady_clock::now();
+      hint_wait_prev = command.prev;
+    }
     break;
   }
   case CMD_QUERY :
@@ -953,6 +968,8 @@ bool EventStream::checkEventLoaded() {
     }
     Debug(2, "No %s event to load. Pausing", direction);
     forceEventChange = false;
+    end_stop = ui_managed;
+    end_stop_prev = prev;
     curr_frame_id = boundary_frame;
     paused = true;
     sendTextFrame("No more event data found");

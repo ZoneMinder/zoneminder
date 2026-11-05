@@ -122,6 +122,23 @@ TEST_CASE("ChooseNeighbour follows the UI once it sends hints", "[EventStream]")
   }
 }
 
+TEST_CASE("A late hint restarts a stream stopped at the end of the filter", "[EventStream]") {
+  // zms stopped at the end of event 10 going forward: the UI said there was no
+  // next event, or said nothing in time. The UI keeps asking, and an event
+  // recorded since, or the hint that was just too late, should still play.
+  EventStream::SetEventCommand next{false, 14, 10};
+  EventStream::SetEventCommand prev{true, 9, 10};
+  EventStream::SetEventCommand boundary{false, 0, 10};
+
+  CHECK(EventStream::HintResumes(next, true, false));
+  CHECK_FALSE(EventStream::HintResumes(boundary, true, false));
+  // Only the direction we stopped in.
+  CHECK_FALSE(EventStream::HintResumes(prev, true, false));
+  CHECK(EventStream::HintResumes(prev, true, true));
+  // Not a stream that is playing, or that the user paused.
+  CHECK_FALSE(EventStream::HintResumes(next, false, false));
+}
+
 TEST_CASE("VideoStream::PackImage converts to the encoder's size, format and stride", "[VideoStream]") {
   SwsContext *context = nullptr;
   std::vector<uint8_t> out;

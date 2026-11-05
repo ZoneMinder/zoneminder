@@ -115,6 +115,11 @@ class EventStream : public StreamBase {
   // filter: an event that ends before its hint arrives waits for it instead.
   static NeighbourChoice ChooseNeighbour(const EventHint &hint, uint64_t current_event_id,
                                          bool ui_managed, Microseconds waited);
+  // Whether a SET_EVENT for the current event restarts a stream that stopped at
+  // its end (end_stop) going in direction end_prev: it names an event that way.
+  // The UI keeps asking about a boundary, so an event recorded since, or a hint
+  // that arrived just too late, still plays.
+  static bool HintResumes(const SetEventCommand &command, bool end_stop, bool end_prev);
 
  protected:
   static constexpr Milliseconds STREAM_PAUSE_WAIT = Milliseconds(250);
@@ -142,6 +147,10 @@ class EventStream : public StreamBase {
   // not waiting.
   TimePoint hint_wait_start;
   bool hint_wait_prev;
+  // Set when we paused at the end of an event because the UI's filter had
+  // nothing further, or the UI sent no hint in time. See HintResumes.
+  bool end_stop;
+  bool end_stop_prev;
 
   std::mutex  mutex;
   int curr_frame_id;
@@ -175,6 +184,8 @@ class EventStream : public StreamBase {
     forceEventChange(false),
     ui_managed(false),
     hint_wait_prev(false),
+    end_stop(false),
+    end_stop_prev(false),
     curr_frame_id(0),
     send_frame(false),
     event_data(nullptr),

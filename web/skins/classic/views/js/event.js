@@ -445,9 +445,6 @@ function getCmdResponse(respObj, respText) {
     if (eventId != lastEventId) {
       //Doesn't run on first load, prevents a double hit on event and nearEvents ajax
       eventQuery(eventId);
-      // Ask for the new event's neighbours now rather than after eventQuery
-      // returns: zms waits at the end of this event until we send them.
-      nearEventsQuery(eventId);
       initialAlarmCues(eventId); //zms uses this instead of a page reload, must call ajax+render
       lastEventId = eventId;
     }
@@ -455,9 +452,10 @@ function getCmdResponse(respObj, respText) {
     lastEventId = eventId; //Only fires on first load.
   }
 
-  // zms is answering for eventId, so its hints can be sent now.
-  if (zmsHints.needsRefresh(eventId, streamStatus.rate < 0, Date.now())) {
-    zmsHints.refreshing(Date.now());
+  // zms is answering for eventId, so its hints can be sent now. When it has
+  // moved to a new event, ask for that event's neighbours straight away rather
+  // than after eventQuery returns: zms waits at the end of the event for them.
+  if (zmsHints.needsLookup(parseInt(eventId), streamStatus.rate < 0, Date.now())) {
     nearEventsQuery(eventId);
   }
   sendZmsHints(eventId);
@@ -1021,18 +1019,23 @@ function sendZmsHints(eventId) {
           const refused = respObj && respObj.result == 'Error' && respObj.reason == 'invalid';
           const delivered = respObj && (respObj.result != 'Error' || refused);
           if (!delivered || refused) console.log('SET_EVENT not applied', respObj);
-          zmsHints.response(hint.srcid, delivered);
+          zmsHints.response(hint.batch, delivered);
         })
         .fail(function() {
-          zmsHints.response(hint.srcid, false);
+          zmsHints.response(hint.batch, false);
         });
   }
 }
 
 function nearEventsQuery(eventId) {
+  const src = parseInt(eventId);
+  zmsHints.lookingUp(src, Date.now());
   $j.getJSON(thisUrl + '?view=request&request=status&entity=nearevents&id='+eventId+filterQuery+sortQuery)
       .done(getNearEventsResponse)
-      .fail(logAjaxFail);
+      .fail(logAjaxFail)
+      .always(function() {
+        zmsHints.lookupDone(src);
+      });
 }
 
 function getFrameResponse(respObj, respText) {

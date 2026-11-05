@@ -14,7 +14,12 @@
 //   they are not lost to a zms that has not opened its socket yet, or to one
 //   that has already moved on.
 // - A hint that did not reach zms is sent again on the next status reply.
+//   Each send is numbered, so a late reply to an earlier send cannot settle a
+//   later one.
 // - A restarted zms has none of them, so they are sent again.
+// - The neighbours of the event zms is playing are looked up again when the
+//   last lookup failed or was for another event, at most every
+//   LOOKUP_RETRY_MS, and one request at a time.
 // - A boundary (no next event) is asked for again every BOUNDARY_REFRESH_MS
 //   while it is in the direction of play, since an event may have been
 //   recorded since.
@@ -23,10 +28,16 @@
   'use strict';
 
   const BOUNDARY_REFRESH_MS = 5000;
+  const LOOKUP_RETRY_MS = 2000;
+  // A lookup with no reply after this long is taken as lost.
+  const LOOKUP_TIMEOUT_MS = 10000;
 
   function create() {
-    // {src, next, prev, fetched, state: 'unsent'|'sending'|'sent', inflight, failed}
+    // {src, next, prev, fetched, state: 'unsent'|'sending'|'sent', batch, inflight, failed}
     let hints = null;
+    // The last neighbour lookup: {src, at, pending}
+    let lookup = null;
+    let batches = 0;
 
     return {
       // Neighbours from getNearEvents for event src, fetched at time now.
@@ -35,47 +46,66 @@
           hints.fetched = now;
           return;
         }
-        hints = {src: src, next: next, prev: prev, fetched: now, state: 'unsent', inflight: 0, failed: false};
+        hints = {src: src, next: next, prev: prev, fetched: now, state: 'unsent', batch: 0, inflight: 0, failed: false};
       },
 
       // The commands to send now that zms reports playing event current: both
       // directions, once, if the hints are for that event and not yet sent.
+      // Each carries the batch number to pass back to response().
       take: function(current) {
         if (!hints || hints.src != current || hints.state != 'unsent') return [];
         hints.state = 'sending';
+        hints.batch = ++batches;
         hints.inflight = 2;
         hints.failed = false;
         return [
-          {dir: 0, eventid: hints.next, srcid: hints.src},
-          {dir: 1, eventid: hints.prev, srcid: hints.src},
+          {dir: 0, eventid: hints.next, srcid: hints.src, batch: hints.batch},
+          {dir: 1, eventid: hints.prev, srcid: hints.src, batch: hints.batch},
         ];
       },
 
       // The reply to one command from take(). delivered is false when it did
       // not reach zms; both are then sent again.
-      response: function(src, delivered) {
-        if (!hints || hints.src != src || hints.state != 'sending') return;
+      response: function(batch, delivered) {
+        if (!hints || hints.batch != batch || hints.state != 'sending') return;
         if (!delivered) hints.failed = true;
         if (--hints.inflight > 0) return;
         hints.state = hints.failed ? 'unsent' : 'sent';
       },
 
-      // zms was restarted: the new process has none of the hints.
+      // zms was restarted: the new process has none of the hints. Replies to
+      // sends to the old process no longer count.
       reset: function() {
-        if (hints) hints.state = 'unsent';
+        if (hints) {
+          hints.state = 'unsent';
+          hints.batch = 0;
+        }
       },
 
-      // Whether to ask again for current's neighbours: the filter had nothing
-      // after it in the direction of play when last asked, a while ago.
-      needsRefresh: function(current, reverse, now) {
-        if (!hints || hints.src != current) return false;
+      // Whether to look up current's neighbours now, while playing in the
+      // given direction.
+      needsLookup: function(current, reverse, now) {
+        const same = lookup && lookup.src == current;
+        if (same && lookup.pending && now - lookup.at < LOOKUP_TIMEOUT_MS) return false;
+        if (!hints || hints.src != current) {
+          // None yet for this event, or the last attempt failed.
+          return !same || now - lookup.at >= LOOKUP_RETRY_MS;
+        }
+        // The filter had nothing after it in the direction of play when last
+        // asked, a while ago.
         if ((reverse ? hints.prev : hints.next) != 0) return false;
-        return now - hints.fetched >= BOUNDARY_REFRESH_MS;
+        const asked = same ? Math.max(lookup.at, hints.fetched) : hints.fetched;
+        return now - asked >= BOUNDARY_REFRESH_MS;
       },
 
-      // A refresh was requested at time now; don't ask again until it is due.
-      refreshing: function(now) {
-        if (hints) hints.fetched = now;
+      // A lookup for src's neighbours was sent at time now.
+      lookingUp: function(src, now) {
+        lookup = {src: src, at: now, pending: true};
+      },
+
+      // The lookup for src got a reply or failed.
+      lookupDone: function(src) {
+        if (lookup && lookup.src == src) lookup.pending = false;
       },
     };
   }
@@ -83,6 +113,8 @@
   const api = {
     create: create,
     BOUNDARY_REFRESH_MS: BOUNDARY_REFRESH_MS,
+    LOOKUP_RETRY_MS: LOOKUP_RETRY_MS,
+    LOOKUP_TIMEOUT_MS: LOOKUP_TIMEOUT_MS,
   };
 
   if (typeof module !== 'undefined' && module.exports) {

@@ -25,7 +25,7 @@ if ( !canEdit('System') ) {
 }
 
 if ($action == 'save') {
-  $storage = new ZM\Storage($_REQUEST['id']);
+  $storage = new ZM\Storage(validCardinal($_REQUEST['id']));
 
   $changes = $storage->changes($_REQUEST['newStorage']);
 

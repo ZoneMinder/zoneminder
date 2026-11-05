@@ -49,7 +49,7 @@ if ( !$monitor ) {
 } # end if $_REQUEST['mid']
 
 if ( isset($_REQUEST['dupId']) ) {
-  $monitor = new ZM\Monitor($_REQUEST['dupId']);
+  $monitor = new ZM\Monitor(validCardinal($_REQUEST['dupId']));
   $monitor->GroupIds(); // have to load before we change the Id
   if ( ZM_OPT_X10 )
     $x10Monitor = dbFetchOne('SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['dupId']));

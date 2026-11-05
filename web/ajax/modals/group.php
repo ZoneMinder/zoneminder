@@ -77,7 +77,7 @@ if ( !canEdit('Groups') ) {
 }
 
 if ( !empty($_REQUEST['gid']) ) {
-  $newGroup = new ZM\Group($_REQUEST['gid']);
+  $newGroup = new ZM\Group(validCardinal($_REQUEST['gid']));
 } else {
   $newGroup = new ZM\Group();
 }

@@ -160,6 +160,7 @@ $SLANG = array(
     'BadChannel'            => 'Channel must be set to an integer of zero or more',
     'BadDevice'             => 'Device must be set to a valid value',
     'BadEncoderParameters'  => 'Encoder does not work well without at least a value for crf. Please see the help.',
+    'BadFfmpegOptions'      => 'Source -> Options must be key=value pairs separated by commas or new lines, such as tls_verify=0. Write ffmpeg command line flags like -tls_verify 0 without the dash and with =. Could not use:',
     'BadFormat'             => 'Format must be set to a valid value',
     'BadFPSReportInterval'  => 'FPS report interval buffer count must be an integer of 0 or more',
     'BadMotionFrameSkip'    => 'Motion Frame skip count must be an integer of zero or more',
@@ -1097,8 +1098,10 @@ if (!function_exists('zmVlang')) {
 $OLANG = array(
 	'OPTIONS_FFMPEG' => array(
     'Help' => '
-      Parameters in this field are passed on to FFmpeg. Multiple parameters can be separated by ,~~
+      Parameters in this field are passed on to FFmpeg as key=value pairs. Multiple parameters can be separated by , or put on separate lines.~~
+      An ffmpeg command line flag such as -tls_verify 0 is written tls_verify=0: no leading dash, and = between the name and the value.~~
       Examples (do not enter quotes)~~~~
+      "tls_verify=0" Accept the camera certificate without verifying it on rtsps:// sources~~~~
       "allowed_media_types=video" Set datatype to request from cam (audio, video, data)~~~~
       "reorder_queue_size=nnn" Set number of packets to buffer for handling of reordered packets
     '

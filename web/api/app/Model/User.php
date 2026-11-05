@@ -47,6 +47,12 @@ class User extends AppModel {
     public function beforeSave($options = array()) {
       if (!empty($this->data['User']['Password'])) {
         $this->data['User']['Password'] = password_hash($this->data['User']['Password'], PASSWORD_BCRYPT);
+        # A password change revokes the user's existing API tokens: any token
+        # issued before TokenMinExpiry is rejected by validateToken(), the same
+        # mechanism the options page's revoke action uses. Without this a pre-
+        # change access or refresh token keeps working after the password is
+        # changed (refs GHSA-5w6w-qp25-2qqh).
+        $this->data['User']['TokenMinExpiry'] = time();
       }
       return true;
     }  # end function beforeSave

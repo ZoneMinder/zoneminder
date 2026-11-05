@@ -137,6 +137,15 @@ if (isset($_REQUEST['filter'])) {
     }
   } # end if REQUEST[Filter]
 }
+// The range comes from the request, stored cookies or the filter's date terms, and
+// is written into the page script, so keep only what parses as a time and use its
+// canonical form. refs GHSA-qm44-862r-fmq3
+foreach (array('minTime', 'maxTime') as $rangeVar) {
+  if (isset($$rangeVar) and ($$rangeVar !== null) and ($$rangeVar !== '')) {
+    $rangeSecs = strtotime($$rangeVar);
+    $$rangeVar = ($rangeSecs === false) ? null : date('Y-m-d H:i:s', $rangeSecs);
+  }
+}
 if ( count($filter) ) {
   parseFilter($filter);
   # This is to enable the download button

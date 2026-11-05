@@ -221,8 +221,8 @@ echo "
 var numMonitors = $numMonitors;
 var minTimeSecs=parseInt($minTimeSecs);
 var maxTimeSecs=parseInt($maxTimeSecs);
-var minTime='$minTime';
-var maxTime='$maxTime';
+var minTime=".json_encode((string)$minTime, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT).";
+var maxTime=".json_encode((string)$maxTime, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT).";
 ";
 echo 'var rangeTimeSecs='.($maxTimeSecs - $minTimeSecs + 1).";\n";
 if ( isset($defaultCurrentTime) )

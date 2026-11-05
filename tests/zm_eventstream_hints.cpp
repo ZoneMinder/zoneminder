@@ -198,6 +198,33 @@ TEST_CASE("VideoStream::PackImage converts to the encoder's size, format and str
     CHECK(out[59] == 41);
   }
 
+  SECTION("a packed YUV420P frame whose width is a multiple of 32 is read") {
+    // 32x16 packed: the luma stride is 32 either way, but the 32-byte layout
+    // pads the chroma rows to 32 and needs 1024 bytes where this frame has 768.
+    std::vector<uint8_t> packed(32 * 16 + 2 * 16 * 8);
+    std::memset(packed.data(), 50, 32 * 16);
+    std::memset(packed.data() + 32 * 16, 60, 16 * 8);
+    std::memset(packed.data() + 32 * 16 + 16 * 8, 70, 16 * 8);
+    AVFrame *frame = av_frame_alloc();
+    REQUIRE(frame);
+    frame->width = 32;
+    frame->height = 16;
+    frame->format = AV_PIX_FMT_YUV420P;
+    REQUIRE(av_image_fill_arrays(frame->data, frame->linesize, packed.data(), AV_PIX_FMT_YUV420P, 32, 16, 1)
+            == static_cast<int>(packed.size()));
+    Image image;
+    image.AssignDirect(frame);
+    REQUIRE(image.LineSize() == 32);
+    REQUIRE(image.Size() == packed.size());
+
+    REQUIRE(VideoStream::PackImage(image, AV_PIX_FMT_YUV420P, 32, 16, out, &context));
+    REQUIRE(out.size() == packed.size());
+    CHECK(out[0] == 50);
+    CHECK(out[32 * 16] == 60);
+    CHECK(out[32 * 16 + 16 * 8] == 70);
+    av_frame_free(&frame);
+  }
+
   SECTION("a frame from a larger monitor is scaled down to the encoder's size") {
     Image image(32, 16, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
     for (unsigned int y = 0; y < 16; y++) std::memset(image.Buffer() + y * image.LineSize(), 90, 96);

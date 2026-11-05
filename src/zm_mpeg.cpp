@@ -451,10 +451,13 @@ bool VideoStream::PackImage(const Image &image, AVPixelFormat pf, int width, int
     }
   } else {
     // Planar: the planes follow each other at the stride the first one implies.
+    // A narrow packed frame can have the same first-plane stride as the
+    // 32-byte layout, so the layout must also fit the image.
     for (int align : {32, 1}) {
       int size = av_image_fill_arrays(src_data, src_linesize, image.Buffer(), image.PixFormat(),
                                       image.Width(), image.Height(), align);
-      if (size > 0 && static_cast<unsigned int>(src_linesize[0]) == image.LineSize()) {
+      if (size > 0 && static_cast<unsigned int>(src_linesize[0]) == image.LineSize()
+          && static_cast<unsigned int>(size) <= image.Size()) {
         src_size = size;
         break;
       }

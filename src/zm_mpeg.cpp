@@ -436,13 +436,33 @@ bool VideoStream::PackImage(const Image &image, AVPixelFormat pf, int width, int
   int dst_linesize[4];
   av_image_fill_arrays(dst_data, dst_linesize, out.data(), pf, width, height, 1);
 
-  // Image lays its rows out on a 32-byte stride, as Image::PopulateFrame does.
+  // Most Images lay their rows out on a 32-byte stride, but one wrapping a
+  // caller's buffer is packed and one wrapping an AVFrame keeps the frame's
+  // stride. Map the rows with the image's own LineSize(), and never past Size().
   uint8_t *src_data[4];
   int src_linesize[4];
-  if (av_image_fill_arrays(src_data, src_linesize, image.Buffer(), image.PixFormat(),
-                           image.Width(), image.Height(), 32) < 0) {
-    Error("Can't map a %ux%u %s image for the video stream",
-          image.Width(), image.Height(), av_get_pix_fmt_name(image.PixFormat()));
+  int src_size = -1;
+  if (av_pix_fmt_count_planes(image.PixFormat()) == 1) {
+    if (image.LineSize() >= static_cast<unsigned int>(av_image_get_linesize(image.PixFormat(), image.Width(), 0))
+        && av_image_fill_arrays(src_data, src_linesize, image.Buffer(), image.PixFormat(),
+                                image.Width(), image.Height(), 1) >= 0) {
+      src_linesize[0] = image.LineSize();
+      src_size = image.LineSize() * image.Height();
+    }
+  } else {
+    // Planar: the planes follow each other at the stride the first one implies.
+    for (int align : {32, 1}) {
+      int size = av_image_fill_arrays(src_data, src_linesize, image.Buffer(), image.PixFormat(),
+                                      image.Width(), image.Height(), align);
+      if (size > 0 && static_cast<unsigned int>(src_linesize[0]) == image.LineSize()) {
+        src_size = size;
+        break;
+      }
+    }
+  }
+  if (src_size <= 0 || static_cast<unsigned int>(src_size) > image.Size()) {
+    Error("Can't map a %ux%u %s image with stride %u and size %u for the video stream",
+          image.Width(), image.Height(), av_get_pix_fmt_name(image.PixFormat()), image.LineSize(), image.Size());
     return false;
   }
 

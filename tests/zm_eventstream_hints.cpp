@@ -165,6 +165,22 @@ TEST_CASE("VideoStream::PackImage converts to the encoder's size, format and str
     CHECK(out[59] == 41);
   }
 
+  SECTION("an image wrapping a packed buffer is read at its own stride") {
+    // Image(width, height, colours, order, buffer) does not pad its rows.
+    // Mapped on a 32-byte stride, row 1 would start at byte 32 and the last row
+    // would be read past the end of this 60-byte buffer.
+    std::vector<uint8_t> packed(60);
+    std::memset(packed.data(), 40, 30);
+    std::memset(packed.data() + 30, 41, 30);
+    Image image(10, 2, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB, packed.data());
+    REQUIRE(image.LineSize() == 30);
+    REQUIRE(VideoStream::PackImage(image, AV_PIX_FMT_RGB24, 10, 2, out, &context));
+    REQUIRE(out.size() == 60);
+    CHECK(out[29] == 40);
+    CHECK(out[30] == 41);
+    CHECK(out[59] == 41);
+  }
+
   SECTION("a frame from a larger monitor is scaled down to the encoder's size") {
     Image image(32, 16, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
     for (unsigned int y = 0; y < 16; y++) std::memset(image.Buffer() + y * image.LineSize(), 90, 96);

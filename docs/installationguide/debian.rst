@@ -126,6 +126,9 @@ If the zoneminder.service show to be active and without any errors, you should b
 Debian 11 (Bullseye)
 --------------------
 
+.. note::
+   ZoneMinder requires PHP 8.0 or newer. Debian 11 ships PHP 7.4, so current ZoneMinder releases do not run on it. These instructions are kept for older ZoneMinder releases only.
+
 This procedure will guide you through the installation of ZoneMinder on Debian 11 (Bullseye).
 
 **Step 1:** Setup Sudo (optional but recommended)
@@ -244,6 +247,9 @@ If the zoneminder.service show to be active and without any errors, you should b
 
 Debian Buster
 -------------
+
+.. note::
+   ZoneMinder requires PHP 8.0 or newer. Debian Buster ships PHP 7.3, so current ZoneMinder releases do not run on it. These instructions are kept for older ZoneMinder releases only.
 
 This procedure will guide you through the installation of ZoneMinder on Debian 10 (Buster).
 
@@ -396,6 +402,9 @@ You are now ready to go with ZoneMinder. Open a browser and type either ``localh
 
 Debian Stretch
 --------------
+
+.. note::
+   ZoneMinder requires PHP 8.0 or newer. Debian Stretch ships PHP 7.0, so current ZoneMinder releases do not run on it. These instructions are kept for older ZoneMinder releases only.
 
 This procedure will guide you through the installation of ZoneMinder on Debian 9 (Stretch). This section has been tested with ZoneMinder 1.36 on Debian 9.8.
 

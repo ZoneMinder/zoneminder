@@ -588,6 +588,7 @@ if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) echo '
   <link href="skins/<?php echo $skin ?>/js/video-js.css" rel="stylesheet">
   <script src="skins/<?php echo $skin ?>/js/video.min.js"></script>
   <script src="./js/videojs.zoomrotate.js"></script>
+  <script src="<?php echo cache_bust('skins/classic/views/js/event-zms-hints.js') ?>"></script>
 <?php
   echo output_link_if_exists(array('css/base/zones.css'));
   echo output_script_if_exists(array('js/leaflet/leaflet.js'), false);

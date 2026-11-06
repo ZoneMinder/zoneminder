@@ -438,7 +438,7 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
     }
     SystemTimePoint::duration delta_time =  timestamp - base_time;
 
-    /* double pts = */ vid_stream->EncodeFrame(send_image->Buffer(), send_image->Size(), config.mpeg_timed_frames, delta_time.count());
+    /* double pts = */ vid_stream->EncodeImage(*send_image, config.mpeg_timed_frames, delta_time.count());
   } else {
     reserveTempImgBuffer(send_image->Size());
 

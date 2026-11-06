@@ -75,20 +75,15 @@ function migrateHash($username, $pass) {
   $password_type = password_type($user->Password());
   if ($password_type != 'mysql' and $password_type != 'mysql+bcrypt') return;
 
-  if (function_exists('password_hash')) {
-    ZM\Info("Migrating $username to bcrypt scheme");
-    // let it generate its own salt, and ensure bcrypt as PASSWORD_DEFAULT may change later
-    // we can modify this later to support argon2 etc as switch to its own password signature detection
-    $bcrypt_hash = password_hash($pass, PASSWORD_BCRYPT);
-    dbQuery('UPDATE Users SET Password=? WHERE Id=?', array($bcrypt_hash, $user->Id()));
-    # Since password field has changed, existing auth_hash is no longer valid.
-    # getAuthUser() checks it against the new hash, so build it from that one.
-    $user->Password($bcrypt_hash);
-    generateAuthHash(ZM_AUTH_HASH_IPS, true);
-  } else {
-    ZM\Info('Cannot migrate password scheme to bcrypt, as you are using PHP < 5.5');
-    return;
-  }
+  ZM\Info("Migrating $username to bcrypt scheme");
+  // let it generate its own salt, and ensure bcrypt as PASSWORD_DEFAULT may change later
+  // we can modify this later to support argon2 etc as switch to its own password signature detection
+  $bcrypt_hash = password_hash($pass, PASSWORD_BCRYPT);
+  dbQuery('UPDATE Users SET Password=? WHERE Id=?', array($bcrypt_hash, $user->Id()));
+  # Since password field has changed, existing auth_hash is no longer valid.
+  # getAuthUser() checks it against the new hash, so build it from that one.
+  $user->Password($bcrypt_hash);
+  generateAuthHash(ZM_AUTH_HASH_IPS, true);
 }
 
 // The password db/zm_create.sql gives the admin account, as the user guide

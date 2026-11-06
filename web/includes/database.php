@@ -176,10 +176,7 @@ function dbError($sql) {
 
 function dbEscape( $string ) {
   $dbConn = zmDbConn();
-  if ( version_compare(phpversion(), '5.4', '<=') and get_magic_quotes_gpc() ) 
-    return $dbConn->quote(stripslashes($string));
-  else
-    return $dbConn->quote($string);
+  return $dbConn->quote($string);
 }
 
 // The bound values of a failed statement, for its Error line: those go to the

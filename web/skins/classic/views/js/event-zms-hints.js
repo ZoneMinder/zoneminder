@@ -25,7 +25,9 @@
 //   reply to one given up on cannot overwrite a newer one's.
 // - A boundary (no next event) is asked for again every BOUNDARY_REFRESH_MS
 //   while it is in the direction of play, since an event may have been
-//   recorded since.
+//   recorded since. So are any neighbours while zms is paused: it stops at the
+//   end of an event whose next one has been deleted, and resumes when sent a
+//   different one.
 //
 (function(global) {
   'use strict';
@@ -98,8 +100,8 @@
       },
 
       // Whether to look up current's neighbours now, while playing in the
-      // given direction.
-      needsLookup: function(current, reverse, now) {
+      // given direction, or paused.
+      needsLookup: function(current, reverse, now, paused) {
         const same = lookup && lookup.src == current;
         if (same && lookup.pending && now - lookup.at < LOOKUP_TIMEOUT_MS) return false;
         if (!hints || hints.src != current) {
@@ -107,8 +109,8 @@
           return !same || now - lookup.at >= LOOKUP_RETRY_MS;
         }
         // The filter had nothing after it in the direction of play when last
-        // asked, a while ago.
-        if ((reverse ? hints.prev : hints.next) != 0) return false;
+        // asked, or zms is paused, maybe on a deleted neighbour; a while ago.
+        if (!paused && (reverse ? hints.prev : hints.next) != 0) return false;
         const asked = same ? Math.max(lookup.at, hints.fetched) : hints.fetched;
         return now - asked >= BOUNDARY_REFRESH_MS;
       },

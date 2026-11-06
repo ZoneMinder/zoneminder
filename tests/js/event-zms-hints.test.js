@@ -217,6 +217,16 @@ test('a boundary refresh waits a full interval before the next request', () => {
   assert.strictEqual(hints.needsLookup(10, false, 2 * later), true);
 });
 
+test('neighbours are asked for again while zms is paused', () => {
+  // zms stops at the end of an event whose next one was deleted, and resumes
+  // when it is sent a different one.
+  const hints = ZM.create();
+  hints.set(10, 11, 9, 0);
+  assert.strictEqual(hints.needsLookup(10, false, later, false), false);
+  assert.strictEqual(hints.needsLookup(10, false, later - 1, true), false);
+  assert.strictEqual(hints.needsLookup(10, false, later, true), true);
+});
+
 test('only the last lookup counts', () => {
   // A lookup given up on and retried can answer after the retry.
   const hints = ZM.create();

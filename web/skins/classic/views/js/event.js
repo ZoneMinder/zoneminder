@@ -37,6 +37,13 @@ var wasHidden = false;
 var availableTags = [];
 var selectedTags = [];
 var realEventWidth = 0;
+// The monitor the page's elements (stream, zoom buttons, zones, PanZoom) were
+// built for. On the zms path eventData can move on to another monitor's event
+// without a page load (refs #4186); see domMonitorId().
+let pageMonitorId = null;
+// Whether the zones were showing when hidden for another monitor's event, or
+// null while they are not hidden for that reason.
+let zonesShownBeforeHiding = null;
 var realEventHeight = 0;
 
 var PrevCoordinatFrame = {x: null, y: null};
@@ -240,12 +247,19 @@ function deltaScale() {
   return parseInt(currentScale/100*$j('#streamQuality').val()); // "-" - Decrease quality, "+" - Increase image quality in %
 }
 
+// The monitor id in the page's element ids and PanZoom, which stay those of the
+// event the page was loaded for. The first call is before zms can have moved on.
+function domMonitorId() {
+  if (pageMonitorId === null) pageMonitorId = eventData.MonitorId;
+  return pageMonitorId;
+}
+
 function changeScale() {
   // `eventData.Width` & `eventData.Height` may be set incorrectly in the monitor settings (in terms of both resolution and aspect ratio), while `realEventWidth` might not yet be defined because the video has not finished loading.
   const eventDataWidth = (realEventWidth !=0) ? realEventWidth : eventData.Width;
   const eventDataHeight = (realEventHeight !=0) ? realEventHeight : eventData.Height;
   const scaleSel = $j('#scale').val();
-  const stream = document.getElementById('videoFeedStream' + eventData.MonitorId);
+  const stream = document.getElementById('videoFeedStream' + domMonitorId());
   let newWidth;
   let newHeight;
   const eventViewer = $j(vid ? '#videoobj' : '#evtStream');
@@ -455,7 +469,7 @@ function getCmdResponse(respObj, respText) {
   // zms is answering for eventId, so its hints can be sent now. When it has
   // moved to a new event, ask for that event's neighbours straight away rather
   // than after eventQuery returns: zms waits at the end of the event for them.
-  if (zmsHints.needsLookup(parseInt(eventId), streamStatus.rate < 0, Date.now())) {
+  if (zmsHints.needsLookup(parseInt(eventId), streamStatus.rate < 0, Date.now(), streamStatus.paused == true)) {
     nearEventsQuery(eventId);
   }
   sendZmsHints(eventId);
@@ -472,7 +486,7 @@ function getCmdResponse(respObj, respText) {
   clockTime.setTime(clockTime.getTime() + (streamStatus.progress * 1000));
   $j('#currentTimeValue').html(clockTime.toLocaleTimeString());
   //$j('#zoomValue').html(streamStatus.zoom);
-  const pz = zmPanZoom.panZoom[eventData.MonitorId];
+  const pz = zmPanZoom.panZoom[domMonitorId()];
   if (pz) $j('#zoomValue').html(pz.getScale().toFixed(1));
   //if (streamStatus.zoom == '1.0') {
   //  setButtonState('zoomOutBtn', 'unavail');
@@ -521,7 +535,7 @@ function streamPause() {
   setButtonState('slowFwdBtn', 'inactive');
   setButtonState('slowRevBtn', 'inactive');
   setButtonState('fastRevBtn', 'unavail');
-  const audioMotion = document.querySelector('audio-motion#audioVisualization' + eventData.MonitorId);
+  const audioMotion = document.querySelector('audio-motion#audioVisualization' + domMonitorId());
   if (audioMotion && audioMotion.pause) audioMotion.pause();
 }
 
@@ -938,6 +952,7 @@ function getEventResponse(respObj, respText) {
     return;
   }
 
+  const previousEvent = eventData;
   eventData = respObj.event;
   getStat();
   currEventId = eventData.Id;
@@ -958,9 +973,31 @@ function getEventResponse(respObj, respText) {
     $j('#rate').val('100');
     //vjsPanZoom('zoomOut');
   } else {
-    drawProgressBar();
+    zmsEventChanged(previousEvent);
   }
 } // end function getEventResponse
+
+// zms moved on to eventData by itself, possibly to another monitor's event.
+function zmsEventChanged(previousEvent) {
+  if (!previousEvent || previousEvent.Width != eventData.Width || previousEvent.Height != eventData.Height) {
+    // Size the image and zms's scale for this event's frames, not the last's.
+    changeScale();
+  } else {
+    drawProgressBar();
+  }
+  // The zones drawn are the page's monitor's; don't lay them over another camera.
+  const zones = $j('#zones' + domMonitorId());
+  const button = document.getElementById('toggleZonesButton');
+  if (eventData.MonitorId != domMonitorId()) {
+    if (zonesShownBeforeHiding === null) zonesShownBeforeHiding = zones.is(':visible');
+    zones.hide();
+    if (button) button.disabled = true;
+  } else if (zonesShownBeforeHiding !== null) {
+    if (button) button.disabled = false;
+    if (zonesShownBeforeHiding) zones.show();
+    zonesShownBeforeHiding = null;
+  }
+}
 
 function eventQuery(eventId) {
   var data = {};
@@ -1505,13 +1542,13 @@ function onStatsResize(vidWidth) {
 
 function initPage() {
   zmsHints = ZM_EventZmsHints.create();
-  const stream = document.getElementById('videoFeedStream' + eventData.MonitorId);
+  const stream = document.getElementById('videoFeedStream' + domMonitorId());
   if (stream) {
     stream.addEventListener('zm:tracksReceived', (e) => {
       if (e.detail.stream.audioTrack) connectAudioMotion(e.detail.monitorId);
     });
   } else {
-    console.warn(`No stream found for monitor with ID=${eventData.MonitorId}. Listener for 'zm:tracksReceived' not added.`);
+    console.warn(`No stream found for monitor with ID=${domMonitorId()}. Listener for 'zm:tracksReceived' not added.`);
   }
 
   getAvailableTags();
@@ -1557,11 +1594,11 @@ function initPage() {
     });
     vid.on('play', function(event) {
       streamPlay();
-      if (!eventData._playing) getTracksFromStream(getMonitorStream(eventData.MonitorId));
+      if (!eventData._playing) getTracksFromStream(getMonitorStream(domMonitorId()));
       eventData._playing = true;
     });
     vid.on('playing', function(event) { // Required for HLS with AUTOPLAY in Firefox, as on.play doesn't work in this case.
-      if (!eventData._playing) getTracksFromStream(getMonitorStream(eventData.MonitorId));
+      if (!eventData._playing) getTracksFromStream(getMonitorStream(domMonitorId()));
       eventData._playing = true;
     });
     vid.on('pause', function(event) {
@@ -1936,7 +1973,7 @@ function initPage() {
       //Displaying "Scale" and other buttons at the top of the monitor image
       function() {
         //const id = stringToNumber(this.id); //Montage & Watch page
-        const id = eventData.MonitorId; // Event page
+        const id = domMonitorId(); // Event page
         //$j('#button_zoom' + id).stop(true, true).slideDown('fast');
         const _imageFeed = document.getElementById('videoFeedStream'+id);
         if (!_imageFeed || (_imageFeed && _imageFeed.getAttribute('data-not-display-video') !== 'true')) {
@@ -1945,7 +1982,7 @@ function initPage() {
       },
       function() {
         //const id = stringToNumber(this.id); //Montage & Watch page
-        const id = eventData.MonitorId; // Event page
+        const id = domMonitorId(); // Event page
         //$j('#button_zoom' + id).stop(true, true).slideUp('fast');
         $j('#button_zoom' + id).addClass('hidden');
       }
@@ -1955,7 +1992,7 @@ function initPage() {
     //Updating Scale. When quickly scrolling the mouse wheel or quickly pressing Zoom In/Out, you should not set Scale very often.
     if (updateScale) {
       const eventViewer = $j(vid ? '#videoobj' : '#evtStream');
-      const panZoomScale = panZoomEnabled ? zmPanZoom.panZoom[eventData.MonitorId].getScale() : 1;
+      const panZoomScale = panZoomEnabled ? zmPanZoom.panZoom[domMonitorId()].getScale() : 1;
       const newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, false, $j('#videoFeed'), panZoomScale);
       scale = newSize.autoScale > 100 ? 100 : newSize.autoScale;
       currentScale = scale;
@@ -2113,19 +2150,19 @@ function getSelectedTags() {
 }
 
 function toggleZones(e) {
-  const zones = $j('#zones'+eventData.MonitorId);
+  const zones = $j('#zones'+domMonitorId());
   const button = document.getElementById('toggleZonesButton');
   if (zones.length) {
     if (zones.is(":visible")) {
       zones.hide();
       button.setAttribute('title', showZonesString);
       $j('#toggleZonesButton .material-icons').text('layers');
-      setCookie('zmEventShowZones'+eventData.MonitorId, '0');
+      setCookie('zmEventShowZones'+domMonitorId(), '0');
     } else {
       zones.show();
       button.setAttribute('title', hideZonesString);
       $j('#toggleZonesButton .material-icons').text('layers_clear');
-      setCookie('zmEventShowZones'+eventData.MonitorId, '1');
+      setCookie('zmEventShowZones'+domMonitorId(), '1');
     }
   } else {
     console.error("Zones svg not found");

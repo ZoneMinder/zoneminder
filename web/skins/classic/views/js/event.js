@@ -892,6 +892,12 @@ function restartZmsStream(onReady) {
   }
   const url = new URL(img.src);
   url.searchParams.set('scale', currentScale);
+  // Restart on the event zms was playing, not the one the page opened on: it
+  // moves on by itself, and can be on another monitor's event by now.
+  if (lastEventId && url.searchParams.get('event') != String(lastEventId)) {
+    url.searchParams.set('event', lastEventId);
+    url.searchParams.delete('frame');
+  }
   img.src = '';
   img.onload = function() {
     img.onload = null;

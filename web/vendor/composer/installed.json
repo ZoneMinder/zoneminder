@@ -1,94 +1,128 @@
-[
-    {
-        "name": "firebase/php-jwt",
-        "version": "v5.0.0",
-        "version_normalized": "5.0.0.0",
-        "source": {
-            "type": "git",
-            "url": "https://github.com/firebase/php-jwt.git",
-            "reference": "9984a4d3a32ae7673d6971ea00bae9d0a1abba0e"
-        },
-        "dist": {
-            "type": "zip",
-            "url": "https://api.github.com/repos/firebase/php-jwt/zipball/9984a4d3a32ae7673d6971ea00bae9d0a1abba0e",
-            "reference": "9984a4d3a32ae7673d6971ea00bae9d0a1abba0e",
-            "shasum": ""
-        },
-        "require": {
-            "php": ">=5.3.0"
-        },
-        "require-dev": {
-            "phpunit/phpunit": " 4.8.35"
-        },
-        "time": "2017-06-27T22:17:23+00:00",
-        "type": "library",
-        "installation-source": "dist",
-        "autoload": {
-            "psr-4": {
-                "Firebase\\JWT\\": "src"
-            }
-        },
-        "notification-url": "https://packagist.org/downloads/",
-        "license": [
-            "BSD-3-Clause"
+{
+        "packages": [
+                {
+                        "name": "firebase/php-jwt",
+                        "version": "v7.2.1",
+                        "version_normalized": "7.2.1.0",
+                        "source": {
+                                "type": "git",
+                                "url": "https://github.com/googleapis/php-jwt.git",
+                                "reference": "0501f5729b9e2448516674aff07c7d1727869b8e"
+                        },
+                        "dist": {
+                                "type": "zip",
+                                "url": "https://api.github.com/repos/googleapis/php-jwt/zipball/0501f5729b9e2448516674aff07c7d1727869b8e",
+                                "reference": "0501f5729b9e2448516674aff07c7d1727869b8e",
+                                "shasum": ""
+                        },
+                        "require": {
+                                "php": "^8.0"
+                        },
+                        "require-dev": {
+                                "guzzlehttp/guzzle": "^7.4||^8.0",
+                                "phpfastcache/phpfastcache": "^9.2",
+                                "phpseclib/phpseclib": "~3.0",
+                                "phpspec/prophecy-phpunit": "^2.2",
+                                "phpunit/phpunit": "^9.5",
+                                "psr/cache": "^2.0||^3.0",
+                                "psr/http-client": "^1.0",
+                                "psr/http-factory": "^1.0"
+                        },
+                        "suggest": {
+                                "ext-sodium": "Support EdDSA (Ed25519) signatures",
+                                "paragonie/sodium_compat": "Support EdDSA (Ed25519) signatures when libsodium is not present",
+                                "phpseclib/phpseclib": "Support PS256 (RSASSA-PSS) signatures"
+                        },
+                        "time": "2026-09-28T17:51:46+00:00",
+                        "type": "library",
+                        "extra": {
+                                "component": {
+                                        "id": "jwt",
+                                        "path": "Jwt",
+                                        "entry": "README.md",
+                                        "target": "googleapis/php-jwt.git"
+                                }
+                        },
+                        "installation-source": "dist",
+                        "autoload": {
+                                "psr-4": {
+                                        "Firebase\\JWT\\": "src"
+                                }
+                        },
+                        "notification-url": "https://packagist.org/downloads/",
+                        "license": [
+                                "BSD-3-Clause"
+                        ],
+                        "authors": [
+                                {
+                                        "name": "Neuman Vong",
+                                        "email": "neuman+pear@twilio.com",
+                                        "role": "Developer"
+                                },
+                                {
+                                        "name": "Anant Narayanan",
+                                        "email": "anant@php.net",
+                                        "role": "Developer"
+                                }
+                        ],
+                        "description": "A simple library to encode and decode JSON Web Tokens (JWT) in PHP. Should conform to the current spec.",
+                        "homepage": "https://github.com/googleapis/php-jwt",
+                        "keywords": [
+                                "jwt",
+                                "php"
+                        ],
+                        "support": {
+                                "issues": "https://github.com/googleapis/php-jwt/issues",
+                                "source": "https://github.com/googleapis/php-jwt/tree/v7.2.1"
+                        },
+                        "install-path": "../firebase/php-jwt"
+                },
+                {
+                        "name": "ircmaxell/password-compat",
+                        "version": "v1.0.4",
+                        "version_normalized": "1.0.4.0",
+                        "source": {
+                                "type": "git",
+                                "url": "https://github.com/ircmaxell/password_compat.git",
+                                "reference": "5c5cde8822a69545767f7c7f3058cb15ff84614c"
+                        },
+                        "dist": {
+                                "type": "zip",
+                                "url": "https://api.github.com/repos/ircmaxell/password_compat/zipball/5c5cde8822a69545767f7c7f3058cb15ff84614c",
+                                "reference": "5c5cde8822a69545767f7c7f3058cb15ff84614c",
+                                "shasum": ""
+                        },
+                        "require-dev": {
+                                "phpunit/phpunit": "4.*"
+                        },
+                        "time": "2014-11-20T16:49:30+00:00",
+                        "type": "library",
+                        "installation-source": "dist",
+                        "autoload": {
+                                "files": [
+                                        "lib/password.php"
+                                ]
+                        },
+                        "notification-url": "https://packagist.org/downloads/",
+                        "license": [
+                                "MIT"
+                        ],
+                        "authors": [
+                                {
+                                        "name": "Anthony Ferrara",
+                                        "email": "ircmaxell@php.net",
+                                        "homepage": "http://blog.ircmaxell.com"
+                                }
+                        ],
+                        "description": "A compatibility library for the proposed simplified password hashing algorithm: https://wiki.php.net/rfc/password_hash",
+                        "homepage": "https://github.com/ircmaxell/password_compat",
+                        "keywords": [
+                                "hashing",
+                                "password"
+                        ],
+                        "install-path": "../ircmaxell/password-compat"
+                }
         ],
-        "authors": [
-            {
-                "name": "Neuman Vong",
-                "email": "neuman+pear@twilio.com",
-                "role": "Developer"
-            },
-            {
-                "name": "Anant Narayanan",
-                "email": "anant@php.net",
-                "role": "Developer"
-            }
-        ],
-        "description": "A simple library to encode and decode JSON Web Tokens (JWT) in PHP. Should conform to the current spec.",
-        "homepage": "https://github.com/firebase/php-jwt"
-    },
-    {
-        "name": "ircmaxell/password-compat",
-        "version": "v1.0.4",
-        "version_normalized": "1.0.4.0",
-        "source": {
-            "type": "git",
-            "url": "https://github.com/ircmaxell/password_compat.git",
-            "reference": "5c5cde8822a69545767f7c7f3058cb15ff84614c"
-        },
-        "dist": {
-            "type": "zip",
-            "url": "https://api.github.com/repos/ircmaxell/password_compat/zipball/5c5cde8822a69545767f7c7f3058cb15ff84614c",
-            "reference": "5c5cde8822a69545767f7c7f3058cb15ff84614c",
-            "shasum": ""
-        },
-        "require-dev": {
-            "phpunit/phpunit": "4.*"
-        },
-        "time": "2014-11-20T16:49:30+00:00",
-        "type": "library",
-        "installation-source": "dist",
-        "autoload": {
-            "files": [
-                "lib/password.php"
-            ]
-        },
-        "notification-url": "https://packagist.org/downloads/",
-        "license": [
-            "MIT"
-        ],
-        "authors": [
-            {
-                "name": "Anthony Ferrara",
-                "email": "ircmaxell@php.net",
-                "homepage": "http://blog.ircmaxell.com"
-            }
-        ],
-        "description": "A compatibility library for the proposed simplified password hashing algorithm: https://wiki.php.net/rfc/password_hash",
-        "homepage": "https://github.com/ircmaxell/password_compat",
-        "keywords": [
-            "hashing",
-            "password"
-        ]
-    }
-]
+        "dev": true,
+        "dev-package-names": []
+}

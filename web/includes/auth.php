@@ -28,6 +28,7 @@ require_once('Role_Group_Permission.php');
 require_once('Role_Monitor_Permission.php');
 require_once(__DIR__.'/../vendor/autoload.php');
 use \Firebase\JWT\JWT;
+use \Firebase\JWT\Key;
 
 // A request parameter as a string, or null when the client did not send one it
 // can be used as. Request values are whatever arrived: "?user[]=x" makes
@@ -355,7 +356,7 @@ function validateToken($token, $allowed_token_type='access') {
   $key = ZM_AUTH_HASH_SECRET;
   //if (ZM_AUTH_HASH_IPS) $key .= $_SERVER['REMOTE_ADDR'];
   try {
-    $decoded_token = JWT::decode($token, $key, array('HS256'));
+    $decoded_token = JWT::decode($token, new Key($key, 'HS256'));
   } catch (Exception $e) {
     ZM\Error("Unable to authenticate user. error decoding JWT token:".$e->getMessage());
     return array(false, $e->getMessage());

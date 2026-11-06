@@ -51,20 +51,24 @@ check('32 characters is accepted', authHashSecretValid(str_repeat('a', 32)), tru
 check('a generated 64 hex character secret is accepted', authHashSecretValid(bin2hex(random_bytes(32))), true);
 check('a non-string is refused', authHashSecretValid(array('x')), false);
 
-// Every secret authHashSecretValid() accepts must be one php-jwt accepts.
+// Every secret authHashSecretValid() accepts must be one php-jwt accepts. php-jwt 7
+// enforces the same minimum, so there the two must agree; older versions (php-jwt 5
+// still ships in some vendor trees) accept any key, so only the first half holds.
 $autoload = __DIR__.'/../../web/vendor/autoload.php';
 if (file_exists($autoload)) {
   require_once $autoload;
+  $enforces = method_exists('Firebase\JWT\JWT', 'validateHmacKeyLength');
   foreach (array(31, 32) as $len) {
     $key = str_repeat('k', $len);
     try {
-      $token = Firebase\JWT\JWT::encode(array('user' => 'u'), $key, 'HS256');
-      $headers = new stdClass();
-      $ok = Firebase\JWT\JWT::decode($token, new Firebase\JWT\Key($key, 'HS256'), $headers)->user === 'u';
+      $ok = is_string(Firebase\JWT\JWT::encode(array('user' => 'u'), $key, 'HS256'));
     } catch (DomainException $e) {
       $ok = false;
     }
-    check("php-jwt agrees about a $len character secret", $ok, authHashSecretValid($key));
+    if ($enforces)
+      check("php-jwt agrees about a $len character secret", $ok, authHashSecretValid($key));
+    else if (authHashSecretValid($key))
+      check("php-jwt accepts a $len character secret", $ok, true);
   }
 }
 

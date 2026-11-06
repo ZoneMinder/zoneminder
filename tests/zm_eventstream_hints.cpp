@@ -225,6 +225,29 @@ TEST_CASE("VideoStream::PackImage converts to the encoder's size, format and str
     av_frame_free(&frame);
   }
 
+  SECTION("a frame of another shape is fitted inside on black, not stretched") {
+    // A 2:1 frame in a stream whose encoder opened square: 16x8 in the middle
+    // rows, black above and below.
+    Image image(32, 16, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
+    for (unsigned int y = 0; y < 16; y++) std::memset(image.Buffer() + y * image.LineSize(), 200, 96);
+    REQUIRE(VideoStream::PackImage(image, AV_PIX_FMT_RGB24, 16, 16, out, &context));
+    REQUIRE(out.size() == 16 * 16 * 3);
+    auto row = [&](int y) { return &out[y * 16 * 3]; };
+    for (int y : {0, 3, 12, 15}) for (int i = 0; i < 48; i++) CHECK(row(y)[i] == 0);
+    for (int y : {4, 8, 11}) for (int i = 0; i < 48; i++) CHECK(row(y)[i] == 200);
+  }
+
+  SECTION("letterboxed YUV420P is black, not green") {
+    Image image(32, 16, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
+    std::memset(image.Buffer(), 255, image.LineSize() * 16);
+    REQUIRE(VideoStream::PackImage(image, AV_PIX_FMT_YUV420P, 16, 16, out, &context));
+    REQUIRE(out.size() == 16 * 16 * 3 / 2);
+    CHECK(out[0] == 16);                     // luma, top bar
+    CHECK(out[8 * 16] > 200);                // luma, picture
+    CHECK(out[16 * 16] == 128);              // U, top bar
+    CHECK(out[16 * 16 + 8 * 8] == 128);      // V, top bar
+  }
+
   SECTION("a frame from a larger monitor is scaled down to the encoder's size") {
     Image image(32, 16, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
     for (unsigned int y = 0; y < 16; y++) std::memset(image.Buffer() + y * image.LineSize(), 90, 96);

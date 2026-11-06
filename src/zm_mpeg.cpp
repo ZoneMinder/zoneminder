@@ -25,6 +25,9 @@
 #include "zm_rgb.h"
 #include "zm_time.h"
 
+#include <algorithm>
+#include <cstring>
+
 bool VideoStream::initialised = false;
 
 VideoStream::MimeData VideoStream::mime_data[] = {
@@ -469,16 +472,55 @@ bool VideoStream::PackImage(const Image &image, AVPixelFormat pf, int width, int
     return false;
   }
 
+  // The encoder's size is set by the first frame. A frame of another shape,
+  // such as an event from a 16:9 monitor in a stream that opened on a 4:3 one,
+  // is fitted inside it rather than stretched. Even sizes and offsets keep the
+  // chroma planes of subsampled formats aligned with the luma.
+  int fit_width = width;
+  int fit_height = height;
+  if (static_cast<int64_t>(image.Width()) * height > static_cast<int64_t>(image.Height()) * width) {
+    fit_height = std::max(2, static_cast<int>(static_cast<int64_t>(image.Height()) * width / image.Width()) & ~1);
+  } else if (static_cast<int64_t>(image.Width()) * height < static_cast<int64_t>(image.Height()) * width) {
+    fit_width = std::max(2, static_cast<int>(static_cast<int64_t>(image.Width()) * height / image.Height()) & ~1);
+  }
+  fit_width = std::min(fit_width, width);
+  fit_height = std::min(fit_height, height);
+  if (fit_width != width || fit_height != height) {
+    FillBlack(pf, height, dst_data, dst_linesize);
+    const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(pf);
+    int x = ((width - fit_width) / 2) & ~1;
+    int y = ((height - fit_height) / 2) & ~1;
+    for (int p = 0; p < 4 && dst_data[p]; p++) {
+      int plane_y = (desc && (p == 1 || p == 2)) ? (y >> desc->log2_chroma_h) : y;
+      dst_data[p] += plane_y * dst_linesize[p] + av_image_get_linesize(pf, x, p);
+    }
+  }
+
   *context = sws_getCachedContext(*context, image.Width(), image.Height(), image.PixFormat(),
-                                  width, height, pf, SWS_BICUBIC, nullptr, nullptr, nullptr);
+                                  fit_width, fit_height, pf, SWS_BICUBIC, nullptr, nullptr, nullptr);
   if (!*context) {
     Error("Can't convert %ux%u %s to %dx%d %s for the video stream",
           image.Width(), image.Height(), av_get_pix_fmt_name(image.PixFormat()),
-          width, height, av_get_pix_fmt_name(pf));
+          fit_width, fit_height, av_get_pix_fmt_name(pf));
     return false;
   }
   sws_scale(*context, src_data, src_linesize, 0, image.Height(), dst_data, dst_linesize);
   return true;
+}
+
+// av_image_fill_black needs FFmpeg 4.2; ZoneMinder builds against older.
+void VideoStream::FillBlack(AVPixelFormat pf, int height, uint8_t *data[4], const int linesize[4]) {
+  const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(pf);
+  bool yuv = desc && !(desc->flags & AV_PIX_FMT_FLAG_RGB) && (desc->flags & AV_PIX_FMT_FLAG_PLANAR)
+             && desc->nb_components >= 3;
+  bool full_range = (pf == AV_PIX_FMT_YUVJ420P) || (pf == AV_PIX_FMT_YUVJ422P) || (pf == AV_PIX_FMT_YUVJ444P);
+  for (int p = 0; p < 4 && data[p]; p++) {
+    int rows = (desc && (p == 1 || p == 2)) ? AV_CEIL_RSHIFT(height, desc->log2_chroma_h) : height;
+    uint8_t value = 0;
+    if (yuv && p == 0 && !full_range) value = 16;
+    else if (yuv && (p == 1 || p == 2)) value = 128;
+    memset(data[p], value, static_cast<size_t>(linesize[p]) * rows);
+  }
 }
 
 double VideoStream::EncodeImage(const Image &image, bool p_add_timestamp, unsigned int p_timestamp) {

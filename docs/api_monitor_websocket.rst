@@ -115,10 +115,14 @@ serve (Apache cannot do the arithmetic, so map each id to its port):
    ProxyPassReverse /live/ws/6  ws://127.0.0.1:31006/
 
 The listeners bind to all interfaces, so bind-restrict them to localhost with a
-firewall when the proxy and ``zmc`` share a host. When the proxy terminates TLS
-and forwards the client address in ``X-Forwarded-For``, ``zmc`` uses that
-address for IP-bound auth hashes (``AUTH_HASH_IPS``); otherwise it uses the
-socket peer, which would be the proxy.
+firewall when the proxy and ``zmc`` share a host.
+
+``zmc`` checks IP-bound auth hashes (``AUTH_HASH_IPS``) against the client's
+address. Behind a proxy the socket peer is the proxy, so ``zmc`` uses the
+address in ``X-Forwarded-For`` instead, but only when the peer is listed in
+``Options -> System -> AUTH_TRUSTED_PROXIES`` (empty by default). Add the
+proxy's address there, ``127.0.0.1`` when it runs on the same host; otherwise
+the hashes are checked against the proxy's address and valid ones are refused.
 
 Connection model
 ^^^^^^^^^^^^^^^^

@@ -351,6 +351,10 @@ For passthrough codec subscriptions:
 * ``interval_ms`` is ignored
 * ``sequence`` tracks the packet queue order
 * ``keyframe`` indicates whether the payload begins a new decodable segment
+* while the camera reconnects the subscription stays open, and resumes from a
+  keyframe of the new stream
+* if the camera comes back producing a different codec, the server sends an
+  error frame and ends the subscription; subscribe again with the new codec
 
 Implementation notes
 ^^^^^^^^^^^^^^^^^^^^

@@ -74,6 +74,13 @@ class VideoStreamInfo {
   // True when a valid stream is currently published, whatever its codec.
   bool Valid() const;
 
+  // Whether a passthrough client of requested_codec can be fed: kAvailable when
+  // that codec is published, kNoStream while nothing is (the camera is
+  // reconnecting, or produces no encoded stream), kOtherCodec when the camera
+  // now produces a different codec, which that client cannot decode.
+  enum class Availability { kAvailable, kNoStream, kOtherCodec };
+  Availability Check(AVCodecID requested_codec) const;
+
  private:
   mutable std::mutex mutex_;
   bool valid_ = false;

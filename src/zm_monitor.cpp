@@ -1950,6 +1950,14 @@ void Monitor::InvalidateVideoStreamInfo() {
   websocket_video_info.Invalidate();
 }
 
+zm::websocket::VideoStreamInfo::Availability Monitor::WebSocketVideoAvailability(const std::string &codec) const {
+  AVCodecID requested_codec = AV_CODEC_ID_NONE;
+  if (!requestedWebSocketVideoCodec(codec, &requested_codec)) {
+    return zm::websocket::VideoStreamInfo::Availability::kOtherCodec;
+  }
+  return websocket_video_info.Check(requested_codec);
+}
+
 void Monitor::FreeWebSocketIterator(packetqueue_iterator *it) {
   if (it) {
     packetqueue.free_it(it);

@@ -1244,6 +1244,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   packetqueue_iterator *CreateWebSocketVideoIterator(const std::string &codec);
   bool GetNextWebSocketVideoPayload(packetqueue_iterator *it, const std::string &codec, WebSocketPayload *payload);
   void FreeWebSocketIterator(packetqueue_iterator *it);
+  // Whether a passthrough stream of codec can be fed now; an unknown codec name
+  // is kOtherCodec.
+  zm::websocket::VideoStreamInfo::Availability WebSocketVideoAvailability(const std::string &codec) const;
   // Publishes/clears the websocket video stream snapshot from the capture
   // thread. UpdateVideoStreamInfo runs while the camera is valid (after a
   // prime); InvalidateVideoStreamInfo runs before the camera is closed.

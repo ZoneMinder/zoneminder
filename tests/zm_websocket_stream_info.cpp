@@ -188,3 +188,28 @@ TEST_CASE("websocket video stream info is safe across threads", "[websocket][rac
   reader.join();
   SUCCEED("no data race or crash under concurrent publish/read");
 }
+
+TEST_CASE("websocket video stream info tells a reconnect from a codec change", "[websocket]") {
+  using Availability = zm::websocket::VideoStreamInfo::Availability;
+  zm::websocket::VideoStreamInfo info;
+  REQUIRE(info.Check(AV_CODEC_ID_H264) == Availability::kNoStream);
+
+  AVCodecParameters *par = makeCodecpar(AV_CODEC_ID_H264, 1280, 720, "");
+  REQUIRE(par != nullptr);
+  info.Update(par, 0, 0);
+  avcodec_parameters_free(&par);
+  REQUIRE(info.Check(AV_CODEC_ID_H264) == Availability::kAvailable);
+  REQUIRE(info.Check(AV_CODEC_ID_HEVC) == Availability::kOtherCodec);
+
+  // While the camera reconnects nothing is published.
+  info.Invalidate();
+  REQUIRE(info.Check(AV_CODEC_ID_H264) == Availability::kNoStream);
+
+  // It came back producing HEVC: an h264 client can no longer be fed.
+  par = makeCodecpar(AV_CODEC_ID_HEVC, 1280, 720, "");
+  REQUIRE(par != nullptr);
+  info.Update(par, 0, 0);
+  avcodec_parameters_free(&par);
+  REQUIRE(info.Check(AV_CODEC_ID_H264) == Availability::kOtherCodec);
+  REQUIRE(info.Check(AV_CODEC_ID_HEVC) == Availability::kAvailable);
+}

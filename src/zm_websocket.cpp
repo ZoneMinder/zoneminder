@@ -492,6 +492,12 @@ bool VideoStreamInfo::Get(AVCodecID requested_codec, Snapshot *out) const {
   return true;
 }
 
+VideoStreamInfo::Availability VideoStreamInfo::Check(AVCodecID requested_codec) const {
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (!valid_) return Availability::kNoStream;
+  return snapshot_.codec_id == requested_codec ? Availability::kAvailable : Availability::kOtherCodec;
+}
+
 bool VideoStreamInfo::Valid() const {
   std::lock_guard<std::mutex> lock(mutex_);
   return valid_;
@@ -1250,10 +1256,34 @@ void MonitorWebSocketServer::broadcastStreams(std::vector<Client> *clients, Time
       continue;
     }
 
+    // An iterator holds back the packet queue's trimming, so a client must not
+    // keep one while its codec is not being produced: the queue would grow for
+    // as long as it stayed connected.
+    using Availability = zm::websocket::VideoStreamInfo::Availability;
+    const Availability availability = monitor->WebSocketVideoAvailability(client.stream_codec);
+    if (availability != Availability::kAvailable) {
+      freeClientResources(&client);
+      if (availability == Availability::kOtherCodec) {
+        // The camera came back with another codec, which this client cannot
+        // decode. Tell it, so it can subscribe again with the new one.
+        Debug(1, "Monitor %u no longer produces %s; ending a websocket stream subscription",
+              monitor->Id(), client.stream_codec.c_str());
+        client.subscribe_stream = false;
+        client.last_stream_sequence = 0;
+        if (!queueFrame(&client, websocket::Opcode::TEXT,
+                        errorJson("Stream codec " + client.stream_codec + " is no longer produced by this monitor"))) {
+          closeClient(&client);
+        }
+      }
+      // Otherwise the camera is reconnecting: start again from a keyframe of
+      // the new stream once it is published.
+      continue;
+    }
+
     if (!client.stream_it) {
+      // Waits for the first keyframe of a new stream.
       client.stream_it = monitor->CreateWebSocketVideoIterator(client.stream_codec);
       if (!client.stream_it) {
-        client.subscribe_stream = false;
         continue;
       }
     }

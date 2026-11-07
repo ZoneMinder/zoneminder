@@ -213,3 +213,85 @@ TEST_CASE("websocket video stream info tells a reconnect from a codec change", "
   REQUIRE(info.Check(AV_CODEC_ID_H264) == Availability::kOtherCodec);
   REQUIRE(info.Check(AV_CODEC_ID_HEVC) == Availability::kAvailable);
 }
+
+namespace {
+
+std::string bytes(std::initializer_list<int> list) {
+  std::string out;
+  for (int b : list) out.push_back(static_cast<char>(b));
+  return out;
+}
+
+const std::string kStartCode = bytes({0, 0, 0, 1});
+
+}  // namespace
+
+// An MP4 source gives H.264/H.265 extradata as an avcC/hvcC record and its
+// packets length-prefixed. Prepending that record to a keyframe made neither
+// Annex-B nor a valid access unit, so passthrough clients got undecodable data.
+TEST_CASE("websocket passthrough converts avcC to Annex-B", "[websocket]") {
+  const std::string sps = bytes({0x67, 0x42, 0xc0, 0x1e});
+  const std::string pps = bytes({0x68, 0xce, 0x3c, 0x80});
+  // version 1, profile/compat/level, 0xff = 4-byte lengths, 1 SPS, then 1 PPS
+  const std::string avcc = bytes({1, 0x42, 0xc0, 0x1e, 0xff, 0xe1, 0, 4}) + sps + bytes({1, 0, 4}) + pps;
+
+  std::string extradata;
+  int nal_length_size = -1;
+  REQUIRE(zm::websocket::ExtradataToAnnexB(AV_CODEC_ID_H264, avcc, &extradata, &nal_length_size));
+  REQUIRE(nal_length_size == 4);
+  REQUIRE(extradata == kStartCode + sps + kStartCode + pps);
+
+  // Two NAL units of 3 and 2 bytes, each with a 4-byte length.
+  const std::string packet = bytes({0, 0, 0, 3, 0x65, 0x88, 0x84, 0, 0, 0, 2, 0x06, 0x05});
+  std::string annexb;
+  REQUIRE(zm::websocket::LengthPrefixedToAnnexB(reinterpret_cast<const uint8_t *>(packet.data()), packet.size(),
+                                                nal_length_size, &annexb));
+  REQUIRE(annexb == kStartCode + bytes({0x65, 0x88, 0x84}) + kStartCode + bytes({0x06, 0x05}));
+
+  // A length running past the packet is refused.
+  const std::string truncated = bytes({0, 0, 0, 9, 0x65});
+  REQUIRE_FALSE(zm::websocket::LengthPrefixedToAnnexB(reinterpret_cast<const uint8_t *>(truncated.data()),
+                                                      truncated.size(), 4, &annexb));
+  // So is a record cut short.
+  REQUIRE_FALSE(zm::websocket::ExtradataToAnnexB(AV_CODEC_ID_H264, avcc.substr(0, 10), &extradata, &nal_length_size));
+}
+
+TEST_CASE("websocket passthrough converts hvcC to Annex-B", "[websocket]") {
+  const std::string vps = bytes({0x40, 0x01, 0x0c});
+  const std::string sps = bytes({0x42, 0x01, 0x01});
+  // configurationVersion 1, then the rest of the 22-byte header.
+  std::string hvcc = bytes({1});
+  hvcc += std::string(21, '\0');
+  hvcc[21] = static_cast<char>(0xfc | 3);  // lengthSizeMinusOne = 3
+  hvcc += bytes({2});                       // two arrays
+  hvcc += bytes({0x20, 0, 1, 0, 3}) + vps;  // VPS array, one NAL unit
+  hvcc += bytes({0x21, 0, 1, 0, 3}) + sps;  // SPS array, one NAL unit
+
+  std::string extradata;
+  int nal_length_size = -1;
+  REQUIRE(zm::websocket::ExtradataToAnnexB(AV_CODEC_ID_HEVC, hvcc, &extradata, &nal_length_size));
+  REQUIRE(nal_length_size == 4);
+  REQUIRE(extradata == kStartCode + vps + kStartCode + sps);
+}
+
+TEST_CASE("websocket passthrough leaves Annex-B and AV1 sources alone", "[websocket]") {
+  std::string extradata;
+  int nal_length_size = -1;
+  // An RTSP source's extradata is already Annex-B, and so are its packets.
+  const std::string annexb = kStartCode + bytes({0x67, 0x42}) + kStartCode + bytes({0x68, 0xce});
+  REQUIRE(zm::websocket::ExtradataToAnnexB(AV_CODEC_ID_H264, annexb, &extradata, &nal_length_size));
+  REQUIRE(nal_length_size == 0);
+  REQUIRE(extradata == annexb);
+
+  // av1C: a 4-byte header, then the configuration OBUs, which are what a
+  // decoder needs before the first temporal unit.
+  const std::string obus = bytes({0x0a, 0x0b, 0x00, 0x00});
+  REQUIRE(zm::websocket::ExtradataToAnnexB(AV_CODEC_ID_AV1, bytes({0x81, 0x00, 0x0c, 0x00}) + obus,
+                                           &extradata, &nal_length_size));
+  REQUIRE(nal_length_size == 0);
+  REQUIRE(extradata == obus);
+
+  REQUIRE(zm::websocket::ExtradataToAnnexB(AV_CODEC_ID_H264, "", &extradata, &nal_length_size));
+  REQUIRE(extradata.empty());
+  REQUIRE(nal_length_size == 0);
+}

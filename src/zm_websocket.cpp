@@ -532,6 +532,104 @@ std::string PeerAddressString(const sockaddr_storage &addr, socklen_t addr_len) 
   return result;
 }
 
+namespace {
+
+const char kAnnexBStartCode[] = {0, 0, 0, 1};
+
+bool readBigEndian(const std::string &s, size_t pos, size_t len, size_t *value) {
+  if (pos + len > s.size()) return false;
+  *value = 0;
+  for (size_t i = 0; i < len; i++) *value = (*value << 8) | static_cast<uint8_t>(s[pos + i]);
+  return true;
+}
+
+// Appends count NAL units, each behind a 2-byte length at *pos, as Annex-B.
+bool appendParameterSets(const std::string &record, size_t *pos, size_t count, std::string *out) {
+  for (size_t i = 0; i < count; i++) {
+    size_t len;
+    if (!readBigEndian(record, *pos, 2, &len) || (*pos + 2 + len > record.size())) return false;
+    out->append(kAnnexBStartCode, sizeof(kAnnexBStartCode));
+    out->append(record, *pos + 2, len);
+    *pos += 2 + len;
+  }
+  return true;
+}
+
+}  // namespace
+
+bool ExtradataToAnnexB(AVCodecID codec, const std::string &extradata, std::string *out, int *nal_length_size) {
+  out->clear();
+  *nal_length_size = 0;
+  if (extradata.empty()) return true;
+
+  if (codec == AV_CODEC_ID_AV1) {
+    // av1C: marker and version (0x81), three bytes of fields, then the OBUs.
+    if (static_cast<uint8_t>(extradata[0]) & 0x80) {
+      if (extradata.size() < 4) return false;
+      out->assign(extradata, 4, std::string::npos);
+    } else {
+      *out = extradata;
+    }
+    return true;
+  }
+
+  // Annex-B already (an RTSP source), or not a configuration record version 1.
+  if (static_cast<uint8_t>(extradata[0]) != 1) {
+    *out = extradata;
+    return true;
+  }
+
+  size_t pos;
+  if (codec == AV_CODEC_ID_H264) {
+    // avcC: version, profile, compatibility, level, 6 bits + lengthSizeMinusOne,
+    // 3 bits + SPS count, the SPSs, PPS count, the PPSs.
+    if (extradata.size() < 7) return false;
+    *nal_length_size = (static_cast<uint8_t>(extradata[4]) & 0x03) + 1;
+    pos = 6;
+    if (!appendParameterSets(extradata, &pos, static_cast<uint8_t>(extradata[5]) & 0x1f, out)) return false;
+    if (pos >= extradata.size()) return false;
+    const size_t pps_count = static_cast<uint8_t>(extradata[pos++]);
+    return appendParameterSets(extradata, &pos, pps_count, out);
+  }
+
+  if (codec == AV_CODEC_ID_HEVC) {
+    // hvcC: 21 bytes of fields, 6 bits + lengthSizeMinusOne, the array count,
+    // then each array: NAL type, 2-byte NAL unit count, the NAL units.
+    if (extradata.size() < 23) return false;
+    *nal_length_size = (static_cast<uint8_t>(extradata[21]) & 0x03) + 1;
+    const size_t arrays = static_cast<uint8_t>(extradata[22]);
+    pos = 23;
+    for (size_t i = 0; i < arrays; i++) {
+      size_t count;
+      if (!readBigEndian(extradata, pos + 1, 2, &count)) return false;
+      pos += 3;
+      if (!appendParameterSets(extradata, &pos, count, out)) return false;
+    }
+    return true;
+  }
+
+  *out = extradata;
+  return true;
+}
+
+bool LengthPrefixedToAnnexB(const uint8_t *data, size_t size, int nal_length_size, std::string *out) {
+  out->clear();
+  if ((nal_length_size < 1) || (nal_length_size > 4)) return false;
+  const size_t length_size = static_cast<size_t>(nal_length_size);
+  size_t pos = 0;
+  while (pos < size) {
+    if (pos + length_size > size) return false;
+    size_t len = 0;
+    for (size_t i = 0; i < length_size; i++) len = (len << 8) | data[pos + i];
+    pos += length_size;
+    if (len > size - pos) return false;
+    out->append(kAnnexBStartCode, sizeof(kAnnexBStartCode));
+    out->append(reinterpret_cast<const char *>(data + pos), len);
+    pos += len;
+  }
+  return true;
+}
+
 void VideoStreamInfo::Update(const AVCodecParameters *codecpar,
                              uint32_t fallback_width, uint32_t fallback_height) {
   Snapshot next;
@@ -542,8 +640,13 @@ void VideoStreamInfo::Update(const AVCodecParameters *codecpar,
     next.width = codecpar->width > 0 ? static_cast<uint32_t>(codecpar->width) : fallback_width;
     next.height = codecpar->height > 0 ? static_cast<uint32_t>(codecpar->height) : fallback_height;
     if (codecpar->extradata && codecpar->extradata_size > 0) {
-      next.extradata.assign(reinterpret_cast<const char *>(codecpar->extradata),
-                            codecpar->extradata_size);
+      const std::string extradata(reinterpret_cast<const char *>(codecpar->extradata), codecpar->extradata_size);
+      if (!ExtradataToAnnexB(next.codec_id, extradata, &next.extradata, &next.nal_length_size)) {
+        Warning("Can't read the %s codec configuration for websocket passthrough; sending packets without it",
+                avcodec_get_name(next.codec_id));
+        next.extradata.clear();
+        next.nal_length_size = 0;
+      }
     }
   }
 

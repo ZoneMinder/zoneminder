@@ -45,13 +45,30 @@ namespace websocket {
 // websocket thread takes a copy (Get) that owns its extradata, so nothing it
 // holds points back into the camera. This mirrors how StreamSocket caches its
 // stream parameters.
+// Converts codec extradata into what a passthrough client is sent before a
+// keyframe. An avcC/hvcC record (MP4 sources) becomes its parameter sets, each
+// behind a 00 00 00 01 start code, and *nal_length_size is set to the length
+// field size its packets use; Annex-B extradata (RTSP sources) is kept as is
+// with *nal_length_size 0. For AV1, the av1C header is dropped, leaving the
+// configuration OBUs. Returns false when a record is malformed.
+bool ExtradataToAnnexB(AVCodecID codec, const std::string &extradata, std::string *out, int *nal_length_size);
+
+// Replaces each nal_length_size-byte length before a NAL unit with a start
+// code. Returns false when a length runs past the packet.
+bool LengthPrefixedToAnnexB(const uint8_t *data, size_t size, int nal_length_size, std::string *out);
+
 class VideoStreamInfo {
  public:
   struct Snapshot {
     AVCodecID codec_id = AV_CODEC_ID_NONE;
     uint32_t width = 0;
     uint32_t height = 0;
-    std::string extradata;  // owned copy of codec extradata (SPS/PPS etc.)
+    // What a passthrough client needs before a keyframe: the parameter sets as
+    // Annex-B (H.264/H.265) or the configuration OBUs (AV1). Owned.
+    std::string extradata;
+    // Bytes in the length before each NAL unit in this stream's packets (an MP4
+    // source), or 0 when the packets are already Annex-B (RTSP) or AV1.
+    int nal_length_size = 0;
   };
 
   // Publishes the parameters of an open video stream, copying extradata so the

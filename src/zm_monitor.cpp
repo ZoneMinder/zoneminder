@@ -1769,9 +1769,22 @@ bool Monitor::GetNextWebSocketVideoPayload(packetqueue_iterator *it, const std::
     payload->payload.append(info.extradata);
   }
 
-  payload->payload.append(
-      reinterpret_cast<const char *>(packet_lock.packet_->packet->data),
-      packet_lock.packet_->packet->size);
+  if (info.nal_length_size) {
+    // An MP4 source: its packets are length-prefixed, the extradata above was
+    // converted to Annex-B, so convert the packet to match.
+    std::string annexb;
+    if (!zm::websocket::LengthPrefixedToAnnexB(packet_lock.packet_->packet->data, packet_lock.packet_->packet->size,
+                                               info.nal_length_size, &annexb)) {
+      Debug(1, "Skipping a malformed length-prefixed %s packet for websocket passthrough", codec.c_str());
+      packetqueue.increment_it(it, video_stream_id);
+      return false;
+    }
+    payload->payload.append(annexb);
+  } else {
+    payload->payload.append(
+        reinterpret_cast<const char *>(packet_lock.packet_->packet->data),
+        packet_lock.packet_->packet->size);
+  }
   packetqueue.increment_it(it, video_stream_id);
   return !payload->payload.empty();
 }

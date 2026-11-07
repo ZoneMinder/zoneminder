@@ -353,7 +353,16 @@ when the monitor is already producing that codec.
 One-shot passthrough stream requests return a decodable packet snapshot:
 
 * the payload starts at the latest available queued keyframe for that codec
-* codec extradata is prepended before the keyframe packet bytes
+* codec configuration is prepended before the keyframe packet bytes
+
+Passthrough payloads are framed so they can be fed straight to a decoder:
+
+* ``h264`` and ``h265`` are Annex-B: each NAL unit follows a ``00 00 00 01``
+  start code, and keyframes are preceded by the parameter sets (SPS/PPS, and VPS
+  for ``h265``). Sources that store NAL units length-prefixed, such as MP4
+  files, are converted.
+* ``av1`` is a sequence of low-overhead OBUs, and keyframes are preceded by the
+  configuration OBUs from the stream's ``av1C`` record.
 
 Passthrough subscriptions stream queued packets in order starting from the
 latest available keyframe in the queue. This gives new subscribers a decodable

@@ -103,5 +103,9 @@ bool checkPass(const std::string &password);
 // True for the password db/zm_create.sql gives the admin account ("admin").
 // zmLoadUser() refuses it: the web login asks for a new one first.
 bool isDefaultPassword(const std::string &password);
+// True when s contains a NUL byte. The password checks see a credential as a C
+// string, which ends there, so zmLoadUser() refuses such a username or password
+// rather than verify one string and check another.
+bool hasEmbeddedNul(const std::string &s);
 
 #endif // ZM_USER_H

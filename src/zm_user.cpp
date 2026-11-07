@@ -294,6 +294,12 @@ std::string User::getAuthHash() {
 // Function to load a user from username and password
 // Please note that in auth relay mode = none, password is NULL
 User *zmLoadUser(const std::string &username, const std::string &password) {
+  // A URL-decoded credential can hold %00. verifyPassword() would check
+  // "admin" for "admin\0x" while isDefaultPassword() saw the whole string.
+  if (hasEmbeddedNul(username) || hasEmbeddedNul(password)) {
+    Warning("Refusing a username or password containing a NUL byte");
+    return nullptr;
+  }
   User *user = User::find(username);
   if (!user) return nullptr;
 
@@ -518,6 +524,10 @@ bool checkPass(const std::string &password) {
 // The password db/zm_create.sql gives the admin account, as the user guide
 // states it. Every install starts with it, so it proves nothing; see
 // isDefaultPassword() in web/includes/auth.php.
+bool hasEmbeddedNul(const std::string &s) {
+  return s.find('\0') != std::string::npos;
+}
+
 bool isDefaultPassword(const std::string &password) {
   return password == "admin";
 }

@@ -110,6 +110,21 @@ class StreamBase {
     CMD_ANALYZE_ON,
     CMD_ANALYZE_OFF,
     CMD_ZOOMSTOP,
+    // Tell an event stream which event to load next/prev, computed UI-side so the
+    // filter/sort the user is viewing is honoured without reimplementing filters
+    // in C++ (refs #4186). MSG payload:
+    //   msg_data[1]     = direction (0 = next, 1 = prev)
+    //   msg_data[2..9]  = target event id, big-endian uint64 (0 = the filter has
+    //                     no neighbour in this direction -> stop at the boundary)
+    //   msg_data[10..15]= the event the UI computed this against, big-endian
+    //                     48-bit (source event id). The stream honours a hint
+    //                     only while this still matches the event playing, so a
+    //                     hint that arrives after playback has moved on is
+    //                     ignored instead of mis-steering the next transition.
+    //                     48 bits is ample for any real event id; a larger id
+    //                     would simply fail the match and fall back, never
+    //                     mis-match to a wrong event.
+    CMD_SET_EVENT,
     CMD_QUERY=99
   } MsgCommand;
 
@@ -129,12 +144,18 @@ class StreamBase {
   std::atomic<int> zoom;
   int last_zoom;
   Box last_crop;
+  // The frame size last_crop is in. Event playback can move to a monitor with
+  // a different resolution.
+  int last_crop_width, last_crop_height;
   int bitrate;
   unsigned short last_x, last_y;
   std::atomic<unsigned short> x, y;
   bool send_analysis;
   bool send_objdetect;
   int connkey;
+  // Id of the user zms authenticated (0 without authentication). Part of the
+  // socket and lock names, so stream commands reach only that user's streams.
+  int owner;
   int sd;
   char loc_sock_path[108];
   struct sockaddr_un loc_addr;
@@ -209,6 +230,8 @@ class StreamBase {
     last_scale(DEFAULT_SCALE),
     zoom(DEFAULT_ZOOM),
     last_zoom(DEFAULT_ZOOM),
+    last_crop_width(0),
+    last_crop_height(0),
     bitrate(DEFAULT_BITRATE),
     last_x(0),
     last_y(0),
@@ -217,6 +240,7 @@ class StreamBase {
     send_analysis(false),
     send_objdetect(false),
     connkey(0),
+    owner(0),
     sd(-1),
     lock_fd(-1),
     paused(false),
@@ -280,6 +304,9 @@ class StreamBase {
   }
   void setStreamQueue(int p_connkey) {
     connkey = p_connkey;
+  }
+  void setStreamOwner(int p_owner) {
+    owner = p_owner;
   }
   void setFramesToSend(int p_frames_to_send) { frames_to_send = p_frames_to_send; }
   bool sendTextFrame(const char *text);

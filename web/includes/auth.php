@@ -189,7 +189,6 @@ function validateUser($username='', $password='') {
     ZM\Debug("Detected bcrypt overlay hashing for $username");
     $bcrypt_hash = substr($user['Password'], 4);
     $mysql_encoded_password = '*'.strtoupper(sha1(sha1($password, true)));
-    ZM\Debug("Comparing password $mysql_encoded_password to bcrypt hash: $bcrypt_hash");
     $password_correct = password_verify($mysql_encoded_password, $bcrypt_hash);
     break;
   default:
@@ -455,7 +454,8 @@ function getAuthUser($auth) {
     $sessionUser = isset($_SESSION['username']) ? $_SESSION['username'] : null;
     $filterUser = $requestedUser !== null ? $requestedUser : $sessionUser;
 
-    ZM\Debug("getAuthUser: validating auth='$auth' filterUser='".($filterUser ?? '')."' liveAddr='$liveAddr' candidateAddrs='".implode(',', $candidateAddrs)."' session_username='".($sessionUser ?? '')."'");
+    // The hash is a credential: log its fingerprint (zms logs the same tag).
+    ZM\Debug("getAuthUser: validating auth ".ZM\logFingerprint($auth)." filterUser='".($filterUser ?? '')."' liveAddr='$liveAddr' candidateAddrs='".implode(',', $candidateAddrs)."' session_username='".($sessionUser ?? '')."'");
 
     $sql = 'SELECT * FROM Users WHERE Enabled = 1';
     $values = array();
@@ -510,11 +510,11 @@ function getAuthUser($auth) {
       } // end foreach user
     } // end if
 
-    ZM\Info("Unable to authenticate user from auth hash '$auth' (filterUser='".($filterUser ?? '')."' sessionUser='".($sessionUser ?? '')."' liveAddr='$liveAddr' candidateAddrs='".implode(',', $candidateAddrs)."' rowsTried=$rowsTried ttl=".ZM_AUTH_HASH_TTL.'h)');
+    ZM\Info('Unable to authenticate user from auth hash '.ZM\logFingerprint($auth)." (filterUser='".($filterUser ?? '')."' sessionUser='".($sessionUser ?? '')."' liveAddr='$liveAddr' candidateAddrs='".implode(',', $candidateAddrs)."' rowsTried=$rowsTried ttl=".ZM_AUTH_HASH_TTL.'h)');
     return null;
   } // end if using auth hash
 
-  ZM\Info("Unable to authenticate user from auth hash '$auth'");
+  ZM\Info('Unable to authenticate user from auth hash '.ZM\logFingerprint($auth));
   return null;
 } // end getAuthUser($auth)
 
@@ -665,6 +665,14 @@ function editableMonitor($mid) {
   global $user;
   if (!$user) {
     ZM\Debug("Not logged in");
+    return false;
+  }
+
+  # A monitor the user can't see can't be edited either. The checks below only
+  # look for an Edit grant, so a None deny on a group (the user's or the role's)
+  # used to fall through to the global Monitors permission.
+  if (!visibleMonitor($mid)) {
+    ZM\Debug("Can't edit monitor $mid because it isn't visible");
     return false;
   }
 
@@ -860,6 +868,32 @@ function get_auth_relay() {
   return '';
 } // end function get_auth_relay
 
+// Credentials for zmu, as arguments to append to its command line, for the
+// current user. A command line is visible to every local user (ps), so with a
+// usable ZM_AUTH_HASH_SECRET this is an access token minted for the call that
+// lives a minute, never the password or an auth hash, which logs in for
+// ZM_AUTH_HASH_TTL hours. Without the secret zmu refuses tokens: then what zmu
+// got before, an auth hash, or with ZM_AUTH_RELAY=plain the password: $password
+// when the caller has it (an API request's own pass=), else the session's.
+function zmuCredentials($password = null) {
+  global $user;
+  if (!ZM_OPT_USE_AUTH) return '';
+  if (authHashSecretIsSet()) {
+    $now = time();
+    $token = \Firebase\JWT\JWT::encode(array('iss' => 'ZoneMinder', 'iat' => $now, 'exp' => $now + 60,
+      'user' => $user->Username(), 'type' => 'access'), ZM_AUTH_HASH_SECRET, 'HS256');
+    return ' -T '.escapeshellarg($token);
+  }
+  $credentials = ' -U '.escapeshellarg($user->Username());
+  if (ZM_AUTH_RELAY == 'hashed') {
+    $credentials .= ' -A '.generateAuthHash(false, true);
+  } else if (ZM_AUTH_RELAY == 'plain') {
+    if ($password === null or $password === '') $password = isset($_SESSION['password']) ? $_SESSION['password'] : '';
+    $credentials .= ' -P '.escapeshellarg($password);
+  }
+  return $credentials;
+}
+
 // Authenticate the current request and populate the global $user.
 //
 // This used to run at file scope, so merely including auth.php authenticated
@@ -914,6 +948,13 @@ function zm_authenticate_request() {
           if (isset($_SESSION['AuthHash'.$remoteAddr]) and ($_SESSION['AuthHash'.$remoteAddr] != $requestAuth)) {
             unset($_SESSION['AuthHashGeneratedAt']);
             unset($_SESSION['AuthHash'.$remoteAddr]);
+          }
+          if (!empty($_COOKIE[session_name()]) and (!isset($_SESSION['username']) or ($_SESSION['username'] !== $user->Username()))) {
+            // The client's session becomes this user's: give it a new id first, so
+            // an id planted in the client beforehand doesn't become a logged-in
+            // session (session fixation). Without our cookie the session isn't
+            // stored, so there is nothing to take over.
+            zm_session_regenerate_id_login();
           }
           $_SESSION['username'] = $user->Username();
         }

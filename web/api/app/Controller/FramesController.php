@@ -20,7 +20,7 @@ class FramesController extends AppController {
     parent::beforeFilter();
     global $user;
     # We already tested for auth in appController, so we just need to test for specific permission
-    $canView = (!$user) || ($user->Events() != 'None');
+    $canView = (!$user) || ($user->canView('Events'));
     if (!$canView) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
@@ -77,7 +77,7 @@ class FramesController extends AppController {
   # per-monitor ACL. beforeFilter() only guarantees Events != None.
   private function requireFrameEdit($eventId, $frameId) {
     global $user;
-    if ($user and ($user->Events() != 'Edit')) {
+    if ($user and (!$user->canEdit('Events'))) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
     }
     if (!$this->eventForFrame($eventId, $frameId)->canEdit()) {
@@ -163,7 +163,7 @@ class FramesController extends AppController {
 	public function add() {
 		if ($this->request->is('post')) {
 			global $user;
-			if ($user and ($user->Events() != 'Edit')) {
+			if ($user and (!$user->canEdit('Events'))) {
 				throw new UnauthorizedException(__('Insufficient Privileges'));
 			}
 			$this->requireRequestEventEdit();

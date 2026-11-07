@@ -231,7 +231,7 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
     }
     ZM_DUMP_STREAM_PACKET(input_format_context->streams[packet->stream_index], packet, "Received packet");
 
-    //av_packet_guard pkt_guard{packet};
+    av_packet_guard pkt_guard{packet};
 
     if ((stream_id >= 0) && (packet->stream_index != stream_id)) {
       Debug(4, "Packet is not for our stream (%d)", packet->stream_index );

@@ -3605,9 +3605,25 @@ void Image::Scale(const unsigned int new_width, const unsigned int new_height) {
   }
   // Both buffers use Image's align-32 layout: `buffer` is ours, and
   // scale_buffer is adopted by AssignDirect below, which derives
-  // size/linesize with av_image_* at align=32.
-  if (swscale.Convert(buffer, allocation, scale_buffer, scale_buffer_size,
-                      format, format, width, height, new_width, new_height, 32, 32) < 0) {
+  // size/linesize with av_image_* at align=32. The exception is plane 0 of a
+  // borrowed plane (get_y_image wraps the decoder's Y plane), whose real
+  // stride is our linesize; see Image::Rotate.
+  av_frame_ptr src_frame{av_frame_alloc()};
+  av_frame_ptr dst_frame{av_frame_alloc()};
+  if (!src_frame || !dst_frame
+      || av_image_fill_arrays(src_frame->data, src_frame->linesize, buffer, format, width, height, 32) < 0
+      || av_image_fill_arrays(dst_frame->data, dst_frame->linesize, scale_buffer, format, new_width, new_height, 32) < 0) {
+    Error("Scale: failed to set up frames for %s", av_get_pix_fmt_name(format));
+    DumpBuffer(scale_buffer, ZM_BUFTYPE_ZM);
+    return;
+  }
+  src_frame->linesize[0] = linesize;
+  src_frame->format = dst_frame->format = format;
+  src_frame->width = width;
+  src_frame->height = height;
+  dst_frame->width = new_width;
+  dst_frame->height = new_height;
+  if (swscale.Convert(src_frame.get(), dst_frame.get()) < 0) {
     Error("Scale: sws_scale conversion failed (%ux%u %s -> %ux%u)",
           width, height, av_get_pix_fmt_name(format), new_width, new_height);
     DumpBuffer(scale_buffer, ZM_BUFTYPE_ZM);

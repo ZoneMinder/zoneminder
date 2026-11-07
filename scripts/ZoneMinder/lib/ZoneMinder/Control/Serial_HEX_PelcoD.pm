@@ -67,14 +67,14 @@ sub open {
   $self->loadMonitor();
 
   if ($self->{Monitor}->{ControlAddress} and ($self->{Monitor}->{ControlAddress} ne 'user:pass@ip')) {
-    Debug("Getting connection details from Control Address " . $self->{Monitor}->{ControlAddress});
+    Debug("Getting connection details from Control Address " . urlForLog($self->{Monitor}->{ControlAddress}));
     if ( $self->{Monitor}->{ControlAddress} !~ /^\w+:\/\// ) {
       # Has no scheme at the beginning, so won't parse as a URI
       $self->{Monitor}->{ControlAddress} = 'http://'.$self->{Monitor}->{ControlAddress};
     }
     $uri = URI->new($self->{Monitor}->{ControlAddress});
   } elsif ($self->{Monitor}->{Path}) {
-    Debug("Getting connection details from Path " . $self->{Monitor}->{Path});
+    Debug("Getting connection details from Path " . urlForLog($self->{Monitor}->{Path}));
     $uri = URI->new($self->{Monitor}->{Path});
     $uri->scheme('http');
     $uri->port(80);
@@ -88,7 +88,7 @@ sub open {
   $self->{state} = 'closed';
 
   my ( $username, $password, $host ) = ( $uri->authority() =~ /^([^:]+):([^@]*)@(.+)$/ );
-  Debug("Have username: $username password: $password host: $host from authority:" . $uri->authority());
+  Debug("Have username: $username host: $host");
   
   $uri->userinfo(undef);
 

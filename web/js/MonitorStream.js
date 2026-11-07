@@ -1343,9 +1343,20 @@ function MonitorStream(monitorData) {
     }
   };
 
-  this.getStreamCmdResponse = function(respObj, respText) {
+  this.getStreamCmdResponse = function(respObj, connKey) {
     const stream = this.getElement();
     if (!stream) return;
+
+    /* A reply for a connkey we no longer hold describes a zms we have already
+     * replaced. Requests share one queue and a no_socket reply takes over a
+     * second, so a poll for a dead zms is often still queued when the first
+     * reply reloads the stream. Acting on its reply reloaded it a second time,
+     * abandoning the zms the first reload had just started.
+     */
+    if (connKey !== undefined && connKey !== this.connKey) {
+      console.log('Ignoring reply for replaced connkey '+connKey+' on monitor ID='+this.id);
+      return;
+    }
 
     //watchdogOk('stream');
     //this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
@@ -1796,7 +1807,7 @@ function MonitorStream(monitorData) {
       data: alarmCmdParms,
       dataType: 'json'
     })
-        .done(this.getStreamCmdResponse.bind(this))
+        .done((respObj) => this.getStreamCmdResponse(respObj, alarmCmdParms.connkey))
         .fail(this.onFailure.bind(this));
   };
 
@@ -1813,17 +1824,20 @@ function MonitorStream(monitorData) {
       }
       if (!(streamCmdParms.command == CMD_STOP && ((-1 !== this.activePlayer.indexOf('go2rtc')) || (-1 !== this.activePlayer.indexOf('rtsp2web'))))) {
         //Otherwise, there will be errors in the console "Socket ... does not exist" when quickly switching stop->start and we also do not need to replace SRC in getStreamCmdResponse
+        // Snapshot: ajaxQueue defers $.ajax (and therefore data serialization)
+        // until earlier queued requests finish. Callers that pass this.streamCmdParms
+        // directly would otherwise have their command clobbered by the
+        // streamCmdQuery timer setting command=CMD_QUERY before the request fires.
+        const params = Object.assign({}, streamCmdParms);
         this.ajaxQueue = jQuery.ajaxQueue({
           url: zmAuth.appendTo(this.url),
           xhrFields: {withCredentials: true},
-          // Snapshot: ajaxQueue defers $.ajax (and therefore data serialization)
-          // until earlier queued requests finish. Callers that pass this.streamCmdParms
-          // directly would otherwise have their command clobbered by the
-          // streamCmdQuery timer setting command=CMD_QUERY before the request fires.
-          data: Object.assign({}, streamCmdParms),
+          data: params,
           dataType: 'json'
         })
-            .done(this.getStreamCmdResponse.bind(this))
+            // The reply can land after a reload has replaced the connkey; see
+            // getStreamCmdResponse().
+            .done((respObj) => this.getStreamCmdResponse(respObj, params.connkey))
             .fail(this.onFailure.bind(this));
       };
     };

@@ -60,6 +60,12 @@ if ($action == 'Save') {
       }
     }
     $changes = $dbUser->changes($_REQUEST['user']);
+    if (isset($changes['Password'])) {
+      # Changing the password revokes the user's existing API tokens, matching
+      # the options page's revoke action: validateToken() rejects any token
+      # issued before TokenMinExpiry (refs GHSA-5w6w-qp25-2qqh).
+      $changes['TokenMinExpiry'] = time();
+    }
     if (count($changes)) {
       if (!$dbUser->save($changes)) {
         $error_message .= $dbUser->get_last_error().'<br/>';
@@ -126,6 +132,11 @@ if ($action == 'Save') {
     }
     $fields = array('Password'=>'', 'Language'=>'', 'HomeView'=>'');
     $changes = $dbUser->changes(array_intersect_key($_REQUEST['user'], $fields));
+    if (isset($changes['Password'])) {
+      # A self-service password change revokes the user's existing API tokens
+      # (refs GHSA-5w6w-qp25-2qqh).
+      $changes['TokenMinExpiry'] = time();
+    }
 
     if (count($changes)) {
       if (!$dbUser->save($changes)) {

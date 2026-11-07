@@ -1,6 +1,6 @@
 <?php
 if (!isset($_REQUEST['entity'])) {
-  Error("No entity pass to status request.");
+  \ZM\Error("No entity pass to status request.");
   http_response_code(404);
   return;
 } else {

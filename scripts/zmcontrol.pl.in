@@ -101,6 +101,9 @@ if ($protocol) {
   }
 
   Info("Direct protocol mode: $module -> $command");
+  if (!$control->can($command)) {
+    Fatal("$module does not implement '$command'");
+  }
   my $result = $control->$command(\%options);
 
   if (defined $result) {
@@ -264,6 +267,25 @@ if ($options{command}) {
           Warning('Invalid control command');
           close(CLIENT);
         } elsif ( $command ) {
+          # A monitor's actions and ui buttons are configured independently of
+          # its control protocol, so a command the protocol does not implement
+          # is a configuration mistake, not a reason to take the control server
+          # down. Swapping a camera for a different make leaves exactly this
+          # behind: a LightOn action pointing at a protocol with no lightOn,
+          # which used to die with "Can't locate object method".
+          if ( !$control->can($command) ) {
+            # ${id} braced: "$id's" parses as $id::s, the old package
+            # separator, so the id silently vanished from the message.
+            Error("Control protocol $protocol does not implement '$command',"
+              ." ignoring it. Check monitor ${id}'s control type and the"
+              .' actions configured against it.');
+            if ( $params->{wants_response} ) {
+              local $SIG{PIPE} = 'IGNORE';
+              print(CLIENT jsonEncode({result => undef, error => "unsupported command $command"}));
+            }
+            close(CLIENT);
+            next;
+          }
           my $result = $control->$command($params);
           # Opt-in response: only write back when the caller asked for one, so
           # fire-and-forget callers (which have already closed their end) never
@@ -291,7 +313,7 @@ if ($options{command}) {
         Fatal("Can't select: $!");
       }
     } else {
-      Debug('Select timed out');
+      Debug(3, 'Select timed out');
     }
   } # end while !$zm_terminate
   Info("Control server $id/$protocol exiting");

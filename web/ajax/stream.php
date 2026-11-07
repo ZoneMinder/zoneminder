@@ -59,7 +59,10 @@ if (!($socket = @socket_create(AF_UNIX, SOCK_DGRAM, 0))) {
   ajaxError('socket_create() failed: '.socket_strerror(socket_last_error()), HTTP_STATUS_OK, STREAM_ERR_TRANSIENT);
 }
 
-$localSocketFile = ZM_PATH_SOCKS.'/zms-'.$connkey.'w.sock';
+# zms names its sockets after the user it serves, so a connkey only reaches the
+# caller's own streams, not another user's.
+$owner = (ZM_OPT_USE_AUTH and $user) ? $user->Id() : 0;
+$localSocketFile = zmsSocketPath($connkey, $owner, 'w.sock');
 if (!socket_bind($socket, $localSocketFile)) {
   if ($semaphore) sem_release($semaphore);
   ajaxError("socket_bind( $localSocketFile ) failed: ".socket_strerror(socket_last_error()), HTTP_STATUS_OK, STREAM_ERR_TRANSIENT);
@@ -96,13 +99,49 @@ case CMD_MAXFPS :
     intval($_REQUEST['maxfps']),
     1000000*( $_REQUEST['maxfps']-intval($_REQUEST['maxfps'])));
   break;
+case CMD_SET_EVENT :
+  # Tell zms which event is next (dir=0) or prev (dir=1) in the UI's filter/sort
+  # (refs #4186). See includes/stream_set_event.php.
+  require_once('includes/stream_set_event.php');
+  $eventid = setEventIdFromRequest(isset($_REQUEST['eventid']) ? $_REQUEST['eventid'] : null);
+  $srcid = setEventIdFromRequest(isset($_REQUEST['srcid']) ? $_REQUEST['srcid'] : null);
+  if ($eventid === null or $srcid === null) {
+    if ($semaphore) sem_release($semaphore);
+    ajaxError('Invalid event id for SET_EVENT', HTTP_STATUS_OK, STREAM_ERR_INVALID);
+  }
+
+  # zms authorises only the event the stream started on; it loads whatever
+  # target we forward without re-checking. So a client could hand us an event
+  # from a monitor it cannot view and advance into that footage. Resolve the
+  # target's monitor and require view permission here, where the session user is
+  # known. Gated on ZM_OPT_USE_AUTH to match zms, which only validates event
+  # access when auth is on; 0 carries no event (filter boundary) and needs no
+  # check.
+  if (ZM_OPT_USE_AUTH && $eventid) {
+    $monitorId = dbFetchOne('SELECT `MonitorId` FROM `Events` WHERE `Id`=?', 'MonitorId', array($eventid));
+    if (!$monitorId) {
+      # Retention or another user deleted the neighbour between getNearEvents and
+      # now. That is a benign race, not a privilege problem. Forward it as a
+      # filter boundary (0) so zms stops there, as it does for a target deleted
+      # after it was sent.
+      ZM\Debug('SET_EVENT target '.$eventid.' no longer exists; treating as filter boundary');
+      $eventid = 0;
+    } else if (!canView('Events', $monitorId)) {
+      if ($semaphore) sem_release($semaphore);
+      ajaxError('Insufficient privileges for event '.$eventid, HTTP_STATUS_OK, STREAM_ERR_INVALID);
+    }
+  }
+  $dir = intval($_REQUEST['dir']);
+  ZM\Debug('Setting '.($dir ? 'prev' : 'next').' event to '.$eventid.' (source '.$srcid.')');
+  $msg = packSetEventMessage(MSG_CMD, $_REQUEST['command'], $dir, $eventid, $srcid);
+  break;
 default :
   ZM\Debug('Sending command ' . $_REQUEST['command']);
   $msg = pack('lc', MSG_CMD, $_REQUEST['command']);
   break;
 }
 
-$remSockFile = ZM_PATH_SOCKS.'/zms-'.$connkey.'s.sock';
+$remSockFile = zmsSocketPath($connkey, $owner, 's.sock');
 // Pi can take up to 3 seconds for zms to start up.
 $max_socket_tries = 1000;
 // FIXME This should not exceed web_ajax_timeout

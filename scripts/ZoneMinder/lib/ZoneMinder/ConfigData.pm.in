@@ -345,18 +345,20 @@ our @options = (
   {
     name        => 'ZM_AUTH_RELAY',
     default     => 'hashed',
-    description => 'Method used to relay authentication information',
+    description => 'Method used to relay authentication information (plain is deprecated)',
     help        => q`
       When ZoneMinder is running in authenticated mode it can pass
       user details between the web pages and the back end processes.
       There are two methods for doing this. This first is to use a
       time limited hashed string which contains no direct username or
       password details, the second method is to pass the username and
-      passwords around in plaintext. This method is not recommend
-      except where you do not have the md5 libraries available on
-      your system or you have a completely isolated system with no
-      external access. You can also switch off authentication
-      relaying if your system is isolated in other ways.
+      passwords around in plaintext. You can also switch off
+      authentication relaying if your system is isolated in other ways.
+      The plain method is deprecated: it keeps the user's password in
+      the web session and puts it in every stream, video and
+      multi-server URL. Use hashed, with ZM_AUTH_HASH_SECRET set to a
+      unique value. Multi-server installs that use plain must move to
+      hashed.
       `,
     requires    => [ { name=>'ZM_OPT_USE_AUTH', value=>'1' } ],
     type        => {
@@ -503,6 +505,7 @@ our @options = (
       and match the admin_key value in janus.plugin.streaming.config.
       `,
     type        => $types{string},
+    private     => 1,
     category    => 'system',
   },
   {
@@ -2004,25 +2007,6 @@ our @options = (
     category    => 'web',
   },
   {
-    name        => 'ZM_OPT_FAST_DELETE',
-    default     => '0',
-    description => 'Delete only event database records for speed',
-    help        => q`
-      Normally an event created as the result of an alarm consists of
-      entries in one or more database tables plus the various files
-      associated with it. When deleting events in the browser it can
-      take a long time to remove all of this if your are trying to do
-      a lot of events at once. It is recommended that you set this
-      option which means that the browser client only deletes the key
-      entries in the events table, which means the events will no
-      longer appear in the listing, and leaves the zmaudit daemon to
-      clear up the rest later. Note that this feature is less relevant
-      with modern hardware. Recommend this feature be left off.
-      `,
-    type        => $types{boolean},
-    category    => 'system',
-  },
-  {
     name        => 'ZM_STRICT_VIDEO_CONFIG',
     default     => '1',
     description => 'Allow errors in setting video config to be fatal',
@@ -2257,6 +2241,7 @@ our @options = (
       `,
     requires    => [ { name => 'ZM_OPT_UPLOAD', value => '1' } ],
     type        => $types{string},
+    private     => 1,
     category    => 'upload',
   },
   {
@@ -2586,9 +2571,8 @@ our @options = (
     help        => q`
       The zmaudit daemon exists to check that the saved information
       in the database and on the filesystem match and are consistent
-      with each other. If an error occurs or if you are using 'fast
-      deletes' it may be that database records are deleted but files
-      remain. In this case, and similar, zmaudit will remove
+      with each other. If an error occurs it may be that database
+      records are deleted but files remain. In this case, and similar, zmaudit will remove
       redundant information to synchronise the two data stores. This
       option controls whether zmaudit is run in the background and
       performs these checks and fixes continuously. This is
@@ -2609,9 +2593,8 @@ our @options = (
     help        => q`
       The zmaudit daemon exists to check that the saved information
       in the database and on the filesystem match and are consistent
-      with each other. If an error occurs or if you are using 'fast
-      deletes' it may be that database records are deleted but files
-      remain. In this case, and similar, zmaudit will remove
+      with each other. If an error occurs it may be that database
+      records are deleted but files remain. In this case, and similar, zmaudit will remove
       redundant information to synchronise the two data stores. The
       default check interval of 900 seconds (15 minutes) is fine for
       most systems however if you have a very large number of events
@@ -2781,6 +2764,33 @@ our @options = (
       `,
     type        => $types{boolean},
     category    => 'auth',
+  },
+  {
+    name        => 'ZM_ALLOWED_COMMANDS',
+    default     => '',
+    description => 'Programs that filters and scheduled tasks are allowed to run',
+    help        => q`
+      Filters with "Execute command" and the scheduled tasks under
+      Options/Scheduled Tasks both run a command as the web user, which is
+      close to shell access on the server. This setting narrows that to a
+      list you choose.
+
+      Give a comma separated list of the programs you are willing to have
+      run, written exactly as they will be invoked, for example:
+      /usr/local/bin/backup.sh,/usr/bin/zmaudit.pl
+
+      Only the program is matched, so arguments may still be given and may
+      differ from run to run; a command whose first word is not on the list is
+      refused. While the list is in force a command may also not contain the
+      characters that would let it start a second program -- semicolon, pipe,
+      ampersand, backtick and dollar-paren -- because the program being on the
+      list would otherwise say nothing about what else ran alongside it.
+
+      Leave this empty, which is the default, to place no restriction and keep
+      the behaviour ZoneMinder has always had.
+      `,
+    type        => $types{string},
+    category    => 'system',
   },
   {
     name        => 'ZM_OPT_CONTROL',
@@ -4232,6 +4242,7 @@ our @options = (
     description => 'MQTT broker password',
     help        => 'MQTT uses a central server to send/receive messages. This is the password to authenticate with.',
     type        => $types{password},
+    private     => 1,
     category    => 'MQTT',
   },
   {

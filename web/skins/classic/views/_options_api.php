@@ -34,9 +34,9 @@ if ((!defined('ZM_OPT_USE_API')) or ZM_OPT_USE_API != '1') {
 <form name="userForm" method="post" action="?">
   <div id="options">
     <div class="col button-block">
-      <button class="float-left" type="submit" name="updateSelected" id="updateSelected"><?php echo translate('Update')?></button>
+      <button class="float-left" type="submit" name="updateSelected" id="updateSelected"<?php echo $canEdit ? '' : ' disabled="disabled"' ?>><?php echo translate('Update')?></button>
       <button class="float-left" type="button" id="btnNewToken"><?php echo translate('New Token')?></button>
-      <button class="btn-danger float-right" type="submit" name="revokeAllTokens" id="revokeAllTokens"><?php echo translate('RevokeAllTokens')?></button>
+      <button class="btn-danger float-right" type="submit" name="revokeAllTokens" id="revokeAllTokens"<?php echo $canEdit ? '' : ' disabled="disabled"' ?>><?php echo translate('RevokeAllTokens')?></button>
     </div>
     <div class="wrapper-scroll-table">
 <?php
@@ -64,12 +64,15 @@ if ((!defined('ZM_OPT_USE_API')) or ZM_OPT_USE_API != '1') {
     echo '<span class="timedSuccessBox">'.translate('Updated').'</span>';
   }
 
-  if (array_key_exists('revokeAllTokens', $_POST)) {
-    revokeAllTokens();
-  }
-
-  if (array_key_exists('updateSelected', $_POST)) {
-    updateSelected();
+  // Both actions change every user's API access, so they need System edit.
+  // This view only requires System view to render.
+  if (array_key_exists('revokeAllTokens', $_POST) or array_key_exists('updateSelected', $_POST)) {
+    if (!$canEdit) {
+      ZM\Warning('Must have System edit permission to change API access or revoke tokens');
+    } else {
+      if (array_key_exists('revokeAllTokens', $_POST)) revokeAllTokens();
+      if (array_key_exists('updateSelected', $_POST)) updateSelected();
+    }
   }
 ?>
       <input type="hidden" name="view" value="<?php echo $view ?>"/>
@@ -89,8 +92,8 @@ foreach (ZM\User::find([], ['order'=>'Username']) as $u) {
 ?>
           <tr>
             <td class="colUsername"><?php echo validHtmlStr($u->Username()) ?></td>
-            <td class="colMark"><input type="checkbox" name="tokenUids[]" value="<?php echo $u->Id() ?>" /></td>
-            <td class="colMark"><input type="checkbox" name="apiUids[]" value="<?php echo $u->Id() ?>" <?php echo $u->APIEnabled()?'checked':''?> /></td>
+            <td class="colMark"><input type="checkbox" name="tokenUids[]" value="<?php echo $u->Id() ?>"<?php echo $canEdit ? '' : ' disabled="disabled"' ?>/></td>
+            <td class="colMark"><input type="checkbox" name="apiUids[]" value="<?php echo $u->Id() ?>" <?php echo $u->APIEnabled()?'checked':''?><?php echo $canEdit ? '' : ' disabled="disabled"' ?>/></td>
           </tr>
 <?php
 }

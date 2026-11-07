@@ -1327,6 +1327,10 @@ bool Monitor::disconnect() {
     Debug(3, "Can't shmdt: %s", strerror(errno));
     return false;
   }
+  // As in the mmap branch: the status refresh below must not read the
+  // detached segment.
+  mem_ptr = nullptr;
+  shared_data = nullptr;
 #endif // ZM_MEM_MAPPED
 
   for (int32_t i = 0; i < image_buffer_count; i++) {

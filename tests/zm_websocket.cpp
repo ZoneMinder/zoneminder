@@ -206,3 +206,14 @@ TEST_CASE("Websocket monitor streaming port uses configured base port") {
   REQUIRE(zm::websocket::MonitorWebSocketPort(30000, 5) == 30005);
   REQUIRE(zm::websocket::MonitorWebSocketPort(0, 5) == 0);
 }
+
+TEST_CASE("Websocket monitor port stays inside the TCP port range") {
+  REQUIRE(zm::websocket::MonitorWebSocketPort(65000, 535) == 65535);
+  // Past 65535 the service string would wrap or name an ephemeral port.
+  REQUIRE(zm::websocket::MonitorWebSocketPort(65000, 536) == 0);
+  REQUIRE(zm::websocket::MonitorWebSocketPort(30000, 100000) == 0);
+  REQUIRE(zm::websocket::MonitorWebSocketPort(70000, 0) == 0);
+  REQUIRE(zm::websocket::MonitorWebSocketPort(-1, 5) == 0);
+  REQUIRE(zm::websocket::MonitorWebSocketPort(65535, 0) == 65535);
+}
+

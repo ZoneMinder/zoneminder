@@ -1354,7 +1354,8 @@ bool Monitor::StartWebSocketServer() {
 
   const unsigned int websocket_port = zm::websocket::MonitorWebSocketPort(config.min_websocket_port, id);
   if (!websocket_port) {
-    Warning("Unable to compute websocket port for monitor %u using base port %d", id, config.min_websocket_port);
+    Error("Monitor %u: ZM_MIN_WEBSOCKET_PORT %d + monitor id is not a TCP port (1-65535); not starting the websocket listener",
+          id, config.min_websocket_port);
     return false;
   }
 

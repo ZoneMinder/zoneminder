@@ -400,10 +400,11 @@ DecodeResult DecodeFrame(const std::string &buffer, Frame *frame, size_t *consum
 }
 
 unsigned int MonitorWebSocketPort(int base_port, unsigned int monitor_id) {
-  if (base_port <= 0) {
+  static constexpr unsigned int kMaxPort = 65535;
+  if (base_port <= 0 || static_cast<unsigned int>(base_port) > kMaxPort) {
     return 0;
   }
-  if (monitor_id > static_cast<unsigned int>(INT_MAX - base_port)) {
+  if (monitor_id > kMaxPort - static_cast<unsigned int>(base_port)) {
     return 0;
   }
   return static_cast<unsigned int>(base_port) + monitor_id;

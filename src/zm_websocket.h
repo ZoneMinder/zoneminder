@@ -50,6 +50,7 @@ bool ExtractAuthorizationBearerToken(const std::string &request, std::string *to
 std::string BuildHandshakeResponse(const std::string &client_key);
 std::string EncodeFrame(Opcode opcode, const std::string &payload, bool fin = true);
 DecodeResult DecodeFrame(const std::string &buffer, Frame *frame, size_t *consumed);
+// MIN_WEBSOCKET_PORT + monitor id, or 0 when that is not a TCP port (1-65535).
 unsigned int MonitorWebSocketPort(int base_port, unsigned int monitor_id);
 
 // Formats the numeric IP of an accepted peer (the sockaddr accept() filled in),

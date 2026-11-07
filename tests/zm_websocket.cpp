@@ -19,6 +19,12 @@
 
 #include "zm_websocket.h"
 
+#include <cerrno>
+#include <csignal>
+#include <sys/socket.h>
+#include <thread>
+#include <unistd.h>
+
 TEST_CASE("Websocket accept key uses RFC6455 example") {
   REQUIRE(
       zm::websocket::ComputeAcceptKey("dGhlIHNhbXBsZSBub25jZQ==") ==
@@ -217,3 +223,31 @@ TEST_CASE("Websocket monitor port stays inside the TCP port range") {
   REQUIRE(zm::websocket::MonitorWebSocketPort(65535, 0) == 65535);
 }
 
+TEST_CASE("Websocket worker thread survives writing to a closed peer") {
+  // The TLS backends write to the socket themselves, without MSG_NOSIGNAL, so a
+  // client that goes away during TLS I/O raised SIGPIPE and killed zmc.
+  int fds[2];
+  REQUIRE(socketpair(AF_UNIX, SOCK_STREAM, 0, fds) == 0);
+  close(fds[1]);
+  ssize_t written = 0;
+  int write_errno = 0;
+  bool still_blocked = false;
+  std::thread worker([&] {
+    zm::websocket::BlockSigpipeInThisThread();
+    const char byte = 'x';
+    written = ::write(fds[0], &byte, 1);
+    write_errno = errno;
+    sigset_t current;
+    pthread_sigmask(SIG_BLOCK, nullptr, &current);
+    still_blocked = sigismember(&current, SIGPIPE) == 1;
+  });
+  worker.join();
+  close(fds[0]);
+  REQUIRE(written == -1);
+  REQUIRE(write_errno == EPIPE);
+  REQUIRE(still_blocked);
+  // Other threads keep their own mask.
+  sigset_t main_mask;
+  pthread_sigmask(SIG_BLOCK, nullptr, &main_mask);
+  REQUIRE(sigismember(&main_mask, SIGPIPE) == 0);
+}

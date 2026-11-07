@@ -53,6 +53,13 @@ DecodeResult DecodeFrame(const std::string &buffer, Frame *frame, size_t *consum
 // MIN_WEBSOCKET_PORT + monitor id, or 0 when that is not a TCP port (1-65535).
 unsigned int MonitorWebSocketPort(int base_port, unsigned int monitor_id);
 
+// Blocks SIGPIPE in the calling thread. Both TLS backends write to the socket
+// without MSG_NOSIGNAL, so a peer that disconnects during TLS I/O would
+// otherwise raise SIGPIPE, whose default action terminates zmc. The write fails
+// with EPIPE instead. SIGPIPE from a write is directed at the writing thread,
+// so blocking it here leaves the rest of the process alone.
+void BlockSigpipeInThisThread();
+
 // Formats the numeric IP of an accepted peer (the sockaddr accept() filled in),
 // or "" when it cannot be determined. An IPv4-mapped IPv6 address is reduced to
 // its plain dotted form so it matches the REMOTE_ADDR the web server would have

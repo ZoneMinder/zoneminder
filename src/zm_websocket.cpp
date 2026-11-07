@@ -10,6 +10,7 @@
 #include <cerrno>
 #include <cinttypes>
 #include <climits>
+#include <csignal>
 #include <cstdint>
 #include <cstring>
 #include <arpa/inet.h>
@@ -18,6 +19,7 @@
 #include <netinet/in.h>
 #include <sstream>
 #include <poll.h>
+#include <pthread.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -410,6 +412,16 @@ unsigned int MonitorWebSocketPort(int base_port, unsigned int monitor_id) {
   return static_cast<unsigned int>(base_port) + monitor_id;
 }
 
+void BlockSigpipeInThisThread() {
+  sigset_t set;
+  sigemptyset(&set);
+  sigaddset(&set, SIGPIPE);
+  const int rc = pthread_sigmask(SIG_BLOCK, &set, nullptr);
+  if (rc != 0) {
+    Error("Unable to block SIGPIPE in the websocket thread: %s", strerror(rc));
+  }
+}
+
 std::string PeerAddressString(const sockaddr_storage &addr, socklen_t addr_len) {
   if ((addr.ss_family != AF_INET) && (addr.ss_family != AF_INET6)) {
     return "";
@@ -533,6 +545,7 @@ void MonitorWebSocketServer::Stop() {
 }
 
 void MonitorWebSocketServer::run() {
+  websocket::BlockSigpipeInThisThread();
   std::vector<Client> clients;
   clients.reserve(8);
 

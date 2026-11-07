@@ -85,6 +85,15 @@ inline std::string StringToLower(std::string str) {
 StringVector Split(const std::string &str, char delim);
 StringVector Split(const std::string &str, const std::string &delim, size_t limit = 0);
 std::pair<std::string, std::string> PairSplit(const std::string &str, char delim);
+bool JsonExtractQuotedField(const std::string &json, const std::string &field, std::string *value);
+bool JsonExtractIntegerField(const std::string &json, const std::string &field, int *value);
+bool ExtractHeaderValue(const std::string &request, const std::string &header_name, std::string *value);
+bool HeaderContainsToken(const std::string &header_value, const std::string &token);
+
+// Identifies the file at path (following symlinks) by device, inode, size and
+// modification time, so a caller can tell when it was replaced or rewritten
+// although its path is the same. Empty when the file can't be stat()ed.
+std::string FileIdentity(const std::string &path);
 
 std::string Join(const StringVector &values, const std::string &delim = ",");
 
@@ -112,6 +121,7 @@ std::string stringtf(const char* format, ...);
 
 std::string ByteArrayToHexString(nonstd::span<const uint8> bytes);
 
+std::string Base64Encode(nonstd::span<const uint8> bytes);
 std::string Base64Encode(const std::string &str);
 
 std::string TimevalToString(timeval tv);
@@ -199,7 +209,12 @@ class QueryParameter {
   explicit QueryParameter(std::string name) : name_(std::move(name)) {}
 
   const std::string &name() const { return name_; }
-  const std::string &firstValue() const { return values_[0]; }
+  // Empty for a parameter given with no value (?token=), which QueryString keeps
+  // with no values: has() is true for it, so callers would read past the end.
+  const std::string &firstValue() const {
+    static const std::string empty;
+    return values_.empty() ? empty : values_[0];
+  }
 
   const std::vector<std::string> &values() const { return values_; }
   size_t size() const { return values_.size(); }

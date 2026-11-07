@@ -352,3 +352,63 @@ TEST_CASE("PacketQueue: a keyframe interval longer than MaxImageBufferCount is r
   queue.stop();
   queue.clear();
 }
+
+// The WebSocket server picks the newest frame (or keyframe) to send. It used to
+// scan with registered iterators it compared and copied without the queue's
+// mutex, while capture moved them; the scan now happens inside the queue.
+TEST_CASE("PacketQueue: get_newest_packet finds the newest matching video packet") {
+  PacketQueue queue;
+  queue.addStream();
+  queue.setKeepKeyframes(false);
+  queue.setMaxVideoPackets(20);
+  queue.setPreEventVideoPackets(20);
+  packetqueue_iterator *analysis_it = queue.get_video_it(false);
+  REQUIRE(analysis_it != nullptr);
+
+  std::vector<std::shared_ptr<ZMPacket>> packets;
+  for (int i = 0; i < 6; i++) {
+    auto packet = decoded_video_packet(i == 0 || i == 3 ? 1 : 0);
+    packet->decoded = i < 4;
+    packets.push_back(packet);
+    REQUIRE(queue.queuePacket(packet));
+  }
+
+  SECTION("the newest packet the match accepts, returned locked") {
+    ZMPacketLock lock = queue.get_newest_packet(0, [](const ZMPacket &p) { return p.decoded; }, nullptr);
+    REQUIRE(lock.packet_ == packets[3]);
+    REQUIRE(lock.is_locked());
+  }
+
+  SECTION("a packet another thread holds is passed over") {
+    ZMPacketLock held(packets[3]);
+    REQUIRE(held.trylock());
+    ZMPacketLock lock = queue.get_newest_packet(0, [](const ZMPacket &p) { return p.decoded; }, nullptr);
+    REQUIRE(lock.packet_ == packets[2]);
+  }
+
+  SECTION("an iterator on the match, registered with the queue") {
+    packetqueue_iterator *it = nullptr;
+    ZMPacketLock lock = queue.get_newest_packet(0, [](const ZMPacket &p) { return p.keyframe != 0; }, &it);
+    REQUIRE(lock.packet_ == packets[3]);
+    REQUIRE(it != nullptr);
+    REQUIRE(**it == packets[3]);
+    REQUIRE(queue.is_there_an_iterator_pointing_to_packet(packets[3]));
+    lock.unlock();
+    queue.free_it(it);
+    REQUIRE_FALSE(queue.is_there_an_iterator_pointing_to_packet(packets[3]));
+  }
+
+  SECTION("nothing matches") {
+    packetqueue_iterator *it = nullptr;
+    ZMPacketLock lock = queue.get_newest_packet(0, [](const ZMPacket &) { return false; }, &it);
+    REQUIRE(!lock.packet_);
+    REQUIRE(it == nullptr);
+  }
+
+  SECTION("another stream's packets are not considered") {
+    ZMPacketLock lock = queue.get_newest_packet(1, [](const ZMPacket &) { return true; }, nullptr);
+    REQUIRE(!lock.packet_);
+  }
+
+  queue.free_it(analysis_it);
+}

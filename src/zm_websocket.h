@@ -1,0 +1,205 @@
+#ifndef ZM_WEBSOCKET_H
+#define ZM_WEBSOCKET_H
+
+#include "zm_comms.h"
+#include "zm_monitor.h"
+#include "zm_tls.h"
+#include "zm_time.h"
+#include "zm_websocket_stream_info.h"
+
+#include <sys/socket.h>
+
+#include <atomic>
+#include <cstddef>
+#include <cstdint>
+#include <deque>
+#include <memory>
+#include <shared_mutex>
+#include <string>
+#include <thread>
+#include <vector>
+
+namespace zm {
+namespace websocket {
+
+enum class Opcode : uint8_t {
+  CONTINUATION = 0x0,
+  TEXT = 0x1,
+  BINARY = 0x2,
+  CLOSE = 0x8,
+  PING = 0x9,
+  PONG = 0xA
+};
+
+struct Frame {
+  bool fin = true;
+  bool masked = false;
+  Opcode opcode = Opcode::TEXT;
+  std::string payload;
+};
+
+enum class DecodeResult {
+  OK,
+  INCOMPLETE,
+  ERROR
+};
+
+std::string ComputeAcceptKey(const std::string &client_key);
+bool ExtractHandshakeKey(const std::string &request, std::string *client_key);
+bool ExtractHandshakeRequestTarget(const std::string &request, std::string *target);
+bool ExtractAuthorizationBearerToken(const std::string &request, std::string *token);
+std::string BuildHandshakeResponse(const std::string &client_key);
+std::string EncodeFrame(Opcode opcode, const std::string &payload, bool fin = true);
+DecodeResult DecodeFrame(const std::string &buffer, Frame *frame, size_t *consumed);
+// MIN_WEBSOCKET_PORT + monitor id, or 0 when that is not a TCP port (1-65535).
+unsigned int MonitorWebSocketPort(int base_port, unsigned int monitor_id);
+
+// Blocks SIGPIPE in the calling thread. Both TLS backends write to the socket
+// without MSG_NOSIGNAL, so a peer that disconnects during TLS I/O would
+// otherwise raise SIGPIPE, whose default action terminates zmc. The write fails
+// with EPIPE instead. SIGPIPE from a write is directed at the writing thread,
+// so blocking it here leaves the rest of the process alone.
+void BlockSigpipeInThisThread();
+
+// zmLoadStaticConfig() and zmLoadDBConfig() overwrite the option values and the
+// strings behind them, which the WebSocket threads read while authenticating a
+// handshake or encoding a JPEG. zmc holds this exclusively while it reloads the
+// config, and a WebSocket thread holds it shared while it reads the config.
+std::shared_mutex &ConfigReloadMutex();
+
+// What to do with output for a client whose send queue holds queued_bytes.
+// The limits are on the backlog already waiting, not on what is added: a raw
+// rgba or yuv420p frame above about 1080p is by itself bigger than the soft
+// limit, and must still go to a client that is keeping up, and a status update
+// or reply queued behind it must not count against that client.
+//   kResponse - a reply to the client's request, or an event: always queued
+//   kPeriodic - a status keepalive or MJPEG frame: waits while over the soft
+//               limit, and a later one goes out once the backlog drains
+//   kLive     - passthrough video: a client over the soft limit is not keeping
+//               up, and is closed, since its iterator holds back the packet queue
+// Past the hard limit the client is not reading at all, and is closed.
+enum class SendKind { kResponse, kPeriodic, kLive };
+enum class SendAction { kQueue, kDefer, kClose };
+constexpr size_t kSendQueueSoftLimit = 8 * 1024 * 1024;
+constexpr size_t kSendQueueHardLimit = 64 * 1024 * 1024;
+SendAction DecideSend(size_t queued_bytes, SendKind kind);
+
+// Converts image to dst_format for a raw payload, with rows dst_align bytes
+// apart, into *output, and sets *line_size to the first plane's row length.
+// Works from the image's own pixel format, so planar YUV keeps its chroma.
+bool EncodeRawImage(const Image &image, AVPixelFormat dst_format, int dst_align,
+                    std::string *output, uint32_t *line_size);
+
+// Formats the numeric IP of an accepted peer (the sockaddr accept() filled in),
+// or "" when it cannot be determined. An IPv4-mapped IPv6 address is reduced to
+// its plain dotted form so it matches the REMOTE_ADDR the web server would have
+// recorded when it generated an IP-bound auth hash.
+std::string PeerAddressString(const sockaddr_storage &addr, socklen_t addr_len);
+
+}  // namespace websocket
+
+class MonitorWebSocketServer {
+ public:
+  explicit MonitorWebSocketServer(Monitor *monitor);
+  ~MonitorWebSocketServer();
+
+  bool Start(int port);
+  void Stop();
+
+  // Enables TLS for subsequently accepted clients. Must be called before
+  // Start(). Returns false if the certificate or key cannot be used, in which
+  // case the caller should not start the listener at all rather than fall back
+  // to plaintext.
+  bool EnableTLS(const std::string &certificate_path, const std::string &key_path);
+
+ private:
+  struct PendingBuffer {
+    std::string data;
+    size_t offset = 0;
+  };
+
+  struct Client {
+    explicit Client(int p_fd) : fd(p_fd) {}
+
+    int fd;
+    // Numeric IP of the peer, captured at accept(). Used to validate an
+    // IP-bound auth hash, which zmc has no CGI REMOTE_ADDR for (refs #2875).
+    std::string peer_addr;
+    // When the connection was accepted, so a peer that never finishes the TLS
+    // or HTTP handshake can be reaped instead of occupying a slot forever.
+    TimePoint accepted_at = std::chrono::steady_clock::now();
+    // Null when the listener is plaintext. When set, every byte to and from
+    // this client goes through it. TLS can want the socket readable to write or
+    // writable to read (handshake, renegotiation), so each direction records
+    // which poll condition its pending operation is waiting on:
+    //   tls_in_wants_write  - the handshake or a read is waiting to write
+    //   tls_out_wants_read  - a queued write is waiting to read
+    // The poll() request and the ready-event dispatch honour both, otherwise a
+    // write blocked on readability spins on POLLOUT and an inbound op blocked on
+    // writability is never re-driven.
+    std::unique_ptr<zm::tls::Session> tls;
+    bool tls_in_wants_write = false;
+    bool tls_out_wants_read = false;
+    bool handshake_complete = false;
+    bool subscribe_status = false;
+    bool subscribe_events = false;
+    bool subscribe_stream = false;
+    // When this client subscribed to events; it is sent only events queued since.
+    TimePoint events_subscribed_at = {};
+    Milliseconds status_interval = Milliseconds(1000);
+    Milliseconds stream_interval = Milliseconds(1000);
+    // next_status_at is the keepalive deadline: a status frame goes out by then
+    // even when nothing changed. status_generation is the monitor generation
+    // last sent to this client; a status frame also goes out as soon as the
+    // monitor's generation advances past it, bounded by status_coalesce_until so
+    // a burst of changes cannot flood the client (refs #2875).
+    uint64_t status_generation = 0;
+    TimePoint status_coalesce_until = {};
+    TimePoint next_status_at = {};
+    TimePoint next_stream_at = {};
+    std::string stream_codec = "mjpeg";
+    uint64_t last_stream_sequence = 0;
+    packetqueue_iterator *stream_it = nullptr;
+    std::string recv_buffer;
+    std::deque<PendingBuffer> send_queue;
+    size_t queued_bytes = 0;
+  };
+
+  Monitor *monitor;
+  int port;
+  std::unique_ptr<zm::tls::ServerContext> tls_context;
+  std::atomic<bool> running;
+  TcpInetServer server;
+  std::thread server_thread;
+
+  void run();
+  bool acceptClients(std::vector<Client> *clients);
+  bool handleRead(Client *client);
+  // Drives the TLS handshake. Returns false if the client should be dropped.
+  // Sets *done when the session is ready for application data.
+  bool handleTlsHandshake(Client *client, bool *done);
+  // Reads through TLS or the raw socket as appropriate. *closed is set when the
+  // peer went away.
+  bool readAvailable(Client *client, bool *closed);
+  // Writes a short payload immediately, through TLS when the client has it.
+  // Only for responses on connections that are about to be closed.
+  void writeImmediate(Client *client, const std::string &payload);
+  bool handleHandshake(Client *client);
+  bool handleFrame(Client *client, const websocket::Frame &frame);
+  bool flushWrites(Client *client);
+  void closeClient(Client *client);
+  bool sendImagePayload(Client *client, const Monitor::WebSocketPayload &payload, const std::string &request_id);
+  void freeClientResources(Client *client);
+  bool queueRaw(Client *client, std::string payload);
+  bool queueFrame(Client *client, websocket::Opcode opcode, const std::string &payload);
+  void broadcastStatus(std::vector<Client> *clients, TimePoint now);
+  void broadcastStreams(std::vector<Client> *clients, TimePoint now);
+  void broadcastEvents(std::vector<Client> *clients);
+  void removeClosedClients(std::vector<Client> *clients);
+  // Closes clients that connected but never completed the websocket handshake.
+  void dropStalledHandshakes(std::vector<Client> *clients, TimePoint now);
+};
+
+}  // namespace zm
+
+#endif  // ZM_WEBSOCKET_H

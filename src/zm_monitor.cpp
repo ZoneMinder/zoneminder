@@ -33,6 +33,7 @@
 #include "zm_time.h"
 #include "zm_uri.h"
 #include "zm_utils.h"
+#include "zm_websocket.h"
 #include "zm_zone.h"
 
 #if ZM_HAS_V4L2
@@ -51,6 +52,8 @@
 #include <sys/stat.h>
 #include <sys/un.h>
 #include <string>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <utility>
 
 #if ZM_MEM_MAPPED
@@ -338,6 +341,8 @@ Monitor::Monitor() :
   Janus_Manager(nullptr),
   Amcrest_Manager(nullptr),
   onvif(nullptr),
+  websocket_server(nullptr),
+  websocket_capture_bandwidth(0),
   red_val(0),
   green_val(0),
   blue_val(0),
@@ -1068,6 +1073,9 @@ bool Monitor::connect() {
   }
 #endif // ZM_MEM_MAPPED
 
+  // Held until the segment is initialised: the WebSocket thread reads and
+  // writes through shared_data and must not see it while it is being zeroed.
+  std::unique_lock<std::mutex> shm_lock(websocket_shm_mutex);
   shared_data = (SharedData *)mem_ptr;
   trigger_data = (TriggerData *)((char *)shared_data + sizeof(SharedData));
   zone_scores = (int *)((unsigned long)trigger_data + sizeof(TriggerData));
@@ -1203,6 +1211,7 @@ bool Monitor::connect() {
     SystemTimePoint now = std::chrono::system_clock::now();
     shared_data->heartbeat_time = std::chrono::system_clock::to_time_t(now);
     shared_data->valid = true;
+    shm_lock.unlock();
 
     ReloadLinkedMonitors();
     LoadActions();
@@ -1250,6 +1259,7 @@ bool Monitor::connect() {
     Error("Shared data not initialised by capture daemon for monitor %s", name.c_str());
     return false;
   }
+  if (shm_lock.owns_lock()) shm_lock.unlock();
   // image_buffer[] is constructed above with a hardcoded YUV420P placeholder
   // format because we don't yet know which AVPixelFormat zmc has written into
   // each SHM slot. Readers (zms, zma, etc.) MUST call ReadShmFrame() before
@@ -1274,6 +1284,7 @@ bool Monitor::connect() {
   // survives a restart without re-clustering.
   last_status_time = last_fps_time - Seconds(id % kStatusUpdateInterval.count());
 
+  RefreshWebSocketStatus();
   Debug(3, "Success connecting");
   return true;
 } // Monitor::connect
@@ -1287,6 +1298,9 @@ bool Monitor::disconnect() {
     return true;
   }
 
+  // The WebSocket thread reads shared_data under this lock; see
+  // WebSocketImageCount(). Hold it until shared_data is cleared.
+  std::unique_lock<std::mutex> shm_lock(websocket_shm_mutex);
   if (purpose == CAPTURE) {
     if (unlink(mem_file.c_str()) < 0) {
       Warning("Can't unlink '%s': %s", mem_file.c_str(), strerror(errno));
@@ -1321,7 +1335,12 @@ bool Monitor::disconnect() {
     Debug(3, "Can't shmdt: %s", strerror(errno));
     return false;
   }
+  // As in the mmap branch: the status refresh below must not read the
+  // detached segment.
+  mem_ptr = nullptr;
+  shared_data = nullptr;
 #endif // ZM_MEM_MAPPED
+  shm_lock.unlock();
 
   for (int32_t i = 0; i < image_buffer_count; i++) {
     // We delete the image because it is an object pointing to space that won't be free'd.
@@ -1333,8 +1352,481 @@ bool Monitor::disconnect() {
     analysis_image_buffer[i] = nullptr;
   }
 
+  RefreshWebSocketStatus();
   return true;
 }  // end bool Monitor::disconnect()
+
+bool Monitor::StartWebSocketServer() {
+  if (!config.min_websocket_port) {
+    return false;
+  }
+
+  if (websocket_server) {
+    return true;
+  }
+
+  const unsigned int websocket_port = zm::websocket::MonitorWebSocketPort(config.min_websocket_port, id);
+  if (!websocket_port) {
+    Error("Monitor %u: ZM_MIN_WEBSOCKET_PORT %d + monitor id is not a TCP port (1-65535); not starting the websocket listener",
+          id, config.min_websocket_port);
+    return false;
+  }
+
+  websocket_server = zm::make_unique<zm::MonitorWebSocketServer>(this);
+
+  // Browsers refuse ws:// from an https:// page, so a plaintext listener is
+  // unusable on most installs. Configure a certificate and we serve wss://.
+  const std::string tls_cert = config.websocket_tls_cert ? config.websocket_tls_cert : "";
+  const std::string tls_key = config.websocket_tls_key ? config.websocket_tls_key : "";
+
+  if (!tls_cert.empty() || !tls_key.empty()) {
+    if (tls_cert.empty() || tls_key.empty()) {
+      Error("Monitor %u: ZM_WEBSOCKET_TLS_CERT and ZM_WEBSOCKET_TLS_KEY must both be set; refusing to start the websocket listener", id);
+      websocket_server.reset();
+      return false;
+    }
+    // Deliberately fatal rather than falling back: silently serving plaintext
+    // on a port the operator asked to be encrypted is worse than not starting.
+    if (!websocket_server->EnableTLS(tls_cert, tls_key)) {
+      Error("Monitor %u: unable to enable TLS on the websocket listener; not starting it", id);
+      websocket_server.reset();
+      return false;
+    }
+  } else {
+    Info("Monitor %u: websocket listener is plaintext (ws://). Set ZM_WEBSOCKET_TLS_CERT and ZM_WEBSOCKET_TLS_KEY, or front it with a reverse proxy, to use it from an https page.", id);
+  }
+
+  if (!websocket_server->Start(static_cast<int>(websocket_port))) {
+    websocket_server.reset();
+    return false;
+  }
+
+  // Record what is in effect so a later config reload can detect a change.
+  websocket_active_port = websocket_port;
+  websocket_active_cert = tls_cert;
+  websocket_active_key = tls_key;
+  websocket_active_cert_identity = FileIdentity(tls_cert);
+  websocket_active_key_identity = FileIdentity(tls_key);
+  websocket_active_auth = config.opt_use_auth;
+  return true;
+}
+
+void Monitor::StopWebSocketServer() {
+  websocket_active_port = 0;
+  websocket_active_cert.clear();
+  websocket_active_key.clear();
+  websocket_active_cert_identity.clear();
+  websocket_active_key_identity.clear();
+  websocket_active_auth = false;
+  if (!websocket_server) {
+    return;
+  }
+
+  websocket_server->Stop();
+  websocket_server.reset();
+}
+
+void Monitor::ReloadWebSocketServer() {
+  const unsigned int desired_port = config.min_websocket_port
+      ? zm::websocket::MonitorWebSocketPort(config.min_websocket_port, id) : 0;
+  const std::string desired_cert = config.websocket_tls_cert ? config.websocket_tls_cert : "";
+  const std::string desired_key = config.websocket_tls_key ? config.websocket_tls_key : "";
+
+  const bool want_enabled = (desired_port != 0);
+  const bool running = (websocket_server != nullptr);
+
+  // Nothing relevant changed: leave the listener and its clients alone. A
+  // certificate renewed at the same path counts as a change, or the listener
+  // would keep serving the old one until it expired.
+  if ((running == want_enabled)
+      && (desired_port == websocket_active_port)
+      && (desired_cert == websocket_active_cert)
+      && (desired_key == websocket_active_key)
+      && (FileIdentity(desired_cert) == websocket_active_cert_identity)
+      && (FileIdentity(desired_key) == websocket_active_key_identity)
+      && (!running || (config.opt_use_auth == websocket_active_auth))) {
+    return;
+  }
+
+  Debug(1, "Monitor %u: reconciling websocket listener after reload (port %u->%u, tls %s->%s, auth %s->%s)",
+        id, websocket_active_port, desired_port,
+        websocket_active_cert.empty() ? "off" : "on",
+        desired_cert.empty() ? "off" : "on",
+        websocket_active_auth ? "on" : "off",
+        config.opt_use_auth ? "on" : "off");
+
+  // A deliberate reconfigure; connected clients are dropped so they reconnect
+  // against the new port/TLS, and authenticate if authentication is now on.
+  if (running) {
+    StopWebSocketServer();
+  }
+  if (want_enabled) {
+    StartWebSocketServer();
+  }
+}
+
+void Monitor::SetSignal(bool signal) {
+  if (shared_data->signal == signal) return;
+  shared_data->signal = signal;
+  RefreshWebSocketStatus();
+}
+
+void Monitor::RefreshWebSocketStatus() {
+  // Capture, decode and analysis all refresh. Sampling under the lock keeps an
+  // older sample from being published after a newer one.
+  std::lock_guard<std::mutex> status_lock(websocket_status_mutex);
+  const bool connected = isConnected();
+  const bool shm_valid = shared_data && shared_data->valid;
+  const double capture_fps = shared_data ? shared_data->capture_fps : 0.0;
+  const double analysis_fps = shared_data ? shared_data->analysis_fps : 0.0;
+  const uint32_t image_count = shared_data ? shared_data->image_count : 0;
+  const uint32_t last_frame_score = shared_data ? shared_data->last_frame_score : 0;
+  const uint64_t last_event_id = shared_data ? shared_data->last_event_id : 0;
+  const uint32_t analysing_state = shared_data ? shared_data->analysing : static_cast<uint32_t>(ANALYSING_NONE);
+  const uint32_t signal_state = shared_data ? shared_data->signal : 0;
+  const uint32_t capture_state = shared_data ? shared_data->capturing : static_cast<uint32_t>(capturing);
+  const uint32_t recording_state = shared_data ? shared_data->recording : static_cast<uint32_t>(recording);
+  const uint32_t current_state = shared_data ? shared_data->state : static_cast<uint32_t>(UNKNOWN);
+  const uint32_t capture_bandwidth = websocket_capture_bandwidth.load();
+  const time_t heartbeat_time = shared_data ? shared_data->heartbeat_time : 0;
+  const time_t startup_time = shared_data ? shared_data->startup_time : 0;
+
+  const char *state_name = "Unknown";
+  if (current_state < (sizeof(State_Strings) / sizeof(State_Strings[0]))) {
+    state_name = State_Strings[current_state].c_str();
+  }
+
+  // Bump the generation when anything that matters for display changed since
+  // the last bump, so the websocket server can push status on change rather
+  // than only on an interval (refs #2875). Frame-rate churn (image_count,
+  // score, heartbeat) is excluded by StatusSnapshot and never triggers a push.
+  zm::websocket::StatusSnapshot current;
+  current.connected = connected;
+  current.shm_valid = shm_valid;
+  current.state = current_state;
+  current.analysing = analysing_state;
+  current.capturing = capture_state;
+  current.recording = recording_state;
+  current.signal = signal_state;
+  current.last_event_id = last_event_id;
+  current.capture_fps = capture_fps;
+  current.analysis_fps = analysis_fps;
+  current.capture_bandwidth = capture_bandwidth;
+  if (!websocket_status_seen ||
+      zm::websocket::StatusSignificantlyChanged(websocket_status_prev, current)) {
+    websocket_status_seen = true;
+    websocket_status_prev = current;
+    websocket_status_generation.fetch_add(1, std::memory_order_relaxed);
+  }
+
+  websocket_status_json = stringtf(
+      "{\"type\":\"status\",\"monitor_id\":%u,\"monitor_name\":\"%s\","
+      "\"connected\":%s,\"shm_valid\":%s,\"state_id\":%u,\"state\":\"%s\","
+      "\"capture_fps\":%.2f,\"analysis_fps\":%.2f,\"capture_bandwidth\":%u,"
+      "\"image_count\":%u,\"analysing\":%u,\"capturing\":%u,\"recording\":%u,"
+      "\"signal\":%u,\"last_frame_score\":%u,\"last_event_id\":%" PRIu64 ","
+      "\"heartbeat_time\":%" PRIu64 ",\"startup_time\":%" PRIu64 "}",
+      id,
+      escape_json_string(name).c_str(),
+      connected ? "true" : "false",
+      shm_valid ? "true" : "false",
+      current_state,
+      state_name,
+      capture_fps,
+      analysis_fps,
+      capture_bandwidth,
+      image_count,
+      analysing_state,
+      capture_state,
+      recording_state,
+      signal_state,
+      last_frame_score,
+      last_event_id,
+      static_cast<uint64_t>(heartbeat_time),
+      static_cast<uint64_t>(startup_time));
+}
+
+std::string Monitor::GetWebSocketStatusJson() {
+  std::lock_guard<std::mutex> status_lock(websocket_status_mutex);
+  return websocket_status_json.empty() ? stringtf("{\"type\":\"status\",\"monitor_id\":%u}", id) : websocket_status_json;
+}
+
+void Monitor::QueueWebSocketEvent(const std::string &event_type, const std::string &message) {
+  std::lock_guard<std::mutex> message_lock(websocket_message_mutex);
+  if (websocket_messages.size() >= 64) {
+    websocket_messages.erase(websocket_messages.begin());
+  }
+  websocket_messages.push_back({std::chrono::steady_clock::now(), stringtf(
+      "{\"type\":\"event\",\"monitor_id\":%u,\"event\":\"%s\",\"message\":\"%s\"}",
+      id,
+      escape_json_string(event_type).c_str(),
+      escape_json_string(message).c_str())});
+}
+
+std::vector<zm::websocket::QueuedEvent> Monitor::DrainWebSocketMessages() {
+  std::lock_guard<std::mutex> message_lock(websocket_message_mutex);
+  std::vector<zm::websocket::QueuedEvent> drained;
+  drained.swap(websocket_messages);
+  return drained;
+}
+
+namespace {
+
+bool encodeJpegImage(const Image &image, std::string *output) {
+  static thread_local std::vector<unsigned char> buffer(ZM_MAX_IMAGE_SIZE);
+  size_t encoded_size = 0;
+  if (!image.EncodeJpeg(buffer.data(), &encoded_size)) {
+    return false;
+  }
+  output->assign(reinterpret_cast<const char *>(buffer.data()), encoded_size);
+  return true;
+}
+
+bool requestedWebSocketVideoCodec(const std::string &codec, AVCodecID *codec_id, std::string *content_type = nullptr) {
+  if (codec == "h264") {
+    *codec_id = AV_CODEC_ID_H264;
+    if (content_type) {
+      *content_type = "video/h264";
+    }
+    return true;
+  }
+  if (codec == "h265") {
+    *codec_id = AV_CODEC_ID_HEVC;
+    if (content_type) {
+      *content_type = "video/h265";
+    }
+    return true;
+  }
+  if (codec == "av1") {
+    *codec_id = AV_CODEC_ID_AV1;
+    if (content_type) {
+      *content_type = "video/av1";
+    }
+    return true;
+  }
+  return false;
+}
+
+}  // namespace
+
+void Monitor::PublishWebSocketImage(const Image &image, uint64_t sequence) {
+  const int64_t now = std::chrono::steady_clock::now().time_since_epoch().count();
+  if (websocket_image_wanted_until.load(std::memory_order_relaxed) < now) return;
+  std::lock_guard<std::mutex> image_lock(websocket_image_mutex);
+  websocket_latest_image.Assign(image);
+  websocket_latest_sequence = sequence;
+  websocket_latest_valid = true;
+}
+
+bool Monitor::TakeWebSocketImage(Image *image, uint64_t *sequence, Milliseconds keep_for) {
+  const TimePoint now = std::chrono::steady_clock::now();
+  const int64_t wanted_until = websocket_image_wanted_until.exchange(
+      (now + keep_for).time_since_epoch().count(), std::memory_order_relaxed);
+  {
+    std::lock_guard<std::mutex> image_lock(websocket_image_mutex);
+    // Nobody wanted images for a while, so the decoder stopped copying them and
+    // what is held is old.
+    if (wanted_until < now.time_since_epoch().count()) websocket_latest_valid = false;
+    if (websocket_latest_valid) {
+      image->Assign(websocket_latest_image);
+      *sequence = websocket_latest_sequence;
+      return true;
+    }
+  }
+
+  // The first request after a quiet spell: the decoder copies from its next
+  // frame on, so take the newest packet that still has its image. Only one the
+  // decoder has finished with: a capture path that attaches its image before
+  // queueing (LocalCamera) gets the privacy mask, orientation and timestamp
+  // from the decoder.
+  ZMPacketLock packet_lock = packetqueue.get_newest_packet(video_stream_id, [](const ZMPacket &packet) {
+    return packet.decoded && packet.image;
+  }, nullptr);
+  if (!packet_lock.packet_) {
+    return false;
+  }
+  image->Assign(*packet_lock.packet_->image);
+  *sequence = packet_lock.packet_->queue_index;
+  return true;
+}
+
+bool Monitor::GetWebSocketImagePayload(const std::string &format, WebSocketPayload *payload, Milliseconds keep_for) {
+  if (!payload) {
+    return false;
+  }
+
+  if ((format != "jpeg") && (format != "rgba") && (format != "yuv420p")) {
+    return false;
+  }
+
+  Image image;
+  uint64_t sequence = 0;
+  if (!TakeWebSocketImage(&image, &sequence, keep_for)) {
+    return false;
+  }
+
+  payload->type = "image";
+  payload->format = format;
+  payload->width = image.Width();
+  payload->height = image.Height();
+  payload->image_count = WebSocketImageCount();
+  payload->sequence = sequence;
+  payload->keyframe = false;
+
+  if (format == "jpeg") {
+    payload->content_type = "image/jpeg";
+    payload->line_size = 0;
+    payload->colours = image.Colours();
+    payload->subpixel_order = image.SubpixelOrder();
+    // EncodeJpeg reads config.jpeg_stream_quality and colour_jpeg_files, which a
+    // reload in zmc replaces while this thread keeps running.
+    std::shared_lock<std::shared_mutex> config_lock(zm::websocket::ConfigReloadMutex());
+    return encodeJpegImage(image, &payload->payload);
+  }
+
+  if (format == "rgba") {
+    payload->content_type = "application/octet-stream";
+    payload->colours = ZM_COLOUR_RGB32;
+    payload->subpixel_order = ZM_SUBPIX_ORDER_RGBA;
+    return zm::websocket::EncodeRawImage(image, AV_PIX_FMT_RGBA, 32, &payload->payload, &payload->line_size);
+  }
+
+  if (format == "yuv420p") {
+    payload->content_type = "application/octet-stream";
+    payload->colours = 0;
+    payload->subpixel_order = 0;
+    // Packed I420: the Y plane is height rows of line_size bytes, followed by the
+    // U then V planes of (height + 1) / 2 rows of (line_size + 1) / 2 bytes.
+    return zm::websocket::EncodeRawImage(image, AV_PIX_FMT_YUV420P, 1, &payload->payload, &payload->line_size);
+  }
+
+  return false;
+}
+
+packetqueue_iterator *Monitor::CreateWebSocketVideoIterator(const std::string &codec) {
+  AVCodecID requested_codec = AV_CODEC_ID_NONE;
+  if (!requestedWebSocketVideoCodec(codec, &requested_codec)) {
+    return nullptr;
+  }
+
+  // Validate against the published snapshot rather than the live camera: the
+  // capture thread may be tearing the camera down on a reconnect (refs #2875).
+  zm::websocket::VideoStreamInfo::Snapshot info;
+  if (!websocket_video_info.Get(requested_codec, &info)) {
+    return nullptr;
+  }
+
+  packetqueue_iterator *it = nullptr;
+  ZMPacketLock packet_lock = packetqueue.get_newest_packet(video_stream_id, [](const ZMPacket &packet) {
+    return packet.keyframe != 0;
+  }, &it);
+  return it;
+}
+
+bool Monitor::GetNextWebSocketVideoPayload(packetqueue_iterator *it, const std::string &codec, WebSocketPayload *payload) {
+  if (!it || !payload) {
+    return false;
+  }
+
+  AVCodecID requested_codec = AV_CODEC_ID_NONE;
+  std::string content_type;
+  if (!requestedWebSocketVideoCodec(codec, &requested_codec, &content_type)) {
+    return false;
+  }
+
+  // Everything describing the stream comes from the owned snapshot, never the
+  // camera or the packet's stream back-pointer: both are freed by
+  // camera->Close() on a reconnect (refs #2875). The packet's own refcounted
+  // AVPacket data survives and is all we read from the queue.
+  zm::websocket::VideoStreamInfo::Snapshot info;
+  if (!websocket_video_info.Get(requested_codec, &info)) {
+    return false;
+  }
+
+  ZMPacketLock packet_lock = packetqueue.get_packet_no_wait(it);
+  if (!packet_lock.packet_ || !packet_lock.packet_->packet) {
+    return false;
+  }
+  if (packet_lock.packet_->packet->stream_index != video_stream_id) {
+    packetqueue.increment_it(it, video_stream_id);
+    return false;
+  }
+
+  payload->type = "stream";
+  payload->format = codec;
+  payload->content_type = content_type;
+  payload->width = info.width ? info.width : Width();
+  payload->height = info.height ? info.height : Height();
+  payload->line_size = 0;
+  payload->colours = 0;
+  payload->subpixel_order = 0;
+  payload->image_count = WebSocketImageCount();
+  payload->sequence = packet_lock.packet_->queue_index;
+  payload->keyframe = packet_lock.packet_->keyframe;
+  payload->payload.clear();
+
+  if (packet_lock.packet_->keyframe && !info.extradata.empty()) {
+    payload->payload.append(info.extradata);
+  }
+
+  if (info.nal_length_size) {
+    // An MP4 source: its packets are length-prefixed, the extradata above was
+    // converted to Annex-B, so convert the packet to match.
+    std::string annexb;
+    if (!zm::websocket::LengthPrefixedToAnnexB(packet_lock.packet_->packet->data, packet_lock.packet_->packet->size,
+                                               info.nal_length_size, &annexb)) {
+      Debug(1, "Skipping a malformed length-prefixed %s packet for websocket passthrough", codec.c_str());
+      packetqueue.increment_it(it, video_stream_id);
+      return false;
+    }
+    payload->payload.append(annexb);
+  } else {
+    payload->payload.append(
+        reinterpret_cast<const char *>(packet_lock.packet_->packet->data),
+        packet_lock.packet_->packet->size);
+  }
+  packetqueue.increment_it(it, video_stream_id);
+  return !payload->payload.empty();
+}
+
+void Monitor::UpdateVideoStreamInfo() {
+  const AVCodecParameters *codecpar = nullptr;
+  if (camera) {
+    AVStream *stream = camera->getVideoStream();
+    if (stream) {
+      codecpar = stream->codecpar;
+    }
+  }
+  websocket_video_info.Update(codecpar, Width(), Height());
+}
+
+void Monitor::InvalidateVideoStreamInfo() {
+  websocket_video_info.Invalidate();
+}
+
+zm::websocket::VideoStreamInfo::Availability Monitor::WebSocketVideoAvailability(const std::string &codec) const {
+  AVCodecID requested_codec = AV_CODEC_ID_NONE;
+  if (!requestedWebSocketVideoCodec(codec, &requested_codec)) {
+    return zm::websocket::VideoStreamInfo::Availability::kOtherCodec;
+  }
+  return websocket_video_info.Check(requested_codec);
+}
+
+uint32_t Monitor::WebSocketImageCount() {
+  std::lock_guard<std::mutex> shm_lock(websocket_shm_mutex);
+  return shared_data ? shared_data->image_count : 0;
+}
+
+void Monitor::WebSocketSetLastViewed() {
+  std::lock_guard<std::mutex> shm_lock(websocket_shm_mutex);
+  setLastViewed();
+}
+
+void Monitor::FreeWebSocketIterator(packetqueue_iterator *it) {
+  if (it) {
+    packetqueue.free_it(it);
+  }
+}
 
 Monitor::~Monitor() {
 #if MOSQUITTOPP_FOUND
@@ -1342,6 +1834,7 @@ Monitor::~Monitor() {
     mqtt->send("offline");
   }
 #endif
+  StopWebSocketServer();
   Close();
 
   if (mem_ptr != nullptr) {
@@ -1514,6 +2007,10 @@ int Monitor::GetImage(int32_t index, int scale) {
 }
 
 std::shared_ptr<ZMPacket> Monitor::getSnapshot(int index) {
+  // The websocket server can request a frame before shm is attached.
+  if (!shared_data || !shared_timestamps) {
+    return nullptr;
+  }
   if ((index < 0) || (index >= image_buffer_count)) {
     index = shared_data->last_write_index;
   }
@@ -1989,6 +2486,7 @@ void Monitor::CheckAction() {
       if (Active()) {
         Info("Received suspend indication at count %d", shared_data->image_count.load());
         shared_data->analysing = ANALYSING_NONE;
+        RefreshWebSocketStatus();
       } else {
         Info("Received suspend indication at count %d, but wasn't active", shared_data->image_count.load());
       }
@@ -2001,6 +2499,7 @@ void Monitor::CheckAction() {
       if ( Enabled() && !Active() ) {
         Info("Received resume indication at count %d", shared_data->image_count.load());
         shared_data->analysing = analysing;
+        RefreshWebSocketStatus();
         // Analysis thread owns ref_image; ask it to drop the pre-suspend
         // reference rather than freeing the buffer under it here (refs #4983).
         ref_image_reset_ = true;
@@ -2016,6 +2515,7 @@ void Monitor::CheckAction() {
       Info("Auto resuming at count %d", shared_data->image_count.load());
       auto_resume_time = {};
       shared_data->analysing = analysing;
+      RefreshWebSocketStatus();
       // See RESUME above: defer the reference-image reset to the analysis thread.
       ref_image_reset_ = true;
     }
@@ -2065,9 +2565,11 @@ void Monitor::UpdateFPS() {
     shared_data->capture_fps = new_capture_fps;
     last_capture_image_count = shared_data->image_count;
     shared_data->analysis_fps = new_analysis_fps;
+    websocket_capture_bandwidth = new_capture_bandwidth;
     last_motion_frame_count = motion_frame_count;
     last_camera_bytes = new_camera_bytes;
     last_fps_time = now;
+    RefreshWebSocketStatus();
 
     FPSeconds db_elapsed = now - last_status_time;
     if (db_elapsed > kStatusUpdateInterval) {
@@ -3229,7 +3731,7 @@ int Monitor::Capture() {
   if (captureResult < 0) {
     // Unable to capture image. zmc closes the monitor and reconnects, and
     // connect() clears the image ring.
-    shared_data->signal = false;
+    SetSignal(false);
     // With a decoder thread running, it is the ring's only writer: it picks
     // its slot from last_write_index, this thread from image_count, so both
     // could write the same slot or move last_write_index backwards. Viewers
@@ -3268,7 +3770,7 @@ int Monitor::Capture() {
     // (SignalCheckPoints). Writing true here as well made a lost-signal
     // picture flip back to "signal" between decoded frames.
     if (assume_signal_on_next_packet or !DecoderChecksSignal(decoding, signal_check_points, hasViewers())) {
-      shared_data->signal = true;
+      SetSignal(true);
       assume_signal_on_next_packet = false;
     }
     if (decoding == DECODING_NONE) {
@@ -3278,7 +3780,7 @@ int Monitor::Capture() {
       packet->notify_all();
     }
     Debug(2, "Have packet stream_index:%d ?= videostream_id: %d q.vpktcount %d event? %d image_count %d",
-          packet->packet->stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ), shared_data->image_count.load());
+          packet->packet->stream_index, video_stream_id.load(), packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ), shared_data->image_count.load());
 
     if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
       packet->packet->stream_index = video_stream_id; // Convert to packetQueue's index
@@ -3944,7 +4446,8 @@ bool Monitor::Decode() {
     Debug(5, "SHM WRITE packet=%d index=%u", packet->image_index, index);
     WriteShmFrame(index, capture_image);
     shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
-    shared_data->signal = signal_check_points ? CheckSignal(capture_image) : true;
+    SetSignal(signal_check_points ? CheckSignal(capture_image) : true);
+    PublishWebSocketImage(*capture_image, packet->queue_index);
     shared_data->last_write_index = index;
     shared_data->last_write_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
@@ -4087,6 +4590,7 @@ Event * Monitor::openEvent(
 
   shared_data->last_event_id = event->Id();
   strncpy(shared_data->alarm_cause, cause.c_str(), sizeof(shared_data->alarm_cause)-1);
+  RefreshWebSocketStatus();
 
 #if MOSQUITTOPP_FOUND
   if (mqtt) mqtt->send(stringtf("event start: %" PRId64, event->Id()));
@@ -4497,7 +5001,13 @@ void Monitor::SetState(State new_state) {
     std::lock_guard<std::mutex> lock(stream_event_mutex);
     stream_snapshot_state = new_state;
   }
-  if (new_state == prev_state or !stream_socket)
+  if (new_state == prev_state)
+    return;
+  // Pushed to WebSocket status subscribers now, not at the next once-a-second
+  // FPS update: an alarm would wait for it, and a state that came and went in
+  // between was never seen.
+  RefreshWebSocketStatus();
+  if (!stream_socket)
     return;
 
   zm::stream_socket::MonitorEvent ev;
@@ -4684,7 +5194,7 @@ int Monitor::PrimeCapture() {
   }
 
   Debug(2, "Video stream id is %d, audio is %d, minimum_packets to keep in buffer %d",
-        video_stream_id, audio_stream_id, pre_event_count);
+        video_stream_id.load(), audio_stream_id, pre_event_count);
 
   // The stream socket is served for every monitor; consumers connect on
   // demand and an idle socket costs nothing. The listener survives camera
@@ -4724,6 +5234,10 @@ int Monitor::PrimeCapture() {
     }
     RefreshStreamSnapshot();
   }
+
+  // Publish the video stream snapshot for the websocket server while the camera
+  // is valid; the websocket thread reads this, never the camera (refs #2875).
+  UpdateVideoStreamInfo();
 
   //Poller Thread
   if (onvif_event_listener || janus_enabled || RTSP2Web_enabled || use_Amcrest_API || Go2RTC_enabled) {
@@ -4824,6 +5338,11 @@ int Monitor::Pause() {
   // decoder for a stream that is gone.
   CloseDecoder();
 
+  // Stop the websocket thread reading the stream before the camera frees its
+  // AVStream (refs #2875). The snapshot owns its data, so the thread is safe
+  // whether it reads just before or just after this.
+  InvalidateVideoStreamInfo();
+
   if (camera) {
     camera->Close();
   }
@@ -4857,7 +5376,12 @@ int Monitor::Play() {
   }
 
   Debug(2, "Video stream id is %d, audio is %d, minimum_packets to keep in buffer %d",
-        video_stream_id, audio_stream_id, pre_event_count);
+        video_stream_id.load(), audio_stream_id, pre_event_count);
+
+  // Re-publish the websocket video stream snapshot: Play() re-primes the camera
+  // on the on-demand path without going through Monitor::PrimeCapture() (refs #2875).
+  UpdateVideoStreamInfo();
+
   if (decoding != DECODING_NONE) {
     Debug(1, "Starting decoder thread");
     decoder->Start();
@@ -4946,7 +5470,7 @@ void Monitor::get_ref_image() {
   std::shared_ptr<ZMPacket> packet = packet_lock.packet_;
 
   Debug(1, "get_ref_image: packet.stream %d ?= video_stream %d, packet image id %d packet image %p",
-        packet->packet->stream_index, video_stream_id, packet->image_index, packet->image );
+        packet->packet->stream_index, video_stream_id.load(), packet->image_index, packet->image );
   // Might not have been decoded yet FIXME
   if (packet->image) {
     ref_image.Assign(width, height, camera->Colours(),
@@ -4990,4 +5514,3 @@ StringVector Monitor::GroupNames() {
   }
   return groupnames;
 } // end Monitor::GroupNames()
-

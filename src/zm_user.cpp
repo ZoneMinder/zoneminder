@@ -294,6 +294,12 @@ std::string User::getAuthHash() {
 // Function to load a user from username and password
 // Please note that in auth relay mode = none, password is NULL
 User *zmLoadUser(const std::string &username, const std::string &password) {
+  // A URL-decoded credential can hold %00. verifyPassword() would check
+  // "admin" for "admin\0x" while isDefaultPassword() saw the whole string.
+  if (hasEmbeddedNul(username) || hasEmbeddedNul(password)) {
+    Warning("Refusing a username or password containing a NUL byte");
+    return nullptr;
+  }
   User *user = User::find(username);
   if (!user) return nullptr;
 
@@ -382,22 +388,11 @@ User *zmLoadTokenUser(const std::string &jwt_token_str, bool use_remote_addr) {
 }  // User *zmLoadTokenUser(std::string jwt_token_str, bool use_remote_addr)
 
 // Function to validate an authentication string
-User *zmLoadAuthUser(const std::string &auth, const std::string &username, bool use_remote_addr) {
-  const char *remote_addr = "";
-  std::string client_addr; // must outlive remote_addr
-  if (use_remote_addr) {
-    // Same rule as getRemoteAddr() in web/includes/Network.php, which bound the
-    // hash: X-Forwarded-For only counts when it came from a trusted proxy.
-    const char *direct_addr = getenv("REMOTE_ADDR");
-    const char *forwarded_for = getenv("HTTP_X_FORWARDED_FOR");
-    client_addr = ClientAddress(direct_addr ? direct_addr : "",
-                                forwarded_for ? forwarded_for : "",
-                                config.auth_trusted_proxies);
-    if (client_addr.empty())
-      Warning("Can't determine remote address, using null");
-    remote_addr = client_addr.c_str();
-  }
-
+// Core of zmLoadAuthUser: matches auth against the IP-bound md5 of every
+// enabled user (or just username, when given) over the hash TTL window.
+// remote_addr is baked into the hash as-is; "" means not IP-bound.
+static User *authenticateUserWithRemoteAddr(const std::string &auth, const std::string &username,
+                                            const char *remote_addr) {
   // The hash is a credential: log its fingerprint so this line can be matched
   // with the web side's, not the hash.
   Debug(1, "Attempting to authenticate user %s from auth hash %s, remote addr(%s)",
@@ -474,7 +469,37 @@ User *zmLoadAuthUser(const std::string &auth, const std::string &username, bool 
 
   Debug(1, "No user found for auth hash %s", zm::crypto::LogFingerprint(auth).c_str());
   return nullptr;
-}  // end User *zmLoadAuthUser( const std::string &auth, const std::string &username, bool use_remote_addr )
+}  // end authenticateUserWithRemoteAddr
+
+// Resolves the client address the same way getRemoteAddr() in
+// web/includes/Network.php did when it bound the hash: X-Forwarded-For only
+// counts when it came from a trusted proxy.
+static std::string resolveClientAddress(const std::string &direct_addr, const std::string &forwarded_for) {
+  std::string client_addr = ClientAddress(direct_addr, forwarded_for, config.auth_trusted_proxies);
+  if (client_addr.empty())
+    Warning("Can't determine remote address, using null");
+  return client_addr;
+}
+
+User *zmLoadAuthUser(const std::string &auth, const std::string &username, bool use_remote_addr) {
+  std::string client_addr; // must outlive the c_str() passed below
+  if (use_remote_addr) {
+    const char *direct_addr = getenv("REMOTE_ADDR");
+    const char *forwarded_for = getenv("HTTP_X_FORWARDED_FOR");
+    client_addr = resolveClientAddress(direct_addr ? direct_addr : "",
+                                       forwarded_for ? forwarded_for : "");
+  }
+  return authenticateUserWithRemoteAddr(auth, username, client_addr.c_str());
+}
+
+User *zmLoadAuthUser(const std::string &auth, const std::string &username, bool use_remote_addr,
+                     const std::string &direct_addr, const std::string &forwarded_for) {
+  std::string client_addr; // must outlive the c_str() passed below
+  if (use_remote_addr) {
+    client_addr = resolveClientAddress(direct_addr, forwarded_for);
+  }
+  return authenticateUserWithRemoteAddr(auth, username, client_addr.c_str());
+}
 
 // Function to check Username length
 bool checkUser(const std::string &username) {
@@ -499,6 +524,10 @@ bool checkPass(const std::string &password) {
 // The password db/zm_create.sql gives the admin account, as the user guide
 // states it. Every install starts with it, so it proves nothing; see
 // isDefaultPassword() in web/includes/auth.php.
+bool hasEmbeddedNul(const std::string &s) {
+  return s.find('\0') != std::string::npos;
+}
+
 bool isDefaultPassword(const std::string &password) {
   return password == "admin";
 }

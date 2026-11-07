@@ -74,6 +74,13 @@ class FilterComponent extends Component {
 				if (preg_match('/^(?P<field>[a-z0-9]+)(?P<operator>.+)?$/i', $lhs, $matches) !== 1) {
 					throw new Exception('Invalid argument before `:`: ' . $lhs);
 				}
+				// A purely numeric field name becomes an integer array key in
+				// $conditions, which CakePHP 2.x emits as a raw, unescaped SQL
+				// fragment rather than a quoted value. Real columns always contain
+				// a letter, so refuse an all-digit field. refs GHSA-xqfr-6v9x-cvwc
+				if (preg_match('/^[0-9]+$/', $matches['field'])) {
+					throw new Exception('Invalid filter field: ' . $lhs);
+				}
 				$operator = isset($matches['operator']) ? trim($matches['operator']) : '';
 
 				// Only allow operators on our allow list. No operator

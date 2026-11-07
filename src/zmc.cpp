@@ -305,11 +305,6 @@ int main(int argc, char *argv[]) {
         if (!priming_failed) {
           monitor->SendStreamHealthEvent(zm::stream_socket::kEventPrimeCaptureFailed,
                                          "Unable to prime the capture source");
-          priming_failed = true;
-          monitor_faulted[monitor_index] = true;
-        }
-
-        if (!priming_failed) {
           monitor->QueueWebSocketEvent("prime_capture_failed", "Unable to prime the capture source");
           monitor->RefreshWebSocketStatus();
           priming_failed = true;

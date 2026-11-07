@@ -19,8 +19,17 @@
 
 #include "zm_websocket.h"
 
+#include "zm_config.h"
+#include "zm_image.h"
+
+extern "C" {
+#include <libavutil/imgutils.h>
+}
+
 #include <cerrno>
 #include <csignal>
+#include <cstring>
+#include <memory>
 #include <sys/socket.h>
 #include <thread>
 #include <unistd.h>
@@ -260,4 +269,77 @@ TEST_CASE("Websocket send queue takes a frame bigger than its limit") {
   // A client already this far behind is not keeping up.
   REQUIRE_FALSE(zm::websocket::SendQueueHasRoom(limit, limit));
   REQUIRE_FALSE(zm::websocket::SendQueueHasRoom(200 + 14745600, limit));
+}
+
+namespace {
+
+// A YUV420P image of one colour, laid out as Image lays it out (align 32).
+Image *solid_yuv420p_image(int w, int h, uint8_t y, uint8_t u, uint8_t v) {
+  config.font_file_location = "data/fonts/04_valid.zmfnt";
+  Image *image = new Image(w, h, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_YUV420P);
+  uint8_t *data[4];
+  int stride[4];
+  av_image_fill_arrays(data, stride, image->Buffer(), AV_PIX_FMT_YUV420P, w, h, 32);
+  memset(data[0], y, static_cast<size_t>(stride[0]) * h);
+  memset(data[1], u, static_cast<size_t>(stride[1]) * ((h + 1) / 2));
+  memset(data[2], v, static_cast<size_t>(stride[2]) * ((h + 1) / 2));
+  return image;
+}
+
+}  // namespace
+
+TEST_CASE("Websocket raw payloads keep the colour of a planar image") {
+  // Colours() reports a planar YUV image as ZM_COLOUR_GRAY8, so the rgba
+  // payload came out grey, and the yuv420p one was converted from the Y plane
+  // alone. Red in BT.601 limited range is Y 81, U 90, V 240.
+  const int w = 40, h = 30;
+  std::unique_ptr<Image> image(solid_yuv420p_image(w, h, 81, 90, 240));
+
+  SECTION("rgba") {
+    std::string out;
+    uint32_t line_size = 0;
+    REQUIRE(zm::websocket::EncodeRawImage(*image, AV_PIX_FMT_RGBA, 32, &out, &line_size));
+    REQUIRE(line_size == static_cast<uint32_t>(FFALIGN(w * 4, 32)));
+    REQUIRE(out.size() == static_cast<size_t>(line_size) * h);
+    const uint8_t *pixel = reinterpret_cast<const uint8_t *>(out.data()) + 15 * line_size + 20 * 4;
+    REQUIRE(pixel[0] > 230);
+    REQUIRE(pixel[1] < 25);
+    REQUIRE(pixel[2] < 25);
+    REQUIRE(pixel[3] == 0xff);
+  }
+
+  SECTION("yuv420p, packed") {
+    std::string out;
+    uint32_t line_size = 0;
+    REQUIRE(zm::websocket::EncodeRawImage(*image, AV_PIX_FMT_YUV420P, 1, &out, &line_size));
+    REQUIRE(line_size == static_cast<uint32_t>(w));
+    REQUIRE(out.size() == static_cast<size_t>(w * h + 2 * (w / 2) * (h / 2)));
+    const uint8_t *bytes = reinterpret_cast<const uint8_t *>(out.data());
+    REQUIRE(bytes[0] == 81);
+    REQUIRE(bytes[w * h] == 90);
+    REQUIRE(bytes[w * h + (w / 2) * (h / 2)] == 240);
+    REQUIRE(bytes[out.size() - 1] == 240);
+  }
+}
+
+TEST_CASE("Websocket raw payloads read a packed image by its own stride") {
+  config.font_file_location = "data/fonts/04_valid.zmfnt";
+  const int w = 10, h = 4;
+  Image image(w, h, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
+  for (int y = 0; y < h; y++) {
+    uint8_t *row = image.Buffer() + y * image.LineSize();
+    for (int x = 0; x < w; x++) {
+      row[x * 3] = static_cast<uint8_t>(y * 50);
+      row[x * 3 + 1] = 0;
+      row[x * 3 + 2] = 200;
+    }
+  }
+  std::string out;
+  uint32_t line_size = 0;
+  REQUIRE(zm::websocket::EncodeRawImage(image, AV_PIX_FMT_RGBA, 32, &out, &line_size));
+  for (int y = 0; y < h; y++) {
+    const uint8_t *pixel = reinterpret_cast<const uint8_t *>(out.data()) + y * line_size + 7 * 4;
+    REQUIRE(pixel[0] == y * 50);
+    REQUIRE(pixel[2] == 200);
+  }
 }

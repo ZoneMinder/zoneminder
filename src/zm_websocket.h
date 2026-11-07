@@ -74,6 +74,12 @@ std::shared_mutex &ConfigReloadMutex();
 // holds at most the limit plus one message.
 bool SendQueueHasRoom(size_t queued_bytes, size_t limit);
 
+// Converts image to dst_format for a raw payload, with rows dst_align bytes
+// apart, into *output, and sets *line_size to the first plane's row length.
+// Works from the image's own pixel format, so planar YUV keeps its chroma.
+bool EncodeRawImage(const Image &image, AVPixelFormat dst_format, int dst_align,
+                    std::string *output, uint32_t *line_size);
+
 // Formats the numeric IP of an accepted peer (the sockaddr accept() filled in),
 // or "" when it cannot be determined. An IPv4-mapped IPv6 address is reduced to
 // its plain dotted form so it matches the REMOTE_ADDR the web server would have

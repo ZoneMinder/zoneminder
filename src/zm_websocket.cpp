@@ -1,6 +1,8 @@
 #include "zm_websocket.h"
 
 #include "zm_crypt.h"
+#include "zm_ffmpeg.h"
+#include "zm_image.h"
 #include "zm_monitor.h"
 #include "zm_user.h"
 #include "zm_utils.h"
@@ -410,6 +412,69 @@ unsigned int MonitorWebSocketPort(int base_port, unsigned int monitor_id) {
     return 0;
   }
   return static_cast<unsigned int>(base_port) + monitor_id;
+}
+
+bool EncodeRawImage(const Image &image, AVPixelFormat dst_format, int dst_align,
+                    std::string *output, uint32_t *line_size) {
+  if (!output || !line_size || !image.Buffer() || !image.Width() || !image.Height()) {
+    return false;
+  }
+  const int width = image.Width();
+  const int height = image.Height();
+
+  // PopulateFrame lays the planes out as Image does. An image wrapping a
+  // caller's buffer can have a packed stride, so a single-plane image is read
+  // by its own LineSize().
+  av_frame_ptr src{av_frame_alloc()};
+  if (!src || (image.PopulateFrame(src.get()) < 0)) {
+    return false;
+  }
+  if (av_pix_fmt_count_planes(image.AVPixFormat()) == 1) {
+    src->linesize[0] = image.LineSize();
+  }
+
+  // swscale's SIMD paths can write past the end of a row, so scale into a
+  // frame, which FFmpeg pads, and copy that out at the alignment asked for.
+  av_frame_ptr dst{av_frame_alloc()};
+  if (!dst) {
+    return false;
+  }
+  dst->format = dst_format;
+  dst->width = width;
+  dst->height = height;
+  if (av_frame_get_buffer(dst.get(), 32) < 0) {
+    Error("Can't allocate a %dx%d %s frame for a websocket payload", width, height, av_get_pix_fmt_name(dst_format));
+    return false;
+  }
+
+  SwsContext *sws_ctx = sws_getContext(width, height, image.AVPixFormat(), width, height, dst_format,
+                                       SWS_FAST_BILINEAR, nullptr, nullptr, nullptr);
+  if (!sws_ctx) {
+    Error("Can't convert %s to %s for a websocket payload",
+          av_get_pix_fmt_name(image.AVPixFormat()), av_get_pix_fmt_name(dst_format));
+    return false;
+  }
+  const int scaled = sws_scale(sws_ctx, src->data, src->linesize, 0, height, dst->data, dst->linesize);
+  sws_freeContext(sws_ctx);
+  if (scaled <= 0) {
+    Error("Can't convert %s to %s for a websocket payload",
+          av_get_pix_fmt_name(image.AVPixFormat()), av_get_pix_fmt_name(dst_format));
+    return false;
+  }
+
+  const int size = av_image_get_buffer_size(dst_format, width, height, dst_align);
+  if (size <= 0) {
+    return false;
+  }
+  output->assign(static_cast<size_t>(size), '\0');
+  if (av_image_copy_to_buffer(reinterpret_cast<uint8_t *>(&(*output)[0]), size, dst->data, dst->linesize,
+                              dst_format, width, height, dst_align) < 0) {
+    output->clear();
+    return false;
+  }
+  *line_size = av_image_get_linesize(dst_format, width, 0);
+  if (dst_align > 1) *line_size = FFALIGN(*line_size, static_cast<uint32_t>(dst_align));
+  return true;
 }
 
 bool SendQueueHasRoom(size_t queued_bytes, size_t limit) {

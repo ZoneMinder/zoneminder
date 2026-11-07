@@ -3728,7 +3728,7 @@ int Monitor::Capture() {
       packet->notify_all();
     }
     Debug(2, "Have packet stream_index:%d ?= videostream_id: %d q.vpktcount %d event? %d image_count %d",
-          packet->packet->stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ), shared_data->image_count.load());
+          packet->packet->stream_index, video_stream_id.load(), packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ), shared_data->image_count.load());
 
     if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
       packet->packet->stream_index = video_stream_id; // Convert to packetQueue's index
@@ -5141,7 +5141,7 @@ int Monitor::PrimeCapture() {
   }
 
   Debug(2, "Video stream id is %d, audio is %d, minimum_packets to keep in buffer %d",
-        video_stream_id, audio_stream_id, pre_event_count);
+        video_stream_id.load(), audio_stream_id, pre_event_count);
 
   // The stream socket is served for every monitor; consumers connect on
   // demand and an idle socket costs nothing. The listener survives camera
@@ -5323,7 +5323,7 @@ int Monitor::Play() {
   }
 
   Debug(2, "Video stream id is %d, audio is %d, minimum_packets to keep in buffer %d",
-        video_stream_id, audio_stream_id, pre_event_count);
+        video_stream_id.load(), audio_stream_id, pre_event_count);
 
   // Re-publish the websocket video stream snapshot: Play() re-primes the camera
   // on the on-demand path without going through Monitor::PrimeCapture() (refs #2875).
@@ -5417,7 +5417,7 @@ void Monitor::get_ref_image() {
   std::shared_ptr<ZMPacket> packet = packet_lock.packet_;
 
   Debug(1, "get_ref_image: packet.stream %d ?= video_stream %d, packet image id %d packet image %p",
-        packet->packet->stream_index, video_stream_id, packet->image_index, packet->image );
+        packet->packet->stream_index, video_stream_id.load(), packet->image_index, packet->image );
   // Might not have been decoded yet FIXME
   if (packet->image) {
     ref_image.Assign(width, height, camera->Colours(),

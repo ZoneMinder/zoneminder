@@ -828,7 +828,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   AVPixelFormat *analysis_image_pixelformats;
   size_t shm_slot_size;  // per-slot byte capacity, sized to RGBA upper bound
 
-  int video_stream_id; // will be filled in PrimeCapture
+  // Filled in by PrimeCapture() and Play() on the capture thread, and read by
+  // the WebSocket thread, which outlives a reconnect (refs #2875).
+  std::atomic<int> video_stream_id;
   int audio_stream_id; // will be filled in PrimeCapture
   // Always-on media output; survives camera reconnects, freed in destructor
   std::unique_ptr<StreamSocket> stream_socket;

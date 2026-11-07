@@ -70,16 +70,30 @@ lets the web server terminate TLS (leave ``WEBSOCKET_TLS_CERT`` and
 ``WEBSOCKET_TLS_KEY`` unset and forward to the plaintext port), keeping private
 keys at the web server.
 
-nginx, mapping the id captured from the path to ``MIN_WEBSOCKET_PORT`` ``31000``
-plus that id:
+nginx, with ``MIN_WEBSOCKET_PORT`` ``31000``. nginx cannot add numbers either
+(``$a$b`` joins the strings, so ``31000`` and ``5`` would make ``310005``), so
+map each monitor id to its port, in the ``http`` block:
+
+.. code-block:: nginx
+
+   # MIN_WEBSOCKET_PORT + MonitorId for each monitor served
+   map $monitor_id $zm_ws_port {
+       5 31005;
+       6 31006;
+   }
+
+and in the ``server`` block:
 
 .. code-block:: nginx
 
    # /live/ws/5 -> 127.0.0.1:31005
    location ~ ^/live/ws/(?<monitor_id>\d+)$ {
-       # resolver needed because the upstream is computed at request time
-       set $ws_port 31000;
-       proxy_pass http://127.0.0.1:$ws_port$monitor_id/;
+       if ($zm_ws_port = "") {
+           return 404;
+       }
+       # With a variable in proxy_pass the URI is sent as written, so pass the
+       # query string on: it carries the token or auth hash.
+       proxy_pass http://127.0.0.1:$zm_ws_port/$is_args$args;
        proxy_http_version 1.1;
        proxy_set_header Upgrade $http_upgrade;
        proxy_set_header Connection "upgrade";

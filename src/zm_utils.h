@@ -209,7 +209,12 @@ class QueryParameter {
   explicit QueryParameter(std::string name) : name_(std::move(name)) {}
 
   const std::string &name() const { return name_; }
-  const std::string &firstValue() const { return values_[0]; }
+  // Empty for a parameter given with no value (?token=), which QueryString keeps
+  // with no values: has() is true for it, so callers would read past the end.
+  const std::string &firstValue() const {
+    static const std::string empty;
+    return values_.empty() ? empty : values_[0];
+  }
 
   const std::vector<std::string> &values() const { return values_; }
   size_t size() const { return values_.size(); }

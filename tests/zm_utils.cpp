@@ -404,6 +404,9 @@ TEST_CASE("QueryString") {
     REQUIRE(p != nullptr);
     REQUIRE(p->name() == "name1");
     REQUIRE(p->size() == 0);
+    // ?token= in a WebSocket or RTSP URL: has() is true, so the auth code reads
+    // firstValue(), which indexed an empty vector.
+    REQUIRE(p->firstValue().empty());
   }
 
   SECTION("no value and ampersand") {

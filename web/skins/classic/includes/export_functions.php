@@ -904,8 +904,13 @@ function exportEvents(
   // These come from the request and end up in file paths and shell commands, so only
   // word characters, '-' and '.' are kept.
   $export_root = preg_replace('/[^\w\-.]/', '', $export_root);
-  if (empty($export_root)) $export_root = 'zmExport';
+  // The regex strips path separators but keeps dots, so a bare '.' or '..'
+  // survived and let $export_root climb to the parent of ZM_DIR_EXPORTS, which
+  // was then chmod'd, written into, and tarred. Refuse a traversal component.
+  // refs GHSA-9hf5-jpww-rvpp
+  if (empty($export_root) or $export_root === '.' or $export_root === '..') $export_root = 'zmExport';
   $connkey = preg_replace('/[^\w\-.]/', '', $connkey);
+  if ($connkey === '.' or $connkey === '..') $connkey = '';
 
   $export_dir = ZM_DIR_EXPORTS.'/'.$export_root.($connkey?'_'.$connkey:'');
 

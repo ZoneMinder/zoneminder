@@ -1073,10 +1073,10 @@ bool Monitor::connect() {
   }
 #endif // ZM_MEM_MAPPED
 
-  {
-    std::lock_guard<std::mutex> shm_lock(websocket_shm_mutex);
-    shared_data = (SharedData *)mem_ptr;
-  }
+  // Held until the segment is initialised: the WebSocket thread reads and
+  // writes through shared_data and must not see it while it is being zeroed.
+  std::unique_lock<std::mutex> shm_lock(websocket_shm_mutex);
+  shared_data = (SharedData *)mem_ptr;
   trigger_data = (TriggerData *)((char *)shared_data + sizeof(SharedData));
   zone_scores = (int *)((unsigned long)trigger_data + sizeof(TriggerData));
   video_store_data = (VideoStoreData *)((unsigned long)zone_scores + (zone_count*sizeof(int)));
@@ -1211,6 +1211,7 @@ bool Monitor::connect() {
     SystemTimePoint now = std::chrono::system_clock::now();
     shared_data->heartbeat_time = std::chrono::system_clock::to_time_t(now);
     shared_data->valid = true;
+    shm_lock.unlock();
 
     ReloadLinkedMonitors();
     LoadActions();
@@ -1258,6 +1259,7 @@ bool Monitor::connect() {
     Error("Shared data not initialised by capture daemon for monitor %s", name.c_str());
     return false;
   }
+  if (shm_lock.owns_lock()) shm_lock.unlock();
   // image_buffer[] is constructed above with a hardcoded YUV420P placeholder
   // format because we don't yet know which AVPixelFormat zmc has written into
   // each SHM slot. Readers (zms, zma, etc.) MUST call ReadShmFrame() before

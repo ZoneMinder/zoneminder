@@ -899,7 +899,7 @@ bool MonitorWebSocketServer::handleFrame(Client *client, const websocket::Frame 
       if (!JsonExtractQuotedField(frame.payload, "format", &format)) {
         format = "jpeg";
       }
-      monitor->setLastViewed();
+      monitor->WebSocketSetLastViewed();
       Monitor::WebSocketPayload payload;
       if (!monitor->GetWebSocketImagePayload(format, &payload)) {
         if (!queueFrame(client, websocket::Opcode::TEXT, errorJson("Unable to fetch image payload"))) {
@@ -918,7 +918,7 @@ bool MonitorWebSocketServer::handleFrame(Client *client, const websocket::Frame 
       if (!JsonExtractQuotedField(frame.payload, "codec", &codec)) {
         codec = "mjpeg";
       }
-      monitor->setLastViewed();
+      monitor->WebSocketSetLastViewed();
 
       Monitor::WebSocketPayload payload;
       if (codec == "mjpeg") {
@@ -993,7 +993,7 @@ bool MonitorWebSocketServer::handleFrame(Client *client, const websocket::Frame 
         }
         freeClientResources(client);
         client->subscribe_stream = true;
-        monitor->setLastViewed();
+        monitor->WebSocketSetLastViewed();
         client->next_stream_at = std::chrono::steady_clock::now();
         if (client->stream_codec == "mjpeg") {
           client->stream_interval = Milliseconds(interval_ms);
@@ -1242,7 +1242,7 @@ void MonitorWebSocketServer::broadcastStreams(std::vector<Client> *clients, Time
     if ((client.fd < 0) || !client.handshake_complete || !client.subscribe_stream) {
       continue;
     }
-    monitor->setLastViewed();
+    monitor->WebSocketSetLastViewed();
     if (client.stream_codec == "mjpeg") {
       if ((client.next_stream_at.time_since_epoch().count() != 0) && (now < client.next_stream_at)) {
         continue;

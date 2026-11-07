@@ -1073,7 +1073,10 @@ bool Monitor::connect() {
   }
 #endif // ZM_MEM_MAPPED
 
-  shared_data = (SharedData *)mem_ptr;
+  {
+    std::lock_guard<std::mutex> shm_lock(websocket_shm_mutex);
+    shared_data = (SharedData *)mem_ptr;
+  }
   trigger_data = (TriggerData *)((char *)shared_data + sizeof(SharedData));
   zone_scores = (int *)((unsigned long)trigger_data + sizeof(TriggerData));
   video_store_data = (VideoStoreData *)((unsigned long)zone_scores + (zone_count*sizeof(int)));
@@ -1293,6 +1296,9 @@ bool Monitor::disconnect() {
     return true;
   }
 
+  // The WebSocket thread reads shared_data under this lock; see
+  // WebSocketImageCount(). Hold it until shared_data is cleared.
+  std::unique_lock<std::mutex> shm_lock(websocket_shm_mutex);
   if (purpose == CAPTURE) {
     if (unlink(mem_file.c_str()) < 0) {
       Warning("Can't unlink '%s': %s", mem_file.c_str(), strerror(errno));
@@ -1332,6 +1338,7 @@ bool Monitor::disconnect() {
   mem_ptr = nullptr;
   shared_data = nullptr;
 #endif // ZM_MEM_MAPPED
+  shm_lock.unlock();
 
   for (int32_t i = 0; i < image_buffer_count; i++) {
     // We delete the image because it is an object pointing to space that won't be free'd.
@@ -1794,7 +1801,7 @@ bool Monitor::GetWebSocketImagePayload(const std::string &format, WebSocketPaylo
   payload->format = format;
   payload->width = image->Width();
   payload->height = image->Height();
-  payload->image_count = shared_data ? shared_data->image_count : 0;
+  payload->image_count = WebSocketImageCount();
   payload->sequence = packet_lock.packet_->queue_index;
   payload->keyframe = false;
 
@@ -1923,7 +1930,7 @@ bool Monitor::GetNextWebSocketVideoPayload(packetqueue_iterator *it, const std::
   payload->line_size = 0;
   payload->colours = 0;
   payload->subpixel_order = 0;
-  payload->image_count = shared_data ? shared_data->image_count : 0;
+  payload->image_count = WebSocketImageCount();
   payload->sequence = packet_lock.packet_->queue_index;
   payload->keyframe = packet_lock.packet_->keyframe;
   payload->payload.clear();
@@ -1960,6 +1967,16 @@ zm::websocket::VideoStreamInfo::Availability Monitor::WebSocketVideoAvailability
     return zm::websocket::VideoStreamInfo::Availability::kOtherCodec;
   }
   return websocket_video_info.Check(requested_codec);
+}
+
+uint32_t Monitor::WebSocketImageCount() {
+  std::lock_guard<std::mutex> shm_lock(websocket_shm_mutex);
+  return shared_data ? shared_data->image_count : 0;
+}
+
+void Monitor::WebSocketSetLastViewed() {
+  std::lock_guard<std::mutex> shm_lock(websocket_shm_mutex);
+  setLastViewed();
 }
 
 void Monitor::FreeWebSocketIterator(packetqueue_iterator *it) {

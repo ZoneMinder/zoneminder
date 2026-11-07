@@ -955,6 +955,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   bool websocket_status_seen = false;
   zm::websocket::StatusSnapshot websocket_status_prev;
   std::mutex websocket_message_mutex;
+  // Held by connect() and disconnect() while they set and clear shared_data,
+  // and by the WebSocket thread while it reads or writes through it: that
+  // thread outlives a reconnect, which unmaps the segment (refs #2875).
+  std::mutex websocket_shm_mutex;
   std::vector<zm::websocket::QueuedEvent> websocket_messages;
   std::atomic<uint32_t> websocket_capture_bandwidth;
   // Owned snapshot of the capture video stream, published by the capture
@@ -1244,6 +1248,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   packetqueue_iterator *CreateWebSocketVideoIterator(const std::string &codec);
   bool GetNextWebSocketVideoPayload(packetqueue_iterator *it, const std::string &codec, WebSocketPayload *payload);
   void FreeWebSocketIterator(packetqueue_iterator *it);
+  // For the WebSocket thread: shared_data->image_count, and setLastViewed(),
+  // safe against a concurrent disconnect().
+  uint32_t WebSocketImageCount();
+  void WebSocketSetLastViewed();
   // Whether a passthrough stream of codec can be fed now; an unknown codec name
   // is kOtherCodec.
   zm::websocket::VideoStreamInfo::Availability WebSocketVideoAvailability(const std::string &codec) const;

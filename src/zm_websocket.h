@@ -63,8 +63,8 @@ void BlockSigpipeInThisThread();
 
 // zmLoadStaticConfig() and zmLoadDBConfig() overwrite the option values and the
 // strings behind them, which the WebSocket threads read while authenticating a
-// handshake. zmc holds this exclusively while it reloads the config, and a
-// WebSocket thread holds it shared while it reads the config for a handshake.
+// handshake or encoding a JPEG. zmc holds this exclusively while it reloads the
+// config, and a WebSocket thread holds it shared while it reads the config.
 std::shared_mutex &ConfigReloadMutex();
 
 // Whether a client whose send queue holds queued_bytes may queue more. The

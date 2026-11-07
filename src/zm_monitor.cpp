@@ -1639,6 +1639,9 @@ bool Monitor::GetWebSocketImagePayload(const std::string &format, WebSocketPaylo
     payload->subpixel_order = image->SubpixelOrder();
     Image image_copy;
     image_copy.Assign(*image);
+    // EncodeJpeg reads config.jpeg_stream_quality and colour_jpeg_files, which a
+    // reload in zmc replaces while this thread keeps running.
+    std::shared_lock<std::shared_mutex> config_lock(zm::websocket::ConfigReloadMutex());
     return encodeJpegImage(image_copy, &payload->payload);
   }
 

@@ -1450,6 +1450,12 @@ void Monitor::ReloadWebSocketServer() {
   }
 }
 
+void Monitor::SetSignal(bool signal) {
+  if (shared_data->signal == signal) return;
+  shared_data->signal = signal;
+  RefreshWebSocketStatus();
+}
+
 void Monitor::RefreshWebSocketStatus() {
   const bool connected = isConnected();
   const bool shm_valid = shared_data && shared_data->valid;
@@ -2414,6 +2420,7 @@ void Monitor::CheckAction() {
       if (Active()) {
         Info("Received suspend indication at count %d", shared_data->image_count.load());
         shared_data->analysing = ANALYSING_NONE;
+        RefreshWebSocketStatus();
       } else {
         Info("Received suspend indication at count %d, but wasn't active", shared_data->image_count.load());
       }
@@ -2426,6 +2433,7 @@ void Monitor::CheckAction() {
       if ( Enabled() && !Active() ) {
         Info("Received resume indication at count %d", shared_data->image_count.load());
         shared_data->analysing = analysing;
+        RefreshWebSocketStatus();
         // Analysis thread owns ref_image; ask it to drop the pre-suspend
         // reference rather than freeing the buffer under it here (refs #4983).
         ref_image_reset_ = true;
@@ -2441,6 +2449,7 @@ void Monitor::CheckAction() {
       Info("Auto resuming at count %d", shared_data->image_count.load());
       auto_resume_time = {};
       shared_data->analysing = analysing;
+      RefreshWebSocketStatus();
       // See RESUME above: defer the reference-image reset to the analysis thread.
       ref_image_reset_ = true;
     }
@@ -3656,7 +3665,7 @@ int Monitor::Capture() {
   if (captureResult < 0) {
     // Unable to capture image. zmc closes the monitor and reconnects, and
     // connect() clears the image ring.
-    shared_data->signal = false;
+    SetSignal(false);
     // With a decoder thread running, it is the ring's only writer: it picks
     // its slot from last_write_index, this thread from image_count, so both
     // could write the same slot or move last_write_index backwards. Viewers
@@ -3695,7 +3704,7 @@ int Monitor::Capture() {
     // (SignalCheckPoints). Writing true here as well made a lost-signal
     // picture flip back to "signal" between decoded frames.
     if (assume_signal_on_next_packet or !DecoderChecksSignal(decoding, signal_check_points, hasViewers())) {
-      shared_data->signal = true;
+      SetSignal(true);
       assume_signal_on_next_packet = false;
     }
     if (decoding == DECODING_NONE) {
@@ -4371,7 +4380,7 @@ bool Monitor::Decode() {
     Debug(5, "SHM WRITE packet=%d index=%u", packet->image_index, index);
     WriteShmFrame(index, capture_image);
     shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
-    shared_data->signal = signal_check_points ? CheckSignal(capture_image) : true;
+    SetSignal(signal_check_points ? CheckSignal(capture_image) : true);
     shared_data->last_write_index = index;
     shared_data->last_write_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
@@ -4514,6 +4523,7 @@ Event * Monitor::openEvent(
 
   shared_data->last_event_id = event->Id();
   strncpy(shared_data->alarm_cause, cause.c_str(), sizeof(shared_data->alarm_cause)-1);
+  RefreshWebSocketStatus();
 
 #if MOSQUITTOPP_FOUND
   if (mqtt) mqtt->send(stringtf("event start: %" PRId64, event->Id()));
@@ -4924,7 +4934,13 @@ void Monitor::SetState(State new_state) {
     std::lock_guard<std::mutex> lock(stream_event_mutex);
     stream_snapshot_state = new_state;
   }
-  if (new_state == prev_state or !stream_socket)
+  if (new_state == prev_state)
+    return;
+  // Pushed to WebSocket status subscribers now, not at the next once-a-second
+  // FPS update: an alarm would wait for it, and a state that came and went in
+  // between was never seen.
+  RefreshWebSocketStatus();
+  if (!stream_socket)
     return;
 
   zm::stream_socket::MonitorEvent ev;

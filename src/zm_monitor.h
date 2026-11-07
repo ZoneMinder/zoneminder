@@ -1237,7 +1237,12 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // was disabled, starts it when it was enabled, and leaves it (and its
   // connected clients) untouched when nothing relevant changed. zmc only.
   void ReloadWebSocketServer();
+  // Refreshes the WebSocket status from shared_data. Called on each change
+  // that matters for display (state, analysing, signal, connect) as it happens,
+  // and with the FPS update once a second.
   void RefreshWebSocketStatus();
+  // Sets shared_data->signal, refreshing the WebSocket status when it changes.
+  void SetSignal(bool signal);
   std::string GetWebSocketStatusJson();
   // Monotonic counter bumped by RefreshWebSocketStatus on a significant state
   // change. The websocket server pushes status when this advances (refs #2875).

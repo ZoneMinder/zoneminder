@@ -1609,7 +1609,48 @@ bool requestedWebSocketVideoCodec(const std::string &codec, AVCodecID *codec_id,
 
 }  // namespace
 
-bool Monitor::GetWebSocketImagePayload(const std::string &format, WebSocketPayload *payload) {
+void Monitor::PublishWebSocketImage(const Image &image, uint64_t sequence) {
+  const int64_t now = std::chrono::steady_clock::now().time_since_epoch().count();
+  if (websocket_image_wanted_until.load(std::memory_order_relaxed) < now) return;
+  std::lock_guard<std::mutex> image_lock(websocket_image_mutex);
+  websocket_latest_image.Assign(image);
+  websocket_latest_sequence = sequence;
+  websocket_latest_valid = true;
+}
+
+bool Monitor::TakeWebSocketImage(Image *image, uint64_t *sequence, Milliseconds keep_for) {
+  const TimePoint now = std::chrono::steady_clock::now();
+  const int64_t wanted_until = websocket_image_wanted_until.exchange(
+      (now + keep_for).time_since_epoch().count(), std::memory_order_relaxed);
+  {
+    std::lock_guard<std::mutex> image_lock(websocket_image_mutex);
+    // Nobody wanted images for a while, so the decoder stopped copying them and
+    // what is held is old.
+    if (wanted_until < now.time_since_epoch().count()) websocket_latest_valid = false;
+    if (websocket_latest_valid) {
+      image->Assign(websocket_latest_image);
+      *sequence = websocket_latest_sequence;
+      return true;
+    }
+  }
+
+  // The first request after a quiet spell: the decoder copies from its next
+  // frame on, so take the newest packet that still has its image. Only one the
+  // decoder has finished with: a capture path that attaches its image before
+  // queueing (LocalCamera) gets the privacy mask, orientation and timestamp
+  // from the decoder.
+  ZMPacketLock packet_lock = packetqueue.get_newest_packet(video_stream_id, [](const ZMPacket &packet) {
+    return packet.decoded && packet.image;
+  }, nullptr);
+  if (!packet_lock.packet_) {
+    return false;
+  }
+  image->Assign(*packet_lock.packet_->image);
+  *sequence = packet_lock.packet_->queue_index;
+  return true;
+}
+
+bool Monitor::GetWebSocketImagePayload(const std::string &format, WebSocketPayload *payload, Milliseconds keep_for) {
   if (!payload) {
     return false;
   }
@@ -1618,43 +1659,36 @@ bool Monitor::GetWebSocketImagePayload(const std::string &format, WebSocketPaylo
     return false;
   }
 
-  // Only a packet the decoder has finished with: a capture path that attaches
-  // its image before queueing (LocalCamera) gets the privacy mask, orientation
-  // and timestamp from the decoder.
-  ZMPacketLock packet_lock = packetqueue.get_newest_packet(video_stream_id, [](const ZMPacket &packet) {
-    return packet.decoded && packet.image;
-  }, nullptr);
-  if (!packet_lock.packet_) {
+  Image image;
+  uint64_t sequence = 0;
+  if (!TakeWebSocketImage(&image, &sequence, keep_for)) {
     return false;
   }
 
-  Image *image = packet_lock.packet_->image;
   payload->type = "image";
   payload->format = format;
-  payload->width = image->Width();
-  payload->height = image->Height();
+  payload->width = image.Width();
+  payload->height = image.Height();
   payload->image_count = WebSocketImageCount();
-  payload->sequence = packet_lock.packet_->queue_index;
+  payload->sequence = sequence;
   payload->keyframe = false;
 
   if (format == "jpeg") {
     payload->content_type = "image/jpeg";
     payload->line_size = 0;
-    payload->colours = image->Colours();
-    payload->subpixel_order = image->SubpixelOrder();
-    Image image_copy;
-    image_copy.Assign(*image);
+    payload->colours = image.Colours();
+    payload->subpixel_order = image.SubpixelOrder();
     // EncodeJpeg reads config.jpeg_stream_quality and colour_jpeg_files, which a
     // reload in zmc replaces while this thread keeps running.
     std::shared_lock<std::shared_mutex> config_lock(zm::websocket::ConfigReloadMutex());
-    return encodeJpegImage(image_copy, &payload->payload);
+    return encodeJpegImage(image, &payload->payload);
   }
 
   if (format == "rgba") {
     payload->content_type = "application/octet-stream";
     payload->colours = ZM_COLOUR_RGB32;
     payload->subpixel_order = ZM_SUBPIX_ORDER_RGBA;
-    return zm::websocket::EncodeRawImage(*image, AV_PIX_FMT_RGBA, 32, &payload->payload, &payload->line_size);
+    return zm::websocket::EncodeRawImage(image, AV_PIX_FMT_RGBA, 32, &payload->payload, &payload->line_size);
   }
 
   if (format == "yuv420p") {
@@ -1663,7 +1697,7 @@ bool Monitor::GetWebSocketImagePayload(const std::string &format, WebSocketPaylo
     payload->subpixel_order = 0;
     // Packed I420: the Y plane is height rows of line_size bytes, followed by the
     // U then V planes of (height + 1) / 2 rows of (line_size + 1) / 2 bytes.
-    return zm::websocket::EncodeRawImage(*image, AV_PIX_FMT_YUV420P, 1, &payload->payload, &payload->line_size);
+    return zm::websocket::EncodeRawImage(image, AV_PIX_FMT_YUV420P, 1, &payload->payload, &payload->line_size);
   }
 
   return false;
@@ -4400,6 +4434,7 @@ bool Monitor::Decode() {
     WriteShmFrame(index, capture_image);
     shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
     SetSignal(signal_check_points ? CheckSignal(capture_image) : true);
+    PublishWebSocketImage(*capture_image, packet->queue_index);
     shared_data->last_write_index = index;
     shared_data->last_write_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 

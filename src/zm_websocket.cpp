@@ -1329,7 +1329,8 @@ void MonitorWebSocketServer::broadcastStreams(std::vector<Client> *clients, Time
       }
 
       Monitor::WebSocketPayload payload;
-      if (monitor->GetWebSocketImagePayload("jpeg", &payload) && (payload.sequence != client.last_stream_sequence)) {
+      if (monitor->GetWebSocketImagePayload("jpeg", &payload, client.stream_interval + Milliseconds(5000))
+          && (payload.sequence != client.last_stream_sequence)) {
         payload.type = "stream";
         payload.format = "mjpeg";
         if (!sendImagePayload(&client, payload, "")) {

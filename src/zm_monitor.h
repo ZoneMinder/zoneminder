@@ -957,6 +957,16 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   bool websocket_status_seen = false;
   zm::websocket::StatusSnapshot websocket_status_prev;
   std::mutex websocket_message_mutex;
+  // The decoder's latest processed frame, copied for the WebSocket thread while
+  // a client has asked for images recently (websocket_image_wanted_until, in
+  // steady_clock ticks). Analyse() frees the images of non-keyframe packets
+  // when no event is open, so the packet queue alone would only offer the last
+  // keyframe's image (refs #2875).
+  std::mutex websocket_image_mutex;
+  Image websocket_latest_image;
+  uint64_t websocket_latest_sequence = 0;
+  bool websocket_latest_valid = false;
+  std::atomic<int64_t> websocket_image_wanted_until{0};
   // Held by connect() and disconnect() while they set and clear shared_data,
   // and by the WebSocket thread while it reads or writes through it: that
   // thread outlives a reconnect, which unmaps the segment (refs #2875).
@@ -1258,10 +1268,18 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   uint64_t GetWebSocketStatusGeneration() const { return websocket_status_generation.load(std::memory_order_relaxed); }
   void QueueWebSocketEvent(const std::string &event_type, const std::string &message);
   std::vector<zm::websocket::QueuedEvent> DrainWebSocketMessages();
-  bool GetWebSocketImagePayload(const std::string &format, WebSocketPayload *payload);
+  // keep_for: how long after this call the decoder should keep copying its
+  // latest processed frame for the WebSocket thread (an MJPEG subscription
+  // passes its interval plus a margin).
+  bool GetWebSocketImagePayload(const std::string &format, WebSocketPayload *payload,
+                                Milliseconds keep_for = Milliseconds(5000));
   packetqueue_iterator *CreateWebSocketVideoIterator(const std::string &codec);
   bool GetNextWebSocketVideoPayload(packetqueue_iterator *it, const std::string &codec, WebSocketPayload *payload);
   void FreeWebSocketIterator(packetqueue_iterator *it);
+  // Decoder side of websocket_latest_image: copies image when it is wanted.
+  void PublishWebSocketImage(const Image &image, uint64_t sequence);
+  // WebSocket side: copies the latest processed frame into *image.
+  bool TakeWebSocketImage(Image *image, uint64_t *sequence, Milliseconds keep_for);
   // For the WebSocket thread: shared_data->image_count, and setLastViewed(),
   // safe against a concurrent disconnect().
   uint32_t WebSocketImageCount();

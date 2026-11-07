@@ -412,6 +412,10 @@ unsigned int MonitorWebSocketPort(int base_port, unsigned int monitor_id) {
   return static_cast<unsigned int>(base_port) + monitor_id;
 }
 
+bool SendQueueHasRoom(size_t queued_bytes, size_t limit) {
+  return queued_bytes < limit;
+}
+
 std::shared_mutex &ConfigReloadMutex() {
   static std::shared_mutex mutex;
   return mutex;
@@ -1185,10 +1189,11 @@ void MonitorWebSocketServer::freeClientResources(Client *client) {
 }
 
 bool MonitorWebSocketServer::queueRaw(Client *client, std::string payload) {
-  if ((client->queued_bytes + payload.size()) > kMaxQueuedBytesPerClient) {
+  if (!websocket::SendQueueHasRoom(client->queued_bytes, kMaxQueuedBytesPerClient)) {
     Warning(
-        "Closing websocket client for monitor %u after queue exceeded %zu bytes",
+        "Closing websocket client for monitor %u: %zu bytes are waiting to be sent (limit %zu)",
         monitor->Id(),
+        client->queued_bytes,
         kMaxQueuedBytesPerClient);
     return false;
   }

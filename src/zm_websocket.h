@@ -67,6 +67,13 @@ void BlockSigpipeInThisThread();
 // WebSocket thread holds it shared while it reads the config for a handshake.
 std::shared_mutex &ConfigReloadMutex();
 
+// Whether a client whose send queue holds queued_bytes may queue more. The
+// limit is on the backlog already waiting, not on what is added: a raw rgba or
+// yuv420p frame above about 1080p is by itself bigger than the limit, and must
+// still go to a client that is keeping up. A client that is not keeping up
+// holds at most the limit plus one message.
+bool SendQueueHasRoom(size_t queued_bytes, size_t limit);
+
 // Formats the numeric IP of an accepted peer (the sockaddr accept() filled in),
 // or "" when it cannot be determined. An IPv4-mapped IPv6 address is reduced to
 // its plain dotted form so it matches the REMOTE_ADDR the web server would have

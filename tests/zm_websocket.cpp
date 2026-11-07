@@ -251,3 +251,13 @@ TEST_CASE("Websocket worker thread survives writing to a closed peer") {
   pthread_sigmask(SIG_BLOCK, nullptr, &main_mask);
   REQUIRE(sigismember(&main_mask, SIGPIPE) == 0);
 }
+
+TEST_CASE("Websocket send queue takes a frame bigger than its limit") {
+  const size_t limit = 8 * 1024 * 1024;
+  // A 2560x1440 rgba frame is 14.7 MB, queued after its small metadata frame.
+  REQUIRE(zm::websocket::SendQueueHasRoom(0, limit));
+  REQUIRE(zm::websocket::SendQueueHasRoom(200, limit));
+  // A client already this far behind is not keeping up.
+  REQUIRE_FALSE(zm::websocket::SendQueueHasRoom(limit, limit));
+  REQUIRE_FALSE(zm::websocket::SendQueueHasRoom(200 + 14745600, limit));
+}

@@ -976,6 +976,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // also picks up a certificate renewed in place.
   std::string websocket_active_cert_identity;
   std::string websocket_active_key_identity;
+  // OPT_USE_AUTH when the listener started. Clients are authenticated only in
+  // the handshake, so turning it on must drop the clients that connected without.
+  bool websocket_active_auth = false;
 
   // Used in check signal
   uint8_t red_val;

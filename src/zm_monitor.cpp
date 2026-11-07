@@ -1407,6 +1407,7 @@ bool Monitor::StartWebSocketServer() {
   websocket_active_key = tls_key;
   websocket_active_cert_identity = FileIdentity(tls_cert);
   websocket_active_key_identity = FileIdentity(tls_key);
+  websocket_active_auth = config.opt_use_auth;
   return true;
 }
 
@@ -1416,6 +1417,7 @@ void Monitor::StopWebSocketServer() {
   websocket_active_key.clear();
   websocket_active_cert_identity.clear();
   websocket_active_key_identity.clear();
+  websocket_active_auth = false;
   if (!websocket_server) {
     return;
   }
@@ -1441,17 +1443,20 @@ void Monitor::ReloadWebSocketServer() {
       && (desired_cert == websocket_active_cert)
       && (desired_key == websocket_active_key)
       && (FileIdentity(desired_cert) == websocket_active_cert_identity)
-      && (FileIdentity(desired_key) == websocket_active_key_identity)) {
+      && (FileIdentity(desired_key) == websocket_active_key_identity)
+      && (!running || (config.opt_use_auth == websocket_active_auth))) {
     return;
   }
 
-  Debug(1, "Monitor %u: reconciling websocket listener after reload (port %u->%u, tls %s->%s)",
+  Debug(1, "Monitor %u: reconciling websocket listener after reload (port %u->%u, tls %s->%s, auth %s->%s)",
         id, websocket_active_port, desired_port,
         websocket_active_cert.empty() ? "off" : "on",
-        desired_cert.empty() ? "off" : "on");
+        desired_cert.empty() ? "off" : "on",
+        websocket_active_auth ? "on" : "off",
+        config.opt_use_auth ? "on" : "off");
 
   // A deliberate reconfigure; connected clients are dropped so they reconnect
-  // against the new port/TLS.
+  // against the new port/TLS, and authenticate if authentication is now on.
   if (running) {
     StopWebSocketServer();
   }

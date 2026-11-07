@@ -67,12 +67,22 @@ void BlockSigpipeInThisThread();
 // config, and a WebSocket thread holds it shared while it reads the config.
 std::shared_mutex &ConfigReloadMutex();
 
-// Whether a client whose send queue holds queued_bytes may queue more. The
-// limit is on the backlog already waiting, not on what is added: a raw rgba or
-// yuv420p frame above about 1080p is by itself bigger than the limit, and must
-// still go to a client that is keeping up. A client that is not keeping up
-// holds at most the limit plus one message.
-bool SendQueueHasRoom(size_t queued_bytes, size_t limit);
+// What to do with output for a client whose send queue holds queued_bytes.
+// The limits are on the backlog already waiting, not on what is added: a raw
+// rgba or yuv420p frame above about 1080p is by itself bigger than the soft
+// limit, and must still go to a client that is keeping up, and a status update
+// or reply queued behind it must not count against that client.
+//   kResponse - a reply to the client's request, or an event: always queued
+//   kPeriodic - a status keepalive or MJPEG frame: waits while over the soft
+//               limit, and a later one goes out once the backlog drains
+//   kLive     - passthrough video: a client over the soft limit is not keeping
+//               up, and is closed, since its iterator holds back the packet queue
+// Past the hard limit the client is not reading at all, and is closed.
+enum class SendKind { kResponse, kPeriodic, kLive };
+enum class SendAction { kQueue, kDefer, kClose };
+constexpr size_t kSendQueueSoftLimit = 8 * 1024 * 1024;
+constexpr size_t kSendQueueHardLimit = 64 * 1024 * 1024;
+SendAction DecideSend(size_t queued_bytes, SendKind kind);
 
 // Converts image to dst_format for a raw payload, with rows dst_align bytes
 // apart, into *output, and sets *line_size to the first plane's row length.

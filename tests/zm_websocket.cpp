@@ -261,14 +261,25 @@ TEST_CASE("Websocket worker thread survives writing to a closed peer") {
   REQUIRE(sigismember(&main_mask, SIGPIPE) == 0);
 }
 
-TEST_CASE("Websocket send queue takes a frame bigger than its limit") {
-  const size_t limit = 8 * 1024 * 1024;
+TEST_CASE("Websocket send queue lets a large frame drain") {
+  using zm::websocket::DecideSend;
+  using zm::websocket::SendAction;
+  using zm::websocket::SendKind;
+  const size_t soft = zm::websocket::kSendQueueSoftLimit;
+  const size_t hard = zm::websocket::kSendQueueHardLimit;
   // A 2560x1440 rgba frame is 14.7 MB, queued after its small metadata frame.
-  REQUIRE(zm::websocket::SendQueueHasRoom(0, limit));
-  REQUIRE(zm::websocket::SendQueueHasRoom(200, limit));
-  // A client already this far behind is not keeping up.
-  REQUIRE_FALSE(zm::websocket::SendQueueHasRoom(limit, limit));
-  REQUIRE_FALSE(zm::websocket::SendQueueHasRoom(200 + 14745600, limit));
+  REQUIRE(DecideSend(200, SendKind::kResponse) == SendAction::kQueue);
+  const size_t after_frame = 200 + 14745600;
+  // A status keepalive due while it drains waits, rather than closing the client.
+  REQUIRE(DecideSend(after_frame, SendKind::kPeriodic) == SendAction::kDefer);
+  // A pong or a reply to the next request is queued behind it.
+  REQUIRE(DecideSend(after_frame, SendKind::kResponse) == SendAction::kQueue);
+  // Passthrough video for a client this far behind holds back the packet queue.
+  REQUIRE(DecideSend(after_frame, SendKind::kLive) == SendAction::kClose);
+  REQUIRE(DecideSend(soft - 1, SendKind::kLive) == SendAction::kQueue);
+  // A client that is not reading at all.
+  REQUIRE(DecideSend(hard, SendKind::kResponse) == SendAction::kClose);
+  REQUIRE(DecideSend(hard, SendKind::kPeriodic) == SendAction::kClose);
 }
 
 namespace {

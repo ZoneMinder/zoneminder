@@ -30,7 +30,6 @@ namespace {
 static constexpr const char *kWebSocketMagic = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 static constexpr size_t kMaxHandshakeSize = 16384;
 static constexpr size_t kMaxMessageSize = 1024 * 1024;
-static constexpr size_t kMaxQueuedBytesPerClient = 8 * 1024 * 1024;
 static constexpr size_t kMaxClientsPerMonitor = 32;
 static constexpr int kPollTimeoutMs = 100;
 // Shortest gap between change-driven status pushes to one client, so rapid
@@ -477,8 +476,15 @@ bool EncodeRawImage(const Image &image, AVPixelFormat dst_format, int dst_align,
   return true;
 }
 
-bool SendQueueHasRoom(size_t queued_bytes, size_t limit) {
-  return queued_bytes < limit;
+SendAction DecideSend(size_t queued_bytes, SendKind kind) {
+  if (queued_bytes >= kSendQueueHardLimit) return SendAction::kClose;
+  if (queued_bytes < kSendQueueSoftLimit) return SendAction::kQueue;
+  switch (kind) {
+    case SendKind::kResponse: return SendAction::kQueue;
+    case SendKind::kPeriodic: return SendAction::kDefer;
+    case SendKind::kLive: return SendAction::kClose;
+  }
+  return SendAction::kClose;
 }
 
 std::shared_mutex &ConfigReloadMutex() {
@@ -1254,12 +1260,12 @@ void MonitorWebSocketServer::freeClientResources(Client *client) {
 }
 
 bool MonitorWebSocketServer::queueRaw(Client *client, std::string payload) {
-  if (!websocket::SendQueueHasRoom(client->queued_bytes, kMaxQueuedBytesPerClient)) {
+  if (websocket::DecideSend(client->queued_bytes, websocket::SendKind::kResponse) == websocket::SendAction::kClose) {
     Warning(
         "Closing websocket client for monitor %u: %zu bytes are waiting to be sent (limit %zu)",
         monitor->Id(),
         client->queued_bytes,
-        kMaxQueuedBytesPerClient);
+        websocket::kSendQueueHardLimit);
     return false;
   }
   client->queued_bytes += payload.size();
@@ -1288,6 +1294,11 @@ void MonitorWebSocketServer::broadcastStatus(std::vector<Client> *clients, TimeP
     if (!keepalive_due && !(changed && coalesce_ok)) {
       continue;
     }
+    // Still sending something large (a raw frame): send the then-current
+    // status once it has drained.
+    if (websocket::DecideSend(client.queued_bytes, websocket::SendKind::kPeriodic) != websocket::SendAction::kQueue) {
+      continue;
+    }
     if (status.empty()) {
       status = monitor->GetWebSocketStatusJson();
     }
@@ -1310,6 +1321,10 @@ void MonitorWebSocketServer::broadcastStreams(std::vector<Client> *clients, Time
     monitor->WebSocketSetLastViewed();
     if (client.stream_codec == "mjpeg") {
       if ((client.next_stream_at.time_since_epoch().count() != 0) && (now < client.next_stream_at)) {
+        continue;
+      }
+      // Skip this frame while earlier output drains; the next one is newer.
+      if (websocket::DecideSend(client.queued_bytes, websocket::SendKind::kPeriodic) != websocket::SendAction::kQueue) {
         continue;
       }
 
@@ -1361,6 +1376,12 @@ void MonitorWebSocketServer::broadcastStreams(std::vector<Client> *clients, Time
 
     int packets_sent = 0;
     while (packets_sent < 64) {
+      if (websocket::DecideSend(client.queued_bytes, websocket::SendKind::kLive) == websocket::SendAction::kClose) {
+        Warning("Closing websocket client for monitor %u: it is not keeping up with the %s stream "
+                "(%zu bytes waiting to be sent)", monitor->Id(), client.stream_codec.c_str(), client.queued_bytes);
+        closeClient(&client);
+        break;
+      }
       Monitor::WebSocketPayload payload;
       if (!monitor->GetNextWebSocketVideoPayload(client.stream_it, client.stream_codec, &payload)) {
         break;

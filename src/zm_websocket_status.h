@@ -19,7 +19,10 @@
 #ifndef ZM_WEBSOCKET_STATUS_H
 #define ZM_WEBSOCKET_STATUS_H
 
+#include "zm_time.h"
+
 #include <cstdint>
+#include <string>
 
 namespace zm {
 namespace websocket {
@@ -72,6 +75,20 @@ inline bool StatusSignificantlyChanged(const StatusSnapshot &prev, const StatusS
          StatusFpsChanged(prev.capture_fps, cur.capture_fps) ||
          StatusFpsChanged(prev.analysis_fps, cur.analysis_fps) ||
          StatusBandwidthChanged(prev.capture_bandwidth, cur.capture_bandwidth);
+}
+
+// A capture event (connection_failed, capture_resumed, ...) for subscribers of
+// the events topic, with when it was queued.
+struct QueuedEvent {
+  TimePoint queued_at;
+  std::string json;
+};
+
+// Events queue up while nobody is subscribed. They are history to a client
+// that subscribes afterwards, with nothing to say they are old, so a client is
+// only sent events queued since it subscribed.
+inline bool EventIsNewTo(const QueuedEvent &event, TimePoint subscribed_at) {
+  return event.queued_at >= subscribed_at;
 }
 
 }  // namespace websocket

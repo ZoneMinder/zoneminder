@@ -1523,16 +1523,16 @@ void Monitor::QueueWebSocketEvent(const std::string &event_type, const std::stri
   if (websocket_messages.size() >= 64) {
     websocket_messages.erase(websocket_messages.begin());
   }
-  websocket_messages.push_back(stringtf(
+  websocket_messages.push_back({std::chrono::steady_clock::now(), stringtf(
       "{\"type\":\"event\",\"monitor_id\":%u,\"event\":\"%s\",\"message\":\"%s\"}",
       id,
       escape_json_string(event_type).c_str(),
-      escape_json_string(message).c_str()));
+      escape_json_string(message).c_str())});
 }
 
-std::vector<std::string> Monitor::DrainWebSocketMessages() {
+std::vector<zm::websocket::QueuedEvent> Monitor::DrainWebSocketMessages() {
   std::lock_guard<std::mutex> message_lock(websocket_message_mutex);
-  std::vector<std::string> drained;
+  std::vector<zm::websocket::QueuedEvent> drained;
   drained.swap(websocket_messages);
   return drained;
 }

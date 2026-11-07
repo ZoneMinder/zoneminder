@@ -108,3 +108,13 @@ TEST_CASE("Status change: bandwidth drift is coalesced, real shift pushes") {
   // From zero to streaming.
   REQUIRE(StatusBandwidthChanged(0, 50000));
 }
+
+TEST_CASE("Events queued before a client subscribed are not sent to it") {
+  const TimePoint subscribed = std::chrono::steady_clock::now();
+  const zm::websocket::QueuedEvent before{subscribed - Seconds(30), "{\"event\":\"capture_failed\"}"};
+  const zm::websocket::QueuedEvent at{subscribed, "{\"event\":\"capture_resumed\"}"};
+  const zm::websocket::QueuedEvent after{subscribed + Milliseconds(5), "{\"event\":\"capture_failed\"}"};
+  REQUIRE_FALSE(zm::websocket::EventIsNewTo(before, subscribed));
+  REQUIRE(zm::websocket::EventIsNewTo(at, subscribed));
+  REQUIRE(zm::websocket::EventIsNewTo(after, subscribed));
+}

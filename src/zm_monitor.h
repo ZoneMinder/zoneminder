@@ -955,7 +955,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   bool websocket_status_seen = false;
   zm::websocket::StatusSnapshot websocket_status_prev;
   std::mutex websocket_message_mutex;
-  std::vector<std::string> websocket_messages;
+  std::vector<zm::websocket::QueuedEvent> websocket_messages;
   std::atomic<uint32_t> websocket_capture_bandwidth;
   // Owned snapshot of the capture video stream, published by the capture
   // thread and read by the websocket server thread so that thread never
@@ -1239,7 +1239,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // change. The websocket server pushes status when this advances (refs #2875).
   uint64_t GetWebSocketStatusGeneration() const { return websocket_status_generation.load(std::memory_order_relaxed); }
   void QueueWebSocketEvent(const std::string &event_type, const std::string &message);
-  std::vector<std::string> DrainWebSocketMessages();
+  std::vector<zm::websocket::QueuedEvent> DrainWebSocketMessages();
   bool GetWebSocketImagePayload(const std::string &format, WebSocketPayload *payload);
   packetqueue_iterator *CreateWebSocketVideoIterator(const std::string &codec);
   bool GetNextWebSocketVideoPayload(packetqueue_iterator *it, const std::string &codec, WebSocketPayload *payload);

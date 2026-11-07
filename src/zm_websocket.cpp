@@ -1025,6 +1025,7 @@ bool MonitorWebSocketServer::handleFrame(Client *client, const websocket::Frame 
         }
       } else if (topic == "events") {
         client->subscribe_events = true;
+        client->events_subscribed_at = std::chrono::steady_clock::now();
         if (!queueFrame(client, websocket::Opcode::TEXT, statusAckJson(topic, 0))) {
           return false;
         }
@@ -1316,7 +1317,7 @@ void MonitorWebSocketServer::broadcastEvents(std::vector<Client> *clients) {
     return;
   }
 
-  const std::vector<std::string> events = monitor->DrainWebSocketMessages();
+  const std::vector<websocket::QueuedEvent> events = monitor->DrainWebSocketMessages();
   if (events.empty()) {
     return;
   }
@@ -1325,8 +1326,11 @@ void MonitorWebSocketServer::broadcastEvents(std::vector<Client> *clients) {
     if ((client.fd < 0) || !client.handshake_complete || !client.subscribe_events) {
       continue;
     }
-    for (const std::string &event : events) {
-      if (!queueFrame(&client, websocket::Opcode::TEXT, event)) {
+    for (const websocket::QueuedEvent &event : events) {
+      if (!websocket::EventIsNewTo(event, client.events_subscribed_at)) {
+        continue;
+      }
+      if (!queueFrame(&client, websocket::Opcode::TEXT, event.json)) {
         closeClient(&client);
         break;
       }

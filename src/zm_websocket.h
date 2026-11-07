@@ -121,6 +121,8 @@ class MonitorWebSocketServer {
     bool subscribe_status = false;
     bool subscribe_events = false;
     bool subscribe_stream = false;
+    // When this client subscribed to events; it is sent only events queued since.
+    TimePoint events_subscribed_at = {};
     Milliseconds status_interval = Milliseconds(1000);
     Milliseconds stream_interval = Milliseconds(1000);
     // next_status_at is the keepalive deadline: a status frame goes out by then

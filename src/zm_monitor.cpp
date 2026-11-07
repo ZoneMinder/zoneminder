@@ -1467,6 +1467,9 @@ void Monitor::SetSignal(bool signal) {
 }
 
 void Monitor::RefreshWebSocketStatus() {
+  // Capture, decode and analysis all refresh. Sampling under the lock keeps an
+  // older sample from being published after a newer one.
+  std::lock_guard<std::mutex> status_lock(websocket_status_mutex);
   const bool connected = isConnected();
   const bool shm_valid = shared_data && shared_data->valid;
   const double capture_fps = shared_data ? shared_data->capture_fps : 0.0;
@@ -1487,8 +1490,6 @@ void Monitor::RefreshWebSocketStatus() {
   if (current_state < (sizeof(State_Strings) / sizeof(State_Strings[0]))) {
     state_name = State_Strings[current_state].c_str();
   }
-
-  std::lock_guard<std::mutex> status_lock(websocket_status_mutex);
 
   // Bump the generation when anything that matters for display changed since
   // the last bump, so the websocket server can push status on change rather

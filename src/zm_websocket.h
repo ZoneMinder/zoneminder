@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <deque>
 #include <memory>
+#include <shared_mutex>
 #include <string>
 #include <thread>
 #include <vector>
@@ -59,6 +60,12 @@ unsigned int MonitorWebSocketPort(int base_port, unsigned int monitor_id);
 // with EPIPE instead. SIGPIPE from a write is directed at the writing thread,
 // so blocking it here leaves the rest of the process alone.
 void BlockSigpipeInThisThread();
+
+// zmLoadStaticConfig() and zmLoadDBConfig() overwrite the option values and the
+// strings behind them, which the WebSocket threads read while authenticating a
+// handshake. zmc holds this exclusively while it reloads the config, and a
+// WebSocket thread holds it shared while it reads the config for a handshake.
+std::shared_mutex &ConfigReloadMutex();
 
 // Formats the numeric IP of an accepted peer (the sockaddr accept() filled in),
 // or "" when it cannot be determined. An IPv4-mapped IPv6 address is reduced to

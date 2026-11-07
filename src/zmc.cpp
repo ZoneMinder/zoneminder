@@ -63,9 +63,11 @@ possible, this should run at more or less constant speed.
 #include "zm_stream_socket_protocol.h"
 #include "zm_time.h"
 #include "zm_utils.h"
+#include "zm_websocket.h"
 
 #include <getopt.h>
 #include <iostream>
+#include <shared_mutex>
 #include <unistd.h>
 #include <vector>
 
@@ -465,8 +467,13 @@ int main(int argc, char *argv[]) {
     }
 
     if (zm_reload) {
-      zmLoadStaticConfig();
-      zmLoadDBConfig();
+      {
+        // The WebSocket threads stay up across a reload and read the config
+        // while authenticating; keep them out until the new values are in place.
+        std::unique_lock<std::shared_mutex> config_lock(zm::websocket::ConfigReloadMutex());
+        zmLoadStaticConfig();
+        zmLoadDBConfig();
+      }
       for (std::shared_ptr<Monitor> &monitor : monitors) {
         monitor->Reload();
         // Pick up any change to the websocket listener's port or TLS material;

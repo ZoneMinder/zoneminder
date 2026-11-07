@@ -412,6 +412,11 @@ unsigned int MonitorWebSocketPort(int base_port, unsigned int monitor_id) {
   return static_cast<unsigned int>(base_port) + monitor_id;
 }
 
+std::shared_mutex &ConfigReloadMutex() {
+  static std::shared_mutex mutex;
+  return mutex;
+}
+
 void BlockSigpipeInThisThread() {
   sigset_t set;
   sigemptyset(&set);
@@ -827,6 +832,9 @@ bool MonitorWebSocketServer::handleHandshake(Client *client) {
     return false;
   }
 
+  // Authentication reads the auth options and user rows; hold off a config
+  // reload in zmc until it is done.
+  std::shared_lock<std::shared_mutex> config_lock(websocket::ConfigReloadMutex());
   if (config.opt_use_auth) {
     int http_status = 401;
     User *user = authenticateWebSocketRequest(request, monitor->Id(), client->peer_addr, &http_status);
@@ -842,6 +850,7 @@ bool MonitorWebSocketServer::handleHandshake(Client *client) {
     }
     delete user;
   }
+  config_lock.unlock();
 
   queueRaw(client, websocket::BuildHandshakeResponse(client_key));
   client->handshake_complete = true;

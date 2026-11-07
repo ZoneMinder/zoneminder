@@ -23,6 +23,7 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <functional>
 #include <list>
 #include <memory>
 #include <mutex>
@@ -111,6 +112,13 @@ class PacketQueue {
   ZMPacketLock get_packet_no_wait(packetqueue_iterator *);
   ZMPacketLock get_packet_and_increment_it(packetqueue_iterator *);
   packetqueue_iterator *get_video_it(bool wait);
+  // Returns the newest packet of stream_id for which match() holds, locked, or
+  // an empty lock. match() runs with the queue mutex held and the packet
+  // locked; a packet another thread holds is passed over. When it is given,
+  // *it is set to a new iterator on that packet, registered with the queue
+  // (free it with free_it()), or to nullptr.
+  ZMPacketLock get_newest_packet(int stream_id, const std::function<bool(const ZMPacket &)> &match,
+                                 packetqueue_iterator **it);
   void free_it(packetqueue_iterator *);
 
   packetqueue_iterator *get_event_start_packet_it(

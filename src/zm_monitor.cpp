@@ -1746,53 +1746,13 @@ bool Monitor::GetWebSocketImagePayload(const std::string &format, WebSocketPaylo
     return false;
   }
 
-  packetqueue_iterator *it = packetqueue.get_video_it(false);
-  if (!it) {
-    return false;
-  }
-
-  packetqueue_iterator *scan_it = packetqueue.get_video_it(false);
-  if (!scan_it) {
-    packetqueue.free_it(it);
-    return false;
-  }
-
-  bool have_image = false;
-  while (true) {
-    if (*scan_it == packetqueue.end()) {
-      break;
-    }
-
-    ZMPacketLock packet_lock = packetqueue.get_packet_no_wait(scan_it);
-    if (!packet_lock.packet_) {
-      if (!packetqueue.increment_it(scan_it, video_stream_id)) {
-        break;
-      }
-      continue;
-    }
-
-    if (packet_lock.packet_->packet &&
-        packet_lock.packet_->packet->stream_index == video_stream_id &&
-        packet_lock.packet_->image) {
-      *it = *scan_it;
-      have_image = true;
-    }
-
-    if (!packetqueue.increment_it(scan_it, video_stream_id)) {
-      break;
-    }
-  }
-
-  packetqueue.free_it(scan_it);
-
-  if (!have_image) {
-    packetqueue.free_it(it);
-    return false;
-  }
-
-  ZMPacketLock packet_lock = packetqueue.get_packet_no_wait(it);
-  packetqueue.free_it(it);
-  if (!packet_lock.packet_ || !packet_lock.packet_->image) {
+  // Only a packet the decoder has finished with: a capture path that attaches
+  // its image before queueing (LocalCamera) gets the privacy mask, orientation
+  // and timestamp from the decoder.
+  ZMPacketLock packet_lock = packetqueue.get_newest_packet(video_stream_id, [](const ZMPacket &packet) {
+    return packet.decoded && packet.image;
+  }, nullptr);
+  if (!packet_lock.packet_) {
     return false;
   }
 
@@ -1845,51 +1805,10 @@ packetqueue_iterator *Monitor::CreateWebSocketVideoIterator(const std::string &c
     return nullptr;
   }
 
-  packetqueue_iterator *it = packetqueue.get_video_it(false);
-  if (!it) {
-    return nullptr;
-  }
-
-  packetqueue_iterator *scan_it = packetqueue.get_video_it(false);
-  if (!scan_it) {
-    packetqueue.free_it(it);
-    return nullptr;
-  }
-
-  bool have_keyframe = false;
-
-  while (true) {
-    if (*scan_it == packetqueue.end()) {
-      break;
-    }
-
-    ZMPacketLock packet_lock = packetqueue.get_packet_no_wait(scan_it);
-    if (!packet_lock.packet_) {
-      if (!packetqueue.increment_it(scan_it, video_stream_id)) {
-        break;
-      }
-      continue;
-    }
-
-    if (packet_lock.packet_->packet &&
-        packet_lock.packet_->packet->stream_index == video_stream_id &&
-        packet_lock.packet_->keyframe) {
-      *it = *scan_it;
-      have_keyframe = true;
-    }
-
-    if (!packetqueue.increment_it(scan_it, video_stream_id)) {
-      break;
-    }
-  }
-
-  packetqueue.free_it(scan_it);
-
-  if (!have_keyframe) {
-    packetqueue.free_it(it);
-    return nullptr;
-  }
-
+  packetqueue_iterator *it = nullptr;
+  ZMPacketLock packet_lock = packetqueue.get_newest_packet(video_stream_id, [](const ZMPacket &packet) {
+    return packet.keyframe != 0;
+  }, &it);
   return it;
 }
 

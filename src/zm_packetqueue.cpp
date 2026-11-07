@@ -902,6 +902,27 @@ packetqueue_iterator * PacketQueue::get_video_it(bool wait) {
   return it;
 }  // get video_it
 
+ZMPacketLock PacketQueue::get_newest_packet(int stream_id, const std::function<bool(const ZMPacket &)> &match,
+                                            packetqueue_iterator **it) {
+  if (it) *it = nullptr;
+  std::lock_guard<std::mutex> lck(mutex);
+  if (deleting or zm_terminate) return ZMPacketLock();
+
+  for (auto rit = pktQueue.rbegin(); rit != pktQueue.rend(); ++rit) {
+    const std::shared_ptr<ZMPacket> &packet = *rit;
+    if (!packet or !packet->packet or (packet->packet->stream_index != stream_id)) continue;
+    ZMPacketLock packet_lock(packet);
+    if (!packet_lock.trylock()) continue;
+    if (!match(*packet)) continue;
+    if (it) {
+      *it = new packetqueue_iterator(std::prev(rit.base()));
+      iterators.push_back(*it);
+    }
+    return packet_lock;
+  }
+  return ZMPacketLock();
+}
+
 void PacketQueue::free_it(packetqueue_iterator *it) {
   std::lock_guard<std::mutex> lck(mutex);
   for (

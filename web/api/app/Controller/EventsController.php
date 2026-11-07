@@ -141,7 +141,7 @@ class EventsController extends AppController {
         $tag_filter_field = 'Name';
         unset($raw_params['Tags']);
       }
-      $conditions = $this->FilterComponent->buildFilter($raw_params);
+      $conditions = $this->FilterComponent->buildFilter($raw_params, array_merge(array_keys($this->Event->schema()), array('DateTime', 'GroupId')));
     }
     $settings = array(
       // https://github.com/ZoneMinder/ZoneMinder/issues/995
@@ -463,7 +463,7 @@ class EventsController extends AppController {
     }
 
     $this->FilterComponent = $this->Components->load('Filter');
-    $conditions = $this->FilterComponent->buildFilter($conditions);
+    $conditions = $this->FilterComponent->buildFilter($conditions, array_keys($this->Event->schema()));
     array_push($conditions, $find_conditions);
     array_push($conditions, $this->viewableMonitorCondition('Event.MonitorId'));
 
@@ -495,7 +495,7 @@ class EventsController extends AppController {
     $results = array();
     $this->FilterComponent = $this->Components->load('Filter');
     if ( $this->request->params['named'] ) {
-      $conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+      $conditions = $this->FilterComponent->buildFilter($this->request->params['named'], array_keys($this->Event->schema()));
     } else {
       $conditions = array();
     } 

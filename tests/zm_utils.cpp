@@ -219,6 +219,42 @@ TEST_CASE("JsonExtractQuotedField") {
   REQUIRE_FALSE(JsonExtractQuotedField("{\"command\":123}", "command", &value));
 }
 
+TEST_CASE("JsonExtractQuotedField reads only the field's own value") {
+  std::string value = "unchanged";
+  // The next string belongs to another field: a numeric command is not a command.
+  REQUIRE_FALSE(JsonExtractQuotedField("{\"command\":123,\"topic\":\"status\"}", "command", &value));
+  REQUIRE_FALSE(JsonExtractQuotedField("{\"command\":null,\"x\":\"y\"}", "command", &value));
+  REQUIRE(value == "unchanged");
+  // A key's name inside another field's string value is not that key.
+  REQUIRE(JsonExtractQuotedField("{\"request_id\":\"\\\"command\\\":\\\"x\\\"\",\"command\":\"stream\"}",
+                                 "command", &value));
+  REQUIRE(value == "stream");
+  // Nor is a key of a nested object.
+  REQUIRE(JsonExtractQuotedField("{\"opts\":{\"command\":\"inner\"},\"command\":\"outer\"}", "command", &value));
+  REQUIRE(value == "outer");
+  REQUIRE_FALSE(JsonExtractQuotedField("{\"opts\":{\"command\":\"inner\"}}", "command", &value));
+  REQUIRE(JsonExtractQuotedField("{ \"command\" : \"stream\" }", "command", &value));
+  REQUIRE(value == "stream");
+  REQUIRE_FALSE(JsonExtractQuotedField("{\"command\":\"unterminated}", "command", &value));
+  REQUIRE_FALSE(JsonExtractQuotedField("not json", "command", &value));
+}
+
+TEST_CASE("JsonExtractQuotedField decodes escapes") {
+  std::string value;
+  REQUIRE(JsonExtractQuotedField("{\"v\":\"a\\nb\\tc\\\\d\\/e\"}", "v", &value));
+  REQUIRE(value == "a\nb\tc\\d/e");
+  REQUIRE(JsonExtractQuotedField("{\"v\":\"caf\\u00e9\"}", "v", &value));
+  REQUIRE(value == "caf\xc3\xa9");
+  REQUIRE(JsonExtractQuotedField("{\"v\":\"\\u20ac\"}", "v", &value));
+  REQUIRE(value == "\xe2\x82\xac");
+  // A surrogate pair is one code point.
+  REQUIRE(JsonExtractQuotedField("{\"v\":\"\\ud83d\\ude00\"}", "v", &value));
+  REQUIRE(value == "\xf0\x9f\x98\x80");
+  REQUIRE_FALSE(JsonExtractQuotedField("{\"v\":\"\\ud83d\"}", "v", &value));
+  REQUIRE_FALSE(JsonExtractQuotedField("{\"v\":\"\\u12\"}", "v", &value));
+  REQUIRE_FALSE(JsonExtractQuotedField("{\"v\":\"\\q\"}", "v", &value));
+}
+
 TEST_CASE("JsonExtractIntegerField") {
   int value = 0;
   REQUIRE(JsonExtractIntegerField("{\"interval_ms\":1000}", "interval_ms", &value));
@@ -226,6 +262,21 @@ TEST_CASE("JsonExtractIntegerField") {
   REQUIRE(JsonExtractIntegerField("{\"interval_ms\":-25}", "interval_ms", &value));
   REQUIRE(value == -25);
   REQUIRE_FALSE(JsonExtractIntegerField("{\"interval_ms\":\"fast\"}", "interval_ms", &value));
+}
+
+TEST_CASE("JsonExtractIntegerField reads only the field's own value") {
+  int value = 7;
+  // The digits belong to another field.
+  REQUIRE_FALSE(JsonExtractIntegerField("{\"interval_ms\":\"fast\",\"request_id\":\"2000\"}", "interval_ms", &value));
+  REQUIRE_FALSE(JsonExtractIntegerField("{\"interval_ms\":true,\"n\":5}", "interval_ms", &value));
+  REQUIRE_FALSE(JsonExtractIntegerField("{\"interval_ms\":12abc}", "interval_ms", &value));
+  REQUIRE_FALSE(JsonExtractIntegerField("{\"interval_ms\":1-2}", "interval_ms", &value));
+  REQUIRE_FALSE(JsonExtractIntegerField("{\"interval_ms\":1.5}", "interval_ms", &value));
+  REQUIRE_FALSE(JsonExtractIntegerField("{\"interval_ms\":99999999999}", "interval_ms", &value));
+  REQUIRE(value == 7);
+  REQUIRE(JsonExtractIntegerField("{\"request_id\":\"\\\"interval_ms\\\":5\",\"interval_ms\": 250 }",
+                                  "interval_ms", &value));
+  REQUIRE(value == 250);
 }
 
 TEST_CASE("ExtractHeaderValue and HeaderContainsToken") {

@@ -110,74 +110,188 @@ std::pair<std::string, std::string> PairSplit(const std::string &str, char delim
   return std::make_pair(str.substr(0, pos), str.substr(pos + 1, std::string::npos));
 }
 
-bool JsonExtractQuotedField(const std::string &json, const std::string &field, std::string *value) {
-  std::string needle = "\"" + field + "\"";
-  size_t key_pos = json.find(needle);
-  if (key_pos == std::string::npos) {
-    return false;
-  }
+namespace {
 
-  size_t colon_pos = json.find(':', key_pos + needle.size());
-  if (colon_pos == std::string::npos) {
-    return false;
-  }
+void SkipJsonSpace(const std::string &json, size_t *pos) {
+  while (*pos < json.size() && (json[*pos] == ' ' || json[*pos] == '\t' || json[*pos] == '\n' || json[*pos] == '\r'))
+    ++*pos;
+}
 
-  size_t quote_start = json.find('"', colon_pos + 1);
-  if (quote_start == std::string::npos) {
-    return false;
-  }
-
-  std::string parsed_value;
-  bool escaping = false;
-  for (size_t i = quote_start + 1; i < json.size(); ++i) {
+bool ParseJsonHex4(const std::string &json, size_t pos, unsigned int *code) {
+  if (pos + 4 > json.size()) return false;
+  *code = 0;
+  for (size_t i = pos; i < pos + 4; ++i) {
     char c = json[i];
-    if (escaping) {
-      parsed_value.push_back(c);
-      escaping = false;
-      continue;
-    }
-    if (c == '\\') {
-      escaping = true;
-      continue;
-    }
+    unsigned int digit;
+    if (c >= '0' && c <= '9') digit = c - '0';
+    else if (c >= 'a' && c <= 'f') digit = c - 'a' + 10;
+    else if (c >= 'A' && c <= 'F') digit = c - 'A' + 10;
+    else return false;
+    *code = (*code << 4) | digit;
+  }
+  return true;
+}
+
+void AppendUtf8(unsigned int code, std::string *out) {
+  if (code < 0x80) {
+    out->push_back(static_cast<char>(code));
+  } else if (code < 0x800) {
+    out->push_back(static_cast<char>(0xC0 | (code >> 6)));
+    out->push_back(static_cast<char>(0x80 | (code & 0x3F)));
+  } else if (code < 0x10000) {
+    out->push_back(static_cast<char>(0xE0 | (code >> 12)));
+    out->push_back(static_cast<char>(0x80 | ((code >> 6) & 0x3F)));
+    out->push_back(static_cast<char>(0x80 | (code & 0x3F)));
+  } else {
+    out->push_back(static_cast<char>(0xF0 | (code >> 18)));
+    out->push_back(static_cast<char>(0x80 | ((code >> 12) & 0x3F)));
+    out->push_back(static_cast<char>(0x80 | ((code >> 6) & 0x3F)));
+    out->push_back(static_cast<char>(0x80 | (code & 0x3F)));
+  }
+}
+
+// Parses the JSON string starting at the quote at *pos, decoding its escapes,
+// and leaves *pos after the closing quote.
+bool ParseJsonString(const std::string &json, size_t *pos, std::string *value) {
+  if (*pos >= json.size() || json[*pos] != '"') return false;
+  std::string parsed;
+  for (size_t i = *pos + 1; i < json.size(); ++i) {
+    char c = json[i];
     if (c == '"') {
-      *value = parsed_value;
+      *value = parsed;
+      *pos = i + 1;
       return true;
     }
-    parsed_value.push_back(c);
+    if (static_cast<unsigned char>(c) < 0x20) return false;
+    if (c != '\\') {
+      parsed.push_back(c);
+      continue;
+    }
+    if (++i >= json.size()) return false;
+    switch (json[i]) {
+      case '"': parsed.push_back('"'); break;
+      case '\\': parsed.push_back('\\'); break;
+      case '/': parsed.push_back('/'); break;
+      case 'b': parsed.push_back('\b'); break;
+      case 'f': parsed.push_back('\f'); break;
+      case 'n': parsed.push_back('\n'); break;
+      case 'r': parsed.push_back('\r'); break;
+      case 't': parsed.push_back('\t'); break;
+      case 'u': {
+        unsigned int code;
+        if (!ParseJsonHex4(json, i + 1, &code)) return false;
+        i += 4;
+        if (code >= 0xD800 && code <= 0xDBFF) {
+          // A high surrogate must be followed by an escaped low one.
+          unsigned int low;
+          if (i + 2 >= json.size() || json[i + 1] != '\\' || json[i + 2] != 'u'
+              || !ParseJsonHex4(json, i + 3, &low) || low < 0xDC00 || low > 0xDFFF)
+            return false;
+          i += 6;
+          code = 0x10000 + ((code - 0xD800) << 10) + (low - 0xDC00);
+        } else if (code >= 0xDC00 && code <= 0xDFFF) {
+          return false;
+        }
+        AppendUtf8(code, &parsed);
+        break;
+      }
+      default:
+        return false;
+    }
   }
-
   return false;
 }
 
+// Skips the JSON value starting at *pos (after any whitespace). Containers are
+// matched by depth, with strings parsed so brackets inside them don't count.
+bool SkipJsonValue(const std::string &json, size_t *pos) {
+  SkipJsonSpace(json, pos);
+  if (*pos >= json.size()) return false;
+  std::string ignored;
+  if (json[*pos] == '"') return ParseJsonString(json, pos, &ignored);
+  if (json[*pos] == '{' || json[*pos] == '[') {
+    int depth = 0;
+    while (*pos < json.size()) {
+      char c = json[*pos];
+      if (c == '"') {
+        if (!ParseJsonString(json, pos, &ignored)) return false;
+        continue;
+      }
+      if (c == '{' || c == '[') {
+        ++depth;
+      } else if (c == '}' || c == ']') {
+        if (--depth == 0) {
+          ++*pos;
+          return true;
+        }
+      }
+      ++*pos;
+    }
+    return false;
+  }
+  // Number or literal: runs to the next delimiter.
+  size_t start = *pos;
+  while (*pos < json.size() && json[*pos] != ',' && json[*pos] != '}' && json[*pos] != ']'
+         && json[*pos] != ' ' && json[*pos] != '\t' && json[*pos] != '\n' && json[*pos] != '\r')
+    ++*pos;
+  return *pos > start;
+}
+
+// Finds field among the members of the top-level object and returns the
+// position of its value (after whitespace). Keys inside string values and
+// nested objects are not members, so they never match.
+bool FindJsonMember(const std::string &json, const std::string &field, size_t *value_pos) {
+  size_t pos = 0;
+  SkipJsonSpace(json, &pos);
+  if (pos >= json.size() || json[pos] != '{') return false;
+  ++pos;
+  SkipJsonSpace(json, &pos);
+  if (pos < json.size() && json[pos] == '}') return false;
+  while (pos < json.size()) {
+    std::string key;
+    SkipJsonSpace(json, &pos);
+    if (!ParseJsonString(json, &pos, &key)) return false;
+    SkipJsonSpace(json, &pos);
+    if (pos >= json.size() || json[pos] != ':') return false;
+    ++pos;
+    SkipJsonSpace(json, &pos);
+    if (key == field) {
+      *value_pos = pos;
+      return true;
+    }
+    if (!SkipJsonValue(json, &pos)) return false;
+    SkipJsonSpace(json, &pos);
+    if (pos >= json.size() || json[pos] != ',') return false;
+    ++pos;
+  }
+  return false;
+}
+
+}  // namespace
+
+bool JsonExtractQuotedField(const std::string &json, const std::string &field, std::string *value) {
+  size_t pos;
+  if (!FindJsonMember(json, field, &pos)) return false;
+  return ParseJsonString(json, &pos, value);
+}
+
 bool JsonExtractIntegerField(const std::string &json, const std::string &field, int *value) {
-  std::string needle = "\"" + field + "\"";
-  size_t key_pos = json.find(needle);
-  if (key_pos == std::string::npos) {
-    return false;
-  }
-
-  size_t colon_pos = json.find(':', key_pos + needle.size());
-  if (colon_pos == std::string::npos) {
-    return false;
-  }
-
-  size_t value_pos = json.find_first_of("-0123456789", colon_pos + 1);
-  if (value_pos == std::string::npos) {
-    return false;
-  }
-
-  size_t end_pos = value_pos;
-  while (end_pos < json.size() && ((json[end_pos] >= '0' && json[end_pos] <= '9') || json[end_pos] == '-')) {
-    ++end_pos;
-  }
-
+  size_t pos;
+  if (!FindJsonMember(json, field, &pos)) return false;
+  size_t end = pos;
+  if (end < json.size() && json[end] == '-') ++end;
+  size_t digits = end;
+  while (end < json.size() && json[end] >= '0' && json[end] <= '9') ++end;
+  if (end == digits) return false;
+  // The token must end at the value's boundary: 12abc, 1-2 and 1.5 are not integers.
+  size_t after = end;
+  SkipJsonSpace(json, &after);
+  if (after >= json.size() || (json[after] != ',' && json[after] != '}')) return false;
   try {
-    *value = std::stoi(json.substr(value_pos, end_pos - value_pos));
+    *value = std::stoi(json.substr(pos, end - pos));
   } catch (...) {
     return false;
   }
-
   return true;
 }
 

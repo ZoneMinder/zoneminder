@@ -1403,6 +1403,8 @@ bool Monitor::StartWebSocketServer() {
   websocket_active_port = websocket_port;
   websocket_active_cert = tls_cert;
   websocket_active_key = tls_key;
+  websocket_active_cert_identity = FileIdentity(tls_cert);
+  websocket_active_key_identity = FileIdentity(tls_key);
   return true;
 }
 
@@ -1410,6 +1412,8 @@ void Monitor::StopWebSocketServer() {
   websocket_active_port = 0;
   websocket_active_cert.clear();
   websocket_active_key.clear();
+  websocket_active_cert_identity.clear();
+  websocket_active_key_identity.clear();
   if (!websocket_server) {
     return;
   }
@@ -1427,11 +1431,15 @@ void Monitor::ReloadWebSocketServer() {
   const bool want_enabled = (desired_port != 0);
   const bool running = (websocket_server != nullptr);
 
-  // Nothing relevant changed: leave the listener and its clients alone.
+  // Nothing relevant changed: leave the listener and its clients alone. A
+  // certificate renewed at the same path counts as a change, or the listener
+  // would keep serving the old one until it expired.
   if ((running == want_enabled)
       && (desired_port == websocket_active_port)
       && (desired_cert == websocket_active_cert)
-      && (desired_key == websocket_active_key)) {
+      && (desired_key == websocket_active_key)
+      && (FileIdentity(desired_cert) == websocket_active_cert_identity)
+      && (FileIdentity(desired_key) == websocket_active_key_identity)) {
     return;
   }
 

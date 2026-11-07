@@ -20,6 +20,9 @@
 #include "zm_utils.h"
 
 #include <array>
+#include <cstdio>
+#include <fstream>
+#include <unistd.h>
 #include <atomic>
 #include <sstream>
 #include <thread>
@@ -700,4 +703,26 @@ TEST_CASE("url_for_log") {
     REQUIRE(out.find("pw") == std::string::npos);
     REQUIRE(out.find("eyJ") == std::string::npos);
   }
+}
+
+TEST_CASE("FileIdentity changes when a file is replaced at the same path") {
+  char dir_template[] = "/tmp/zm_file_identity_XXXXXX";
+  REQUIRE(mkdtemp(dir_template) != nullptr);
+  const std::string dir = dir_template;
+  const std::string path = dir + "/cert.pem";
+  const std::string renewed = dir + "/cert.pem.new";
+
+  REQUIRE(FileIdentity(path).empty());
+  { std::ofstream(path) << "old certificate"; }
+  const std::string original = FileIdentity(path);
+  REQUIRE_FALSE(original.empty());
+  REQUIRE(FileIdentity(path) == original);
+
+  // Renewal tools write the new file and rename it over the old one.
+  { std::ofstream(renewed) << "new certificate"; }
+  REQUIRE(rename(renewed.c_str(), path.c_str()) == 0);
+  REQUIRE(FileIdentity(path) != original);
+
+  unlink(path.c_str());
+  rmdir(dir.c_str());
 }

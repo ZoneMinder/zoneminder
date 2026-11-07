@@ -90,6 +90,11 @@ bool JsonExtractIntegerField(const std::string &json, const std::string &field, 
 bool ExtractHeaderValue(const std::string &request, const std::string &header_name, std::string *value);
 bool HeaderContainsToken(const std::string &header_value, const std::string &token);
 
+// Identifies the file at path (following symlinks) by device, inode, size and
+// modification time, so a caller can tell when it was replaced or rewritten
+// although its path is the same. Empty when the file can't be stat()ed.
+std::string FileIdentity(const std::string &path);
+
 std::string Join(const StringVector &values, const std::string &delim = ",");
 
 // The effective client address of a CGI request. X-Forwarded-For is only

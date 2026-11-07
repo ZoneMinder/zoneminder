@@ -338,6 +338,13 @@ bool HeaderContainsToken(const std::string &header_value, const std::string &tok
   return false;
 }
 
+std::string FileIdentity(const std::string &path) {
+  struct stat st;
+  if (path.empty() || (stat(path.c_str(), &st) != 0)) return "";
+  return stringtf("%ju:%ju:%jd:%jd", static_cast<uintmax_t>(st.st_dev), static_cast<uintmax_t>(st.st_ino),
+                  static_cast<intmax_t>(st.st_size), static_cast<intmax_t>(st.st_mtime));
+}
+
 std::string Join(const StringVector &values, const std::string &delim) {
   std::stringstream ss;
 

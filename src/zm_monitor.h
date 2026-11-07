@@ -970,6 +970,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   unsigned int websocket_active_port = 0;
   std::string websocket_active_cert;
   std::string websocket_active_key;
+  // FileIdentity() of the certificate and key when they were loaded, so a reload
+  // also picks up a certificate renewed in place.
+  std::string websocket_active_cert_identity;
+  std::string websocket_active_key_identity;
 
   // Used in check signal
   uint8_t red_val;

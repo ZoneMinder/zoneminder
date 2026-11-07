@@ -536,12 +536,13 @@ void MonitorWebSocketServer::Stop() {
     return;
   }
 
+  // The worker uses the listening socket until it sees running go false (poll
+  // times out every kPollTimeoutMs), so close it only once the worker is gone.
   running = false;
-  server.close();
-
   if (server_thread.joinable()) {
     server_thread.join();
   }
+  server.close();
 }
 
 void MonitorWebSocketServer::run() {

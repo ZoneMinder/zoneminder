@@ -464,6 +464,21 @@ void Logger::closeSyslog() {
   (void) closelog();
 }
 
+bool Logger::throttle(const char *file, int line, int key, Microseconds interval,
+                      uint64 &suppressed, TimePoint now) {
+  std::lock_guard<std::recursive_mutex> lck(log_mutex);
+  Throttle &state = mThrottles[{file, line, key}];
+  if (state.have_last && (now - state.last) < interval) {
+    state.suppressed++;
+    return false;
+  }
+  suppressed = state.suppressed;
+  state.suppressed = 0;
+  state.last = now;
+  state.have_last = true;
+  return true;
+}
+
 void Logger::logPrint(bool hex, const char *filepath, int line, int level, const char *fstring, ...) {
   if (level > mEffectiveLevel) return;
   if (level < AUDIT || level > DEBUG9)

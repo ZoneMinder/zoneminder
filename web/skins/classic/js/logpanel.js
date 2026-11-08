@@ -180,6 +180,11 @@ function initLogPanel(panel) {
         if (jqxhr.statusText === "plannedAbort") {
           updateRequestStatus("stopped");
         } else {
+          // A dead session returns 401 here; go to login rather than leave a dead table.
+          if (typeof authFailureAction === 'function' && authFailureAction(jqxhr.status) == 'login') {
+            goToLogin();
+            return;
+          }
           updateRequestStatus("error");
           zmAlert(i18n["Reason"] + ": " + jqxhr.statusText + "~~" + i18n["ErrorUpdatingLogTable"], i18n["AJAXRequestError"]);
         }

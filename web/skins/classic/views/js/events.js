@@ -73,6 +73,11 @@ function ajaxRequest(params) {
     error: function(jqXHR, textStatus, errorThrown) {
       // Every reload aborts the request in flight, so those are not failures.
       if (jqXHR.statusText == 'abort') return;
+      // A dead session returns 401 here; go to login rather than leave a dead table.
+      if (typeof authFailureAction === 'function' && authFailureAction(jqXHR.status) == 'login') {
+        goToLogin();
+        return;
+      }
       // Without this the table sits on "Loading, please wait" for good, which
       // is what a large result set exhausting the PHP memory limit looks like
       // from here: the request 500s and nothing ever says so. logAjaxFail only

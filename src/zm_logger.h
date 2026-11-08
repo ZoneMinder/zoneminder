@@ -23,7 +23,9 @@
 #include "zm_db.h"
 #include "zm_config.h"
 #include "zm_define.h"
+#include "zm_time.h"
 #include <atomic>
+#include <functional>
 #include <map>
 #include <mutex>
 #include <string>
@@ -128,6 +130,25 @@ class Logger {
   bool mHasTerminal;
   bool mFlush;
 
+  struct ThrottleKey {
+    const char *file;
+    int line;
+    int key;
+
+    bool operator<(const ThrottleKey &other) const {
+      if (std::less<const char *>()(file, other.file)) return true;
+      if (std::less<const char *>()(other.file, file)) return false;
+      if (line != other.line) return line < other.line;
+      return key < other.key;
+    }
+  };
+  struct Throttle {
+    TimePoint last;
+    uint64 suppressed = 0;
+    bool have_last = false;
+  };
+  std::map<ThrottleKey, Throttle> mThrottles;
+
  private:
   Logger();
   ~Logger();
@@ -213,6 +234,13 @@ class Logger {
                 int level,
                 const char *fstring,
                 ...) __attribute__((format(printf, 6, 7)));
+
+  // Admits at most one call per (file, line, key) per interval. True when the
+  // caller may emit, with suppressed set to the number of calls held back
+  // since the last one. False counts the call and leaves suppressed alone.
+  bool throttle(const char *file, int line, int key, Microseconds interval,
+                uint64 &suppressed,
+                TimePoint now = std::chrono::steady_clock::now());
 };
 
 void logInit(
@@ -244,6 +272,25 @@ inline Logger::Level logDebugging() {
     }                                                               \
   } while (0)
 
+// Like logPrintf, but emits at most once per interval per (file, line, key),
+// appending the number of calls held back since the last emission.
+#define logPrintfEvery(logLevel, interval, key, fmt, params...)              \
+  do {                                                                       \
+    Logger *log = Logger::fetch();                                           \
+    if (logLevel <= log->level()) {                                          \
+      uint64 zm_suppressed = 0;                                              \
+      if (log->throttle(__FILE__, __LINE__, key, interval, zm_suppressed)) { \
+        if (zm_suppressed > 0) {                                             \
+          log->logPrint(false, __FILE__, __LINE__, logLevel,                 \
+                        fmt " (%" PRIu64 " more since the last)",            \
+                        ##params, zm_suppressed);                            \
+        } else {                                                             \
+          log->logPrint(false, __FILE__, __LINE__, logLevel, fmt, ##params); \
+        }                                                                    \
+      }                                                                      \
+    }                                                                        \
+  } while (0)
+
 #define logHexdump(logLevel, data, len)                                       \
   do {                                                                        \
     Logger *log = Logger::fetch();                                            \
@@ -264,6 +311,8 @@ inline Logger::Level logDebugging() {
 /* Standard debug calls */
 #define Info(params...)   logPrintf(Logger::INFO, ##params)
 #define Warning(params...)  logPrintf(Logger::WARNING, ##params)
+#define WarningEvery(interval, key, params...) \
+  logPrintfEvery(Logger::WARNING, interval, key, ##params)
 #define Error(params...)  logPrintf(Logger::ERROR, ##params)
 #define Fatal(params...)  logPrintf(Logger::FATAL, ##params)
 #define Panic(params...)  logPrintf(Logger::PANIC, ##params)

@@ -118,3 +118,16 @@ TEST_CASE("Events queued before a client subscribed are not sent to it") {
   REQUIRE(zm::websocket::EventIsNewTo(at, subscribed));
   REQUIRE(zm::websocket::EventIsNewTo(after, subscribed));
 }
+
+TEST_CASE("A short image request does not cut another client's retention deadline") {
+  std::atomic<int64_t> wanted_until{0};
+  // Nobody had asked: the previous deadline is returned so the caller knows the
+  // held image is stale.
+  REQUIRE(zm::websocket::ExtendDeadline(&wanted_until, 65000) == 0);
+  REQUIRE(wanted_until == 65000);
+  // A one-shot request for 5 s while an MJPEG subscriber needs 65 s.
+  REQUIRE(zm::websocket::ExtendDeadline(&wanted_until, 5000) == 65000);
+  REQUIRE(wanted_until == 65000);
+  REQUIRE(zm::websocket::ExtendDeadline(&wanted_until, 70000) == 65000);
+  REQUIRE(wanted_until == 70000);
+}

@@ -21,6 +21,7 @@
 
 #include "zm_time.h"
 
+#include <atomic>
 #include <cstdint>
 #include <string>
 
@@ -89,6 +90,17 @@ struct QueuedEvent {
 // only sent events queued since it subscribed.
 inline bool EventIsNewTo(const QueuedEvent &event, TimePoint subscribed_at) {
   return event.queued_at >= subscribed_at;
+}
+
+// Moves *deadline out to until if that is later, and returns the deadline it
+// had. Clients ask for images to be kept for different spells (a one-shot
+// request for a few seconds, an MJPEG subscription for its interval), and a
+// short one must not cut short a longer one already running.
+inline int64_t ExtendDeadline(std::atomic<int64_t> *deadline, int64_t until) {
+  int64_t previous = deadline->load(std::memory_order_relaxed);
+  while (previous < until && !deadline->compare_exchange_weak(previous, until, std::memory_order_relaxed)) {
+  }
+  return previous;
 }
 
 }  // namespace websocket

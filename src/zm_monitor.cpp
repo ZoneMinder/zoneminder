@@ -1620,8 +1620,8 @@ void Monitor::PublishWebSocketImage(const Image &image, uint64_t sequence) {
 
 bool Monitor::TakeWebSocketImage(Image *image, uint64_t *sequence, Milliseconds keep_for) {
   const TimePoint now = std::chrono::steady_clock::now();
-  const int64_t wanted_until = websocket_image_wanted_until.exchange(
-      (now + keep_for).time_since_epoch().count(), std::memory_order_relaxed);
+  const int64_t wanted_until = zm::websocket::ExtendDeadline(&websocket_image_wanted_until,
+                                                             (now + keep_for).time_since_epoch().count());
   {
     std::lock_guard<std::mutex> image_lock(websocket_image_mutex);
     // Nobody wanted images for a while, so the decoder stopped copying them and

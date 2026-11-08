@@ -242,6 +242,28 @@ TEST_CASE("JsonExtractQuotedField reads only the field's own value") {
   REQUIRE_FALSE(JsonExtractQuotedField("not json", "command", &value));
 }
 
+TEST_CASE("JsonExtract refuses a request that is not one complete object") {
+  // A WebSocket command is only run when the whole message parses: a truncated
+  // or padded one is refused rather than acted on.
+  std::string value;
+  int number;
+  REQUIRE_FALSE(JsonExtractQuotedField("{\"command\":\"status\"", "command", &value));
+  REQUIRE_FALSE(JsonExtractQuotedField("{\"command\":\"status\",", "command", &value));
+  REQUIRE_FALSE(JsonExtractQuotedField("{\"command\":\"status\",}", "command", &value));
+  REQUIRE_FALSE(JsonExtractQuotedField("{\"command\":\"status\"}x", "command", &value));
+  REQUIRE_FALSE(JsonExtractQuotedField("{\"command\":\"status\"}{}", "command", &value));
+  REQUIRE_FALSE(JsonExtractQuotedField("{\"command\":\"status\",\"x\":{\"y\":[1,2}}", "command", &value));
+  REQUIRE_FALSE(JsonExtractQuotedField("{\"command\":\"status\",\"x\":[1,2}", "command", &value));
+  REQUIRE_FALSE(JsonExtractQuotedField("{\"command\":\"status\" \"topic\":\"x\"}", "command", &value));
+  REQUIRE_FALSE(JsonExtractIntegerField("{\"interval_ms\":250", "interval_ms", &number));
+  REQUIRE_FALSE(JsonExtractIntegerField("{\"interval_ms\":250,\"topic\":", "interval_ms", &number));
+
+  REQUIRE(JsonExtractQuotedField("{\"command\":\"status\",\"x\":{\"y\":[1,{\"z\":2}]}}\n", "command", &value));
+  REQUIRE(value == "status");
+  REQUIRE(JsonExtractIntegerField(" {\"topic\":\"stream\",\"interval_ms\":250} ", "interval_ms", &number));
+  REQUIRE(number == 250);
+}
+
 TEST_CASE("JsonExtractQuotedField decodes escapes") {
   std::string value;
   REQUIRE(JsonExtractQuotedField("{\"v\":\"a\\nb\\tc\\\\d\\/e\"}", "v", &value));

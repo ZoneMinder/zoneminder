@@ -210,7 +210,8 @@ bool SkipJsonValue(const std::string &json, size_t *pos) {
   std::string ignored;
   if (json[*pos] == '"') return ParseJsonString(json, pos, &ignored);
   if (json[*pos] == '{' || json[*pos] == '[') {
-    int depth = 0;
+    // The closers still owed, innermost last: {"a":[1} is not a value.
+    std::string closers;
     while (*pos < json.size()) {
       char c = json[*pos];
       if (c == '"') {
@@ -218,9 +219,11 @@ bool SkipJsonValue(const std::string &json, size_t *pos) {
         continue;
       }
       if (c == '{' || c == '[') {
-        ++depth;
+        closers.push_back(c == '{' ? '}' : ']');
       } else if (c == '}' || c == ']') {
-        if (--depth == 0) {
+        if (c != closers.back()) return false;
+        closers.pop_back();
+        if (closers.empty()) {
           ++*pos;
           return true;
         }
@@ -239,7 +242,8 @@ bool SkipJsonValue(const std::string &json, size_t *pos) {
 
 // Finds field among the members of the top-level object and returns the
 // position of its value (after whitespace). Keys inside string values and
-// nested objects are not members, so they never match.
+// nested objects are not members, so they never match. The whole message must
+// be that one object, so a truncated or padded request is not acted on.
 bool FindJsonMember(const std::string &json, const std::string &field, size_t *value_pos) {
   size_t pos = 0;
   SkipJsonSpace(json, &pos);
@@ -247,6 +251,7 @@ bool FindJsonMember(const std::string &json, const std::string &field, size_t *v
   ++pos;
   SkipJsonSpace(json, &pos);
   if (pos < json.size() && json[pos] == '}') return false;
+  bool found = false;
   while (pos < json.size()) {
     std::string key;
     SkipJsonSpace(json, &pos);
@@ -255,13 +260,19 @@ bool FindJsonMember(const std::string &json, const std::string &field, size_t *v
     if (pos >= json.size() || json[pos] != ':') return false;
     ++pos;
     SkipJsonSpace(json, &pos);
-    if (key == field) {
+    if (!found && key == field) {
       *value_pos = pos;
-      return true;
+      found = true;
     }
     if (!SkipJsonValue(json, &pos)) return false;
     SkipJsonSpace(json, &pos);
-    if (pos >= json.size() || json[pos] != ',') return false;
+    if (pos >= json.size()) return false;
+    if (json[pos] == '}') {
+      ++pos;
+      SkipJsonSpace(json, &pos);
+      return found && pos == json.size();
+    }
+    if (json[pos] != ',') return false;
     ++pos;
   }
   return false;

@@ -108,6 +108,10 @@ class PacketQueue {
 
   bool increment_it(packetqueue_iterator *it, bool wait);
   bool increment_it(packetqueue_iterator *it, int stream_id);
+  // Like increment_it(it, stream_id), but only when *it still points at packet,
+  // checked under the same lock. Returns false, leaving it where it is, when
+  // something (a clear() on reconnect) has moved it since packet was read.
+  bool increment_it_past(packetqueue_iterator *it, int stream_id, const std::shared_ptr<ZMPacket> &packet);
   ZMPacketLock get_packet(packetqueue_iterator *);
   ZMPacketLock get_packet_no_wait(packetqueue_iterator *);
   ZMPacketLock get_packet_and_increment_it(packetqueue_iterator *);
@@ -130,6 +134,8 @@ class PacketQueue {
   void wait();
   void wait_for(Microseconds duration);
  private:
+  // increment_it(it, stream_id) with mutex already held.
+  bool increment_it_locked(packetqueue_iterator *it, int stream_id);
   packetqueue_iterator deletePacket(packetqueue_iterator it, std::vector<std::shared_ptr<ZMPacket>> &deferred);
   packetqueue_iterator *start_on_keyframe(packetqueue_iterator *it, packetqueue_iterator snapshot_it);
 };

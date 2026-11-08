@@ -398,6 +398,21 @@ TEST_CASE("PacketQueue: get_newest_packet finds the newest matching video packet
     REQUIRE_FALSE(queue.is_there_an_iterator_pointing_to_packet(packets[3]));
   }
 
+  SECTION("advancing past a packet the iterator has since left does not move it") {
+    // The WebSocket server reads a packet, then advances its iterator past it.
+    // If a reconnect repositioned the iterator in between (onto the new
+    // stream's first keyframe), advancing would skip that keyframe.
+    packetqueue_iterator *it = nullptr;
+    ZMPacketLock lock = queue.get_newest_packet(0, [](const ZMPacket &p) { return p.keyframe != 0; }, &it);
+    REQUIRE(**it == packets[3]);
+    lock.unlock();
+    REQUIRE_FALSE(queue.increment_it_past(it, 0, packets[2]));
+    REQUIRE(**it == packets[3]);
+    REQUIRE(queue.increment_it_past(it, 0, packets[3]));
+    REQUIRE(**it == packets[4]);
+    queue.free_it(it);
+  }
+
   SECTION("nothing matches") {
     packetqueue_iterator *it = nullptr;
     ZMPacketLock lock = queue.get_newest_packet(0, [](const ZMPacket &) { return false; }, &it);

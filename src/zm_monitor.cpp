@@ -1743,12 +1743,15 @@ bool Monitor::GetNextWebSocketVideoPayload(packetqueue_iterator *it, const std::
     return false;
   }
 
+  // Each advance below names the packet read here: a reconnect can clear the
+  // queue and move it onto the new stream's first keyframe in between, and
+  // advancing then would skip that keyframe.
   ZMPacketLock packet_lock = packetqueue.get_packet_no_wait(it);
   if (!packet_lock.packet_ || !packet_lock.packet_->packet) {
     return false;
   }
   if (packet_lock.packet_->packet->stream_index != video_stream_id) {
-    packetqueue.increment_it(it, video_stream_id);
+    packetqueue.increment_it_past(it, video_stream_id, packet_lock.packet_);
     return false;
   }
 
@@ -1776,7 +1779,7 @@ bool Monitor::GetNextWebSocketVideoPayload(packetqueue_iterator *it, const std::
     if (!zm::websocket::LengthPrefixedToAnnexB(packet_lock.packet_->packet->data, packet_lock.packet_->packet->size,
                                                info.nal_length_size, &annexb)) {
       Debug(1, "Skipping a malformed length-prefixed %s packet for websocket passthrough", codec.c_str());
-      packetqueue.increment_it(it, video_stream_id);
+      packetqueue.increment_it_past(it, video_stream_id, packet_lock.packet_);
       return false;
     }
     payload->payload.append(annexb);
@@ -1785,7 +1788,7 @@ bool Monitor::GetNextWebSocketVideoPayload(packetqueue_iterator *it, const std::
         reinterpret_cast<const char *>(packet_lock.packet_->packet->data),
         packet_lock.packet_->packet->size);
   }
-  packetqueue.increment_it(it, video_stream_id);
+  packetqueue.increment_it_past(it, video_stream_id, packet_lock.packet_);
   return !payload->payload.empty();
 }
 

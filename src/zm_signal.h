@@ -41,6 +41,9 @@ typedef RETSIGTYPE (SigActionHandler)( int, siginfo_t *info, void *context );
 
 extern bool zm_reload;
 extern std::atomic<bool> zm_terminate;
+// Descriptor of the current per-process log file, published by the Logger so the
+// crash handler can write(2) to it; -1 when no log file is open.
+extern std::atomic<int> zm_crash_log_fd;
 
 RETSIGTYPE zmc_hup_handler( int signal );
 RETSIGTYPE zmc_term_handler( int signal );

@@ -436,6 +436,9 @@ void Logger::openFile() {
     if ( (mLogFileFP = fopen(mLogFile.c_str(), "a")) == nullptr ) {
       mFileLevel = NOLOG;
       Error("fopen() for %s %zu, error = %s", mLogFile.c_str(), mLogFile.size(), strerror(errno));
+    } else {
+      // Publish the descriptor for the crash handler to write(2) to directly.
+      zm_crash_log_fd = fileno(mLogFileFP);
     }
   } else {
     puts("Called Logger::openFile() without a filename");
@@ -444,6 +447,7 @@ void Logger::openFile() {
 
 void Logger::closeFile() {
   if (mLogFileFP) {
+    zm_crash_log_fd = -1;
     fflush(mLogFileFP);
     if (fclose(mLogFileFP) < 0) {
       mLogFileFP = nullptr;

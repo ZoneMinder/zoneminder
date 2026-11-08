@@ -69,6 +69,8 @@ class VideoStreamInfo {
     // Bytes in the length before each NAL unit in this stream's packets (an MP4
     // source), or 0 when the packets are already Annex-B (RTSP) or AV1.
     int nal_length_size = 0;
+    // Generation() when this snapshot was published.
+    uint64_t generation = 0;
   };
 
   // Publishes the parameters of an open video stream, copying extradata so the
@@ -87,6 +89,12 @@ class VideoStreamInfo {
   // after the lock is released. Returns false when no stream is published, the
   // published codec differs, or the monitor has Privacy zones.
   bool Get(AVCodecID requested_codec, Snapshot *out) const;
+
+  // Moves on with every Update() and Invalidate(). A reconnect invalidates the
+  // snapshot before the packet queue is cleared, so a packet read after a
+  // snapshot belongs to that snapshot's stream only if Generation() is still
+  // the snapshot's generation once the packet is held.
+  uint64_t Generation() const;
 
   // True when a valid stream is currently published, whatever its codec.
   bool Valid() const;
@@ -109,6 +117,7 @@ class VideoStreamInfo {
   mutable std::mutex mutex_;
   bool valid_ = false;
   bool privacy_masked_ = false;
+  uint64_t generation_ = 0;
   Snapshot snapshot_;
 };
 

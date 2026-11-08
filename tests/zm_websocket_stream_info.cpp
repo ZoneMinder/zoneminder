@@ -325,3 +325,30 @@ TEST_CASE("websocket passthrough is refused while the monitor has Privacy zones"
   REQUIRE(info.Check(AV_CODEC_ID_H264) == Availability::kAvailable);
   REQUIRE(info.Get(AV_CODEC_ID_H264, &snapshot));
 }
+
+TEST_CASE("websocket video stream info generation tells a packet from another stream", "[websocket]") {
+  // A passthrough read takes the snapshot, then a packet. A reconnect between
+  // the two invalidates the snapshot before it clears the queue, so the packet
+  // may be the new stream's; the generation having moved on shows it.
+  zm::websocket::VideoStreamInfo info;
+  AVCodecParameters *par = makeCodecpar(AV_CODEC_ID_H264, 1280, 720, "");
+  REQUIRE(par != nullptr);
+  info.Update(par, 0, 0);
+  avcodec_parameters_free(&par);
+  zm::websocket::VideoStreamInfo::Snapshot snapshot;
+  REQUIRE(info.Get(AV_CODEC_ID_H264, &snapshot));
+  REQUIRE(info.Generation() == snapshot.generation);
+
+  info.Invalidate();
+  REQUIRE(info.Generation() != snapshot.generation);
+
+  // Back with the same codec: still not the stream the snapshot describes.
+  par = makeCodecpar(AV_CODEC_ID_H264, 1280, 720, "");
+  REQUIRE(par != nullptr);
+  info.Update(par, 0, 0);
+  avcodec_parameters_free(&par);
+  REQUIRE(info.Generation() != snapshot.generation);
+  zm::websocket::VideoStreamInfo::Snapshot next;
+  REQUIRE(info.Get(AV_CODEC_ID_H264, &next));
+  REQUIRE(next.generation == info.Generation());
+}

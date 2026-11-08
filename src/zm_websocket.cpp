@@ -664,12 +664,19 @@ void VideoStreamInfo::Update(const AVCodecParameters *codecpar,
   std::lock_guard<std::mutex> lock(mutex_);
   valid_ = valid;
   snapshot_ = std::move(next);
+  snapshot_.generation = ++generation_;
 }
 
 void VideoStreamInfo::Invalidate() {
   std::lock_guard<std::mutex> lock(mutex_);
   valid_ = false;
   snapshot_ = Snapshot();
+  ++generation_;
+}
+
+uint64_t VideoStreamInfo::Generation() const {
+  std::lock_guard<std::mutex> lock(mutex_);
+  return generation_;
 }
 
 void LatestImage::MaskChanged() {

@@ -1749,6 +1749,13 @@ bool Monitor::GetNextWebSocketVideoPayload(packetqueue_iterator *it, const std::
   if (!packet_lock.packet_ || !packet_lock.packet_->packet) {
     return false;
   }
+  if (websocket_video_info.Generation() != info.generation) {
+    // A reconnect since the snapshot was read: this packet may be the new
+    // stream's, which info does not describe. Leave the iterator on it and
+    // read it again with the new snapshot.
+    Debug(1, "Websocket video stream changed while reading a %s packet; retrying", codec.c_str());
+    return false;
+  }
   if (packet_lock.packet_->packet->stream_index != video_stream_id) {
     packetqueue.increment_it_past(it, video_stream_id, packet_lock.packet_);
     return false;

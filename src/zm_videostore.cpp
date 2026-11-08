@@ -174,6 +174,7 @@ bool VideoStore::open() {
         return false;
       }
       avcodec_parameters_copy(video_out_stream->codecpar, video_in_stream->codecpar);
+      zm_clear_incompatible_codec_tag(oc->oformat, video_out_stream->codecpar);
       zm_dump_codecpar(video_out_stream->codecpar);
 
       video_out_stream->avg_frame_rate = video_in_stream->avg_frame_rate;
@@ -504,6 +505,7 @@ bool VideoStore::open() {
           return false;
         }
         avcodec_parameters_copy(video_out_stream->codecpar, video_in_stream->codecpar);
+        zm_clear_incompatible_codec_tag(oc->oformat, video_out_stream->codecpar);
         video_out_stream->avg_frame_rate = video_in_stream->avg_frame_rate;
         zm_dump_codecpar(video_out_stream->codecpar);
       } else {

@@ -26,8 +26,19 @@ if ( isset($_REQUEST['object']) ) {
     if ($action == 'Save') {
       # Name is only populated when creating a new layout
       if ( $_REQUEST['Name'] != '' ) {
-        $Layout = new ZM\MontageLayout();
-        $Layout->Name($_REQUEST['Name']);
+        # Saving under a name the user already has overwrites that layout. The
+        # built-in presets have no Positions and must not be overwritten.
+        $Layout = ZM\MontageLayout::find_one(array('Name'=>$_REQUEST['Name'], 'UserId'=>$user->Id()));
+        if ( $Layout and !$Layout->Positions() ) $Layout = null;
+        if ( !$Layout ) {
+          if ( ZM\MontageLayout::find_one(array('Name'=>$_REQUEST['Name'])) ) {
+            $error_message = 'A layout with that name already exists';
+            ZM\Warning($error_message);
+            return;
+          }
+          $Layout = new ZM\MontageLayout();
+          $Layout->Name($_REQUEST['Name']);
+        }
       } else {
         $Layout = new ZM\MontageLayout(validCardinal($_REQUEST['zmMontageLayout']));
       }

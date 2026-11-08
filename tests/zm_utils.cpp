@@ -264,6 +264,38 @@ TEST_CASE("JsonExtract refuses a request that is not one complete object") {
   REQUIRE(number == 250);
 }
 
+TEST_CASE("JsonExtract refuses a request with a malformed value anywhere in it") {
+  // Members the server does not read are still checked, so a message that is
+  // not JSON is not acted on.
+  std::string value;
+  for (const char *bad : {
+           "{\"command\":\"status\",\"x\":undefined}",
+           "{\"command\":\"status\",\"x\":tru}",
+           "{\"command\":\"status\",\"x\":[1,,2]}",
+           "{\"command\":\"status\",\"x\":[1,2,]}",
+           "{\"command\":\"status\",\"x\":[,]}",
+           "{\"command\":\"status\",\"x\":01}",
+           "{\"command\":\"status\",\"x\":1.}",
+           "{\"command\":\"status\",\"x\":.5}",
+           "{\"command\":\"status\",\"x\":1e}",
+           "{\"command\":\"status\",\"x\":+1}",
+           "{\"command\":\"status\",\"x\":{\"a\"}}",
+           "{\"command\":\"status\",\"x\":{1:2}}",
+           "{\"command\":\"status\",\"x\":{\"a\":1,}}",
+           "{\"command\":\"status\",\"x\":[\"a\" \"b\"]}"}) {
+    CAPTURE(bad);
+    REQUIRE_FALSE(JsonExtractQuotedField(bad, "command", &value));
+  }
+  // Nesting is limited, so a hostile message can't run the parser out of stack.
+  const std::string deep = "{\"command\":\"status\",\"x\":" + std::string(100, '[') + std::string(100, ']') + "}";
+  REQUIRE_FALSE(JsonExtractQuotedField(deep, "command", &value));
+
+  REQUIRE(JsonExtractQuotedField(
+      "{\"command\":\"status\",\"n\":-1.5e+3,\"z\":0,\"l\":[true,false,null,{\"k\":\"v\"}],\"e\":[],\"o\":{ }}",
+      "command", &value));
+  REQUIRE(value == "status");
+}
+
 TEST_CASE("JsonExtractQuotedField decodes escapes") {
   std::string value;
   REQUIRE(JsonExtractQuotedField("{\"v\":\"a\\nb\\tc\\\\d\\/e\"}", "v", &value));

@@ -202,42 +202,82 @@ bool ParseJsonString(const std::string &json, size_t *pos, std::string *value) {
   return false;
 }
 
-// Skips the JSON value starting at *pos (after any whitespace). Containers are
-// matched by depth, with strings parsed so brackets inside them don't count.
-bool SkipJsonValue(const std::string &json, size_t *pos) {
-  SkipJsonSpace(json, pos);
-  if (*pos >= json.size()) return false;
-  std::string ignored;
-  if (json[*pos] == '"') return ParseJsonString(json, pos, &ignored);
-  if (json[*pos] == '{' || json[*pos] == '[') {
-    // The closers still owed, innermost last: {"a":[1} is not a value.
-    std::string closers;
-    while (*pos < json.size()) {
-      char c = json[*pos];
-      if (c == '"') {
-        if (!ParseJsonString(json, pos, &ignored)) return false;
-        continue;
-      }
-      if (c == '{' || c == '[') {
-        closers.push_back(c == '{' ? '}' : ']');
-      } else if (c == '}' || c == ']') {
-        if (c != closers.back()) return false;
-        closers.pop_back();
-        if (closers.empty()) {
-          ++*pos;
-          return true;
-        }
-      }
-      ++*pos;
-    }
+// Deeper nesting is refused, so a hostile message can't exhaust the stack.
+constexpr int kMaxJsonDepth = 32;
+
+bool SkipJsonDigits(const std::string &json, size_t *pos) {
+  const size_t start = *pos;
+  while (*pos < json.size() && json[*pos] >= '0' && json[*pos] <= '9') ++*pos;
+  return *pos > start;
+}
+
+// A JSON number: -?(0|[1-9][0-9]*)(.[0-9]+)?([eE][+-]?[0-9]+)?
+bool SkipJsonNumber(const std::string &json, size_t *pos) {
+  if (*pos < json.size() && json[*pos] == '-') ++*pos;
+  if (*pos < json.size() && json[*pos] == '0') {
+    ++*pos;
+  } else if (!SkipJsonDigits(json, pos)) {
     return false;
   }
-  // Number or literal: runs to the next delimiter.
-  size_t start = *pos;
-  while (*pos < json.size() && json[*pos] != ',' && json[*pos] != '}' && json[*pos] != ']'
-         && json[*pos] != ' ' && json[*pos] != '\t' && json[*pos] != '\n' && json[*pos] != '\r')
+  if (*pos < json.size() && json[*pos] == '.') {
     ++*pos;
-  return *pos > start;
+    if (!SkipJsonDigits(json, pos)) return false;
+  }
+  if (*pos < json.size() && (json[*pos] == 'e' || json[*pos] == 'E')) {
+    ++*pos;
+    if (*pos < json.size() && (json[*pos] == '+' || json[*pos] == '-')) ++*pos;
+    if (!SkipJsonDigits(json, pos)) return false;
+  }
+  return true;
+}
+
+// Skips the JSON value starting at *pos (after any whitespace), checking it
+// against the JSON grammar, nested objects and arrays included.
+bool SkipJsonValue(const std::string &json, size_t *pos, int depth = 0) {
+  SkipJsonSpace(json, pos);
+  if (*pos >= json.size()) return false;
+  const char c = json[*pos];
+  if (c == '"') {
+    std::string ignored;
+    return ParseJsonString(json, pos, &ignored);
+  }
+  if (c == '{' || c == '[') {
+    if (depth >= kMaxJsonDepth) return false;
+    const bool object = c == '{';
+    const char close = object ? '}' : ']';
+    ++*pos;
+    SkipJsonSpace(json, pos);
+    if (*pos < json.size() && json[*pos] == close) {
+      ++*pos;
+      return true;
+    }
+    while (true) {
+      if (object) {
+        std::string key;
+        SkipJsonSpace(json, pos);
+        if (!ParseJsonString(json, pos, &key)) return false;
+        SkipJsonSpace(json, pos);
+        if (*pos >= json.size() || json[*pos] != ':') return false;
+        ++*pos;
+      }
+      if (!SkipJsonValue(json, pos, depth + 1)) return false;
+      SkipJsonSpace(json, pos);
+      if (*pos >= json.size()) return false;
+      if (json[*pos] == close) {
+        ++*pos;
+        return true;
+      }
+      if (json[*pos] != ',') return false;
+      ++*pos;
+    }
+  }
+  for (const char *literal : {"true", "false", "null"}) {
+    if (json.compare(*pos, strlen(literal), literal) == 0) {
+      *pos += strlen(literal);
+      return true;
+    }
+  }
+  return SkipJsonNumber(json, pos);
 }
 
 // Finds field among the members of the top-level object and returns the

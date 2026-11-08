@@ -424,20 +424,10 @@ sub delete {
 
     my $in_transaction = $ZoneMinder::Database::dbh->{AutoCommit} ? 0 : 1;
 
-    # Storage[Id] is taken first, before anything per-monitor. It is the only
-    # row here shared across monitors, so it has to be the coarsest lock in the
-    # order. Taking it last (as the old lock_and_load did, after the deletes
-    # had already X-locked Event_Summaries[MonitorId]) meant a batch deleting
-    # events for monitor A held Event_Summaries[A] and waited on Storage, while
-    # a concurrent batch on monitor B held Storage and waited on
-    # Event_Summaries[B]: an ABBA cycle. It only bites when the caller manages
-    # the transaction, because then the deletes have not committed and their
-    # locks are still held when Storage is requested.
-    #
     # InnoDB X-locks the matched Events row during WHERE evaluation, before
     # either BEFORE or AFTER trigger bodies fire, so the lock acquisition
     # order is the same regardless of trigger timing:
-    #   Storage[Id] -> Events[Id] -> Events_Hour/Day/Week/Month[EventId] -> Event_Summaries[MonitorId]
+    #   Events[Id] -> Events_Hour/Day/Week/Month[EventId] -> Event_Summaries[MonitorId]
     # event_delete_trigger (BEFORE DELETE on Events) and event_update_trigger
     # (AFTER UPDATE on Events) both propagate into the bucket tables, whose
     # own triggers then UPDATE Event_Summaries — that's the canonical chain.
@@ -474,36 +464,15 @@ sub delete {
         $ZoneMinder::Database::dbh->begin_work();
       }
 
+      # Order: Stats -> Event_Data -> Frames -> Events (least to greatest reference depth)
       my $err = 0;
       my $errstr = '';
-      my $reclaimed = 0;
-
-      # Reclaim the disk usage FIRST, so the shared Storage row is locked ahead
-      # of the per-monitor rows the deletes below touch. Doing it afterwards
-      # meant a batch could hold Event_Summaries[MonitorId] while waiting on
-      # Storage, while a concurrent batch held Storage and waited on
-      # Event_Summaries. Reclaiming here also puts it inside the transaction,
-      # so it rolls back with the deletes rather than being applied after them.
-      # See ZoneMinder::Storage::adjust_diskspace for why this is a relative
-      # single statement rather than a read-modify-write.
-      if ($reclaim and $storage->Id()) {
-        $storage->adjust_diskspace(-$reclaim);
-        $err = $ZoneMinder::Database::dbh->err() // 0;
-        if ($err) {
-          $errstr = $ZoneMinder::Database::dbh->errstr() // '';
-        } else {
-          $reclaimed = 1;
-        }
-      }
-
-      # Order: Stats -> Event_Data -> Frames -> Events (least to greatest reference depth)
       foreach my $sql (
         'DELETE FROM Stats WHERE EventId=?',
         'DELETE FROM Event_Data WHERE EventId=?',
         'DELETE FROM Frames WHERE EventId=?',
         'DELETE FROM Events WHERE Id=?',
       ) {
-        last if $err;
         ZoneMinder::Database::zmDbDo($sql, $$event{Id});
         $err = $ZoneMinder::Database::dbh->err() // 0;
         if ($err) {
@@ -513,22 +482,23 @@ sub delete {
         }
       }
 
+      if (!$err and !$in_transaction and $reclaim) {
+        # Reclaim inside our own transaction, after the deletes succeed, so it
+        # commits or rolls back with them and is retried on deadlock. A relative
+        # single statement, see ZoneMinder::Storage::adjust_diskspace.
+        $storage->adjust_diskspace(-$reclaim);
+        $err = $ZoneMinder::Database::dbh->err() // 0;
+        if ($err) {
+          $errstr = $ZoneMinder::Database::dbh->errstr() // '';
+        }
+      }
+
       if (!$err) {
         $ZoneMinder::Database::dbh->commit() if !$in_transaction;
         last;
       }
 
       $ZoneMinder::Database::dbh->rollback() if !$in_transaction;
-
-      # That rollback undoes the reclaim when we own the transaction. When the
-      # caller owns it we cannot roll back, and zmfilter ignores what delete()
-      # returns and commits regardless (scripts/zmfilter.pl.in), so a reclaim
-      # left standing would commit a DiskSpace decrement for an event that is
-      # still there. Put it back.
-      if ($reclaimed and $in_transaction) {
-        $storage->adjust_diskspace($reclaim);
-      }
-
       if ($in_transaction or $err != 1213 or $attempt >= $max_attempts) { # 1213 = ER_LOCK_DEADLOCK
         # Surface the final failure ourselves — zmDbDo suppresses its Error
         # log on 1213 inside a caller-managed TX (we own the retry), and the
@@ -540,6 +510,13 @@ sub delete {
       Debug("Deadlock deleting event $$event{Id} attempt $attempt/$max_attempts, retrying");
       select(undef, undef, undef, 0.05 * (1 << $attempt) + rand(0.05));
     }
+
+    # Relative, single-statement adjustment.  A lock_and_load + save here would
+    # be a read-modify-write whose FOR UPDATE lock is dropped the moment the
+    # SELECT autocommits, so the absolute value it then writes clobbers any
+    # adjustment zmc or another filter made in between.
+    # See ZoneMinder::Storage::adjust_diskspace.
+    $storage->adjust_diskspace(-$reclaim) if $in_transaction and $reclaim;
   }
 
   if ( $event->Storage()->DoDelete() ) {

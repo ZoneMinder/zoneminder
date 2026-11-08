@@ -656,6 +656,13 @@ endif()
 
 
 find_package(GSOAP 2.8.91)
+# The gsoap plugins are built against OpenSSL whatever the crypto backend
+if (GSOAP_FOUND)
+  find_package(OpenSSL)
+  if (NOT OPENSSL_FOUND OR NOT GSOAP_SSL_CXX_LIBRARIES)
+    set(GSOAP_FOUND FALSE)
+  endif()
+endif()
 if (GSOAP_FOUND)
   set(optlibsfound "${optlibsfound} gsoap")
 else()

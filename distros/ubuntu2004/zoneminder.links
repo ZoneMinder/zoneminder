@@ -1,1 +1,2 @@
 /var/cache/zoneminder/temp  /usr/share/zoneminder/www/api/app/tmp
+/usr/share/javascript/leaflet /usr/share/zoneminder/www/js/leaflet

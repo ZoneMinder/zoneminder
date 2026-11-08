@@ -1,5 +1,6 @@
 <?php
 App::uses('AppController', 'Controller');
+require_once __DIR__ .'/../../../includes/Event.php';
 /**
  * EventData Controller
  *
@@ -18,7 +19,7 @@ class EventDataController extends AppController {
     parent::beforeFilter();
     global $user;
     # We already tested for auth in appController, so we just need to test for specific permission
-    $canView = (!$user) || ($user->Events() != 'None');
+    $canView = (!$user) || ($user->canView('Events'));
     if (!$canView) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
@@ -30,7 +31,7 @@ class EventDataController extends AppController {
   # user denied a monitor cannot alter that monitor's event data by Id.
   private function requireEventDataEdit($id) {
     global $user;
-    if ( $user and ($user->Events() != 'Edit') ) {
+    if ( $user and (!$user->canEdit('Events')) ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
     }
     $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : null;
@@ -46,6 +47,35 @@ class EventDataController extends AppController {
     }
   }
 
+  # Event_Data being added or re-pointed names its event and monitor in the request
+  # data. Require edit on that event and access to that monitor, or a user could
+  # attach data to a denied monitor's event.
+  private function requireRequestEventDataEdit($required) {
+    $data = $this->request->data;
+    if (isset($data['EventData']) and is_array($data['EventData'])) $data = $data['EventData'];
+    if (!isset($data['EventId'])) {
+      if ($required) throw new BadRequestException(__('EventId is required'));
+    } else {
+      $this->loadModel('Event');
+      $this->Event->recursive = -1;
+      $event = $this->Event->find('first', array('conditions' => array('Event.Id' => $data['EventId'])));
+      if (!$event) {
+        throw new NotFoundException(__('Invalid event'));
+      }
+      $event = new ZM\Event($event['Event']);
+      if (!$event->canEdit()) {
+        throw new UnauthorizedException(__('Insufficient Privileges'));
+      }
+    }
+    if (isset($data['MonitorId'])) {
+      global $user;
+      $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : null;
+      if ($allowedMonitors !== null and !in_array($data['MonitorId'], $allowedMonitors)) {
+        throw new UnauthorizedException(__('Insufficient Privileges'));
+      }
+    }
+  }
+
 /**
  * index method
  *
@@ -55,7 +85,7 @@ class EventDataController extends AppController {
 		$this->EventData->recursive = -1;
     if ( $this->request->params['named'] ) {
       $this->FilterComponent = $this->Components->load('Filter');
-      $conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+      $conditions = $this->FilterComponent->buildFilter($this->request->params['named'], array_keys($this->EventData->schema()));
     } else {
       $conditions = array();
     }
@@ -65,9 +95,9 @@ class EventDataController extends AppController {
     # Without it any user with Events != None reads event data for cameras they
     # are explicitly denied.
     global $user;
-    $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : array();
-    if ( count($allowedMonitors) ) {
-      $conditions[] = array($this->EventData->alias.'.MonitorId' => $allowedMonitors);
+    $monitorCondition = $this->viewableMonitorCondition($this->EventData->alias.'.MonitorId');
+    if ( count($monitorCondition) ) {
+      $conditions[] = $monitorCondition;
     }
 
     $find_array = array(
@@ -93,11 +123,8 @@ class EventDataController extends AppController {
 			throw new NotFoundException(__('Invalid event data'));
 		}
     global $user;
-    $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : array();
     $conditions = array($this->EventData->alias.'.'.$this->EventData->primaryKey => $id);
-    if ( count($allowedMonitors) ) {
-      $conditions[$this->EventData->alias.'.MonitorId'] = $allowedMonitors;
-    }
+    $conditions += $this->viewableMonitorCondition($this->EventData->alias.'.MonitorId');
 		$event_data = $this->EventData->find('first', array('conditions' => $conditions));
     if ( !$event_data ) {
       # exists() above proved the row is present, so an empty result here means
@@ -117,6 +144,12 @@ class EventDataController extends AppController {
  */
 	public function add() {
 		if ($this->request->is('post')) {
+			global $user;
+			if ($user and (!$user->canEdit('Events'))) {
+				throw new UnauthorizedException(__('Insufficient Privileges'));
+			}
+			$this->requireRequestEventDataEdit(true);
+			$this->pinRequestId($this->EventData, null);
 			$this->EventData->create();
 			if ($this->EventData->save($this->request->data)) {
 			}
@@ -138,6 +171,8 @@ class EventDataController extends AppController {
 		}
 		$this->requireEventDataEdit($id);
 		if ($this->request->is(array('post', 'put'))) {
+			$this->pinRequestId($this->EventData, $id);
+			$this->requireRequestEventDataEdit(false);
 			if ($this->EventData->save($this->request->data)) {
 			}
 		} else {

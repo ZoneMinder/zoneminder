@@ -280,6 +280,12 @@ function buildMenuItem($viewItemName, $id, $itemName, $href, $icon, $classNameFo
     $activeClass = $view == $viewItemName ? ' active' : '';
   }
   if (!$skipTranslate) $itemName = translate($itemName);
+  // Escape the attribute values here rather than trust every caller to. An
+  // entity a caller already wrote (&amp;) is kept as it is, so a pre-escaped
+  // href is not escaped twice.
+  $id = htmlspecialchars((string)$id, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', false);
+  $href = htmlspecialchars((string)$href, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', false);
+  $classNameForTag_A = htmlspecialchars((string)$classNameForTag_A, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', false);
   $result = '
             <li id="' . $id . '" class="menu-item '.$activeClass.'">
               <a href="' . $href . '" class="' . $classNameForTag_A . '">
@@ -455,8 +461,6 @@ function buildSidebarMenu() {
               </a>
             </li>
 ';
-  } else if (defined('ZM_SIDEBAR_FOOTER') and ZM_SIDEBAR_FOOTER) {
-    $menu .= ZM_SIDEBAR_FOOTER;
   }
   $menu .= '
           </ul>
@@ -1187,6 +1191,7 @@ function getOptionsHTML($forLeftBar = false, $customLabel = null) {
   // register them explicitly with readable labels instead of the auto-generated
   // "Ai_datasets" style names.
   if ( canView('System') ) {
+    $zmMenu::$submenuOptionsItems['cron'] = translate('ScheduledTasks');
     $zmMenu::$submenuOptionsItems['ai_datasets'] = translate('AI Datasets');
     $zmMenu::$submenuOptionsItems['ai_models'] = translate('AI Models');
     $zmMenu::$submenuOptionsItems['ai_classes'] = translate('AI Classes');
@@ -1461,31 +1466,34 @@ function getMontageReviewHTML($view, $forLeftBar = false, $customLabel = null) {
       $terms = $_REQUEST['filter']['Query']['terms'];
       $count = 0;
       foreach ($terms as $term) {
+        if (!is_array($term) or !isset($term['attr'], $term['op'], $term['val'])) continue;
         if ( $term['attr'] == 'StartDateTime' ) {
           $count += 1;
           if ($term['op'] == '>=') $minTime = $term['val'];
           if ($term['op'] == '<=') $maxTime = $term['val'];
         }
       }
-      if ( $count == 2 ) {
-        $montageReviewQuery = '&minTime='.$minTime.'&maxTime='.$maxTime;
+      if ( $count == 2 and isset($minTime, $maxTime) and is_string($minTime) and is_string($maxTime) ) {
+        // Request values: encode them for the query string here, the whole href is HTML-escaped below.
+        $montageReviewQuery = '&minTime='.urlencode($minTime).'&maxTime='.urlencode($maxTime);
       }
     }
     $live = isset($montageReviewQuery) ? '&fit=1'.$montageReviewQuery.'&live=0' : '';
+    $href = validHtmlStr('?view=montagereview'.$live);
     $class = $view == 'montagereview' ? ' selected' : '';
     if ($forLeftBar) {
       $result .= buildMenuItem(
         $viewItemName = 'montagereview',
         $id = 'getMontageReviewHTML',
         $itemName = $label,
-        $href = '?view=montagereview' .$live,
+        $href,
         $icon = 'movie',
         $classNameForTag_A = '',
         $subMenu = '',
         $skipTranslate
       );
     } else {
-      $result .= '<li id="getMontageReviewHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=montagereview' .$live. '">'.getNavbarIcon().htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
+      $result .= '<li id="getMontageReviewHTML" class="nav-item"><a class="nav-link'.$class.'" href="'.$href.'">'.getNavbarIcon().htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
     }
   }
 
@@ -1651,8 +1659,10 @@ function getAdditionalLinksHTML($view, $forLeftBar = false) {
             $icon_ = $url->getAttribute('data-icon');
             $class_ = $url->getAttribute('class');
             $parts = parse_url($href_);
-            parse_str($parts['query'], $query);
-            $queryView = $query['view'];
+            if (isset($parts['query'])) {
+              parse_str($parts['query'], $query);
+              if (isset($query['view'])) $queryView = $query['view'];
+            }
           }
 
           $result .= buildMenuItem(
@@ -1817,19 +1827,11 @@ function getCSRFinputHTML() {
 
 function fixAmps(&$html) {
   //https://stackoverflow.com/questions/1685277/warning-domdocumentloadhtml-htmlparseentityref-expecting-in-entity
-  $positionAmp = strpos($html, '&');
-  $positionSemiColumn = strpos($html, ';', $positionAmp+1);
-  $string = substr($html, $positionAmp, $positionSemiColumn-$positionAmp+1);
-  if ($positionAmp !== false) { // If an '&' can be found.
-    if ($positionSemiColumn === false) { // If no ';' can be found.
-      $html = substr_replace($html, '&amp;', $positionAmp, 1); // Replace straight away.
-    } else if (preg_match('/&(#[0-9]+|[A-Z|a-z|0-9]+);/', $string) === 0) { // If a standard escape cannot be found.
-      $html = substr_replace($html, '&amp;', $positionAmp, 1); // This mean we need to escape the '&' sign.
-      fixAmps($html, $positionAmp+5); // Recursive call from the new position.
-    } else {
-      fixAmps($html, $positionAmp+1); // Recursive call from the new position.
-    }
-  }
+  // Escape every '&' that does not start a character reference, so that
+  // DOMDocument::loadHTML() does not warn about it. One pass over the string:
+  // the recursive version restarted at the first '&' on every call and never
+  // returned once the string held an entity.
+  $html = preg_replace('/&(?!#[0-9]+;|#x[0-9a-f]+;|[a-z][a-z0-9]*;)/i', '&amp;', $html);
 }
 
 function xhtmlFooter() {
@@ -1863,7 +1865,7 @@ function xhtmlFooter() {
   echo output_script_if_exists(array(
   'js/tableExport.min.js',
   'assets/bootstrap-table/bootstrap-table.min.js',
-  'assets/bootstrap-table/extensions/locale/bootstrap-table-locale-all.min.js',
+  'assets/bootstrap-table/bootstrap-table-locale-all.min.js',
   'assets/bootstrap-table/extensions/export/bootstrap-table-export.min.js',
   'assets/bootstrap-table/extensions/page-jump-to/bootstrap-table-page-jump-to.min.js',
   'assets/bootstrap-table/extensions/cookie/bootstrap-table-cookie.js',
@@ -1875,6 +1877,7 @@ function xhtmlFooter() {
   'js/dateTimePicker/jquery-ui-timepicker-addon.js',
   'js/auth-helpers.js',
   'js/table-helpers.js',
+  'js/LevelGraph.js',
   'js/Server.js',
 ), true );
 ?>
@@ -1885,6 +1888,9 @@ function xhtmlFooter() {
   <script nonce="<?php echo $cspNonce; ?>">
     var $j = jQuery.noConflict();
     var DateTime = luxon.DateTime;
+    // locale-all leaves its last locale (zh-TW) as the default. Restore en-US so
+    // tables whose data-locale has no match (dk, no, se, ...) don't fall back to it.
+    if (jQuery.fn.bootstrapTable) jQuery.extend(jQuery.fn.bootstrapTable.defaults, jQuery.fn.bootstrapTable.locales['en-US']);
 <?php
   $skinJsPhpFile = getSkinFile('js/skin.js.php');
   if ( $skinJsPhpFile ) require_once( $skinJsPhpFile );
@@ -1894,6 +1900,11 @@ function xhtmlFooter() {
   </script>
   <script src="<?php echo cache_bust('js/logger.js')?>"></script>
 <?php
+  # Shared by every view that embeds a log panel (see includes/logpanel.php).
+  # It has to land after $j is defined and before the view's own script, which
+  # may want to drive the panel.
+  echo output_script_if_exists(array('js/logpanel.js'));
+
   $viewJsFile = getSkinFile('views/js/'.$basename.'.js');
   if ( $viewJsFile ) {
 ?>
@@ -1914,6 +1925,20 @@ function xhtmlFooter() {
 class ZM_Menu {
   public static $submenuOptionsItems = [];
 
+  // A tab is not always named after its category key. 'display' holds
+  // per-browser state kept in a cookie rather than stored configuration, and
+  // 'web' holds the display settings that are stored, so labelling either one
+  // after its key tells the user the wrong thing.
+  private static $categoryLabels = [
+    'version' => 'Versions',
+    'display' => 'ThisSession',
+    'web'     => 'Display',
+  ];
+
+  private static function categoryLabel($cat) {
+    return translate(isset(self::$categoryLabels[$cat]) ? self::$categoryLabels[$cat] : mb_ucfirst($cat));
+  }
+
   public function __construct(string $typeMenu, array $menuItems) {
 
   }
@@ -1930,7 +1955,7 @@ class ZM_Menu {
         $added = true;
       }
       if ($added) {
-        self::$submenuOptionsItems[$cat] = translate(mb_ucfirst(($cat == 'version') ? 'Versions' : $cat));
+        self::$submenuOptionsItems[$cat] = self::categoryLabel($cat);
         unset($categoriesOptionsInDB[$key]);
       }
     }
@@ -1939,7 +1964,7 @@ class ZM_Menu {
     if (count($categoriesOptionsInDB)) {
       foreach ($categoriesOptionsInDB as $cat) {
         if (!in_array(strtolower($cat), ['dynamic', 'hidden'], $strict = false)) // Prohibited categories
-          self::$submenuOptionsItems[$cat] = translate(mb_ucfirst($cat));
+          self::$submenuOptionsItems[$cat] = self::categoryLabel($cat);
       }
     }
   }

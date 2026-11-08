@@ -22,6 +22,11 @@ if ( empty($_REQUEST['eid']) ) {
   $message = 'No event id supplied';
 } else {
   $eid = validInt($_REQUEST['eid']);
+  # canView('Events') above is global; a user with Events=View can still be
+  # denied individual monitors. Require the per-event permission before listing
+  # its frame records, as ajax/event.php and the Frames API already do.
+  if ( !$message and !(new ZM\Event($eid))->canView() )
+    $message = 'Insufficient permissions to view frames for event '.$eid;
 }
 
 if ( $message ) {
@@ -114,10 +119,8 @@ function queryRequest($eid, $search, $advsearch, $sort, $offset, $order, $limit)
 
   $unfiltered_rows = array();
   $frame_ids = array();
-  require_once('includes/Frame.php');
   foreach ( dbFetchAll($sql, NULL, $values) as $row ) {
-    $frame = new ZM\Frame($row);
-    $frame_ids[] = $frame->Id();
+    $frame_ids[] = $row['FrameId'];
     $unfiltered_rows[] = $row;
   }
 
@@ -152,7 +155,7 @@ function queryRequest($eid, $search, $advsearch, $sort, $offset, $order, $limit)
       $search_filter = $search_filter->addTerms($terms, array('obr'=>1, 'cbr'=>1, 'op'=>'OR'));
     } # end if search
 
-    $sql = 'SELECT * FROM `Frames` WHERE '.$search_filter->sql().' ORDER BY ' .$sort. ' ' .$order;
+    $sql = 'SELECT * FROM `Frames` '.$where.' AND '.$search_filter->sql().' ORDER BY ' .$sort. ' ' .$order;
     $filtered_rows = dbFetchAll($sql);
     ZM\Debug('Have ' . count($filtered_rows) . ' frames matching search filter.');
   } else {
@@ -170,7 +173,7 @@ function queryRequest($eid, $search, $advsearch, $sort, $offset, $order, $limit)
       $hasAnalysisImage = $alarmFrame && file_exists($analysisPath) && filesize($analysisPath);
 
       # Our base img source component, which we will add on to
-      $base_img_src = '?view=image&amp;fid=' .$row['Id'];
+      $base_img_src = '?view=image&amp;eid=' .$row['EventId']. '&amp;fid=' .$row['FrameId'];
 
       # if an analysis images exists, use it as the thumbnail
       if ( $hasAnalysisImage ) $base_img_src .= '&amp;show=analyse';

@@ -39,8 +39,10 @@ class VideoStream extends VideoRTC {
 
     set src(value) {
         const monitorStream = getMonitorStream(stringToNumber(this.id));
-        monitorStream.playbackSessionId = generateUUID();
-        this.playbackSessionId = monitorStream.playbackSessionId;
+        if (monitorStream) {
+            monitorStream.playbackSessionId = generateUUID();
+            this.playbackSessionId = monitorStream.playbackSessionId;
+        }
         super.src = value;
     }
 
@@ -174,7 +176,7 @@ class VideoStream extends VideoRTC {
     errorHandling(currentMode, message = null) {
         const monitorStream = getMonitorStream(stringToNumber(this.id));
         if (monitorStream) {
-            if (!isCurrentPlaybackSession(monitorStream, this.playbackSessionId)) return;
+            if (!streamSessionActive(monitorStream, this.playbackSessionId)) return;
             monitorStream.player = "go2rtc_" + currentMode;
             monitorStream.streamErrorRegistration();
             monitorStream.restart(monitorStream.currentChannelStream);

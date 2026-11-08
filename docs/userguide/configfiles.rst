@@ -35,6 +35,23 @@ The roles of the files are as follows:
   * ``02-multiserver.conf`` file consists of custom variables if you are deploying ZoneMinder in a multi-server configuration (see :doc:`/installationguide/multiserver`) 
   * ``03-custom.conf`` is an  custom config file that I created to override specific variables in the path files. **This is the recommended way to customize entries**. Anything that you want to change should be in a new file inside ``conf.d``. Note that ZoneMinder will sort all the files alphabetically and run their contents in ascending order. So it doesn't really matter what you name them, as long as you make sure your changes are not overwritten by another file in the sorting sequence. It is therefore good practice to prefix your file names by ``nn-`` where ``nn`` is a monotonically increasing numerical sequence ``01-`` ``02-`` ``03-`` and so forth, so you know the order they will be processed. 
 
+Setting Options in a Configuration File
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Any option on the Options page can also be set in ``zm.conf`` or a ``conf.d`` file, by its full
+name, for example ``ZM_WEB_TITLE=Front gate``. A value set in a file belongs to whoever runs the
+system and wins over the database value for every part of ZoneMinder: the web interface, the API,
+the Perl scripts and the daemons. A boolean option may be written ``1``/``0``, ``yes``/``no``,
+``true``/``false`` or ``on``/``off``.
+
+The Options page shows such an option with the value in effect, cannot change it, and names the
+file it comes from. The value saved in the database is kept and applies again once the line is
+removed from the file. The web interface reads the files on every request; the scripts and daemons
+read them when they start, so restart ZoneMinder after changing a file.
+
+Secrets such as ``ZM_AUTH_HASH_SECRET`` are masked on the Options page, with a toggle to show them
+to users who can edit System settings. A secret set in a file is never sent to the browser: the
+page shows it as set, masked, without the toggle.
+
 Timezone Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
 Earlier versions of ZoneMinder relied on ``php.ini`` to set Date/Time Zone. This is no longer the case. You can (and must) set the Timezone via the Web UI, starting ZoneMinder version 1.34. See :ref:`here <timezone_config>`.

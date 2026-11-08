@@ -40,6 +40,26 @@ function zm_setcookie($cookie, $value, $options=array()) {
   //ZM\Debug("Setting cookie for $cookie to $value");
 }
 
+// A session is only worth storing if the client actually carries it. A request
+// that arrives without our cookie - a bot, an image tag or a cross-origin ajax
+// poll authenticated by auth hash or token - still gets a session for the life
+// of the request, but writing it out leaves a Sessions row that nothing will
+// ever load again. Viewing an event polls the event's server every
+// ZM_WEB_REFRESH_STATUS seconds, so a cross-origin poll used to add a row every
+// few seconds. Login is the exception: that is where a session is first issued.
+$zm_session_persist = false;
+
+// Store this session even though the client arrived without our cookie.
+function zm_session_persist() {
+  global $zm_session_persist;
+  $zm_session_persist = true;
+}
+
+function zm_session_is_persistable() {
+  global $zm_session_persist;
+  return $zm_session_persist || !empty($_COOKIE[session_name()]);
+}
+
 // ZM session start function support timestamp management
 function zm_session_start() {
   if (ini_get('session.name') != 'ZMSESSID') {
@@ -115,6 +135,8 @@ function zm_session_regenerate_id() {
 // Assumes zm_session_start() has been called previously.
 function zm_session_regenerate_id_login() {
   if (!is_session_started()) zm_session_start();
+  // The client has no cookie yet on a first login, but this session must be stored.
+  zm_session_persist();
   // Discard any pre-auth session contents so nothing carries across the
   // authentication boundary.
   $_SESSION = array();
@@ -136,7 +158,7 @@ function is_session_started() {
       return session_id() === '' ? FALSE : TRUE;
     }
   } else {
-    Warning("php_sapi_name === 'cli'");
+    \ZM\Warning("php_sapi_name === 'cli'");
   }
   return FALSE;
 } // function is_session_started()
@@ -162,7 +184,10 @@ function zm_session_clear() {
 // what the old `$this->db = $dbConn` constructor got wrong. zmDbConnOrNull()
 // returns null when the database is unreachable and the methods below degrade
 // to "no session" rather than ending the request.
-class ZMSessionHandler implements SessionHandlerInterface {
+// SessionUpdateTimestampHandlerInterface is what makes PHP call validateId():
+// without it session.use_strict_mode has no effect for a user handler, and an
+// id the client made up became its session id.
+class ZMSessionHandler implements SessionHandlerInterface, SessionUpdateTimestampHandlerInterface {
   public function open($path, $name): bool {
     return zmDbConnOrNull() ? true : false;
   }
@@ -190,6 +215,7 @@ class ZMSessionHandler implements SessionHandlerInterface {
     return '';
   }
   public function write($id, $data) : bool {
+    if (!zm_session_is_persistable()) return true;
     if (!($db = zmDbConnOrNull())) return false;
     // Create time stamp
     $access = time();
@@ -230,7 +256,20 @@ class ZMSessionHandler implements SessionHandlerInterface {
     $del = $db->prepare("DELETE FROM Sessions WHERE id IN ($placeholders)");
     return $del->execute($ids) ? true : false;
   }
-  public function validateId($key) : bool {return true;}
+  // Whether $id names a stored session. With session.use_strict_mode (set in
+  // zm_session_start()) PHP replaces an id that doesn't with a new one, so a
+  // client can't choose its session id and nobody can plant one (session
+  // fixation).
+  public function validateId($id) : bool {
+    if (!($db = zmDbConnOrNull())) return false;
+    $sth = $db->prepare('SELECT 1 FROM Sessions WHERE id = :id');
+    $sth->bindParam(':id', $id, PDO::PARAM_STR, 32);
+    return $sth->execute() and ($sth->fetch() !== false);
+  }
+  // Called instead of write() when the session data didn't change.
+  public function updateTimestamp($id, $data) : bool {
+    return $this->write($id, $data);
+  }
 } # end class Session
 
 $session = new ZMSessionHandler;

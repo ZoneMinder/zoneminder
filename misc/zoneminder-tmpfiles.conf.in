@@ -1,4 +1,33 @@
+# systemd-tmpfiles entries for ZoneMinder.
+#
+# Directories here are created by systemd-tmpfiles-setup.service at boot, and
+# those with an age field are cleaned by systemd-tmpfiles-clean.timer, which
+# runs daily.
+
+# Runtime directories. D rather than d: these are emptied at boot, because
+# nothing in them is meant to outlive the daemons that wrote it.
 D @ZM_RUNDIR@ 0755 @WEB_USER@ @WEB_GROUP@
 D @ZM_TMPDIR@ 0755 @WEB_USER@ @WEB_GROUP@
 D @ZM_SOCKDIR@ 0755 @WEB_USER@ @WEB_GROUP@
 
+# The cache busting directory, aged rather than emptied.
+#
+# cache_bust() in web/includes/functions.php symlinks every css and js file to
+# a name with the source file's mtime in it, so each time a source changes a
+# new link appears and the old one is left behind. Nothing has ever removed
+# them. The install this was written on had 8346 entries going back to April
+# 2020, 1562 of them pointing at files that no longer exist, in a directory
+# whose inode had grown to 823KB -- which every lookup in that directory has
+# to scan.
+#
+# Ageing it is safe because the contents are derived, not authoritative: a
+# link removed while it is still wanted is recreated by the next page render,
+# so the worst case is one missing asset on a page that was already open.
+#
+# The age is generous on purpose. A symlink's mtime and ctime are fixed when it
+# is created, and being served does not refresh them -- traversing a symlink
+# does not update its atime either -- so an age deletes entries whether or not
+# they are in use, rather than only the unused ones. 30d keeps about a month of
+# source versions and costs a few recreated symlinks a month, where 1d would
+# churn the whole set daily for no extra benefit.
+d @ZM_CACHEDIR@ 0755 @WEB_USER@ @WEB_GROUP@ 30d

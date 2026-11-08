@@ -49,6 +49,12 @@ function downloadEvents(
   }
   chmod(DIR_EXPORTS_DOWNLOAD, 0700);
 
+  // $export_root (the download file base name) reaches here straight from the
+  // request; the regex that built it kept dots, so '.'/'..' could climb out of
+  // DIR_EXPORTS_DOWNLOAD. Refuse a traversal component. refs GHSA-72h2-rvhv-wr5g
+  $export_root = safeExportComponent($export_root);
+  if ($export_root === '') $export_root = 'Export';
+
   $export_dir = DIR_EXPORTS_DOWNLOAD.'/'.$export_root;
   define('DOWNLOAD_DIR_EXPORTS', $export_dir);
 
@@ -196,10 +202,12 @@ function downloadEvents(
   if ($exportFormat == 'noArchive') {
     $returnString = [];
     foreach ($exportFileList as $link) {
-      $returnString[] = '?view=download&type='.'mp4'.'&file='.$link.'&export_root='.$export_root;
+      # The merged name carries spaces, colons and whatever the monitor is
+      # called, so it has to be escaped to survive as a query parameter.
+      $returnString[] = '?view=download&type=mp4&file='.urlencode($link).'&export_root='.urlencode($export_root);
     }
   } else {
-    $returnString = '?view=download&type='.$exportFormat.'&file='.$archiveFileName;
+    $returnString = '?view=download&type='.$exportFormat.'&file='.urlencode($archiveFileName);
   }
   return $returnString;
 } # end function downloadEvents
@@ -269,4 +277,56 @@ function getFlatCommandForTar() {
     $command = ' --xform=\'s#^.+/##x\'';
   }
   return $command;
+}
+
+# Build the value of a Content-Disposition header offering $filename as an
+# attachment.
+#
+# The plain filename= parameter is an RFC 6266 quoted-string of ASCII
+# characters. Merged exports are named '<Monitor> <start> to <end>.mp4', so they
+# carry spaces and colons: emitted unquoted, browsers that parse the header
+# strictly find no usable filename and fall back to naming the download after
+# the last path segment of the URL, which is index.php. Characters that are not
+# legal in a Windows filename are folded to '_' so the quoted name is usable
+# there too, and whenever that folding changed anything the untouched name is
+# offered alongside it as RFC 5987 filename*, which takes precedence in browsers
+# that understand it and keeps non-ASCII monitor names intact.
+function contentDispositionAttachment($filename) {
+  $filename = basename($filename);
+  # The Windows-illegal set - of which '"' and '\' would also terminate or
+  # escape the quoted-string - plus runs of anything outside printable ASCII.
+  # Runs, so that one multi-byte character costs one underscore, not one per
+  # byte.
+  $ascii = preg_replace('/["*\/:<>?\\\\|]|[^\x20-\x7e]+/', '_', $filename);
+  $header = 'attachment; filename="'.$ascii.'"';
+  if ($ascii !== $filename) {
+    $header .= "; filename*=UTF-8''".rawurlencode($filename);
+  }
+  return $header;
+}
+
+# Return $value if it is a single, safe path component, otherwise ''. The export
+# file and directory names handled by download.php and archive.php are always
+# plain names (e.g. zmExport_<connkey>.zip or a merged '<Monitor> <start> to
+# <end>.mp4'); a value with a directory separator, a null byte, or a '.'/'..'
+# traversal is a crafted request, not one of ours. Stripping only '/' left '..'
+# intact, which let export_root/file climb out of the downloads directory
+# (GHSA-fvx4-86xp-9v22).
+function safeExportComponent($value) {
+  $value = (string)$value;
+  if ($value === '' or $value === '.' or $value === '..') return '';
+  if (preg_match('@[/\\\\]@', $value) or strpos($value, "\0") !== false) return '';
+  return $value;
+}
+
+# Return the canonical path of $path if it exists at or below $base, otherwise
+# false. Both are resolved with realpath(), so symlinks cannot be used to reach
+# a file outside $base either. A backstop in front of readfile()/unlink() so a
+# path that somehow still escapes the export directory is refused.
+function pathWithinExportDir($path, $base) {
+  $realBase = realpath($base);
+  $realPath = realpath($path);
+  if ($realBase === false or $realPath === false) return false;
+  if ($realPath !== $realBase and strpos($realPath, $realBase.DIRECTORY_SEPARATOR) !== 0) return false;
+  return $realPath;
 }

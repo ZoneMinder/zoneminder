@@ -106,6 +106,42 @@ ul.form > li > label:first-child {
   text-align: right;
 }
 
+ul.form > li input[type="checkbox"]{
+  flex-shrink: 0;
+}
+
+ul.form > li:has(input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+ul.form > li:has(input[type="checkbox"]) > .form-text {
+  flex: 1;
+  margin: 0 0 0 3px;
+  min-width: 0;
+}
+
+ul.form > li:has(input[type="checkbox"]) > label:first-child {
+  flex-shrink: 0;
+}
+
+/*
+ * A row with no label.
+ *
+ * The indent above is a gutter for the label, which is pulled back into it by
+ * an equal negative margin. That works for a labelled field and is wrong for
+ * anything else: a row holding a paragraph of help, or a table that wants the
+ * full width, has nothing to put in the gutter, so it starts 300px in with
+ * the space beside it left empty.
+ *
+ * The mobile rules below drop the indent for every row, so this needs no
+ * counterpart there.
+ */
+ul.form > li.noLabel {
+  padding-left: 0;
+}
+
 nav #pills-tab a.nav-link {
   margin-top: -0.5em;
   margin-bottom: -0.5em;
@@ -141,13 +177,21 @@ nav #pills-tab a.nav-link.active {
     flex-wrap: wrap;
   }
   ul.form > li {
-    padding-left: 0;
+    padding: 2px 0 8px;
     margin: 5px 0;
   }
+  ul.form > li:not(:last-child) {
+    border-bottom: 1px solid;
+  }
+  ul.form > li:has(input[type="checkbox"]) > .form-text {
+    margin: 0;
+  }
   ul.form > li > label:first-child {
-    width: 100%;
+    width: 25%;
     margin-left: 0;
     text-align: left;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
   #page tr td:first-child {
     min-width: unset;
@@ -169,4 +213,149 @@ nav #pills-tab a.nav-link.active {
   font-size: 0.9em;
   color: #b58900;
   margin-top: 4px;
+}
+
+/*
+ * Monitor actions table.
+ *
+ * Under the default automatic layout a width on a cell is only a suggestion:
+ * the browser sizes each column from its contents and may hand a column more
+ * than it was asked for. That is the wrong behaviour for this table, where
+ * what each column needs is known in advance and differs wildly. Enabled
+ * holds one checkbox but claims space on the strength of its header text,
+ * while Schedule has to fit a whole sentence -- "Every weekend day (Sat &
+ * Sun) at 08:00" across a label, a select and a time input -- and is the
+ * column that ends up squeezed.
+ *
+ * So the layout is made fixed, which binds the widths below exactly. Four
+ * columns are pinned to what their contents need and Device and Does divide
+ * whatever is left. Device is deliberately one of the two left loose: it
+ * holds monitor names, which are the only contents here of unpredictable
+ * length, and a select that runs short truncates its option text rather than
+ * breaking the row.
+ *
+ * The figures are what the widest thing in each column measures, so they are
+ * worth rechecking if a label changes. Schedule is as wide as it is almost
+ * entirely because of one frequency option, "weekend day (Sat & Sun)", which
+ * sets the select's width on its own; a shorter wording for that one label
+ * would give several em back to the rest of the table.
+ */
+#monitorActionsTable {
+  table-layout: fixed;
+}
+
+/* Enabled: one checkbox, but the header is what sets the floor. A fixed
+   layout will not widen a column to fit its header, it just lets the text
+   run on into the next one, and skin.css renders every th uppercase -- so
+   what has to fit here is "ENABLED" and the cell padding, not a checkbox.
+   At 4em it fit so exactly that it touched the When header. */
+#monitorActionsTable th:nth-child(1),
+#monitorActionsTable td:nth-child(1) {
+  width: 5.5em;
+  text-align: center;
+}
+
+/* When: a select, so as wide as its longest option, "Manually triggered". */
+#monitorActionsTable th:nth-child(2),
+#monitorActionsTable td:nth-child(2) {
+  width: 11em;
+}
+
+/* Schedule: "Every <frequency> at <time>" -- a label, a select as wide as
+   "weekend day (Sat & Sun)", another label and a time input, all on one line.
+   Or a cron spec shown as it stands, for a schedule the two controls cannot
+   draw. */
+#monitorActionsTable th:nth-child(3),
+#monitorActionsTable td:nth-child(3) {
+  width: 28em;
+}
+
+/* Sound: a file number. */
+#monitorActionsTable th:nth-child(6),
+#monitorActionsTable td:nth-child(6) {
+  width: 6em;
+}
+
+/* A fixed layout does not shrink a control to fit its column, so the controls
+   are told to fit it themselves. Without this a long monitor name in the
+   Device select would spill over the column beside it. */
+#monitorActionsTable select,
+#monitorActionsTable input {
+  max-width: 100%;
+}
+
+/*
+ * Group headings inside a settings tab.
+ *
+ * The tabs are a flat <ul> of <li> rows, so a fieldset/legend cannot be used
+ * without breaking the list: a <ul> may only contain <li>. A heading row plus
+ * a rule above it gives the same visual separation while keeping the markup
+ * valid and the existing row layout untouched.
+ */
+li.settingsGroup {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.8em;
+  letter-spacing: 0.05em;
+  opacity: 0.7;
+  margin-top: 1.2em;
+  padding-top: 0.5em;
+  border-top: 1px solid rgba(128, 128, 128, 0.35);
+}
+
+/* The first heading opens the tab, so it needs no separation from what is
+   above it. */
+li.settingsGroup:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+/* Live audio level meter in the audio detection settings. Polling it is what
+   makes zmc measure at all, so it is only drawn on saved Ffmpeg monitors. */
+.audioLevelMeter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.audioLevelTrack {
+  position: relative;
+  flex: 1 1 auto;
+  max-width: 260px;
+  height: 14px;
+  background-color: #dddddd;
+  border: 1px solid #bbbbbb;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.audioLevelFill {
+  height: 100%;
+  width: 0;
+  background-color: #1e6fd9;
+  /* Slower than the 1s poll would make the bar lag the number beside it. */
+  transition: width 0.25s linear;
+}
+
+/* Where the threshold currently in the input sits, so a reading can be judged
+   against it before saving. */
+.audioLevelThresholdMark {
+  display: none;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background-color: #cc0000;
+}
+
+.audioLevelValue {
+  min-width: 5em;
+  font-variant-numeric: tabular-nums;
+}
+
+.audioLevelValue.alarm {
+  color: #cc0000;
+  font-weight: bold;
 }

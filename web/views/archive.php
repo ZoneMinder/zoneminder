@@ -18,6 +18,8 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
+require_once('includes/download_functions.php');
+
 if (!(canView('Events') or canView('Snapshots'))) {
   $view = 'error';
   return;
@@ -53,12 +55,14 @@ if ( !$mimetype ) {
 }
 
 $connkey = isset($_REQUEST['connkey'])?$_REQUEST['connkey']:'';
-$filename = isset($_REQUEST['file'])?$_REQUEST['file']:"zmExport_$connkey.$file_ext";
-$filename = str_replace('/', '', $filename); # protect system files. must be a filename, not a path
+# Must be a single path component, not a path. Stripping only '/' left '..'
+# intact (GHSA-fvx4-86xp-9v22).
+$filename = isset($_REQUEST['file']) ? safeExportComponent($_REQUEST['file']) : '';
+if ($filename === '') $filename = "zmExport_$connkey.$file_ext";
 
 $filename_path = ZM_DIR_EXPORTS.'/'.$filename;
 ZM\Debug('downloading archive from '.$filename_path);
-if ( is_readable($filename_path) ) {
+if ( is_readable($filename_path) and pathWithinExportDir($filename_path, ZM_DIR_EXPORTS) ) {
   while (ob_get_level()) {
     ob_end_clean();
   }

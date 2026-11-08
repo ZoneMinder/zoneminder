@@ -72,6 +72,8 @@ class LogsController extends AppController {
       return;
     }
 		if ($this->request->is('post')) {
+			// ZM_LOG_INJECT lets non-admins add entries; never let one overwrite an existing entry.
+			$this->pinRequestId($this->Log, null);
 			$this->Log->create();
 			if ($this->Log->save($this->request->data)) {
 				return $this->flash(__('The log has been saved.'), array('action' => 'index'));
@@ -115,6 +117,7 @@ class LogsController extends AppController {
  * @return void
  */
 	public function delete($id = null) {
+    global $user;
     $canDelete = (!$user) || ($user->System() == 'Edit');
     if (!$canDelete) {
       throw new UnauthorizedException(__('Insufficient privileges'));

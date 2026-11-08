@@ -18,6 +18,7 @@
 //
 
 #include "zm.h"
+#include "zm_crypt.h"
 #include "zm_db.h"
 #include "zm_user.h"
 #include "zm_signal.h"
@@ -28,6 +29,17 @@
 #include <sstream>
 #include <string>
 #include <unistd.h>
+
+// Refuses the request with 403. As nph-zms under Apache (nph- handling) the
+// raw status line reaches the client as written. Where the CGI headers are
+// parsed, the Status header sets the status instead: plain zms under any
+// server, and nph-zms behind nginx + fcgiwrap, where the raw line alone is not
+// taken as the status and the refusal went out as an empty 200. In NPH mode
+// both are written, so either server answers 403.
+static void Forbidden(bool nph) {
+  if (nph) fputs("HTTP/1.0 403 Forbidden\r\n", stdout);
+  fputs("Status: 403 Forbidden\r\n\r\n", stdout);
+}
 
 bool ValidateAccess(User *user, int mon_id) {
   bool allowed = true;
@@ -48,6 +60,32 @@ bool ValidateAccess(User *user, int mon_id) {
             user->Id(), user->getUsername());
   }
   return allowed;
+}
+
+// Event access is decided by the monitor the event belongs to, never by a monitor id the
+// client supplies alongside it: an allowed monitor paired with a denied monitor's event id
+// must not stream that event. mon_id is used only when the stream is chosen by monitor and
+// time, in which case it is the monitor whose events are streamed.
+bool ValidateEventAccess(User *user, int mon_id, uint64_t event_id, bool by_monitor_and_time) {
+  if (user->getEvents() < User::PERM_VIEW) {
+    Warning("Insufficient privileges for request user %d %s, user does not have permission view events.",
+            user->Id(), user->getUsername());
+    return false;
+  }
+  if (!by_monitor_and_time) {
+    zmDbRow row;
+    if (!event_id || !row.fetch(stringtf("SELECT `MonitorId` FROM `Events` WHERE `Id` = %" PRIu64, event_id))) {
+      Warning("Unknown event %" PRIu64 " requested by user %d %s", event_id, user->Id(), user->getUsername());
+      return false;
+    }
+    mon_id = row[0] ? atoi(row[0]) : 0;
+  }
+  if (!user->canAccess(mon_id)) {
+    Warning("Insufficient privileges for request user %d %s for event %" PRIu64 " of monitor %d, user does not have permission view this monitor.",
+            user->Id(), user->getUsername(), event_id, mon_id);
+    return false;
+  }
+  return true;
 }
 
 int main(int argc, const char *argv[], char **envp) {
@@ -97,7 +135,19 @@ int main(int argc, const char *argv[], char **envp) {
 
   for (char **env = envp; *env != 0; env++) {
     char *thisEnv = *env;
-    Debug(1, "env: %s", thisEnv);
+    // The query string (user=/pass=, auth=, token=) also appears in
+    // REQUEST_URI and can appear in HTTP_REFERER, and the cookie holds the
+    // web session: log those without their credentials.
+    const char *equals = strchr(thisEnv, '=');
+    std::string name = equals ? std::string(thisEnv, equals - thisEnv) : thisEnv;
+    if (equals && (name == "HTTP_COOKIE" || name.find("QUERY_STRING") != std::string::npos
+                   || name.find("AUTHORIZATION") != std::string::npos)) {
+      Debug(1, "env: %s=<not logged>", name.c_str());
+    } else if (equals && strchr(equals, '?')) {
+      Debug(1, "env: %s=%s", name.c_str(), url_for_log(equals + 1).c_str());
+    } else {
+      Debug(1, "env: %s", thisEnv);
+    }
   }
 
   const char *query = getenv("QUERY_STRING");
@@ -105,8 +155,6 @@ int main(int argc, const char *argv[], char **envp) {
     Fatal("No query string.");
     return exit_zm(0);
   }  // end if query
-
-  Debug(1, "Query: %s", query);
 
   char *q_ptr = (char *)query;
   char *parms[16];  // Shouldn't be more than this
@@ -213,17 +261,17 @@ int main(int argc, const char *argv[], char **envp) {
       strncpy(auth, value, sizeof(auth)-1);
     } else if ( !strcmp(name, "token") ) {
       jwt_token_str = value;
-      Debug(1, "ZMS: JWT token found: %s", jwt_token_str.c_str());
+      Debug(1, "ZMS: JWT token found: %s", zm::crypto::LogFingerprint(jwt_token_str).c_str());
     } else if ( !strcmp(name, "user") ) {
       username = UriDecode(value);
     } else if ( !strcmp(name, "username") ) {
       username = UriDecode(value);
     } else if ( !strcmp(name, "pass") ) {
       password = UriDecode(value);
-      Debug(1, "Have %s for password", password.c_str());
+      Debug(1, "Have a password");
     } else if ( !strcmp(name, "password") ) {
       password = UriDecode(value);
-      Debug(1, "Have %s for password", password.c_str());
+      Debug(1, "Have a password");
     } else {
       Debug(1, "Unknown parameter passed to zms %s=%s", name, value);
     }  // end if possible parameter names
@@ -251,6 +299,9 @@ int main(int argc, const char *argv[], char **envp) {
          playback_buffer, ttl, zm_get_rss_kb());
   }
 
+  // The user zms serves; it names the command socket, so only that user's
+  // ajax/stream.php requests reach this stream.
+  int owner_id = 0;
   if ( config.opt_use_auth ) {
     User *user = nullptr;
 
@@ -271,7 +322,7 @@ int main(int argc, const char *argv[], char **envp) {
       }
     }
     if ( !user ) {
-      fputs("HTTP/1.0 403 Forbidden\r\n\r\n", stdout);
+      Forbidden(nph);
 
       const char *referer = getenv("HTTP_REFERER");
       const char *request_uri = getenv("REQUEST_URI");
@@ -282,22 +333,36 @@ int main(int argc, const char *argv[], char **envp) {
       // baked-in URL. Including user/auth-prefix/uri/xff makes the noise diagnosable
       // without flipping on Debug.
       // Log only the first 8 chars of the hash: enough to correlate, not enough to replay.
-      Warning("Unable to authenticate user (user='%s' auth='%.8s%s' uri='%s' referer='%s' xff='%s' remote='%s')",
+      // The uri and referer go without their query string, which holds the
+      // credentials (pass=, the full auth=, token=); monitor and event say
+      // which stream it was. This Warning reaches the Logs table by default.
+      Warning("Unable to authenticate user (user='%s' auth='%.8s%s' monitor=%d event=%" PRIu64
+              " uri='%s' referer='%s' xff='%s' remote='%s')",
               username.c_str(),
               auth,
               (*auth && strlen(auth) > 8) ? "..." : "",
-              request_uri ? request_uri : "",
-              referer ? referer : "",
+              monitor_id, event_id,
+              request_uri ? url_for_log(request_uri).c_str() : "",
+              referer ? url_for_log(referer).c_str() : "",
               xff ? xff : "",
               remote ? remote : "");
       return exit_zm(0);
     }
-    if ( !ValidateAccess(user, monitor_id) ) {
+    bool allowed;
+    if ( source == ZMS_EVENT ) {
+      // Mirrors the setStreamStart() choice below.
+      bool by_monitor_and_time = monitor_id && (event_time != std::chrono::system_clock::time_point::min());
+      allowed = ValidateEventAccess(user, monitor_id, event_id, by_monitor_and_time);
+    } else {
+      allowed = ValidateAccess(user, monitor_id);
+    }
+    if ( !allowed ) {
       delete user;
       user = nullptr;
-      fputs("HTTP/1.0 403 Forbidden\r\n\r\n", stdout);
+      Forbidden(nph);
       return exit_zm(0);
     }
+    owner_id = user->Id();
     delete user;
     user = nullptr;
   }  // end if config.opt_use_auth
@@ -336,6 +401,7 @@ int main(int argc, const char *argv[], char **envp) {
     stream.setStreamMaxFPS(maxfps);
     stream.setStreamTTL(ttl);
     stream.setStreamQueue(connkey);
+    stream.setStreamOwner(owner_id);
     stream.setStreamBuffer(playback_buffer);
     stream.setFramesToSend(frames_to_send);
     stream.setStreamStart(monitor_id);
@@ -367,6 +433,7 @@ int main(int argc, const char *argv[], char **envp) {
     stream.setStreamMaxFPS(maxfps);
     stream.setStreamMode(replay);
     stream.setStreamQueue(connkey);
+    stream.setStreamOwner(owner_id);
     stream.setFramesToSend(frames_to_send);
     if ( monitor_id && (event_time != std::chrono::system_clock::time_point::min())) {
       stream.setStreamStart(monitor_id, event_time);

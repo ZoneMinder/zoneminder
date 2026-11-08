@@ -7,6 +7,7 @@ require_once('Event_Tag.php');
 require_once('Tag.php');
 
 class Event extends ZM_Object {
+  protected static $setters = array('Storage', 'SecondaryStorage');
   protected static $table = 'Events';
 
   protected $Tags;
@@ -160,6 +161,12 @@ class Event extends ZM_Object {
     return $this->Length();
   }
 
+  // DefaultVideo is user editable (API); only ever treat it as a filename
+  // inside the event directory.
+  public function DefaultVideo() {
+    return basename($this->{'DefaultVideo'} ?? '');
+  }
+
   public function Path() {
     $Storage = $this->Storage();
     if ( $Storage->Path() and $this->Relative_Path() ) {
@@ -201,11 +208,6 @@ class Event extends ZM_Object {
       Error('Cannot delete an Archived event.');
       return;
     }
-    if ( ZM_OPT_FAST_DELETE ) {
-      dbQuery('DELETE FROM Events WHERE Id = ?', array($this->{'Id'}));
-      return;
-    }
-
     $dbConn = zmDbConn();
     $dbConn->beginTransaction();
     try {
@@ -611,7 +613,7 @@ class Event extends ZM_Object {
           return;
         }
       }
-      Debug("sending command to $url");
+      Debug('sending command to '.urlForLog($url));
       // use key 'http' even if you send the request to https://...
       $options = array(
           'http' => array(
@@ -622,9 +624,9 @@ class Event extends ZM_Object {
           );
       $context  = stream_context_create($options);
       try {
-        $result = file_get_contents($url, false, $context);
+        $result = @file_get_contents($url, false, $context);
         if ($result === FALSE) { /* Handle error */
-          Error("Error restarting zmc using $url");
+          Error('Error restarting zmc using '.urlForLog($url).': '.lastErrorForLog());
         }
         $event_data = json_decode($result,true);
         Debug(print_r($event_data['event']['Event'],1));
@@ -659,7 +661,7 @@ class Event extends ZM_Object {
           return;
         }
       }
-      Debug("sending command to $url");
+      Debug('sending command to '.urlForLog($url));
       // use key 'http' even if you send the request to https://...
       $options = array(
           'http' => array(
@@ -670,9 +672,9 @@ class Event extends ZM_Object {
           );
       $context = stream_context_create($options);
       try {
-        $result = file_get_contents($url, false, $context);
+        $result = @file_get_contents($url, false, $context);
         if ( $result === FALSE ) { /* Handle error */
-          Error("Error restarting zmc using $url");
+          Error('Error restarting zmc using '.urlForLog($url).': '.lastErrorForLog());
         }
         $event_data = json_decode($result,true);
         Debug(print_r($event_data['event']['Event'], 1));
@@ -716,14 +718,19 @@ class Event extends ZM_Object {
       # auth turned on and not logged in
       return false;
     }
+    # An Event with no Id (an empty or failed lookup) has no monitor, and an
+    # empty Monitor passes canView() on the global Monitors permission. Refuse
+    # it, so a caller that skips its own Id() check does not fail open.
+    if (!$this->Id()) return false;
     if (!$this->Monitor()->canView($u)) return false;
 
-    if ($u->Events() != 'None') {
+    # canView() counts the user's role as well as their own field. refs #5189
+    if ($u->canView('Events')) {
       return true;
     }
-    if ($u->Snapshots() != 'None') {
+    if ($u->canView('Snapshots')) {
       # If the event is contained in a snapshot, then we can still view it.
-      if (dbFetchOne('SELECT * FROM Snapshot_Events WHERE EventId=?', $this->Id()))
+      if (dbFetchOne('SELECT * FROM Snapshots_Events WHERE EventId=?', false, array($this->Id())))
         return true;
     }
     return false;
@@ -736,8 +743,9 @@ class Event extends ZM_Object {
       # auth turned on and not logged in
       return false;
     }
+    if (!$this->Id()) return false;
     if (!$this->Monitor()->canView($u)) return false;
-    if ($u->Events() != 'Edit') {
+    if (!$u->canEdit('Events')) {
       return false;
     }
     return true;
@@ -811,7 +819,8 @@ class Event extends ZM_Object {
 
   public function GenerateVideo($rate=0, $fps=0, $scale=0, $size=0, $overwrite=false, $format='mp4', $transforms='')  {
     $event_path = $this->Path();
-    $video_name = preg_replace('/\s/', '_', $this->Name());
+    // Name is user editable; keep the output file inside the event directory.
+    $video_name = preg_replace('/^\./', '_', preg_replace('/[^-A-Za-z0-9_.]/', '_', $this->Name()));
 
     $file_parts = [$video_name];
     if ( $rate ) {
@@ -862,21 +871,28 @@ class Event extends ZM_Object {
       } else if ( $size ) {
         $video_size = $size;
       }
-      $command = ZM_PATH_FFMPEG
-      ." -y -r $frame_rate "
-        .ZM_FFMPEG_INPUT_OPTIONS
-        .' -i ' . $event_path.'/'.( $this->DefaultVideo() ? $this->DefaultVideo() : '%0'.ZM_EVENT_IMAGE_DIGITS .'d-capture.jpg' )
-        #. " -f concat -i /tmp/event_files.txt"
-        #
-        .implode(' ', array_map(function($t){ return ' -vf '.$t; }, explode(',', $transforms)))
-      ." -s $video_size "
-
-        .ZM_FFMPEG_OUTPUT_OPTIONS
-        ." '$event_path/$video_file' > $event_path/ffmpeg.log 2>&1"
-        ;
-      Debug($command);
-      if(!exec(escapeshellcmd($command), $output, $rc)) {
-        Error("Unable to generate video, check $event_path/ffmpeg.log for details");
+      // Every argument is quoted on its own so no event field can add
+      // arguments or commands. The configured option strings hold several
+      // options each, so they are split on whitespace; shell quoting inside
+      // them is not honoured.
+      $command = array_merge(
+        [ZM_PATH_FFMPEG, '-y', '-r', $frame_rate],
+        preg_split('/\s+/', ZM_FFMPEG_INPUT_OPTIONS, -1, PREG_SPLIT_NO_EMPTY),
+        ['-i', $event_path.'/'.( $this->DefaultVideo() ? $this->DefaultVideo() : '%0'.ZM_EVENT_IMAGE_DIGITS .'d-capture.jpg' )]
+      );
+      foreach (explode(',', $transforms) as $t) {
+        if ($t !== '') array_push($command, '-vf', $t);
+      }
+      array_push($command, '-s', trim($video_size));
+      $command = array_merge($command,
+        preg_split('/\s+/', ZM_FFMPEG_OUTPUT_OPTIONS, -1, PREG_SPLIT_NO_EMPTY),
+        [$event_path.'/'.$video_file]
+      );
+      Debug(implode(' ', $command));
+      $log = $event_path.'/ffmpeg.log';
+      $process = proc_open(implode(' ', array_map('escapeshellarg', $command)), [0=>['file', '/dev/null', 'r'], 1=>['file', $log, 'w'], 2=>['file', $log, 'a']], $pipes);
+      if (!is_resource($process) or proc_close($process) != 0) {
+        Error("Unable to generate video, check $log for details");
         return;
       }
 

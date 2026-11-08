@@ -112,7 +112,6 @@ $serial = $primary_key = 'Id';
   EncoderParameters
   RecordAudio
   RecordingSource
-  RTSPDescribe
   Brightness
   Contrast
   Hue
@@ -132,7 +131,6 @@ $serial = $primary_key = 'Id';
   SectionLength
   SectionLengthWarn
   MinSectionLength
-  FrameSkip
   MotionFrameSkip
   AnalysisFPSLimit
   AnalysisUpdateDelay
@@ -239,7 +237,6 @@ $fields{model} = undef;
     EncoderParameters => '',
     RecordAudio=>0,
     RecordingSource  => q`'Primary'`,
-    RTSPDescribe=>0,
     Brightness  =>  -1,
     Contrast    =>  -1,
     Hue         =>  -1,
@@ -259,7 +256,6 @@ $fields{model} = undef;
     SectionLength      =>  600,
     SectionLengthWarn => 1,
     MinSectionLength    =>  10,
-    FrameSkip           =>  0,
     MotionFrameSkip     =>  0,
     AnalysisFPSLimit  =>  undef,
     AnalysisUpdateDelay  =>  0,
@@ -311,7 +307,10 @@ sub save {
   my $model = $self->Model();
 
   if ($manufacturer->Name() and !$manufacturer->Id()) {
-    if ($manufacturer->save()) {
+    # save() returns the error string on failure, '' on success.
+    if (my $error = $manufacturer->save()) {
+      Error('Failed saving Manufacturer '.$manufacturer->Name().": $error");
+    } else {
       $$self{ManufacturerId} = $manufacturer->Id();
       if ($model->Name()) {
         $model->ManufacturerId($$self{ManufacturerId});
@@ -319,8 +318,10 @@ sub save {
     }
   }
   if ($model->Name() and !$model->Id()) {
-    if ($model->save()) {
-      $$self{ModelId} = $model->Id()
+    if (my $error = $model->save()) {
+      Error('Failed saving Model '.$model->Name().": $error");
+    } else {
+      $$self{ModelId} = $model->Id();
     }
   }
 

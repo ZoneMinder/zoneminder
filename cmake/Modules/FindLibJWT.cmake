@@ -52,7 +52,7 @@ set(LIBJWT_LIB_NAMES "")
 if(LIBJWT_CRYPTO_BACKEND STREQUAL "openssl")
   set(LIBJWT_LIB_NAMES "jwt" "libjwt")
 elseif(LIBJWT_CRYPTO_BACKEND STREQUAL "gnutls")
-  set(LIBJWT_LIB_NAMES "jwt-gnutls" "libjwt-gnutls")
+  set(LIBJWT_LIB_NAMES "jwt-gnutls" "libjwt-gnutls" "jwt" "libjwt")
 endif()
 
 pkg_check_modules(PC_LIBJWT QUIET libjwt)

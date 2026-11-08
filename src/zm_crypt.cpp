@@ -14,7 +14,82 @@
 #endif
 
 // returns username if valid, "" if not
-#if HAVE_LIBJWT
+#if HAVE_LIBJWT && JWT_VERSION_MAJOR >= 3
+namespace {
+struct TokenClaims {
+  bool has_type = false;
+  bool has_user = false;
+  bool has_iat = false;
+  std::string type;
+  std::string user;
+  jwt_long_t iat = 0;
+};
+
+bool getClaim(jwt_t *jwt, const char *name, jwt_value_type_t type, jwt_value_t &value) {
+  value = {};
+  value.type = type;
+  value.name = name;
+  return jwt_claim_get(jwt, &value) == JWT_VALUE_ERR_NONE;
+}
+
+// Runs before the signature is checked, so it only copies the claims out.
+int copyClaims(jwt_t *jwt, jwt_config_t *config) {
+  TokenClaims *claims = static_cast<TokenClaims *>(config->ctx);
+  jwt_value_t value;
+  if ((claims->has_type = getClaim(jwt, "type", JWT_VALUE_STR, value)))
+    claims->type = value.str_val;
+  if ((claims->has_user = getClaim(jwt, "user", JWT_VALUE_STR, value)))
+    claims->user = value.str_val;
+  if ((claims->has_iat = getClaim(jwt, "iat", JWT_VALUE_INT, value)))
+    claims->iat = value.int_val;
+  return 0;
+}
+}  // namespace
+
+std::pair <std::string, unsigned int> verifyToken(const std::string &jwt_token_str, const std::string &key) {
+  std::string k = Base64Encode(key);
+  std::replace(k.begin(), k.end(), '+', '-');
+  std::replace(k.begin(), k.end(), '/', '_');
+  k.erase(std::find(k.begin(), k.end(), '='), k.end());
+
+  jwk_set_t *jwks = jwks_create(("{\"kty\":\"oct\",\"k\":\"" + k + "\"}").c_str());
+  if (!jwks || jwks_error(jwks)) {
+    jwks_free(jwks);
+    Error("Unable to load the JWT key");
+    return std::make_pair("", 0);
+  }
+
+  TokenClaims claims;
+  jwt_checker_t *checker = jwt_checker_new();
+  int err = !checker
+            || jwt_checker_setkey(checker, JWT_ALG_HS256, jwks_item_get(jwks, 0))
+            || jwt_checker_setcb(checker, copyClaims, &claims)
+            || jwt_checker_verify(checker, jwt_token_str.c_str());
+  if (err) Error("Could not decode JWT: %s", checker ? jwt_checker_error_msg(checker) : "out of memory");
+  jwt_checker_free(checker);
+  jwks_free(jwks);
+  if (err) return std::make_pair("", 0);
+
+  if (!claims.has_type) {
+    Error("Missing token type. This should not happen");
+    return std::make_pair("", 0);
+  } else if (claims.type != "access") {
+    Error("Only access tokens are allowed. Please do not use refresh tokens");
+    return std::make_pair("", 0);
+  }
+  if (!claims.has_user) {
+    Error("User not found in claim");
+    return std::make_pair("", 0);
+  }
+  Debug(1, "Got %s as user claim from token", claims.user.c_str());
+  if (!claims.has_iat) {
+    Error("IAT not found in claim. This should not happen");
+    return std::make_pair("", 0);
+  }
+  Debug(1, "Got IAT token=%u", (unsigned int)claims.iat);
+  return std::make_pair(claims.user, (unsigned int)claims.iat);
+}
+#elif HAVE_LIBJWT
 std::pair <std::string, unsigned int> verifyToken(const std::string &jwt_token_str, const std::string &key) {
   std::string username = "";
   unsigned int token_issued_at = 0;

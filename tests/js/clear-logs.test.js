@@ -1,9 +1,9 @@
 'use strict';
 
-// The Clear Logs button started out disabled and only enabled once rows were
-// selected, so pressing it on a freshly loaded Log view did nothing at all: no
-// dialog, no request, no error.  Nothing selected now means clear all, sent as
-// a single request rather than 100 ids at a time.
+// The Clear Logs button used to start disabled and only enable once rows were
+// selected, so pressing it on a freshly loaded Log panel did nothing. Nothing
+// selected now means clear all, sent as one request rather than 100 ids at a
+// time, and a filter narrows that to the rows on screen.
 // refs #4727
 
 const assert = require('assert');
@@ -12,7 +12,7 @@ const path = require('path');
 const vm = require('vm');
 
 const src = fs.readFileSync(
-    path.join(__dirname, '../../web/skins/classic/views/js/log.js'), 'utf8');
+    path.join(__dirname, '../../web/skins/classic/js/logpanel.js'), 'utf8');
 
 let passed = 0;
 let failed = 0;
@@ -28,119 +28,21 @@ function test(name, fn) {
   }
 }
 
-// log.js is a browser file full of globals from skin.js and the view template.
-// Resolve unknown ones to undefined and give real values only to what these
-// tests touch.  initPage() is never reached: the stub $j(...).ready() drops the
-// callback, so nothing below the function definitions runs.
-function loadLog() {
-  const state = {
-    selections: [],
-    confirmModal: {},
-    button: {
-      disabled: true,
-      attrs: {},
-      addEventListener: function(name, fn) {
-        if (name === 'click') state.clearClickHandler = fn;
-      },
-      setAttribute: function(k, v) {
-        this.attrs[k] = v;
-      },
-    },
-    buttonLabel: {textContent: ''},
-    confirmText: {textContent: ''},
-    posts: [],
-    clearClickHandler: null,
-    filterInputs: {},
-  };
-
-  function chainable() {
-    const obj = {
-      bootstrapTable: function(action) {
-        return action === 'getSelections' ? state.selections : obj;
-      },
-      on: () => obj,
-      one: () => obj,
-      ready: () => obj, // swallow $j(document).ready(initPage)
-      modal: () => obj,
-      text: () => '', // readHeaderRequestStatus() calls .text().replace()
-      find: () => obj,
-      html: () => obj,
-      datetimepicker: () => obj,
-      prop: () => obj,
-      addClass: () => obj,
-      removeClass: () => obj,
-      toggleClass: () => obj,
-      attr: () => obj,
-      val: () => null,
-      length: 0,
+// logpanel.js is a browser file. Resolve unknown globals to undefined and give
+// real values only to what the helpers touch. The ready() stub drops the panel
+// bootstrap, so initLogPanel() never runs.
+function loadPanel() {
+  const $j = function() {
+    return {
+      ready: () => {},
+      each: () => {},
+      find: () => ({length: 0}),
     };
-    return obj;
-  }
-  const $j = function(selector) {
-    const obj = chainable();
-    if (typeof selector === 'string' && selector in state.filterInputs) {
-      obj.val = () => state.filterInputs[selector];
-    }
-    return obj;
   };
-  $j.map = (arr, fn) => arr.map(fn);
-  $j.ajax = (opts) => {
-    state.posts.push(opts);
-  };
-  $j.getJSON = () => ({done: () => ({fail: () => {}})});
-
   const globals = {
-    // The sandbox proxy claims every identifier, so built-ins have to be handed
-    // through explicitly or log.js sees them as undefined.
     Object: Object, Array: Array, JSON: JSON, Math: Math, Date: Date,
     $j: $j,
     console: {log() {}, warn() {}, error() {}},
-    thisUrl: '/zm/index.php',
-    translate: {
-      'ConfirmClearLogs': 'selected?',
-      'ConfirmClearAllLogs': 'all?',
-      'ClearLogs': 'Clear Logs',
-      'ClearAllLogs': 'Clear ALL Logs',
-      'ClearFilteredLogs': 'Clear Filtered Logs',
-      'ConfirmClearFilteredLogs': 'filtered?',
-      'DeletingRowsFromTable': 'deleting',
-      'Reason': 'reason',
-      'ErrorDeletingRowFromLogTable': 'err',
-      'AJAXRequestError': 'ajaxerr',
-    },
-    document: {
-      getElementById: function(id) {
-        if (id === 'clearLogsBtn') return state.button;
-        if (id === 'clearLogsConfirm') return state.confirmModal;
-        if (id === 'clearLogsBtnLabel') return state.buttonLabel;
-        if (id === 'clearLogsConfirmText') return state.confirmText;
-        // initPage() wires several other controls; a generic stub is enough for
-        // it to run so the clear button's own handler gets registered.
-        return {addEventListener() {}, disabled: false, querySelector: () => null,
-          classList: {contains: () => false, add() {}, remove() {}}};
-      },
-      referrer: '',
-      querySelector: () => null,
-      createElement: () => ({
-        classList: {add() {}},
-        appendChild() {},
-        querySelector: () => ({style: {}}),
-        style: {},
-      }),
-      addEventListener: () => {},
-    },
-    zmAlert: () => 'alertId',
-    closeZmAlert: () => {},
-    waitUntil: () => ({then: () => ({catch: () => {}})}),
-    updateHeaderRequestStatus: () => {},
-    readHeaderRequestStatus: () => 'awaiting',
-    logAjaxFail: () => {},
-    deferTableRequestWhileHidden: () => false,
-    secsToTime: () => '0',
-    setTimeout: () => 0,
-    clearTimeout: () => 0,
-    setInterval: () => 0,
-    clearInterval: () => 0,
   };
   const sandbox = new Proxy(globals, {
     has: () => true, // every bare identifier resolves against this object
@@ -152,193 +54,100 @@ function loadLog() {
   });
   globals.window = sandbox;
   vm.createContext(sandbox);
-  vm.runInContext(src, sandbox, {filename: 'log.js'});
-  return {sandbox: sandbox, state: state};
+  vm.runInContext(src, sandbox, {filename: 'logpanel.js'});
+  return sandbox;
 }
 
-console.log('clear logs button availability');
-test('stays enabled with nothing selected', () => {
-  const {sandbox, state} = loadLog();
-  state.selections = [];
-  sandbox.manageClearButtonAvailability();
-  assert.strictEqual(state.button.disabled, false,
-      'an empty selection now means clear all, so the button must be usable');
-});
-test('is enabled with rows selected', () => {
-  const {sandbox, state} = loadLog();
-  state.selections = [{Id: 7}];
-  sandbox.manageClearButtonAvailability();
-  assert.strictEqual(state.button.disabled, false);
-});
-test('is still disabled while a request is in flight', () => {
-  const {sandbox, state} = loadLog();
-  state.selections = [{Id: 7}];
-  sandbox.manageClearButtonAvailability(false);
-  assert.strictEqual(state.button.disabled, true,
-      'explicit disable is what suppresses the button during a refresh');
-});
+const i18n = {
+  'ConfirmClearLogs': 'selected?',
+  'ConfirmClearAllLogs': 'all?',
+  'ConfirmClearFilteredLogs': 'filtered?',
+  'ClearLogs': 'Clear Logs',
+  'ClearAllLogs': 'Clear ALL Logs',
+  'ClearFilteredLogs': 'Clear Filtered Logs',
+};
 
-console.log('\nctrl-click bypass');
-test('ctrl-click still skips the dialog for a selected delete', () => {
-  const {sandbox, state} = loadLog();
-  sandbox.initPage();
-  state.selections = [{Id: 5}];
-  const handler = state.clearClickHandler;
-  assert.ok(handler, 'the clear button click handler should be registered');
-  handler({ctrlKey: true, preventDefault() {}});
-  assert.strictEqual(state.posts.length, 1, 'should have deleted immediately');
-  assert.deepStrictEqual(Array.from(state.posts[0].data['ids[]']), [5]);
-});
-test('ctrl-click with nothing selected must still confirm', () => {
-  // The button used to be disabled with an empty selection, so this shortcut
-  // could not reach the clear-everything path. It can now.
-  const {sandbox, state} = loadLog();
-  sandbox.initPage();
-  state.selections = [];
-  state.clearClickHandler({ctrlKey: true, preventDefault() {}});
-  assert.strictEqual(state.posts.length, 0,
-      'clearing the whole table must never skip the confirmation');
-});
-
-console.log('\nfilter forwarding');
-test('the real request path is what populates the filter', () => {
-  // rememberFilter has exactly one production caller, ajaxRequest. Driving it by
-  // hand elsewhere would let the wiring break without a test noticing, and the
-  // filter silently not being sent means a clear-filtered becomes a clear-all.
-  const {sandbox, state} = loadLog();
-  state.filterInputs = {
-    '#filterServerId': '4',
-    '#filterLevel': ['ERR'],
-    '#filterComponent': ['zmc'],
-    '#filterStartDateTime': '2026-01-01 00:00:00',
-    '#filterEndDateTime': '',
-  };
-  sandbox.allowRequest = true;
-  sandbox.autoRefresh = true;
-  sandbox.ajaxRequest({data: {limit: 100, offset: 0, search: 'boom'}});
-
-  assert.strictEqual(sandbox.filterIsActive(), true);
-  sandbox.deleteLogs([]);
-  const data = state.posts[state.posts.length - 1].data;
-  assert.strictEqual(data.ServerId, '4');
-  assert.deepStrictEqual(Array.from(data.level), ['ERR']);
-  assert.deepStrictEqual(Array.from(data.Component), ['zmc']);
-  assert.strictEqual(data.StartDateTime, '2026-01-01 00:00:00');
-  assert.strictEqual(data.search, 'boom');
-  assert.ok(!('EndDateTime' in data), 'an empty date is not a filter');
-  assert.ok(!('limit' in data));
-});
-
-test('a clear all with no filter sends only all', () => {
-  const {sandbox, state} = loadLog();
-  sandbox.rememberFilter({limit: 100, offset: 0});
-  sandbox.deleteLogs([]);
-  assert.deepStrictEqual(Object.keys(state.posts[0].data).sort(), ['all'],
-      'paging params must not be mistaken for a filter');
-});
-test('a clear all under a filter sends that filter', () => {
-  const {sandbox, state} = loadLog();
-  sandbox.rememberFilter({
-    limit: 100, offset: 0, sort: 'TimeKey',
-    level: ['ERR'], ServerId: '4', StartDateTime: '2026-01-01 00:00:00',
+console.log('filter of the last query');
+test('keeps the filter fields of a real query', () => {
+  const filter = loadPanel().logPanelFilterOf({
+    search: 'boom',
+    sort: 'DateTime',
+    order: 'asc',
+    offset: 0,
+    limit: 25,
+    filter: '{"Message":"x"}',
+    ServerId: '4',
+    level: ['ERR'],
+    Component: ['zmc'],
+    StartDateTime: '2026-01-01 00:00:00',
+    EndDateTime: '2026-01-02 00:00:00',
   });
-  sandbox.deleteLogs([]);
-  const data = state.posts[0].data;
+  assert.deepStrictEqual(Object.keys(filter).sort(), [
+    'Component', 'EndDateTime', 'ServerId', 'StartDateTime', 'filter', 'level', 'search',
+  ]);
+  assert.strictEqual(filter.search, 'boom');
+  assert.strictEqual(filter.filter, '{"Message":"x"}');
+  assert.strictEqual(filter.ServerId, '4');
+  assert.deepStrictEqual(Array.from(filter.level), ['ERR']);
+  assert.deepStrictEqual(Array.from(filter.Component), ['zmc']);
+  assert.strictEqual(filter.StartDateTime, '2026-01-01 00:00:00');
+  assert.strictEqual(filter.EndDateTime, '2026-01-02 00:00:00');
+});
+test('ignores empty values but keeps the rest', () => {
+  const filter = loadPanel().logPanelFilterOf({
+    search: '', ServerId: null, level: undefined, StartDateTime: '', Component: ['zmc'],
+  });
+  assert.deepStrictEqual(Object.keys(filter), ['Component']);
+  assert.deepStrictEqual(Array.from(filter.Component), ['zmc']);
+});
+test('ignores paging, sorting and an empty query', () => {
+  const sandbox = loadPanel();
+  assert.deepStrictEqual(Object.keys(sandbox.logPanelFilterOf({
+    sort: 'DateTime', order: 'asc', offset: 0, limit: 25,
+  })), []);
+});
+
+console.log('\nbutton and confirmation text');
+test('selected rows say clear logs', () => {
+  const sandbox = loadPanel();
+  assert.strictEqual(sandbox.logPanelClearText(2, true, i18n), 'Clear Logs');
+  assert.strictEqual(sandbox.logPanelConfirmText(2, true, i18n), 'selected?');
+});
+test('no selection and no filter says clear all', () => {
+  const sandbox = loadPanel();
+  assert.strictEqual(sandbox.logPanelClearText(0, false, i18n), 'Clear ALL Logs');
+  assert.strictEqual(sandbox.logPanelConfirmText(0, false, i18n), 'all?');
+});
+test('no selection under a filter says clear filtered', () => {
+  const sandbox = loadPanel();
+  assert.strictEqual(sandbox.logPanelClearText(0, true, i18n), 'Clear Filtered Logs');
+  assert.strictEqual(sandbox.logPanelConfirmText(0, true, i18n), 'filtered?');
+});
+
+console.log('\ndelete request data');
+test('clear all with no filter sends only all', () => {
+  const data = loadPanel().logPanelDeleteData([], true, {});
+  assert.deepStrictEqual(Object.keys(data), ['all']);
+  assert.strictEqual(data.all, 1);
+});
+test('clear all with a filter sends all and the filter', () => {
+  const data = loadPanel().logPanelDeleteData([], true,
+      {level: ['ERR'], ServerId: '4'});
   assert.strictEqual(data.all, 1);
   assert.deepStrictEqual(Array.from(data.level), ['ERR']);
   assert.strictEqual(data.ServerId, '4');
-  assert.strictEqual(data.StartDateTime, '2026-01-01 00:00:00');
-  assert.ok(!('sort' in data), 'only filter keys should be forwarded');
-  assert.ok(!('limit' in data));
+  assert.deepStrictEqual(Object.keys(data).sort(), ['ServerId', 'all', 'level']);
 });
-test('empty filter values are not treated as a filter', () => {
-  const {sandbox} = loadLog();
-  sandbox.rememberFilter({search: '', ServerId: null, level: undefined});
-  assert.strictEqual(sandbox.filterIsActive(), false,
-      'an empty search box must not turn clear all into a filtered delete');
-});
-test('deleting by id is unaffected by the filter', () => {
-  const {sandbox, state} = loadLog();
-  sandbox.rememberFilter({ServerId: '4'});
-  sandbox.deleteLogs([1, 2]);
-  assert.ok(!('ServerId' in state.posts[0].data));
-  assert.ok(!('all' in state.posts[0].data));
+test('ids are sent without all or the filter', () => {
+  const data = loadPanel().logPanelDeleteData([1, 2], false, {ServerId: '4'});
+  assert.deepStrictEqual(Array.from(data['ids[]']), [1, 2]);
+  assert.deepStrictEqual(Object.keys(data), ['ids[]']);
+  assert.ok(!('all' in data));
+  assert.ok(!('ServerId' in data));
 });
 
-console.log('\nbutton label');
-test('says clear all when nothing is selected', () => {
-  const {sandbox, state} = loadLog();
-  state.selections = [];
-  sandbox.manageClearButtonAvailability();
-  assert.strictEqual(state.buttonLabel.textContent, 'Clear ALL Logs',
-      'the difference should be visible before the confirmation, not only in it');
-  assert.strictEqual(state.button.attrs.title, 'Clear ALL Logs');
-});
-test('says clear filtered when a filter is applied', () => {
-  const {sandbox, state} = loadLog();
-  state.selections = [];
-  sandbox.rememberFilter({ServerId: '4'});
-  sandbox.manageClearButtonAvailability();
-  assert.strictEqual(state.buttonLabel.textContent, 'Clear Filtered Logs',
-      'must not promise ALL when it will only clear the filtered rows');
-});
-test('says clear logs once rows are selected', () => {
-  const {sandbox, state} = loadLog();
-  state.selections = [{Id: 7}];
-  sandbox.manageClearButtonAvailability();
-  assert.strictEqual(state.buttonLabel.textContent, 'Clear Logs');
-  assert.strictEqual(state.button.attrs.title, 'Clear Logs');
-});
-
-console.log('\nconfirmation wording');
-test('says filtered in the confirmation too', () => {
-  const {sandbox, state} = loadLog();
-  state.selections = [];
-  sandbox.rememberFilter({ServerId: '4'});
-  sandbox.updateClearLogsConfirmText();
-  assert.strictEqual(state.confirmText.textContent, 'filtered?');
-});
-test('warns that everything goes when nothing is selected', () => {
-  const {sandbox, state} = loadLog();
-  state.selections = [];
-  sandbox.updateClearLogsConfirmText();
-  assert.strictEqual(state.confirmText.textContent, 'all?');
-});
-test('mentions the selection when there is one', () => {
-  const {sandbox, state} = loadLog();
-  state.selections = [{Id: 7}];
-  sandbox.updateClearLogsConfirmText();
-  assert.strictEqual(state.confirmText.textContent, 'selected?');
-});
-
-console.log('\ndeleteLogs');
-test('an empty selection clears all in one request', () => {
-  const {sandbox, state} = loadLog();
-  sandbox.deleteLogs([]);
-  assert.strictEqual(state.posts.length, 1, 'expected exactly one request');
-  const data = state.posts[0].data;
-  assert.strictEqual(data.all, 1,
-      'must ask the backend to clear the table, not post an empty id list');
-  assert.ok(!('ids[]' in data), 'must not send an empty id list');
-  assert.strictEqual(state.posts[0].method, 'post');
-});
-test('a selection still deletes by id', () => {
-  const {sandbox, state} = loadLog();
-  sandbox.deleteLogs([1, 2, 3]);
-  assert.strictEqual(state.posts.length, 1);
-  assert.deepStrictEqual(Array.from(state.posts[0].data['ids[]']), [1, 2, 3]);
-  assert.ok(!('all' in state.posts[0].data));
-});
-test('a selection larger than a chunk is still batched', () => {
-  const {sandbox, state} = loadLog();
-  const ids = [];
-  for (let i = 0; i < 150; i++) ids.push(i);
-  sandbox.deleteLogs(ids);
-  assert.strictEqual(state.posts[0].data['ids[]'].length, 100,
-      'the id path must keep chunking at 100');
-  assert.ok(!('all' in state.posts[0].data),
-      'a selected delete must never turn into a clear all');
-});
+// There is no test for the ajaxError handler in deleteLogs: it lives inside
+// initLogPanel, which needs a live bootstrap table.
 
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);

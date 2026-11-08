@@ -53,8 +53,9 @@ if (!isset($_REQUEST['task'])) {
         $message = 'Cannot clear logs: the filter could not be interpreted. Check the date fields.';
       } else if (dbQuery('TRUNCATE TABLE Logs') === null) {
         // Nothing filtered, so empty the table outright. TRUNCATE beats a row by
-        // row DELETE at this size and nothing has a foreign key onto Logs.
-        // It needs DROP, which the packaged installs grant, so fall back for
+        // row DELETE at this size and nothing has a foreign key onto Logs. It
+        // also resets the Logs AUTO_INCREMENT, which the DELETE fallback does not.
+        // TRUNCATE needs DROP, which the packaged installs grant, so fall back for
         // installs that were granted DML only.
         if (dbQuery('DELETE FROM Logs') === null) {
           $message = 'Failed to clear the log table';
@@ -155,6 +156,8 @@ function logFilter() {
   // Advanced search contains an array of "column name" => "search text" pairs
   // Bootstrap table sends json_ecoded array, which we must decode
   $advsearch = isset($_REQUEST['filter']) ? json_decode($_REQUEST['filter'], JSON_OBJECT_AS_ARRAY) : array();
+  // json_decode can return null, and count(null) is a fatal error on PHP 8.
+  $advsearch = is_array($advsearch) ? $advsearch : array();
   // Search contains a user entered string to search on
   $search = isset($_REQUEST['search']) ? $_REQUEST['search'] : '';
   if (count($advsearch)) {
@@ -164,7 +167,7 @@ function logFilter() {
       // come back, so matching on them produces SQL against columns the Logs
       // table does not have. The advanced search form offers them because the
       // view declares them as fields, and the resulting statement fails.
-      if (!in_array($col, $columns)) {
+      if (!in_array($col, $columns, true)) {
         ZM\Error("'$col' is not a searchable column name");
         continue;
       }

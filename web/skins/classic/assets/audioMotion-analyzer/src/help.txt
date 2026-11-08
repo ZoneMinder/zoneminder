@@ -1,5 +1,30 @@
 Audio motion visualization can be displayed on the Montage, Watch, and Event pages.
-To do this, install the file "/skins/MySkin/assets/audioMotion-analyzer/src/audioMotion-analyzer.js".
-This file can be downloaded from the following links:
-https://cdn.jsdelivr.net/npm/audiomotion-analyzer@X.X.X where X.X.X is the version number
-https://github.com/hvianna/audioMotion-analyzer/releases
+
+It is drawn by the audioMotion-analyzer library, which ZoneMinder does not ship:
+it is licensed AGPL-3.0-or-later, so it has to be installed by hand. Drop the
+library next to this file, keeping the file name exactly as it is upstream:
+
+  skins/classic/assets/audioMotion-analyzer/src/audioMotion-analyzer.js
+
+(substitute your own skin name for "classic" if you are not using that skin.)
+
+Download it with, where X.X.X is the required version:
+
+  curl -L -o audioMotion-analyzer.js \
+    https://cdn.jsdelivr.net/npm/audiomotion-analyzer@X.X.X/src/audioMotion-analyzer.js
+
+Mind the "/src/audioMotion-analyzer.js" on the end of that URL. Do not use the
+bare https://cdn.jsdelivr.net/npm/audiomotion-analyzer@X.X.X URL: it serves the
+package's "main" entry point, which is the minified UMD bundle (dist/index.js),
+not the ES module this path expects.
+
+The same file is in the upstream source tarball under src/:
+  https://github.com/hvianna/audioMotion-analyzer/releases/tag/X.X.X
+
+The required version is not repeated here, to keep it in one place. It is
+SUPPORTED_AUDIO_MOTION_ANALYZER_VERSION in skins/classic/js/audioMotionAnalyzer.js,
+and the monitor edit page reports, under "Show", which version is required and
+whether the installed one matches.
+
+Note that the npm package is named "audiomotion-analyzer" (all lower case) while
+the project, this directory and the file itself are "audioMotion-analyzer".

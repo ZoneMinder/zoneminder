@@ -36,6 +36,9 @@ StreamBase::~StreamBase() {
   delete vid_stream;
   delete[] temp_img_buffer;
   closeComms();
+  // The monitor's zones each hold a shared_ptr back to it, so releasing ours
+  // alone never frees it. disconnect() clears the zones, as zmc does on exit.
+  if (monitor) monitor->disconnect();
 }
 
 bool StreamBase::loadMonitor(int p_monitor_id) {
@@ -123,9 +126,12 @@ void StreamBase::updateFrameRate(double fps) {
 void StreamBase::checkCommandQueue() {
   while (!zm_terminate) {
     // Update modified time of the socket .lock file so that we can tell which ones are stale.
-    if (now - last_comm_update > Hours(1)) {
+    // This is the command thread: read the clock here rather than the
+    // streaming loop's `now`.
+    TimePoint cmd_now = std::chrono::steady_clock::now();
+    if (cmd_now - last_comm_update > Hours(1)) {
       touch(sock_path_lock);
-      last_comm_update = now;
+      last_comm_update = cmd_now;
     }
 
     if (sd >= 0) {
@@ -139,7 +145,8 @@ void StreamBase::checkCommandQueue() {
       } else {
         Debug(2, "Message length is (%d)", nbytes);
         processCommand(&msg);
-        got_command = true;
+        // A status query doesn't change the picture, so it doesn't need a frame.
+        if (msg.msg_data[0] != CMD_QUERY) got_command = true;
       }
     } else if (connkey) {
       Warning("No sd in checkCommandQueue, comms not open for connkey %06d?", connkey);
@@ -148,9 +155,56 @@ void StreamBase::checkCommandQueue() {
       Debug(1, "No sd in checkCommandQueue, comms not open.");
     }
   } // end while !zm_terminate
+
+  // Nothing reads the socket from here on, but the stream thread can take a
+  // while to wind down (blocked writing to a client that has gone away, say),
+  // and the destructor that would otherwise close it runs only after that.
+  // Until then a command sent to us is accepted and never answered, so
+  // web/ajax/stream.php sits out its whole MSG_TIMEOUT before reporting a
+  // timeout. Closing now makes it see a missing socket and report no_socket
+  // straight away. sd is only used from this thread, and closeComms() leaves
+  // nothing for the destructor's call to do.
+  closeComms();
 }  // end void StreamBase::checkCommandQueue()
 
-Image *StreamBase::prepareImage(Image *image) {
+int StreamBase::preScaleDimensions(int base_width, int base_height, int &width, int &height) const {
+  // Any zoom crops before scaling and needs the full resolution to crop out of.
+  if (zoom.load() != ZM_SCALE_BASE) return 0;
+
+  const int cur_scale = scale.load();
+  if (cur_scale == ZM_SCALE_BASE) return 0;
+
+  const int scaled_width = (base_width * cur_scale) / ZM_SCALE_BASE;
+  const int scaled_height = (base_height * cur_scale) / ZM_SCALE_BASE;
+  // CMD_SCALE stores whatever the client sent, so 0 gets here. Image::Scale
+  // refuses a zero factor, but converting straight to 0x0 would instead put a
+  // negative av_image_get_buffer_size result into an unsigned size and allocate
+  // on it, so leave anything degenerate to the path that already rejects it.
+  if ((scaled_width <= 0) or (scaled_height <= 0)) return 0;
+
+  width = scaled_width;
+  height = scaled_height;
+  return cur_scale;
+}
+
+Image *StreamBase::prepareImage(Image *image, int pre_scaled_by) {
+  if (pre_scaled_by) {
+    // The caller produced the image at exactly the size to send, folding the
+    // scale into a colour conversion it had to do anyway. Send it untouched.
+    //
+    // The command thread can change scale or zoom between the caller reading
+    // them and this call, in which case this one frame goes out at the scale it
+    // was built for and without any new zoom, and the next frame is built from
+    // the new values. Scaling here instead would apply the scale a second time
+    // (a 50% frame of a 640px source would go out at 160px, not 320px), and
+    // cropping here would do it in the reduced image's coordinates and leave
+    // last_crop in the wrong units for every later frame. refs #3681
+    Debug(3, "Sending pre-scaled %dx%d, scale %d", image->Width(), image->Height(), pre_scaled_by);
+    last_scale = pre_scaled_by;
+    last_zoom = ZM_SCALE_BASE;
+    return image;
+  }
+
   /* zooming should happen before scaling to preserve quality
    * scale is relative to base dimensions, and represents the rough ratio between desired view size and base dimensions
    */
@@ -175,7 +229,17 @@ Image *StreamBase::prepareImage(Image *image) {
      * However if we have zoomed before, then we are zooming into the previous cutout
      * The box stored in last_crop should be in base_image units, So we need to turn x,y into percentages, then apply to last_crop
      */
-    if (!last_crop.Hi().x_ && !last_crop.Hi().y_) last_crop = Box({0, 0}, {base_image_width, base_image_height});
+    if (!last_crop.Hi().x_ && !last_crop.Hi().y_) {
+      last_crop = Box({0, 0}, {base_image_width, base_image_height});
+    } else if (last_crop_width && (last_crop_width != base_image_width || last_crop_height != base_image_height)) {
+      // Keep the same part of the picture in the new frame's coordinates.
+      Debug(2, "Rescaling crop from %dx%d to %dx%d", last_crop_width, last_crop_height,
+            base_image_width, base_image_height);
+      last_crop = Box({last_crop.Lo().x_ * base_image_width / last_crop_width,
+                       last_crop.Lo().y_ * base_image_height / last_crop_height},
+                      {last_crop.Hi().x_ * base_image_width / last_crop_width,
+                       last_crop.Hi().y_ * base_image_height / last_crop_height});
+    }
 
     double x_percent = static_cast<double>(cur_x * ZM_SCALE_BASE) / base_image_width;
     double y_percent = static_cast<double>(cur_y * ZM_SCALE_BASE) / base_image_height;
@@ -236,7 +300,9 @@ Image *StreamBase::prepareImage(Image *image) {
 
     Debug(3, "Cropping to %d,%d -> %d,%d %dx%din blown up image", lo_x, lo_y, hi_x, hi_y, hi_x-lo_x, hi_y-lo_y);
     // Scaled back to base_image dimensions
-    last_crop = Box({lo_x*ZM_SCALE_BASE/zoom, lo_y*ZM_SCALE_BASE/zoom}, {hi_x*ZM_SCALE_BASE/zoom, hi_y*ZM_SCALE_BASE/zoom});
+    last_crop = Box({lo_x*ZM_SCALE_BASE/cur_zoom, lo_y*ZM_SCALE_BASE/cur_zoom}, {hi_x*ZM_SCALE_BASE/cur_zoom, hi_y*ZM_SCALE_BASE/cur_zoom});
+    last_crop_width = base_image_width;
+    last_crop_height = base_image_height;
 
     Debug(3, "Cropping to %d,%d -> %d,%d", last_crop.Lo().x_, last_crop.Lo().y_, last_crop.Hi().x_, last_crop.Hi().y_);
     if ( !image_copied ) {
@@ -265,7 +331,7 @@ Image *StreamBase::prepareImage(Image *image) {
   last_y = cur_y;
 
   return image;
-}  // end Image *StreamBase::prepareImage(Image *image)
+}  // end Image *StreamBase::prepareImage(Image *image, int pre_scaled_by)
 
 bool StreamBase::sendTextFrame(const char *frame_text) {
   int width = 640;
@@ -303,7 +369,10 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
         return false;
       }
     }
-    /* double pts = */ vid_stream->EncodeFrame(image.Buffer(), image.Size());
+    // The text is drawn at the current monitor's size and colours, which need
+    // not be those the stream was opened with: event frames are RGB24, and
+    // gapless playback can move to another monitor (refs #4186).
+    /* double pts = */ vid_stream->EncodeImage(image);
   } else {
     static unsigned char buffer[ZM_MAX_IMAGE_SIZE];
     size_t n_bytes = 0;
@@ -346,9 +415,10 @@ void StreamBase::openComms() {
     unsigned int length = snprintf(
                             sock_path_lock,
                             sizeof(sock_path_lock),
-                            "%s/zms-%06d.lock",
+                            "%s/zms-%06d-%d.lock",
                             staticConfig.PATH_SOCKS.c_str(),
-                            connkey
+                            connkey,
+                            owner
                           );
     if ( length >= sizeof(sock_path_lock) ) {
       Warning("Socket lock path was truncated.");
@@ -389,9 +459,10 @@ void StreamBase::openComms() {
     length = snprintf(
                loc_sock_path,
                sizeof(loc_sock_path),
-               "%s/zms-%06ds.sock",
+               "%s/zms-%06d-%ds.sock",
                staticConfig.PATH_SOCKS.c_str(),
-               connkey
+               connkey,
+               owner
              );
     if ( length >= sizeof(loc_sock_path) ) {
       Warning("Socket path was truncated.");
@@ -410,7 +481,7 @@ void StreamBase::openComms() {
       Fatal("Can't bind: %s", strerror(errno));
     }
 
-    snprintf(rem_sock_path, sizeof(rem_sock_path), "%s/zms-%06dw.sock", staticConfig.PATH_SOCKS.c_str(), connkey);
+    snprintf(rem_sock_path, sizeof(rem_sock_path), "%s/zms-%06d-%dw.sock", staticConfig.PATH_SOCKS.c_str(), connkey, owner);
     strncpy(rem_addr.sun_path, rem_sock_path, sizeof(rem_addr.sun_path));
     rem_addr.sun_family = AF_UNIX;
 
@@ -431,8 +502,8 @@ void StreamBase::closeComms() {
     // Remove our command socket, but only while we still hold the lock, and only
     // if we actually got the lock.
     //
-    // Note this is zms-<connkey>s.sock, not the .lock file. A second zms sharing
-    // this connkey is blocked in flock(LOCK_EX) on the .lock file, and the first
+    // Note this is zms-<connkey>-<owner>s.sock, not the .lock file. A second zms sharing
+    // this connkey and owner is blocked in flock(LOCK_EX) on the .lock file, and the first
     // thing it does after winning that lock is unlink this very path itself
     // ("Unlink before bind" in openComms()). It never reads our socket file, so
     // removing it here only does early what our successor would do anyway.

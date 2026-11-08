@@ -411,25 +411,33 @@ function buildMonitorsFilters() {
     }
     $displayMonitors[] = $monitors[$i];
   } # end foreach monitor
-  $html .= '<span class="term MonitorFilter"><label>'.translate('Monitor').'</label>';
-  $html .= '<span class="term-value-wrapper">';
-  $html .= htmlSelect('MonitorId[]', $monitors_dropdown, $selected_monitor_ids,
+  # Built into its own string as well as appended, so a caller can place the
+  # resulting selection somewhere other than beside the attributes that produced
+  # it. See monitorSelect and filterBarWithoutMonitor in the return below.
+  $monitor_select_html = '<span class="term MonitorFilter"><label>'.translate('Monitor').'</label>';
+  $monitor_select_html .= '<span class="term-value-wrapper">';
+  $monitor_select_html .= htmlSelect('MonitorId[]', $monitors_dropdown, $selected_monitor_ids,
     array(
       'data-on-change-this'=>'monitorFilterOnChange',
       'class'=>'chosen',
       'multiple'=>'multiple',
       'data-placeholder'=>'All',
     ) );
+  $monitor_select_html .= addButtonResetForFilterSelect('MonitorId[]');
+  $monitor_select_html .= '</span>';
+  $monitor_select_html .= '</span>';
+  $html .= $monitor_select_html;
   # Repurpose this variable to be the list of MonitorIds as a result of all the filtering
   $display_monitor_ids = array_map(function($monitor_row){return $monitor_row['Id'];}, $displayMonitors);
-  $html .= addButtonResetForFilterSelect('MonitorId[]');
-  $html .= '</span>';
-  $html .= '</span>';
 
   $html .= '</div>';
 
   return [
     "filterBar" => $html,
+    // The monitor selection on its own, and the attribute filters without it.
+    // Both are slices of filterBar, which is unchanged for existing callers.
+    "monitorSelect" => $monitor_select_html,
+    "filterBarWithoutMonitor" => str_replace($monitor_select_html, '', $html),
     "displayMonitors" => $displayMonitors,
     "storage_areas" => $storage_areas, //Console page
     "StorageById" => $StorageById, //Console page

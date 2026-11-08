@@ -486,3 +486,22 @@ input[type=submit]:disabled,
   */
   border-color: #bbbbbb;
 }
+
+/* Log panel level colours; see css/base/skin.css. */
+.logPanel tr.log-fat td {
+    background-color:#ffcccc;
+    font-weight: bold;
+}
+
+.logPanel tr.log-err td {
+    background-color:#ffcccc;
+}
+
+.logPanel tr.log-war td {
+    background-color: #ffe4b5;
+}
+
+.logPanel tr.log-dbg td {
+    color: #666666;
+    font-style: italic;
+}

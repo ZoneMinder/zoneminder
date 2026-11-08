@@ -110,12 +110,12 @@ if ($action == 'save') {
       'DecodingEnabled' => 0,
       'RTSP2WebEnabled' => 0,
       'Go2RTCEnabled' => 0,
+      'Go2RTCDisableBackChannel' => 0,
       'JanusEnabled' => 0,
       'JanusAudioEnabled' => 0,
       'Restream' => 0,
 //       'Janus_RTSP_Session_Timeout' => 0,
       'Exif' => 0,
-      'RTSPDescribe' => 0,
       'V4LMultiBuffer'  => '',
       'WallClockTimestamps' => '',
       'RecordAudio' => 0,
@@ -153,8 +153,15 @@ if ($action == 'save') {
   if (!empty($newMonitor['ModelId']) and empty($newMonitor['Model']))
     unset($newMonitor['Model']);
 
+  $refused = $monitor->commandFieldChangesNotAllowed($newMonitor);
+  if (count($refused)) {
+    $error_message .= 'Changing '.implode(', ', $refused).' requires System edit permission.<br/>';
+    ZM\Warning('Refused to save monitor '.$mid.': '.implode(', ', $refused).' requires System edit permission');
+    return;
+  }
+
   $changes = $monitor->changes($newMonitor);
-  ZM\Debug('Changes: '. print_r($changes, true));
+  ZM\Debug('Changes: '. print_r(ZM\redactForLog($changes), true));
   $restart = false;
 
   if (count($changes)) {
@@ -369,6 +376,108 @@ if ($action == 'save') {
       $restart = true;
     } # end if has x10Changes
   } # end if ZM_OPT_X10
+
+  if ( isset($_REQUEST['newAction']) and is_array($_REQUEST['newAction']) ) {
+    require_once('includes/MonitorAction.php');
+    require_once('includes/CronTab.php');
+
+    $submitted_ids = array();
+    foreach ( $_REQUEST['newAction'] as $posted ) {
+      # A row with no target is how the editor expresses "unused": the spare
+      # blank row on every page, or an existing action the operator cleared.
+      $target = empty($posted['TargetMonitorId']) ? 0 : validInt($posted['TargetMonitorId']);
+      $action_id = empty($posted['Id']) ? 0 : validInt($posted['Id']);
+
+      if ( !$target ) {
+        if ( $action_id )
+          dbQuery('DELETE FROM MonitorActions WHERE Id=? AND MonitorId=?', array($action_id, $mid));
+        continue;
+      }
+
+      # Never store an action the target cannot perform. The editor filters the
+      # dropdown, but the request is not to be trusted. A disabled select is
+      # not submitted at all, so the key may simply be absent.
+      $action_type = isset($posted['ActionType']) ? $posted['ActionType'] : '';
+      $trigger_on = isset($posted['TriggerOn']) ? $posted['TriggerOn'] : 'EventStart';
+
+      # The editor collects "Every <when> at <time>"; cron's five fields are
+      # what gets stored and written to the crontab. A schedule it could not
+      # draw comes back untouched in ScheduleRaw so editing a row does not
+      # destroy one that was set another way.
+      #
+      # Built and validated here rather than trusted from the browser: this
+      # string ends up in a crontab line, so the one check that matters has to
+      # be on this side of the request.
+      $schedule = '';
+      if ( $trigger_on == 'Schedule' ) {
+        if ( isset($posted['ScheduleRaw']) and (trim($posted['ScheduleRaw']) !== '') ) {
+          $schedule = trim($posted['ScheduleRaw']);
+        } else {
+          $frequency = isset($posted['ScheduleFrequency']) ? $posted['ScheduleFrequency'] : '';
+          $time = isset($posted['ScheduleTime']) ? trim($posted['ScheduleTime']) : '';
+          # <input type="time"> gives HH:MM, and HH:MM:SS where seconds are on.
+          if ( !preg_match('/^(\d{1,2}):(\d{2})(?::\d{2})?$/', $time, $hm) ) {
+            $error_message .= 'Ignoring action: "'.validHtmlStr($time).
+              '" is not a time of day.<br/>';
+            continue;
+          }
+          $schedule = cronFromParts($frequency, intval($hm[1]), intval($hm[2]));
+          if ($schedule === null) {
+            $error_message .= 'Ignoring action: could not make a schedule from "'.
+              validHtmlStr($frequency).'" at "'.validHtmlStr($time).'".<br/>';
+            continue;
+          }
+        }
+
+        if ( !cronScheduleIsValid($schedule) ) {
+          $error_message .= 'Ignoring action: "'.validHtmlStr($schedule).
+            '" is not a schedule this can run.<br/>';
+          continue;
+        }
+      }
+
+      $target_monitor = ZM\Monitor::find_one(array('Id'=>$target));
+      $allowed = ZM\MonitorAction::typesForMonitor($target_monitor);
+      if ( !in_array($action_type, $allowed) ) {
+        ZM\Warning('Ignoring action: monitor '.$target.' cannot '.$action_type);
+        continue;
+      }
+
+      $values = array(
+        'MonitorId'       => $mid,
+        'TargetMonitorId' => $target,
+        'TriggerOn'       => $trigger_on,
+        'Schedule'        => $schedule,
+        'ActionType'      => $action_type,
+        'AudioFile'       => (!isset($posted['AudioFile']) or $posted['AudioFile'] === '')
+                               ? null : validInt($posted['AudioFile']),
+        'Enabled'         => empty($posted['Enabled']) ? 0 : 1,
+      );
+
+      $action = $action_id ?
+        ZM\MonitorAction::find_one(array('Id'=>$action_id, 'MonitorId'=>$mid)) : new ZM\MonitorAction();
+      if ( !$action ) $action = new ZM\MonitorAction();
+
+      if ( $action->Id() ) {
+        $action->save($values);
+        $submitted_ids[] = $action->Id();
+      } else if ( $action->insert($values) ) {
+        $submitted_ids[] = $action->Id();
+      } else {
+        $error_message .= 'Error saving monitor action: '.$action->get_last_error().'<br/>';
+      }
+    } # end foreach posted action
+
+    # zmc re-reads the action list on restart, so a change here needs one.
+    $restart = true;
+
+    # cron owns the scheduled ones, so the crontab is rebuilt from the table
+    # on every save. Doing it here rather than on a timer means the crontab
+    # cannot drift from what the operator just agreed to.
+    if ( cronRebuildScheduledActions() === false )
+      $error_message .= 'Saved, but the crontab could not be updated, so '.
+        'scheduled actions will not run. See the log for why.<br/>';
+  } # end if newAction
 
   if ( $restart ) {
     if ( $monitor->Capturing() != 'None' and $monitor->Type() != 'WebSite' and !$monitor->Deleted()) {

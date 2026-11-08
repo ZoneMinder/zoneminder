@@ -19,6 +19,8 @@
 //
 #include "zm_eventstream.h"
 
+#include <cstdint>
+
 #include "zm_db.h"
 #include "zm_image.h"
 #include "zm_logger.h"
@@ -199,7 +201,8 @@ bool EventStream::loadEventData(uint64_t event_id) {
   event_data->start_time = SystemTimePoint(Seconds(atoi(dbrow[3])));
   event_data->end_time = dbrow[4] ? SystemTimePoint(Seconds(atoi(dbrow[4]))) : std::chrono::system_clock::now();
   event_data->duration = std::chrono::duration_cast<Microseconds>(dbrow[5] ? FPSeconds(atof(dbrow[5])) : event_data->end_time - event_data->start_time);
-  event_data->video_file = dbrow[6] ? std::string(dbrow[6]) : std::string();
+  // DefaultVideo is user editable; only use it as a filename in the event dir.
+  event_data->video_file = dbrow[6] ? std::filesystem::path(dbrow[6]).filename().string() : std::string();
   std::string scheme_str = dbrow[7] ? std::string(dbrow[7]) : std::string();
   if ( scheme_str == "Deep" ) {
     event_data->scheme = Storage::DEEP;
@@ -406,10 +409,15 @@ bool EventStream::loadEventData(uint64_t event_id) {
   }
   mysql_free_result(result);
 
+  // Replace the previous event's decoder, or drop it when this event has no
+  // video: sendFrame falls back to ffmpeg_input for a missing jpeg, and a
+  // leftover decoder would show the previous event's (possibly another
+  // camera's) footage under this event.
+  delete ffmpeg_input;
+  ffmpeg_input = nullptr;
   if (!event_data->video_file.empty()) {
     std::string filepath = event_data->path + "/" + event_data->video_file;
     Debug(1, "Loading video file from %s", filepath.c_str());
-    delete ffmpeg_input;
 
     ffmpeg_input = new FFmpeg_Input();
     if (ffmpeg_input->Open(filepath.c_str()) < 0) {
@@ -455,10 +463,53 @@ bool EventStream::loadEventData(uint64_t event_id) {
   return true;
 } // bool EventStream::loadEventData( int event_id )
 
+bool EventStream::eventExists(uint64_t event_id) {
+  MYSQL_RES *result = zmDbFetch(stringtf("SELECT 1 FROM `Events` WHERE `Id` = %" PRIu64, event_id));
+  if (!result) return false;
+  bool exists = mysql_num_rows(result) > 0;
+  mysql_free_result(result);
+  return exists;
+}
+
+EventStream::SetEventCommand EventStream::DecodeSetEvent(const char *msg_data) {
+  SetEventCommand command;
+  command.prev = msg_data[1] != 0;
+  command.event_id = 0;
+  for (int i = 0; i < 8; i++)
+    command.event_id = (command.event_id << 8) | static_cast<unsigned char>(msg_data[2 + i]);
+  command.source_event_id = 0;
+  for (int i = 0; i < 6; i++)
+    command.source_event_id = (command.source_event_id << 8) | static_cast<unsigned char>(msg_data[10 + i]);
+  return command;
+}
+
+bool EventStream::HintIsFor(const EventHint &hint, uint64_t current_event_id) {
+  return hint.have && (hint.source_event_id == (current_event_id & 0xFFFFFFFFFFFFULL));
+}
+
+EventStream::NeighbourChoice EventStream::ChooseNeighbour(const EventHint &hint, uint64_t current_event_id,
+                                                          bool ui_managed, Microseconds waited) {
+  if (HintIsFor(hint, current_event_id))
+    return hint.event_id ? NeighbourChoice::kHint : NeighbourChoice::kBoundary;
+  if (!ui_managed) return NeighbourChoice::kSameMonitor;
+  return waited < kHintWait ? NeighbourChoice::kWait : NeighbourChoice::kTimedOut;
+}
+
+bool EventStream::HintResumes(const SetEventCommand &command, bool end_stop, bool end_prev) {
+  return end_stop && command.event_id && (command.prev == end_prev);
+}
+
 void EventStream::processCommand(const CmdMsg *msg) {
   Debug(2, "Got message, type %d, msg %d", msg->msg_type, msg->msg_data[0]);
 
   std::scoped_lock lck{mutex};
+
+  // Any command that can move or redirect playback ends a wait for the UI's
+  // hint; checkEventLoaded starts a new one if we are still at the end.
+  if (((MsgCommand)msg->msg_data[0] != CMD_QUERY) && ((MsgCommand)msg->msg_data[0] != CMD_SET_EVENT)) {
+    hint_wait_start = TimePoint();
+    end_stop = false;
+  }
 
   // Check for incoming command
   switch ((MsgCommand)msg->msg_data[0]) {
@@ -695,6 +746,39 @@ void EventStream::processCommand(const CmdMsg *msg) {
     send_frame = true;
     break;
   }
+  case CMD_SET_EVENT : {
+    // The UI tells us which event is next/prev in the filter/sort it is showing
+    // (refs #4186). From now on this stream follows the UI's order and never the
+    // same-monitor query; see ChooseNeighbour.
+    ui_managed = true;
+    SetEventCommand command = DecodeSetEvent(msg->msg_data);
+    const char *direction = command.prev ? "prev" : "next";
+    EventHint hint;
+    hint.have = true;
+    hint.event_id = command.event_id;
+    hint.source_event_id = command.source_event_id;
+    // next and prev are sent as separate requests and can arrive out of order, or
+    // after we have moved on. Only keep a hint computed for the event playing, so
+    // a late one cannot replace the current event's hint.
+    if (!HintIsFor(hint, event_data->event_id)) {
+      Debug(1, "Ignoring stale SET_EVENT %s = %" PRIu64 " for source %" PRIu64 "; current event is %" PRIu64,
+            direction, command.event_id, command.source_event_id, event_data->event_id);
+      break;
+    }
+    (command.prev ? ui_prev_hint : ui_next_hint) = hint;
+    Debug(1, "Got SET_EVENT command, %s event = %" PRIu64 " (for source event %" PRIu64 ")",
+          direction, command.event_id, command.source_event_id);
+    if (HintResumes(command, end_stop, end_stop_prev)) {
+      // Take the hint through the end-of-event wait, which loads it.
+      Debug(1, "Resuming with %s event %" PRIu64 " after stopping at the end of event %" PRIu64,
+            direction, command.event_id, event_data->event_id);
+      end_stop = false;
+      paused = false;
+      hint_wait_start = std::chrono::steady_clock::now();
+      hint_wait_prev = command.prev;
+    }
+    break;
+  }
   case CMD_QUERY :
     Debug(1, "Got QUERY command, sending STATUS");
     break;
@@ -735,13 +819,15 @@ void EventStream::processCommand(const CmdMsg *msg) {
     status_data.paused = paused;
     status_data.stopped = stopped;
 
-    FPSeconds elapsed = now - last_fps_update;
+    // The command thread: read the clock here rather than the streaming loop's `now`.
+    const TimePoint cmd_now = std::chrono::steady_clock::now();
+    FPSeconds elapsed = cmd_now - last_fps_update;
     if (elapsed.count() > 0) {
       actual_fps = (actual_fps + (frame_count - last_frame_count) / elapsed.count())/2;
-      Debug(1, "actual_fps %f = old + frame_count %d - last %d / elapsed %.2f from %.2f - %.2f scale %d", actual_fps, frame_count, last_frame_count,
-          elapsed.count(), FPSeconds(now.time_since_epoch()).count(), FPSeconds(last_fps_update.time_since_epoch()).count(), scale.load());
+      Debug(1, "actual_fps %f = old + frame_count %d - last %d / elapsed %.2f from %.2f - %.2f scale %d", actual_fps, frame_count.load(), last_frame_count,
+          elapsed.count(), FPSeconds(cmd_now.time_since_epoch()).count(), FPSeconds(last_fps_update.time_since_epoch()).count(), scale.load());
       last_frame_count = frame_count;
-      last_fps_update = now;
+      last_fps_update = cmd_now;
     }
 
     status_data.fps = actual_fps;
@@ -776,12 +862,13 @@ void EventStream::processCommand(const CmdMsg *msg) {
 }  // void EventStream::processCommand(const CmdMsg *msg)
 
 bool EventStream::checkEventLoaded() {
-  std::string sql;
+  bool prev;
 
-  if (curr_frame_id <= 0) {
-    sql = stringtf(
-            "SELECT `Id` FROM `Events` WHERE `MonitorId` = %d AND `Id` < %" PRIu64 " ORDER BY `Id` DESC LIMIT 1",
-            event_data->monitor_id, event_data->event_id);
+  if (waitingForHint()) {
+    // Holding at the end of the event until the UI sends the neighbour.
+    prev = hint_wait_prev;
+  } else if (curr_frame_id <= 0) {
+    prev = true;
   } else if (curr_frame_id > (int)event_data->frames.size()) {
     if (event_data->end_time.time_since_epoch() == Seconds(0)) {
       // We are viewing an in-process event, so just reload it.
@@ -791,63 +878,110 @@ bool EventStream::checkEventLoaded() {
         curr_frame_id = num_frames > 0 ? num_frames : 1;
       return false;
     }
-    sql = stringtf(
-            "SELECT `Id` FROM `Events` WHERE `MonitorId` = %d AND `Id` > %" PRIu64 " ORDER BY `Id` ASC LIMIT 1",
-            event_data->monitor_id, event_data->event_id);
+    prev = false;
   } else {
     // No event change required
     Debug(4, "No event change required, as curr frame %d <=> event frames %zu",
           curr_frame_id, event_data->frames.size());
     return false;
   }
+  const char *direction = prev ? "prev" : "next";
+  int num_frames = (int)event_data->frames.size();
+  int boundary_frame = prev ? 1 : (num_frames > 0 ? num_frames : 1);
 
   // Event change required.
   if (forceEventChange || ((mode != MODE_SINGLE) && (mode != MODE_NONE))) {
-    Debug(1, "Checking for next event %s", sql.c_str());
+    const EventHint &hint = prev ? ui_prev_hint : ui_next_hint;
+    TimePoint now = std::chrono::steady_clock::now();
+    Microseconds waited = waitingForHint()
+                          ? std::chrono::duration_cast<Microseconds>(now - hint_wait_start) : Microseconds(0);
+    uint64_t new_event_id = 0;
 
-    MYSQL_RES *result = zmDbFetch(sql);
-    if (!result) exit(-1);
+    switch (ChooseNeighbour(hint, event_data->event_id, ui_managed, waited)) {
+    case NeighbourChoice::kWait :
+      if (!waitingForHint()) {
+        Debug(1, "Waiting for the UI's %s event after event %" PRIu64, direction, event_data->event_id);
+        hint_wait_start = now;
+        hint_wait_prev = prev;
+        curr_frame_id = boundary_frame;
+      }
+      return false;
+    case NeighbourChoice::kHint :
+      new_event_id = hint.event_id;
+      if (!eventExists(new_event_id)) {
+        // Deleted since the UI fetched its neighbours. Stop here rather than
+        // reaching loadEventData's fatal "not found" path, or leaving the filter.
+        Warning("UI-provided %s event %" PRIu64 " no longer exists; stopping", direction, new_event_id);
+        new_event_id = 0;
+      } else {
+        Debug(1, "Loading UI-provided %s event %" PRIu64, direction, new_event_id);
+      }
+      break;
+    case NeighbourChoice::kBoundary :
+      Debug(1, "The UI's filter has no %s event after event %" PRIu64, direction, event_data->event_id);
+      break;
+    case NeighbourChoice::kTimedOut :
+      Warning("The UI sent no %s event for event %" PRIu64 " within %" PRIi64 "s; stopping",
+              direction, event_data->event_id, static_cast<int64>(kHintWait.count()));
+      break;
+    case NeighbourChoice::kSameMonitor : {
+      std::string sql = prev
+                        ? stringtf("SELECT `Id` FROM `Events` WHERE `MonitorId` = %d AND `Id` < %" PRIu64
+                                   " ORDER BY `Id` DESC LIMIT 1", event_data->monitor_id, event_data->event_id)
+                        : stringtf("SELECT `Id` FROM `Events` WHERE `MonitorId` = %d AND `Id` > %" PRIu64
+                                   " ORDER BY `Id` ASC LIMIT 1", event_data->monitor_id, event_data->event_id);
+      Debug(1, "Checking for %s event %s", direction, sql.c_str());
 
-    if (mysql_num_rows(result) != 1) {
-      Debug(1, "No rows returned for %s", sql.c_str());
+      MYSQL_RES *result = zmDbFetch(sql);
+      if (!result) exit(-1);
+
+      if (mysql_num_rows(result) != 1) {
+        Debug(1, "No rows returned for %s", sql.c_str());
+      }
+      MYSQL_ROW dbrow = mysql_fetch_row(result);
+
+      if (mysql_errno(&dbconn)) {
+        Error("Can't fetch row: %s", mysql_error(&dbconn));
+        exit(mysql_errno(&dbconn));
+      }
+
+      if (dbrow) new_event_id = atoll(dbrow[0]);
+      mysql_free_result(result);
+      break;
     }
-    MYSQL_ROW dbrow = mysql_fetch_row(result);
+    }  // end switch
+    hint_wait_start = TimePoint();
 
-    if (mysql_errno(&dbconn)) {
-      Error("Can't fetch row: %s", mysql_error(&dbconn));
-      exit(mysql_errno(&dbconn));
-    }
+    if (new_event_id) {
+      Debug(1, "Loading new event %" PRIu64, new_event_id);
 
-    if (dbrow) {
-      uint64_t event_id = atoll(dbrow[0]);
-      Debug(1, "Loading new event %" PRIu64, event_id);
+      // loadEventData moves curr_stream_time to the new event while
+      // forceEventChange is set, so an explicit next/prev jumps over the gap.
+      loadEventData(new_event_id);
+      forceEventChange = false;
 
-      loadEventData(event_id);
-
-      int num_frames = (int)event_data->frames.size();
+      num_frames = (int)event_data->frames.size();
       curr_frame_id = replay_rate < 0 ? (num_frames > 0 ? num_frames : 1) : 1;
       Debug(2, "New frame id = %d", curr_frame_id);
       start = std::chrono::steady_clock::now();
-      mysql_free_result(result);
       return true;
-    } else {
-      Debug(2, "No next event loaded using %s. Pausing", sql.c_str());
-      int num_frames = (int)event_data->frames.size();
-      curr_frame_id = curr_frame_id <= 0 ? 1 : (num_frames > 0 ? num_frames : 1);
-      paused = true;
-      sendTextFrame("No more event data found");
-    }  // end if found a new event or not
-    mysql_free_result(result);
+    }
+    Debug(2, "No %s event to load. Pausing", direction);
     forceEventChange = false;
+    end_stop = ui_managed;
+    end_stop_prev = prev;
+    curr_frame_id = boundary_frame;
+    paused = true;
+    sendTextFrame("No more event data found");
   } else {
     Debug(2, "Pausing because mode is %s", StreamMode_Strings[mode].c_str());
-    int num_frames = (int)event_data->frames.size();
-    curr_frame_id = curr_frame_id <= 0 ? 1 : (num_frames > 0 ? num_frames : 1);
+    hint_wait_start = TimePoint();
+    curr_frame_id = boundary_frame;
     paused = true;
     // Reset last_frame_sent so the next loop iteration sends a keepalive
     // immediately, rather than leaving a 5-second gap (MAX_STREAM_DELAY)
     // during which the HTTP connection can time out and break the pipe.
-    last_frame_sent = {};
+    last_frame_sent = TimePoint();
   }
   return false;
 }  // void EventStream::checkEventLoaded()
@@ -858,6 +992,69 @@ Image * EventStream::getImage( ) {
   Image *image = new Image(path.c_str());
   return image;
 }
+
+Image *EventStream::loadFrameImage(std::unique_ptr<Image> &owned_image, int &pre_scaled_by, bool &failed) {
+  failed = false;
+  if (!reuse_filepath_.empty()) {
+    // Decode into the reused member instead of allocating a fresh Image each
+    // frame. ReadJpeg's WriteBuffer reuses the pixel allocation when the
+    // dimensions match (every frame of a given event), eliminating a ~2MB
+    // malloc/free per streamed frame.
+    reuse_image_.ReadJpeg(reuse_filepath_, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
+    return &reuse_image_;
+  }
+  if (!ffmpeg_input) return nullptr;
+
+  // Get the frame from the mp4 input
+  const FrameData *frame_data = &event_data->frames[curr_frame_id-1];
+  AVFrame *frame = ffmpeg_input->get_frame(
+                     ffmpeg_input->get_video_stream_id(),
+                     FPSeconds(frame_data->offset).count());
+  if (!frame) {
+    failed = true;
+    return nullptr;
+  }
+  // Convert straight to the size being sent. The decode is unchanged,
+  // but the RGBA conversion sws_scale was doing anyway can resize in
+  // the same pass, so converting at full size and then scaling cost an
+  // extra full frame conversion plus a full frame copy for every frame
+  // streamed. refs #3681
+  int convert_width = monitor->Width();
+  int convert_height = monitor->Height();
+  pre_scaled_by = preScaleDimensions(monitor->Width(), monitor->Height(),
+                                     convert_width, convert_height);
+  owned_image = std::make_unique<Image>(frame, convert_width, convert_height);
+  Image *image = owned_image.get();
+
+  // when stored as an mp4, we just have the rotation as a flag in the headers
+  // so we need to rotate it before outputting
+  if (
+    (monitor->GetOptVideoWriter() == Monitor::PASSTHROUGH)
+    and
+    (event_data->Orientation != Monitor::ROTATE_0)
+  ) {
+    Debug(2, "Rotating image %d", event_data->Orientation);
+    switch ( event_data->Orientation ) {
+    case Monitor::ROTATE_0 :
+      // No action required
+      break;
+    case Monitor::ROTATE_90 :
+    case Monitor::ROTATE_180 :
+    case Monitor::ROTATE_270 :
+      image->Rotate((event_data->Orientation-1)*90);
+      break;
+    case Monitor::FLIP_HORI :
+    case Monitor::FLIP_VERT :
+      image->Flip(event_data->Orientation==Monitor::FLIP_HORI);
+      break;
+    default:
+      Error("Invalid Orientation: %d", event_data->Orientation);
+    }
+  } else {
+    Debug(2, "Not Rotating image %d", event_data->Orientation);
+  } // end if have rotation
+  return image;
+}  // Image *EventStream::loadFrameImage
 
 bool EventStream::sendFrame(Microseconds delta_us) {
   Debug(2, "Sending frame %d", curr_frame_id);
@@ -906,12 +1103,21 @@ bool EventStream::sendFrame(Microseconds delta_us) {
   }
 
   if ( type == STREAM_MPEG ) {
-    // Decode into the reused member rather than a fresh per-frame stack Image;
-    // ReadJpeg reuses its buffer when dimensions match, avoiding a ~2MB
-    // malloc/free each frame.
-    reuse_image_.ReadJpeg(reuse_filepath_, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
-
-    Image *send_image = prepareImage(&reuse_image_);
+    std::unique_ptr<Image> owned_image;
+    int pre_scaled_by = 0;
+    bool failed = false;
+    Image *image = loadFrameImage(owned_image, pre_scaled_by, failed);
+    if (!image) {
+      if (failed) {
+        Error("Failed getting a frame.");
+        sendTextFrame("Failed getting frame");
+        return false;
+      }
+      Debug(1, "Unable to get frame %d (no jpeg file and no ffmpeg_input)", curr_frame_id);
+      sendTextFrame("No frame available");
+      return true;
+    }
+    Image *send_image = prepareImage(image, pre_scaled_by);
 
     if ( !vid_stream ) {
       vid_stream = new VideoStream("pipe:", format, bitrate, effective_fps,
@@ -924,8 +1130,10 @@ bool EventStream::sendFrame(Microseconds delta_us) {
         return false;
       }
     }
-    vid_stream->EncodeFrame(send_image->Buffer(),
-                            send_image->Size(),
+    // The stream keeps the size and format it was opened with, so an event from
+    // another monitor or a video-backed frame (RGBA, not the jpegs' RGB24) is
+    // converted to them (refs #4186).
+    vid_stream->EncodeImage(*send_image,
                             config.mpeg_timed_frames,
                             delta_us.count() * 1000);
   } else {
@@ -939,67 +1147,28 @@ bool EventStream::sendFrame(Microseconds delta_us) {
       }
     } else {
       Image *image = nullptr;
+      // Non zero once the frame has been decoded straight to the size we are
+      // going to send, so prepareImage knows not to scale it a second time.
+      int pre_scaled_by = 0;
       // Owns the image only on the ffmpeg (mp4) path; the JPEG path decodes into
       // the reused member, so nothing is freed there. unique_ptr replaces the
       // old new/delete pair and frees automatically at scope exit.
       std::unique_ptr<Image> owned_image;
 
-      if (!reuse_filepath_.empty()) {
-        // Decode into the reused member instead of allocating a fresh Image each
-        // frame. ReadJpeg's WriteBuffer reuses the pixel allocation when the
-        // dimensions match (every frame of a given event), eliminating a ~2MB
-        // malloc/free per streamed frame.
-        reuse_image_.ReadJpeg(reuse_filepath_, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
-        image = &reuse_image_;
-      } else if (ffmpeg_input) {
-        // Get the frame from the mp4 input
-        const FrameData *frame_data = &event_data->frames[curr_frame_id-1];
-        AVFrame *frame = ffmpeg_input->get_frame(
-                           ffmpeg_input->get_video_stream_id(),
-                           FPSeconds(frame_data->offset).count());
-        if (frame) {
-          owned_image = std::make_unique<Image>(frame, monitor->Width(), monitor->Height());
-          image = owned_image.get();
-        } else {
+      bool failed = false;
+      image = loadFrameImage(owned_image, pre_scaled_by, failed);
+      if (!image) {
+        if (failed) {
           Error("Failed getting a frame.");
-	  sendTextFrame("Failed getting frame");
+          sendTextFrame("Failed getting frame");
           return false;
         }
-
-        // when stored as an mp4, we just have the rotation as a flag in the headers
-        // so we need to rotate it before outputting
-        if (
-          (monitor->GetOptVideoWriter() == Monitor::PASSTHROUGH)
-          and
-          (event_data->Orientation != Monitor::ROTATE_0)
-        ) {
-          Debug(2, "Rotating image %d", event_data->Orientation);
-          switch ( event_data->Orientation ) {
-          case Monitor::ROTATE_0 :
-            // No action required
-            break;
-          case Monitor::ROTATE_90 :
-          case Monitor::ROTATE_180 :
-          case Monitor::ROTATE_270 :
-            image->Rotate((event_data->Orientation-1)*90);
-            break;
-          case Monitor::FLIP_HORI :
-          case Monitor::FLIP_VERT :
-            image->Flip(event_data->Orientation==Monitor::FLIP_HORI);
-            break;
-          default:
-            Error("Invalid Orientation: %d", event_data->Orientation);
-          }
-        } else {
-          Debug(2, "Not Rotating image %d", event_data->Orientation);
-        } // end if have rotation
-      } else {
         Debug(1, "Unable to get frame %d (no jpeg file and no ffmpeg_input)", curr_frame_id);
         sendTextFrame("No frame available");
         return true;
       }
 
-      Image *send_image = prepareImage(image);
+      Image *send_image = prepareImage(image, pre_scaled_by);
       reserveTempImgBuffer(send_image->Size());
       size_t img_buffer_size = 0;
       uint8_t *img_buffer = temp_img_buffer;
@@ -1088,20 +1257,24 @@ void EventStream::runStream() {
            event_data ? event_data->event_id : 0,
            event_data ? event_data->frames.size() : 0,
            event_data ? event_data->frame_count : 0,
-           curr_frame_id, frame_count);
+           curr_frame_id, frame_count.load());
     }
 
+    // Whether we are holding for the UI's hint, read under the mutex: the
+    // command thread clears it.
+    bool holding_for_hint;
     {
       std::scoped_lock lck{mutex};
 
+      holding_for_hint = waitingForHint();
       send_frame = false;
-      TimePoint::duration time_since_last_send = now - last_frame_sent;
+      TimePoint::duration time_since_last_send = now - last_frame_sent.load();
 
       if (stopped) {
         // In stopped state, skip all frame processing until a new command is received.
         // send_frame is already false from initialization above.
         delta = MAX_SLEEP;
-      } else if (!paused) {
+      } else if (!paused && !holding_for_hint) {
         // Figure out if we should send this frame
         Debug(3, "not paused at curr_frame_id (%d-1) mod frame_mod(%d)", curr_frame_id, frame_mod);
         // If we are streaming and this frame is due to be sent
@@ -1125,7 +1298,7 @@ void EventStream::runStream() {
         } else {
           Debug(4, "Not Sending keepalive frame now %.2f - %.2f last = %.2f > Max %.2f",
               FPSeconds(now.time_since_epoch()).count(),
-              FPSeconds(last_frame_sent.time_since_epoch()).count(),
+              FPSeconds(last_frame_sent.load().time_since_epoch()).count(),
               FPSeconds(time_since_last_send).count(),
               FPSeconds(MAX_STREAM_DELAY).count()
               );
@@ -1181,7 +1354,7 @@ void EventStream::runStream() {
         frame_count++;
       }
 
-      if (!paused && !stopped && !event_data->frames.empty()
+      if (!paused && !stopped && !holding_for_hint && !event_data->frames.empty()
           && curr_frame_id >= 1 && curr_frame_id <= (int)event_data->frames.size()) {
         // Get current frame data, curr_frame_id may have changed
         FrameData *last_frame_data = &event_data->frames[curr_frame_id-1];
@@ -1217,16 +1390,20 @@ void EventStream::runStream() {
                 FPSeconds(delta).count(),
                 FPSeconds(last_frame_data->offset).count(),
                 FPSeconds(next_frame_data->offset).count());
-          // if effective > base we should speed up frame delivery
-          if (base_fps < effective_fps) {
+          // effective_fps is base_fps times the replay rate, divided by frame_mod
+          // when maxfps makes us skip frames, so this turns delta into the time
+          // per frame sent: shorter for fast replay, longer for slow replay or
+          // when frames are skipped.
+          if ((effective_fps > 0.0) && (base_fps != effective_fps)) {
             delta = std::chrono::duration_cast<Microseconds>((delta * base_fps) / effective_fps);
             Debug(3, "delta %" PRIi64 " us = base_fps (%f) / effective_fps (%f)",
                   static_cast<int64>(std::chrono::duration_cast<Microseconds>(delta).count()),
                   base_fps,
                   effective_fps);
 
-            // but must not exceed maxfps
-            delta = std::max(delta, Microseconds(lround(Microseconds::period::den / maxfps)));
+            // but must not exceed maxfps (0 means no limit)
+            if (maxfps > 0.0)
+              delta = std::max(delta, Microseconds(lround(Microseconds::period::den / maxfps)));
             Debug(3, "delta %" PRIi64 " us = base_fps (%f) / effective_fps (%f) from 30fps",
                   static_cast<int64>(std::chrono::duration_cast<Microseconds>(delta).count()),
                   base_fps,
@@ -1243,6 +1420,10 @@ void EventStream::runStream() {
                 FPSeconds(elapsed).count()
                );
         }  // end if not at end of event
+      } else if (holding_for_hint) {
+        // Holding on the last frame, like a pause, until the UI's hint arrives.
+        // Check back soon: the hint is usually a request or two away.
+        delta = STREAM_PAUSE_WAIT;
       } else {
         // Paused or stopped
         delta = MAX_SLEEP;
@@ -1259,7 +1440,9 @@ void EventStream::runStream() {
       break;
     }
 
-    if (type != STREAM_MPEG) {
+    // MPEG streams pace themselves by encoding, but there is nothing to encode
+    // while holding for a hint.
+    if ((type != STREAM_MPEG) || holding_for_hint) {
       if (delta > Seconds(0)) {
         if (delta > MAX_SLEEP) {
           Debug(1, "Limiting sleep to %" PRIi64 " ms because calculated sleep is too long %" PRIi64,

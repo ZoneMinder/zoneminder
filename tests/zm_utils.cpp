@@ -129,9 +129,10 @@ TEST_CASE("Split (string delimiter)") {
   items = Split("a b c", " ", 2);
   REQUIRE(items == std::vector<std::string>{"a", "b c"});
 
-  // LibvlcCamera splits the monitor Options field this way. The field is a
-  // textarea, so an option may be on its own line rather than after a comma,
-  // and runs of separators (a blank line, or crlf) must not become entries.
+  // A monitor's Options field is a textarea, so an entry may be on its own
+  // line rather than after a comma, and runs of separators (a blank line, or
+  // crlf) must not become empty entries. Split() is no longer the reader of
+  // that field, but this is the contract kOptionSeparators is chosen for.
   items = Split("--rate=1\n--no-audio", kOptionSeparators);
   REQUIRE(items == std::vector<std::string>{"--rate=1", "--no-audio"});
 
@@ -427,5 +428,157 @@ TEST_CASE("zm_strncpy") {
   SECTION("empty source") {
     zm_strncpy(buf, "", sizeof(buf));
     REQUIRE(buf[0] == '\0');
+  }
+}
+
+TEST_CASE("TimevalToString") {
+  // tv_usec used to go to the format string as %ld. Under glibc's 64 bit time
+  // ABI on a 32 bit platform (Debian trixie on armhf) tv_usec is
+  // __suseconds64_t while long is still 32 bits, so %ld consumed half the
+  // argument and every vararg after it was read from the wrong offset. zmc
+  // crashed on armhf because this result is written into a buffer and then
+  // used. See #4580 and Debian bug 1120447.
+  //
+  // amd64 cannot reproduce the mismatch (long is already 64 bits), so what
+  // this pins is the rendering: six zero padded digits of microseconds, which
+  // is what a wrong conversion would disturb.
+  const char *tz = getenv("TZ");
+  std::string saved_tz = tz ? tz : "";
+  setenv("TZ", "UTC", 1);
+  tzset();
+
+  SECTION("pads microseconds to six digits") {
+    REQUIRE(TimevalToString(timeval{0, 0}) == "1970-01-01 00:00:00.000000");
+    REQUIRE(TimevalToString(timeval{0, 1}) == "1970-01-01 00:00:00.000001");
+    REQUIRE(TimevalToString(timeval{0, 999999}) == "1970-01-01 00:00:00.999999");
+  }
+
+  SECTION("does not truncate or reorder the arguments") {
+    // A conversion that mis-reads tv_usec tends to show up either as a wrong
+    // number here or as the seconds field being wrong, since the bad read
+    // shifts everything after it.
+    REQUIRE(TimevalToString(timeval{1700000000, 123456}) == "2023-11-14 22:13:20.123456");
+  }
+
+  if (saved_tz.empty()) {
+    unsetenv("TZ");
+  } else {
+    setenv("TZ", saved_tz.c_str(), 1);
+  }
+  tzset();
+}
+
+TEST_CASE("ClientAddress") {
+  SECTION("X-Forwarded-For is ignored unless the peer is a trusted proxy") {
+    REQUIRE(ClientAddress("203.0.113.9", "192.168.1.55", "") == "203.0.113.9");
+    REQUIRE(ClientAddress("203.0.113.9", "192.168.1.55", "10.0.0.1") == "203.0.113.9");
+    REQUIRE(ClientAddress("", "192.168.1.55", "").empty());
+  }
+
+  SECTION("a trusted proxy's X-Forwarded-For is used") {
+    REQUIRE(ClientAddress("10.0.0.1", "192.168.1.55", "10.0.0.1") == "192.168.1.55");
+    REQUIRE(ClientAddress("10.0.0.1", "", "10.0.0.1") == "10.0.0.1");
+    REQUIRE(ClientAddress("10.0.0.1", " , ", "10.0.0.1") == "10.0.0.1");
+  }
+
+  SECTION("the right-most untrusted hop wins, not a spoofed left-most one") {
+    REQUIRE(ClientAddress("10.0.0.1", "1.2.3.4, 192.168.1.55", "10.0.0.1") == "192.168.1.55");
+    REQUIRE(ClientAddress("10.0.0.1", "1.2.3.4,  192.168.1.55 , 10.0.0.9 ", "10.0.0.1, 10.0.0.9")
+            == "192.168.1.55");
+    REQUIRE(ClientAddress("10.0.0.1", "1.2.3.4, 192.168.1.55, 10.0.0.9", "10.0.0.1 10.0.0.9")
+            == "192.168.1.55");
+  }
+
+  SECTION("when every hop is trusted the left-most is the origin") {
+    REQUIRE(ClientAddress("10.0.0.1", "10.0.0.9, 10.0.0.1", "10.0.0.1,10.0.0.9") == "10.0.0.9");
+  }
+}
+
+// ZM_GO2RTC_PATH is the go2rtc API base. Its API lives under /api, but the
+// natural thing to enter is the server address, so either form is accepted.
+TEST_CASE("Go2RTCApiEndpoint", "[utils]") {
+  REQUIRE(Go2RTCApiEndpoint("http://localhost:1984") == "http://localhost:1984/api");
+  REQUIRE(Go2RTCApiEndpoint("http://localhost:1984/") == "http://localhost:1984/api");
+  REQUIRE(Go2RTCApiEndpoint("http://localhost:1984/api") == "http://localhost:1984/api");
+  REQUIRE(Go2RTCApiEndpoint("http://localhost:1984/api/") == "http://localhost:1984/api");
+  REQUIRE(Go2RTCApiEndpoint("https://host/go2rtc") == "https://host/go2rtc/api");
+  REQUIRE(Go2RTCApiEndpoint("https://host/go2rtc/api") == "https://host/go2rtc/api");
+  REQUIRE(Go2RTCApiEndpoint("http://user:pass@cam:1984") == "http://user:pass@cam:1984/api");
+  REQUIRE(Go2RTCApiEndpoint("") == "");
+}
+
+TEST_CASE("authentication with a raw @ in the password") {
+  // ffmpeg splits the authority at its last '@', so such a password works;
+  // all of it must be removed, not just the part before the first '@'.
+  SECTION("remove_authentication") {
+    REQUIRE(remove_authentication("rtsp://admin:p@ss@192.168.1.1:554/s") == "rtsp://192.168.1.1:554/s");
+    REQUIRE(remove_authentication("admin:p@ss@192.168.1.1") == "192.168.1.1");
+  }
+  SECTION("mask_authentication") {
+    std::string masked = mask_authentication("rtsp://admin:p@ss@192.168.1.1:554/s");
+    REQUIRE(masked.find("ss") == std::string::npos);
+    REQUIRE(masked.find("@192.168.1.1:554/s") != std::string::npos);
+  }
+  SECTION("url_for_log") {
+    REQUIRE(url_for_log("rtsp://admin:p@ss@192.168.1.1/s?x=1") == "rtsp://192.168.1.1/s?...");
+  }
+  SECTION("an @ in the path or query is not userinfo") {
+    REQUIRE(remove_authentication("http://192.168.1.1/a@b") == "http://192.168.1.1/a@b");
+    REQUIRE(remove_authentication("http://192.168.1.1/x?mail=a@b") == "http://192.168.1.1/x?mail=a@b");
+    REQUIRE(mask_authentication("http://192.168.1.1/x?mail=a@b") == "http://192.168.1.1/x?mail=a@b");
+  }
+}
+
+TEST_CASE("request_for_log") {
+  SECTION("Basic credentials and the query string are removed") {
+    std::string req = "GET /snap.cgi?user=admin&pwd=CamPw1 HTTP/1.0\r\n"
+                      "User-Agent: ZoneMinder\r\n"
+                      "Host: 192.168.1.10\r\n"
+                      "Authorization: Basic YWRtaW46Q2FtUHcx\r\n\r\n";
+    REQUIRE(request_for_log(req) == "GET /snap.cgi?... HTTP/1.0\r\n"
+                                    "User-Agent: ZoneMinder\r\n"
+                                    "Host: 192.168.1.10\r\n"
+                                    "Authorization: <not logged>\r\n\r\n");
+  }
+  SECTION("a Digest header and an RTSP request with userinfo") {
+    std::string req = "DESCRIBE rtsp://u:pw@10.0.0.2:554/s RTSP/1.0\r\n"
+                      "CSeq: 2\r\n"
+                      "authorization: Digest username=\"u\", response=\"0123abcd\"\r\n\r\n";
+    std::string out = request_for_log(req);
+    REQUIRE(out == "DESCRIBE rtsp://10.0.0.2:554/s RTSP/1.0\r\nCSeq: 2\r\nauthorization: <not logged>\r\n\r\n");
+  }
+  SECTION("a request without credentials is unchanged") {
+    std::string req = "GET /video.mjpg HTTP/1.1\r\nHost: cam\r\n\r\n";
+    REQUIRE(request_for_log(req) == req);
+    REQUIRE(request_for_log("") == "");
+  }
+}
+
+TEST_CASE("url_for_log") {
+  SECTION("plain url is unchanged") {
+    REQUIRE(url_for_log("rtsp://127.0.0.1:8554/cam") == "rtsp://127.0.0.1:8554/cam");
+  }
+  SECTION("credentials are removed") {
+    REQUIRE(url_for_log("rtsp://admin:secret@192.168.1.1/stream") == "rtsp://192.168.1.1/stream");
+  }
+  SECTION("the query string is removed") {
+    REQUIRE(url_for_log("rtsp://127.0.0.1:8554/cam?auth=0123456789abcdef") == "rtsp://127.0.0.1:8554/cam?...");
+    REQUIRE(url_for_log("rtsp://127.0.0.1:8554/cam?username=u&password=p") == "rtsp://127.0.0.1:8554/cam?...");
+  }
+  SECTION("an @ in the query does not cut the host") {
+    REQUIRE(url_for_log("http://host/x?token=a@b") == "http://host/x?...");
+  }
+  SECTION("a request URI without scheme or host (zms REQUEST_URI)") {
+    REQUIRE(url_for_log("/zm/cgi-bin/nph-zms?mode=single&monitor=1&user=u&pass=p")
+            == "/zm/cgi-bin/nph-zms?...");
+    REQUIRE(url_for_log("/zm/cgi-bin/nph-zms?monitor=1&auth=0123456789abcdef&user=a@b")
+            == "/zm/cgi-bin/nph-zms?...");
+    REQUIRE(url_for_log("/zm/cgi-bin/nph-zms") == "/zm/cgi-bin/nph-zms");
+  }
+  SECTION("both") {
+    std::string out = url_for_log("rtsp://u:pw@10.0.0.2/s?token=eyJabc");
+    REQUIRE(out == "rtsp://10.0.0.2/s?...");
+    REQUIRE(out.find("pw") == std::string::npos);
+    REQUIRE(out.find("eyJ") == std::string::npos);
   }
 }

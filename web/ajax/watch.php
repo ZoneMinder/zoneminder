@@ -24,7 +24,7 @@ if ( empty($_REQUEST['mid']) ) {
 if ( ( !is_int($_REQUEST['limit']) and !ctype_digit($_REQUEST['limit']) ) ) {
   $message = 'Invalid value for limit: '.$_REQUEST['limit'];
 } else {
-  $limit = $_REQUEST['limit'];
+  $limit = (int)$_REQUEST['limit'];
 }
 
 if ($message) {
@@ -98,6 +98,10 @@ if ($rows) {
     // Modify the row data as needed
     $row['imgHtml'] = '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="Event '.$event->Id().'" width="' .validInt($event->ThumbnailWidth()). '" height="' .validInt($event->ThumbnailHeight()).'" stream_src="' .$streamSrc. '" still_src="' .$imgSrc. '"' .$videoAttr. ' data-monitor-width="'.$event->Width().'" data-monitor-height="'.$event->Height().'" loading="lazy" />';
     $row['Name'] = validHtmlStr($row['Name']);
+    // Text, not markup, as in ajax/events.php
+    $row['Cause'] = validHtmlStr($row['Cause']);
+    $row['Tags'] = validHtmlStr($row['Tags']);
+    $row['Notes'] = $row['Notes'] ? nl2br(htmlspecialchars($row['Notes'])) : '';
     $row['Length'] = gmdate('H:i:s', intval($row['Length']));
 
     $returned_rows[] = $row;

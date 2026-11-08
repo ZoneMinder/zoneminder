@@ -59,7 +59,10 @@ function decorateStreams(streams) {
       stream.buttons = '<input type="button" value="Add" data-on-click-this="addMonitor" data-url="'+stream.url+'"/>';
     }
     if (ZM_WEB_LIST_THUMBS && stream.camera && stream.camera.mjpegstream) {
-      stream.Thumbnail = '<img src="?view=image&proxy='+stream.camera.mjpegstream+'" width="'+ZM_WEB_LIST_THUMB_WIDTH+'"/>';
+      // The image proxy requires the CSRF token since it is exempt from the POST check.
+      let src = '?view=image&proxy='+encodeURIComponent(stream.camera.mjpegstream);
+      if (ZM_ENABLE_CSRF_MAGIC === '1') src += '&'+csrfMagicName+'='+encodeURIComponent(csrfMagicToken);
+      stream.Thumbnail = '<img src="'+src+'" width="'+ZM_WEB_LIST_THUMB_WIDTH+'"/>';
     }
     if (stream.url) {
       ProbeResults[stream.url] = stream;

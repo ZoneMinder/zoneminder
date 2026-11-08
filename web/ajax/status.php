@@ -1,6 +1,6 @@
 <?php
 if (!isset($_REQUEST['entity'])) {
-  Error("No entity pass to status request.");
+  \ZM\Error("No entity pass to status request.");
   http_response_code(404);
   return;
 } else {
@@ -84,7 +84,6 @@ $statusData = array(
       'PostEventCount' => true,
       'AlarmFrameCount' => true,
       'SectionLength' => true,
-      'FrameSkip' => true,
       'MotionFrameSkip' => true,
       'MaxFPS' => true,
       'AlarmMaxFPS' => true,
@@ -200,6 +199,10 @@ $statusData = array(
       'FrameId' => true,
       'Type' => true,
       'Delta' => true,
+      // elements is a whitelist, so the event view's cue graph was reading an
+      // undefined Score off every frame until these were added.
+      'Score' => true,
+      'AudioLevel' => true,
     ),
   ),
   'frame' => array(
@@ -545,54 +548,58 @@ function getNearEvents() {
     $sortOrder = 'ASC';
   }
 
-  $sql = '
-  SELECT E.Id AS Id, E.StartDateTime AS StartDateTime
-  FROM Events AS E
-  INNER JOIN Monitors AS M ON E.MonitorId = M.Id
-  LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId
-  LEFT JOIN Tags AS T ON T.Id = ET.TagId
-  WHERE E.Id != ? AND '.$sortColumn.'
-  '.($sortOrder=='ASC'?'<=':'>=').' ?';
-  if ($filter->sql()) {
-    $sql .= ' AND ('.$filter->sql().')';
-  }
-  $sql .= ' AND E.StartDateTime <= ? ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'DESC':'ASC');
-  if ( $sortColumn != 'E.Id' ) {
-    # When sorting by starttime, if we have two events with the same starttime (different monitors) then we should sort secondly by Id
-    $sql .= ', E.Id DESC';
-  }
-  $sql .= ' LIMIT 1';
-  $result = dbQuery($sql, [$eventId, $event[$_REQUEST['sort_field']], $event['StartDateTime']]);
-  if ( !$result ) {
-    ZM\Error('Failed to load previous event using '.$sql);
-    return $NearEvents;
-  }
+  # The sort value of the current event. Read through the same join as the searches so that
+  # sort columns from Monitors (M.Name) resolve too.
+  $sortValue = dbFetchOne('SELECT '.$sortColumn.' AS SortValue FROM Events AS E
+    INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id=?', 'SortValue', array($eventId));
 
-  $prevEvent = dbFetchNext($result);
+  # Events are ordered by ($sortColumn $sortOrder, E.Id ASC). Many events can share a sort value,
+  # e.g. several monitors starting events in the same second, so Prev/Next must compare the full
+  # (sort value, Id) tuple. Comparing the sort value alone with >= / <= lets the event after a tie
+  # pick the one before it as its Next, and playback loops between them forever.
+  #
+  # That tuple is the whole ordering: do not also constrain E.StartDateTime. When the sort is not
+  # StartDateTime (e.g. MonitorName, grouping cameras, or Id) a time constraint drops events that
+  # are correctly next in the chosen order but started earlier or later than the current one -- the
+  # next monitor's first event, or a concurrently recorded event with a higher Id, was skipped
+  # (refs #4186).
+  $after = ($sortOrder == 'ASC') ? '>' : '<';
+  $before = ($sortOrder == 'ASC') ? '<' : '>';
+  $reverseOrder = ($sortOrder == 'ASC') ? 'DESC' : 'ASC';
 
-  $sql = '
-  SELECT E.Id AS Id, E.StartDateTime AS StartDateTime
-  FROM Events AS E
-  INNER JOIN Monitors AS M ON E.MonitorId = M.Id
-  LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId
-  LEFT JOIN Tags AS T ON T.Id = ET.TagId
-  WHERE E.Id != ? AND '.$sortColumn.'
-  '.($sortOrder=='ASC'?'>=':'<=').' ?';
-  if ($filter->sql()) {
-    $sql .= ' AND ('.$filter->sql().')';
-  }
-  $sql .= ' AND E.StartDateTime >= ? ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'ASC':'DESC');
-  if ( $sortColumn != 'E.Id' ) {
-    # When sorting by starttime, if we have two events with the same starttime (different monitors) then we should sort secondly by Id
-    $sql .= ', E.Id ASC';
-  }
-  $sql .= ' LIMIT 1';
-  $result = dbQuery($sql, [$eventId, $event[$_REQUEST['sort_field']], $event['StartDateTime']]);
-  if ( !$result ) {
-    ZM\Error('Failed to load next event using '.$sql);
-    return $NearEvents;
-  }
-  $nextEvent = dbFetchNext($result);
+  $nearEvent = function($cmp, $idCmp, $order, $idOrder) use ($eventId, $filter, $sortColumn, $sortValue) {
+    $sql = '
+    SELECT E.Id AS Id, E.StartDateTime AS StartDateTime
+    FROM Events AS E
+    INNER JOIN Monitors AS M ON E.MonitorId = M.Id
+    LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId
+    LEFT JOIN Tags AS T ON T.Id = ET.TagId
+    WHERE ';
+    if ($sortColumn == 'E.Id') {
+      $sql .= 'E.Id '.$idCmp.' ?';
+      $values = [$eventId];
+    } else {
+      $sql .= '('.$sortColumn.' '.$cmp.' ? OR ('.$sortColumn.' = ? AND E.Id '.$idCmp.' ?))';
+      $values = [$sortValue, $sortValue, $eventId];
+    }
+    if ($filter->sql()) {
+      $sql .= ' AND ('.$filter->sql().')';
+    }
+    $sql .= ' ORDER BY '.$sortColumn.' '.$order;
+    if ($sortColumn != 'E.Id') {
+      $sql .= ', E.Id '.$idOrder;
+    }
+    $sql .= ' LIMIT 1';
+    $result = dbQuery($sql, $values);
+    if (!$result) {
+      ZM\Error('Failed to load near event using '.$sql);
+      return false;
+    }
+    return dbFetchNext($result);
+  };
+
+  $prevEvent = $nearEvent($before, '<', $reverseOrder, 'DESC');
+  $nextEvent = $nearEvent($after, '>', $sortOrder, 'ASC');
 
   if ( $prevEvent ) {
     $NearEvents['PrevEventId'] = $prevEvent['Id'];

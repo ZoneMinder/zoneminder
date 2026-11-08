@@ -50,7 +50,7 @@ use Time::HiRes qw( usleep );
 
 use LWP::UserAgent;
 use HTTP::Cookies;
-use JSON;
+use JSON::MaybeXS qw(encode_json decode_json);
 
 my $ChannelID = 1;              # Usually...
 my $DefaultFocusSpeed = 50;     # Should be between 1 and 100

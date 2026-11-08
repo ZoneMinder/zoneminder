@@ -42,7 +42,7 @@ Camera -> zmc (capture) -> Shared Memory -> zma (analysis) -> Event Recording
 
 - **Shared Memory**: `zmc` writes frames to `/dev/shm`; `zma` and `zms` read from same buffers. Zero-copy for performance — this is why ZM can handle many cameras on modest hardware.
 - **Monitor-Centric**: `Monitor` class (`src/zm_monitor.cpp/h`) is the central orchestrator. One monitor = one DB row = one set of daemons. Most changes to camera handling flow through this class.
-- **Pluggable Cameras**: Abstract `Camera` base with: `LocalCamera` (V4L2), `RemoteCameraRTSP`, `RemoteCameraHTTP`, `FFmpegCamera`, `LibVLCCamera`, `LibVNCCamera`. Add new camera types by subclassing Camera.
+- **Pluggable Cameras**: Abstract `Camera` base with: `LocalCamera` (V4L2), `RemoteCameraHTTP`, `FFmpegCamera`, `LibVNCCamera`. Add new camera types by subclassing Camera.
 - **Event-Driven Recording**: Motion detection triggers `Event` objects with pre/post alarm buffers. Lifecycle: Create -> Record -> Close -> Archive/Delete. Events are the core unit of recorded footage.
 - **Multi-Server Clustering**: Database-coordinated distributed architecture with shared monitors and storage.
 

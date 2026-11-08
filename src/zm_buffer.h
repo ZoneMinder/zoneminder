@@ -22,6 +22,7 @@
 
 #include "zm_logger.h"
 #include "zm_time.h"
+#include <climits>
 #include <cstring>
 
 class Buffer {
@@ -33,6 +34,9 @@ class Buffer {
   unsigned char *mTail;
 
  public:
+  // read_into() returns the count as an int, so never hold more than an int can count.
+  static constexpr size_t kMaxAllocation = INT_MAX;
+
   Buffer() :
     mStorage(nullptr),
     mAllocation(0),

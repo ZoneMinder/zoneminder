@@ -120,5 +120,12 @@ function assert_sql($name, $sql, $regex, $should_match) {
   assert_sql('StartDateTime unchanged', $sql, "/E\.StartDateTime\s*>=\s*'2026-05-06 09:42:56'/", true);
 }
 
+// FrameId is the Frames column. Frames has no Id column since 1.39.36.
+{
+  $sql = make_term('FrameId', 'IN', '1,2')->sql();
+  assert_sql('FrameId uses FrameId column', $sql, '/\bFrameId\s+IN\b/', true);
+  assert_sql('FrameId does not use Id', $sql, '/(?<![\w.])Id\b/', false);
+}
+
 echo "\n$passes passed, $failures failed.\n";
 exit($failures ? 1 : 0);

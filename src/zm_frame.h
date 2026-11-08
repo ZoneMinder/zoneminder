@@ -42,6 +42,7 @@ class Frame {
         SystemTimePoint p_timestamp,
         Microseconds p_delta,
         int p_score,
+        int p_audio_level,
         std::vector<ZoneStats> p_stats
        );
 
@@ -51,6 +52,8 @@ class Frame {
   SystemTimePoint timestamp;
   Microseconds delta;
   int score;
+  // 0-100, peak since the previous row. 0 when audio detection is off.
+  int audio_level;
   std::vector<ZoneStats> zone_stats;
 };
 

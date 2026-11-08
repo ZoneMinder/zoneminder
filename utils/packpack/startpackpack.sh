@@ -62,8 +62,8 @@ createvars () {
 # Check key variables before calling packpack
 checkvars () {
 
-    for var in $thedate $shorthash $versionfile $versionhash $numcommits; do
-        if [ -z ${var} ]; then
+    for var in thedate shorthash versionfile versionhash numcommits; do
+        if [ -z "${!var}" ]; then
             echo
             echo "FATAL: This script was unable to determine one or more key variables. Cannot continue."
             echo

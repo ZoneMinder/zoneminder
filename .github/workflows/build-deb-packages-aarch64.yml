@@ -5,6 +5,14 @@ on:
     branches: [ release-1.38, master ]
 permissions:
   contents: write
+
+# Several merges landing seconds apart used to start a run each, and every
+# one of them published. Keep one build per branch and cancel the ones that
+# a newer push has already superseded.
+concurrency:
+  group: deb-aarch64-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   GPG_KEY_ID: ${{ secrets.ZMREPO_GPG_KEY_ID }}
   GPG_PASSPHRASE: ${{ secrets.ZMREPO_GPG_PASSPHRASE }}
@@ -23,8 +31,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distro: ["debian:sid", "debian:13", "debian:12", "ubuntu:25.10", "ubuntu:devel", "ubuntu:24.04", "ubuntu:22.04"]
-    runs-on: self-hosted
+        distro: ["debian:sid", "debian:13", "debian:12", "ubuntu:26.04", "ubuntu:devel", "ubuntu:24.04", "ubuntu:22.04"]
+    # Pin the arch: x64 self-hosted runners (fw2) also serve this repo.
+    runs-on: [self-hosted, Linux, ARM64]
+    # Self-hosted runners don't reliably enforce the 6h default; a hung
+    # step (gpg import once wedged a runner for 34h) must not hold one forever.
+    timeout-minutes: 60
 
     container:
       image: ${{ matrix.distro }}
@@ -60,17 +72,26 @@ jobs:
             libavcodec-dev libavdevice-dev libavformat-dev libavutil-dev \
             libswresample-dev libswscale-dev libbz2-dev \
             libturbojpeg0-dev default-libmysqlclient-dev \
-            libpolkit-gobject-1-dev libv4l-dev libvlc-dev libssl-dev \
+            libpolkit-gobject-1-dev libv4l-dev libssl-dev \
             libvncserver-dev libjwt-gnutls-dev libgsoap-dev gsoap \
             libmosquittopp-dev
 
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
 
+      # The runner-provided $HOME (/github/home) persists between jobs on
+      # self-hosted runners, so stale gpg lock files left by an earlier job can
+      # stall the import when their recorded PID is reused in the new container.
+      - name: Use a per-job GnuPG home
+        run: |
+          GNUPGHOME=$(mktemp -d)
+          echo "GNUPGHOME=${GNUPGHOME}" >> "$GITHUB_ENV"
+
       - name: Import GPG key
-        uses: crazy-max/ghaction-import-gpg@v7
+        timeout-minutes: 5
+        uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # v7
         with:
           gpg_private_key: ${{ secrets.ZMREPO_GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.ZMREPO_GPG_PASSPHRASE }}
@@ -135,7 +156,7 @@ jobs:
         # Only the tag-only `release` job consumes these. On branch pushes the
         # packages go straight to ZMREPO below, so uploading is pure storage cost.
         if: startsWith(github.ref, 'refs/tags/')
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           path: artifacts/deb
           name: ${{ env.artifact_name }}
@@ -149,7 +170,7 @@ jobs:
             echo "DEPLOY_TARGET=debian/master/mini-dinstall/incoming/" >> $GITHUB_ENV
           fi
       - name: Publish to ZMREPO
-        uses: easingthemes/ssh-deploy@main
+        uses: easingthemes/ssh-deploy@2cc5b27bf3029d0455dd5e09fe02633904031447 # v6.0.3
         env:
           SSH_PRIVATE_KEY: ${{ secrets.ZMREPO_SSH_KEY }}
           ARGS: "-rltgoDzvOW"
@@ -165,7 +186,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           path: dist
       - name: Compute deploy target
@@ -173,7 +194,7 @@ jobs:
           VERSION="${GITHUB_REF_NAME#release-}"
           echo "DEPLOY_TARGET=debian/release-${VERSION}/mini-dinstall/incoming/" >> $GITHUB_ENV
       - name: Publish release to ZMREPO
-        uses: easingthemes/ssh-deploy@main
+        uses: easingthemes/ssh-deploy@2cc5b27bf3029d0455dd5e09fe02633904031447 # v6.0.3
         env:
           SSH_PRIVATE_KEY: ${{ secrets.ZMREPO_SSH_KEY }}
           ARGS: "-rltgoDzvOW"
@@ -182,6 +203,6 @@ jobs:
           REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}
           TARGET: ${{ env.DEPLOY_TARGET }}
       - name: Create release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
         with:
           files: dist/**/*

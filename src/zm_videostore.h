@@ -64,6 +64,10 @@ class VideoStore {
   unsigned int packets_written;
   unsigned int frame_count;
   bool video_encoded;  // true once at least one frame has been sent to the video encoder
+  // Set in open() when the monitor asked for ENCODE but no encoder would
+  // open. We then copy the input stream and write its packets unchanged,
+  // rather than recording nothing at all.
+  bool video_passthrough_fallback;
 
   AVBufferRef *hw_device_ctx;
 
@@ -106,7 +110,23 @@ class VideoStore {
   int64_t last_fragment_offset_;    // byte offset where the current (in-progress) fragment starts
   int64_t last_fragment_start_dts_; // DTS of the keyframe that started the current fragment
   int64_t init_segment_end_;        // byte offset where init segment (ftyp+moov) ends
+  // Where open() reserved room for a leading sidx, or -1 when it did not.
+  // finalize() fills that region in; zm_mp4_sidx.h says why the index has to
+  // sit there and be reserved before the first fragment is written.
+  int64_t sidx_region_offset_;
+  int64_t sidx_region_size_;        // how many bytes open() reserved there
   bool    finalized_;               // true once finalize() has run trailer + last-fragment recording
+
+  // What of the manifest is already on disk, and what it was written with, so
+  // writeM3U8 can add the new fragments to the end instead of rewriting it.
+  // Zeroed state means "rewrite from scratch", which is also the self-healing
+  // answer to anything unexpected.
+  size_t      m3u8_fragments_written_;
+  int         m3u8_target_duration_;
+  int64_t     m3u8_init_segment_end_;
+  int64_t     m3u8_bytes_written_;
+  std::string m3u8_path_;
+  std::string m3u8_video_url_;
 
   bool setup_resampler();
   int write_packet(AVPacket *pkt, AVStream *stream);
@@ -118,7 +138,6 @@ class VideoStore {
     AVStream *video_in_stream,
     AVCodecContext  *video_in_ctx,
     AVStream *audio_in_stream,
-    AVCodecContext  *audio_in_ctx,
     Monitor * p_monitor);
   ~VideoStore();
   bool  open();
@@ -133,11 +152,34 @@ class VideoStore {
   const std::vector<Fragment> &fragments() const { return fragments_; }
   int64_t init_segment_end() const { return init_segment_end_; }
   void writeM3U8(const std::string &path, const std::string &video_url, bool is_complete);
+
+  // --- Manifest text, split out so it is testable without a VideoStore ------
+  //
+  // An EVENT playlist is append only: the lines for a fragment never change
+  // once written, and only the header depends on anything global. So the
+  // header and a fragment's three lines are generated separately, and
+  // writeM3U8 appends when nothing above the new fragments would differ.
+
+  // Rounded up, and never below 1, as EXT-X-TARGETDURATION must be a positive
+  // integer no smaller than any fragment.
+  static int m3u8TargetDuration(const std::vector<Fragment> &frags);
+  static std::string m3u8Header(int target_duration,
+                                const std::string &video_url,
+                                int64_t init_segment_end,
+                                bool is_complete);
+  static std::string m3u8Fragment(const Fragment &frag, const std::string &video_url);
   // Flush queues, write trailer, close output, and record the final fragment.
   // Call this before writeM3U8(true) so the manifest contains every fragment.
   // Safe to call once; subsequent calls are no-ops. The destructor will skip
   // the trailer write if finalize() has already run.
   void finalize();
+
+  // Whether we are really re-encoding video. That is the monitor's ENCODE
+  // setting unless every encoder failed to open, in which case open() fell
+  // back to passthrough and this is false. Callers must ask this rather than
+  // the monitor, or they will treat copied packets as encoded ones. Defined
+  // in the .cpp because Monitor is only forward declared here.
+  bool Encoding() const;
 
   const char *get_codec() {
     if (chosen_codec_data)

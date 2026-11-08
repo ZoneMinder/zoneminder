@@ -23,14 +23,15 @@ class ControlsController extends AppController {
  */
 	public $components = array('Paginator', 'RequestHandler');
 
-  # Control definitions describe how to drive a camera and are edited under
-  # Options, which requires System. Manufacturers, CameraModels and
-  # EncoderTemplates all gate their reference data the same way; this one was
-  # left open.
+  # This controller only reads control definitions (index/view); editing them
+  # happens under Options, which requires System. A client building a PTZ
+  # command needs to read the monitor's control definition, and the web ui lets
+  # anyone who can control a monitor (canView('Control')) do that, so allow it
+  # here too rather than requiring System, which locked PTZ clients out.
   public function beforeFilter() {
     parent::beforeFilter();
     global $user;
-    $canView = (!$user) || ($user->System() != 'None');
+    $canView = (!$user) || $user->canView('System') || $user->canView('Control');
     if (!$canView) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;

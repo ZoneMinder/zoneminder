@@ -2,7 +2,7 @@
 global $restartWarning;
 global $tab;
 ?>
-  const tab = '<?php echo $tab ?>';
+  const tab = '<?php echo validJsStr($tab) ?>';
 const menuItemStrings = {
   menuKey: <?php echo json_encode(translate('Name')) ?>,
   label: <?php echo json_encode(translate('Custom Label')) ?>,

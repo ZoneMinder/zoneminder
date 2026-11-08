@@ -29,6 +29,25 @@ require_once('Role_Monitor_Permission.php');
 require_once(__DIR__.'/../vendor/autoload.php');
 use \Firebase\JWT\JWT;
 
+// A request parameter as a string, or null when the client did not send one it
+// can be used as. Request values are whatever arrived: "?user[]=x" makes
+// $_REQUEST['user'] an array, and the first string operation on an array is a
+// fatal TypeError under PHP 8.
+//
+// Not only hostile input. The user edit form posts user[Username],
+// user[Password] and the rest, so $_REQUEST['user'] is an array on every save
+// from that page, which was enough to take the whole auth path down with
+// "strcasecmp(): Argument #1 must be of type string, array given".
+//
+// An array is not a username, a password or an auth hash, so callers treat it
+// the same as a parameter that was never sent.
+function requestString($key) {
+  if (!isset($_REQUEST[$key])) {
+    return null;
+  }
+  return is_string($_REQUEST[$key]) ? $_REQUEST[$key] : null;
+}
+
 function password_type($password) {
   if (!$password || $password === '') {
     return 'plain';
@@ -48,15 +67,22 @@ function password_type($password) {
 }
 
 // this function migrates mysql hashing to bcrypt, if you are using PHP >= 5.5
-// will be called after successful login, only if mysql hashing is detected
-function migrateHash($user, $pass) {
+// will be called after a successful password login, once the global $user is set.
+// Only mysql and mysql+bcrypt (zmupdate.pl) hashes are rehashed.
+function migrateHash($username, $pass) {
+  global $user;
+  $password_type = password_type($user->Password());
+  if ($password_type != 'mysql' and $password_type != 'mysql+bcrypt') return;
+
   if (function_exists('password_hash')) {
-    ZM\Info("Migrating $user to bcrypt scheme");
+    ZM\Info("Migrating $username to bcrypt scheme");
     // let it generate its own salt, and ensure bcrypt as PASSWORD_DEFAULT may change later
     // we can modify this later to support argon2 etc as switch to its own password signature detection
     $bcrypt_hash = password_hash($pass, PASSWORD_BCRYPT);
-    dbQuery('UPDATE Users SET Password=? WHERE Username=?', array($bcrypt_hash, $user));
-    # Since password field has changed, existing auth_hash is no longer valid
+    dbQuery('UPDATE Users SET Password=? WHERE Id=?', array($bcrypt_hash, $user->Id()));
+    # Since password field has changed, existing auth_hash is no longer valid.
+    # getAuthUser() checks it against the new hash, so build it from that one.
+    $user->Password($bcrypt_hash);
     generateAuthHash(ZM_AUTH_HASH_IPS, true);
   } else {
     ZM\Info('Cannot migrate password scheme to bcrypt, as you are using PHP < 5.5');
@@ -64,7 +90,72 @@ function migrateHash($user, $pass) {
   }
 }
 
+// The password db/zm_create.sql gives the admin account, as the user guide
+// states it. Every install starts with it, so a login with it proves nothing:
+// it is refused as a credential everywhere, and the web login asks for a new
+// one instead (replaceDefaultPassword()). zmLoadUser() in src/zm_user.cpp does
+// the same for zms, zmu and the RTSP server.
+define('ZM_DEFAULT_PASSWORD', 'admin');
+define('ZM_DEFAULT_PASSWORD_REFUSED', 'This account uses the password admin, which ZoneMinder does not accept. Log in to the web interface to set a new one.');
+
+function isDefaultPassword($password) {
+  return is_string($password) and hash_equals(ZM_DEFAULT_PASSWORD, $password);
+}
+
+// True when this request answers the change form replaceDefaultPassword() showed
+// earlier in this session. That form follows a login that already passed
+// reCAPTCHA, so its POST doesn't need to pass it again.
+function isDefaultPasswordChangePost() {
+  $nonce = requestString('password_change_nonce');
+  $expected = isset($_SESSION['passwordChangeNonce']) ? $_SESSION['passwordChangeNonce'] : null;
+  return ($nonce !== null) and is_string($expected) and hash_equals($expected, $nonce);
+}
+
+// Why $password can't be set as an account's password, as a translation key,
+// or null when it can. Every way to set one checks it: the user page
+// (includes/actions/user.php), the API (api/app/Model/User.php), the login
+// page's change form and the first-run page, so a password one of them
+// refuses can't be set through another.
+function passwordProblem($password) {
+  if (!is_string($password) or ($password === '')) return 'NewPasswordRequired';
+  if (isDefaultPassword($password)) return 'NewPasswordIsDefault';
+  if (mb_strlen($password, 'UTF-8') < passwordMinLength()) return 'PasswordTooShort';
+  return null;
+}
+
+// ZM_PASSWORD_MIN_LENGTH, or 0 on a database that doesn't have the option yet.
+function passwordMinLength() {
+  return defined('ZM_PASSWORD_MIN_LENGTH') ? max(0, intval(ZM_PASSWORD_MIN_LENGTH)) : 0;
+}
+
+// passwordProblem()'s answer as text. The API loads no language file, so it
+// gets the English.
+function passwordProblemText($problem) {
+  $english = array(
+    'NewPasswordRequired' => 'Enter a new password.',
+    'NewPasswordIsDefault' => 'The new password must not be admin.',
+    'PasswordTooShort' => 'The new password must have at least %d characters.',
+  );
+  if (function_exists('translate')) {
+    $text = translate($problem);
+  } else {
+    $text = isset($english[$problem]) ? $english[$problem] : $problem;
+  }
+  return ($problem === 'PasswordTooShort') ? sprintf($text, passwordMinLength()) : $text;
+}
+
+// passwordProblem() for a form that asks for the new password twice.
+function newPasswordProblem($new, $confirm) {
+  if (!is_string($new) or ($new === '')) return 'NewPasswordRequired';
+  if (!is_string($confirm) or !hash_equals($new, $confirm)) return 'PasswordsDifferent';
+  return passwordProblem($new);
+}
+
 // core function used to load a User record by username and password
+//
+// A correct password that is the default one is refused: the result is
+// array(false, ZM_DEFAULT_PASSWORD_REFUSED, $account), the third element so
+// the web login can offer to replace it.
 function validateUser($username='', $password='') {
   if (ZM_CASE_INSENSITIVE_USERNAMES) {
     $sql = 'SELECT * FROM Users WHERE Enabled=1 AND LOWER(Username)=LOWER(?)';
@@ -84,7 +175,7 @@ function validateUser($username='', $password='') {
     // https://blog.pythian.com/hashing-algorithm-in-mysql-password-2/
     ZM\Debug('Saved password is using MYSQL password function');
     $input_password_hash = '*'.strtoupper(sha1(sha1($password, true)));
-    $password_correct = ($user['Password'] == $input_password_hash);
+    $password_correct = hash_equals($user['Password'], $input_password_hash);
     break;
   case 'bcrypt' :
     ZM\Debug('bcrypt signature found, assumed bcrypt password');
@@ -98,20 +189,140 @@ function validateUser($username='', $password='') {
     ZM\Debug("Detected bcrypt overlay hashing for $username");
     $bcrypt_hash = substr($user['Password'], 4);
     $mysql_encoded_password = '*'.strtoupper(sha1(sha1($password, true)));
-    ZM\Debug("Comparing password $mysql_encoded_password to bcrypt hash: $bcrypt_hash");
     $password_correct = password_verify($mysql_encoded_password, $bcrypt_hash);
     break;
   default:
     // we really should nag the user not to use plain
     ZM\Warning('assuming plain text password as signature is not known. Please do not use plain, it is very insecure');
-    $password_correct = ($user['Password'] == $password);
+    $password_correct = is_string($password) && hash_equals($user['Password'], $password);
   } // switch password_type
 
   if ($password_correct) {
+    if (isDefaultPassword($password)) {
+      return array(false, ZM_DEFAULT_PASSWORD_REFUSED, new ZM\User($user));
+    }
     return array(new ZM\User($user), 'OK');
   }
   return array(false, 'Invalid username or password');
 } # end function validateUser
+
+// The web login's answer to a correct but default password. The login page
+// asks for a new one; its form carries a nonce kept in the session, so another
+// site can't submit it on the user's behalf. Returns true once the account's
+// password was replaced. Otherwise sets the global $defaultPasswordChange for
+// the login view and returns false; the account is not logged in.
+function replaceDefaultPassword($account) {
+  global $defaultPasswordChange;
+
+  $new = requestString('new_password');
+  $nonce = requestString('password_change_nonce');
+  $expected = isset($_SESSION['passwordChangeNonce']) ? $_SESSION['passwordChangeNonce'] : null;
+  unset($_SESSION['passwordChangeNonce']);
+
+  $problem = null;
+  if (($new !== null) and ($nonce !== null) and is_string($expected) and hash_equals($expected, $nonce)) {
+    $problem = newPasswordProblem($new, requestString('new_password_confirm'));
+    if ($problem === null) {
+      $hash = password_hash($new, PASSWORD_BCRYPT);
+      dbQuery('UPDATE Users SET Password=? WHERE Id=?', array($hash, $account->Id()));
+      $account->Password($hash);
+      ZM\AuditAction('self_update', 'user', $account->Id(), 'Changed: Password (replaced the password admin at login)');
+      ZM\Info('User "'.$account->Username().'" replaced the password admin');
+      return true;
+    }
+  }
+
+  ZM\Warning('Login for user "'.$account->Username().'" stopped: it uses the password admin');
+  zm_session_persist(); // the nonce must survive even if the client had no cookie yet
+  $_SESSION['passwordChangeNonce'] = bin2hex(random_bytes(16));
+  $defaultPasswordChange = array(
+    'username' => $account->Username(),
+    'nonce' => $_SESSION['passwordChangeNonce'],
+    'problem' => $problem,
+  );
+  return false;
+}
+
+// First run. A new install starts with authentication on and the admin
+// account's password admin, which is refused everywhere, so nothing (web, API,
+// streams) can be used yet. The login page offers whoever opens it first the
+// choice instead of the login form: keep authentication on and set the admin
+// password, or turn authentication off. Returns that admin account, or null
+// once the first run is over: the privacy page was answered, the password was
+// changed, or authentication is off.
+function firstRunAccount() {
+  if (!(ZM_OPT_USE_AUTH and ZM_SHOW_PRIVACY and (ZM_AUTH_TYPE == 'builtin'))) return null;
+  $row = dbFetchOne('SELECT * FROM Users WHERE Enabled=1 AND Username=?', NULL, array('admin'));
+  if (!$row or !password_verify(ZM_DEFAULT_PASSWORD, $row['Password'])) return null;
+  return new ZM\User($row);
+}
+
+// True when ZM_OPT_USE_AUTH is set in zm.conf or conf.d. The owner of the box
+// has chosen then, so the first run doesn't offer to turn authentication off.
+function authSetInConfigFile() {
+  $files = array(ZM_CONFIG);
+  if (is_dir(ZM_CONFIG_SUBDIR)) {
+    $conf_d = glob(ZM_CONFIG_SUBDIR.'/*.conf');
+    if ($conf_d) $files = array_merge($files, $conf_d);
+  }
+  foreach ($files as $file) {
+    if (isset(process_configfile($file)['ZM_OPT_USE_AUTH'])) return true;
+  }
+  return false;
+}
+
+// A nonce for the first-run form, kept in the session so another site can't
+// submit the form for whoever has it open.
+function firstRunNonce() {
+  zm_session_start();
+  zm_session_persist(); // the visitor may have no cookie yet
+  $_SESSION['firstRunNonce'] = bin2hex(random_bytes(16));
+  $nonce = $_SESSION['firstRunNonce'];
+  session_write_close();
+  return $nonce;
+}
+
+// The first-run form's answer (action=setup; first_run_auth, since auth= is
+// the auth hash parameter). With first_run_auth=on, sets the admin password
+// and returns array(username, password) for the caller to log in with. With
+// first_run_auth=off, turns authentication off in the database and returns
+// null; the next request runs without it. Anything else returns null and, as
+// a translation key in the global $firstRunProblem, why the form is shown
+// again.
+function applyFirstRunSetup() {
+  global $firstRunProblem;
+
+  $nonce = requestString('first_run_nonce');
+  $expected = isset($_SESSION['firstRunNonce']) ? $_SESSION['firstRunNonce'] : null;
+  unset($_SESSION['firstRunNonce']);
+  $account = firstRunAccount();
+  if (!$account or ($nonce === null) or !is_string($expected) or !hash_equals($expected, $nonce)) {
+    ZM\Warning('First-run setup refused: '.($account ? 'stale or missing form nonce' : 'the first run is over'));
+    return null;
+  }
+
+  $choice = requestString('first_run_auth');
+  if ($choice === 'off') {
+    if (authSetInConfigFile()) {
+      ZM\Warning('First-run setup: not turning authentication off, ZM_OPT_USE_AUTH is set in a config file');
+      return null;
+    }
+    dbQuery("UPDATE Config SET Value='0' WHERE Name='ZM_OPT_USE_AUTH'");
+    ZM\AuditAction('update', 'config', 0, 'Changed: ZM_OPT_USE_AUTH 1 to 0 (first-run setup)');
+    ZM\Warning('First-run setup: authentication turned off');
+    return null;
+  }
+  if ($choice !== 'on') return null;
+
+  $new = requestString('new_password');
+  $firstRunProblem = newPasswordProblem($new, requestString('new_password_confirm'));
+  if ($firstRunProblem !== null) return null;
+  $hash = password_hash($new, PASSWORD_BCRYPT);
+  dbQuery('UPDATE Users SET Password=? WHERE Id=?', array($hash, $account->Id()));
+  ZM\AuditAction('update', 'user', $account->Id(), 'Changed: Password (first-run setup)');
+  ZM\Info('First-run setup: password set for user "'.$account->Username().'"');
+  return array($account->Username(), $new);
+}
 
 function userLogout() {
   global $user;
@@ -121,8 +332,20 @@ function userLogout() {
   zm_session_clear();
 }
 
+// ZM_AUTH_HASH_SECRET as shipped. It is public, so it must never sign or verify a token.
+// zmupdate.pl -f replaces it with a random secret. refs GHSA-wmcc-x64g-jr84
+define('ZM_AUTH_HASH_SECRET_DEFAULT', '...Change me to something unique...');
+
+function authHashSecretIsSet() {
+  return (ZM_AUTH_HASH_SECRET !== '') and (ZM_AUTH_HASH_SECRET !== ZM_AUTH_HASH_SECRET_DEFAULT);
+}
+
 function validateToken($token, $allowed_token_type='access') {
   global $user;
+  if (!authHashSecretIsSet()) {
+    ZM\Error('Refusing token authentication: ZM_AUTH_HASH_SECRET is empty or still the shipped default. Set it in Options->System or run zmupdate.pl -f.');
+    return array(false, 'AUTH_HASH_SECRET is not set');
+  }
   $key = ZM_AUTH_HASH_SECRET;
   //if (ZM_AUTH_HASH_IPS) $key .= $_SERVER['REMOTE_ADDR'];
   try {
@@ -226,11 +449,13 @@ function getAuthUser($auth) {
     // Prefer the username from the URL (matches what zms uses) so PHP and the
     // C++ side query the same row. Fall back to the session username for
     // page-internal calls that don't carry user= on the URL.
-    $requestedUser = !empty($_REQUEST['user']) ? $_REQUEST['user'] : null;
+    $requestedUser = requestString('user');
+    if ($requestedUser === '') $requestedUser = null;
     $sessionUser = isset($_SESSION['username']) ? $_SESSION['username'] : null;
     $filterUser = $requestedUser !== null ? $requestedUser : $sessionUser;
 
-    ZM\Debug("getAuthUser: validating auth='$auth' filterUser='".($filterUser ?? '')."' liveAddr='$liveAddr' candidateAddrs='".implode(',', $candidateAddrs)."' session_username='".($sessionUser ?? '')."'");
+    // The hash is a credential: log its fingerprint (zms logs the same tag).
+    ZM\Debug("getAuthUser: validating auth ".ZM\logFingerprint($auth)." filterUser='".($filterUser ?? '')."' liveAddr='$liveAddr' candidateAddrs='".implode(',', $candidateAddrs)."' session_username='".($sessionUser ?? '')."'");
 
     $sql = 'SELECT * FROM Users WHERE Enabled = 1';
     $values = array();
@@ -253,9 +478,9 @@ function getAuthUser($auth) {
         $time = localtime($now);
         foreach ($candidateAddrs as $remoteAddr) {
           $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$remoteAddr.$time[2].$time[3].$time[4].$time[5];
-          if ($auth == md5($authKey)) {
+          if (hash_equals(md5($authKey), $auth)) {
             return new ZM\User($user);
-          } // end if $auth == $authHash
+          } // end if the hash matches
         } // end foreach candidate address
       } // end foreach hour
     } // end foreach user
@@ -276,20 +501,20 @@ function getAuthUser($auth) {
           $time = localtime($now);
           foreach ($candidateAddrs as $remoteAddr) {
             $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$remoteAddr.$time[2].$time[3].$time[4].$time[5];
-            if ($auth == md5($authKey)) {
+            if (hash_equals(md5($authKey), $auth)) {
               ZM\Debug("getAuthUser: matched user '".$user['Username']."' from fallback (filter was '$filterUser')");
               return new ZM\User($user);
-            } // end if $auth == $authHash
+            } // end if the hash matches
           } // end foreach candidate address
         } // end foreach hour
       } // end foreach user
     } // end if
 
-    ZM\Info("Unable to authenticate user from auth hash '$auth' (filterUser='".($filterUser ?? '')."' sessionUser='".($sessionUser ?? '')."' liveAddr='$liveAddr' candidateAddrs='".implode(',', $candidateAddrs)."' rowsTried=$rowsTried ttl=".ZM_AUTH_HASH_TTL.'h)');
+    ZM\Info('Unable to authenticate user from auth hash '.ZM\logFingerprint($auth)." (filterUser='".($filterUser ?? '')."' sessionUser='".($sessionUser ?? '')."' liveAddr='$liveAddr' candidateAddrs='".implode(',', $candidateAddrs)."' rowsTried=$rowsTried ttl=".ZM_AUTH_HASH_TTL.'h)');
     return null;
   } // end if using auth hash
 
-  ZM\Info("Unable to authenticate user from auth hash '$auth'");
+  ZM\Info('Unable to authenticate user from auth hash '.ZM\logFingerprint($auth));
   return null;
 } // end getAuthUser($auth)
 
@@ -416,7 +641,11 @@ function visibleMonitor($mid) {
 function canView($area, $mid=false) {
   global $user;
   if (!$user) return false;
-  if ($mid) return visibleMonitor($mid);
+  // With a monitor the user needs both the area permission and that monitor. Monitors is the
+  // area visibleMonitor() already decides; any other area (Control) used to be ignored, so
+  // canView('Control', $mid) passed for anyone who could see the monitor.
+  // refs GHSA-qcm7-vq92-f86f
+  if ($mid) return visibleMonitor($mid) and (($area == 'Monitors') or canView($area));
 
   # Check user's direct permission first
   if ($user->$area() && ($user->$area() != 'None')) {
@@ -436,6 +665,14 @@ function editableMonitor($mid) {
   global $user;
   if (!$user) {
     ZM\Debug("Not logged in");
+    return false;
+  }
+
+  # A monitor the user can't see can't be edited either. The checks below only
+  # look for an Edit grant, so a None deny on a group (the user's or the role's)
+  # used to fall through to the global Monitors permission.
+  if (!visibleMonitor($mid)) {
+    ZM\Debug("Can't edit monitor $mid because it isn't visible");
     return false;
   }
 
@@ -512,7 +749,7 @@ function canEdit($area, $mid=false) {
   global $user;
 
   if (!$user) return false;
-  if ($mid) return editableMonitor($mid);
+  if ($mid) return editableMonitor($mid) and (($area == 'Monitors') or canEdit($area));
 
   # Check user's direct permission first
   if ($user->$area() == 'Edit' or $user->$area() == 'Create') {
@@ -581,6 +818,31 @@ function userFromSession() {
   return $user;
 }
 
+// Decide from Google's siteverify answer (already JSON-decoded) whether a
+// password login that passed may go ahead. Only an explicit success lets it
+// through: an answer that can't be read, or has no success field, is a
+// failure, not a pass.
+//
+// The one exception is kept from before: when Google says the secret key
+// itself is wrong, the admin mistyped it, and refusing would lock everyone
+// out, so the login goes ahead with an Error asking for the key to be fixed.
+// There is no such check for a wrong site key: Google answers that the same
+// way as a challenge nobody solved.
+// credit: https://github.com/google/recaptcha/blob/master/src/ReCaptcha/Response.php
+function recaptchaAllowsLogin($responseData) {
+  if (is_array($responseData) && isset($responseData['success']) && $responseData['success'] === true) {
+    return true;
+  }
+  $errors = (is_array($responseData) && isset($responseData['error-codes']) && is_array($responseData['error-codes']))
+    ? $responseData['error-codes'] : array();
+  if (in_array('invalid-input-secret', $errors, true)) {
+    ZM\Error('Invalid recaptcha secret detected');
+    return true;
+  }
+  ZM\Error('reCaptcha authentication failed. response was: '.(is_array($responseData) ? json_encode($responseData) : 'not JSON'));
+  return false;
+}
+
 function get_auth_relay() {
   if (ZM_OPT_USE_AUTH) {
     if (ZM_AUTH_RELAY == 'hashed') {
@@ -588,15 +850,14 @@ function get_auth_relay() {
       // Include username so zms can filter by indexed Username column
       // instead of iterating all users to validate the auth hash
       if (!empty($_SESSION['username'])) {
-        $relay .= '&user='.$_SESSION['username'];
+        $relay .= '&user='.urlencode($_SESSION['username']);
       }
       return $relay;
     } else if (ZM_AUTH_RELAY == 'plain') {
-      // password probably needs to be escaped
-      return 'username='.(isset($_SESSION['username'])?$_SESSION['username']:'').'&password='.urlencode(isset($_SESSION['password']) ? $_SESSION['password'] : '');
+      return 'username='.urlencode(isset($_SESSION['username']) ? $_SESSION['username'] : '').'&password='.urlencode(isset($_SESSION['password']) ? $_SESSION['password'] : '');
     } else if (ZM_AUTH_RELAY == 'none') {
       if (isset($_SESSION['username'])) {
-        return 'username='.$_SESSION['username'];
+        return 'username='.urlencode($_SESSION['username']);
       } else {
         ZM\Warning("ZM_AUTH_RELAY==none but there is no username in session.");
       }
@@ -606,6 +867,32 @@ function get_auth_relay() {
   }
   return '';
 } // end function get_auth_relay
+
+// Credentials for zmu, as arguments to append to its command line, for the
+// current user. A command line is visible to every local user (ps), so with a
+// usable ZM_AUTH_HASH_SECRET this is an access token minted for the call that
+// lives a minute, never the password or an auth hash, which logs in for
+// ZM_AUTH_HASH_TTL hours. Without the secret zmu refuses tokens: then what zmu
+// got before, an auth hash, or with ZM_AUTH_RELAY=plain the password: $password
+// when the caller has it (an API request's own pass=), else the session's.
+function zmuCredentials($password = null) {
+  global $user;
+  if (!ZM_OPT_USE_AUTH) return '';
+  if (authHashSecretIsSet()) {
+    $now = time();
+    $token = \Firebase\JWT\JWT::encode(array('iss' => 'ZoneMinder', 'iat' => $now, 'exp' => $now + 60,
+      'user' => $user->Username(), 'type' => 'access'), ZM_AUTH_HASH_SECRET, 'HS256');
+    return ' -T '.escapeshellarg($token);
+  }
+  $credentials = ' -U '.escapeshellarg($user->Username());
+  if (ZM_AUTH_RELAY == 'hashed') {
+    $credentials .= ' -A '.generateAuthHash(false, true);
+  } else if (ZM_AUTH_RELAY == 'plain') {
+    if ($password === null or $password === '') $password = isset($_SESSION['password']) ? $_SESSION['password'] : '';
+    $credentials .= ' -P '.escapeshellarg($password);
+  }
+  return $credentials;
+}
 
 // Authenticate the current request and populate the global $user.
 //
@@ -640,37 +927,64 @@ function zm_authenticate_request() {
         zm_session_start();
       }
 
-      if (ZM_AUTH_HASH_LOGINS && empty($user) && !empty($_REQUEST['auth'])) {
-        $user = getAuthUser($_REQUEST['auth']);
+      $requestAuth = requestString('auth');
+      $requestUser = requestString('user');
+      $requestPass = requestString('pass');
+      $requestUsername = requestString('username');
+      $requestPassword = requestString('password');
+      # The first-run form: when it sets the admin password, log in with it.
+      $firstRunLogin = false;
+      if ((requestString('action') === 'setup') and ($_SERVER['REQUEST_METHOD'] === 'POST')) {
+        $setup = applyFirstRunSetup();
+        if ($setup) {
+          list($requestUsername, $requestPassword) = $setup;
+          $firstRunLogin = true;
+        }
+      }
+      if (ZM_AUTH_HASH_LOGINS && empty($user) && !empty($requestAuth)) {
+        $user = getAuthUser($requestAuth);
         if ($user) {
           $remoteAddr = ZM_AUTH_HASH_IPS ? $_SESSION['remoteAddr'] : '';
-          if (isset($_SESSION['AuthHash'.$remoteAddr]) and ($_SESSION['AuthHash'.$remoteAddr] != $_REQUEST['auth'])) {
+          if (isset($_SESSION['AuthHash'.$remoteAddr]) and ($_SESSION['AuthHash'.$remoteAddr] != $requestAuth)) {
             unset($_SESSION['AuthHashGeneratedAt']);
             unset($_SESSION['AuthHash'.$remoteAddr]);
           }
+          if (!empty($_COOKIE[session_name()]) and (!isset($_SESSION['username']) or ($_SESSION['username'] !== $user->Username()))) {
+            // The client's session becomes this user's: give it a new id first, so
+            // an id planted in the client beforehand doesn't become a logged-in
+            // session (session fixation). Without our cookie the session isn't
+            // stored, so there is nothing to take over.
+            zm_session_regenerate_id_login();
+          }
           $_SESSION['username'] = $user->Username();
         }
-      } else if (!(empty($_REQUEST['user']) or empty($_REQUEST['pass']))) {
+      } else if (!(empty($requestUser) or empty($requestPass))) {
         # The shortened versions are used in auth_relay = PLAIN
-        $ret = validateUser($_REQUEST['user'], $_REQUEST['pass']);
+        $ret = validateUser($requestUser, $requestPass);
         if (!$ret[0]) {
           ZM\Warning($ret[1]);
           $user = null; // null, not unset: in a function unset() drops only the local binding
           return;
         }
         $user = $ret[0];
-      } else if (!(empty($_REQUEST['username']) or empty($_REQUEST['password']))) {
+        migrateHash($requestUser, $requestPass);
+      } else if (!(empty($requestUsername) or empty($requestPassword))) {
         # Longer versions are used on login page
-        $ret = validateUser($_REQUEST['username'], $_REQUEST['password']);
-        if (!$ret[0]) {
+        $ret = validateUser($requestUsername, $requestPassword);
+        # The right password, but the default one: on the login page the account
+        # replaces it first; anywhere else it is refused like a wrong one.
+        $mustReplaceDefault = (!$ret[0] and isset($ret[2]) and (requestString('action') === 'login'));
+        if (!$ret[0] and !$mustReplaceDefault) {
           ZM\Warning($ret[1]);
           $user = null; // null, not unset: in a function unset() drops only the local binding
           return;
         }
-        $user = $ret[0];
+        $user = $mustReplaceDefault ? $ret[2] : $ret[0];
 
         if (
           defined('ZM_OPT_USE_GOOG_RECAPTCHA') && ZM_OPT_USE_GOOG_RECAPTCHA
+          && !($mustReplaceDefault and isDefaultPasswordChangePost())
+          && !$firstRunLogin // the first-run form has no reCAPTCHA widget
           && defined('ZM_OPT_GOOG_RECAPTCHA_SECRETKEY') && ZM_OPT_GOOG_RECAPTCHA_SECRETKEY
           && defined('ZM_OPT_GOOG_RECAPTCHA_SITEKEY') && ZM_OPT_GOOG_RECAPTCHA_SITEKEY
         ) {
@@ -685,33 +999,34 @@ function zm_authenticate_request() {
             'response'  => $_REQUEST['g-recaptcha-response'],
             'remoteip'  => $_SERVER['REMOTE_ADDR']
           );
-          $res = do_post_request($url, http_build_query($fields));
-          $responseData = json_decode($res, true);
-          // credit: https://github.com/google/recaptcha/blob/master/src/ReCaptcha/Response.php
-          // if recaptcha resulted in error, we might have to deny login
-          if ( isset($responseData['success']) && ($responseData['success'] == false) ) {
-            // PP - before we deny auth, let's make sure the error was not 'invalid secret'
-            // because that means the user did not configure the secret key correctly
-            // in this case, we prefer to let him login in and display a message to correct
-            // the key. Unfortunately, there is no way to check for invalid site key in code
-            // as it produces the same error as when you don't answer a recaptcha
-            if ( isset($responseData['error-codes']) && is_array($responseData['error-codes']) ) {
-              if ( !in_array('invalid-input-secret', $responseData['error-codes']) ) {
-                ZM\Error('reCaptcha authentication failed. response was: ' . print_r($responseData['error-codes'],true));
-                $user = null; // null, not unset: in a function unset() drops only the local binding
-                return;
-              } else {
-                ZM\Error('Invalid recaptcha secret detected');
-              }
-            }
-          } // end if success==false
+          try {
+            $res = do_post_request($url, http_build_query($fields));
+          } catch (Exception $e) {
+            // do_post_request() throws when siteverify can't be reached or
+            // answers with an HTTP error. Uncaught, that was a 500 page.
+            ZM\Error('reCaptcha authentication failed. Could not reach '.$url);
+            $user = null; // null, not unset: in a function unset() drops only the local binding
+            return;
+          }
+          if (!recaptchaAllowsLogin(json_decode($res, true))) {
+            $user = null; // null, not unset: in a function unset() drops only the local binding
+            return;
+          }
         } // end if using reCaptcha
+
+        if ($mustReplaceDefault) {
+          if (!replaceDefaultPassword($user)) {
+            $user = null; // null, not unset: in a function unset() drops only the local binding
+            return;
+          }
+          $requestPassword = requestString('new_password');
+        }
 
         # Drop the pre-auth session and issue a fresh id in a single Set-Cookie
         zm_session_regenerate_id_login();
 
-        $username = $_REQUEST['username'];
-        $password = $_REQUEST['password'];
+        $username = $requestUsername;
+        $password = $requestPassword;
 
         ZM\Info("Login successful for user \"$username\"");
         #ZM\Audit("user=$username action=login id=".$user->Id()." from=".($_SERVER['REMOTE_ADDR'] ?? 'local'));
@@ -729,7 +1044,7 @@ function zm_authenticate_request() {
         $_SESSION['username'] = $user->Username();
         if (ZM_AUTH_RELAY == 'plain') {
           // Need to save this in session, can't use the value in User because it is hashed
-          $_SESSION['password'] = $_REQUEST['password'];
+          $_SESSION['password'] = $requestPassword;
         }
       } else if ((ZM_AUTH_TYPE == 'remote') and !empty($_SERVER['REMOTE_USER'])) {
         if (ZM_CASE_INSENSITIVE_USERNAMES) {

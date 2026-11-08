@@ -55,7 +55,7 @@ find_path(GSOAP_INCLUDE_DIR
 # -----------------------------------------------------
 find_path(GSOAP_PLUGIN_DIR
 	NAMES wsseapi.c
-	HINTS ${GSOAP_ROOT} ${GSOAP_ROOT}/share/gsoap/plugin /usr/share/gsoap/plugin /usr/local/share/gsoap/plugin
+	HINTS ${GSOAP_ROOT} ${GSOAP_ROOT}/share/gsoap/plugin /usr/share/gsoap/plugin /usr/local/share/gsoap/plugin ${GSOAP_INCLUDE_DIR}/../share/gsoap/plugin
 	DOC "The gsoap plugin directory"
 )
 

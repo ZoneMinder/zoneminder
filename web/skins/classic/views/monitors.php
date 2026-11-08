@@ -107,7 +107,7 @@ echo getNavBarHTML();
                 'Normal'=>translate('Normal'),
                 'Less'=>translate('Less important'),
                 'Not'=>translate('Not important')
-              ), $monitor->Importance());
+              ), $monitor->Importance(), array('id'=>'newMonitor[Importance]'));
 ?>
         </p>
         <div id="contentButtons">

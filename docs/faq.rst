@@ -38,22 +38,18 @@ Optional skip archived events:  click on the plus sign next to -7 days to add an
 Optional slow delete:  limit the number of results to a number, say ``10`` in the filter.  If you have a large backlog of events that would be deleted, this can hard spike the CPU usage for a long time.  Limiting the number of results to only the first three each time the filter is run spreads out the delete processes over time, dramatically lessening the CPU load.
 
 
-.. warning:: We no longer recommend use enable ``OPT_FAST_DELETE`` or ``RUN_AUDIT`` anymore, unless you are using an old or low powered system to run Zoneminder. Please consider the remaining tips in this answer to be 'generally deprecated, use only if you must'.
+.. warning:: We no longer recommend enabling ``RUN_AUDIT``, unless you are using an old or low powered system to run Zoneminder. Please consider the remaining tips in this answer to be 'generally deprecated, use only if you must'.
 
-There are two methods for ZM to remove files when they are deleted that can be found in Options under the System tab ZM_OPT_FAST_DELETE and ZM_RUN_AUDIT.
+zmaudit can remove files left behind by deleted events. It is controlled by ZM_RUN_AUDIT in Options under the System tab.
 
-
-ZM_OPT_FAST_DELETE:
-
-Normally an event created as the result of an alarm consists of entries in one or more database tables plus the various files associated with it. When deleting events in the browser it can take a long time to remove all of this if you are trying to do a lot of events at once. If you are running on an older or under-powered system, you may want to set this option which means that the browser client only deletes the key entries in the events table, which means the events will no longer appear in the listing, and leaves the zmaudit daemon to clear up the rest later. If you do so, disk space will not be freed immediately so you will need to run zmaudit more frequently.  On modern systems, we recommend that you leave this **off**.
 
 ZM_RUN_AUDIT:
 
-The zmaudit daemon exists to check that the saved information in the database and on the file system match and are consistent with each other. If an error occurs or if you are using 'fast deletes' it may be that database records are deleted but files remain. In this case, and similar, zmaudit will remove redundant information to synchronize the two data stores. This option controls whether zmaudit is run in the background and performs these checks and fixes continuously. This is not recommended for most systems, as zmaudit.pl is very resource intensive.
+The zmaudit daemon exists to check that the saved information in the database and on the file system match and are consistent with each other. If an error occurs it may be that database records are deleted but files remain. In this case, and similar, zmaudit will remove redundant information to synchronize the two data stores. This option controls whether zmaudit is run in the background and performs these checks and fixes continuously. This is not recommended for most systems, as zmaudit.pl is very resource intensive.
 
 ZM_AUDIT_CHECK_INTERVAL:
 
-The zmaudit daemon exists to check that the saved information in the database and on the files system match and are consistent with each other. If an error occurs or if you are using 'fast deletes' it may be that database records are deleted but files remain. In this case, and similar, zmaudit will remove redundant information to synchronize the two data stores. The default check interval of 900 seconds (15 minutes) is fine for most systems however if you have a very large number of events the process of scanning the database and file system may take a long time and impact performance. In this case you may prefer to make this interval much larger to reduce the impact on your system. This option determines how often these checks are performed.
+The zmaudit daemon exists to check that the saved information in the database and on the files system match and are consistent with each other. If an error occurs it may be that database records are deleted but files remain. In this case, and similar, zmaudit will remove redundant information to synchronize the two data stores. The default check interval of 900 seconds (15 minutes) is fine for most systems however if you have a very large number of events the process of scanning the database and file system may take a long time and impact performance. In this case you may prefer to make this interval much larger to reduce the impact on your system. This option determines how often these checks are performed.
 
 
 Math for Memory: Making sure you have enough memory to handle your cameras
@@ -280,10 +276,33 @@ Note that SELinux may cause errors other than those listed above. If you are in 
 
 How do I enable ZoneMinder's security?
 -------------------------------------------
-In the console, click on ``Options->System``. Check the box next to ``ZM_OPT_USE_AUTH``. You will immediately be asked to login. The default username is 'admin' and the password is 'admin'.
+A new install asks on its first page whether to require a login, and if so sets the admin password (see :ref:`first_run`). An install upgraded from an older version, or one set up without a login, keeps its setting; to turn it on, in the console click on ``Options->System`` and check the box next to ``ZM_OPT_USE_AUTH``. You will immediately be asked to login. The username is 'admin'; if its password is still 'admin', ZoneMinder asks you to choose a new one before it logs you in. The password ``admin`` is refused everywhere else (the API, stream URLs, ``zmu``) for every account.
 
 To Manage Users:
 In main console, go to ``Options->Users``.
+
+How do I turn authentication on, or set the admin password, without the web interface?
+-------------------------------------------------------------------------------------------
+For scripted installs, containers, or a forgotten password. Both are stored in the database; ``ZM_OPT_USE_AUTH`` can also be set in ``conf.d`` (below).
+
+* **Turn authentication on:** ``UPDATE Config SET Value='1' WHERE Name='ZM_OPT_USE_AUTH';``
+  then restart ZoneMinder so the daemons pick it up.
+* **Set a password:** make a bcrypt hash and store it, for example
+  ``php -r 'echo password_hash("your new password", PASSWORD_BCRYPT), "\n";'`` and then
+  ``UPDATE Users SET Password='<the hash>' WHERE Username='admin';``. The password ``admin`` is
+  refused however it is set, so choose another one.
+* **Through the API:** once an account can log in with a real password, ``PUT api/users/<id>.json``
+  with ``User[Password]`` changes a password. The API can't be used to get past the password
+  ``admin``; log in to the web interface for that.
+* **Skip the first-run page:** it appears only while authentication is on, the privacy page hasn't
+  been answered and ``admin`` still has the password ``admin``. Setting the password as above, or
+  ``ZM_OPT_USE_AUTH=0`` in ``conf.d``, skips it. Containers and packages that want to decide for
+  their users can do that; prefer leaving the choice to them.
+
+To force authentication on so it can't be turned off from the Options page, set
+``ZM_OPT_USE_AUTH=1`` in a file in ``conf.d`` (for example ``/etc/zm/conf.d/99-auth.conf``) and
+restart ZoneMinder. A value set in ``zm.conf`` or ``conf.d`` wins over the database for the web
+interface, the API, the scripts and the daemons alike.
 
 You may also consider to use the web server security, for example, htaccess files under Apache scope; You may even use this as an additional/redundant security on top of Zoneminders built-in security features. Note that if you choose to enable webserver auth, zmNinja may have issues. Please read the `zmNinja FAQ on basic authentication <https://zmninja.readthedocs.io/en/latest/guides/FAQ.html#i-can-t-see-streams-i-use-basic-auth>`__ for more information. Also please note that zmNinja does not support digest authentication.
 

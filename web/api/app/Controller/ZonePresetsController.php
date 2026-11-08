@@ -15,6 +15,16 @@ class ZonePresetsController extends AppController {
    */
   public $components = array('RequestHandler');
 
+  # Zone presets are shared templates, not tied to a monitor. Anyone signed in may read them,
+  # changing them is system configuration.
+  public function beforeFilter() {
+    parent::beforeFilter();
+    global $user;
+    if ($user and !in_array($this->request->action, array('index', 'view')) and ($user->System() != 'Edit')) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+    }
+  }
+
   /**
    * index method
    *

@@ -565,8 +565,52 @@ function initPage() {
   // Reflect the current Motion Detection (Analysing) setting on load.
   if (form.elements['newMonitor[Analysing]']) {
     Analysing_onChange(form.elements['newMonitor[Analysing]']); // eslint-disable-line new-cap
+  } else if (form.elements['newMonitor[AudioDetection]']) {
+    // Analysis tab not rendered with a select; still reflect audio detection.
+    AudioDetection_onChange(form.elements['newMonitor[AudioDetection]']); // eslint-disable-line new-cap
   }
+  startAudioLevelMeter();
+  rememberSelectedTab();
 } // end function initPage()
+
+/**
+ * Keep the url in step with the tab on screen, so a reload comes back to it.
+ *
+ * The view already honours ?tab=<name> on the way in: it marks that pill
+ * active and renders its pane shown. What was missing is the other half.
+ * The pills are switched client side, so the url kept saying whatever it said
+ * when the page loaded, and a reload -- or a shared link, or the browser
+ * restoring the page -- dropped you back on General.
+ *
+ * replaceState rather than pushState, as elsewhere in the skin: switching
+ * tabs in a settings form is not navigation, and making Back walk back
+ * through it would be actively unhelpful on a form holding unsaved edits.
+ */
+function rememberSelectedTab() {
+  $j('#pills-tab a[data-toggle="pill"]').on('shown.bs.tab', function(evt) {
+    const href = evt.target.getAttribute('href');
+    // The panes are #pills-<name>. The Zones pill is href="#" and leaves the
+    // page rather than showing a pane, so it never reaches here.
+    if (!href || !href.startsWith('#pills-')) return;
+    const name = href.substring('#pills-'.length);
+
+    // Only the tab changes. The url carries mid, and may carry a good deal
+    // more, none of which this has any business rewriting.
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('tab') === name) return;
+    params.set('tab', name);
+    history.replaceState(null, '', '?' + params.toString());
+
+    // The same answer again, for the form rather than the url. A submit that
+    // is not a save re-renders the view -- changing Type or Method does this
+    // to draw the fields that type needs -- and the hidden tab field is what
+    // tells it where to come back to. Php writes it once, with the tab the
+    // page loaded on, so without this that submit also lands you back on
+    // whichever tab you arrived on rather than the one you were working in.
+    const form = document.getElementById('contentForm');
+    if (form && form.tab) form.tab.value = name;
+  });
+}
 
 async function checkVerAudioMotion() {
   const result = await waitUntil(() => window.CURRENT_AUDIO_MOTION_ANALYZER_VERSION, 20000);
@@ -817,6 +861,107 @@ function Analysing_onChange(e) {
   // analysis image, analysis fps and ref/alarm blend fields.
   const show = (e.value != 'None');
   $j('#AnalysisImage, li.AnalysisFPS, li.RefBlendPerc, li.AlarmRefBlendPerc, li.AlarmRefImageBlendPct').toggle(show);
+  // Audio detection is scored by the same analysis pass, so it cannot fire
+  // either. Hiding it stops the settings looking configured but inert.
+  $j('li.AudioDetection, li.settingsGroup.AudioGroup').toggle(show);
+  AudioDetection_onChange(document.getElementById('contentForm').elements['newMonitor[AudioDetection]']); // eslint-disable-line new-cap
+}
+
+function AudioDetection_onChange(e) {
+  // The threshold and the score only mean anything while detection is on.
+  // The rows are hidden rather than the inputs disabled, because a disabled
+  // input is not submitted and the value would silently fail to save.
+  //
+  // This asks the Analysing setting, not whether the row is currently on
+  // screen. The tabs are switched client side, so when the editor first loads
+  // the Analysis pane is hidden and every row in it reports as not visible.
+  // Testing visibility here set display:none on both rows during initPage, and
+  // opening the tab did not undo it - they stayed hidden until something else
+  // re-ran this.
+  const form = document.getElementById('contentForm');
+  const analysing = form ? form.elements['newMonitor[Analysing]'] : null;
+  const analysisOn = !analysing || (analysing.value != 'None');
+  const show = analysisOn && !!(e && e.checked);
+  $j('li.AudioThreshold, li.AudioAlarmScore').toggle(show);
+}
+
+// --- Live audio level meter -------------------------------------------------
+//
+// zmc only measures the audio level when something asks for it, so polling
+// this is not just reading a value: each request pushes the deadline in shared
+// memory forward a few seconds, and when the polling stops the decoding stops
+// with it. That is why the interval skips the request whenever the meter is
+// off screen rather than just hiding the result.
+
+var audioLevelTimer = null;
+var audioLevelInFlight = false;
+
+function pollAudioLevel() {
+  const meter = document.getElementById('audioLevelMeter');
+  // Not on this monitor's form at all, or the Analysis tab is not showing.
+  if (!meter || !$j(meter).is(':visible')) return;
+  // A slow reply must not stack up requests behind it.
+  if (audioLevelInFlight) return;
+
+  audioLevelInFlight = true;
+  $j.getJSON(thisUrl, {request: 'monitor', action: 'audioLevel', mid: meter.dataset.mid})
+      .done(function(data) {
+        if (data.result === 'Error') {
+          showAudioLevel(null, data.message);
+          return;
+        }
+        showAudioLevel(data.level, null, data.alarm);
+      })
+      .fail(function() {
+        showAudioLevel(null, 'unavailable');
+      })
+      .always(function() {
+        audioLevelInFlight = false;
+      });
+}
+
+function showAudioLevel(level, message, alarm) {
+  const fill = document.getElementById('audioLevelFill');
+  const value = document.getElementById('audioLevelValue');
+  if (!fill || !value) return;
+
+  // levelMeterState is shared with the event graph so both agree about the
+  // 0-100 scale, and it is what decides that a missing reading says so
+  // instead of showing a confident zero.
+  const state = levelMeterState(level, alarm, message);
+  fill.style.width = state.percent + '%';
+  value.textContent = state.text;
+  value.classList.toggle('alarm', state.alarm);
+}
+
+// The threshold is drawn on the meter so the reading can be compared against
+// it while it is being typed, without saving first.
+function updateAudioThresholdMark() {
+  const mark = document.getElementById('audioLevelThresholdMark');
+  if (!mark) return;
+  const form = document.getElementById('contentForm');
+  const input = form ? form.elements['newMonitor[AudioThreshold]'] : null;
+  const percent = levelThresholdPercent(input ? input.value : null);
+
+  if (percent === null) {
+    mark.style.display = 'none';
+    return;
+  }
+  mark.style.display = 'block';
+  mark.style.left = percent + '%';
+}
+
+function startAudioLevelMeter() {
+  if (!document.getElementById('audioLevelMeter')) return;
+  updateAudioThresholdMark();
+  $j('input[name="newMonitor[AudioThreshold]"]').on('input', updateAudioThresholdMark);
+
+  if (audioLevelTimer) clearInterval(audioLevelTimer);
+  // One second is responsive enough to watch a voice move the bar, and is ten
+  // times inside the request's lifetime in zmc, so a dropped poll or two does
+  // not make the measurement lapse and the bar stall.
+  audioLevelTimer = setInterval(pollAudioLevel, 1000);
+  pollAudioLevel();
 }
 
 function Recording_onChange(e) {
@@ -862,6 +1007,35 @@ function update_players() {
   //dropdown.chosen();
   dropdown.val(selected_value);
   if (dropdown[0].selectedIndex==-1) dropdown[0].selectedIndex = 0;
+
+  manageGo2RTCDisableBackChannel(false);
+}
+
+function changeDeviceClass() {
+  manageGo2RTCDisableBackChannel(true);
+}
+
+function manageGo2RTCDisableBackChannel(setDefaultGo2RTCDisableBackChannel = false) {
+  const go2rtc_enabled = document.querySelector('[name="newMonitor[Go2RTCEnabled]"]')?.checked ?? false;
+  const deviceClassValue = document.querySelector('[name="newMonitor[DeviceClass]"]')?.value ?? '';
+  const Go2RTCDisableBackChannel = document.querySelector('[name="newMonitor[Go2RTCDisableBackChannel]"]');
+  const Go2RTCDisableBackChannelElement = document.getElementById('Go2RTCDisableBackChannel');
+  if (Go2RTCDisableBackChannel) {
+    if (deviceClassValue == "Camera") {
+      Go2RTCDisableBackChannel.removeAttribute('disabled');
+      if (setDefaultGo2RTCDisableBackChannel) Go2RTCDisableBackChannel.checked = true;
+    } else {
+      Go2RTCDisableBackChannel.setAttribute('disabled', '');
+      Go2RTCDisableBackChannel.checked = false;
+    }
+  }
+  if (Go2RTCDisableBackChannelElement) {
+    if (go2rtc_enabled) {
+      Go2RTCDisableBackChannelElement.hidden = false;
+    } else {
+      Go2RTCDisableBackChannelElement.hidden = true;
+    }
+  }
 }
 
 function populate_models(ManufacturerId) {
@@ -988,5 +1162,70 @@ window.addEventListener('DOMContentLoaded', initPage);
 window.addEventListener('pagehide', function() {
   document.querySelectorAll('#contentForm input[type="password"]').forEach(function(el) {
     el.value = '';
+  });
+});
+
+/**
+ * Rebuild one action row's type list and file input to match the device it
+ * targets, so the editor only ever offers what that device supports. The
+ * server re-checks this on save; this is convenience, not enforcement.
+ * @param {HTMLElement} row the tr holding the action's inputs
+ */
+function updateMonitorActionRow(row) {
+  const target = row.querySelector('select[name*="[TargetMonitorId]"]');
+  const type = row.querySelector('select[name*="[ActionType]"]');
+  const file = row.querySelector('input[name*="[AudioFile]"]');
+  if (!target || !type || !file) return;
+
+  // A schedule only means anything for the time-based trigger. Hidden rather
+  // than removed so a row that is switched back to "At a time" still has
+  // whatever was typed, and so the field is still submitted: the server
+  // clears it for the other triggers rather than trusting the browser to.
+  const trigger = row.querySelector('select[name*="[TriggerOn]"]');
+  const scheduleCell = row.querySelector('td.actionScheduleCell');
+  if (trigger && scheduleCell) {
+    scheduleCell.style.visibility = (trigger.value == 'Schedule') ? 'visible' : 'hidden';
+  }
+
+  const caps = (typeof monitorActionCapabilities !== 'undefined') ?
+    monitorActionCapabilities[target.value] : null;
+  const labels = (typeof monitorActionTypeLabels !== 'undefined') ?
+    monitorActionTypeLabels : {};
+
+  const wanted = type.value;
+  const constrained = !!(caps && caps.Types && caps.Types.length);
+  // With no target chosen there is nothing to constrain the list to. Show the
+  // full set rather than emptying the control: a blank dropdown reads as a
+  // broken page, and the spare row at the bottom of the table always starts
+  // with no target.
+  const available = constrained ? caps.Types : Object.keys(labels);
+  type.innerHTML = '';
+  available.forEach(function(t) {
+    const option = document.createElement('option');
+    option.value = t;
+    option.textContent = labels[t] ? labels[t] : t;
+    if (t == wanted) option.selected = true;
+    type.appendChild(option);
+  });
+  type.disabled = !constrained;
+
+  // Only a sound takes a file, and only within the range that device accepts.
+  const takesFile = (type.value == 'AudioPlay');
+  file.style.visibility = takesFile ? 'visible' : 'hidden';
+  if (takesFile && caps) {
+    if (caps.MinAudioFile !== null) file.min = caps.MinAudioFile;
+    if (caps.MaxAudioFile !== null) file.max = caps.MaxAudioFile;
+    if (file.value === '' && caps.MinAudioFile !== null) file.value = caps.MinAudioFile;
+  }
+}
+
+window.addEventListener('DOMContentLoaded', function initMonitorActions() {
+  document.querySelectorAll('tr.monitorActionRow').forEach(function(row) {
+    updateMonitorActionRow(row);
+    row.querySelectorAll('select').forEach(function(el) {
+      el.addEventListener('change', function() {
+        updateMonitorActionRow(row);
+      });
+    });
   });
 });

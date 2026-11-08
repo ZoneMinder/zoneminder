@@ -59,15 +59,15 @@
           <tbody>
             <tr>
               <th class="text-right " scope="row"><?php echo translate('Name') ?></th>
-              <td><input type="text" name="newStorage[Name]" value="<?php echo $newStorage->Name() ?>"/></td>
+              <td><input type="text" name="newStorage[Name]" value="<?php echo validHtmlStr($newStorage->Name()) ?>"/></td>
             </tr>
             <tr>
               <th class="text-right " scope="row"><?php echo translate('Path') ?></th>
-              <td><input type="text" name="newStorage[Path]" value="<?php echo $newStorage->Path() ?>"/></td>
+              <td><input type="text" name="newStorage[Path]" value="<?php echo validHtmlStr($newStorage->Path()) ?>"/></td>
             </tr>
             <tr>
               <th class="text-right " scope="row"><?php echo translate('Url') ?></th>
-              <td><input type="text" name="newStorage[Url]" value="<?php echo $newStorage->Url() ?>"/></td>
+              <td><input type="text" name="newStorage[Url]" value="<?php echo validHtmlStr($newStorage->Url()) ?>"/></td>
             </tr>
             <tr>
               <th class="text-right " scope="row"><?php echo translate('Server') ?></th>

@@ -89,6 +89,13 @@ function validateForm(form) {
     } else if (form.elements['newMonitor[Path]'].value.match(/[\!\*'\(\)\$ ,#]/)) {
       warnings[warnings.length] = "<?php echo translate('BadPathNotEncoded') ?>";
     }
+    if (form.elements['newMonitor[Options]']) {
+      const badOptions = ZM_FfmpegOptions.badEntries(form.elements['newMonitor[Options]'].value);
+      if (badOptions.length) {
+        errors[errors.length] = "<?php echo translate('BadFfmpegOptions') ?>" + "\n" +
+          badOptions.map((entry) => JSON.stringify(entry)).join("\n");
+      }
+    }
 /*
  * Alternate way of testing for bad urls
     let url = new URL(form.elements['newMonitor[Path]'].value);
@@ -162,8 +169,6 @@ function validateForm(form) {
       errors[errors.length] = "<?php echo translate('BadAnalysisUpdateDelay') ?>";
     if ( !form.elements['newMonitor[FPSReportInterval]'].value || !(parseInt(form.elements['newMonitor[FPSReportInterval]'].value) >= 0 ) )
       errors[errors.length] = "<?php echo translate('BadFPSReportInterval') ?>";
-    if ( !form.elements['newMonitor[FrameSkip]'].value || !(parseInt(form.elements['newMonitor[FrameSkip]'].value) >= 0 ) )
-      errors[errors.length] = "<?php echo translate('BadFrameSkip') ?>";
     if ( !form.elements['newMonitor[MotionFrameSkip]'].value || !(parseInt(form.elements['newMonitor[MotionFrameSkip]'].value) >= 0 ) )
       errors[errors.length] = "<?php echo translate('BadMotionFrameSkip') ?>";
     if ( form.elements['newMonitor[Type]'].value == 'Local' )
@@ -211,8 +216,8 @@ function updateMethods(element) {
         global $httpMethods;
         foreach( $httpMethods as $value=>$label ) {
           ?>
-            methodSelector.options[methodSelector.options.length] = new Option("<?php echo htmlspecialchars($label) ?>", "<?php echo $value ?>");
-          if ( origMethod.value == "<?php echo $value ?>" )
+            methodSelector.options[methodSelector.options.length] = new Option("<?php echo htmlspecialchars($label) ?>", "<?php echo validJsStr($value) ?>");
+          if ( origMethod.value == "<?php echo validJsStr($value) ?>" )
             methodSelector.selectedIndex = methodSelector.options.length-1;
           <?php
         }
@@ -223,18 +228,13 @@ function updateMethods(element) {
         global $rtspMethods;
         foreach( $rtspMethods as $value=>$label ) {
           ?>
-            methodSelector.options[methodSelector.options.length] = new Option( "<?php echo htmlspecialchars($label) ?>", "<?php echo $value ?>" );
-          if ( origMethod.value == "<?php echo $value ?>" )
+            methodSelector.options[methodSelector.options.length] = new Option( "<?php echo htmlspecialchars($label) ?>", "<?php echo validJsStr($value) ?>" );
+          if ( origMethod.value == "<?php echo validJsStr($value) ?>" )
             methodSelector.selectedIndex = form.elements['newMonitor[Method]'].options.length-1;
           <?php
         }
       ?>
     break;
-  }
-  if (element.value == 'rtsp') {
-    $j('#RTSPDescribe').show();
-  } else {
-    $j('#RTSPDescribe').hide();
   }
   return true;
 }

@@ -127,7 +127,6 @@ BuildRequires:  config(udev)
 
 BuildRequires:  unzip
 BuildRequires:  update-desktop-files
-BuildRequires:  vlc-devel
 BuildRequires:  vorbis-tools
 BuildRequires:  pkgconfig(libvncclient)
 
@@ -144,7 +143,6 @@ Requires:       perl-Crypt-Eksblowfish
 Requires:       perl-Crypt-SSLeay
 Requires:       perl-DBD-mysql
 Requires:       perl-DBI
-Requires:       perl-Data-Entropy
 Requires:       perl-Data-UUID
 Requires:       perl-Date-Manip
 Requires:       perl-IO-Socket-Multicast

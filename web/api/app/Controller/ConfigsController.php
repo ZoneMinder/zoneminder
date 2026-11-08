@@ -96,7 +96,7 @@ class ConfigsController extends AppController {
     $filters_value = false;
     if ( $this->request->params['named'] ) {
       $this->FilterComponent = $this->Components->load('Filter');
-      $conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+      $conditions = $this->FilterComponent->buildFilter($this->request->params['named'], array_keys($this->Config->schema()));
       $filters_value = $this->filterReferencesValue($this->request->params['named']);
     }
 

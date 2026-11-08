@@ -49,6 +49,12 @@ function downloadEvents(
   }
   chmod(DIR_EXPORTS_DOWNLOAD, 0700);
 
+  // $export_root (the download file base name) reaches here straight from the
+  // request; the regex that built it kept dots, so '.'/'..' could climb out of
+  // DIR_EXPORTS_DOWNLOAD. Refuse a traversal component. refs GHSA-72h2-rvhv-wr5g
+  $export_root = safeExportComponent($export_root);
+  if ($export_root === '') $export_root = 'Export';
+
   $export_dir = DIR_EXPORTS_DOWNLOAD.'/'.$export_root;
   define('DOWNLOAD_DIR_EXPORTS', $export_dir);
 

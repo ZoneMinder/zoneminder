@@ -900,8 +900,13 @@ function exportEvents(
 
   // Sanitize user-supplied values used in file paths and shell commands
   $export_root = preg_replace('/[^\w\-.]/', '', $export_root);
-  if (empty($export_root)) $export_root = 'zmExport';
+  // The regex strips path separators but keeps dots, so a bare '.' or '..'
+  // survived and let $export_root climb to the parent of ZM_DIR_EXPORTS, which
+  // was then chmod'd, written into, and tarred. Refuse a traversal component.
+  // refs GHSA-9hf5-jpww-rvpp
+  if (empty($export_root) or $export_root === '.' or $export_root === '..') $export_root = 'zmExport';
   $connkey = preg_replace('/[^\w\-.]/', '', $connkey);
+  if ($connkey === '.' or $connkey === '..') $connkey = '';
 
   if (!($exportFormat == 'tar' or $exportFormat == 'zip')) {
     ZM\Error("None or invalid exportFormat specified $exportFormat.");

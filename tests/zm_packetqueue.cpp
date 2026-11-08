@@ -22,7 +22,9 @@
 #include "zm_packet.h"
 #include "zm_packetqueue.h"
 
+#include <future>
 #include <memory>
+#include <thread>
 #include <vector>
 
 namespace {
@@ -380,10 +382,25 @@ TEST_CASE("PacketQueue: get_newest_packet finds the newest matching video packet
   }
 
   SECTION("a packet another thread holds is passed over") {
-    ZMPacketLock held(packets[3]);
-    REQUIRE(held.trylock());
-    ZMPacketLock lock = queue.get_newest_packet(0, [](const ZMPacket &p) { return p.decoded; }, nullptr);
-    REQUIRE(lock.packet_ == packets[2]);
+    // The packet's mutex is held by a worker, as the decoder would: trying it
+    // again from the thread that holds it would be undefined.
+    std::promise<bool> held;
+    std::promise<void> release;
+    std::thread holder([&]() {
+      ZMPacketLock lock(packets[3]);
+      held.set_value(lock.trylock());
+      release.get_future().wait();
+    });
+    const bool holding = held.get_future().get();
+    std::shared_ptr<ZMPacket> found;
+    {
+      ZMPacketLock lock = queue.get_newest_packet(0, [](const ZMPacket &p) { return p.decoded; }, nullptr);
+      found = lock.packet_;
+    }
+    release.set_value();
+    holder.join();
+    REQUIRE(holding);
+    REQUIRE(found == packets[2]);
   }
 
   SECTION("an iterator on the match, registered with the queue") {

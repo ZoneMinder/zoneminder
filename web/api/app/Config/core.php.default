@@ -48,8 +48,9 @@
  *
  * @see ErrorHandler for more information on error handling and configuration.
  */
+	App::uses('ZmErrorHandler', 'Error');
 	Configure::write('Error', array(
-		'handler' => 'ErrorHandler::handleError',
+		'handler' => 'ZmErrorHandler::handleError',
 		'level' => E_ALL & ~E_DEPRECATED & ~E_NOTICE,
 		'trace' => true
 	));
@@ -75,7 +76,7 @@
  * @see ErrorHandler for more information on exception handling and configuration.
  */
 	Configure::write('Exception', array(
-		'handler' => 'ErrorHandler::handleException',
+		'handler' => 'ZmErrorHandler::handleException',
 		'renderer' => 'ExceptionRenderer',
 		'log' => true
 	));
@@ -361,7 +362,9 @@ if (Configure::read('debug') > 0) {
 }
 
 // Prefix each application on the same server with a different string, to avoid Memcache and APC conflicts.
-$prefix = 'myapp_';
+// The ZoneMinder version is part of the prefix so that an upgrade which alters the
+// database schema cannot be served stale model/schema caches from the previous version.
+$prefix = 'zm_@VERSION@_';
 
 /**
  * Configure the cache used for general framework caching. Path information,

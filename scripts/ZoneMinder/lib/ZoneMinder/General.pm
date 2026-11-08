@@ -19,6 +19,8 @@ our @ISA = qw(Exporter ZoneMinder::Base);
 # will save memory.
 our %EXPORT_TAGS = (
     functions => [ qw(
+      commandIsAllowed
+      commandProgram
       executeShellCommand
       findDbCommand
       getCmdFormat
@@ -35,6 +37,9 @@ our %EXPORT_TAGS = (
       daemonControl
       parseNameEqualsValueToHash
       hash_diff
+      acquireExclusiveLock
+      lockHolderPid
+      startedInteractively
       ) ]
     );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
@@ -56,6 +61,80 @@ use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Database qw(:all);
 
 use POSIX;
+use Fcntl qw(:flock O_WRONLY O_CREAT);
+
+# The pid recorded in a lock file, or undef when it is empty or unreadable.
+# Whether this process was run by hand rather than started by the daemon
+# manager. zmdc.pl reopens STDIN on /dev/null for everything it starts, so a
+# terminal on STDIN means a person typed this.
+#
+# Used to skip the startup delays that only make sense when the whole system is
+# coming up at once. A run from cron or a unit file has no terminal either and
+# still waits, which is the right way round: those are the unattended cases the
+# delay is for.
+sub startedInteractively {
+  return -t STDIN ? 1 : 0;
+}
+
+sub lockHolderPid {
+  my ($path) = @_;
+  my $rfh;
+  return undef unless open($rfh, '<', $path);
+  my $line = <$rfh>;
+  close($rfh);
+  return undef unless defined $line;
+  chomp $line;
+  # The capture also untaints it, since callers log it from taint checked scripts.
+  return ($line =~ /^(\d+)$/) ? $1 : undef;
+}
+
+# Take an exclusive, non blocking lock on $path, creating it if needed, and
+# record the holder's pid in it. The lock lives for as long as the caller keeps
+# the returned handle, so store it somewhere that outlives the work it guards.
+# It is released when the handle goes out of scope or the process exits,
+# including on a crash, which a lock built out of a pid file or the presence of
+# a socket cannot manage.
+#
+# Returns ($fh, $status, $pid):
+#   ($fh,   'ok',    $$)   the lock is ours
+#   (undef, 'held',  $pid) someone else has it, and who, when the file says so
+#   (undef, 'error', undef) it could not be opened at all, already logged
+#
+# Callers need those two failures kept apart. A lock file left behind by another
+# user cannot be opened for write at all, and reporting that as a duplicate
+# server sends the operator hunting for a process that does not exist.
+sub acquireExclusiveLock {
+  my ($path) = @_;
+
+  # O_CREAT without O_TRUNC on purpose. Truncating at open would throw away the
+  # current holder's pid before we know whether we can have the lock, and that
+  # pid is the one useful thing the loser has to report. 0666 because whoever
+  # runs the daemon next has to be able to open it for write: the socket
+  # directory belongs to the web user, but these daemons get run by hand as root
+  # often enough that a root owned 0644 lock file would wedge that monitor for
+  # good.
+  my $fh;
+  if (!sysopen($fh, $path, O_WRONLY|O_CREAT, 0666)) {
+    Error("Can't open lock file $path: $!");
+    return (undef, 'error', undef);
+  }
+  # umask takes the group and other write bits back off the mode above, so set
+  # them again. Harmlessly fails when we did not create it.
+  chmod(0666, $path);
+
+  if (!flock($fh, LOCK_EX|LOCK_NB)) {
+    my $pid = lockHolderPid($path);
+    close($fh);
+    return (undef, 'held', $pid);
+  }
+
+  # Ours now, so say who we are and let the next process name us rather than
+  # leaving someone to run fuser over the file.
+  truncate($fh, 0);
+  seek($fh, 0, 0);
+  syswrite($fh, "$$\n");
+  return ($fh, 'ok', $$);
+}
 
 # For running general shell commands
 sub executeShellCommand {
@@ -126,7 +205,7 @@ sub getCmdFormat {
     chomp( $output );
     Debug("Test failed, '$output'");
 
-    $prefix = 'su '.$Config{ZM_WEB_USER}.q` --shell=/bin/sh --command='`;
+    $prefix = 'su -s /bin/sh '.$Config{ZM_WEB_USER}.q` -c '`;
     $suffix = q`'`;
     $command = $prefix.$null_command.$suffix;
     Debug("Testing \"$command\"");
@@ -580,8 +659,8 @@ sub jsonLoad {
       Error("No contents for $file");
       return $json;
     }
-    require JSON;
-    $json = JSON::decode_json($contents);
+    require JSON::MaybeXS;
+    $json = JSON::MaybeXS::decode_json($contents);
   };
   Error($@) if $@;
   return $json;
@@ -672,6 +751,69 @@ sub systemStatus {
   return $output;
 }
 
+# --- Which commands a filter or scheduled task may run ----------------------
+#
+# ZM_ALLOWED_COMMANDS narrows "Execute command" and the scheduled tasks to a
+# list the administrator chose. Empty, the default and what every existing
+# install has, places no restriction and keeps the behaviour ZoneMinder has
+# always had.
+#
+# The same rule lives in web/includes/Command.php, because the web ui refuses
+# a command when it is saved and this refuses one when it is about to run --
+# and a row can reach the database without passing through the web ui.
+# tests/php/test_allowed_commands.php checks the two against each other.
+
+# The characters that let one command start another. Refused outright while a
+# list is in force: a program being on the list says nothing about what else
+# runs alongside it if the command can chain. Redirection is deliberately not
+# here; it starts no program.
+our @COMMAND_CHAINING = (';', '|', '&', '`', '$(');
+
+# The program a command invokes: its first word, with any surrounding quotes
+# removed. undef when there is not one. Only the program is matched, so
+# arguments may vary -- which they must, since zmfilter.pl appends the event
+# path to whatever the filter has stored.
+sub commandProgram {
+  my $command = shift;
+  return undef if !defined $command;
+  $command =~ s/^\s+|\s+$//g;
+  return undef if $command eq '';
+
+  # A quoted path may contain spaces, so the quoted run has to be taken before
+  # splitting on whitespace -- splitting first would cut
+  # "/usr/local/bin/my script.sh" in half and compare the wrong thing.
+  if ($command =~ /^(["'])/) {
+    my $quote = $1;
+    # An unterminated quote is not a program name we can read.
+    return undef if $command !~ /^\Q$quote\E([^\Q$quote\E]*)\Q$quote\E/;
+    my $program = $1;
+    return ($program eq '') ? undef : $program;
+  }
+
+  my ($program) = split(/\s+/, $command, 2);
+  return undef if !defined $program or $program eq '';
+  return ($program eq '') ? undef : $program;
+}
+
+# May $command be run, given the configured list? $allowed is the raw setting;
+# an empty one means no restriction.
+sub commandIsAllowed {
+  my ($command, $allowed) = @_;
+  $allowed = '' if !defined $allowed;
+
+  my @list = grep { $_ ne '' } map { my $e = $_; $e =~ s/^\s+|\s+$//g; $e } split(/,/, $allowed);
+  return 1 if !@list;
+
+  return 0 if !defined $command;
+  foreach my $chain (@COMMAND_CHAINING) {
+    return 0 if index($command, $chain) >= 0;
+  }
+
+  my $program = commandProgram($command);
+  return 0 if !defined $program;
+  return (grep { $_ eq $program } @list) ? 1 : 0;
+}
+
 1;
 __END__
 # Below is stub documentation for your module. You'd better edit it!
@@ -707,6 +849,8 @@ of the ZoneMinder scripts
       systemStatus
       parseNameEqualsValueToHash
       hash_diff
+      acquireExclusiveLock
+      lockHolderPid
       ) ]
 
 

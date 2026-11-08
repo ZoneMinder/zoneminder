@@ -36,6 +36,7 @@ if ( $action == 'control' ) {
 
   $ctrlCommand = buildControlCommand($monitor);
   $monitor->sendControlCommand($ctrlCommand);
-  $redirect = $_SERVER['HTTP_REFERER'];
+  // Back to the page the command came from, if that is on this server.
+  $redirect = localRedirectUrl(isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '', '?view=control&mid='.$mid);
 }
 ?>

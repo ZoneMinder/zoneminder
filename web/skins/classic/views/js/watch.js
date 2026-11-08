@@ -373,6 +373,25 @@ function cmdForce() {
   }
 }
 
+/**
+ * Fire one of this monitor's manually-triggered actions. Only the action id
+ * travels; the command and its target are rebuilt server side from the stored
+ * row, so the browser cannot name an arbitrary control method.
+ * @param {HTMLElement} el the button, carrying data-action-id
+ */
+function fireMonitorAction(el) {
+  const actionId = el.getAttribute('data-action-id');
+  if (!actionId) {
+    console.error('Monitor action button has no data-action-id');
+    return;
+  }
+  const data = {aid: actionId};
+  if (zmAuth.hash) data.auth = zmAuth.hash;
+  $j.getJSON(monitorUrl + '?view=request&request=control&action=monitorAction&id=' + monitorId, data)
+      .done(getControlResponse)
+      .fail(logAjaxFail);
+}
+
 function controlReq(data) {
   if (zmAuth.hash) data.auth = zmAuth.hash;
   $j.getJSON(monitorUrl + '?view=request&request=control&id='+monitorId, data)
@@ -871,8 +890,7 @@ function handleMouseLeave(event) {
 function streamStart(monitor = null) {
   monitorStream = new MonitorStream(monitor ? monitor : monitorData[monIdx]);
 
-  monitorStream.manageAvailablePlayers();
-  monitorStream.setPlayer($j('#player').val());
+  monitorStream.manageAvailablePlayers(getCookie('zmWatchPlayer'));
   monitorStream.setBottomElement(document.getElementById('bottomBlock'));
   const cookieMuted = getCookie('zmWatchMuted');
   monitorStream.muted = (cookieMuted === null || cookieMuted === 'true') ? true : false; // default to muted
@@ -1235,8 +1253,10 @@ var cycleIntervalId;
 var secondsToCycle = 0;
 
 function nextCycleView() {
-  secondsToCycle --;
-  if (secondsToCycle<=0) {
+  const stream = (monitorStream) ? monitorStream.getAVStream() : null;
+  const playerErrorLimitReached = monitorStream && monitorStream.selectedPlayer && monitorStream.getCountStreamErrors(monitorStream.player) >= monitorStream.limitCountErrors;
+  if (stream && stream.readyState >= 2) secondsToCycle --;
+  if (secondsToCycle<=0 || monitorStream.fatalError || playerErrorLimitReached) {
     cycleNext();
   }
   $j('#secondsToCycle').text(secondsToCycle);
@@ -1250,6 +1270,12 @@ function cyclePause() {
 }
 
 function cycleStart() {
+  // Drop any interval already running before taking a new id. Several callers
+  // can reach this without a cyclePause() in between - the play button, the
+  // are-you-still-watching modal closing, and startPage() on every restore -
+  // and the old id is unrecoverable once overwritten, so the orphan ticks on
+  // and cyclePause() can only ever stop the last one. refs #5135
+  clearInterval(cycleIntervalId);
   if (secondsToCycle == 0) secondsToCycle = $j('#cyclePeriod').val();
   cycleIntervalId = setInterval(nextCycleView, 1000);
   cycle = true;
@@ -1432,7 +1458,7 @@ function changePlayer() {
 
   monitorStream.destroyVolumeSlider();
   streamCmdStop(); // takes care of button state and calls stream.kill()
-  monitorStream.setPlayer($j('#player').val());
+  monitorStream.setPlayer(player);
   setChannelStream();
   setTimeout(function() {
     streamCmdPlay(true);
@@ -1550,17 +1576,28 @@ function stopPage() {
 function startPage() {
   // Always clear it because the return to visibility might happen before timeout
   TimerHideShow = clearTimeout(TimerHideShow);
-  if (monitorStream && prevStateStarted == 'played' && !idleTimeoutTriggered) {
-    prevStateStarted = null;
-    onPlay(); //Set the correct state of the player buttons.
-    monitorStream.isActive = true;
-    monitorStream.start(monitorStream.currentChannelStream);
-    monitorsSetScale(monitorId);
-  //} else if (prevStateStarted != 'paused') {
-  } else if (monitorStream && monitorStream.element && ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused) || monitorStream.element.paused)) {
-    prevStateStarted = null;
-  }
-  if (prevStateCycle) cycleStart();
+  // The stream src still carries the auth hash from before we were hidden. If
+  // we were away long enough for it to expire, get a fresh one before starting
+  // anything, otherwise zms 403s the reconnect (auth-helpers.js).
+  whenAuthFresh(function() {
+    if (monitorStream && prevStateStarted == 'played' && !idleTimeoutTriggered) {
+      prevStateStarted = null;
+      onPlay(); //Set the correct state of the player buttons.
+      monitorStream.isActive = true;
+      monitorStream.start(monitorStream.currentChannelStream);
+      monitorsSetScale(monitorId);
+    //} else if (prevStateStarted != 'paused') {
+    } else if (monitorStream && monitorStream.element && ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused) || monitorStream.element.paused)) {
+      prevStateStarted = null;
+    }
+    // Clear it the way prevStateStarted is cleared above: startPage() runs on
+    // visibilitychange, resume and pageshow, and a restore fires more than one
+    // of those. refs #5135
+    if (prevStateCycle) {
+      prevStateCycle = null;
+      cycleStart();
+    }
+  });
 }
 
 function setButtonStateWatch(element_id, btnClass) {

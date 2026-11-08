@@ -144,7 +144,9 @@ class Storage extends ZM_Object {
   public function event_disk_space() {
     # This isn't a function like this in php, so we have to add up the space used in each event.
     if ( (! property_exists($this, 'DiskSpace')) or (!isset($this->{'DiskSpace'})) ) {
-      $this->{'DiskSpace'} = dbFetchOne('SELECT SUM(DiskSpace) AS DiskSpace FROM Events WHERE StorageId=? AND DiskSpace IS NOT NULL', 'DiskSpace', array($this->Id()));
+      $this->{'DiskSpace'} = dbFetchOne('SELECT COALESCE(SUM(DiskSpace),0) AS DiskSpace FROM Events WHERE StorageId=? AND DiskSpace IS NOT NULL', 'DiskSpace', array($this->Id()));
+      # Store it so the sum is not recomputed on every page load. zmc only adds to a non-NULL value.
+      dbQuery('UPDATE Storage SET DiskSpace=? WHERE Id=? AND DiskSpace IS NULL', array($this->{'DiskSpace'}, $this->Id()));
     }
     return $this->{'DiskSpace'};
   } // end function event_disk_space

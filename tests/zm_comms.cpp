@@ -17,6 +17,8 @@
 
 #include "zm_catch2.h"
 
+#include <memory>
+
 #include "zm_comms.h"
 #include <array>
 #include <cstdlib>
@@ -161,7 +163,10 @@ TEST_CASE("ZM::SockAddrInet") {
     REQUIRE(addr.getDomain() == AF_INET);
 
     SECTION("newSockAddr from resolved addr") {
-      zm::SockAddr *addr2 = zm::SockAddr::newSockAddr(&addr);
+      // newSockAddr hands ownership to the caller; Socket deletes the ones it
+      // holds in its destructor. Held in a unique_ptr rather than deleted at
+      // the end of the section because a failing REQUIRE throws past it.
+      std::unique_ptr<zm::SockAddr> addr2(zm::SockAddr::newSockAddr(&addr));
       REQUIRE(addr2->getDomain() == AF_INET);
       REQUIRE(addr2->getAddrSize() == sizeof(sockaddr_in));
     }
@@ -177,7 +182,10 @@ TEST_CASE("ZM::SockAddrUnix") {
     REQUIRE(addr.getDomain() == AF_UNIX);
 
     SECTION("newSockAddr from resolved addr") {
-      zm::SockAddr *addr2 = zm::SockAddr::newSockAddr(&addr);
+      // newSockAddr hands ownership to the caller; Socket deletes the ones it
+      // holds in its destructor. Held in a unique_ptr rather than deleted at
+      // the end of the section because a failing REQUIRE throws past it.
+      std::unique_ptr<zm::SockAddr> addr2(zm::SockAddr::newSockAddr(&addr));
       REQUIRE(addr2->getDomain() == AF_UNIX);
       REQUIRE(addr2->getAddrSize() == sizeof(sockaddr_un));
     }

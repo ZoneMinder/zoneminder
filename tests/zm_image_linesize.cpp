@@ -143,3 +143,33 @@ TEST_CASE("Image::Rotate 270 honors a non-32-aligned source linesize", "[Image]"
     }
   }
 }
+
+// When the camera's resolution differs from the monitor's, Monitor::Decode
+// scales the Y-channel image get_y_image() made. That image borrows the
+// decoder's Y plane, whose stride is neither the tight width nor
+// FFALIGN(width,32), so Scale must read rows at the Image's own linesize.
+// Each source row is one flat value and the row padding is 255: read at the
+// wrong stride, output rows pick up neighbouring rows and padding and stop
+// being flat.
+TEST_CASE("Image::Scale honors a borrowed source linesize", "[Image]") {
+  EnsureImageInit();
+  constexpr unsigned int kSrcW = 40;  // FFALIGN(40,32) = 64
+  constexpr unsigned int kStride = 48;
+  constexpr unsigned int kSrcH = 8;
+  std::vector<uint8_t> backing(kStride * kSrcH, 255);
+  for (unsigned int y = 0; y < kSrcH; y++)
+    for (unsigned int x = 0; x < kSrcW; x++)
+      backing[y * kStride + x] = static_cast<uint8_t>(20 * (y + 1));
+  Image img(kSrcW, kStride, kSrcH, /*colours*/ 1, ZM_SUBPIX_ORDER_NONE, backing.data(), /*padding*/ 0);
+
+  img.Scale(kSrcW / 2, kSrcH / 2);
+
+  REQUIRE(img.Width() == kSrcW / 2);
+  REQUIRE(img.Height() == kSrcH / 2);
+  for (unsigned int y = 0; y < kSrcH / 2; y++) {
+    const uint8_t first = *img.Buffer(0, y);
+    REQUIRE(first < 200);
+    for (unsigned int x = 1; x < kSrcW / 2; x++)
+      REQUIRE(*img.Buffer(x, y) == first);
+  }
+}

@@ -80,6 +80,20 @@ form .alarm {
 	overflow-wrap: break-word;
 }
 
+/* Notices on the password-change and first-run forms are sentences, not the
+   one-line .alarm the login error is, so keep them at text size. */
+#passwordChangeRequired,
+#passwordChangeProblem,
+#firstRunProblem {
+	font-size: 100%;
+	line-height: 1.4;
+	margin-bottom: 15px;
+	padding: 10px 12px;
+	border: 0;
+	border-left: 3px solid currentColor;
+	text-align: left;
+}
+
 #loginform {
 	padding: 40px 60px;
 }

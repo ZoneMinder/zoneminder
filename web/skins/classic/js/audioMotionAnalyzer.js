@@ -14,10 +14,12 @@ function checkAudioMotionEnabled() {
 
 if (checkAudioMotionEnabled()) {
   import('../assets/audioMotion-analyzer/src/audioMotion-analyzer.js').then((module) => {
-    if (module.AudioMotionAnalyzer) {
-      AudioMotionAnalyzer = module.AudioMotionAnalyzer;
-    } else {
-      AudioMotionAnalyzer = window.AudioMotionAnalyzer;
+    // The ES module in the upstream src/ directory exports the class both by
+    // name and as its default. The UMD bundle from dist/ has no ES exports at
+    // all and assigns window.AudioMotionAnalyzer instead, so accept all three.
+    AudioMotionAnalyzer = module.AudioMotionAnalyzer || module.default || window.AudioMotionAnalyzer;
+    if (!AudioMotionAnalyzer) {
+      throw new Error('audioMotion-analyzer.js exports no AudioMotionAnalyzer class');
     }
     window.CURRENT_AUDIO_MOTION_ANALYZER_VERSION = AudioMotionAnalyzer.version;
   }).catch((error) => {
@@ -384,7 +386,9 @@ export class _AudioMotionAnalyzer extends HTMLElement {
       const currentMode = streamNode.getAttribute('current-mode'); // This go2RTC indicates either "error" or MSE, RTC, etc.
       const h = (this.querySelector('canvas')) ? this.querySelector('canvas').getBoundingClientRect().height : 0;
       if ((currentMode && -1 !== currentMode.toLowerCase().indexOf('error')) || (this.audioMotion && h > 0)) {
-        this.monitorGridRedrawTrigger();
+        setTimeout(function(self) {
+          self.monitorGridRedrawTrigger();
+        }, 100, this);
         ready = true;
       }
     }

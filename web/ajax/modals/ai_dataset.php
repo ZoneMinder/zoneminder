@@ -30,7 +30,7 @@ if ( $did ) {
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><?php echo translate('AIDataset') .' - '. validHtmlStr($dataset['Name']) ?></h5>
+        <h5 class="modal-title"><?php echo translate('AI Dataset') .' - '. validHtmlStr($dataset['Name']) ?></h5>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
@@ -54,7 +54,7 @@ if ( $did ) {
                 <td><input type="text" name="newDataset[Version]" value="<?php echo validHtmlStr($dataset['Version']) ?>"/></td>
               </tr>
               <tr class="NumClasses">
-                <th scope="row"><?php echo translate('NumClasses') ?></th>
+                <th scope="row"><?php echo translate('Number of Classes') ?></th>
                 <td><input type="number" name="newDataset[NumClasses]" value="<?php echo validCardinal($dataset['NumClasses']) ?>" step="1" min="0" required/></td>
               </tr>
               <tr class="Description">

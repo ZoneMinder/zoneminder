@@ -26,6 +26,7 @@ use strict;
 use warnings;
 use Class::Std::Fast::Storable;
 use IO::Socket::Multicast;
+use Socket qw(inet_aton pack_sockaddr_in);
 use SOAP::WSDL::Factory::Transport;
 use Time::HiRes qw( usleep );
 
@@ -69,19 +70,23 @@ sub send_multi() {
   my ($self, $address, $port, $utf8_string) = @_;
 
   my $destination = $address . ':' . $port;
+  # Not connected (no PeerAddr): a connected socket keeps the route it chose
+  # at connect time, so mcast_if set afterwards did not move the probe off the
+  # default route. Pick the interface first, then send to the group. The
+  # destination goes in packed: given as "addr:port", mcast_send in
+  # IO::Socket::Multicast 1.12 ends up with port 0 and send fails (EINVAL).
   my $socket = IO::Socket::Multicast->new(
 			PROTO => 'udp',
       LocalPort=>$port,
-			PeerAddr=>$destination,
 			ReuseAddr=>1
 			) or die 'Cannot open multicast socket to ' . ${address} . ':' . ${port};
-	$_ = $socket->mcast_if($net_interface) if $net_interface;
+	$socket->mcast_if($net_interface) if $net_interface;
 
   my $bytes = $utf8_string;
   utf8::encode($bytes);
       
   $socket->mcast_ttl(1);
-  $socket->send($bytes);
+  $socket->mcast_send($bytes, pack_sockaddr_in($port, inet_aton($address)));
 }
 
 sub receive_multi() {

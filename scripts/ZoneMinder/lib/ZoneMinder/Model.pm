@@ -29,6 +29,7 @@ require ZoneMinder::Base;
 require ZoneMinder::Object;
 
 #our @ISA = qw(Exporter ZoneMinder::Base);
+use ZoneMinder::Logger qw(:all);
 use parent qw(ZoneMinder::Object);
 
 use vars qw/ $table $primary_key %fields $serial %defaults $debug/;
@@ -50,7 +51,10 @@ sub save {
   my $manufacturer = $self->Manufacturer();
 
   if ($manufacturer->Name() and !$self->ManufacturerId()) {
-    if ($manufacturer->save()) {
+    # save() returns the error string on failure, '' on success.
+    if (my $error = $manufacturer->save()) {
+      Error('Failed saving Manufacturer '.$manufacturer->Name().": $error");
+    } else {
       $$self{ManufacturerId} = $manufacturer->Id();
     }
   }

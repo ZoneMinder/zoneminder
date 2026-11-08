@@ -5,6 +5,7 @@ require_once('FilterTerm.php');
 require_once('Monitor.php');
 
 class Filter extends ZM_Object {
+  protected static $setters = array('Query_json', 'Query', 'terms', 'sort_field', 'sort_asc', 'skip_locked', 'limit');
   protected static $table = 'Filters';
   protected static $attrTypes = null;
   protected static $opTypes = null;
@@ -54,7 +55,6 @@ class Filter extends ZM_Object {
   protected $_hidden_fields;
   public $_pre_sql_conditions;
   public $_post_sql_conditions;
-  protected $_Terms;
   public $availableTags = array();
 
   public function sql() {
@@ -238,7 +238,7 @@ class Filter extends ZM_Object {
       unset($this->_hidden_fields);
       unset($this->_pre_sql_conditions);
       unset($this->_post_sql_conditions);
-      unset($this->_Terms);
+      unset($this->Terms);
     }
     if ( !property_exists($this, 'Query') ) {
       if ( property_exists($this, 'Query_json') and $this->{'Query_json'} ) {
@@ -418,9 +418,9 @@ class Filter extends ZM_Object {
         );
         $context  = stream_context_create($options);
         try {
-          $result = file_get_contents($url, false, $context);
+          $result = @file_get_contents($url, false, $context);
           if ( $result === FALSE ) { /* Handle error */
-            Error("Error restarting zmfilter.pl using $url");
+            Error('Error restarting zmfilter.pl using '.urlForLog($url).': '.lastErrorForLog());
           }
         } catch ( Exception $e ) {
           Error("Except $e thrown trying to restart zmfilter");
@@ -1159,6 +1159,7 @@ class Filter extends ZM_Object {
             </tr>
 ';
     } # end foreach term
+    $html .= '</tbody></table>';
     // Error($html);
     return $html;
   }  # end function widget()

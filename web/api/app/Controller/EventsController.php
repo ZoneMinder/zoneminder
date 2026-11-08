@@ -22,7 +22,7 @@ class EventsController extends AppController {
   public function beforeFilter() {
     parent::beforeFilter();
     global $user;
-    $canView = (!$user) || ($user->Events() != 'None');
+    $canView = (!$user) || ($user->canView('Events'));
     if ( !$canView ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
@@ -40,13 +40,7 @@ class EventsController extends AppController {
 
     global $user;
     require_once __DIR__ .'/../../../includes/Event.php';
-    $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : [];
-
-    if (count($allowedMonitors)) {
-      $mon_options = array('Event.MonitorId' => $allowedMonitors);
-    } else {
-      $mon_options = '';
-    }
+    $mon_options = $this->viewableMonitorCondition('Event.MonitorId');
 
     $this->FilterComponent = $this->Components->load('Filter');
     $named_params = $this->request->params['named'];
@@ -147,7 +141,7 @@ class EventsController extends AppController {
         $tag_filter_field = 'Name';
         unset($raw_params['Tags']);
       }
-      $conditions = $this->FilterComponent->buildFilter($raw_params);
+      $conditions = $this->FilterComponent->buildFilter($raw_params, array_merge(array_keys($this->Event->schema()), array('DateTime', 'GroupId')));
     }
     $settings = array(
       // https://github.com/ZoneMinder/ZoneMinder/issues/995
@@ -259,13 +253,7 @@ class EventsController extends AppController {
     }
 
     global $user;
-    $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : [];
-
-    if ( count($allowedMonitors) ) {
-      $mon_options = array('Event.MonitorId' => $allowedMonitors);
-    } else {
-      $mon_options = '';
-    }
+    $mon_options = $this->viewableMonitorCondition('Event.MonitorId');
 
     $noFrames = $this->request->query('noframes');
     if ($noFrames=='true')
@@ -273,6 +261,13 @@ class EventsController extends AppController {
 
     $options = array('conditions' => array(array('Event.' . $this->Event->primaryKey => $id), $mon_options));
     $event = $this->Event->find('first', $options);
+    # The event exists (checked above), so an empty result means the monitor
+    # condition filtered it out. Refuse here: an empty ZM\Event has no monitor
+    # and passes canView(), and the code below would then fill in the hidden
+    # event's neighbours and frame ids by $id alone.
+    if (!$event) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+    }
     $EventObj = new ZM\Event($event['Event']);
     if (!$EventObj->canView()) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
@@ -327,13 +322,19 @@ class EventsController extends AppController {
   public function add() {
 
     global $user;
-    $canEdit = (!$user) || ($user->Events() == 'Edit');
+    $canEdit = (!$user) || ($user->canEdit('Events'));
     if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
     }
 
     if ( $this->request->is('post') ) {
+      $monitorId = $this->requestField('Event', 'MonitorId');
+      if ($monitorId === null) {
+        throw new BadRequestException(__('MonitorId is required'));
+      }
+      $this->requireMonitorView($monitorId);
+      $this->pinRequestId($this->Event, null);
       $this->Event->create();
       if ( $this->Event->save($this->request->data) ) {
         return $this->flash(__('The event has been saved.'), array('action' => 'index'));
@@ -353,7 +354,7 @@ class EventsController extends AppController {
   public function edit($id = null) {
 
     global $user;
-    $canEdit = (!$user) || ($user->Events() == 'Edit');
+    $canEdit = (!$user) || ($user->canEdit('Events'));
     if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
@@ -375,6 +376,11 @@ class EventsController extends AppController {
     if ( !$EventObj->canEdit() ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
+    }
+    $this->pinRequestId($this->Event, $id);
+    $monitorId = $this->requestField('Event', 'MonitorId');
+    if ($monitorId !== null and $monitorId != $event['Event']['MonitorId']) {
+      $this->requireMonitorView($monitorId);
     }
 
     if ( $this->Event->save($this->request->data) ) {
@@ -398,7 +404,7 @@ class EventsController extends AppController {
    */
   public function delete($id = null) {
     global $user;
-    $canEdit = (!$user) || ($user->Events() == 'Edit');
+    $canEdit = (!$user) || ($user->canEdit('Events'));
     if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
@@ -441,12 +447,12 @@ class EventsController extends AppController {
       // Transform params into conditions
       if ( preg_match('/^\s?interval\s?/i', $value) ) {
         if (preg_match('/^[a-z0-9]+$/i', $param_name) !== 1) {
-          throw new Exception('Invalid field name: ' . $param_name);
+          throw new BadRequestException('Invalid field name: ' . $param_name);
         }
         $matches = NULL;
         $value = preg_replace('/^\s?interval\s?/i', '', $value);
         if (preg_match('/^(?P<expr>[ \-.:0-9]+)\s+(?P<unit>[_a-z]+)$/i', trim($value), $matches) !== 1) {
-          throw new Exception('Invalid interval: ' . $value);
+          throw new BadRequestException('Invalid interval: ' . $value);
         }
         $expr = trim($matches['expr']);
         $unit = trim($matches['unit']);
@@ -457,8 +463,9 @@ class EventsController extends AppController {
     }
 
     $this->FilterComponent = $this->Components->load('Filter');
-    $conditions = $this->FilterComponent->buildFilter($conditions);
+    $conditions = $this->FilterComponent->buildFilter($conditions, array_keys($this->Event->schema()));
     array_push($conditions, $find_conditions);
+    array_push($conditions, $this->viewableMonitorCondition('Event.MonitorId'));
 
     $results = $this->Event->find('all', array(
       'conditions' => $conditions
@@ -479,7 +486,7 @@ class EventsController extends AppController {
     // https://dev.mysql.com/doc/refman/5.5/en/expressions.html#temporal-intervals
     // Examples: `'1-1' YEAR_MONTH`, `'-1 10' DAY_HOUR`, `'1.999999' SECOND_MICROSECOND`
     if (preg_match('/^(?P<expr>[ \-.:0-9]+)\s+(?P<unit>[_a-z]+)$/i', trim($interval), $matches) !== 1) {
-      throw new Exception('Invalid interval: ' . $interval);
+      throw new BadRequestException('Invalid interval: ' . $interval);
     }
     $expr = trim($matches['expr']);
     $unit = trim($matches['unit']);
@@ -488,11 +495,12 @@ class EventsController extends AppController {
     $results = array();
     $this->FilterComponent = $this->Components->load('Filter');
     if ( $this->request->params['named'] ) {
-      $conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+      $conditions = $this->FilterComponent->buildFilter($this->request->params['named'], array_keys($this->Event->schema()));
     } else {
       $conditions = array();
     } 
     array_push($conditions, array("StartDateTime >= DATE_SUB(NOW(), INTERVAL $expr $unit)"));
+    array_push($conditions, $this->viewableMonitorCondition('Event.MonitorId'));
     $query = $this->Event->find('all', array(
       'fields' => array('MonitorId', 'COUNT(*) AS Count'),
       'conditions' => $conditions,
@@ -510,7 +518,7 @@ class EventsController extends AppController {
   }
 
   // Create a thumbnail and return the thumbnail's data for a given event id.
-  public function createThumbnail($id = null) {
+  private function createThumbnail($id = null) {
     $this->Event->recursive = -1;
 
     if ( !$this->Event->exists($id) ) {
@@ -538,7 +546,7 @@ class EventsController extends AppController {
     // The $bw, $thumbs and unset() code is a workaround / temporary
     // until I have a better way of handing per-bandwidth config options
     $bw = (isset($_COOKIE['zmBandwidth']) ? strtoupper(substr($_COOKIE['zmBandwidth'], 0, 1)) : 'L');
-    $thumbs = "ZM_WEB_${bw}_SCALE_THUMBS";
+    $thumbs = "ZM_WEB_{$bw}_SCALE_THUMBS";
 
     $config = $this->Config->find('list', array(
       'conditions' => array('OR' => array(
@@ -612,7 +620,7 @@ class EventsController extends AppController {
     ));
   }
 
-  public function getMaxScoreAlarmFrameId($id = null) {
+  private function getMaxScoreAlarmFrameId($id = null) {
     $this->Event->recursive = -1;
 
     if ( !$this->Event->exists($id) ) {

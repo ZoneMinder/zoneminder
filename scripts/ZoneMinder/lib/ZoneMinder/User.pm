@@ -48,7 +48,6 @@ Groups
 Devices
 System
 MaxBandwidth
-MonitorIds
 TokenMinExpiry
 APIEnabled
 );

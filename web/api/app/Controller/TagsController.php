@@ -18,7 +18,7 @@ class TagsController extends AppController {
     parent::beforeFilter();
     global $user;
     # We already tested for auth in appController, so we just need to test for specific permission
-    $canView = (!$user) || ($user->Events() != 'None');
+    $canView = (!$user) || ($user->canView('Events'));
     if ( !$canView ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
@@ -35,7 +35,7 @@ class TagsController extends AppController {
 
     if ( $this->request->params['named'] ) {
       $this->FilterComponent = $this->Components->load('Filter');
-      $conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+      $conditions = $this->FilterComponent->buildFilter($this->request->params['named'], array_keys($this->Tag->schema()));
     } else {
       $conditions = array();
     }
@@ -74,9 +74,9 @@ class TagsController extends AppController {
       # cameras they are denied. The plain tag list (no Events.Id filter) is a
       # global label vocabulary and is intentionally left unrestricted.
       global $user;
-      $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : array();
-      if ( count($allowedMonitors) ) {
-        $conditions[] = array('Events.MonitorId' => $allowedMonitors);
+      $monitorCondition = $this->viewableMonitorCondition('Events.MonitorId');
+      if ( count($monitorCondition) ) {
+        $conditions[] = $monitorCondition;
       }
     }
 
@@ -124,12 +124,16 @@ class TagsController extends AppController {
         return;
       }
 
-			$this->Tag->create();
-
       if ( $this->request->data['Tag']['EventIds'] and ! isset($this->request->data['Event']) ) {
         $this->request->data['Event'] = explode(',', $this->request->data['Tag']['EventIds']);
         unset($this->request->data['Tag']['EventIds']);
       }
+      # Only events the user may view can be tagged.
+      $eventIds = $this->requestAssociatedIds('Tag', 'Event');
+      if ($eventIds) $this->requireEventsView($eventIds);
+      $this->pinRequestId($this->Tag, null);
+			$this->Tag->create();
+
       if ( $this->Tag->saveAssociated($this->request->data, array('atomic'=>true)) ) {
         return $this->flash(
           __('The tag has been saved.'),
@@ -164,7 +168,11 @@ class TagsController extends AppController {
         throw new UnauthorizedException(__('Insufficient Privileges'));
         return;
       }
-      $this->Tag->id = $id;
+      $this->pinRequestId($this->Tag, $id);
+      $eventIds = $this->requestAssociatedIds('Tag', 'Event');
+      if ($eventIds !== null) {
+        $this->request->data['Event'] = array('Event' => $this->eventLinksToSave('Events_Tags', 'TagId', $id, $eventIds));
+      }
 			if ( $this->Tag->save($this->request->data) ) {
         $message = 'Saved';
       } else {
@@ -229,10 +237,10 @@ class TagsController extends AppController {
     # monitor-restricted user does not learn which events on denied cameras
     # carry a given tag.
     global $user;
-    $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : array();
     $event_contain = array('fields'=>array('Id','Name'));
-    if ( count($allowedMonitors) ) {
-      $event_contain['conditions'] = array('Event.MonitorId' => $allowedMonitors);
+    $monitorCondition = $this->viewableMonitorCondition('Event.MonitorId');
+    if ( count($monitorCondition) ) {
+      $event_contain['conditions'] = $monitorCondition;
     }
 
     $tags = $this->Tag->find('all', array(

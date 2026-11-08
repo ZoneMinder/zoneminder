@@ -6,6 +6,27 @@
 // globals by the time any of them runs. Also CommonJS-exported for node unit
 // tests (tests/js/table-helpers.test.js).
 
+// The icons the bootstrap-table top-right toolbar is built with. Every view
+// that makes a table passes these to bootstrapTable(), so they have to exist
+// before the view scripts run. They used to live in skin.js, which the footer
+// loads last of all: a client that never got that far -- a crawler that stops
+// short, an aborted load -- ran the view's ready handler against an undefined
+// icons and threw.
+var icons = {
+  paginationSwitchDown: 'fa-caret-square-o-down',
+  paginationSwitchUp: 'fa-caret-square-o-up',
+  export: 'fa-download',
+  refresh: 'fa-retweet',
+  autoRefresh: 'fa-clock-o',
+  advancedSearchIcon: 'fa-chevron-down',
+  toggleOff: 'fa-toggle-off',
+  toggleOn: 'fa-toggle-on',
+  columns: 'fa-th-list',
+  fullscreen: 'fa-arrows-alt',
+  detailOpen: 'fa-plus',
+  detailClose: 'fa-minus'
+};
+
 // Tables whose ajax request was skipped because the page was hidden, waiting to
 // be refreshed once it is shown again.
 const tablesPendingVisibility = [];
@@ -33,14 +54,29 @@ function deferTableRequestWhileHidden(table) {
   return true;
 }
 
-// Refresh every table whose request was skipped while hidden.
+// Refresh every table whose request was skipped while hidden. The auth hash we
+// were holding may have expired during the hide, so wait for a confirmed one
+// rather than have every deferred table 403 (auth-helpers.js). whenAuthFresh is
+// absent under node; refresh directly there.
 function refreshTablesPendingVisibility() {
   if (document.visibilityState === 'hidden') return;
   // Drain before refreshing: refresh() calls the ajax function synchronously,
   // which would otherwise re-add the table while we are still iterating.
   const tables = tablesPendingVisibility.splice(0, tablesPendingVisibility.length);
-  for (let i = 0; i < tables.length; i++) {
-    tables[i].bootstrapTable('refresh');
+  // Nothing was deferred, so there is nothing to authenticate for. This handler
+  // is bound on every classic page including the unauthenticated ones, and
+  // whenAuthFresh() can send a probe, so becoming visible must stay a no-op
+  // when there is no work.
+  if (!tables.length) return;
+  const refresh = function() {
+    for (let i = 0; i < tables.length; i++) {
+      tables[i].bootstrapTable('refresh');
+    }
+  };
+  if (typeof whenAuthFresh === 'function') {
+    whenAuthFresh(refresh);
+  } else {
+    refresh();
   }
 }
 
@@ -50,6 +86,7 @@ if (typeof document !== 'undefined' && document.addEventListener) {
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
+    icons,
     deferTableRequestWhileHidden,
     refreshTablesPendingVisibility,
     tablesPendingVisibility,

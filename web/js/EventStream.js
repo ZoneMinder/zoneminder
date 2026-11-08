@@ -39,6 +39,7 @@ function EventStream(config) {
   this.streamCmdTimer = null;
   this.ajaxQueue = null;
   this.rafId = null;
+  this.bitmapPending = false;
 
   // Recovery state
   this.consecutiveErrors = 0;
@@ -213,6 +214,7 @@ function EventStream(config) {
       }
       this.img = null;
     }
+    this.bitmapPending = false;
 
     this.started = false;
     this.connKey = null;
@@ -508,9 +510,32 @@ function EventStream(config) {
     if (!this.canvas || !this.img) return;
     // Only draw if the img has decoded at least one frame
     if (!this.img.naturalWidth) return;
-    var ctx = this.canvas.getContext('2d');
-    ctx.drawImage(this.img, 0, 0, this.canvas.width, this.canvas.height);
-    if (this.onFrameDrawn) this.onFrameDrawn(this.canvas);
+
+    // Gecko gives canvas drawImage() the frame the img held when it was first
+    // decoded and never refreshes it, so copying a multipart/x-mixed-replace
+    // img straight to the canvas repaints that one frame forever while zms
+    // goes on streaming: montage review froze on its first frame in Firefox
+    // while playing normally in Chrome.  createImageBitmap() reads the frame
+    // the element is showing now.  It is async, so skip a tick while one is
+    // outstanding instead of queueing requests up behind the stream rate.
+    if (this.bitmapPending) return;
+    var self = this;
+    this.bitmapPending = true;
+    createImageBitmap(this.img).then(function(bitmap) {
+      self.bitmapPending = false;
+      if (!self.canvas) {
+        bitmap.close();
+        return;
+      }
+      var ctx = self.canvas.getContext('2d');
+      ctx.drawImage(bitmap, 0, 0, self.canvas.width, self.canvas.height);
+      bitmap.close();
+      if (self.onFrameDrawn) self.onFrameDrawn(self.canvas);
+    }).catch(function() {
+      // A frame that arrives mid-teardown, or one that is only partly
+      // received, is not worth reporting: the next tick draws the next frame.
+      self.bitmapPending = false;
+    });
   };
 }
 

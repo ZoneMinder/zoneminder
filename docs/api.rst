@@ -61,6 +61,8 @@ To get an API key:
 
     curl -XPOST -d "user=yourusername&pass=yourpassword" https://yourserver/zm/api/host/login.json
 
+An account whose password is ``admin`` gets ``401 Unauthorized`` with the message "This account uses the password admin, which ZoneMinder does not accept. Log in to the web interface to set a new one." ZoneMinder refuses that password for every account, because it is the one the admin account is created with. Log in to the web interface once to choose a new password, then use that one here.
+
 
 If you want to use a stateful connection, so you don't have to pass auth credentials with each query, you can use the following:
 
@@ -303,6 +305,14 @@ This command will force an alarm on Monitor 1:
 ::
 
   curl http://server/zm/api/monitors/alarm/id:1/command:on.json
+
+The event records "Forced Web" as its cause. To record another cause, pass it as ``cause``.
+ZoneMinder keeps letters, digits, spaces and plain punctuation (``_ . , : ; ! ? ( ) [ ] / + # @ % = -``),
+drops anything else, and keeps the first 31 bytes:
+
+::
+
+  curl "http://server/zm/api/monitors/alarm/id:1/command:on.json?cause=Doorbell"
 
 This command will disable the  alarm on Monitor 1:
 

@@ -40,6 +40,12 @@ if ($action == 'Save') {
     if (isset($_REQUEST['user']['MonitorIds']) and is_array($_REQUEST['user']['MonitorIds']))
       $_REQUEST['user']['MonitorIds'] = implode(',', $_REQUEST['user']['MonitorIds']);
     if (!empty($_REQUEST['user']['Password'])) {
+      $problem = passwordProblem($_REQUEST['user']['Password']);
+      if ($problem !== null) {
+        $error_message .= passwordProblemText($problem).'<br/>';
+        unset($_REQUEST['redirect']);
+        return;
+      }
       $_REQUEST['user']['Password'] = password_hash($_REQUEST['user']['Password'], PASSWORD_BCRYPT);
     } else {
       unset($_REQUEST['user']['Password']);
@@ -54,6 +60,12 @@ if ($action == 'Save') {
       }
     }
     $changes = $dbUser->changes($_REQUEST['user']);
+    if (isset($changes['Password'])) {
+      # Changing the password revokes the user's existing API tokens, matching
+      # the options page's revoke action: validateToken() rejects any token
+      # issued before TokenMinExpiry (refs GHSA-5w6w-qp25-2qqh).
+      $changes['TokenMinExpiry'] = time();
+    }
     if (count($changes)) {
       if (!$dbUser->save($changes)) {
         $error_message .= $dbUser->get_last_error().'<br/>';
@@ -99,6 +111,12 @@ if ($action == 'Save') {
     $dbUser->Monitor_Permissions(null); # reload
   } else if (ZM_USER_SELF_EDIT and ($uid == $user->Id())) {
     if (!empty($_REQUEST['user']['Password'])) {
+      $problem = passwordProblem($_REQUEST['user']['Password']);
+      if ($problem !== null) {
+        $error_message .= passwordProblemText($problem).'<br/>';
+        unset($_REQUEST['redirect']);
+        return;
+      }
       $_REQUEST['user']['Password'] = password_hash($_REQUEST['user']['Password'], PASSWORD_BCRYPT);
     } else {
       unset($_REQUEST['user']['Password']);
@@ -114,6 +132,11 @@ if ($action == 'Save') {
     }
     $fields = array('Password'=>'', 'Language'=>'', 'HomeView'=>'');
     $changes = $dbUser->changes(array_intersect_key($_REQUEST['user'], $fields));
+    if (isset($changes['Password'])) {
+      # A self-service password change revokes the user's existing API tokens
+      # (refs GHSA-5w6w-qp25-2qqh).
+      $changes['TokenMinExpiry'] = time();
+    }
 
     if (count($changes)) {
       if (!$dbUser->save($changes)) {

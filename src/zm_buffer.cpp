@@ -35,38 +35,47 @@ unsigned int Buffer::assign(const unsigned char *pStorage, unsigned int pSize) {
 }
 
 unsigned int Buffer::expand(unsigned int count) {
-  int spare = mAllocation - mSize;
-  int headSpace = mHead - mStorage;
-  int tailSpace = spare - headSpace;
-  int width = mTail - mHead;
-  if ( spare >= static_cast<int>(count) ) {
-    // There is enough space in the allocation might need to shift everything over though
-    //
-    if ( tailSpace < static_cast<int>(count) ) {
-      // if there is extra space at the head, shift everything over
-      memmove(mStorage, mHead, mSize);
-      mHead = mStorage;
-      mTail = mHead + width;
-    }
-  } else {
-    mAllocation += count;
-    unsigned char *newStorage = new unsigned char[mAllocation];
-    if ( mStorage ) {
-      memcpy(newStorage, mHead, mSize);
-      delete[] mStorage;
-    } else {
-      memset(newStorage, 0, mAllocation);
-    }
-    mStorage = newStorage;
+  // Sizes are worked out in size_t: count can come from a network peer (a camera's
+  // Content-Length), and the int arithmetic this used to do wrapped once the allocation
+  // passed INT_MAX, leaving a small block behind. refs GHSA-x959-xrc9-89p8
+  const size_t head_space = mHead - mStorage;
+  const size_t tail_space = static_cast<size_t>(mAllocation) - head_space - mSize;
+  if (tail_space >= count) return mSize;
+
+  if (static_cast<size_t>(mAllocation) - mSize >= count) {
+    // There is enough space in the allocation once the data is shifted to the front
+    memmove(mStorage, mHead, mSize);
     mHead = mStorage;
-    mTail = mHead + width;
+    mTail = mHead + mSize;
+    return mSize;
   }
+
+  const size_t needed = static_cast<size_t>(mSize) + count;
+  if (needed > kMaxAllocation) {
+    Error("Refusing to grow buffer of %u bytes by %u bytes", mSize, count);
+    return mSize;
+  }
+  unsigned char *newStorage = new unsigned char[needed];
+  if (mStorage) {
+    memcpy(newStorage, mHead, mSize);
+    delete[] mStorage;
+  } else {
+    memset(newStorage, 0, needed);
+  }
+  mAllocation = static_cast<unsigned int>(needed);
+  mStorage = newStorage;
+  mHead = mStorage;
+  mTail = mHead + mSize;
   return mSize;
 }
 
 int Buffer::read_into(int sd, unsigned int bytes) {
   // Make sure there is enough space
   this->expand(bytes);
+  if (static_cast<size_t>(mStorage + mAllocation - mTail) < bytes) {
+    Error("No room to read %u bytes into buffer of %u bytes", bytes, mSize);
+    return -1;
+  }
   Debug(3, "Reading %u bytes", bytes);
   int bytes_read = ::read(sd, mTail, bytes);
   if (bytes_read > 0) {

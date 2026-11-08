@@ -150,26 +150,74 @@ function goToLogin() {
   window.location.assign(loginRedirectUrl(thisUrl, currentView));
 }
 
+// How long a hash we are holding has left cannot be worked out on this side.
+// calculateAuthHash() keys it to the clock hour it was minted in, and
+// getAuthUser() accepts the last ZM_AUTH_HASH_TTL hourly buckets, so a hash is
+// dead at the top of the hour ZM_AUTH_HASH_TTL after the one it was made in -
+// a wall-clock deadline, not an age. generateAuthHash() then serves the cached
+// one until it is half a TTL old, so what arrives can already be nearly spent:
+// on the defaults, one minted at 10:59 is still handed out at 11:58 and is
+// refused at 12:00. Any "trust it for N minutes" window is therefore wrong for
+// some hash, which is why there isn't one here - see the note on whenAuthFresh.
+
+// The probe carries no credential, deliberately. zm_authenticate_request()
+// resolves the request against exactly one source: an auth= in the URL takes the
+// ZM_AUTH_HASH_LOGINS branch (auth.php), and when getAuthUser() rejects it the
+// chain has already been entered, so userFromSession() below it never runs and a
+// live session cookie authenticates as nobody. Sending the very hash we suspect
+// is dead is what would make the probe fail. Without it the session cookie is
+// what answers, which is the question being asked: who am I, and what is my
+// current hash?
+function authProbeUrl(baseUrl) {
+  return baseUrl + '?view=request&request=status&entity=navBar';
+}
+
 // Perform a single silent auth probe against the lightweight navBar status
-// endpoint. On success zmAuth is refreshed (via setNavBar) and onValid() is
-// invoked so the view can repaint its streams with the fresh credential. A dead
-// session (401) goes straight to login; transient errors are swallowed so we
-// don't bounce the user on a blip.
+// endpoint. zmAuth is refreshed (via setNavBar) and the queued callbacks are
+// then invoked so each view can repaint its streams with the fresh credential.
+// Since the probe rides the session cookie, a rejection (401 or 403, both of
+// which authFailureAction calls 'login') means the session itself is gone: go
+// straight to login and drop the callbacks. Other failures still run them, since
+// a transient blip is no reason to leave the page's streams stopped. Concurrent
+// callers share the one request.
 let authRevalidating = false;
+const authPendingCallbacks = [];
 function revalidateAuth(onValid) {
+  if (typeof onValid === 'function') authPendingCallbacks.push(onValid);
   if (authRevalidating) return;
   authRevalidating = true;
-  $j.getJSON(zmAuth.appendTo(thisUrl + '?view=request&request=status&entity=navBar'))
+  $j.getJSON(authProbeUrl(thisUrl))
       .done(function(data) {
         setNavBar(data);
-        if (typeof onValid === 'function') onValid();
       })
       .fail(function(jqxhr) {
         if (authFailureAction(jqxhr.status) == 'login') goToLogin();
       })
       .always(function() {
         authRevalidating = false;
+        const callbacks = authPendingCallbacks.splice(0, authPendingCallbacks.length);
+        if (authGoingToLogin) return;
+        for (let i = 0; i < callbacks.length; i++) callbacks[i]();
       });
+}
+
+// Run cb against a credential the server has just confirmed. Use this anywhere
+// a resume path - visibility, bfcache, idle timeout - kicks off authenticated
+// requests after a gap, so nothing restarts a stream or a table poll on a hash
+// that expired while the page was not listening.
+//
+// The one case that can skip the probe is having no hash at all: authentication
+// off, or a relay form that does not use one. There is then nothing that can
+// expire and nothing a probe would tell us. Every other case revalidates,
+// because the remaining life of a hash we hold is not knowable here (above).
+// Concurrent callers share the one request, so a resume that wakes several of
+// these still costs a single probe.
+function whenAuthFresh(cb) {
+  if (!zmAuth || !zmAuth.hash) {
+    cb();
+    return;
+  }
+  revalidateAuth(cb);
 }
 
 // When the tab becomes visible again after being hidden/slept, the baked-in auth
@@ -194,6 +242,9 @@ if (typeof module !== 'undefined' && module.exports) {
     setUrlParam,
     authHashFromRelay,
     rebuildStreamSrc,
+    authProbeUrl,
+    revalidateAuth,
+    whenAuthFresh,
     ZMAuth,
   };
 }

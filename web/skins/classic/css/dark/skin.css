@@ -308,3 +308,31 @@ html, body, div, nav, .chosen-results {
   border-radius: 6px;
   border: 3px solid var(--scrollbarBG);
 }
+
+/* Log panel level colours; see css/base/skin.css. */
+.logPanel tr.log-fat td {
+    color: #222222;
+    background-color:#ffcccc;
+    font-weight: bold;
+}
+
+.logPanel tr.log-err td {
+    color: #222222;
+    background-color:#ffcccc;
+}
+
+.logPanel tr.log-war td {
+    color: #222222;
+    background-color: #ffe4b5;
+}
+
+.logPanel tr.log-dbg td {
+    color: #aaaaaa;
+    font-style: italic;
+}
+
+/* Selected row styles for dark mode - neutral highlight, log level colors via text */
+.logPanel .bootstrap-table .fixed-table-container .table tbody tr.selected td {
+    background-color: #2d333b;
+    color: inherit;
+}

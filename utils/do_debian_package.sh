@@ -181,7 +181,17 @@ else
 
       # Number of commits since the version file was last changed
       numcommits=$(git rev-list ${versionhash}..HEAD --count)
-      SNAPSHOT="`date +%Y%m%d.`$(git rev-list ${versionhash}..HEAD --count)"
+      SNAPSHOT="`date +%Y%m%d.`${numcommits}"
+
+      # date+numcommits is not unique per build: every build of the same tip on
+      # the same day produces the same string, and the repo then holds one
+      # version whose content changed underneath it. A client that read Packages
+      # before a republish and fetched the .deb after it gets a hash mismatch.
+      # GITHUB_RUN_ID is unique and never reused, and appending a component
+      # keeps the version strictly greater than the ones already published.
+      if [ -n "$GITHUB_RUN_ID" ]; then
+        SNAPSHOT="${SNAPSHOT}.${GITHUB_RUN_ID}.${GITHUB_RUN_ATTEMPT:-1}"
+      fi
     fi;
   fi;
 fi;
@@ -361,13 +371,13 @@ EOF
       read -p "Do you want to upload this binary to zmrepo? (y/N)"
       if [[ $REPLY == [yY] ]]; then
         if [ "$RELEASE" != "" ]; then
-          echo "scp \"zoneminder_${VERSION}-${DISTRO}\"* \"zoneminder-doc_${VERSION}-${DISTRO}\"* \"zoneminder-dbg_${VERSION}-${DISTRO}\"* \"zoneminder_${VERSION}.orig.tar.gz\" \"zmrepo@zmrepo.connortechnology.com:debian/release-${VERSION_PARTS[0]}.${VERSION_PARTS[1]}/mini-dinstall/incoming/\"";
-          scp "zoneminder_${VERSION}-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.connortechnology.com:debian/release-${VERSION_PARTS[0]}.${VERSION_PARTS[1]}/mini-dinstall/incoming/"
+          echo "scp \"zoneminder_${VERSION}-${DISTRO}\"* \"zoneminder-doc_${VERSION}-${DISTRO}\"* \"zoneminder-dbg_${VERSION}-${DISTRO}\"* \"zoneminder_${VERSION}.orig.tar.gz\" \"zmrepo@zmrepo.zoneminder.com:debian/release-${VERSION_PARTS[0]}.${VERSION_PARTS[1]}/mini-dinstall/incoming/\"";
+          scp "zoneminder_${VERSION}-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.zoneminder.com:debian/release-${VERSION_PARTS[0]}.${VERSION_PARTS[1]}/mini-dinstall/incoming/"
         else
           if [ "$BRANCH" == "" ]; then
-            scp "zoneminder_${VERSION}-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.connortechnology.com:debian/master/mini-dinstall/incoming/"
+            scp "zoneminder_${VERSION}-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.zoneminder.com:debian/master/mini-dinstall/incoming/"
           else
-            scp "$DIRECTORY-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.connortechnology.com:debian/${BRANCH}/mini-dinstall/incoming/"
+            scp "$DIRECTORY-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.zoneminder.com:debian/${BRANCH}/mini-dinstall/incoming/"
           fi;
         fi;
       fi;

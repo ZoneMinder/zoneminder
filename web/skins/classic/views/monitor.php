@@ -144,19 +144,26 @@ $sourceTypes = array(
     'Remote' => translate('Remote'),
     'File'   => translate('File'),
     'Ffmpeg' => translate('Ffmpeg'),
-    'Libvlc' => translate('Libvlc'),
     'WebSite'=> 'Web Site',
-    'NVSocket'	=> translate('NVSocket'),
     'VNC' => translate('VNC'),
     );
 if (!ZM_HAS_V4L2)
   unset($sourceTypes['Local']);
 
 
+// ZoneMinder's own RTSP/RTP implementation has been removed in favour of
+// Ffmpeg. Remote is still the right capture method for mjpeg streams and
+// snapshot-jpeg cameras, which is what http covers.
 $remoteProtocols = array(
     'http' => 'HTTP',
-    'rtsp' => 'RTSP'
     );
+
+// A monitor already saved as rtsp keeps the option visible, so that opening it
+// to read the warning does not quietly re-save it as http. New monitors are
+// not offered it.
+if ($monitor->Protocol() == 'rtsp') {
+  $remoteProtocols['rtsp'] = 'RTSP ('.translate('Removed').')';
+}
 
 $rtspMethods = array(
     'rtpUni'      => 'RTP/Unicast',
@@ -378,14 +385,21 @@ if ( $monitor->Type() != 'WebSite' ) {
   $tabs['recording'] = translate('Recording');
   $tabs['viewing'] = translate('Viewing');
   $tabs['onvif'] = translate('ONVIF');
-  $tabs['timestamp'] = translate('Timestamp');
+  // A speaker's video is a placeholder image, so a burnt-in timestamp and
+  // motion zones have nothing to describe.
+  if ( $monitor->DeviceClass() != 'Speaker' )
+    $tabs['timestamp'] = translate('Timestamp');
   $tabs['buffers'] = translate('Buffers');
   if ( ZM_OPT_CONTROL && canView('Control') )
     $tabs['control'] = translate('Control');
   if ( ZM_OPT_X10 )
     $tabs['x10'] = translate('X10');
+  // Actions target other monitors, so this is offered regardless of whether
+  // this monitor is itself controllable.
+  $tabs['actions'] = translate('Actions');
   $tabs['misc'] = translate('Misc');
-  $tabs['zones'] = translate('Zones');
+  if ( $monitor->DeviceClass() != 'Speaker' )
+    $tabs['zones'] = translate('Zones');
   if (defined('ZM_OPT_USE_GEOLOCATION') and ZM_OPT_USE_GEOLOCATION)
     $tabs['location'] = translate('Location');
   $tabs['mqtt'] = translate('MQTT');
@@ -497,6 +511,18 @@ switch ($name) {
               <li class="Notes">
                 <label><?php echo translate('Notes') ?></label>
                 <textarea name="newMonitor[Notes]" rows="4"><?php echo validHtmlStr($monitor->Notes()) ?></textarea>
+              </li>
+              <li class="DeviceClass">
+                <label><?php echo translate('DeviceClass') ?></label>
+<?php
+              // What the device *is*, as opposed to Type, which is how it is
+              // captured. An IP speaker is still captured over Ffmpeg.
+              $device_class_options = array(
+                'Camera'  => translate('DeviceClassCamera'),
+                'Speaker' => translate('DeviceClassSpeaker'),
+              );
+              echo htmlSelect('newMonitor[DeviceClass]', $device_class_options, $monitor->DeviceClass(), ['data-on-change'=>'changeDeviceClass']);
+?>
               </li>
               <li class="Manufacturer">
                 <label><?php echo translate('Manufacturer') ?></label>
@@ -682,7 +708,10 @@ if (!ZM_HAS_V4L2)
 if (!isset($localMethods[$monitor->Method()])) $monitor->Method(array_keys($localMethods)[0]);
 if (count($localMethods)>1) {
   echo '<li><label>'.translate('CaptureMethod').'</label>';
-  echo htmlSelect('newMonitor[Method]', $localMethods, $monitor->Method(), ['data-on-change'=>'submitTab', 'data-tab-name'=>$tab] );
+  # data-tab-name is gone: submitTab() reads the tab out of the form's hidden
+  # field, which tracks the tab on screen, rather than out of an attribute
+  # holding the tab the page loaded on.
+  echo htmlSelect('newMonitor[Method]', $localMethods, $monitor->Method(), ['data-on-change'=>'submitTab'] );
   echo '</li>'.PHP_EOL;
 } else {
   echo '<input type="hidden" name="newMonitor[Method]" value="'.validHtmlStr($monitor->Method()).'"/>'.PHP_EOL;
@@ -720,8 +749,6 @@ if (count($localMethods)>1) {
           </li>
 <?php
 
-      } else if ( $monitor->Type() == 'NVSocket' ) {
-include('_monitor_source_nvsocket.php');
       } else if ( $monitor->Type() == 'VNC' ) {
 ?>
         <li class="Host">
@@ -755,6 +782,13 @@ include('_monitor_source_nvsocket.php');
           <li class="Protocol">
             <label><?php echo translate('RemoteProtocol') ?></label>
             <?php echo htmlSelect('newMonitor[Protocol]', $remoteProtocols, $monitor->Protocol(), ['data-on-change-this'=>'updateMethods'] ); ?>
+<?php
+          if ( $monitor->Protocol() == 'rtsp' ) {
+?>
+            <div class="form-text text-warning"><?php echo translate('RemoteRtspDeprecated') ?></div>
+<?php
+          }
+?>
           </li>
           <li class="Method">
             <label><?php echo translate('RemoteMethod') ?></label>
@@ -803,7 +837,7 @@ include('_monitor_source_nvsocket.php');
             <input type="number" name="newMonitor[Refresh]" value="<?php echo validHtmlStr($monitor->Refresh()) ?>" min="1" step="1"/>
           </li>
 <?php
-      } else if ( $monitor->Type() == 'Ffmpeg' || $monitor->Type() == 'Libvlc' ) {
+      } else if ( $monitor->Type() == 'Ffmpeg' ) {
 ?>
           <li class="SourcePath">
             <label><?php echo translate('SourcePath') ?></label>
@@ -902,7 +936,7 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
           <li>
 <?php
       }
-      if ( $monitor->Type() != 'NVSocket' && $monitor->Type() != 'WebSite' ) {
+      if ( $monitor->Type() != 'WebSite' ) {
 ?>
         <li class="TargetColorspace">
           <label><?php echo translate('TargetColorspace') ?></label>
@@ -983,20 +1017,12 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
             </li>
 <?php
         }
-        if ( $monitor->Type() == 'Remote' ) {
-          ?>
-            <li id="RTSPDescribe"<?php if ( $monitor->Protocol()!= 'rtsp' ) { echo ' style="display:none;"'; } ?>>
-              <label><?php echo translate('RTSPDescribe'); echo makeHelpLink('OPTIONS_RTSPDESCRIBE') ?></label>
-              <input type="checkbox" name="newMonitor[RTSPDescribe]" value="1"<?php if ( $monitor->RTSPDescribe() ) { ?> checked="checked"<?php } ?>/>
-            </li>
-<?php
-      } # end if monitor->Type() == 'Remote'
 ?>
             <li class="MaxFPS">
               <label><?php echo translate('MaximumFPS'); echo makeHelpLink('OPTIONS_MAXFPS') ?></label>
               <input type="number" name="newMonitor[MaxFPS]" value="<?php echo validHtmlStr($monitor->MaxFPS()) ?>" min="0" step="any"/>
 <?php
-      if ( $monitor->Type() != 'Local' && $monitor->Type() != 'File' && $monitor->Type() != 'NVSocket' ) {
+      if ( $monitor->Type() != 'Local' && $monitor->Type() != 'File' ) {
 ?>
                 <span id="newMonitor[MaxFPS]" style="color:red;<?php echo $monitor->MaxFPS() ? '' : 'display:none;' ?>">CAUTION: See the help text</span>
 <?php } ?>
@@ -1006,7 +1032,7 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
               <label><?php echo translate('AlarmMaximumFPS'); echo makeHelpLink('OPTIONS_ALARMMAXFPS') ?></label>
               <input type="number" name="newMonitor[AlarmMaxFPS]" value="<?php echo validHtmlStr($monitor->AlarmMaxFPS()) ?>" min="0" step="any"/>
 <?php
-      if ( $monitor->Type() != 'Local' && $monitor->Type() != 'File' && $monitor->Type() != 'NVSocket' ) {
+      if ( $monitor->Type() != 'Local' && $monitor->Type() != 'File' ) {
 ?>
               <span id="newMonitor[AlarmMaxFPS]" style="color:red;<?php echo $monitor->AlarmMaxFPS() ? '' : 'display:none;' ?>">CAUTION: See the help text</span>
 <?php } ?>
@@ -1016,6 +1042,7 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
     }
     case 'analysis' : {
 ?>
+            <li class="settingsGroup"><?php echo translate('MotionDetectionSettings') ?></li>
             <li class="Analysing">
               <label><?php echo translate('Motion Detection') ?></label>
               
@@ -1040,6 +1067,13 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
         echo htmlSelect('newMonitor[AnalysisSource]', ZM\Monitor::getAnalysisSourceOptions(), $monitor->AnalysisSource());
 ?>
             </li>
+<?php
+      // A speaker analyses no picture: the reference image and the blend
+      // percentages have nothing to work on. Motion Detection itself stays,
+      // because audio detection is scored by the same analysis pass and does
+      // nothing when it is set to None.
+      if ( $monitor->DeviceClass() != 'Speaker' ) {
+?>
             <li id="AnalysisImage" class="AnalysisImage">
               <label><?php echo translate('Analysis Image') ?></label>
               
@@ -1048,12 +1082,17 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
 ?>
               
             </li>
+<?php
+      }
+?>
             <li class="AnalysisFPS">
               <label><?php echo translate('AnalysisFPS') ?></label>
               <input type="number" name="newMonitor[AnalysisFPSLimit]" value="<?php echo validHtmlStr($monitor->AnalysisFPSLimit()) ?>" min="0" step="any"/>
             </li>
 <?php
-      if ( ZM_FAST_IMAGE_BLENDS ) {
+      // Reference image blending is picture processing; a speaker has none.
+      if ( $monitor->DeviceClass() != 'Speaker' ) {
+        if ( ZM_FAST_IMAGE_BLENDS ) {
 ?>
               <li class="RefBlendPerc">
                 <label><?php echo translate('RefImageBlendPct') ?></label>
@@ -1064,7 +1103,7 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
                 <?php echo htmlSelect('newMonitor[AlarmRefBlendPerc]', $fastblendopts_alarm, $monitor->AlarmRefBlendPerc()); ?>
               </li>
           <?php
-      } else {
+        } else {
 ?>
             <li class="RefBlendPerc">
               <label><?php echo translate('RefImageBlendPct') ?></label>
@@ -1075,8 +1114,50 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
               <input type="number" name="newMonitor[AlarmRefBlendPerc]" value="<?php echo validHtmlStr($monitor->AlarmRefBlendPerc()) ?>" step="any" min="0"/>
             </li>
 <?php
-      }
+        } // end if ZM_FAST_IMAGE_BLENDS
+      } // end if not a Speaker
 ?>
+            <li class="settingsGroup AudioGroup"><?php echo translate('AudioDetectionSettings') ?></li>
+            <li class="AudioDetection">
+              <label><?php echo translate('AudioDetection') ?></label>
+<?php if ( $monitor->Type() == 'Ffmpeg' ) { ?>
+              <input type="checkbox" name="newMonitor[AudioDetection]" value="1"<?php if ( $monitor->AudioDetection() ) { ?> checked="checked"<?php } ?> data-on-change-this="AudioDetection_onChange"/>
+<?php } else { ?>
+              <?php echo translate('Audio detection only available with FFMPEG')?>
+              <input type="hidden" name="newMonitor[AudioDetection]" value="<?php echo $monitor->AudioDetection() ? 1 : 0 ?>"/>
+<?php } ?>
+              <div class="form-text"><?php echo translate('AudioDetectionHelp') ?></div>
+            </li>
+            <li class="AudioThreshold">
+              <label><?php echo translate('AudioThreshold') ?></label>
+              <input type="number" name="newMonitor[AudioThreshold]" value="<?php echo validHtmlStr($monitor->AudioThreshold()) ?>" min="0" max="100" step="1"/>
+              <div class="form-text"><?php echo translate('AudioThresholdHelp') ?></div>
+            </li>
+<?php if ($monitor->Type() == 'Ffmpeg' and $monitor->Id()) { ?>
+            <?php # Shown whether or not AudioDetection is on: the level is
+                  # what you need in order to choose a threshold, so it cannot
+                  # require the threshold to already be set. Polling it is what
+                  # asks zmc to measure at all, and it stops again shortly
+                  # after this page is left. New monitors are excluded because
+                  # they have no shared memory to read yet. ?>
+            <li class="AudioLevelMeter">
+              <label><?php echo translate('AudioLevelNow') ?></label>
+              <div id="audioLevelMeter" class="audioLevelMeter" data-mid="<?php echo validInt($monitor->Id()) ?>">
+                <div class="audioLevelTrack">
+                  <div id="audioLevelFill" class="audioLevelFill"></div>
+                  <div id="audioLevelThresholdMark" class="audioLevelThresholdMark"></div>
+                </div>
+                <span id="audioLevelValue" class="audioLevelValue">&mdash;</span>
+              </div>
+              <div class="form-text"><?php echo translate('AudioLevelNowHelp') ?></div>
+            </li>
+<?php } ?>
+            <li class="AudioAlarmScore">
+              <label><?php echo translate('AudioAlarmScore') ?></label>
+              <input type="number" name="newMonitor[AudioAlarmScore]" value="<?php echo validHtmlStr($monitor->AudioAlarmScore()) ?>" min="0" max="255" step="1"/>
+              <div class="form-text"><?php echo translate('AudioAlarmScoreHelp') ?></div>
+            </li>
+            <li class="settingsGroup"><?php echo translate('OtherAnalysisSettings') ?></li>
             <li class="LinkedMonitors">
               <label><?php echo translate('LinkedMonitors'); echo makeHelpLink('OPTIONS_LINKED_MONITORS') ?></label>
               <input type="text" name="newMonitor[LinkedMonitors]" value="<?php echo $monitor->LinkedMonitors() ?>" data-on-input="updateLinkedMonitorsUI"/><br/>
@@ -1245,14 +1326,18 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
               <input type="hidden" name="newMonitor[RecordAudio]" value="<?php echo $monitor->RecordAudio() ? 1 : 0 ?>"/>
 <?php } ?>
             </li>
+<?php
+      // zmc runs these as commands, so only System editors may change them.
+      $commandReadonly = canEdit('System') ? '' : ' readonly="readonly" title="'.validHtmlStr(translate('Requires System edit permission')).'"';
+?>
             <li class="EventStartCommand">
               <label><?php echo translate('Event Start Command') ?></label>
-              <input type="text" name="newMonitor[EventStartCommand]" value="<?php echo validHtmlStr($monitor->EventStartCommand()) ?>" />
+              <input type="text" name="newMonitor[EventStartCommand]" value="<?php echo validHtmlStr($monitor->EventStartCommand()) ?>"<?php echo $commandReadonly ?>/>
             </li>
             <li class="EventEndCommand">
               <label><?php echo translate('Event End Command') ?></label>
-              <input type="text" name="newMonitor[EventEndCommand]" value="<?php echo validHtmlStr($monitor->EventEndCommand()) ?>" />
-            <li>
+              <input type="text" name="newMonitor[EventEndCommand]" value="<?php echo validHtmlStr($monitor->EventEndCommand()) ?>"<?php echo $commandReadonly ?>/>
+            </li>
 <?php
       break;
     }
@@ -1281,6 +1366,15 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
 <?php
   if ( isset($OLANG['FUNCTION_GO2RTC_ENABLED']) ) {
     echo '<div class="form-text">'.$OLANG['FUNCTION_GO2RTC_ENABLED']['Help'].'</div>';
+  }
+?>
+            </li>
+            <li id="Go2RTCDisableBackChannel">
+              <label><?php echo translate('Go2RTCDisableBackchannel'); if ( isset($OLANG['FUNCTION_GO2RTC_DISABLE_BACKCHANNEL_FULL']) ) echo makeHelpLink('FUNCTION_GO2RTC_DISABLE_BACKCHANNEL_FULL'); ?></label>
+              <input type="checkbox" name="newMonitor[Go2RTCDisableBackChannel]" value="1"<?php echo $monitor->Go2RTCDisableBackChannel() ? ' checked="checked"' : '' ?>/>
+<?php
+  if ( isset($OLANG['FUNCTION_GO2RTC_DISABLE_BACKCHANNEL_SHORT']) ) {
+    echo '<div class="form-text">'.$OLANG['FUNCTION_GO2RTC_DISABLE_BACKCHANNEL_SHORT']['Help'].'</div>';
   }
 ?>
             </li>
@@ -1567,6 +1661,163 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
 <?php
       break;
     }
+  case 'actions' :
+    {
+      require_once('includes/MonitorAction.php');
+      require_once('includes/CronTab.php');
+
+      $candidates = ZM\MonitorAction::targetCandidates();
+      $trigger_options = array(
+        'EventStart' => translate('ActionTriggerEventStart'),
+        'EventEnd'   => translate('ActionTriggerEventEnd'),
+        'Alarm'      => translate('ActionTriggerAlarm'),
+        'AlarmEnd'   => translate('ActionTriggerAlarmEnd'),
+        'Manual'     => translate('ActionTriggerManual'),
+        'Schedule'   => translate('ActionTriggerSchedule'),
+      );
+      // Reads as a sentence with the controls that follow it: "Every <this>
+      // at <time>". Cron's own syntax is never shown; it is only what gets
+      // stored and written to the crontab.
+      $frequency_options = array(
+        'daily'     => translate('ScheduleEveryDay'),
+        'weekdays'  => translate('ScheduleEveryWeekday'),
+        'weekends'  => translate('ScheduleEveryWeekend'),
+        'monday'    => translate('ScheduleEveryMonday'),
+        'tuesday'   => translate('ScheduleEveryTuesday'),
+        'wednesday' => translate('ScheduleEveryWednesday'),
+        'thursday'  => translate('ScheduleEveryThursday'),
+        'friday'    => translate('ScheduleEveryFriday'),
+        'saturday'  => translate('ScheduleEverySaturday'),
+        'sunday'    => translate('ScheduleEverySunday'),
+      );
+      $all_type_options = array(
+        'LightOn'           => translate('ActionLightOn'),
+        'LightOff'          => translate('ActionLightOff'),
+        'IndicatorLightOn'  => translate('ActionIndicatorLightOn'),
+        'IndicatorLightOff' => translate('ActionIndicatorLightOff'),
+        'AudioPlay'         => translate('ActionAudioPlay'),
+        'AudioStop'         => translate('ActionAudioStop'),
+      );
+
+      $capabilities_json = array();
+      foreach ($candidates as $candidate) {
+        $capabilities_json[$candidate['Id']] = array(
+          'Types' => $candidate['Types'],
+          'MinAudioFile' => $candidate['MinAudioFile'],
+          'MaxAudioFile' => $candidate['MaxAudioFile'],
+        );
+      }
+
+      $actions = $monitor->Id() ?
+        ZM\MonitorAction::find(array('MonitorId'=>$monitor->Id()), array('order'=>'`Sequence`,`Id`')) :
+        array();
+
+      if (!count($candidates)) {
+?>
+        <li class="warning noLabel">
+          <?php echo translate('ActionsNoCapableDevices') ?>
+        </li>
+<?php
+      } else {
+?>
+        <li class="noLabel">
+          <p class="text-muted"><?php echo translate('ActionsHelp') ?></p>
+        </li>
+        <li class="noLabel">
+          <table id="monitorActionsTable" class="table table-sm">
+            <thead>
+              <tr>
+                <th><?php echo translate('Enabled') ?></th>
+                <th><?php echo translate('ActionTrigger') ?></th>
+                <th><?php echo translate('ActionSchedule') ?></th>
+                <th><?php echo translate('ActionTarget') ?></th>
+                <th><?php echo translate('ActionType') ?></th>
+                <th><?php echo translate('ActionAudioFile') ?></th>
+              </tr>
+            </thead>
+            <tbody>
+<?php
+        // One spare blank row so an action can always be added without js.
+        $rows = $actions;
+        $rows[] = new ZM\MonitorAction();
+        $i = 0;
+        foreach ($rows as $action) {
+          $target_options = array('' => translate('None'));
+          foreach ($candidates as $candidate)
+            $target_options[$candidate['Id']] = $candidate['Name'];
+
+          // Only offer types the chosen target has been measured to support.
+          $type_options = array();
+          foreach ($candidates as $candidate) {
+            if ($candidate['Id'] == $action->TargetMonitorId()) {
+              foreach ($candidate['Types'] as $type)
+                $type_options[$type] = $all_type_options[$type];
+            }
+          }
+          if (!count($type_options)) $type_options = $all_type_options;
+?>
+              <tr class="monitorActionRow">
+                <td><input type="checkbox" name="newAction[<?php echo $i ?>][Enabled]" value="1"<?php echo $action->Enabled() ? ' checked="checked"' : '' ?>/></td>
+                <td><input type="hidden" name="newAction[<?php echo $i ?>][Id]" value="<?php echo validHtmlStr($action->Id()) ?>"/>
+                    <?php echo htmlSelect('newAction['.$i.'][TriggerOn]', $trigger_options, $action->TriggerOn(), array('class'=>'actionTrigger')) ?></td>
+<?php
+          // A schedule the two controls cannot draw -- one hand written into
+          // the database, or an hourly one -- is shown as it stands and kept
+          // as it stands, rather than being silently rounded to the nearest
+          // thing the editor happens to understand.
+          $schedule_parts = cronToParts($action->Schedule());
+          if ($schedule_parts and !isset($frequency_options[$schedule_parts['frequency']]))
+            $schedule_parts = null;
+          # || and not "or": "or" binds looser than "=", so the assignment would
+          # take only the left clause and discard the rest, leaving every saved
+          # schedule undrawable and shown as cron.
+          $drawable = ($action->Schedule() === '') || ($schedule_parts !== null);
+?>
+                <td class="actionScheduleCell">
+<?php if (!$drawable) { ?>
+                  <input class="actionScheduleRaw" type="text" size="14" readonly="readonly"
+                      name="newAction[<?php echo $i ?>][ScheduleRaw]"
+                      value="<?php echo validHtmlStr($action->Schedule()) ?>"
+                      title="<?php echo translate('ActionScheduleAdvanced') ?>"/>
+<?php } else { ?>
+                  <?php echo translate('ScheduleEvery') ?>
+                  <?php echo htmlSelect('newAction['.$i.'][ScheduleFrequency]', $frequency_options,
+                        $schedule_parts ? $schedule_parts['frequency'] : 'daily',
+                        array('class'=>'actionScheduleFrequency')) ?>
+                  <?php echo translate('ScheduleAt') ?>
+                  <input class="actionScheduleTime" type="time"
+                      name="newAction[<?php echo $i ?>][ScheduleTime]"
+                      value="<?php echo $schedule_parts ?
+                        sprintf('%02d:%02d', $schedule_parts['hour'], $schedule_parts['minute']) : '08:00' ?>"/>
+<?php } ?>
+                </td>
+                <td><?php echo htmlSelect('newAction['.$i.'][TargetMonitorId]', $target_options, $action->TargetMonitorId(), array('class'=>'actionTarget')) ?></td>
+                <td><?php echo htmlSelect('newAction['.$i.'][ActionType]', $type_options, $action->ActionType(), array('class'=>'actionType')) ?></td>
+                <td><input class="actionAudioFile" type="number" name="newAction[<?php echo $i ?>][AudioFile]" value="<?php echo validHtmlStr($action->AudioFile()) ?>" min="0" step="1"/></td>
+              </tr>
+<?php
+          $i ++;
+        } // end foreach action
+?>
+            </tbody>
+          </table>
+        </li>
+        <li class="noLabel">
+          <p class="text-muted"><?php echo translate('ActionsRemoveHelp') ?></p>
+        </li>
+        <li>
+          <script nonce="<?php echo $cspNonce ?>">
+            // What each candidate device can be asked to do, so changing the
+            // target updates the action list without a round trip. The server
+            // re-checks this on save; here it is convenience, not enforcement.
+            var monitorActionCapabilities = <?php echo json_encode($capabilities_json) ?>;
+            var monitorActionTypeLabels = <?php echo json_encode($all_type_options) ?>;
+          </script>
+        </li>
+<?php
+      } // end if any capable devices
+      break;
+    }
   case 'misc' :
     {
 ?>
@@ -1590,11 +1841,6 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
           <label><?php echo translate('Event Close Mode') ?></label>
           <?php echo html_radio('newMonitor[EventCloseMode]', ['system'=>translate('System'), 'time'=>translate('Time'), 'duration'=>translate('Duration'), 'idle'=>translate('Idle'), 'alarm'=>translate('Alarm')], $monitor->EventCloseMode()); ?>
           <span class="form-text form-control-sm">When continuous events are closed.&nbsp;(<a id="ZM_EVENT_CLOSE_MODE" class="optionhelp">?</a>)</span>
-        </li>
-        <li>
-          <label><?php echo translate('FrameSkip') ?></label>
-            <input type="number" name="newMonitor[FrameSkip]" value="<?php echo validHtmlStr($monitor->FrameSkip()) ?>" min="0"/>
-            <?php echo translate('frames')?>
         </li>
         <li>
           <label><?php echo translate('MotionFrameSkip') ?></label>
@@ -1712,6 +1958,7 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
 
   <script src="<?php echo cache_bust('js/MonitorLinkExpression.js') ?>"></script>
   <script src="<?php echo cache_bust('skins/classic/views/js/monitor-encoder-templates.js') ?>"></script>
+  <script src="<?php echo cache_bust('skins/classic/views/js/monitor-ffmpeg-options.js') ?>"></script>
 <script type="module" nonce="<?php echo $cspNonce ?>">
   import DmsCoordinates, {parseDms} from "./js/dms.js";
   window.DmsCoordinates = DmsCoordinates;

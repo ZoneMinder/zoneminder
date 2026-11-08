@@ -22,15 +22,20 @@
 
 #include "zm_logger.h"
 #include "zm_monitor.h"
+#include "zm_mp4_sidx.h"
 #include "zm_signal.h"
 #include "zm_time.h"
+#include "zm_utils.h"
 
 extern "C" {
 #include <libavutil/time.h>
 #include <libavutil/display.h>
 }
 
+#include <fcntl.h>
 #include <string>
+#include <unistd.h>
+#include <sys/stat.h>
 
 VideoStore::VideoStore(
   const char *filename_in,
@@ -38,7 +43,6 @@ VideoStore::VideoStore(
   AVStream *p_video_in_stream,
   AVCodecContext *p_video_in_ctx,
   AVStream *p_audio_in_stream,
-  AVCodecContext *p_audio_in_ctx,
   Monitor *p_monitor
 ) :
   chosen_codec_data(nullptr),
@@ -52,12 +56,15 @@ VideoStore::VideoStore(
   video_in_stream(p_video_in_stream),
   audio_in_stream(p_audio_in_stream),
   audio_in_codec(nullptr),
+  // Opened in open() from audio_in_stream's codecpar, not handed in. The
+  // caller used to pass a context as well and this ignored it.
   audio_in_ctx(nullptr),
   audio_out_codec(nullptr),
   audio_out_ctx(nullptr),
   packets_written(0),
   frame_count(0),
   video_encoded(false),
+  video_passthrough_fallback(false),
   hw_device_ctx(nullptr),
   resample_ctx(nullptr),
   fifo(nullptr),
@@ -77,13 +84,23 @@ VideoStore::VideoStore(
   last_fragment_offset_(0),
   last_fragment_start_dts_(AV_NOPTS_VALUE),
   init_segment_end_(0),
-  finalized_(false) {
+  sidx_region_offset_(-1),
+  sidx_region_size_(0),
+  finalized_(false),
+  m3u8_fragments_written_(0),
+  m3u8_target_duration_(0),
+  m3u8_init_segment_end_(-1),
+  m3u8_bytes_written_(0) {
   FFMPEGInit();
   swscale.init();
   opkt = av_packet_ptr{av_packet_alloc()};
 }  // VideoStore::VideoStore
 
 /* Failure to open audio will not be a total failure. */
+bool VideoStore::Encoding() const {
+  return monitor->GetOptVideoWriter() == Monitor::ENCODE and !video_passthrough_fallback;
+}
+
 bool VideoStore::open() {
   Debug(1, "Opening video storage stream %s format: %s", filename.c_str(), format);
 
@@ -307,134 +324,202 @@ bool VideoStore::open() {
         codec_data = get_encoder_data("", "");
       }
 
-      for (auto it = codec_data.begin(); it != codec_data.end(); it ++) {
-        chosen_codec_data = *it;
-        Debug(1, "Found video codec for %s", chosen_codec_data->codec_name);
+      // Opening an encoder can fail because a previous event on this monitor is
+      // still closing on the close thread and has not yet released the hardware
+      // encoder session it holds. Wrapped so it can be run a second time once
+      // that close has been waited for. Each iteration re-parses its own options
+      // dictionary and frees its context on failure, so a second run starts
+      // clean.
+      auto attempt_open_encoders = [&]() {
+        for (auto it = codec_data.begin(); it != codec_data.end(); it ++) {
+          chosen_codec_data = *it;
+          Debug(1, "Found video codec for %s", chosen_codec_data->codec_name);
 
-        video_out_codec = avcodec_find_encoder_by_name(chosen_codec_data->codec_name);
-        video_out_ctx = avcodec_alloc_context3(video_out_codec);
-        if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
-          video_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
-        }
-
-        // We have to re-parse the options because each attempt to open destroys the dictionary
-        AVDictionary *opts = 0;
-        ret = av_dict_parse_string(&opts, options.c_str(), "=", ",#\n", 0);
-        if (ret < 0) {
-          Warning("Could not parse ffmpeg encoder options list '%s'", options.c_str());
-        } else {
-          const AVDictionaryEntry *entry = av_dict_get(opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
-          if (entry) {
-            reorder_queue_size = std::stoul(entry->value);
-            Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
-            // remove it to prevent complaining later.
-            av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+          video_out_codec = avcodec_find_encoder_by_name(chosen_codec_data->codec_name);
+          if (!video_out_codec) {
+            // This ffmpeg build has no encoder by that name -- common for a hardware
+            // encoder on a box that lacks it. Skip this candidate rather than allocate
+            // a context with a null codec and later dereference video_out_codec->name
+            // when avcodec_open2() fails. If every candidate is missing, video_out_codec
+            // stays null and the passthrough fallback below takes over.
+            Warning("No encoder named %s is available in this ffmpeg build; skipping", chosen_codec_data->codec_name);
+            continue;
           }
-        }
-        const AVDictionaryEntry *opts_bitrate = av_dict_get(opts, "bitrate", nullptr, AV_DICT_MATCH_CASE);
-        if (opts_bitrate) {
-          video_out_ctx->bit_rate = std::stoul(opts_bitrate->value);
-          av_dict_set(&opts, "bitrate", nullptr, AV_DICT_MATCH_CASE);
-        } else {
-          opts_bitrate = av_dict_get(opts, "bit_rate", nullptr, AV_DICT_MATCH_CASE);
+          video_out_ctx = avcodec_alloc_context3(video_out_codec);
+          if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
+            video_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+          }
+
+          // We have to re-parse the options because each attempt to open destroys the dictionary
+          AVDictionary *opts = 0;
+          ret = av_dict_parse_string(&opts, options.c_str(), "=", ",#\n", 0);
+          if (ret < 0) {
+            Warning("Could not parse ffmpeg encoder options list '%s'", options.c_str());
+          } else {
+            const AVDictionaryEntry *entry = av_dict_get(opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+            if (entry) {
+              reorder_queue_size = std::stoul(entry->value);
+              Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
+              // remove it to prevent complaining later.
+              av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+            }
+          }
+          const AVDictionaryEntry *opts_bitrate = av_dict_get(opts, "bitrate", nullptr, AV_DICT_MATCH_CASE);
           if (opts_bitrate) {
             video_out_ctx->bit_rate = std::stoul(opts_bitrate->value);
-            av_dict_set(&opts, "bit_rate", nullptr, AV_DICT_MATCH_CASE);
+            av_dict_set(&opts, "bitrate", nullptr, AV_DICT_MATCH_CASE);
+          } else {
+            opts_bitrate = av_dict_get(opts, "bit_rate", nullptr, AV_DICT_MATCH_CASE);
+            if (opts_bitrate) {
+              video_out_ctx->bit_rate = std::stoul(opts_bitrate->value);
+              av_dict_set(&opts, "bit_rate", nullptr, AV_DICT_MATCH_CASE);
+            }
           }
-        }
 
-        // When encoding, we are going to use the timestamp values instead of packet pts/dts
-        video_out_ctx->time_base = AV_TIME_BASE_Q;
-        video_out_ctx->codec_id = chosen_codec_data->codec_id;
-        video_out_ctx->pix_fmt = chosen_codec_data->hw_pix_fmt;
-        video_out_ctx->sw_pix_fmt = chosen_codec_data->sw_pix_fmt;
-        Debug(1, "Setting pix fmt to %d %s", video_out_ctx->pix_fmt, av_get_pix_fmt_name(video_out_ctx->pix_fmt));
-        const AVDictionaryEntry *opts_level = av_dict_get(opts, "level", nullptr, AV_DICT_MATCH_CASE);
-        if (opts_level) {
-          video_out_ctx->level = std::stoul(opts_level->value);
-        }
-        const AVDictionaryEntry *opts_gop_size = av_dict_get(opts, "gop_size", nullptr, AV_DICT_MATCH_CASE);
-        if (opts_gop_size) {
-          video_out_ctx->gop_size = std::stoul(opts_gop_size->value);
-          av_dict_set(&opts, "gop_size", nullptr, AV_DICT_MATCH_CASE);
-        }
-
-        // Don't have an input stream, so need to tell it what we are sending it, or are transcoding
-        video_out_ctx->width = monitor->Width();
-        video_out_ctx->height = monitor->Height();
-        video_out_ctx->codec_type = AVMEDIA_TYPE_VIDEO;
-
-        if (video_out_ctx->codec_id == AV_CODEC_ID_H264) {
-          if (!video_out_ctx->bit_rate) video_out_ctx->bit_rate = 2000000;
-          video_out_ctx->max_b_frames = 1;
-        } else if (video_out_ctx->codec_id == AV_CODEC_ID_MPEG2VIDEO) {
-          /* just for testing, we also add B frames */
-          video_out_ctx->max_b_frames = 2;
-        } else if (video_out_ctx->codec_id == AV_CODEC_ID_MPEG1VIDEO) {
-          /* Needed to avoid using macroblocks in which some coeffs overflow.
-           * This does not happen with normal video, it just happens here as
-           * the motion of the chroma plane does not match the luma plane. */
-          video_out_ctx->mb_decision = 2;
-        }
-        if (setup_hwaccel(video_out_ctx,
-              chosen_codec_data, hw_device_ctx, monitor->EncoderHWAccelDevice(), monitor->Width(), monitor->Height())) {
-          avcodec_free_context(&video_out_ctx);
-          av_dict_free(&opts);
-          if (hw_device_ctx) {
-            av_buffer_unref(&hw_device_ctx);
+          // When encoding, we are going to use the timestamp values instead of packet pts/dts
+          video_out_ctx->time_base = AV_TIME_BASE_Q;
+          video_out_ctx->codec_id = chosen_codec_data->codec_id;
+          video_out_ctx->pix_fmt = chosen_codec_data->hw_pix_fmt;
+          video_out_ctx->sw_pix_fmt = chosen_codec_data->sw_pix_fmt;
+          Debug(1, "Setting pix fmt to %d %s", video_out_ctx->pix_fmt, av_get_pix_fmt_name(video_out_ctx->pix_fmt));
+          const AVDictionaryEntry *opts_level = av_dict_get(opts, "level", nullptr, AV_DICT_MATCH_CASE);
+          if (opts_level) {
+            video_out_ctx->level = std::stoul(opts_level->value);
           }
-          continue;
-        }
+          const AVDictionaryEntry *opts_gop_size = av_dict_get(opts, "gop_size", nullptr, AV_DICT_MATCH_CASE);
+          if (opts_gop_size) {
+            video_out_ctx->gop_size = std::stoul(opts_gop_size->value);
+            av_dict_set(&opts, "gop_size", nullptr, AV_DICT_MATCH_CASE);
+          }
 
-        zm_dump_codec(video_out_ctx);
-        if ((ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0) {
-          if (wanted_encoder != "" and wanted_encoder != "auto") {
-            Warning("Can't open video codec (%s) %s",
+          // Don't have an input stream, so need to tell it what we are sending it, or are transcoding
+          video_out_ctx->width = monitor->Width();
+          video_out_ctx->height = monitor->Height();
+          video_out_ctx->codec_type = AVMEDIA_TYPE_VIDEO;
+
+          if (video_out_ctx->codec_id == AV_CODEC_ID_H264) {
+            if (!video_out_ctx->bit_rate) video_out_ctx->bit_rate = 2000000;
+            video_out_ctx->max_b_frames = 1;
+          } else if (video_out_ctx->codec_id == AV_CODEC_ID_MPEG2VIDEO) {
+            /* just for testing, we also add B frames */
+            video_out_ctx->max_b_frames = 2;
+          } else if (video_out_ctx->codec_id == AV_CODEC_ID_MPEG1VIDEO) {
+            /* Needed to avoid using macroblocks in which some coeffs overflow.
+             * This does not happen with normal video, it just happens here as
+             * the motion of the chroma plane does not match the luma plane. */
+            video_out_ctx->mb_decision = 2;
+          }
+#if HAVE_LIBAVUTIL_HWCONTEXT_H && LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
+          // Borrow the monitor's shared encoder device context rather than
+          // letting setup_hwaccel open the render node again for this event.
+          // Creating and destroying a VAAPI device per event leaked a
+          // /dev/dri/renderD128 fd each time on some drivers (refs #5300). If
+          // the monitor can't provide one, hw_device_ctx stays null and
+          // setup_hwaccel falls back to creating its own.
+          if (chosen_codec_data->hwdevice_type != AV_HWDEVICE_TYPE_NONE) {
+            std::string hw_device = monitor->EncoderHWAccelDevice();
+            if (hw_device.empty() and chosen_codec_data->hwdevice_default)
+              hw_device = chosen_codec_data->hwdevice_default;
+            hw_device_ctx = monitor->GetEncoderHWDeviceContext(chosen_codec_data->hwdevice_type, hw_device);
+          }
+#endif
+          if (setup_hwaccel(video_out_ctx,
+                chosen_codec_data, hw_device_ctx, monitor->EncoderHWAccelDevice(), monitor->Width(), monitor->Height())) {
+            avcodec_free_context(&video_out_ctx);
+            av_dict_free(&opts);
+            if (hw_device_ctx) {
+              av_buffer_unref(&hw_device_ctx);
+            }
+            continue;
+          }
+
+          zm_dump_codec(video_out_ctx);
+          if ((ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0) {
+            if (wanted_encoder != "" and wanted_encoder != "auto") {
+              Warning("Can't open video codec (%s) %s",
+                      video_out_codec->name,
+                      av_make_error_string(ret).c_str()
+                     );
+            } else {
+              Debug(1, "Can't open video codec (%s) %s",
                     video_out_codec->name,
                     av_make_error_string(ret).c_str()
                    );
-          } else {
-            Debug(1, "Can't open video codec (%s) %s",
-                  video_out_codec->name,
-                  av_make_error_string(ret).c_str()
-                 );
+            }
+            video_out_codec = nullptr;
           }
-          video_out_codec = nullptr;
-        }
 
-        AVDictionaryEntry *e = nullptr;
-        while ((e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr) {
-          Warning("Encoder Option %s not recognized by ffmpeg codec", e->key);
-        }
-        av_dict_free(&opts);
+          AVDictionaryEntry *e = nullptr;
+          while ((e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr) {
+            Warning("Encoder Option %s not recognized by ffmpeg codec", e->key);
+          }
+          av_dict_free(&opts);
 
-        if (video_out_codec) {
-          zm_dump_codec(video_out_ctx);
-          break;
-        }
-        // We allocate and copy in newer ffmpeg, so need to free it
-        avcodec_free_context(&video_out_ctx);
-        if (hw_device_ctx) {
-          av_buffer_unref(&hw_device_ctx);
-        }
-      }  // end foreach codec
+          if (video_out_codec) {
+            zm_dump_codec(video_out_ctx);
+            break;
+          }
+          // We allocate and copy in newer ffmpeg, so need to free it
+          avcodec_free_context(&video_out_ctx);
+          if (hw_device_ctx) {
+            av_buffer_unref(&hw_device_ctx);
+          }
+        }  // end foreach codec
+      };  // end lambda attempt_open_encoders
+
+      attempt_open_encoders();
+
+      // Only serialise against a close when we actually have to, and only when
+      // there was one in flight to wait for.
+      if (!video_out_codec and monitor->WaitForEventClose()) {
+        Info("No video encoder would open and a previous event was still closing; "
+             "waited for it to release its encoder, retrying");
+        attempt_open_encoders();
+      }
 
       if (!video_out_codec) {
-        Error("Can't open any video codecs!");
-        return false;
-      }  // end if can't open codec
-      Debug(2, "Success opening codec");
+        // Every candidate encoder refused to open. On a hardware encoder this is
+        // usually the card declining for want of capacity, reported to ffmpeg as
+        // nothing more specific than a generic external error. Returning here
+        // would mean the event records no video at all, so copy the input stream
+        // and write its packets through unchanged instead. If this keeps
+        // happening the card is over-subscribed: fewer concurrent encodes, or a
+        // lower resolution or frame rate.
+        Warning("Can't open any video encoder; falling back to passthrough recording");
+        if (video_out_ctx) avcodec_free_context(&video_out_ctx);
+        video_passthrough_fallback = true;
 
-      video_out_stream = avformat_new_stream(oc, nullptr);
-      if (!video_out_stream) {
-        Error("Unable to create video out stream");
-        return false;
-      }
-      ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
-      if (ret < 0) {
-        Error("Could not initialize stream parameters");
-        return false;
-      }
+        // Same guard the PASSTHROUGH path needs: a stream reporting no size at
+        // all cannot be copied into the muxer, which aborts writing the trailer
+        // rather than returning an error. Record jpegs for this event instead.
+        if (video_in_stream->codecpar->width <= 0 || video_in_stream->codecpar->height <= 0) {
+          Warning("Input video stream has invalid dimensions %dx%d; not recording video",
+              video_in_stream->codecpar->width, video_in_stream->codecpar->height);
+          return false;
+        }
+
+        video_out_stream = avformat_new_stream(oc, nullptr);
+        if (!video_out_stream) {
+          Error("Unable to create video out stream");
+          return false;
+        }
+        avcodec_parameters_copy(video_out_stream->codecpar, video_in_stream->codecpar);
+        video_out_stream->avg_frame_rate = video_in_stream->avg_frame_rate;
+        zm_dump_codecpar(video_out_stream->codecpar);
+      } else {
+        Debug(2, "Success opening codec");
+
+        video_out_stream = avformat_new_stream(oc, nullptr);
+        if (!video_out_stream) {
+          Error("Unable to create video out stream");
+          return false;
+        }
+        ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
+        if (ret < 0) {
+          Error("Could not initialize stream parameters");
+          return false;
+        }
+      }  // end if an encoder opened
     }  // end if copying or transcoding
   }  // end if video_in_stream
 
@@ -609,6 +694,29 @@ bool VideoStore::open() {
     init_segment_end_ = avio_tell(oc->pb);
     last_fragment_offset_ = init_segment_end_;
     Debug(1, "Init segment ends at byte %" PRId64, init_segment_end_);
+
+    // Reserve room for a leading sidx, right here between moov and the first
+    // fragment. It has to be here, and it has to be reserved up front: the
+    // index must END where the fragments BEGIN for a player to accept it
+    // (zm_mp4_sidx.h), and once a fragment is written nothing can be inserted
+    // ahead of it without rewriting every offset in the file. For now it is a
+    // `free` box the demuxers skip; finalize() fills it in once the fragments
+    // are all on disk. The muxer takes its own offsets from avio_tell, so
+    // these bytes are accounted for in every tfhd and tfra it goes on to write.
+    // Only an MP4 whose moov is already written and whose fragments follow it
+    // gets one (zm_mp4::fragments_follow_header).
+    //
+    // It is sized for a section's worth of fragments, one per GOP. The GOP is
+    // the encoder's when encoding, else the longest the camera has sent so
+    // far. Events that run past the section length, or GOPs shorter than
+    // that, only merge references in the index. When either is unknown the
+    // full kSidxReserve is taken.
+    const double fps = monitor->get_capture_fps();
+    const int gop_frames = Encoding() ? video_out_ctx->gop_size : monitor->get_max_keyframe_interval();
+    const double gop_seconds = (fps > 0 && gop_frames > 0) ? gop_frames / fps : 0;
+    sidx_region_size_ = zm_mp4::reserve_size(monitor->GetSectionLength().count(), gop_seconds);
+    sidx_region_offset_ = zm_mp4::reserve_region(oc, sidx_region_size_);
+    last_fragment_offset_ = avio_tell(oc->pb);
   }
   return true;
 } // end bool VideoStore::open()
@@ -1668,35 +1776,18 @@ void VideoStore::finalize() {
   oc->pb = nullptr;
 
   // The MOV muxer writes an mfra (Movie Fragment Random Access) box at the end
-  // of the file when fragmentation is on. Its trailing mfro box is exactly 16
-  // bytes and contains the mfra size, so we can subtract that to find where
-  // the final fragment's mdat actually ends.
+  // of the file when fragmentation is on, so the final fragment's mdat ends
+  // where the mfra begins.
   int64_t fragment_n_end = file_size;
-  if (!filename.empty() && file_size >= 16) {
-    FILE *fp = fopen(filename.c_str(), "rb");
-    if (fp) {
-      if (fseeko(fp, file_size - 16, SEEK_SET) == 0) {
-        uint8_t mfro[16];
-        if (fread(mfro, 1, 16, fp) == 16) {
-          uint32_t box_size = (static_cast<uint32_t>(mfro[0]) << 24)
-                            | (static_cast<uint32_t>(mfro[1]) << 16)
-                            | (static_cast<uint32_t>(mfro[2]) << 8)
-                            | static_cast<uint32_t>(mfro[3]);
-          if (box_size == 16
-              && mfro[4] == 'm' && mfro[5] == 'f' && mfro[6] == 'r' && mfro[7] == 'o') {
-            uint32_t mfra_size = (static_cast<uint32_t>(mfro[12]) << 24)
-                               | (static_cast<uint32_t>(mfro[13]) << 16)
-                               | (static_cast<uint32_t>(mfro[14]) << 8)
-                               | static_cast<uint32_t>(mfro[15]);
-            if (mfra_size > 0 && static_cast<int64_t>(mfra_size) <= file_size) {
-              fragment_n_end = file_size - mfra_size;
-              Debug(1, "mfra trailer is %u bytes; final fragment ends at %" PRId64,
-                    mfra_size, fragment_n_end);
-            }
-          }
-        }
+  if (!filename.empty()) {
+    const int fd = ::open(filename.c_str(), O_RDONLY | O_CLOEXEC);
+    if (fd >= 0) {
+      fragment_n_end = zm_mp4::media_end(fd, file_size);
+      close(fd);
+      if (fragment_n_end != file_size) {
+        Debug(1, "mfra trailer is %" PRId64 " bytes; final fragment ends at %" PRId64,
+              file_size - fragment_n_end, fragment_n_end);
       }
-      fclose(fp);
     }
   }
 
@@ -1719,44 +1810,140 @@ void VideoStore::finalize() {
             last_fragment_offset_, frag_size, duration);
     }
   }
+
+  // Now that every fragment is on disk, fill the region open() reserved with
+  // an index of them. Without it a player has to read the whole file before
+  // it can show the first frame. Nothing here can lose a recording: on any
+  // doubt the region stays the `free` box it already is, and the file is
+  // exactly what ZoneMinder wrote before.
+  if (sidx_region_offset_ >= 0 && !filename.empty()) {
+    if (!zm_mp4::write_leading_sidx(filename, sidx_region_offset_, sidx_region_size_)) {
+      Warning("Could not index %s; it will play, but a player must read it all "
+              "before the first frame", filename.c_str());
+    }
+  }
+}
+
+int VideoStore::m3u8TargetDuration(const std::vector<Fragment> &frags) {
+  double max_duration = 0;
+  for (const auto &frag : frags) {
+    if (frag.duration > max_duration) max_duration = frag.duration;
+  }
+  int target_duration = static_cast<int>(ceil(max_duration));
+  return (target_duration < 1) ? 1 : target_duration;
+}
+
+std::string VideoStore::m3u8Header(int target_duration,
+                                   const std::string &video_url,
+                                   int64_t init_segment_end,
+                                   bool is_complete) {
+  return stringtf("#EXTM3U\n"
+                  "#EXT-X-VERSION:7\n"
+                  "#EXT-X-TARGETDURATION:%d\n"
+                  "#EXT-X-MEDIA-SEQUENCE:0\n"
+                  "#EXT-X-PLAYLIST-TYPE:%s\n"
+                  "#EXT-X-MAP:URI=\"%s\",BYTERANGE=\"%" PRId64 "@0\"\n",
+                  target_duration,
+                  is_complete ? "VOD" : "EVENT",
+                  video_url.c_str(),
+                  init_segment_end);
+}
+
+std::string VideoStore::m3u8Fragment(const Fragment &frag, const std::string &video_url) {
+  return stringtf("#EXTINF:%.3f,\n"
+                  "#EXT-X-BYTERANGE:%" PRId64 "@%" PRId64 "\n"
+                  "%s\n",
+                  frag.duration, frag.size, frag.offset, video_url.c_str());
 }
 
 void VideoStore::writeM3U8(const std::string &m3u8_path, const std::string &video_url, bool is_complete) {
   if (fragments_.empty()) return;
 
-  // Calculate max duration for EXT-X-TARGETDURATION (must be integer, rounded up)
-  double max_duration = 0;
-  for (const auto &frag : fragments_) {
-    if (frag.duration > max_duration) max_duration = frag.duration;
-  }
-  int target_duration = static_cast<int>(ceil(max_duration));
-  if (target_duration < 1) target_duration = 1;
+  const int target_duration = m3u8TargetDuration(fragments_);
 
-  FILE *fp = fopen(m3u8_path.c_str(), "w");
+  // Rewriting the whole manifest for every new fragment costs O(fragments)
+  // each time, so an event pays O(fragments^2) overall. That is free for the
+  // ten minute events a section length produces, and ruinous for anything
+  // longer: a monitor whose events stopped closing reached a 17MB manifest
+  // being rewritten every 1.2s, which saturated the disk, starved the analysis
+  // thread, and so prevented the very close that would have ended it.
+  //
+  // An EVENT playlist only ever gains fragments and never rewrites a line it
+  // has already written, so the new ones can simply go on the end. Anything
+  // that would change what is already there -- a different header, a different
+  // url repeated on every line, or the closing ENDLIST -- falls back to the
+  // full rewrite.
+  bool can_append =
+      !is_complete
+      and (m3u8_fragments_written_ > 0)
+      and (m3u8_fragments_written_ <= fragments_.size())
+      and (target_duration == m3u8_target_duration_)
+      and (init_segment_end_ == m3u8_init_segment_end_)
+      and (video_url == m3u8_video_url_)
+      and (m3u8_path == m3u8_path_);
+
+  if (can_append) {
+    // The offsets we remember only describe the file we left behind. If
+    // anything else has replaced, truncated or removed it, start again rather
+    // than append to something we cannot account for.
+    struct stat st;
+    const bool statted = (stat(m3u8_path.c_str(), &st) == 0);
+    if (!statted or (st.st_size != m3u8_bytes_written_)) {
+      Debug(1, "m3u8 %s is not the file we left (size %jd, expected %jd), rewriting",
+            m3u8_path.c_str(),
+            static_cast<intmax_t>(statted ? st.st_size : -1),
+            static_cast<intmax_t>(m3u8_bytes_written_));
+      can_append = false;
+    } else if (m3u8_fragments_written_ == fragments_.size()) {
+      return;  // nothing new to say
+    }
+  }
+
+  FILE *fp = fopen(m3u8_path.c_str(), can_append ? "a" : "w");
   if (!fp) {
     Error("Failed to open %s for writing: %s", m3u8_path.c_str(), strerror(errno));
+    m3u8_fragments_written_ = 0;
     return;
   }
 
-  fprintf(fp, "#EXTM3U\n");
-  fprintf(fp, "#EXT-X-VERSION:7\n");
-  fprintf(fp, "#EXT-X-TARGETDURATION:%d\n", target_duration);
-  fprintf(fp, "#EXT-X-MEDIA-SEQUENCE:0\n");
-  fprintf(fp, "#EXT-X-PLAYLIST-TYPE:%s\n", is_complete ? "VOD" : "EVENT");
-  fprintf(fp, "#EXT-X-MAP:URI=\"%s\",BYTERANGE=\"%" PRId64 "@0\"\n",
-          video_url.c_str(), init_segment_end_);
+  size_t first = 0;
+  if (can_append) {
+    first = m3u8_fragments_written_;
+  } else {
+    std::string header = m3u8Header(target_duration, video_url, init_segment_end_, is_complete);
+    fwrite(header.c_str(), 1, header.size(), fp);
+  }
 
-  for (const auto &frag : fragments_) {
-    fprintf(fp, "#EXTINF:%.3f,\n", frag.duration);
-    fprintf(fp, "#EXT-X-BYTERANGE:%" PRId64 "@%" PRId64 "\n", frag.size, frag.offset);
-    fprintf(fp, "%s\n", video_url.c_str());
+  for (size_t i = first; i < fragments_.size(); i++) {
+    std::string line = m3u8Fragment(fragments_[i], video_url);
+    fwrite(line.c_str(), 1, line.size(), fp);
   }
 
   if (is_complete) {
     fprintf(fp, "#EXT-X-ENDLIST\n");
   }
 
-  fclose(fp);
-  Debug(1, "Wrote m3u8 %s with %zu fragments (complete=%d)",
-        m3u8_path.c_str(), fragments_.size(), is_complete);
+  const bool ok = (fclose(fp) == 0);
+
+  // Measure the file rather than trusting ftell, so the next call's guard is
+  // comparing against what is really on disk. Anything unreadable leaves the
+  // state zeroed, which forces a rewrite next time.
+  struct stat after;
+  if (ok and !is_complete and (stat(m3u8_path.c_str(), &after) == 0)) {
+    m3u8_fragments_written_ = fragments_.size();
+    m3u8_target_duration_ = target_duration;
+    m3u8_init_segment_end_ = init_segment_end_;
+    m3u8_bytes_written_ = after.st_size;
+    m3u8_path_ = m3u8_path;
+    m3u8_video_url_ = video_url;
+  } else {
+    // A completed manifest ends with ENDLIST; nothing may be appended after
+    // it, so any later call has to rewrite.
+    m3u8_fragments_written_ = 0;
+    if (!ok) Error("Failed to write %s: %s", m3u8_path.c_str(), strerror(errno));
+  }
+
+  Debug(1, "%s m3u8 %s: %zu of %zu fragments (complete=%d)",
+        can_append ? "Appended to" : "Wrote",
+        m3u8_path.c_str(), fragments_.size() - first, fragments_.size(), is_complete);
 }

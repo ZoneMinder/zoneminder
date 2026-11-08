@@ -36,14 +36,11 @@ class AppController extends Controller {
   public $components = [
     'RequestHandler',
     'Crud.Crud' => [
-      'actions' => [
-        'index' => 'Crud.Index',
-        'add'   => 'Crud.Add',
-        'edit'  => 'Crud.Edit',
-        'view'  => 'Crud.View',
-        'keyvalue' => 'Crud.List',
-        'category' => 'Crud.Category'
-      ],
+      # No Crud actions are mapped. CrudControllerTrait would otherwise answer any action a
+      # controller does not define (view, add, edit, keyvalue, ...) with a generic handler
+      # that applies none of the controller's permission or per-monitor checks, e.g.
+      # zones/view/<id> returned any zone. A controller must implement each action itself.
+      'actions' => [],
       'listeners' => ['Api', 'ApiTransformation']
     #],
     #'DebugKit.Toolbar' => [
@@ -59,6 +56,11 @@ class AppController extends Controller {
   // for role and deny API access in future 
   // Also checking to do this only if ZM_OPT_USE_AUTH is on
   public function beforeFilter() {
+    // Crud's ApiListener registers its exception renderer for API requests when
+    // the component starts; use ours, which keeps internals out of 5xx bodies.
+    if ( Configure::read('Exception.renderer') == 'Crud.CrudExceptionRenderer' ) {
+      Configure::write('Exception.renderer', 'ZmExceptionRenderer');
+    }
     if ( ! ZM_OPT_USE_API ) {
       throw new UnauthorizedException(__('API Disabled'));
       return; 
@@ -84,6 +86,7 @@ class AppController extends Controller {
             return;
           } 
           ZM\Debug("Login successful for user \"$username\"");
+          migrateHash($username, $password);
         }
       }
 
@@ -92,17 +95,27 @@ class AppController extends Controller {
         $stateful = $this->request->query('stateful') ? $this->request->query('stateful') : $this->request->data('stateful');
         if ( $stateful ) {
           // zm_session_start() already populates $_SESSION['remoteAddr'] from
-          // HTTP_X_FORWARDED_FOR (falling back to REMOTE_ADDR), matching what
+          // getRemoteAddr() (X-Forwarded-For via a trusted proxy), matching what
           // getAuthUser() uses for validation. Don't overwrite it with bare
           // REMOTE_ADDR here — that bound the hash to the proxy IP and broke
           // validation behind a reverse proxy.
           zm_session_start();
           if ($user) {
-            $_SESSION['username'] = $user->Username();
-            if ( ZM_AUTH_RELAY == 'plain' ) {
-              // Need to save this in session, can't use the value in User because it is hashed
-              $_SESSION['password'] = $_REQUEST['password'];
+            if ((!empty($username) and !empty($password))
+                or empty($_SESSION['username']) or $_SESSION['username'] !== $user->Username()) {
+              // The session takes on a user it did not hold: a password login, or a
+              // stateful request with a token or an auth hash. A new session id, the
+              // old session dropped, so an id planted in the client beforehand (any
+              // anonymous request stores one) doesn't become this user's session
+              // (session fixation). This also stores the session.
+              zm_session_regenerate_id_login();
+            } else {
+              // The session already is this user's: keep it, and store it even though
+              // this request arrived without a cookie.
+              zm_session_persist();
             }
+            $_SESSION['username'] = $user->Username();
+            // No password in the session: zmu gets a token (zmuCredentials()).
             generateAuthHash(ZM_AUTH_HASH_IPS);
           }
           session_write_close();
@@ -111,7 +124,6 @@ class AppController extends Controller {
           if ( ! is_session_started() )
             zm_session_start();
 
-          ZM\Debug(print_r($_SESSION, true));
           $user = userFromSession();
           session_write_close();
         }
@@ -160,33 +172,134 @@ class AppController extends Controller {
     } # end if ZM_OPT_AUTH
     // make sure populated user object has APIs enabled
 
-    if (isset($_SERVER['HTTP_ORIGIN'])) {
-      global $Servers;
-      if ( sizeof($Servers) < 1 ) {
-        # Only need CORSHeaders in the event that there are multiple servers in use.
-        # ICON: Might not be true. multi-port?
-        if ( ZM_MIN_STREAMING_PORT ) {
-          ZM\Debug('Setting default Access-Control-Allow-Origin from ' . $_SERVER['HTTP_ORIGIN']);
-          $this->response->header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
-          $this->response->header('Access-Control-Allow-Credentials: true');
-          $this->response->header('Access-Control-Allow-Headers: x-requested-with,x-request');
-        }
-        return;
-      }
-      foreach ($Servers as $Server) {
-        if (
-          preg_match('/^(https?:\/\/)?'.preg_quote($Server->Hostname(),'/').'/i', $_SERVER['HTTP_ORIGIN'])
-          or
-          preg_match('/^(https?:\/\/)?'.preg_quote($Server->Name(),'/').'/i', $_SERVER['HTTP_ORIGIN'])
-        ) {
-          ZM\Debug('Setting Access-Control-Allow-Origin from '.$_SERVER['HTTP_ORIGIN']);
-          $this->response->header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
-          $this->response->header('Access-Control-Allow-Credentials: true');
-          $this->response->header('Access-Control-Allow-Headers: x-requested-with,x-request');
-          break;
-        }
-      }
+    $origin = corsAllowedOrigin();
+    if ($origin !== '') {
+      ZM\Debug('Setting Access-Control-Allow-Origin from '.$origin);
+      $this->response->header('Access-Control-Allow-Origin: ' . $origin);
+      $this->response->header('Access-Control-Allow-Credentials: true');
+      $this->response->header('Access-Control-Allow-Headers: x-requested-with,x-request');
     }
 
   } # end function beforeFilter()
+
+  # Model::save() takes the record id from a primary key in the data it is given, so an
+  # edit authorized for the id in the URL could otherwise write to whichever id the request
+  # body names. Drop any primary key from the request data and pin the model to $id.
+  protected function pinRequestId($model, $id) {
+    $alias = $model->alias;
+    $key = $model->primaryKey;
+    if (isset($this->request->data[$alias]) and is_array($this->request->data[$alias])) {
+      unset($this->request->data[$alias][$key]);
+    }
+    unset($this->request->data[$key]);
+    $model->id = $id;
+  }
+
+  # A find() condition limiting $field to the monitors the user may view: empty when the user
+  # is not restricted, and matching nothing when the user may view no monitor at all.
+  protected function viewableMonitorCondition($field) {
+    global $user;
+    if (!$user or !$user->unviewableMonitorIds()) return array();
+    $ids = $user->viewableMonitorIds();
+    return array($field => count($ids) ? $ids : array(0));
+  }
+
+  # A field from the request data, or null, read the way Model::set() will save it: from
+  # Model[field] when the request has a non-empty Model entry, otherwise from the bare field.
+  # Reading Model[field] whenever Model was an array let {"Monitor":[],"EventEndCommand":"x"}
+  # pass a check that found no value while save() stored x. refs GHSA-fp33-8fx5-4j6c
+  protected function requestField($alias, $field) {
+    $data = $this->request->data;
+    if (!empty($data[$alias])) {
+      $data = is_array($data[$alias]) ? $data[$alias] : array();
+    }
+    return isset($data[$field]) ? $data[$field] : null;
+  }
+
+  # Throw unless the user may view monitor $monitorId.
+  protected function requireMonitorView($monitorId) {
+    require_once __DIR__ .'/../../../includes/Monitor.php';
+    $monitor = new ZM\Monitor($monitorId);
+    if (!$monitor->Id()) {
+      throw new NotFoundException(__('Invalid monitor'));
+    }
+    if (!$monitor->canView()) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+    }
+  }
+
+  # Throw unless the user may edit monitor $monitorId.
+  protected function requireMonitorEdit($monitorId) {
+    require_once __DIR__ .'/../../../includes/Monitor.php';
+    $monitor = new ZM\Monitor($monitorId);
+    if (!$monitor->Id()) {
+      throw new NotFoundException(__('Invalid monitor'));
+    }
+    if (!$monitor->canEdit()) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+    }
+  }
+
+  # The ids of the $assoc records a save of the request links to $alias through its HABTM
+  # association, read the way Model::save() reads them, or null when the save leaves the links
+  # alone. Model::set() skips a non-array $assoc entry; save() takes $assoc[$assoc] when present,
+  # else $assoc, and replaces all links with it. $alias[EventIds]-style fields are not saved
+  # (add() copies them to $assoc first). The entry is rewritten to the plain list returned, so a
+  # row given as a join record, which save() would store as given, can only link the id checked.
+  protected function requestAssociatedIds($alias, $assoc) {
+    if (!isset($this->request->data[$assoc])) return null;
+    $rows = $this->request->data[$assoc];
+    if (!is_array($rows)) {
+      unset($this->request->data[$assoc]);
+      return null;
+    }
+    if (isset($rows[$assoc])) $rows = $rows[$assoc];
+    $key = $this->{$alias}->hasAndBelongsToMany[$assoc]['associationForeignKey'];
+    $ids = array();
+    foreach ((array)$rows as $row) {
+      if (is_array($row)) $row = isset($row[$key]) ? $row[$key] : null;
+      if (is_numeric($row)) $ids[] = intval($row);
+    }
+    $this->request->data[$assoc] = array($assoc => $ids);
+    return $ids;
+  }
+
+  # The event list to save for record $id of $table, from the $eventIds an edit asks for: saving
+  # replaces all of the record's links, so its links to events the user may not view, which the
+  # API does not show them, are kept. Throw unless the user may view every event in $eventIds.
+  # Links to events that no longer exist are dropped.
+  protected function eventLinksToSave($table, $key, $id, $eventIds) {
+    $this->requireEventsView($eventIds);
+    $oldIds = dbFetchAll('SELECT `EventId` FROM `'.$table.'` WHERE `'.$key.'`=?', 'EventId', array($id));
+    foreach (array_diff($oldIds, $eventIds) as $eventId) {
+      $event = new ZM\Event($eventId);
+      if ($event->Id() and !$event->canView()) $eventIds[] = intval($eventId);
+    }
+    return $eventIds;
+  }
+
+  # Throw unless the user may view every event in $eventIds, which includes its monitor.
+  protected function requireEventsView($eventIds) {
+    require_once __DIR__ .'/../../../includes/Event.php';
+    foreach (array_unique($eventIds) as $eventId) {
+      $event = new ZM\Event($eventId);
+      if (!$event->Id()) {
+        throw new NotFoundException(__('Invalid event'));
+      }
+      if (!$event->canView()) {
+        throw new UnauthorizedException(__('Insufficient Privileges'));
+      }
+    }
+  }
+
+  # Drop the events on monitors the user may not view from a row's contained Event list.
+  protected function filterContainedEvents($row, $key = 'Event') {
+    $condition = $this->viewableMonitorCondition('MonitorId');
+    if (!count($condition) or !isset($row[$key])) return $row;
+    $allowed = $condition['MonitorId'];
+    $row[$key] = array_values(array_filter($row[$key], function($event) use ($allowed) {
+      return isset($event['MonitorId']) and in_array($event['MonitorId'], $allowed);
+    }));
+    return $row;
+  }
 }

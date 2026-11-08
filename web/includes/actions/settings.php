@@ -24,8 +24,12 @@ if (empty($_REQUEST['mid'])) {
   ZM\Warning('Settings requires a monitor id');
   return;
 }
-if (!canView('Control', $_REQUEST['mid'])) {
-  ZM\Warning('Settings requires the Control permission');
+// Changing the settings needs Control edit, as the settings modal shows
+// (ajax/modals/settings.php enables its sliders only with canEdit('Control')).
+// canEdit('Control', $mid) would also demand Monitors edit, so check the monitor
+// with canView and the area with canEdit.
+if (!canView('Control', $_REQUEST['mid']) or !canEdit('Control')) {
+  ZM\Warning('Settings requires the Control edit permission');
   return;
 }
 
@@ -41,10 +45,16 @@ if ($action == 'settings') {
   $zmuCommand = getZmuCommand($args);
 
   $zmuOutput = exec($zmuCommand);
-  list($brightness, $contrast, $hue, $colour) = explode(' ', $zmuOutput);
-  dbQuery(
-    'UPDATE Monitors SET Brightness = ?, Contrast = ?, Hue = ?, Colour = ? WHERE Id = ?',
-    array($brightness, $contrast, $hue, $colour, $mid));
+  // zmu prints the four values it set; it prints nothing when it refuses (it
+  // checks the user's own permissions) or fails. Store only what it reported.
+  if (preg_match('/^(-?\d+) (-?\d+) (-?\d+) (-?\d+)$/', trim((string)$zmuOutput), $values)) {
+    list(, $brightness, $contrast, $hue, $colour) = $values;
+    dbQuery(
+      'UPDATE Monitors SET Brightness = ?, Contrast = ?, Hue = ?, Colour = ? WHERE Id = ?',
+      array($brightness, $contrast, $hue, $colour, $mid));
+  } else {
+    ZM\Warning('zmu did not report the new settings for monitor '.$mid.', not saving them');
+  }
   global $redirect;
   $redirect = '?view=watch&mid='.$mid;
 }

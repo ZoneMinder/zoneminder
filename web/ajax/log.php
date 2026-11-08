@@ -97,7 +97,7 @@ function queryRequest() {
     if ((!is_int($_REQUEST['offset']) and !ctype_digit($_REQUEST['offset']))) {
       ZM\Error('Invalid value for offset: ' . $_REQUEST['offset']);
     } else {
-      $offset = $_REQUEST['offset'];
+      $offset = (int)$_REQUEST['offset'];
     }
   }
 
@@ -107,7 +107,7 @@ function queryRequest() {
     if ((!is_int($_REQUEST['limit']) and !ctype_digit($_REQUEST['limit']))) {
       ZM\Error('Invalid value for limit: ' . $_REQUEST['limit']);
     } else {
-      $limit = $_REQUEST['limit'];
+      $limit = (int)$_REQUEST['limit'];
     }
   }
   // The table we want our data from
@@ -246,10 +246,14 @@ function queryRequest() {
     }
   }
 
-  zm_session_start();
-  $_SESSION['zmLogComponent'] = $requestComponents;
-  $_SESSION['zmLogFilterLevel'] = array_keys($requestLevels);
-  session_write_close();
+  # An embedded panel queries a component of its own choosing, so remembering
+  # what it asked for would overwrite the Log view's selection.
+  if (empty($_REQUEST['embedded'])) {
+    zm_session_start();
+    $_SESSION['zmLogComponent'] = $requestComponents;
+    $_SESSION['zmLogFilterLevel'] = array_keys($requestLevels);
+    session_write_close();
+  }
 
   if ($where) $where = ' WHERE '.$where;
 
@@ -287,8 +291,8 @@ function queryRequest() {
     $Server = $row['ServerId'] ? ZM\Server::find_one(array('Id'=>$row['ServerId'])) : null;
 
     $row['Server'] = $Server ? $Server->Name() : '';
+    $row['Message'] = htmlspecialchars($row['Message'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     // Strip out all characters that are not ASCII 32-126 (yes, 126)
-    $row['Message'] = preg_replace('/[^\x20-\x7E]/', '', htmlspecialchars($row['Message']));
     $row['File'] = preg_replace('/[^\x20-\x7E]/', '', strip_tags($row['File']));
     $rows[] = $row;
   }

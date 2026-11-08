@@ -23,8 +23,11 @@
 #include "zm_logger.h"
 #include "zm_utils.h"
 #include <cerrno>
+#include <climits>
+#include <cstdlib>
 #include <cstring>
 #include <dirent.h>
+#include <cctype>
 #include <fstream>
 #include <glob.h>
 #include <string>
@@ -35,6 +38,8 @@
 // config.
 
 void zmLoadStaticConfig() {
+  // Start over, so that a reload forgets a line that has been removed.
+  staticConfig.file_options.clear();
   // Process name, value pairs from the main config file first
   process_configfile(ZM_CONFIG);
 
@@ -74,7 +79,7 @@ void zmLoadDBConfig() {
 
       Debug(1, "Fetching ZM_SERVER_ID For Name = %s", staticConfig.SERVER_NAME.c_str());
       std::string sql = stringtf("SELECT `Id` FROM `Servers` WHERE `Name`='%s'",
-                                 staticConfig.SERVER_NAME.c_str());
+                                 zmDbEscapeString(staticConfig.SERVER_NAME).c_str());
       zmDbRow dbrow;
       if (dbrow.fetch(sql)) {
         staticConfig.SERVER_ID = atoi(dbrow[0]);
@@ -105,6 +110,21 @@ void zmLoadDBConfig() {
   staticConfig.analyse_file_format = stringtf("%%s/%%0%dd-analyse.jpg", config.event_image_digits);
   staticConfig.general_file_format = stringtf("%%s/%%0%dd-%%s", config.event_image_digits);
   staticConfig.video_file_format = "%s/%s";
+}
+
+// Parses a non-negative integer zm.conf value. Anything else (negative,
+// non-numeric, trailing junk, out of range) keeps the compiled-in default
+// rather than wrapping into a huge unsigned value.
+static unsigned int parse_unsigned_setting(const char *name, const char *value, unsigned int fallback) {
+  errno = 0;
+  char *end = nullptr;
+  unsigned long parsed = strtoul(value, &end, 10);
+  bool negative = value[0] == '-';
+  if (negative or end == value or *end != '\0' or errno == ERANGE or parsed > UINT_MAX) {
+    Warning("Ignoring invalid value '%s' for %s, keeping %u", value, name, fallback);
+    return fallback;
+  }
+  return static_cast<unsigned int>(parsed);
 }
 
 void process_configfile(char const *configFile) {
@@ -173,6 +193,8 @@ void process_configfile(char const *configFile) {
     white_len += strspn(val_ptr, "\'\"");
     val_ptr += white_len;
 
+    staticConfig.file_options[name_ptr] = val_ptr;
+
     if ( strcasecmp(name_ptr, "ZM_DB_HOST") == 0 )
       staticConfig.DB_HOST = std::string(val_ptr);
     else if ( strcasecmp(name_ptr, "ZM_DB_NAME") == 0 )
@@ -215,10 +237,24 @@ void process_configfile(char const *configFile) {
       staticConfig.PATH_SWAP = std::string(val_ptr);
     else if ( strcasecmp(name_ptr, "ZM_PATH_ARP") == 0 )
       staticConfig.PATH_ARP = std::string(val_ptr);
+    else if ( strcasecmp(name_ptr, "ZM_STREAM_SOCKET_GROUP") == 0 )
+      staticConfig.STREAM_SOCKET_GROUP = std::string(val_ptr);
+    else if ( strcasecmp(name_ptr, "ZM_STREAM_SOCKET_ALLOWED_UIDS") == 0 )
+      staticConfig.STREAM_SOCKET_ALLOWED_UIDS = std::string(val_ptr);
+    else if ( strcasecmp(name_ptr, "ZM_STREAM_SOCKET_MAX_CLIENTS") == 0 )
+      staticConfig.STREAM_SOCKET_MAX_CLIENTS =
+        parse_unsigned_setting(name_ptr, val_ptr, staticConfig.STREAM_SOCKET_MAX_CLIENTS);
+    else if ( strcasecmp(name_ptr, "ZM_STREAM_SOCKET_QUEUE_BYTES") == 0 )
+      staticConfig.STREAM_SOCKET_QUEUE_BYTES =
+        parse_unsigned_setting(name_ptr, val_ptr, staticConfig.STREAM_SOCKET_QUEUE_BYTES);
+    else if ( strcasecmp(name_ptr, "ZM_STREAM_SOCKET_QUEUE_MSGS") == 0 )
+      staticConfig.STREAM_SOCKET_QUEUE_MSGS =
+        parse_unsigned_setting(name_ptr, val_ptr, staticConfig.STREAM_SOCKET_QUEUE_MSGS);
+    else if ( strcasecmp(name_ptr, "ZM_STREAM_SOCKET_STALL_SECS") == 0 )
+      staticConfig.STREAM_SOCKET_STALL_SECS =
+        parse_unsigned_setting(name_ptr, val_ptr, staticConfig.STREAM_SOCKET_STALL_SECS);
     else {
-      // We ignore this now as there may be more parameters than the
-      // c/c++ binaries are bothered about
-      // Warning( "Invalid parameter '%s' in %s", name_ptr, ZM_CONFIG );
+      // Any other option is in file_options, which Config::Load() applies.
     }
   } // end foreach line of the config
 }
@@ -361,6 +397,7 @@ void Config::Load() {
       " OR `DefaultValue` IS NULL");
   if (!result) {
     Warning("Failed to load config from database, using compiled-in defaults");
+    ApplyFileOptions();
     return;
   }
 
@@ -377,6 +414,35 @@ void Config::Load() {
 
   Debug(1, "Config loaded: %d items overriding compiled-in defaults (%zu registered)",
         loaded, bindings_.size());
+  ApplyFileOptions();
+}
+
+std::string ConfigFileValue(const std::string &value, const char *type) {
+  if (strcmp(type, "boolean") != 0) return value;
+  // The Config table stores 1/0; a person editing a file may write a word.
+  std::string word;
+  for (char c : value) word += static_cast<char>(tolower(static_cast<unsigned char>(c)));
+  if (word == "yes" or word == "true" or word == "on") return "1";
+  if (word == "no" or word == "false" or word == "off") return "0";
+  return value;
+}
+
+void Config::ApplyFileOptions() {
+  for (const auto &option : staticConfig.file_options) {
+    auto bind_it = bindings_.find(option.first);
+    if (bind_it == bindings_.end()) continue;  // a static setting, or not one zmc uses
+
+    const char *type = "string";
+    switch (bind_it->second.type) {
+      case MemberBinding::BOOL: type = "boolean"; break;
+      case MemberBinding::INT: type = "integer"; break;
+      case MemberBinding::DOUBLE: type = "decimal"; break;
+      case MemberBinding::STRING: break;
+    }
+    // Name only: the value may be a secret such as ZM_AUTH_HASH_SECRET.
+    Debug(1, "%s is set in a config file, overriding the database", option.first.c_str());
+    ApplyItem(option.first.c_str(), ConfigFileValue(option.second, type).c_str(), type);
+  }
 }
 
 Config config;

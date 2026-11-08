@@ -33,6 +33,7 @@ if ( !canView('Events') ) {
 # in index.php we do ob_end_start but there can be no output before view_video and we often don't have enough ram to buffer the content.
 ob_end_clean();
 require_once('includes/Event.php');
+require_once('includes/HttpRange.php');
 
 $errorText = false;
 $path = '';
@@ -40,8 +41,14 @@ $mode = (!empty($_REQUEST['mode'])) ? $_REQUEST['mode'] : '';
 
 $Event = null;
 
-$event_id = !empty($_REQUEST['eid']) ? $_REQUEST['eid']
-  : (!empty($_REQUEST['event_id']) ? $_REQUEST['event_id'] : null);
+// validInt, not the raw request value: an array (eid[Id]=..&eid[MonitorId]=..)
+// would otherwise be handed to new ZM\Event() and taken as a forged DB row,
+// letting the request choose MonitorId (to pass canView) and the StorageId /
+// Scheme / Id that Path() builds from -- an arbitrary file read below
+// (refs GHSA-6h8f-gx4m-qqw4). An array reduces to '', so the id must be a plain
+// number that ZM\Event loads from the database.
+$event_id = !empty($_REQUEST['eid']) ? validInt($_REQUEST['eid'])
+  : (!empty($_REQUEST['event_id']) ? validInt($_REQUEST['event_id']) : null);
 
 if ($event_id !== null) {
   $Event = new ZM\Event($event_id);
@@ -105,23 +112,42 @@ if ( ! ($fh = @fopen($path, 'rb') ) ) {
 $filename = basename($path);
 
 $size = filesize($path);
+if ($size === false) {
+  ZM\Error('Unable to determine the size of '.$path);
+  header('HTTP/1.0 500 Internal Server Error');
+  fclose($fh);
+  die();
+}
 $begin = 0;
-$end = $size-1;
-$length = $size;
+$end = $size - 1;
 $partial = false;
 
-if ( isset($_SERVER['HTTP_RANGE']) ) {
+if (isset($_SERVER['HTTP_RANGE'])) {
   ZM\Debug('Using Range '.$_SERVER['HTTP_RANGE']);
-  if ( preg_match('/bytes=\h*(\d+)-(\d*)[\D.*]?/i', $_SERVER['HTTP_RANGE'], $matches) ) {
-    $begin = intval($matches[1]);
-    if ( !empty($matches[2]) ) {
-      $end = intval($matches[2]);
-    }
-    $length = $end - $begin + 1;
-    ZM\Debug("Using Range $begin $end size: $size, length: $length");
+  $range = parseHttpRange($_SERVER['HTTP_RANGE'], $size);
+
+  if ($range === null) {
+    // Asked for bytes this file does not have. 416 with the real length lets
+    // the client correct itself; a 206 naming a range that does not exist
+    // leaves it waiting on a body that cannot arrive.
+    ZM\Debug('Unsatisfiable Range '.$_SERVER['HTTP_RANGE'].' for size '.$size);
+    header('HTTP/1.0 416 Range Not Satisfiable');
+    header('Accept-Ranges: bytes');
+    header('Content-Range: bytes */'.$size);
+    header('Content-Length: 0');
+    fclose($fh);
+    exit();
+  } else if ($range !== false) {
+    list($begin, $end) = $range;
     $partial = true;
+    ZM\Debug("Using Range $begin-$end of $size");
   }
 } # end if HTTP_RANGE
+
+// Taken from the range being served rather than from the one requested, so
+// Content-Length always matches the bytes the loop below writes.
+$length = $end - $begin + 1;
+if ($length < 0) $length = 0;
 
 $path_info = pathinfo($path ? $path : (($Event) ? $Event->DefaultVideo() : ''));
 header('Content-type: video/'.$path_info['extension']);
@@ -146,10 +172,14 @@ if ($partial) {
 flush();
 if ($begin) fseek($fh, $begin, 0);
 
-while ($length && (!feof($fh)) && (connection_status() == 0)) {
-  $amount = min(1024*16, $length);
-  echo fread($fh, $amount);
-  $length -= $amount;
+while (($length > 0) && (!feof($fh)) && (connection_status() == 0)) {
+  $data = fread($fh, min(1024*16, $length));
+  // Short or failed reads used to still count against $length, so a file that
+  // shrank or could not be read sent fewer bytes than Content-Length promised
+  // and the client saw a truncated response rather than an error.
+  if (($data === false) || ($data === '')) break;
+  echo $data;
+  $length -= strlen($data);
   flush();
 }
 

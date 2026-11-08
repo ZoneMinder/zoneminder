@@ -11,6 +11,7 @@ require_once('Storage.php');
 require_once('Zone.php');
 
 class Monitor extends ZM_Object {
+  protected static $setters = array('User', 'ViewWidth', 'ViewHeight', 'Storage', 'Groups', 'connKey', 'Model', 'Manufacturer');
   private $shm_id = null;
   private $connected = false;
 
@@ -48,8 +49,8 @@ class Monitor extends ZM_Object {
     'recording'        => [ 'type'=>'uint8', 'offset'=>95, 'size'=>1 ],
     'signal'           => [ 'type'=>'uint8', 'offset'=>96, 'size'=>1 ],
     'format'           => [ 'type'=>'uint8', 'offset'=>97, 'size'=>1 ],
-    'reserved1'        => [ 'type'=>'uint8', 'offset'=>98, 'size'=>1 ],
-    'reserved2'        => [ 'type'=>'uint8', 'offset'=>99, 'size'=>1 ],
+    'audio_level'      => [ 'type'=>'uint8', 'offset'=>98, 'size'=>1 ],
+    'audio_alarm'      => [ 'type'=>'uint8', 'offset'=>99, 'size'=>1 ],
     'imagesize'        => [ 'type'=>'uint32', 'offset'=>100, 'size'=>4 ],
     'last_frame_score' => [ 'type'=>'uint32', 'offset'=>104, 'size'=>4 ],
     'audio_frequency'  => [ 'type'=>'uint32', 'offset'=>108, 'size'=>4 ],
@@ -62,14 +63,15 @@ class Monitor extends ZM_Object {
     'last_analysis_viewed_time' => [ 'type'=>'time_t64', 'offset'=>160, 'size'=>8 ],
     'control_state'    => [ 'type'=>'uint8[256]', 'offset'=>168, 'size'=>256 ],
     'alarm_cause'      => [ 'type'=>'int8[256]', 'offset'=>424, 'size'=>256 ],
-    'video_fifo'       => [ 'type'=>'int8[64]', 'offset'=>680, 'size'=>64 ],
-    'audio_fifo'       => [ 'type'=>'int8[64]', 'offset'=>744, 'size'=>64 ],
+    'stream_socket_path' => [ 'type'=>'int8[64]', 'offset'=>680, 'size'=>64 ], // was video_fifo; now the media stream socket path
+    'reserved_path2'   => [ 'type'=>'int8[64]', 'offset'=>744, 'size'=>64 ], // retired audio_fifo; kept reserved at this offset/size, free for future reuse
     'janus_pin'        => [ 'type'=>'int8[64]', 'offset'=>808, 'size'=>64 ],
     // Analysis image ring counters, appended at the end of SharedData followed
     // by 8 bytes of padding (kept for the 16-byte-multiple layout invariant),
     // so SharedData is now 888 bytes and TriggerData starts at 888.
     'last_analysis_index'  => [ 'type'=>'int32', 'offset'=>872, 'size'=>4 ],
     'analysis_image_count' => [ 'type'=>'int32', 'offset'=>876, 'size'=>4 ],
+    'audio_level_until' => [ 'type'=>'uint32', 'offset'=>880, 'size'=>4 ],
   ],
   'TriggerData' => [
     'size'     => [ 'type'=>'uint32', 'offset'=>888, 'size'=>4 ],
@@ -83,22 +85,6 @@ class Monitor extends ZM_Object {
   ]
   ];
 
-
-  protected static $FunctionTypes = null;
-
-  public static function getFunctionTypes() {
-    if (!isset($FunctionTypes)) {
-      $FunctionTypes = array(
-        'None'    => translate('FnNone'),
-        'Monitor' => translate('FnMonitor'),
-        'Modect'  => translate('FnModect'),
-        'Record'  => translate('FnRecord'),
-        'Mocord'  => translate('FnMocord'),
-        'Nodect'  => translate('FnNodect')
-      );
-    }
-    return $FunctionTypes;
-  }
 
   protected static $CapturingOptions = null;
   public static function getCapturingOptions() {
@@ -235,6 +221,7 @@ class Monitor extends ZM_Object {
     'ManufacturerId'  => null,
     'ModelId'         => null,
     'Type'      => 'Ffmpeg',
+    'DeviceClass' => 'Camera',
     'Capturing' => 'Always',
     'Analysing' => 'Always',
     'Recording' => 'Always',
@@ -248,6 +235,7 @@ class Monitor extends ZM_Object {
     'DefaultPlayer' => '',
     'StreamChannel'   => 'Restream',
     'Go2RTCEnabled'   => array('type'=>'integer','default'=>0),
+    'Go2RTCDisableBackChannel'   => array('type'=>'boolean','default'=>1),
     'JanusEnabled'   => array('type'=>'boolean','default'=>0),
     'JanusAudioEnabled'   => array('type'=>'boolean','default'=>0),
     'Janus_Profile_Override'   => '',
@@ -301,8 +289,10 @@ class Monitor extends ZM_Object {
     'EncoderParameters' => '',
     'WallClockTimestamps' => array('type'=>'boolean', 'default'=>0),
     'RecordAudio' =>  array('type'=>'boolean', 'default'=>0),
+    'AudioDetection' => array('type'=>'boolean', 'default'=>0),
+    'AudioThreshold' => array('type'=>'integer', 'default'=>0),
+    'AudioAlarmScore' => array('type'=>'integer', 'default'=>9),
     #'OutputSourceStream'  => 'Primary',
-    'RTSPDescribe'  =>  array('type'=>'boolean','default'=>0),
     'Brightness'  =>  -1,
     'Contrast'    =>  -1,
     'Hue'         =>  -1,
@@ -323,7 +313,6 @@ class Monitor extends ZM_Object {
     'SectionLengthWarn'   =>  true,
     'MinSectionLength'    =>  10,
     'EventCloseMode'    => 'system',
-    'FrameSkip'           =>  0,
     'MotionFrameSkip'     =>  0,
     'AnalysisFPSLimit'  =>  [ 'default'=>null, 'initial_default'=>2, 'type'=>'float' ],
     'AnalysisUpdateDelay'  =>  0,
@@ -720,7 +709,10 @@ class Monitor extends ZM_Object {
         $this->sendControlCommand('stop');
       }
     }
-    $this->save(['Deleted'=>true]);
+    // Hand back whether it actually saved. This is a soft delete, so a failing
+    // UPDATE (an out of range Importance, for one) leaves the monitor in place,
+    // and the caller has no other way to notice. See #4215.
+    return $this->save(['Deleted'=>true]);
   }
   public function destroy() {
     if (!$this->{'Id'}) {
@@ -732,24 +724,21 @@ class Monitor extends ZM_Object {
       $this->sendControlCommand('stop');
     }
 
-    // If fast deletes are on, then zmaudit will clean everything else up later
-    // If fast deletes are off and there are lots of events then this step may
-    // well time out before completing, in which case zmaudit will still tidy up
-    if (!ZM_OPT_FAST_DELETE) {
-      $markEids = dbFetchAll('SELECT Id FROM Events WHERE MonitorId=?', 'Id', array($this->{'Id'}));
-      foreach ($markEids as $markEid)
-        deleteEvent($markEid);
+    // With lots of events this step may well time out before completing, in
+    // which case zmaudit will still tidy up
+    $markEids = dbFetchAll('SELECT Id FROM Events WHERE MonitorId=?', 'Id', array($this->{'Id'}));
+    foreach ($markEids as $markEid)
+      deleteEvent($markEid);
 
+    if ($this->{'Name'})
+      deletePath(ZM_DIR_EVENTS.'/'.basename($this->{'Name'}));
+    deletePath(ZM_DIR_EVENTS.'/'.$this->{'Id'});
+    $Storage = $this->Storage();
+    if ($Storage->Path() != ZM_DIR_EVENTS) {
       if ($this->{'Name'})
-        deletePath(ZM_DIR_EVENTS.'/'.basename($this->{'Name'}));
-      deletePath(ZM_DIR_EVENTS.'/'.$this->{'Id'});
-      $Storage = $this->Storage();
-      if ($Storage->Path() != ZM_DIR_EVENTS) {
-        if ($this->{'Name'})
-          deletePath($Storage->Path().'/'.basename($this->{'Name'}));
-        deletePath($Storage->Path().'/'.$this->{'Id'});
-      }
-    } // end if !ZM_OPT_FAST_DELETE
+        deletePath($Storage->Path().'/'.basename($this->{'Name'}));
+      deletePath($Storage->Path().'/'.$this->{'Id'});
+    }
 
     // This is the important stuff
     dbQuery('DELETE FROM Zones WHERE MonitorId = ?', array($this->{'Id'}));
@@ -788,7 +777,7 @@ class Monitor extends ZM_Object {
       if ($this->{'Port'} != '5900') {
         $source .= ':'.$this->{'Port'};
       }
-    } else if ($this->{'Type'} == 'Ffmpeg' || $this->{'Type'} == 'Libvlc' || $this->{'Type'} == 'WebSite') {
+    } else if ($this->{'Type'} == 'Ffmpeg' || $this->{'Type'} == 'WebSite') {
       if ($this->{'Path'}) {
         $url_parts = parse_url($this->{'Path'});
         if (ZM_WEB_FILTER_SOURCE == 'Hostname') {
@@ -881,6 +870,12 @@ class Monitor extends ZM_Object {
       }
       socket_close($socket);
     } else if ($this->ServerId()) {
+      # The API only starts and stops zmcontrol.pl there; a camera command has to
+      # go to that server's web request (ajax/control.php forwards those).
+      if (!in_array($command, array('quit', 'start', 'stop'))) {
+        Error('Control command for monitor '.$this->{'Id'}.' not sent: it is recorded by server '.$this->{'ServerId'});
+        return false;
+      }
       $result = $this->Server()->SendToApi('/monitors/daemonControl/'.$this->{'Id'}.'/'.$command.'/zmcontrol.pl.json');
       return $result;
     } else {
@@ -959,6 +954,25 @@ class Monitor extends ZM_Object {
       }
     }
     return $this->connKey;
+  }
+
+  // Fields whose value zmc runs as a command. Setting one is equivalent to shell access
+  // on the server, so it needs System=Edit, not just edit on this monitor, the same rule
+  // Filter::canEdit() applies to AutoExecuteCmd. refs GHSA-vcrj-35c6-g97c
+  public static $commandFields = array('EventStartCommand', 'EventEndCommand');
+
+  // The command fields $data would change on this monitor that the user may not set.
+  // Submitting the current value is not a change, since the monitor form always posts it.
+  public function commandFieldChangesNotAllowed($data, $u=null) {
+    global $user;
+    if (!$u) $u = $user;
+    if (!$u or $u->canEdit('System')) return array();
+    $refused = array();
+    foreach (self::$commandFields as $field) {
+      if (!array_key_exists($field, $data)) continue;
+      if ((string)$data[$field] !== (string)$this->{$field}()) $refused[] = $field;
+    }
+    return $refused;
   }
 
   function canEdit($u=null) {
@@ -1358,7 +1372,7 @@ class Monitor extends ZM_Object {
       $html .= $this->getMonitorStateHTML();
     }
     $htmlAudioMotion = '
-      <audio-motion id="audioVisualization'.$this->Id().'" class="audio-visualization">
+      <audio-motion id="audioVisualization'.$this->Id().'" class="hidden audio-visualization">
     '.PHP_EOL;
     if ($view == 'montage') {
       $htmlAudioMotion .= '
@@ -1511,6 +1525,32 @@ class Monitor extends ZM_Object {
     return fwrite($this->shm_id, $packed_value, $this->shm_offsets[$section][$var]['size']);
   }
   
+  // How long zmc keeps measuring after one request. Long enough that a poll
+  // every couple of seconds never lets it lapse mid-session, short enough
+  // that closing the editor stops the decoding promptly.
+  const AUDIO_LEVEL_REQUEST_SECONDS = 10;
+
+  // Ask the capture thread to measure the audio level even though this
+  // monitor does not score on audio, so the editor can show a live reading
+  // while a threshold is being chosen. Has to be repeated to stay in effect.
+  public function requestAudioLevel() {
+    if (!$this->connect()) return false;
+    return false !== $this->shared_write('SharedData', 'audio_level_until',
+      time() + self::AUDIO_LEVEL_REQUEST_SECONDS);
+  }
+
+  // The reading zmc last published, or null when there is no shared memory to
+  // read (zmc not running). 0 is a real answer: silence, or nothing measured.
+  public function audioLevel() {
+    if (!$this->connect()) return null;
+    return $this->shared_read('SharedData', 'audio_level');
+  }
+
+  public function audioAlarm() {
+    if (!$this->connect()) return null;
+    return $this->shared_read('SharedData', 'audio_alarm') ? true : false;
+  }
+
   public function enable() {
     if (!$this->connect()) return false;
     $action = $this->shared_read('TriggerData', 'action');

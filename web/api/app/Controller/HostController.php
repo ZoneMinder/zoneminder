@@ -96,12 +96,29 @@ class HostController extends AppController {
     if ( !($username && $password) && !$token ) {
       throw new UnauthorizedException(__('No identity provided'));
     }
+    if ( $username && $password && $token ) {
+      // beforeFilter() authenticates the token after the password and keeps the token's
+      // user, so the refresh token minted below would be issued to whoever the token
+      // belongs to. A login takes one or the other.
+      throw new UnauthorizedException(__('Log in with a user name and password or with a token, not both'));
+    }
 
     $cred = [];
 
     if ( $username && $password ) {
+      // Mint the token for the account that actually authenticated, never for
+      // a name taken from the request. beforeFilter() authenticates from
+      // user=/pass= (and zm_authenticate_request() from username=/password=),
+      // while the subject used to be read straight out of `user`. Because the
+      // two were never cross-checked, a caller could authenticate with their
+      // own low-privileged credentials and ask for a token issued to admin.
+      // See GHSA-m77q-66v7-j3fq.
+      global $user;
+      if ( !$user ) {
+        throw new UnauthorizedException(__('Not authenticated'));
+      }
       ZM\Debug('Username and password provided, generating access and refresh tokens');
-      $cred = $this->_getCredentials(true, '', $username); // generate refresh
+      $cred = $this->_getCredentials(true, '', $user->Username()); // generate refresh
     } else {
       ZM\Debug('Only generating access token');
       $cred = $this->_getCredentials(false, $token); // don't generate refresh
@@ -162,10 +179,10 @@ class HostController extends AppController {
       return;
     }
 
-    if (!ZM_AUTH_HASH_SECRET)
+    require_once __DIR__ .'/../../../includes/auth.php';
+    if (!authHashSecretIsSet())
       throw new ForbiddenException(__('Please create a valid AUTH_HASH_SECRET in ZoneMinder'));
 
-    require_once __DIR__ .'/../../../includes/auth.php';
     require_once __DIR__.'/../../../vendor/autoload.php';
 
     if ($token) {

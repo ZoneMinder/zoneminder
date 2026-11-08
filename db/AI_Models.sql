@@ -62,7 +62,9 @@ CREATE TABLE IF NOT EXISTS `AI_Detection_Settings` (
 CREATE TABLE IF NOT EXISTS `AI_Detections` (
   `Id` BIGINT unsigned NOT NULL auto_increment,
   `EventId` BIGINT unsigned NOT NULL,
-  `FrameId` BIGINT unsigned,
+  /* Frames.FrameId within EventId. Not a foreign key: Frames rows are
+     written in batches, so a detection can be recorded before its frame. */
+  `FrameId` int(10) unsigned,
   `ObjectClassId` int(10) unsigned NOT NULL,
   `Confidence` decimal(5,4) NOT NULL,
   `BoundingBoxX` int(10) unsigned,
@@ -71,10 +73,8 @@ CREATE TABLE IF NOT EXISTS `AI_Detections` (
   `BoundingBoxHeight` int(10) unsigned,
   `DetectedAt` TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`Id`),
-  KEY `AI_Detections_EventId_idx` (`EventId`),
-  KEY `AI_Detections_FrameId_idx` (`FrameId`),
+  KEY `AI_Detections_EventId_FrameId_idx` (`EventId`,`FrameId`),
   KEY `AI_Detections_ObjectClassId_idx` (`ObjectClassId`),
   FOREIGN KEY (`EventId`) REFERENCES `Events` (`Id`) ON DELETE CASCADE,
-  FOREIGN KEY (`FrameId`) REFERENCES `Frames` (`Id`) ON DELETE SET NULL,
   FOREIGN KEY (`ObjectClassId`) REFERENCES `AI_Object_Classes` (`Id`) ON DELETE CASCADE
 ) ENGINE=InnoDB;

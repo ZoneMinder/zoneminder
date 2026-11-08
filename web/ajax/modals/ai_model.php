@@ -51,7 +51,7 @@ $framework_options = array(
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><?php echo translate('AIModel') .' - '. validHtmlStr($model['Name']) ?></h5>
+        <h5 class="modal-title"><?php echo translate('AI Model') .' - '. validHtmlStr($model['Name']) ?></h5>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
@@ -83,7 +83,7 @@ $framework_options = array(
                 <td><?php echo htmlSelect('newModel[DatasetId]', $datasets, $model['DatasetId']) ?></td>
               </tr>
               <tr class="ModelPath">
-                <th scope="row"><?php echo translate('ModelPath') ?></th>
+                <th scope="row"><?php echo translate('Model Path') ?></th>
                 <td><input type="text" name="newModel[ModelPath]" value="<?php echo validHtmlStr($model['ModelPath']) ?>"/></td>
               </tr>
               <tr class="Enabled">

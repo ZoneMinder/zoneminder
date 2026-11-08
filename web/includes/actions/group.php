@@ -19,8 +19,7 @@
 //
 
 // Group edit actions
-# Should probably verify that each monitor id is a valid monitor, that we have access to.
-# However at the moment, you have to have System permissions to do this
+# Changing a group's monitors also needs edit on each monitor moved, checked below.
 if ( !canEdit('Groups') ) {
   ZM\Warning('Need group edit permissions to edit groups');
   return;
@@ -31,6 +30,18 @@ if ( $action == 'save' ) {
   if ( !empty($_REQUEST['gid']) )
     $group_id = $_REQUEST['gid'];
   $group = new ZM\Group($group_id);
+
+  $new_ids = isset($_REQUEST['newGroup']['MonitorIds']) ? array_map('intval', (array)$_REQUEST['newGroup']['MonitorIds']) : array();
+  $old_ids = $group->Id() ? dbFetchAll('SELECT `MonitorId` FROM `Groups_Monitors` WHERE `GroupId`=?', 'MonitorId', array($group->Id())) : array();
+  $moved = array_merge(array_diff($old_ids, $new_ids), array_diff($new_ids, $old_ids));
+  $new_parent = ($_REQUEST['newGroup']['ParentId'] == '' ? null : $_REQUEST['newGroup']['ParentId']);
+  // Re-parenting moves every monitor of this group and its children between ancestors.
+  if ($group->Id() and ($new_parent != $group->ParentId())) $moved = array_merge($moved, $group->MonitorIds());
+  if (!ZM\Group::canEditMembership($moved)) {
+    ZM\Warning('Need edit permission on every monitor moved into or out of a group');
+    return;
+  }
+
   $group->save(
       array(
       'Name'=>  $_REQUEST['newGroup']['Name'],
@@ -40,7 +51,7 @@ if ( $action == 'save' ) {
   dbQuery('DELETE FROM `Groups_Monitors` WHERE `GroupId`=?', array($group_id));
   $group_id = $group->Id();
   if ($group_id and isset($_REQUEST['newGroup']['MonitorIds'])) {
-    foreach ( $_REQUEST['newGroup']['MonitorIds'] as $mid ) {
+    foreach ( $new_ids as $mid ) {
       dbQuery('INSERT INTO `Groups_Monitors` (`GroupId`,`MonitorId`) VALUES (?,?)', array($group_id, $mid));
     }
   }

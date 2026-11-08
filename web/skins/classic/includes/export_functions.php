@@ -986,7 +986,15 @@ function exportEvents(
         $cmd = 'cp -as -- '.escapeshellarg($event->Path().'/'.$file).' '.escapeshellarg($export_dir.'/'.$event->Id().'/'.$file). ' 2>&1';
         $exportFileList[] = $event->Id().'/'.$file;
       }
+      $output = array();
       exec($cmd, $output, $return);
+      if ($return) {
+        ZM\Error("Command '$cmd' returned with status $return");
+        if (isset($output[0])) {
+          ZM\Error('First line of output is \''.$output[0].'\'');
+        }
+        return false;
+      }
       ZM\Debug($cmd.' return code: '.$return.' output: '.print_r($output,true));
     } # end foreach event_exportFile
   } # end foreach event
@@ -1059,6 +1067,7 @@ function exportEvents(
   @unlink($archive_path);
   $command .= ' '.escapeshellarg($export_root.($connkey?'_'.$connkey:'').'/');
   ZM\Debug($command);
+  $output = array();
   exec($command, $output, $status);
   if ($status) {
     ZM\Error("Command '$command' returned with status $status");

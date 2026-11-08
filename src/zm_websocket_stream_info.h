@@ -84,23 +84,31 @@ class VideoStreamInfo {
 
   // Copies the published stream into *out when one matching requested_codec is
   // available, returning true. The copy owns its extradata and stays valid
-  // after the lock is released. Returns false when no stream is published or
-  // the published codec differs.
+  // after the lock is released. Returns false when no stream is published, the
+  // published codec differs, or the monitor has Privacy zones.
   bool Get(AVCodecID requested_codec, Snapshot *out) const;
 
   // True when a valid stream is currently published, whatever its codec.
   bool Valid() const;
 
+  // Set while the monitor has Privacy zones. Passthrough sends the camera's own
+  // encoded bytes, which the privacy mask applied to decoded images never
+  // touched, so Get() fails and Check() is kPrivacyMasked until it is cleared.
+  // Survives Invalidate() and Update(): it follows the zones, not the camera.
+  void SetPrivacyMasked(bool masked);
+
   // Whether a passthrough client of requested_codec can be fed: kAvailable when
   // that codec is published, kNoStream while nothing is (the camera is
   // reconnecting, or produces no encoded stream), kOtherCodec when the camera
-  // now produces a different codec, which that client cannot decode.
-  enum class Availability { kAvailable, kNoStream, kOtherCodec };
+  // now produces a different codec, which that client cannot decode, and
+  // kPrivacyMasked while the monitor has Privacy zones.
+  enum class Availability { kAvailable, kNoStream, kOtherCodec, kPrivacyMasked };
   Availability Check(AVCodecID requested_codec) const;
 
  private:
   mutable std::mutex mutex_;
   bool valid_ = false;
+  bool privacy_masked_ = false;
   Snapshot snapshot_;
 };
 

@@ -354,6 +354,11 @@ Passthrough codec streams currently support:
 Passthrough stream payloads use the monitor packet queue and are only available
 when the monitor is already producing that codec.
 
+Passthrough is not available on a monitor with Privacy zones. It sends the
+camera's own encoded video, and Privacy zones are applied to the decoded image,
+so the hidden regions would be visible. Requests for ``h264``, ``h265`` or
+``av1`` on such a monitor get an error frame; use ``mjpeg``, which is masked.
+
 One-shot passthrough stream requests return a decodable packet snapshot:
 
 * the payload starts at the latest available queued keyframe for that codec
@@ -382,6 +387,8 @@ For passthrough codec subscriptions:
   keyframe of the new stream
 * if the camera comes back producing a different codec, the server sends an
   error frame and ends the subscription; subscribe again with the new codec
+* if Privacy zones are added to the monitor, the server sends an error frame and
+  ends the subscription
 
 Implementation notes
 ^^^^^^^^^^^^^^^^^^^^

@@ -1888,6 +1888,8 @@ void Monitor::AddPrivacyBitmask() {
   } // end foreach zone
   if (privacy_image)
     privacy_bitmask = privacy_image->Buffer();
+  // WebSocket passthrough would send the camera's unmasked bytes.
+  websocket_video_info.SetPrivacyMasked(privacy_image != nullptr);
 }
 
 Image *Monitor::GetAlarmImage() {

@@ -117,6 +117,16 @@ std::string errorJson(const std::string &message) {
       escape_json_string(message).c_str());
 }
 
+// The error for a passthrough request that can't be served: the Privacy zones
+// reason when that is why, otherwise fallback.
+std::string passthroughUnavailableMessage(zm::websocket::VideoStreamInfo::Availability availability,
+                                          const std::string &fallback) {
+  if (availability == zm::websocket::VideoStreamInfo::Availability::kPrivacyMasked) {
+    return "This monitor has Privacy zones, which passthrough would not hide; use mjpeg";
+  }
+  return fallback;
+}
+
 std::string httpResponse(const char *status_line, const char *body = nullptr) {
   if (!body || !*body) {
     return std::string(status_line) + "\r\n\r\n";
@@ -661,9 +671,14 @@ void VideoStreamInfo::Invalidate() {
   snapshot_ = Snapshot();
 }
 
+void VideoStreamInfo::SetPrivacyMasked(bool masked) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  privacy_masked_ = masked;
+}
+
 bool VideoStreamInfo::Get(AVCodecID requested_codec, Snapshot *out) const {
   std::lock_guard<std::mutex> lock(mutex_);
-  if (!valid_ || snapshot_.codec_id != requested_codec) {
+  if (privacy_masked_ || !valid_ || snapshot_.codec_id != requested_codec) {
     return false;
   }
   *out = snapshot_;
@@ -672,6 +687,7 @@ bool VideoStreamInfo::Get(AVCodecID requested_codec, Snapshot *out) const {
 
 VideoStreamInfo::Availability VideoStreamInfo::Check(AVCodecID requested_codec) const {
   std::lock_guard<std::mutex> lock(mutex_);
+  if (privacy_masked_) return Availability::kPrivacyMasked;
   if (!valid_) return Availability::kNoStream;
   return snapshot_.codec_id == requested_codec ? Availability::kAvailable : Availability::kOtherCodec;
 }
@@ -1107,7 +1123,8 @@ bool MonitorWebSocketServer::handleFrame(Client *client, const websocket::Frame 
       } else {
         packetqueue_iterator *it = monitor->CreateWebSocketVideoIterator(codec);
         if (!it) {
-          if (!queueFrame(client, websocket::Opcode::TEXT, errorJson("Unsupported stream codec or payload unavailable"))) {
+          if (!queueFrame(client, websocket::Opcode::TEXT, errorJson(passthroughUnavailableMessage(
+                  monitor->WebSocketVideoAvailability(codec), "Unsupported stream codec or payload unavailable")))) {
             return false;
           }
           return true;
@@ -1191,7 +1208,9 @@ bool MonitorWebSocketServer::handleFrame(Client *client, const websocket::Frame 
           client->stream_it = monitor->CreateWebSocketVideoIterator(client->stream_codec);
           if (!client->stream_it) {
             client->subscribe_stream = false;
-            if (!queueFrame(client, websocket::Opcode::TEXT, errorJson("Unsupported stream codec or payload unavailable"))) {
+            if (!queueFrame(client, websocket::Opcode::TEXT, errorJson(passthroughUnavailableMessage(
+                    monitor->WebSocketVideoAvailability(client->stream_codec),
+                    "Unsupported stream codec or payload unavailable")))) {
               return false;
             }
             return true;
@@ -1453,15 +1472,16 @@ void MonitorWebSocketServer::broadcastStreams(std::vector<Client> *clients, Time
     const Availability availability = monitor->WebSocketVideoAvailability(client.stream_codec);
     if (availability != Availability::kAvailable) {
       freeClientResources(&client);
-      if (availability == Availability::kOtherCodec) {
+      if (availability == Availability::kOtherCodec || availability == Availability::kPrivacyMasked) {
         // The camera came back with another codec, which this client cannot
-        // decode. Tell it, so it can subscribe again with the new one.
-        Debug(1, "Monitor %u no longer produces %s; ending a websocket stream subscription",
+        // decode, or Privacy zones were added. Tell it, so it can subscribe
+        // again with the new codec or with mjpeg.
+        Debug(1, "Monitor %u can no longer send %s; ending a websocket stream subscription",
               monitor->Id(), client.stream_codec.c_str());
         client.subscribe_stream = false;
         client.last_stream_sequence = 0;
-        if (!queueFrame(&client, websocket::Opcode::TEXT,
-                        errorJson("Stream codec " + client.stream_codec + " is no longer produced by this monitor"))) {
+        if (!queueFrame(&client, websocket::Opcode::TEXT, errorJson(passthroughUnavailableMessage(availability,
+                        "Stream codec " + client.stream_codec + " is no longer produced by this monitor")))) {
           closeClient(&client);
         }
       }

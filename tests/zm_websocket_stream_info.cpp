@@ -295,3 +295,33 @@ TEST_CASE("websocket passthrough leaves Annex-B and AV1 sources alone", "[websoc
   REQUIRE(extradata.empty());
   REQUIRE(nal_length_size == 0);
 }
+
+TEST_CASE("websocket passthrough is refused while the monitor has Privacy zones", "[websocket]") {
+  // Passthrough sends the camera's own encoded bytes, which the decoder's
+  // privacy mask never touched.
+  using Availability = zm::websocket::VideoStreamInfo::Availability;
+  zm::websocket::VideoStreamInfo info;
+  AVCodecParameters *par = makeCodecpar(AV_CODEC_ID_H264, 1280, 720, "");
+  REQUIRE(par != nullptr);
+  info.Update(par, 0, 0);
+  avcodec_parameters_free(&par);
+
+  info.SetPrivacyMasked(true);
+  zm::websocket::VideoStreamInfo::Snapshot snapshot;
+  REQUIRE(info.Check(AV_CODEC_ID_H264) == Availability::kPrivacyMasked);
+  REQUIRE(info.Check(AV_CODEC_ID_HEVC) == Availability::kPrivacyMasked);
+  REQUIRE_FALSE(info.Get(AV_CODEC_ID_H264, &snapshot));
+
+  // A camera reconnect republishes the stream; the zones still apply.
+  info.Invalidate();
+  par = makeCodecpar(AV_CODEC_ID_H264, 1280, 720, "");
+  REQUIRE(par != nullptr);
+  info.Update(par, 0, 0);
+  avcodec_parameters_free(&par);
+  REQUIRE(info.Check(AV_CODEC_ID_H264) == Availability::kPrivacyMasked);
+
+  // The zones were removed.
+  info.SetPrivacyMasked(false);
+  REQUIRE(info.Check(AV_CODEC_ID_H264) == Availability::kAvailable);
+  REQUIRE(info.Get(AV_CODEC_ID_H264, &snapshot));
+}

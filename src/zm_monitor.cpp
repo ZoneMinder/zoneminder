@@ -1609,29 +1609,28 @@ bool requestedWebSocketVideoCodec(const std::string &codec, AVCodecID *codec_id,
 
 }  // namespace
 
-void Monitor::PublishWebSocketImage(const Image &image, uint64_t sequence) {
+void Monitor::PublishWebSocketImage(const Image &image, uint64_t sequence, uint32_t mask_generation) {
   const int64_t now = std::chrono::steady_clock::now().time_since_epoch().count();
   if (websocket_image_wanted_until.load(std::memory_order_relaxed) < now) return;
-  std::lock_guard<std::mutex> image_lock(websocket_image_mutex);
-  websocket_latest_image.Assign(image);
-  websocket_latest_sequence = sequence;
-  websocket_latest_valid = true;
+  websocket_latest_image.Publish(image, sequence, mask_generation);
 }
 
 bool Monitor::TakeWebSocketImage(Image *image, uint64_t *sequence, Milliseconds keep_for) {
   const TimePoint now = std::chrono::steady_clock::now();
   const int64_t wanted_until = zm::websocket::ExtendDeadline(&websocket_image_wanted_until,
                                                              (now + keep_for).time_since_epoch().count());
-  {
-    std::lock_guard<std::mutex> image_lock(websocket_image_mutex);
-    // Nobody wanted images for a while, so the decoder stopped copying them and
-    // what is held is old.
-    if (wanted_until < now.time_since_epoch().count()) websocket_latest_valid = false;
-    if (websocket_latest_valid) {
-      image->Assign(websocket_latest_image);
-      *sequence = websocket_latest_sequence;
+  // Nobody wanted images for a while, so the decoder stopped copying them and
+  // what is held is old.
+  const bool stale = wanted_until < now.time_since_epoch().count();
+  switch (websocket_latest_image.Take(image, sequence, stale)) {
+    case zm::websocket::LatestImage::Result::kTaken:
       return true;
-    }
+    case zm::websocket::LatestImage::Result::kWaitForMasked:
+      // The privacy mask changed: the queue's images have the old one. The
+      // deadline set above has the decoder publish its next frame.
+      return false;
+    case zm::websocket::LatestImage::Result::kNone:
+      break;
   }
 
   // The first request after a quiet spell: the decoder copies from its next
@@ -1893,6 +1892,8 @@ void Monitor::AddPrivacyBitmask() {
     privacy_bitmask = privacy_image->Buffer();
   // WebSocket passthrough would send the camera's unmasked bytes.
   websocket_video_info.SetPrivacyMasked(privacy_image != nullptr);
+  // WebSocket images made before now have the old mask, or none.
+  websocket_latest_image.MaskChanged();
 }
 
 Image *Monitor::GetAlarmImage() {
@@ -4435,7 +4436,9 @@ bool Monitor::Decode() {
     // Rotation/flip
     applyOrientation(capture_image);
 
-    // Privacy masking
+    // Privacy masking. The generation is read first, so a frame masked while
+    // the mask is being replaced is never taken for one with the new mask.
+    const uint32_t mask_generation = websocket_latest_image.MaskGeneration();
     if (privacy_bitmask) {
       capture_image->MaskPrivacy(privacy_bitmask);
     }
@@ -4452,7 +4455,7 @@ bool Monitor::Decode() {
     WriteShmFrame(index, capture_image);
     shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
     SetSignal(signal_check_points ? CheckSignal(capture_image) : true);
-    PublishWebSocketImage(*capture_image, packet->queue_index);
+    PublishWebSocketImage(*capture_image, packet->queue_index, mask_generation);
     shared_data->last_write_index = index;
     shared_data->last_write_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 

@@ -1,4 +1,5 @@
 #include "zm_websocket.h"
+#include "zm_websocket_image.h"
 
 #include "zm_crypt.h"
 #include "zm_ffmpeg.h"
@@ -669,6 +670,33 @@ void VideoStreamInfo::Invalidate() {
   std::lock_guard<std::mutex> lock(mutex_);
   valid_ = false;
   snapshot_ = Snapshot();
+}
+
+void LatestImage::MaskChanged() {
+  std::lock_guard<std::mutex> lock(mutex_);
+  ++mask_generation_;
+  valid_ = false;
+  wait_for_masked_ = true;
+}
+
+void LatestImage::Publish(const Image &image, uint64_t sequence, uint32_t mask_generation) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (mask_generation != mask_generation_.load()) return;
+  image_.Assign(image);
+  sequence_ = sequence;
+  valid_ = true;
+  wait_for_masked_ = false;
+}
+
+LatestImage::Result LatestImage::Take(Image *image, uint64_t *sequence, bool stale) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (stale) valid_ = false;
+  if (valid_) {
+    image->Assign(image_);
+    *sequence = sequence_;
+    return Result::kTaken;
+  }
+  return wait_for_masked_ ? Result::kWaitForMasked : Result::kNone;
 }
 
 void VideoStreamInfo::SetPrivacyMasked(bool masked) {

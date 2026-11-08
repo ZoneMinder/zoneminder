@@ -49,6 +49,7 @@
 
 #include "zm_monitor_onvif.h"
 #include "zm_websocket_stream_info.h"
+#include "zm_websocket_image.h"
 #include "zm_websocket_status.h"
 
 class Group;
@@ -957,15 +958,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   bool websocket_status_seen = false;
   zm::websocket::StatusSnapshot websocket_status_prev;
   std::mutex websocket_message_mutex;
-  // The decoder's latest processed frame, copied for the WebSocket thread while
-  // a client has asked for images recently (websocket_image_wanted_until, in
-  // steady_clock ticks). Analyse() frees the images of non-keyframe packets
-  // when no event is open, so the packet queue alone would only offer the last
-  // keyframe's image (refs #2875).
-  std::mutex websocket_image_mutex;
-  Image websocket_latest_image;
-  uint64_t websocket_latest_sequence = 0;
-  bool websocket_latest_valid = false;
+  // The decoder's latest processed frame, copied while a client has asked for
+  // images recently (websocket_image_wanted_until, in steady_clock ticks).
+  zm::websocket::LatestImage websocket_latest_image;
   std::atomic<int64_t> websocket_image_wanted_until{0};
   // Held by connect() and disconnect() while they set and clear shared_data,
   // and by the WebSocket thread while it reads or writes through it: that
@@ -1277,7 +1272,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   bool GetNextWebSocketVideoPayload(packetqueue_iterator *it, const std::string &codec, WebSocketPayload *payload);
   void FreeWebSocketIterator(packetqueue_iterator *it);
   // Decoder side of websocket_latest_image: copies image when it is wanted.
-  void PublishWebSocketImage(const Image &image, uint64_t sequence);
+  void PublishWebSocketImage(const Image &image, uint64_t sequence, uint32_t mask_generation);
   // WebSocket side: copies the latest processed frame into *image.
   bool TakeWebSocketImage(Image *image, uint64_t *sequence, Milliseconds keep_for);
   // For the WebSocket thread: shared_data->image_count, and setLastViewed(),

@@ -18,7 +18,15 @@
 #include "zm_catch2.h"
 
 #include "zm_utils.h"
+
+#include <array>
+#include <cstdio>
+#include <fstream>
+#include <unistd.h>
+#include <atomic>
 #include <sstream>
+#include <thread>
+#include <vector>
 
 TEST_CASE("Trim") {
   REQUIRE(Trim("", "") == "");
@@ -173,6 +181,174 @@ TEST_CASE("Base64Encode") {
   REQUIRE(Base64Encode("foob") == "Zm9vYg==");
   REQUIRE(Base64Encode("fooba") == "Zm9vYmE=");
   REQUIRE(Base64Encode("foobar") == "Zm9vYmFy");
+
+  const std::array<uint8, 3> binary = {{0x00, 0xff, 0x10}};
+  REQUIRE(Base64Encode(nonstd::span<const uint8>(binary.data(), binary.size())) == "AP8Q");
+}
+
+// Base64Encode used to fill a static lookup table on first call under no lock,
+// so concurrent first callers (per-monitor websocket handshakes) raced on it.
+// Passes trivially in a normal build; its value is under ThreadSanitizer:
+//
+//   cmake -DTSAN=ON -DBUILD_TEST_SUITE=ON .. && cmake --build .
+//   ./tests/tests "[races]"
+TEST_CASE("Base64Encode is safe across threads", "[races]") {
+  constexpr int kThreads = 8;
+  std::atomic<bool> go{false};
+  std::atomic<int> wrong{0};
+  std::vector<std::thread> threads;
+  for (int t = 0; t < kThreads; t++) {
+    threads.emplace_back([&]() {
+      while (!go.load(std::memory_order_acquire)) {
+      }
+      for (int i = 0; i < 2000; i++) {
+        if (Base64Encode("foobar") != "Zm9vYmFy") {
+          wrong.fetch_add(1, std::memory_order_relaxed);
+        }
+      }
+    });
+  }
+  go.store(true, std::memory_order_release);
+  for (auto &th : threads) th.join();
+  REQUIRE(wrong.load() == 0);
+}
+
+TEST_CASE("JsonExtractQuotedField") {
+  std::string value;
+  REQUIRE(JsonExtractQuotedField("{\"command\":\"stream\",\"codec\":\"h264\"}", "command", &value));
+  REQUIRE(value == "stream");
+  REQUIRE(JsonExtractQuotedField("{\"message\":\"hello \\\"zm\\\"\"}", "message", &value));
+  REQUIRE(value == "hello \"zm\"");
+  REQUIRE_FALSE(JsonExtractQuotedField("{\"command\":123}", "command", &value));
+}
+
+TEST_CASE("JsonExtractQuotedField reads only the field's own value") {
+  std::string value = "unchanged";
+  // The next string belongs to another field: a numeric command is not a command.
+  REQUIRE_FALSE(JsonExtractQuotedField("{\"command\":123,\"topic\":\"status\"}", "command", &value));
+  REQUIRE_FALSE(JsonExtractQuotedField("{\"command\":null,\"x\":\"y\"}", "command", &value));
+  REQUIRE(value == "unchanged");
+  // A key's name inside another field's string value is not that key.
+  REQUIRE(JsonExtractQuotedField("{\"request_id\":\"\\\"command\\\":\\\"x\\\"\",\"command\":\"stream\"}",
+                                 "command", &value));
+  REQUIRE(value == "stream");
+  // Nor is a key of a nested object.
+  REQUIRE(JsonExtractQuotedField("{\"opts\":{\"command\":\"inner\"},\"command\":\"outer\"}", "command", &value));
+  REQUIRE(value == "outer");
+  REQUIRE_FALSE(JsonExtractQuotedField("{\"opts\":{\"command\":\"inner\"}}", "command", &value));
+  REQUIRE(JsonExtractQuotedField("{ \"command\" : \"stream\" }", "command", &value));
+  REQUIRE(value == "stream");
+  REQUIRE_FALSE(JsonExtractQuotedField("{\"command\":\"unterminated}", "command", &value));
+  REQUIRE_FALSE(JsonExtractQuotedField("not json", "command", &value));
+}
+
+TEST_CASE("JsonExtract refuses a request that is not one complete object") {
+  // A WebSocket command is only run when the whole message parses: a truncated
+  // or padded one is refused rather than acted on.
+  std::string value;
+  int number;
+  REQUIRE_FALSE(JsonExtractQuotedField("{\"command\":\"status\"", "command", &value));
+  REQUIRE_FALSE(JsonExtractQuotedField("{\"command\":\"status\",", "command", &value));
+  REQUIRE_FALSE(JsonExtractQuotedField("{\"command\":\"status\",}", "command", &value));
+  REQUIRE_FALSE(JsonExtractQuotedField("{\"command\":\"status\"}x", "command", &value));
+  REQUIRE_FALSE(JsonExtractQuotedField("{\"command\":\"status\"}{}", "command", &value));
+  REQUIRE_FALSE(JsonExtractQuotedField("{\"command\":\"status\",\"x\":{\"y\":[1,2}}", "command", &value));
+  REQUIRE_FALSE(JsonExtractQuotedField("{\"command\":\"status\",\"x\":[1,2}", "command", &value));
+  REQUIRE_FALSE(JsonExtractQuotedField("{\"command\":\"status\" \"topic\":\"x\"}", "command", &value));
+  REQUIRE_FALSE(JsonExtractIntegerField("{\"interval_ms\":250", "interval_ms", &number));
+  REQUIRE_FALSE(JsonExtractIntegerField("{\"interval_ms\":250,\"topic\":", "interval_ms", &number));
+
+  REQUIRE(JsonExtractQuotedField("{\"command\":\"status\",\"x\":{\"y\":[1,{\"z\":2}]}}\n", "command", &value));
+  REQUIRE(value == "status");
+  REQUIRE(JsonExtractIntegerField(" {\"topic\":\"stream\",\"interval_ms\":250} ", "interval_ms", &number));
+  REQUIRE(number == 250);
+}
+
+TEST_CASE("JsonExtract refuses a request with a malformed value anywhere in it") {
+  // Members the server does not read are still checked, so a message that is
+  // not JSON is not acted on.
+  std::string value;
+  for (const char *bad : {
+           "{\"command\":\"status\",\"x\":undefined}",
+           "{\"command\":\"status\",\"x\":tru}",
+           "{\"command\":\"status\",\"x\":[1,,2]}",
+           "{\"command\":\"status\",\"x\":[1,2,]}",
+           "{\"command\":\"status\",\"x\":[,]}",
+           "{\"command\":\"status\",\"x\":01}",
+           "{\"command\":\"status\",\"x\":1.}",
+           "{\"command\":\"status\",\"x\":.5}",
+           "{\"command\":\"status\",\"x\":1e}",
+           "{\"command\":\"status\",\"x\":+1}",
+           "{\"command\":\"status\",\"x\":{\"a\"}}",
+           "{\"command\":\"status\",\"x\":{1:2}}",
+           "{\"command\":\"status\",\"x\":{\"a\":1,}}",
+           "{\"command\":\"status\",\"x\":[\"a\" \"b\"]}"}) {
+    CAPTURE(bad);
+    REQUIRE_FALSE(JsonExtractQuotedField(bad, "command", &value));
+  }
+  // Nesting is limited, so a hostile message can't run the parser out of stack.
+  const std::string deep = "{\"command\":\"status\",\"x\":" + std::string(100, '[') + std::string(100, ']') + "}";
+  REQUIRE_FALSE(JsonExtractQuotedField(deep, "command", &value));
+
+  REQUIRE(JsonExtractQuotedField(
+      "{\"command\":\"status\",\"n\":-1.5e+3,\"z\":0,\"l\":[true,false,null,{\"k\":\"v\"}],\"e\":[],\"o\":{ }}",
+      "command", &value));
+  REQUIRE(value == "status");
+}
+
+TEST_CASE("JsonExtractQuotedField decodes escapes") {
+  std::string value;
+  REQUIRE(JsonExtractQuotedField("{\"v\":\"a\\nb\\tc\\\\d\\/e\"}", "v", &value));
+  REQUIRE(value == "a\nb\tc\\d/e");
+  REQUIRE(JsonExtractQuotedField("{\"v\":\"caf\\u00e9\"}", "v", &value));
+  REQUIRE(value == "caf\xc3\xa9");
+  REQUIRE(JsonExtractQuotedField("{\"v\":\"\\u20ac\"}", "v", &value));
+  REQUIRE(value == "\xe2\x82\xac");
+  // A surrogate pair is one code point.
+  REQUIRE(JsonExtractQuotedField("{\"v\":\"\\ud83d\\ude00\"}", "v", &value));
+  REQUIRE(value == "\xf0\x9f\x98\x80");
+  REQUIRE_FALSE(JsonExtractQuotedField("{\"v\":\"\\ud83d\"}", "v", &value));
+  REQUIRE_FALSE(JsonExtractQuotedField("{\"v\":\"\\u12\"}", "v", &value));
+  REQUIRE_FALSE(JsonExtractQuotedField("{\"v\":\"\\q\"}", "v", &value));
+}
+
+TEST_CASE("JsonExtractIntegerField") {
+  int value = 0;
+  REQUIRE(JsonExtractIntegerField("{\"interval_ms\":1000}", "interval_ms", &value));
+  REQUIRE(value == 1000);
+  REQUIRE(JsonExtractIntegerField("{\"interval_ms\":-25}", "interval_ms", &value));
+  REQUIRE(value == -25);
+  REQUIRE_FALSE(JsonExtractIntegerField("{\"interval_ms\":\"fast\"}", "interval_ms", &value));
+}
+
+TEST_CASE("JsonExtractIntegerField reads only the field's own value") {
+  int value = 7;
+  // The digits belong to another field.
+  REQUIRE_FALSE(JsonExtractIntegerField("{\"interval_ms\":\"fast\",\"request_id\":\"2000\"}", "interval_ms", &value));
+  REQUIRE_FALSE(JsonExtractIntegerField("{\"interval_ms\":true,\"n\":5}", "interval_ms", &value));
+  REQUIRE_FALSE(JsonExtractIntegerField("{\"interval_ms\":12abc}", "interval_ms", &value));
+  REQUIRE_FALSE(JsonExtractIntegerField("{\"interval_ms\":1-2}", "interval_ms", &value));
+  REQUIRE_FALSE(JsonExtractIntegerField("{\"interval_ms\":1.5}", "interval_ms", &value));
+  REQUIRE_FALSE(JsonExtractIntegerField("{\"interval_ms\":99999999999}", "interval_ms", &value));
+  REQUIRE(value == 7);
+  REQUIRE(JsonExtractIntegerField("{\"request_id\":\"\\\"interval_ms\\\":5\",\"interval_ms\": 250 }",
+                                  "interval_ms", &value));
+  REQUIRE(value == 250);
+}
+
+TEST_CASE("ExtractHeaderValue and HeaderContainsToken") {
+  const std::string request =
+      "GET / HTTP/1.1\r\n"
+      "Upgrade: websocket\r\n"
+      "Connection: keep-alive, Upgrade\r\n"
+      "Sec-WebSocket-Key: abc\r\n\r\n";
+
+  std::string value;
+  REQUIRE(ExtractHeaderValue(request, "upgrade", &value));
+  REQUIRE(value == "websocket");
+  REQUIRE(ExtractHeaderValue(request, "connection", &value));
+  REQUIRE(HeaderContainsToken(value, "upgrade"));
+  REQUIRE_FALSE(HeaderContainsToken(value, "close"));
 }
 
 TEST_CASE("ZM::clamp") {
@@ -282,6 +458,9 @@ TEST_CASE("QueryString") {
     REQUIRE(p != nullptr);
     REQUIRE(p->name() == "name1");
     REQUIRE(p->size() == 0);
+    // ?token= in a WebSocket or RTSP URL: has() is true, so the auth code reads
+    // firstValue(), which indexed an empty vector.
+    REQUIRE(p->firstValue().empty());
   }
 
   SECTION("no value and ampersand") {
@@ -581,4 +760,26 @@ TEST_CASE("url_for_log") {
     REQUIRE(out.find("pw") == std::string::npos);
     REQUIRE(out.find("eyJ") == std::string::npos);
   }
+}
+
+TEST_CASE("FileIdentity changes when a file is replaced at the same path") {
+  char dir_template[] = "/tmp/zm_file_identity_XXXXXX";
+  REQUIRE(mkdtemp(dir_template) != nullptr);
+  const std::string dir = dir_template;
+  const std::string path = dir + "/cert.pem";
+  const std::string renewed = dir + "/cert.pem.new";
+
+  REQUIRE(FileIdentity(path).empty());
+  { std::ofstream(path) << "old certificate"; }
+  const std::string original = FileIdentity(path);
+  REQUIRE_FALSE(original.empty());
+  REQUIRE(FileIdentity(path) == original);
+
+  // Renewal tools write the new file and rename it over the old one.
+  { std::ofstream(renewed) << "new certificate"; }
+  REQUIRE(rename(renewed.c_str(), path.c_str()) == 0);
+  REQUIRE(FileIdentity(path) != original);
+
+  unlink(path.c_str());
+  rmdir(dir.c_str());
 }

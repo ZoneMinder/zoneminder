@@ -732,6 +732,20 @@ bool PacketQueue::increment_it(packetqueue_iterator *it, bool wait) {
 // Increment it only considering packets for a given stream
 bool PacketQueue::increment_it(packetqueue_iterator *it, int stream_id) {
   std::lock_guard<std::mutex> lck(mutex);
+  return increment_it_locked(it, stream_id);
+}
+
+bool PacketQueue::increment_it_past(packetqueue_iterator *it, int stream_id,
+                                    const std::shared_ptr<ZMPacket> &packet) {
+  std::lock_guard<std::mutex> lck(mutex);
+  if (*it == pktQueue.end() || **it != packet) {
+    Debug(2, "Not incrementing %p, it no longer points at packet %d", it, packet->image_index);
+    return false;
+  }
+  return increment_it_locked(it, stream_id);
+}
+
+bool PacketQueue::increment_it_locked(packetqueue_iterator *it, int stream_id) {
   Debug(2, "Incrementing %p, queue size %zu, end? %d", it, pktQueue.size(), (*it == pktQueue.end()));
 
   if (*it == pktQueue.end()) {
@@ -747,7 +761,7 @@ bool PacketQueue::increment_it(packetqueue_iterator *it, int stream_id) {
     return true;
   }
   return false;
-}  // end bool PacketQueue::increment_it(packetqueue_iterator *it)
+}  // end bool PacketQueue::increment_it_locked(packetqueue_iterator *it, int stream_id)
 
 packetqueue_iterator *PacketQueue::get_event_start_packet_it(
   packetqueue_iterator snapshot_it,
@@ -901,6 +915,27 @@ packetqueue_iterator * PacketQueue::get_video_it(bool wait) {
   Debug(1, "Didn't find a keyframe for stream %d, so returning the it to it", video_stream_id);
   return it;
 }  // get video_it
+
+ZMPacketLock PacketQueue::get_newest_packet(int stream_id, const std::function<bool(const ZMPacket &)> &match,
+                                            packetqueue_iterator **it) {
+  if (it) *it = nullptr;
+  std::lock_guard<std::mutex> lck(mutex);
+  if (deleting or zm_terminate) return ZMPacketLock();
+
+  for (auto rit = pktQueue.rbegin(); rit != pktQueue.rend(); ++rit) {
+    const std::shared_ptr<ZMPacket> &packet = *rit;
+    if (!packet or !packet->packet or (packet->packet->stream_index != stream_id)) continue;
+    ZMPacketLock packet_lock(packet);
+    if (!packet_lock.trylock()) continue;
+    if (!match(*packet)) continue;
+    if (it) {
+      *it = new packetqueue_iterator(std::prev(rit.base()));
+      iterators.push_back(*it);
+    }
+    return packet_lock;
+  }
+  return ZMPacketLock();
+}
 
 void PacketQueue::free_it(packetqueue_iterator *it) {
   std::lock_guard<std::mutex> lck(mutex);

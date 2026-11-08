@@ -65,9 +65,15 @@ set(TEST_SOURCES
   zm_stream_socket_protocol.cpp
   zm_eventstream_hints.cpp
   zm_time.cpp
+  zm_tls.cpp
   zm_user_default_password.cpp
   zm_utils.cpp
   zm_videostore_m3u8.cpp
+  zm_websocket.cpp
+  zm_websocket_image.cpp
+  zm_websocket_peer_addr.cpp
+  zm_websocket_status.cpp
+  zm_websocket_stream_info.cpp
   zm_vector2.cpp
   zm_zone.cpp
   zm_zone_stride.cpp

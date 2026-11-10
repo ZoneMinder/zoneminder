@@ -17,6 +17,15 @@ if ($src === false) {
   echo "FAIL could not read config.php.in\n";
   exit(1);
 }
+// loadConfig() first runs at file scope, and ensureAuthHashSecret() reads the
+// constant, so the define must come before that call or every request dies with
+// "Undefined constant".
+$define_at = strpos($src, "define('ZM_AUTH_HASH_SECRET_DEFAULT'");
+$call_at = strpos($src, '$zm_config = loadConfig();');
+if ($define_at === false or $call_at === false or $define_at > $call_at) {
+  echo "FAIL ZM_AUTH_HASH_SECRET_DEFAULT must be defined before the first loadConfig() call\n";
+  exit(1);
+}
 foreach (array("/^define\('ZM_AUTH_HASH_SECRET_DEFAULT'.*?;$/m",
                '/^function ensureAuthHashSecret\(.*?^}$/ms') as $pattern) {
   if (!preg_match($pattern, $src, $matches)) {

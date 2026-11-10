@@ -151,12 +151,6 @@ class AppController extends Controller {
         } 
       } # end if token
 
-      if ( $user and ( $user->APIEnabled() != 1 ) ) {
-        ZM\Error('API disabled for: '.$user->Username());
-        throw new UnauthorizedException(__('API disabled for: '.$user->Username()));
-        $user = null;
-      }
-
       // We need to reject methods that are not authenticated
       // besides login and logout
       if ( strcasecmp($this->params->action, 'logout') ) {

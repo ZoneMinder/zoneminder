@@ -169,13 +169,7 @@ echo htmlSelect('user[HomeView]', $homeview_options, $User->HomeView(), ['class'
                       <th scope="row"><?php echo translate('MaxBandwidth') ?></th>
                       <td><?php echo htmlSelect('user[MaxBandwidth]', $bandwidths, $User->MaxBandwidth(), ['class'=>'form-control form-control-sm']) ?></td>
                     </tr>
-<?php   if (ZM_OPT_USE_API) { ?>
-                    <tr>
-                      <th scope="row"><?php echo translate('APIEnabled')?></th>
-                      <td><?php echo htmlSelect('user[APIEnabled]', $yesno, $User->APIEnabled(), ['class'=>'form-control form-control-sm']) ?></td>
-                    </tr>
 <?php
-      } // end if ZM_OPT_USE_API
     } // end if canEdit System
 ?>
                   </tbody>
@@ -184,7 +178,7 @@ echo htmlSelect('user[HomeView]', $homeview_options, $User->HomeView(), ['class'
             </div>
           </div><!--end row-->
 
-<?php if (ZM_OPT_USE_API && $User->Id() && $User->APIEnabled()) {
+<?php if (ZM_OPT_USE_API && $User->Id()) {
   // Determine profile name: ZM_WEB_TITLE if not default, else ZM_HOME_URL if not default, else 'ZoneMinder'
   $profileName = 'ZoneMinder';
   if (defined('ZM_WEB_TITLE') && ZM_WEB_TITLE !== 'ZoneMinder' && ZM_WEB_TITLE !== '') {

@@ -239,6 +239,28 @@ function loadConfigFiles() {
   return $file_config;
 }
 
+// ZM_AUTH_HASH_SECRET as shipped. It is public, so it must never sign or verify a token.
+// refs GHSA-wmcc-x64g-jr84
+define('ZM_AUTH_HASH_SECRET_DEFAULT', '...Change me to something unique...');
+
+// zm_create.sql is generated at build time, so a new install's Config table holds the
+// shipped default secret, and only zmupdate.pl -f replaces it, which not every install
+// runs. Replace a default or empty secret with a random one, unique to this server.
+// The UPDATE matches the old value, so concurrent first requests agree on one secret.
+function ensureAuthHashSecret($dbConn, $value) {
+  if (($value !== '') and ($value !== ZM_AUTH_HASH_SECRET_DEFAULT)) return $value;
+  try {
+    $dbConn->prepare('UPDATE Config SET Value=? WHERE Name=? AND Value=?')
+      ->execute(array(bin2hex(random_bytes(32)), 'ZM_AUTH_HASH_SECRET', $value));
+    $stmt = $dbConn->prepare('SELECT Value FROM Config WHERE Name=?');
+    $stmt->execute(array('ZM_AUTH_HASH_SECRET'));
+    return $stmt->fetchColumn();
+  } catch (Exception $e) {
+    error_log('Unable to generate ZM_AUTH_HASH_SECRET: '.$e->getMessage());
+    return $value;
+  }
+}
+
 function loadConfig( $defineConsts=true ) {
   $initial_config = loadConfigFiles();
 
@@ -271,6 +293,8 @@ function loadConfig( $defineConsts=true ) {
     echo mysql_error();
   while( $row = dbFetchNext($result) ) {
     $name = $row['Name'];
+    if (($name == 'ZM_AUTH_HASH_SECRET') and !isset($initial_config[$name]))
+      $row['Value'] = ensureAuthHashSecret($dbConn, $row['Value']);
 
     $config[$name] = $row;
     if (isset($initial_config[$name])) {

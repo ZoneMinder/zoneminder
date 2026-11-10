@@ -11,18 +11,19 @@
 // Run: php tests/php/test_auth_hash_secret_length.php
 //
 // Including auth.php needs a database (User.php pulls in database.php), so the
-// constants and the function are lifted out of the file, as
+// constants (the default from config.php.in) and the function are lifted out, as
 // test_auth_request_string.php does.
 $auth_src = file_get_contents(__DIR__.'/../../web/includes/auth.php');
 if ($auth_src === false) {
   echo "FAIL could not read auth.php\n";
   exit(1);
 }
-foreach (array("/^define\('ZM_AUTH_HASH_SECRET_DEFAULT'.*?;$/m",
-               "/^define\('ZM_AUTH_HASH_SECRET_MIN_LENGTH'.*?;$/m",
-               '/^function authHashSecretValid\(.*?^}$/ms') as $pattern) {
-  if (!preg_match($pattern, $auth_src, $matches)) {
-    echo "FAIL $pattern not found in auth.php\n";
+$config_src = file_get_contents(__DIR__.'/../../web/includes/config.php.in');
+foreach (array(array($config_src, "/^define\('ZM_AUTH_HASH_SECRET_DEFAULT'.*?;$/m"),
+               array($auth_src, "/^define\('ZM_AUTH_HASH_SECRET_MIN_LENGTH'.*?;$/m"),
+               array($auth_src, '/^function authHashSecretValid\(.*?^}$/ms')) as list($src, $pattern)) {
+  if (!preg_match($pattern, $src, $matches)) {
+    echo "FAIL $pattern not found\n";
     exit(1);
   }
   eval($matches[0]);

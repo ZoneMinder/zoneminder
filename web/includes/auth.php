@@ -332,9 +332,7 @@ function userLogout() {
   zm_session_clear();
 }
 
-// ZM_AUTH_HASH_SECRET as shipped. It is public, so it must never sign or verify a token.
-// zmupdate.pl -f replaces it with a random secret. refs GHSA-wmcc-x64g-jr84
-define('ZM_AUTH_HASH_SECRET_DEFAULT', '...Change me to something unique...');
+// ZM_AUTH_HASH_SECRET_DEFAULT, the public shipped secret, is defined in config.php.
 // The secret is the HS256 token key, and php-jwt refuses an HMAC key shorter than
 // the hash (256 bits). zmupdate.pl -f extends a shorter one by repeating it.
 define('ZM_AUTH_HASH_SECRET_MIN_LENGTH', 32);

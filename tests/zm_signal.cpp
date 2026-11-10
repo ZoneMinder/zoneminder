@@ -17,6 +17,7 @@
 
 #include "zm_catch2.h"
 
+#include "zm_config.h"
 #include "zm_signal.h"
 
 #include <csignal>
@@ -403,4 +404,48 @@ TEST_CASE("a stderr pipe with no reader does not stop the crash report", "[signa
   REQUIRE(WTERMSIG(status) == SIGSEGV);
   REQUIRE(read_file(log_path).find("Got signal 11") != std::string::npos);
   unlink(log_path);
+}
+
+TEST_CASE("the die handler leaves no core dump when ZM_DUMP_CORES is off", "[signal]") {
+  // In a child, as it changes process limits and handlers.
+  pid_t pid = fork();
+  REQUIRE(pid >= 0);
+  if (pid == 0) {
+    struct rlimit core;
+    getrlimit(RLIMIT_CORE, &core);
+    rlim_t hard = core.rlim_max;
+    core.rlim_cur = hard;
+    setrlimit(RLIMIT_CORE, &core);
+
+    config.dump_cores = false;
+    zmSetDefaultDieHandler();
+    getrlimit(RLIMIT_CORE, &core);
+    // The soft limit is what stops the dump; the hard limit is left alone.
+    _exit(core.rlim_cur == 0 and core.rlim_max == hard ? 0 : 1);
+  }
+  int status = 0;
+  waitpid(pid, &status, 0);
+  REQUIRE(WIFEXITED(status));
+  REQUIRE(WEXITSTATUS(status) == 0);
+}
+
+TEST_CASE("the core size limit is left alone when ZM_DUMP_CORES is on", "[signal]") {
+  pid_t pid = fork();
+  REQUIRE(pid >= 0);
+  if (pid == 0) {
+    struct rlimit core;
+    getrlimit(RLIMIT_CORE, &core);
+    core.rlim_cur = core.rlim_max;
+    setrlimit(RLIMIT_CORE, &core);
+    rlim_t before = core.rlim_cur;
+
+    config.dump_cores = true;
+    zmSetDefaultDieHandler();
+    getrlimit(RLIMIT_CORE, &core);
+    _exit(core.rlim_cur == before ? 0 : 1);
+  }
+  int status = 0;
+  waitpid(pid, &status, 0);
+  REQUIRE(WIFEXITED(status));
+  REQUIRE(WEXITSTATUS(status) == 0);
 }

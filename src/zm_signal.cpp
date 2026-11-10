@@ -26,6 +26,7 @@
 #include <cstring>
 #include <fcntl.h>
 #include <memory>
+#include <sys/resource.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <syslog.h>
@@ -599,6 +600,14 @@ void zmSetDefaultDieHandler() {
   if ( config.dump_cores ) {
     // Do nothing
   } else {
+    // The die handler ends the process on the fault itself, which leaves a core
+    // dump wherever the core size limit allows one. Lower the soft limit to keep
+    // to ZM_DUMP_CORES off; the hard limit is left, so it can be raised again.
+    struct rlimit core;
+    if (getrlimit(RLIMIT_CORE, &core) == 0) {
+      core.rlim_cur = 0;
+      setrlimit(RLIMIT_CORE, &core);
+    }
     zmSetDieHandler(zm_die_handler);
   }
 }

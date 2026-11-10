@@ -52,6 +52,36 @@ $none = rtrim(strtr(base64_encode('{"alg":"none","typ":"JWT"}'), '+/', '-_'), '=
   rtrim(strtr(base64_encode('{"user":"admin","type":"access"}'), '+/', '-_'), '=').'.';
 check('alg none is refused', is_string(decodes($none, $secret)), true);
 
+// php-jwt 7 passes the header's kid to a ?string parameter, so a kid that is not a
+// string throws TypeError, which is not an Exception, before the signature is checked.
+// validateToken() must turn that into a refusal, not a 500.
+$b64 = function ($s) { return rtrim(strtr(base64_encode($s), '+/', '-_'), '='); };
+$bad_kid = $b64('{"alg":"HS256","typ":"JWT","kid":[]}').'.'.$b64('{"user":"admin","type":"access"}').'.x';
+try {
+  JWT::decode($bad_kid, new Key($secret, 'HS256'));
+  $thrown = 'nothing';
+} catch (Throwable $e) {
+  $thrown = get_class($e);
+}
+check('a non-string kid makes php-jwt throw TypeError', $thrown, 'TypeError');
+
+eval('namespace ZM; function Error($m) {}');
+define('ZM_AUTH_HASH_SECRET', $secret);
+define('ZM_AUTH_HASH_SECRET_MIN_LENGTH', 32);
+function authHashSecretIsSet() { return true; }
+if (!preg_match('/^function validateToken\(.*?^}$/ms', file_get_contents(__DIR__.'/../../web/includes/auth.php'), $m)) {
+  echo "FAIL validateToken not found in auth.php\n";
+  exit(1);
+}
+eval('use Firebase\JWT\JWT; use Firebase\JWT\Key; '.$m[0]);
+try {
+  $result = validateToken($bad_kid);
+  $result = $result[0];
+} catch (Throwable $e) {
+  $result = get_class($e);
+}
+check('validateToken() refuses a token with a non-string kid', $result, false);
+
 // Every decode in the web code and these tests must use the Key form.
 $v5_calls = array();
 foreach (array_merge(array('web/includes/auth.php', 'web/api/app/Controller/HostController.php'),

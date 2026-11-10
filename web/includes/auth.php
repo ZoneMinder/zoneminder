@@ -352,7 +352,8 @@ function validateToken($token, $allowed_token_type='access') {
   //if (ZM_AUTH_HASH_IPS) $key .= $_SERVER['REMOTE_ADDR'];
   try {
     $decoded_token = JWT::decode($token, new Key($key, 'HS256'));
-  } catch (Exception $e) {
+  } catch (Throwable $e) {
+    // Throwable, not Exception: php-jwt throws TypeError on a malformed header (a non-string kid).
     ZM\Error("Unable to authenticate user. error decoding JWT token:".$e->getMessage());
     return array(false, $e->getMessage());
   }

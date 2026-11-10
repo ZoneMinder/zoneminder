@@ -548,6 +548,10 @@ void zmSetDieHandler(
 ) {
   sigset_t block_set;
   sigemptyset(&block_set);
+  // A report written to a stderr pipe whose reader has gone then fails with
+  // EPIPE instead of SIGPIPE killing the process before the report reaches the
+  // log file and syslog. Only zms handles SIGPIPE; elsewhere it is fatal.
+  sigaddset(&block_set, SIGPIPE);
   struct sigaction action, old_action;
 
   // Run the handler on a dedicated stack so a stack-overflow fault (SIGSEGV on

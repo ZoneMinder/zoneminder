@@ -380,3 +380,27 @@ TEST_CASE("a stderr nobody reads does not hang the crash report", "[signal]") {
   REQUIRE(WIFSIGNALED(status));
   REQUIRE(WTERMSIG(status) == SIGSEGV);
 }
+
+TEST_CASE("a stderr pipe with no reader does not stop the crash report", "[signal]") {
+  char log_path[] = "/tmp/zm_signal_test_XXXXXX";
+  int log = mkstemp(log_path);
+  REQUIRE(log >= 0);
+
+  std::string captured;
+  int status = run_crashing_child(captured, [&] {
+    signal(SIGPIPE, SIG_DFL);
+    zmSetCrashLogFile(log);
+    int p[2];
+    if (pipe(p) != 0) _exit(43);
+    close(p[0]);
+    dup2(p[1], STDERR_FILENO);
+    raise(SIGSEGV);
+  });
+  close(log);
+
+  // Not SIGPIPE from the first write to stderr: the report goes on to the log.
+  REQUIRE(WIFSIGNALED(status));
+  REQUIRE(WTERMSIG(status) == SIGSEGV);
+  REQUIRE(read_file(log_path).find("Got signal 11") != std::string::npos);
+  unlink(log_path);
+}

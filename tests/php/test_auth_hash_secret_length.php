@@ -72,5 +72,12 @@ if (file_exists($autoload)) {
   }
 }
 
+// The API must check the value Model::set() will save: Config[Value], or a bare
+// Value when there is no Config entry. Reading only Config[Value] let
+// {"Value":"short"} through.
+$configs_src = file_get_contents(__DIR__.'/../../web/api/app/Controller/ConfigsController.php');
+check('the API Configs editor reads the secret through requestField()',
+  strpos($configs_src, "requestField('Config', 'Value')") !== false, true);
+
 echo "\n$passes passed, $failures failed\n";
 exit($failures ? 1 : 0);

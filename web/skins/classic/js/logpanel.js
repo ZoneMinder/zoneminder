@@ -192,11 +192,10 @@ function initLogPanel(panel) {
   function manageClearButtonAvailability(enable = null) {
     const selections = table.bootstrapTable('getSelections');
     if (clearBtn.length) {
-      if (enable === false || !selections.length) {
-        clearBtn.prop('disabled', true);
-      } else if (enable === true || selections.length) {
-        clearBtn.prop('disabled', false);
-      }
+      // The button is always available: with rows selected it clears those,
+      // with none selected it clears every entry matching the current filter.
+      // It is only disabled while a delete is in progress (enable === false).
+      clearBtn.prop('disabled', enable === false);
     }
 
     if (selections.length) {
@@ -295,12 +294,73 @@ function initLogPanel(panel) {
     });
   }
 
+  // Collect the filter the Log view is currently showing, in the same shape the
+  // query request sends it, so a "clear all" removes exactly those entries.
+  function currentFilterData() {
+    const data = {};
+    const serverId = $panel.find('.logPanel-server').val();
+    if (serverId) data.ServerId = serverId;
+    const levels = $panel.find('.logPanel-level').val();
+    if (levels && levels.length) data.level = levels;
+    if (lockedComponents) {
+      data.Component = lockedComponents;
+      data.embedded = 1;
+    } else {
+      const components = $panel.find('.logPanel-component').val();
+      if (components && components.length) data.Component = components;
+    }
+    if ($panel.find('.logPanel-start').val()) data.StartDateTime = $panel.find('.logPanel-start').val();
+    if ($panel.find('.logPanel-end').val()) data.EndDateTime = $panel.find('.logPanel-end').val();
+    const searchText = table.bootstrapTable('getOptions').searchText;
+    if (searchText) data.search = searchText;
+    return data;
+  }
+
+  // Delete every log entry matching the current filter, across all pages. The
+  // server applies the same WHERE the query uses; with no filter it empties the
+  // table.
+  function clearFilteredLogs() {
+    manageClearButtonAvailability(false);
+    const handlerAlert = zmAlert(i18n["DeletingRowsFromTable"]);
+    $j.ajax({
+      method: 'post',
+      timeout: 0,
+      url: thisUrl + '?request=log&task=delete',
+      data: currentFilterData(),
+      success: function() {
+        allowRequest = true;
+        table.bootstrapTable('refresh');
+        updateRequestStatus("in process");
+        if (handlerAlert) closeZmAlert(handlerAlert);
+      },
+      error: function(jqxhr) {
+        logAjaxFail(jqxhr);
+        allowRequest = true;
+        table.bootstrapTable('refresh');
+        updateRequestStatus("error");
+        if (handlerAlert) closeZmAlert(handlerAlert);
+        zmAlert(i18n["Reason"] + ": " + jqxhr.statusText + "~~" + i18n["ErrorDeletingRowFromLogTable"], i18n["AJAXRequestError"]);
+      }
+    });
+  }
+
+  // Clear selected rows if any are selected, otherwise clear everything the
+  // current filter matches.
+  function clearLogs() {
+    const ids = getIdSelections();
+    if (ids.length) {
+      deleteLogs(ids);
+    } else {
+      clearFilteredLogs();
+    }
+  }
+
   function manageClearLogsModalBtns() {
     document.getElementById('clearLogsConfirmBtn').addEventListener('click', function onClearLogsConfirmClick(evt) {
       evt.preventDefault();
       $j('#clearLogsConfirm').modal('hide');
       document.getElementById('clearLogsConfirmBtn').disabled = true;
-      deleteLogs(getIdSelections());
+      clearLogs();
     });
     $j('#clearLogsConfirm').on('hide.bs.modal', function onClearLogsConfirmHidden(evt) {
       const idRelatedTarget = $j(document.activeElement).attr('id');
@@ -412,18 +472,27 @@ function initLogPanel(panel) {
     window.location.reload(true);
   });
 
+  // Set the confirmation prompt to match what the button will do: clear the
+  // selected rows, or clear everything matching the current filter.
+  function setClearLogsConfirmText() {
+    const p = document.querySelector('#clearLogsConfirm .modal-body p');
+    if (!p) return;
+    p.textContent = getIdSelections().length ? i18n["ConfirmClearLogs"] : i18n["ConfirmClearAllLogs"];
+  }
+
   clearBtn.on('click', function onClearLogsClick(evt) {
     manageClearButtonAvailability(false);
     evt.preventDefault();
     if (evt.ctrlKey) {
       // Bypass confirmation
-      deleteLogs(getIdSelections());
+      clearLogs();
     } else {
       if (!document.getElementById('clearLogsConfirm')) {
         $j.getJSON(thisUrl + '?request=modal&modal=clearlogsconfirm')
             .done(function(data) {
               insertModalHtml('clearLogsConfirm', data.html);
               manageClearLogsModalBtns();
+              setClearLogsConfirmText();
               $j('#clearLogsConfirm').modal('show');
             })
             .fail(function(jqXHR) {
@@ -433,6 +502,7 @@ function initLogPanel(panel) {
             });
       } else {
         document.getElementById('clearLogsConfirmBtn').disabled = false;
+        setClearLogsConfirmText();
         $j('#clearLogsConfirm').modal('show');
       }
     }

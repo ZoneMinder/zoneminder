@@ -71,7 +71,8 @@ function getLogPanelHTML($options=array()) {
   # views/js/<view>.js.php defining a translate object. Carry its own strings.
   $strings = array();
   foreach (array('Reason', 'AJAXRequestError', 'ErrorUpdatingLogTable',
-    'ErrorDeletingRowFromLogTable', 'DeletingRowsFromTable') as $string) {
+    'ErrorDeletingRowFromLogTable', 'DeletingRowsFromTable',
+    'ConfirmClearLogs', 'ConfirmClearAllLogs') as $string) {
     $strings[$string] = translate($string);
   }
 

@@ -320,6 +320,7 @@ $SLANG = array(
     'ConfigURL'             => 'Config Base URL',
     'ConfirmAction'         => 'Action Confirmation',
     'ConfirmClearLogs'      => 'Are you sure you wish to delete the selected log entries?',
+    'ConfirmClearAllLogs'   => 'No log entries are selected. This will delete ALL log entries matching the current filter, across every page. This cannot be undone.',
     'ConfirmClearLogsTitle' => 'Clear Logs Confirmation',
     'ConfirmDeleteControl'  => 'Warning, deleting a control will reset all monitors that use it to be uncontrollable.<br><br>Are you sure you wish to delete?',
     'ConfirmDeleteFiles'    => 'Are you sure you wish to delete the selected files?',

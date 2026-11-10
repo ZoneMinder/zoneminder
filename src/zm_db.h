@@ -23,8 +23,10 @@
 #include <condition_variable>
 #include <cstdint>
 #include <mutex>
-#include <mysql/mysql.h>
-#include <mysql/mysqld_error.h>
+// MYSQLCLIENT_INCLUDE_DIR (CMakeLists.txt) is on the include path: the headers'
+// directory is include/mysql for libmysqlclient and include/mariadb for libmariadb.
+#include <mysql.h>
+#include <mysqld_error.h>
 #include <queue>
 #include <string>
 #include <thread>

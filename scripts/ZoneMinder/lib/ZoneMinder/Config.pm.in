@@ -217,11 +217,19 @@ sub loadConfigFromDB {
 # ZM_AUTH_HASH_SECRET signs API/login tokens and keys the auth hash and CSRF tokens. The
 # shipped default is public, so replace it, or an empty value, with a random secret the
 # first time the config is saved on this system. refs GHSA-wmcc-x64g-jr84
+# A secret the user set that is too short to be a token key is extended instead.
 sub generateAuthHashSecret {
   my $option = $ZoneMinder::ConfigData::options_hash{ZM_AUTH_HASH_SECRET};
   return if !$option;
-  return if defined($option->{value}) and $option->{value} ne ''
-    and $option->{value} ne $option->{default};
+  if ( defined($option->{value}) and $option->{value} ne ''
+    and $option->{value} ne $option->{default} ) {
+    my $value = extendAuthHashSecret($option->{value});
+    if ( $value ne $option->{value} ) {
+      $option->{value} = $value;
+      print("Extended ZM_AUTH_HASH_SECRET to ".length($value)." characters by repeating it; API tokens need at least 32.\n");
+    }
+    return;
+  }
 
   my $bytes;
   if ( open(my $fh, '<:raw', '/dev/urandom') ) {

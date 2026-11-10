@@ -217,6 +217,10 @@ class ConfigsController extends AppController {
 			if (!empty($config['Config']['Readonly'])) {
 				throw new ForbiddenException(__('Cannot edit a readonly Config entry'));
 			}
+			if (($config['Config']['Name'] == 'ZM_AUTH_HASH_SECRET') and isset($this->request->data['Config']['Value'])
+				and !authHashSecretValid($this->request->data['Config']['Value'])) {
+				throw new BadRequestException(__('ZM_AUTH_HASH_SECRET must be at least %d characters long', ZM_AUTH_HASH_SECRET_MIN_LENGTH));
+			}
 			if ($this->Config->save($this->request->data)) {
 				return $this->flash(__('The config has been saved.'), array('action' => 'index'));
 			}

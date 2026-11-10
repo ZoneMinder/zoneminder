@@ -335,15 +335,23 @@ function userLogout() {
 // ZM_AUTH_HASH_SECRET as shipped. It is public, so it must never sign or verify a token.
 // zmupdate.pl -f replaces it with a random secret. refs GHSA-wmcc-x64g-jr84
 define('ZM_AUTH_HASH_SECRET_DEFAULT', '...Change me to something unique...');
+// The secret is the HS256 token key, and php-jwt refuses an HMAC key shorter than
+// the hash (256 bits). zmupdate.pl -f extends a shorter one by repeating it.
+define('ZM_AUTH_HASH_SECRET_MIN_LENGTH', 32);
+
+function authHashSecretValid($secret) {
+  return is_string($secret) and (strlen($secret) >= ZM_AUTH_HASH_SECRET_MIN_LENGTH)
+    and ($secret !== ZM_AUTH_HASH_SECRET_DEFAULT);
+}
 
 function authHashSecretIsSet() {
-  return (ZM_AUTH_HASH_SECRET !== '') and (ZM_AUTH_HASH_SECRET !== ZM_AUTH_HASH_SECRET_DEFAULT);
+  return authHashSecretValid(ZM_AUTH_HASH_SECRET);
 }
 
 function validateToken($token, $allowed_token_type='access') {
   global $user;
   if (!authHashSecretIsSet()) {
-    ZM\Error('Refusing token authentication: ZM_AUTH_HASH_SECRET is empty or still the shipped default. Set it in Options->System or run zmupdate.pl -f.');
+    ZM\Error('Refusing token authentication: ZM_AUTH_HASH_SECRET is empty, shorter than '.ZM_AUTH_HASH_SECRET_MIN_LENGTH.' characters or still the shipped default. Set it in Options->System or run zmupdate.pl -f.');
     return array(false, 'AUTH_HASH_SECRET is not set');
   }
   $key = ZM_AUTH_HASH_SECRET;

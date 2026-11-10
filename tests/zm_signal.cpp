@@ -366,3 +366,17 @@ TEST_CASE("a stack overflow on a worker thread is reported", "[signal]") {
   REQUIRE((WTERMSIG(status) == SIGSEGV || WTERMSIG(status) == SIGBUS));
   REQUIRE(captured.find("Got signal") != std::string::npos);
 }
+
+TEST_CASE("a stderr nobody reads does not hang the crash report", "[signal]") {
+  std::string captured;
+  int status = run_crashing_child(captured, [] {
+    // As a daemon run by hand whose output pipe has stopped being read.
+    dup2(blocking_full_pipe(), STDERR_FILENO);
+    raise(SIGSEGV);
+  });
+
+  // The report is cut short and the process dies of the fault; run_crashing_child
+  // fails the test if its watchdog had to end it instead.
+  REQUIRE(WIFSIGNALED(status));
+  REQUIRE(WTERMSIG(status) == SIGSEGV);
+}

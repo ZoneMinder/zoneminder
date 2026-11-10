@@ -66,6 +66,14 @@ std::atomic<int> crash_syslog_fd{-1};
 // std::atomic_flag is the one type guaranteed lock-free.
 std::atomic_flag crash_reporting = ATOMIC_FLAG_INIT;
 
+// The longest the crash report may take. A write that blocks for good, such as
+// to a stderr pipe nobody reads, would otherwise leave the process hung with the
+// fault unreported to zmdc; when this runs out the process dies of the fault.
+constexpr unsigned kCrashReportSeconds = 5;
+
+// The signal being reported, for the timeout to die of.
+std::atomic<int> crash_signal{0};
+
 // Set while this thread is in the die handler, so a fault inside the handler
 // itself ends the process at once instead of looping.
 thread_local volatile sig_atomic_t in_die_handler = 0;
@@ -197,6 +205,27 @@ const char *crash_signal_name(int signal) {
   _exit(-1);  // Fallback if raise() somehow did not terminate us.
 }
 
+// The crash report has taken too long: end the process on the signal it was
+// reporting.
+void crash_report_timeout(int) {
+  die_of(crash_signal.load());
+}
+
+// Bound the time left for the crash report of signal. alarm() and sigaction()
+// are async-signal-safe, and nothing else in ZoneMinder uses SIGALRM.
+void limit_crash_report(int signal) {
+  crash_signal = signal;
+  struct sigaction timeout = {};
+  timeout.sa_handler = crash_report_timeout;
+  timeout.sa_flags = SA_ONSTACK;
+  sigaction(SIGALRM, &timeout, nullptr);
+  sigset_t unblock;
+  sigemptyset(&unblock);
+  sigaddset(&unblock, SIGALRM);
+  sigprocmask(SIG_UNBLOCK, &unblock, nullptr);
+  alarm(kCrashReportSeconds);
+}
+
 // This thread's alternate signal stack, released when the thread ends.
 struct ThreadAltStack {
   std::unique_ptr<char[]> mem;
@@ -294,6 +323,7 @@ RETSIGTYPE zm_die_handler(int signal)
     for (int i = 0; i < 3; i++) sleep(1);
     die_of(signal);
   }
+  limit_crash_report(signal);
 
   // Everything below is emitted with async-signal-safe write(2) only. We do not
   // touch the database, the log queue or the Logger from the handler: closing

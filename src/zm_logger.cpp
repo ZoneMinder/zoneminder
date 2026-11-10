@@ -437,8 +437,8 @@ void Logger::openFile() {
       mFileLevel = NOLOG;
       Error("fopen() for %s %zu, error = %s", mLogFile.c_str(), mLogFile.size(), strerror(errno));
     } else {
-      // Publish the descriptor for the crash handler to write(2) to directly.
-      zm_crash_log_fd = fileno(mLogFileFP);
+      // The crash handler writes to this file with write(2), not through the Logger.
+      zmSetCrashLogFile(fileno(mLogFileFP));
     }
   } else {
     puts("Called Logger::openFile() without a filename");
@@ -447,7 +447,6 @@ void Logger::openFile() {
 
 void Logger::closeFile() {
   if (mLogFileFP) {
-    zm_crash_log_fd = -1;
     fflush(mLogFileFP);
     if (fclose(mLogFileFP) < 0) {
       mLogFileFP = nullptr;
@@ -462,6 +461,8 @@ void Logger::closeDatabase() {
 
 void Logger::openSyslog() {
   (void) openlog(mId.c_str(), LOG_PID|LOG_NDELAY, LOG_LOCAL1);
+  // The crash handler can't call syslog(); it sends to its own socket instead.
+  zmSetCrashSyslog(mId.c_str());
 }
 
 void Logger::closeSyslog() {

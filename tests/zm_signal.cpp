@@ -21,9 +21,14 @@
 
 #include <csignal>
 #include <cstdlib>
+#include <cstring>
 #include <fcntl.h>
+#include <functional>
+#include <pthread.h>
 #include <string>
 #include <sys/resource.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -37,20 +42,37 @@ RETSIGTYPE zm_die_handler(int signal);
 
 namespace {
 
-// Fork a child, install the die handler, raise SIGSEGV, and collect whatever
-// the handler wrote to stderr. When use_log_fd is set, the child also points
-// zm_crash_log_fd at a temp file whose contents are returned in log_contents.
-// Returns the raw wait(2) status.
-int run_crashing_child(std::string &captured, bool use_log_fd, std::string &log_contents) {
+std::string read_all(int fd) {
+  std::string contents;
+  char buf[4096];
+  ssize_t n;
+  while ((n = read(fd, buf, sizeof(buf))) > 0)
+    contents.append(buf, static_cast<size_t>(n));
+  return contents;
+}
+
+std::string read_file(const char *path) {
+  std::string contents;
+  int fd = open(path, O_RDONLY);
+  if (fd >= 0) {
+    contents = read_all(fd);
+    close(fd);
+  }
+  return contents;
+}
+
+size_t count(const std::string &haystack, const std::string &needle) {
+  size_t n = 0;
+  for (size_t pos = haystack.find(needle); pos != std::string::npos; pos = haystack.find(needle, pos + 1)) n++;
+  return n;
+}
+
+// Fork a child that installs the die handler, runs crash() (which is expected
+// to end the process with a signal), and collect what the handler wrote to
+// stderr in captured. Returns the raw wait(2) status.
+int run_crashing_child(std::string &captured, const std::function<void()> &crash) {
   int err_pipe[2];
   REQUIRE(pipe(err_pipe) == 0);
-
-  char log_path[] = "/tmp/zm_signal_test_XXXXXX";
-  int log_fd = -1;
-  if (use_log_fd) {
-    log_fd = mkstemp(log_path);
-    REQUIRE(log_fd >= 0);
-  }
 
   pid_t pid = fork();
   REQUIRE(pid >= 0);
@@ -60,45 +82,80 @@ int run_crashing_child(std::string &captured, bool use_log_fd, std::string &log_
     setrlimit(RLIMIT_CORE, &no_core);
     close(err_pipe[0]);
     dup2(err_pipe[1], STDERR_FILENO);
-    if (use_log_fd)
-      zm_crash_log_fd = log_fd;
+    close(err_pipe[1]);
+    // A handler stuck in its report fails the test with SIGALRM instead of
+    // hanging it.
+    alarm(10);
     zmSetDieHandler(zm_die_handler);
-    raise(SIGSEGV);
+    crash();
     // Reaching here means the handler failed to end the process.
     _exit(42);
   }
 
   // Parent.
   close(err_pipe[1]);
-  if (log_fd >= 0)
-    close(log_fd);
-
-  char buf[4096];
-  ssize_t n;
-  while ((n = read(err_pipe[0], buf, sizeof(buf))) > 0)
-    captured.append(buf, static_cast<size_t>(n));
+  captured = read_all(err_pipe[0]);
   close(err_pipe[0]);
 
   int status = 0;
   waitpid(pid, &status, 0);
-
-  if (use_log_fd) {
-    int rfd = open(log_path, O_RDONLY);
-    if (rfd >= 0) {
-      while ((n = read(rfd, buf, sizeof(buf))) > 0)
-        log_contents.append(buf, static_cast<size_t>(n));
-      close(rfd);
-    }
-    unlink(log_path);
-  }
   return status;
+}
+
+// A pipe nobody reads, filled up, so the next write(2) to it blocks: pointed
+// at by the crash log, it holds the handler mid-report.
+int blocking_full_pipe() {
+  int p[2];
+  REQUIRE(pipe(p) == 0);
+  fcntl(p[1], F_SETFL, O_NONBLOCK);
+  char fill[4096] = {};
+  while (write(p[1], fill, sizeof(fill)) > 0) {}
+  fcntl(p[1], F_SETFL, 0);
+  return p[1];  // The read end stays open and unread.
+}
+
+struct DelayedSignal {
+  pthread_t target;
+  int signal;
+};
+
+// Send a signal to a thread after it has had time to block in the handler.
+void *send_signal_later(void *arg) {
+  auto *delayed = static_cast<DelayedSignal *>(arg);
+  usleep(200 * 1000);
+  pthread_kill(delayed->target, delayed->signal);
+  return nullptr;
+}
+
+// Fault on this thread after another has had time to start its report.
+void *segfault_later(void *) {
+  usleep(200 * 1000);
+  raise(SIGSEGV);
+  return nullptr;
+}
+
+// Recurse until the stack overflows. The volatile buffer keeps each frame
+// from being optimised away or turned into a loop.
+volatile bool stop_overflow = false;
+
+int overflow(int depth) {
+  if (stop_overflow) return depth;
+  volatile char frame[1024];
+  frame[0] = static_cast<char>(depth);
+  return overflow(depth + 1) + frame[0];
+}
+
+void *overflow_thread(void *) {
+  zmSetThreadAltStack();
+  overflow(0);
+  return nullptr;
 }
 
 }  // namespace
 
 TEST_CASE("zm_die_handler dies of the real signal rather than exiting from the handler", "[signal]") {
-  std::string captured, unused;
-  int status = run_crashing_child(captured, false, unused);
+  std::string captured;
+  int status = run_crashing_child(captured, [] { raise(SIGSEGV); });
 
   // The process must terminate because of the signal itself, not an exit() or
   // _exit() call made from inside the handler.
@@ -106,16 +163,119 @@ TEST_CASE("zm_die_handler dies of the real signal rather than exiting from the h
   REQUIRE(WTERMSIG(status) == SIGSEGV);
   REQUIRE_FALSE(WIFEXITED(status));
 
-  // It must have written the crash report before re-raising.
-  REQUIRE(captured.find("Got signal") != std::string::npos);
-  REQUIRE(captured.find("crashing") != std::string::npos);
+  // It must have written the crash report, formatted without printf, before
+  // re-raising.
+  REQUIRE(captured.find("Got signal 11 (SIGSEGV, Segmentation fault), crashing\n") != std::string::npos);
 }
 
-TEST_CASE("zm_die_handler also writes the crash report to the published log fd", "[signal]") {
-  std::string captured, log_contents;
-  int status = run_crashing_child(captured, true, log_contents);
+TEST_CASE("zm_die_handler writes to the log file most recently set, not one closed since", "[signal]") {
+  char first_path[] = "/tmp/zm_signal_test_XXXXXX";
+  char second_path[] = "/tmp/zm_signal_test_XXXXXX";
+  int first = mkstemp(first_path);
+  int second = mkstemp(second_path);
+  REQUIRE(first >= 0);
+  REQUIRE(second >= 0);
+
+  std::string captured;
+  int status = run_crashing_child(captured, [&] {
+    // As a log rotation does: open the new file and close the old one. The
+    // numbers they had are free for reuse, yet the report reaches the new file.
+    zmSetCrashLogFile(first);
+    close(first);
+    zmSetCrashLogFile(second);
+    close(second);
+    int unrelated = open("/dev/null", O_WRONLY);
+    (void)unrelated;
+    raise(SIGSEGV);
+  });
+  close(first);
+  close(second);
+
+  REQUIRE(WIFSIGNALED(status));
+  REQUIRE(read_file(first_path).empty());
+  REQUIRE(read_file(second_path).find("Got signal") != std::string::npos);
+  unlink(first_path);
+  unlink(second_path);
+}
+
+TEST_CASE("zm_die_handler sends the crash report to syslog", "[signal]") {
+  char dir[] = "/tmp/zm_signal_test_XXXXXX";
+  REQUIRE(mkdtemp(dir) != nullptr);
+  std::string path = std::string(dir) + "/log";
+  int listener = socket(AF_UNIX, SOCK_DGRAM, 0);
+  REQUIRE(listener >= 0);
+  struct sockaddr_un addr = {};
+  addr.sun_family = AF_UNIX;
+  strncpy(addr.sun_path, path.c_str(), sizeof(addr.sun_path) - 1);
+  REQUIRE(bind(listener, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr)) == 0);
+
+  std::string captured;
+  int status = run_crashing_child(captured, [&] {
+    zmSetCrashSyslog("zmtest_m1", path.c_str());
+    raise(SIGSEGV);
+  });
+  REQUIRE(WIFSIGNALED(status));
+
+  fcntl(listener, F_SETFL, O_NONBLOCK);
+  char buf[2048];
+  ssize_t n = recv(listener, buf, sizeof(buf), 0);
+  close(listener);
+  unlink(path.c_str());
+  rmdir(dir);
+
+  REQUIRE(n > 0);
+  std::string message(buf, static_cast<size_t>(n));
+  // <LOG_LOCAL1|LOG_ERR>ident[pid]: text, one line per datagram, no newline.
+  REQUIRE(message.rfind("<139>zmtest_m1[", 0) == 0);
+  REQUIRE(message.find("]: Got signal 11 (SIGSEGV") != std::string::npos);
+  REQUIRE(message.back() != '\n');
+}
+
+TEST_CASE("a second signal during the crash report still kills the process with that signal", "[signal]") {
+  std::string captured;
+  int status = run_crashing_child(captured, [] {
+    zmSetCrashLogFile(blocking_full_pipe());
+    // The SIGSEGV report blocks writing the log; a SIGABRT then arrives on the
+    // same thread. It is blocked while its own handler runs, so the handler must
+    // unblock it to die of it.
+    static DelayedSignal delayed = {pthread_self(), SIGABRT};
+    pthread_t sender;
+    pthread_create(&sender, nullptr, send_signal_later, &delayed);
+    raise(SIGSEGV);
+  });
+
+  REQUIRE(WIFSIGNALED(status));
+  REQUIRE(WTERMSIG(status) == SIGABRT);
+}
+
+TEST_CASE("a fault on another thread during the crash report adds no second report", "[signal]") {
+  std::string captured;
+  int status = run_crashing_child(captured, [] {
+    zmSetCrashLogFile(blocking_full_pipe());
+    pthread_t other;
+    pthread_create(&other, nullptr, segfault_later, nullptr);
+    raise(SIGSEGV);
+  });
+
+  // The first report is stuck, so the second thread gives up waiting for it
+  // and ends the process itself.
+  REQUIRE(WIFSIGNALED(status));
+  REQUIRE(WTERMSIG(status) == SIGSEGV);
+  REQUIRE(count(captured, "Got signal") == 1);
+}
+
+TEST_CASE("a stack overflow on a worker thread is reported", "[signal]") {
+  std::string captured;
+  int status = run_crashing_child(captured, [] {
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_attr_setstacksize(&attr, 256 * 1024);
+    pthread_t worker;
+    pthread_create(&worker, &attr, overflow_thread, nullptr);
+    pthread_join(worker, nullptr);
+  });
 
   REQUIRE(WIFSIGNALED(status));
   REQUIRE(WTERMSIG(status) == SIGSEGV);
-  REQUIRE(log_contents.find("Got signal") != std::string::npos);
+  REQUIRE(captured.find("Got signal 11") != std::string::npos);
 }

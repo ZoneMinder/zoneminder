@@ -41,9 +41,17 @@ typedef RETSIGTYPE (SigActionHandler)( int, siginfo_t *info, void *context );
 
 extern bool zm_reload;
 extern std::atomic<bool> zm_terminate;
-// Descriptor of the current per-process log file, published by the Logger so the
-// crash handler can write(2) to it; -1 when no log file is open.
-extern std::atomic<int> zm_crash_log_fd;
+
+// Where the die handler writes its crash report besides stderr. Both keep a
+// descriptor of their own that is never closed, so the handler can write(2) to
+// it at any moment.
+// The log file at fd: called by the Logger each time it opens one.
+void zmSetCrashLogFile(int fd);
+// Syslog, sending to the socket at path as ident, with the Logger's facility.
+void zmSetCrashSyslog(const char *ident, const char *path = "/dev/log");
+// Give the calling thread its own stack for the die handler, so a stack
+// overflow on that thread is reported too. Call at the start of a thread.
+void zmSetThreadAltStack();
 
 RETSIGTYPE zmc_hup_handler( int signal );
 RETSIGTYPE zmc_term_handler( int signal );

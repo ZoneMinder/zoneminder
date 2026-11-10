@@ -22,42 +22,137 @@
 #include "zm.h"
 #include "zm_logger.h"
 #include <cerrno>
-#include <cstdio>
+#include <cstdint>
 #include <cstring>
+#include <fcntl.h>
+#include <memory>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <syslog.h>
 #include <unistd.h>
 
 #define TRACE_SIZE 16
 
-bool zm_reload = false;
-std::atomic<bool> zm_terminate = false;
-
-// Descriptor of the current per-process log file, published by the Logger when
-// it opens or closes that file. The crash handler writes to it with write(2)
-// (async-signal-safe); -1 when no log file is open.
-std::atomic<int> zm_crash_log_fd{-1};
-
 namespace {
 
-// Write a NUL-terminated string to stderr and, when open, the log file, using
-// only async-signal-safe calls. EINTR and partial writes are retried; any other
-// error ends that target.
-void crash_emit(const char *str) {
-  size_t len = 0;
-  while (str[len]) len++;
+// Size of the alternate stack the die handler runs on. A fixed size is used
+// because SIGSTKSZ is not a constant expression on current glibc.
+constexpr size_t kAltStackSize = 64 * 1024;
 
-  const int fds[2] = {STDERR_FILENO, zm_crash_log_fd.load()};
-  for (int fd : fds) {
-    if (fd < 0) continue;
-    size_t off = 0;
-    while (off < len) {
-      ssize_t written = write(fd, str + off, len - off);
-      if (written < 0) {
-        if (errno == EINTR) continue;
-        break;
-      }
-      off += static_cast<size_t>(written);
-    }
+// A descriptor that always refers to the current per-process log file. It is
+// never closed: each new log file is dup2()ed onto it, which replaces what it
+// refers to atomically, so a handler that has loaded it writes to either the
+// old or the new log file and never to whatever reused a closed number.
+std::atomic<int> crash_log_fd{-1};
+
+// A datagram socket connected to syslog, and the ident and facility to send
+// with, so the report reaches syslog without calling syslog(3), which is not
+// async-signal-safe. Also never closed.
+std::atomic<int> crash_syslog_fd{-1};
+char crash_syslog_ident[64] = "zoneminder";
+
+// Set by the first thread to report a crash. Other threads that fault while it
+// reports wait for it to end the process instead of writing a second report.
+// std::atomic_flag is the one type guaranteed lock-free.
+std::atomic_flag crash_reporting = ATOMIC_FLAG_INIT;
+
+// Set while this thread is in the die handler, so a fault inside the handler
+// itself ends the process at once instead of looping.
+thread_local volatile sig_atomic_t in_die_handler = 0;
+
+// Fixed-size line formatted with async-signal-safe code only (no snprintf).
+// Anything past the end is cut off.
+class CrashLine {
+ public:
+  CrashLine &str(const char *s) {
+    while (*s && len_ < sizeof(buf_) - 1) buf_[len_++] = *s++;
+    buf_[len_] = '\0';
+    return *this;
   }
+  CrashLine &dec(long value) {
+    char digits[24];
+    size_t n = 0;
+    unsigned long magnitude = value < 0 ? 0UL - static_cast<unsigned long>(value) : static_cast<unsigned long>(value);
+    do {
+      digits[n++] = '0' + static_cast<char>(magnitude % 10);
+      magnitude /= 10;
+    } while (magnitude);
+    if (value < 0) str("-");
+    return append_reversed(digits, n);
+  }
+  CrashLine &hex(unsigned long value) {
+    char digits[24];
+    size_t n = 0;
+    do {
+      digits[n++] = "0123456789abcdef"[value & 0xf];
+      value >>= 4;
+    } while (value);
+    str("0x");
+    return append_reversed(digits, n);
+  }
+  CrashLine &ptr(const void *p) { return hex(reinterpret_cast<uintptr_t>(p)); }
+  const char *c_str() const { return buf_; }
+  size_t size() const { return len_; }
+  size_t room() const { return sizeof(buf_) - 1 - len_; }
+  void clear() { len_ = 0; buf_[0] = '\0'; }
+
+ private:
+  CrashLine &append_reversed(const char *digits, size_t n) {
+    while (n && len_ < sizeof(buf_) - 1) buf_[len_++] = digits[--n];
+    buf_[len_] = '\0';
+    return *this;
+  }
+  char buf_[1024] = "";
+  size_t len_ = 0;
+};
+
+// write(2) all of str to fd. EINTR and partial writes are retried; any other
+// error gives up on that descriptor.
+void crash_write(int fd, const char *str, size_t len) {
+  size_t off = 0;
+  while (off < len) {
+    ssize_t written = write(fd, str + off, len - off);
+    if (written < 0) {
+      if (errno == EINTR) continue;
+      return;
+    }
+    off += static_cast<size_t>(written);
+  }
+}
+
+// Send one line of the report to syslog, as one datagram in the form syslogd
+// and journald read from /dev/log, without the trailing newline.
+void crash_syslog(const char *str) {
+  int syslog_fd = crash_syslog_fd.load();
+  if (syslog_fd < 0 or !*str) return;
+  CrashLine message;
+  message.str("<").dec(LOG_LOCAL1 | LOG_ERR).str(">").str(crash_syslog_ident).str("[").dec(getpid()).str("]: ").str(str);
+  size_t size = message.size();
+  if (message.c_str()[size - 1] == '\n') size--;
+#ifdef MSG_NOSIGNAL
+  send(syslog_fd, message.c_str(), size, MSG_NOSIGNAL);
+#else
+  send(syslog_fd, message.c_str(), size, 0);
+#endif
+}
+
+void crash_syslog(const CrashLine &line) {
+  crash_syslog(line.c_str());
+}
+
+// Send one line of the report to stderr, the log file and syslog, using only
+// async-signal-safe calls. zmdc points a daemon's stderr at /dev/null, so with
+// file logging off syslog is the only place the report reaches.
+void crash_emit(const char *str) {
+  size_t len = strlen(str);
+  crash_write(STDERR_FILENO, str, len);
+  int log_fd = crash_log_fd.load();
+  if (log_fd >= 0) crash_write(log_fd, str, len);
+  crash_syslog(str);
+}
+
+void crash_emit(const CrashLine &line) {
+  crash_emit(line.c_str());
 }
 
 // A name for the signals the die handler is installed for, without the
@@ -73,7 +168,91 @@ const char *crash_signal_name(int signal) {
   }
 }
 
+// Die of signal: restore the default disposition, unblock it (it is blocked
+// while its handler runs, so raise() alone would only queue it) and re-raise it.
+// The process then ends on the real signal, leaving a core dump if enabled,
+// instead of calling exit() from inside the handler. zmdc restarts the daemon
+// and records the abnormal exit.
+[[noreturn]] void die_of(int signal) {
+  struct sigaction dfl = {};
+  dfl.sa_handler = SIG_DFL;
+  sigaction(signal, &dfl, nullptr);
+
+  sigset_t unblock;
+  sigemptyset(&unblock);
+  sigaddset(&unblock, signal);
+  sigprocmask(SIG_UNBLOCK, &unblock, nullptr);
+
+  raise(signal);
+  _exit(-1);  // Fallback if raise() somehow did not terminate us.
+}
+
+// This thread's alternate signal stack, released when the thread ends.
+struct ThreadAltStack {
+  std::unique_ptr<char[]> mem;
+  ~ThreadAltStack() {
+    if (!mem) return;
+    stack_t disable = {};
+    disable.ss_flags = SS_DISABLE;
+    sigaltstack(&disable, nullptr);
+  }
+};
+thread_local ThreadAltStack thread_alt_stack;
+
 }  // namespace
+
+bool zm_reload = false;
+std::atomic<bool> zm_terminate = false;
+
+void zmSetCrashLogFile(int fd) {
+  if (fd < 0) return;
+  int reserved = crash_log_fd.load();
+  if (reserved < 0) {
+    int copy = fcntl(fd, F_DUPFD_CLOEXEC, 0);
+    if (copy < 0) return;
+    if (crash_log_fd.compare_exchange_strong(reserved, copy)) return;
+    close(copy);  // Another thread reserved one first; reserved now holds it.
+  }
+  if (dup2(fd, reserved) >= 0) fcntl(reserved, F_SETFD, FD_CLOEXEC);
+}
+
+void zmSetCrashSyslog(const char *ident, const char *path) {
+  // The ident is only rewritten here, at startup or when the Logger reopens
+  // syslog under a new id, never while a report is being written.
+  size_t n = 0;
+  for (; ident && ident[n] && n < sizeof(crash_syslog_ident) - 1; n++) crash_syslog_ident[n] = ident[n];
+  if (n) crash_syslog_ident[n] = '\0';
+
+  int fd = crash_syslog_fd.load();
+  if (fd < 0) {
+    int created = socket(AF_UNIX, SOCK_DGRAM, 0);
+    if (created < 0) return;
+    fcntl(created, F_SETFD, FD_CLOEXEC);
+    if (crash_syslog_fd.compare_exchange_strong(fd, created)) {
+      fd = created;
+    } else {
+      close(created);  // Another thread created one first; fd now holds it.
+    }
+  }
+  // (Re)connecting a datagram socket just changes where it sends, so this
+  // also follows a syslog daemon that was restarted and made a new socket.
+  struct sockaddr_un addr = {};
+  addr.sun_family = AF_UNIX;
+  strncpy(addr.sun_path, path, sizeof(addr.sun_path) - 1);
+  connect(fd, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr));
+}
+
+void zmSetThreadAltStack() {
+  if (thread_alt_stack.mem) return;
+  stack_t current = {};
+  if (sigaltstack(nullptr, &current) == 0 and !(current.ss_flags & SS_DISABLE)) return;
+
+  thread_alt_stack.mem.reset(new char[kAltStackSize]);
+  stack_t alt_stack = {};
+  alt_stack.ss_sp = thread_alt_stack.mem.get();
+  alt_stack.ss_size = kAltStackSize;
+  if (sigaltstack(&alt_stack, nullptr) < 0) thread_alt_stack.mem.reset();
+}
 
 RETSIGTYPE zm_hup_handler(int signal) {
   // Shouldn't do complex things in signal handlers, logging is complex and can block due to mutexes.
@@ -102,26 +281,24 @@ RETSIGTYPE zm_die_handler(int signal)
 {
   zm_terminate = true;
 
-  // If a fault happens again while we are handling one (for instance the
-  // backtrace itself faults), die immediately with the default disposition
-  // rather than looping inside the handler.
-  static volatile sig_atomic_t handling = 0;
-  if (handling) {
-    struct sigaction dfl = {};
-    dfl.sa_handler = SIG_DFL;
-    sigaction(signal, &dfl, nullptr);
-    raise(signal);
-    _exit(-1);
+  // A fault inside this handler on this thread (for instance the backtrace
+  // itself faults): die at once rather than loop.
+  if (in_die_handler) die_of(signal);
+  in_die_handler = 1;
+
+  // Another thread is already reporting a crash. Leave the report to it and
+  // wait for it to end the process; die anyway if it has not after a while.
+  if (crash_reporting.test_and_set()) {
+    for (int i = 0; i < 3; i++) sleep(1);
+    die_of(signal);
   }
-  handling = 1;
 
   // Everything below is emitted with async-signal-safe write(2) only. We do not
   // touch the database, the log queue or the Logger from the handler: closing
   // them here (as Fatal() used to) joins and frees objects other threads may
   // still be using, runs atexit handlers, and can deadlock on the log mutex.
-  char line[1024];
-  snprintf(line, sizeof(line), "Got signal %d (%s), crashing\n", signal, crash_signal_name(signal));
-  crash_emit(line);
+  CrashLine line;
+  crash_emit(line.str("Got signal ").dec(signal).str(" (").str(crash_signal_name(signal)).str("), crashing\n"));
 #if (defined(__i386__) || defined(__x86_64__) || defined(__arm__) || defined(__aarch64__))
   // Get more information if available
 #if ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )
@@ -177,8 +354,8 @@ RETSIGTYPE zm_die_handler(int signal)
         default: code_desc = "unknown illegal instruction code"; break;
       }
     }
-    snprintf(line, sizeof(line), "Fault reason: %s (signal code %d)\n", code_desc, info->si_code);
-    crash_emit(line);
+    line.clear();
+    crash_emit(line.str("Fault reason: ").str(code_desc).str(" (signal code ").dec(info->si_code).str(")\n"));
 
     ucontext_t *uc = (ucontext_t *) context;
 #if defined(__x86_64__)
@@ -214,12 +391,14 @@ RETSIGTYPE zm_die_handler(int signal)
 #endif
 
     // Report the fault address and instruction pointer.
+    line.clear();
+    line.str("Fault address: ").ptr(fault_addr).str(", instruction pointer: ");
     if ( ip ) {
-      snprintf(line, sizeof(line), "Fault address: %p, instruction pointer: %p\n", fault_addr, ip);
+      line.ptr(ip);
     } else {
-      snprintf(line, sizeof(line), "Fault address: %p, instruction pointer: unavailable\n", fault_addr);
+      line.str("unavailable");
     }
-    crash_emit(line);
+    crash_emit(line.str("\n"));
   }
 #endif				// ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )
 #endif                          // (defined(__i386__) || defined(__x86_64__) || defined(__arm__) || defined(__aarch64__))
@@ -239,9 +418,8 @@ RETSIGTYPE zm_die_handler(int signal)
   unw_getcontext(&uc);
   unw_init_local(&cursor, &uc);
 
-  char cmd[1024] = "addr2line -Cfip -e ";
-  char *cmd_ptr = cmd + strlen(cmd);
-  cmd_ptr += snprintf(cmd_ptr, sizeof(cmd) - (cmd_ptr - cmd), "%s", self ? self : "zoneminder");
+  CrashLine cmd;
+  cmd.str("addr2line -Cfip -e ").str(self ? self : "zoneminder");
   bool found_offset = false;
 
   while (unw_step(&cursor) > 0 && frame < TRACE_SIZE) {
@@ -249,17 +427,15 @@ RETSIGTYPE zm_die_handler(int signal)
     if (pc == 0)
       break;
 
-    if (unw_get_proc_name(&cursor, sym, sizeof(sym), &offset) == 0) {
-      snprintf(line, sizeof(line), "Backtrace %d: %s+0x%lx [0x%lx]\n", frame, sym, (unsigned long)offset, (unsigned long)pc);
-    } else {
-      snprintf(line, sizeof(line), "Backtrace %d: [0x%lx]\n", frame, (unsigned long)pc);
-    }
-    crash_emit(line);
+    line.clear();
+    line.str("Backtrace ").dec(frame).str(": ");
+    if (unw_get_proc_name(&cursor, sym, sizeof(sym), &offset) == 0)
+      line.str(sym).str("+").hex(offset).str(" ");
+    crash_emit(line.str("[").hex(pc).str("]\n"));
 
-    // Collect addresses for addr2line
-    int rc = snprintf(cmd_ptr, sizeof(cmd) - (cmd_ptr - cmd), " 0x%lx", (unsigned long)pc);
-    if (rc > 0 && static_cast<size_t>(rc) < sizeof(cmd) - (cmd_ptr - cmd)) {
-      cmd_ptr += rc;
+    // Collect addresses for addr2line, whole ones only.
+    if (cmd.room() > 2 + 2 * sizeof(pc) + 1) {
+      cmd.str(" ").hex(pc);
       found_offset = true;
     }
 
@@ -269,41 +445,31 @@ RETSIGTYPE zm_die_handler(int signal)
   if (found_offset) {
     crash_emit("Backtrace complete, please install debug symbols (typically zoneminder-dbg)\n");
     crash_emit("and execute the following command for more information:\n");
-    crash_emit(cmd);
-    crash_emit("\n");
+    crash_emit(cmd.str("\n"));
   }
 #elif HAVE_DECL_BACKTRACE && HAVE_DECL_BACKTRACE_SYMBOLS
-  // Fallback to glibc backtrace (less reliable on ARM). backtrace() and
-  // backtrace_symbols_fd() are async-signal-safe; backtrace_symbols() is not
-  // (it allocates), so it is deliberately not used here. The frames it prints
-  // already carry the "(+0xoffset)" that addr2line -e <binary> consumes.
+  // Fallback to glibc backtrace (less reliable on ARM). backtrace() loads
+  // libgcc_s on first use, which allocates and takes loader locks, so
+  // zmSetDieHandler() calls it once ahead of time; after that it only walks the
+  // stack. backtrace_symbols() allocates and is not used. backtrace_symbols_fd()
+  // writes the names to stderr and the log file; syslog gets the addresses.
   void *trace[TRACE_SIZE];
   int trace_size = backtrace(trace, TRACE_SIZE);
 
   crash_emit("Backtrace:\n");
   backtrace_symbols_fd(trace, trace_size, STDERR_FILENO);
-  int log_fd = zm_crash_log_fd.load();
+  int log_fd = crash_log_fd.load();
   if (log_fd >= 0)
     backtrace_symbols_fd(trace, trace_size, log_fd);
+  for (int i = 0; i < trace_size; i++) {
+    line.clear();
+    crash_syslog(line.str("Backtrace ").dec(i).str(": [").ptr(trace[i]).str("]"));
+  }
   crash_emit("Backtrace complete, please install debug symbols (typically zoneminder-dbg)\n");
   crash_emit("and run addr2line -Cfip -e <binary> <offsets> for source locations.\n");
 #endif  // HAVE_LIBUNWIND / HAVE_DECL_BACKTRACE
 #endif  // !defined(ZM_NO_CRASHTRACE)
-  // Die of the actual fault: restore the default disposition, unblock the
-  // signal, and re-raise it. The process then terminates on the real signal
-  // (leaving a core dump if enabled) instead of calling exit() from inside the
-  // handler. zmdc restarts the daemon and records the abnormal exit.
-  struct sigaction dfl = {};
-  dfl.sa_handler = SIG_DFL;
-  sigaction(signal, &dfl, nullptr);
-
-  sigset_t unblock;
-  sigemptyset(&unblock);
-  sigaddset(&unblock, signal);
-  sigprocmask(SIG_UNBLOCK, &unblock, nullptr);
-
-  raise(signal);
-  _exit(-1);  // Fallback if raise() somehow did not terminate us.
+  die_of(signal);
 }
 
 void zmSetHupHandler(SigHandler * handler) {
@@ -354,16 +520,16 @@ void zmSetDieHandler(
 
   // Run the handler on a dedicated stack so a stack-overflow fault (SIGSEGV on
   // the guard page, where the normal stack has no room to call anything) can
-  // still be reported. A fixed size is used because SIGSTKSZ is not a constant
-  // expression on current glibc.
-  static char alt_stack_mem[64 * 1024];
-  static stack_t alt_stack;
-  if (!alt_stack.ss_sp) {
-    alt_stack.ss_sp = alt_stack_mem;
-    alt_stack.ss_size = sizeof(alt_stack_mem);
-    alt_stack.ss_flags = 0;
-    sigaltstack(&alt_stack, nullptr);
-  }
+  // still be reported. The stack is per thread: this covers the calling thread,
+  // and worker threads call zmSetThreadAltStack() themselves.
+  zmSetThreadAltStack();
+
+#if !defined(ZM_NO_CRASHTRACE) && !HAVE_LIBUNWIND && HAVE_DECL_BACKTRACE && HAVE_DECL_BACKTRACE_SYMBOLS
+  // backtrace() loads libgcc_s on first use, which allocates; do that now
+  // rather than inside the handler.
+  void *warm_up[1];
+  backtrace(warm_up, 1);
+#endif
 
   action.sa_mask = block_set;
 #if ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )

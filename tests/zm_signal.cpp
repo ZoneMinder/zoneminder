@@ -30,6 +30,7 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/wait.h>
+#include <thread>
 #include <unistd.h>
 
 // zm_die_handler is defined in zm_signal.cpp with external linkage but is not
@@ -99,8 +100,68 @@ int run_crashing_child(std::string &captured, const std::function<void()> &crash
 
   int status = 0;
   waitpid(pid, &status, 0);
+  // SIGALRM is the watchdog above, not the handler: the report got stuck.
+  REQUIRE_FALSE((WIFSIGNALED(status) && WTERMSIG(status) == SIGALRM));
   return status;
 }
+
+// A datagram socket bound where the handler is told syslog is, standing in for
+// syslogd.
+class SyslogListener {
+ public:
+  SyslogListener() {
+    REQUIRE(mkdtemp(dir_) != nullptr);
+    path_ = std::string(dir_) + "/log";
+    Bind();
+  }
+  ~SyslogListener() {
+    close(fd_);
+    unlink(path_.c_str());
+    rmdir(dir_);
+  }
+  const char *path() const { return path_.c_str(); }
+  // As a restarted syslogd does: remove the socket and make a new one there.
+  void Recreate() {
+    close(fd_);
+    unlink(path_.c_str());
+    Bind();
+  }
+  // Fill the receive queue so a blocking send to it would wait. Linux also
+  // limits what each sender may have queued, so this takes fresh senders until
+  // one cannot queue even its first message.
+  void Fill() {
+    for (int senders = 0; senders < 64; senders++) {
+      int sender = socket(AF_UNIX, SOCK_DGRAM, 0);
+      REQUIRE(sender >= 0);
+      fcntl(sender, F_SETFL, O_NONBLOCK);
+      int sent = 0;
+      while (sendto(sender, "x", 1, 0, reinterpret_cast<struct sockaddr *>(&addr_), sizeof(addr_)) > 0) sent++;
+      close(sender);
+      if (!sent) return;
+    }
+    FAIL("could not fill the syslog queue");
+  }
+  // The first message waiting, or "" if there is none.
+  std::string Receive() {
+    char buf[2048];
+    ssize_t n = recv(fd_, buf, sizeof(buf), MSG_DONTWAIT);
+    return n > 0 ? std::string(buf, static_cast<size_t>(n)) : std::string();
+  }
+
+ private:
+  void Bind() {
+    fd_ = socket(AF_UNIX, SOCK_DGRAM, 0);
+    REQUIRE(fd_ >= 0);
+    addr_ = {};
+    addr_.sun_family = AF_UNIX;
+    strncpy(addr_.sun_path, path_.c_str(), sizeof(addr_.sun_path) - 1);
+    REQUIRE(bind(fd_, reinterpret_cast<struct sockaddr *>(&addr_), sizeof(addr_)) == 0);
+  }
+  char dir_[32] = "/tmp/zm_signal_test_XXXXXX";
+  std::string path_;
+  struct sockaddr_un addr_ = {};
+  int fd_ = -1;
+};
 
 // A pipe nobody reads, filled up, so the next write(2) to it blocks: pointed
 // at by the crash log, it holds the handler mid-report.
@@ -199,36 +260,61 @@ TEST_CASE("zm_die_handler writes to the log file most recently set, not one clos
 }
 
 TEST_CASE("zm_die_handler sends the crash report to syslog", "[signal]") {
-  char dir[] = "/tmp/zm_signal_test_XXXXXX";
-  REQUIRE(mkdtemp(dir) != nullptr);
-  std::string path = std::string(dir) + "/log";
-  int listener = socket(AF_UNIX, SOCK_DGRAM, 0);
-  REQUIRE(listener >= 0);
-  struct sockaddr_un addr = {};
-  addr.sun_family = AF_UNIX;
-  strncpy(addr.sun_path, path.c_str(), sizeof(addr.sun_path) - 1);
-  REQUIRE(bind(listener, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr)) == 0);
-
+  SyslogListener syslogd;
   std::string captured;
   int status = run_crashing_child(captured, [&] {
-    zmSetCrashSyslog("zmtest_m1", path.c_str());
+    zmSetCrashSyslog("zmtest_m1", syslogd.path());
     raise(SIGSEGV);
   });
   REQUIRE(WIFSIGNALED(status));
 
-  fcntl(listener, F_SETFL, O_NONBLOCK);
-  char buf[2048];
-  ssize_t n = recv(listener, buf, sizeof(buf), 0);
-  close(listener);
-  unlink(path.c_str());
-  rmdir(dir);
-
-  REQUIRE(n > 0);
-  std::string message(buf, static_cast<size_t>(n));
+  std::string message = syslogd.Receive();
   // <LOG_LOCAL1|LOG_ERR>ident[pid]: text, one line per datagram, no newline.
   REQUIRE(message.rfind("<139>zmtest_m1[", 0) == 0);
   REQUIRE(message.find("]: Got signal 11 (SIGSEGV") != std::string::npos);
   REQUIRE(message.back() != '\n');
+}
+
+TEST_CASE("zm_die_handler reaches a syslog daemon that made a new socket", "[signal]") {
+  SyslogListener syslogd;
+  int ready[2], go[2];
+  REQUIRE(pipe(ready) == 0);
+  REQUIRE(pipe(go) == 0);
+  // Restart "syslogd" after the child has set up its crash socket.
+  std::thread restart([&] {
+    char c;
+    // No REQUIRE here: Catch2's assertions are for the test's own thread.
+    if (read(ready[0], &c, 1) == 1) syslogd.Recreate();
+    if (write(go[1], "g", 1) != 1) {}
+  });
+
+  std::string captured;
+  int status = run_crashing_child(captured, [&] {
+    zmSetCrashSyslog("zmtest_m1", syslogd.path());
+    char c = 'r';
+    if (write(ready[1], &c, 1) != 1 or read(go[0], &c, 1) != 1) _exit(43);
+    raise(SIGSEGV);
+  });
+  restart.join();
+  for (int fd : {ready[0], ready[1], go[0], go[1]}) close(fd);
+
+  REQUIRE(WIFSIGNALED(status));
+  REQUIRE(syslogd.Receive().find("Got signal 11") != std::string::npos);
+}
+
+TEST_CASE("a syslog that is not keeping up does not hang the crash report", "[signal]") {
+  SyslogListener syslogd;
+  syslogd.Fill();
+  std::string captured;
+  int status = run_crashing_child(captured, [&] {
+    zmSetCrashSyslog("zmtest_m1", syslogd.path());
+    raise(SIGSEGV);
+  });
+
+  // run_crashing_child fails the test if the watchdog had to end it.
+  REQUIRE(WIFSIGNALED(status));
+  REQUIRE(WTERMSIG(status) == SIGSEGV);
+  REQUIRE(captured.find("Got signal 11") != std::string::npos);
 }
 
 TEST_CASE("a second signal during the crash report still kills the process with that signal", "[signal]") {
@@ -275,7 +361,8 @@ TEST_CASE("a stack overflow on a worker thread is reported", "[signal]") {
     pthread_join(worker, nullptr);
   });
 
+  // A stack overflow is SIGSEGV on Linux and SIGBUS on macOS.
   REQUIRE(WIFSIGNALED(status));
-  REQUIRE(WTERMSIG(status) == SIGSEGV);
-  REQUIRE(captured.find("Got signal 11") != std::string::npos);
+  REQUIRE((WTERMSIG(status) == SIGSEGV || WTERMSIG(status) == SIGBUS));
+  REQUIRE(captured.find("Got signal") != std::string::npos);
 }

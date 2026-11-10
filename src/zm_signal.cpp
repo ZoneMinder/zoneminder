@@ -45,11 +45,21 @@ constexpr size_t kAltStackSize = 64 * 1024;
 // old or the new log file and never to whatever reused a closed number.
 std::atomic<int> crash_log_fd{-1};
 
-// A datagram socket connected to syslog, and the ident and facility to send
-// with, so the report reaches syslog without calling syslog(3), which is not
-// async-signal-safe. Also never closed.
+// Where and as whom the report goes to syslog. A target is never changed or
+// freed once published: zmSetCrashSyslog() publishes a new one instead, so a
+// handler reading one on another thread never sees it half written. One is
+// leaked per Logger reopen of syslog, which is rare.
+struct CrashSyslogTarget {
+  struct sockaddr_un addr;
+  char ident[64];
+};
+std::atomic<const CrashSyslogTarget *> crash_syslog_target{nullptr};
+
+// An unconnected, non-blocking datagram socket the report is sent to syslog
+// with, without calling syslog(3), which is not async-signal-safe. sendto()
+// names the socket path each time, so a syslog daemon that is restarted and
+// makes a new socket still gets the report. Never closed.
 std::atomic<int> crash_syslog_fd{-1};
-char crash_syslog_ident[64] = "zoneminder";
 
 // Set by the first thread to report a crash. Other threads that fault while it
 // reports wait for it to end the process instead of writing a second report.
@@ -124,16 +134,16 @@ void crash_write(int fd, const char *str, size_t len) {
 // and journald read from /dev/log, without the trailing newline.
 void crash_syslog(const char *str) {
   int syslog_fd = crash_syslog_fd.load();
-  if (syslog_fd < 0 or !*str) return;
+  const CrashSyslogTarget *target = crash_syslog_target.load();
+  if (syslog_fd < 0 or !target or !*str) return;
   CrashLine message;
-  message.str("<").dec(LOG_LOCAL1 | LOG_ERR).str(">").str(crash_syslog_ident).str("[").dec(getpid()).str("]: ").str(str);
+  message.str("<").dec(LOG_LOCAL1 | LOG_ERR).str(">").str(target->ident).str("[").dec(getpid()).str("]: ").str(str);
   size_t size = message.size();
   if (message.c_str()[size - 1] == '\n') size--;
-#ifdef MSG_NOSIGNAL
-  send(syslog_fd, message.c_str(), size, MSG_NOSIGNAL);
-#else
-  send(syslog_fd, message.c_str(), size, 0);
-#endif
+  // The socket is non-blocking: when syslog is not keeping up (EAGAIN) the line
+  // is dropped rather than leaving the crashed process hung here.
+  sendto(syslog_fd, message.c_str(), size, 0,
+         reinterpret_cast<const struct sockaddr *>(&target->addr), sizeof(target->addr));
 }
 
 void crash_syslog(const CrashLine &line) {
@@ -217,29 +227,21 @@ void zmSetCrashLogFile(int fd) {
 }
 
 void zmSetCrashSyslog(const char *ident, const char *path) {
-  // The ident is only rewritten here, at startup or when the Logger reopens
-  // syslog under a new id, never while a report is being written.
-  size_t n = 0;
-  for (; ident && ident[n] && n < sizeof(crash_syslog_ident) - 1; n++) crash_syslog_ident[n] = ident[n];
-  if (n) crash_syslog_ident[n] = '\0';
-
-  int fd = crash_syslog_fd.load();
-  if (fd < 0) {
+  if (crash_syslog_fd.load() < 0) {
     int created = socket(AF_UNIX, SOCK_DGRAM, 0);
     if (created < 0) return;
     fcntl(created, F_SETFD, FD_CLOEXEC);
-    if (crash_syslog_fd.compare_exchange_strong(fd, created)) {
-      fd = created;
-    } else {
-      close(created);  // Another thread created one first; fd now holds it.
-    }
+    fcntl(created, F_SETFL, O_NONBLOCK);
+    int expected = -1;
+    if (!crash_syslog_fd.compare_exchange_strong(expected, created))
+      close(created);  // Another thread created one first.
   }
-  // (Re)connecting a datagram socket just changes where it sends, so this
-  // also follows a syslog daemon that was restarted and made a new socket.
-  struct sockaddr_un addr = {};
-  addr.sun_family = AF_UNIX;
-  strncpy(addr.sun_path, path, sizeof(addr.sun_path) - 1);
-  connect(fd, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr));
+
+  auto *target = new CrashSyslogTarget();
+  target->addr.sun_family = AF_UNIX;
+  strncpy(target->addr.sun_path, path, sizeof(target->addr.sun_path) - 1);
+  strncpy(target->ident, ident && *ident ? ident : "zoneminder", sizeof(target->ident) - 1);
+  crash_syslog_target = target;
 }
 
 void zmSetThreadAltStack() {

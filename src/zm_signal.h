@@ -23,6 +23,7 @@
 #include "zm_config.h"
 #include <atomic>
 #include <csignal>
+#include <syslog.h>
 
 #if HAVE_LIBUNWIND
 #define UNW_LOCAL_ONLY
@@ -48,7 +49,12 @@ extern std::atomic<bool> zm_terminate;
 // The log file at fd: called by the Logger each time it opens one.
 void zmSetCrashLogFile(int fd);
 // Syslog, sending to the socket at path as ident, with the Logger's facility.
-void zmSetCrashSyslog(const char *ident, const char *path = "/dev/log");
+// _PATH_LOG is the platform's socket: /dev/log on Linux, /var/run/syslog on
+// macOS, /var/run/log on FreeBSD.
+#ifndef _PATH_LOG
+#define _PATH_LOG "/dev/log"
+#endif
+void zmSetCrashSyslog(const char *ident, const char *path = _PATH_LOG);
 // Give the calling thread its own stack for the die handler, so a stack
 // overflow on that thread is reported too. Call at the start of a thread.
 void zmSetThreadAltStack();

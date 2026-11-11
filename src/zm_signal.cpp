@@ -26,6 +26,9 @@
 #include <cstring>
 #include <fcntl.h>
 #include <memory>
+#ifdef __linux__
+#include <sys/prctl.h>
+#endif
 #include <sys/resource.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -71,6 +74,9 @@ std::atomic_flag crash_reporting = ATOMIC_FLAG_INIT;
 // to a stderr pipe nobody reads, would otherwise leave the process hung with the
 // fault unreported to zmdc; when this runs out the process dies of the fault.
 constexpr unsigned kCrashReportSeconds = 5;
+
+// Set when ZM_DUMP_CORES is off, so the crash leaves no core dump.
+std::atomic<bool> crash_no_core{false};
 
 // The signal being reported, for the timeout to die of.
 std::atomic<int> crash_signal{0};
@@ -325,6 +331,15 @@ RETSIGTYPE zm_die_handler(int signal)
     die_of(signal);
   }
   limit_crash_report(signal);
+#ifdef __linux__
+  // A zero core size limit stops the kernel writing a core file, but a
+  // core_pattern that pipes to a program (systemd-coredump, apport) is handed
+  // the dump anyway, and it is up to that program to honour the limit. A
+  // process that is not dumpable is not dumped at all, unless fs.suid_dumpable
+  // is 2. This is done only now, as it also stops ptrace and changes who owns
+  // the process's /proc files.
+  if (crash_no_core) prctl(PR_SET_DUMPABLE, 0, 0, 0, 0);
+#endif
 
   // Everything below is emitted with async-signal-safe write(2) only. We do not
   // touch the database, the log queue or the Logger from the handler: closing
@@ -608,6 +623,7 @@ void zmSetDefaultDieHandler() {
       core.rlim_cur = 0;
       setrlimit(RLIMIT_CORE, &core);
     }
+    crash_no_core = true;
     zmSetDieHandler(zm_die_handler);
   }
 }

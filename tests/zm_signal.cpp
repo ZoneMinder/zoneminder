@@ -29,6 +29,9 @@
 #include <poll.h>
 #include <pthread.h>
 #include <string>
+#ifdef __linux__
+#include <sys/prctl.h>
+#endif
 #include <sys/resource.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -465,3 +468,45 @@ TEST_CASE("the core size limit is left alone when ZM_DUMP_CORES is on", "[signal
   REQUIRE(WIFEXITED(status));
   REQUIRE(WEXITSTATUS(status) == 0);
 }
+
+#ifdef __linux__
+namespace {
+
+// Whether the process may dump core while its crash report is under way, as
+// another thread sees it. That thread then ends the process, so the stuck
+// report does not have to time out.
+int dumpable_during_report(bool dump_cores) {
+  static int result[2];
+  REQUIRE(pipe(result) == 0);
+  std::string captured;
+  run_crashing_child(captured, [&] {
+    close(result[0]);
+    config.dump_cores = dump_cores;
+    zmSetDefaultDieHandler();
+    if (prctl(PR_GET_DUMPABLE) != 1) _exit(43);  // Not before the crash.
+    zmSetCrashLogFile(blocking_full_pipe());
+    std::thread([] {
+      usleep(200 * 1000);
+      char dumpable = static_cast<char>('0' + prctl(PR_GET_DUMPABLE));
+      if (write(result[1], &dumpable, 1) != 1) {}
+      _exit(0);
+    }).detach();
+    raise(SIGSEGV);
+  });
+  close(result[1]);
+  char dumpable = '?';
+  if (read(result[0], &dumpable, 1) != 1) dumpable = '?';
+  close(result[0]);
+  return dumpable == '?' ? -1 : dumpable - '0';
+}
+
+}  // namespace
+
+TEST_CASE("a crash with ZM_DUMP_CORES off makes the process not dumpable", "[signal]") {
+  REQUIRE(dumpable_during_report(false) == 0);
+}
+
+TEST_CASE("a crash with ZM_DUMP_CORES on leaves the process dumpable", "[signal]") {
+  REQUIRE(dumpable_during_report(true) == 1);
+}
+#endif

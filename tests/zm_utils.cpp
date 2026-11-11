@@ -173,6 +173,8 @@ TEST_CASE("Base64Encode") {
   REQUIRE(Base64Encode("foob") == "Zm9vYg==");
   REQUIRE(Base64Encode("fooba") == "Zm9vYmE=");
   REQUIRE(Base64Encode("foobar") == "Zm9vYmFy");
+  REQUIRE(Base64Encode("\xc3\xa9") == "w6k=");
+  REQUIRE(Base64Encode("\xff\xfe\xfd") == "//79");
 }
 
 TEST_CASE("ZM::clamp") {

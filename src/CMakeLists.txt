@@ -143,6 +143,12 @@ if(GSOAP_FOUND)
 
 endif()
 
+# GCC 12+ only vectorizes with its very-cheap cost model at -O2, which leaves the
+# per-pixel motion detection loop in zm_zone.cpp scalar in Release builds.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  set_source_files_properties(zm_zone.cpp PROPERTIES COMPILE_OPTIONS "-fvect-cost-model=dynamic")
+endif()
+
 # A fix for cmake recompiling the source files for every target.
 add_library(zm STATIC ${ZM_BIN_SRC_FILES})
 
@@ -184,15 +190,10 @@ target_link_libraries(zm
   PRIVATE
     zm-core-interface)
 
-set(GSOAP_LIBRARIES ${GSOAP_CXX_LIBRARIES})
-if(HAVE_LIBOPENSSL)
-  set(GSOAP_LIBRARIES ${GSOAP_SSL_CXX_LIBRARIES})
-endif()
-
 if(GSOAP_FOUND)
   target_link_libraries(zm
     PUBLIC
-      ${GSOAP_LIBRARIES}
+      ${GSOAP_SSL_CXX_LIBRARIES}
       ${OPENSSL_SSL_LIBRARY}
       ${OPENSSL_CRYPTO_LIBRARY})
 endif()

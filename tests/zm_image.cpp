@@ -23,6 +23,7 @@
 
 extern "C" {
 #include <libavutil/imgutils.h>
+#include <jpeglib.h>
 }
 
 #include <cstdlib>
@@ -457,4 +458,174 @@ TEST_CASE("Image::ReadJpeg reallocates for a larger JPEG", "[image]") {
   CHECK(small.LineSize() >= big_w * 4);
   CHECK(small.Size() >= small.LineSize() * big_h);
   CHECK(small.Size() > small_size);
+}
+
+
+static std::vector<JOCTET> reference_encode_yuv(const Image &image, int quality) {
+  const int w = static_cast<int>(image.Width());
+  const int h = static_cast<int>(image.Height());
+  const AVPixelFormat fmt = image.PixFormat();
+  const bool is_422 = (fmt == AV_PIX_FMT_YUV422P || fmt == AV_PIX_FMT_YUVJ422P);
+
+  uint8_t *plane[4] = {nullptr, nullptr, nullptr, nullptr};
+  int ls[4] = {0, 0, 0, 0};
+  REQUIRE(av_image_fill_arrays(plane, ls, image.Buffer(), fmt, w, h, 32) > 0);
+
+  jpeg_compress_struct cinfo;
+  jpeg_error_mgr jerr;
+  memset(&cinfo, 0, sizeof(cinfo));
+  cinfo.err = jpeg_std_error(&jerr);
+  jpeg_create_compress(&cinfo);
+
+  unsigned char *outbuf = nullptr;
+  unsigned long outsize = 0;
+  jpeg_mem_dest(&cinfo, &outbuf, &outsize);
+
+  cinfo.image_width = w;
+  cinfo.image_height = h;
+  cinfo.input_components = 3;
+  cinfo.in_color_space = JCS_YCbCr;
+
+  jpeg_set_defaults(&cinfo);
+  jpeg_set_quality(&cinfo, quality, FALSE);
+  cinfo.dct_method = JDCT_FASTEST;
+
+  jpeg_start_compress(&cinfo, TRUE);
+
+  const unsigned chroma_v_shift = is_422 ? 0u : 1u;
+  std::vector<uint8_t> tmprow(static_cast<size_t>(w) * 3);
+  JSAMPROW row_ptr = tmprow.data();
+
+  while (cinfo.next_scanline < cinfo.image_height) {
+    const unsigned y = cinfo.next_scanline;
+    const unsigned cy = y >> chroma_v_shift;
+    const uint8_t *yrow = plane[0] + static_cast<size_t>(y) * ls[0];
+    const uint8_t *urow = plane[1] + static_cast<size_t>(cy) * ls[1];
+    const uint8_t *vrow = plane[2] + static_cast<size_t>(cy) * ls[2];
+    for (int x = 0; x < w; ++x) {
+      tmprow[static_cast<size_t>(x) * 3 + 0] = yrow[x];
+      tmprow[static_cast<size_t>(x) * 3 + 1] = urow[x >> 1];
+      tmprow[static_cast<size_t>(x) * 3 + 2] = vrow[x >> 1];
+    }
+    jpeg_write_scanlines(&cinfo, &row_ptr, 1);
+  }
+
+  jpeg_finish_compress(&cinfo);
+  jpeg_destroy_compress(&cinfo);
+
+  std::vector<JOCTET> result(outbuf, outbuf + outsize);
+  free(outbuf);
+  return result;
+}
+
+static std::vector<JOCTET> reference_encode_rgb(const Image &image, int quality) {
+  const int w = static_cast<int>(image.Width());
+  const int h = static_cast<int>(image.Height());
+
+  jpeg_compress_struct cinfo;
+  jpeg_error_mgr jerr;
+  memset(&cinfo, 0, sizeof(cinfo));
+  cinfo.err = jpeg_std_error(&jerr);
+  jpeg_create_compress(&cinfo);
+
+  unsigned char *outbuf = nullptr;
+  unsigned long outsize = 0;
+  jpeg_mem_dest(&cinfo, &outbuf, &outsize);
+
+  cinfo.image_width = w;
+  cinfo.image_height = h;
+  cinfo.input_components = 3;
+  cinfo.in_color_space = JCS_RGB;
+
+  jpeg_set_defaults(&cinfo);
+  jpeg_set_quality(&cinfo, quality, FALSE);
+  cinfo.dct_method = JDCT_FASTEST;
+
+  jpeg_start_compress(&cinfo, TRUE);
+
+  JSAMPROW row_pointer = const_cast<JSAMPROW>(image.Buffer());
+  while (cinfo.next_scanline < cinfo.image_height) {
+    jpeg_write_scanlines(&cinfo, &row_pointer, 1);
+    row_pointer += image.LineSize();
+  }
+
+  jpeg_finish_compress(&cinfo);
+  jpeg_destroy_compress(&cinfo);
+
+  std::vector<JOCTET> result(outbuf, outbuf + outsize);
+  free(outbuf);
+  return result;
+}
+
+TEST_CASE("Image::EncodeJpeg raw YUV matches legacy", "[Image]") {
+  bootstrap_image_config();
+  const int quality = 75;
+
+  struct Case { int w; int h; AVPixelFormat fmt; };
+  std::vector<Case> cases = {
+    {64, 48, AV_PIX_FMT_YUV420P},
+    {64, 37, AV_PIX_FMT_YUV420P},
+    {70, 37, AV_PIX_FMT_YUV420P},
+    {64, 48, AV_PIX_FMT_YUV422P},
+  };
+
+  for (auto &c : cases) {
+    const bool is_422 = (c.fmt == AV_PIX_FMT_YUV422P || c.fmt == AV_PIX_FMT_YUVJ422P);
+    Image img(c.w, c.h, ZM_COLOUR_GRAY8,
+              (c.fmt == AV_PIX_FMT_YUV420P || c.fmt == AV_PIX_FMT_YUVJ420P)
+                  ? ZM_SUBPIX_ORDER_YUV420P
+                  : ZM_SUBPIX_ORDER_YUV422P);
+
+    uint8_t *plane[4] = {nullptr, nullptr, nullptr, nullptr};
+    int ls[4] = {0, 0, 0, 0};
+    REQUIRE(av_image_fill_arrays(plane, ls, img.Buffer(), c.fmt, c.w, c.h, 32) > 0);
+    const int cr = is_422 ? c.h : (c.h + 1) / 2;
+    const int cw = (c.w + 1) / 2;
+    for (int y = 0; y < c.h; ++y)
+      for (int x = 0; x < c.w; ++x)
+        plane[0][static_cast<size_t>(y) * ls[0] + x] =
+            static_cast<uint8_t>((x * 7 + y * 13) ^ 0x5a);
+    for (int y = 0; y < cr; ++y)
+      for (int x = 0; x < cw; ++x) {
+        plane[1][static_cast<size_t>(y) * ls[1] + x] =
+            static_cast<uint8_t>((x * 11 + y * 17) ^ 0x3c);
+        plane[2][static_cast<size_t>(y) * ls[2] + x] =
+            static_cast<uint8_t>((x * 19 + y * 23) ^ 0x9e);
+      }
+
+    std::vector<JOCTET> outbuf(1 << 20);
+    size_t outsize = 0;
+    REQUIRE(img.EncodeJpeg(outbuf.data(), &outsize, quality));
+    std::vector<JOCTET> actual(outbuf.begin(), outbuf.begin() + outsize);
+
+    std::vector<JOCTET> expected = reference_encode_yuv(img, quality);
+    INFO("case " << c.w << "x" << c.h);
+    REQUIRE(actual == expected);
+  }
+}
+
+TEST_CASE("Image::EncodeJpeg cached struct no raw leak", "[Image]") {
+  bootstrap_image_config();
+  const int quality = 75;
+
+  Image yuv(32, 24, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_YUV420P);
+  std::vector<JOCTET> buf(1 << 20);
+  size_t sz = 0;
+  REQUIRE(yuv.EncodeJpeg(buf.data(), &sz, quality));
+
+  Image rgb(32, 24, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
+  for (int y = 0; y < 24; ++y)
+    for (int x = 0; x < 32; ++x) {
+      uint8_t *p = rgb.Buffer() + static_cast<size_t>(y) * rgb.LineSize() + x * 3;
+      p[0] = static_cast<uint8_t>(x * 3 + y);
+      p[1] = static_cast<uint8_t>(x + y * 5);
+      p[2] = static_cast<uint8_t>(x * 7 ^ y);
+    }
+
+  std::vector<JOCTET> outbuf(1 << 20);
+  size_t outsize = 0;
+  REQUIRE(rgb.EncodeJpeg(outbuf.data(), &outsize, quality));
+  std::vector<JOCTET> actual(outbuf.begin(), outbuf.begin() + outsize);
+  std::vector<JOCTET> expected = reference_encode_rgb(rgb, quality);
+  REQUIRE(actual == expected);
 }

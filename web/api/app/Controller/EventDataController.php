@@ -85,7 +85,7 @@ class EventDataController extends AppController {
 		$this->EventData->recursive = -1;
     if ( $this->request->params['named'] ) {
       $this->FilterComponent = $this->Components->load('Filter');
-      $conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+      $conditions = $this->FilterComponent->buildFilter($this->request->params['named'], array_keys($this->EventData->schema()));
     } else {
       $conditions = array();
     }

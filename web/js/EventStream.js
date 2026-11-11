@@ -604,8 +604,12 @@ EventStream.buildMp4Player = function(playerData, eventData) {
   if (playerData.width) video.setAttribute('width', playerData.width);
   if (playerData.height) video.setAttribute('height', playerData.height);
 
-  // HLS first when a manifest exists, then the direct mp4 file.
-  if (playerData.hasHls && playerData.hlsSrc) {
+  // The codec probe that routed us here tested the recorded file (mp4Src), so the
+  // mp4 source is the one we know plays. Offer HLS first only for a live event,
+  // where the mp4 is still being written and the growing manifest is what lets
+  // playback follow the recording edge; a finished event just plays the mp4. This
+  // keeps the chosen source consistent with what was probed.
+  if (playerData.hasHls && playerData.hlsSrc && playerData.isLive) {
     var hls = document.createElement('source');
     hls.src = playerData.hlsSrc;
     hls.type = 'application/x-mpegURL';
@@ -622,7 +626,7 @@ EventStream.buildMp4Player = function(playerData, eventData) {
   track.kind = 'captions';
   track.label = 'English';
   track.srclang = 'en';
-  track.src = 'data:plain/text;charset=utf-8,"WEBVTT\\n\\n 00:00:00.000 --> 00:00:01.000 ZoneMinder"';
+  track.src = 'data:text/vtt;charset=utf-8,WEBVTT%0A%0A00:00:00.000 --> 00:00:01.000%0AZoneMinder';
   track.setAttribute('default', '');
   video.appendChild(track);
 

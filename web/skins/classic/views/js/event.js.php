@@ -63,11 +63,17 @@ var eventData = {
 var eventCodec = '<?php echo validJsStr($codec) ?>';
 <?php if (!empty($auto) && $Event->Id()) { ?>
 var zmPlayerData = {
+  // These srcs are JS string literals carrying query params that can include the
+  // session username and an auth hash, so they go through validJsStr (addslashes)
+  // like every other emitted string.  getStreamSrc's default separator is a raw
+  // '&', which is what a JS-assigned URL needs; hlsSrc was built with '&amp;' for
+  // its HTML use, so decode it before escaping for this JS context.  view_video
+  // serves the raw recorded file and ignores 'format', so none is requested here.
   codec:     '<?php echo validJsStr($codec) ?>',
-  mp4Src:    '<?php echo $Event->getStreamSrc(array('mode'=>'mp4', 'format'=>'h264')) ?>',
+  mp4Src:    '<?php echo validJsStr($Event->getStreamSrc(array('mode'=>'mp4'))) ?>',
   hasHls:    <?php echo !empty($has_hls) ? 'true' : 'false' ?>,
-  hlsSrc:    '<?php echo !empty($hlsSrc) ? htmlspecialchars_decode($hlsSrc) : '' ?>',
-  zmsImgSrc: '<?php echo $Event->getStreamSrc(array('mode'=>'jpeg', 'frame'=>$fid, 'scale'=>($scale > 0 ? $scale : 100), 'rate'=>$rate, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>$replayMode)) ?>',
+  hlsSrc:    '<?php echo !empty($hlsSrc) ? validJsStr(htmlspecialchars_decode($hlsSrc)) : '' ?>',
+  zmsImgSrc: '<?php echo validJsStr($Event->getStreamSrc(array('mode'=>'jpeg', 'frame'=>$fid, 'scale'=>($scale > 0 ? $scale : 100), 'rate'=>$rate, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>$replayMode))) ?>',
   width:     <?php echo (int)reScale($Event->Width(), $scale) ?>,
   height:    <?php echo (int)reScale($Event->Height(), $scale) ?>,
   isLive:    <?php echo $Event->EndDateTime() ? 'false' : 'true' ?>

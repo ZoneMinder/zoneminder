@@ -1563,8 +1563,26 @@ function initPage() {
   } else {
     showEventStats(true);
   }
-  if (eventData.DefaultVideo) {
-    canPlayCodec(eventData.DefaultVideo);
+  // codec=auto rendered no player (event.php) — choose one now based on whether
+  // this browser can natively decode the recording's codec. Build it before the
+  // #videoobj lookup below so the existing native/zms setup runs unchanged. vid
+  // must be assigned synchronously here: it is the dispatch switch for every
+  // control (play/seek/rate/...). autoChosePlayer also tells the changeScale()
+  // guard below to size an auto-built native player, which the DOMContentLoaded
+  // sizer could not (it ran before this built the <video>).
+  let autoChosePlayer = false;
+  if (typeof eventCodec !== 'undefined' && eventCodec === 'auto'
+      && typeof EventStream !== 'undefined'
+      && typeof zmPlayerData !== 'undefined' && zmPlayerData
+      && !document.getElementById('videoobj') && !document.getElementById('evtStream')) {
+    autoChosePlayer = true;
+    const choice = EventStream.chooseEventPlayer(zmPlayerData, eventData);
+    if (choice.mode === 'video') {
+      vid = choice.vid;
+      // The native player replaces the zms-form controls event.php rendered for auto.
+      $j('#streamQualityControl').hide();
+      $j('#fps').hide();
+    }
   }
 
   //FIXME prevent blocking...not sure what is happening or best way to unblock
@@ -1660,8 +1678,11 @@ function initPage() {
   });
   console.log('progress');
   progressBarNav();
-  // For video.js, we are already calling changeScale() from the 'DOMContentLoaded' event listener; we shouldn't duplicate these calls.
-  if (!vid) {
+  // For a server-rendered video.js player, changeScale() already ran from the
+  // 'DOMContentLoaded' listener, so skip it here. The zms path (no vid) still
+  // needs it, and so does an auto-built native player: its <video> did not exist
+  // when DOMContentLoaded fired, so the sizer there found no player.
+  if (!vid || autoChosePlayer) {
     console.log('changescale');
     changeScale();
   }

@@ -554,6 +554,161 @@ EventStream.errorIsFatal = function(reason) {
   return reason == 'no_socket';
 };
 
+/* ---------------------------------------------------------------------------
+ * Event-view player selection (classic skin event.php, codec=auto).
+ *
+ * PHP cannot know whether this browser can natively decode the recording's
+ * codec (HEVC/AV1), so for codec=auto event.php renders only a JPEG placeholder
+ * and leaves the choice to us: play the MP4 file directly in a <video> when the
+ * browser can decode it (fast, no server-side transcode), otherwise fall back
+ * to the zms MJPEG re-stream (the <img id="evtStream"> that the rest of event.js
+ * already drives). The explicit MP4 / MP4HLS / MJPEG codec picks are rendered
+ * server-side and never reach here.
+ * ------------------------------------------------------------------------- */
+
+// Can this browser natively play the file's codec? Delegates to canPlayCodec()
+// (skin.js), which maps the DefaultVideo codec token to a canPlayType() probe.
+// Without that helper, prefer the zms fallback rather than risk a dead player.
+EventStream.canPlayFile = function(filename) {
+  if (typeof canPlayCodec === 'function') return canPlayCodec(filename);
+  console.warn('EventStream: canPlayCodec() unavailable; using zms fallback');
+  return false;
+};
+
+// Remove the placeholder frame once the chosen player has real pixels up.
+EventStream.removePlaceholder = function() {
+  var ph = document.getElementById('eventPlaceholder');
+  if (ph && ph.parentNode) ph.parentNode.removeChild(ph);
+};
+
+// Build the native video.js player into #zoompan, mirroring the server-rendered
+// force-native markup in event.php. Returns the videojs player, or null on
+// failure (the caller then falls back to zms).
+EventStream.buildMp4Player = function(playerData, eventData) {
+  var zoompan = document.getElementById('zoompan');
+  if (!zoompan) {
+    console.error('EventStream.buildMp4Player: #zoompan not found');
+    return null;
+  }
+  if (typeof videojs === 'undefined') {
+    console.error('EventStream.buildMp4Player: videojs is not loaded');
+    return null;
+  }
+
+  var video = document.createElement('video');
+  video.id = 'videoobj';
+  video.className = 'video-js';
+  video.setAttribute('controls', '');
+  video.setAttribute('autoplay', '');
+  video.setAttribute('preload', 'auto');
+  if (playerData.width) video.setAttribute('width', playerData.width);
+  if (playerData.height) video.setAttribute('height', playerData.height);
+
+  // HLS first when a manifest exists, then the direct mp4 file.
+  if (playerData.hasHls && playerData.hlsSrc) {
+    var hls = document.createElement('source');
+    hls.src = playerData.hlsSrc;
+    hls.type = 'application/x-mpegURL';
+    video.appendChild(hls);
+  }
+  var mp4 = document.createElement('source');
+  mp4.src = playerData.mp4Src;
+  mp4.type = 'video/mp4';
+  video.appendChild(mp4);
+
+  // Captions track carrying the monitor label (matches event.php).
+  var track = document.createElement('track');
+  track.id = 'monitorCaption';
+  track.kind = 'captions';
+  track.label = 'English';
+  track.srclang = 'en';
+  track.src = 'data:plain/text;charset=utf-8,"WEBVTT\\n\\n 00:00:00.000 --> 00:00:01.000 ZoneMinder"';
+  track.setAttribute('default', '');
+  video.appendChild(track);
+
+  zoompan.appendChild(video);
+
+  // Same options as the force-native inline init in event.php.
+  var playbackRates = (typeof rates !== 'undefined' && rates.length)
+    ? rates.filter(function(r) {
+      return r >= 0;
+    }).map(function(r) {
+      return r / 100;
+    })
+    : [0.5, 1, 2, 4];
+
+  var player = videojs('videoobj', {
+    controls: true,
+    autoplay: true,
+    preload: 'auto',
+    playbackRates: playbackRates,
+    // liveui would hide the already-recorded portion behind a live-edge control.
+    liveui: false,
+    liveTracker: {trackingThreshold: 0}
+  });
+  player.zoomrotate({zoom: 1, rotate: 0});
+
+  // Live HLS: retry on errors while the manifest is still growing.
+  if (playerData.hasHls && playerData.isLive) {
+    var liveRetryCount = 0;
+    var maxLiveRetries = 30;
+    player.on('error', function() {
+      var error = player.error();
+      if (error && liveRetryCount < maxLiveRetries) {
+        liveRetryCount++;
+        var delay = liveRetryCount <= 3 ? 3000 : 5000;
+        player.error(null);
+        setTimeout(function() {
+          player.src(player.currentSources());
+        }, delay);
+      }
+    });
+    player.on('playing', function() {
+      liveRetryCount = 0;
+    });
+  }
+
+  player.one('loadeddata', EventStream.removePlaceholder);
+  player.one('playing', EventStream.removePlaceholder);
+
+  return player;
+};
+
+// Build the legacy zms <img id="evtStream"> into #zoompan, reproducing what
+// getImageStreamHTML() emits server-side so every #evtStream reference in
+// event.js keeps working. Stage 1 keeps this <img> path; a later stage migrates
+// it onto the EventStream canvas client.
+EventStream.buildZmsImg = function(playerData, eventData) {
+  var zoompan = document.getElementById('zoompan');
+  if (!zoompan) {
+    console.error('EventStream.buildZmsImg: #zoompan not found');
+    return;
+  }
+  var img = document.createElement('img');
+  img.id = 'evtStream';
+  if (eventData && eventData.Name) img.alt = eventData.Name;
+  if (playerData.width) img.style.width = playerData.width + 'px';
+  if (playerData.height) img.style.height = playerData.height + 'px';
+  img.addEventListener('load', EventStream.removePlaceholder, {once: true});
+  // Set src last so the load handler is attached before the stream connects.
+  img.src = playerData.zmsImgSrc;
+  zoompan.appendChild(img);
+};
+
+// Decide and build the player. Returns {mode:'video', vid:<player>} when the
+// native player was built, else {mode:'zms', vid:null} after building the zms img.
+EventStream.chooseEventPlayer = function(playerData, eventData) {
+  if (playerData && playerData.codec === 'auto'
+      && eventData && eventData.DefaultVideo
+      && EventStream.canPlayFile(eventData.DefaultVideo)) {
+    var vid = EventStream.buildMp4Player(playerData, eventData);
+    if (vid) return {mode: 'video', vid: vid};
+    // videojs init failed; fall through to the zms img rather than a dead player.
+  }
+  EventStream.buildZmsImg(playerData, eventData);
+  return {mode: 'zms', vid: null};
+};
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {EventStream};
 }

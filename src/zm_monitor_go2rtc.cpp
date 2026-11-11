@@ -166,6 +166,7 @@ int Monitor::Go2RTCManager::check_Go2RTC() {
     Error("Go2RTC: Failed to init curl in check_Go2RTC");
     return -1;
   }
+  zm_curl_set_timeouts(curl);
 
   // Assemble our actual request
   std::string endpoint = Go2RTC_endpoint + "/streams?src=" + std::to_string(parent->id);
@@ -194,6 +195,7 @@ int Monitor::Go2RTCManager::check_Go2RTC() {
     ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
+    zm_curl_set_timeouts(curl);
     curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
@@ -275,6 +277,7 @@ int Monitor::Go2RTCManager::add_to_Go2RTC() {
     Error("Go2RTC: Failed to init curl");
     return -1;
   }
+  zm_curl_set_timeouts(curl);
 
   // When RTSP restreamer is enabled, use it as the primary stream source.
   // This avoids go2rtc connecting directly to the camera (which may have
@@ -364,6 +367,7 @@ int Monitor::Go2RTCManager::remove_from_Go2RTC() {
     Error("Go2RTC: Failed to init curl in remove_from_Go2RTC");
     return -1;
   }
+  zm_curl_set_timeouts(curl);
   curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
   curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
@@ -387,6 +391,7 @@ int Monitor::Go2RTCManager::remove_from_Go2RTC() {
     ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
+    zm_curl_set_timeouts(curl);
     curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
     curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
@@ -431,6 +436,7 @@ std::pair<CURLcode, std::string> Monitor::Go2RTCManager::CURL_PUT(const std::str
     Error("Go2RTC: Failed to init curl");
     return std::make_pair(CURLE_FAILED_INIT, response);
   }
+  zm_curl_set_timeouts(curl);
   // The endpoint's src= and the payload carry the stream URL, with the camera's
   // credentials or the restream auth hash: log only the stream name part.
   Debug(1, "Go2RTC Sending %zu bytes to %s", data.size(), endpoint.substr(0, endpoint.find("&src=")).c_str());
@@ -457,6 +463,7 @@ std::pair<CURLcode, std::string> Monitor::Go2RTCManager::CURL_PUT(const std::str
     ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
+    zm_curl_set_timeouts(curl);
     curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
     curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);

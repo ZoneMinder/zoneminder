@@ -24,13 +24,16 @@ static unsigned int codec_tag_for(const char *format_name, unsigned int tag) {
   par->codec_type = AVMEDIA_TYPE_VIDEO;
   par->codec_id = AV_CODEC_ID_H264;
   par->codec_tag = tag;
-  zm_clear_incompatible_codec_tag(av_guess_format(format_name, nullptr, nullptr), par);
+  const AVOutputFormat *format = av_guess_format(format_name, nullptr, nullptr);
+  REQUIRE(format != nullptr);
+  zm_clear_incompatible_codec_tag(format, par);
   tag = par->codec_tag;
   avcodec_parameters_free(&par);
   return tag;
 }
 
 TEST_CASE("zm_clear_incompatible_codec_tag", "[ffmpeg]") {
+  FFMPEGInit();
   // 0x1b is the mpegts stream type for H.264
   REQUIRE(codec_tag_for("mp4", 0x1b) == 0);
   REQUIRE(codec_tag_for("mp4", MKTAG('a', 'v', 'c', '1')) == MKTAG('a', 'v', 'c', '1'));

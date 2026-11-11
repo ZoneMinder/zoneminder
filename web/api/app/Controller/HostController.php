@@ -290,7 +290,7 @@ class HostController extends AppController {
         $name = $value['Monitor']['Name'];
         $color = $value['Monitor']['WebColour'];
 
-        $space = shell_exec("du -s0 $zm_dir_events/$id | awk '{print $1}'");
+        $space = shell_exec("du -s0 ".escapeshellarg($zm_dir_events.'/'.$id)." | awk '{print $1}'");
         if ( $space == null ) {
           $space = 0;
         }
@@ -303,7 +303,7 @@ class HostController extends AppController {
       }
 
       // Add total usage to array
-      $space = shell_exec( "df $zm_dir_events |tail -n1 | awk '{print $3 }'");
+      $space = shell_exec( "df ".escapeshellarg($zm_dir_events)." |tail -n1 | awk '{print $3 }'");
       $space = $space/1024/1024;
       $usage['Total'] = array(
         'space' => rtrim($space),

@@ -1315,7 +1315,13 @@ sub executeCommand {
       }
     }gse;
   } else {
-    $command .= ' '.$Event->Path();
+    my $path = $Event->Path();
+    if ($path =~ /^[\w\/.,:+=@%-]*\z/) {
+      $command .= ' '.$path;
+    } else {
+      $tag_env{ZM_TAG_0} = $path;
+      $command .= ' "${ZM_TAG_0}"';
+    }
   }
 
   Info("Executing '$command'");

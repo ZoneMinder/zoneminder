@@ -974,16 +974,17 @@ sub recover_timestamps {
 # cannot be determined. $file must already be de-tainted by the caller.
 sub mp4_duration {
   my $file = shift;
+  my $quoted = quotemeta($file);
 
   # Preferred: ask ffprobe for the machine-readable duration in seconds.
-  my $duration = `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 '$file' 2>/dev/null`;
+  my $duration = `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 $quoted 2>/dev/null`;
   chomp $duration if defined $duration;
   if ( defined $duration and $duration =~ /^(\d+(?:\.\d+)?)$/ ) {
     return $1;
   }
 
   # Fallback: parse the human-readable "Duration: HH:MM:SS.uu" line.
-  my $output = `ffprobe '$file' 2>&1`;
+  my $output = `ffprobe $quoted 2>&1`;
   if ( $output =~ /Duration:\s*(\d+):(\d+):(\d+)\.(\d+)/ ) {
     return ($1*3600) + ($2*60) + $3 + "0.$4";
   }

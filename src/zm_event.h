@@ -126,6 +126,7 @@ class Event {
   int  tot_score;
   int  max_score;
   int max_score_frame_id;
+  int frame_write_failures;
   std::string path;
   std::string snapshot_file;
   bool snapshot_file_written;

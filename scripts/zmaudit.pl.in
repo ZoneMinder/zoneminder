@@ -1279,7 +1279,9 @@ sub delete_empty_directories {
   }
   my @contents = map { ( $_ eq '.' or $_ eq '..' ) ? () : $_ } readdir($DIR);
   #Debug("delete_empty_directories $_[0] has " . @contents .' entries:' . ( @contents <= 2 ? join(',',@contents) : '' ));
-  my @dirs = map { -d $_[0].'/'.$_ ? $_ : () } @contents;
+  # On filesystems that count subdirectories in a directory's link count (ext4, xfs),
+  # 2 means none, so the entries need no -d check. btrfs reports 1 and is still checked.
+  my @dirs = ( (stat($_[0]))[3] == 2 ) ? () : map { -d $_[0].'/'.$_ ? $_ : () } @contents;
   if ( @dirs ) {
     Debug('Have ' . @dirs . " dirs in $_[0]");
     foreach ( @dirs ) {

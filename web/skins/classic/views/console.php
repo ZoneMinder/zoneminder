@@ -129,20 +129,6 @@ for ( $i = 0; $i < count($displayMonitors); $i++ ) {
     $status_counts[$monitor['Status']] = 0;
   $status_counts[$monitor['Status']] += 1;
   $zoneCount += $monitor['ZoneCount'];
-
-  $counts = array();
-  foreach ( array_keys($eventCounts) as $j ) {
-    $filter = addFilterTerm(
-      $eventCounts[$j]['filter'],
-      count($eventCounts[$j]['filter']['Query']['terms']),
-      array('cnj'=>'and', 'attr'=>'Monitor', 'op'=>'=', 'val'=>$monitor['Id'])
-    );
-    parseFilter($filter);
-    #$counts[] = 'count(if(1'.$filter['sql'].",1,NULL)) AS EventCount$j, SUM(if(1".$filter['sql'].",DiskSpace,NULL)) As DiskSpace$j";
-    $monitor['eventCounts'][$j]['filter'] = $filter;
-    $eventCounts[$j]['totalevents'] += $monitor[$j.'Events'];
-    $eventCounts[$j]['totaldiskspace'] += $monitor[$j.'EventDiskSpace'];
-  }
   unset($monitor);
 } // end foreach display monitor
 

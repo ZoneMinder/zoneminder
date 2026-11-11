@@ -10,6 +10,7 @@
 
 #include "zm_config.h"
 #include "zm_logger.h"
+#include "zm_utils.h"
 #include "xop/AV1Source.h"
 
 #if HAVE_RTSP_SERVER
@@ -26,21 +27,7 @@ AV1_ZoneMinderStreamSource::AV1_ZoneMinderStreamSource(
 // Parse LEB128 variable-length integer (used for OBU sizes in AV1)
 size_t AV1_ZoneMinderStreamSource::parseLEB128(
     unsigned char* data, size_t max_size, uint32_t& value) {
-  value = 0;
-  size_t bytes_read = 0;
-
-  for (size_t i = 0; i < max_size && i < 8; i++) {
-    uint8_t byte = data[i];
-    value |= ((byte & 0x7F) << (7 * i));
-    bytes_read++;
-
-    if ((byte & 0x80) == 0) {
-      // Last byte of LEB128
-      break;
-    }
-  }
-
-  return bytes_read;
+  return zm_parse_leb128(data, max_size, value);
 }
 
 // Parse OBU header

@@ -436,6 +436,9 @@ void Logger::openFile() {
     if ( (mLogFileFP = fopen(mLogFile.c_str(), "a")) == nullptr ) {
       mFileLevel = NOLOG;
       Error("fopen() for %s %zu, error = %s", mLogFile.c_str(), mLogFile.size(), strerror(errno));
+    } else {
+      // The crash handler writes to this file with write(2), not through the Logger.
+      zmSetCrashLogFile(fileno(mLogFileFP));
     }
   } else {
     puts("Called Logger::openFile() without a filename");
@@ -458,6 +461,8 @@ void Logger::closeDatabase() {
 
 void Logger::openSyslog() {
   (void) openlog(mId.c_str(), LOG_PID|LOG_NDELAY, LOG_LOCAL1);
+  // The crash handler can't call syslog(); it sends to its own socket instead.
+  zmSetCrashSyslog(mId.c_str());
 }
 
 void Logger::closeSyslog() {

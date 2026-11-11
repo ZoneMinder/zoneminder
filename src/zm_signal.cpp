@@ -354,6 +354,13 @@ RETSIGTYPE zm_die_handler(int signal)
   void *ip = nullptr;
   void *fault_addr = nullptr;
   if ( info && context ) {
+    // A signal sent with kill(), raise() and the like rather than raised by a
+    // fault has no fault address: si_addr shares its storage with the sender's
+    // pid and uid, which are reported instead.
+    bool sent = info->si_code == SI_USER or info->si_code == SI_QUEUE;
+#ifdef SI_TKILL
+    sent = sent or info->si_code == SI_TKILL;
+#endif
     // For memory fault signals (SIGSEGV, SIGBUS, SIGFPE, SIGILL), si_addr is valid.
     fault_addr = info->si_addr;
 
@@ -404,7 +411,12 @@ RETSIGTYPE zm_die_handler(int signal)
       }
     }
     line.clear();
-    crash_emit(line.str("Fault reason: ").str(code_desc).str(" (signal code ").dec(info->si_code).str(")\n"));
+    if (sent) {
+      line.str("Sent by process ").dec(info->si_pid).str(" (uid ").dec(info->si_uid).str(")\n");
+    } else {
+      line.str("Fault reason: ").str(code_desc).str(" (signal code ").dec(info->si_code).str(")\n");
+    }
+    crash_emit(line);
 
     ucontext_t *uc = (ucontext_t *) context;
 #if defined(__x86_64__)
@@ -441,7 +453,11 @@ RETSIGTYPE zm_die_handler(int signal)
 
     // Report the fault address and instruction pointer.
     line.clear();
-    line.str("Fault address: ").ptr(fault_addr).str(", instruction pointer: ");
+    if (sent) {
+      line.str("Instruction pointer: ");
+    } else {
+      line.str("Fault address: ").ptr(fault_addr).str(", instruction pointer: ");
+    }
     if ( ip ) {
       line.ptr(ip);
     } else {

@@ -22,6 +22,7 @@
 
 #include <chrono>
 #include <csignal>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
@@ -249,6 +250,40 @@ TEST_CASE("zm_die_handler dies of the real signal rather than exiting from the h
   // re-raising.
   REQUIRE(captured.find("Got signal 11 (SIGSEGV, Segmentation fault), crashing\n") != std::string::npos);
 }
+
+#if ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T ) && \
+    (defined(__i386__) || defined(__x86_64__) || defined(__arm__) || defined(__aarch64__))
+TEST_CASE("a SIGSEGV sent with kill() is reported with its sender, not a fault address", "[signal]") {
+  std::string captured;
+  int status = run_crashing_child(captured, [] { kill(getpid(), SIGSEGV); });
+
+  REQUIRE(WIFSIGNALED(status));
+  REQUIRE(WTERMSIG(status) == SIGSEGV);
+  // The child sent it to itself. si_addr overlaps the sender's pid and uid, so
+  // there is no fault address to report.
+  REQUIRE(captured.find("Sent by process ") != std::string::npos);
+  REQUIRE(captured.find(" (uid " + std::to_string(getuid()) + ")\n") != std::string::npos);
+  REQUIRE(captured.find("Instruction pointer: ") != std::string::npos);
+  REQUIRE(captured.find("Fault address") == std::string::npos);
+  REQUIRE(captured.find("Fault reason") == std::string::npos);
+}
+
+TEST_CASE("a memory fault is reported with its address", "[signal]") {
+  std::string captured;
+  int status = run_crashing_child(captured, [] {
+    // Read through volatile so the compiler cannot see the address and turn
+    // the write into a trap instruction.
+    volatile uintptr_t address = 16;
+    *reinterpret_cast<volatile int *>(address) = 1;
+  });
+
+  REQUIRE(WIFSIGNALED(status));
+  REQUIRE((WTERMSIG(status) == SIGSEGV || WTERMSIG(status) == SIGBUS));
+  REQUIRE(captured.find("Fault reason: ") != std::string::npos);
+  REQUIRE(captured.find("Fault address: 0x10, instruction pointer: 0x") != std::string::npos);
+  REQUIRE(captured.find("Sent by process") == std::string::npos);
+}
+#endif
 
 TEST_CASE("zm_die_handler writes to the log file most recently set, not one closed since", "[signal]") {
   char first_path[] = "/tmp/zm_signal_test_XXXXXX";

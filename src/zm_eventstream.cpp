@@ -1024,7 +1024,15 @@ Image *EventStream::loadFrameImage(std::unique_ptr<Image> &owned_image, int &pre
   int convert_height = monitor->Height();
   pre_scaled_by = preScaleDimensions(monitor->Width(), monitor->Height(),
                                      convert_width, convert_height);
-  owned_image = std::make_unique<Image>(frame, convert_width, convert_height);
+  const AVPixelFormat frame_format = static_cast<AVPixelFormat>(frame->format);
+  if (type == STREAM_JPEG and (frame_format == AV_PIX_FMT_YUV420P or frame_format == AV_PIX_FMT_YUVJ420P)) {
+    // Keep 4:2:0 so EncodeJpeg encodes the planes directly instead of going through RGBA
+    owned_image = std::make_unique<Image>(convert_width, convert_height, ZM_COLOUR_YUV420P,
+                                          frame_format == AV_PIX_FMT_YUVJ420P ? ZM_SUBPIX_ORDER_YUVJ420P : ZM_SUBPIX_ORDER_YUV420P);
+    owned_image->Assign(frame);
+  } else {
+    owned_image = std::make_unique<Image>(frame, convert_width, convert_height);
+  }
   Image *image = owned_image.get();
 
   // when stored as an mp4, we just have the rotation as a flag in the headers

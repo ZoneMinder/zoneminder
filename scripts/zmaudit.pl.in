@@ -149,6 +149,7 @@ my $image_path = EVENT_PATH;
 my $loop = 1;
 my $cleaned = 0;
 MAIN: while( $loop ) {
+  ZoneMinder::Object::init_cache();
 
   if ( $continuous ) {
     # if we are running continuously, then just skip to the next

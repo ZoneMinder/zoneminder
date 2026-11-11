@@ -1264,8 +1264,11 @@ sub delete_empty_subdirs {
   Debug("delete_empty_subdirectories $_[0] has " . @contents .' entries:' . ( @contents < 2 ? join(',',@contents) : '' ));
   my @dirs = map { -d $_[0].'/'.$_ ? $_ : () } @contents;
   Debug("Have " . @dirs . " dirs");
+  # A directory's link count is 2 plus its subdirectories on ext4 and xfs, but CIFS
+  # reports 2 and btrfs 1 for every directory, so only trust it if this one shows them.
+  my $nlink_counts_subdirs = (@dirs and (stat($_[0]))[3] == 2 + @dirs);
   foreach ( @dirs ) {
-    delete_empty_directories( $_[0].'/'.$_ );
+    delete_empty_directories( $_[0].'/'.$_, $nlink_counts_subdirs );
   }
   closedir($DIR);
 }
@@ -1279,13 +1282,12 @@ sub delete_empty_directories {
   }
   my @contents = map { ( $_ eq '.' or $_ eq '..' ) ? () : $_ } readdir($DIR);
   #Debug("delete_empty_directories $_[0] has " . @contents .' entries:' . ( @contents <= 2 ? join(',',@contents) : '' ));
-  # On filesystems that count subdirectories in a directory's link count (ext4, xfs),
-  # 2 means none, so the entries need no -d check. btrfs reports 1 and is still checked.
-  my @dirs = ( (stat($_[0]))[3] == 2 ) ? () : map { -d $_[0].'/'.$_ ? $_ : () } @contents;
+  my $nlink_counts_subdirs = $_[1];
+  my @dirs = ( $nlink_counts_subdirs and (stat($_[0]))[3] == 2 ) ? () : map { -d $_[0].'/'.$_ ? $_ : () } @contents;
   if ( @dirs ) {
     Debug('Have ' . @dirs . " dirs in $_[0]");
     foreach ( @dirs ) {
-      delete_empty_directories($_[0].'/'.$_);
+      delete_empty_directories($_[0].'/'.$_, $nlink_counts_subdirs);
     }
 #Reload, since we may now be empty
     rewinddir $DIR;

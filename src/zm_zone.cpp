@@ -212,6 +212,56 @@ bool Zone::CheckExtendAlarmCount() {
   return false;
 }  // end bool Zone::CheckExtendAlarmCount
 
+static void and_row(uint8_t *__restrict__ dst, const uint8_t *__restrict__ src, int count) {
+  for (int i = 0; i < count; i++) dst[i] &= src[i];
+}
+
+static void or_row(uint8_t *__restrict__ dst, const uint8_t *__restrict__ src, int count) {
+  for (int i = 0; i < count; i++) dst[i] |= src[i];
+}
+
+// Keeps only the white pixels that are inside at least one all white bx by by
+// box (an erosion then a dilation) and returns how many are left.
+static unsigned int filter_pixels(uint8_t *diff, int stride, int width, int height,
+                                  int bx, int by, std::vector<uint8_t> &buffer) {
+  if (width <= 0 || height <= 0) return 0;
+  buffer.resize(static_cast<size_t>(width) * height);
+  uint8_t *boxes = buffer.data();
+
+  // Mark the top left corner of every all white box
+  for (int y = 0; y < height; y++) {
+    uint8_t *row = boxes + y * width;
+    const uint8_t *src = diff + y * stride;
+    memcpy(row, src, width);
+    for (int k = 1; k < bx && k < width; k++) and_row(row, src + k, width - k);
+    const int last = std::max(width - bx + 1, 0);
+    memset(row + last, 0, width - last);
+  }
+  for (int y = 0; y < height; y++) {
+    uint8_t *row = boxes + y * width;
+    if (y + by > height) {
+      memset(row, 0, width);
+      continue;
+    }
+    for (int k = 1; k < by; k++) and_row(row, row + k * width, width);
+  }
+
+  // Spread each corner back over its box
+  for (int y = height - 1; y > 0; y--) {
+    uint8_t *row = boxes + y * width;
+    for (int k = 1; k < by && k <= y; k++) or_row(row, row - k * width, width);
+  }
+  unsigned int count = 0;
+  for (int y = 0; y < height; y++) {
+    const uint8_t *row = boxes + y * width;
+    uint8_t *dst = diff + y * stride;
+    memcpy(dst, row, width);
+    for (int k = 1; k < bx && k < width; k++) or_row(dst + k, row, width - k);
+    for (int x = 0; x < width; x++) count += dst[x] & 1;
+  }
+  return count;
+}
+
 bool Zone::CheckAlarms(const Image *delta_image) {
   ResetStats();
 
@@ -353,53 +403,13 @@ bool Zone::CheckAlarms(const Image *delta_image) {
   if (check_method >= FILTERED_PIXELS) {
     int bx = filter_box.x_;
     int by = filter_box.y_;
-    int bx1 = bx-1;
-    int by1 = by-1;
 
     Debug(5, "Checking for filtered pixels");
     if (bx > 1 || by > 1) {
       // Now remove any pixels smaller than our filter size
-      unsigned char *cpdiff;
-      int ldx, hdx, ldy, hdy;
-      bool block;
-      for (int y = lo_y; y <= hi_y; y++) {
-        int lo_x = ranges[y].lo_x;
-        int hi_x = ranges[y].hi_x;
-
-        // Skip rows with no polygon pixels (lo_x == -1 means no pixels)
-        if (lo_x < 0 || lo_x > hi_x) continue;
-
-        pdiff = diff_image->Buffer(lo_x, y);
-
-        for (int x = lo_x; x <= hi_x; x++, pdiff++) {
-          if (*pdiff == kWhite) {
-            // Check participation in an X block
-            ldx = (x>=(lo_x+bx1))?-bx1:lo_x-x;
-            hdx = (x<=(hi_x-bx1))?0:((hi_x-x)-bx1);
-            ldy = (y>=(lo_y+by1))?-by1:lo_y-y;
-            hdy = (y<=(hi_y-by1))?0:((hi_y-y)-by1);
-            block = false;
-            for (int dy = ldy; !block && dy <= hdy; dy++) {
-              for (int dx = ldx; !block && dx <= hdx; dx++) {
-                block = true;
-                for (int dy2 = 0; block && dy2 < by; dy2++) {
-                  for (int dx2 = 0; block && dx2 < bx; dx2++) {
-                    cpdiff = diff_buff + (((y+dy+dy2)*diff_width) + (x+dx+dx2));
-                    if (!*cpdiff ) {
-                      block = false;
-                    }
-                  }
-                }
-              }
-            }
-            if (!block) {
-              *pdiff = kBlack;
-              continue;
-            }
-            stats.alarm_filter_pixels_++;
-          }  // end if white
-        }  // end for x
-      }  // end foreach y line
+      const int lo_x = std::max(polygon.Extent().Lo().x_, 0);
+      stats.alarm_filter_pixels_ = filter_pixels(diff_buff + lo_y * diff_width + lo_x, diff_width,
+                                                 hi_x - lo_x + 1, hi_y - lo_y + 1, bx, by, filter_buffer);
     } else {
       stats.alarm_filter_pixels_ = stats.alarm_pixels_;
     }

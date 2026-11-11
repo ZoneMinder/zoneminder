@@ -198,5 +198,50 @@ test('a non-auto codec is never routed through the native probe', () => {
   cleanup();
 });
 
+test('live HLS auto event offers the HLS source before the mp4', () => {
+  const dom = installDom();
+  installVideojs();
+  global.canPlayCodec = function() {
+    return true;
+  };
+
+  EventStream.chooseEventPlayer(
+      Object.assign({}, PLAYER_DATA, {hasHls: true, hlsSrc: 'x.m3u8', isLive: true}),
+      EVENT_DATA);
+
+  const video = dom.zoompan.children.find(function(c) {
+    return c.id === 'videoobj';
+  });
+  const srcs = video.children.filter(function(c) {
+    return c.tagName === 'source';
+  });
+  assert.strictEqual(srcs.length, 2, 'HLS + mp4');
+  assert.strictEqual(srcs[0].type, 'application/x-mpegURL');
+  assert.strictEqual(srcs[1].type, 'video/mp4');
+  cleanup();
+});
+
+test('finished HLS auto event plays the mp4 directly, no HLS source', () => {
+  const dom = installDom();
+  installVideojs();
+  global.canPlayCodec = function() {
+    return true;
+  };
+
+  EventStream.chooseEventPlayer(
+      Object.assign({}, PLAYER_DATA, {hasHls: true, hlsSrc: 'x.m3u8', isLive: false}),
+      EVENT_DATA);
+
+  const video = dom.zoompan.children.find(function(c) {
+    return c.id === 'videoobj';
+  });
+  const srcs = video.children.filter(function(c) {
+    return c.tagName === 'source';
+  });
+  assert.strictEqual(srcs.length, 1, 'mp4 only');
+  assert.strictEqual(srcs[0].type, 'video/mp4');
+  cleanup();
+});
+
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);

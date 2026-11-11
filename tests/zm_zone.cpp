@@ -526,3 +526,50 @@ TEST_CASE("Zone::CheckAlarms clears only the diff pixels std_alarmedpixels leave
     CheckMaskMatchesFullRowMemset(polygon);
   }
 }
+
+TEST_CASE("Zone::CheckAlarms counts and sums alarmed pixels like the scalar loop", "[Zone]") {
+  EnsureZoneConfig();
+
+  // 77 is not a multiple of 16, so every row also runs the scalar tail.
+  const int w = 77, h = 40;
+  Polygon polygon;
+  REQUIRE(Zone::ParsePolygonString("3,1 70,2 76,39 0,30", polygon));
+
+  auto delta = std::unique_ptr<Image>(new Image(w, h, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE));
+  uint32_t seed = 12345;
+  for (int y = 0; y < h; y++)
+    for (int x = 0; x < w; x++) {
+      seed = seed * 1103515245 + 12345;
+      *delta->Buffer(x, y) = static_cast<uint8_t>(seed >> 16);
+    }
+
+  const std::pair<int, int> thresholds[] = {{0, 0}, {5, 0}, {20, 200}, {127, 128}, {0, 1}, {254, 0}};
+  for (const auto &[min_threshold, max_threshold] : thresholds) {
+    CAPTURE(min_threshold, max_threshold);
+    auto monitor = MakeZoneMonitor(w, h);
+    Zone zone(monitor, 1, "sums", Zone::ACTIVE, polygon, kRGBBlack, Zone::ALARMED_PIXELS,
+              min_threshold, max_threshold, 0, 0);
+
+    const uint8_t calc_max = max_threshold ? max_threshold : 255;
+    unsigned int expected_count = 0, expected_sum = 0;
+    for (int y = 0; y < h; y++)
+      for (int x = 0; x < w; x++) {
+        const uint8_t d = *delta->Buffer(x, y);
+        if (*zone.getPgImage()->Buffer(x, y) && d > min_threshold && d <= calc_max) {
+          expected_count++;
+          expected_sum += d;
+        }
+      }
+    REQUIRE(expected_count > 0);
+
+    std::vector<uint8_t> expected = ExpectedMask(zone.getPgImage(), delta.get(), w, h,
+                                                 min_threshold, max_threshold,
+                                                 polygon.Extent().Lo().y_, polygon.Extent().Hi().y_);
+    REQUIRE(zone.CheckAlarms(delta.get()));
+    CHECK(zone.GetStats().alarm_pixels_ == expected_count);
+    CHECK(zone.GetStats().pixel_diff_ == static_cast<int>(expected_sum / expected_count));
+    const Image *mask = zone.AlarmImage();
+    for (int y = polygon.Extent().Lo().y_; y <= polygon.Extent().Hi().y_; y++)
+      CHECK(memcmp(mask->Buffer(0, y), expected.data() + static_cast<size_t>(y) * w, w) == 0);
+  }
+}

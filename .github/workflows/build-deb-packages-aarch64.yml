@@ -34,6 +34,9 @@ jobs:
         distro: ["debian:sid", "debian:13", "debian:12", "ubuntu:26.04", "ubuntu:devel", "ubuntu:24.04", "ubuntu:22.04"]
     # Pin the arch: x64 self-hosted runners (fw2) also serve this repo.
     runs-on: [self-hosted, Linux, ARM64]
+    # Self-hosted runners don't reliably enforce the 6h default; a hung
+    # step (gpg import once wedged a runner for 34h) must not hold one forever.
+    timeout-minutes: 60
 
     container:
       image: ${{ matrix.distro }}
@@ -87,6 +90,7 @@ jobs:
           echo "GNUPGHOME=${GNUPGHOME}" >> "$GITHUB_ENV"
 
       - name: Import GPG key
+        timeout-minutes: 5
         uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # v7
         with:
           gpg_private_key: ${{ secrets.ZMREPO_GPG_PRIVATE_KEY }}

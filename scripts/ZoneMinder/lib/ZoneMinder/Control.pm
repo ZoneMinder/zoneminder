@@ -355,7 +355,7 @@ sub get {
     $response = $self->{ua}->get($url);
   }
 
-  Debug("Response from $url: ". $response->status_line . ' ' . $response->content);
+  Debug('Response from '.urlForLog($url).': '. $response->status_line . ' ' . $response->content);
   return $response;
 }
 
@@ -451,7 +451,7 @@ sub post {
   if (!$res->is_success) {
     Error($res->status_line);
   } # end unless res->is_success
-  Debug('Response for '.$url.': '. $res->status_line . ' ' . $res->content);
+  Debug('Response for '.urlForLog($url).': '. $res->status_line . ' ' . $res->content);
   return $res;
 } # end sub post
 
@@ -477,7 +477,7 @@ sub parse_ControlAddress {
       and $$monitor{ControlAddress} ne 'user:port@ip'
   ) {
     my $address = $$monitor{ControlAddress};
-    Debug("Using ControlAddress for credentials: $address");
+    Debug('Using ControlAddress for credentials: '.urlForLog($address));
     if ($address !~ /^\w+:\/\//) {
       # Has no scheme at the beginning, so won't parse as a URI
       $address = 'http://'.$address;
@@ -501,7 +501,7 @@ sub parse_ControlAddress {
     $$self{uri} = $uri;
     $$self{BaseURL} = $uri->canonical();
     $self->{ua}->credentials($uri->host_port(), $$self{realm}, $$self{username}, $$self{password});
-    Debug("Have base url $$self{BaseURL} with credentials ".$uri->host_port().join(',', @$self{'realm', 'username', 'password'}));
+    Debug('Have base url '.urlForLog($$self{BaseURL}).' with credentials for '.$uri->host_port().' realm '.($$self{realm} // '').' user '.($$self{username} // ''));
     return 1;
   }
   return 0;
@@ -510,7 +510,7 @@ sub parse_ControlAddress {
 sub parse_Path {
   my $self = shift;
   my $monitor = $self->{Monitor};
-  Debug("Using Path for credentials: $$monitor{Path}");
+  Debug('Using Path for credentials: '.urlForLog($$monitor{Path}));
   my $uri = URI->new($$monitor{Path});
   return 0 if !$uri->has_recognized_scheme;
 
@@ -533,7 +533,7 @@ sub parse_Path {
   $$self{port} = $uri->port();
   $$self{BaseURL} = $uri->canonical();
   $$self{ua}->credentials($uri->host_port(), @$self{'realm', 'username', 'password'});
-  Debug("Have base url $$self{BaseURL} with credentials ".$uri->host_port().join(',', @$self{'realm', 'username', 'password'}));
+  Debug('Have base url '.urlForLog($$self{BaseURL}).' with credentials for '.$uri->host_port().' realm '.($$self{realm} // '').' user '.($$self{username} // ''));
   return 1;
 }
 
@@ -591,7 +591,7 @@ sub get_realm {
         if ( $tokens{realm} ) {
           if ((!$$self{realm}) or ($$self{realm} ne $tokens{realm})) {
             $$self{realm} = $tokens{realm};
-            Debug("Changing REALM to $$self{realm}, $$self{address} or $$self{host}:$$self{port}, $$self{realm}, $$self{username}, $$self{password}");
+            Debug("Changing REALM to $$self{realm}, $$self{address} or $$self{host}:$$self{port}, user $$self{username}");
             $self->{ua}->credentials($$self{address}?$$self{address}:"$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
             $response = $self->get($url);
             if ( !$response->is_success() ) {

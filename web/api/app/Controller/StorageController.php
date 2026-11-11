@@ -36,7 +36,7 @@ class StorageController extends AppController {
     $named_params = $this->request->params['named'];
     if ( $named_params ) {
       $this->FilterComponent = $this->Components->load('Filter');
-      $conditions = $this->FilterComponent->buildFilter($named_params);
+      $conditions = $this->FilterComponent->buildFilter($named_params, array_keys($this->Storage->schema()));
     } else {
       $conditions = array();
     }

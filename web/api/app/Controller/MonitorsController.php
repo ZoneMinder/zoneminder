@@ -33,7 +33,16 @@ class MonitorsController extends AppController {
 
     if ($this->request->params['named']) {
       $this->FilterComponent = $this->Components->load('Filter');
-      $conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+      // The columns of Monitors and of the tables find() joins at recursive 0
+      // (hasOne, belongsTo), plus GroupId, served by the Groups_Monitors join
+      // below. Anything else would reach MySQL as an unknown column and come
+      // back as a 500.
+      $fields = array('Monitor' => array_keys($this->Monitor->schema()));
+      foreach (array_merge(array_keys($this->Monitor->hasOne), array_keys($this->Monitor->belongsTo)) as $alias) {
+        $fields[$alias] = array_keys($this->Monitor->{$alias}->schema());
+      }
+      $named = $this->FilterComponent->qualifyFields($this->request->params['named'], $fields, array('GroupId'));
+      $conditions = $this->FilterComponent->buildFilter($named);
     } else {
       $conditions = array();
     }
@@ -318,9 +327,17 @@ class MonitorsController extends AppController {
       case 'on':
         $q = '-a';
         $verbose = '-v';
-        $cause = $this->alarmCause($this->request->query('cause') ? $this->request->query('cause') : $this->request->data('cause'));
+        // Read cause from the query string, falling back to POST data. Compare to
+        // null rather than testing truthiness so a literal "0" is not discarded.
+        $cause_raw = $this->request->query('cause');
+        if ($cause_raw === null) $cause_raw = $this->request->data('cause');
+        $cause = $this->alarmCause($cause_raw);
         if ($cause !== '') {
-          $q .= ' --cause '.escapeshellarg($cause);
+          // Wrap in single quotes with POSIX quote escaping rather than
+          // escapeshellarg(), which drops bytes that are invalid in the server's
+          // locale and so mangles a UTF-8 cause under a C/POSIX locale. This stays
+          // safe independently of what alarmCause() lets through.
+          $q .= " --cause '".str_replace("'", "'\\''", $cause)."'";
         }
         break;
       case 'off':

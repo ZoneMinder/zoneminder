@@ -22,7 +22,7 @@ class EventsController extends AppController {
   public function beforeFilter() {
     parent::beforeFilter();
     global $user;
-    $canView = (!$user) || ($user->Events() != 'None');
+    $canView = (!$user) || ($user->canView('Events'));
     if ( !$canView ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
@@ -141,7 +141,7 @@ class EventsController extends AppController {
         $tag_filter_field = 'Name';
         unset($raw_params['Tags']);
       }
-      $conditions = $this->FilterComponent->buildFilter($raw_params);
+      $conditions = $this->FilterComponent->buildFilter($raw_params, array_merge(array_keys($this->Event->schema()), array('DateTime', 'GroupId')));
     }
     $settings = array(
       // https://github.com/ZoneMinder/ZoneMinder/issues/995
@@ -261,6 +261,13 @@ class EventsController extends AppController {
 
     $options = array('conditions' => array(array('Event.' . $this->Event->primaryKey => $id), $mon_options));
     $event = $this->Event->find('first', $options);
+    # The event exists (checked above), so an empty result means the monitor
+    # condition filtered it out. Refuse here: an empty ZM\Event has no monitor
+    # and passes canView(), and the code below would then fill in the hidden
+    # event's neighbours and frame ids by $id alone.
+    if (!$event) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+    }
     $EventObj = new ZM\Event($event['Event']);
     if (!$EventObj->canView()) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
@@ -315,7 +322,7 @@ class EventsController extends AppController {
   public function add() {
 
     global $user;
-    $canEdit = (!$user) || ($user->Events() == 'Edit');
+    $canEdit = (!$user) || ($user->canEdit('Events'));
     if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
@@ -347,7 +354,7 @@ class EventsController extends AppController {
   public function edit($id = null) {
 
     global $user;
-    $canEdit = (!$user) || ($user->Events() == 'Edit');
+    $canEdit = (!$user) || ($user->canEdit('Events'));
     if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
@@ -397,7 +404,7 @@ class EventsController extends AppController {
    */
   public function delete($id = null) {
     global $user;
-    $canEdit = (!$user) || ($user->Events() == 'Edit');
+    $canEdit = (!$user) || ($user->canEdit('Events'));
     if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
@@ -440,12 +447,12 @@ class EventsController extends AppController {
       // Transform params into conditions
       if ( preg_match('/^\s?interval\s?/i', $value) ) {
         if (preg_match('/^[a-z0-9]+$/i', $param_name) !== 1) {
-          throw new Exception('Invalid field name: ' . $param_name);
+          throw new BadRequestException('Invalid field name: ' . $param_name);
         }
         $matches = NULL;
         $value = preg_replace('/^\s?interval\s?/i', '', $value);
         if (preg_match('/^(?P<expr>[ \-.:0-9]+)\s+(?P<unit>[_a-z]+)$/i', trim($value), $matches) !== 1) {
-          throw new Exception('Invalid interval: ' . $value);
+          throw new BadRequestException('Invalid interval: ' . $value);
         }
         $expr = trim($matches['expr']);
         $unit = trim($matches['unit']);
@@ -456,7 +463,7 @@ class EventsController extends AppController {
     }
 
     $this->FilterComponent = $this->Components->load('Filter');
-    $conditions = $this->FilterComponent->buildFilter($conditions);
+    $conditions = $this->FilterComponent->buildFilter($conditions, array_keys($this->Event->schema()));
     array_push($conditions, $find_conditions);
     array_push($conditions, $this->viewableMonitorCondition('Event.MonitorId'));
 
@@ -479,7 +486,7 @@ class EventsController extends AppController {
     // https://dev.mysql.com/doc/refman/5.5/en/expressions.html#temporal-intervals
     // Examples: `'1-1' YEAR_MONTH`, `'-1 10' DAY_HOUR`, `'1.999999' SECOND_MICROSECOND`
     if (preg_match('/^(?P<expr>[ \-.:0-9]+)\s+(?P<unit>[_a-z]+)$/i', trim($interval), $matches) !== 1) {
-      throw new Exception('Invalid interval: ' . $interval);
+      throw new BadRequestException('Invalid interval: ' . $interval);
     }
     $expr = trim($matches['expr']);
     $unit = trim($matches['unit']);
@@ -488,7 +495,7 @@ class EventsController extends AppController {
     $results = array();
     $this->FilterComponent = $this->Components->load('Filter');
     if ( $this->request->params['named'] ) {
-      $conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+      $conditions = $this->FilterComponent->buildFilter($this->request->params['named'], array_keys($this->Event->schema()));
     } else {
       $conditions = array();
     } 

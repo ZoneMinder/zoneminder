@@ -160,6 +160,7 @@ $SLANG = array(
     'BadChannel'            => 'Channel must be set to an integer of zero or more',
     'BadDevice'             => 'Device must be set to a valid value',
     'BadEncoderParameters'  => 'Encoder does not work well without at least a value for crf. Please see the help.',
+    'BadFfmpegOptions'      => 'Source -> Options must be key=value pairs separated by commas or new lines, such as tls_verify=0. Write ffmpeg command line flags like -tls_verify 0 without the dash and with =. Could not use:',
     'BadFormat'             => 'Format must be set to a valid value',
     'BadFPSReportInterval'  => 'FPS report interval buffer count must be an integer of 0 or more',
     'BadMotionFrameSkip'    => 'Motion Frame skip count must be an integer of zero or more',
@@ -319,6 +320,10 @@ $SLANG = array(
     'ConfiguredFor'         => 'Configured for',
     'ConfigURL'             => 'Config Base URL',
     'ConfirmAction'         => 'Action Confirmation',
+    'ClearAllLogs'          => 'Clear ALL Logs',
+    'ClearFilteredLogs'     => 'Clear Filtered Logs',
+    'ConfirmClearAllLogs'   => 'No rows are selected, so this will delete all log entries. Are you sure?',
+    'ConfirmClearFilteredLogs' => 'No rows are selected, so this will delete every log entry matching the current filter. Are you sure?',
     'ConfirmClearLogs'      => 'Are you sure you wish to delete the selected log entries?',
     'ConfirmClearLogsTitle' => 'Clear Logs Confirmation',
     'ConfirmDeleteControl'  => 'Warning, deleting a control will reset all monitors that use it to be uncontrollable.<br><br>Are you sure you wish to delete?',
@@ -469,6 +474,7 @@ $SLANG = array(
     'GeneratingVideo'       => 'Generating Video',
     'Generate QR Code'      => 'Generate QR Code',
     'GetCurrentLocation'    => 'Get Current Location',
+    'Go2RTCDisableBackchannel' => 'Disable Go2RTC audio backchannel',
     'GoToFrame'             => 'Go to Frame',
     'GoToZoneMinder'        => 'Go to ZoneMinder.com',
     'HasFocusSpeed'         => 'Has Focus Speed',
@@ -1096,8 +1102,10 @@ if (!function_exists('zmVlang')) {
 $OLANG = array(
 	'OPTIONS_FFMPEG' => array(
     'Help' => '
-      Parameters in this field are passed on to FFmpeg. Multiple parameters can be separated by ,~~
+      Parameters in this field are passed on to FFmpeg as key=value pairs. Multiple parameters can be separated by , or put on separate lines.~~
+      An ffmpeg command line flag such as -tls_verify 0 is written tls_verify=0: no leading dash, and = between the name and the value.~~
       Examples (do not enter quotes)~~~~
+      "tls_verify=0" Accept the camera certificate without verifying it on rtsps:// sources~~~~
       "allowed_media_types=video" Set datatype to request from cam (audio, video, data)~~~~
       "reorder_queue_size=nnn" Set number of packets to buffer for handling of reordered packets
     '
@@ -1240,6 +1248,18 @@ None: No frames will be decoded, live view and thumbnails will not be available~
     'Help' => '
       RTSP2Web supports MSE (Media Source Extensions), HLS (HTTP Live Streaming), and WebRTC.
       Each has its advantages, with WebRTC probably being the most performant, but also the most picky about codecs.'
+  ),
+  'FUNCTION_GO2RTC_DISABLE_BACKCHANNEL_FULL' => array(
+    'Help' => '
+      Enabled by default to prevent compatibility issues with some cameras, particularly Dahua models.~~
+      When live viewing through go2rtc is active, these issues may cause ONVIF events (such as motion or sound detection) to stop working and prevent ZoneMinder from recording events.~~~~
+      Disable this option if your camera requires RTSP backchannel functionality, or if you need two-way audio (talkback) through go2rtc.~~
+      If your camera works correctly with ONVIF events and recording while live viewing is active, you can also disable this option to retain the default backchannel behavior.'
+  ),
+  'FUNCTION_GO2RTC_DISABLE_BACKCHANNEL_SHORT' => array(
+    'Help' => '
+      Disable RTSP backchannel to prevent ONVIF event and recording issues with some cameras (particularly Dahua). 
+      Disable this option if two-way audio is required or your camera works correctly with backchannel enabled.'
   ),
   'FUNCTION_JANUS_ENABLED' => array(
     'Help' => '

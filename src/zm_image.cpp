@@ -1495,6 +1495,48 @@ bool Image::WriteJpeg(const std::string &filename, int quality_override, SystemT
   return Image::WriteJpeg(filename, quality_override, timestamp, false);
 }
 
+// YUV420P with a width divisible by 16 needs no padding in libjpeg's raw mode,
+// so the planes go straight in without being interleaved into YCbCr scanlines.
+static bool zm_jpeg_raw_ok(AVPixelFormat pixfmt, unsigned int width) {
+  return (pixfmt == AV_PIX_FMT_YUV420P || pixfmt == AV_PIX_FMT_YUVJ420P) && (width % 16) == 0;
+}
+
+// After jpeg_set_defaults(), which resets raw_data_in and the sampling factors.
+static void zm_jpeg_raw_setup(jpeg_compress_struct *cinfo) {
+  cinfo->raw_data_in = TRUE;
+  jpeg_set_colorspace(cinfo, JCS_YCbCr);
+  cinfo->comp_info[0].h_samp_factor = 2;
+  cinfo->comp_info[0].v_samp_factor = 2;
+  for (int c = 1; c < 3; c++) {
+    cinfo->comp_info[c].h_samp_factor = 1;
+    cinfo->comp_info[c].v_samp_factor = 1;
+  }
+}
+
+static bool zm_jpeg_write_raw_yuv420(jpeg_compress_struct *cinfo, const uint8_t *buffer,
+                                     AVPixelFormat pixfmt, int width, int height) {
+  uint8_t *plane[4] = {nullptr, nullptr, nullptr, nullptr};
+  int linesize[4] = {0, 0, 0, 0};
+  if (av_image_fill_arrays(plane, linesize, buffer, pixfmt, width, height, 32) < 0)
+    return false;
+
+  const int chroma_height = (height + 1) / 2;
+  JSAMPROW yrows[2 * DCTSIZE], urows[DCTSIZE], vrows[DCTSIZE];
+  JSAMPARRAY planes[3] = {yrows, urows, vrows};
+  // Rows past the bottom repeat the last row.
+  for (int y = 0; y < height; y += 2 * DCTSIZE) {
+    for (int i = 0; i < 2 * DCTSIZE; i++)
+      yrows[i] = plane[0] + static_cast<size_t>(std::min(y + i, height - 1)) * linesize[0];
+    for (int i = 0; i < DCTSIZE; i++) {
+      const int cy = std::min(y / 2 + i, chroma_height - 1);
+      urows[i] = plane[1] + static_cast<size_t>(cy) * linesize[1];
+      vrows[i] = plane[2] + static_cast<size_t>(cy) * linesize[2];
+    }
+    jpeg_write_raw_data(cinfo, planes, 2 * DCTSIZE);
+  }
+  return true;
+}
+
 bool Image::WriteJpeg(const std::string &filename,
                       const int &quality_override,
                       SystemTimePoint timestamp,
@@ -1566,6 +1608,11 @@ bool Image::WriteJpeg(const std::string &filename,
   cinfo->image_width = width;   /* image width and height, in pixels */
   cinfo->image_height = height;
 
+  const bool is_yuv_planar =
+      (imagePixFormat == AV_PIX_FMT_YUV420P || imagePixFormat == AV_PIX_FMT_YUVJ420P
+       || imagePixFormat == AV_PIX_FMT_YUV422P || imagePixFormat == AV_PIX_FMT_YUVJ422P);
+  const bool use_raw = zm_jpeg_raw_ok(imagePixFormat, width);
+
   if (imagePixFormat == AV_PIX_FMT_GRAY8) {
     cinfo->input_components = 1;
     cinfo->in_color_space = JCS_GRAYSCALE;
@@ -1621,6 +1668,8 @@ bool Image::WriteJpeg(const std::string &filename,
   jpeg_set_quality(cinfo, quality, FALSE);
   cinfo->dct_method = JDCT_FASTEST;
 
+  if (use_raw) zm_jpeg_raw_setup(cinfo);
+
   jpeg_start_compress(cinfo, TRUE);
   if (config.add_jpeg_comments && !annotation_.empty()) {
     jpeg_write_marker(cinfo, JPEG_COM, reinterpret_cast<const JOCTET *>(annotation_.c_str()), annotation_.size());
@@ -1658,8 +1707,16 @@ bool Image::WriteJpeg(const std::string &filename,
     jpeg_write_marker(cinfo, EXIF_CODE, (const JOCTET *) exiftimes, sizeof(exiftimes));
   }
 
-  if (imagePixFormat == AV_PIX_FMT_YUV420P || imagePixFormat == AV_PIX_FMT_YUVJ420P
-   || imagePixFormat == AV_PIX_FMT_YUV422P || imagePixFormat == AV_PIX_FMT_YUVJ422P) {
+  if (use_raw) {
+    if (!zm_jpeg_write_raw_yuv420(cinfo, buffer, imagePixFormat, width, height)) {
+      Error("WriteJpeg: raw YUV feed failed for %s", av_get_pix_fmt_name(imagePixFormat));
+      jpeg_abort_compress(cinfo);
+      fl.l_type = F_UNLCK;
+      fcntl(raw_fd, F_SETLK, &fl);
+      fclose(outfile);
+      return false;
+    }
+  } else if (is_yuv_planar) {
     // Planar YUV: interleave Y/U/V plane rows into per-scanline YCbCr triples.
     // The previous code here unpacked the buffer as if it were packed YUYV
     // 4:2:2, which read way past the W*H*1.5 YUV420P buffer end on every
@@ -1858,6 +1915,7 @@ bool Image::EncodeJpeg(JOCTET *outbuffer, size_t *outbuffer_size, int quality_ov
   const bool is_yuv_planar =
       (imagePixFormat == AV_PIX_FMT_YUV420P || imagePixFormat == AV_PIX_FMT_YUVJ420P
        || imagePixFormat == AV_PIX_FMT_YUV422P || imagePixFormat == AV_PIX_FMT_YUVJ422P);
+  const bool use_raw = zm_jpeg_raw_ok(imagePixFormat, width);
 
   if (imagePixFormat == AV_PIX_FMT_GRAY8) {
     cinfo->input_components = 1;
@@ -1907,9 +1965,17 @@ bool Image::EncodeJpeg(JOCTET *outbuffer, size_t *outbuffer_size, int quality_ov
   jpeg_set_quality(cinfo, quality, FALSE);
   cinfo->dct_method = JDCT_FASTEST;
 
+  if (use_raw) zm_jpeg_raw_setup(cinfo);
+
   jpeg_start_compress(cinfo, TRUE);
 
-  if (is_yuv_planar) {
+  if (use_raw) {
+    if (!zm_jpeg_write_raw_yuv420(cinfo, buffer, imagePixFormat, width, height)) {
+      Error("EncodeJpeg: raw YUV feed failed for %s", av_get_pix_fmt_name(imagePixFormat));
+      jpeg_abort_compress(cinfo);
+      return false;
+    }
+  } else if (is_yuv_planar) {
     // Planar YUV: interleave Y/U/V plane rows into per-scanline YCbCr triples
     // for libjpeg's JCS_YCbCr input. av_image_fill_arrays computes plane
     // pointers and per-plane linesizes from the AVPixelFormat, so this works
@@ -3605,9 +3671,25 @@ void Image::Scale(const unsigned int new_width, const unsigned int new_height) {
   }
   // Both buffers use Image's align-32 layout: `buffer` is ours, and
   // scale_buffer is adopted by AssignDirect below, which derives
-  // size/linesize with av_image_* at align=32.
-  if (swscale.Convert(buffer, allocation, scale_buffer, scale_buffer_size,
-                      format, format, width, height, new_width, new_height, 32, 32) < 0) {
+  // size/linesize with av_image_* at align=32. The exception is plane 0 of a
+  // borrowed plane (get_y_image wraps the decoder's Y plane), whose real
+  // stride is our linesize; see Image::Rotate.
+  av_frame_ptr src_frame{av_frame_alloc()};
+  av_frame_ptr dst_frame{av_frame_alloc()};
+  if (!src_frame || !dst_frame
+      || av_image_fill_arrays(src_frame->data, src_frame->linesize, buffer, format, width, height, 32) < 0
+      || av_image_fill_arrays(dst_frame->data, dst_frame->linesize, scale_buffer, format, new_width, new_height, 32) < 0) {
+    Error("Scale: failed to set up frames for %s", av_get_pix_fmt_name(format));
+    DumpBuffer(scale_buffer, ZM_BUFTYPE_ZM);
+    return;
+  }
+  src_frame->linesize[0] = linesize;
+  src_frame->format = dst_frame->format = format;
+  src_frame->width = width;
+  src_frame->height = height;
+  dst_frame->width = new_width;
+  dst_frame->height = new_height;
+  if (swscale.Convert(src_frame.get(), dst_frame.get()) < 0) {
     Error("Scale: sws_scale conversion failed (%ux%u %s -> %ux%u)",
           width, height, av_get_pix_fmt_name(format), new_width, new_height);
     DumpBuffer(scale_buffer, ZM_BUFTYPE_ZM);

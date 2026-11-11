@@ -521,7 +521,7 @@ switch ($name) {
                 'Camera'  => translate('DeviceClassCamera'),
                 'Speaker' => translate('DeviceClassSpeaker'),
               );
-              echo htmlSelect('newMonitor[DeviceClass]', $device_class_options, $monitor->DeviceClass());
+              echo htmlSelect('newMonitor[DeviceClass]', $device_class_options, $monitor->DeviceClass(), ['data-on-change'=>'changeDeviceClass']);
 ?>
               </li>
               <li class="Manufacturer">
@@ -1369,6 +1369,15 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
   }
 ?>
             </li>
+            <li id="Go2RTCDisableBackChannel">
+              <label><?php echo translate('Go2RTCDisableBackchannel'); if ( isset($OLANG['FUNCTION_GO2RTC_DISABLE_BACKCHANNEL_FULL']) ) echo makeHelpLink('FUNCTION_GO2RTC_DISABLE_BACKCHANNEL_FULL'); ?></label>
+              <input type="checkbox" name="newMonitor[Go2RTCDisableBackChannel]" value="1"<?php echo $monitor->Go2RTCDisableBackChannel() ? ' checked="checked"' : '' ?>/>
+<?php
+  if ( isset($OLANG['FUNCTION_GO2RTC_DISABLE_BACKCHANNEL_SHORT']) ) {
+    echo '<div class="form-text">'.$OLANG['FUNCTION_GO2RTC_DISABLE_BACKCHANNEL_SHORT']['Help'].'</div>';
+  }
+?>
+            </li>
             <li id="FunctionRTSP2WebEnabled">
               <label><?php echo translate('RTSP2Web Live Stream') ?></label>
               <input type="checkbox" name="newMonitor[RTSP2WebEnabled]" value="1"<?php echo $monitor->RTSP2WebEnabled() ? ' checked="checked"' : '' ?> on_click="update_players"/>
@@ -1949,6 +1958,7 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
 
   <script src="<?php echo cache_bust('js/MonitorLinkExpression.js') ?>"></script>
   <script src="<?php echo cache_bust('skins/classic/views/js/monitor-encoder-templates.js') ?>"></script>
+  <script src="<?php echo cache_bust('skins/classic/views/js/monitor-ffmpeg-options.js') ?>"></script>
 <script type="module" nonce="<?php echo $cspNonce ?>">
   import DmsCoordinates, {parseDms} from "./js/dms.js";
   window.DmsCoordinates = DmsCoordinates;

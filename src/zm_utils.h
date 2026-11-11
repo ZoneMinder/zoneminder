@@ -112,6 +112,9 @@ std::string stringtf(const char* format, ...);
 
 std::string ByteArrayToHexString(nonstd::span<const uint8> bytes);
 
+// Parses an AV1 LEB128 value (at most 8 bytes) and returns the bytes consumed.
+size_t zm_parse_leb128(const unsigned char *data, size_t max_size, uint32_t &value);
+
 std::string Base64Encode(const std::string &str);
 
 std::string TimevalToString(timeval tv);
@@ -180,6 +183,13 @@ constexpr std::size_t size(const T(&)[N]) noexcept { return N; }
 
 std::string mask_authentication(const std::string &url);
 std::string remove_authentication(const std::string &url);
+// A URL as it may be logged: no user:password@ and no query string (which may
+// carry an auth hash, a token or a password). "?..." marks a removed query.
+std::string url_for_log(const std::string &url);
+// An HTTP or RTSP request as it may be logged: the request target through
+// url_for_log() and the value of any Authorization or Proxy-Authorization
+// header (Basic carries user:password, only base64-encoded) replaced.
+std::string request_for_log(const std::string &request);
 
 std::string UriEncode(const std::string &value);
 // The go2rtc API base for a ZM_GO2RTC_PATH. go2rtc serves its API under /api, so

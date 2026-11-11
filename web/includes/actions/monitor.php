@@ -110,6 +110,7 @@ if ($action == 'save') {
       'DecodingEnabled' => 0,
       'RTSP2WebEnabled' => 0,
       'Go2RTCEnabled' => 0,
+      'Go2RTCDisableBackChannel' => 0,
       'JanusEnabled' => 0,
       'JanusAudioEnabled' => 0,
       'Restream' => 0,
@@ -160,7 +161,7 @@ if ($action == 'save') {
   }
 
   $changes = $monitor->changes($newMonitor);
-  ZM\Debug('Changes: '. print_r($changes, true));
+  ZM\Debug('Changes: '. print_r(ZM\redactForLog($changes), true));
   $restart = false;
 
   if (count($changes)) {

@@ -129,8 +129,9 @@ std::string Authenticator::computeDigestResponse(const std::string &method, cons
   //  md5(md5(<username>:<realm>:<password>):<nonce>:md5(<cmd>:<url>))
 
   // Step 1: md5(<username>:<realm>:<password>)
+  // ha1Data holds the camera password and its MD5 (HA1) is all a client
+  // needs to answer this realm's challenges, so neither is logged.
   std::string ha1Data = username() + ":" + realm() + ":" + password();
-  Debug(2, "HA1 pre-md5: %s", ha1Data.c_str());
 
   zm::crypto::MD5::Digest md5_digest = zm::crypto::MD5::GetDigestOf(ha1Data);
   std::string ha1Hash = ByteArrayToHexString(md5_digest);
@@ -150,7 +151,6 @@ std::string Authenticator::computeDigestResponse(const std::string &method, cons
     // if qop was specified, then we have to include t and a cnonce and an nccount
   }
   digestData += ":" + ha2Hash;
-  Debug(2, "pre-md5: %s", digestData.c_str());
 
   md5_digest = zm::crypto::MD5::GetDigestOf(digestData);
 

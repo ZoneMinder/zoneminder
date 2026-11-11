@@ -116,7 +116,7 @@ sub sendCmd
     }
     else
     {
-        Error( "Error check failed: '".$res->status_line()."' for URL ".$req->uri() );
+        Error( "Error check failed: '".$res->status_line()."' for URL ".urlForLog($req->uri()) );
     }
 
     return( $result );

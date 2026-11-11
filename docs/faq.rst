@@ -38,22 +38,18 @@ Optional skip archived events:  click on the plus sign next to -7 days to add an
 Optional slow delete:  limit the number of results to a number, say ``10`` in the filter.  If you have a large backlog of events that would be deleted, this can hard spike the CPU usage for a long time.  Limiting the number of results to only the first three each time the filter is run spreads out the delete processes over time, dramatically lessening the CPU load.
 
 
-.. warning:: We no longer recommend use enable ``OPT_FAST_DELETE`` or ``RUN_AUDIT`` anymore, unless you are using an old or low powered system to run Zoneminder. Please consider the remaining tips in this answer to be 'generally deprecated, use only if you must'.
+.. warning:: We no longer recommend enabling ``RUN_AUDIT``, unless you are using an old or low powered system to run Zoneminder. Please consider the remaining tips in this answer to be 'generally deprecated, use only if you must'.
 
-There are two methods for ZM to remove files when they are deleted that can be found in Options under the System tab ZM_OPT_FAST_DELETE and ZM_RUN_AUDIT.
+zmaudit can remove files left behind by deleted events. It is controlled by ZM_RUN_AUDIT in Options under the System tab.
 
-
-ZM_OPT_FAST_DELETE:
-
-Normally an event created as the result of an alarm consists of entries in one or more database tables plus the various files associated with it. When deleting events in the browser it can take a long time to remove all of this if you are trying to do a lot of events at once. If you are running on an older or under-powered system, you may want to set this option which means that the browser client only deletes the key entries in the events table, which means the events will no longer appear in the listing, and leaves the zmaudit daemon to clear up the rest later. If you do so, disk space will not be freed immediately so you will need to run zmaudit more frequently.  On modern systems, we recommend that you leave this **off**.
 
 ZM_RUN_AUDIT:
 
-The zmaudit daemon exists to check that the saved information in the database and on the file system match and are consistent with each other. If an error occurs or if you are using 'fast deletes' it may be that database records are deleted but files remain. In this case, and similar, zmaudit will remove redundant information to synchronize the two data stores. This option controls whether zmaudit is run in the background and performs these checks and fixes continuously. This is not recommended for most systems, as zmaudit.pl is very resource intensive.
+The zmaudit daemon exists to check that the saved information in the database and on the file system match and are consistent with each other. If an error occurs it may be that database records are deleted but files remain. In this case, and similar, zmaudit will remove redundant information to synchronize the two data stores. This option controls whether zmaudit is run in the background and performs these checks and fixes continuously. This is not recommended for most systems, as zmaudit.pl is very resource intensive.
 
 ZM_AUDIT_CHECK_INTERVAL:
 
-The zmaudit daemon exists to check that the saved information in the database and on the files system match and are consistent with each other. If an error occurs or if you are using 'fast deletes' it may be that database records are deleted but files remain. In this case, and similar, zmaudit will remove redundant information to synchronize the two data stores. The default check interval of 900 seconds (15 minutes) is fine for most systems however if you have a very large number of events the process of scanning the database and file system may take a long time and impact performance. In this case you may prefer to make this interval much larger to reduce the impact on your system. This option determines how often these checks are performed.
+The zmaudit daemon exists to check that the saved information in the database and on the files system match and are consistent with each other. If an error occurs it may be that database records are deleted but files remain. In this case, and similar, zmaudit will remove redundant information to synchronize the two data stores. The default check interval of 900 seconds (15 minutes) is fine for most systems however if you have a very large number of events the process of scanning the database and file system may take a long time and impact performance. In this case you may prefer to make this interval much larger to reduce the impact on your system. This option determines how often these checks are performed.
 
 
 Math for Memory: Making sure you have enough memory to handle your cameras

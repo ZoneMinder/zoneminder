@@ -229,7 +229,17 @@ Image *StreamBase::prepareImage(Image *image, int pre_scaled_by) {
      * However if we have zoomed before, then we are zooming into the previous cutout
      * The box stored in last_crop should be in base_image units, So we need to turn x,y into percentages, then apply to last_crop
      */
-    if (!last_crop.Hi().x_ && !last_crop.Hi().y_) last_crop = Box({0, 0}, {base_image_width, base_image_height});
+    if (!last_crop.Hi().x_ && !last_crop.Hi().y_) {
+      last_crop = Box({0, 0}, {base_image_width, base_image_height});
+    } else if (last_crop_width && (last_crop_width != base_image_width || last_crop_height != base_image_height)) {
+      // Keep the same part of the picture in the new frame's coordinates.
+      Debug(2, "Rescaling crop from %dx%d to %dx%d", last_crop_width, last_crop_height,
+            base_image_width, base_image_height);
+      last_crop = Box({last_crop.Lo().x_ * base_image_width / last_crop_width,
+                       last_crop.Lo().y_ * base_image_height / last_crop_height},
+                      {last_crop.Hi().x_ * base_image_width / last_crop_width,
+                       last_crop.Hi().y_ * base_image_height / last_crop_height});
+    }
 
     double x_percent = static_cast<double>(cur_x * ZM_SCALE_BASE) / base_image_width;
     double y_percent = static_cast<double>(cur_y * ZM_SCALE_BASE) / base_image_height;
@@ -291,6 +301,8 @@ Image *StreamBase::prepareImage(Image *image, int pre_scaled_by) {
     Debug(3, "Cropping to %d,%d -> %d,%d %dx%din blown up image", lo_x, lo_y, hi_x, hi_y, hi_x-lo_x, hi_y-lo_y);
     // Scaled back to base_image dimensions
     last_crop = Box({lo_x*ZM_SCALE_BASE/cur_zoom, lo_y*ZM_SCALE_BASE/cur_zoom}, {hi_x*ZM_SCALE_BASE/cur_zoom, hi_y*ZM_SCALE_BASE/cur_zoom});
+    last_crop_width = base_image_width;
+    last_crop_height = base_image_height;
 
     Debug(3, "Cropping to %d,%d -> %d,%d", last_crop.Lo().x_, last_crop.Lo().y_, last_crop.Hi().x_, last_crop.Hi().y_);
     if ( !image_copied ) {
@@ -357,7 +369,10 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
         return false;
       }
     }
-    /* double pts = */ vid_stream->EncodeFrame(image.Buffer(), image.Size());
+    // The text is drawn at the current monitor's size and colours, which need
+    // not be those the stream was opened with: event frames are RGB24, and
+    // gapless playback can move to another monitor (refs #4186).
+    /* double pts = */ vid_stream->EncodeImage(image);
   } else {
     static unsigned char buffer[ZM_MAX_IMAGE_SIZE];
     size_t n_bytes = 0;

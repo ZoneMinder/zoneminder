@@ -56,6 +56,11 @@ class AppController extends Controller {
   // for role and deny API access in future 
   // Also checking to do this only if ZM_OPT_USE_AUTH is on
   public function beforeFilter() {
+    // Crud's ApiListener registers its exception renderer for API requests when
+    // the component starts; use ours, which keeps internals out of 5xx bodies.
+    if ( Configure::read('Exception.renderer') == 'Crud.CrudExceptionRenderer' ) {
+      Configure::write('Exception.renderer', 'ZmExceptionRenderer');
+    }
     if ( ! ZM_OPT_USE_API ) {
       throw new UnauthorizedException(__('API Disabled'));
       return; 
@@ -167,32 +172,12 @@ class AppController extends Controller {
     } # end if ZM_OPT_AUTH
     // make sure populated user object has APIs enabled
 
-    if (isset($_SERVER['HTTP_ORIGIN'])) {
-      global $Servers;
-      if ( sizeof($Servers) < 1 ) {
-        # Only need CORSHeaders in the event that there are multiple servers in use.
-        # ICON: Might not be true. multi-port?
-        if ( ZM_MIN_STREAMING_PORT ) {
-          ZM\Debug('Setting default Access-Control-Allow-Origin from ' . $_SERVER['HTTP_ORIGIN']);
-          $this->response->header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
-          $this->response->header('Access-Control-Allow-Credentials: true');
-          $this->response->header('Access-Control-Allow-Headers: x-requested-with,x-request');
-        }
-        return;
-      }
-      foreach ($Servers as $Server) {
-        if (
-          preg_match('/^(https?:\/\/)?'.preg_quote($Server->Hostname(),'/').'/i', $_SERVER['HTTP_ORIGIN'])
-          or
-          preg_match('/^(https?:\/\/)?'.preg_quote($Server->Name(),'/').'/i', $_SERVER['HTTP_ORIGIN'])
-        ) {
-          ZM\Debug('Setting Access-Control-Allow-Origin from '.$_SERVER['HTTP_ORIGIN']);
-          $this->response->header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
-          $this->response->header('Access-Control-Allow-Credentials: true');
-          $this->response->header('Access-Control-Allow-Headers: x-requested-with,x-request');
-          break;
-        }
-      }
+    $origin = corsAllowedOrigin();
+    if ($origin !== '') {
+      ZM\Debug('Setting Access-Control-Allow-Origin from '.$origin);
+      $this->response->header('Access-Control-Allow-Origin: ' . $origin);
+      $this->response->header('Access-Control-Allow-Credentials: true');
+      $this->response->header('Access-Control-Allow-Headers: x-requested-with,x-request');
     }
 
   } # end function beforeFilter()
@@ -255,19 +240,42 @@ class AppController extends Controller {
     }
   }
 
-  # The ids of the $assoc records a request associates with $alias, given either as
-  # $alias[$idsField] (comma separated or array) or as HABTM $assoc data; null if neither.
-  protected function requestAssociatedIds($alias, $idsField, $assoc) {
-    $data = $this->request->data;
-    if (isset($data[$alias][$idsField])) {
-      $ids = $data[$alias][$idsField];
-    } else if (isset($data[$assoc])) {
-      $ids = (isset($data[$assoc][$assoc]) and is_array($data[$assoc][$assoc])) ? $data[$assoc][$assoc] : $data[$assoc];
-    } else {
+  # The ids of the $assoc records a save of the request links to $alias through its HABTM
+  # association, read the way Model::save() reads them, or null when the save leaves the links
+  # alone. Model::set() skips a non-array $assoc entry; save() takes $assoc[$assoc] when present,
+  # else $assoc, and replaces all links with it. $alias[EventIds]-style fields are not saved
+  # (add() copies them to $assoc first). The entry is rewritten to the plain list returned, so a
+  # row given as a join record, which save() would store as given, can only link the id checked.
+  protected function requestAssociatedIds($alias, $assoc) {
+    if (!isset($this->request->data[$assoc])) return null;
+    $rows = $this->request->data[$assoc];
+    if (!is_array($rows)) {
+      unset($this->request->data[$assoc]);
       return null;
     }
-    if (!is_array($ids)) $ids = explode(',', $ids);
-    return array_map(function($id) { return intval(is_array($id) ? (isset($id['Id']) ? $id['Id'] : 0) : $id); }, $ids);
+    if (isset($rows[$assoc])) $rows = $rows[$assoc];
+    $key = $this->{$alias}->hasAndBelongsToMany[$assoc]['associationForeignKey'];
+    $ids = array();
+    foreach ((array)$rows as $row) {
+      if (is_array($row)) $row = isset($row[$key]) ? $row[$key] : null;
+      if (is_numeric($row)) $ids[] = intval($row);
+    }
+    $this->request->data[$assoc] = array($assoc => $ids);
+    return $ids;
+  }
+
+  # The event list to save for record $id of $table, from the $eventIds an edit asks for: saving
+  # replaces all of the record's links, so its links to events the user may not view, which the
+  # API does not show them, are kept. Throw unless the user may view every event in $eventIds.
+  # Links to events that no longer exist are dropped.
+  protected function eventLinksToSave($table, $key, $id, $eventIds) {
+    $this->requireEventsView($eventIds);
+    $oldIds = dbFetchAll('SELECT `EventId` FROM `'.$table.'` WHERE `'.$key.'`=?', 'EventId', array($id));
+    foreach (array_diff($oldIds, $eventIds) as $eventId) {
+      $event = new ZM\Event($eventId);
+      if ($event->Id() and !$event->canView()) $eventIds[] = intval($eventId);
+    }
+    return $eventIds;
   }
 
   # Throw unless the user may view every event in $eventIds, which includes its monitor.

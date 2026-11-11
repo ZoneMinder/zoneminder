@@ -62,7 +62,7 @@ if ( 0 ) {
           $new_stream['scheme'] = 'http';
         $url = unparse_url($new_stream, array('path'=>'/', 'query'=>'action=snapshot'));
         list($width, $height, $type, $attr) = getimagesize( $url );
-        ZM\Info("Got $width x $height from $url");
+        ZM\Info("Got $width x $height from ".ZM\urlForLog($url));
         $new_stream['Width'] = $width;
         $new_stream['Height'] = $height;
 
@@ -92,7 +92,7 @@ if ( 0 ) {
     $stream['url'] = unparse_url($stream, array('path'=>'/','query'=>'action=stream'));
     $monitors = ZM\Monitor::find(array('Path'=>$stream['url']));
     if ( count($monitors) ) {
-      ZM\Info('Found monitors matching ' . $stream['url'] );
+      ZM\Info('Found monitors matching ' . ZM\urlForLog($stream['url']));
       $stream['Monitor'] = $monitors[0];
       if ( isset( $stream['Width'] ) and ( $stream['Monitor']->Width() != $stream['Width'] ) ) {
         $stream['Warning'] .= 'Monitor width ('.$stream['Monitor']->Width().') and stream width ('.$stream['Width'].") do not match!\n";
@@ -185,7 +185,7 @@ if (canEdit('Monitors')) {
         ZM\Info("Skipping line $row, no URL");
         continue;
       }
-      ZM\Info("Importing line $row: $name $url $group");
+      ZM\Info("Importing line $row: $name ".ZM\urlForLog($url)." $group");
 
       $url_bits = parse_url($url);
       $host = ($url_bits and isset($url_bits['host'])) ? $url_bits['host'] : '';

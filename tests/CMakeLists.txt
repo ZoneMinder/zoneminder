@@ -31,6 +31,8 @@ set(TEST_SOURCES
   zm_image.cpp
   zm_image_annotate.cpp
   zm_monitor_shm.cpp
+  zm_monitor_capture_failure.cpp
+  zm_monitor_shared_value.cpp
   zm_monitor_check_action.cpp
   zm_monitor_ondemand.cpp
   zm_monitorlink_expression.cpp
@@ -52,6 +54,7 @@ set(TEST_SOURCES
   zm_rgb_luma.cpp
   zm_rtsp_deprecation.cpp
   zm_rtsp_server_session_tracker.cpp
+  zm_signal.cpp
   zm_stream.cpp
   zm_stream_races.cpp
   zm_swscale_range.cpp
@@ -61,6 +64,7 @@ set(TEST_SOURCES
   zm_stream_socket_bench.cpp
   zm_stream_socket_client.cpp
   zm_stream_socket_protocol.cpp
+  zm_eventstream_hints.cpp
   zm_time.cpp
   zm_user_default_password.cpp
   zm_utils.cpp

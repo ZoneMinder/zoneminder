@@ -938,7 +938,7 @@ function getStorageHTML() {
     $result .= '</li>'.PHP_EOL;
   } else {
     $result .= '<li id="getStorageHTML" class="nav-item dropdown mx-2">'.PHP_EOL;
-    $result .= '<a class="dropdown-toggle mr-2 '.$class.'" href="#" id="dropdown_storage" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="material-icons md-18 mr-1">folder_shared</i>Storage</a>'.PHP_EOL;
+    $result .= '<a class="dropdown-toggle mr-2 '.$class.'" href="#" id="dropdown_storage" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="material-icons md-18 mr-1">folder_shared</i>' . translate("Storage") . '</a>'.PHP_EOL;
     $result .= '<div class="dropdown-menu" aria-labelledby="dropdown_storage">'.PHP_EOL;
     
     foreach ( $storage_areas as $area ) {  

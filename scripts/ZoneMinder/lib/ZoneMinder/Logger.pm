@@ -111,7 +111,6 @@ use DBI;
 use Carp;
 require POSIX;
 use IO::Handle;
-use Data::Dumper;
 use Time::HiRes qw/gettimeofday/;
 use Sys::Syslog;
 
@@ -794,6 +793,7 @@ sub Dump {
   my $var = shift;
   my $label = shift;
   $label = 'VAR' unless defined($label);
+  require Data::Dumper;
   fetch()->logPrint(DEBUG, Data::Dumper->Dump([ $var ], [ $label ]));
 }
 

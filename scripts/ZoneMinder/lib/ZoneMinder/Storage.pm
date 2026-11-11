@@ -45,7 +45,6 @@ use ZoneMinder::Config qw(:all);
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Database qw(:all);
 
-use POSIX;
 
 use vars qw/ $serial $table $primary_key %fields %defaults $debug/;
 $serial = $primary_key = 'Id';

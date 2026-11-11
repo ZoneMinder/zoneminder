@@ -82,8 +82,8 @@ class StreamBase {
     // CMD_PLAY resumes or starts playback at normal speed (1x, i.e. replay_rate = ZM_RATE_BASE).
     // Use CMD_VARPLAY to resume at an arbitrary rate.
     CMD_PLAY,
-    // CMD_STOP halts all streaming activity.  Unlike CMD_PAUSE, no keepalive frames are sent
-    // and the stream does no work until a new command is received.
+    // CMD_STOP halts streaming until a new command is received.  The current frame is still
+    // re-sent every few seconds so that a viewer that has gone away is noticed.
     CMD_STOP,
     CMD_FASTFWD,
     CMD_SLOWFWD,

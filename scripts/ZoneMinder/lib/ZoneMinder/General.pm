@@ -280,7 +280,6 @@ sub createEventPath {
   return $eventPath;
 }
 
-use Data::Dumper;
 
 our $_setFileOwner = undef;
 our ( $_ownerUid, $_ownerGid );

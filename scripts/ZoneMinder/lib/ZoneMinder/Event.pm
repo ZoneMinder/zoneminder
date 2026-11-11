@@ -612,7 +612,15 @@ sub delete_analysis_jpegs {
     if ( $event_path ) {
       ( $storage_path ) = ( $storage_path =~ /^(.*)$/ ); # De-taint
       ( $event_path ) = ( $event_path =~ /^(.*)$/ ); # De-taint
-      my @files = glob("$storage_path/$event_path/*analyse.jpg");
+      my @files;
+      my $dir = "$storage_path/$event_path";
+      if ( opendir(my $dh, $dir) ) {
+        @files = grep(/^\d+-analyse\.jpg$/, readdir($dh));
+        closedir($dh);
+      } else {
+        Error("Unable to open $dir: $!");
+        next;
+      }
       Debug(@files . ' analysis jpegs found to delete');
       foreach my $file (@files) {
         $Storage->delete_path($event_path.'/'.$file);

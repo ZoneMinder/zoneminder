@@ -268,19 +268,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     ELSE UNIX_TIMESTAMP(E.StartDateTime)
   END AS EndTimeSecs,
   M.Name AS Monitor,
-  GROUP_CONCAT(T.Name SEPARATOR ", ") AS Tags';
-
-  $sql = 'SELECT '.$col_str.' FROM `Events` AS E 
-  INNER JOIN Monitors AS M ON E.MonitorId = M.Id 
-  LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId 
-  LEFT JOIN Tags AS T ON T.Id = ET.TagId 
-  '.$where.' 
-  GROUP BY E.Id, Monitor
-  '.($sort?' ORDER BY '.$sort:'');
-
-  if ((int)($filter->limit()) and !$has_post_sql_conditions) {
-    $sql .= ' LIMIT '.(int)($filter->limit());
-  }
+  GROUP_CONCAT(T.Name ORDER BY T.Name SEPARATOR ", ") AS Tags';
 
   $storage_areas = ZM\Storage::find();
   $StorageById = array();
@@ -288,84 +276,127 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $StorageById[$S->Id()] = $S;
   }
 
-  $unfiltered_rows = array();
-  $event_ids = array();
+  $from = ' FROM `Events` AS E
+  INNER JOIN Monitors AS M ON E.MonitorId = M.Id
+  LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId
+  LEFT JOIN Tags AS T ON T.Id = ET.TagId ';
 
-  ZM\Debug('Calling the following sql query: ' .$sql);
-  $query = dbQuery($sql, $values);
-  if (!$query) {
-    ZM\Error(dbError($sql));
-    ajaxError('Database query failed');
-    return;
-  }
-  while ($row = dbFetchNext($query)) {
-    if ($has_post_sql_conditions) {
-      $event = new ZM\Event($row);
-      $event->remove_from_cache();
-      if (!$filter->test_post_sql_conditions($event)) {
-        continue;
-      }
+  if (!$has_post_sql_conditions and !(int)$filter->limit() and !count($advsearch) and $search == '') {
+    // Let the database count and page the events. Tags are only joined when the filter
+    // or the sort needs them, grouping the join is most of the cost. E.Id orders ties
+    // so they cannot land on two pages.
+    $tag_sort = (strpos($sort, 'Tags') !== false);
+    if ($tag_sort or preg_match('/\bT\./', $where)) {
+      $page_from = $from.$where.' GROUP BY E.Id, M.Name';
+      $count_sql = 'SELECT COUNT(DISTINCT E.Id) AS Total'.$from.$where;
+    } else {
+      $page_from = ' FROM `Events` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where;
+      $count_sql = 'SELECT COUNT(*) AS Total'.$page_from;
     }
-    $event_ids[] = $row['Id'];
-    $unfiltered_rows[] = $row;
-  } # end foreach row
-
-  # Filter limits come before pagination limits.
-  if ($filter->limit() and ($filter->limit() < count($unfiltered_rows))) {
-    ZM\Debug("Filtering rows due to filter->limit " . count($unfiltered_rows)." limit: ".$filter->limit());
-    $unfiltered_rows = array_slice($unfiltered_rows, 0, $filter->limit());
-  }
-
-  ZM\Debug('Have ' . count($unfiltered_rows) . ' events matching base filter.');
-
-  $filtered_rows = null;
-
-  if (count($advsearch) or $search != '') {
-    $search_filter = new ZM\Filter();
-    $search_filter = $search_filter->addTerm(array('cnj'=>'and', 'attr'=>'Id', 'op'=>'IN', 'val'=>$event_ids));
-
-    // There are two search bars in the log view, normal and advanced
-    // Making an exuctive decision to ignore the normal search, when advanced search is in use
-    // Alternatively we could try to do both
-    if (count($advsearch)) {
-      $terms = array();
-      foreach ($advsearch as $col=>$text) {
-        $terms[] = array('cnj'=>'and', 'attr'=>$col, 'op'=>'LIKE', 'val'=>$text);
-      } # end foreach col in advsearch
-      $terms[0]['obr'] = 1;
-      $terms[count($terms)-1]['cbr'] = 1;
-      $search_filter->addTerms($terms);
-    } else if ($search != '') {
-      $search = '%' .$search. '%';
-      $terms = array();
-      foreach ($columns as $col) {
-        $terms[] = array('cnj'=>'or', 'attr'=>$col, 'op'=>'LIKE', 'val'=>strtolower($search), 'collate'=>'utf8mb4_general_ci');
-      }
-      $terms[0]['obr'] = 1;
-      $terms[0]['cnj'] = 'and';
-      $terms[count($terms)-1]['cbr'] = 1;
-      $search_filter = $search_filter->addTerms($terms, array('obr'=>1, 'cbr'=>1, 'op'=>'OR'));
-    } # end if search
-
+    $unfiltered_total = dbFetchOne($count_sql, 'Total', $values);
+    if ($unfiltered_total === false) {
+      ajaxError('Database query failed');
+      return;
+    }
+    $unfiltered_total = $filtered_total = (int)$unfiltered_total;
+    $order_by = ' ORDER BY '.($sort ? $sort.', ' : '').'E.Id';
+    $ids = dbFetchAll('SELECT E.Id'.($tag_sort ? ', GROUP_CONCAT(T.Name ORDER BY T.Name SEPARATOR ", ") AS Tags' : '')
+      .$page_from.$order_by.($limit ? ' LIMIT '.(int)$offset.', '.(int)$limit : ''), 'Id', $values);
+    $filtered_rows = count($ids) ? dbFetchAll('SELECT '.$col_str.$from.$where.' AND E.Id IN ('.implode(',', array_fill(0, count($ids), '?')).')
+      GROUP BY E.Id, Monitor'.$order_by, false, $ids) : array();
+  } else {
     $sql = 'SELECT '.$col_str.' FROM `Events` AS E 
     INNER JOIN Monitors AS M ON E.MonitorId = M.Id 
     LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId 
     LEFT JOIN Tags AS T ON T.Id = ET.TagId 
-    WHERE M.Deleted = false AND ('.$search_filter->sql().')
-    GROUP BY E.Id'
-    .($sort ? ' ORDER BY '.$sort : '');
+    '.$where.' 
+    GROUP BY E.Id, Monitor
+    '.($sort?' ORDER BY '.$sort:'');
 
-    $filtered_rows = dbFetchAll($sql);
-    ZM\Debug('Have ' . count($filtered_rows) . ' events matching search filter: '.$sql);
-  } else {
-    $filtered_rows = $unfiltered_rows;
-  } # end if search_filter->terms() > 1
+    if ((int)($filter->limit()) and !$has_post_sql_conditions) {
+      $sql .= ' LIMIT '.(int)($filter->limit());
+    }
 
-  // Counted before the page is cut out of them
-  $filtered_total = count($filtered_rows);
-  if ($limit and ($limit < count($filtered_rows))) {
-    ZM\Debug("Filtering rows due to limit rows: " . count($filtered_rows)." offset: $offset limit: $limit");
-    $filtered_rows = array_slice($filtered_rows, $offset, $limit);
+    $unfiltered_rows = array();
+    $event_ids = array();
+
+    ZM\Debug('Calling the following sql query: ' .$sql);
+    $query = dbQuery($sql, $values);
+    if (!$query) {
+      ZM\Error(dbError($sql));
+      ajaxError('Database query failed');
+      return;
+    }
+    while ($row = dbFetchNext($query)) {
+      if ($has_post_sql_conditions) {
+        $event = new ZM\Event($row);
+        $event->remove_from_cache();
+        if (!$filter->test_post_sql_conditions($event)) {
+          continue;
+        }
+      }
+      $event_ids[] = $row['Id'];
+      $unfiltered_rows[] = $row;
+    } # end foreach row
+
+    # Filter limits come before pagination limits.
+    if ($filter->limit() and ($filter->limit() < count($unfiltered_rows))) {
+      ZM\Debug("Filtering rows due to filter->limit " . count($unfiltered_rows)." limit: ".$filter->limit());
+      $unfiltered_rows = array_slice($unfiltered_rows, 0, $filter->limit());
+    }
+
+    ZM\Debug('Have ' . count($unfiltered_rows) . ' events matching base filter.');
+
+    $filtered_rows = null;
+
+    if (count($advsearch) or $search != '') {
+      $search_filter = new ZM\Filter();
+      $search_filter = $search_filter->addTerm(array('cnj'=>'and', 'attr'=>'Id', 'op'=>'IN', 'val'=>$event_ids));
+
+      // There are two search bars in the log view, normal and advanced
+      // Making an exuctive decision to ignore the normal search, when advanced search is in use
+      // Alternatively we could try to do both
+      if (count($advsearch)) {
+        $terms = array();
+        foreach ($advsearch as $col=>$text) {
+          $terms[] = array('cnj'=>'and', 'attr'=>$col, 'op'=>'LIKE', 'val'=>$text);
+        } # end foreach col in advsearch
+        $terms[0]['obr'] = 1;
+        $terms[count($terms)-1]['cbr'] = 1;
+        $search_filter->addTerms($terms);
+      } else if ($search != '') {
+        $search = '%' .$search. '%';
+        $terms = array();
+        foreach ($columns as $col) {
+          $terms[] = array('cnj'=>'or', 'attr'=>$col, 'op'=>'LIKE', 'val'=>strtolower($search), 'collate'=>'utf8mb4_general_ci');
+        }
+        $terms[0]['obr'] = 1;
+        $terms[0]['cnj'] = 'and';
+        $terms[count($terms)-1]['cbr'] = 1;
+        $search_filter = $search_filter->addTerms($terms, array('obr'=>1, 'cbr'=>1, 'op'=>'OR'));
+      } # end if search
+
+      $sql = 'SELECT '.$col_str.' FROM `Events` AS E 
+      INNER JOIN Monitors AS M ON E.MonitorId = M.Id 
+      LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId 
+      LEFT JOIN Tags AS T ON T.Id = ET.TagId 
+      WHERE M.Deleted = false AND ('.$search_filter->sql().')
+      GROUP BY E.Id'
+      .($sort ? ' ORDER BY '.$sort : '');
+
+      $filtered_rows = dbFetchAll($sql);
+      ZM\Debug('Have ' . count($filtered_rows) . ' events matching search filter: '.$sql);
+    } else {
+      $filtered_rows = $unfiltered_rows;
+    } # end if search_filter->terms() > 1
+
+    // Counted before the page is cut out of them
+    $filtered_total = count($filtered_rows);
+    if ($limit and ($limit < count($filtered_rows))) {
+      ZM\Debug("Filtering rows due to limit rows: " . count($filtered_rows)." offset: $offset limit: $limit");
+      $filtered_rows = array_slice($filtered_rows, $offset, $limit);
+    }
+    $unfiltered_total = count($unfiltered_rows);
   }
 
   $returned_rows = array();
@@ -411,7 +442,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   $data['rows'] = &$returned_rows;
 
   # totalNotFiltered must equal total, except when either search bar has been used
-  $data['totalNotFiltered'] = count($unfiltered_rows);
+  $data['totalNotFiltered'] = $unfiltered_total;
   if ( $search != '' || count($advsearch) ) {
     $data['total'] = $filtered_total;
   } else {

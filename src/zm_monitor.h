@@ -1259,6 +1259,11 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // for the packets it decodes; Capture then leaves the flag to it, so the
   // two threads don't overwrite each other's value. Pure, for tests.
   static bool DecoderChecksSignal(DecodingOption decoding, int signal_check_points, bool has_viewers);
+  // CLOSE_TIME: true once now lands in a later section_length window than start,
+  // i.e. a section boundary has been crossed since the event began. Robust to a
+  // frame never landing exactly on the boundary second (sub-1fps/jitter), which
+  // an exact modulus check would skip. section_length <= 0 means never. refs #3197
+  static bool crossedSectionBoundary(SystemTimePoint start, SystemTimePoint now, Seconds section_length);
   bool Analyse();
   bool setupConvertContext(const AVFrame *input_frame, const Image *image);
   // Write capture_image into image_buffer[index] without conversion and

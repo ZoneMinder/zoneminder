@@ -89,6 +89,7 @@ class Logger {
  private:
   static bool smInitialised;
   static Logger *smInstance;
+  static Logger *fetchSlow();
 
   std::recursive_mutex log_mutex;
 
@@ -170,14 +171,10 @@ class Logger {
     DatabaseLogPause &operator=(const DatabaseLogPause &) = delete;
   };
 
+  // Every log statement calls this, so keep the common case inline
   static Logger *fetch() {
-    if ( !smInstance ) {
-      smInstance = new Logger();
-      Options options;
-      smInstance->initialise("undef", options);
-    }
-    if (smLevelChange.load(std::memory_order_relaxed))
-      smInstance->applyLevelChange();
+    if (!smInstance || smLevelChange.load(std::memory_order_relaxed))
+      return fetchSlow();
     return smInstance;
   }
 
@@ -239,7 +236,7 @@ inline Logger::Level logDebugging() {
 #define logPrintf(logLevel, params...)                              \
   do {                                                              \
     Logger *log = Logger::fetch();                                  \
-    if (logLevel <= log->level()) {                                 \
+    if (logLevel <= static_cast<const Logger *>(log)->level()) {    \
       log->logPrint(false, __FILE__, __LINE__, logLevel, ##params); \
     }                                                               \
   } while (0)
@@ -247,7 +244,7 @@ inline Logger::Level logDebugging() {
 #define logHexdump(logLevel, data, len)                                       \
   do {                                                                        \
     Logger *log = Logger::fetch();                                            \
-    if (logLevel <= log->level()) {                                           \
+    if (logLevel <= static_cast<const Logger *>(log)->level()) {              \
       log->logPrint(true, __FILE__, __LINE__, logLevel, "%p (%d)", data, len);\
     }                                                                         \
   } while (0)

@@ -68,10 +68,6 @@ possible, this should run at more or less constant speed.
 #include <iostream>
 #include <unistd.h>
 
-extern "C" {
-#include <libavdevice/avdevice.h>
-}
-
 void Usage() {
   fprintf(stderr, "zmc -d <device_path> or -r <proto> -H <host> -P <port> -p <path> or -f <file_path> or -m <monitor_id>\n");
 
@@ -195,8 +191,6 @@ int main(int argc, char *argv[]) {
   logInit(log_id_string);
 
   HwCapsDetect();
-  // Only zmc opens V4L2 devices through ffmpeg, so only it links libavdevice
-  avdevice_register_all();
 #if HAVE_LIBCURL
   curl_global_init(CURL_GLOBAL_DEFAULT);
 #endif  // HAVE_LIBCURL

@@ -118,6 +118,17 @@ Zone::~Zone() {
   delete[] ranges;
 }
 
+// Counts the kBlack pixels at the start of p, eight at a time while it can.
+static int leading_black(const uint8_t *p, int count) {
+  int i = 0;
+  for (uint64_t word; i + 8 <= count; i += 8) {
+    memcpy(&word, p + i, sizeof(word));
+    if (word) break;
+  }
+  while (i < count && p[i] == kBlack) i++;
+  return i;
+}
+
 void Zone::RecordStats(const Event *event) {
   std::string sql = stringtf(
                       "INSERT INTO Stats SET MonitorId=%d, ZoneId=%d, EventId=%" PRIu64 ", FrameId=%d, "
@@ -457,6 +468,10 @@ bool Zone::CheckAlarms(const Image *delta_image) {
 
         pdiff = diff_image->Buffer(lo_x, y);
         for (int x = lo_x; x <= hi_x; x++, pdiff++) {
+          const int black = leading_black(pdiff, hi_x - x + 1);
+          x += black;
+          pdiff += black;
+          if (x > hi_x) break;
           if (*pdiff == kWhite) {
             Debug(9, "Got white pixel at %d,%d (%p)", x, y, pdiff);
 

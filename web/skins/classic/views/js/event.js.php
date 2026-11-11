@@ -11,6 +11,12 @@
   global $scale;
   global $streamMode;
   global $popup;
+  global $codec;
+  global $auto;
+  global $fid;
+  global $replayMode;
+  global $has_hls;
+  global $hlsSrc;
 ?>
 
 //
@@ -50,6 +56,25 @@ var eventData = {
     whatDisplay: '<?php echo validJsStr($monitor->WhatDisplay()) ?>'
 <?php } ?>
 };
+
+// The resolved codec choice for this view: 'auto' | 'MP4' | 'MP4HLS' | 'MJPEG'.
+// On 'auto' the page rendered no player; initPage() asks EventStream.js to pick
+// one (native <video> vs zms) from zmPlayerData below, based on browser support.
+var eventCodec = '<?php echo validJsStr($codec) ?>';
+<?php if (!empty($auto) && $Event->Id()) { ?>
+var zmPlayerData = {
+  codec:     '<?php echo validJsStr($codec) ?>',
+  mp4Src:    '<?php echo $Event->getStreamSrc(array('mode'=>'mp4', 'format'=>'h264')) ?>',
+  hasHls:    <?php echo !empty($has_hls) ? 'true' : 'false' ?>,
+  hlsSrc:    '<?php echo !empty($hlsSrc) ? htmlspecialchars_decode($hlsSrc) : '' ?>',
+  zmsImgSrc: '<?php echo $Event->getStreamSrc(array('mode'=>'jpeg', 'frame'=>$fid, 'scale'=>($scale > 0 ? $scale : 100), 'rate'=>$rate, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>$replayMode)) ?>',
+  width:     <?php echo (int)reScale($Event->Width(), $scale) ?>,
+  height:    <?php echo (int)reScale($Event->Height(), $scale) ?>,
+  isLive:    <?php echo $Event->EndDateTime() ? 'false' : 'true' ?>
+};
+<?php } else { ?>
+var zmPlayerData = null;
+<?php } ?>
 
 var yesStr = '<?php echo translate('Yes') ?>';
 var noStr = '<?php echo translate('No') ?>';

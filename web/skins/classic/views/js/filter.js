@@ -163,7 +163,7 @@ function submitToEvents(element) {
   form.elements['action'].value='';
   const formData = serializeFormExcludingCsrf(form);
   // Save current filter state to URL before navigating, so back button restores it
-  history.replaceState(null, null, '?view=filter&' + formData);
+  history.replaceState(null, null, form.getAttribute('action') + '&' + formData);
   window.location.assign('?view=events&' + formData);
 }
 
@@ -171,7 +171,7 @@ function submitToMontageReview(element) {
   const form = element.form;
   const formData = serializeFormExcludingCsrf(form);
   // Save current filter state to URL before navigating, so back button restores it
-  history.replaceState(null, null, '?view=filter&' + formData);
+  history.replaceState(null, null, form.getAttribute('action') + '&' + formData);
   window.location.assign('?view=montagereview&live=0&' + formData);
 }
 
@@ -179,7 +179,7 @@ function submitToExport(element) {
   const form = element.form;
   const formData = serializeFormExcludingCsrf(form);
   // Save current filter state to URL before navigating, so back button restores it
-  history.replaceState(null, null, '?view=filter&' + formData);
+  history.replaceState(null, null, form.getAttribute('action') + '&' + formData);
   window.location.assign('?view=export&' + formData);
 }
 

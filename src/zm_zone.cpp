@@ -289,10 +289,28 @@ bool Zone::CheckAlarms(const Image *delta_image) {
     return false;
   }
 
-  // Zero the bbox rows so filter/blob stages see kBlack for pixels outside
-  // each row's per-polygon ranges. alarmedpixels_row will write kWhite/kBlack
-  // for pixels inside the ranges.
-  memset(diff_buff + (lo_y * diff_width), 0, static_cast<size_t>(hi_y - lo_y + 1) * diff_width);
+  // Zero only the bbox pixels alarmedpixels_row will not overwrite, so the
+  // filter/blob stages still see kBlack outside each row's polygon range.
+  for (int y = lo_y; y <= hi_y; y++) {
+    const int lo_x = ranges[y].lo_x;
+    const int hi_x = ranges[y].hi_x;
+    pdiff = diff_buff + (y * diff_width);
+
+    if (lo_x < 0 || lo_x > hi_x) {
+      memset(pdiff, 0, diff_width);
+      continue;
+    }
+
+    // Same clamp as std_alarmedpixels.
+    const int clamped_hi_x = (hi_x >= diff_width) ? diff_width - 1 : hi_x;
+
+    if (lo_x > 0) {
+      memset(pdiff, 0, (lo_x < diff_width) ? static_cast<size_t>(lo_x) : static_cast<size_t>(diff_width));
+    }
+    if (clamped_hi_x < diff_width - 1) {
+      memset(pdiff + clamped_hi_x + 1, 0, static_cast<size_t>(diff_width - clamped_hi_x - 1));
+    }
+  }
 
   Debug(4, "Checking alarms for zone %d/%s in lines %d -> %d", id, label.c_str(), lo_y, hi_y);
 

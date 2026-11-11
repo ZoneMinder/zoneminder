@@ -300,6 +300,7 @@ class Image {
   void Flip( bool leftright );
   void Scale( unsigned int factor );
   void Scale(unsigned int x, unsigned int y);
+  void ScaleFrom(const Image &src, unsigned int x, unsigned int y);
 
   void Deinterlace_Discard();
   void Deinterlace_Linear();

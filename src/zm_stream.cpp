@@ -315,11 +315,14 @@ Image *StreamBase::prepareImage(Image *image, int pre_scaled_by) {
     image->Scale(disp_image_width, disp_image_height);
   } else if (cur_scale != ZM_SCALE_BASE) {
     Debug(3, "scaling by %d from %dx%d", cur_scale, image->Width(), image->Height());
+    // The source may be a shared-memory frame we must not modify, so scale
+    // into a reusable scratch image instead of in place.
     static Image copy_image;
-    copy_image.Assign(*image);
+    unsigned int new_width = (image->Width() * cur_scale) / ZM_SCALE_BASE;
+    unsigned int new_height = (image->Height() * cur_scale) / ZM_SCALE_BASE;
+    copy_image.ScaleFrom(*image, new_width, new_height);
     image = &copy_image;
     image_copied = true;
-    image->Scale(cur_scale);
   }
   Debug(3, "Sending %dx%d", image->Width(), image->Height());
 

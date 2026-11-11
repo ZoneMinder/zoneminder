@@ -3698,6 +3698,58 @@ void Image::Scale(const unsigned int new_width, const unsigned int new_height) {
   AssignDirect(new_width, new_height, colours, subpixelorder, scale_buffer, scale_buffer_size, ZM_BUFTYPE_ZM);
 }
 
+void Image::ScaleFrom(const Image &src, const unsigned int new_width, const unsigned int new_height) {
+  const AVPixelFormat format = src.imagePixFormat;
+  int new_size_signed = av_image_get_buffer_size(format, new_width, new_height, 32);
+  if (new_size_signed < 0) {
+    Error("ScaleFrom: av_image_get_buffer_size failed for %s %ux%u", av_get_pix_fmt_name(format), new_width, new_height);
+    return;
+  }
+  const size_t new_size = static_cast<size_t>(new_size_signed);
+
+  // Reuse our buffer when it is already allocated, owned by us and large enough.
+  if (!buffer || buffertype != ZM_BUFTYPE_ZM || allocation < new_size) {
+    DumpImgBuffer();
+    AllocImgBuffer(new_size);
+  }
+
+  static thread_local SWScale swscale;
+  static thread_local const bool swscale_ready = swscale.init();
+  if (!swscale_ready) {
+    Error("ScaleFrom: failed to initialise SWScale");
+    return;
+  }
+  av_frame_ptr src_frame{av_frame_alloc()};
+  av_frame_ptr dst_frame{av_frame_alloc()};
+  if (!src_frame || !dst_frame
+      || av_image_fill_arrays(src_frame->data, src_frame->linesize, src.buffer, format, src.width, src.height, 32) < 0
+      || av_image_fill_arrays(dst_frame->data, dst_frame->linesize, buffer, format, new_width, new_height, 32) < 0) {
+    Error("ScaleFrom: failed to set up frames for %s", av_get_pix_fmt_name(format));
+    return;
+  }
+  src_frame->linesize[0] = src.linesize;
+  src_frame->format = dst_frame->format = format;
+  src_frame->width = src.width;
+  src_frame->height = src.height;
+  dst_frame->width = new_width;
+  dst_frame->height = new_height;
+  if (swscale.Convert(src_frame.get(), dst_frame.get()) < 0) {
+    Error("ScaleFrom: sws_scale conversion failed (%ux%u %s -> %ux%u)",
+          src.width, src.height, av_get_pix_fmt_name(format), new_width, new_height);
+    return;
+  }
+
+  width = new_width;
+  height = new_height;
+  colours = src.colours;
+  subpixelorder = src.subpixelorder;
+  imagePixFormat = format;
+  pixels = new_width * new_height;
+  size = static_cast<unsigned int>(new_size);
+  linesize = static_cast<unsigned int>(FFALIGN(av_image_get_linesize(format, new_width, 0), 32));
+  update_function_pointers();
+}
+
 void Image::Scale(const unsigned int factor) {
   if ( !factor ) {
     Error("Bogus scale factor %d found", factor);

@@ -986,6 +986,46 @@ bool Zone::ParseZoneString(const char *zone_string, unsigned int &zone_id, int &
   return result;
 }  // end bool Zone::ParseZoneString(const char *zone_string, int &zone_id, int &colour, Polygon &polygon)
 
+bool Zone::ParseCoords(const char *Coords, unsigned int width, unsigned int height, Polygon &polygon, bool &clamped) {
+  clamped = false;
+  // Auto-detect coordinate format: decimal points mean percentages,
+  // integer-only means legacy pixel values. Units field is not trusted.
+  if (strchr(Coords, '.')) {
+    return ParsePercentagePolygon(Coords, width, height, polygon);
+  }
+  if (!ParsePolygonString(Coords, polygon)) return false;
+  // Pixel coordinates are not scaled to the monitor, so they can lie outside
+  // it (zone drawn at a larger size, or written through the API). Setup()
+  // rasterises the polygon into a monitor-sized image.
+  clamped = ClampPolygon(polygon, width, height);
+  return true;
+}
+
+// Number of zones Load() would produce, without constructing them.
+size_t Zone::Count(const std::shared_ptr<Monitor> &monitor) {
+  std::string sql = stringtf("SELECT Id,Name,Coords FROM Zones WHERE MonitorId = %d", monitor->Id());
+
+  MYSQL_RES *result = zmDbFetch(sql);
+  if (!result) {
+    return 0;
+  }
+
+  size_t count = 0;
+  for (MYSQL_ROW dbrow = mysql_fetch_row(result); dbrow; dbrow = mysql_fetch_row(result)) {
+    const char *Coords = dbrow[2];
+    Polygon polygon;
+    bool clamped;
+    if (!ParseCoords(Coords, monitor->Width(), monitor->Height(), polygon, clamped)) {
+      Error("Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring",
+            Coords, atoi(dbrow[0]), dbrow[1], monitor->Name());
+      continue;
+    }
+    count++;
+  }
+  mysql_free_result(result);
+  return count;
+}
+
 std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
   std::string sql = stringtf("SELECT Id,Name,Type+0,Units,Coords,AlarmRGB,CheckMethod+0,"
                              "MinPixelThreshold,MaxPixelThreshold,MinAlarmPixels,MaxAlarmPixels,"
@@ -1048,31 +1088,17 @@ std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
     /* HTML colour code is actually BGR in memory, we want RGB */
     AlarmRGB = rgb_convert(AlarmRGB, ZM_SUBPIX_ORDER_BGR);
 
-    // Auto-detect coordinate format: decimal points mean percentages,
-    // integer-only means legacy pixel values. Units field is not trusted.
     Debug(5, "Parsing polygon %s (Units=%s)", Coords, Units);
     Polygon polygon;
-    if (strchr(Coords, '.')) {
-      // Decimal values present — treat as percentages regardless of Units field
-      if (!ParsePercentagePolygon(Coords, monitor->Width(), monitor->Height(), polygon)) {
-        Error("Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring",
-              Coords, Id, Name, monitor->Name());
-        continue;
-      }
-    } else {
-      // Integer-only coordinates — treat as pixel values
-      if (!ParsePolygonString(Coords, polygon)) {
-        Error("Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring",
-              Coords, Id, Name, monitor->Name());
-        continue;
-      }
-      // Pixel coordinates are not scaled to the monitor, so they can lie outside
-      // it (zone drawn at a larger size, or written through the API). Setup()
-      // rasterises the polygon into a monitor-sized image.
-      if (ClampPolygon(polygon, monitor->Width(), monitor->Height())) {
-        Warning("Zone %d/%s for monitor %s has coordinates '%s' outside %ux%u, clamping",
-                Id, Name, monitor->Name(), Coords, monitor->Width(), monitor->Height());
-      }
+    bool clamped = false;
+    if (!ParseCoords(Coords, monitor->Width(), monitor->Height(), polygon, clamped)) {
+      Error("Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring",
+            Coords, Id, Name, monitor->Name());
+      continue;
+    }
+    if (clamped) {
+      Warning("Zone %d/%s for monitor %s has coordinates '%s' outside %ux%u, clamping",
+              Id, Name, monitor->Name(), Coords, monitor->Width(), monitor->Height());
     }
 
     // Convert threshold values from DB format to pixel counts for runtime use.

@@ -63,6 +63,7 @@ VideoStore::VideoStore(
   audio_out_ctx(nullptr),
   packets_written(0),
   frame_count(0),
+  packet_write_failures(0),
   video_encoded(false),
   video_passthrough_fallback(false),
   hw_device_ctx(nullptr),
@@ -1677,7 +1678,10 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
 
   int ret = av_interleaved_write_frame(oc, pkt);
   if (ret != 0) {
-    Error("Error writing packet: %s", av_make_error_string(ret).c_str());
+    if (packet_write_failures == 0) {
+      Error("Error writing packet: %s", av_make_error_string(ret).c_str());
+    }
+    packet_write_failures++;
   } else {
     Debug(4, "Success writing packet");
   }
@@ -1808,6 +1812,10 @@ void VideoStore::finalize() {
       Warning("Could not index %s; it will play, but a player must read it all "
               "before the first frame", filename.c_str());
     }
+  }
+
+  if (packet_write_failures > 1) {
+    Warning("%d packets could not be written to %s", packet_write_failures, filename.c_str());
   }
 }
 

@@ -65,6 +65,7 @@ Event::Event(
   tot_score(0),
   max_score(-1),
   max_score_frame_id(0),
+  frame_write_failures(0),
   //path(""),
   //snapshit_file(),
   snapshot_file_written(false),
@@ -355,6 +356,10 @@ Event::~Event() {
     sql = stringtf("UPDATE Storage SET DiskSpace = DiskSpace + %" PRIu64 " WHERE Id=%u", video_size, storage->Id());
     dbQueue.push(std::move(sql));
   }
+
+  if (frame_write_failures > 1) {
+    Warning("%d frame images could not be written for event %" PRIu64, frame_write_failures, id);
+  }
   Debug(1, "~Event %" PRIu64 ": complete", id);
 }  // Event::~Event()
 
@@ -610,11 +615,17 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
   tot_score += score;
 
   if (packet->image) {
+    auto note_frame_write_failure = [&](const std::string &message) {
+      if (frame_write_failures == 0)
+        Error("%s", message.c_str());
+      frame_write_failures++;
+    };
+
     if (save_jpegs & 1) {
       std::string event_file = stringtf(staticConfig.capture_file_format.c_str(), path.c_str(), frames.load());
       Debug(1, "Writing capture frame %d to %s", frames.load(), event_file.c_str());
       if (!WriteFrameImage(packet->image, packet->timestamp, event_file.c_str())) {
-        Error("Failed to write frame image at %s", event_file.c_str());
+        note_frame_write_failure(stringtf("Failed to write frame image at %s", event_file.c_str()));
       }
     }  // end if save_jpegs
 
@@ -637,7 +648,7 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
         alarm_frame_written = true;
         Debug(1, "Writing alarm image to %s", alarm_file.c_str());
         if (!WriteFrameImage(packet->image, packet->timestamp, alarm_file.c_str())) {
-          Error("Failed to write alarm frame image to %s", alarm_file.c_str());
+          note_frame_write_failure(stringtf("Failed to write alarm frame image to %s", alarm_file.c_str()));
         }
       } else {
         Debug(3, "Not Writing alarm image because alarm frame already written");
@@ -649,7 +660,7 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
         std::string event_file = stringtf(staticConfig.analyse_file_format.c_str(), path.c_str(), frames.load());
         Debug(1, "Writing analysis frame %d to %s", frames.load(), event_file.c_str());
         if (!WriteFrameImage(packet->analysis_image, packet->timestamp, event_file.c_str(), true)) {
-          Error("Failed to write analysis frame image to %s", event_file.c_str());
+          note_frame_write_failure(stringtf("Failed to write analysis frame image to %s", event_file.c_str()));
         }
       } else {
         Debug(1, "Wanted to save analysis frame, but packet has no analysis_image");

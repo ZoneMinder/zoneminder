@@ -22,7 +22,7 @@ struct TokenClaims {
   bool has_iat = false;
   std::string type;
   std::string user;
-  jwt_long_t iat = 0;
+  decltype(jwt_value_t::int_val) iat = 0;
 };
 
 bool getClaim(jwt_t *jwt, const char *name, jwt_value_type_t type, jwt_value_t &value) {

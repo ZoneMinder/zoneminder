@@ -23,6 +23,7 @@
 
 extern "C" {
 #include <libavutil/imgutils.h>
+#include <libavutil/pixdesc.h>
 #include <jpeglib.h>
 }
 
@@ -180,6 +181,54 @@ TEST_CASE("Image::Scale YUV420P with non-32-multiple width", "[image]") {
     INFO("output chroma row " << y);
     CHECK(std::abs(static_cast<int>(dst.data[1][static_cast<size_t>(y) * dst.stride[1] + w / 8]) - 100) <= 4);
     CHECK(std::abs(static_cast<int>(dst.data[2][static_cast<size_t>(y) * dst.stride[2] + w / 8]) - 160) <= 4);
+  }
+}
+
+// zms scales the shared memory frame into a scratch image with ScaleFrom
+// instead of copying it first; the result must match copying then scaling.
+TEST_CASE("Image::ScaleFrom matches Assign then Scale", "[image]") {
+  bootstrap_image_config();
+  struct Case { int w, h; unsigned int colours, subpix; } cases[] = {
+    {1920, 1080, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA},
+    {1920, 1080, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_YUV420P},
+    {1000, 562, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB},
+  };
+  for (const Case &c : cases) {
+    INFO(c.w << "x" << c.h << " colours " << c.colours);
+    Image src(c.w, c.h, c.colours, c.subpix);
+    REQUIRE(src.Buffer() != nullptr);
+    uint8_t *p = src.WriteBuffer(c.w, c.h, c.colours, c.subpix);
+    for (unsigned int i = 0; i < src.Size(); i++) p[i] = static_cast<uint8_t>((i * 31 + i / 997) % 251);
+
+    Image copied;
+    copied.Assign(src);
+    copied.Scale(c.w / 2, c.h / 2);
+
+    Image scaled;
+    scaled.ScaleFrom(src, c.w / 2, c.h / 2);
+    REQUIRE(scaled.Width() == copied.Width());
+    REQUIRE(scaled.Height() == copied.Height());
+    REQUIRE(scaled.LineSize() == copied.LineSize());
+    REQUIRE(scaled.Size() == copied.Size());
+    REQUIRE(scaled.PixFormat() == copied.PixFormat());
+    // Compare the visible bytes of each row; sws_scale leaves row padding unwritten.
+    const AVPixelFormat fmt = copied.PixFormat();
+    const int ow = copied.Width(), oh = copied.Height();
+    Planes a = plane_view(copied, fmt, ow, oh);
+    Planes b = plane_view(scaled, fmt, ow, oh);
+    const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(fmt);
+    for (int plane = 0; plane < 4 && a.data[plane]; plane++) {
+      const int rows = plane ? AV_CEIL_RSHIFT(oh, static_cast<int>(desc->log2_chroma_h)) : oh;
+      const int bytes = av_image_get_linesize(fmt, ow, plane);
+      for (int y = 0; y < rows; y++) {
+        REQUIRE(memcmp(a.data[plane] + static_cast<size_t>(y) * a.stride[plane],
+                       b.data[plane] + static_cast<size_t>(y) * b.stride[plane], bytes) == 0);
+      }
+    }
+
+    const uint8_t *buffer = scaled.Buffer();
+    scaled.ScaleFrom(src, c.w / 2, c.h / 2);
+    CHECK(scaled.Buffer() == buffer);
   }
 }
 

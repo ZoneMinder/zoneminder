@@ -20,11 +20,13 @@
 #include "zm_config.h"
 #include "zm_signal.h"
 
+#include <chrono>
 #include <csignal>
 #include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
 #include <functional>
+#include <poll.h>
 #include <pthread.h>
 #include <string>
 #include <sys/resource.h>
@@ -69,10 +71,17 @@ size_t count(const std::string &haystack, const std::string &needle) {
   return n;
 }
 
+// The die handler gives up on a report after 5 seconds and dies of the fault,
+// so a report that got stuck still ends on the right signal. A child must end
+// within this, shorter than that, unless a test expects the report to time out.
+constexpr std::chrono::milliseconds kReportDeadline{4000};
+
 // Fork a child that installs the die handler, runs crash() (which is expected
 // to end the process with a signal), and collect what the handler wrote to
-// stderr in captured. Returns the raw wait(2) status.
-int run_crashing_child(std::string &captured, const std::function<void()> &crash) {
+// stderr in captured. Returns the raw wait(2) status. Fails the test, and kills
+// the child, if it has not ended within deadline.
+int run_crashing_child(std::string &captured, const std::function<void()> &crash,
+                       std::chrono::milliseconds deadline = kReportDeadline) {
   int err_pipe[2];
   REQUIRE(pipe(err_pipe) == 0);
 
@@ -85,24 +94,32 @@ int run_crashing_child(std::string &captured, const std::function<void()> &crash
     close(err_pipe[0]);
     dup2(err_pipe[1], STDERR_FILENO);
     close(err_pipe[1]);
-    // A handler stuck in its report fails the test with SIGALRM instead of
-    // hanging it.
-    alarm(10);
     zmSetDieHandler(zm_die_handler);
     crash();
     // Reaching here means the handler failed to end the process.
     _exit(42);
   }
 
-  // Parent.
+  // Parent: collect stderr until the child ends or the deadline passes.
   close(err_pipe[1]);
-  captured = read_all(err_pipe[0]);
-  close(err_pipe[0]);
-
+  fcntl(err_pipe[0], F_SETFL, O_NONBLOCK);
+  auto give_up = std::chrono::steady_clock::now() + deadline;
   int status = 0;
-  waitpid(pid, &status, 0);
-  // SIGALRM is the watchdog above, not the handler: the report got stuck.
-  REQUIRE_FALSE((WIFSIGNALED(status) && WTERMSIG(status) == SIGALRM));
+  bool ended = false;
+  while (!ended and std::chrono::steady_clock::now() < give_up) {
+    struct pollfd readable = {err_pipe[0], POLLIN, 0};
+    poll(&readable, 1, 50);
+    captured += read_all(err_pipe[0]);
+    ended = waitpid(pid, &status, WNOHANG) == pid;
+  }
+  if (!ended) {
+    kill(pid, SIGKILL);
+    waitpid(pid, &status, 0);
+  }
+  captured += read_all(err_pipe[0]);
+  close(err_pipe[0]);
+  // Killed above: the report hung, or ended only through its timeout.
+  REQUIRE(ended);
   return status;
 }
 
@@ -312,7 +329,7 @@ TEST_CASE("a syslog that is not keeping up does not hang the crash report", "[si
     raise(SIGSEGV);
   });
 
-  // run_crashing_child fails the test if the watchdog had to end it.
+  // run_crashing_child fails the test if the report stalled until its timeout.
   REQUIRE(WIFSIGNALED(status));
   REQUIRE(WTERMSIG(status) == SIGSEGV);
   REQUIRE(captured.find("Got signal 11") != std::string::npos);
@@ -342,10 +359,10 @@ TEST_CASE("a fault on another thread during the crash report adds no second repo
     pthread_t other;
     pthread_create(&other, nullptr, segfault_later, nullptr);
     raise(SIGSEGV);
-  });
+  }, std::chrono::milliseconds(4500));
 
   // The first report is stuck, so the second thread gives up waiting for it
-  // and ends the process itself.
+  // after 3 seconds and ends the process itself, before the report times out.
   REQUIRE(WIFSIGNALED(status));
   REQUIRE(WTERMSIG(status) == SIGSEGV);
   REQUIRE(count(captured, "Got signal") == 1);
@@ -374,10 +391,9 @@ TEST_CASE("a stderr nobody reads does not hang the crash report", "[signal]") {
     // As a daemon run by hand whose output pipe has stopped being read.
     dup2(blocking_full_pipe(), STDERR_FILENO);
     raise(SIGSEGV);
-  });
+  }, std::chrono::seconds(8));
 
-  // The report is cut short and the process dies of the fault; run_crashing_child
-  // fails the test if its watchdog had to end it instead.
+  // The report times out and the process dies of the fault.
   REQUIRE(WIFSIGNALED(status));
   REQUIRE(WTERMSIG(status) == SIGSEGV);
 }

@@ -335,9 +335,10 @@ RETSIGTYPE zm_die_handler(int signal)
   // A zero core size limit stops the kernel writing a core file, but a
   // core_pattern that pipes to a program (systemd-coredump, apport) is handed
   // the dump anyway, and it is up to that program to honour the limit. A
-  // process that is not dumpable is not dumped at all, unless fs.suid_dumpable
-  // is 2. This is done only now, as it also stops ptrace and changes who owns
-  // the process's /proc files.
+  // process made not dumpable is not dumped at all, whatever fs.suid_dumpable
+  // says: the kernel uses that setting only for a process that changes
+  // credentials or runs a setuid or unreadable program. This is done only now,
+  // as it also stops ptrace and changes who owns the process's /proc files.
   if (crash_no_core) prctl(PR_SET_DUMPABLE, 0, 0, 0, 0);
 #endif
 

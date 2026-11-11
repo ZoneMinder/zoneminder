@@ -1,5 +1,5 @@
 #logPanel .logPanel-table {
-  overflow-y: auto;
+  overflow: visible;
   height: 100%;
 }
 
@@ -7,7 +7,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  overflow-y: hidden;
+  overflow: visible;
 }
 
 .sticky #logPanel .logPanel-table .bootstrap-table .fixed-table-container {

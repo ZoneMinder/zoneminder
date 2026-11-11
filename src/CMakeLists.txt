@@ -176,7 +176,6 @@ endif()
 target_link_libraries(zm
   PUBLIC
     FFMPEG::avcodec
-    FFMPEG::avdevice
     FFMPEG::avformat
     FFMPEG::avutil
     FFMPEG::swresample
@@ -229,6 +228,7 @@ target_link_libraries(zmc
   PRIVATE
     zm-core-interface
     zm
+    FFMPEG::avdevice
     ${ZM_EXTRA_LIBS}
     ${CMAKE_DL_LIBS})
 

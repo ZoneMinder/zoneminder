@@ -31,7 +31,6 @@
 
 extern "C" {
 #include <libavutil/time.h>
-#include <libavdevice/avdevice.h>
 }
 
 TimePoint start_read_time;
@@ -490,7 +489,6 @@ int FfmpegCamera::OpenFfmpeg() {
       Warning("Could not set rtsp_transport method '%s'", method.c_str());
     }
   } else if (protocol == "V4L2") {
-    avdevice_register_all();
     input_format = av_find_input_format("video4linux2");
     if (!input_format) {
       Error("Cannot find v4l2 input format");

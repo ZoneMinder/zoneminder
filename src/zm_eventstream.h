@@ -65,6 +65,7 @@ class EventStream : public StreamBase {
     int             last_frame_id;  // Highest frame id known about. Can be < frame_count in incomplete events
     SystemTimePoint start_time;
     SystemTimePoint end_time;
+    bool            in_progress;    // EndDateTime was NULL when the event was loaded
     Microseconds duration;
     std::string path;
     int             n_frames;       // # of frame rows returned from database

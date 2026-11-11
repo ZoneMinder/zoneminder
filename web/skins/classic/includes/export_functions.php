@@ -1080,13 +1080,11 @@ function exportEvents(
     if (isset($output[0])) {
       ZM\Error('First line of output is \''.$output[0].'\'');
     }
+    deletePath($export_dir);
     return false;
   }
 
-  // clean up temporary files
-  if (!empty($html_eventMaster)) {
-    unlink($monitorPath.'/'.$html_eventMaster);
-  }
+  deletePath($export_dir);
 
   return '?view=archive&type='.$exportFormat.'&connkey='.$connkey.'&file='.$archive;
 } // end function exportEvents

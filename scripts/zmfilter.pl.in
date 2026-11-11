@@ -623,6 +623,7 @@ sub uploadArchFile {
           );
       if ( !$ftp ) {
         Error("Unable to create FTP connection: $@");
+        unlink($archLocPath);
         return 0;
       }
       if ( !$ftp->login($Config{ZM_UPLOAD_USER}, $Config{ZM_UPLOAD_PASS}) ) {
@@ -671,6 +672,7 @@ sub uploadArchFile {
       my $sftp = Net::SFTP::Foreign->new($Config{ZM_UPLOAD_HOST}, %sftpOptions);
       if ( $sftp->error ) {
         Error("Unable to create SFTP connection: ".$sftp->error);
+        unlink($archLocPath);
         return 0;
       }
       if ( $Config{ZM_UPLOAD_REM_DIR} and !$sftp->setcwd($Config{ZM_UPLOAD_REM_DIR}) ) {

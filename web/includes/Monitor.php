@@ -400,14 +400,26 @@ class Monitor extends ZM_Object {
     return parent::save();
   }
 
+  // janus_pin is a NUL terminated string in a 64 byte SharedData field
+  public static function decodeJanusPin($raw) {
+    if (!is_string($raw)) return '';
+    $nul = strpos($raw, "\0");
+    return ($nul === false) ? $raw : substr($raw, 0, $nul);
+  }
+
+  // The rule zmu --janus-pin applied (ValidateAccess): Stream view and access to the monitor
+  public function mayReadJanusPin() {
+    return canView('Stream', $this->{'Id'});
+  }
+
   public function Janus_Pin() {
     if (!$this->{'JanusEnabled'}) return '';
 
     if ((!defined('ZM_SERVER_ID')) or ( property_exists($this, 'ServerId') and (ZM_SERVER_ID==$this->{'ServerId'}) )) {
-      $cmd = getZmuCommand(' --janus-pin -m '.validCardinal($this->{'Id'}));
-      $output = shell_exec($cmd);
-      Debug("Running $cmd output: $output");
-      return $output ? trim($output) : $output;
+      // null when there is no pin, as from zmu printing nothing
+      if (!$this->mayReadJanusPin() or !$this->connect()) return null;
+      $pin = self::decodeJanusPin($this->shared_read('SharedData', 'janus_pin'));
+      return ($pin === '') ? null : $pin;
     } else if ($this->ServerId()) {
       $result = $this->Server()->SendToApi('/monitors/'.$this->{'Id'}.'.json');
       $json = json_decode($result, true);

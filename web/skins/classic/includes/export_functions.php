@@ -938,6 +938,7 @@ function exportEvents(
   $export_listFile = 'zmFileList.txt';
   $exportFileList = array();
   $html_eventMaster = '';
+  $copy_failed = false;
 
   if (!is_array($eids)) {
     $eids = array($eids);
@@ -986,10 +987,24 @@ function exportEvents(
         $cmd = 'cp -as -- '.escapeshellarg($event->Path().'/'.$file).' '.escapeshellarg($export_dir.'/'.$event->Id().'/'.$file). ' 2>&1';
         $exportFileList[] = $event->Id().'/'.$file;
       }
+      // exec() appends to $output, so reset it or the Debug line below (and any
+      // failure report) accumulates every file's output across the whole export.
+      $output = array();
       exec($cmd, $output, $return);
       ZM\Debug($cmd.' return code: '.$return.' output: '.print_r($output,true));
+      // A failed copy must not pass silently: the archive would be handed back
+      // missing files. Surface it and fail the export, as the tar/zip step does.
+      if ($return != 0) {
+        ZM\Error('Failed to copy export file (status '.$return.') for command \''.$cmd.'\': '.implode('; ', $output));
+        $copy_failed = true;
+      }
     } # end foreach event_exportFile
   } # end foreach event
+
+  if ($copy_failed) {
+    ZM\Error('Export aborted: one or more event files could not be copied');
+    return false;
+  }
 
   if (!(
     @symlink(ZM_PATH_WEB.'/'.ZM_SKIN_PATH.'/js/jquery.min.js', $export_dir.'/jquery.min.js')

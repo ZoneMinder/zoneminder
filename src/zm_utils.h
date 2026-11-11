@@ -112,6 +112,9 @@ std::string stringtf(const char* format, ...);
 
 std::string ByteArrayToHexString(nonstd::span<const uint8> bytes);
 
+// Parses an AV1 LEB128 value (at most 8 bytes) and returns the bytes consumed.
+size_t zm_parse_leb128(const unsigned char *data, size_t max_size, uint32_t &value);
+
 std::string Base64Encode(const std::string &str);
 
 std::string TimevalToString(timeval tv);

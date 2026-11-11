@@ -585,6 +585,10 @@ bool zm_load_avdevice() {
     const std::string soname = stringtf("libavdevice.so.%d", LIBAVDEVICE_VERSION_MAJOR);
 #endif
     void *handle = dlopen(soname.c_str(), RTLD_NOW | RTLD_GLOBAL);
+#ifdef ZM_AVDEVICE_DIR
+    // Where cmake found it, for installs off the default search path (Homebrew)
+    if (!handle) handle = dlopen((ZM_AVDEVICE_DIR "/" + soname).c_str(), RTLD_NOW | RTLD_GLOBAL);
+#endif
     if (!handle) {
       Error("Cannot load %s: %s", soname.c_str(), dlerror());
       return false;

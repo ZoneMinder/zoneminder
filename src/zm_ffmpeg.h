@@ -98,6 +98,7 @@ extern "C" {
 
 /* A single function to initialize ffmpeg, to avoid multiple initializations */
 void FFMPEGInit();
+bool zm_load_avdevice();
 void FFMPEGDeInit();
 
 enum _AVPIXELFORMAT GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subpixelorder);

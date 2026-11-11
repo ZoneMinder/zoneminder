@@ -41,7 +41,6 @@ $roles = ZM\User_Role::Indexed_By_Id();
                 <th data-sortable="true" class="colSystem"><?php echo translate('System') ?></th>
                 <th data-sortable="true" class="colDevices"><?php echo translate('Devices') ?></th>
                 <th data-sortable="true" class="colBandwidth"><?php echo translate('Bandwidth') ?></th>
-                <?php if ( ZM_OPT_USE_API ) { ?><th class="colAPIEnabled"><?php echo translate('APIEnabled') ?></th><?php } ?>
               </tr>
             </thead>
             <tbody>
@@ -64,7 +63,6 @@ $roles = ZM\User_Role::Indexed_By_Id();
                 <td class="colSystem"><?php echo validHtmlStr($user_row->System()) ?></td>
                 <td class="colDevices"><?php echo validHtmlStr($user_row->Devices()) ?></td>
                 <td class="colBandwidth"><?php echo $user_row->MaxBandwidth()?$bandwidth_options[$user_row->MaxBandwidth()]:'&nbsp;' ?></td>
-                <?php if ( ZM_OPT_USE_API ) { ?><td class="colAPIEnabled"><?php echo translate($user_row->APIEnabled()?'Yes':'No') ?></td><?php } ?>
               </tr>
   <?php
   }

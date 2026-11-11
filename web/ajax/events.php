@@ -53,7 +53,7 @@ if (!empty($_REQUEST['EndDateTime'])) {
 if (!empty($_REQUEST['MonitorId'])) {
   $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=> '=', 'val'=>$_REQUEST['MonitorId']));
 }
-if (!empty($_REQUEST['Tag'])) {
+if (isset($_REQUEST['Tag']) and $_REQUEST['Tag'] !== '') {
   $filter->addTerm(array('cnj'=>'and', 'attr'=>'Tags', 'op'=>'=', 'val'=>$_REQUEST['Tag']));
 }
 

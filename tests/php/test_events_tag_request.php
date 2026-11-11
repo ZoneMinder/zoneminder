@@ -28,7 +28,7 @@ function check($name, $got, $want) {
 }
 
 $source = file_get_contents(__DIR__.'/../../web/ajax/events.php');
-if (!preg_match('/if \(!empty\(\$_REQUEST\[\'Tag\'\]\)\) \{\s*\$filter->addTerm\((array\(.*?\))\);/s', $source, $m)) {
+if (!preg_match('/if \(([^\n]*?\$_REQUEST\[\'Tag\'\][^\n]*?)\) \{\s*\$filter->addTerm\((array\(.*?\))\);/s', $source, $m)) {
   echo "FAIL - could not find the Tag term in events.php\n";
   exit(1);
 }
@@ -36,8 +36,9 @@ if (!preg_match('/if \(!empty\(\$_REQUEST\[\'Tag\'\]\)\) \{\s*\$filter->addTerm\
 function tagged($tag, $mid) {
   global $m;
   $_REQUEST = array('Tag' => (string)$tag);
+  if (!eval('return '.$m[1].';')) return 'not filtered';
   $filter = new ZM\Filter();
-  $filter->addTerm(eval('return '.$m[1].';'));
+  $filter->addTerm(eval('return '.$m[2].';'));
   $sql = 'SELECT DISTINCT E.Id FROM Events AS E
     LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId
     LEFT JOIN Tags AS T ON T.Id = ET.TagId

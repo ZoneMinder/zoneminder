@@ -2475,24 +2475,25 @@ void Image::Blend( const Image &image, int transparency ) {
   if ( transparency <= 0 )
     return;
 
+  // Delta only reads the Y plane of planar YUV, so blend that in place and leave the chroma alone.
+  if (imagePixFormat != AV_PIX_FMT_GRAY8 && zm_bytes_per_pixel(imagePixFormat) == 1) {
+    (*blend)(buffer, image.buffer, buffer, static_cast<size_t>(linesize) * height, transparency);
+    return;
+  }
+
   // Reuse persistent blend buffer to avoid per-frame alloc/free
   if (blend_buffer_size_ < size) {
     if (blend_buffer_) zm_freealigned(blend_buffer_);
     blend_buffer_ = AllocBuffer(size);
     blend_buffer_size_ = size;
-    memcpy(blend_buffer_, buffer, size);
   }
-
-  // Delta only reads the Y plane of planar YUV, so leave the chroma alone.
-  const bool planar_yuv = imagePixFormat != AV_PIX_FMT_GRAY8 && zm_bytes_per_pixel(imagePixFormat) == 1;
-  const size_t blend_size = planar_yuv ? static_cast<size_t>(linesize) * height : size;
 
 #ifdef ZM_IMAGE_PROFILING
   TimePoint start = std::chrono::steady_clock::now();
 #endif
 
   /* Do the blending */
-  (*blend)(buffer, image.buffer, blend_buffer_, blend_size, transparency);
+  (*blend)(buffer, image.buffer, blend_buffer_, size, transparency);
 
 #ifdef ZM_IMAGE_PROFILING
   TimePoint end = std::chrono::steady_clock::now();
@@ -2506,7 +2507,7 @@ void Image::Blend( const Image &image, int transparency ) {
 #endif
 
   if (holdbuffer) {
-    (*fptr_imgbufcpy)(buffer, blend_buffer_, blend_size);
+    (*fptr_imgbufcpy)(buffer, blend_buffer_, size);
   } else {
     std::swap(buffer, blend_buffer_);
     buffertype = ZM_BUFTYPE_ZM;

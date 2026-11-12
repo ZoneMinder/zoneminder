@@ -105,10 +105,6 @@ Camera::~Camera() {
     //avformat_free_context(mFormatContext);
     avformat_close_input(&mFormatContext);
   }
-  if ( mSecondFormatContext ) {
-    // Should also free streams
-    avformat_free_context(mSecondFormatContext);
-  }
   mVideoStream = nullptr;
   mAudioStream = nullptr;
 }

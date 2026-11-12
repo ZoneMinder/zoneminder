@@ -628,6 +628,10 @@ int FfmpegCamera::OpenFfmpeg() {
       mAudioStream = mSecondInput->get_audio_stream();
     } else {
       Warning("Failed to open secondary input");
+      mSecondFormatContext = nullptr;
+      mAudioStream = nullptr;
+      mAudioStreamId = -1;
+      mSecondInput.reset();
     }
   }  // end if have audio stream
 
@@ -674,6 +678,13 @@ int FfmpegCamera::Close() {
     avformat_close_input(&mFormatContext);
     mFormatContext = nullptr;
   }
+
+  if ( mSecondFormatContext ) {
+    mSecondFormatContext = nullptr;
+    mAudioStream = nullptr;
+    mAudioStreamId = -1;
+  }
+  mSecondInput.reset();
 
   return 0;
 }  // end FfmpegCamera::Close

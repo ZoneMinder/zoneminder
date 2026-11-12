@@ -18,9 +18,12 @@
 #include "zm_catch2.h"
 
 #include "zm_ffmpeg_camera.h"
+#include "zm_monitor.h"
 #include "zm_time.h"
 #include "zm_utils.h"
 
+#include <filesystem>
+#include <memory>
 #include <string>
 
 // ComputeRealtimePace() is the pure decision behind FfmpegCamera's "realtime=1"
@@ -134,4 +137,56 @@ TEST_CASE("ffmpeg options separated by newlines parse as separate entries") {
     REQUIRE(dict_get(opts, "rtsp_transport") == "tcp\nstimeout=5000000");
     av_dict_free(&opts);
   }
+}
+
+namespace {
+
+class SecondPathMonitor : public Monitor {
+ public:
+  explicit SecondPathMonitor(const std::string &path) : Monitor() { second_path = path; }
+};
+
+const char *kVideoOnly = "data/mp4/video-only.mp4";
+const char *kWithAudio = "data/mp4/sidx-abs.mp4";
+
+std::unique_ptr<Camera> MakeCamera(const Monitor *monitor, const std::string &second_path) {
+  return std::make_unique<FfmpegCamera>(monitor, kVideoOnly, second_path, "", "", "", "",
+                                        160, 120, ZM_COLOUR_RGB24, -1, -1, -1, -1, true, true);
+}
+
+}  // namespace
+
+TEST_CASE("FfmpegCamera: Close releases the secondary input") {
+  SecondPathMonitor monitor(kWithAudio);
+  auto camera = MakeCamera(&monitor, kWithAudio);
+
+  REQUIRE(camera->PrimeCapture() == 1);
+  REQUIRE(camera->getAudioStream() != nullptr);
+
+  camera->Close();
+  REQUIRE(camera->getAudioStream() == nullptr);
+  REQUIRE(camera->getAudioStreamId() == -1);
+
+  REQUIRE(camera->PrimeCapture() == 1);
+  REQUIRE(camera->getAudioStream() != nullptr);
+
+  // Destroying a camera with an open secondary input must not free it twice.
+  camera.reset();
+}
+
+TEST_CASE("FfmpegCamera: a failed secondary reopen leaves no audio stream behind") {
+  const std::string second = "data/mp4/second-input.mp4";
+  std::filesystem::copy_file(kWithAudio, second, std::filesystem::copy_options::overwrite_existing);
+  SecondPathMonitor monitor(second);
+  auto camera = MakeCamera(&monitor, second);
+
+  REQUIRE(camera->PrimeCapture() == 1);
+  REQUIRE(camera->getAudioStream() != nullptr);
+
+  std::filesystem::remove(second);
+  REQUIRE(camera->PrimeCapture() == 1);
+  REQUIRE(camera->getAudioStream() == nullptr);
+  REQUIRE(camera->getAudioStreamId() == -1);
+
+  camera.reset();
 }

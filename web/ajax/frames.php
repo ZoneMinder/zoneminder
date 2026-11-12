@@ -141,7 +141,8 @@ function queryRequest($eid, $search, $advsearch, $sort, $offset, $order, $limit)
       $search_filter = $search_filter->addTerms($terms, array('obr'=>1, 'cbr'=>1, 'op'=>'OR'));
     } # end if search
 
-    $where .= ' AND '.$search_filter->sql();
+    $search_sql = $search_filter->sql();
+    if ($search_sql) $where .= ' AND '.$search_sql;
     $data['total'] = (int)dbFetchOne('SELECT COUNT(*) AS Total FROM `Frames` '.$where, 'Total', $values);
   } else {
     $data['total'] = $data['totalNotFiltered'];

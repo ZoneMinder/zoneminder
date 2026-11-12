@@ -19,6 +19,7 @@
 
 #include "zm_config.h"
 #include "zm_image.h"
+#include "zm_poly.h"
 #include "zm_rgb.h"
 
 extern "C" {
@@ -677,4 +678,29 @@ TEST_CASE("Image::EncodeJpeg cached struct no raw leak", "[Image]") {
   std::vector<JOCTET> actual(outbuf.begin(), outbuf.begin() + outsize);
   std::vector<JOCTET> expected = reference_encode_rgb(rgb, quality);
   REQUIRE(actual == expected);
+}
+
+TEST_CASE("Image::Fill polygon writes the expected pixels for each density", "[image]") {
+  bootstrap_image_config();
+  const int w = 16, h = 12;
+  // U shape: rows 1-6 have two spans (x 1-4, 8-11), rows 7-9 one span (x 1-11).
+  Polygon poly(std::vector<Vector2>{{1, 1}, {4, 1}, {4, 7}, {8, 7}, {8, 1}, {11, 1}, {11, 10}, {1, 10}});
+
+  struct Format { int colours; int order; int bpp; };
+  for (Format f : {Format{ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE, 1},
+                   Format{ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB, 3},
+                   Format{ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA, 4}}) {
+    for (int density : {1, 2, 3}) {
+      Image image(w, h, f.colours, f.order);
+      memset(image.Buffer(), 0, image.Size());
+      image.Fill(0xFF, density, poly);
+      for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) {
+          bool inside = y >= 1 && y <= 9 && ((x >= 1 && x <= 4) || (x >= 8 && x <= 11) || (y >= 7 && x >= 1 && x <= 11));
+          bool expected = inside && x % density == 0 && y % density == 0;
+          REQUIRE((image.Buffer()[y * image.LineSize() + x * f.bpp] != 0) == expected);
+        }
+      }
+    }
+  }
 }

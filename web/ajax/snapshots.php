@@ -159,7 +159,8 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
       $search_filter = $search_filter->addTerms($terms, array('obr'=>1, 'cbr'=>1, 'op'=>'OR'));
     } # end if search
 
-    $where = ' WHERE '.$search_filter->sql();
+    $search_sql = $search_filter->sql();
+    if ($search_sql) $where = ' WHERE '.$search_sql;
     $data['total'] = (int)dbFetchOne('SELECT COUNT(*) AS Total FROM Snapshots'.$where, 'Total');
   } else {
     $data['total'] = $data['totalNotFiltered'];

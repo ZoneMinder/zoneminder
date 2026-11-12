@@ -171,6 +171,7 @@ bool EventStream::loadInitialEventData(
 }
 
 bool EventStream::loadEventData(uint64_t event_id) {
+  advanced_from = advanced_to = 0;
   std::string sql = stringtf(
                       "SELECT `MonitorId`, `StorageId`, `Frames`, unix_timestamp( `StartDateTime` ) AS StartTimestamp, "
                       "unix_timestamp( `EndDateTime` ) AS EndTimestamp, `Length`, "
@@ -510,6 +511,15 @@ void EventStream::processCommand(const CmdMsg *msg) {
   if (((MsgCommand)msg->msg_data[0] != CMD_QUERY) && ((MsgCommand)msg->msg_data[0] != CMD_SET_EVENT)) {
     hint_wait_start = TimePoint();
     end_stop = false;
+  }
+
+  // While playing, curr_frame_id has already advanced past the frame last shown
+  if (!paused && !stopped && advanced_to == curr_frame_id && advanced_from > 0
+      && ((MsgCommand)msg->msg_data[0] == CMD_PAUSE
+          || (MsgCommand)msg->msg_data[0] == CMD_SLOWFWD
+          || (MsgCommand)msg->msg_data[0] == CMD_SLOWREV)) {
+    curr_frame_id = advanced_from;
+    advanced_from = advanced_to = 0;
   }
 
   // Check for incoming command
@@ -1364,7 +1374,9 @@ void EventStream::runStream() {
         // Get current frame data, curr_frame_id may have changed
         FrameData *last_frame_data = &event_data->frames[curr_frame_id-1];
         curr_stream_time = last_frame_data->timestamp;
+        advanced_from = curr_frame_id;
         curr_frame_id += (replay_rate > 0 ? frame_mod : -1*frame_mod);
+        advanced_to = curr_frame_id;
 
         // we incremented by replay_rate, so might have jumped past frames.size()
         int num_frames = (int)event_data->frames.size();
@@ -1374,6 +1386,7 @@ void EventStream::runStream() {
            ) {
           Debug(2, "Have mode==MODE_SINGLE and at end of event, looping back to start");
           curr_frame_id = 1;
+          advanced_to = 1;
         }
 
         if (curr_frame_id >= 1 && curr_frame_id <= num_frames) {

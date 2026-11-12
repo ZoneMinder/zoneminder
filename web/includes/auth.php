@@ -28,6 +28,7 @@ require_once('Role_Group_Permission.php');
 require_once('Role_Monitor_Permission.php');
 require_once(__DIR__.'/../vendor/autoload.php');
 use \Firebase\JWT\JWT;
+use \Firebase\JWT\Key;
 
 // A request parameter as a string, or null when the client did not send one it
 // can be used as. Request values are whatever arrived: "?user[]=x" makes
@@ -74,20 +75,15 @@ function migrateHash($username, $pass) {
   $password_type = password_type($user->Password());
   if ($password_type != 'mysql' and $password_type != 'mysql+bcrypt') return;
 
-  if (function_exists('password_hash')) {
-    ZM\Info("Migrating $username to bcrypt scheme");
-    // let it generate its own salt, and ensure bcrypt as PASSWORD_DEFAULT may change later
-    // we can modify this later to support argon2 etc as switch to its own password signature detection
-    $bcrypt_hash = password_hash($pass, PASSWORD_BCRYPT);
-    dbQuery('UPDATE Users SET Password=? WHERE Id=?', array($bcrypt_hash, $user->Id()));
-    # Since password field has changed, existing auth_hash is no longer valid.
-    # getAuthUser() checks it against the new hash, so build it from that one.
-    $user->Password($bcrypt_hash);
-    generateAuthHash(ZM_AUTH_HASH_IPS, true);
-  } else {
-    ZM\Info('Cannot migrate password scheme to bcrypt, as you are using PHP < 5.5');
-    return;
-  }
+  ZM\Info("Migrating $username to bcrypt scheme");
+  // let it generate its own salt, and ensure bcrypt as PASSWORD_DEFAULT may change later
+  // we can modify this later to support argon2 etc as switch to its own password signature detection
+  $bcrypt_hash = password_hash($pass, PASSWORD_BCRYPT);
+  dbQuery('UPDATE Users SET Password=? WHERE Id=?', array($bcrypt_hash, $user->Id()));
+  # Since password field has changed, existing auth_hash is no longer valid.
+  # getAuthUser() checks it against the new hash, so build it from that one.
+  $user->Password($bcrypt_hash);
+  generateAuthHash(ZM_AUTH_HASH_IPS, true);
 }
 
 // The password db/zm_create.sql gives the admin account, as the user guide
@@ -332,25 +328,32 @@ function userLogout() {
   zm_session_clear();
 }
 
-// ZM_AUTH_HASH_SECRET as shipped. It is public, so it must never sign or verify a token.
-// zmupdate.pl -f replaces it with a random secret. refs GHSA-wmcc-x64g-jr84
-define('ZM_AUTH_HASH_SECRET_DEFAULT', '...Change me to something unique...');
+// ZM_AUTH_HASH_SECRET_DEFAULT, the public shipped secret, is defined in config.php.
+// The secret is the HS256 token key, and php-jwt refuses an HMAC key shorter than
+// the hash (256 bits). zmupdate.pl -f extends a shorter one by repeating it.
+define('ZM_AUTH_HASH_SECRET_MIN_LENGTH', 32);
+
+function authHashSecretValid($secret) {
+  return is_string($secret) and (strlen($secret) >= ZM_AUTH_HASH_SECRET_MIN_LENGTH)
+    and ($secret !== ZM_AUTH_HASH_SECRET_DEFAULT);
+}
 
 function authHashSecretIsSet() {
-  return (ZM_AUTH_HASH_SECRET !== '') and (ZM_AUTH_HASH_SECRET !== ZM_AUTH_HASH_SECRET_DEFAULT);
+  return authHashSecretValid(ZM_AUTH_HASH_SECRET);
 }
 
 function validateToken($token, $allowed_token_type='access') {
   global $user;
   if (!authHashSecretIsSet()) {
-    ZM\Error('Refusing token authentication: ZM_AUTH_HASH_SECRET is empty or still the shipped default. Set it in Options->System or run zmupdate.pl -f.');
+    ZM\Error('Refusing token authentication: ZM_AUTH_HASH_SECRET is empty, shorter than '.ZM_AUTH_HASH_SECRET_MIN_LENGTH.' characters or still the shipped default. Set it in Options->System or run zmupdate.pl -f.');
     return array(false, 'AUTH_HASH_SECRET is not set');
   }
   $key = ZM_AUTH_HASH_SECRET;
   //if (ZM_AUTH_HASH_IPS) $key .= $_SERVER['REMOTE_ADDR'];
   try {
-    $decoded_token = JWT::decode($token, $key, array('HS256'));
-  } catch (Exception $e) {
+    $decoded_token = JWT::decode($token, new Key($key, 'HS256'));
+  } catch (Throwable $e) {
+    // Throwable, not Exception: php-jwt throws TypeError on a malformed header (a non-string kid).
     ZM\Error("Unable to authenticate user. error decoding JWT token:".$e->getMessage());
     return array(false, $e->getMessage());
   }

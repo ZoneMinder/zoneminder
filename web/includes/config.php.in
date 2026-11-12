@@ -105,6 +105,11 @@ define('MAX_EVENTS', 10);            // The maximum number of events to show in 
 define('RATE_BASE', 100);            // The additional scaling factor used to help get fractional rates in integer format
 define('SCALE_BASE', 100);           // The additional scaling factor used to help get fractional scales in integer format
 
+// ZM_AUTH_HASH_SECRET as shipped. It is public, so it must never sign or verify a token.
+// Defined before loadConfig() runs, as ensureAuthHashSecret() reads it.
+// refs GHSA-wmcc-x64g-jr84
+define('ZM_AUTH_HASH_SECRET_DEFAULT', '...Change me to something unique...');
+
 //
 // Date and time formats, not to be modified by language files
 //
@@ -240,6 +245,24 @@ function loadConfigFiles() {
   return $file_config;
 }
 
+// zm_create.sql is generated at build time, so a new install's Config table holds the
+// shipped default secret, and only zmupdate.pl -f replaces it, which not every install
+// runs. Replace a default or empty secret with a random one, unique to this server.
+// The UPDATE matches the old value, so concurrent first requests agree on one secret.
+function ensureAuthHashSecret($dbConn, $value) {
+  if (($value !== '') and ($value !== ZM_AUTH_HASH_SECRET_DEFAULT)) return $value;
+  try {
+    $dbConn->prepare('UPDATE Config SET Value=?, Private=1 WHERE Name=? AND Value=?')
+      ->execute(array(bin2hex(random_bytes(32)), 'ZM_AUTH_HASH_SECRET', $value));
+    $stmt = $dbConn->prepare('SELECT Value FROM Config WHERE Name=?');
+    $stmt->execute(array('ZM_AUTH_HASH_SECRET'));
+    return $stmt->fetchColumn();
+  } catch (Exception $e) {
+    error_log('Unable to generate ZM_AUTH_HASH_SECRET: '.$e->getMessage());
+    return $value;
+  }
+}
+
 function loadConfig( $defineConsts=true ) {
   $initial_config = loadConfigFiles();
 
@@ -272,6 +295,13 @@ function loadConfig( $defineConsts=true ) {
     echo mysql_error();
   while( $row = dbFetchNext($result) ) {
     $name = $row['Name'];
+    if ($name == 'ZM_AUTH_HASH_SECRET') {
+      # The secret signs tokens, and skin.js.php exports every value not marked Private.
+      # A table made from an older zm_create.sql has every flag 0.
+      $row['Private'] = 1;
+      if (!isset($initial_config[$name]))
+        $row['Value'] = ensureAuthHashSecret($dbConn, $row['Value']);
+    }
 
     $config[$name] = $row;
     if (isset($initial_config[$name])) {

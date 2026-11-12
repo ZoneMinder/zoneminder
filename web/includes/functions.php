@@ -22,26 +22,6 @@ require_once('Filter.php');
 require_once('FilterTerm.php');
 require_once('Network.php');
 
-// Polyfills for PHP 8.0+ string functions, so views and callers don't have to
-// guard each use. ZoneMinder still supports PHP 7.x in some distros.
-if (!function_exists('str_starts_with')) {
-  function str_starts_with(string $haystack, string $needle): bool {
-    return $needle === '' || strncmp($haystack, $needle, strlen($needle)) === 0;
-  }
-}
-if (!function_exists('str_ends_with')) {
-  function str_ends_with(string $haystack, string $needle): bool {
-    if ($needle === '' || $needle === $haystack) return true;
-    $nlen = strlen($needle);
-    return $nlen <= strlen($haystack) && substr_compare($haystack, $needle, -$nlen) === 0;
-  }
-}
-if (!function_exists('str_contains')) {
-  function str_contains(string $haystack, string $needle): bool {
-    return $needle === '' || strpos($haystack, $needle) !== false;
-  }
-}
-
 function noCacheHeaders() {
   header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');    // Date in the past
   header('Last-Modified: '.gmdate( 'D, d M Y H:i:s' ).' GMT'); // always modified
@@ -2301,16 +2281,7 @@ function zm_random_bytes($length = 32) {
   if ( !isset($length) || intval($length) <= 8 ) {
     $length = 32;
   }
-  if ( function_exists('random_bytes') ) {
-    return random_bytes($length);
-  }
-  if ( function_exists('mcrypt_create_iv') ) {
-    return mcrypt_create_iv($length, MCRYPT_DEV_URANDOM);
-  }
-  if ( function_exists('openssl_random_pseudo_bytes') ) {
-    return openssl_random_pseudo_bytes($length);
-  }
-  ZM\Error('No random_bytes function found.');
+  return random_bytes($length);
 }
 
 function i18n() {

@@ -444,6 +444,13 @@ sub delete {
     #
     # Retry on deadlock (MariaDB ER_LOCK_DEADLOCK = 1213) only when we own
     # the TX; if the caller is managing one, bail and let them decide.
+
+    # Resolved once, outside the retry loop: DiskSpace() can stat the event
+    # directory and Storage() can hit the db, and neither changes between
+    # attempts.
+    my $storage = $event->Storage();
+    my $reclaim = $event->DiskSpace();
+
     my $attempt = 0;
     my $max_attempts = 5;
     while (1) {
@@ -475,6 +482,17 @@ sub delete {
         }
       }
 
+      if (!$err and !$in_transaction and $reclaim) {
+        # Reclaim inside our own transaction, after the deletes succeed, so it
+        # commits or rolls back with them and is retried on deadlock. A relative
+        # single statement, see ZoneMinder::Storage::adjust_diskspace.
+        $storage->adjust_diskspace(-$reclaim);
+        $err = $ZoneMinder::Database::dbh->err() // 0;
+        if ($err) {
+          $errstr = $ZoneMinder::Database::dbh->errstr() // '';
+        }
+      }
+
       if (!$err) {
         $ZoneMinder::Database::dbh->commit() if !$in_transaction;
         last;
@@ -498,7 +516,7 @@ sub delete {
     # SELECT autocommits, so the absolute value it then writes clobbers any
     # adjustment zmc or another filter made in between.
     # See ZoneMinder::Storage::adjust_diskspace.
-    $event->Storage()->adjust_diskspace(-$event->DiskSpace()) if $event->DiskSpace();
+    $storage->adjust_diskspace(-$reclaim) if $in_transaction and $reclaim;
   }
 
   if ( $event->Storage()->DoDelete() ) {

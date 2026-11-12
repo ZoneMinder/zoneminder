@@ -653,7 +653,7 @@ sub check_for_in_filesystem {
     if ( -e $path ) {
       if ( opendir my $dh, $path ) {
         while ( my $entry = readdir $dh ) {
-          next if $entry =~ /^\./;
+          next if substr($entry, 0, 1) eq '.';
           Debug("Checking for files for event $_[0]{Id} at $path found a file");
           return 1;
         }

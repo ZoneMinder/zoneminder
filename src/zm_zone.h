@@ -97,6 +97,7 @@ class Zone {
   Image      *pg_image;
   Range      *ranges;
   Image      *image;
+  std::vector<uint8_t> filter_buffer;
 
   int         overload_count;
   int         extend_alarm_count;

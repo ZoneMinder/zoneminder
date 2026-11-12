@@ -1134,6 +1134,10 @@ void MonitorStream::SingleImage(int scale) {
 void MonitorStream::SingleImageRaw(int scale) {
   Image scaled_image;
   std::shared_ptr<ZMPacket> snap = monitor->getSnapshot();
+  if (!snap) {
+    sendTextFrame("No image available.");
+    return;
+  }
   Image *snap_image = snap->image;
 
   if ( scale != ZM_SCALE_BASE ) {
@@ -1159,6 +1163,10 @@ void MonitorStream::SingleImageZip(int scale) {
   Image scaled_image;
 
   std::shared_ptr<ZMPacket> snap = monitor->getSnapshot();
+  if (!snap) {
+    sendTextFrame("No image available.");
+    return;
+  }
   Image *snap_image = snap->image;
 
   if ( scale != ZM_SCALE_BASE ) {

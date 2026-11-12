@@ -334,6 +334,13 @@ std::string RemoteCameraHttp::ParseBoundary(const char *text) {
   return std::string(text, len);
 }
 
+bool RemoteCameraHttp::IsBoundaryLine(const char *line, const char *boundary, size_t len) {
+  // Cameras disagree on whether the boundary parameter includes the delimiter's dashes,
+  // so accept any run of two or more.
+  const size_t dashes = strspn(line, "-");
+  return dashes >= 2 && strncasecmp(line + dashes, boundary, len) == 0;
+}
+
 int RemoteCameraHttp::ParseContentLength(const char *text, unsigned long long image_size) {
   // The length is read from the camera link, usually plain HTTP, and decides how much is
   // buffered for one frame. No encoding of a frame is larger than twice its raw size, so a
@@ -928,7 +935,7 @@ int RemoteCameraHttp::GetResponse() {
             //subheaders[n_subheaders++] = subheader_ptr;
             n_subheaders++;
 
-            if ( !boundary_header && (strncasecmp(subheader_ptr, content_boundary, content_boundary_len) == 0) ) {
+            if (!boundary_header && IsBoundaryLine(subheader_ptr, content_boundary + 2, content_boundary_len - 2)) {
               boundary_header = subheader_ptr;
               Debug(4, "Got boundary subheader '%s'", subheader_ptr);
             } else if (

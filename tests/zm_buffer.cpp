@@ -110,3 +110,13 @@ TEST_CASE("RemoteCameraHttp::ParseBoundary strips quotes and leading dashes", "[
   REQUIRE(RemoteCameraHttp::ParseBoundary("") == "");
   REQUIRE(RemoteCameraHttp::ParseBoundary("\"") == "");
 }
+
+TEST_CASE("RemoteCameraHttp::IsBoundaryLine accepts any run of dashes", "[RemoteCameraHttp]") {
+  REQUIRE(RemoteCameraHttp::IsBoundaryLine("--frame\r\n", "frame", 5));
+  REQUIRE(RemoteCameraHttp::IsBoundaryLine("----frame\r\n", "frame", 5));
+  REQUIRE(RemoteCameraHttp::IsBoundaryLine("--FRAME\r\n", "frame", 5));
+  REQUIRE_FALSE(RemoteCameraHttp::IsBoundaryLine("-frame\r\n", "frame", 5));
+  REQUIRE_FALSE(RemoteCameraHttp::IsBoundaryLine("frame\r\n", "frame", 5));
+  REQUIRE_FALSE(RemoteCameraHttp::IsBoundaryLine("--other\r\n", "frame", 5));
+  REQUIRE_FALSE(RemoteCameraHttp::IsBoundaryLine("Content-Type: image/jpeg\r\n", "frame", 5));
+}

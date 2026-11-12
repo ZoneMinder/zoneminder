@@ -1446,8 +1446,8 @@ void EventStream::runStream() {
     }
 
     // MPEG streams pace themselves by encoding, but there is nothing to encode
-    // while holding for a hint.
-    if ((type != STREAM_MPEG) || holding_for_hint || paused || stopped) {
+    // while holding for a hint or before the event has any frames.
+    if ((type != STREAM_MPEG) || holding_for_hint || paused || stopped || event_data->frames.empty()) {
       if (delta > Seconds(0)) {
         if (delta > MAX_SLEEP) {
           Debug(1, "Limiting sleep to %" PRIi64 " ms because calculated sleep is too long %" PRIi64,

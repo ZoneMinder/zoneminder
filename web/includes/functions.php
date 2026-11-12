@@ -721,6 +721,7 @@ function packageControl($command) {
   $string = ZM_PATH_BIN.'/zmpkg.pl '.escapeshellarg($command);
   $string .= ' 2>/dev/null >&- <&- >/dev/null';
   exec($string);
+  $GLOBALS['daemon_running'] = null;
 }
 
 function daemonControl($command, $daemon=false, $args=false) {
@@ -781,6 +782,10 @@ function zmcStatus($monitor) {
 }
 
 function daemonCheck($daemon=false, $args=false) {
+  global $daemon_running;
+  // Each check starts zmdc.pl, so whether ZoneMinder is running is only asked once a request
+  if (!$daemon and isset($daemon_running)) return $daemon_running;
+
   $string = ZM_PATH_BIN.'/zmdc.pl check';
   if ( $daemon ) {
     $string .= ' ' . $daemon;
@@ -788,8 +793,9 @@ function daemonCheck($daemon=false, $args=false) {
       $string .= ' '. $args;
   }
   $string = escapeshellcmd($string);
-  $result = exec($string);
-  return preg_match('/running/', $result);
+  $result = preg_match('/running/', exec($string));
+  if (!$daemon) $daemon_running = $result;
+  return $result;
 }
 
 function zmcCheck($monitor) {

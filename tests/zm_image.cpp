@@ -615,6 +615,11 @@ TEST_CASE("Image::EncodeJpeg raw YUV matches legacy", "[Image]") {
     {64, 48, AV_PIX_FMT_YUV420P},
     {64, 37, AV_PIX_FMT_YUV420P},
     {70, 37, AV_PIX_FMT_YUV420P},
+    {69, 37, AV_PIX_FMT_YUV420P},
+    {72, 40, AV_PIX_FMT_YUV420P},
+    {17, 9, AV_PIX_FMT_YUV420P},
+    {470, 264, AV_PIX_FMT_YUV420P},
+    {633, 356, AV_PIX_FMT_YUV420P},
     {64, 48, AV_PIX_FMT_YUV422P},
   };
 

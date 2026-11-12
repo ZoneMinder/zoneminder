@@ -78,6 +78,11 @@ if (file_exists($autoload)) {
 $configs_src = file_get_contents(__DIR__.'/../../web/api/app/Controller/ConfigsController.php');
 check('the API Configs editor reads the secret through requestField()',
   strpos($configs_src, "requestField('Config', 'Value')") !== false, true);
+// Config.Name is the primary key: {"Config":{"Name":"ZM_AUTH_HASH_SECRET","Value":"short"}}
+// sent to configs/edit/ZM_LANG_DEFAULT would validate one row and save another.
+$pin_at = strpos($configs_src, 'pinRequestId($this->Config, $id)');
+check('the API Configs editor pins the row before validating it',
+  $pin_at !== false and $pin_at < strpos($configs_src, "requestField('Config', 'Value')"), true);
 
 echo "\n$passes passed, $failures failed\n";
 exit($failures ? 1 : 0);

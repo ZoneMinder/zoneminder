@@ -687,17 +687,25 @@ void EventStream::processCommand(const CmdMsg *msg) {
     break;
   case CMD_PREV :
     Debug(1, "Got PREV command");
+    time_to_event = Seconds(0);
     curr_frame_id = replay_rate >= 0 ? 0 : (int)event_data->frames.size()+1;
     paused = false;
     forceEventChange = true;
     break;
   case CMD_NEXT :
     Debug(1, "Got NEXT command");
-    curr_frame_id = replay_rate >= 0 ? (int)event_data->frames.size()+1 : 0;
     paused = false;
+    if (time_to_event > Seconds(0)) {
+      // The next event is already loaded, so end the wait and play it.
+      time_to_event = Seconds(0);
+      curr_frame_id = event_data->frames.empty() ? 1 : (replay_rate >= 0 ? 1 : (int)event_data->frames.size());
+      break;
+    }
+    curr_frame_id = replay_rate >= 0 ? (int)event_data->frames.size()+1 : 0;
     forceEventChange = true;
     break;
   case CMD_SEEK : {
+    time_to_event = Seconds(0);
     double int_part = ((unsigned char) msg->msg_data[1] << 24) | ((unsigned char) msg->msg_data[2] << 16)
                       | ((unsigned char) msg->msg_data[3] << 8) | (unsigned char) msg->msg_data[4];
     double dec_part = ((unsigned char) msg->msg_data[5] << 24) | ((unsigned char) msg->msg_data[6] << 16)
@@ -1231,8 +1239,6 @@ void EventStream::runStream() {
   }
   updateFrameRate(fps);
 
-  SystemTimePoint::duration time_to_event = Seconds(0);
-
   std::thread command_processor;
   if (connkey) {
     command_processor = std::thread(&EventStream::checkCommandQueue, this);
@@ -1334,8 +1340,10 @@ void EventStream::runStream() {
           sleep_time += STREAM_PAUSE_WAIT;
         }
 
-        curr_stream_time += sleep_time;
-        time_to_event -= sleep_time;
+        if (!paused) {
+          curr_stream_time += sleep_time;
+          time_to_event -= sleep_time;
+        }
         Debug(2, "Sleeping (%" PRIi64 " ms) because we are not at the next event yet, adding %" PRIi64 " ms",
               static_cast<int64>(Milliseconds(STREAM_PAUSE_WAIT).count()),
               static_cast<int64>(Milliseconds(sleep_time).count()));

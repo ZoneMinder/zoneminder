@@ -129,6 +129,7 @@ class EventStream : public StreamBase {
 
   StreamMode mode;
   bool forceEventChange;
+  SystemTimePoint::duration time_to_event;  // wait for the loaded event to start, guarded by mutex
 
   // The neighbour hints the UI pushes via CMD_SET_EVENT, one per direction, and
   // whether this stream has a UI sending them at all. See ChooseNeighbour.
@@ -183,6 +184,7 @@ class EventStream : public StreamBase {
   EventStream() :
     mode(DEFAULT_MODE),
     forceEventChange(false),
+    time_to_event(0),
     ui_managed(false),
     hint_wait_prev(false),
     end_stop(false),

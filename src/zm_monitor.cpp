@@ -328,6 +328,7 @@ Monitor::Monitor() :
   // mqtt_subscriptions,
   mqtt(nullptr),
 #endif
+  privacy_image(nullptr),
   privacy_bitmask(nullptr),
   //linked_monitors_string
   n_linked_monitors(0),
@@ -1377,16 +1378,13 @@ Monitor::~Monitor() {
 }  // end Monitor::~Monitor()
 
 void Monitor::AddPrivacyBitmask() {
-  if (privacy_bitmask) {
-    delete[] privacy_bitmask;
-    privacy_bitmask = nullptr;
-  }
-  Image *privacy_image = nullptr;
+  privacy_bitmask = nullptr;
+  privacy_image.reset();
 
   for (const Zone &zone : zones) {
     if (zone.IsPrivacy()) {
       if (!privacy_image) {
-        privacy_image = new Image(width, height, 1, ZM_SUBPIX_ORDER_NONE);
+        privacy_image = zm::make_unique<Image>(width, height, 1, ZM_SUBPIX_ORDER_NONE);
         privacy_image->Clear();
       }
       privacy_image->Fill(0xff, zone.GetPolygon());

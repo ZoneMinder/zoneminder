@@ -884,6 +884,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::unique_ptr<MQTT> mqtt;
 #endif
 
+  std::unique_ptr<Image> privacy_image;
   const unsigned char  *privacy_bitmask;
 
   std::string linked_monitors_string;

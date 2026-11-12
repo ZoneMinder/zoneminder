@@ -2738,8 +2738,9 @@ bool Monitor::Analyse() {
         if ((videowriter == PASSTHROUGH) || shared_data->recording == RECORDING_NONE) {
           // Retain images on keyframes so that when an event opens, the pre-event
           // packets still in the queue have at least one image to source
-          // snapshot.jpg / alarm.jpg from. Non-keyframes get freed as before.
-          if (!savejpegs && !packet->keyframe) {
+          // snapshot.jpg / alarm.jpg from, and on scored packets since the event
+          // starts back at them. Other non-keyframes get freed as before.
+          if (!savejpegs && !packet->keyframe && packet->score <= 0) {
             Debug(1, "Deleting image data for %d", packet->image_index);
             // Don't need raw images anymore
             delete packet->image;

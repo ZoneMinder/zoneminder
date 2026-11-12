@@ -175,6 +175,8 @@ my $last_reload = 0;
 while (!$zm_terminate) {
   my $delay;
   my $now = time;
+  # Objects are cached by id for the life of the process, so drop the events of the last pass
+  ZoneMinder::Object::init_cache();
   if (($now - $last_reload) > $Config{ZM_FILTER_RELOAD_DELAY}) {
     $last_reload = $now;
     @filters = getFilters({ Name=>$filter_name, Id=>$filter_id });

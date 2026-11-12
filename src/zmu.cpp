@@ -652,19 +652,17 @@ int main(int argc, char *argv[]) {
       monitor->ForceAlarmOff();
       monitor->ForceAlarmOn(config.forced_alarm_score, alarm_cause.c_str());
 
-      Microseconds wait_time = Seconds(10);
-      while ((monitor->GetState() != Monitor::ALARM) and !zm_terminate and wait_time > Seconds(0)) {
+      TimePoint deadline = std::chrono::steady_clock::now() + Seconds(10);
+      while ((monitor->GetState() != Monitor::ALARM) and !zm_terminate and std::chrono::steady_clock::now() < deadline) {
         // Wait for monitor to notice.
-        Microseconds sleep = Microseconds(1);
-        std::this_thread::sleep_for(sleep);
-        wait_time -= sleep;
+        std::this_thread::sleep_for(Milliseconds(5));
       }
 
-      if (monitor->GetState() != Monitor::ALARM and wait_time == Seconds(0)) {
+      if (monitor->GetState() != Monitor::ALARM) {
         Error("Monitor failed to respond to forced alarm.");
-      } else {
-        printf("Alarmed event id: %" PRIu64 "\n", monitor->GetLastEventId());
+        exit_zmu(-1);
       }
+      printf("Alarmed event id: %" PRIu64 "\n", monitor->GetLastEventId());
     }  // end if ZMU_ALARM
 
     if ( function & ZMU_NOALARM ) {

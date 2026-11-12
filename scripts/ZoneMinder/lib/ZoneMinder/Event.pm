@@ -612,7 +612,15 @@ sub delete_analysis_jpegs {
     if ( $event_path ) {
       ( $storage_path ) = ( $storage_path =~ /^(.*)$/ ); # De-taint
       ( $event_path ) = ( $event_path =~ /^(.*)$/ ); # De-taint
-      my @files = glob("$storage_path/$event_path/*analyse.jpg");
+      my @files;
+      my $dir = "$storage_path/$event_path";
+      if ( opendir(my $dh, $dir) ) {
+        @files = grep(/^\d+-analyse\.jpg$/, readdir($dh));
+        closedir($dh);
+      } else {
+        Error("Unable to open $dir: $!");
+        next;
+      }
       Debug(@files . ' analysis jpegs found to delete');
       foreach my $file (@files) {
         $Storage->delete_path($event_path.'/'.$file);
@@ -974,16 +982,17 @@ sub recover_timestamps {
 # cannot be determined. $file must already be de-tainted by the caller.
 sub mp4_duration {
   my $file = shift;
+  my $quoted = quotemeta($file);
 
   # Preferred: ask ffprobe for the machine-readable duration in seconds.
-  my $duration = `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 '$file' 2>/dev/null`;
+  my $duration = `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 $quoted 2>/dev/null`;
   chomp $duration if defined $duration;
   if ( defined $duration and $duration =~ /^(\d+(?:\.\d+)?)$/ ) {
     return $1;
   }
 
   # Fallback: parse the human-readable "Duration: HH:MM:SS.uu" line.
-  my $output = `ffprobe '$file' 2>&1`;
+  my $output = `ffprobe $quoted 2>&1`;
   if ( $output =~ /Duration:\s*(\d+):(\d+):(\d+)\.(\d+)/ ) {
     return ($1*3600) + ($2*60) + $3 + "0.$4";
   }

@@ -684,6 +684,14 @@ void zm_dump_codecpar(const AVCodecParameters *par) {
        );
 }
 
+void zm_clear_incompatible_codec_tag(const AVOutputFormat *format, AVCodecParameters *par) {
+  unsigned int tag;
+  if (format->codec_tag
+      and av_codec_get_id(format->codec_tag, par->codec_tag) != par->codec_id
+      and av_codec_get_tag2(format->codec_tag, par->codec_id, &tag))
+    par->codec_tag = 0;
+}
+
 void zm_dump_codec(const AVCodecContext *codec) {
   Debug(1, "Dumping codec_context codec_type %d %s codec_id %d %s tag %c%c%c%c width %d height %d timebase %d/%d format %s profile %d level %d "
         "gop_size %d has_b_frames %d max_b_frames %d me_cmp %d me_range %d qmin %d qmax %d bit_rate %" PRId64 " qcompress %f extradata:%d:%s",

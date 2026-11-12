@@ -73,6 +73,7 @@ if ( is_readable($filename_path) and pathWithinExportDir($filename_path, ZM_DIR_
   if ( !@readfile($filename_path) ) {
     ZM\Error("Error sending $filename_path");
   }
+  @unlink($filename_path);
 } else {
   ZM\Error($filename_path.' does not exist or is not readable.');
 }

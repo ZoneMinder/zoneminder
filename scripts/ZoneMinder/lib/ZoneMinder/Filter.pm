@@ -617,7 +617,7 @@ sub skip_locked {
 }
 
 sub getDiskPercent {
-  my $command = 'df ' . ($_[0] ? $_[0] : '.');
+  my $command = 'df ' . quotemeta($_[0] ? $_[0] : '.');
   my $df = qx( $command );
   my $space = -1;
   if ( $df =~ /\s(\d+)%/ms ) {
@@ -627,7 +627,7 @@ sub getDiskPercent {
 }
 
 sub getDiskBlocks {
-  my $command = 'df ' . ($_[0] ? $_[0] : '.');
+  my $command = 'df ' . quotemeta($_[0] ? $_[0] : '.');
   my $df = qx( $command );
   my $space = -1;
   if ( $df =~ /\s(\d+)\s+\d+\s+\d+%/ms ) {

@@ -63,6 +63,7 @@ class VideoStore {
   SWScale swscale;
   unsigned int packets_written;
   unsigned int frame_count;
+  int packet_write_failures;
   bool video_encoded;  // true once at least one frame has been sent to the video encoder
   // Set in open() when the monitor asked for ENCODE but no encoder would
   // open. We then copy the input stream and write its packets unchanged,

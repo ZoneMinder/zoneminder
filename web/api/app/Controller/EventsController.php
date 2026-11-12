@@ -621,24 +621,8 @@ class EventsController extends AppController {
   }
 
   private function getMaxScoreAlarmFrameId($id = null) {
-    $this->Event->recursive = -1;
-
-    if ( !$this->Event->exists($id) ) {
-      throw new NotFoundException(__('Invalid event'));
-    }
-
-    $event = $this->Event->find('first', array(
-      'conditions' => array('Id' => $id)
-    ));
-
-    // Find the max Frame for this Event.  Error out otherwise.
     $this->loadModel('Frame');
-
-    $frame = $this->Frame->find('first', array(
-      'conditions' => array(
-      'EventId' => $event['Event']['Id'],
-      'Score' => $event['Event']['MaxScore']
-    )));
-    return empty($frame)?null:$frame['Frame']['Id'];
+    $maxScoreFrame = $this->Frame->findByEventid($id, 'FrameId', array('Score'=>'desc','FrameId'=>'asc'));
+    return $maxScoreFrame ? $maxScoreFrame['Frame']['FrameId'] : null;
   }
 } // end class EventsController

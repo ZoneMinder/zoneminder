@@ -610,6 +610,7 @@ sub uploadArchFile {
   }
 
   if ( $archError ) {
+    unlink($archLocPath);
     return 0;
   } else {
     if ( $Config{ZM_UPLOAD_PROTOCOL} eq 'ftp' ) {
@@ -622,17 +623,33 @@ sub uploadArchFile {
           );
       if ( !$ftp ) {
         Error("Unable to create FTP connection: $@");
+        unlink($archLocPath);
         return 0;
       }
-      $ftp->login($Config{ZM_UPLOAD_USER}, $Config{ZM_UPLOAD_PASS})
-        or Error("FTP - Unable to login");
-      $ftp->binary()
-        or Error("FTP - Unable to go binary");
-      $ftp->cwd($Config{ZM_UPLOAD_REM_DIR})
-        or Error("FTP - Unable to cwd")
-        if ( $Config{ZM_UPLOAD_REM_DIR} );
-      $ftp->put( $archLocPath )
-        or Error("FTP - Unable to upload '$archLocPath'");
+      if ( !$ftp->login($Config{ZM_UPLOAD_USER}, $Config{ZM_UPLOAD_PASS}) ) {
+        Error("FTP - Unable to login: ".$ftp->message);
+        $ftp->quit();
+        unlink($archLocPath);
+        return 0;
+      }
+      if ( !$ftp->binary() ) {
+        Error("FTP - Unable to go binary: ".$ftp->message);
+        $ftp->quit();
+        unlink($archLocPath);
+        return 0;
+      }
+      if ( $Config{ZM_UPLOAD_REM_DIR} and !$ftp->cwd($Config{ZM_UPLOAD_REM_DIR}) ) {
+        Error("FTP - Unable to cwd: ".$ftp->message);
+        $ftp->quit();
+        unlink($archLocPath);
+        return 0;
+      }
+      if ( !$ftp->put( $archLocPath ) ) {
+        Error("FTP - Unable to upload '$archLocPath': ".$ftp->message);
+        $ftp->quit();
+        unlink($archLocPath);
+        return 0;
+      }
       $ftp->quit()
         or Error("FTP - Unable to quit");
     } else {
@@ -655,13 +672,19 @@ sub uploadArchFile {
       my $sftp = Net::SFTP::Foreign->new($Config{ZM_UPLOAD_HOST}, %sftpOptions);
       if ( $sftp->error ) {
         Error("Unable to create SFTP connection: ".$sftp->error);
+        unlink($archLocPath);
         return 0;
       }
-      $sftp->setcwd($Config{ZM_UPLOAD_REM_DIR})
-        or Error("SFTP - Unable to setcwd: ".$sftp->error)
-        if $Config{ZM_UPLOAD_REM_DIR};
-      $sftp->put($archLocPath, $archFile)
-        or Error("SFTP - Unable to upload '$archLocPath': ".$sftp->error);
+      if ( $Config{ZM_UPLOAD_REM_DIR} and !$sftp->setcwd($Config{ZM_UPLOAD_REM_DIR}) ) {
+        Error("SFTP - Unable to setcwd: ".$sftp->error);
+        unlink($archLocPath);
+        return 0;
+      }
+      if ( !$sftp->put($archLocPath, $archFile) ) {
+        Error("SFTP - Unable to upload '$archLocPath': ".$sftp->error);
+        unlink($archLocPath);
+        return 0;
+      }
     }
     unlink($archLocPath);
     zmDbExecute('UPDATE `Events` SET `Uploaded`=1 WHERE `Id`=?', $Event->{Id});
@@ -1315,7 +1338,13 @@ sub executeCommand {
       }
     }gse;
   } else {
-    $command .= ' '.$Event->Path();
+    my $path = $Event->Path();
+    if ($path =~ /^[\w\/.,:+=@%-]*\z/) {
+      $command .= ' '.$path;
+    } else {
+      $tag_env{ZM_TAG_0} = $path;
+      $command .= ' "${ZM_TAG_0}"';
+    }
   }
 
   Info("Executing '$command'");

@@ -150,6 +150,7 @@ void zm_dump_stream(AVStream *st);
 void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output);
 void zm_dump_codec(const AVCodecContext *codec);
 void zm_dump_codecpar(const AVCodecParameters *par);
+void zm_clear_incompatible_codec_tag(const AVOutputFormat *format, AVCodecParameters *par);
 
 #if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
 #define zm_dump_frame(frame, text) Debug(1, "%s: format %d %s sample_rate %" PRIu32 " nb_samples %d" \

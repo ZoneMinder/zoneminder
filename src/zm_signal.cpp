@@ -335,9 +335,10 @@ RETSIGTYPE zm_die_handler(int signal)
   // A zero core size limit stops the kernel writing a core file, but a
   // core_pattern that pipes to a program (systemd-coredump, apport) is handed
   // the dump anyway, and it is up to that program to honour the limit. A
-  // process that is not dumpable is not dumped at all, unless fs.suid_dumpable
-  // is 2. This is done only now, as it also stops ptrace and changes who owns
-  // the process's /proc files.
+  // process made not dumpable is not dumped at all, whatever fs.suid_dumpable
+  // says: the kernel uses that setting only for a process that changes
+  // credentials or runs a setuid or unreadable program. This is done only now,
+  // as it also stops ptrace and changes who owns the process's /proc files.
   if (crash_no_core) prctl(PR_SET_DUMPABLE, 0, 0, 0, 0);
 #endif
 
@@ -353,6 +354,13 @@ RETSIGTYPE zm_die_handler(int signal)
   void *ip = nullptr;
   void *fault_addr = nullptr;
   if ( info && context ) {
+    // A signal sent with kill(), raise() and the like rather than raised by a
+    // fault has no fault address: si_addr shares its storage with the sender's
+    // pid and uid, which are reported instead.
+    bool sent = info->si_code == SI_USER or info->si_code == SI_QUEUE;
+#ifdef SI_TKILL
+    sent = sent or info->si_code == SI_TKILL;
+#endif
     // For memory fault signals (SIGSEGV, SIGBUS, SIGFPE, SIGILL), si_addr is valid.
     fault_addr = info->si_addr;
 
@@ -403,7 +411,12 @@ RETSIGTYPE zm_die_handler(int signal)
       }
     }
     line.clear();
-    crash_emit(line.str("Fault reason: ").str(code_desc).str(" (signal code ").dec(info->si_code).str(")\n"));
+    if (sent) {
+      line.str("Sent by process ").dec(info->si_pid).str(" (uid ").dec(info->si_uid).str(")\n");
+    } else {
+      line.str("Fault reason: ").str(code_desc).str(" (signal code ").dec(info->si_code).str(")\n");
+    }
+    crash_emit(line);
 
     ucontext_t *uc = (ucontext_t *) context;
 #if defined(__x86_64__)
@@ -440,7 +453,11 @@ RETSIGTYPE zm_die_handler(int signal)
 
     // Report the fault address and instruction pointer.
     line.clear();
-    line.str("Fault address: ").ptr(fault_addr).str(", instruction pointer: ");
+    if (sent) {
+      line.str("Instruction pointer: ");
+    } else {
+      line.str("Fault address: ").ptr(fault_addr).str(", instruction pointer: ");
+    }
     if ( ip ) {
       line.ptr(ip);
     } else {

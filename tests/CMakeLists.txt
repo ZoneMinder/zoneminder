@@ -26,6 +26,7 @@ set(TEST_SOURCES
   zm_crypt.cpp
   zm_event_hardlink.cpp
   zm_event_score.cpp
+  zm_fifo_stream.cpp
   zm_font.cpp
   zm_hwaccel_candidates.cpp
   zm_image.cpp
@@ -77,6 +78,7 @@ set(TEST_SOURCES
   zm_logger_rotate.cpp
   zm_logger_reload.cpp
   zm_ffmpeg_camera.cpp
+  zm_ffmpeg_codec_tag.cpp
   zm_ffmpeg_fallback.cpp)
 
 add_executable(tests ${TEST_SOURCES})

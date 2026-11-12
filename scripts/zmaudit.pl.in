@@ -149,6 +149,7 @@ my $image_path = EVENT_PATH;
 my $loop = 1;
 my $cleaned = 0;
 MAIN: while( $loop ) {
+  ZoneMinder::Object::init_cache();
 
   if ( $continuous ) {
     # if we are running continuously, then just skip to the next
@@ -437,7 +438,6 @@ MAIN: while( $loop ) {
           $Event->Path();
           $Event->age();
           Debug("Have event $$Event{Id} at $$Event{Path}");
-          $Event->StartDateTime(POSIX::strftime('%Y-%m-%d %H:%M:%S', gmtime(time_of_youngest_file($Event->Path()))));
         } # end foreach event
       } # end scope for medium
 
@@ -645,8 +645,12 @@ EVENT: while ( my ( $db_event, $age ) = each( %$db_events ) ) {
             $Event->StorageId($$fs_events{$db_event}->StorageId());
           }
           if ( ! $Event->StartDateTime() ) {
-            Info("Updating StartDateTime on event $$Event{Id} from $$Event{StartDateTime} to $$fs_events{$db_event}{StartDateTime}");
-            $Event->StartDateTime($$fs_events{$db_event}->StartDateTime());
+            my $StartDateTime = $$fs_events{$db_event}->StartDateTime();
+            if ( ! $StartDateTime ) {
+              $StartDateTime = POSIX::strftime('%Y-%m-%d %H:%M:%S', localtime(time_of_youngest_file($$fs_events{$db_event}->Path())));
+            }
+            Info("Updating StartDateTime on event $$Event{Id} from $$Event{StartDateTime} to $StartDateTime");
+            $Event->StartDateTime($StartDateTime);
           }
 
           $Event->save();
@@ -1310,12 +1314,13 @@ sub time_of_youngest_file {
   Debug("stat of dir $dir is $youngest");
   foreach my $file ( readdir( DIR ) ) {
     next if $file =~ /^\./;
-    $_ = (stat($dir))[9];
+    $_ = (stat("$dir/$file"))[9];
     if ($_ and ($_ < $youngest)) {
       $youngest = $_;
       Debug("Found younger file $file at $youngest");
     }
   }
+  closedir(DIR);
   return $youngest;
 } # end sub time_of_youngest_file
 

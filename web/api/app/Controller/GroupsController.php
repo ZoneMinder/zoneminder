@@ -183,8 +183,8 @@ class GroupsController extends AppController {
       } else {
         $message = 'Error';
         // if there is a validation message, use it
-        if ( !$this->group->validates() ) {
-          $message .= ': '.$this->Group->validationErrors;
+        if ( !$this->Group->validates() ) {
+          $message = $this->Group->validationErrors;
         }
 			}
 		} # end if post/put

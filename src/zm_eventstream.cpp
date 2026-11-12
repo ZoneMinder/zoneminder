@@ -200,6 +200,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
   event_data->frame_count = dbrow[2] == nullptr ? 0 : atoi(dbrow[2]);
   event_data->start_time = SystemTimePoint(Seconds(atoi(dbrow[3])));
   event_data->end_time = dbrow[4] ? SystemTimePoint(Seconds(atoi(dbrow[4]))) : std::chrono::system_clock::now();
+  event_data->in_progress = (dbrow[4] == nullptr);
   event_data->duration = std::chrono::duration_cast<Microseconds>(dbrow[5] ? FPSeconds(atof(dbrow[5])) : event_data->end_time - event_data->start_time);
   // DefaultVideo is user editable; only use it as a filename in the event dir.
   event_data->video_file = dbrow[6] ? std::filesystem::path(dbrow[6]).filename().string() : std::string();
@@ -870,7 +871,7 @@ bool EventStream::checkEventLoaded() {
   } else if (curr_frame_id <= 0) {
     prev = true;
   } else if (curr_frame_id > (int)event_data->frames.size()) {
-    if (event_data->end_time.time_since_epoch() == Seconds(0)) {
+    if (event_data->in_progress) {
       // We are viewing an in-process event, so just reload it.
       loadEventData(event_data->event_id);
       int num_frames = (int)event_data->frames.size();
@@ -1271,9 +1272,13 @@ void EventStream::runStream() {
       TimePoint::duration time_since_last_send = now - last_frame_sent.load();
 
       if (stopped) {
-        // In stopped state, skip all frame processing until a new command is received.
-        // send_frame is already false from initialization above.
         delta = MAX_SLEEP;
+        if (time_since_last_send > MAX_STREAM_DELAY) {
+          // Re-send the current frame so a viewer that left is noticed by a
+          // failed write; curr_frame_id is not advanced while stopped.
+          Debug(2, "Sending keepalive frame while stopped");
+          send_frame = true;
+        }
       } else if (!paused && !holding_for_hint) {
         // Figure out if we should send this frame
         Debug(3, "not paused at curr_frame_id (%d-1) mod frame_mod(%d)", curr_frame_id, frame_mod);
@@ -1442,7 +1447,7 @@ void EventStream::runStream() {
 
     // MPEG streams pace themselves by encoding, but there is nothing to encode
     // while holding for a hint.
-    if ((type != STREAM_MPEG) || holding_for_hint) {
+    if ((type != STREAM_MPEG) || holding_for_hint || paused || stopped) {
       if (delta > Seconds(0)) {
         if (delta > MAX_SLEEP) {
           Debug(1, "Limiting sleep to %" PRIi64 " ms because calculated sleep is too long %" PRIi64,

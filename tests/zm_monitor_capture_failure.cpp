@@ -106,7 +106,7 @@ bool SlotIsUntouched(const Image *image) {
 TEST_CASE("Capture failure leaves the image ring to a running decoder", "[Monitor]") {
   EnsureConfig();
   RingMonitor::Data data = {};
-  data.capturing = 1;
+  data.capturing = Monitor::CAPTURING_ALWAYS;
   data.signal = 1;
   data.image_count = 7;       // capture's slot would be 7 % 3 = 1
   data.last_write_index = 2;  // the decoder's next slot is 0
@@ -125,7 +125,7 @@ TEST_CASE("Capture failure leaves the image ring to a running decoder", "[Monito
 TEST_CASE("Capture failure without a decoder still shows the signal colour", "[Monitor]") {
   EnsureConfig();
   RingMonitor::Data data = {};
-  data.capturing = 1;
+  data.capturing = Monitor::CAPTURING_ALWAYS;
   data.signal = 1;
   data.image_count = 7;
   data.last_write_index = 2;

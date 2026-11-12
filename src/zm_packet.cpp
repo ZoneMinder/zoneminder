@@ -292,36 +292,32 @@ Image *ZMPacket::set_image(Image *i) {
 }
 
 Image *ZMPacket::get_y_image() {
-  if (!y_image) {
-    if (!in_frame) {
-      Error("Can't get y_image without frame, maybe need to decode first");
-      return nullptr;
-    }
+  if (y_image) return y_image;
 
-    // Check if the pixel format has a Y channel accessible in data[0]
-    // This requires a planar YUV format (not RGB, not packed YUV)
-    const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(static_cast<AVPixelFormat>(in_frame->format));
-    if (!desc) {
-      Error("Unable to get pixel format descriptor for format %d", in_frame->format);
-      return nullptr;
-    }
-
-    // Must not be RGB (no Y channel) and must be planar (Y is in data[0])
-    if (desc->flags & AV_PIX_FMT_FLAG_RGB) {
-      Error("Cannot get Y image from RGB format %s", desc->name);
-      return nullptr;
-    }
-    if (!(desc->flags & AV_PIX_FMT_FLAG_PLANAR)) {
-      Error("Cannot get Y image from non-planar format %s (Y is interleaved)", desc->name);
-      return nullptr;
-    }
-
+  // A planar YUV frame already has the Y channel in data[0]
+  const AVPixFmtDescriptor *desc = in_frame ? av_pix_fmt_desc_get(static_cast<AVPixelFormat>(in_frame->format)) : nullptr;
+  if (desc && !(desc->flags & AV_PIX_FMT_FLAG_RGB) && (desc->flags & AV_PIX_FMT_FLAG_PLANAR)) {
     // Wrap the decoder's Y plane with its real stride (linesize[0]). The plane
     // is packed at the decoder's alignment, which may be smaller than the
     // FFALIGN(width,32) a plain Image would assume; recording the true stride
     // keeps stride-aware reads (motion analysis) and Rotate/Flip correct.
     y_image = new Image(in_frame->width, in_frame->linesize[0], in_frame->height,
                         1, ZM_SUBPIX_ORDER_NONE, in_frame->data[0], 0);
+    return y_image;
+  }
+
+  // Otherwise (RGB frames, or cameras like RemoteCameraHttp that only fill
+  // image) convert the image to greyscale.
+  if (!image) {
+    Error("Can't get y_image without frame or image, maybe need to decode first");
+    return nullptr;
+  }
+  av_frame_ptr frame{av_frame_alloc()};
+  if (!frame || image->PopulateFrame(frame.get()) < 0) return nullptr;
+  y_image = new Image(image->Width(), image->Height(), ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE);
+  if (!y_image->Assign(frame.get())) {
+    delete y_image;
+    y_image = nullptr;
   }
   return y_image;
 }

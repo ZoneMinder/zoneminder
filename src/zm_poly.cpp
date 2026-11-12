@@ -57,21 +57,23 @@ void Polygon::UpdateArea() {
 }
 
 void Polygon::UpdateCentre() {
-  if (!area && !vertices_.empty())
-    UpdateArea();
-
+  double twice_area = 0.0;
   double float_x = 0.0;
   double float_y = 0.0;
   for (size_t i = 0, j = vertices_.size() - 1; i < vertices_.size(); j = i++) {
-    float_x += ((vertices_[i].y_ - vertices_[j].y_)
-                * ((vertices_[i].x_ * 2) + (vertices_[i].x_ * vertices_[j].x_) + (vertices_[j].x_ * 2)));
-    float_y += ((vertices_[j].x_ - vertices_[i].x_)
-                * ((vertices_[i].y_ * 2) + (vertices_[i].y_ * vertices_[j].y_) + (vertices_[j].y_ * 2)));
+    double cross = static_cast<double>(vertices_[j].x_) * vertices_[i].y_
+                   - static_cast<double>(vertices_[i].x_) * vertices_[j].y_;
+    twice_area += cross;
+    float_x += (vertices_[j].x_ + vertices_[i].x_) * cross;
+    float_y += (vertices_[j].y_ + vertices_[i].y_) * cross;
   }
-  float_x /= (6 * area);
-  float_y /= (6 * area);
+  if (twice_area == 0.0) {
+    centre = Vector2();
+    return;
+  }
 
-  centre = Vector2(static_cast<int32>(std::lround(float_x)), static_cast<int32>(std::lround(float_y)));
+  centre = Vector2(static_cast<int32>(std::lround(float_x / (3 * twice_area))),
+                   static_cast<int32>(std::lround(float_y / (3 * twice_area))));
 }
 
 bool Polygon::Contains(const Vector2 &coord) const {

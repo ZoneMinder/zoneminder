@@ -1222,9 +1222,8 @@ bool Monitor::connect() {
       //Janus_Manager->add_to_janus();
     }
 
-    if (use_Amcrest_API) {
-      Amcrest_Manager = new AmcrestAPI(this);
-    }
+    delete Amcrest_Manager;
+    Amcrest_Manager = use_Amcrest_API ? new AmcrestAPI(this) : nullptr;
 
     if (onvif_event_listener) {
       // Clean up existing ONVIF object to prevent memory leak and duplicate threads

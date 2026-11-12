@@ -155,6 +155,9 @@ class EventStream : public StreamBase {
 
   std::mutex  mutex;
   int curr_frame_id;
+  // Frame shown and the position it advanced to, so a pause can step back onto it
+  int advanced_from;
+  int advanced_to;
   SystemTimePoint curr_stream_time;
   bool  send_frame;
   TimePoint start;     // clock time when started the event
@@ -188,6 +191,8 @@ class EventStream : public StreamBase {
     end_stop(false),
     end_stop_prev(false),
     curr_frame_id(0),
+    advanced_from(0),
+    advanced_to(0),
     send_frame(false),
     event_data(nullptr),
     storage(nullptr),

@@ -44,14 +44,17 @@ class FakeStatement {
     if (strpos($this->sql, 'UPDATE') === 0) {
       if ($this->db->race !== null) { $this->db->value = $this->db->race; $this->db->race = null; }
       $this->db->updates++;
-      if ($params[1] === 'ZM_AUTH_HASH_SECRET' and $this->db->value === $params[2]) $this->db->value = $params[0];
+      if ($params[1] === 'ZM_AUTH_HASH_SECRET' and $this->db->value === $params[2]) {
+        $this->db->value = $params[0];
+        if (strpos($this->sql, 'Private=1') !== false) $this->db->private = 1;
+      }
     }
     return true;
   }
   function fetchColumn() { return $this->db->value; }
 }
 class FakeDb {
-  public $value, $race = null, $updates = 0;
+  public $value, $race = null, $updates = 0, $private = 0;
   function __construct($value) { $this->value = $value; }
   function prepare($sql) { return new FakeStatement($this, $sql); }
 }
@@ -74,6 +77,11 @@ $db = new FakeDb(ZM_AUTH_HASH_SECRET_DEFAULT);
 $got = ensureAuthHashSecret($db, ZM_AUTH_HASH_SECRET_DEFAULT);
 check('default is replaced with 64 hex characters', (bool)preg_match('/^[0-9a-f]{64}$/', $got), true);
 check('the new secret is stored', $db->value, $got);
+check('and marked Private, so skin.js.php never exports it', $db->private, 1);
+
+// A secret set by hand on a table whose flags are all 0 is a signing key too.
+check('loadConfig() marks the loaded secret Private whatever the table says',
+  (bool)preg_match('/if \(\$name == \'ZM_AUTH_HASH_SECRET\'\) \{\s*(#[^\n]*\n\s*)*\$row\[\'Private\'\] = 1;/', $src), true);
 
 $db2 = new FakeDb(ZM_AUTH_HASH_SECRET_DEFAULT);
 check('each server gets a different secret', ensureAuthHashSecret($db2, ZM_AUTH_HASH_SECRET_DEFAULT) !== $got, true);

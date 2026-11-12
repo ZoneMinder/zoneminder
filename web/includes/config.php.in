@@ -251,7 +251,7 @@ function loadConfigFiles() {
 function ensureAuthHashSecret($dbConn, $value) {
   if (($value !== '') and ($value !== ZM_AUTH_HASH_SECRET_DEFAULT)) return $value;
   try {
-    $dbConn->prepare('UPDATE Config SET Value=? WHERE Name=? AND Value=?')
+    $dbConn->prepare('UPDATE Config SET Value=?, Private=1 WHERE Name=? AND Value=?')
       ->execute(array(bin2hex(random_bytes(32)), 'ZM_AUTH_HASH_SECRET', $value));
     $stmt = $dbConn->prepare('SELECT Value FROM Config WHERE Name=?');
     $stmt->execute(array('ZM_AUTH_HASH_SECRET'));
@@ -294,8 +294,13 @@ function loadConfig( $defineConsts=true ) {
     echo mysql_error();
   while( $row = dbFetchNext($result) ) {
     $name = $row['Name'];
-    if (($name == 'ZM_AUTH_HASH_SECRET') and !isset($initial_config[$name]))
-      $row['Value'] = ensureAuthHashSecret($dbConn, $row['Value']);
+    if ($name == 'ZM_AUTH_HASH_SECRET') {
+      # The secret signs tokens, and skin.js.php exports every value not marked Private.
+      # A table made from an older zm_create.sql has every flag 0.
+      $row['Private'] = 1;
+      if (!isset($initial_config[$name]))
+        $row['Value'] = ensureAuthHashSecret($dbConn, $row['Value']);
+    }
 
     $config[$name] = $row;
     if (isset($initial_config[$name])) {

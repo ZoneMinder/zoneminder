@@ -73,6 +73,10 @@ namespace {
       array('FrameId' => 2, 'EventId' => 2, 'Type' => 'Alarm',  'TimeStamp' => '2026-11-01 03:14:02', 'Delta' => 2, 'Score' => 75),
     );
   }
+  function dbFetchOne($sql, $col = false, $params = array()) {
+    $GLOBALS['queries'][] = trim($sql);
+    return 2;
+  }
   function ajaxResponse($data = array()) { throw new StopRequest('response'); }
   function ajaxError($message, $code = 200) {
     $GLOBALS['last_error'] = $message;

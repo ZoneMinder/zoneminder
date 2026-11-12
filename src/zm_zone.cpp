@@ -25,6 +25,10 @@
 
 #include <cstdlib>
 
+#if defined(__SSE2__)
+#include <emmintrin.h>
+#endif
+
 void Zone::Setup(
   ZoneType p_type,
   const Polygon &p_polygon,
@@ -1168,7 +1172,29 @@ static void alarmedpixels_row(
     uint8_t calc_max,
     uint32_t &pixelsalarmed,
     uint32_t &pixelsdifference) {
-  for (unsigned int i = 0; i < count; i++) {
+  unsigned int i = 0;
+#if defined(__SSE2__)
+  static_assert(kWhite == 0xff, "the compare mask is stored as the alarm value");
+  const __m128i zero = _mm_setzero_si128();
+  const __m128i one = _mm_set1_epi8(1);
+  const __m128i vmin = _mm_set1_epi8(static_cast<char>(calc_min));
+  const __m128i vmax = _mm_set1_epi8(static_cast<char>(calc_max));
+  __m128i alarmed_count = zero;
+  __m128i alarmed_sum = zero;
+  for (; i + 16 <= count; i += 16) {
+    const __m128i d = _mm_loadu_si128(reinterpret_cast<const __m128i *>(pdelta + i));
+    const __m128i p = _mm_loadu_si128(reinterpret_cast<const __m128i *>(ppoly + i));
+    // Unsigned d <= x is (d -sat x) == 0
+    const __m128i rejected = _mm_or_si128(_mm_cmpeq_epi8(p, zero), _mm_cmpeq_epi8(_mm_subs_epu8(d, vmin), zero));
+    const __m128i alarmed = _mm_andnot_si128(rejected, _mm_cmpeq_epi8(_mm_subs_epu8(d, vmax), zero));
+    _mm_storeu_si128(reinterpret_cast<__m128i *>(pmask + i), alarmed);
+    alarmed_count = _mm_add_epi64(alarmed_count, _mm_sad_epu8(_mm_and_si128(alarmed, one), zero));
+    alarmed_sum = _mm_add_epi64(alarmed_sum, _mm_sad_epu8(_mm_and_si128(alarmed, d), zero));
+  }
+  pixelsalarmed += _mm_cvtsi128_si32(alarmed_count) + _mm_cvtsi128_si32(_mm_srli_si128(alarmed_count, 8));
+  pixelsdifference += _mm_cvtsi128_si32(alarmed_sum) + _mm_cvtsi128_si32(_mm_srli_si128(alarmed_sum, 8));
+#endif
+  for (; i < count; i++) {
     const uint8_t d = pdelta[i];
     const uint8_t p = ppoly[i];
     // Bitwise AND avoids short-circuit branches that block vectorization

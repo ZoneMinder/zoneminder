@@ -1495,10 +1495,10 @@ bool Image::WriteJpeg(const std::string &filename, int quality_override, SystemT
   return Image::WriteJpeg(filename, quality_override, timestamp, false);
 }
 
-// YUV420P with a width divisible by 16 needs no padding in libjpeg's raw mode,
-// so the planes go straight in without being interleaved into YCbCr scanlines.
+// YUV420P goes into libjpeg's raw mode as planes, without being interleaved
+// into YCbCr scanlines.
 static bool zm_jpeg_raw_ok(AVPixelFormat pixfmt, unsigned int width) {
-  return (pixfmt == AV_PIX_FMT_YUV420P || pixfmt == AV_PIX_FMT_YUVJ420P) && (width % 16) == 0;
+  return (pixfmt == AV_PIX_FMT_YUV420P || pixfmt == AV_PIX_FMT_YUVJ420P);
 }
 
 // After jpeg_set_defaults(), which resets raw_data_in and the sampling factors.
@@ -1521,16 +1521,44 @@ static bool zm_jpeg_write_raw_yuv420(jpeg_compress_struct *cinfo, const uint8_t 
     return false;
 
   const int chroma_height = (height + 1) / 2;
+  const int chroma_width = (width + 1) / 2;
+  // Raw mode reads each row out to the padded width, so other widths are copied
+  // into a scratch band with the last sample of each row repeated.
+  const bool pad = (width % 16) != 0;
+  const int ypitch = FFALIGN(width, 16);
+  const int cpitch = ypitch / 2;
+  std::vector<uint8_t> scratch;
+  if (pad) scratch.resize(static_cast<size_t>(2 * DCTSIZE) * ypitch + 2 * DCTSIZE * cpitch);
   JSAMPROW yrows[2 * DCTSIZE], urows[DCTSIZE], vrows[DCTSIZE];
   JSAMPARRAY planes[3] = {yrows, urows, vrows};
   // Rows past the bottom repeat the last row.
   for (int y = 0; y < height; y += 2 * DCTSIZE) {
-    for (int i = 0; i < 2 * DCTSIZE; i++)
-      yrows[i] = plane[0] + static_cast<size_t>(std::min(y + i, height - 1)) * linesize[0];
+    for (int i = 0; i < 2 * DCTSIZE; i++) {
+      const uint8_t *src = plane[0] + static_cast<size_t>(std::min(y + i, height - 1)) * linesize[0];
+      if (pad) {
+        uint8_t *dst = scratch.data() + static_cast<size_t>(i) * ypitch;
+        memcpy(dst, src, width);
+        memset(dst + width, src[width - 1], ypitch - width);
+        src = dst;
+      }
+      yrows[i] = const_cast<uint8_t *>(src);
+    }
     for (int i = 0; i < DCTSIZE; i++) {
       const int cy = std::min(y / 2 + i, chroma_height - 1);
-      urows[i] = plane[1] + static_cast<size_t>(cy) * linesize[1];
-      vrows[i] = plane[2] + static_cast<size_t>(cy) * linesize[2];
+      const uint8_t *usrc = plane[1] + static_cast<size_t>(cy) * linesize[1];
+      const uint8_t *vsrc = plane[2] + static_cast<size_t>(cy) * linesize[2];
+      if (pad) {
+        uint8_t *udst = scratch.data() + static_cast<size_t>(2 * DCTSIZE) * ypitch + static_cast<size_t>(i) * cpitch;
+        uint8_t *vdst = udst + static_cast<size_t>(DCTSIZE) * cpitch;
+        memcpy(udst, usrc, chroma_width);
+        memset(udst + chroma_width, usrc[chroma_width - 1], cpitch - chroma_width);
+        memcpy(vdst, vsrc, chroma_width);
+        memset(vdst + chroma_width, vsrc[chroma_width - 1], cpitch - chroma_width);
+        usrc = udst;
+        vsrc = vdst;
+      }
+      urows[i] = const_cast<uint8_t *>(usrc);
+      vrows[i] = const_cast<uint8_t *>(vsrc);
     }
     jpeg_write_raw_data(cinfo, planes, 2 * DCTSIZE);
   }

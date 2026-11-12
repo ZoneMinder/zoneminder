@@ -36,6 +36,7 @@ set(TEST_SOURCES
   zm_monitor_shared_value.cpp
   zm_monitor_check_action.cpp
   zm_monitor_ondemand.cpp
+  zm_monitor_privacy.cpp
   zm_monitorlink_expression.cpp
   zm_monitorstream.cpp
   zm_monitorlink_token.cpp

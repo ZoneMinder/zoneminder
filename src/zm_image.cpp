@@ -3384,33 +3384,33 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
       for (auto it = active_edges.begin(); it + 1 < active_edges.end(); it += 2) {
         int32 lo_x = static_cast<int32>(it->min_x);
         int32 hi_x = static_cast<int32>((it + 1)->min_x);
+        int32 first_x = lo_x + (density - lo_x % density) % density;
         if (zm_bytes_per_pixel(imagePixFormat) == 1) {
-          uint8 *p = &buffer[scan_line * linesize + lo_x];
+          uint8 *p = &buffer[scan_line * linesize];
 
-          for (int32 x = lo_x; x <= hi_x; x++, p++) {
-            if (!(x % density)) {
-              *p = colour;
+          if (density == 1) {
+            memset(p + lo_x, colour, hi_x - lo_x + 1);
+          } else {
+            for (int32 x = first_x; x <= hi_x; x += density) {
+              p[x] = colour;
             }
           }
         } else if (zm_is_rgb24(imagePixFormat)) {
           constexpr uint8 bytesPerPixel = 3;
-          uint8 *ptr = &buffer[scan_line * linesize + lo_x * bytesPerPixel];
+          uint8 *row = &buffer[scan_line * linesize];
 
-          for (int32 x = lo_x; x <= hi_x; x++, ptr += bytesPerPixel) {
-            if (!(x % density)) {
-              RED_PTR_RGBA(ptr) = RED_VAL_RGBA(colour);
-              GREEN_PTR_RGBA(ptr) = GREEN_VAL_RGBA(colour);
-              BLUE_PTR_RGBA(ptr) = BLUE_VAL_RGBA(colour);
-            }
+          for (int32 x = first_x; x <= hi_x; x += density) {
+            uint8 *ptr = row + x * bytesPerPixel;
+            RED_PTR_RGBA(ptr) = RED_VAL_RGBA(colour);
+            GREEN_PTR_RGBA(ptr) = GREEN_VAL_RGBA(colour);
+            BLUE_PTR_RGBA(ptr) = BLUE_VAL_RGBA(colour);
           }
         } else if (zm_is_rgb32(imagePixFormat)) {
           constexpr uint8 bytesPerPixel = 4;
-          Rgb *ptr = reinterpret_cast<Rgb *>(&buffer[scan_line * linesize + lo_x * bytesPerPixel]);
+          uint8 *row = &buffer[scan_line * linesize];
 
-          for (int32 x = lo_x; x <= hi_x; x++, ptr++) {
-            if (!(x % density)) {
-              *ptr = colour;
-            }
+          for (int32 x = first_x; x <= hi_x; x += density) {
+            *reinterpret_cast<Rgb *>(row + x * bytesPerPixel) = colour;
           }
         }
       }

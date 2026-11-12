@@ -109,28 +109,14 @@ function queryRequest($eid, $search, $advsearch, $sort, $offset, $order, $limit)
 
   $Event = new ZM\Event($eid);
   $Monitor = $Event->Monitor();
-  $values = array();
-  $likes = array();
-  $where = 'WHERE EventId = '.$eid;
+  $values = array($eid);
 
-  $sql = 'SELECT * FROM `Frames` '.$where.' ORDER BY '.$sort.' '.$order;
+  $data['totalNotFiltered'] = (int)dbFetchOne('SELECT COUNT(*) AS Total FROM `Frames` WHERE EventId=?', 'Total', $values);
 
-  //ZM\Debug('Calling the following sql query: ' .$sql);
-
-  $unfiltered_rows = array();
-  $frame_ids = array();
-  foreach ( dbFetchAll($sql, NULL, $values) as $row ) {
-    $frame_ids[] = $row['FrameId'];
-    $unfiltered_rows[] = $row;
-  }
-
-  ZM\Debug('Have ' . count($unfiltered_rows) . ' frames matching base filter.');
-
-  $filtered_rows = null;
+  $where = 'WHERE EventId=?';
   require_once('includes/Filter.php');
   if ( count($advsearch) or $search != '' ) {
     $search_filter = new ZM\Filter();
-    $search_filter = $search_filter->addTerm(array('cnj'=>'and', 'attr'=>'FrameId', 'op'=>'IN', 'val'=>$frame_ids));
 
     // There are two search bars in the log view, normal and advanced
     // Making an exuctive decision to ignore the normal search, when advanced search is in use
@@ -155,15 +141,17 @@ function queryRequest($eid, $search, $advsearch, $sort, $offset, $order, $limit)
       $search_filter = $search_filter->addTerms($terms, array('obr'=>1, 'cbr'=>1, 'op'=>'OR'));
     } # end if search
 
-    $sql = 'SELECT * FROM `Frames` '.$where.' AND '.$search_filter->sql().' ORDER BY ' .$sort. ' ' .$order;
-    $filtered_rows = dbFetchAll($sql);
-    ZM\Debug('Have ' . count($filtered_rows) . ' frames matching search filter.');
+    $where .= ' AND '.$search_filter->sql();
+    $data['total'] = (int)dbFetchOne('SELECT COUNT(*) AS Total FROM `Frames` '.$where, 'Total', $values);
   } else {
-    $filtered_rows = $unfiltered_rows;
-  } # end if search_filter->terms() > 1
+    $data['total'] = $data['totalNotFiltered'];
+  }
+
+  $sql = 'SELECT * FROM `Frames` '.$where.' ORDER BY '.$sort.' '.$order.($sort != 'FrameId' ? ', FrameId' : '');
+  if ( $limit ) $sql .= ' LIMIT '.(int)$offset.', '.(int)$limit;
 
   $returned_rows = array();
-  foreach ( array_slice($filtered_rows, $offset, ($limit ? $limit : count($filtered_rows))) as $row ) {
+  foreach ( dbFetchAll($sql, NULL, $values) as $row ) {
     if ( ZM_WEB_LIST_THUMBS ) {
 
       # Build the path to the potential analysis image
@@ -195,14 +183,6 @@ function queryRequest($eid, $search, $advsearch, $sort, $offset, $order, $limit)
   } # end foreach row matching search
 
   $data['rows'] = $returned_rows;
-
-  # totalNotFiltered must equal total, except when either search bar has been used
-  $data['totalNotFiltered'] = count($unfiltered_rows);
-  if ( $search != '' || count($advsearch) ) {
-    $data['total'] = count($filtered_rows);
-  } else {
-    $data['total'] = $data['totalNotFiltered'];
-  }
 
   return $data;
 }

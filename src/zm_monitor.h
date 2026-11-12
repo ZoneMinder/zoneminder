@@ -45,6 +45,13 @@
 #include <vector>
 #if HAVE_LIBCURL
 #include <curl/curl.h>
+
+// zmc is multithreaded, so curl must not use signals to time out name lookups
+inline void zm_curl_set_timeouts(CURL *curl) {
+  curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+  curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5L);
+  curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
+}
 #endif  // HAVE_LIBCURL
 
 #include "zm_monitor_onvif.h"

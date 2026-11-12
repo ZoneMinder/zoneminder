@@ -106,6 +106,7 @@ int Monitor::JanusManager::check_janus() {
 
   curl = curl_easy_init();
   if (!curl) return -1;
+  zm_curl_set_timeouts(curl);
 
   //Assemble our actual request
   std::string postData = "{\"janus\" : \"message\", \"transaction\" : \"randomString\", \"body\" : {";
@@ -138,6 +139,7 @@ int Monitor::JanusManager::check_janus() {
     ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
+    zm_curl_set_timeouts(curl);
     curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
@@ -189,6 +191,7 @@ int Monitor::JanusManager::add_to_janus() {
     Error("Failed to init curl");
     return -1;
   }
+  zm_curl_set_timeouts(curl);
 
   std::string endpoint = janus_endpoint+"/"+janus_session+"/"+janus_handle;
 
@@ -255,6 +258,7 @@ int Monitor::JanusManager::add_to_janus() {
     ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
+    zm_curl_set_timeouts(curl);
     curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
@@ -293,6 +297,7 @@ int Monitor::JanusManager::remove_from_janus() {
 
   curl = curl_easy_init();
   if (!curl) return -1;
+  zm_curl_set_timeouts(curl);
 
   //Assemble our actual request
   std::string postData = "{\"janus\" : \"message\", \"transaction\" : \"randomString\", \"body\" : {";
@@ -328,6 +333,7 @@ int Monitor::JanusManager::remove_from_janus() {
     ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
+    zm_curl_set_timeouts(curl);
     curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
@@ -356,6 +362,7 @@ int Monitor::JanusManager::get_janus_session() {
   janus_session = "";
   curl = curl_easy_init();
   if (!curl) return -1;
+  zm_curl_set_timeouts(curl);
 
   std::string endpoint = janus_endpoint;
   std::string response;
@@ -383,6 +390,7 @@ int Monitor::JanusManager::get_janus_session() {
     ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
+    zm_curl_set_timeouts(curl);
     curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
@@ -409,6 +417,7 @@ int Monitor::JanusManager::get_janus_session() {
 int Monitor::JanusManager::get_janus_handle() {
   curl = curl_easy_init();
   if (!curl) return -1;
+  zm_curl_set_timeouts(curl);
 
   CURLcode res;
   std::string response = "";
@@ -436,6 +445,7 @@ int Monitor::JanusManager::get_janus_handle() {
     ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
+    zm_curl_set_timeouts(curl);
     curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);

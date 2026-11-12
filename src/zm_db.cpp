@@ -381,7 +381,7 @@ void zmDbQueue::stop() {
 void zmDbQueue::process() {
   std::unique_lock<std::mutex> lock(mMutex);
 
-  while (!mTerminate and !zm_terminate) {
+  while (!mTerminate) {
     if (mQueue.empty()) {
       mCondition.wait(lock);
     }

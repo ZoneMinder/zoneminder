@@ -26,6 +26,7 @@
 #include "zm_catch2.h"
 #include "zm_config.h"
 #include "zm_db.h"
+#include "zm_signal.h"
 
 #include <chrono>
 #include <string>
@@ -171,4 +172,34 @@ TEST_CASE("zmDbDo retries a real InnoDB deadlock", "[notCI][dblive]") {
   REQUIRE(ValueOf(150) == 2);  // the other session's +1, then ours on retry
 
   mysql_close(other);
+}
+
+TEST_CASE("zmDbQueue writes rows queued after zm_terminate is set", "[notCI][dblive]") {
+  Scratch scratch;
+  struct ResetTerminate {
+    ~ResetTerminate() { zm_terminate = false; }
+  } reset;
+
+  auto insert = [](int id) {
+    return std::string("INSERT INTO `") + kTable + "` (Id,V) VALUES (" + std::to_string(id) + ",0)";
+  };
+  auto present = [](int id) {
+    zmDbRow row;
+    MYSQL_RES *res = row.fetch(std::string("SELECT COUNT(*) FROM `") + kTable + "` WHERE Id=" + std::to_string(id));
+    REQUIRE(res != nullptr);
+    return atoi(row[0]) == 1;
+  };
+
+  zmDbQueue queue;
+  zm_terminate = true;
+
+  queue.push(insert(1001));
+  auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+  while (!present(1001) and std::chrono::steady_clock::now() < deadline)
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  REQUIRE(present(1001));
+
+  queue.push(insert(1002));
+  queue.stop();
+  REQUIRE(present(1002));
 }

@@ -569,10 +569,19 @@ MAIN: while( $loop ) {
     # If we found the monitor in the file system
     my $fs_events = $fs_monitors->{$db_monitor};
 
-EVENT: while ( my ( $db_event, $age ) = each( %$db_events ) ) {
+    my @db_event_ids = sort { $a <=> $b } keys %$db_events;
+    my $db_rows;
+EVENT: foreach my $i ( 0 .. $#db_event_ids ) {
+      my $db_event = $db_event_ids[$i];
+      my $age = $$db_events{$db_event};
+      if ( $i % 1000 == 0 ) {
+        my @batch = @db_event_ids[$i .. ($i+999 < $#db_event_ids ? $i+999 : $#db_event_ids)];
+        $db_rows = $dbh->selectall_hashref('SELECT * FROM `Events` WHERE `Id` IN ('.join(',', ('?') x @batch).')', 'Id', undef, @batch)
+          or Fatal("Can't load events: ".$dbh->errstr());
+      }
       if ( ! ($fs_events and defined( $fs_events->{$db_event} ) ) ) {
         Debug("Don't have an fs event for $db_event");
-        my $Event = ZoneMinder::Event->find_one( Id=>$db_event );
+        my $Event = ($$db_rows{$db_event} ? ZoneMinder::Event->new($db_event, $$db_rows{$db_event}) : undef);
         if ( ! $Event ) {
           Debug("Event $db_event is no longer in db.  Filter probably deleted it while we were auditing.");
           next;
@@ -630,7 +639,7 @@ EVENT: while ( my ( $db_event, $age ) = each( %$db_events ) ) {
         } # end if exists in filesystem
       } else {
         Debug("Found fs event for id $db_event, $age seconds old at " . $$fs_events{$db_event}->Path());
-        my $Event = ZoneMinder::Event->find_one( Id=>$db_event );
+        my $Event = ($$db_rows{$db_event} ? ZoneMinder::Event->new($db_event, $$db_rows{$db_event}) : undef);
         if ( $Event and ! $Event->check_for_in_filesystem() ) {
           Warning('Not found at ' . $Event->Path() . ' was found at ' . $$fs_events{$db_event}->Path());
           Warning($Event->to_string());

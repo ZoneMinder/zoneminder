@@ -270,6 +270,9 @@ class Event extends ZM_Object {
       } # USE_DEEP_STORAGE OR NOT
       dbQuery('DELETE FROM Events WHERE Id = ?', array($this->{'Id'}));
       $dbConn->commit();
+      if (!empty($this->{'DiskSpace'}) and !empty($this->{'StorageId'})) {
+        dbQuery('UPDATE Storage SET DiskSpace=GREATEST(COALESCE(DiskSpace,0)-?,0) WHERE Id=?', array($this->{'DiskSpace'}, $this->{'StorageId'}));
+      }
     } catch (PDOException $e) {
       $dbConn->rollback();
     } catch (Exception $e) {

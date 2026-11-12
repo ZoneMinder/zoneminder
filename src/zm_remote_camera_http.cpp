@@ -326,6 +326,14 @@ int RemoteCameraHttp::GetData() {
   return buffer_len;
 }
 
+std::string RemoteCameraHttp::ParseBoundary(const char *text) {
+  const bool quoted = (*text == '"');
+  if (quoted) text++;
+  text += strspn(text, "-");
+  size_t len = quoted ? strcspn(text, "\"") : strcspn(text, "; \t\r\n");
+  return std::string(text, len);
+}
+
 int RemoteCameraHttp::ParseContentLength(const char *text, unsigned long long image_size) {
   // The length is read from the camera link, usually plain HTTP, and decides how much is
   // buffered for one frame. No encoding of a frame is larger than twice its raw size, so a
@@ -825,10 +833,9 @@ int RemoteCameraHttp::GetResponse() {
               start_ptr = strcasestr(end_ptr, boundary_match);
               if (start_ptr) {
                 start_ptr += boundary_match_len;
-                if (*start_ptr == '"') start_ptr++;
-                start_ptr += strspn(start_ptr, "-");
+                std::string boundary = ParseBoundary(start_ptr);
                 zm_strncpy(content_boundary, "--", sizeof(content_boundary));
-                zm_strncpy(content_boundary+2, start_ptr, sizeof(content_boundary)-2, strcspn(start_ptr, "\"; \t\r\n"));
+                zm_strncpy(content_boundary+2, boundary.c_str(), sizeof(content_boundary)-2);
                 content_boundary_len = strlen(content_boundary);
                 Debug(3, "Got content boundary '%s'", content_boundary);
               } else {

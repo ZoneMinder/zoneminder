@@ -73,6 +73,8 @@ class RemoteCameraHttp : public RemoteCamera {
   // The camera's announced Content-Length as a byte count to read, or -1 when it is not a
   // number or is larger than any frame of image_size bytes could encode to.
   static int ParseContentLength(const char *text, unsigned long long image_size);
+  // The multipart boundary from the text after "boundary=", without quotes or leading dashes.
+  static std::string ParseBoundary(const char *text);
   int PrimeCapture() override;
   int PreCapture() override;
   int Capture(std::shared_ptr<ZMPacket> &p) override;

@@ -746,6 +746,8 @@ input[type=submit]:disabled,
   display: flex;
   align-items: center;
   gap: 0.25rem;
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
 }
 #navbar-one .nav-link > .material-icons {
   font-size: 18px;

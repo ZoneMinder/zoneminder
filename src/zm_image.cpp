@@ -2480,14 +2480,19 @@ void Image::Blend( const Image &image, int transparency ) {
     if (blend_buffer_) zm_freealigned(blend_buffer_);
     blend_buffer_ = AllocBuffer(size);
     blend_buffer_size_ = size;
+    memcpy(blend_buffer_, buffer, size);
   }
+
+  // Delta only reads the Y plane of planar YUV, so leave the chroma alone.
+  const bool planar_yuv = imagePixFormat != AV_PIX_FMT_GRAY8 && zm_bytes_per_pixel(imagePixFormat) == 1;
+  const size_t blend_size = planar_yuv ? static_cast<size_t>(linesize) * height : size;
 
 #ifdef ZM_IMAGE_PROFILING
   TimePoint start = std::chrono::steady_clock::now();
 #endif
 
   /* Do the blending */
-  (*blend)(buffer, image.buffer, blend_buffer_, size, transparency);
+  (*blend)(buffer, image.buffer, blend_buffer_, blend_size, transparency);
 
 #ifdef ZM_IMAGE_PROFILING
   TimePoint end = std::chrono::steady_clock::now();
@@ -2501,7 +2506,7 @@ void Image::Blend( const Image &image, int transparency ) {
 #endif
 
   if (holdbuffer) {
-    (*fptr_imgbufcpy)(buffer, blend_buffer_, size);
+    (*fptr_imgbufcpy)(buffer, blend_buffer_, blend_size);
   } else {
     std::swap(buffer, blend_buffer_);
     buffertype = ZM_BUFTYPE_ZM;

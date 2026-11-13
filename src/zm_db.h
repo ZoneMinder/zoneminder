@@ -20,6 +20,7 @@
 #ifndef ZM_DB_H
 #define ZM_DB_H
 
+#include <chrono>
 #include <condition_variable>
 #include <cstdint>
 #include <mutex>
@@ -54,12 +55,17 @@ class zmDbQueue {
   std::mutex              mMutex;
   std::condition_variable mCondition;
   bool                    mTerminate;
+  std::condition_variable mDoneCondition;
+  bool                    mDone;
  public:
   zmDbQueue();
   ~zmDbQueue();
   void push(std::string &&sql, bool log_row = false);
   void process();
   void stop();
+  // Returns false, leaving the thread detached, if it is still inside a query
+  // after `wait`.
+  bool stop(std::chrono::milliseconds wait);
 };
 
 class zmDbRow {

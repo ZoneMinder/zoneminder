@@ -31,32 +31,32 @@ if ( !($_REQUEST['connkey'] && $_REQUEST['command']) ) {
 
 @mkdir(ZM_PATH_SOCKS);
 
-# The file that we point ftok to has to exist, and only exist if zms is running, so we are pointing it at the .sock
-$key = $connkey;
-$semaphore = sem_get($key, 1);
-$have_semaphore = false;
+# zms names its sockets after the user it serves, so a connkey only reaches the
+# caller's own streams, not another user's.
+$owner = (ZM_OPT_USE_AUTH and $user) ? $user->Id() : 0;
 
-if ($semaphore) {
-  $semaphore_tries = 10;
-  while ($semaphore_tries) {
-    if (version_compare( phpversion(), '5.6.1', '<')) {
-      # don't have support for non-blocking
-      $have_semaphore = sem_acquire($semaphore);
-    } else {
-      $have_semaphore = sem_acquire($semaphore, 1);
+# The holder unlinks the lock file when done, so check we locked the file that
+# is still at that path.
+$lockFile = zmsSocketPath($connkey, $owner, 'w.lock');
+$lockFd = false;
+$lock_tries = 10;
+while ($lock_tries--) {
+  $fd = @fopen($lockFile, 'c');
+  if ($fd) {
+    clearstatcache(true, $lockFile);
+    if (flock($fd, LOCK_EX|LOCK_NB) and ($path_stat = @stat($lockFile)) and fstat($fd)['ino'] == $path_stat['ino']) {
+      $lockFd = $fd;
+      break;
     }
-    if ($have_semaphore !== false) break;
-    ZM\Debug('Failed to get semaphore for '.$connkey.' '.$key.', trying again');
-    usleep(100000);
-    $semaphore_tries -= 1;
+    fclose($fd);
   }
-} else {
-  ZM\Error("Failed to get semaphore for key $key.  It is likely that your php does not have the sysv semaphore extension either installed or enabled.");
+  ZM\Debug('Failed to get lock for '.$connkey.', trying again');
+  usleep(100000);
 }
 
 # zms always replies to the same socket path, so two requests for one connkey
 # must never run at once.
-if (!$have_semaphore) {
+if (!$lockFd) {
   ajaxError('Failed to get the lock for connkey '.$connkey, HTTP_STATUS_OK, STREAM_ERR_TRANSIENT);
 }
 
@@ -64,9 +64,6 @@ if (!($socket = @socket_create(AF_UNIX, SOCK_DGRAM, 0))) {
   ajaxError('socket_create() failed: '.socket_strerror(socket_last_error()), HTTP_STATUS_OK, STREAM_ERR_TRANSIENT);
 }
 
-# zms names its sockets after the user it serves, so a connkey only reaches the
-# caller's own streams, not another user's.
-$owner = (ZM_OPT_USE_AUTH and $user) ? $user->Id() : 0;
 $bindFile = zmsSocketPath($connkey, $owner, 'w.sock');
 # We hold the lock, so any file here is left over from a killed request.
 @unlink($bindFile);
@@ -267,15 +264,16 @@ default :
 ajaxError('Unrecognised action or insufficient permissions in ajax/stream', HTTP_STATUS_OK, STREAM_ERR_INVALID);
 
 function ajaxCleanup() {
-  global $socket, $localSocketFile, $semaphore, $have_semaphore;
+  global $socket, $localSocketFile, $lockFile, $lockFd;
   if ( !empty($socket) )
     @socket_close($socket);
   if ( !empty($localSocketFile) )
     @unlink($localSocketFile);
   # Release last: the next request may bind the same path as soon as we do.
-  if ( $have_semaphore ) {
-    $have_semaphore = false;
-    sem_release($semaphore);
+  if ( $lockFd ) {
+    @unlink($lockFile);
+    fclose($lockFd);
+    $lockFd = false;
   }
 }
 ?>

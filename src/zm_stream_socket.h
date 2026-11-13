@@ -157,6 +157,8 @@ class StreamSocket {
     pid_t pid = 0;
   };
 
+  static constexpr int kMaxAcceptsPerPass = 4;
+
   void Run();
   void AcceptClient();
   bool CheckPeer(int fd, uid_t &uid, pid_t &pid) const;

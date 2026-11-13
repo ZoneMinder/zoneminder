@@ -869,3 +869,24 @@ TEST_CASE("StreamSocket ignores media for a stream id that is not audio or video
 
   server.Stop();
 }
+
+TEST_CASE("StreamSocket accepts every client of a connection burst", "[stream_socket]") {
+  StreamSocket::Config config;
+  config.max_clients = 32;
+  StreamSocket server(1, kSockPath, config);
+  REQUIRE(server.Start());
+  codec_parameters_ptr par = make_h264_parameters();
+  server.SetVideoParams(par.get(), {0, 0});
+
+  std::vector<std::unique_ptr<TestClient>> clients;
+  for (int i = 0; i < 24; ++i) {
+    clients.push_back(std::make_unique<TestClient>());
+    REQUIRE(clients.back()->Connect());
+  }
+  for (auto &client : clients) {
+    ReceivedMessage message;
+    REQUIRE(client->ReadMessage(message));
+    REQUIRE(message.header.type == static_cast<uint8_t>(MessageType::Hello));
+  }
+  server.Stop();
+}

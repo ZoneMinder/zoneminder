@@ -526,7 +526,9 @@ void StreamSocket::SendStatsLocked(Client &client, TimePoint now) {
 }
 
 void StreamSocket::AcceptClient() {
-  while (true) {
+  // Bounded so a connection flood cannot keep Run() from draining and
+  // stall-checking the established clients; the rest is accepted next pass.
+  for (int accepted = 0; accepted < kMaxAcceptsPerPass; ++accepted) {
     int fd = ::accept(listener_.getDesc(), nullptr, nullptr);
     if (fd < 0) {
       if (errno != EAGAIN and errno != EWOULDBLOCK and errno != EINTR)

@@ -554,6 +554,7 @@ void MonitorStream::runStream() {
 
   TimePoint stream_start_time = std::chrono::steady_clock::now();
   when_to_send_next_frame = stream_start_time; // initialize it to now so that we spit out a frame immediately
+  TimePoint capture_wait_start{};  // when capture was first found missing, unset while it is running
 
   // Periodic RSS trace so a runaway nph-zms can be caught in the act. refs #5006
   TimePoint last_mem_report = stream_start_time;
@@ -669,9 +670,10 @@ void MonitorStream::runStream() {
       // Timeout if we've never received a frame and have been waiting too long.
       // Use ttl if set, otherwise default to 60 seconds.
       Seconds wait_timeout = (ttl > Seconds(0)) ? std::chrono::duration_cast<Seconds>(ttl) : Seconds(60);
-      if (now - stream_start_time > wait_timeout) {
+      if (capture_wait_start == TimePoint{}) capture_wait_start = now;
+      if (now - capture_wait_start > wait_timeout) {
         logPrintf(Logger::WARNING + monitor->Importance(), "Timed out waiting for capture daemon after %" PRIi64 " seconds.  ttl is %" PRIi64,
-                static_cast<int64>(std::chrono::duration_cast<Seconds>(now - stream_start_time).count()),
+                static_cast<int64>(std::chrono::duration_cast<Seconds>(now - capture_wait_start).count()),
                 static_cast<int64>(std::chrono::duration_cast<Seconds>(wait_timeout).count())
                 );
         zm_terminate = true;
@@ -680,6 +682,7 @@ void MonitorStream::runStream() {
       std::this_thread::sleep_for(MAX_SLEEP);
       continue;
     }
+    if (last_read_index != monitor->image_buffer_count) capture_wait_start = TimePoint{};
     if (stopped) {
       // Stopped halts playback but keeps the connection, so that a later
       // command can resume on the same process. Hold the last frame and
@@ -968,9 +971,10 @@ void MonitorStream::runStream() {
           sendTextFrame("Waiting for initial capture");
           // Timeout if we've never received a frame from capture
           Seconds wait_timeout = (ttl > Seconds(0)) ? std::chrono::duration_cast<Seconds>(ttl) : Seconds(60);
-          if (now - stream_start_time > wait_timeout) {
+          if (capture_wait_start == TimePoint{}) capture_wait_start = stream_start_time;
+          if (now - capture_wait_start > wait_timeout) {
             logPrintf(Logger::WARNING + monitor->Importance(), "Timed out waiting for initial capture after %" PRIi64 " seconds",
-                    static_cast<int64>(std::chrono::duration_cast<Seconds>(now - stream_start_time).count()));
+                    static_cast<int64>(std::chrono::duration_cast<Seconds>(now - capture_wait_start).count()));
             zm_terminate = true;
             continue;
           }

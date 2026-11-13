@@ -1003,6 +1003,8 @@ function exportEvents(
 
   if ($copy_failed) {
     ZM\Error('Export aborted: one or more event files could not be copied');
+    chdir(ZM_DIR_EXPORTS);
+    deletePath($export_dir);
     return false;
   }
 
@@ -1032,6 +1034,8 @@ function exportEvents(
   $listFile = $export_dir.'/'.$export_listFile;
   if (!($fp = fopen($listFile, 'w'))) {
     ZM\Error("Can't open event export list file '$listFile'");
+    chdir(ZM_DIR_EXPORTS);
+    deletePath($export_dir);
     return false;
   }
   foreach ($exportFileList as $exportFile) {
@@ -1081,6 +1085,7 @@ function exportEvents(
       ZM\Error('First line of output is \''.$output[0].'\'');
     }
     deletePath($export_dir);
+    @unlink($archive_path);
     return false;
   }
 

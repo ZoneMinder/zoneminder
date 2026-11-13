@@ -677,7 +677,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
     }
     break;
   case CMD_SCALE :
-    scale = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
+    scale = clampScale(((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2]);
     Debug(1, "Got SCALE command, to %d", scale.load());
     send_frame = true;
     if (paused.load()) {

@@ -456,12 +456,12 @@ sub generateVideo {
       );
   my $output = qx($command);
   chomp($output);
-  my $status = $? >> 8;
+  my $status = $?;
   if ( $status || logDebugging() ) {
     Debug("Output: $output");
   }
   if ( $status ) {
-    Error("Video generation '$command' failed with status: $status");
+    Error("Video generation '$command' failed with ".(($status & 127) ? "signal ".($status & 127) : "status ".($status >> 8)));
     if ( wantarray() ) {
       return( undef, undef );
     }
@@ -512,12 +512,12 @@ sub generateImage {
       $? = 127 << 8; # what the shell reported for a missing command
     }
     chomp($output);
-    my $status = $? >> 8;
+    my $status = $?;
     if ( $status || logDebugging() ) {
       Debug("Output from $command\n: $output");
     }
     if ( $status ) {
-      Error("Failed $command status $status");
+      Error("Failed $command with ".(($status & 127) ? "signal ".($status & 127) : "status ".($status >> 8)));
     } else {
       $image_path = $capture_image_path;
     }
@@ -1352,13 +1352,13 @@ sub executeCommand {
   Info("Executing '$command'");
   local @ENV{keys %tag_env} = values %tag_env;
   my $output = qx($command);
-  my $status = $? >> 8;
+  my $status = $?;
   if ($status || logDebugging()) {
     chomp($output);
     Debug("Status: $status Output: $output");
   }
   if ($status) {
-    Error("Command '$command' exited with status: $status");
+    Error("Command '$command' failed with ".(($status & 127) ? "signal ".($status & 127) : "status ".($status >> 8)));
     return 0;
   } else {
     $Event->load(); # the command may have altered the database

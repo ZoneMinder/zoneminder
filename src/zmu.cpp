@@ -235,7 +235,7 @@ int main(int argc, char *argv[]) {
     {"brightness", 2, nullptr, 'B'},
     {"contrast", 2, nullptr, 'C'},
     {"hue", 2, nullptr, 'H'},
-    {"contrast", 2, nullptr, 'O'},
+    {"colour", 2, nullptr, 'O'},
     {"read_index", 0, nullptr, 'R'},
     {"write_index", 0, nullptr, 'W'},
     {"event", 0, nullptr, 'e'},
@@ -292,7 +292,7 @@ int main(int argc, char *argv[]) {
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "d:m:vsjEDLurweix::S:t::fz::ancqhlB::C::H::O::RWU:P:A:V:T:", long_options, &option_index);
+    int c = getopt_long(argc, argv, "d:m:vsjEDLurwei::xS:t::fz::ancqhlB::C::H::O::RWU:P:A:V:T:", long_options, &option_index);
     if (c == -1) {
       break;
     }
@@ -424,8 +424,10 @@ int main(int argc, char *argv[]) {
       break;
 #endif // ZM_HAS_V4L2
     case 'h':
-    case '?':
       Usage(0);
+      break;
+    case '?':
+      Usage(1);
       break;
     case 'l':
       function |= ZMU_LIST;

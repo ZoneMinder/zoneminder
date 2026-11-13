@@ -138,7 +138,7 @@ if ($exportFileName == 'zmDownload') $exportFileName .= '-'.$connkey;
           </div>
           <div class="exportFormat">
             <label><?php echo translate('ExportFormat') ?></label>
-            <input type="radio" id="exportFormatNoArchive" name="exportFormat" value="noArchive" checked="checked"/>
+            <input type="radio" id="exportFormatNoArchive" name="exportFormat" value="noArchive"/>
             <label for="exportFormatNoArchive"><?php echo translate('mp4') ?></label>
             <input type="radio" id="exportFormatTar" name="exportFormat" value="tar"/>
             <label for="exportFormatTar"><?php echo translate('ExportFormatTar') ?></label>

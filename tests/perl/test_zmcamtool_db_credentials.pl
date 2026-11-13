@@ -52,7 +52,7 @@ write_file("$dir/lib/ZoneMinder/General.pm", <<'EOM');
 package ZoneMinder::General;
 sub import {
   no strict 'refs';
-  *{caller().'::findDbCommand'} = sub { 'echo' };
+  *{caller().'::findDbCommand'} = sub { q{sh -c 'echo "$* pwd=$MYSQL_PWD"' x} };
 }
 1;
 EOM
@@ -99,7 +99,8 @@ check('the configured credentials are not reconnected', $out =~ /connect force=1
 
 $out = run('--export', '--user', 'alt', '--pass', "a'b");
 check('--export accepts credentials from the command line', $out =~ /Insecure dependency/ ? 'insecure' : 'accepted', 'accepted');
-check('a quote in the password reaches the command intact', index($out, "-pa'b zm") >= 0 ? 'intact' : $out, 'intact');
+check('a quote in the password reaches mysqldump intact', index($out, "pwd=a'b") >= 0 ? 'intact' : $out, 'intact');
+check('the password is not on the command line', index($out, "-pa'b") < 0 ? 'hidden' : $out, 'hidden');
 
 print "\n$passes passed, $failures failed\n";
 exit($failures ? 1 : 0);

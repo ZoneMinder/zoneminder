@@ -37,19 +37,19 @@ class downloadingGeneratedEventFile {
 
       switch ($this->fileType) {
         case 'tar.gz':
-          $this->mimetype = 'gzip';
+          $this->mimetype = 'application/gzip';
           $this->fileExt = 'tar.gz';
           break;
         case 'tar':
-          $this->mimetype = 'tar';
+          $this->mimetype = 'application/x-tar';
           $this->fileExt = 'tar';
           break;
         case 'zip':
-          $this->mimetype = 'zip';
+          $this->mimetype = 'application/zip';
           $this->fileExt = 'zip';
           break;
         case 'mp4':
-          $this->mimetype = 'mp4';
+          $this->mimetype = 'video/mp4';
           $this->fileExt = 'mp4';
           break;
         default:
@@ -103,7 +103,7 @@ class downloadingGeneratedEventFile {
           ob_end_clean();
         }
 
-        header("Content-Type: application/$this->mimetype");
+        header("Content-Type: $this->mimetype");
         header('Content-Length: '.filesize($this->filenamePath));
         header('Content-Disposition: '.contentDispositionAttachment($this->filename));
         header('Content-Transfer-Encoding: binary');

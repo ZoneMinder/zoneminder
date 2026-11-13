@@ -685,11 +685,14 @@ void StreamSocket::Run() {
         remove = true;
 
       if (!remove and (revents & POLLIN)) {
-        // Protocol v1 has no client->server messages; discard inbound bytes,
-        // a zero read means the peer closed.
+        // Protocol v1 has no client->server messages: a zero read means the
+        // peer closed, and anything else is a protocol violation.
         uint8_t buffer[256];
         ssize_t bytes = ::recv(client.sock->getDesc(), buffer, sizeof(buffer), 0);
-        if (bytes == 0)
+        if (bytes > 0)
+          Debug(1, "StreamSocket: monitor %u dropping client uid %u pid %d that sent data",
+                monitor_id_, client.uid, client.pid);
+        if (bytes >= 0)
           remove = true;
       }
 

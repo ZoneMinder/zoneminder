@@ -932,3 +932,16 @@ TEST_CASE("StreamSocket drops a client that never reads its socket", "[stream_so
   REQUIRE(reader.ReadMessage(message, std::chrono::milliseconds(3000)));
   server.Stop();
 }
+
+TEST_CASE("StreamSocket disconnects a client that sends data", "[stream_socket]") {
+  StreamSocket server(1, kSockPath);
+  REQUIRE(server.Start());
+
+  TestClient client;
+  REQUIRE(client.Connect());
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  REQUIRE(::send(client.sock_.getDesc(), "garbage", 7, MSG_NOSIGNAL) == 7);
+
+  REQUIRE(ReadUntilEof(client, std::chrono::seconds(3)));
+  server.Stop();
+}

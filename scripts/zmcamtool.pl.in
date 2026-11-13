@@ -104,9 +104,7 @@ GetOptions(
 ) or pod2usage(-exitstatus => -1);
 
 $Config{ZM_DB_USER} = $dbUser;
-$dbUser =~ s/'/\\'/g;
 $Config{ZM_DB_PASS} = $dbPass;
-$dbPass =~ s/'/\\'/g;
 
 if ( $version ) {
   print( ZoneMinder::Base::ZM_VERSION . "\n");
@@ -533,18 +531,20 @@ sub importsql {
   }
 }
 
+# Quote a value for a POSIX shell by wrapping it in single quotes.
+sub shellQuote {
+  my $value = shift;
+  $value =~ s/'/'\\''/g;
+  return "'$value'";
+}
+
 # Export camera controls & presets from the zoneminder dB to STDOUT
 sub exportsql {
 
   my ( $host, $port ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
   my $command = findDbCommand('mysqldump').' -t --skip-opt --compact -h'.$host;
   $command .= ' -P'.$port if defined($port);
-  if ( $dbUser ) {
-    $command .= ' -u\''.$dbUser.'\'';
-    if ( $dbPass ) {
-      $command .= ' -p\''.$dbPass.'\'';
-    }
-  }
+  $command .= ' -u'.shellQuote($dbUser) if $dbUser;
 
   my $name = $ARGV[0];
   if ( $name ) {
@@ -558,14 +558,19 @@ sub exportsql {
 
   $command .= ' '.$Config{ZM_DB_NAME}.' Controls MonitorPresets';
 
-  my $output = qx($command);
-  my $status = $? >> 8;
+  ($command) = $command =~ /(.*)/; # detaint
+  my ( $output, $status );
+  {
+    local $ENV{MYSQL_PWD} = $dbPass if ( $dbUser && $dbPass );
+    $output = qx($command);
+    $status = $?;
+  }
   if ( $status || logDebugging() ) {
     chomp( $output );
     print( "Output: $output\n" );
   }
   if ( $status ) {
-    die( "Command '$command' exited with status: $status\n" );
+    die( "Command '$command' failed with ".(($status & 127) ? 'signal '.($status & 127) : 'status '.($status >> 8))."\n" );
   } else {
 # NULLify the primary keys before printing the output to STDOUT
     print nullifyIds(zmDbConnect(), $output);

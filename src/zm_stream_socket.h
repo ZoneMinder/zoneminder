@@ -152,6 +152,8 @@ class StreamSocket {
     uint64_t sent = 0;
     uint64_t dropped = 0;
     TimePoint last_progress;
+    TimePoint unread_since;              // epoch = not currently unread
+    TimePoint unread_seen;
     TimePoint last_stats;
     uid_t uid = 0;
     pid_t pid = 0;
@@ -175,6 +177,7 @@ class StreamSocket {
   // bodies, empty meaning "no such stream". Returns true if anything changed.
   bool ApplyStreamsLocked(std::vector<uint8_t> video, std::vector<uint8_t> audio);
   void SendStatsLocked(Client &client, TimePoint now);
+  bool IsUnreadTooLong(Client &client, TimePoint now) const;
 
   // Writes as much of the client's queue as the socket accepts. Takes mutex_
   // itself, and only for bookkeeping: the kernel copy in sendmsg happens with

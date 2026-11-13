@@ -28,6 +28,7 @@
 #include <limits>
 #include <grp.h>
 #include <poll.h>
+#include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/uio.h>
@@ -525,6 +526,29 @@ void StreamSocket::SendStatsLocked(Client &client, TimePoint now) {
   EnqueueLocked(client, stats);
 }
 
+// A consumer that reads drains the periodic STATS within moments, so bytes that
+// were written over a second ago and are still unread, observed continuously
+// for the stall timeout, mean it holds a slot without consuming anything.
+bool StreamSocket::IsUnreadTooLong(Client &client, TimePoint now) const {
+  using namespace std::chrono_literals;
+  if (now - client.last_progress < 1s)
+    return false;
+#if defined(TIOCOUTQ)
+  int unread = 0;
+  if (ioctl(client.sock->getDesc(), TIOCOUTQ, &unread) != 0 or unread <= 0) {
+    client.unread_since = TimePoint{};
+    return false;
+  }
+  // A gap between observations means traffic in between; start over
+  if (client.unread_since == TimePoint{} or now - client.unread_seen > 2s)
+    client.unread_since = now;
+  client.unread_seen = now;
+  return now - client.unread_since > config_.stall_timeout;
+#else
+  return false;
+#endif
+}
+
 void StreamSocket::AcceptClient() {
   // Bounded so a connection flood cannot keep Run() from draining and
   // stall-checking the established clients; the rest is accepted next pass.
@@ -666,6 +690,10 @@ void StreamSocket::Run() {
           Warning("StreamSocket: monitor %u disconnecting stalled client uid %u pid %d"
                   " (%zu bytes queued, %" PRIu64 " dropped)",
                   monitor_id_, client.uid, client.pid, client.queued_bytes, client.dropped);
+          remove = true;
+        } else if (client.queued_bytes == 0 and IsUnreadTooLong(client, now)) {
+          Warning("StreamSocket: monitor %u disconnecting client uid %u pid %d that is not"
+                  " reading its socket", monitor_id_, client.uid, client.pid);
           remove = true;
         }
       }

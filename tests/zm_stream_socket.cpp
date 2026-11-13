@@ -870,6 +870,23 @@ TEST_CASE("StreamSocket ignores media for a stream id that is not audio or video
   server.Stop();
 }
 
+namespace {
+// Reads until the server closes the connection; false if it never does
+bool ReadUntilEof(TestClient &client, std::chrono::milliseconds timeout) {
+  ReceivedMessage message;
+  auto deadline = std::chrono::steady_clock::now() + timeout;
+  while (std::chrono::steady_clock::now() < deadline) {
+    if (!client.ReadMessage(message, std::chrono::milliseconds(200))) {
+      char byte;
+      ssize_t bytes = ::recv(client.sock_.getDesc(), &byte, 1, MSG_PEEK | MSG_DONTWAIT);
+      if (bytes == 0)
+        return true;
+    }
+  }
+  return false;
+}
+}  // namespace
+
 TEST_CASE("StreamSocket accepts every client of a connection burst", "[stream_socket]") {
   StreamSocket::Config config;
   config.max_clients = 32;
@@ -888,5 +905,30 @@ TEST_CASE("StreamSocket accepts every client of a connection burst", "[stream_so
     REQUIRE(client->ReadMessage(message));
     REQUIRE(message.header.type == static_cast<uint8_t>(MessageType::Hello));
   }
+  server.Stop();
+}
+
+TEST_CASE("StreamSocket drops a client that never reads its socket", "[stream_socket]") {
+  StreamSocket::Config config;
+  config.stall_timeout = std::chrono::milliseconds(2500);
+  config.stats_interval = std::chrono::milliseconds(1500);
+  StreamSocket server(1, kSockPath, config);
+  REQUIRE(server.Start());
+  codec_parameters_ptr par = make_h264_parameters();
+  server.SetVideoParams(par.get(), {0, 0});
+
+  TestClient silent;
+  REQUIRE(silent.Connect());
+  TestClient reader;
+  REQUIRE(reader.Connect());
+
+  // The reader keeps consuming STATS; the silent client does not
+  ReceivedMessage message;
+  auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(6);
+  while (std::chrono::steady_clock::now() < deadline)
+    REQUIRE(reader.ReadMessage(message, std::chrono::milliseconds(3000)));
+
+  REQUIRE(ReadUntilEof(silent, std::chrono::seconds(2)));
+  REQUIRE(reader.ReadMessage(message, std::chrono::milliseconds(3000)));
   server.Stop();
 }

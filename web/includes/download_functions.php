@@ -73,6 +73,7 @@ function downloadEvents(
     $eids = array($eids);
   }
   $events_by_monitor_id = [];
+  $generatedVideos = [];
   foreach ($eids as $eid) {
     $event = new ZM\Event($eid);
     if (!$event->canView()) {
@@ -83,7 +84,14 @@ function downloadEvents(
     if (!isset($events_by_monitor_id[$event->MonitorId()])) $events_by_monitor_id[$event->MonitorId()] = [];
     $events_by_monitor_id[$event->MonitorId()][] = $event;
 
-    if (!$event->DefaultVideo()) $event->GenerateVideo();
+    if (!$event->DefaultVideo()) {
+      # Only build a video from the images when the event has no usable one.
+      $existing = findVideoEventFile($event, 'mp4');
+      if ($existing === '' or !filesize($existing)) {
+        $generated = $event->GenerateVideo();
+        if ($generated) $generatedVideos[$event->Id()] = $event->Path().'/'.$generated;
+      }
+    }
   }
 
   $exportFileList = [];
@@ -111,7 +119,7 @@ function downloadEvents(
     $maxTimeSecs = -1;
     $maxTime = '';
     foreach ($events_by_monitor_id[$mid] as $event) {
-      $filePath = findVideoEventFile($event, "mp4");
+      $filePath = isset($generatedVideos[$event->Id()]) ? $generatedVideos[$event->Id()] : findVideoEventFile($event, "mp4");
       if ($filePath ==='') {
         ZM\Warning('The file path for event '.$event->Id().' was not found.');
         continue;

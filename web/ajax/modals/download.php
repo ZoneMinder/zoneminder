@@ -123,7 +123,7 @@ if ($exportFileName == 'zmDownload') $exportFileName .= '-'.$connkey;
     $result .= '<br>Free space on disk \''.ZM_DIR_EXPORTS.'\': ' . human_filesize(disk_free_space(ZM_DIR_EXPORTS)).PHP_EOL;
     $result .= '<br>Will remain free: ' . human_filesize(disk_free_space(ZM_DIR_EXPORTS) - $total_size).PHP_EOL;
     if (count($eids) > 1000 and !$filter) {
-      $results .= '<span class="warning">Warning: Too many recordings specified.  Download may fail.  Please select fewer recordings</span>';
+      $result .= '<span class="warning">Warning: Too many recordings specified.  Download may fail.  Please select fewer recordings</span>';
     }
   } else {
     $result .= '<div class="warning">There are no events found.  Resulting download will be empty.</div>';

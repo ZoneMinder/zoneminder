@@ -75,6 +75,7 @@ set(TEST_SOURCES
   zm_zone.cpp
   zm_zone_stride.cpp
   zm_zone_highlight.cpp
+  zm_zone_alarm_box.cpp
   zm_image_linesize.cpp
   zm_image_delta.cpp
   zm_logger_rotate.cpp

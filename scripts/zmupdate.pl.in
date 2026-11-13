@@ -342,7 +342,9 @@ if ( $freshen ) {
   print("\nFreshening configuration in database\n");
   migratePaths();
   migratePasswords();
-  ZoneMinder::Config::loadConfigFromDB();
+  if ( !ZoneMinder::Config::loadConfigFromDB() ) {
+    Fatal("Unable to load configuration from the database, aborting freshen.");
+  }
   ZoneMinder::Config::saveConfigToDB();
 }
 

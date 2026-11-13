@@ -4233,6 +4233,7 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
       continue;
     Debug(3, "Blanking inactive zone %s", zone.Label());
     delta_image.Fill(kRGBBlack, zone.GetPolygon());
+    delta_image.Outline(kRGBBlack, zone.GetPolygon());
   } // end foreach zone
 
   // Check preclusive zones first

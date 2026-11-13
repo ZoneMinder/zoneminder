@@ -54,19 +54,27 @@ if ($semaphore) {
   ZM\Error("Failed to get semaphore for key $key.  It is likely that your php does not have the sysv semaphore extension either installed or enabled.");
 }
 
+# zms always replies to the same socket path, so two requests for one connkey
+# must never run at once.
+if (!$have_semaphore) {
+  ajaxError('Failed to get the lock for connkey '.$connkey, HTTP_STATUS_OK, STREAM_ERR_TRANSIENT);
+}
+
 if (!($socket = @socket_create(AF_UNIX, SOCK_DGRAM, 0))) {
-  if ($semaphore) sem_release($semaphore);
   ajaxError('socket_create() failed: '.socket_strerror(socket_last_error()), HTTP_STATUS_OK, STREAM_ERR_TRANSIENT);
 }
 
 # zms names its sockets after the user it serves, so a connkey only reaches the
 # caller's own streams, not another user's.
 $owner = (ZM_OPT_USE_AUTH and $user) ? $user->Id() : 0;
-$localSocketFile = zmsSocketPath($connkey, $owner, 'w.sock');
-if (!socket_bind($socket, $localSocketFile)) {
-  if ($semaphore) sem_release($semaphore);
-  ajaxError("socket_bind( $localSocketFile ) failed: ".socket_strerror(socket_last_error()), HTTP_STATUS_OK, STREAM_ERR_TRANSIENT);
+$bindFile = zmsSocketPath($connkey, $owner, 'w.sock');
+# We hold the lock, so any file here is left over from a killed request.
+@unlink($bindFile);
+if (!socket_bind($socket, $bindFile)) {
+  ajaxError("socket_bind( $bindFile ) failed: ".socket_strerror(socket_last_error()), HTTP_STATUS_OK, STREAM_ERR_TRANSIENT);
 }
+# Only set once bound, so ajaxCleanup never unlinks a socket we do not own.
+$localSocketFile = $bindFile;
 
 switch ($_REQUEST['command']) {
 case CMD_VARPLAY :
@@ -106,7 +114,6 @@ case CMD_SET_EVENT :
   $eventid = setEventIdFromRequest(isset($_REQUEST['eventid']) ? $_REQUEST['eventid'] : null);
   $srcid = setEventIdFromRequest(isset($_REQUEST['srcid']) ? $_REQUEST['srcid'] : null);
   if ($eventid === null or $srcid === null) {
-    if ($semaphore) sem_release($semaphore);
     ajaxError('Invalid event id for SET_EVENT', HTTP_STATUS_OK, STREAM_ERR_INVALID);
   }
 
@@ -127,7 +134,6 @@ case CMD_SET_EVENT :
       ZM\Debug('SET_EVENT target '.$eventid.' no longer exists; treating as filter boundary');
       $eventid = 0;
     } else if (!canView('Events', $monitorId)) {
-      if ($semaphore) sem_release($semaphore);
       ajaxError('Insufficient privileges for event '.$eventid, HTTP_STATUS_OK, STREAM_ERR_INVALID);
     }
   }
@@ -155,11 +161,9 @@ while ( !file_exists($remSockFile) && $max_socket_tries-- ) {
 }
 
 if (!file_exists($remSockFile)) {
-  if ($semaphore) sem_release($semaphore);
   ajaxError("Socket $remSockFile does not exist.  This file is created by zms, and since it does not exist, either zms did not run, or zms exited early.  Please check your zms logs and ensure that CGI is enabled in apache and check that the PATH_ZMS is set correctly.  Make sure that ZM is actually recording.  If you are trying to view a live stream and the capture process (zmc) is not running then zms will exit. Please go to http://zoneminder.readthedocs.io/en/latest/faq.html#why-can-t-i-see-streamed-images-when-i-can-see-stills-in-the-zone-window-etc for more information.", HTTP_STATUS_OK, STREAM_ERR_NO_SOCKET);
 } else {
   if (!@socket_sendto($socket, $msg, strlen($msg), 0, $remSockFile)) {
-    if ($semaphore) sem_release($semaphore);
     ajaxError("socket_sendto( $remSockFile ) failed: ".socket_strerror(socket_last_error()), HTTP_STATUS_OK, STREAM_ERR_NO_SOCKET);
   }
 }
@@ -174,10 +178,8 @@ $timeout = MSG_TIMEOUT - ( time() - $start_time );
 $numSockets = socket_select($rSockets, $wSockets, $eSockets, intval($timeout/1000), ($timeout%1000)*1000);
 
 if ( $numSockets === false ) {
-  if ($semaphore) sem_release($semaphore);
   ajaxError('socket_select failed: '.socket_strerror(socket_last_error()), HTTP_STATUS_OK, STREAM_ERR_TRANSIENT);
 } else if ( $numSockets < 0 ) {
-  if ($semaphore) sem_release($semaphore);
   ajaxError("Socket closed $remSockFile", HTTP_STATUS_OK, STREAM_ERR_NO_SOCKET);
 } else if ( $numSockets == 0 ) {
   ZM\Error("Timed out waiting for msg $remSockFile after waiting $timeout milliseconds");
@@ -189,13 +191,11 @@ if ( $numSockets === false ) {
   #ajaxError("Timed out waiting for msg $remSockFile");
 } else if ( $numSockets > 0 ) {
   if ( count($rSockets) != 1 ) {
-    if ($semaphore) sem_release($semaphore);
     ajaxError('Bogus return from select, '.count($rSockets).' sockets available', HTTP_STATUS_OK, STREAM_ERR_TRANSIENT);
   }
 }
 
 $nbytes = @socket_recvfrom($socket, $msg, MSG_DATA_SIZE, 0, $remSockFile);
-if ($semaphore) sem_release($semaphore);
 switch ($nbytes) {
 case -1 :
   ajaxError("socket_recvfrom( $remSockFile ) failed: ".socket_strerror(socket_last_error()), HTTP_STATUS_OK, STREAM_ERR_TRANSIENT);
@@ -267,10 +267,15 @@ default :
 ajaxError('Unrecognised action or insufficient permissions in ajax/stream', HTTP_STATUS_OK, STREAM_ERR_INVALID);
 
 function ajaxCleanup() {
-  global $socket, $localSocketFile;
+  global $socket, $localSocketFile, $semaphore, $have_semaphore;
   if ( !empty($socket) )
     @socket_close($socket);
   if ( !empty($localSocketFile) )
     @unlink($localSocketFile);
+  # Release last: the next request may bind the same path as soon as we do.
+  if ( $have_semaphore ) {
+    $have_semaphore = false;
+    sem_release($semaphore);
+  }
 }
 ?>

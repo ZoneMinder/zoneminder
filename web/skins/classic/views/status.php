@@ -24,7 +24,7 @@ if ( !canView('System') ) {
 }
 
 $zmuCommand = getZmuCommand(' --list');
-$result = exec(escapeshellcmd($zmuCommand), $output);
+$result = exec($zmuCommand, $output);
 
 $refresh = ZM_WEB_REFRESH_STATUS;
 $url = '?view='.$view;

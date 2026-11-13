@@ -317,7 +317,7 @@ function collectData() {
     } else if ( isset($elementData['postFunction']) ) {
       $postFunctions[$element] = $elementData['postFunction'];
     } else if ( isset($elementData['zmu']) ) {
-      $command = escapeshellcmd(getZmuCommand(' '.$elementData['zmu']));
+      $command = getZmuCommand(' '.$elementData['zmu']);
       $data[$element] = exec($command);
     } else {
       if ( isset($elementData['sql']) )

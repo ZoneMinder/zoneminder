@@ -480,7 +480,7 @@ class MonitorsController extends AppController {
     }
 
     // Build the command, and execute it
-    $command = escapeshellcmd(ZM_PATH_BIN."/zmdc.pl status $daemon $args");
+    $command = escapeshellarg(ZM_PATH_BIN.'/zmdc.pl').' status '.escapeshellarg($daemon).' '.$args;
     $status = exec($command);
     ZM\Debug("Command: $command output: $status");
 

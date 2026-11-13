@@ -855,7 +855,7 @@ void Event::Run() {
       storage = new Storage();
       Warning("Failed to find a storage area to save events.");
     }
-    sql = stringtf("UPDATE Events SET StorageId = '%d' WHERE Id=%" PRIu64, storage->Id(), id);
+    sql = stringtf("UPDATE Events SET StorageId = '%d', Scheme = '%s' WHERE Id=%" PRIu64, storage->Id(), storage->SchemeString().c_str(), id);
     zmDbDo(sql);
   }  // end if ! setPath(Storage)
   Debug(1, "Using storage area at %s", path.c_str());

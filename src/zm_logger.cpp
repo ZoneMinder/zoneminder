@@ -604,7 +604,12 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
   log_mutex.unlock();
   if (level == FATAL || level == PANIC) {
     zm_terminate = true;
-    dbQueue.stop();
+    if (!dbQueue.stop(std::chrono::seconds(5))) {
+      // The queue thread is stuck in a query to an unresponsive database and
+      // holds the connection, so it cannot be closed or joined.
+      if (level == PANIC) abort();
+      _exit(-1);
+    }
     zmDbClose();
     logTerm();
     if (level == PANIC) abort();

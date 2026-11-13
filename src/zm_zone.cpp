@@ -269,6 +269,9 @@ bool Zone::CheckAlarms(const Image *delta_image) {
 
   unsigned int pixel_diff_count = 0;
 
+  // A degenerate polygon (collinear points, one pixel wide) has no area but still rasterises pixels.
+  const int zone_area = polygon.Area() > 0 ? polygon.Area() : 1;
+
   int alarm_lo_x = 0;
   int alarm_hi_x = 0;
   int alarm_lo_y = 0;
@@ -356,7 +359,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
     return false;
   }
 
-  stats.score_ = (100*stats.alarm_pixels_)/(max_alarm_pixels ? max_alarm_pixels : polygon.Area());
+  stats.score_ = (100*stats.alarm_pixels_)/(max_alarm_pixels ? max_alarm_pixels : zone_area);
   if (stats.score_ < 1)
     stats.score_ = 1; /* Fix for score of 0 when frame meets thresholds but alarmed area is not big enough */
   Debug(5, "Current score is %d", stats.score_);
@@ -445,7 +448,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
     if (max_filter_pixels != 0)
       stats.score_ = (100*stats.alarm_filter_pixels_)/max_filter_pixels;
     else
-      stats.score_ = (100*stats.alarm_filter_pixels_)/polygon.Area();
+      stats.score_ = (100*stats.alarm_filter_pixels_)/zone_area;
 
     if (stats.score_ < 1)
       stats.score_ = 1; /* Fix for score of 0 when frame meets thresholds but alarmed area is not big enough */
@@ -732,7 +735,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
       if (max_blob_pixels != 0)
         stats.score_ = (100*stats.alarm_blob_pixels_)/max_blob_pixels;
       else
-        stats.score_ = (100*stats.alarm_blob_pixels_)/polygon.Area();
+        stats.score_ = (100*stats.alarm_blob_pixels_)/zone_area;
 
       if (stats.score_ < 1)
         stats.score_ = 1; /* Fix for score of 0 when frame meets thresholds but alarmed area is not big enough */

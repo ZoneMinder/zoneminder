@@ -1542,7 +1542,8 @@ std::shared_ptr<ZMPacket> Monitor::getSnapshot(int index) {
   // ReadShmFrame syncs image_buffer[index] to the per-slot format that
   // zmc wrote, so the ZMPacket consumer can read its bytes in the
   // correct format instead of the placeholder set at attach time.
-  Image *src = ReadShmFrame(index);
+  // The packet deletes its image, so it needs its own copy of the ring slot.
+  Image *src = new Image(*ReadShmFrame(index));
   return std::make_shared<ZMPacket>(src,
       SystemTimePoint(zm::chrono::duration_cast<Microseconds>(shared_timestamps[index])));
 }
@@ -1810,6 +1811,10 @@ void Monitor::DumpZoneImage(const char *zone_string) {
     Debug(3, "Trying to load from local zmc");
     int index = shared_data->last_write_index;
     std::shared_ptr<ZMPacket>packet = getSnapshot(index);
+    if (!packet) {
+      Error("Unable to load an image for monitor %d", id);
+      return;
+    }
     zone_image = new Image(*packet->image);
   } else {
     Debug(3, "Trying to load from event");

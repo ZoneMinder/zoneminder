@@ -41,13 +41,13 @@ $profiles[0] = translate('ChooseDetectedProfile');
 
 // $log_cmd is $cmd as it may be logged: with the camera password replaced.
 function execONVIF($cmd, $log_cmd = null) {
-  $shell_command = escapeshellcmd(ZM_PATH_BIN . "/zmonvif-probe.pl $cmd");
+  $shell_command = escapeshellarg(ZM_PATH_BIN . '/zmonvif-probe.pl') . ' ' . $cmd;
 
   exec($shell_command, $output, $status);
 
   if ($status) {
     $html_output = implode('<br/>', $output);
-    $log_command = ($log_cmd === null) ? $shell_command : escapeshellcmd(ZM_PATH_BIN . "/zmonvif-probe.pl $log_cmd");
+    $log_command = ($log_cmd === null) ? $shell_command : escapeshellarg(ZM_PATH_BIN . '/zmonvif-probe.pl') . ' ' . $log_cmd;
     ZM\Error("Unable to probe network cameras, status is '$status'. Output was:
         $html_output
         Please run the following command from a command line for more information:
@@ -106,7 +106,7 @@ function probeCameras($localIp) {
 function probeProfiles($device_ep, $soapversion, $username, $password) {
   $profiles = array();
   $args = 'profiles '.escapeshellarg($device_ep).' '.escapeshellarg($soapversion).' '.escapeshellarg($username).' ';
-  if ($lines = @execONVIF($args.escapeshellarg($password), $args.'<password>')) {
+  if ($lines = @execONVIF($args.escapeshellarg($password), $args.escapeshellarg('<password>'))) {
     foreach ($lines as $line) {
       $line = rtrim( $line );
 

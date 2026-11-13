@@ -432,6 +432,7 @@ bool VideoStore::open() {
             if (hw_device_ctx) {
               av_buffer_unref(&hw_device_ctx);
             }
+            video_out_codec = nullptr;
             continue;
           }
 

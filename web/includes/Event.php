@@ -199,6 +199,29 @@ class Event extends ZM_Object {
     return '';
   }
 
+  // Remove empty date directories below <storage>/<monitorid> only. The
+  // monitor directory and the Storage root are never removed.
+  public static function pruneEmptyEventDirs($eventPath, $storagePath) {
+    $storagePath = rtrim($storagePath, '/');
+    $path = dirname(rtrim($eventPath, '/'));
+    while ( true ) {
+      if ( strpos($path.'/', $storagePath.'/') !== 0 ) break;
+      $relative = substr($path, strlen($storagePath) + 1);
+      if ( strpos($relative, '/') === false ) break;
+      $entries = @scandir($path);
+      if ( $entries === false ) {
+        Warning("Unable to read $path while pruning empty event directories");
+        break;
+      }
+      if ( array_diff($entries, array('.', '..')) ) break;
+      if ( !@rmdir($path) ) {
+        Warning("Unable to remove empty directory $path");
+        break;
+      }
+      $path = dirname($path);
+    }
+  }
+
   public function delete() {
     if ( ! $this->{'Id'} ) {
       Error('Event delete on event with empty Id');
@@ -240,13 +263,7 @@ class Event extends ZM_Object {
           $eventPath = preg_replace('/\.'.$this->{'Id'}.'$/', $eventPath, $id_files[0]);
           deletePath($eventPath);
           deletePath($id_files[0]);
-          $pathParts = explode('/', $eventPath);
-          for ( $i = count($pathParts)-1; $i >= 2; $i-- ) {
-            $deletePath = join('/', array_slice($pathParts, 0, $i));
-            if ( !glob($deletePath.'/*') ) {
-              deletePath($deletePath);
-            }
-          }
+          self::pruneEmptyEventDirs($eventPath, $Storage->Path());
         } else {
           Warning("Found no event files under $eventlink_path");
         } # end if found files

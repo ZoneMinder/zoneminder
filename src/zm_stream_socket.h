@@ -163,6 +163,7 @@ class StreamSocket {
 
   void Run();
   void AcceptClient();
+  void LogRejected(const char *reason, uid_t uid, pid_t pid);
   bool CheckPeer(int fd, uid_t &uid, pid_t &pid) const;
   void ApplyPermissions();
 
@@ -193,6 +194,9 @@ class StreamSocket {
 
   std::thread thread_;
   std::atomic<bool> terminate_{false};
+
+  TimePoint last_reject_log_;     // listener thread only
+  size_t rejected_since_log_ = 0;
 
   zm::TcpUnixServer listener_;
   zm::Pipe wake_;

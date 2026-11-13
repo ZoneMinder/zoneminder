@@ -3,7 +3,7 @@ Section: net
 Priority: optional
 Maintainer: Isaac Connor <isaac@zoneminder.com>
 Build-Depends: debhelper (>= 11), sphinx-doc, python3-sphinx, python3-sphinx-rtd-theme, dh-linktree, dh-apache2
-              ,cmake
+              ,cmake, pkg-config
               ,libavcodec-dev
               ,libavdevice-dev
               ,libavformat-dev
@@ -41,7 +41,7 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,sudo
         ,javascript-common
-        ,libavdevice62|libavdevice61|libavdevice60|libavdevice59|libavdevice58|libavdevice57
+        ,${zm:avdevice}
         ,libswscale9|libswscale8|libswscale7|libswscale6|libswscale5|libswscale4
         ,libswresample6|libswresample5|libswresample4|libswresample3|libswresample2
         ,ffmpeg

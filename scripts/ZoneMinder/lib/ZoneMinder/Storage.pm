@@ -32,6 +32,7 @@ require ZoneMinder::Base;
 require ZoneMinder::Object;
 require ZoneMinder::Server;
 require ZoneMinder::General;
+require File::Path;
 
 use parent qw(Exporter ZoneMinder::Object);
 
@@ -178,13 +179,18 @@ sub delete_path {
     my $storage_path = $self->Path();
     ($storage_path) = ($storage_path =~ /^(.*)$/); # De-taint
     ($path) = ($path =~ /^(.*)$/); # De-taint
-    if (!$Config{ZM_PATH_RM}) {
-      Info('No value set for ZM_PATH_RM.  ZM_PATH_RM should have been set automatically by the distro in '.$Config{ZM_CONFIG_DIR}.'/conf.d/01-system-paths.conf. Defaulting to /bin/rm');
-      $Config{ZM_PATH_RM} = '/bin/rm';
+    if (($path eq '') or ($path eq '.')) {
+      Error("Refusing to delete the storage area itself: path is empty or '.'");
+      return;
     }
-    my $command = "$Config{ZM_PATH_RM} -rf $storage_path/$path 2>&1";
-    if (ZoneMinder::General::executeShellCommand($command)) {
-      Error("Error deleting event directory at $storage_path/$path using $command");
+    my $full = "$storage_path/$path";
+    File::Path::remove_tree($full, { error => \my $errors });
+    if (@$errors) {
+      my @messages = map {
+        my ($file, $msg) = %$_;
+        $file eq '' ? $msg : "$file: $msg";
+      } @$errors;
+      Error("Error deleting event path at $full: ".join('; ', @messages));
     }
   }
 } # end sub delete_path

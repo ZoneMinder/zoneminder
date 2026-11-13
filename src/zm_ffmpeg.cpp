@@ -24,6 +24,10 @@
 #include "zm_rgb.h"
 #include "zm_utils.h"
 
+#include <cerrno>
+#include <climits>
+#include <cstdlib>
+
 extern "C" {
 #include <libavutil/pixdesc.h>
 }
@@ -254,8 +258,15 @@ AVCodecContext *open_video_decoder(
       av_dict_parse_string(&opts, options.c_str(), "=", kOptionSeparators, 0);
       const AVDictionaryEntry *entry = av_dict_get(opts, "thread_count", nullptr, AV_DICT_MATCH_CASE);
       if (entry) {
-        ctx->thread_count = std::stoul(entry->value);
-        Debug(1, "Setting codec thread_count to %d", ctx->thread_count);
+        char *end = nullptr;
+        errno = 0;
+        const unsigned long threads = strtoul(entry->value, &end, 10);
+        if (end == entry->value || *end != '\0' || errno != 0 || threads > INT_MAX) {
+          Warning("Ignoring invalid thread_count '%s', keeping %d", entry->value, ctx->thread_count);
+        } else {
+          ctx->thread_count = static_cast<int>(threads);
+          Debug(1, "Setting codec thread_count to %d", ctx->thread_count);
+        }
         av_dict_set(&opts, "thread_count", nullptr, AV_DICT_MATCH_CASE);
       }
       // reorder_queparse for avforpts, mOpcodec

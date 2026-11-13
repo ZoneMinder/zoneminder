@@ -267,6 +267,26 @@ function queryRequest() {
     }
   }
   
+  $still_monitor_ids = array();
+  foreach ($filtered_monitors as $monitor) {
+    if (ZM_WEB_LIST_THUMBS && canView('Stream') && ($monitor['Capturing'] != 'None')
+      && ($monitor['Analysing'] == 'None') && ($monitor['Decoding'] == 'None')) {
+      $still_monitor_ids[] = intval($monitor['Id']);
+    }
+  }
+  $still_events_by_monitor_id = array();
+  if (count($still_monitor_ids)) {
+    $placeholders = implode(',', array_fill(0, count($still_monitor_ids), '?'));
+    $rows = dbFetchAll(
+      'SELECT E.* FROM Events E JOIN (SELECT MAX(Id) AS Id FROM Events WHERE EndDateTime IS NOT NULL AND MonitorId IN ('.$placeholders.') GROUP BY MonitorId) L ON L.Id = E.Id',
+      NULL,
+      $still_monitor_ids
+    );
+    foreach ($rows as $row) {
+      $still_events_by_monitor_id[$row['MonitorId']] = new ZM\Event($row);
+    }
+  }
+
   // Process each monitor and build row data
   $footer_totals = array(
     'monitor_count' => count($filtered_monitors),
@@ -480,13 +500,7 @@ function queryRequest() {
       // (ZM's nph-zms can't produce frames when not decoding)
       if ($monitor['Analysing'] == 'None' && $monitor['Decoding'] == 'None') {
         $debugAttr .= ' data-debug-still="event"';
-        $event = ZM\Event::find_one(
-          array(
-            'MonitorId' => $monitor['Id'],
-            'EndDateTime' => 'NOT NULL'
-          ),
-          array('order' => 'Id DESC')
-        );
+        $event = isset($still_events_by_monitor_id[$monitor['Id']]) ? $still_events_by_monitor_id[$monitor['Id']] : null;
         if ($event) {
           $stillSrc = $event->getThumbnailSrc(array(), '&amp;');
           // Default stream/video sources from event (may be overridden by live streaming below)

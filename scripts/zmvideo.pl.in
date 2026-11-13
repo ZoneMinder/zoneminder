@@ -257,11 +257,11 @@ if ( $concat_name ) {
   Debug( $command."\n" );
   my $output = qx($command);
 
-  my $status = $? >> 8;
+  my $status = $?;
 
   unlink $concat_list_file;
   if ( $status ) {
-    Error( "Unable to generate video, check $Config{ZM_PATH_LOGS}/ffmpeg_${concat_name}.log for details");
+    Error( "Unable to generate video, ffmpeg ended with ".(($status & 127) ? "signal ".($status & 127) : "status ".($status >> 8)).", check $Config{ZM_PATH_LOGS}/ffmpeg_${concat_name}.log for details");
     exit(-1);
   }
 	print( STDOUT $video_file."\n" );

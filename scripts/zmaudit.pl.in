@@ -588,10 +588,11 @@ EVENT: foreach my $i ( 0 .. $#db_event_ids ) {
         }
         Debug("Event $db_event is not in fs. Should have been at ".$Event->Path());
         # Check for existence in other Storage Areas
-        foreach my $Storage ( @all_Storage_Areas ) {
+        my $relative_path = $Event->RelativePath();
+        foreach my $Storage ( $relative_path ? @all_Storage_Areas : () ) {
           next if $$Storage{Id} == $$Event{StorageId};
 
-          my $path = $Storage->Path().'/'.$Event->RelativePath();
+          my $path = $Storage->Path().'/'.$relative_path;
           if ( -e $path ) {
             Info("Event $$Event{Id} found at $path instead of $$Event{Path}");
             if ( confirm('update', 'updating') ) {

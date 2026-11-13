@@ -598,7 +598,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   } else if (alarm_frame_count > MAX_PRE_ALARM_FRAMES) {
     alarm_frame_count = MAX_PRE_ALARM_FRAMES;
   }
-  packetqueue.setPreEventVideoPackets(pre_event_count > alarm_frame_count ? pre_event_count : alarm_frame_count);
   packetqueue.setMaxVideoPackets(max_image_buffer_count);
   packetqueue.setKeepKeyframes((videowriter == PASSTHROUGH) && (recording != RECORDING_NONE));
 
@@ -647,6 +646,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
 
   motion_frame_skip = atoi(dbrow[col]);
   col++;
+  packetqueue.setPreEventVideoPackets(PreEventWalkBack());
 
   /* "FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif," */
   fps_report_interval = atoi(dbrow[col]);
@@ -748,9 +748,9 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   col++;
 
   // How many frames we need to have before we start analysing.
-  // Must account for alarm_frame_count because openEvent walks back
-  // max(pre_event_count, alarm_frame_count) frames from the analysis point.
-  ready_count = std::max({warmup_count, pre_event_count, alarm_frame_count});
+  // Must account for the alarm frames because openEvent walks back
+  // PreEventWalkBack() frames from the analysis point.
+  ready_count = std::max({warmup_count, pre_event_count, PreEventWalkBack()});
 
   //shared_data->image_count = 0;
   last_alarm_count = 0;
@@ -2367,7 +2367,11 @@ bool Monitor::Analyse() {
 
             if (analysis_fps_limit) {
               double capture_fps = get_capture_fps();
-              motion_frame_skip = capture_fps / analysis_fps_limit;
+              int new_skip = capture_fps / analysis_fps_limit;
+              if (new_skip != motion_frame_skip) {
+                motion_frame_skip = new_skip;
+                packetqueue.setPreEventVideoPackets(PreEventWalkBack());
+              }
               Debug(1, "Recalculating motion_frame_skip (%d) = capture_fps(%f) / analysis_fps(%f)",
                     motion_frame_skip, capture_fps, analysis_fps_limit);
             }
@@ -4062,7 +4066,7 @@ Event * Monitor::openEvent(
   // FIXME this iterator is not protected from invalidation
   packetqueue_iterator *start_it = packetqueue.get_event_start_packet_it(
       *analysis_it,
-      (cause == "Continuous" ? 0 : (pre_event_count > alarm_frame_count ? pre_event_count : alarm_frame_count))
+      (cause == "Continuous" ? 0 : PreEventWalkBack())
       );
 
   if (*start_it != *analysis_it) {

@@ -1030,6 +1030,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     return false;
   }
   inline const char *EventPrefix() const { return event_prefix.c_str(); }
+  // Video packets openEvent walks back: skipped frames stretch the alarm frame count
+  inline int PreEventWalkBack() const {
+    return std::max(pre_event_count, alarm_frame_count * (motion_frame_skip + 1));
+  }
   inline bool Ready() const {
     if (!packetqueue.get_max_keyframe_interval()) {
       Debug(4, "Not ready because no keyframe interval.");

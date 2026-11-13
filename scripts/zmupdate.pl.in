@@ -438,14 +438,15 @@ if ( $version ) {
       {
         local $ENV{MYSQL_PWD} = $dbPass if ( $dbUser && $dbPass && !$super );
         $output = qx($command);
-        $status = $? >> 8;
+        $status = $?;
       }
       if ( $status || logDebugging() ) {
         chomp( $output );
         print( "Output: $output\n" );
       }
       if ( $status ) {
-        die( "Command '$command' exited with status: $status\n" );
+        my $signal = $status & 127;
+        die( "Command '$command' exited with status: ".($status >> 8).($signal ? ", signal: $signal" : "")."\n" );
       } else {
         print( "Database successfully backed up to $backup, proceeding to upgrade.\n" );
       }
@@ -1050,14 +1051,15 @@ sub patchDB {
   {
     local $ENV{MYSQL_PWD} = $dbPass if ( $dbUser && $dbPass && !$super );
     $output = qx($command);
-    $status = $? >> 8;
+    $status = $?;
   }
   if ( $status || logDebugging() ) {
     chomp($output);
     print("Output: $output\n");
   }
   if ( $status ) {
-    die("Command '$command' exited with status: $status\n");
+    my $signal = $status & 127;
+    die("Command '$command' exited with status: ".($status >> 8).($signal ? ", signal: $signal" : "")."\n");
   }
   print("\nDatabase successfully upgraded to version $version.\n");
 } # end sub patchDB

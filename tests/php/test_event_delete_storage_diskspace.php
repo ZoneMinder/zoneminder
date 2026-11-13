@@ -64,6 +64,7 @@ class Storage {
   public static function find_one($params) { return new Storage($params['Id']); }
   public function Id() { return $this->id; }
   public function Path() { return '/var/cache/zoneminder/events'; }
+  public function DoDelete() { return 1; }
   public function Scheme($s = null) { if ($s) $this->scheme = $s; return $this->scheme; }
 }
 

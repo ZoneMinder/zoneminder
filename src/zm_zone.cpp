@@ -368,7 +368,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
     int by1 = by-1;
 
     Debug(5, "Checking for filtered pixels");
-    if (bx > 1 || by > 1) {
+    if (bx >= 1 && by >= 1 && (bx > 1 || by > 1)) {
       // Now remove any pixels smaller than our filter size
       unsigned char *cpdiff;
       int ldx, hdx, ldy, hdy;

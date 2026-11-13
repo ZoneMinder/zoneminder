@@ -386,7 +386,8 @@ Press \'y\' to convert your tables to InnoDB or \'n\' to skip : ');
 } # end if interactive
 
 if ( $version ) {
-  my ( $detaint_version ) = $version =~ /^([\w.]+)$/;
+  my ( $detaint_version ) = $version =~ /^(\d+(?:\.\d+)+)/;
+  die( "Unable to extract a version number from '$version'\n" ) if ! defined( $detaint_version );
   $version = $detaint_version;
 
   my $start_zm = 0;

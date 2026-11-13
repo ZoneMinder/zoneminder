@@ -1,7 +1,7 @@
 <?php
 ini_set('display_errors', '');
 
-$start_time = time();
+$start_time = microtime(true);
 $connkey = sprintf('%06d', $_REQUEST['connkey']);
 
 define('MSG_TIMEOUT', ZM_WEB_AJAX_TIMEOUT/2);
@@ -173,7 +173,7 @@ $wSockets = NULL;
 $eSockets = NULL;
 $select_timed_out = false;
 
-$timeout = MSG_TIMEOUT - ( time() - $start_time );
+$timeout = max(0, intval(MSG_TIMEOUT - (microtime(true) - $start_time) * 1000));
 
 $numSockets = socket_select($rSockets, $wSockets, $eSockets, intval($timeout/1000), ($timeout%1000)*1000);
 

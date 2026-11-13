@@ -18,6 +18,18 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
+# Return 'codec WIDTHxHEIGHT' of the first video stream of $path, or '' if the
+# file is missing, empty or has no readable video stream.
+function videoStreamSignature($path) {
+  if (!is_file($path) or !filesize($path)) return '';
+  $output = [];
+  exec(ZM_PATH_FFMPEG.' -hide_banner -i '.escapeshellarg($path).' 2>&1', $output);
+  if (preg_match('/Stream #\S+: Video: (\w+)[^\n]*?, (\d+)x(\d+)/', implode("\n", $output), $m)) {
+    return $m[1].' '.$m[2].'x'.$m[3];
+  }
+  return '';
+}
+
 function downloadEvents(
   $eids,
   $export_root,
@@ -105,73 +117,90 @@ function downloadEvents(
       return strtotime($a->StartDateTime) <=> strtotime($b->StartDateTime);
     });
 
-    $eventFileList = '';
-    $minTimeSecs = -1;
-    $minTime = '';
-    $maxTimeSecs = -1;
-    $maxTime = '';
+    # Events whose video streams differ cannot be joined with -c copy, so each
+    # set of matching events is merged into a file of its own.
+    $groups = [];
     foreach ($events_by_monitor_id[$mid] as $event) {
       $filePath = findVideoEventFile($event, "mp4");
       if ($filePath ==='') {
         ZM\Warning('The file path for event '.$event->Id().' was not found.');
         continue;
       }
-      if ($minTimeSecs == -1 or $minTimeSecs > $event->StartDateTimeSecs()) {
-        $minTimeSecs = $event->StartDateTimeSecs();
-        $minTime = $event->StartDateTime();
+      $signature = videoStreamSignature($event->Path().'/'.basename($filePath));
+      if ($signature === '') {
+        ZM\Warning('The video file '.$filePath.' of event '.$event->Id().' is empty or unreadable, not exporting it.');
+        continue;
+      }
+      $groups[$signature][] = [$event, $filePath];
+    }
+
+    foreach ($groups as $group) {
+      $eventFileList = '';
+      $minTimeSecs = -1;
+      $minTime = '';
+      $maxTimeSecs = -1;
+      $maxTime = '';
+      foreach ($group as list($event, $filePath)) {
+        if ($minTimeSecs == -1 or $minTimeSecs > $event->StartDateTimeSecs()) {
+          $minTimeSecs = $event->StartDateTimeSecs();
+          $minTime = $event->StartDateTime();
+        }
+
+        $endSecs = $event->EndDateTimeSecs();
+        if ($endSecs and ($maxTimeSecs == -1 or $maxTimeSecs < $endSecs)) {
+          $maxTimeSecs = $endSecs;
+          $maxTime = $event->EndDateTime();
+        }
+
+        $fileName = basename($filePath);
+        if (strpos($fileName, 'incomplete') !== false && !$endSecs) $maxTime = date('Y-m-d H:i:s'); # Probably incomplete event.
+        $eventFileList .= 'file \''.$event->Path().'/'.$fileName.'\''.PHP_EOL;
       }
 
-      $endSecs = $event->EndDateTimeSecs();
-      if ($endSecs and ($maxTimeSecs == -1 or $maxTimeSecs < $endSecs)) {
-        $maxTimeSecs = $endSecs;
-        $maxTime = $event->EndDateTime();
+      if ($eventFileList === '') {
+        ZM\Warning('No event files were found for exporting monitor events with ID='.$mid);
+        continue;
       }
 
-      $fileName = basename($filePath);
-      if (strpos($fileName, 'incomplete') !== false && !$endSecs) $maxTime = date('Y-m-d H:i:s'); # Probably incomplete event.
-      $eventFileList .= 'file \''.$event->Path().'/'.$fileName.'\''.PHP_EOL;
-    }
-
-    if ($eventFileList === '') {
-      ZM\Warning('No event files were found for exporting monitor events with ID='.$mid);
-      continue;
-    }
-
-    if (!$maxTime) $maxTime = date('Y-m-d H:i:s'); # For example, we download a single non-incomlete event, but it's missing EndDateTimeSecs() due to a crash
-    $mergedFileName = $monitor->Name().' '.$minTime.' to '.$maxTime.'.mp4';
-    if (($fp = fopen('event_files.txt', 'w'))) {
-      fwrite($fp, $eventFileList);
-      fclose($fp);
-    } else {
-      ZM\Error("Can't open event images export file 'event_files.txt'");
-    }
-    $cmd = ZM_PATH_FFMPEG.' -f concat -safe 0 -i event_files.txt -c copy '.escapeshellarg($export_dir.'/'.$mergedFileName). ' 2>&1';
-    exec($cmd, $output, $return);
-    ZM\Debug($cmd.' return code: '.$return.' output: '.print_r($output,true));
-    $exportFileList[] = $mergedFileName;
-    @unlink('event_files.txt');
-
-    # We're sending one file at a time to the archive. This will significantly save disk space.
-    $command = '';
-    if ($exportFormat == 'tar') {
-      # We can't just create a tar.gz file and add files to it. We first add everything to the 'tar' file, and then to the 'gz' file.
-      $command = 'tar --append --dereference';
-      if ($exportStructure == 'flat') {
-        $command .= getFlatCommandForTar();
+      if (!$maxTime) $maxTime = date('Y-m-d H:i:s'); # For example, we download a single non-incomlete event, but it's missing EndDateTimeSecs() due to a crash
+      $mergedFileName = $monitor->Name().' '.$minTime.' to '.$maxTime.'.mp4';
+      for ($n = 2; in_array($mergedFileName, $exportFileList); $n++) {
+        $mergedFileName = $monitor->Name().' '.$minTime.' to '.$maxTime.' ('.$n.').mp4';
       }
-      $command .= ' --file='.escapeshellarg($archive_path);
-    } else if ($exportFormat == 'zip') {
-      $command .= 'zip ';
-      $command .= ($exportStructure == 'flat' ? ' -j ' : '').escapeshellarg($archive_path);
-      $command .= $exportCompressed ? ' -9' : ' -0';
-    } else if ($exportFormat == 'noArchive') {
+      if (($fp = fopen('event_files.txt', 'w'))) {
+        fwrite($fp, $eventFileList);
+        fclose($fp);
+      } else {
+        ZM\Error("Can't open event images export file 'event_files.txt'");
+      }
+      $cmd = ZM_PATH_FFMPEG.' -f concat -safe 0 -i event_files.txt -c copy '.escapeshellarg($export_dir.'/'.$mergedFileName). ' 2>&1';
+      exec($cmd, $output, $return);
+      ZM\Debug($cmd.' return code: '.$return.' output: '.print_r($output,true));
+      $exportFileList[] = $mergedFileName;
+      @unlink('event_files.txt');
 
-    }
+      # We're sending one file at a time to the archive. This will significantly save disk space.
+      $command = '';
+      if ($exportFormat == 'tar') {
+        # We can't just create a tar.gz file and add files to it. We first add everything to the 'tar' file, and then to the 'gz' file.
+        $command = 'tar --append --dereference';
+        if ($exportStructure == 'flat') {
+          $command .= getFlatCommandForTar();
+        }
+        $command .= ' --file='.escapeshellarg($archive_path);
+      } else if ($exportFormat == 'zip') {
+        $command .= 'zip ';
+        $command .= ($exportStructure == 'flat' ? ' -j ' : '').escapeshellarg($archive_path);
+        $command .= $exportCompressed ? ' -9' : ' -0';
+      } else if ($exportFormat == 'noArchive') {
 
-    if ($command) {
-      $command .= ' -- '.escapeshellarg($mergedFileName); # Name of the file to be added
-      if (executeShelCommand($command, $deleteFile = $mergedFileName) === false) return false;
-    }
+      }
+
+      if ($command) {
+        $command .= ' -- '.escapeshellarg($mergedFileName); # Name of the file to be added
+        if (executeShelCommand($command, $deleteFile = $mergedFileName) === false) return false;
+      }
+    } # end foreach group
   } # end foreach monitor
 
   if (count($exportFileList) === 0) {

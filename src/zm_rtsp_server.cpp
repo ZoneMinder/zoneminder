@@ -148,6 +148,9 @@ class MonitorRtspStream {
     client_ = zm::make_unique<StreamSocketClient>(std::move(path), std::move(callbacks));
   }
 
+  // Lets the reader thread start winding down ahead of the destructor's join
+  void RequestStop() { client_->RequestStop(); }
+
   ~MonitorRtspStream() {
     client_.reset();  // stop callbacks before tearing the session down
     std::lock_guard<std::mutex> lock(mutex_);
@@ -501,6 +504,9 @@ int main(int argc, char *argv[]) {
 
   Info("RTSP Server shutting down");
 
+  // Signal every reader first so the joins in the destructors overlap
+  for (auto &entry : streams)
+    entry.second->RequestStop();
   streams.clear();
   monitors.clear();
   rtspServer->Stop();

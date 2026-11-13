@@ -451,7 +451,8 @@ MAIN: while( $loop ) {
           Error("Can't open directory '$$Storage{Path}/$monitor_dir': $!");
           next;
         }
-        my @temp_events = sort { $b <=> $a } grep { -d $_ && $_ =~ /^\d+$/ } readdir(DIR);
+        # A Deep year dir holds two digit month dirs, a Shallow event dir holds only files.
+        my @temp_events = sort { $b <=> $a } grep { -d $_ && $_ =~ /^\d+$/ && !grep { -d $_ } glob("$_/[0-9][0-9]") } readdir(DIR);
         closedir(DIR);
         my $count = 0;
         foreach my $event ( @temp_events ) {

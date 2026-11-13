@@ -276,6 +276,7 @@ Monitor::Monitor() :
   onvif_alarm_txt(""),
   importance(0),
   zone_count(0),
+  zones_loaded(true),
   capture_max_fps(0),
   purpose(QUERY),
   last_camera_bytes(0),
@@ -367,6 +368,7 @@ Monitor::Monitor() :
 
 
 void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
+  zones_loaded = load_zones;
   purpose = p;
   int col = 0;
 
@@ -927,10 +929,16 @@ std::shared_ptr<Monitor> Monitor::Load(unsigned int p_id, bool load_zones, Purpo
 }
 
 bool Monitor::connect() {
-  ReloadZones();
-  if (zones.size() != zone_count) {
-    Warning("Monitor %d has incorrect zone_count %d != %zu", id, zone_count, zones.size());
-    zone_count = zones.size();
+  size_t n_zones;
+  if (zones_loaded) {
+    ReloadZones();
+    n_zones = zones.size();
+  } else {
+    n_zones = Zone::Count(shared_from_this());
+  }
+  if (n_zones != zone_count) {
+    Warning("Monitor %d has incorrect zone_count %d != %zu", id, zone_count, n_zones);
+    zone_count = n_zones;
   }
   if (mem_ptr != nullptr) {
     Warning("Already connected. Please call disconnect first.");

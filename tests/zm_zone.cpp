@@ -526,3 +526,34 @@ TEST_CASE("Zone::CheckAlarms clears only the diff pixels std_alarmedpixels leave
     CheckMaskMatchesFullRowMemset(polygon);
   }
 }
+
+TEST_CASE("Zone::ParseCoords: percentage coordinates", "[Zone]") {
+  Polygon polygon;
+  bool clamped = true;
+  REQUIRE(Zone::ParseCoords("0.00,0.00 100.00,0.00 100.00,100.00 0.00,100.00", 1920, 1080, polygon, clamped));
+  REQUIRE(polygon.GetVertices().size() == 4);
+  REQUIRE_FALSE(clamped);
+}
+
+TEST_CASE("Zone::ParseCoords: pixel coordinates inside the monitor", "[Zone]") {
+  Polygon polygon;
+  bool clamped = true;
+  REQUIRE(Zone::ParseCoords("0,0 99,0 99,99 0,99", 100, 100, polygon, clamped));
+  REQUIRE(polygon.GetVertices().size() == 4);
+  REQUIRE_FALSE(clamped);
+}
+
+TEST_CASE("Zone::ParseCoords: pixel coordinates outside the monitor are clamped", "[Zone]") {
+  Polygon polygon;
+  bool clamped = false;
+  REQUIRE(Zone::ParseCoords("0,0 500,0 500,500 0,500", 100, 100, polygon, clamped));
+  REQUIRE(clamped);
+}
+
+TEST_CASE("Zone::ParseCoords: unparsable coordinates are rejected", "[Zone]") {
+  Polygon polygon;
+  bool clamped = false;
+  REQUIRE_FALSE(Zone::ParseCoords("", 100, 100, polygon, clamped));
+  REQUIRE_FALSE(Zone::ParseCoords("garbage", 100, 100, polygon, clamped));
+  REQUIRE_FALSE(Zone::ParseCoords("1.5,abc 2.5,3.5", 100, 100, polygon, clamped));
+}

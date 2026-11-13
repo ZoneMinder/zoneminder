@@ -757,6 +757,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int         importance;           // Importance of this monitor, affects Connection logging errors.
   int         startup_delay;        // Seconds to sleep before connecting to camera
   unsigned int         zone_count;
+  bool                 zones_loaded;  // false: connect() counts zones instead of constructing them
 
   int capture_max_fps;
 

@@ -28,6 +28,8 @@ extern "C" {
 #include <libavutil/pixdesc.h>
 }
 
+#include <atomic>
+
 /*
       AVCodecID codec_id;
       const char *codec_codec;
@@ -426,10 +428,20 @@ enum AVPixelFormat get_hw_format(AVCodecContext *ctx, const enum AVPixelFormat *
     if (*p == hw_pix_fmt) return *p;
   }
 
-  Error("Failed to get HW surface format for %s.", av_get_pix_fmt_name(hw_pix_fmt));
-  for (const enum AVPixelFormat *p = pix_fmts; *p != AV_PIX_FMT_NONE; p++)
-    Error("Available HW surface format was %s.", av_get_pix_fmt_name(*p));
+  // The hardware can't decode this stream, so let libavcodec decode it in software.
+  for (const enum AVPixelFormat *p = pix_fmts; *p != AV_PIX_FMT_NONE; p++) {
+    const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(*p);
+    if (desc && !(desc->flags & AV_PIX_FMT_FLAG_HWACCEL)) {
+      static std::atomic<bool> warned{false};
+      if (!warned.exchange(true))
+        Warning("Hardware surface format %s not offered for this stream, decoding in software as %s.",
+            av_get_pix_fmt_name(hw_pix_fmt), av_get_pix_fmt_name(*p));
+      return *p;
+    }
+  }
 
+  Error("Failed to get HW surface format for %s and no software format is offered.",
+      av_get_pix_fmt_name(hw_pix_fmt));
   return AV_PIX_FMT_NONE;
 }
 #if !LIBAVUTIL_VERSION_CHECK(56, 22, 0, 14, 0)

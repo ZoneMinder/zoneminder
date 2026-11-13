@@ -763,13 +763,17 @@ void MonitorStream::runStream() {
             delayed = true;
             temp_read_index = MOD_ADD(temp_read_index, (replay_rate>=0?-1:1), temp_image_buffer_count);
           } else {
-            FPSeconds expected_delta_time = ((FPSeconds(swap_image->timestamp - last_frame_timestamp)) * ZM_RATE_BASE) / replay_rate.load();
+            const int rate = replay_rate.load();
+            // Above 1x each pass moves on by several slots instead of waiting
+            // for the video time, so that the rate holds at any maxfps.
+            const int slots_per_pass = std::max(1, (abs(rate) + ZM_RATE_BASE / 2) / ZM_RATE_BASE);
+            FPSeconds expected_delta_time = ((FPSeconds(swap_image->timestamp - last_frame_timestamp)) * ZM_RATE_BASE) / rate;
             TimePoint::duration actual_delta_time = now - last_frame_sent.load();
 
             // If the next frame is due
-            if (actual_delta_time > expected_delta_time) {
+            if (slots_per_pass > 1 || actual_delta_time > expected_delta_time) {
               // Debug( 2, "eDT: %.3lf, aDT: %.3f", expected_delta_time, actual_delta_time );
-              if ((temp_index % frame_mod) == 0) {
+              if (slots_per_pass > 1 || (temp_index % frame_mod) == 0) {
                 Debug(2, "Sending delayed frame %d", temp_index);
                 // Send the next frame
                 if (!sendFrame(temp_image_buffer[temp_index].file_name, temp_image_buffer[temp_index].timestamp)) {
@@ -779,7 +783,13 @@ void MonitorStream::runStream() {
                 last_frame_timestamp = swap_image->timestamp;
                 // frame_sent = true;
               }
-              temp_read_index = MOD_ADD(temp_read_index, (replay_rate > 0 ? 1 : -1), temp_image_buffer_count);
+              temp_read_index = MOD_ADD(temp_read_index, (rate > 0 ? 1 : -1), temp_image_buffer_count);
+              for (int skip = slots_per_pass - 1; skip > 0; skip--) {
+                int next_index = MOD_ADD(temp_read_index, (rate > 0 ? 1 : -1), temp_image_buffer_count);
+                if (next_index == temp_write_index || !temp_image_buffer[next_index].valid)
+                  break;
+                temp_read_index = next_index;
+              }
             }
           }
         } else if (step != 0) {
@@ -991,8 +1001,13 @@ void MonitorStream::runStream() {
 
       double capture_fps = monitor->GetFPS();
       double fps = ((max_fps > 0.0) && (capture_fps > max_fps)) ? max_fps : capture_fps;
+      // Live frames go out at fps whatever the rate. Replaying from the buffer
+      // waits longer below 1x; above 1x it keeps the pace and skips slots.
+      double rate_scale = 1.0;
+      if (delayed && rate && abs(rate) < ZM_RATE_BASE)
+        rate_scale = static_cast<double>(ZM_RATE_BASE) / abs(rate);
       double sleep_time_seconds = (1 / ((fps ? fps : 1)))    // 1 second / fps
-                                  * (rate ? abs(rate)/ZM_RATE_BASE : 1); // replay_rate is 100 for 1x
+                                  * rate_scale;
       Debug(3, "Using %f for maxfps.  capture_fps: %f maxfps %f * replay_rate: %d = %f", fps, capture_fps, max_fps, rate, sleep_time_seconds);
 
       sleep_time = FPSeconds(sleep_time_seconds);

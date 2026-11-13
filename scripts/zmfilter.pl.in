@@ -1094,7 +1094,8 @@ sub sendTheEmail {
         my $ssmtp_location = $Config{ZM_SSMTP_PATH};
         if (!$ssmtp_location) {
           Debug("which ssmtp: $ssmtp_location - set ssmtp path in options to suppress this message");
-          $ssmtp_location = qx('which ssmtp');
+          $ssmtp_location = qx(which ssmtp 2>/dev/null) // '';
+          chomp $ssmtp_location;
         }
         if (!$ssmtp_location) {
           Warning('Unable to find ssmtp, trying MIME::Lite->send');
@@ -1102,7 +1103,7 @@ sub sendTheEmail {
           $mail->send();
         } else {
 ### Send using SSMTP
-          $mail->send('sendmail', $ssmtp_location, $$filter{EmailTo});
+          $mail->send('sendmail', Sendmail => $ssmtp_location);
         }
       } else {
         MIME::Lite->send('smtp', ($$filter{EmailServer} ? $$filter{EmailServer} : $Config{ZM_EMAIL_HOST}), Timeout=>60);
@@ -1239,7 +1240,8 @@ sub sendMessage {
           if ( logDebugging() ) {
             Debug("which ssmtp: $ssmtp_location - set ssmtp path in options to suppress this message");
           }
-          $ssmtp_location = qx('which ssmtp');
+          $ssmtp_location = qx(which ssmtp 2>/dev/null) // '';
+          chomp $ssmtp_location;
         }
         if ( !$ssmtp_location ) {
           Debug('Unable to find ssmtp, trying MIME::Lite->send');
@@ -1247,7 +1249,7 @@ sub sendMessage {
           $mail->send(smtp=>$Config{ZM_EMAIL_HOST}, Timeout=>60);
         } else {
 ### Send using SSMTP
-          $mail->send('sendmail', $ssmtp_location, $Config{ZM_MESSAGE_ADDRESS});
+          $mail->send('sendmail', Sendmail => $ssmtp_location);
         }
       } else {
         #MIME::Lite->send(smtp=>$Config{ZM_EMAIL_HOST}, Timeout=>60);

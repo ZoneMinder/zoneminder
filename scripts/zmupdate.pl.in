@@ -203,8 +203,10 @@ if ($check) {
           print("Last version $lastVersion, Latest version $latestVersion, our version " . ZM_VERSION."\n");
           exit(0);
         }
+        $lastVersion = $latestVersion;
       } else {
         Error('Error check failed: \''.$res->status_line().'\'');
+        exit(1) if $interactive;
       }
     }
     sleep(3600);

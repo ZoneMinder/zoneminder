@@ -374,9 +374,9 @@ sub GenerateVideo {
     }
     waitpid($pid, 0);
 
-    my $status = $? >> 8;
+    my $status = $?;
     if ( $status ) {
-      Error("Unable to generate video, check $event_path/ffmpeg.log for details");
+      Error('Unable to generate video, ffmpeg ended with '.(($status & 127) ? "signal ".($status & 127) : "status ".($status >> 8)).", check $event_path/ffmpeg.log for details");
       return;
     }
 

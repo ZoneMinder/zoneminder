@@ -21,8 +21,10 @@
 #include "zm_catch2.h"
 #include "zm_db.h"
 
+#include <chrono>
 #include <mutex>
 #include <string>
+#include <thread>
 
 TEST_CASE("zmDbQueue drops log rows past the cap and keeps other writes", "[db_log_queue]") {
   constexpr size_t kCap = 10;
@@ -30,11 +32,16 @@ TEST_CASE("zmDbQueue drops log rows past the cap and keeps other writes", "[db_l
   {
     std::lock_guard<std::mutex> hold(db_mutex);
 
-    // The first row may already be in the queue thread's hands, so count
-    // from what the queue reports.
+    // Let the queue thread take one row and block on db_mutex, so the
+    // counts below don't depend on when it starts.
+    queue.push("DO 1", true);
+    for (int i = 0; i < 200 and queue.logRowsQueued(); i++)
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    REQUIRE(queue.logRowsQueued() == 0);
+
     for (int i = 0; i < 100; i++) queue.push("DO 1", true);
     CHECK(queue.logRowsQueued() == kCap);
-    CHECK(queue.logRowsDropped() >= 100 - kCap - 1);
+    CHECK(queue.logRowsDropped() == 100 - kCap);
 
     const size_t dropped = queue.logRowsDropped();
     queue.push("DO 2");

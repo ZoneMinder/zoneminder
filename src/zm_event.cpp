@@ -753,9 +753,6 @@ bool Event::SetPath(Storage *storage) {
     dt_parts[4] = stime.tm_min;
     dt_parts[5] = stime.tm_sec;
 
-    std::string date_path;
-    std::string time_path;
-
     for (unsigned int i = 0; i < sizeof(dt_parts)/sizeof(*dt_parts); i++) {
       path += stringtf("/%02d", dt_parts[i]);
 
@@ -763,17 +760,10 @@ bool Event::SetPath(Storage *storage) {
         Error("Can't mkdir %s: %s", path.c_str(), strerror(errno));
         return false;
       }
-      if (i == 2)
-        date_path = path;
     }
-    time_path = stringtf("%02d/%02d/%02d", stime.tm_hour, stime.tm_min, stime.tm_sec);
 
-    // Create event id symlink
-    std::string id_file = stringtf("%s/.%" PRIu64, date_path.c_str(), id);
-    if (symlink(time_path.c_str(), id_file.c_str()) < 0) {
-      Error("Can't symlink %s -> %s: %s", id_file.c_str(), time_path.c_str(), strerror(errno));
+    if (!CreateIdMarker(scheme, path, id))
       return false;
-    }
   } else if (scheme == Storage::MEDIUM) {
     path += stringtf("/%04d-%02d-%02d",
                      stime.tm_year+1900, stime.tm_mon+1, stime.tm_mday
@@ -794,17 +784,41 @@ bool Event::SetPath(Storage *storage) {
       return false;
     }
 
-    // Create empty id tag file
-    std::string id_file = stringtf("%s/.%" PRIu64, path.c_str(), id);
+    if (!CreateIdMarker(scheme, path, id))
+      return false;
+  }  // deep storage or not
+  return true;
+}  // end bool Event::SetPath
+
+// Deep: a .<id> symlink in the day directory pointing at the event's time directory.
+// Shallow: an empty .<id> file in the event directory.
+bool Event::CreateIdMarker(Storage::Schemes scheme, const std::string &event_path, uint64_t id) {
+  if (scheme == Storage::DEEP) {
+    // event_path ends in YY/MM/DD/hh/mm/ss
+    size_t pos = event_path.size();
+    for (int i = 0; i < 3 && pos != std::string::npos; i++)
+      pos = (pos == 0) ? std::string::npos : event_path.rfind('/', pos - 1);
+    if (pos == std::string::npos) {
+      Error("Can't find day directory in %s", event_path.c_str());
+      return false;
+    }
+    std::string time_path = event_path.substr(pos + 1);
+    std::string id_file = stringtf("%s/.%" PRIu64, event_path.substr(0, pos).c_str(), id);
+    if (symlink(time_path.c_str(), id_file.c_str()) < 0) {
+      Error("Can't symlink %s -> %s: %s", id_file.c_str(), time_path.c_str(), strerror(errno));
+      return false;
+    }
+  } else if (scheme == Storage::SHALLOW) {
+    std::string id_file = stringtf("%s/.%" PRIu64, event_path.c_str(), id);
     if ( FILE *id_fp = fopen(id_file.c_str(), "w") ) {
       fclose(id_fp);
     } else {
       Error("Can't fopen %s: %s", id_file.c_str(), strerror(errno));
       return false;
     }
-  }  // deep storage or not
+  }
   return true;
-}  // end bool Event::SetPath
+}
 
 void Event::Run() {
   Debug(1, "Event::Run %" PRIu64 ": starting setup", id);

@@ -399,7 +399,7 @@ if ( $version ) {
       print"\nZoneMinder system appears to be running.  While not strictly required, it is advised to stop ZM during the update process. Would you like to stop ZM now? [Yn]:";
       my $response = <STDIN>;
       chomp($response);
-      if ( $response !~ /Yy/ ) {
+      if ( $response !~ /^\s*[nN]/ ) {
         packageControl('stop');
         $start_zm = 1;
       }

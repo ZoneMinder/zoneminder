@@ -1,5 +1,6 @@
 <?php
 namespace ZM;
+use Exception;
 require_once('database.php');
 require_once('Object.php');
 

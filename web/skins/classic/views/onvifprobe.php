@@ -68,7 +68,7 @@ function probeCameras($localIp) {
       $line = rtrim($line);
       if (preg_match('|^(.+),(.+),\s\((.*)\)$|', $line, $matches)) {
         $device_ep = $matches[1];
-        $soapversion = $matches[2];
+        $soapversion = trim($matches[2]);
         $camera = array(
             'model'   => 'Unknown ONVIF Camera',
             'monitor' => array(

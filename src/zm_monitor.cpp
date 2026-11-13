@@ -2497,7 +2497,7 @@ bool Monitor::Analyse() {
 
         if (score) {
           if ((state == IDLE) || (state == PREALARM)) {
-            if ((!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1)) {
+            if (Event::PreAlarmCount() >= alarm_frame_count-1) {
               Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u Cause:%s",
                    name.c_str(), packet->image_index, Event::PreAlarmCount(), alarm_frame_count, cause.c_str());
               SetState(ALARM);

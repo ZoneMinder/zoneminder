@@ -432,6 +432,7 @@ bool VideoStore::open() {
             if (hw_device_ctx) {
               av_buffer_unref(&hw_device_ctx);
             }
+            video_out_codec = nullptr;
             continue;
           }
 
@@ -1275,7 +1276,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
   frame_count += 1;
 
   // if we have to transcode
-  if (monitor->GetOptVideoWriter() == Monitor::ENCODE) {
+  if (Encoding()) {
     Debug(3, "Have encoding video frame count (%d)", frame_count);
 
     av_frame_ptr frame(av_frame_alloc());

@@ -286,7 +286,8 @@ if ($options{command}) {
             close(CLIENT);
             next;
           }
-          my $result = $control->$command($params);
+          my $result = eval { $control->$command($params) };
+          Error("Control command '$command' failed: $@") if $@;
           # Opt-in response: only write back when the caller asked for one, so
           # fire-and-forget callers (which have already closed their end) never
           # get a write -> no SIGPIPE. Ignore PIPE defensively in case a query

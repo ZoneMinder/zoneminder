@@ -1595,17 +1595,17 @@ class Monitor extends ZM_Object {
 
   public function enable() {
     if (!$this->connect()) return false;
-    $action = $this->shared_read('TriggerData', 'action');
-    $action |= TRIGGER_ACTION_SUSPEND;
-    $this->shared_write('TriggerData', 'action', $action);
+    $action = $this->shared_read('SharedData', 'action');
+    $action |= TRIGGER_ACTION_RESUME;
+    $this->shared_write('SharedData', 'action', $action);
     return true;
   }
 
   public function disable() {
     if (!$this->connect()) return false;
-    $action = $this->shared_read('TriggerData', 'action');
-    $action |= TRIGGER_ACTION_RESUME;
-    $this->shared_write('TriggerData', 'action', $action);
+    $action = $this->shared_read('SharedData', 'action');
+    $action |= TRIGGER_ACTION_SUSPEND;
+    $this->shared_write('SharedData', 'action', $action);
     return true;
   }
 

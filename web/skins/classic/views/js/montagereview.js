@@ -370,7 +370,7 @@ function getImageSource(monId, time) {
     const storage = Storage[e.StorageId] ? Storage[e.StorageId] : Storage[0];
     // monitorServerId may be 0, which gives us the default Server entry
     const server = storage.ServerId ? Servers[storage.ServerId] : Servers[monitorServerId[monId]];
-    return zmAuth.appendTo(server.PathToZMS + '?' +
+    return zmAuth.appendTo((server.Id ? server.urlToZMS() : server.PathToZMS) + '?' +
     //mode=jpeg
       "mode=single" +
       "&event=" + Frame.EventId +

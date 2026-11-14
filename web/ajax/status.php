@@ -121,6 +121,7 @@ $statusData = array(
   'events' => array(
     'permission' => 'Events',
     'table' => 'Events',
+    'defaultLimit' => 100,
     'selector' => 'Events.MonitorId',
     'elements' => array(
       'Id' => true,
@@ -198,6 +199,7 @@ $statusData = array(
   'frames' => array(
     'permission' => 'Events',
     'table' => 'Frames',
+    'defaultLimit' => 100,
     'selector' => 'EventId',
     'elements' => array(
       'EventId' => true,
@@ -400,6 +402,8 @@ function collectData() {
       $limit = $entitySpec['limit'];
     elseif ( !empty($_REQUEST['count']) )
       $limit = validInt($_REQUEST['count']);
+    elseif ( !$id && !empty($entitySpec['defaultLimit']) )
+      $limit = $entitySpec['defaultLimit'];
     $limit_offset = '';
     if ( !empty($_REQUEST['offset']) )
       $limit_offset = validInt($_REQUEST['offset']) . ', ';

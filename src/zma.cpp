@@ -617,13 +617,19 @@ int main(int argc, char *argv[]) {
             current_event = &new_events.back();
             current_event->start_time = fd.timestamp;
 
+            unsigned int state_id = 0;
+            {
+              zmDbRow dbrow;
+              if (dbrow.fetch("SELECT Id FROM States WHERE IsActive=1"))
+                state_id = atoi(dbrow[0]);
+            }
             sql = stringtf(
               "INSERT INTO `Events` "
-              "(`MonitorId`, `StorageId`, `Name`, `Cause`, `StartDateTime`, `Scheme`, `SaveJPEGs`, `Width`, `Height`) "
-              "VALUES (%u, %u, 'Re-analysis %" PRIu64 "', 'Re-analysis', from_unixtime(%" PRIi64 "), '%s', 0, %u, %u)",
+              "(`MonitorId`, `StorageId`, `Name`, `Cause`, `StartDateTime`, `Scheme`, `SaveJPEGs`, `Width`, `Height`, `StateId`) "
+              "VALUES (%u, %u, 'Re-analysis %" PRIu64 "', 'Re-analysis', from_unixtime(%" PRIi64 "), '%s', 0, %u, %u, %u)",
               monitor->Id(), storage_id, event_id,
               static_cast<int64>(std::chrono::duration_cast<Seconds>(fd.timestamp.time_since_epoch()).count()),
-              scheme_str.c_str(), monitor->Width(), monitor->Height());
+              scheme_str.c_str(), monitor->Width(), monitor->Height(), state_id);
             uint64_t new_event_id = zmDbDoInsert(sql);
             if (new_event_id) {
               current_event->db_event_id = new_event_id;

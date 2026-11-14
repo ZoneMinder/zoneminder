@@ -566,6 +566,14 @@ switch ($action) {
       break;
     }
 
+    // Detectors name classes like "traffic light"; labels may not contain spaces
+    foreach ($annotations as &$ann) {
+      if (isset($ann['label']) && is_string($ann['label'])) {
+        $ann['label'] = preg_replace('/\s+/', '_', trim($ann['label']));
+      }
+    }
+    unset($ann);
+
     // Validate and sanitize annotation labels
     foreach ($annotations as $ann) {
       if (!isset($ann['label']) || !preg_match('/^[a-zA-Z0-9_-]+$/', $ann['label'])) {

@@ -867,6 +867,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // Whether a packet must be held back from the codec while it waits for a
   // keyframe; clears the wait once the keyframe comes.
   bool SkipUntilKeyframe(bool keyframe);
+  // A quarter turn needs 4:2:0 chroma, so 4:2:2 is converted when rotating.
+  static bool CanPassthroughFormat(AVPixelFormat format, Orientation orientation);
   packetqueue_iterator  *analysis_it;
   std::unique_ptr<AnalysisThread> analysis_thread;
   packetqueue_iterator  *decoder_it;

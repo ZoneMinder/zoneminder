@@ -103,10 +103,17 @@ GetOptions(
     'version'       =>\$version
 ) or pod2usage(-exitstatus => -1);
 
-$Config{ZM_DB_USER} = $dbUser;
-$dbUser =~ s/'/\\'/g;
-$Config{ZM_DB_PASS} = $dbPass;
-$dbPass =~ s/'/\\'/g;
+# Reconnect so the credentials given on the command line are the ones used
+if ( $dbUser ne $Config{ZM_DB_USER} or $dbPass ne $Config{ZM_DB_PASS} ) {
+  $Config{ZM_DB_USER} = $dbUser;
+  $Config{ZM_DB_PASS} = $dbPass;
+  zmDbConnect(1);
+}
+# De-taint the credentials and quote them for the mysqldump command line
+( $dbUser ) = $dbUser =~ /^(.*)$/s;
+( $dbPass ) = $dbPass =~ /^(.*)$/s;
+$dbUser =~ s/'/'\\''/g;
+$dbPass =~ s/'/'\\''/g;
 
 if ( $version ) {
   print( ZoneMinder::Base::ZM_VERSION . "\n");

@@ -81,8 +81,12 @@ GetOptions(
     'version'       =>\$version
 ) or pod2usage(-exitstatus => -1);
 
-$Config{ZM_DB_USER} = $dbUser;
-$Config{ZM_DB_PASS} = $dbPass;
+# Reconnect so the credentials given on the command line are the ones used
+if ( $dbUser ne $Config{ZM_DB_USER} or $dbPass ne $Config{ZM_DB_PASS} ) {
+  $Config{ZM_DB_USER} = $dbUser;
+  $Config{ZM_DB_PASS} = $dbPass;
+  zmDbConnect(1);
+}
 
 if ( $version ) {
   print( ZoneMinder::Base::ZM_VERSION . "\n");

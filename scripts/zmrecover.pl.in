@@ -289,7 +289,7 @@ Debug("@Monitors");
               }
             }
 
-            my $event = ZoneMinder::Event->find_one(Id=>$event_id);
+            my $event = $event_id ? ZoneMinder::Event->find_one(Id=>$event_id) : undef;
             if ( $event_id and !$event) {
               Info("Event not found in db for event data found at $$Storage{Path}/$monitor_dir/$day_dir/$event_dir");
               if ( confirm() ) {
@@ -315,7 +315,7 @@ Debug("@Monitors");
                 }
                 next;
               }
-            } else {
+            } elsif ( $event ) {
               $event->fix_DefaultVideo();
               if (!$$event{EndDateTime}) {
                 if (confirm("Event found but is incomplete, shall we finish it?")) {

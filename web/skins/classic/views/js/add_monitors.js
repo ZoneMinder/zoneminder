@@ -90,14 +90,14 @@ function addMonitor(btn) {
     urlString = '?view=monitor&mid='+Stream.Monitor.Id;
   } else {
     const Monitor = Stream.camera.monitor;
-    urlString = '?view=monitor&newMonitor[Path]='+url;
+    urlString = '?view=monitor&newMonitor[Path]='+encodeURIComponent(url);
     keys = Object.keys( Monitor );
     for (i in Monitor) {
       if (!Monitor[i]) continue;
       if (Monitor[i] == 'null') {
         Monitor[i]='';
       }
-      urlString += '&newMonitor['+i+']='+Monitor[i];
+      urlString += '&newMonitor['+i+']='+encodeURIComponent(Monitor[i]);
     }
   }
   window.location.assign(urlString);

@@ -26,7 +26,7 @@ function probeV4L() {
 
   $cameras = array();
   $monitors = array();
-  foreach ( ZM\Monitor::find(['Type'=>'Local'], ['order'=>'Device, Channel']) as $monitor )
+  foreach ( ZM\Monitor::find(['Type'=>'Local', 'Deleted'=>0], ['order'=>'Device, Channel']) as $monitor )
     $monitors[$monitor->Device().':'.$monitor->Channel()] = $monitor;
   $devices = array();
   $devices_to_probe = array();
@@ -862,7 +862,7 @@ function probeNetwork() {
   $results = array();
 
   $monitors = array();
-  foreach (ZM\Monitor::find(['Type'=>'Remote']) as $monitor) {
+  foreach (ZM\Monitor::find(['Type'=>'Remote', 'Deleted'=>0]) as $monitor) {
     if ( preg_match('/^(.+)@(.+)$/', $monitor->Host(), $matches) ) {
       //echo "1: ".$matches[2]." = ".gethostbyname($matches[2])."<br/>";
       $monitors[gethostbyname($matches[2])] = $monitor;
@@ -871,7 +871,7 @@ function probeNetwork() {
       $monitors[gethostbyname($monitor->Host())] = $monitor;
     }
   }
-  foreach (ZM\Monitor::find(['Type'=>'Ffmpeg']) as $monitor) {
+  foreach (ZM\Monitor::find(['Type'=>'Ffmpeg', 'Deleted'=>0]) as $monitor) {
     $url_parts = parse_url($monitor->Path());
     if ($url_parts !== false) {
       #ZM\Debug("Ffmpeg monitor ${url_parts['host']} = ${monitor['Id']} ${monitor['Name']}");

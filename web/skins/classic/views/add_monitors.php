@@ -40,7 +40,7 @@ getBodyTopHTML();
   <?php 
   $manufacturers = array_to_hash_by_key('Name', ZM\Manufacturer::find());
   echo htmlSelect('probe_Manufacturer', [''=>translate('All Manufacturers')]+$manufacturers, 
-    (isset($_COOKIE['addMonitorsprobe_Manufacturer']) ? validCardinal($_COOKIE['addMonitorsprobe_Manufacturer']) : ''), [
+    (isset($_COOKIE['addMonitorsprobe_Manufacturer']) && is_string($_COOKIE['addMonitorsprobe_Manufacturer']) && isset($manufacturers[$_COOKIE['addMonitorsprobe_Manufacturer']]) ? $_COOKIE['addMonitorsprobe_Manufacturer'] : ''), [
     #'multiple'=>'multiple',
           'class'=>'chosen']);
   ?>

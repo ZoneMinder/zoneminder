@@ -221,7 +221,7 @@ int Monitor::JanusManager::add_to_janus() {
   postData += config.janus_secret;
   postData += "\", \"type\" : \"rtsp\", \"rtsp_quirk\" : true, ";
   postData += "\"url\" : \"";
-  postData += rtsp_path;
+  postData += escape_json_string(rtsp_path);
   //secret prevents querying the mount for info, which leaks the camera's secrets.
   postData += "\", \"secret\" : \"";
   postData += config.janus_secret;

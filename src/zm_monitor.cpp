@@ -616,6 +616,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
             static_cast<int64>(Seconds(min_section_length).count())
            );
   }
+  section_length = ClampSectionLength(section_length);
   event_close_mode = static_cast<Monitor::EventCloseMode>(dbrow[col] ? atoi(dbrow[col]) : 0);
   col++;
   switch (event_close_mode) {

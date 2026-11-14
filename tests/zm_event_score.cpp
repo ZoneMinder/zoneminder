@@ -26,3 +26,10 @@ TEST_CASE("EventMaxScoreForDb") {
   REQUIRE(EventMaxScoreForDb(0) == 0);
   REQUIRE(EventMaxScoreForDb(42) == 42);
 }
+
+TEST_CASE("ClampSectionLength") {
+  // SectionLength=0 is accepted by the monitor form and used as a modulo.
+  REQUIRE(ClampSectionLength(Seconds(0)) == Seconds(1));
+  REQUIRE(ClampSectionLength(Seconds(1)) == Seconds(1));
+  REQUIRE(ClampSectionLength(Seconds(600)) == Seconds(600));
+}

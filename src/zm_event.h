@@ -80,6 +80,11 @@ inline int EventMaxScoreForDb(int max_score) {
   return max_score < 0 ? 0 : max_score;
 }
 
+// SectionLength is used as a divisor, so 0 would crash zmc.
+inline Seconds ClampSectionLength(Seconds section_length) {
+  return section_length < Seconds(1) ? Seconds(1) : section_length;
+}
+
 // Maximum number of prealarm frames that can be stored
 #define MAX_PRE_ALARM_FRAMES  16
 

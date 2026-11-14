@@ -238,9 +238,27 @@ function logFilter() {
   }
   if (count($requestLevels)) {
     if ($where) $where .= ' AND ';
-    $placeholders = implode(', ', array_fill(0, count($requestLevels), '?'));
-    $where .= ' Level IN (' . $placeholders . ')';
-    foreach ($requestLevels as $code) $query['values'][] = $code;
+    // Daemons log debug levels 1 to 9 as DB1 to DB9.
+    $exactLevels = array();
+    $debugLevel = null;
+    foreach ($requestLevels as $code => $level) {
+      if ($code == 'DBG') {
+        $debugLevel = $level;
+      } else {
+        $exactLevels[] = $level;
+      }
+    }
+    $terms = array();
+    if (count($exactLevels)) {
+      $placeholders = implode(', ', array_fill(0, count($exactLevels), '?'));
+      $terms[] = ' Level IN (' . $placeholders . ')';
+      foreach ($exactLevels as $level) $query['values'][] = $level;
+    }
+    if ($debugLevel !== null) {
+      $terms[] = 'Level >= ?';
+      $query['values'][] = $debugLevel;
+    }
+    $where .= count($terms) > 1 ? '(' . implode(' OR ', $terms) . ')' : $terms[0];
   }
 
   if (!empty($_REQUEST['StartDateTime'])) {

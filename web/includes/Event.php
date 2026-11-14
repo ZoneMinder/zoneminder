@@ -212,6 +212,12 @@ class Event extends ZM_Object {
     $dbConn->beginTransaction();
     try {
       $this->lock();
+      # lock() reloaded the row, so this sees an archive made after the event was loaded
+      if ( $this->{'Archived'} ) {
+        Error('Cannot delete an Archived event.');
+        $dbConn->rollback();
+        return;
+      }
       # dbQuery() reports a failed statement by returning null, not by throwing
       foreach (array('Stats', 'Event_Data', 'Frames') as $table) {
         if (null === dbQuery('DELETE FROM '.$table.' WHERE EventId = ?', array($this->{'Id'}))) {

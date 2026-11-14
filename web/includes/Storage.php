@@ -20,8 +20,8 @@ class Storage extends ZM_Object {
 
   protected $defaults = array(
     'Id'        => null,
-    'Path'      => array('type'=>'text','filter_regexp'=>array('/[^\w\-\.\(\)\:\/ ]/','/\/$/'), 'default'=>''),
-    'Name' => array('type'=>'text','filter_regexp'=>'/[^\w\-\.\(\)\:\/ ]/', 'default'=>'Storage'),
+    'Path'      => array('type'=>'text','filter_regexp'=>array('/[^\w\-\.\(\)\:\/ ]/u','/\/$/'), 'default'=>''),
+    'Name' => array('type'=>'text','filter_regexp'=>'/[^\w\-\.\(\)\:\/ ]/u', 'default'=>'Storage'),
     'Type'      => 'local',
     'Url'       => '',
     'DiskSpace' => null,
@@ -80,6 +80,13 @@ class Storage extends ZM_Object {
 		}
 		return $this->{'EventCount'};
 	}
+
+  public function MonitorCount() {
+    if ( !property_exists($this, 'MonitorCount') ) {
+      $this->{'MonitorCount'} = dbFetchOne('SELECT COUNT(*) AS MonitorCount FROM Monitors WHERE StorageId=?', 'MonitorCount', array($this->Id()));
+    }
+    return $this->{'MonitorCount'};
+  }
 
   public function disk_used_blocks() {
     $df = shell_exec('df '.escapeshellarg($this->Path()));

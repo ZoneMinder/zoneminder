@@ -47,8 +47,14 @@ if ( $action == 'delete' ) {
     } else if ( $_REQUEST['object'] == 'storage' ) {
       if ( !empty($_REQUEST['markIds']) ) {
         foreach ( $_REQUEST['markIds'] as $Id ) {
-          dbQuery('DELETE FROM Storage WHERE Id=?', array($Id));
-          ZM\AuditAction('delete', 'storage', $Id, '');
+          $Storage = ZM\Storage::find_one(array('Id'=>validCardinal($Id)));
+          if ( !$Storage ) continue;
+          if ( $Storage->EventCount() or $Storage->MonitorCount() ) {
+            $error_message .= 'Storage area '.validHtmlStr($Storage->Name()).' is in use by events or monitors and cannot be deleted.<br/>';
+            continue;
+          }
+          dbQuery('DELETE FROM Storage WHERE Id=?', array($Storage->Id()));
+          ZM\AuditAction('delete', 'storage', $Storage->Id(), '');
         }
       }
       $refreshParent = true;

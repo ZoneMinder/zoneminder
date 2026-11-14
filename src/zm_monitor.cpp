@@ -1996,7 +1996,7 @@ void Monitor::CheckAction() {
       zm_reload = true;
     }
     if (shared_data->action & SUSPEND) {
-      if (Active()) {
+      if (shared_data->analysing > ANALYSING_NONE) {
         Info("Received suspend indication at count %d", shared_data->image_count.load());
         shared_data->analysing = ANALYSING_NONE;
       } else {
@@ -2008,7 +2008,7 @@ void Monitor::CheckAction() {
       }
       shared_data->action &= ~SUSPEND;
     } else if (shared_data->action & RESUME) {
-      if ( Enabled() && !Active() ) {
+      if (shared_data->capturing > CAPTURING_NONE && shared_data->analysing == ANALYSING_NONE) {
         Info("Received resume indication at count %d", shared_data->image_count.load());
         shared_data->analysing = analysing;
         // Analysis thread owns ref_image; ask it to drop the pre-suspend
@@ -2016,6 +2016,7 @@ void Monitor::CheckAction() {
         ref_image_reset_ = true;
         shared_data->alarm_x = shared_data->alarm_y = -1;
       }
+      auto_resume_time = {};
       shared_data->action &= ~RESUME;
     }
   } // end if shared_data->action

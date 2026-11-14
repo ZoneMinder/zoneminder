@@ -184,7 +184,7 @@ class ZonesController extends AppController {
       if ( $this->Zone->save($this->request->data) ) {
         $message = 'The zone has been saved.';
       } else {
-        $message = 'Error ' . print_r($this->Zone->invalidFields());
+        $message = 'Error ' . print_r($this->Zone->invalidFields(), true);
       }
     }
     $this->set(array(

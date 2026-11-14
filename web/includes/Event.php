@@ -213,6 +213,7 @@ class Event extends ZM_Object {
     try {
       $this->lock();
       dbQuery('DELETE FROM Stats WHERE EventId = ?', array($this->{'Id'}));
+      dbQuery('DELETE FROM Event_Data WHERE EventId = ?', array($this->{'Id'}));
       dbQuery('DELETE FROM Frames WHERE EventId = ?', array($this->{'Id'}));
       if ( $this->{'Scheme'} == 'Deep' ) {
 

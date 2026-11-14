@@ -1064,7 +1064,7 @@ int RemoteCameraHttp::GetResponse() {
                 char *end_ptr = (char *)buffer+buffer_size;
 
                 // strip off any last line feeds
-                while (*end_ptr == '\r' || *end_ptr == '\n') {
+                while (end_ptr > (char *)buffer && (end_ptr[-1] == '\r' || end_ptr[-1] == '\n')) {
                   content_length--;
                   end_ptr--;
                 }

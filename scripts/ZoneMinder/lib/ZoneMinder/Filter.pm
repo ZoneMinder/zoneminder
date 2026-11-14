@@ -337,8 +337,6 @@ sub Sql {
           foreach my $temp_value ( ($stripped_value ne '' and !$is_regex) ? split( /["'\s]*?,["'\s]*?/, $stripped_value ) : $stripped_value ) {
             if ( $term->{attr} eq 'AlarmedZoneId' ) {
               $value = '(SELECT * FROM Stats WHERE EventId=E.Id AND Score > 0 AND ZoneId='.int($value).')';
-            } elsif ( $term->{attr} =~ /^MonitorName/ ) {
-              $value = sql_quote($temp_value);
             } elsif (
               $term->{attr} eq 'ServerId' or
               $term->{attr} eq 'MonitorServerId' or
@@ -360,6 +358,7 @@ sub Sql {
               $value = $temp_value ne '' ? int($temp_value) : 'NULL';
               $$self{Storage} = new ZoneMinder::Storage($temp_value);
             } elsif ( $term->{attr} eq 'Name'
+              || $term->{attr} eq 'MonitorName'
               || $term->{attr} eq 'Cause'
               || $term->{attr} eq 'Notes'
               || $term->{attr} eq 'Tags'

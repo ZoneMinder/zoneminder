@@ -83,8 +83,12 @@ void Monitor::JanusManager::load_from_monitor() {
     if (config.opt_use_auth) {
       if (parent->rtsp_user) {
         User *rtsp_user = User::find(parent->rtsp_user);
-        std::string auth_key = rtsp_user->getAuthHash();
-        rtsp_path += "?auth=" + auth_key;
+        if (rtsp_user) {
+          std::string auth_key = rtsp_user->getAuthHash();
+          rtsp_path += "?auth=" + auth_key;
+        } else {
+          Warning("Janus: Could not find RTSP user %d for RTSP_Server authentication", parent->rtsp_user);
+        }
       } else {
         Warning("No user selected for RTSP_Server authentication!");
       }

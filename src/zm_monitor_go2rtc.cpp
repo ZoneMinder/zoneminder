@@ -81,9 +81,13 @@ Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
     if (config.opt_use_auth) {
       if (parent->rtsp_user) {
         User *rtsp_user = User::find(parent->rtsp_user);
-        std::string auth_key = rtsp_user->getAuthHash();
-        rtsp_restream_path += "?auth=" + auth_key;
-        last_auth_refresh = std::chrono::system_clock::now();
+        if (rtsp_user) {
+          std::string auth_key = rtsp_user->getAuthHash();
+          rtsp_restream_path += "?auth=" + auth_key;
+          last_auth_refresh = std::chrono::system_clock::now();
+        } else {
+          Warning("Go2RTC: Could not find RTSP user %d for RTSP_Server authentication", parent->rtsp_user);
+        }
       } else {
         Warning("No user selected for RTSP_Server authentication!");
       }

@@ -241,7 +241,7 @@ function unarchiveEvents(event_ids) {
         unarchiveEvents(event_ids);
       }
     },
-    fail: function(jqxhr) {
+    error: function(jqxhr) {
       logAjaxFail(jqxhr);
       $j('#eventTable').bootstrapTable('refresh');
       $j('#unarchiveConfirm').modal('hide');
@@ -277,7 +277,7 @@ function deleteEvents(event_ids) {
         deleteEvents(event_ids);
       }
     },
-    fail: function(jqxhr) {
+    error: function(jqxhr) {
       logAjaxFail(jqxhr);
       $j('#eventTable').bootstrapTable('refresh');
       $j('#deleteConfirm').modal('hide');
@@ -424,7 +424,7 @@ function initPage() {
       success: function(data) {
         $j('#eventTable').bootstrapTable('refresh');
       },
-      fail: logAjaxFail
+      error: logAjaxFail
     });
   });
 

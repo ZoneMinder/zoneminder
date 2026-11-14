@@ -1,5 +1,5 @@
 <?php
-// Deleting an event in the web interface must remove its Frames and Stats rows
+// Deleting an event in the web interface must remove its Frames, Stats and Event_Data rows
 // and its files along with the Events row.
 //
 // ZM_OPT_FAST_DELETE used to make ZM\Event::delete() remove only the Events
@@ -83,6 +83,7 @@ $event = new Event($event_row);
 $event->delete();
 
 check('the event\'s Stats rows are deleted', in_array('DELETE FROM Stats WHERE EventId = ? [7]', $queries), true);
+check('the event\'s Event_Data rows are deleted', in_array('DELETE FROM Event_Data WHERE EventId = ? [7]', $queries), true);
 check('the event\'s Frames rows are deleted', in_array('DELETE FROM Frames WHERE EventId = ? [7]', $queries), true);
 check('the Events row is deleted', in_array('DELETE FROM Events WHERE Id = ? [7]', $queries), true);
 check('the Events row goes last, after the rows that refer to it',

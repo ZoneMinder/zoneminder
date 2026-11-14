@@ -84,6 +84,7 @@ std::string format_absolute_time_iso8601(time_t time) {
 SystemTimePoint StringToSystemTimePoint(const std::string &timestamp) {
   std::tm t{};
   strptime(timestamp.c_str(), "%Y-%m-%d %H:%M:%S", &t);
+  t.tm_isdst = -1;  // let mktime decide, otherwise summer times are read as standard time
   time_t time_t_val = mktime(&t);
   SystemTimePoint stp = std::chrono::system_clock::from_time_t(time_t_val);
   return stp;

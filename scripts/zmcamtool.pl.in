@@ -553,7 +553,7 @@ sub exportsql {
 			$name = $1;
 			$command .= qq( --where="Name = '$name'");
 		} else {
-			print "Invalid characters in Name\n";
+			die "Invalid characters in Name\n";
 		}
   }
 

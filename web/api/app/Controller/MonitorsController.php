@@ -47,6 +47,14 @@ class MonitorsController extends AppController {
       $conditions = array();
     }
 
+    $filters_deleted = false;
+    foreach (array_keys($this->request->params['named']) as $attribute) {
+      if (preg_match('/^(Monitor\.)?Deleted\b/i', trim($attribute))) $filters_deleted = true;
+    }
+    if (!$filters_deleted) {
+      $conditions[] = array('Monitor.Deleted' => 0);
+    }
+
     // Only join Groups_Monitors when the request actually filters by group, so
     // a bare GroupId named param can resolve against that table. Joining it
     // unconditionally multiplied rows for monitors in multiple groups, which we

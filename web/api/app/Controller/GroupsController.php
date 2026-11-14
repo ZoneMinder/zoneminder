@@ -36,12 +36,15 @@ class GroupsController extends AppController {
   # Drop monitors the user may not view from each group's Monitor list.
   private function filterGroupMonitors($groups) {
     $condition = $this->viewableMonitorCondition('Monitor.Id');
-    if (!count($condition)) return $groups;
-    $allowed = $condition['Monitor.Id'];
+    $allowed = count($condition) ? $condition['Monitor.Id'] : null;
+    $deleted = $this->Group->Monitor->find('list', array(
+      'fields' => array('Id', 'Id'),
+      'conditions' => array('Monitor.Deleted' => 1),
+    ));
     foreach ($groups as &$group) {
       if (!isset($group['Monitor'])) continue;
-      $group['Monitor'] = array_values(array_filter($group['Monitor'], function($m) use ($allowed) {
-        return in_array($m['Id'], $allowed);
+      $group['Monitor'] = array_values(array_filter($group['Monitor'], function($m) use ($allowed, $deleted) {
+        return !isset($deleted[$m['Id']]) and ($allowed === null or in_array($m['Id'], $allowed));
       }));
     }
     return $groups;

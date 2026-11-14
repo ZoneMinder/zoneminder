@@ -499,6 +499,7 @@ sub Control {
           return undef;
         }
         $Control = $Control->clone(); # Because this object is not per monitor specific
+        $$Control{Protocol} = $Protocol;
         bless $Control, 'ZoneMinder::Control::'.$Protocol;
         $$Control{MonitorId} = $$self{Id};
         $$Control{Monitor} = $self->clone();

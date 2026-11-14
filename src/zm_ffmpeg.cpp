@@ -324,8 +324,6 @@ AVCodecContext *open_video_decoder(
         Info("Using %s hardware decoding for %s",
             av_hwdevice_get_type_name(type), codec->name);
         ctx->hwaccel_flags |= AV_HWACCEL_FLAG_IGNORE_LEVEL;
-        //if (!lavc_param->check_hw_profile)
-        ctx->hwaccel_flags |= AV_HWACCEL_FLAG_ALLOW_PROFILE_MISMATCH;
         // Set opaque to point to our hw_pix_fmt so callback can access it
         ctx->opaque = &hw_pix_fmt;
         ctx->get_format = get_hw_format;

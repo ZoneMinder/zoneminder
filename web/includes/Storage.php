@@ -81,6 +81,13 @@ class Storage extends ZM_Object {
 		return $this->{'EventCount'};
 	}
 
+  public function MonitorCount() {
+    if ( !property_exists($this, 'MonitorCount') ) {
+      $this->{'MonitorCount'} = dbFetchOne('SELECT COUNT(*) AS MonitorCount FROM Monitors WHERE StorageId=?', 'MonitorCount', array($this->Id()));
+    }
+    return $this->{'MonitorCount'};
+  }
+
   public function disk_used_blocks() {
     $df = shell_exec('df '.escapeshellarg($this->Path()));
     $space = -1;

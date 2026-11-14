@@ -70,7 +70,7 @@ class ServerStatsController extends AppController {
     $restricted = '';
     
     $options = array('conditions' => array( 
-          array('Server_Stats.'.$this->ServerStat->primaryKey => $id),
+          array('ServerStat.'.$this->ServerStat->primaryKey => $id),
           $restricted
           )
         );
@@ -95,10 +95,15 @@ class ServerStatsController extends AppController {
         return;
       }
 
+      $this->pinRequestId($this->ServerStat, null);
       $this->ServerStat->create();
       if ( $this->ServerStat->save($this->request->data) ) {
         return $this->flash(__('The server stat has been saved.'), array('action' => 'index'));
       }
+      $this->set(array(
+        'message' => $this->ServerStat->validationErrors ? $this->ServerStat->validationErrors : 'Error',
+        '_serialize' => array('message')
+      ));
     }
   }
 
@@ -122,10 +127,11 @@ class ServerStatsController extends AppController {
     if ( !$this->ServerStat->exists($id) ) {
       throw new NotFoundException(__('Invalid server stat'));
     }
+    $this->pinRequestId($this->ServerStat, $id);
     if ( $this->ServerStat->save($this->request->data) ) {
       $message = 'Saved';
     } else {
-      $message = 'Error';
+      $message = $this->ServerStat->validationErrors ? $this->ServerStat->validationErrors : 'Error';
     }
 
     $this->set(array(

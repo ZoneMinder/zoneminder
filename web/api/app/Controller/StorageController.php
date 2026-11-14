@@ -97,12 +97,17 @@ class StorageController extends AppController {
         return;
       }
 
+      $this->pinRequestId($this->Storage, null);
       $this->Storage->create();
       if ( $this->Storage->save($this->request->data) ) {
 				# Might be nice to send it a start request
         #$this->daemonControl($this->Storage->id, 'start', $this->request->data);
         return $this->flash(__('The storage area has been saved.'), array('action' => 'index'));
       }
+      $this->set(array(
+        'message' => $this->Storage->validationErrors ? $this->Storage->validationErrors : 'Error',
+        '_serialize' => array('message')
+      ));
     }
   }
 
@@ -126,10 +131,11 @@ class StorageController extends AppController {
     if ( !$this->Storage->exists($id) ) {
       throw new NotFoundException(__('Invalid storage area'));
     }
+    $this->pinRequestId($this->Storage, $id);
     if ( $this->Storage->save($this->request->data) ) {
       $message = 'Saved';
     } else {
-      $message = 'Error';
+      $message = $this->Storage->validationErrors ? $this->Storage->validationErrors : 'Error';
     }
 
     $this->set(array(
@@ -162,6 +168,13 @@ class StorageController extends AppController {
     $this->request->allowMethod('post', 'delete');
 
     #$this->daemonControl($this->Storage->id, 'stop');
+
+    # The web UI refuses the same delete, which would orphan the events and monitors using this area.
+    require_once __DIR__ .'/../../../includes/Storage.php';
+    $storage = new ZM\Storage($id);
+    if ( $storage->EventCount() or $storage->MonitorCount() ) {
+      throw new BadRequestException(__('The storage area is in use by events or monitors'));
+    }
 
     if ( $this->Storage->delete() ) {
       return $this->flash(__('The storage area has been deleted.'), array('action' => 'index'));

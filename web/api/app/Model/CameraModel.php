@@ -39,7 +39,15 @@ class CameraModel extends AppModel {
 	public $validate = array(
 		'Name' => array(
 			'notBlank' => array(
-				'rule' => array('notBlank'))),
+				'rule' => array('notBlank'),
+				'last' => true),
+			'unique' => array(
+				'rule' => array('isUniquePerManufacturer'),
+				'message' => 'That manufacturer already has a model with that name')),
+		'ManufacturerId' => array(
+			'unique' => array(
+				'rule' => array('isUniquePerManufacturer'),
+				'message' => 'That manufacturer already has a model with that name')),
 		'Id' => array(
 			'numeric' => array(
 				'rule' => array('numeric'),
@@ -51,6 +59,19 @@ class CameraModel extends AppModel {
 			),
 		),
 	);
+
+	public function isUniquePerManufacturer($check) {
+		$row = array();
+		foreach (array('Name', 'ManufacturerId') as $field) {
+			$row[$field] = array_key_exists($field, $this->data[$this->alias])
+				? $this->data[$this->alias][$field]
+				: ($this->id ? $this->field($field) : null);
+		}
+		if ($row['ManufacturerId'] === null or $row['ManufacturerId'] === '') return true;
+		$conditions = array('CameraModel.Name' => $row['Name'], 'CameraModel.ManufacturerId' => $row['ManufacturerId']);
+		if ($this->id) $conditions['CameraModel.Id !='] = $this->id;
+		return $this->find('count', array('conditions' => $conditions)) === 0;
+	}
 
 	//The Associations below have been created with all possible keys, those that are not needed can be removed
 

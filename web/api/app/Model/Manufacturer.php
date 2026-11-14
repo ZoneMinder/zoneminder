@@ -49,7 +49,10 @@ class Manufacturer extends AppModel {
 		),
 		'Name' => array(
 			'notBlank' => array(
-				'rule' => array('notBlank'))),
+				'rule' => array('notBlank')),
+			'unique' => array(
+				'rule' => array('isUnique'),
+				'message' => 'A manufacturer with that name already exists')),
 	);
 
 	//The Associations below have been created with all possible keys, those that are not needed can be removed

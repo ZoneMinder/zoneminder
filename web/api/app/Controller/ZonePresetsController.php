@@ -50,7 +50,10 @@ class ZonePresetsController extends AppController {
       throw new NotFoundException(__('Invalid zone preset'));
     }
     $options = array('conditions' => array('ZonePreset.' . $this->ZonePreset->primaryKey => $id));
-    $this->set('zonePreset', $this->ZonePreset->find('first', $options));
+    $this->set(array(
+      'zonePreset' => $this->ZonePreset->find('first', $options),
+      '_serialize' => array('zonePreset')
+    ));
   }
 
   /**
@@ -60,10 +63,15 @@ class ZonePresetsController extends AppController {
    */
   public function add() {
     if ( $this->request->is('post') ) {
+      $this->pinRequestId($this->ZonePreset, null);
       $this->ZonePreset->create();
       if ( $this->ZonePreset->save($this->request->data) ) {
         return $this->flash(__('The zone preset has been saved.'), array('action' => 'index'));
       }
+      $this->set(array(
+        'message' => $this->ZonePreset->validationErrors ? $this->ZonePreset->validationErrors : 'Error',
+        '_serialize' => array('message')
+      ));
     }
   }
 
@@ -79,9 +87,14 @@ class ZonePresetsController extends AppController {
       throw new NotFoundException(__('Invalid zone preset'));
     }
     if ( $this->request->is(array('post', 'put')) ) {
+      $this->pinRequestId($this->ZonePreset, $id);
       if ( $this->ZonePreset->save($this->request->data) ) {
         return $this->flash(__('The zone preset has been saved.'), array('action' => 'index'));
       }
+      $this->set(array(
+        'message' => $this->ZonePreset->validationErrors ? $this->ZonePreset->validationErrors : 'Error',
+        '_serialize' => array('message')
+      ));
     } else {
       $options = array('conditions' => array('ZonePreset.' . $this->ZonePreset->primaryKey => $id));
       $this->request->data = $this->ZonePreset->find('first', $options);

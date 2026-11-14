@@ -237,7 +237,7 @@ class FilterTerm {
         break;
       }
       if (is_array($value)) {
-        $values += $value;
+        $values = array_merge($values, $value);
       } else {
         $values[] = $value;
       }
@@ -248,7 +248,7 @@ class FilterTerm {
   public function sql_operator() {
     switch ($this->attr) {
     case 'Group':
-      return ' IN ';
+      return ($this->op == '!=' or $this->op == '![]' or $this->op == 'NOT IN') ? ' NOT IN ' : ' IN ';
     case 'AlarmedZoneId':
       return ' EXISTS ';
     case 'ExistsInFileSystem':

@@ -41,6 +41,7 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 use ZoneMinder::Logger qw(:all);
 
 use Carp;
+use Time::HiRes;
 
 our $AUTOLOAD;
 
@@ -134,9 +135,24 @@ sub getMessages
     my $self = shift;
     my $buffer = $self->{channel}->read();
 
-    return( undef ) if ( !defined($buffer) );
+    if ( !defined($buffer) )
+    {
+        # End of input, hand over any unterminated last message first
+        return( undef ) if ( !defined($self->{partial}) || $self->{partial} eq '' );
+        $buffer = delete( $self->{partial} ) . "\n";
+    }
+    elsif ( defined($self->{partial}) )
+    {
+        $buffer = delete( $self->{partial} ) . $buffer;
+    }
 
     my @messages = split( /\r?\n/, $buffer );
+    if ( $buffer !~ /\n$/ && @messages )
+    {
+        # Message not finished yet, keep it for the next read
+        $self->{partial} = pop( @messages );
+        $self->{partial_time} = Time::HiRes::time();
+    }
     return( \@messages );
 }
 
@@ -165,6 +181,13 @@ sub putMessages
 
 sub timedActions
 {
+    my $self = shift;
+    # Clients that never terminate their message still get it handled
+    if ( defined($self->{partial}) && Time::HiRes::time() - $self->{partial_time} >= 1 )
+    {
+        return( [ delete( $self->{partial} ) ] );
+    }
+    return( undef );
 }
 
 sub DESTROY

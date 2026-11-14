@@ -30,6 +30,12 @@ if (!$Event->canView()) {
 }
 $Monitor = $Event->Monitor();
 
+// The object detection images are not frames; show them through the image view.
+if (isset($_REQUEST['fid']) && in_array($_REQUEST['fid'], array('objdetect', 'objdetect_gif'), true)) {
+  header('Location: ?view=image&eid='.$Event->Id().'&fid='.$_REQUEST['fid']);
+  return;
+}
+
 # This is kinda weird.. so if we pass fid=0 or some other non-integer, then it loads max score
 # perhaps we should consider being explicit, like fid = maxscore
 if (!empty($fid)) {

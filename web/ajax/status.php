@@ -546,6 +546,9 @@ function getNearEvents() {
   }
   $filter_sql = $filter->sql();
 
+  # parseSort() gives 'asc' or 'desc', the comparisons below are against 'ASC'.
+  $sortOrder = strtoupper($sortOrder);
+
   # When listing, it may make sense to list them in descending order.
   # But when viewing Prev should be timewise earlier and Next should be after.
   if ( $sortColumn == 'E.Id' or $sortColumn == 'E.StartDateTime' ) {

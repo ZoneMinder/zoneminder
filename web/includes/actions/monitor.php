@@ -252,10 +252,10 @@ if ($action == 'save') {
                 $points[$i]['y'] = $x;
               }
               $newZone['Coords'] = pointsToCoords($points);
-              $changes = getFormChanges($zone, $newZone, $types);
+              $zoneChanges = getFormChanges($zone, $newZone, $types);
 
-              if ( count($changes) ) {
-                dbQuery('UPDATE Zones SET '.implode(', ', $changes).' WHERE MonitorId=? AND Id=?',
+              if ( count($zoneChanges) ) {
+                dbQuery('UPDATE Zones SET '.implode(', ', $zoneChanges).' WHERE MonitorId=? AND Id=?',
                   array($mid, $zone['Id']));
               }
             } # end foreach zone
@@ -271,10 +271,10 @@ if ($action == 'save') {
               $newZone['MinBlobPixels'] = intval(round(($zone['MinBlobPixels']*$newA)/$oldA));
               $newZone['MaxBlobPixels'] = intval(round(($zone['MaxBlobPixels']*$newA)/$oldA));
 
-              $changes = getFormChanges($zone, $newZone, $types);
+              $zoneChanges = getFormChanges($zone, $newZone, $types);
 
-              if ( count($changes) ) {
-                dbQuery('UPDATE Zones SET '.implode(', ', $changes).' WHERE MonitorId=? AND Id=?',
+              if ( count($zoneChanges) ) {
+                dbQuery('UPDATE Zones SET '.implode(', ', $zoneChanges).' WHERE MonitorId=? AND Id=?',
                   array($mid, $zone['Id']));
               }
             } // end foreach zone

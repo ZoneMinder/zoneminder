@@ -624,8 +624,9 @@ ZM\Debug("Figuring out height using width: $height = ($width * $oldHeight) / $ol
       header('Content-Disposition: inline; filename="' . $filename . '"');
     }
 
-    if (!file_exists($scaled_path)) {
-      ZM\Debug("Cached scaled image does not exist at $scaled_path. Creating it");
+    // snapshot.jpg is rewritten while the event runs, so a cached scale of an older one is stale
+    if (!file_exists($scaled_path) || filemtime($scaled_path) < filemtime($path)) {
+      ZM\Debug("Cached scaled image missing or older than the source at $scaled_path. Creating it");
 
       if (!$i) {
         $i = imagecreatefromjpeg($path);

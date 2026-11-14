@@ -62,6 +62,7 @@ if (!empty($_REQUEST['mid'])) {
 if (!$monitor) {
   $thisNewMonitor = true;
   $monitor = new ZM\Monitor();
+  $monitor->apply_initial_defaults();
   $monitor->Name(translate('Monitor').'-'.getTableAutoInc('Monitors'));
   while (isset($monitors_by_name[$monitor->Name()])) {
     $monitor->Name($monitor->Name().'0');
@@ -75,9 +76,10 @@ if (isset($_REQUEST['dupId'])) {
   if (ZM_OPT_X10)
     $x10Monitor = dbFetchOne('SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['dupId']));
   $clonedName = $monitor->Name();
-  $monitor->Name('Clone of '.$monitor->Name());
-  while (isset($monitors_by_name[$monitor->Name()])) {
-    $monitor->Name('Clone of '.$monitor->Name());
+  // Monitors.Name is varchar(64)
+  $monitor->Name(mb_substr('Clone of '.$monitor->Name(), 0, 64));
+  for ($i = 0; $i < 10 && isset($monitors_by_name[$monitor->Name()]); $i++) {
+    $monitor->Name(mb_substr('Clone of '.$monitor->Name(), 0, 64));
   }
   $monitor->Id($mid);
 }
@@ -538,6 +540,7 @@ switch ($name) {
                   <input type="text" name="newMonitor[Manufacturer]"
                     placeholder="enter new manufacturer name"
                     autocomplete="new_manufacturer"
+                    value="<?php echo validHtmlStr($monitor->ManufacturerId() ? '' : $monitor->Manufacturer()->Name()) ?>"
                     <?php echo $monitor->ManufacturerId() ? ' style="display:none" disabled="disabled"' : '' ?>
                     data-on-input-this="Manufacturer_onchange"
                   />
@@ -564,6 +567,7 @@ switch ($name) {
                   <input type="text" name="newMonitor[Model]"
                     placeholder="enter new model name"
                     autocomplete="new_model"
+                    value="<?php echo validHtmlStr($monitor->ModelId() ? '' : $monitor->Model()->Name()) ?>"
                     <?php echo $monitor->ModelId() ? ' style="display:none" disabled="disabled"' : '' ?>
                     data-on-input-this="Model_onchange"
                     />

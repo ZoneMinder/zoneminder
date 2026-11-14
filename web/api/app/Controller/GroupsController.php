@@ -159,6 +159,7 @@ class GroupsController extends AppController {
 		if ( !$this->Group->exists($id) ) {
 			throw new NotFoundException(__('Invalid group'));
 		}
+    $message = '';
 		if ( $this->request->is(array('post', 'put'))) {
       global $user;
       # We already tested for auth in appController,
@@ -204,7 +205,7 @@ class GroupsController extends AppController {
 		$this->set(array(
 			'message' => $message,
 			'group' => $group,
-			'_serialize' => array('group')
+			'_serialize' => array('message', 'group')
 		));
 	}
 

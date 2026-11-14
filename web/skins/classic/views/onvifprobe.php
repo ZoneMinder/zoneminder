@@ -62,7 +62,7 @@ function execONVIF($cmd, $log_cmd = null) {
 
 function probeCameras($localIp) {
   $cameras = array();
-  $lines = @execONVIF('probe 1.1,1.2'.(isset($_REQUEST['interface']) ? ' '.escapeshellarg($_REQUEST['interface']) : '' ));
+  $lines = @execONVIF('probe 1.1,1.2'.(isset($_REQUEST['interface']) and is_string($_REQUEST['interface']) ? ' '.escapeshellarg($_REQUEST['interface']) : '' ));
   if ($lines) {
     foreach ($lines as $line) {
       $line = rtrim($line);

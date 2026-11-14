@@ -31,6 +31,7 @@ use autouse 'Pod::Usage'=>qw(pod2usage);
 use POSIX qw/strftime EPIPE EINTR/;
 use Socket;
 use Data::Dumper;
+use JSON::MaybeXS qw(decode_json);
 
 use constant MAX_CONNECT_DELAY => 15;
 use constant MAX_COMMAND_WAIT => 1800;
@@ -261,7 +262,12 @@ if ($options{command}) {
           next;
         }
 
-        my $params = jsonDecode($message);
+        my $params = eval { decode_json($message) };
+        if ( ref($params) ne 'HASH' ) {
+          Error("Ignoring malformed control message '$message'");
+          close(CLIENT);
+          next;
+        }
         Debug(Dumper($params));
 
         my $command = $params->{command};

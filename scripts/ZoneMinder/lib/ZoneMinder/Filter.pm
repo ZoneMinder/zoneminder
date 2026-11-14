@@ -142,20 +142,18 @@ sub Execute {
   $sth->finish();
   Debug('Loaded ' . @results . ' events for filter '.$$self{Name}.' using query ('.$sql.')"');
   if ($self->{PostSQLConditions} and @{$self->{PostSQLConditions}}) {
-    my @filtered_events;
     foreach my $term ( @{$$self{PostSQLConditions}} ) {
       if ( $$term{attr} eq 'ExistsInFileSystem' ) {
+        my $want_exists = ($$term{val} eq 'true') ? 1 : 0;
+        $want_exists = !$want_exists if ($$term{op}//'') eq 'IS NOT';
+        my @filtered_events;
         foreach my $row ( @results ) {
           my $event = new ZoneMinder::Event($$row{Id}, $row);
-          if ( -e $event->Path() ) {
-            push @filtered_events, $row if $$term{val} eq 'true';
-          } else {
-            push @filtered_events, $row if $$term{val} eq 'false';
-          }
+          push @filtered_events, $row if (-e $event->Path()) ? $want_exists : !$want_exists;
         }
+        @results = @filtered_events;
       }
     } # end foreach term
-    @results = @filtered_events;
   } # end if has PostSQLConditions
   return @results;
 } # end sub Execute
@@ -223,6 +221,7 @@ sub Sql {
           }
         }
 
+        my $tags_exist = 0;
         my $date_column = '';
         if ( $term->{attr} eq 'Date' or $term->{attr} eq 'StartDate' ) {
           $date_column = 'E.StartDateTime';
@@ -241,13 +240,21 @@ sub Sql {
         if ( $term->{attr} eq 'AlarmedZoneId' ) {
           $term->{op} = 'EXISTS';
         } elsif ( $term->{attr} eq 'Tags' ) {
-          $fields .= ', (SELECT GROUP_CONCAT(Name) FROM Tags WHERE Id IN (SELECT TagId FROM Events_Tags WHERE Events_Tags.EventId=E.Id)) As Tags';
+          $fields .= ', (SELECT GROUP_CONCAT(Name) FROM Tags WHERE Id IN (SELECT TagId FROM Events_Tags WHERE Events_Tags.EventId=E.Id)) As Tags' if $fields !~ /As Tags/;
+          # Comparing the joined tag row gets "is not" wrong and repeats events with several tags.
+          $tags_exist = (
+            defined($term->{val})
+            and ($term->{op}//'') =~ /^(?:=|!=|=\[\]|!\[\]|IN|NOT IN|IS|IS NOT)$/
+            and !grep { $_ eq '0' or $_ eq '-1' } split(/["'\s]*,["'\s]*/, $term->{val})
+          ) ? 1 : 0;
           # Don't prepend T.Id for special tag values (0="No Tag", -1="Any Tag")
           # as those use EXISTS/NOT EXISTS subqueries instead
-          if (!defined($term->{val}) or ($term->{val} ne '0' and $term->{val} ne '-1')) {
+          if (!$tags_exist and (!defined($term->{val}) or ($term->{val} ne '0' and $term->{val} ne '-1'))) {
             $self->{Sql} .= 'T.Id';
           }
-          $from .= ' LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId LEFT JOIN Tags AS T ON T.Id = ET.TagId';
+          if (!$tags_exist and $from !~ /Events_Tags AS ET/) {
+            $from .= ' LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId LEFT JOIN Tags AS T ON T.Id = ET.TagId';
+          }
         } elsif ( $term->{attr} =~ /^Monitor/ ) {
           if (!($fields =~ /MonitorName/)) {
             $fields .= ', M.Name as MonitorName';
@@ -445,6 +452,10 @@ sub Sql {
                 .' AND '.EFFECTIVE_END_SQL.' '.$term->{op}.' '.$_.')'
               } @value_list;
               $self->{Sql} .= ' '.((@subterms > 1) ? '('.join(' OR ', @subterms).')' : $subterms[0]);
+            }
+            elsif ( $tags_exist ) {
+              $self->{Sql} .= ( $term->{op} =~ /^(?:!=|!\[\]|NOT IN|IS NOT)$/ ? 'NOT ' : '' )
+                .'EXISTS (SELECT NULL FROM `Events_Tags` AS ET WHERE ET.EventId = E.Id AND ET.TagId IN ('.join(',', @value_list).'))';
             }
             # Handle special tag values before generic operators to avoid
             # LEFT JOIN NULL comparison issues with EXISTS/NOT EXISTS

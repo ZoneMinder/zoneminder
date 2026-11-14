@@ -28,6 +28,7 @@
 #include <limits>
 #include <grp.h>
 #include <poll.h>
+#include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/uio.h>
@@ -525,8 +526,48 @@ void StreamSocket::SendStatsLocked(Client &client, TimePoint now) {
   EnqueueLocked(client, stats);
 }
 
+// A consumer that reads drains the periodic STATS within moments, so bytes that
+// were written over a second ago and are still unread, observed continuously
+// for the stall timeout, mean it holds a slot without consuming anything.
+bool StreamSocket::IsUnreadTooLong(Client &client, TimePoint now) const {
+  using namespace std::chrono_literals;
+  if (now - client.last_progress < 1s)
+    return false;
+#if defined(TIOCOUTQ)
+  int unread = 0;
+  if (ioctl(client.sock->getDesc(), TIOCOUTQ, &unread) != 0 or unread <= 0) {
+    client.unread_since = TimePoint{};
+    return false;
+  }
+  // A gap between observations means traffic in between; start over
+  if (client.unread_since == TimePoint{} or now - client.unread_seen > 2s)
+    client.unread_since = now;
+  client.unread_seen = now;
+  return now - client.unread_since > config_.stall_timeout;
+#else
+  return false;
+#endif
+}
+
+// At most one rejection warning per interval, so a flood of refused
+// connections cannot write a database log row for each of them.
+void StreamSocket::LogRejected(const char *reason, uid_t uid, pid_t pid) {
+  using namespace std::chrono_literals;
+  ++rejected_since_log_;
+  TimePoint now = std::chrono::steady_clock::now();
+  if (last_reject_log_ != TimePoint{} and now - last_reject_log_ < 60s)
+    return;
+  Warning("StreamSocket: rejecting client uid %u pid %d on %s: %s"
+          " (%zu rejected since the last message)",
+          uid, pid, path_.c_str(), reason, rejected_since_log_);
+  last_reject_log_ = now;
+  rejected_since_log_ = 0;
+}
+
 void StreamSocket::AcceptClient() {
-  while (true) {
+  // Bounded so a connection flood cannot keep Run() from draining and
+  // stall-checking the established clients; the rest is accepted next pass.
+  for (int accepted = 0; accepted < kMaxAcceptsPerPass; ++accepted) {
     int fd = ::accept(listener_.getDesc(), nullptr, nullptr);
     if (fd < 0) {
       if (errno != EAGAIN and errno != EWOULDBLOCK and errno != EINTR)
@@ -539,15 +580,13 @@ void StreamSocket::AcceptClient() {
     uid_t uid = 0;
     pid_t pid = 0;
     if (!CheckPeer(fd, uid, pid)) {
-      Warning("StreamSocket: rejecting client uid %u pid %d on %s (not in allowed uids)",
-              uid, pid, path_.c_str());
+      LogRejected("not in allowed uids", uid, pid);
       continue;  // sock destructor closes the connection
     }
 
     std::lock_guard<std::mutex> lock(mutex_);
     if (clients_.size() >= config_.max_clients) {
-      Warning("StreamSocket: rejecting client uid %u pid %d on %s (%zu clients connected)",
-              uid, pid, path_.c_str(), clients_.size());
+      LogRejected("too many clients", uid, pid);
       continue;
     }
 
@@ -575,8 +614,8 @@ void StreamSocket::AcceptClient() {
     if (keyframe_)
       EnqueueLocked(*client, keyframe_);
 
-    Info("StreamSocket: monitor %u client connected uid %u pid %d (%zu clients)",
-         monitor_id_, uid, pid, clients_.size() + 1);
+    Debug(1, "StreamSocket: monitor %u client connected uid %u pid %d (%zu clients)",
+          monitor_id_, uid, pid, clients_.size() + 1);
     clients_.push_back(std::move(client));
   }
 }
@@ -646,11 +685,14 @@ void StreamSocket::Run() {
         remove = true;
 
       if (!remove and (revents & POLLIN)) {
-        // Protocol v1 has no client->server messages; discard inbound bytes,
-        // a zero read means the peer closed.
+        // Protocol v1 has no client->server messages: a zero read means the
+        // peer closed, and anything else is a protocol violation.
         uint8_t buffer[256];
         ssize_t bytes = ::recv(client.sock->getDesc(), buffer, sizeof(buffer), 0);
-        if (bytes == 0)
+        if (bytes > 0)
+          Debug(1, "StreamSocket: monitor %u dropping client uid %u pid %d that sent data",
+                monitor_id_, client.uid, client.pid);
+        if (bytes >= 0)
           remove = true;
       }
 
@@ -665,14 +707,18 @@ void StreamSocket::Run() {
                   " (%zu bytes queued, %" PRIu64 " dropped)",
                   monitor_id_, client.uid, client.pid, client.queued_bytes, client.dropped);
           remove = true;
+        } else if (client.queued_bytes == 0 and IsUnreadTooLong(client, now)) {
+          Warning("StreamSocket: monitor %u disconnecting client uid %u pid %d that is not"
+                  " reading its socket", monitor_id_, client.uid, client.pid);
+          remove = true;
         }
       }
 
       if (remove) {
         std::lock_guard<std::mutex> lock(mutex_);
-        Info("StreamSocket: monitor %u client uid %u pid %d disconnected"
-             " (sent %" PRIu64 ", dropped %" PRIu64 ")",
-             monitor_id_, client.uid, client.pid, client.sent, client.dropped);
+        Debug(1, "StreamSocket: monitor %u client uid %u pid %d disconnected"
+              " (sent %" PRIu64 ", dropped %" PRIu64 ")",
+              monitor_id_, client.uid, client.pid, client.sent, client.dropped);
         it = clients_.erase(it);
       } else {
         ++it;

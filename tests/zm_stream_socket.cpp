@@ -869,3 +869,79 @@ TEST_CASE("StreamSocket ignores media for a stream id that is not audio or video
 
   server.Stop();
 }
+
+namespace {
+// Reads until the server closes the connection; false if it never does
+bool ReadUntilEof(TestClient &client, std::chrono::milliseconds timeout) {
+  ReceivedMessage message;
+  auto deadline = std::chrono::steady_clock::now() + timeout;
+  while (std::chrono::steady_clock::now() < deadline) {
+    if (!client.ReadMessage(message, std::chrono::milliseconds(200))) {
+      char byte;
+      ssize_t bytes = ::recv(client.sock_.getDesc(), &byte, 1, MSG_PEEK | MSG_DONTWAIT);
+      if (bytes == 0)
+        return true;
+    }
+  }
+  return false;
+}
+}  // namespace
+
+TEST_CASE("StreamSocket accepts every client of a connection burst", "[stream_socket]") {
+  StreamSocket::Config config;
+  config.max_clients = 32;
+  StreamSocket server(1, kSockPath, config);
+  REQUIRE(server.Start());
+  codec_parameters_ptr par = make_h264_parameters();
+  server.SetVideoParams(par.get(), {0, 0});
+
+  std::vector<std::unique_ptr<TestClient>> clients;
+  for (int i = 0; i < 24; ++i) {
+    clients.push_back(std::make_unique<TestClient>());
+    REQUIRE(clients.back()->Connect());
+  }
+  for (auto &client : clients) {
+    ReceivedMessage message;
+    REQUIRE(client->ReadMessage(message));
+    REQUIRE(message.header.type == static_cast<uint8_t>(MessageType::Hello));
+  }
+  server.Stop();
+}
+
+TEST_CASE("StreamSocket drops a client that never reads its socket", "[stream_socket]") {
+  StreamSocket::Config config;
+  config.stall_timeout = std::chrono::milliseconds(2500);
+  config.stats_interval = std::chrono::milliseconds(1500);
+  StreamSocket server(1, kSockPath, config);
+  REQUIRE(server.Start());
+  codec_parameters_ptr par = make_h264_parameters();
+  server.SetVideoParams(par.get(), {0, 0});
+
+  TestClient silent;
+  REQUIRE(silent.Connect());
+  TestClient reader;
+  REQUIRE(reader.Connect());
+
+  // The reader keeps consuming STATS; the silent client does not
+  ReceivedMessage message;
+  auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(6);
+  while (std::chrono::steady_clock::now() < deadline)
+    REQUIRE(reader.ReadMessage(message, std::chrono::milliseconds(3000)));
+
+  REQUIRE(ReadUntilEof(silent, std::chrono::seconds(2)));
+  REQUIRE(reader.ReadMessage(message, std::chrono::milliseconds(3000)));
+  server.Stop();
+}
+
+TEST_CASE("StreamSocket disconnects a client that sends data", "[stream_socket]") {
+  StreamSocket server(1, kSockPath);
+  REQUIRE(server.Start());
+
+  TestClient client;
+  REQUIRE(client.Connect());
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  REQUIRE(::send(client.sock_.getDesc(), "garbage", 7, MSG_NOSIGNAL) == 7);
+
+  REQUIRE(ReadUntilEof(client, std::chrono::seconds(3)));
+  server.Stop();
+}

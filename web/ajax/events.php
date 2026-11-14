@@ -338,7 +338,8 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     } else if ($search != '') {
       $search = '%' .$search. '%';
       $terms = array();
-      foreach ($columns as $col) {
+      // MonitorName is M.Name, which the Monitor column shows.
+      foreach (array_merge($columns, array('MonitorName')) as $col) {
         $terms[] = array('cnj'=>'or', 'attr'=>$col, 'op'=>'LIKE', 'val'=>strtolower($search), 'collate'=>'utf8mb4_general_ci');
       }
       $terms[0]['obr'] = 1;

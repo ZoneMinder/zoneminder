@@ -471,6 +471,7 @@ my $add_placeholder = ( ! ( $field =~ /\?/ ) ) ?  1 : 0;
       return ( $value ? '' : 'NOT ' ) . 'EXISTS ' . $field.$type;
   } elsif ( $operator eq 'in' or $operator eq 'not in' ) {
     if ( ref $value eq 'ARRAY' ) {
+      return ( $operator eq 'in' ? '1=0' : '1=1' ) if !@{$value};
       return ( $field.$type.' ' . $operator . ' ('. join(',', map { '?' } @{$value} ) . ')', @{$value} );
     } else {
       return ( $field.$type.' ' . $operator . ' (?)', $value );
@@ -625,7 +626,9 @@ $log->debug("$object_type param $field($type) func($function) " . ( ref $$search
 $log->debug("Have array for $k $$search{$k}") if DEBUG_ALL;
             
             if ( ! ( $db_field =~ /\?/ ) ) {
-              if ( @{$$search{$k}} != 1 ) {
+              if ( !@{$$search{$k}} ) {
+                push @where, '1=0';
+              } elsif ( @{$$search{$k}} != 1 ) {
                 push @where, '`'.$db_field .'` IN ('.join(',', map {'?'} @{$$search{$k}} ) . ')';
               } else {
                 push @where, '`'.$db_field.'`=?';

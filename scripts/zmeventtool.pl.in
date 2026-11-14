@@ -37,7 +37,6 @@ be run from a filter but could be run manually.
 =head1 OPTIONS
 
  close               - Update event record after a crash
- deletejpegs         - Deletes all jpegs from the event directory
  deleteanalysisjpegs - Deletes the analysis jpegs from the event directory
 
  --help              - Print usage information.
@@ -94,9 +93,14 @@ if ($help or (@ARGV < 2) ) {
   pod2usage(-exitstatus => -1);
 }
 
+my $command = shift @ARGV;
+if ( $command !~ /^(?:close|deleteanalysisjpegs|renumber)$/ ) {
+  print( STDERR "Unknown command '$command'\n" );
+  pod2usage(-exitstatus => -1);
+}
+
 my $dbh = zmDbConnect();
 
-my $command = shift @ARGV;
 foreach my $event_id (@ARGV) {
   if ( $event_id =~ /\D/ ) {
     # Assume path to event, strip it

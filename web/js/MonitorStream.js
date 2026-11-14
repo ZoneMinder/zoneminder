@@ -1457,6 +1457,8 @@ function MonitorStream(monitorData) {
           $j('#zoomValue'+this.id).text(this.status.zoom);
           if (this.status.zoom == '1.0') {
             $j('#zoom'+this.id).addClass('hidden');
+          } else {
+            $j('#zoom'+this.id).removeClass('hidden');
           }
           if ('zoomOutBtn' in this.buttons) {
             if (this.status.zoom == '1.0') {

@@ -916,7 +916,8 @@ function streamStart(monitor = null) {
 
   monitorStream.setButton('enableAlarmButton', enableAlmBtn);
   monitorStream.setButton('forceAlarmButton', forceAlmBtn);
-  monitorStream.setButton('zoomOutButton', $j('zoomOutBtn'));
+  // Only the old ZoomPan uses the button; setButtonState() would unhide it
+  if (!panZoomEnabled) monitorStream.setButton('zoomOutBtn', $j('#zoomOutBtn'));
   monitorStream.setButton('analyseBtn', analyseBtn);
   if (canEdit.Monitors) {
     // Will be enabled by streamStatus ajax

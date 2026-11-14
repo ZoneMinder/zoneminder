@@ -103,7 +103,7 @@ $codecs = array(
   'MJPEG' => translate('MJPEG'),
 );
 $codec = 'auto';
-if (isset($_REQUEST['codec'])) {
+if (isset($_REQUEST['codec']) and is_string($_REQUEST['codec'])) {
   $codec = $_REQUEST['codec'];
   $_SESSION['zmEventCodec'.$Event->MonitorId()] = $codec;
 } else if ( isset($_SESSION['zmEventCodec'.$Event->MonitorId()]) ) {
@@ -132,7 +132,7 @@ else
   $streamMode = 'video';
 
 $replayMode = '';
-if (isset($_REQUEST['replayMode'])) {
+if (isset($_REQUEST['replayMode']) and is_string($_REQUEST['replayMode'])) {
   if (isset($replayModes[$_REQUEST['replayMode']])) {
     $replayMode = $_REQUEST['replayMode'];
   } else {
@@ -270,7 +270,7 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
               'VideoAudioVisualization'=>translate('Video and audio visualization')
             ];
             $whatDisplaySelected = 'Default'; // Default
-            if (isset($_REQUEST['whatDisplay']) and isset($whatDisplayOptions[$_REQUEST['whatDisplay']])) {
+            if (isset($_REQUEST['whatDisplay']) and is_string($_REQUEST['whatDisplay']) and isset($whatDisplayOptions[$_REQUEST['whatDisplay']])) {
               $whatDisplaySelected = validHtmlStr($_REQUEST['whatDisplay']);
             } else if (isset($_COOKIE['zmWhatDisplay']) and isset($whatDisplayOptions[$_COOKIE['zmWhatDisplay']])) {
               $whatDisplaySelected = validHtmlStr($_COOKIE['zmWhatDisplay']);

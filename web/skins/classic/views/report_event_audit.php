@@ -97,12 +97,15 @@ while ( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
   if ( count($EventsByMonitor[$event['MonitorId']]['Events']) ) {
     $last_event = end($EventsByMonitor[$event['MonitorId']]['Events']);
 #Debug(print_r($last_event,true));
-    $gap = $last_event->EndTimeSecs() - $event['StartTimeSecs'];
- 
-    if ( $gap < $EventsByMonitor[$event['MonitorId']]['MinGap'] )
-      $EventsByMonitor[$event['MonitorId']]['MinGap'] = $gap;
-    if ( $gap > $EventsByMonitor[$event['MonitorId']]['MaxGap'] )
-      $EventsByMonitor[$event['MonitorId']]['MaxGap'] = $gap;
+    // An event still recording has no end to measure a gap from
+    if ( $last_event->EndTimeSecs() !== null ) {
+      $gap = $last_event->EndTimeSecs() - $event['StartTimeSecs'];
+
+      if ( $gap < $EventsByMonitor[$event['MonitorId']]['MinGap'] )
+        $EventsByMonitor[$event['MonitorId']]['MinGap'] = $gap;
+      if ( $gap > $EventsByMonitor[$event['MonitorId']]['MaxGap'] )
+        $EventsByMonitor[$event['MonitorId']]['MaxGap'] = $gap;
+    }
 
   } # end if has previous events
   if ( !$Event->file_exists() ) {

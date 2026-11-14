@@ -29,6 +29,15 @@ class EventsController extends AppController {
     }
   }
 
+  // The columns of Events and of Tags.Id, the one joined column index() filters on.
+  // Qualify bare Events columns so they aren't ambiguous next to the joins.
+  private function filterColumns() {
+    return array(
+      'Event' => array_keys($this->Event->schema()),
+      'Tags' => array('Id'),
+    );
+  }
+
   /**
    * index method
    *
@@ -81,6 +90,7 @@ class EventsController extends AppController {
       $valid_fields = array_keys($this->Event->schema());
       $valid_fields[] = 'DateTime';
       $valid_fields[] = 'GroupId';
+      $named_params = $this->FilterComponent->qualifyFields($named_params, $this->filterColumns(), array('DateTime', 'GroupId'));
       $conditions = $this->FilterComponent->buildFilter($named_params, $valid_fields);
       #ZM\Debug(print_r($conditions, true));
       # DateTime is a pseudo-attribute meaning "the event was running then", so a
@@ -141,6 +151,7 @@ class EventsController extends AppController {
         $tag_filter_field = 'Name';
         unset($raw_params['Tags']);
       }
+      $raw_params = $this->FilterComponent->qualifyFields($raw_params, $this->filterColumns(), array('DateTime', 'GroupId'));
       $conditions = $this->FilterComponent->buildFilter($raw_params, array_merge(array_keys($this->Event->schema()), array('DateTime', 'GroupId')));
     }
     $settings = array(

@@ -579,7 +579,12 @@ if ( $errorText ) {
     ZM\Warning("File '$path' cannot be locked because it does not exist.");
     return;
   }
-  $fp_path = fopen($path, 'r');
+  $fp_path = @fopen($path, 'r');
+  if (!$fp_path) {
+    header('HTTP/1.0 404 Not Found');
+    ZM\Error("Unable to open '$path' for reading.");
+    return;
+  }
   $lock = flock($fp_path, LOCK_SH);
   if (!$lock) ZM\Warning("Unable to get a read lock on $path, continuing.");
 
@@ -587,7 +592,7 @@ if ( $errorText ) {
   header('Cache-Control: max-age=86400');
   header('Expires: '.gmdate('D, d M Y H:i:s \G\M\T', time() + (60 * 60))); // Default set to 1 hour
   header('Pragma: cache');
-  if ((($scale==0 || $scale==100) && ($width==0) && ($height==0)) or !function_exists('imagecreatefromjpeg')) {
+  if ((($scale==0 || $scale==100) && ($width==0) && ($height==0)) or !function_exists('imagecreatefromjpeg') or $media_type != 'image/jpeg') {
     # This is so that Save Image As give a useful filename
     if ($Event) {
       $filename = $Event->MonitorId().'_'.$Event->Id().'_'.$Frame->FrameId().'.jpg';
@@ -624,8 +629,9 @@ ZM\Debug("Figuring out height using width: $height = ($width * $oldHeight) / $ol
       header('Content-Disposition: inline; filename="' . $filename . '"');
     }
 
-    if (!file_exists($scaled_path)) {
-      ZM\Debug("Cached scaled image does not exist at $scaled_path. Creating it");
+    // snapshot.jpg is rewritten while the event runs, so a cached scale of an older one is stale
+    if (!file_exists($scaled_path) || filemtime($scaled_path) < filemtime($path)) {
+      ZM\Debug("Cached scaled image missing or older than the source at $scaled_path. Creating it");
 
       if (!$i) {
         $i = imagecreatefromjpeg($path);
@@ -650,7 +656,7 @@ ZM\Debug("Figuring out height using width: $height = ($width * $oldHeight) / $ol
           unset($i);
           unset($iScale);
         }
-        $scaled_jpeg_data = ob_get_contents();
+        $scaled_jpeg_data = ob_get_clean();
         file_put_contents($scaled_path, $scaled_jpeg_data, LOCK_EX);
 
         echo $scaled_jpeg_data;

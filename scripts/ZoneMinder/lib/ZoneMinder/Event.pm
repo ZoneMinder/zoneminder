@@ -311,7 +311,9 @@ sub GenerateVideo {
   if ( $overwrite || !-s $video_file ) {
     Info("Creating video file $video_file for event $self->{Id}");
 
-    my $frame_rate = sprintf('%.2f', $self->{Frames}/$self->{FullLength});
+    # A single frame spans no time and an event without Frames rows has no FullLength.
+    my $full_length = $self->{FullLength} || $self->{Length};
+    my $frame_rate = $full_length ? sprintf('%.2f', $self->{Frames}/$full_length) : 1;
     if ( $rate ) {
       if ( $rate != 1.0 ) {
         $frame_rate *= $rate;

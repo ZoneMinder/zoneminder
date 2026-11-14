@@ -89,9 +89,11 @@ class SnapshotsController extends AppController {
         return;
       }
 
-      if ( $this->request->data['Snapshot']['EventIds'] and ! isset($this->request->data['Event']) ) {
-        $this->request->data['Event'] = explode(',', $this->request->data['Snapshot']['EventIds']);
-        unset($this->request->data['Snapshot']['EventIds']);
+      $eventIds = $this->requestField('Snapshot', 'EventIds');
+      if ( is_string($eventIds) and $eventIds !== '' and ! isset($this->request->data['Event']) ) {
+        $this->request->data['Event'] = explode(',', $eventIds);
+        unset($this->request->data['EventIds']);
+        if ( isset($this->request->data['Snapshot']) and is_array($this->request->data['Snapshot']) ) unset($this->request->data['Snapshot']['EventIds']);
       }
       # A snapshot exposes its events to Snapshots viewers, so only viewable events may be added.
       $eventIds = $this->requestAssociatedIds('Snapshot', 'Event');

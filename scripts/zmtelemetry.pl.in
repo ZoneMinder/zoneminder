@@ -117,7 +117,7 @@ while (1) {
     sleep($interval);
     next;
   }
-  if ((($since_last_check) > $interval) or $force) {
+  if ((($since_last_check) >= $interval) or $force) {
     print "Collecting data to send to ZoneMinder Telemetry server.\n";
     # Build the telemetry hash
     # We should keep *BSD systems in mind when calling system commands
@@ -130,11 +130,11 @@ while (1) {
       ZoneMinder::Database::zmDbDo('UPDATE Config SET Value=? WHERE Name=?',
         $now, 'ZM_TELEMETRY_LAST_UPLOAD');
       $Config{ZM_TELEMETRY_LAST_UPLOAD} = $now;
+      $lastCheck = $now;
     }
   } elsif (-t STDIN) {
     print "ZoneMinder Telemetry Agent sleeping for $interval seconds because ($now-$lastCheck=$since_last_check > $interval\n";
   }
-  $lastCheck = $now;
   sleep($interval);
 } # end while
 print 'ZoneMinder Telemetry Agent exiting at '.strftime('%y/%m/%d %H:%M:%S', localtime())."\n";

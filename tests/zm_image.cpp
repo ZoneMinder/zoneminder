@@ -709,3 +709,56 @@ TEST_CASE("Image::Fill polygon writes the expected pixels for each density", "[i
     }
   }
 }
+
+TEST_CASE("Image::Blend YUV420P blends only luma", "[image]") {
+  bootstrap_image_config();
+  const int w = 64, h = 16;
+  Image ref(w, h, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_YUV420P);
+  Image frame(w, h, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_YUV420P);
+  Planes rp = plane_view(ref, AV_PIX_FMT_YUV420P, w, h);
+  Planes fp = plane_view(frame, AV_PIX_FMT_YUV420P, w, h);
+  const size_t ysize = static_cast<size_t>(rp.stride[0]) * h;
+  REQUIRE(ref.LineSize() == static_cast<unsigned int>(rp.stride[0]));
+  REQUIRE(rp.data[0] == ref.Buffer());
+
+  Image gray_ref(w, h, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE);
+  Image gray_frame(w, h, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE);
+  REQUIRE(gray_ref.LineSize() == ref.LineSize());
+  for (size_t i = 0; i < ysize; i++) {
+    rp.data[0][i] = static_cast<uint8_t>(i * 3);
+    fp.data[0][i] = static_cast<uint8_t>(255 - i * 5);
+  }
+  memcpy(gray_ref.Buffer(), rp.data[0], ysize);
+  memcpy(gray_frame.Buffer(), fp.data[0], ysize);
+  memset(rp.data[1], 0x11, rp.stride[1] * (h / 2));
+  memset(rp.data[2], 0x22, rp.stride[2] * (h / 2));
+  memset(fp.data[1], 0xE1, fp.stride[1] * (h / 2));
+  memset(fp.data[2], 0xE2, fp.stride[2] * (h / 2));
+
+  for (int pass = 0; pass < 2; pass++) {
+    ref.Blend(frame, 25);
+    gray_ref.Blend(gray_frame, 25);
+    Planes p = plane_view(ref, AV_PIX_FMT_YUV420P, w, h);
+    REQUIRE(memcmp(p.data[0], gray_ref.Buffer(), ysize) == 0);
+    for (int y = 0; y < h / 2; y++)
+      for (int x = 0; x < w / 2; x++) {
+        REQUIRE(p.data[1][y * p.stride[1] + x] == 0x11);
+        REQUIRE(p.data[2][y * p.stride[2] + x] == 0x22);
+      }
+  }
+
+  // A same-sized Assign reuses the buffer; the next blend must keep its chroma.
+  Image fresh(w, h, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_YUV420P);
+  Planes np = plane_view(fresh, AV_PIX_FMT_YUV420P, w, h);
+  memset(np.data[0], 0x80, ysize);
+  memset(np.data[1], 0x33, np.stride[1] * (h / 2));
+  memset(np.data[2], 0x44, np.stride[2] * (h / 2));
+  ref.Assign(fresh);
+  ref.Blend(frame, 25);
+  Planes p = plane_view(ref, AV_PIX_FMT_YUV420P, w, h);
+  for (int y = 0; y < h / 2; y++)
+    for (int x = 0; x < w / 2; x++) {
+      REQUIRE(p.data[1][y * p.stride[1] + x] == 0x33);
+      REQUIRE(p.data[2][y * p.stride[2] + x] == 0x44);
+    }
+}

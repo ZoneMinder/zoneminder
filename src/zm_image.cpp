@@ -2475,6 +2475,12 @@ void Image::Blend( const Image &image, int transparency ) {
   if ( transparency <= 0 )
     return;
 
+  // Delta only reads the Y plane of planar YUV, so blend that in place and leave the chroma alone.
+  if (imagePixFormat != AV_PIX_FMT_GRAY8 && zm_bytes_per_pixel(imagePixFormat) == 1) {
+    (*blend)(buffer, image.buffer, buffer, static_cast<size_t>(linesize) * height, transparency);
+    return;
+  }
+
   // Reuse persistent blend buffer to avoid per-frame alloc/free
   if (blend_buffer_size_ < size) {
     if (blend_buffer_) zm_freealigned(blend_buffer_);

@@ -605,24 +605,16 @@ class Event extends ZM_Object {
     if ( $Server->Id() != ZM_SERVER_ID ) {
 
       $url = $Server->UrlToApi() . '/events/'.$this->{'Id'}.'.json';
-      if ( ZM_OPT_USE_AUTH ) {
-        if ( ZM_AUTH_RELAY == 'hashed' ) {
-          $url .= '?auth='.generateAuthHash( ZM_AUTH_HASH_IPS );
-        } else if ( ZM_AUTH_RELAY == 'plain' ) {
-          $url .= '?user='.$_SESSION['username'];
-          $url .= '?pass='.$_SESSION['password'];
-        } else {
-          Error('Multi-Server requires AUTH_RELAY be either HASH or PLAIN');
-          return;
-        }
-      }
+      $auth_relay = get_auth_relay();
+      if ($auth_relay) $url .= '?'.$auth_relay;
       Debug('sending command to '.urlForLog($url));
       // use key 'http' even if you send the request to https://...
       $options = array(
           'http' => array(
             'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
             'method'  => 'GET',
-            'content' => ''
+            'content' => '',
+            'timeout' => 10
             )
           );
       $context  = stream_context_create($options);
@@ -653,24 +645,16 @@ class Event extends ZM_Object {
     if ( $Server->Id() != ZM_SERVER_ID ) {
 
       $url = $Server->UrlToApi().'/events/'.$this->{'Id'}.'.json';
-      if ( ZM_OPT_USE_AUTH ) {
-        if ( ZM_AUTH_RELAY == 'hashed' ) {
-          $url .= '?auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
-        } elseif ( ZM_AUTH_RELAY == 'plain' ) {
-          $url .= '?user='.$_SESSION['username'];
-          $url .= '?pass='.$_SESSION['password'];
-        } else {
-          Error('Multi-Server requires AUTH_RELAY be either HASH or PLAIN');
-          return;
-        }
-      }
+      $auth_relay = get_auth_relay();
+      if ($auth_relay) $url .= '?'.$auth_relay;
       Debug('sending command to '.urlForLog($url));
       // use key 'http' even if you send the request to https://...
       $options = array(
           'http' => array(
             'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
             'method'  => 'GET',
-            'content' => ''
+            'content' => '',
+            'timeout' => 10
             )
           );
       $context = stream_context_create($options);

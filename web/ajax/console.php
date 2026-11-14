@@ -59,6 +59,15 @@ function saveMonitorSequence($monitor_ids) {
   }
 }
 
+// The legacy Function column is skipped: nothing maintains it any more.
+function monitorMatchesSearch($monitor, $search) {
+  foreach (array('Name', 'Path', 'Device', 'Host', 'Id', 'Status') as $field) {
+    if (isset($monitor[$field]) && stripos($monitor[$field], $search) !== false)
+      return true;
+  }
+  return false;
+}
+
 function queryRequest() {
   global $user, $Servers;
   require_once('includes/Monitor.php');
@@ -180,18 +189,8 @@ function queryRequest() {
   // Apply search filter
   $filtered_monitors = $unfiltered_monitors;
   if ($search != '') {
-    $search_lower = strtolower($search);
-    $filtered_monitors = array_filter($unfiltered_monitors, function($monitor) use ($search_lower) {
-      // Search across common fields without creating Monitor object
-      return (
-        stripos($monitor['Name'], $search_lower) !== false ||
-        stripos($monitor['Function'], $search_lower) !== false ||
-        stripos($monitor['Path'], $search_lower) !== false ||
-        stripos($monitor['Device'], $search_lower) !== false ||
-        stripos($monitor['Host'], $search_lower) !== false ||
-        stripos($monitor['Id'], $search_lower) !== false ||
-        (isset($monitor['Status']) && stripos($monitor['Status'], $search_lower) !== false)
-      );
+    $filtered_monitors = array_filter($unfiltered_monitors, function($monitor) use ($search) {
+      return monitorMatchesSearch($monitor, $search);
     });
   }
   

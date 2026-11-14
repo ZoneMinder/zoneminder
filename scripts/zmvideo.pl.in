@@ -190,7 +190,7 @@ if ( $event_id ) {
 } elsif ( $filter_name or $filter_id ) {
   my $Filter = ZoneMinder::Filter->find_one( 
       ($filter_name ? ( Name => $filter_name ) : () ),
-      ($filter_id ? ( Id => $filter_name ) : () ),
+      ($filter_id ? ( Id => $filter_id ) : () ),
       );
   if ( ! $Filter ) {
     Fatal("Filter $filter_name $filter_id not found.");	

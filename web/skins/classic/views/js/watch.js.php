@@ -10,6 +10,7 @@
   global $labels;
   global $cycle;
   global $player;
+  $control = $monitor->Control();
 ?>
 //
 // Import constants
@@ -20,6 +21,8 @@ var LIST_THUMBS = <?php echo ZM_WEB_LIST_THUMBS?'true':'false' ?>;
 
 var streamMode = "<?php echo validJsStr($streamMode) ?>";
 var showMode = "<?php echo ($showPtzControls && !empty($control))?"control":"events" ?>";
+// Whether the PTZ panel starts shown: the request, the cookie or, with neither, shown
+var ptzVisible = <?php echo $showPtzControls ? 'true' : 'false' ?>;
 var cycle = <?php echo $cycle ? 'true' : 'false' ?>;
 var player = '<?php echo validJsStr($player) ?>';
 
@@ -82,7 +85,6 @@ const imageRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_IMAGE ?>;
 const canStream = <?php echo canStream()?'true':'false' ?>;
 
 var imageControlMode = '<?php 
-$control = $monitor->Control();
 if ($control->CanMoveMap()) {
   echo 'moveMap';
 } else if ($control->CanMoveRel()) {

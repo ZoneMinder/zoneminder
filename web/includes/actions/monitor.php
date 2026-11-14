@@ -128,6 +128,12 @@ if ($action == 'save') {
       'SOAP_wsa_compl' => 0 
       );
 
+  # The Control tab is only drawn with ZM_OPT_CONTROL and View permission on
+  # Control. Without it these checkboxes are absent, not unchecked.
+  if (!ZM_OPT_CONTROL or !canView('Control')) {
+    unset($types['Controllable'], $types['TrackMotion'], $types['ModectDuringPTZ']);
+  }
+
   # Checkboxes don't return an element in the POST data, so won't be present in newMonitor.
   # So force a value for these fields.
   # Deleted is deliberately NOT in this list: its checkbox is an "undelete"

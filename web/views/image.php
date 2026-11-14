@@ -579,7 +579,12 @@ if ( $errorText ) {
     ZM\Warning("File '$path' cannot be locked because it does not exist.");
     return;
   }
-  $fp_path = fopen($path, 'r');
+  $fp_path = @fopen($path, 'r');
+  if (!$fp_path) {
+    header('HTTP/1.0 404 Not Found');
+    ZM\Error("Unable to open '$path' for reading.");
+    return;
+  }
   $lock = flock($fp_path, LOCK_SH);
   if (!$lock) ZM\Warning("Unable to get a read lock on $path, continuing.");
 

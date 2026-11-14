@@ -61,6 +61,8 @@ Server::Server(unsigned int p_id) : id(p_id) {
       path_to_index = ColumnString(dbrow[index++]);
       path_to_zms = ColumnString(dbrow[index++]);
       path_to_api = ColumnString(dbrow[index++]);
+      // The web ui reaches a server by its name when no hostname is set.
+      if (hostname.empty()) hostname = name;
       Debug(1, "Loaded Server %d '%s' %s://%s", id, name.c_str(), protocol.c_str(), hostname.c_str());
     }
   }

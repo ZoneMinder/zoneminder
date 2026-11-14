@@ -363,6 +363,14 @@ function initPage() {
     deleteButton.prop('disabled', !(selections.length && canEdit.Events));
   });
 
+  table.on('sort.bs.table', function(evt, name, order) {
+    const sortField = (name == 'Monitor') ? 'MonitorName' : name;
+    // Columns the event view has no matching order for keep the previous one
+    if (['Id', 'Name', 'Cause', 'MonitorName', 'StartDateTime', 'EndDateTime', 'Length', 'Frames',
+      'AlarmFrames', 'TotScore', 'AvgScore', 'MaxScore', 'DiskSpace'].indexOf(sortField) < 0) return;
+    sortQuery = '&sort_field=' + sortField + '&sort_asc=' + (order == 'asc' ? '1' : '0');
+  });
+
   // Don't enable the back button if there is no previous zm page to go back to
   backButton.prop('disabled', !document.referrer.length);
 

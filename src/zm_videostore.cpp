@@ -37,6 +37,12 @@ extern "C" {
 #include <unistd.h>
 #include <sys/stat.h>
 
+static bool option_number(const AVDictionaryEntry *entry, uint64_t &out) {
+  if (zm_parse_option_number(entry->value, out)) return true;
+  Warning("Option %s=%s is not a number", entry->key, entry->value);
+  return false;
+}
+
 VideoStore::VideoStore(
   const char *filename_in,
   const char *format_in,
@@ -140,8 +146,11 @@ bool VideoStore::open() {
       if (monitor->GetOptVideoWriter() == Monitor::ENCODE) {
         Debug(1, "reorder_queue_size ignored for non-passthrough");
       } else {
-        reorder_queue_size = std::stoul(entry->value);
-        Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
+        uint64_t value;
+        if (option_number(entry, value)) {
+          reorder_queue_size = value;
+          Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
+        }
       }
       // remove it to prevent complaining later.
       av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
@@ -360,20 +369,24 @@ bool VideoStore::open() {
           } else {
             const AVDictionaryEntry *entry = av_dict_get(opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
             if (entry) {
-              reorder_queue_size = std::stoul(entry->value);
-              Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
+              uint64_t value;
+              if (option_number(entry, value)) {
+                reorder_queue_size = value;
+                Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
+              }
               // remove it to prevent complaining later.
               av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
             }
           }
           const AVDictionaryEntry *opts_bitrate = av_dict_get(opts, "bitrate", nullptr, AV_DICT_MATCH_CASE);
+          uint64_t number;
           if (opts_bitrate) {
-            video_out_ctx->bit_rate = std::stoul(opts_bitrate->value);
+            if (option_number(opts_bitrate, number)) video_out_ctx->bit_rate = number;
             av_dict_set(&opts, "bitrate", nullptr, AV_DICT_MATCH_CASE);
           } else {
             opts_bitrate = av_dict_get(opts, "bit_rate", nullptr, AV_DICT_MATCH_CASE);
             if (opts_bitrate) {
-              video_out_ctx->bit_rate = std::stoul(opts_bitrate->value);
+              if (option_number(opts_bitrate, number)) video_out_ctx->bit_rate = number;
               av_dict_set(&opts, "bit_rate", nullptr, AV_DICT_MATCH_CASE);
             }
           }
@@ -385,12 +398,12 @@ bool VideoStore::open() {
           video_out_ctx->sw_pix_fmt = chosen_codec_data->sw_pix_fmt;
           Debug(1, "Setting pix fmt to %d %s", video_out_ctx->pix_fmt, av_get_pix_fmt_name(video_out_ctx->pix_fmt));
           const AVDictionaryEntry *opts_level = av_dict_get(opts, "level", nullptr, AV_DICT_MATCH_CASE);
-          if (opts_level) {
-            video_out_ctx->level = std::stoul(opts_level->value);
+          if (opts_level and option_number(opts_level, number)) {
+            video_out_ctx->level = number;
           }
           const AVDictionaryEntry *opts_gop_size = av_dict_get(opts, "gop_size", nullptr, AV_DICT_MATCH_CASE);
           if (opts_gop_size) {
-            video_out_ctx->gop_size = std::stoul(opts_gop_size->value);
+            if (option_number(opts_gop_size, number)) video_out_ctx->gop_size = number;
             av_dict_set(&opts, "gop_size", nullptr, AV_DICT_MATCH_CASE);
           }
 

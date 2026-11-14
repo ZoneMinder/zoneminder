@@ -24,7 +24,10 @@
 #include "zm_rgb.h"
 #include "zm_utils.h"
 
+#include <cmath>
+
 extern "C" {
+#include <libavutil/eval.h>
 #include <libavutil/pixdesc.h>
 }
 
@@ -502,6 +505,14 @@ int zm_parse_options(AVDictionary **pm, const std::string &options, const char *
     if (*p) p++;
   }
   return result;
+}
+
+bool zm_parse_option_number(const char *text, uint64_t &out) {
+  char *end = nullptr;
+  double value = av_strtod(text, &end);
+  if (end == text or *end or !std::isfinite(value) or value < 0 or value >= 9.2e18) return false;
+  out = static_cast<uint64_t>(value);
+  return true;
 }
 
 int setup_hwaccel(

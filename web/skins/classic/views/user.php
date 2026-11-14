@@ -107,15 +107,15 @@ echo getNavBarHTML();
                     </tr>
                     <tr>
                       <th scope="row"><?php echo translate('Full Name') ?></th>
-                      <td><input type="text" class="form-control form-control-sm" name="user[Name]" value="<?php echo validHtmlStr($User->Name()) ?>"/></td>
+                      <td><input type="text" class="form-control form-control-sm" name="user[Name]" value="<?php echo validHtmlStr($User->Name()) ?>"<?php echo canEdit('System') ? '' : ' disabled="disabled"' ?>/></td>
                     </tr>
                     <tr>
                       <th scope="row"><?php echo translate('Email Address') ?></th>
-                      <td><input type="email" class="form-control form-control-sm" name="user[Email]" value="<?php echo validHtmlStr($User->Email()) ?>"/></td>
+                      <td><input type="email" class="form-control form-control-sm" name="user[Email]" value="<?php echo validHtmlStr($User->Email()) ?>"<?php echo canEdit('System') ? '' : ' disabled="disabled"' ?>/></td>
                     </tr>
                     <tr>
                       <th scope="row"><?php echo translate('Phone') ?></th>
-                      <td><input type="tel" class="form-control form-control-sm" name="user[Phone]" value="<?php echo validHtmlStr($User->Phone()) ?>"/></td>
+                      <td><input type="tel" class="form-control form-control-sm" name="user[Phone]" value="<?php echo validHtmlStr($User->Phone()) ?>"<?php echo canEdit('System') ? '' : ' disabled="disabled"' ?>/></td>
                     </tr>
                   </tbody>
                 </table>
@@ -135,6 +135,7 @@ echo getNavBarHTML();
                       <td>
 <?php
     $homeview_options = [
+      ''=>translate('Default'),
       'console'=>translate('Console'),
       'events'=> translate('Events'),
       'map'   =>  translate('Map'),

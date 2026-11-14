@@ -1,6 +1,7 @@
 function validateForm( form, newUser ) {
   var errors = new Array();
-  if ( !form.elements['user[Username]'].value ) {
+  // A user editing their own account has no Username field.
+  if ( form.elements['user[Username]'] && !form.elements['user[Username]'].value ) {
     errors[errors.length] = "You must supply a username";
   }
   if ( form.elements['user[Password]'].value ) {

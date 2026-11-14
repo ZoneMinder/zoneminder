@@ -4676,6 +4676,10 @@ int Monitor::PrimeCapture() {
   // Safe now that the only thread holding this pointer has been joined.
   CloseDecoder();
 
+  // The new stream may carry a different audio codec, which the old decoder would reject.
+  audio_detector.Close();
+  audio_detector.TakePeak();
+
   int ret = camera->PrimeCapture();
   if (ret <= 0) return ret;
 

@@ -343,7 +343,7 @@ sub moveRelUpRight
 {
     my $self = shift;
     Debug("Move Up Right");
-    $self->_sendMomentaryPtzCommand("RightUp", 0, 4, 0, 500);
+    $self->_sendMomentaryPtzCommand("RightUp", 4, 4, 0, 500);
 }
 
 sub moveRelLeft

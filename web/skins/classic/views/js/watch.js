@@ -9,6 +9,7 @@ var sidebarControls = $j('#ptzControls');
 var wrapperMonitor = $j('#wrapperMonitor');
 var filterQuery = '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId;
 var analyse_frames = false;
+var idleCycleWas = false; /* Cycle was running when the idle timeout fired */
 var idleTimeoutTriggered = false; /* Timer ZM_WEB_VIEWING_TIMEOUT has been triggered */
 var monitorStream = false; /* Stream is not started */
 var currentMonitor;
@@ -680,7 +681,7 @@ function changeControl(e) {
               element.val(control.value);
               element.attr('title', control.value);
             } else {
-              console.err('Element not found for #new'+control.control.charAt(0).toUpperCase() + control.control.slice(1));
+              console.error('Element not found for #new'+control.control.charAt(0).toUpperCase() + control.control.slice(1));
             }
           });
         }
@@ -761,28 +762,22 @@ function refresh_events_table() {
 
 function controlSetClicked() {
   console.log("Clicked");
-  const modal = $j('#ctrlPresetModal');
-  if (!modal.lenth) {
-    console.log('loading');
-    // Load the PTZ Preset modal into the DOM
-    $j.getJSON(zmAuth.appendTo(monitorUrl + '?request=modal&modal=controlpreset&mid=' + monitorId))
-        .done(function(data) {
-          insertModalHtml('ctrlPresetModal', data.html);
-          updatePresetLabels();
-          // Manage the Preset Select box
-          $j('#preset').change(updatePresetLabels);
-          // Manage the Save button
-          $j('#cPresetSubmitModal').click(function(evt) {
-            evt.preventDefault();
-            $j('#ctrlPresetForm').submit();
-          });
-          $j('#ctrlPresetModal').modal('show');
-        })
-        .fail(logAjaxFail);
-  } else {
-    console.log('not loading');
-    modal.modal('show');
-  }
+  // Always reload: the modal is rendered for one monitor and the page can switch monitors.
+  // Load the PTZ Preset modal into the DOM
+  $j.getJSON(zmAuth.appendTo(monitorUrl + '?request=modal&modal=controlpreset&mid=' + monitorId))
+      .done(function(data) {
+        insertModalHtml('ctrlPresetModal', data.html);
+        updatePresetLabels();
+        // Manage the Preset Select box
+        $j('#preset').change(updatePresetLabels);
+        // Manage the Save button
+        $j('#cPresetSubmitModal').click(function(evt) {
+          evt.preventDefault();
+          $j('#ctrlPresetForm').submit();
+        });
+        $j('#ctrlPresetModal').modal('show');
+      })
+      .fail(logAjaxFail);
 }
 
 function streamPrepareStart(monitor=null) {
@@ -798,6 +793,7 @@ function streamPrepareStart(monitor=null) {
     settingsBtn.prop('disabled', false);
     getSettingsModal();
     // Manage the SETTINGS button
+    settingsBtn.off('click');
     bindButton('#settingsBtn', 'click', null, function onSettingsClick(evt) {
       evt.preventDefault();
       $j('#settingsModal').modal('show');
@@ -847,6 +843,7 @@ function streamPrepareStart(monitor=null) {
   }
 
   // Manage the generate Edit button
+  $j('#editBtn').off('click');
   bindButton('#editBtn', 'click', null, function onEditClick(evt) {
     evt.preventDefault();
     window.location.assign("?view=monitor&mid="+monitorId);
@@ -913,12 +910,14 @@ function streamStart(monitor = null) {
 
   monitorStream.setButton('enableAlarmButton', enableAlmBtn);
   monitorStream.setButton('forceAlarmButton', forceAlmBtn);
-  monitorStream.setButton('zoomOutButton', $j('zoomOutBtn'));
+  // Only the old ZoomPan uses the button; setButtonState() would unhide it
+  if (!panZoomEnabled) monitorStream.setButton('zoomOutBtn', $j('#zoomOutBtn'));
   monitorStream.setButton('analyseBtn', analyseBtn);
   if (canEdit.Monitors) {
     // Will be enabled by streamStatus ajax
-    enableAlmBtn.on('click', cmdAlarm);
-    forceAlmBtn.on('click', cmdForce);
+    // streamStart() runs for every monitor switch and the buttons are not replaced
+    enableAlmBtn.off('click', cmdAlarm).on('click', cmdAlarm);
+    forceAlmBtn.off('click', cmdForce).on('click', cmdForce);
   } else {
     forceAlmBtn.prop('title', forceAlmBtn.prop('title') + ': disabled because cannot edit Monitors');
     enableAlmBtn.prop('title', enableAlmBtn.prop('title') + ': disabled because cannot edit Monitors');
@@ -978,6 +977,7 @@ function streamReStart(oldId, newId) {
   applyMonitorControllable();
   //manageChannelStream();
   streamPrepareStart(currentMonitor);
+  observeStreamElements();
   // IgorA100 ToDo: This isn't a duplicate initialization. We initialize different objects (in the first case, ".zoompan" is the default, in the second, ".imageFeed"),
   // but PanZoom wasn't fully implemented in panzoom.js for the second ".imageFeed" initialization line.
   zmPanZoom.init();
@@ -1035,12 +1035,13 @@ function applyMonitorControllable() {
     return;
   }
   if (currentMonitor.monitorControllable) {
-    const ptzShow = getCookie('ptzShow');
-
     ptzToggle.classList.remove("disabled");
     ptzToggle.disabled=false;
     sidebarControls.html(currentMonitor.ptzControls);
-    if (ptzShow) {
+    // The buttons belong to this monitor's controls, so ask for their state now
+    lightStatusReq();
+    indicatorLightStatusReq();
+    if (ptzVisible) {
       sidebarControls.show();
       ptzToggle.classList.remove("btn-secondary");
       ptzToggle.classList.add("btn-primary");
@@ -1056,6 +1057,12 @@ function applyMonitorControllable() {
     sidebarControls.hide();
   }
   changeObjectClass();
+}
+
+// Registering an observer on the current stream and status elements; observing one twice is a no-op
+function observeStreamElements() {
+  if (!observer) return;
+  document.querySelectorAll('[id ^= "liveStream"], .monitorStatus').forEach((el) => observer.observe(el));
 }
 
 function initPage() {
@@ -1121,9 +1128,11 @@ function initPage() {
       document.onkeydown = resetTimer;
 
       function stopPlayback() {
+        // Mouse movement under the open modal re-arms the timer, and that second
+        // run sees the cycle already paused.
+        if (!idleTimeoutTriggered) idleCycleWas = cycle;
         idleTimeoutTriggered = true;
         streamCmdStop();
-        const cycle_was = cycle;
         cyclePause();
         let ayswModal = $j('#AYSWModal');
         if (!ayswModal.length) {
@@ -1133,7 +1142,7 @@ function initPage() {
                 ayswModal.on('hidden.bs.modal', function() {
                   idleTimeoutTriggered = false;
                   streamCmdPlay(true);
-                  if (cycle_was) cycleStart();
+                  if (idleCycleWas) cycleStart();
                 });
                 ayswModal.modal('show');
               })
@@ -1179,10 +1188,7 @@ function initPage() {
       updateScale = true;
     });
 
-    // Registering an observer on an element
-    $j('[id ^= "liveStream"], .monitorStatus').each(function() {
-      observer.observe(this);
-    });
+    observeStreamElements();
 
     // Event listener for double click
     //var elStream = document.querySelectorAll('[id ^= "liveStream"], [id ^= "evtStream"]');
@@ -1195,20 +1201,15 @@ function initPage() {
     alert("No monitor found for id "+monitorId);
   }
 
-  // Status-aware light toggle: initialise from the camera and re-query after
-  // each click so the button tracks the real state.
-  if ($j('.lightToggleBtn').length) {
-    lightStatusReq();
-    $j(document).on('click', '.lightToggleBtn', function() {
-      setTimeout(lightStatusReq, 800);
-    });
-  }
-  if ($j('.indicatorLightToggleBtn').length) {
-    indicatorLightStatusReq();
-    $j(document).on('click', '.indicatorLightToggleBtn', function() {
-      setTimeout(indicatorLightStatusReq, 800);
-    });
-  }
+  // Status-aware light toggle: re-query after each click so the button tracks
+  // the real state. Delegated, so it also covers a monitor switched to later;
+  // the initial query runs from applyMonitorControllable().
+  $j(document).on('click', '.lightToggleBtn', function() {
+    setTimeout(lightStatusReq, 800);
+  });
+  $j(document).on('click', '.indicatorLightToggleBtn', function() {
+    setTimeout(indicatorLightStatusReq, 800);
+  });
 } // initPage
 
 function watchFullscreen() {
@@ -1342,11 +1343,12 @@ function ptzToggle(e) {
   const button = $j('#ptzToggle');
   if (sidebarControls.is(":visible")) {
     sidebarControls.hide();
-    setCookie('ptzShow', false);
+    ptzVisible = false;
   } else {
     sidebarControls.show();
-    setCookie('ptzShow', true);
+    ptzVisible = true;
   }
+  setCookie('ptzShow', ptzVisible);
   button.toggleClass('btn-secondary');
   button.toggleClass('btn-primary');
   changeObjectClass();
@@ -1550,10 +1552,15 @@ window.addEventListener('pageshow', () => {
   }, 100);
 });
 
+var pageStopped = false;
 function stopPage() {
   // Avoid calling stopPage() twice, as stopPage() can be called asynchronously from different places.
   // For example, if 'freeze' is triggered earlier than 15 seconds after visibilityState === "hidden"
   TimerHideShow = clearTimeout(TimerHideShow);
+  // A second call would see the stream already stopped and the cycle already
+  // paused, and overwrite the state startPage() needs to restore.
+  if (pageStopped) return;
+  pageStopped = true;
   prevStateCycle = cycle;
   if (prevStateCycle) cycleStop();
   if (monitorStream) {
@@ -1576,6 +1583,7 @@ function stopPage() {
 function startPage() {
   // Always clear it because the return to visibility might happen before timeout
   TimerHideShow = clearTimeout(TimerHideShow);
+  pageStopped = false;
   // The stream src still carries the auth hash from before we were hidden. If
   // we were away long enough for it to expire, get a fresh one before starting
   // anything, otherwise zms 403s the reconnect (auth-helpers.js).

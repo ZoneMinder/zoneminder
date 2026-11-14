@@ -36,6 +36,8 @@ if (!empty($fid)) {
   $sql = 'SELECT * FROM Frames WHERE EventId=? AND FrameId=?';
   if (!($frame = dbFetchOne($sql, NULL, array($eid, $fid))))
     $frame = array('EventId'=>$eid, 'FrameId'=>$fid, 'Type'=>'Normal', 'Score'=>0);
+    $virtualFrame = $Event->find_virtual_frame($fid);
+    if ($virtualFrame) $frame['Delta'] = $virtualFrame->Delta();
 } else {
   $frame = dbFetchOne('SELECT * FROM Frames WHERE EventId=? AND Score=?', NULL, array($eid, $Event->MaxScore()));
 }

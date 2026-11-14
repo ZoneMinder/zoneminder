@@ -45,7 +45,7 @@ function probeV4L() {
   $preferredStandards = array('PAL', 'NTSC');
   $preferredFormats = array('BGR3', 'RGB3', 'YUYV', 'UYVY', 'JPEG', 'MJPG', '422P', 'YU12', 'GREY');
 
-  if ( !empty($_REQUEST['device']) ) {
+  if ( !empty($_REQUEST['device']) and is_string($_REQUEST['device']) ) {
     $devices_to_probe[] = $_REQUEST['device'];
   } else {
     $it = new FilesystemIterator('/dev/');

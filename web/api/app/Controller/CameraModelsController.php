@@ -87,10 +87,15 @@ class CameraModelsController extends AppController {
         return;
       }
 
+      $this->pinRequestId($this->CameraModel, null);
       $this->CameraModel->create();
       if ($this->CameraModel->save($this->request->data)) {
         return $this->flash(__('The model has been saved.'), array('action' => 'index'));
       }
+      $this->set(array(
+        'message' => $this->CameraModel->validationErrors ? $this->CameraModel->validationErrors : 'Error',
+        '_serialize' => array('message')
+      ));
     }
   }
 
@@ -114,10 +119,11 @@ class CameraModelsController extends AppController {
     if (!$this->CameraModel->exists($id)) {
       throw new NotFoundException(__('Invalid model'));
     }
+    $this->pinRequestId($this->CameraModel, $id);
     if ($this->CameraModel->save($this->request->data)) {
       $message = 'Saved';
     } else {
-      $message = 'Error';
+      $message = $this->CameraModel->validationErrors ? $this->CameraModel->validationErrors : 'Error';
     }
 
     $this->set(array(

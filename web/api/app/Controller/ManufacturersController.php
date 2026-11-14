@@ -87,12 +87,17 @@ class ManufacturersController extends AppController {
         return;
       }
 
+      $this->pinRequestId($this->Manufacturer, null);
       $this->Manufacturer->create();
       if ( $this->Manufacturer->save($this->request->data) ) {
 				# Might be nice to send it a start request
         #$this->daemonControl($this->Manufacturer->id, 'start', $this->request->data);
         return $this->flash(__('The manufacturer has been saved.'), array('action' => 'index'));
       }
+      $this->set(array(
+        'message' => $this->Manufacturer->validationErrors ? $this->Manufacturer->validationErrors : 'Error',
+        '_serialize' => array('message')
+      ));
     }
   }
 
@@ -116,10 +121,11 @@ class ManufacturersController extends AppController {
     if ( !$this->Manufacturer->exists($id) ) {
       throw new NotFoundException(__('Invalid manufacturer'));
     }
+    $this->pinRequestId($this->Manufacturer, $id);
     if ( $this->Manufacturer->save($this->request->data) ) {
       $message = 'Saved';
     } else {
-      $message = 'Error';
+      $message = $this->Manufacturer->validationErrors ? $this->Manufacturer->validationErrors : 'Error';
     }
 
     $this->set(array(

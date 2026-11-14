@@ -118,7 +118,7 @@ var ZMMap = function() {
                 }
                 const monitor_status = monitors["monitors"][i]["Monitor_Status"];
                 const event_summary = monitors["monitors"][i]["Event_Summary"];
-                const server = new Server(Servers[monitor.ServerId]);
+                const server = new Server(Servers[monitor.ServerId] || Servers[0]);
 
                 const id = monitor["Id"];
                 const fps = monitor_status["CaptureFPS"];

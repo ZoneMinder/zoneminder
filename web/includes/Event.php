@@ -1,5 +1,7 @@
 <?php
 namespace ZM;
+use Exception;
+use PDOException;
 require_once('Storage.php');
 require_once('functions.php');
 require_once('Object.php');

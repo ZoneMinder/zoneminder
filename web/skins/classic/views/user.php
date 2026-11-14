@@ -57,7 +57,7 @@ echo getNavBarHTML();
   <div id="page">
     <div id="content">
       <form id="contentForm" name="contentForm" method="post" action="?view=user">
-        <input type="hidden" name="redirect" value="<?php echo isset($_REQUEST['prev']) ? htmlspecialchars($_REQUEST['prev']) : 'options&tab=users' ?>"/>
+        <input type="hidden" name="redirect" value="<?php echo (isset($_REQUEST['prev']) and is_string($_REQUEST['prev'])) ? htmlspecialchars($_REQUEST['prev']) : 'options&tab=users' ?>"/>
         <input type="hidden" name="uid" value="<?php echo validHtmlStr($User->Id()) ?>"/>
         <div id="header">
           <div class="float-left pt-1">

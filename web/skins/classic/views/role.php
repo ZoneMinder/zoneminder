@@ -50,7 +50,7 @@ echo getNavBarHTML();
   <div id="page">
     <div id="content">
       <form id="contentForm" name="contentForm" method="post" action="?view=role">
-        <input type="hidden" name="redirect" value="<?php echo isset($_REQUEST['prev']) ? htmlspecialchars($_REQUEST['prev']) : 'options&tab=roles' ?>"/>
+        <input type="hidden" name="redirect" value="<?php echo (isset($_REQUEST['prev']) and is_string($_REQUEST['prev'])) ? htmlspecialchars($_REQUEST['prev']) : 'options&tab=roles' ?>"/>
         <input type="hidden" name="rid" value="<?php echo validHtmlStr($Role->Id()) ?>"/>
         <div id="header">
           <div class="float-left pl-3 pt-1">

@@ -475,7 +475,7 @@ $interfaces = array('', 'select');
           <label for="manual_url"><?php echo translate('OnvifManualLabel') ?></label>
           <input type="text" name="manual_url" id="manual_url"
                  placeholder="<?php echo translate('OnvifManualPlaceholder') ?>"
-                 value="<?php echo isset($_REQUEST['manual_url']) ? htmlspecialchars($_REQUEST['manual_url']) : '' ?>"
+                 value="<?php echo (isset($_REQUEST['manual_url']) and is_string($_REQUEST['manual_url'])) ? htmlspecialchars($_REQUEST['manual_url']) : '' ?>"
                  data-on-change-this="configureButtons"
                  data-on-input-this="configureButtons"
                  size="40"/>

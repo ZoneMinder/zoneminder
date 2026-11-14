@@ -8,7 +8,7 @@ if ( empty($_REQUEST['ohndx']) ) {
 
 global $OLANG;
 $result = '';
-$optionHelpIndex = $_REQUEST['ohndx'];
+$optionHelpIndex = is_string($_REQUEST['ohndx'] ?? null) ? $_REQUEST['ohndx'] : '';
 $ZMoptionHelpIndex = 'ZM_'.$optionHelpIndex;
 $shortName = preg_replace( '/^ZM_/', '', $optionHelpIndex );
  

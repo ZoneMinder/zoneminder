@@ -166,7 +166,7 @@ if (isset($_REQUEST['scale'])) {
 }
 */
 
-if (isset($_REQUEST['scale'])) {
+if (isset($_REQUEST['scale']) and is_string($_REQUEST['scale'])) {
   $scale = $_REQUEST['scale'];
 } else if ( isset($_COOKIE['zmWatchScaleNew'.$mid]) ) {
   $scale = $_COOKIE['zmWatchScaleNew'.$mid];
@@ -328,7 +328,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], ['class'=>'ch
               $players['rtsp2web_hls'] = 'RTSP2Web HLS';
               $players['janus'] = 'Janus';
               $player = validHtmlStr($monitor->DefaultPlayer());
-              if (isset($_REQUEST['player']) and isset($players[$_REQUEST['player']])) {
+              if (isset($_REQUEST['player']) and is_string($_REQUEST['player']) and isset($players[$_REQUEST['player']])) {
                 $player = validHtmlStr($_REQUEST['player']);
               } else if (isset($_COOKIE['zmWatchPlayer']) and isset($players[$_COOKIE['zmWatchPlayer']])) {
                 $player = validHtmlStr($_COOKIE['zmWatchPlayer']);
@@ -346,7 +346,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], ['class'=>'ch
               'VideoAudioVisualization'=>translate('Video and audio visualization')
             ];
             $whatDisplaySelected = 'Default'; // Default
-            if (isset($_REQUEST['whatDisplay']) and isset($whatDisplay[$_REQUEST['whatDisplay']])) {
+            if (isset($_REQUEST['whatDisplay']) and is_string($_REQUEST['whatDisplay']) and isset($whatDisplay[$_REQUEST['whatDisplay']])) {
               $whatDisplaySelected = validHtmlStr($_REQUEST['whatDisplay']);
             } else if (isset($_COOKIE['zmWhatDisplay']) and isset($whatDisplay[$_COOKIE['zmWhatDisplay']])) {
               $whatDisplaySelected = validHtmlStr($_COOKIE['zmWhatDisplay']);

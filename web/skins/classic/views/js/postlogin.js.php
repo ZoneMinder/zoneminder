@@ -7,7 +7,7 @@
 // redirect the user to his original intended destination by appending it to the URL.
 //
 
-if (!empty($_REQUEST['postLoginQuery'])) {
+if (!empty($_REQUEST['postLoginQuery']) and is_string($_REQUEST['postLoginQuery'])) {
   parse_str($_REQUEST['postLoginQuery'], $queryParams);
   $redirectSuffix = '?' . http_build_query($queryParams);
 } else {

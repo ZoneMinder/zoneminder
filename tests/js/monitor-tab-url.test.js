@@ -241,7 +241,7 @@ test('and php honours the tab the url carries', () => {
   // The whole point: without this the url would be rewritten and the reload
   // would ignore it. The name is checked against the tab list rather than
   // trusted, so an unknown tab falls back instead of rendering nothing.
-  assert.ok(/isset\(\$_REQUEST\['tab'\]\)\s*and\s*isset\(\$tabs\[\$_REQUEST\['tab'\]\]\)/.test(view),
+  assert.ok(/isset\(\$_REQUEST\['tab'\]\)\s*and\s*(is_string\(\$_REQUEST\['tab'\]\)\s*and\s*)?isset\(\$tabs\[\$_REQUEST\['tab'\]\]\)/.test(view),
       'monitor.php does not validate ?tab= against its tab list');
 });
 

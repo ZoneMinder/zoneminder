@@ -155,6 +155,7 @@ class ZM_Object {
     if ( 
         ( count($parameters) == 1 ) and
         isset($parameters['Id']) and
+        is_scalar($parameters['Id']) and
         isset($cache[$parameters['Id']]) ) {
       return $cache[$parameters['Id']];
     }

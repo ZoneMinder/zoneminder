@@ -9,9 +9,10 @@ class HostController extends AppController {
     # To try to prevent abuse here, we are only going to allow certain characters in the daemon and args.
     $count = 0;
     $safe_daemon = $daemon ? preg_replace('/[^A-Za-z0-9\- \.]/', '', $daemon, -1, $count) : false;
-    if ($count) Error("Invalid characters found in daemon string ($daemon). Potential attack?");
+    if ($count) ZM\Error("Invalid characters found in daemon string ($daemon). Potential attack?");
+    $count = 0;
     $safe_args = $args ? preg_replace('/[^A-Za-z0-9\- \.]/', '', $args, -1, $count) : false;
-    if ($count) Error("Invalid characters found in args string ($args). Potential attack?");
+    if ($count) ZM\Error("Invalid characters found in args string ($args). Potential attack?");
 
     $string = ZM_PATH_BIN.'/zmdc.pl check';
     if ($safe_daemon) {
@@ -45,9 +46,9 @@ class HostController extends AppController {
     }
     # To try to prevent abuse here, we are only going to allow certain characters in the daemon and args.
     $safe_daemon = preg_replace('/[^A-Za-z0-9\-\.]/', '', $daemon, -1, $count);
-    if ($count) Error("Invalid characters found in daemon string ($daemon). Potential attack?");
+    if ($count) ZM\Error("Invalid characters found in daemon string ($daemon). Potential attack?");
     $safe_command = preg_replace('/[^a-z]/', '', $command, -1, $count);
-    if ($count) Error("Invalid characters found in command string ($command). Potential attack?");
+    if ($count) ZM\Error("Invalid characters found in command string ($command). Potential attack?");
     $string = ZM_PATH_BIN."/zmdc.pl $safe_command $safe_daemon";
     $result = exec($string);
     $this->set(array(

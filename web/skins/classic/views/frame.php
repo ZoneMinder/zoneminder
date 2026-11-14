@@ -126,8 +126,8 @@ if ($imageData['hasAnalysisImage']) {
 ?>
 <img id="frameImg"
   src="<?php echo validHtmlStr($Frame->getImageSrc($show=='analysis'?'analyse':'capture')) ?>"
-  width="<?php echo reScale($Event->Width(), $Monitor->DefaultScale(), $scale) ?>"
-  height="<?php echo reScale($Event->Height(), $Monitor->DefaultScale(), $scale) ?>"
+  width="<?php echo reScale($Event->Width(), $scale) ?>"
+  height="<?php echo reScale($Event->Height(), $scale) ?>"
   alt="<?php echo $Frame->EventId().'-'.$Frame->FrameId() ?>"
   class="<?php echo $imageData['imageClass'] ?>"
   loading="lazy"
@@ -151,8 +151,8 @@ if (file_exists($dImagePath)) {
         <p id="diagImage">
           <img
             src="<?php echo viewImagePath($dImagePath) ?>"
-            width="<?php echo reScale($Event->Width(), $Monitor->DefaultScale(), $scale) ?>"
-            height="<?php echo reScale($Event->Height(), $Monitor->DefaultScale(), $scale) ?>"
+            width="<?php echo reScale($Event->Width(), $scale) ?>"
+            height="<?php echo reScale($Event->Height(), $scale) ?>"
             class="<?php echo $imageData['imageClass'] ?>"
           />
         </p>
@@ -164,8 +164,8 @@ if (file_exists($rImagePath)) {
         <p id="refImage">
           <img
             src="<?php echo viewImagePath($rImagePath) ?>"
-            width="<?php echo reScale($Event->Width(), $Monitor->DefaultScale(), $scale) ?>"
-            height="<?php echo reScale($Event->Height(), $Monitor->DefaultScale(), $scale) ?>"
+            width="<?php echo reScale($Event->Width(), $scale) ?>"
+            height="<?php echo reScale($Event->Height(), $scale) ?>"
             class="<?php echo $imageData['imageClass'] ?>"
           />
         </p>

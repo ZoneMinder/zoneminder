@@ -42,10 +42,13 @@ if (!empty($fid)) {
   $sql = 'SELECT * FROM Frames WHERE EventId=? AND FrameId=?';
   if (!($frame = dbFetchOne($sql, NULL, array($eid, $fid))))
     $frame = array('EventId'=>$eid, 'FrameId'=>$fid, 'Type'=>'Normal', 'Score'=>0);
+    $virtualFrame = $Event->find_virtual_frame($fid);
+    if ($virtualFrame) $frame['Delta'] = $virtualFrame->Delta();
 } else {
   $frame = dbFetchOne('SELECT * FROM Frames WHERE EventId=? AND Score=?', NULL, array($eid, $Event->MaxScore()));
 }
 $Frame = new ZM\Frame($frame);
+if (!$fid) $fid = (int)$Frame->FrameId(); // fid=0 loaded the max score frame, navigate and fetch stats from its real id
 $maxFid = $Event->Frames();
 
 $firstFid = 1;
@@ -131,8 +134,8 @@ if ($imageData['hasAnalysisImage']) {
 ?>
 <img id="frameImg"
   src="<?php echo validHtmlStr($Frame->getImageSrc($show=='analysis'?'analyse':'capture')) ?>"
-  width="<?php echo reScale($Event->Width(), $Monitor->DefaultScale(), $scale) ?>"
-  height="<?php echo reScale($Event->Height(), $Monitor->DefaultScale(), $scale) ?>"
+  width="<?php echo reScale($Event->Width(), $scale) ?>"
+  height="<?php echo reScale($Event->Height(), $scale) ?>"
   alt="<?php echo $Frame->EventId().'-'.$Frame->FrameId() ?>"
   class="<?php echo $imageData['imageClass'] ?>"
   loading="lazy"
@@ -156,8 +159,8 @@ if (file_exists($dImagePath)) {
         <p id="diagImage">
           <img
             src="<?php echo viewImagePath($dImagePath) ?>"
-            width="<?php echo reScale($Event->Width(), $Monitor->DefaultScale(), $scale) ?>"
-            height="<?php echo reScale($Event->Height(), $Monitor->DefaultScale(), $scale) ?>"
+            width="<?php echo reScale($Event->Width(), $scale) ?>"
+            height="<?php echo reScale($Event->Height(), $scale) ?>"
             class="<?php echo $imageData['imageClass'] ?>"
           />
         </p>
@@ -169,8 +172,8 @@ if (file_exists($rImagePath)) {
         <p id="refImage">
           <img
             src="<?php echo viewImagePath($rImagePath) ?>"
-            width="<?php echo reScale($Event->Width(), $Monitor->DefaultScale(), $scale) ?>"
-            height="<?php echo reScale($Event->Height(), $Monitor->DefaultScale(), $scale) ?>"
+            width="<?php echo reScale($Event->Width(), $scale) ?>"
+            height="<?php echo reScale($Event->Height(), $scale) ?>"
             class="<?php echo $imageData['imageClass'] ?>"
           />
         </p>

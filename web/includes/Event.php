@@ -795,11 +795,13 @@ class Event extends ZM_Object {
     } else if ($previousBulkFrame) {
       //If no next Frame we have to pull data from the Event itself
       $frame = new Frame($previousBulkFrame);
-      $frame->FrameId($_REQUEST['fid']);
+      $frame->FrameId($fid);
 
-      $percentage = ($frame->FrameId()/$this->Frames());
-
-      $frame->Delta(floor($this->Length() * $percentage));
+      $previousFrameId = $previousBulkFrame['FrameId'];
+      $previousDelta = $previousBulkFrame['Delta'];
+      if ($this->Frames() > $previousFrameId and $this->Length() > $previousDelta) {
+        $frame->Delta(round($previousDelta + ($this->Length() - $previousDelta) * ($fid - $previousFrameId) / ($this->Frames() - $previousFrameId), 2));
+      }
     }
     return $frame;
   }
@@ -852,7 +854,7 @@ class Event extends ZM_Object {
     if ( $overwrite || ! file_exists($video_file) ) {
       Info("Creating video file $video_file for event ".$this->Id());
 
-      $frame_rate = sprintf('%.2f', $this->Frames()/$this->Length());
+      $frame_rate = $this->Length() > 0 ? sprintf('%.2f', $this->Frames()/$this->Length()) : 1;
       if ($rate) {
         if ( $rate != 1.0 ) {
           $frame_rate *= $rate;

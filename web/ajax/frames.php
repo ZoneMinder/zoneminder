@@ -181,7 +181,7 @@ function queryRequest($eid, $search, $advsearch, $sort, $offset, $order, $limit)
       # Build the subcomponents needed for the image source
       $ratio_factor = $Monitor->ViewHeight() / $Monitor->ViewWidth();
       $thmb_width = ZM_WEB_LIST_THUMB_WIDTH ? 'width='.ZM_WEB_LIST_THUMB_WIDTH : '';
-      $thmb_height = 'height="'.( ZM_WEB_LIST_THUMB_HEIGHT ? ZM_WEB_LIST_THUMB_HEIGHT : ZM_WEB_LIST_THUMB_WIDTH*$ratio_factor ) .'"';
+      $thmb_height = 'height='.(int)round(ZM_WEB_LIST_THUMB_HEIGHT ? ZM_WEB_LIST_THUMB_HEIGHT : ZM_WEB_LIST_THUMB_WIDTH*$ratio_factor);
       $thmb_fn = 'filename=' .$Event->MonitorId(). '_' .$row['EventId']. '_' .$row['FrameId']. '.jpg';
 
       # Assemble the scaled and unscaled image source image source components
@@ -189,7 +189,7 @@ function queryRequest($eid, $search, $advsearch, $sort, $offset, $order, $limit)
       $full_img_src = join('&amp;', array_filter(array($base_img_src, $thmb_fn)));
       
       # finally, we assemble the the entire thumbnail img src structure, whew
-      $row['Thumbnail'] = '<img src="' .$img_src. '" '.$thmb_width. ' ' .$thmb_height. 'img_src="' .$img_src. '" full_img_src="' .$full_img_src. '">';
+      $row['Thumbnail'] = '<img src="' .$img_src. '" '.$thmb_width. ' ' .$thmb_height. ' img_src="' .$img_src. '" full_img_src="' .$full_img_src. '">';
     }
     $returned_rows[] = $row;
   } # end foreach row matching search

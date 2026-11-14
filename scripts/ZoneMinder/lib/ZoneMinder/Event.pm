@@ -780,7 +780,10 @@ sub CopyTo {
 
         $moved = 1;
       };
-      Error($@) if $@;
+      if (my $err = $@) {
+        Error($err);
+        return "Failed to copy event $$self{Id} to S3: $err";
+      }
     } # end if s3
   } # end if s3f3
 
@@ -818,6 +821,14 @@ sub CopyTo {
       my $duration = tv_interval($starttime);
       Debug('Copied ' . Number::Bytes::Human::format_bytes($size) . " in $duration seconds = " . ($duration?Number::Bytes::Human::format_bytes($size/$duration):'inf') . '/sec');
     } # end foreach file.
+
+    if (!$error and $self->Scheme() eq 'Deep') {
+      my ($link) = (($NewStorage->Path().'/'.$self->LinkPath()) =~ /^(.*)$/);
+      my ($target) = ($self->RelativePath() =~ /([^\/]+\/[^\/]+\/[^\/]+)\/?$/);
+      if ($target and !-l $link and !symlink($target, $link)) {
+        $error .= "Unable to symlink $target to $link: $!";
+      }
+    }
   } # end if ! moved
 
   return $error;

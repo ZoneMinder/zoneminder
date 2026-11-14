@@ -242,6 +242,8 @@ if (!isset($minTime) || !isset($maxTime)) {
   $midTime = date(STRF_FMT_DATETIME_DB, $midTimeT);
 }
 
+// Pan and zoom links must not carry the current window, or they could never leave it.
+$navFilterQuery = $tree ? parseTreeToQuery($tree) : false;
 if ( $tree ) {
   appendDatetimeRange($tree, $minTime, $maxTime);
   $filterQuery = parseTreeToQuery($tree);

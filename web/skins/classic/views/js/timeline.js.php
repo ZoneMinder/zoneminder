@@ -1,5 +1,6 @@
 <?php
   global $filterQuery;
+  global $navFilterQuery;
   global $monitors;
   global $minTime;
   global $midTime;
@@ -10,6 +11,7 @@
   global $monFrameSlots;
 ?>
 var filterQuery = '<?php echo validJsStr($filterQuery) ?>';
+var navFilterQuery = '<?php echo validJsStr($navFilterQuery) ?>';
 var events = {};
 
 <?php

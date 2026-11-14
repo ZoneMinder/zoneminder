@@ -26,6 +26,14 @@ if ($action == 'Save') {
   $dbUser = new ZM\User($uid);
 
   if (canEdit('System')) {
+    if (!$uid or isset($_REQUEST['user']['Username'])) {
+      $username = isset($_REQUEST['user']['Username']) ? preg_replace('/[^\w\.@ ]/', '', trim($_REQUEST['user']['Username'])) : '';
+      if ($username === '') {
+        $error_message = 'A Username is required<br/>';
+        unset($_REQUEST['redirect']);
+        return;
+      }
+    }
     # Need to check for uniqueness of Username
     $user_with_my_username = ZM\User::find_one(array('Username'=>$_REQUEST['user']['Username']));
     if ($user_with_my_username and 

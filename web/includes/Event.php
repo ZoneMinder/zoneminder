@@ -872,7 +872,7 @@ class Event extends ZM_Object {
     }
     array_merge($file_parts, explode(',', $transforms));
     $video_file = implode('-', $file_parts).'.'.$format;
-    if ( $overwrite || ! file_exists($video_file) ) {
+    if ( $overwrite || ! file_exists($event_path.'/'.$video_file) ) {
       Info("Creating video file $video_file for event ".$this->Id());
 
       $frame_rate = $this->Length() > 0 ? sprintf('%.2f', $this->Frames()/$this->Length()) : 1;

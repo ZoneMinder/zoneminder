@@ -43,16 +43,6 @@ class SnapshotsController extends AppController {
     $find_array = array(
       'conditions' => &$conditions,
       'contain'    => array('Event'),
-      'joins'      => array(
-        array(
-          'table' => 'Snapshots_Events',
-          'type'  => 'left',
-          'conditions' => array(
-            'Snapshots_Events.SnapshotId = Snapshot.Id',
-          ),
-        ),
-      ),
-      'snapshot' => '`Snapshot`.`Id`',
     );
 
 		$snapshots = array_map(array($this, 'filterContainedEvents'), $this->Snapshot->find('all', $find_array));
@@ -116,7 +106,11 @@ class SnapshotsController extends AppController {
         );
       } else {
         ZM\Error("Failed to save Snapshot");
-        debug($this->Snapshot->invalidFields());
+        $this->set(array(
+          'message' => $this->Snapshot->validationErrors ? $this->Snapshot->validationErrors : 'Error',
+          '_serialize' => array('message')
+        ));
+        return;
       }
     } # end if post
     $monitors = $this->Snapshot->Event->find('list');
@@ -134,6 +128,7 @@ class SnapshotsController extends AppController {
 		if ( !$this->Snapshot->exists($id) ) {
 			throw new NotFoundException(__('Invalid snapshot'));
 		}
+    $message = '';
 		if ( $this->request->is(array('post', 'put'))) {
       global $user;
       # We already tested for auth in appController,
@@ -151,11 +146,7 @@ class SnapshotsController extends AppController {
 			if ( $this->Snapshot->save($this->request->data) ) {
         $message = 'Saved';
       } else {
-        $message = 'Error';
-        // if there is a validation message, use it
-        if ( !$this->snapshot->validates() ) {
-          $message .= ': '.$this->Snapshot->validationErrors;
-        }
+        $message = $this->Snapshot->validationErrors ? $this->Snapshot->validationErrors : 'Error';
 			}
 		} # end if post/put
 
@@ -163,7 +154,7 @@ class SnapshotsController extends AppController {
 		$this->set(array(
 			'message' => $message,
 			'snapshot' => $snapshot,
-			'_serialize' => array('snapshot')
+			'_serialize' => array('message', 'snapshot')
 		));
 	}
 

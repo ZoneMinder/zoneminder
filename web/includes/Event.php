@@ -398,10 +398,10 @@ class Event extends ZM_Object {
         // SCALE_BASE scale truncated to 0/1 for high-resolution monitors (e.g.
         // 2688 wide -> scale 1), producing a squashed, wrong-aspect thumbnail
         // (and a distorted hover-overlay). refs #3443
-        $this->{'ThumbnailHeight'} = (int)round($this->{'Height'} * ZM_WEB_LIST_THUMB_WIDTH / $this->{'Width'});
+        $this->{'ThumbnailHeight'} = $this->{'Width'} ? (int)round($this->{'Height'} * ZM_WEB_LIST_THUMB_WIDTH / $this->{'Width'}) : (int)round(ZM_WEB_LIST_THUMB_WIDTH * 3 / 4);
       } elseif ( ZM_WEB_LIST_THUMB_HEIGHT ) {
         $this->{'ThumbnailHeight'} = ZM_WEB_LIST_THUMB_HEIGHT;
-        $this->{'ThumbnailWidth'} = (int)round($this->{'Width'} * ZM_WEB_LIST_THUMB_HEIGHT / $this->{'Height'});
+        $this->{'ThumbnailWidth'} = $this->{'Height'} ? (int)round($this->{'Width'} * ZM_WEB_LIST_THUMB_HEIGHT / $this->{'Height'}) : (int)round(ZM_WEB_LIST_THUMB_HEIGHT * 4 / 3);
       } else {
         Fatal( "No thumbnail width or height specified, please check in Options->Web" );
       }
@@ -417,10 +417,10 @@ class Event extends ZM_Object {
         // SCALE_BASE scale truncated to 0/1 for high-resolution monitors (e.g.
         // 2688 wide -> scale 1), producing a squashed, wrong-aspect thumbnail
         // (and a distorted hover-overlay). refs #3443
-        $this->{'ThumbnailHeight'} = (int)round($this->{'Height'} * ZM_WEB_LIST_THUMB_WIDTH / $this->{'Width'});
+        $this->{'ThumbnailHeight'} = $this->{'Width'} ? (int)round($this->{'Height'} * ZM_WEB_LIST_THUMB_WIDTH / $this->{'Width'}) : (int)round(ZM_WEB_LIST_THUMB_WIDTH * 3 / 4);
       } elseif ( ZM_WEB_LIST_THUMB_HEIGHT ) {
         $this->{'ThumbnailHeight'} = ZM_WEB_LIST_THUMB_HEIGHT;
-        $this->{'ThumbnailWidth'} = (int)round($this->{'Width'} * ZM_WEB_LIST_THUMB_HEIGHT / $this->{'Height'});
+        $this->{'ThumbnailWidth'} = $this->{'Height'} ? (int)round($this->{'Width'} * ZM_WEB_LIST_THUMB_HEIGHT / $this->{'Height'}) : (int)round(ZM_WEB_LIST_THUMB_HEIGHT * 4 / 3);
       } else {
         Fatal( "No thumbnail width or height specified, please check in Options->Web" );
       }

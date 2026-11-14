@@ -320,6 +320,10 @@ function MonitorStream(monitorData) {
     }
     return this.element;
   };
+  // Lets a page that watches the stream element for resizes (watch) follow a replaced one
+  this.observeElement = function() {
+    if (typeof observeStreamElements === 'function') observeStreamElements();
+  };
   this.getFrame = function() {
     if (this.frame) return this.frame;
     this.frame = document.getElementById('imageFeed'+this.id);
@@ -1937,6 +1941,7 @@ function MonitorStream(monitorData) {
       const url = go2rtcApiUrl(ZM_GO2RTC_PATH);
 
       const stream = this.element = replaceDOMElement(this.getElement(), 'video-stream');
+      this.observeElement();
       stream.srcObject = null;
       stream.background = true; // We do not use the document hiding/showing analysis from "video-rtc.js", because we have our own analysis
       //stream.muted = this.muted;
@@ -1991,6 +1996,7 @@ function MonitorStream(monitorData) {
     if (ZM_RTSP2WEB_PATH) {
       this.playbackSessionId = generateUUID();
       const stream = this.element = replaceDOMElement(this.getElement(), 'video');
+      this.observeElement();
       stream.srcObject = null;
       stream.setAttribute("autoplay", "");
       stream.setAttribute("muted", this.muted);
@@ -2127,6 +2133,7 @@ function MonitorStream(monitorData) {
     this.playbackSessionId = generateUUID();
     let server;
     const stream = this.element = replaceDOMElement(this.getElement(), 'video');
+    this.observeElement();
     stream.srcObject = null;
     stream.setAttribute("autoplay", "");
     stream.setAttribute("muted", this.muted);
@@ -2183,6 +2190,7 @@ function MonitorStream(monitorData) {
     this.playbackSessionId = generateUUID();
     const playbackSessionId = this.playbackSessionId;
     const stream = this.element = replaceDOMElement(this.getElement(), 'img');
+    this.observeElement();
     stream.srcObject = null;
     if (!stream) return;
 

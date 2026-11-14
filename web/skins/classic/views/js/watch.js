@@ -981,6 +981,7 @@ function streamReStart(oldId, newId) {
   applyMonitorControllable();
   //manageChannelStream();
   streamPrepareStart(currentMonitor);
+  observeStreamElements();
   // IgorA100 ToDo: This isn't a duplicate initialization. We initialize different objects (in the first case, ".zoompan" is the default, in the second, ".imageFeed"),
   // but PanZoom wasn't fully implemented in panzoom.js for the second ".imageFeed" initialization line.
   zmPanZoom.init();
@@ -1059,6 +1060,12 @@ function applyMonitorControllable() {
     sidebarControls.hide();
   }
   changeObjectClass();
+}
+
+// Registering an observer on the current stream and status elements; observing one twice is a no-op
+function observeStreamElements() {
+  if (!observer) return;
+  document.querySelectorAll('[id ^= "liveStream"], .monitorStatus').forEach((el) => observer.observe(el));
 }
 
 function initPage() {
@@ -1182,10 +1189,7 @@ function initPage() {
       updateScale = true;
     });
 
-    // Registering an observer on an element
-    $j('[id ^= "liveStream"], .monitorStatus').each(function() {
-      observer.observe(this);
-    });
+    observeStreamElements();
 
     // Event listener for double click
     //var elStream = document.querySelectorAll('[id ^= "liveStream"], [id ^= "evtStream"]');

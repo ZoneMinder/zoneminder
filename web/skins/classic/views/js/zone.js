@@ -720,7 +720,7 @@ function initPage() {
       function(element_name, index) {
         const el = form.elements[element_name];
         if ( el ) {
-          el.oninput = window['limitFilter'].bind(el, el);
+          el.onchange = window['limitFilter'].bind(el, el);
           el.disabled = true;
         } else {
           console.error("Element " + element_name + " not found in zone edit form");

@@ -44,7 +44,6 @@ function panZoomOut(el) {
 
 function streamCmdQuit() {
   for ( let i = 0, length = monitorData.length; i < length; i++ ) {
-    monitors[i] = new MonitorStream(monitorData[i]);
     monitors[i].stop();
   }
 }

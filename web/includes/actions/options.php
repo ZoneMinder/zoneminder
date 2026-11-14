@@ -26,6 +26,8 @@ if ( !canEdit('System') ) {
 
 global $error_message;
 
+require_once('includes/config_values.php');
+
 // AI object-detection CRUD lives in dedicated action files. The list views post
 // here (view=options) with object=ai_* for deletes; route those to the matching
 // handler, which processes both save and delete via $action.
@@ -76,7 +78,7 @@ if ( $action == 'delete' ) {
   }
 } else if ( $action == 'options' && isset($_REQUEST['tab']) ) {
 
-  $result = dbQuery('SELECT Name,Value,Type,`System` FROM Config WHERE Category=? ORDER BY Id ASC', array($_REQUEST['tab']));
+  $result = dbQuery('SELECT Name,Value,Type,Requires,`System` FROM Config WHERE Category=? ORDER BY Id ASC', array($_REQUEST['tab']));
   if (!$result) {
     $error_message .= 'Error loading config for tab ' . htmlspecialchars($_REQUEST['tab']) . ': ' . htmlspecialchars(dbLastError()) . '<br/>';
     return;
@@ -86,6 +88,11 @@ if ( $action == 'delete' ) {
   // a submitted value, and a boolean left out of the form (a disabled checkbox isn't sent),
   // which would otherwise be saved as 0.
   $fileConfig = loadConfigFiles();
+  $effective = array();
+  foreach (dbFetchAll('SELECT Name,Value,Type FROM Config') as $row) {
+    $effective[$row['Name']] = isset($fileConfig[$row['Name']])
+      ? configFileValue($fileConfig[$row['Name']]['Value'], $row['Type']) : $row['Value'];
+  }
   $changed = false;
   while ($config = dbFetchNext($result)) {
     unset($newValue);
@@ -95,11 +102,14 @@ if ( $action == 'delete' ) {
       continue;
     }
     if ( ($config['Type'] == 'boolean') and empty($_REQUEST['newConfig'][$config['Name']]) ) {
+      // A checkbox disabled for unmet requirements isn't sent: not the user turning it off.
+      if (!empty($config['Requires']) and !configRequirementsMet($config['Requires'], $effective)) continue;
       $newValue = 0;
     } else if (isset($_REQUEST['newConfig'][$config['Name']])) {
       $newValue = preg_replace("/\r\n/", "\n", $_REQUEST['newConfig'][$config['Name']]);
     }
 
+    if (isset($newValue)) $effective[$config['Name']] = $newValue;
     if (isset($newValue) && ($newValue != $config['Value'])) {
       # Handle special cases first
       if ($config['Name'] == 'ZM_LANG_DEFAULT') {

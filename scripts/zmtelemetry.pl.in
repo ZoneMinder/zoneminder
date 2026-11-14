@@ -58,7 +58,7 @@ GetOptions(
   force   => \$force,
   help    => \$help,
   show    => \$show,
-  interval=> \$interval,
+  'interval=s' => \$interval,
   version => \$version,
   verbose => \$verbose,
   dry_run => \$dry_run,
@@ -84,7 +84,11 @@ if ($show) {
   exit(0) if $dry_run;
 }
 
-if (!defined $interval) {
+if (defined $interval) {
+  ($interval) = $interval =~ /^([\d\s*+\-\/()]+)$/;
+  Fatal('--interval must be a number of seconds or a simple arithmetic expression') if !defined $interval;
+  $interval = eval($interval);
+} else {
   $interval = eval($Config{ZM_TELEMETRY_INTERVAL});
 }
 
@@ -113,7 +117,7 @@ while (1) {
     sleep($interval);
     next;
   }
-  if ((($since_last_check) > $interval) or $force) {
+  if ((($since_last_check) >= $interval) or $force) {
     print "Collecting data to send to ZoneMinder Telemetry server.\n";
     # Build the telemetry hash
     # We should keep *BSD systems in mind when calling system commands
@@ -126,11 +130,11 @@ while (1) {
       ZoneMinder::Database::zmDbDo('UPDATE Config SET Value=? WHERE Name=?',
         $now, 'ZM_TELEMETRY_LAST_UPLOAD');
       $Config{ZM_TELEMETRY_LAST_UPLOAD} = $now;
+      $lastCheck = $now;
     }
   } elsif (-t STDIN) {
     print "ZoneMinder Telemetry Agent sleeping for $interval seconds because ($now-$lastCheck=$since_last_check > $interval\n";
   }
-  $lastCheck = $now;
   sleep($interval);
 } # end while
 print 'ZoneMinder Telemetry Agent exiting at '.strftime('%y/%m/%d %H:%M:%S', localtime())."\n";
@@ -250,8 +254,8 @@ sub getGeo {
   my $resp_msg = $resp->decoded_content;
   my $resp_code = $resp->code;
 
-  if ($resp->is_success) {
-    my $content = decode_json($resp_msg);
+  my $content = $resp->is_success ? eval { decode_json($resp_msg) } : undef;
+  if ($content and $content->{loc}) {
     (my $latitude, my $longitude) = split /,/, $content->{loc};
     return ($content->{city}, $content->{region}, $content->{country}, $latitude, $longitude);
   } else {
@@ -262,9 +266,9 @@ sub getGeo {
     my $resp_msg2 = $resp2->decoded_content;
     my $resp_code2 = $resp2->code;
 
-    if ($resp2->is_success) {
-      my $content = decode_json($resp_msg2);
-      return ($content->{city_name}, $content->{region_name}, $content->{country_code}, $content->{latitude}, $content->{longitude});
+    my $content2 = $resp2->is_success ? eval { decode_json($resp_msg2) } : undef;
+    if ($content2) {
+      return ($content2->{city_name}, $content2->{region_name}, $content2->{country_code}, $content2->{latitude}, $content2->{longitude});
     } else {
       Warning("Geoip data retrieval returned HTTP POST error code: $resp_code2");
       Debug("Geoip data retrieval failure response message: $resp_msg2");

@@ -7,3 +7,17 @@ function configRequirementsMet($requires, $values) {
   }
   return true;
 }
+
+// Whether $value can be stored for an option of $type; empty only if its default is empty.
+function configValueIsValid($value, $type, $default='') {
+  if ($value === '' and $default === '') return true;
+  switch ($type) {
+  case 'integer':
+    return preg_match('/^-?\d+$/', $value) === 1;
+  case 'decimal':
+    return preg_match('/^-?\d+(\.\d+)?$/', $value) === 1;
+  case 'hexadecimal':
+    return preg_match('/^(0x)?[0-9a-f]+$/i', $value) === 1;
+  }
+  return true;
+}

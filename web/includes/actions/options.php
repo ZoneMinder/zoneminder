@@ -78,7 +78,7 @@ if ( $action == 'delete' ) {
   }
 } else if ( $action == 'options' && isset($_REQUEST['tab']) ) {
 
-  $result = dbQuery('SELECT Name,Value,Type,Requires,`System` FROM Config WHERE Category=? ORDER BY Id ASC', array($_REQUEST['tab']));
+  $result = dbQuery('SELECT Name,Value,Type,DefaultValue,Requires,`System` FROM Config WHERE Category=? ORDER BY Id ASC', array($_REQUEST['tab']));
   if (!$result) {
     $error_message .= 'Error loading config for tab ' . htmlspecialchars($_REQUEST['tab']) . ': ' . htmlspecialchars(dbLastError()) . '<br/>';
     return;
@@ -119,6 +119,10 @@ if ( $action == 'delete' ) {
           ZM\Error($error_message);
           continue;
         }
+      }
+      if (!configValueIsValid($newValue, $config['Type'], (string)$config['DefaultValue'])) {
+        $error_message .= 'Error setting ' . htmlspecialchars($config['Name']) . ': ' . htmlspecialchars($newValue) . ' is not a valid ' . $config['Type'] . '.<br/>';
+        continue;
       }
       if (dbQuery('UPDATE Config SET Value=? WHERE Name=?', array($newValue, $config['Name'])) === null) {
         $error_message .= 'Error saving ' . htmlspecialchars($config['Name']) . ': ' . htmlspecialchars(dbLastError()) . '<br/>';

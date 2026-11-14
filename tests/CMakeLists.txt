@@ -81,6 +81,7 @@ set(TEST_SOURCES
   zm_zone_alarm_box.cpp
   zm_image_linesize.cpp
   zm_image_delta.cpp
+  zm_image_jpeg_range.cpp
   zm_logger_rotate.cpp
   zm_logger_reload.cpp
   zm_ffmpeg_camera.cpp

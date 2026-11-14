@@ -459,6 +459,8 @@ function updateArea( ) {
 function updateX(input) {
   const index = input.getAttribute('data-point-index');
 
+  // Empty while the value is being retyped; keep the point where it is
+  if ( input.value === '' ) return;
   limitPointValue(input, 0, maxX);
 
   const point = $j('#point'+index);
@@ -476,6 +478,7 @@ function updateX(input) {
 /* Updates the drawn point based on input from the coordinates text inputs */
 function updateY(input) {
   const index = input.getAttribute('data-point-index');
+  if ( input.value === '' ) return;
   limitPointValue(input, 0, maxY);
 
   const point = $j('#point'+index);

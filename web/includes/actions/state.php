@@ -37,9 +37,9 @@ if ($action == 'state') {
       $definitions[] = $monitor['Id'].':'.$monitor['Capturing'].':'.$monitor['Analysing'].':'.$monitor['Recording'];
     }
     $definition = join(',', $definitions);
-    if ( $_REQUEST['newState'] )
+    if (!empty($_REQUEST['newState']))
       $_REQUEST['runState'] = $_REQUEST['newState'];
-    dbQuery('REPLACE INTO `States` SET `Name`=?, `Definition`=?', array($_REQUEST['runState'], $definition));
+    dbQuery('INSERT INTO `States` (`Name`, `Definition`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `Definition`=VALUES(`Definition`)', array($_REQUEST['runState'], $definition));
     ZM\AuditAction('save', 'state', 0, 'Name: '.$_REQUEST['runState']);
   }
 } else if ($action == 'delete') {

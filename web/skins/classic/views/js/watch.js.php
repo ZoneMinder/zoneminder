@@ -10,6 +10,7 @@
   global $labels;
   global $cycle;
   global $player;
+  $control = $monitor->Control();
 ?>
 //
 // Import constants
@@ -84,7 +85,6 @@ const imageRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_IMAGE ?>;
 const canStream = <?php echo canStream()?'true':'false' ?>;
 
 var imageControlMode = '<?php 
-$control = $monitor->Control();
 if ($control->CanMoveMap()) {
   echo 'moveMap';
 } else if ($control->CanMoveRel()) {

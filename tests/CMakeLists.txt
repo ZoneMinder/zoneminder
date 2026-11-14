@@ -55,6 +55,7 @@ set(TEST_SOURCES
   zm_pixformat.cpp
   zm_rgb_luma.cpp
   zm_rtsp_deprecation.cpp
+  zm_rtsp_server_pts_tracker.cpp
   zm_rtsp_server_session_tracker.cpp
   zm_signal.cpp
   zm_stream.cpp

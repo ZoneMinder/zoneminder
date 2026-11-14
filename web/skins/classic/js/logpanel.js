@@ -437,7 +437,7 @@ function initLogPanel(panel) {
         $row.addClass('log-err');
       } else if (level == 'WAR') {
         $row.addClass('log-war');
-      } else if (level == 'DBG') {
+      } else if (/^DB[G1-9]$/.test(level)) {
         $row.addClass('log-dbg');
       }
     });

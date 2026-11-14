@@ -76,12 +76,15 @@ if ( $command and ( $command !~ /^(?:start|stop|restart|status|logrot|version)$/
           ($capturing, $analysing, $recording) = ('Always','None','None');
         } elsif ($function eq 'Modect') {
           ($capturing, $analysing, $recording) = ('Always','Always','OnMotion');
+        } elsif ($function eq 'Nodect') {
+          ($capturing, $analysing, $recording) = ('Always','None','OnMotion');
         } elsif ($function eq 'Mocord') {
-          ($capturing, $analysing, $recording) = ('Always','Always','OnMotion');
-        } elsif ($function eq 'Record') {
           ($capturing, $analysing, $recording) = ('Always','Always','Always');
+        } elsif ($function eq 'Record') {
+          ($capturing, $analysing, $recording) = ('Always','None','Always');
         } else {
           Error("Unknown function $function, defaulting to Mocord"); 
+          ($capturing, $analysing, $recording) = ('Always','Always','Always');
         }
       } elsif (@state == 4) {
         ($id, $capturing, $analysing, $recording) = @state;

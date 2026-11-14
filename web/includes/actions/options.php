@@ -162,7 +162,7 @@ if ( $action == 'delete' ) {
   # On error stay on the page (no redirect) so the error is shown; otherwise
   # redirect to drop the POST and reload with fresh values.
   if (!$error_message) {
-    $redirect = '?view=options&tab='.$_REQUEST['tab'];
+    $redirect = '?view=options&tab='.$_REQUEST['tab'].(empty($restartWarning) ? '' : '&restart=1');
   }
   return;
 } else if ($action == 'save') {

@@ -310,6 +310,7 @@ int main(int argc, char *argv[]) {
         monitor->SetHeartbeatTime(std::chrono::system_clock::now());
       }
       if (zm_terminate) break;
+      monitor->ResetFPSBaseline();
       if (priming_failed)
         monitor->SendStreamHealthEvent(zm::stream_socket::kEventPrimeCaptureRestored,
                                        "Capture priming restored");

@@ -1203,6 +1203,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   uint64_t GetLastEventId() const;
   double GetFPS() const;
   void UpdateFPS();
+  void ResetFPSBaseline();
   void ForceAlarmOn( int force_score, const char *force_case, const char *force_text="" );
   void ForceAlarmOff();
   void CancelForced();

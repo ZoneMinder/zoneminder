@@ -41,7 +41,10 @@ class RolesController extends AppController {
     }
     $roles = $this->Paginator->paginate('Role');
 
-    $this->set(compact('roles'));
+    $this->set(array(
+      'roles' => $roles,
+      '_serialize' => array('roles')
+    ));
   }
 
 /**

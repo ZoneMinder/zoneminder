@@ -342,6 +342,9 @@ function authHashSecretIsSet() {
 
 function validateToken($token, $allowed_token_type='access') {
   global $user;
+  if (!is_string($token)) {
+    return array(false, 'Invalid token');
+  }
   if (!authHashSecretIsSet()) {
     ZM\Error('Refusing token authentication: ZM_AUTH_HASH_SECRET is empty or still the shipped default. Set it in Options->System or run zmupdate.pl -f.');
     return array(false, 'AUTH_HASH_SECRET is not set');

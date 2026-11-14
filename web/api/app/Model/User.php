@@ -11,6 +11,14 @@ class User extends AppModel {
             'required' => array(
                 'rule' => array('notEmpty'),
                 'message' => 'A username is required'
+            ),
+            'unique' => array(
+                'rule' => array('isUnique'),
+                'message' => 'This username is already in use'
+            ),
+            'length' => array(
+                'rule' => array('maxLength', 64),
+                'message' => 'A username is at most 64 characters'
             )
         ),
         'Password' => array(

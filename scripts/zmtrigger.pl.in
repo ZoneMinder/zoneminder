@@ -308,6 +308,7 @@ sub handleMessage {
   #  CUA  - Also Axis camera cannot save the plus sign which
   $message =~ s/^\"//g;
   $message =~ s/\"$//g;
+  return if $message !~ /\S/;
 
   my ( $id, $action, $score, $cause, $text, $showtext )
     = split( /\|/, $message );

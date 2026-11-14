@@ -207,7 +207,7 @@ sub moveVector {
   my $params = shift;
   my $command;                    # The ISAPI/PTZ command
 
-  my $duration = $self->duration();
+  my $duration = $self->duration($params);
 
   my $momentxml;
   if( $duration ) {

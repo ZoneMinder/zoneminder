@@ -1425,6 +1425,28 @@ class Monitor extends ZM_Object {
     }
     if (isset($gp_permissions['View'])) return 'View';
     if (isset($gp_permissions['Edit'])) return 'Edit';
+
+    // Same order as visibleMonitor() and editableMonitor(): the role's monitor permission,
+    // its groups, then the higher of the user's and the role's Monitors permission.
+    $role = $u->Role();
+    if ($role) {
+      $role_permission = $role->Monitor_Permission($this->Id())->Permission();
+      if ($role_permission != 'Inherit') return $role_permission;
+      $role_gp_permissions = array();
+      foreach ($role->Group_Permissions() as $gp) {
+        if (false === array_search($this->Id(), $gp->Group()->MonitorIds())) {
+          continue;
+        }
+        if ($gp->Permission() == 'None') {
+          return $gp->Permission();
+        }
+        $role_gp_permissions[$gp->Permission()] = 1;
+      }
+      if (isset($role_gp_permissions['View'])) return 'View';
+      if (isset($role_gp_permissions['Edit'])) return 'Edit';
+      $levels = array('None'=>0, 'View'=>1, 'Edit'=>2, 'Create'=>3);
+      return ($levels[$role->Monitors()] > $levels[$u->Monitors()]) ? $role->Monitors() : $u->Monitors();
+    }
     return $u->Monitors();
   }
 

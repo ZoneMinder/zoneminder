@@ -117,7 +117,7 @@ if ($action == 'save') {
 //       'Janus_RTSP_Session_Timeout' => 0,
       'Exif' => 0,
       'V4LMultiBuffer'  => '',
-      'WallClockTimestamps' => '',
+      'WallClockTimestamps' => 0,
       'RecordAudio' => 0,
       'Method' => 'raw',
       'GroupIds'  =>  array(),
@@ -148,9 +148,9 @@ if ($action == 'save') {
       ZM\Debug('Auto selecting server to '.ZM_SERVER_ID);
     }
   }
-  if (!empty($newMonitor['ManufacturerId']) and empty($newMonitor['Manufacturer']))
+  if (empty($newMonitor['Manufacturer']))
     unset($newMonitor['Manufacturer']);
-  if (!empty($newMonitor['ModelId']) and empty($newMonitor['Model']))
+  if (empty($newMonitor['Model']))
     unset($newMonitor['Model']);
 
   $refused = $monitor->commandFieldChangesNotAllowed($newMonitor);

@@ -9,18 +9,18 @@ class FilterComponent extends Component {
 	 * These came from https://dev.mysql.com/doc/refman/8.0/en/non-typed-operators.html
 	 */
 	public $twoOperandSQLOperands = array(
-					      'AND',
-					      '&&',
+					      //'AND',
+					      //'&&',
 					      '=',
 					      //':=',
 					      //'BETWEEN ... AND ...',
 					      //'BINARY',
-					      '&',
-					      '~',
+					      //'&',
+					      //'~',
 					      //'|',
-					      '^',
+					      //'^',
 					      //'CASE',
-					      'DIV',
+					      //'DIV',
 					      '/',
 					      '=',
 					      '<=>',
@@ -36,9 +36,9 @@ class FilterComponent extends Component {
 					      '<',
 					      '<=',
 					      'LIKE',
-					      '-',
-					      '%',
-					      'MOD',
+					      //'-',
+					      //'%',
+					      //'MOD',
 					      //'NOT',
 					      //'!',
 					      //'NOT BETWEEN ... AND ...',
@@ -52,13 +52,13 @@ class FilterComponent extends Component {
 					      // monitors/events.
 					      //'||',
 					      //'OR',
-					      '+',
+					      //'+',
 					      'REGEXP',
 					      '>>',
 					      'RLIKE',
-					      'SOUNDS LIKE',
+					      //'SOUNDS LIKE',
 					      //'*',
-					      '-',
+					      //'-',
 					      //'XOR',
                 'IN',
 					      );
@@ -194,6 +194,14 @@ class FilterComponent extends Component {
 						throw new BadRequestException('Unknown filter field: ' . $bare);
 					}
 				}
+        if ($operator == 'IS' or $operator == 'IS NOT') {
+          // CakePHP only writes IS [NOT] NULL for a null value
+          if (!is_string($value) or strcasecmp($value, 'NULL')) {
+            throw new BadRequestException('Invalid value for '.$operator.': '.(is_string($value) ? $value : 'array'));
+          }
+          $value = null;
+          $operator = ($operator == 'IS') ? '' : '!=';
+        }
         if (($operator == 'LIKE') and (false === strpos($value, '%'))) {
           $value = '%'.$value.'%';
         } else if ($operator == 'IN') {

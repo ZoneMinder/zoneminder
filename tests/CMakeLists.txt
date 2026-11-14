@@ -34,6 +34,7 @@ set(TEST_SOURCES
   zm_image_transform.cpp
   zm_image_deinterlace_linear.cpp
   zm_image_deinterlace_4field.cpp
+  zm_swscale_insize.cpp
   zm_monitor_shm.cpp
   zm_monitor_capture_failure.cpp
   zm_monitor_shared_value.cpp

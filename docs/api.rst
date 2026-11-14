@@ -659,19 +659,19 @@ For example:
 
 ::
 
-    <img src="https://yourserver/zm/cgi-bin/nph-zms?scale=50&width=640p&height=480px&mode=jpeg&maxfps=5&buffer=1000&&monitor=1&token=eW<deleted>03&connkey=36139" />
+    <img src="https://yourserver/zm/cgi-bin/nph-zms?scale=50&mode=jpeg&maxfps=5&buffer=1000&monitor=1&token=eW<deleted>03&connkey=36139" />
 
     # or 
 
-    <img src="https://yourserver/zm/cgi-bin/nph-zms?scale=50&width=640p&height=480px&mode=jpeg&maxfps=5&buffer=1000&&monitor=1&auth=b5<deleted>03&connkey=36139" />
+    <img src="https://yourserver/zm/cgi-bin/nph-zms?scale=50&mode=jpeg&maxfps=5&buffer=1000&monitor=1&auth=b5<deleted>03&connkey=36139" />
     
 
 
 
-will display a live feed from monitor id 1, scaled down by 50% in quality and resized to 640x480px. 
+will display a live feed from monitor id 1, scaled down to 50% of its size, at no more than 5 frames per second. 
 
 * This assumes ``/zm/cgi-bin`` is your CGI_BIN path. Change it to what is correct in your system
-* The "auth" token you see above is required if you use ZoneMinder authentication. To understand how to get the auth token, please read the "Login, Logout & API security" section below.
+* The "auth" token you see above is required if you use ZoneMinder authentication. To understand how to get the auth token, please read the "Getting an API key" section above.
 * The "connkey" parameter is essentially a random number which uniquely identifies a stream. If you don't specify a connkey, ZM will generate its own. It is recommended to generate a connkey because you can then use it to "control" the stream (pause/resume etc.)
 * Instead of dealing with the "auth" token, you can also use ``&user=username&pass=password`` where "username" and "password" are your ZoneMinder username and password respectively. Note that this is not recommended because you are transmitting them in a URL and even if you use HTTPS, they may show up in web server logs.
 

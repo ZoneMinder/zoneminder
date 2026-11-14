@@ -64,6 +64,8 @@ if ( $action == 'delete' ) {
   } else if ( isset($_REQUEST['markUids']) ) {
     // deletes users
     foreach ($_REQUEST['markUids'] as $markUid) {
+      # User_Preferences has no ON DELETE CASCADE, so the user can't be deleted while it has rows.
+      dbQuery('DELETE FROM User_Preferences WHERE UserId = ?', array($markUid));
       dbQuery('DELETE FROM Users WHERE Id = ?', array($markUid));
       ZM\AuditAction('delete', 'user', $markUid, '');
     }

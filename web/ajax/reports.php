@@ -139,11 +139,9 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
       ZM\Error('Invalid sort field: ' . $sort);
       $sort = '';
     } else if ($sort == 'EndDateTime') {
-      if ($order == 'ASC') {
-        $sort = 'EndDateTime IS NULL, E.EndDateTime';
-      } else {
-        $sort = 'EndDateTime IS NOT NULL, E.EndDateTime';
-      }
+      $sort = ($order == 'ASC') ? 'EndDateTime IS NULL ASC, EndDateTime' : 'EndDateTime IS NOT NULL ASC, EndDateTime';
+    } else {
+      $sort = '`'.$sort.'`';
     }
   }
 

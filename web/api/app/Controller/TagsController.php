@@ -124,9 +124,11 @@ class TagsController extends AppController {
         return;
       }
 
-      if ( $this->request->data['Tag']['EventIds'] and ! isset($this->request->data['Event']) ) {
-        $this->request->data['Event'] = explode(',', $this->request->data['Tag']['EventIds']);
-        unset($this->request->data['Tag']['EventIds']);
+      $eventIds = $this->requestField('Tag', 'EventIds');
+      if ( is_string($eventIds) and $eventIds !== '' and ! isset($this->request->data['Event']) ) {
+        $this->request->data['Event'] = explode(',', $eventIds);
+        unset($this->request->data['EventIds']);
+        if ( isset($this->request->data['Tag']) and is_array($this->request->data['Tag']) ) unset($this->request->data['Tag']['EventIds']);
       }
       # Only events the user may view can be tagged.
       $eventIds = $this->requestAssociatedIds('Tag', 'Event');
@@ -141,7 +143,11 @@ class TagsController extends AppController {
         );
       } else {
         ZM\Error("Failed to save Tag");
-        debug($this->Tag->invalidFields());
+        $this->set(array(
+          'message' => $this->Tag->validationErrors ? $this->Tag->validationErrors : 'Error',
+          '_serialize' => array('message')
+        ));
+        return;
       }
     } # end if post
     $monitors = $this->Tag->Event->find('list');
@@ -159,6 +165,7 @@ class TagsController extends AppController {
 		if ( !$this->Tag->exists($id) ) {
 			throw new NotFoundException(__('Invalid tag'));
 		}
+    $message = '';
 		if ( $this->request->is(array('post', 'put'))) {
       global $user;
       # We already tested for auth in appController,
@@ -176,11 +183,7 @@ class TagsController extends AppController {
 			if ( $this->Tag->save($this->request->data) ) {
         $message = 'Saved';
       } else {
-        $message = 'Error';
-        // if there is a validation message, use it
-        if ( !$this->tag->validates() ) {
-          $message .= ': '.$this->Tag->validationErrors;
-        }
+        $message = $this->Tag->validationErrors ? $this->Tag->validationErrors : 'Error';
 			}
 		} # end if post/put
 
@@ -188,7 +191,7 @@ class TagsController extends AppController {
 		$this->set(array(
 			'message' => $message,
 			'tag' => $tag,
-			'_serialize' => array('tag')
+			'_serialize' => array('message', 'tag')
 		));
 	}
 
@@ -215,7 +218,10 @@ class TagsController extends AppController {
       return;
     }
 
+    # Events_Tags has no Id column, so Cake cannot clear the links itself.
+    $this->Tag->unbindModel(array('hasAndBelongsToMany' => array('Event')), false);
 		if ( $this->Tag->delete() ) {
+      dbQuery('DELETE FROM `Events_Tags` WHERE `TagId`=?', array($id));
       return $this->flash(
         __('The tag has been deleted.'),
         array('action' => 'index')

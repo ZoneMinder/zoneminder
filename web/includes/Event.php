@@ -282,6 +282,8 @@ class Event extends ZM_Object {
           throw new \Exception('No event Path in Event delete. Not deleting');
         }
         deletePath($eventPath);
+        # rmdir() leaves the date directory alone while other events are in it
+        if ( $this->{'Scheme'} == 'Medium' ) @rmdir(dirname($eventPath));
         if ( $this->SecondaryStorageId() ) {
           $Storage = $this->SecondaryStorage();
           if ( $Storage->Id() ) {
@@ -290,6 +292,7 @@ class Event extends ZM_Object {
               Error('No event Path in Event delete. Not deleting');
             } else {
               deletePath($eventPath);
+              if ( $this->{'Scheme'} == 'Medium' ) @rmdir(dirname($eventPath));
             }
           } # end if Storage
         } # end if has Secondary Storage

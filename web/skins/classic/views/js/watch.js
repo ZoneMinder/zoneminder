@@ -1038,6 +1038,9 @@ function applyMonitorControllable() {
     ptzToggle.classList.remove("disabled");
     ptzToggle.disabled=false;
     sidebarControls.html(currentMonitor.ptzControls);
+    // The buttons belong to this monitor's controls, so ask for their state now
+    lightStatusReq();
+    indicatorLightStatusReq();
     if (ptzVisible) {
       sidebarControls.show();
       ptzToggle.classList.remove("btn-secondary");
@@ -1198,20 +1201,15 @@ function initPage() {
     alert("No monitor found for id "+monitorId);
   }
 
-  // Status-aware light toggle: initialise from the camera and re-query after
-  // each click so the button tracks the real state.
-  if ($j('.lightToggleBtn').length) {
-    lightStatusReq();
-    $j(document).on('click', '.lightToggleBtn', function() {
-      setTimeout(lightStatusReq, 800);
-    });
-  }
-  if ($j('.indicatorLightToggleBtn').length) {
-    indicatorLightStatusReq();
-    $j(document).on('click', '.indicatorLightToggleBtn', function() {
-      setTimeout(indicatorLightStatusReq, 800);
-    });
-  }
+  // Status-aware light toggle: re-query after each click so the button tracks
+  // the real state. Delegated, so it also covers a monitor switched to later;
+  // the initial query runs from applyMonitorControllable().
+  $j(document).on('click', '.lightToggleBtn', function() {
+    setTimeout(lightStatusReq, 800);
+  });
+  $j(document).on('click', '.indicatorLightToggleBtn', function() {
+    setTimeout(indicatorLightStatusReq, 800);
+  });
 } // initPage
 
 function watchFullscreen() {

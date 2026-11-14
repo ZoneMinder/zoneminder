@@ -465,6 +465,7 @@ int main(int argc, char *argv[]) {
   zmSetDefaultTermHandler();
   zmSetDefaultDieHandler();
 
+  int status = 0;
   User *user = 0;
 
   if ( config.opt_use_auth ) {
@@ -633,12 +634,16 @@ int main(int argc, char *argv[]) {
           printf(", scaling by %d%%", scale);
         printf("\n");
       }
-      monitor->GetImage(image_idx, scale>0?scale:100);
+      if (!monitor->GetImage(image_idx, scale>0?scale:100)) {
+        status = -1;
+      }
     }
     if ( function & ZMU_ZONES ) {
       if ( verbose )
         printf("Dumping zone image to Zones%u.jpg\n", monitor->Id());
-      monitor->DumpZoneImage(zoneString);
+      if (!monitor->DumpZoneImage(zoneString)) {
+        status = -1;
+      }
     }
     if ( function & ZMU_ALARM ) {
       Monitor::State state = monitor->GetState();
@@ -849,6 +854,6 @@ int main(int argc, char *argv[]) {
   } // end if function && ZMU_LIST
   delete user;
 
-  exit_zmu(0);
+  exit_zmu(status);
   return 0;
 }  // end int main()

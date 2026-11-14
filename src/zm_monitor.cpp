@@ -1469,14 +1469,14 @@ void Monitor::WriteAlarmImage(const Image &src) {
   shared_data->analysis_image_count++;
 }
 
-int Monitor::GetImage(int32_t index, int scale) {
-  if (index < 0 || index > image_buffer_count) {
+bool Monitor::GetImage(int32_t index, int scale) {
+  if (index < 0 || index >= image_buffer_count) {
     Debug(1, "Invalid index %d passed. image_buffer_count = %d", index, image_buffer_count);
     index = shared_data->last_write_index;
   }
   if (!image_buffer.size()) {
     Error("Image Buffer has not been allocated");
-    return -1;
+    return false;
   }
   // Check the sentinel BEFORE the bounds check: when last_write_index is
   // still image_buffer_count (no frames written yet), index equals the
@@ -1485,12 +1485,12 @@ int Monitor::GetImage(int32_t index, int scale) {
   // "buffer not allocated" error.
   if (index == image_buffer_count) {
     Error("Unable to generate image, no images in buffer");
-    return 0;
+    return false;
   }
   if (static_cast<size_t>(index) >= image_buffer.size()) {
     Error("GetImage: index %d out of range (image_buffer.size() = %zu)",
           index, image_buffer.size());
-    return -1;
+    return false;
   }
 
   // Route the slot read through ReadShmFrame so the per-slot AVPixelFormat
@@ -1795,7 +1795,7 @@ int Monitor::actionColour() {
   return shared_data->colour;
 } // end int Monitor::actionColour(int p_colour)
 
-void Monitor::DumpZoneImage(const char *zone_string) {
+bool Monitor::DumpZoneImage(const char *zone_string) {
   unsigned int exclude_id = 0;
   int extra_colour = 0;
   Polygon extra_zone;
@@ -1813,7 +1813,7 @@ void Monitor::DumpZoneImage(const char *zone_string) {
     std::shared_ptr<ZMPacket>packet = getSnapshot(index);
     if (!packet) {
       Error("Unable to load an image for monitor %d", id);
-      return;
+      return false;
     }
     zone_image = new Image(*packet->image);
   } else {
@@ -1832,7 +1832,7 @@ void Monitor::DumpZoneImage(const char *zone_string) {
       stream = nullptr;
     } else {
       Error("Unable to load an event for monitor %d", id);
-      return;
+      return false;
     }
   }
 
@@ -1876,9 +1876,10 @@ void Monitor::DumpZoneImage(const char *zone_string) {
   }
 
   std::string filename = stringtf("Zones%u.jpg", id);
-  zone_image->WriteJpeg(filename);
+  bool written = zone_image->WriteJpeg(filename);
   delete zone_image;
-} // end void Monitor::DumpZoneImage(const char *zone_string)
+  return written;
+} // end bool Monitor::DumpZoneImage(const char *zone_string)
 
 void Monitor::DumpImage(Image *dump_image) const {
   if (shared_data->image_count && !(shared_data->image_count % 10)) {

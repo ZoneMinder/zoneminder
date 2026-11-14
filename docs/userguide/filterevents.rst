@@ -31,19 +31,22 @@ Here is what the filter window looks like
     .. todo ::
       For the "create video" filter, put in more details on how it works, any dependencies etc.
 
+  * Unarchive all matches: sets the archive field back to 0 for the matched events.
   * Update used disk space: calculates how much disk space is currently taken by the event and updates the db record.
   * Create video for all matches: creates a video file of all the events that match 
   * Create video for all matches: ffmpeg will be used to create a video file (mp4) out of all the stored jpgs if using jpeg storage.
-	* Execute command on all matches: Allows you to execute any arbitrary command on the matched events. You can use replacement tokens as subsequent arguments to the command, the last argument will be the absolute path to the event, preceded by replacement arguments. eg: /usr/bin/script.sh %MN% will execute as /usr/bin/script.sh MonitorName /path/to/event. Please note that urls may contain characters like & that need quoting. So you may need to put quotes around them like /usr/bin/scrupt.sh "%MN%".
+	* Execute command on all matches: Allows you to execute any arbitrary command on the matched events. You can use replacement tokens in the command. If the command contains no tokens, the absolute path to the event is appended as the last argument. If it does contain tokens the path is not appended, so add %EPATH% yourself if the command needs it. eg: /usr/bin/script.sh %MN% will execute as /usr/bin/script.sh MonitorName, and /usr/bin/script.sh will execute as /usr/bin/script.sh /path/to/event. Please note that urls may contain characters like & that need quoting. So you may need to put quotes around them like /usr/bin/scrupt.sh "%MN%".
 	* Delete all matches: Deletes all the matched events.
+	* Upload all matches: uploads the event files to the remote server set in the Upload options. Only shown when ``OPT_UPLOAD`` is enabled.
 	* Email details of all matches: Sends an email to the configured address with details about the event. 
   * Copy all matches: copies the event files to another location, specified in the Copy To dropdown.  The other location must be setup in the Storage Tab under options.
   * Message details of all matches: Uses an email to SMS gateway to send an SMS message for each match.
   * Move all matches: copies the event files to another location, specified in the Move To dropdown.  The other location must be setup in the Storage Tab under options. The files will be delete from the original location.
   * Run filter in background:  When checked, ZoneMinder will make sure the filter is checked regularly. For example, if you want to be notified of new events by email, you should make sure this is checked. Filters that are configured to run in the background have a “*” next to it.
+  * Execute Interval: How often, in seconds, this filter is run when it runs in the background. The default is 60.
   * Run filter concurrently: Allows this filter to run in its own thread thereby letting other filters run in parallel.
 
-* *F*: Use 'List Matches' to 'test' your matching conditions. This will just match and show you what filters match. Use 'Execute' to actually execute the action after matching your conditions. Use 'Save' to save the filter for future use and 'Reset' to clear your settings
+* *F*: Use 'List Matches' to 'test' your matching conditions. This will just match and show you what filters match. 'View Matches' shows the matching events in Montage Review and 'Export Matches' exports them. Use 'Execute' to actually execute the action after matching your conditions. Use 'Save' (or 'Save as' to keep the original) to save the filter for future use, 'Delete' to remove a saved filter and 'Reset' to clear your settings
 
 .. note:: More details on filter conditions:
 
@@ -66,12 +69,15 @@ Here is what the filter window looks like
     *    %ET%       Time of the event
     *    %EL%       Length of the event
     *    %ELOC%     Location of event Latitude, Longitude
+    *    %ETAGS%    Tags of the event, separated by commas
+    *    %EVF%      File name of the event video
     *    %EF%       Number of frames in the event
     *    %EFA%      Number of alarm frames in the event
     *    %EST%      Total score of the event
     *    %ESA%      Average score of the event
     *    %ESM%      Maximum score of the event
     *    %EP%       Path to the event
+    *    %EPATH%    Path to the event directory on disk
     *    %EPS%      Path to the event stream
     *    %EPF1%     Path to the frame view for the first alarmed event image
     *    %EPFM%     Path to the frame view for the (first) event image with the highest score
@@ -108,7 +114,7 @@ Here is what the filter window looks like
     *    %FP%       Path to the current filter that matched
     *    %ZP%       Path to your ZoneMinder console
 
-	Finally you can also specify a script which is run on each matched event. This script should be readable and executable by your web server user. It will get run once per event and the relative path to the directory containing the event in question. Normally this will be of the form <MonitorName>/<EventId> so from this path you can derive both the monitor name and event id and perform any action you wish. Note that arbitrary commands are not allowed to be specified in the filter, for security the only thing it may contain is the full path to an executable. What that contains is entirely up to you however.
+	Finally you can also specify a script which is run on each matched event. This script should be readable and executable by your web server user. It will get run once per event and the absolute path to the directory containing the event in question will be appended. From this path you can derive both the monitor id and event id and perform any action you wish. Note that arbitrary commands are not allowed to be specified in the filter, for security the only thing it may contain is the full path to an executable. What that contains is entirely up to you however.
 
 	Filtering is a powerful mechanism you can use to eliminate events that fit a certain pattern however in many cases modifying the zone settings will better address this. Where it really comes into its own is generally in applying time filters, so for instance events that happen during weekdays or at certain times of the day are highlighted, uploaded or deleted. Additionally using disk related terms in your filters means you can automatically create filters that delete the oldest events when your disk gets full. Be warned however that if you use this strategy then you should limit the returned results to the amount of events you want deleted in each pass until the disk usage is at an acceptable level. If you do not do this then the first pass when the disk usage is high will match, and then delete, all events unless you have used other criteria inside of limits. ZoneMinder ships with a sample filter already installed, though disabled. The PurgeWhenFull filter can be used to delete the oldest events when your disk starts filling up. To use it you should select and load it in the filter interface, modify it to your requirements, and then save it making you sure you check the ‘Delete all matches’ option. This will then run in the background and ensure that your disk does not fill up with events.
 
@@ -124,7 +130,7 @@ How filters actually work
 It is useful to know how filters actually work behind the scenes in ZoneMinder, in the event you find your filter not functioning as intended:
 
 * Each filter set to run in the background will be run in it's own process called ``zmfilter.pl`` which retrieves filters from the Filters database table
-* zmfilter.pl runs every FILTER_EXECUTE_INTERVAL seconds (default is 20s, can be changed in Options->System)
+* zmfilter.pl runs each filter every Execute Interval seconds (default is 60s, set separately on each filter)
 * after each interval the filter will query the database and apply the action to each matching event.
 * zmfilter.pl also reloads the filter every FILTER_RELOAD_DELAY seconds (default is 300s/5mins, can be changed in Options->System)
 * In previous versions of ZoneMinder filter changes would not take immediate effect, but now the web ui will start/stop/restart filters as appropriate upon editing a filter.
@@ -202,7 +208,7 @@ Troubleshooting tips
 If your filter is not working, here are some useful tips:
 
 * Look at Info and Debug logs in Zoneminder 
-* Run ``sudo zmfilter.pl -f <yourfiltername>`` from command line and see the log output
+* Run ``sudo zmfilter.pl --filter=<yourfiltername>`` from command line and see the log output
 * Check how long your action is taking - zmfilter.pl will wait for the action to complete before it checks again
 * If you are using relative times like 'now' or '1 year ago' etc. remember that zmfilter converts that relative time to an absolute date only when it reloads filters, which is dictated by the FILTER_RELOAD_DELAY duration. So, for example, if you are wondering why your events are not being detected before intervals of 5 minutes and you have used such a relative condition, this is why
-* In the event that you see your new filter is working great when you try it out from the Web Console (using the Submit or Execute button) but does not seem to work when its running in background mode, you might have just chanced upon a compatibility issue between how Perl and PHP translate free form text to dates/times. When you test it via the "Submit" or "Execute" button, you are invoking a PHP function for time conversion. When the filter runs in background mode, zmfilter.pl calls a perl equivalent function. In some cases, depending on the version of Perl and PHP you have, the results may vary. If you face this situation, the best thing to do is to run ``sudo zmfilter.pl -f <yourfiltername>`` from a terminal to make sure the filter actually works in Perl as well.
+* In the event that you see your new filter is working great when you try it out from the Web Console (using the Submit or Execute button) but does not seem to work when its running in background mode, you might have just chanced upon a compatibility issue between how Perl and PHP translate free form text to dates/times. When you test it via the "Submit" or "Execute" button, you are invoking a PHP function for time conversion. When the filter runs in background mode, zmfilter.pl calls a perl equivalent function. In some cases, depending on the version of Perl and PHP you have, the results may vary. If you face this situation, the best thing to do is to run ``sudo zmfilter.pl --filter=<yourfiltername>`` from a terminal to make sure the filter actually works in Perl as well.

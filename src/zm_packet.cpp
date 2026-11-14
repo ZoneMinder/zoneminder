@@ -26,6 +26,8 @@ extern "C" {
 #include <libavutil/pixdesc.h>
 }
 
+#include <memory>
+
 using namespace std;
 AVPixelFormat target_format = AV_PIX_FMT_NONE;
 
@@ -294,9 +296,13 @@ Image *ZMPacket::set_image(Image *i) {
 Image *ZMPacket::get_y_image() {
   if (y_image) return y_image;
 
-  // A planar YUV frame already has the Y channel in data[0]
   const AVPixFmtDescriptor *desc = in_frame ? av_pix_fmt_desc_get(static_cast<AVPixelFormat>(in_frame->format)) : nullptr;
-  if (desc && !(desc->flags & AV_PIX_FMT_FLAG_RGB) && (desc->flags & AV_PIX_FMT_FLAG_PLANAR)) {
+  // data[0] is a usable Y plane only for 8-bit planar YUV
+  const bool plain_y = desc && (desc->flags & AV_PIX_FMT_FLAG_PLANAR)
+                       && !(desc->flags & (AV_PIX_FMT_FLAG_RGB | AV_PIX_FMT_FLAG_PAL
+                                           | AV_PIX_FMT_FLAG_BITSTREAM | AV_PIX_FMT_FLAG_HWACCEL))
+                       && desc->comp[0].depth == 8 && desc->comp[0].step == 1;
+  if (plain_y) {
     // Wrap the decoder's Y plane with its real stride (linesize[0]). The plane
     // is packed at the decoder's alignment, which may be smaller than the
     // FFALIGN(width,32) a plain Image would assume; recording the true stride
@@ -306,8 +312,17 @@ Image *ZMPacket::get_y_image() {
     return y_image;
   }
 
-  // Otherwise (RGB frames, or cameras like RemoteCameraHttp that only fill
-  // image) convert the image to greyscale.
+  // Gray, high bit depth and other software frames: convert the decoded frame
+  if (desc && in_frame->data[0] && !(desc->flags & AV_PIX_FMT_FLAG_HWACCEL)) {
+    std::unique_ptr<Image> luma(new Image(in_frame->width, in_frame->height,
+                                          ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE));
+    if (luma->Assign(in_frame.get())) {
+      y_image = luma.release();
+      return y_image;
+    }
+  }
+
+  // Otherwise (cameras like RemoteCameraHttp that only fill image) convert the image to greyscale.
   if (!image) {
     Error("Can't get y_image without frame or image, maybe need to decode first");
     return nullptr;

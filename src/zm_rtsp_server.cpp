@@ -455,9 +455,15 @@ int main(int argc, char *argv[]) {
 
       if (stream.HasClients()) {
         // The shm connection is only needed for viewer accounting now
-        if (monitor->ShmValid() or monitor->connect()) {
-          monitor->setLastViewed(std::chrono::system_clock::now());
+        if (!monitor->ShmValid()) {
+          // zmc restarted: unmap its old shared memory instead of leaking it
+          monitor->disconnect();
+          if (!monitor->connect()) {
+            Debug(1, "Monitor %d shared memory not available yet, retrying next pass", monitor->Id());
+            continue;
+          }
         }
+        monitor->setLastViewed(std::chrono::system_clock::now());
       }
     }  // end foreach monitor
 

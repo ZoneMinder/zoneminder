@@ -78,11 +78,18 @@ if ( -e ZM_RECOVER_PID ) {
   }
 } # end if ZM_RECOVER_PID exists
 
+my $pid_file_written = 0;
 if ( open(my $PID, '>', ZM_RECOVER_PID) ) {
   print($PID $$);
   close($PID);
+  $pid_file_written = 1;
 } else {
   Error( "Can't open pid file at " . ZM_PID );
+}
+
+# Also covers dying, so a crash does not leave a pid file that blocks the next run
+END {
+  unlink ZM_RECOVER_PID if $pid_file_written;
 }
 
 sub HupHandler {

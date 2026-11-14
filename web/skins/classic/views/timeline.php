@@ -483,16 +483,19 @@ for ( $i = 0; $i < $chart['graph']['width']; $i++ ) {
         $frameSlots[$i][] = &$currFrameSlots[$i];
       } else {
         $slotCount = count($frameSlots[$i]);
+        $inserted = false;
         for ( $j = 0; $j < $slotCount; $j++ ) {
           if ( $currFrameSlots[$i]['value'] > $frameSlots[$i][$j]['value'] ) {
             for ( $k = $slotCount; $k > $j; $k-- ) {
               $frameSlots[$i][$k] = $frameSlots[$i][$k-1];
             }
             $frameSlots[$i][$j] = &$currFrameSlots[$i];
-            break 2;
+            $inserted = true;
+            break;
           }
         }
-        $frameSlots[$i][] = &$currFrameSlots[$i];
+        if ( !$inserted )
+          $frameSlots[$i][] = &$currFrameSlots[$i];
       }
     }
     unset($currFrameSlots);

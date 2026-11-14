@@ -2409,12 +2409,12 @@ void Image::Overlay( const Image &image ) {
 
 /* RGB32 compatible: complete */
 void Image::Overlay( const Image &image, const unsigned int lo_x, const unsigned int lo_y ) {
-  if ( !(width < image.width || height < image.height) ) {
+  if ( width < image.width || height < image.height ) {
     Panic("Attempt to overlay image too big for destination, %dx%d > %dx%d",
           image.width, image.height, width, height );
   }
 
-  if ( !(width < (lo_x+image.width) || height < (lo_y+image.height)) ) {
+  if ( width < (lo_x+image.width) || height < (lo_y+image.height) ) {
     Panic("Attempt to overlay image outside of destination bounds, %dx%d @ %dx%d > %dx%d",
           image.width, image.height, lo_x, lo_y, width, height );
   }

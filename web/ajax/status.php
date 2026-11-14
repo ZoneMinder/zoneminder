@@ -98,7 +98,6 @@ $statusData = array(
       'TrackDelay' => true,
       'ReturnLocation' => true,
       'ReturnDelay' => true,
-      'DefaultView' => true,
       'DefaultRate' => true,
       'DefaultScale' => true,
       'WebColour' => true,

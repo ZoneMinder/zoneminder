@@ -188,7 +188,8 @@ sub insertQuery {
   my $tablename = shift;
   my @data = @_;
 
-  my $sql = "INSERT INTO $tablename VALUES (NULL,"
+  # MonitorPresets is Id, ModelId, Name, ...: leave both to the database
+  my $sql = "INSERT INTO $tablename VALUES (NULL, NULL,"
     .(join ', ', ('?') x @data).')'; # Add "?" for each array element
 
     my $sth = $dbh->prepare_cached( $sql )

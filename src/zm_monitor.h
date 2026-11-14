@@ -709,6 +709,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int             audio_threshold;   // 0-100; 0 means detection is off
   int             audio_alarm_score; // Score contributed while over threshold
   AudioDetector   audio_detector;
+  static constexpr int AUDIO_STALE_SECONDS = 2;  // Silence from the audio stream after which the level is dropped
+  SystemTimePoint last_audio_packet_time;
   bool            wallclock_timestamps; // Whether to use wallclock pts/dts instead of values from ffmpeg
   int             output_source_stream;
 

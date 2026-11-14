@@ -3292,6 +3292,13 @@ int Monitor::Capture() {
 
     if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
       packet->packet->stream_index = video_stream_id; // Convert to packetQueue's index
+      // The reading is only as fresh as the last audio packet; with the audio gone it would keep scoring frames.
+      if ((shared_data->audio_alarm or shared_data->audio_level) and
+          (packet->timestamp - last_audio_packet_time > Seconds(AUDIO_STALE_SECONDS))) {
+        Debug(2, "No audio packet for %d seconds, clearing the audio level", AUDIO_STALE_SECONDS);
+        shared_data->audio_level = 0;
+        shared_data->audio_alarm = 0;
+      }
       if (stream_socket)
         stream_socket->SendMedia(packet->packet.get(), zm::stream_socket::StreamId::Video,
                                  packet->keyframe, packet->pts);
@@ -3319,6 +3326,7 @@ int Monitor::Capture() {
         if (audio_detector.IsOpen()) {
           const int level = audio_detector.Process(packet->packet.get());
           const bool alarm = audio_detection and AudioDetector::IsAlarm(level, audio_threshold);
+          last_audio_packet_time = packet->timestamp;
           shared_data->audio_level = static_cast<uint8_t>(level);
           shared_data->audio_alarm = alarm ? 1 : 0;
           if (alarm)

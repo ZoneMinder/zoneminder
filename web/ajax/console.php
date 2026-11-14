@@ -45,6 +45,7 @@ function saveMonitorSequence($monitor_ids) {
   $dbConn = zmDbConn();
   $dbConn->exec('LOCK TABLES Monitors WRITE');
   try {
+    $ids = array();
     for ( $i = 0; $i < count($monitor_ids); $i += 1 ) {
       $monitor_id = $monitor_ids[$i];
       $monitor_id = preg_replace('/^monitor_id-/', '', $monitor_id);
@@ -52,8 +53,19 @@ function saveMonitorSequence($monitor_ids) {
         \ZM\Warning('Got '.$monitor_id.' from '.$monitor_ids[$i]);
         continue;
       }
-      dbQuery('UPDATE Monitors SET Sequence=? WHERE Id=?', array($i, $monitor_id));
+      $ids[] = $monitor_id;
     } // end for each monitor_id
+    if ( $ids ) {
+      // A paginated table only posts the visible rows, so reuse the Sequence values those rows already held
+      $sequences = dbFetchAll('SELECT Sequence FROM Monitors WHERE Id IN ('.implode(',', array_fill(0, count($ids), '?')).') ORDER BY Sequence', 'Sequence', $ids);
+      if ( count(array_unique($sequences)) != count($ids) ) {
+        $first = $sequences ? $sequences[0] : 0;
+        $sequences = range($first, $first + count($ids) - 1);
+      }
+      foreach ( $ids as $i => $monitor_id ) {
+        dbQuery('UPDATE Monitors SET Sequence=? WHERE Id=?', array($sequences[$i], $monitor_id));
+      }
+    }
   } finally {
     $dbConn->exec('UNLOCK TABLES');
   }

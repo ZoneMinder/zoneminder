@@ -190,7 +190,7 @@ if ( $event_id ) {
 } elsif ( $filter_name or $filter_id ) {
   my $Filter = ZoneMinder::Filter->find_one( 
       ($filter_name ? ( Name => $filter_name ) : () ),
-      ($filter_id ? ( Id => $filter_name ) : () ),
+      ($filter_id ? ( Id => $filter_id ) : () ),
       );
   if ( ! $Filter ) {
     Fatal("Filter $filter_name $filter_id not found.");	
@@ -201,7 +201,7 @@ if ( $event_id ) {
   } else {
     Debug(@event_ids . " events found for $filter_name");
   }
-  $concat_name = $filter_name if $concat_name eq '';
+  $concat_name = $Filter->Name() if defined $concat_name and $concat_name eq '';
 }
 
 my $sql = " SELECT (SELECT max(Delta) FROM Frames WHERE EventId=Events.Id)-(SELECT min(Delta) FROM Frames WHERE EventId=Events.Id) as FullLength,

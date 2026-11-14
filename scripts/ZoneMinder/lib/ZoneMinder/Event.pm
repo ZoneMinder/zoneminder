@@ -311,7 +311,9 @@ sub GenerateVideo {
   if ( $overwrite || !-s $video_file ) {
     Info("Creating video file $video_file for event $self->{Id}");
 
-    my $frame_rate = sprintf('%.2f', $self->{Frames}/$self->{FullLength});
+    # A single frame spans no time and an event without Frames rows has no FullLength.
+    my $full_length = $self->{FullLength} || $self->{Length};
+    my $frame_rate = $full_length ? sprintf('%.2f', $self->{Frames}/$full_length) : 1;
     if ( $rate ) {
       if ( $rate != 1.0 ) {
         $frame_rate *= $rate;
@@ -320,14 +322,14 @@ sub GenerateVideo {
       $frame_rate = $fps;
     }
 
-    my $width = $self->{Width};
-    my $height = $self->{Height};
-    my $video_size = "${width}x${height}";
+    # Left empty to keep the input size, which a rotating transform changes.
+    my $video_size = '';
 
     if ( $scale ) {
       if ( $scale != 1.0 ) {
-        $width = int($width*$scale);
-        $height = int($height*$scale);
+        # libx264 refuses odd dimensions
+        my $width = int($self->{Width}*$scale/2)*2;
+        my $height = int($self->{Height}*$scale/2)*2;
         $video_size = "${width}x${height}";
       }
     } elsif ( $size ) {
@@ -351,8 +353,8 @@ sub GenerateVideo {
       # each, so they are split on whitespace rather than passed as one word.
       grep { $_ ne '' } split(/\s+/, $Config{ZM_FFMPEG_INPUT_OPTIONS}),
       '-i', $input_file,
-      (map { ('-vf', $_) } @transforms),
-      '-s', $video_size,
+      (@transforms ? ('-vf', join(',', @transforms)) : ()),
+      ($video_size ne '' ? ('-s', $video_size) : ()),
       grep { $_ ne '' } split(/\s+/, $Config{ZM_FFMPEG_OUTPUT_OPTIONS}),
       $video_file,
     );
@@ -377,6 +379,7 @@ sub GenerateVideo {
     my $status = $? >> 8;
     if ( $status ) {
       Error("Unable to generate video, check $event_path/ffmpeg.log for details");
+      unlink($video_file);
       return;
     }
 
@@ -1004,10 +1007,10 @@ sub guess_EndDateTime {
   my $event = shift;
   if (!$$event{EndDateTime}) {
     if ($$event{Length}) {
-      my $startdatetime = Date::Parse::str2time( $_[0]{StartDateTime} );
+      my $startdatetime = Date::Parse::str2time( $$event{StartDateTime} );
       $$event{EndDateTime} = Date::Format::time2str('%Y-%m-%d %H:%M:%S', $startdatetime + $$event{Length});
     } else {
-      $$event{EndDateTime} = Date::Format::time2str('%Y-%m-%d %H:%M:%S', Date::Parse::str2time( $_[0]{StartDateTime} )+1);
+      $$event{EndDateTime} = Date::Format::time2str('%Y-%m-%d %H:%M:%S', Date::Parse::str2time( $$event{StartDateTime} )+1);
     }
   }
   return $$event{EndDateTime};

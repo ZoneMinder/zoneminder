@@ -195,6 +195,14 @@ MAIN: while( $loop ) {
     foreach my $Storage ( @Storage_Areas ) {
       Info('Auditing ' . $Storage->Name() . ' at ' . $Storage->Path() . ' on ' . $Storage->Server()->Name() );
     }
+  } elsif ( $Config{ZM_SERVER_ID} ) {
+    # Another server's events would look missing here and be deleted from the db.
+    @Storage_Areas = grep { !$$_{ServerId} or ($$_{ServerId} == $Config{ZM_SERVER_ID}) } @all_Storage_Areas;
+    if ( ! @Storage_Areas ) {
+      Error('No Storage Area found for server '.$Config{ZM_SERVER_ID});
+      Term();
+    }
+    Info('Auditing Storage Areas of server '.$Config{ZM_SERVER_ID});
   } else {
     @Storage_Areas = ZoneMinder::Storage->find();
     Info('Auditing All Storage Areas');

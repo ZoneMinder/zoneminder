@@ -68,6 +68,22 @@ function monitorMatchesSearch($monitor, $search) {
   return false;
 }
 
+// Source, Server, Storage and Function are display values, not row columns.
+function monitorSortValue($monitor, $sort, $ServersById, $StorageById) {
+  switch ($sort) {
+  case 'Source':
+    return (new ZM\Monitor($monitor))->Source();
+  case 'Server':
+    return isset($ServersById[$monitor['ServerId']]) ? $ServersById[$monitor['ServerId']]->Name() : '';
+  case 'Storage':
+    return isset($StorageById[$monitor['StorageId']]) ? $StorageById[$monitor['StorageId']]->Name() : '';
+  case 'Function':
+    return $monitor['Capturing'].' '.$monitor['Analysing'].' '.$monitor['Recording'];
+  }
+  if (isset($monitor[$sort])) return $monitor[$sort];
+  return preg_match('/(Events|Count|Sequence)$/', $sort) ? 0 : '';
+}
+
 function queryRequest() {
   global $user, $Servers;
   require_once('includes/Monitor.php');
@@ -226,13 +242,29 @@ function queryRequest() {
   
   $data['total'] = count($filtered_monitors);
   
+  // Get storage areas and servers
+  $storage_areas = ZM\Storage::find();
+  $StorageById = array();
+  foreach ($storage_areas as $S) {
+    $StorageById[$S->Id()] = $S;
+  }
+  
+  $ServersById = array();
+  foreach ($Servers as $s) {
+    $ServersById[$s->Id()] = $s;
+  }
+  
   // Sort monitors
-  usort($filtered_monitors, function($a, $b) use ($sort, $order) {
-    $aVal = isset($a[$sort]) ? $a[$sort] : '';
-    $bVal = isset($b[$sort]) ? $b[$sort] : '';
+  $sort_values = array();
+  foreach ($filtered_monitors as $monitor) {
+    $sort_values[$monitor['Id']] = monitorSortValue($monitor, $sort, $ServersById, $StorageById);
+  }
+  usort($filtered_monitors, function($a, $b) use ($sort_values, $order) {
+    $aVal = $sort_values[$a['Id']];
+    $bVal = $sort_values[$b['Id']];
     
     if (is_numeric($aVal) && is_numeric($bVal)) {
-      $result = $aVal - $bVal;
+      $result = $aVal <=> $bVal;
     } else {
       $result = strcasecmp($aVal, $bVal);
     }
@@ -245,18 +277,6 @@ function queryRequest() {
     $filtered_monitors = array_slice($filtered_monitors, $offset, $limit);
   } else {
     $filtered_monitors = array_slice($filtered_monitors, $offset);
-  }
-  
-  // Get storage areas and servers
-  $storage_areas = ZM\Storage::find();
-  $StorageById = array();
-  foreach ($storage_areas as $S) {
-    $StorageById[$S->Id()] = $S;
-  }
-  
-  $ServersById = array();
-  foreach ($Servers as $s) {
-    $ServersById[$s->Id()] = $s;
   }
   
   // Get group IDs for each monitor

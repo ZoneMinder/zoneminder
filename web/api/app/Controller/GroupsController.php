@@ -137,7 +137,11 @@ class GroupsController extends AppController {
         );
       } else {
         ZM\Error("Failed to save Group");
-        debug($this->Group->invalidFields());
+        $this->set(array(
+          'message' => $this->Group->validationErrors ? $this->Group->validationErrors : 'Error',
+          '_serialize' => array('message')
+        ));
+        return;
       }
     } # end if post
     $monitors = $this->Group->Monitor->find('list');

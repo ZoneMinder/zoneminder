@@ -178,11 +178,18 @@ class ZonesController extends AppController {
         return;
       }
       $this->pinRequestId($this->Zone, $id);
-      $this->requireMonitorEdit($this->zoneMonitorId($id));
+      $oldMonitorId = $this->zoneMonitorId($id);
+      $this->requireMonitorEdit($oldMonitorId);
       $monitorId = $this->requestMonitorId();
       if ($monitorId !== null) $this->requireMonitorEdit($monitorId);
       if ( $this->Zone->save($this->request->data) ) {
         $message = 'The zone has been saved.';
+        $monitorIds = array($oldMonitorId);
+        if ($monitorId !== null and $monitorId != $oldMonitorId) $monitorIds[] = $monitorId;
+        foreach ($monitorIds as $reloadId) {
+          $monitor = new ZM\Monitor($reloadId);
+          if ($monitor->Type() != 'WebSite') $monitor->zmcControl('reload');
+        }
       } else {
         $message = 'Error ' . print_r($this->Zone->invalidFields());
       }
@@ -212,8 +219,11 @@ class ZonesController extends AppController {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
-    $this->requireMonitorEdit($this->zoneMonitorId($id));
+    $monitorId = $this->zoneMonitorId($id);
+    $this->requireMonitorEdit($monitorId);
     if ( $this->Zone->delete() ) {
+      $monitor = new ZM\Monitor($monitorId);
+      if ($monitor->Type() != 'WebSite') $monitor->zmcControl('restart');
       return $this->flash(__('The zone has been deleted.'), array('action' => 'index'));
     } else {
       return $this->flash(__('The zone could not be deleted. Please, try again.'), array('action' => 'index'));

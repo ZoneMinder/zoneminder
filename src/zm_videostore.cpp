@@ -561,9 +561,12 @@ bool VideoStore::open() {
             Error("could not allocate codec ctx for AAC");
           } else {
             audio_out_stream = avformat_new_stream(oc, audio_out_codec);
-            audio_out_stream->time_base = audio_in_stream->time_base;
-
-            setup_resampler();
+            if (!audio_out_stream) {
+              Error("Could not allocate new audio stream");
+            } else {
+              audio_out_stream->time_base = audio_in_stream->time_base;
+              setup_resampler();
+            }
           } // end fail to alloc audio_out_ctx
         } // codec opened
       }  // end if found AAC codec
@@ -615,14 +618,17 @@ bool VideoStore::open() {
       } // end if audio_out_stream
     } // end if is AAC
 
-    if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
-      audio_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
-    }
+    // Audio setup can fail above, leaving these null; record without audio then
+    if (audio_out_stream && audio_out_ctx) {
+      if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
+        audio_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+      }
 
-    // We will assume that subsequent stream allocations will increase the index
-    max_stream_index = audio_out_stream->index;
-    last_dts[audio_out_stream->index] = AV_NOPTS_VALUE;
-    reorder_queues[audio_out_stream->index] = {};
+      // We will assume that subsequent stream allocations will increase the index
+      max_stream_index = audio_out_stream->index;
+      last_dts[audio_out_stream->index] = AV_NOPTS_VALUE;
+      reorder_queues[audio_out_stream->index] = {};
+    }
   }  // end if audio_in_stream
 
   //max_stream_index is 0-based, so add 1

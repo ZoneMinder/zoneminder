@@ -455,7 +455,12 @@ class FilterTerm {
 
     $operator = $this->sql_operator();
     $values = $this->sql_values();
-    if ((count($values) > 1) and !(($operator == ' IN ') or ($operator == ' NOT IN ') or ($operator == ' =[] ') or ($operator == ' ![] '))) {
+    if (($this->attr === 'Tags') and count($values) and !array_intersect($values, ["'0'", "'-1'"])
+      and in_array($operator, [' = ', ' != ', ' IN ', ' NOT IN ', ' =[] ', ' ![] '])) {
+      // Comparing the joined tag row by row gets "is not" wrong for events with several tags or none.
+      $negate = in_array($operator, [' != ', ' NOT IN ', ' ![] ']);
+      $sql .= ($negate ? 'NOT ' : '').'EXISTS (SELECT NULL FROM Events_Tags AS ET WHERE ET.EventId = E.Id AND ET.TagId IN ('.join(',', $values).'))';
+    } elseif ((count($values) > 1) and !(($operator == ' IN ') or ($operator == ' NOT IN ') or ($operator == ' =[] ') or ($operator == ' ![] '))) {
       $subterms = [];
       foreach ($values as $value) {
         $subterm = $this->sql_attr();

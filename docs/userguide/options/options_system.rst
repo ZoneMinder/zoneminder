@@ -28,7 +28,7 @@ AUTH_HASH_IPS - When ZoneMinder is running in hashed authenticated mode it can o
 
 AUTH_TRUSTED_PROXIES - A comma or space separated list of the exact IP addresses of reverse proxies in front of ZoneMinder, for example ``127.0.0.1``. The X-Forwarded-For header is only used to determine the client address bound into the hash by ``AUTH_HASH_IPS`` when the request comes directly from one of these addresses, and is then read from the right, skipping listed proxies, so values a client adds itself are ignored. When empty (the default) the header is ignored and the connecting address is used. If you enable ``AUTH_HASH_IPS`` behind a reverse proxy, list the proxy here, otherwise every client appears to come from the proxy's address.
 
-AUTH_HASH_TTL - Time before ZM auth will expire (does not apply to API tokens). The default has traditionally been 2 hours. A new hash will automatically be regenerated at half this value.
+AUTH_HASH_TTL - Time in hours before ZM auth will expire. It is also how long an API access token lasts. The default has traditionally been 2 hours. A new hash will automatically be regenerated at half this value.
 
 AUTH_HASH_LOGINS - The normal process for logging into ZoneMinder is via the login screen with username and password. In some circumstances it may be desirable to allow access directly to one or more pages, for instance from a third party application. If this option is enabled then adding an 'auth' parameter to any request will include a shortcut login bypassing the login screen, if not already logged in. As authentication hashes are time and, optionally, IP limited, this can allow short-term access to ZoneMinder screens from other web pages etc. In order to use this, the calling application will have to generate the authentication hash itself and ensure it is valid. If you use this option you should ensure that you have modified the ZM_AUTH_HASH_SECRET to something unique to your system.
 
@@ -36,11 +36,13 @@ ENABLE_CSRF_MAGIC - CSRF stands for Cross-Site Request Forgery which, under spec
 
 OPT_USE_API - A global setting to enable/disable ZoneMinder APIs. If you are using mobile apps like zmNinja, this needs to be enabled
 
-.. note:: If you are using zmNinja along with authentication, please make sure ``AUTH_HASH_LOGINS`` is enabled, ``OPT_USE_API`` is elabled, ``AUTH_RELAY`` is set to hashed, ``AUTH_HASH_IPS`` is off and a valid ``AUTH_HASHED_SECRET`` is specified.
+TIMEZONE - The timezone that PHP should use. This should be set equal to the system timezone of the MySQL server.
 
-OPT_USE_LEGACY_AUTH - Starting version 1.34.0, ZoneMinder uses a more secure Authentication mechanism using JWT tokens. Older versions used a less secure MD5 based auth hash. It is recommended you turn this off after you are sure you don't need it. If you are using a 3rd party app that relies on the older API auth mechanisms, you will have to update that app if you turn this off. Note that zmNinja 1.3.057 onwards supports the new token system.
+.. note:: If you are using zmNinja along with authentication, please make sure ``AUTH_HASH_LOGINS`` is enabled, ``OPT_USE_API`` is enabled, ``AUTH_RELAY`` is set to hashed, ``AUTH_HASH_IPS`` is off and a valid ``AUTH_HASH_SECRET`` is specified.
 
-OPT_USE_EVENT_NOTIFICATION - zmeventnotification is a 3rd party event notification server that is used to get notifications for alarms detected by ZoneMinder in real time. zmNinja requires this server for push notifications to mobile phones. This option only enables the server if it is already installed. Please visit the `Event Notification Server project site <https://github.com/pliablepixels/zmeventserver>`__ for installation instructions.
+OPT_USE_LEGACY_API_AUTH - Starting version 1.34.0, ZoneMinder uses a more secure Authentication mechanism using JWT tokens. Older versions used a less secure MD5 based auth hash. It is recommended you turn this off after you are sure you don't need it. If you are using a 3rd party app that relies on the older API auth mechanisms, you will have to update that app if you turn this off. Note that zmNinja 1.3.057 onwards supports the new token system.
+
+OPT_USE_EVENTNOTIFICATION - zmeventnotification is a 3rd party event notification server that is used to get notifications for alarms detected by ZoneMinder in real time. zmNinja requires this server for push notifications to mobile phones. This option only enables the server if it is already installed. Please visit the `Event Notification Server project site <https://github.com/pliablepixels/zmeventserver>`__ for installation instructions.
 
 OPT_USE_GOOG_RECAPTCHA - This option allows you to include a google reCaptcha validation at login. This means in addition to providing a valid username and password, you will also have to pass the reCaptcha test. Please note that enabling this option results in the zoneminder login page reaching out to google servers for captcha validation. Also please note that enabling this option may break 3rd party clients if they rely on web based logins (Note that zmNinja now uses the API based token method and will not be affected if reCAPTCHA is enabled). If you enable this, you also need to specify your site and secret key (please refer to context help in the ZoneMinder system screen).
 
@@ -67,11 +69,11 @@ to perform the shutdown or reboot
 
 FILTER_RELOAD_DELAY - ZoneMinder allows you to save filters to the database which allow events that match certain criteria to be emailed, deleted or uploaded to a remote machine etc. The zmfilter daemon loads these and does the actual operation. This option determines how often in seconds the filters are reloaded from the database to get the latest versions or new filters. If you don't change filters very often this value can be set to a large value. As of 1.34.0 filters should be automatically reloaded when saving a filter so this setting should have little effect.
 
-FILTER_EXECUTE_INTERVAL - ZoneMinder allows you to save filters to the database which allow events that match certain criteria to be emailed, deleted or uploaded to a remote machine etc. The zmfilter daemon loads these and does the actual operation. This option determines how often the filters are executed on the saved event in the database. If you want a rapid response to new events this should be a smaller value, however this may increase the overall load on the system and affect performance of other elements.
-
 MAX_RESTART_DELAY - The zmdc (zm daemon control) process controls when processeses are started or stopped and will attempt to restart any that fail. If a daemon fails frequently then a delay is introduced between each restart attempt. If the daemon stills fails then this delay is increased to prevent extra load being placed on the system by continual restarts. This option controls what this maximum delay is.
 
-STATUS_UPDATE_INTERVAL - The zmstats daemon performs various db queries related to collecting system statistics that may take a long time in the background. This option decides how often this update is scheduled.
+STATS_UPDATE_INTERVAL - The zmstats daemon performs various db queries related to collecting system statistics that may take a long time in the background. This option decides how often this update is scheduled.
+
+FILTER_LOCK_TIMEOUT - Filters with Lock Rows set claim each event before working on it, so that two filters do not act on the same event at the same time. A filter that is killed part way through cannot release its claims, so claims also expire. This is how long, in seconds, a filter may hold an event before other filters may take it. It needs to be comfortably longer than the slowest thing a filter does to a single event, such as generating a video or uploading a large event.
 
 WATCH_CHECK_INTERVAL - The zmwatch daemon checks the image capture performance of the capture daemons to ensure that they have not locked up (rarely a sync error may occur which blocks indefinitely). This option determines how often the daemons are checked.
 

@@ -10,4 +10,4 @@ The API option screen allows you enable/disable APIs on a per user basis. Furthe
 .. image:: images/Options_API.png
 
 The "Revoke All Tokens" button can be used to globally invalidate access tokens for all users. If tokens are revoked, the user(s) will need to re-authenticate with login and password.
-As of today, refresh tokens last for 24 hours and access tokens for 1 hour. 
+As of today, refresh tokens last for 24 hours and access tokens for ``AUTH_HASH_TTL`` hours (2 by default). 

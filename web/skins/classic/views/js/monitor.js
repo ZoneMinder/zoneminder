@@ -650,8 +650,15 @@ function saveMonitorData(href = '') {
     type: "POST",
     url: "?view=monitor",
     data: form_data,
-    success: function() {
+    success: function(data) {
       alertBlock.fadeOut({duration: 'fast'});
+      const errorDiv = (typeof data === 'string') ?
+        new DOMParser().parseFromString(data, 'text/html').getElementById('error') : null;
+      if (errorDiv && errorDiv.textContent.trim()) {
+        $j('#contentButtons').show();
+        alert(errorDiv.textContent.trim());
+        return;
+      }
       sourceFormMonitor = $j('#contentForm').serialize();
       if (href) {
         if (href == 'reload') {

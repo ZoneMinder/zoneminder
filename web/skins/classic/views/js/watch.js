@@ -798,6 +798,7 @@ function streamPrepareStart(monitor=null) {
     settingsBtn.prop('disabled', false);
     getSettingsModal();
     // Manage the SETTINGS button
+    settingsBtn.off('click');
     bindButton('#settingsBtn', 'click', null, function onSettingsClick(evt) {
       evt.preventDefault();
       $j('#settingsModal').modal('show');
@@ -847,6 +848,7 @@ function streamPrepareStart(monitor=null) {
   }
 
   // Manage the generate Edit button
+  $j('#editBtn').off('click');
   bindButton('#editBtn', 'click', null, function onEditClick(evt) {
     evt.preventDefault();
     window.location.assign("?view=monitor&mid="+monitorId);
@@ -917,8 +919,9 @@ function streamStart(monitor = null) {
   monitorStream.setButton('analyseBtn', analyseBtn);
   if (canEdit.Monitors) {
     // Will be enabled by streamStatus ajax
-    enableAlmBtn.on('click', cmdAlarm);
-    forceAlmBtn.on('click', cmdForce);
+    // streamStart() runs for every monitor switch and the buttons are not replaced
+    enableAlmBtn.off('click', cmdAlarm).on('click', cmdAlarm);
+    forceAlmBtn.off('click', cmdForce).on('click', cmdForce);
   } else {
     forceAlmBtn.prop('title', forceAlmBtn.prop('title') + ': disabled because cannot edit Monitors');
     enableAlmBtn.prop('title', enableAlmBtn.prop('title') + ': disabled because cannot edit Monitors');

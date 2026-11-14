@@ -58,7 +58,7 @@ GetOptions(
   force   => \$force,
   help    => \$help,
   show    => \$show,
-  interval=> \$interval,
+  'interval=s' => \$interval,
   version => \$version,
   verbose => \$verbose,
   dry_run => \$dry_run,
@@ -84,7 +84,11 @@ if ($show) {
   exit(0) if $dry_run;
 }
 
-if (!defined $interval) {
+if (defined $interval) {
+  ($interval) = $interval =~ /^([\d\s*+\-\/()]+)$/;
+  Fatal('--interval must be a number of seconds or a simple arithmetic expression') if !defined $interval;
+  $interval = eval($interval);
+} else {
   $interval = eval($Config{ZM_TELEMETRY_INTERVAL});
 }
 

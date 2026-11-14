@@ -1040,12 +1040,10 @@ function applyMonitorControllable() {
     return;
   }
   if (currentMonitor.monitorControllable) {
-    const ptzShow = getCookie('ptzShow');
-
     ptzToggle.classList.remove("disabled");
     ptzToggle.disabled=false;
     sidebarControls.html(currentMonitor.ptzControls);
-    if (ptzShow) {
+    if (ptzVisible) {
       sidebarControls.show();
       ptzToggle.classList.remove("btn-secondary");
       ptzToggle.classList.add("btn-primary");
@@ -1352,11 +1350,12 @@ function ptzToggle(e) {
   const button = $j('#ptzToggle');
   if (sidebarControls.is(":visible")) {
     sidebarControls.hide();
-    setCookie('ptzShow', false);
+    ptzVisible = false;
   } else {
     sidebarControls.show();
-    setCookie('ptzShow', true);
+    ptzVisible = true;
   }
+  setCookie('ptzShow', ptzVisible);
   button.toggleClass('btn-secondary');
   button.toggleClass('btn-primary');
   changeObjectClass();

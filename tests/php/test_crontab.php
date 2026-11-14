@@ -234,5 +234,33 @@ check('a backslash cannot hide one', cronCommandIsValid('echo \\\\%F'), false);
 check('a trailing backslash would escape the marker', cronCommandIsValid('echo hi \\'), false);
 check('an escaped trailing backslash is fine', cronCommandIsValid('echo hi \\\\'), true);
 
+echo "reading the current crontab\n";
+// A stub crontab on PATH stands in for the real one, which is never touched.
+$stubdir = sys_get_temp_dir().'/zm_crontab_stub_'.getmypid();
+mkdir($stubdir);
+putenv('PATH='.$stubdir.PATH_SEPARATOR.getenv('PATH'));
+function stubCrontab($script) {
+  global $stubdir;
+  file_put_contents($stubdir.'/crontab', "#!/bin/sh\n".$script."\n");
+  chmod($stubdir.'/crontab', 0755);
+}
+eval('namespace ZM { function Error($m) { $GLOBALS["errors"][] = $m; } }');
+$errors = array();
+
+stubCrontab('echo "0 1 * * * /bin/x"; echo "# note"');
+check('a crontab is returned', cronRead(), "0 1 * * * /bin/x\n# note");
+stubCrontab('[ "$LC_ALL" = C ] || exit 3; echo "no crontab for u" >&2; exit 1');
+check('no crontab, read in the C locale, is empty', cronRead(), '');
+check('and is not an error', $errors, array());
+stubCrontab('echo "crontab: cannot open /var/spool/cron: Permission denied" >&2; exit 1');
+check('exit 1 with another message is a failure', cronRead(), false);
+stubCrontab('echo "no crontab for u" >&2; exit 2');
+check('the no crontab message with another status is a failure', cronRead(), false);
+stubCrontab('exit 127');
+check('a crontab that cannot run is a failure', cronRead(), false);
+check('failures are logged', count($errors), 3);
+unlink($stubdir.'/crontab');
+rmdir($stubdir);
+
 echo "\n$passed passed, $failed failed\n";
 exit($failed ? 1 : 0);

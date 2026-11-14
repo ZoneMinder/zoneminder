@@ -238,6 +238,8 @@ sub Sql {
           and (($term->{op}//'') eq '>=' or ($term->{op}//'') eq '>')
         ) ? 1 : 0;
 
+        # Where the attribute text starts, so a multi-value comparison can repeat it
+        my $attr_start = length($self->{Sql});
         if ( $term->{attr} eq 'AlarmedZoneId' ) {
           $term->{op} = 'EXISTS';
         } elsif ( $term->{attr} eq 'Tags' ) {
@@ -319,6 +321,7 @@ sub Sql {
           $self->{Sql} .= 'E.'.$term->{attr};
         }
 
+        my $attr_sql = substr($self->{Sql}, $attr_start);
         my $value = defined($term->{val}) ? $term->{val} : '';
         my @value_list;
 
@@ -328,8 +331,10 @@ sub Sql {
           my $stripped_value = $value;
           $stripped_value =~ s/^["\']+?(.+)["\']+?$/$1/ if $stripped_value;
 
+          # A regular expression can contain commas (x{1,3}), so it is one value
+          my $is_regex = ($term->{op}//'') =~ /^[=!]~$/;
           # Empty value will result in () from split
-          foreach my $temp_value ( $stripped_value ne '' ? split( /["'\s]*?,["'\s]*?/, $stripped_value ) : $stripped_value ) {
+          foreach my $temp_value ( ($stripped_value ne '' and !$is_regex) ? split( /["'\s]*?,["'\s]*?/, $stripped_value ) : $stripped_value ) {
             if ( $term->{attr} eq 'AlarmedZoneId' ) {
               $value = '(SELECT * FROM Stats WHERE EventId=E.Id AND Score > 0 AND ZoneId='.int($value).')';
             } elsif ( $term->{attr} =~ /^MonitorName/ ) {
@@ -462,6 +467,10 @@ sub Sql {
               } else {
                 $self->{Sql} .= 'EXISTS (SELECT NULL FROM `Events_Tags` AS ET WHERE ET.EventId = E.Id)';
               }
+            } elsif ( @value_list > 1 and $term->{op} =~ /^(?:=|!=|<=|>=|<|>|LIKE|NOT LIKE)$/ ) {
+              # A negative operator must hold for every value, not just one of them
+              my $join = ($term->{op} eq '!=' or $term->{op} eq 'NOT LIKE') ? ' AND ' : ' OR ';
+              substr($self->{Sql}, $attr_start) = '('.join($join, map { $attr_sql.' '.$term->{op}.' '.$_ } @value_list).')';
             } elsif ( $term->{op} eq '=~' ) {
               $self->{Sql} .= ' REGEXP '.$value;
             } elsif ( $term->{op} eq '!~' ) {

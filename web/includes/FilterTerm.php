@@ -132,7 +132,13 @@ class FilterTerm {
       return $values;
     }
 
-    $vals = is_array($this->val) ? $this->val : preg_split('/["\'\s]*?,["\'\s]*?/', preg_replace('/^["\']+?(.+)["\']+?$/', '$1', $this->val));
+    if (is_array($this->val)) {
+      $vals = $this->val;
+    } else {
+      $stripped = preg_replace('/^["\']+?(.+)["\']+?$/', '$1', $this->val);
+      // A regular expression can contain commas (x{1,3}), so it is one value
+      $vals = ($this->op == '=~' or $this->op == '!~') ? array($stripped) : preg_split('/["\'\s]*?,["\'\s]*?/', $stripped);
+    }
     foreach ( $vals as $value ) {
       $value_upper = strtoupper($value);
       switch ( $this->attr ) {
@@ -464,7 +470,9 @@ class FilterTerm {
         $subterm .= $value;
         $subterms[] = $subterm;
       }
-      $sql .= '('.implode(' OR ', $subterms).')';
+      // A negative operator must hold for every value, not just one of them
+      $negative = ($this->op == '!=' or $this->op == 'NOT LIKE' or $this->op == 'IS NOT');
+      $sql .= '('.implode($negative ? ' AND ' : ' OR ', $subterms).')';
     } elseif (($this->attr === 'Tags') && ($values[0] === "'0'")) {
       // "No Tag": = means no tags (NOT EXISTS), != means has tags (EXISTS)
       if ($this->op === '!=' || $this->op === 'IS NOT') {

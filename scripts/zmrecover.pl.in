@@ -35,7 +35,7 @@ $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 my $report = 0;
-my $interactive = 1;
+my $interactive;
 my $monitor_id = 0;
 my $version;
 my $force = 0;
@@ -46,11 +46,11 @@ logInit();
 
 GetOptions(
     force          =>\$force,
-    'interactive=i' =>\$interactive,
+    'interactive|i:1' =>\$interactive,
     'monitor_id=i' =>\$monitor_id,
     report         =>\$report,
     'server_id=i'  =>\$server_id,
-    'storage_id=i' =>\$storage_id,
+    'storage_id|s=i' =>\$storage_id,
     version        =>\$version
     ) or pod2usage(-exitstatus => -1);
 
@@ -58,7 +58,8 @@ if ( $version ) {
   print( ZoneMinder::Base::ZM_VERSION . "\n");
   exit(0);
 }
-if ( ($report + $interactive) > 1 ) {
+$interactive = $report ? 0 : 1 if !defined $interactive;
+if ( $report and $interactive ) {
   print( STDERR "Error, only one option may be specified\n" );
   pod2usage(-exitstatus => -1);
 }
@@ -77,11 +78,18 @@ if ( -e ZM_RECOVER_PID ) {
   }
 } # end if ZM_RECOVER_PID exists
 
+my $pid_file_written = 0;
 if ( open(my $PID, '>', ZM_RECOVER_PID) ) {
   print($PID $$);
   close($PID);
+  $pid_file_written = 1;
 } else {
   Error( "Can't open pid file at " . ZM_PID );
+}
+
+# Also covers dying, so a crash does not leave a pid file that blocks the next run
+END {
+  unlink ZM_RECOVER_PID if $pid_file_written;
 }
 
 sub HupHandler {
@@ -243,7 +251,7 @@ Debug("@Monitors");
                 next;
               } # end if resurrection
             } else {
-              $event->fix_DefaultVideo();
+              saveDefaultVideo($event);
               if (!$$event{EndDateTime}) {
                 if (confirm("Event found but is incomplete, shall we finish it?")) {
                   $event->save() if $event->guess_EndDateTime();
@@ -288,7 +296,7 @@ Debug("@Monitors");
               }
             }
 
-            my $event = ZoneMinder::Event->find_one(Id=>$event_id);
+            my $event = $event_id ? ZoneMinder::Event->find_one(Id=>$event_id) : undef;
             if ( $event_id and !$event) {
               Info("Event not found in db for event data found at $$Storage{Path}/$monitor_dir/$day_dir/$event_dir");
               if ( confirm() ) {
@@ -314,8 +322,8 @@ Debug("@Monitors");
                 }
                 next;
               }
-            } else {
-              $event->fix_DefaultVideo();
+            } elsif ( $event ) {
+              saveDefaultVideo($event);
               if (!$$event{EndDateTime}) {
                 if (confirm("Event found but is incomplete, shall we finish it?")) {
                   $event->save() if $event->guess_EndDateTime();
@@ -361,7 +369,7 @@ Debug("@Monitors");
           my $event = ZoneMinder::Event->find_one(Id=>$event_id);
           if ( $event ) {
             Debug('Found event in the db, moving on.');
-            $event->fix_DefaultVideo();
+            saveDefaultVideo($event);
             if (!$$event{EndDateTime}) {
               if (confirm("Event found but is incomplete, shall we finish it?")) {
                 $event->save() if $event->guess_EndDateTime();
@@ -404,13 +412,14 @@ Debug("@Monitors");
         Error("Can't open directory '$$Storage{Path}/$monitor_dir': $!");
         next;
       }
-      my @temp_events = sort { $b <=> $a } grep { -d $_ && $_ =~ /^\d+$/ } readdir( DIR );
+      # A Deep scheme year directory is numeric too, but it holds date directories
+      my @temp_events = sort { $b <=> $a } grep { /^(\d+)$/ && -d $_ && !(() = glob("$1/[0-9][0-9]")) } readdir( DIR );
       closedir(DIR);
       foreach my $event_id ( @temp_events ) {
         my $event = ZoneMinder::Event->find_one(Id=>$event_id);
         if ( $event ) {
           Debug("Found an event in db for $event_id");
-          $event->fix_DefaultVideo();
+          saveDefaultVideo($event);
           if (!$$event{EndDateTime}) {
             if (confirm("Event found but is incomplete, shall we finish it?")) {
               $event->save() if $event->guess_EndDateTime();
@@ -449,6 +458,14 @@ Debug("@Monitors");
 
 Term();
 
+# fix_DefaultVideo only changes the object, so save it when the video was found
+sub saveDefaultVideo {
+  my $event = shift;
+  my $before = $event->DefaultVideo() // '';
+  $event->fix_DefaultVideo();
+  $event->save() if ($event->DefaultVideo() // '') ne $before;
+}
+
 sub confirm {
   my $prompt = shift || 'resurrect';
   my $action = shift || 'resurrecting';
@@ -458,7 +475,11 @@ sub confirm {
     print( "\n" );
   } elsif ( $interactive ) {
     print(", $prompt Y/n/q: ");
-    my $char = <>;
+    my $char = <STDIN>;
+    if ( !defined $char ) {
+      Info('No answer on stdin, exiting');
+      Term();
+    }
     chomp( $char );
     if ( $char eq 'q' ) {
       Term();

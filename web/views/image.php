@@ -84,7 +84,7 @@ if (!empty($_REQUEST['proxy'])) {
   }
 
   $url = $_REQUEST['proxy'];
-  if (!$url) {
+  if (!$url or !is_string($url)) {
     ZM\Warning('No url passed to image proxy');
     return;
   }

@@ -111,7 +111,7 @@ $statusData = array(
         $state = (new ZM\Monitor(validInt($_REQUEST['id'])))->GetState();
         return ($state === false) ? '' : (string)$state;
       } ):null),
-      'FrameRate' => (isset($_REQUEST['id'])?array( 'zmu' => '-m '.escapeshellarg($_REQUEST['id']).' -f' ):null),
+      'FrameRate' => (isset($_REQUEST['id'])?array( 'zmu' => '-m '.escapeshellarg(validInt($_REQUEST['id'])).' -f' ):null),
       'CaptureFPS' => [ 'sql'=>'(SELECT `CaptureFPS` FROM Monitor_Status WHERE MonitorId=Monitors.Id)' ],
       'AnalysisFPS' => [ 'sql'=>'(SELECT `AnalysisFPS` FROM Monitor_Status WHERE MonitorId=Monitors.Id)' ],
       'CaptureBandwidth' => [ 'sql'=>'(SELECT `CaptureBandwidth` FROM Monitor_Status WHERE MonitorId=Monitors.Id)' ],
@@ -244,6 +244,10 @@ function collectData() {
   global $statusData;
 
   $entity = strtolower(validJsStr($_REQUEST['entity']));
+  if (!isset($statusData[$entity])) {
+    ajaxError('Unrecognised entity '.$entity);
+    return;
+  }
   $entitySpec = &$statusData[$entity];
   #print_r( $entitySpec );
   if (isset($entitySpec['permission'])) {

@@ -18,11 +18,12 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-$optionHelpIndex = preg_replace('/^ZM_/', '', $_REQUEST['option']);
+$option = is_string($_REQUEST['option'] ?? null) ? $_REQUEST['option'] : '';
+$optionHelpIndex = preg_replace('/^ZM_/', '', $option);
 if ( !empty($OLANG[$optionHelpIndex]) ) {
   $optionHelpText = $OLANG[$optionHelpIndex]['Help'];
 } else {
-  $optionHelpText = dbFetchOne('SELECT Help FROM Config WHERE Name=?', 'Help', array($_REQUEST['option']));
+  $optionHelpText = dbFetchOne('SELECT Help FROM Config WHERE Name=?', 'Help', array($option));
 }
 $optionHelpText = validHtmlStr($optionHelpText);
 $optionHelpText = preg_replace('/~~/', '<br/>', $optionHelpText );
@@ -42,7 +43,7 @@ echo getNavBarHTML();
       <h2><?php echo translate('OptionHelp') ?></h2>
     </div>
     <div id="content">
-      <h3><?php echo validHtmlStr($_REQUEST['option']) ?></h3>
+      <h3><?php echo validHtmlStr($option) ?></h3>
       <p class="textblock"><?php echo $optionHelpText ?></p>
     </div>
   </div>

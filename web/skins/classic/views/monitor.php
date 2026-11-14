@@ -123,7 +123,7 @@ if (!empty($_REQUEST['preset'])) {
   }
 } # end if preset
 
-if (!empty($_REQUEST['probe'])) {
+if (!empty($_REQUEST['probe']) and is_string($_REQUEST['probe'])) {
   $probe = json_decode(base64_decode($_REQUEST['probe']));
   foreach ($probe as $name=>$value) {
     if (isset($value)) {
@@ -405,7 +405,7 @@ if ( $monitor->Type() != 'WebSite' ) {
   $tabs['mqtt'] = translate('MQTT');
 }
 
-if (isset($_REQUEST['tab']) and isset($tabs[$_REQUEST['tab']]) ) {
+if (isset($_REQUEST['tab']) and is_string($_REQUEST['tab']) and isset($tabs[$_REQUEST['tab']]) ) {
   $tab = validHtmlStr($_REQUEST['tab']);
 } else {
   $tab = 'general';

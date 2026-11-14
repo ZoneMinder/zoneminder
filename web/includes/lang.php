@@ -20,6 +20,7 @@
 
 function translate($name) {
   global $SLANG;
+  if (is_array($name)) return '';
   // The isset is more performant
   if (( isset($SLANG[$name]) || array_key_exists($name, $SLANG) )) {
     return $SLANG[$name];

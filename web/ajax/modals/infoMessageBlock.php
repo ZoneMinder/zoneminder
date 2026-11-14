@@ -1,7 +1,7 @@
 <?php
 
-$message = isset($_REQUEST['message']) ? htmlspecialchars(strip_tags($_REQUEST['message']), ENT_NOQUOTES, 'UTF-8') : '';
-$title = isset($_REQUEST['title']) ? htmlspecialchars(strip_tags($_REQUEST['title']), ENT_NOQUOTES, 'UTF-8') : '';
+$message = (isset($_REQUEST['message']) and is_string($_REQUEST['message'])) ? htmlspecialchars(strip_tags($_REQUEST['message']), ENT_NOQUOTES, 'UTF-8') : '';
+$title = (isset($_REQUEST['title']) and is_string($_REQUEST['title'])) ? htmlspecialchars(strip_tags($_REQUEST['title']), ENT_NOQUOTES, 'UTF-8') : '';
 
 ?>
 <div id="modalInfoMessageBlock" class="modal fade" tabindex="-1">

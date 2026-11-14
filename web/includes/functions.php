@@ -1831,6 +1831,7 @@ function zmsSocketPath($connkey, $owner, $suffix) {
 }
 
 function detaintPathAllowAbsolute($path) {
+  if (!is_scalar($path)) return '';
   // Strip out :// because php:// is a way to inject code apparently.
   // This must loop: a single pass lets the removal re-form the sequence it
   // just removed, so '::////' collapses back into '://'.
@@ -1860,6 +1861,7 @@ function localRedirectUrl($url, $fallback) {
 }
 
 function detaintPath($path) {
+  if (!is_scalar($path)) return '';
 
   // Strip out :// because php:// is a way to inject code apparently.
   // This must loop: a single pass lets the removal re-form the sequence it
@@ -1950,6 +1952,7 @@ function validCardinal($input) {
 }
 
 function validNum( $input ) {
+  if (!is_scalar($input)) return '';
   return preg_replace('/[^\d.-]/', '', $input);
 }
 
@@ -1982,13 +1985,13 @@ function isValidBandwidth($input) {
 
 // For strings in javascript or tags etc, expected to be in quotes so further quotes escaped rather than converted
 function validJsStr($input) {
-  if (is_null($input)) return '';
+  if (is_null($input) or is_array($input)) return '';
   return strip_tags(addslashes($input));
 }
 
 // For general text in pages outside of tags or quotes so quotes converted to entities
 function validHtmlStr($input) {
-  if (is_null($input)) return '';
+  if (is_null($input) or is_array($input)) return '';
   return htmlspecialchars($input, ENT_QUOTES);
 }
 

@@ -93,7 +93,7 @@ if (count($user->unviewableMonitorIds())) {
 if ( isset($_REQUEST['eid']) and $_REQUEST['eid'] ) {
   $eventsSql .= ' AND E.Id=?';
   $eventsValues[] = $_REQUEST['eid'];
-} else if ( isset($_REQUEST['eids']) and count($_REQUEST['eids']) > 0 ) {
+} else if ( isset($_REQUEST['eids']) and is_array($_REQUEST['eids']) and count($_REQUEST['eids']) > 0 ) {
   $eventsSql .= ' AND E.Id IN ('.implode(',', array_map(function(){return '?';}, $_REQUEST['eids'])). ')';
   $eventsValues += $_REQUEST['eids'];
 } else if ( isset($_REQUEST['filter']) ) {

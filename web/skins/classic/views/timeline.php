@@ -61,8 +61,8 @@ define( 'STRF_TL_AXIS_LABEL_4HOUR', 'H:00' );
 define( 'STRF_TL_AXIS_LABEL_HOUR', 'H:00' );
 define( 'STRF_TL_AXIS_LABEL_10MINUTE', 'H:i' );
 define( 'STRF_TL_AXIS_LABEL_MINUTE', 'H:i' );
-define( 'STRF_TL_AXIS_LABEL_10SECOND', '%s' );
-define( 'STRF_TL_AXIS_LABEL_SECOND', '%s' );
+define( 'STRF_TL_AXIS_LABEL_10SECOND', 's' );
+define( 'STRF_TL_AXIS_LABEL_SECOND', 's' );
 
 $mouseover = isset($_REQUEST['mouseover']) ? $_REQUEST['mouseover'] : true;
 
@@ -132,12 +132,12 @@ $monitors = array();
 # The as E, and joining with Monitors is required for the filterSQL filters.
 $rangeSql = 'SELECT
   min(E.StartDateTime) AS MinTime,
-  max(E.EndDateTime) AS MaxTime
+  max(IFNULL(E.EndDateTime, NOW())) AS MaxTime
 FROM Events AS E
 INNER JOIN Monitors AS M ON (E.MonitorId = M.Id)
 LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId
 LEFT JOIN Tags AS T ON T.Id = ET.TagId
-WHERE NOT isnull(E.StartDateTime) AND NOT isnull(E.EndDateTime)';
+WHERE NOT isnull(E.StartDateTime)';
 
 $eventsSql = 'SELECT
   E.*, GROUP_CONCAT(T.Name SEPARATOR ", ") AS Tags
@@ -242,6 +242,8 @@ if (!isset($minTime) || !isset($maxTime)) {
   $midTime = date(STRF_FMT_DATETIME_DB, $midTimeT);
 }
 
+// Pan and zoom links must not carry the current window, or they could never leave it.
+$navFilterQuery = $tree ? parseTreeToQuery($tree) : false;
 if ( $tree ) {
   appendDatetimeRange($tree, $minTime, $maxTime);
   $filterQuery = parseTreeToQuery($tree);
@@ -277,8 +279,8 @@ $midTimeT = $minTimeT + $halfRange;
 $midTime = date(STRF_FMT_DATETIME_DB, $midTimeT);
 
 if ( isset($minTime) && isset($maxTime) ) {
-  $eventsSql .= " AND EndDateTime >= '$minTime' AND StartDateTime <= '$maxTime'";
-  $eventIdsSql .= " AND EndDateTime >= '$minTime' AND StartDateTime <= '$maxTime'";
+  $eventsSql .= " AND (EndDateTime IS NULL OR EndDateTime >= '$minTime') AND StartDateTime <= '$maxTime'";
+  $eventIdsSql .= " AND (EndDateTime IS NULL OR EndDateTime >= '$minTime') AND StartDateTime <= '$maxTime'";
 }
 
 $framesByEventId = array();
@@ -483,16 +485,19 @@ for ( $i = 0; $i < $chart['graph']['width']; $i++ ) {
         $frameSlots[$i][] = &$currFrameSlots[$i];
       } else {
         $slotCount = count($frameSlots[$i]);
+        $inserted = false;
         for ( $j = 0; $j < $slotCount; $j++ ) {
           if ( $currFrameSlots[$i]['value'] > $frameSlots[$i][$j]['value'] ) {
             for ( $k = $slotCount; $k > $j; $k-- ) {
               $frameSlots[$i][$k] = $frameSlots[$i][$k-1];
             }
             $frameSlots[$i][$j] = &$currFrameSlots[$i];
-            break 2;
+            $inserted = true;
+            break;
           }
         }
-        $frameSlots[$i][] = &$currFrameSlots[$i];
+        if ( !$inserted )
+          $frameSlots[$i][] = &$currFrameSlots[$i];
       }
     }
     unset($currFrameSlots);
@@ -631,7 +636,7 @@ function drawXGrid( $chart, $scale, $labelClass, $tickClass, $gridClass, $zoomCl
     $zoomMinTime = date( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($lastTick * $chart['data']['x']['density'])) );
     $zoomMaxTime = date( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($i * $chart['data']['x']['density'])) );
 ?>
-            <div class="<?php echo $zoomClass ?>" style="left: <?php echo $lastTick-1 ?>px; width: <?php echo $i-$lastTick ?>px;" title="<?php echo translate('ZoomIn') ?>" data-on-click="tlZoomBounds" data-zoom-min-time="<?php echo $zoomMinTime ?>" data-zoom-max-time="<?php echo $zoomMaxTime ?>"></div>
+            <div class="<?php echo $zoomClass ?>" style="left: <?php echo 100*($lastTick-1)/$chart['graph']['width'] ?>%; width: <?php echo round(100*($i-$lastTick)/$chart['graph']['width'],1) ?>%;" title="<?php echo translate('ZoomIn') ?>" data-on-click="tlZoomBounds" data-zoom-min-time="<?php echo $zoomMinTime ?>" data-zoom-max-time="<?php echo $zoomMaxTime ?>"></div>
 <?php
   }
 ?>

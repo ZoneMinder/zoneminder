@@ -707,7 +707,7 @@ function streamFastRev(action) {
     }
     clearInterval(intervalRewind);
     $j('select[name="rate"]').val(next);
-    setCookie('zmEventRate', vid.playbackRate()*100);
+    setCookie('zmEventRate', next);
     intervalRewind = setInterval(function() {
       if (vid.currentTime() <= 0) {
         clearInterval(intervalRewind);
@@ -1622,6 +1622,8 @@ function initPage() {
       $j('#progressValue').html(secsToTime(Math.floor(vid.currentTime())));
     });
     vid.on('ratechange', function() {
+      // The rewind sets the player rate to 0 on every tick; the rate select and cookie hold the reverse rate
+      if (intervalRewind) return;
       rate = vid.playbackRate() * 100;
       $j('select[name="rate"]').val(rate);
       setCookie('zmEventRate', rate);

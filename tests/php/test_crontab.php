@@ -41,6 +41,8 @@ check('sunday as 7', cronScheduleIsValid('0 0 * * 7'), true);
 check('the last day of a long month', cronScheduleIsValid('0 0 31 12 *'), true);
 check('extra whitespace between fields', cronScheduleIsValid('0   22  *  *  *'), true);
 
+check('a spec longer than the column holds', cronScheduleIsValid(implode(',', range(0, 30)).' * * * *'), false);
+
 echo "schedules we refuse as out of range\n";
 check('minute 60', cronScheduleIsValid('60 * * * *'), false);
 check('hour 24', cronScheduleIsValid('0 24 * * *'), false);
@@ -229,6 +231,8 @@ check('a carriage return likewise', cronCommandIsValid("echo hi\r0 0 * * * id"),
 check('a bare percent truncates the command', cronCommandIsValid('date +%F'), false);
 check('a bare percent anywhere', cronCommandIsValid('echo 50% done'), false);
 check('a backslash cannot hide one', cronCommandIsValid('echo \\\\%F'), false);
+check('a trailing backslash would escape the marker', cronCommandIsValid('echo hi \\'), false);
+check('an escaped trailing backslash is fine', cronCommandIsValid('echo hi \\\\'), true);
 
 echo "\n$passed passed, $failed failed\n";
 exit($failed ? 1 : 0);

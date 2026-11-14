@@ -48,6 +48,8 @@ function cronScheduleIsValid($spec) {
   if (!is_string($spec)) return false;
   // No newline, carriage return or percent may reach a crontab line.
   if (preg_match('/[\r\n%]/', $spec)) return false;
+  // The Schedule columns are varchar(64).
+  if (strlen($spec) > 64) return false;
 
   $fields = preg_split('/\s+/', trim($spec), -1, PREG_SPLIT_NO_EMPTY);
   if (count($fields) != 5) return false;
@@ -109,6 +111,8 @@ function cronCommandIsValid($command) {
   // Every % must be escaped. Count unescaped ones by removing the escaped
   // pairs first, which also stops a trailing backslash from hiding one.
   if (strpos(str_replace('\\%', '', str_replace('\\\\', '', $command)), '%') !== false) return false;
+  // A lone trailing backslash escapes the space before our "# ZoneMinder" marker, which then becomes arguments.
+  if (preg_match('/(?<!\\\\)(?:\\\\\\\\)*\\\\$/', $command)) return false;
   return true;
 }
 
@@ -261,8 +265,11 @@ function cronRebuild() {
     // proxies such a command through the API instead; cron has no such route,
     // so these are left out and counted rather than written and silently
     // ineffective.
+    // A deleted or missing monitor on either end leaves nothing for the line to drive.
     $target = $action->TargetMonitor();
-    if ($target and defined('ZM_SERVER_ID') and ZM_SERVER_ID
+    $source = $action->Monitor();
+    if (!$target or $target->Deleted() or !$source or $source->Deleted()) continue;
+    if (defined('ZM_SERVER_ID') and ZM_SERVER_ID
         and $target->ServerId() and ($target->ServerId() != ZM_SERVER_ID)) {
       $skipped_remote++;
       continue;

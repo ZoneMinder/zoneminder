@@ -54,7 +54,7 @@ if ($action == 'save') {
     $cron_error = commandRefusedMessage();
   } else {
     $values = array(
-      'Name'     => $name !== '' ? $name : $command,
+      'Name'     => mb_substr($name !== '' ? $name : $command, 0, 64),
       'Enabled'  => empty($posted['Enabled']) ? 0 : 1,
       'Schedule' => $schedule,
       'Command'  => $command,
@@ -66,12 +66,15 @@ if ($action == 'save') {
     if (!$job) $job = new ZM\CronJob();
 
     if ($job->Id()) {
-      $job->save($values);
-      ZM\Info('Updated scheduled task '.$job->Id().': '.$schedule.' '.$command);
+      if ($job->save($values)) {
+        ZM\Info('Updated scheduled task '.$job->Id().': '.$schedule.' '.$command);
+      } else {
+        $cron_error = $job->get_last_error() ?: 'Unable to save the scheduled task';
+      }
     } else if ($job->insert($values)) {
       ZM\Info('Added scheduled task '.$job->Id().': '.$schedule.' '.$command);
     } else {
-      $cron_error = $job->get_last_error();
+      $cron_error = $job->get_last_error() ?: 'Unable to save the scheduled task';
     }
   }
 } else if ($action == 'delete') {

@@ -142,20 +142,18 @@ sub Execute {
   $sth->finish();
   Debug('Loaded ' . @results . ' events for filter '.$$self{Name}.' using query ('.$sql.')"');
   if ($self->{PostSQLConditions} and @{$self->{PostSQLConditions}}) {
-    my @filtered_events;
     foreach my $term ( @{$$self{PostSQLConditions}} ) {
       if ( $$term{attr} eq 'ExistsInFileSystem' ) {
+        my $want_exists = ($$term{val} eq 'true') ? 1 : 0;
+        $want_exists = !$want_exists if ($$term{op}//'') eq 'IS NOT';
+        my @filtered_events;
         foreach my $row ( @results ) {
           my $event = new ZoneMinder::Event($$row{Id}, $row);
-          if ( -e $event->Path() ) {
-            push @filtered_events, $row if $$term{val} eq 'true';
-          } else {
-            push @filtered_events, $row if $$term{val} eq 'false';
-          }
+          push @filtered_events, $row if (-e $event->Path()) ? $want_exists : !$want_exists;
         }
+        @results = @filtered_events;
       }
     } # end foreach term
-    @results = @filtered_events;
   } # end if has PostSQLConditions
   return @results;
 } # end sub Execute

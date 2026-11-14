@@ -181,7 +181,7 @@ function logFilter() {
     // shares this clause it matters much more: an empty $where here would read
     // as "no filter applied" and truncate the whole table. Match nothing
     // instead, which is what a search for a column that does not exist means.
-    $where = $likes ? '(' .implode(' OR ', $likes). ')' : '1=0';
+    $where = $likes ? '(' .implode(' AND ', $likes). ')' : '1=0';
 
   } else if ($search != '') {
     $requested = true;

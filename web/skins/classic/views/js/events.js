@@ -111,7 +111,7 @@ function processRows(rows) {
     row.Frames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.Frames + '</a>';
     row.AlarmFrames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.AlarmFrames + '</a>';
     row.MaxScore = '<a href="?view=frame&amp;eid=' + eid + '&amp;fid=0">' + row.MaxScore + '</a>';
-    row.Location = row.Latitude+', '+row.Longitude;
+    row.Location = (parseFloat(row.Latitude) || parseFloat(row.Longitude)) ? row.Latitude+', '+row.Longitude : '';
     row.DiskSpace = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.DiskSpace + '</a>';
     row.Storage = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.Storage + '</a>';
 

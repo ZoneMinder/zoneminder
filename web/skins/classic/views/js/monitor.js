@@ -698,6 +698,7 @@ function dms2ll(input) {
   const latitude = document.getElementById('newMonitor[Latitude]');
   const longitude = document.getElementById('newMonitor[Longitude]');
   const dms = parseDms(input.value);
+  if (isNaN(dms)) return;
 
   if (input.id == 'LatitudeDMS') {
     latitude.value = dms.toFixed(8);
@@ -840,7 +841,8 @@ function updateLatitudeAndLongitude(latitude, longitude) {
   var form = document.getElementById('contentForm');
   form.elements['newMonitor[Latitude]'].value = latitude;
   form.elements['newMonitor[Longitude]'].value = longitude;
-  updateMarker(latitude, longitude);
+  ll2dms(form.elements['newMonitor[Latitude]']);
+  ll2dms(form.elements['newMonitor[Longitude]']);
 }
 
 function getLocation() {

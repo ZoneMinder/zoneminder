@@ -11,7 +11,7 @@ function check($label, $ok, $detail = '') {
 
 $dir = sys_get_temp_dir().'/zm_cron_rebuild_'.getmypid();
 @mkdir($dir.'/bin', 0777, true);
-file_put_contents($dir.'/bin/crontab', "#!/bin/sh\nif [ \"\$1\" = -l ]; then exit 1; fi\ncat > \"$dir/installed\"\n");
+file_put_contents($dir.'/bin/crontab', "#!/bin/sh\nif [ \"\$1\" = -l ]; then echo \"no crontab for x\" >&2; exit 1; fi\ncat > \"$dir/installed\"\n");
 chmod($dir.'/bin/crontab', 0755);
 putenv('PATH='.$dir.'/bin:'.getenv('PATH'));
 

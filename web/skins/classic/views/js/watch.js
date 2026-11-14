@@ -9,6 +9,7 @@ var sidebarControls = $j('#ptzControls');
 var wrapperMonitor = $j('#wrapperMonitor');
 var filterQuery = '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId;
 var analyse_frames = false;
+var idleCycleWas = false; /* Cycle was running when the idle timeout fired */
 var idleTimeoutTriggered = false; /* Timer ZM_WEB_VIEWING_TIMEOUT has been triggered */
 var monitorStream = false; /* Stream is not started */
 var currentMonitor;
@@ -1131,9 +1132,11 @@ function initPage() {
       document.onkeydown = resetTimer;
 
       function stopPlayback() {
+        // Mouse movement under the open modal re-arms the timer, and that second
+        // run sees the cycle already paused.
+        if (!idleTimeoutTriggered) idleCycleWas = cycle;
         idleTimeoutTriggered = true;
         streamCmdStop();
-        const cycle_was = cycle;
         cyclePause();
         let ayswModal = $j('#AYSWModal');
         if (!ayswModal.length) {
@@ -1143,7 +1146,7 @@ function initPage() {
                 ayswModal.on('hidden.bs.modal', function() {
                   idleTimeoutTriggered = false;
                   streamCmdPlay(true);
-                  if (cycle_was) cycleStart();
+                  if (idleCycleWas) cycleStart();
                 });
                 ayswModal.modal('show');
               })

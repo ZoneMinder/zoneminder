@@ -516,6 +516,7 @@ static std::vector<JOCTET> reference_encode_yuv(const Image &image, int quality)
   const int h = static_cast<int>(image.Height());
   const AVPixelFormat fmt = image.PixFormat();
   const bool is_422 = (fmt == AV_PIX_FMT_YUV422P || fmt == AV_PIX_FMT_YUVJ422P);
+  const bool limited = (fmt == AV_PIX_FMT_YUV420P || fmt == AV_PIX_FMT_YUV422P);
 
   uint8_t *plane[4] = {nullptr, nullptr, nullptr, nullptr};
   int ls[4] = {0, 0, 0, 0};
@@ -553,9 +554,15 @@ static std::vector<JOCTET> reference_encode_yuv(const Image &image, int quality)
     const uint8_t *urow = plane[1] + static_cast<size_t>(cy) * ls[1];
     const uint8_t *vrow = plane[2] + static_cast<size_t>(cy) * ls[2];
     for (int x = 0; x < w; ++x) {
-      tmprow[static_cast<size_t>(x) * 3 + 0] = yrow[x];
-      tmprow[static_cast<size_t>(x) * 3 + 1] = urow[x >> 1];
-      tmprow[static_cast<size_t>(x) * 3 + 2] = vrow[x >> 1];
+      int yy = yrow[x], uu = urow[x >> 1], vv = vrow[x >> 1];
+      if (limited) {  // expand to the full range JPEG expects
+        yy = ((std::clamp(yy, 16, 235) - 16) * 298 + 128) >> 8;
+        uu = ((std::clamp(uu, 16, 240) - 16) * 291 + 304) >> 8;
+        vv = ((std::clamp(vv, 16, 240) - 16) * 291 + 304) >> 8;
+      }
+      tmprow[static_cast<size_t>(x) * 3 + 0] = yy;
+      tmprow[static_cast<size_t>(x) * 3 + 1] = uu;
+      tmprow[static_cast<size_t>(x) * 3 + 2] = vv;
     }
     jpeg_write_scanlines(&cinfo, &row_ptr, 1);
   }

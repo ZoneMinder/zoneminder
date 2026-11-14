@@ -1513,6 +1513,63 @@ static void zm_jpeg_raw_setup(jpeg_compress_struct *cinfo) {
   }
 }
 
+// JPEG YCbCr is full range, so limited range (Y 16-235, C 16-240) planar YUV
+// is expanded to full range as it is fed to libjpeg.
+static bool zm_jpeg_yuv_is_limited(AVPixelFormat pixfmt) {
+  return pixfmt == AV_PIX_FMT_YUV420P || pixfmt == AV_PIX_FMT_YUV422P;
+}
+
+// Fixed point within 16 bits: Y' = (Y - 16) * 255 / 219, C' = (C - 128) * 255 / 224 + 128.
+static inline uint8_t zm_expand_y(uint8_t y) {
+  const uint16_t t = std::min<uint16_t>(std::max<uint16_t>(y, 16), 235) - 16;
+  return static_cast<uint8_t>((t * 298 + 128) >> 8);
+}
+
+static inline uint8_t zm_expand_c(uint8_t c) {
+  const uint16_t t = std::min<uint16_t>(std::max<uint16_t>(c, 16), 240) - 16;
+  return static_cast<uint8_t>((t * 291 + 304) >> 8);
+}
+
+// These run over every pixel of each encode; gcc only vectorises them at -O3 and Release is -O2.
+#if defined(__GNUC__) && !defined(__clang__)
+#define ZM_VECTORISE __attribute__((optimize("O3")))
+#else
+#define ZM_VECTORISE
+#endif
+
+ZM_VECTORISE static void zm_expand_luma(uint8_t *dst, const uint8_t *src, int n) {
+  for (int i = 0; i < n; i++) dst[i] = zm_expand_y(src[i]);
+}
+
+ZM_VECTORISE static void zm_expand_chroma(uint8_t *dst, const uint8_t *src, int n) {
+  for (int i = 0; i < n; i++) dst[i] = zm_expand_c(src[i]);
+}
+
+// Interleave one row of Y/U/V (chroma subsampled 2x horizontally) into YCbCr triples.
+static void zm_jpeg_interleave_row(uint8_t *dst, const uint8_t *yrow, const uint8_t *urow,
+                                   const uint8_t *vrow, unsigned int width, bool limited) {
+  for (unsigned int x = 0; x < width; ++x) {
+    if (limited) {
+      dst[x * 3 + 0] = zm_expand_y(yrow[x]);
+      dst[x * 3 + 1] = zm_expand_c(urow[x >> 1]);
+      dst[x * 3 + 2] = zm_expand_c(vrow[x >> 1]);
+    } else {
+      dst[x * 3 + 0] = yrow[x];
+      dst[x * 3 + 1] = urow[x >> 1];
+      dst[x * 3 + 2] = vrow[x >> 1];
+    }
+  }
+}
+
+static void zm_jpeg_band_row(uint8_t *dst, const uint8_t *src, int n, int pitch,
+                             void (*expand)(uint8_t *, const uint8_t *, int)) {
+  if (expand)
+    expand(dst, src, n);
+  else
+    memcpy(dst, src, n);
+  memset(dst + n, dst[n - 1], pitch - n);
+}
+
 static bool zm_jpeg_write_raw_yuv420(jpeg_compress_struct *cinfo, const uint8_t *buffer,
                                      AVPixelFormat pixfmt, int width, int height) {
   uint8_t *plane[4] = {nullptr, nullptr, nullptr, nullptr};
@@ -1520,25 +1577,31 @@ static bool zm_jpeg_write_raw_yuv420(jpeg_compress_struct *cinfo, const uint8_t 
   if (av_image_fill_arrays(plane, linesize, buffer, pixfmt, width, height, 32) < 0)
     return false;
 
+  const bool limited = zm_jpeg_yuv_is_limited(pixfmt);
   const int chroma_height = (height + 1) / 2;
   const int chroma_width = (width + 1) / 2;
   // Raw mode reads each row out to the padded width, so other widths are copied
-  // into a scratch band with the last sample of each row repeated.
+  // into a scratch band with the last sample of each row repeated. Limited range
+  // rows are expanded into the same band.
   const bool pad = (width % 16) != 0;
+  const bool copy = pad || limited;
   const int ypitch = FFALIGN(width, 16);
   const int cpitch = ypitch / 2;
-  std::vector<uint8_t> scratch;
-  if (pad) scratch.resize(static_cast<size_t>(2 * DCTSIZE) * ypitch + 2 * DCTSIZE * cpitch);
+  // From libjpeg's image pool, so jpeg_abort_compress frees it if an error longjmps out of the write.
+  uint8_t *scratch = nullptr;
+  if (copy)
+    scratch = static_cast<uint8_t *>((*cinfo->mem->alloc_large)(
+        reinterpret_cast<j_common_ptr>(cinfo), JPOOL_IMAGE,
+        static_cast<size_t>(2 * DCTSIZE) * ypitch + 2 * DCTSIZE * cpitch));
   JSAMPROW yrows[2 * DCTSIZE], urows[DCTSIZE], vrows[DCTSIZE];
   JSAMPARRAY planes[3] = {yrows, urows, vrows};
   // Rows past the bottom repeat the last row.
   for (int y = 0; y < height; y += 2 * DCTSIZE) {
     for (int i = 0; i < 2 * DCTSIZE; i++) {
       const uint8_t *src = plane[0] + static_cast<size_t>(std::min(y + i, height - 1)) * linesize[0];
-      if (pad) {
-        uint8_t *dst = scratch.data() + static_cast<size_t>(i) * ypitch;
-        memcpy(dst, src, width);
-        memset(dst + width, src[width - 1], ypitch - width);
+      if (copy) {
+        uint8_t *dst = scratch + static_cast<size_t>(i) * ypitch;
+        zm_jpeg_band_row(dst, src, width, ypitch, limited ? zm_expand_luma : nullptr);
         src = dst;
       }
       yrows[i] = const_cast<uint8_t *>(src);
@@ -1547,13 +1610,11 @@ static bool zm_jpeg_write_raw_yuv420(jpeg_compress_struct *cinfo, const uint8_t 
       const int cy = std::min(y / 2 + i, chroma_height - 1);
       const uint8_t *usrc = plane[1] + static_cast<size_t>(cy) * linesize[1];
       const uint8_t *vsrc = plane[2] + static_cast<size_t>(cy) * linesize[2];
-      if (pad) {
-        uint8_t *udst = scratch.data() + static_cast<size_t>(2 * DCTSIZE) * ypitch + static_cast<size_t>(i) * cpitch;
+      if (copy) {
+        uint8_t *udst = scratch + static_cast<size_t>(2 * DCTSIZE) * ypitch + static_cast<size_t>(i) * cpitch;
         uint8_t *vdst = udst + static_cast<size_t>(DCTSIZE) * cpitch;
-        memcpy(udst, usrc, chroma_width);
-        memset(udst + chroma_width, usrc[chroma_width - 1], cpitch - chroma_width);
-        memcpy(vdst, vsrc, chroma_width);
-        memset(vdst + chroma_width, vsrc[chroma_width - 1], cpitch - chroma_width);
+        zm_jpeg_band_row(udst, usrc, chroma_width, cpitch, limited ? zm_expand_chroma : nullptr);
+        zm_jpeg_band_row(vdst, vsrc, chroma_width, cpitch, limited ? zm_expand_chroma : nullptr);
         usrc = udst;
         vsrc = vdst;
       }
@@ -1764,6 +1825,7 @@ bool Image::WriteJpeg(const std::string &filename,
     const bool is_422 = (imagePixFormat == AV_PIX_FMT_YUV422P || imagePixFormat == AV_PIX_FMT_YUVJ422P);
     const unsigned chroma_v_shift = is_422 ? 0u : 1u;
 
+    const bool limited = zm_jpeg_yuv_is_limited(imagePixFormat);
     std::vector<uint8_t> tmprow(static_cast<size_t>(width) * 3);
     JSAMPROW row_ptr = tmprow.data();
 
@@ -1773,11 +1835,7 @@ bool Image::WriteJpeg(const std::string &filename,
       const uint8_t *yrow = plane[0] + static_cast<size_t>(y) * plane_linesizes[0];
       const uint8_t *urow = plane[1] + static_cast<size_t>(cy) * plane_linesizes[1];
       const uint8_t *vrow = plane[2] + static_cast<size_t>(cy) * plane_linesizes[2];
-      for (unsigned x = 0; x < width; ++x) {
-        tmprow[x * 3 + 0] = yrow[x];
-        tmprow[x * 3 + 1] = urow[x >> 1];
-        tmprow[x * 3 + 2] = vrow[x >> 1];
-      }
+      zm_jpeg_interleave_row(tmprow.data(), yrow, urow, vrow, width, limited);
       jpeg_write_scanlines(cinfo, &row_ptr, 1);
     }
   } else {
@@ -2019,6 +2077,7 @@ bool Image::EncodeJpeg(JOCTET *outbuffer, size_t *outbuffer_size, int quality_ov
     const bool is_422 = (imagePixFormat == AV_PIX_FMT_YUV422P || imagePixFormat == AV_PIX_FMT_YUVJ422P);
     const unsigned chroma_v_shift = is_422 ? 0u : 1u;  // 4:2:0 halves vertical too
 
+    const bool limited = zm_jpeg_yuv_is_limited(imagePixFormat);
     std::vector<uint8_t> tmprow(static_cast<size_t>(width) * 3);
     JSAMPROW row_ptr = tmprow.data();
 
@@ -2028,11 +2087,7 @@ bool Image::EncodeJpeg(JOCTET *outbuffer, size_t *outbuffer_size, int quality_ov
       const uint8_t *yrow = plane[0] + static_cast<size_t>(y) * plane_linesizes[0];
       const uint8_t *urow = plane[1] + static_cast<size_t>(cy) * plane_linesizes[1];
       const uint8_t *vrow = plane[2] + static_cast<size_t>(cy) * plane_linesizes[2];
-      for (unsigned x = 0; x < width; ++x) {
-        tmprow[x * 3 + 0] = yrow[x];
-        tmprow[x * 3 + 1] = urow[x >> 1];  // chroma is 2x horizontal subsampled in 4:2:0/4:2:2
-        tmprow[x * 3 + 2] = vrow[x >> 1];
-      }
+      zm_jpeg_interleave_row(tmprow.data(), yrow, urow, vrow, width, limited);
       jpeg_write_scanlines(cinfo, &row_ptr, 1);
     }
   } else {

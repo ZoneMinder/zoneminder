@@ -538,6 +538,7 @@ switch ($name) {
                   <input type="text" name="newMonitor[Manufacturer]"
                     placeholder="enter new manufacturer name"
                     autocomplete="new_manufacturer"
+                    value="<?php echo validHtmlStr($monitor->ManufacturerId() ? '' : $monitor->Manufacturer()->Name()) ?>"
                     <?php echo $monitor->ManufacturerId() ? ' style="display:none" disabled="disabled"' : '' ?>
                     data-on-input-this="Manufacturer_onchange"
                   />
@@ -564,6 +565,7 @@ switch ($name) {
                   <input type="text" name="newMonitor[Model]"
                     placeholder="enter new model name"
                     autocomplete="new_model"
+                    value="<?php echo validHtmlStr($monitor->ModelId() ? '' : $monitor->Model()->Name()) ?>"
                     <?php echo $monitor->ModelId() ? ' style="display:none" disabled="disabled"' : '' ?>
                     data-on-input-this="Model_onchange"
                     />

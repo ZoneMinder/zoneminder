@@ -969,10 +969,10 @@ function Recording_onChange(e) {
 
 function SecondPath_onChange(e) {
   if (e.value) {
-    $j('#AnalysingSource').show();
+    $j('#AnalysisSource').show();
     $j('#RecordingSource').show();
   } else {
-    $j('#AnalysingSource').hide();
+    $j('#AnalysisSource').hide();
     $j('#RecordingSource').hide();
   }
 }

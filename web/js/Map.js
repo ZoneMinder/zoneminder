@@ -88,6 +88,7 @@ var ZMMap = function() {
               const div_error = document.getElementById("progress-error");
 
               const pins = [];
+              const bounds = [];
 
               for (let i=0, len = monitors.monitors.length; i<len; i++) {
                 const monitor = monitors.monitors[i].Monitor;
@@ -118,7 +119,7 @@ var ZMMap = function() {
                 }
                 const monitor_status = monitors["monitors"][i]["Monitor_Status"];
                 const event_summary = monitors["monitors"][i]["Event_Summary"];
-                const server = new Server(Servers[monitor.ServerId]);
+                const server = new Server(Servers[monitor.ServerId] || Servers[0]);
 
                 const id = monitor["Id"];
                 const fps = monitor_status["CaptureFPS"];
@@ -144,11 +145,13 @@ var ZMMap = function() {
                       .addTo(this.map).bindPopup(popup);
                   cant_error += 1;
                 }
+                bounds.push([monitor.Latitude, monitor.Longitude]);
                 total_cameras += 1;
               } // end foreach monitor
-              const percent_connected = Number.parseFloat(((cant_connected*100)/total_cameras)).toFixed(2);
-              const percent_disconnected = Number.parseFloat(((cant_disconnected*100)/total_cameras)).toFixed(2);
-              const percent_error = Number.parseFloat(((cant_error*100)/total_cameras)).toFixed(2);
+              if (bounds.length) this.map.fitBounds(bounds, {maxZoom: 12});
+              const percent_connected = Number.parseFloat(total_cameras ? (cant_connected*100)/total_cameras : 0).toFixed(2);
+              const percent_disconnected = Number.parseFloat(total_cameras ? (cant_disconnected*100)/total_cameras : 0).toFixed(2);
+              const percent_error = Number.parseFloat(total_cameras ? (cant_error*100)/total_cameras : 0).toFixed(2);
 
               div_connected.style.width = percent_connected+"%";
               div_connected.innerHTML = percent_connected+"%";

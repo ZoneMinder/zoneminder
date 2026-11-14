@@ -324,7 +324,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
         auto &frame = event_data->frames.emplace_back(
                        i,
                        last_timestamp + ((i - last_id) * delta),
-                       std::chrono::duration_cast<Microseconds>((event_data->frames[last_frame_idx].timestamp - event_data->start_time) + delta),
+                       std::chrono::duration_cast<Microseconds>((last_frame_idx >= 0 ? event_data->frames[last_frame_idx].timestamp - event_data->start_time : Microseconds(0)) + delta),
                        delta,
                        false
                      );

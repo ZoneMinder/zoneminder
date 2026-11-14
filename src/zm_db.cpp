@@ -18,13 +18,16 @@
 //
 #include "zm_db.h"
 
+#include "zm_config.h"
 #include "zm_logger.h"
 #include "zm_signal.h"
+#include "zm_utils.h"
 #include <algorithm>
 #include <cctype>
 #include <cinttypes>
 #include <cstdlib>
 #include <random>
+#include <sys/time.h>
 #include <unistd.h>
 
 MYSQL dbconn;
@@ -358,7 +361,10 @@ zmDbRow::~zmDbRow() {
   row = nullptr;
 }
 
-zmDbQueue::zmDbQueue() :
+zmDbQueue::zmDbQueue(size_t max_log_rows) :
+  mMaxLogRows(max_log_rows),
+  mLogRows(0),
+  mDroppedLogs(0),
   mTerminate(false) {
   mThread = std::thread(&zmDbQueue::process, this);
 }
@@ -378,6 +384,26 @@ void zmDbQueue::stop() {
   if (mThread.joinable()) mThread.join();
 }
 
+namespace {
+
+// Written straight to the database: going through the logger would queue
+// another row.
+void write_dropped_summary(size_t dropped) {
+  struct timeval now;
+  gettimeofday(&now, nullptr);
+  Logger::DatabaseLogPause pause_db_logging;
+  zmDbDo(stringtf(
+           "INSERT INTO `Logs` "
+           "( `TimeKey`, `Component`, `ServerId`, `Pid`, `Level`, `Code`, `Message`, `File`, `Line` )"
+           " VALUES "
+           "( %jd.%06jd, '%s', %d, %d, %d, 'WAR', '%zu log messages dropped, database log queue full', 'zm_db.cpp', 0 )",
+           static_cast<intmax_t>(now.tv_sec), static_cast<intmax_t>(now.tv_usec),
+           zmDbEscapeString(Logger::fetch()->id()).c_str(), staticConfig.SERVER_ID, getpid(),
+           Logger::WARNING, dropped));
+}
+
+}  // namespace
+
 void zmDbQueue::process() {
   std::unique_lock<std::mutex> lock(mMutex);
 
@@ -385,11 +411,27 @@ void zmDbQueue::process() {
     if (mQueue.empty()) {
       mCondition.wait(lock);
     }
-    while (!mQueue.empty()) {
+    while (!mQueue.empty() or mDroppedLogs) {
+      size_t dropped = 0;
+      if (mDroppedLogs and mLogRows <= mMaxLogRows / 2) {
+        dropped = mDroppedLogs;
+        mDroppedLogs = 0;
+      }
       size_t backlog = mQueue.size();
-      std::string sql = std::move(mQueue.front().first);
-      bool log_row = mQueue.front().second;
-      mQueue.pop();
+      std::string sql;
+      bool log_row = false;
+      if (!mQueue.empty()) {
+        sql = std::move(mQueue.front().first);
+        log_row = mQueue.front().second;
+        mQueue.pop();
+        if (log_row) --mLogRows;
+      }
+      if (dropped) {
+        lock.unlock();
+        write_dropped_summary(dropped);
+        lock.lock();
+      }
+      if (sql.empty()) continue;
       // My idea for leaving the locking around each sql statement is to allow
       // other db writers to get a chance
       lock.unlock();
@@ -415,13 +457,30 @@ void zmDbQueue::process() {
   }
 }  // end void zmDbQueue::process()
 
-void zmDbQueue::push(std::string &&sql, bool log_row) {
+void zmDbQueue::push(std::string &&sql, bool log_row, bool keep) {
   {
     std::unique_lock<std::mutex> lock(mMutex);
     if (mTerminate) return;
+    if (log_row) {
+      if (mLogRows >= mMaxLogRows and !keep) {
+        ++mDroppedLogs;
+        return;
+      }
+      ++mLogRows;
+    }
     mQueue.emplace(std::move(sql), log_row);
   }
   mCondition.notify_all();
+}
+
+size_t zmDbQueue::logRowsQueued() {
+  std::unique_lock<std::mutex> lock(mMutex);
+  return mLogRows;
+}
+
+size_t zmDbQueue::logRowsDropped() {
+  std::unique_lock<std::mutex> lock(mMutex);
+  return mDroppedLogs;
 }
 
 namespace {

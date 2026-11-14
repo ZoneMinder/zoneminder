@@ -39,7 +39,7 @@ class ZoneMinderStreamVideoSource: public ZoneMinderStreamSource {
     xop::MediaChannelId channelId
   );
  protected:
-  void PushFrame(const uint8_t *data, size_t size, int64_t pts) override;
+  void PushFrame(const uint8_t *data, size_t size, int64_t pts, bool last) override;
 
  protected:
   int m_width;

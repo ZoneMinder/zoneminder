@@ -1431,7 +1431,7 @@ function getStat() {
       //  tdString = '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData[key] + '</a>';
       //  break;
       case 'Location':
-        tdString = eventData.Latitude + ', ' + eventData.Longitude;
+        tdString = (parseFloat(eventData.Latitude) || parseFloat(eventData.Longitude)) ? eventData.Latitude + ', ' + eventData.Longitude : '';
         break;
       //case 'MonitorId':
       //  if (canView["Monitors"]) {

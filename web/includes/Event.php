@@ -212,22 +212,39 @@ class Event extends ZM_Object {
     $dbConn->beginTransaction();
     try {
       $this->lock();
-      dbQuery('DELETE FROM Stats WHERE EventId = ?', array($this->{'Id'}));
-      dbQuery('DELETE FROM Event_Data WHERE EventId = ?', array($this->{'Id'}));
-      dbQuery('DELETE FROM Frames WHERE EventId = ?', array($this->{'Id'}));
+      # dbQuery() reports a failed statement by returning null, not by throwing
+      foreach (array('Stats', 'Event_Data', 'Frames') as $table) {
+        if (null === dbQuery('DELETE FROM '.$table.' WHERE EventId = ?', array($this->{'Id'}))) {
+          throw new \Exception('Unable to delete '.$table.' rows of event '.$this->{'Id'}.' not deleting.');
+        }
+      }
+      if (null === dbQuery('DELETE FROM Events WHERE Id = ?', array($this->{'Id'}))) {
+        throw new \Exception('Unable to delete event '.$this->{'Id'}.' not deleting files.');
+      }
+      $dbConn->commit();
+    } catch (\Exception $e) {
+      Error($e->getMessage());
+      $dbConn->rollback();
+      return;
+    }
+    if (!empty($this->{'DiskSpace'}) and !empty($this->{'StorageId'})) {
+      dbQuery('UPDATE Storage SET DiskSpace=GREATEST(COALESCE(DiskSpace,0)-?,0) WHERE Id=?', array($this->{'DiskSpace'}, $this->{'StorageId'}));
+    }
+    # The rows are gone, so a failure below leaves files for zmaudit to remove
+    try {
       if ( $this->{'Scheme'} == 'Deep' ) {
 
         # Assumption: All events have a start time
         $start_date = date_parse($this->{'StartDateTime'});
         if ( ! $start_date ) {
-          throw new Exception('Unable to parse start date time for event ' . $this->{'Id'} . ' not deleting files.');
+          throw new \Exception('Unable to parse start date time for event ' . $this->{'Id'} . ' not deleting files.');
         }
         $start_date['year'] = $start_date['year'] % 100;
 
         # So this is because ZM creates a link under the day pointing to the time that the event happened. 
         $link_path = $this->Link_Path();
         if ( ! $link_path ) {
-          throw new Exception('Unable to determine link path for event '.$this->{'Id'}.' not deleting files.');
+          throw new \Exception('Unable to determine link path for event '.$this->{'Id'}.' not deleting files.');
         }
 
         $Storage = $this->Storage();
@@ -235,7 +252,7 @@ class Event extends ZM_Object {
 
         if ( $id_files = glob($eventlink_path) ) {
           if ( ! $eventPath = readlink($id_files[0]) ) {
-            throw new Exception("Unable to read link at $id_files[0]");
+            throw new \Exception("Unable to read link at $id_files[0]");
           }
           # I know we are using arrays here, but really there can only ever be 1 in the array
           $eventPath = preg_replace('/\.'.$this->{'Id'}.'$/', $eventPath, $id_files[0]);
@@ -254,7 +271,7 @@ class Event extends ZM_Object {
       } else {
         $eventPath = $this->Path();
         if ( ! $eventPath ) {
-          throw new Exception('No event Path in Event delete. Not deleting');
+          throw new \Exception('No event Path in Event delete. Not deleting');
         }
         deletePath($eventPath);
         if ( $this->SecondaryStorageId() ) {
@@ -269,16 +286,8 @@ class Event extends ZM_Object {
           } # end if Storage
         } # end if has Secondary Storage
       } # USE_DEEP_STORAGE OR NOT
-      dbQuery('DELETE FROM Events WHERE Id = ?', array($this->{'Id'}));
-      $dbConn->commit();
-      if (!empty($this->{'DiskSpace'}) and !empty($this->{'StorageId'})) {
-        dbQuery('UPDATE Storage SET DiskSpace=GREATEST(COALESCE(DiskSpace,0)-?,0) WHERE Id=?', array($this->{'DiskSpace'}, $this->{'StorageId'}));
-      }
-    } catch (PDOException $e) {
-      $dbConn->rollback();
-    } catch (Exception $e) {
+    } catch (\Exception $e) {
       Error($e->getMessage());
-      $dbConn->rollback();
     }
   } # end Event->delete
 

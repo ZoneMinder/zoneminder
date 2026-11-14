@@ -995,7 +995,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // thread can advance past them.
   void flushDecoderQueue();
   inline bool Enabled() const {
-    return shared_data->capturing;
+    return shared_data->capturing != CAPTURING_NONE;
   }
   DecodingOption Decoding() const {
     return decoding;

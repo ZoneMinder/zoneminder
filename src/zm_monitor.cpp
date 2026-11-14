@@ -1628,12 +1628,12 @@ void Monitor::actionReload() {
 }
 
 void Monitor::actionEnable() {
-  shared_data->capturing = true;
+  shared_data->capturing = capturing;
   Info("actionEnable, capturing enabled.");
 }
 
 void Monitor::actionDisable() {
-  shared_data->capturing = false;
+  shared_data->capturing = CAPTURING_NONE;
   Info("actionDisable, capturing temporarily disabled.");
 }
 
@@ -3217,7 +3217,7 @@ int64_t Monitor::KeepDtsContinuous(AVPacket *packet, AVRational time_base) {
 }
 
 int Monitor::Capture() {
-  if (!shared_data->capturing) {
+  if (shared_data->capturing == CAPTURING_NONE) {
     Debug(1, "Not capturing");
     return 0;
   }

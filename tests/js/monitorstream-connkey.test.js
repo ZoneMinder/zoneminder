@@ -50,6 +50,8 @@ function loadMonitorStream() {
   const globals = {
     Object,
     Math,
+    clock: 10000,
+    Date: {now: () => globals.clock},
     $j: makeChainable(),
     $: makeChainable(),
     jQuery: {
@@ -111,11 +113,13 @@ function makeMonitor() {
   monitor.getElement = () => img;
   monitor.activePlayer = 'zms';
   monitor.started = true;
+  // Already past the no_socket grace period, unless a test says otherwise.
+  monitor.noSocketSince = 1;
   monitor.quits = [];
   monitor.quitConnKey = function(connkey) {
     this.quits.push(connkey);
   };
-  return {monitor, requests, img};
+  return {monitor, requests, img, sandbox};
 }
 
 const NO_SOCKET = {result: 'Error', message: 'socket does not exist', reason: 'no_socket'};
@@ -171,6 +175,42 @@ test('an alarm reply for the current connkey is still acted on', () => {
   monitor.alarmCommand(1);
   requests[0].done(NO_SOCKET);
   assert.deepStrictEqual(monitor.quits, ['000111']);
+});
+
+console.log('MonitorStream no_socket grace');
+
+test('one no_socket does not reload the stream', () => {
+  const {monitor, requests} = makeMonitor();
+  monitor.noSocketSince = 0;
+  monitor.streamCmdQuery();
+  requests[0].done(NO_SOCKET);
+  assert.deepStrictEqual(monitor.quits, []);
+  assert.strictEqual(monitor.connKey, '000111');
+});
+
+test('no_socket that persists past the grace period reloads the stream', () => {
+  const {monitor, requests, sandbox} = makeMonitor();
+  monitor.noSocketSince = 0;
+  for (let t = 0; t <= 3000; t += 1000) {
+    sandbox.clock = 10000 + t;
+    monitor.streamCmdQuery();
+    requests[requests.length - 1].done(NO_SOCKET);
+  }
+  assert.deepStrictEqual(monitor.quits, ['000111']);
+  assert.notStrictEqual(monitor.connKey, '000111');
+});
+
+test('a zms that starts after 1.5s recovers without a reload', () => {
+  const {monitor, requests, sandbox} = makeMonitor();
+  monitor.noSocketSince = 0;
+  for (let t = 0; t <= 4000; t += 1000) {
+    sandbox.clock = 10000 + t;
+    monitor.streamCmdQuery();
+    requests[requests.length - 1].done(t < 1500 ? NO_SOCKET : {result: 'Ok'});
+  }
+  assert.deepStrictEqual(monitor.quits, []);
+  assert.strictEqual(monitor.connKey, '000111');
+  assert.strictEqual(monitor.noSocketSince, 0);
 });
 
 console.log('\n' + passed + ' passed, ' + failed + ' failed');

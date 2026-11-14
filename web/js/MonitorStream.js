@@ -1,5 +1,6 @@
 "use strict";
 const streaming = [];
+const NO_SOCKET_GRACE_MS = 3000;
 
 /* Does this ajax/stream.php failure mean the zms behind our connkey is gone?
  *
@@ -1362,6 +1363,7 @@ function MonitorStream(monitorData) {
     //this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
 
     if (respObj.result == 'Ok') {
+      this.noSocketSince = 0;
       if (respObj.status) {
         const streamStatus = this.status = respObj.status;
 
@@ -1545,6 +1547,16 @@ function MonitorStream(monitorData) {
         console.log('Not reloading stream for '+respObj.reason+' error, will retry on the next poll');
         return;
       }
+
+      // zms may still be starting, so only act on a no_socket that persists.
+      if (respObj.reason == 'no_socket') {
+        if (!this.noSocketSince) this.noSocketSince = Date.now();
+        if (Date.now() - this.noSocketSince < NO_SOCKET_GRACE_MS) {
+          console.log('No zms socket yet, will retry on the next poll');
+          return;
+        }
+      }
+      this.noSocketSince = 0;
 
       // Try to reload the image stream.
       let src = stream.src;

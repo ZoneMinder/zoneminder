@@ -1998,7 +1998,7 @@ function MonitorStream(monitorData) {
       stream.setAttribute("muted", this.muted);
       stream.setAttribute("playsinline", "");
       const url = new URL(ZM_RTSP2WEB_PATH);
-      const useSSL = (url.protocol == 'https');
+      const useSSL = (url.protocol == 'https:');
 
       const rtsp2webModUrl = url;
       const video_el = this.getAVStream();

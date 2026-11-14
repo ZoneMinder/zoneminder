@@ -62,6 +62,7 @@ if (!empty($_REQUEST['mid'])) {
 if (!$monitor) {
   $thisNewMonitor = true;
   $monitor = new ZM\Monitor();
+  $monitor->apply_initial_defaults();
   $monitor->Name(translate('Monitor').'-'.getTableAutoInc('Monitors'));
   while (isset($monitors_by_name[$monitor->Name()])) {
     $monitor->Name($monitor->Name().'0');

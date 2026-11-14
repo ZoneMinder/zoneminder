@@ -70,10 +70,14 @@ if ( is_readable($filename_path) and pathWithinExportDir($filename_path, ZM_DIR_
   header('Content-Disposition: '.contentDispositionAttachment($filename));
   header('Content-Length: '.filesize($filename_path));
   set_time_limit(0);
+  # A client that disconnects mid-download aborts the script, so delete in a
+  # shutdown function to keep the archive from being left behind.
+  register_shutdown_function(function() use ($filename_path) {
+    @unlink($filename_path);
+  });
   if ( !@readfile($filename_path) ) {
     ZM\Error("Error sending $filename_path");
   }
-  @unlink($filename_path);
 } else {
   ZM\Error($filename_path.' does not exist or is not readable.');
 }

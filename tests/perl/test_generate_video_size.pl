@@ -57,5 +57,13 @@ check('scaled video gets the scaled size', (args_for(0.5, 0, '') =~ /-s (\S+)/)[
 check('scaled size is rounded down to even dimensions', (args_for(0.33, 0, '') =~ /-s (\S+)/)[0], '52x38');
 check('absolute size is passed through', (args_for(0, '320x240', '') =~ /-s (\S+)/)[0], '320x240');
 
+open($fh, '>', $fake) or die $!;
+print $fh "#!/bin/sh\nfor last; do :; done\necho partial > \"\$last\"\nexit 1\n";
+close($fh);
+chmod(0755, $fake);
+my $failed = $Event->GenerateVideo(1, 0, 1, 0, 1, 'mp4', '');
+check('a failed run returns no file', defined $failed ? $failed : 'undef', 'undef');
+check('a failed run leaves no partial video behind', (-e "$dir/Event-r1-s1.mp4" ? 'left' : 'removed'), 'removed');
+
 print "\n$passes passed, $failures failed\n";
 exit($failures ? 1 : 0);

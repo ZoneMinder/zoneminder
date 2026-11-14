@@ -379,6 +379,7 @@ sub GenerateVideo {
     my $status = $? >> 8;
     if ( $status ) {
       Error("Unable to generate video, check $event_path/ffmpeg.log for details");
+      unlink($video_file);
       return;
     }
 

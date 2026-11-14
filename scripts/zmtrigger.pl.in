@@ -34,6 +34,7 @@ use constant MAX_CONNECT_DELAY => 10;
 use constant MONITOR_RELOAD_INTERVAL => 300;
 use constant SELECT_TIMEOUT => 0.25;
 use constant MONITOR_RETRY_INTERVAL => 10;
+use constant MAX_OFF_WAIT => 10;
 
 # ==========================================================================
 #
@@ -391,8 +392,11 @@ sub handleMessage {
         zmTriggerShowtext($monitor, $showtext) if defined($showtext);
         Info("Trigger '$trigger'");
 # Wait til it's finished
+        my $wait_until = time() + MAX_OFF_WAIT;
         while ( zmInAlarm($monitor)
             && ($last_event == zmGetLastEvent($monitor))
+            && !$zm_terminate
+            && time() < $wait_until
             ) {
 # Tenth of a second
           usleep(100000);

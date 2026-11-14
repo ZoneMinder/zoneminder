@@ -831,8 +831,8 @@ sub find_sql {
       ( 'SELECT', ( $sql{distinct} ? ('DISTINCT') : () ) ),
       ( $sql{columns}, 'FROM', $sql{table} ),
       ( @{$sql{where}} ? ('WHERE', join(' AND ', @{$sql{where}})) : () ),
-      ( $sql{order} ? ( 'ORDER BY', $sql{order} ) : () ),
       ( $sql{'group by'} ? ( 'GROUP BY', $sql{'group by'} ) : () ),
+      ( $sql{order} ? ( 'ORDER BY', $sql{order} ) : () ),
       ( $sql{limit} ? ( 'LIMIT', $sql{limit}) : () ),
       ( $sql{offset} ? ( 'OFFSET', $sql{offset} ) : () ),
   );  

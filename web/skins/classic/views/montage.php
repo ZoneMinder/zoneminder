@@ -380,8 +380,8 @@ foreach ($monitors as $monitor) {
     echo getWebSiteUrl(
       'liveStream'.$monitor->Id(),
       $monitor->Path(),
-      (isset($options['width']) ? $options['width'] : reScale($monitor->ViewWidth(), $scale).'px' ),
-      (isset($options['height']) ? $options['height'] : reScale($monitor->ViewHeight(), $scale).'px' ),
+      (!empty($options['width']) ? $options['width'] : reScale($monitor->ViewWidth(), $scale).'px' ),
+      (!empty($options['height']) ? $options['height'] : reScale($monitor->ViewHeight(), $scale).'px' ),
       $monitor->Name()
     );
   } else {

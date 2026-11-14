@@ -231,6 +231,8 @@ check('a carriage return likewise', cronCommandIsValid("echo hi\r0 0 * * * id"),
 check('a bare percent truncates the command', cronCommandIsValid('date +%F'), false);
 check('a bare percent anywhere', cronCommandIsValid('echo 50% done'), false);
 check('a backslash cannot hide one', cronCommandIsValid('echo \\\\%F'), false);
+check('a trailing backslash would escape the marker', cronCommandIsValid('echo hi \\'), false);
+check('an escaped trailing backslash is fine', cronCommandIsValid('echo hi \\\\'), true);
 
 echo "\n$passed passed, $failed failed\n";
 exit($failed ? 1 : 0);

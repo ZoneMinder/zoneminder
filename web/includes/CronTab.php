@@ -111,6 +111,8 @@ function cronCommandIsValid($command) {
   // Every % must be escaped. Count unescaped ones by removing the escaped
   // pairs first, which also stops a trailing backslash from hiding one.
   if (strpos(str_replace('\\%', '', str_replace('\\\\', '', $command)), '%') !== false) return false;
+  // A lone trailing backslash escapes the space before our "# ZoneMinder" marker, which then becomes arguments.
+  if (preg_match('/(?<!\\\\)(?:\\\\\\\\)*\\\\$/', $command)) return false;
   return true;
 }
 

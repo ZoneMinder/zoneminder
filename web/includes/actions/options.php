@@ -326,6 +326,7 @@ if ( $action == 'delete' ) {
     dbQuery('DELETE FROM Menu_Items');
     dbQuery("INSERT INTO `Menu_Items` (`MenuKey`, `Enabled`, `SortOrder`) VALUES
       ('Console', 1, 10),
+      ('Watch', 1, 15),
       ('Montage', 1, 20),
       ('MontageReview', 1, 30),
       ('Events', 1, 40),

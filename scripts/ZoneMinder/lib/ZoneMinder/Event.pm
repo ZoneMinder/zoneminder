@@ -780,7 +780,10 @@ sub CopyTo {
 
         $moved = 1;
       };
-      Error($@) if $@;
+      if (my $err = $@) {
+        Error($err);
+        return "Failed to copy event $$self{Id} to S3: $err";
+      }
     } # end if s3
   } # end if s3f3
 

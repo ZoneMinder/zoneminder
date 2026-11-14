@@ -80,8 +80,9 @@ sub open {
   ) {
     Debug('Using ControlAddress for credentials: '.urlForLog($self->{Monitor}{ControlAddress}));
     $uri = URI->new($self->{Monitor}->{ControlAddress});
-    $uri = URI->new('http://'.$self->{Monitor}->{ControlAddress}) if ref($uri) eq 'URI::_foreign';
+    $uri = URI->new('http://'.$self->{Monitor}->{ControlAddress}) if !$uri->can('host');
     $$self{host} = $uri->host();
+    $$self{port} = $uri->port() if $uri->port();
     if ( $uri->userinfo()) {
       @$self{'username','password'} = $uri->userinfo() =~ /^(.*):(.*)$/;
     } else {

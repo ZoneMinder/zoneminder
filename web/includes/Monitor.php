@@ -1095,7 +1095,7 @@ class Monitor extends ZM_Object {
       $result = $this->Server()->SendToApi('/monitors/alarm/id:'.$this->{'Id'}.'/command:'.$cmd.'.json');
 
       if ($result === FALSE) { /* Handle error */
-        Error('Error sending command using '.$url);
+        Error('Error sending alarm command '.$cmd.' for monitor '.$this->{'Id'}.' to server '.$this->{'ServerId'});
         return false;
       }
       $json = json_decode($result, true);

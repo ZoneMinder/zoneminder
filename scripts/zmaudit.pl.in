@@ -1254,16 +1254,15 @@ sub confirm {
 sub deleteSwapImage {
   my $file = $_;
 
-  return if $file =~ /^./;
+  return if $file =~ /^\./;
 
   if ( $file !~ /^zmswap-/ ) {
-    Error( "Trying to delete SwapImage that isnt a swap image $file" );
+    Debug("Not a swap image: $file");
     return;
   }
 
 # Ignore directories
   if ( -d $file ) {
-    Error( "Trying to delete a directory instead of a swap image $file" );
     return;
   }
 

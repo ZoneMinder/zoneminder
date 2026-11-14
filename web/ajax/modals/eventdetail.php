@@ -45,6 +45,8 @@ if ( $eid ){ // Single Event Mode
     if ( !isset($newEvent) ) {
       $newEvent = $row;
     } else {
+      if ( $newEvent['Name'] && $newEvent['Name'] != $row['Name'] )
+        $newEvent['Name'] = '';
       if ( $newEvent['Cause'] && $newEvent['Cause'] != $row['Cause'] )
         $newEvent['Cause'] = '';
       if ( $newEvent['Notes'] && $newEvent['Notes'] != $row['Notes'] )

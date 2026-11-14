@@ -4065,6 +4065,12 @@ void Image::Deinterlace_4Field(const Image* next_image, unsigned int threshold) 
     Panic( "Attempt to deinterlace different sized images, expected %dx%dx%d %d, got %dx%dx%d %d", width, height, colours, subpixelorder, next_image->width, next_image->height, next_image->colours, next_image->subpixelorder);
   }
 
+  // The helpers pair rows up and take the last row as the end of the second
+  // field, so an odd height would make them walk one row past the image. Leave
+  // the final row of an odd height as it is.
+  const unsigned int rows = height & ~1u;
+  if (rows < 2) return;
+
   // The *_deinterlace_4field_* SIMD helpers use `width` as the row stride
   // internally and have no concept of per-row padding. With FFALIGN'd
   // linesize the source row stride may exceed width*bpp, so feeding them
@@ -4086,10 +4092,10 @@ void Image::Deinterlace_4Field(const Image* next_image, unsigned int threshold) 
   uint8_t *tmp1 = nullptr;
   uint8_t *tmp2 = nullptr;
   if (needs_pack) {
-    const size_t packed_size = row_data_bytes * height;
+    const size_t packed_size = row_data_bytes * rows;
     tmp1 = AllocBuffer(packed_size);
     tmp2 = AllocBuffer(packed_size);
-    for (unsigned int y = 0; y < height; y++) {
+    for (unsigned int y = 0; y < rows; y++) {
       memcpy(tmp1 + y * row_data_bytes, buffer + y * linesize, row_data_bytes);
       memcpy(tmp2 + y * row_data_bytes, next_image->buffer + y * next_image->linesize, row_data_bytes);
     }
@@ -4099,24 +4105,24 @@ void Image::Deinterlace_4Field(const Image* next_image, unsigned int threshold) 
 
   if (imagePixFormat == AV_PIX_FMT_BGR24) {
     /* BGR subpixel order */
-    std_deinterlace_4field_bgr(col1, col2, threshold, width, height);
+    std_deinterlace_4field_bgr(col1, col2, threshold, width, rows);
   } else if (zm_is_rgb24(imagePixFormat)) {
     /* Assume RGB subpixel order */
-    std_deinterlace_4field_rgb(col1, col2, threshold, width, height);
+    std_deinterlace_4field_rgb(col1, col2, threshold, width, rows);
   } else if (imagePixFormat == AV_PIX_FMT_ARGB) {
     /* ARGB subpixel order */
-    (*fptr_deinterlace_4field_argb)(col1, col2, threshold, width, height);
+    (*fptr_deinterlace_4field_argb)(col1, col2, threshold, width, rows);
   } else if (imagePixFormat == AV_PIX_FMT_ABGR) {
     /* ABGR subpixel order */
-    (*fptr_deinterlace_4field_abgr)(col1, col2, threshold, width, height);
+    (*fptr_deinterlace_4field_abgr)(col1, col2, threshold, width, rows);
   } else if (imagePixFormat == AV_PIX_FMT_BGRA) {
     /* BGRA subpixel order */
-    (*fptr_deinterlace_4field_bgra)(col1, col2, threshold, width, height);
+    (*fptr_deinterlace_4field_bgra)(col1, col2, threshold, width, rows);
   } else if (zm_is_rgb32(imagePixFormat)) {
     /* Assume RGBA subpixel order */
-    (*fptr_deinterlace_4field_rgba)(col1, col2, threshold, width, height);
+    (*fptr_deinterlace_4field_rgba)(col1, col2, threshold, width, rows);
   } else if (zm_bytes_per_pixel(imagePixFormat) == 1) {
-    (*fptr_deinterlace_4field_gray8)(col1, col2, threshold, width, height);
+    (*fptr_deinterlace_4field_gray8)(col1, col2, threshold, width, rows);
   } else {
     if (needs_pack) {
       DumpBuffer(tmp1, ZM_BUFTYPE_ZM);
@@ -4129,7 +4135,7 @@ void Image::Deinterlace_4Field(const Image* next_image, unsigned int threshold) 
   if (needs_pack) {
     // Copy the processed Y/primary plane back into our padded buffer,
     // touching only the data bytes per row so existing padding is intact.
-    for (unsigned int y = 0; y < height; y++) {
+    for (unsigned int y = 0; y < rows; y++) {
       memcpy(buffer + y * linesize, tmp1 + y * row_data_bytes, row_data_bytes);
     }
     DumpBuffer(tmp1, ZM_BUFTYPE_ZM);

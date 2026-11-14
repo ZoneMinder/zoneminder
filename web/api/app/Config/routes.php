@@ -34,17 +34,18 @@
 	Router::mapResources('logs');
 	Router::mapResources('manufacturers');
 	Router::mapResources('models');
-	Router::mapResources('cameramodels');
+	Router::mapResources('camera_models');
 	Router::mapResources('monitors');
 	Router::mapResources('servers');
 	Router::mapResources('server_stats');
 	Router::mapResources('snapshots');
+	Router::mapResources('storage');
 	Router::mapResources('states');
 	Router::mapResources('tags');
 	Router::mapResources('roles');
 	Router::mapResources('users');
 	Router::mapResources('user_preference');
-	Router::mapResources('zonepresets');
+	Router::mapResources('zone_presets');
 	Router::mapResources('zones');
 	Router::mapResources('notifications');
 

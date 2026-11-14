@@ -136,10 +136,10 @@ function getFilteredMonitorIds() {
   return $ids;
 }
 
-function addFilterSelect($name, $options, $selectedValue=null) {
+function addFilterSelect($name, $options, $selectedValue=null, $label=null) {
   if ($selectedValue == null) $selectedValue = getFilterSelection($name);
   
-  $html = '<span class="term '.$name.'Filter"><label>'.translate($name).'</label>';
+  $html = '<span class="term '.$name.'Filter"><label>'.translate($label ? $label : $name).'</label>';
   $html .= '<span class="term-value-wrapper">';
   $html .= htmlSelect($name.'[]', $options,
     $selectedValue,
@@ -204,7 +204,7 @@ function buildMonitorsFilters() {
 
     if (count($GroupsById)) {
       $group_id = getFilterSelection('GroupId');
-      $html .= addFilterSelect('GroupId', ZM\Group::get_dropdown_options(), $group_id);
+      $html .= addFilterSelect('GroupId', ZM\Group::get_dropdown_options(), $group_id, 'Group');
       $groupSql = ZM\Group::get_group_sql($group_id);
     }
   }

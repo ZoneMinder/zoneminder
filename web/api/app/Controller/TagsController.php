@@ -118,7 +118,7 @@ class TagsController extends AppController {
       global $user;
       # We already tested for auth in appController,
       # so we just need to test for specific permission
-      $canEdit = (!$user) || ($user->Tags() == 'Edit');
+      $canEdit = (!$user) || ($user->canEdit('Events'));
       if ( !$canEdit ) {
         throw new UnauthorizedException(__('Insufficient Privileges'));
         return;
@@ -163,7 +163,7 @@ class TagsController extends AppController {
       global $user;
       # We already tested for auth in appController,
       # so we just need to test for specific permission
-      $canEdit = (!$user) || ($user->Tags() == 'Edit');
+      $canEdit = (!$user) || ($user->canEdit('Events'));
       if ( !$canEdit ) {
         throw new UnauthorizedException(__('Insufficient Privileges'));
         return;
@@ -209,7 +209,7 @@ class TagsController extends AppController {
     global $user;
     # We already tested for auth in appController,
     # so we just need to test for specific permission
-    $canEdit = (!$user) || ($user->Tags() == 'Edit');
+    $canEdit = (!$user) || ($user->canEdit('Events'));
     if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;

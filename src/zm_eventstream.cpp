@@ -1124,9 +1124,6 @@ bool EventStream::sendFrame(Microseconds delta_us) {
       reuse_filepath_.clear();
       // Fall through — ffmpeg_input will be tried below if available
     }
-  } else if (!ffmpeg_input) {
-    Fatal("JPEGS not saved. zms is not capable of streaming jpegs from mp4 yet");
-    return false;
   }
 
   if ( type == STREAM_MPEG ) {

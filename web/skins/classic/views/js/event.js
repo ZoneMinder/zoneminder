@@ -134,16 +134,13 @@ function vjsReplay() {
           streamNext(true);
           return;
         }
-        const date = Date.parse(eventData.EndDateTime);
-        if (!date) {
+        const endTime = Date.parse(eventData.EndDateTime);
+        if (isNaN(endTime)) {
           console.error('Got no date from ', eventData);
           streamNext(true);
           return;
-        } else if (typeof date.getTime === 'undefined') {
-          console.log("Failed to get valid date object from EndDateTime in ", eventData);
         } else {
-          const endTime = date.getTime();
-          const nextStartTime = nextEventStartTime.getTime(); //nextEventStartTime.getTime() is a mootools workaround, highjacks Date.parse
+          const nextStartTime = nextEventStartTime;
           if ( nextStartTime <= endTime ) {
             streamNext(true);
             return;
@@ -151,16 +148,16 @@ function vjsReplay() {
           vid.pause();
           const overLaid = $j("#videoobj");
           overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;"></p>');
-          const gapDuration = (new Date().getTime()) + (nextStartTime - endTime);
+          const gapEnd = Date.now() + (nextStartTime - endTime);
           const messageP = $j('.vjsMessage');
           const x = setInterval(function() {
-            const now = new Date().getTime();
-            const remainder = new Date(Math.round(gapDuration - now)).toISOString().substr(11, 8);
-            messageP.html(remainder + ' to next event.');
-            if ( remainder < 0 ) {
+            const remainder = gapEnd - Date.now();
+            if ( remainder <= 0 ) {
               clearInterval(x);
               streamNext(true);
+              return;
             }
+            messageP.html(new Date(remainder).toISOString().substr(11, 8) + ' to next event.');
           }, 1000);
         } // end if valid date object
       } // end if have nextEventId

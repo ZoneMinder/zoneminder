@@ -37,7 +37,6 @@ if [ -z "$FPS" ]; then
 fi;
 
 $FFMPEG -i "$EVENT_PATH/$VIDEO_FILE" -filter:v fps=fps=$FPS "$EVENT_PATH/output.mp4"
-echo $?
 if [ $? -eq 0 ]; then
   mv "$EVENT_PATH/output.mp4" "$EVENT_PATH/$VIDEO_FILE"
 fi;

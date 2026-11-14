@@ -221,6 +221,9 @@ sub Sql {
             Error("Invalid operator '$$term{op}' in filter '$$self{Name}', skipping filter");
             return;
           }
+        } else {
+          # A term without an operator compares for equality, as in FilterTerm.php
+          $term->{op} = '=';
         }
 
         my $date_column = '';
@@ -238,6 +241,8 @@ sub Sql {
           and (($term->{op}//'') eq '>=' or ($term->{op}//'') eq '>')
         ) ? 1 : 0;
 
+        # Where the attribute text starts, so a multi-value comparison can repeat it
+        my $attr_start = length($self->{Sql});
         if ( $term->{attr} eq 'AlarmedZoneId' ) {
           $term->{op} = 'EXISTS';
         } elsif ( $term->{attr} eq 'Tags' ) {
@@ -319,6 +324,7 @@ sub Sql {
           $self->{Sql} .= 'E.'.$term->{attr};
         }
 
+        my $attr_sql = substr($self->{Sql}, $attr_start);
         my $value = defined($term->{val}) ? $term->{val} : '';
         my @value_list;
 
@@ -328,12 +334,14 @@ sub Sql {
           my $stripped_value = $value;
           $stripped_value =~ s/^["\']+?(.+)["\']+?$/$1/ if $stripped_value;
 
-          # Empty value will result in () from split
-          foreach my $temp_value ( $stripped_value ne '' ? split( /["'\s]*?,["'\s]*?/, $stripped_value ) : $stripped_value ) {
+          # A regular expression can contain commas (x{1,3}), so it is one value
+          my $is_regex = ($term->{op}//'') =~ /^[=!]~$/;
+          # Trim quotes and spaces off each value and drop empty ones, so "a, b" and a trailing comma do not add values
+          my @temp_values = $is_regex ? ($stripped_value) : grep { $_ ne '' } map { s/^["'\s]+|["'\s]+$//gr } split( /,/, $stripped_value );
+          @temp_values = ('') if !@temp_values;
+          foreach my $temp_value ( @temp_values ) {
             if ( $term->{attr} eq 'AlarmedZoneId' ) {
               $value = '(SELECT * FROM Stats WHERE EventId=E.Id AND Score > 0 AND ZoneId='.int($value).')';
-            } elsif ( $term->{attr} =~ /^MonitorName/ ) {
-              $value = sql_quote($temp_value);
             } elsif (
               $term->{attr} eq 'ServerId' or
               $term->{attr} eq 'MonitorServerId' or
@@ -355,6 +363,7 @@ sub Sql {
               $value = $temp_value ne '' ? int($temp_value) : 'NULL';
               $$self{Storage} = new ZoneMinder::Storage($temp_value);
             } elsif ( $term->{attr} eq 'Name'
+              || $term->{attr} eq 'MonitorName'
               || $term->{attr} eq 'Cause'
               || $term->{attr} eq 'Notes'
               || $term->{attr} eq 'Tags'
@@ -462,6 +471,10 @@ sub Sql {
               } else {
                 $self->{Sql} .= 'EXISTS (SELECT NULL FROM `Events_Tags` AS ET WHERE ET.EventId = E.Id)';
               }
+            } elsif ( @value_list > 1 and $term->{op} =~ /^(?:=|!=|<=|>=|<|>|LIKE|NOT LIKE)$/ ) {
+              # A negative operator must hold for every value, not just one of them
+              my $join = ($term->{op} eq '!=' or $term->{op} eq 'NOT LIKE') ? ' AND ' : ' OR ';
+              substr($self->{Sql}, $attr_start) = '('.join($join, map { $attr_sql.' '.$term->{op}.' '.$_ } @value_list).')';
             } elsif ( $term->{op} eq '=~' ) {
               $self->{Sql} .= ' REGEXP '.$value;
             } elsif ( $term->{op} eq '!~' ) {
@@ -584,6 +597,9 @@ sub Sql {
         $sort_column = 'E.MaxScore';
       } elsif ( $filter_expr->{sort_field} eq 'DiskSpace' ) {
         $sort_column = 'E.DiskSpace';
+      } elsif ( $filter_expr->{sort_field} eq 'Tags' ) {
+        # Tags is not an Events column, and the Tags alias only exists when the filter has a Tags term
+        $sort_column = '(SELECT GROUP_CONCAT(Name) FROM Tags WHERE Id IN (SELECT TagId FROM Events_Tags WHERE Events_Tags.EventId=E.Id))';
       } elsif ( $filter_expr->{sort_field} ne '' ) {
         $sort_column = 'E.'.$filter_expr->{sort_field};
       }

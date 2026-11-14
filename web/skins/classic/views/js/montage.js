@@ -405,9 +405,7 @@ function cancel_layout(button) {
   $j('.btn-fullscreen').removeClass('hidden');
 
   if (panZoomEnabled) {
-    $j('.zoompan').each( function() {
-      zmPanZoom.action('enable', {obj: this}); //Enable zoom and pan
-    });
+    zmPanZoom.init(); //Enable zoom and pan
   }
 
   $j('#SaveLayout').hide();

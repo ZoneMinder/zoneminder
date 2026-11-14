@@ -558,7 +558,9 @@ void EventStream::processCommand(const CmdMsg *msg) {
     stopped = false;
     paused = false;
     replay_rate = (((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2])-VARPLAY_RATE_OFFSET;
-    if (replay_rate > 50 * ZM_RATE_BASE) {
+    if (replay_rate == 0) {
+      paused = true;
+    } else if (replay_rate > 50 * ZM_RATE_BASE) {
       Warning("requested replay rate (%d) is too high. We only support up to 50x", replay_rate.load());
       replay_rate = 50 * ZM_RATE_BASE;
     } else if (replay_rate.load() < -50*ZM_RATE_BASE) {

@@ -297,7 +297,7 @@ class StreamBase {
   }
   void setStreamReplayRate(int p_rate) {
     Debug(1, "Setting replay_rate %d", p_rate);
-    replay_rate = p_rate;
+    replay_rate = p_rate ? p_rate : DEFAULT_RATE;
   }
   void setStreamMaxFPS(double p_maxfps) {
     Debug(1, "Setting max fps to %f", p_maxfps);

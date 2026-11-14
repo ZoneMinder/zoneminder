@@ -115,6 +115,7 @@ double AudioDetector::RmsFloat(const float *samples, size_t count) {
 
   double sum = 0.0;
   for (size_t i = 0; i < count; i++) {
+    if (std::isnan(samples[i])) continue;  // clamping would turn NaN into full scale
     const double v = std::max(-1.0, std::min(1.0, static_cast<double>(samples[i])));
     sum += v * v;
   }

@@ -152,7 +152,16 @@ class EventDataController extends AppController {
 			$this->pinRequestId($this->EventData, null);
 			$this->EventData->create();
 			if ($this->EventData->save($this->request->data)) {
+				$message = 'Saved';
+			} else {
+				$message = $this->EventData->validationErrors ? $this->EventData->validationErrors : 'Error';
 			}
+			$this->set(array(
+				'message' => $message,
+				'id' => $this->EventData->id,
+				'_serialize' => array('message', 'id')
+			));
+			return;
 		}
 		$events = $this->EventData->Event->find('list');
 		$this->set(compact('events'));
@@ -174,7 +183,16 @@ class EventDataController extends AppController {
 			$this->pinRequestId($this->EventData, $id);
 			$this->requireRequestEventDataEdit(false);
 			if ($this->EventData->save($this->request->data)) {
+				$message = 'Saved';
+			} else {
+				$message = $this->EventData->validationErrors ? $this->EventData->validationErrors : 'Error';
 			}
+			$this->set(array(
+				'message' => $message,
+				'event_data' => $this->EventData->findById($id),
+				'_serialize' => array('message', 'event_data')
+			));
+			return;
 		} else {
 			$options = array('conditions' => array($this->EventData->alias.'.'.$this->EventData->primaryKey => $id));
 			$this->request->data = $this->EventData->find('first', $options);

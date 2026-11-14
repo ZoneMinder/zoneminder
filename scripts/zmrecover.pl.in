@@ -251,7 +251,7 @@ Debug("@Monitors");
                 next;
               } # end if resurrection
             } else {
-              $event->fix_DefaultVideo();
+              saveDefaultVideo($event);
               if (!$$event{EndDateTime}) {
                 if (confirm("Event found but is incomplete, shall we finish it?")) {
                   $event->save() if $event->guess_EndDateTime();
@@ -323,7 +323,7 @@ Debug("@Monitors");
                 next;
               }
             } elsif ( $event ) {
-              $event->fix_DefaultVideo();
+              saveDefaultVideo($event);
               if (!$$event{EndDateTime}) {
                 if (confirm("Event found but is incomplete, shall we finish it?")) {
                   $event->save() if $event->guess_EndDateTime();
@@ -369,7 +369,7 @@ Debug("@Monitors");
           my $event = ZoneMinder::Event->find_one(Id=>$event_id);
           if ( $event ) {
             Debug('Found event in the db, moving on.');
-            $event->fix_DefaultVideo();
+            saveDefaultVideo($event);
             if (!$$event{EndDateTime}) {
               if (confirm("Event found but is incomplete, shall we finish it?")) {
                 $event->save() if $event->guess_EndDateTime();
@@ -419,7 +419,7 @@ Debug("@Monitors");
         my $event = ZoneMinder::Event->find_one(Id=>$event_id);
         if ( $event ) {
           Debug("Found an event in db for $event_id");
-          $event->fix_DefaultVideo();
+          saveDefaultVideo($event);
           if (!$$event{EndDateTime}) {
             if (confirm("Event found but is incomplete, shall we finish it?")) {
               $event->save() if $event->guess_EndDateTime();
@@ -457,6 +457,14 @@ Debug("@Monitors");
   } # end foreach Storage Area
 
 Term();
+
+# fix_DefaultVideo only changes the object, so save it when the video was found
+sub saveDefaultVideo {
+  my $event = shift;
+  my $before = $event->DefaultVideo() // '';
+  $event->fix_DefaultVideo();
+  $event->save() if ($event->DefaultVideo() // '') ne $before;
+}
 
 sub confirm {
   my $prompt = shift || 'resurrect';

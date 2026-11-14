@@ -31,6 +31,11 @@ set(TEST_SOURCES
   zm_hwaccel_candidates.cpp
   zm_image.cpp
   zm_image_annotate.cpp
+  zm_image_transform.cpp
+  zm_image_deinterlace_linear.cpp
+  zm_image_deinterlace_4field.cpp
+  zm_swscale_insize.cpp
+  zm_image_overlay_offset.cpp
   zm_monitor_shm.cpp
   zm_monitor_capture_failure.cpp
   zm_monitor_shared_value.cpp

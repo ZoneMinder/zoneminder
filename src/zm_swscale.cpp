@@ -143,14 +143,15 @@ int SWScale::Convert(
   /* Check the buffer sizes against the layout each alignment implies */
   size_t needed_insize = GetBufferSize(in_pf, width, height, in_alignment);
   if (needed_insize > in_buffer_size) {
-    Warning(
-      "The input buffer size does not match the expected size for the input format. Required: %zu for %dx%d %d align %d Available: %zu",
+    Error(
+      "The input buffer is undersized for the input format. Required: %zu for %dx%d %d align %d Available: %zu",
       needed_insize,
       width,
       height,
       in_pf,
       in_alignment,
       in_buffer_size);
+    return -9;
   }
   size_t needed_outsize = GetBufferSize(out_pf, new_width, new_height, out_alignment);
   if (needed_outsize > out_buffer_size) {

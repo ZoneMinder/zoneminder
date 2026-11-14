@@ -261,8 +261,11 @@ function cronRebuild() {
     // proxies such a command through the API instead; cron has no such route,
     // so these are left out and counted rather than written and silently
     // ineffective.
+    // A deleted or missing monitor on either end leaves nothing for the line to drive.
     $target = $action->TargetMonitor();
-    if ($target and defined('ZM_SERVER_ID') and ZM_SERVER_ID
+    $source = $action->Monitor();
+    if (!$target or $target->Deleted() or !$source or $source->Deleted()) continue;
+    if (defined('ZM_SERVER_ID') and ZM_SERVER_ID
         and $target->ServerId() and ($target->ServerId() != ZM_SERVER_ID)) {
       $skipped_remote++;
       continue;

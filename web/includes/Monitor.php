@@ -724,7 +724,12 @@ class Monitor extends ZM_Object {
     // Hand back whether it actually saved. This is a soft delete, so a failing
     // UPDATE (an out of range Importance, for one) leaves the monitor in place,
     // and the caller has no other way to notice. See #4215.
-    return $this->save(['Deleted'=>true]);
+    $saved = $this->save(['Deleted'=>true]);
+    if ($saved) {
+      require_once('CronTab.php');
+      cronRebuild();
+    }
+    return $saved;
   }
   public function destroy() {
     if (!$this->{'Id'}) {
@@ -754,11 +759,14 @@ class Monitor extends ZM_Object {
 
     // This is the important stuff
     dbQuery('DELETE FROM Zones WHERE MonitorId = ?', array($this->{'Id'}));
+    dbQuery('DELETE FROM MonitorActions WHERE MonitorId=? OR TargetMonitorId=?', array($this->{'Id'}, $this->{'Id'}));
     if ( ZM_OPT_X10 )
       dbQuery('DELETE FROM TriggersX10 WHERE MonitorId=?', array($this->{'Id'}));
     dbQuery('DELETE FROM Monitor_Status WHERE MonitorId = ?', array($this->{'Id'}));
     dbQuery('DELETE FROM Event_Summaries WHERE MonitorId = ?', array($this->{'Id'}));
     dbQuery('DELETE FROM Monitors WHERE Id = ?', array($this->{'Id'}));
+    require_once('CronTab.php');
+    cronRebuild();
   } // end function destroy
 
   public function Storage($new = null) {

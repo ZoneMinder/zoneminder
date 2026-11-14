@@ -83,6 +83,20 @@
     return out;
   }
 
+  // Whether the encoder can produce the output codec chosen on the monitor
+  // form. zmc looks encoders up by the codec they emit, so a mismatch makes it
+  // skip the chosen encoder. 'auto' on either side matches anything.
+  function encoderMatchesCodec(codec, encoder) {
+    if (!codec || codec === 'auto' || !encoder || encoder === 'auto') return true;
+    switch (codec) {
+      case 'h264': return encoder.includes('264');
+      case 'hevc': return encoder.includes('hevc') || encoder.includes('265');
+      case 'vp9': return encoder.includes('vp9');
+      case 'av1': return encoder.includes('av1');
+      default: return true;
+    }
+  }
+
   // ---- DOM wiring (browser only) -----------------------------------------
 
   let lastAppliedName = null;
@@ -212,6 +226,7 @@
     mergeParams: mergeParams,
     serializeParams: serializeParams,
     lint: lint,
+    encoderMatchesCodec: encoderMatchesCodec,
     findTemplateByName: findTemplateByName,
     init: init,
   };

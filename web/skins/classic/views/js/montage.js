@@ -372,7 +372,7 @@ function save_layout(button) {
     if (isPresetLayout(name)) {
       alert('You cannot edit the built in layouts.  Please give the layout a new name.');
       return;
-    } else if (user.Id && (layout.UserId != user.Id) && !canEdit['System'] && (name != layout.Name)) {
+    } else if (user.Id && (layout.UserId != user.Id) && !canEdit.System) {
       alert('You cannot edit someone else\'s layouts.  Please give the layout a new name.');
       return;
     }

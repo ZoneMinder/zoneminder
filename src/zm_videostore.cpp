@@ -696,6 +696,13 @@ bool VideoStore::open() {
   }
   av_dict_free(&opts);
   if (ret < 0) {
+    for (unsigned int i = 0; i < oc->nb_streams; i++) {
+      const AVCodecID codec_id = oc->streams[i]->codecpar->codec_id;
+      if (avformat_query_codec(oc->oformat, codec_id, FF_COMPLIANCE_NORMAL) == 0) {
+        Error("The %s container can't hold %s, choose another Output Container or codec for this monitor",
+              oc->oformat->name, avcodec_get_name(codec_id));
+      }
+    }
     Error("Error occurred when writing out file header to %s: %s",
           filename.c_str(), av_make_error_string(ret).c_str());
     avio_closep(&oc->pb);

@@ -1235,7 +1235,7 @@ function changeFilters(e) {
     if (this === minStartDateTimeElement) {
       if (minStartDateTime > maxStartDateTime) {
         maxStartDateTime = minStartDateTime.plus({hours: 1}); // Maybe leave a gap?
-        maxStartDateTimeElement.value = minStartDateTimeElement.value;
+        maxStartDateTimeElement.value = maxStartDateTime.toFormat('yyyy-MM-dd HH:mm:ss');
       } else {
         const diff = maxStartDateTime.diff(minStartDateTime, 'seconds').toObject();
         if (diff.seconds > 86400) { // 1 day
@@ -1248,10 +1248,10 @@ function changeFilters(e) {
         minStartDateTime = maxStartDateTime; // Maybe leave a gap?
         minStartDateTimeElement.value = maxStartDateTimeElement.value;
       } else {
-        const diff = minStartDateTime.diff(maxStartDateTime).toObject();
+        const diff = maxStartDateTime.diff(minStartDateTime).toObject();
         if (diff.milliseconds > 86400*1000) { // 1 day
           minStartDateTime = maxStartDateTime.plus({days: -1});
-          minStartDateTimeElement.value = maxStartDateTime.toFormat('yyyy-MM-dd HH:mm:ss');
+          minStartDateTimeElement.value = minStartDateTime.toFormat('yyyy-MM-dd HH:mm:ss');
         }
       }
     } else {

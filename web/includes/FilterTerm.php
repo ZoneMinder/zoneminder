@@ -136,8 +136,14 @@ class FilterTerm {
       $vals = $this->val;
     } else {
       $stripped = preg_replace('/^["\']+?(.+)["\']+?$/', '$1', $this->val);
-      // A regular expression can contain commas (x{1,3}), so it is one value
-      $vals = ($this->op == '=~' or $this->op == '!~') ? array($stripped) : preg_split('/["\'\s]*?,["\'\s]*?/', $stripped);
+      if ($this->op == '=~' or $this->op == '!~') {
+        // A regular expression can contain commas (x{1,3}), so it is one value
+        $vals = array($stripped);
+      } else {
+        // Trim quotes and spaces off each value and drop empty ones, so "a, b" and a trailing comma do not add values
+        $vals = array_values(array_filter(array_map(function($v) { return trim($v, "\"' \t\r\n"); }, explode(',', $stripped)), 'strlen'));
+        if (!count($vals)) $vals = array('');
+      }
     }
     foreach ( $vals as $value ) {
       $value_upper = strtoupper($value);

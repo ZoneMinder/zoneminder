@@ -336,8 +336,10 @@ sub Sql {
 
           # A regular expression can contain commas (x{1,3}), so it is one value
           my $is_regex = ($term->{op}//'') =~ /^[=!]~$/;
-          # Empty value will result in () from split
-          foreach my $temp_value ( ($stripped_value ne '' and !$is_regex) ? split( /["'\s]*?,["'\s]*?/, $stripped_value ) : $stripped_value ) {
+          # Trim quotes and spaces off each value and drop empty ones, so "a, b" and a trailing comma do not add values
+          my @temp_values = $is_regex ? ($stripped_value) : grep { $_ ne '' } map { s/^["'\s]+|["'\s]+$//gr } split( /,/, $stripped_value );
+          @temp_values = ('') if !@temp_values;
+          foreach my $temp_value ( @temp_values ) {
             if ( $term->{attr} eq 'AlarmedZoneId' ) {
               $value = '(SELECT * FROM Stats WHERE EventId=E.Id AND Score > 0 AND ZoneId='.int($value).')';
             } elsif (

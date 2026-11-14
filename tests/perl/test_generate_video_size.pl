@@ -54,6 +54,7 @@ sub args_for {
 
 check('unscaled video is not forced to the input size', (args_for(1, 0, 'transpose=1') =~ /\s-s\s/ ? '-s' : 'no -s'), 'no -s');
 check('scaled video gets the scaled size', (args_for(0.5, 0, '') =~ /-s (\S+)/)[0], '80x60');
+check('scaled size is rounded down to even dimensions', (args_for(0.33, 0, '') =~ /-s (\S+)/)[0], '52x38');
 check('absolute size is passed through', (args_for(0, '320x240', '') =~ /-s (\S+)/)[0], '320x240');
 
 print "\n$passes passed, $failures failed\n";

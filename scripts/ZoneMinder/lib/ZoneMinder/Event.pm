@@ -327,8 +327,9 @@ sub GenerateVideo {
 
     if ( $scale ) {
       if ( $scale != 1.0 ) {
-        my $width = int($self->{Width}*$scale);
-        my $height = int($self->{Height}*$scale);
+        # libx264 refuses odd dimensions
+        my $width = int($self->{Width}*$scale/2)*2;
+        my $height = int($self->{Height}*$scale/2)*2;
         $video_size = "${width}x${height}";
       }
     } elsif ( $size ) {

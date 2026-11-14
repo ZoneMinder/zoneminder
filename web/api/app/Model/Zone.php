@@ -44,6 +44,14 @@ class Zone extends AppModel {
         //'last' => false, // Stop validation after this rule
         //'on' => 'create', // Limit validation to 'create' or 'update' operations
     ),
+    // The column has no default, so a zone added without it is refused by MySQL.
+    'Coords' => array(
+      'required' => array(
+        'rule'       => 'notBlank',
+        'required'   => 'create',
+        'message'    => 'Zone Coords must be specified for creation',
+      ),
+    ),
     'Name' => array(
        'required' => array(
          'rule'       => 'notBlank',

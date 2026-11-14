@@ -397,7 +397,7 @@ class EventsController extends AppController {
     if ( $this->Event->save($this->request->data) ) {
       $message = 'Saved';
     } else {
-      $message = 'Error';
+      $message = $this->Event->validationErrors ? $this->Event->validationErrors : 'Error';
     }
 
     $this->set(array(

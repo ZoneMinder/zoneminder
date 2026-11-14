@@ -2110,7 +2110,7 @@ function removeTag(tag) {
 
 function createTag(tagName, buttonPressed = null) {
   if (!canEdit.Events) return;
-  $j.getJSON(thisUrl + '?request=tags&action=createtag&tname=' + tagName)
+  $j.getJSON(thisUrl + '?request=tags&action=createtag&tname=' + encodeURIComponent(tagName))
       .done(function(data) {
         if (data.result != 'Ok') {
           console.error('createtag refused', data.message);

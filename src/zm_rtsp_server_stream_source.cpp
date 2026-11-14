@@ -125,7 +125,7 @@ void ZoneMinderStreamSource::WriteRun() {
           headerSize = 3;
         }
         while (nalRemaining && !stop_) {
-          if ( nalRemaining < maxNalSize ) {
+          if (nalRemaining <= maxNalSize-headerSize) {
             // This is the last fragment:
             fuNal.buffer()[headerSize-1] |= 0x40; // set the E bit in the FU header
           }

@@ -2,19 +2,21 @@
 // Manage the DELETE CONFIRMATION modal button
 function manageDelConfirmModalBtns() {
   document.getElementById('delConfirmBtn').addEventListener('click', function onDelConfirmClick(evt) {
-    if ( !canEdit.Events ) {
+    if ( !canEdit.Snapshots ) {
       enoperm();
       return;
     }
 
     evt.preventDefault();
-    /*
-    $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+eventData.Id)
+    $j.getJSON(thisUrl + '?request=snapshots&task=delete&ids[]='+snapshot.Id)
         .done(function(data) {
-          streamNext(true);
+          if (data.result != 'Ok') {
+            console.error('snapshot delete refused', data.message);
+            return;
+          }
+          window.location.assign('?view=snapshots');
         })
         .fail(logAjaxFail);
-        */
   });
 
   // Manage the CANCEL modal button
@@ -120,9 +122,9 @@ function initPage() {
   });
 */
   // Manage the DELETE button
-  $j('#deleteBtn').prop('disabled', !canEdit.Events);
+  $j('#deleteBtn').prop('disabled', !canEdit.Snapshots);
   bindButton('#deleteBtn', 'click', null, function onDeleteClick(evt) {
-    if ( !canEdit.Events ) {
+    if ( !canEdit.Snapshots ) {
       enoperm();
       return;
     }
@@ -130,7 +132,7 @@ function initPage() {
     evt.preventDefault();
     if ( ! $j('#deleteConfirm').length ) {
       // Load the delete confirmation modal into the DOM
-      $j.getJSON(thisUrl + '?request=modal&modal=delconfirm')
+      $j.getJSON(thisUrl + '?request=modal&modal=delconfirm&key=ConfirmDeleteSnapshots')
           .done(function(data) {
             insertModalHtml('deleteConfirm', data.html);
             manageDelConfirmModalBtns();

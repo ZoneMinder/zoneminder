@@ -58,7 +58,8 @@ function monitorList($newGroup) {
   $result = '';
 
   $monitors = dbFetchAll('SELECT Id,Name FROM Monitors WHERE Deleted=false ORDER BY Sequence ASC');
-  $monitorIds = $newGroup->MonitorIds();
+  # MonitorIds() includes child groups' monitors, which saving would copy into this group.
+  $monitorIds = $newGroup->Id() ? dbFetchAll('SELECT `MonitorId` FROM `Groups_Monitors` WHERE `GroupId`=?', 'MonitorId', array($newGroup->Id())) : array();
   foreach ( $monitors as $monitor ) {
     if ( visibleMonitor($monitor['Id']) ) {
       $result .= '<option value="' .validCardinal($monitor['Id']). '"' .( in_array($monitor['Id'], $monitorIds, true) ? ' selected="selected"' : ''). '>' .validHtmlStr($monitor['Name']). '</option>'.PHP_EOL;

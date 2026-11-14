@@ -296,25 +296,17 @@ if ($action == 'save') {
 
       if ( $monitor->insert($changes) ) {
         $mid = $monitor->Id();
-        // Zone coords are now stored as percentages (0-100)
-        $zoneWidth = $newMonitor['Width'];
-        $zoneHeight = $newMonitor['Height'];
-        if (isset($newMonitor['Orientation']) &&
-            ($newMonitor['Orientation'] == 'ROTATE_90' || $newMonitor['Orientation'] == 'ROTATE_270')) {
-          $zoneWidth = $newMonitor['Height'];
-          $zoneHeight = $newMonitor['Width'];
-        }
-        $zoneArea = $zoneWidth * $zoneHeight;
+        // Zone coords and thresholds are stored as percentages (0-100)
         $zone = new ZM\Zone();
         if (!$zone->save(['MonitorId'=>$monitor->Id(), 'Name'=>'All',
           'Units'=>'Percent',
           'Coords'=>'0.00,0.00 100.00,0.00 100.00,100.00 0.00,100.00',
           'Area'=>10000,
-          'MinAlarmPixels'=>intval(($zoneArea*.05)/100),
-          'MaxAlarmPixels'=>intval(($zoneArea*75)/100),
-          'MinFilterPixels'=>intval(($zoneArea*.05)/100),
-          'MaxFilterPixels'=>intval(($zoneArea*75)/100),
-          'MinBlobPixels'=>intval(($zoneArea*.05)/100)
+          'MinAlarmPixels'=>0.05,
+          'MaxAlarmPixels'=>75,
+          'MinFilterPixels'=>0.05,
+          'MaxFilterPixels'=>75,
+          'MinBlobPixels'=>0.05
         ])) {
           $error_message .= $zone->get_last_error();
           ZM\Error('Error adding zone:' . $error_message);

@@ -172,6 +172,18 @@ class MonitorsController extends AppController {
       $this->pinRequestId($this->Monitor, null);
       $this->Monitor->create();
       if ($this->Monitor->save($this->request->data) ) {
+        require_once __DIR__ .'/../../../includes/Zone.php';
+        $zone = new ZM\Zone();
+        $zone->save(array('MonitorId'=>$this->Monitor->id, 'Name'=>'All',
+          'Units'=>'Percent',
+          'Coords'=>'0.00,0.00 100.00,0.00 100.00,100.00 0.00,100.00',
+          'Area'=>10000,
+          'MinAlarmPixels'=>0.05,
+          'MaxAlarmPixels'=>75,
+          'MinFilterPixels'=>0.05,
+          'MaxFilterPixels'=>75,
+          'MinBlobPixels'=>0.05
+        ));
         $saved = new ZM\Monitor($this->Monitor->find('first', array(
           'conditions' => array('Id' => $this->Monitor->id)
         ))['Monitor']);

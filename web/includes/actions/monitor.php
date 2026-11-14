@@ -119,6 +119,7 @@ if ($action == 'save') {
       'V4LMultiBuffer'  => '',
       'WallClockTimestamps' => '',
       'RecordAudio' => 0,
+      'AudioDetection' => 0,
       'Method' => 'raw',
       'GroupIds'  =>  array(),
       'LinkedMonitors'  => array(),

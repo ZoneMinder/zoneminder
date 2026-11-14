@@ -465,6 +465,45 @@ static enum AVPixelFormat find_fmt_by_hw_type(const enum AVHWDeviceType type) {
 #endif
 #endif
 
+int zm_parse_options(AVDictionary **pm, const std::string &options, const char *separators) {
+  const std::string key_terminators = std::string("=") + separators;
+  const char *p = options.c_str();
+  int result = 0;
+
+  while (*p) {
+    char *key = av_get_token(&p, key_terminators.c_str());
+    if (!key) return AVERROR(ENOMEM);
+    char *value = nullptr;
+    if (*p == '=') {
+      p++;
+      // av_get_token() skips leading whitespace, newlines included, which would
+      // pull the next entry in as the value of an empty one
+      p += strspn(p, " \t\r");
+      if (*p && !strchr(separators, *p)) {
+        value = av_get_token(&p, separators);
+        if (!value) {
+          av_free(key);
+          return AVERROR(ENOMEM);
+        }
+      }
+    }
+    if (*key) {
+      if (value and *value) {
+        int ret = av_dict_set(pm, key, value, 0);
+        if (ret < 0) result = ret;
+      } else {
+        Warning("Ignoring option '%s' as it has no value", key);
+      }
+    } else if (value) {
+      Warning("Ignoring option with value '%s' as it has no name", value);
+    }
+    av_free(key);
+    av_free(value);
+    if (*p) p++;
+  }
+  return result;
+}
+
 int setup_hwaccel(
     AVCodecContext *codec_ctx,
     const CodecData *codec_data,

@@ -131,7 +131,7 @@ bool VideoStore::open() {
 
   std::string options = monitor->GetEncoderOptions();
   AVDictionary *opts = nullptr;
-  ret = av_dict_parse_string(&opts, options.c_str(), "=", "#,\n", 0);
+  ret = zm_parse_options(&opts, options, "#,\n");
   if (ret < 0) {
     Warning("Could not parse ffmpeg output options '%s'", options.c_str());
   } else {
@@ -300,7 +300,7 @@ bool VideoStore::open() {
         }
         av_dict_free(&opts);
         // Reload it for next attempt and/or avformat open
-        ret = av_dict_parse_string(&opts, options.c_str(), "=", "#,\n", 0);
+        ret = zm_parse_options(&opts, options, "#,\n");
         if (ret < 0) {
           Warning("Could not parse ffmpeg output options '%s'", options.c_str());
         } else {
@@ -354,7 +354,7 @@ bool VideoStore::open() {
 
           // We have to re-parse the options because each attempt to open destroys the dictionary
           AVDictionary *opts = 0;
-          ret = av_dict_parse_string(&opts, options.c_str(), "=", ",#\n", 0);
+          ret = zm_parse_options(&opts, options, ",#\n");
           if (ret < 0) {
             Warning("Could not parse ffmpeg encoder options list '%s'", options.c_str());
           } else {

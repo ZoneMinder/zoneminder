@@ -342,6 +342,11 @@ std::list<const CodecData*> get_decoder_data(int wanted_codec, const std::string
 // Returns an opened AVCodecContext (caller frees with avcodec_free_context) or
 // nullptr. When non-null, *codec_out receives the chosen AVCodec.
 AVCodecContext *open_fallback_decoder(const AVCodecParameters *codecpar, const AVCodec **codec_out = nullptr);
+// Like av_dict_parse_string() with "=" between key and value, but an entry with
+// no '=' or no value is skipped with a warning. av_dict_parse_string() would
+// otherwise make it the front of the next entry's key (or take the next entry
+// as its value), silently dropping that option.
+int zm_parse_options(AVDictionary **pm, const std::string &options, const char *separators);
 int setup_hwaccel(AVCodecContext *codec_ctx, const CodecData *codec_data,AVBufferRef * &hw_device_ctx, const std::string &device, int width, int height);
 int libjpeg_to_ffmpeg_qv(int libjpeg_quality);
 enum AVPixelFormat get_hw_format(AVCodecContext *ctx, const enum AVPixelFormat *pix_fmts);

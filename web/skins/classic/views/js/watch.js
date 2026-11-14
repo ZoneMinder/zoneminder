@@ -681,7 +681,7 @@ function changeControl(e) {
               element.val(control.value);
               element.attr('title', control.value);
             } else {
-              console.err('Element not found for #new'+control.control.charAt(0).toUpperCase() + control.control.slice(1));
+              console.error('Element not found for #new'+control.control.charAt(0).toUpperCase() + control.control.slice(1));
             }
           });
         }
@@ -762,28 +762,22 @@ function refresh_events_table() {
 
 function controlSetClicked() {
   console.log("Clicked");
-  const modal = $j('#ctrlPresetModal');
-  if (!modal.lenth) {
-    console.log('loading');
-    // Load the PTZ Preset modal into the DOM
-    $j.getJSON(zmAuth.appendTo(monitorUrl + '?request=modal&modal=controlpreset&mid=' + monitorId))
-        .done(function(data) {
-          insertModalHtml('ctrlPresetModal', data.html);
-          updatePresetLabels();
-          // Manage the Preset Select box
-          $j('#preset').change(updatePresetLabels);
-          // Manage the Save button
-          $j('#cPresetSubmitModal').click(function(evt) {
-            evt.preventDefault();
-            $j('#ctrlPresetForm').submit();
-          });
-          $j('#ctrlPresetModal').modal('show');
-        })
-        .fail(logAjaxFail);
-  } else {
-    console.log('not loading');
-    modal.modal('show');
-  }
+  // Always reload: the modal is rendered for one monitor and the page can switch monitors.
+  // Load the PTZ Preset modal into the DOM
+  $j.getJSON(zmAuth.appendTo(monitorUrl + '?request=modal&modal=controlpreset&mid=' + monitorId))
+      .done(function(data) {
+        insertModalHtml('ctrlPresetModal', data.html);
+        updatePresetLabels();
+        // Manage the Preset Select box
+        $j('#preset').change(updatePresetLabels);
+        // Manage the Save button
+        $j('#cPresetSubmitModal').click(function(evt) {
+          evt.preventDefault();
+          $j('#ctrlPresetForm').submit();
+        });
+        $j('#ctrlPresetModal').modal('show');
+      })
+      .fail(logAjaxFail);
 }
 
 function streamPrepareStart(monitor=null) {

@@ -168,7 +168,7 @@ if ($check) {
   my $lastCheck = $Config{ZM_DYN_LAST_CHECK};
 
   if ( !$currVersion ) {
-    $currVersion = $Config{ZM_VERSION};
+    $currVersion = ZM_VERSION;
     zmDbDo("UPDATE `Config` SET `Value` = ? WHERE `Name` = 'ZM_DYN_CURR_VERSION'", $currVersion);
   }
 
@@ -203,8 +203,10 @@ if ($check) {
           print("Last version $lastVersion, Latest version $latestVersion, our version " . ZM_VERSION."\n");
           exit(0);
         }
+        $lastVersion = $latestVersion;
       } else {
         Error('Error check failed: \''.$res->status_line().'\'');
+        exit(1) if $interactive;
       }
     }
     sleep(3600);
@@ -384,7 +386,8 @@ Press \'y\' to convert your tables to InnoDB or \'n\' to skip : ');
 } # end if interactive
 
 if ( $version ) {
-  my ( $detaint_version ) = $version =~ /^([\w.]+)$/;
+  my ( $detaint_version ) = $version =~ /^(\d+(?:\.\d+)+)/;
+  die( "Unable to extract a version number from '$version'\n" ) if ! defined( $detaint_version );
   $version = $detaint_version;
 
   my $start_zm = 0;

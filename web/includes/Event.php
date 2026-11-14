@@ -854,7 +854,7 @@ class Event extends ZM_Object {
     if ( $overwrite || ! file_exists($video_file) ) {
       Info("Creating video file $video_file for event ".$this->Id());
 
-      $frame_rate = sprintf('%.2f', $this->Frames()/$this->Length());
+      $frame_rate = $this->Length() > 0 ? sprintf('%.2f', $this->Frames()/$this->Length()) : 1;
       if ($rate) {
         if ( $rate != 1.0 ) {
           $frame_rate *= $rate;

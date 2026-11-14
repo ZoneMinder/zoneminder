@@ -48,6 +48,8 @@ function cronScheduleIsValid($spec) {
   if (!is_string($spec)) return false;
   // No newline, carriage return or percent may reach a crontab line.
   if (preg_match('/[\r\n%]/', $spec)) return false;
+  // The Schedule columns are varchar(64).
+  if (strlen($spec) > 64) return false;
 
   $fields = preg_split('/\s+/', trim($spec), -1, PREG_SPLIT_NO_EMPTY);
   if (count($fields) != 5) return false;

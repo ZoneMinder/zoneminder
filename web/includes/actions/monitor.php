@@ -459,8 +459,11 @@ if ($action == 'save') {
       if ( !$action ) $action = new ZM\MonitorAction();
 
       if ( $action->Id() ) {
-        $action->save($values);
-        $submitted_ids[] = $action->Id();
+        if ( $action->save($values) ) {
+          $submitted_ids[] = $action->Id();
+        } else {
+          $error_message .= 'Error saving monitor action: '.$action->get_last_error().'<br/>';
+        }
       } else if ( $action->insert($values) ) {
         $submitted_ids[] = $action->Id();
       } else {

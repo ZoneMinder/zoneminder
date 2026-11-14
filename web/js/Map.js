@@ -146,9 +146,9 @@ var ZMMap = function() {
                 }
                 total_cameras += 1;
               } // end foreach monitor
-              const percent_connected = Number.parseFloat(((cant_connected*100)/total_cameras)).toFixed(2);
-              const percent_disconnected = Number.parseFloat(((cant_disconnected*100)/total_cameras)).toFixed(2);
-              const percent_error = Number.parseFloat(((cant_error*100)/total_cameras)).toFixed(2);
+              const percent_connected = Number.parseFloat(total_cameras ? (cant_connected*100)/total_cameras : 0).toFixed(2);
+              const percent_disconnected = Number.parseFloat(total_cameras ? (cant_disconnected*100)/total_cameras : 0).toFixed(2);
+              const percent_error = Number.parseFloat(total_cameras ? (cant_error*100)/total_cameras : 0).toFixed(2);
 
               div_connected.style.width = percent_connected+"%";
               div_connected.innerHTML = percent_connected+"%";

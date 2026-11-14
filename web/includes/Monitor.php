@@ -1595,17 +1595,17 @@ class Monitor extends ZM_Object {
 
   public function enable() {
     if (!$this->connect()) return false;
-    $action = $this->shared_read('TriggerData', 'action');
-    $action |= TRIGGER_ACTION_SUSPEND;
-    $this->shared_write('TriggerData', 'action', $action);
+    $action = $this->shared_read('SharedData', 'action');
+    $action |= TRIGGER_ACTION_RESUME;
+    $this->shared_write('SharedData', 'action', $action);
     return true;
   }
 
   public function disable() {
     if (!$this->connect()) return false;
-    $action = $this->shared_read('TriggerData', 'action');
-    $action |= TRIGGER_ACTION_RESUME;
-    $this->shared_write('TriggerData', 'action', $action);
+    $action = $this->shared_read('SharedData', 'action');
+    $action |= TRIGGER_ACTION_SUSPEND;
+    $this->shared_write('SharedData', 'action', $action);
     return true;
   }
 
@@ -1618,14 +1618,15 @@ class Monitor extends ZM_Object {
     if ($showtext) $this->shared_write('TriggerData', 'showtext', $showtext);
     $this->shared_write('TriggerData', 'state', TRIGGER_ON);
     Debug("Trigger cause is ".$this->shared_read('TriggerData','cause'));
+    return true;
   }
 
   public function  TriggerEventOff () {
     if (!$this->connect()) return false;
     $this->shared_write('TriggerData', 'score', 0);
     $this->shared_write('TriggerData', 'cause', '');
-    if ($text) $this->shared_write('TriggerData', 'text', '');
-    if ($showtext) $this->shared_write('TriggerData', 'showtext', '');
+    $this->shared_write('TriggerData', 'text', '');
+    $this->shared_write('TriggerData', 'showtext', '');
     $this->shared_write('TriggerData', 'state', TRIGGER_OFF);
   }
 
@@ -1633,8 +1634,8 @@ class Monitor extends ZM_Object {
     if (!$this->connect()) return false;
     $this->shared_write('TriggerData', 'score', 0);
     $this->shared_write('TriggerData', 'cause', '');
-    if ($text) $this->shared_write('TriggerData', 'text', '');
-    if ($showtext) $this->shared_write('TriggerData', 'showtext', '');
+    $this->shared_write('TriggerData', 'text', '');
+    $this->shared_write('TriggerData', 'showtext', '');
     $this->shared_write('TriggerData', 'state', TRIGGER_CANCEL);
   }
   public function TriggerShowtext($showtext) {

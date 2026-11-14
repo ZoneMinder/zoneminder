@@ -823,6 +823,8 @@ function MonitorStream(monitorData) {
     console.debug(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} STOPPING`);
     this.statusCmdTimer = clearInterval(this.statusCmdTimer);
     this.streamCmdTimer = clearInterval(this.streamCmdTimer);
+    // A pending reconnect would otherwise start a new zms on the stopped stream.
+    this.authRefreshTimer = clearTimeout(this.authRefreshTimer);
     this.mediaStream = this.audioTrack = this.videoTrack = null;
 
     if (-1 !== this.activePlayer.indexOf('zms')) {
@@ -1383,7 +1385,7 @@ function MonitorStream(monitorData) {
             captureFPSValue.text(this.status.capturefps);
           }
 
-          const levelValue = $j('#levelValue');
+          const levelValue = $j('#levelValue'+this.id);
           if (levelValue.length) {
             levelValue.text(this.status.level);
             let newClass = 'ok';
@@ -1996,7 +1998,7 @@ function MonitorStream(monitorData) {
       stream.setAttribute("muted", this.muted);
       stream.setAttribute("playsinline", "");
       const url = new URL(ZM_RTSP2WEB_PATH);
-      const useSSL = (url.protocol == 'https');
+      const useSSL = (url.protocol == 'https:');
 
       const rtsp2webModUrl = url;
       const video_el = this.getAVStream();

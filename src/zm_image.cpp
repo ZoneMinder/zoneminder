@@ -3867,6 +3867,11 @@ void Image::Deinterlace_Linear() {
   // Use linesize as the per-row byte stride so non-32-aligned widths read
   // and write the correct rows. The inner loops still process `width`
   // pixels per row; per-row padding bytes are not touched.
+  // A single row has no neighbour to interpolate from. With an odd height the
+  // last row belongs to the kept field, so only an even height has a trailing
+  // interpolated row to fill from the row above.
+  if (height < 2) return;
+  const unsigned int last_row_pixels = (height & 1) ? 0 : width;
   if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
     for (unsigned int y = 1; y < (unsigned int)(height-1); y += 2) {
       pabove = buffer + (y - 1) * linesize;
@@ -3879,7 +3884,7 @@ void Image::Deinterlace_Linear() {
     /* Special case for the last line */
     pcurrent = buffer + (height - 1) * linesize;
     pabove = buffer + (height - 2) * linesize;
-    for (unsigned int x = 0; x < (unsigned int)width; x++) {
+    for (unsigned int x = 0; x < last_row_pixels; x++) {
       *pcurrent++ = *pabove++;
     }
   } else if ( zm_is_rgb24(imagePixFormat) ) {
@@ -3896,7 +3901,7 @@ void Image::Deinterlace_Linear() {
     /* Special case for the last line */
     pcurrent = buffer + (height - 1) * linesize;
     pabove = buffer + (height - 2) * linesize;
-    for (unsigned int x = 0; x < (unsigned int)width; x++) {
+    for (unsigned int x = 0; x < last_row_pixels; x++) {
       *pcurrent++ = *pabove++;
       *pcurrent++ = *pabove++;
       *pcurrent++ = *pabove++;
@@ -3916,7 +3921,7 @@ void Image::Deinterlace_Linear() {
     /* Special case for the last line */
     pcurrent = buffer + (height - 1) * linesize;
     pabove = buffer + (height - 2) * linesize;
-    for (unsigned int x = 0; x < (unsigned int)width; x++) {
+    for (unsigned int x = 0; x < last_row_pixels; x++) {
       *pcurrent++ = *pabove++;
       *pcurrent++ = *pabove++;
       *pcurrent++ = *pabove++;

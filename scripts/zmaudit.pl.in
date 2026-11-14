@@ -102,7 +102,10 @@ if ( -e ZM_AUDIT_PID ) {
   binmode FILE;
   my $pid = <FILE>;
   close FILE;
-  if ( $force ) {
+  my ( $running_pid ) = ( $pid // '' ) =~ /^(\d+)$/;
+  if ( !$running_pid or !( kill(0, $running_pid) or $!{EPERM} ) ) {
+    Warning('Removing stale pid file '.ZM_AUDIT_PID.' left by pid '.($pid // '').' which is not running.');
+  } elsif ( $force ) {
     Error("zmaudit.pl appears to already be running at pid $pid. Continuing." );
   } else {
     Fatal("zmaudit.pl appears to already be running at pid $pid. If not, please delete " . 

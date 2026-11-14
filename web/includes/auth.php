@@ -562,6 +562,7 @@ $role_monitor_permissions = null;
 function visibleMonitor($mid) {
   global $user;
   if (!$user) return false;
+  if (!is_scalar($mid)) return false;
 
   global $monitor_permissions;
 

@@ -108,7 +108,8 @@ $statusData = array(
       'TotalEvents' => array( 'sql' => '(SELECT count(Events.Id) FROM Events WHERE Events.MonitorId = Monitors.Id)' ),
       // Read from shared memory, as zmu -s does, rather than starting zmu on every poll
       'Status' => (isset($_REQUEST['id'])?array( 'func' => function() {
-        $state = (new ZM\Monitor(validInt($_REQUEST['id'])))->GetState();
+        $monitor = ZM\Monitor::find_one(['Id'=>validInt($_REQUEST['id'])]);
+        $state = $monitor ? $monitor->GetState() : false;
         return ($state === false) ? '' : (string)$state;
       } ):null),
       'FrameRate' => (isset($_REQUEST['id'])?array( 'zmu' => '-m '.escapeshellarg($_REQUEST['id']).' -f' ):null),
@@ -120,6 +121,7 @@ $statusData = array(
   'events' => array(
     'permission' => 'Events',
     'table' => 'Events',
+    'defaultLimit' => 100,
     'selector' => 'Events.MonitorId',
     'elements' => array(
       'Id' => true,
@@ -197,6 +199,7 @@ $statusData = array(
   'frames' => array(
     'permission' => 'Events',
     'table' => 'Frames',
+    'defaultLimit' => 100,
     'selector' => 'EventId',
     'elements' => array(
       'EventId' => true,
@@ -399,6 +402,8 @@ function collectData() {
       $limit = $entitySpec['limit'];
     elseif ( !empty($_REQUEST['count']) )
       $limit = validInt($_REQUEST['count']);
+    elseif ( !$id && !empty($entitySpec['defaultLimit']) )
+      $limit = $entitySpec['defaultLimit'];
     $limit_offset = '';
     if ( !empty($_REQUEST['offset']) )
       $limit_offset = validInt($_REQUEST['offset']) . ', ';

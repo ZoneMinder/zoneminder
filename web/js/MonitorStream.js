@@ -1385,7 +1385,7 @@ function MonitorStream(monitorData) {
             captureFPSValue.text(this.status.capturefps);
           }
 
-          const levelValue = $j('#levelValue');
+          const levelValue = $j('#levelValue'+this.id);
           if (levelValue.length) {
             levelValue.text(this.status.level);
             let newClass = 'ok';

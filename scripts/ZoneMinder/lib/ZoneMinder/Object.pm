@@ -480,7 +480,7 @@ my $add_placeholder = ( ! ( $field =~ /\?/ ) ) ?  1 : 0;
   } elsif ( $operator eq 'does not contain' ) {
     return ( '? NOT IN '.$field.$type, $value );
   } elsif ( $operator eq 'like' or $operator eq 'ilike' ) {
-    return $field.'::text ' . $operator . ' ?', $value;
+    return $field.$type.' like ?', $value;
   } elsif ( $operator eq 'null_or_<=' ) {
     return '('.$field.$type.' IS NULL OR '.$field.$type.' <= ?)', $value;
   } elsif ( $operator eq 'is null or <=' ) {

@@ -221,6 +221,9 @@ sub Sql {
             Error("Invalid operator '$$term{op}' in filter '$$self{Name}', skipping filter");
             return;
           }
+        } else {
+          # A term without an operator compares for equality, as in FilterTerm.php
+          $term->{op} = '=';
         }
 
         my $date_column = '';

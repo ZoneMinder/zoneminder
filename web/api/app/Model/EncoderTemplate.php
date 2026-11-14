@@ -14,6 +14,14 @@ class EncoderTemplate extends AppModel {
         'message' => 'Encoder is required',
       ),
     ),
+    'Params' => array(
+      'notBlank' => array(
+        'rule' => array('notBlank'),
+        'message' => 'Params is required',
+        'required' => 'create',
+        'allowEmpty' => true,
+      ),
+    ),
     'Name' => array(
       'notBlank' => array(
         'rule' => array('notBlank'),

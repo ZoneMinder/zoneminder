@@ -42,13 +42,19 @@ switch ( $_REQUEST['action'] ) {
     if (!canEdit('Events')) {
       ajaxError('Insufficient permissions to create tags');
     }
-    $sql = 'INSERT INTO Tags (Name, CreatedBy) VALUES (?, ?)';
-    $values = array($_REQUEST['tname'], $user->Id());
-    $result = dbFetchAll($sql, NULL, $values);
+    $tagName = is_scalar($_REQUEST['tname'] ?? null) ? trim($_REQUEST['tname']) : '';
+    if ($tagName === '') ajaxError('createtag requires a tag name');
 
-    $sql = 'SELECT * FROM Tags WHERE Id = ?';
-    $values = array(dbInsertId());
-    $dbFetchResult = dbFetchAll($sql, NULL, $values);
+    $dbFetchResult = dbFetchAll('SELECT * FROM Tags WHERE Name = ?', NULL, array($tagName));
+    if (!count($dbFetchResult)) {
+      $sql = 'INSERT INTO Tags (Name, CreatedBy) VALUES (?, ?)';
+      $values = array($tagName, $user->Id());
+      if (!dbQuery($sql, $values)) ajaxError('Failed to create tag');
+
+      $sql = 'SELECT * FROM Tags WHERE Id = ?';
+      $values = array(dbInsertId());
+      $dbFetchResult = dbFetchAll($sql, NULL, $values);
+    }
 
     ajaxResponse(array('response'=>$dbFetchResult));
     break;

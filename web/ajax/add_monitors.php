@@ -1,5 +1,6 @@
 <?php
 require_once('includes/monitor_probe.php');
+require_once('includes/Group.php');
 
 $defaultMonitor = new ZM\Monitor();
 
@@ -198,6 +199,20 @@ if (canEdit('Monitors')) {
       $existing = ZM\Monitor::find(array('Path'=>$url, 'Deleted'=>0));
       if ( count($existing) ) $monitor = $existing[0];
 
+      $monitor_fields = array(
+        'Type' => 'Ffmpeg',
+        'Path' => $url,
+        'Name' => $name,
+      );
+      if ( $group !== '' ) {
+        $existing_group = ZM\Group::find_one(array('Name'=>$group));
+        if ( $existing_group ) {
+          $monitor_fields['GroupIds'] = $existing_group->Id();
+        } else {
+          ZM\Info("Line $row: no group named $group, not adding the monitor to a group");
+        }
+      }
+
       $available_streams[] = array(
         'mac'         => '',
         'description' => $name.' - '.$url,
@@ -209,11 +224,7 @@ if (canEdit('Monitors')) {
           'ip'           => $host,
           'Manufacturer' => '',
           'Model'        => '',
-          'monitor'      => array(
-            'Type' => 'Ffmpeg',
-            'Path' => $url,
-            'Name' => $name,
-          ),
+          'monitor'      => $monitor_fields,
         ),
         'Monitor'     => $monitor,
       );

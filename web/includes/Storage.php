@@ -20,8 +20,8 @@ class Storage extends ZM_Object {
 
   protected $defaults = array(
     'Id'        => null,
-    'Path'      => array('type'=>'text','filter_regexp'=>array('/[^\w\-\.\(\)\:\/ ]/','/\/$/'), 'default'=>''),
-    'Name' => array('type'=>'text','filter_regexp'=>'/[^\w\-\.\(\)\:\/ ]/', 'default'=>'Storage'),
+    'Path'      => array('type'=>'text','filter_regexp'=>array('/[^\w\-\.\(\)\:\/ ]/u','/\/$/'), 'default'=>''),
+    'Name' => array('type'=>'text','filter_regexp'=>'/[^\w\-\.\(\)\:\/ ]/u', 'default'=>'Storage'),
     'Type'      => 'local',
     'Url'       => '',
     'DiskSpace' => null,

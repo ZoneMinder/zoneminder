@@ -457,11 +457,18 @@ function EventStream(config) {
         // zms is alive, this one exchange failed. Retry on the next poll.
         return;
       }
+      // zms may still be starting, so only act on a no_socket that persists.
+      if (respObj.reason == 'no_socket') {
+        if (!this.noSocketSince) this.noSocketSince = Date.now();
+        if (Date.now() - this.noSocketSince < EventStream.NO_SOCKET_GRACE_MS) return;
+      }
+      this.noSocketSince = 0;
       this.recover();
       return;
     }
 
     // Successful response — reset error counter
+    this.noSocketSince = 0;
     this.consecutiveErrors = 0;
     this.recoveryDelay = 1000;
 
@@ -553,6 +560,8 @@ EventStream.errorIsFatal = function(reason) {
   if (!reason) return true;
   return reason == 'no_socket';
 };
+
+EventStream.NO_SOCKET_GRACE_MS = 3000;
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {EventStream};

@@ -42,6 +42,8 @@ function makeStream() {
   stream.connKey = '000111';
   stream.streamCmdParms.connkey = '000111';
   stream.started = true;
+  // Already past the no_socket grace period, unless a test says otherwise.
+  stream.noSocketSince = 1;
   stream.recovered = 0;
   stream.recover = function() {
     this.recovered++;
@@ -127,6 +129,40 @@ test('a second query separator is not appended', () => {
   assert.strictEqual(src.indexOf('?monitor=24&source=event'), src.indexOf('?'),
       'expected one ? in ' + src);
   assert.strictEqual(src.split('?').length - 1, 1);
+});
+
+console.log('EventStream no_socket grace');
+
+const NO_SOCKET = {result: 'Error', message: 'gone', reason: 'no_socket'};
+
+test('one no_socket does not recover the stream', () => {
+  const s = makeStream();
+  s.noSocketSince = 0;
+  s.getStreamCmdResponse(NO_SOCKET, '000111');
+  assert.strictEqual(s.recovered, 0);
+});
+
+test('no_socket that persists past the grace period recovers', () => {
+  const s = makeStream();
+  s.noSocketSince = 0;
+  const realNow = Date.now;
+  let t = 50000;
+  Date.now = () => t;
+  try {
+    for (; t <= 53000; t += 1000) s.getStreamCmdResponse(NO_SOCKET, '000111');
+  } finally {
+    Date.now = realNow;
+  }
+  assert.strictEqual(s.recovered, 1);
+});
+
+test('an Ok after a no_socket restarts the grace period', () => {
+  const s = makeStream();
+  s.noSocketSince = 0;
+  s.getStreamCmdResponse(NO_SOCKET, '000111');
+  s.getStreamCmdResponse({result: 'Ok'}, '000111');
+  assert.strictEqual(s.noSocketSince, 0);
+  assert.strictEqual(s.recovered, 0);
 });
 
 console.log('\n' + passed + ' passed, ' + failed + ' failed');

@@ -35,7 +35,7 @@ $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 my $report = 0;
-my $interactive = 1;
+my $interactive;
 my $monitor_id = 0;
 my $version;
 my $force = 0;
@@ -46,11 +46,11 @@ logInit();
 
 GetOptions(
     force          =>\$force,
-    'interactive=i' =>\$interactive,
+    'interactive|i:1' =>\$interactive,
     'monitor_id=i' =>\$monitor_id,
     report         =>\$report,
     'server_id=i'  =>\$server_id,
-    'storage_id=i' =>\$storage_id,
+    'storage_id|s=i' =>\$storage_id,
     version        =>\$version
     ) or pod2usage(-exitstatus => -1);
 
@@ -58,7 +58,8 @@ if ( $version ) {
   print( ZoneMinder::Base::ZM_VERSION . "\n");
   exit(0);
 }
-if ( ($report + $interactive) > 1 ) {
+$interactive = $report ? 0 : 1 if !defined $interactive;
+if ( $report and $interactive ) {
   print( STDERR "Error, only one option may be specified\n" );
   pod2usage(-exitstatus => -1);
 }

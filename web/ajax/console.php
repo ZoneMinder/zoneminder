@@ -271,6 +271,9 @@ function queryRequest() {
     return $order == 'ASC' ? $result : -$result;
   });
   
+  // The footer totals cover every monitor the filters select, not just this page.
+  $all_filtered_monitors = $filtered_monitors;
+
   // Apply pagination
   if ($limit > 0) {
     $filtered_monitors = array_slice($filtered_monitors, $offset, $limit);
@@ -291,7 +294,7 @@ function queryRequest() {
   
   // Process each monitor and build row data
   $footer_totals = array(
-    'monitor_count' => count($filtered_monitors),
+    'monitor_count' => count($all_filtered_monitors),
     'total_bandwidth' => 0,
     'total_fps' => 0,
     'total_analysis_fps' => 0,
@@ -306,11 +309,7 @@ function queryRequest() {
     )
   );
   
-  foreach ($filtered_monitors as $monitor) {
-    $Monitor = new ZM\Monitor($monitor);
-    $Monitor->GroupIds(isset($group_ids_by_monitor_id[$Monitor->Id()]) ? $group_ids_by_monitor_id[$Monitor->Id()] : array());
-    
-    // Accumulate footer totals
+  foreach ($all_filtered_monitors as $monitor) {
     $footer_totals['total_bandwidth'] += isset($monitor['CaptureBandwidth']) ? $monitor['CaptureBandwidth'] : 0;
     $footer_totals['total_fps'] += isset($monitor['CaptureFPS']) ? floatval($monitor['CaptureFPS']) : 0;
     $footer_totals['total_analysis_fps'] += isset($monitor['AnalysisFPS']) ? floatval($monitor['AnalysisFPS']) : 0;
@@ -320,6 +319,11 @@ function queryRequest() {
       $footer_totals['event_totals'][$period]['events'] += isset($monitor[$period.'Events']) ? intval($monitor[$period.'Events']) : 0;
       $footer_totals['event_totals'][$period]['diskspace'] += isset($monitor[$period.'EventDiskSpace']) ? intval($monitor[$period.'EventDiskSpace']) : 0;
     }
+  }
+
+  foreach ($filtered_monitors as $monitor) {
+    $Monitor = new ZM\Monitor($monitor);
+    $Monitor->GroupIds(isset($group_ids_by_monitor_id[$Monitor->Id()]) ? $group_ids_by_monitor_id[$Monitor->Id()] : array());
     
     $row = array();
     $row['Id'] = $monitor['Id'];
@@ -620,11 +624,11 @@ function queryRequest() {
 
     // Generate filter querystring for footer (include monitor filter if monitors are filtered)
     $filter = $eventCountsFooter[$period]['filter'];
-    if (count($monitor_ids) > 0) {
+    if (count($all_filtered_monitors) > 0) {
       $filter = addFilterTerm(
         $filter,
         count($filter['Query']['terms']),
-        array('cnj' => 'and', 'attr' => 'Monitor', 'op' => 'IN', 'val' => implode(',', $monitor_ids))
+        array('cnj' => 'and', 'attr' => 'Monitor', 'op' => 'IN', 'val' => implode(',', array_column($all_filtered_monitors, 'Id')))
       );
     }
     parseFilter($filter);

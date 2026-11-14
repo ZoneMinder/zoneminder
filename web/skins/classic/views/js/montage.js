@@ -1001,6 +1001,7 @@ function waitingMonitorsPlaced(action = null) {
         monitorInitComplete = true;
       } else if (action == 'changeRatio') {
         if (!isPresetLayout(getCurrentNameLayout())) {
+          clearInterval(intervalWait);
           return;
         }
         if (objGridStack) {

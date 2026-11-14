@@ -67,7 +67,7 @@ if (isset($_REQUEST['monitorStatusPositionSelected'])) {
   $monitorStatusPositionSelected = $_COOKIE['zmMonitorStatusPositionSelected'];
 }
 
-$layouts = ZM\MontageLayout::find(NULL, array('order'=>"lower('Name')"));
+$layouts = ZM\MontageLayout::find(NULL, array('order'=>'lower(Name)'));
 // layoutsById is used in the dropdown, so needs to be sorted
 $layoutsById = array();
 $presetLayoutsNames = array( //Order matters!

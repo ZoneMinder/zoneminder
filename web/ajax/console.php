@@ -23,23 +23,7 @@ if ( canEdit('Monitors') ) {
   switch ( $_REQUEST['action'] ) {
   case 'sort' :
   {
-    $monitor_ids = $_POST['monitor_ids'];
-    # Two concurrent sorts could generate odd sorting... so lock the table.
-    $dbConn = zmDbConn();
-    $dbConn->beginTransaction();
-    $dbConn->exec('LOCK TABLES Monitors WRITE');
-    for ( $i = 0; $i < count($monitor_ids); $i += 1 ) {
-      $monitor_id = $monitor_ids[$i];
-      $monitor_id = preg_replace('/^monitor_id-/', '', $monitor_id);
-      if ( ( !$monitor_id ) or ! ( is_integer($monitor_id) or ctype_digit($monitor_id) ) ) {
-        \ZM\Warning('Got '.$monitor_id.' from '.$monitor_ids[$i]);
-        continue;
-      }
-      dbQuery('UPDATE Monitors SET Sequence=? WHERE Id=?', array($i, $monitor_id));
-    } // end for each monitor_id
-    $dbConn->commit();
-    $dbConn->exec('UNLOCK TABLES');
-
+    saveMonitorSequence($_POST['monitor_ids']);
     return;
   } // end case sort
   default:
@@ -54,6 +38,51 @@ ajaxError('Unrecognised action '.$_REQUEST['action'].' or insufficient permissio
 //
 // FUNCTION DEFINITIONS
 //
+
+function saveMonitorSequence($monitor_ids) {
+  # Two concurrent sorts could generate odd sorting... so lock the table.
+  # LOCK TABLES commits any open transaction, so there is none to commit here.
+  $dbConn = zmDbConn();
+  $dbConn->exec('LOCK TABLES Monitors WRITE');
+  try {
+    for ( $i = 0; $i < count($monitor_ids); $i += 1 ) {
+      $monitor_id = $monitor_ids[$i];
+      $monitor_id = preg_replace('/^monitor_id-/', '', $monitor_id);
+      if ( ( !$monitor_id ) or ! ( is_integer($monitor_id) or ctype_digit($monitor_id) ) ) {
+        \ZM\Warning('Got '.$monitor_id.' from '.$monitor_ids[$i]);
+        continue;
+      }
+      dbQuery('UPDATE Monitors SET Sequence=? WHERE Id=?', array($i, $monitor_id));
+    } // end for each monitor_id
+  } finally {
+    $dbConn->exec('UNLOCK TABLES');
+  }
+}
+
+// The legacy Function column is skipped: nothing maintains it any more.
+function monitorMatchesSearch($monitor, $search) {
+  foreach (array('Name', 'Path', 'Device', 'Host', 'Id', 'Status') as $field) {
+    if (isset($monitor[$field]) && stripos($monitor[$field], $search) !== false)
+      return true;
+  }
+  return false;
+}
+
+// Source, Server, Storage and Function are display values, not row columns.
+function monitorSortValue($monitor, $sort, $ServersById, $StorageById) {
+  switch ($sort) {
+  case 'Source':
+    return (new ZM\Monitor($monitor))->Source();
+  case 'Server':
+    return isset($ServersById[$monitor['ServerId']]) ? $ServersById[$monitor['ServerId']]->Name() : '';
+  case 'Storage':
+    return isset($StorageById[$monitor['StorageId']]) ? $StorageById[$monitor['StorageId']]->Name() : '';
+  case 'Function':
+    return $monitor['Capturing'].' '.$monitor['Analysing'].' '.$monitor['Recording'];
+  }
+  if (isset($monitor[$sort])) return $monitor[$sort];
+  return preg_match('/(Events|Count|Sequence)$/', $sort) ? 0 : '';
+}
 
 function queryRequest() {
   global $user, $Servers;
@@ -176,27 +205,16 @@ function queryRequest() {
   // Apply search filter
   $filtered_monitors = $unfiltered_monitors;
   if ($search != '') {
-    $search_lower = strtolower($search);
-    $filtered_monitors = array_filter($unfiltered_monitors, function($monitor) use ($search_lower) {
-      // Search across common fields without creating Monitor object
-      return (
-        stripos($monitor['Name'], $search_lower) !== false ||
-        stripos($monitor['Function'], $search_lower) !== false ||
-        stripos($monitor['Path'], $search_lower) !== false ||
-        stripos($monitor['Device'], $search_lower) !== false ||
-        stripos($monitor['Host'], $search_lower) !== false ||
-        stripos($monitor['Id'], $search_lower) !== false ||
-        (isset($monitor['Status']) && stripos($monitor['Status'], $search_lower) !== false)
-      );
+    $filtered_monitors = array_filter($unfiltered_monitors, function($monitor) use ($search) {
+      return monitorMatchesSearch($monitor, $search);
     });
   }
   
   // Apply MonitorName and Source request filters
   if ($request_filters['MonitorName']) {
-    $regexp = $request_filters['MonitorName'];
-    if (!strpos($regexp, '/')) $regexp = '/'.$regexp.'/i';
+    $regexp = monitorNameRegexp($request_filters['MonitorName']);
     $filtered_monitors = array_filter($filtered_monitors, function($monitor) use ($regexp) {
-      return @preg_match($regexp, $monitor['Name']);
+      return preg_match($regexp, $monitor['Name']);
     });
   }
   
@@ -223,27 +241,6 @@ function queryRequest() {
   
   $data['total'] = count($filtered_monitors);
   
-  // Sort monitors
-  usort($filtered_monitors, function($a, $b) use ($sort, $order) {
-    $aVal = isset($a[$sort]) ? $a[$sort] : '';
-    $bVal = isset($b[$sort]) ? $b[$sort] : '';
-    
-    if (is_numeric($aVal) && is_numeric($bVal)) {
-      $result = $aVal - $bVal;
-    } else {
-      $result = strcasecmp($aVal, $bVal);
-    }
-    
-    return $order == 'ASC' ? $result : -$result;
-  });
-  
-  // Apply pagination
-  if ($limit > 0) {
-    $filtered_monitors = array_slice($filtered_monitors, $offset, $limit);
-  } else {
-    $filtered_monitors = array_slice($filtered_monitors, $offset);
-  }
-  
   // Get storage areas and servers
   $storage_areas = ZM\Storage::find();
   $StorageById = array();
@@ -254,6 +251,34 @@ function queryRequest() {
   $ServersById = array();
   foreach ($Servers as $s) {
     $ServersById[$s->Id()] = $s;
+  }
+  
+  // Sort monitors
+  $sort_values = array();
+  foreach ($filtered_monitors as $monitor) {
+    $sort_values[$monitor['Id']] = monitorSortValue($monitor, $sort, $ServersById, $StorageById);
+  }
+  usort($filtered_monitors, function($a, $b) use ($sort_values, $order) {
+    $aVal = $sort_values[$a['Id']];
+    $bVal = $sort_values[$b['Id']];
+    
+    if (is_numeric($aVal) && is_numeric($bVal)) {
+      $result = $aVal <=> $bVal;
+    } else {
+      $result = strcasecmp($aVal, $bVal);
+    }
+    
+    return $order == 'ASC' ? $result : -$result;
+  });
+  
+  // The footer totals cover every monitor the filters select, not just this page.
+  $all_filtered_monitors = $filtered_monitors;
+
+  // Apply pagination
+  if ($limit > 0) {
+    $filtered_monitors = array_slice($filtered_monitors, $offset, $limit);
+  } else {
+    $filtered_monitors = array_slice($filtered_monitors, $offset);
   }
   
   // Get group IDs for each monitor
@@ -269,7 +294,7 @@ function queryRequest() {
   
   // Process each monitor and build row data
   $footer_totals = array(
-    'monitor_count' => count($filtered_monitors),
+    'monitor_count' => count($all_filtered_monitors),
     'total_bandwidth' => 0,
     'total_fps' => 0,
     'total_analysis_fps' => 0,
@@ -284,11 +309,7 @@ function queryRequest() {
     )
   );
   
-  foreach ($filtered_monitors as $monitor) {
-    $Monitor = new ZM\Monitor($monitor);
-    $Monitor->GroupIds(isset($group_ids_by_monitor_id[$Monitor->Id()]) ? $group_ids_by_monitor_id[$Monitor->Id()] : array());
-    
-    // Accumulate footer totals
+  foreach ($all_filtered_monitors as $monitor) {
     $footer_totals['total_bandwidth'] += isset($monitor['CaptureBandwidth']) ? $monitor['CaptureBandwidth'] : 0;
     $footer_totals['total_fps'] += isset($monitor['CaptureFPS']) ? floatval($monitor['CaptureFPS']) : 0;
     $footer_totals['total_analysis_fps'] += isset($monitor['AnalysisFPS']) ? floatval($monitor['AnalysisFPS']) : 0;
@@ -298,6 +319,11 @@ function queryRequest() {
       $footer_totals['event_totals'][$period]['events'] += isset($monitor[$period.'Events']) ? intval($monitor[$period.'Events']) : 0;
       $footer_totals['event_totals'][$period]['diskspace'] += isset($monitor[$period.'EventDiskSpace']) ? intval($monitor[$period.'EventDiskSpace']) : 0;
     }
+  }
+
+  foreach ($filtered_monitors as $monitor) {
+    $Monitor = new ZM\Monitor($monitor);
+    $Monitor->GroupIds(isset($group_ids_by_monitor_id[$Monitor->Id()]) ? $group_ids_by_monitor_id[$Monitor->Id()] : array());
     
     $row = array();
     $row['Id'] = $monitor['Id'];
@@ -598,11 +624,11 @@ function queryRequest() {
 
     // Generate filter querystring for footer (include monitor filter if monitors are filtered)
     $filter = $eventCountsFooter[$period]['filter'];
-    if (count($monitor_ids) > 0) {
+    if (count($all_filtered_monitors) > 0) {
       $filter = addFilterTerm(
         $filter,
         count($filter['Query']['terms']),
-        array('cnj' => 'and', 'attr' => 'Monitor', 'op' => 'IN', 'val' => implode(',', $monitor_ids))
+        array('cnj' => 'and', 'attr' => 'Monitor', 'op' => 'IN', 'val' => implode(',', array_column($all_filtered_monitors, 'Id')))
       );
     }
     parseFilter($filter);

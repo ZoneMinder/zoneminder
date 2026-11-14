@@ -27,6 +27,20 @@
 
 #if HAVE_LIBCURL
 
+namespace {
+
+// The digits of the first "id" in a Janus reply: session and handle ids are
+// up to 16 digits but often shorter, so a fixed-width slice picks up the
+// characters after the number or cuts it short.
+std::string parse_janus_id(const std::string &response) {
+  size_t pos = response.find("\"id\": ");
+  if (pos == std::string::npos) return "";
+  pos += 6;
+  size_t end = response.find_first_not_of("0123456789", pos);
+  return response.substr(pos, end == std::string::npos ? std::string::npos : end - pos);
+}
+
+}  // namespace
 
 Monitor::JanusManager::JanusManager(Monitor *parent_) :
   parent(parent_),
@@ -406,11 +420,10 @@ int Monitor::JanusManager::get_janus_session() {
     return -1;
   }
 
-  std::size_t pos = response.find("\"id\": ");
-  if (pos == std::string::npos) {
+  janus_session = parse_janus_id(response);
+  if (janus_session.empty()) {
     return -1;
   }
-  janus_session = response.substr(pos + 6, 16);
   return 1;
 } //get_janus_session
 
@@ -461,11 +474,10 @@ int Monitor::JanusManager::get_janus_handle() {
     return -1;
   }
 
-  std::size_t pos = response.find("\"id\": ");
-  if (pos == std::string::npos) {
+  janus_handle = parse_janus_id(response);
+  if (janus_handle.empty()) {
     return -1;
   }
-  janus_handle = response.substr(pos + 6, 16);
   return 1;
 } //get_janus_handle
 

@@ -70,6 +70,8 @@ function cronScheduleIsValid($spec) {
         $item = $parts[0];
         $step = $parts[1];
         if (!preg_match('/^\d+$/', $step) or (intval($step) < 1)) return false;
+        // cron rejects a step after a plain number: 5/10 is not 5-59/10.
+        if (($item !== '*') and (strpos($item, '-') === false)) return false;
       }
 
       if ($item === '*') continue;

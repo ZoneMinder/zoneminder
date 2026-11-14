@@ -53,6 +53,8 @@ check('a backwards range', cronScheduleIsValid('0 22-8 * * *'), false);
 check('a zero step', cronScheduleIsValid('*/0 * * * *'), false);
 
 echo "schedules we refuse as malformed\n";
+check('a step after a plain number', cronScheduleIsValid('5/10 * * * *'), false);
+check('a step after a list item', cronScheduleIsValid('1,2/5 * * * *'), false);
 check('too few fields', cronScheduleIsValid('30 22 * *'), false);
 check('too many fields', cronScheduleIsValid('30 22 * * * *'), false);
 check('empty', cronScheduleIsValid(''), false);

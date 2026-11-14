@@ -189,7 +189,9 @@ static void LinkEventFiles(
     const std::string &source_path,
     const std::string &dest_path,
     const std::string &video_file,
-    uint64_t new_event_id) {
+    uint64_t source_event_id,
+    uint64_t new_event_id,
+    Storage::Schemes scheme) {
   namespace fs = std::filesystem;
   std::error_code ec;
 
@@ -199,9 +201,17 @@ static void LinkEventFiles(
     return;
   }
 
+  Event::CreateIdMarker(scheme, dest_path, new_event_id);
+
   if (!video_file.empty()) {
+    // Name the video after the new event, as Event does
+    std::string source_prefix = stringtf("%" PRIu64 "-", source_event_id);
+    std::string new_video_file = video_file;
+    if (video_file.compare(0, source_prefix.size(), source_prefix) == 0)
+      new_video_file = stringtf("%" PRIu64 "-", new_event_id) + video_file.substr(source_prefix.size());
+
     std::string src = source_path + "/" + video_file;
-    std::string dst = dest_path + "/" + video_file;
+    std::string dst = dest_path + "/" + new_video_file;
 
     if (fs::exists(src, ec)) {
       // Try hard link first (same filesystem, no extra disk usage)
@@ -220,7 +230,7 @@ static void LinkEventFiles(
       }
       std::string sql = stringtf(
         "UPDATE `Events` SET `DefaultVideo` = '%s' WHERE `Id` = %" PRIu64,
-        zmDbEscapeString(video_file).c_str(), new_event_id);
+        zmDbEscapeString(new_video_file).c_str(), new_event_id);
       zmDbDo(sql);
     } else {
       Warning("Source video file %s not found", src.c_str());
@@ -632,7 +642,7 @@ int main(int argc, char *argv[]) {
               // Create directory and copy video files to new event
               std::string new_event_path = BuildNewEventPath(
                 storage_path, monitor->Id(), new_event_id, fd.timestamp, scheme);
-              LinkEventFiles(event_path, new_event_path, video_file, new_event_id);
+              LinkEventFiles(event_path, new_event_path, video_file, event_id, new_event_id, scheme);
             } else {
               Error("Failed to create re-analysis event in database");
               current_event = nullptr;

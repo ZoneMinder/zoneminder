@@ -650,7 +650,7 @@ ZM\Debug("Figuring out height using width: $height = ($width * $oldHeight) / $ol
           unset($i);
           unset($iScale);
         }
-        $scaled_jpeg_data = ob_get_contents();
+        $scaled_jpeg_data = ob_get_clean();
         file_put_contents($scaled_path, $scaled_jpeg_data, LOCK_EX);
 
         echo $scaled_jpeg_data;

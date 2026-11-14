@@ -718,6 +718,8 @@ sub restart {
     return;
   }
 
+  $process->{delay} = 0;
+
   # Start will be handled by the reaper...
   # unless it was already pending in which case send_stop will return () so we should start it
   if ( !send_stop(0, $process) ) {

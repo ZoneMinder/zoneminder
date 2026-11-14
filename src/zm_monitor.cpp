@@ -2497,7 +2497,7 @@ bool Monitor::Analyse() {
 
         if (score) {
           if ((state == IDLE) || (state == PREALARM)) {
-            if ((!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1)) {
+            if (Event::PreAlarmCount() >= alarm_frame_count-1) {
               Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u Cause:%s",
                    name.c_str(), packet->image_index, Event::PreAlarmCount(), alarm_frame_count, cause.c_str());
               SetState(ALARM);
@@ -2611,7 +2611,7 @@ bool Monitor::Analyse() {
                           event->Id(), event->AlarmFrames(), alarm_frame_count);
                   }
                 } else if (state == IDLE) {
-                  if (event->AlarmFrames() > alarm_frame_count and (analysis_image_count - last_alarm_count > post_event_count)) {
+                  if (event->AlarmFrames() >= alarm_frame_count and (analysis_image_count - last_alarm_count > post_event_count)) {
                     Info("%s: %03d - Closing event %" PRIu64 ", alarm end", name.c_str(), analysis_image_count, event->Id());
                     closeEvent();
                   } else if (event->Duration() > section_length) {

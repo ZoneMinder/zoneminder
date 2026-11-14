@@ -132,7 +132,19 @@ class FilterTerm {
       return $values;
     }
 
-    $vals = is_array($this->val) ? $this->val : preg_split('/["\'\s]*?,["\'\s]*?/', preg_replace('/^["\']+?(.+)["\']+?$/', '$1', $this->val));
+    if (is_array($this->val)) {
+      $vals = $this->val;
+    } else {
+      $stripped = preg_replace('/^["\']+?(.+)["\']+?$/', '$1', $this->val);
+      if ($this->op == '=~' or $this->op == '!~') {
+        // A regular expression can contain commas (x{1,3}), so it is one value
+        $vals = array($stripped);
+      } else {
+        // Trim quotes and spaces off each value and drop empty ones, so "a, b" and a trailing comma do not add values
+        $vals = array_values(array_filter(array_map(function($v) { return trim($v, "\"' \t\r\n"); }, explode(',', $stripped)), 'strlen'));
+        if (!count($vals)) $vals = array('');
+      }
+    }
     foreach ( $vals as $value ) {
       $value_upper = strtoupper($value);
       switch ( $this->attr ) {
@@ -147,6 +159,8 @@ class FilterTerm {
         $value = '';
         break;
       case 'DiskPercent':
+      case 'DiskBlocks':
+      case 'SystemLoad':
         $value = '';
         break;
       case 'Tags':
@@ -225,7 +239,7 @@ class FilterTerm {
         break;
       }
       if (is_array($value)) {
-        $values += $value;
+        $values = array_merge($values, $value);
       } else {
         $values[] = $value;
       }
@@ -236,11 +250,13 @@ class FilterTerm {
   public function sql_operator() {
     switch ($this->attr) {
     case 'Group':
-      return ' IN ';
+      return ($this->op == '!=' or $this->op == '![]' or $this->op == 'NOT IN') ? ' NOT IN ' : ' IN ';
     case 'AlarmedZoneId':
       return ' EXISTS ';
     case 'ExistsInFileSystem':
     case 'DiskPercent':
+    case 'DiskBlocks':
+    case 'SystemLoad':
       return '';
     }
 
@@ -295,6 +311,8 @@ class FilterTerm {
       return '/* AlarmedZoneId */ ';
     case 'ExistsInFileSystem':
     case 'DiskPercent':
+    case 'DiskBlocks':
+    case 'SystemLoad':
       return 'TRUE /*'.$this->attr.'*/';
     case 'MonitorName':
       return 'M.Name';
@@ -464,7 +482,9 @@ class FilterTerm {
         $subterm .= $value;
         $subterms[] = $subterm;
       }
-      $sql .= '('.implode(' OR ', $subterms).')';
+      // A negative operator must hold for every value, not just one of them
+      $negative = ($this->op == '!=' or $this->op == 'NOT LIKE' or $this->op == 'IS NOT');
+      $sql .= '('.implode($negative ? ' AND ' : ' OR ', $subterms).')';
     } elseif (($this->attr === 'Tags') && ($values[0] === "'0'")) {
       // "No Tag": = means no tags (NOT EXISTS), != means has tags (EXISTS)
       if ($this->op === '!=' || $this->op === 'IS NOT') {
@@ -612,6 +632,11 @@ class FilterTerm {
             Warning('Invalid op '.$this->op .' for DiskPercent.');
           }
         } # end foreach Storage Area
+      } else if ( $this->attr == 'DiskBlocks' ) {
+        # As with DiskPercent, we will just use the first storage area.
+        foreach ( $this->filter->get_StorageAreas() as $storage ) {
+          return $this->compare($storage->disk_used_blocks(), $this->op, $this->val);
+        }
       } else if ( $this->attr == 'SystemLoad' ) {
         $ret = $this->compare(getLoad(), $this->op, $this->val);
         Debug("SystemLoad compare: getLoad() {$this->op} {$this->val} = " . ($ret ? 'true' : 'false'));
@@ -636,7 +661,7 @@ class FilterTerm {
         Debug("DiskPercent compare: " . ($ret ? 'true' : 'false'));
         if ($ret) return true;
       } else if ( $this->attr == 'DiskBlocks' ) {
-        $ret = $this->compare($event->Storage()->disk_usage_blocks(), $this->op, $this->val);
+        $ret = $this->compare($event->Storage()->disk_used_blocks(), $this->op, $this->val);
         Debug("DiskBlocks compare: " . ($ret ? 'true' : 'false'));
         if ($ret) return true;
       } else if ( $this->attr == 'Tags' ) {
@@ -655,6 +680,8 @@ class FilterTerm {
     if ( $this->attr == 'DiskPercent' )
         return true;
     if ( $this->attr == 'DiskBlocks' )
+        return true;
+    if ( $this->attr == 'SystemLoad' )
         return true;
     return false;
   }
@@ -681,6 +708,7 @@ class FilterTerm {
       'DiskSpace',
       'DiskPercent',
       'DiskBlocks',
+      'SystemLoad',
       'MonitorName',
       'Monitor',
       'ServerId',

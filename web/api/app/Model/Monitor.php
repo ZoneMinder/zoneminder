@@ -155,7 +155,7 @@ class Monitor extends AppModel {
       'Orientation'     => array('ROTATE_0','ROTATE_90','ROTATE_180','ROTATE_270','FLIP_HORI','FLIP_VERT'),
       // mask OutputCodec as its not an Enum in mysql
       //'OutputCodec'     => array( 'h264' ,'mjpeg','mpeg1','mpeg2'),
-      'OutputContainer' => array('auto','mp4','mkv'),
+      'OutputContainer' => array('auto','mp4','mkv','webm'),
       'DefaultView'     => array('Events','Control'),
       #'Status'          => array('Unknown','NotRunning','Running','NoSignal','Signal'),
     )

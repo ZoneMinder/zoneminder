@@ -1136,8 +1136,8 @@ function devices_onchange(devices) {
   }
 }
 function ControlId_onChange(ddm) {
-  const ControlEditButton = document.getElementById('ControlEditButton');
-  if (ControlEditButton) ControlEditButton.disabled = ddm.value ? false : true;
+  const ControlEditButton = document.getElementById('ControlEdit');
+  if (ControlEditButton) ControlEditButton.disabled = !ddm.value;
 }
 
 function ControlEdit_onClick() {

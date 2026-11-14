@@ -25,7 +25,7 @@ if ( $monitor->Id() and $monitor->canEdit() ) {
         default :
             ajaxError("Unexpected command '".validJsStr($_REQUEST['command'])."'");
     }
-    ajaxResponse(exec(escapeshellcmd($zmuCommand)));
+    ajaxResponse(exec($zmuCommand));
 } else {
   ajaxError('Insufficient permissions');
 }

@@ -59,7 +59,7 @@ function probeV4L() {
   foreach ($devices_to_probe as $d) {
     $command = getZmuCommand(' --query --device');
     $command .= '='.escapeshellarg($d);
-    $result = exec(escapeshellcmd($command), $output, $status);
+    $result = exec($command, $output, $status);
     if ($status) {
       ZM\Warning("Errors while probe local cameras using $command, status is '$status' " . implode("\n", $output));
     }

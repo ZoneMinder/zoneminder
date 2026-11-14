@@ -1006,10 +1006,10 @@ sub guess_EndDateTime {
   my $event = shift;
   if (!$$event{EndDateTime}) {
     if ($$event{Length}) {
-      my $startdatetime = Date::Parse::str2time( $_[0]{StartDateTime} );
+      my $startdatetime = Date::Parse::str2time( $$event{StartDateTime} );
       $$event{EndDateTime} = Date::Format::time2str('%Y-%m-%d %H:%M:%S', $startdatetime + $$event{Length});
     } else {
-      $$event{EndDateTime} = Date::Format::time2str('%Y-%m-%d %H:%M:%S', Date::Parse::str2time( $_[0]{StartDateTime} )+1);
+      $$event{EndDateTime} = Date::Format::time2str('%Y-%m-%d %H:%M:%S', Date::Parse::str2time( $$event{StartDateTime} )+1);
     }
   }
   return $$event{EndDateTime};

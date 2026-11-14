@@ -246,7 +246,7 @@ Debug("@Monitors");
               $event->fix_DefaultVideo();
               if (!$$event{EndDateTime}) {
                 if (confirm("Event found but is incomplete, shall we finish it?")) {
-                  $event->save() if $event->guess_EndDatetime();
+                  $event->save() if $event->guess_EndDateTime();
                 }
               }
             } # event path exists
@@ -318,7 +318,7 @@ Debug("@Monitors");
               $event->fix_DefaultVideo();
               if (!$$event{EndDateTime}) {
                 if (confirm("Event found but is incomplete, shall we finish it?")) {
-                  $event->save() if $event->guess_EndDatetime();
+                  $event->save() if $event->guess_EndDateTime();
                 }
               }
             } # end if event found
@@ -364,7 +364,7 @@ Debug("@Monitors");
             $event->fix_DefaultVideo();
             if (!$$event{EndDateTime}) {
               if (confirm("Event found but is incomplete, shall we finish it?")) {
-                $event->save() if $event->guess_EndDatetime();
+                $event->save() if $event->guess_EndDateTime();
               }
             }
             next;
@@ -413,7 +413,7 @@ Debug("@Monitors");
           $event->fix_DefaultVideo();
           if (!$$event{EndDateTime}) {
             if (confirm("Event found but is incomplete, shall we finish it?")) {
-              $event->save() if $event->guess_EndDatetime();
+              $event->save() if $event->guess_EndDateTime();
             }
           }
 

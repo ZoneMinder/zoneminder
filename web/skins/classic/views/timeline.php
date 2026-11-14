@@ -61,8 +61,8 @@ define( 'STRF_TL_AXIS_LABEL_4HOUR', 'H:00' );
 define( 'STRF_TL_AXIS_LABEL_HOUR', 'H:00' );
 define( 'STRF_TL_AXIS_LABEL_10MINUTE', 'H:i' );
 define( 'STRF_TL_AXIS_LABEL_MINUTE', 'H:i' );
-define( 'STRF_TL_AXIS_LABEL_10SECOND', '%s' );
-define( 'STRF_TL_AXIS_LABEL_SECOND', '%s' );
+define( 'STRF_TL_AXIS_LABEL_10SECOND', 's' );
+define( 'STRF_TL_AXIS_LABEL_SECOND', 's' );
 
 $mouseover = isset($_REQUEST['mouseover']) ? $_REQUEST['mouseover'] : true;
 

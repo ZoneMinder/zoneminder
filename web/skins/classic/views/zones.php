@@ -64,6 +64,10 @@ echo getNavBarHTML();
     $zones = array();
     foreach ( dbFetchAll('SELECT * FROM Zones WHERE MonitorId=? ORDER BY Area DESC', NULL, array($mid)) as $row ) {
       $row['Points'] = coordsToPoints($row['Coords']);
+      # Percent coordinates are always written with decimals; without any they are pixels
+      if (strpos($row['Coords'], '.') === false) {
+        convertPixelPointsToPercent($row['Points'], $monitor->ViewWidth(), $monitor->ViewHeight());
+      }
 
       $row['OutOfBounds'] = false;
       foreach ($row['Points'] as $point) {
@@ -73,8 +77,8 @@ echo getNavBarHTML();
         }
       }
 
-      convertPixelPointsToPercent($row['Points'], $monitor->ViewWidth(), $monitor->ViewHeight());
       limitPoints($row['Points'], $minX, $minY, $maxX, $maxY);
+      $row['Area'] = getPolyArea($row['Points']);
       $row['Coords'] = pointsToCoords($row['Points']);
       $row['AreaCoords'] = preg_replace('/\s+/', ',', $row['Coords']);
       $zones[] = $row;

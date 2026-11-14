@@ -108,7 +108,8 @@ $statusData = array(
       'TotalEvents' => array( 'sql' => '(SELECT count(Events.Id) FROM Events WHERE Events.MonitorId = Monitors.Id)' ),
       // Read from shared memory, as zmu -s does, rather than starting zmu on every poll
       'Status' => (isset($_REQUEST['id'])?array( 'func' => function() {
-        $state = (new ZM\Monitor(validInt($_REQUEST['id'])))->GetState();
+        $monitor = ZM\Monitor::find_one(['Id'=>validInt($_REQUEST['id'])]);
+        $state = $monitor ? $monitor->GetState() : false;
         return ($state === false) ? '' : (string)$state;
       } ):null),
       'FrameRate' => (isset($_REQUEST['id'])?array( 'zmu' => '-m '.escapeshellarg($_REQUEST['id']).' -f' ):null),

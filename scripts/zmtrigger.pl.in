@@ -33,6 +33,7 @@ use bytes;
 use constant MAX_CONNECT_DELAY => 10;
 use constant MONITOR_RELOAD_INTERVAL => 300;
 use constant SELECT_TIMEOUT => 0.25;
+use constant MONITOR_RETRY_INTERVAL => 10;
 
 # ==========================================================================
 #
@@ -118,6 +119,7 @@ my %spawned_connections;
 my %monitors;
 my $monitor_reload_time = 0;
 my @needsReload;
+my %next_reload;
 loadMonitors();
 
 $! = undef;
@@ -191,8 +193,12 @@ while (!$zm_terminate) {
     if (!$monitor->connect()) {
       # Our attempt to verify the memory handle failed. We should reload the monitors.
       # Don't need to zmMemInvalidate because the monitor reload will do it.
-      Debug('Failed connect, putting on reloads');
-      push @needsReload, $monitor;
+      # A stopped zmc fails every pass, so reload from the database only now and then
+      if (($next_reload{$monitor->{Id}} // 0) <= time()) {
+        Debug('Failed connect, putting on reloads');
+        $next_reload{$monitor->{Id}} = time() + MONITOR_RETRY_INTERVAL;
+        push @needsReload, $monitor;
+      }
       next;
     }
 

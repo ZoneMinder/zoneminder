@@ -135,6 +135,7 @@ echo getNavBarHTML();
                       <td>
 <?php
     $homeview_options = [
+      ''=>translate('Default'),
       'console'=>translate('Console'),
       'events'=> translate('Events'),
       'map'   =>  translate('Map'),

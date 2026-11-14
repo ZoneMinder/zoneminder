@@ -484,12 +484,12 @@ class MonitorsController extends AppController {
     $status = exec($command);
     ZM\Debug("Command: $command output: $status");
 
-    // If 'not' is present, the daemon is not running, so return false
+    // Only "running since" or "pending at" mean running; no answer means zmdc is down.
     // https://github.com/ZoneMinder/ZoneMinder/issues/799#issuecomment-108996075
     // Also sending back the status text so we can check if the monitor is in pending
     // state which means there may be an error
     $statustext = $status;
-    $status = (strpos($status, 'not')) ? false : true;
+    $status = (preg_match('/ (running since|pending at) /', $status) === 1);
 
     $this->set(array(
       'status' => $status,

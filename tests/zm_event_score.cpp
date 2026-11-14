@@ -45,3 +45,12 @@ TEST_CASE("Event::BuildNotes") {
   notes["Signal"] = {"Lost"};
   REQUIRE(Event::BuildNotes(notes) == "Motion: Zone1, Zone2; Signal: Lost");
 }
+
+TEST_CASE("EventNamePrefixLength") {
+  // Events.Name is varchar(64) and the id suffix must survive truncation.
+  REQUIRE(EventNamePrefixLength(0) == 63);
+  REQUIRE(EventNamePrefixLength(9) == 63);
+  REQUIRE(EventNamePrefixLength(10) == 62);
+  REQUIRE(EventNamePrefixLength(995000206) == 55);
+  REQUIRE(EventNamePrefixLength(UINT64_MAX) == 44);
+}

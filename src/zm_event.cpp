@@ -328,12 +328,12 @@ Event::~Event() {
   // Conditionally update Name only if it hasn't been changed by the user during recording.
   std::string sql = stringtf(
       "UPDATE Events SET"
-      " Name = IF(Name='New Event', '%s%" PRIu64 "', Name),"
+      " Name = IF(Name='New Event', CONCAT(LEFT('%s', %d), '%" PRIu64 "'), Name),"
       " EndDateTime = from_unixtime(%jd), Length = %.2f, Frames = %d,"
       " AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d,"
       " MaxScoreFrameId=%d, DefaultVideo='%s', DiskSpace=%" PRIu64
       " WHERE Id = %" PRIu64,
-      monitor->Substitute(monitor->EventPrefix(), start_time).c_str(), id,
+      monitor->Substitute(monitor->EventPrefix(), start_time).c_str(), EventNamePrefixLength(id), id,
       static_cast<intmax_t>(std::chrono::system_clock::to_time_t(end_time.load())),
       delta_time.count(),
       frames.load(), alarm_frames.load(),

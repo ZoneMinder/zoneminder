@@ -85,6 +85,13 @@ inline Seconds ClampSectionLength(Seconds section_length) {
   return section_length < Seconds(1) ? Seconds(1) : section_length;
 }
 
+// Characters of the event prefix that fit in Events.Name (varchar(64)) in front of the id.
+inline int EventNamePrefixLength(uint64_t id) {
+  int digits = 1;
+  for (uint64_t n = id; n >= 10; n /= 10) digits++;
+  return 64 - digits;
+}
+
 // Maximum number of prealarm frames that can be stored
 #define MAX_PRE_ALARM_FRAMES  16
 

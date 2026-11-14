@@ -405,7 +405,8 @@ Debug("@Monitors");
         Error("Can't open directory '$$Storage{Path}/$monitor_dir': $!");
         next;
       }
-      my @temp_events = sort { $b <=> $a } grep { -d $_ && $_ =~ /^\d+$/ } readdir( DIR );
+      # A Deep scheme year directory is numeric too, but it holds date directories
+      my @temp_events = sort { $b <=> $a } grep { /^(\d+)$/ && -d $_ && !(() = glob("$1/[0-9][0-9]")) } readdir( DIR );
       closedir(DIR);
       foreach my $event_id ( @temp_events ) {
         my $event = ZoneMinder::Event->find_one(Id=>$event_id);

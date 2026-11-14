@@ -106,8 +106,6 @@ if ($action == 'save') {
       'Controllable' => 0,
       'TrackMotion' => 0,
       'ModectDuringPTZ' =>  0,
-      'Enabled' => 0,
-      'DecodingEnabled' => 0,
       'RTSP2WebEnabled' => 0,
       'Go2RTCEnabled' => 0,
       'Go2RTCDisableBackChannel' => 0,

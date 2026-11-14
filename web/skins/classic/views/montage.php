@@ -67,7 +67,7 @@ if (isset($_REQUEST['monitorStatusPositionSelected'])) {
   $monitorStatusPositionSelected = $_COOKIE['zmMonitorStatusPositionSelected'];
 }
 
-$layouts = ZM\MontageLayout::find(NULL, array('order'=>"lower('Name')"));
+$layouts = ZM\MontageLayout::find(NULL, array('order'=>'lower(Name)'));
 // layoutsById is used in the dropdown, so needs to be sorted
 $layoutsById = array();
 $presetLayoutsNames = array( //Order matters!
@@ -380,8 +380,8 @@ foreach ($monitors as $monitor) {
     echo getWebSiteUrl(
       'liveStream'.$monitor->Id(),
       $monitor->Path(),
-      (isset($options['width']) ? $options['width'] : reScale($monitor->ViewWidth(), $scale).'px' ),
-      (isset($options['height']) ? $options['height'] : reScale($monitor->ViewHeight(), $scale).'px' ),
+      (!empty($options['width']) ? $options['width'] : reScale($monitor->ViewWidth(), $scale).'px' ),
+      (!empty($options['height']) ? $options['height'] : reScale($monitor->ViewHeight(), $scale).'px' ),
       $monitor->Name()
     );
   } else {
@@ -403,7 +403,7 @@ foreach ($monitors as $monitor) {
         # We know the # of columns so can figure out a proper scale
         if (preg_match('/^(\d+) Wide$/', $layout->Name(), $matches)) {
           if ($matches[1]) {
-            $monitor_options['scale'] = intval(100*(($browser_width/$matches[1])/$monitor->Width()));
+            $monitor_options['scale'] = intval(100*(($browser_width/$matches[1])/max(1, $monitor->Width())));
             if ($monitor_options['scale'] < 10) $monitor_options['scale'] = 10;
             else if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
           }
@@ -414,7 +414,7 @@ foreach ($monitors as $monitor) {
       if ($divisor < 2) $divisor = 2;
 
       # Custom, default to 25% of 1920 for now, because 25% of a 4k is very different from 25% of 640px
-      $monitor_options['scale'] = intval(100*(($browser_width/$divisor)/$monitor->Width()));
+      $monitor_options['scale'] = intval(100*(($browser_width/$divisor)/max(1, $monitor->Width())));
       if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
       else if ($monitor_options['scale'] < 10) $monitor_options['scale'] = 10;
     }

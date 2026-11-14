@@ -322,14 +322,13 @@ sub GenerateVideo {
       $frame_rate = $fps;
     }
 
-    my $width = $self->{Width};
-    my $height = $self->{Height};
-    my $video_size = "${width}x${height}";
+    # Left empty to keep the input size, which a rotating transform changes.
+    my $video_size = '';
 
     if ( $scale ) {
       if ( $scale != 1.0 ) {
-        $width = int($width*$scale);
-        $height = int($height*$scale);
+        my $width = int($self->{Width}*$scale);
+        my $height = int($self->{Height}*$scale);
         $video_size = "${width}x${height}";
       }
     } elsif ( $size ) {
@@ -354,7 +353,7 @@ sub GenerateVideo {
       grep { $_ ne '' } split(/\s+/, $Config{ZM_FFMPEG_INPUT_OPTIONS}),
       '-i', $input_file,
       (@transforms ? ('-vf', join(',', @transforms)) : ()),
-      '-s', $video_size,
+      ($video_size ne '' ? ('-s', $video_size) : ()),
       grep { $_ ne '' } split(/\s+/, $Config{ZM_FFMPEG_OUTPUT_OPTIONS}),
       $video_file,
     );

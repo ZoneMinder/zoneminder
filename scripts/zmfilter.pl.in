@@ -822,7 +822,7 @@ sub substituteTags {
           $text =~ s/%EIMOD%//g;
         }
       }
-      if ($text =~ s/%EIMODG%//g) {
+      if ($text =~ /%EIMODG%/g) {
         my $path = $Event->Path().'/objdetect.gif';
         if (-e $path) {
           my $filename = $Event->Id().'_'.fileparse($path);

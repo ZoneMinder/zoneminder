@@ -72,6 +72,12 @@ var zmPanZoom = {
       //if (!('canvas' in params)) params.canvas = this.canvas;
       if (!('touchAction' in params)) params.touchAction = this.touchAction;
 
+      // Re-enabling must not leave the previous wheel listener behind
+      const previous = this.panZoom[objPanZoom];
+      if (previous && previous.wheelHandler && previous.target && previous.target.parentElement) {
+        previous.target.parentElement.removeEventListener('wheel', previous.wheelHandler);
+      }
+
       //Direct initialization Panzoom
       this.panZoom[objPanZoom] = Panzoom(params['obj'], params);
       this.panZoom[objPanZoom].target = params['obj'];
@@ -79,7 +85,7 @@ var zmPanZoom = {
       //panZoom[id].pan(10, 10);
       //panZoom[id].zoom(1, {animate: true});
       // Binds to shift || alt + wheel
-      params['obj'].parentElement.addEventListener('wheel', function(event) {
+      const wheelHandler = function(event) {
         if (!_this.shifted && !_this.alted) {
           return;
         }
@@ -102,7 +108,9 @@ var zmPanZoom = {
           return;
         }
         _this.setTriggerChangedMonitors(id);
-      });
+      };
+      this.panZoom[objPanZoom].wheelHandler = wheelHandler;
+      params['obj'].parentElement.addEventListener('wheel', wheelHandler);
 
       const nameSpace = '.panzoom_' + id;
       $j(document).off(nameSpace).on('keyup' + nameSpace + ' keydown' + nameSpace, function(e) {

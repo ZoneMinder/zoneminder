@@ -244,6 +244,10 @@ function collectData() {
   global $statusData;
 
   $entity = strtolower(validJsStr($_REQUEST['entity']));
+  if (!isset($statusData[$entity])) {
+    ajaxError('Unrecognised entity '.$entity);
+    return;
+  }
   $entitySpec = &$statusData[$entity];
   #print_r( $entitySpec );
   if (isset($entitySpec['permission'])) {

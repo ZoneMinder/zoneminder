@@ -454,9 +454,7 @@ class EventsController extends AppController {
         if (preg_match('/^(?P<expr>[ \-.:0-9]+)\s+(?P<unit>[_a-z]+)$/i', trim($value), $matches) !== 1) {
           throw new BadRequestException('Invalid interval: ' . $value);
         }
-        $expr = trim($matches['expr']);
-        $unit = trim($matches['unit']);
-        array_push($find_conditions, "$param_name >= DATE_SUB(NOW(), INTERVAL $expr $unit)");
+        $find_conditions[] = "$param_name >= DATE_SUB(NOW(), ".$this->intervalSql($matches['expr'], $matches['unit']).')';
       } else {
         $conditions[$param_name] = $value;
       }
@@ -477,6 +475,20 @@ class EventsController extends AppController {
     ));
   } // end public function search
 
+  // The INTERVAL clause for an expression and unit taken from the URL. The unit has to be one
+  // MySQL knows, and the expression is quoted: a compound unit such as DAY_HOUR only takes
+  // a quoted '1 10', and an unknown unit used to come back as a 500 carrying the SQL error.
+  private function intervalSql($expr, $unit) {
+    $units = array('MICROSECOND', 'SECOND', 'MINUTE', 'HOUR', 'DAY', 'WEEK', 'MONTH', 'QUARTER', 'YEAR',
+      'SECOND_MICROSECOND', 'MINUTE_MICROSECOND', 'MINUTE_SECOND', 'HOUR_MICROSECOND', 'HOUR_SECOND',
+      'HOUR_MINUTE', 'DAY_MICROSECOND', 'DAY_SECOND', 'DAY_MINUTE', 'DAY_HOUR', 'YEAR_MONTH');
+    $unit = strtoupper(trim($unit));
+    if (!in_array($unit, $units, true)) {
+      throw new BadRequestException('Invalid interval unit: ' . $unit);
+    }
+    return 'INTERVAL '.$this->Event->getDataSource()->value(trim($expr), 'string')." $unit";
+  }
+
   // format expected:
   // you can changed AlarmFrames to any other named params
   // consoleEvents/1 hour/AlarmFrames >=: 1/AlarmFrames <=: 20.json
@@ -488,8 +500,7 @@ class EventsController extends AppController {
     if (preg_match('/^(?P<expr>[ \-.:0-9]+)\s+(?P<unit>[_a-z]+)$/i', trim($interval), $matches) !== 1) {
       throw new BadRequestException('Invalid interval: ' . $interval);
     }
-    $expr = trim($matches['expr']);
-    $unit = trim($matches['unit']);
+    $interval_sql = $this->intervalSql($matches['expr'], $matches['unit']);
 
     $this->Event->recursive = -1;
     $results = array();
@@ -499,7 +510,7 @@ class EventsController extends AppController {
     } else {
       $conditions = array();
     } 
-    array_push($conditions, array("StartDateTime >= DATE_SUB(NOW(), INTERVAL $expr $unit)"));
+    array_push($conditions, array("StartDateTime >= DATE_SUB(NOW(), $interval_sql)"));
     array_push($conditions, $this->viewableMonitorCondition('Event.MonitorId'));
     $query = $this->Event->find('all', array(
       'fields' => array('MonitorId', 'COUNT(*) AS Count'),

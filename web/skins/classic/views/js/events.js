@@ -230,15 +230,18 @@ function unarchiveEvents(event_ids) {
         $j('#eventTable').bootstrapTable('refresh');
         $j('#unarchiveConfirm').modal('hide');
       } else {
-        if ( ticker.innerHTML.length < 1 || ticker.innerHTML.length > 10 ) {
-          ticker.innerHTML = '.';
-        } else {
-          ticker.innerHTML = ticker.innerHTML + '.';
+        // The modal holding the ticker is not loaded when shift-click skips it
+        if (ticker) {
+          if ( ticker.innerHTML.length < 1 || ticker.innerHTML.length > 10 ) {
+            ticker.innerHTML = '.';
+          } else {
+            ticker.innerHTML = ticker.innerHTML + '.';
+          }
         }
         unarchiveEvents(event_ids);
       }
     },
-    fail: function(jqxhr) {
+    error: function(jqxhr) {
       logAjaxFail(jqxhr);
       $j('#eventTable').bootstrapTable('refresh');
       $j('#unarchiveConfirm').modal('hide');
@@ -263,15 +266,18 @@ function deleteEvents(event_ids) {
         $j('#eventTable').bootstrapTable('refresh');
         $j('#deleteConfirm').modal('hide');
       } else {
-        if ( ticker.innerHTML.length < 1 || ticker.innerHTML.length > 10 ) {
-          ticker.innerHTML = '.';
-        } else {
-          ticker.innerHTML = ticker.innerHTML + '.';
+        // The modal holding the ticker is not loaded when shift-click skips it
+        if (ticker) {
+          if ( ticker.innerHTML.length < 1 || ticker.innerHTML.length > 10 ) {
+            ticker.innerHTML = '.';
+          } else {
+            ticker.innerHTML = ticker.innerHTML + '.';
+          }
         }
         deleteEvents(event_ids);
       }
     },
-    fail: function(jqxhr) {
+    error: function(jqxhr) {
       logAjaxFail(jqxhr);
       $j('#eventTable').bootstrapTable('refresh');
       $j('#deleteConfirm').modal('hide');
@@ -418,7 +424,7 @@ function initPage() {
       success: function(data) {
         $j('#eventTable').bootstrapTable('refresh');
       },
-      fail: logAjaxFail
+      error: logAjaxFail
     });
   });
 

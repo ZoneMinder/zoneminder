@@ -36,6 +36,22 @@ foreach ( $storage_areas as $S ) {
   $StorageById[validCardinal($S->Id())] = $S;
 }
 
+// Where the selected monitors differ, default to "Unchanged".
+function bulkOptions($options, $field, $monitors) {
+  foreach ($monitors as $m) {
+    if ($m->$field() != $monitors[0]->$field()) {
+      return array('unchanged'=>translate('Unchanged'))+$options;
+    }
+  }
+  return $options;
+}
+function bulkSelected($field, $monitors) {
+  foreach ($monitors as $m) {
+    if ($m->$field() != $monitors[0]->$field()) return 'unchanged';
+  }
+  return $monitors[0]->$field();
+}
+
 $focusWindow = true;
 
 xhtmlHeaders(__FILE__, translate('Monitors'));
@@ -66,31 +82,31 @@ echo getNavBarHTML();
   );
   if ( count($ServersById) > 0 ) { ?>
         <p class="Server"><label><?php echo translate('Server')?></label>
-        <?php echo htmlSelect('newMonitor[ServerId]', array(''=>'None')+$ServersById, $monitor->ServerId()); ?>
+        <?php echo htmlSelect('newMonitor[ServerId]', bulkOptions(array(''=>'None')+$ServersById, 'ServerId', $monitors), bulkSelected('ServerId', $monitors)); ?>
         </p>
 <?php
   }
   if ( count($StorageById) > 0 ) {
 ?>
         <p class="Storage"><label><?php echo translate('Storage')?></label>
-        <?php echo htmlSelect('newMonitor[StorageId]', array(''=>'All')+$StorageById, $monitor->StorageId()); ?>
+        <?php echo htmlSelect('newMonitor[StorageId]', bulkOptions(array(''=>'All')+$StorageById, 'StorageId', $monitors), bulkSelected('StorageId', $monitors)); ?>
         </p>
 <?php
   }
 ?>
         <p class="Capturing"><label><?php echo translate('Capturing') ?></label>
 <?php
-  echo htmlSelect('newMonitor[Capturing]', ZM\Monitor::getCapturingOptions(), $monitor->Capturing());
+  echo htmlSelect('newMonitor[Capturing]', bulkOptions(ZM\Monitor::getCapturingOptions(), 'Capturing', $monitors), bulkSelected('Capturing', $monitors));
 ?>
         </p>
         <p class="Analysing"><label><?php echo translate('Analysing') ?></label>
 <?php
-  echo htmlSelect('newMonitor[Analysing]', ZM\Monitor::getAnalysingOptions(), $monitor->Analysing());
+  echo htmlSelect('newMonitor[Analysing]', bulkOptions(ZM\Monitor::getAnalysingOptions(), 'Analysing', $monitors), bulkSelected('Analysing', $monitors));
 ?>
         </p>
         <p class="Recording"><label><?php echo translate('Recording') ?></label>
 <?php
-  echo htmlSelect('newMonitor[Recording]', ZM\Monitor::getRecordingOptions(), $monitor->Recording());
+  echo htmlSelect('newMonitor[Recording]', bulkOptions(ZM\Monitor::getRecordingOptions(), 'Recording', $monitors), bulkSelected('Recording', $monitors));
 ?>
         </p>
 <!--
@@ -103,11 +119,11 @@ echo getNavBarHTML();
           <label for="newMonitor[Importance]"><?php echo translate('Importance'); echo makeHelpLink('OPTIONS_IMPORTANCE') ?></label>
 <?php
       echo htmlselect('newMonitor[Importance]',
-              array(
+              bulkOptions(array(
                 'Normal'=>translate('Normal'),
                 'Less'=>translate('Less important'),
                 'Not'=>translate('Not important')
-              ), $monitor->Importance(), array('id'=>'newMonitor[Importance]'));
+              ), 'Importance', $monitors), bulkSelected('Importance', $monitors), array('id'=>'newMonitor[Importance]'));
 ?>
         </p>
         <div id="contentButtons">

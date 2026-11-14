@@ -9,6 +9,7 @@ const VIEWING = 0;
 const EDITING = 1;
 
 var mode = 0; // start up in viewing mode
+var editingLayoutId = null; // layout the grid was loaded from when editing started
 
 var objGridStack;
 
@@ -113,6 +114,8 @@ function getStream(id) {
 function selectLayout(new_layout_id) {
   if (mode == EDITING) {
     changedMonitors.length = 0;
+    // Save writes to the selected layout, so keep it on the one being edited
+    $j('#zmMontageLayout').val(editingLayoutId).trigger('chosen:updated');
     return;
   }
   const ddm = $j('#zmMontageLayout');
@@ -336,6 +339,7 @@ function setRatioForMonitor(objStream, id=null) {
 // Makes monitors draggable.
 function edit_layout(button) {
   mode = EDITING;
+  editingLayoutId = $j('#zmMontageLayout').val();
   $j('.grid-stack-item-content').addClass('modeEditingMonitor');
   objGridStack.enable(); //Enable move
   // objGridStack.float(true);

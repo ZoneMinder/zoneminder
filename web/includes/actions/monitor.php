@@ -164,6 +164,8 @@ if ($action == 'save') {
   $changes = $monitor->changes($newMonitor);
   ZM\Debug('Changes: '. print_r(ZM\redactForLog($changes), true));
   $restart = false;
+  $zmcStopped = false;
+  $actionsChanged = false;
 
   if (count($changes)) {
     // monitor->Id() has a value when the db record exists
@@ -180,6 +182,7 @@ if ($action == 'save') {
       # If we change anything that changes the shared mem size, zma can complain.  So let's stop first.
       if ($monitor->Type() != 'WebSite') {
         $monitor->zmcControl('stop');
+        $zmcStopped = true;
         if ($monitor->Controllable()) {
           $monitor->sendControlCommand('stop');
         }
@@ -382,8 +385,10 @@ if ($action == 'save') {
       $action_id = empty($posted['Id']) ? 0 : validInt($posted['Id']);
 
       if ( !$target ) {
-        if ( $action_id )
+        if ( $action_id ) {
           dbQuery('DELETE FROM MonitorActions WHERE Id=? AND MonitorId=?', array($action_id, $mid));
+          $actionsChanged = true;
+        }
         continue;
       }
 
@@ -452,20 +457,26 @@ if ($action == 'save') {
       if ( !$action ) $action = new ZM\MonitorAction();
 
       if ( $action->Id() ) {
+        if ( count($action->changes($values)) ) $actionsChanged = true;
         if ( $action->save($values) ) {
           $submitted_ids[] = $action->Id();
         } else {
           $error_message .= 'Error saving monitor action: '.$action->get_last_error().'<br/>';
         }
       } else if ( $action->insert($values) ) {
+        $actionsChanged = true;
         $submitted_ids[] = $action->Id();
       } else {
         $error_message .= 'Error saving monitor action: '.$action->get_last_error().'<br/>';
       }
     } # end foreach posted action
 
-    # zmc re-reads the action list on restart, so a change here needs one.
+    # zmc only re-reads the action list on restart or reload. If nothing above
+    # stopped it, start would find it running and do nothing.
     $restart = true;
+    if ( $actionsChanged and !$zmcStopped and $monitor->Type() != 'WebSite' ) {
+      $monitor->zmcControl('reload');
+    }
 
     # cron owns the scheduled ones, so the crontab is rebuilt from the table
     # on every save. Doing it here rather than on a timer means the crontab

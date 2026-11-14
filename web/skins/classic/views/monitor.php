@@ -1044,7 +1044,7 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
 ?>
             <li class="settingsGroup"><?php echo translate('MotionDetectionSettings') ?></li>
             <li class="Analysing">
-              <label><?php echo translate('Motion Detection') ?></label>
+              <label><?php echo translate('Motion Detection'); echo makeHelpLink('FUNCTION_ANALYSIS_ENABLED') ?></label>
               
 <?php
         echo htmlSelect('newMonitor[Analysing]', ZM\Monitor::getAnalysingOptions(),

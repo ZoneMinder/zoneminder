@@ -979,6 +979,10 @@ sub recover_timestamps {
   if ( @mp4_files ) {
     $Event->DefaultVideo($mp4_files[0]);
   }
+  if ( $Event->Scheme() eq 'Deep' and $path =~ m{(\d{2})/(\d{2})/(\d{2})/(\d{2})/(\d{2})/(\d{2})/?$} ) {
+    # The event's files are found through its start time, which names the directory
+    $Event->StartDateTime(sprintf('20%02d-%02d-%02d %02d:%02d:%02d', $1, $2, $3, $4, $5, $6));
+  }
 }
 
 # Return the duration of a video file in seconds (float), or undef if it

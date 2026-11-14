@@ -173,6 +173,13 @@ class GroupsController extends AppController {
         $moved = array_merge(array_diff($oldIds, $newIds), array_diff($newIds, $oldIds));
       }
       $parentId = $this->requestField('Group', 'ParentId');
+      # A parent loop makes the group code recurse forever.
+      for ($ancestor = (is_scalar($parentId) ? $parentId : null), $seen = array(); $ancestor and !isset($seen[$ancestor]); $ancestor = $this->Group->field('ParentId', array('Group.Id' => $ancestor))) {
+        if ($ancestor == $id) {
+          throw new BadRequestException(__('A group cannot be placed under itself or one of its own groups'));
+        }
+        $seen[$ancestor] = true;
+      }
       # Re-parenting moves every monitor of this group and its children between ancestors.
       if (($parentId !== null) and ($parentId != $group->ParentId())) {
         $moved = array_merge($moved, $group->MonitorIds());

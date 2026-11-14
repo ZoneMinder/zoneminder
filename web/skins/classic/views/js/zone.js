@@ -13,9 +13,35 @@ var monitors = [];
 var analyse_frames = true;
 var TimerHideShow;
 
+function segmentsIntersect(a, b, c, d) {
+  const cross = (p, q, r) => (q.x-p.x)*(r.y-p.y) - (q.y-p.y)*(r.x-p.x);
+  const within = (p, q, r) => Math.min(p.x, q.x) <= r.x && r.x <= Math.max(p.x, q.x) &&
+    Math.min(p.y, q.y) <= r.y && r.y <= Math.max(p.y, q.y);
+  const d1 = cross(c, d, a);
+  const d2 = cross(c, d, b);
+  const d3 = cross(a, b, c);
+  const d4 = cross(a, b, d);
+  if ( ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0)) ) return true;
+  return (d1 == 0 && within(c, d, a)) || (d2 == 0 && within(c, d, b)) ||
+    (d3 == 0 && within(a, b, c)) || (d4 == 0 && within(a, b, d));
+}
+
+/* The zone is edited in the page, so this has to look at the points as they are now */
+function pointsSelfIntersect(points) {
+  const n = points.length;
+  const pts = points.map((p) => ({x: parseFloat(p.x), y: parseFloat(p.y)}));
+  for ( let i = 0; i < n; i++ ) {
+    for ( let j = i+2; j < n; j++ ) {
+      if ( i == 0 && j == n-1 ) continue; // these edges share a vertex
+      if ( segmentsIntersect(pts[i], pts[(i+1)%n], pts[j], pts[(j+1)%n]) ) return true;
+    }
+  }
+  return false;
+}
+
 function validateForm( form ) {
   var errors = [];
-  if ( selfIntersecting ) {
+  if ( pointsSelfIntersect(zone['Points']) ) {
     errors[errors.length] = selfIntersectingString;
   }
   if ( form.elements['newZone[Type]'].value != 'Inactive' && form.elements['newZone[Type]'].value != 'Privacy' ) {

@@ -269,9 +269,9 @@ sub initialise( @ ) {
   if ( defined($ENV{LOG_PRINT}) ) {
     $tempTermLevel = $ENV{LOG_PRINT} ? DEBUG : $this->{termLevel};
   } elsif ( defined($options{termLevel}) ) {
-    $tempFileLevel = $options{termLevel};
+    $tempTermLevel = $options{termLevel};
   } else {
-    $tempFileLevel = $ZoneMinder::Config::Config{ZM_LOG_LEVEL_TERM};
+    $tempTermLevel = $ZoneMinder::Config::Config{ZM_LOG_LEVEL_TERM};
   }
   if ( defined($options{databaseLevel}) ) {
     $tempDatabaseLevel = $options{databaseLevel};
@@ -617,11 +617,13 @@ sub logPrint {
         # Turn this off because zDbConnect will do logging calls.
         my $oldlevel = $this->{databaseLevel};
         $this->{databaseLevel} = NOLOG;
-        if ( ! ZoneMinder::Database::zmDbConnect() ) {
+        my $connected = ZoneMinder::Database::zmDbConnect();
+        # Restore the level even when the connection is down so later calls retry.
+        $this->{databaseLevel} = $oldlevel;
+        if ( ! $connected ) {
           #print(STDERR "Can't log to database: ");
           return;
         }
-        $this->{databaseLevel} = $oldlevel;
       }
 
       my $sql = 'INSERT INTO Logs ( TimeKey, Component, ServerId, Pid, Level, Code, Message, File, Line ) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ? )';

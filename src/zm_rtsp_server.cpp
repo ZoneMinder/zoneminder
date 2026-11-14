@@ -52,6 +52,7 @@ zmc processes and provide those streams over rtsp
 #include "zm_define.h"
 #include "zm_monitor.h"
 #include "zm_rtsp_server_authenticator.h"
+#include "zm_rtsp_server_pts_tracker.h"
 #include "zm_rtsp_server_session_tracker.h"
 #include "zm_rtsp_server_stream_h264_source.h"
 #include "zm_rtsp_server_stream_av1_source.h"
@@ -119,19 +120,28 @@ class MonitorRtspStream {
       // sent to the old packer in that window is codec-mismatch garbage.
       if (!session_ or !tracker_.Accepts(header.generation))
         return;
+      int64_t pts = header.pts_us == AV_NOPTS_VALUE ? header.pts_us : pts_tracker_.Map(header.pts_us);
       if (header.stream == static_cast<uint8_t>(StreamId::Video)) {
         if (video_source_)
-          video_source_->OnPacket(data, size, header.pts_us);
+          video_source_->OnPacket(data, size, pts);
       } else {
         if (audio_source_)
-          audio_source_->OnPacket(data, size, header.pts_us);
+          audio_source_->OnPacket(data, size, pts);
       }
+    };
+    // The camera was reconnected: its timestamps start over under clients that stay connected
+    callbacks.on_event = [this](const Header &, const zm::stream_socket::MonitorEvent &event) {
+      if (event.code != zm::stream_socket::kEventCaptureResumed)
+        return;
+      std::lock_guard<std::mutex> lock(mutex_);
+      pts_tracker_.Discontinuity();
     };
     // The built session is kept across a disconnect; if the next producer
     // announces identical parameters it is adopted, clients and all.
     callbacks.on_disconnect = [this]() {
       std::lock_guard<std::mutex> lock(mutex_);
       tracker_.OnDisconnect();
+      pts_tracker_.Discontinuity();
     };
     std::string path = stringtf("%s/stream_%u.sock", staticConfig.PATH_SOCKS.c_str(), monitor_->Id());
     Info("Monitor %u: consuming stream socket %s", monitor_->Id(), path.c_str());
@@ -313,6 +323,7 @@ class MonitorRtspStream {
   ZoneMinderStreamSource *video_source_ = nullptr;
   ZoneMinderStreamSource *audio_source_ = nullptr;
   RtspSessionTracker tracker_;  // HELLO/generation bookkeeping, guarded by mutex_
+  RtspPtsTracker pts_tracker_;  // guarded by mutex_
 };
 
 void Usage() {
@@ -455,17 +466,27 @@ int main(int argc, char *argv[]) {
 
       if (stream.HasClients()) {
         // The shm connection is only needed for viewer accounting now
-        if (monitor->ShmValid() or monitor->connect()) {
-          monitor->setLastViewed(std::chrono::system_clock::now());
+        if (!monitor->ShmValid()) {
+          // zmc restarted: unmap its old shared memory instead of leaking it
+          monitor->disconnect();
+          if (!monitor->connect()) {
+            Debug(1, "Monitor %d shared memory not available yet, retrying next pass", monitor->Id());
+            continue;
+          }
         }
+        monitor->setLastViewed(std::chrono::system_clock::now());
       }
     }  // end foreach monitor
 
     {
       // Sleep until the next periodic pass, or earlier if a HELLO arrives
       // that needs a session (re)build
+      // Signal handlers cannot notify the condition variable, so poll for them
       std::unique_lock<std::mutex> lock(rebuild_mutex);
-      rebuild_cv.wait_for(lock, std::chrono::seconds(10), [] { return rebuild_pending; });
+      auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+      while (!rebuild_pending and !zm_terminate and !zm_reload
+             and std::chrono::steady_clock::now() < deadline)
+        rebuild_cv.wait_for(lock, std::chrono::milliseconds(200));
       rebuild_pending = false;
     }
 

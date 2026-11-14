@@ -145,17 +145,24 @@ class Group extends ZM_Object {
   public static function get_group_sql($group_id) {
     $groupSql = '';
     if ( $group_id ) {
-      if ( is_array($group_id) ) {
-        $group_id_sql_part = ' IN ('.implode(',', array_map(function(){return '?';}, $group_id ) ).')';
+      $group_ids = is_array($group_id) ? array_values($group_id) : array($group_id);
 
-        $MonitorIds = dbFetchAll('SELECT `MonitorId` FROM `Groups_Monitors` WHERE `GroupId`'.$group_id_sql_part, 'MonitorId', $group_id);
-
-        $MonitorIds = array_merge($MonitorIds, dbFetchAll('SELECT `MonitorId` FROM `Groups_Monitors` WHERE `GroupId` IN (SELECT `Id` FROM `Groups` WHERE `ParentId`'.$group_id_sql_part.')', 'MonitorId', $group_id));
-      } else { 
-        $MonitorIds = dbFetchAll('SELECT `MonitorId` FROM `Groups_Monitors` WHERE `GroupId`=?', 'MonitorId', array($group_id));
-
-        $MonitorIds = array_merge($MonitorIds, dbFetchAll('SELECT `MonitorId` FROM `Groups_Monitors` WHERE `GroupId` IN (SELECT `Id` FROM `Groups` WHERE `ParentId` = ?)', 'MonitorId', array($group_id)));
+      # Add the groups below the selected ones, however deep, so a group matches every monitor under it.
+      $all_ids = $group_ids;
+      $seen = array_flip($all_ids);
+      $parent_ids = $group_ids;
+      while (count($parent_ids)) {
+        $child_ids = dbFetchAll('SELECT `Id` FROM `Groups` WHERE `ParentId` IN ('.implode(',', array_map(function(){return '?';}, $parent_ids)).')', 'Id', $parent_ids);
+        $parent_ids = array();
+        foreach ($child_ids as $child_id) {
+          if (isset($seen[$child_id])) continue;
+          $seen[$child_id] = true;
+          $all_ids[] = $child_id;
+          $parent_ids[] = $child_id;
+        }
       }
+
+      $MonitorIds = dbFetchAll('SELECT `MonitorId` FROM `Groups_Monitors` WHERE `GroupId` IN ('.implode(',', array_map(function(){return '?';}, $all_ids)).')', 'MonitorId', $all_ids);
       $groupSql = " find_in_set( M.Id, '".implode(',', $MonitorIds)."' )";
     }
     return $groupSql;

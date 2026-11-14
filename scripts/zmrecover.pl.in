@@ -467,7 +467,11 @@ sub confirm {
     print( "\n" );
   } elsif ( $interactive ) {
     print(", $prompt Y/n/q: ");
-    my $char = <>;
+    my $char = <STDIN>;
+    if ( !defined $char ) {
+      Info('No answer on stdin, exiting');
+      Term();
+    }
     chomp( $char );
     if ( $char eq 'q' ) {
       Term();

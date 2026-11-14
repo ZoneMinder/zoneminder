@@ -263,9 +263,13 @@ while (!$zm_terminate) {
   # If we have NOT just reloaded all monitors, reload a specific monitor if its shared mem changed
   } elsif (@needsReload) { 
     foreach my $monitor (@needsReload) {
-      $monitor = $monitors{$monitor->Id()} = ZoneMinder::Monitor->find_one(Id=>$monitor->Id());
-      if ($$monitor{Capturing} eq 'None') {
-        delete $monitors{$monitor->Id()};
+      my $id = $monitor->Id();
+      $monitor = $monitors{$id} = ZoneMinder::Monitor->find_one(Id=>$id);
+      if (!$monitor) {
+        # Deleted from the database
+        delete $monitors{$id};
+      } elsif ($$monitor{Capturing} eq 'None') {
+        delete $monitors{$id};
       } elsif ($Config{ZM_SERVER_ID} and ($$monitor{ServerId} != $Config{ZM_SERVER_ID})) {
         delete $monitors{$monitor->Id()};
       } else {

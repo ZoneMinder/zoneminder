@@ -195,7 +195,7 @@ if (canEdit('Monitors')) {
 
       # If a monitor already exists for this url, offer to edit it instead of adding a duplicate.
       $monitor = null;
-      $existing = ZM\Monitor::find(array('Path'=>$url));
+      $existing = ZM\Monitor::find(array('Path'=>$url, 'Deleted'=>0));
       if ( count($existing) ) $monitor = $existing[0];
 
       $available_streams[] = array(

@@ -114,7 +114,9 @@ int Monitor::JanusManager::check_janus() {
     if (std::chrono::steady_clock::now()-rtsp_auth_time > hours/2) {
       remove_from_janus();
       load_from_monitor();
-      return add_to_janus();
+      // 0 tells Monitor::Poll the mountpoint is missing and to add it again.
+      int result = add_to_janus();
+      return result == 0 ? 1 : result;
     }
   }
 

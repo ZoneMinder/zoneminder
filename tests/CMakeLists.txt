@@ -83,7 +83,8 @@ set(TEST_SOURCES
   zm_ffmpeg_codec_tag.cpp
   zm_ffmpeg_fallback.cpp
   zm_go2rtc_check.cpp
-  zm_janus_ids.cpp)
+  zm_janus_ids.cpp
+  zm_janus_refresh.cpp)
 
 add_executable(tests ${TEST_SOURCES})
 

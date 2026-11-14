@@ -137,7 +137,11 @@ class GroupsController extends AppController {
         );
       } else {
         ZM\Error("Failed to save Group");
-        debug($this->Group->invalidFields());
+        $this->set(array(
+          'message' => $this->Group->validationErrors ? $this->Group->validationErrors : 'Error',
+          '_serialize' => array('message')
+        ));
+        return;
       }
     } # end if post
     $monitors = $this->Group->Monitor->find('list');
@@ -155,6 +159,7 @@ class GroupsController extends AppController {
 		if ( !$this->Group->exists($id) ) {
 			throw new NotFoundException(__('Invalid group'));
 		}
+    $message = '';
 		if ( $this->request->is(array('post', 'put'))) {
       global $user;
       # We already tested for auth in appController,
@@ -173,6 +178,13 @@ class GroupsController extends AppController {
         $moved = array_merge(array_diff($oldIds, $newIds), array_diff($newIds, $oldIds));
       }
       $parentId = $this->requestField('Group', 'ParentId');
+      # A parent loop makes the group code recurse forever.
+      for ($ancestor = (is_scalar($parentId) ? $parentId : null), $seen = array(); $ancestor and !isset($seen[$ancestor]); $ancestor = $this->Group->field('ParentId', array('Group.Id' => $ancestor))) {
+        if ($ancestor == $id) {
+          throw new BadRequestException(__('A group cannot be placed under itself or one of its own groups'));
+        }
+        $seen[$ancestor] = true;
+      }
       # Re-parenting moves every monitor of this group and its children between ancestors.
       if (($parentId !== null) and ($parentId != $group->ParentId())) {
         $moved = array_merge($moved, $group->MonitorIds());
@@ -193,7 +205,7 @@ class GroupsController extends AppController {
 		$this->set(array(
 			'message' => $message,
 			'group' => $group,
-			'_serialize' => array('group')
+			'_serialize' => array('message', 'group')
 		));
 	}
 

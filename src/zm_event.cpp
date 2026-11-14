@@ -363,9 +363,11 @@ Event::~Event() {
   Debug(1, "~Event %" PRIu64 ": complete", id);
 }  // Event::~Event()
 
-void Event::createNotes(std::string &notes) {
-  notes.clear();
-  for (StringSetMap::const_iterator mapIter = noteSetMap.begin(); mapIter != noteSetMap.end(); ++mapIter) {
+std::string Event::BuildNotes(const StringSetMap &note_set_map) {
+  std::string notes;
+  for (StringSetMap::const_iterator mapIter = note_set_map.begin(); mapIter != note_set_map.end(); ++mapIter) {
+    if (!notes.empty())
+      notes += "; ";
     notes += mapIter->first;
     notes += ": ";
     const StringSet &stringSet = mapIter->second;
@@ -375,10 +377,21 @@ void Event::createNotes(std::string &notes) {
       notes += *setIter;
     }
   }
+  return notes;
+}
+
+void Event::createNotes(std::string &notes) {
+  notes = BuildNotes(noteSetMap);
 }  // void Event::createNotes(std::string &notes)
 
 void Event::addNote(const char *cause, const std::string &note) {
-  noteSetMap[cause].insert(note);
+  if (!noteSetMap[cause].insert(note).second)
+    return;
+  std::string notes;
+  createNotes(notes);
+  std::string sql = stringtf("UPDATE `Events` SET `Notes` = '%s' WHERE `Id` = %" PRIu64,
+                             zmDbEscapeString(notes).c_str(), id);
+  dbQueue.push(std::move(sql));
 }
 
 bool Event::WriteFrameImage(Image *image, SystemTimePoint timestamp, const char *event_file, bool alarm_frame) const {

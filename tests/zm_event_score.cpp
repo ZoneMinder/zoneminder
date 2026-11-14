@@ -33,3 +33,15 @@ TEST_CASE("ClampSectionLength") {
   REQUIRE(ClampSectionLength(Seconds(1)) == Seconds(1));
   REQUIRE(ClampSectionLength(Seconds(600)) == Seconds(600));
 }
+
+TEST_CASE("Event::BuildNotes") {
+  Event::StringSetMap notes;
+  REQUIRE(Event::BuildNotes(notes) == "");
+
+  notes["Motion"] = {"Zone1", "Zone2"};
+  REQUIRE(Event::BuildNotes(notes) == "Motion: Zone1, Zone2");
+
+  // Groups must not run together, e.g. "Motion: Zone2Signal: Lost".
+  notes["Signal"] = {"Lost"};
+  REQUIRE(Event::BuildNotes(notes) == "Motion: Zone1, Zone2; Signal: Lost");
+}

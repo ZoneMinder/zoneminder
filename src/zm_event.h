@@ -159,6 +159,7 @@ class Event {
 
   std::map<const std::string,Tag> tags;
  public:
+  static std::string BuildNotes(const StringSetMap &note_set_map);
   static bool OpenFrameSocket(int);
   static bool ValidateFrameSocket(int);
 

@@ -192,7 +192,8 @@ function findFrameByTime(arr, time, debug=false) {
         if ((frame.TimeStampSecs != time) && (frame.Type == 'Bulk' || NextFrame.Type == 'Bulk')) {
           // There is time between this frame and a bulk frame
           var duration = frame.NextTimeStampSecs - frame.TimeStampSecs;
-          frame.FrameId = parseInt(frame.FrameId) + parseInt( (NextFrame.FrameId-frame.FrameId) * ( time-frame.TimeStampSecs )/duration );
+          // Interpolate on a copy: assigning to the stored frame moved it further on every call
+          return Object.assign({}, frame, {FrameId: parseInt(frame.FrameId) + parseInt( (NextFrame.FrameId-frame.FrameId) * ( time-frame.TimeStampSecs )/duration )});
           //console.log("Have NextFrame: duration: " + duration + " frame_id = " + frame.FrameId + " from " + NextFrame.FrameId + ' - ' + frame.FrameId + " time: " + (time-frame.TimeStampSecs)  );
         } else if (debug) {
           console.log("Bulk: " + "frame_id = " + frame.FrameId + " time: " + (time-frame.TimeStampSecs), (NextFrame.Type == 'Bulk'));

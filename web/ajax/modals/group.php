@@ -25,6 +25,7 @@ function get_children($Group) {
 }
 
 function parentGrpSelect($newGroup) {
+  global $children;
   $Groups = array();
   foreach ( ZM\Group::find() as $Group ) {
     $Groups[$Group->Id()] = $Group;

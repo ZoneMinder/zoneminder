@@ -269,7 +269,7 @@ function processRows(rows) {
     var tz_difference = (-1 * date.getTimezoneOffset() * 60) - server_utc_offset;
     now -= tz_difference;
 
-    if (!row.UpdatedOn || (new Date(row.UpdatedOn).getTime() < now - fps_report_seconds * 1000)) {
+    if (!row.UpdatedOn || (new Date(row.UpdatedOn).getTime() / 1000 < now - fps_report_seconds)) {
       functionHtml = 'Offline<br/>';
     } else {
       functionHtml = '';

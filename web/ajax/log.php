@@ -329,8 +329,11 @@ function queryRequest() {
     $sort = $_REQUEST['sort'];
     if ($sort == 'DateTime') $sort = 'TimeKey';
     if ($sort == 'Server') $sort = 'ServerId';
+    // Code is a label, so sorting it as text puts DB1, ERR, FAT, INF, PNC and
+    // WAR in alphabetical order. Sort by the level it stands for.
+    if ($sort == 'Code') $sort = 'Level';
   }
-  if (!in_array($sort, array_merge($columns, $col_alt))) {
+  if (!in_array($sort, array_merge($columns, $col_alt, array('Level')))) {
     ZM\Error('Invalid sort field: ' . $sort);
     return;
   }
@@ -380,13 +383,13 @@ function queryRequest() {
       JOIN (
         SELECT Id 
         FROM `'.$table.'` '.$where. ' 
-        ORDER BY ' .$sort. ' ' .$order. ' 
+        ORDER BY ' .$sort. ' ' .$order. ', Id ' .$order. ' 
         LIMIT ?, ?
       ) AS ' .$nameSubQuery. ' 
       ON ' .$nameMainQuery. '.Id=' .$nameSubQuery. '.Id 
-      ORDER BY ' .$nameMainQuery. '.' .$sort. ' ' .$order;
+      ORDER BY ' .$nameMainQuery. '.' .$sort. ' ' .$order. ', ' .$nameMainQuery. '.Id ' .$order;
   } else {
-    $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` ' .$where. ' ORDER BY ' .$sort. ' ' .$order. ' LIMIT ?, ?';
+    $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` ' .$where. ' ORDER BY ' .$sort. ' ' .$order. ', Id ' .$order. ' LIMIT ?, ?';
   }
 
   array_push($query['values'], $offset, $limit);

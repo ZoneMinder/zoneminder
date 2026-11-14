@@ -164,6 +164,9 @@ if (canEdit('Monitors')) {
       return;
     }
 
+    // Spreadsheets write UTF-8 CSV with a byte order mark that would stick to the first header cell
+    if ( fread($handle, 3) !== "\xEF\xBB\xBF" ) rewind($handle);
+
     $available_streams = array();
     $row = 0;
     while ( ($data = fgetcsv($handle, 1000, ',')) !== FALSE ) {

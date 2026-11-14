@@ -20,6 +20,7 @@
 #include "zm_time.h"
 
 #include <chrono>
+#include <cstdlib>
 #include <ctime>
 #include <string>
 
@@ -81,4 +82,33 @@ TEST_CASE("SystemTimePointToMysqlString: matches the second used to build the ev
 
   time_t path_sec = std::chrono::system_clock::to_time_t(tp);
   REQUIRE(SystemTimePointToMysqlString(tp) == LocalSecondString(path_sec));
+}
+
+struct ScopedTimezone {
+  std::string old_tz;
+  bool had_tz;
+  explicit ScopedTimezone(const char *tz) {
+    const char *old = getenv("TZ");
+    had_tz = (old != nullptr);
+    if (had_tz) old_tz = old;
+    setenv("TZ", tz, 1);
+    tzset();
+  }
+  ~ScopedTimezone() {
+    if (had_tz) setenv("TZ", old_tz.c_str(), 1);
+    else unsetenv("TZ");
+    tzset();
+  }
+};
+
+TEST_CASE("StringToSystemTimePoint: reads daylight saving time wall clock times correctly") {
+  // 2026-07-15 10:00:00 America/New_York is EDT (UTC-4), so 14:00:00 UTC.
+  ScopedTimezone tz("America/New_York");
+  SystemTimePoint summer = StringToSystemTimePoint("2026-07-15 10:00:00");
+  REQUIRE(std::chrono::system_clock::to_time_t(summer) == 1784124000);
+  REQUIRE(SystemTimePointToMysqlString(summer) == "2026-07-15 10:00:00");
+
+  // 2026-01-15 10:00:00 America/New_York is EST (UTC-5), so 15:00:00 UTC.
+  SystemTimePoint winter = StringToSystemTimePoint("2026-01-15 10:00:00");
+  REQUIRE(std::chrono::system_clock::to_time_t(winter) == 1768489200);
 }

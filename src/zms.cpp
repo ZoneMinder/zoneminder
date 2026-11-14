@@ -210,6 +210,7 @@ int main(int argc, const char *argv[], char **envp) {
       std::tm tm = {};
       std::stringstream ss(value);
       ss >> std::get_time(&tm, "%Y-%m-%d %H:%M:%S");
+      tm.tm_isdst = -1;  // let mktime decide, otherwise summer times are read as standard time
       event_time = std::chrono::system_clock::from_time_t(std::mktime(&tm));
       //Debug(1, "Setting event_time to %s", SystemTimePointToString(event_time).c_str());
     } else if ( !strcmp(name, "time") ) {

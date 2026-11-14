@@ -446,11 +446,11 @@ function delete_layout(button) {
 // Manage the DELETE CONFIRMATION modal button
 function manageDelConfirmModalBtns() {
   document.getElementById('delConfirmBtn').addEventListener('click', function onDelConfirmClick(evt) {
-    document.getElementById('delConfirmBtn').disabled = true; // prevent double click
-    if (!canEdit.Monitors) {
+    if (!canEdit.System) {
       enoperm();
       return;
     }
+    document.getElementById('delConfirmBtn').disabled = true; // prevent double click
     evt.preventDefault();
 
     const form = $j('#btnDeleteLayout')[0].form;

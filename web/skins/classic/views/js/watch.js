@@ -1550,10 +1550,15 @@ window.addEventListener('pageshow', () => {
   }, 100);
 });
 
+var pageStopped = false;
 function stopPage() {
   // Avoid calling stopPage() twice, as stopPage() can be called asynchronously from different places.
   // For example, if 'freeze' is triggered earlier than 15 seconds after visibilityState === "hidden"
   TimerHideShow = clearTimeout(TimerHideShow);
+  // A second call would see the stream already stopped and the cycle already
+  // paused, and overwrite the state startPage() needs to restore.
+  if (pageStopped) return;
+  pageStopped = true;
   prevStateCycle = cycle;
   if (prevStateCycle) cycleStop();
   if (monitorStream) {
@@ -1576,6 +1581,7 @@ function stopPage() {
 function startPage() {
   // Always clear it because the return to visibility might happen before timeout
   TimerHideShow = clearTimeout(TimerHideShow);
+  pageStopped = false;
   // The stream src still carries the auth hash from before we were hidden. If
   // we were away long enough for it to expire, get a fresh one before starting
   // anything, otherwise zms 403s the reconnect (auth-helpers.js).

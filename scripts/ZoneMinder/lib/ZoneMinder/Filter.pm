@@ -597,6 +597,9 @@ sub Sql {
         $sort_column = 'E.MaxScore';
       } elsif ( $filter_expr->{sort_field} eq 'DiskSpace' ) {
         $sort_column = 'E.DiskSpace';
+      } elsif ( $filter_expr->{sort_field} eq 'Tags' ) {
+        # Tags is not an Events column, and the Tags alias only exists when the filter has a Tags term
+        $sort_column = '(SELECT GROUP_CONCAT(Name) FROM Tags WHERE Id IN (SELECT TagId FROM Events_Tags WHERE Events_Tags.EventId=E.Id))';
       } elsif ( $filter_expr->{sort_field} ne '' ) {
         $sort_column = 'E.'.$filter_expr->{sort_field};
       }

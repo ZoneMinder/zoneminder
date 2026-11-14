@@ -166,7 +166,8 @@ class HostController extends AppController {
       if ( ZM_AUTH_RELAY == 'hashed' ) {
         $credentials = 'auth='.generateAuthHash(ZM_AUTH_HASH_IPS, true);
       } else {
-        $credentials = 'user='.$_SESSION['Username'].'&pass=';
+        global $user;
+        $credentials = 'user='.urlencode($user->Username()).'&pass=';
         $appendPassword = 1;
       }
     }

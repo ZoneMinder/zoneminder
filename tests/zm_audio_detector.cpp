@@ -21,6 +21,7 @@
 
 #include <cmath>
 #include <cstring>
+#include <limits>
 #include <vector>
 
 namespace {
@@ -85,6 +86,11 @@ TEST_CASE("Audio RMS of float samples") {
     // clamp a hot AAC stream would report a level above 100.
     const std::vector<float> samples(64, 4.0f);
     REQUIRE(AudioDetector::RmsFloat(samples.data(), samples.size()) == Catch::Approx(1.0));
+  }
+
+  SECTION("NaN samples count as silence rather than full scale") {
+    const std::vector<float> samples(64, std::numeric_limits<float>::quiet_NaN());
+    REQUIRE(AudioDetector::RmsFloat(samples.data(), samples.size()) == 0.0);
   }
 }
 

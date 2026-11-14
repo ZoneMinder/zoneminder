@@ -145,9 +145,13 @@ class Group extends ZM_Object {
   public static function get_group_sql($group_id) {
     $groupSql = '';
     if ( $group_id ) {
+      # The selection can outlive its group (the filter cookie after a delete).
+      $selected = is_array($group_id) ? array_values($group_id) : array($group_id);
+      $group_id = dbFetchAll('SELECT `Id` FROM `Groups` WHERE `Id` IN ('.implode(',', array_map(function(){return '?';}, $selected)).')', 'Id', $selected);
+    }
+    if ( $group_id ) {
       $group_ids = is_array($group_id) ? array_values($group_id) : array($group_id);
 
-      # Add the groups below the selected ones, however deep, so a group matches every monitor under it.
       $all_ids = $group_ids;
       $seen = array_flip($all_ids);
       $parent_ids = $group_ids;

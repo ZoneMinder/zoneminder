@@ -88,7 +88,7 @@ if [[ -n "$ZM_CONFIG" && ! -f "$ZM_CONFIG" ]]; then
 fi
 
 # Load zm.conf
-for zmconf in "$ZM_CONFIG" ./zm.conf /etc/zm.conf /etc/zoneminder/zm.conf; do
+for zmconf in "$ZM_CONFIG" ./zm.conf "@ZM_CONFIG@" /etc/zm.conf /etc/zoneminder/zm.conf; do
 	if [[ -f "$zmconf" ]]; then
 		echo "Using $zmconf"
 		source "$zmconf"

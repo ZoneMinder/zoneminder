@@ -139,6 +139,8 @@ foreach my $event_id (@ARGV) {
     zmDbDo('UPDATE Frames SET EventId=? WHERE EventId=?', $new_id, $event_id);
     zmDbDo('UPDATE Stats SET EventId=? WHERE EventId=?', $new_id, $event_id);
     zmDbDo('UPDATE Event_Data SET EventId=? WHERE EventId=?', $new_id, $event_id);
+    zmDbDo('UPDATE Events_Tags SET EventId=? WHERE EventId=?', $new_id, $event_id);
+    zmDbDo('UPDATE Snapshots_Events SET EventId=? WHERE EventId=?', $new_id, $event_id);
     $event->delete();
   }
 }

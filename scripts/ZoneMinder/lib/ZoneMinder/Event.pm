@@ -85,6 +85,7 @@ $serial = $primary_key = 'Id';
   TotScore
   AvgScore
   MaxScore
+  MaxScoreFrameId
   Archived
   Videoed
   Uploaded
@@ -97,12 +98,16 @@ $serial = $primary_key = 'Id';
   DiskSpace
   SaveJPEGs
   Scheme
+  Locked
+  Latitude
+  Longitude
 );
 %defaults = (
   Cause =>  q`'Unknown'`,
   DefaultVideo  => q`''`,
   TotScore => '0',
   Archived  =>  '0',
+  Locked  =>  '0',
   Videoed  =>  '0',
   Uploaded  =>  '0',
   Emailed   =>  '0',

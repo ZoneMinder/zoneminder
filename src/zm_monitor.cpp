@@ -2633,14 +2633,17 @@ bool Monitor::Analyse() {
                 // lands exactly on a multiple of section_length. A sub-1fps camera (or
                 // timing jitter) can step over that exact second, which used to leave
                 // the event open until the next multiple a frame happened to hit. The
-                // new event then starts on the first frame past the boundary, so events
-                // stay aligned to section_length intervals. refs #3197
-                if (crossedSectionBoundary(event->StartTime(), packet->timestamp, section_length)) {
+                // new event then opens on the first frame past the boundary, so events
+                // stay aligned to section_length intervals. Measure from the frame that
+                // opened the event, not event->StartTime(): passthrough backdates the
+                // start to a keyframe that can lie before the boundary, which would
+                // close every replacement event again after min_section_length. refs #3197
+                if (crossedSectionBoundary(event_open_time, packet->timestamp, section_length)) {
                   Info("%s: %03d - Closing event %" PRIu64 ", section boundary crossed %" PRIi64 " -> %" PRIi64 " (section %" PRIi64 ")",
                        name.c_str(),
                        packet->image_index,
                        event->Id(),
-                       static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
+                       static_cast<int64>(std::chrono::duration_cast<Seconds>(event_open_time.time_since_epoch()).count()),
                        static_cast<int64>(std::chrono::duration_cast<Seconds>(packet->timestamp.time_since_epoch()).count()),
                        static_cast<int64>(section_length.count())
                        );
@@ -4064,6 +4067,7 @@ Event * Monitor::openEvent(
   const std::string &cause,
   const Event::StringSetMap &noteSetMap) {
 
+  event_open_time = packet_lock->packet_->timestamp;
   // FIXME this iterator is not protected from invalidation
   packetqueue_iterator *start_it = packetqueue.get_event_start_packet_it(
       *analysis_it,

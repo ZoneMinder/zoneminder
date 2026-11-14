@@ -66,6 +66,18 @@ TEST_CASE("Monitor::crossedSectionBoundary") {
     REQUIRE(Monitor::crossedSectionBoundary(at(37800), at(39600), len));
   }
 
+  SECTION("passthrough rollover: measured from the opening frame, not the backdated keyframe") {
+    // Boundary 39600. The frame at 39603 closed the previous event; passthrough
+    // starts the replacement on the keyframe at 39595, in the previous section.
+    // Measured from that keyframe every later frame looks like a crossing, so the
+    // replacement would close again after min_section_length. Measured from the
+    // opening frame it stays open until the next boundary.
+    REQUIRE(Monitor::crossedSectionBoundary(at(39595), at(39613), len));
+    REQUIRE_FALSE(Monitor::crossedSectionBoundary(at(39603), at(39613), len));
+    REQUIRE_FALSE(Monitor::crossedSectionBoundary(at(39603), at(43199), len));
+    REQUIRE(Monitor::crossedSectionBoundary(at(39603), at(43200), len));
+  }
+
   SECTION("section_length <= 0 never closes on time") {
     REQUIRE_FALSE(Monitor::crossedSectionBoundary(at(0), at(100000), Seconds(0)));
     REQUIRE_FALSE(Monitor::crossedSectionBoundary(at(0), at(100000), Seconds(-5)));

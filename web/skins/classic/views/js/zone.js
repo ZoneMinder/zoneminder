@@ -415,6 +415,7 @@ function addPoint(index) {
 function delPoint(index) {
   zone['Points'].splice(index, 1);
   drawZonePoints();
+  updateArea();
 }
 
 function limitPointValue(point, loVal, hiVal) {

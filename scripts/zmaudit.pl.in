@@ -856,6 +856,13 @@ FROM `Frames` WHERE `EventId`=?';
   } # end while unclosed event
   Debug('Done closing open events.');
 
+  $loop = $continuous;
+
+  if ( $report ) {
+    Debug('Report only, not removing old files, pruning logs or resyncing counters.');
+    last MAIN;
+  }
+
 # Now delete any old image files
   if ( my @old_files = grep { -M > $max_image_age } <$image_path/*.{jpg,gif,wbmp}> ) {
     aud_print('Deleting '.int(@old_files).' old images');
@@ -950,7 +957,6 @@ FROM `Frames` WHERE `EventId`=?';
       } while ( $deleted_rows );
     }
   } # end if ZM_LOG_AUDIT_DATABASE_LIMIT
-  $loop = $continuous;
 
   # Resync Event_Summaries from ground truth in Events + bucket tables.
   #

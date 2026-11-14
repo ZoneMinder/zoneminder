@@ -127,7 +127,7 @@ function initPage() {
   // Manage the CANCEL Button
   document.getElementById("cancelBtn").addEventListener("click", function onCancelClick(evt) {
     evt.preventDefault();
-    window.location.assign('?view=controlcaps');
+    window.location.assign('?view=options&tab=control');
   });
 }
 

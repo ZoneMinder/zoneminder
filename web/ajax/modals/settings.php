@@ -40,7 +40,7 @@ if ($zmuOutput) {
         // We have to manually insert the csrf key into the form when using a modal generated via ajax call
         echo getCSRFinputHTML();
         ?>
-        <input type="hidden" name="view" value="<?php echo $view ?>"/>
+        <input type="hidden" name="view" value="settings"/>
         <input type="hidden" name="action" value="settings"/>
         <input type="hidden" name="mid" value="<?php echo $mid; ?>"/>
         <table id="contentTable" class="major">

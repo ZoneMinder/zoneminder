@@ -57,7 +57,9 @@ class GroupsController extends AppController {
 
     if ( $this->request->params['named'] ) {
       $this->FilterComponent = $this->Components->load('Filter');
-      $conditions = $this->FilterComponent->buildFilter($this->request->params['named'], array_keys($this->Group->schema()));
+      // Groups_Monitors is joined below and has an Id column too, so write Group.Id.
+      $named = $this->FilterComponent->qualifyFields($this->request->params['named'], array('Group' => array_keys($this->Group->schema())));
+      $conditions = $this->FilterComponent->buildFilter($named, array_keys($this->Group->schema()));
     } else {
       $conditions = array();
     }

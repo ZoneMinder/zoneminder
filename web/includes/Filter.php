@@ -900,7 +900,7 @@ class Filter extends ZM_Object {
         continue;
       }
       $events[] = $event;
-      if ($this->limit() and (count($events) > $this->limit())) {
+      if ($this->limit() and (count($events) >= $this->limit())) {
         break;
       }
     } # end foreach row

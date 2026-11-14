@@ -116,7 +116,7 @@ $valid_navbar_types = ['normal'=>1, 'collapsed'=>1, 'left'=>1];
 
 # Cookie overrides session
 if (isset($_COOKIE['zmNavbar_type'])) {
-  if (isset($valid_navbar_types[$_COOKIE['zmNavbar_type']])) {
+  if (is_string($_COOKIE['zmNavbar_type']) and isset($valid_navbar_types[$_COOKIE['zmNavbar_type']])) {
     $navbar_type = $_COOKIE['zmNavbar_type'];
   } else {
     ZM\Error('Invalid navbar_type '.$_COOKIE['zmNavbar_type'].' specified');
@@ -124,7 +124,7 @@ if (isset($_COOKIE['zmNavbar_type'])) {
 }
 
 if (isset($_REQUEST['navbar_type'])) {
-  if (isset($valid_navbar_types[$_REQUEST['navbar_type']])) {
+  if (is_string($_REQUEST['navbar_type']) and isset($valid_navbar_types[$_REQUEST['navbar_type']])) {
     $navbar_type = $_REQUEST['navbar_type'];
   } else {
     ZM\Error('Invalid navbar_type '.$_REQUEST['navbar_type'].' specified');

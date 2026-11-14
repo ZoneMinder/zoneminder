@@ -325,7 +325,8 @@ bool Zone::CheckAlarms(const Image *delta_image) {
 
   Debug(4, "Checking alarms for zone %d/%s in lines %d -> %d", id, label.c_str(), lo_y, hi_y);
 
-  std_alarmedpixels(delta_image, diff_image, pg_image, &stats.alarm_pixels_, &pixel_diff_count);
+  Box alarmed_box;
+  std_alarmedpixels(delta_image, diff_image, pg_image, &stats.alarm_pixels_, &pixel_diff_count, &alarmed_box);
 
   if (config.record_diag_images) {
     diff_image->WriteJpeg(diag_path, config.record_diag_images_fifo);
@@ -361,6 +362,13 @@ bool Zone::CheckAlarms(const Image *delta_image) {
     stats.score_ = 1; /* Fix for score of 0 when frame meets thresholds but alarmed area is not big enough */
   Debug(5, "Current score is %d", stats.score_);
 
+  alarm_lo_x = alarmed_box.Lo().x_;
+  alarm_lo_y = alarmed_box.Lo().y_;
+  alarm_hi_x = alarmed_box.Hi().x_;
+  alarm_hi_y = alarmed_box.Hi().y_;
+  alarm_mid_x = (alarm_hi_x+alarm_lo_x+1)/2;
+  alarm_mid_y = (alarm_hi_y+alarm_lo_y+1)/2;
+
   if (check_method >= FILTERED_PIXELS) {
     int bx = filter_box.x_;
     int by = filter_box.y_;
@@ -373,6 +381,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
       unsigned char *cpdiff;
       int ldx, hdx, ldy, hdy;
       bool block;
+      int filter_lo_x = diff_width, filter_hi_x = -1, filter_lo_y = diff_height, filter_hi_y = -1;
       for (int y = lo_y; y <= hi_y; y++) {
         int lo_x = ranges[y].lo_x;
         int hi_x = ranges[y].hi_x;
@@ -408,9 +417,19 @@ bool Zone::CheckAlarms(const Image *delta_image) {
               continue;
             }
             stats.alarm_filter_pixels_++;
+            if (x < filter_lo_x) filter_lo_x = x;
+            if (x > filter_hi_x) filter_hi_x = x;
+            if (y < filter_lo_y) filter_lo_y = y;
+            if (y > filter_hi_y) filter_hi_y = y;
           }  // end if white
         }  // end for x
       }  // end foreach y line
+      if (stats.alarm_filter_pixels_) {
+        alarm_lo_x = filter_lo_x;
+        alarm_hi_x = filter_hi_x;
+        alarm_lo_y = filter_lo_y;
+        alarm_hi_y = filter_hi_y;
+      }
     } else {
       stats.alarm_filter_pixels_ = stats.alarm_pixels_;
     }
@@ -1226,7 +1245,8 @@ void Zone::std_alarmedpixels(
   Image* pmask_image,
   const Image* ppoly_image,
   unsigned int* pixel_count,
-  unsigned int* pixel_sum) {
+  unsigned int* pixel_sum,
+  Box* alarmed_box) {
   uint32_t pixelsalarmed = 0;
   uint32_t pixelsdifference = 0;
 
@@ -1244,6 +1264,8 @@ void Zone::std_alarmedpixels(
   if (hi_y >= img_height) hi_y = img_height - 1;
   if (lo_y > hi_y) { *pixel_count = 0; *pixel_sum = 0; return; }
 
+  int box_lo_x = img_width, box_hi_x = -1, box_lo_y = img_height, box_hi_y = -1;
+
   for (int y = lo_y; y <= hi_y; y++) {
     const int lo_x = ranges[y].lo_x;
     const int hi_x = ranges[y].hi_x;
@@ -1253,18 +1275,32 @@ void Zone::std_alarmedpixels(
     // Clamp hi_x to image width
     const int clamped_hi_x = (hi_x >= img_width) ? img_width - 1 : hi_x;
 
+    const uint32_t alarmed_before = pixelsalarmed;
+    const int count = clamped_hi_x - lo_x + 1;
+    const uint8_t *pmask = pmask_image->Buffer(lo_x, y);
     alarmedpixels_row(
         pdelta_image->Buffer(lo_x, y),
         pmask_image->Buffer(lo_x, y),
         ppoly_image->Buffer(lo_x, y),
-        clamped_hi_x - lo_x + 1,
+        count,
         calc_min, calc_max,
         pixelsalarmed, pixelsdifference);
+
+    if (pixelsalarmed != alarmed_before) {
+      int last = count - 1;
+      while (pmask[last] == kBlack) last--;
+      const int first = leading_black(pmask, count);
+      if (lo_x + first < box_lo_x) box_lo_x = lo_x + first;
+      if (lo_x + last > box_hi_x) box_hi_x = lo_x + last;
+      if (y < box_lo_y) box_lo_y = y;
+      box_hi_y = y;
+    }
   }  // end for y = lo_y to hi_y
 
   /* Store the results */
   *pixel_count = pixelsalarmed;
   *pixel_sum = pixelsdifference;
+  if (pixelsalarmed) *alarmed_box = Box(Vector2(box_lo_x, box_lo_y), Vector2(box_hi_x, box_hi_y));
   Debug(7, "STORED pixelsalarmed(%d), pixelsdifference(%d)", pixelsalarmed, pixelsdifference);
 }  // end void Zone::std_alarmedpixels
 

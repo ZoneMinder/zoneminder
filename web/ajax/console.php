@@ -212,10 +212,9 @@ function queryRequest() {
   
   // Apply MonitorName and Source request filters
   if ($request_filters['MonitorName']) {
-    $regexp = $request_filters['MonitorName'];
-    if (!strpos($regexp, '/')) $regexp = '/'.$regexp.'/i';
+    $regexp = monitorNameRegexp($request_filters['MonitorName']);
     $filtered_monitors = array_filter($filtered_monitors, function($monitor) use ($regexp) {
-      return @preg_match($regexp, $monitor['Name']);
+      return preg_match($regexp, $monitor['Name']);
     });
   }
   

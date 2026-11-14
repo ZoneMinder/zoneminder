@@ -43,6 +43,18 @@ function getFilterSelection($name) {
   return $selectedValue;
 }
 
+// The Name filter takes plain text or a regular expression, optionally in
+// /pattern/flags form. strpos() cannot tell a leading '/' from none, so a
+// delimited pattern was wrapped a second time, and text that is not a valid
+// regular expression (an unclosed bracket, say) never fell back to a literal
+// match because PHP 8 no longer sets $php_errormsg.
+function monitorNameRegexp($filter) {
+  $regexp = preg_match('/^\/.+\/[a-z]*$/i', $filter) ? $filter : '/'.str_replace('/', '\/', $filter).'/i';
+  if (@preg_match($regexp, '') === false)
+    $regexp = '/'.preg_quote($filter, '/').'/i';
+  return $regexp;
+}
+
 // Deleted monitors are hidden from every monitor listing, which leaves no way
 // to find one again after it has been deleted. 'Deleted' is therefore offered
 // as a pseudo status in the Status filter: on its own it lists only the deleted
@@ -117,10 +129,7 @@ function getFilteredMonitorIds() {
       continue; // never widen visibility beyond what the user may view
 
     if ($monitorNameFilter) {
-      $regexp = $monitorNameFilter;
-      if (!strpos($regexp, '/')) $regexp = '/'.$regexp.'/i';
-      if (@preg_match($regexp, '') === false) $regexp = '/'.preg_quote($monitorNameFilter, '/').'/i';
-      if (!@preg_match($regexp, $row['Name'])) continue;
+      if (!preg_match(monitorNameRegexp($monitorNameFilter), $row['Name'])) continue;
     }
     if ($sourceFilter) {
       $Monitor = new ZM\Monitor($row);
@@ -365,17 +374,7 @@ function buildMonitorsFilters() {
     $monitorNameFilter = getFilterSelection('MonitorName');
     if ( $monitorNameFilter ) {
       $Monitor = new ZM\Monitor($monitors[$i]);
-      ini_set('track_errors', 'on');
-      $php_errormsg = '';
-      $regexp = $monitorNameFilter;
-      if (!strpos($regexp, '/')) $regexp = '/'.$regexp.'/i';
-
-      @preg_match($regexp, '');
-      if ( $php_errormsg ) {
-        $regexp = '/'.preg_quote($regexp,'/').'/i';
-      }
-
-      if ( !@preg_match($regexp, $Monitor->Name()) ) {
+      if ( !preg_match(monitorNameRegexp($monitorNameFilter), $Monitor->Name()) ) {
         continue;
       }
     }

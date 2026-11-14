@@ -614,7 +614,7 @@ switch ($name) {
         if ( $optCount && ($optCount%$breakCount == 0) )
           echo '</br>';
         echo '<input type="checkbox" name="newMonitor[Triggers][]" value="'.$optTrigger.'"'.
-          (( ('' !== $monitor->Triggers()) && in_array($optTrigger, $monitor->Triggers()) ) ? ' checked="checked"' : ''). '/> '. $optTrigger;
+          (( ('' !== $monitor->Triggers()) && in_array($optTrigger, explode(',', $monitor->Triggers())) ) ? ' checked="checked"' : ''). '/> '. $optTrigger;
         $optCount ++;
       } # end foreach trigger option
       if ( !$optCount ) {

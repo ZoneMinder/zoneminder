@@ -227,11 +227,13 @@ MAIN: while( $loop ) {
   } # end while monitors
 
   my $fs_monitors;
+  my %unavailable_storage;
 
   foreach my $Storage ( @Storage_Areas ) {
     Debug('Checking events in ' . $Storage->Path() );
     if ( ! chdir( $Storage->Path() ) ) {
-      Error( 'Unable to change dir to ' . $Storage->Path() );
+      Error( 'Unable to change dir to ' . $Storage->Path() . ', not auditing its events' );
+      $unavailable_storage{$Storage->Id()} = 1;
       next;
     } # end if
 
@@ -584,6 +586,10 @@ EVENT: foreach my $i ( 0 .. $#db_event_ids ) {
         my $Event = ($$db_rows{$db_event} ? ZoneMinder::Event->new($db_event, $$db_rows{$db_event}) : undef);
         if ( ! $Event ) {
           Debug("Event $db_event is no longer in db.  Filter probably deleted it while we were auditing.");
+          next;
+        }
+        if ( $unavailable_storage{$$Event{StorageId} // 0} ) {
+          Debug("Event $db_event is on a storage area that could not be read, leaving it alone.");
           next;
         }
         Debug("Event $db_event is not in fs. Should have been at ".$Event->Path());

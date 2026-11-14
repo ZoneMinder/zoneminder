@@ -698,6 +698,7 @@ function dms2ll(input) {
   const latitude = document.getElementById('newMonitor[Latitude]');
   const longitude = document.getElementById('newMonitor[Longitude]');
   const dms = parseDms(input.value);
+  if (isNaN(dms)) return;
 
   if (input.id == 'LatitudeDMS') {
     latitude.value = dms.toFixed(8);

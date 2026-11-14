@@ -259,7 +259,9 @@ class Event extends ZM_Object {
           deletePath($eventPath);
           deletePath($id_files[0]);
           $pathParts = explode('/', $eventPath);
-          for ( $i = count($pathParts)-1; $i >= 2; $i-- ) {
+          # Stop at the monitor directory, never remove the storage area itself
+          $keepParts = count(explode('/', rtrim($Storage->Path(), '/'))) + 1;
+          for ( $i = count($pathParts)-1; $i > $keepParts; $i-- ) {
             $deletePath = join('/', array_slice($pathParts, 0, $i));
             if ( !glob($deletePath.'/*') ) {
               deletePath($deletePath);

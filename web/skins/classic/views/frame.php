@@ -40,6 +40,7 @@ if (!empty($fid)) {
   $frame = dbFetchOne('SELECT * FROM Frames WHERE EventId=? AND Score=?', NULL, array($eid, $Event->MaxScore()));
 }
 $Frame = new ZM\Frame($frame);
+if (!$fid) $fid = (int)$Frame->FrameId(); // fid=0 loaded the max score frame, navigate and fetch stats from its real id
 $maxFid = $Event->Frames();
 
 $firstFid = 1;

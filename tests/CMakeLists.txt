@@ -85,7 +85,12 @@ set(TEST_SOURCES
   zm_logger_reload.cpp
   zm_ffmpeg_camera.cpp
   zm_ffmpeg_codec_tag.cpp
-  zm_ffmpeg_fallback.cpp)
+  zm_ffmpeg_fallback.cpp
+  zm_go2rtc_check.cpp
+  zm_janus_ids.cpp
+  zm_janus_refresh.cpp
+  zm_restream_user_missing.cpp
+  zm_stream_manager_json.cpp)
 
 add_executable(tests ${TEST_SOURCES})
 

@@ -28,6 +28,25 @@
 
 #if HAVE_LIBCURL
 
+namespace {
+
+// go2rtc writes its JSON with Go's encoding/json, which also escapes & < > as
+// \u0026 \u003c \u003e, so the stream list holds a URL in this form.
+std::string go_json_escape(const std::string &input) {
+  std::string output;
+  for (char c : escape_json_string(input)) {
+    switch (c) {
+    case '&': output += "\\u0026"; break;
+    case '<': output += "\\u003c"; break;
+    case '>': output += "\\u003e"; break;
+    default: output += c; break;
+    }
+  }
+  return output;
+}
+
+}  // namespace
+
 Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
     : parent(parent_), Go2RTC_Healthy(false) {
 
@@ -62,9 +81,13 @@ Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
     if (config.opt_use_auth) {
       if (parent->rtsp_user) {
         User *rtsp_user = User::find(parent->rtsp_user);
-        std::string auth_key = rtsp_user->getAuthHash();
-        rtsp_restream_path += "?auth=" + auth_key;
-        last_auth_refresh = std::chrono::system_clock::now();
+        if (rtsp_user) {
+          std::string auth_key = rtsp_user->getAuthHash();
+          rtsp_restream_path += "?auth=" + auth_key;
+          last_auth_refresh = std::chrono::system_clock::now();
+        } else {
+          Warning("Go2RTC: Could not find RTSP user %d for RTSP_Server authentication", parent->rtsp_user);
+        }
       } else {
         Warning("No user selected for RTSP_Server authentication!");
       }
@@ -218,7 +241,8 @@ int Monitor::Go2RTCManager::check_Go2RTC() {
   Debug(2, "Go2RTC: Check response: %zu bytes", response.size());
   Debug(2, "Go2RTC: Looking for primary path: %s", url_for_log(primary_path).c_str());
 
-  if (response.find(primary_path) == std::string::npos) {
+  if (response.find(primary_path) == std::string::npos &&
+      response.find(go_json_escape(primary_path)) == std::string::npos) {
     Debug(1, "Go2RTC: Stream not found in Go2RTC (expected path '%s' not in response)", url_for_log(primary_path).c_str());
     return 0;
   }

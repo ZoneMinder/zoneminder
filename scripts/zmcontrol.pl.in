@@ -34,6 +34,7 @@ use Data::Dumper;
 
 use constant MAX_CONNECT_DELAY => 15;
 use constant MAX_COMMAND_WAIT => 1800;
+use constant CLIENT_READ_TIMEOUT => 5;
 
 $| = 1;
 
@@ -247,7 +248,13 @@ if ($options{command}) {
     if ( $nfound > 0 ) {
       if ( vec($rout, fileno(SERVER), 1) ) {
         my $paddr = accept(CLIENT, SERVER);
-        my $message = <CLIENT>;
+        my $message = '';
+        my $deadline = time() + CLIENT_READ_TIMEOUT;
+        while ( (my $wait = $deadline - time()) > 0 ) {
+          vec(my $cin = '', fileno(CLIENT), 1) = 1;
+          last if select(my $cout = $cin, undef, undef, $wait) <= 0;
+          last if !sysread(CLIENT, $message, 4096, length($message));
+        }
 
         if ( !$message ) {
           close(CLIENT);

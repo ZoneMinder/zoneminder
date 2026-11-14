@@ -159,6 +159,8 @@ class FilterTerm {
         $value = '';
         break;
       case 'DiskPercent':
+      case 'DiskBlocks':
+      case 'SystemLoad':
         $value = '';
         break;
       case 'Tags':
@@ -253,6 +255,8 @@ class FilterTerm {
       return ' EXISTS ';
     case 'ExistsInFileSystem':
     case 'DiskPercent':
+    case 'DiskBlocks':
+    case 'SystemLoad':
       return '';
     }
 
@@ -307,6 +311,8 @@ class FilterTerm {
       return '/* AlarmedZoneId */ ';
     case 'ExistsInFileSystem':
     case 'DiskPercent':
+    case 'DiskBlocks':
+    case 'SystemLoad':
       return 'TRUE /*'.$this->attr.'*/';
     case 'MonitorName':
       return 'M.Name';
@@ -626,6 +632,11 @@ class FilterTerm {
             Warning('Invalid op '.$this->op .' for DiskPercent.');
           }
         } # end foreach Storage Area
+      } else if ( $this->attr == 'DiskBlocks' ) {
+        # As with DiskPercent, we will just use the first storage area.
+        foreach ( $this->filter->get_StorageAreas() as $storage ) {
+          return $this->compare($storage->disk_used_blocks(), $this->op, $this->val);
+        }
       } else if ( $this->attr == 'SystemLoad' ) {
         $ret = $this->compare(getLoad(), $this->op, $this->val);
         Debug("SystemLoad compare: getLoad() {$this->op} {$this->val} = " . ($ret ? 'true' : 'false'));
@@ -650,7 +661,7 @@ class FilterTerm {
         Debug("DiskPercent compare: " . ($ret ? 'true' : 'false'));
         if ($ret) return true;
       } else if ( $this->attr == 'DiskBlocks' ) {
-        $ret = $this->compare($event->Storage()->disk_usage_blocks(), $this->op, $this->val);
+        $ret = $this->compare($event->Storage()->disk_used_blocks(), $this->op, $this->val);
         Debug("DiskBlocks compare: " . ($ret ? 'true' : 'false'));
         if ($ret) return true;
       } else if ( $this->attr == 'Tags' ) {
@@ -669,6 +680,8 @@ class FilterTerm {
     if ( $this->attr == 'DiskPercent' )
         return true;
     if ( $this->attr == 'DiskBlocks' )
+        return true;
+    if ( $this->attr == 'SystemLoad' )
         return true;
     return false;
   }
@@ -695,6 +708,7 @@ class FilterTerm {
       'DiskSpace',
       'DiskPercent',
       'DiskBlocks',
+      'SystemLoad',
       'MonitorName',
       'Monitor',
       'ServerId',

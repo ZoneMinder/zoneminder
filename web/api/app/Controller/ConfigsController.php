@@ -218,11 +218,16 @@ class ConfigsController extends AppController {
 				throw new ForbiddenException(__('Cannot edit a readonly Config entry'));
 			}
 			if ($this->Config->save($this->request->data)) {
-				return $this->flash(__('The config has been saved.'), array('action' => 'index'));
+				$message = 'Saved';
+			} else {
+				$message = $this->Config->validationErrors ? $this->Config->validationErrors : 'Error';
 			}
+			$this->set(array(
+				'message' => $message,
+				'_serialize' => array('message')
+			));
 		} else {
-			$options = array('conditions' => array('Config.' . $this->Config->primaryKey => $id));
-			$this->request->data = $this->Config->find('first', $options);
+			$this->view($id);
 		}
 	}
 

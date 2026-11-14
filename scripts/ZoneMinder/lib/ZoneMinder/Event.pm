@@ -353,7 +353,7 @@ sub GenerateVideo {
       # each, so they are split on whitespace rather than passed as one word.
       grep { $_ ne '' } split(/\s+/, $Config{ZM_FFMPEG_INPUT_OPTIONS}),
       '-i', $input_file,
-      (map { ('-vf', $_) } @transforms),
+      (@transforms ? ('-vf', join(',', @transforms)) : ()),
       '-s', $video_size,
       grep { $_ ne '' } split(/\s+/, $Config{ZM_FFMPEG_OUTPUT_OPTIONS}),
       $video_file,

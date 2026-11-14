@@ -2493,9 +2493,12 @@ bool Monitor::Analyse() {
         if (score > 255) score = 255;
         // Set this before any state changes so that it's value is picked up immediately by linked monitors
         shared_data->last_frame_score = score;
-        if (linked_wake) linked_wake_until_ = 0;
+        if (linked_wake and packet->codec_type == AVMEDIA_TYPE_VIDEO) linked_wake_until_ = 0;
 
-        if (score) {
+        if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
+          // Alarm frame counts and state changes are in video frames
+          Debug(3, "Audio packet, not changing state");
+        } else if (score) {
           if ((state == IDLE) || (state == PREALARM)) {
             if ((!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1)) {
               Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u Cause:%s",

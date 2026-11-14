@@ -132,12 +132,12 @@ $monitors = array();
 # The as E, and joining with Monitors is required for the filterSQL filters.
 $rangeSql = 'SELECT
   min(E.StartDateTime) AS MinTime,
-  max(E.EndDateTime) AS MaxTime
+  max(IFNULL(E.EndDateTime, NOW())) AS MaxTime
 FROM Events AS E
 INNER JOIN Monitors AS M ON (E.MonitorId = M.Id)
 LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId
 LEFT JOIN Tags AS T ON T.Id = ET.TagId
-WHERE NOT isnull(E.StartDateTime) AND NOT isnull(E.EndDateTime)';
+WHERE NOT isnull(E.StartDateTime)';
 
 $eventsSql = 'SELECT
   E.*, GROUP_CONCAT(T.Name SEPARATOR ", ") AS Tags
@@ -277,8 +277,8 @@ $midTimeT = $minTimeT + $halfRange;
 $midTime = date(STRF_FMT_DATETIME_DB, $midTimeT);
 
 if ( isset($minTime) && isset($maxTime) ) {
-  $eventsSql .= " AND EndDateTime >= '$minTime' AND StartDateTime <= '$maxTime'";
-  $eventIdsSql .= " AND EndDateTime >= '$minTime' AND StartDateTime <= '$maxTime'";
+  $eventsSql .= " AND (EndDateTime IS NULL OR EndDateTime >= '$minTime') AND StartDateTime <= '$maxTime'";
+  $eventIdsSql .= " AND (EndDateTime IS NULL OR EndDateTime >= '$minTime') AND StartDateTime <= '$maxTime'";
 }
 
 $framesByEventId = array();

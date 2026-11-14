@@ -88,7 +88,7 @@ getBodyTopHTML();
     </div>
   </div>
 
-  <script src="/skins/classic/js/Chart.min.js"></script>
+  <script src="skins/classic/js/Chart.min.js"></script>
 <script nonce="<?php echo $cspNonce; ?>">
 var events = Array();
 

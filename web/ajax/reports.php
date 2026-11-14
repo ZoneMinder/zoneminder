@@ -139,11 +139,9 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
       ZM\Error('Invalid sort field: ' . $sort);
       $sort = '';
     } else if ($sort == 'EndDateTime') {
-      if ($order == 'ASC') {
-        $sort = 'EndDateTime IS NULL, E.EndDateTime';
-      } else {
-        $sort = 'EndDateTime IS NOT NULL, E.EndDateTime';
-      }
+      $sort = ($order == 'ASC') ? 'EndDateTime IS NULL ASC, EndDateTime' : 'EndDateTime IS NOT NULL ASC, EndDateTime';
+    } else {
+      $sort = '`'.$sort.'`';
     }
   }
 
@@ -153,7 +151,7 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
 
   $col_str = '*';
   $sql = 'SELECT ' .$col_str. ' FROM `Reports` '.$where.($sort?' ORDER BY '.$sort.' '.$order:'');
-  if ($limit) $sql .= ' LIMIT '.$limit;
+  if ($limit) $sql .= ' LIMIT '.$offset.','.$limit;
 
   $unfiltered_rows = array();
   $ids = array();
@@ -171,19 +169,7 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
     $unfiltered_rows[] = $row;
   } # end foreach row
 
-  # Filter limits come before pagination limits.
-  if ($limit and ($limit > count($unfiltered_rows))) {
-    ZM\Debug('Filtering rows due to filter->limit '.count($unfiltered_rows).' limit: '.$limit);
-    $unfiltered_rows = array_slice($unfiltered_rows, 0, $limit);
-  }
-
-  ZM\Debug('Have ' . count($unfiltered_rows) . ' reports matching base filter.');
   $filtered_rows = $unfiltered_rows;
-
-  if ($limit) {
-    ZM\Debug("Filtering rows due to limit " . count($filtered_rows)." offset: $offset limit: $limit");
-    $filtered_rows = array_slice($filtered_rows, $offset, $limit);
-  }
 
   $returned_rows = array();
   foreach ($filtered_rows as $row) {
@@ -198,7 +184,7 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
   $data['rows'] = $returned_rows;
 
   # totalNotFiltered must equal total, except when either search bar has been used
-  $data['totalNotFiltered'] = count($unfiltered_rows);
+  $data['totalNotFiltered'] = dbFetchOne('SELECT COUNT(*) AS Total FROM `Reports`', 'Total');
   if ( $search != '' || count($advsearch) ) {
     $data['total'] = count($filtered_rows);
   } else {

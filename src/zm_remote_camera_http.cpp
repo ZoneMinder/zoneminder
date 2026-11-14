@@ -139,7 +139,7 @@ void RemoteCameraHttp::Initialise() {
     if ( !content_length_expr )
       content_length_expr = new RegExpr("Content-length: ?([0-9]+)\r?\n", PCRE2_CASELESS);
     if ( !content_type_expr )
-      content_type_expr = new RegExpr("Content-type: ?(.+?)(?:; ?boundary=\x22?(.+?)\x22?)?\r?\n", PCRE2_CASELESS);
+      content_type_expr = new RegExpr("Content-type: ?([^;\r\n]+?)[ \t]*(?:;(?:[^\r\n]*?boundary=\x22?([^\x22;\r\n ]+))?[^\r\n]*)?\r?\n", PCRE2_CASELESS);
   }
 #endif
 } // end void RemoteCameraHttp::Initialise()
@@ -818,17 +818,17 @@ int RemoteCameraHttp::GetResponse() {
           if (content_type_header) {
             //memset(content_type, 0, sizeof(content_type));
             start_ptr = content_type_header + strspn(content_type_header, " ");
-            if ( (end_ptr = strchr(start_ptr, ';')) ) {
+            if ((end_ptr = strchr(start_ptr, ';'))) {
               zm_strncpy(content_type, start_ptr, sizeof(content_type), end_ptr-start_ptr);
               Debug(3, "Got content type '%s'", content_type);
 
-              start_ptr = end_ptr + strspn(end_ptr, "; ");
-
-              if (strncasecmp(start_ptr, boundary_match, boundary_match_len) == 0) {
+              start_ptr = strcasestr(end_ptr, boundary_match);
+              if (start_ptr) {
                 start_ptr += boundary_match_len;
+                if (*start_ptr == '"') start_ptr++;
                 start_ptr += strspn(start_ptr, "-");
                 zm_strncpy(content_boundary, "--", sizeof(content_boundary));
-                zm_strncpy(content_boundary+2, start_ptr, sizeof(content_boundary)-2);
+                zm_strncpy(content_boundary+2, start_ptr, sizeof(content_boundary)-2, strcspn(start_ptr, "\"; \t\r\n"));
                 content_boundary_len = strlen(content_boundary);
                 Debug(3, "Got content boundary '%s'", content_boundary);
               } else {

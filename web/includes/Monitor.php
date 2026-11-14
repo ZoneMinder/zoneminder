@@ -1618,14 +1618,15 @@ class Monitor extends ZM_Object {
     if ($showtext) $this->shared_write('TriggerData', 'showtext', $showtext);
     $this->shared_write('TriggerData', 'state', TRIGGER_ON);
     Debug("Trigger cause is ".$this->shared_read('TriggerData','cause'));
+    return true;
   }
 
   public function  TriggerEventOff () {
     if (!$this->connect()) return false;
     $this->shared_write('TriggerData', 'score', 0);
     $this->shared_write('TriggerData', 'cause', '');
-    if ($text) $this->shared_write('TriggerData', 'text', '');
-    if ($showtext) $this->shared_write('TriggerData', 'showtext', '');
+    $this->shared_write('TriggerData', 'text', '');
+    $this->shared_write('TriggerData', 'showtext', '');
     $this->shared_write('TriggerData', 'state', TRIGGER_OFF);
   }
 
@@ -1633,8 +1634,8 @@ class Monitor extends ZM_Object {
     if (!$this->connect()) return false;
     $this->shared_write('TriggerData', 'score', 0);
     $this->shared_write('TriggerData', 'cause', '');
-    if ($text) $this->shared_write('TriggerData', 'text', '');
-    if ($showtext) $this->shared_write('TriggerData', 'showtext', '');
+    $this->shared_write('TriggerData', 'text', '');
+    $this->shared_write('TriggerData', 'showtext', '');
     $this->shared_write('TriggerData', 'state', TRIGGER_CANCEL);
   }
   public function TriggerShowtext($showtext) {

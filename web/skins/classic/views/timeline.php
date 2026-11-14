@@ -265,9 +265,11 @@ $scales = array(
 $majXScale = getDateScale($scales, $range, $chart['grid']['x']['major']['min'], $chart['grid']['x']['major']['max']);
 
 // Adjust the range etc for scale
-$minTimeT -= $minTimeT%($majXScale['factor']*$majXScale['align']);
+// Align on local wall clock boundaries: epoch seconds are only a multiple of a day or an hour in UTC.
+$scaleStep = $majXScale['factor']*$majXScale['align'];
+$minTimeT -= ($minTimeT+date('Z', $minTimeT))%$scaleStep;
 $minTime = date(STRF_FMT_DATETIME_DB, $minTimeT);
-$maxTimeT += (($majXScale['factor']*$majXScale['align'])-$maxTimeT%($majXScale['factor']*$majXScale['align']))-1;
+$maxTimeT += ($scaleStep-($maxTimeT+date('Z', $maxTimeT))%$scaleStep)-1;
 if ( $maxTimeT > time() )
   $maxTimeT = time();
 $maxTime = date(STRF_FMT_DATETIME_DB, $maxTimeT);

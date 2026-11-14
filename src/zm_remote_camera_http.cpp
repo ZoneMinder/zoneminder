@@ -403,12 +403,16 @@ int RemoteCameraHttp::GetResponse() {
               request += "\r\n";
 
               Debug( 2, "New request header: %s", request_for_log(request).c_str() );
+              Disconnect();
+              buffer.clear();
               return( 0 );
             }
 
           } else if ( status_code < 200 || status_code > 299 ) {
             Error( "Invalid response status %d: %s\n%s", status_code, status_mesg, (char *)buffer );
             return( -1 );
+          } else {
+            mNeedAuth = false;
           }
           Debug( 3, "Got status '%d' (%s), http version %s", status_code, status_mesg, http_version );
 
@@ -783,6 +787,8 @@ int RemoteCameraHttp::GetResponse() {
               request += "\r\n";
 
               Debug(2, "New request header: %s", request_for_log(request).c_str());
+              Disconnect();
+              buffer.clear();
               return 0;
             } else {
               Debug(2, "Need some other kind of Authentication");
@@ -790,6 +796,8 @@ int RemoteCameraHttp::GetResponse() {
           } else if (status < 200 || status > 299) {
             Error("Invalid response status %s: %s", status_code, status_mesg);
             return -1;
+          } else {
+            mNeedAuth = false;
           }
           Debug(3, "Got status '%d' (%s), http version %s", status, status_mesg, http_version);
 

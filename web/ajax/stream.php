@@ -145,8 +145,8 @@ default :
 }
 
 $remSockFile = zmsSocketPath($connkey, $owner, 's.sock');
-// Pi can take up to 3 seconds for zms to start up.
-$max_socket_tries = 1000;
+// Clients retry a no_socket for a few seconds, so a slow zms start is covered there.
+$max_socket_tries = 150;
 // FIXME This should not exceed web_ajax_timeout
 while ( !file_exists($remSockFile) && $max_socket_tries-- ) {
   //sometimes we are too fast for our own good, if it hasn't been setup yet give it a second.

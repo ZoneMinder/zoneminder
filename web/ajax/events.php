@@ -125,10 +125,13 @@ switch ($task) {
 			return;
 		}
     foreach ($eids as $eid) {
-      $message = deleteRequest($eid);
+      $id = validCardinal($eid);
+      $message = deleteRequest($id);
       if ($message) {
         if (empty($data['message'])) $data['message'] = [];
         $data['message'][] = $message;
+        if (empty($data['notDeleted'])) $data['notDeleted'] = [];
+        $data['notDeleted'][] = $id;
       }
     }
     break;
@@ -178,7 +181,9 @@ function deleteRequest($eid) {
   } else if (!$event->canEdit()) {
     return 'You do not have permission to delete event '.$event->Id();
   } else {
-    $event->delete();
+    if (!$event->delete()) {
+      return 'Event '.$eid.' was not deleted.';
+    }
   }
   
   return '';

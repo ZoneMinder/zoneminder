@@ -64,3 +64,102 @@ TEST_CASE("get_y_image converts the packet image when the frame is RGB", "[Packe
   packet.in_frame->height = height;
   check_y_image(packet);
 }
+
+extern "C" {
+#include <libavutil/frame.h>
+#include <libavutil/imgutils.h>
+}
+
+#include <cstdint>
+#include <cstring>
+
+// ZMPacket::get_y_image() feeds motion detection with an 8-bit gray image. Only a
+// planar 8-bit YUV frame has that in data[0]; for every other format the luma has
+// to come from a conversion.
+
+namespace {
+constexpr int kW = 33;
+constexpr int kH = 17;
+
+void EnsureImageInit() {
+  if (!config.font_file_location) config.font_file_location = "";
+}
+
+av_frame_ptr MakeFrame(AVPixelFormat fmt) {
+  av_frame_ptr frame{av_frame_alloc()};
+  frame->format = fmt;
+  frame->width = kW;
+  frame->height = kH;
+  REQUIRE(av_frame_get_buffer(frame.get(), 32) == 0);
+  for (int p = 0; p < AV_NUM_DATA_POINTERS && frame->buf[p]; p++)
+    memset(frame->buf[p]->data, 0, frame->buf[p]->size);
+  return frame;
+}
+
+// Luma at (x, y) of the image y_image points at.
+uint8_t Luma(const Image *img, unsigned int x, unsigned int y) {
+  return img->Buffer(x, y)[0];
+}
+}  // namespace
+
+TEST_CASE("ZMPacket::get_y_image wraps the Y plane of an 8-bit planar frame", "[ZMPacket]") {
+  EnsureImageInit();
+  ZMPacket packet;
+  packet.in_frame = MakeFrame(AV_PIX_FMT_YUV420P);
+  packet.in_frame->data[0][5 * packet.in_frame->linesize[0] + 7] = 200;
+
+  Image *y = packet.get_y_image();
+  REQUIRE(y != nullptr);
+  CHECK(y->Width() == kW);
+  CHECK(y->Height() == kH);
+  CHECK(y->Buffer() == packet.in_frame->data[0]);
+  CHECK(Luma(y, 7, 5) == 200);
+}
+
+TEST_CASE("ZMPacket::get_y_image converts a 10-bit frame to 8-bit luma", "[ZMPacket]") {
+  EnsureImageInit();
+  ZMPacket packet;
+  packet.in_frame = MakeFrame(AV_PIX_FMT_YUV420P10LE);
+  for (int y = 0; y < kH; y++) {
+    uint16_t *row = reinterpret_cast<uint16_t *>(packet.in_frame->data[0] + y * packet.in_frame->linesize[0]);
+    for (int x = 0; x < kW; x++) row[x] = 64 << 2;
+  }
+  uint16_t *bright = reinterpret_cast<uint16_t *>(packet.in_frame->data[0] + 3 * packet.in_frame->linesize[0]);
+  bright[kW - 1] = 235 << 2;
+
+  Image *y = packet.get_y_image();
+  REQUIRE(y != nullptr);
+  CHECK(y->Width() == kW);
+  CHECK(y->Height() == kH);
+  CHECK(y->PixFormat() == AV_PIX_FMT_GRAY8);
+  CHECK(Luma(y, 0, 0) < 70);
+  CHECK(Luma(y, kW - 1, 3) > 200);
+  CHECK(Luma(y, kW - 1, 4) < 70);
+}
+
+TEST_CASE("ZMPacket::get_y_image converts RGB and gray frames", "[ZMPacket]") {
+  EnsureImageInit();
+  SECTION("rgb24") {
+    ZMPacket packet;
+    packet.in_frame = MakeFrame(AV_PIX_FMT_RGB24);
+    uint8_t *px = packet.in_frame->data[0] + 2 * packet.in_frame->linesize[0] + 3 * 10;
+    px[0] = px[1] = px[2] = 255;
+
+    Image *y = packet.get_y_image();
+    REQUIRE(y != nullptr);
+    CHECK(y->PixFormat() == AV_PIX_FMT_GRAY8);
+    CHECK(Luma(y, 10, 2) > 200);
+    CHECK(Luma(y, 11, 2) < 40);
+  }
+  SECTION("gray") {
+    ZMPacket packet;
+    packet.in_frame = MakeFrame(AV_PIX_FMT_GRAY8);
+    packet.in_frame->data[0][4 * packet.in_frame->linesize[0] + 9] = 123;
+
+    Image *y = packet.get_y_image();
+    REQUIRE(y != nullptr);
+    CHECK(y->PixFormat() == AV_PIX_FMT_GRAY8);
+    CHECK(Luma(y, 9, 4) == 123);
+    CHECK(Luma(y, 8, 4) == 0);
+  }
+}

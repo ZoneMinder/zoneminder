@@ -3642,6 +3642,20 @@ size_t Monitor::DecoderQueueLimit(int max_keyframe_interval, const AVCodecContex
   return 2 * static_cast<size_t>(max_keyframe_interval) + delay;
 }
 
+bool Monitor::CanPassthroughFormat(AVPixelFormat format, Orientation orientation) {
+  switch (format) {
+    case AV_PIX_FMT_YUV422P:
+    case AV_PIX_FMT_YUVJ422P:
+      return orientation != ROTATE_90 && orientation != ROTATE_270;
+    case AV_PIX_FMT_YUV420P:
+    case AV_PIX_FMT_YUVJ420P:
+    case AV_PIX_FMT_GRAY8:
+      return true;
+    default:
+      return zm_is_rgb24(format) || zm_is_rgb32(format);
+  }
+}
+
 bool Monitor::SkipUntilKeyframe(bool keyframe) {
   if (!decoder_needs_keyframe) return false;
   if (!keyframe) return true;
@@ -3901,15 +3915,7 @@ bool Monitor::Decode() {
       const char *native_fmt_name = av_get_pix_fmt_name(native_fmt);
       if (!native_fmt_name) native_fmt_name = "unknown";
 
-      bool can_passthrough = (native_fmt == AV_PIX_FMT_YUV420P
-                           || native_fmt == AV_PIX_FMT_YUVJ420P
-                           || native_fmt == AV_PIX_FMT_YUV422P
-                           || native_fmt == AV_PIX_FMT_YUVJ422P
-                           || native_fmt == AV_PIX_FMT_GRAY8
-                           || zm_is_rgb24(native_fmt)
-                           || zm_is_rgb32(native_fmt));
-
-      if (can_passthrough && zm_colours_from_pixformat(native_fmt, native_colours, native_subpixelorder)) {
+      if (CanPassthroughFormat(native_fmt, orientation) && zm_colours_from_pixformat(native_fmt, native_colours, native_subpixelorder)) {
         Debug(1, "Using native frame format %s", native_fmt_name);
       } else {
         Debug(1, "Converting %s to yuv420p for pipeline", native_fmt_name);

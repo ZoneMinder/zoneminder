@@ -16,6 +16,7 @@ our $ADDRESS = '';
 our $PROTOCOL = 'http://';
 
 use Time::HiRes qw(usleep);
+use URI::Escape qw(uri_escape_utf8);
 
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
@@ -460,7 +461,7 @@ sub presetSet
     my $new_label_name = $control_preset_row->{'Label'};
 
     $self->_sendPtzCommand("start", "SetPreset", 0, $preset_id, 0);
-    $self->_sendPtzCommand("start", "SetPresetName", $preset_id, $new_label_name, 0);
+    $self->_sendPtzCommand("start", "SetPresetName", $preset_id, uri_escape_utf8($new_label_name), 0);
 }
 
 sub presetGoto

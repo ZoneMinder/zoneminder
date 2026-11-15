@@ -222,43 +222,19 @@ function initPage() {
     };
     el.onchange();
   });
-  document.querySelectorAll('select[name="newMonitor[OutputCodec]"]').forEach(function(el) {
+  document.querySelectorAll('select[name="newMonitor[OutputCodecName]"]').forEach(function(el) {
     el.onchange = function() {
-      var encoder_dropdown = $j('select[name="newMonitor[Encoder]"]');
-      if (encoder_dropdown) {
-        for (i=0; i<encoder_dropdown[0].options.length; i++) {
-          option = encoder_dropdown[0].options[i];
-          if ( this.value == 27 ) {
-            option.disabled = !option.value.includes('264');
-            if ( option.disabled && option.selected ) {
-              encoder_dropdown[0].options[0].selected = 1;
-              option.selected = false;
-            }
-          } else if ( this.value == 167 /* vp9 */ ) {
-            option.disabled = !(option.value.includes('vp9'));
-            if ( option.disabled && option.selected ) {
-              encoder_dropdown[0].options[0].selected = 1;
-              option.selected = false;
-            }
-          } else if ( this.value == 173 /* hevc */ ) {
-            option.disabled = !(option.value.includes('hevc') || option.value.includes('265') );
-            if ( option.disabled && option.selected ) {
-              encoder_dropdown[0].options[0].selected = 1;
-              option.selected = false;
-            }
-          } else if ( this.value == 226 /* av1 */ ) {
-            option.disabled = !(option.value.includes('av1'));
-            if ( option.disabled && option.selected ) {
-              encoder_dropdown[0].options[0].selected = 1;
-              option.selected = false;
-            }
-          } else {
-            option.disabled = false;
-          }
+      const encoder_dropdown = document.querySelector('select[name="newMonitor[Encoder]"]');
+      if (!encoder_dropdown) return;
+      let reset = false;
+      for (const option of encoder_dropdown.options) {
+        option.disabled = !ZM_EncoderTemplates.encoderMatchesCodec(this.value, option.value);
+        if (option.disabled && option.selected) {
+          encoder_dropdown.selectedIndex = 0;
+          reset = true;
         }
-      } else {
-        console.log('No encoder');
       }
+      if (reset) encoder_dropdown.dispatchEvent(new Event('change'));
     };
     el.onchange();
   });

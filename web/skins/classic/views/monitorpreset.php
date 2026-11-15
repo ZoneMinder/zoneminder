@@ -45,7 +45,7 @@ echo getNavBarHTML();
 $presets = array();
 $presets[0] = translate('ChoosePreset');
 foreach (dbFetchAll('SELECT Id,Name FROM MonitorPresets ORDER BY Name') as $preset) {
-  $presets[$preset['Id']] = htmlentities( $preset['Name'] );
+  $presets[$preset['Id']] = $preset['Name'];
 }
  echo buildSelect('preset', $presets); ?>
         </p>

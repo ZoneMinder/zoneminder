@@ -149,6 +149,11 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
   $likes = array();
   $where = '';
 
+  if ($search != '') {
+    $where = ' WHERE `Name` LIKE ?';
+    $values[] = '%'.$search.'%';
+  }
+
   $col_str = '*';
   $sql = 'SELECT ' .$col_str. ' FROM `Reports` '.$where.($sort?' ORDER BY '.$sort.' '.$order:'');
   if ($limit) $sql .= ' LIMIT '.$offset.','.$limit;
@@ -185,8 +190,8 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
 
   # totalNotFiltered must equal total, except when either search bar has been used
   $data['totalNotFiltered'] = dbFetchOne('SELECT COUNT(*) AS Total FROM `Reports`', 'Total');
-  if ( $search != '' || count($advsearch) ) {
-    $data['total'] = count($filtered_rows);
+  if ( $search != '' ) {
+    $data['total'] = dbFetchOne('SELECT COUNT(*) AS Total FROM `Reports`'.$where, 'Total', $values);
   } else {
     $data['total'] = $data['totalNotFiltered'];
   }

@@ -427,7 +427,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     inline unsigned int Id() const { return monitor->Id(); }
     inline const char *Name() const { return name.c_str(); }
 
-    inline bool isConnected() const { return connected && shared_data->valid; }
+    // The linked zmc is alive: its memory is valid and its heartbeat is recent.
+    // A zmc that died without cleaning up leaves valid set in a stale mapping.
+    bool isAlive() const;
+    bool isConnected() const { return connected && isAlive(); }
     inline time_t getLastConnectTime() const { return last_connect_time; }
 
     inline uint32_t lastFrameScore() {

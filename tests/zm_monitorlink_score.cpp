@@ -81,3 +81,21 @@ TEST_CASE("MonitorLink score follows the source's alarm state", "[MonitorLink]")
     REQUIRE(link.score() == 0);
   }
 }
+
+// A zmc that dies without cleaning up leaves valid set in the mapping. The link
+// must see the stale heartbeat as disconnected so that it reconnects instead of
+// reporting the source's last state forever.
+TEST_CASE("MonitorLink treats a stale heartbeat as disconnected", "[MonitorLink]") {
+  EnsureConfig();
+  SourceMonitor::Data data = {};
+  data.valid = 1;
+  data.state = Monitor::ALARM;
+  TestLink link(std::make_shared<SourceMonitor>());
+  link.Attach(&data);
+
+  data.heartbeat_time = time(nullptr);
+  REQUIRE(link.isConnected());
+
+  data.heartbeat_time = time(nullptr) - 3600;
+  REQUIRE_FALSE(link.isConnected());
+}

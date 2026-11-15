@@ -35,3 +35,4 @@ if ($role) {
 }
 ?>
 const role = <?php echo json_encode($role_data) ?>;
+const permissionStrings = <?php echo json_encode(array('None'=>translate('None'), 'View'=>translate('View'), 'Edit'=>translate('Edit'), 'Create'=>translate('Create'))) ?>;

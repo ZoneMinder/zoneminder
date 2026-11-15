@@ -4123,6 +4123,7 @@ Event * Monitor::openEvent(
   RunActions(EventAction::EVENT_START);
 
   if (!event_start_command.empty()) {
+    fflush(nullptr);
     if (fork() == 0) {
       Logger *log = Logger::fetch();
       std::string log_id = log->id();
@@ -4193,6 +4194,7 @@ void Monitor::closeEvent() {
     Debug(1, "close_event_thread: event %" PRId64 " deleted", event_id);
 
     if (!command.empty()) {
+      fflush(nullptr);
       if (fork() == 0) {
         Logger *log = Logger::fetch();
         std::string log_id = log->id();

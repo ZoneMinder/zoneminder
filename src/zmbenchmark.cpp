@@ -145,8 +145,8 @@ std::shared_ptr<Image> GenerateRandomImage(
   // Now randomize the pixels inside a box.
   const int box_width = (width * change_box_percent) / 100;
   const int box_height = (height * change_box_percent) / 100;
-  const int box_x = (int) ((uint64_t) mt_rand() * (width - box_width) / RAND_MAX);
-  const int box_y = (int) ((uint64_t) mt_rand() * (height - box_height) / RAND_MAX);
+  const int box_x = (int) ((uint64_t) mt_rand() * (width - box_width) / std::mt19937::max());
+  const int box_y = (int) ((uint64_t) mt_rand() * (height - box_height) / std::mt19937::max());
 
   for (int y = 0 ; y < box_height ; y++) {
     uint8_t *row = image->Buffer(box_x, box_y + y);

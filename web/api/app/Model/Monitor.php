@@ -54,6 +54,26 @@ class Monitor extends AppModel {
          'message'    => 'Monitor Name must be specified for creation',
          'required'   => true,
        ),
+       'notBlank' => array(
+         'rule'       => 'notBlank',
+         'message'    => 'Monitor Name must not be blank',
+       ),
+    ),
+    'Width' => array(
+      'rule' => array('comparison', '>', 0),
+      'message' => 'Width must be greater than 0',
+    ),
+    'Height' => array(
+      'rule' => array('comparison', '>', 0),
+      'message' => 'Height must be greater than 0',
+    ),
+    'ServerId' => array(
+      'rule' => array('rowExists', 'Server'),
+      'message' => 'ServerId does not match a server',
+    ),
+    'StorageId' => array(
+      'rule' => array('rowExists', 'Storage'),
+      'message' => 'StorageId does not match a storage area',
     ),
     // These codec values mimic acceptable ones for FFMPEG
     // Edit this if the list in ZM changes
@@ -77,6 +97,18 @@ class Monitor extends AppModel {
    * so the /dev/ restriction only applies when Type == 'Local'. Other Types
    * may legitimately hold legacy values (e.g. an RTSP URL) in this column.
    */
+  // Empty and 0 mean "none" (the default storage area, any server).
+  public function rowExists($check, $model) {
+    $value = reset($check);
+    if ($value === null or $value === '' or $value == 0) {
+      return true;
+    }
+    return (bool)ClassRegistry::init($model)->find('first', array(
+      'conditions' => array($model.'.Id' => $value),
+      'recursive' => -1,
+    ));
+  }
+
   public function validDevicePath($check) {
     $value = reset($check);
     if ($value === null || $value === '') {

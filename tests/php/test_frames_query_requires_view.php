@@ -101,7 +101,7 @@ namespace {
     $GLOBALS['perms'] = $case['perms'];
     $GLOBALS['monitor_visible'] = $case['monitor_visible'];
     $GLOBALS['event_exists'] = $case['event_exists'];
-    $_REQUEST = array('task' => 'query', 'eid' => '2');
+    $_REQUEST = array('task' => 'query', 'eid' => '2') + ($case['request'] ?? array());
     $outcome = 'fell through';
     ob_start();
     try {
@@ -133,11 +133,12 @@ namespace {
     }
   }
 
-  function run_query(array $perms, $monitor_visible = true, $event_exists = true) {
+  function run_query(array $perms, $monitor_visible = true, $event_exists = true, $request = array()) {
     $arg = json_encode(array(
       'perms' => $perms,
       'monitor_visible' => $monitor_visible,
       'event_exists' => $event_exists,
+      'request' => $request,
     ));
     $out = shell_exec(escapeshellarg(PHP_BINARY).' '.escapeshellarg(__FILE__).' '.escapeshellarg($arg));
     $r = json_decode($out, true);
@@ -170,6 +171,12 @@ namespace {
   $r = run_query(array('Monitors' => 'View'), true, true);
   check('no Events view is refused', $r['outcome'], 'error');
   check('no Events view reads no Frames', $r['frames_read'], false);
+
+  // An advsearch that is not a JSON object is ignored rather than handed to count().
+  foreach (array('not json' => 'x', 'a JSON scalar' => '5', 'an array' => array('x')) as $what => $advsearch) {
+    $r = run_query($view, true, true, array('advsearch' => $advsearch));
+    check("advsearch that is $what is ignored", $r['outcome'], 'response');
+  }
 
   // Structural: the real file must route the event id through Event::canView()
   // before dispatching the query. Fails if the guard is reverted.

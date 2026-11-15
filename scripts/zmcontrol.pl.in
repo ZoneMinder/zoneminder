@@ -300,14 +300,15 @@ if ($options{command}) {
             next;
           }
           my $result = eval { $control->$command($params) };
-          Error("Control command '$command' failed: $@") if $@;
+          my $error = $@;
+          Error("Control command '$command' failed: $error") if $error;
           # Opt-in response: only write back when the caller asked for one, so
           # fire-and-forget callers (which have already closed their end) never
           # get a write -> no SIGPIPE. Ignore PIPE defensively in case a query
           # client gave up before reading.
           if ( $params->{wants_response} ) {
             local $SIG{PIPE} = 'IGNORE';
-            print(CLIENT jsonEncode({result => $result}));
+            print(CLIENT jsonEncode($error ? {result => undef, error => "$command failed: $error"} : {result => $result}));
           }
           close(CLIENT);
         } else {

@@ -236,11 +236,11 @@ class Event extends ZM_Object {
   public function delete() {
     if ( ! $this->{'Id'} ) {
       Error('Event delete on event with empty Id');
-      return;
+      return false;
     }
     if ( $this->{'Archived'} ) {
       Error('Cannot delete an Archived event.');
-      return;
+      return false;
     }
     $dbConn = zmDbConn();
     $dbConn->beginTransaction();
@@ -250,12 +250,12 @@ class Event extends ZM_Object {
       if ( $this->{'Archived'} ) {
         Error('Cannot delete an Archived event.');
         $dbConn->rollback();
-        return;
+        return false;
       }
       if ( ($this->{'Scheme'} == 'Deep' or $this->{'Scheme'} == 'Medium') and !$this->StartDateTimeSecs() ) {
         Error('Event '.$this->{'Id'}.' has no start date time, not deleting.');
         $dbConn->rollback();
-        return;
+        return false;
       }
       # dbQuery() reports a failed statement by returning null, not by throwing
       foreach (array('Stats', 'Event_Data', 'Frames') as $table) {
@@ -270,7 +270,7 @@ class Event extends ZM_Object {
     } catch (\Exception $e) {
       Error($e->getMessage());
       $dbConn->rollback();
-      return;
+      return false;
     }
     if (!empty($this->{'DiskSpace'}) and !empty($this->{'StorageId'})) {
       dbQuery('UPDATE Storage SET DiskSpace=GREATEST(COALESCE(DiskSpace,0)-?,0) WHERE Id=?', array($this->{'DiskSpace'}, $this->{'StorageId'}));
@@ -334,6 +334,7 @@ class Event extends ZM_Object {
     } catch (\Exception $e) {
       Error($e->getMessage());
     }
+    return true;
   } # end Event->delete
 
   public function Server() {

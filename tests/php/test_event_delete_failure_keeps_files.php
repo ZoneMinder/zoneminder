@@ -60,6 +60,7 @@ class Storage {
   public function Id() { return $this->id; }
   public function Path() { return '/var/cache/zoneminder/events'; }
   public function Scheme($s = null) { return 'Medium'; }
+  public function DoDelete() { return 1; }
 }
 
 class Monitor {}

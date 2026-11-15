@@ -147,7 +147,7 @@ function initPage() {
   $j('#url').on('input', probe);
 
   // Manage the EDIT button
-  document.getElementById('importBtn').addEventListener('click', function onEditClick(evt) {
+  $j('#importBtn').on('click', function onEditClick(evt) {
     evt.preventDefault();
     $j.ajax({
       method: 'GET',

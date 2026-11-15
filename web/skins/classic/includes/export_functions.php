@@ -1073,6 +1073,7 @@ function exportEvents(
   @unlink($archive_path);
   $command .= ' '.escapeshellarg($export_root.($connkey?'_'.$connkey:'').'/');
   ZM\Debug($command);
+  $output = array(); // exec() appends, and $output still holds the last per-file copy output
   exec($command, $output, $status);
   if ($status) {
     ZM\Error("Command '$command' returned with status $status");

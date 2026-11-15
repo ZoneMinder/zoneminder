@@ -92,7 +92,8 @@ void ZoneMinderStreamSource::WriteRun() {
     }
 
     if (nal) {
-      if (nal->size() > maxNalSize) {
+      // Only H.264/H.265 use FU packets; xop fragments AV1 and audio itself.
+      if (nal->size() > maxNalSize and (m_hType == 264 or m_hType == 265)) {
         Debug(3, "Splitting NAL %zu", nal->size());
         size_t nalRemaining = nal->size();
         u_int8_t *nalSrc = nal->buffer();

@@ -184,15 +184,88 @@ TEST_CASE("a backlog in dbQueue does not deadlock threads that log", "[notCI][db
   for (std::thread &t : loggers) t.join();
   holder.join();
 
-  // Every line reaches the table once the queue drains. That can take a while
-  // on a busy host: one insert at a time.
+  // Every line that was not dropped reaches the table once the queue drains.
+  // That can take a while on a busy host: one insert at a time.
   int rows = 0;
   auto drain = std::chrono::steady_clock::now() + std::chrono::seconds(120);
   while (std::chrono::steady_clock::now() < drain) {
     rows = CountLogs(Marker("flood") + "%");
-    if (rows >= logged) break;
+    if (rows + static_cast<int>(dbQueue.logRowsDropped()) >= logged and dbQueue.logRowsQueued() == 0) break;
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
   }
   INFO("lines logged: " << logged.load());
-  CHECK(rows == logged);
+  CHECK(rows > 0);
+  CHECK(rows <= logged);
+}
+
+namespace {
+
+// Keeps the queue thread off the connection while `fn` queues rows.
+template <typename F>
+void WhileQueueBlocked(F fn) {
+  std::lock_guard<std::mutex> hold(db_mutex);
+  fn();
+}
+
+void WaitForQueueDrain() {
+  auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(60);
+  while (std::chrono::steady_clock::now() < deadline and dbQueue.logRowsQueued() > 0)
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  std::this_thread::sleep_for(std::chrono::milliseconds(300));
+}
+
+}  // namespace
+
+TEST_CASE("a burst of log lines under the cap is all written", "[notCI][dblive]") {
+  LiveLogger live(Logger::INFO);
+
+  constexpr int kLines = 1000;
+  static_assert(kLines < zmDbQueue::kMaxQueuedLogRows, "burst must fit under the cap");
+  WhileQueueBlocked([] {
+    for (int i = 0; i < kLines; i++) Info("%s %d", Marker("burst").c_str(), i);
+  });
+  WaitForQueueDrain();
+  CHECK(CountLogs(Marker("burst") + "%") == kLines);
+  CHECK(CountLogs("%log messages dropped%") == 0);
+}
+
+TEST_CASE("log rows past the cap are dropped and counted, other writes are kept", "[notCI][dblive]") {
+  LiveLogger live(Logger::INFO);
+
+  const int kLines = static_cast<int>(zmDbQueue::kMaxQueuedLogRows) * 2;
+  WhileQueueBlocked([kLines] {
+    for (int i = 0; i < kLines; i++) {
+      Info("%s %d", Marker("capped").c_str(), i);
+      if (i % 1000 == 0) {
+        dbQueue.push(stringtf(
+            "INSERT INTO `Logs` ( `TimeKey`, `Component`, `Level`, `Code`, `Message`, `File`, `Line` )"
+            " VALUES ( UNIX_TIMESTAMP(), '%s', 0, 'INF', '%s %d', 'x', 0 )",
+            kComponent, Marker("nonlog").c_str(), i));
+      }
+    }
+    CHECK(dbQueue.logRowsQueued() == zmDbQueue::kMaxQueuedLogRows);
+    // Fatal and Panic rows are kept past the cap. Pushed directly: Fatal()
+    // would end the process.
+    dbQueue.push(stringtf(
+        "INSERT INTO `Logs` ( `TimeKey`, `Component`, `Level`, `Code`, `Message`, `File`, `Line` )"
+        " VALUES ( UNIX_TIMESTAMP(), '%s', -3, 'FAT', '%s', 'x', 0 )",
+        kComponent, Marker("fatal").c_str()), true, true);
+  });
+  WaitForQueueDrain();
+
+  // One more row than the cap may have been taken off the queue before the
+  // thread blocked on the connection.
+  const int written = CountLogs(Marker("capped") + "%");
+  CHECK(written >= static_cast<int>(zmDbQueue::kMaxQueuedLogRows));
+  CHECK(written <= static_cast<int>(zmDbQueue::kMaxQueuedLogRows) + 1);
+  CHECK(CountLogs(Marker("nonlog") + "%") == kLines / 1000);
+  CHECK(CountLogs(Marker("fatal") + "%") == 1);
+
+  zmDbRow row;
+  MYSQL_RES *res = row.fetch(stringtf(
+      "SELECT `Message` FROM `Logs` WHERE `Component`='%s' AND `Message` LIKE '%%log messages dropped%%'",
+      kComponent));
+  REQUIRE(res != nullptr);
+  REQUIRE(row.mysql_row() != nullptr);
+  CHECK(atoi(row[0]) == kLines - written);
 }

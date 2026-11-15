@@ -47,6 +47,14 @@ class MonitorsController extends AppController {
       $conditions = array();
     }
 
+    $filters_deleted = false;
+    foreach (array_keys($this->request->params['named']) as $attribute) {
+      if (preg_match('/^(Monitor\.)?Deleted\b/i', trim($attribute))) $filters_deleted = true;
+    }
+    if (!$filters_deleted) {
+      $conditions[] = array('Monitor.Deleted' => 0);
+    }
+
     // Only join Groups_Monitors when the request actually filters by group, so
     // a bare GroupId named param can resolve against that table. Joining it
     // unconditionally multiplied rows for monitors in multiple groups, which we
@@ -164,7 +172,24 @@ class MonitorsController extends AppController {
       $this->pinRequestId($this->Monitor, null);
       $this->Monitor->create();
       if ($this->Monitor->save($this->request->data) ) {
-        $this->runDaemonControl($this->Monitor->id, 'start');
+        require_once __DIR__ .'/../../../includes/Zone.php';
+        $zone = new ZM\Zone();
+        $zone->save(array('MonitorId'=>$this->Monitor->id, 'Name'=>'All',
+          'Units'=>'Percent',
+          'Coords'=>'0.00,0.00 100.00,0.00 100.00,100.00 0.00,100.00',
+          'Area'=>10000,
+          'MinAlarmPixels'=>0.05,
+          'MaxAlarmPixels'=>75,
+          'MinFilterPixels'=>0.05,
+          'MaxFilterPixels'=>75,
+          'MinBlobPixels'=>0.05
+        ));
+        $saved = new ZM\Monitor($this->Monitor->find('first', array(
+          'conditions' => array('Id' => $this->Monitor->id)
+        ))['Monitor']);
+        if ($saved->Capturing() != 'None' and $saved->Type() != 'WebSite') {
+          $saved->zmcControl('start');
+        }
         //return $this->flash(__('The monitor has been saved.'), array('action' => 'index'));
         $message = 'Saved';
       } else {
@@ -271,9 +296,13 @@ class MonitorsController extends AppController {
     require_once __DIR__ .'/../../../includes/Monitor.php';
     $monitor = new ZM\Monitor($id);
     if ( $monitor->delete() ) {
-      return $this->flash(__('The monitor has been deleted.'), array('action' => 'index'));
+      $this->set(array(
+        'message' => 'Deleted',
+        '_serialize' => array('message'),
+      ));
+      return;
     } else {
-      return $this->flash(__('The monitor could not be deleted. Please, try again.'), array('action' => 'index'));
+      throw new InternalErrorException(__('The monitor could not be deleted.'));
     }
   }
 
@@ -480,16 +509,16 @@ class MonitorsController extends AppController {
     }
 
     // Build the command, and execute it
-    $command = escapeshellcmd(ZM_PATH_BIN."/zmdc.pl status $daemon $args");
+    $command = escapeshellarg(ZM_PATH_BIN.'/zmdc.pl').' status '.escapeshellarg($daemon).' '.$args;
     $status = exec($command);
     ZM\Debug("Command: $command output: $status");
 
-    // If 'not' is present, the daemon is not running, so return false
+    // Only "running since" or "pending at" mean running; no answer means zmdc is down.
     // https://github.com/ZoneMinder/ZoneMinder/issues/799#issuecomment-108996075
     // Also sending back the status text so we can check if the monitor is in pending
     // state which means there may be an error
     $statustext = $status;
-    $status = (strpos($status, 'not')) ? false : true;
+    $status = (preg_match('/ (running since|pending at) /', $status) === 1);
 
     $this->set(array(
       'status' => $status,

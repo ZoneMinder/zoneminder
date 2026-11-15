@@ -38,8 +38,13 @@ class ZoneMinderStreamVideoSource: public ZoneMinderStreamSource {
     xop::MediaSessionId sessionId,
     xop::MediaChannelId channelId
   );
+
+  // True for a packet a decoder can start from: H.264/H.265 parameter sets and
+  // the first packet of an IRAP picture. hType is m_hType (264 or 265).
+  static bool StartsKeyframe(int hType, const uint8_t *data, size_t size);
+
  protected:
-  void PushFrame(const uint8_t *data, size_t size, int64_t pts) override;
+  void PushFrame(const uint8_t *data, size_t size, int64_t pts, bool last) override;
 
  protected:
   int m_width;

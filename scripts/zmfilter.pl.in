@@ -175,6 +175,8 @@ my $last_reload = 0;
 while (!$zm_terminate) {
   my $delay;
   my $now = time;
+  # Objects are cached by id for the life of the process, so drop the events of the last pass
+  ZoneMinder::Object::init_cache();
   if (($now - $last_reload) > $Config{ZM_FILTER_RELOAD_DELAY}) {
     $last_reload = $now;
     @filters = getFilters({ Name=>$filter_name, Id=>$filter_id });
@@ -454,12 +456,12 @@ sub generateVideo {
       );
   my $output = qx($command);
   chomp($output);
-  my $status = $? >> 8;
+  my $status = $?;
   if ( $status || logDebugging() ) {
     Debug("Output: $output");
   }
   if ( $status ) {
-    Error("Video generation '$command' failed with status: $status");
+    Error("Video generation '$command' failed with ".(($status & 127) ? "signal ".($status & 127) : "status ".($status >> 8)));
     if ( wantarray() ) {
       return( undef, undef );
     }
@@ -510,12 +512,12 @@ sub generateImage {
       $? = 127 << 8; # what the shell reported for a missing command
     }
     chomp($output);
-    my $status = $? >> 8;
+    my $status = $?;
     if ( $status || logDebugging() ) {
       Debug("Output from $command\n: $output");
     }
     if ( $status ) {
-      Error("Failed $command status $status");
+      Error("Failed $command with ".(($status & 127) ? "signal ".($status & 127) : "status ".($status >> 8)));
     } else {
       $image_path = $capture_image_path;
     }
@@ -610,6 +612,7 @@ sub uploadArchFile {
   }
 
   if ( $archError ) {
+    unlink($archLocPath);
     return 0;
   } else {
     if ( $Config{ZM_UPLOAD_PROTOCOL} eq 'ftp' ) {
@@ -622,17 +625,33 @@ sub uploadArchFile {
           );
       if ( !$ftp ) {
         Error("Unable to create FTP connection: $@");
+        unlink($archLocPath);
         return 0;
       }
-      $ftp->login($Config{ZM_UPLOAD_USER}, $Config{ZM_UPLOAD_PASS})
-        or Error("FTP - Unable to login");
-      $ftp->binary()
-        or Error("FTP - Unable to go binary");
-      $ftp->cwd($Config{ZM_UPLOAD_REM_DIR})
-        or Error("FTP - Unable to cwd")
-        if ( $Config{ZM_UPLOAD_REM_DIR} );
-      $ftp->put( $archLocPath )
-        or Error("FTP - Unable to upload '$archLocPath'");
+      if ( !$ftp->login($Config{ZM_UPLOAD_USER}, $Config{ZM_UPLOAD_PASS}) ) {
+        Error("FTP - Unable to login: ".$ftp->message);
+        $ftp->quit();
+        unlink($archLocPath);
+        return 0;
+      }
+      if ( !$ftp->binary() ) {
+        Error("FTP - Unable to go binary: ".$ftp->message);
+        $ftp->quit();
+        unlink($archLocPath);
+        return 0;
+      }
+      if ( $Config{ZM_UPLOAD_REM_DIR} and !$ftp->cwd($Config{ZM_UPLOAD_REM_DIR}) ) {
+        Error("FTP - Unable to cwd: ".$ftp->message);
+        $ftp->quit();
+        unlink($archLocPath);
+        return 0;
+      }
+      if ( !$ftp->put( $archLocPath ) ) {
+        Error("FTP - Unable to upload '$archLocPath': ".$ftp->message);
+        $ftp->quit();
+        unlink($archLocPath);
+        return 0;
+      }
       $ftp->quit()
         or Error("FTP - Unable to quit");
     } else {
@@ -655,13 +674,19 @@ sub uploadArchFile {
       my $sftp = Net::SFTP::Foreign->new($Config{ZM_UPLOAD_HOST}, %sftpOptions);
       if ( $sftp->error ) {
         Error("Unable to create SFTP connection: ".$sftp->error);
+        unlink($archLocPath);
         return 0;
       }
-      $sftp->setcwd($Config{ZM_UPLOAD_REM_DIR})
-        or Error("SFTP - Unable to setcwd: ".$sftp->error)
-        if $Config{ZM_UPLOAD_REM_DIR};
-      $sftp->put($archLocPath, $archFile)
-        or Error("SFTP - Unable to upload '$archLocPath': ".$sftp->error);
+      if ( $Config{ZM_UPLOAD_REM_DIR} and !$sftp->setcwd($Config{ZM_UPLOAD_REM_DIR}) ) {
+        Error("SFTP - Unable to setcwd: ".$sftp->error);
+        unlink($archLocPath);
+        return 0;
+      }
+      if ( !$sftp->put($archLocPath, $archFile) ) {
+        Error("SFTP - Unable to upload '$archLocPath': ".$sftp->error);
+        unlink($archLocPath);
+        return 0;
+      }
     }
     unlink($archLocPath);
     zmDbExecute('UPDATE `Events` SET `Uploaded`=1 WHERE `Id`=?', $Event->{Id});
@@ -797,7 +822,7 @@ sub substituteTags {
           $text =~ s/%EIMOD%//g;
         }
       }
-      if ($text =~ s/%EIMODG%//g) {
+      if ($text =~ /%EIMODG%/g) {
         my $path = $Event->Path().'/objdetect.gif';
         if (-e $path) {
           my $filename = $Event->Id().'_'.fileparse($path);
@@ -1069,7 +1094,8 @@ sub sendTheEmail {
         my $ssmtp_location = $Config{ZM_SSMTP_PATH};
         if (!$ssmtp_location) {
           Debug("which ssmtp: $ssmtp_location - set ssmtp path in options to suppress this message");
-          $ssmtp_location = qx('which ssmtp');
+          $ssmtp_location = qx(which ssmtp 2>/dev/null) // '';
+          chomp $ssmtp_location;
         }
         if (!$ssmtp_location) {
           Warning('Unable to find ssmtp, trying MIME::Lite->send');
@@ -1077,7 +1103,7 @@ sub sendTheEmail {
           $mail->send();
         } else {
 ### Send using SSMTP
-          $mail->send('sendmail', $ssmtp_location, $$filter{EmailTo});
+          $mail->send('sendmail', Sendmail => $ssmtp_location);
         }
       } else {
         MIME::Lite->send('smtp', ($$filter{EmailServer} ? $$filter{EmailServer} : $Config{ZM_EMAIL_HOST}), Timeout=>60);
@@ -1214,7 +1240,8 @@ sub sendMessage {
           if ( logDebugging() ) {
             Debug("which ssmtp: $ssmtp_location - set ssmtp path in options to suppress this message");
           }
-          $ssmtp_location = qx('which ssmtp');
+          $ssmtp_location = qx(which ssmtp 2>/dev/null) // '';
+          chomp $ssmtp_location;
         }
         if ( !$ssmtp_location ) {
           Debug('Unable to find ssmtp, trying MIME::Lite->send');
@@ -1222,7 +1249,7 @@ sub sendMessage {
           $mail->send(smtp=>$Config{ZM_EMAIL_HOST}, Timeout=>60);
         } else {
 ### Send using SSMTP
-          $mail->send('sendmail', $ssmtp_location, $Config{ZM_MESSAGE_ADDRESS});
+          $mail->send('sendmail', Sendmail => $ssmtp_location);
         }
       } else {
         #MIME::Lite->send(smtp=>$Config{ZM_EMAIL_HOST}, Timeout=>60);
@@ -1315,19 +1342,25 @@ sub executeCommand {
       }
     }gse;
   } else {
-    $command .= ' '.$Event->Path();
+    my $path = $Event->Path();
+    if ($path =~ /^[\w\/.,:+=@%-]*\z/) {
+      $command .= ' '.$path;
+    } else {
+      $tag_env{ZM_TAG_0} = $path;
+      $command .= ' "${ZM_TAG_0}"';
+    }
   }
 
   Info("Executing '$command'");
   local @ENV{keys %tag_env} = values %tag_env;
   my $output = qx($command);
-  my $status = $? >> 8;
+  my $status = $?;
   if ($status || logDebugging()) {
     chomp($output);
     Debug("Status: $status Output: $output");
   }
   if ($status) {
-    Error("Command '$command' exited with status: $status");
+    Error("Command '$command' failed with ".(($status & 127) ? "signal ".($status & 127) : "status ".($status >> 8)));
     return 0;
   } else {
     $Event->load(); # the command may have altered the database

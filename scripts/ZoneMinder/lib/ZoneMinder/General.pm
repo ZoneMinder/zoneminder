@@ -60,7 +60,6 @@ use ZoneMinder::Config qw(:all);
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Database qw(:all);
 
-use POSIX;
 use Fcntl qw(:flock O_WRONLY O_CREAT);
 
 # The pid recorded in a lock file, or undef when it is empty or unreadable.
@@ -281,7 +280,6 @@ sub createEventPath {
   return $eventPath;
 }
 
-use Data::Dumper;
 
 our $_setFileOwner = undef;
 our ( $_ownerUid, $_ownerGid );

@@ -20,6 +20,8 @@
 #include "zm_audio_detector.h"
 
 #include <cmath>
+#include <cstring>
+#include <limits>
 #include <vector>
 
 namespace {
@@ -84,6 +86,11 @@ TEST_CASE("Audio RMS of float samples") {
     // clamp a hot AAC stream would report a level above 100.
     const std::vector<float> samples(64, 4.0f);
     REQUIRE(AudioDetector::RmsFloat(samples.data(), samples.size()) == Catch::Approx(1.0));
+  }
+
+  SECTION("NaN samples count as silence rather than full scale") {
+    const std::vector<float> samples(64, std::numeric_limits<float>::quiet_NaN());
+    REQUIRE(AudioDetector::RmsFloat(samples.data(), samples.size()) == 0.0);
   }
 }
 
@@ -307,4 +314,68 @@ TEST_CASE("Audio peak tracking") {
     detector.RaisePeak(0);
     REQUIRE(detector.TakePeak() == 0);
   }
+}
+
+namespace {
+
+// Opens a PCM decoder and feeds it one packet of a sine at the given fraction
+// of full scale, encoded the way the codec carries it.
+int ProcessSine(AVCodecID id, int bytes, double amplitude, int channels) {
+  AudioDetector detector;
+  AVCodecParameters par = {};
+  par.codec_type = AVMEDIA_TYPE_AUDIO;
+  par.codec_id = id;
+  par.sample_rate = 8000;
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+  av_channel_layout_default(&par.ch_layout, channels);
+#else
+  par.channels = channels;
+  par.channel_layout = av_get_default_channel_layout(channels);
+#endif
+  if (!detector.Open(&par)) return -1;
+
+  const int frames = 800;
+  AVPacket *pkt = av_packet_alloc();
+  av_new_packet(pkt, frames * channels * bytes);
+  for (int i = 0; i < frames; i++) {
+    const double v = amplitude * std::sin(2.0 * M_PI * 440.0 * i / 8000.0);
+    for (int c = 0; c < channels; c++) {
+      uint8_t *p = pkt->data + (static_cast<size_t>(i) * channels + c) * bytes;
+      switch (id) {
+        case AV_CODEC_ID_PCM_U8: *p = static_cast<uint8_t>(std::lround(128 + v * 127)); break;
+        case AV_CODEC_ID_PCM_S24LE: {
+          const int32_t s = static_cast<int32_t>(std::lround(v * 8388607.0));
+          p[0] = s & 0xff; p[1] = (s >> 8) & 0xff; p[2] = (s >> 16) & 0xff;
+          break;
+        }
+        case AV_CODEC_ID_PCM_S32LE: {
+          const int32_t s = static_cast<int32_t>(std::lround(v * 2147483647.0));
+          memcpy(p, &s, 4);
+          break;
+        }
+        case AV_CODEC_ID_PCM_F64LE: memcpy(p, &v, 8); break;
+        case AV_CODEC_ID_PCM_F32LE: { const float f = static_cast<float>(v); memcpy(p, &f, 4); break; }
+        default: { const int16_t s = static_cast<int16_t>(std::lround(v * 32767.0)); memcpy(p, &s, 2); break; }
+      }
+    }
+  }
+  const int level = detector.Process(pkt);
+  av_packet_free(&pkt);
+  return level;
+}
+
+}  // namespace
+
+TEST_CASE("Audio level of decoded PCM is the same whatever the sample format") {
+  // A sine at half scale has an rms of 0.354, -9 dBFS, which is level 85.
+  const int expected = AudioDetector::LevelFromRms(0.5 / std::sqrt(2.0));
+  REQUIRE(expected == 85);
+
+  SECTION("s16") { REQUIRE(ProcessSine(AV_CODEC_ID_PCM_S16LE, 2, 0.5, 1) == expected); }
+  SECTION("s16 stereo") { REQUIRE(ProcessSine(AV_CODEC_ID_PCM_S16LE, 2, 0.5, 2) == expected); }
+  SECTION("f32") { REQUIRE(ProcessSine(AV_CODEC_ID_PCM_F32LE, 4, 0.5, 1) == expected); }
+  SECTION("u8") { REQUIRE(ProcessSine(AV_CODEC_ID_PCM_U8, 1, 0.5, 1) == Catch::Approx(expected).margin(1)); }
+  SECTION("s24 (decoded as s32)") { REQUIRE(ProcessSine(AV_CODEC_ID_PCM_S24LE, 3, 0.5, 1) == expected); }
+  SECTION("s32") { REQUIRE(ProcessSine(AV_CODEC_ID_PCM_S32LE, 4, 0.5, 2) == expected); }
+  SECTION("f64") { REQUIRE(ProcessSine(AV_CODEC_ID_PCM_F64LE, 8, 0.5, 1) == expected); }
 }

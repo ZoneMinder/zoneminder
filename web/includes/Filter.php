@@ -1,5 +1,6 @@
 <?php
 namespace ZM;
+use Exception;
 require_once('Object.php');
 require_once('FilterTerm.php');
 require_once('Monitor.php');
@@ -63,9 +64,18 @@ class Filter extends ZM_Object {
     // Debug('$this->_sql: ' . $this->_sql);
     if (!isset($this->_sql)) {
       $this->_sql = '';
+      // Brackets of a skipped invalid term, so the rest of the expression stays balanced
+      $pending_obr = 0;
+      $pending_cnj = null;
       foreach ( $this->FilterTerms() as $term ) {
         // Error($term->valid());
         if ($term->valid()) {
+          if ($pending_obr) {
+            $term->obr = (int)$term->obr + $pending_obr;
+            $term->cnj = $pending_cnj;
+            $pending_obr = 0;
+            $pending_cnj = null;
+          }
           // Debug('$this->_sql: ' . $this->_sql);
           // Error($this-cnj);
           if (!$this->_sql) {
@@ -76,6 +86,16 @@ class Filter extends ZM_Object {
           $this->_sql .= $term->sql();
         } else {
           // Debug('Term is not valid '.$term->to_string());
+          $close = (int)$term->cbr;
+          if ($term->obr) {
+            if (!$pending_obr) $pending_cnj = $term->cnj;
+            $pending_obr += (int)$term->obr;
+          }
+          $cancel = min($pending_obr, $close);
+          $pending_obr -= $cancel;
+          $close -= $cancel;
+          if (!$pending_obr) $pending_cnj = null;
+          if ($close and $this->_sql) $this->_sql = rtrim($this->_sql).str_repeat(')', $close).PHP_EOL;
         }
         // Debug('$term->_sql: ' . $term->_sql);
       } # end foreach term
@@ -156,7 +176,7 @@ class Filter extends ZM_Object {
 
   public static function parse($new_filter, $querySep='&amp;') {
     $filter = new Filter();
-    $filter->Query($new_filter['Query']);
+    $filter->Query($new_filter['Query'] ?? []);
     return $filter;
   }
 
@@ -409,7 +429,8 @@ class Filter extends ZM_Object {
           'http' => array(
             'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
             'method'  => 'POST',
-            'content' => http_build_query($data)
+            'content' => http_build_query($data),
+            'timeout' => 10
           ),
           'ssl'=>array(
             'verify_peer'=>false,
@@ -874,14 +895,18 @@ class Filter extends ZM_Object {
     $query = dbQuery($sql);
     if (!$query) return $events;
 
+    // The tag joins give one row per tag, so an event with several tags comes back more than once
+    $seen = array();
     while ($row = dbFetchNext($query)) {
+      if (isset($seen[$row['Id']])) continue;
+      $seen[$row['Id']] = true;
       $event = new Event($row);
       $event->remove_from_cache();
       if (!$this->test_post_sql_conditions($event)) {
         continue;
       }
       $events[] = $event;
-      if ($this->limit() and (count($events) > $this->limit())) {
+      if ($this->limit() and (count($events) >= $this->limit())) {
         break;
       }
     } # end foreach row

@@ -46,6 +46,7 @@ class EncoderTemplatesController extends AppController {
       if (!$canEdit) {
         throw new UnauthorizedException(__('Insufficient privileges'));
       }
+      $this->pinRequestId($this->EncoderTemplate, null);
       $this->EncoderTemplate->create();
       if ($this->EncoderTemplate->save($this->request->data)) {
         $this->set(array(
@@ -54,6 +55,7 @@ class EncoderTemplatesController extends AppController {
           '_serialize' => array('message', 'id'),
         ));
       } else {
+        $this->response->httpCodes(array(422 => 'Unprocessable Entity'));
         $this->response->statusCode(422);
         $this->set(array(
           'message' => 'Error',
@@ -73,13 +75,14 @@ class EncoderTemplatesController extends AppController {
     if (!$this->EncoderTemplate->exists($id)) {
       throw new NotFoundException(__('Invalid encoder template'));
     }
-    $this->EncoderTemplate->id = $id;
+    $this->pinRequestId($this->EncoderTemplate, $id);
     if ($this->EncoderTemplate->save($this->request->data)) {
       $this->set(array(
         'message' => 'Saved',
         '_serialize' => array('message'),
       ));
     } else {
+      $this->response->httpCodes(array(422 => 'Unprocessable Entity'));
       $this->response->statusCode(422);
       $this->set(array(
         'message' => 'Error',

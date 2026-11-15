@@ -400,14 +400,26 @@ class Monitor extends ZM_Object {
     return parent::save();
   }
 
+  // janus_pin is a NUL terminated string in a 64 byte SharedData field
+  public static function decodeJanusPin($raw) {
+    if (!is_string($raw)) return '';
+    $nul = strpos($raw, "\0");
+    return ($nul === false) ? $raw : substr($raw, 0, $nul);
+  }
+
+  // The rule zmu --janus-pin applied (ValidateAccess): Stream view and access to the monitor
+  public function mayReadJanusPin() {
+    return canView('Stream', $this->{'Id'});
+  }
+
   public function Janus_Pin() {
     if (!$this->{'JanusEnabled'}) return '';
 
     if ((!defined('ZM_SERVER_ID')) or ( property_exists($this, 'ServerId') and (ZM_SERVER_ID==$this->{'ServerId'}) )) {
-      $cmd = getZmuCommand(' --janus-pin -m '.validCardinal($this->{'Id'}));
-      $output = shell_exec($cmd);
-      Debug("Running $cmd output: $output");
-      return $output ? trim($output) : $output;
+      // null when there is no pin, as from zmu printing nothing
+      if (!$this->mayReadJanusPin() or !$this->connect()) return null;
+      $pin = self::decodeJanusPin($this->shared_read('SharedData', 'janus_pin'));
+      return ($pin === '') ? null : $pin;
     } else if ($this->ServerId()) {
       $result = $this->Server()->SendToApi('/monitors/'.$this->{'Id'}.'.json');
       $json = json_decode($result, true);
@@ -712,7 +724,12 @@ class Monitor extends ZM_Object {
     // Hand back whether it actually saved. This is a soft delete, so a failing
     // UPDATE (an out of range Importance, for one) leaves the monitor in place,
     // and the caller has no other way to notice. See #4215.
-    return $this->save(['Deleted'=>true]);
+    $saved = $this->save(['Deleted'=>true]);
+    if ($saved) {
+      require_once('CronTab.php');
+      cronRebuild();
+    }
+    return $saved;
   }
   public function destroy() {
     if (!$this->{'Id'}) {
@@ -742,11 +759,14 @@ class Monitor extends ZM_Object {
 
     // This is the important stuff
     dbQuery('DELETE FROM Zones WHERE MonitorId = ?', array($this->{'Id'}));
+    dbQuery('DELETE FROM MonitorActions WHERE MonitorId=? OR TargetMonitorId=?', array($this->{'Id'}, $this->{'Id'}));
     if ( ZM_OPT_X10 )
       dbQuery('DELETE FROM TriggersX10 WHERE MonitorId=?', array($this->{'Id'}));
     dbQuery('DELETE FROM Monitor_Status WHERE MonitorId = ?', array($this->{'Id'}));
     dbQuery('DELETE FROM Event_Summaries WHERE MonitorId = ?', array($this->{'Id'}));
     dbQuery('DELETE FROM Monitors WHERE Id = ?', array($this->{'Id'}));
+    require_once('CronTab.php');
+    cronRebuild();
   } // end function destroy
 
   public function Storage($new = null) {
@@ -1083,7 +1103,7 @@ class Monitor extends ZM_Object {
       $result = $this->Server()->SendToApi('/monitors/alarm/id:'.$this->{'Id'}.'/command:'.$cmd.'.json');
 
       if ($result === FALSE) { /* Handle error */
-        Error('Error sending command using '.$url);
+        Error('Error sending alarm command '.$cmd.' for monitor '.$this->{'Id'}.' to server '.$this->{'ServerId'});
         return false;
       }
       $json = json_decode($result, true);
@@ -1413,6 +1433,28 @@ class Monitor extends ZM_Object {
     }
     if (isset($gp_permissions['View'])) return 'View';
     if (isset($gp_permissions['Edit'])) return 'Edit';
+
+    // Same order as visibleMonitor() and editableMonitor(): the role's monitor permission,
+    // its groups, then the higher of the user's and the role's Monitors permission.
+    $role = $u->Role();
+    if ($role) {
+      $role_permission = $role->Monitor_Permission($this->Id())->Permission();
+      if ($role_permission != 'Inherit') return $role_permission;
+      $role_gp_permissions = array();
+      foreach ($role->Group_Permissions() as $gp) {
+        if (false === array_search($this->Id(), $gp->Group()->MonitorIds())) {
+          continue;
+        }
+        if ($gp->Permission() == 'None') {
+          return $gp->Permission();
+        }
+        $role_gp_permissions[$gp->Permission()] = 1;
+      }
+      if (isset($role_gp_permissions['View'])) return 'View';
+      if (isset($role_gp_permissions['Edit'])) return 'Edit';
+      $levels = array('None'=>0, 'View'=>1, 'Edit'=>2, 'Create'=>3);
+      return ($levels[$role->Monitors()] > $levels[$u->Monitors()]) ? $role->Monitors() : $u->Monitors();
+    }
     return $u->Monitors();
   }
 
@@ -1553,17 +1595,17 @@ class Monitor extends ZM_Object {
 
   public function enable() {
     if (!$this->connect()) return false;
-    $action = $this->shared_read('TriggerData', 'action');
-    $action |= TRIGGER_ACTION_SUSPEND;
-    $this->shared_write('TriggerData', 'action', $action);
+    $action = $this->shared_read('SharedData', 'action');
+    $action |= TRIGGER_ACTION_RESUME;
+    $this->shared_write('SharedData', 'action', $action);
     return true;
   }
 
   public function disable() {
     if (!$this->connect()) return false;
-    $action = $this->shared_read('TriggerData', 'action');
-    $action |= TRIGGER_ACTION_RESUME;
-    $this->shared_write('TriggerData', 'action', $action);
+    $action = $this->shared_read('SharedData', 'action');
+    $action |= TRIGGER_ACTION_SUSPEND;
+    $this->shared_write('SharedData', 'action', $action);
     return true;
   }
 
@@ -1576,14 +1618,15 @@ class Monitor extends ZM_Object {
     if ($showtext) $this->shared_write('TriggerData', 'showtext', $showtext);
     $this->shared_write('TriggerData', 'state', TRIGGER_ON);
     Debug("Trigger cause is ".$this->shared_read('TriggerData','cause'));
+    return true;
   }
 
   public function  TriggerEventOff () {
     if (!$this->connect()) return false;
     $this->shared_write('TriggerData', 'score', 0);
     $this->shared_write('TriggerData', 'cause', '');
-    if ($text) $this->shared_write('TriggerData', 'text', '');
-    if ($showtext) $this->shared_write('TriggerData', 'showtext', '');
+    $this->shared_write('TriggerData', 'text', '');
+    $this->shared_write('TriggerData', 'showtext', '');
     $this->shared_write('TriggerData', 'state', TRIGGER_OFF);
   }
 
@@ -1591,8 +1634,8 @@ class Monitor extends ZM_Object {
     if (!$this->connect()) return false;
     $this->shared_write('TriggerData', 'score', 0);
     $this->shared_write('TriggerData', 'cause', '');
-    if ($text) $this->shared_write('TriggerData', 'text', '');
-    if ($showtext) $this->shared_write('TriggerData', 'showtext', '');
+    $this->shared_write('TriggerData', 'text', '');
+    $this->shared_write('TriggerData', 'showtext', '');
     $this->shared_write('TriggerData', 'state', TRIGGER_CANCEL);
   }
   public function TriggerShowtext($showtext) {

@@ -98,6 +98,7 @@ extern "C" {
 
 /* A single function to initialize ffmpeg, to avoid multiple initializations */
 void FFMPEGInit();
+bool zm_load_avdevice();
 void FFMPEGDeInit();
 
 enum _AVPIXELFORMAT GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subpixelorder);
@@ -150,6 +151,7 @@ void zm_dump_stream(AVStream *st);
 void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output);
 void zm_dump_codec(const AVCodecContext *codec);
 void zm_dump_codecpar(const AVCodecParameters *par);
+void zm_clear_incompatible_codec_tag(const AVOutputFormat *format, AVCodecParameters *par);
 
 #if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
 #define zm_dump_frame(frame, text) Debug(1, "%s: format %d %s sample_rate %" PRIu32 " nb_samples %d" \
@@ -341,6 +343,14 @@ std::list<const CodecData*> get_decoder_data(int wanted_codec, const std::string
 // Returns an opened AVCodecContext (caller frees with avcodec_free_context) or
 // nullptr. When non-null, *codec_out receives the chosen AVCodec.
 AVCodecContext *open_fallback_decoder(const AVCodecParameters *codecpar, const AVCodec **codec_out = nullptr);
+// Like av_dict_parse_string() with "=" between key and value, but an entry with
+// no '=' or no value is skipped with a warning. av_dict_parse_string() would
+// otherwise make it the front of the next entry's key (or take the next entry
+// as its value), silently dropping that option.
+int zm_parse_options(AVDictionary **pm, const std::string &options, const char *separators);
+// Reads a non-negative number the way ffmpeg options do, so "2M" and "500k"
+// work. Returns false, leaving out untouched, for anything else.
+bool zm_parse_option_number(const char *text, uint64_t &out);
 int setup_hwaccel(AVCodecContext *codec_ctx, const CodecData *codec_data,AVBufferRef * &hw_device_ctx, const std::string &device, int width, int height);
 int libjpeg_to_ffmpeg_qv(int libjpeg_quality);
 enum AVPixelFormat get_hw_format(AVCodecContext *ctx, const enum AVPixelFormat *pix_fmts);

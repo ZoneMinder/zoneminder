@@ -67,7 +67,7 @@ if (isset($_REQUEST['monitorStatusPositionSelected'])) {
   $monitorStatusPositionSelected = $_COOKIE['zmMonitorStatusPositionSelected'];
 }
 
-$layouts = ZM\MontageLayout::find(NULL, array('order'=>"lower('Name')"));
+$layouts = ZM\MontageLayout::find(NULL, array('order'=>'lower(Name)'));
 // layoutsById is used in the dropdown, so needs to be sorted
 $layoutsById = array();
 $presetLayoutsNames = array( //Order matters!
@@ -126,7 +126,7 @@ $layout_is_preset = array_search($layout->Name(), $presetLayoutsNames) === false
 
 $options = array();
 
-if (isset($_REQUEST['zmMontageWidth'])) {
+if (isset($_REQUEST['zmMontageWidth']) and is_string($_REQUEST['zmMontageWidth'])) {
   $width = $_REQUEST['zmMontageWidth'];
   if (($width == 'auto') or preg_match('/^\d+px$/', $width))
     $_SESSION['zmMontageWidth'] = $options['width'] = $width;
@@ -142,7 +142,7 @@ if (isset($_REQUEST['zmMontageWidth'])) {
   $options['width'] = 0;
 }
 
-if (isset($_REQUEST['zmMontageHeight'])) {
+if (isset($_REQUEST['zmMontageHeight']) and is_string($_REQUEST['zmMontageHeight'])) {
   $height = $_REQUEST['zmMontageHeight'];
   if (($height == 'auto') or preg_match('/^\d+px$/', $height))
     $_SESSION['zmMontageHeight'] = $options['height'] = $height;
@@ -181,7 +181,7 @@ if (isset($_REQUEST['streamQuality'])) {
   $streamQualitySelected = $_SESSION['zmStreamQuality'];
 }
 
-if (!empty($_REQUEST['maxfps']) and validFloat($_REQUEST['maxfps']) and ($_REQUEST['maxfps']>0)) {
+if (!empty($_REQUEST['maxfps']) and is_numeric($_REQUEST['maxfps']) and ($_REQUEST['maxfps']>0)) {
   $options['maxfps'] = validHtmlStr($_REQUEST['maxfps']);
 } else if (isset($_COOKIE['zmMontageRate'])) {
   $options['maxfps'] = validHtmlStr($_COOKIE['zmMontageRate']);
@@ -380,8 +380,8 @@ foreach ($monitors as $monitor) {
     echo getWebSiteUrl(
       'liveStream'.$monitor->Id(),
       $monitor->Path(),
-      (isset($options['width']) ? $options['width'] : reScale($monitor->ViewWidth(), $scale).'px' ),
-      (isset($options['height']) ? $options['height'] : reScale($monitor->ViewHeight(), $scale).'px' ),
+      (!empty($options['width']) ? $options['width'] : reScale($monitor->ViewWidth(), $scale).'px' ),
+      (!empty($options['height']) ? $options['height'] : reScale($monitor->ViewHeight(), $scale).'px' ),
       $monitor->Name()
     );
   } else {
@@ -403,7 +403,7 @@ foreach ($monitors as $monitor) {
         # We know the # of columns so can figure out a proper scale
         if (preg_match('/^(\d+) Wide$/', $layout->Name(), $matches)) {
           if ($matches[1]) {
-            $monitor_options['scale'] = intval(100*(($browser_width/$matches[1])/$monitor->Width()));
+            $monitor_options['scale'] = intval(100*(($browser_width/$matches[1])/max(1, $monitor->Width())));
             if ($monitor_options['scale'] < 10) $monitor_options['scale'] = 10;
             else if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
           }
@@ -414,7 +414,7 @@ foreach ($monitors as $monitor) {
       if ($divisor < 2) $divisor = 2;
 
       # Custom, default to 25% of 1920 for now, because 25% of a 4k is very different from 25% of 640px
-      $monitor_options['scale'] = intval(100*(($browser_width/$divisor)/$monitor->Width()));
+      $monitor_options['scale'] = intval(100*(($browser_width/$divisor)/max(1, $monitor->Width())));
       if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
       else if ($monitor_options['scale'] < 10) $monitor_options['scale'] = 10;
     }

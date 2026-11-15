@@ -60,7 +60,7 @@ getBodyTopHTML();
               <th class="text-right " scope="row"><?php echo translate('Filter') ?></th>
               <td>
 <?php
-  $FilterById = array();
+  $FiltersById = array();
   foreach (ZM\Filter::find() as $F) {
     $FiltersById[$F->Id()] = $F;
   }
@@ -88,7 +88,7 @@ getBodyTopHTML();
     </div>
   </div>
 
-  <script src="/skins/classic/js/Chart.min.js"></script>
+  <script src="skins/classic/js/Chart.min.js"></script>
 <script nonce="<?php echo $cspNonce; ?>">
 var events = Array();
 

@@ -1,5 +1,7 @@
 <?php
 namespace ZM;
+use Exception;
+use PDOException;
 require_once('Storage.php');
 require_once('functions.php');
 require_once('Object.php');
@@ -144,13 +146,13 @@ class Event extends ZM_Object {
 
   public function Time() {
     if ( ! isset($this->{'Time'}) ) {
-      $this->{'Time'} = strtotime($this->{'StartDateTime'});
+      $this->{'Time'} = $this->StartDateTimeSecs();
     }
     return $this->{'Time'};
   }
 
   public function StartDateTimeSecs() {
-    return strtotime($this->{'StartDateTime'});
+    return empty($this->{'StartDateTime'}) ? false : strtotime($this->{'StartDateTime'});
   }
 
   public function EndDateTimeSecs() {
@@ -180,6 +182,11 @@ class Event extends ZM_Object {
   public function Relative_Path() {
     $event_path = '';
 
+    if ( ($this->{'Scheme'} == 'Deep' or $this->{'Scheme'} == 'Medium') and !$this->StartDateTimeSecs() ) {
+      Error('Event '.$this->{'Id'}.' has no StartDateTime, unable to determine path');
+      return '';
+    }
+
     if ( $this->{'Scheme'} == 'Deep' ) {
       $event_path = $this->{'MonitorId'}.'/'.date('y/m/d/H/i/s', $this->Time());
     } else if ( $this->{'Scheme'} == 'Medium' ) {
@@ -193,69 +200,124 @@ class Event extends ZM_Object {
 
   public function Link_Path() {
     if ( $this->{'Scheme'} == 'Deep' ) {
+      if ( !$this->StartDateTimeSecs() ) {
+        Error('Event '.$this->{'Id'}.' has no StartDateTime, unable to determine link path');
+        return '';
+      }
       return $this->{'MonitorId'}.'/'.date('y/m/d/.', $this->Time()).$this->{'Id'};
     }
     Error('Calling Link_Path when not using deep storage');
     return '';
   }
 
+  // Remove empty date directories below <storage>/<monitorid> only. The
+  // monitor directory and the Storage root are never removed.
+  public static function pruneEmptyEventDirs($eventPath, $storagePath) {
+    $storagePath = rtrim($storagePath, '/');
+    $path = dirname(rtrim($eventPath, '/'));
+    while ( true ) {
+      if ( strpos($path.'/', $storagePath.'/') !== 0 ) break;
+      $relative = substr($path, strlen($storagePath) + 1);
+      if ( strpos($relative, '/') === false ) break;
+      $entries = @scandir($path);
+      if ( $entries === false ) {
+        Warning("Unable to read $path while pruning empty event directories");
+        break;
+      }
+      if ( array_diff($entries, array('.', '..')) ) break;
+      if ( !@rmdir($path) ) {
+        Warning("Unable to remove empty directory $path");
+        break;
+      }
+      $path = dirname($path);
+    }
+  }
+
   public function delete() {
     if ( ! $this->{'Id'} ) {
       Error('Event delete on event with empty Id');
-      return;
+      return false;
     }
     if ( $this->{'Archived'} ) {
       Error('Cannot delete an Archived event.');
-      return;
+      return false;
     }
     $dbConn = zmDbConn();
     $dbConn->beginTransaction();
     try {
       $this->lock();
-      dbQuery('DELETE FROM Stats WHERE EventId = ?', array($this->{'Id'}));
-      dbQuery('DELETE FROM Frames WHERE EventId = ?', array($this->{'Id'}));
-      if ( $this->{'Scheme'} == 'Deep' ) {
-
-        # Assumption: All events have a start time
-        $start_date = date_parse($this->{'StartDateTime'});
-        if ( ! $start_date ) {
-          throw new Exception('Unable to parse start date time for event ' . $this->{'Id'} . ' not deleting files.');
+      # lock() reloaded the row, so this sees an archive made after the event was loaded
+      if ( $this->{'Archived'} ) {
+        Error('Cannot delete an Archived event.');
+        $dbConn->rollback();
+        return false;
+      }
+      if ( ($this->{'Scheme'} == 'Deep' or $this->{'Scheme'} == 'Medium') and !$this->StartDateTimeSecs() ) {
+        Error('Event '.$this->{'Id'}.' has no start date time, not deleting.');
+        $dbConn->rollback();
+        return false;
+      }
+      # dbQuery() reports a failed statement by returning null, not by throwing
+      foreach (array('Stats', 'Event_Data', 'Frames') as $table) {
+        if (null === dbQuery('DELETE FROM '.$table.' WHERE EventId = ?', array($this->{'Id'}))) {
+          throw new \Exception('Unable to delete '.$table.' rows of event '.$this->{'Id'}.' not deleting.');
         }
-        $start_date['year'] = $start_date['year'] % 100;
+      }
+      if (null === dbQuery('DELETE FROM Events WHERE Id = ?', array($this->{'Id'}))) {
+        throw new \Exception('Unable to delete event '.$this->{'Id'}.' not deleting files.');
+      }
+      $dbConn->commit();
+    } catch (\Exception $e) {
+      Error($e->getMessage());
+      $dbConn->rollback();
+      return false;
+    }
+    if (!empty($this->{'DiskSpace'}) and !empty($this->{'StorageId'})) {
+      dbQuery('UPDATE Storage SET DiskSpace=GREATEST(COALESCE(DiskSpace,0)-?,0) WHERE Id=?', array($this->{'DiskSpace'}, $this->{'StorageId'}));
+    }
+    # The rows are gone, so a failure below leaves files for zmaudit to remove
+    try {
+      if ( !$this->Storage()->DoDelete() ) {
+        Debug('Not deleting event files for '.$this->{'Id'}.' because the storage area has DoDelete off.');
+      } else if ( $this->{'Scheme'} == 'Deep' ) {
 
         # So this is because ZM creates a link under the day pointing to the time that the event happened. 
         $link_path = $this->Link_Path();
         if ( ! $link_path ) {
-          throw new Exception('Unable to determine link path for event '.$this->{'Id'}.' not deleting files.');
+          throw new \Exception('Unable to determine link path for event '.$this->{'Id'}.' not deleting files.');
         }
 
         $Storage = $this->Storage();
         $eventlink_path = $Storage->Path().'/'.$link_path;
 
+        if ( $this->SecondaryStorageId() ) {
+          $SecondaryStorage = $this->SecondaryStorage();
+          if ( $SecondaryStorage->Id() ) {
+            deletePath($SecondaryStorage->Path().'/'.$this->Relative_Path());
+            deletePath($SecondaryStorage->Path().'/'.$link_path);
+          }
+        }
+
         if ( $id_files = glob($eventlink_path) ) {
           if ( ! $eventPath = readlink($id_files[0]) ) {
-            throw new Exception("Unable to read link at $id_files[0]");
+            throw new \Exception("Unable to read link at $id_files[0]");
           }
           # I know we are using arrays here, but really there can only ever be 1 in the array
           $eventPath = preg_replace('/\.'.$this->{'Id'}.'$/', $eventPath, $id_files[0]);
           deletePath($eventPath);
           deletePath($id_files[0]);
-          $pathParts = explode('/', $eventPath);
-          for ( $i = count($pathParts)-1; $i >= 2; $i-- ) {
-            $deletePath = join('/', array_slice($pathParts, 0, $i));
-            if ( !glob($deletePath.'/*') ) {
-              deletePath($deletePath);
-            }
-          }
+          self::pruneEmptyEventDirs($eventPath, $Storage->Path());
         } else {
           Warning("Found no event files under $eventlink_path");
         } # end if found files
       } else {
         $eventPath = $this->Path();
         if ( ! $eventPath ) {
-          throw new Exception('No event Path in Event delete. Not deleting');
+          throw new \Exception('No event Path in Event delete. Not deleting');
         }
         deletePath($eventPath);
+        # rmdir() leaves the date directory alone while other events are in it
+        if ( $this->{'Scheme'} == 'Medium' ) @rmdir(dirname($eventPath));
         if ( $this->SecondaryStorageId() ) {
           $Storage = $this->SecondaryStorage();
           if ( $Storage->Id() ) {
@@ -264,18 +326,15 @@ class Event extends ZM_Object {
               Error('No event Path in Event delete. Not deleting');
             } else {
               deletePath($eventPath);
+              if ( $this->{'Scheme'} == 'Medium' ) @rmdir(dirname($eventPath));
             }
           } # end if Storage
         } # end if has Secondary Storage
       } # USE_DEEP_STORAGE OR NOT
-      dbQuery('DELETE FROM Events WHERE Id = ?', array($this->{'Id'}));
-      $dbConn->commit();
-    } catch (PDOException $e) {
-      $dbConn->rollback();
-    } catch (Exception $e) {
+    } catch (\Exception $e) {
       Error($e->getMessage());
-      $dbConn->rollback();
     }
+    return true;
   } # end Event->delete
 
   public function Server() {
@@ -395,10 +454,10 @@ class Event extends ZM_Object {
         // SCALE_BASE scale truncated to 0/1 for high-resolution monitors (e.g.
         // 2688 wide -> scale 1), producing a squashed, wrong-aspect thumbnail
         // (and a distorted hover-overlay). refs #3443
-        $this->{'ThumbnailHeight'} = (int)round($this->{'Height'} * ZM_WEB_LIST_THUMB_WIDTH / $this->{'Width'});
+        $this->{'ThumbnailHeight'} = $this->{'Width'} ? (int)round($this->{'Height'} * ZM_WEB_LIST_THUMB_WIDTH / $this->{'Width'}) : (int)round(ZM_WEB_LIST_THUMB_WIDTH * 3 / 4);
       } elseif ( ZM_WEB_LIST_THUMB_HEIGHT ) {
         $this->{'ThumbnailHeight'} = ZM_WEB_LIST_THUMB_HEIGHT;
-        $this->{'ThumbnailWidth'} = (int)round($this->{'Width'} * ZM_WEB_LIST_THUMB_HEIGHT / $this->{'Height'});
+        $this->{'ThumbnailWidth'} = $this->{'Height'} ? (int)round($this->{'Width'} * ZM_WEB_LIST_THUMB_HEIGHT / $this->{'Height'}) : (int)round(ZM_WEB_LIST_THUMB_HEIGHT * 4 / 3);
       } else {
         Fatal( "No thumbnail width or height specified, please check in Options->Web" );
       }
@@ -414,10 +473,10 @@ class Event extends ZM_Object {
         // SCALE_BASE scale truncated to 0/1 for high-resolution monitors (e.g.
         // 2688 wide -> scale 1), producing a squashed, wrong-aspect thumbnail
         // (and a distorted hover-overlay). refs #3443
-        $this->{'ThumbnailHeight'} = (int)round($this->{'Height'} * ZM_WEB_LIST_THUMB_WIDTH / $this->{'Width'});
+        $this->{'ThumbnailHeight'} = $this->{'Width'} ? (int)round($this->{'Height'} * ZM_WEB_LIST_THUMB_WIDTH / $this->{'Width'}) : (int)round(ZM_WEB_LIST_THUMB_WIDTH * 3 / 4);
       } elseif ( ZM_WEB_LIST_THUMB_HEIGHT ) {
         $this->{'ThumbnailHeight'} = ZM_WEB_LIST_THUMB_HEIGHT;
-        $this->{'ThumbnailWidth'} = (int)round($this->{'Width'} * ZM_WEB_LIST_THUMB_HEIGHT / $this->{'Height'});
+        $this->{'ThumbnailWidth'} = $this->{'Height'} ? (int)round($this->{'Width'} * ZM_WEB_LIST_THUMB_HEIGHT / $this->{'Height'}) : (int)round(ZM_WEB_LIST_THUMB_HEIGHT * 4 / 3);
       } else {
         Fatal( "No thumbnail width or height specified, please check in Options->Web" );
       }
@@ -602,24 +661,16 @@ class Event extends ZM_Object {
     if ( $Server->Id() != ZM_SERVER_ID ) {
 
       $url = $Server->UrlToApi() . '/events/'.$this->{'Id'}.'.json';
-      if ( ZM_OPT_USE_AUTH ) {
-        if ( ZM_AUTH_RELAY == 'hashed' ) {
-          $url .= '?auth='.generateAuthHash( ZM_AUTH_HASH_IPS );
-        } else if ( ZM_AUTH_RELAY == 'plain' ) {
-          $url .= '?user='.$_SESSION['username'];
-          $url .= '?pass='.$_SESSION['password'];
-        } else {
-          Error('Multi-Server requires AUTH_RELAY be either HASH or PLAIN');
-          return;
-        }
-      }
+      $auth_relay = get_auth_relay();
+      if ($auth_relay) $url .= '?'.$auth_relay;
       Debug('sending command to '.urlForLog($url));
       // use key 'http' even if you send the request to https://...
       $options = array(
           'http' => array(
             'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
             'method'  => 'GET',
-            'content' => ''
+            'content' => '',
+            'timeout' => 10
             )
           );
       $context  = stream_context_create($options);
@@ -650,24 +701,16 @@ class Event extends ZM_Object {
     if ( $Server->Id() != ZM_SERVER_ID ) {
 
       $url = $Server->UrlToApi().'/events/'.$this->{'Id'}.'.json';
-      if ( ZM_OPT_USE_AUTH ) {
-        if ( ZM_AUTH_RELAY == 'hashed' ) {
-          $url .= '?auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
-        } elseif ( ZM_AUTH_RELAY == 'plain' ) {
-          $url .= '?user='.$_SESSION['username'];
-          $url .= '?pass='.$_SESSION['password'];
-        } else {
-          Error('Multi-Server requires AUTH_RELAY be either HASH or PLAIN');
-          return;
-        }
-      }
+      $auth_relay = get_auth_relay();
+      if ($auth_relay) $url .= '?'.$auth_relay;
       Debug('sending command to '.urlForLog($url));
       // use key 'http' even if you send the request to https://...
       $options = array(
           'http' => array(
             'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
             'method'  => 'GET',
-            'content' => ''
+            'content' => '',
+            'timeout' => 10
             )
           );
       $context = stream_context_create($options);
@@ -792,11 +835,13 @@ class Event extends ZM_Object {
     } else if ($previousBulkFrame) {
       //If no next Frame we have to pull data from the Event itself
       $frame = new Frame($previousBulkFrame);
-      $frame->FrameId($_REQUEST['fid']);
+      $frame->FrameId($fid);
 
-      $percentage = ($frame->FrameId()/$this->Frames());
-
-      $frame->Delta(floor($this->Length() * $percentage));
+      $previousFrameId = $previousBulkFrame['FrameId'];
+      $previousDelta = $previousBulkFrame['Delta'];
+      if ($this->Frames() > $previousFrameId and $this->Length() > $previousDelta) {
+        $frame->Delta(round($previousDelta + ($this->Length() - $previousDelta) * ($fid - $previousFrameId) / ($this->Frames() - $previousFrameId), 2));
+      }
     }
     return $frame;
   }
@@ -846,10 +891,10 @@ class Event extends ZM_Object {
     }
     array_merge($file_parts, explode(',', $transforms));
     $video_file = implode('-', $file_parts).'.'.$format;
-    if ( $overwrite || ! file_exists($video_file) ) {
+    if ( $overwrite || ! file_exists($event_path.'/'.$video_file) ) {
       Info("Creating video file $video_file for event ".$this->Id());
 
-      $frame_rate = sprintf('%.2f', $this->Frames()/$this->Length());
+      $frame_rate = $this->Length() > 0 ? sprintf('%.2f', $this->Frames()/$this->Length()) : 1;
       if ($rate) {
         if ( $rate != 1.0 ) {
           $frame_rate *= $rate;

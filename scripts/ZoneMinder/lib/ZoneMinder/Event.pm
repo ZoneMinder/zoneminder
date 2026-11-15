@@ -85,6 +85,7 @@ $serial = $primary_key = 'Id';
   TotScore
   AvgScore
   MaxScore
+  MaxScoreFrameId
   Archived
   Videoed
   Uploaded
@@ -97,12 +98,16 @@ $serial = $primary_key = 'Id';
   DiskSpace
   SaveJPEGs
   Scheme
+  Locked
+  Latitude
+  Longitude
 );
 %defaults = (
   Cause =>  q`'Unknown'`,
   DefaultVideo  => q`''`,
   TotScore => '0',
   Archived  =>  '0',
+  Locked  =>  '0',
   Videoed  =>  '0',
   Uploaded  =>  '0',
   Emailed   =>  '0',
@@ -311,7 +316,9 @@ sub GenerateVideo {
   if ( $overwrite || !-s $video_file ) {
     Info("Creating video file $video_file for event $self->{Id}");
 
-    my $frame_rate = sprintf('%.2f', $self->{Frames}/$self->{FullLength});
+    # A single frame spans no time and an event without Frames rows has no FullLength.
+    my $full_length = $self->{FullLength} || $self->{Length};
+    my $frame_rate = $full_length ? sprintf('%.2f', $self->{Frames}/$full_length) : 1;
     if ( $rate ) {
       if ( $rate != 1.0 ) {
         $frame_rate *= $rate;
@@ -320,14 +327,14 @@ sub GenerateVideo {
       $frame_rate = $fps;
     }
 
-    my $width = $self->{Width};
-    my $height = $self->{Height};
-    my $video_size = "${width}x${height}";
+    # Left empty to keep the input size, which a rotating transform changes.
+    my $video_size = '';
 
     if ( $scale ) {
       if ( $scale != 1.0 ) {
-        $width = int($width*$scale);
-        $height = int($height*$scale);
+        # libx264 refuses odd dimensions
+        my $width = int($self->{Width}*$scale/2)*2;
+        my $height = int($self->{Height}*$scale/2)*2;
         $video_size = "${width}x${height}";
       }
     } elsif ( $size ) {
@@ -351,8 +358,8 @@ sub GenerateVideo {
       # each, so they are split on whitespace rather than passed as one word.
       grep { $_ ne '' } split(/\s+/, $Config{ZM_FFMPEG_INPUT_OPTIONS}),
       '-i', $input_file,
-      (map { ('-vf', $_) } @transforms),
-      '-s', $video_size,
+      (@transforms ? ('-vf', join(',', @transforms)) : ()),
+      ($video_size ne '' ? ('-s', $video_size) : ()),
       grep { $_ ne '' } split(/\s+/, $Config{ZM_FFMPEG_OUTPUT_OPTIONS}),
       $video_file,
     );
@@ -374,9 +381,10 @@ sub GenerateVideo {
     }
     waitpid($pid, 0);
 
-    my $status = $? >> 8;
+    my $status = $?;
     if ( $status ) {
-      Error("Unable to generate video, check $event_path/ffmpeg.log for details");
+      Error('Unable to generate video, ffmpeg ended with '.(($status & 127) ? "signal ".($status & 127) : "status ".($status >> 8)).", check $event_path/ffmpeg.log for details");
+      unlink($video_file);
       return;
     }
 
@@ -612,7 +620,15 @@ sub delete_analysis_jpegs {
     if ( $event_path ) {
       ( $storage_path ) = ( $storage_path =~ /^(.*)$/ ); # De-taint
       ( $event_path ) = ( $event_path =~ /^(.*)$/ ); # De-taint
-      my @files = glob("$storage_path/$event_path/*analyse.jpg");
+      my @files;
+      my $dir = "$storage_path/$event_path";
+      if ( opendir(my $dh, $dir) ) {
+        @files = grep(/^\d+-analyse\.jpg$/, readdir($dh));
+        closedir($dh);
+      } else {
+        Error("Unable to open $dir: $!");
+        next;
+      }
       Debug(@files . ' analysis jpegs found to delete');
       foreach my $file (@files) {
         $Storage->delete_path($event_path.'/'.$file);
@@ -651,14 +667,20 @@ sub check_for_in_filesystem {
   my $path = $_[0]->Path();
   if ( $path ) {
     if ( -e $path ) {
-      my @files = glob "$path/*";
-      Debug("Checking for files for event $_[0]{Id} at $path using glob $path/* found " . scalar @files . ' files');
-      return 1 if @files;
+      if ( opendir my $dh, $path ) {
+        while ( my $entry = readdir $dh ) {
+          next if substr($entry, 0, 1) eq '.';
+          Debug("Checking for files for event $_[0]{Id} at $path found a file");
+          return 1;
+        }
+        Debug("Checking for files for event $_[0]{Id} at $path found no files");
+      } else {
+        Debug("Checking for files for event $_[0]{Id} at $path could not open directory");
+      }
     } else {
       Warning("Path not found for Event $_[0]{Id} at $path");
     }
   }
-  Debug("Checking for files for event $_[0]{Id} at $path using glob $path/* found no files");
   return 0;
 }
 
@@ -769,7 +791,10 @@ sub CopyTo {
 
         $moved = 1;
       };
-      Error($@) if $@;
+      if (my $err = $@) {
+        Error($err);
+        return "Failed to copy event $$self{Id} to S3: $err";
+      }
     } # end if s3
   } # end if s3f3
 
@@ -807,6 +832,14 @@ sub CopyTo {
       my $duration = tv_interval($starttime);
       Debug('Copied ' . Number::Bytes::Human::format_bytes($size) . " in $duration seconds = " . ($duration?Number::Bytes::Human::format_bytes($size/$duration):'inf') . '/sec');
     } # end foreach file.
+
+    if (!$error and $self->Scheme() eq 'Deep') {
+      my ($link) = (($NewStorage->Path().'/'.$self->LinkPath()) =~ /^(.*)$/);
+      my ($target) = ($self->RelativePath() =~ /([^\/]+\/[^\/]+\/[^\/]+)\/?$/);
+      if ($target and !-l $link and !symlink($target, $link)) {
+        $error .= "Unable to symlink $target to $link: $!";
+      }
+    }
   } # end if ! moved
 
   return $error;
@@ -968,22 +1001,27 @@ sub recover_timestamps {
   if ( @mp4_files ) {
     $Event->DefaultVideo($mp4_files[0]);
   }
+  if ( $Event->Scheme() eq 'Deep' and $path =~ m{(\d{2})/(\d{2})/(\d{2})/(\d{2})/(\d{2})/(\d{2})/?$} ) {
+    # The event's files are found through its start time, which names the directory
+    $Event->StartDateTime(sprintf('20%02d-%02d-%02d %02d:%02d:%02d', $1, $2, $3, $4, $5, $6));
+  }
 }
 
 # Return the duration of a video file in seconds (float), or undef if it
 # cannot be determined. $file must already be de-tainted by the caller.
 sub mp4_duration {
   my $file = shift;
+  my $quoted = quotemeta($file);
 
   # Preferred: ask ffprobe for the machine-readable duration in seconds.
-  my $duration = `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 '$file' 2>/dev/null`;
+  my $duration = `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 $quoted 2>/dev/null`;
   chomp $duration if defined $duration;
   if ( defined $duration and $duration =~ /^(\d+(?:\.\d+)?)$/ ) {
     return $1;
   }
 
   # Fallback: parse the human-readable "Duration: HH:MM:SS.uu" line.
-  my $output = `ffprobe '$file' 2>&1`;
+  my $output = `ffprobe $quoted 2>&1`;
   if ( $output =~ /Duration:\s*(\d+):(\d+):(\d+)\.(\d+)/ ) {
     return ($1*3600) + ($2*60) + $3 + "0.$4";
   }
@@ -995,10 +1033,10 @@ sub guess_EndDateTime {
   my $event = shift;
   if (!$$event{EndDateTime}) {
     if ($$event{Length}) {
-      my $startdatetime = Date::Parse::str2time( $_[0]{StartDateTime} );
+      my $startdatetime = Date::Parse::str2time( $$event{StartDateTime} );
       $$event{EndDateTime} = Date::Format::time2str('%Y-%m-%d %H:%M:%S', $startdatetime + $$event{Length});
     } else {
-      $$event{EndDateTime} = Date::Format::time2str('%Y-%m-%d %H:%M:%S', Date::Parse::str2time( $_[0]{StartDateTime} )+1);
+      $$event{EndDateTime} = Date::Format::time2str('%Y-%m-%d %H:%M:%S', Date::Parse::str2time( $$event{StartDateTime} )+1);
     }
   }
   return $$event{EndDateTime};

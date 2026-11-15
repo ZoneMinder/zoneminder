@@ -102,7 +102,10 @@ if ( -e ZM_AUDIT_PID ) {
   binmode FILE;
   my $pid = <FILE>;
   close FILE;
-  if ( $force ) {
+  my ( $running_pid ) = ( $pid // '' ) =~ /^(\d+)$/;
+  if ( !$running_pid or !( kill(0, $running_pid) or $!{EPERM} ) ) {
+    Warning('Removing stale pid file '.ZM_AUDIT_PID.' left by pid '.($pid // '').' which is not running.');
+  } elsif ( $force ) {
     Error("zmaudit.pl appears to already be running at pid $pid. Continuing." );
   } else {
     Fatal("zmaudit.pl appears to already be running at pid $pid. If not, please delete " . 
@@ -149,6 +152,7 @@ my $image_path = EVENT_PATH;
 my $loop = 1;
 my $cleaned = 0;
 MAIN: while( $loop ) {
+  ZoneMinder::Object::init_cache();
 
   if ( $continuous ) {
     # if we are running continuously, then just skip to the next
@@ -194,6 +198,14 @@ MAIN: while( $loop ) {
     foreach my $Storage ( @Storage_Areas ) {
       Info('Auditing ' . $Storage->Name() . ' at ' . $Storage->Path() . ' on ' . $Storage->Server()->Name() );
     }
+  } elsif ( $Config{ZM_SERVER_ID} ) {
+    # Another server's events would look missing here and be deleted from the db.
+    @Storage_Areas = grep { !$$_{ServerId} or ($$_{ServerId} == $Config{ZM_SERVER_ID}) } @all_Storage_Areas;
+    if ( ! @Storage_Areas ) {
+      Error('No Storage Area found for server '.$Config{ZM_SERVER_ID});
+      Term();
+    }
+    Info('Auditing Storage Areas of server '.$Config{ZM_SERVER_ID});
   } else {
     @Storage_Areas = ZoneMinder::Storage->find();
     Info('Auditing All Storage Areas');
@@ -226,11 +238,13 @@ MAIN: while( $loop ) {
   } # end while monitors
 
   my $fs_monitors;
+  my %unavailable_storage;
 
   foreach my $Storage ( @Storage_Areas ) {
     Debug('Checking events in ' . $Storage->Path() );
     if ( ! chdir( $Storage->Path() ) ) {
-      Error( 'Unable to change dir to ' . $Storage->Path() );
+      Error( 'Unable to change dir to ' . $Storage->Path() . ', not auditing its events' );
+      $unavailable_storage{$Storage->Id()} = 1;
       next;
     } # end if
 
@@ -437,7 +451,6 @@ MAIN: while( $loop ) {
           $Event->Path();
           $Event->age();
           Debug("Have event $$Event{Id} at $$Event{Path}");
-          $Event->StartDateTime(POSIX::strftime('%Y-%m-%d %H:%M:%S', gmtime(time_of_youngest_file($Event->Path()))));
         } # end foreach event
       } # end scope for medium
 
@@ -451,7 +464,8 @@ MAIN: while( $loop ) {
           Error("Can't open directory '$$Storage{Path}/$monitor_dir': $!");
           next;
         }
-        my @temp_events = sort { $b <=> $a } grep { -d $_ && $_ =~ /^\d+$/ } readdir(DIR);
+        # A Deep year dir holds two digit month dirs, a Shallow event dir holds only files.
+        my @temp_events = sort { $b <=> $a } grep { -d $_ && $_ =~ /^\d+$/ && !grep { -d $_ } glob("$_/[0-9][0-9]") } readdir(DIR);
         closedir(DIR);
         my $count = 0;
         foreach my $event ( @temp_events ) {
@@ -557,6 +571,9 @@ MAIN: while( $loop ) {
   my $deleteStatsSql = 'DELETE LOW_PRIORITY FROM Stats WHERE EventId = ?';
   my $deleteStatsSth = $dbh->prepare_cached( $deleteStatsSql )
     or Fatal("Can't prepare '$deleteStatsSql': ".$dbh->errstr());
+  my $deleteEventDataSql = 'DELETE LOW_PRIORITY FROM Event_Data WHERE EventId = ?';
+  my $deleteEventDataSth = $dbh->prepare_cached( $deleteEventDataSql )
+    or Fatal("Can't prepare '$deleteEventDataSql': ".$dbh->errstr());
 
   # Foreach database monitor and it's list of events.
   while ( my ( $db_monitor, $db_events ) = each(%$db_monitors) ) {
@@ -569,20 +586,34 @@ MAIN: while( $loop ) {
     # If we found the monitor in the file system
     my $fs_events = $fs_monitors->{$db_monitor};
 
-EVENT: while ( my ( $db_event, $age ) = each( %$db_events ) ) {
+    my @db_event_ids = sort { $a <=> $b } keys %$db_events;
+    my $db_rows;
+EVENT: foreach my $i ( 0 .. $#db_event_ids ) {
+      my $db_event = $db_event_ids[$i];
+      my $age = $$db_events{$db_event};
+      if ( $i % 1000 == 0 ) {
+        my @batch = @db_event_ids[$i .. ($i+999 < $#db_event_ids ? $i+999 : $#db_event_ids)];
+        $db_rows = $dbh->selectall_hashref('SELECT * FROM `Events` WHERE `Id` IN ('.join(',', ('?') x @batch).')', 'Id', undef, @batch)
+          or Fatal("Can't load events: ".$dbh->errstr());
+      }
       if ( ! ($fs_events and defined( $fs_events->{$db_event} ) ) ) {
         Debug("Don't have an fs event for $db_event");
-        my $Event = ZoneMinder::Event->find_one( Id=>$db_event );
+        my $Event = ($$db_rows{$db_event} ? ZoneMinder::Event->new($db_event, $$db_rows{$db_event}) : undef);
         if ( ! $Event ) {
           Debug("Event $db_event is no longer in db.  Filter probably deleted it while we were auditing.");
           next;
         }
+        if ( $unavailable_storage{$$Event{StorageId} // 0} ) {
+          Debug("Event $db_event is on a storage area that could not be read, leaving it alone.");
+          next;
+        }
         Debug("Event $db_event is not in fs. Should have been at ".$Event->Path());
         # Check for existence in other Storage Areas
-        foreach my $Storage ( @all_Storage_Areas ) {
+        my $relative_path = $Event->RelativePath();
+        foreach my $Storage ( $relative_path ? @all_Storage_Areas : () ) {
           next if $$Storage{Id} == $$Event{StorageId};
 
-          my $path = $Storage->Path().'/'.$Event->RelativePath();
+          my $path = $Storage->Path().'/'.$relative_path;
           if ( -e $path ) {
             Info("Event $$Event{Id} found at $path instead of $$Event{Path}");
             if ( confirm('update', 'updating') ) {
@@ -630,7 +661,7 @@ EVENT: while ( my ( $db_event, $age ) = each( %$db_events ) ) {
         } # end if exists in filesystem
       } else {
         Debug("Found fs event for id $db_event, $age seconds old at " . $$fs_events{$db_event}->Path());
-        my $Event = ZoneMinder::Event->find_one( Id=>$db_event );
+        my $Event = ($$db_rows{$db_event} ? ZoneMinder::Event->new($db_event, $$db_rows{$db_event}) : undef);
         if ( $Event and ! $Event->check_for_in_filesystem() ) {
           Warning('Not found at ' . $Event->Path() . ' was found at ' . $$fs_events{$db_event}->Path());
           Warning($Event->to_string());
@@ -645,8 +676,12 @@ EVENT: while ( my ( $db_event, $age ) = each( %$db_events ) ) {
             $Event->StorageId($$fs_events{$db_event}->StorageId());
           }
           if ( ! $Event->StartDateTime() ) {
-            Info("Updating StartDateTime on event $$Event{Id} from $$Event{StartDateTime} to $$fs_events{$db_event}{StartDateTime}");
-            $Event->StartDateTime($$fs_events{$db_event}->StartDateTime());
+            my $StartDateTime = $$fs_events{$db_event}->StartDateTime();
+            if ( ! $StartDateTime ) {
+              $StartDateTime = POSIX::strftime('%Y-%m-%d %H:%M:%S', localtime(time_of_youngest_file($$fs_events{$db_event}->Path())));
+            }
+            Info("Updating StartDateTime on event $$Event{Id} from $$Event{StartDateTime} to $StartDateTime");
+            $Event->StartDateTime($StartDateTime);
           }
 
           $Event->save();
@@ -688,7 +723,7 @@ if ( $level > 1 ) {
 # Remove empty events (with no frames)
   $cleaned = 0;
   Debug("Checking for Events with no Frames");
-  my $selectEmptyEventsSql = 'SELECT `E`.`Id` AS `Id`, `E`.`StartDateTime`, `F`.`EventId` FROM `Events` AS E LEFT JOIN `Frames` AS F ON (`E`.`Id` = `F`.`EventId`)
+  my $selectEmptyEventsSql = 'SELECT `E`.`Id` AS `Id`, `E`.`StartDateTime`, `E`.`Archived`, `F`.`EventId` FROM `Events` AS E LEFT JOIN `Frames` AS F ON (`E`.`Id` = `F`.`EventId`)
     WHERE isnull(`F`.`EventId`) AND now() - interval '.$Config{ZM_AUDIT_MIN_AGE}.' second > `E`.`StartDateTime`';
   if ( my $selectEmptyEventsSth = $dbh->prepare_cached( $selectEmptyEventsSql ) ) {
     if ( $res = $selectEmptyEventsSth->execute() ) {
@@ -748,6 +783,28 @@ if ( $level > 1 ) {
     if ( confirm() ) {
       $res = $deleteStatsSth->execute( $stat->{EventId} )
         or Fatal("Can't execute: ".$deleteStatsSth->errstr());
+      $cleaned = 1;
+    }
+  }
+  redo MAIN if ( $cleaned );
+}
+
+if ( $level > 1 ) {
+# Remove orphaned event data records
+  $cleaned = 0;
+  Debug('Checking for Orphaned Event Data');
+  my $selectOrphanedEventDataSql = 'SELECT DISTINCT `EventId` FROM `Event_Data`
+    WHERE `EventId` IS NOT NULL
+      AND `EventId` NOT IN (SELECT `Id` FROM `Events`)';
+  my $selectOrphanedEventDataSth = $dbh->prepare_cached( $selectOrphanedEventDataSql )
+    or Fatal("Can't prepare '$selectOrphanedEventDataSql': ".$dbh->errstr());
+  $res = $selectOrphanedEventDataSth->execute()
+    or Fatal("Can't execute: ".$selectOrphanedEventDataSth->errstr());
+  while( my $event_data = $selectOrphanedEventDataSth->fetchrow_hashref() ) {
+    aud_print("Found orphaned event data records for event '$event_data->{EventId}'");
+    if ( confirm() ) {
+      $res = $deleteEventDataSth->execute( $event_data->{EventId} )
+        or Fatal("Can't execute: ".$deleteEventDataSth->errstr());
       $cleaned = 1;
     }
   }
@@ -836,6 +893,13 @@ FROM `Frames` WHERE `EventId`=?';
     }
   } # end while unclosed event
   Debug('Done closing open events.');
+
+  $loop = $continuous;
+
+  if ( $report ) {
+    Debug('Report only, not removing old files, pruning logs or resyncing counters.');
+    last MAIN;
+  }
 
 # Now delete any old image files
   if ( my @old_files = grep { -M > $max_image_age } <$image_path/*.{jpg,gif,wbmp}> ) {
@@ -931,7 +995,6 @@ FROM `Frames` WHERE `EventId`=?';
       } while ( $deleted_rows );
     }
   } # end if ZM_LOG_AUDIT_DATABASE_LIMIT
-  $loop = $continuous;
 
   # Resync Event_Summaries from ground truth in Events + bucket tables.
   #
@@ -1229,16 +1292,15 @@ sub confirm {
 sub deleteSwapImage {
   my $file = $_;
 
-  return if $file =~ /^./;
+  return if $file =~ /^\./;
 
   if ( $file !~ /^zmswap-/ ) {
-    Error( "Trying to delete SwapImage that isnt a swap image $file" );
+    Debug("Not a swap image: $file");
     return;
   }
 
 # Ignore directories
   if ( -d $file ) {
-    Error( "Trying to delete a directory instead of a swap image $file" );
     return;
   }
 
@@ -1310,12 +1372,13 @@ sub time_of_youngest_file {
   Debug("stat of dir $dir is $youngest");
   foreach my $file ( readdir( DIR ) ) {
     next if $file =~ /^\./;
-    $_ = (stat($dir))[9];
+    $_ = (stat("$dir/$file"))[9];
     if ($_ and ($_ < $youngest)) {
       $youngest = $_;
       Debug("Found younger file $file at $youngest");
     }
   }
+  closedir(DIR);
   return $youngest;
 } # end sub time_of_youngest_file
 

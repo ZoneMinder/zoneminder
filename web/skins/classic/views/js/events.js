@@ -73,6 +73,11 @@ function ajaxRequest(params) {
     error: function(jqXHR, textStatus, errorThrown) {
       // Every reload aborts the request in flight, so those are not failures.
       if (jqXHR.statusText == 'abort') return;
+      // A dead session returns 401 here; go to login rather than leave a dead table.
+      if (typeof authFailureAction === 'function' && authFailureAction(jqXHR.status) == 'login') {
+        goToLogin();
+        return;
+      }
       // Without this the table sits on "Loading, please wait" for good, which
       // is what a large result set exhausting the PHP memory limit looks like
       // from here: the request 500s and nothing ever says so. logAjaxFail only
@@ -106,7 +111,7 @@ function processRows(rows) {
     row.Frames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.Frames + '</a>';
     row.AlarmFrames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.AlarmFrames + '</a>';
     row.MaxScore = '<a href="?view=frame&amp;eid=' + eid + '&amp;fid=0">' + row.MaxScore + '</a>';
-    row.Location = row.Latitude+', '+row.Longitude;
+    row.Location = (parseFloat(row.Latitude) || parseFloat(row.Longitude)) ? row.Latitude+', '+row.Longitude : '';
     row.DiskSpace = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.DiskSpace + '</a>';
     row.Storage = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.Storage + '</a>';
 
@@ -225,15 +230,18 @@ function unarchiveEvents(event_ids) {
         $j('#eventTable').bootstrapTable('refresh');
         $j('#unarchiveConfirm').modal('hide');
       } else {
-        if ( ticker.innerHTML.length < 1 || ticker.innerHTML.length > 10 ) {
-          ticker.innerHTML = '.';
-        } else {
-          ticker.innerHTML = ticker.innerHTML + '.';
+        // The modal holding the ticker is not loaded when shift-click skips it
+        if (ticker) {
+          if ( ticker.innerHTML.length < 1 || ticker.innerHTML.length > 10 ) {
+            ticker.innerHTML = '.';
+          } else {
+            ticker.innerHTML = ticker.innerHTML + '.';
+          }
         }
         unarchiveEvents(event_ids);
       }
     },
-    fail: function(jqxhr) {
+    error: function(jqxhr) {
       logAjaxFail(jqxhr);
       $j('#eventTable').bootstrapTable('refresh');
       $j('#unarchiveConfirm').modal('hide');
@@ -258,15 +266,18 @@ function deleteEvents(event_ids) {
         $j('#eventTable').bootstrapTable('refresh');
         $j('#deleteConfirm').modal('hide');
       } else {
-        if ( ticker.innerHTML.length < 1 || ticker.innerHTML.length > 10 ) {
-          ticker.innerHTML = '.';
-        } else {
-          ticker.innerHTML = ticker.innerHTML + '.';
+        // The modal holding the ticker is not loaded when shift-click skips it
+        if (ticker) {
+          if ( ticker.innerHTML.length < 1 || ticker.innerHTML.length > 10 ) {
+            ticker.innerHTML = '.';
+          } else {
+            ticker.innerHTML = ticker.innerHTML + '.';
+          }
         }
         deleteEvents(event_ids);
       }
     },
-    fail: function(jqxhr) {
+    error: function(jqxhr) {
       logAjaxFail(jqxhr);
       $j('#eventTable').bootstrapTable('refresh');
       $j('#deleteConfirm').modal('hide');
@@ -358,6 +369,14 @@ function initPage() {
     deleteButton.prop('disabled', !(selections.length && canEdit.Events));
   });
 
+  table.on('sort.bs.table', function(evt, name, order) {
+    const sortField = (name == 'Monitor') ? 'MonitorName' : name;
+    // Columns the event view has no matching order for keep the previous one
+    if (['Id', 'Name', 'Cause', 'MonitorName', 'StartDateTime', 'EndDateTime', 'Length', 'Frames',
+      'AlarmFrames', 'TotScore', 'AvgScore', 'MaxScore', 'DiskSpace'].indexOf(sortField) < 0) return;
+    sortQuery = '&sort_field=' + sortField + '&sort_asc=' + (order == 'asc' ? '1' : '0');
+  });
+
   // Don't enable the back button if there is no previous zm page to go back to
   backButton.prop('disabled', !document.referrer.length);
 
@@ -413,7 +432,7 @@ function initPage() {
       success: function(data) {
         $j('#eventTable').bootstrapTable('refresh');
       },
-      fail: logAjaxFail
+      error: logAjaxFail
     });
   });
 

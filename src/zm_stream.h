@@ -52,6 +52,7 @@ class StreamBase {
   static const StreamType DEFAULT_TYPE = STREAM_JPEG;
   enum { DEFAULT_RATE=ZM_RATE_BASE };
   enum { DEFAULT_SCALE=ZM_SCALE_BASE };
+  enum { MAX_SCALE=16*ZM_SCALE_BASE };
   enum { DEFAULT_ZOOM=ZM_SCALE_BASE };
   enum { DEFAULT_MAXFPS=10 };
   enum { DEFAULT_BITRATE=100000 };
@@ -82,8 +83,8 @@ class StreamBase {
     // CMD_PLAY resumes or starts playback at normal speed (1x, i.e. replay_rate = ZM_RATE_BASE).
     // Use CMD_VARPLAY to resume at an arbitrary rate.
     CMD_PLAY,
-    // CMD_STOP halts all streaming activity.  Unlike CMD_PAUSE, no keepalive frames are sent
-    // and the stream does no work until a new command is received.
+    // CMD_STOP halts streaming until a new command is received.  The current frame is still
+    // re-sent every few seconds so that a viewer that has gone away is noticed.
     CMD_STOP,
     CMD_FASTFWD,
     CMD_SLOWFWD,
@@ -286,14 +287,17 @@ class StreamBase {
   void setStreamFormat(const char *p_format) {
     format = p_format;
   }
+  static int clampScale(int p_scale) {
+    if (p_scale <= 0)
+      return DEFAULT_SCALE;
+    return p_scale > MAX_SCALE ? static_cast<int>(MAX_SCALE) : p_scale;
+  }
   void setStreamScale(int p_scale) {
-    scale = p_scale;
-    if ( !scale )
-      scale = DEFAULT_SCALE;
+    scale = clampScale(p_scale);
   }
   void setStreamReplayRate(int p_rate) {
     Debug(1, "Setting replay_rate %d", p_rate);
-    replay_rate = p_rate;
+    replay_rate = p_rate ? p_rate : DEFAULT_RATE;
   }
   void setStreamMaxFPS(double p_maxfps) {
     Debug(1, "Setting max fps to %f", p_maxfps);

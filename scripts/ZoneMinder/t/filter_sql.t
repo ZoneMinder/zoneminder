@@ -3,7 +3,7 @@ use warnings;
 use Test::More;
 
 eval { require ZoneMinder::Filter; 1 } or plan skip_all => "cannot load ZoneMinder::Filter: $@";
-plan tests => 19;
+plan tests => 37;
 
 {
   no warnings 'redefine', 'once';
@@ -12,14 +12,21 @@ plan tests => 19;
   *ZoneMinder::Filter::Error = sub { };
 }
 
-my $QUERY = '{"terms":[{"attr":"Archived","op":"=","val":"0"}],"limit":"100","skip_locked":%s}';
-
 sub filter_sql {
   my (%attrs) = @_;
+  my %query = (
+    terms => exists $attrs{terms} ? $attrs{terms} : [{ attr => 'Archived', op => '=', val => '0' }],
+    limit => exists $attrs{limit} ? $attrs{limit} : '100',
+    skip_locked => $attrs{skip_locked} ? 1 : 0,
+  );
+  $query{sort_field} = $attrs{sort_field} if exists $attrs{sort_field};
+  $query{sort_asc} = $attrs{sort_asc} ? 1 : 0 if exists $attrs{sort_asc};
+
   my $Filter = bless {
     Id => 1,
     Name => 'test',
-    Query_json => sprintf($QUERY, $attrs{skip_locked} ? 1 : 0),
+    %attrs,
+    Query_json => ZoneMinder::General::jsonEncode(\%query),
     LockRows => $attrs{LockRows} ? 1 : 0,
   }, 'ZoneMinder::Filter';
   return $Filter->Sql(undef);
@@ -102,3 +109,51 @@ my $sunday = term_sql('CurrentWeekday', '=', '6');
 like($sunday, qr/weekday\(NOW\(\)\)\s*=\s*6/, 'CurrentWeekday compares weekday(NOW())');
 unlike($sunday, qr/E\.CurrentWeekday/, 'and not a CurrentWeekday column, which Events does not have');
 like(term_sql('CurrentWeekday', '=', '0'), qr/weekday\(NOW\(\)\)\s*=\s*0/, 'Monday (0) is kept as a value');
+
+# --- MonitorName sorting ---------------------------------------------------
+# Sorting by MonitorName must join Monitors and sort by M.Name without dropping
+# skip_locked or adding duplicate joins.
+my $mon_sort_locked = filter_sql(LockRows => 1, skip_locked => 1, sort_field => 'MonitorName', sort_asc => 1);
+like($mon_sort_locked, qr/M\.Name as MonitorName/, 'MonitorName sort adds MonitorName to fields');
+like($mon_sort_locked, qr/INNER JOIN Monitors as M on M\.Id = E\.MonitorId/, 'MonitorName sort joins Monitors table');
+like($mon_sort_locked, $LOCK_CLAUSE, 'MonitorName sort preserves skip_locked clause');
+like($mon_sort_locked, qr/ORDER BY M\.Name ASC/, 'MonitorName sort orders by M.Name ASC');
+
+my $mon_sort_desc = filter_sql(sort_field => 'MonitorName', sort_asc => 0);
+like($mon_sort_desc, qr/ORDER BY M\.Name DESC/, 'MonitorName sort orders by M.Name DESC');
+
+my $mon_dup_join = filter_sql(
+  terms => [{ attr => 'MonitorName', op => '=', val => 'Front' }],
+  sort_field => 'MonitorName',
+);
+my @joins = ($mon_dup_join =~ /INNER JOIN Monitors as M/g);
+is(scalar(@joins), 1, 'Monitors table is only joined once when already in query');
+
+my $mon_no_where = filter_sql(terms => [], sort_field => 'MonitorName');
+unlike($mon_no_where, qr/\bWHERE\b/, 'MonitorName sort with no terms has no WHERE clause');
+unlike($mon_no_where, qr/\bAND\b/, 'MonitorName sort with no terms has no dangling AND clause');
+
+# --- Odd / Even parity -----------------------------------------------------
+# IS / IS NOT parity operators map to modulo expressions.
+like(filter_sql(terms => [{ attr => 'Id', op => 'IS', val => 'Odd' }]),
+  qr/E\.Id % 2 = 1/, 'IS Odd maps to % 2 = 1');
+like(filter_sql(terms => [{ attr => 'Id', op => 'IS', val => 'Even' }]),
+  qr/E\.Id % 2 = 0/, 'IS Even maps to % 2 = 0');
+like(filter_sql(terms => [{ attr => 'Id', op => 'IS NOT', val => 'Odd' }]),
+  qr/E\.Id % 2 = 0/, 'IS NOT Odd maps to % 2 = 0');
+unlike(filter_sql(terms => [{ attr => 'Id', op => 'IS NOT', val => 'Odd' }]),
+  qr/!= 'Odd'/, 'IS NOT Odd does not fall through to !=');
+like(filter_sql(terms => [{ attr => 'Id', op => 'IS NOT', val => 'Even' }]),
+  qr/E\.Id % 2 = 1/, 'IS NOT Even maps to % 2 = 1');
+unlike(filter_sql(terms => [{ attr => 'Id', op => 'IS NOT', val => 'Even' }]),
+  qr/!= 'Even'/, 'IS NOT Even does not fall through to !=');
+
+# --- NULL comparisons ------------------------------------------------------
+# An empty StorageId value represents NULL; = and != must become IS / IS NOT.
+my $storage_null = filter_sql(terms => [{ attr => 'StorageId', op => '=', val => '' }]);
+like($storage_null, qr/E\.StorageId IS NULL/, "StorageId = '' produces IS NULL");
+unlike($storage_null, qr/=\s*NULL/, "StorageId = '' does not produce = NULL");
+
+my $storage_not_null = filter_sql(terms => [{ attr => 'StorageId', op => '!=', val => '' }]);
+like($storage_not_null, qr/E\.StorageId IS NOT NULL/, "StorageId != '' produces IS NOT NULL");
+unlike($storage_not_null, qr/!=\s*NULL/, "StorageId != '' does not produce != NULL");

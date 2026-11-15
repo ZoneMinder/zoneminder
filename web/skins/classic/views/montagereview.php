@@ -254,7 +254,7 @@ if (isset($_REQUEST['fit']))
   $fitMode = validCardinal($_REQUEST['fit']);
 
 if (isset($_REQUEST['scale'])) {
-  $defaultScale = validCardinal($_REQUEST['scale']);
+  $defaultScale = (int)validCardinal($_REQUEST['scale']);
   if ($defaultScale > 1.1) $defaultScale = 1.0;
 } else {
   $defaultScale = 1;
@@ -289,8 +289,16 @@ if (isset($minTime) && isset($maxTime)) {
     $error_message .= 'Invalid minTime and maxTime specified.<br/>';
     if ($minTime > $maxTime) {
       $temp = $minTime;
-      $maxTime = $minTime;
-      $minTime = $temp;
+      $minTime = $maxTime;
+      $maxTime = $temp;
+      $terms = $filter->terms();
+      foreach ($terms as &$term) {
+        if ($term['attr'] != 'DateTime' and $term['attr'] != 'StartDateTime') continue;
+        if ($term['op'] == '>=' or $term['op'] == '>') $term['val'] = $minTime;
+        else if ($term['op'] == '<=' or $term['op'] == '<') $term['val'] = $maxTime;
+      }
+      unset($term);
+      $filter->terms($terms);
     }
   }
   $minTimeSecs = strtotime($minTime);

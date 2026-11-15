@@ -307,7 +307,7 @@ function outputControlStill($src, $width, $height, $monitor, $scale, $target) {
 
 // Incoming args are shell-escaped. This function must escape any further arguments it cannot guarantee.
 function getZmuCommand($args) {
-  $zmuCommand = ZMU_PATH.zmuCredentials();
+  $zmuCommand = escapeshellarg(ZMU_PATH).zmuCredentials();
 
   $zmuCommand .= $args;
 
@@ -721,17 +721,17 @@ function packageControl($command) {
   $string = ZM_PATH_BIN.'/zmpkg.pl '.escapeshellarg($command);
   $string .= ' 2>/dev/null >&- <&- >/dev/null';
   exec($string);
+  $GLOBALS['daemon_running'] = null;
 }
 
 function daemonControl($command, $daemon=false, $args=false) {
-  $string = escapeshellcmd(ZM_PATH_BIN).'/zmdc.pl '.$command;
+  $string = escapeshellarg(ZM_PATH_BIN.'/zmdc.pl').' '.escapeshellarg($command);
   if ( $daemon ) {
-    $string .= ' ' . $daemon;
+    $string .= ' ' . escapeshellarg($daemon);
     if ( $args ) {
-      $string .= ' ' . $args;
+      $string .= ' ' . $args; // callers pass already escaped arguments
     }
   }
-  $string = escapeshellcmd($string);
   #$string .= ' 2>/dev/null >&- <&- >/dev/null';
   ZM\Debug('daemonControl '.$string);
   exec($string);
@@ -781,15 +781,19 @@ function zmcStatus($monitor) {
 }
 
 function daemonCheck($daemon=false, $args=false) {
-  $string = ZM_PATH_BIN.'/zmdc.pl check';
+  global $daemon_running;
+  // Each check starts zmdc.pl, so whether ZoneMinder is running is only asked once a request
+  if (!$daemon and isset($daemon_running)) return $daemon_running;
+
+  $string = escapeshellarg(ZM_PATH_BIN.'/zmdc.pl').' check';
   if ( $daemon ) {
-    $string .= ' ' . $daemon;
+    $string .= ' ' . escapeshellarg($daemon);
     if ( $args )
-      $string .= ' '. $args;
+      $string .= ' '. $args; // callers pass already escaped arguments
   }
-  $string = escapeshellcmd($string);
-  $result = exec($string);
-  return preg_match('/running/', $result);
+  $result = preg_match('/running/', exec($string));
+  if (!$daemon) $daemon_running = $result;
+  return $result;
 }
 
 function zmcCheck($monitor) {
@@ -1825,6 +1829,7 @@ function zmsSocketPath($connkey, $owner, $suffix) {
 }
 
 function detaintPathAllowAbsolute($path) {
+  if (!is_scalar($path)) return '';
   // Strip out :// because php:// is a way to inject code apparently.
   // This must loop: a single pass lets the removal re-form the sequence it
   // just removed, so '::////' collapses back into '://'.
@@ -1854,6 +1859,7 @@ function localRedirectUrl($url, $fallback) {
 }
 
 function detaintPath($path) {
+  if (!is_scalar($path)) return '';
 
   // Strip out :// because php:// is a way to inject code apparently.
   // This must loop: a single pass lets the removal re-form the sequence it
@@ -1944,6 +1950,7 @@ function validCardinal($input) {
 }
 
 function validNum( $input ) {
+  if (!is_scalar($input)) return '';
   return preg_replace('/[^\d.-]/', '', $input);
 }
 
@@ -1976,13 +1983,13 @@ function isValidBandwidth($input) {
 
 // For strings in javascript or tags etc, expected to be in quotes so further quotes escaped rather than converted
 function validJsStr($input) {
-  if (is_null($input)) return '';
+  if (is_null($input) or is_array($input)) return '';
   return strip_tags(addslashes($input));
 }
 
 // For general text in pages outside of tags or quotes so quotes converted to entities
 function validHtmlStr($input) {
-  if (is_null($input)) return '';
+  if (is_null($input) or is_array($input)) return '';
   return htmlspecialchars($input, ENT_QUOTES);
 }
 

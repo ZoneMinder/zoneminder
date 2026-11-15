@@ -220,7 +220,8 @@ function processRows(rows) {
     } else if ((!row.Status || row.Status == 'NotRunning') && row.Type != 'WebSite') {
       source_class = 'errorText';
       source_class_reason = 'Not Running';
-    } else {
+    } else if (row.Capturing != 'Ondemand') {
+      // An on-demand monitor only captures while someone is watching, so no fps is normal
       if (row.CaptureFPS == '0.00') {
         source_class = 'errorText';
         source_class_reason = 'No capture FPS';
@@ -269,7 +270,7 @@ function processRows(rows) {
     var tz_difference = (-1 * date.getTimezoneOffset() * 60) - server_utc_offset;
     now -= tz_difference;
 
-    if (!row.UpdatedOn || (new Date(row.UpdatedOn).getTime() < now - fps_report_seconds * 1000)) {
+    if (!row.UpdatedOn || (new Date(row.UpdatedOn).getTime() / 1000 < now - fps_report_seconds)) {
       functionHtml = 'Offline<br/>';
     } else {
       functionHtml = '';

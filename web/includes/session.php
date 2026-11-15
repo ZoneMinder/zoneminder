@@ -188,6 +188,9 @@ function zm_session_clear() {
 // without it session.use_strict_mode has no effect for a user handler, and an
 // id the client made up became its session id.
 class ZMSessionHandler implements SessionHandlerInterface, SessionUpdateTimestampHandlerInterface {
+  // Access time of the stored row read() found, and the id it belongs to.
+  private $readId = null;
+  private $readAccess = null;
   public function open($path, $name): bool {
     return zmDbConnOrNull() ? true : false;
   }
@@ -198,7 +201,7 @@ class ZMSessionHandler implements SessionHandlerInterface, SessionUpdateTimestam
   #[\ReturnTypeWillChange]
   public function read($id){
     if (!($db = zmDbConnOrNull())) return '';
-    $sth = $db->prepare('SELECT data FROM Sessions WHERE id = :id');
+    $sth = $db->prepare('SELECT data, access FROM Sessions WHERE id = :id');
     if (!$sth->bindParam(':id', $id, PDO::PARAM_STR, 32)) {
       ZM\Error("Failed to bind param");
       if (!$sth->bindParam(':id', $id, PDO::PARAM_STR)) {
@@ -208,6 +211,8 @@ class ZMSessionHandler implements SessionHandlerInterface, SessionUpdateTimestam
 
     if ( $sth->execute() ) {
       if (( $row = $sth->fetch(PDO::FETCH_ASSOC) ) ) {
+        $this->readId = $id;
+        $this->readAccess = intval($row['access']);
         return $row['data'];
       } 
     }
@@ -268,6 +273,9 @@ class ZMSessionHandler implements SessionHandlerInterface, SessionUpdateTimestam
   }
   // Called instead of write() when the session data didn't change.
   public function updateTimestamp($id, $data) : bool {
+    if (($this->readId === $id) && ($this->readAccess !== null) && ((time() - $this->readAccess) < 60)) {
+      return true;
+    }
     return $this->write($id, $data);
   }
 } # end class Session

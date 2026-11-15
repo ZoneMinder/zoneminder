@@ -129,36 +129,12 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
     $sort = 'Id';
   }
 
-  $values = array();
-  $likes = array();
+  $data['totalNotFiltered'] = (int)dbFetchOne('SELECT COUNT(*) AS Total FROM Snapshots', 'Total');
+
   $where = '';
-
-  $col_str = '*';
-  $sql = 'SELECT ' .$col_str. ' FROM `Snapshots`'.$where.' ORDER BY '.$sort.' '.$order;
-
-  $unfiltered_rows = array();
-  $snapshot_ids = array();
-
-  ZM\Debug('Calling the following sql query: ' .$sql);
-  $query = dbQuery($sql, $values);
-  if ( $query ) {
-    while ( $row = dbFetchNext($query) ) {
-      $snapshot = new ZM\Snapshot($row);
-      $snapshot->remove_from_cache();
-      $snapshot_ids[] = $snapshot->Id();
-      $unfiltered_rows[] = $row;
-    } # end foreach row
-  }
-
-  ZM\Debug('Have ' . count($unfiltered_rows) . ' snapshots matching base filter.');
-
-  $filtered_rows = null;
 
   if ( count($advsearch) or $search != '' ) {
     $search_filter = new ZM\Filter();
-
-    if (count($snapshot_ids))
-      $search_filter = $search_filter->addTerm(array('cnj'=>'and', 'attr'=>'Id', 'op'=>'IN', 'val'=>$snapshot_ids, 'tablename'=>'Snapshots'));
 
     // There are two search bars in the log view, normal and advanced
     // Making an exuctive decision to ignore the normal search, when advanced search is in use
@@ -183,16 +159,19 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
       $search_filter = $search_filter->addTerms($terms, array('obr'=>1, 'cbr'=>1, 'op'=>'OR'));
     } # end if search
 
-    $sql = 'SELECT ' .$col_str. ' FROM `Snapshots` WHERE '.$search_filter->sql().' ORDER BY ' .$sort. ' ' .$order;
-    ZM\Debug('Calling the following sql query: ' .$sql);
-    $filtered_rows = dbFetchAll($sql);
-    ZM\Debug('Have ' . count($filtered_rows) . ' snapshots matching search filter.');
+    $search_sql = $search_filter->sql();
+    if ($search_sql) $where = ' WHERE '.$search_sql;
+    $data['total'] = (int)dbFetchOne('SELECT COUNT(*) AS Total FROM Snapshots'.$where, 'Total');
   } else {
-    $filtered_rows = $unfiltered_rows;
-  } # end if search_filter->terms() > 1
+    $data['total'] = $data['totalNotFiltered'];
+  }
+
+  $sql = 'SELECT * FROM `Snapshots`'.$where.' ORDER BY '.$sort.' '.$order.($sort != 'Id' ? ', Id' : '');
+  $sql .= ' LIMIT '.(int)$offset.', '.(int)$limit;
+  ZM\Debug('Calling the following sql query: ' .$sql);
 
   $returned_rows = array();
-  foreach ( array_slice($filtered_rows, $offset, $limit) as $row ) {
+  foreach ( dbFetchAll($sql) as $row ) {
     $snapshot = new ZM\Snapshot($row);
 
     $row['imgHtml'] = '';
@@ -219,14 +198,6 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
   } # end foreach row matching search
 
   $data['rows'] = $returned_rows;
-
-  # totalNotFiltered must equal total, except when either search bar has been used
-  $data['totalNotFiltered'] = count($unfiltered_rows);
-  if ( $search != '' || count($advsearch) ) {
-    $data['total'] = count($filtered_rows);
-  } else {
-    $data['total'] = $data['totalNotFiltered'];
-  }
 
   return $data;
 }

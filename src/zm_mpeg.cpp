@@ -379,7 +379,7 @@ VideoStream::~VideoStream( ) {
 
   /* free format and codec_name data. */
   if ( codec_and_format ) {
-    delete codec_and_format;
+    delete[] codec_and_format;
   }
 }
 

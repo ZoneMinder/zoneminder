@@ -30,6 +30,7 @@ if ( !canEdit('Events') ) {
 } // end if ! canEdit(Events)
 
 if ( $action == 'eventdetail' ) {
+  $multiple = count((array)$_REQUEST['markEids']) > 1;
   $dbConn->beginTransaction();
   foreach ( (array)$_REQUEST['markEids'] as $markEid ) {
     // Events=Edit alone isn't enough: the event's monitor has to be one the user
@@ -41,14 +42,17 @@ if ( $action == 'eventdetail' ) {
       ZM\Warning('No permission to edit event '.validHtmlStr($markEid));
       continue;
     }
-    dbQuery('UPDATE Events SET Name=?, Cause=?, Notes=? WHERE Id=?',
-      array(
-        $_REQUEST['newEvent']['Name'],
-        $_REQUEST['newEvent']['Cause'],
-        $_REQUEST['newEvent']['Notes'],
-        $event->Id()
-      )
-    );
+    $sets = array();
+    $values = array();
+    foreach (array('Name', 'Cause', 'Notes') as $field) {
+      // The modal blanks a field the selected events disagree on, so for several events blank means leave it alone.
+      if ($multiple and $_REQUEST['newEvent'][$field] === '') continue;
+      $sets[] = $field.'=?';
+      $values[] = $_REQUEST['newEvent'][$field];
+    }
+    if (!$sets) continue;
+    $values[] = $event->Id();
+    dbQuery('UPDATE Events SET '.implode(', ', $sets).' WHERE Id=?', $values);
   }
   $dbConn->commit();
   // Back to the page the edit came from, if that is on this server.

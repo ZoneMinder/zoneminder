@@ -113,6 +113,8 @@ function createRequest() {
   }
 
   $levels = array_flip(ZM\Logger::$codes);
+  // OFF has no priority to log under.
+  unset($levels['OFF']);
   if (!isset($levels[$level])) {
     ZM\Error('Unexpected logger level '.$level); // already sanitized above
     $level = 'ERR';
@@ -181,7 +183,7 @@ function logFilter() {
     // shares this clause it matters much more: an empty $where here would read
     // as "no filter applied" and truncate the whole table. Match nothing
     // instead, which is what a search for a column that does not exist means.
-    $where = $likes ? '(' .implode(' OR ', $likes). ')' : '1=0';
+    $where = $likes ? '(' .implode(' AND ', $likes). ')' : '1=0';
 
   } else if ($search != '') {
     $requested = true;
@@ -238,9 +240,27 @@ function logFilter() {
   }
   if (count($requestLevels)) {
     if ($where) $where .= ' AND ';
-    $placeholders = implode(', ', array_fill(0, count($requestLevels), '?'));
-    $where .= ' Level IN (' . $placeholders . ')';
-    foreach ($requestLevels as $code) $query['values'][] = $code;
+    // Daemons log debug levels 1 to 9 as DB1 to DB9.
+    $exactLevels = array();
+    $debugLevel = null;
+    foreach ($requestLevels as $code => $level) {
+      if ($code == 'DBG') {
+        $debugLevel = $level;
+      } else {
+        $exactLevels[] = $level;
+      }
+    }
+    $terms = array();
+    if (count($exactLevels)) {
+      $placeholders = implode(', ', array_fill(0, count($exactLevels), '?'));
+      $terms[] = ' Level IN (' . $placeholders . ')';
+      foreach ($exactLevels as $level) $query['values'][] = $level;
+    }
+    if ($debugLevel !== null) {
+      $terms[] = 'Level >= ?';
+      $query['values'][] = $debugLevel;
+    }
+    $where .= count($terms) > 1 ? '(' . implode(' OR ', $terms) . ')' : $terms[0];
   }
 
   if (!empty($_REQUEST['StartDateTime'])) {
@@ -311,8 +331,11 @@ function queryRequest() {
     $sort = $_REQUEST['sort'];
     if ($sort == 'DateTime') $sort = 'TimeKey';
     if ($sort == 'Server') $sort = 'ServerId';
+    // Code is a label, so sorting it as text puts DB1, ERR, FAT, INF, PNC and
+    // WAR in alphabetical order. Sort by the level it stands for.
+    if ($sort == 'Code') $sort = 'Level';
   }
-  if (!in_array($sort, array_merge($columns, $col_alt))) {
+  if (!in_array($sort, array_merge($columns, $col_alt, array('Level')))) {
     ZM\Error('Invalid sort field: ' . $sort);
     return;
   }
@@ -362,13 +385,13 @@ function queryRequest() {
       JOIN (
         SELECT Id 
         FROM `'.$table.'` '.$where. ' 
-        ORDER BY ' .$sort. ' ' .$order. ' 
+        ORDER BY ' .$sort. ' ' .$order. ', Id ' .$order. ' 
         LIMIT ?, ?
       ) AS ' .$nameSubQuery. ' 
       ON ' .$nameMainQuery. '.Id=' .$nameSubQuery. '.Id 
-      ORDER BY ' .$nameMainQuery. '.' .$sort. ' ' .$order;
+      ORDER BY ' .$nameMainQuery. '.' .$sort. ' ' .$order. ', ' .$nameMainQuery. '.Id ' .$order;
   } else {
-    $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` ' .$where. ' ORDER BY ' .$sort. ' ' .$order. ' LIMIT ?, ?';
+    $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` ' .$where. ' ORDER BY ' .$sort. ' ' .$order. ', Id ' .$order. ' LIMIT ?, ?';
   }
 
   array_push($query['values'], $offset, $limit);

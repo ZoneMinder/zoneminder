@@ -1,6 +1,7 @@
 <?php
 
 namespace ZM;
+use PDOException;
 require_once('config.php');
 require_once(__DIR__.'/log_redact.php');
 

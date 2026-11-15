@@ -142,20 +142,18 @@ sub Execute {
   $sth->finish();
   Debug('Loaded ' . @results . ' events for filter '.$$self{Name}.' using query ('.$sql.')"');
   if ($self->{PostSQLConditions} and @{$self->{PostSQLConditions}}) {
-    my @filtered_events;
     foreach my $term ( @{$$self{PostSQLConditions}} ) {
       if ( $$term{attr} eq 'ExistsInFileSystem' ) {
+        my $want_exists = ($$term{val} eq 'true') ? 1 : 0;
+        $want_exists = !$want_exists if ($$term{op}//'') eq 'IS NOT';
+        my @filtered_events;
         foreach my $row ( @results ) {
           my $event = new ZoneMinder::Event($$row{Id}, $row);
-          if ( -e $event->Path() ) {
-            push @filtered_events, $row if $$term{val} eq 'true';
-          } else {
-            push @filtered_events, $row if $$term{val} eq 'false';
-          }
+          push @filtered_events, $row if (-e $event->Path()) ? $want_exists : !$want_exists;
         }
+        @results = @filtered_events;
       }
     } # end foreach term
-    @results = @filtered_events;
   } # end if has PostSQLConditions
   return @results;
 } # end sub Execute
@@ -221,8 +219,12 @@ sub Sql {
             Error("Invalid operator '$$term{op}' in filter '$$self{Name}', skipping filter");
             return;
           }
+        } else {
+          # A term without an operator compares for equality, as in FilterTerm.php
+          $term->{op} = '=';
         }
 
+        my $tags_exist = 0;
         my $date_column = '';
         if ( $term->{attr} eq 'Date' or $term->{attr} eq 'StartDate' ) {
           $date_column = 'E.StartDateTime';
@@ -238,16 +240,26 @@ sub Sql {
           and (($term->{op}//'') eq '>=' or ($term->{op}//'') eq '>')
         ) ? 1 : 0;
 
+        # Where the attribute text starts, so a multi-value comparison can repeat it
+        my $attr_start = length($self->{Sql});
         if ( $term->{attr} eq 'AlarmedZoneId' ) {
           $term->{op} = 'EXISTS';
         } elsif ( $term->{attr} eq 'Tags' ) {
-          $fields .= ', (SELECT GROUP_CONCAT(Name) FROM Tags WHERE Id IN (SELECT TagId FROM Events_Tags WHERE Events_Tags.EventId=E.Id)) As Tags';
+          $fields .= ', (SELECT GROUP_CONCAT(Name) FROM Tags WHERE Id IN (SELECT TagId FROM Events_Tags WHERE Events_Tags.EventId=E.Id)) As Tags' if $fields !~ /As Tags/;
+          # Comparing the joined tag row gets "is not" wrong and repeats events with several tags.
+          $tags_exist = (
+            defined($term->{val})
+            and ($term->{op}//'') =~ /^(?:=|!=|=\[\]|!\[\]|IN|NOT IN|IS|IS NOT)$/
+            and !grep { $_ eq '0' or $_ eq '-1' } split(/["'\s]*,["'\s]*/, $term->{val})
+          ) ? 1 : 0;
           # Don't prepend T.Id for special tag values (0="No Tag", -1="Any Tag")
           # as those use EXISTS/NOT EXISTS subqueries instead
-          if (!defined($term->{val}) or ($term->{val} ne '0' and $term->{val} ne '-1')) {
+          if (!$tags_exist and (!defined($term->{val}) or ($term->{val} ne '0' and $term->{val} ne '-1'))) {
             $self->{Sql} .= 'T.Id';
           }
-          $from .= ' LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId LEFT JOIN Tags AS T ON T.Id = ET.TagId';
+          if (!$tags_exist and $from !~ /Events_Tags AS ET/) {
+            $from .= ' LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId LEFT JOIN Tags AS T ON T.Id = ET.TagId';
+          }
         } elsif ( $term->{attr} =~ /^Monitor/ ) {
           if (!($fields =~ /MonitorName/)) {
             $fields .= ', M.Name as MonitorName';
@@ -319,6 +331,7 @@ sub Sql {
           $self->{Sql} .= 'E.'.$term->{attr};
         }
 
+        my $attr_sql = substr($self->{Sql}, $attr_start);
         my $value = defined($term->{val}) ? $term->{val} : '';
         my @value_list;
 
@@ -328,12 +341,14 @@ sub Sql {
           my $stripped_value = $value;
           $stripped_value =~ s/^["\']+?(.+)["\']+?$/$1/ if $stripped_value;
 
-          # Empty value will result in () from split
-          foreach my $temp_value ( $stripped_value ne '' ? split( /["'\s]*?,["'\s]*?/, $stripped_value ) : $stripped_value ) {
+          # A regular expression can contain commas (x{1,3}), so it is one value
+          my $is_regex = ($term->{op}//'') =~ /^[=!]~$/;
+          # Trim quotes and spaces off each value and drop empty ones, so "a, b" and a trailing comma do not add values
+          my @temp_values = $is_regex ? ($stripped_value) : grep { $_ ne '' } map { s/^["'\s]+|["'\s]+$//gr } split( /,/, $stripped_value );
+          @temp_values = ('') if !@temp_values;
+          foreach my $temp_value ( @temp_values ) {
             if ( $term->{attr} eq 'AlarmedZoneId' ) {
               $value = '(SELECT * FROM Stats WHERE EventId=E.Id AND Score > 0 AND ZoneId='.int($value).')';
-            } elsif ( $term->{attr} =~ /^MonitorName/ ) {
-              $value = sql_quote($temp_value);
             } elsif (
               $term->{attr} eq 'ServerId' or
               $term->{attr} eq 'MonitorServerId' or
@@ -355,6 +370,7 @@ sub Sql {
               $value = $temp_value ne '' ? int($temp_value) : 'NULL';
               $$self{Storage} = new ZoneMinder::Storage($temp_value);
             } elsif ( $term->{attr} eq 'Name'
+              || $term->{attr} eq 'MonitorName'
               || $term->{attr} eq 'Cause'
               || $term->{attr} eq 'Notes'
               || $term->{attr} eq 'Tags'
@@ -446,6 +462,10 @@ sub Sql {
               } @value_list;
               $self->{Sql} .= ' '.((@subterms > 1) ? '('.join(' OR ', @subterms).')' : $subterms[0]);
             }
+            elsif ( $tags_exist ) {
+              $self->{Sql} .= ( $term->{op} =~ /^(?:!=|!\[\]|NOT IN|IS NOT)$/ ? 'NOT ' : '' )
+                .'EXISTS (SELECT NULL FROM `Events_Tags` AS ET WHERE ET.EventId = E.Id AND ET.TagId IN ('.join(',', @value_list).'))';
+            }
             # Handle special tag values before generic operators to avoid
             # LEFT JOIN NULL comparison issues with EXISTS/NOT EXISTS
             elsif ( $term->{attr} eq 'Tags' and defined($term->{val}) and $term->{val} eq '0' ) {
@@ -462,14 +482,18 @@ sub Sql {
               } else {
                 $self->{Sql} .= 'EXISTS (SELECT NULL FROM `Events_Tags` AS ET WHERE ET.EventId = E.Id)';
               }
+            } elsif ( @value_list > 1 and $term->{op} =~ /^(?:=|!=|<=|>=|<|>|LIKE|NOT LIKE)$/ ) {
+              # A negative operator must hold for every value, not just one of them
+              my $join = ($term->{op} eq '!=' or $term->{op} eq 'NOT LIKE') ? ' AND ' : ' OR ';
+              substr($self->{Sql}, $attr_start) = '('.join($join, map { $attr_sql.' '.$term->{op}.' '.$_ } @value_list).')';
             } elsif ( $term->{op} eq '=~' ) {
               $self->{Sql} .= ' REGEXP '.$value;
             } elsif ( $term->{op} eq '!~' ) {
               $self->{Sql} .= ' NOT REGEXP '.$value;
             } elsif ( $term->{op} eq 'IS' ) {
-              if ( $value eq 'Odd' ) {
+              if ( $value eq 'Odd' or $value eq "'Odd'" ) {
                 $self->{Sql} .= ' % 2 = 1';
-              } elsif ( $value eq 'Even' ) {
+              } elsif ( $value eq 'Even' or $value eq "'Even'" ) {
                 $self->{Sql} .= ' % 2 = 0';
               } elsif (uc($value) ne 'NULL') {
                 $self->{Sql} .= ' = '.$value;
@@ -479,7 +503,11 @@ sub Sql {
             } elsif ( $term->{op} eq 'EXISTS' ) {
               $self->{Sql} .= ' EXISTS '.$value;
             } elsif ( $term->{op} eq 'IS NOT' ) {
-              if (uc($value) ne 'NULL') {
+              if ( $value eq 'Odd' or $value eq "'Odd'" ) {
+                $self->{Sql} .= ' % 2 = 0';
+              } elsif ( $value eq 'Even' or $value eq "'Even'" ) {
+                $self->{Sql} .= ' % 2 = 1';
+              } elsif (uc($value) ne 'NULL') {
                 $self->{Sql} .= ' != '.$value;
               } else {
                 $self->{Sql} .= ' IS NOT '.$value;
@@ -493,7 +521,13 @@ sub Sql {
             } elsif ( $term->{op} eq 'NOT LIKE' ) {
               $self->{Sql} .= ' NOT LIKE '.$value;
             } else {
-              $self->{Sql} .= ' '.$term->{op}.' '.$value;
+              if ( uc($value) eq 'NULL' and $term->{op} eq '=' ) {
+                $self->{Sql} .= ' IS NULL';
+              } elsif ( uc($value) eq 'NULL' and $term->{op} eq '!=' ) {
+                $self->{Sql} .= ' IS NOT NULL';
+              } else {
+                $self->{Sql} .= ' '.$term->{op}.' '.$value;
+              }
             }
           } # end if has an operator
         } # end if Pre/Post or SQL
@@ -501,6 +535,11 @@ sub Sql {
         $self->{Sql} .= "\n";
       } # end foreach term
     } # end if terms
+
+    if ( ($filter_expr->{sort_field} || '') eq 'MonitorName' ) {
+      $fields .= ', M.Name as MonitorName' if $fields !~ /MonitorName/;
+      $from .= ' INNER JOIN Monitors as M on M.Id = E.MonitorId' if $from !~ /Monitors as M/;
+    }
 
     my $sql = ' SELECT '.$fields. ' FROM ' . $from;
     if ( $self->{Sql} ) {
@@ -552,13 +591,6 @@ sub Sql {
       } elsif ( $filter_expr->{sort_field} eq 'Tag' ) {
         $sort_column = 'T.Name';
       } elsif ( $filter_expr->{sort_field} eq 'MonitorName' ) {
-        if (!($fields =~ /MonitorName/)) {
-          $fields .= ', M.Name as MonitorName';
-          $from .= ' INNER JOIN Monitors as M on M.Id = E.MonitorId';
-          $sql = ' SELECT '.$fields. ' FROM ' . $from;
-          $sql .= ' WHERE ( '.$self->{Sql}.' )' if $self->{Sql};
-          $sql .= ' AND ( '.join(' or ', @auto_terms).' )' if @auto_terms;
-        }
         $sort_column = 'M.Name';
       } elsif ( $filter_expr->{sort_field} eq 'Name' ) {
         $sort_column = 'E.Name';
@@ -584,6 +616,9 @@ sub Sql {
         $sort_column = 'E.MaxScore';
       } elsif ( $filter_expr->{sort_field} eq 'DiskSpace' ) {
         $sort_column = 'E.DiskSpace';
+      } elsif ( $filter_expr->{sort_field} eq 'Tags' ) {
+        # Tags is not an Events column, and the Tags alias only exists when the filter has a Tags term
+        $sort_column = '(SELECT GROUP_CONCAT(Name) FROM Tags WHERE Id IN (SELECT TagId FROM Events_Tags WHERE Events_Tags.EventId=E.Id))';
       } elsif ( $filter_expr->{sort_field} ne '' ) {
         $sort_column = 'E.'.$filter_expr->{sort_field};
       }
@@ -617,7 +652,7 @@ sub skip_locked {
 }
 
 sub getDiskPercent {
-  my $command = 'df ' . ($_[0] ? $_[0] : '.');
+  my $command = 'df ' . quotemeta($_[0] ? $_[0] : '.');
   my $df = qx( $command );
   my $space = -1;
   if ( $df =~ /\s(\d+)%/ms ) {
@@ -627,7 +662,7 @@ sub getDiskPercent {
 }
 
 sub getDiskBlocks {
-  my $command = 'df ' . ($_[0] ? $_[0] : '.');
+  my $command = 'df ' . quotemeta($_[0] ? $_[0] : '.');
   my $df = qx( $command );
   my $space = -1;
   if ( $df =~ /\s(\d+)\s+\d+\s+\d+%/ms ) {

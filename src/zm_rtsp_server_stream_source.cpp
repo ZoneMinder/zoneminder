@@ -66,7 +66,7 @@ void ZoneMinderStreamSource::OnPacket(const uint8_t *data, size_t size, int64_t 
     while (!stop_ && framesList.size()) {
       std::pair<unsigned char*, size_t> nal = framesList.front();
       framesList.pop_front();
-      m_nalQueue.push(new NAL_Frame(nal.first, nal.second, pts));
+      m_nalQueue.push(new NAL_Frame(nal.first, nal.second, pts, framesList.empty()));
     }
   }
   condition_.notify_all();
@@ -111,7 +111,7 @@ void ZoneMinderStreamSource::WriteRun() {
           fuNal.buffer()[1] = nalSrc[1]; // Payload header (2nd byte)
           fuNal.buffer()[2] = 0x80 | nalUnitType; // FU header (with S bit)
         }
-        PushFrame(fuNal.buffer(), fuNal.size(), fuNal.pts());
+        PushFrame(fuNal.buffer(), fuNal.size(), fuNal.pts(), false);
         nalRemaining -= maxNalSize-1;
         nalSrc += maxNalSize-1;
         int nal_count = 0;
@@ -125,15 +125,15 @@ void ZoneMinderStreamSource::WriteRun() {
           headerSize = 3;
         }
         while (nalRemaining && !stop_) {
-          if ( nalRemaining < maxNalSize ) {
-            // This is the last fragment:
+          bool lastFragment = nalRemaining <= maxNalSize-headerSize;
+          if (lastFragment) {
             fuNal.buffer()[headerSize-1] |= 0x40; // set the E bit in the FU header
           }
           fuNalSize = (nalRemaining < maxNalSize-headerSize) ? nalRemaining : maxNalSize-headerSize;
           fuNal.size(fuNalSize+headerSize);
           memcpy(fuNal.buffer()+headerSize, nalSrc, fuNalSize);
 
-          PushFrame(fuNal.buffer(), fuNal.size(), fuNal.pts());
+          PushFrame(fuNal.buffer(), fuNal.size(), fuNal.pts(), nal->last() && lastFragment);
           nalRemaining -= fuNalSize;
           nalSrc += fuNalSize;
           nal_count += 1;
@@ -141,7 +141,7 @@ void ZoneMinderStreamSource::WriteRun() {
         Debug(3, "Sending %d NALs @ %zu and 1 @ %zu", nal_count, maxNalSize, fuNal.size());
       } else {
         Debug(3, "Pushing nal of size %zu at %" PRId64, nal->size(), nal->pts());
-        PushFrame(nal->buffer(), nal->size(), nal->pts());
+        PushFrame(nal->buffer(), nal->size(), nal->pts(), nal->last());
       }
       delete nal;
       nal = nullptr;

@@ -1207,7 +1207,7 @@ function getModal(id, parameters, buttonconfig=null) {
           return;
         }
 
-        insertModalHtml(id, data.html);
+        insertModalHtml(id + 'Modal', data.html);
         buttonconfig ? buttonconfig() : manageModalBtns(id);
         var modal = $j('#'+id+'Modal');
         if ( ! modal.length ) {

@@ -17,7 +17,7 @@ if (!file_exists(ZM_DIR_EXPORTS)) {
 chmod(ZM_DIR_EXPORTS, 0700);
 
 $eid = isset($_REQUEST['eid']) ? validCardinal($_REQUEST['eid']) : '';
-$eids = isset($_REQUEST['eids']) ? $_REQUEST['eids'] : array();
+$eids = (isset($_REQUEST['eids']) and is_array($_REQUEST['eids'])) ? $_REQUEST['eids'] : array();
 $generated = isset($_REQUEST['generated']) ? $_REQUEST['generated'] : '';
 $exportFileName = 'zmDownload';
 
@@ -29,15 +29,15 @@ if (isset($_REQUEST['filter'])) {
 }
 
 if ($filter) {
-  if (isset($_REQUEST['MonitorId'])) {
+  if (isset($_REQUEST['MonitorId']) and is_array($_REQUEST['MonitorId'])) {
     $filter->addTerm(array('attr' => 'Monitor', 'op' => 'IN', 'val' => implode(',', $_REQUEST['MonitorId']), 'cnj' => 'and'));
   }
-  if (isset($_REQUEST['GroupId'])) {
+  if (isset($_REQUEST['GroupId']) and is_array($_REQUEST['GroupId'])) {
     $monitor_ids = [];
     foreach ($_REQUEST['GroupId'] as $group_id) {
       $group = ZM\Group::find_one(['Id'=>$group_id]);
       if ($group) {
-        $monitor_ids += $group->MonitorIds();
+        $monitor_ids = array_merge($monitor_ids, $group->MonitorIds());
         $exportFileName .= ' '.$group->Name();
       }
     }
@@ -123,7 +123,7 @@ if ($exportFileName == 'zmDownload') $exportFileName .= '-'.$connkey;
     $result .= '<br>Free space on disk \''.ZM_DIR_EXPORTS.'\': ' . human_filesize(disk_free_space(ZM_DIR_EXPORTS)).PHP_EOL;
     $result .= '<br>Will remain free: ' . human_filesize(disk_free_space(ZM_DIR_EXPORTS) - $total_size).PHP_EOL;
     if (count($eids) > 1000 and !$filter) {
-      $results .= '<span class="warning">Warning: Too many recordings specified.  Download may fail.  Please select fewer recordings</span>';
+      $result .= '<span class="warning">Warning: Too many recordings specified.  Download may fail.  Please select fewer recordings</span>';
     }
   } else {
     $result .= '<div class="warning">There are no events found.  Resulting download will be empty.</div>';
@@ -138,7 +138,7 @@ if ($exportFileName == 'zmDownload') $exportFileName .= '-'.$connkey;
           </div>
           <div class="exportFormat">
             <label><?php echo translate('ExportFormat') ?></label>
-            <input type="radio" id="exportFormatNoArchive" name="exportFormat" value="noArchive" checked="checked"/>
+            <input type="radio" id="exportFormatNoArchive" name="exportFormat" value="noArchive"/>
             <label for="exportFormatNoArchive"><?php echo translate('mp4') ?></label>
             <input type="radio" id="exportFormatTar" name="exportFormat" value="tar"/>
             <label for="exportFormatTar"><?php echo translate('ExportFormatTar') ?></label>

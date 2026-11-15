@@ -114,7 +114,7 @@ if ( canView('Events') or canView('Snapshots') ) {
     break;
   case 'download' :
     require_once('includes/download_functions.php');
-    $exportFormat = (isset($_REQUEST['exportFormat']) and ($_REQUEST['exportFormat'] === 'tar' or $_REQUEST['exportFormat'] === 'zip')) ? $_REQUEST['exportFormat'] : 'zip';
+    $exportFormat = (isset($_REQUEST['exportFormat']) and in_array($_REQUEST['exportFormat'], ['tar', 'zip', 'noArchive'], true)) ? $_REQUEST['exportFormat'] : 'zip';
     $exportConnkey = preg_replace('/[^\w\-.]/', '', isset($_REQUEST['connkey']) ? $_REQUEST['connkey'] : '');
     $exportFileName = isset($_REQUEST['exportFileName']) ? $_REQUEST['exportFileName'] : '';
 
@@ -250,7 +250,9 @@ if ( canEdit('Events') ) {
     if ($tagId === '') ajaxError('addtag requires a numeric tid and id');
     $eventId = $Event->Id();
 
-    $sql = 'INSERT INTO Events_Tags (TagId, EventId, AssignedBy) VALUES (?, ?, ?)';
+    if (!dbFetchOne('SELECT Id FROM Tags WHERE Id = ?', 'Id', array($tagId))) ajaxError('No such tag');
+
+    $sql = 'INSERT IGNORE INTO Events_Tags (TagId, EventId, AssignedBy) VALUES (?, ?, ?)';
     $values = array($tagId, $eventId, $user->Id());
     $response = dbFetchAll($sql, NULL, $values);
 
@@ -278,8 +280,11 @@ if ( canEdit('Events') ) {
     ajaxResponse();
     break;
   case 'delete' :
-    $Event->delete();
-    ajaxResponse(array('refreshEvent'=>false, 'refreshParent'=>true));
+    if ($Event->delete()) {
+      ajaxResponse(array('refreshEvent'=>false, 'refreshParent'=>true));
+    } else {
+      ajaxError('Event '.$Event->Id().' was not deleted' . ($Event->Archived() ? ': it is archived' : ''));
+    }
     break;
   } // end switch action
 } // end if canEdit('Events')

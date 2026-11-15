@@ -27,6 +27,20 @@
 
 #if HAVE_LIBCURL
 
+namespace {
+
+// The digits of the first "id" in a Janus reply: session and handle ids are
+// up to 16 digits but often shorter, so a fixed-width slice picks up the
+// characters after the number or cuts it short.
+std::string parse_janus_id(const std::string &response) {
+  size_t pos = response.find("\"id\": ");
+  if (pos == std::string::npos) return "";
+  pos += 6;
+  size_t end = response.find_first_not_of("0123456789", pos);
+  return response.substr(pos, end == std::string::npos ? std::string::npos : end - pos);
+}
+
+}  // namespace
 
 Monitor::JanusManager::JanusManager(Monitor *parent_) :
   parent(parent_),
@@ -69,8 +83,12 @@ void Monitor::JanusManager::load_from_monitor() {
     if (config.opt_use_auth) {
       if (parent->rtsp_user) {
         User *rtsp_user = User::find(parent->rtsp_user);
-        std::string auth_key = rtsp_user->getAuthHash();
-        rtsp_path += "?auth=" + auth_key;
+        if (rtsp_user) {
+          std::string auth_key = rtsp_user->getAuthHash();
+          rtsp_path += "?auth=" + auth_key;
+        } else {
+          Warning("Janus: Could not find RTSP user %d for RTSP_Server authentication", parent->rtsp_user);
+        }
       } else {
         Warning("No user selected for RTSP_Server authentication!");
       }
@@ -100,12 +118,15 @@ int Monitor::JanusManager::check_janus() {
     if (std::chrono::steady_clock::now()-rtsp_auth_time > hours/2) {
       remove_from_janus();
       load_from_monitor();
-      return add_to_janus();
+      // 0 tells Monitor::Poll the mountpoint is missing and to add it again.
+      int result = add_to_janus();
+      return result == 0 ? 1 : result;
     }
   }
 
   curl = curl_easy_init();
   if (!curl) return -1;
+  zm_curl_set_timeouts(curl);
 
   //Assemble our actual request
   std::string postData = "{\"janus\" : \"message\", \"transaction\" : \"randomString\", \"body\" : {";
@@ -138,6 +159,7 @@ int Monitor::JanusManager::check_janus() {
     ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
+    zm_curl_set_timeouts(curl);
     curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
@@ -189,6 +211,7 @@ int Monitor::JanusManager::add_to_janus() {
     Error("Failed to init curl");
     return -1;
   }
+  zm_curl_set_timeouts(curl);
 
   std::string endpoint = janus_endpoint+"/"+janus_session+"/"+janus_handle;
 
@@ -198,7 +221,7 @@ int Monitor::JanusManager::add_to_janus() {
   postData += config.janus_secret;
   postData += "\", \"type\" : \"rtsp\", \"rtsp_quirk\" : true, ";
   postData += "\"url\" : \"";
-  postData += rtsp_path;
+  postData += escape_json_string(rtsp_path);
   //secret prevents querying the mount for info, which leaks the camera's secrets.
   postData += "\", \"secret\" : \"";
   postData += config.janus_secret;
@@ -255,6 +278,7 @@ int Monitor::JanusManager::add_to_janus() {
     ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
+    zm_curl_set_timeouts(curl);
     curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
@@ -293,6 +317,7 @@ int Monitor::JanusManager::remove_from_janus() {
 
   curl = curl_easy_init();
   if (!curl) return -1;
+  zm_curl_set_timeouts(curl);
 
   //Assemble our actual request
   std::string postData = "{\"janus\" : \"message\", \"transaction\" : \"randomString\", \"body\" : {";
@@ -328,6 +353,7 @@ int Monitor::JanusManager::remove_from_janus() {
     ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
+    zm_curl_set_timeouts(curl);
     curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
@@ -356,6 +382,7 @@ int Monitor::JanusManager::get_janus_session() {
   janus_session = "";
   curl = curl_easy_init();
   if (!curl) return -1;
+  zm_curl_set_timeouts(curl);
 
   std::string endpoint = janus_endpoint;
   std::string response;
@@ -383,6 +410,7 @@ int Monitor::JanusManager::get_janus_session() {
     ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
+    zm_curl_set_timeouts(curl);
     curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
@@ -398,17 +426,17 @@ int Monitor::JanusManager::get_janus_session() {
     return -1;
   }
 
-  std::size_t pos = response.find("\"id\": ");
-  if (pos == std::string::npos) {
+  janus_session = parse_janus_id(response);
+  if (janus_session.empty()) {
     return -1;
   }
-  janus_session = response.substr(pos + 6, 16);
   return 1;
 } //get_janus_session
 
 int Monitor::JanusManager::get_janus_handle() {
   curl = curl_easy_init();
   if (!curl) return -1;
+  zm_curl_set_timeouts(curl);
 
   CURLcode res;
   std::string response = "";
@@ -436,6 +464,7 @@ int Monitor::JanusManager::get_janus_handle() {
     ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
+    zm_curl_set_timeouts(curl);
     curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
@@ -451,11 +480,10 @@ int Monitor::JanusManager::get_janus_handle() {
     return -1;
   }
 
-  std::size_t pos = response.find("\"id\": ");
-  if (pos == std::string::npos) {
+  janus_handle = parse_janus_id(response);
+  if (janus_handle.empty()) {
     return -1;
   }
-  janus_handle = response.substr(pos + 6, 16);
   return 1;
 } //get_janus_handle
 

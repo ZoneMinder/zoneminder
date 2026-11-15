@@ -31,8 +31,6 @@ use warnings;
 require Exporter;
 require ZoneMinder::Base;
 
-use ZoneMinder::ConfigData qw(:all);
-
 our @ISA = qw(Exporter ZoneMinder::Base);
 
 use vars qw( %Config );
@@ -178,7 +176,16 @@ require ZoneMinder::Database;
 
 } # end BEGIN
 
+# ConfigData holds the definition and help text of every option. Only the functions
+# that work on the Config table itself need it, so it is loaded when they run
+# rather than by every script. Its INIT block does not run when it is required.
+sub loadConfigData {
+  require ZoneMinder::ConfigData;
+  ZoneMinder::ConfigData::initialiseConfig();
+}
+
 sub loadConfigFromDB {
+  loadConfigData();
   print('Loading config from DB');
   my $dbh = ZoneMinder::Database::zmDbConnect();
   if ( !$dbh ) {
@@ -199,7 +206,7 @@ sub loadConfigFromDB {
       next;
     }
     if ( defined($value) ) {
-      if ( $option->{type} == $types{boolean} ) {
+      if ( $option->{type} == $ZoneMinder::ConfigData::types{boolean} ) {
         # Booleans are 1/0 in the table and in ConfigData; coerce rather than
         # take the column verbatim so an empty or absent value lands on '0'.
         $option->{value} = $value ? '1' : '0';
@@ -218,6 +225,7 @@ sub loadConfigFromDB {
 # shipped default is public, so replace it, or an empty value, with a random secret the
 # first time the config is saved on this system. refs GHSA-wmcc-x64g-jr84
 sub generateAuthHashSecret {
+  loadConfigData();
   my $option = $ZoneMinder::ConfigData::options_hash{ZM_AUTH_HASH_SECRET};
   return if !$option;
   return if defined($option->{value}) and $option->{value} ne ''
@@ -242,6 +250,7 @@ sub generateAuthHashSecret {
 # them all 0, which showed ZM_AUTH_HASH_SECRET to anyone. zmupdate.pl calls this on
 # every update; saveConfigToDB() (zmupdate.pl -f) writes them along with the rest.
 sub syncConfigFlags {
+  loadConfigData();
   my $dbh = ZoneMinder::Database::zmDbConnect();
   if ( !$dbh ) {
     print( "Error: unable to update option flags in database: $DBI::errstr\n" );
@@ -252,7 +261,7 @@ sub syncConfigFlags {
   my $sth = $dbh->prepare_cached('UPDATE Config SET Private=?, `System`=? WHERE Name=?')
     or croak( "Can't prepare: ".$dbh->errstr() );
   my $changed = 0;
-  foreach my $option ( @options ) {
+  foreach my $option ( @ZoneMinder::ConfigData::options ) {
     my $row = $rows->{$option->{name}} or next;
     my ( $private, $system ) = ( $option->{private} ? 1 : 0, $option->{system} ? 1 : 0 );
     next if ( ($row->{Private} // 0) == $private ) and ( ($row->{System} // 0) == $system );
@@ -265,7 +274,8 @@ sub syncConfigFlags {
 } # end sub syncConfigFlags
 
 sub saveConfigToDB {
-  print( 'Saving config to DB ' . @options . " entries\n" );
+  loadConfigData();
+  print( 'Saving config to DB ' . @ZoneMinder::ConfigData::options . " entries\n" );
   my $dbh = ZoneMinder::Database::zmDbConnect();
   if ( !$dbh ) {
     print( "Error: unable to save options to database: $DBI::errstr\n" );
@@ -287,15 +297,15 @@ sub saveConfigToDB {
   $sql = 'REPLACE INTO Config SET Id=?, Name=?, Value=?, Type=?, DefaultValue=?, Hint=?, Pattern=?, Format=?, Prompt=?, Help=?, Category=?, Readonly=?, Private=?, `System`=?, Requires=?';
   my $sth = $dbh->prepare_cached( $sql )
     or croak( "Can't prepare '$sql': ".$dbh->errstr() );
-  foreach my $option ( @options ) {
+  foreach my $option ( @ZoneMinder::ConfigData::options ) {
     #next if ( $option->{category} eq 'hidden' );
     #print( $option->{name}."\n" ) if ( !$option->{category} );
     $option->{db_type} = $option->{type}->{db_type};
     $option->{db_hint} = $option->{type}->{hint};
     $option->{db_pattern} = $option->{type}->{pattern};
     $option->{db_format} = $option->{type}->{format};
-    $option->{db_value} = dbValue($option->{db_type}, $option->{value});
-    $option->{db_default} = dbValue($option->{db_type}, $option->{default});
+    $option->{db_value} = ZoneMinder::ConfigData::dbValue($option->{db_type}, $option->{value});
+    $option->{db_default} = ZoneMinder::ConfigData::dbValue($option->{db_type}, $option->{default});
     if ( my $requires = $option->{requires} ) {
       # Requires values are already in stored form, booleans included.
       $option->{db_requires} = join(';', map { "$_->{name}=$_->{value}" } @$requires);

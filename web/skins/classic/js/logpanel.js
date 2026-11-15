@@ -218,6 +218,11 @@ function initLogPanel(panel) {
         if (jqxhr.statusText === "plannedAbort") {
           updateRequestStatus("stopped");
         } else {
+          // A dead session returns 401 here; go to login rather than leave a dead table.
+          if (typeof authFailureAction === 'function' && authFailureAction(jqxhr.status) == 'login') {
+            goToLogin();
+            return;
+          }
           updateRequestStatus("error");
           zmAlert(i18n["Reason"] + ": " + jqxhr.statusText + "~~" + i18n["ErrorUpdatingLogTable"], i18n["AJAXRequestError"]);
         }
@@ -432,7 +437,7 @@ function initLogPanel(panel) {
         $row.addClass('log-err');
       } else if (level == 'WAR') {
         $row.addClass('log-war');
-      } else if (level == 'DBG') {
+      } else if (/^DB[G1-9]$/.test(level)) {
         $row.addClass('log-dbg');
       }
     });

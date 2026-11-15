@@ -94,7 +94,7 @@ function logReport( level, message, file, line ) {
     request: 'log',
     task: 'create',
     level: level,
-    message: encodeURIComponent(message),
+    message: message,
     browser: browserInfo()
   };
 

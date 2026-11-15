@@ -181,6 +181,7 @@ int StreamBase::preScaleDimensions(int base_width, int base_height, int &width, 
   // negative av_image_get_buffer_size result into an unsigned size and allocate
   // on it, so leave anything degenerate to the path that already rejects it.
   if ((scaled_width <= 0) or (scaled_height <= 0)) return 0;
+  if (av_image_check_size(scaled_width, scaled_height, 0, nullptr) < 0) return 0;
 
   width = scaled_width;
   height = scaled_height;
@@ -315,11 +316,18 @@ Image *StreamBase::prepareImage(Image *image, int pre_scaled_by) {
     image->Scale(disp_image_width, disp_image_height);
   } else if (cur_scale != ZM_SCALE_BASE) {
     Debug(3, "scaling by %d from %dx%d", cur_scale, image->Width(), image->Height());
+    // The source may be a shared-memory frame we must not modify, so scale
+    // into a reusable scratch image instead of in place.
     static Image copy_image;
-    copy_image.Assign(*image);
-    image = &copy_image;
-    image_copied = true;
-    image->Scale(cur_scale);
+    unsigned int new_width = (image->Width() * cur_scale) / ZM_SCALE_BASE;
+    unsigned int new_height = (image->Height() * cur_scale) / ZM_SCALE_BASE;
+    if (av_image_check_size(new_width, new_height, 0, nullptr) >= 0
+        && copy_image.ScaleFrom(*image, new_width, new_height)) {
+      image = &copy_image;
+      image_copied = true;
+    } else {
+      Debug(1, "Cannot scale %dx%d by %d, sending unscaled", image->Width(), image->Height(), cur_scale);
+    }
   }
   Debug(3, "Sending %dx%d", image->Width(), image->Height());
 

@@ -48,6 +48,8 @@ function cronScheduleIsValid($spec) {
   if (!is_string($spec)) return false;
   // No newline, carriage return or percent may reach a crontab line.
   if (preg_match('/[\r\n%]/', $spec)) return false;
+  // The Schedule columns are varchar(64).
+  if (strlen($spec) > 64) return false;
 
   $fields = preg_split('/\s+/', trim($spec), -1, PREG_SPLIT_NO_EMPTY);
   if (count($fields) != 5) return false;
@@ -68,6 +70,8 @@ function cronScheduleIsValid($spec) {
         $item = $parts[0];
         $step = $parts[1];
         if (!preg_match('/^\d+$/', $step) or (intval($step) < 1)) return false;
+        // cron rejects a step after a plain number: 5/10 is not 5-59/10.
+        if (($item !== '*') and (strpos($item, '-') === false)) return false;
       }
 
       if ($item === '*') continue;
@@ -109,6 +113,8 @@ function cronCommandIsValid($command) {
   // Every % must be escaped. Count unescaped ones by removing the escaped
   // pairs first, which also stops a trailing backslash from hiding one.
   if (strpos(str_replace('\\%', '', str_replace('\\\\', '', $command)), '%') !== false) return false;
+  // A lone trailing backslash escapes the space before our "# ZoneMinder" marker, which then becomes arguments.
+  if (preg_match('/(?<!\\\\)(?:\\\\\\\\)*\\\\$/', $command)) return false;
   return true;
 }
 
@@ -186,14 +192,33 @@ function cronSpliceBlock($existing, $lines) {
 // Separated from the two functions above so those stay pure and testable:
 // everything below talks to the crontab command and the database.
 
-// The web user's current crontab, or '' when it has none.
+// The web user's current crontab, '' when it has none, or false when it could
+// not be read. Callers must not write on false: the block would replace
+// whatever the unreadable crontab held.
 function cronRead() {
-  $lines = array();
-  $status = 0;
-  // "no crontab for ..." on stderr with a non-zero status is the normal answer
-  // for a user who has none, not a failure.
-  exec('crontab -l 2>/dev/null', $lines, $status);
-  return implode("\n", $lines);
+  $descriptors = array(
+    1 => array('pipe', 'w'),
+    2 => array('pipe', 'w'),
+  );
+  $pipes = array();
+  // C locale so the "no crontab for" message below is the one we match.
+  $process = @proc_open('crontab -l', $descriptors, $pipes, null, array_merge(getenv(), array('LC_ALL'=>'C')));
+  if (!is_resource($process)) {
+    \ZM\Error('Unable to run crontab to read the current crontab');
+    return false;
+  }
+  $out = stream_get_contents($pipes[1]);
+  $err = stream_get_contents($pipes[2]);
+  fclose($pipes[1]);
+  fclose($pipes[2]);
+  $status = proc_close($process);
+
+  if ($status === 0) return rtrim($out, "\n");
+  // The normal answer for a user who has no crontab yet.
+  if (($status === 1) and preg_match('/^no crontab for /', $err)) return '';
+
+  \ZM\Error('crontab -l failed (status '.$status.'), not changing the crontab: '.trim($err));
+  return false;
 }
 
 // Replace the web user's crontab with $content. Returns true on success.
@@ -261,8 +286,11 @@ function cronRebuild() {
     // proxies such a command through the API instead; cron has no such route,
     // so these are left out and counted rather than written and silently
     // ineffective.
+    // A deleted or missing monitor on either end leaves nothing for the line to drive.
     $target = $action->TargetMonitor();
-    if ($target and defined('ZM_SERVER_ID') and ZM_SERVER_ID
+    $source = $action->Monitor();
+    if (!$target or $target->Deleted() or !$source or $source->Deleted()) continue;
+    if (defined('ZM_SERVER_ID') and ZM_SERVER_ID
         and $target->ServerId() and ($target->ServerId() != ZM_SERVER_ID)) {
       $skipped_remote++;
       continue;
@@ -275,7 +303,9 @@ function cronRebuild() {
               'and were not written to this server\'s crontab');
   }
 
-  if (!cronWrite(cronSpliceBlock(cronRead(), $lines))) return false;
+  $existing = cronRead();
+  if ($existing === false) return false;
+  if (!cronWrite(cronSpliceBlock($existing, $lines))) return false;
 
   \ZM\Debug('Installed '.count($lines).' scheduled item(s) into the crontab');
   return $lines;

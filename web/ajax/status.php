@@ -98,7 +98,6 @@ $statusData = array(
       'TrackDelay' => true,
       'ReturnLocation' => true,
       'ReturnDelay' => true,
-      'DefaultView' => true,
       'DefaultRate' => true,
       'DefaultScale' => true,
       'WebColour' => true,
@@ -106,8 +105,13 @@ $statusData = array(
       'MinEventId' => array( 'sql' => '(SELECT min(Events.Id) FROM Events WHERE Events.MonitorId = Monitors.Id)' ),
       'MaxEventId' => array( 'sql' => '(SELECT max(Events.Id) FROM Events WHERE Events.MonitorId = Monitors.Id)' ),
       'TotalEvents' => array( 'sql' => '(SELECT count(Events.Id) FROM Events WHERE Events.MonitorId = Monitors.Id)' ),
-      'Status' => (isset($_REQUEST['id'])?array( 'zmu' => '-m '.escapeshellarg($_REQUEST['id']).' -s' ):null),
-      'FrameRate' => (isset($_REQUEST['id'])?array( 'zmu' => '-m '.escapeshellarg($_REQUEST['id']).' -f' ):null),
+      // Read from shared memory, as zmu -s does, rather than starting zmu on every poll
+      'Status' => (isset($_REQUEST['id'])?array( 'func' => function() {
+        $monitor = ZM\Monitor::find_one(['Id'=>validInt($_REQUEST['id'])]);
+        $state = $monitor ? $monitor->GetState() : false;
+        return ($state === false) ? '' : (string)$state;
+      } ):null),
+      'FrameRate' => (isset($_REQUEST['id'])?array( 'zmu' => '-m '.escapeshellarg(validInt($_REQUEST['id'])).' -f' ):null),
       'CaptureFPS' => [ 'sql'=>'(SELECT `CaptureFPS` FROM Monitor_Status WHERE MonitorId=Monitors.Id)' ],
       'AnalysisFPS' => [ 'sql'=>'(SELECT `AnalysisFPS` FROM Monitor_Status WHERE MonitorId=Monitors.Id)' ],
       'CaptureBandwidth' => [ 'sql'=>'(SELECT `CaptureBandwidth` FROM Monitor_Status WHERE MonitorId=Monitors.Id)' ],
@@ -116,6 +120,7 @@ $statusData = array(
   'events' => array(
     'permission' => 'Events',
     'table' => 'Events',
+    'defaultLimit' => 100,
     'selector' => 'Events.MonitorId',
     'elements' => array(
       'Id' => true,
@@ -193,6 +198,7 @@ $statusData = array(
   'frames' => array(
     'permission' => 'Events',
     'table' => 'Frames',
+    'defaultLimit' => 100,
     'selector' => 'EventId',
     'elements' => array(
       'EventId' => true,
@@ -240,6 +246,10 @@ function collectData() {
   global $statusData;
 
   $entity = strtolower(validJsStr($_REQUEST['entity']));
+  if (!isset($statusData[$entity])) {
+    ajaxError('Unrecognised entity '.$entity);
+    return;
+  }
   $entitySpec = &$statusData[$entity];
   #print_r( $entitySpec );
   if (isset($entitySpec['permission'])) {
@@ -313,7 +323,7 @@ function collectData() {
     } else if ( isset($elementData['postFunction']) ) {
       $postFunctions[$element] = $elementData['postFunction'];
     } else if ( isset($elementData['zmu']) ) {
-      $command = escapeshellcmd(getZmuCommand(' '.$elementData['zmu']));
+      $command = getZmuCommand(' '.$elementData['zmu']);
       $data[$element] = exec($command);
     } else {
       if ( isset($elementData['sql']) )
@@ -395,6 +405,8 @@ function collectData() {
       $limit = $entitySpec['limit'];
     elseif ( !empty($_REQUEST['count']) )
       $limit = validInt($_REQUEST['count']);
+    elseif ( !$id && !empty($entitySpec['defaultLimit']) )
+      $limit = $entitySpec['defaultLimit'];
     $limit_offset = '';
     if ( !empty($_REQUEST['offset']) )
       $limit_offset = validInt($_REQUEST['offset']) . ', ';
@@ -541,6 +553,9 @@ function getNearEvents() {
     $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$user->viewableMonitorIds()));
   }
   $filter_sql = $filter->sql();
+
+  # parseSort() gives 'asc' or 'desc', the comparisons below are against 'ASC'.
+  $sortOrder = strtoupper($sortOrder);
 
   # When listing, it may make sense to list them in descending order.
   # But when viewing Prev should be timewise earlier and Next should be after.

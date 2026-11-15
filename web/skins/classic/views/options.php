@@ -29,6 +29,9 @@ $tab = isset($_REQUEST['tab']) ? validHtmlStr($_REQUEST['tab']) : 'system';
 
 $focusWindow = true;
 
+// Set by the save action's redirect, which can't carry the flag any other way.
+if (!empty($_REQUEST['restart'])) $restartWarning = true;
+
 xhtmlHeaders(__FILE__, translate('Options'));
 getBodyTopHTML();
 echo getNavBarHTML();

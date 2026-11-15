@@ -55,7 +55,7 @@ Options for use with monitors:
   -m, --monitor <monitor_id>              - Specify which monitor to address, default 1 if absent
   -q, --query                             - Query the current settings for the monitor
   -s, --state                             - Output the current monitor state, 0 = unknown, 1 = idle, 2 = prealarm,
-                                            3 = alarm, 4 = alert, 5 = tape
+                                            3 = alarm, 4 = alert
   -B, --brightness [value]                - Output the current brightness, set to value if given
   -C, --contrast [value]                  - Output the current contrast, set to value if given
   -H, --hue [value]                       - Output the current hue, set to value if given
@@ -111,8 +111,8 @@ void Usage(int status=-1) {
     "Options for use with monitors:\n"
     "  -m, --monitor <monitor_id>   : Specify which monitor to address, default 1 if absent\n"
     "  -q, --query          : Query the current settings for the monitor\n"
-    "  -s, --state          : Output the current monitor state, 0 = idle, 1 = prealarm, 2 = alarm,\n"
-    "                   3 = alert, 4 = tape\n"
+    "  -s, --state          : Output the current monitor state, 0 = unknown, 1 = idle, 2 = prealarm,\n"
+    "                   3 = alarm, 4 = alert\n"
     "  -j, --janus-pin     : Output the pin, if set, used to secure Janus for this monitor \n"
     "  -B, --brightness [value]     : Output the current brightness, set to value if given \n"
     "  -C, --contrast [value]     : Output the current contrast, set to value if given \n"
@@ -235,7 +235,7 @@ int main(int argc, char *argv[]) {
     {"brightness", 2, nullptr, 'B'},
     {"contrast", 2, nullptr, 'C'},
     {"hue", 2, nullptr, 'H'},
-    {"contrast", 2, nullptr, 'O'},
+    {"colour", 2, nullptr, 'O'},
     {"read_index", 0, nullptr, 'R'},
     {"write_index", 0, nullptr, 'W'},
     {"event", 0, nullptr, 'e'},
@@ -292,7 +292,7 @@ int main(int argc, char *argv[]) {
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "d:m:vsjEDLurweix::S:t::fz::ancqhlB::C::H::O::RWU:P:A:V:T:", long_options, &option_index);
+    int c = getopt_long(argc, argv, "d:m:vsjEDLurwei::xS:t::fz::ancqhlB::C::H::O::RWU:P:A:V:T:", long_options, &option_index);
     if (c == -1) {
       break;
     }
@@ -424,8 +424,10 @@ int main(int argc, char *argv[]) {
       break;
 #endif // ZM_HAS_V4L2
     case 'h':
-    case '?':
       Usage(0);
+      break;
+    case '?':
+      Usage(1);
       break;
     case 'l':
       function |= ZMU_LIST;
@@ -463,6 +465,7 @@ int main(int argc, char *argv[]) {
   zmSetDefaultTermHandler();
   zmSetDefaultDieHandler();
 
+  int status = 0;
   User *user = 0;
 
   if ( config.opt_use_auth ) {
@@ -556,6 +559,7 @@ int main(int argc, char *argv[]) {
       if ( verbose ) {
         printf("Current Triggered state: %s\n", trgstate==0?"Not Triggered":(trgstate==1?"Triggered":"NA"));
       } else {
+        if (have_output) fputc(separator, stdout);
         printf("%d", trgstate);
         have_output = true;
       }
@@ -586,19 +590,19 @@ int main(int argc, char *argv[]) {
     }
     if ( function & ZMU_READ_IDX ) {
       if ( verbose )
-        printf("Last read index: %u\n", monitor->GetLastReadIndex());
+        printf("Last read index: %d\n", monitor->GetLastReadIndex());
       else {
         if ( have_output ) fputc(separator, stdout);
-        printf("%u", monitor->GetLastReadIndex());
+        printf("%d", monitor->GetLastReadIndex());
         have_output = true;
       }
     }
     if ( function & ZMU_WRITE_IDX ) {
       if ( verbose ) {
-        printf("Last write index: %u\n", monitor->GetLastWriteIndex());
+        printf("Last write index: %d\n", monitor->GetLastWriteIndex());
       } else {
         if ( have_output ) fputc(separator, stdout);
-        printf("%u", monitor->GetLastWriteIndex());
+        printf("%d", monitor->GetLastWriteIndex());
         have_output = true;
       }
     }
@@ -631,12 +635,16 @@ int main(int argc, char *argv[]) {
           printf(", scaling by %d%%", scale);
         printf("\n");
       }
-      monitor->GetImage(image_idx, scale>0?scale:100);
+      if (!monitor->GetImage(image_idx, scale>0?scale:100)) {
+        status = -1;
+      }
     }
     if ( function & ZMU_ZONES ) {
       if ( verbose )
         printf("Dumping zone image to Zones%u.jpg\n", monitor->Id());
-      monitor->DumpZoneImage(zoneString);
+      if (!monitor->DumpZoneImage(zoneString)) {
+        status = -1;
+      }
     }
     if ( function & ZMU_ALARM ) {
       Monitor::State state = monitor->GetState();
@@ -652,19 +660,17 @@ int main(int argc, char *argv[]) {
       monitor->ForceAlarmOff();
       monitor->ForceAlarmOn(config.forced_alarm_score, alarm_cause.c_str());
 
-      Microseconds wait_time = Seconds(10);
-      while ((monitor->GetState() != Monitor::ALARM) and !zm_terminate and wait_time > Seconds(0)) {
+      TimePoint deadline = std::chrono::steady_clock::now() + Seconds(10);
+      while ((monitor->GetState() != Monitor::ALARM) and !zm_terminate and std::chrono::steady_clock::now() < deadline) {
         // Wait for monitor to notice.
-        Microseconds sleep = Microseconds(1);
-        std::this_thread::sleep_for(sleep);
-        wait_time -= sleep;
+        std::this_thread::sleep_for(Milliseconds(5));
       }
 
-      if (monitor->GetState() != Monitor::ALARM and wait_time == Seconds(0)) {
+      if (monitor->GetState() != Monitor::ALARM) {
         Error("Monitor failed to respond to forced alarm.");
-      } else {
-        printf("Alarmed event id: %" PRIu64 "\n", monitor->GetLastEventId());
+        exit_zmu(-1);
       }
+      printf("Alarmed event id: %" PRIu64 "\n", monitor->GetLastEventId());
     }  // end if ZMU_ALARM
 
     if ( function & ZMU_NOALARM ) {
@@ -831,7 +837,7 @@ int main(int argc, char *argv[]) {
         } else {
           printf("%4d%5d%6d%9d%11ld.%02ld%6d%6d%8d%8.2f\n",
                  monitor_id,
-                 function,
+                 monitor_capturing,
                  0,
                  0,
                  0l, 0l,
@@ -847,6 +853,6 @@ int main(int argc, char *argv[]) {
   } // end if function && ZMU_LIST
   delete user;
 
-  exit_zmu(0);
+  exit_zmu(status);
   return 0;
 }  // end int main()

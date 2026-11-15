@@ -41,13 +41,13 @@ $profiles[0] = translate('ChooseDetectedProfile');
 
 // $log_cmd is $cmd as it may be logged: with the camera password replaced.
 function execONVIF($cmd, $log_cmd = null) {
-  $shell_command = escapeshellcmd(ZM_PATH_BIN . "/zmonvif-probe.pl $cmd");
+  $shell_command = escapeshellarg(ZM_PATH_BIN . '/zmonvif-probe.pl') . ' ' . $cmd;
 
   exec($shell_command, $output, $status);
 
   if ($status) {
     $html_output = implode('<br/>', $output);
-    $log_command = ($log_cmd === null) ? $shell_command : escapeshellcmd(ZM_PATH_BIN . "/zmonvif-probe.pl $log_cmd");
+    $log_command = ($log_cmd === null) ? $shell_command : escapeshellarg(ZM_PATH_BIN . '/zmonvif-probe.pl') . ' ' . $log_cmd;
     ZM\Error("Unable to probe network cameras, status is '$status'. Output was:
         $html_output
         Please run the following command from a command line for more information:
@@ -62,13 +62,13 @@ function execONVIF($cmd, $log_cmd = null) {
 
 function probeCameras($localIp) {
   $cameras = array();
-  $lines = @execONVIF('probe 1.1,1.2'.(isset($_REQUEST['interface']) ? ' '.escapeshellarg($_REQUEST['interface']) : '' ));
+  $lines = @execONVIF('probe 1.1,1.2'.(isset($_REQUEST['interface']) and is_string($_REQUEST['interface']) ? ' '.escapeshellarg($_REQUEST['interface']) : '' ));
   if ($lines) {
     foreach ($lines as $line) {
       $line = rtrim($line);
       if (preg_match('|^(.+),(.+),\s\((.*)\)$|', $line, $matches)) {
         $device_ep = $matches[1];
-        $soapversion = $matches[2];
+        $soapversion = trim($matches[2]);
         $camera = array(
             'model'   => 'Unknown ONVIF Camera',
             'monitor' => array(
@@ -106,7 +106,7 @@ function probeCameras($localIp) {
 function probeProfiles($device_ep, $soapversion, $username, $password) {
   $profiles = array();
   $args = 'profiles '.escapeshellarg($device_ep).' '.escapeshellarg($soapversion).' '.escapeshellarg($username).' ';
-  if ($lines = @execONVIF($args.escapeshellarg($password), $args.'<password>')) {
+  if ($lines = @execONVIF($args.escapeshellarg($password), $args.escapeshellarg('<password>'))) {
     foreach ($lines as $line) {
       $line = rtrim( $line );
 
@@ -233,7 +233,7 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
             <label for="manual_url"><?php echo translate('OnvifManualLabel') ?></label>
             <input type="text" name="manual_url" id="manual_url"
                    placeholder="<?php echo translate('OnvifManualPlaceholder') ?>"
-                   value="<?php echo isset($_REQUEST['manual_url']) ? htmlspecialchars($_REQUEST['manual_url']) : '' ?>"
+                   value="<?php echo (isset($_REQUEST['manual_url']) and is_string($_REQUEST['manual_url'])) ? htmlspecialchars($_REQUEST['manual_url']) : '' ?>"
                    data-on-change-this="configureButtons"
                    data-on-input-this="configureButtons"
                    oninput="(function(el){var nb=el.form.elements.namedItem('nextBtn');if(nb)nb.disabled=el.value.trim().length===0;})(this)"

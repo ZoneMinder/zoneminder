@@ -174,7 +174,8 @@ AnnotationEditor.prototype.init = function() {
   this.canvas.addEventListener('mousemove', function(e) {
     self._onMouseMove(e);
   });
-  this.canvas.addEventListener('mouseup', function(e) {
+  // On document so releasing outside the canvas still ends the gesture
+  document.addEventListener('mouseup', function(e) {
     self._onMouseUp(e);
   });
 
@@ -650,7 +651,7 @@ AnnotationEditor.prototype._onMouseDown = function(e) {
     if (this.selectedIndex >= 0) {
       const handle = this._hitTestHandles(pos, this.annotations[this.selectedIndex]);
       if (handle) {
-        this._pushUndo();
+        this._undoPending = true;
         this.isResizing = true;
         this.resizeHandle = handle;
         return;
@@ -660,7 +661,7 @@ AnnotationEditor.prototype._onMouseDown = function(e) {
     // Check if clicking on any box
     const hitIndex = this._hitTestBoxes(pos);
     if (hitIndex >= 0) {
-      this._pushUndo();
+      this._undoPending = true;
       this.selectAnnotation(hitIndex);
       this.isDragging = true;
       const ann = this.annotations[hitIndex];
@@ -692,6 +693,11 @@ AnnotationEditor.prototype._onMouseMove = function(e) {
     this.drawCurrent = pos;
     this._scheduleRender();
     return;
+  }
+
+  if ((this.isDragging || this.isResizing) && this._undoPending) {
+    this._undoPending = false;
+    this._pushUndo();
   }
 
   if (this.isDragging && this.selectedIndex >= 0) {
@@ -749,6 +755,8 @@ AnnotationEditor.prototype._onMouseUp = function(e) {
   if (this.isDrawing) {
     this.isDrawing = false;
     const pos = this._mouseToImage(e);
+    pos.x = Math.max(0, Math.min(pos.x, this.canvas.width));
+    pos.y = Math.max(0, Math.min(pos.y, this.canvas.height));
     const rect = this._getNormalizedRect(this.drawStart.x, this.drawStart.y, pos.x, pos.y);
     const x1 = rect.x1;
     const y1 = rect.y1;

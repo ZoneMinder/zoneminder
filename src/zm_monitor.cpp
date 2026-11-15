@@ -284,6 +284,7 @@ Monitor::Monitor() :
   //image_count(0),
   last_capture_image_count(0),
   last_fps_report_count(0),
+  fps_reported(false),
   analysis_image_count(0),
   decoding_image_count(0),
   motion_frame_count(0),
@@ -1274,6 +1275,7 @@ bool Monitor::connect() {
   last_analysis_fps_time = std::chrono::system_clock::now();
   last_capture_image_count = 0;
   last_fps_report_count = 0;
+  fps_reported = false;
 
   // Stagger the Monitor_Status writes. Left at its default (the epoch) every
   // monitor's first UpdateFPS() sees a huge elapsed time and writes at once,
@@ -2061,13 +2063,11 @@ void Monitor::UpdateFPS() {
         new_capture_fps,
         new_analysis_fps);
 
+    // Report once promptly after a (re)connect, then every fps_report_interval frames
     if ( fps_report_interval and
-        (
-         (shared_data->image_count - last_fps_report_count >= fps_report_interval)
-         or
-         ( (shared_data->image_count < fps_report_interval) and !(shared_data->image_count%10) )
-        )
+        ( !fps_reported or (shared_data->image_count - last_fps_report_count >= fps_report_interval) )
        ) {
+      fps_reported = true;
       last_fps_report_count = shared_data->image_count;
       Info("%s: %d - Capturing at %.2lf fps, capturing bandwidth %ubytes/sec Analysing at %.2lf fps",
           name.c_str(), shared_data->image_count.load(), new_capture_fps, new_capture_bandwidth, new_analysis_fps);

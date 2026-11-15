@@ -210,7 +210,7 @@ if ( isset($_REQUEST['filter']) ) {
 $tempMinTime = $tempMaxTime = $tempExpandable = false;
 extractDatetimeRange($tree, $tempMinTime, $tempMaxTime, $tempExpandable);
 
-$filterSql = $filter->sql();
+$filterSql = isset($filter) ? $filter->sql() : '';
 if ( $filterSql ) {
   $eventsSql .= ' AND '.$filterSql;
   $eventIdsSql .= ' AND '.$filterSql;

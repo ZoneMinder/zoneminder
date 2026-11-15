@@ -126,7 +126,7 @@ $layout_is_preset = array_search($layout->Name(), $presetLayoutsNames) === false
 
 $options = array();
 
-if (isset($_REQUEST['zmMontageWidth'])) {
+if (isset($_REQUEST['zmMontageWidth']) and is_string($_REQUEST['zmMontageWidth'])) {
   $width = $_REQUEST['zmMontageWidth'];
   if (($width == 'auto') or preg_match('/^\d+px$/', $width))
     $_SESSION['zmMontageWidth'] = $options['width'] = $width;
@@ -142,7 +142,7 @@ if (isset($_REQUEST['zmMontageWidth'])) {
   $options['width'] = 0;
 }
 
-if (isset($_REQUEST['zmMontageHeight'])) {
+if (isset($_REQUEST['zmMontageHeight']) and is_string($_REQUEST['zmMontageHeight'])) {
   $height = $_REQUEST['zmMontageHeight'];
   if (($height == 'auto') or preg_match('/^\d+px$/', $height))
     $_SESSION['zmMontageHeight'] = $options['height'] = $height;
@@ -181,7 +181,7 @@ if (isset($_REQUEST['streamQuality'])) {
   $streamQualitySelected = $_SESSION['zmStreamQuality'];
 }
 
-if (!empty($_REQUEST['maxfps']) and validFloat($_REQUEST['maxfps']) and ($_REQUEST['maxfps']>0)) {
+if (!empty($_REQUEST['maxfps']) and is_numeric($_REQUEST['maxfps']) and ($_REQUEST['maxfps']>0)) {
   $options['maxfps'] = validHtmlStr($_REQUEST['maxfps']);
 } else if (isset($_COOKIE['zmMontageRate'])) {
   $options['maxfps'] = validHtmlStr($_COOKIE['zmMontageRate']);

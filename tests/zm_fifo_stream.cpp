@@ -34,9 +34,10 @@ namespace {
 
 class MjpegFifoStream : public FifoStream {
  public:
-  explicit MjpegFifoStream(const std::string &path) {
+  explicit MjpegFifoStream(const std::string &path, int mod = 1) {
     setStreamStart(path);
     stream_type = MJPEG;
+    frame_mod = mod;
   }
 };
 
@@ -100,4 +101,69 @@ TEST_CASE("FifoStream sends each frame written to the fifo", "[FifoStream]") {
   CHECK(sent.find("Content-Type: image/jpeg\r\nContent-Length: 6\r\n\r\nframe0") != std::string::npos);
   CHECK(sent.find("frame1") != std::string::npos);
   CHECK(sent.find("frame2") != std::string::npos);
+}
+
+TEST_CASE("FifoStream with frame_mod skips frames without stalling the stream", "[FifoStream]") {
+  char dir[] = "/tmp/zm_fifo_stream_XXXXXX";
+  REQUIRE(mkdtemp(dir));
+  const std::string fifo = std::string(dir) + "/diag.jpg";
+  REQUIRE(mkfifo(fifo.c_str(), 0600) == 0);
+
+  int out[2];
+  REQUIRE(pipe(out) == 0);
+  pid_t child = fork();
+  REQUIRE(child >= 0);
+  if (child == 0) {
+    dup2(out[1], STDOUT_FILENO);
+    close(out[0]);
+    alarm(10);
+    MjpegFifoStream stream(fifo, 2);
+    stream.runStream();
+    _exit(0);
+  }
+  close(out[1]);
+
+  const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+  std::string sent;
+  int frames_written = 0;
+  while (frames_written < 4 and std::chrono::steady_clock::now() < deadline) {
+    int fd = open(fifo.c_str(), O_WRONLY | O_NONBLOCK);
+    if (fd < 0) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      continue;
+    }
+    const std::string frame = "frame" + std::to_string(frames_written);
+    REQUIRE(write(fd, frame.data(), frame.size()) == static_cast<ssize_t>(frame.size()));
+    close(fd);
+    frames_written++;
+
+    pollfd pfd = {out[0], POLLIN, 0};
+    while (poll(&pfd, 1, 100) > 0) {
+      char buf[4096];
+      ssize_t n = read(out[0], buf, sizeof(buf));
+      if (n <= 0) break;
+      sent.append(buf, n);
+    }
+  }
+
+  pollfd pfd = {out[0], POLLIN, 0};
+  while (poll(&pfd, 1, 200) > 0) {
+    char buf[4096];
+    ssize_t n = read(out[0], buf, sizeof(buf));
+    if (n <= 0) break;
+    sent.append(buf, n);
+  }
+
+  kill(child, SIGKILL);
+  waitpid(child, nullptr, 0);
+  close(out[0]);
+  unlink(fifo.c_str());
+  unlink((fifo + ".rlock").c_str());
+  rmdir(dir);
+
+  CHECK(frames_written == 4);
+  CHECK(sent.find("frame0") != std::string::npos);
+  CHECK(sent.find("frame1") == std::string::npos);
+  CHECK(sent.find("frame2") != std::string::npos);
+  CHECK(sent.find("frame3") == std::string::npos);
 }

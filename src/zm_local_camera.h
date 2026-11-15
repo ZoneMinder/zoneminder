@@ -32,12 +32,15 @@
 // via a video interface.
 //
 class LocalCamera : public Camera {
- protected:
+ public:
   struct V4L2MappedBuffer {
     void    *start;
     size_t  length;
   };
 
+  static void UnmapBuffers(V4L2MappedBuffer *buffers, unsigned int count);
+
+ protected:
   struct V4L2Data {
     v4l2_cropcap        cropcap;
     v4l2_crop           crop;

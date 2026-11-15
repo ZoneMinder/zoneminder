@@ -761,7 +761,7 @@ int LocalCamera::Initialise() {
   Debug(3, "Setting up data buffers: Channels %d MultiBuffer %d Buffers: %d",
         channel_count, v4l_multi_buffer, v4l2_data.reqbufs.count);
 
-  v4l2_data.buffers = new V4L2MappedBuffer[v4l2_data.reqbufs.count];
+  v4l2_data.buffers = new V4L2MappedBuffer[v4l2_data.reqbufs.count]();
   capturePictures = new av_frame_ptr[v4l2_data.reqbufs.count];
 
   for (unsigned int i = 0; i < v4l2_data.reqbufs.count; i++) {
@@ -814,6 +814,18 @@ int LocalCamera::Initialise() {
   return 0;
 } // end LocalCamera::Initialize
 
+void LocalCamera::UnmapBuffers(V4L2MappedBuffer *buffers, unsigned int count) {
+  if (!buffers)
+    return;
+  for (unsigned int i = 0; i < count; i++) {
+    if (!buffers[i].start || buffers[i].start == MAP_FAILED)
+      continue;
+    if (munmap(buffers[i].start, buffers[i].length) < 0)
+      Error("Failed to munmap buffer %d: %s", i, strerror(errno));
+    buffers[i].start = nullptr;
+  }
+}
+
 void LocalCamera::Terminate() {
   if ( v4l_version == 2 ) {
     Debug(3, "Terminating video stream");
@@ -824,12 +836,11 @@ void LocalCamera::Terminate() {
       Error("Failed to stop capture stream: %s", strerror(errno));
 
     Debug(3, "Unmapping video buffers");
-    for ( unsigned int i = 0; i < v4l2_data.reqbufs.count; i++ ) {
-      capturePictures[i] = nullptr;
-
-      if ( munmap(v4l2_data.buffers[i].start, v4l2_data.buffers[i].length) < 0 )
-        Error("Failed to munmap buffer %d: %s", i, strerror(errno));
+    if (capturePictures) {
+      for (unsigned int i = 0; i < v4l2_data.reqbufs.count; i++)
+        capturePictures[i] = nullptr;
     }
+    UnmapBuffers(v4l2_data.buffers, v4l2_data.reqbufs.count);
 
     // Free arrays allocated in Initialise() so they can be reallocated on re-init
     delete[] v4l2_data.buffers;
@@ -1312,6 +1323,8 @@ int LocalCamera::PrimeCapture() {
   Debug(1, "PrimeCapture: device_prime=%d, vid_fd=%d", device_prime, vid_fd);
   if (device_prime && vid_fd < 0) {
     if (Initialise() < 0) {
+      if (vid_fd >= 0)
+        Terminate();
       return -1;
     }
   }
@@ -1440,7 +1453,6 @@ int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
 
     buffer = (unsigned char *)v4l2_data.buffers[v4l2_data.bufptr->index].start;
     buffer_bytesused = v4l2_data.bufptr->bytesused;
-    bytes += buffer_bytesused;
 
     if ((v4l2_data.fmt.fmt.pix.width * v4l2_data.fmt.fmt.pix.height) > (width * height)) {
       Error("Captured image dimensions larger than image buffer: V4L2: %dx%d monitor: %dx%d",

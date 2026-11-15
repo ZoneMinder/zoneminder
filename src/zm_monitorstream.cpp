@@ -229,7 +229,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     Debug(1, "Got PAN command, to %d,%d", x.load(), y.load());
     break;
   case CMD_SCALE :
-    scale = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
+    scale = clampScale(((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2]);
     Debug(1, "Got SCALE command, to %d", scale.load());
     break;
   case CMD_QUIT :

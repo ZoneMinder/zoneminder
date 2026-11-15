@@ -52,6 +52,7 @@ class StreamBase {
   static const StreamType DEFAULT_TYPE = STREAM_JPEG;
   enum { DEFAULT_RATE=ZM_RATE_BASE };
   enum { DEFAULT_SCALE=ZM_SCALE_BASE };
+  enum { MAX_SCALE=16*ZM_SCALE_BASE };
   enum { DEFAULT_ZOOM=ZM_SCALE_BASE };
   enum { DEFAULT_MAXFPS=10 };
   enum { DEFAULT_BITRATE=100000 };
@@ -286,10 +287,13 @@ class StreamBase {
   void setStreamFormat(const char *p_format) {
     format = p_format;
   }
+  static int clampScale(int p_scale) {
+    if (p_scale <= 0)
+      return DEFAULT_SCALE;
+    return p_scale > MAX_SCALE ? static_cast<int>(MAX_SCALE) : p_scale;
+  }
   void setStreamScale(int p_scale) {
-    scale = p_scale;
-    if ( !scale )
-      scale = DEFAULT_SCALE;
+    scale = clampScale(p_scale);
   }
   void setStreamReplayRate(int p_rate) {
     Debug(1, "Setting replay_rate %d", p_rate);

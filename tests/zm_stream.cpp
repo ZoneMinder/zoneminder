@@ -397,3 +397,55 @@ TEST_CASE("StreamBase::preScaleDimensions") {
     REQUIRE(height == kHeight);
   }
 }
+
+TEST_CASE("StreamBase scale validation") {
+  EnsureImageInit();
+
+  SECTION("clampScale bounds the scale a client can ask for") {
+    REQUIRE(StreamBase::clampScale(0) == ZM_SCALE_BASE);
+    REQUIRE(StreamBase::clampScale(-5) == ZM_SCALE_BASE);
+    REQUIRE(StreamBase::clampScale(1) == 1);
+    REQUIRE(StreamBase::clampScale(50) == 50);
+    REQUIRE(StreamBase::clampScale(1600) == 1600);
+    REQUIRE(StreamBase::clampScale(3000) == 1600);
+    REQUIRE(StreamBase::clampScale(65535) == 1600);
+  }
+
+  SECTION("prepareImage sends the unscaled image when the scaled size is invalid") {
+    // 1600% of 1920x1080 is 30720x17280, which ffmpeg rejects, and a scale of
+    // 0 gives 0x0. Both used to leave the scratch image empty and encode it.
+    for (int scale : {0, 1600, 3000, 65535}) {
+      TestStream stream;
+      stream.setView(scale, ZM_SCALE_BASE);
+      Image image(1920, 1080, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA);
+
+      Image *sent = stream.prepare(&image);
+
+      REQUIRE(sent != nullptr);
+      REQUIRE(sent->Width() == 1920);
+      REQUIRE(sent->Height() == 1080);
+    }
+  }
+
+  SECTION("preScaleDimensions declines a scaled size ffmpeg rejects") {
+    TestStream stream;
+    stream.setView(1600, ZM_SCALE_BASE);
+    int width = 1920;
+    int height = 1080;
+
+    REQUIRE(stream.preScale(1920, 1080, width, height) == 0);
+    REQUIRE(width == 1920);
+    REQUIRE(height == 1080);
+  }
+
+  SECTION("a normal scale still scales") {
+    TestStream stream;
+    stream.setView(200, ZM_SCALE_BASE);
+    Image image(640, 480, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA);
+
+    Image *sent = stream.prepare(&image);
+
+    REQUIRE(sent->Width() == 1280);
+    REQUIRE(sent->Height() == 960);
+  }
+}

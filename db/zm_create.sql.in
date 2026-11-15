@@ -1102,6 +1102,7 @@ CREATE TABLE `Zones` (
   `MaxBlobs` smallint(5) unsigned default NULL,
   `OverloadFrames` smallint(5) unsigned NOT NULL default '0',
   `ExtendAlarmFrames` smallint(5) unsigned not null default 0,
+  `ObjectCoords` varchar(64) default NULL,
   PRIMARY KEY (`Id`),
   KEY `MonitorId` (`MonitorId`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;

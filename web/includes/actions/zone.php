@@ -66,6 +66,13 @@ if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
       }
     }
 
+    // The object box from the zone editor: "x1,y1 x2,y2" in percent, or empty
+    // for none. Anything else is dropped rather than stored and echoed back.
+    if ( isset($_REQUEST['newZone']['ObjectCoords']) and
+      ( !is_string($_REQUEST['newZone']['ObjectCoords']) or !preg_match('/^\d{1,3}(\.\d{1,2})?,\d{1,3}(\.\d{1,2})? \d{1,3}(\.\d{1,2})?,\d{1,3}(\.\d{1,2})?$/', $_REQUEST['newZone']['ObjectCoords']) ) ) {
+      $_REQUEST['newZone']['ObjectCoords'] = '';
+    }
+
     unset($_REQUEST['newZone']['Points']);
 
     # convert these fields to integer e.g. NULL -> 0

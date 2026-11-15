@@ -25,6 +25,7 @@ if ( !($mid and canEdit('Monitors', $mid)) ) {
 }
 
 $zid = (!empty($_REQUEST['zid'])) ? validInt($_REQUEST['zid']) : 0;
+require_once('includes/Event.php');
 
 $hicolor = '0x00ff00'; // Green
 
@@ -141,6 +142,41 @@ foreach ($rectangle_ratios as $id => $spec) {
   if ($saved >= 1 and $saved <= 100) $rectangle_ratios[$id]['value'] = $saved;
 }
 
+# Testing the form's settings against a recording, through zma --dry-run.
+# Disabled, with the reason as its title, when it cannot work.
+# Only events this user may view: their times, notes and tags are shown.
+$test_events = array_values(array_filter(
+  ZM\Event::find(array('MonitorId'=>$monitor->Id()), array('order'=>'Id DESC', 'limit'=>25)),
+  function($e) { return $e->canView(); }));
+# Tag names per event, in one query. Skipped where the Tags tables are missing
+# (a database not yet upgraded), and the inner join drops links to deleted tags.
+$test_tags = array();
+if ( count($test_events) and dbFetchAll("SHOW TABLES LIKE 'Events_Tags'") ) {
+  $ids = array_map(function($e) { return $e->Id(); }, $test_events);
+  $rows = dbFetchAll('SELECT ET.EventId, T.Name FROM Events_Tags AS ET INNER JOIN Tags AS T ON T.Id=ET.TagId
+    WHERE ET.EventId IN ('.implode(',', array_fill(0, count($ids), '?')).') ORDER BY T.Name', NULL, $ids);
+  foreach ( ($rows ? $rows : array()) as $row ) $test_tags[$row['EventId']][] = $row['Name'];
+}
+# What was in each event, so the right one is easy to find: when, how long,
+# its notes (where detection writes what it saw) or cause, and any tags.
+$test_options = array();
+foreach ( $test_events as $test_event ) {
+  $what = trim(preg_replace('/\s+/', ' ', (string)($test_event->Notes() ? $test_event->Notes() : $test_event->Cause())));
+  if ( mb_strlen($what) > 60 ) $what = mb_substr($what, 0, 59).'…';
+  $tags = isset($test_tags[$test_event->Id()]) ? $test_tags[$test_event->Id()] : array();
+  $test_options[$test_event->Id()] = $test_event->Id().' - '
+    .$dateTimeFormatter->format(strtotime($test_event->StartDateTime()))
+    .' ('.round($test_event->Length()).'s) '.$what.(count($tags) ? ' ['.implode(', ', $tags).']' : '');
+}
+$test_disabled = '';
+if ( !$zid ) {
+  $test_disabled = translate('ZoneTestNeedSave');
+} else if ( !count($test_events) ) {
+  $test_disabled = translate('ZoneTestNoEvents');
+} else if ( !is_executable(ZM_PATH_BIN.'/zma') ) {
+  $test_disabled = translate('ZoneTestNoZma');
+}
+
 $focusWindow = true;
 # Have to do this here, because the .js.php references somethings figured out when generating the streamHTML
 $monitor->connKey();
@@ -178,6 +214,7 @@ echo getNavBarHTML();
         <input type="hidden" name="newZone[NumCoords]" value="<?php echo count($zone['Points']) ?>"/>
         <input type="hidden" name="newZone[Coords]" value="<?php echo $zone['Coords'] ?>"/>
         <input type="hidden" name="newZone[AlarmRGB]"/>
+        <input type="hidden" name="newZone[ObjectCoords]" value="<?php echo isset($zone['ObjectCoords']) ? validHtmlStr($zone['ObjectCoords']) : '' ?>"/>
 
 				  <div id="imageAndPoints">
             <style>#imageFeed<?php echo $monitor->Id() ?> { aspect-ratio: <?php echo $monitor->ViewWidth() ?> / <?php echo $monitor->ViewHeight() ?>; }</style>
@@ -203,6 +240,15 @@ if ( count($other_zones) ) {
 ?>
                 <polygon id="zonePoly" points="<?php echo $zone['AreaCoords'] ?>" class="Editing <?php echo $zone['Type'] ?>"/>
                 <rect id="objectRect" x="0" y="0" width="0" height="0" style="display:none"/>
+                <rect id="objectAlarmRect" x="0" y="0" width="0" height="0" style="display:none"><title><?php echo translate('RectangleAlarmedArea') ?></title></rect>
+                <rect id="objectFilterRect" x="0" y="0" width="0" height="0" style="display:none"><title><?php echo translate('RectangleFilteredArea') ?></title></rect>
+                <rect id="objectBlobRect" x="0" y="0" width="0" height="0" style="display:none"><title><?php echo translate('RectangleBlobArea') ?></title></rect>
+                <rect id="objectKernelRect" x="0" y="0" width="0" height="0" style="display:none"><title><?php echo translate('ZoneFilterSize') ?></title></rect>
+                <rect id="replayAlarmRect" x="0" y="0" width="0" height="0" style="display:none"/>
+                <!-- Filtered over blob: when the blob is all of the filtered pixels the
+                     two outlines coincide, and the dotted one lets both show. -->
+                <rect id="replayBlobRect" x="0" y="0" width="0" height="0" style="display:none"/>
+                <rect id="replayFilterRect" x="0" y="0" width="0" height="0" style="display:none"/>
                 Sorry, your browser does not support inline SVG
               </svg>
               <button type="button" id="objectImageReplaceBtn" class="btn btn-normal" style="display:none" title="<?php echo translate('ObjectImageLoad') ?>">
@@ -232,6 +278,9 @@ if ( count($other_zones) ) {
                 <button type="button" id="objectSizeUndoBtn" class="btn btn-normal" style="display:none" title="<?php echo translate('ObjectSizeUndo') ?>">
                   <i class="material-icons md-18">undo</i>
                 </button>
+                <button type="button" id="zoneTestToggleBtn" class="btn btn-normal" title="<?php echo translate('ZoneTest') ?>">
+                  <i class="material-icons md-18">history</i>
+                </button>
               </div>
               <div id="playerControl">
                 <label for="player"><?php echo translate('Player') ?></label>
@@ -251,6 +300,54 @@ if ( count($other_zones) ) {
                 }
                 echo htmlSelect('codec', $players, $player, array('data-on-change'=>'changePlayer','id'=>'player','class'=>'chosen'));
 ?>
+              </div>
+            </div>
+            <div id="zoneTestPanel" style="display:none">
+              <div class="zoneTestTitle" title="<?php echo translate('ZoneTestHelp') ?>"><?php echo translate('ZoneTest') ?> <i class="material-icons md-18">help_outline</i></div>
+              <div>
+                <?php # No name: it sits in the zone form, and a named field is a zone
+                # change to Reset and gets posted on Save. ?>
+                <?php echo htmlSelect('', $test_options, '', array('id'=>'zoneTestEvent',
+                  'aria-label'=>translate('Event')) + ($test_disabled ? array('disabled'=>'disabled') : array())) ?>
+                <input type="number" id="zoneTestEventId" min="1" step="1" placeholder="<?php echo translate('ZoneTestEventId') ?>" title="<?php echo translate('ZoneTestEventIdHelp') ?>"<?php echo $test_disabled ? ' disabled' : '' ?>/>
+                <!-- A disabled button gets no hover, so the reason sits on a wrapper. -->
+                <span title="<?php echo validHtmlStr($test_disabled) ?>">
+                  <button type="button" id="zoneTestBtn" class="btn btn-normal"<?php echo $test_disabled ? ' disabled' : '' ?>><?php echo translate('Run') ?></button>
+                </span>
+              </div>
+              <div id="zoneTestResult"></div>
+              <div id="replayControls" style="display:none">
+                <canvas id="replayTimeline" height="24" title="<?php echo translate('ZoneReplayTimeline') ?>"></canvas>
+                <div id="replayLegend" class="legend">
+                  <span class="legendInAlarm"><?php echo translate('ZoneReplayInAlarmKey') ?></span>
+                  <span class="legendScored"><?php echo translate('ZoneReplayScored') ?></span>
+                  <span class="legendFail"><?php echo translate('ZoneReplayFails') ?></span>
+                  <span class="legendNone"><?php echo translate('ZoneReplayNoChange') ?></span>
+                  <span class="legendRerun"><?php echo translate('ZoneReplayRerun') ?></span>
+                </div>
+                <div>
+                  <button type="button" id="replayPrevBtn" class="btn btn-normal" title="<?php echo translate('ZoneReplayPrev') ?>"><i class="material-icons md-18">skip_previous</i></button>
+                  <button type="button" id="replayPlayBtn" class="btn btn-normal" title="<?php echo translate('Play') ?>"><i class="material-icons md-18">play_arrow</i></button>
+                  <button type="button" id="replayNextBtn" class="btn btn-normal" title="<?php echo translate('ZoneReplayNext') ?>"><i class="material-icons md-18">skip_next</i></button>
+                  <button type="button" id="replayCloseBtn" class="btn btn-normal" title="<?php echo translate('ZoneReplayClose') ?>"><i class="material-icons md-18">close</i> <?php echo translate('Exit') ?></button>
+                  <span id="replayFrameInfo"></span>
+                </div>
+              </div>
+              <div id="boxLegend" class="legend">
+                <div class="legendRow">
+                  <span class="lgObject" data-rect="objectRect" data-saved="0"><?php echo translate('ZoneLegendObject') ?></span>
+                  <span class="lgEstimate" data-rect="objectRect" data-saved="1"><?php echo translate('ZoneLegendEstimate') ?></span>
+                  <span class="lgAlarm" data-rect="objectAlarmRect"><?php echo translate('ZoneLegendAlarm') ?></span>
+                  <span class="lgFilter" data-rect="objectFilterRect"><?php echo translate('ZoneLegendFilter') ?></span>
+                  <span class="lgBlob" data-rect="objectBlobRect"><?php echo translate('ZoneLegendBlob') ?></span>
+                  <span class="lgKernel" data-rect="objectKernelRect"><?php echo translate('ZoneLegendKernel') ?></span>
+                </div>
+                <div class="legendRow">
+                  <b class="legendHead"><?php echo translate('ZoneLegendFrame') ?></b>
+                  <span class="lgAlarmBox" data-rect="replayAlarmRect"><?php echo translate('ZoneReplayAlarmed') ?></span>
+                  <span class="lgFilterBox" data-rect="replayFilterRect"><?php echo translate('ZoneReplayFiltered') ?></span>
+                  <span class="lgBlobBox" data-rect="replayBlobRect"><?php echo translate('ZoneLegendBlobBox') ?></span>
+                </div>
               </div>
             </div>
           </div><!--image & buttons-->
@@ -307,17 +404,17 @@ if ( count($other_zones) ) {
 									<td><span class="zoneArea" id="areaPixels"></span> px</td>
 								</tr>
 								<tr>
-									<th scope="row"><?php echo translate('ZoneMinMaxAlarmArea') ?></th>
+									<th scope="row" class="swatch swatchAlarm"><?php echo translate('ZoneMinMaxAlarmArea') ?></th>
 									<td><input type="number" name="newZone[MinAlarmPixels]" value="<?php echo $zone['MinAlarmPixels'] ?>" step="any" max="100" min="0"/>% <input type="number" class="pxInput" id="MinAlarmPixels_px" min="0" step="1"/> px</td>
 									<td><input type="number" name="newZone[MaxAlarmPixels]" value="<?php echo $zone['MaxAlarmPixels'] ?>" step="any" max="100" min="0"/>% <input type="number" class="pxInput" id="MaxAlarmPixels_px" min="0" step="1"/> px</td>
 								</tr>
 								<tr>
-									<th scope="row"><?php echo translate('ZoneMinMaxFiltArea') ?></th>
+									<th scope="row" class="swatch swatchFilter"><?php echo translate('ZoneMinMaxFiltArea') ?></th>
 									<td><input type="number" name="newZone[MinFilterPixels]" value="<?php echo $zone['MinFilterPixels'] ?>" step="any" max="100" min="0"/>% <input type="number" class="pxInput" id="MinFilterPixels_px" min="0" step="1"/> px</td>
 									<td><input type="number" name="newZone[MaxFilterPixels]" value="<?php echo $zone['MaxFilterPixels'] ?>" step="any" max="100" min="0"/>% <input type="number" class="pxInput" id="MaxFilterPixels_px" min="0" step="1"/> px</td>
 								</tr>
 								<tr>
-									<th scope="row"><?php echo translate('ZoneMinMaxBlobArea') ?></th>
+									<th scope="row" class="swatch swatchBlob"><?php echo translate('ZoneMinMaxBlobArea') ?></th>
 									<td><input type="number" name="newZone[MinBlobPixels]" value="<?php echo $zone['MinBlobPixels'] ?>" step="any" max="100" min="0"/>% <input type="number" class="pxInput" id="MinBlobPixels_px" min="0" step="1"/> px</td>
 									<td><input type="number" name="newZone[MaxBlobPixels]" value="<?php echo $zone['MaxBlobPixels'] ?>" step="any" max="100" min="0"/>% <input type="number" class="pxInput" id="MaxBlobPixels_px" min="0" step="1"/> px</td>
 								</tr>
@@ -343,26 +440,25 @@ if ( count($other_zones) ) {
 									<th scope="row"><?php echo translate('RectangleObjectSize') ?></th>
 									<td>
 										<input type="number" id="objectWidthPx" min="1" step="1" title="<?php echo translate('ObjectSizeWidth') ?>" aria-label="<?php echo translate('ObjectSizeWidth') ?>"/>&times;<input type="number" id="objectHeightPx" min="1" step="1" title="<?php echo translate('ObjectSizeHeight') ?>" aria-label="<?php echo translate('ObjectSizeHeight') ?>"/>px
-										<button type="button" id="objectSizeApplyBtn" class="btn btn-normal" title="<?php echo translate('ObjectSizeApply') ?>"><?php echo translate('ObjectSizeApplyLabel') ?></button>
 										<span class="ratioHint"><?php echo translate('RectangleOrTypeSize') ?></span>
 									</td>
 								</tr>
 								<tr>
-									<th scope="row"><?php echo translate('RectangleAlarmedArea') ?></th>
+									<th scope="row" class="swatch swatchAlarm"><?php echo translate('RectangleAlarmedArea') ?></th>
 									<td>
 										<input type="number" id="objectFraction" value="<?php echo $rectangle_ratios['objectFraction']['value'] ?>" min="1" max="100" step="1"/>%
 										<span class="ratioHint"><?php echo translate('RectangleOfRectangle') ?></span>
 									</td>
 								</tr>
 								<tr>
-									<th scope="row"><?php echo translate('RectangleFilteredArea') ?></th>
+									<th scope="row" class="swatch swatchFilter"><?php echo translate('RectangleFilteredArea') ?></th>
 									<td>
 										<input type="number" id="objectFilterRatio" value="<?php echo $rectangle_ratios['objectFilterRatio']['value'] ?>" min="1" max="100" step="1"/>%
 										<span class="ratioHint"><?php echo translate('RectangleOfAlarmed') ?></span>
 									</td>
 								</tr>
 								<tr>
-									<th scope="row"><?php echo translate('RectangleBlobArea') ?></th>
+									<th scope="row" class="swatch swatchBlob"><?php echo translate('RectangleBlobArea') ?></th>
 									<td>
 										<input type="number" id="objectBlobRatio" value="<?php echo $rectangle_ratios['objectBlobRatio']['value'] ?>" min="1" max="100" step="1"/>%
 										<span class="ratioHint"><?php echo translate('RectangleOfFiltered') ?></span>

@@ -32,6 +32,7 @@ class Zone extends ZM_Object {
 			'MaxBlobs'            => null,
 			'OverloadFrames'      => 0,
 			'ExtendAlarmFrames'   => 0,
+			'ObjectCoords'        => null,
 			);
 
   public static function find( $parameters = array(), $options = array() ) {

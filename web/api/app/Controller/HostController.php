@@ -289,7 +289,8 @@ class HostController extends AppController {
       );
     } else {
       $monitors = $this->Monitor->find('all', array(
-        'fields' => array('Id', 'Name', 'WebColour', 'StorageId')
+        'fields' => array('Id', 'Name', 'WebColour', 'StorageId'),
+        'conditions' => array('Monitor.Deleted' => 0),
       ));
       $usage = array();
 

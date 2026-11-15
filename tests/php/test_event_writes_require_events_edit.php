@@ -99,6 +99,7 @@ namespace {
   function dbQuery($sql, $params = array()) { $GLOBALS['queries'][] = trim($sql); return true; }
   function dbNumRows($sql, $params = array()) { $GLOBALS['queries'][] = trim($sql); return 0; }
   function dbInsertId() { return 1; }
+  function dbFetchOne($sql, $col = null, $params = array()) { $GLOBALS['queries'][] = trim($sql); return 1; }
   function ajaxResponse($data = array()) { throw new StopRequest('response'); }
   function ajaxError($message, $code = 200) { throw new StopRequest('error'); }
   function xhtmlHeaders($file, $title) { if (empty($GLOBALS['render'])) throw new StopRequest('render'); }

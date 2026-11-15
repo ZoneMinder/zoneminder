@@ -131,15 +131,15 @@ sub reset
            }
    my $cmd = "param.cgi?cmd=setimageattr&-brightness=0";
    $self->sendCmd( $cmd );
-   my $cmd = "param.cgi?cmd=setimageattr&-contrast=37";
+   $cmd = "param.cgi?cmd=setimageattr&-contrast=37";
    $self->sendCmd( $cmd );
-   my $cmd = "param.cgi?cmd=setimageattr&-hue=255";
+   $cmd = "param.cgi?cmd=setimageattr&-hue=255";
    $self->sendCmd( $cmd );
-   my $cmd = "param.cgi?cmd=setimageattr&-saturation=94";
+   $cmd = "param.cgi?cmd=setimageattr&-saturation=94";
    $self->sendCmd( $cmd );
-   my $cmd = "param.cgi?cmd=setinfra&-status=auto";
+   $cmd = "param.cgi?cmd=setinfra&-status=auto";
    $self->sendCmd( $cmd );
-   my $cmd = "param.cgi?cmd=setimageattr&-scene=auto";
+   $cmd = "param.cgi?cmd=setimageattr&-scene=auto";
    $self->sendCmd( $cmd );
 }
 
@@ -149,7 +149,7 @@ sub moveStop
    Debug( "Move Stop" );
    my $cmd = "ptzctrl.cgi?-step=0&-act=stop";
    $self->sendCmd( $cmd );
-        my $cmd = "param.cgi?cmd=setoverlayattr&-region=1&-show=0&-name=.";
+        $cmd = "param.cgi?cmd=setoverlayattr&-region=1&-show=0&-name=.";
         $self->sendCmd( $cmd );
 }
 
@@ -163,7 +163,7 @@ sub autoStop
        usleep( $autostop );
        my $cmd = "ptzctrl.cgi?-step=0&-act=stop";
        $self->sendCmd( $cmd );
-       my $cmd = "param.cgi?cmd=setoverlayattr&-region=1&-show=0&-name=.";
+       $cmd = "param.cgi?cmd=setoverlayattr&-region=1&-show=0&-name=.";
        $self->sendCmd( $cmd );
     }
 }
@@ -291,7 +291,7 @@ sub moveConUpLeft
     my $cmd = "ptzctrl.cgi?-step=0&-act=up";
     $self->sendCmd( $cmd );
     $self->autoStop( int(10000*$tiltspeed) );
-    my $cmd = "ptzctrl.cgi?-step=0&-act=left";
+    $cmd = "ptzctrl.cgi?-step=0&-act=left";
     $self->sendCmd( $cmd );
     $self->autoStop( int(10000*$panspeed) );
 }
@@ -325,7 +325,7 @@ sub moveConUpRight
     my $cmd = "ptzctrl.cgi?-step=0&-act=up";
     $self->sendCmd( $cmd );
     $self->autoStop( int(10000*$tiltspeed) );
-    my $cmd = "ptzctrl.cgi?-step=0&-act=right";
+    $cmd = "ptzctrl.cgi?-step=0&-act=right";
     $self->sendCmd( $cmd );
     $self->autoStop( int(10000*$panspeed) );
 }
@@ -359,7 +359,7 @@ sub moveConDownLeft
     my $cmd = "ptzctrl.cgi?-step=0&-act=down";
     $self->sendCmd( $cmd );
     $self->autoStop( int(10000*$tiltspeed) );
-    my $cmd = "ptzctrl.cgi?-step=0&-act=left";
+    $cmd = "ptzctrl.cgi?-step=0&-act=left";
     $self->sendCmd( $cmd );
     $self->autoStop( int(10000*$panspeed) );
 }
@@ -393,7 +393,7 @@ sub moveConDownRight
     my $cmd = "ptzctrl.cgi?-step=0&-act=down";
     $self->sendCmd( $cmd );
     $self->autoStop( int(10000*$tiltspeed) );
-    my $cmd = "ptzctrl.cgi?-step=0&-act=right";
+    $cmd = "ptzctrl.cgi?-step=0&-act=right";
     $self->sendCmd( $cmd );
     $self->autoStop( int(10000*$panspeed) );
 }

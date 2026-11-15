@@ -1194,7 +1194,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // Writer-side helper: copies src into alarm_image and publishes its
   // AVPixelFormat so reader processes can correctly interpret the SHM bytes.
   void WriteAlarmImage(const Image &src);
-  int GetImage(int32_t index=-1, int scale=100);
+  bool GetImage(int32_t index=-1, int scale=100);
   std::shared_ptr<ZMPacket> getSnapshot( int index=-1 );
   SystemTimePoint GetTimestamp(int index = -1);
   void UpdateAdaptiveSkip();
@@ -1329,7 +1329,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   static const char *ActionTriggerName(EventAction::TriggerOn trigger);
 
   bool DumpSettings( char *output, bool verbose );
-  void DumpZoneImage( const char *zone_string=0 );
+  bool DumpZoneImage( const char *zone_string=0 );
   std::vector<Group *>  Groups();
   StringVector GroupNames();
 

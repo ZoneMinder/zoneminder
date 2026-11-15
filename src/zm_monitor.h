@@ -1297,7 +1297,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   Event *openEvent(
     ZMPacketLock *packet_lock,
     const std::string &cause,
-    const Event::StringSetMap &noteSetMap);
+    const Event::StringSetMap &noteSetMap,
+    SystemTimePoint counting_boundary = SystemTimePoint());
   // Join a close that is still in flight, so whatever it holds -- notably a
   // hardware encoder session belonging to the previous event -- is released.
   // Returns true if there was one to wait for.

@@ -571,6 +571,9 @@ MAIN: while( $loop ) {
   my $deleteStatsSql = 'DELETE LOW_PRIORITY FROM Stats WHERE EventId = ?';
   my $deleteStatsSth = $dbh->prepare_cached( $deleteStatsSql )
     or Fatal("Can't prepare '$deleteStatsSql': ".$dbh->errstr());
+  my $deleteEventDataSql = 'DELETE LOW_PRIORITY FROM Event_Data WHERE EventId = ?';
+  my $deleteEventDataSth = $dbh->prepare_cached( $deleteEventDataSql )
+    or Fatal("Can't prepare '$deleteEventDataSql': ".$dbh->errstr());
 
   # Foreach database monitor and it's list of events.
   while ( my ( $db_monitor, $db_events ) = each(%$db_monitors) ) {
@@ -780,6 +783,28 @@ if ( $level > 1 ) {
     if ( confirm() ) {
       $res = $deleteStatsSth->execute( $stat->{EventId} )
         or Fatal("Can't execute: ".$deleteStatsSth->errstr());
+      $cleaned = 1;
+    }
+  }
+  redo MAIN if ( $cleaned );
+}
+
+if ( $level > 1 ) {
+# Remove orphaned event data records
+  $cleaned = 0;
+  Debug('Checking for Orphaned Event Data');
+  my $selectOrphanedEventDataSql = 'SELECT DISTINCT `EventId` FROM `Event_Data`
+    WHERE `EventId` IS NOT NULL
+      AND `EventId` NOT IN (SELECT `Id` FROM `Events`)';
+  my $selectOrphanedEventDataSth = $dbh->prepare_cached( $selectOrphanedEventDataSql )
+    or Fatal("Can't prepare '$selectOrphanedEventDataSql': ".$dbh->errstr());
+  $res = $selectOrphanedEventDataSth->execute()
+    or Fatal("Can't execute: ".$selectOrphanedEventDataSth->errstr());
+  while( my $event_data = $selectOrphanedEventDataSth->fetchrow_hashref() ) {
+    aud_print("Found orphaned event data records for event '$event_data->{EventId}'");
+    if ( confirm() ) {
+      $res = $deleteEventDataSth->execute( $event_data->{EventId} )
+        or Fatal("Can't execute: ".$deleteEventDataSth->errstr());
       $cleaned = 1;
     }
   }

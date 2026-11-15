@@ -30,12 +30,12 @@ FontVariant::FontVariant() : char_height_(0), char_width_(0), char_padding_(0), 
 
 FontVariant::FontVariant(uint16 char_height, uint16 char_width, uint8 char_padding, std::vector<uint64> bitmap)
   : char_height_(char_height), char_width_(char_width), char_padding_(char_padding), bitmap_(std::move(bitmap)) {
-  if (char_height_ > kMaxCharHeight) {
-    throw std::invalid_argument("char_height > kMaxCharHeight");
+  if (char_height_ == 0 || char_height_ > kMaxCharHeight) {
+    throw std::invalid_argument("char_height out of range");
   }
 
-  if (char_width_ > kMaxCharWidth) {
-    throw std::invalid_argument("char_width > kMaxCharWidth");
+  if (char_width_ == 0 || char_width_ > kMaxCharWidth) {
+    throw std::invalid_argument("char_width out of range");
   }
 
   if (bitmap_.size() % char_height_ != 0) {
@@ -94,7 +94,9 @@ FontLoadError ZmFont::LoadFontFile(const std::string &loc) {
   for (int i = 0; i < kNumFontSizes; i++) {
     FontBitmapHeader bitmap_header = file_header.bitmap_header[i];
 
-    if (bitmap_header.char_width > FontVariant::kMaxCharWidth
+    if (bitmap_header.char_width == 0
+        || bitmap_header.char_width > FontVariant::kMaxCharWidth
+        || bitmap_header.char_height == 0
         || bitmap_header.char_height > FontVariant::kMaxCharHeight
         || bitmap_header.number_of_code_points > FontVariant::kMaxNumCodePoints) {
       return FontLoadError::kInvalidFile;

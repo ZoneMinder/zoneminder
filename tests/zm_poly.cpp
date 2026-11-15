@@ -32,6 +32,15 @@ TEST_CASE("Polygon: construct from vertices") {
 
   REQUIRE(p.Area() == 18);
   REQUIRE(p.Extent().Size() == Vector2(6, 6));
+  REQUIRE(p.Centre() == Vector2(2, 2));
+}
+
+TEST_CASE("Polygon: centre of a full frame zone") {
+  Polygon p({{0, 0}, {1919, 0}, {1919, 1079}, {0, 1079}});
+  REQUIRE(p.Centre() == Vector2(960, 540));
+
+  Polygon clockwise({{0, 0}, {0, 1079}, {1919, 1079}, {1919, 0}});
+  REQUIRE(clockwise.Centre() == Vector2(960, 540));
 }
 
 TEST_CASE("Polygon: clipping") {

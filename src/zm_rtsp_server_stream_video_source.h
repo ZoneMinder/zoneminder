@@ -43,6 +43,11 @@ class ZoneMinderStreamVideoSource: public ZoneMinderStreamSource {
   // the first packet of an IRAP picture. hType is m_hType (264 or 265).
   static bool StartsKeyframe(int hType, const uint8_t *data, size_t size);
 
+  // RTP timestamp for a packet pts in AV_TIME_BASE_Q. xop treats 0 as "unset"
+  // and substitutes the wall clock, so a real 0 and a missing pts both need
+  // handling here.
+  static int64_t RtpTimestamp(int64_t pts, AVRational timeBase);
+
  protected:
   void PushFrame(const uint8_t *data, size_t size, int64_t pts, bool last) override;
 

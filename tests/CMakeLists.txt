@@ -15,6 +15,7 @@ set(TEST_SOURCES
   zm_config.cpp
   zm_db_contention.cpp
   zm_db_contention_live.cpp
+  zm_db_log_queue.cpp
   zm_db_logging_live.cpp
   zm_db_schema.cpp
   zm_monitor_dts.cpp

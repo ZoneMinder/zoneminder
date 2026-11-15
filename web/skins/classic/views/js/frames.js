@@ -85,9 +85,7 @@ function initPage() {
 
   // Update table links each time after new data is loaded
   table.on('post-body.bs.table', function(data) {
-    var type_ndx = $j('#framesTable tr th').filter(function() {
-      return $j(this).text().trim() == 'Type';
-    }).index();
+    var type_ndx = $j('#framesTable tr th[data-field="Type"]').index();
 
     $j('#framesTable tr').each(function(ndx, row) {
       var row = $j(row);
@@ -95,9 +93,7 @@ function initPage() {
       row.addClass(type.toLowerCase());
     });
 
-    var thumb_ndx = $j('#framesTable tr th').filter(function() {
-      return $j(this).text().trim() == 'Thumbnail';
-    }).index();
+    var thumb_ndx = $j('#framesTable tr th[data-field="Thumbnail"]').index();
     table.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass('colThumbnail');
   });
 }

@@ -61,6 +61,7 @@ class TestStream : public StreamBase {
     y = p_y;
   }
   const Box &crop() const { return last_crop; }
+  int replayRate() const { return replay_rate; }
   void commandLoop() {
     checkCommandQueue();
   }
@@ -448,4 +449,12 @@ TEST_CASE("StreamBase scale validation") {
     REQUIRE(sent->Width() == 1280);
     REQUIRE(sent->Height() == 960);
   }
+}
+
+TEST_CASE("StreamBase::setStreamReplayRate treats 0 as normal speed", "[StreamBase]") {
+  TestStream stream;
+  stream.setStreamReplayRate(0);
+  CHECK(stream.replayRate() == ZM_RATE_BASE);
+  stream.setStreamReplayRate(-200);
+  CHECK(stream.replayRate() == -200);
 }

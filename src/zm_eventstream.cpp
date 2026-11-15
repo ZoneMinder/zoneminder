@@ -324,7 +324,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
         auto &frame = event_data->frames.emplace_back(
                        i,
                        last_timestamp + ((i - last_id) * delta),
-                       std::chrono::duration_cast<Microseconds>((event_data->frames[last_frame_idx].timestamp - event_data->start_time) + delta),
+                       std::chrono::duration_cast<Microseconds>((last_frame_idx >= 0 ? event_data->frames[last_frame_idx].timestamp - event_data->start_time : Microseconds(0)) + delta),
                        delta,
                        false
                      );
@@ -558,7 +558,9 @@ void EventStream::processCommand(const CmdMsg *msg) {
     stopped = false;
     paused = false;
     replay_rate = (((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2])-VARPLAY_RATE_OFFSET;
-    if (replay_rate > 50 * ZM_RATE_BASE) {
+    if (replay_rate == 0) {
+      paused = true;
+    } else if (replay_rate > 50 * ZM_RATE_BASE) {
       Warning("requested replay rate (%d) is too high. We only support up to 50x", replay_rate.load());
       replay_rate = 50 * ZM_RATE_BASE;
     } else if (replay_rate.load() < -50*ZM_RATE_BASE) {
@@ -1083,6 +1085,13 @@ Image *EventStream::loadFrameImage(std::unique_ptr<Image> &owned_image, int &pre
   return image;
 }  // Image *EventStream::loadFrameImage
 
+// A frame file that is missing or empty (a write that never finished) is not one to send.
+static bool FrameFileUsable(const std::string &path) {
+  std::error_code ec;
+  const auto size = std::filesystem::file_size(path, ec);
+  return !ec && size > 0;
+}
+
 bool EventStream::sendFrame(Microseconds delta_us) {
   Debug(2, "Sending frame %d", curr_frame_id);
 
@@ -1100,33 +1109,26 @@ bool EventStream::sendFrame(Microseconds delta_us) {
   // Reusable string member avoids per-frame heap allocations.
   // After the first frame, the string's buffer is reused (unless path exceeds capacity).
   reuse_filepath_.clear();
-  // exists() with an error_code overload mirrors stat()'s behaviour (treat any
-  // failure as "not present") without throwing or filling an unused struct stat.
-  std::error_code exists_ec;
-
   // This needs to be abstracted.  If we are saving jpgs, then load the capture file.
   // If we are only saving analysis frames, then send that.
   if ((frame_type == FRAME_ANALYSIS) && (event_data->SaveJPEGs & 2)) {
     reuse_filepath_ = stringtf(staticConfig.analyse_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
-    if (!std::filesystem::exists(reuse_filepath_, exists_ec)) {
+    if (!FrameFileUsable(reuse_filepath_)) {
       Debug(1, "analyze file %s not found will try to stream from other", reuse_filepath_.c_str());
       reuse_filepath_ = stringtf(staticConfig.capture_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
-      if (!std::filesystem::exists(reuse_filepath_, exists_ec)) {
+      if (!FrameFileUsable(reuse_filepath_)) {
         Debug(1, "capture file %s not found either", reuse_filepath_.c_str());
         reuse_filepath_.clear();
       }
     }
   } else if (event_data->SaveJPEGs & 1) {
     reuse_filepath_ = stringtf(staticConfig.capture_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
-    if (!std::filesystem::exists(reuse_filepath_, exists_ec)) {
+    if (!FrameFileUsable(reuse_filepath_)) {
       Debug(1, "Capture file %s not found (bulk/interpolated frame %d), trying ffmpeg_input",
             reuse_filepath_.c_str(), curr_frame_id);
       reuse_filepath_.clear();
       // Fall through — ffmpeg_input will be tried below if available
     }
-  } else if (!ffmpeg_input) {
-    Fatal("JPEGS not saved. zms is not capable of streaming jpegs from mp4 yet");
-    return false;
   }
 
   if ( type == STREAM_MPEG ) {

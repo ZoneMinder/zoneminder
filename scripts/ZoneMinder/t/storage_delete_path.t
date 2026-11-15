@@ -5,7 +5,7 @@ use File::Temp qw(tempdir);
 use File::Path qw(make_path);
 
 eval { require ZoneMinder::Storage; 1 } or plan skip_all => "cannot load ZoneMinder::Storage: $@";
-plan tests => 12;
+plan tests => 15;
 
 # delete_path removes an event directory (or a single file) from a storage area
 # whose path contains a space. The old shell command split on the space and
@@ -68,3 +68,26 @@ ok(-e "$storage_path", 'an empty path deletes nothing');
 $Storage->delete_path('.');
 is(scalar @errors, 1, "a '.' path is refused with an error");
 ok(-e "$storage_path", "a '.' path deletes nothing");
+
+# An s3fs event path is only a prefix of its keys. S3 reports success for
+# deleting a key that does not exist, so each key under the prefix is deleted.
+{
+  package FakeBucket;
+  sub list_all {
+    my ($self, $args) = @_;
+    return { keys => [ map { { key => $_ } } grep { index($_, $$args{prefix}) == 0 } sort keys %{$$self{keys}} ] };
+  }
+  sub delete_key { my ($self, $key) = @_; delete $$self{keys}{$key}; return 1; }
+  package FakeS3;
+  sub err { '' }
+  sub errstr { '' }
+}
+my $bucket = bless { keys => { map { $_ => 1 } qw(1/2026-11-11/123/a.mp4 1/2026-11-11/123/b.jpg 1/2026-11-11/1234/c.mp4 lone.txt) } }, 'FakeBucket';
+my $S3Storage = bless { Type => 's3fs', Path => $storage_path, s3 => bless({}, 'FakeS3'), bucket => $bucket }, 'ZoneMinder::Storage';
+
+@errors = ();
+$S3Storage->delete_path('1/2026-11-11/123');
+is_deeply([ sort keys %{$$bucket{keys}} ], [ '1/2026-11-11/1234/c.mp4', 'lone.txt' ], 'every key under an s3 event path is deleted, a same-prefix event is not');
+$S3Storage->delete_path('lone.txt');
+is_deeply([ sort keys %{$$bucket{keys}} ], [ '1/2026-11-11/1234/c.mp4' ], 'a single s3 key is deleted');
+is(scalar @errors, 0, 'no error deleting from s3');

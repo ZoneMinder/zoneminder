@@ -395,11 +395,11 @@ function buildControlCommand($monitor) {
         }
         if ( preg_match( '/(Left|Right)$/', $dirn ) ) {
           $panStep = intval(round($control->MinPanStep()+(($control->MaxPanStep()-$control->MinPanStep())*$xFactor)));
-          $ctrlCommand .= ' --panstep='.$panStep.' --panspeed='.$panSpeed;
+          $ctrlCommand .= ' --panstep='.$panStep.(isset($panSpeed) ? ' --panspeed='.$panSpeed : '');
         }
         if ( preg_match( '/^(Up|Down)/', $dirn ) ) {
           $tiltStep = intval(round($control->MinTiltStep()+(($control->MaxTiltStep()-$control->MinTiltStep())*$yFactor)));
-          $ctrlCommand .= ' --tiltstep='.$tiltStep.' --tiltspeed='.$tiltSpeed;
+          $ctrlCommand .= ' --tiltstep='.$tiltStep.(isset($tiltSpeed) ? ' --tiltspeed='.$tiltSpeed : '');
         }
       }
     } elseif ( $_REQUEST['control'] == 'moveConMap' ) {
@@ -484,10 +484,10 @@ function buildControlCommand($monitor) {
             $tiltSpeed = intval(round($control->MinTiltSpeed()+(($control->MaxTiltSpeed()-$control->MinTiltSpeed())*$yFactor)));
           }
         }
-        if ( preg_match( '/(Left|Right)$/', $dirn ) ) {
+        if ( isset($panSpeed) && preg_match( '/(Left|Right)$/', $dirn ) ) {
           $ctrlCommand .= ' --panspeed='.$panSpeed;
         }
-        if ( preg_match( '/^(Up|Down)/', $dirn ) ) {
+        if ( isset($tiltSpeed) && preg_match( '/^(Up|Down)/', $dirn ) ) {
           $ctrlCommand .= ' --tiltspeed='.$tiltSpeed;
         }
         if ( $monitor->AutoStopTimeout() ) {

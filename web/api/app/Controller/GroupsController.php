@@ -126,9 +126,11 @@ class GroupsController extends AppController {
         return;
       }
 
-      if ( $this->request->data['Group']['MonitorIds'] and ! isset($this->request->data['Monitor']) ) {
-        $this->request->data['Monitor'] = explode(',', $this->request->data['Group']['MonitorIds']);
-        unset($this->request->data['Group']['MonitorIds']);
+      $monitorIds = $this->requestField('Group', 'MonitorIds');
+      if ( is_string($monitorIds) and $monitorIds !== '' and ! isset($this->request->data['Monitor']) ) {
+        $this->request->data['Monitor'] = explode(',', $monitorIds);
+        unset($this->request->data['MonitorIds']);
+        if ( isset($this->request->data['Group']) and is_array($this->request->data['Group']) ) unset($this->request->data['Group']['MonitorIds']);
       }
       $monitorIds = $this->requestAssociatedIds('Group', 'Monitor');
       if ($monitorIds) $this->requireMembershipEdit($monitorIds);

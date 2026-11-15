@@ -194,6 +194,7 @@ class Event {
   bool SetPath(Storage *storage);
 
  public:
+  static bool CreateIdMarker(Storage::Schemes scheme, const std::string &event_path, uint64_t id);
   static std::string getSubPath(tm time) {
     std::string subpath = stringtf("%02d/%02d/%02d/%02d/%02d/%02d",
                                    time.tm_year - 100, time.tm_mon + 1, time.tm_mday,

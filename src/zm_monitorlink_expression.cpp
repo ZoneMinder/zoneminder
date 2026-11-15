@@ -47,6 +47,8 @@ bool MonitorLinkExpression::parse() {
 
   // Then we parse the tokens into a tree
   tree_ = parse_expression(tokens, current);
+  if (has_unused(tokens, current))
+    tree_ = nullptr;
   return true;
 }
 
@@ -140,12 +142,17 @@ MonitorLinkExpression::parse_expression( Tokens const & tokens, std::size_t & cu
   if (tokens.size() == 1) {
     Debug(1, "Special case monitorlink");
     // Special case, must be a monitorlink
-    return std::make_unique<Node>(tokens[0]);
+    if (tokens[0].is(Token::TokenType::monitorlink)) {
+      current++;
+      return std::make_unique<Node>(tokens[0]);
+    }
+    return nullptr;
   }
 
   // First token could me a parenthesis or monitorlink.  Otherwise invalid.
 
   auto left{ parse_and_operation(tokens, current) };
+  if (!left) return nullptr;
 
   if (
     has_unused(tokens, current)

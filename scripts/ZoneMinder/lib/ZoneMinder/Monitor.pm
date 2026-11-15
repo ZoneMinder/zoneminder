@@ -480,6 +480,27 @@ sub resumeMotionDetection {
   return 1;
 }
 
+# How long zmwatch lets a capture daemon go without a first image after it set
+# its startup time. zmc sleeps StartupDelay seconds after that before it primes
+# the camera, so the delay is added to the usual limit.
+sub WatchStartupLimit {
+  my ($self, $max_delay) = @_;
+  return $max_delay + ($$self{StartupDelay} || 0);
+}
+
+# How long zmwatch lets capture or analysis go without a new image. A camera
+# limited to less than one frame per second is given three frame intervals,
+# but never less than the usual limit.
+sub WatchImageLimit {
+  my ($self, $max_delay) = @_;
+  my $fps = $$self{MaxFPS};
+  if ($fps and $fps > 0 and $fps < 1) {
+    my $limit = 3/$fps;
+    return $limit > $max_delay ? $limit : $max_delay;
+  }
+  return $max_delay;
+}
+
 sub Control {
   my $self = shift;
   if (!exists $$self{Control}) {

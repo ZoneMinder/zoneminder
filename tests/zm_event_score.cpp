@@ -26,3 +26,31 @@ TEST_CASE("EventMaxScoreForDb") {
   REQUIRE(EventMaxScoreForDb(0) == 0);
   REQUIRE(EventMaxScoreForDb(42) == 42);
 }
+
+TEST_CASE("ClampSectionLength") {
+  // SectionLength=0 is accepted by the monitor form and used as a modulo.
+  REQUIRE(ClampSectionLength(Seconds(0)) == Seconds(1));
+  REQUIRE(ClampSectionLength(Seconds(1)) == Seconds(1));
+  REQUIRE(ClampSectionLength(Seconds(600)) == Seconds(600));
+}
+
+TEST_CASE("Event::BuildNotes") {
+  Event::StringSetMap notes;
+  REQUIRE(Event::BuildNotes(notes) == "");
+
+  notes["Motion"] = {"Zone1", "Zone2"};
+  REQUIRE(Event::BuildNotes(notes) == "Motion: Zone1, Zone2");
+
+  // Groups must not run together, e.g. "Motion: Zone2Signal: Lost".
+  notes["Signal"] = {"Lost"};
+  REQUIRE(Event::BuildNotes(notes) == "Motion: Zone1, Zone2; Signal: Lost");
+}
+
+TEST_CASE("EventNamePrefixLength") {
+  // Events.Name is varchar(64) and the id suffix must survive truncation.
+  REQUIRE(EventNamePrefixLength(0) == 63);
+  REQUIRE(EventNamePrefixLength(9) == 63);
+  REQUIRE(EventNamePrefixLength(10) == 62);
+  REQUIRE(EventNamePrefixLength(995000206) == 55);
+  REQUIRE(EventNamePrefixLength(UINT64_MAX) == 44);
+}

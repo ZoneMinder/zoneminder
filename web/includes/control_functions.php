@@ -315,14 +315,14 @@ function buildControlCommand($monitor) {
       $x = deScale( $_REQUEST['x'], $_REQUEST['scale'] );
       $y = deScale( $_REQUEST['y'], $_REQUEST['scale'] );
 
-      $halfWidth = $monitor->Width() / 2;
-      $halfHeight = $monitor->Height() / 2;
+      $halfWidth = $monitor->ViewWidth() / 2;
+      $halfHeight = $monitor->ViewHeight() / 2;
       $xFactor = ($x - $halfWidth)/$halfWidth;
       $yFactor = ($y - $halfHeight)/$halfHeight;
 
       switch ( $monitor->Orientation() ) {
       case 'ROTATE_90' :
-        $tempYFactor = $y;
+        $tempYFactor = $yFactor;
         $yFactor = -$xFactor;
         $xFactor = $tempYFactor;
         break;
@@ -331,7 +331,7 @@ function buildControlCommand($monitor) {
         $yFactor = -$yFactor;
         break;
       case 'ROTATE_270' :
-        $tempXFactor = $x;
+        $tempXFactor = $xFactor;
         $xFactor = -$yFactor;
         $yFactor = $tempXFactor;
         break;
@@ -406,14 +406,14 @@ function buildControlCommand($monitor) {
       $x = deScale( $_REQUEST['x'], $_REQUEST['scale'] );
       $y = deScale( $_REQUEST['y'], $_REQUEST['scale'] );
 
-      $halfWidth = $monitor->Width() / 2;
-      $halfHeight = $monitor->Height() / 2;
+      $halfWidth = $monitor->ViewWidth() / 2;
+      $halfHeight = $monitor->ViewHeight() / 2;
       $xFactor = ($x - $halfWidth)/$halfWidth;
       $yFactor = ($y - $halfHeight)/$halfHeight;
 
       switch ( $monitor->Orientation() ) {
       case 'ROTATE_90' :
-        $tempYFactor = $y;
+        $tempYFactor = $yFactor;
         $yFactor = -$xFactor;
         $xFactor = $tempYFactor;
         break;
@@ -422,7 +422,7 @@ function buildControlCommand($monitor) {
         $yFactor = -$yFactor;
         break;
       case 'ROTATE_270' :
-        $tempXFactor = $x;
+        $tempXFactor = $xFactor;
         $xFactor = -$yFactor;
         $yFactor = $tempXFactor;
         break;

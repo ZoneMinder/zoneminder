@@ -188,8 +188,8 @@ while( 1 ) {
       $alarmed = !undef;
     }
   } else {
-    if ( logDebugging() && $alarmed ) {
-      Info('Left alarm state');
+    if ( $alarmed ) {
+      Info('Left alarm state') if logDebugging();
       $alarmed = undef;
     }
     if ( ($monitor->{ReturnLocation} >= 0)

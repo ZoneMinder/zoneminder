@@ -491,9 +491,9 @@ sub Sql {
             } elsif ( $term->{op} eq '!~' ) {
               $self->{Sql} .= ' NOT REGEXP '.$value;
             } elsif ( $term->{op} eq 'IS' ) {
-              if ( $value eq 'Odd' ) {
+              if ( $value eq 'Odd' or $value eq "'Odd'" ) {
                 $self->{Sql} .= ' % 2 = 1';
-              } elsif ( $value eq 'Even' ) {
+              } elsif ( $value eq 'Even' or $value eq "'Even'" ) {
                 $self->{Sql} .= ' % 2 = 0';
               } elsif (uc($value) ne 'NULL') {
                 $self->{Sql} .= ' = '.$value;
@@ -503,7 +503,11 @@ sub Sql {
             } elsif ( $term->{op} eq 'EXISTS' ) {
               $self->{Sql} .= ' EXISTS '.$value;
             } elsif ( $term->{op} eq 'IS NOT' ) {
-              if (uc($value) ne 'NULL') {
+              if ( $value eq 'Odd' or $value eq "'Odd'" ) {
+                $self->{Sql} .= ' % 2 = 0';
+              } elsif ( $value eq 'Even' or $value eq "'Even'" ) {
+                $self->{Sql} .= ' % 2 = 1';
+              } elsif (uc($value) ne 'NULL') {
                 $self->{Sql} .= ' != '.$value;
               } else {
                 $self->{Sql} .= ' IS NOT '.$value;
@@ -517,7 +521,13 @@ sub Sql {
             } elsif ( $term->{op} eq 'NOT LIKE' ) {
               $self->{Sql} .= ' NOT LIKE '.$value;
             } else {
-              $self->{Sql} .= ' '.$term->{op}.' '.$value;
+              if ( uc($value) eq 'NULL' and $term->{op} eq '=' ) {
+                $self->{Sql} .= ' IS NULL';
+              } elsif ( uc($value) eq 'NULL' and $term->{op} eq '!=' ) {
+                $self->{Sql} .= ' IS NOT NULL';
+              } else {
+                $self->{Sql} .= ' '.$term->{op}.' '.$value;
+              }
             }
           } # end if has an operator
         } # end if Pre/Post or SQL
@@ -525,6 +535,11 @@ sub Sql {
         $self->{Sql} .= "\n";
       } # end foreach term
     } # end if terms
+
+    if ( ($filter_expr->{sort_field} || '') eq 'MonitorName' ) {
+      $fields .= ', M.Name as MonitorName' if $fields !~ /MonitorName/;
+      $from .= ' INNER JOIN Monitors as M on M.Id = E.MonitorId' if $from !~ /Monitors as M/;
+    }
 
     my $sql = ' SELECT '.$fields. ' FROM ' . $from;
     if ( $self->{Sql} ) {
@@ -576,13 +591,6 @@ sub Sql {
       } elsif ( $filter_expr->{sort_field} eq 'Tag' ) {
         $sort_column = 'T.Name';
       } elsif ( $filter_expr->{sort_field} eq 'MonitorName' ) {
-        if (!($fields =~ /MonitorName/)) {
-          $fields .= ', M.Name as MonitorName';
-          $from .= ' INNER JOIN Monitors as M on M.Id = E.MonitorId';
-          $sql = ' SELECT '.$fields. ' FROM ' . $from;
-          $sql .= ' WHERE ( '.$self->{Sql}.' )' if $self->{Sql};
-          $sql .= ' AND ( '.join(' or ', @auto_terms).' )' if @auto_terms;
-        }
         $sort_column = 'M.Name';
       } elsif ( $filter_expr->{sort_field} eq 'Name' ) {
         $sort_column = 'E.Name';

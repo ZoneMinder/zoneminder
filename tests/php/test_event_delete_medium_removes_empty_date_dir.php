@@ -67,6 +67,7 @@ class Storage {
   public function Id() { return 3; }
   public function Path() { global $root; return $root; }
   public function Scheme($s = null) { return 'Medium'; }
+  public function DoDelete() { return 1; }
 }
 
 class Monitor {}

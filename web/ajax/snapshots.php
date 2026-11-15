@@ -167,7 +167,7 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
   }
 
   $sql = 'SELECT * FROM `Snapshots`'.$where.' ORDER BY '.$sort.' '.$order.($sort != 'Id' ? ', Id' : '');
-  $sql .= ' LIMIT '.(int)$offset.', '.(int)$limit;
+  if ($limit) $sql .= ' LIMIT '.(int)$offset.', '.(int)$limit;
   ZM\Debug('Calling the following sql query: ' .$sql);
 
   $returned_rows = array();

@@ -201,6 +201,9 @@ if ( $action == 'delete' ) {
           if (is_array($value)) {
             foreach ($value as $v) {
             }
+          } else if ($value === '') {
+            # an option without a value, e.g. no-resolv
+            $conf .= $name.PHP_EOL;
           } else {
             $conf .= $name.'='.$value.PHP_EOL;
           }
@@ -211,7 +214,6 @@ if ( $action == 'delete' ) {
       } else {
         exec('sudo -n /bin/systemctl restart dnsmasq.service');
       }
-      exec('sudo -n /bin/systemctl restart dnsmasq.service');
     }
   }
 } else if ($action == 'start') {

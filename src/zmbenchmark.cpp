@@ -94,7 +94,7 @@ class TimingsTable {
       PrintColStr(0, row.label);
 
       for (size_t i = 0 ; i < row.timings.size() ; i++) {
-        std::string num = stringtf("%.2f", std::chrono::duration_cast<FPSeconds>(row.timings[i]).count());
+        std::string num = stringtf("%.2f", std::chrono::duration<double, std::milli>(row.timings[i]).count());
         PrintColStr(i + 1, num);
       }
 

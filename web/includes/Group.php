@@ -60,6 +60,23 @@ class Group extends ZM_Object {
     return true;
   }
 
+  // A group can sit under no parent, or under an existing group that is neither itself nor
+  // one of its own descendants; anything else makes a loop that depth() never leaves.
+  public static function validParent($group_id, $parent_id) {
+    if ($parent_id === null or $parent_id === '') return true;
+    if (!is_scalar($parent_id) or !ctype_digit((string)$parent_id)) return false;
+    $seen = array();
+    $Parent = Group::find_one(array('Id'=>$parent_id));
+    if (!$Parent) return false;
+    while ($Parent) {
+      if ($group_id and $Parent->Id() == $group_id) return false;
+      if (isset($seen[$Parent->Id()])) break;
+      $seen[$Parent->Id()] = true;
+      $Parent = $Parent->ParentId() ? Group::find_one(array('Id'=>$Parent->ParentId())) : null;
+    }
+    return true;
+  }
+
   public function MonitorIds( ) {
     if (!property_exists($this, 'MonitorIds')) {
       if (!$this->{'Id'}) {
@@ -111,7 +128,6 @@ class Group extends ZM_Object {
     }
 
 # This  array is indexed by parent_id
-    global $children;
     $children = array();
 
     foreach ( $Groups as $id=>$Group ) {
@@ -122,21 +138,21 @@ class Group extends ZM_Object {
       }
     } # end foreach
 
-    function get_options($Group) {
-      global $children;
+    # A named function declared here is declared again on every call, which is fatal.
+    $get_options = function($Group) use (&$get_options, &$children) {
       $options = array($Group->Id() => str_repeat('&nbsp;&nbsp;&nbsp;', $Group->depth()) . $Group->Name());
       if ( isset($children[$Group->Id()]) ) {
         foreach ( $children[$Group->Id()] as $child ) {
-          $options += get_options($child);
+          $options += $get_options($child);
         }
       }
       return $options;
-    } # end function get_options
+    }; # end function get_options
 
     $group_options = array();
     foreach ( $Groups as $id=>$Group ) {
       if ( ! $Group->ParentId() ) {
-        $group_options += get_options($Group);
+        $group_options += $get_options($Group);
       }
     }
     return $group_options;

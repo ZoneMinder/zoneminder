@@ -34,7 +34,11 @@ if ( $action == 'save' ) {
   $new_ids = isset($_REQUEST['newGroup']['MonitorIds']) ? array_map('intval', (array)$_REQUEST['newGroup']['MonitorIds']) : array();
   $old_ids = $group->Id() ? dbFetchAll('SELECT `MonitorId` FROM `Groups_Monitors` WHERE `GroupId`=?', 'MonitorId', array($group->Id())) : array();
   $moved = array_merge(array_diff($old_ids, $new_ids), array_diff($new_ids, $old_ids));
-  $new_parent = ($_REQUEST['newGroup']['ParentId'] == '' ? null : $_REQUEST['newGroup']['ParentId']);
+  $new_parent = (($_REQUEST['newGroup']['ParentId'] ?? '') == '' ? null : $_REQUEST['newGroup']['ParentId']);
+  if (!ZM\Group::validParent($group->Id(), $new_parent)) {
+    ZM\Warning('Invalid parent group for group '.$group->Id());
+    return;
+  }
   // Re-parenting moves every monitor of this group and its children between ancestors.
   if ($group->Id() and ($new_parent != $group->ParentId())) $moved = array_merge($moved, $group->MonitorIds());
   if (!ZM\Group::canEditMembership($moved)) {
@@ -45,7 +49,7 @@ if ( $action == 'save' ) {
   $group->save(
       array(
       'Name'=>  $_REQUEST['newGroup']['Name'],
-      'ParentId'=>( $_REQUEST['newGroup']['ParentId'] == '' ? null : $_REQUEST['newGroup']['ParentId'] ),
+      'ParentId'=>$new_parent,
       )
     );
   dbQuery('DELETE FROM `Groups_Monitors` WHERE `GroupId`=?', array($group_id));

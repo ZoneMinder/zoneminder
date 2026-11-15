@@ -88,9 +88,14 @@ if (defined $interval) {
   ($interval) = $interval =~ /^([\d\s*+\-\/()]+)$/;
   Fatal('--interval must be a number of seconds or a simple arithmetic expression') if !defined $interval;
   $interval = eval($interval);
-  Fatal('--interval must evaluate to a positive number of seconds') if !$interval or $interval < 0;
+  Fatal('--interval must evaluate to a positive number of seconds') if $@ or !$interval or $interval <= 0;
 } else {
-  $interval = eval($Config{ZM_TELEMETRY_INTERVAL});
+  my ($cfg_interval) = ($Config{ZM_TELEMETRY_INTERVAL} // '') =~ /^([\d\s*+\-\/()]+)$/;
+  $interval = eval($cfg_interval) if defined $cfg_interval;
+  if (!defined $cfg_interval or $@ or !$interval or $interval <= 0) {
+    Warning("Invalid ZM_TELEMETRY_INTERVAL '".($Config{ZM_TELEMETRY_INTERVAL} // '')."', falling back to 86400");
+    $interval = 86400;
+  }
 }
 
 if (!($Config{ZM_TELEMETRY_DATA} or $force)) {

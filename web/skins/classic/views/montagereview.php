@@ -289,8 +289,16 @@ if (isset($minTime) && isset($maxTime)) {
     $error_message .= 'Invalid minTime and maxTime specified.<br/>';
     if ($minTime > $maxTime) {
       $temp = $minTime;
-      $maxTime = $minTime;
-      $minTime = $temp;
+      $minTime = $maxTime;
+      $maxTime = $temp;
+      $terms = $filter->terms();
+      foreach ($terms as &$term) {
+        if ($term['attr'] != 'DateTime') continue;
+        if ($term['op'] == '>=' or $term['op'] == '>') $term['val'] = $minTime;
+        else if ($term['op'] == '<=' or $term['op'] == '<') $term['val'] = $maxTime;
+      }
+      unset($term);
+      $filter->terms($terms);
     }
   }
   $minTimeSecs = strtotime($minTime);

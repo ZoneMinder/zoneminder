@@ -662,14 +662,20 @@ sub check_for_in_filesystem {
   my $path = $_[0]->Path();
   if ( $path ) {
     if ( -e $path ) {
-      my @files = glob "$path/*";
-      Debug("Checking for files for event $_[0]{Id} at $path using glob $path/* found " . scalar @files . ' files');
-      return 1 if @files;
+      if ( opendir my $dh, $path ) {
+        while ( my $entry = readdir $dh ) {
+          next if substr($entry, 0, 1) eq '.';
+          Debug("Checking for files for event $_[0]{Id} at $path found a file");
+          return 1;
+        }
+        Debug("Checking for files for event $_[0]{Id} at $path found no files");
+      } else {
+        Debug("Checking for files for event $_[0]{Id} at $path could not open directory");
+      }
     } else {
       Warning("Path not found for Event $_[0]{Id} at $path");
     }
   }
-  Debug("Checking for files for event $_[0]{Id} at $path using glob $path/* found no files");
   return 0;
 }
 

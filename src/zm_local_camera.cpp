@@ -1453,7 +1453,6 @@ int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
 
     buffer = (unsigned char *)v4l2_data.buffers[v4l2_data.bufptr->index].start;
     buffer_bytesused = v4l2_data.bufptr->bytesused;
-    bytes += buffer_bytesused;
 
     if ((v4l2_data.fmt.fmt.pix.width * v4l2_data.fmt.fmt.pix.height) > (width * height)) {
       Error("Captured image dimensions larger than image buffer: V4L2: %dx%d monitor: %dx%d",

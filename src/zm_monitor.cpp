@@ -2206,6 +2206,7 @@ bool Monitor::Analyse() {
 
       std::string cause;
       Event::StringSetMap noteSetMap;
+      SystemTimePoint counting_boundary;
 
 #ifdef WITH_GSOAP
       if (onvif and onvif->isAlarmed()) {
@@ -2629,6 +2630,8 @@ bool Monitor::Analyse() {
                          static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
                          static_cast<int64>(std::chrono::duration_cast<Seconds>(packet->timestamp - event->StartTime()).count()),
                          static_cast<int64>(Seconds(section_length).count()));
+                    counting_boundary = packet->timestamp;
+                    event->DrainUntil(packet->timestamp);
                     closeEvent();
                   } else {
                     Debug(1, "Not Closing event %" PRIu64 ". Event alarm frames %d < alarm_frame_count %d",
@@ -2663,6 +2666,10 @@ bool Monitor::Analyse() {
                        static_cast<int64>(std::chrono::duration_cast<Seconds>(packet->timestamp.time_since_epoch()).count()),
                        static_cast<int64>(Seconds(section_length).count())
                        );
+                  if (state == ALARM) {
+                    counting_boundary = packet->timestamp;
+                    event->DrainUntil(packet->timestamp);
+                  }
                   closeEvent();
                 }
               } else if (event_close_mode == CLOSE_IDLE) {
@@ -2689,6 +2696,10 @@ bool Monitor::Analyse() {
                        event->Id(),
                        static_cast<int64>(std::chrono::duration_cast<Seconds>(event->Duration()).count()),
                        static_cast<int64>(Seconds(section_length).count()));
+                  if (state == ALARM) {
+                    counting_boundary = packet->timestamp;
+                    event->DrainUntil(packet->timestamp);
+                  }
                   closeEvent();
                 }
               } else {
@@ -2704,6 +2715,10 @@ bool Monitor::Analyse() {
                      static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
                      static_cast<int64>(std::chrono::duration_cast<Seconds>(packet->timestamp - event->StartTime()).count()),
                      static_cast<int64>(Seconds(section_length).count()));
+                if (state == ALARM && event->Duration() > section_length) {
+                  counting_boundary = packet->timestamp;
+                  event->DrainUntil(packet->timestamp);
+                }
                 closeEvent();
               } else {
                 Debug(1, "Not Closing event %" PRIu64 ", continuous end, alarm begins. Event alarm frames %d < alarm_frame_count %d",
@@ -2727,7 +2742,7 @@ bool Monitor::Analyse() {
                  static_cast<int64>(std::chrono::duration_cast<Seconds>(packet->timestamp.time_since_epoch()).count()),
                  static_cast<int64>(std::chrono::duration_cast<Seconds>(packet->timestamp.time_since_epoch() % section_length).count())
                 );
-            if ((event = openEvent(&packet_lock, cause.empty() ? "Continuous" : cause, noteSetMap)) != nullptr) {
+            if ((event = openEvent(&packet_lock, cause.empty() ? "Continuous" : cause, noteSetMap, counting_boundary)) != nullptr) {
               Info("Opened new event %" PRIu64 " %s", event->Id(), cause.empty() ? "Continuous" : cause.c_str());
             }
           }
@@ -4096,7 +4111,8 @@ void Monitor::TimestampImage(Image *ts_image, SystemTimePoint ts_time) const {
 Event * Monitor::openEvent(
   ZMPacketLock *packet_lock,
   const std::string &cause,
-  const Event::StringSetMap &noteSetMap) {
+  const Event::StringSetMap &noteSetMap,
+  SystemTimePoint counting_boundary) {
 
   // FIXME this iterator is not protected from invalidation
   packetqueue_iterator *start_it = packetqueue.get_event_start_packet_it(
@@ -4118,7 +4134,7 @@ Event * Monitor::openEvent(
     }
     packet_lock->unlock();
     ZM_DUMP_PACKET(starting_packet.packet_->packet, "First packet from start");
-    event = new Event(this, start_it, starting_packet.packet_->timestamp, cause, noteSetMap);
+    event = new Event(this, start_it, starting_packet.packet_->timestamp, cause, noteSetMap, counting_boundary);
     float start_duration = FPSeconds(packet_lock->packet_->timestamp - starting_packet.packet_->timestamp).count();
     Debug(1, "Event duration at start: %.2f", start_duration);
     if (start_duration >= Seconds(min_section_length).count()) {
@@ -4130,7 +4146,7 @@ Event * Monitor::openEvent(
     SetVideoWriterStartTime(starting_packet.packet_->timestamp);
   } else {
     ZM_DUMP_PACKET(packet_lock->packet_->packet, "First packet from alarm");
-    event = new Event(this, start_it, packet_lock->packet_->timestamp, cause, noteSetMap);
+    event = new Event(this, start_it, packet_lock->packet_->timestamp, cause, noteSetMap, counting_boundary);
     SetVideoWriterStartTime(packet_lock->packet_->timestamp);
   }
 

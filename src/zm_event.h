@@ -92,6 +92,19 @@ inline int EventNamePrefixLength(uint64_t id) {
   return 64 - digits;
 }
 
+inline bool EventCountsFrameStats(SystemTimePoint timestamp, SystemTimePoint boundary) {
+  return boundary == SystemTimePoint() or timestamp >= boundary;
+}
+
+inline bool EventKeepsDraining(
+    bool terminate,
+    SystemTimePoint drain_until,
+    const ZMPacket *packet) {
+  if (!terminate) return true;
+  if (drain_until == SystemTimePoint()) return false;
+  return packet != nullptr and packet->decoded and packet->analyzed and packet->timestamp < drain_until;
+}
+
 // Maximum number of prealarm frames that can be stored
 #define MAX_PRE_ALARM_FRAMES  16
 
@@ -156,12 +169,14 @@ class Event {
   bool have_video_keyframe; // a flag to tell us if we have had a video keyframe when writing an mp4.  The first frame SHOULD be a video keyframe.
   Storage::Schemes  scheme;
   int save_jpegs;
+  SystemTimePoint counting_boundary;
 
   void createNotes(std::string &notes);
 
   void Run();
 
   std::atomic<bool> terminate_;
+  std::atomic<SystemTimePoint> drain_until{};
   std::thread thread_;
 
   std::map<const std::string,Tag> tags;
@@ -174,7 +189,8 @@ class Event {
       packetqueue_iterator * p_packetqueue_it,
       SystemTimePoint p_start_time,
       const std::string &p_cause,
-      const StringSetMap &p_noteSetMap);
+      const StringSetMap &p_noteSetMap,
+      SystemTimePoint p_counting_boundary = SystemTimePoint());
   ~Event();
 
   uint64_t Id() const { return id; }
@@ -201,6 +217,7 @@ class Event {
     packetqueue->notify_all();
   }
   bool Stopped() const { return terminate_; }
+  void DrainUntil(SystemTimePoint t) { drain_until = t; }
 
  private:
   void WriteDbFrames();

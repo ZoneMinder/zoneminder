@@ -49,7 +49,8 @@ Event::Event(
   packetqueue_iterator *p_packetqueue_it,
   SystemTimePoint p_start_time,
   const std::string &p_cause,
-  const StringSetMap &p_noteSetMap
+  const StringSetMap &p_noteSetMap,
+  SystemTimePoint p_counting_boundary
 ) :
   id(0),
   monitor(p_monitor),
@@ -77,6 +78,7 @@ Event::Event(
   have_video_keyframe(false),
   //scheme
   save_jpegs(0),
+  counting_boundary(p_counting_boundary),
   terminate_(false) {
   std::string notes;
   createNotes(notes);
@@ -606,7 +608,8 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
 
   frames++;
   Monitor::State monitor_state = monitor->GetState();
-  int score = packet->score;
+  const bool counted = EventCountsFrameStats(packet->timestamp, counting_boundary);
+  int score = counted ? packet->score : 0;
 
   bool write_to_db = false;
   FrameType frame_type = ( ( score > 0 ) ? ALARM : (
@@ -691,7 +694,7 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
                   or ( monitor_state == Monitor::ALARM )
                   or ( monitor_state == Monitor::PREALARM );
 
-  if (score > max_score) {
+  if (counted and score > max_score) {
     max_score = score;
     max_score_frame_id = frames;
   }
@@ -939,9 +942,11 @@ void Event::Run() {
   // The idea is to process the queue no matter what so that all packets get processed.
   // We only break if the queue is empty
   Debug(1, "Event::Run %" PRIu64 ": entering packet loop", id);
-  while (!terminate_ and !zm_terminate) {
+  while (!zm_terminate) {
     ZMPacketLock packet_lock = packetqueue->get_packet_no_wait(packetqueue_it);
     std::shared_ptr<ZMPacket> packet = packet_lock.packet_;
+    if (!EventKeepsDraining(terminate_, drain_until.load(), packet.get()))
+      break;
     if (packet) {
       if (!packet->decoded) {
         Debug(1, "Not decoded");

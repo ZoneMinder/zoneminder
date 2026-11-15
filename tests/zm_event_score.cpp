@@ -54,3 +54,72 @@ TEST_CASE("EventNamePrefixLength") {
   REQUIRE(EventNamePrefixLength(995000206) == 55);
   REQUIRE(EventNamePrefixLength(UINT64_MAX) == 44);
 }
+
+TEST_CASE("EventCountsFrameStats") {
+  const auto t0 = std::chrono::system_clock::time_point(std::chrono::seconds(1000));
+  const auto boundary = t0 + std::chrono::seconds(5);
+
+  SECTION("no boundary counts everything") {
+    CHECK(EventCountsFrameStats(t0, SystemTimePoint()));
+    CHECK(EventCountsFrameStats(boundary, SystemTimePoint()));
+    CHECK(EventCountsFrameStats(boundary + std::chrono::seconds(1), SystemTimePoint()));
+  }
+
+  SECTION("earlier than boundary is not counted") {
+    CHECK_FALSE(EventCountsFrameStats(t0, boundary));
+    CHECK_FALSE(EventCountsFrameStats(boundary - std::chrono::milliseconds(1), boundary));
+  }
+
+  SECTION("equal to and later than boundary are counted") {
+    CHECK(EventCountsFrameStats(boundary, boundary));
+    CHECK(EventCountsFrameStats(boundary + std::chrono::milliseconds(1), boundary));
+    CHECK(EventCountsFrameStats(boundary + std::chrono::seconds(10), boundary));
+  }
+}
+
+TEST_CASE("EventKeepsDraining") {
+  const auto t0 = std::chrono::system_clock::time_point(std::chrono::seconds(1000));
+  const auto boundary = t0 + std::chrono::seconds(5);
+
+  ZMPacket packet;
+  packet.decoded = true;
+  packet.analyzed = true;
+  packet.timestamp = t0;
+
+  SECTION("not terminated keeps running") {
+    CHECK(EventKeepsDraining(false, SystemTimePoint(), nullptr));
+    CHECK(EventKeepsDraining(false, boundary, nullptr));
+    CHECK(EventKeepsDraining(false, boundary, &packet));
+  }
+
+  SECTION("terminated with zero drain_until stops immediately") {
+    CHECK_FALSE(EventKeepsDraining(true, SystemTimePoint(), nullptr));
+    CHECK_FALSE(EventKeepsDraining(true, SystemTimePoint(), &packet));
+  }
+
+  SECTION("terminated with non-zero drain_until stops on null or unanalyzed or boundary") {
+    CHECK_FALSE(EventKeepsDraining(true, boundary, nullptr));
+
+    packet.decoded = false;
+    CHECK_FALSE(EventKeepsDraining(true, boundary, &packet));
+    packet.decoded = true;
+
+    packet.analyzed = false;
+    CHECK_FALSE(EventKeepsDraining(true, boundary, &packet));
+    packet.analyzed = true;
+
+    packet.timestamp = boundary;
+    CHECK_FALSE(EventKeepsDraining(true, boundary, &packet));
+
+    packet.timestamp = boundary + std::chrono::seconds(1);
+    CHECK_FALSE(EventKeepsDraining(true, boundary, &packet));
+  }
+
+  SECTION("terminated with non-zero drain_until keeps draining earlier analyzed packet") {
+    packet.timestamp = t0;
+    CHECK(EventKeepsDraining(true, boundary, &packet));
+
+    packet.timestamp = boundary - std::chrono::milliseconds(1);
+    CHECK(EventKeepsDraining(true, boundary, &packet));
+  }
+}

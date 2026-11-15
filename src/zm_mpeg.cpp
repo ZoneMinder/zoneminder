@@ -128,7 +128,7 @@ int VideoStream::SetupCodec(
        of which frame timestamps are represented. for fixed-fps content,
        timebase should be 1/framerate and timestamp increments should be
        identically 1. */
-    if (frame_rate <= 0.0) {
+    if (frame_rate < 1.0) {
       Warning("Invalid frame_rate %.2f in SetupCodec, defaulting to 1fps", frame_rate);
       frame_rate = 1.0;
     }

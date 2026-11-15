@@ -1041,7 +1041,7 @@ function bwClickFunction() {
 }
 
 function reminderClickFunction() {
-  $j("#dropdown_reminder a").click(function() {
+  $j("#dropdown_reminder + .dropdown-menu a").click(function() {
     var option = $j(this).data('pdsa-dropdown-val');
     $j.getJSON(thisUrl + '?view=version&action=version&option=' + option)
         .done(function() {

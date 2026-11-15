@@ -49,13 +49,18 @@ if (!empty($fid)) {
 }
 $Frame = new ZM\Frame($frame);
 if (!$fid) $fid = (int)$Frame->FrameId(); // fid=0 loaded the max score frame, navigate and fetch stats from its real id
-$maxFid = $Event->Frames();
 
-$firstFid = 1;
-$prevFid = dbFetchOne('SELECT MAX(FrameId) AS FrameId FROM Frames WHERE EventId=? AND FrameId < ?', 'FrameId', array($eid, $fid));
-$nextFid = dbFetchOne('SELECT MIN(FrameId) AS FrameId FROM Frames WHERE EventId=? AND FrameId > ?', 'FrameId', array($eid, $fid));
-$lastFid = dbFetchOne('SELECT MAX(FrameId) AS FrameId FROM Frames WHERE EventId=?', 'FrameId', array($eid));
-if ($maxFid > $lastFid) $maxFid = $lastFid;
+// Links only to frames that exist, so a sparse or short Frames table leaves a link disabled rather than empty.
+function frameNavigation($eid, $current) {
+  $nav = array(
+    'prev' => dbFetchOne('SELECT MAX(FrameId) AS FrameId FROM Frames WHERE EventId=? AND FrameId < ?', 'FrameId', array($eid, $current)),
+    'next' => dbFetchOne('SELECT MIN(FrameId) AS FrameId FROM Frames WHERE EventId=? AND FrameId > ?', 'FrameId', array($eid, $current)),
+  );
+  $nav['first'] = $nav['prev'] ? dbFetchOne('SELECT MIN(FrameId) AS FrameId FROM Frames WHERE EventId=?', 'FrameId', array($eid)) : null;
+  $nav['last'] = $nav['next'] ? dbFetchOne('SELECT MAX(FrameId) AS FrameId FROM Frames WHERE EventId=?', 'FrameId', array($eid)) : null;
+  return $nav;
+}
+$nav = frameNavigation($eid, (int)$Frame->FrameId());
 
 $alarmFrame = ( $Frame->Type() == 'Alarm' ) ? 1 : 0;
 
@@ -147,10 +152,10 @@ if ($imageData['hasAnalysisImage']) { ?></a><?php } ?>
   $frame_url_base = '?view=frame&amp;eid='.$Event->Id().'&amp;scale='.$scale.'&amp;show='.$show.'&amp;fid=';
 ?>
         <p id="controls">
-          <a id="firstLink" <?php echo (( $Frame->FrameId() > 1 ) ? 'href="'.$frame_url_base.$firstFid.'" class="btn-primary"' : 'class="btn-primary disabled"') ?>><?php echo translate('First') ?></a>
-          <a id="prevLink" <?php echo ( $Frame->FrameId() > 1 ) ? 'href="'.$frame_url_base.$prevFid.'" class="btn-primary"' : 'class="btn-primary disabled"' ?>><?php echo translate('Prev') ?></a>
-          <a id="nextLink" <?php echo ( $Frame->FrameId() < $maxFid ) ? 'href="'.$frame_url_base.$nextFid.'" class="btn-primary"' : 'class="btn-primary disabled"' ?>><?php echo translate('Next') ?></a>
-          <a id="lastLink" <?php echo ( $Frame->FrameId() < $maxFid ) ? 'href="'.$frame_url_base.$lastFid .'" class="btn-primary"' : 'class="btn-primary disabled"' ?>><?php echo translate('Last') ?></a>
+          <a id="firstLink" <?php echo $nav['first'] ? 'href="'.$frame_url_base.$nav['first'].'" class="btn-primary"' : 'class="btn-primary disabled"' ?>><?php echo translate('First') ?></a>
+          <a id="prevLink" <?php echo $nav['prev'] ? 'href="'.$frame_url_base.$nav['prev'].'" class="btn-primary"' : 'class="btn-primary disabled"' ?>><?php echo translate('Prev') ?></a>
+          <a id="nextLink" <?php echo $nav['next'] ? 'href="'.$frame_url_base.$nav['next'].'" class="btn-primary"' : 'class="btn-primary disabled"' ?>><?php echo translate('Next') ?></a>
+          <a id="lastLink" <?php echo $nav['last'] ? 'href="'.$frame_url_base.$nav['last'].'" class="btn-primary"' : 'class="btn-primary disabled"' ?>><?php echo translate('Last') ?></a>
         </p>
 <?php
 if (file_exists($dImagePath)) {

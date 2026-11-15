@@ -231,9 +231,7 @@ function queryRequest() {
   }
   
   if ($request_filters['Source']) {
-    $regexp = $request_filters['Source'];
-    if (!preg_match("/^\/.+\/[a-z]*$/i", $regexp))
-      $regexp = '/'.$regexp.'/i';
+    $regexp = monitorNameRegexp($request_filters['Source']);
     $filtered_monitors = array_filter($filtered_monitors, function($monitor) use ($regexp) {
       // Match against Path field directly instead of creating Monitor object
       return (preg_match($regexp, $monitor['Path']) || preg_match($regexp, $monitor['Device']) || preg_match($regexp, $monitor['Host']));

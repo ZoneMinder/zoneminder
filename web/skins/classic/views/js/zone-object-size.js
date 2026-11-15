@@ -1004,11 +1004,8 @@
     const form = document.zoneForm;
     // A typed event id wins over the list; the server checks it is this
     // monitor's. Parsed here, as it also goes into the replay's image URLs.
-    const data = {
-      command: 'test',
-      mid: zone.MonitorId, zid: form.elements['zid'].value,
-      eid: parseInt(typed && typed.value.trim() !== '' ? typed.value : select.value, 10),
-    };
+    const eid = parseInt(typed && typed.value.trim() !== '' ? typed.value : select.value, 10);
+    const data = {command: 'test', mid: zone.MonitorId, zid: form.elements['zid'].value, eid: eid};
     // zma measures with the form's pixel threshold, filter and blob size, but
     // with every alarmed/filtered limit off and all three stages on, so it
     // measures every stage of every frame instead of stopping at the first
@@ -1063,7 +1060,7 @@
           // The server sends the video for the event it ran, so a pick changed
           // mid-run cannot pair the wrong one.
           const canReplay = resp.video || resp.jpegs;
-          if (canReplay && !(panel && panel.style.display === 'none')) openReplay(resp, data.eid);
+          if (canReplay && !(panel && panel.style.display === 'none')) openReplay(resp, eid);
           // Neither a video nor stored frames: say why there is no replay.
           test.noVideo = !canReplay;
           showTestResult();

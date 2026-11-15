@@ -650,8 +650,15 @@ function saveMonitorData(href = '') {
     type: "POST",
     url: "?view=monitor",
     data: form_data,
-    success: function() {
+    success: function(data) {
       alertBlock.fadeOut({duration: 'fast'});
+      const errorDiv = (typeof data === 'string') ?
+        new DOMParser().parseFromString(data, 'text/html').getElementById('error') : null;
+      if (errorDiv && errorDiv.textContent.trim()) {
+        $j('#contentButtons').show();
+        alert(errorDiv.textContent.trim());
+        return;
+      }
       sourceFormMonitor = $j('#contentForm').serialize();
       if (href) {
         if (href == 'reload') {
@@ -698,6 +705,7 @@ function dms2ll(input) {
   const latitude = document.getElementById('newMonitor[Latitude]');
   const longitude = document.getElementById('newMonitor[Longitude]');
   const dms = parseDms(input.value);
+  if (isNaN(dms)) return;
 
   if (input.id == 'LatitudeDMS') {
     latitude.value = dms.toFixed(8);
@@ -840,7 +848,8 @@ function updateLatitudeAndLongitude(latitude, longitude) {
   var form = document.getElementById('contentForm');
   form.elements['newMonitor[Latitude]'].value = latitude;
   form.elements['newMonitor[Longitude]'].value = longitude;
-  updateMarker(latitude, longitude);
+  ll2dms(form.elements['newMonitor[Latitude]']);
+  ll2dms(form.elements['newMonitor[Longitude]']);
 }
 
 function getLocation() {
@@ -969,10 +978,10 @@ function Recording_onChange(e) {
 
 function SecondPath_onChange(e) {
   if (e.value) {
-    $j('#AnalysingSource').show();
+    $j('#AnalysisSource').show();
     $j('#RecordingSource').show();
   } else {
-    $j('#AnalysingSource').hide();
+    $j('#AnalysisSource').hide();
     $j('#RecordingSource').hide();
   }
 }

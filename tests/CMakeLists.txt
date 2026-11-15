@@ -31,6 +31,11 @@ set(TEST_SOURCES
   zm_hwaccel_candidates.cpp
   zm_image.cpp
   zm_image_annotate.cpp
+  zm_image_transform.cpp
+  zm_image_deinterlace_linear.cpp
+  zm_image_deinterlace_4field.cpp
+  zm_swscale_insize.cpp
+  zm_image_overlay_offset.cpp
   zm_monitor_shm.cpp
   zm_monitor_capture_failure.cpp
   zm_monitor_shared_value.cpp
@@ -44,6 +49,7 @@ set(TEST_SOURCES
   zm_mp4_sidx.cpp
   zm_packetqueue.cpp
   zm_packet_lock.cpp
+  zm_packet_y_image.cpp
   zm_monitor_action.cpp
   zm_monitor_signal.cpp
   zm_onvif_alarm_latch.cpp
@@ -80,13 +86,18 @@ set(TEST_SOURCES
   zm_zone_highlight.cpp
   zm_zone_alarm_box.cpp
   zm_zone_filter_box.cpp
+  zm_zone_inactive.cpp
   zm_image_linesize.cpp
+  zm_image_blend.cpp
   zm_image_delta.cpp
+  zm_image_jpeg_range.cpp
   zm_logger_rotate.cpp
   zm_logger_reload.cpp
   zm_ffmpeg_camera.cpp
   zm_ffmpeg_codec_tag.cpp
   zm_ffmpeg_fallback.cpp
+  zm_ffmpeg_options.cpp
+  zm_ffmpeg_option_number.cpp
   zm_go2rtc_check.cpp
   zm_janus_ids.cpp
   zm_janus_refresh.cpp

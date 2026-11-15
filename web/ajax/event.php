@@ -250,7 +250,9 @@ if ( canEdit('Events') ) {
     if ($tagId === '') ajaxError('addtag requires a numeric tid and id');
     $eventId = $Event->Id();
 
-    $sql = 'INSERT INTO Events_Tags (TagId, EventId, AssignedBy) VALUES (?, ?, ?)';
+    if (!dbFetchOne('SELECT Id FROM Tags WHERE Id = ?', 'Id', array($tagId))) ajaxError('No such tag');
+
+    $sql = 'INSERT IGNORE INTO Events_Tags (TagId, EventId, AssignedBy) VALUES (?, ?, ?)';
     $values = array($tagId, $eventId, $user->Id());
     $response = dbFetchAll($sql, NULL, $values);
 

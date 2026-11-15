@@ -1,5 +1,6 @@
 "use strict";
 const streaming = [];
+const NO_SOCKET_GRACE_MS = 3000;
 
 /* Does this ajax/stream.php failure mean the zms behind our connkey is gone?
  *
@@ -319,6 +320,10 @@ function MonitorStream(monitorData) {
       console.error("No element for #liveStream"+this.id);
     }
     return this.element;
+  };
+  // Lets a page that watches the stream element for resizes (watch) follow a replaced one
+  this.observeElement = function() {
+    if (typeof observeStreamElements === 'function') observeStreamElements();
   };
   this.getFrame = function() {
     if (this.frame) return this.frame;
@@ -823,6 +828,8 @@ function MonitorStream(monitorData) {
     console.debug(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} STOPPING`);
     this.statusCmdTimer = clearInterval(this.statusCmdTimer);
     this.streamCmdTimer = clearInterval(this.streamCmdTimer);
+    // A pending reconnect would otherwise start a new zms on the stopped stream.
+    this.authRefreshTimer = clearTimeout(this.authRefreshTimer);
     this.mediaStream = this.audioTrack = this.videoTrack = null;
 
     if (-1 !== this.activePlayer.indexOf('zms')) {
@@ -1362,6 +1369,7 @@ function MonitorStream(monitorData) {
     //this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
 
     if (respObj.result == 'Ok') {
+      this.noSocketSince = 0;
       if (respObj.status) {
         const streamStatus = this.status = respObj.status;
 
@@ -1383,7 +1391,7 @@ function MonitorStream(monitorData) {
             captureFPSValue.text(this.status.capturefps);
           }
 
-          const levelValue = $j('#levelValue');
+          const levelValue = $j('#levelValue'+this.id);
           if (levelValue.length) {
             levelValue.text(this.status.level);
             let newClass = 'ok';
@@ -1453,6 +1461,8 @@ function MonitorStream(monitorData) {
           $j('#zoomValue'+this.id).text(this.status.zoom);
           if (this.status.zoom == '1.0') {
             $j('#zoom'+this.id).addClass('hidden');
+          } else {
+            $j('#zoom'+this.id).removeClass('hidden');
           }
           if ('zoomOutBtn' in this.buttons) {
             if (this.status.zoom == '1.0') {
@@ -1545,6 +1555,16 @@ function MonitorStream(monitorData) {
         console.log('Not reloading stream for '+respObj.reason+' error, will retry on the next poll');
         return;
       }
+
+      // zms may still be starting, so only act on a no_socket that persists.
+      if (respObj.reason == 'no_socket') {
+        if (!this.noSocketSince) this.noSocketSince = Date.now();
+        if (Date.now() - this.noSocketSince < NO_SOCKET_GRACE_MS) {
+          console.log('No zms socket yet, will retry on the next poll');
+          return;
+        }
+      }
+      this.noSocketSince = 0;
 
       // Try to reload the image stream.
       let src = stream.src;
@@ -1937,6 +1957,7 @@ function MonitorStream(monitorData) {
       const url = go2rtcApiUrl(ZM_GO2RTC_PATH);
 
       const stream = this.element = replaceDOMElement(this.getElement(), 'video-stream');
+      this.observeElement();
       stream.srcObject = null;
       stream.background = true; // We do not use the document hiding/showing analysis from "video-rtc.js", because we have our own analysis
       //stream.muted = this.muted;
@@ -1991,12 +2012,13 @@ function MonitorStream(monitorData) {
     if (ZM_RTSP2WEB_PATH) {
       this.playbackSessionId = generateUUID();
       const stream = this.element = replaceDOMElement(this.getElement(), 'video');
+      this.observeElement();
       stream.srcObject = null;
       stream.setAttribute("autoplay", "");
       stream.setAttribute("muted", this.muted);
       stream.setAttribute("playsinline", "");
       const url = new URL(ZM_RTSP2WEB_PATH);
-      const useSSL = (url.protocol == 'https');
+      const useSSL = (url.protocol == 'https:');
 
       const rtsp2webModUrl = url;
       const video_el = this.getAVStream();
@@ -2127,6 +2149,7 @@ function MonitorStream(monitorData) {
     this.playbackSessionId = generateUUID();
     let server;
     const stream = this.element = replaceDOMElement(this.getElement(), 'video');
+    this.observeElement();
     stream.srcObject = null;
     stream.setAttribute("autoplay", "");
     stream.setAttribute("muted", this.muted);
@@ -2183,6 +2206,7 @@ function MonitorStream(monitorData) {
     this.playbackSessionId = generateUUID();
     const playbackSessionId = this.playbackSessionId;
     const stream = this.element = replaceDOMElement(this.getElement(), 'img');
+    this.observeElement();
     stream.srcObject = null;
     if (!stream) return;
 

@@ -662,14 +662,20 @@ sub check_for_in_filesystem {
   my $path = $_[0]->Path();
   if ( $path ) {
     if ( -e $path ) {
-      my @files = glob "$path/*";
-      Debug("Checking for files for event $_[0]{Id} at $path using glob $path/* found " . scalar @files . ' files');
-      return 1 if @files;
+      if ( opendir my $dh, $path ) {
+        while ( my $entry = readdir $dh ) {
+          next if substr($entry, 0, 1) eq '.';
+          Debug("Checking for files for event $_[0]{Id} at $path found a file");
+          return 1;
+        }
+        Debug("Checking for files for event $_[0]{Id} at $path found no files");
+      } else {
+        Debug("Checking for files for event $_[0]{Id} at $path could not open directory");
+      }
     } else {
       Warning("Path not found for Event $_[0]{Id} at $path");
     }
   }
-  Debug("Checking for files for event $_[0]{Id} at $path using glob $path/* found no files");
   return 0;
 }
 
@@ -780,7 +786,10 @@ sub CopyTo {
 
         $moved = 1;
       };
-      Error($@) if $@;
+      if (my $err = $@) {
+        Error($err);
+        return "Failed to copy event $$self{Id} to S3: $err";
+      }
     } # end if s3
   } # end if s3f3
 
@@ -818,6 +827,14 @@ sub CopyTo {
       my $duration = tv_interval($starttime);
       Debug('Copied ' . Number::Bytes::Human::format_bytes($size) . " in $duration seconds = " . ($duration?Number::Bytes::Human::format_bytes($size/$duration):'inf') . '/sec');
     } # end foreach file.
+
+    if (!$error and $self->Scheme() eq 'Deep') {
+      my ($link) = (($NewStorage->Path().'/'.$self->LinkPath()) =~ /^(.*)$/);
+      my ($target) = ($self->RelativePath() =~ /([^\/]+\/[^\/]+\/[^\/]+)\/?$/);
+      if ($target and !-l $link and !symlink($target, $link)) {
+        $error .= "Unable to symlink $target to $link: $!";
+      }
+    }
   } # end if ! moved
 
   return $error;
@@ -978,6 +995,10 @@ sub recover_timestamps {
   }
   if ( @mp4_files ) {
     $Event->DefaultVideo($mp4_files[0]);
+  }
+  if ( $Event->Scheme() eq 'Deep' and $path =~ m{(\d{2})/(\d{2})/(\d{2})/(\d{2})/(\d{2})/(\d{2})/?$} ) {
+    # The event's files are found through its start time, which names the directory
+    $Event->StartDateTime(sprintf('20%02d-%02d-%02d %02d:%02d:%02d', $1, $2, $3, $4, $5, $6));
   }
 }
 

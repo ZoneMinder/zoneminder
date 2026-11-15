@@ -31,7 +31,7 @@ App::uses('Model', 'Model');
  */
 class AppModel extends Model {
 
-  // Check numbers, dates and enums against the schema so bad input is a validation error, not a 500.
+  // Check numbers, dates, enums and string lengths against the schema so bad input is a validation error, not a 500.
   public function beforeValidate($options = array()) {
     if (empty($this->data[$this->alias])) return true;
     foreach ($this->schema() as $field => $column) {
@@ -47,6 +47,8 @@ class AppModel extends Model {
             or !checkdate((int)$m[2], (int)$m[3], (int)$m[1])) {
           $this->invalidate($field, $field.' must be a date like 2026-01-31 13:45:00');
         }
+      } else if ($type == 'string' and !empty($column['length'])) {
+        if (mb_strlen($value) > $column['length']) $this->invalidate($field, $field.' must be at most '.$column['length'].' characters');
       } else if (strpos($type, 'enum(') === 0) {
         preg_match_all("/'((?:[^']|'')*)'/", $type, $m);
         $allowed = array_map(function($v) { return str_replace("''", "'", $v); }, $m[1]);

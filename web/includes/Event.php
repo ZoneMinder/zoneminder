@@ -419,10 +419,10 @@ class Event extends ZM_Object {
         // SCALE_BASE scale truncated to 0/1 for high-resolution monitors (e.g.
         // 2688 wide -> scale 1), producing a squashed, wrong-aspect thumbnail
         // (and a distorted hover-overlay). refs #3443
-        $this->{'ThumbnailHeight'} = (int)round($this->{'Height'} * ZM_WEB_LIST_THUMB_WIDTH / $this->{'Width'});
+        $this->{'ThumbnailHeight'} = $this->{'Width'} ? (int)round($this->{'Height'} * ZM_WEB_LIST_THUMB_WIDTH / $this->{'Width'}) : (int)round(ZM_WEB_LIST_THUMB_WIDTH * 3 / 4);
       } elseif ( ZM_WEB_LIST_THUMB_HEIGHT ) {
         $this->{'ThumbnailHeight'} = ZM_WEB_LIST_THUMB_HEIGHT;
-        $this->{'ThumbnailWidth'} = (int)round($this->{'Width'} * ZM_WEB_LIST_THUMB_HEIGHT / $this->{'Height'});
+        $this->{'ThumbnailWidth'} = $this->{'Height'} ? (int)round($this->{'Width'} * ZM_WEB_LIST_THUMB_HEIGHT / $this->{'Height'}) : (int)round(ZM_WEB_LIST_THUMB_HEIGHT * 4 / 3);
       } else {
         Fatal( "No thumbnail width or height specified, please check in Options->Web" );
       }
@@ -438,10 +438,10 @@ class Event extends ZM_Object {
         // SCALE_BASE scale truncated to 0/1 for high-resolution monitors (e.g.
         // 2688 wide -> scale 1), producing a squashed, wrong-aspect thumbnail
         // (and a distorted hover-overlay). refs #3443
-        $this->{'ThumbnailHeight'} = (int)round($this->{'Height'} * ZM_WEB_LIST_THUMB_WIDTH / $this->{'Width'});
+        $this->{'ThumbnailHeight'} = $this->{'Width'} ? (int)round($this->{'Height'} * ZM_WEB_LIST_THUMB_WIDTH / $this->{'Width'}) : (int)round(ZM_WEB_LIST_THUMB_WIDTH * 3 / 4);
       } elseif ( ZM_WEB_LIST_THUMB_HEIGHT ) {
         $this->{'ThumbnailHeight'} = ZM_WEB_LIST_THUMB_HEIGHT;
-        $this->{'ThumbnailWidth'} = (int)round($this->{'Width'} * ZM_WEB_LIST_THUMB_HEIGHT / $this->{'Height'});
+        $this->{'ThumbnailWidth'} = $this->{'Height'} ? (int)round($this->{'Width'} * ZM_WEB_LIST_THUMB_HEIGHT / $this->{'Height'}) : (int)round(ZM_WEB_LIST_THUMB_HEIGHT * 4 / 3);
       } else {
         Fatal( "No thumbnail width or height specified, please check in Options->Web" );
       }
@@ -626,24 +626,16 @@ class Event extends ZM_Object {
     if ( $Server->Id() != ZM_SERVER_ID ) {
 
       $url = $Server->UrlToApi() . '/events/'.$this->{'Id'}.'.json';
-      if ( ZM_OPT_USE_AUTH ) {
-        if ( ZM_AUTH_RELAY == 'hashed' ) {
-          $url .= '?auth='.generateAuthHash( ZM_AUTH_HASH_IPS );
-        } else if ( ZM_AUTH_RELAY == 'plain' ) {
-          $url .= '?user='.$_SESSION['username'];
-          $url .= '?pass='.$_SESSION['password'];
-        } else {
-          Error('Multi-Server requires AUTH_RELAY be either HASH or PLAIN');
-          return;
-        }
-      }
+      $auth_relay = get_auth_relay();
+      if ($auth_relay) $url .= '?'.$auth_relay;
       Debug('sending command to '.urlForLog($url));
       // use key 'http' even if you send the request to https://...
       $options = array(
           'http' => array(
             'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
             'method'  => 'GET',
-            'content' => ''
+            'content' => '',
+            'timeout' => 10
             )
           );
       $context  = stream_context_create($options);
@@ -674,24 +666,16 @@ class Event extends ZM_Object {
     if ( $Server->Id() != ZM_SERVER_ID ) {
 
       $url = $Server->UrlToApi().'/events/'.$this->{'Id'}.'.json';
-      if ( ZM_OPT_USE_AUTH ) {
-        if ( ZM_AUTH_RELAY == 'hashed' ) {
-          $url .= '?auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
-        } elseif ( ZM_AUTH_RELAY == 'plain' ) {
-          $url .= '?user='.$_SESSION['username'];
-          $url .= '?pass='.$_SESSION['password'];
-        } else {
-          Error('Multi-Server requires AUTH_RELAY be either HASH or PLAIN');
-          return;
-        }
-      }
+      $auth_relay = get_auth_relay();
+      if ($auth_relay) $url .= '?'.$auth_relay;
       Debug('sending command to '.urlForLog($url));
       // use key 'http' even if you send the request to https://...
       $options = array(
           'http' => array(
             'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
             'method'  => 'GET',
-            'content' => ''
+            'content' => '',
+            'timeout' => 10
             )
           );
       $context = stream_context_create($options);
@@ -872,7 +856,7 @@ class Event extends ZM_Object {
     }
     array_merge($file_parts, explode(',', $transforms));
     $video_file = implode('-', $file_parts).'.'.$format;
-    if ( $overwrite || ! file_exists($video_file) ) {
+    if ( $overwrite || ! file_exists($event_path.'/'.$video_file) ) {
       Info("Creating video file $video_file for event ".$this->Id());
 
       $frame_rate = $this->Length() > 0 ? sprintf('%.2f', $this->Frames()/$this->Length()) : 1;

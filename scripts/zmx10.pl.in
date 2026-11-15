@@ -221,6 +221,7 @@ sub runServer {
         if ( defined($unit_code) ) {
           if ( $unit_code < 1 || $unit_code > 16 ) {
             dPrint(ZoneMinder::Logger::ERROR, "Invalid unit code '$unit_code'\n");
+            close(CLIENT);
             next;
           }
 

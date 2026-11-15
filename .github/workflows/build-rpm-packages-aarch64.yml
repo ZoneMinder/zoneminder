@@ -1,8 +1,15 @@
 name: build-rpm-packages-signed-aarch64
 
 on:
+  # Packages used to build on every push to master. With the current PR volume
+  # that was dozens of full build+sign+publish runs a day for identical trees.
+  # Build a single nightly off master instead, plus a clean build whenever a
+  # release tag (1.x.y) is pushed, and keep a manual trigger.
   push:
-    branches: [ master ]
+    tags: [ '1.*' ]
+  schedule:
+    - cron: '30 7 * * *'   # 07:30 UTC nightly, staggered after the amd64 rpm build
+  workflow_dispatch: {}
 
 permissions:
   contents: write
@@ -23,9 +30,36 @@ env:
   SMPFLAGS: -j10
 
 jobs:
+  gate:
+    # A scheduled run still fires on a day with no new commits. Skip the nightly
+    # then so an identical tree is not rebuilt and republished. Tag and manual
+    # runs always build.
+    name: Decide whether to build
+    if: github.repository == 'ZoneMinder/zoneminder'
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.decide.outputs.build }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+      - name: Decide
+        id: decide
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          elif [ -n "$(git log --since='24 hours ago' --format=%H -1)" ]; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No commits in the last 24h; skipping nightly build."
+            echo "build=false" >> "$GITHUB_OUTPUT"
+          fi
+
   build-rpm:
     name: Build & sign RPM (${{ matrix.distro }})
-    if: github.repository == 'ZoneMinder/zoneminder'
+    needs: gate
+    if: needs.gate.outputs.build == 'true'
     # Pin the arch: x64 self-hosted runners (fw2) also serve this repo.
     runs-on: [self-hosted, Linux, ARM64]
     # Self-hosted runners don't reliably enforce the 6h default; a hung
@@ -295,6 +329,6 @@ jobs:
           path: dist
 
       - name: Create release
-        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3
         with:
           files: dist/**/*

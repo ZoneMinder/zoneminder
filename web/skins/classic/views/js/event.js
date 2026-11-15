@@ -134,16 +134,13 @@ function vjsReplay() {
           streamNext(true);
           return;
         }
-        const date = Date.parse(eventData.EndDateTime);
-        if (!date) {
+        const endTime = Date.parse(eventData.EndDateTime);
+        if (isNaN(endTime)) {
           console.error('Got no date from ', eventData);
           streamNext(true);
           return;
-        } else if (typeof date.getTime === 'undefined') {
-          console.log("Failed to get valid date object from EndDateTime in ", eventData);
         } else {
-          const endTime = date.getTime();
-          const nextStartTime = nextEventStartTime.getTime(); //nextEventStartTime.getTime() is a mootools workaround, highjacks Date.parse
+          const nextStartTime = nextEventStartTime;
           if ( nextStartTime <= endTime ) {
             streamNext(true);
             return;
@@ -151,16 +148,16 @@ function vjsReplay() {
           vid.pause();
           const overLaid = $j("#videoobj");
           overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;"></p>');
-          const gapDuration = (new Date().getTime()) + (nextStartTime - endTime);
+          const gapEnd = Date.now() + (nextStartTime - endTime);
           const messageP = $j('.vjsMessage');
           const x = setInterval(function() {
-            const now = new Date().getTime();
-            const remainder = new Date(Math.round(gapDuration - now)).toISOString().substr(11, 8);
-            messageP.html(remainder + ' to next event.');
-            if ( remainder < 0 ) {
+            const remainder = gapEnd - Date.now();
+            if ( remainder <= 0 ) {
               clearInterval(x);
               streamNext(true);
+              return;
             }
+            messageP.html(new Date(remainder).toISOString().substr(11, 8) + ' to next event.');
           }, 1000);
         } // end if valid date object
       } // end if have nextEventId
@@ -707,7 +704,7 @@ function streamFastRev(action) {
     }
     clearInterval(intervalRewind);
     $j('select[name="rate"]').val(next);
-    setCookie('zmEventRate', vid.playbackRate()*100);
+    setCookie('zmEventRate', next);
     intervalRewind = setInterval(function() {
       if (vid.currentTime() <= 0) {
         clearInterval(intervalRewind);
@@ -1431,7 +1428,7 @@ function getStat() {
       //  tdString = '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData[key] + '</a>';
       //  break;
       case 'Location':
-        tdString = eventData.Latitude + ', ' + eventData.Longitude;
+        tdString = (parseFloat(eventData.Latitude) || parseFloat(eventData.Longitude)) ? eventData.Latitude + ', ' + eventData.Longitude : '';
         break;
       //case 'MonitorId':
       //  if (canView["Monitors"]) {
@@ -1622,6 +1619,8 @@ function initPage() {
       $j('#progressValue').html(secsToTime(Math.floor(vid.currentTime())));
     });
     vid.on('ratechange', function() {
+      // The rewind sets the player rate to 0 on every tick; the rate select and cookie hold the reverse rate
+      if (intervalRewind) return;
       rate = vid.playbackRate() * 100;
       $j('select[name="rate"]').val(rate);
       setCookie('zmEventRate', rate);
@@ -1961,7 +1960,7 @@ function initPage() {
         zoomOffset: -1,
         accessToken: ZM_OPT_GEOLOCATION_ACCESS_TOKEN,
       }).addTo(map);
-      const marker = L.marker([eventData.Latitude, eventData.Longitude], {draggable: 'false'});
+      const marker = L.marker([eventData.Latitude, eventData.Longitude], {draggable: false});
       marker.addTo(map);
       map.invalidateSize();
     } else {
@@ -2110,7 +2109,7 @@ function removeTag(tag) {
 
 function createTag(tagName, buttonPressed = null) {
   if (!canEdit.Events) return;
-  $j.getJSON(thisUrl + '?request=tags&action=createtag&tname=' + tagName)
+  $j.getJSON(thisUrl + '?request=tags&action=createtag&tname=' + encodeURIComponent(tagName))
       .done(function(data) {
         if (data.result != 'Ok') {
           console.error('createtag refused', data.message);

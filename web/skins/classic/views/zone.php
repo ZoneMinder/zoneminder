@@ -90,7 +90,7 @@ if ( !isset($zone) ) {
       'ExtendAlarmFrames' => '',
     );
   }
-  $zone['Points'] = coordsToPoints($zone['Coords']);
+  $zone['Points'] = coordsToPoints($zone['Coords']) ?: array();
   $zone['AreaCoords'] = preg_replace('/\s+/', ',', $zone['Coords']);
 } # end if new Zone
 

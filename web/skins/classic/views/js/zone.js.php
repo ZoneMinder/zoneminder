@@ -6,7 +6,6 @@
   global $presets;
   global $zone;
   global $monitor;
-  global $selfIntersecting;
   global $streamMode;
   global $connkey;
 ?>
@@ -82,8 +81,6 @@ monitorData[monitorData.length] = {
   'refresh': '<?php echo validJsStr($monitor->Refresh()) ?>',
   'janus_pin': '<?php echo validJsStr($monitor->Janus_Pin()) ?>'
 };
-
-var selfIntersecting = <?php echo $selfIntersecting ? 'true' : 'false' ?>;
 
 var selfIntersectingString = '<?php echo addslashes(translate('SelfIntersecting')) ?>';
 var alarmRGBUnsetString = '<?php echo addslashes(translate('AlarmRGBUnset')) ?>';

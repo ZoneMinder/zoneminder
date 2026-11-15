@@ -24,6 +24,7 @@ if ( !canEdit('Devices') ) {
   return;
 }
 
+$action = validStr($_REQUEST['action'] ?? '');
 if ( $action == 'device' ) {
   if ( !empty($_REQUEST['command']) ) {
     setDeviceStatusX10($_REQUEST['key'], $_REQUEST['command']);
@@ -41,7 +42,7 @@ if ( $action == 'device' ) {
   }
   ajaxResponse();
 } else {
-  ajaxError('Unrecognised action '.validHtmlStr($_REQUEST['action']));
+  ajaxError('Unrecognised action '.validHtmlStr($action));
 } // end if action
 
 ?>

@@ -618,7 +618,7 @@ switch ($name) {
         if ( $optCount && ($optCount%$breakCount == 0) )
           echo '</br>';
         echo '<input type="checkbox" name="newMonitor[Triggers][]" value="'.$optTrigger.'"'.
-          (( ('' !== $monitor->Triggers()) && in_array($optTrigger, $monitor->Triggers()) ) ? ' checked="checked"' : ''). '/> '. $optTrigger;
+          (( ('' !== $monitor->Triggers()) && in_array($optTrigger, explode(',', $monitor->Triggers())) ) ? ' checked="checked"' : ''). '/> '. $optTrigger;
         $optCount ++;
       } # end foreach trigger option
       if ( !$optCount ) {
@@ -1205,6 +1205,10 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
       $storage_areas = array(0=>translate('Unspecified'));
       foreach ( ZM\Storage::find(array('Enabled'=>true), array('order'=>'lower(Name)')) as $Storage ) {
         $storage_areas[$Storage->Id()] = $Storage->Name();
+      }
+      // Keep a disabled area the monitor already uses selectable.
+      if ($monitor->StorageId() and !isset($storage_areas[$monitor->StorageId()])) {
+        $storage_areas[$monitor->StorageId()] = $monitor->Storage()->Name();
       }
        if (count($storage_areas) > 1) {
          echo '<li class="StorageArea"><label>'.translate('StorageArea').'</label>'.PHP_EOL;
@@ -1831,7 +1835,7 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
           <label><?php echo translate('Sectionlength') ?></label>
             <input type="number" name="newMonitor[SectionLength]" value="<?php echo validHtmlStr($monitor->SectionLength()) ?>" min="0"/>
             <?php echo translate('seconds')?>
-            <input type="checkbox" name="newMonitor[SectionLengthWarn}" value="1"<?php echo $monitor->SectionLengthWarn() ? ' checked="checked"' : '' ?>/>
+            <input type="checkbox" name="newMonitor[SectionLengthWarn]" value="1"<?php echo $monitor->SectionLengthWarn() ? ' checked="checked"' : '' ?>/>
             <?php echo translate('Warn if exceeded') ?>
         </li>
         <li>

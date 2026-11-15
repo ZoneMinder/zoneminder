@@ -356,7 +356,8 @@ RETSIGTYPE zm_die_handler(int signal)
   if ( info && context ) {
     // A signal sent with kill(), raise() and the like rather than raised by a
     // fault has no fault address: si_addr shares its storage with the sender's
-    // pid and uid, which are reported instead.
+    // pid and uid, which are reported instead. macOS marks such a signal with a
+    // fault code and no sender, so there it is reported as a fault.
     bool sent = info->si_code == SI_USER or info->si_code == SI_QUEUE;
 #ifdef SI_TKILL
     sent = sent or info->si_code == SI_TKILL;

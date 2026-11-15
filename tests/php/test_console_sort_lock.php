@@ -41,6 +41,14 @@ namespace {
   $updates = array();
   function zmDbConn() { global $conn; return $conn; }
   $failNext = false;
+  $sequenceOf = array();
+  function dbFetchAll($sql, $col = null, $params = array()) {
+    global $sequenceOf;
+    $seqs = array();
+    foreach ($params as $id) if (isset($sequenceOf[$id])) $seqs[] = $sequenceOf[$id];
+    sort($seqs);
+    return $seqs;
+  }
   function dbQuery($sql, $params = null) {
     global $updates, $failNext;
     if ($failNext) throw new \RuntimeException('update failed');
@@ -56,13 +64,28 @@ namespace {
   eval($m[0]);
 
   echo "ordered ids\n";
+  $sequenceOf = array('2' => 0, '3' => 1, '4' => 2);
   saveMonitorSequence(array('4', 'monitor_id-3', '2'));
   check('sequence follows position', $updates, array(array(0, '4'), array(1, '3'), array(2, '2')));
   check('table locked then unlocked', $conn->log, array('LOCK TABLES Monitors WRITE', 'UNLOCK TABLES'));
 
+  echo "\nsecond page keeps its own slots\n";
+  $updates = array();
+  $conn->log = array();
+  $sequenceOf = array('11' => 10, '12' => 11, '13' => 12);
+  saveMonitorSequence(array('13', '11', '12'));
+  check('reordered within the page slots', $updates, array(array(10, '13'), array(11, '11'), array(12, '12')));
+
+  echo "\nduplicate sequences fall back to a run\n";
+  $updates = array();
+  $sequenceOf = array('5' => 3, '6' => 3);
+  saveMonitorSequence(array('6', '5'));
+  check('consecutive from the lowest', $updates, array(array(3, '6'), array(4, '5')));
+
   echo "\nbad ids are skipped\n";
   $updates = array();
   $conn->log = array();
+  $sequenceOf = array('7' => 2);
   saveMonitorSequence(array('', 'x', '7'));
   check('only the valid id is written', $updates, array(array(2, '7')));
   check('still unlocked', end($conn->log), 'UNLOCK TABLES');
@@ -70,6 +93,7 @@ namespace {
   echo "\nunlocks when a write throws\n";
   $conn->log = array();
   $failNext = true;
+  $sequenceOf = array('1' => 0);
   try {
     saveMonitorSequence(array('1'));
   } catch (\RuntimeException $e) {

@@ -106,8 +106,6 @@ if ($action == 'save') {
       'Controllable' => 0,
       'TrackMotion' => 0,
       'ModectDuringPTZ' =>  0,
-      'Enabled' => 0,
-      'DecodingEnabled' => 0,
       'RTSP2WebEnabled' => 0,
       'Go2RTCEnabled' => 0,
       'Go2RTCDisableBackChannel' => 0,
@@ -128,6 +126,12 @@ if ($action == 'save') {
       'SectionLengthWarn' => 0,
       'SOAP_wsa_compl' => 0 
       );
+
+  # The Control tab is only drawn with ZM_OPT_CONTROL and View permission on
+  # Control. Without it these checkboxes are absent, not unchecked.
+  if (!ZM_OPT_CONTROL or !canView('Control')) {
+    unset($types['Controllable'], $types['TrackMotion'], $types['ModectDuringPTZ']);
+  }
 
   # Checkboxes don't return an element in the POST data, so won't be present in newMonitor.
   # So force a value for these fields.
@@ -253,10 +257,10 @@ if ($action == 'save') {
                 $points[$i]['y'] = $x;
               }
               $newZone['Coords'] = pointsToCoords($points);
-              $changes = getFormChanges($zone, $newZone, $types);
+              $zoneChanges = getFormChanges($zone, $newZone, $types);
 
-              if ( count($changes) ) {
-                dbQuery('UPDATE Zones SET '.implode(', ', $changes).' WHERE MonitorId=? AND Id=?',
+              if ( count($zoneChanges) ) {
+                dbQuery('UPDATE Zones SET '.implode(', ', $zoneChanges).' WHERE MonitorId=? AND Id=?',
                   array($mid, $zone['Id']));
               }
             } # end foreach zone
@@ -272,10 +276,10 @@ if ($action == 'save') {
               $newZone['MinBlobPixels'] = intval(round(($zone['MinBlobPixels']*$newA)/$oldA));
               $newZone['MaxBlobPixels'] = intval(round(($zone['MaxBlobPixels']*$newA)/$oldA));
 
-              $changes = getFormChanges($zone, $newZone, $types);
+              $zoneChanges = getFormChanges($zone, $newZone, $types);
 
-              if ( count($changes) ) {
-                dbQuery('UPDATE Zones SET '.implode(', ', $changes).' WHERE MonitorId=? AND Id=?',
+              if ( count($zoneChanges) ) {
+                dbQuery('UPDATE Zones SET '.implode(', ', $zoneChanges).' WHERE MonitorId=? AND Id=?',
                   array($mid, $zone['Id']));
               }
             } // end foreach zone

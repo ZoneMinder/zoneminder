@@ -45,6 +45,7 @@ function saveMonitorSequence($monitor_ids) {
   $dbConn = zmDbConn();
   $dbConn->exec('LOCK TABLES Monitors WRITE');
   try {
+    $ids = array();
     for ( $i = 0; $i < count($monitor_ids); $i += 1 ) {
       $monitor_id = $monitor_ids[$i];
       $monitor_id = preg_replace('/^monitor_id-/', '', $monitor_id);
@@ -52,8 +53,19 @@ function saveMonitorSequence($monitor_ids) {
         \ZM\Warning('Got '.$monitor_id.' from '.$monitor_ids[$i]);
         continue;
       }
-      dbQuery('UPDATE Monitors SET Sequence=? WHERE Id=?', array($i, $monitor_id));
+      $ids[] = $monitor_id;
     } // end for each monitor_id
+    if ( $ids ) {
+      // A paginated table only posts the visible rows, so reuse the Sequence values those rows already held
+      $sequences = dbFetchAll('SELECT Sequence FROM Monitors WHERE Id IN ('.implode(',', array_fill(0, count($ids), '?')).') ORDER BY Sequence', 'Sequence', $ids);
+      if ( count(array_unique($sequences)) != count($ids) ) {
+        $first = $sequences ? $sequences[0] : 0;
+        $sequences = range($first, $first + count($ids) - 1);
+      }
+      foreach ( $ids as $i => $monitor_id ) {
+        dbQuery('UPDATE Monitors SET Sequence=? WHERE Id=?', array($sequences[$i], $monitor_id));
+      }
+    }
   } finally {
     $dbConn->exec('UNLOCK TABLES');
   }
@@ -292,6 +304,26 @@ function queryRequest() {
     }
   }
   
+  $still_monitor_ids = array();
+  foreach ($filtered_monitors as $monitor) {
+    if (ZM_WEB_LIST_THUMBS && canView('Stream') && ($monitor['Capturing'] != 'None')
+      && ($monitor['Analysing'] == 'None') && ($monitor['Decoding'] == 'None')) {
+      $still_monitor_ids[] = intval($monitor['Id']);
+    }
+  }
+  $still_events_by_monitor_id = array();
+  if (count($still_monitor_ids)) {
+    $placeholders = implode(',', array_fill(0, count($still_monitor_ids), '?'));
+    $rows = dbFetchAll(
+      'SELECT E.* FROM Events E JOIN (SELECT MAX(Id) AS Id FROM Events WHERE EndDateTime IS NOT NULL AND MonitorId IN ('.$placeholders.') GROUP BY MonitorId) L ON L.Id = E.Id',
+      NULL,
+      $still_monitor_ids
+    );
+    foreach ($rows as $row) {
+      $still_events_by_monitor_id[$row['MonitorId']] = new ZM\Event($row);
+    }
+  }
+
   // Process each monitor and build row data
   $footer_totals = array(
     'monitor_count' => count($all_filtered_monitors),
@@ -506,13 +538,7 @@ function queryRequest() {
       // (ZM's nph-zms can't produce frames when not decoding)
       if ($monitor['Analysing'] == 'None' && $monitor['Decoding'] == 'None') {
         $debugAttr .= ' data-debug-still="event"';
-        $event = ZM\Event::find_one(
-          array(
-            'MonitorId' => $monitor['Id'],
-            'EndDateTime' => 'NOT NULL'
-          ),
-          array('order' => 'Id DESC')
-        );
+        $event = isset($still_events_by_monitor_id[$monitor['Id']]) ? $still_events_by_monitor_id[$monitor['Id']] : null;
         if ($event) {
           $stillSrc = $event->getThumbnailSrc(array(), '&amp;');
           // Default stream/video sources from event (may be overridden by live streaming below)

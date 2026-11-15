@@ -253,6 +253,9 @@ TEST_CASE("zm_die_handler dies of the real signal rather than exiting from the h
 
 #if ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T ) && \
     (defined(__i386__) || defined(__x86_64__) || defined(__arm__) || defined(__aarch64__))
+// macOS gives a SIGSEGV sent with kill() the fault code SEGV_ACCERR and no
+// sender pid or uid, so it cannot be told apart from a fault there.
+#ifndef __APPLE__
 TEST_CASE("a SIGSEGV sent with kill() is reported with its sender, not a fault address", "[signal]") {
   std::string captured;
   int status = run_crashing_child(captured, [] { kill(getpid(), SIGSEGV); });
@@ -267,6 +270,7 @@ TEST_CASE("a SIGSEGV sent with kill() is reported with its sender, not a fault a
   REQUIRE(captured.find("Fault address") == std::string::npos);
   REQUIRE(captured.find("Fault reason") == std::string::npos);
 }
+#endif  // __APPLE__
 
 TEST_CASE("a memory fault is reported with its address", "[signal]") {
   std::string captured;

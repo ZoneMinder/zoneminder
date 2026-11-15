@@ -176,8 +176,9 @@ if ( !isset($_REQUEST['filter']) ) {
 }
 parseSort();
 $filter = ZM\Filter::parse($_REQUEST['filter']);
-if (count($filter->terms())==1 and $filter->has_term('Id')) {
-  # Special case, coming from filter specifying this exact event.
+$idTerm = $filter->has_term('Id');
+if (count($filter->terms())==1 and $idTerm and !is_array($idTerm['val']) and strpos($idTerm['val'], ',') === false) {
+  # Special case, coming from filter specifying this exact event. A list of events is kept.
   $filter->terms([]);
   $filter->addTerm(['attr' => 'MonitorId', 'op' => '=', 'val' => $Event->MonitorId(), 'cnj' => 'and']);
 }

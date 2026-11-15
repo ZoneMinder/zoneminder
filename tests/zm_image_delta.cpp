@@ -17,8 +17,8 @@
 
 // Image::Delta drives the delta8_* helpers row by row at the image's own
 // linesize (so per-row padding is not read as image data). Those helpers
-// consume whole blocks per iteration (16 gray8 pixels, 4 rgb32 pixels); the
-// SSE2/NEON variants require the pixel count to be an exact multiple of the
+// consume whole blocks per iteration (16 gray8 pixels and 4 rgb32 pixels for
+// SSE2, 64 and 16 for NEON); the SSE2/NEON variants require the pixel count to be an exact multiple of the
 // block or they wrap the loop counter past zero and run off the end of memory
 // (SIGSEGV), and the unrolled C variants overrun by up to a block. A per-row
 // width that is not block-aligned therefore crashes/overruns even though
@@ -41,15 +41,13 @@ namespace {
 // Image::Initialise() dereferences config.font_file_location; also select the
 // SIMD delta helpers so these cases exercise the block-aligned fast path (and
 // reproduce the crash on the unfixed code) rather than the always-safe scalar
-// fallback. Must run before the first Image is constructed, as Initialise()
-// latches on first use.
+// fallback. Initialise() runs again so that holds whichever test constructed
+// the first Image.
 void EnsureImageInit() {
-  static bool done = false;
-  if (done) return;
   if (!config.font_file_location) config.font_file_location = "";
   config.cpu_extensions = 1;
   HwCapsDetect();  // sets the global sse_version / neonversion
-  done = true;
+  Image::Initialise();
 }
 
 // Fill a freshly allocated (self-owned, aligned buffer + aligned linesize)
@@ -138,6 +136,38 @@ TEST_CASE("Image::Delta rgb32 with a non-4-aligned width", "[Image][Delta]") {
   // Reference: the format's own scalar helper on tightly packed rows. The SIMD
   // bulk may round slightly differently from the scalar tail, so allow the same
   // tolerance the delta self-test uses (see Image::Initialise).
+  for (unsigned int y = 0; y < kH; y++) {
+    std::vector<uint8_t> ra(kW * 4), rb(kW * 4), rref(kW);
+    for (unsigned int x = 0; x < kW; x++)
+      for (unsigned int c = 0; c < 4; c++) {
+        ra[x * 4 + c] = a.Buffer(x, y)[c];
+        rb[x * 4 + c] = b.Buffer(x, y)[c];
+      }
+    std_delta8_rgba(ra.data(), rb.data(), rref.data(), kW);
+    for (unsigned int x = 0; x < kW; x++)
+      REQUIRE(std::abs(static_cast<int>(*delta.Buffer(x, y)) -
+                       static_cast<int>(rref[x])) <= 8);
+  }
+}
+
+TEST_CASE("Image::Delta rgb32 with a width past one NEON block", "[Image][Delta]") {
+  EnsureImageInit();
+
+  // 22x4: width % 16 == 6, so on NEON (16 rgb32 pixels per iteration) the row
+  // runs one block through the vector helper and six through the scalar tail;
+  // a 4-pixel block would have handed NEON 20 pixels and sent its loop off the
+  // end of memory. pixels == 88, % 4 == 0, so the SIMD helper is selected.
+  constexpr unsigned int kW = 22;
+  constexpr unsigned int kH = 4;
+
+  Image a(kW, kH, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA);
+  Image b(kW, kH, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA);
+  FillPattern(a, 4, 3);
+  FillPattern(b, 4, 77);
+
+  Image delta;
+  REQUIRE(a.Delta(b, &delta));
+
   for (unsigned int y = 0; y < kH; y++) {
     std::vector<uint8_t> ra(kW * 4), rb(kW * 4), rref(kW);
     for (unsigned int x = 0; x < kW; x++)

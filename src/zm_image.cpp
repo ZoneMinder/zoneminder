@@ -1513,6 +1513,63 @@ static void zm_jpeg_raw_setup(jpeg_compress_struct *cinfo) {
   }
 }
 
+// JPEG YCbCr is full range, so limited range (Y 16-235, C 16-240) planar YUV
+// is expanded to full range as it is fed to libjpeg.
+static bool zm_jpeg_yuv_is_limited(AVPixelFormat pixfmt) {
+  return pixfmt == AV_PIX_FMT_YUV420P || pixfmt == AV_PIX_FMT_YUV422P;
+}
+
+// Fixed point within 16 bits: Y' = (Y - 16) * 255 / 219, C' = (C - 128) * 255 / 224 + 128.
+static inline uint8_t zm_expand_y(uint8_t y) {
+  const uint16_t t = std::min<uint16_t>(std::max<uint16_t>(y, 16), 235) - 16;
+  return static_cast<uint8_t>((t * 298 + 128) >> 8);
+}
+
+static inline uint8_t zm_expand_c(uint8_t c) {
+  const uint16_t t = std::min<uint16_t>(std::max<uint16_t>(c, 16), 240) - 16;
+  return static_cast<uint8_t>((t * 291 + 304) >> 8);
+}
+
+// These run over every pixel of each encode; gcc only vectorises them at -O3 and Release is -O2.
+#if defined(__GNUC__) && !defined(__clang__)
+#define ZM_VECTORISE __attribute__((optimize("O3")))
+#else
+#define ZM_VECTORISE
+#endif
+
+ZM_VECTORISE static void zm_expand_luma(uint8_t *dst, const uint8_t *src, int n) {
+  for (int i = 0; i < n; i++) dst[i] = zm_expand_y(src[i]);
+}
+
+ZM_VECTORISE static void zm_expand_chroma(uint8_t *dst, const uint8_t *src, int n) {
+  for (int i = 0; i < n; i++) dst[i] = zm_expand_c(src[i]);
+}
+
+// Interleave one row of Y/U/V (chroma subsampled 2x horizontally) into YCbCr triples.
+static void zm_jpeg_interleave_row(uint8_t *dst, const uint8_t *yrow, const uint8_t *urow,
+                                   const uint8_t *vrow, unsigned int width, bool limited) {
+  for (unsigned int x = 0; x < width; ++x) {
+    if (limited) {
+      dst[x * 3 + 0] = zm_expand_y(yrow[x]);
+      dst[x * 3 + 1] = zm_expand_c(urow[x >> 1]);
+      dst[x * 3 + 2] = zm_expand_c(vrow[x >> 1]);
+    } else {
+      dst[x * 3 + 0] = yrow[x];
+      dst[x * 3 + 1] = urow[x >> 1];
+      dst[x * 3 + 2] = vrow[x >> 1];
+    }
+  }
+}
+
+static void zm_jpeg_band_row(uint8_t *dst, const uint8_t *src, int n, int pitch,
+                             void (*expand)(uint8_t *, const uint8_t *, int)) {
+  if (expand)
+    expand(dst, src, n);
+  else
+    memcpy(dst, src, n);
+  memset(dst + n, dst[n - 1], pitch - n);
+}
+
 static bool zm_jpeg_write_raw_yuv420(jpeg_compress_struct *cinfo, const uint8_t *buffer,
                                      AVPixelFormat pixfmt, int width, int height) {
   uint8_t *plane[4] = {nullptr, nullptr, nullptr, nullptr};
@@ -1520,25 +1577,31 @@ static bool zm_jpeg_write_raw_yuv420(jpeg_compress_struct *cinfo, const uint8_t 
   if (av_image_fill_arrays(plane, linesize, buffer, pixfmt, width, height, 32) < 0)
     return false;
 
+  const bool limited = zm_jpeg_yuv_is_limited(pixfmt);
   const int chroma_height = (height + 1) / 2;
   const int chroma_width = (width + 1) / 2;
   // Raw mode reads each row out to the padded width, so other widths are copied
-  // into a scratch band with the last sample of each row repeated.
+  // into a scratch band with the last sample of each row repeated. Limited range
+  // rows are expanded into the same band.
   const bool pad = (width % 16) != 0;
+  const bool copy = pad || limited;
   const int ypitch = FFALIGN(width, 16);
   const int cpitch = ypitch / 2;
-  std::vector<uint8_t> scratch;
-  if (pad) scratch.resize(static_cast<size_t>(2 * DCTSIZE) * ypitch + 2 * DCTSIZE * cpitch);
+  // From libjpeg's image pool, so jpeg_abort_compress frees it if an error longjmps out of the write.
+  uint8_t *scratch = nullptr;
+  if (copy)
+    scratch = static_cast<uint8_t *>((*cinfo->mem->alloc_large)(
+        reinterpret_cast<j_common_ptr>(cinfo), JPOOL_IMAGE,
+        static_cast<size_t>(2 * DCTSIZE) * ypitch + 2 * DCTSIZE * cpitch));
   JSAMPROW yrows[2 * DCTSIZE], urows[DCTSIZE], vrows[DCTSIZE];
   JSAMPARRAY planes[3] = {yrows, urows, vrows};
   // Rows past the bottom repeat the last row.
   for (int y = 0; y < height; y += 2 * DCTSIZE) {
     for (int i = 0; i < 2 * DCTSIZE; i++) {
       const uint8_t *src = plane[0] + static_cast<size_t>(std::min(y + i, height - 1)) * linesize[0];
-      if (pad) {
-        uint8_t *dst = scratch.data() + static_cast<size_t>(i) * ypitch;
-        memcpy(dst, src, width);
-        memset(dst + width, src[width - 1], ypitch - width);
+      if (copy) {
+        uint8_t *dst = scratch + static_cast<size_t>(i) * ypitch;
+        zm_jpeg_band_row(dst, src, width, ypitch, limited ? zm_expand_luma : nullptr);
         src = dst;
       }
       yrows[i] = const_cast<uint8_t *>(src);
@@ -1547,13 +1610,11 @@ static bool zm_jpeg_write_raw_yuv420(jpeg_compress_struct *cinfo, const uint8_t 
       const int cy = std::min(y / 2 + i, chroma_height - 1);
       const uint8_t *usrc = plane[1] + static_cast<size_t>(cy) * linesize[1];
       const uint8_t *vsrc = plane[2] + static_cast<size_t>(cy) * linesize[2];
-      if (pad) {
-        uint8_t *udst = scratch.data() + static_cast<size_t>(2 * DCTSIZE) * ypitch + static_cast<size_t>(i) * cpitch;
+      if (copy) {
+        uint8_t *udst = scratch + static_cast<size_t>(2 * DCTSIZE) * ypitch + static_cast<size_t>(i) * cpitch;
         uint8_t *vdst = udst + static_cast<size_t>(DCTSIZE) * cpitch;
-        memcpy(udst, usrc, chroma_width);
-        memset(udst + chroma_width, usrc[chroma_width - 1], cpitch - chroma_width);
-        memcpy(vdst, vsrc, chroma_width);
-        memset(vdst + chroma_width, vsrc[chroma_width - 1], cpitch - chroma_width);
+        zm_jpeg_band_row(udst, usrc, chroma_width, cpitch, limited ? zm_expand_chroma : nullptr);
+        zm_jpeg_band_row(vdst, vsrc, chroma_width, cpitch, limited ? zm_expand_chroma : nullptr);
         usrc = udst;
         vsrc = vdst;
       }
@@ -1764,6 +1825,7 @@ bool Image::WriteJpeg(const std::string &filename,
     const bool is_422 = (imagePixFormat == AV_PIX_FMT_YUV422P || imagePixFormat == AV_PIX_FMT_YUVJ422P);
     const unsigned chroma_v_shift = is_422 ? 0u : 1u;
 
+    const bool limited = zm_jpeg_yuv_is_limited(imagePixFormat);
     std::vector<uint8_t> tmprow(static_cast<size_t>(width) * 3);
     JSAMPROW row_ptr = tmprow.data();
 
@@ -1773,11 +1835,7 @@ bool Image::WriteJpeg(const std::string &filename,
       const uint8_t *yrow = plane[0] + static_cast<size_t>(y) * plane_linesizes[0];
       const uint8_t *urow = plane[1] + static_cast<size_t>(cy) * plane_linesizes[1];
       const uint8_t *vrow = plane[2] + static_cast<size_t>(cy) * plane_linesizes[2];
-      for (unsigned x = 0; x < width; ++x) {
-        tmprow[x * 3 + 0] = yrow[x];
-        tmprow[x * 3 + 1] = urow[x >> 1];
-        tmprow[x * 3 + 2] = vrow[x >> 1];
-      }
+      zm_jpeg_interleave_row(tmprow.data(), yrow, urow, vrow, width, limited);
       jpeg_write_scanlines(cinfo, &row_ptr, 1);
     }
   } else {
@@ -2019,6 +2077,7 @@ bool Image::EncodeJpeg(JOCTET *outbuffer, size_t *outbuffer_size, int quality_ov
     const bool is_422 = (imagePixFormat == AV_PIX_FMT_YUV422P || imagePixFormat == AV_PIX_FMT_YUVJ422P);
     const unsigned chroma_v_shift = is_422 ? 0u : 1u;  // 4:2:0 halves vertical too
 
+    const bool limited = zm_jpeg_yuv_is_limited(imagePixFormat);
     std::vector<uint8_t> tmprow(static_cast<size_t>(width) * 3);
     JSAMPROW row_ptr = tmprow.data();
 
@@ -2028,11 +2087,7 @@ bool Image::EncodeJpeg(JOCTET *outbuffer, size_t *outbuffer_size, int quality_ov
       const uint8_t *yrow = plane[0] + static_cast<size_t>(y) * plane_linesizes[0];
       const uint8_t *urow = plane[1] + static_cast<size_t>(cy) * plane_linesizes[1];
       const uint8_t *vrow = plane[2] + static_cast<size_t>(cy) * plane_linesizes[2];
-      for (unsigned x = 0; x < width; ++x) {
-        tmprow[x * 3 + 0] = yrow[x];
-        tmprow[x * 3 + 1] = urow[x >> 1];  // chroma is 2x horizontal subsampled in 4:2:0/4:2:2
-        tmprow[x * 3 + 2] = vrow[x >> 1];
-      }
+      zm_jpeg_interleave_row(tmprow.data(), yrow, urow, vrow, width, limited);
       jpeg_write_scanlines(cinfo, &row_ptr, 1);
     }
   } else {
@@ -2409,12 +2464,12 @@ void Image::Overlay( const Image &image ) {
 
 /* RGB32 compatible: complete */
 void Image::Overlay( const Image &image, const unsigned int lo_x, const unsigned int lo_y ) {
-  if ( !(width < image.width || height < image.height) ) {
+  if ( width < image.width || height < image.height ) {
     Panic("Attempt to overlay image too big for destination, %dx%d > %dx%d",
           image.width, image.height, width, height );
   }
 
-  if ( !(width < (lo_x+image.width) || height < (lo_y+image.height)) ) {
+  if ( width < (lo_x+image.width) || height < (lo_y+image.height) ) {
     Panic("Attempt to overlay image outside of destination bounds, %dx%d @ %dx%d > %dx%d",
           image.width, image.height, lo_x, lo_y, width, height );
   }
@@ -2475,6 +2530,12 @@ void Image::Blend( const Image &image, int transparency ) {
   if ( transparency <= 0 )
     return;
 
+  // Delta only reads the Y plane of planar YUV, so blend that in place and leave the chroma alone.
+  if (imagePixFormat != AV_PIX_FMT_GRAY8 && zm_bytes_per_pixel(imagePixFormat) == 1) {
+    (*blend)(buffer, image.buffer, buffer, static_cast<size_t>(linesize) * height, transparency);
+    return;
+  }
+
   // Reuse persistent blend buffer to avoid per-frame alloc/free
   if (blend_buffer_size_ < size) {
     if (blend_buffer_) zm_freealigned(blend_buffer_);
@@ -2486,8 +2547,26 @@ void Image::Blend( const Image &image, int transparency ) {
   TimePoint start = std::chrono::steady_clock::now();
 #endif
 
-  /* Do the blending */
-  (*blend)(buffer, image.buffer, blend_buffer_, size, transparency);
+  // The fast blend helpers consume whole blocks per iteration: 16 bytes for the
+  // unrolled C and SSE2 variants, 64 for NEON. The SIMD variants require the
+  // count to be an exact multiple of their block (a shorter count wraps the loop
+  // counter past zero and runs off the end of memory), and the unrolled C one
+  // overruns by up to a block. size is not always a multiple of 64: images built
+  // over a caller's buffer use an unaligned linesize, and an aligned one is only
+  // a multiple of 32. Blend the 64-byte bulk in place and the rest through
+  // zero-padded block-sized copies, so every byte goes through the same helper.
+  constexpr unsigned int kBlendBlock = 64;
+  const unsigned int bulk = size - (size % kBlendBlock);
+  if (bulk) (*blend)(buffer, image.buffer, blend_buffer_, bulk, transparency);
+  if (const unsigned int tail = size - bulk) {
+    alignas(64) uint8_t tail1[kBlendBlock] = {};
+    alignas(64) uint8_t tail2[kBlendBlock] = {};
+    alignas(64) uint8_t tail_result[kBlendBlock];
+    memcpy(tail1, buffer + bulk, tail);
+    memcpy(tail2, image.buffer + bulk, tail);
+    (*blend)(tail1, tail2, tail_result, kBlendBlock, transparency);
+    memcpy(blend_buffer_ + bulk, tail_result, tail);
+  }
 
 #ifdef ZM_IMAGE_PROFILING
   TimePoint end = std::chrono::steady_clock::now();
@@ -2500,11 +2579,16 @@ void Image::Blend( const Image &image, int transparency ) {
         mil_pixels);
 #endif
 
-  if (holdbuffer) {
+  // Only a buffer from AllocBuffer() can become the blend buffer, which is freed
+  // with zm_freealigned(). A caller's buffer, or one from malloc or new, gets
+  // the result copied in instead.
+  if (holdbuffer or buffertype != ZM_BUFTYPE_ZM) {
     (*fptr_imgbufcpy)(buffer, blend_buffer_, size);
   } else {
     std::swap(buffer, blend_buffer_);
-    buffertype = ZM_BUFTYPE_ZM;
+    const unsigned long buffer_allocation = allocation;
+    allocation = blend_buffer_size_;
+    blend_buffer_size_ = buffer_allocation;
   }
 }
 
@@ -2639,15 +2723,19 @@ bool Image::Delta(const Image &image, Image* targetimage) const {
   const unsigned int dst_linesize = targetimage->LineSize();
 
   // The delta8_* helpers consume whole blocks per iteration: 16 pixels for the
-  // gray8 unrolled/SSE2/NEON variants, 4 pixels for the rgb32 ones. The SSE2 and
-  // NEON variants require the pixel count to be an exact multiple of that block
-  // (a shorter count wraps the loop counter past zero and runs off the end of
-  // memory -> SIGSEGV), and the unrolled C variants overrun by up to a block.
+  // gray8 unrolled/SSE2 variants and 64 for NEON, 4 pixels for the rgb32
+  // unrolled/SSE2/SSSE3 ones and 16 for NEON. The SIMD variants require the
+  // pixel count to be an exact multiple of their block (a shorter count wraps
+  // the loop counter past zero and runs off the end of memory -> SIGSEGV or
+  // SIGBUS), and the unrolled C variants overrun by up to a block. The blocks
+  // below are the largest of these, which every variant divides.
   // update_function_pointers() only guards on total pixels % 4, which does not
   // imply the per-row width is block-aligned, so run the block-aligned bulk of
   // each row through the fast/SIMD helper and finish the remaining tail pixels
   // with the matching 1-pixel-at-a-time scalar helper (the GRAY8 target advances
   // one byte per pixel; the sources advance bpp bytes per pixel).
+  constexpr unsigned int kGray8Block = 64;
+  constexpr unsigned int kRgb32Block = 16;
   auto delta_row = [&](delta_fptr_t vec_fn, delta_fptr_t scalar_fn,
                        unsigned int block, unsigned int bpp) {
     const unsigned int bulk = width - (width % block);  // pixels for the vector helper
@@ -2663,24 +2751,24 @@ bool Image::Delta(const Image &image, Image* targetimage) const {
 
   if (imagePixFormat == AV_PIX_FMT_BGR24) {
     /* BGR subpixel order */
-    delta_row(delta8_bgr, &std_delta8_bgr, 4, 3);
+    delta_row(delta8_bgr, &std_delta8_bgr, kRgb32Block, 3);
   } else if (zm_is_rgb24(imagePixFormat)) {
     /* Assume RGB subpixel order */
-    delta_row(delta8_rgb, &std_delta8_rgb, 4, 3);
+    delta_row(delta8_rgb, &std_delta8_rgb, kRgb32Block, 3);
   } else if (imagePixFormat == AV_PIX_FMT_ARGB) {
     /* ARGB subpixel order */
-    delta_row(delta8_argb, &std_delta8_argb, 4, 4);
+    delta_row(delta8_argb, &std_delta8_argb, kRgb32Block, 4);
   } else if (imagePixFormat == AV_PIX_FMT_ABGR) {
     /* ABGR subpixel order */
-    delta_row(delta8_abgr, &std_delta8_abgr, 4, 4);
+    delta_row(delta8_abgr, &std_delta8_abgr, kRgb32Block, 4);
   } else if (imagePixFormat == AV_PIX_FMT_BGRA) {
     /* BGRA subpixel order */
-    delta_row(delta8_bgra, &std_delta8_bgra, 4, 4);
+    delta_row(delta8_bgra, &std_delta8_bgra, kRgb32Block, 4);
   } else if (zm_is_rgb32(imagePixFormat)) {
     /* Assume RGBA subpixel order */
-    delta_row(delta8_rgba, &std_delta8_rgba, 4, 4);
+    delta_row(delta8_rgba, &std_delta8_rgba, kRgb32Block, 4);
   } else if (zm_bytes_per_pixel(imagePixFormat) == 1) {
-    delta_row(delta8_gray8, &std_delta8_gray8, 16, 1);
+    delta_row(delta8_gray8, &std_delta8_gray8, kGray8Block, 1);
   } else {
     Panic("Delta called with unexpected pixel format %d (%s); legacy colours=%d",
           imagePixFormat, zm_get_pix_fmt_name(imagePixFormat), colours);
@@ -3867,6 +3955,11 @@ void Image::Deinterlace_Linear() {
   // Use linesize as the per-row byte stride so non-32-aligned widths read
   // and write the correct rows. The inner loops still process `width`
   // pixels per row; per-row padding bytes are not touched.
+  // A single row has no neighbour to interpolate from. With an odd height the
+  // last row belongs to the kept field, so only an even height has a trailing
+  // interpolated row to fill from the row above.
+  if (height < 2) return;
+  const unsigned int last_row_pixels = (height & 1) ? 0 : width;
   if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
     for (unsigned int y = 1; y < (unsigned int)(height-1); y += 2) {
       pabove = buffer + (y - 1) * linesize;
@@ -3879,7 +3972,7 @@ void Image::Deinterlace_Linear() {
     /* Special case for the last line */
     pcurrent = buffer + (height - 1) * linesize;
     pabove = buffer + (height - 2) * linesize;
-    for (unsigned int x = 0; x < (unsigned int)width; x++) {
+    for (unsigned int x = 0; x < last_row_pixels; x++) {
       *pcurrent++ = *pabove++;
     }
   } else if ( zm_is_rgb24(imagePixFormat) ) {
@@ -3896,7 +3989,7 @@ void Image::Deinterlace_Linear() {
     /* Special case for the last line */
     pcurrent = buffer + (height - 1) * linesize;
     pabove = buffer + (height - 2) * linesize;
-    for (unsigned int x = 0; x < (unsigned int)width; x++) {
+    for (unsigned int x = 0; x < last_row_pixels; x++) {
       *pcurrent++ = *pabove++;
       *pcurrent++ = *pabove++;
       *pcurrent++ = *pabove++;
@@ -3916,7 +4009,7 @@ void Image::Deinterlace_Linear() {
     /* Special case for the last line */
     pcurrent = buffer + (height - 1) * linesize;
     pabove = buffer + (height - 2) * linesize;
-    for (unsigned int x = 0; x < (unsigned int)width; x++) {
+    for (unsigned int x = 0; x < last_row_pixels; x++) {
       *pcurrent++ = *pabove++;
       *pcurrent++ = *pabove++;
       *pcurrent++ = *pabove++;
@@ -4060,6 +4153,12 @@ void Image::Deinterlace_4Field(const Image* next_image, unsigned int threshold) 
     Panic( "Attempt to deinterlace different sized images, expected %dx%dx%d %d, got %dx%dx%d %d", width, height, colours, subpixelorder, next_image->width, next_image->height, next_image->colours, next_image->subpixelorder);
   }
 
+  // The helpers pair rows up and take the last row as the end of the second
+  // field, so an odd height would make them walk one row past the image. Leave
+  // the final row of an odd height as it is.
+  const unsigned int rows = height & ~1u;
+  if (rows < 2) return;
+
   // The *_deinterlace_4field_* SIMD helpers use `width` as the row stride
   // internally and have no concept of per-row padding. With FFALIGN'd
   // linesize the source row stride may exceed width*bpp, so feeding them
@@ -4081,10 +4180,10 @@ void Image::Deinterlace_4Field(const Image* next_image, unsigned int threshold) 
   uint8_t *tmp1 = nullptr;
   uint8_t *tmp2 = nullptr;
   if (needs_pack) {
-    const size_t packed_size = row_data_bytes * height;
+    const size_t packed_size = row_data_bytes * rows;
     tmp1 = AllocBuffer(packed_size);
     tmp2 = AllocBuffer(packed_size);
-    for (unsigned int y = 0; y < height; y++) {
+    for (unsigned int y = 0; y < rows; y++) {
       memcpy(tmp1 + y * row_data_bytes, buffer + y * linesize, row_data_bytes);
       memcpy(tmp2 + y * row_data_bytes, next_image->buffer + y * next_image->linesize, row_data_bytes);
     }
@@ -4094,24 +4193,24 @@ void Image::Deinterlace_4Field(const Image* next_image, unsigned int threshold) 
 
   if (imagePixFormat == AV_PIX_FMT_BGR24) {
     /* BGR subpixel order */
-    std_deinterlace_4field_bgr(col1, col2, threshold, width, height);
+    std_deinterlace_4field_bgr(col1, col2, threshold, width, rows);
   } else if (zm_is_rgb24(imagePixFormat)) {
     /* Assume RGB subpixel order */
-    std_deinterlace_4field_rgb(col1, col2, threshold, width, height);
+    std_deinterlace_4field_rgb(col1, col2, threshold, width, rows);
   } else if (imagePixFormat == AV_PIX_FMT_ARGB) {
     /* ARGB subpixel order */
-    (*fptr_deinterlace_4field_argb)(col1, col2, threshold, width, height);
+    (*fptr_deinterlace_4field_argb)(col1, col2, threshold, width, rows);
   } else if (imagePixFormat == AV_PIX_FMT_ABGR) {
     /* ABGR subpixel order */
-    (*fptr_deinterlace_4field_abgr)(col1, col2, threshold, width, height);
+    (*fptr_deinterlace_4field_abgr)(col1, col2, threshold, width, rows);
   } else if (imagePixFormat == AV_PIX_FMT_BGRA) {
     /* BGRA subpixel order */
-    (*fptr_deinterlace_4field_bgra)(col1, col2, threshold, width, height);
+    (*fptr_deinterlace_4field_bgra)(col1, col2, threshold, width, rows);
   } else if (zm_is_rgb32(imagePixFormat)) {
     /* Assume RGBA subpixel order */
-    (*fptr_deinterlace_4field_rgba)(col1, col2, threshold, width, height);
+    (*fptr_deinterlace_4field_rgba)(col1, col2, threshold, width, rows);
   } else if (zm_bytes_per_pixel(imagePixFormat) == 1) {
-    (*fptr_deinterlace_4field_gray8)(col1, col2, threshold, width, height);
+    (*fptr_deinterlace_4field_gray8)(col1, col2, threshold, width, rows);
   } else {
     if (needs_pack) {
       DumpBuffer(tmp1, ZM_BUFTYPE_ZM);
@@ -4124,7 +4223,7 @@ void Image::Deinterlace_4Field(const Image* next_image, unsigned int threshold) 
   if (needs_pack) {
     // Copy the processed Y/primary plane back into our padded buffer,
     // touching only the data bytes per row so existing padding is intact.
-    for (unsigned int y = 0; y < height; y++) {
+    for (unsigned int y = 0; y < rows; y++) {
       memcpy(buffer + y * linesize, tmp1 + y * row_data_bytes, row_data_bytes);
     }
     DumpBuffer(tmp1, ZM_BUFTYPE_ZM);

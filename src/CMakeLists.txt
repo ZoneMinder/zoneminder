@@ -160,6 +160,15 @@ target_include_directories(zm
     ${ZM_INCLUDE_DIRS}
     )
 
+# libavdevice is loaded at runtime (zm_load_avdevice), only its headers are used
+target_include_directories(zm PRIVATE $<TARGET_PROPERTY:FFMPEG::avdevice,INTERFACE_INCLUDE_DIRECTORIES>)
+target_link_libraries(zm PUBLIC ${CMAKE_DL_LIBS})
+if(FFMPEG_avdevice_LIBRARY MATCHES "\\.(a|lib)$")
+  message(FATAL_ERROR "libavdevice is loaded at runtime and needs the shared library, but only a static one was found: ${FFMPEG_avdevice_LIBRARY}")
+endif()
+get_filename_component(ZM_AVDEVICE_DIR "${FFMPEG_avdevice_LIBRARY}" DIRECTORY)
+target_compile_definitions(zm PRIVATE ZM_AVDEVICE_DIR="${ZM_AVDEVICE_DIR}")
+
 if(ZM_STRIP_NEON)
   target_compile_definitions(zm PRIVATE ZM_STRIP_NEON=1)
 endif()
@@ -228,7 +237,6 @@ target_link_libraries(zmc
   PRIVATE
     zm-core-interface
     zm
-    FFMPEG::avdevice
     ${ZM_EXTRA_LIBS}
     ${CMAKE_DL_LIBS})
 

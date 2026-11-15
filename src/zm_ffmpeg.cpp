@@ -31,8 +31,10 @@
 
 extern "C" {
 #include <libavutil/eval.h>
+#include <libavdevice/version.h>
 #include <libavutil/pixdesc.h>
 }
+#include <dlfcn.h>
 
 #include <atomic>
 
@@ -644,6 +646,36 @@ void log_libav_callback(void *ptr, int level, const char *fmt, va_list vargs) {
 }
 
 static bool bInit = false;
+
+// libavdevice pulls in libavfilter and its dependencies (on some distros OpenBLAS,
+// which starts a thread per core), so it is only loaded when a V4L2 input needs it.
+bool zm_load_avdevice() {
+  static const bool loaded = []() {
+#ifdef __APPLE__
+    const std::string soname = stringtf("libavdevice.%d.dylib", LIBAVDEVICE_VERSION_MAJOR);
+#else
+    const std::string soname = stringtf("libavdevice.so.%d", LIBAVDEVICE_VERSION_MAJOR);
+#endif
+    void *handle = dlopen(soname.c_str(), RTLD_NOW | RTLD_GLOBAL);
+#ifdef ZM_AVDEVICE_DIR
+    // Where cmake found it, for installs off the default search path (Homebrew)
+    if (!handle) handle = dlopen((ZM_AVDEVICE_DIR "/" + soname).c_str(), RTLD_NOW | RTLD_GLOBAL);
+#endif
+    if (!handle) {
+      Error("Cannot load %s: %s", soname.c_str(), dlerror());
+      return false;
+    }
+    void (*register_all)() = nullptr;
+    *reinterpret_cast<void **>(&register_all) = dlsym(handle, "avdevice_register_all");
+    if (!register_all) {
+      Error("Cannot find avdevice_register_all in %s: %s", soname.c_str(), dlerror());
+      return false;
+    }
+    register_all();
+    return true;
+  }();
+  return loaded;
+}
 
 void FFMPEGInit() {
 

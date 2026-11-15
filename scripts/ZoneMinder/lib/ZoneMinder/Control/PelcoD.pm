@@ -536,7 +536,7 @@ sub irisConOpen
     my $params = shift;
     my $autostop = $self->getParam( $params, 'autostop', 0 );
     Debug( "Iris Open" );
-    my @msg = ( SYNC, $self->{Monitor}->{ControlAddress}, 0x02, 0x80, 0x00, 0x00 );
+    my @msg = ( SYNC, $self->{Monitor}->{ControlAddress}, 0x02, 0x00, 0x00, 0x00 );
     $self->sendCmd( \@msg );
     if( $autostop && $self->{Monitor}->{AutoStopTimeout} )
     {

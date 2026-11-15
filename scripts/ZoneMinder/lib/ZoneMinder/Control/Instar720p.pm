@@ -321,8 +321,8 @@ sub moveConDownLeft {
 sub moveStop {
   my $self = shift;
   Debug('Pan/Tilt stop');
-  $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
   $self->sendCmd('ptzctrl.cgi?-step=0&-act=stop');
+  $$self{Monitor}->resumeMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
 }
 
 sub presetHome {

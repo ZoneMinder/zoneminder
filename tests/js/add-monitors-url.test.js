@@ -86,5 +86,11 @@ test('no stray top level parameters are created', () => {
   keys.forEach((k) => assert.ok(k === 'view' || k.startsWith('newMonitor['), k));
 });
 
+test('the toolbar Add New Monitor button opens a blank monitor', () => {
+  const page = load();
+  page.api.addMonitor({getAttribute: () => null});
+  assert.deepStrictEqual(page.navigated, ['?view=monitor']);
+});
+
 console.log(passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);

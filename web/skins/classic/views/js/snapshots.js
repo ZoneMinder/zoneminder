@@ -50,6 +50,8 @@ function ajaxRequest(params) {
         params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
       })
       .fail(function(jqXHR) {
+        // Every reload aborts the request in flight, so those are not failures.
+        if (jqXHR.statusText == 'abort') return;
         ajax = null;
         logAjaxFail(jqXHR);
         table.bootstrapTable('refresh');

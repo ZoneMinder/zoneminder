@@ -92,18 +92,17 @@ $EventsByMonitor = array();
 while ( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
   $Event = new ZM\Event($event);
   if ( ! isset($EventsByMonitor[$event['MonitorId']]) )
-    $EventsByMonitor[$event['MonitorId']] = array('Events'=>array(), 'MinGap'=>0, 'MaxGap'=>0, 'FileMissing'=>array(), 'ZeroSize'=>array());
+    $EventsByMonitor[$event['MonitorId']] = array('Events'=>array(), 'MinGap'=>null, 'MaxGap'=>null, 'FileMissing'=>array(), 'ZeroSize'=>array());
 
   if ( count($EventsByMonitor[$event['MonitorId']]['Events']) ) {
     $last_event = end($EventsByMonitor[$event['MonitorId']]['Events']);
 #Debug(print_r($last_event,true));
     // An event still recording has no end to measure a gap from
     if ( $last_event->EndTimeSecs() !== null ) {
-      $gap = $last_event->EndTimeSecs() - $event['StartTimeSecs'];
-
-      if ( $gap < $EventsByMonitor[$event['MonitorId']]['MinGap'] )
+      $gap = $event['StartTimeSecs'] - $last_event->EndTimeSecs();
+      if ( $EventsByMonitor[$event['MonitorId']]['MinGap'] === null or $gap < $EventsByMonitor[$event['MonitorId']]['MinGap'] )
         $EventsByMonitor[$event['MonitorId']]['MinGap'] = $gap;
-      if ( $gap > $EventsByMonitor[$event['MonitorId']]['MaxGap'] )
+      if ( $EventsByMonitor[$event['MonitorId']]['MaxGap'] === null or $gap > $EventsByMonitor[$event['MonitorId']]['MaxGap'] )
         $EventsByMonitor[$event['MonitorId']]['MaxGap'] = $gap;
     }
 
@@ -161,8 +160,8 @@ for ( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
 
   if ( isset($EventsByMonitor[$Monitor->Id()]) ) {
     $EventCounts = $EventsByMonitor[$Monitor->Id()];
-    $MinGap = $EventCounts['MinGap'];
-    $MaxGap = $EventCounts['MaxGap'];
+    $MinGap = $EventCounts['MinGap'] ?? 0;
+    $MaxGap = $EventCounts['MaxGap'] ?? 0;
     $FileMissing = $EventCounts['FileMissing'];
     $ZeroSize = $EventCounts['ZeroSize'];
     $FirstEvent = $EventCounts['Events'][0];

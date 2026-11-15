@@ -38,6 +38,7 @@
 #include <sys/un.h>
 #include <sys/wait.h>
 #include <thread>
+#include <type_traits>
 #include <unistd.h>
 
 // zm_die_handler is defined in zm_signal.cpp with external linkage but is not
@@ -549,3 +550,12 @@ TEST_CASE("a crash with ZM_DUMP_CORES on leaves the process dumpable", "[signal]
   REQUIRE(dumpable_during_report(true) == 1);
 }
 #endif
+
+TEST_CASE("zm_reload is atomic and set by zm_hup_handler", "[signal]") {
+  STATIC_REQUIRE(std::is_same_v<decltype(zm_reload), std::atomic<bool>>);
+  REQUIRE(zm_reload.is_lock_free());
+  zm_reload = false;
+  zm_hup_handler(SIGHUP);
+  REQUIRE(zm_reload.load() == true);
+  zm_reload = false;
+}

@@ -26,6 +26,7 @@
 #include <cstring>
 #include <fcntl.h>
 #include <memory>
+#include <pthread.h>
 #ifdef __linux__
 #include <sys/prctl.h>
 #endif
@@ -206,7 +207,7 @@ const char *crash_signal_name(int signal) {
   sigset_t unblock;
   sigemptyset(&unblock);
   sigaddset(&unblock, signal);
-  sigprocmask(SIG_UNBLOCK, &unblock, nullptr);
+  pthread_sigmask(SIG_UNBLOCK, &unblock, nullptr);
 
   raise(signal);
   _exit(-1);  // Fallback if raise() somehow did not terminate us.
@@ -215,7 +216,8 @@ const char *crash_signal_name(int signal) {
 // The crash report has taken too long: end the process on the signal it was
 // reporting.
 void crash_report_timeout(int) {
-  die_of(crash_signal.load());
+  int sig = crash_signal.load();
+  die_of(sig ? sig : SIGALRM);
 }
 
 // Bound the time left for the crash report of signal. alarm() and sigaction()
@@ -229,7 +231,7 @@ void limit_crash_report(int signal) {
   sigset_t unblock;
   sigemptyset(&unblock);
   sigaddset(&unblock, SIGALRM);
-  sigprocmask(SIG_UNBLOCK, &unblock, nullptr);
+  pthread_sigmask(SIG_UNBLOCK, &unblock, nullptr);
   alarm(kCrashReportSeconds);
 }
 
@@ -247,7 +249,7 @@ thread_local ThreadAltStack thread_alt_stack;
 
 }  // namespace
 
-bool zm_reload = false;
+std::atomic<bool> zm_reload = false;
 std::atomic<bool> zm_terminate = false;
 
 void zmSetCrashLogFile(int fd) {

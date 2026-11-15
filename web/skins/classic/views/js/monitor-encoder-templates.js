@@ -8,14 +8,14 @@
 (function(global) {
   'use strict';
 
-  // Pairs separated by any of \n, , or #, matching av_dict_parse_string
-  // in src/zm_videostore.cpp:115. Each pair is "key=value" split on the
-  // first =. Whitespace around key and value is trimmed. Pairs without
+  // Pairs separated by \n or , with # starting a comment to the end of the
+  // line, matching zm_parse_options in src/zm_ffmpeg.cpp. Each pair is
+  // "key=value" split on the first =. Whitespace around key and value is trimmed. Pairs without
   // = and pairs with empty key are dropped.
   function parseParams(text) {
     if (!text) return [];
     const out = [];
-    const pairs = String(text).split(/[#,\n]/);
+    const pairs = String(text).replace(/#[^\n]*/g, '').split(/[,\n]/);
     for (const p of pairs) {
       const idx = p.indexOf('=');
       if (idx < 0) continue;

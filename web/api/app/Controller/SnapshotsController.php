@@ -184,15 +184,13 @@ class SnapshotsController extends AppController {
     }
 
 		if ( $this->Snapshot->delete() ) {
-      return $this->flash(
-        __('The snapshot has been deleted.'),
-        array('action' => 'index')
-      );
+      $this->set(array(
+        'message' => 'Deleted',
+        '_serialize' => array('message'),
+      ));
+      return;
 		} else {
-      return $this->flash(
-        __('The snapshot could not be deleted. Please, try again.'),
-        array('action' => 'index')
-      );
+      throw new InternalErrorException(__('The snapshot could not be deleted.'));
 		}
   } // end function delete
   

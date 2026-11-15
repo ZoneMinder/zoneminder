@@ -239,15 +239,13 @@ class GroupsController extends AppController {
     dbQuery('UPDATE `Groups` SET `ParentId`=NULL WHERE `ParentId`=?', array($id));
 
 		if ( $this->Group->delete() ) {
-      return $this->flash(
-        __('The group has been deleted.'),
-        array('action' => 'index')
-      );
+      $this->set(array(
+        'message' => 'Deleted',
+        '_serialize' => array('message'),
+      ));
+      return;
 		} else {
-      return $this->flash(
-        __('The group could not be deleted. Please, try again.'),
-        array('action' => 'index')
-      );
+      throw new InternalErrorException(__('The group could not be deleted.'));
 		}
   } // end function delete
   

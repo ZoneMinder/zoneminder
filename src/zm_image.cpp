@@ -926,14 +926,19 @@ void Image::AssignDirect(
     return;
   }
 
+  // The caller hands over new_buffer, so release it when refusing it
+  auto refuse = [&]() { if (new_buffer != buffer) DumpBuffer(new_buffer, p_buffertype); };
+
   if ( !p_height || !p_width ) {
     Error("Attempt to directly assign buffer with invalid width or height: %d %d", p_width, p_height);
+    refuse();
     return;
   }
 
   AVPixelFormat new_pix_fmt = zm_pixformat_from_colours(p_colours, p_subpixelorder);
   if (new_pix_fmt == AV_PIX_FMT_NONE) {
     Error("Attempt to directly assign buffer with unexpected colours per pixel: %d", p_colours);
+    refuse();
     return;
   }
 
@@ -950,6 +955,7 @@ void Image::AssignDirect(
   int av_linesize = FFALIGN(av_image_get_linesize(new_pix_fmt, p_width, 0), 32);
   if (av_size < 0 || av_linesize < 0) {
     Error("AssignDirect: av_image sizing failed for %s %ux%u", av_get_pix_fmt_name(new_pix_fmt), p_width, p_height);
+    refuse();
     return;
   }
   size_t new_buffer_size = static_cast<size_t>(av_size);
@@ -957,12 +963,14 @@ void Image::AssignDirect(
   if ( buffer_size < new_buffer_size ) {
     Error("Attempt to directly assign buffer from an undersized buffer of size: %zu, needed %dx%d %s = %zu",
           buffer_size, p_width, p_height, av_get_pix_fmt_name(new_pix_fmt), new_buffer_size);
+    refuse();
     return;
   }
 
   if ( holdbuffer && buffer ) {
     if ( new_buffer_size > allocation ) {
       Error("Held buffer is undersized for assigned buffer");
+      refuse();
       return;
     } else {
       /* Copy into the held buffer */

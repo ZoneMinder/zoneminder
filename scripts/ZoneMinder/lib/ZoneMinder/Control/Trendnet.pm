@@ -49,10 +49,6 @@ sub sendCmd {
   my $cmd = shift;
   my $url = '/cgi/ptdc.cgi?command='.$cmd;
   my $res = $self->get($url);
-  if (!$res->is_success) {
-    Error("sendCmdPost Error check failed: '".$res->status_line()."' cmd:");
-    return;
-  }
 
   if (!$self->{Monitor}->{ModectDuringPTZ}) {
     usleep(10000);

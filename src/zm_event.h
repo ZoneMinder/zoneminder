@@ -137,6 +137,7 @@ class Event {
   uint64_t  id;
   Monitor      *monitor;
   Storage *storage;
+  unsigned int storage_id;
   PacketQueue * packetqueue;
   packetqueue_iterator * packetqueue_it;
   SystemTimePoint start_time;

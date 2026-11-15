@@ -90,6 +90,7 @@ set(TEST_SOURCES
   zm_zone_filter_box.cpp
   zm_zone_inactive.cpp
   zm_zone_degenerate.cpp
+  zm_zone_load_row.cpp
   zm_image_linesize.cpp
   zm_image_blend.cpp
   zm_image_delta.cpp

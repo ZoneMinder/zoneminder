@@ -66,6 +66,11 @@ if ( $action == 'create' ) {
   foreach ( $monitors as $monitor ) {
     $monitor->TriggerOff();
   }
+  if (!count($snapshot->EventIds())) {
+    ZM\Error('No events were created for snapshot '.$snapshot->Id().', removing it');
+    $snapshot->delete();
+    return;
+  }
   $dbConn->beginTransaction();
   foreach ( $snapshot->Events() as $event ) {
     $event->lock();

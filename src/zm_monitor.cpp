@@ -2098,6 +2098,15 @@ void Monitor::UpdateFPS() {
   } // now != last_fps_time
 }  // void Monitor::UpdateFPS()
 
+// Time spent connecting and priming is not capture time: count from here
+void Monitor::ResetFPSBaseline() {
+  last_fps_time = std::chrono::system_clock::now();
+  last_capture_image_count = shared_data->image_count;
+  last_motion_frame_count = motion_frame_count;
+  last_camera_bytes = camera->Bytes();
+  last_status_time = last_fps_time - Seconds(id % kStatusUpdateInterval.count());
+}
+
 //Thread where ONVIF polling, and other similar status polling can happen.
 //Since these can be blocking, run here to avoid intefering with other processing.
 //PollThread::Run() calls this every 10 seconds.

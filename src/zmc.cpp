@@ -310,6 +310,7 @@ int main(int argc, char *argv[]) {
         monitor->SetHeartbeatTime(std::chrono::system_clock::now());
       }
       if (zm_terminate) break;
+      monitor->ResetFPSBaseline();
       if (priming_failed)
         monitor->SendStreamHealthEvent(zm::stream_socket::kEventPrimeCaptureRestored,
                                        "Capture priming restored");
@@ -346,12 +347,15 @@ int main(int argc, char *argv[]) {
           const Monitor::OndemandStep step = monitors[i]->CheckOndemand();
           if (step == Monitor::OndemandStep::PAUSE) monitors[i]->Pause();
           if (step == Monitor::OndemandStep::PAUSE or step == Monitor::OndemandStep::SLEEP) {
+            monitors[i]->UpdateFPS();
             std::this_thread::sleep_for(Microseconds(100000));
             result = 0;
             continue;
           }
           if (step == Monitor::OndemandStep::PLAY) {
-            if (1 > (result = monitors[i]->Play())) {
+            const int play_result = monitors[i]->Play();
+            if (1 > play_result) {
+              result = play_result;
               Debug(1, "Failed to play");
               break;
             }

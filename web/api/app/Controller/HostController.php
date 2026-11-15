@@ -275,12 +275,21 @@ class HostController extends AppController {
     }
 
     if ( $mid ) {
-      // Get disk usage for $mid
-      ZM\Debug("Executing du -s0 $zm_dir_events/$mid | awk '{print \$1}'");
-      $usage = shell_exec("du -s0 ".escapeshellarg($zm_dir_events.'/'.$mid)." | awk '{print \$1}'");
+      $one = $this->Monitor->find('first', array('conditions' => array('Id' => $mid)));
+      $zm_monitor = new ZM\Monitor($one['Monitor']);
+      $name = $zm_monitor->Name();
+      $color = $zm_monitor->WebColour();
+      $space = $this->_getMonitorDiskUsage($zm_monitor, $mid, $zm_dir_events);
+
+      $usage = array(
+        $name => array(
+          'space' => $space,
+          'color' => $color
+        )
+      );
     } else {
       $monitors = $this->Monitor->find('all', array(
-        'fields' => array('Id', 'Name', 'WebColour')
+        'fields' => array('Id', 'Name', 'WebColour', 'StorageId')
       ));
       $usage = array();
 
@@ -292,14 +301,10 @@ class HostController extends AppController {
         $name = $value['Monitor']['Name'];
         $color = $value['Monitor']['WebColour'];
 
-        $space = shell_exec("du -s0 ".escapeshellarg($zm_dir_events.'/'.$id)." | awk '{print $1}'");
-        if ( $space == null ) {
-          $space = 0;
-        }
-        $space = $space/1024/1024;
+        $space = $this->_getMonitorDiskUsage($zm_monitor, $id, $zm_dir_events);
 
         $usage[$name] = array(
-          'space' => rtrim($space),
+          'space' => $space,
           'color' => $color
         );
       }
@@ -317,6 +322,20 @@ class HostController extends AppController {
       'usage' => $usage,
       '_serialize' => array('usage')
     ));
+  }
+
+  private function _getMonitorDiskUsage($zm_monitor, $monitorId, $zm_dir_events) {
+    $storage = $zm_monitor->Storage();
+    $storagePath = $storage->Path();
+    $basePath = $storagePath ? $storagePath : $zm_dir_events;
+    $path = $basePath . '/' . $monitorId;
+
+    $space = shell_exec("du -s0 ".escapeshellarg($path)." | awk '{print \$1}'");
+    if ( $space == null ) {
+      $space = 0;
+    }
+    $space = $space/1024/1024;
+    return rtrim($space);
   }
 
   function getTimeZone() {

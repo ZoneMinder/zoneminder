@@ -99,7 +99,7 @@ sub getCamParams
     my $self = shift;
     my $cmd = "cgi-bin/hi3510/param.cgi?cmd=getimageattr";
     
-    my $req = $self->sendCmd( $cmd );
+    my $req = HTTP::Request->new( GET=>"http://".$self->{Monitor}->{ControlAddress}."/$cmd" );
     my $res = $self->{ua}->request($req);
 
     if ( $res->is_success )

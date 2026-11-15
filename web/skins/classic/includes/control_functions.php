@@ -99,7 +99,7 @@ function controlWhite($monitor, $cmds) {
   <div class="arrowLabel"><?php echo translate('In') ?></div>
   <button type="button" class="longArrowBtn upBtn" value="<?php echo $cmds['WhiteIn'] ?>" <?php echo $cmd ?> data-xtell="0" data-ytell="-1"></button>
   <button type="button" class="arrowCenter"<?php if ( $control->CanWhiteCon() ) { ?> data-on-click="controlCmd" value="<?php echo $cmds['WhiteStop'] ?>"<?php } ?>><?php echo translate('White') ?></button>
-  <button type="button" class="longArrowBtn downBtn" value="<?php echo $cmds['WhiteOut'] ?>" <?php echo $cmd ?> data-xtell="0" data-ytell="1)"></button>
+  <button type="button" class="longArrowBtn downBtn" value="<?php echo $cmds['WhiteOut'] ?>" <?php echo $cmd ?> data-xtell="0" data-ytell="1"></button>
   <div class="arrowLabel"><?php echo translate('Out') ?></div>
 <?php
   if ( $control->CanAutoWhite() ) {

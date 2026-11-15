@@ -1231,9 +1231,9 @@ bool EventStream::sendFrame(Microseconds delta_us) {
       if (!rc) return false;
     }  // end if send_raw or not
 
+    fputs("\r\n", stdout);
   }  // end if stream MPEG or other
 
-  fputs("\r\n", stdout);
   fflush(stdout);
   last_frame_sent = now;
   return true;

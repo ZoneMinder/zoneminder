@@ -63,9 +63,10 @@ if ($action == 'save') {
 
     $id = empty($_REQUEST['id']) ? 0 : validInt($_REQUEST['id']);
     $job = $id ? ZM\CronJob::find_one(array('Id'=>$id)) : new ZM\CronJob();
-    if (!$job) $job = new ZM\CronJob();
 
-    if ($job->Id()) {
+    if (!$job) {
+      $cron_error = 'The scheduled task no longer exists';
+    } else if ($job->Id()) {
       if ($job->save($values)) {
         ZM\Info('Updated scheduled task '.$job->Id().': '.$schedule.' '.$command);
       } else {

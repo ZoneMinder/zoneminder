@@ -37,7 +37,7 @@ if ($filter) {
     foreach ($_REQUEST['GroupId'] as $group_id) {
       $group = ZM\Group::find_one(['Id'=>$group_id]);
       if ($group) {
-        $monitor_ids += $group->MonitorIds();
+        $monitor_ids = array_merge($monitor_ids, $group->MonitorIds());
         $exportFileName .= ' '.$group->Name();
       }
     }

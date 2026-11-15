@@ -65,6 +65,17 @@ void Logger::usrHandler(int sig) {
     smLevelChange--;
 }
 
+Logger *Logger::fetchSlow() {
+  if (!smInstance) {
+    smInstance = new Logger();
+    Options options;
+    smInstance->initialise("undef", options);
+  }
+  if (smLevelChange.load(std::memory_order_relaxed))
+    smInstance->applyLevelChange();
+  return smInstance;
+}
+
 void Logger::applyLevelChange() {
   int change = smLevelChange.exchange(0);
   if (!change) return;

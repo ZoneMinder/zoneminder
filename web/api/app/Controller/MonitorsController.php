@@ -164,7 +164,12 @@ class MonitorsController extends AppController {
       $this->pinRequestId($this->Monitor, null);
       $this->Monitor->create();
       if ($this->Monitor->save($this->request->data) ) {
-        $this->runDaemonControl($this->Monitor->id, 'start');
+        $saved = new ZM\Monitor($this->Monitor->find('first', array(
+          'conditions' => array('Id' => $this->Monitor->id)
+        ))['Monitor']);
+        if ($saved->Capturing() != 'None' and $saved->Type() != 'WebSite') {
+          $saved->zmcControl('start');
+        }
         //return $this->flash(__('The monitor has been saved.'), array('action' => 'index'));
         $message = 'Saved';
       } else {

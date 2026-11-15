@@ -124,26 +124,30 @@ sub moveConRight
 
 sub moveConUpRight
 {
-    moveConUp();
-    moveConRight();
+    my $self = shift;
+    $self->moveConUp();
+    $self->moveConRight();
 }
 
 sub moveConUpLeft
 {
-    moveConUp();
-    moveConLeft();
+    my $self = shift;
+    $self->moveConUp();
+    $self->moveConLeft();
 }
 
 sub moveConDownRight
 {
-    moveConDown();
-    moveConRight();
+    my $self = shift;
+    $self->moveConDown();
+    $self->moveConRight();
 }
 
 sub moveConDownLeft
 {
-    moveConDown();
-    moveConLeft();
+    my $self = shift;
+    $self->moveConDown();
+    $self->moveConLeft();
 }
 
 sub presetHome

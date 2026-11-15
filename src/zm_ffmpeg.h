@@ -346,7 +346,8 @@ AVCodecContext *open_fallback_decoder(const AVCodecParameters *codecpar, const A
 // Like av_dict_parse_string() with "=" between key and value, but an entry with
 // no '=' or no value is skipped with a warning. av_dict_parse_string() would
 // otherwise make it the front of the next entry's key (or take the next entry
-// as its value), silently dropping that option.
+// as its value), silently dropping that option. When separators include '#',
+// a '#' starts a comment that runs to the end of the line.
 int zm_parse_options(AVDictionary **pm, const std::string &options, const char *separators);
 // Reads a non-negative number the way ffmpeg options do, so "2M" and "500k"
 // work. Returns false, leaving out untouched, for anything else.

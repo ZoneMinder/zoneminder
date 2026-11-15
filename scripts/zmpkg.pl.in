@@ -398,6 +398,12 @@ sub verifyFolder {
       # chown the directory
       my ( $webName, $webPass, $webUid, $webGid ) = getpwnam($Config{ZM_WEB_USER})
         or Fatal("Can't get details for web user '$Config{ZM_WEB_USER}': $!");
+      my $webGroupGid = (getgrnam($Config{ZM_WEB_GROUP}))[2];
+      if ( defined $webGroupGid ) {
+        $webGid = $webGroupGid;
+      } else {
+        Warning("Can't get details for web group '$Config{ZM_WEB_GROUP}', using primary group of '$Config{ZM_WEB_USER}'");
+      }
       chown($webUid, $webGid, $folder)
         or Fatal("Can't change ownership of '$folder' to '"
             .$Config{ZM_WEB_USER}.':'.$Config{ZM_WEB_GROUP}."': $!"

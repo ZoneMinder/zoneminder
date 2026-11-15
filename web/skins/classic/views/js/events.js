@@ -64,9 +64,7 @@ function ajaxRequest(params) {
       }
       var rows = processRows(data.rows);
       // Store footer totals data
-      if (data.footerData) {
-        footerData = data.footerData;
-      }
+      footerData = data.footerData || {DiskSpace: '', Length: 0};
       // rearrange the result into what bootstrap-table expects
       params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
     },
@@ -93,6 +91,7 @@ function ajaxRequest(params) {
 }
 
 function processRows(rows) {
+  if (!rows) return [];
   $j.each(rows, function(ndx, row) {
     var eid = row.Id;
     var archived = row.Archived == yesString ? archivedString : '';
@@ -101,12 +100,13 @@ function processRows(rows) {
     row.Id = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + eid + '</a>';
     row.Name = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.Name + '</a>' +
         '<br/><div class="small text-muted">' + archived + emailed + '</div>';
-    if ( canEdit.Monitors ) row.Monitor = '<a href="?view=event&amp;eid=' + eid + '">' + row.Monitor + '</a>';
-    if ( canEdit.Events ) row.Cause = '<a href="#" title="' + row.Notes + '" class="eDetailLink" data-eid="' + eid + '">' + row.Cause + '</a>';
-    if ( row.Notes.indexOf('detected:') >= 0 ) {
-      row.Cause = row.Cause + '<a href="#" class="objDetectLink" data-eid=' +eid+ '><div class="small text-muted"><u>' + row.Notes + '</u></div></div></a>';
-    } else if ( row.Notes != 'Forced Web: ' ) {
-      row.Cause = row.Cause + '<br/><div class="small text-muted">' + row.Notes + '</div>';
+    if ( typeof canView !== 'undefined' && canView.Events ) row.Monitor = '<a href="?view=event&amp;eid=' + eid + '">' + row.Monitor + '</a>';
+    const notes = row.Notes || '';
+    if ( canEdit.Events ) row.Cause = '<a href="#" title="' + notes + '" class="eDetailLink" data-eid="' + eid + '">' + row.Cause + '</a>';
+    if ( notes.indexOf('detected:') >= 0 ) {
+      row.Cause = row.Cause + '<a href="#" class="objDetectLink" data-eid=' +eid+ '><div class="small text-muted"><u>' + notes + '</u></div></div></a>';
+    } else if ( notes && notes != 'Forced Web: ' ) {
+      row.Cause = row.Cause + '<br/><div class="small text-muted">' + notes + '</div>';
     }
     row.Frames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.Frames + '</a>';
     row.AlarmFrames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.AlarmFrames + '</a>';
@@ -649,7 +649,7 @@ function filterEvents(clickedElement, options) {
 
 // Footer formatter for total duration
 function totalLengthFormatter(data) {
-  if (footerData.Length) {
+  if (footerData && footerData.Length) {
     const totalSeconds = Math.floor(footerData.Length);
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -663,7 +663,7 @@ function totalLengthFormatter(data) {
 
 // Footer formatter for total disk space
 function totalDiskSpaceFormatter(data) {
-  return footerData.DiskSpace || '';
+  return (footerData && footerData.DiskSpace) || '';
 }
 
 $j(document).ready(function() {

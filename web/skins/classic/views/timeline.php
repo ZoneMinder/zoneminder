@@ -371,7 +371,7 @@ while ($event = $events_result->fetch(PDO::FETCH_ASSOC)) {
 
       $i = $startIndex;
       if ( !isset($currFrameSlots[$i]) ) {
-        $currFrameSlots[$i] = array('count'=>1, 'value'=>$event['MaxScore'], 'event'=>$event, 'frame'=>$frame, 'id'=>$frame['FrameId']);
+        $currFrameSlots[$i] = array('count'=>1, 'value'=>$event['MaxScore'], 'event'=>$event, 'frame'=>$frame, 'id'=>$frame['FrameId'] ?? null);
       } else {
         $currFrameSlots[$i]['count']++;
         if ( $event['MaxScore'] > $currFrameSlots[$i]['value'] ) {

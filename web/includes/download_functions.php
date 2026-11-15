@@ -182,6 +182,7 @@ function downloadEvents(
         ZM\Error("Can't open event images export file 'event_files.txt'");
       }
       $cmd = ZM_PATH_FFMPEG.' -f concat -safe 0 -i event_files.txt -c copy '.escapeshellarg($export_dir.'/'.$mergedFileName). ' 2>&1';
+      $output = array();
       exec($cmd, $output, $return);
       ZM\Debug($cmd.' return code: '.$return.' output: '.print_r($output,true));
       $exportFileList[] = $mergedFileName;

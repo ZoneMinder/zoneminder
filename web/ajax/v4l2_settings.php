@@ -4,8 +4,8 @@ if (empty($_REQUEST['mid'])) {
   ZM\Warning('Settings requires a monitor id');
   return;
 }
-if (!canView('Control', $_REQUEST['mid'])) {
-  ZM\Warning('Settings requires the Control permission');
+if (!canView('Control', $_REQUEST['mid']) or !canEdit('Control')) {
+  ZM\Warning('Settings requires the Control edit permission');
   return;
 }
 

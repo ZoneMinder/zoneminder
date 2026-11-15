@@ -209,8 +209,6 @@ sub moveConLeft
     if ( $panspeed < 6 ) {
            $panspeed = 1;
                }
-    # Algorithme pour inverser la table de valeur de la flèche gauche, (for invert the value) 63 ==> 1 et 1 ==> 63 ...
-    $panspeed = abs($panspeed - 63) + 1;
     Debug( "Move Left" );
     if ( $osd eq "on" )
    {

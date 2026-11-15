@@ -146,13 +146,13 @@ class Event extends ZM_Object {
 
   public function Time() {
     if ( ! isset($this->{'Time'}) ) {
-      $this->{'Time'} = strtotime($this->{'StartDateTime'});
+      $this->{'Time'} = $this->StartDateTimeSecs();
     }
     return $this->{'Time'};
   }
 
   public function StartDateTimeSecs() {
-    return strtotime($this->{'StartDateTime'});
+    return empty($this->{'StartDateTime'}) ? false : strtotime($this->{'StartDateTime'});
   }
 
   public function EndDateTimeSecs() {
@@ -182,6 +182,11 @@ class Event extends ZM_Object {
   public function Relative_Path() {
     $event_path = '';
 
+    if ( ($this->{'Scheme'} == 'Deep' or $this->{'Scheme'} == 'Medium') and !$this->StartDateTimeSecs() ) {
+      Error('Event '.$this->{'Id'}.' has no StartDateTime, unable to determine path');
+      return '';
+    }
+
     if ( $this->{'Scheme'} == 'Deep' ) {
       $event_path = $this->{'MonitorId'}.'/'.date('y/m/d/H/i/s', $this->Time());
     } else if ( $this->{'Scheme'} == 'Medium' ) {
@@ -195,6 +200,10 @@ class Event extends ZM_Object {
 
   public function Link_Path() {
     if ( $this->{'Scheme'} == 'Deep' ) {
+      if ( !$this->StartDateTimeSecs() ) {
+        Error('Event '.$this->{'Id'}.' has no StartDateTime, unable to determine link path');
+        return '';
+      }
       return $this->{'MonitorId'}.'/'.date('y/m/d/.', $this->Time()).$this->{'Id'};
     }
     Error('Calling Link_Path when not using deep storage');
@@ -220,6 +229,11 @@ class Event extends ZM_Object {
         $dbConn->rollback();
         return;
       }
+      if ( ($this->{'Scheme'} == 'Deep' or $this->{'Scheme'} == 'Medium') and !$this->StartDateTimeSecs() ) {
+        Error('Event '.$this->{'Id'}.' has no start date time, not deleting.');
+        $dbConn->rollback();
+        return;
+      }
       # dbQuery() reports a failed statement by returning null, not by throwing
       foreach (array('Stats', 'Event_Data', 'Frames') as $table) {
         if (null === dbQuery('DELETE FROM '.$table.' WHERE EventId = ?', array($this->{'Id'}))) {
@@ -241,13 +255,6 @@ class Event extends ZM_Object {
     # The rows are gone, so a failure below leaves files for zmaudit to remove
     try {
       if ( $this->{'Scheme'} == 'Deep' ) {
-
-        # Assumption: All events have a start time
-        $start_date = date_parse($this->{'StartDateTime'});
-        if ( ! $start_date ) {
-          throw new \Exception('Unable to parse start date time for event ' . $this->{'Id'} . ' not deleting files.');
-        }
-        $start_date['year'] = $start_date['year'] % 100;
 
         # So this is because ZM creates a link under the day pointing to the time that the event happened. 
         $link_path = $this->Link_Path();

@@ -1003,11 +1003,11 @@
     }
     const form = document.zoneForm;
     // A typed event id wins over the list; the server checks it is this
-    // monitor's.
+    // monitor's. Parsed here, as it also goes into the replay's image URLs.
     const data = {
       command: 'test',
       mid: zone.MonitorId, zid: form.elements['zid'].value,
-      eid: typed && typed.value.trim() !== '' ? typed.value.trim() : select.value,
+      eid: parseInt(typed && typed.value.trim() !== '' ? typed.value : select.value, 10),
     };
     // zma measures with the form's pixel threshold, filter and blob size, but
     // with every alarmed/filtered limit off and all three stages on, so it

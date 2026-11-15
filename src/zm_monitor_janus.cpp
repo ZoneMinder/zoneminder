@@ -114,8 +114,14 @@ int Monitor::JanusManager::check_janus() {
   if (janus_handle.empty()) get_janus_handle();
 
   if (Use_RTSP_Restream) {
-    Hours hours = Hours(config.auth_hash_ttl);
-    if (std::chrono::steady_clock::now()-rtsp_auth_time > hours/2) {
+    // Auth hashes are tied to the clock hour: refresh at the top of the hour,
+    // TTL-1 hours (at least 1) after the hour the current hash was made in.
+    auto age = std::chrono::steady_clock::now() - rtsp_auth_time;
+    time_t minted_t = std::chrono::system_clock::to_time_t(
+        std::chrono::system_clock::now() - std::chrono::duration_cast<std::chrono::system_clock::duration>(age));
+    tm minted_tm = {};
+    localtime_r(&minted_t, &minted_tm);
+    if (age + Minutes(minted_tm.tm_min) + Seconds(minted_tm.tm_sec) >= Hours(std::max(config.auth_hash_ttl - 1, 1))) {
       remove_from_janus();
       load_from_monitor();
       // 0 tells Monitor::Poll the mountpoint is missing and to add it again.

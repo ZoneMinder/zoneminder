@@ -58,7 +58,7 @@ struct StaticConfig {
   std::string DB_SSL_VERIFY_SERVER_CERT;
   std::string PATH_WEB;
   std::string SERVER_NAME;
-  unsigned int SERVER_ID;
+  unsigned int SERVER_ID = 0;
   std::string DIR_EVENTS;
   std::string DIR_SOUNDS;
   std::string DIR_EXPORTS;

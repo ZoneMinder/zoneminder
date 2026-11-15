@@ -428,7 +428,8 @@ class Filter extends ZM_Object {
           'http' => array(
             'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
             'method'  => 'POST',
-            'content' => http_build_query($data)
+            'content' => http_build_query($data),
+            'timeout' => 10
           ),
           'ssl'=>array(
             'verify_peer'=>false,

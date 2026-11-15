@@ -230,6 +230,9 @@ class Server extends ZM_Object {
         "verify_peer"=>false,
         "verify_peer_name"=>false,
       ),
+      "http"=>array(
+        "timeout"=>10,
+      ),
     );
     $context = stream_context_create($context_options);
     try {

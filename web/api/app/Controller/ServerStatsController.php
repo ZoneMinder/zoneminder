@@ -162,9 +162,13 @@ class ServerStatsController extends AppController {
     $this->request->allowMethod('post', 'delete');
 
     if ( $this->ServerStat->delete() ) {
-      return $this->flash(__('The server stat has been deleted.'), array('action' => 'index'));
+      $this->set(array(
+        'message' => 'Deleted',
+        '_serialize' => array('message'),
+      ));
+      return;
     } else {
-      return $this->flash(__('The server stat could not be deleted. Please, try again.'), array('action' => 'index'));
+      throw new InternalErrorException(__('The server stat could not be deleted.'));
     }
   }
 }

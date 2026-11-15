@@ -926,14 +926,19 @@ void Image::AssignDirect(
     return;
   }
 
+  // The caller hands over new_buffer, so release it when refusing it
+  auto refuse = [&]() { if (new_buffer != buffer) DumpBuffer(new_buffer, p_buffertype); };
+
   if ( !p_height || !p_width ) {
     Error("Attempt to directly assign buffer with invalid width or height: %d %d", p_width, p_height);
+    refuse();
     return;
   }
 
   AVPixelFormat new_pix_fmt = zm_pixformat_from_colours(p_colours, p_subpixelorder);
   if (new_pix_fmt == AV_PIX_FMT_NONE) {
     Error("Attempt to directly assign buffer with unexpected colours per pixel: %d", p_colours);
+    refuse();
     return;
   }
 
@@ -950,6 +955,7 @@ void Image::AssignDirect(
   int av_linesize = FFALIGN(av_image_get_linesize(new_pix_fmt, p_width, 0), 32);
   if (av_size < 0 || av_linesize < 0) {
     Error("AssignDirect: av_image sizing failed for %s %ux%u", av_get_pix_fmt_name(new_pix_fmt), p_width, p_height);
+    refuse();
     return;
   }
   size_t new_buffer_size = static_cast<size_t>(av_size);
@@ -957,12 +963,14 @@ void Image::AssignDirect(
   if ( buffer_size < new_buffer_size ) {
     Error("Attempt to directly assign buffer from an undersized buffer of size: %zu, needed %dx%d %s = %zu",
           buffer_size, p_width, p_height, av_get_pix_fmt_name(new_pix_fmt), new_buffer_size);
+    refuse();
     return;
   }
 
   if ( holdbuffer && buffer ) {
     if ( new_buffer_size > allocation ) {
       Error("Held buffer is undersized for assigned buffer");
+      refuse();
       return;
     } else {
       /* Copy into the held buffer */
@@ -1380,7 +1388,7 @@ bool Image::ReadJpeg(const std::string &filename, unsigned int p_colours, unsign
   jpeg_read_header(readjpg_dcinfo, true);
 
   if ((readjpg_dcinfo->num_components != 1) && (readjpg_dcinfo->num_components != 3)) {
-    Error("Unexpected colours when reading jpeg image: %d", colours);
+    Error("Unexpected colours when reading jpeg image: %d", readjpg_dcinfo->num_components);
     jpeg_abort_decompress(readjpg_dcinfo);
     fclose(infile);
     return false;
@@ -1881,7 +1889,7 @@ bool Image::DecodeJpeg(const JOCTET *inbuffer, int inbuffer_size, unsigned int p
   jpeg_read_header(decodejpg_dcinfo, TRUE);
 
   if ((decodejpg_dcinfo->num_components != 1) && (decodejpg_dcinfo->num_components != 3)) {
-    Error("Unexpected colours when reading jpeg image: %d", colours);
+    Error("Unexpected colours when decoding jpeg image: %d", decodejpg_dcinfo->num_components);
     jpeg_abort_decompress(decodejpg_dcinfo);
     return false;
   }
@@ -2515,6 +2523,31 @@ void Image::Overlay( const Image &image, const unsigned int lo_x, const unsigned
   }
 }  // end void Image::Overlay( const Image &image, unsigned int x, unsigned int y )
 
+// The fast blend helpers consume whole blocks per iteration: 16 bytes for the
+// unrolled C and SSE2 variants, 64 for NEON. The SIMD variants require the
+// count to be an exact multiple of their block (a shorter count wraps the loop
+// counter past zero and runs off the end of memory), and the unrolled C one
+// overruns by up to a block. Image sizes are not always a multiple of 64: images
+// built over a caller's buffer use an unaligned linesize, and an aligned one is
+// only a multiple of 32. Blend the 64-byte bulk directly and the rest through
+// zero-padded block-sized copies, so every byte goes through the same helper.
+// result may be col1.
+static void BlendBlocks(blend_fptr_t blend, const uint8_t *col1, const uint8_t *col2, uint8_t *result,
+                        size_t count, int transparency) {
+  constexpr size_t kBlendBlock = 64;
+  const size_t bulk = count - (count % kBlendBlock);
+  if (bulk) (*blend)(col1, col2, result, bulk, transparency);
+  if (const size_t tail = count - bulk) {
+    alignas(64) uint8_t tail1[kBlendBlock] = {};
+    alignas(64) uint8_t tail2[kBlendBlock] = {};
+    alignas(64) uint8_t tail_result[kBlendBlock];
+    memcpy(tail1, col1 + bulk, tail);
+    memcpy(tail2, col2 + bulk, tail);
+    (*blend)(tail1, tail2, tail_result, kBlendBlock, transparency);
+    memcpy(result + bulk, tail_result, tail);
+  }
+}
+
 void Image::Blend( const Image &image, int transparency ) {
 
   if ( !(
@@ -2532,7 +2565,7 @@ void Image::Blend( const Image &image, int transparency ) {
 
   // Delta only reads the Y plane of planar YUV, so blend that in place and leave the chroma alone.
   if (imagePixFormat != AV_PIX_FMT_GRAY8 && zm_bytes_per_pixel(imagePixFormat) == 1) {
-    (*blend)(buffer, image.buffer, buffer, static_cast<size_t>(linesize) * height, transparency);
+    BlendBlocks(blend, buffer, image.buffer, buffer, static_cast<size_t>(linesize) * height, transparency);
     return;
   }
 
@@ -2547,26 +2580,7 @@ void Image::Blend( const Image &image, int transparency ) {
   TimePoint start = std::chrono::steady_clock::now();
 #endif
 
-  // The fast blend helpers consume whole blocks per iteration: 16 bytes for the
-  // unrolled C and SSE2 variants, 64 for NEON. The SIMD variants require the
-  // count to be an exact multiple of their block (a shorter count wraps the loop
-  // counter past zero and runs off the end of memory), and the unrolled C one
-  // overruns by up to a block. size is not always a multiple of 64: images built
-  // over a caller's buffer use an unaligned linesize, and an aligned one is only
-  // a multiple of 32. Blend the 64-byte bulk in place and the rest through
-  // zero-padded block-sized copies, so every byte goes through the same helper.
-  constexpr unsigned int kBlendBlock = 64;
-  const unsigned int bulk = size - (size % kBlendBlock);
-  if (bulk) (*blend)(buffer, image.buffer, blend_buffer_, bulk, transparency);
-  if (const unsigned int tail = size - bulk) {
-    alignas(64) uint8_t tail1[kBlendBlock] = {};
-    alignas(64) uint8_t tail2[kBlendBlock] = {};
-    alignas(64) uint8_t tail_result[kBlendBlock];
-    memcpy(tail1, buffer + bulk, tail);
-    memcpy(tail2, image.buffer + bulk, tail);
-    (*blend)(tail1, tail2, tail_result, kBlendBlock, transparency);
-    memcpy(blend_buffer_ + bulk, tail_result, tail);
-  }
+  BlendBlocks(blend, buffer, image.buffer, blend_buffer_, size, transparency);
 
 #ifdef ZM_IMAGE_PROFILING
   TimePoint end = std::chrono::steady_clock::now();
@@ -3828,12 +3842,12 @@ void Image::Scale(const unsigned int new_width, const unsigned int new_height) {
   AssignDirect(new_width, new_height, colours, subpixelorder, scale_buffer, scale_buffer_size, ZM_BUFTYPE_ZM);
 }
 
-void Image::ScaleFrom(const Image &src, const unsigned int new_width, const unsigned int new_height) {
+bool Image::ScaleFrom(const Image &src, const unsigned int new_width, const unsigned int new_height) {
   const AVPixelFormat format = src.imagePixFormat;
   int new_size_signed = av_image_get_buffer_size(format, new_width, new_height, 32);
   if (new_size_signed < 0) {
     Error("ScaleFrom: av_image_get_buffer_size failed for %s %ux%u", av_get_pix_fmt_name(format), new_width, new_height);
-    return;
+    return false;
   }
   const size_t new_size = static_cast<size_t>(new_size_signed);
 
@@ -3847,7 +3861,7 @@ void Image::ScaleFrom(const Image &src, const unsigned int new_width, const unsi
   static thread_local const bool swscale_ready = swscale.init();
   if (!swscale_ready) {
     Error("ScaleFrom: failed to initialise SWScale");
-    return;
+    return false;
   }
   av_frame_ptr src_frame{av_frame_alloc()};
   av_frame_ptr dst_frame{av_frame_alloc()};
@@ -3855,7 +3869,7 @@ void Image::ScaleFrom(const Image &src, const unsigned int new_width, const unsi
       || av_image_fill_arrays(src_frame->data, src_frame->linesize, src.buffer, format, src.width, src.height, 32) < 0
       || av_image_fill_arrays(dst_frame->data, dst_frame->linesize, buffer, format, new_width, new_height, 32) < 0) {
     Error("ScaleFrom: failed to set up frames for %s", av_get_pix_fmt_name(format));
-    return;
+    return false;
   }
   src_frame->linesize[0] = src.linesize;
   src_frame->format = dst_frame->format = format;
@@ -3866,7 +3880,7 @@ void Image::ScaleFrom(const Image &src, const unsigned int new_width, const unsi
   if (swscale.Convert(src_frame.get(), dst_frame.get()) < 0) {
     Error("ScaleFrom: sws_scale conversion failed (%ux%u %s -> %ux%u)",
           src.width, src.height, av_get_pix_fmt_name(format), new_width, new_height);
-    return;
+    return false;
   }
 
   width = new_width;
@@ -3878,6 +3892,7 @@ void Image::ScaleFrom(const Image &src, const unsigned int new_width, const unsi
   size = static_cast<unsigned int>(new_size);
   linesize = static_cast<unsigned int>(FFALIGN(av_image_get_linesize(format, new_width, 0), 32));
   update_function_pointers();
+  return true;
 }
 
 void Image::Scale(const unsigned int factor) {
@@ -4526,7 +4541,7 @@ __attribute__((noinline)) void neon64_armv8_fastblend(const uint8_t* col1, const
 }
 
 __attribute__((noinline)) void std_blend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent) {
-  Warning("Using slow std_blend");
+  Debug(4, "Using slow std_blend");
   double divide = blendpercent / 100.0;
   double opacity = 1.0 - divide;
   const uint8_t* const max_ptr = result + count;

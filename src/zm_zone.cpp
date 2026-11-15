@@ -25,6 +25,10 @@
 
 #include <cstdlib>
 
+#if defined(__SSE2__)
+#include <emmintrin.h>
+#endif
+
 void Zone::Setup(
   ZoneType p_type,
   const Polygon &p_polygon,
@@ -223,6 +227,73 @@ bool Zone::CheckExtendAlarmCount() {
   return false;
 }  // end bool Zone::CheckExtendAlarmCount
 
+static void and_row(uint8_t *__restrict__ dst, const uint8_t *__restrict__ src, int count) {
+  for (int i = 0; i < count; i++) dst[i] &= src[i];
+}
+
+static void or_row(uint8_t *__restrict__ dst, const uint8_t *__restrict__ src, int count) {
+  for (int i = 0; i < count; i++) dst[i] |= src[i];
+}
+
+// Keeps only the white pixels that are inside at least one all white bx by by
+// box (an erosion then a dilation) and returns how many are left.
+static unsigned int filter_pixels(uint8_t *diff, int stride, int width, int height,
+                                  int bx, int by, std::vector<uint8_t> &buffer,
+                                  int &box_lo_x, int &box_hi_x, int &box_lo_y, int &box_hi_y) {
+  box_lo_x = width;
+  box_hi_x = -1;
+  box_lo_y = height;
+  box_hi_y = -1;
+  if (width <= 0 || height <= 0) return 0;
+  buffer.resize(static_cast<size_t>(width) * height);
+  uint8_t *boxes = buffer.data();
+
+  // Mark the top left corner of every all white box
+  for (int y = 0; y < height; y++) {
+    uint8_t *row = boxes + y * width;
+    const uint8_t *src = diff + y * stride;
+    memcpy(row, src, width);
+    for (int k = 1; k < bx && k < width; k++) and_row(row, src + k, width - k);
+    const int last = std::max(width - bx + 1, 0);
+    memset(row + last, 0, width - last);
+  }
+  for (int y = 0; y < height; y++) {
+    uint8_t *row = boxes + y * width;
+    if (y + by > height) {
+      memset(row, 0, width);
+      continue;
+    }
+    for (int k = 1; k < by; k++) and_row(row, row + k * width, width);
+  }
+
+  // Spread each corner back over its box
+  for (int y = height - 1; y > 0; y--) {
+    uint8_t *row = boxes + y * width;
+    for (int k = 1; k < by && k <= y; k++) or_row(row, row - k * width, width);
+  }
+  unsigned int count = 0;
+  for (int y = 0; y < height; y++) {
+    const uint8_t *row = boxes + y * width;
+    uint8_t *dst = diff + y * stride;
+    memcpy(dst, row, width);
+    for (int k = 1; k < bx && k < width; k++) or_row(dst + k, row, width - k);
+    unsigned int row_count = 0;
+    for (int x = 0; x < width; x++) {
+      if (dst[x] & 1) {
+        row_count++;
+        if (x < box_lo_x) box_lo_x = x;
+        if (x > box_hi_x) box_hi_x = x;
+      }
+    }
+    if (row_count) {
+      if (y < box_lo_y) box_lo_y = y;
+      box_hi_y = y;
+      count += row_count;
+    }
+  }
+  return count;
+}
+
 bool Zone::CheckAlarms(const Image *delta_image) {
   ResetStats();
 
@@ -376,63 +447,20 @@ bool Zone::CheckAlarms(const Image *delta_image) {
   if (check_method >= FILTERED_PIXELS) {
     int bx = filter_box.x_;
     int by = filter_box.y_;
-    int bx1 = bx-1;
-    int by1 = by-1;
 
     Debug(5, "Checking for filtered pixels");
     if (bx >= 1 && by >= 1 && (bx > 1 || by > 1)) {
       // Now remove any pixels smaller than our filter size
-      unsigned char *cpdiff;
-      int ldx, hdx, ldy, hdy;
-      bool block;
-      int filter_lo_x = diff_width, filter_hi_x = -1, filter_lo_y = diff_height, filter_hi_y = -1;
-      for (int y = lo_y; y <= hi_y; y++) {
-        int lo_x = ranges[y].lo_x;
-        int hi_x = ranges[y].hi_x;
-
-        // Skip rows with no polygon pixels (lo_x == -1 means no pixels)
-        if (lo_x < 0 || lo_x > hi_x) continue;
-
-        pdiff = diff_image->Buffer(lo_x, y);
-
-        for (int x = lo_x; x <= hi_x; x++, pdiff++) {
-          if (*pdiff == kWhite) {
-            // Check participation in an X block
-            ldx = (x>=(lo_x+bx1))?-bx1:lo_x-x;
-            hdx = (x<=(hi_x-bx1))?0:((hi_x-x)-bx1);
-            ldy = (y>=(lo_y+by1))?-by1:lo_y-y;
-            hdy = (y<=(hi_y-by1))?0:((hi_y-y)-by1);
-            block = false;
-            for (int dy = ldy; !block && dy <= hdy; dy++) {
-              for (int dx = ldx; !block && dx <= hdx; dx++) {
-                block = true;
-                for (int dy2 = 0; block && dy2 < by; dy2++) {
-                  for (int dx2 = 0; block && dx2 < bx; dx2++) {
-                    cpdiff = diff_buff + (((y+dy+dy2)*diff_width) + (x+dx+dx2));
-                    if (!*cpdiff ) {
-                      block = false;
-                    }
-                  }
-                }
-              }
-            }
-            if (!block) {
-              *pdiff = kBlack;
-              continue;
-            }
-            stats.alarm_filter_pixels_++;
-            if (x < filter_lo_x) filter_lo_x = x;
-            if (x > filter_hi_x) filter_hi_x = x;
-            if (y < filter_lo_y) filter_lo_y = y;
-            if (y > filter_hi_y) filter_hi_y = y;
-          }  // end if white
-        }  // end for x
-      }  // end foreach y line
+      const int lo_x = std::max(polygon.Extent().Lo().x_, 0);
+      int box_lo_x, box_hi_x, box_lo_y, box_hi_y;
+      stats.alarm_filter_pixels_ = filter_pixels(diff_buff + lo_y * diff_width + lo_x, diff_width,
+                                                 hi_x - lo_x + 1, hi_y - lo_y + 1, bx, by, filter_buffer,
+                                                 box_lo_x, box_hi_x, box_lo_y, box_hi_y);
       if (stats.alarm_filter_pixels_) {
-        alarm_lo_x = filter_lo_x;
-        alarm_hi_x = filter_hi_x;
-        alarm_lo_y = filter_lo_y;
-        alarm_hi_y = filter_hi_y;
+        alarm_lo_x = lo_x + box_lo_x;
+        alarm_hi_x = lo_x + box_hi_x;
+        alarm_lo_y = lo_y + box_lo_y;
+        alarm_hi_y = lo_y + box_hi_y;
       }
     } else {
       stats.alarm_filter_pixels_ = stats.alarm_pixels_;
@@ -1232,7 +1260,29 @@ static void alarmedpixels_row(
     uint8_t calc_max,
     uint32_t &pixelsalarmed,
     uint32_t &pixelsdifference) {
-  for (unsigned int i = 0; i < count; i++) {
+  unsigned int i = 0;
+#if defined(__SSE2__)
+  static_assert(kWhite == 0xff, "the compare mask is stored as the alarm value");
+  const __m128i zero = _mm_setzero_si128();
+  const __m128i one = _mm_set1_epi8(1);
+  const __m128i vmin = _mm_set1_epi8(static_cast<char>(calc_min));
+  const __m128i vmax = _mm_set1_epi8(static_cast<char>(calc_max));
+  __m128i alarmed_count = zero;
+  __m128i alarmed_sum = zero;
+  for (; i + 16 <= count; i += 16) {
+    const __m128i d = _mm_loadu_si128(reinterpret_cast<const __m128i *>(pdelta + i));
+    const __m128i p = _mm_loadu_si128(reinterpret_cast<const __m128i *>(ppoly + i));
+    // Unsigned d <= x is (d -sat x) == 0
+    const __m128i rejected = _mm_or_si128(_mm_cmpeq_epi8(p, zero), _mm_cmpeq_epi8(_mm_subs_epu8(d, vmin), zero));
+    const __m128i alarmed = _mm_andnot_si128(rejected, _mm_cmpeq_epi8(_mm_subs_epu8(d, vmax), zero));
+    _mm_storeu_si128(reinterpret_cast<__m128i *>(pmask + i), alarmed);
+    alarmed_count = _mm_add_epi64(alarmed_count, _mm_sad_epu8(_mm_and_si128(alarmed, one), zero));
+    alarmed_sum = _mm_add_epi64(alarmed_sum, _mm_sad_epu8(_mm_and_si128(alarmed, d), zero));
+  }
+  pixelsalarmed += _mm_cvtsi128_si32(alarmed_count) + _mm_cvtsi128_si32(_mm_srli_si128(alarmed_count, 8));
+  pixelsdifference += _mm_cvtsi128_si32(alarmed_sum) + _mm_cvtsi128_si32(_mm_srli_si128(alarmed_sum, 8));
+#endif
+  for (; i < count; i++) {
     const uint8_t d = pdelta[i];
     const uint8_t p = ppoly[i];
     // Bitwise AND avoids short-circuit branches that block vectorization

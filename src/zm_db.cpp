@@ -365,7 +365,8 @@ zmDbQueue::zmDbQueue(size_t max_log_rows) :
   mMaxLogRows(max_log_rows),
   mLogRows(0),
   mDroppedLogs(0),
-  mTerminate(false) {
+  mTerminate(false),
+  mDone(false) {
   mThread = std::thread(&zmDbQueue::process, this);
 }
 
@@ -403,6 +404,22 @@ void write_dropped_summary(size_t dropped) {
 }
 
 }  // namespace
+
+bool zmDbQueue::stop(std::chrono::milliseconds wait) {
+  bool done;
+  {
+    std::unique_lock<std::mutex> lock(mMutex);
+    mTerminate = true;
+    mCondition.notify_all();
+    done = mDoneCondition.wait_for(lock, wait, [this] { return mDone; });
+  }
+
+  if (mThread.joinable()) {
+    if (done) mThread.join();
+    else mThread.detach();
+  }
+  return done;
+}
 
 void zmDbQueue::process() {
   std::unique_lock<std::mutex> lock(mMutex);
@@ -455,6 +472,8 @@ void zmDbQueue::process() {
       lock.lock();
     }
   }
+  mDone = true;
+  mDoneCondition.notify_all();
 }  // end void zmDbQueue::process()
 
 void zmDbQueue::push(std::string &&sql, bool log_row, bool keep) {

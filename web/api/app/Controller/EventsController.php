@@ -228,6 +228,23 @@ class EventsController extends AppController {
 
     $settings['conditions'] = array($conditions, $mon_options);
 
+    if (!$this->request->query('sort')) {
+      $settings['order'] = array('Event.Id' => 'asc');
+    }
+
+    $limit = $this->request->query('limit');
+    if ($limit !== null) {
+      if (!is_string($limit) || !preg_match('/^[0-9]+$/', $limit) || (int)$limit <= 0) {
+        throw new BadRequestException('limit must be a positive integer');
+      }
+    }
+    $page = $this->request->query('page');
+    if ($page !== null) {
+      if (!is_string($page) || !preg_match('/^[0-9]+$/', $page) || (int)$page <= 0) {
+        throw new BadRequestException('page must be a positive integer');
+      }
+    }
+
     $this->Paginator->settings = $settings;
     if ($this->request->query('limit') or $this->request->query('page')) {
       $events = $this->Paginator->paginate('Event');
@@ -441,9 +458,13 @@ class EventsController extends AppController {
     if ( $this->Event->delete() ) {
       //$this->loadModel('Frame');
       //$this->Event->Frame->delete();
-      return $this->flash(__('The event has been deleted.'), array('action' => 'index'));
+      $this->set(array(
+        'message' => 'Deleted',
+        '_serialize' => array('message'),
+      ));
+      return;
     } else {
-      return $this->flash(__('The event could not be deleted. Please, try again.'), array('action' => 'index'));
+      throw new InternalErrorException(__('The event could not be deleted.'));
     }
   } // end public function delete
 

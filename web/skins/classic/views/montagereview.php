@@ -293,7 +293,7 @@ if (isset($minTime) && isset($maxTime)) {
       $maxTime = $temp;
       $terms = $filter->terms();
       foreach ($terms as &$term) {
-        if ($term['attr'] != 'DateTime') continue;
+        if ($term['attr'] != 'DateTime' and $term['attr'] != 'StartDateTime') continue;
         if ($term['op'] == '>=' or $term['op'] == '>') $term['val'] = $minTime;
         else if ($term['op'] == '<=' or $term['op'] == '<') $term['val'] = $maxTime;
       }

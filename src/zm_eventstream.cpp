@@ -171,6 +171,7 @@ bool EventStream::loadInitialEventData(
 }
 
 bool EventStream::loadEventData(uint64_t event_id) {
+  advanced_from = advanced_to = 0;
   std::string sql = stringtf(
                       "SELECT `MonitorId`, `StorageId`, `Frames`, unix_timestamp( `StartDateTime` ) AS StartTimestamp, "
                       "unix_timestamp( `EndDateTime` ) AS EndTimestamp, `Length`, "
@@ -323,7 +324,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
         auto &frame = event_data->frames.emplace_back(
                        i,
                        last_timestamp + ((i - last_id) * delta),
-                       std::chrono::duration_cast<Microseconds>((event_data->frames[last_frame_idx].timestamp - event_data->start_time) + delta),
+                       std::chrono::duration_cast<Microseconds>((last_frame_idx >= 0 ? event_data->frames[last_frame_idx].timestamp - event_data->start_time : Microseconds(0)) + delta),
                        delta,
                        false
                      );
@@ -512,6 +513,15 @@ void EventStream::processCommand(const CmdMsg *msg) {
     end_stop = false;
   }
 
+  // While playing, curr_frame_id has already advanced past the frame last shown
+  if (!paused && !stopped && advanced_to == curr_frame_id && advanced_from > 0
+      && ((MsgCommand)msg->msg_data[0] == CMD_PAUSE
+          || (MsgCommand)msg->msg_data[0] == CMD_SLOWFWD
+          || (MsgCommand)msg->msg_data[0] == CMD_SLOWREV)) {
+    curr_frame_id = advanced_from;
+    advanced_from = advanced_to = 0;
+  }
+
   // Check for incoming command
   switch ((MsgCommand)msg->msg_data[0]) {
   case CMD_PAUSE :
@@ -548,7 +558,9 @@ void EventStream::processCommand(const CmdMsg *msg) {
     stopped = false;
     paused = false;
     replay_rate = (((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2])-VARPLAY_RATE_OFFSET;
-    if (replay_rate > 50 * ZM_RATE_BASE) {
+    if (replay_rate == 0) {
+      paused = true;
+    } else if (replay_rate > 50 * ZM_RATE_BASE) {
       Warning("requested replay rate (%d) is too high. We only support up to 50x", replay_rate.load());
       replay_rate = 50 * ZM_RATE_BASE;
     } else if (replay_rate.load() < -50*ZM_RATE_BASE) {
@@ -677,7 +689,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
     }
     break;
   case CMD_SCALE :
-    scale = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
+    scale = clampScale(((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2]);
     Debug(1, "Got SCALE command, to %d", scale.load());
     send_frame = true;
     if (paused.load()) {
@@ -687,17 +699,25 @@ void EventStream::processCommand(const CmdMsg *msg) {
     break;
   case CMD_PREV :
     Debug(1, "Got PREV command");
+    time_to_event = Seconds(0);
     curr_frame_id = replay_rate >= 0 ? 0 : (int)event_data->frames.size()+1;
     paused = false;
     forceEventChange = true;
     break;
   case CMD_NEXT :
     Debug(1, "Got NEXT command");
-    curr_frame_id = replay_rate >= 0 ? (int)event_data->frames.size()+1 : 0;
     paused = false;
+    if (time_to_event > Seconds(0)) {
+      // The next event is already loaded, so end the wait and play it.
+      time_to_event = Seconds(0);
+      curr_frame_id = event_data->frames.empty() ? 1 : (replay_rate >= 0 ? 1 : (int)event_data->frames.size());
+      break;
+    }
+    curr_frame_id = replay_rate >= 0 ? (int)event_data->frames.size()+1 : 0;
     forceEventChange = true;
     break;
   case CMD_SEEK : {
+    time_to_event = Seconds(0);
     double int_part = ((unsigned char) msg->msg_data[1] << 24) | ((unsigned char) msg->msg_data[2] << 16)
                       | ((unsigned char) msg->msg_data[3] << 8) | (unsigned char) msg->msg_data[4];
     double dec_part = ((unsigned char) msg->msg_data[5] << 24) | ((unsigned char) msg->msg_data[6] << 16)
@@ -1065,6 +1085,13 @@ Image *EventStream::loadFrameImage(std::unique_ptr<Image> &owned_image, int &pre
   return image;
 }  // Image *EventStream::loadFrameImage
 
+// A frame file that is missing or empty (a write that never finished) is not one to send.
+static bool FrameFileUsable(const std::string &path) {
+  std::error_code ec;
+  const auto size = std::filesystem::file_size(path, ec);
+  return !ec && size > 0;
+}
+
 bool EventStream::sendFrame(Microseconds delta_us) {
   Debug(2, "Sending frame %d", curr_frame_id);
 
@@ -1082,33 +1109,26 @@ bool EventStream::sendFrame(Microseconds delta_us) {
   // Reusable string member avoids per-frame heap allocations.
   // After the first frame, the string's buffer is reused (unless path exceeds capacity).
   reuse_filepath_.clear();
-  // exists() with an error_code overload mirrors stat()'s behaviour (treat any
-  // failure as "not present") without throwing or filling an unused struct stat.
-  std::error_code exists_ec;
-
   // This needs to be abstracted.  If we are saving jpgs, then load the capture file.
   // If we are only saving analysis frames, then send that.
   if ((frame_type == FRAME_ANALYSIS) && (event_data->SaveJPEGs & 2)) {
     reuse_filepath_ = stringtf(staticConfig.analyse_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
-    if (!std::filesystem::exists(reuse_filepath_, exists_ec)) {
+    if (!FrameFileUsable(reuse_filepath_)) {
       Debug(1, "analyze file %s not found will try to stream from other", reuse_filepath_.c_str());
       reuse_filepath_ = stringtf(staticConfig.capture_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
-      if (!std::filesystem::exists(reuse_filepath_, exists_ec)) {
+      if (!FrameFileUsable(reuse_filepath_)) {
         Debug(1, "capture file %s not found either", reuse_filepath_.c_str());
         reuse_filepath_.clear();
       }
     }
   } else if (event_data->SaveJPEGs & 1) {
     reuse_filepath_ = stringtf(staticConfig.capture_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
-    if (!std::filesystem::exists(reuse_filepath_, exists_ec)) {
+    if (!FrameFileUsable(reuse_filepath_)) {
       Debug(1, "Capture file %s not found (bulk/interpolated frame %d), trying ffmpeg_input",
             reuse_filepath_.c_str(), curr_frame_id);
       reuse_filepath_.clear();
       // Fall through — ffmpeg_input will be tried below if available
     }
-  } else if (!ffmpeg_input) {
-    Fatal("JPEGS not saved. zms is not capable of streaming jpegs from mp4 yet");
-    return false;
   }
 
   if ( type == STREAM_MPEG ) {
@@ -1239,8 +1259,6 @@ void EventStream::runStream() {
   }
   updateFrameRate(fps);
 
-  SystemTimePoint::duration time_to_event = Seconds(0);
-
   std::thread command_processor;
   if (connkey) {
     command_processor = std::thread(&EventStream::checkCommandQueue, this);
@@ -1342,8 +1360,10 @@ void EventStream::runStream() {
           sleep_time += STREAM_PAUSE_WAIT;
         }
 
-        curr_stream_time += sleep_time;
-        time_to_event -= sleep_time;
+        if (!paused) {
+          curr_stream_time += sleep_time;
+          time_to_event -= sleep_time;
+        }
         Debug(2, "Sleeping (%" PRIi64 " ms) because we are not at the next event yet, adding %" PRIi64 " ms",
               static_cast<int64>(Milliseconds(STREAM_PAUSE_WAIT).count()),
               static_cast<int64>(Milliseconds(sleep_time).count()));
@@ -1372,7 +1392,9 @@ void EventStream::runStream() {
         // Get current frame data, curr_frame_id may have changed
         FrameData *last_frame_data = &event_data->frames[curr_frame_id-1];
         curr_stream_time = last_frame_data->timestamp;
+        advanced_from = curr_frame_id;
         curr_frame_id += (replay_rate > 0 ? frame_mod : -1*frame_mod);
+        advanced_to = curr_frame_id;
 
         // we incremented by replay_rate, so might have jumped past frames.size()
         int num_frames = (int)event_data->frames.size();
@@ -1382,6 +1404,7 @@ void EventStream::runStream() {
            ) {
           Debug(2, "Have mode==MODE_SINGLE and at end of event, looping back to start");
           curr_frame_id = 1;
+          advanced_to = 1;
         }
 
         if (curr_frame_id >= 1 && curr_frame_id <= num_frames) {
@@ -1454,8 +1477,8 @@ void EventStream::runStream() {
     }
 
     // MPEG streams pace themselves by encoding, but there is nothing to encode
-    // while holding for a hint.
-    if ((type != STREAM_MPEG) || holding_for_hint || paused || stopped) {
+    // while holding for a hint or before the event has any frames.
+    if ((type != STREAM_MPEG) || holding_for_hint || paused || stopped || event_data->frames.empty()) {
       if (delta > Seconds(0)) {
         if (delta > MAX_SLEEP) {
           Debug(1, "Limiting sleep to %" PRIi64 " ms because calculated sleep is too long %" PRIi64,

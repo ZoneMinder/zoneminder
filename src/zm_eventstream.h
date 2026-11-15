@@ -129,6 +129,7 @@ class EventStream : public StreamBase {
 
   StreamMode mode;
   bool forceEventChange;
+  SystemTimePoint::duration time_to_event;  // wait for the loaded event to start, guarded by mutex
 
   // The neighbour hints the UI pushes via CMD_SET_EVENT, one per direction, and
   // whether this stream has a UI sending them at all. See ChooseNeighbour.
@@ -155,6 +156,9 @@ class EventStream : public StreamBase {
 
   std::mutex  mutex;
   int curr_frame_id;
+  // Frame shown and the position it advanced to, so a pause can step back onto it
+  int advanced_from;
+  int advanced_to;
   SystemTimePoint curr_stream_time;
   bool  send_frame;
   TimePoint start;     // clock time when started the event
@@ -183,11 +187,14 @@ class EventStream : public StreamBase {
   EventStream() :
     mode(DEFAULT_MODE),
     forceEventChange(false),
+    time_to_event(0),
     ui_managed(false),
     hint_wait_prev(false),
     end_stop(false),
     end_stop_prev(false),
     curr_frame_id(0),
+    advanced_from(0),
+    advanced_to(0),
     send_frame(false),
     event_data(nullptr),
     storage(nullptr),

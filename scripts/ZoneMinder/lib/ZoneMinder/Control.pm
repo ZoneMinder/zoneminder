@@ -332,6 +332,16 @@ sub executeCommand {
   &{$self->{$command}}($self, $params);
 }
 
+# Joins $$self{BaseURL} (which ends in a slash after canonical()) and a path with exactly one slash
+sub fullUrl {
+  my ($self, $url) = @_;
+  return $url if !$$self{BaseURL};
+  my $base = $$self{BaseURL};
+  $base =~ s{/+$}{};
+  $url =~ s{^/+}{};
+  return $base.'/'.$url;
+}
+
 # Uses LWP get command and adds debugging
 # if $$self{BaseURL} is defined then it will be prepended
 sub get {
@@ -341,7 +351,7 @@ sub get {
     Error('No url specified in get');
     return;
   }
-  $url = $$self{BaseURL}.$url if $$self{BaseURL};
+  $url = $self->fullUrl($url);
   my $response = $self->{ua}->get($url);
 
   if (!$response->is_success && !$self->{ssl_verify_disabled} && $response->status_line =~ /SSL|certificate|verify/i) {
@@ -366,7 +376,7 @@ sub put {
     Error('No url specified in put');
     return;
   }
-  $url = $$self{BaseURL}.$url if $$self{BaseURL};
+  $url = $self->fullUrl($url);
   my $req = HTTP::Request->new(PUT => $url);
 
   my $content = shift;
@@ -415,7 +425,7 @@ sub post {
     Error('No url specified in put');
     return;
   }
-  $url = $$self{BaseURL}.$url if $$self{BaseURL};
+  $url = $self->fullUrl($url);
   my $content = shift if @_;
   my $headers = shift if @_;
   my $req = HTTP::Request->new('POST', $url);

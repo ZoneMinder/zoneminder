@@ -209,7 +209,7 @@ sub sendCmd
     return( $result );
 }
 
-sub cameraOff
+sub sleep
 {
     my $self = shift;
     Debug( "Camera Off\n" );
@@ -217,7 +217,7 @@ sub cameraOff
     $self->sendCmd( \@msg );
 }
 
-sub cameraOn
+sub wake
 {
     my $self = shift;
     Debug( "Camera On\n" );
@@ -231,6 +231,15 @@ sub stop
     Debug( "Stop\n" );
     my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x06, 0x01, 0x00, 0x00, 0x03, 0x03, SYNC );
     $self->sendCmd( \@msg );
+}
+
+sub moveStop
+{
+    my $self = shift;
+    my $params = shift;
+    $self->stop( $params );
+    $self->zoomStop( $params );
+    $self->focusStop( $params );
 }
 
 sub moveConUp
@@ -265,7 +274,7 @@ sub moveConDown
     }
 }
 
-sub movConLeft
+sub moveConLeft
 {
     my $self = shift;
     my $params = shift;
@@ -297,7 +306,7 @@ sub moveConRight
     }
 }
 
-sub moveUpLeft
+sub moveConUpLeft
 {
     my $self = shift;
     my $params = shift;
@@ -314,7 +323,7 @@ sub moveUpLeft
     }
 }
 
-sub moveUpRight
+sub moveConUpRight
 {
     my $self = shift;
     my $params = shift;
@@ -331,7 +340,7 @@ sub moveUpRight
     }
 }
 
-sub moveDownLeft
+sub moveConDownLeft
 {
     my $self = shift;
     my $params = shift;
@@ -348,7 +357,7 @@ sub moveDownLeft
     }
 }
 
-sub moveDownRight
+sub moveConDownRight
 {
     my $self = shift;
     my $params = shift;
@@ -478,7 +487,7 @@ sub zoomConTele
     }
 }
 
-sub zoomWide
+sub zoomConWide
 {
     my $self = shift;
     my $params = shift;

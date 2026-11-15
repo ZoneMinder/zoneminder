@@ -908,6 +908,8 @@ TEST_CASE("StreamSocket accepts every client of a connection burst", "[stream_so
   server.Stop();
 }
 
+// Unread bytes are only measurable on Linux (see StreamSocket::IsUnreadTooLong).
+#if defined(__linux__)
 TEST_CASE("StreamSocket drops a client that never reads its socket", "[stream_socket]") {
   StreamSocket::Config config;
   config.stall_timeout = std::chrono::milliseconds(2500);
@@ -932,6 +934,7 @@ TEST_CASE("StreamSocket drops a client that never reads its socket", "[stream_so
   REQUIRE(reader.ReadMessage(message, std::chrono::milliseconds(3000)));
   server.Stop();
 }
+#endif  // __linux__
 
 TEST_CASE("StreamSocket disconnects a client that sends data", "[stream_socket]") {
   StreamSocket server(1, kSockPath);

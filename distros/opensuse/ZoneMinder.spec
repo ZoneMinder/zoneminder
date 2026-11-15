@@ -131,6 +131,12 @@ BuildRequires:  vorbis-tools
 BuildRequires:  pkgconfig(libvncclient)
 
 Requires:       apache2
+# zmc loads libavdevice at runtime, so rpm cannot detect it from the binary
+%if %{with mp_package}
+Requires:       libavdevice.so.60()(64bit)
+%else
+Requires:       libavdevice.so.58()(64bit)
+%endif
 Requires:       iproute2
 Requires:       mod_php_any
 Requires:       mysql

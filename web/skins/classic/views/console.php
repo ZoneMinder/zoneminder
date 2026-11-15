@@ -107,7 +107,7 @@ $colAllAvailableMonitors = $resultMonitorFilters['selected_monitor_ids'];
 
 $displayMonitorIds = array_map(function($m){return $m['Id'];}, $displayMonitors);
 
-$show_storage_areas = (count($storage_areas) > 1) and (canEdit('System') ? 1 : 0);
+$show_storage_areas = (count($storage_areas) > 1) && canEdit('System');
 $zoneCount = 0;
 $total_capturing_bandwidth = 0;
 $total_fps = 0;

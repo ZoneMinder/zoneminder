@@ -51,6 +51,10 @@ class Zone extends AppModel {
         'required'   => 'create',
         'message'    => 'Zone Coords must be specified for creation',
       ),
+      'format' => array(
+        'rule'       => 'validCoords',
+        'message'    => 'Zone Coords must be at least 3 points written x,y x,y x,y',
+      ),
     ),
     'Name' => array(
        'required' => array(
@@ -76,6 +80,27 @@ class Zone extends AppModel {
 			//'order' => ''
 		)
 	);
+
+  public function validCoords($check) {
+    $value = reset($check);
+    if ($value === null or $value === '') {
+      return true;
+    }
+    $number = '-?\d+(?:\.\d+)?';
+    return (bool)preg_match('/^\s*'.$number.','.$number.'(?:\s+'.$number.','.$number.'){2,}\s*$/', $value);
+  }
+
+  // zmc reads coordinates with a decimal point as percentages and the rest as pixels, whatever
+  // Units says, so percentages are written with decimals.
+  public function beforeSave($options = array()) {
+    $data =& $this->data[$this->alias];
+    $units = isset($data['Units']) ? $data['Units'] : ($this->id ? null : 'Percent');
+    if (isset($data['Coords']) and $units == 'Percent'
+        and is_string($data['Coords']) and strpos($data['Coords'], '.') === false and $this->validCoords(array($data['Coords']))) {
+      $data['Coords'] = preg_replace_callback('/-?\d+/', function($m) { return $m[0].'.00'; }, $data['Coords']);
+    }
+    return true;
+  }
 
   public function checkMonitorId($data) {
     if ( !$this->Monitor->find('first', array('conditions'=>array('Id'=>$data['MonitorId']))) ) {

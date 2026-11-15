@@ -529,11 +529,13 @@ void StreamSocket::SendStatsLocked(Client &client, TimePoint now) {
 // A consumer that reads drains the periodic STATS within moments, so bytes that
 // were written over a second ago and are still unread, observed continuously
 // for the stall timeout, mean it holds a slot without consuming anything.
+// Only Linux reports a socket's unread bytes through TIOCOUTQ; elsewhere it is a
+// terminal ioctl that does not, so such a client is not detected there.
 bool StreamSocket::IsUnreadTooLong(Client &client, TimePoint now) const {
   using namespace std::chrono_literals;
   if (now - client.last_progress < 1s)
     return false;
-#if defined(TIOCOUTQ)
+#if defined(__linux__)
   int unread = 0;
   if (ioctl(client.sock->getDesc(), TIOCOUTQ, &unread) != 0 or unread <= 0) {
     client.unread_since = TimePoint{};

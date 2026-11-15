@@ -220,7 +220,8 @@ function processRows(rows) {
     } else if ((!row.Status || row.Status == 'NotRunning') && row.Type != 'WebSite') {
       source_class = 'errorText';
       source_class_reason = 'Not Running';
-    } else {
+    } else if (row.Capturing != 'Ondemand') {
+      // An on-demand monitor only captures while someone is watching, so no fps is normal
       if (row.CaptureFPS == '0.00') {
         source_class = 'errorText';
         source_class_reason = 'No capture FPS';

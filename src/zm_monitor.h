@@ -769,6 +769,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int        event_count;
   int        last_capture_image_count; // last value of image_count when calculating capture fps
   int        last_fps_report_count;    // image_count when the fps line was last logged
+  bool       fps_reported;             // whether an fps line has been logged since connect
   int        analysis_image_count;    // How many frames have been processed by analysis thread.
   // Written by the decoder / analysis thread, read by the others: atomic.
   std::atomic<int> decoding_image_count;    // How many frames the decoder has written to shm.
@@ -868,6 +869,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // Whether a packet must be held back from the codec while it waits for a
   // keyframe; clears the wait once the keyframe comes.
   bool SkipUntilKeyframe(bool keyframe);
+  // A quarter turn needs 4:2:0 chroma, so 4:2:2 is converted when rotating.
+  static bool CanPassthroughFormat(AVPixelFormat format, Orientation orientation);
   packetqueue_iterator  *analysis_it;
   std::unique_ptr<AnalysisThread> analysis_thread;
   packetqueue_iterator  *decoder_it;
@@ -996,7 +999,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // thread can advance past them.
   void flushDecoderQueue();
   inline bool Enabled() const {
-    return shared_data->capturing;
+    return shared_data->capturing != CAPTURING_NONE;
   }
   DecodingOption Decoding() const {
     return decoding;
@@ -1194,7 +1197,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // Writer-side helper: copies src into alarm_image and publishes its
   // AVPixelFormat so reader processes can correctly interpret the SHM bytes.
   void WriteAlarmImage(const Image &src);
-  int GetImage(int32_t index=-1, int scale=100);
+  bool GetImage(int32_t index=-1, int scale=100);
   std::shared_ptr<ZMPacket> getSnapshot( int index=-1 );
   SystemTimePoint GetTimestamp(int index = -1);
   void UpdateAdaptiveSkip();
@@ -1208,6 +1211,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   uint64_t GetLastEventId() const;
   double GetFPS() const;
   void UpdateFPS();
+  void ResetFPSBaseline();
   void ForceAlarmOn( int force_score, const char *force_case, const char *force_text="" );
   void ForceAlarmOff();
   void CancelForced();
@@ -1330,7 +1334,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   static const char *ActionTriggerName(EventAction::TriggerOn trigger);
 
   bool DumpSettings( char *output, bool verbose );
-  void DumpZoneImage( const char *zone_string=0 );
+  bool DumpZoneImage( const char *zone_string=0 );
   std::vector<Group *>  Groups();
   StringVector GroupNames();
 

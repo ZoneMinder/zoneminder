@@ -224,9 +224,13 @@ class ZonesController extends AppController {
     if ( $this->Zone->delete() ) {
       $monitor = new ZM\Monitor($monitorId);
       if ($monitor->Type() != 'WebSite') $monitor->zmcControl('restart');
-      return $this->flash(__('The zone has been deleted.'), array('action' => 'index'));
+      $this->set(array(
+        'message' => 'Deleted',
+        '_serialize' => array('message'),
+      ));
+      return;
     } else {
-      return $this->flash(__('The zone could not be deleted. Please, try again.'), array('action' => 'index'));
+      throw new InternalErrorException(__('The zone could not be deleted.'));
     }
   }
 } // end class

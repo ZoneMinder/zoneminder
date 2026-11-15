@@ -57,6 +57,7 @@ class Storage {
   public static function find_one($params) { return new Storage($params['Id']); }
   public function Id() { return 3; }
   public function Path() { return '/var/cache/zoneminder/events'; }
+  public function DoDelete() { return 1; }
   public function Scheme($s = null) { return 'Medium'; }
 }
 

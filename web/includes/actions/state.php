@@ -30,8 +30,14 @@ if ($action == 'state') {
     $refreshParent = true;
   }
 } else if ($action == 'save') {
-  if (!empty($_REQUEST['runState']) || !empty($_REQUEST['newState'])) {
-    $sql = 'SELECT `Id`,`Capturing`,`Analysing`,`Recording` FROM `Monitors` ORDER BY `Id`';
+  $stateName = !empty($_REQUEST['newState']) ? $_REQUEST['newState'] : ($_REQUEST['runState'] ?? '');
+  // zmpkg.pl treats these names as commands, so a state with one of them could never be applied
+  if (is_string($stateName) and preg_match('/^(?:start|stop|restart|status|logrot|version)$/', $stateName)) {
+    global $error_message;
+    ZM\Error('A run state cannot be named '.$stateName);
+    $error_message .= 'A run state cannot be named '.validHtmlStr($stateName).'<br/>';
+  } else if (!empty($_REQUEST['runState']) || !empty($_REQUEST['newState'])) {
+    $sql = 'SELECT `Id`,`Capturing`,`Analysing`,`Recording` FROM `Monitors` WHERE `Deleted`=false ORDER BY `Id`';
     $definitions = array();
     foreach (dbFetchAll($sql) as $monitor ) {
       $definitions[] = $monitor['Id'].':'.$monitor['Capturing'].':'.$monitor['Analysing'].':'.$monitor['Recording'];

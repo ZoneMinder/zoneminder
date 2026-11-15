@@ -205,7 +205,33 @@ class FilterComponent extends Component {
         if (($operator == 'LIKE') and (false === strpos($value, '%'))) {
           $value = '%'.$value.'%';
         } else if ($operator == 'IN') {
-          $value = explode(',', $value);
+          $raw = $value;
+          if (is_string($value)) {
+            $trimmed = trim($value);
+            if (strlen($trimmed) >= 2 && $trimmed[0] === '(' && substr($trimmed, -1) === ')') {
+              $trimmed = substr($trimmed, 1, -1);
+            }
+            $parts = explode(',', $trimmed);
+            $value = array();
+            foreach ($parts as $part) {
+              $part = trim($part);
+              if ($part !== '') {
+                $value[] = $part;
+              }
+            }
+          } else if (is_array($value)) {
+            $cleaned = array();
+            foreach ($value as $part) {
+              $part = is_string($part) ? trim($part) : $part;
+              if ($part !== '' && $part !== null) {
+                $cleaned[] = $part;
+              }
+            }
+            $value = $cleaned;
+          }
+          if (!count($value)) {
+            throw new BadRequestException('Invalid value for IN: ' . (is_string($raw) ? $raw : 'array'));
+          }
         }
 
 				$lhs = $matches['field'] . ($operator?' ' . $operator:'');

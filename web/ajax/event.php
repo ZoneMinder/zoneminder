@@ -280,8 +280,11 @@ if ( canEdit('Events') ) {
     ajaxResponse();
     break;
   case 'delete' :
-    $Event->delete();
-    ajaxResponse(array('refreshEvent'=>false, 'refreshParent'=>true));
+    if ($Event->delete()) {
+      ajaxResponse(array('refreshEvent'=>false, 'refreshParent'=>true));
+    } else {
+      ajaxError('Event '.$Event->Id().' was not deleted' . ($Event->Archived() ? ': it is archived' : ''));
+    }
     break;
   } // end switch action
 } // end if canEdit('Events')

@@ -62,7 +62,7 @@ sub sendCmd {
   $self->printMsg($cmd, 'Tx');
 
   #print( "http://$address/$cmd\n" );
-  my $req = HTTP::Request->new( GET=>'http://'.$self->{Monitor}->{ControlAddress}.'/'.$cmd);
+  my $req = HTTP::Request->new( GET=>'http://'.$self->{Monitor}->{ControlAddress}.$cmd);
   my $res = $self->{ua}->request($req);
 
   if ( $res->is_success ) {

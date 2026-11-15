@@ -78,6 +78,7 @@ echo getNavBarHTML();
 
 $eventsSql = 'SELECT E.*,M.Name AS MonitorName FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId) WHERE';
 $eventsValues = array();
+if (isset($_REQUEST['filter']) and !is_array($_REQUEST['filter'])) unset($_REQUEST['filter']);
 $filterQuery = '';
 $sortColumn = '';
 $sortOrder = '';
@@ -110,6 +111,11 @@ if ( isset($_REQUEST['eid']) and $_REQUEST['eid'] ) {
 } # end if filter
 
 $results = dbQuery($eventsSql, $eventsValues);
+if (!$results) {
+  ZM\Error('Unable to load the events to export');
+  $view = 'error';
+  return;
+}
 
 echo 'Export the following ' .$results->rowCount() . ' events:<br/>';
 $disk_space_total = 0;

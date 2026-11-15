@@ -173,3 +173,20 @@ TEST_CASE("Image::Scale honors a borrowed source linesize", "[Image]") {
       REQUIRE(*img.Buffer(x, y) == first);
   }
 }
+
+// AssignDirect takes ownership of a ZM_BUFTYPE_ZM buffer, so each refusal must
+// release it. Run under LeakSanitizer to see a leak when it doesn't.
+TEST_CASE("Image::AssignDirect releases a buffer it refuses", "[Image][AssignDirect]") {
+  EnsureImageInit();
+  Image image(16, 16, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE);
+
+  // zero width
+  image.AssignDirect(0, 16, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE, AllocBuffer(256), 256, ZM_BUFTYPE_ZM);
+  // unsupported colours
+  image.AssignDirect(16, 16, 7, ZM_SUBPIX_ORDER_NONE, AllocBuffer(256), 256, ZM_BUFTYPE_ZM);
+  // undersized buffer
+  image.AssignDirect(64, 64, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE, AllocBuffer(16), 16, ZM_BUFTYPE_ZM);
+
+  CHECK(image.Width() == 16);
+  CHECK(image.Height() == 16);
+}

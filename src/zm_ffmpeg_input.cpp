@@ -110,6 +110,7 @@ int FFmpeg_Input::Open(const char *filepath) {
             input_format_context->streams[i]->codecpar->height
             )) {
         Warning("Failed to setup hw_accel");
+        avcodec_free_context(&(streams[i].context));
         continue;
       }
 
@@ -356,13 +357,14 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
           frame->pkt_duration, frame->pts + frame->pkt_duration,
 #endif
           seek_target);
+    // A frame covers [pts, pts + duration): at pts + duration the next frame is the one to show.
     while (frame && (frame->pts +
 #if LIBAVCODEC_VERSION_CHECK(60, 3, 0, 3, 0)
                      frame->duration
 #else
                      frame->pkt_duration
 #endif
-                     < seek_target)) {
+                     <= seek_target)) {
       if (is_video_stream(input_format_context->streams[stream_id])) {
         zm_dump_video_frame(frame, "pts <= seek_target");
       } else {

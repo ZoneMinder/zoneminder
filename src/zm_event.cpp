@@ -625,7 +625,8 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
   if (frame_type == ALARM) alarm_frames++;
 
   Debug(1, "Have frame type %s from score(%d) state %d frames %d bulk frame interval %d and mod%d",
-        frame_type_names[frame_type], score, monitor_state, frames.load(), config.bulk_frame_interval, (frames.load() % config.bulk_frame_interval));
+        frame_type_names[frame_type], score, monitor_state, frames.load(), config.bulk_frame_interval,
+        (config.bulk_frame_interval ? frames.load() % config.bulk_frame_interval : 0));
 
   if (score < 0) score = 0;
   tot_score += score;

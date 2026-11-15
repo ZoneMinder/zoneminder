@@ -38,6 +38,7 @@ class FilterTerm {
   public $cbr;
   public $cookie;
   public $placeholder;
+  private $unparsable_date = false;
   public $collate;
   public $multiple;
   public $chosen;
@@ -127,6 +128,7 @@ class FilterTerm {
   # Returns an array of values.  AS term->value can be a list, we will break it apart, remove quotes etc
   public function sql_values() {
     $values = array();
+    $this->unparsable_date = false;
     if ( !isset($this->val) ) {
       Warning('No value in term '.$this->attr);
       return $values;
@@ -147,6 +149,11 @@ class FilterTerm {
     }
     foreach ( $vals as $value ) {
       $value_upper = strtoupper($value);
+      if ( in_array($this->attr, array('CurrentDateTime', 'DateTime', 'StartDateTime', 'EndDateTime', 'CurrentDate', 'Date', 'StartDate', 'EndDate', 'CurrentTime', 'Time', 'StartTime', 'EndTime'))
+        and !in_array($value_upper, array('NULL', 'CURDATE()', 'NOW()')) and strtotime($value) === false ) {
+        Warning("Unable to parse '$value' as a date or time in term ".$this->attr);
+        $this->unparsable_date = true;
+      }
       switch ( $this->attr ) {
       case 'Group': 
         $group = new Group($value);
@@ -414,6 +421,14 @@ class FilterTerm {
       $sql .= ' '.str_repeat('(', $this->obr);
     }
     $sql .= ' ';
+
+    // An unparsable date would become 1970-01-01 and match every event, so match none instead.
+    $this->sql_values();
+    if ($this->unparsable_date) {
+      $sql .= '1=0';
+      if ( isset($this->cbr) ) $sql .= ' '.str_repeat(')', $this->cbr);
+      return $sql.PHP_EOL;
+    }
 
     // Date attrs: emit sargable range expression instead of
     // to_days(col) op to_days(val).

@@ -125,6 +125,11 @@ function probeV4L() {
   return $cameras;
 } # end function probeV4L
 
+// user:password for the authority part of a URL, with reserved characters encoded.
+function probe_userinfo($username, $password) {
+  return rawurlencode((string)$username).':'.rawurlencode((string)$password);
+}
+
 function probeAxisCommunicationsAB($ip, $username, $password) {
   return probeAxis($ip, $username, $password);
 }
@@ -137,11 +142,11 @@ function probeAxis($ip, $username, $password) {
   $cameras = [];
   $camera = array(
     'ip'      => $ip,
-    'mjpegstream' => 'http://'.$username.':'.$password.'@'.$ip.'/axis-cgi/mjpg/video.cgi?resolution=320x240',
+    'mjpegstream' => 'http://'.probe_userinfo($username, $password).'@'.$ip.'/axis-cgi/mjpg/video.cgi?resolution=320x240',
     'Manufacturer' => 'Axis',
     'Model'   => 'Unknown Model',
     'monitor' => array(
-      'Path'    => 'rtsp://'.$username.':'.$password.'@'.$ip.'/axis-media/media.amp',
+      'Path'    => 'rtsp://'.probe_userinfo($username, $password).'@'.$ip.'/axis-media/media.amp',
       'User'	=> $username,
       'Pass'	=> $password,
       'Manufacturer' => 'Axis',
@@ -232,9 +237,9 @@ function probeAmcrest($ip, $username='', $password='') {
   if (!$username) $username='admin';
   if (!$password) $password='admin';
   $cameras = [];
-  $url = 'rtsp://'.$username.':'.urlencode($password).'@'.$ip.':554/cam/realmonitor?channel=1&subtype=0&unicast=true';
+  $url = 'rtsp://'.$username.':'.rawurlencode($password).'@'.$ip.':554/cam/realmonitor?channel=1&subtype=0&unicast=true';
   $camera = array(
-    'mjpegstream' => 'http://'.$username.':'.urlencode($password).'@'.$ip.'/cgi-bin/snapshot.cgi',
+    'mjpegstream' => 'http://'.$username.':'.rawurlencode($password).'@'.$ip.'/cgi-bin/snapshot.cgi',
     'ip'      => $ip,
     'Manufacturer' => 'Amcrest',
     #'Model' => 'Amcrest Camera',
@@ -316,6 +321,7 @@ function curl($method, $url, $username, $password) {
 }
 
 function probeAzureWaveTechnologyInc($ip, $username, $password) {
+  return [];
 }
 function probeAvigilonCorporation($ip, $username, $password) {
   return probeAvigilon($ip, $username, $password);
@@ -324,7 +330,7 @@ function probeAvigilon($ip, $username, $password) {
   if (!$username) $username='administrator';
   #if (!$password) $password='';
   # Avigilon tends to want the : in auth even if no password.
-  $auth = $username ? $username.':'.$password.'@' : '';
+  $auth = $username ? probe_userinfo($username, $password).'@' : '';
   $port_open = port_open($ip, 554);
   $cameras = [];
   $camera = [
@@ -355,16 +361,16 @@ function probeAvigilon($ip, $username, $password) {
   if ($general_json) {
     $general = json_decode($general_json, true);
     ZM\Debug(print_r($general, true));
-    if ($general) {
+    if ($general and isset($general['partNumber'])) {
       $camera['Model'] = $camera['monitor']['Model'] = (string)$general['partNumber'];
-      $camera['monitor']['ONVIF_URL'] = 'http://'.$username.':'.$password.'@'.$ip.'/onvif/device_service';
+      $camera['monitor']['ONVIF_URL'] = 'http://'.probe_userinfo($username, $password).'@'.$ip.'/onvif/device_service';
     }
   }
   $url = 'http://'.$auth.$ip.'/cgi-x/get-streamuri?port=0';
   $json = wget('GET', $url, $username, $password);
   if ($json) {
     $stream_uri = json_decode($json, true);
-    if ($stream_uri) {
+    if ($stream_uri and !empty($stream_uri['streamUri-unicast'])) {
       $camera['monitor']['Path'] = $stream_uri['streamUri-unicast'];
     }
   }
@@ -372,7 +378,7 @@ function probeAvigilon($ip, $username, $password) {
   $compression_json = wget('GET', $url, $username, $password);
   if ($compression_json) {
     $compression = json_decode($compression_json, true);
-    if ($compression) {
+    if ($compression and isset($compression['optionsEncoding'], $compression['h264Options'], $compression['h265Options'], $compression['defaultEncoding'], $compression['defaultResolution'])) {
       ZM\Debug(print_r($compression, true));
 
       $encodings = [];
@@ -392,12 +398,12 @@ function probeAvigilon($ip, $username, $password) {
         }
       }
       ZM\Debug(print_r($encodings, true));
-      $encoding = $encodings[$compression['defaultEncoding']];
+      $encoding = $encodings[$compression['defaultEncoding']] ?? '';
       $resolution = '';
       if ($encoding == 'H.264') {
-        $resolution = $h264options[$compression['defaultResolution']];
+        $resolution = $h264options[$compression['defaultResolution']] ?? '';
       } else if ($encoding == 'H.265') {
-        $resolution = $h265options[$compression['defaultResolution']];
+        $resolution = $h265options[$compression['defaultResolution']] ?? '';
       }
       if ($resolution) {
         $resolution = explode('x', $resolution);
@@ -419,7 +425,7 @@ function probeGrandstreamNetworksInc($ip, $username, $password) {
   $url = 'rtsp://'.$ip.':554/0';
   $camera = array(
     'ip'      => $ip,
-    'mjpegstream' => 'http://'.$username.':'.urlencode($password).'@'.$ip.'/jpg/image.jpg',
+    'mjpegstream' => 'http://'.$username.':'.rawurlencode($password).'@'.$ip.'/jpg/image.jpg',
     'Manufacturer'  => 'Grandstream',
     'Model'         => ($port_open ? 'Camera' : 'Not Camera'),
     'monitor' =>  array(
@@ -445,10 +451,10 @@ function probeHikvision($ip, $username, $password) {
   if (!$password) $password='password';
   $cameras = [];
   $port_open = port_open($ip, 554);
-  $url = 'rtsp://'.$username.':'.$password.'@'.$ip.':554/Streaming/Channels/101?transportmode=unicast';
+  $url = 'rtsp://'.probe_userinfo($username, $password).'@'.$ip.':554/Streaming/Channels/101?transportmode=unicast';
   $camera = array(
     'ip'      => $ip,
-    'mjpegstream' => 'https://'.$username.':'.$password.'@'.$ip.'/ISAPI/streaming/channels/1/picture',
+    'mjpegstream' => 'https://'.probe_userinfo($username, $password).'@'.$ip.'/ISAPI/streaming/channels/1/picture',
     'Manufacturer'  => 'Hikvision',
     'Model'         => ($port_open ? 'Camera' : 'Not Camera'),
     'monitor' =>  array(
@@ -459,10 +465,10 @@ function probeHikvision($ip, $username, $password) {
       'Manufacturer'  => 'Hikvision',
     ),
   );
-  $url = 'http://'.$username.':'.$password.'@'.$ip.'/ISAPI/Streaming/channels/101';
+  $url = 'http://'.probe_userinfo($username, $password).'@'.$ip.'/ISAPI/Streaming/channels/101';
   $xml_str = wget('GET', $url, $username, $password);
-  if ($xml_str) {
-    $xml = new SimpleXMLElement($xml_str);
+  $xml = $xml_str ? @simplexml_load_string($xml_str) : false;
+  if ($xml) {
     if ($xml->Video) {
       ZM\Debug(print_r($xml->Video, true));
       $camera['monitor']['Width'] = (int) $xml->Video->videoResolutionWidth;
@@ -477,11 +483,11 @@ function probeHikvision($ip, $username, $password) {
     ZM\Debug('No xml from '.ZM\urlForLog($url));
   }
 
-  $url = 'http://'.$username.':'.$password.'@'.$ip.'/ISAPI/System/deviceInfo';
+  $url = 'http://'.probe_userinfo($username, $password).'@'.$ip.'/ISAPI/System/deviceInfo';
   $xml_str = wget('GET', $url, $username, $password);
-  if ($xml_str) {
+  $xml = $xml_str ? @simplexml_load_string($xml_str) : false;
+  if ($xml) {
     ZM\Debug($xml_str);
-    $xml = new SimpleXMLElement($xml_str);
     $camera['Model'] = (string) $xml->model;
     $camera['Name'] = (string) $xml->deviceName;
     ZM\Debug(print_r($xml, true));
@@ -502,10 +508,10 @@ function probeUniview($ip, $username, $password) {
   if (!$password) $password = '123456';
   $cameras = [];
   $port_open = port_open($ip, 554);
-  $url = 'rtsp://'.$username.':'.urlencode($password).'@'.$ip.':554/media/video1';
+  $url = 'rtsp://'.$username.':'.rawurlencode($password).'@'.$ip.':554/media/video1';
   $camera = array(
     'ip'      => $ip,
-    'mjpegstream' => 'http://'.$username.':'.urlencode($password).'@'.$ip.'/LAPI/V1.0/Channels/0/Media/Video/Streams/0/Snapshot',
+    'mjpegstream' => 'http://'.$username.':'.rawurlencode($password).'@'.$ip.'/LAPI/V1.0/Channels/0/Media/Video/Streams/0/Snapshot',
     'Manufacturer'  => 'Uniview',
     'Model'         => ($port_open ? 'Camera' : 'Not Camera'),
     'monitor' =>  array(
@@ -589,10 +595,10 @@ function probeUbiquiti($ip, $username, $password) {
     'ip'      => $ip,
     'Model' => ($port_open ? 'Ubiquiti Camera' : 'Unknown'),
     'Manufacturer'  => 'Ubiquiti',
-    'mjpegstream' => 'http://'.$username.':'.$password.'@'.$ip.'/snap.jpeg',
+    'mjpegstream' => 'http://'.probe_userinfo($username, $password).'@'.$ip.'/snap.jpeg',
     'monitor' => [
       'Type' => 'Ffmpeg',
-      'Path' => 'rtsp://'.$username.':'.$password.'@'.$ip.':554/s0',
+      'Path' => 'rtsp://'.probe_userinfo($username, $password).'@'.$ip.':554/s0',
       'Width'   => 1920,
       'Height'  => 1080,
       'Manufacturer'  => 'Ubiquiti',
@@ -621,11 +627,11 @@ function probeFoscam($ip, $username, $password) {
     'ip'      => $ip,
     'Name'   => 'Foscam Camera',
     'Manufacturer'  => 'Foscam',
-    'mjpegstream' => 'http://'.$username.':'.$password.'@'.$ip.':'.$http_port.'/videostream.cgi',
+    'mjpegstream' => 'http://'.probe_userinfo($username, $password).'@'.$ip.':'.$http_port.'/videostream.cgi',
     'monitor' => array(
       'Manufacturer'  => 'Foscam',
       'Type'     => 'Ffmpeg',
-      'Path' => ($rtsp_port == 554 ? 'rtsp' : 'http').'://'.$username.':'.$password.'@'.$ip.':'.$rtsp_port.'/videoMain',
+      'Path' => ($rtsp_port == 554 ? 'rtsp' : 'http').'://'.probe_userinfo($username, $password).'@'.$ip.':'.$rtsp_port.'/videoMain',
       'Host'    => $ip,
       'Width'	=> 640,
       'Height'	=> 480,
@@ -646,11 +652,11 @@ function probeDLinkInternational($ip, $username, $password) {
     'ip'      => $ip,
     'Name'   => 'D-Link Camera',
     'Manufacturer'  => 'D-Link',
-    'mjpegstream' => 'http://'.$username.':'.$password.'@'.$ip.'/image/jpeg.cgi',
+    'mjpegstream' => 'http://'.probe_userinfo($username, $password).'@'.$ip.'/image/jpeg.cgi',
     'monitor' => array(
       'Manufacturer'  => 'D-Link',
       'Type'     => 'Ffmpeg',
-      'Path'     => 'rtsp://'.$username.':'.$password.'@'.$ip.'/live1.sdp',
+      'Path'     => 'rtsp://'.probe_userinfo($username, $password).'@'.$ip.'/live1.sdp',
       'User' => $username,
       'Pass' => $password,
       'Host'     => $ip,
@@ -670,7 +676,7 @@ function probeHanwhaTechwinSecurityVietnam($ip, $username, $password) {
     'ip'      => $ip,
     'Name'   => 'Hanwha Camera',
     'Manufacturer'  => 'Hanwha Techwin Security Vietnam',
-    'mjpegstream' => 'http://'.$username.':'.urlencode($password).'@'.$ip.'/stw-cgi/video.cgi?msubmenu=snapshot&action=view',
+    'mjpegstream' => 'http://'.$username.':'.rawurlencode($password).'@'.$ip.'/stw-cgi/video.cgi?msubmenu=snapshot&action=view',
     'monitor' => array(
       'Manufacturer'  => 'Hanwha Techwin Security Vietnam',
       'Type'     => 'Ffmpeg',
@@ -697,7 +703,7 @@ function probeVivotek($ip, $username, $password) {
     'ip'      => $ip,
     'Name'   => 'Vivotek Camera',
     'Manufacturer'  => 'Vivotek',
-    'mjpegstream' => 'http://'.$username.':'.urlencode($password).'@'.$ip.'/cgi-bin/viewer/video.jpg',
+    'mjpegstream' => 'http://'.$username.':'.rawurlencode($password).'@'.$ip.'/cgi-bin/viewer/video.jpg',
     'monitor' => array(
       'Manufacturer'  => 'Vivotek',
       'Type'     => 'Ffmpeg',
@@ -708,7 +714,7 @@ function probeVivotek($ip, $username, $password) {
   );
 
   $settings = [];
-  $authority = $username.':'.$password.'@'.$ip;
+  $authority = probe_userinfo($username, $password).'@'.$ip;
   $url = 'http://'.$authority.'/cgi-bin/viewer/getparam.cgi';
   $content = wget('GET', $url, $username, $password);
 
@@ -790,7 +796,7 @@ function probeWansview($ip) {
     ),
   );
   $cameras[] = $camera;
-  return $camera;
+  return $cameras;
 }
 
 function get_arp_results() {
@@ -873,11 +879,10 @@ function probeNetwork() {
   }
   foreach (ZM\Monitor::find(['Type'=>'Ffmpeg', 'Deleted'=>0]) as $monitor) {
     $url_parts = parse_url($monitor->Path());
-    if ($url_parts !== false) {
-      #ZM\Debug("Ffmpeg monitor ${url_parts['host']} = ${monitor['Id']} ${monitor['Name']}");
+    if ($url_parts !== false and !empty($url_parts['host'])) {
       $monitors[gethostbyname($url_parts['host'])] = $monitor;
     } else {
-      ZM\Debug('Unable to parse '.ZM\urlForLog($monitor->Path()));
+      ZM\Debug('Unable to find a host in '.ZM\urlForLog($monitor->Path()));
     }
   }
   //ZM\Debug(print_r($monitors, true));
@@ -951,8 +956,9 @@ function probeNetwork() {
     if (connection_aborted()) exit();
   } # end foreach output line
 
-  $interfaces = $interface ? $interface : get_networks();
-  foreach ($interfaces as $interface) {
+  # get_networks() returns name => 'name subnet...' plus a 'default' alias, so use the names only.
+  $interfaces = $interface ? (array)$interface : array_keys(get_networks());
+  foreach (array_unique(array_diff($interfaces, ['default'])) as $interface) {
     foreach (get_subnets($interface) as $network) {
       foreach (get_arp_scan_results($network) as $mac=>$ip) {
         if ($filter_ip and ($ip != $filter_ip)) {
@@ -1002,8 +1008,10 @@ function probeNetwork() {
   foreach ($cameras as $mac => $cams) {
     foreach ($cams as $camera) {
     if (isset($camera['monitor']))  {
-      if (isset($url_filter[$camera['monitor']['Path']])) continue;
-      $url_filter[$camera['monitor']['Path']] = 1;
+      # Remote cameras only have a relative path, so the host is part of the key.
+      $url_key = (isset($camera['monitor']['Host']) ? $camera['monitor']['Host'] : '').$camera['monitor']['Path'];
+      if (isset($url_filter[$url_key])) continue;
+      $url_filter[$url_key] = 1;
     }
     if (!is_array($camera)) {
       ZM\Error("What is ".print_r($camera, true));

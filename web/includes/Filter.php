@@ -895,7 +895,11 @@ class Filter extends ZM_Object {
     $query = dbQuery($sql);
     if (!$query) return $events;
 
+    // The tag joins give one row per tag, so an event with several tags comes back more than once
+    $seen = array();
     while ($row = dbFetchNext($query)) {
+      if (isset($seen[$row['Id']])) continue;
+      $seen[$row['Id']] = true;
       $event = new Event($row);
       $event->remove_from_cache();
       if (!$this->test_post_sql_conditions($event)) {

@@ -762,20 +762,17 @@ function daemonStatus($daemon, $args=false) {
 
   $string = $daemon;
   if ( $args ) {
-		if ( is_array($args) ) {
-			$string .= join(' ', $args);
-		} else {
-			$string .= ' ' . $args;
-		}
-	}
+    $string .= ' '.(is_array($args) ? join(' ', $args) : $args);
+  }
   return ( strpos($daemon_status, "'$string' running") !== false );
 }
 
 function zmcStatus($monitor) {
+  // Matched against zmdc.pl's status text, which prints the arguments unquoted.
   if ( $monitor['Type'] == 'Local' ) {
-    $zmcArgs = '-d '.escapeshellarg($monitor['Device']);
+    $zmcArgs = '-d '.$monitor['Device'];
   } else {
-    $zmcArgs = '-m '.escapeshellarg($monitor['Id']);
+    $zmcArgs = '-m '.$monitor['Id'];
   }
   return daemonStatus('zmc', $zmcArgs);
 }

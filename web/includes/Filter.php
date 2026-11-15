@@ -1,5 +1,6 @@
 <?php
 namespace ZM;
+use Exception;
 require_once('Object.php');
 require_once('FilterTerm.php');
 require_once('Monitor.php');

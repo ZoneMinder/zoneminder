@@ -20,6 +20,7 @@ class MenuItem extends ZM_Object {
   // Default material icons for each menu key
   public static $defaultIcons = array(
     'Console'          => 'dashboard',
+    'Watch'            => 'repeat',
     'Montage'          => 'live_tv',
     'MontageReview'    => 'movie',
     'Events'           => 'event',

@@ -441,22 +441,6 @@ sub focusRelFar
     $self->sendCmd( $cmd );
 }
 
-sub focusAuto
-{
-    my $self = shift;
-    Debug( "Focus Auto" );
-    my $cmd = "/ptz.cgi?Autofocus=on";
-    $self->sendCmd( $cmd );
-}
-
-sub focusMan
-{
-    my $self = shift;
-    Debug( "Focus Manual" );
-    my $cmd = "/ptz.cgi?Autofocus=off";
-    $self->sendCmd( $cmd );
-}
-
 sub irisRelOpen
 {
     my $self = shift;

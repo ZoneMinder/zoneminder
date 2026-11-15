@@ -1388,7 +1388,7 @@ bool Image::ReadJpeg(const std::string &filename, unsigned int p_colours, unsign
   jpeg_read_header(readjpg_dcinfo, true);
 
   if ((readjpg_dcinfo->num_components != 1) && (readjpg_dcinfo->num_components != 3)) {
-    Error("Unexpected colours when reading jpeg image: %d", colours);
+    Error("Unexpected colours when reading jpeg image: %d", readjpg_dcinfo->num_components);
     jpeg_abort_decompress(readjpg_dcinfo);
     fclose(infile);
     return false;
@@ -1889,7 +1889,7 @@ bool Image::DecodeJpeg(const JOCTET *inbuffer, int inbuffer_size, unsigned int p
   jpeg_read_header(decodejpg_dcinfo, TRUE);
 
   if ((decodejpg_dcinfo->num_components != 1) && (decodejpg_dcinfo->num_components != 3)) {
-    Error("Unexpected colours when reading jpeg image: %d", colours);
+    Error("Unexpected colours when decoding jpeg image: %d", decodejpg_dcinfo->num_components);
     jpeg_abort_decompress(decodejpg_dcinfo);
     return false;
   }
@@ -4535,7 +4535,7 @@ __attribute__((noinline)) void neon64_armv8_fastblend(const uint8_t* col1, const
 }
 
 __attribute__((noinline)) void std_blend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent) {
-  Warning("Using slow std_blend");
+  Debug(4, "Using slow std_blend");
   double divide = blendpercent / 100.0;
   double opacity = 1.0 - divide;
   const uint8_t* const max_ptr = result + count;

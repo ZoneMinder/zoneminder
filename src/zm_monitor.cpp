@@ -2206,6 +2206,7 @@ bool Monitor::Analyse() {
         noteSet.insert("ONVIF");
         onvif->setNotes(noteSet);
         noteSetMap[MOTION_CAUSE] = noteSet;
+        if (!cause.empty()) cause += ", ";
         cause += "ONVIF";
         // Remember that we sampled the alarm, but do not release the latch here.
         // For a video packet that is not yet decoded, Analyse() returns below at
@@ -2225,6 +2226,7 @@ bool Monitor::Analyse() {
         noteSet.insert("AMCREST");
         Amcrest_Manager->setNotes(noteSet);
         noteSetMap[MOTION_CAUSE] = noteSet;
+        if (!cause.empty()) cause += ", ";
         cause += "AMCREST";
       }
 
@@ -2587,7 +2589,7 @@ bool Monitor::Analyse() {
           if (event->Duration() >= min_section_length) {
             // If doing record, check to see if we need to close the event or not.
 
-            if ((event->Duration() >= section_length) and (event->Frames() < Seconds(min_section_length).count())) {
+            if (section_length_warn and (event->Duration() >= section_length) and (event->Frames() < Seconds(min_section_length).count())) {
               /* This is a detection for the case where huge keyframe
                * intervals cause a huge time gap between the first
                * frame and second frame */

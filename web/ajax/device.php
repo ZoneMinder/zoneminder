@@ -27,7 +27,7 @@ if ( !canEdit('Devices') ) {
 $action = validStr($_REQUEST['action'] ?? '');
 if ( $action == 'device' ) {
   if ( !empty($_REQUEST['command']) ) {
-    setDeviceStatusX10($_REQUEST['key'], $_REQUEST['command']);
+    setDeviceStatusX10($_REQUEST['key'], strtolower($_REQUEST['command']));
   } else if ( isset($_REQUEST['newDevice']) ) {
     if ( isset($_REQUEST['did']) && $_REQUEST['did'] ) {
       ZM\Warning('did value is: '.$_REQUEST['did']);

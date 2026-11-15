@@ -1,10 +1,10 @@
 <?php
 // This is the HTML representing the Object Detection modal on the Events page
 
-$eid = isset($_REQUEST['eid']) ? $_REQUEST['eid'] : '';
+$eid = isset($_REQUEST['eid']) ? validCardinal($_REQUEST['eid']) : '';
 
-if ( !validInt($eid) ) {
-  ZM\Error("Invalid event id: $eid");
+if ( !$eid ) {
+  ZM\Error('Invalid event id');
   return;
 }
 

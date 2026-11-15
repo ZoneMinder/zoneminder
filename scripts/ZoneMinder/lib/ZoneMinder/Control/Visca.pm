@@ -213,7 +213,7 @@ sub sleep
 {
     my $self = shift;
     Debug( "Camera Off\n" );
-    my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x04, 0x00, 0x0, SYNC );
+    my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x04, 0x00, 0x3, SYNC );
     $self->sendCmd( \@msg );
 }
 

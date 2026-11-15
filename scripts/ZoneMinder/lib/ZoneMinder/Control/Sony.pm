@@ -244,7 +244,7 @@ sub zoomRelTele {
   $self->sendCmd($cmd);
   $self->sendCmd($cmd);	# do it twice, so faster, why <speed> don't affect?
 
-  my $cmd = '/command/ptzf.cgi?Move=stop,zoom,1';
+  $cmd = '/command/ptzf.cgi?Move=stop,zoom,1';
   $self->sendCmd($cmd);
 }
 
@@ -258,7 +258,7 @@ sub zoomRelWide {
   $self->sendCmd( $cmd );
   $self->sendCmd( $cmd );	# do it twice, so faster, why <speed> don't affect?
 
-  my $cmd = '/command/ptzf.cgi?Move=stop,zoom,1';
+  $cmd = '/command/ptzf.cgi?Move=stop,zoom,1';
   $self->sendCmd( $cmd );
 }
 

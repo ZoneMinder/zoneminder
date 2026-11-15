@@ -2802,30 +2802,21 @@ bool Image::Delta(const Image &image, Image* targetimage) const {
 }
 
 const Vector2 Image::centreCoord(const char *text, int size = 1) const {
-  int index = 0;
-  int line_no = 0;
-  int text_len = strlen(text);
-  int line_len = 0;
-  int max_line_len = 0;
-  const char *line = text;
+  if (!text || !*text) {
+    return {static_cast<int>(width) / 2, static_cast<int>(height) / 2};
+  }
 
-  while ( (index < text_len) && (line_len = strcspn( line, "\n" )) ) {
-    if ( line_len > max_line_len )
-      max_line_len = line_len;
-
-    index += line_len;
-    while ( text[index] == '\n' ) {
-      index++;
-    }
-    line = text+index;
-    line_no++;
+  std::vector<std::string> lines = Split(text, '\n');
+  std::size_t max_line_len = 0;
+  for (const std::string &s : lines) {
+    max_line_len = std::max(max_line_len, s.size());
   }
 
   FontVariant const &font_variant = font.GetFontVariant(FontVariantIndex(size));
   uint16_t char_width = font_variant.GetCharWidth();
   uint16_t char_height = font_variant.GetCharHeight();
-  int x = (width - (max_line_len * char_width )) / 2;
-  int y = (height - (line_no * char_height) ) / 2;
+  int x = (static_cast<int>(width) - static_cast<int>(max_line_len * char_width)) / 2;
+  int y = (static_cast<int>(height) - static_cast<int>(lines.size() * char_height)) / 2;
   return {x, y};
 }
 
@@ -3009,9 +3000,9 @@ void Image::Annotate(
           if (bg_colour != kRGBTransparent) {
             for (uint16 i = 0; i < char_width; i++) {  // We need to set individual r,g,b components
               uint8 *colour_ptr = ptr + (i * bytesPerPixel);
-              RED_PTR_RGBA(colour_ptr) = RED_VAL_RGBA(bg_colour);
-              GREEN_PTR_RGBA(colour_ptr) = GREEN_VAL_RGBA(bg_colour);
-              BLUE_PTR_RGBA(colour_ptr) = BLUE_VAL_RGBA(bg_colour);
+              RED_PTR_RGBA(colour_ptr) = RED_VAL_RGBA(bg_rgb_col);
+              GREEN_PTR_RGBA(colour_ptr) = GREEN_VAL_RGBA(bg_rgb_col);
+              BLUE_PTR_RGBA(colour_ptr) = BLUE_VAL_RGBA(bg_rgb_col);
             }
           }
 
@@ -3020,9 +3011,9 @@ void Image::Annotate(
             cp_row = cp_row & (cp_row - 1);
             if (column_idx < columns_left) {
               uint8 *colour_ptr = ptr + (column_idx * bytesPerPixel);
-              RED_PTR_RGBA(colour_ptr) = RED_VAL_RGBA(fg_colour);
-              GREEN_PTR_RGBA(colour_ptr) = GREEN_VAL_RGBA(fg_colour);
-              BLUE_PTR_RGBA(colour_ptr) = BLUE_VAL_RGBA(fg_colour);
+              RED_PTR_RGBA(colour_ptr) = RED_VAL_RGBA(fg_rgb_col);
+              GREEN_PTR_RGBA(colour_ptr) = GREEN_VAL_RGBA(fg_rgb_col);
+              BLUE_PTR_RGBA(colour_ptr) = BLUE_VAL_RGBA(fg_rgb_col);
             }
           }
           ptr += linesize;

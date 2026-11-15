@@ -165,10 +165,21 @@ sub delete_path {
     my $bucket = $self->bucket();
     if ($s3 and $bucket) {
       eval {
-        if ($bucket->delete_key($$self{aws_subpath}.$path)) {
+        # S3 has no directories: an event path is only a prefix of its file keys.
+        my $key = $self->aws_subpath().$path;
+        my $list = $bucket->list_all({prefix => $key.'/'});
+        if ($list) {
+          my @keys = map { $$_{key} } @{$$list{keys}};
+          @keys = ($key) if !@keys;
           $deleted = 1;
+          foreach my $s3_key (@keys) {
+            if (!$bucket->delete_key($s3_key)) {
+              $deleted = 0;
+              Error("Failed to delete $s3_key from S3:".$s3->err . ': ' . $s3->errstr);
+            }
+          }
         } else {
-          Error('Failed to delete from S3:'.$s3->err . ': ' . $s3->errstr);
+          Error("Failed to list $key in S3:".$s3->err . ': ' . $s3->errstr);
         }
       };
       Error($@) if $@;

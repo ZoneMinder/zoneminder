@@ -42,7 +42,7 @@ After restarting, look in your ZoneMinder log directory for a file like ``zmc_m5
 Notes:
 
 * Debug logging is verbose. Disable it when finished.
-* Multiple targets can be specified as a comma-separated list (example: ``_zmc_m5,_zmc_m11``).
+* Multiple targets can be specified separated by ``|`` (example: ``_zmc_m5|_zmc_m11``).
 
 
 Other Notes

@@ -26,6 +26,7 @@ function cycleStart() {
 }
 
 function cycleNext() {
+  if (!monitorData.length) return;
   monIdx ++;
   if ( monIdx >= monitorData.length ) {
     monIdx = 0;
@@ -38,6 +39,7 @@ function cycleNext() {
 }
 
 function cyclePrev() {
+  if (!monitorData.length) return;
   monIdx --;
   if ( monIdx < 0 ) {
     monIdx = monitorData.length - 1;
@@ -50,6 +52,7 @@ function cyclePrev() {
 }
 
 function initCycle() {
+  if (!monitorData.length) return;
   intervalId = setInterval(nextCycleView, cycleRefreshTimeout);
   monitor = new MonitorStream(monitorData[monIdx]);
   monitor.setScale($j('#scale').val(), $j('#width').val(), $j('#height').val());

@@ -172,7 +172,7 @@ echo $navbar = getNavBarHTML();
         </nav>
         <div class="container-fluid col-sm-offset-2 h-100 pr-0">
 
-          <div id="imageFeed<?php echo $monitor->Id() ?>" class="imageFeed">
+          <div id="imageFeed<?php echo $monitor ? $monitor->Id() : '' ?>" class="imageFeed">
           <?php 
             if ( $monitor ) {
               echo $monitor->getStreamHTML($options);
@@ -194,14 +194,14 @@ echo $navbar = getNavBarHTML();
     </div>
 <script src="<?php echo cache_bust('js/adapter.min.js') ?>"></script>
 <?php
-if ( $monitor->JanusEnabled() ) {
+if ( $monitor and $monitor->JanusEnabled() ) {
 ?>
   <script src="/javascript/janus/janus.js"></script>
 <?php
 }
 ?>
 <?php
-if ( $monitor->RTSP2WebEnabled() and $monitor->RTSP2WebType == "HLS") {
+if ( $monitor and $monitor->RTSP2WebEnabled() and $monitor->RTSP2WebType == "HLS") {
 ?>
   <script src="<?php echo cache_bust('js/hls-1.6.13/hls.min.js') ?>"></script>
 <?php

@@ -30,6 +30,15 @@ function videoStreamSignature($path) {
   return '';
 }
 
+# Remove what a failed downloadEvents() call created: its export directory and
+# the partial archive. The working directory is left first as it is about to go.
+function removeFailedDownload($export_dir, $archive_path) {
+  chdir(DIR_EXPORTS_DOWNLOAD);
+  if ($export_dir and is_dir($export_dir)) deletePath($export_dir);
+  if ($archive_path and file_exists($archive_path)) @unlink($archive_path);
+  return false;
+}
+
 function downloadEvents(
   $eids,
   $export_root,
@@ -78,7 +87,7 @@ function downloadEvents(
   chmod($export_dir, 0700);
   if (!chdir($export_dir)) {
     ZM\Error("Can't chdir to $export_dir");
-    return;
+    return removeFailedDownload($export_dir, '');
   }
 
   if (!is_array($eids)) {
@@ -182,10 +191,15 @@ function downloadEvents(
         ZM\Error("Can't open event images export file 'event_files.txt'");
       }
       $cmd = ZM_PATH_FFMPEG.' -f concat -safe 0 -i event_files.txt -c copy '.escapeshellarg($export_dir.'/'.$mergedFileName). ' 2>&1';
+      $output = array();
       exec($cmd, $output, $return);
       ZM\Debug($cmd.' return code: '.$return.' output: '.print_r($output,true));
-      $exportFileList[] = $mergedFileName;
       @unlink('event_files.txt');
+      if ($return != 0) {
+        ZM\Error('Failed to merge the events of monitor '.$mid.' (status '.$return.'): '.implode('; ', array_slice($output, -3)));
+        return removeFailedDownload($export_dir, $archive_path);
+      }
+      $exportFileList[] = $mergedFileName;
 
       # We're sending one file at a time to the archive. This will significantly save disk space.
       $command = '';
@@ -206,17 +220,20 @@ function downloadEvents(
 
       if ($command) {
         $command .= ' -- '.escapeshellarg($mergedFileName); # Name of the file to be added
-        if (executeShelCommand($command, $deleteFile = $mergedFileName) === false) return false;
+        if (executeShelCommand($command, $deleteFile = $mergedFileName) === false) return removeFailedDownload($export_dir, $archive_path);
       }
     } # end foreach group
   } # end foreach monitor
 
   if (count($exportFileList) === 0) {
    ZM\Warning('No events were found for export.');
-   return false;
+   return removeFailedDownload($export_dir, $archive_path);
   }
 
-  generateFileList($exportFormat, $exportStructure, $archive_path, $exportCompressed, $export_dir, $export_root, $exportFileList);
+  if (generateFileList($exportFormat, $exportStructure, $archive_path, $exportCompressed, $export_dir, $export_root, $exportFileList) === false
+    and $archive_path) {
+    return removeFailedDownload($export_dir, $archive_path);
+  }
 
   chdir(DIR_EXPORTS_DOWNLOAD);
 
@@ -225,7 +242,7 @@ function downloadEvents(
     //$exportCompressed = true; // For debugging
     if ($exportCompressed) {
       $command = 'gzip -- '.escapeshellarg($archive_path); # Name of the file to be archived
-      if (executeShelCommand($command) === false) return false;
+      if (executeShelCommand($command) === false) return removeFailedDownload($export_dir, $archive_path);
       $archiveFileName .= '.gz';
     }
   } else if ($exportFormat == 'zip') {

@@ -37,10 +37,10 @@ require_once('includes/Monitor.php');
 $mid = validInt($_REQUEST['mid']);
 if ($action == 'settings') {
   $args = ' -m ' . escapeshellarg($mid);
-  $args .= ' -B' . escapeshellarg($_REQUEST['newBrightness']);
-  $args .= ' -C' . escapeshellarg($_REQUEST['newContrast']);
-  $args .= ' -H' . escapeshellarg($_REQUEST['newHue']);
-  $args .= ' -O' . escapeshellarg($_REQUEST['newColour']);
+  $args .= ' -B' . escapeshellarg(validInt($_REQUEST['newBrightness']));
+  $args .= ' -C' . escapeshellarg(validInt($_REQUEST['newContrast']));
+  $args .= ' -H' . escapeshellarg(validInt($_REQUEST['newHue']));
+  $args .= ' -O' . escapeshellarg(validInt($_REQUEST['newColour']));
 
   $zmuCommand = getZmuCommand($args);
 

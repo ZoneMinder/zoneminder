@@ -175,7 +175,7 @@ class Filter extends ZM_Object {
 
   public static function parse($new_filter, $querySep='&amp;') {
     $filter = new Filter();
-    $filter->Query($new_filter['Query']);
+    $filter->Query($new_filter['Query'] ?? []);
     return $filter;
   }
 

@@ -138,6 +138,7 @@ sub moveConDown
 	Debug( "Move Down" );
 	my $cmd = "cgi-bin/hi3510/ptzctrl.cgi?&-chn=0&-act=down";
 	$self->sendCmd( $cmd );
+	$self->autoStop( $self->{Monitor}->{AutoStopTimeout} );
 }
  
 #Left Arrow

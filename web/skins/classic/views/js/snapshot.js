@@ -95,7 +95,7 @@ function initPage() {
 
     $j('#downloadProgress').removeClass('hidden');
     $j('#downloadProgress').addClass('warnText');
-    $j('#downloadProgress').text(downloadProgressString);
+    $j('#downloadProgressText').text(downloadProgressString);
 
     downloadTimer = setInterval(downloadProgress, 500);
   });

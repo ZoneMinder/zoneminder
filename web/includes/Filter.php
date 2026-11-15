@@ -855,6 +855,26 @@ class Filter extends ZM_Object {
     return $this;
   }
 
+  // The sort field names a filter attribute; map it to a column of the Events() query,
+  // as ZoneMinder::Filter does in Perl. MonitorName and Tags are not Events columns.
+  public static function events_sort_sql($sort_field) {
+    if (!$sort_field) return '';
+    $parts = array();
+    foreach (explode(',', $sort_field) as $part) {
+      $parts[] = preg_replace_callback('/^\s*([A-Za-z][A-Za-z0-9_]*)/', function($m) {
+        switch ($m[1]) {
+        case 'MonitorName': return 'M.Name';
+        case 'Tags': return '(SELECT GROUP_CONCAT(Name) FROM Tags WHERE Id IN (SELECT TagId FROM Events_Tags WHERE Events_Tags.EventId=E.Id))';
+        case 'StartTime': return 'E.StartDateTime';
+        case 'EndTime': return 'E.EndDateTime';
+        case 'Secs': return 'E.Length';
+        default: return 'E.'.$m[1];
+        }
+      }, trim($part));
+    }
+    return implode(', ', $parts);
+  }
+
   function Events() {
     $events = array();
     if (!$this->test_pre_sql_conditions()) {
@@ -864,7 +884,8 @@ class Filter extends ZM_Object {
 
     $where = $this->sql() ? ' WHERE ('.$this->sql().')' : '';
     // $where = ' WHERE ( T.Name = "Bird" )';
-    $sort = $this->sort_field() ? $this->sort_field() .' '.($this->sort_asc() ? 'ASC' : 'DESC') : '';
+    $sort_sql = self::events_sort_sql($this->sort_field());
+    $sort = $sort_sql ? $sort_sql.' '.($this->sort_asc() ? 'ASC' : 'DESC') : '';
 
     $col_str = '
     E.*, 

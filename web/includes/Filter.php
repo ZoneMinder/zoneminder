@@ -866,8 +866,9 @@ class Filter extends ZM_Object {
     // $where = ' WHERE ( T.Name = "Bird" )';
     $sort = $this->sort_field() ? $this->sort_field() .' '.($this->sort_asc() ? 'ASC' : 'DESC') : '';
 
+    // DISTINCT: the tag joins give one row per tag, and LIMIT must count events, not tags.
     $col_str = '
-    E.*, 
+    DISTINCT E.*,
     M.Name 
      AS Monitor';
 
@@ -895,11 +896,7 @@ class Filter extends ZM_Object {
     $query = dbQuery($sql);
     if (!$query) return $events;
 
-    // The tag joins give one row per tag, so an event with several tags comes back more than once
-    $seen = array();
     while ($row = dbFetchNext($query)) {
-      if (isset($seen[$row['Id']])) continue;
-      $seen[$row['Id']] = true;
       $event = new Event($row);
       $event->remove_from_cache();
       if (!$this->test_post_sql_conditions($event)) {

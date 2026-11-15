@@ -100,10 +100,10 @@ if (isset($_REQUEST['deleteIndex'])) {
     unset($videoFiles[$deleteIndex]);
   }
 } else if (isset($_REQUEST['downloadIndex'])) {
-  if (!count($videoFiles)) {
-    ZM\Warning("No video files found for $eid. Downloading not possible.");
+  $downloadIndex = validInt($_REQUEST['downloadIndex']);
+  if (!isset($videoFiles[$downloadIndex])) {
+    ZM\Warning("No video file at index $downloadIndex for $eid. Downloading not possible.");
   } else {
-    $downloadIndex = validInt($_REQUEST['downloadIndex']);
     ZM\Debug("Download $downloadIndex, file: " . $videoFiles[$downloadIndex]);
     header('Pragma: public');
     header('Expires: 0');
@@ -143,7 +143,7 @@ echo getNavBarHTML();
     </div>
     <div id="content">
 <?php
-if (isset($_REQUEST['showIndex'])) {
+if (isset($_REQUEST['showIndex']) and isset($videoFiles[validInt($_REQUEST['showIndex'])])) {
   $showIndex = validInt($_REQUEST['showIndex']);
   $path_parts = pathinfo($videoFiles[$showIndex]);
 
@@ -152,9 +152,9 @@ if (isset($_REQUEST['showIndex'])) {
 
   foreach (explode('-', $path_parts['filename']) as $option) {
     if ( preg_match('/^s(.+)$/', $option, $temp_matches) ) {
-      $scale = (int)(preg_replace('/_/', '.', $temp_matches[1]) );
-      $width = $width * $scale;
-      $height = $height * $scale;
+      $scale = (float)(preg_replace('/_/', '.', $temp_matches[1]) );
+      $width = (int)round($width * $scale);
+      $height = (int)round($height * $scale);
     } elseif ( preg_match('/^S(\d+)x(\d+)$/', $option, $temp_matches) ) {
       $width = $temp_matches[1];
       $height = $temp_matches[2];

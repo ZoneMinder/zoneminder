@@ -85,7 +85,7 @@ if ( canView('Events') or canView('Snapshots') ) {
 
     $exportIds = [];
     if (!empty($_REQUEST['eids'])) {
-      $exportIds = array_map(function($eid) {return validCardinal($eid);}, $_REQUEST['eids']);
+      $exportIds = array_map(function($eid) {return validCardinal($eid);}, (array)$_REQUEST['eids']);
     } else if (isset($_REQUEST['id'])) {
       $exportIds = [validCardinal($_REQUEST['id'])];
     }
@@ -123,7 +123,7 @@ if ( canView('Events') or canView('Snapshots') ) {
 
     $exportIds = [];
     if (!empty($_REQUEST['eids'])) {
-      $exportIds = array_map(function($eid) {return validCardinal($eid);}, $_REQUEST['eids']);
+      $exportIds = array_map(function($eid) {return validCardinal($eid);}, (array)$_REQUEST['eids']);
     } else if (isset($_REQUEST['id'])) {
       $exportIds = [validCardinal($_REQUEST['id'])];
     }

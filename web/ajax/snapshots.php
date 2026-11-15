@@ -21,7 +21,7 @@ if (empty($_REQUEST['task'])) {
 if (empty($_REQUEST['ids'])) {
   if ($task != 'query') $message = 'No snapshot id(s) supplied';
 } else {
-  $ids = $_REQUEST['ids'];
+  $ids = (array)$_REQUEST['ids'];
 }
 
 if ($message) {
@@ -177,7 +177,6 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
     $row['imgHtml'] = '';
     // Modify the row data as needed
     foreach ( $snapshot->Events() as $event ) {
-      $scale = intval(5*100*ZM_WEB_LIST_THUMB_WIDTH / $event->Width());
       $imgSrc = $event->getThumbnailSrc(array(), '&amp;');
       $row['imgHtml'] .= '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="Event '.$event->Id().'" width="' .validInt($event->ThumbnailWidth()). '" height="' .validInt($event->ThumbnailHeight()).'" loading="lazy" />'.PHP_EOL;
     }

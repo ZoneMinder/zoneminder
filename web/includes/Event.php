@@ -277,7 +277,9 @@ class Event extends ZM_Object {
     }
     # The rows are gone, so a failure below leaves files for zmaudit to remove
     try {
-      if ( $this->{'Scheme'} == 'Deep' ) {
+      if ( !$this->Storage()->DoDelete() ) {
+        Debug('Not deleting event files for '.$this->{'Id'}.' because the storage area has DoDelete off.');
+      } else if ( $this->{'Scheme'} == 'Deep' ) {
 
         # So this is because ZM creates a link under the day pointing to the time that the event happened. 
         $link_path = $this->Link_Path();
@@ -287,6 +289,14 @@ class Event extends ZM_Object {
 
         $Storage = $this->Storage();
         $eventlink_path = $Storage->Path().'/'.$link_path;
+
+        if ( $this->SecondaryStorageId() ) {
+          $SecondaryStorage = $this->SecondaryStorage();
+          if ( $SecondaryStorage->Id() ) {
+            deletePath($SecondaryStorage->Path().'/'.$this->Relative_Path());
+            deletePath($SecondaryStorage->Path().'/'.$link_path);
+          }
+        }
 
         if ( $id_files = glob($eventlink_path) ) {
           if ( ! $eventPath = readlink($id_files[0]) ) {

@@ -224,7 +224,7 @@ Selecting Themes
 When you first install ZoneMinder, the web interface uses what is called the Base theme. It is worthwhile to note that ZoneMinder has Base, Classic and Dark themes available. These themes are controlled by the Skin and CSS settings found in the Options menu. 
 
 * Click on the :guilabel:`Options` link on the top of the web interface Console.
-* This will bring you to the Options window as shown below. Click on the :guilabel:`System` tab to access the available CSS themes. Changes applied here will remain after you end the session. Note that the theme for the current session will not change, see the next steps to change the theme immediately for the current session.
+* This will bring you to the Options window as shown below. Click on the :guilabel:`Display` tab to access the available CSS themes. Changes applied here will remain after you end the session. Note that the theme for the current session will not change, see the next steps to change the theme immediately for the current session.
 
 .. image:: images/getting-started-options-system.png
     :width: 500px
@@ -235,7 +235,7 @@ When you first install ZoneMinder, the web interface uses what is called the Bas
 
 * Click :guilabel:`Save` at the bottom if you decide to change the default theme.
 
-* Now, switch to the :guilabel:`Display` tab. Changes applied here will only remain until you end the current session. This allows you to try out the different CSS themes available.
+* Now, switch to the :guilabel:`This Session` tab. Changes applied here will only remain until you end the current session. This allows you to try out the different CSS themes available.
 
 .. image:: images/getting-started-options-display.png
     :width: 500px

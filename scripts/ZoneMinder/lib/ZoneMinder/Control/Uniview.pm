@@ -108,7 +108,7 @@ sub PutCmd {
     Error('No cmd specified in PutCmd');
     return;
   }
-  my $req = HTTP::Request->new(PUT => $$self{BaseURL}.'/'.$cmd);
+  my $req = HTTP::Request->new(PUT => $self->fullUrl($cmd));
   if ( defined($content) ) {
     $req->content_type('application/x-www-form-urlencoded; charset=UTF-8');
     $req->content('<?xml version="1.0" encoding="UTF-8"?>' . "\n" . $content);

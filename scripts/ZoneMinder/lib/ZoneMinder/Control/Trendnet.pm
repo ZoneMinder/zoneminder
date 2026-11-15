@@ -84,10 +84,9 @@ sub sendCmdPost {
   my $res = $self->post(
     $url,
     $form,
-    [
+    {
       Referer=>$$self{BaseURL}.'/eng/admin/tools_default.cgi',
-    ]
-    #Content=>$form
+    }
   );
 
   Debug($res->content);

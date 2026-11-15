@@ -62,6 +62,7 @@ set(TEST_SOURCES
   zm_onvif_wsse.cpp
   zm_pixformat.cpp
   zm_rgb_luma.cpp
+  zm_rtsp_auth.cpp
   zm_rtsp_deprecation.cpp
   zm_rtsp_server_keyframe.cpp
   zm_rtsp_server_pts_tracker.cpp

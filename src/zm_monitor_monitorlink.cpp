@@ -20,6 +20,7 @@
 #include "zm_monitor.h"
 
 #include <sys/stat.h>
+#include <sys/time.h>
 
 #if ZM_MEM_MAPPED
 #include <sys/mman.h>
@@ -146,8 +147,8 @@ bool Monitor::MonitorLink::connect() {
     trigger_data = (TriggerData *)((char *)shared_data + sizeof(SharedData));
     zone_scores = (int *)((unsigned long)trigger_data + sizeof(TriggerData));
 
-    if (!shared_data->valid) {
-      Debug(3, "Linked memory not initialised by capture daemon");
+    if (!isAlive()) {
+      Debug(3, "Linked memory not initialised or stale");
       disconnect();
       return false;
     }
@@ -157,8 +158,16 @@ bool Monitor::MonitorLink::connect() {
 
     return true;
   }
-  return connected;
+  return isConnected();
 }  // end bool Monitor::MonitorLink::connect()
+
+bool Monitor::MonitorLink::isAlive() const {
+  if (!shared_data || !shared_data->valid) return false;
+  timeval now = {};
+  gettimeofday(&now, nullptr);
+  double max_delay = config.watch_max_delay > 0 ? config.watch_max_delay : 10.0;
+  return (now.tv_sec - shared_data->heartbeat_time) < max_delay;
+}
 
 bool Monitor::MonitorLink::disconnect() {
   connected = false;

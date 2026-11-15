@@ -22,7 +22,7 @@ $mids = null;
 if ( isset($_REQUEST['mid']) ) {
   $mids = array();
   $mids[] = validInt($_REQUEST['mid']);
-} else if ( isset($_REQUEST['mids']) ) {
+} else if ( isset($_REQUEST['mids']) and is_array($_REQUEST['mids']) ) {
   $mids = array_map(function($mid){return validCardinal($mid);}, $_REQUEST['mids'] );
 } else if ($user->unviewableMonitorIds()) {
   $mids = dbFetchAll('SELECT Id FROM Monitors WHERE Deleted=false AND Id IN ('.implode(',', array_map(function(){return '?';}, $user->viewableMonitorIds())).')', 'Id', $user->viewableMonitorIds());
@@ -35,6 +35,11 @@ if ( !($mids and count($mids)) ) {
   return;
 }
 $monitors = ZM\ZM_Object::Objects_Indexed_By_Id('ZM\Monitor', array('Id'=>$mids));
+$mids = array_values(array_filter($mids, function($mid) use ($monitors) { return isset($monitors[$mid]); }));
+if ( !count($mids) ) {
+  $view = 'error';
+  return;
+}
 
 xhtmlHeaders(__FILE__, translate('Zones'));
 getBodyTopHTML();

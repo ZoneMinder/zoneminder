@@ -23,7 +23,12 @@ if ( !canEdit('Monitors') ) {
   return;
 }
 
-$monitors = ZM\Monitor::find(array('Id' => $_REQUEST['mids']));
+$mids = (isset($_REQUEST['mids']) and is_array($_REQUEST['mids'])) ? array_filter(array_map('validCardinal', $_REQUEST['mids'])) : array();
+$monitors = $mids ? ZM\Monitor::find(array('Id' => $mids)) : array();
+if ( !count($monitors) ) {
+  $view = 'error';
+  return;
+}
 $monitor = $monitors[0];
 $servers = ZM\Server::find();
 $ServersById = array();

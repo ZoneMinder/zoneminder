@@ -1104,9 +1104,6 @@ AnnotationEditor.prototype.deleteAnnotation = function(index) {
   if (index < 0 || index >= this.annotations.length) return;
   this._pushUndo();
   this.annotations.splice(index, 1);
-  if (this.selectedIndex >= this.annotations.length) {
-    this.selectedIndex = this.annotations.length - 1;
-  }
   if (this.selectedIndex === index) {
     this.selectedIndex = -1;
   } else if (this.selectedIndex > index) {

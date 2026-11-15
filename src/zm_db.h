@@ -20,6 +20,7 @@
 #ifndef ZM_DB_H
 #define ZM_DB_H
 
+#include <chrono>
 #include <condition_variable>
 #include <cstdint>
 #include <mutex>
@@ -57,6 +58,8 @@ class zmDbQueue {
   std::mutex              mMutex;
   std::condition_variable mCondition;
   bool                    mTerminate;
+  std::condition_variable mDoneCondition;
+  bool                    mDone;
  public:
   // Log rows past this many waiting are dropped; other writes never are.
   static constexpr size_t kMaxQueuedLogRows = 5000;
@@ -69,6 +72,9 @@ class zmDbQueue {
   size_t logRowsDropped();
   void process();
   void stop();
+  // Returns false, leaving the thread detached, if it is still inside a query
+  // after `wait`.
+  bool stop(std::chrono::milliseconds wait);
 };
 
 class zmDbRow {

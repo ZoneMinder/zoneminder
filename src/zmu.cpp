@@ -576,9 +576,9 @@ int main(int argc, char *argv[]) {
         Seconds ts_sec = std::chrono::duration_cast<Seconds>(timestamp.time_since_epoch());
         Microseconds ts_usec = std::chrono::duration_cast<Microseconds>(timestamp.time_since_epoch() - ts_sec);
         if (image_idx == -1) {
-          printf("Time of last image capture: %s.%02d\n", timestamp_str, static_cast<int32>(ts_usec.count()));
+          printf("Time of last image capture: %s.%02d\n", timestamp_str, static_cast<int32>(ts_usec.count() / 10000));
         } else {
-          printf("Time of image %d capture: %s.%02d\n", image_idx, timestamp_str, static_cast<int32>(ts_usec.count()));
+          printf("Time of image %d capture: %s.%02d\n", image_idx, timestamp_str, static_cast<int32>(ts_usec.count() / 10000));
         }
       } else {
         if (have_output) {

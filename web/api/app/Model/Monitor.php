@@ -215,7 +215,7 @@ class Monitor extends AppModel {
         $args = '-m ' . escapeshellarg($monitor['Id']);
       }
 
-      $shellcmd = escapeshellcmd(ZM_PATH_BIN.'/zmdc.pl '.$command.' '.$daemon.' '.$args);
+      $shellcmd = escapeshellarg(ZM_PATH_BIN.'/zmdc.pl').' '.escapeshellarg($command).' '.escapeshellarg($daemon).' '.$args;
       ZM\Debug("Command $shellcmd");
       $status = exec($shellcmd);
       $status_text .= $status.PHP_EOL;

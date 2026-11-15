@@ -307,7 +307,7 @@ function outputControlStill($src, $width, $height, $monitor, $scale, $target) {
 
 // Incoming args are shell-escaped. This function must escape any further arguments it cannot guarantee.
 function getZmuCommand($args) {
-  $zmuCommand = ZMU_PATH.zmuCredentials();
+  $zmuCommand = escapeshellarg(ZMU_PATH).zmuCredentials();
 
   $zmuCommand .= $args;
 
@@ -725,14 +725,13 @@ function packageControl($command) {
 }
 
 function daemonControl($command, $daemon=false, $args=false) {
-  $string = escapeshellcmd(ZM_PATH_BIN).'/zmdc.pl '.$command;
+  $string = escapeshellarg(ZM_PATH_BIN.'/zmdc.pl').' '.escapeshellarg($command);
   if ( $daemon ) {
-    $string .= ' ' . $daemon;
+    $string .= ' ' . escapeshellarg($daemon);
     if ( $args ) {
-      $string .= ' ' . $args;
+      $string .= ' ' . $args; // callers pass already escaped arguments
     }
   }
-  $string = escapeshellcmd($string);
   #$string .= ' 2>/dev/null >&- <&- >/dev/null';
   ZM\Debug('daemonControl '.$string);
   exec($string);
@@ -786,13 +785,12 @@ function daemonCheck($daemon=false, $args=false) {
   // Each check starts zmdc.pl, so whether ZoneMinder is running is only asked once a request
   if (!$daemon and isset($daemon_running)) return $daemon_running;
 
-  $string = ZM_PATH_BIN.'/zmdc.pl check';
+  $string = escapeshellarg(ZM_PATH_BIN.'/zmdc.pl').' check';
   if ( $daemon ) {
-    $string .= ' ' . $daemon;
+    $string .= ' ' . escapeshellarg($daemon);
     if ( $args )
-      $string .= ' '. $args;
+      $string .= ' '. $args; // callers pass already escaped arguments
   }
-  $string = escapeshellcmd($string);
   $result = preg_match('/running/', exec($string));
   if (!$daemon) $daemon_running = $result;
   return $result;

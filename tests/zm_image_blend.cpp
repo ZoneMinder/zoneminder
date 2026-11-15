@@ -28,8 +28,10 @@
 #include "zm_rgb.h"
 #include "zm_utils.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <cstdlib>
+#include <cstring>
 #include <vector>
 
 namespace {
@@ -116,4 +118,30 @@ TEST_CASE("Image::Blend of an aligned image whose size is not a multiple of 64",
   a.Blend(b, 12);
 
   RequireBlended(col1, col2, a.Buffer());
+}
+
+TEST_CASE("Image::Blend of a YUV420P luma plane whose size is not a multiple of 64", "[Image][Blend]") {
+  FastBlends fast;
+
+  // 20x5 YUV420P: the Y plane is blended in place over linesize * height bytes,
+  // 32 * 5 = 160 (160 % 64 == 32), and the chroma after it is left alone.
+  constexpr unsigned int kW = 20;
+  constexpr unsigned int kH = 5;
+
+  Image a(kW, kH, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_YUV420P);
+  Image b(kW, kH, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_YUV420P);
+  const unsigned int luma = a.LineSize() * kH;
+  REQUIRE(luma % 64 != 0);
+  REQUIRE(a.Size() > luma);
+  std::vector<uint8_t> col1(luma), col2(luma);
+  for (unsigned int i = 0; i < luma; i++) {
+    col1[i] = a.Buffer()[i] = Pattern(i, 5);
+    col2[i] = b.Buffer()[i] = Pattern(i, 13);
+  }
+  const std::vector<uint8_t> chroma(a.Buffer() + luma, a.Buffer() + a.Size());
+  memset(b.Buffer() + luma, 0xE1, b.Size() - luma);
+  a.Blend(b, 12);
+
+  RequireBlended(col1, col2, a.Buffer());
+  REQUIRE(std::equal(chroma.begin(), chroma.end(), a.Buffer() + luma));
 }

@@ -264,7 +264,7 @@ sub moveConDownLeft
 {
     my $self = shift;
     Debug( "Move Diagonally Down Left" );
-    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=ptzctrl&-step=0&-act=downnleft&-speed=45";
+    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=ptzctrl&-step=0&-act=downleft&-speed=45";
     $self->sendCmd( $cmd );
 }
 

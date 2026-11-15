@@ -137,7 +137,7 @@ $statusData = array(
       'EndDateTime' => true,
       'EndDateTimeFormatted' => array('postFunction'=>function($row){
         global $dateTimeFormatter;
-        return $dateTimeFormatter->format(strtotime($row['EndDateTime']));
+        return empty($row['EndDateTime']) ? '' : $dateTimeFormatter->format(strtotime($row['EndDateTime']));
       }),
       'Width' => true,
       'Height' => true,
@@ -171,7 +171,7 @@ $statusData = array(
       'EndDateTime' => true,
       'EndDateTimeFormatted' => array('postFunction'=>function($row){
         global $dateTimeFormatter;
-        return $dateTimeFormatter->format(strtotime($row['EndDateTime']));
+        return empty($row['EndDateTime']) ? '' : $dateTimeFormatter->format(strtotime($row['EndDateTime']));
       }),
       'Width' => true,
       'Height' => true,

@@ -25,7 +25,14 @@
 #include "zm_utils.h"
 #include <cstring>
 
-User::User() : id(0), enabled(false), role_id(0) {
+User::User() :
+  id(0),
+  enabled(false),
+  role_id(0),
+  group_permissions_loaded(false),
+  monitor_permissions_loaded(false),
+  role_group_permissions_loaded(false),
+  role_monitor_permissions_loaded(false) {
   username[0] = password[0] = 0;
   stream = events = control = monitors = system = PERM_NONE;
 }
@@ -80,11 +87,13 @@ void User::loadMonitorPermissions() {
   for (const Monitor_Permission &p : Monitor_Permission::find(id) ) {
     monitor_permissions[p.MonitorId()] = p;
   }
+  monitor_permissions_loaded = true;
   Debug(1, "# of Monitor_Permissions %zu", monitor_permissions.size());
 }
 
 void User::loadGroupPermissions() {
   group_permissions = Group_Permission::find(id);
+  group_permissions_loaded = true;
   Debug(1, "# of Group_Permissions %zu", group_permissions.size());
 }
 

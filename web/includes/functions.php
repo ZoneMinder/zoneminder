@@ -2331,7 +2331,7 @@ function get_networks() {
 	    ZM\Error("Unable to list network interfaces, status is '$status'. Output was:<br/><br/>$html_output");
 	  } else {
 	    foreach ( $output as $line ) {
-	      if ( preg_match('/^\d+: ([[:alnum:]]+):/', $line, $matches ) ) {
+	      if ( preg_match('/^\d+: ([^\s:@]+)[:@]/', $line, $matches ) ) {
           if ( $matches[1] != 'lo' ) {
             $interfaces[$matches[1]] = $matches[1];
           } else {
@@ -2341,17 +2341,20 @@ function get_networks() {
 	    }
 	  }
 	  $routes = array();
+	  $output = array();
 	  exec(ZM_PATH_IP.' route', $output, $status);
 	  if ($status) {
 	    $html_output = implode('<br/>', $output);
 	    ZM\Error("Unable to list network interfaces, status is '$status'. Output was:<br/><br/>$html_output");
 	  } else {
 	    foreach ($output as $line) {
-	      if ( preg_match('/^default via [.[:digit:]]+ dev ([[:alnum:]]+)/', $line, $matches) ) {
+	      if ( preg_match('/^default via [.[:digit:]]+ dev (\S+)/', $line, $matches) ) {
           $interfaces['default'] = $matches[1];
-	      } else if ( preg_match('/^([.[:digit:]]+\/[[:digit:]]+) dev ([[:alnum:]]+)/', $line, $matches) ) {
-          $interfaces[$matches[2]] .= ' ' . $matches[1];
-          ZM\Debug("Matched $line: $matches[2] .= $matches[1]");
+	      } else if ( preg_match('/^([.[:digit:]]+\/[[:digit:]]+) dev (\S+)/', $line, $matches) ) {
+          if (isset($interfaces[$matches[2]])) {
+            $interfaces[$matches[2]] .= ' ' . $matches[1];
+            ZM\Debug("Matched $line: $matches[2] .= $matches[1]");
+          }
         } else {
           ZM\Debug("Didn't match $line");
         }

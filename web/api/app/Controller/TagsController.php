@@ -222,15 +222,13 @@ class TagsController extends AppController {
     $this->Tag->unbindModel(array('hasAndBelongsToMany' => array('Event')), false);
 		if ( $this->Tag->delete() ) {
       dbQuery('DELETE FROM `Events_Tags` WHERE `TagId`=?', array($id));
-      return $this->flash(
-        __('The tag has been deleted.'),
-        array('action' => 'index')
-      );
+      $this->set(array(
+        'message' => 'Deleted',
+        '_serialize' => array('message'),
+      ));
+      return;
 		} else {
-      return $this->flash(
-        __('The tag could not be deleted. Please, try again.'),
-        array('action' => 'index')
-      );
+      throw new InternalErrorException(__('The tag could not be deleted.'));
 		}
   } // end function delete
   

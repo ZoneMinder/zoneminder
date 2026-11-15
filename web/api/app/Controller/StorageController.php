@@ -177,9 +177,13 @@ class StorageController extends AppController {
     }
 
     if ( $this->Storage->delete() ) {
-      return $this->flash(__('The storage area has been deleted.'), array('action' => 'index'));
+      $this->set(array(
+        'message' => 'Deleted',
+        '_serialize' => array('message'),
+      ));
+      return;
     } else {
-      return $this->flash(__('The storage area could not be deleted. Please, try again.'), array('action' => 'index'));
+      throw new InternalErrorException(__('The storage area could not be deleted.'));
     }
   }
 }

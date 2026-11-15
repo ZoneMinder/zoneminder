@@ -160,9 +160,13 @@ class ManufacturersController extends AppController {
     #$this->daemonControl($this->Manufacturer->id, 'stop');
 
     if ( $this->Manufacturer->delete() ) {
-      return $this->flash(__('The manufacturer has been deleted.'), array('action' => 'index'));
+      $this->set(array(
+        'message' => 'Deleted',
+        '_serialize' => array('message'),
+      ));
+      return;
     } else {
-      return $this->flash(__('The manufacturer could not be deleted. Please, try again.'), array('action' => 'index'));
+      throw new InternalErrorException(__('The manufacturer could not be deleted.'));
     }
   }
 }

@@ -276,9 +276,13 @@ class MonitorsController extends AppController {
     require_once __DIR__ .'/../../../includes/Monitor.php';
     $monitor = new ZM\Monitor($id);
     if ( $monitor->delete() ) {
-      return $this->flash(__('The monitor has been deleted.'), array('action' => 'index'));
+      $this->set(array(
+        'message' => 'Deleted',
+        '_serialize' => array('message'),
+      ));
+      return;
     } else {
-      return $this->flash(__('The monitor could not be deleted. Please, try again.'), array('action' => 'index'));
+      throw new InternalErrorException(__('The monitor could not be deleted.'));
     }
   }
 

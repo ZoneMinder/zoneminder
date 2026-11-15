@@ -441,9 +441,13 @@ class EventsController extends AppController {
     if ( $this->Event->delete() ) {
       //$this->loadModel('Frame');
       //$this->Event->Frame->delete();
-      return $this->flash(__('The event has been deleted.'), array('action' => 'index'));
+      $this->set(array(
+        'message' => 'Deleted',
+        '_serialize' => array('message'),
+      ));
+      return;
     } else {
-      return $this->flash(__('The event could not be deleted. Please, try again.'), array('action' => 'index'));
+      throw new InternalErrorException(__('The event could not be deleted.'));
     }
   } // end public function delete
 

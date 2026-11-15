@@ -145,8 +145,12 @@ class LogsController extends AppController {
 		}
 		$this->request->allowMethod('post', 'delete');
 		if ($this->Log->delete()) {
-			return $this->flash(__('The log has been deleted.'), array('action' => 'index'));
+			$this->set(array(
+				'message' => 'Deleted',
+				'_serialize' => array('message'),
+			));
+			return;
 		} else {
-			return $this->flash(__('The log could not be deleted. Please, try again.'), array('action' => 'index'));
+			throw new InternalErrorException(__('The log could not be deleted.'));
 		}
 	}}

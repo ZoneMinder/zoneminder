@@ -589,7 +589,7 @@ double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size,
 int VideoStream::SendPacket(AVPacket *packet) {
   int ret = av_write_frame(ofc, packet);
   if (ret < 0) {
-    Error("Error %d while writing video frame: %s", ret, av_err2str(errno));
+    Error("Error %d while writing video frame: %s", ret, av_err2str(ret));
   }
   av_packet_unref(packet);
   return ret;

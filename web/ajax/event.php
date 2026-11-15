@@ -41,40 +41,28 @@ if ( canView('Events') or canView('Snapshots') ) {
     # because we stopped it in index.php to improve concurrency.
     zm_session_start();
 
-    if ( !empty($_REQUEST['exportDetail']) )
-      $exportDetail = $_SESSION['export']['detail'] = $_REQUEST['exportDetail'];
-    else
-      $exportDetail = false;
+    $exportDetail = !empty($_REQUEST['exportDetail']) ? $_REQUEST['exportDetail'] : false;
+    $_SESSION['export']['detail'] = $exportDetail;
 
-    if ( !empty($_REQUEST['exportFrames']) )
-      $exportFrames = $_SESSION['export']['frames'] = $_REQUEST['exportFrames'];
-    else
-      $exportFrames = false;
+    $exportFrames = !empty($_REQUEST['exportFrames']) ? $_REQUEST['exportFrames'] : false;
+    $_SESSION['export']['frames'] = $exportFrames;
 
-    if ( !empty($_REQUEST['exportImages']) )
-      $exportImages = $_SESSION['export']['images'] = $_REQUEST['exportImages'];
-    else
-      $exportImages = false;
+    $exportImages = !empty($_REQUEST['exportImages']) ? $_REQUEST['exportImages'] : false;
+    $_SESSION['export']['images'] = $exportImages;
 
-    if ( !empty($_REQUEST['exportVideo']) )
-      $exportVideo = $_SESSION['export']['video'] = $_REQUEST['exportVideo'];
-    else
-      $exportVideo = false;
+    $exportVideo = !empty($_REQUEST['exportVideo']) ? $_REQUEST['exportVideo'] : false;
+    $_SESSION['export']['video'] = $exportVideo;
 
-    if ( !empty($_REQUEST['exportMisc']) )
-      $exportMisc = $_SESSION['export']['misc'] = $_REQUEST['exportMisc'];
-    else
-      $exportMisc = false;
+    $exportMisc = !empty($_REQUEST['exportMisc']) ? $_REQUEST['exportMisc'] : false;
+    $_SESSION['export']['misc'] = $exportMisc;
 
     if ( !empty($_REQUEST['exportFormat']) )
       $exportFormat = $_SESSION['export']['format'] = $_REQUEST['exportFormat'];
     else
       $exportFormat = '';
 
-    if ( !empty($_REQUEST['exportCompress']) )
-      $exportCompress = $_SESSION['export']['compress'] = $_REQUEST['exportCompress'];
-    else
-      $exportCompress = false;
+    $exportCompress = !empty($_REQUEST['exportCompress']) ? $_REQUEST['exportCompress'] : false;
+    $_SESSION['export']['compress'] = $exportCompress;
 
     if ( !empty($_REQUEST['exportStructure']) )
       $exportStructure = $_SESSION['export']['structure'] = $_REQUEST['exportStructure'];

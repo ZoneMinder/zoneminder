@@ -171,9 +171,9 @@ while ( $event_row = dbFetchNext($results) ) {
 <?php
   if ( ZM_WEB_EVENT_DISK_SPACE ) {
     $disk_space_total += $event->DiskSpace();
-		$event_count += 1;
     echo '<td class="colDiskSpace">'.human_filesize($event->DiskSpace()).'</td>';
   }
+  $event_count += 1;
   unset($event);
   echo PHP_EOL.'</tr>'.PHP_EOL;
 } # end foreach event

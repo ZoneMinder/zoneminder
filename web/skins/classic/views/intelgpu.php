@@ -401,16 +401,19 @@ echo getNavBarHTML();
             <th>PID</th>
             <th>Name</th>
             <?php
-            // Get engine columns from first client
-            $firstClient = reset($gpuData['clients']);
-            if (isset($firstClient['engine-classes']) && is_array($firstClient['engine-classes'])):
-              foreach (array_keys($firstClient['engine-classes']) as $engine):
+            // Engine columns are the union over all clients, in first-seen order
+            $clientEngines = [];
+            foreach ($gpuData['clients'] as $client) {
+              if (isset($client['engine-classes']) && is_array($client['engine-classes'])) {
+                foreach (array_keys($client['engine-classes']) as $engine) {
+                  if (!in_array($engine, $clientEngines, true)) $clientEngines[] = $engine;
+                }
+              }
+            }
+            foreach ($clientEngines as $engine):
             ?>
             <th><?php echo htmlspecialchars($engine) ?></th>
-            <?php
-              endforeach;
-            endif;
-            ?>
+            <?php endforeach; ?>
           </tr>
         </thead>
         <tbody>
@@ -418,11 +421,9 @@ echo getNavBarHTML();
           <tr>
             <td><?php echo htmlspecialchars($client['pid'] ?? 'N/A') ?></td>
             <td><?php echo htmlspecialchars($client['name'] ?? 'Unknown') ?></td>
-            <?php if (isset($client['engine-classes']) && is_array($client['engine-classes'])): ?>
-              <?php foreach ($client['engine-classes'] as $usage): ?>
-              <td><?php echo number_format(floatval($usage['busy'] ?? 0), 1) ?>%</td>
-              <?php endforeach; ?>
-            <?php endif; ?>
+            <?php foreach ($clientEngines as $engine): ?>
+            <td><?php echo number_format(floatval($client['engine-classes'][$engine]['busy'] ?? 0), 1) ?>%</td>
+            <?php endforeach; ?>
           </tr>
           <?php endforeach; ?>
         </tbody>

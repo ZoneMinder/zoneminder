@@ -20,6 +20,7 @@
 #include "zm_config.h"
 
 #if HAVE_RTSP_SERVER
+#include "zm_rtsp_server_stream_av1_source.h"
 #include "zm_rtsp_server_stream_h264_source.h"
 
 #include <chrono>
@@ -102,5 +103,47 @@ TEST_CASE("RTSP marker bit lands on the last fragment of a trailing large NAL", 
   for (size_t i = 0; i + 1 < source.pushed.size(); i++)
     CHECK_FALSE(source.pushed[i].last);
   CHECK(source.pushed.back().last);
+}
+
+namespace {
+
+class RecordingAV1Source : public AV1_ZoneMinderStreamSource {
+ public:
+  RecordingAV1Source(std::shared_ptr<xop::RtspServer> &server) :
+    AV1_ZoneMinderStreamSource(server, 0, xop::channel_0) {}
+  ~RecordingAV1Source() override { StopAndJoin(); }
+
+  void PushFrame(const uint8_t *data, size_t size, int64_t pts, bool last) override {
+    std::lock_guard<std::mutex> lock(record_mutex);
+    pushed.emplace_back(data, data + size);
+    if (last)
+      record_cv.notify_all();
+  }
+
+  bool WaitForPush() {
+    std::unique_lock<std::mutex> lock(record_mutex);
+    return record_cv.wait_for(lock, std::chrono::seconds(5), [this] { return !pushed.empty(); });
+  }
+
+  std::mutex record_mutex;
+  std::condition_variable record_cv;
+  std::vector<std::vector<uint8_t>> pushed;
+};
+
+}  // namespace
+
+TEST_CASE("RTSP AV1 OBUs larger than an RTP packet are passed on whole", "[rtsp_marker]") {
+  std::shared_ptr<xop::RtspServer> server;
+  RecordingAV1Source source(server);
+
+  // OBU_FRAME with a size field: header, LEB128(2997), 2997 payload bytes
+  std::vector<uint8_t> obu = {0x32, 0xB5, 0x17};
+  obu.insert(obu.end(), 2997, 0x55);
+  source.OnPacket(obu.data(), obu.size(), 1000);
+  REQUIRE(source.WaitForPush());
+  source.StopAndJoin();
+
+  REQUIRE(source.pushed.size() == 1);
+  CHECK(source.pushed[0] == obu);
 }
 #endif  // HAVE_RTSP_SERVER

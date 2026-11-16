@@ -672,10 +672,10 @@ sub getDiskBlocks {
 }
 
 sub getLoad {
-  my $command = 'uptime .';
+  my $command = 'uptime';
   my $uptime = qx( $command );
   my $load = -1;
-  if ( $uptime =~ /load average:\s+([\d.]+)/ms ) {
+  if ( $uptime =~ /load averages?:\s+([\d.]+)/ms ) {
     $load = $1;
     Info("Load: $load");
   }

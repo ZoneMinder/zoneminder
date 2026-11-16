@@ -322,7 +322,7 @@ sub autoStop {
 sub reset {
   Debug('Camera Reset');
   my $self = shift;
-  my $cmd = '';
+  my $cmd = 'onvif/device_service';
   my $msg = '<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">'.authentificationHeader($username, $password).'<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><SystemReboot xmlns="http://www.onvif.org/ver10/device/wsdl"/></s:Body></s:Envelope>';
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver10/device/wsdl/SystemReboot"';
   $self->sendCmd($cmd, $msg, $content_type);

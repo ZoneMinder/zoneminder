@@ -83,7 +83,7 @@ if ($action == 'Save') {
       ZM\AuditAction(($uid ? 'update' : 'create'), 'user', $dbUser->Id(), 'Username: '.$dbUser->Username().' Changed: '.implode(', ', array_keys($changes)));
 
       if ($uid) {
-        if ($user and ($dbUser->Username() == $user->Username())) {
+        if ($user and ($dbUser->Id() == $user->Id())) {
           # We are the logged in user, need to update the $user object and generate a new auth_hash
           $user = ZM\User::find_one(['Enabled'=>1, 'Id'=>$uid]);
 
@@ -96,7 +96,7 @@ if ($action == 'Save') {
     } # end if changes
 
     foreach (ZM\Group::find() as $g) {
-      if (isset($_POST['group_permission'])) {
+      if (isset($_POST['group_permission']) and isset($_POST['group_permission'][$g->Id()])) {
         $permission = $g->Group_Permission($dbUser->Id());
         if ($permission->Permission() != $_POST['group_permission'][$g->Id()]) {
           $permission->save(array('Permission'=>$_POST['group_permission'][$g->Id()]));

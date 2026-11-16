@@ -156,7 +156,7 @@ void Logger::initialise(const std::string &id, const Options &options) {
 
   std::string tempLogFile;
 
-  if ( (envPtr = getTargettedEnv("LOG_FILE")) ) {
+  if ( (envPtr = getTargettedEnv("LOG_FILE")) and *envPtr ) {
     tempLogFile = envPtr;
   } else if ( options.mLogFile.size() ) {
     tempLogFile = options.mLogFile;
@@ -432,7 +432,7 @@ Logger::Level Logger::syslogLevel(Logger::Level syslogLevel) {
 void Logger::logFile(const std::string &logFile) {
   bool addLogPid = false;
   std::string tempLogFile = logFile;
-  if (tempLogFile[tempLogFile.length()-1] == '+') {
+  if (!tempLogFile.empty() and tempLogFile[tempLogFile.length()-1] == '+') {
     tempLogFile.resize(tempLogFile.length()-1);
     addLogPid = true;
   }

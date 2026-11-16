@@ -227,12 +227,15 @@ bool Monitor::MonitorLink::inAlarm() {
 }
 
 int Monitor::MonitorLink::score() {
-  if (zone_id and (zone_index >= 0)) {
-    Debug(1, "Checking zone %u, zone_index is %d, score is %d", zone_id, zone_index, zone_scores[zone_index]);
-    return zone_scores[zone_index];
-  }
-
   if (shared_data->state == ALARM) {
+    if (zone_id) {
+      if (zone_index >= 0 && zone_scores) {
+        Debug(1, "Checking zone %u, zone_index is %d, score is %d", zone_id, zone_index, zone_scores[zone_index]);
+        return zone_scores[zone_index];
+      }
+      Debug(1, "Zone %u not found or no zone scores, returning 0", zone_id);
+      return 0;
+    }
     Debug(1, "Checking all zones score is %d", shared_data->last_frame_score.load());
     return shared_data->last_frame_score;
   }

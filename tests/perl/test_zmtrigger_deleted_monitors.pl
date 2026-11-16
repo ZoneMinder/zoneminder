@@ -40,7 +40,9 @@ my %per; $per{$_}++ for @ids;
 
 check('daemon ran to the end', $r->{exit} . '/' . $r->{signal}, '0/0');
 check('full loads ask for Deleted=0', scalar(grep { /Deleted/ } @all), scalar(@all));
-check('there were two full loads (start and after 300s)', scalar(@all), 2);
+# At least the start and the 300s reload; SIGTERM delivery can let one more
+# reload cycle through before the daemon stops, so 3 is fine too.
+check('there were full loads at start and after 300s', (scalar(@all) >= 2 && scalar(@all) <= 3) ? 1 : 0, 1);
 check('deleted monitor 2 is never reloaded one by one', $per{2} // 0, 0);
 check('monitor 3 deleted at runtime is reloaded at most once', ($per{3} // 0) <= 1 ? 1 : 0, 1);
 check('single monitor reloads ask for Deleted=0', scalar(grep { /Deleted/ } @one), scalar(@one));

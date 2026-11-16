@@ -56,7 +56,6 @@ echo getNavBarHTML();
       </div>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="?view=<?php echo $view ?>">
 <?php
   foreach ( $mids as $mid ) {
     $monitor = $monitors[$mid];
@@ -92,7 +91,10 @@ echo getNavBarHTML();
     $options = array('zones'=>true, 'state'=>true, 'mode'=>'single', 'width'=>'auto');
 ?>
     <div class="Monitor">
-        <input type="hidden" name="mids[]" value="<?php echo $mid ?>"/>
+      <form name="contentForm" method="post" action="?view=<?php echo $view ?>">
+<?php foreach ( $mids as $page_mid ) { ?>
+        <input type="hidden" name="mids[]" value="<?php echo $page_mid ?>"/>
+<?php } ?>
         <?php echo $monitor->getStreamHTML($options); ?>
         <div class="zones">
           <table id="zonesTable" class="major">
@@ -133,11 +135,11 @@ echo getNavBarHTML();
           </div>
         </div><!--zones-->
         <br class="clear"/>
+      </form>
       </div><!--Monitor-->
 <?php 
   } # end foreach monitor
 ?>
-      </form>
     </div>
   </div>
 <?php

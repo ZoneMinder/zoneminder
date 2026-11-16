@@ -78,7 +78,7 @@ function onvif_probe() {
 function addMonitor(btn) {
   url = btn.getAttribute('data-url');
   if (!url) {
-    alert('No url in button');
+    window.location.assign('?view=monitor');
     return;
   }
   if (!ProbeResults[url]) {

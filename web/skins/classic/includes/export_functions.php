@@ -1034,7 +1034,7 @@ function exportEvents(
     return false;
   }
   foreach ($exportFileList as $exportFile) {
-    $exportFile = $export_root.$connkey.'/'.$exportFile;
+    $exportFile = $export_root.($connkey?'_'.$connkey:'').'/'.$exportFile;
     fwrite($fp, $exportFile.PHP_EOL);
   }
   fwrite($fp, $listFile.PHP_EOL);

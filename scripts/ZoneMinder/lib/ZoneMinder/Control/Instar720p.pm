@@ -75,7 +75,9 @@ sub open {
   my ( $username, $password );
   my $realm = 'Login to ' . $self->{Monitor}->{ControlDevice};
   if ( $self->{Monitor}->{ControlAddress} ) {
-    ( $username, $password ) = $uri->authority() =~ /^(.*):(.*)@(.*)$/;
+    if ( my $userinfo = $uri->userinfo() ) {
+      ( $username, $password ) = split( /:/, $userinfo, 2 );
+    }
 
     $$self{address} = $uri->host_port();
     $self->{ua}->credentials($uri->host_port(), $realm, $username, $password);
@@ -177,7 +179,12 @@ sub getCamParams {
     # Parse results setting values in %FCParams
     my $content = $res->decoded_content;
     while ($content =~ s/var\s+([^=]+)=([^;]+);//ms) {
-      $CamParams{$1} = $2;
+      my $key = $1;
+      my $val = $2;
+      $key =~ s/^\s+|\s+$//g;
+      $val =~ s/^\s+|\s+$//g;
+      $val =~ s/^["']|["']$//g;
+      $CamParams{$key} = $val;
     }
   }
   else {
@@ -365,12 +372,11 @@ sub irisAbsOpen {
 #  Error('asa ');
   my $self = shift;
   my $params = shift;
-  $self->getCamParams() unless($CamParams{'brightness'});
+  $self->getCamParams() unless(defined($CamParams{'brightness'}));
   my $step = $self->getParam( $params, 'step' );
-  Info('asa '.$step);
+  $step //= 1;
   $CamParams{'brightness'} += $step;
   $CamParams{'brightness'} = 6 if ($CamParams{'brightness'} > 6);
-  Info(%CamParams);
   Debug( "Increase Brightness" );
   $self->sendCmd("param.cgi?cmd=setimageattr&-brightness=".$CamParams{'brightness'});
 }
@@ -379,9 +385,10 @@ sub irisAbsOpen {
 sub irisAbsClose {
   my $self = shift;
   my $params = shift;
-  $self->getCamParams() unless($CamParams{'brightness'});
+  $self->getCamParams() unless(defined($CamParams{'brightness'}));
   my $step = $self->getParam( $params, 'step' );
-   $CamParams{'brightness'} -= $step;
+  $step //= 1;
+  $CamParams{'brightness'} -= $step;
   $CamParams{'brightness'} = 0 if ($CamParams{'brightness'} < 0);
   Debug( "Decrease Brightness" );
   $self->sendCmd("param.cgi?cmd=setimageattr&-brightness=".$CamParams{'brightness'});
@@ -391,8 +398,9 @@ sub irisAbsClose {
 sub whiteAbsIn {
   my $self = shift;
   my $params = shift;
-  $self->getCamParams() unless($CamParams{'contrast'});
+  $self->getCamParams() unless(defined($CamParams{'contrast'}));
   my $step = $self->getParam( $params, 'step' );
+  $step //= 1;
   $CamParams{'contrast'} += $step;
   $CamParams{'contrast'} = 7 if ($CamParams{'contrast'} > 7);
   Debug( "Increase Contrast" );
@@ -403,8 +411,9 @@ sub whiteAbsIn {
 sub whiteAbsOut {
   my $self = shift;
   my $params = shift;
-  $self->getCamParams() unless($CamParams{'contrast'});
+  $self->getCamParams() unless(defined($CamParams{'contrast'}));
   my $step = $self->getParam( $params, 'step' );
+  $step //= 1;
   $CamParams{'contrast'} -= $step;
   $CamParams{'contrast'} = 0 if ($CamParams{'contrast'} < 0);
   Debug( "Decrease Contrast" );

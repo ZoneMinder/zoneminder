@@ -122,6 +122,7 @@ sub moveConUp
 {
   my $self = shift;
   my $stop_command = "1";
+  $self->{stop_command} = $stop_command;
   Debug( "Move Up" );
   my $cmd = "decoder_control.cgi?command=0";
   $self->sendCmd( $cmd );
@@ -133,6 +134,7 @@ sub moveConDown
 {
   my $self = shift;
   my $stop_command = "3";
+  $self->{stop_command} = $stop_command;
   Debug( "Move Down" );
   my $cmd = "decoder_control.cgi?command=2";
   $self->sendCmd( $cmd );
@@ -144,6 +146,7 @@ sub moveConLeft
 {
   my $self = shift;
   my $stop_command = "5";
+  $self->{stop_command} = $stop_command;
   Debug( "Move Left" );
   my $cmd = "decoder_control.cgi?command=4";
   $self->sendCmd( $cmd );
@@ -155,6 +158,7 @@ sub moveConRight
 {
   my $self = shift;
   my $stop_command = "7";
+  $self->{stop_command} = $stop_command;
   Debug( "Move Right" );
   my $cmd = "decoder_control.cgi?command=6";
   $self->sendCmd( $cmd );
@@ -166,6 +170,7 @@ sub zoomConTele
 {
   my $self = shift;
   my $stop_command = "19";
+  $self->{stop_command} = $stop_command;
   Debug( "Zoom Tele" );
   my $cmd = "decoder_control.cgi?command=18";
   $self->sendCmd( $cmd );
@@ -177,6 +182,7 @@ sub zoomConWide
 {
   my $self = shift;
   my $stop_command = "17";
+  $self->{stop_command} = $stop_command;
   Debug( "Zoom Wide" );
   my $cmd = "decoder_control.cgi?command=16";
   $self->sendCmd( $cmd );
@@ -228,7 +234,16 @@ sub moveStop
 {
   my $self = shift;
   Debug( "Move Stop" );
-  my $cmd = "decoder_control.cgi?command=1";
+  my $cmd = "decoder_control.cgi?command=" . ($self->{stop_command} || 1);
+  $self->sendCmd( $cmd );
+}
+
+#Zoom Stop
+sub zoomStop
+{
+  my $self = shift;
+  Debug( "Zoom Stop" );
+  my $cmd = "decoder_control.cgi?command=" . ($self->{stop_command} || 19);
   $self->sendCmd( $cmd );
 }
 

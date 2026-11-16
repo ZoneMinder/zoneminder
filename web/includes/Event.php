@@ -292,7 +292,9 @@ class Event extends ZM_Object {
 
         if ( $this->SecondaryStorageId() ) {
           $SecondaryStorage = $this->SecondaryStorage();
-          if ( $SecondaryStorage->Id() ) {
+          if ( $SecondaryStorage->Id() and !$SecondaryStorage->DoDelete() ) {
+            Debug('Not deleting event files for '.$this->{'Id'}.' from secondary storage because it has DoDelete off.');
+          } else if ( $SecondaryStorage->Id() ) {
             deletePath($SecondaryStorage->Path().'/'.$this->Relative_Path());
             deletePath($SecondaryStorage->Path().'/'.$link_path);
           }
@@ -320,7 +322,9 @@ class Event extends ZM_Object {
         if ( $this->{'Scheme'} == 'Medium' ) @rmdir(dirname($eventPath));
         if ( $this->SecondaryStorageId() ) {
           $Storage = $this->SecondaryStorage();
-          if ( $Storage->Id() ) {
+          if ( $Storage->Id() and !$Storage->DoDelete() ) {
+            Debug('Not deleting event files for '.$this->{'Id'}.' from secondary storage because it has DoDelete off.');
+          } else if ( $Storage->Id() ) {
             $eventPath = $Storage->Path().'/'.$this->Relative_Path();
             if ( ! $eventPath ) {
               Error('No event Path in Event delete. Not deleting');

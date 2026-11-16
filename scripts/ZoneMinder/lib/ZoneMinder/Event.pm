@@ -529,6 +529,10 @@ sub delete_files {
       new ZoneMinder::Storage($$event{StorageId}),
       ( $$event{SecondaryStorageId} ? new ZoneMinder::Storage($$event{SecondaryStorageId}) : () ),
     ) ) {
+    if ( !@_ and !$Storage->DoDelete() ) {
+      Debug("Not deleting files for Event $$event{Id} from storage $$Storage{Id} because it has DoDelete off.");
+      next;
+    }
     my $storage_path = $Storage->Path();
 
     if ( !$storage_path ) {

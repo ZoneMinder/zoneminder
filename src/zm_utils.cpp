@@ -459,6 +459,14 @@ std::string UriEncode(const std::string &value) {
   return retbuf;
 }
 
+std::string UrlWithCredentials(const std::string &url, const std::string &user, const std::string &pass) {
+  const std::string credentials = user + ":" + pass + "@";
+  size_t scheme_end = url.find("://");
+  if (scheme_end == std::string::npos) return "rtsp://" + credentials + url;
+  scheme_end += 3;
+  return url.substr(0, scheme_end) + credentials + url.substr(scheme_end);
+}
+
 QueryString::QueryString(std::istream &input) {
   while (!input.eof() && input.peek() > 0) {
     //Should eat "param1="

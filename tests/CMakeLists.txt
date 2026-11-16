@@ -110,6 +110,7 @@ set(TEST_SOURCES
   zm_ffmpeg_input.cpp
   zm_monitor_amcrest.cpp
   zm_go2rtc_check.cpp
+  zm_integration_urls.cpp
   zm_janus_ids.cpp
   zm_janus_refresh.cpp
   zm_local_camera.cpp

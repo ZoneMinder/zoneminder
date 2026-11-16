@@ -114,6 +114,10 @@ if (typeof window !== 'undefined') {
   });
 }
 
+function DeleteCronTask() {
+  getDelConfirmModal('CronConfirmDelete', 'ConfirmDeleteTitle', 'cronForm');
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {CRON_FREQUENCY_DOW, cronSpecFromPickers};
 }

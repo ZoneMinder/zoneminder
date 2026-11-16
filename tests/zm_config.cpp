@@ -188,3 +188,136 @@ TEST_CASE("Config: static settings in a config file still apply") {
   REQUIRE(staticConfig.SERVER_NAME == "box1");
   staticConfig.file_options.clear();
 }
+
+TEST_CASE("process_configfile: quote-only and space-only lines do not underflow buffer") {
+  // Lines consisting only of quotes and spaces have no '='. They must not
+  // cause a buffer underflow when trimming trailing quotes/whitespace.
+  const std::string body =
+      "\"\n"
+      "\"\"\n"
+      "\'\n"
+      "\'\'\n"
+      "   \"   \n"
+      "   \'   \n";
+  std::string path = WriteTempConf(body);
+
+  staticConfig.file_options.clear();
+  process_configfile(path.c_str());
+  unlink(path.c_str());
+
+  REQUIRE(staticConfig.file_options.empty());
+}
+
+TEST_CASE("process_configfile: leading quotes stripped even with whitespace after '='") {
+  const std::string body =
+      "ZM_DB_HOST = \"localhost\"\n"
+      "ZM_DB_NAME = 'zm'\n"
+      "ZM_DB_USER = \"\"\n"
+      "ZM_DB_PASS = ''\n"
+      "ZM_PATH_WEB =   \"/usr/share/zoneminder/www\"\n";
+  std::string path = WriteTempConf(body);
+
+  staticConfig.DB_HOST.clear();
+  staticConfig.DB_NAME.clear();
+  staticConfig.DB_USER.clear();
+  staticConfig.DB_PASS.clear();
+  staticConfig.PATH_WEB.clear();
+  staticConfig.file_options.clear();
+
+  process_configfile(path.c_str());
+  unlink(path.c_str());
+
+  REQUIRE(staticConfig.DB_HOST == "localhost");
+  REQUIRE(staticConfig.DB_NAME == "zm");
+  REQUIRE(staticConfig.DB_USER == "");
+  REQUIRE(staticConfig.DB_PASS == "");
+  REQUIRE(staticConfig.PATH_WEB == "/usr/share/zoneminder/www");
+
+  REQUIRE(staticConfig.file_options["ZM_DB_HOST"] == "localhost");
+  REQUIRE(staticConfig.file_options["ZM_DB_NAME"] == "zm");
+  REQUIRE(staticConfig.file_options["ZM_DB_USER"] == "");
+  REQUIRE(staticConfig.file_options["ZM_DB_PASS"] == "");
+  REQUIRE(staticConfig.file_options["ZM_PATH_WEB"] == "/usr/share/zoneminder/www");
+
+  staticConfig.file_options.clear();
+}
+
+TEST_CASE("process_configfile: lowercase and mixed-case option names apply to daemon config") {
+  // Options written in lowercase or mixed case in zm.conf or conf.d must not be
+  // silently ignored by ApplyFileOptions().
+  const std::string body =
+      "zm_opt_use_auth = 0\n"
+      "ZM_auth_HASH_ttl = 9\n";
+  std::string path = WriteTempConf(body);
+
+  staticConfig.file_options.clear();
+  process_configfile(path.c_str());
+  unlink(path.c_str());
+
+  REQUIRE(staticConfig.file_options.count("ZM_OPT_USE_AUTH") == 1);
+  REQUIRE(staticConfig.file_options["ZM_OPT_USE_AUTH"] == "0");
+  REQUIRE(staticConfig.file_options.count("ZM_AUTH_HASH_TTL") == 1);
+  REQUIRE(staticConfig.file_options["ZM_AUTH_HASH_TTL"] == "9");
+
+  Config cfg;
+  cfg.opt_use_auth = true;
+  cfg.auth_hash_ttl = 2;
+  cfg.ApplyFileOptions();
+
+  REQUIRE(cfg.opt_use_auth == false);
+  REQUIRE(cfg.auth_hash_ttl == 9);
+
+  staticConfig.file_options.clear();
+}
+
+TEST_CASE("process_configfile: lines starting with '=' do not store empty key") {
+  const std::string body =
+      "=broken\n"
+      "   = invalid\n"
+      "ZM_SERVER_NAME = valid\n";
+  std::string path = WriteTempConf(body);
+
+  staticConfig.file_options.clear();
+  staticConfig.SERVER_NAME.clear();
+
+  process_configfile(path.c_str());
+  unlink(path.c_str());
+
+  REQUIRE(staticConfig.file_options.count("") == 0);
+  REQUIRE(staticConfig.SERVER_NAME == "valid");
+  REQUIRE(staticConfig.file_options["ZM_SERVER_NAME"] == "valid");
+
+  staticConfig.file_options.clear();
+}
+
+TEST_CASE("ConfigItem: boolean conversions for word values and fallback") {
+  SECTION("boolean item converts words properly") {
+    REQUIRE(ConfigItem("ZM_TEST", "yes", "boolean").BooleanValue() == true);
+    REQUIRE(ConfigItem("ZM_TEST", "Yes", "boolean").BooleanValue() == true);
+    REQUIRE(ConfigItem("ZM_TEST", "true", "boolean").BooleanValue() == true);
+    REQUIRE(ConfigItem("ZM_TEST", "True", "boolean").BooleanValue() == true);
+    REQUIRE(ConfigItem("ZM_TEST", "on", "boolean").BooleanValue() == true);
+    REQUIRE(ConfigItem("ZM_TEST", "no", "boolean").BooleanValue() == false);
+    REQUIRE(ConfigItem("ZM_TEST", "false", "boolean").BooleanValue() == false);
+    REQUIRE(ConfigItem("ZM_TEST", "off", "boolean").BooleanValue() == false);
+    REQUIRE(ConfigItem("ZM_TEST", "0", "boolean").BooleanValue() == false);
+    REQUIRE(ConfigItem("ZM_TEST", "", "boolean").BooleanValue() == false);
+  }
+  SECTION("boolean accessor fallback on string item handles false words") {
+    REQUIRE(ConfigItem("ZM_TEST", "no", "text").BooleanValue() == false);
+    REQUIRE(ConfigItem("ZM_TEST", "No", "text").BooleanValue() == false);
+    REQUIRE(ConfigItem("ZM_TEST", "false", "text").BooleanValue() == false);
+    REQUIRE(ConfigItem("ZM_TEST", "off", "text").BooleanValue() == false);
+    REQUIRE(ConfigItem("ZM_TEST", "0", "text").BooleanValue() == false);
+    REQUIRE(ConfigItem("ZM_TEST", "", "text").BooleanValue() == false);
+    REQUIRE(ConfigItem("ZM_TEST", "yes", "text").BooleanValue() == true);
+    REQUIRE(ConfigItem("ZM_TEST", "true", "text").BooleanValue() == true);
+    REQUIRE(ConfigItem("ZM_TEST", "on", "text").BooleanValue() == true);
+    REQUIRE(ConfigItem("ZM_TEST", "1", "text").BooleanValue() == true);
+  }
+}
+
+TEST_CASE("StaticConfig: SERVER_ID is zero-initialized") {
+  StaticConfig cfg;
+  REQUIRE(cfg.SERVER_ID == 0);
+}

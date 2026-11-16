@@ -176,7 +176,8 @@ namespace {
   check('percentage zone thresholds are left alone', ZM\Rec::$queries, array());
 
   $legacy = array('Id' => 2, 'Name' => 'Old', 'Units' => 'Pixels',
-    'Coords' => '0,0 639,0 639,479 0,479',
+    // As the zone editor stores them: every coordinate gets two decimals
+    'Coords' => '0.00,0.00 639.00,0.00 639.00,479.00 0.00,479.00',
     'MinAlarmPixels' => 100, 'MaxAlarmPixels' => 1000, 'MinFilterPixels' => 0,
     'MaxFilterPixels' => 0, 'MinBlobPixels' => 0, 'MaxBlobPixels' => 0);
   save(array('mid' => '5', 'newMonitor' => $big + $form), array(5 => $existing), array($legacy));

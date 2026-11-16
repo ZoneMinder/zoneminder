@@ -241,10 +241,9 @@ if ($action == 'save') {
             // Non-rotation resize: coords stay the same (percentages),
             // but rescale threshold pixel counts by area ratio
             foreach ( $zones as $zone ) {
-              // Percentage coordinates (they have a decimal point, which is
-              // how zmc tells them apart) carry thresholds that are a
-              // percentage of the zone, so they do not change with the area.
-              if (strpos($zone['Coords'], '.') !== false) continue;
+              // Percent zones carry thresholds that are a percentage of the
+              // zone, so they do not change with the area.
+              if ($zone['Units'] == 'Percent') continue;
               $newZone = $zone;
               $newZone['MinAlarmPixels'] = intval(round(($zone['MinAlarmPixels']*$newA)/$oldA));
               $newZone['MaxAlarmPixels'] = intval(round(($zone['MaxAlarmPixels']*$newA)/$oldA));

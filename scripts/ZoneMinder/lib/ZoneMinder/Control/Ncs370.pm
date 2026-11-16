@@ -73,7 +73,7 @@ sub sendCmd
 
     my $result = undef;
 
-    printMsg( $cmd, "Tx" );
+    $self->printMsg( $cmd, "Tx" );
 
     my $req = HTTP::Request->new( POST=>"http://".$self->{Monitor}->{ControlAddress}."/PANTILTCONTROL.CGI" );
     $req->content_type( "application/x-www-form-urlencoded" );
@@ -157,6 +157,16 @@ sub presetHome
     my $self = shift;
     Debug( "Home Preset" );
     my $cmd = "PanSingleMoveDegree=1&TiltSingleMoveDegree=1&PanTiltSingleMove=4";
+    $self->sendCmd( $cmd );
+}
+
+sub presetGoto
+{
+    my $self = shift;
+    my $params = shift;
+    my $preset = $self->getParam( $params, 'preset', 1 );
+    Debug( "Goto Preset $preset" );
+    my $cmd = "PanTiltPresetPositionMove=$preset";
     $self->sendCmd( $cmd );
 }
 

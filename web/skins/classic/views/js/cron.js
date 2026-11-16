@@ -105,12 +105,6 @@ if (typeof window !== 'undefined') {
 
   $j(document).ready(function() {
     if (canEdit.System) enableCronJobModal();
-
-    // Deleting a task stops it running, so it is worth a question. On the form
-    // rather than the button so that submitting with the keyboard asks too.
-    $j('form[name="cronForm"]').submit(function(evt) {
-      if (!confirm(confirmDeleteCronString)) evt.preventDefault();
-    });
   });
 }
 

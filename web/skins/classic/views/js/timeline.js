@@ -144,6 +144,9 @@ function loadEventImage(imagePath, zm_event, fid) {
 
   var eventData = $j('#eventData'+zm_event.MonitorId);
   if ( eventData.length ) {
+    // showEvent reads these from the clicked element
+    eventData.attr('data-event-id', zm_event.Id);
+    eventData.attr('data-frame-id', fid);
     eventData.off('click');
     eventData.on('click', function() {
       showEvent(this);

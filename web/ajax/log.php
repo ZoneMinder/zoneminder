@@ -169,12 +169,21 @@ function logFilter() {
       // come back, so matching on them produces SQL against columns the Logs
       // table does not have. The advanced search form offers them because the
       // view declares them as fields, and the resulting statement fails.
+      if ($col === 'Server' and is_scalar($text)) {
+        // The Logs table only holds ServerId, so match the name through Servers.
+        array_push($likes, 'ServerId IN (SELECT Id FROM Servers WHERE Name LIKE ?)');
+        array_push($query['values'], addcslashes((string)$text, '\\%_'));
+        continue;
+      }
       if (!in_array($col, $columns, true)) {
         ZM\Error("'$col' is not a searchable column name");
         continue;
       }
-      // Don't use wildcards on advanced search
+      // Don't use wildcards on advanced search. The text is literal, so a "_" or
+      // "%" in it is escaped rather than read as a LIKE wildcard.
       //$text = '%' .$text. '%';
+      if (!is_scalar($text)) continue;
+      $text = addcslashes((string)$text, '\\%_');
       array_push($likes, $col.' LIKE ?');
       array_push($query['values'], $text);
     }
@@ -187,7 +196,9 @@ function logFilter() {
 
   } else if ($search != '') {
     $requested = true;
-    $search = '%' .$search. '%';
+    // The box is plain text, so escape LIKE wildcards: searching "_" would
+    // otherwise match every row.
+    $search = '%' .addcslashes($search, '\\%_'). '%';
     foreach ( $columns as $col ) {
       array_push($likes, $col.' LIKE ?');
       array_push($query['values'], $search);

@@ -267,7 +267,9 @@ function initLogPanel(panel) {
     manageClearButtonAvailability(false);
     allowRequest = true;
 
-    table.bootstrapTable('refresh');
+    // A different filter is a different result set, so start at its first page
+    // rather than the offset of the page the user was on.
+    table.bootstrapTable('refresh', {pageNumber: 1});
     table.bootstrapTable('showLoading');
   }
 

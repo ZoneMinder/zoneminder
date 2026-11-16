@@ -501,7 +501,7 @@ sub focusMan
           $self->sendCmd( $cmd );
           $self->autoStop( int(1000000*0.5) );
     }
-    if ( $osd eq "off" )
+    elsif ( $osd eq "off" )
          {
           $osd = "on";
           my $cmd = "param.cgi?cmd=setoverlayattr&-region=1&-show=1&-name=OSD $osd";

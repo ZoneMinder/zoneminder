@@ -86,6 +86,7 @@ set(TEST_SOURCES
   zm_remote_camera.cpp
   zm_utils.cpp
   zm_videostore_m3u8.cpp
+  zm_videostore_write.cpp
   zm_vector2.cpp
   zm_zone.cpp
   zm_zone_stride.cpp

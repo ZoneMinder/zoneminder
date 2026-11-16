@@ -49,14 +49,21 @@ function probe(params) {
 // Add the buttons/Thumbnail columns bootstrap-table expects and remember each
 // stream by url so addMonitor() can find it. Shared by the network probe and
 // the CSV import.
+function streamKey(stream) {
+  // Remote cameras only have a relative Path, so the same url can belong to several hosts.
+  const monitor = stream.camera && stream.camera.monitor;
+  return (monitor && monitor.Host ? monitor.Host + '|' : '') + stream.url;
+}
+
 function decorateStreams(streams) {
   const rows = [];
   for (const i in streams) {
     const stream = streams[i];
+    const key = streamKey(stream);
     if (stream.Monitor) {
-      stream.buttons = '<input type="button" value="Edit" data-on-click-this="addMonitor" data-url="'+stream.url+'"/>';
+      stream.buttons = '<input type="button" value="Edit" data-on-click-this="addMonitor" data-url="'+key+'"/>';
     } else if (stream.url && user.Monitors == 'Create') {
-      stream.buttons = '<input type="button" value="Add" data-on-click-this="addMonitor" data-url="'+stream.url+'"/>';
+      stream.buttons = '<input type="button" value="Add" data-on-click-this="addMonitor" data-url="'+key+'"/>';
     }
     if (ZM_WEB_LIST_THUMBS && stream.camera && stream.camera.mjpegstream) {
       // The image proxy requires the CSRF token since it is exempt from the POST check.
@@ -65,7 +72,7 @@ function decorateStreams(streams) {
       stream.Thumbnail = '<img src="'+src+'" width="'+ZM_WEB_LIST_THUMB_WIDTH+'"/>';
     }
     if (stream.url) {
-      ProbeResults[stream.url] = stream;
+      ProbeResults[key] = stream;
     }
     rows.push(stream);
   } // end for each Stream
@@ -90,7 +97,7 @@ function addMonitor(btn) {
     urlString = '?view=monitor&mid='+Stream.Monitor.Id;
   } else {
     const Monitor = Stream.camera.monitor;
-    urlString = '?view=monitor&newMonitor[Path]='+encodeURIComponent(url);
+    urlString = '?view=monitor&newMonitor[Path]='+encodeURIComponent(Stream.url);
     keys = Object.keys( Monitor );
     for (i in Monitor) {
       if (!Monitor[i]) continue;

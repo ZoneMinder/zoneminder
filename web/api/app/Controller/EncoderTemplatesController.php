@@ -12,6 +12,10 @@ class EncoderTemplatesController extends AppController {
   public function index() {
     $this->EncoderTemplate->recursive = -1;
     $conditions = array();
+    if ($this->request->params['named']) {
+      $this->FilterComponent = $this->Components->load('Filter');
+      $conditions = $this->FilterComponent->buildFilter($this->request->params['named'], array_keys($this->EncoderTemplate->schema()));
+    }
     if (!empty($this->request->query['Encoder'])) {
       $conditions['EncoderTemplate.Encoder'] = $this->request->query['Encoder'];
     }

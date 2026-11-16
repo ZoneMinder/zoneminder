@@ -52,7 +52,7 @@ Finally some perl scripts in the scripts directory. These scripts all have some 
 **zmtrigger.pl**
   This is an optional script that is a more generic solution to external triggering of alarms. It can handle external connections via either internet socket, unix socket or file/device interfaces. You can either use it ‘as is’ if you can interface with the existing format, or override connections and channels to customise it to your needs. The format of triggers used by zmtrigger.pl is as follows "<id>|<action>|<score>|<cause>|<text>|<showtext>" where
 
-  * 'id' is the id number or name of the ZM monitor.
+  * 'id' is the id number of the ZM monitor.
   * 'action' is 'on', 'off', 'cancel' or ‘show’ where 'on' forces an alarm condition on, 'off' forces an alarm condition off and 'cancel' negates the previous 'on' or 'off'. The ‘show’ action merely updates some auxiliary text which can optionally be displayed in the images captured by the monitor. Ordinarily you would use 'on' and 'cancel', 'off' would tend to be used to suppress motion based events. Additionally 'on' and 'off' can take an additional time offset, e.g. on+20 which automatically 'cancel's the previous action after that number of seconds.
   * 'score' is the score given to the alarm, usually to indicate it's importance. For 'on' triggers it should be non-zero, otherwise it should be zero.
   * 'cause' is a 32 char max string indicating the reason for, or source of the alarm e.g. 'Relay 1 open'. This is saved in the ‘Cause’ field of the event. Ignored for 'off' or 'cancel' messages.

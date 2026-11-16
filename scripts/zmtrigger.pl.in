@@ -485,7 +485,7 @@ B<id>|B<action>|B<score>|B<cause>|B<text>|B<showtext>
 
 =item B<id>
 
-  is the id number or name of the ZM monitor.
+  is the id number of the ZM monitor.
 
 =item B<action>
 

@@ -814,8 +814,8 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                   }
                 }
               }  // end for sy = lo_y .. hi_y
-              alarm_mid_x = int(round(x_total/bs->count));
-              alarm_mid_y = int(round(y_total/bs->count));
+              alarm_mid_x = int(round(static_cast<double>(x_total)/bs->count));
+              alarm_mid_y = int(round(static_cast<double>(y_total)/bs->count));
             } else {
               alarm_mid_x = int((bs->hi_x+bs->lo_x+1)/2);
               alarm_mid_y = int((bs->hi_y+bs->lo_y+1)/2);
@@ -841,6 +841,8 @@ bool Zone::CheckAlarms(const Image *delta_image) {
     // stats.score <<= 1;
     stats.score_ *= 2;
   }
+  if (stats.score_ < 1)
+    stats.score_ = 1; /* An inclusive zone that met its thresholds is still alarmed */
 
   Debug(5, "Adjusted score is %d", stats.score_);
 

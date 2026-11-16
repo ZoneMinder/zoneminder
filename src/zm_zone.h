@@ -198,6 +198,9 @@ class Zone {
   inline Vector2 GetAlarmCentre() const { return stats.alarm_centre_; }
   inline unsigned int Score() const { return stats.score_; }
 
+  // Drop the scores and boxes of a zone that is not checked this frame.
+  inline void ClearStats() { stats.Reset(); }
+
   inline void ResetStats() {
     alarmed = false;
     was_alarmed = false;

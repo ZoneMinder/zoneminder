@@ -4295,8 +4295,11 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
   // Blank out all exclusion zones
   for (Zone &zone : zones) {
     // need previous alarmed state for preclusive zone, so don't clear just yet
-    if (!zone.IsPreclusive())
+    if (!zone.IsPreclusive()) {
       zone.ClearAlarm();
+      // Not every zone is checked each frame, so drop last frame's scores and boxes.
+      zone.ClearStats();
+    }
     if (!zone.IsInactive())
       continue;
     Debug(3, "Blanking inactive zone %s", zone.Label());

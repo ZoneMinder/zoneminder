@@ -65,3 +65,48 @@ TEST_CASE("Authenticator resets nonce count when the server sends a new nonce", 
   CHECK(h3.find("nonce=\"nonce_second\"") != std::string::npos);
   CHECK(h3.find("nc=00000001") != std::string::npos);
 }
+
+TEST_CASE("Authenticator Digest response matches the RFC 2617 example", "[rtsp_auth]") {
+  zm::Authenticator auth("Mufasa", "Circle Of Life");
+  auth.authHandleHeader(
+      "Digest realm=\"testrealm@host.com\", qop=\"auth,auth-int\", "
+      "nonce=\"dcd98b7102dd2f0e8b11d0f600bfb0c093\", "
+      "opaque=\"5ccc069c403ebaf9f0171e9517f40e41\"");
+
+  std::string header = auth.getAuthHeader("GET", "/dir/index.html");
+  CHECK(header.find("nc=00000001") != std::string::npos);
+  CHECK(header.find("cnonce=\"0a4f113b\"") != std::string::npos);
+  CHECK(header.find("response=\"6629fae49393a05397450978507c4ef1\"") != std::string::npos);
+}
+
+TEST_CASE("Authenticator Digest keeps '=' inside quoted values", "[rtsp_auth]") {
+  zm::Authenticator auth("user1", "pass1");
+  auth.authHandleHeader(
+      "Digest realm=\"a=b\", nonce=\"YWJjZGVmZw==\", qop=\"auth\", opaque=\"c2VjcmV0PQ==\"");
+
+  CHECK(auth.realm() == "a=b");
+  CHECK(auth.nonce() == "YWJjZGVmZw==");
+
+  std::string header = auth.getAuthHeader("DESCRIBE", "rtsp://cam/live");
+  CHECK(header.find("nonce=\"YWJjZGVmZw==\"") != std::string::npos);
+  CHECK(header.find("opaque=\"c2VjcmV0PQ==\"") != std::string::npos);
+}
+
+TEST_CASE("Authenticator Digest parameter names are case insensitive", "[rtsp_auth]") {
+  zm::Authenticator auth("user1", "pass1");
+  auth.authHandleHeader("Digest Realm=\"Cam\", Nonce=\"n1\", QOP=\"auth\", Opaque=\"op\"");
+
+  CHECK(auth.realm() == "Cam");
+  CHECK(auth.nonce() == "n1");
+  std::string header = auth.getAuthHeader("GET", "/x");
+  CHECK(header.find("qop=auth, ") != std::string::npos);
+  CHECK(header.find("opaque=\"op\"") != std::string::npos);
+}
+
+TEST_CASE("Authenticator Digest tolerates spaces around '='", "[rtsp_auth]") {
+  zm::Authenticator auth("user1", "pass1");
+  auth.authHandleHeader("Digest realm = \"Cam\", nonce = \"n1\"");
+
+  CHECK(auth.realm() == "Cam");
+  CHECK(auth.nonce() == "n1");
+}

@@ -285,8 +285,13 @@ int main(int argc, char *argv[]) {
 
       if (monitor->StartupDelay() > 0) {
         Debug(1, "Doing startup sleep for %ds", monitor->StartupDelay());
-        std::this_thread::sleep_for(Seconds(monitor->StartupDelay()));
+        // Keep the heartbeat fresh, or zmwatch restarts us for being stuck.
+        for (int i = 0; i < monitor->StartupDelay() and !zm_terminate; i++) {
+          monitor->SetHeartbeatTime(std::chrono::system_clock::now());
+          std::this_thread::sleep_for(Seconds(1));
+        }
       }
+      if (zm_terminate) break;
 
       Seconds sleep_time = Seconds(0);
       bool priming_failed = false;

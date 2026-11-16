@@ -55,6 +55,7 @@ Event::Event(
   id(0),
   monitor(p_monitor),
   storage(nullptr),
+  storage_id(0),
   packetqueue_it(p_packetqueue_it),
   start_time(p_start_time),
   end_time(p_start_time),
@@ -124,6 +125,7 @@ Event::Event(
   // Copy it in case opening the mp4 doesn't work we can set it to another value
   save_jpegs = monitor->GetOptSaveJPEGs();
   storage = monitor->getStorage();
+  storage_id = storage->Id();
   if (monitor->GetOptVideoWriter() != 0) {
     container = monitor->OutputContainer();
     if (container == "auto" || container == "") {
@@ -354,8 +356,8 @@ Event::~Event() {
       Warning("Failed unlinking %s: %s", video_incomplete_path.c_str(), strerror(errno));
   }
 
-  if (storage && storage->Id()) {
-    sql = stringtf("UPDATE Storage SET DiskSpace = DiskSpace + %" PRIu64 " WHERE Id=%u", video_size, storage->Id());
+  if (storage_id) {
+    sql = stringtf("UPDATE Storage SET DiskSpace = DiskSpace + %" PRIu64 " WHERE Id=%u", video_size, storage_id);
     dbQueue.push(std::move(sql));
   }
 
@@ -887,6 +889,7 @@ void Event::Run() {
     }
     sql = stringtf("UPDATE Events SET StorageId = '%d', Scheme = '%s' WHERE Id=%" PRIu64, storage->Id(), storage->SchemeString().c_str(), id);
     zmDbDo(sql);
+    storage_id = storage->Id();
   }  // end if ! setPath(Storage)
   Debug(1, "Using storage area at %s", path.c_str());
 

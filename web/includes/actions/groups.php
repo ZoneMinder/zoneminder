@@ -23,7 +23,7 @@ if ( ($action == 'setgroup') && canView('Groups')) {
   if ( !empty($_REQUEST['gid']) ) {
     zm_setcookie('zmGroup', validInt($_REQUEST['gid']));
   } else {
-    zm_setcookie('zmGroup', '', time()-3600*24*2);
+    zm_setcookie('zmGroup', '', array('expires'=>time()-3600*24*2));
   }
   $refreshParent = true;
   return;

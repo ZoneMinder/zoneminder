@@ -394,6 +394,10 @@ sub focusRelFar {
   my $speed = $self->getParam( $params, 'speed', $DefaultFocusSpeed );
   $self->Focus($speed);
 }
+sub focusStop {
+  my $self = shift;
+  $self->Focus(0);
+}
 #
 # Iris controls all call Iris with a +/- speed
 #
@@ -475,6 +479,10 @@ sub irisRelOpen {
   # Get the iris speed
   my $speed = $self->getParam( $params, 'speed', $DefaultIrisSpeed );
   $self->Iris($speed);
+}
+sub irisStop {
+  my $self = shift;
+  $self->Iris(0);
 }
 
 #

@@ -516,6 +516,8 @@ sub delete {
     # SELECT autocommits, so the absolute value it then writes clobbers any
     # adjustment zmc or another filter made in between.
     # See ZoneMinder::Storage::adjust_diskspace.
+    # When delete() owns the transaction the reclaim already ran inside it,
+    # above; only a caller-managed transaction reclaims here, once.
     $storage->adjust_diskspace(-$reclaim) if $in_transaction and $reclaim;
   }
 

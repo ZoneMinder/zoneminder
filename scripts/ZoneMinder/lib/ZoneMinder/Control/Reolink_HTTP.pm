@@ -219,7 +219,7 @@ sub logout {
     param => {}
   };
   
-  $self->sendApiCmd($logout_cmd);
+  $self->sendApiCmd($logout_cmd, 1);
   
   $$self{token} = 'null';
   $$self{token_expiry} = 0;
@@ -240,7 +240,9 @@ sub ensureToken {
 sub sendApiCmd {
   my $self = shift;
   my $cmd = shift;
+  my $retried = shift;
   my $result = undef;
+  my $token_rejected = 0;
 
   # Ensure we have a valid token
   return undef unless $self->ensureToken();
@@ -273,11 +275,20 @@ sub sendApiCmd {
           my $code = $response->[0]->{code};
           my $detail = $response->[0]->{error}->{detail} || 'unknown error';
           Error("API returned error code $code: $detail");
+          # rspCode -6 is 'please login first': the camera dropped our token
+          # (reboot, session limit, lease cut short), whatever our own expiry says.
+          $token_rejected = 1 if defined($response->[0]->{error}) and ($response->[0]->{error}->{rspCode} // 0) == -6;
         }
       }
     };
   } else {
     Error('Camera control command FAILED: '.$res->status_line().' for '.$cmds[0]->{cmd});
+  }
+
+  if ($token_rejected and !$retried) {
+    Debug('Token rejected by camera, logging in again');
+    $$self{token} = 'null';
+    return $self->sendApiCmd($cmd, 1);
   }
 
   return $result;
@@ -645,10 +656,12 @@ sub presetSet {
     cmd => 'SetPtzPreset',
     action => 0,
     param => {
-      channel => $$self{channel},
-      enable => 1,
-      id => int($preset),
-      name => "Preset$preset"
+      PtzPreset => {
+        channel => $$self{channel},
+        enable => 1,
+        id => int($preset),
+        name => "Preset$preset"
+      }
     }
   };
   

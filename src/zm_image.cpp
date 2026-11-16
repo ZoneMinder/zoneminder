@@ -2438,7 +2438,7 @@ void Image::Overlay( const Image &image ) {
       for (unsigned int x = 0; x < width; x++, psrc++, prdest++) {
         if (*psrc) {
           if (alpha_last) {
-            RED_PTR_RGBA(prdest) = *psrc;
+            RED_PTR_RGBA(prdest) = GREEN_PTR_RGBA(prdest) = BLUE_PTR_RGBA(prdest) = *psrc;
           } else {
             RED_PTR_ABGR(prdest) = GREEN_PTR_ABGR(prdest) = BLUE_PTR_ABGR(prdest) = *psrc;
           }
@@ -3591,7 +3591,9 @@ void rotate_plane(const uint8_t *src, int src_linesize,
 }  // namespace
 
 void Image::Rotate(int angle) {
-  angle %= 360;
+  // C++ keeps the sign of the dividend, so -90 would otherwise stay -90 and
+  // match none of the 90/180/270 cases below.
+  angle = ((angle % 360) + 360) % 360;
 
   if ( !angle || angle%90 ) {
     return;

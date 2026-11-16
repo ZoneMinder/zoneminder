@@ -1357,7 +1357,7 @@ sub executeCommand {
   my $status = $?;
   if ($status || logDebugging()) {
     chomp($output);
-    Debug("Status: $status Output: $output");
+    Debug("Exit code: ".($status >> 8).(($status & 127) ? " signal: ".($status & 127) : '')." Output: $output");
   }
   if ($status) {
     Error("Command '$command' failed with ".(($status & 127) ? "signal ".($status & 127) : "status ".($status >> 8)));

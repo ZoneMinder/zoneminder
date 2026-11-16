@@ -1954,7 +1954,6 @@ function formatTag(tag) {
   // Removing a tag needs Events edit; don't offer it to users who can't.
   if (canEdit.Events) tagElement.append($j('<span>', {class: 'tag-remove', text: '\u00D7'}));
   $j('#tags').append(tagElement);
-  //$j('.tag-dropdown').before(tagElement);
 }
 
 function addTag(tag, buttonPressed = null) {

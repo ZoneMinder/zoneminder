@@ -266,7 +266,7 @@ ZoneMinder::Storage - Perl modules for Storage objects
 
   use ZoneMinder::Storage;
   my $Storage = ZoneMinder::Storage->find_one(Name=>'Default');
-  my @S3Areas = ZoneMinder::Stroage->find(Type=>'s3fs');
+  my @S3Areas = ZoneMinder::Storage->find(Type=>'s3fs');
   etc...
 
 =head1 DESCRIPTION

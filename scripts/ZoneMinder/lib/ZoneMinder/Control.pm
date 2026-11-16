@@ -293,8 +293,15 @@ sub loadMonitor {
   my $self = shift;
   if ( !$self->{Monitor} ) {
     if ( !($self->{Monitor} = ZoneMinder::Monitor->find_one(Id=>$self->{MonitorId})) ) {
-      Fatal('Monitor id '.$self->{id}.' not found');
+      Fatal('Monitor id '.$self->{MonitorId}.' not found');
     }
+  }
+  # Monitor::Control() hands us a monitor already, so the conversion cannot
+  # live in the lookup above or the timeout stays in seconds and the modules
+  # usleep() it as microseconds. executeCommand calls this for every command,
+  # so convert once.
+  if ( !$self->{AutoStopTimeoutConverted} ) {
+    $self->{AutoStopTimeoutConverted} = 1;
     if ( defined($self->{Monitor}->{AutoStopTimeout}) ) {
 # Convert to microseconds.
       $self->{Monitor}->{AutoStopTimeout} = int(1000000*$self->{Monitor}->{AutoStopTimeout});
@@ -503,6 +510,7 @@ sub parse_ControlAddress {
 
     if ($uri->userinfo()) {
       @$self{'username','password'} = $uri->userinfo() =~ /^(.*):(.*)$/;
+      $$self{username} = URI::Escape::uri_unescape($$self{username}) if defined $$self{username};
       $$self{password} = URI::Escape::uri_unescape($$self{password});
     }
     # URI gives the explicit port if present, otherwise the scheme default (http 80, https 443, rtsp 554)
@@ -530,12 +538,16 @@ sub parse_Path {
   }
   $uri->path_query('');
   if ( $uri->userinfo()) {
-    @$self{'username', 'password'} = $uri->userinfo() =~ /^(.*):(.*)$/;
+    # The userinfo of a URL is url-encoded (an @ in a password has to be %40),
+    # and the user may have no password at all.
+    my ($user, $pass) = split(/:/, $uri->userinfo(), 2);
+    $$self{username} = URI::Escape::uri_unescape($user // '');
+    $$self{password} = URI::Escape::uri_unescape($pass // '');
   } else {
     $$self{username} = $$monitor{User};
     $$self{password} = $$monitor{Pass};
-    # This will put it into canonical
-    $uri->userinfo($$self{username}.':'.$$self{password});
+    # This will put it into canonical, unless the camera has no login
+    $uri->userinfo($$self{username}.':'.($$self{password} // '')) if defined($$self{username}) and length($$self{username});
   }
   $$self{address} = $uri->host_port();
   $$self{host} = $uri->host();
@@ -589,7 +601,7 @@ sub get_realm {
   my $response = $self->get($url);
   return 1 if $response->is_success();
 
-  if ($response->status_line() eq '401 Unauthorized' and defined $$self{username}) {
+  if ($response->code() == 401 and defined $$self{username}) {
     my $headers = $response->headers();
     foreach my $k ( keys %$headers ) {
       Debug("Initial Header $k => $$headers{$k}");

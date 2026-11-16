@@ -19,6 +19,7 @@ var changedMonitors = []; //Monitor IDs that were changed in the DOM
 var scrollBarExists = null;
 var movableMonitorData = []; //Monitor data (id, width, stop (true - stop moving))
 var TimerHideShow = null;
+var webSiteReloadTimers = []; // intervals reloading WebSite monitors
 
 const presetRatio = new Map([
   ['auto', ''],
@@ -308,7 +309,12 @@ function setRatioForMonitor(objStream, id=null) {
     return;
   }
 
-  const value = getSelected(document.getElementById("ratio"+id));
+  const ratioSelect = document.getElementById("ratio"+id);
+  if (!ratioSelect) {
+    // A WebSite monitor is not wrapped in a grid item, so it has no ratio select
+    return;
+  }
+  const value = getSelected(ratioSelect);
   const currentMonitor = monitors.find((o) => {
     return parseInt(o["id"]) === id;
   });
@@ -469,6 +475,7 @@ function manageDelConfirmModalBtns() {
 }
 
 function startVisibleMonitors() {
+  startWebSiteRefresh();
   for (let i = 0, length = monitors.length; i < length; i++) {
     const monitor = monitors[i];
     const isOut = isOutOfViewport(monitor.getElement());
@@ -480,7 +487,29 @@ function startVisibleMonitors() {
 }
 
 function reloadWebSite(ndx) {
-  document.getElementById('imageFeed'+ndx).innerHTML = document.getElementById('imageFeed'+ndx).innerHTML;
+  const feed = document.getElementById('imageFeed'+ndx);
+  if (feed) {
+    feed.innerHTML = feed.innerHTML;
+    return;
+  }
+  // montage.php prints a WebSite monitor as a bare <object>, with no imageFeed wrapper
+  const obj = document.getElementById('liveStream'+ndx);
+  if (obj) obj.setAttribute('data', obj.getAttribute('data'));
+}
+
+function stopWebSiteRefresh() {
+  webSiteReloadTimers.forEach(clearInterval);
+  webSiteReloadTimers.length = 0;
+}
+
+function startWebSiteRefresh() {
+  stopWebSiteRefresh();
+  for (let i = 0, length = monitors.length; i < length; i++) {
+    const monitor = monitors[i];
+    if ((monitor.type == 'WebSite') && (monitor.refresh > 0)) {
+      webSiteReloadTimers.push(setInterval(reloadWebSite, monitor.refresh*1000, monitor.id));
+    }
+  }
 }
 
 function takeSnapshot() {
@@ -506,11 +535,9 @@ function startMonitors() {
       monitor.setPlayer(monitor.player);
       monitor.start();
     }
-    if ((monitor.type == 'WebSite') && (monitor.refresh > 0)) {
-      setInterval(reloadWebSite, monitor.refresh*1000, monitor.id);
-    }
     monitor.setup_onclick(handleClick);
   }
+  startWebSiteRefresh();
 }
 
 function stopMonitors() { //Not working yet.
@@ -681,6 +708,7 @@ function initPage() {
 
       function stopPlayback() {
         idleTimeoutTriggered = true;
+        stopWebSiteRefresh();
         for (let i=0, length = monitors.length; i < length; i++) {
           monitors[i].stop();
         }
@@ -829,7 +857,8 @@ function isOutOfViewport(elem) {
   out.bottom = (out.bottomUp || out.bottomDown);
   out.right = (bounding.right > (window.innerWidth || document.documentElement.clientWidth) ) || (bounding.right < 0);
   out.any = out.top || out.left || out.bottom || out.right;
-  out.all = (out.topUp && out.bottomUp ) || (out.topDown && out.bottomDown ) || (out.left && out.right);
+  // A monitor wider than the viewport has left < 0 and right > width, but still fills it
+  out.all = (out.topUp && out.bottomUp ) || (out.topDown && out.bottomDown ) || (bounding.right < 0) || (bounding.left > (window.innerWidth || document.documentElement.clientWidth));
   //console.log( 'top: ' + out.top + ' left: ' + out.left + ' bottom: '+out.bottom + ' right: '+out.right);
 
   return out;
@@ -1083,6 +1112,7 @@ document.onvisibilitychange = () => {
     TimerHideShow = setTimeout(function() {
       //Stop monitors when hiding page
       //closing should kill, hiding should stop/pause
+      stopWebSiteRefresh();
       for (let i = 0, length = monitors.length; i < length; i++) {
         // Stop instead of pause because we don't want buffering in zms
         monitors[i].stop();

@@ -669,7 +669,7 @@ sub parseNameEqualsValueToHash {
   foreach my $line ( split ( /\r?\n/, $_[0] ) ) {
     next if ! $line;
     next if ! ( $line =~ /=/ );
-    my ($name, $value ) = split('=', $line);
+    my ($name, $value ) = split('=', $line, 2);
     $value =~ s/^'//;
     $value =~ s/'$//;
     $settings{$name} = defined $value ? $value : '';

@@ -871,6 +871,7 @@ $SLANG = array(
     'TrainingDetectObjects' => 'Run object detection on current frame',
     'TrainingDetectRunning' => 'Running detection...',
     'TrainingDetectedObjects' => 'object(s) detected — accept or reject each',
+    'TrainingFailedCreateDirectory' => 'Failed to create training directory',
     'TrainingFailedToLoadEvent' => 'Failed to load event data',
     'TrainingFailedToLoadFrame' => 'Failed to load frame image',
     'TrainingGuidance'      => 'Training is generally possible with at least 50+ images per class. For best results, aim for 100+ images per class.',

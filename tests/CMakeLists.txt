@@ -105,6 +105,7 @@ set(TEST_SOURCES
   zm_ffmpeg_option_number.cpp
   zm_ffmpeg_encoder_choices.cpp
   zm_ffmpeg_input.cpp
+  zm_monitor_amcrest.cpp
   zm_go2rtc_check.cpp
   zm_janus_ids.cpp
   zm_janus_refresh.cpp

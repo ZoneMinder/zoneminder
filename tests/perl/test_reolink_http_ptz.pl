@@ -64,6 +64,11 @@ sub new { return bless {ModectDuringPTZ => 1, ControlDevice => 0}, $_[0]; }
 sub suspendMotionDetection {}
 sub resumeMotionDetection {}
 
+package CountingMonitor;
+sub new { return bless {ModectDuringPTZ => 0, ControlDevice => 0, calls => $_[1]}, $_[0]; }
+sub suspendMotionDetection { $_[0]->{calls}{suspend}++ }
+sub resumeMotionDetection { $_[0]->{calls}{resume}++ }
+
 package main;
 
 sub camera {
@@ -98,6 +103,17 @@ sub camera {
   my $body = decode_json($ua->{reqs}[0]->content)->[0];
   check('moveConLeft op', $body->{param}{op}, 'Left');
   check('moveConLeft speed', $body->{param}{speed}, 12);
+}
+
+# Zoom stop gives motion detection back after a zoom suspended it.
+{
+  my ($control, $ua) = camera(0);
+  my %calls;
+  $control->{Monitor} = CountingMonitor->new(\%calls);
+  $control->zoomConTele({speed => 10});
+  $control->zoomStop();
+  check('zoomConTele suspends motion detection', $calls{suspend}, 1);
+  check('zoomStop resumes motion detection', $calls{resume}, 1);
 }
 
 # Token dropped by the camera

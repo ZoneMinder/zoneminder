@@ -59,10 +59,32 @@ void Authenticator::authHandleHeader(const std::string &headerData) {
   else if ( strncasecmp(headerData.c_str(), digest_match, digest_match_len) == 0) {
     fAuthMethod = AUTH_DIGEST;
     Debug(2, "Set authMethod to Digest");
-    StringVector subparts = Split(headerData.substr(digest_match_len, headerData.length() - digest_match_len), ",");
+    // A new challenge starts a new nonce, so the nonce count starts again.
+    nc = 1;
+    fOpaque.clear();
+    // Split on commas that are not inside a quoted value.
+    StringVector subparts;
+    std::string current;
+    bool in_quotes = false;
+    for ( char c : headerData.substr(digest_match_len) ) {
+      if ( c == '"' ) in_quotes = !in_quotes;
+      if ( c == ',' && !in_quotes ) {
+        subparts.push_back(current);
+        current.clear();
+      } else {
+        current += c;
+      }
+    }
+    subparts.push_back(current);
     // subparts are key="value"
     for ( size_t i = 0; i < subparts.size(); i++ ) {
       StringVector kvPair = Split(TrimSpaces(subparts[i]), "=");
+      // A directive with no '=' (or an empty one) yields fewer than two parts, so
+      // reading kvPair[0]/kvPair[1] below would run off the end. The header comes
+      // from a camera's 401 response, which on an HTTP source is unauthenticated,
+      // so a malformed directive would otherwise crash the capture daemon
+      // (refs GHSA-r8cq-jgx6-gr5p). Skip anything that is not key=value.
+      if ( kvPair.size() < 2 ) continue;
       std::string key = TrimSpaces(kvPair[0]);
       if ( key == "realm" ) {
         fRealm = Trim(kvPair[1], "\"");
@@ -73,7 +95,15 @@ void Authenticator::authHandleHeader(const std::string &headerData) {
         continue;
       }
       if ( key == "qop" ) {
-        fQop = Trim(kvPair[1], "\"");
+        // qop may be a list such as "auth,auth-int"; only auth is supported.
+        fQop = "";
+        for ( const std::string &option : Split(Trim(kvPair[1], "\""), ",") ) {
+          if ( TrimSpaces(option) == "auth" ) fQop = "auth";
+        }
+        continue;
+      }
+      if ( key == "opaque" ) {
+        fOpaque = Trim(kvPair[1], "\"");
         continue;
       }
     }
@@ -100,6 +130,7 @@ std::string Authenticator::getAuthHeader(const std::string &method, const std::s
       result += ", cnonce=\"" + fCnonce + "\"";
     }
     result += ", response=\"" + computeDigestResponse(method, uri) + "\"";
+    if ( !fOpaque.empty() ) result += ", opaque=\"" + quote(fOpaque) + "\"";
     result += ", algorithm=\"MD5\"";
 
     //Authorization: Digest username="zm",
@@ -123,8 +154,9 @@ std::string Authenticator::computeDigestResponse(const std::string &method, cons
   //  md5(md5(<username>:<realm>:<password>):<nonce>:md5(<cmd>:<url>))
 
   // Step 1: md5(<username>:<realm>:<password>)
+  // ha1Data holds the camera password and its MD5 (HA1) is all a client
+  // needs to answer this realm's challenges, so neither is logged.
   std::string ha1Data = username() + ":" + realm() + ":" + password();
-  Debug(2, "HA1 pre-md5: %s", ha1Data.c_str());
 
   zm::crypto::MD5::Digest md5_digest = zm::crypto::MD5::GetDigestOf(ha1Data);
   std::string ha1Hash = ByteArrayToHexString(md5_digest);
@@ -144,7 +176,6 @@ std::string Authenticator::computeDigestResponse(const std::string &method, cons
     // if qop was specified, then we have to include t and a cnonce and an nccount
   }
   digestData += ":" + ha2Hash;
-  Debug(2, "pre-md5: %s", digestData.c_str());
 
   md5_digest = zm::crypto::MD5::GetDigestOf(digestData);
 

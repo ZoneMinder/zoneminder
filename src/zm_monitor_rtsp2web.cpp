@@ -45,8 +45,9 @@ Monitor::RTSP2WebManager::RTSP2WebManager(Monitor *parent_) :
   rtsp_second_path = parent->GetSecondPath();
 
   if (!parent->user.empty()) {
-    rtsp_username = escape_json_string(parent->user);
-    rtsp_password = escape_json_string(parent->pass);
+    // Stored raw: the JSON payload escapes the assembled URL itself.
+    rtsp_username = parent->user;
+    rtsp_password = parent->pass;
     if (rtsp_path.find("rtsp://") == 0) {
       rtsp_path = "rtsp://" + rtsp_username + ":" + rtsp_password + "@" + rtsp_path.substr(7, std::string::npos);
     } else {
@@ -60,7 +61,7 @@ Monitor::RTSP2WebManager::RTSP2WebManager(Monitor *parent_) :
       }
     }
   }  // end if !user.empty
-  Debug(1, "Monitor %u rtsp url is %s", parent->id, rtsp_path.c_str());
+  Debug(1, "Monitor %u rtsp url is %s", parent->id, url_for_log(rtsp_path).c_str());
 }
 
 Monitor::RTSP2WebManager::~RTSP2WebManager() {
@@ -73,6 +74,7 @@ int Monitor::RTSP2WebManager::check_RTSP2Web() {
     Error("Failed to init curl");
     return -1;
   }
+  zm_curl_set_timeouts(curl);
 
   //Assemble our actual request
   std::string response;
@@ -98,6 +100,7 @@ int Monitor::RTSP2WebManager::check_RTSP2Web() {
     ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
+    zm_curl_set_timeouts(curl);
     curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
@@ -135,20 +138,22 @@ int Monitor::RTSP2WebManager::add_to_RTSP2Web() {
     Error("Failed to init curl");
     return -1;
   }
+  zm_curl_set_timeouts(curl);
 
   std::string endpoint = RTSP2Web_endpoint+"/stream/"+std::to_string(parent->id)+"/add";
 
   //Assemble our actual request
-  std::string postData = "{\"name\" : \"" + std::string(parent->Name()) + "\", \"channels\" : {"
+  std::string postData = "{\"name\" : \"" + escape_json_string(parent->Name()) + "\", \"channels\" : {"
    " \"0\" : {"
-   "  \"name\" : \"ch1\", \"audio\" : true, \"url\" : \"" + rtsp_path + "\", \"on_demand\": true, \"debug\": false, \"status\": 0}";
+   "  \"name\" : \"ch1\", \"audio\" : true, \"url\" : \"" + escape_json_string(rtsp_path) + "\", \"on_demand\": true, \"debug\": false, \"status\": 0}";
    if (!rtsp_second_path.empty()) {
      postData += ", \"1\" : {"
-       "  \"name\" : \"ch2\", \"audio\" : true, \"url\" : \"" + rtsp_second_path + "\", \"on_demand\": true, \"debug\": false, \"status\": 0}";
+       "  \"name\" : \"ch2\", \"audio\" : true, \"url\" : \"" + escape_json_string(rtsp_second_path) + "\", \"on_demand\": true, \"debug\": false, \"status\": 0}";
    }
    postData += "}" "}";
 
-  Debug(1, "Sending %s to %s", postData.c_str(), endpoint.c_str());
+  // postData carries the camera URLs with their credentials: do not log it.
+  Debug(1, "Sending stream %s (%s) to %s", parent->Name(), url_for_log(rtsp_path).c_str(), endpoint.c_str());
 
   CURLcode res;
   std::string response;
@@ -175,6 +180,7 @@ int Monitor::RTSP2WebManager::add_to_RTSP2Web() {
     ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
+    zm_curl_set_timeouts(curl);
     curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
@@ -211,6 +217,7 @@ int Monitor::RTSP2WebManager::add_to_RTSP2Web() {
 int Monitor::RTSP2WebManager::remove_from_RTSP2Web() {
   curl = curl_easy_init();
   if (!curl) return -1;
+  zm_curl_set_timeouts(curl);
 
   std::string endpoint = RTSP2Web_endpoint+"/stream/"+std::to_string(parent->id)+"/delete";
   std::string response;
@@ -237,6 +244,7 @@ int Monitor::RTSP2WebManager::remove_from_RTSP2Web() {
     ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
+    zm_curl_set_timeouts(curl);
     curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);

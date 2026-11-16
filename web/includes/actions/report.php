@@ -20,7 +20,7 @@
 
 require_once('includes/Report.php');
 if (!empty($_REQUEST['id'])) {
-  $report = new ZM\Report($_REQUEST['id']);
+  $report = new ZM\Report(validCardinal($_REQUEST['id']));
 } else {
   $report = new ZM\Report();
 }
@@ -34,7 +34,7 @@ if ($report->Id() and !$report->canEdit()) {
 }
 
 if ($action == 'save') {
-  $changes = $report->changes($_REQUEST['Report']);
+  $changes = $report->changes(isset($_REQUEST['Report']) && is_array($_REQUEST['Report']) ? $_REQUEST['Report'] : array());
   if (!$report->Id()) {
     $changes['CreatedBy'] = $user->Id();
   }

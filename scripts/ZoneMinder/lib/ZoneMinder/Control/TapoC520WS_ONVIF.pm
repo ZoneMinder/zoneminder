@@ -169,7 +169,7 @@ sub parseControlAddress {
 
   $$self{address} = $url->host;
   $$self{BaseURL} = $$self{scheme}.'://'.$$self{address}.':'.$$self{port};
-  Debug("Using address $$self{BaseURL}$$self{path}, username $$self{username}, password $$self{password}");
+  Debug("Using address $$self{BaseURL}$$self{path}, username $$self{username}");
 }
 
 sub digestBase64 {
@@ -304,9 +304,10 @@ sub autoStop {
   my $iszoom = shift;
 
   if ( $autostop ) {
-    my $duration = $autostop * $self->{Monitor}{AutoStopTimeout};
-    $duration = ($duration < 1000) ? $duration * 1000 : int($duration/1000);
-    # Change from microseconds to milliseconds or seconds to milliseconds
+    # Control::loadMonitor already turned AutoStopTimeout into microseconds,
+    # which is what usleep takes.  A bare flag value (zmcontrol --autostop
+    # in direct mode gives 1) is a number of seconds.
+    my $duration = ($autostop < 1000) ? $autostop * 1000000 : int($autostop);
     Debug("Calculate duration $duration from autostop($autostop) and AutoStopTimeout ".$self->{Monitor}{AutoStopTimeout});
 
     my $cmd = $controlUri;
@@ -513,8 +514,16 @@ sub zoomStop {
   Debug('Zoom Stop');
   my $self = shift;
   my $cmd = $controlUri;
-  $self->autoStop($self->{Monitor}->{AutoStopTimeout},1);
-  Error('Zoom Stop not implemented');
+  my $msg_body = '
+<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Stop xmlns="http://www.onvif.org/ver20/ptz/wsdl">
+    <ProfileToken>'.$profileToken.'</ProfileToken>
+    <PanTilt>false</PanTilt>
+    <Zoom>true</Zoom>
+  </Stop>
+</s:Body>';
+  my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/Stop"';
+  $self->sendCmd($cmd, $msg_body, $content_type);
 }
 
 #Diagonally Up Right Arrow
@@ -578,7 +587,7 @@ sub moveStop {
     <Zoom>true</Zoom>
   </Stop>
 </s:Body>';
-  my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
+  my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/Stop"';
   $self->sendCmd($cmd, $msg_body, $content_type);
 }
 

@@ -157,29 +157,27 @@ function tlZoomBounds(event) {
   var target = event.target;
   var minTime = target.getAttribute('data-zoom-min-time');
   var maxTime = target.getAttribute('data-zoom-max-time');
-  location.replace('?view='+currentView+filterQuery+'&minTime='+minTime+'&maxTime='+maxTime);
+  location.replace('?view='+currentView+navFilterQuery+'&minTime='+minTime+'&maxTime='+maxTime);
 }
 
 function tlZoomOut() {
-  location.replace('?view='+currentView+filterQuery+'&midTime='+midTime+'&range='+zoomout_range);
+  location.replace('?view='+currentView+navFilterQuery+'&midTime='+midTime+'&range='+zoomout_range);
 }
 
 function tlPanLeft() {
-  location.replace('?view='+currentView+filterQuery+'&midTime='+minTime+'&range='+range);
+  location.replace('?view='+currentView+navFilterQuery+'&midTime='+minTime+'&range='+range);
 }
 function tlPanRight() {
-  location.replace('?view='+currentView+filterQuery+'&midTime='+maxTime+'&range='+range);
+  location.replace('?view='+currentView+navFilterQuery+'&midTime='+maxTime+'&range='+range);
 }
 
 function divDataOnClick() {
   // These look like the code in skin.js, but that code doesn't select for divs.
-  document.querySelectorAll('div.event').forEach(function(el) {
+  document.querySelectorAll('div.event, div.activity').forEach(function(el) {
     el.onclick = window[el.getAttribute('data-on-click-this')].bind(el, el);
-    el.onmouseover = window[el.getAttribute('data-on-mouseover-this')].bind(el, el);
-  });
-  document.querySelectorAll('div.activity').forEach(function(el) {
-    el.onclick = window[el.getAttribute('data-on-click-this')].bind(el, el);
-    el.onmouseover = window[el.getAttribute('data-on-mouseover-this')].bind(el, el);
+    // Absent when the page was loaded with mouseover=0
+    const over = el.getAttribute('data-on-mouseover-this');
+    if (over) el.onmouseover = window[over].bind(el, el);
   });
   document.querySelectorAll('div.tlzoom').forEach(function(el) {
     el.onclick = function(ev) {

@@ -149,7 +149,6 @@ $SLANG = array(
     'BadDevice'            => 'Apparaat moet een geldige waarde zijn',
     'BadFPSReportInterval' => 'FPS rapport interval buffer aantal moet een getal groter dan nul zijn',
     'BadFormat'            => 'Formaat moet een getal van nul of groter zijn',
-    'BadFrameSkip'         => 'Frame skip aantal moet een getal van nul of groter zijn',
     'BadHeight'            => 'Hoogte moet een geldige waarde zijn',
     'BadHost'              => 'Host moet een juist adres of hostname zijn, laat http:// weg',
     'BadImageBufferCount'  => 'Buffergrootte moet een getal van 2 of groter zijn',
@@ -371,7 +370,6 @@ $SLANG = array(
     'Frame'                => 'Frame',
     'FrameId'              => 'Frame id',
     'FrameRate'            => 'Framerate',
-    'FrameSkip'            => 'Frame overgeslagen',
     'Frames'               => 'Frames',
     'Func'                 => 'Func',
     'Function'             => 'Functie',
@@ -417,7 +415,6 @@ $SLANG = array(
     'Last'                 => 'Laatste',
     'Layout'               => 'Layout',
     'Level'                => 'Niveau',
-    'Libvlc'               => 'Libvlc',
     'LimitResultsPost'     => 'resultaten;', // This is used at the end of the phrase 'Limit to first N results only'
     'LimitResultsPre'      => 'beperk tot eerste', // This is used at the beginning of the phrase 'Limit to first N results only'
     'Line'                 => 'Lijn',
@@ -606,7 +603,6 @@ $SLANG = array(
     'ProfileProbeIntro'    => 'The list below shows the existing stream profiles of the selected camera .<br/><br/>Select the desired entry from the list below.<br/><br/>Please note that ZoneMinder cannot configure additional profiles and that choosing a camera here may overwrite any values you already have configured for the current monitor.<br/><br/>', // Added - 2015-04-18
     'Progress'             => 'Voortgang',
     'Protocol'             => 'Protocol',
-    'RTSPDescribe'         => 'Use RTSP Response Media URL', // Added - 2018-08-30
     'RTSPTransport'        => 'RTSP Transport Protocol', // Added - 2018-08-30
     'Rate'                 => 'Snelheid',
     'Real'                 => 'Echte',
@@ -939,12 +935,6 @@ $OLANG = array(
 		          "\"allowed_media_types=video\" Set datatype to request fromcam (audio, video, data)~~~~".
 		          "\"reorder_queue_size=nnn\" Set number of packets to buffer for handling of reordered packets~~~~".
 		          "\"loglevel=debug\" Set verbosity of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
-	),
-	'OPTIONS_LIBVLC' => array(
-		'Help' => "Parameters in this field are passed on to libVLC. Multiple parameters can be separated by ,~~ ".
-		          "Examples (do not enter quotes)~~~~".
-		          "\"--rtp-client-port=nnn\" Set local port to use for rtp data~~~~". 
-		          "\"--verbose=2\" Set verbosity of libVLC"
 	),
 	
 //    'LANG_DEFAULT' => array(

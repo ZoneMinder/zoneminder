@@ -1,5 +1,6 @@
 <?php
 namespace ZM;
+use Exception;
 require_once('database.php');
 require_once('Object.php');
 
@@ -45,8 +46,11 @@ class Server extends ZM_Object {
   );
 
   public function ReadStats() {
-    #ToDo: Analyze the date of the last entry, because The entry may be out of date and not updated.
-    $dbStats = dbFetchAll('SELECT * FROM Server_Stats WHERE ServerId=? ORDER BY TimeStamp DESC LIMIT 1',NULL, [$this->Id()>1 ? $this->Id() : 0]);
+    # Single-server installs store stats under ServerId=0 (zmstats.pl writes
+    # ZM_SERVER_ID ? ZM_SERVER_ID : 0), and $this->Id() is empty/undef there.
+    # Coerce a falsy id to 0 so the lookup matches; a real id passes through.
+    # Rows older than a few update intervals are stale (zmstats stopped), so the defaults (-1) stay.
+    $dbStats = dbFetchAll('SELECT * FROM Server_Stats WHERE ServerId=? AND TimeStamp > NOW() - INTERVAL ? SECOND ORDER BY TimeStamp DESC LIMIT 1',NULL, [$this->Id() ? $this->Id() : 0, max(60, 4 * (int)ZM_STATS_UPDATE_INTERVAL)]);
     if (count($dbStats)) {
       $this->TimeUpdateStats = $dbStats[0]['TimeStamp'];
       $this->CpuLoad = $dbStats[0]['CpuLoad'];
@@ -220,22 +224,25 @@ class Server extends ZM_Object {
     $url = $this->UrlToApi().$path;
     $auth_relay = get_auth_relay();
     if ($auth_relay) $url .= '?'.$auth_relay;
-    Debug('sending command to '.$url);
+    Debug('sending command to '.urlForLog($url));
 
     $context_options=array(
       "ssl"=>array(
         "verify_peer"=>false,
         "verify_peer_name"=>false,
       ),
+      "http"=>array(
+        "timeout"=>10,
+      ),
     );
     $context = stream_context_create($context_options);
     try {
       $result = @file_get_contents($url, false, $context);
       if ($result === FALSE) { /* Handle error */
-        Error("Error using $url");
+        Error('Error using '.urlForLog($url).': '.lastErrorForLog());
       }
     } catch (Exception $e) {
-      Error("Except $e thrown sending to $url");
+      Error("Except $e thrown sending to ".urlForLog($url));
     }
     return $result;
   }

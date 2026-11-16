@@ -61,6 +61,8 @@ To get an API key:
 
     curl -XPOST -d "user=yourusername&pass=yourpassword" https://yourserver/zm/api/host/login.json
 
+An account whose password is ``admin`` gets ``401 Unauthorized`` with the message "This account uses the password admin, which ZoneMinder does not accept. Log in to the web interface to set a new one." ZoneMinder refuses that password for every account, because it is the one the admin account is created with. Log in to the web interface once to choose a new password, then use that one here.
+
 
 If you want to use a stateful connection, so you don't have to pass auth credentials with each query, you can use the following:
 
@@ -85,7 +87,7 @@ Or for API 2.0:
 
   {
       "access_token": "eyJ0eXAiOiJK<deleted>HE",
-      "access_token_expires": 3600,
+      "access_token_expires": 7200,
       "refresh_token": "eyJ0eXAiOi<deleted>mPs",
       "refresh_token_expires": 86400,
       "credentials": "auth=05f3a50e8f7<deleted>063",  # only if OPT_USE_LEGACY_API_AUTH is enabled
@@ -134,9 +136,9 @@ Understanding access/refresh tokens (v2.0)
 
 If you are using V2.0, then you need to know how to use these tokens effectively:
 
-* Access tokens are short lived. ZoneMinder issues access tokens that live for 3600 seconds (1 hour).
+* Access tokens are short lived. ZoneMinder issues access tokens that live for ``AUTH_HASH_TTL`` hours, 2 hours (7200 seconds) by default.
 * Access tokens should be used for all subsequent API accesses. 
-* Refresh tokens should ONLY be used to generate new access tokens. For example, if an access token lives for 1 hour, before the hour completes, invoke the ``login.json`` API above with the refresh token to get a new access token. ZoneMinder issues refresh tokens that live for 24 hours.
+* Refresh tokens should ONLY be used to generate new access tokens. For example, if an access token lives for 2 hours, before it expires, invoke the ``login.json`` API above with the refresh token (as ``token=<refresh_token>``, with no user name or password) to get a new access token. ZoneMinder issues refresh tokens that live for 24 hours.
 * To generate a new refresh token before 24 hours are up, you will need to pass your user login and password to ``login.json``
 
 **To Summarize:**
@@ -262,6 +264,7 @@ This command will add a new http monitor.
 ::
 
   curl -XPOST http://server/zm/api/monitors.json -d "Monitor[Name]=Cliff-Burton\
+  &Monitor[Type]=Remote\
   &Monitor[Capturing]=Always\
   &Monitor[Analysing]=Always\
   &Monitor[Recording]=Always\
@@ -304,11 +307,25 @@ This command will force an alarm on Monitor 1:
 
   curl http://server/zm/api/monitors/alarm/id:1/command:on.json
 
-This command will disable the  alarm on Monitor 1:
+The event records "Forced Web" as its cause. To record another cause, pass it as ``cause``.
+ZoneMinder keeps letters, digits, spaces and plain punctuation (``_ . , : ; ! ? ( ) [ ] / + # @ % = -``),
+drops anything else, and keeps the first 31 bytes:
+
+::
+
+  curl "http://server/zm/api/monitors/alarm/id:1/command:on.json?cause=Doorbell"
+
+This command will cancel the forced alarm on Monitor 1:
 
 ::
 
   curl http://server/zm/api/monitors/alarm/id:1/command:off.json
+
+This command will prevent alarms on Monitor 1 until they are cancelled with ``command:off``:
+
+::
+
+  curl http://server/zm/api/monitors/alarm/id:1/command:disable.json
 
 This command will report the status of the alarm  Monitor 1:
 
@@ -325,9 +342,9 @@ Return a list of all events
   http://server/zm/api/events.json
 
 
-Note that events list can be quite large and this API (as with all other APIs in ZM)
-uses pagination. Each page returns a specific set of entries. By default this is 25
-and ties into WEB_EVENTS_PER_PAGE in the ZM options menu. 
+Note that events list can be quite large. Without ``page`` or ``limit`` this API
+returns every matching event in one response. Add ``?limit=N`` and/or ``?page=N`` to
+paginate; each page then returns a specific set of entries, 20 by default.
 
 So the logic to iterate through all events should be something like this (pseudocode):
 (unfortunately there is no way to get pageCount without getting the first page)
@@ -337,7 +354,7 @@ So the logic to iterate through all events should be something like this (pseudo
   data = http://server/zm/api/events.json?page=1 # this returns the first page
   # The json object returned now has a property called data.pagination.pageCount
   count = data.pagination.pageCount;
-  for (i=1, i<count, i++)
+  for (i=1; i<=count; i++)
   {
     data = http://server/zm/api/events.json?page=i;
      doStuff(data);
@@ -400,7 +417,7 @@ Return a list of events for all monitors within a specified date/time range
 
 ::
 
-  curl -XGET "http://server/zm/api/events/index/StartDateTime%20>=:2015-05-15%2018:43:56/EndDateTime%20<=:208:43:56.json"
+  curl -XGET "http://server/zm/api/events/index/StartDateTime%20>=:2015-05-15%2018:43:56/EndDateTime%20<=:2015-05-16%2018:43:56.json"
 
 
 Return event count based on times and conditions
@@ -418,7 +435,7 @@ This returns number of events per monitor that were recorded in the last day whe
 
 ::
 
-  curl "http://server/zm/api/events/consoleEvents/1%20day.json/AlarmFrames >=: 10.json"
+  curl "http://server/zm/api/events/consoleEvents/1%20day.json/AlarmFrames%20>=:%2010.json"
 
 
 
@@ -426,11 +443,11 @@ This returns number of events per monitor that were recorded in the last day whe
 Return sorted events
 ^^^^^^^^^^^^^^^^^^^^^^
 
-This returns a list of events within a time range and also sorts it by descending order
+This returns a list of events within a time range and also sorts it by descending order. ``sort`` and ``direction`` only take effect together with ``page`` or ``limit``, so add one of them (``page=1`` here):
 
 ::
 
-  curl -XGET "http://server/zm/api/events/index/StartDateTime%20>=:2015-05-15%2018:43:56/EndDateTime%20<=:208:43:56.json?sort=StartDateTime&direction=desc"
+  curl -XGET "http://server/zm/api/events/index/StartDateTime%20>=:2015-05-15%2018:43:56/EndDateTime%20<=:2015-05-16%2018:43:56.json?sort=StartDateTime&direction=desc&page=1"
 
 
 Configuration Apis
@@ -481,7 +498,7 @@ Create a Zone
   curl -XPOST http://server/zm/api/zones.json -d "Zone[Name]=Jason-Newsted\
   &Zone[MonitorId]=3\
   &Zone[Type]=Active\
-  &Zone[Units]=Percent\
+  &Zone[Units]=Pixels\
   &Zone[NumCoords]=4\
   &Zone[Coords]=0,0 639,0 639,479 0,479\
   &Zone[Area]=307200\
@@ -555,15 +572,18 @@ Returns:
             "storage": [
                 {
                     "Storage": {
-                        "Id": "0",
+                        "Id": 1,
                         "Path": "\/var\/cache\/zoneminder\/events",
                         "Name": "Default",
                         "Type": "local",
                         "Url": null,
-                        "DiskSpace": "364705447651",
+                        "DiskSpace": 364705447651,
                         "Scheme": "Medium",
-                        "ServerId": null,
-                        "DoDelete": true
+                        "ServerId": 0,
+                        "DoDelete": true,
+                        "Enabled": true,
+                        "DiskTotalSpace": 211281219584,
+                        "DiskUsedSpace": 194858852352
                     }
                  }
                ]
@@ -571,7 +591,7 @@ Returns:
 
 
 
-"DiskSpace" is the disk used in bytes. While this doesn't return disk space data as rich as  ``/host/getDiskPercent``, it is much more efficient.
+"DiskSpace" is the disk used by events in bytes, while "DiskTotalSpace" and "DiskUsedSpace" are the size and used space of the filesystem in bytes. While this doesn't return disk space data as rich as  ``/host/getDiskPercent``, it is much more efficient.
 
 Similarly, 
 
@@ -587,19 +607,32 @@ Returns:
             "servers": [
                 {
                     "Server": {
-                        "Id": "1",
-                        "Name": "server1",
+                        "Id": 1,
+                        "Protocol": "http",
                         "Hostname": "server1.mydomain.com",
+                        "Port": 80,
+                        "PathToIndex": null,
+                        "PathToZMS": null,
+                        "PathToApi": null,
+                        "Name": "server1",
                         "State_Id": null,
                         "Status": "Running",
-                        "CpuLoad": "0.9",
-                        "TotalMem": "6186237952",
-                        "FreeMem": "156102656",
-                        "TotalSwap": "536866816",
-                        "FreeSwap": "525697024",
+                        "CpuLoad": 0.9,
+                        "CpuUserPercent": null,
+                        "CpuNicePercent": null,
+                        "CpuSystemPercent": null,
+                        "CpuIdlePercent": null,
+                        "CpuUsagePercent": null,
+                        "TotalMem": 6186237952,
+                        "FreeMem": 156102656,
+                        "TotalSwap": 536866816,
+                        "FreeSwap": 525697024,
                         "zmstats": false,
                         "zmaudit": false,
-                        "zmtrigger": false
+                        "zmtrigger": false,
+                        "zmeventnotification": false,
+                        "Latitude": null,
+                        "Longitude": null
                     }
                 }
             ]
@@ -626,19 +659,19 @@ For example:
 
 ::
 
-    <img src="https://yourserver/zm/cgi-bin/nph-zms?scale=50&width=640p&height=480px&mode=jpeg&maxfps=5&buffer=1000&&monitor=1&token=eW<deleted>03&connkey=36139" />
+    <img src="https://yourserver/zm/cgi-bin/nph-zms?scale=50&mode=jpeg&maxfps=5&buffer=1000&monitor=1&token=eW<deleted>03&connkey=36139" />
 
     # or 
 
-    <img src="https://yourserver/zm/cgi-bin/nph-zms?scale=50&width=640p&height=480px&mode=jpeg&maxfps=5&buffer=1000&&monitor=1&auth=b5<deleted>03&connkey=36139" />
+    <img src="https://yourserver/zm/cgi-bin/nph-zms?scale=50&mode=jpeg&maxfps=5&buffer=1000&monitor=1&auth=b5<deleted>03&connkey=36139" />
     
 
 
 
-will display a live feed from monitor id 1, scaled down by 50% in quality and resized to 640x480px. 
+will display a live feed from monitor id 1, scaled down to 50% of its size, at no more than 5 frames per second. 
 
 * This assumes ``/zm/cgi-bin`` is your CGI_BIN path. Change it to what is correct in your system
-* The "auth" token you see above is required if you use ZoneMinder authentication. To understand how to get the auth token, please read the "Login, Logout & API security" section below.
+* The "auth" token you see above is required if you use ZoneMinder authentication. To understand how to get the auth token, please read the "Getting an API key" section above.
 * The "connkey" parameter is essentially a random number which uniquely identifies a stream. If you don't specify a connkey, ZM will generate its own. It is recommended to generate a connkey because you can then use it to "control" the stream (pause/resume etc.)
 * Instead of dealing with the "auth" token, you can also use ``&user=username&pass=password`` where "username" and "password" are your ZoneMinder username and password respectively. Note that this is not recommended because you are transmitting them in a URL and even if you use HTTPS, they may show up in web server logs.
 

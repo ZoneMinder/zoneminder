@@ -11,15 +11,33 @@ class User extends AppModel {
             'required' => array(
                 'rule' => array('notEmpty'),
                 'message' => 'A username is required'
+            ),
+            'unique' => array(
+                'rule' => array('isUnique'),
+                'message' => 'This username is already in use'
+            ),
+            'length' => array(
+                'rule' => array('maxLength', 64),
+                'message' => 'A username is at most 64 characters'
             )
         ),
         'Password' => array(
             'required' => array(
                 'rule' => array('notEmpty'),
                 'message' => 'A password is required'
+            ),
+            'acceptable' => array(
+                'rule' => array('acceptablePassword')
             )
         )
     );
+
+    # The same check as the web interface (passwordProblem() in includes/auth.php):
+    # true, or the reason as the validation message.
+    public function acceptablePassword($check) {
+      $problem = passwordProblem(reset($check));
+      return ($problem === null) ? true : passwordProblemText($problem);
+    }
 
     function beforeFind($query) {
       if ( empty($query['fields']) ) {
@@ -37,6 +55,12 @@ class User extends AppModel {
     public function beforeSave($options = array()) {
       if (!empty($this->data['User']['Password'])) {
         $this->data['User']['Password'] = password_hash($this->data['User']['Password'], PASSWORD_BCRYPT);
+        # A password change revokes the user's existing API tokens: any token
+        # issued before TokenMinExpiry is rejected by validateToken(), the same
+        # mechanism the options page's revoke action uses. Without this a pre-
+        # change access or refresh token keeps working after the password is
+        # changed (refs GHSA-5w6w-qp25-2qqh).
+        $this->data['User']['TokenMinExpiry'] = time();
       }
       return true;
     }  # end function beforeSave

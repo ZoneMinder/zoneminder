@@ -118,7 +118,7 @@ sub sendCmd
         = $self->{Monitor}->{ControlAddress} =~ /^(https?):\/\/(.*):(.*)@(.*):(\d+)$/;
     my $URL = $PROTOCOL."://".$ADDR.":".$PORT."/decoder_control.cgi?command=".$cmd;
 
-    Debug( "ControlAddress from camera Control setting:".$self->{Monitor}->{ControlAddress} );
+    Debug( "ControlAddress from camera Control setting:".urlForLog($self->{Monitor}->{ControlAddress}) );
     Debug( "URL parsed from ControlAddress:".$URL);
 
     my $req = HTTP::Request->new( GET=>$URL );

@@ -33,12 +33,11 @@ require ZoneMinder::Object;
 
 use parent qw(ZoneMinder::Object);
 
-use vars qw/ $table $primary_key %fields /;
+use vars qw/ $table @identified_by %fields /;
 $table = 'Frames';
-$primary_key = 'Id';
+@identified_by = ('EventId', 'FrameId');
 
 %fields = (
-        Id      => 'Id',
         EventId => 'EventId',
         FrameId => 'FrameId',
         Type    => 'Type',
@@ -70,9 +69,8 @@ Isaac Connor, E<lt>isaac@zoneminder.comE<gt>
 
 Copyright (C) 2001-2017  ZoneMinder LLC
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.3 or,
-at your option, any later version of Perl 5 you may have available.
+Licensed under the GNU General Public License v2 or later; see the COPYING
+file distributed with ZoneMinder for the full text.
 
 
 =cut

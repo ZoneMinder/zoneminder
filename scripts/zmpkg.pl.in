@@ -33,6 +33,7 @@ use bytes;
 @EXTRA_PERL_LIB@
 use ZoneMinder;
 use ZoneMinder::Monitor;
+use ZoneMinder::Server;
 use ZoneMinder::State;
 use ZoneMinder::Filter;
 use DBI;
@@ -41,7 +42,7 @@ use Time::HiRes qw/gettimeofday/;
 use autouse 'Pod::Usage'=>qw(pod2usage);
 
 # Detaint our environment
-$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
+$ENV{PATH}  = '@ZM_SCRIPT_PATH@';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 my $store_state=''; # PP - will remember state name passed
@@ -69,18 +70,12 @@ if ( $command and ( $command !~ /^(?:start|stop|restart|status|logrot|version)$/
         ($id, my $function, my $enabled) = @state;
         if (!$enabled) {
           ($capturing, $analysing, $recording) = ('None','None','None');
-        } elsif ($function eq 'None') {
-          ($capturing, $analysing, $recording) = ('None','None','None');
-        } elsif ($function eq 'Monitor') {
-          ($capturing, $analysing, $recording) = ('Always','None','None');
-        } elsif ($function eq 'Modect') {
-          ($capturing, $analysing, $recording) = ('Always','Always','OnMotion');
-        } elsif ($function eq 'Mocord') {
-          ($capturing, $analysing, $recording) = ('Always','Always','OnMotion');
-        } elsif ($function eq 'Record') {
-          ($capturing, $analysing, $recording) = ('Always','Always','Always');
         } else {
-          Error("Unknown function $function, defaulting to Mocord"); 
+          ($capturing, $analysing, $recording) = legacyFunctionModes($function);
+          if (!defined $capturing) {
+            Error("Unknown function $function in state $command, leaving monitor $id unchanged");
+            next;
+          }
         }
       } elsif (@state == 4) {
         ($id, $capturing, $analysing, $recording) = @state;
@@ -150,9 +145,16 @@ if ( $command =~ /^(start|stop|restart)$/ ) {
 # We have to detaint to keep perl from complaining
   $command = $1;
 
-  if ( systemdRunning() && !calledBysystem() ) {
-    qx(@BINDIR@/zmsystemctl.pl $command);
-    $command = '';
+  if ( ZoneMinder::Server::systemdRunning()
+      && !ZoneMinder::Server::calledBysystem() ) {
+    my $output = qx(@BINDIR@/zmsystemctl.pl $command 2>&1);
+    if ( $? == 0 ) {
+      $command = '';
+    } else {
+      Error("Failed to $command via zmsystemctl.pl, exit status ".($? >> 8)
+        .": $output Running the command directly instead, which leaves the"
+        .' daemons in this process\'s cgroup and mount namespace.');
+    }
   }
 }
 
@@ -184,6 +186,19 @@ if ( $command =~ /^(?:start|restart)$/ ) {
          );
     } # end if version mismatch
 
+    if ( $Config{ZM_OPT_USE_AUTH} and ( $Config{ZM_AUTH_RELAY} eq 'plain' ) ) {
+      Warning('ZM_AUTH_RELAY=plain is deprecated: it puts the user\'s password'
+        .' in stream URLs and the web session. Set it to hashed (with'
+        .' ZM_AUTH_HASH_SECRET set) in Options > Authentication.');
+    }
+
+    if ( $Config{ZM_OPT_FAST_DELETE} and !$Config{ZM_RUN_AUDIT} ) {
+      Warning('ZM_OPT_FAST_DELETE is on but ZM_RUN_AUDIT is off: events deleted'
+        .' in the web interface leave their Frames and Stats rows and their files'
+        .' for zmaudit to remove, and zmaudit is not running, so they are never'
+        .' removed. Turn on ZM_RUN_AUDIT or turn off ZM_OPT_FAST_DELETE in Options > System.');
+    }
+
 # Recreate the temporary directory if it's been wiped
     verifyFolder('@ZM_TMPDIR@');
 
@@ -199,7 +214,6 @@ if ( $command =~ /^(?:start|restart)$/ ) {
     my $Server = undef;
     my @monitors;
     if ( $Config{ZM_SERVER_ID} ) {
-      require ZoneMinder::Server;
       Info("Multi-server configuration detected. Starting up services for server $Config{ZM_SERVER_ID}");
       $Server = new ZoneMinder::Server($Config{ZM_SERVER_ID});
       @monitors = ZoneMinder::Monitor->find(Deleted=>0, ServerId=>$Config{ZM_SERVER_ID});
@@ -319,6 +333,21 @@ if ($command eq 'status') {
 
 exit($retval);
 
+# Capturing, Analysing and Recording for a pre-1.37.12 Function value, as in
+# the zm_update-1.37.12.sql migration. Empty list if the function is unknown.
+sub legacyFunctionModes {
+  my $function = shift;
+  my %modes = (
+    None    => ['None',   'None',   'None'],
+    Monitor => ['Always', 'None',   'None'],
+    Modect  => ['Always', 'Always', 'OnMotion'],
+    Mocord  => ['Always', 'Always', 'Always'],
+    Record  => ['Always', 'None',   'Always'],
+    Nodect  => ['Always', 'None',   'OnMotion'],
+  );
+  return $modes{$function} ? @{$modes{$function}} : ();
+}
+
 # PP - Make sure isActive is on and only one
 sub isActiveSanityCheck {
   Info('Sanity checking States table...');
@@ -355,20 +384,6 @@ sub resetStates {
     or Fatal("Can't execute: ".$dbh->errstr());
 }
 
-sub systemdRunning {
-  my $output = qx(ps -o comm="" -p 1);
-  return scalar ( $output =~ /systemd/ );
-}
-
-sub calledBysystem {
-  my $ppid = getppid();
-
-  my $output = qx(ps -o comm="" -p $ppid);
-  #chomp( $output );
-
-  return ($output =~ /^(?:systemd|init)$/);
-}
-
 sub verifyFolder {
   my $folder = shift;
 
@@ -383,6 +398,12 @@ sub verifyFolder {
       # chown the directory
       my ( $webName, $webPass, $webUid, $webGid ) = getpwnam($Config{ZM_WEB_USER})
         or Fatal("Can't get details for web user '$Config{ZM_WEB_USER}': $!");
+      my $webGroupGid = (getgrnam($Config{ZM_WEB_GROUP}))[2];
+      if ( defined $webGroupGid ) {
+        $webGid = $webGroupGid;
+      } else {
+        Warning("Can't get details for web group '$Config{ZM_WEB_GROUP}', using primary group of '$Config{ZM_WEB_USER}'");
+      }
       chown($webUid, $webGid, $folder)
         or Fatal("Can't change ownership of '$folder' to '"
             .$Config{ZM_WEB_USER}.':'.$Config{ZM_WEB_GROUP}."': $!"

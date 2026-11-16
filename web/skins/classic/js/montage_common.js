@@ -38,11 +38,11 @@ function saveSort() {
 
   const server = Servers[serverId];
   if (!server) {
-    Error("Unknown server "+serverId);
+    zmError("Unknown server "+serverId);
     return;
   }
   $j.ajax({
-    url: server.urlToApi() + '/user_preference.json?'+auth_relay,
+    url: zmAuth.appendTo(server.urlToApi() + '/user_preference.json'),
     method: 'POST',
     dataType: 'json',
     data: layout_user_preference,

@@ -11,45 +11,76 @@
   global $scale;
   global $streamMode;
   global $popup;
+  global $codec;
+  global $auto;
+  global $fid;
+  global $replayMode;
+  global $has_hls;
+  global $hlsSrc;
 ?>
 
 //
 // PHP variables to JS
 //
-var connKey = '<?php echo $connkey ?>';
+var connKey = '<?php echo validJsStr($connkey) ?>';
 
 var eventData = {
 <?php if ( $Event->Id() ) { ?>
-    Id: '<?php echo $Event->Id() ?>',
-    Name: '<?php echo $Event->Name() ?>',
-    MonitorId: '<?php echo $Event->MonitorId() ?>',
+    Id: '<?php echo validJsStr($Event->Id()) ?>',
+    Name: <?php echo json_encode($Event->Name(), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) ?>,
+    MonitorId: '<?php echo validJsStr($Event->MonitorId()) ?>',
     MonitorName: '<?php echo validJsStr($monitor->Name()) ?>',
-    Cause: '<?php echo validHtmlStr($Event->Cause()) ?>',
+    Cause: <?php echo json_encode($Event->Cause(), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) ?>,
     <!-- Tags: '<?php echo validHtmlStr(implode(', ', array_map(function($t){return $t->Name();}, $Event->Tags()))); ?>', -->
-    Notes: `<?php echo $Event->Notes()?>`,
-    Width: '<?php echo $Event->Width() ?>',
-    Height: '<?php echo $Event->Height() ?>',
-    Length: '<?php echo $Event->Length() ?>',
-    StartDateTime: '<?php echo $Event->StartDateTime() ?>',
+    Notes: <?php echo json_encode($Event->Notes(), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) ?>,
+    Width: '<?php echo validJsStr($Event->Width()) ?>',
+    Height: '<?php echo validJsStr($Event->Height()) ?>',
+    Length: '<?php echo validJsStr($Event->Length()) ?>',
+    StartDateTime: '<?php echo validJsStr($Event->StartDateTime()) ?>',
     StartDateTimeFormatted: '<?php echo $dateTimeFormatter->format(strtotime($Event->StartDateTime())) ?>',
-    EndDateTime: '<?php echo $Event->EndDateTime() ?>',
+    EndDateTime: '<?php echo validJsStr($Event->EndDateTime()) ?>',
     EndDateTimeFormatted: '<?php echo $Event->EndDateTime()? $dateTimeFormatter->format(strtotime($Event->EndDateTime())) : '' ?>',
-    Frames: '<?php echo $Event->Frames() ?>',
-    AlarmFrames: '<?php echo $Event->AlarmFrames() ?>',
-    TotScore: '<?php echo $Event->TotScore() ?>',
-    AvgScore: '<?php echo $Event->AvgScore() ?>',
-    MaxScore: '<?php echo $Event->MaxScore() ?>',
+    Frames: '<?php echo validJsStr($Event->Frames()) ?>',
+    AlarmFrames: '<?php echo validJsStr($Event->AlarmFrames()) ?>',
+    TotScore: '<?php echo validJsStr($Event->TotScore()) ?>',
+    AvgScore: '<?php echo validJsStr($Event->AvgScore()) ?>',
+    MaxScore: '<?php echo validJsStr($Event->MaxScore()) ?>',
     DiskSpace: '<?php echo human_filesize($Event->DiskSpace(null)) ?>',
     Storage: '<?php echo validHtmlStr($Event->Storage()->Name()).( $Event->SecondaryStorageId() ? ', '.validHtmlStr($Event->SecondaryStorage()->Name()) : '' ) ?>',
     DefaultVideo: '<?php echo validHtmlStr($Event->DefaultVideo()) ?>',
     Archived: <?php echo $Event->Archived?'true':'false' ?>,
     Emailed: <?php echo $Event->Emailed?'true':'false' ?>,
-    Path: '<?php echo $Event->Path() ?>',
-    Latitude: '<?php echo $Event->Latitude() ?>',
-    Longitude: '<?php echo $Event->Longitude() ?>',
-    whatDisplay: '<?php echo $monitor->WhatDisplay() ?>'
+    Path: '<?php echo validJsStr($Event->Path()) ?>',
+    Latitude: '<?php echo validJsStr($Event->Latitude()) ?>',
+    Longitude: '<?php echo validJsStr($Event->Longitude()) ?>',
+    whatDisplay: '<?php echo validJsStr($monitor->WhatDisplay()) ?>'
 <?php } ?>
 };
+
+// The resolved codec choice for this view: 'auto' | 'MP4' | 'MP4HLS' | 'MJPEG'.
+// On 'auto' the page rendered no player; initPage() asks EventStream.js to pick
+// one (native <video> vs zms) from zmPlayerData below, based on browser support.
+var eventCodec = '<?php echo validJsStr($codec) ?>';
+<?php if (!empty($auto) && $Event->Id()) { ?>
+var zmPlayerData = {
+  // These srcs are JS string literals carrying query params that can include the
+  // session username and an auth hash, so they go through validJsStr (addslashes)
+  // like every other emitted string.  getStreamSrc's default separator is a raw
+  // '&', which is what a JS-assigned URL needs; hlsSrc was built with '&amp;' for
+  // its HTML use, so decode it before escaping for this JS context.  view_video
+  // serves the raw recorded file and ignores 'format', so none is requested here.
+  codec:     '<?php echo validJsStr($codec) ?>',
+  mp4Src:    '<?php echo validJsStr($Event->getStreamSrc(array('mode'=>'mp4'))) ?>',
+  hasHls:    <?php echo !empty($has_hls) ? 'true' : 'false' ?>,
+  hlsSrc:    '<?php echo !empty($hlsSrc) ? validJsStr(htmlspecialchars_decode($hlsSrc)) : '' ?>',
+  zmsImgSrc: '<?php echo validJsStr($Event->getStreamSrc(array('mode'=>'jpeg', 'frame'=>$fid, 'scale'=>($scale > 0 ? $scale : 100), 'rate'=>$rate, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>$replayMode))) ?>',
+  width:     <?php echo (int)reScale($Event->Width(), $scale) ?>,
+  height:    <?php echo (int)reScale($Event->Height(), $scale) ?>,
+  isLive:    <?php echo $Event->EndDateTime() ? 'false' : 'true' ?>
+};
+<?php } else { ?>
+var zmPlayerData = null;
+<?php } ?>
 
 var yesStr = '<?php echo translate('Yes') ?>';
 var noStr = '<?php echo translate('No') ?>';
@@ -90,14 +121,14 @@ var filterQuery = '<?php echo isset($filterQuery)?validJsStr(htmlspecialchars_de
 var sortQuery = '<?php echo isset($sortQuery)?validJsStr(htmlspecialchars_decode($sortQuery)):'' ?>';
 
 var rates = <?php echo json_encode(array_keys($rates)) ?>;
-var rate = '<?php echo $rate ?>'; // really only used when setting up initial playback rate.
-var scale = "<?php echo $scale ?>";
+var rate = '<?php echo validJsStr($rate) ?>'; // really only used when setting up initial playback rate.
+var scale = "<?php echo validJsStr($scale) ?>";
 var LabelFormat = "<?php echo validJsStr($monitor->LabelFormat())?>";
 
 var streamTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;
 
 var canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;
-var streamMode = '<?php echo $streamMode ?>';
+var streamMode = '<?php echo validJsStr($streamMode) ?>';
 
 //
 // Strings
@@ -108,7 +139,7 @@ var showZonesString = "<?php echo validJsStr(translate('Show Zones'))?>";
 var hideZonesString = "<?php echo validJsStr(translate('Hide Zones'))?>";
 var WEB_LIST_THUMB_WIDTH = '<?php echo ZM_WEB_LIST_THUMB_WIDTH ?>';
 var WEB_LIST_THUMB_HEIGHT = '<?php echo ZM_WEB_LIST_THUMB_HEIGHT ?>';
-var popup = '<?php echo $popup ?>';
+var popup = '<?php echo validJsStr($popup) ?>';
 
 var translate = {
   "seconds": "<?php echo translate('seconds') ?>",

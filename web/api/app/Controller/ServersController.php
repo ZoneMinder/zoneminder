@@ -87,10 +87,15 @@ class ServersController extends AppController {
         return;
       }
 
+      $this->pinRequestId($this->Server, null);
       $this->Server->create();
       if ( $this->Server->save($this->request->data) ) {
         return $this->flash(__('The server has been saved.'), array('action' => 'index'));
       }
+      $this->set(array(
+        'message' => $this->Server->validationErrors ? $this->Server->validationErrors : 'Error',
+        '_serialize' => array('message')
+      ));
     }
   }
 
@@ -114,10 +119,11 @@ class ServersController extends AppController {
     if ( !$this->Server->exists($id) ) {
       throw new NotFoundException(__('Invalid server'));
     }
+    $this->pinRequestId($this->Server, $id);
     if ( $this->Server->save($this->request->data) ) {
       $message = 'Saved';
     } else {
-      $message = 'Error';
+      $message = $this->Server->validationErrors ? $this->Server->validationErrors : 'Error';
     }
 
     $this->set(array(
@@ -148,9 +154,13 @@ class ServersController extends AppController {
     $this->request->allowMethod('post', 'delete');
 
     if ( $this->Server->delete() ) {
-      return $this->flash(__('The server has been deleted.'), array('action' => 'index'));
+      $this->set(array(
+        'message' => 'Deleted',
+        '_serialize' => array('message'),
+      ));
+      return;
     } else {
-      return $this->flash(__('The server could not be deleted. Please, try again.'), array('action' => 'index'));
+      throw new InternalErrorException(__('The server could not be deleted.'));
     }
   }
 }

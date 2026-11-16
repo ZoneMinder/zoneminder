@@ -33,7 +33,7 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
     $_REQUEST['filter'] = delFilterTerm($_REQUEST['filter'], $_REQUEST['line']);
   } else if (canView('Events')) {
     require_once('includes/Filter.php');
-    $filter = new ZM\Filter($_REQUEST['Id']);
+    $filter = new ZM\Filter(validCardinal($_REQUEST['Id']));
 
     if ($action == 'delete') {
       if (!empty($_REQUEST['Id'])) {
@@ -71,11 +71,31 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
       $_REQUEST['filter']['Background'] = empty($_REQUEST['filter']['Background']) ? 0 : 1;
       $_REQUEST['filter']['Concurrent'] = empty($_REQUEST['filter']['Concurrent']) ? 0 : 1;
       $_REQUEST['filter']['LockRows'] = empty($_REQUEST['filter']['LockRows']) ? 0 : 1;
+      // Save overwrites the stored filter, so the user must be allowed to edit it as it is now,
+      // not only as it would be after their changes (which could name them as the owner).
+      // SaveAs and execute write a new filter, checked below with the changes applied.
+      if ($filter->Id() and ($action == 'Save') and !$filter->canEdit()) {
+        $error_message .= 'You do not have permission to save this filter.<br/>';
+        return;
+      }
       $changes = $filter->changes($_REQUEST['filter']);
       ZM\Debug('Changes: ' . print_r($changes, true));
 
       if (count($changes)) {
         $filter->set($changes); // apply changes so that canEdit can use new values
+
+        // ZM_ALLOWED_COMMANDS narrows what "Execute command" may run. Refused
+        // here so the operator is told now rather than finding out from a log
+        // line the next time the filter runs; zmfilter.pl asks again at that
+        // point, because a row can reach the database another way.
+        if ($filter->AutoExecute() and $filter->AutoExecuteCmd()) {
+          require_once('includes/Command.php');
+          if (!commandAllowedByConfig($filter->AutoExecuteCmd())) {
+            $error_message .= commandRefusedMessage().'<br/>';
+            return;
+          }
+        }
+
         if ($filter->canEdit()) {
           if ($filter->Id() and ($action == 'Save')) {
             $filter->control('stop');
@@ -97,6 +117,7 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
           }
         } else {
           $error_message .= 'You do not have permission to save this filter.<br/>';
+          return;
         }
       } # end if changes
 
@@ -117,7 +138,9 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
       $redirect = '?view=filter&Id='.$_REQUEST['Id'];
 
     } else if ($action == 'control') {
-      if ( $_REQUEST['command'] == 'start'
+      if (!$filter->Id() or !$filter->canEdit()) {
+        $error_message .= 'You do not have permission to control this filter.<br/>';
+      } else if ( $_REQUEST['command'] == 'start'
         or $_REQUEST['command'] == 'stop'
         or $_REQUEST['command'] == 'restart'
       ) {

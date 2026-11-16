@@ -39,17 +39,19 @@ $cameras[0] = translate('ChooseDetectedCamera');
 $profiles = array();
 $profiles[0] = translate('ChooseDetectedProfile');
 
-function execONVIF($cmd) {
-  $shell_command = escapeshellcmd(ZM_PATH_BIN . "/zmonvif-probe.pl $cmd");
+// $log_cmd is $cmd as it may be logged: with the camera password replaced.
+function execONVIF($cmd, $log_cmd = null) {
+  $shell_command = escapeshellarg(ZM_PATH_BIN . '/zmonvif-probe.pl') . ' ' . $cmd;
 
   exec($shell_command, $output, $status);
 
   if ($status) {
     $html_output = implode('<br/>', $output);
+    $log_command = ($log_cmd === null) ? $shell_command : escapeshellarg(ZM_PATH_BIN . '/zmonvif-probe.pl') . ' ' . $log_cmd;
     ZM\Error("Unable to probe network cameras, status is '$status'. Output was:
         $html_output
         Please run the following command from a command line for more information:
-        $shell_command"
+        $log_command"
         );
   } else {
     ZM\Debug('Results from probe: '.implode('<br/>', $output));
@@ -60,13 +62,13 @@ function execONVIF($cmd) {
 
 function probeCameras($localIp) {
   $cameras = array();
-  $lines = @execONVIF('probe 1.1,1.2'.(isset($_REQUEST['interface']) ? ' '.escapeshellarg($_REQUEST['interface']) : '' ));
+  $lines = @execONVIF('probe 1.1,1.2'.(isset($_REQUEST['interface']) and is_string($_REQUEST['interface']) ? ' '.escapeshellarg($_REQUEST['interface']) : '' ));
   if ($lines) {
     foreach ($lines as $line) {
       $line = rtrim($line);
       if (preg_match('|^(.+),(.+),\s\((.*)\)$|', $line, $matches)) {
         $device_ep = $matches[1];
-        $soapversion = $matches[2];
+        $soapversion = trim($matches[2]);
         $camera = array(
             'model'   => 'Unknown ONVIF Camera',
             'monitor' => array(
@@ -103,7 +105,8 @@ function probeCameras($localIp) {
 
 function probeProfiles($device_ep, $soapversion, $username, $password) {
   $profiles = array();
-  if ($lines = @execONVIF('profiles '.escapeshellarg($device_ep).' '.escapeshellarg($soapversion).' '.escapeshellarg($username).' '.escapeshellarg($password))) {
+  $args = 'profiles '.escapeshellarg($device_ep).' '.escapeshellarg($soapversion).' '.escapeshellarg($username).' ';
+  if ($lines = @execONVIF($args.escapeshellarg($password), $args.escapeshellarg('<password>'))) {
     foreach ($lines as $line) {
       $line = rtrim( $line );
 
@@ -197,7 +200,7 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
     }
   }
 
-  if (count($cameras) <= 0)
+  if (count($cameras) <= 1)
     $cameras[0] = translate('NoDetectedCameras');
 ?>
     <h2><?php echo translate('MonitorProbe') ?></h2>
@@ -217,7 +220,7 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
 
   echo htmlSelect('interface', $interfaces,
     (isset($_REQUEST['interface']) ? $_REQUEST['interface'] : $default_interface),
-    array('data-on-change-this'=>'changeInterface', 'class'=>'chosen') );
+    array('id'=>'interface', 'data-on-change-this'=>'changeInterface', 'class'=>'chosen') );
 ?>
         </p>
         <div id="DetectedCameras">
@@ -230,7 +233,7 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
             <label for="manual_url"><?php echo translate('OnvifManualLabel') ?></label>
             <input type="text" name="manual_url" id="manual_url"
                    placeholder="<?php echo translate('OnvifManualPlaceholder') ?>"
-                   value="<?php echo isset($_REQUEST['manual_url']) ? htmlspecialchars($_REQUEST['manual_url']) : '' ?>"
+                   value="<?php echo (isset($_REQUEST['manual_url']) and is_string($_REQUEST['manual_url'])) ? htmlspecialchars($_REQUEST['manual_url']) : '' ?>"
                    data-on-change-this="configureButtons"
                    data-on-input-this="configureButtons"
                    oninput="(function(el){var nb=el.form.elements.namedItem('nextBtn');if(nb)nb.disabled=el.value.trim().length===0;})(this)"
@@ -242,7 +245,7 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
           </p>
           <p>
             <label for="Username"><?php echo translate('Username') ?></label>
-            <input type="text" name="Username" data-on-change-this="configureButtons"/>
+            <input type="text" id="Username" name="Username" data-on-change-this="configureButtons"/>
           </p>
           <p>
             <label for="Password"><?php echo translate('Password') ?></label>
@@ -266,7 +269,7 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
     ZM\Fatal('No probe passed in request. Please go back and try again.');
     
   $probe = json_decode(base64_decode($_REQUEST['probe']));
-  ZM\Debug(print_r($probe, true));
+  ZM\Debug(print_r(ZM\redactForLog(json_decode(json_encode($probe), true)), true));
   foreach ($probe as $name=>$value) {
     if (isset($value)) {
       $monitor[$name] = $value;
@@ -280,8 +283,8 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
   foreach ($detprofiles as $profile) {
     $monitor = $camera['monitor'];
 
-    $sourceString = "${profile['Name']} : ${profile['Encoding']}" .
-      " (${profile['Width']}x${profile['Height']} @ ${profile['MaxFPS']}fps ${profile['Transport']})";
+    $sourceString = "{$profile['Name']} : {$profile['Encoding']}" .
+      " ({$profile['Width']}x{$profile['Height']} @ {$profile['MaxFPS']}fps {$profile['Transport']})";
     // copy technical details
     $monitor['Width']  = $profile['Width'];
     $monitor['Height'] = $profile['Height'];
@@ -301,7 +304,7 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
     $profiles[$sourceDesc] = $sourceString;
   }
 
-  if (count($profiles) <= 0)
+  if (count($profiles) <= 1)
     $profiles[0] = translate('NoDetectedProfiles');
 ?>
     <div id="header">

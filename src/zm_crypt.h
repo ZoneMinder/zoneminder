@@ -51,6 +51,14 @@ namespace zm {
 namespace crypto {
 using MD5 = impl::Hash<impl::HashAlgorithms::kMD5>;
 using SHA1 = impl::Hash<impl::HashAlgorithms::kSHA1>;
+using SHA256 = impl::Hash<impl::HashAlgorithms::kSHA256>;
+
+// A short, non-reversible tag for a credential such as an auth hash or a token,
+// so log lines can be matched up without the credential itself being logged:
+// "fp:" followed by the first 8 hex digits of the value's SHA-256. The web
+// side's ZM\logFingerprint() gives the same tag for the same value. Not for
+// passwords: a password's fingerprint can be brute-forced offline.
+std::string LogFingerprint(const std::string &secret);
 }
 }
 

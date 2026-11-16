@@ -50,7 +50,7 @@ use Time::HiRes qw( usleep );
 
 use LWP::UserAgent;
 use HTTP::Cookies;
-use JSON;
+use JSON::MaybeXS qw(encode_json decode_json);
 
 my $ChannelID = 1;              # Usually...
 my $DefaultFocusSpeed = 50;     # Should be between 1 and 100
@@ -108,7 +108,7 @@ sub PutCmd {
     Error('No cmd specified in PutCmd');
     return;
   }
-  my $req = HTTP::Request->new(PUT => $$self{BaseURL}.'/'.$cmd);
+  my $req = HTTP::Request->new(PUT => $self->fullUrl($cmd));
   if ( defined($content) ) {
     $req->content_type('application/x-www-form-urlencoded; charset=UTF-8');
     $req->content('<?xml version="1.0" encoding="UTF-8"?>' . "\n" . $content);
@@ -336,7 +336,7 @@ sub focusConNear {
   $self->Focus(-$speed);
   if($duration) {
     usleep($duration);
-    $self->moveStop($params);
+    $self->Focus(0);
   }
 }
 sub Near {
@@ -370,7 +370,7 @@ sub focusConFar {
   $self->Focus($speed);
   if($duration) {
     usleep($duration);
-    $self->moveStop($params);
+    $self->Focus(0);
   }
 }
 sub Far {
@@ -415,7 +415,7 @@ sub irisConClose {
   $self->Iris(-$speed);
   if($duration) {
     usleep($duration);
-    $self->moveStop($params);
+    $self->Iris(0);
   }
 }
 sub Close {
@@ -451,7 +451,7 @@ sub irisConOpen {
   $self->Iris($speed);
   if($duration) {
     usleep($duration);
-    $self->moveStop($params);
+    $self->Iris(0);
   }
 }
 sub Open {

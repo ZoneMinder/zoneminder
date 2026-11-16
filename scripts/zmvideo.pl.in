@@ -75,11 +75,12 @@ use autouse 'Data::Dumper'=>qw(Dumper);
 use POSIX qw(strftime);
 use Getopt::Long qw(:config no_ignore_case );
 use Cwd;
+use File::Temp qw(tempfile);
 use autouse 'Pod::Usage'=>qw(pod2usage);
 
 $| = 1;
 
-$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
+$ENV{PATH}  = '@ZM_SCRIPT_PATH@';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
@@ -189,7 +190,7 @@ if ( $event_id ) {
 } elsif ( $filter_name or $filter_id ) {
   my $Filter = ZoneMinder::Filter->find_one( 
       ($filter_name ? ( Name => $filter_name ) : () ),
-      ($filter_id ? ( Id => $filter_name ) : () ),
+      ($filter_id ? ( Id => $filter_id ) : () ),
       );
   if ( ! $Filter ) {
     Fatal("Filter $filter_name $filter_id not found.");	
@@ -200,7 +201,7 @@ if ( $event_id ) {
   } else {
     Debug(@event_ids . " events found for $filter_name");
   }
-  $concat_name = $filter_name if $concat_name eq '';
+  $concat_name = $Filter->Name() if defined $concat_name and $concat_name eq '';
 }
 
 my $sql = " SELECT (SELECT max(Delta) FROM Frames WHERE EventId=Events.Id)-(SELECT min(Delta) FROM Frames WHERE EventId=Events.Id) as FullLength,
@@ -235,11 +236,15 @@ if ( $concat_name ) {
   ($cwd) = $cwd =~ /(.*)/; # detaint
   chdir( $cwd );
   ($concat_name ) = $concat_name =~ /([\-A-Za-z0-9_\.]*)/;
-  my $concat_list_file = "/tmp/$concat_name.concat.lst";
 
   my $video_file = $concat_name . '.'. $detaint_format;
 
-  open( my $fd, '>', $concat_list_file ) or die "Can't open $concat_list_file: $!";
+  # Create the ffmpeg concat list with a randomized name (atomic O_EXCL) inside
+  # ZoneMinder's own temp dir, rather than a predictable /tmp/<name>.concat.lst
+  # in world-writable /tmp, which was open to a symlink/race and leaked
+  # monitor/event names. The list entries are absolute paths, so its location
+  # does not affect ffmpeg's resolution.
+  my ($fd, $concat_list_file) = tempfile('zmconcat-XXXXXX', SUFFIX => '.concat.lst', DIR => '@ZM_TMPDIR@');
   foreach ( @video_files ) {
     print $fd "file '$_'\n";
   }
@@ -252,11 +257,11 @@ if ( $concat_name ) {
   Debug( $command."\n" );
   my $output = qx($command);
 
-  my $status = $? >> 8;
+  my $status = $?;
 
   unlink $concat_list_file;
   if ( $status ) {
-    Error( "Unable to generate video, check $Config{ZM_PATH_LOGS}/ffmpeg_${concat_name}.log for details");
+    Error( "Unable to generate video, ffmpeg ended with ".(($status & 127) ? "signal ".($status & 127) : "status ".($status >> 8)).", check $Config{ZM_PATH_LOGS}/ffmpeg_${concat_name}.log for details");
     exit(-1);
   }
 	print( STDOUT $video_file."\n" );

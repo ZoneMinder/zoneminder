@@ -165,7 +165,7 @@ sub moveConRight
 sub zoomConTele
 {
   my $self = shift;
-  my $stop_command = "17";
+  my $stop_command = "19";
   Debug( "Zoom Tele" );
   my $cmd = "decoder_control.cgi?command=18";
   $self->sendCmd( $cmd );
@@ -176,7 +176,7 @@ sub zoomConTele
 sub zoomConWide
 {
   my $self = shift;
-  my $stop_command = "19";
+  my $stop_command = "17";
   Debug( "Zoom Wide" );
   my $cmd = "decoder_control.cgi?command=16";
   $self->sendCmd( $cmd );

@@ -1,19 +1,60 @@
 <?php
 
+// Tags are attached to events: listing them needs what the event view needs (Events
+// or Snapshots view, as ajax/event.php), creating one Events edit.
+if (!(canView('Events') or canView('Snapshots'))) {
+  ajaxError('Insufficient permissions to view tags');
+}
+
 switch ( $_REQUEST['action'] ) {
   case 'getavailabletags' :
     $sql = 'SELECT * FROM Tags ORDER BY LastAssignedDate DESC';
-    $dbFetchResult = dbFetchAll($sql);
-    ajaxResponse(array('response'=>$dbFetchResult));
+    $tags = dbFetchAll($sql);
+
+    // Re-sort so tags THIS user has applied recently come first, ahead of
+    // the global "most recently applied by anyone" fallback order. The
+    // recency list is stored server-side (User_Preferences), keyed by Tag
+    // Id, so it's correct even on a device this user has never used before.
+    require_once('includes/TagOrder.php');
+    $tagOrderIds = \ZM\TagOrder::load($user->Id());
+    if ($tagOrderIds) {
+      $byId = array();
+      foreach ($tags as $tag) {
+        $byId[$tag['Id']] = $tag;
+      }
+      $personal = array();
+      $used = array();
+      foreach ($tagOrderIds as $tid) {
+        if (isset($byId[$tid]) and !isset($used[$tid])) {
+          $personal[] = $byId[$tid];
+          $used[$tid] = true;
+        }
+      }
+      $rest = array_values(array_filter($tags, function($tag) use ($used) {
+        return !isset($used[$tag['Id']]);
+      }));
+      $tags = array_merge($personal, $rest);
+    }
+
+    ajaxResponse(array('response'=>$tags));
     break;
   case 'createtag' :
-    $sql = 'INSERT INTO Tags (Name, CreatedBy) VALUES (?, ?)';
-    $values = array($_REQUEST['tname'], $user->Id());
-    $result = dbFetchAll($sql, NULL, $values);
+    if (!canEdit('Events')) {
+      ajaxError('Insufficient permissions to create tags');
+    }
+    $tagName = is_scalar($_REQUEST['tname'] ?? null) ? trim($_REQUEST['tname']) : '';
+    if ($tagName === '') ajaxError('createtag requires a tag name');
 
-    $sql = 'SELECT * FROM Tags WHERE Id = ?';
-    $values = array(dbInsertId());
-    $dbFetchResult = dbFetchAll($sql, NULL, $values);
+    $dbFetchResult = dbFetchAll('SELECT * FROM Tags WHERE Name = ?', NULL, array($tagName));
+    if (!count($dbFetchResult)) {
+      $sql = 'INSERT INTO Tags (Name, CreatedBy) VALUES (?, ?)';
+      $values = array($tagName, $user->Id());
+      if (!dbQuery($sql, $values)) ajaxError('Failed to create tag');
+
+      $sql = 'SELECT * FROM Tags WHERE Id = ?';
+      $values = array(dbInsertId());
+      $dbFetchResult = dbFetchAll($sql, NULL, $values);
+    }
 
     ajaxResponse(array('response'=>$dbFetchResult));
     break;

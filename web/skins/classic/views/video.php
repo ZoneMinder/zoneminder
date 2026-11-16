@@ -75,15 +75,35 @@ if ($dir = opendir($event_path)) {
 
 
 
+// The list holds the videos generated on this page and, since ZM_FFMPEG_FORMATS
+// has mp4, the event's own recording: the file zmc writes (incomplete.<ext> while
+// recording, then <Id>-video.<codec>.<ext>, kept in DefaultVideo). Deleting the
+// recording needs Events edit; a generated video can be made again from it, so
+// anyone who may generate one (Events view) may delete one.
+$canDeleteVideo = function($file) use ($event) {
+  if (canEdit('Events')) return true;
+  $name = basename($file);
+  $isRecording = ($event->DefaultVideo() && $name == $event->DefaultVideo())
+    || preg_match('/^incomplete\./', $name)
+    || preg_match('/^'.preg_quote($event->Id(), '/').'-video\./', $name);
+  return !$isRecording;
+};
+
 if (isset($_REQUEST['deleteIndex'])) {
   $deleteIndex = validCardinal($_REQUEST['deleteIndex']);
-  unlink($videoFiles[$deleteIndex]);
-  unset($videoFiles[$deleteIndex]);
-} else if (isset($_REQUEST['downloadIndex'])) {
-  if (!count($videoFiles)) {
-    ZM\Warning("No video files found for $eid. Downloading not possible.");
+  if (!isset($videoFiles[$deleteIndex])) {
+    ZM\Warning('No video file at index '.$deleteIndex);
+  } else if (!$canDeleteVideo($videoFiles[$deleteIndex])) {
+    ZM\Warning('Must have Events edit permission to delete an event\'s recording');
   } else {
-    $downloadIndex = validInt($_REQUEST['downloadIndex']);
+    unlink($videoFiles[$deleteIndex]);
+    unset($videoFiles[$deleteIndex]);
+  }
+} else if (isset($_REQUEST['downloadIndex'])) {
+  $downloadIndex = validInt($_REQUEST['downloadIndex']);
+  if (!isset($videoFiles[$downloadIndex])) {
+    ZM\Warning("No video file at index $downloadIndex for $eid. Downloading not possible.");
+  } else {
     ZM\Debug("Download $downloadIndex, file: " . $videoFiles[$downloadIndex]);
     header('Pragma: public');
     header('Expires: 0');
@@ -123,7 +143,7 @@ echo getNavBarHTML();
     </div>
     <div id="content">
 <?php
-if (isset($_REQUEST['showIndex'])) {
+if (isset($_REQUEST['showIndex']) and isset($videoFiles[validInt($_REQUEST['showIndex'])])) {
   $showIndex = validInt($_REQUEST['showIndex']);
   $path_parts = pathinfo($videoFiles[$showIndex]);
 
@@ -132,9 +152,9 @@ if (isset($_REQUEST['showIndex'])) {
 
   foreach (explode('-', $path_parts['filename']) as $option) {
     if ( preg_match('/^s(.+)$/', $option, $temp_matches) ) {
-      $scale = (int)(preg_replace('/_/', '.', $temp_matches[1]) );
-      $width = $width * $scale;
-      $height = $height * $scale;
+      $scale = (float)(preg_replace('/_/', '.', $temp_matches[1]) );
+      $width = (int)round($width * $scale);
+      $height = (int)round($height * $scale);
     } elseif ( preg_match('/^S(\d+)x(\d+)$/', $option, $temp_matches) ) {
       $width = $temp_matches[1];
       $height = $temp_matches[2];
@@ -209,8 +229,9 @@ if (isset($_REQUEST['showIndex'])) {
       <td>No Video Files Found</td>
       <?php
   } else {
-    $index = 0;
-    foreach ( $videoFiles as $file ) {
+    // The links carry the file's key in $videoFiles, which deleteIndex/downloadIndex/
+    // showIndex look up; a running counter skipped empty files and drifted from it.
+    foreach ( $videoFiles as $index => $file ) {
       if ( filesize($file) > 0 ) {
         $rateText = '';
         $scaleText = '';
@@ -238,12 +259,13 @@ if (isset($_REQUEST['showIndex'])) {
           <td><?php echo $scaleText ?></td>
           <td>
             <a href="?view=video&eid=<?php echo $event->Id() ?>&downloadIndex=<?php echo $index ?>"><?php echo translate('Download') ?></a>
+<?php if ($canDeleteVideo($file)) { ?>
                &nbsp;/&nbsp;
             <a href="?view=video&eid=<?php echo $event->Id() ?>&deleteIndex=<?php echo $index ?>"><?php echo translate('Delete') ?></a>
+<?php } ?>
           </td>
         </tr>
 <?php
-        $index++;
       } # end if filesize
     } # end foreach videoFile
   }

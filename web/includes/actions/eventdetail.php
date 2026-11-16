@@ -30,18 +30,32 @@ if ( !canEdit('Events') ) {
 } // end if ! canEdit(Events)
 
 if ( $action == 'eventdetail' ) {
+  $multiple = count((array)$_REQUEST['markEids']) > 1;
   $dbConn->beginTransaction();
-  foreach ( $_REQUEST['markEids'] as $markEid ) {
-    dbQuery('UPDATE Events SET Name=?, Cause=?, Notes=? WHERE Id=?',
-      array(
-        $_REQUEST['newEvent']['Name'],
-        $_REQUEST['newEvent']['Cause'],
-        $_REQUEST['newEvent']['Notes'],
-        $markEid
-      )
-    );
+  foreach ( (array)$_REQUEST['markEids'] as $markEid ) {
+    // Events=Edit alone isn't enough: the event's monitor has to be one the user
+    // may see, as for archiving in actions/events.php. Only a plain id: an array
+    // would build the Event from the request instead of loading it.
+    $markEid = is_scalar($markEid) ? validCardinal($markEid) : '';
+    $event = ($markEid === '') ? null : new ZM\Event($markEid);
+    if (!$event or !$event->Id() or !$event->canEdit()) {
+      ZM\Warning('No permission to edit event '.validHtmlStr($markEid));
+      continue;
+    }
+    $sets = array();
+    $values = array();
+    foreach (array('Name', 'Cause', 'Notes') as $field) {
+      // The modal blanks a field the selected events disagree on, so for several events blank means leave it alone.
+      if ($multiple and $_REQUEST['newEvent'][$field] === '') continue;
+      $sets[] = $field.'=?';
+      $values[] = $_REQUEST['newEvent'][$field];
+    }
+    if (!$sets) continue;
+    $values[] = $event->Id();
+    dbQuery('UPDATE Events SET '.implode(', ', $sets).' WHERE Id=?', $values);
   }
   $dbConn->commit();
-  $redirect = $_SERVER['HTTP_REFERER'];
+  // Back to the page the edit came from, if that is on this server.
+  $redirect = localRedirectUrl(isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '', '?view=events');
 }
 ?>

@@ -23,6 +23,8 @@ INSERT INTO Manufacturers VALUES (2, 'Amcrest');
 */
 INSERT IGNORE INTO Models (ManufacturerId,Name) VALUES (2, 'IP8M-T2499EW');
 INSERT IGNORE INTO Models (ManufacturerId,Name) VALUES (2, 'ASH42-B');
+INSERT IGNORE INTO Models (ManufacturerId,Name) VALUES (2, 'ASH21-B');
+INSERT IGNORE INTO Models (ManufacturerId,Name) VALUES (2, 'ADC2W');
 /*
 INSERT INTO Manufacturers VALUES (3, 'Airlink101');
 INSERT INTO Manufacturers VALUES (4, 'Arecont Vision');

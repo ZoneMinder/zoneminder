@@ -112,7 +112,7 @@ void RemoteCameraHttp::Initialise() {
     if ( !auth.empty() )
       request += stringtf( "Authorization: Basic %s\r\n", auth64.c_str() );
     request += "\r\n";
-    Debug( 2, "Request: %s", request.c_str() );
+    Debug( 2, "Request: %s", request_for_log(request).c_str() );
   }
 
   if ( !timeout.tv_sec ) {
@@ -139,7 +139,7 @@ void RemoteCameraHttp::Initialise() {
     if ( !content_length_expr )
       content_length_expr = new RegExpr("Content-length: ?([0-9]+)\r?\n", PCRE2_CASELESS);
     if ( !content_type_expr )
-      content_type_expr = new RegExpr("Content-type: ?(.+?)(?:; ?boundary=\x22?(.+?)\x22?)?\r?\n", PCRE2_CASELESS);
+      content_type_expr = new RegExpr("Content-type: ?([^;\r\n]+?)[ \t]*(?:;(?:[^\r\n]*?boundary=\x22?([^\x22;\r\n ]+))?[^\r\n]*)?\r?\n", PCRE2_CASELESS);
   }
 #endif
 } // end void RemoteCameraHttp::Initialise()
@@ -197,7 +197,7 @@ int RemoteCameraHttp::Disconnect() {
 }
 
 int RemoteCameraHttp::SendRequest() {
-  Debug(2, "Sending request: %s", request.c_str());
+  Debug(2, "Sending request: %s", request_for_log(request).c_str());
   if ( write(sd, request.data(), request.length()) < 0 ) {
     Error("Can't write: %s", strerror(errno));
     Disconnect();
@@ -326,6 +326,39 @@ int RemoteCameraHttp::GetData() {
   return buffer_len;
 }
 
+std::string RemoteCameraHttp::ParseBoundary(const char *text) {
+  const bool quoted = (*text == '"');
+  if (quoted) text++;
+  text += strspn(text, "-");
+  size_t len = quoted ? strcspn(text, "\"") : strcspn(text, "; \t\r\n");
+  return std::string(text, len);
+}
+
+bool RemoteCameraHttp::IsBoundaryLine(const char *line, const char *boundary, size_t len) {
+  // Cameras disagree on whether the boundary parameter includes the delimiter's dashes,
+  // so accept any run of two or more.
+  const size_t dashes = strspn(line, "-");
+  return dashes >= 2 && strncasecmp(line + dashes, boundary, len) == 0;
+}
+
+int RemoteCameraHttp::ParseContentLength(const char *text, unsigned long long image_size) {
+  // The length is read from the camera link, usually plain HTTP, and decides how much is
+  // buffered for one frame. No encoding of a frame is larger than twice its raw size, so a
+  // bigger length is refused instead of buffered. refs GHSA-x959-xrc9-89p8
+  constexpr unsigned long long kMaxContentLength = 1ull << 30;
+  const unsigned long long max_length =
+    std::min(kMaxContentLength, 2 * image_size + ZM_NETWORK_BUFSIZ);
+
+  if (!text) return -1;
+  while (*text == ' ') text++;
+  if (*text < '0' or *text > '9') return -1;
+  char *end = nullptr;
+  errno = 0;
+  const unsigned long long length = strtoull(text, &end, 10);
+  if (errno == ERANGE or length > max_length) return -1;
+  return static_cast<int>(length);
+}
+
 int RemoteCameraHttp::GetResponse() {
 #if HAVE_LIBPCRE
   if ( method == REGEXP ) {
@@ -384,13 +417,17 @@ int RemoteCameraHttp::GetResponse() {
               request += mAuthenticator->getAuthHeader("GET", path);
               request += "\r\n";
 
-              Debug( 2, "New request header: %s", request.c_str() );
+              Debug( 2, "New request header: %s", request_for_log(request).c_str() );
+              Disconnect();
+              buffer.clear();
               return( 0 );
             }
 
           } else if ( status_code < 200 || status_code > 299 ) {
             Error( "Invalid response status %d: %s\n%s", status_code, status_mesg, (char *)buffer );
             return( -1 );
+          } else {
+            mNeedAuth = false;
           }
           Debug( 3, "Got status '%d' (%s), http version %s", status_code, status_mesg, http_version );
 
@@ -400,7 +437,11 @@ int RemoteCameraHttp::GetResponse() {
           }
 
           if ( content_length_expr->Match( header, header_len ) == 2 ) {
-            content_length = atoi( content_length_expr->MatchString( 1 ) );
+            content_length = ParseContentLength(content_length_expr->MatchString(1), imagesize);
+            if (content_length < 0) {
+              Error("Invalid content length '%s'", content_length_expr->MatchString(1));
+              return -1;
+            }
             Debug( 3, "Got content length '%d'", content_length );
           }
 
@@ -475,7 +516,11 @@ int RemoteCameraHttp::GetResponse() {
           if ( !subcontent_length_expr )
             subcontent_length_expr = new RegExpr( "Content-length: ?([0-9]+)\r?\n", PCRE2_CASELESS );
           if ( subcontent_length_expr->Match( subheader, subheader_len ) == 2 ) {
-            content_length = atoi( subcontent_length_expr->MatchString( 1 ) );
+            content_length = ParseContentLength(subcontent_length_expr->MatchString(1), imagesize);
+            if (content_length < 0) {
+              Error("Invalid subcontent length '%s'", subcontent_length_expr->MatchString(1));
+              return -1;
+            }
             Debug( 3, "Got subcontent length '%d'", content_length );
           }
 
@@ -719,21 +764,18 @@ int RemoteCameraHttp::GetResponse() {
           start_ptr = http_header;
           end_ptr = start_ptr+strspn(start_ptr, "10.");
 
-          // FIXME Why are we memsetting every time?  Can we not do it once?
-          //memset(http_version, 0, sizeof(http_version));
-          strncpy(http_version, start_ptr, end_ptr-start_ptr);
+          zm_strncpy(http_version, start_ptr, sizeof(http_version), end_ptr-start_ptr);
 
           start_ptr = end_ptr;
           start_ptr += strspn(start_ptr, " ");
           end_ptr = start_ptr+strspn(start_ptr, "0123456789");
 
-          memset(status_code, 0, sizeof(status_code));
-          strncpy(status_code, start_ptr, end_ptr-start_ptr);
+          zm_strncpy(status_code, start_ptr, sizeof(status_code), end_ptr-start_ptr);
           int status = atoi(status_code);
 
           start_ptr = end_ptr;
           start_ptr += strspn(start_ptr, " ");
-          strcpy(status_mesg, start_ptr);
+          zm_strncpy(status_mesg, start_ptr, sizeof(status_mesg));
 
           if (status == 401) {
             if (mNeedAuth) {
@@ -759,7 +801,9 @@ int RemoteCameraHttp::GetResponse() {
               request += mAuthenticator->getAuthHeader("GET", path);
               request += "\r\n";
 
-              Debug(2, "New request header: %s", request.c_str());
+              Debug(2, "New request header: %s", request_for_log(request).c_str());
+              Disconnect();
+              buffer.clear();
               return 0;
             } else {
               Debug(2, "Need some other kind of Authentication");
@@ -767,40 +811,45 @@ int RemoteCameraHttp::GetResponse() {
           } else if (status < 200 || status > 299) {
             Error("Invalid response status %s: %s", status_code, status_mesg);
             return -1;
+          } else {
+            mNeedAuth = false;
           }
           Debug(3, "Got status '%d' (%s), http version %s", status, status_mesg, http_version);
 
           if (connection_header) {
-            memset(connection_type, 0, sizeof(connection_type));
             start_ptr = connection_header + strspn(connection_header, " ");
-            // FIXME Should we not use strncpy?
-            strcpy(connection_type, start_ptr);
+            zm_strncpy(connection_type, start_ptr, sizeof(connection_type));
             Debug(3, "Got connection '%s'", connection_type);
           }
           if (content_length_header) {
             start_ptr = content_length_header + strspn(content_length_header, " ");
-            content_length = atoi(start_ptr);
+            content_length = ParseContentLength(start_ptr, imagesize);
+            if (content_length < 0) {
+              Error("Invalid content length '%.32s'", start_ptr);
+              return -1;
+            }
             Debug(3, "Got content length '%d'", content_length);
           }
           if (content_type_header) {
             //memset(content_type, 0, sizeof(content_type));
             start_ptr = content_type_header + strspn(content_type_header, " ");
-            if ( (end_ptr = strchr(start_ptr, ';')) ) {
-              strncpy(content_type, start_ptr, end_ptr-start_ptr);
+            if ((end_ptr = strchr(start_ptr, ';'))) {
+              zm_strncpy(content_type, start_ptr, sizeof(content_type), end_ptr-start_ptr);
               Debug(3, "Got content type '%s'", content_type);
 
-              start_ptr = end_ptr + strspn(end_ptr, "; ");
-
-              if (strncasecmp(start_ptr, boundary_match, boundary_match_len) == 0) {
+              start_ptr = strcasestr(end_ptr, boundary_match);
+              if (start_ptr) {
                 start_ptr += boundary_match_len;
-                start_ptr += strspn(start_ptr, "-");
-                content_boundary_len = sprintf(content_boundary, "--%s", start_ptr);
+                std::string boundary = ParseBoundary(start_ptr);
+                zm_strncpy(content_boundary, "--", sizeof(content_boundary));
+                zm_strncpy(content_boundary+2, boundary.c_str(), sizeof(content_boundary)-2);
+                content_boundary_len = strlen(content_boundary);
                 Debug(3, "Got content boundary '%s'", content_boundary);
               } else {
                 Error("No content boundary found in header '%s'", content_type_header);
               }
             } else {
-              strcpy(content_type, start_ptr);
+              zm_strncpy(content_type, start_ptr, sizeof(content_type));
               Debug(3, "Got content type '%s'", content_type);
             }
           } // end if content_type_header
@@ -893,7 +942,7 @@ int RemoteCameraHttp::GetResponse() {
             //subheaders[n_subheaders++] = subheader_ptr;
             n_subheaders++;
 
-            if ( !boundary_header && (strncasecmp(subheader_ptr, content_boundary, content_boundary_len) == 0) ) {
+            if (!boundary_header && IsBoundaryLine(subheader_ptr, content_boundary + 2, content_boundary_len - 2)) {
               boundary_header = subheader_ptr;
               Debug(4, "Got boundary subheader '%s'", subheader_ptr);
             } else if (
@@ -934,13 +983,17 @@ int RemoteCameraHttp::GetResponse() {
 
           if (subcontent_length_header[0]) {
             start_ptr = subcontent_length_header + strspn(subcontent_length_header, " ");
-            content_length = atoi(start_ptr);
+            content_length = ParseContentLength(start_ptr, imagesize);
+            if (content_length < 0) {
+              Error("Invalid subcontent length '%.32s'", start_ptr);
+              return -1;
+            }
             Debug(3, "Got subcontent length '%d'", content_length);
           }
           if (subcontent_type_header[0]) {
             //memset(content_type, 0, sizeof(content_type));
             start_ptr = subcontent_type_header + strspn(subcontent_type_header, " ");
-            strcpy(content_type, start_ptr);
+            zm_strncpy(content_type, start_ptr, sizeof(content_type));
             Debug(3, "Got subcontent type '%s'", content_type);
           }
           state = CONTENT;
@@ -1025,7 +1078,7 @@ int RemoteCameraHttp::GetResponse() {
                 char *end_ptr = (char *)buffer+buffer_size;
 
                 // strip off any last line feeds
-                while (*end_ptr == '\r' || *end_ptr == '\n') {
+                while (end_ptr > (char *)buffer && (end_ptr[-1] == '\r' || end_ptr[-1] == '\n')) {
                   content_length--;
                   end_ptr--;
                 }

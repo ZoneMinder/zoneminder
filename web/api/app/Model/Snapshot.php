@@ -74,4 +74,6 @@ class Snapshot extends AppModel {
       'counterQuery' => ''
     ),
   );
+
+  public $actsAs = array('Containable');
 }

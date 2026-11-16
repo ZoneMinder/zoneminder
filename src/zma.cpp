@@ -189,7 +189,9 @@ static void LinkEventFiles(
     const std::string &source_path,
     const std::string &dest_path,
     const std::string &video_file,
-    uint64_t new_event_id) {
+    uint64_t source_event_id,
+    uint64_t new_event_id,
+    Storage::Schemes scheme) {
   namespace fs = std::filesystem;
   std::error_code ec;
 
@@ -199,9 +201,17 @@ static void LinkEventFiles(
     return;
   }
 
+  Event::CreateIdMarker(scheme, dest_path, new_event_id);
+
   if (!video_file.empty()) {
+    // Name the video after the new event, as Event does
+    std::string source_prefix = stringtf("%" PRIu64 "-", source_event_id);
+    std::string new_video_file = video_file;
+    if (video_file.compare(0, source_prefix.size(), source_prefix) == 0)
+      new_video_file = stringtf("%" PRIu64 "-", new_event_id) + video_file.substr(source_prefix.size());
+
     std::string src = source_path + "/" + video_file;
-    std::string dst = dest_path + "/" + video_file;
+    std::string dst = dest_path + "/" + new_video_file;
 
     if (fs::exists(src, ec)) {
       // Try hard link first (same filesystem, no extra disk usage)
@@ -220,7 +230,7 @@ static void LinkEventFiles(
       }
       std::string sql = stringtf(
         "UPDATE `Events` SET `DefaultVideo` = '%s' WHERE `Id` = %" PRIu64,
-        video_file.c_str(), new_event_id);
+        zmDbEscapeString(new_video_file).c_str(), new_event_id);
       zmDbDo(sql);
     } else {
       Warning("Source video file %s not found", src.c_str());
@@ -345,7 +355,8 @@ int main(int argc, char *argv[]) {
   unsigned int storage_id = dbrow[1] ? atoi(dbrow[1]) : 0;
   int frame_count = dbrow[2] ? atoi(dbrow[2]) : 0;
   SystemTimePoint start_time = SystemTimePoint(Seconds(atoi(dbrow[3])));
-  std::string video_file = dbrow[6] ? std::string(dbrow[6]) : std::string();
+  // DefaultVideo is user editable; only use it as a filename in the event dir.
+  std::string video_file = dbrow[6] ? std::filesystem::path(dbrow[6]).filename().string() : std::string();
   std::string scheme_str = dbrow[7] ? std::string(dbrow[7]) : std::string();
   int save_jpegs = dbrow[8] ? atoi(dbrow[8]) : 0;
 
@@ -616,22 +627,28 @@ int main(int argc, char *argv[]) {
             current_event = &new_events.back();
             current_event->start_time = fd.timestamp;
 
+            unsigned int state_id = 0;
+            {
+              zmDbRow dbrow;
+              if (dbrow.fetch("SELECT Id FROM States WHERE IsActive=1"))
+                state_id = atoi(dbrow[0]);
+            }
             sql = stringtf(
               "INSERT INTO `Events` "
-              "(`MonitorId`, `StorageId`, `Name`, `Cause`, `StartDateTime`, `Scheme`, `SaveJPEGs`, `Width`, `Height`) "
-              "VALUES (%u, %u, 'Re-analysis %" PRIu64 "', 'Re-analysis', from_unixtime(%" PRIi64 "), '%s', 0, %u, %u)",
+              "(`MonitorId`, `StorageId`, `Name`, `Cause`, `StartDateTime`, `Scheme`, `SaveJPEGs`, `Width`, `Height`, `StateId`) "
+              "VALUES (%u, %u, 'Re-analysis %" PRIu64 "', 'Re-analysis', from_unixtime(%" PRIi64 "), '%s', 0, %u, %u, %u)",
               monitor->Id(), storage_id, event_id,
               static_cast<int64>(std::chrono::duration_cast<Seconds>(fd.timestamp.time_since_epoch()).count()),
-              scheme_str.c_str(), monitor->Width(), monitor->Height());
-            int new_event_id = zmDbDoInsert(sql);
-            if (new_event_id > 0) {
+              scheme_str.c_str(), monitor->Width(), monitor->Height(), state_id);
+            uint64_t new_event_id = zmDbDoInsert(sql);
+            if (new_event_id) {
               current_event->db_event_id = new_event_id;
-              Info("Created new event %d from re-analysis of event %" PRIu64, new_event_id, event_id);
+              Info("Created new event %" PRIu64 " from re-analysis of event %" PRIu64, new_event_id, event_id);
 
               // Create directory and copy video files to new event
               std::string new_event_path = BuildNewEventPath(
                 storage_path, monitor->Id(), new_event_id, fd.timestamp, scheme);
-              LinkEventFiles(event_path, new_event_path, video_file, new_event_id);
+              LinkEventFiles(event_path, new_event_path, video_file, event_id, new_event_id, scheme);
             } else {
               Error("Failed to create re-analysis event in database");
               current_event = nullptr;

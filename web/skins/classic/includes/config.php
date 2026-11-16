@@ -95,68 +95,55 @@ $bandwidth_options = array(
     'low' => translate('Low')
 );
 
-switch ( $_COOKIE['zmBandwidth'] ) {
-    case 'high' : {
-        define( 'ZM_WEB_REFRESH_MAIN', ZM_WEB_H_REFRESH_MAIN );         // How often (in seconds) the main console window refreshes
-        define( 'ZM_WEB_REFRESH_NAVBAR', ZM_WEB_H_REFRESH_NAVBAR );     // How often (in seconds) the nav header refreshes
-        define( 'ZM_WEB_REFRESH_CYCLE', ZM_WEB_H_REFRESH_CYCLE );       // How often the cycle watch windows swaps to the next monitor
-        define( 'ZM_WEB_REFRESH_IMAGE', ZM_WEB_H_REFRESH_IMAGE );       // How often the watched image is refreshed (if not streaming)
-        define( 'ZM_WEB_REFRESH_STATUS', ZM_WEB_H_REFRESH_STATUS );     // How often the little status frame refreshes itself in the watch window
-        define( 'ZM_WEB_REFRESH_EVENTS', ZM_WEB_H_REFRESH_EVENTS );     // How often the event listing is refreshed in the watch window, only for recent events
-        define( 'ZM_WEB_REFRESH_LOGS', defined('ZM_WEB_H_REFRESH_LOGS') ? ZM_WEB_H_REFRESH_LOGS : 0 );  // How often (in seconds) the listing is refreshed in the log window
-        define( 'ZM_WEB_CAN_STREAM', ZM_WEB_H_CAN_STREAM );             // Override the automatic detection of browser streaming capability
-        define( 'ZM_WEB_STREAM_METHOD', ZM_WEB_H_STREAM_METHOD );       // Which method should be used to send video streams to your browser
-        define( 'ZM_WEB_DEFAULT_SCALE', ZM_WEB_H_DEFAULT_SCALE );       // What the default scaling factor applied to 'live' or 'event' views is (%)
-        define( 'ZM_WEB_DEFAULT_RATE', ZM_WEB_H_DEFAULT_RATE );         // What the default replay rate factor applied to 'event' views is (%)
-        define( 'ZM_WEB_VIDEO_BITRATE', ZM_WEB_H_VIDEO_BITRATE );       // What the bitrate of any streamed video should be
-        define( 'ZM_WEB_VIDEO_MAXFPS', ZM_WEB_H_VIDEO_MAXFPS );         // What the maximum frame rate of any streamed video should be
-        define( 'ZM_WEB_SCALE_THUMBS', ZM_WEB_H_SCALE_THUMBS );         // Image scaling for thumbnails, bandwidth versus cpu in rescaling
-        define( 'ZM_WEB_EVENTS_VIEW', ZM_WEB_H_EVENTS_VIEW );           // What the default view of multiple events should be.
-        define( 'ZM_WEB_SHOW_PROGRESS', ZM_WEB_H_SHOW_PROGRESS );       // Whether to show the progress of replay in event view.
-        define( 'ZM_WEB_AJAX_TIMEOUT', ZM_WEB_H_AJAX_TIMEOUT );         // Timeout to use for Ajax requests, no timeout used if unset
-        define( 'ZM_WEB_VIEWING_TIMEOUT', defined('ZM_WEB_H_VIEWING_TIMEOUT') ? ZM_WEB_H_VIEWING_TIMEOUT : 0 );
-        break;
-    } case 'medium' : {
-        define( 'ZM_WEB_REFRESH_MAIN', ZM_WEB_M_REFRESH_MAIN );         // How often (in seconds) the main console window refreshes
-        define( 'ZM_WEB_REFRESH_NAVBAR', ZM_WEB_M_REFRESH_NAVBAR );     // How often (in seconds) the nav header refreshes
-        define( 'ZM_WEB_REFRESH_CYCLE', ZM_WEB_M_REFRESH_CYCLE );       // How often the cycle watch windows swaps to the next monitor
-        define( 'ZM_WEB_REFRESH_IMAGE', ZM_WEB_M_REFRESH_IMAGE );       // How often the watched image is refreshed (if not streaming)
-        define( 'ZM_WEB_REFRESH_STATUS', ZM_WEB_M_REFRESH_STATUS );     // How often the little status frame refreshes itself in the watch window
-        define( 'ZM_WEB_REFRESH_EVENTS', ZM_WEB_M_REFRESH_EVENTS );     // How often the event listing is refreshed in the watch window, only for recent events
-        define( 'ZM_WEB_REFRESH_LOGS', defined('ZM_WEB_M_REFRESH_LOGS') ? ZM_WEB_M_REFRESH_LOGS : 0 );  // How often (in seconds) the listing is refreshed in the log window
-        define( 'ZM_WEB_CAN_STREAM', ZM_WEB_M_CAN_STREAM );             // Override the automatic detection of browser streaming capability
-        define( 'ZM_WEB_STREAM_METHOD', ZM_WEB_M_STREAM_METHOD );       // Which method should be used to send video streams to your browser
-        define( 'ZM_WEB_DEFAULT_SCALE', ZM_WEB_M_DEFAULT_SCALE );       // What the default scaling factor applied to 'live' or 'event' views is (%)
-        define( 'ZM_WEB_DEFAULT_RATE', ZM_WEB_M_DEFAULT_RATE );         // What the default replay rate factor applied to 'event' views is (%)
-        define( 'ZM_WEB_VIDEO_BITRATE', ZM_WEB_M_VIDEO_BITRATE );       // What the bitrate of any streamed video should be
-        define( 'ZM_WEB_VIDEO_MAXFPS', ZM_WEB_M_VIDEO_MAXFPS );         // What the maximum frame rate of any streamed video should be
-        define( 'ZM_WEB_SCALE_THUMBS', ZM_WEB_M_SCALE_THUMBS );         // Image scaling for thumbnails, bandwidth versus cpu in rescaling
-        define( 'ZM_WEB_EVENTS_VIEW', ZM_WEB_M_EVENTS_VIEW );           // What the default view of multiple events should be.
-        define( 'ZM_WEB_SHOW_PROGRESS', ZM_WEB_M_SHOW_PROGRESS );       // Whether to show the progress of replay in event view.
-        define( 'ZM_WEB_AJAX_TIMEOUT', ZM_WEB_M_AJAX_TIMEOUT );         // Timeout to use for Ajax requests, no timeout used if unset
-        define( 'ZM_WEB_VIEWING_TIMEOUT', defined('ZM_WEB_M_VIEWING_TIMEOUT') ? ZM_WEB_M_VIEWING_TIMEOUT : 0 );
-        break;
-    } case 'low' : {
-        define( 'ZM_WEB_REFRESH_MAIN', ZM_WEB_L_REFRESH_MAIN );         // How often (in seconds) the main console window refreshes
-        define( 'ZM_WEB_REFRESH_NAVBAR', ZM_WEB_L_REFRESH_NAVBAR );     // How often (in seconds) the nav header refreshes
-        define( 'ZM_WEB_REFRESH_CYCLE', ZM_WEB_L_REFRESH_CYCLE );       // How often the cycle watch windows swaps to the next monitor
-        define( 'ZM_WEB_REFRESH_IMAGE', ZM_WEB_L_REFRESH_IMAGE );       // How often the watched image is refreshed (if not streaming)
-        define( 'ZM_WEB_REFRESH_STATUS', ZM_WEB_L_REFRESH_STATUS );     // How often the little status frame refreshes itself in the watch window
-        define( 'ZM_WEB_REFRESH_EVENTS', ZM_WEB_L_REFRESH_EVENTS );     // How often the event listing is refreshed in the watch window, only for recent events
-        define( 'ZM_WEB_REFRESH_LOGS', defined('ZM_WEB_L_REFRESH_LOGS') ? ZM_WEB_L_REFRESH_LOGS : 0 );  // How often (in seconds) the listing is refreshed in the log window
-        define( 'ZM_WEB_CAN_STREAM', ZM_WEB_L_CAN_STREAM );             // Override the automatic detection of browser streaming capability
-        define( 'ZM_WEB_STREAM_METHOD', ZM_WEB_L_STREAM_METHOD );       // Which method should be used to send video streams to your browser
-        define( 'ZM_WEB_DEFAULT_SCALE', ZM_WEB_L_DEFAULT_SCALE );       // What the default scaling factor applied to 'live' or 'event' views is (%)
-        define( 'ZM_WEB_DEFAULT_RATE', ZM_WEB_L_DEFAULT_RATE );         // What the default replay rate factor applied to 'event' views is (%)
-        define( 'ZM_WEB_VIDEO_BITRATE', ZM_WEB_L_VIDEO_BITRATE );       // What the bitrate of any streamed video should be
-        define( 'ZM_WEB_VIDEO_MAXFPS', ZM_WEB_L_VIDEO_MAXFPS );         // What the maximum frame rate of any streamed video should be
-        define( 'ZM_WEB_SCALE_THUMBS', ZM_WEB_L_SCALE_THUMBS );         // Image scaling for thumbnails, bandwidth versus cpu in rescaling
-        define( 'ZM_WEB_EVENTS_VIEW', ZM_WEB_L_EVENTS_VIEW );           // What the default view of multiple events should be.
-        define( 'ZM_WEB_SHOW_PROGRESS', ZM_WEB_L_SHOW_PROGRESS );       // Whether to show the progress of replay in event view.
-        define( 'ZM_WEB_AJAX_TIMEOUT', ZM_WEB_L_AJAX_TIMEOUT );         // Timeout to use for Ajax requests, no timeout used if unset
-        define( 'ZM_WEB_VIEWING_TIMEOUT', defined('ZM_WEB_L_VIEWING_TIMEOUT') ? ZM_WEB_L_VIEWING_TIMEOUT : 0 );
-        break;
-    }
+// The skin has one set of settings per bandwidth profile, named
+// ZM_WEB_<H|M|L>_<SETTING>. Alias the selected profile's settings to the plain
+// ZM_WEB_<SETTING> names the rest of the skin reads, so nothing downstream has
+// to know which profile is active.
+//
+// This used to be a switch with one arm per profile, each repeating the whole
+// list of define() calls. Deriving the names from the prefix keeps the profiles
+// from drifting apart, and means an unrecognised profile can no longer leave
+// every one of these constants undefined.
+$bandwidth_prefixes = array('high' => 'H', 'medium' => 'M', 'low' => 'L');
+
+$bandwidth_settings = array(
+    'REFRESH_MAIN',      // How often (in seconds) the main console window refreshes
+    'REFRESH_NAVBAR',    // How often (in seconds) the nav header refreshes
+    'REFRESH_CYCLE',     // How often the cycle watch windows swaps to the next monitor
+    'REFRESH_IMAGE',     // How often the watched image is refreshed (if not streaming)
+    'REFRESH_STATUS',    // How often the little status frame refreshes itself in the watch window
+    'REFRESH_EVENTS',    // How often the event listing is refreshed in the watch window, only for recent events
+    'CAN_STREAM',        // Override the automatic detection of browser streaming capability
+    'STREAM_METHOD',     // Which method should be used to send video streams to your browser
+    'DEFAULT_SCALE',     // What the default scaling factor applied to 'live' or 'event' views is (%)
+    'DEFAULT_RATE',      // What the default replay rate factor applied to 'event' views is (%)
+    'VIDEO_BITRATE',     // What the bitrate of any streamed video should be
+    'VIDEO_MAXFPS',      // What the maximum frame rate of any streamed video should be
+    'SCALE_THUMBS',      // Image scaling for thumbnails, bandwidth versus cpu in rescaling
+    'EVENTS_VIEW',       // What the default view of multiple events should be.
+    'SHOW_PROGRESS',     // Whether to show the progress of replay in event view.
+    'AJAX_TIMEOUT',      // Timeout to use for Ajax requests, no timeout used if unset
+);
+
+// Settings a profile may not have a value for, with what to use when it does
+// not. Unlike the list above, a missing one of these is not an error.
+$bandwidth_optional_settings = array(
+    'REFRESH_LOGS' => 0,    // How often (in seconds) the listing is refreshed in the log window
+    'VIEWING_TIMEOUT' => 0, // How long a view may go unwatched before it stops streaming
+);
+
+// skin.php validates the cookie before including this, so the profile is
+// normally known. Fall back to the least demanding one if it ever is not,
+// rather than leaving every alias below undefined.
+$bandwidth_profile = $_COOKIE['zmBandwidth'] ?? '';
+$bandwidth_prefix = $bandwidth_prefixes[$bandwidth_profile] ?? 'L';
+
+foreach ( $bandwidth_settings as $setting ) {
+  define('ZM_WEB_'.$setting, constant('ZM_WEB_'.$bandwidth_prefix.'_'.$setting));
+}
+foreach ( $bandwidth_optional_settings as $setting => $fallback ) {
+  $source = 'ZM_WEB_'.$bandwidth_prefix.'_'.$setting;
+  define('ZM_WEB_'.$setting, defined($source) ? constant($source) : $fallback);
 }
 
 ?>

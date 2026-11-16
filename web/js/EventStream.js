@@ -39,6 +39,7 @@ function EventStream(config) {
   this.streamCmdTimer = null;
   this.ajaxQueue = null;
   this.rafId = null;
+  this.bitmapPending = false;
 
   // Recovery state
   this.consecutiveErrors = 0;
@@ -88,6 +89,17 @@ function EventStream(config) {
    */
   this.start = function(eventId, options) {
     options = options || {};
+
+    // An explicit start supersedes any pending recovery.
+    if (this.recoveryTimer) {
+      clearTimeout(this.recoveryTimer);
+      this.recoveryTimer = null;
+    }
+
+    // Tear down any existing connection first. Re-using a live <img> would
+    // abort its MJPEG stream behind zms's back and orphan the zms process.
+    if (this.started || this.img) this.teardown(this.started);
+
     this.currentEventId = eventId;
     this.rate = (options.rate !== undefined) ? options.rate : 100;
     this.paused = false;
@@ -99,8 +111,12 @@ function EventStream(config) {
     this.streamCmdParms.connkey = this.connKey;
 
     // Build zms URL
+    // UrlToZMS already carries '?monitor=N' for a monitor-specific stream,
+    // so a second '?' here produced zms?monitor=24?source=event, which reads
+    // as one giant monitor value and makes every stream log unreadable.
     var src = this.url_to_zms +
-      '?source=event' +
+      (this.url_to_zms.indexOf('?') == -1 ? '?' : '&') +
+      'source=event' +
       '&mode=jpeg' +
       '&event=' + eventId +
       '&monitor=' + this.monitorId +
@@ -118,8 +134,8 @@ function EventStream(config) {
     }
 
     // Auth
-    if (typeof auth_relay !== 'undefined' && auth_relay) {
-      src += '&' + auth_relay;
+    if (typeof zmAuth !== 'undefined') {
+      src = zmAuth.appendTo(src);
     }
 
     // Use a DOM <img> element for MJPEG reception. Browsers natively
@@ -148,21 +164,6 @@ function EventStream(config) {
       self.recover();
     };
 
-    // onload fires once when the first MJPEG frame arrives, confirming
-    // the zms process is running and the command socket is ready.
-    this.img.onload = function() {
-      // Successful frame — reset error counter
-      self.consecutiveErrors = 0;
-      self.recoveryDelay = 1000;
-
-      if (!self.streamCmdTimer) {
-        self.streamCmdQuery();
-        self.streamCmdTimer = setInterval(
-            self.streamCmdQuery.bind(self), self.statusInterval
-        );
-      }
-    };
-
     // Start the rAF draw loop — draws whenever the browser has
     // decoded a new MJPEG frame into the img element.
     this.startDrawLoop();
@@ -170,6 +171,54 @@ function EventStream(config) {
     // Setting src starts the MJPEG connection
     this.img.src = src;
     this.started = true;
+
+    /* Poll for status from here, not from img.onload.
+     *
+     * onload is not a dependable per-restart signal for a
+     * multipart/x-mixed-replace img: a restarted stream could paint its first
+     * frame without ever getting a poller of its own, while the poller from
+     * the connection before it kept running.  Starting the timer next to the
+     * src that created the connkey ties the two together.
+     *
+     * The first query waits a full interval: zms creates its command socket
+     * after the request reaches it, and asking before it exists returns
+     * no_socket for a stream that is merely still starting.
+     */
+    this.streamCmdTimer = setInterval(
+        this.streamCmdQuery.bind(this), this.statusInterval
+    );
+  };
+
+  // -------------------------------------------------------------------------
+  // teardown(quit) — Drop the connection, timers and draw loop.
+  // Pass quit=false when zms is already gone, so we don't ask a dead process
+  // to exit. Detaching the img handlers before clearing src keeps our own
+  // teardown from firing onerror and looking like a stream failure.
+  // -------------------------------------------------------------------------
+
+  this.teardown = function(quit) {
+    if (quit && this.started) this.streamCommand(CMD_QUIT);
+    this.streamCmdTimer = clearInterval(this.streamCmdTimer);
+
+    if (this.rafId) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = null;
+    }
+
+    if (this.img) {
+      this.img.onload = null;
+      this.img.onerror = null;
+      this.img.src = '';
+      if (this.img.parentNode) {
+        this.img.parentNode.removeChild(this.img);
+      }
+      this.img = null;
+    }
+    this.bitmapPending = false;
+
+    this.started = false;
+    this.connKey = null;
+    this.streamCmdParms.connkey = null;
   };
 
   // -------------------------------------------------------------------------
@@ -184,29 +233,9 @@ function EventStream(config) {
 
     if (!this.started) return;
 
-    this.streamCommand(CMD_QUIT);
-    this.streamCmdTimer = clearInterval(this.streamCmdTimer);
-
-    if (this.rafId) {
-      cancelAnimationFrame(this.rafId);
-      this.rafId = null;
-    }
-
-    if (this.img) {
-      this.img.onload = null;
-      this.img.onerror = null;
-      this.img.src = '';
-      if (this.img.parentNode) {
-        this.img.parentNode.removeChild(this.img);
-      }
-      this.img = null;
-    }
-
-    this.started = false;
+    this.teardown(true);
     this.paused = false;
     this.stopped = false;
-    this.connKey = null;
-    this.streamCmdParms.connkey = null;
     this.consecutiveErrors = 0;
     this.recoveryDelay = 1000;
   };
@@ -216,7 +245,23 @@ function EventStream(config) {
   // -------------------------------------------------------------------------
 
   this.recover = function() {
+    // A recovery is already scheduled. Without this, every error arriving
+    // while we wait to retry (the status poll keeps firing, and each reply
+    // is another Error) would queue another restart and inflate the attempt
+    // count until we give up on a stream that was never retried once.
+    if (this.recoveryTimer) return;
+
     this.consecutiveErrors++;
+
+    var self = this;
+    var eventId = this.currentEventId;
+    var opts = Object.assign({}, this.lastOptions || {});
+    opts.rate = this.rate;
+
+    // Drop the dead connection before deciding whether to retry, so that
+    // giving up leaves nothing running. zms is already gone, so no CMD_QUIT.
+    this.teardown(false);
+    this.stopped = false;
 
     if (this.consecutiveErrors > this.maxRecoveryAttempts) {
       console.error('EventStream: max recovery attempts reached for monitor ' +
@@ -228,34 +273,14 @@ function EventStream(config) {
     console.warn('EventStream: recovery attempt ' + this.consecutiveErrors +
       '/' + this.maxRecoveryAttempts + ' for monitor ' + this.monitorId);
 
-    var self = this;
-    var eventId = this.currentEventId;
-    var opts = Object.assign({}, this.lastOptions || {});
-    opts.rate = this.rate;
-
-    // Clean up old state without sending CMD_QUIT (zms is already dead)
-    this.streamCmdTimer = clearInterval(this.streamCmdTimer);
-    if (this.rafId) {
-      cancelAnimationFrame(this.rafId);
-      this.rafId = null;
-    }
-    if (this.img) {
-      this.img.onload = null;
-      this.img.onerror = null;
-      this.img.src = '';
-      if (this.img.parentNode) {
-        this.img.parentNode.removeChild(this.img);
-      }
-      this.img = null;
-    }
-    this.started = false;
-    this.connKey = null;
-    this.stopped = false;
-    this.streamCmdParms.connkey = null;
-
     // Delay before restarting — exponential backoff
     this.recoveryTimer = setTimeout(function() {
       self.recoveryTimer = null;
+      // teardown() cleared started, so a consumer polling for a live stream
+      // may have restarted us while we waited. Restarting again here would
+      // abort that healthy stream and orphan its zms, which fails the img
+      // and lands us straight back in recover().
+      if (self.started) return;
       self.start(eventId, opts);
     }, this.recoveryDelay);
 
@@ -340,37 +365,15 @@ function EventStream(config) {
       this.recoveryTimer = null;
     }
 
-    if (this.started) {
-      // Tell current zms to exit
-      this.streamCommand(CMD_QUIT);
-      this.streamCmdTimer = clearInterval(this.streamCmdTimer);
-      if (this.rafId) {
-        cancelAnimationFrame(this.rafId);
-        this.rafId = null;
-      }
-      if (this.img) {
-        this.img.onload = null;
-        this.img.onerror = null;
-        this.img.src = '';
-        if (this.img.parentNode) {
-          this.img.parentNode.removeChild(this.img);
-        }
-        this.img = null;
-      }
-      this.started = false;
-      this.connKey = null;
-      this.streamCmdParms.connkey = null;
-    }
-
     // Reset recovery state for fresh event
     this.consecutiveErrors = 0;
     this.recoveryDelay = 1000;
 
-    // Brief delay to let the old zms process clean up, then start fresh
-    var self = this;
-    setTimeout(function() {
-      self.start(eventId, options);
-    }, 200);
+    // start() tears the old stream down (sending CMD_QUIT) and brings the new
+    // event up in one step. Doing the teardown here instead and starting from
+    // a timer would leave started=false in between, and a consumer polling for
+    // a live stream would start its own before the timer fired.
+    this.start(eventId, options);
   };
 
   // -------------------------------------------------------------------------
@@ -398,17 +401,21 @@ function EventStream(config) {
 
   this.streamCmdReq = function(params) {
     var self = this;
+    // The connkey this exchange is about. Replies are queued and can land
+    // after a restart has replaced it; see getStreamCmdResponse().
+    var connKey = params.connkey;
     this.ajaxQueue = jQuery.ajaxQueue({
-      url: this.url + (auth_relay ? '?' + auth_relay : ''),
+      url: zmAuth.appendTo(this.url),
       xhrFields: {withCredentials: true},
       data: params,
       dataType: 'json'
     })
         .done(function(respObj) {
-          self.getStreamCmdResponse(respObj);
+          self.getStreamCmdResponse(respObj, connKey);
         })
         .fail(function(jqXHR, textStatus) {
           if (textStatus === 'abort') return;
+          if (connKey !== self.connKey) return;
           console.warn('EventStream: AJAX failed for monitor ' +
             self.monitorId + ': ' + textStatus);
           // AJAX failure likely means zms has died (socket gone)
@@ -432,18 +439,36 @@ function EventStream(config) {
   // getStreamCmdResponse(respObj) — Handle CMD_QUERY / command responses
   // -------------------------------------------------------------------------
 
-  this.getStreamCmdResponse = function(respObj) {
+  this.getStreamCmdResponse = function(respObj, connKey) {
     if (!respObj) return;
+
+    /* A reply for a connkey we no longer hold describes a stream that is
+     * already gone: it was issued before a restart and queued behind other
+     * requests.  Acting on it restarted the healthy stream that replaced it,
+     * which produced another stale reply, and so on - the stream never lived
+     * long enough to deliver a second frame.
+     */
+    if (connKey !== undefined && connKey !== this.connKey) return;
 
     if (respObj.result === 'Error' || respObj.result === 'Err') {
       console.warn('EventStream: command error for monitor ' +
-        this.monitorId);
-      // Error response means stream.php couldn't talk to zms — recover
+        this.monitorId + ': ' + respObj.message);
+      if (!EventStream.errorIsFatal(respObj.reason)) {
+        // zms is alive, this one exchange failed. Retry on the next poll.
+        return;
+      }
+      // zms may still be starting, so only act on a no_socket that persists.
+      if (respObj.reason == 'no_socket') {
+        if (!this.noSocketSince) this.noSocketSince = Date.now();
+        if (Date.now() - this.noSocketSince < EventStream.NO_SOCKET_GRACE_MS) return;
+      }
+      this.noSocketSince = 0;
       this.recover();
       return;
     }
 
     // Successful response — reset error counter
+    this.noSocketSince = 0;
     this.consecutiveErrors = 0;
     this.recoveryDelay = 1000;
 
@@ -451,14 +476,9 @@ function EventStream(config) {
 
     this.status = respObj.status;
 
-    // Update auth hash if the server sent a fresh one
-    if (this.status.auth) {
-      if (typeof auth_hash !== 'undefined' && this.status.auth !== auth_hash) {
-        auth_hash = this.status.auth;
-      }
-      if (typeof auth_relay !== 'undefined' && this.status.auth_relay) {
-        auth_relay = this.status.auth_relay;
-      }
+    // Update the credential if the server sent a fresh one
+    if (typeof zmAuth !== 'undefined') {
+      zmAuth.update(this.status);
     }
 
     // Track paused and stopped state from server
@@ -497,8 +517,210 @@ function EventStream(config) {
     if (!this.canvas || !this.img) return;
     // Only draw if the img has decoded at least one frame
     if (!this.img.naturalWidth) return;
-    var ctx = this.canvas.getContext('2d');
-    ctx.drawImage(this.img, 0, 0, this.canvas.width, this.canvas.height);
-    if (this.onFrameDrawn) this.onFrameDrawn(this.canvas);
+
+    // Gecko gives canvas drawImage() the frame the img held when it was first
+    // decoded and never refreshes it, so copying a multipart/x-mixed-replace
+    // img straight to the canvas repaints that one frame forever while zms
+    // goes on streaming: montage review froze on its first frame in Firefox
+    // while playing normally in Chrome.  createImageBitmap() reads the frame
+    // the element is showing now.  It is async, so skip a tick while one is
+    // outstanding instead of queueing requests up behind the stream rate.
+    if (this.bitmapPending) return;
+    var self = this;
+    this.bitmapPending = true;
+    createImageBitmap(this.img).then(function(bitmap) {
+      self.bitmapPending = false;
+      if (!self.canvas) {
+        bitmap.close();
+        return;
+      }
+      var ctx = self.canvas.getContext('2d');
+      ctx.drawImage(bitmap, 0, 0, self.canvas.width, self.canvas.height);
+      bitmap.close();
+      if (self.onFrameDrawn) self.onFrameDrawn(self.canvas);
+    }).catch(function() {
+      // A frame that arrives mid-teardown, or one that is only partly
+      // received, is not worth reporting: the next tick draws the next frame.
+      self.bitmapPending = false;
+    });
   };
+}
+
+/* Does this ajax/stream.php failure mean the zms behind our connkey is gone?
+ *
+ * Only then is restarting right: a restart replaces the connkey and leaves any
+ * still-running zms unaddressable. A slow reply or a php-local socket problem
+ * says nothing about zms.  An absent reason means a php that predates the
+ * field, so keep the older always-restart behaviour.
+ *
+ * Same rule as streamErrorIsFatal() in MonitorStream.js, kept here because the
+ * views that use EventStream do not load MonitorStream.js.
+ */
+EventStream.errorIsFatal = function(reason) {
+  if (!reason) return true;
+  return reason == 'no_socket';
+};
+
+EventStream.NO_SOCKET_GRACE_MS = 3000;
+/* ---------------------------------------------------------------------------
+ * Event-view player selection (classic skin event.php, codec=auto).
+ *
+ * PHP cannot know whether this browser can natively decode the recording's
+ * codec (HEVC/AV1), so for codec=auto event.php renders only a JPEG placeholder
+ * and leaves the choice to us: play the MP4 file directly in a <video> when the
+ * browser can decode it (fast, no server-side transcode), otherwise fall back
+ * to the zms MJPEG re-stream (the <img id="evtStream"> that the rest of event.js
+ * already drives). The explicit MP4 / MP4HLS / MJPEG codec picks are rendered
+ * server-side and never reach here.
+ * ------------------------------------------------------------------------- */
+
+// Can this browser natively play the file's codec? Delegates to canPlayCodec()
+// (skin.js), which maps the DefaultVideo codec token to a canPlayType() probe.
+// Without that helper, prefer the zms fallback rather than risk a dead player.
+EventStream.canPlayFile = function(filename) {
+  if (typeof canPlayCodec === 'function') return canPlayCodec(filename);
+  console.warn('EventStream: canPlayCodec() unavailable; using zms fallback');
+  return false;
+};
+
+// Remove the placeholder frame once the chosen player has real pixels up.
+EventStream.removePlaceholder = function() {
+  var ph = document.getElementById('eventPlaceholder');
+  if (ph && ph.parentNode) ph.parentNode.removeChild(ph);
+};
+
+// Build the native video.js player into #zoompan, mirroring the server-rendered
+// force-native markup in event.php. Returns the videojs player, or null on
+// failure (the caller then falls back to zms).
+EventStream.buildMp4Player = function(playerData, eventData) {
+  var zoompan = document.getElementById('zoompan');
+  if (!zoompan) {
+    console.error('EventStream.buildMp4Player: #zoompan not found');
+    return null;
+  }
+  if (typeof videojs === 'undefined') {
+    console.error('EventStream.buildMp4Player: videojs is not loaded');
+    return null;
+  }
+
+  var video = document.createElement('video');
+  video.id = 'videoobj';
+  video.className = 'video-js';
+  video.setAttribute('controls', '');
+  video.setAttribute('autoplay', '');
+  video.setAttribute('preload', 'auto');
+  if (playerData.width) video.setAttribute('width', playerData.width);
+  if (playerData.height) video.setAttribute('height', playerData.height);
+
+  // The codec probe that routed us here tested the recorded file (mp4Src), so the
+  // mp4 source is the one we know plays. Offer HLS first only for a live event,
+  // where the mp4 is still being written and the growing manifest is what lets
+  // playback follow the recording edge; a finished event just plays the mp4. This
+  // keeps the chosen source consistent with what was probed.
+  if (playerData.hasHls && playerData.hlsSrc && playerData.isLive) {
+    var hls = document.createElement('source');
+    hls.src = playerData.hlsSrc;
+    hls.type = 'application/x-mpegURL';
+    video.appendChild(hls);
+  }
+  var mp4 = document.createElement('source');
+  mp4.src = playerData.mp4Src;
+  mp4.type = 'video/mp4';
+  video.appendChild(mp4);
+
+  // Captions track carrying the monitor label (matches event.php).
+  var track = document.createElement('track');
+  track.id = 'monitorCaption';
+  track.kind = 'captions';
+  track.label = 'English';
+  track.srclang = 'en';
+  track.src = 'data:text/vtt;charset=utf-8,WEBVTT%0A%0A00:00:00.000 --> 00:00:01.000%0AZoneMinder';
+  track.setAttribute('default', '');
+  video.appendChild(track);
+
+  zoompan.appendChild(video);
+
+  // Same options as the force-native inline init in event.php.
+  var playbackRates = (typeof rates !== 'undefined' && rates.length)
+    ? rates.filter(function(r) {
+      return r >= 0;
+    }).map(function(r) {
+      return r / 100;
+    })
+    : [0.5, 1, 2, 4];
+
+  var player = videojs('videoobj', {
+    controls: true,
+    autoplay: true,
+    preload: 'auto',
+    playbackRates: playbackRates,
+    // liveui would hide the already-recorded portion behind a live-edge control.
+    liveui: false,
+    liveTracker: {trackingThreshold: 0}
+  });
+  player.zoomrotate({zoom: 1, rotate: 0});
+
+  // Live HLS: retry on errors while the manifest is still growing.
+  if (playerData.hasHls && playerData.isLive) {
+    var liveRetryCount = 0;
+    var maxLiveRetries = 30;
+    player.on('error', function() {
+      var error = player.error();
+      if (error && liveRetryCount < maxLiveRetries) {
+        liveRetryCount++;
+        var delay = liveRetryCount <= 3 ? 3000 : 5000;
+        player.error(null);
+        setTimeout(function() {
+          player.src(player.currentSources());
+        }, delay);
+      }
+    });
+    player.on('playing', function() {
+      liveRetryCount = 0;
+    });
+  }
+
+  player.one('loadeddata', EventStream.removePlaceholder);
+  player.one('playing', EventStream.removePlaceholder);
+
+  return player;
+};
+
+// Build the legacy zms <img id="evtStream"> into #zoompan, reproducing what
+// getImageStreamHTML() emits server-side so every #evtStream reference in
+// event.js keeps working. Stage 1 keeps this <img> path; a later stage migrates
+// it onto the EventStream canvas client.
+EventStream.buildZmsImg = function(playerData, eventData) {
+  var zoompan = document.getElementById('zoompan');
+  if (!zoompan) {
+    console.error('EventStream.buildZmsImg: #zoompan not found');
+    return;
+  }
+  var img = document.createElement('img');
+  img.id = 'evtStream';
+  if (eventData && eventData.Name) img.alt = eventData.Name;
+  if (playerData.width) img.style.width = playerData.width + 'px';
+  if (playerData.height) img.style.height = playerData.height + 'px';
+  img.addEventListener('load', EventStream.removePlaceholder, {once: true});
+  // Set src last so the load handler is attached before the stream connects.
+  img.src = playerData.zmsImgSrc;
+  zoompan.appendChild(img);
+};
+
+// Decide and build the player. Returns {mode:'video', vid:<player>} when the
+// native player was built, else {mode:'zms', vid:null} after building the zms img.
+EventStream.chooseEventPlayer = function(playerData, eventData) {
+  if (playerData && playerData.codec === 'auto'
+      && eventData && eventData.DefaultVideo
+      && EventStream.canPlayFile(eventData.DefaultVideo)) {
+    var vid = EventStream.buildMp4Player(playerData, eventData);
+    if (vid) return {mode: 'video', vid: vid};
+    // videojs init failed; fall through to the zms img rather than a dead player.
+  }
+  EventStream.buildZmsImg(playerData, eventData);
+  return {mode: 'zms', vid: null};
+};
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {EventStream};
 }

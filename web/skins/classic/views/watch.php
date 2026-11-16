@@ -103,9 +103,16 @@ if (!$cycle and isset($_COOKIE['zmCycleShow'])) {
 }
 #Whether to show the controls button
 $hasPtzControls = false;
+require_once('includes/MonitorAction.php');
 foreach ($monitors as $m) {
   if (( ZM_OPT_CONTROL && $m->Controllable() && canView('Control') && $m->Type() != 'WebSite' )) {
     //If there is control for at least one camera, then we display the block.
+    $hasPtzControls = true;
+  }
+  # A monitor with manual actions needs the panel even when it is not itself
+  # controllable: the actions drive other devices, typically a speaker.
+  if (!$hasPtzControls and ZM_OPT_CONTROL and canView('Control') and
+      count(ZM\MonitorAction::find(array('MonitorId'=>$m->Id(), 'TriggerOn'=>'Manual', 'Enabled'=>1)))) {
     $hasPtzControls = true;
   }
   if ($hasPtzControls) {
@@ -159,7 +166,7 @@ if (isset($_REQUEST['scale'])) {
 }
 */
 
-if (isset($_REQUEST['scale'])) {
+if (isset($_REQUEST['scale']) and is_string($_REQUEST['scale'])) {
   $scale = $_REQUEST['scale'];
 } else if ( isset($_COOKIE['zmWatchScaleNew'.$mid]) ) {
   $scale = $_COOKIE['zmWatchScaleNew'.$mid];
@@ -226,17 +233,14 @@ echo getNavBarHTML() ?>
 <div id="page">
   <div id="header">
 <?php
-    $filter_inline = defined('ZM_WEB_FILTER_SETTINGS_POSITION') && ZM_WEB_FILTER_SETTINGS_POSITION == 'inline';
-    $html = '';
-    if (!$filter_inline) {
-      $html .= '<a class="flip" href="#"
-               data-flip-control-object="#mfbpanel"
-               data-flip-control-run-after-func="applyChosen"
-               data-flip-control-run-after-complet-func="changeScale">
-                 <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
-               </a>'.PHP_EOL;
-    }
-    $html .= '<div id="mfbpanel" class="'.($filter_inline ? '' : 'hidden-shift ').'container-fluid">'.PHP_EOL;
+    $filter_inline = filterSettingsInline();
+    $html = '<a class="flip" href="#"
+             data-flip-control-object="#mfbpanel"
+             data-flip-control-run-after-func="applyChosen"
+             data-flip-control-run-after-complet-func="changeScale">
+               <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
+             </a>
+             <div id="mfbpanel" class="'.($filter_inline ? '' : 'hidden-shift ').'container-fluid">'.PHP_EOL;
     echo $html;
 ?>
     <div class="controlHeader">
@@ -324,7 +328,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], ['class'=>'ch
               $players['rtsp2web_hls'] = 'RTSP2Web HLS';
               $players['janus'] = 'Janus';
               $player = validHtmlStr($monitor->DefaultPlayer());
-              if (isset($_REQUEST['player']) and isset($players[$_REQUEST['player']])) {
+              if (isset($_REQUEST['player']) and is_string($_REQUEST['player']) and isset($players[$_REQUEST['player']])) {
                 $player = validHtmlStr($_REQUEST['player']);
               } else if (isset($_COOKIE['zmWatchPlayer']) and isset($players[$_COOKIE['zmWatchPlayer']])) {
                 $player = validHtmlStr($_COOKIE['zmWatchPlayer']);
@@ -342,7 +346,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], ['class'=>'ch
               'VideoAudioVisualization'=>translate('Video and audio visualization')
             ];
             $whatDisplaySelected = 'Default'; // Default
-            if (isset($_REQUEST['whatDisplay']) and isset($whatDisplay[$_REQUEST['whatDisplay']])) {
+            if (isset($_REQUEST['whatDisplay']) and is_string($_REQUEST['whatDisplay']) and isset($whatDisplay[$_REQUEST['whatDisplay']])) {
               $whatDisplaySelected = validHtmlStr($_REQUEST['whatDisplay']);
             } else if (isset($_COOKIE['zmWhatDisplay']) and isset($whatDisplay[$_COOKIE['zmWhatDisplay']])) {
               $whatDisplaySelected = validHtmlStr($_COOKIE['zmWhatDisplay']);
@@ -414,7 +418,7 @@ echo htmlSelect('cyclePeriod', $cyclePeriodOptions, $period, array('id'=>'cycleP
       $ptzControls = ptzControls($m);
       $monitorsExtraData[$m->Id()]['ptzControls'] = $ptzControls;
     }
-    echo '<li id="nav-item-cycle'.$m->Id().'" class="nav-item"><a id="nav-link'.$m->Id().'" class="nav-link'.( $m->Id() == $monitor->Id() ? ' active' : '' ).'" data-monIdx='.$dataMonIdx++.' href="#">'.$m->Name().'</a></li>';
+    echo '<li id="nav-item-cycle'.$m->Id().'" class="nav-item"><a id="nav-link'.$m->Id().'" class="nav-link'.( $m->Id() == $monitor->Id() ? ' active' : '' ).'" data-monIdx='.$dataMonIdx++.' href="#">'.validHtmlStr($m->Name()).'</a></li>';
   }
   if ($monitorJanusUsed) {
 ?>

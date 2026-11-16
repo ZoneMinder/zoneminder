@@ -36,7 +36,7 @@ class StorageController extends AppController {
     $named_params = $this->request->params['named'];
     if ( $named_params ) {
       $this->FilterComponent = $this->Components->load('Filter');
-      $conditions = $this->FilterComponent->buildFilter($named_params);
+      $conditions = $this->FilterComponent->buildFilter($named_params, array_keys($this->Storage->schema()));
     } else {
       $conditions = array();
     }
@@ -97,12 +97,17 @@ class StorageController extends AppController {
         return;
       }
 
+      $this->pinRequestId($this->Storage, null);
       $this->Storage->create();
       if ( $this->Storage->save($this->request->data) ) {
 				# Might be nice to send it a start request
         #$this->daemonControl($this->Storage->id, 'start', $this->request->data);
         return $this->flash(__('The storage area has been saved.'), array('action' => 'index'));
       }
+      $this->set(array(
+        'message' => $this->Storage->validationErrors ? $this->Storage->validationErrors : 'Error',
+        '_serialize' => array('message')
+      ));
     }
   }
 
@@ -126,10 +131,11 @@ class StorageController extends AppController {
     if ( !$this->Storage->exists($id) ) {
       throw new NotFoundException(__('Invalid storage area'));
     }
+    $this->pinRequestId($this->Storage, $id);
     if ( $this->Storage->save($this->request->data) ) {
       $message = 'Saved';
     } else {
-      $message = 'Error';
+      $message = $this->Storage->validationErrors ? $this->Storage->validationErrors : 'Error';
     }
 
     $this->set(array(
@@ -163,10 +169,21 @@ class StorageController extends AppController {
 
     #$this->daemonControl($this->Storage->id, 'stop');
 
+    # The web UI refuses the same delete, which would orphan the events and monitors using this area.
+    require_once __DIR__ .'/../../../includes/Storage.php';
+    $storage = new ZM\Storage($id);
+    if ( $storage->EventCount() or $storage->MonitorCount() ) {
+      throw new BadRequestException(__('The storage area is in use by events or monitors'));
+    }
+
     if ( $this->Storage->delete() ) {
-      return $this->flash(__('The storage area has been deleted.'), array('action' => 'index'));
+      $this->set(array(
+        'message' => 'Deleted',
+        '_serialize' => array('message'),
+      ));
+      return;
     } else {
-      return $this->flash(__('The storage area could not be deleted. Please, try again.'), array('action' => 'index'));
+      throw new InternalErrorException(__('The storage area could not be deleted.'));
     }
   }
 }

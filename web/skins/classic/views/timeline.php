@@ -61,8 +61,8 @@ define( 'STRF_TL_AXIS_LABEL_4HOUR', 'H:00' );
 define( 'STRF_TL_AXIS_LABEL_HOUR', 'H:00' );
 define( 'STRF_TL_AXIS_LABEL_10MINUTE', 'H:i' );
 define( 'STRF_TL_AXIS_LABEL_MINUTE', 'H:i' );
-define( 'STRF_TL_AXIS_LABEL_10SECOND', '%s' );
-define( 'STRF_TL_AXIS_LABEL_SECOND', '%s' );
+define( 'STRF_TL_AXIS_LABEL_10SECOND', 's' );
+define( 'STRF_TL_AXIS_LABEL_SECOND', 's' );
 
 $mouseover = isset($_REQUEST['mouseover']) ? $_REQUEST['mouseover'] : true;
 
@@ -132,12 +132,12 @@ $monitors = array();
 # The as E, and joining with Monitors is required for the filterSQL filters.
 $rangeSql = 'SELECT
   min(E.StartDateTime) AS MinTime,
-  max(E.EndDateTime) AS MaxTime
+  max(IFNULL(E.EndDateTime, NOW())) AS MaxTime
 FROM Events AS E
 INNER JOIN Monitors AS M ON (E.MonitorId = M.Id)
 LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId
 LEFT JOIN Tags AS T ON T.Id = ET.TagId
-WHERE NOT isnull(E.StartDateTime) AND NOT isnull(E.EndDateTime)';
+WHERE NOT isnull(E.StartDateTime)';
 
 $eventsSql = 'SELECT
   E.*, GROUP_CONCAT(T.Name SEPARATOR ", ") AS Tags
@@ -156,7 +156,7 @@ WHERE NOT isnull(StartDateTime)';
 $eventsValues = array();
 
 if ( count($user->unviewableMonitorIds()) ) {
-  $monFilterSql = ' AND E.MonitorId IN ('.$user->viewableMonitorIds().')';
+  $monFilterSql = ' AND E.MonitorId IN (' . implode(',', $user->viewableMonitorIds()) . ')';
   $rangeSql .= $monFilterSql;
   $eventsSql .= $monFilterSql;
   $eventIdsSql .= $monFilterSql;
@@ -210,7 +210,7 @@ if ( isset($_REQUEST['filter']) ) {
 $tempMinTime = $tempMaxTime = $tempExpandable = false;
 extractDatetimeRange($tree, $tempMinTime, $tempMaxTime, $tempExpandable);
 
-$filterSql = $filter->sql();
+$filterSql = isset($filter) ? $filter->sql() : '';
 if ( $filterSql ) {
   $eventsSql .= ' AND '.$filterSql;
   $eventIdsSql .= ' AND '.$filterSql;
@@ -242,6 +242,8 @@ if (!isset($minTime) || !isset($maxTime)) {
   $midTime = date(STRF_FMT_DATETIME_DB, $midTimeT);
 }
 
+// Pan and zoom links must not carry the current window, or they could never leave it.
+$navFilterQuery = $tree ? parseTreeToQuery($tree) : false;
 if ( $tree ) {
   appendDatetimeRange($tree, $minTime, $maxTime);
   $filterQuery = parseTreeToQuery($tree);
@@ -265,9 +267,11 @@ $scales = array(
 $majXScale = getDateScale($scales, $range, $chart['grid']['x']['major']['min'], $chart['grid']['x']['major']['max']);
 
 // Adjust the range etc for scale
-$minTimeT -= $minTimeT%($majXScale['factor']*$majXScale['align']);
+// Align on local wall clock boundaries: epoch seconds are only a multiple of a day or an hour in UTC.
+$scaleStep = $majXScale['factor']*$majXScale['align'];
+$minTimeT -= ($minTimeT+date('Z', $minTimeT))%$scaleStep;
 $minTime = date(STRF_FMT_DATETIME_DB, $minTimeT);
-$maxTimeT += (($majXScale['factor']*$majXScale['align'])-$maxTimeT%($majXScale['factor']*$majXScale['align']))-1;
+$maxTimeT += ($scaleStep-($maxTimeT+date('Z', $maxTimeT))%$scaleStep)-1;
 if ( $maxTimeT > time() )
   $maxTimeT = time();
 $maxTime = date(STRF_FMT_DATETIME_DB, $maxTimeT);
@@ -277,8 +281,8 @@ $midTimeT = $minTimeT + $halfRange;
 $midTime = date(STRF_FMT_DATETIME_DB, $midTimeT);
 
 if ( isset($minTime) && isset($maxTime) ) {
-  $eventsSql .= " AND EndDateTime >= '$minTime' AND StartDateTime <= '$maxTime'";
-  $eventIdsSql .= " AND EndDateTime >= '$minTime' AND StartDateTime <= '$maxTime'";
+  $eventsSql .= " AND (EndDateTime IS NULL OR EndDateTime >= '$minTime') AND StartDateTime <= '$maxTime'";
+  $eventIdsSql .= " AND (EndDateTime IS NULL OR EndDateTime >= '$minTime') AND StartDateTime <= '$maxTime'";
 }
 
 $framesByEventId = array();
@@ -367,7 +371,7 @@ while ($event = $events_result->fetch(PDO::FETCH_ASSOC)) {
 
       $i = $startIndex;
       if ( !isset($currFrameSlots[$i]) ) {
-        $currFrameSlots[$i] = array('count'=>1, 'value'=>$event['MaxScore'], 'event'=>$event, 'frame'=>$frame, 'id'=>$frame['FrameId']);
+        $currFrameSlots[$i] = array('count'=>1, 'value'=>$event['MaxScore'], 'event'=>$event, 'frame'=>$frame, 'id'=>$frame['FrameId'] ?? null);
       } else {
         $currFrameSlots[$i]['count']++;
         if ( $event['MaxScore'] > $currFrameSlots[$i]['value'] ) {
@@ -483,16 +487,19 @@ for ( $i = 0; $i < $chart['graph']['width']; $i++ ) {
         $frameSlots[$i][] = &$currFrameSlots[$i];
       } else {
         $slotCount = count($frameSlots[$i]);
+        $inserted = false;
         for ( $j = 0; $j < $slotCount; $j++ ) {
           if ( $currFrameSlots[$i]['value'] > $frameSlots[$i][$j]['value'] ) {
             for ( $k = $slotCount; $k > $j; $k-- ) {
               $frameSlots[$i][$k] = $frameSlots[$i][$k-1];
             }
             $frameSlots[$i][$j] = &$currFrameSlots[$i];
-            break 2;
+            $inserted = true;
+            break;
           }
         }
-        $frameSlots[$i][] = &$currFrameSlots[$i];
+        if ( !$inserted )
+          $frameSlots[$i][] = &$currFrameSlots[$i];
       }
     }
     unset($currFrameSlots);
@@ -631,7 +638,7 @@ function drawXGrid( $chart, $scale, $labelClass, $tickClass, $gridClass, $zoomCl
     $zoomMinTime = date( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($lastTick * $chart['data']['x']['density'])) );
     $zoomMaxTime = date( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($i * $chart['data']['x']['density'])) );
 ?>
-            <div class="<?php echo $zoomClass ?>" style="left: <?php echo $lastTick-1 ?>px; width: <?php echo $i-$lastTick ?>px;" title="<?php echo translate('ZoomIn') ?>" data-on-click="tlZoomBounds" data-zoom-min-time="<?php echo $zoomMinTime ?>" data-zoom-max-time="<?php echo $zoomMaxTime ?>"></div>
+            <div class="<?php echo $zoomClass ?>" style="left: <?php echo 100*($lastTick-1)/$chart['graph']['width'] ?>%; width: <?php echo round(100*($i-$lastTick)/$chart['graph']['width'],1) ?>%;" title="<?php echo translate('ZoomIn') ?>" data-on-click="tlZoomBounds" data-zoom-min-time="<?php echo $zoomMinTime ?>" data-zoom-max-time="<?php echo $zoomMaxTime ?>"></div>
 <?php
   }
 ?>
@@ -810,8 +817,8 @@ foreach ( array_keys($monEventSlots) as $monitorId ) {
 <?php
 foreach( array_keys($monEventSlots) as $monitorId ) {
 ?>
-          <span class="keyEntry"><?php echo $monitors[$monitorId]->Name() ?>
-          <div id="keyBox<?php echo $monitorId ?>" class="keyBox monitorColour<?php echo $monitorId ?>" title="<?php echo $monitors[$monitorId]->Name() ?>" style="background-color: <?php echo $monitors[$monitorId]->WebColour() ?>;"></div>
+          <span class="keyEntry"><?php echo validHtmlStr($monitors[$monitorId]->Name()) ?>
+          <div id="keyBox<?php echo $monitorId ?>" class="keyBox monitorColour<?php echo $monitorId ?>" title="<?php echo validHtmlStr($monitors[$monitorId]->Name()) ?>" style="background-color: <?php echo $monitors[$monitorId]->WebColour() ?>;"></div>
           </span>
 <?php
 }

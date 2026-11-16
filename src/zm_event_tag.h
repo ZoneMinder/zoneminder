@@ -56,7 +56,7 @@ class Event_Tag {
     unsigned int AssignedBy() { return assigned_by; };
     unsigned int AssignedBy(unsigned int p_assigned_by) { return assigned_by = p_assigned_by; };
 
-    int save();
+    uint64_t save();
 };
 
 #endif // ZM_EVENT_TAG_H

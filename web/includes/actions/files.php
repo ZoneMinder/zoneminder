@@ -45,6 +45,15 @@ if ($action == 'delete') {
   }
   $path_parts = pathinfo($path);
 
+  # $is_ok_path was computed above but never consulted, so a path outside every
+  # Storage area still reached unlink(). detaintPathAllowAbsolute() permits
+  # absolute paths, so this is what keeps the delete inside a Storage area.
+  if (!$is_ok_path) {
+    $error_message .= 'Path is not valid. Path must be below a designated Storage area.<br/>';
+    ZM\Warning("Refusing to delete files under '$path': not below a Storage area");
+    return;
+  }
+
   foreach ($_REQUEST['files'] as $file) {
     $full_path = $path.'/'.detaintPath($file);
     if (is_file($full_path)) {

@@ -536,7 +536,7 @@ sub irisConOpen
     my $params = shift;
     my $autostop = $self->getParam( $params, 'autostop', 0 );
     Debug( "Iris Open" );
-    my @msg = ( SYNC, $self->{Monitor}->{ControlAddress}, 0x02, 0x80, 0x00, 0x00 );
+    my @msg = ( SYNC, $self->{Monitor}->{ControlAddress}, 0x02, 0x00, 0x00, 0x00 );
     $self->sendCmd( \@msg );
     if( $autostop && $self->{Monitor}->{AutoStopTimeout} )
     {
@@ -699,9 +699,8 @@ Philip Coombes, E<lt>philip.coombes@zoneminder.comE<gt>
 
 Copyright (C) 2001-2008  Philip Coombes
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.3 or,
-at your option, any later version of Perl 5 you may have available.
+Licensed under the GNU General Public License v2 or later; see the COPYING
+file distributed with ZoneMinder for the full text.
 
 
 =cut

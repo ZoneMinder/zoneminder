@@ -118,8 +118,8 @@ body.sticky .content-main {
 .montage-page:not(.filter-inline) .content-main #filters_form,
 .watch-page:not(.filter-inline) .content-main .controlHeader,
 .report_event_audit-page:not(.filter-inline) #content form,
-.events-page .content-main #fieldsTable,
-.events-page a[data-flip-control-object="#fieldsTable"], /* Filter visibility control button */
+.events-page:not(.filter-inline) .content-main #fieldsTable,
+.events-page:not(.filter-inline) a[data-flip-control-object="#fieldsTable"], /* Filter visibility control button */
 .options-page .content-main #sidebar,
 .navbar-brand,
 #navbar-one {

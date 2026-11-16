@@ -87,12 +87,17 @@ class ManufacturersController extends AppController {
         return;
       }
 
+      $this->pinRequestId($this->Manufacturer, null);
       $this->Manufacturer->create();
       if ( $this->Manufacturer->save($this->request->data) ) {
 				# Might be nice to send it a start request
         #$this->daemonControl($this->Manufacturer->id, 'start', $this->request->data);
         return $this->flash(__('The manufacturer has been saved.'), array('action' => 'index'));
       }
+      $this->set(array(
+        'message' => $this->Manufacturer->validationErrors ? $this->Manufacturer->validationErrors : 'Error',
+        '_serialize' => array('message')
+      ));
     }
   }
 
@@ -116,10 +121,11 @@ class ManufacturersController extends AppController {
     if ( !$this->Manufacturer->exists($id) ) {
       throw new NotFoundException(__('Invalid manufacturer'));
     }
+    $this->pinRequestId($this->Manufacturer, $id);
     if ( $this->Manufacturer->save($this->request->data) ) {
       $message = 'Saved';
     } else {
-      $message = 'Error';
+      $message = $this->Manufacturer->validationErrors ? $this->Manufacturer->validationErrors : 'Error';
     }
 
     $this->set(array(
@@ -154,9 +160,13 @@ class ManufacturersController extends AppController {
     #$this->daemonControl($this->Manufacturer->id, 'stop');
 
     if ( $this->Manufacturer->delete() ) {
-      return $this->flash(__('The manufacturer has been deleted.'), array('action' => 'index'));
+      $this->set(array(
+        'message' => 'Deleted',
+        '_serialize' => array('message'),
+      ));
+      return;
     } else {
-      return $this->flash(__('The manufacturer could not be deleted. Please, try again.'), array('action' => 'index'));
+      throw new InternalErrorException(__('The manufacturer could not be deleted.'));
     }
   }
 }

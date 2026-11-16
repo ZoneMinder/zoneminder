@@ -29,6 +29,8 @@ void DecoderThread::Join() {
 }
 
 void DecoderThread::Run() {
+  // Report a stack overflow on this thread like one in main.
+  zmSetThreadAltStack();
   Debug(2, "DecoderThread::Run() for %d", monitor_->Id());
 
   while (!(terminate_ or zm_terminate)) {

@@ -31,7 +31,7 @@ function changeScale() {
   setCookie('zmWatchScale', scale);
   $j.each(controlsLinks, function(k, anchor) { // Make frames respect scale choices
     if (anchor) {
-      anchor.prop('href', anchor.prop('href').replace(/scale=.*&/, 'scale=' + scale + '&'));
+      anchor.prop('href', anchor.prop('href').replace(/scale=[^&]*/, 'scale=' + scale));
     }
   });
 
@@ -45,7 +45,7 @@ function getFrameStatsCookie() {
 
   if (!stats) {
     stats = 'on';
-    setCookie(cookie, stats, 10*365);
+    setCookie(cookie, stats);
   }
   return stats;
 }
@@ -139,10 +139,10 @@ function initPage() {
 
     // Toggle the visiblity of the stats table and write an appropriate cookie
     if (table.is(':visible')) {
-      setCookie('zmFrameStats', 'off', 10*365);
+      setCookie('zmFrameStats', 'off');
       table.toggle(false);
     } else {
-      setCookie('zmFrameStats', 'on', 10*365);
+      setCookie('zmFrameStats', 'on');
       table.toggle(true);
     }
   });

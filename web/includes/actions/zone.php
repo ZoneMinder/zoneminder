@@ -35,9 +35,21 @@ if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
     // Values > 100 are pixel counts; convert them using the zone's pixel area.
     $thresholdFields = array('MinAlarmPixels', 'MaxAlarmPixels', 'MinFilterPixels', 'MaxFilterPixels', 'MinBlobPixels', 'MaxBlobPixels');
     if (isset($_REQUEST['newZone']['Coords'])) {
+      # coordsToPoints() prints a message for a string with no points in it
+      ob_start();
       $points = coordsToPoints($_REQUEST['newZone']['Coords']);
+      ob_end_clean();
+      if (!$points || count($points) < 3 || count($points) != count(preg_split('/\s+/', trim($_REQUEST['newZone']['Coords'])))) {
+        ZM\Warning('Not saving zone '.$zid.' for monitor '.$mid.', Coords are not a polygon: '.$_REQUEST['newZone']['Coords']);
+        $redirect = '?view=zones&mid='.$mid;
+        return;
+      }
+      # Keep Coords, NumCoords and Area in step with each other
+      $_REQUEST['newZone']['Coords'] = pointsToCoords($points);
+      $_REQUEST['newZone']['NumCoords'] = count($points);
+      $zoneArea = getPolyArea($points);
+      $_REQUEST['newZone']['Area'] = $zoneArea;
       if ($points) {
-        $zoneArea = getPolyArea($points);
         $zonePixelArea = $zoneArea / 10000.0 * $monitor->ViewWidth() * $monitor->ViewHeight();
         if ($zonePixelArea > 0) {
           foreach ($thresholdFields as $field) {
@@ -79,8 +91,13 @@ if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
       }
     } // end if changes
     # HTTP_REFERER will typically be ?view=zone so no good.
-    # if a referer is passed in $_REQUEST then use it otherwise go to ?view=zones
-    $redirect = isset($_REQUEST['REFERER']) ? $_REQUEST['REFERER'] : '?view=zones';
+    # if a referer is passed in $_REQUEST then use it otherwise go to ?view=zones.
+    # The zone form always posts REFERER, empty when the form had no Referer
+    # (a typed URL or bookmark); an empty $redirect renders the zone view with
+    # this action's $zone, which has no Points. The form fills it from the
+    # Referer its page was loaded with, which can be another site, so only go
+    # back to it when it is on this server.
+    $redirect = localRedirectUrl(isset($_REQUEST['REFERER']) ? $_REQUEST['REFERER'] : '', '?view=zones&mid='.$mid);
   } // end if action 
 } // end if $mid and canEdit($mid)
 ?>

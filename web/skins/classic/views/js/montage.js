@@ -9,6 +9,7 @@ const VIEWING = 0;
 const EDITING = 1;
 
 var mode = 0; // start up in viewing mode
+var editingLayoutId = null; // layout the grid was loaded from when editing started
 
 var objGridStack;
 
@@ -113,6 +114,8 @@ function getStream(id) {
 function selectLayout(new_layout_id) {
   if (mode == EDITING) {
     changedMonitors.length = 0;
+    // Save writes to the selected layout, so keep it on the one being edited
+    $j('#zmMontageLayout').val(editingLayoutId).trigger('chosen:updated');
     return;
   }
   const ddm = $j('#zmMontageLayout');
@@ -336,6 +339,7 @@ function setRatioForMonitor(objStream, id=null) {
 // Makes monitors draggable.
 function edit_layout(button) {
   mode = EDITING;
+  editingLayoutId = $j('#zmMontageLayout').val();
   $j('.grid-stack-item-content').addClass('modeEditingMonitor');
   objGridStack.enable(); //Enable move
   // objGridStack.float(true);
@@ -372,7 +376,7 @@ function save_layout(button) {
     if (isPresetLayout(name)) {
       alert('You cannot edit the built in layouts.  Please give the layout a new name.');
       return;
-    } else if (user.Id && (layout.UserId != user.Id) && !canEdit['System'] && (name != layout.Name)) {
+    } else if (user.Id && (layout.UserId != user.Id) && !canEdit.System) {
       alert('You cannot edit someone else\'s layouts.  Please give the layout a new name.');
       return;
     }
@@ -405,9 +409,7 @@ function cancel_layout(button) {
   $j('.btn-fullscreen').removeClass('hidden');
 
   if (panZoomEnabled) {
-    $j('.zoompan').each( function() {
-      zmPanZoom.action('enable', {obj: this}); //Enable zoom and pan
-    });
+    zmPanZoom.init(); //Enable zoom and pan
   }
 
   $j('#SaveLayout').hide();
@@ -448,11 +450,11 @@ function delete_layout(button) {
 // Manage the DELETE CONFIRMATION modal button
 function manageDelConfirmModalBtns() {
   document.getElementById('delConfirmBtn').addEventListener('click', function onDelConfirmClick(evt) {
-    document.getElementById('delConfirmBtn').disabled = true; // prevent double click
-    if (!canEdit.Monitors) {
+    if (!canEdit.System) {
       enoperm();
       return;
     }
+    document.getElementById('delConfirmBtn').disabled = true; // prevent double click
     evt.preventDefault();
 
     const form = $j('#btnDeleteLayout')[0].form;
@@ -475,25 +477,6 @@ function startVisibleMonitors() {
       monitor.start();
     }
   }
-}
-
-function refreshAuthAndStartMonitors() {
-  $j.getJSON(thisUrl + '?view=request&request=status&entity=navBar' + (auth_relay ? '&' + auth_relay : ''))
-      .done(function(data) {
-        if (data) {
-          if (data.auth) {
-            auth_hash = data.auth;
-          }
-          if (data.auth_relay) {
-            auth_relay = data.auth_relay;
-          }
-        }
-        startVisibleMonitors();
-      })
-      .fail(function() {
-        // Even if refresh fails, try to start with whatever auth we have
-        startVisibleMonitors();
-      });
 }
 
 function reloadWebSite(ndx) {
@@ -524,7 +507,7 @@ function startMonitors() {
       monitor.start();
     }
     if ((monitor.type == 'WebSite') && (monitor.refresh > 0)) {
-      setInterval(reloadWebSite, monitor.refresh*1000, i);
+      setInterval(reloadWebSite, monitor.refresh*1000, monitor.id);
     }
     monitor.setup_onclick(handleClick);
   }
@@ -708,7 +691,10 @@ function initPage() {
                 ayswModal = insertModalHtml('AYSWModal', data.html);
                 ayswModal.on('hidden.bs.modal', function() {
                   idleTimeoutTriggered = false;
-                  refreshAuthAndStartMonitors();
+                  // The modal may have sat here for hours with the monitors -
+                  // and their status polls - stopped, so the auth hash baked
+                  // into their srcs can be dead (auth-helpers.js).
+                  whenAuthFresh(startVisibleMonitors);
                 });
                 ayswModal.modal('show');
               })
@@ -915,6 +901,16 @@ function panZoomOut(el) {
   zmPanZoom.zoomOut(el);
 }
 
+function toggleZones(button) {
+  // Zone overlays are always in the DOM; #monitors.hide-zones controls them.
+  const hidden = document.getElementById('monitors').classList.toggle('hide-zones');
+  setCookie('zmMontageShowZones', hidden ? '0' : '1');
+  button.setAttribute('title', hidden ? showZonesString : hideZonesString);
+  button.classList.toggle('btn-normal', !hidden);
+  button.classList.toggle('btn-secondary', hidden);
+  $j(button).find('.material-icons').text(hidden ? 'layers' : 'layers_clear');
+}
+
 function changeStreamQuality() {
   const streamQuality = $j('#streamQuality').val();
   setCookie('zmStreamQuality', streamQuality);
@@ -1007,6 +1003,7 @@ function waitingMonitorsPlaced(action = null) {
         monitorInitComplete = true;
       } else if (action == 'changeRatio') {
         if (!isPresetLayout(getCurrentNameLayout())) {
+          clearInterval(intervalWait);
           return;
         }
         if (objGridStack) {
@@ -1096,7 +1093,7 @@ document.onvisibilitychange = () => {
     if (!idleTimeoutTriggered) {
       // Refresh auth hash before restarting streams, since browsers throttle
       // timers for hidden tabs and the auth hash may have gone stale.
-      refreshAuthAndStartMonitors();
+      whenAuthFresh(startVisibleMonitors);
     } // end if not AYSW
   }
 };

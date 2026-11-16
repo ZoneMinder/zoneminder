@@ -31,10 +31,7 @@ var params =
 
 // Called by bootstrap-table to retrieve zm event data
 function ajaxRequest(params) {
-  if (document.visibilityState == 'hidden') {
-    table.bootstrapTable('hideLoading');
-    return;
-  }
+  if (deferTableRequestWhileHidden(table)) return;
   if (ajax) ajax.abort();
 
   if ( params.data && params.data.filter ) {
@@ -53,6 +50,8 @@ function ajaxRequest(params) {
         params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
       })
       .fail(function(jqXHR) {
+        // Every reload aborts the request in flight, so those are not failures.
+        if (jqXHR.statusText == 'abort') return;
         ajax = null;
         logAjaxFail(jqXHR);
         table.bootstrapTable('refresh');

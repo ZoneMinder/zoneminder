@@ -250,7 +250,7 @@ sub presetSet
     my $self = shift;
     my $params = shift;
     my $preset = $self->getParam( $params, 'preset' );
-	my $presetCmd = 30 + ($preset*2);
+	my $presetCmd = 30 + (($preset-1)*2);
     Debug( "Set Preset $preset with cmd $presetCmd" );
     my $cmd = "decoder_control.cgi?command=$presetCmd";
     $self->sendCmd( $cmd );
@@ -262,7 +262,7 @@ sub presetGoto
     my $self = shift;
     my $params = shift;
     my $preset = $self->getParam( $params, 'preset' );
-    my $presetCmd = 31 + ($preset*2);
+    my $presetCmd = 31 + (($preset-1)*2);
     Debug( "Goto Preset $preset with cmd $presetCmd" );
     my $cmd = "decoder_control.cgi?command=$presetCmd";
     $self->sendCmd( $cmd );
@@ -322,9 +322,8 @@ Philip Coombes, E<lt>philip.coombes@zoneminder.comE<gt>
 
 Copyright (C) 2001-2008  Philip Coombes
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.3 or,
-at your option, any later version of Perl 5 you may have available.
+Licensed under the GNU General Public License v2 or later; see the COPYING
+file distributed with ZoneMinder for the full text.
 
 
 =cut

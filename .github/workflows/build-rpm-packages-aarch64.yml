@@ -1,11 +1,26 @@
 name: build-rpm-packages-signed-aarch64
 
 on:
+  # Packages used to build on every push to master. With the current PR volume
+  # that was dozens of full build+sign+publish runs a day for identical trees.
+  # Build a single nightly off master instead, plus a clean build whenever a
+  # release tag (1.x.y) is pushed, and keep a manual trigger.
   push:
-    branches: [ master ]
+    tags: [ '1.*' ]
+  schedule:
+    - cron: '30 7 * * *'   # 07:30 UTC nightly, staggered after the amd64 rpm build
+  workflow_dispatch: {}
 
 permissions:
   contents: write
+
+# Several merges landing seconds apart used to start a run each, and every
+# one of them published. Keep one build per branch and cancel the ones that
+# a newer push has already superseded.
+concurrency:
+  group: rpm-aarch64-${{ github.ref }}
+  cancel-in-progress: true
+
 
 env:
   GPG_KEY_ID: ${{ secrets.ZMREPO_GPG_KEY_ID }}
@@ -15,28 +30,63 @@ env:
   SMPFLAGS: -j10
 
 jobs:
+  gate:
+    # A scheduled run still fires on a day with no new commits. Skip the nightly
+    # then so an identical tree is not rebuilt and republished. Tag and manual
+    # runs always build.
+    name: Decide whether to build
+    if: github.repository == 'ZoneMinder/zoneminder'
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.decide.outputs.build }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+      - name: Decide
+        id: decide
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          elif [ -n "$(git log --since='24 hours ago' --format=%H -1)" ]; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No commits in the last 24h; skipping nightly build."
+            echo "build=false" >> "$GITHUB_OUTPUT"
+          fi
+
   build-rpm:
     name: Build & sign RPM (${{ matrix.distro }})
-    if: github.repository == 'ZoneMinder/zoneminder'
-    runs-on: self-hosted
+    needs: gate
+    if: needs.gate.outputs.build == 'true'
+    # Pin the arch: x64 self-hosted runners (fw2) also serve this repo.
+    runs-on: [self-hosted, Linux, ARM64]
+    # Self-hosted runners don't reliably enforce the 6h default; a hung
+    # step (gpg import once wedged a runner for 34h) must not hold one forever.
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
         include:
+          # Rocky stopped publishing the official rockylinux image after 9.
+          - distro: "rockylinux/rockylinux:10"
+            releasever: "10"
+            family: "el"
           - distro: "rockylinux:9"
             releasever: "9"
             family: "el"
           - distro: "rockylinux:8"
             releasever: "8"
             family: "el"
+          - distro: "fedora:45"
+            releasever: "45"
+            family: "fedora"
+          - distro: "fedora:44"
+            releasever: "44"
+            family: "fedora"
           - distro: "fedora:43"
             releasever: "43"
-            family: "fedora"
-          - distro: "fedora:42"
-            releasever: "42"
-            family: "fedora"
-          - distro: "fedora:41"
-            releasever: "41"
             family: "fedora"
     container:
       image: ${{ matrix.distro }}
@@ -69,7 +119,6 @@ jobs:
           # in container images (needed by net-tools, mosquitto, etc.)
           dnf -y install --allowerasing systemd
           dnf -y install \
-            arp-scan \
             git \
             rpm-build \
             rpmdevtools \
@@ -89,7 +138,7 @@ jobs:
           rpmdev-setuptree
 
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
 
@@ -97,8 +146,17 @@ jobs:
         run: |
           git config --global --add safe.directory /__w/zoneminder/zoneminder
 
+      # The runner-provided $HOME (/github/home) persists between jobs on
+      # self-hosted runners, so stale gpg lock files left by an earlier job can
+      # stall the import when their recorded PID is reused in the new container.
+      - name: Use a per-job GnuPG home
+        run: |
+          GNUPGHOME=$(mktemp -d)
+          echo "GNUPGHOME=${GNUPGHOME}" >> "$GITHUB_ENV"
+
       - name: Import GPG key
-        uses: crazy-max/ghaction-import-gpg@v7
+        timeout-minutes: 5
+        uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # v7
         with:
           gpg_private_key: ${{ secrets.ZMREPO_GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.ZMREPO_GPG_PASSPHRASE }}
@@ -118,7 +176,7 @@ jobs:
       - name: Install build dependencies
         run: |
           set -eux
-          dnf -y builddep distros/redhat/zoneminder.spec
+          dnf -y builddep --allowerasing distros/redhat/zoneminder.spec
 
       - name: Determine version and prepare sources
         id: version
@@ -130,7 +188,11 @@ jobs:
           # Calculate snapshot version
           versionhash=$(git log -n1 --pretty=format:%h version.txt)
           numcommits=$(git rev-list ${versionhash}..HEAD --count)
-          SNAPSHOT="$(date +%Y%m%d).${numcommits}"
+          # date+numcommits is not unique per build: rebuilding the same commit
+          # on the same day reuses the version, and the repo then holds one
+          # version whose content changed underneath it. GITHUB_RUN_ID is unique
+          # and never reused.
+          SNAPSHOT="$(date +%Y%m%d).${numcommits}.${GITHUB_RUN_ID}.${GITHUB_RUN_ATTEMPT:-1}"
           echo "snapshot=${SNAPSHOT}" >> $GITHUB_OUTPUT
 
           # Update version in spec file
@@ -214,14 +276,27 @@ jobs:
           echo "artifact_name=rpm-aarch64-${sanitized_distro_name}" >> $GITHUB_ENV
 
       - name: Upload RPM artifacts
-        uses: actions/upload-artifact@v7
+        # Only the tag-only `release` job consumes these. On branch pushes the
+        # packages go straight to ZMREPO below, so uploading is pure storage cost.
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           path: artifacts/rpm
           name: ${{ env.artifact_name }}
           retention-days: 1
 
+      - name: Ensure ZMREPO target directory exists
+        run: |
+          set -eux
+          mkdir -p ~/.ssh
+          echo "${{ secrets.ZMREPO_SSH_KEY }}" > ~/.ssh/zmrepo_deploy_key
+          chmod 600 ~/.ssh/zmrepo_deploy_key
+          ssh -i ~/.ssh/zmrepo_deploy_key -o StrictHostKeyChecking=no \
+            "${{ secrets.ZMREPO_SSH_USER }}@${{ secrets.ZMREPO_HOST }}" \
+            "mkdir -p rpm/master/${{ matrix.family }}/${{ matrix.releasever }}/aarch64/"
+
       - name: Publish to ZMREPO
-        uses: easingthemes/ssh-deploy@main
+        uses: easingthemes/ssh-deploy@2cc5b27bf3029d0455dd5e09fe02633904031447 # v6.0.3
         env:
           SSH_PRIVATE_KEY: ${{ secrets.ZMREPO_SSH_KEY }}
           ARGS: "-rltgoDzvO"
@@ -230,6 +305,18 @@ jobs:
           REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}
           TARGET: rpm/master/${{ matrix.family }}/${{ matrix.releasever }}/aarch64/
 
+      - name: Update ZMREPO metadata
+        # rsync only copies the packages; dnf can't see them until the repo
+        # metadata is rebuilt. The script survives this job being cancelled
+        # and clears what an interrupted earlier run left behind.
+        env:
+          ZMREPO_DEST: ${{ secrets.ZMREPO_SSH_USER }}@${{ secrets.ZMREPO_HOST }}
+          ZMREPO_DIR: rpm/master/${{ matrix.family }}/${{ matrix.releasever }}/aarch64/
+        run: |
+          set -eux
+          ssh -i ~/.ssh/zmrepo_deploy_key -o StrictHostKeyChecking=no \
+            "$ZMREPO_DEST" "bash -s -- $ZMREPO_DIR" < utils/zmrepo_createrepo.sh
+
   release:
     name: Create GitHub Release (on tag)
     needs: build-rpm
@@ -237,11 +324,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           path: dist
 
       - name: Create release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3
         with:
           files: dist/**/*

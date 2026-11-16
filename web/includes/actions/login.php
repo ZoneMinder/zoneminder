@@ -38,7 +38,12 @@ if ( ('login' == $action) && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == '
 
   zm_session_start();
   if (!isset($user) ) {
-    $_SESSION['loginFailed'] = true;
+    # A default password is not a failed login: the view asks for a new one.
+    if (empty($defaultPasswordChange)) {
+      $_SESSION['loginFailed'] = true;
+    } else {
+      unset($_SESSION['loginFailed']);
+    }
   } else {
     unset($_SESSION['loginFailed']);
     $view = 'postlogin';
@@ -46,4 +51,13 @@ if ( ('login' == $action) && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == '
   unset($_SESSION['postLoginQuery']);
   session_write_close();
 } # end if doing a login action
+
+# The first-run form (applyFirstRunSetup() in auth.php has already applied it).
+if ('setup' == $action) {
+  if (isset($user)) {
+    $view = 'postlogin'; # the admin password was set and the account logged in
+  } else if (empty($firstRunProblem)) {
+    $redirect = '?view='.getHomeView(); # authentication was turned off, or the first run is over
+  } # else the login view shows the form again with the problem
+}
 ?>

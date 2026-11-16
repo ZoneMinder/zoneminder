@@ -153,13 +153,27 @@ function xhtmlHeadersEnd() {
   echo '</head>';
 } // end function xhtmlHeaders( $file, $title )
 
+// True when the monitor filter panel should be shown inline (at the top of the
+// view) with its own toggle icon, rather than embedded in the left sidebar.
+// The sidebar can only be used when the navbar is on the left; without a left
+// navbar there is nothing to embed into, so filters are always inline. The
+// effective navbar position is the request/cookie/session value resolved into
+// the global $navbar_type by index.php, not the ZM_WEB_NAVBAR_TYPE default, so
+// the user's live choice is honoured. This mirrors the panel relocation
+// condition in skin.js, which uses the same value.
+function filterSettingsInline() {
+  global $navbar_type;
+  if ($navbar_type != 'left') return true;
+  return defined('ZM_WEB_FILTER_SETTINGS_POSITION') && ZM_WEB_FILTER_SETTINGS_POSITION == 'inline';
+}
+
 // Outputs an opening body tag, and any additional content that should go at the very top, like warnings and error messages.
 function getBodyTopHTML() {
   global $view;
   //Needed for more flexible global governance
   $classes = $view.'-page';
   if (defined('ZM_WEB_NAVBAR_STICKY') and ZM_WEB_NAVBAR_STICKY) $classes .= ' sticky';
-  if (defined('ZM_WEB_FILTER_SETTINGS_POSITION') and ZM_WEB_FILTER_SETTINGS_POSITION == 'inline') $classes .= ' filter-inline';
+  if (filterSettingsInline()) $classes .= ' filter-inline';
   if (defined('ZM_WEB_BUTTON_STYLE') and ZM_WEB_BUTTON_STYLE == 'icons') $classes .= ' btn-icons-only';
   else if (defined('ZM_WEB_BUTTON_STYLE') and ZM_WEB_BUTTON_STYLE == 'text') $classes .= ' btn-text-only';
   if (defined('ZM_WEB_SHOW_NAV_BUTTONS') and !ZM_WEB_SHOW_NAV_BUTTONS) $classes .= ' hide-nav-buttons';
@@ -182,6 +196,52 @@ function getBodyTopHTML() {
     getSidebarTopHTML();
   }
 } // end function getBodyTopHTML
+
+// Map view names to Menu_Items MenuKey values
+function getViewMenuKeyMap() {
+  return array(
+    'console'            => 'Console',
+    'montage'            => 'Montage',
+    'montagereview'      => 'MontageReview',
+    'events'             => 'Events',
+    'options'            => 'Options',
+    'log'                => 'Log',
+    'devices'            => 'Devices',
+    'intelgpu'           => 'IntelGpu',
+    'quadra'             => 'Quadra',
+    'groups'             => 'Groups',
+    'filter'             => 'Filters',
+    'snapshots'          => 'Snapshots',
+    'reports'            => 'Reports',
+    'report_event_audit' => 'ReportEventAudit',
+    'map'                => 'Map',
+  );
+}
+
+// Map a MenuKey to the href the built-in menu builders use for it.
+function getMenuKeyHrefMap() {
+  static $map = null;
+  if ($map === null) {
+    $map = array();
+    foreach (getViewMenuKeyMap() as $viewName => $menuKey) {
+      $map[$menuKey] = '?view='.$viewName;
+    }
+    // Built-in items not covered by the view map / needing extra params.
+    $map['Watch'] = '?view=watch&cycle=true';
+  }
+  return $map;
+}
+
+// The link a menu item resolves to. Uses the explicit Link when set,
+// otherwise applies the same ?view= rule as the built-in items: known
+// MenuKeys use their built-in href, custom keys become ?view=<MenuKey>.
+function menuItemEffectiveLink($item) {
+  $link = $item->Link();
+  if ($link !== null && $link !== '') return $link;
+  $map = getMenuKeyHrefMap();
+  $key = $item->MenuKey();
+  return isset($map[$key]) ? $map[$key] : '?view='.$key;
+}
 
 function renderMenuIcon($icon, $iconType = 'material') {
   if ($iconType == 'none') {
@@ -220,6 +280,12 @@ function buildMenuItem($viewItemName, $id, $itemName, $href, $icon, $classNameFo
     $activeClass = $view == $viewItemName ? ' active' : '';
   }
   if (!$skipTranslate) $itemName = translate($itemName);
+  // Escape the attribute values here rather than trust every caller to. An
+  // entity a caller already wrote (&amp;) is kept as it is, so a pre-escaped
+  // href is not escaped twice.
+  $id = htmlspecialchars((string)$id, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', false);
+  $href = htmlspecialchars((string)$href, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', false);
+  $classNameForTag_A = htmlspecialchars((string)$classNameForTag_A, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', false);
   $result = '
             <li id="' . $id . '" class="menu-item '.$activeClass.'">
               <a href="' . $href . '" class="' . $classNameForTag_A . '">
@@ -287,7 +353,22 @@ function renderMenuItems($forLeftBar = false) {
     foreach ($menuItems as $item) {
       if (!$item->Enabled()) continue;
       $key = $item->MenuKey();
-      if (!isset($funcMap[$key])) continue;
+      if (!isset($funcMap[$key])) {
+        // Custom entry: link to its explicit Link, or fall back to the same
+        // ?view= rule the built-in items use.
+        $link = menuItemEffectiveLink($item);
+        $menuIconOverride = ['icon' => $item->effectiveIcon(), 'iconType' => $item->effectiveIconType()];
+        $result .= buildMenuItem(
+          'customMenu-'.$item->Id(),
+          'menuItem-custom-'.$item->Id(),
+          $item->displayLabel(),
+          htmlspecialchars($link),
+          $item->effectiveIcon(),
+          '', '', true, $item->effectiveIconType()
+        );
+        $menuIconOverride = null;
+        continue;
+      }
 
       $funcName = $funcMap[$key];
       $customLabel = ($item->Label() !== null && $item->Label() !== '') ? $item->displayLabel() : null;
@@ -380,8 +461,6 @@ function buildSidebarMenu() {
               </a>
             </li>
 ';
-  } else if (defined('ZM_SIDEBAR_FOOTER') and ZM_SIDEBAR_FOOTER) {
-    $menu .= ZM_SIDEBAR_FOOTER;
   }
   $menu .= '
           </ul>
@@ -779,7 +858,8 @@ function getCpuUsageHTML() {
     $thisServer->ReadStats();
 
     $result .= '<li id="getCpuUsageHTML" class="CpuUsage nav-item mx-2">'.PHP_EOL;
-    $result .= '&nbsp;'.translate('Cpu').': '.number_format($thisServer->CpuUsagePercent, 1, '.', '').'%'.PHP_EOL;
+    # -1 is what Server leaves in place when zmstats has not written any stats yet.
+    $result .= '&nbsp;'.translate('Cpu').': '.($thisServer->CpuUsagePercent < 0 ? 'n/a' : number_format($thisServer->CpuUsagePercent, 1, '.', '').'%').PHP_EOL;
     $result .= '</li>'.PHP_EOL;
   }
   return $result;
@@ -795,7 +875,7 @@ function getSysLoadHTML() {
 
     $result .= '<li id="getSysLoadHTML" class="Load nav-item mx-2">';
     $result .= '<i class="material-icons md-18">trending_up</i>';
-    $result .= '&nbsp;'.translate('Load').': '.number_format($thisServer->CpuLoad, 2, '.', '');
+    $result .= '&nbsp;'.translate('Load').': '.($thisServer->CpuLoad < 0 ? 'n/a' : number_format($thisServer->CpuLoad, 2, '.', ''));
     $result .= '</li>'.PHP_EOL;
   } 
   return $result;
@@ -859,7 +939,7 @@ function getStorageHTML() {
     $result .= '</li>'.PHP_EOL;
   } else {
     $result .= '<li id="getStorageHTML" class="nav-item dropdown mx-2">'.PHP_EOL;
-    $result .= '<a class="dropdown-toggle mr-2 '.$class.'" href="#" id="dropdown_storage" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="material-icons md-18 mr-1">folder_shared</i>Storage</a>'.PHP_EOL;
+    $result .= '<a class="dropdown-toggle mr-2 '.$class.'" href="#" id="dropdown_storage" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="material-icons md-18 mr-1">folder_shared</i>' . translate("Storage") . '</a>'.PHP_EOL;
     $result .= '<div class="dropdown-menu" aria-labelledby="dropdown_storage">'.PHP_EOL;
     
     foreach ( $storage_areas as $area ) {  
@@ -1107,6 +1187,16 @@ function getOptionsHTML($forLeftBar = false, $customLabel = null) {
     'menu'
   ]);
   $zmMenu::buildSubMenuOptions($categoryDisplayOrder);
+
+  // AI object-detection management tabs. These are not Config categories, so
+  // register them explicitly with readable labels instead of the auto-generated
+  // "Ai_datasets" style names.
+  if ( canView('System') ) {
+    $zmMenu::$submenuOptionsItems['cron'] = translate('ScheduledTasks');
+    $zmMenu::$submenuOptionsItems['ai_datasets'] = translate('AI Datasets');
+    $zmMenu::$submenuOptionsItems['ai_models'] = translate('AI Models');
+    $zmMenu::$submenuOptionsItems['ai_classes'] = translate('AI Classes');
+  }
 
   if ( canView('System') ) {
     if ($forLeftBar) {
@@ -1377,31 +1467,34 @@ function getMontageReviewHTML($view, $forLeftBar = false, $customLabel = null) {
       $terms = $_REQUEST['filter']['Query']['terms'];
       $count = 0;
       foreach ($terms as $term) {
+        if (!is_array($term) or !isset($term['attr'], $term['op'], $term['val'])) continue;
         if ( $term['attr'] == 'StartDateTime' ) {
           $count += 1;
           if ($term['op'] == '>=') $minTime = $term['val'];
           if ($term['op'] == '<=') $maxTime = $term['val'];
         }
       }
-      if ( $count == 2 ) {
-        $montageReviewQuery = '&minTime='.$minTime.'&maxTime='.$maxTime;
+      if ( $count == 2 and isset($minTime, $maxTime) and is_string($minTime) and is_string($maxTime) ) {
+        // Request values: encode them for the query string here, the whole href is HTML-escaped below.
+        $montageReviewQuery = '&minTime='.urlencode($minTime).'&maxTime='.urlencode($maxTime);
       }
     }
     $live = isset($montageReviewQuery) ? '&fit=1'.$montageReviewQuery.'&live=0' : '';
+    $href = validHtmlStr('?view=montagereview'.$live);
     $class = $view == 'montagereview' ? ' selected' : '';
     if ($forLeftBar) {
       $result .= buildMenuItem(
         $viewItemName = 'montagereview',
         $id = 'getMontageReviewHTML',
         $itemName = $label,
-        $href = '?view=montagereview' .$live,
+        $href,
         $icon = 'movie',
         $classNameForTag_A = '',
         $subMenu = '',
         $skipTranslate
       );
     } else {
-      $result .= '<li id="getMontageReviewHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=montagereview' .$live. '">'.getNavbarIcon().htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
+      $result .= '<li id="getMontageReviewHTML" class="nav-item"><a class="nav-link'.$class.'" href="'.$href.'">'.getNavbarIcon().htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
     }
   }
 
@@ -1567,8 +1660,10 @@ function getAdditionalLinksHTML($view, $forLeftBar = false) {
             $icon_ = $url->getAttribute('data-icon');
             $class_ = $url->getAttribute('class');
             $parts = parse_url($href_);
-            parse_str($parts['query'], $query);
-            $queryView = $query['view'];
+            if (isset($parts['query'])) {
+              parse_str($parts['query'], $query);
+              if (isset($query['view'])) $queryView = $query['view'];
+            }
           }
 
           $result .= buildMenuItem(
@@ -1733,19 +1828,11 @@ function getCSRFinputHTML() {
 
 function fixAmps(&$html) {
   //https://stackoverflow.com/questions/1685277/warning-domdocumentloadhtml-htmlparseentityref-expecting-in-entity
-  $positionAmp = strpos($html, '&');
-  $positionSemiColumn = strpos($html, ';', $positionAmp+1);
-  $string = substr($html, $positionAmp, $positionSemiColumn-$positionAmp+1);
-  if ($positionAmp !== false) { // If an '&' can be found.
-    if ($positionSemiColumn === false) { // If no ';' can be found.
-      $html = substr_replace($html, '&amp;', $positionAmp, 1); // Replace straight away.
-    } else if (preg_match('/&(#[0-9]+|[A-Z|a-z|0-9]+);/', $string) === 0) { // If a standard escape cannot be found.
-      $html = substr_replace($html, '&amp;', $positionAmp, 1); // This mean we need to escape the '&' sign.
-      fixAmps($html, $positionAmp+5); // Recursive call from the new position.
-    } else {
-      fixAmps($html, $positionAmp+1); // Recursive call from the new position.
-    }
-  }
+  // Escape every '&' that does not start a character reference, so that
+  // DOMDocument::loadHTML() does not warn about it. One pass over the string:
+  // the recursive version restarted at the first '&' on every call and never
+  // returned once the string held an entity.
+  $html = preg_replace('/&(?!#[0-9]+;|#x[0-9a-f]+;|[a-z][a-z0-9]*;)/i', '&amp;', $html);
 }
 
 function xhtmlFooter() {
@@ -1779,7 +1866,7 @@ function xhtmlFooter() {
   echo output_script_if_exists(array(
   'js/tableExport.min.js',
   'assets/bootstrap-table/bootstrap-table.min.js',
-  'assets/bootstrap-table/extensions/locale/bootstrap-table-locale-all.min.js',
+  'assets/bootstrap-table/bootstrap-table-locale-all.min.js',
   'assets/bootstrap-table/extensions/export/bootstrap-table-export.min.js',
   'assets/bootstrap-table/extensions/page-jump-to/bootstrap-table-page-jump-to.min.js',
   'assets/bootstrap-table/extensions/cookie/bootstrap-table-cookie.js',
@@ -1789,6 +1876,9 @@ function xhtmlFooter() {
   'js/chosen/chosen.jquery.js',
   'js/noUiSlider-15.8.1/dist/nouislider.min.js',
   'js/dateTimePicker/jquery-ui-timepicker-addon.js',
+  'js/auth-helpers.js',
+  'js/table-helpers.js',
+  'js/LevelGraph.js',
   'js/Server.js',
 ), true );
 ?>
@@ -1799,6 +1889,9 @@ function xhtmlFooter() {
   <script nonce="<?php echo $cspNonce; ?>">
     var $j = jQuery.noConflict();
     var DateTime = luxon.DateTime;
+    // locale-all leaves its last locale (zh-TW) as the default. Restore en-US so
+    // tables whose data-locale has no match (dk, no, se, ...) don't fall back to it.
+    if (jQuery.fn.bootstrapTable) jQuery.extend(jQuery.fn.bootstrapTable.defaults, jQuery.fn.bootstrapTable.locales['en-US']);
 <?php
   $skinJsPhpFile = getSkinFile('js/skin.js.php');
   if ( $skinJsPhpFile ) require_once( $skinJsPhpFile );
@@ -1808,6 +1901,11 @@ function xhtmlFooter() {
   </script>
   <script src="<?php echo cache_bust('js/logger.js')?>"></script>
 <?php
+  # Shared by every view that embeds a log panel (see includes/logpanel.php).
+  # It has to land after $j is defined and before the view's own script, which
+  # may want to drive the panel.
+  echo output_script_if_exists(array('js/logpanel.js'));
+
   $viewJsFile = getSkinFile('views/js/'.$basename.'.js');
   if ( $viewJsFile ) {
 ?>
@@ -1828,6 +1926,20 @@ function xhtmlFooter() {
 class ZM_Menu {
   public static $submenuOptionsItems = [];
 
+  // A tab is not always named after its category key. 'display' holds
+  // per-browser state kept in a cookie rather than stored configuration, and
+  // 'web' holds the display settings that are stored, so labelling either one
+  // after its key tells the user the wrong thing.
+  private static $categoryLabels = [
+    'version' => 'Versions',
+    'display' => 'ThisSession',
+    'web'     => 'Display',
+  ];
+
+  private static function categoryLabel($cat) {
+    return translate(isset(self::$categoryLabels[$cat]) ? self::$categoryLabels[$cat] : mb_ucfirst($cat));
+  }
+
   public function __construct(string $typeMenu, array $menuItems) {
 
   }
@@ -1844,7 +1956,7 @@ class ZM_Menu {
         $added = true;
       }
       if ($added) {
-        self::$submenuOptionsItems[$cat] = translate(mb_ucfirst(($cat == 'version') ? 'Versions' : $cat));
+        self::$submenuOptionsItems[$cat] = self::categoryLabel($cat);
         unset($categoriesOptionsInDB[$key]);
       }
     }
@@ -1853,7 +1965,7 @@ class ZM_Menu {
     if (count($categoriesOptionsInDB)) {
       foreach ($categoriesOptionsInDB as $cat) {
         if (!in_array(strtolower($cat), ['dynamic', 'hidden'], $strict = false)) // Prohibited categories
-          self::$submenuOptionsItems[$cat] = translate(mb_ucfirst($cat));
+          self::$submenuOptionsItems[$cat] = self::categoryLabel($cat);
       }
     }
   }

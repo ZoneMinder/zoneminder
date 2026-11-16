@@ -79,7 +79,7 @@ class Zone extends ZM_Object {
         $areaCoords = preg_replace('/\s+/', ',', pointsToCoords($points));
       }
     }
-    return '<polygon points="'.$areaCoords.'" class="'.$this->Type().'" data-mid="'.$this->MonitorId().'" data-zid="'.$this->Id().'"><title>'.$this->Name().'</title></polygon>';
+    return '<polygon points="'.$areaCoords.'" class="'.$this->Type().'" data-mid="'.$this->MonitorId().'" data-zid="'.$this->Id().'"><title>'.validHtmlStr($this->Name()).'</title></polygon>';
   }
 } # end class Zone
 ?>

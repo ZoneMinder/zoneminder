@@ -209,3 +209,20 @@ body.sticky #controlTable thead {
   top: 0;
   box-shadow: 0 0px 0, 0 -3px 0 #dfe4ea;
 }
+
+/* Keep the menu icon preview a fixed size. An unknown material icon name
+   renders as its literal ligature text, which would otherwise widen the
+   column; clip it instead. */
+.menuIconPreview {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  overflow: hidden;
+}
+.menuIconPreview .material-icons {
+  font-size: 24px;
+  line-height: 24px;
+}

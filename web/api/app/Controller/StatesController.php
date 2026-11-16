@@ -47,7 +47,10 @@ public function view($id = null) {
     throw new NotFoundException(__('Invalid state'));
   }
   $options = array('conditions' => array('State.' . $this->State->primaryKey => $id));
-  $this->set('state', $this->State->find('first', $options));
+  $this->set(array(
+    'state' => $this->State->find('first', $options),
+    '_serialize' => array('state')
+  ));
 }
 
 /**
@@ -68,8 +71,14 @@ public function add() {
 
     $this->State->create();
     if ($this->State->save($this->request->data)) {
-      return $this->flash(__('The state has been saved.'), array('action' => 'index'));
+      $message = 'Saved';
+    } else {
+      $message = $this->State->validationErrors ? $this->State->validationErrors : 'Error';
     }
+    $this->set(array(
+      'message' => $message,
+      '_serialize' => array('message')
+    ));
   }
 }
 
@@ -92,14 +101,18 @@ public function edit($id = null) {
     return;
   }
 
-  if ( $this->request->is(array('post', 'put')) ) {
-    if ( $this->State->save($this->request->data) ) {
-      return $this->flash(__('The state has been saved.'), array('action' => 'index'));
-    }
+  $this->request->allowMethod('post', 'put');
+  // Without the id, save() inserts a new state instead of updating this one.
+  $this->State->id = $id;
+  if ( $this->State->save($this->request->data) ) {
+    $message = 'Saved';
   } else {
-    $options = array('conditions' => array('State.' . $this->State->primaryKey => $id));
-    $this->request->data = $this->State->find('first', $options);
+    $message = $this->State->validationErrors ? $this->State->validationErrors : 'Error';
   }
+  $this->set(array(
+    'message' => $message,
+    '_serialize' => array('message')
+  ));
 }
 
 /**
@@ -123,9 +136,13 @@ public function delete($id = null) {
   }
   $this->request->allowMethod('post', 'delete');
   if ($this->State->delete()) {
-    return $this->flash(__('The state has been deleted.'), array('action' => 'index'));
+    $this->set(array(
+      'message' => 'Deleted',
+      '_serialize' => array('message'),
+    ));
+    return;
   } else {
-    return $this->flash(__('The state could not be deleted. Please, try again.'), array('action' => 'index'));
+    throw new InternalErrorException(__('The state could not be deleted.'));
   }
 }
 
@@ -146,7 +163,11 @@ public function change() {
   ));
 }
 
-public function packageControl( $command ) {
+// protected, not public: a public controller method is directly routable
+// (GET /api/states/packageControl/<cmd>), which would skip the System=Edit
+// check in change() and let any user with System>=View run zmpkg.pl. change()
+// still calls it after that check (refs GHSA-9gc6-9xg2-5636).
+protected function packageControl( $command ) {
   $zm_path_bin = Configure::read('ZM_PATH_BIN');
   $string = $zm_path_bin.'/zmpkg.pl '.escapeshellarg( $command );
   $status = exec( $string );

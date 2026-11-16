@@ -31,10 +31,7 @@ var params =
 
 // Called by bootstrap-table to retrieve zm event data
 function ajaxRequest(params) {
-  if (document.visibilityState == 'hidden') {
-    table.bootstrapTable('hideLoading');
-    return;
-  }
+  if (deferTableRequestWhileHidden(table)) return;
   if (params.data && params.data.filter) {
     params.data.advsearch = params.data.filter;
     delete params.data.filter;
@@ -42,6 +39,8 @@ function ajaxRequest(params) {
   $j.getJSON(thisUrl + '?view=request&request=reports&task=query', params.data)
       .done(function(data) {
         if (data.result == 'Error') {
+          // Returning without params.success() would leave the table loading.
+          table.bootstrapTable('hideLoading');
           alert(data.message);
           return;
         }
@@ -49,9 +48,10 @@ function ajaxRequest(params) {
         // rearrange the result into what bootstrap-table expects
         params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
       })
-      .fail(function(jqXHR) {
-        logAjaxFail(jqXHR);
-        $j('#reportsTable').bootstrapTable('refresh');
+      .fail(function(jqXHR, textStatus, errorThrown) {
+        // Refreshing here would re-run the failing request without end.
+        table.bootstrapTable('hideLoading');
+        logAjaxFail(jqXHR, textStatus, errorThrown);
       });
 }
 

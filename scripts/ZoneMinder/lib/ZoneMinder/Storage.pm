@@ -32,6 +32,7 @@ require ZoneMinder::Base;
 require ZoneMinder::Object;
 require ZoneMinder::Server;
 require ZoneMinder::General;
+require File::Path;
 
 use parent qw(Exporter ZoneMinder::Object);
 
@@ -45,7 +46,6 @@ use ZoneMinder::Config qw(:all);
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Database qw(:all);
 
-use POSIX;
 
 use vars qw/ $serial $table $primary_key %fields %defaults $debug/;
 $serial = $primary_key = 'Id';
@@ -103,7 +103,7 @@ sub s3 {
     $$self{aws_bucket} = $aws_bucket;
     $$self{aws_subpath} = $subpath;
     $subpath = '' if !$subpath;
-    Debug("S3 url parsed to id:$aws_id secret:$aws_secret host:$aws_host, bucket:$aws_bucket, subpath:$subpath\n from $url");
+    Debug("S3 url parsed to id:$aws_id host:$aws_host, bucket:$aws_bucket, subpath:$subpath from ".urlForLog($$self{Url}));
     if ($aws_id and $aws_secret and $aws_host and $aws_bucket) {
       eval {
         require Net::Amazon::S3;
@@ -165,10 +165,21 @@ sub delete_path {
     my $bucket = $self->bucket();
     if ($s3 and $bucket) {
       eval {
-        if ($bucket->delete_key($$self{aws_subpath}.$path)) {
+        # S3 has no directories: an event path is only a prefix of its file keys.
+        my $key = $self->aws_subpath().$path;
+        my $list = $bucket->list_all({prefix => $key.'/'});
+        if ($list) {
+          my @keys = map { $$_{key} } @{$$list{keys}};
+          @keys = ($key) if !@keys;
           $deleted = 1;
+          foreach my $s3_key (@keys) {
+            if (!$bucket->delete_key($s3_key)) {
+              $deleted = 0;
+              Error("Failed to delete $s3_key from S3:".$s3->err . ': ' . $s3->errstr);
+            }
+          }
         } else {
-          Error('Failed to delete from S3:'.$s3->err . ': ' . $s3->errstr);
+          Error("Failed to list $key in S3:".$s3->err . ': ' . $s3->errstr);
         }
       };
       Error($@) if $@;
@@ -179,16 +190,70 @@ sub delete_path {
     my $storage_path = $self->Path();
     ($storage_path) = ($storage_path =~ /^(.*)$/); # De-taint
     ($path) = ($path =~ /^(.*)$/); # De-taint
-    if (!$Config{ZM_PATH_RM}) {
-      Info('No value set for ZM_PATH_RM.  ZM_PATH_RM should have been set automatically by the distro in '.$Config{ZM_CONFIG_DIR}.'/conf.d/01-system-paths.conf. Defaulting to /bin/rm');
-      $Config{ZM_PATH_RM} = '/bin/rm';
+    if (($path eq '') or ($path eq '.')) {
+      Error("Refusing to delete the storage area itself: path is empty or '.'");
+      return;
     }
-    my $command = "$Config{ZM_PATH_RM} -rf $storage_path/$path 2>&1";
-    if (ZoneMinder::General::executeShellCommand($command)) {
-      Error("Error deleting event directory at $storage_path/$path using $command");
+    my $full = "$storage_path/$path";
+    File::Path::remove_tree($full, { error => \my $errors });
+    if (@$errors) {
+      my @messages = map {
+        my ($file, $msg) = %$_;
+        $file eq '' ? $msg : "$file: $msg";
+      } @$errors;
+      Error("Error deleting event path at $full: ".join('; ', @messages));
     }
   }
 } # end sub delete_path
+
+# ==========================================================================
+#
+# Storage.DiskSpace accounting
+#
+# ==========================================================================
+#
+# Storage.DiskSpace is a running total, adjusted relative to its current value
+# as events are deleted or moved. It must NOT be maintained with the
+# read-modify-write pattern (lock_and_load + save): outside a transaction the
+# SELECT ... FOR UPDATE autocommits and drops its lock immediately, so the
+# absolute value written afterwards clobbers anything zmc, zmaudit or another
+# filter did in between. A single relative UPDATE is atomic on its own, needs no
+# pre-read, and holds the row lock only for the length of that one statement.
+#
+# Keeping it to one statement also keeps Storage[Id] out of the lock chain that
+# deleting an event walks (see db/triggers.sql):
+#   Events[Id] -> Events_Hour/Day/Week/Month[EventId] -> Event_Summaries[MonitorId]
+#
+# The value remains an approximation: it is a cache of SUM(Events.DiskSpace),
+# and zmaudit.pl resyncs it (with a CAS so it does not clobber concurrent
+# writers).
+
+# $delta is signed: negative when an event leaves this storage area.
+# A storage area with no Id isn't stored anywhere, so there is nothing to adjust
+# - Event::Storage() hands back a blank object when the event has no StorageId.
+sub adjust_diskspace {
+  my ($self, $delta) = @_;
+  return if !$$self{Id} or !$delta;
+
+  my $rows = ZoneMinder::Database::zmDbDo(
+    'UPDATE Storage SET DiskSpace=GREATEST(COALESCE(DiskSpace,0)+?,0) WHERE Id=?',
+    $delta, $$self{Id});
+
+  # Read the new total back rather than adding $delta to whatever we are already
+  # holding. ZoneMinder::Object caches objects for the life of the process and
+  # its accessors never re-load, so that value can be arbitrarily old; adjusting
+  # it locally would keep it wrong while making it look authoritative, and its
+  # clamp at zero could disagree with the GREATEST above. This is still only a
+  # snapshot - another process may adjust the row before anyone reads it - but
+  # it is the value that was actually stored rather than a guess at it.
+  if (defined $rows) {
+    my $row = ZoneMinder::Database::zmDbFetchOne(
+      'SELECT DiskSpace FROM Storage WHERE Id=?', $$self{Id});
+    $$self{DiskSpace} = $$row{DiskSpace} if $row;
+  }
+
+  return $rows;
+}
 
 1;
 __END__
@@ -201,7 +266,7 @@ ZoneMinder::Storage - Perl modules for Storage objects
 
   use ZoneMinder::Storage;
   my $Storage = ZoneMinder::Storage->find_one(Name=>'Default');
-  my @S3Areas = ZoneMinder::Stroage->find(Type=>'s3fs');
+  my @S3Areas = ZoneMinder::Storage->find(Type=>'s3fs');
   etc...
 
 =head1 DESCRIPTION
@@ -237,9 +302,8 @@ Isaac Connor, E<lt>isaac@zoneminder.comE<gt>
 
 Copyright (C) 2022 ZoneMinder Inc
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.3 or,
-at your option, any later version of Perl 5 you may have available.
+Licensed under the GNU General Public License v2 or later; see the COPYING
+file distributed with ZoneMinder for the full text.
 
 
 =cut

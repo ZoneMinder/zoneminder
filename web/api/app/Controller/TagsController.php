@@ -18,7 +18,7 @@ class TagsController extends AppController {
     parent::beforeFilter();
     global $user;
     # We already tested for auth in appController, so we just need to test for specific permission
-    $canView = (!$user) || ($user->Events() != 'None');
+    $canView = (!$user) || ($user->canView('Events'));
     if ( !$canView ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
@@ -35,7 +35,7 @@ class TagsController extends AppController {
 
     if ( $this->request->params['named'] ) {
       $this->FilterComponent = $this->Components->load('Filter');
-      $conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+      $conditions = $this->FilterComponent->buildFilter($this->request->params['named'], array_keys($this->Tag->schema()));
     } else {
       $conditions = array();
     }
@@ -67,6 +67,17 @@ class TagsController extends AppController {
           'type'  => 'inner',
           'conditions' => ['Events.Id = Events_Tags.EventId'],
         ];
+
+      # The join to Events exposes the tag/event association, which is
+      # per-monitor data. Restrict it to monitors the caller may view so a
+      # monitor-restricted user cannot confirm which tags attach to events on
+      # cameras they are denied. The plain tag list (no Events.Id filter) is a
+      # global label vocabulary and is intentionally left unrestricted.
+      global $user;
+      $monitorCondition = $this->viewableMonitorCondition('Events.MonitorId');
+      if ( count($monitorCondition) ) {
+        $conditions[] = $monitorCondition;
+      }
     }
 
 		$tags = $this->Tag->find('all', $find_array);
@@ -107,18 +118,24 @@ class TagsController extends AppController {
       global $user;
       # We already tested for auth in appController,
       # so we just need to test for specific permission
-      $canEdit = (!$user) || ($user->Tags() == 'Edit');
+      $canEdit = (!$user) || ($user->canEdit('Events'));
       if ( !$canEdit ) {
         throw new UnauthorizedException(__('Insufficient Privileges'));
         return;
       }
 
+      $eventIds = $this->requestField('Tag', 'EventIds');
+      if ( is_string($eventIds) and $eventIds !== '' and ! isset($this->request->data['Event']) ) {
+        $this->request->data['Event'] = explode(',', $eventIds);
+        unset($this->request->data['EventIds']);
+        if ( isset($this->request->data['Tag']) and is_array($this->request->data['Tag']) ) unset($this->request->data['Tag']['EventIds']);
+      }
+      # Only events the user may view can be tagged.
+      $eventIds = $this->requestAssociatedIds('Tag', 'Event');
+      if ($eventIds) $this->requireEventsView($eventIds);
+      $this->pinRequestId($this->Tag, null);
 			$this->Tag->create();
 
-      if ( $this->request->data['Tag']['EventIds'] and ! isset($this->request->data['Event']) ) {
-        $this->request->data['Event'] = explode(',', $this->request->data['Tag']['EventIds']);
-        unset($this->request->data['Tag']['EventIds']);
-      }
       if ( $this->Tag->saveAssociated($this->request->data, array('atomic'=>true)) ) {
         return $this->flash(
           __('The tag has been saved.'),
@@ -126,7 +143,11 @@ class TagsController extends AppController {
         );
       } else {
         ZM\Error("Failed to save Tag");
-        debug($this->Tag->invalidFields());
+        $this->set(array(
+          'message' => $this->Tag->validationErrors ? $this->Tag->validationErrors : 'Error',
+          '_serialize' => array('message')
+        ));
+        return;
       }
     } # end if post
     $monitors = $this->Tag->Event->find('list');
@@ -144,24 +165,25 @@ class TagsController extends AppController {
 		if ( !$this->Tag->exists($id) ) {
 			throw new NotFoundException(__('Invalid tag'));
 		}
+    $message = '';
 		if ( $this->request->is(array('post', 'put'))) {
       global $user;
       # We already tested for auth in appController,
       # so we just need to test for specific permission
-      $canEdit = (!$user) || ($user->Tags() == 'Edit');
+      $canEdit = (!$user) || ($user->canEdit('Events'));
       if ( !$canEdit ) {
         throw new UnauthorizedException(__('Insufficient Privileges'));
         return;
       }
-      $this->Tag->id = $id;
+      $this->pinRequestId($this->Tag, $id);
+      $eventIds = $this->requestAssociatedIds('Tag', 'Event');
+      if ($eventIds !== null) {
+        $this->request->data['Event'] = array('Event' => $this->eventLinksToSave('Events_Tags', 'TagId', $id, $eventIds));
+      }
 			if ( $this->Tag->save($this->request->data) ) {
         $message = 'Saved';
       } else {
-        $message = 'Error';
-        // if there is a validation message, use it
-        if ( !$this->tag->validates() ) {
-          $message .= ': '.$this->Tag->validationErrors;
-        }
+        $message = $this->Tag->validationErrors ? $this->Tag->validationErrors : 'Error';
 			}
 		} # end if post/put
 
@@ -169,7 +191,7 @@ class TagsController extends AppController {
 		$this->set(array(
 			'message' => $message,
 			'tag' => $tag,
-			'_serialize' => array('tag')
+			'_serialize' => array('message', 'tag')
 		));
 	}
 
@@ -190,33 +212,44 @@ class TagsController extends AppController {
     global $user;
     # We already tested for auth in appController,
     # so we just need to test for specific permission
-    $canEdit = (!$user) || ($user->Tags() == 'Edit');
+    $canEdit = (!$user) || ($user->canEdit('Events'));
     if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
 
+    # Events_Tags has no Id column, so Cake cannot clear the links itself.
+    $this->Tag->unbindModel(array('hasAndBelongsToMany' => array('Event')), false);
 		if ( $this->Tag->delete() ) {
-      return $this->flash(
-        __('The tag has been deleted.'),
-        array('action' => 'index')
-      );
+      dbQuery('DELETE FROM `Events_Tags` WHERE `TagId`=?', array($id));
+      $this->set(array(
+        'message' => 'Deleted',
+        '_serialize' => array('message'),
+      ));
+      return;
 		} else {
-      return $this->flash(
-        __('The tag could not be deleted. Please, try again.'),
-        array('action' => 'index')
-      );
+      throw new InternalErrorException(__('The tag could not be deleted.'));
 		}
   } // end function delete
   
   // returns monitor associations
   public function associations() {
     $this->Tag->recursive = -1;
+
+    # Each tag is returned with its associated Events, which is per-monitor
+    # data. Restrict the contained events to monitors the caller may view so a
+    # monitor-restricted user does not learn which events on denied cameras
+    # carry a given tag.
+    global $user;
+    $event_contain = array('fields'=>array('Id','Name'));
+    $monitorCondition = $this->viewableMonitorCondition('Event.MonitorId');
+    if ( count($monitorCondition) ) {
+      $event_contain['conditions'] = $monitorCondition;
+    }
+
     $tags = $this->Tag->find('all', array(
                                         'contain'=> array(
-                                          'Event' => array(
-                                            'fields'=>array('Id','Name')
-                                          )
+                                          'Event' => $event_contain
                                         )
                                       )
                                 );

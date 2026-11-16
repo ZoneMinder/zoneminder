@@ -24,7 +24,9 @@
 #include "zm_logger.h"
 #include "zm_mpeg.h"
 #include "zm_time.h"
+#include <algorithm>
 #include <atomic>
+#include <cstdlib>
 #include <memory>
 #include <mutex>
 #include <sys/un.h>
@@ -291,6 +293,12 @@ class StreamBase {
     if (p_scale <= 0)
       return DEFAULT_SCALE;
     return p_scale > MAX_SCALE ? static_cast<int>(MAX_SCALE) : p_scale;
+  }
+  // The scale= query parameter of zms.
+  static int ParseScaleParam(const char *value) {
+    // Anything that is not a positive number, a negative one included, is 100%.
+    const long parsed = strtol(value, nullptr, 10);
+    return clampScale(parsed > MAX_SCALE ? static_cast<int>(MAX_SCALE) : static_cast<int>(std::max(parsed, 0L)));
   }
   void setStreamScale(int p_scale) {
     scale = clampScale(p_scale);

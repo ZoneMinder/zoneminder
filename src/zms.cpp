@@ -101,7 +101,7 @@ int main(int argc, const char *argv[], char **envp) {
   uint64_t event_id = 0;
   unsigned int frame_id = 1;
   int frames_to_send = -1;
-  unsigned int scale = 100;
+  int scale = 100;
   unsigned int rate = 100;
   double maxfps = 0.0;
   unsigned int bitrate = 100000;
@@ -231,11 +231,8 @@ int main(int argc, const char *argv[], char **envp) {
     } else if ( !strcmp(name, "frames") ) {
       frames_to_send = strtoll(value, nullptr, 10);
     } else if ( !strcmp(name, "scale") ) {
-      scale = atoi(value);
-      if (scale > 1600) {
-        Warning("Limiting scale to 16x");
-        scale = 1600;
-      }
+      scale = StreamBase::ParseScaleParam(value);
+      if (scale == StreamBase::MAX_SCALE) Warning("Limiting scale to 16x");
     } else if ( !strcmp(name, "rate") ) {
       rate = atoi(value);
     } else if ( !strcmp(name, "maxfps") ) {
@@ -295,7 +292,7 @@ int main(int argc, const char *argv[], char **envp) {
     static const char *source_names[] = {"unknown", "monitor", "event", "fifo"};
     static const char *mode_names[] = {"jpeg", "mpeg", "raw", "zip", "single"};
     Debug(1, "zms request: source=%s mode=%s monitor=%d event=%" PRIu64
-         " frame=%u frames=%d connkey=%u scale=%u rate=%u maxfps=%.2f"
+         " frame=%u frames=%d connkey=%u scale=%d rate=%u maxfps=%.2f"
          " buffer=%u ttl=%u rss=%zuKB",
          source_names[source], mode_names[mode], monitor_id, event_id,
          frame_id, frames_to_send, connkey, scale, rate, maxfps,

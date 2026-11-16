@@ -74,7 +74,7 @@ echo getNavBarHTML();
         </div>
         <div class="Settings">
 
-      <form name="contentForm" id="contentForm" method="post" action="?" onsubmit="$j('#contentButtons').hide();return true;">
+      <form name="contentForm" id="contentForm" method="post" action="?">
         <input type="hidden" name="view" value="monitors"/>
         <input type="hidden" name="action" value="save"/>
         <input type="hidden" name="object" value="Monitor"/>
@@ -140,4 +140,9 @@ echo getNavBarHTML();
 </div><!--Monitors-->
     </div>
   </div>
+<script nonce="<?php echo $cspNonce ?>">
+document.getElementById('contentForm').addEventListener('submit', function() {
+  $j('#contentButtons').hide();
+});
+</script>
 <?php xhtmlFooter() ?>

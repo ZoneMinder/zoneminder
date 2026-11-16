@@ -315,8 +315,8 @@ function buildControlCommand($monitor) {
       $x = deScale( $_REQUEST['x'], $_REQUEST['scale'] );
       $y = deScale( $_REQUEST['y'], $_REQUEST['scale'] );
 
-      $halfWidth = $monitor->Width() / 2;
-      $halfHeight = $monitor->Height() / 2;
+      $halfWidth = $monitor->ViewWidth() / 2;
+      $halfHeight = $monitor->ViewHeight() / 2;
       $xFactor = ($x - $halfWidth)/$halfWidth;
       $yFactor = ($y - $halfHeight)/$halfHeight;
 
@@ -412,8 +412,8 @@ function buildControlCommand($monitor) {
       $x = deScale( $_REQUEST['x'], $_REQUEST['scale'] );
       $y = deScale( $_REQUEST['y'], $_REQUEST['scale'] );
 
-      $halfWidth = $monitor->Width() / 2;
-      $halfHeight = $monitor->Height() / 2;
+      $halfWidth = $monitor->ViewWidth() / 2;
+      $halfHeight = $monitor->ViewHeight() / 2;
       $xFactor = ($x - $halfWidth)/$halfWidth;
       $yFactor = ($y - $halfHeight)/$halfHeight;
 

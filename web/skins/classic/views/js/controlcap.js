@@ -39,7 +39,7 @@ function validateForm( form ) {
       form.elements['Control[CanZoomRel]'].checked ||
       form.elements['Control[CanZoomAbs]'].checked
     ) {
-      errors[errors.length] = '"Can Move" must also be selected if any one of the zoom types are selected.';
+      errors[errors.length] = '"Can Zoom" must also be selected if any one of the zoom types are selected.';
     }
   }
   // If "Can Zoom" is enabled, then the end user must also select at least one of the other check boxes

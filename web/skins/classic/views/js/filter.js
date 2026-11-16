@@ -297,7 +297,7 @@ function parseRows(rows) {
     } else if ( attr == 'MonitorName' ) { //Monitor names
       const monitorSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       sorted_monitor_ids.forEach(function(monitor_id) {
-        monitorSelect.append('<option value="' + monitors[monitor_id].Name + '">' + escapeHTML(monitors[monitor_id].Name) + '</option>');
+        monitorSelect.append('<option value="' + escapeHTML(monitors[monitor_id].Name) + '">' + escapeHTML(monitors[monitor_id].Name) + '</option>');
       });
       const monitorVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(monitorSelect).children().val(monitorVal).addClass('chosen chosen-full-width');

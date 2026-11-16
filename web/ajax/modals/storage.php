@@ -63,7 +63,7 @@
             </tr>
             <tr>
               <th class="text-right " scope="row"><?php echo translate('Path') ?></th>
-              <td><input type="text" name="newStorage[Path]" value="<?php echo validHtmlStr($newStorage->Path()) ?>"/></td>
+              <td><input type="text" name="newStorage[Path]" value="<?php echo validHtmlStr($sid ? ($newStorage->{'Path'} ?? '') : $newStorage->Path()) ?>"/></td>
             </tr>
             <tr>
               <th class="text-right " scope="row"><?php echo translate('Url') ?></th>

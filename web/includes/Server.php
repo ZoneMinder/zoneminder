@@ -84,17 +84,15 @@ class Server extends ZM_Object {
       return $this->{'Name'};
     }
 
-    if (isset($_SERVER['HTTP_X_FORWARDED_HOST'])) {
-      return $_SERVER['HTTP_X_FORWARDED_HOST'];
-    } else if (isset($_SERVER['HTTP_X_FORWARDED_SERVER'])) {
-      return $_SERVER['HTTP_X_FORWARDED_SERVER'];
-    } else if (isset($_SERVER['HTTP_HOST'])) {
+    # The host header may carry a port, which Url() adds separately.
+    foreach (array('HTTP_X_FORWARDED_HOST', 'HTTP_X_FORWARDED_SERVER', 'HTTP_HOST') as $header) {
+      if (!isset($_SERVER[$header])) continue;
       # This theoretically will match ipv6 addresses as well
-      if ( preg_match( '/^(\[[[:xdigit:]:]+\]|[^:]+)(:[[:digit:]]+)?$/', $_SERVER['HTTP_HOST'], $matches ) ) {
+      if ( preg_match( '/^(\[[[:xdigit:]:]+\]|[^:]+)(:[[:digit:]]+)?$/', $_SERVER[$header], $matches ) ) {
         return $matches[1];
       }
 
-      $result = explode(':', $_SERVER['HTTP_HOST']);
+      $result = explode(':', $_SERVER[$header]);
       return $result[0];
     }
     // Fall back to ZM_BASE_URL for single-server setups
@@ -188,7 +186,7 @@ class Server extends ZM_Object {
     }
     if ( $this->Protocol() == 'https' and $port == 443 ) {
     } else if ( $this->Protocol() == 'http' and $port == 80 ) {
-    } else {
+    } else if ( $port ) {
       $url .= ':'.$port;
     }
     return $url;

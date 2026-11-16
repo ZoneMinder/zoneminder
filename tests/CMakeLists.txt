@@ -67,6 +67,7 @@ set(TEST_SOURCES
   zm_rtsp_server_keyframe.cpp
   zm_rtsp_server_pts_tracker.cpp
   zm_rtsp_server_marker.cpp
+  zm_rtsp_server_nal_split.cpp
   zm_rtsp_server_session_tracker.cpp
   zm_signal.cpp
   zm_stream.cpp

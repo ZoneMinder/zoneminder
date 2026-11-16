@@ -38,6 +38,13 @@ bool ZoneMinderStreamVideoSource::StartsKeyframe(int hType, const uint8_t *data,
   return false;
 }
 
+int64_t ZoneMinderStreamVideoSource::RtpTimestamp(int64_t pts, AVRational timeBase) {
+  if (pts == AV_NOPTS_VALUE)
+    return 0;  // xop uses the wall clock
+  int64_t ts = av_rescale_q(pts, AV_TIME_BASE_Q, timeBase);
+  return ts == 0 ? 1 : ts;
+}
+
 void ZoneMinderStreamVideoSource::PushFrame(const uint8_t *data, size_t size, int64_t pts, bool last) {
   xop::AVFrame frame(data, size);
   frame.last = last;
@@ -45,7 +52,7 @@ void ZoneMinderStreamVideoSource::PushFrame(const uint8_t *data, size_t size, in
   // everything else P or a client that joins mid-GOP is fed undecodable slices
   if (m_hType == 264 or m_hType == 265)
     frame.type = StartsKeyframe(m_hType, data, size) ? xop::VIDEO_FRAME_I : xop::VIDEO_FRAME_P;
-  frame.timestamp = av_rescale_q(pts, AV_TIME_BASE_Q, m_timeBase);
+  frame.timestamp = RtpTimestamp(pts, m_timeBase);
   m_rtspServer->PushFrame(m_sessionId, m_channelId, frame);
 }
 

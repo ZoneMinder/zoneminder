@@ -26,8 +26,25 @@ if ( isset($_REQUEST['object']) ) {
     if ($action == 'Save') {
       # Name is only populated when creating a new layout
       if ( $_REQUEST['Name'] != '' ) {
-        $Layout = new ZM\MontageLayout();
-        $Layout->Name($_REQUEST['Name']);
+        # Saving under a name the user already has overwrites that layout, but
+        # never a built-in preset. Names are wrapped in arrays so NULL and
+        # NOT NULL match literally.
+        $name = $_REQUEST['Name'];
+        if ( preg_match('/^(Auto|Freeform|\d+ Wide)$/', $name) ) {
+          $error_message = 'A layout with that name already exists';
+          ZM\Warning($error_message);
+          return;
+        }
+        $Layout = ZM\MontageLayout::find_one(array('Name'=>array($name), 'UserId'=>(int)$user->Id()));
+        if ( !$Layout ) {
+          if ( ZM\MontageLayout::find_one(array('Name'=>array($name))) ) {
+            $error_message = 'A layout with that name already exists';
+            ZM\Warning($error_message);
+            return;
+          }
+          $Layout = new ZM\MontageLayout();
+          $Layout->Name($name);
+        }
       } else {
         $Layout = new ZM\MontageLayout(validCardinal($_REQUEST['zmMontageLayout']));
       }

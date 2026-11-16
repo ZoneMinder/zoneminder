@@ -45,7 +45,7 @@ function probeV4L() {
   $preferredStandards = array('PAL', 'NTSC');
   $preferredFormats = array('BGR3', 'RGB3', 'YUYV', 'UYVY', 'JPEG', 'MJPG', '422P', 'YU12', 'GREY');
 
-  if ( !empty($_REQUEST['device']) ) {
+  if ( !empty($_REQUEST['device']) and is_string($_REQUEST['device']) ) {
     $devices_to_probe[] = $_REQUEST['device'];
   } else {
     $it = new FilesystemIterator('/dev/');
@@ -59,7 +59,7 @@ function probeV4L() {
   foreach ($devices_to_probe as $d) {
     $command = getZmuCommand(' --query --device');
     $command .= '='.escapeshellarg($d);
-    $result = exec(escapeshellcmd($command), $output, $status);
+    $result = exec($command, $output, $status);
     if ($status) {
       ZM\Warning("Errors while probe local cameras using $command, status is '$status' " . implode("\n", $output));
     }
@@ -358,11 +358,11 @@ function probeNetwork() {
   }
   foreach ( dbFetchAll("SELECT `Id`, `Name`, `Path` FROM `Monitors` WHERE `Type` = 'Ffmpeg' ORDER BY `Path`") as $monitor ) {
     $url_parts = parse_url($monitor['Path']);
-    if ($url_parts !== false) {
+    if (!empty($url_parts['host'])) {
       ZM\Debug("Ffmpeg monitor {$url_parts['host']} = {$monitor['Id']} {$monitor['Name']}");
       $monitors[gethostbyname($url_parts['host'])] = $monitor;
     } else {
-      ZM\Debug('Unable to parse '.ZM\urlForLog($monitor['Path']));
+      ZM\Debug('Unable to find a host in '.ZM\urlForLog($monitor['Path']));
     }
   }
 
@@ -475,7 +475,7 @@ $interfaces = array('', 'select');
           <label for="manual_url"><?php echo translate('OnvifManualLabel') ?></label>
           <input type="text" name="manual_url" id="manual_url"
                  placeholder="<?php echo translate('OnvifManualPlaceholder') ?>"
-                 value="<?php echo isset($_REQUEST['manual_url']) ? htmlspecialchars($_REQUEST['manual_url']) : '' ?>"
+                 value="<?php echo (isset($_REQUEST['manual_url']) and is_string($_REQUEST['manual_url'])) ? htmlspecialchars($_REQUEST['manual_url']) : '' ?>"
                  data-on-change-this="configureButtons"
                  data-on-input-this="configureButtons"
                  size="40"/>

@@ -34,7 +34,15 @@ class ActionMonitor : public Monitor {
  public:
   using Data = SharedData;
   static constexpr int kReload = RELOAD;
-  explicit ActionMonitor(SharedData *data) : Monitor() { shared_data = data; }
+  static constexpr int kSuspend = SUSPEND;
+  static constexpr int kResume = RESUME;
+  static constexpr uint8_t kAnalysingNone = ANALYSING_NONE;
+  static constexpr uint8_t kAnalysingAlways = ANALYSING_ALWAYS;
+  explicit ActionMonitor(SharedData *data) : Monitor() {
+    shared_data = data;
+    analysing = ANALYSING_ALWAYS;
+    capturing = CAPTURING_ALWAYS;
+  }
   ~ActionMonitor() { shared_data = nullptr; }
 };
 
@@ -56,4 +64,25 @@ TEST_CASE("Monitor reload action defers to zmc's reload", "[Monitor]") {
   REQUIRE(zm_reload);
   REQUIRE((data.action & ActionMonitor::kReload) == 0);
   zm_reload = false;
+}
+
+// ANALYSING_NONE is 1, so Active() was true while analysis was suspended and
+// the resume action never restored it; only the max suspend time did.
+TEST_CASE("Monitor resume action restores analysing after a suspend", "[Monitor]") {
+  EnsureConfig();
+  config.max_suspend_time = 30;
+  ActionMonitor::Data data = {};
+  data.analysing = ActionMonitor::kAnalysingAlways;
+  data.capturing = 3;
+  ActionMonitor monitor(&data);
+
+  data.action = ActionMonitor::kSuspend;
+  monitor.CheckAction();
+  REQUIRE(data.analysing == ActionMonitor::kAnalysingNone);
+  REQUIRE((data.action & ActionMonitor::kSuspend) == 0);
+
+  data.action = ActionMonitor::kResume;
+  monitor.CheckAction();
+  REQUIRE(data.analysing == ActionMonitor::kAnalysingAlways);
+  REQUIRE((data.action & ActionMonitor::kResume) == 0);
 }

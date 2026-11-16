@@ -425,14 +425,14 @@ sub irisRelClose {
 sub irisAuto {
   my $self = shift;
   Debug('Iris Auto');
-  my @cmd = ( SYNC, $camera, 0x00, 0x2D, 0x00, 0x01 );
+  my @cmd = ( SYNC, $camera, 0x00, 0x2D, 0x00, 0x00 );
   $self->sendCmd( \@cmd );
 }
 
 sub irisMan {
   my $self = shift;
   Debug('Iris Manual');
-  my @cmd = ( SYNC, $camera, 0x00, 0x2D, 0x00, 0x00 );
+  my @cmd = ( SYNC, $camera, 0x00, 0x2D, 0x00, 0x01 );
   $self->sendCmd( \@cmd );
 }
 

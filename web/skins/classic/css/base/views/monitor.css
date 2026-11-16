@@ -106,6 +106,26 @@ ul.form > li > label:first-child {
   text-align: right;
 }
 
+ul.form > li input[type="checkbox"]{
+  flex-shrink: 0;
+}
+
+ul.form > li:has(input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+ul.form > li:has(input[type="checkbox"]) > .form-text {
+  flex: 1;
+  margin: 0 0 0 3px;
+  min-width: 0;
+}
+
+ul.form > li:has(input[type="checkbox"]) > label:first-child {
+  flex-shrink: 0;
+}
+
 /*
  * A row with no label.
  *
@@ -157,13 +177,21 @@ nav #pills-tab a.nav-link.active {
     flex-wrap: wrap;
   }
   ul.form > li {
-    padding-left: 0;
+    padding: 2px 0 8px;
     margin: 5px 0;
   }
+  ul.form > li:not(:last-child) {
+    border-bottom: 1px solid;
+  }
+  ul.form > li:has(input[type="checkbox"]) > .form-text {
+    margin: 0;
+  }
   ul.form > li > label:first-child {
-    width: 100%;
+    width: 25%;
     margin-left: 0;
     text-align: left;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
   #page tr td:first-child {
     min-width: unset;

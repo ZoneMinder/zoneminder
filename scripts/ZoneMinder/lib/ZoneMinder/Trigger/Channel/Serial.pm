@@ -94,7 +94,8 @@ sub read
         return( undef );
     }
     Debug( "Read '$buffer' (".length($buffer)." bytes)\n" );
-    return( $buffer );
+    # lookfor strips the line terminator
+    return( $buffer."\n" );
 }
 
 sub write

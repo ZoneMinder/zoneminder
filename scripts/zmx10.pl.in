@@ -221,6 +221,7 @@ sub runServer {
         if ( defined($unit_code) ) {
           if ( $unit_code < 1 || $unit_code > 16 ) {
             dPrint(ZoneMinder::Logger::ERROR, "Invalid unit code '$unit_code'\n");
+            close(CLIENT);
             next;
           }
 
@@ -599,7 +600,7 @@ sub processTask {
       if ( $instruction eq 'start' ) {
         zmTriggerEventOn(
           $task->{monitor},
-          0,
+          $Config{ZM_FORCED_ALARM_SCORE},
           main::CAUSE_STRING,
           $task->{address}
         );

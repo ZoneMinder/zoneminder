@@ -29,7 +29,7 @@ if ( isset($_REQUEST['minTime']) ) {
   $minTime = validHtmlStr($_REQUEST['minTime']);
   if (!check_datetime($minTime)) {
     ZM\Error('Invalid date given for minTime.');
-    unset($minTime);
+    $minTime = date('Y-m-d H:i:s', time() - (2*3600));
   }
 } else {
   $minTime = date('Y-m-d H:i:s', time() - (2*3600));
@@ -38,7 +38,7 @@ if ( isset($_REQUEST['maxTime']) ) {
   $maxTime = validHtmlStr($_REQUEST['maxTime']);
   if (!check_datetime($maxTime)) {
     ZM\Error('Invalid date given for maxTime.');
-    unset($maxTime);
+    $maxTime = date('Y-m-d H:i:s', time() - 3600);
   }
 } else {
   $maxTime = date('Y-m-d H:i:s', time() - 3600);
@@ -79,7 +79,7 @@ if ( count($selected_monitor_ids) ) {
   $eventsSql .= ' AND MonitorId IN ('.implode(',', array_map('intval', $selected_monitor_ids)).')';
 }
 if ( isset($minTime) && isset($maxTime) ) {
-  $eventsSql .= " AND EndDateTime > '" . $minTime . "' AND StartDateTime < '" . $maxTime . "'";
+  $eventsSql .= " AND (EndDateTime IS NULL OR EndDateTime > '" . $minTime . "') AND StartDateTime < '" . $maxTime . "'";
 }
 $eventsSql .= ' ORDER BY Id ASC';
 
@@ -92,17 +92,19 @@ $EventsByMonitor = array();
 while ( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
   $Event = new ZM\Event($event);
   if ( ! isset($EventsByMonitor[$event['MonitorId']]) )
-    $EventsByMonitor[$event['MonitorId']] = array('Events'=>array(), 'MinGap'=>0, 'MaxGap'=>0, 'FileMissing'=>array(), 'ZeroSize'=>array());
+    $EventsByMonitor[$event['MonitorId']] = array('Events'=>array(), 'MinGap'=>null, 'MaxGap'=>null, 'FileMissing'=>array(), 'ZeroSize'=>array());
 
   if ( count($EventsByMonitor[$event['MonitorId']]['Events']) ) {
     $last_event = end($EventsByMonitor[$event['MonitorId']]['Events']);
 #Debug(print_r($last_event,true));
-    $gap = $last_event->EndTimeSecs() - $event['StartTimeSecs'];
- 
-    if ( $gap < $EventsByMonitor[$event['MonitorId']]['MinGap'] )
-      $EventsByMonitor[$event['MonitorId']]['MinGap'] = $gap;
-    if ( $gap > $EventsByMonitor[$event['MonitorId']]['MaxGap'] )
-      $EventsByMonitor[$event['MonitorId']]['MaxGap'] = $gap;
+    // An event still recording has no end to measure a gap from
+    if ( $last_event->EndTimeSecs() !== null ) {
+      $gap = $event['StartTimeSecs'] - $last_event->EndTimeSecs();
+      if ( $EventsByMonitor[$event['MonitorId']]['MinGap'] === null or $gap < $EventsByMonitor[$event['MonitorId']]['MinGap'] )
+        $EventsByMonitor[$event['MonitorId']]['MinGap'] = $gap;
+      if ( $EventsByMonitor[$event['MonitorId']]['MaxGap'] === null or $gap > $EventsByMonitor[$event['MonitorId']]['MaxGap'] )
+        $EventsByMonitor[$event['MonitorId']]['MaxGap'] = $gap;
+    }
 
   } # end if has previous events
   if ( !$Event->file_exists() ) {
@@ -154,12 +156,12 @@ for ( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   $Monitor = new ZM\Monitor($monitor);
   $montagereview_link = '?view=montagereview&live=0&MonitorId='.$monitor['Id'].'&minTime='.$minTime.'&maxTime='.$maxTime;
 
-  $monitor_filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'=', 'val'=>$monitor['Id']));
+  $monitor_filter = (clone $filter)->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'=', 'val'=>$monitor['Id']));
 
   if ( isset($EventsByMonitor[$Monitor->Id()]) ) {
     $EventCounts = $EventsByMonitor[$Monitor->Id()];
-    $MinGap = $EventCounts['MinGap'];
-    $MaxGap = $EventCounts['MaxGap'];
+    $MinGap = $EventCounts['MinGap'] ?? 0;
+    $MaxGap = $EventCounts['MaxGap'] ?? 0;
     $FileMissing = $EventCounts['FileMissing'];
     $ZeroSize = $EventCounts['ZeroSize'];
     $FirstEvent = $EventCounts['Events'][0];
@@ -190,10 +192,9 @@ for ( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
               <?php echo implode('<br/>',
                   array_map(function($group_id){
                     $Group = ZM\Group::find_one(array('Id'=>$group_id));
-                    if ( $Group ) {
-                      $Groups = $Group->Parents();
-                      array_push( $Groups, $Group );
-                    }
+                    if ( !$Group ) return '';
+                    $Groups = $Group->Parents();
+                    array_push( $Groups, $Group );
                     return implode(' &gt; ', array_map(function($Group){ return '<a href="?view=montagereview&amp;GroupId='.$Group->Id().'">'.validHtmlStr($Group->Name()).'</a>'; }, $Groups ));
                     }, $Monitor->GroupIds())); 
 

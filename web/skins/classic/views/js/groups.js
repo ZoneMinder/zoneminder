@@ -3,7 +3,7 @@ function newGroup() {
   $j('#groupModal').remove();
   $j.getJSON(thisUrl + '?request=modal&modal=group')
       .done(function(data) {
-        insertModalHtml('groupdModal', data.html);
+        insertModalHtml('groupModal', data.html);
         $j('#groupModal').modal('show');
         $j('#newGroupMonitorIds').chosen({width: "100%"});
       })
@@ -56,7 +56,6 @@ function configModalBtns() {
     form.elements['action'].disabled = true;
     return;
   }
-  if (form.elements['newGroup[Name]'].value == '') {
-    form.elements['action'].disabled = true;
-  }
+  // Re-enable as well, otherwise clearing the name once leaves Save off for good.
+  form.elements['action'].disabled = (form.elements['newGroup[Name]'].value == '');
 }

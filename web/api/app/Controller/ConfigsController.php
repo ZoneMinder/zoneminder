@@ -96,7 +96,7 @@ class ConfigsController extends AppController {
     $filters_value = false;
     if ( $this->request->params['named'] ) {
       $this->FilterComponent = $this->Components->load('Filter');
-      $conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+      $conditions = $this->FilterComponent->buildFilter($this->request->params['named'], array_keys($this->Config->schema()));
       $filters_value = $this->filterReferencesValue($this->request->params['named']);
     }
 
@@ -218,11 +218,16 @@ class ConfigsController extends AppController {
 				throw new ForbiddenException(__('Cannot edit a readonly Config entry'));
 			}
 			if ($this->Config->save($this->request->data)) {
-				return $this->flash(__('The config has been saved.'), array('action' => 'index'));
+				$message = 'Saved';
+			} else {
+				$message = $this->Config->validationErrors ? $this->Config->validationErrors : 'Error';
 			}
+			$this->set(array(
+				'message' => $message,
+				'_serialize' => array('message')
+			));
 		} else {
-			$options = array('conditions' => array('Config.' . $this->Config->primaryKey => $id));
-			$this->request->data = $this->Config->find('first', $options);
+			$this->view($id);
 		}
 	}
 
@@ -247,9 +252,13 @@ class ConfigsController extends AppController {
 		}
 		$this->request->allowMethod('post', 'delete');
 		if ($this->Config->delete()) {
-			return $this->flash(__('The config has been deleted.'), array('action' => 'index'));
+			$this->set(array(
+				'message' => 'Deleted',
+				'_serialize' => array('message'),
+			));
+			return;
 		} else {
-			return $this->flash(__('The config could not be deleted. Please, try again.'), array('action' => 'index'));
+			throw new InternalErrorException(__('The config could not be deleted.'));
 		}
 	}
 

@@ -1,5 +1,6 @@
 <?php
 namespace ZM;
+use Exception;
 require_once('Object.php');
 require_once('FilterTerm.php');
 require_once('Monitor.php');
@@ -55,7 +56,6 @@ class Filter extends ZM_Object {
   protected $_hidden_fields;
   public $_pre_sql_conditions;
   public $_post_sql_conditions;
-  protected $_Terms;
   public $availableTags = array();
 
   public function sql() {
@@ -64,9 +64,18 @@ class Filter extends ZM_Object {
     // Debug('$this->_sql: ' . $this->_sql);
     if (!isset($this->_sql)) {
       $this->_sql = '';
+      // Brackets of a skipped invalid term, so the rest of the expression stays balanced
+      $pending_obr = 0;
+      $pending_cnj = null;
       foreach ( $this->FilterTerms() as $term ) {
         // Error($term->valid());
         if ($term->valid()) {
+          if ($pending_obr) {
+            $term->obr = (int)$term->obr + $pending_obr;
+            $term->cnj = $pending_cnj;
+            $pending_obr = 0;
+            $pending_cnj = null;
+          }
           // Debug('$this->_sql: ' . $this->_sql);
           // Error($this-cnj);
           if (!$this->_sql) {
@@ -77,6 +86,16 @@ class Filter extends ZM_Object {
           $this->_sql .= $term->sql();
         } else {
           // Debug('Term is not valid '.$term->to_string());
+          $close = (int)$term->cbr;
+          if ($term->obr) {
+            if (!$pending_obr) $pending_cnj = $term->cnj;
+            $pending_obr += (int)$term->obr;
+          }
+          $cancel = min($pending_obr, $close);
+          $pending_obr -= $cancel;
+          $close -= $cancel;
+          if (!$pending_obr) $pending_cnj = null;
+          if ($close and $this->_sql) $this->_sql = rtrim($this->_sql).str_repeat(')', $close).PHP_EOL;
         }
         // Debug('$term->_sql: ' . $term->_sql);
       } # end foreach term
@@ -157,7 +176,7 @@ class Filter extends ZM_Object {
 
   public static function parse($new_filter, $querySep='&amp;') {
     $filter = new Filter();
-    $filter->Query($new_filter['Query']);
+    $filter->Query($new_filter['Query'] ?? []);
     return $filter;
   }
 
@@ -205,6 +224,45 @@ class Filter extends ZM_Object {
     return implode(', ', $out);
   }
 
+  // The SQL for the filterdebug modal, laid out as ZoneMinder::Filter::Sql
+  // builds it for zmfilter: the terms in one parenthesised group, then the
+  // conditions the Auto* actions add, then the lock exclusion.
+  public function debugSql() {
+    $sql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultScale FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId)';
+    $conditions = array();
+    $terms_sql = trim($this->sql());
+    if ($terms_sql !== '') $conditions[] = '( '.$terms_sql.' )';
+
+    $auto_terms = array();
+    foreach (array(
+      'AutoArchive'   => 'E.Archived = 0',
+      'AutoUnarchive' => 'E.Archived = 1',
+      'AutoVideo'     => 'E.Videoed = 0',
+      'AutoUpload'    => 'E.Uploaded = 0',
+      'AutoEmail'     => 'E.Emailed = 0',
+      'AutoMessage'   => 'E.Messaged = 0',
+      'AutoExecute'   => 'E.Executed = 0',
+    ) as $field => $term) {
+      if ($this->$field()) $auto_terms[] = $term;
+    }
+    if (count($auto_terms)) $conditions[] = '( '.implode(' or ', $auto_terms).' )';
+
+    if ($this->LockRows() and $this->skip_locked())
+      $conditions[] = 'NOT EXISTS (SELECT 1 FROM Events_Lock AS EL WHERE EL.EventId=E.Id AND EL.ExpiresAt>NOW())';
+
+    if (count($conditions)) $sql .= "\n    WHERE ".implode("\n    AND ", $conditions);
+
+    // Id and Name are columns of both Events and Monitors, so they have to be qualified.
+    $order = self::buildSortSql($this->sort_field(), $this->sort_asc() ? 'ASC' : 'DESC', function($col) {
+      if ($col == 'MonitorName') return 'M.Name';
+      if ($col == 'Tags') return '(SELECT GROUP_CONCAT(Name) FROM Tags WHERE Id IN (SELECT TagId FROM Events_Tags WHERE Events_Tags.EventId=E.Id))';
+      return 'E.'.$col;
+    });
+    if ($order !== '') $sql .= ' ORDER BY '.$order;
+    if ($this->limit()) $sql .= ' LIMIT '.(int)$this->limit();
+    return $sql;
+  }
+
   # If no storage areas are specified in the terms, then return all
   public function get_StorageAreas() {
     $storage_ids = array();
@@ -239,7 +297,7 @@ class Filter extends ZM_Object {
       unset($this->_hidden_fields);
       unset($this->_pre_sql_conditions);
       unset($this->_post_sql_conditions);
-      unset($this->_Terms);
+      unset($this->Terms);
     }
     if ( !property_exists($this, 'Query') ) {
       if ( property_exists($this, 'Query_json') and $this->{'Query_json'} ) {
@@ -410,7 +468,8 @@ class Filter extends ZM_Object {
           'http' => array(
             'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
             'method'  => 'POST',
-            'content' => http_build_query($data)
+            'content' => http_build_query($data),
+            'timeout' => 10
           ),
           'ssl'=>array(
             'verify_peer'=>false,
@@ -835,6 +894,26 @@ class Filter extends ZM_Object {
     return $this;
   }
 
+  // The sort field names a filter attribute; map it to a column of the Events() query,
+  // as ZoneMinder::Filter does in Perl. MonitorName and Tags are not Events columns.
+  public static function events_sort_sql($sort_field) {
+    if (!$sort_field) return '';
+    $parts = array();
+    foreach (explode(',', $sort_field) as $part) {
+      $parts[] = preg_replace_callback('/^\s*([A-Za-z][A-Za-z0-9_]*)/', function($m) {
+        switch ($m[1]) {
+        case 'MonitorName': return 'M.Name';
+        case 'Tags': return '(SELECT GROUP_CONCAT(Name) FROM Tags WHERE Id IN (SELECT TagId FROM Events_Tags WHERE Events_Tags.EventId=E.Id))';
+        case 'StartTime': return 'E.StartDateTime';
+        case 'EndTime': return 'E.EndDateTime';
+        case 'Secs': return 'E.Length';
+        default: return 'E.'.$m[1];
+        }
+      }, trim($part));
+    }
+    return implode(', ', $parts);
+  }
+
   function Events() {
     $events = array();
     if (!$this->test_pre_sql_conditions()) {
@@ -844,10 +923,12 @@ class Filter extends ZM_Object {
 
     $where = $this->sql() ? ' WHERE ('.$this->sql().')' : '';
     // $where = ' WHERE ( T.Name = "Bird" )';
-    $sort = $this->sort_field() ? $this->sort_field() .' '.($this->sort_asc() ? 'ASC' : 'DESC') : '';
+    $sort_sql = self::events_sort_sql($this->sort_field());
+    $sort = $sort_sql ? $sort_sql.' '.($this->sort_asc() ? 'ASC' : 'DESC') : '';
 
+    // DISTINCT: the tag joins give one row per tag, and LIMIT must count events, not tags.
     $col_str = '
-    E.*, 
+    DISTINCT E.*,
     M.Name 
      AS Monitor';
 
@@ -882,7 +963,7 @@ class Filter extends ZM_Object {
         continue;
       }
       $events[] = $event;
-      if ($this->limit() and (count($events) > $this->limit())) {
+      if ($this->limit() and (count($events) >= $this->limit())) {
         break;
       }
     } # end foreach row

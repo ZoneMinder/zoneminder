@@ -181,6 +181,7 @@ int StreamBase::preScaleDimensions(int base_width, int base_height, int &width, 
   // negative av_image_get_buffer_size result into an unsigned size and allocate
   // on it, so leave anything degenerate to the path that already rejects it.
   if ((scaled_width <= 0) or (scaled_height <= 0)) return 0;
+  if (av_image_check_size(scaled_width, scaled_height, 0, nullptr) < 0) return 0;
 
   width = scaled_width;
   height = scaled_height;
@@ -229,7 +230,17 @@ Image *StreamBase::prepareImage(Image *image, int pre_scaled_by) {
      * However if we have zoomed before, then we are zooming into the previous cutout
      * The box stored in last_crop should be in base_image units, So we need to turn x,y into percentages, then apply to last_crop
      */
-    if (!last_crop.Hi().x_ && !last_crop.Hi().y_) last_crop = Box({0, 0}, {base_image_width, base_image_height});
+    if (!last_crop.Hi().x_ && !last_crop.Hi().y_) {
+      last_crop = Box({0, 0}, {base_image_width, base_image_height});
+    } else if (last_crop_width && (last_crop_width != base_image_width || last_crop_height != base_image_height)) {
+      // Keep the same part of the picture in the new frame's coordinates.
+      Debug(2, "Rescaling crop from %dx%d to %dx%d", last_crop_width, last_crop_height,
+            base_image_width, base_image_height);
+      last_crop = Box({last_crop.Lo().x_ * base_image_width / last_crop_width,
+                       last_crop.Lo().y_ * base_image_height / last_crop_height},
+                      {last_crop.Hi().x_ * base_image_width / last_crop_width,
+                       last_crop.Hi().y_ * base_image_height / last_crop_height});
+    }
 
     double x_percent = static_cast<double>(cur_x * ZM_SCALE_BASE) / base_image_width;
     double y_percent = static_cast<double>(cur_y * ZM_SCALE_BASE) / base_image_height;
@@ -291,6 +302,8 @@ Image *StreamBase::prepareImage(Image *image, int pre_scaled_by) {
     Debug(3, "Cropping to %d,%d -> %d,%d %dx%din blown up image", lo_x, lo_y, hi_x, hi_y, hi_x-lo_x, hi_y-lo_y);
     // Scaled back to base_image dimensions
     last_crop = Box({lo_x*ZM_SCALE_BASE/cur_zoom, lo_y*ZM_SCALE_BASE/cur_zoom}, {hi_x*ZM_SCALE_BASE/cur_zoom, hi_y*ZM_SCALE_BASE/cur_zoom});
+    last_crop_width = base_image_width;
+    last_crop_height = base_image_height;
 
     Debug(3, "Cropping to %d,%d -> %d,%d", last_crop.Lo().x_, last_crop.Lo().y_, last_crop.Hi().x_, last_crop.Hi().y_);
     if ( !image_copied ) {
@@ -303,11 +316,18 @@ Image *StreamBase::prepareImage(Image *image, int pre_scaled_by) {
     image->Scale(disp_image_width, disp_image_height);
   } else if (cur_scale != ZM_SCALE_BASE) {
     Debug(3, "scaling by %d from %dx%d", cur_scale, image->Width(), image->Height());
+    // The source may be a shared-memory frame we must not modify, so scale
+    // into a reusable scratch image instead of in place.
     static Image copy_image;
-    copy_image.Assign(*image);
-    image = &copy_image;
-    image_copied = true;
-    image->Scale(cur_scale);
+    unsigned int new_width = (image->Width() * cur_scale) / ZM_SCALE_BASE;
+    unsigned int new_height = (image->Height() * cur_scale) / ZM_SCALE_BASE;
+    if (av_image_check_size(new_width, new_height, 0, nullptr) >= 0
+        && copy_image.ScaleFrom(*image, new_width, new_height)) {
+      image = &copy_image;
+      image_copied = true;
+    } else {
+      Debug(1, "Cannot scale %dx%d by %d, sending unscaled", image->Width(), image->Height(), cur_scale);
+    }
   }
   Debug(3, "Sending %dx%d", image->Width(), image->Height());
 
@@ -357,7 +377,10 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
         return false;
       }
     }
-    /* double pts = */ vid_stream->EncodeFrame(image.Buffer(), image.Size());
+    // The text is drawn at the current monitor's size and colours, which need
+    // not be those the stream was opened with: event frames are RGB24, and
+    // gapless playback can move to another monitor (refs #4186).
+    /* double pts = */ vid_stream->EncodeImage(image);
   } else {
     static unsigned char buffer[ZM_MAX_IMAGE_SIZE];
     size_t n_bytes = 0;

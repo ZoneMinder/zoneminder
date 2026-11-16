@@ -59,7 +59,23 @@ void Authenticator::authHandleHeader(const std::string &headerData) {
   else if ( strncasecmp(headerData.c_str(), digest_match, digest_match_len) == 0) {
     fAuthMethod = AUTH_DIGEST;
     Debug(2, "Set authMethod to Digest");
-    StringVector subparts = Split(headerData.substr(digest_match_len, headerData.length() - digest_match_len), ",");
+    // A new challenge starts a new nonce, so the nonce count starts again.
+    nc = 1;
+    fOpaque.clear();
+    // Split on commas that are not inside a quoted value.
+    StringVector subparts;
+    std::string current;
+    bool in_quotes = false;
+    for ( char c : headerData.substr(digest_match_len) ) {
+      if ( c == '"' ) in_quotes = !in_quotes;
+      if ( c == ',' && !in_quotes ) {
+        subparts.push_back(current);
+        current.clear();
+      } else {
+        current += c;
+      }
+    }
+    subparts.push_back(current);
     // subparts are key="value"
     for ( size_t i = 0; i < subparts.size(); i++ ) {
       StringVector kvPair = Split(TrimSpaces(subparts[i]), "=");
@@ -79,7 +95,15 @@ void Authenticator::authHandleHeader(const std::string &headerData) {
         continue;
       }
       if ( key == "qop" ) {
-        fQop = Trim(kvPair[1], "\"");
+        // qop may be a list such as "auth,auth-int"; only auth is supported.
+        fQop = "";
+        for ( const std::string &option : Split(Trim(kvPair[1], "\""), ",") ) {
+          if ( TrimSpaces(option) == "auth" ) fQop = "auth";
+        }
+        continue;
+      }
+      if ( key == "opaque" ) {
+        fOpaque = Trim(kvPair[1], "\"");
         continue;
       }
     }
@@ -106,6 +130,7 @@ std::string Authenticator::getAuthHeader(const std::string &method, const std::s
       result += ", cnonce=\"" + fCnonce + "\"";
     }
     result += ", response=\"" + computeDigestResponse(method, uri) + "\"";
+    if ( !fOpaque.empty() ) result += ", opaque=\"" + quote(fOpaque) + "\"";
     result += ", algorithm=\"MD5\"";
 
     //Authorization: Digest username="zm",

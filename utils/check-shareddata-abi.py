@@ -27,11 +27,16 @@ import tempfile
 
 HEADER = os.path.join('src', 'zm_monitor.h')
 
-# Members are declared as `<type> name;` or `<type> name[N];`. Anonymous unions
-# are handled separately since their members are what callers actually name.
+# Members are declared as `<type> name;` or `<type> name[N];`, where the scalar
+# ones are wrapped as `SharedValue<type> name;`. Anonymous unions are handled
+# separately since their members are what callers actually name.
+SCALAR = r'(?:uint\d+_t|int\d+_t|double|char)'
 MEMBER_RE = re.compile(
-    r'^\s*(?:uint\d+_t|int\d+_t|double|char)\s+(\w+)\s*(?:\[\d+\])?\s*;', re.M)
-UNION_MEMBER_RE = re.compile(r'^\s*time_t\s+(\w+)\s*;', re.M)
+    r'^\s*(?:{0}|SharedValue<{0}>)\s+(\w+)\s*(?:\[\d+\])?\s*;'.format(SCALAR), re.M)
+UNION_MEMBER_RE = re.compile(
+    r'^\s*(?:time_t|SharedValue<time_t>)\s+(\w+)\s*;', re.M)
+# The wrapper the scalar members are declared with, which the probe needs too.
+SHARED_VALUE_START = 'template <typename T>\n  class SharedValue {'
 
 
 def fail(msg):
@@ -42,24 +47,31 @@ def fail(msg):
 
 
 def extract(src):
-    """Pull the SharedData struct body and its static_asserts out of the header."""
+    """Pull the SharedData struct body, the SharedValue template it is declared
+    with (empty if the header has none) and their static_asserts out of the
+    header."""
     if 'typedef struct {' not in src or '} SharedData;' not in src:
-        return None, None
+        return None, None, None
     body = src.split('typedef struct {', 1)[1].split('} SharedData;', 1)[0]
-    # Only the asserts that constrain SharedData itself.
+    shared_value = ''
+    if SHARED_VALUE_START in src:
+        start = src.index(SHARED_VALUE_START)
+        shared_value = src[start:src.index('\n  };', start) + len('\n  };')]
+    # Only the asserts that constrain SharedData or SharedValue.
     asserts = [ln.strip() for ln in src.split('\n')
                if ln.strip().startswith('static_assert(')
-               and 'SharedData' in ln]
-    return body, asserts
+               and ('SharedData' in ln or 'SharedValue' in ln)]
+    return body, shared_value, asserts
 
 
-def build_probe(body, asserts):
+def build_probe(body, shared_value, asserts):
     names = list(dict.fromkeys(
         MEMBER_RE.findall(body) + UNION_MEMBER_RE.findall(body)))
     if not names:
         return None, None
     out = ['#include <cstdio>', '#include <cstdint>', '#include <ctime>',
-           '#include <cstddef>', 'typedef struct {' + body + '} SharedData;']
+           '#include <cstddef>', '#include <type_traits>', shared_value,
+           'typedef struct {' + body + '} SharedData;']
     out.extend(asserts)
     out.append('int main() {')
     out.append('  printf("sizeof %zu\\n", sizeof(SharedData));')
@@ -87,7 +99,7 @@ def main():
     if not os.path.exists(HEADER):
         return fail('{} not found; run from the repository root.'.format(HEADER))
 
-    body, asserts = extract(open(HEADER, encoding='utf-8').read())
+    body, shared_value, asserts = extract(open(HEADER, encoding='utf-8').read())
     if body is None:
         return fail('could not locate the SharedData struct in {}. If it was '
                     'renamed or reformatted, update this script.'.format(HEADER))
@@ -95,7 +107,7 @@ def main():
         return fail('no static_assert on SharedData found in {}. The ABI guard '
                     'must not be removed.'.format(HEADER))
 
-    source_text, names = build_probe(body, asserts)
+    source_text, names = build_probe(body, shared_value, asserts)
     if source_text is None:
         return fail('parsed the SharedData struct but found no members; the '
                     'declaration style likely changed.')
@@ -113,7 +125,9 @@ def main():
                 if 'static assertion' in (err or ''):
                     print('SharedData static_assert failed at -m{}:\n'.format(bits))
                     for line in (err or '').splitlines():
-                        if 'static assertion' in line or 'reduces to' in line:
+                        # Every error, not only the asserts: a member the probe
+                        # cannot compile drops out and shows up as a size error.
+                        if 'error:' in line or 'reduces to' in line:
                             print('  ' + line.strip())
                     return fail('the {}bit layout violates the header\'s own '
                                 'assertions.'.format(bits))

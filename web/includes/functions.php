@@ -20,6 +20,7 @@
 //
 require_once('Filter.php');
 require_once('FilterTerm.php');
+require_once('Network.php');
 
 // Polyfills for PHP 8.0+ string functions, so views and callers don't have to
 // guard each use. ZoneMinder still supports PHP 7.x in some distros.
@@ -76,46 +77,26 @@ function CORSHeaders() {
   # An empty Origin cannot match a server and needs no headers, so treat it the
   # same as no Origin at all rather than warning about a value we cannot print.
   if (isset($_SERVER['HTTP_ORIGIN']) and $_SERVER['HTTP_ORIGIN'] !== '') {
-# The following is left for future reference/use.
-    $valid = false;
-    global $Servers;
-    if (sizeof($Servers) < 1) {
-# Only need CORSHeaders in the event that there are multiple servers in use.
-      # ICON: Might not be true. multi-port?
-      if (ZM_MIN_STREAMING_PORT) {
-        ZM\Debug('Setting default Access-Control-Allow-Origin from ' . $_SERVER['HTTP_ORIGIN']);
-        header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
-        header('Access-Control-Allow-Credentials: true');
-        header('Access-Control-Allow-Headers: x-requested-with,x-request');
-      }
+    $origin = corsAllowedOrigin();
+    if ($origin !== '') {
+      ZM\Debug('CORS Setting Access-Control-Allow-Origin from '.$origin);
+      header('Access-Control-Allow-Origin: ' . $origin);
+      header('Access-Control-Allow-Credentials: true');
+      header('Access-Control-Allow-Headers: x-requested-with,x-request');
       return;
     }
-    foreach ($Servers as $Server) {
-      if (
-        preg_match('/^(https?:\/\/)?'.preg_quote($Server->Hostname(),'/').'/i', $_SERVER['HTTP_ORIGIN'])
-        or
-        preg_match('/^(https?:\/\/)?'.preg_quote($Server->Name(),'/').'/i', $_SERVER['HTTP_ORIGIN'])
-      ) {
-        $valid = true;
-        ZM\Debug('CORS Setting Access-Control-Allow-Origin from '.$_SERVER['HTTP_ORIGIN']);
-        header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
-        header('Access-Control-Allow-Credentials: true');
-        header('Access-Control-Allow-Headers: x-requested-with,x-request');
-
-        break;
-      }
-    }
-    if (!$valid) {
-      # Browsers send Origin on same-origin POST/fetch as well.  Such a request
-      # needs no CORS headers, so not finding it in the servers list is normal
-      # and not worth warning about -- it only means the Servers table does not
-      # happen to list the hostname this install is being reached on.
-      if (isset($_SERVER['HTTP_HOST'])
-        and preg_replace('/^https?:\/\//i', '', $_SERVER['HTTP_ORIGIN']) === $_SERVER['HTTP_HOST']) {
-        ZM\Debug('CORS: same-origin request from '.$_SERVER['HTTP_ORIGIN'].', no headers needed');
-      } else {
-        ZM\Warning($_SERVER['HTTP_ORIGIN'] . ' is not found in servers list.');
-      }
+    global $Servers;
+    # Browsers send Origin on same-origin POST/fetch as well.  Such a request
+    # needs no CORS headers, so not finding it in the servers list is normal
+    # and not worth warning about -- it only means the Servers table does not
+    # happen to list the hostname this install is being reached on.
+    if (isset($_SERVER['HTTP_HOST'])
+      and preg_replace('/^https?:\/\//i', '', $_SERVER['HTTP_ORIGIN']) === $_SERVER['HTTP_HOST']) {
+      ZM\Debug('CORS: same-origin request from '.$_SERVER['HTTP_ORIGIN'].', no headers needed');
+    } else if (sizeof($Servers)) {
+      ZM\Warning($_SERVER['HTTP_ORIGIN'] . ' is not found in servers list.');
+    } else {
+      ZM\Debug('CORS: '.$_SERVER['HTTP_ORIGIN'].' is not this host, no headers sent');
     }
   } else {
     ZM\Debug('CORS: NO origin');
@@ -326,7 +307,7 @@ function outputControlStill($src, $width, $height, $monitor, $scale, $target) {
 
 // Incoming args are shell-escaped. This function must escape any further arguments it cannot guarantee.
 function getZmuCommand($args) {
-  $zmuCommand = ZMU_PATH.zmuCredentials();
+  $zmuCommand = escapeshellarg(ZMU_PATH).zmuCredentials();
 
   $zmuCommand .= $args;
 
@@ -740,17 +721,17 @@ function packageControl($command) {
   $string = ZM_PATH_BIN.'/zmpkg.pl '.escapeshellarg($command);
   $string .= ' 2>/dev/null >&- <&- >/dev/null';
   exec($string);
+  $GLOBALS['daemon_running'] = null;
 }
 
 function daemonControl($command, $daemon=false, $args=false) {
-  $string = escapeshellcmd(ZM_PATH_BIN).'/zmdc.pl '.$command;
+  $string = escapeshellarg(ZM_PATH_BIN.'/zmdc.pl').' '.escapeshellarg($command);
   if ( $daemon ) {
-    $string .= ' ' . $daemon;
+    $string .= ' ' . escapeshellarg($daemon);
     if ( $args ) {
-      $string .= ' ' . $args;
+      $string .= ' ' . $args; // callers pass already escaped arguments
     }
   }
-  $string = escapeshellcmd($string);
   #$string .= ' 2>/dev/null >&- <&- >/dev/null';
   ZM\Debug('daemonControl '.$string);
   exec($string);
@@ -781,34 +762,35 @@ function daemonStatus($daemon, $args=false) {
 
   $string = $daemon;
   if ( $args ) {
-		if ( is_array($args) ) {
-			$string .= join(' ', $args);
-		} else {
-			$string .= ' ' . $args;
-		}
-	}
+    $string .= ' '.(is_array($args) ? join(' ', $args) : $args);
+  }
   return ( strpos($daemon_status, "'$string' running") !== false );
 }
 
 function zmcStatus($monitor) {
+  // Matched against zmdc.pl's status text, which prints the arguments unquoted.
   if ( $monitor['Type'] == 'Local' ) {
-    $zmcArgs = '-d '.escapeshellarg($monitor['Device']);
+    $zmcArgs = '-d '.$monitor['Device'];
   } else {
-    $zmcArgs = '-m '.escapeshellarg($monitor['Id']);
+    $zmcArgs = '-m '.$monitor['Id'];
   }
   return daemonStatus('zmc', $zmcArgs);
 }
 
 function daemonCheck($daemon=false, $args=false) {
-  $string = ZM_PATH_BIN.'/zmdc.pl check';
+  global $daemon_running;
+  // Each check starts zmdc.pl, so whether ZoneMinder is running is only asked once a request
+  if (!$daemon and isset($daemon_running)) return $daemon_running;
+
+  $string = escapeshellarg(ZM_PATH_BIN.'/zmdc.pl').' check';
   if ( $daemon ) {
-    $string .= ' ' . $daemon;
+    $string .= ' ' . escapeshellarg($daemon);
     if ( $args )
-      $string .= ' '. $args;
+      $string .= ' '. $args; // callers pass already escaped arguments
   }
-  $string = escapeshellcmd($string);
-  $result = exec($string);
-  return preg_match('/running/', $result);
+  $result = preg_match('/running/', exec($string));
+  if (!$daemon) $daemon_running = $result;
+  return $result;
 }
 
 function zmcCheck($monitor) {
@@ -1844,6 +1826,7 @@ function zmsSocketPath($connkey, $owner, $suffix) {
 }
 
 function detaintPathAllowAbsolute($path) {
+  if (!is_scalar($path)) return '';
   // Strip out :// because php:// is a way to inject code apparently.
   // This must loop: a single pass lets the removal re-form the sequence it
   // just removed, so '::////' collapses back into '://'.
@@ -1873,6 +1856,7 @@ function localRedirectUrl($url, $fallback) {
 }
 
 function detaintPath($path) {
+  if (!is_scalar($path)) return '';
 
   // Strip out :// because php:// is a way to inject code apparently.
   // This must loop: a single pass lets the removal re-form the sequence it
@@ -1963,6 +1947,7 @@ function validCardinal($input) {
 }
 
 function validNum( $input ) {
+  if (!is_scalar($input)) return '';
   return preg_replace('/[^\d.-]/', '', $input);
 }
 
@@ -1995,13 +1980,13 @@ function isValidBandwidth($input) {
 
 // For strings in javascript or tags etc, expected to be in quotes so further quotes escaped rather than converted
 function validJsStr($input) {
-  if (is_null($input)) return '';
+  if (is_null($input) or is_array($input)) return '';
   return strip_tags(addslashes($input));
 }
 
 // For general text in pages outside of tags or quotes so quotes converted to entities
 function validHtmlStr($input) {
-  if (is_null($input)) return '';
+  if (is_null($input) or is_array($input)) return '';
   return htmlspecialchars($input, ENT_QUOTES);
 }
 
@@ -2343,7 +2328,7 @@ function get_networks() {
 	    ZM\Error("Unable to list network interfaces, status is '$status'. Output was:<br/><br/>$html_output");
 	  } else {
 	    foreach ( $output as $line ) {
-	      if ( preg_match('/^\d+: ([[:alnum:]]+):/', $line, $matches ) ) {
+	      if ( preg_match('/^\d+: ([^\s:@]+)[:@]/', $line, $matches ) ) {
           if ( $matches[1] != 'lo' ) {
             $interfaces[$matches[1]] = $matches[1];
           } else {
@@ -2353,17 +2338,20 @@ function get_networks() {
 	    }
 	  }
 	  $routes = array();
+	  $output = array();
 	  exec(ZM_PATH_IP.' route', $output, $status);
 	  if ($status) {
 	    $html_output = implode('<br/>', $output);
 	    ZM\Error("Unable to list network interfaces, status is '$status'. Output was:<br/><br/>$html_output");
 	  } else {
 	    foreach ($output as $line) {
-	      if ( preg_match('/^default via [.[:digit:]]+ dev ([[:alnum:]]+)/', $line, $matches) ) {
+	      if ( preg_match('/^default via [.[:digit:]]+ dev (\S+)/', $line, $matches) ) {
           $interfaces['default'] = $matches[1];
-	      } else if ( preg_match('/^([.[:digit:]]+\/[[:digit:]]+) dev ([[:alnum:]]+)/', $line, $matches) ) {
-          $interfaces[$matches[2]] .= ' ' . $matches[1];
-          ZM\Debug("Matched $line: $matches[2] .= $matches[1]");
+	      } else if ( preg_match('/^([.[:digit:]]+\/[[:digit:]]+) dev (\S+)/', $line, $matches) ) {
+          if (isset($interfaces[$matches[2]])) {
+            $interfaces[$matches[2]] .= ' ' . $matches[1];
+            ZM\Debug("Matched $line: $matches[2] .= $matches[1]");
+          }
         } else {
           ZM\Debug("Didn't match $line");
         }

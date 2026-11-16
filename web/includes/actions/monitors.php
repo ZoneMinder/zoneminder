@@ -26,6 +26,10 @@ if (!canEdit('Monitors')) {
 
 if ($action == 'save') {
   global $error_message;
+  // Fields the form left as "Unchanged" because the monitors differ
+  $newMonitor = array_filter($_REQUEST['newMonitor'], function($value) {
+    return $value !== 'unchanged';
+  });
   foreach ($_REQUEST['mids'] as $mid) {
     $mid = ValidInt($mid);
     if (!canEdit('Monitors', $mid)) {
@@ -34,7 +38,7 @@ if ($action == 'save') {
     }
     $Monitor = new ZM\Monitor($mid);
     // Before stopping it, so a refused save leaves the monitor running.
-    $refused = $Monitor->commandFieldChangesNotAllowed($_REQUEST['newMonitor']);
+    $refused = $Monitor->commandFieldChangesNotAllowed($newMonitor);
     if (count($refused)) {
       $error_message .= 'Changing '.implode(', ', $refused).' requires System edit permission.<br/>';
       continue;
@@ -42,10 +46,10 @@ if ($action == 'save') {
     if ($Monitor->Type() != 'WebSite') {
       $Monitor->zmcControl('stop');
     }
-    if (!$Monitor->save($_REQUEST['newMonitor'])) {
+    if (!$Monitor->save($newMonitor)) {
       $error_message .= 'Error saving monitor: ' . $Monitor->get_last_error().'<br/>';
     } else {
-      ZM\AuditAction('update', 'monitor', $mid, 'Bulk update: '.implode(', ', array_keys($_REQUEST['newMonitor'])));
+      ZM\AuditAction('update', 'monitor', $mid, 'Bulk update: '.implode(', ', array_keys($newMonitor)));
     }
     if ($Monitor->Capturing() != 'None' && $Monitor->Type() != 'WebSite') {
       $Monitor->zmcControl('start');

@@ -674,3 +674,21 @@ std::string escape_json_string(std::string input) {
   }
   return output;
 }
+
+size_t zm_parse_leb128(const unsigned char *data, size_t max_size, uint32_t &value) {
+  uint64_t result = 0;
+  size_t bytes_read = 0;
+
+  for (size_t i = 0; i < max_size && i < 8; i++) {
+    uint8_t byte = data[i];
+    result |= static_cast<uint64_t>(byte & 0x7F) << (7 * i);
+    bytes_read++;
+
+    if ((byte & 0x80) == 0) {
+      break;
+    }
+  }
+
+  value = static_cast<uint32_t>(result);
+  return bytes_read;
+}

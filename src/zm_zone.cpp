@@ -25,6 +25,10 @@
 
 #include <cstdlib>
 
+#if defined(__SSE2__)
+#include <emmintrin.h>
+#endif
+
 void Zone::Setup(
   ZoneType p_type,
   const Polygon &p_polygon,
@@ -116,6 +120,17 @@ Zone::~Zone() {
     delete image;
   delete pg_image;
   delete[] ranges;
+}
+
+// Counts the kBlack pixels at the start of p, eight at a time while it can.
+static int leading_black(const uint8_t *p, int count) {
+  int i = 0;
+  for (uint64_t word; i + 8 <= count; i += 8) {
+    memcpy(&word, p + i, sizeof(word));
+    if (word) break;
+  }
+  while (i < count && p[i] == kBlack) i++;
+  return i;
 }
 
 void Zone::RecordStats(const Event *event) {
@@ -212,6 +227,73 @@ bool Zone::CheckExtendAlarmCount() {
   return false;
 }  // end bool Zone::CheckExtendAlarmCount
 
+static void and_row(uint8_t *__restrict__ dst, const uint8_t *__restrict__ src, int count) {
+  for (int i = 0; i < count; i++) dst[i] &= src[i];
+}
+
+static void or_row(uint8_t *__restrict__ dst, const uint8_t *__restrict__ src, int count) {
+  for (int i = 0; i < count; i++) dst[i] |= src[i];
+}
+
+// Keeps only the white pixels that are inside at least one all white bx by by
+// box (an erosion then a dilation) and returns how many are left.
+static unsigned int filter_pixels(uint8_t *diff, int stride, int width, int height,
+                                  int bx, int by, std::vector<uint8_t> &buffer,
+                                  int &box_lo_x, int &box_hi_x, int &box_lo_y, int &box_hi_y) {
+  box_lo_x = width;
+  box_hi_x = -1;
+  box_lo_y = height;
+  box_hi_y = -1;
+  if (width <= 0 || height <= 0) return 0;
+  buffer.resize(static_cast<size_t>(width) * height);
+  uint8_t *boxes = buffer.data();
+
+  // Mark the top left corner of every all white box
+  for (int y = 0; y < height; y++) {
+    uint8_t *row = boxes + y * width;
+    const uint8_t *src = diff + y * stride;
+    memcpy(row, src, width);
+    for (int k = 1; k < bx && k < width; k++) and_row(row, src + k, width - k);
+    const int last = std::max(width - bx + 1, 0);
+    memset(row + last, 0, width - last);
+  }
+  for (int y = 0; y < height; y++) {
+    uint8_t *row = boxes + y * width;
+    if (y + by > height) {
+      memset(row, 0, width);
+      continue;
+    }
+    for (int k = 1; k < by; k++) and_row(row, row + k * width, width);
+  }
+
+  // Spread each corner back over its box
+  for (int y = height - 1; y > 0; y--) {
+    uint8_t *row = boxes + y * width;
+    for (int k = 1; k < by && k <= y; k++) or_row(row, row - k * width, width);
+  }
+  unsigned int count = 0;
+  for (int y = 0; y < height; y++) {
+    const uint8_t *row = boxes + y * width;
+    uint8_t *dst = diff + y * stride;
+    memcpy(dst, row, width);
+    for (int k = 1; k < bx && k < width; k++) or_row(dst + k, row, width - k);
+    unsigned int row_count = 0;
+    for (int x = 0; x < width; x++) {
+      if (dst[x] & 1) {
+        row_count++;
+        if (x < box_lo_x) box_lo_x = x;
+        if (x > box_hi_x) box_hi_x = x;
+      }
+    }
+    if (row_count) {
+      if (y < box_lo_y) box_lo_y = y;
+      box_hi_y = y;
+      count += row_count;
+    }
+  }
+  return count;
+}
+
 bool Zone::CheckAlarms(const Image *delta_image) {
   ResetStats();
 
@@ -258,6 +340,10 @@ bool Zone::CheckAlarms(const Image *delta_image) {
 
   unsigned int pixel_diff_count = 0;
 
+  // A degenerate polygon (collinear points, one pixel wide) has no area but still rasterises pixels.
+  const int polygon_area = polygon.Area();
+  const int zone_area = polygon_area > 0 ? polygon_area : 1;
+
   int alarm_lo_x = 0;
   int alarm_hi_x = 0;
   int alarm_lo_y = 0;
@@ -289,14 +375,33 @@ bool Zone::CheckAlarms(const Image *delta_image) {
     return false;
   }
 
-  // Zero the bbox rows so filter/blob stages see kBlack for pixels outside
-  // each row's per-polygon ranges. alarmedpixels_row will write kWhite/kBlack
-  // for pixels inside the ranges.
-  memset(diff_buff + (lo_y * diff_width), 0, static_cast<size_t>(hi_y - lo_y + 1) * diff_width);
+  // Zero only the bbox pixels alarmedpixels_row will not overwrite, so the
+  // filter/blob stages still see kBlack outside each row's polygon range.
+  for (int y = lo_y; y <= hi_y; y++) {
+    const int lo_x = ranges[y].lo_x;
+    const int hi_x = ranges[y].hi_x;
+    pdiff = diff_buff + (y * diff_width);
+
+    if (lo_x < 0 || lo_x > hi_x) {
+      memset(pdiff, 0, diff_width);
+      continue;
+    }
+
+    // Same clamp as std_alarmedpixels.
+    const int clamped_hi_x = (hi_x >= diff_width) ? diff_width - 1 : hi_x;
+
+    if (lo_x > 0) {
+      memset(pdiff, 0, (lo_x < diff_width) ? static_cast<size_t>(lo_x) : static_cast<size_t>(diff_width));
+    }
+    if (clamped_hi_x < diff_width - 1) {
+      memset(pdiff + clamped_hi_x + 1, 0, static_cast<size_t>(diff_width - clamped_hi_x - 1));
+    }
+  }
 
   Debug(4, "Checking alarms for zone %d/%s in lines %d -> %d", id, label.c_str(), lo_y, hi_y);
 
-  std_alarmedpixels(delta_image, diff_image, pg_image, &stats.alarm_pixels_, &pixel_diff_count);
+  Box alarmed_box;
+  std_alarmedpixels(delta_image, diff_image, pg_image, &stats.alarm_pixels_, &pixel_diff_count, &alarmed_box);
 
   if (config.record_diag_images) {
     diff_image->WriteJpeg(diag_path, config.record_diag_images_fifo);
@@ -327,61 +432,36 @@ bool Zone::CheckAlarms(const Image *delta_image) {
     return false;
   }
 
-  stats.score_ = (100*stats.alarm_pixels_)/(max_alarm_pixels ? max_alarm_pixels : polygon.Area());
+  stats.score_ = (100*stats.alarm_pixels_)/(max_alarm_pixels ? max_alarm_pixels : zone_area);
   if (stats.score_ < 1)
     stats.score_ = 1; /* Fix for score of 0 when frame meets thresholds but alarmed area is not big enough */
   Debug(5, "Current score is %d", stats.score_);
 
+  alarm_lo_x = alarmed_box.Lo().x_;
+  alarm_lo_y = alarmed_box.Lo().y_;
+  alarm_hi_x = alarmed_box.Hi().x_;
+  alarm_hi_y = alarmed_box.Hi().y_;
+  alarm_mid_x = (alarm_hi_x+alarm_lo_x+1)/2;
+  alarm_mid_y = (alarm_hi_y+alarm_lo_y+1)/2;
+
   if (check_method >= FILTERED_PIXELS) {
     int bx = filter_box.x_;
     int by = filter_box.y_;
-    int bx1 = bx-1;
-    int by1 = by-1;
 
     Debug(5, "Checking for filtered pixels");
-    if (bx > 1 || by > 1) {
+    if (bx >= 1 && by >= 1 && (bx > 1 || by > 1)) {
       // Now remove any pixels smaller than our filter size
-      unsigned char *cpdiff;
-      int ldx, hdx, ldy, hdy;
-      bool block;
-      for (int y = lo_y; y <= hi_y; y++) {
-        int lo_x = ranges[y].lo_x;
-        int hi_x = ranges[y].hi_x;
-
-        // Skip rows with no polygon pixels (lo_x == -1 means no pixels)
-        if (lo_x < 0 || lo_x > hi_x) continue;
-
-        pdiff = diff_image->Buffer(lo_x, y);
-
-        for (int x = lo_x; x <= hi_x; x++, pdiff++) {
-          if (*pdiff == kWhite) {
-            // Check participation in an X block
-            ldx = (x>=(lo_x+bx1))?-bx1:lo_x-x;
-            hdx = (x<=(hi_x-bx1))?0:((hi_x-x)-bx1);
-            ldy = (y>=(lo_y+by1))?-by1:lo_y-y;
-            hdy = (y<=(hi_y-by1))?0:((hi_y-y)-by1);
-            block = false;
-            for (int dy = ldy; !block && dy <= hdy; dy++) {
-              for (int dx = ldx; !block && dx <= hdx; dx++) {
-                block = true;
-                for (int dy2 = 0; block && dy2 < by; dy2++) {
-                  for (int dx2 = 0; block && dx2 < bx; dx2++) {
-                    cpdiff = diff_buff + (((y+dy+dy2)*diff_width) + (x+dx+dx2));
-                    if (!*cpdiff ) {
-                      block = false;
-                    }
-                  }
-                }
-              }
-            }
-            if (!block) {
-              *pdiff = kBlack;
-              continue;
-            }
-            stats.alarm_filter_pixels_++;
-          }  // end if white
-        }  // end for x
-      }  // end foreach y line
+      const int lo_x = std::max(polygon.Extent().Lo().x_, 0);
+      int box_lo_x, box_hi_x, box_lo_y, box_hi_y;
+      stats.alarm_filter_pixels_ = filter_pixels(diff_buff + lo_y * diff_width + lo_x, diff_width,
+                                                 hi_x - lo_x + 1, hi_y - lo_y + 1, bx, by, filter_buffer,
+                                                 box_lo_x, box_hi_x, box_lo_y, box_hi_y);
+      if (stats.alarm_filter_pixels_) {
+        alarm_lo_x = lo_x + box_lo_x;
+        alarm_hi_x = lo_x + box_hi_x;
+        alarm_lo_y = lo_y + box_lo_y;
+        alarm_hi_y = lo_y + box_hi_y;
+      }
     } else {
       stats.alarm_filter_pixels_ = stats.alarm_pixels_;
     }
@@ -416,7 +496,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
     if (max_filter_pixels != 0)
       stats.score_ = (100*stats.alarm_filter_pixels_)/max_filter_pixels;
     else
-      stats.score_ = (100*stats.alarm_filter_pixels_)/polygon.Area();
+      stats.score_ = (100*stats.alarm_filter_pixels_)/zone_area;
 
     if (stats.score_ < 1)
       stats.score_ = 1; /* Fix for score of 0 when frame meets thresholds but alarmed area is not big enough */
@@ -439,6 +519,10 @@ bool Zone::CheckAlarms(const Image *delta_image) {
 
         pdiff = diff_image->Buffer(lo_x, y);
         for (int x = lo_x; x <= hi_x; x++, pdiff++) {
+          const int black = leading_black(pdiff, hi_x - x + 1);
+          x += black;
+          pdiff += black;
+          if (x > hi_x) break;
           if (*pdiff == kWhite) {
             Debug(9, "Got white pixel at %d,%d (%p)", x, y, pdiff);
 
@@ -699,7 +783,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
       if (max_blob_pixels != 0)
         stats.score_ = (100*stats.alarm_blob_pixels_)/max_blob_pixels;
       else
-        stats.score_ = (100*stats.alarm_blob_pixels_)/polygon.Area();
+        stats.score_ = (100*stats.alarm_blob_pixels_)/zone_area;
 
       if (stats.score_ < 1)
         stats.score_ = 1; /* Fix for score of 0 when frame meets thresholds but alarmed area is not big enough */
@@ -968,6 +1052,46 @@ bool Zone::ParseZoneString(const char *zone_string, unsigned int &zone_id, int &
   return result;
 }  // end bool Zone::ParseZoneString(const char *zone_string, int &zone_id, int &colour, Polygon &polygon)
 
+bool Zone::ParseCoords(const char *Coords, unsigned int width, unsigned int height, Polygon &polygon, bool &clamped) {
+  clamped = false;
+  // Auto-detect coordinate format: decimal points mean percentages,
+  // integer-only means legacy pixel values. Units field is not trusted.
+  if (strchr(Coords, '.')) {
+    return ParsePercentagePolygon(Coords, width, height, polygon);
+  }
+  if (!ParsePolygonString(Coords, polygon)) return false;
+  // Pixel coordinates are not scaled to the monitor, so they can lie outside
+  // it (zone drawn at a larger size, or written through the API). Setup()
+  // rasterises the polygon into a monitor-sized image.
+  clamped = ClampPolygon(polygon, width, height);
+  return true;
+}
+
+// Number of zones Load() would produce, without constructing them.
+size_t Zone::Count(const std::shared_ptr<Monitor> &monitor) {
+  std::string sql = stringtf("SELECT Id,Name,Coords FROM Zones WHERE MonitorId = %d", monitor->Id());
+
+  MYSQL_RES *result = zmDbFetch(sql);
+  if (!result) {
+    return 0;
+  }
+
+  size_t count = 0;
+  for (MYSQL_ROW dbrow = mysql_fetch_row(result); dbrow; dbrow = mysql_fetch_row(result)) {
+    const char *Coords = dbrow[2];
+    Polygon polygon;
+    bool clamped;
+    if (!ParseCoords(Coords, monitor->Width(), monitor->Height(), polygon, clamped)) {
+      Error("Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring",
+            Coords, atoi(dbrow[0]), dbrow[1], monitor->Name());
+      continue;
+    }
+    count++;
+  }
+  mysql_free_result(result);
+  return count;
+}
+
 std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
   std::string sql = stringtf("SELECT Id,Name,Type+0,Units,Coords,AlarmRGB,CheckMethod+0,"
                              "MinPixelThreshold,MaxPixelThreshold,MinAlarmPixels,MaxAlarmPixels,"
@@ -1030,31 +1154,17 @@ std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
     /* HTML colour code is actually BGR in memory, we want RGB */
     AlarmRGB = rgb_convert(AlarmRGB, ZM_SUBPIX_ORDER_BGR);
 
-    // Auto-detect coordinate format: decimal points mean percentages,
-    // integer-only means legacy pixel values. Units field is not trusted.
     Debug(5, "Parsing polygon %s (Units=%s)", Coords, Units);
     Polygon polygon;
-    if (strchr(Coords, '.')) {
-      // Decimal values present — treat as percentages regardless of Units field
-      if (!ParsePercentagePolygon(Coords, monitor->Width(), monitor->Height(), polygon)) {
-        Error("Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring",
-              Coords, Id, Name, monitor->Name());
-        continue;
-      }
-    } else {
-      // Integer-only coordinates — treat as pixel values
-      if (!ParsePolygonString(Coords, polygon)) {
-        Error("Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring",
-              Coords, Id, Name, monitor->Name());
-        continue;
-      }
-      // Pixel coordinates are not scaled to the monitor, so they can lie outside
-      // it (zone drawn at a larger size, or written through the API). Setup()
-      // rasterises the polygon into a monitor-sized image.
-      if (ClampPolygon(polygon, monitor->Width(), monitor->Height())) {
-        Warning("Zone %d/%s for monitor %s has coordinates '%s' outside %ux%u, clamping",
-                Id, Name, monitor->Name(), Coords, monitor->Width(), monitor->Height());
-      }
+    bool clamped = false;
+    if (!ParseCoords(Coords, monitor->Width(), monitor->Height(), polygon, clamped)) {
+      Error("Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring",
+            Coords, Id, Name, monitor->Name());
+      continue;
+    }
+    if (clamped) {
+      Warning("Zone %d/%s for monitor %s has coordinates '%s' outside %ux%u, clamping",
+              Id, Name, monitor->Name(), Coords, monitor->Width(), monitor->Height());
     }
 
     // Convert threshold values from DB format to pixel counts for runtime use.
@@ -1150,7 +1260,29 @@ static void alarmedpixels_row(
     uint8_t calc_max,
     uint32_t &pixelsalarmed,
     uint32_t &pixelsdifference) {
-  for (unsigned int i = 0; i < count; i++) {
+  unsigned int i = 0;
+#if defined(__SSE2__)
+  static_assert(kWhite == 0xff, "the compare mask is stored as the alarm value");
+  const __m128i zero = _mm_setzero_si128();
+  const __m128i one = _mm_set1_epi8(1);
+  const __m128i vmin = _mm_set1_epi8(static_cast<char>(calc_min));
+  const __m128i vmax = _mm_set1_epi8(static_cast<char>(calc_max));
+  __m128i alarmed_count = zero;
+  __m128i alarmed_sum = zero;
+  for (; i + 16 <= count; i += 16) {
+    const __m128i d = _mm_loadu_si128(reinterpret_cast<const __m128i *>(pdelta + i));
+    const __m128i p = _mm_loadu_si128(reinterpret_cast<const __m128i *>(ppoly + i));
+    // Unsigned d <= x is (d -sat x) == 0
+    const __m128i rejected = _mm_or_si128(_mm_cmpeq_epi8(p, zero), _mm_cmpeq_epi8(_mm_subs_epu8(d, vmin), zero));
+    const __m128i alarmed = _mm_andnot_si128(rejected, _mm_cmpeq_epi8(_mm_subs_epu8(d, vmax), zero));
+    _mm_storeu_si128(reinterpret_cast<__m128i *>(pmask + i), alarmed);
+    alarmed_count = _mm_add_epi64(alarmed_count, _mm_sad_epu8(_mm_and_si128(alarmed, one), zero));
+    alarmed_sum = _mm_add_epi64(alarmed_sum, _mm_sad_epu8(_mm_and_si128(alarmed, d), zero));
+  }
+  pixelsalarmed += _mm_cvtsi128_si32(alarmed_count) + _mm_cvtsi128_si32(_mm_srli_si128(alarmed_count, 8));
+  pixelsdifference += _mm_cvtsi128_si32(alarmed_sum) + _mm_cvtsi128_si32(_mm_srli_si128(alarmed_sum, 8));
+#endif
+  for (; i < count; i++) {
     const uint8_t d = pdelta[i];
     const uint8_t p = ppoly[i];
     // Bitwise AND avoids short-circuit branches that block vectorization
@@ -1167,7 +1299,8 @@ void Zone::std_alarmedpixels(
   Image* pmask_image,
   const Image* ppoly_image,
   unsigned int* pixel_count,
-  unsigned int* pixel_sum) {
+  unsigned int* pixel_sum,
+  Box* alarmed_box) {
   uint32_t pixelsalarmed = 0;
   uint32_t pixelsdifference = 0;
 
@@ -1185,6 +1318,8 @@ void Zone::std_alarmedpixels(
   if (hi_y >= img_height) hi_y = img_height - 1;
   if (lo_y > hi_y) { *pixel_count = 0; *pixel_sum = 0; return; }
 
+  int box_lo_x = img_width, box_hi_x = -1, box_lo_y = img_height, box_hi_y = -1;
+
   for (int y = lo_y; y <= hi_y; y++) {
     const int lo_x = ranges[y].lo_x;
     const int hi_x = ranges[y].hi_x;
@@ -1194,18 +1329,32 @@ void Zone::std_alarmedpixels(
     // Clamp hi_x to image width
     const int clamped_hi_x = (hi_x >= img_width) ? img_width - 1 : hi_x;
 
+    const uint32_t alarmed_before = pixelsalarmed;
+    const int count = clamped_hi_x - lo_x + 1;
+    const uint8_t *pmask = pmask_image->Buffer(lo_x, y);
     alarmedpixels_row(
         pdelta_image->Buffer(lo_x, y),
         pmask_image->Buffer(lo_x, y),
         ppoly_image->Buffer(lo_x, y),
-        clamped_hi_x - lo_x + 1,
+        count,
         calc_min, calc_max,
         pixelsalarmed, pixelsdifference);
+
+    if (pixelsalarmed != alarmed_before) {
+      int last = count - 1;
+      while (pmask[last] == kBlack) last--;
+      const int first = leading_black(pmask, count);
+      if (lo_x + first < box_lo_x) box_lo_x = lo_x + first;
+      if (lo_x + last > box_hi_x) box_hi_x = lo_x + last;
+      if (y < box_lo_y) box_lo_y = y;
+      box_hi_y = y;
+    }
   }  // end for y = lo_y to hi_y
 
   /* Store the results */
   *pixel_count = pixelsalarmed;
   *pixel_sum = pixelsdifference;
+  if (pixelsalarmed) *alarmed_box = Box(Vector2(box_lo_x, box_lo_y), Vector2(box_hi_x, box_hi_y));
   Debug(7, "STORED pixelsalarmed(%d), pixelsdifference(%d)", pixelsalarmed, pixelsdifference);
 }  // end void Zone::std_alarmedpixels
 

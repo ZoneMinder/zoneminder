@@ -57,7 +57,7 @@ echo getNavBarHTML();
   <div id="page">
     <div id="content">
       <form id="contentForm" name="contentForm" method="post" action="?view=user">
-        <input type="hidden" name="redirect" value="<?php echo isset($_REQUEST['prev']) ? htmlspecialchars($_REQUEST['prev']) : 'options&tab=users' ?>"/>
+        <input type="hidden" name="redirect" value="<?php echo (isset($_REQUEST['prev']) and is_string($_REQUEST['prev'])) ? htmlspecialchars($_REQUEST['prev']) : 'options&tab=users' ?>"/>
         <input type="hidden" name="uid" value="<?php echo validHtmlStr($User->Id()) ?>"/>
         <div id="header">
           <div class="float-left pt-1">
@@ -107,15 +107,15 @@ echo getNavBarHTML();
                     </tr>
                     <tr>
                       <th scope="row"><?php echo translate('Full Name') ?></th>
-                      <td><input type="text" class="form-control form-control-sm" name="user[Name]" value="<?php echo validHtmlStr($User->Name()) ?>"/></td>
+                      <td><input type="text" class="form-control form-control-sm" name="user[Name]" value="<?php echo validHtmlStr($User->Name()) ?>"<?php echo canEdit('System') ? '' : ' disabled="disabled"' ?>/></td>
                     </tr>
                     <tr>
                       <th scope="row"><?php echo translate('Email Address') ?></th>
-                      <td><input type="email" class="form-control form-control-sm" name="user[Email]" value="<?php echo validHtmlStr($User->Email()) ?>"/></td>
+                      <td><input type="email" class="form-control form-control-sm" name="user[Email]" value="<?php echo validHtmlStr($User->Email()) ?>"<?php echo canEdit('System') ? '' : ' disabled="disabled"' ?>/></td>
                     </tr>
                     <tr>
                       <th scope="row"><?php echo translate('Phone') ?></th>
-                      <td><input type="tel" class="form-control form-control-sm" name="user[Phone]" value="<?php echo validHtmlStr($User->Phone()) ?>"/></td>
+                      <td><input type="tel" class="form-control form-control-sm" name="user[Phone]" value="<?php echo validHtmlStr($User->Phone()) ?>"<?php echo canEdit('System') ? '' : ' disabled="disabled"' ?>/></td>
                     </tr>
                   </tbody>
                 </table>
@@ -135,6 +135,7 @@ echo getNavBarHTML();
                       <td>
 <?php
     $homeview_options = [
+      ''=>translate('Default'),
       'console'=>translate('Console'),
       'events'=> translate('Events'),
       'map'   =>  translate('Map'),
@@ -169,13 +170,7 @@ echo htmlSelect('user[HomeView]', $homeview_options, $User->HomeView(), ['class'
                       <th scope="row"><?php echo translate('MaxBandwidth') ?></th>
                       <td><?php echo htmlSelect('user[MaxBandwidth]', $bandwidths, $User->MaxBandwidth(), ['class'=>'form-control form-control-sm']) ?></td>
                     </tr>
-<?php   if (ZM_OPT_USE_API) { ?>
-                    <tr>
-                      <th scope="row"><?php echo translate('APIEnabled')?></th>
-                      <td><?php echo htmlSelect('user[APIEnabled]', $yesno, $User->APIEnabled(), ['class'=>'form-control form-control-sm']) ?></td>
-                    </tr>
 <?php
-      } // end if ZM_OPT_USE_API
     } // end if canEdit System
 ?>
                   </tbody>
@@ -184,7 +179,7 @@ echo htmlSelect('user[HomeView]', $homeview_options, $User->HomeView(), ['class'
             </div>
           </div><!--end row-->
 
-<?php if (ZM_OPT_USE_API && $User->Id() && $User->APIEnabled()) {
+<?php if (ZM_OPT_USE_API && $User->Id()) {
   // Determine profile name: ZM_WEB_TITLE if not default, else ZM_HOME_URL if not default, else 'ZoneMinder'
   $profileName = 'ZoneMinder';
   if (defined('ZM_WEB_TITLE') && ZM_WEB_TITLE !== 'ZoneMinder' && ZM_WEB_TITLE !== '') {

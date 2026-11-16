@@ -40,6 +40,7 @@ class Control extends ZM_Object {
     'HasTurboTilt' => 0,
     'TurboTiltSpeed' => NULL,
     'CanZoom' => 0,
+    'CanAutoZoom' => 0,
     'CanZoomAbs' => 0,
     'CanZoomRel' => 0,
     'CanZoomCon' => 0,

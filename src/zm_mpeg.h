@@ -23,6 +23,9 @@
 #include "zm_ffmpeg.h"
 #include <pthread.h>
 #include <array>
+#include <vector>
+
+class Image;
 
 class VideoStream {
  protected:
@@ -63,6 +66,9 @@ class VideoStream {
   int buffer_copy_used;
   std::array<av_packet_ptr, 2> packet_buffers;
   int packet_index;
+  // EncodeImage's conversion target and scaler, reused from frame to frame.
+  std::vector<uint8_t> packed_image;
+  SwsContext *pack_context;
   int SendPacket(AVPacket *packet);
   static void* StreamingThreadCallback(void *ctx);
 
@@ -81,6 +87,19 @@ class VideoStream {
   const char *MimeType() const;
   bool OpenStream();
   double EncodeFrame( const uint8_t *buffer, int buffer_size, bool add_timestamp=false, unsigned int timestamp=0 );
+  // Encode an Image of any size, pixel format and stride. EncodeFrame copies its
+  // buffer into one sized for the dimensions and format the stream was opened
+  // with, packed with no row padding, so a frame that differs in any of those
+  // (an event from another monitor, a text frame in the monitor's RGB32 after
+  // RGB24 event frames, a 32-byte aligned stride) would overrun it. This
+  // converts to exactly that layout first.
+  double EncodeImage(const Image &image, bool add_timestamp=false, unsigned int timestamp=0);
+  // Convert image into out as a packed (align 1) buffer of pf at width x height,
+  // reusing *context. An image of another shape is fitted inside, keeping its
+  // aspect ratio, on black. Returns false if the conversion could not be set up.
+  static void FillBlack(AVPixelFormat pf, int height, uint8_t *data[4], const int linesize[4]);
+  static bool PackImage(const Image &image, AVPixelFormat pf, int width, int height,
+                        std::vector<uint8_t> &out, SwsContext **context);
 };
 
 #endif // ZM_MPEG_H

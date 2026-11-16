@@ -31,7 +31,6 @@
 
 extern "C" {
 #include <libavutil/time.h>
-#include <libavdevice/avdevice.h>
 }
 
 TimePoint start_read_time;
@@ -436,7 +435,8 @@ int FfmpegCamera::OpenFfmpeg() {
   if (!mOptions.empty()) {
     ret = av_dict_parse_string(&opts, mOptions.c_str(), "=", kOptionSeparators, 0);
     if (ret < 0) {
-      Warning("Could not parse ffmpeg input options '%s'", mOptions.c_str());
+      Error("Could not parse ffmpeg input options '%s'. Options must be key=value pairs separated by commas or "
+            "new lines, such as tls_verify=0, not ffmpeg command line flags like -tls_verify 0.", mOptions.c_str());
     }
 
     // "loop=1" is handled by us (seek-to-start on EOF), not by ffmpeg, which
@@ -489,7 +489,7 @@ int FfmpegCamera::OpenFfmpeg() {
       Warning("Could not set rtsp_transport method '%s'", method.c_str());
     }
   } else if (protocol == "V4L2") {
-    avdevice_register_all();
+    if (!zm_load_avdevice()) return -1;
     input_format = av_find_input_format("video4linux2");
     if (!input_format) {
       Error("Cannot find v4l2 input format");
@@ -627,6 +627,10 @@ int FfmpegCamera::OpenFfmpeg() {
       mAudioStream = mSecondInput->get_audio_stream();
     } else {
       Warning("Failed to open secondary input");
+      mSecondFormatContext = nullptr;
+      mAudioStream = nullptr;
+      mAudioStreamId = -1;
+      mSecondInput.reset();
     }
   }  // end if have audio stream
 
@@ -673,6 +677,13 @@ int FfmpegCamera::Close() {
     avformat_close_input(&mFormatContext);
     mFormatContext = nullptr;
   }
+
+  if ( mSecondFormatContext ) {
+    mSecondFormatContext = nullptr;
+    mAudioStream = nullptr;
+    mAudioStreamId = -1;
+  }
+  mSecondInput.reset();
 
   return 0;
 }  // end FfmpegCamera::Close

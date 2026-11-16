@@ -61,8 +61,8 @@ void zmLoadStaticConfig() {
       for (unsigned int i = 0; i < pglob.gl_pathc; i++) {
         process_configfile(pglob.gl_pathv[i]);
       }
+      globfree(&pglob);
     }
-    globfree(&pglob);
     closedir(configSubFolder);
   }
 }
@@ -167,14 +167,14 @@ void process_configfile(char const *configFile) {
 
     // Remove trailing white space and trailing quotes
     char *temp_ptr = line_ptr+strlen(line_ptr)-1;
-    while ( *temp_ptr == ' ' || *temp_ptr == '\t' || *temp_ptr == '\'' || *temp_ptr == '\"') {
+    while ( temp_ptr >= line_ptr && (*temp_ptr == ' ' || *temp_ptr == '\t' || *temp_ptr == '\'' || *temp_ptr == '\"') ) {
       *temp_ptr-- = '\0';
     }
 
     // Now look for the '=' in the middle of the line
     temp_ptr = strchr(line_ptr, '=');
     if ( !temp_ptr ) {
-      Warning("Invalid data in %s: '%s'", configFile, line.data());
+      Warning("Invalid data in %s: '%s'", configFile, raw.c_str());
       continue;
     }
 
@@ -188,10 +188,20 @@ void process_configfile(char const *configFile) {
       temp_ptr--;
     } while ( temp_ptr >= name_ptr && (*temp_ptr == ' ' || *temp_ptr == '\t') );
 
+    if ( *name_ptr == '\0' ) {
+      Warning("Invalid data in %s: '%s'", configFile, raw.c_str());
+      continue;
+    }
+
     // Remove leading white space and leading quotes from the value part
-    white_len = strspn(val_ptr, " \t");
-    white_len += strspn(val_ptr, "\'\"");
-    val_ptr += white_len;
+    val_ptr += strspn(val_ptr, " \t");
+    val_ptr += strspn(val_ptr, "\'\"");
+
+    // Uppercase option names so lowercase / mixed-case keys in files match
+    // daemon config bindings (which are uppercase), matching Perl's uc($name).
+    for (char *p = name_ptr; *p; ++p) {
+      *p = static_cast<char>(toupper(static_cast<unsigned char>(*p)));
+    }
 
     staticConfig.file_options[name_ptr] = val_ptr;
 
@@ -266,14 +276,19 @@ ConfigItem::ConfigItem() : cfg_type_(CFG_UNKNOWN), accessed_(false) {
 }
 
 ConfigItem::ConfigItem(const char *p_name, const char *p_value, const char *const p_type)
-    : name_(p_name), value_(p_value), type_(p_type), cfg_type_(CFG_UNKNOWN), accessed_(false) {
+    : name_(p_name ? p_name : ""),
+      value_(p_value ? p_value : ""),
+      type_(p_type ? p_type : ""),
+      cfg_type_(CFG_UNKNOWN),
+      accessed_(false) {
   cfg_value_.integer_value = 0;
 }
 
 void ConfigItem::ConvertValue() const {
   if ( type_ == "boolean" ) {
     cfg_type_ = CFG_BOOLEAN;
-    cfg_value_.boolean_value = (bool)strtol(value_.c_str(), nullptr, 0);
+    std::string val = ConfigFileValue(value_, "boolean");
+    cfg_value_.boolean_value = (bool)strtol(val.c_str(), nullptr, 0);
   } else if ( type_ == "integer" ) {
     cfg_type_ = CFG_INTEGER;
     cfg_value_.integer_value = strtol(value_.c_str(), nullptr, 10);
@@ -296,7 +311,8 @@ bool ConfigItem::BooleanValue() const {
   if ( cfg_type_ != CFG_BOOLEAN ) {
     Warning("Attempt to fetch boolean value for %s, actual type is %s. Try running 'zmupdate.pl -f' to reload config.",
             name_.c_str(), type_.c_str());
-    return !value_.empty() && value_ != "0";
+    std::string val = ConfigFileValue(value_, "boolean");
+    return !val.empty() && val != "0";
   }
 
   return cfg_value_.boolean_value;
@@ -418,10 +434,15 @@ void Config::Load() {
 }
 
 std::string ConfigFileValue(const std::string &value, const char *type) {
-  if (strcmp(type, "boolean") != 0) return value;
+  if (!type || strcmp(type, "boolean") != 0) return value;
   // The Config table stores 1/0; a person editing a file may write a word.
+  size_t start = value.find_first_not_of(" \t\r\n");
+  if (start == std::string::npos) return value;
+  size_t end = value.find_last_not_of(" \t\r\n");
   std::string word;
-  for (char c : value) word += static_cast<char>(tolower(static_cast<unsigned char>(c)));
+  for (size_t i = start; i <= end; ++i) {
+    word += static_cast<char>(tolower(static_cast<unsigned char>(value[i])));
+  }
   if (word == "yes" or word == "true" or word == "on") return "1";
   if (word == "no" or word == "false" or word == "off") return "0";
   return value;

@@ -39,3 +39,29 @@ TEST_CASE("MonitorLinkExpression does not refer to the caller's string", "[Monit
   MonitorLinkExpression::Result result = expression->result();
   REQUIRE_FALSE(result.success);
 }
+
+TEST_CASE("MonitorLinkExpression rejects malformed syntax and unconsumed tokens without crashing", "[MonitorLink]") {
+  SECTION("leading right parenthesis does not dereference null left operand") {
+    MonitorLinkExpression expression(") abc");
+    REQUIRE(expression.parse());
+    REQUIRE_FALSE(expression.result().success);
+  }
+
+  SECTION("empty parentheses do not crash") {
+    MonitorLinkExpression expression("()");
+    REQUIRE(expression.parse());
+    REQUIRE_FALSE(expression.result().success);
+  }
+
+  SECTION("single operator token is rejected") {
+    MonitorLinkExpression expression("&");
+    REQUIRE(expression.parse());
+    REQUIRE_FALSE(expression.result().success);
+  }
+
+  SECTION("unbalanced trailing parenthesis is rejected") {
+    MonitorLinkExpression expression("abc )");
+    REQUIRE(expression.parse());
+    REQUIRE_FALSE(expression.result().success);
+  }
+}

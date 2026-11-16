@@ -78,6 +78,7 @@ echo getNavBarHTML();
 
 $eventsSql = 'SELECT E.*,M.Name AS MonitorName FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId) WHERE';
 $eventsValues = array();
+if (isset($_REQUEST['filter']) and !is_array($_REQUEST['filter'])) unset($_REQUEST['filter']);
 $filterQuery = '';
 $sortColumn = '';
 $sortOrder = '';
@@ -93,7 +94,7 @@ if (count($user->unviewableMonitorIds())) {
 if ( isset($_REQUEST['eid']) and $_REQUEST['eid'] ) {
   $eventsSql .= ' AND E.Id=?';
   $eventsValues[] = $_REQUEST['eid'];
-} else if ( isset($_REQUEST['eids']) and count($_REQUEST['eids']) > 0 ) {
+} else if ( isset($_REQUEST['eids']) and is_array($_REQUEST['eids']) and count($_REQUEST['eids']) > 0 ) {
   $eventsSql .= ' AND E.Id IN ('.implode(',', array_map(function(){return '?';}, $_REQUEST['eids'])). ')';
   $eventsValues += $_REQUEST['eids'];
 } else if ( isset($_REQUEST['filter']) ) {
@@ -110,6 +111,11 @@ if ( isset($_REQUEST['eid']) and $_REQUEST['eid'] ) {
 } # end if filter
 
 $results = dbQuery($eventsSql, $eventsValues);
+if (!$results) {
+  ZM\Error('Unable to load the events to export');
+  $view = 'error';
+  return;
+}
 
 echo 'Export the following ' .$results->rowCount() . ' events:<br/>';
 $disk_space_total = 0;
@@ -165,9 +171,9 @@ while ( $event_row = dbFetchNext($results) ) {
 <?php
   if ( ZM_WEB_EVENT_DISK_SPACE ) {
     $disk_space_total += $event->DiskSpace();
-		$event_count += 1;
     echo '<td class="colDiskSpace">'.human_filesize($event->DiskSpace()).'</td>';
   }
+  $event_count += 1;
   unset($event);
   echo PHP_EOL.'</tr>'.PHP_EOL;
 } # end foreach event

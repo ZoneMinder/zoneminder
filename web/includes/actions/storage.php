@@ -27,9 +27,14 @@ if ( !canEdit('System') ) {
 global $error_message;
 
 if ($action == 'save') {
-  $storage = new ZM\Storage(validCardinal($_REQUEST['id']));
-
-  $changes = $storage->changes($_REQUEST['newStorage']);
+  if (!isset($_REQUEST['id']) || !isset($_REQUEST['newStorage']) || !is_array($_REQUEST['newStorage'])) {
+    ZM\Error('Storage save requires an id and newStorage');
+    $error_message .= 'Invalid storage request';
+    $changes = array();
+  } else {
+    $storage = new ZM\Storage(validCardinal($_REQUEST['id']));
+    $changes = $storage->changes($_REQUEST['newStorage']);
+  }
 
   if (count($changes)) {
     if ($storage->save($changes)) {

@@ -222,43 +222,19 @@ function initPage() {
     };
     el.onchange();
   });
-  document.querySelectorAll('select[name="newMonitor[OutputCodec]"]').forEach(function(el) {
+  document.querySelectorAll('select[name="newMonitor[OutputCodecName]"]').forEach(function(el) {
     el.onchange = function() {
-      var encoder_dropdown = $j('select[name="newMonitor[Encoder]"]');
-      if (encoder_dropdown) {
-        for (i=0; i<encoder_dropdown[0].options.length; i++) {
-          option = encoder_dropdown[0].options[i];
-          if ( this.value == 27 ) {
-            option.disabled = !option.value.includes('264');
-            if ( option.disabled && option.selected ) {
-              encoder_dropdown[0].options[0].selected = 1;
-              option.selected = false;
-            }
-          } else if ( this.value == 167 /* vp9 */ ) {
-            option.disabled = !(option.value.includes('vp9'));
-            if ( option.disabled && option.selected ) {
-              encoder_dropdown[0].options[0].selected = 1;
-              option.selected = false;
-            }
-          } else if ( this.value == 173 /* hevc */ ) {
-            option.disabled = !(option.value.includes('hevc') || option.value.includes('265') );
-            if ( option.disabled && option.selected ) {
-              encoder_dropdown[0].options[0].selected = 1;
-              option.selected = false;
-            }
-          } else if ( this.value == 226 /* av1 */ ) {
-            option.disabled = !(option.value.includes('av1'));
-            if ( option.disabled && option.selected ) {
-              encoder_dropdown[0].options[0].selected = 1;
-              option.selected = false;
-            }
-          } else {
-            option.disabled = false;
-          }
+      const encoder_dropdown = document.querySelector('select[name="newMonitor[Encoder]"]');
+      if (!encoder_dropdown) return;
+      let reset = false;
+      for (const option of encoder_dropdown.options) {
+        option.disabled = !ZM_EncoderTemplates.encoderMatchesCodec(this.value, option.value);
+        if (option.disabled && option.selected) {
+          encoder_dropdown.selectedIndex = 0;
+          reset = true;
         }
-      } else {
-        console.log('No encoder');
       }
+      if (reset) encoder_dropdown.dispatchEvent(new Event('change'));
     };
     el.onchange();
   });
@@ -650,8 +626,15 @@ function saveMonitorData(href = '') {
     type: "POST",
     url: "?view=monitor",
     data: form_data,
-    success: function() {
+    success: function(data) {
       alertBlock.fadeOut({duration: 'fast'});
+      const errorDiv = (typeof data === 'string') ?
+        new DOMParser().parseFromString(data, 'text/html').getElementById('error') : null;
+      if (errorDiv && errorDiv.textContent.trim()) {
+        $j('#contentButtons').show();
+        alert(errorDiv.textContent.trim());
+        return;
+      }
       sourceFormMonitor = $j('#contentForm').serialize();
       if (href) {
         if (href == 'reload') {
@@ -698,6 +681,7 @@ function dms2ll(input) {
   const latitude = document.getElementById('newMonitor[Latitude]');
   const longitude = document.getElementById('newMonitor[Longitude]');
   const dms = parseDms(input.value);
+  if (isNaN(dms)) return;
 
   if (input.id == 'LatitudeDMS') {
     latitude.value = dms.toFixed(8);
@@ -840,7 +824,8 @@ function updateLatitudeAndLongitude(latitude, longitude) {
   var form = document.getElementById('contentForm');
   form.elements['newMonitor[Latitude]'].value = latitude;
   form.elements['newMonitor[Longitude]'].value = longitude;
-  updateMarker(latitude, longitude);
+  ll2dms(form.elements['newMonitor[Latitude]']);
+  ll2dms(form.elements['newMonitor[Longitude]']);
 }
 
 function getLocation() {
@@ -969,10 +954,10 @@ function Recording_onChange(e) {
 
 function SecondPath_onChange(e) {
   if (e.value) {
-    $j('#AnalysingSource').show();
+    $j('#AnalysisSource').show();
     $j('#RecordingSource').show();
   } else {
-    $j('#AnalysingSource').hide();
+    $j('#AnalysisSource').hide();
     $j('#RecordingSource').hide();
   }
 }
@@ -1007,6 +992,35 @@ function update_players() {
   //dropdown.chosen();
   dropdown.val(selected_value);
   if (dropdown[0].selectedIndex==-1) dropdown[0].selectedIndex = 0;
+
+  manageGo2RTCDisableBackChannel(false);
+}
+
+function changeDeviceClass() {
+  manageGo2RTCDisableBackChannel(true);
+}
+
+function manageGo2RTCDisableBackChannel(setDefaultGo2RTCDisableBackChannel = false) {
+  const go2rtc_enabled = document.querySelector('[name="newMonitor[Go2RTCEnabled]"]')?.checked ?? false;
+  const deviceClassValue = document.querySelector('[name="newMonitor[DeviceClass]"]')?.value ?? '';
+  const Go2RTCDisableBackChannel = document.querySelector('[name="newMonitor[Go2RTCDisableBackChannel]"]');
+  const Go2RTCDisableBackChannelElement = document.getElementById('Go2RTCDisableBackChannel');
+  if (Go2RTCDisableBackChannel) {
+    if (deviceClassValue == "Camera") {
+      Go2RTCDisableBackChannel.removeAttribute('disabled');
+      if (setDefaultGo2RTCDisableBackChannel) Go2RTCDisableBackChannel.checked = true;
+    } else {
+      Go2RTCDisableBackChannel.setAttribute('disabled', '');
+      Go2RTCDisableBackChannel.checked = false;
+    }
+  }
+  if (Go2RTCDisableBackChannelElement) {
+    if (go2rtc_enabled) {
+      Go2RTCDisableBackChannelElement.hidden = false;
+    } else {
+      Go2RTCDisableBackChannelElement.hidden = true;
+    }
+  }
 }
 
 function populate_models(ManufacturerId) {
@@ -1107,8 +1121,8 @@ function devices_onchange(devices) {
   }
 }
 function ControlId_onChange(ddm) {
-  const ControlEditButton = document.getElementById('ControlEditButton');
-  if (ControlEditButton) ControlEditButton.disabled = ddm.value ? false : true;
+  const ControlEditButton = document.getElementById('ControlEdit');
+  if (ControlEditButton) ControlEditButton.disabled = !ddm.value;
 }
 
 function ControlEdit_onClick() {

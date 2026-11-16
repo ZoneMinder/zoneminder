@@ -56,6 +56,12 @@ class TestStream : public StreamBase {
     scale = p_scale;
     zoom = p_zoom;
   }
+  void setClick(unsigned short p_x, unsigned short p_y) {
+    x = p_x;
+    y = p_y;
+  }
+  const Box &crop() const { return last_crop; }
+  int replayRate() const { return replay_rate; }
   void commandLoop() {
     checkCommandQueue();
   }
@@ -310,6 +316,33 @@ TEST_CASE("StreamBase::prepareImage pre-scaled frames") {
   }
 }
 
+TEST_CASE("StreamBase::prepareImage keeps a zoom across a change of resolution") {
+  // Event playback can move on to another monitor's event. The crop is kept in
+  // the previous frame's pixels; a 1280x960 crop does not fit a 640x480 frame,
+  // so Crop refused it on every frame and the zoom was lost.
+  EnsureImageInit();
+  TestStream stream;
+  stream.setView(ZM_SCALE_BASE, 150);
+  stream.setClick(640, 480);
+  Image large(1280, 960, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA);
+  stream.prepare(&large);
+  const Box first = stream.crop();
+  REQUIRE(first.Hi().x_ > 639);
+
+  stream.setClick(320, 240);
+  Image small(640, 480, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA);
+  Image *sent = stream.prepare(&small);
+
+  const Box &second = stream.crop();
+  CHECK(second.Hi().x_ <= 639);
+  CHECK(second.Hi().y_ <= 479);
+  // The same part of the picture: half the coordinates, give or take rounding.
+  CHECK(std::abs(second.Lo().x_ - first.Lo().x_ / 2) <= 2);
+  CHECK(std::abs(second.Lo().y_ - first.Lo().y_ / 2) <= 2);
+  CHECK(sent->Width() == 640);
+  CHECK(sent->Height() == 480);
+}
+
 TEST_CASE("StreamBase::preScaleDimensions") {
   const int kWidth = 640;
   const int kHeight = 480;
@@ -364,4 +397,64 @@ TEST_CASE("StreamBase::preScaleDimensions") {
     REQUIRE(width == kWidth);
     REQUIRE(height == kHeight);
   }
+}
+
+TEST_CASE("StreamBase scale validation") {
+  EnsureImageInit();
+
+  SECTION("clampScale bounds the scale a client can ask for") {
+    REQUIRE(StreamBase::clampScale(0) == ZM_SCALE_BASE);
+    REQUIRE(StreamBase::clampScale(-5) == ZM_SCALE_BASE);
+    REQUIRE(StreamBase::clampScale(1) == 1);
+    REQUIRE(StreamBase::clampScale(50) == 50);
+    REQUIRE(StreamBase::clampScale(1600) == 1600);
+    REQUIRE(StreamBase::clampScale(3000) == 1600);
+    REQUIRE(StreamBase::clampScale(65535) == 1600);
+  }
+
+  SECTION("prepareImage sends the unscaled image when the scaled size is invalid") {
+    // 1600% of 1920x1080 is 30720x17280, which ffmpeg rejects, and a scale of
+    // 0 gives 0x0. Both used to leave the scratch image empty and encode it.
+    for (int scale : {0, 1600, 3000, 65535}) {
+      TestStream stream;
+      stream.setView(scale, ZM_SCALE_BASE);
+      Image image(1920, 1080, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA);
+
+      Image *sent = stream.prepare(&image);
+
+      REQUIRE(sent != nullptr);
+      REQUIRE(sent->Width() == 1920);
+      REQUIRE(sent->Height() == 1080);
+    }
+  }
+
+  SECTION("preScaleDimensions declines a scaled size ffmpeg rejects") {
+    TestStream stream;
+    stream.setView(1600, ZM_SCALE_BASE);
+    int width = 1920;
+    int height = 1080;
+
+    REQUIRE(stream.preScale(1920, 1080, width, height) == 0);
+    REQUIRE(width == 1920);
+    REQUIRE(height == 1080);
+  }
+
+  SECTION("a normal scale still scales") {
+    TestStream stream;
+    stream.setView(200, ZM_SCALE_BASE);
+    Image image(640, 480, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA);
+
+    Image *sent = stream.prepare(&image);
+
+    REQUIRE(sent->Width() == 1280);
+    REQUIRE(sent->Height() == 960);
+  }
+}
+
+TEST_CASE("StreamBase::setStreamReplayRate treats 0 as normal speed", "[StreamBase]") {
+  TestStream stream;
+  stream.setStreamReplayRate(0);
+  CHECK(stream.replayRate() == ZM_RATE_BASE);
+  stream.setStreamReplayRate(-200);
+  CHECK(stream.replayRate() == -200);
 }

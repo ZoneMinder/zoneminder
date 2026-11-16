@@ -62,6 +62,7 @@ TEST_CASE("logReload while other threads log keeps the logger they hold") {
     });
   }
 
+  while (lines == 0) std::this_thread::yield();
   for (int i = 0; i < 300; i++) {
     logReload("zm_test_logreload", options);
   }

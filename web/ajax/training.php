@@ -566,6 +566,22 @@ switch ($action) {
       break;
     }
 
+    // Detectors name classes like "traffic light"; labels may not contain spaces
+    foreach ($annotations as &$ann) {
+      if (isset($ann['label']) && is_string($ann['label'])) {
+        $ann['label'] = preg_replace('/\s+/', '_', trim($ann['label']));
+      }
+    }
+    unset($ann);
+
+    // Validate and sanitize annotation labels
+    foreach ($annotations as $ann) {
+      if (!isset($ann['label']) || !preg_match('/^[a-zA-Z0-9_-]+$/', $ann['label'])) {
+        ajaxError('Invalid label: labels must contain only letters, numbers, hyphens, and underscores');
+        break 2;
+      }
+    }
+
     $imgWidth = intval($_REQUEST['width']);
     $imgHeight = intval($_REQUEST['height']);
     if ($imgWidth <= 0 || $imgHeight <= 0) {
@@ -594,14 +610,6 @@ switch ($action) {
       ZM\Error('Training: failed to copy image from '.$srcImage.' to '.$paths['img']);
       ajaxError('Failed to copy image');
       break;
-    }
-
-    // Validate and sanitize annotation labels
-    foreach ($annotations as $ann) {
-      if (!isset($ann['label']) || !preg_match('/^[a-zA-Z0-9_-]+$/', $ann['label'])) {
-        ajaxError('Invalid label: labels must contain only letters, numbers, hyphens, and underscores');
-        break 2;
-      }
     }
 
     // Get current labels from data.yaml, add any new ones

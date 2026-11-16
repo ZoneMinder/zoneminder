@@ -55,10 +55,10 @@ foreach (ZM\Server::find() as $server) $server_names[$server->Id()] = $server->N
 
 $focusWindow = true;
 xhtmlHeaders(__FILE__, translate('ScheduledTasks'));
+getBodyTopHTML();
+echo getNavBarHTML();
 ?>
-<body>
   <div id="page">
-    <?php echo getNavBarHTML() ?>
     <div id="content" class="container-fluid p-3">
       <h2><?php echo translate('ScheduledTasks') ?></h2>
       <p class="form-text"><?php echo translate('ScheduledTasksHelp') ?></p>
@@ -135,5 +135,3 @@ foreach ($jobs as $job) {
     </div>
   </div>
 <?php xhtmlFooter() ?>
-</body>
-</html>

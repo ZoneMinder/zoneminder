@@ -582,3 +582,53 @@ TEST_CASE("url_for_log") {
     REQUIRE(out.find("eyJ") == std::string::npos);
   }
 }
+
+TEST_CASE("zm_parse_leb128", "[utils]") {
+  uint32_t value;
+  size_t n;
+
+  SECTION("single byte") {
+    static const unsigned char data[] = {0x05};
+    n = zm_parse_leb128(data, sizeof(data), value);
+    REQUIRE(n == 1);
+    REQUIRE(value == 5);
+  }
+
+  SECTION("two bytes, 128") {
+    static const unsigned char data[] = {0x80, 0x01};
+    n = zm_parse_leb128(data, sizeof(data), value);
+    REQUIRE(n == 2);
+    REQUIRE(value == 128);
+  }
+
+  SECTION("max 5-byte 32-bit value") {
+    static const unsigned char data[] = {0xFF, 0xFF, 0xFF, 0xFF, 0x0F};
+    n = zm_parse_leb128(data, sizeof(data), value);
+    REQUIRE(n == 5);
+    REQUIRE(value == 4294967295u);
+  }
+
+  SECTION("padded 8-byte encoding of 1") {
+    static const unsigned char data[] = {
+      0x81, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x00};
+    n = zm_parse_leb128(data, sizeof(data), value);
+    REQUIRE(n == 8);
+    REQUIRE(value == 1);
+  }
+
+  SECTION("max_size truncation") {
+    static const unsigned char data[] = {0xFF, 0xFF, 0xFF, 0xFF, 0x0F};
+    // Only 3 bytes available: 0x7F | (0x7F << 7) | (0x7F << 14) = 0x1FFFFF,
+    // and the third byte still has the continuation bit set, so it stops
+    // without a terminator but still returns the bytes it consumed.
+    n = zm_parse_leb128(data, 3, value);
+    REQUIRE(n == 3);
+    REQUIRE(value == 0x1FFFFFu);
+  }
+
+  SECTION("empty input") {
+    static const unsigned char data[] = {0x05};
+    n = zm_parse_leb128(data, 0, value);
+    REQUIRE(n == 0);
+  }
+}

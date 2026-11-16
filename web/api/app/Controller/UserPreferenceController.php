@@ -55,7 +55,7 @@ class UserPreferenceController extends AppController {
 		$this->UserPreference->recursive = -1;
     if ( $this->request->params['named'] ) {
       $this->FilterComponent = $this->Components->load('Filter');
-      $conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+      $conditions = $this->FilterComponent->buildFilter($this->request->params['named'], array_keys($this->UserPreference->schema()));
     } else {
       $conditions = array();
     }
@@ -173,9 +173,13 @@ class UserPreferenceController extends AppController {
 		$this->assertOwned($id);
 		$this->request->allowMethod('post', 'delete');
 		if ($this->UserPreference->delete()) {
-			return $this->flash(__('The user_preference has been deleted.'), array('action' => 'index'));
+			$this->set(array(
+				'message' => 'Deleted',
+				'_serialize' => array('message'),
+			));
+			return;
 		} else {
-			return $this->flash(__('The user_preference could not be deleted. Please, try again.'), array('action' => 'index'));
+			throw new InternalErrorException(__('The user_preference could not be deleted.'));
 		}
 	}
 }

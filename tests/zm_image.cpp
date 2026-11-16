@@ -19,10 +19,13 @@
 
 #include "zm_config.h"
 #include "zm_image.h"
+#include "zm_poly.h"
 #include "zm_rgb.h"
 
 extern "C" {
 #include <libavutil/imgutils.h>
+#include <libavutil/pixdesc.h>
+#include <jpeglib.h>
 }
 
 #include <cstdlib>
@@ -179,6 +182,54 @@ TEST_CASE("Image::Scale YUV420P with non-32-multiple width", "[image]") {
     INFO("output chroma row " << y);
     CHECK(std::abs(static_cast<int>(dst.data[1][static_cast<size_t>(y) * dst.stride[1] + w / 8]) - 100) <= 4);
     CHECK(std::abs(static_cast<int>(dst.data[2][static_cast<size_t>(y) * dst.stride[2] + w / 8]) - 160) <= 4);
+  }
+}
+
+// zms scales the shared memory frame into a scratch image with ScaleFrom
+// instead of copying it first; the result must match copying then scaling.
+TEST_CASE("Image::ScaleFrom matches Assign then Scale", "[image]") {
+  bootstrap_image_config();
+  struct Case { int w, h; unsigned int colours, subpix; } cases[] = {
+    {1920, 1080, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA},
+    {1920, 1080, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_YUV420P},
+    {1000, 562, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB},
+  };
+  for (const Case &c : cases) {
+    INFO(c.w << "x" << c.h << " colours " << c.colours);
+    Image src(c.w, c.h, c.colours, c.subpix);
+    REQUIRE(src.Buffer() != nullptr);
+    uint8_t *p = src.WriteBuffer(c.w, c.h, c.colours, c.subpix);
+    for (unsigned int i = 0; i < src.Size(); i++) p[i] = static_cast<uint8_t>((i * 31 + i / 997) % 251);
+
+    Image copied;
+    copied.Assign(src);
+    copied.Scale(c.w / 2, c.h / 2);
+
+    Image scaled;
+    scaled.ScaleFrom(src, c.w / 2, c.h / 2);
+    REQUIRE(scaled.Width() == copied.Width());
+    REQUIRE(scaled.Height() == copied.Height());
+    REQUIRE(scaled.LineSize() == copied.LineSize());
+    REQUIRE(scaled.Size() == copied.Size());
+    REQUIRE(scaled.PixFormat() == copied.PixFormat());
+    // Compare the visible bytes of each row; sws_scale leaves row padding unwritten.
+    const AVPixelFormat fmt = copied.PixFormat();
+    const int ow = copied.Width(), oh = copied.Height();
+    Planes a = plane_view(copied, fmt, ow, oh);
+    Planes b = plane_view(scaled, fmt, ow, oh);
+    const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(fmt);
+    for (int plane = 0; plane < 4 && a.data[plane]; plane++) {
+      const int rows = plane ? AV_CEIL_RSHIFT(oh, static_cast<int>(desc->log2_chroma_h)) : oh;
+      const int bytes = av_image_get_linesize(fmt, ow, plane);
+      for (int y = 0; y < rows; y++) {
+        REQUIRE(memcmp(a.data[plane] + static_cast<size_t>(y) * a.stride[plane],
+                       b.data[plane] + static_cast<size_t>(y) * b.stride[plane], bytes) == 0);
+      }
+    }
+
+    const uint8_t *buffer = scaled.Buffer();
+    scaled.ScaleFrom(src, c.w / 2, c.h / 2);
+    CHECK(scaled.Buffer() == buffer);
   }
 }
 
@@ -457,4 +508,264 @@ TEST_CASE("Image::ReadJpeg reallocates for a larger JPEG", "[image]") {
   CHECK(small.LineSize() >= big_w * 4);
   CHECK(small.Size() >= small.LineSize() * big_h);
   CHECK(small.Size() > small_size);
+}
+
+
+static std::vector<JOCTET> reference_encode_yuv(const Image &image, int quality) {
+  const int w = static_cast<int>(image.Width());
+  const int h = static_cast<int>(image.Height());
+  const AVPixelFormat fmt = image.PixFormat();
+  const bool is_422 = (fmt == AV_PIX_FMT_YUV422P || fmt == AV_PIX_FMT_YUVJ422P);
+  const bool limited = (fmt == AV_PIX_FMT_YUV420P || fmt == AV_PIX_FMT_YUV422P);
+
+  uint8_t *plane[4] = {nullptr, nullptr, nullptr, nullptr};
+  int ls[4] = {0, 0, 0, 0};
+  REQUIRE(av_image_fill_arrays(plane, ls, image.Buffer(), fmt, w, h, 32) > 0);
+
+  jpeg_compress_struct cinfo;
+  jpeg_error_mgr jerr;
+  memset(&cinfo, 0, sizeof(cinfo));
+  cinfo.err = jpeg_std_error(&jerr);
+  jpeg_create_compress(&cinfo);
+
+  unsigned char *outbuf = nullptr;
+  unsigned long outsize = 0;
+  jpeg_mem_dest(&cinfo, &outbuf, &outsize);
+
+  cinfo.image_width = w;
+  cinfo.image_height = h;
+  cinfo.input_components = 3;
+  cinfo.in_color_space = JCS_YCbCr;
+
+  jpeg_set_defaults(&cinfo);
+  jpeg_set_quality(&cinfo, quality, FALSE);
+  cinfo.dct_method = JDCT_FASTEST;
+
+  jpeg_start_compress(&cinfo, TRUE);
+
+  const unsigned chroma_v_shift = is_422 ? 0u : 1u;
+  std::vector<uint8_t> tmprow(static_cast<size_t>(w) * 3);
+  JSAMPROW row_ptr = tmprow.data();
+
+  while (cinfo.next_scanline < cinfo.image_height) {
+    const unsigned y = cinfo.next_scanline;
+    const unsigned cy = y >> chroma_v_shift;
+    const uint8_t *yrow = plane[0] + static_cast<size_t>(y) * ls[0];
+    const uint8_t *urow = plane[1] + static_cast<size_t>(cy) * ls[1];
+    const uint8_t *vrow = plane[2] + static_cast<size_t>(cy) * ls[2];
+    for (int x = 0; x < w; ++x) {
+      int yy = yrow[x], uu = urow[x >> 1], vv = vrow[x >> 1];
+      if (limited) {  // expand to the full range JPEG expects
+        yy = ((std::clamp(yy, 16, 235) - 16) * 298 + 128) >> 8;
+        uu = ((std::clamp(uu, 16, 240) - 16) * 291 + 304) >> 8;
+        vv = ((std::clamp(vv, 16, 240) - 16) * 291 + 304) >> 8;
+      }
+      tmprow[static_cast<size_t>(x) * 3 + 0] = yy;
+      tmprow[static_cast<size_t>(x) * 3 + 1] = uu;
+      tmprow[static_cast<size_t>(x) * 3 + 2] = vv;
+    }
+    jpeg_write_scanlines(&cinfo, &row_ptr, 1);
+  }
+
+  jpeg_finish_compress(&cinfo);
+  jpeg_destroy_compress(&cinfo);
+
+  std::vector<JOCTET> result(outbuf, outbuf + outsize);
+  free(outbuf);
+  return result;
+}
+
+static std::vector<JOCTET> reference_encode_rgb(const Image &image, int quality) {
+  const int w = static_cast<int>(image.Width());
+  const int h = static_cast<int>(image.Height());
+
+  jpeg_compress_struct cinfo;
+  jpeg_error_mgr jerr;
+  memset(&cinfo, 0, sizeof(cinfo));
+  cinfo.err = jpeg_std_error(&jerr);
+  jpeg_create_compress(&cinfo);
+
+  unsigned char *outbuf = nullptr;
+  unsigned long outsize = 0;
+  jpeg_mem_dest(&cinfo, &outbuf, &outsize);
+
+  cinfo.image_width = w;
+  cinfo.image_height = h;
+  cinfo.input_components = 3;
+  cinfo.in_color_space = JCS_RGB;
+
+  jpeg_set_defaults(&cinfo);
+  jpeg_set_quality(&cinfo, quality, FALSE);
+  cinfo.dct_method = JDCT_FASTEST;
+
+  jpeg_start_compress(&cinfo, TRUE);
+
+  JSAMPROW row_pointer = const_cast<JSAMPROW>(image.Buffer());
+  while (cinfo.next_scanline < cinfo.image_height) {
+    jpeg_write_scanlines(&cinfo, &row_pointer, 1);
+    row_pointer += image.LineSize();
+  }
+
+  jpeg_finish_compress(&cinfo);
+  jpeg_destroy_compress(&cinfo);
+
+  std::vector<JOCTET> result(outbuf, outbuf + outsize);
+  free(outbuf);
+  return result;
+}
+
+TEST_CASE("Image::EncodeJpeg raw YUV matches legacy", "[Image]") {
+  bootstrap_image_config();
+  const int quality = 75;
+
+  struct Case { int w; int h; AVPixelFormat fmt; };
+  std::vector<Case> cases = {
+    {64, 48, AV_PIX_FMT_YUV420P},
+    {64, 37, AV_PIX_FMT_YUV420P},
+    {70, 37, AV_PIX_FMT_YUV420P},
+    {69, 37, AV_PIX_FMT_YUV420P},
+    {72, 40, AV_PIX_FMT_YUV420P},
+    {17, 9, AV_PIX_FMT_YUV420P},
+    {470, 264, AV_PIX_FMT_YUV420P},
+    {633, 356, AV_PIX_FMT_YUV420P},
+    {64, 48, AV_PIX_FMT_YUV422P},
+  };
+
+  for (auto &c : cases) {
+    const bool is_422 = (c.fmt == AV_PIX_FMT_YUV422P || c.fmt == AV_PIX_FMT_YUVJ422P);
+    Image img(c.w, c.h, ZM_COLOUR_GRAY8,
+              (c.fmt == AV_PIX_FMT_YUV420P || c.fmt == AV_PIX_FMT_YUVJ420P)
+                  ? ZM_SUBPIX_ORDER_YUV420P
+                  : ZM_SUBPIX_ORDER_YUV422P);
+
+    uint8_t *plane[4] = {nullptr, nullptr, nullptr, nullptr};
+    int ls[4] = {0, 0, 0, 0};
+    REQUIRE(av_image_fill_arrays(plane, ls, img.Buffer(), c.fmt, c.w, c.h, 32) > 0);
+    const int cr = is_422 ? c.h : (c.h + 1) / 2;
+    const int cw = (c.w + 1) / 2;
+    for (int y = 0; y < c.h; ++y)
+      for (int x = 0; x < c.w; ++x)
+        plane[0][static_cast<size_t>(y) * ls[0] + x] =
+            static_cast<uint8_t>((x * 7 + y * 13) ^ 0x5a);
+    for (int y = 0; y < cr; ++y)
+      for (int x = 0; x < cw; ++x) {
+        plane[1][static_cast<size_t>(y) * ls[1] + x] =
+            static_cast<uint8_t>((x * 11 + y * 17) ^ 0x3c);
+        plane[2][static_cast<size_t>(y) * ls[2] + x] =
+            static_cast<uint8_t>((x * 19 + y * 23) ^ 0x9e);
+      }
+
+    std::vector<JOCTET> outbuf(1 << 20);
+    size_t outsize = 0;
+    REQUIRE(img.EncodeJpeg(outbuf.data(), &outsize, quality));
+    std::vector<JOCTET> actual(outbuf.begin(), outbuf.begin() + outsize);
+
+    std::vector<JOCTET> expected = reference_encode_yuv(img, quality);
+    INFO("case " << c.w << "x" << c.h);
+    REQUIRE(actual == expected);
+  }
+}
+
+TEST_CASE("Image::EncodeJpeg cached struct no raw leak", "[Image]") {
+  bootstrap_image_config();
+  const int quality = 75;
+
+  Image yuv(32, 24, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_YUV420P);
+  std::vector<JOCTET> buf(1 << 20);
+  size_t sz = 0;
+  REQUIRE(yuv.EncodeJpeg(buf.data(), &sz, quality));
+
+  Image rgb(32, 24, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
+  for (int y = 0; y < 24; ++y)
+    for (int x = 0; x < 32; ++x) {
+      uint8_t *p = rgb.Buffer() + static_cast<size_t>(y) * rgb.LineSize() + x * 3;
+      p[0] = static_cast<uint8_t>(x * 3 + y);
+      p[1] = static_cast<uint8_t>(x + y * 5);
+      p[2] = static_cast<uint8_t>(x * 7 ^ y);
+    }
+
+  std::vector<JOCTET> outbuf(1 << 20);
+  size_t outsize = 0;
+  REQUIRE(rgb.EncodeJpeg(outbuf.data(), &outsize, quality));
+  std::vector<JOCTET> actual(outbuf.begin(), outbuf.begin() + outsize);
+  std::vector<JOCTET> expected = reference_encode_rgb(rgb, quality);
+  REQUIRE(actual == expected);
+}
+
+TEST_CASE("Image::Fill polygon writes the expected pixels for each density", "[image]") {
+  bootstrap_image_config();
+  const int w = 16, h = 12;
+  // U shape: rows 1-6 have two spans (x 1-4, 8-11), rows 7-9 one span (x 1-11).
+  Polygon poly(std::vector<Vector2>{{1, 1}, {4, 1}, {4, 7}, {8, 7}, {8, 1}, {11, 1}, {11, 10}, {1, 10}});
+
+  struct Format { int colours; int order; int bpp; };
+  for (Format f : {Format{ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE, 1},
+                   Format{ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB, 3},
+                   Format{ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA, 4}}) {
+    for (int density : {1, 2, 3}) {
+      Image image(w, h, f.colours, f.order);
+      memset(image.Buffer(), 0, image.Size());
+      image.Fill(0xFF, density, poly);
+      for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) {
+          bool inside = y >= 1 && y <= 9 && ((x >= 1 && x <= 4) || (x >= 8 && x <= 11) || (y >= 7 && x >= 1 && x <= 11));
+          bool expected = inside && x % density == 0 && y % density == 0;
+          REQUIRE((image.Buffer()[y * image.LineSize() + x * f.bpp] != 0) == expected);
+        }
+      }
+    }
+  }
+}
+
+TEST_CASE("Image::Blend YUV420P blends only luma", "[image]") {
+  bootstrap_image_config();
+  const int w = 64, h = 16;
+  Image ref(w, h, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_YUV420P);
+  Image frame(w, h, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_YUV420P);
+  Planes rp = plane_view(ref, AV_PIX_FMT_YUV420P, w, h);
+  Planes fp = plane_view(frame, AV_PIX_FMT_YUV420P, w, h);
+  const size_t ysize = static_cast<size_t>(rp.stride[0]) * h;
+  REQUIRE(ref.LineSize() == static_cast<unsigned int>(rp.stride[0]));
+  REQUIRE(rp.data[0] == ref.Buffer());
+
+  Image gray_ref(w, h, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE);
+  Image gray_frame(w, h, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE);
+  REQUIRE(gray_ref.LineSize() == ref.LineSize());
+  for (size_t i = 0; i < ysize; i++) {
+    rp.data[0][i] = static_cast<uint8_t>(i * 3);
+    fp.data[0][i] = static_cast<uint8_t>(255 - i * 5);
+  }
+  memcpy(gray_ref.Buffer(), rp.data[0], ysize);
+  memcpy(gray_frame.Buffer(), fp.data[0], ysize);
+  memset(rp.data[1], 0x11, rp.stride[1] * (h / 2));
+  memset(rp.data[2], 0x22, rp.stride[2] * (h / 2));
+  memset(fp.data[1], 0xE1, fp.stride[1] * (h / 2));
+  memset(fp.data[2], 0xE2, fp.stride[2] * (h / 2));
+
+  for (int pass = 0; pass < 2; pass++) {
+    ref.Blend(frame, 25);
+    gray_ref.Blend(gray_frame, 25);
+    Planes p = plane_view(ref, AV_PIX_FMT_YUV420P, w, h);
+    REQUIRE(memcmp(p.data[0], gray_ref.Buffer(), ysize) == 0);
+    for (int y = 0; y < h / 2; y++)
+      for (int x = 0; x < w / 2; x++) {
+        REQUIRE(p.data[1][y * p.stride[1] + x] == 0x11);
+        REQUIRE(p.data[2][y * p.stride[2] + x] == 0x22);
+      }
+  }
+
+  // A same-sized Assign reuses the buffer; the next blend must keep its chroma.
+  Image fresh(w, h, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_YUV420P);
+  Planes np = plane_view(fresh, AV_PIX_FMT_YUV420P, w, h);
+  memset(np.data[0], 0x80, ysize);
+  memset(np.data[1], 0x33, np.stride[1] * (h / 2));
+  memset(np.data[2], 0x44, np.stride[2] * (h / 2));
+  ref.Assign(fresh);
+  ref.Blend(frame, 25);
+  Planes p = plane_view(ref, AV_PIX_FMT_YUV420P, w, h);
+  for (int y = 0; y < h / 2; y++)
+    for (int x = 0; x < w / 2; x++) {
+      REQUIRE(p.data[1][y * p.stride[1] + x] == 0x33);
+      REQUIRE(p.data[2][y * p.stride[2] + x] == 0x44);
+    }
 }

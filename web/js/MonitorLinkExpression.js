@@ -39,7 +39,7 @@ function tokenize(expr) {
       let third = second_index+1;
 
       for (; third<expr.length; third++) {
-        if (expr.at(i) != character) break;
+        if (expr.at(third) != character) break;
       }
       if (third != second_index+1) {
         tokens[tokens.length] = {type: character, value: expr.substring(second_index, third)};
@@ -47,6 +47,7 @@ function tokenize(expr) {
         tokens[tokens.length] = {type: character, value: character};
       }
       first_index = third;
+      second_index = third - 1;
     }
     second_index++;
   } // end for second_index

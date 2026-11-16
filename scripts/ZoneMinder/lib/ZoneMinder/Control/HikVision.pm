@@ -80,8 +80,9 @@ sub open {
   ) {
     Debug('Using ControlAddress for credentials: '.urlForLog($self->{Monitor}{ControlAddress}));
     $uri = URI->new($self->{Monitor}->{ControlAddress});
-    $uri = URI->new('http://'.$self->{Monitor}->{ControlAddress}) if ref($uri) eq 'URI::_foreign';
+    $uri = URI->new('http://'.$self->{Monitor}->{ControlAddress}) if !$uri->can('host');
     $$self{host} = $uri->host();
+    $$self{port} = $uri->port() if $uri->port();
     if ( $uri->userinfo()) {
       @$self{'username','password'} = $uri->userinfo() =~ /^(.*):(.*)$/;
     } else {
@@ -206,7 +207,7 @@ sub moveVector {
   my $params = shift;
   my $command;                    # The ISAPI/PTZ command
 
-  my $duration = $self->duration();
+  my $duration = $self->duration($params);
 
   my $momentxml;
   if( $duration ) {
@@ -286,13 +287,13 @@ sub focusConNear {
   my $self = shift;
   my $params = shift;
 
-  my $duration = $self->duration();
+  my $duration = $self->duration($params);
   # Get the focus speed
   my $speed = $self->getParam( $params, 'speed', $DefaultFocusSpeed );
   $self->Focus(-$speed);
   if ($duration) {
-    usleep($duration);
-    $self->moveStop($params);
+    usleep($duration * 1000);
+    $self->Focus(0);
   }
 }
 sub Near {
@@ -319,13 +320,13 @@ sub focusConFar {
   my $self = shift;
   my $params = shift;
 
-  my $duration = $self->duration();
+  my $duration = $self->duration($params);
   # Get the focus speed
   my $speed = $self->getParam( $params, 'speed', $DefaultFocusSpeed );
   $self->Focus($speed);
   if($duration) {
-    usleep($duration);
-    $self->moveStop($params);
+    usleep($duration * 1000);
+    $self->Focus(0);
   }
 }
 sub Far {
@@ -363,13 +364,13 @@ sub irisConClose {
   my $self = shift;
   my $params = shift;
 
-  my $duration = $self->duration();
+  my $duration = $self->duration($params);
   # Get the iris speed
   my $speed = $self->getParam( $params, 'speed', $DefaultIrisSpeed );
   $self->Iris(-$speed);
   if($duration) {
-    usleep($duration);
-    $self->moveStop($params);
+    usleep($duration * 1000);
+    $self->Iris(0);
   }
 }
 sub Close {
@@ -398,13 +399,13 @@ sub irisConOpen {
   my $self = shift;
   my $params = shift;
 
-  my $duration = $self->duration();
+  my $duration = $self->duration($params);
   # Get the iris speed
   my $speed = $self->getParam( $params, 'speed', $DefaultIrisSpeed );
   $self->Iris($speed);
   if($duration) {
-    usleep($duration);
-    $self->moveStop($params);
+    usleep($duration * 1000);
+    $self->Iris(0);
   }
 }
 sub Open {

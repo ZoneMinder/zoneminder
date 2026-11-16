@@ -63,6 +63,8 @@ if ($have_query_params) {
   ZM\Debug('Populating filter from query params');
   $filter = new ZM\Filter();
   $filter->set($_REQUEST['filter']);
+  // Keep the saved filter's id, or Save after going back would create a copy.
+  if ($fid and isset($filterNames[$fid])) $filter->Id($fid);
 } else if ($fid and isset($filterNames[$fid])) {
   ZM\Debug("Loading filter $fid from database");
   $filter = ZM\Filter::find_one(array('Id'=>$fid));

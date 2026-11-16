@@ -85,7 +85,7 @@ class EventDataController extends AppController {
 		$this->EventData->recursive = -1;
     if ( $this->request->params['named'] ) {
       $this->FilterComponent = $this->Components->load('Filter');
-      $conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+      $conditions = $this->FilterComponent->buildFilter($this->request->params['named'], array_keys($this->EventData->schema()));
     } else {
       $conditions = array();
     }
@@ -152,7 +152,16 @@ class EventDataController extends AppController {
 			$this->pinRequestId($this->EventData, null);
 			$this->EventData->create();
 			if ($this->EventData->save($this->request->data)) {
+				$message = 'Saved';
+			} else {
+				$message = $this->EventData->validationErrors ? $this->EventData->validationErrors : 'Error';
 			}
+			$this->set(array(
+				'message' => $message,
+				'id' => $this->EventData->id,
+				'_serialize' => array('message', 'id')
+			));
+			return;
 		}
 		$events = $this->EventData->Event->find('list');
 		$this->set(compact('events'));
@@ -174,7 +183,16 @@ class EventDataController extends AppController {
 			$this->pinRequestId($this->EventData, $id);
 			$this->requireRequestEventDataEdit(false);
 			if ($this->EventData->save($this->request->data)) {
+				$message = 'Saved';
+			} else {
+				$message = $this->EventData->validationErrors ? $this->EventData->validationErrors : 'Error';
 			}
+			$this->set(array(
+				'message' => $message,
+				'event_data' => $this->EventData->findById($id),
+				'_serialize' => array('message', 'event_data')
+			));
+			return;
 		} else {
 			$options = array('conditions' => array($this->EventData->alias.'.'.$this->EventData->primaryKey => $id));
 			$this->request->data = $this->EventData->find('first', $options);
@@ -198,8 +216,12 @@ class EventDataController extends AppController {
 		$this->request->allowMethod('post', 'delete');
 		$this->requireEventDataEdit($id);
 		if ($this->EventData->delete()) {
-			return $this->flash(__('The event_data has been deleted.'), array('action' => 'index'));
+			$this->set(array(
+				'message' => 'Deleted',
+				'_serialize' => array('message'),
+			));
+			return;
 		} else {
-			return $this->flash(__('The event_data could not be deleted. Please, try again.'), array('action' => 'index'));
+			throw new InternalErrorException(__('The event_data could not be deleted.'));
 		}
 	}}

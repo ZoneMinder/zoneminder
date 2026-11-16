@@ -30,11 +30,20 @@ var cueSeries = null; //parsed levels for the cue graph, rebuilt whenever it is 
 var streamCmdInterval = null;
 var streamStatus = null;
 var lastEventId = 0;
+// The next/prev events we tell zms about; see event-zms-hints.js. Set in initPage.
+let zmsHints = null;
 var zmsBroke = false; //Use alternate navigation if zms has crashed
 var wasHidden = false;
 var availableTags = [];
 var selectedTags = [];
 var realEventWidth = 0;
+// The monitor the page's elements (stream, zoom buttons, zones, PanZoom) were
+// built for. On the zms path eventData can move on to another monitor's event
+// without a page load (refs #4186); see domMonitorId().
+let pageMonitorId = null;
+// Whether the zones were showing when hidden for another monitor's event, or
+// null while they are not hidden for that reason.
+let zonesShownBeforeHiding = null;
 var realEventHeight = 0;
 
 var PrevCoordinatFrame = {x: null, y: null};
@@ -125,16 +134,13 @@ function vjsReplay() {
           streamNext(true);
           return;
         }
-        const date = Date.parse(eventData.EndDateTime);
-        if (!date) {
+        const endTime = Date.parse(eventData.EndDateTime);
+        if (isNaN(endTime)) {
           console.error('Got no date from ', eventData);
           streamNext(true);
           return;
-        } else if (typeof date.getTime === 'undefined') {
-          console.log("Failed to get valid date object from EndDateTime in ", eventData);
         } else {
-          const endTime = date.getTime();
-          const nextStartTime = nextEventStartTime.getTime(); //nextEventStartTime.getTime() is a mootools workaround, highjacks Date.parse
+          const nextStartTime = nextEventStartTime;
           if ( nextStartTime <= endTime ) {
             streamNext(true);
             return;
@@ -142,16 +148,16 @@ function vjsReplay() {
           vid.pause();
           const overLaid = $j("#videoobj");
           overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;"></p>');
-          const gapDuration = (new Date().getTime()) + (nextStartTime - endTime);
+          const gapEnd = Date.now() + (nextStartTime - endTime);
           const messageP = $j('.vjsMessage');
           const x = setInterval(function() {
-            const now = new Date().getTime();
-            const remainder = new Date(Math.round(gapDuration - now)).toISOString().substr(11, 8);
-            messageP.html(remainder + ' to next event.');
-            if ( remainder < 0 ) {
+            const remainder = gapEnd - Date.now();
+            if ( remainder <= 0 ) {
               clearInterval(x);
               streamNext(true);
+              return;
             }
+            messageP.html(new Date(remainder).toISOString().substr(11, 8) + ' to next event.');
           }, 1000);
         } // end if valid date object
       } // end if have nextEventId
@@ -238,12 +244,19 @@ function deltaScale() {
   return parseInt(currentScale/100*$j('#streamQuality').val()); // "-" - Decrease quality, "+" - Increase image quality in %
 }
 
+// The monitor id in the page's element ids and PanZoom, which stay those of the
+// event the page was loaded for. The first call is before zms can have moved on.
+function domMonitorId() {
+  if (pageMonitorId === null) pageMonitorId = eventData.MonitorId;
+  return pageMonitorId;
+}
+
 function changeScale() {
   // `eventData.Width` & `eventData.Height` may be set incorrectly in the monitor settings (in terms of both resolution and aspect ratio), while `realEventWidth` might not yet be defined because the video has not finished loading.
   const eventDataWidth = (realEventWidth !=0) ? realEventWidth : eventData.Width;
   const eventDataHeight = (realEventHeight !=0) ? realEventHeight : eventData.Height;
   const scaleSel = $j('#scale').val();
-  const stream = document.getElementById('videoFeedStream' + eventData.MonitorId);
+  const stream = document.getElementById('videoFeedStream' + domMonitorId());
   let newWidth;
   let newHeight;
   const eventViewer = $j(vid ? '#videoobj' : '#evtStream');
@@ -450,6 +463,14 @@ function getCmdResponse(respObj, respText) {
     lastEventId = eventId; //Only fires on first load.
   }
 
+  // zms is answering for eventId, so its hints can be sent now. When it has
+  // moved to a new event, ask for that event's neighbours straight away rather
+  // than after eventQuery returns: zms waits at the end of the event for them.
+  if (zmsHints.needsLookup(parseInt(eventId), streamStatus.rate < 0, Date.now(), streamStatus.paused == true)) {
+    nearEventsQuery(eventId);
+  }
+  sendZmsHints(eventId);
+
   if (streamStatus.paused == true) {
     streamPause();
   } else {
@@ -462,7 +483,7 @@ function getCmdResponse(respObj, respText) {
   clockTime.setTime(clockTime.getTime() + (streamStatus.progress * 1000));
   $j('#currentTimeValue').html(clockTime.toLocaleTimeString());
   //$j('#zoomValue').html(streamStatus.zoom);
-  const pz = zmPanZoom.panZoom[eventData.MonitorId];
+  const pz = zmPanZoom.panZoom[domMonitorId()];
   if (pz) $j('#zoomValue').html(pz.getScale().toFixed(1));
   //if (streamStatus.zoom == '1.0') {
   //  setButtonState('zoomOutBtn', 'unavail');
@@ -511,7 +532,7 @@ function streamPause() {
   setButtonState('slowFwdBtn', 'inactive');
   setButtonState('slowRevBtn', 'inactive');
   setButtonState('fastRevBtn', 'unavail');
-  const audioMotion = document.querySelector('audio-motion#audioVisualization' + eventData.MonitorId);
+  const audioMotion = document.querySelector('audio-motion#audioVisualization' + domMonitorId());
   if (audioMotion && audioMotion.pause) audioMotion.pause();
 }
 
@@ -683,7 +704,7 @@ function streamFastRev(action) {
     }
     clearInterval(intervalRewind);
     $j('select[name="rate"]').val(next);
-    setCookie('zmEventRate', vid.playbackRate()*100);
+    setCookie('zmEventRate', next);
     intervalRewind = setInterval(function() {
       if (vid.currentTime() <= 0) {
         clearInterval(intervalRewind);
@@ -882,10 +903,19 @@ function restartZmsStream(onReady) {
   }
   const url = new URL(img.src);
   url.searchParams.set('scale', currentScale);
+  // Restart on the event zms was playing, not the one the page opened on: it
+  // moves on by itself, and can be on another monitor's event by now.
+  if (lastEventId && url.searchParams.get('event') != String(lastEventId)) {
+    url.searchParams.set('event', lastEventId);
+    url.searchParams.delete('frame');
+  }
   img.src = '';
   img.onload = function() {
     img.onload = null;
     zmsBroke = false;
+    // The new zms has none of the next/prev hints; resend them with its first
+    // status reply.
+    zmsHints.reset();
     if (onReady) onReady();
   };
   img.src = url.href;
@@ -919,6 +949,7 @@ function getEventResponse(respObj, respText) {
     return;
   }
 
+  const previousEvent = eventData;
   eventData = respObj.event;
   getStat();
   currEventId = eventData.Id;
@@ -939,10 +970,31 @@ function getEventResponse(respObj, respText) {
     $j('#rate').val('100');
     //vjsPanZoom('zoomOut');
   } else {
+    zmsEventChanged(previousEvent);
+  }
+} // end function getEventResponse
+
+// zms moved on to eventData by itself, possibly to another monitor's event.
+function zmsEventChanged(previousEvent) {
+  if (!previousEvent || previousEvent.Width != eventData.Width || previousEvent.Height != eventData.Height) {
+    // Size the image and zms's scale for this event's frames, not the last's.
+    changeScale();
+  } else {
     drawProgressBar();
   }
-  nearEventsQuery(eventData.Id);
-} // end function getEventResponse
+  // The zones drawn are the page's monitor's; don't lay them over another camera.
+  const zones = $j('#zones' + domMonitorId());
+  const button = document.getElementById('toggleZonesButton');
+  if (eventData.MonitorId != domMonitorId()) {
+    if (zonesShownBeforeHiding === null) zonesShownBeforeHiding = zones.is(':visible');
+    zones.hide();
+    if (button) button.disabled = true;
+  } else if (zonesShownBeforeHiding !== null) {
+    if (button) button.disabled = false;
+    if (zonesShownBeforeHiding) zones.show();
+    zonesShownBeforeHiding = null;
+  }
+}
 
 function eventQuery(eventId) {
   var data = {};
@@ -958,6 +1010,13 @@ function getNearEventsResponse(respObj, respText) {
   if (checkStreamForErrors('getNearEventsResponse', respObj)) {
     return;
   }
+  // On the zms path the event can change under us. A response for an event zms
+  // has already left would set the wrong Prev/Next and hints, so drop it; the
+  // query for the event playing now is already on its way.
+  const srcEventId = parseInt(respObj.nearevents.EventId);
+  if (vid == null && lastEventId && srcEventId != parseInt(lastEventId)) {
+    return;
+  }
   prevEventId = parseInt(respObj.nearevents.PrevEventId);
   nextEventId = parseInt(respObj.nearevents.NextEventId);
   prevEventStartTime = Date.parse(respObj.nearevents.PrevEventStartTime);
@@ -967,12 +1026,59 @@ function getNearEventsResponse(respObj, respText) {
 
   $j('#prevBtn').prop('disabled', prevEventId == 0 ? true : false).attr('class', prevEventId == 0 ? 'unavail' : 'inactive');
   $j('#nextBtn').prop('disabled', nextEventId == 0 ? true : false).attr('class', nextEventId == 0 ? 'unavail' : 'inactive');
+
+  // When zms is playing (not video.js), tell it which events are next/prev in
+  // this filter and sort, so its gapless advance follows them across monitors
+  // (refs #4186). Before zms has answered a status query they wait for its
+  // first reply; see getCmdResponse.
+  if (vid == null) {
+    zmsHints.set(srcEventId, nextEventId, prevEventId, Date.now());
+    if (lastEventId) sendZmsHints(lastEventId);
+  }
+}
+
+// Send zms the hints for eventId, the event it reports playing, if they have
+// not reached it yet.
+function sendZmsHints(eventId) {
+  for (const hint of zmsHints.take(parseInt(eventId))) {
+    const data = {
+      command: CMD_SET_EVENT,
+      dir: hint.dir,
+      eventid: hint.eventid,
+      srcid: hint.srcid,
+      connkey: connKey,
+      view: 'request',
+      request: 'stream',
+    };
+    if (zmAuth.hash) data.auth = zmAuth.hash;
+    // Not getCmdResponse: a hint that fails to reach zms is sent again on the
+    // next status reply, and must not mark zms broken, which stops the polling.
+    // A refusal (bad id, no permission) won't change on retry, so it is final.
+    $j.getJSON(zmAuth.appendTo(monitorUrl), data)
+        .done(function(respObj) {
+          const refused = respObj && respObj.result == 'Error' && respObj.reason == 'invalid';
+          const delivered = respObj && (respObj.result != 'Error' || refused);
+          if (!delivered || refused) console.log('SET_EVENT not applied', respObj);
+          zmsHints.response(hint.batch, delivered);
+        })
+        .fail(function() {
+          zmsHints.response(hint.batch, false);
+        });
+  }
 }
 
 function nearEventsQuery(eventId) {
+  const lookup = zmsHints.lookingUp(parseInt(eventId), Date.now());
   $j.getJSON(thisUrl + '?view=request&request=status&entity=nearevents&id='+eventId+filterQuery+sortQuery)
-      .done(getNearEventsResponse)
-      .fail(logAjaxFail);
+      .done(function(respObj, respText) {
+        // A lookup given up on can answer after its retry; its neighbours are
+        // older, and would replace the retry's.
+        if (zmsHints.isLatestLookup(lookup)) getNearEventsResponse(respObj, respText);
+      })
+      .fail(logAjaxFail)
+      .always(function() {
+        zmsHints.lookupDone(lookup);
+      });
 }
 
 function getFrameResponse(respObj, respText) {
@@ -1322,7 +1428,7 @@ function getStat() {
       //  tdString = '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData[key] + '</a>';
       //  break;
       case 'Location':
-        tdString = eventData.Latitude + ', ' + eventData.Longitude;
+        tdString = (parseFloat(eventData.Latitude) || parseFloat(eventData.Longitude)) ? eventData.Latitude + ', ' + eventData.Longitude : '';
         break;
       //case 'MonitorId':
       //  if (canView["Monitors"]) {
@@ -1432,13 +1538,14 @@ function onStatsResize(vidWidth) {
 }
 
 function initPage() {
-  const stream = document.getElementById('videoFeedStream' + eventData.MonitorId);
+  zmsHints = ZM_EventZmsHints.create();
+  const stream = document.getElementById('videoFeedStream' + domMonitorId());
   if (stream) {
     stream.addEventListener('zm:tracksReceived', (e) => {
       if (e.detail.stream.audioTrack) connectAudioMotion(e.detail.monitorId);
     });
   } else {
-    console.warn(`No stream found for monitor with ID=${eventData.MonitorId}. Listener for 'zm:tracksReceived' not added.`);
+    console.warn(`No stream found for monitor with ID=${domMonitorId()}. Listener for 'zm:tracksReceived' not added.`);
   }
 
   getAvailableTags();
@@ -1453,8 +1560,26 @@ function initPage() {
   } else {
     showEventStats(true);
   }
-  if (eventData.DefaultVideo) {
-    canPlayCodec(eventData.DefaultVideo);
+  // codec=auto rendered no player (event.php) — choose one now based on whether
+  // this browser can natively decode the recording's codec. Build it before the
+  // #videoobj lookup below so the existing native/zms setup runs unchanged. vid
+  // must be assigned synchronously here: it is the dispatch switch for every
+  // control (play/seek/rate/...). autoChosePlayer also tells the changeScale()
+  // guard below to size an auto-built native player, which the DOMContentLoaded
+  // sizer could not (it ran before this built the <video>).
+  let autoChosePlayer = false;
+  if (typeof eventCodec !== 'undefined' && eventCodec === 'auto'
+      && typeof EventStream !== 'undefined'
+      && typeof zmPlayerData !== 'undefined' && zmPlayerData
+      && !document.getElementById('videoobj') && !document.getElementById('evtStream')) {
+    autoChosePlayer = true;
+    const choice = EventStream.chooseEventPlayer(zmPlayerData, eventData);
+    if (choice.mode === 'video') {
+      vid = choice.vid;
+      // The native player replaces the zms-form controls event.php rendered for auto.
+      $j('#streamQualityControl').hide();
+      $j('#fps').hide();
+    }
   }
 
   //FIXME prevent blocking...not sure what is happening or best way to unblock
@@ -1484,11 +1609,11 @@ function initPage() {
     });
     vid.on('play', function(event) {
       streamPlay();
-      if (!eventData._playing) getTracksFromStream(getMonitorStream(eventData.MonitorId));
+      if (!eventData._playing) getTracksFromStream(getMonitorStream(domMonitorId()));
       eventData._playing = true;
     });
     vid.on('playing', function(event) { // Required for HLS with AUTOPLAY in Firefox, as on.play doesn't work in this case.
-      if (!eventData._playing) getTracksFromStream(getMonitorStream(eventData.MonitorId));
+      if (!eventData._playing) getTracksFromStream(getMonitorStream(domMonitorId()));
       eventData._playing = true;
     });
     vid.on('pause', function(event) {
@@ -1512,6 +1637,8 @@ function initPage() {
       $j('#progressValue').html(secsToTime(Math.floor(vid.currentTime())));
     });
     vid.on('ratechange', function() {
+      // The rewind sets the player rate to 0 on every tick; the rate select and cookie hold the reverse rate
+      if (intervalRewind) return;
       rate = vid.playbackRate() * 100;
       $j('select[name="rate"]').val(rate);
       setCookie('zmEventRate', rate);
@@ -1550,8 +1677,11 @@ function initPage() {
   });
   console.log('progress');
   progressBarNav();
-  // For video.js, we are already calling changeScale() from the 'DOMContentLoaded' event listener; we shouldn't duplicate these calls.
-  if (!vid) {
+  // For a server-rendered video.js player, changeScale() already ran from the
+  // 'DOMContentLoaded' listener, so skip it here. The zms path (no vid) still
+  // needs it, and so does an auto-built native player: its <video> did not exist
+  // when DOMContentLoaded fired, so the sizer there found no player.
+  if (!vid || autoChosePlayer) {
     console.log('changescale');
     changeScale();
   }
@@ -1851,7 +1981,7 @@ function initPage() {
         zoomOffset: -1,
         accessToken: ZM_OPT_GEOLOCATION_ACCESS_TOKEN,
       }).addTo(map);
-      const marker = L.marker([eventData.Latitude, eventData.Longitude], {draggable: 'false'});
+      const marker = L.marker([eventData.Latitude, eventData.Longitude], {draggable: false});
       marker.addTo(map);
       map.invalidateSize();
     } else {
@@ -1863,7 +1993,7 @@ function initPage() {
       //Displaying "Scale" and other buttons at the top of the monitor image
       function() {
         //const id = stringToNumber(this.id); //Montage & Watch page
-        const id = eventData.MonitorId; // Event page
+        const id = domMonitorId(); // Event page
         //$j('#button_zoom' + id).stop(true, true).slideDown('fast');
         const _imageFeed = document.getElementById('videoFeedStream'+id);
         if (!_imageFeed || (_imageFeed && _imageFeed.getAttribute('data-not-display-video') !== 'true')) {
@@ -1872,7 +2002,7 @@ function initPage() {
       },
       function() {
         //const id = stringToNumber(this.id); //Montage & Watch page
-        const id = eventData.MonitorId; // Event page
+        const id = domMonitorId(); // Event page
         //$j('#button_zoom' + id).stop(true, true).slideUp('fast');
         $j('#button_zoom' + id).addClass('hidden');
       }
@@ -1882,7 +2012,7 @@ function initPage() {
     //Updating Scale. When quickly scrolling the mouse wheel or quickly pressing Zoom In/Out, you should not set Scale very often.
     if (updateScale) {
       const eventViewer = $j(vid ? '#videoobj' : '#evtStream');
-      const panZoomScale = panZoomEnabled ? zmPanZoom.panZoom[eventData.MonitorId].getScale() : 1;
+      const panZoomScale = panZoomEnabled ? zmPanZoom.panZoom[domMonitorId()].getScale() : 1;
       const newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, false, $j('#videoFeed'), panZoomScale);
       scale = newSize.autoScale > 100 ? 100 : newSize.autoScale;
       currentScale = scale;
@@ -2000,7 +2130,7 @@ function removeTag(tag) {
 
 function createTag(tagName, buttonPressed = null) {
   if (!canEdit.Events) return;
-  $j.getJSON(thisUrl + '?request=tags&action=createtag&tname=' + tagName)
+  $j.getJSON(thisUrl + '?request=tags&action=createtag&tname=' + encodeURIComponent(tagName))
       .done(function(data) {
         if (data.result != 'Ok') {
           console.error('createtag refused', data.message);
@@ -2040,19 +2170,19 @@ function getSelectedTags() {
 }
 
 function toggleZones(e) {
-  const zones = $j('#zones'+eventData.MonitorId);
+  const zones = $j('#zones'+domMonitorId());
   const button = document.getElementById('toggleZonesButton');
   if (zones.length) {
     if (zones.is(":visible")) {
       zones.hide();
       button.setAttribute('title', showZonesString);
       $j('#toggleZonesButton .material-icons').text('layers');
-      setCookie('zmEventShowZones'+eventData.MonitorId, '0');
+      setCookie('zmEventShowZones'+domMonitorId(), '0');
     } else {
       zones.show();
       button.setAttribute('title', hideZonesString);
       $j('#toggleZonesButton .material-icons').text('layers_clear');
-      setCookie('zmEventShowZones'+eventData.MonitorId, '1');
+      setCookie('zmEventShowZones'+domMonitorId(), '1');
     }
   } else {
     console.error("Zones svg not found");

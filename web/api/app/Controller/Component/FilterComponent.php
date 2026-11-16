@@ -9,18 +9,18 @@ class FilterComponent extends Component {
 	 * These came from https://dev.mysql.com/doc/refman/8.0/en/non-typed-operators.html
 	 */
 	public $twoOperandSQLOperands = array(
-					      'AND',
-					      '&&',
+					      //'AND',
+					      //'&&',
 					      '=',
 					      //':=',
 					      //'BETWEEN ... AND ...',
 					      //'BINARY',
-					      '&',
-					      '~',
+					      //'&',
+					      //'~',
 					      //'|',
-					      '^',
+					      //'^',
 					      //'CASE',
-					      'DIV',
+					      //'DIV',
 					      '/',
 					      '=',
 					      '<=>',
@@ -36,9 +36,9 @@ class FilterComponent extends Component {
 					      '<',
 					      '<=',
 					      'LIKE',
-					      '-',
-					      '%',
-					      'MOD',
+					      //'-',
+					      //'%',
+					      //'MOD',
 					      //'NOT',
 					      //'!',
 					      //'NOT BETWEEN ... AND ...',
@@ -52,13 +52,13 @@ class FilterComponent extends Component {
 					      // monitors/events.
 					      //'||',
 					      //'OR',
-					      '+',
+					      //'+',
 					      'REGEXP',
 					      '>>',
 					      'RLIKE',
-					      'SOUNDS LIKE',
+					      //'SOUNDS LIKE',
 					      //'*',
-					      '-',
+					      //'-',
 					      //'XOR',
                 'IN',
 					      );
@@ -71,6 +71,80 @@ class FilterComponent extends Component {
     'token',
     'direction'
   );
+
+	// Check the fields of named parameters against the tables a find() reads,
+	// and write each one so MySQL finds exactly one column.
+	//
+	// $fields maps a model alias to its column names, the queried model first.
+	// A bare field that is a column of the queried model is written Model.Field,
+	// so a name that is also a column of a joined table (Id, Name) is not
+	// ambiguous. Otherwise it must be a column of exactly one joined model
+	// (Status, CaptureFPS from Monitor_Status) and is left bare, which MySQL
+	// resolves to that table; buildFilter() does not accept an alias with an
+	// underscore such as Monitor_Status. A field written Model.Field must be a
+	// column of one of the models in $fields. Names in $unqualified are left as
+	// they are for the caller to resolve (GroupId; matched exactly, as the
+	// caller looks for it). Column names match without regard to case, as in
+	// MySQL, and are written as the schema spells them.
+	//
+	// A field no model has, or a bare field two joined models have and the
+	// queried model does not, is a 400 naming the field. It used to reach MySQL
+	// as an unknown or ambiguous column and come back as a 500 carrying the SQL
+	// error. Parameters buildFilter() skips or rejects are passed through to it.
+	public function qualifyFields($namedParams, $fields, $unqualified = array()) {
+		if (!$namedParams) {
+			return $namedParams;
+		}
+		reset($fields);
+		$model = key($fields);
+		$scoped = array();
+		foreach ($namedParams as $attribute => $value) {
+			$lhs = trim($attribute);
+			$matches = NULL;
+			if (in_array($lhs, $this->paramsToFilterOut)
+				or preg_match('/^(?P<field>[a-z0-9\.]+)(?P<rest>.*)$/is', $lhs, $matches) !== 1) {
+				$scoped[$attribute] = $value;
+				continue;
+			}
+			$field = $matches['field'];
+			$dot = strrpos($field, '.');
+			if ($dot === false) {
+				if (in_array($field, $unqualified, true)) {
+					$scoped[$attribute] = $value;
+					continue;
+				}
+				$alias = false;
+				$column = $field;
+			} else {
+				$alias = substr($field, 0, $dot);
+				$column = substr($field, $dot + 1);
+			}
+			$found = array();
+			foreach ($fields as $name => $columns) {
+				if ($alias !== false and strcasecmp($name, $alias)) {
+					continue;
+				}
+				foreach ($columns as $c) {
+					if (!strcasecmp($c, $column)) {
+						$found[] = ($alias === false and $name != $model) ? $c : $name.'.'.$c;
+						break;
+					}
+				}
+				if ($alias === false and $name == $model and count($found)) {
+					break;
+				}
+			}
+			if (!count($found)) {
+				throw new BadRequestException('Unknown filter field: ' . $field);
+			}
+			if (count($found) > 1) {
+				throw new BadRequestException('Ambiguous filter field: ' . $field);
+			}
+			$found = $found[0];
+			$scoped[$found.$matches['rest']] = $value;
+		}
+		return $scoped;
+	}
 
 	// Build a CakePHP find() condition based on the named parameters
 	// that are passed in.
@@ -95,6 +169,13 @@ class FilterComponent extends Component {
 				if (preg_match('/^(?P<field>[a-z0-9\.]+)(?P<operator>.+)?$/i', $lhs, $matches) !== 1) {
 					throw new BadRequestException('Invalid argument before `:`: ' . $lhs);
 				}
+				// A purely numeric field name becomes an integer array key in
+				// $conditions, which CakePHP 2.x emits as a raw, unescaped SQL
+				// fragment rather than a quoted value. Real columns always contain
+				// a letter, so refuse an all-digit field. refs GHSA-xqfr-6v9x-cvwc
+				if (preg_match('/^[0-9]+$/', $matches['field'])) {
+					throw new BadRequestException('Invalid filter field: ' . $lhs);
+				}
 				$operator = isset($matches['operator']) ? trim($matches['operator']) : '';
 
 				// Only allow operators on our allow list. No operator
@@ -113,10 +194,44 @@ class FilterComponent extends Component {
 						throw new BadRequestException('Unknown filter field: ' . $bare);
 					}
 				}
+        if ($operator == 'IS' or $operator == 'IS NOT') {
+          // CakePHP only writes IS [NOT] NULL for a null value
+          if (!is_string($value) or strcasecmp($value, 'NULL')) {
+            throw new BadRequestException('Invalid value for '.$operator.': '.(is_string($value) ? $value : 'array'));
+          }
+          $value = null;
+          $operator = ($operator == 'IS') ? '' : '!=';
+        }
         if (($operator == 'LIKE') and (false === strpos($value, '%'))) {
           $value = '%'.$value.'%';
         } else if ($operator == 'IN') {
-          $value = explode(',', $value);
+          $raw = $value;
+          if (is_string($value)) {
+            $trimmed = trim($value);
+            if (strlen($trimmed) >= 2 && $trimmed[0] === '(' && substr($trimmed, -1) === ')') {
+              $trimmed = substr($trimmed, 1, -1);
+            }
+            $parts = explode(',', $trimmed);
+            $value = array();
+            foreach ($parts as $part) {
+              $part = trim($part);
+              if ($part !== '') {
+                $value[] = $part;
+              }
+            }
+          } else if (is_array($value)) {
+            $cleaned = array();
+            foreach ($value as $part) {
+              $part = is_string($part) ? trim($part) : $part;
+              if ($part !== '' && $part !== null) {
+                $cleaned[] = $part;
+              }
+            }
+            $value = $cleaned;
+          }
+          if (!count($value)) {
+            throw new BadRequestException('Invalid value for IN: ' . (is_string($raw) ? $raw : 'array'));
+          }
         }
 
 				$lhs = $matches['field'] . ($operator?' ' . $operator:'');

@@ -52,6 +52,7 @@ class StreamBase {
   static const StreamType DEFAULT_TYPE = STREAM_JPEG;
   enum { DEFAULT_RATE=ZM_RATE_BASE };
   enum { DEFAULT_SCALE=ZM_SCALE_BASE };
+  enum { MAX_SCALE=16*ZM_SCALE_BASE };
   enum { DEFAULT_ZOOM=ZM_SCALE_BASE };
   enum { DEFAULT_MAXFPS=10 };
   enum { DEFAULT_BITRATE=100000 };
@@ -82,8 +83,8 @@ class StreamBase {
     // CMD_PLAY resumes or starts playback at normal speed (1x, i.e. replay_rate = ZM_RATE_BASE).
     // Use CMD_VARPLAY to resume at an arbitrary rate.
     CMD_PLAY,
-    // CMD_STOP halts all streaming activity.  Unlike CMD_PAUSE, no keepalive frames are sent
-    // and the stream does no work until a new command is received.
+    // CMD_STOP halts streaming until a new command is received.  The current frame is still
+    // re-sent every few seconds so that a viewer that has gone away is noticed.
     CMD_STOP,
     CMD_FASTFWD,
     CMD_SLOWFWD,
@@ -110,6 +111,21 @@ class StreamBase {
     CMD_ANALYZE_ON,
     CMD_ANALYZE_OFF,
     CMD_ZOOMSTOP,
+    // Tell an event stream which event to load next/prev, computed UI-side so the
+    // filter/sort the user is viewing is honoured without reimplementing filters
+    // in C++ (refs #4186). MSG payload:
+    //   msg_data[1]     = direction (0 = next, 1 = prev)
+    //   msg_data[2..9]  = target event id, big-endian uint64 (0 = the filter has
+    //                     no neighbour in this direction -> stop at the boundary)
+    //   msg_data[10..15]= the event the UI computed this against, big-endian
+    //                     48-bit (source event id). The stream honours a hint
+    //                     only while this still matches the event playing, so a
+    //                     hint that arrives after playback has moved on is
+    //                     ignored instead of mis-steering the next transition.
+    //                     48 bits is ample for any real event id; a larger id
+    //                     would simply fail the match and fall back, never
+    //                     mis-match to a wrong event.
+    CMD_SET_EVENT,
     CMD_QUERY=99
   } MsgCommand;
 
@@ -129,6 +145,9 @@ class StreamBase {
   std::atomic<int> zoom;
   int last_zoom;
   Box last_crop;
+  // The frame size last_crop is in. Event playback can move to a monitor with
+  // a different resolution.
+  int last_crop_width, last_crop_height;
   int bitrate;
   unsigned short last_x, last_y;
   std::atomic<unsigned short> x, y;
@@ -212,6 +231,8 @@ class StreamBase {
     last_scale(DEFAULT_SCALE),
     zoom(DEFAULT_ZOOM),
     last_zoom(DEFAULT_ZOOM),
+    last_crop_width(0),
+    last_crop_height(0),
     bitrate(DEFAULT_BITRATE),
     last_x(0),
     last_y(0),
@@ -266,14 +287,17 @@ class StreamBase {
   void setStreamFormat(const char *p_format) {
     format = p_format;
   }
+  static int clampScale(int p_scale) {
+    if (p_scale <= 0)
+      return DEFAULT_SCALE;
+    return p_scale > MAX_SCALE ? static_cast<int>(MAX_SCALE) : p_scale;
+  }
   void setStreamScale(int p_scale) {
-    scale = p_scale;
-    if ( !scale )
-      scale = DEFAULT_SCALE;
+    scale = clampScale(p_scale);
   }
   void setStreamReplayRate(int p_rate) {
     Debug(1, "Setting replay_rate %d", p_rate);
-    replay_rate = p_rate;
+    replay_rate = p_rate ? p_rate : DEFAULT_RATE;
   }
   void setStreamMaxFPS(double p_maxfps) {
     Debug(1, "Setting max fps to %f", p_maxfps);

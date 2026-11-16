@@ -37,6 +37,15 @@ class State extends AppModel {
 				'message' => 'A state with this name already exists',
 			),
 		),
+		// The column has no default, so a state added without one is refused by MySQL.
+		'Definition' => array(
+			'required' => array(
+				'rule' => array('maxLength', 65535),
+				'required' => 'create',
+				'allowEmpty' => true,
+				'message' => 'A state needs a Definition',
+			),
+		),
 	);
 
 }

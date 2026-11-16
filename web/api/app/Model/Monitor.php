@@ -54,6 +54,26 @@ class Monitor extends AppModel {
          'message'    => 'Monitor Name must be specified for creation',
          'required'   => true,
        ),
+       'notBlank' => array(
+         'rule'       => 'notBlank',
+         'message'    => 'Monitor Name must not be blank',
+       ),
+    ),
+    'Width' => array(
+      'rule' => array('comparison', '>', 0),
+      'message' => 'Width must be greater than 0',
+    ),
+    'Height' => array(
+      'rule' => array('comparison', '>', 0),
+      'message' => 'Height must be greater than 0',
+    ),
+    'ServerId' => array(
+      'rule' => array('rowExists', 'Server'),
+      'message' => 'ServerId does not match a server',
+    ),
+    'StorageId' => array(
+      'rule' => array('rowExists', 'Storage'),
+      'message' => 'StorageId does not match a storage area',
     ),
     // These codec values mimic acceptable ones for FFMPEG
     // Edit this if the list in ZM changes
@@ -77,6 +97,18 @@ class Monitor extends AppModel {
    * so the /dev/ restriction only applies when Type == 'Local'. Other Types
    * may legitimately hold legacy values (e.g. an RTSP URL) in this column.
    */
+  // Empty and 0 mean "none" (the default storage area, any server).
+  public function rowExists($check, $model) {
+    $value = reset($check);
+    if ($value === null or $value === '' or $value == 0) {
+      return true;
+    }
+    return (bool)ClassRegistry::init($model)->find('first', array(
+      'conditions' => array($model.'.Id' => $value),
+      'recursive' => -1,
+    ));
+  }
+
   public function validDevicePath($check) {
     $value = reset($check);
     if ($value === null || $value === '') {
@@ -155,7 +187,7 @@ class Monitor extends AppModel {
       'Orientation'     => array('ROTATE_0','ROTATE_90','ROTATE_180','ROTATE_270','FLIP_HORI','FLIP_VERT'),
       // mask OutputCodec as its not an Enum in mysql
       //'OutputCodec'     => array( 'h264' ,'mjpeg','mpeg1','mpeg2'),
-      'OutputContainer' => array('auto','mp4','mkv'),
+      'OutputContainer' => array('auto','mp4','mkv','webm'),
       'DefaultView'     => array('Events','Control'),
       #'Status'          => array('Unknown','NotRunning','Running','NoSignal','Signal'),
     )
@@ -215,7 +247,7 @@ class Monitor extends AppModel {
         $args = '-m ' . escapeshellarg($monitor['Id']);
       }
 
-      $shellcmd = escapeshellcmd(ZM_PATH_BIN.'/zmdc.pl '.$command.' '.$daemon.' '.$args);
+      $shellcmd = escapeshellarg(ZM_PATH_BIN.'/zmdc.pl').' '.escapeshellarg($command).' '.escapeshellarg($daemon).' '.$args;
       ZM\Debug("Command $shellcmd");
       $status = exec($shellcmd);
       $status_text .= $status.PHP_EOL;

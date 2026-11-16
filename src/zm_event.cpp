@@ -49,11 +49,13 @@ Event::Event(
   packetqueue_iterator *p_packetqueue_it,
   SystemTimePoint p_start_time,
   const std::string &p_cause,
-  const StringSetMap &p_noteSetMap
+  const StringSetMap &p_noteSetMap,
+  SystemTimePoint p_counting_boundary
 ) :
   id(0),
   monitor(p_monitor),
   storage(nullptr),
+  storage_id(0),
   packetqueue_it(p_packetqueue_it),
   start_time(p_start_time),
   end_time(p_start_time),
@@ -65,6 +67,7 @@ Event::Event(
   tot_score(0),
   max_score(-1),
   max_score_frame_id(0),
+  frame_write_failures(0),
   //path(""),
   //snapshit_file(),
   snapshot_file_written(false),
@@ -76,6 +79,7 @@ Event::Event(
   have_video_keyframe(false),
   //scheme
   save_jpegs(0),
+  counting_boundary(p_counting_boundary),
   terminate_(false) {
   std::string notes;
   createNotes(notes);
@@ -121,6 +125,7 @@ Event::Event(
   // Copy it in case opening the mp4 doesn't work we can set it to another value
   save_jpegs = monitor->GetOptSaveJPEGs();
   storage = monitor->getStorage();
+  storage_id = storage->Id();
   if (monitor->GetOptVideoWriter() != 0) {
     container = monitor->OutputContainer();
     if (container == "auto" || container == "") {
@@ -327,12 +332,12 @@ Event::~Event() {
   // Conditionally update Name only if it hasn't been changed by the user during recording.
   std::string sql = stringtf(
       "UPDATE Events SET"
-      " Name = IF(Name='New Event', '%s%" PRIu64 "', Name),"
+      " Name = IF(Name='New Event', CONCAT(LEFT('%s', %d), '%" PRIu64 "'), Name),"
       " EndDateTime = from_unixtime(%jd), Length = %.2f, Frames = %d,"
       " AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d,"
       " MaxScoreFrameId=%d, DefaultVideo='%s', DiskSpace=%" PRIu64
       " WHERE Id = %" PRIu64,
-      monitor->Substitute(monitor->EventPrefix(), start_time).c_str(), id,
+      monitor->Substitute(monitor->EventPrefix(), start_time).c_str(), EventNamePrefixLength(id), id,
       static_cast<intmax_t>(std::chrono::system_clock::to_time_t(end_time.load())),
       delta_time.count(),
       frames.load(), alarm_frames.load(),
@@ -351,16 +356,22 @@ Event::~Event() {
       Warning("Failed unlinking %s: %s", video_incomplete_path.c_str(), strerror(errno));
   }
 
-  if (storage && storage->Id()) {
-    sql = stringtf("UPDATE Storage SET DiskSpace = DiskSpace + %" PRIu64 " WHERE Id=%u", video_size, storage->Id());
+  if (storage_id) {
+    sql = stringtf("UPDATE Storage SET DiskSpace = DiskSpace + %" PRIu64 " WHERE Id=%u", video_size, storage_id);
     dbQueue.push(std::move(sql));
+  }
+
+  if (frame_write_failures > 1) {
+    Warning("%d frame images could not be written for event %" PRIu64, frame_write_failures, id);
   }
   Debug(1, "~Event %" PRIu64 ": complete", id);
 }  // Event::~Event()
 
-void Event::createNotes(std::string &notes) {
-  notes.clear();
-  for (StringSetMap::const_iterator mapIter = noteSetMap.begin(); mapIter != noteSetMap.end(); ++mapIter) {
+std::string Event::BuildNotes(const StringSetMap &note_set_map) {
+  std::string notes;
+  for (StringSetMap::const_iterator mapIter = note_set_map.begin(); mapIter != note_set_map.end(); ++mapIter) {
+    if (!notes.empty())
+      notes += "; ";
     notes += mapIter->first;
     notes += ": ";
     const StringSet &stringSet = mapIter->second;
@@ -370,10 +381,21 @@ void Event::createNotes(std::string &notes) {
       notes += *setIter;
     }
   }
+  return notes;
+}
+
+void Event::createNotes(std::string &notes) {
+  notes = BuildNotes(noteSetMap);
 }  // void Event::createNotes(std::string &notes)
 
 void Event::addNote(const char *cause, const std::string &note) {
-  noteSetMap[cause].insert(note);
+  if (!noteSetMap[cause].insert(note).second)
+    return;
+  std::string notes;
+  createNotes(notes);
+  std::string sql = stringtf("UPDATE `Events` SET `Notes` = '%s' WHERE `Id` = %" PRIu64,
+                             zmDbEscapeString(notes).c_str(), id);
+  dbQueue.push(std::move(sql));
 }
 
 bool Event::WriteFrameImage(Image *image, SystemTimePoint timestamp, const char *event_file, bool alarm_frame) const {
@@ -588,7 +610,8 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
 
   frames++;
   Monitor::State monitor_state = monitor->GetState();
-  int score = packet->score;
+  const bool counted = EventCountsFrameStats(packet->timestamp, counting_boundary);
+  int score = counted ? packet->score : 0;
 
   bool write_to_db = false;
   FrameType frame_type = ( ( score > 0 ) ? ALARM : (
@@ -604,17 +627,24 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
   if (frame_type == ALARM) alarm_frames++;
 
   Debug(1, "Have frame type %s from score(%d) state %d frames %d bulk frame interval %d and mod%d",
-        frame_type_names[frame_type], score, monitor_state, frames.load(), config.bulk_frame_interval, (frames.load() % config.bulk_frame_interval));
+        frame_type_names[frame_type], score, monitor_state, frames.load(), config.bulk_frame_interval,
+        (config.bulk_frame_interval ? frames.load() % config.bulk_frame_interval : 0));
 
   if (score < 0) score = 0;
   tot_score += score;
 
   if (packet->image) {
+    auto note_frame_write_failure = [&](const std::string &message) {
+      if (frame_write_failures == 0)
+        Error("%s", message.c_str());
+      frame_write_failures++;
+    };
+
     if (save_jpegs & 1) {
       std::string event_file = stringtf(staticConfig.capture_file_format.c_str(), path.c_str(), frames.load());
       Debug(1, "Writing capture frame %d to %s", frames.load(), event_file.c_str());
       if (!WriteFrameImage(packet->image, packet->timestamp, event_file.c_str())) {
-        Error("Failed to write frame image at %s", event_file.c_str());
+        note_frame_write_failure(stringtf("Failed to write frame image at %s", event_file.c_str()));
       }
     }  // end if save_jpegs
 
@@ -637,7 +667,7 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
         alarm_frame_written = true;
         Debug(1, "Writing alarm image to %s", alarm_file.c_str());
         if (!WriteFrameImage(packet->image, packet->timestamp, alarm_file.c_str())) {
-          Error("Failed to write alarm frame image to %s", alarm_file.c_str());
+          note_frame_write_failure(stringtf("Failed to write alarm frame image to %s", alarm_file.c_str()));
         }
       } else {
         Debug(3, "Not Writing alarm image because alarm frame already written");
@@ -649,7 +679,7 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
         std::string event_file = stringtf(staticConfig.analyse_file_format.c_str(), path.c_str(), frames.load());
         Debug(1, "Writing analysis frame %d to %s", frames.load(), event_file.c_str());
         if (!WriteFrameImage(packet->analysis_image, packet->timestamp, event_file.c_str(), true)) {
-          Error("Failed to write analysis frame image to %s", event_file.c_str());
+          note_frame_write_failure(stringtf("Failed to write analysis frame image to %s", event_file.c_str()));
         }
       } else {
         Debug(1, "Wanted to save analysis frame, but packet has no analysis_image");
@@ -667,7 +697,7 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
                   or ( monitor_state == Monitor::ALARM )
                   or ( monitor_state == Monitor::PREALARM );
 
-  if (score > max_score) {
+  if (counted and score > max_score) {
     max_score = score;
     max_score_frame_id = frames;
   }
@@ -742,9 +772,6 @@ bool Event::SetPath(Storage *storage) {
     dt_parts[4] = stime.tm_min;
     dt_parts[5] = stime.tm_sec;
 
-    std::string date_path;
-    std::string time_path;
-
     for (unsigned int i = 0; i < sizeof(dt_parts)/sizeof(*dt_parts); i++) {
       path += stringtf("/%02d", dt_parts[i]);
 
@@ -752,17 +779,10 @@ bool Event::SetPath(Storage *storage) {
         Error("Can't mkdir %s: %s", path.c_str(), strerror(errno));
         return false;
       }
-      if (i == 2)
-        date_path = path;
     }
-    time_path = stringtf("%02d/%02d/%02d", stime.tm_hour, stime.tm_min, stime.tm_sec);
 
-    // Create event id symlink
-    std::string id_file = stringtf("%s/.%" PRIu64, date_path.c_str(), id);
-    if (symlink(time_path.c_str(), id_file.c_str()) < 0) {
-      Error("Can't symlink %s -> %s: %s", id_file.c_str(), time_path.c_str(), strerror(errno));
+    if (!CreateIdMarker(scheme, path, id))
       return false;
-    }
   } else if (scheme == Storage::MEDIUM) {
     path += stringtf("/%04d-%02d-%02d",
                      stime.tm_year+1900, stime.tm_mon+1, stime.tm_mday
@@ -783,17 +803,41 @@ bool Event::SetPath(Storage *storage) {
       return false;
     }
 
-    // Create empty id tag file
-    std::string id_file = stringtf("%s/.%" PRIu64, path.c_str(), id);
+    if (!CreateIdMarker(scheme, path, id))
+      return false;
+  }  // deep storage or not
+  return true;
+}  // end bool Event::SetPath
+
+// Deep: a .<id> symlink in the day directory pointing at the event's time directory.
+// Shallow: an empty .<id> file in the event directory.
+bool Event::CreateIdMarker(Storage::Schemes scheme, const std::string &event_path, uint64_t id) {
+  if (scheme == Storage::DEEP) {
+    // event_path ends in YY/MM/DD/hh/mm/ss
+    size_t pos = event_path.size();
+    for (int i = 0; i < 3 && pos != std::string::npos; i++)
+      pos = (pos == 0) ? std::string::npos : event_path.rfind('/', pos - 1);
+    if (pos == std::string::npos) {
+      Error("Can't find day directory in %s", event_path.c_str());
+      return false;
+    }
+    std::string time_path = event_path.substr(pos + 1);
+    std::string id_file = stringtf("%s/.%" PRIu64, event_path.substr(0, pos).c_str(), id);
+    if (symlink(time_path.c_str(), id_file.c_str()) < 0) {
+      Error("Can't symlink %s -> %s: %s", id_file.c_str(), time_path.c_str(), strerror(errno));
+      return false;
+    }
+  } else if (scheme == Storage::SHALLOW) {
+    std::string id_file = stringtf("%s/.%" PRIu64, event_path.c_str(), id);
     if ( FILE *id_fp = fopen(id_file.c_str(), "w") ) {
       fclose(id_fp);
     } else {
       Error("Can't fopen %s: %s", id_file.c_str(), strerror(errno));
       return false;
     }
-  }  // deep storage or not
+  }
   return true;
-}  // end bool Event::SetPath
+}
 
 void Event::Run() {
   Debug(1, "Event::Run %" PRIu64 ": starting setup", id);
@@ -844,8 +888,9 @@ void Event::Run() {
       storage = new Storage();
       Warning("Failed to find a storage area to save events.");
     }
-    sql = stringtf("UPDATE Events SET StorageId = '%d' WHERE Id=%" PRIu64, storage->Id(), id);
+    sql = stringtf("UPDATE Events SET StorageId = '%d', Scheme = '%s' WHERE Id=%" PRIu64, storage->Id(), storage->SchemeString().c_str(), id);
     zmDbDo(sql);
+    storage_id = storage->Id();
   }  // end if ! setPath(Storage)
   Debug(1, "Using storage area at %s", path.c_str());
 
@@ -901,9 +946,11 @@ void Event::Run() {
   // The idea is to process the queue no matter what so that all packets get processed.
   // We only break if the queue is empty
   Debug(1, "Event::Run %" PRIu64 ": entering packet loop", id);
-  while (!terminate_ and !zm_terminate) {
+  while (!zm_terminate) {
     ZMPacketLock packet_lock = packetqueue->get_packet_no_wait(packetqueue_it);
     std::shared_ptr<ZMPacket> packet = packet_lock.packet_;
+    if (!EventKeepsDraining(terminate_, drain_until.load(), packet.get()))
+      break;
     if (packet) {
       if (!packet->decoded) {
         Debug(1, "Not decoded");

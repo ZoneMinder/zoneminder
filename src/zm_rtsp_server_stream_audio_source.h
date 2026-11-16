@@ -47,7 +47,7 @@ class ZoneMinderStreamAudioSource : public ZoneMinderStreamSource {
   int getChannels() const { return channels; };
 
  protected:
-  void PushFrame(const uint8_t *data, size_t size, int64_t pts) override;
+  void PushFrame(const uint8_t *data, size_t size, int64_t pts, bool last) override;
 
  protected:
   std::string config;

@@ -68,7 +68,7 @@ if ($event_id !== null) {
     ZM\Warning('Event '.$event_id.' access denied');
     die();
   }
-  if (!empty($_REQUEST['file'])) {
+  if (!empty($_REQUEST['file']) and is_string($_REQUEST['file'])) {
     $path = $Event->Path().'/'.basename($_REQUEST['file']);
   } else {
     $path = $Event->Path().'/'.$Event->DefaultVideo();

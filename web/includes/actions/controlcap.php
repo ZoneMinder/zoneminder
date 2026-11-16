@@ -77,7 +77,7 @@ if ( $action == 'Save' ) {
     'HasPresets'    =>  0,
     'HasHomePreset' =>  0,
     'CanSetPresets' =>  0,
-    'CanLed' => 0,
+    'CanIndicatorLight' => 0,
     'CanLight' => 0,
     'CanAudioPlay' => 0,
     'CanAudioVolume' => 0,

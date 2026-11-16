@@ -20,6 +20,7 @@
 #include "zm_monitor.h"
 
 #include <sys/stat.h>
+#include <sys/time.h>
 
 #if ZM_MEM_MAPPED
 #include <sys/mman.h>
@@ -146,8 +147,8 @@ bool Monitor::MonitorLink::connect() {
     trigger_data = (TriggerData *)((char *)shared_data + sizeof(SharedData));
     zone_scores = (int *)((unsigned long)trigger_data + sizeof(TriggerData));
 
-    if (!shared_data->valid) {
-      Debug(3, "Linked memory not initialised by capture daemon");
+    if (!isAlive()) {
+      Debug(3, "Linked memory not initialised or stale");
       disconnect();
       return false;
     }
@@ -157,8 +158,16 @@ bool Monitor::MonitorLink::connect() {
 
     return true;
   }
-  return connected;
+  return isConnected();
 }  // end bool Monitor::MonitorLink::connect()
+
+bool Monitor::MonitorLink::isAlive() const {
+  if (!shared_data || !shared_data->valid) return false;
+  timeval now = {};
+  gettimeofday(&now, nullptr);
+  double max_delay = config.watch_max_delay > 0 ? config.watch_max_delay : 10.0;
+  return (now.tv_sec - shared_data->heartbeat_time) < max_delay;
+}
 
 bool Monitor::MonitorLink::disconnect() {
   connected = false;
@@ -218,13 +227,16 @@ bool Monitor::MonitorLink::inAlarm() {
 }
 
 int Monitor::MonitorLink::score() {
-  if (zone_id and (zone_index >= 0)) {
-    Debug(1, "Checking zone %u, zone_index is %d, score is %d", zone_id, zone_index, zone_scores[zone_index]);
-    return zone_scores[zone_index];
-  }
-
   if (shared_data->state == ALARM) {
-    Debug(1, "Checking all zones score is %d", shared_data->last_frame_score);
+    if (zone_id) {
+      if (zone_index >= 0 && zone_scores) {
+        Debug(1, "Checking zone %u, zone_index is %d, score is %d", zone_id, zone_index, zone_scores[zone_index]);
+        return zone_scores[zone_index];
+      }
+      Debug(1, "Zone %u not found or no zone scores, returning 0", zone_id);
+      return 0;
+    }
+    Debug(1, "Checking all zones score is %d", shared_data->last_frame_score.load());
     return shared_data->last_frame_score;
   }
   if (shared_data->state == ALERT) {
@@ -235,7 +247,7 @@ int Monitor::MonitorLink::score() {
     Debug(1, "Linked monitor in ALERT, returning sentinel to keep event open");
     return 1;
   }
-  Debug(1, "not alarmed. %d", shared_data->state);
+  Debug(1, "not alarmed. %d", shared_data->state.load());
   return 0;
 }
 

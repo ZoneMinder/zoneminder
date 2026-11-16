@@ -36,7 +36,7 @@ if (count($user->unviewableMonitorIds())) {
 }
 
 $filter = isset($_REQUEST['filter_id']) ? new ZM\Filter(validCardinal($_REQUEST['filter_id'])) : new ZM\Filter();
-if ( isset($_REQUEST['filter'])) {
+if ( isset($_REQUEST['filter']) && is_array($_REQUEST['filter']) ) {
   $filter->set($_REQUEST['filter']);
 }
  

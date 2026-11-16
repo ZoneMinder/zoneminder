@@ -213,7 +213,7 @@ function buildControlCommand($monitor) {
             ),
           );
           $new_dirn = $conversions[$monitor->Orientation()][$dirn];
-          $_REQUEST['control'] = preg_replace( "/_$dirn\$/", "_$new_dirn", $_REQUEST['control'] );
+          $_REQUEST['control'] = preg_replace( "/$dirn\$/", "$new_dirn", $_REQUEST['control'] );
           $dirn = $new_dirn;
         }
 
@@ -315,14 +315,14 @@ function buildControlCommand($monitor) {
       $x = deScale( $_REQUEST['x'], $_REQUEST['scale'] );
       $y = deScale( $_REQUEST['y'], $_REQUEST['scale'] );
 
-      $halfWidth = $monitor->Width() / 2;
-      $halfHeight = $monitor->Height() / 2;
+      $halfWidth = $monitor->ViewWidth() / 2;
+      $halfHeight = $monitor->ViewHeight() / 2;
       $xFactor = ($x - $halfWidth)/$halfWidth;
       $yFactor = ($y - $halfHeight)/$halfHeight;
 
       switch ( $monitor->Orientation() ) {
       case 'ROTATE_90' :
-        $tempYFactor = $y;
+        $tempYFactor = $yFactor;
         $yFactor = -$xFactor;
         $xFactor = $tempYFactor;
         break;
@@ -331,7 +331,7 @@ function buildControlCommand($monitor) {
         $yFactor = -$yFactor;
         break;
       case 'ROTATE_270' :
-        $tempXFactor = $x;
+        $tempXFactor = $xFactor;
         $xFactor = -$yFactor;
         $yFactor = $tempXFactor;
         break;
@@ -395,25 +395,31 @@ function buildControlCommand($monitor) {
         }
         if ( preg_match( '/(Left|Right)$/', $dirn ) ) {
           $panStep = intval(round($control->MinPanStep()+(($control->MaxPanStep()-$control->MinPanStep())*$xFactor)));
-          $ctrlCommand .= ' --panstep='.$panStep.' --panspeed='.$panSpeed;
+          $ctrlCommand .= ' --panstep='.$panStep;
+          if ( $control->HasPanSpeed() && isset($panSpeed) ) {
+            $ctrlCommand .= ' --panspeed='.$panSpeed;
+          }
         }
         if ( preg_match( '/^(Up|Down)/', $dirn ) ) {
           $tiltStep = intval(round($control->MinTiltStep()+(($control->MaxTiltStep()-$control->MinTiltStep())*$yFactor)));
-          $ctrlCommand .= ' --tiltstep='.$tiltStep.' --tiltspeed='.$tiltSpeed;
+          $ctrlCommand .= ' --tiltstep='.$tiltStep;
+          if ( $control->HasTiltSpeed() && isset($tiltSpeed) ) {
+            $ctrlCommand .= ' --tiltspeed='.$tiltSpeed;
+          }
         }
       }
     } elseif ( $_REQUEST['control'] == 'moveConMap' ) {
       $x = deScale( $_REQUEST['x'], $_REQUEST['scale'] );
       $y = deScale( $_REQUEST['y'], $_REQUEST['scale'] );
 
-      $halfWidth = $monitor->Width() / 2;
-      $halfHeight = $monitor->Height() / 2;
+      $halfWidth = $monitor->ViewWidth() / 2;
+      $halfHeight = $monitor->ViewHeight() / 2;
       $xFactor = ($x - $halfWidth)/$halfWidth;
       $yFactor = ($y - $halfHeight)/$halfHeight;
 
       switch ( $monitor->Orientation() ) {
       case 'ROTATE_90' :
-        $tempYFactor = $y;
+        $tempYFactor = $yFactor;
         $yFactor = -$xFactor;
         $xFactor = $tempYFactor;
         break;
@@ -422,7 +428,7 @@ function buildControlCommand($monitor) {
         $yFactor = -$yFactor;
         break;
       case 'ROTATE_270' :
-        $tempXFactor = $x;
+        $tempXFactor = $xFactor;
         $xFactor = -$yFactor;
         $yFactor = $tempXFactor;
         break;
@@ -485,10 +491,14 @@ function buildControlCommand($monitor) {
           }
         }
         if ( preg_match( '/(Left|Right)$/', $dirn ) ) {
-          $ctrlCommand .= ' --panspeed='.$panSpeed;
+          if ( $control->HasPanSpeed() && isset($panSpeed) ) {
+            $ctrlCommand .= ' --panspeed='.$panSpeed;
+          }
         }
         if ( preg_match( '/^(Up|Down)/', $dirn ) ) {
-          $ctrlCommand .= ' --tiltspeed='.$tiltSpeed;
+          if ( $control->HasTiltSpeed() && isset($tiltSpeed) ) {
+            $ctrlCommand .= ' --tiltspeed='.$tiltSpeed;
+          }
         }
         if ( $monitor->AutoStopTimeout() ) {
           $slowPanSpeed = intval(round($control->MinPanSpeed()+(($control->MaxPanSpeed()-$control->MinPanSpeed())*$slow)));
@@ -499,6 +509,8 @@ function buildControlCommand($monitor) {
         }
       }
     } else {
+      $x = intval($_REQUEST['x']);
+      $y = intval($_REQUEST['y']);
       $slow = 0.9; // Threshold for slow speed/timeouts
       $turbo = 0.9; // Threshold for turbo speed
       $long_y = 48;
@@ -701,7 +713,7 @@ function buildControlCommand($monitor) {
               ),
             );
             $new_dirn = $conversions[$monitor->Orientation()][$dirn];
-            $_REQUEST['control'] = preg_replace( "/_$dirn\$/", "_$new_dirn", $_REQUEST['control'] );
+            $_REQUEST['control'] = preg_replace( "/$dirn\$/", "$new_dirn", $_REQUEST['control'] );
             $dirn = $new_dirn;
           }
 
@@ -765,7 +777,7 @@ function buildControlCommand($monitor) {
     } elseif ( preg_match( '/^presetGoto(\d+)$/', $_REQUEST['control'], $matches ) ) {
       $_REQUEST['control'] = 'presetGoto';
       $ctrlCommand .= ' --preset='.$matches[1];
-    } elseif ( $_REQUEST['control'] == 'presetGoto' && !empty($_REQUEST['preset']) ) {
+    } elseif ( $_REQUEST['control'] == 'presetGoto' && isset($_REQUEST['preset']) && $_REQUEST['preset'] !== '' ) {
       // Control modules look the preset up in SQL and send it to the camera.
       if ( !ctype_digit((string)$_REQUEST['preset']) ) {
         ZM\Warning('Invalid preset');
@@ -779,7 +791,7 @@ function buildControlCommand($monitor) {
         $row = dbFetchOne(
           'SELECT * FROM `ControlPresets` WHERE `MonitorId` = ? AND `Preset`=?',
           NULL, array($monitor->Id(), $preset));
-        if ( $newLabel != $row['Label'] ) {
+        if ( $newLabel != ($row ? $row['Label'] : '') ) {
           if ( $newLabel ) {
             dbQuery('REPLACE INTO `ControlPresets` (`MonitorId`, `Preset`, `Label`) VALUES ( ?, ?, ? )',
               array($monitor->Id(), $preset, $newLabel));

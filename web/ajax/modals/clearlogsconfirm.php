@@ -11,7 +11,7 @@
         </button>
       </div>
       <div class="modal-body">
-        <p><?php echo translate('ConfirmClearLogs') ?></p>
+        <p id="clearLogsConfirmText"><?php echo translate('ConfirmClearLogs') ?></p>
       </div>
       <div class="modal-footer">
         <button id="clearLogsCancelBtn" type="button" class="btn btn-secondary" data-dismiss="modal"><?php echo translate('Cancel') ?></button>

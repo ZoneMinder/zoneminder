@@ -111,7 +111,7 @@ class ZM_Object {
           if ( count($value) ) {
             $func = function(){return '?';};
             $fields[] = '`'.$field.'` IN ('.implode(',', array_map($func, $value)). ')';
-            $values += $value;
+            array_push($values, ...array_values($value));
           } else {
             $fields[] = 'FALSE /*`'.$field.'` IN () */'; # evaluates to false
           }
@@ -155,6 +155,7 @@ class ZM_Object {
     if ( 
         ( count($parameters) == 1 ) and
         isset($parameters['Id']) and
+        is_scalar($parameters['Id']) and
         isset($cache[$parameters['Id']]) ) {
       return $cache[$parameters['Id']];
     }

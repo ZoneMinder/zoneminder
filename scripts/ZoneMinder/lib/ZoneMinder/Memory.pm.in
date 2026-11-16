@@ -568,7 +568,7 @@ sub zmMonitorEnable {
   my $monitor = shift;
 
   my $action = zmMemRead($monitor, 'shared_data:action');
-  $action |= ACTION_SUSPEND;
+  $action |= ACTION_RESUME;
   zmMemWrite($monitor, {'shared_data:action' => $action});
 }
 
@@ -576,7 +576,7 @@ sub zmMonitorDisable {
   my $monitor = shift;
 
   my $action = zmMemRead($monitor, 'shared_data:action');
-  $action |= ACTION_RESUME;
+  $action |= ACTION_SUSPEND;
   zmMemWrite($monitor, {'shared_data:action' => $action});
 }
 

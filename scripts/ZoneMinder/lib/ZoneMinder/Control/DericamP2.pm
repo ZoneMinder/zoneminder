@@ -99,7 +99,7 @@ sub getCamParams
     my $self = shift;
     my $cmd = "cgi-bin/hi3510/param.cgi?cmd=getimageattr";
     
-    my $req = $self->sendCmd( $cmd );
+    my $req = HTTP::Request->new( GET=>"http://".$self->{Monitor}->{ControlAddress}."/$cmd" );
     my $res = $self->{ua}->request($req);
 
     if ( $res->is_success )
@@ -264,7 +264,7 @@ sub moveConDownLeft
 {
     my $self = shift;
     Debug( "Move Diagonally Down Left" );
-    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=ptzctrl&-step=0&-act=downnleft&-speed=45";
+    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=ptzctrl&-step=0&-act=downleft&-speed=45";
     $self->sendCmd( $cmd );
 }
 

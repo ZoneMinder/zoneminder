@@ -235,7 +235,7 @@ function initPage() {
     } else {
       $rows.each(function() {
         var $row = $j(this);
-        var rowDatasetId = $row.find('.classCol').data('dataset-id');
+        var rowDatasetId = $row.data('dataset-id');
         if (rowDatasetId == datasetId) {
           $row.show();
         } else {

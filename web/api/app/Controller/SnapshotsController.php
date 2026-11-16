@@ -35,7 +35,7 @@ class SnapshotsController extends AppController {
 
     if ( $this->request->params['named'] ) {
       $this->FilterComponent = $this->Components->load('Filter');
-      $conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+      $conditions = $this->FilterComponent->buildFilter($this->request->params['named'], array_keys($this->Snapshot->schema()));
     } else {
       $conditions = array();
     }
@@ -43,16 +43,6 @@ class SnapshotsController extends AppController {
     $find_array = array(
       'conditions' => &$conditions,
       'contain'    => array('Event'),
-      'joins'      => array(
-        array(
-          'table' => 'Snapshots_Events',
-          'type'  => 'left',
-          'conditions' => array(
-            'Snapshots_Events.SnapshotId = Snapshot.Id',
-          ),
-        ),
-      ),
-      'snapshot' => '`Snapshot`.`Id`',
     );
 
 		$snapshots = array_map(array($this, 'filterContainedEvents'), $this->Snapshot->find('all', $find_array));
@@ -99,9 +89,11 @@ class SnapshotsController extends AppController {
         return;
       }
 
-      if ( $this->request->data['Snapshot']['EventIds'] and ! isset($this->request->data['Event']) ) {
-        $this->request->data['Event'] = explode(',', $this->request->data['Snapshot']['EventIds']);
-        unset($this->request->data['Snapshot']['EventIds']);
+      $eventIds = $this->requestField('Snapshot', 'EventIds');
+      if ( is_string($eventIds) and $eventIds !== '' and ! isset($this->request->data['Event']) ) {
+        $this->request->data['Event'] = explode(',', $eventIds);
+        unset($this->request->data['EventIds']);
+        if ( isset($this->request->data['Snapshot']) and is_array($this->request->data['Snapshot']) ) unset($this->request->data['Snapshot']['EventIds']);
       }
       # A snapshot exposes its events to Snapshots viewers, so only viewable events may be added.
       $eventIds = $this->requestAssociatedIds('Snapshot', 'Event');
@@ -116,7 +108,11 @@ class SnapshotsController extends AppController {
         );
       } else {
         ZM\Error("Failed to save Snapshot");
-        debug($this->Snapshot->invalidFields());
+        $this->set(array(
+          'message' => $this->Snapshot->validationErrors ? $this->Snapshot->validationErrors : 'Error',
+          '_serialize' => array('message')
+        ));
+        return;
       }
     } # end if post
     $monitors = $this->Snapshot->Event->find('list');
@@ -134,6 +130,7 @@ class SnapshotsController extends AppController {
 		if ( !$this->Snapshot->exists($id) ) {
 			throw new NotFoundException(__('Invalid snapshot'));
 		}
+    $message = '';
 		if ( $this->request->is(array('post', 'put'))) {
       global $user;
       # We already tested for auth in appController,
@@ -151,11 +148,7 @@ class SnapshotsController extends AppController {
 			if ( $this->Snapshot->save($this->request->data) ) {
         $message = 'Saved';
       } else {
-        $message = 'Error';
-        // if there is a validation message, use it
-        if ( !$this->snapshot->validates() ) {
-          $message .= ': '.$this->Snapshot->validationErrors;
-        }
+        $message = $this->Snapshot->validationErrors ? $this->Snapshot->validationErrors : 'Error';
 			}
 		} # end if post/put
 
@@ -163,7 +156,7 @@ class SnapshotsController extends AppController {
 		$this->set(array(
 			'message' => $message,
 			'snapshot' => $snapshot,
-			'_serialize' => array('snapshot')
+			'_serialize' => array('message', 'snapshot')
 		));
 	}
 
@@ -191,15 +184,13 @@ class SnapshotsController extends AppController {
     }
 
 		if ( $this->Snapshot->delete() ) {
-      return $this->flash(
-        __('The snapshot has been deleted.'),
-        array('action' => 'index')
-      );
+      $this->set(array(
+        'message' => 'Deleted',
+        '_serialize' => array('message'),
+      ));
+      return;
 		} else {
-      return $this->flash(
-        __('The snapshot could not be deleted. Please, try again.'),
-        array('action' => 'index')
-      );
+      throw new InternalErrorException(__('The snapshot could not be deleted.'));
 		}
   } // end function delete
   

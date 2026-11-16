@@ -858,7 +858,8 @@ function getCpuUsageHTML() {
     $thisServer->ReadStats();
 
     $result .= '<li id="getCpuUsageHTML" class="CpuUsage nav-item mx-2">'.PHP_EOL;
-    $result .= '&nbsp;'.translate('Cpu').': '.number_format($thisServer->CpuUsagePercent, 1, '.', '').'%'.PHP_EOL;
+    # -1 is what Server leaves in place when zmstats has not written any stats yet.
+    $result .= '&nbsp;'.translate('Cpu').': '.($thisServer->CpuUsagePercent < 0 ? 'n/a' : number_format($thisServer->CpuUsagePercent, 1, '.', '').'%').PHP_EOL;
     $result .= '</li>'.PHP_EOL;
   }
   return $result;
@@ -874,7 +875,7 @@ function getSysLoadHTML() {
 
     $result .= '<li id="getSysLoadHTML" class="Load nav-item mx-2">';
     $result .= '<i class="material-icons md-18">trending_up</i>';
-    $result .= '&nbsp;'.translate('Load').': '.number_format($thisServer->CpuLoad, 2, '.', '');
+    $result .= '&nbsp;'.translate('Load').': '.($thisServer->CpuLoad < 0 ? 'n/a' : number_format($thisServer->CpuLoad, 2, '.', ''));
     $result .= '</li>'.PHP_EOL;
   } 
   return $result;
@@ -938,7 +939,7 @@ function getStorageHTML() {
     $result .= '</li>'.PHP_EOL;
   } else {
     $result .= '<li id="getStorageHTML" class="nav-item dropdown mx-2">'.PHP_EOL;
-    $result .= '<a class="dropdown-toggle mr-2 '.$class.'" href="#" id="dropdown_storage" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="material-icons md-18 mr-1">folder_shared</i>Storage</a>'.PHP_EOL;
+    $result .= '<a class="dropdown-toggle mr-2 '.$class.'" href="#" id="dropdown_storage" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="material-icons md-18 mr-1">folder_shared</i>' . translate("Storage") . '</a>'.PHP_EOL;
     $result .= '<div class="dropdown-menu" aria-labelledby="dropdown_storage">'.PHP_EOL;
     
     foreach ( $storage_areas as $area ) {  

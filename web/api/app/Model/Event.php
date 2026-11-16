@@ -183,13 +183,14 @@ class Event extends AppModel {
       }
 
       ZM\Warning('File does not exist at ' . $this->Path().'/'.$event['DefaultVideo'] );
-    } else {
-      return 0;
     }
+    return 0;
   } // end function fileExists($event)
 
   public function fileSize($event) {
-    return filesize($this->Path().'/'.basename($event['DefaultVideo']));
+    if (!$event['DefaultVideo']) return 0;
+    $path = $this->Path().'/'.basename($event['DefaultVideo']);
+    return file_exists($path) ? filesize($path) : 0;
   }
 
   public function beforeDelete($cascade=true) {

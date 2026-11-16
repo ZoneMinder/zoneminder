@@ -32,6 +32,17 @@ int FrameChannels(const AVFrame *frame) {
 #endif
 }
 
+// Root-mean-square of samples that convert to a -1.0 .. 1.0 scale.
+template <typename T, typename Scale>
+double RmsScaled(const T *samples, size_t count, Scale scale) {
+  double sum = 0.0;
+  for (size_t i = 0; i < count; i++) {
+    const double v = scale(samples[i]);
+    sum += v * v;
+  }
+  return std::sqrt(sum / static_cast<double>(count));
+}
+
 }  // namespace
 
 AudioDetector::~AudioDetector() {
@@ -104,6 +115,7 @@ double AudioDetector::RmsFloat(const float *samples, size_t count) {
 
   double sum = 0.0;
   for (size_t i = 0; i < count; i++) {
+    if (std::isnan(samples[i])) continue;  // clamping would turn NaN into full scale
     const double v = std::max(-1.0, std::min(1.0, static_cast<double>(samples[i])));
     sum += v * v;
   }
@@ -165,9 +177,24 @@ double AudioDetector::RmsFromFrame(const AVFrame *frame) const {
       case AV_SAMPLE_FMT_FLTP:
         rms = RmsFloat(reinterpret_cast<const float *>(frame->extended_data[p]), per_plane);
         break;
+      case AV_SAMPLE_FMT_S32:
+      case AV_SAMPLE_FMT_S32P:
+        rms = RmsScaled(reinterpret_cast<const int32_t *>(frame->extended_data[p]), per_plane,
+                        [](int32_t v) { return static_cast<double>(v) / 2147483648.0; });
+        break;
+      case AV_SAMPLE_FMT_U8:
+      case AV_SAMPLE_FMT_U8P:
+        rms = RmsScaled(reinterpret_cast<const uint8_t *>(frame->extended_data[p]), per_plane,
+                        [](uint8_t v) { return (static_cast<double>(v) - 128.0) / 128.0; });
+        break;
+      case AV_SAMPLE_FMT_DBL:
+      case AV_SAMPLE_FMT_DBLP:
+        rms = RmsScaled(reinterpret_cast<const double *>(frame->extended_data[p]), per_plane,
+                        [](double v) { return std::max(-1.0, std::min(1.0, v)); });
+        break;
       default:
-        // Every codec ZM sees over RTSP decodes to s16 or float. Anything else
-        // is reported once rather than silently scoring 0 forever.
+        // Anything left (64-bit integers) is reported rather than silently
+        // scoring 0 forever.
         Debug(1, "Audio detection: unhandled sample format %s",
               av_get_sample_fmt_name(format));
         return 0.0;

@@ -65,6 +65,17 @@ void Logger::usrHandler(int sig) {
     smLevelChange--;
 }
 
+Logger *Logger::fetchSlow() {
+  if (!smInstance) {
+    smInstance = new Logger();
+    Options options;
+    smInstance->initialise("undef", options);
+  }
+  if (smLevelChange.load(std::memory_order_relaxed))
+    smInstance->applyLevelChange();
+  return smInstance;
+}
+
 void Logger::applyLevelChange() {
   int change = smLevelChange.exchange(0);
   if (!change) return;
@@ -436,6 +447,9 @@ void Logger::openFile() {
     if ( (mLogFileFP = fopen(mLogFile.c_str(), "a")) == nullptr ) {
       mFileLevel = NOLOG;
       Error("fopen() for %s %zu, error = %s", mLogFile.c_str(), mLogFile.size(), strerror(errno));
+    } else {
+      // The crash handler writes to this file with write(2), not through the Logger.
+      zmSetCrashLogFile(fileno(mLogFileFP));
     }
   } else {
     puts("Called Logger::openFile() without a filename");
@@ -458,10 +472,27 @@ void Logger::closeDatabase() {
 
 void Logger::openSyslog() {
   (void) openlog(mId.c_str(), LOG_PID|LOG_NDELAY, LOG_LOCAL1);
+  // The crash handler can't call syslog(); it sends to its own socket instead.
+  zmSetCrashSyslog(mId.c_str());
 }
 
 void Logger::closeSyslog() {
   (void) closelog();
+}
+
+bool Logger::throttle(const char *file, int line, int key, Microseconds interval,
+                      uint64 &suppressed, TimePoint now) {
+  std::lock_guard<std::recursive_mutex> lck(log_mutex);
+  Throttle &state = mThrottles[{file, line, key}];
+  if (state.have_last && (now - state.last) < interval) {
+    state.suppressed++;
+    return false;
+  }
+  suppressed = state.suppressed;
+  state.suppressed = 0;
+  state.last = now;
+  state.have_last = true;
+  return true;
 }
 
 void Logger::logPrint(bool hex, const char *filepath, int line, int level, const char *fstring, ...) {
@@ -587,7 +618,7 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
                                  "( %jd.%06" PRIi64 ", '%s', %d, %d, %d, '%s', '%s', '%s', %d )",
                                  static_cast<intmax_t>(now_sec), static_cast<int64>(now_frac.count()), mId.c_str(), staticConfig.SERVER_ID, tid, level, classString,
                                  escapedString.c_str(), file, line);
-      dbQueue.push(std::move(sql_string), true);
+      dbQueue.push(std::move(sql_string), true, level == FATAL or level == PANIC);
     }
   }  // end if level <= mDatabaseLevel
 
@@ -599,7 +630,12 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
   log_mutex.unlock();
   if (level == FATAL || level == PANIC) {
     zm_terminate = true;
-    dbQueue.stop();
+    if (!dbQueue.stop(std::chrono::seconds(5))) {
+      // The queue thread is stuck in a query to an unresponsive database and
+      // holds the connection, so it cannot be closed or joined.
+      if (level == PANIC) abort();
+      _exit(-1);
+    }
     zmDbClose();
     logTerm();
     if (level == PANIC) abort();

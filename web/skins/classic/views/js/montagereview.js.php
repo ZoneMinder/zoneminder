@@ -22,6 +22,7 @@ global $minTime;
 global $maxTime;
 global $monitors;
 global $eventsSql;
+global $defaultCurrentTimeSecs;
 ?>
 
 var currentScale=<?php echo $defaultScale?>;
@@ -175,7 +176,7 @@ var minTime=".json_encode((string)$minTime, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_A
 var maxTime=".json_encode((string)$maxTime, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT).";
 ";
 echo 'var rangeTimeSecs='.($maxTimeSecs - $minTimeSecs + 1).";\n";
-if ( isset($defaultCurrentTimeSecs) ) {
+if ( !empty($defaultCurrentTimeSecs) ) {
   echo 'var currentTimeSecs=parseFloat('.$defaultCurrentTimeSecs.");\n";
 } else {
   echo 'var currentTimeSecs=parseFloat('.$minTimeSecs.");\n";

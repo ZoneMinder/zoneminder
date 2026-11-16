@@ -29,6 +29,15 @@ class EventsController extends AppController {
     }
   }
 
+  // The columns of Events and of Tags.Id, the one joined column index() filters on.
+  // Qualify bare Events columns so they aren't ambiguous next to the joins.
+  private function filterColumns() {
+    return array(
+      'Event' => array_keys($this->Event->schema()),
+      'Tags' => array('Id'),
+    );
+  }
+
   /**
    * index method
    *
@@ -81,6 +90,7 @@ class EventsController extends AppController {
       $valid_fields = array_keys($this->Event->schema());
       $valid_fields[] = 'DateTime';
       $valid_fields[] = 'GroupId';
+      $named_params = $this->FilterComponent->qualifyFields($named_params, $this->filterColumns(), array('DateTime', 'GroupId'));
       $conditions = $this->FilterComponent->buildFilter($named_params, $valid_fields);
       #ZM\Debug(print_r($conditions, true));
       # DateTime is a pseudo-attribute meaning "the event was running then", so a
@@ -141,7 +151,8 @@ class EventsController extends AppController {
         $tag_filter_field = 'Name';
         unset($raw_params['Tags']);
       }
-      $conditions = $this->FilterComponent->buildFilter($raw_params);
+      $raw_params = $this->FilterComponent->qualifyFields($raw_params, $this->filterColumns(), array('DateTime', 'GroupId'));
+      $conditions = $this->FilterComponent->buildFilter($raw_params, array_merge(array_keys($this->Event->schema()), array('DateTime', 'GroupId')));
     }
     $settings = array(
       // https://github.com/ZoneMinder/ZoneMinder/issues/995
@@ -217,6 +228,23 @@ class EventsController extends AppController {
 
     $settings['conditions'] = array($conditions, $mon_options);
 
+    if (!$this->request->query('sort')) {
+      $settings['order'] = array('Event.Id' => 'asc');
+    }
+
+    $limit = $this->request->query('limit');
+    if ($limit !== null) {
+      if (!is_string($limit) || !preg_match('/^[0-9]+$/', $limit) || (int)$limit <= 0) {
+        throw new BadRequestException('limit must be a positive integer');
+      }
+    }
+    $page = $this->request->query('page');
+    if ($page !== null) {
+      if (!is_string($page) || !preg_match('/^[0-9]+$/', $page) || (int)$page <= 0) {
+        throw new BadRequestException('page must be a positive integer');
+      }
+    }
+
     $this->Paginator->settings = $settings;
     if ($this->request->query('limit') or $this->request->query('page')) {
       $events = $this->Paginator->paginate('Event');
@@ -274,13 +302,14 @@ class EventsController extends AppController {
       return;
     }
 
-    # Get the previous and next events for any monitor.
+    # Get the previous and next events for any monitor the user may view.
     # Only Id is used below, so skip the wide SELECT + Monitor/Storage joins + Frames hasMany expansion
     # that recursive=1 from above would otherwise pull in for each neighbor row.
     $this->Event->id = $id;
     $event_neighbors = $this->Event->find('neighbors', array(
       'fields' => array('Event.Id'),
       'recursive' => -1,
+      'conditions' => $mon_options,
     ));
     $event['Event']['Next'] = isset($event_neighbors['next']) ? $event_neighbors['next']['Event']['Id'] : 0;
     $event['Event']['Prev'] = isset($event_neighbors['prev']) ? $event_neighbors['prev']['Event']['Id'] : 0;
@@ -386,7 +415,7 @@ class EventsController extends AppController {
     if ( $this->Event->save($this->request->data) ) {
       $message = 'Saved';
     } else {
-      $message = 'Error';
+      $message = $this->Event->validationErrors ? $this->Event->validationErrors : 'Error';
     }
 
     $this->set(array(
@@ -427,12 +456,15 @@ class EventsController extends AppController {
       return;
     }
 
-    if ( $this->Event->delete() ) {
-      //$this->loadModel('Frame');
-      //$this->Event->Frame->delete();
-      return $this->flash(__('The event has been deleted.'), array('action' => 'index'));
+    # Not $this->Event->delete(): the model's beforeDelete() returns false, so that always fails.
+    if ( $EventObj->delete() ) {
+      $this->set(array(
+        'message' => 'Deleted',
+        '_serialize' => array('message'),
+      ));
+      return;
     } else {
-      return $this->flash(__('The event could not be deleted. Please, try again.'), array('action' => 'index'));
+      throw new InternalErrorException(__('The event could not be deleted.'));
     }
   } // end public function delete
 
@@ -447,23 +479,21 @@ class EventsController extends AppController {
       // Transform params into conditions
       if ( preg_match('/^\s?interval\s?/i', $value) ) {
         if (preg_match('/^[a-z0-9]+$/i', $param_name) !== 1) {
-          throw new Exception('Invalid field name: ' . $param_name);
+          throw new BadRequestException('Invalid field name: ' . $param_name);
         }
         $matches = NULL;
         $value = preg_replace('/^\s?interval\s?/i', '', $value);
         if (preg_match('/^(?P<expr>[ \-.:0-9]+)\s+(?P<unit>[_a-z]+)$/i', trim($value), $matches) !== 1) {
-          throw new Exception('Invalid interval: ' . $value);
+          throw new BadRequestException('Invalid interval: ' . $value);
         }
-        $expr = trim($matches['expr']);
-        $unit = trim($matches['unit']);
-        array_push($find_conditions, "$param_name >= DATE_SUB(NOW(), INTERVAL $expr $unit)");
+        $find_conditions[] = "$param_name >= DATE_SUB(NOW(), ".$this->intervalSql($matches['expr'], $matches['unit']).')';
       } else {
         $conditions[$param_name] = $value;
       }
     }
 
     $this->FilterComponent = $this->Components->load('Filter');
-    $conditions = $this->FilterComponent->buildFilter($conditions);
+    $conditions = $this->FilterComponent->buildFilter($conditions, array_keys($this->Event->schema()));
     array_push($conditions, $find_conditions);
     array_push($conditions, $this->viewableMonitorCondition('Event.MonitorId'));
 
@@ -477,6 +507,20 @@ class EventsController extends AppController {
     ));
   } // end public function search
 
+  // The INTERVAL clause for an expression and unit taken from the URL. The unit has to be one
+  // MySQL knows, and the expression is quoted: a compound unit such as DAY_HOUR only takes
+  // a quoted '1 10', and an unknown unit used to come back as a 500 carrying the SQL error.
+  private function intervalSql($expr, $unit) {
+    $units = array('MICROSECOND', 'SECOND', 'MINUTE', 'HOUR', 'DAY', 'WEEK', 'MONTH', 'QUARTER', 'YEAR',
+      'SECOND_MICROSECOND', 'MINUTE_MICROSECOND', 'MINUTE_SECOND', 'HOUR_MICROSECOND', 'HOUR_SECOND',
+      'HOUR_MINUTE', 'DAY_MICROSECOND', 'DAY_SECOND', 'DAY_MINUTE', 'DAY_HOUR', 'YEAR_MONTH');
+    $unit = strtoupper(trim($unit));
+    if (!in_array($unit, $units, true)) {
+      throw new BadRequestException('Invalid interval unit: ' . $unit);
+    }
+    return 'INTERVAL '.$this->Event->getDataSource()->value(trim($expr), 'string')." $unit";
+  }
+
   // format expected:
   // you can changed AlarmFrames to any other named params
   // consoleEvents/1 hour/AlarmFrames >=: 1/AlarmFrames <=: 20.json
@@ -486,20 +530,19 @@ class EventsController extends AppController {
     // https://dev.mysql.com/doc/refman/5.5/en/expressions.html#temporal-intervals
     // Examples: `'1-1' YEAR_MONTH`, `'-1 10' DAY_HOUR`, `'1.999999' SECOND_MICROSECOND`
     if (preg_match('/^(?P<expr>[ \-.:0-9]+)\s+(?P<unit>[_a-z]+)$/i', trim($interval), $matches) !== 1) {
-      throw new Exception('Invalid interval: ' . $interval);
+      throw new BadRequestException('Invalid interval: ' . $interval);
     }
-    $expr = trim($matches['expr']);
-    $unit = trim($matches['unit']);
+    $interval_sql = $this->intervalSql($matches['expr'], $matches['unit']);
 
     $this->Event->recursive = -1;
     $results = array();
     $this->FilterComponent = $this->Components->load('Filter');
     if ( $this->request->params['named'] ) {
-      $conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+      $conditions = $this->FilterComponent->buildFilter($this->request->params['named'], array_keys($this->Event->schema()));
     } else {
       $conditions = array();
     } 
-    array_push($conditions, array("StartDateTime >= DATE_SUB(NOW(), INTERVAL $expr $unit)"));
+    array_push($conditions, array("StartDateTime >= DATE_SUB(NOW(), $interval_sql)"));
     array_push($conditions, $this->viewableMonitorCondition('Event.MonitorId'));
     $query = $this->Event->find('all', array(
       'fields' => array('MonitorId', 'COUNT(*) AS Count'),
@@ -621,24 +664,8 @@ class EventsController extends AppController {
   }
 
   private function getMaxScoreAlarmFrameId($id = null) {
-    $this->Event->recursive = -1;
-
-    if ( !$this->Event->exists($id) ) {
-      throw new NotFoundException(__('Invalid event'));
-    }
-
-    $event = $this->Event->find('first', array(
-      'conditions' => array('Id' => $id)
-    ));
-
-    // Find the max Frame for this Event.  Error out otherwise.
     $this->loadModel('Frame');
-
-    $frame = $this->Frame->find('first', array(
-      'conditions' => array(
-      'EventId' => $event['Event']['Id'],
-      'Score' => $event['Event']['MaxScore']
-    )));
-    return empty($frame)?null:$frame['Frame']['Id'];
+    $maxScoreFrame = $this->Frame->findByEventid($id, 'FrameId', array('Score'=>'desc','FrameId'=>'asc'));
+    return $maxScoreFrame ? $maxScoreFrame['Frame']['FrameId'] : null;
   }
 } // end class EventsController

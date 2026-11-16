@@ -111,7 +111,7 @@ class FramesController extends AppController {
     $named_params = $this->request->params['named'];
     if ( $named_params ) {
       $this->FilterComponent = $this->Components->load('Filter');
-      $conditions = $this->FilterComponent->buildFilter($named_params);
+      $conditions = $this->FilterComponent->buildFilter($named_params, array_keys($this->Frame->schema()));
     } else {
       $conditions = array();
     }
@@ -220,8 +220,12 @@ class FramesController extends AppController {
 		$this->request->allowMethod('post', 'delete');
 		$this->requireFrameEdit($eventId, $frameId);
 		if ($this->Frame->deleteAll(array('Frame.EventId' => $eventId, 'Frame.FrameId' => $frameId), false)) {
-			return $this->flash(__('The frame has been deleted.'), array('action' => 'index'));
+			$this->set(array(
+				'message' => 'Deleted',
+				'_serialize' => array('message'),
+			));
+			return;
 		} else {
-			return $this->flash(__('The frame could not be deleted. Please, try again.'), array('action' => 'index'));
+			throw new InternalErrorException(__('The frame could not be deleted.'));
 		}
 	}}

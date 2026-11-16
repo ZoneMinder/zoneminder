@@ -5,7 +5,7 @@
   // exposes the MySQL EXPLAIN for a filter's query, so restrict it to users
   // allowed to view that specific filter (owner or System viewer) rather than
   // any authenticated user. refs GHSA-28mv-hqxw-qw84
-  $fid = validInt($_REQUEST['fid']);
+  $fid = isset($_REQUEST['fid']) ? validInt($_REQUEST['fid']) : 0;
 
   // Authorize before applying any request input to the filter. refs GHSA-vvx7-ghpv-jq98
   if (!canView('Events')) {
@@ -48,17 +48,7 @@
 ?>
           <p><label>SQL</label>
 <?php
-  $sql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultScale FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId)
-    WHERE
-';
-  $sql .= $filter->sql();
-  // A filter with Lock Rows and Skip Locked leaves out events another filter is
-  // already working on. Mirrors ZoneMinder::Filter::Sql, which is what zmfilter
-  // actually runs.
-  if ($filter->LockRows() and $filter->skip_locked())
-    $sql .= ' AND NOT EXISTS (SELECT 1 FROM Events_Lock AS EL WHERE EL.EventId=E.Id AND EL.ExpiresAt>NOW())';
-  $sql .= $filter->sort_field() ? ' ORDER BY '.$filter->sort_field(). ' ' .($filter->sort_asc() ? 'ASC' : 'DESC') : '';
-  $sql .= $filter->limit() ? ' LIMIT '.(int)$filter->limit() : '';
+  $sql = $filter->debugSql();
   $explain_sql = $sql;
 
 

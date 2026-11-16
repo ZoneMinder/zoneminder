@@ -66,6 +66,11 @@ if ( $action == 'create' ) {
   foreach ( $monitors as $monitor ) {
     $monitor->TriggerOff();
   }
+  if (!count($snapshot->EventIds())) {
+    ZM\Error('No events were created for snapshot '.$snapshot->Id().', removing it');
+    $snapshot->delete();
+    return;
+  }
   $dbConn->beginTransaction();
   foreach ( $snapshot->Events() as $event ) {
     $event->lock();
@@ -82,7 +87,7 @@ if ( isset($_REQUEST['id']) ) {
   if ( ($action == 'save') ) {
     if ( canEdit('Events') or $snapshot->CreatedBy() == $user->Id() ) {
 
-      $changes = $snapshot->changes($_REQUEST['snapshot']);
+      $changes = $snapshot->changes(isset($_REQUEST['snapshot']) && is_array($_REQUEST['snapshot']) ? $_REQUEST['snapshot'] : array());
       if ( count($changes) ) {
         $snapshot->save($changes);
         ZM\AuditAction('update', 'snapshot', $snapshot->Id(), 'Changed: '.implode(', ', array_keys($changes)));

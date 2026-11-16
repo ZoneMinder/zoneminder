@@ -51,6 +51,7 @@ use LWP::UserAgent;
 use HTTP::Cookies;
 use URI;
 use URI::Encode qw(uri_encode);
+use URI::Escape qw(uri_unescape);
 use Data::Dumper;
 use XML::LibXML;
 #use Crypt::Mode::CBC;
@@ -84,7 +85,8 @@ sub open {
     $$self{host} = $uri->host();
     $$self{port} = $uri->port() if $uri->port();
     if ( $uri->userinfo()) {
-      @$self{'username','password'} = $uri->userinfo() =~ /^(.*):(.*)$/;
+      # userinfo is percent-encoded when the password holds @ or :
+      @$self{'username','password'} = map { uri_unescape($_) } $uri->userinfo() =~ /^(.*):(.*)$/;
     } else {
       $$self{username} = $self->{Monitor}->{User};
       $$self{password} = $self->{Monitor}->{Pass};
@@ -98,8 +100,9 @@ sub open {
     Debug('Using Path for credentials: '.urlForLog($self->{Monitor}{Path}));
     if (($self->{Monitor}->{Path} =~ /^(?<PROTOCOL>(https?|rtsp):\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@(?<ADDRESS>[^:\/]+)/)) {
 Debug("Have " . $+{USERNAME});
-      $$self{username} = $+{USERNAME} if $+{USERNAME} and !$$self{username};
-      $$self{password} = $+{PASSWORD} if $+{PASSWORD} and !$$self{password};
+      my ($user, $pass) = ($+{USERNAME}, $+{PASSWORD});
+      $$self{username} = uri_unescape($user) if $user and !$$self{username};
+      $$self{password} = uri_unescape($pass) if $pass and !$$self{password};
       $$self{host} = $+{ADDRESS} if $+{ADDRESS};
     } elsif (($self->{Monitor}->{Path} =~ /^(?<PROTOCOL>(https?|rtsp):\/\/)?(?<ADDRESS>[^:\/]+)/)) {
       $$self{host} = $+{ADDRESS} if $+{ADDRESS};
@@ -223,9 +226,15 @@ sub moveVector {
   my $z = $zoomdirection * $self->getParam( $params, 'speed', 0 );
   # Create the XML
   my $xml = '<PTZData>';
-  $xml .= "<pan>$x</pan>" if $x;
-  $xml .= "<tilt>$y</tilt>" if $y;
-  $xml .= "<zoom>$z</zoom>" if $z;
+  if ($x or $y or $z) {
+    $xml .= "<pan>$x</pan>" if $x;
+    $xml .= "<tilt>$y</tilt>" if $y;
+    $xml .= "<zoom>$z</zoom>" if $z;
+  } else {
+    # A stop must say so explicitly. An empty PTZData is ignored by some
+    # cameras, which then keep moving.
+    $xml .= '<pan>0</pan><tilt>0</tilt><zoom>0</zoom>';
+  }
   $xml .= $momentxml.'</PTZData>';
   # Send it to the camera
   $self->PutCmd($command, $xml);
@@ -431,8 +440,17 @@ sub irisRelOpen {
   $self->Iris($speed);
 }
 #
-# reset (reboot) the device
+# reset and reboot the device
 #
+# ISAPI has no "reset PTZ to defaults" command. The Controls row advertises
+# CanReset, so map it to the reboot endpoint.
+sub reset {
+  my $self = shift;
+
+  Debug('Camera reset (reboot)');
+  $self->reboot();
+}
+
 sub reboot {
   my $self = shift;
 

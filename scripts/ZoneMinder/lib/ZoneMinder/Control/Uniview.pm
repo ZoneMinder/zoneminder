@@ -336,7 +336,7 @@ sub focusConNear {
   $self->Focus(-$speed);
   if($duration) {
     usleep($duration);
-    $self->moveStop($params);
+    $self->Focus(0);
   }
 }
 sub Near {
@@ -370,7 +370,7 @@ sub focusConFar {
   $self->Focus($speed);
   if($duration) {
     usleep($duration);
-    $self->moveStop($params);
+    $self->Focus(0);
   }
 }
 sub Far {
@@ -415,7 +415,7 @@ sub irisConClose {
   $self->Iris(-$speed);
   if($duration) {
     usleep($duration);
-    $self->moveStop($params);
+    $self->Iris(0);
   }
 }
 sub Close {
@@ -451,7 +451,7 @@ sub irisConOpen {
   $self->Iris($speed);
   if($duration) {
     usleep($duration);
-    $self->moveStop($params);
+    $self->Iris(0);
   }
 }
 sub Open {

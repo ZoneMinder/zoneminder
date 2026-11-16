@@ -375,12 +375,12 @@ sub ptz_move {
 # the monitor has an AutoStopTimeout, in which case it expects us to stop
 # ourselves after that long.
 sub ptz_move_auto {
-  my ($self, $params, $optType) = @_;
+  my ($self, $params, $optType, $stopType) = @_;
   my $ok = $self->ptz_move($params, $optType);
   return $ok if !$ok;
   if ($self->{Monitor}{AutoStopTimeout}) {
     usleep($self->{Monitor}{AutoStopTimeout});
-    $self->moveStop($params);
+    $self->ptz(defined $stopType ? $stopType : CMD_STOP);
   }
   return 1;
 }
@@ -395,12 +395,12 @@ sub moveConDownLeft  { $_[0]->ptz_move_auto($_[1], CMD_LEFTDOWN) }
 sub moveConDownRight { $_[0]->ptz_move_auto($_[1], CMD_RIGHTDOWN) }
 sub moveStop         { $_[0]->ptz(CMD_STOP) }
 
-sub zoomConTele { $_[0]->ptz_move_auto($_[1], CMD_ZOOM_IN) }
-sub zoomConWide { $_[0]->ptz_move_auto($_[1], CMD_ZOOM_OUT) }
+sub zoomConTele { $_[0]->ptz_move_auto($_[1], CMD_ZOOM_IN, CMD_ZOOM_STOP) }
+sub zoomConWide { $_[0]->ptz_move_auto($_[1], CMD_ZOOM_OUT, CMD_ZOOM_STOP) }
 sub zoomStop    { $_[0]->ptz(CMD_ZOOM_STOP) }
 
-sub focusConNear { $_[0]->ptz_move_auto($_[1], CMD_FOCUS_NEAR) }
-sub focusConFar  { $_[0]->ptz_move_auto($_[1], CMD_FOCUS_FAR) }
+sub focusConNear { $_[0]->ptz_move_auto($_[1], CMD_FOCUS_NEAR, CMD_FOCUS_STOP) }
+sub focusConFar  { $_[0]->ptz_move_auto($_[1], CMD_FOCUS_FAR, CMD_FOCUS_STOP) }
 sub focusStop    { $_[0]->ptz(CMD_FOCUS_STOP) }
 sub focusAuto    { $_[0]->ptz(CMD_ONEKEYFOCUS) }
 

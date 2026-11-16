@@ -95,7 +95,8 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
     Debug(4, "No iterators so no one needs us to queue packets.");
     return false;
   }
-  if (!packet_counts[video_stream_id] and !add_packet->keyframe) {
+  if (!packet_counts[video_stream_id]
+      and !(add_packet->keyframe and add_packet->packet->stream_index == video_stream_id)) {
     Debug(4, "No video keyframe so no one needs us to queue packets.");
     return false;
   }

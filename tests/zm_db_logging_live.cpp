@@ -64,10 +64,33 @@ bool WaitForLog(const std::string &like, std::chrono::milliseconds budget) {
   return false;
 }
 
+// Stops the logger's database target and waits for dbQueue to empty. Rows
+// still waiting would be inserted after the DELETE in ~LiveLogger and counted
+// by the next test, and the queue thread logs through the Logger, so it must be
+// idle while logInit()/logTerm() replace the instance: a thread that finds none
+// makes its own, and that one can win over the one logInit() just made.
+// Whichever test ran before may have left such rows, through the default
+// logger its Error() calls created. At a debug level the polling queries below
+// would queue rows of their own, hence the level goes first. The queue is FIFO:
+// once a row queued now is in the table, everything ahead of it is too.
+void QuiesceDbQueue() {
+  Logger::fetch()->databaseLevel(Logger::NOLOG);
+  static int calls = 0;
+  const std::string sentinel = Marker(stringtf("drained-%d", ++calls).c_str());
+  dbQueue.push(stringtf(
+      "INSERT INTO `Logs` ( `TimeKey`, `Component`, `Level`, `Code`, `Message`, `File`, `Line` )"
+      " VALUES ( UNIX_TIMESTAMP(), '%s', 0, 'INF', '%s', 'x', 0 )",
+      kComponent, sentinel.c_str()), true, true);
+  WaitForLog(sentinel, std::chrono::seconds(120));
+  // The queue thread still logs a line about the insert it just ran.
+  std::this_thread::sleep_for(std::chrono::milliseconds(300));
+}
+
 struct LiveLogger {
   explicit LiveLogger(Logger::Level db_level) {
     zmLoadStaticConfig();
     REQUIRE(zmDbConnect());
+    QuiesceDbQueue();
     // The database level only sticks while connected.
     logInit(kComponent, Logger::Options(Logger::NOLOG, db_level, Logger::NOLOG, Logger::NOLOG));
     // Without ZM_LOG_DEBUG the overall level is capped at Info.
@@ -75,6 +98,7 @@ struct LiveLogger {
     REQUIRE(Logger::fetch()->databaseLevel() == db_level);
   }
   ~LiveLogger() {
+    QuiesceDbQueue();
     zmDbDo(stringtf("DELETE FROM `Logs` WHERE `Component`='%s'", kComponent));
     logTerm();
   }

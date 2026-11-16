@@ -66,9 +66,12 @@ function loadLocations( element ) {
   returnLocationSelect.options.length = 1;
   //returnLocationSelect.options[0] = new Option( noneString, -1 );
 
-  var returnLocationOptions = controlOptions[controlIdSelect.selectedIndex];
+  // controlOptions is keyed by control Id, not by position in the dropdown.
+  var returnLocationOptions = controlOptions[controlIdSelect.value];
   if ( returnLocationOptions ) {
     for ( let i = 0; i < returnLocationOptions.length; i++ ) {
+      // null is a control with no Home preset
+      if ( returnLocationOptions[i] === null ) continue;
       returnLocationSelect.options[returnLocationSelect.options.length] = new Option( returnLocationOptions[i], i );
     }
   }
@@ -78,7 +81,8 @@ function Restream_onclick(e) {
   const Restream = $j('[name="newMonitor[Restream]"]');
   if (Restream.length) {
     const RTSP_User = $j('#RTSP_User');
-    if (Restream[0].checked) {
+    // The user list only means something when authentication is on.
+    if (Restream[0].checked && useAuth) {
       RTSP_User.show();
     } else {
       RTSP_User.hide();
@@ -109,7 +113,7 @@ function updateRestreamVisibility() {
   const rtspUser = document.getElementById('RTSP_User');
   if (rtspUser) {
     const restream = form.elements['newMonitor[Restream]'];
-    if (!showRestream || !restream || !restream.checked) {
+    if (!useAuth || !showRestream || !restream || !restream.checked) {
       rtspUser.style.display = 'none';
     } else {
       rtspUser.style.display = '';
@@ -1063,9 +1067,10 @@ function ManufacturerId_onchange(ManufacturerId_select) {
     // Set models dropdown to Unknown, text area visible
     const ModelId_dropdown = $j('[name="newMonitor[ModelId]"]');
     ModelId_dropdown.empty();
-    ModelId_dropdown.append('<option selected="true">Unknown</option>');
+    ModelId_dropdown.append('<option value="" selected="true">Unknown</option>');
     ModelId_dropdown.prop('selectedIndex', 0);
-    $j('[name="newMonitor[Model]"]').show();
+    // A disabled input is not submitted, so enable it as well as show it.
+    $j('[name="newMonitor[Model]"]').show().prop('disabled', false);
   }
 }
 

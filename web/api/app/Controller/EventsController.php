@@ -456,9 +456,8 @@ class EventsController extends AppController {
       return;
     }
 
-    if ( $this->Event->delete() ) {
-      //$this->loadModel('Frame');
-      //$this->Event->Frame->delete();
+    # Not $this->Event->delete(): the model's beforeDelete() returns false, so that always fails.
+    if ( $EventObj->delete() ) {
       $this->set(array(
         'message' => 'Deleted',
         '_serialize' => array('message'),

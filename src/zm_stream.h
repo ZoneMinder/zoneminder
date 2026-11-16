@@ -121,6 +121,9 @@ class StreamBase {
   bool send_analysis;
   bool send_objdetect;
   int connkey;
+  // Id of the user zms authenticated (0 without authentication). Part of the
+  // socket and lock names, so stream commands reach only that user's streams.
+  int owner;
   int sd;
   char loc_sock_path[108];
   struct sockaddr_un loc_addr;
@@ -140,20 +143,24 @@ class StreamBase {
   double effective_fps;   // Target fps after taking max_fps into account
   double actual_fps;      // sliding calculated actual streaming fps achieved
   TimePoint last_fps_update;
-  int frame_count;      // Count of frames sent
+  // frame_count and last_frame_sent are written by the streaming loop and
+  // read (last_frame_sent also written) by processCommand on the command
+  // thread, so they are atomic like the playback state above. `now` stays
+  // the loop's own: the command thread reads the clock itself.
+  std::atomic<int> frame_count;      // Count of frames sent
   int last_frame_count; // Used in calculating actual_fps from frame_count - last_frame_count
 
   int frame_mod;
   int frames_to_send;
 
-  TimePoint last_frame_sent;
+  std::atomic<TimePoint> last_frame_sent;
   SystemTimePoint last_frame_timestamp;
   TimePoint when_to_send_next_frame;  // When to send next frame so if now < send_next_frame, skip
 
   VideoStream *vid_stream;
 
   CmdMsg msg;
-  bool got_command = false; // commands like zoom should output a frame even if paused
+  std::atomic<bool> got_command; // commands like zoom should output a frame even if paused; set on the command thread
 
   uint8_t *temp_img_buffer;     // Used when encoding or sending file data
   size_t temp_img_buffer_size;
@@ -189,6 +196,7 @@ class StreamBase {
     send_analysis(false),
     send_objdetect(false),
     connkey(0),
+    owner(0),
     sd(-1),
     lock_fd(0),
     paused(false),
@@ -201,6 +209,7 @@ class StreamBase {
     last_frame_count(0),
     frame_mod(1),
     frames_to_send(-1),
+    last_frame_sent(TimePoint()),
     got_command(false),
     temp_img_buffer(nullptr),
     temp_img_buffer_size(0) {
@@ -249,6 +258,9 @@ class StreamBase {
   }
   void setStreamQueue(int p_connkey) {
     connkey = p_connkey;
+  }
+  void setStreamOwner(int p_owner) {
+    owner = p_owner;
   }
   void setFramesToSend(int p_frames_to_send) { frames_to_send = p_frames_to_send; }
   bool sendTextFrame(const char *text);

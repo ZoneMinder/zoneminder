@@ -16,15 +16,15 @@ monitorData[monitorData.length] = {
   'janusEnabled':<?php echo $monitor->JanusEnabled() ?>,
   'RTSP2WebEnabled': <?php echo $monitor->RTSP2WebEnabled() ?>,
   'RTSPServer':<?php echo $monitor->RTSPServer() ? 'true' : 'false' ?>,
-  'StreamChannel': '<?php echo $monitor->StreamChannel() ?>',
-  'DefaultPlayer':'<?php echo $monitor->DefaultPlayer() ?>',
+  'StreamChannel': '<?php echo validJsStr($monitor->StreamChannel()) ?>',
+  'DefaultPlayer':'<?php echo validJsStr($monitor->DefaultPlayer()) ?>',
   'Go2RTCEnabled': <?php echo $monitor->Go2RTCEnabled() ?>,
   'url': '<?php echo $monitor->UrlToIndex( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'url_to_zms': '<?php echo $monitor->UrlToZMS( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
-  'type': '<?php echo $monitor->Type() ?>',
-  'capturing': '<?php echo $monitor->Capturing() ?>',
-  'refresh': '<?php echo $monitor->Refresh() ?>',
-  'janus_pin': '<?php echo $monitor->Janus_Pin() ?>'
+  'type': '<?php echo validJsStr($monitor->Type()) ?>',
+  'capturing': '<?php echo validJsStr($monitor->Capturing()) ?>',
+  'refresh': '<?php echo validJsStr($monitor->Refresh()) ?>',
+  'janus_pin': '<?php echo validJsStr($monitor->Janus_Pin()) ?>'
 };
 <?php
   }

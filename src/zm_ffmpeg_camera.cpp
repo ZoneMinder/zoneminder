@@ -294,7 +294,8 @@ int FfmpegCamera::OpenFfmpeg() {
   if (!mOptions.empty()) {
     ret = av_dict_parse_string(&opts, mOptions.c_str(), "=", ",", 0);
     if (ret < 0) {
-      Warning("Could not parse ffmpeg input options '%s'", mOptions.c_str());
+      Error("Could not parse ffmpeg input options '%s'. Options must be key=value pairs separated by commas, "
+            "such as tls_verify=0, not ffmpeg command line flags like -tls_verify 0.", mOptions.c_str());
     }
   }
 

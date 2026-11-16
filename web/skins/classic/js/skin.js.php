@@ -97,7 +97,7 @@ var focusWindow = <?php echo !empty($focusWindow)?'true':'false' ?>;
 const imagePrefix = '<?php echo '?view=image&eid=' ?>';
 
 var auth_hash = '<?php echo generateAuthHash(ZM_AUTH_HASH_IPS) ?>';
-var auth_relay = '<?php echo get_auth_relay() ?>';
+var auth_relay = <?php echo json_encode(get_auth_relay()) ?>;
 var user = <?php echo $user ? json_encode($user->expose(['Password'])) : '{}'; ?>;
 var running = <?php echo daemonCheck()?'true':'false' ?>;
 
@@ -146,6 +146,9 @@ if ($user) {
   // Only include config if logged in or auth turned off. The login view doesn't require any config.
   global $zm_config;
   foreach ($zm_config as $name=>$c) {
+    // A password option is never exported, whatever its Private flag says: a table made
+    // from an older zm_create.sql has every flag 0 until zmupdate.pl repairs it.
+    if (isset($c['Type']) and ($c['Type'] == 'password')) continue;
     if (empty($c['Private'])) {
       if (empty($c['Value'])) {
         echo 'const '. $name . ' = \'\';'.PHP_EOL;

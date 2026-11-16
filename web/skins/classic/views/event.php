@@ -68,6 +68,15 @@ if (isset($_REQUEST['scale'])) {
 //}
 $scale = '10'; // temporarily to adapt the new algorithm, not used in new calculations!
 
+# The size changeScale() last gave this monitor's video. Opening the page at it keeps the video
+# from resizing after load, which in gapless playback (a page load per event) happened on every
+# event. changeScale() still corrects it if the window or the layout has changed.
+$videoSizeStyle = '';
+$videoSizeCookie = 'zmEventVideoSize'.$Event->MonitorId();
+if (isset($_COOKIE[$videoSizeCookie]) and preg_match('/^(\d{1,5})x(\d{1,5})$/', $_COOKIE[$videoSizeCookie], $videoSize)) {
+  $videoSizeStyle = ' style="width:'.intval($videoSize[1]).'px;height:'.intval($videoSize[2]).'px;"';
+}
+
 $streamQualitySelected = '0';
 if (isset($_REQUEST['streamQuality'])) {
   $streamQualitySelected = $_REQUEST['streamQuality'];
@@ -243,10 +252,10 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
     <div class="tags-container">
       <div class="tag-dropdown">
         <!-- input type has to be "search" (not "text") so that the Enter button (not Next) works on mobile Chrome browser. -->
-        <input type="search" id="tagInput" class="tag-input" placeholder="Add tag" data-role="tagsinput">
+        <input type="search" id="tagInput" class="tag-input" placeholder="Add tag" data-role="tagsinput"<?php echo canEdit('Events') ? '' : ' disabled="disabled"' ?>>
         <div class="tag-dropdown-content"></div>
       </div>
-      <button type="button" id="tagPrevBtn" title="<?php echo translate('Apply the last tag, then play the previous event') ?>" class="inactive" data-on-click-true="tagAndPrev">
+      <button type="button" id="tagPrevBtn"<?php echo canEdit('Events') ? '' : ' disabled="disabled"' ?> title="<?php echo translate('Apply the last tag, then play the previous event') ?>" class="inactive" data-on-click-true="tagAndPrev">
         <i class="material-icons md-18" 
           style="-moz-transform: scaleX(-1);
             -o-transform: scaleX(-1);
@@ -256,7 +265,7 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
             -ms-filter: 'FlipH';">
             label</i>
       </button>
-      <button type="button" id="tagNextBtn" title="<?php echo translate('Apply the last tag, then play the next event') ?>" class="inactive" data-on-click-true="tagAndNext">
+      <button type="button" id="tagNextBtn"<?php echo canEdit('Events') ? '' : ' disabled="disabled"' ?> title="<?php echo translate('Apply the last tag, then play the next event') ?>" class="inactive" data-on-click-true="tagAndNext">
         <i class="material-icons md-18">label</i>
       </button>
     </div>
@@ -265,7 +274,13 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
       <div class="d-flex flex-row px-3">
         <div class="container-fluid">
           <div class="row row-cols-1 row-cols-sm-2">
-            <div id = "eventStats" class="col col-sm-4 eventStats">
+<?php
+# Lay the stats panel out the way initPage() would, so the video's column has its final
+# width at the first paint instead of widening after load. The panel shows unless the
+# cookie says off, matching getEvtStatsCookie().
+$showEventStats = !(isset($_COOKIE['zmEventStats']) and $_COOKIE['zmEventStats'] == 'off');
+?>
+            <div id = "eventStats" class="col col-sm-4 eventStats"<?php echo $showEventStats ? '' : ' style="display:none;"' ?>>
               <!-- VIDEO STATISTICS TABLE -->
               <table id="eventStatsTable" class="table-sm table-borderless">
                 <!-- EVENT STATISTICS POPULATED BY JAVASCRIPT -->
@@ -304,7 +319,7 @@ if (file_exists($Event->Path().'/objdetect.jpg')) {
 ?>
               </div><!-- id="frames" -->
             </div><!-- id="eventStats" -->
-            <div id="wrapperEventVideo" class="col col-sm-8 pl-0 pr-0">
+            <div id="wrapperEventVideo" class="col <?php echo $showEventStats ? 'col-sm-8' : 'col-sm-12' ?> pl-0 pr-0">
               <div id="eventVideo">
               <!-- VIDEO CONTENT -->
                 <div id="videoFeed">
@@ -322,7 +337,7 @@ if (file_exists($Event->Path().'/objdetect.jpg')) {
 <?php
 if ($video_tag) {
 ?>
-                  <video id="videoobj" class="video-js"
+                  <video id="videoobj" class="video-js"<?php echo $videoSizeStyle ?>
                    <?php echo $scale ? 'width="'.reScale($Event->Width(), $scale).'"' : '' ?>
                    <?php echo $scale ? 'height="'.reScale($Event->Height(), $scale).'"' : '' ?>
                     controls autoplay preload="auto"
@@ -376,7 +391,10 @@ if ($video_tag) {
                   </div><!--"#videoFeedStream"-->
                   <div id="progressBar" style="width: 100%;">
                     <div id="alarmCues" style="width: 100%;"></div>
-                    <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
+                    <?php # progressBox is the replay position fill. ZM_WEB_SHOW_PROGRESS turns
+                          # the progress display off while keeping the bar itself, which is what
+                          # you click to jump around the event. See #4850. ?>
+                    <div class="progressBox" id="progressBox" title="" style="width: 0%;<?php echo ZM_WEB_SHOW_PROGRESS ? '' : 'display:none;' ?>"></div>
                     <div id="indicator" style="display: none;"></div>
                   </div><!--progressBar-->
                   <svg class="zones" id="zones<?php echo $monitor->Id() ?>" style="display:<?php echo $showZones ? 'block' : 'none'; ?>" viewBox="0 0 <?php echo $monitor->ViewWidth().' '.$monitor->ViewHeight() ?>" preserveAspectRatio="none">
@@ -430,7 +448,7 @@ if ($video_tag) {
   #rates are defined in skins/classic/includes/config.php
   echo htmlSelect('rate', $rates, intval($rate), array('id'=>'rateValue'));
 ?>
-                  <span id="progress"><?php echo translate('Progress') ?>: <span id="progressValue">0</span>s</span>
+                  <span id="progress"<?php echo ZM_WEB_SHOW_PROGRESS ? '' : ' style="display:none;"' ?>><?php echo translate('Progress') ?>: <span id="progressValue">0</span>s</span>
                   <span id="currentTime"><?php echo translate('Time') ?>: <span id="currentTimeValue"></span></span>
                   <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue">1</span>x</span>
 <?php if (!$video_tag) { ?>

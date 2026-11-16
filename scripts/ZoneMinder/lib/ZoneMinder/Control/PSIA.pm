@@ -30,7 +30,7 @@ sub open
         $PASSWORD = $+{PASSWORD} if $+{PASSWORD};
         $ADDRESS = $+{ADDRESS} if $+{ADDRESS};
     } else {
-        Error('Failed to parse auth from address ' . $self->{Monitor}->{ControlAddress});
+        Error('Failed to parse auth from address ' . urlForLog($self->{Monitor}->{ControlAddress}));
         $ADDRESS = $self->{Monitor}->{ControlAddress};
     }
     if ( !($ADDRESS =~ /:/) ) {
@@ -44,7 +44,6 @@ sub open
     Debug( "sendCmd credentials control address:'".$ADDRESS
             ."'  realm:'" . $REALM
             . "'  username:'" . $USERNAME
-            . "'  password:'".$PASSWORD
             ."'"
     ); 
     $self->{ua}->credentials($ADDRESS, $REALM, $USERNAME, $PASSWORD);
@@ -107,7 +106,7 @@ sub sendGetRequest {
         $result = !undef;
     } else {
         if ( $res->status_line() eq '401 Unauthorized' ) {
-            Error( "Error check failed, trying again: USERNAME: $USERNAME realm: $REALM password: " . $PASSWORD );
+            Error( "Error check failed, trying again: USERNAME: $USERNAME realm: $REALM" );
             Error("Content was " . $res->content() );
             my $res = $self->{ua}->request($req);
             if ( $res->is_success ) {
@@ -142,7 +141,7 @@ sub sendPutRequest {
         $result = !undef;
     } else {
         if ( $res->status_line() eq '401 Unauthorized' ) {
-            Error( "Error check failed, trying again: USERNAME: $USERNAME realm: $REALM password: " . $PASSWORD );
+            Error( "Error check failed, trying again: USERNAME: $USERNAME realm: $REALM" );
             Error("Content was " . $res->content() );
             my $res = $self->{ua}->request($req);
             if ( $res->is_success ) {
@@ -152,7 +151,7 @@ sub sendPutRequest {
             }
         }
         if ( ! $result ) {
-            Error( "Error check failed: '".$res->status_line()."' cmd:'".$cmd."'" );
+            Error( "Error check failed: '".$res->status_line()."' url:'".$url_path."'" );
         }
     }
     return($result);
@@ -170,7 +169,7 @@ sub sendDeleteRequest {
         $result = !undef;
     } else {
         if ( $res->status_line() eq '401 Unauthorized' ) {
-            Error( "Error check failed, trying again: USERNAME: $USERNAME realm: $REALM password: " . $PASSWORD );
+            Error( "Error check failed, trying again: USERNAME: $USERNAME realm: $REALM" );
             Error("Content was " . $res->content() );
             my $res = $self->{ua}->request($req);
             if ( $res->is_success ) {
@@ -180,7 +179,7 @@ sub sendDeleteRequest {
             }
         }
         if ( ! $result ) {
-            Error( "Error check failed: '".$res->status_line()."' cmd:'".$cmd."'" );
+            Error( "Error check failed: '".$res->status_line()."' url:'".$url_path."'" );
         }
     }
     return($result);
@@ -193,7 +192,6 @@ sub move
     my $tiltPercentage = shift;
     my $zoomPercentage = shift;
 
-    my $cmd = "set_relative_pos&posX=$panSteps&posY=$tiltSteps";
     my $ptzdata = '<PTZData version="1.0" xmlns="urn:psialliance-org">';
     $ptzdata .= '<pan>' . $panPercentage . '</pan>';
     $ptzdata .= '<tilt>' . $tiltPercentage . '</tilt>';

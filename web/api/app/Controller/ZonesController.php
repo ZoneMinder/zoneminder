@@ -1,5 +1,6 @@
 <?php
 App::uses('AppController', 'Controller');
+require_once __DIR__ .'/../../../includes/Monitor.php';
 /**
  * Zones Controller
  *
@@ -23,6 +24,23 @@ class ZonesController extends AppController {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
+  }
+
+  // Zones belong to a monitor, so changing one needs edit on that monitor (requireMonitorEdit()
+  // in AppController), not just the global Monitors permission.
+
+  // The monitor that the zone being edited or deleted currently belongs to.
+  private function zoneMonitorId($id) {
+    $this->Zone->recursive = -1;
+    $zone = $this->Zone->find('first', array('conditions' => array('Zone.'.$this->Zone->primaryKey => $id)));
+    return $zone['Zone']['MonitorId'];
+  }
+
+  // The MonitorId given in request data, if any.
+  private function requestMonitorId() {
+    $data = $this->request->data;
+    if (isset($data['Zone']) and is_array($data['Zone'])) $data = $data['Zone'];
+    return isset($data['MonitorId']) ? $data['MonitorId'] : null;
   }
 
   // Find all zones which belong to a MonitorId
@@ -54,17 +72,33 @@ class ZonesController extends AppController {
     ));
   }
 
+  public function view($id = null) {
+    $this->Zone->recursive = -1;
+    $zone = $this->Zone->find('first', array('conditions' => array('Zone.'.$this->Zone->primaryKey => $id)));
+    if (!$zone) {
+      throw new NotFoundException(__('Invalid zone'));
+    }
+    $monitor = new ZM\Monitor($zone['Zone']['MonitorId']);
+    if (!$monitor->canView()) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+    }
+    $this->set(array(
+      'zone' => $zone,
+      '_serialize' => array('zone')
+    ));
+  }
+
   public function index() {
     $this->Zone->recursive = -1;
 
     global $user;
-    $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : [];
-    if (count($allowedMonitors)) {
-      $mon_options = array('Zones.MonitorId' => $allowedMonitors);
-    } else {
-      $mon_options = '';
+    # null means no restriction. An empty list means the user may see no monitor, so no zone.
+    $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : null;
+    $options = array();
+    if ($allowedMonitors !== null) {
+      $options['conditions'] = array('Zone.MonitorId' => $allowedMonitors);
     }
-    $zones = $this->Zone->find('all',$mon_options);
+    $zones = $this->Zone->find('all', $options);
     $this->set(array(
       'zones' => $zones,
       '_serialize' => array('zones')
@@ -89,6 +123,13 @@ class ZonesController extends AppController {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
+
+    $monitorId = $this->requestMonitorId();
+    if ($monitorId === null) {
+      throw new BadRequestException(__('MonitorId is required'));
+    }
+    $this->requireMonitorEdit($monitorId);
+    $this->pinRequestId($this->Zone, null);
 
     $zone = null;
 
@@ -136,6 +177,10 @@ class ZonesController extends AppController {
         throw new UnauthorizedException(__('Insufficient Privileges'));
         return;
       }
+      $this->pinRequestId($this->Zone, $id);
+      $this->requireMonitorEdit($this->zoneMonitorId($id));
+      $monitorId = $this->requestMonitorId();
+      if ($monitorId !== null) $this->requireMonitorEdit($monitorId);
       if ( $this->Zone->save($this->request->data) ) {
         $message = 'The zone has been saved.';
       } else {
@@ -167,6 +212,7 @@ class ZonesController extends AppController {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
+    $this->requireMonitorEdit($this->zoneMonitorId($id));
     if ( $this->Zone->delete() ) {
       return $this->flash(__('The zone has been deleted.'), array('action' => 'index'));
     } else {

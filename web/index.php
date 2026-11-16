@@ -30,7 +30,9 @@ if ( 0 and ZM\Logger::fetch()->debugOn() ) {
   ZM\Debug(ob_get_contents());
   ob_end_clean();
 }
-ZM\Debug(print_r($_REQUEST, true));
+// The request carries the login password, auth hashes, tokens and camera
+// credentials: log it redacted.
+ZM\Debug(print_r(ZM\redactForLog($_REQUEST), true));
 
 if (
   (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on')
@@ -252,7 +254,8 @@ if (
 }
 
 # If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
-if ( ZM_OPT_USE_AUTH and (!isset($user) or !($user instanceof ZM\User)) and ($view != 'login') and ($view != 'none') ) {
+# The login and none views are exempt so they can render, but no request is: view=none&request=... must not reach ajax/.
+if ( ZM_OPT_USE_AUTH and (!isset($user) or !($user instanceof ZM\User)) and ($request or (($view != 'login') and ($view != 'none'))) ) {
   if ($request) {
     # requests only return json
     header('HTTP/1.1 401 Unauthorized');
@@ -262,9 +265,10 @@ if ( ZM_OPT_USE_AUTH and (!isset($user) or !($user instanceof ZM\User)) and ($vi
   $postLoginQuery = $_SERVER['QUERY_STRING'];
   $redirect = '?view=login'.($postLoginQuery?'&postLoginQuery=' . urlencode($postLoginQuery):'');
   zm_session_start();
+  zm_session_persist(); // must survive the redirect even if the client had no cookie
   $_SESSION['postLoginQuery'] = $postLoginQuery;
   session_write_close();
-  ZM\Debug("Redirecting to $redirect");
+  ZM\Debug('Redirecting to '.ZM\redactQueryString(urldecode($redirect)));
   header('Location: '.$redirect);
   return;
 } else if ( ZM_SHOW_PRIVACY && ($view != 'privacy') && ($view != 'options') && (!$request) && canEdit('System') ) {
@@ -288,7 +292,7 @@ if ( isset($_REQUEST['redirect']) ) {
 }
 
 if ($redirect) {
-  ZM\Debug("Redirecting to $redirect");
+  ZM\Debug('Redirecting to '.ZM\redactQueryString(urldecode($redirect)));
   header('Location: '.$redirect);
   return;
 }

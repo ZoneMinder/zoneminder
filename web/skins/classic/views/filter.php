@@ -35,10 +35,14 @@ $filterNames = array(''=>translate('ChooseFilter'));
 
 # Get filter ID from request
 $fid = 0;
+# Normalise the nested id even when the top-level one is given, as filter[...] is
+# applied to the filter object below.
+if (isset($_REQUEST['filter']['Id'])) {
+  $fid = $_REQUEST['filter']['Id'] = validInt($_REQUEST['filter']['Id']);
+}
 if (isset($_REQUEST['Id']) and $_REQUEST['Id']) {
   $fid = validInt($_REQUEST['Id']);
-} else if (isset($_REQUEST['filter']['Id'])) {
-  $fid = $_REQUEST['filter']['Id'] = validInt($_REQUEST['filter']['Id']);
+  if (isset($_REQUEST['filter']['Id'])) $_REQUEST['filter']['Id'] = $fid;
 }
 
 # Build filter names list for dropdown
@@ -163,12 +167,12 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
 ?>
         </div>
       </form>
-      <form name="contentForm" id="contentForm" method="post" class="validateFormOnSubmit" action="?view=filter&Id=<?php echo $filter->Id() ?>">
+      <form name="contentForm" id="contentForm" method="post" class="validateFormOnSubmit" action="?view=filter&Id=<?php echo validHtmlStr($filter->Id()) ?>">
         <input type="hidden" name="action"/>
         <input type="hidden" name="object" value="filter"/>
 
 <?php if ( $filter->Id() ) { ?>
-        <p class="Id"><label><?php echo translate('Id') ?></label><?php echo $filter->Id() ?></p>
+        <p class="Id"><label><?php echo translate('Id') ?></label><?php echo validHtmlStr($filter->Id()) ?></p>
 <?php } ?>
         <p class="Name">
           <label for="filter[Name]"><?php echo translate('Name') ?></label>

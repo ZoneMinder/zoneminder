@@ -28,6 +28,7 @@
 #include <queue>
 #include <string>
 #include <thread>
+#include <utility>
 #include <unistd.h>
 
 // How many times a query that lost a lock race is re-run before being
@@ -45,7 +46,8 @@ useconds_t zmDbContentionBackoff(int attempt);
 
 class zmDbQueue {
  private:
-  std::queue<std::string> mQueue;
+  // The flag marks rows the logger queued (inserts into Logs).
+  std::queue<std::pair<std::string, bool>> mQueue;
   std::thread             mThread;
   std::mutex              mMutex;
   std::condition_variable mCondition;
@@ -53,7 +55,7 @@ class zmDbQueue {
  public:
   zmDbQueue();
   ~zmDbQueue();
-  void push(std::string &&sql);
+  void push(std::string &&sql, bool log_row = false);
   void process();
   void stop();
 };

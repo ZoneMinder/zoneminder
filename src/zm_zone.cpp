@@ -154,6 +154,20 @@ void Zone::SetScore(unsigned int nScore) {
   stats.score_ = nScore;
 }  // end void Zone::SetScore(unsigned int nScore)
 
+// Replace the GRAY8 analysis mask with a highlight in the capture's own pixel
+// format, carrying this zone's alarm colour, and take ownership of it in
+// `image`. Overlay() onto the analysis image is then a same-format copy. A
+// GRAY8 monitor has no colour to carry, so its highlight is upgraded to RGB24.
+void Zone::BuildAlarmHighlight(Image *mask, bool edges_only) {
+  if (monitor->Colours() == ZM_COLOUR_GRAY8) {
+    image = mask->BuildHighlight(alarm_rgb, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB, &polygon.Extent(), edges_only);
+  } else {
+    image = mask->BuildHighlight(alarm_rgb, monitor->Colours(), monitor->SubpixelOrder(), &polygon.Extent(), edges_only);
+  }
+  // 'image' is now detached from the mask we were handed, so that is ours to free.
+  delete mask;
+}
+
 void Zone::SetAlarmImage(const Image* srcImage) {
   if ( image )
     delete image;
@@ -408,7 +422,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
       Debug(5, "Checking for blob pixels");
       // Where the old 254 tag table gave out. Kept as the point at which a
       // frame is noisy enough to be worth telling the operator about.
-      constexpr unsigned int kBlobSensitivityWarning = 254;
+      constexpr int kBlobSensitivityWarning = 254;
       // One label per pixel, held apart from the mask so a label is not limited
       // to what fits in a pixel. Allocated once per zone and reused; only the
       // rows this zone covers need clearing.
@@ -583,15 +597,6 @@ bool Zone::CheckAlarms(const Image *delta_image) {
         return false;
       }
 
-      // The old labeller held 254 tags and, when it ran out, told the operator
-      // the zone might be too sensitive before giving up on the frame. Nothing
-      // runs out now, but that was the only warning a badly tuned zone ever
-      // produced, so it still fires at the count that used to trigger it.
-      if (stats.alarm_blobs_ > kBlobSensitivityWarning) {
-        Warning("Zone %s: %d blobs in one frame. Zone settings may be too sensitive.",
-                label.c_str(), stats.alarm_blobs_);
-      }
-
       Debug(5, "Got %d raw blob pixels, %d raw blobs, need %d -> %d, %d -> %d",
             stats.alarm_blob_pixels_, stats.alarm_blobs_, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs);
 
@@ -621,7 +626,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
             stats.alarm_blobs_--;
             stats.alarm_blob_pixels_ -= bs->count;
 
-            Debug(6, "Eliminated blob %d, %d pixels (%d,%d - %d,%d), %d current blobs",
+            Debug(6, "Eliminated blob %zu, %d pixels (%d,%d - %d,%d), %d current blobs",
                   i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y, stats.alarm_blobs_);
 
             bs->tag = 0;
@@ -631,7 +636,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
             bs->hi_x = 0;
             bs->hi_y = 0;
           } else {
-            Debug(6, "Preserved blob %d, %d pixels (%d,%d - %d,%d), %d current blobs",
+            Debug(6, "Preserved blob %zu, %d pixels (%d,%d - %d,%d), %d current blobs",
                   i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y, stats.alarm_blobs_);
             if (!stats.min_blob_size_ || bs->count < stats.min_blob_size_) stats.min_blob_size_ = bs->count;
             if (!stats.max_blob_size_ || bs->count > stats.max_blob_size_) stats.max_blob_size_ = bs->count;
@@ -641,6 +646,19 @@ bool Zone::CheckAlarms(const Image *delta_image) {
 
       if (config.record_diag_images) {
         diff_image->WriteJpeg(diag_path, config.record_diag_images_fifo);
+      }
+
+      // The old labeller held 254 tags and, when it ran out, told the operator
+      // the zone might be too sensitive before giving up on the frame. Nothing
+      // runs out now, but that was the only warning a badly tuned zone ever
+      // produced, so it still fires at the count that used to trigger it.
+      // Count only blobs that pass the size limits: the old table recycled the
+      // tag of a blob that had finished and failed them, so speckle below
+      // MinBlobPixels never filled it, and counting raw blobs warned on nearly
+      // every frame of an ordinary noisy camera.
+      if (stats.alarm_blobs_ > kBlobSensitivityWarning) {
+        Warning("Zone %s: %d blobs in one frame. Zone settings may be too sensitive.",
+                label.c_str(), stats.alarm_blobs_);
       }
 
       Debug(5, "Got %d blob pixels, %d blobs, need %d -> %d, %d -> %d",
@@ -780,14 +798,19 @@ bool Zone::CheckAlarms(const Image *delta_image) {
         }
       }  // end for y
 
-      if (monitor->Colours() == ZM_COLOUR_GRAY8) {
-        image = diff_image->HighlightEdges(alarm_rgb, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB, &polygon.Extent());
-      } else {
-        image = diff_image->HighlightEdges(alarm_rgb, monitor->Colours(), monitor->SubpixelOrder(), &polygon.Extent());
-      }
-
-      // Only need to delete this when 'image' becomes detached and points somewhere else
-      delete diff_image;
+      BuildAlarmHighlight(diff_image, true);
+      diff_image = nullptr;
+    } else if ((type < PRECLUSIVE) && (monitor->GetOptSaveJPEGs() > 1)) {
+      // Alarmed/filtered pixels: the mask stays GRAY8 through the analysis
+      // above because the scoring reads it as one byte per pixel. Overlay()
+      // onto the analysis image then keys on a non-zero source pixel, so a
+      // GRAY8 mask painted an undifferentiated highlight -- writing the mask
+      // value into the red channel on an RGB32 monitor (hence "alarms are
+      // always red") and into all three on RGB24 (white) -- and the zone's
+      // configured Alarm Colour was honoured only on the blob path. Build the
+      // same colour highlight the blob path builds, filled rather than
+      // outlined, now that scoring is done with the mask.
+      BuildAlarmHighlight(diff_image, false);
       diff_image = nullptr;
     }  // end if ( (type < PRECLUSIVE) && (check_method >= BLOBS) && (monitor->GetOptSaveJPEGs() > 1)
 
@@ -875,6 +898,23 @@ bool Zone::ParsePercentagePolygon(const char *poly_string, unsigned int width, u
   Error("Not enough coordinates to form a polygon from '%s'", poly_string);
   return false;
 }  // end bool Zone::ParsePercentagePolygon
+
+// Clamp every vertex to [0, width-1] x [0, height-1], as ParsePercentagePolygon
+// does for percentage coordinates. Returns true if any vertex was moved.
+bool Zone::ClampPolygon(Polygon &polygon, unsigned int width, unsigned int height) {
+  bool clamped = false;
+  std::vector<Vector2> vertices = polygon.GetVertices();
+  for (Vector2 &vertex : vertices) {
+    int32 x = std::clamp(vertex.x_, static_cast<int32>(0), static_cast<int32>(width) - 1);
+    int32 y = std::clamp(vertex.y_, static_cast<int32>(0), static_cast<int32>(height) - 1);
+    if (x != vertex.x_ || y != vertex.y_) {
+      vertex = Vector2(x, y);
+      clamped = true;
+    }
+  }
+  if (clamped) polygon = Polygon(vertices);
+  return clamped;
+}  // end bool Zone::ClampPolygon
 
 bool Zone::ParseZoneString(const char *zone_string, unsigned int &zone_id, int &colour, Polygon &polygon) {
   Debug(3, "Parsing zone string '%s'", zone_string);
@@ -1027,6 +1067,14 @@ std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
               Coords, Id, Name, monitor->Name());
         continue;
       }
+    }
+    // Pixel coordinates are not scaled to the monitor, so they can lie outside
+    // it (zone drawn at a larger size, or written through the API). Setup()
+    // rasterises the polygon into a monitor-sized image. Percentage coordinates
+    // are already within it.
+    if (ClampPolygon(polygon, monitor->Width(), monitor->Height())) {
+      Warning("Zone %d/%s for monitor %s has coordinates '%s' outside %ux%u, clamping",
+              Id, Name, monitor->Name(), Coords, monitor->Width(), monitor->Height());
     }
 
     if (atoi(dbrow[2]) == Zone::INACTIVE) {

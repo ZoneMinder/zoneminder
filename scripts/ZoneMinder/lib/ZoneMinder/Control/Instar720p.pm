@@ -81,7 +81,7 @@ sub open {
     $self->{ua}->credentials($uri->host_port(), $realm, $username, $password);
     # Testing seems to show that we need the username/password in each url as well as credentials
     $$self{base_url} = $uri->canonical();
-    Debug('Using initial credentials for '.$uri->host_port().", $realm, $username, $password, base_url: $$self{base_url} auth:".$uri->authority());
+    Debug('Using initial credentials for '.$uri->host_port().", $realm, $username, base_url: ".urlForLog($$self{base_url}));
   }
 
   # Detect REALM wiresharked from webinterface. maybe its easier somehow
@@ -130,7 +130,7 @@ sub open {
       Debug('No headers line');
     } # end if headers
   } else {
-    Error("Failed to get $$self{base_url}param.cgi?cmd=get_instar_guest&-index=13&cmd=get_instar_guest&-index=47&cmd=get_instar_guest&-index=    48 ".$res->status_line());
+    Error('Failed to get '.urlForLog($$self{base_url})."param.cgi?cmd=get_instar_guest&-index=13&cmd=get_instar_guest&-index=47&cmd=get_instar_guest&-index=    48 ".$res->status_line());
 
   } # end if $res->status_line() eq '401 Unauthorized'
 
@@ -151,15 +151,15 @@ sub sendCmd {
   if ( $res->is_success ) {
     $result = !undef;
     # Command to camera appears successful, write Info item to log
-    Info('Camera control: \''.$res->status_line().'\' for URL '.$$self{base_url}.$cmd);
+    Info('Camera control: \''.$res->status_line().'\' for URL '.urlForLog($$self{base_url}.$cmd));
   } else {
     # Try again
     $res = $self->{ua}->get($$self{base_url}.$cmd);
     if ( $res->is_success ) {
       # Command to camera appears successful, write Info item to log
-      Info('Camera control 2: \''.$res->status_line().'\' for URL '.$$self{base_url}.$cmd);
+      Info('Camera control 2: \''.$res->status_line().'\' for URL '.urlForLog($$self{base_url}.$cmd));
     } else {
-      Error('Camera control command FAILED: \''.$res->status_line().'\' for URL '.$$self{base_url}.$cmd);
+      Error('Camera control command FAILED: \''.$res->status_line().'\' for URL '.urlForLog($$self{base_url}.$cmd));
       $res = $self->{ua}->get('http://'.$self->{Monitor}->{ControlAddress}.'/'.$cmd);
     }
   }

@@ -289,6 +289,15 @@ bool VideoStore::open() {
         Debug(1, "Found video codec for %s", chosen_codec_data->codec_name);
 
         video_out_codec = avcodec_find_encoder_by_name(chosen_codec_data->codec_name);
+        if (!video_out_codec) {
+          // This ffmpeg build has no encoder by that name -- common for a hardware
+          // encoder on a box that lacks it. Skip this candidate rather than allocate
+          // a context with a null codec and later dereference video_out_codec->name
+          // when avcodec_open2() fails. If every candidate is missing, video_out_codec
+          // stays null and the "Can't open any video codecs" path below handles it.
+          Warning("No encoder named %s is available in this ffmpeg build; skipping", chosen_codec_data->codec_name);
+          continue;
+        }
         video_out_ctx = avcodec_alloc_context3(video_out_codec);
         if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
           video_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
@@ -1530,8 +1539,9 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
   } else {
     if (last_dts[stream->index] != AV_NOPTS_VALUE) {
       if (pkt->dts < last_dts[stream->index]) {
-        Warning("non increasing dts, fixing. our dts %" PRId64 " stream %d last_dts %" PRId64 " last_duration %" PRId64 ". reorder_queue_size=%zu",
-            pkt->dts, stream->index, last_dts[stream->index], last_duration[stream->index], reorder_queue_size);
+        Warning("non increasing dts, fixing. our dts %" PRId64 " stream %d last_dts %" PRId64 " last_duration %" PRId64 " (%.3f seconds back). reorder_queue_size=%zu",
+            pkt->dts, stream->index, last_dts[stream->index], last_duration[stream->index],
+            (last_dts[stream->index] - pkt->dts) * av_q2d(stream->time_base), reorder_queue_size);
         pkt->dts = last_dts[stream->index]+last_duration[stream->index];
         if (pkt->dts > pkt->pts) pkt->pts = pkt->dts; // Do it here to avoid warning below
       } else if (pkt->dts == last_dts[stream->index]) {

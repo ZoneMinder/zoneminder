@@ -2,6 +2,7 @@
 
 namespace ZM;
 require_once('config.php');
+require_once(__DIR__.'/log_redact.php');
 
 class Logger {
   private static $instance;

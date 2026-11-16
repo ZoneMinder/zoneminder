@@ -20,8 +20,13 @@
 #include "zm_monitor.h"
 #include "zm_zone.h"
 
+#include <fstream>
 #include <memory>
+#include <sstream>
+#include <string>
 #include <vector>
+
+#include <unistd.h>
 
 // Zone::CheckAlarms labels blobs with a table of 254 tags. When the table runs
 // out it recycles a tag from a blob that has finished and failed its size
@@ -183,4 +188,55 @@ TEST_CASE("Zone blobs: the mask marks exactly the blobs that were counted", "[Zo
   WARN("mask marks " << marked << " pixels, zone counted " << stats.alarm_blob_pixels_);
   CHECK(stats.alarm_blob_pixels_ == 0);
   CHECK(marked == 0);
+}
+
+namespace {
+
+// Run CheckAlarms with warnings logged to a file, and return what was logged.
+std::string WarningsFrom(Zone &zone, Image *delta) {
+  char path[] = "/tmp/zm_zone_blobs_log_XXXXXX";
+  const int fd = mkstemp(path);
+  REQUIRE(fd >= 0);
+  close(fd);
+  const std::string log_path(path);
+  logInit("zm_zone_blobs", Logger::Options(Logger::NOLOG, Logger::NOLOG, Logger::WARNING, Logger::NOLOG,
+                                           ".", log_path));
+  zone.CheckAlarms(delta);
+  logTerm();
+
+  std::ifstream in(log_path);
+  std::stringstream logged;
+  logged << in.rdbuf();
+  unlink(log_path.c_str());
+  return logged.str();
+}
+
+}  // namespace
+
+// The sensitivity warning used to fire when the 254 tag table filled. Blobs that finished and
+// failed their size limits gave their tag back during the scan, so speckle below
+// MinBlobPixels never filled it. Counting raw blobs instead warned on nearly every frame of an
+// ordinary noisy camera (an untouched "All" zone after upgrading to 1.38.5).
+TEST_CASE("Zone blobs: speckle below the minimum blob size does not warn", "[Zone][blobs]") {
+  EnsureConfig();
+
+  auto delta = MakeSpeckledDelta(24, 14, 3);  // 336 blobs of 9 pixels each
+  auto monitor = MakeMonitor(1);
+  auto zone = MakeBlobZone(monitor, 20);      // 9 < 20, so none qualify
+
+  const std::string logged = WarningsFrom(*zone, delta.get());
+  INFO(logged);
+  CHECK(logged.find("Zone settings may be too sensitive") == std::string::npos);
+}
+
+TEST_CASE("Zone blobs: more qualifying blobs than the old table held still warns", "[Zone][blobs]") {
+  EnsureConfig();
+
+  auto delta = MakeSpeckledDelta(24, 14, 4);  // 336 blobs of 16 pixels each
+  auto monitor = MakeMonitor(1);
+  auto zone = MakeBlobZone(monitor, 4);       // 16 >= 4, so all qualify
+
+  const std::string logged = WarningsFrom(*zone, delta.get());
+  INFO(logged);
+  CHECK(logged.find("336 blobs in one frame") != std::string::npos);
 }

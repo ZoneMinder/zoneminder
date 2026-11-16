@@ -1,0 +1,90 @@
+<?php
+// Tests the default-password helpers in web/includes/auth.php.
+//
+// db/zm_create.sql seeds the admin account with the password the user guide
+// documents, so a login with it proves nothing. validateUser() refuses it as a
+// credential (the API and user=/pass= get ZM_DEFAULT_PASSWORD_REFUSED), and the
+// web login asks for a new password, which newPasswordProblem() checks before
+// replaceDefaultPassword() stores it.
+//
+// Run: php tests/php/test_default_password.php
+//
+// Including auth.php needs a database (User.php pulls in database.php), so the
+// pure functions and their constants are lifted out of the file, as in
+// test_auth_request_string.php.
+$auth_src = file_get_contents(__DIR__.'/../../web/includes/auth.php');
+if ($auth_src === false) {
+  echo "FAIL could not read auth.php\n";
+  exit(1);
+}
+foreach (array(
+  "/^define\('ZM_DEFAULT_PASSWORD',.*?;$/m",
+  "/^define\('ZM_DEFAULT_PASSWORD_REFUSED',.*?;$/m",
+  '/^function isDefaultPassword\(.*?^}$/ms',
+  '/^function newPasswordProblem\(.*?^}$/ms',
+  '/^function requestString\(.*?^}$/ms',
+  '/^function isDefaultPasswordChangePost\(.*?^}$/ms',
+) as $pattern) {
+  if (!preg_match($pattern, $auth_src, $matches)) {
+    echo "FAIL $pattern not found in auth.php\n";
+    exit(1);
+  }
+  eval($matches[0]);
+}
+
+$failures = 0;
+$passes = 0;
+
+function check($name, $got, $expected) {
+  global $failures, $passes;
+  if ($got === $expected) {
+    $passes++;
+    echo "ok   $name\n";
+  } else {
+    $failures++;
+    echo "FAIL $name: expected ".var_export($expected, true).', got '.var_export($got, true)."\n";
+  }
+}
+
+// The seeded hash in db/zm_create.sql.in must be the documented default, or
+// none of this protects anything.
+$create_src = file_get_contents(__DIR__.'/../../db/zm_create.sql.in');
+preg_match("/INSERT INTO `Users`.*?VALUES \(\s*'admin',\s*'([^']+)'/s", $create_src, $m);
+check('zm_create.sql seeds admin with the default password',
+  isset($m[1]) && password_verify(ZM_DEFAULT_PASSWORD, $m[1]), true);
+
+echo "isDefaultPassword\n";
+check('the default password', isDefaultPassword('admin'), true);
+check('another password', isDefaultPassword('s3cret'), false);
+check('case differs', isDefaultPassword('Admin'), false);
+check('trailing space', isDefaultPassword('admin '), false);
+check('empty', isDefaultPassword(''), false);
+check('null (parameter not sent)', isDefaultPassword(null), false);
+check('array (?password[]=admin)', isDefaultPassword(array('admin')), false);
+
+echo "newPasswordProblem\n";
+check('a new password that matches its confirmation', newPasswordProblem('n3w-pass', 'n3w-pass'), null);
+check('no new password', newPasswordProblem(null, null), 'NewPasswordRequired');
+check('empty new password', newPasswordProblem('', ''), 'NewPasswordRequired');
+check('confirmation differs', newPasswordProblem('n3w-pass', 'n3w-pas'), 'PasswordsDifferent');
+check('no confirmation', newPasswordProblem('n3w-pass', null), 'PasswordsDifferent');
+check('the default again', newPasswordProblem('admin', 'admin'), 'NewPasswordIsDefault');
+
+echo "isDefaultPasswordChangePost (lets the change form skip reCAPTCHA)\n";
+$_SESSION = array();
+$_REQUEST = array();
+check('no form shown, nothing posted', isDefaultPasswordChangePost(), false);
+$_SESSION['passwordChangeNonce'] = 'abc123';
+check('form shown, plain login posted', isDefaultPasswordChangePost(), false);
+$_REQUEST['password_change_nonce'] = 'abc123';
+check('form shown, its nonce posted', isDefaultPasswordChangePost(), true);
+$_REQUEST['password_change_nonce'] = 'abc124';
+check('form shown, another nonce posted', isDefaultPasswordChangePost(), false);
+$_REQUEST['password_change_nonce'] = array('abc123');
+check('nonce posted as an array', isDefaultPasswordChangePost(), false);
+unset($_SESSION['passwordChangeNonce']);
+$_REQUEST['password_change_nonce'] = 'abc123';
+check('nonce posted, none in the session', isDefaultPasswordChangePost(), false);
+
+echo "\n$passes passed, $failures failed\n";
+exit($failures ? 1 : 0);

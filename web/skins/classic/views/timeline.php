@@ -156,7 +156,7 @@ WHERE NOT isnull(StartDateTime)';
 $eventsValues = array();
 
 if ( count($user->unviewableMonitorIds()) ) {
-  $monFilterSql = ' AND E.MonitorId IN ('.$user->viewableMonitorIds().')';
+  $monFilterSql = ' AND E.MonitorId IN (' . implode(',', $user->viewableMonitorIds()) . ')';
   $rangeSql .= $monFilterSql;
   $eventsSql .= $monFilterSql;
   $eventIdsSql .= $monFilterSql;

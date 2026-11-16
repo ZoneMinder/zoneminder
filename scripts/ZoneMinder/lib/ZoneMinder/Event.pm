@@ -46,6 +46,7 @@ require POSIX;
 use Date::Format qw(time2str);
 use Time::HiRes qw(gettimeofday tv_interval stat);
 use Scalar::Util qw(looks_like_number);
+use List::Util ();
 
 #our @ISA = qw(ZoneMinder::Object);
 use parent qw(ZoneMinder::Object);
@@ -270,7 +271,9 @@ sub GenerateVideo {
 
   my $event_path = $self->Path();
   chdir($event_path);
-  ( my $video_name = $self->{Name} ) =~ s/\s/_/g;
+  # Name is user editable; keep the output file inside the event directory.
+  ( my $video_name = $self->{Name} ) =~ s/[^-A-Za-z0-9_.]/_/g;
+  $video_name =~ s/^\./_/;
 
   my @file_parts;
   if ( $rate ) {
@@ -319,31 +322,57 @@ sub GenerateVideo {
 
     my $width = $self->{Width};
     my $height = $self->{Height};
-    my $video_size = " ${width}x${height}";
+    my $video_size = "${width}x${height}";
 
     if ( $scale ) {
       if ( $scale != 1.0 ) {
         $width = int($width*$scale);
         $height = int($height*$scale);
-        $video_size = " ${width}x${height}";
+        $video_size = "${width}x${height}";
       }
     } elsif ( $size ) {
       $video_size = $size;
     }
-    my $command = $Config{ZM_PATH_FFMPEG}
-    ." -y -r $frame_rate "
-      .$Config{ZM_FFMPEG_INPUT_OPTIONS}
-    .' -i ' . ( $$self{DefaultVideo} ? $$self{DefaultVideo} : '%0'.$Config{ZM_EVENT_IMAGE_DIGITS} .'d-capture.jpg' )
-#. " -f concat -i /tmp/event_files.txt"
-    #
-   .join(' ', map { ' -vf '.$_ } @transforms)
-       ." -s $video_size "
+    # Built as a list and run without a shell. Two of these arguments are event
+    # fields an operator with Events=Edit can set through the API: DefaultVideo
+    # used to be interpolated into the command line with no quoting at all, and
+    # the name behind $video_file only has whitespace replaced, so a single
+    # quote in it escaped the quoting that was there. Either one gave arbitrary
+    # command execution as the web account. As a list there is no shell to
+    # escape from, whatever the fields hold. See GHSA-pfph-4j9j-7cv7.
+    # DefaultVideo is a bare filename in the event directory; drop any path.
+    (my $input_file = $$self{DefaultVideo} // '') =~ s{.*[/\\]}{}s;
+    $input_file = '%0'.$Config{ZM_EVENT_IMAGE_DIGITS}.'d-capture.jpg' if !$input_file;
 
-      .$Config{ZM_FFMPEG_OUTPUT_OPTIONS}
-    ." '$video_file' > ffmpeg.log 2>&1"
-      ;
-    Debug($command);
-    my $output = qx($command);
+    my @command = (
+      $Config{ZM_PATH_FFMPEG},
+      '-y', '-r', $frame_rate,
+      # The configured option strings are admin-set and hold several options
+      # each, so they are split on whitespace rather than passed as one word.
+      grep { $_ ne '' } split(/\s+/, $Config{ZM_FFMPEG_INPUT_OPTIONS}),
+      '-i', $input_file,
+      (map { ('-vf', $_) } @transforms),
+      '-s', $video_size,
+      grep { $_ ne '' } split(/\s+/, $Config{ZM_FFMPEG_OUTPUT_OPTIONS}),
+      $video_file,
+    );
+
+    Debug('Executing: '.join(' ', @command));
+
+    my $pid = fork();
+    if ( !defined $pid ) {
+      Error("Unable to fork for video generation: $!");
+      return;
+    }
+    if ( !$pid ) {
+      # ffmpeg's own output still goes to the log file the error message below
+      # points the operator at.
+      open(STDOUT, '>', 'ffmpeg.log') or exit(1);
+      open(STDERR, '>&', \*STDOUT) or exit(1);
+      exec { $command[0] } @command;
+      exit(1);
+    }
+    waitpid($pid, 0);
 
     my $status = $? >> 8;
     if ( $status ) {
@@ -458,11 +487,12 @@ sub delete {
       select(undef, undef, undef, 0.05 * (1 << $attempt) + rand(0.05));
     }
 
-    my $storage = $event->Storage();
-    if ($event->DiskSpace() and $storage->Id()) {
-      $storage->lock_and_load();
-      $storage->save({DiskSpace=>$storage->DiskSpace()-$event->DiskSpace()});
-    }
+    # Relative, single-statement adjustment.  A lock_and_load + save here would
+    # be a read-modify-write whose FOR UPDATE lock is dropped the moment the
+    # SELECT autocommits, so the absolute value it then writes clobbers any
+    # adjustment zmc or another filter made in between.
+    # See ZoneMinder::Storage::adjust_diskspace.
+    $event->Storage()->adjust_diskspace(-$event->DiskSpace()) if $event->DiskSpace();
   }
 
   if ( ( $in_zmaudit or (!$Config{ZM_OPT_FAST_DELETE})) and $event->Storage()->DoDelete() ) {
@@ -824,15 +854,11 @@ sub MoveTo {
   }
   $ZoneMinder::Database::dbh->commit() if !$was_in_transaction;
 
-  # Update storage diskspace.  The triggers no longer do this. This is ... less important so do it outside the transaction
-  if ($old_diskspace and $$OldStorage{Id}) {
-    $OldStorage->lock_and_load();
-    $OldStorage->save({DiskSpace => $OldStorage->DiskSpace()-$old_diskspace});
-  }
-  if ($new_diskspace and $$NewStorage{Id}) {
-    $NewStorage->lock_and_load();
-    $NewStorage->save({DiskSpace => $NewStorage->DiskSpace()+$new_diskspace});
-  }
+  # Update storage diskspace.  The triggers no longer do this. This is ... less
+  # important, so it is a relative adjustment rather than a read-modify-write:
+  # one statement per storage area, no lock outliving it.
+  $OldStorage->adjust_diskspace(-$old_diskspace) if $old_diskspace;
+  $NewStorage->adjust_diskspace($new_diskspace) if $new_diskspace;
 
   $self->delete_files($OldStorage);
   return $error;
@@ -1040,20 +1066,42 @@ FROM `Frames` WHERE `EventId`=?';
   if (!$frame) {
     return 'Unable to retrieve frame data.';
   }
-  if (!$frame->{EndDateTime}) {
-    return 'Unable to retrieve EndDateTime from Frames Table.';
+  my $start = $self->Time();
+  if (!$start) {
+    return 'Unable to determine the start time of the event.';
   }
-  return $self->save({
-      Name => sprintf('%s%d%s', $self->Monitor()->EventPrefix(), $self->{Id}, $tag),
-      EndDateTime => $frame->{EndDateTime},
-      Length => $frame->{EndTimeStamp} - $self->Time(),
-      Frames => $frame->{Frames},
-      AlarmFrames => $frame->{AlarmFrames},
-      TotScore => $frame->{TotScore},
-      AvgScore => ($frame->{AlarmFrames} ? int($frame->{TotScore} / $frame->{AlarmFrames}) : 0),
-      MaxScore => $frame->{MaxScore},
+
+  # zmc writes Frames rows in batches and updates the event row's Length,
+  # Frames and scores with each batch, so either can be ahead of the other when
+  # zmc dies. An event killed before its first batch has no Frames rows at all.
+  # Take the larger of the two for each.
+  my $end_date_time = $frame->{EndDateTime};
+  my $length = $end_date_time ? $frame->{EndTimeStamp} - $start : 0;
+  if (!$end_date_time or ($self->{Length} // 0) > $length) {
+    $length = $self->{Length} // 0;
+    $end_date_time = time2str('%Y-%m-%d %H:%M:%S', $start + $length);
+  }
+  my $frames = List::Util::max($frame->{Frames} // 0, $self->{Frames} // 0);
+  my $alarm_frames = List::Util::max($frame->{AlarmFrames} // 0, $self->{AlarmFrames} // 0);
+  my $tot_score = List::Util::max($frame->{TotScore} // 0, $self->{TotScore} // 0);
+  my $max_score = List::Util::max($frame->{MaxScore} // 0, $self->{MaxScore} // 0);
+
+  my %changes = (
+      EndDateTime => $end_date_time,
+      Length => $length,
+      Frames => $frames,
+      AlarmFrames => $alarm_frames,
+      TotScore => $tot_score,
+      AvgScore => ($alarm_frames ? int($tot_score / $alarm_frames) : 0),
+      MaxScore => $max_score,
       Notes => $self->Notes() . ' ' . $text,
-    });
+    );
+  # Like zmc's own close (~Event: Name = IF(Name='New Event', ...)), keep a name
+  # the user gave the event; only the placeholder gets the recovered name.
+  if (($self->{Name} // 'New Event') eq 'New Event') {
+    $changes{Name} = sprintf('%s%d%s', $self->Monitor()->EventPrefix(), $self->{Id}, $tag);
+  }
+  return $self->save(\%changes);
 } # end sub Close
 
 sub Event_Tags {

@@ -41,7 +41,10 @@ function probe(params) {
           if (ZM_WEB_LIST_THUMBS && stream.camera.mjpegstream) {
             console.log("Setting thumbnail stream to " + stream.camera.mjpegstream);
             //stream.Thumbnail = '<img src="'+stream.camera.mjpegstream+'"/>';
-            stream.Thumbnail = '<img src="?view=image&proxy='+stream.camera.mjpegstream+'" width="'+ZM_WEB_LIST_THUMB_WIDTH+'"/>';
+            // The image proxy requires the CSRF token since it is exempt from the POST check.
+            let src = '?view=image&proxy='+encodeURIComponent(stream.camera.mjpegstream);
+            if (ZM_ENABLE_CSRF_MAGIC === '1') src += '&'+csrfMagicName+'='+encodeURIComponent(csrfMagicToken);
+            stream.Thumbnail = '<img src="'+src+'" width="'+ZM_WEB_LIST_THUMB_WIDTH+'"/>';
           } else {
             console.log(stream.camera);
           }

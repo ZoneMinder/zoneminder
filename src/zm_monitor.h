@@ -34,9 +34,13 @@
 #include "zm_utils.h"
 #include "zm_zone.h"
 
+#include <atomic>
+#include <functional>
 #include <list>
+#include <map>
 #include <memory>
 #include <sys/time.h>
+#include <type_traits>
 #include <vector>
 #if HAVE_LIBCURL
 #include <curl/curl.h>
@@ -178,37 +182,71 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   typedef enum { CLOSE_UNKNOWN=0, CLOSE_SYSTEM, CLOSE_TIME, CLOSE_DURATION, CLOSE_IDLE, CLOSE_ALARM } EventCloseMode;
 
+  /* A SharedData field. zmc's capture, decoder and analysis threads, zms, zmu
+   * and the web interface all read and write these while the others run, so
+   * every access is a relaxed atomic: each load and store is whole and is seen
+   * by the other threads, but is not ordered against anything else. Plain
+   * members promised neither (a 64-bit field on i386 is two loads), and
+   * ThreadSanitizer reported them. The read-modify-write operators are single
+   * atomic operations, so zmu setting an action bit can't be lost to zmc
+   * clearing another. It holds only the value, with the value's alignment, so
+   * the layout that Memory.pm and Monitor.php read is unchanged. Copying one
+   * field to another is deleted because it would not be atomic; load() one and
+   * assign it. */
+  template <typename T>
+  class SharedValue {
+   public:
+    SharedValue &operator=(const SharedValue &) = delete;
+    T load() const {
+      T value;
+      __atomic_load(&value_, &value, __ATOMIC_RELAXED);
+      return value;
+    }
+    void store(T value) { __atomic_store(&value_, &value, __ATOMIC_RELAXED); }
+    operator T() const { return load(); }
+    T operator=(T value) { store(value); return value; }
+    T operator++(int) { return __atomic_fetch_add(&value_, 1, __ATOMIC_RELAXED); }
+    T operator|=(T bits) { return __atomic_or_fetch(&value_, bits, __ATOMIC_RELAXED); }
+    T operator&=(T bits) { return __atomic_and_fetch(&value_, bits, __ATOMIC_RELAXED); }
+   private:
+    T value_;
+  };
+  static_assert(sizeof(SharedValue<double>) == sizeof(double), "SharedValue must hold only the value");
+  static_assert(alignof(SharedValue<double>) == alignof(double), "SharedValue must not move any field");
+  static_assert(sizeof(SharedValue<uint8_t>) == sizeof(uint8_t), "SharedValue must hold only the value");
+  static_assert(std::is_trivially_copyable<SharedValue<double>>::value, "SharedData is memset and mapped raw");
+
   /* sizeof(SharedData) expected to be 472 bytes on 32bit and 64bit */
   typedef struct {
-    uint32_t size;              /* +0    */
-    int32_t  last_write_index;  /* +4    */
-    int32_t  last_read_index;   /* +8    */
-    int32_t  image_count;       /* +12   */
-    uint32_t state;             /* +16   */
-    double      capture_fps;    /* +20   Current capturing fps */
-    double      analysis_fps;   /* +28   Current analysis fps */
-    double      latitude;       /* +36   */
-    double      longitude;      /* +44   */
-    uint64_t last_event_id;     /* +52   */
-    uint32_t action;            /* +60   */
-    int32_t brightness;         /* +64   */
-    int32_t hue;                /* +68   */
-    int32_t colour;             /* +72   */
-    int32_t contrast;           /* +76   */
-    int32_t alarm_x;            /* +80   */
-    int32_t alarm_y;            /* +84   */
-    uint8_t valid;              /* +88   */
-    uint8_t capturing;          /* +89   */
-    uint8_t analysing;          /* +90   */
-    uint8_t recording;          /* +91   */
-    uint8_t signal;             /* +92   */
-    uint8_t format;             /* +93   */
+    SharedValue<uint32_t> size;             /* +0    */
+    SharedValue<int32_t> last_write_index;  /* +4    */
+    SharedValue<int32_t> last_read_index;   /* +8    */
+    SharedValue<int32_t> image_count;       /* +12   */
+    SharedValue<uint32_t> state;            /* +16   */
+    SharedValue<double> capture_fps;        /* +20   Current capturing fps */
+    SharedValue<double> analysis_fps;       /* +28   Current analysis fps */
+    SharedValue<double> latitude;           /* +36   */
+    SharedValue<double> longitude;          /* +44   */
+    SharedValue<uint64_t> last_event_id;    /* +52   */
+    SharedValue<uint32_t> action;           /* +60   */
+    SharedValue<int32_t> brightness;        /* +64   */
+    SharedValue<int32_t> hue;               /* +68   */
+    SharedValue<int32_t> colour;            /* +72   */
+    SharedValue<int32_t> contrast;          /* +76   */
+    SharedValue<int32_t> alarm_x;           /* +80   */
+    SharedValue<int32_t> alarm_y;           /* +84   */
+    SharedValue<uint8_t> valid;             /* +88   */
+    SharedValue<uint8_t> capturing;         /* +89   */
+    SharedValue<uint8_t> analysing;         /* +90   */
+    SharedValue<uint8_t> recording;         /* +91   */
+    SharedValue<uint8_t> signal;            /* +92   */
+    SharedValue<uint8_t> format;            /* +93   */
     uint8_t reserved1;          /* +94   */
     uint8_t reserved2;          /* +95   */
-    uint32_t imagesize;         /* +96   */
-    uint32_t last_frame_score;  /* +100   */
-    uint32_t audio_frequency;   /* +104   */
-    uint32_t audio_channels;    /* +108   */
+    SharedValue<uint32_t> imagesize;        /* +96   */
+    SharedValue<uint32_t> last_frame_score; /* +100   */
+    SharedValue<uint32_t> audio_frequency;  /* +104   */
+    SharedValue<uint32_t> audio_channels;   /* +108   */
     //uint32_t reserved3;         /* +0   */
     /*
      ** This keeps 32bit time_t and 64bit time_t identical and compatible as long as time is before 2038.
@@ -217,27 +255,27 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
      ** of 8. Add or delete epadding's to achieve this.
      */
     union {                     /* +112   */
-      time_t startup_time;			/* When the zmc process started.  zmwatch uses this to see how long the process has been running without getting any images */
+      SharedValue<time_t> startup_time;     /* When the zmc process started.  zmwatch uses this to see how long the process has been running without getting any images */
       uint64_t extrapad1;
     };
     union {                     /* +120   */
-      time_t heartbeat_time;			/* Constantly updated by zmc.  Used to determine if the process is alive or hung or dead */
+      SharedValue<time_t> heartbeat_time;   /* Constantly updated by zmc.  Used to determine if the process is alive or hung or dead */
       uint64_t extrapad2;
     };
     union {                     /* +128   */
-      time_t last_write_time;
+      SharedValue<time_t> last_write_time;
       uint64_t extrapad3;
     };
     union {                     /* +136  */
-      time_t last_read_time;
+      SharedValue<time_t> last_read_time;
       uint64_t extrapad4;
     };
     union {                     /* +144  */
-      time_t last_viewed_time;
+      SharedValue<time_t> last_viewed_time;
       uint64_t extrapad5;
     };
     union {                     /* +152  */
-      time_t last_analysis_viewed_time;
+      SharedValue<time_t> last_analysis_viewed_time;
       uint64_t extrapad6;
     };
     uint8_t control_state[256]; /* +160  */
@@ -297,13 +335,12 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     off_t     mem_size;
     unsigned char  *mem_ptr;
 
-    volatile SharedData  *shared_data;
+    SharedData  *shared_data;
     volatile TriggerData  *trigger_data;
     volatile VideoStoreData *video_store_data;
     volatile int * zone_scores;
 
     int        last_state;
-    uint64_t   last_event_id;
     std::vector<Zone> zones;
 
    public:
@@ -586,13 +623,18 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int        event_count;
   int        last_capture_image_count; // last value of image_count when calculating capture fps
   int        analysis_image_count;    // How many frames have been processed by analysis thread.
-  int        decoding_image_count;    // How many frames have been processed by analysis thread.
-  int        motion_frame_count;      // How many frames have had motion detection performed on them.
+  // Written by the decoder / analysis thread, read by the others: atomic.
+  std::atomic<int> decoding_image_count;    // How many frames the decoder has written to shm.
+  std::atomic<int> motion_frame_count;      // How many frames have had motion detection performed on them.
   int         last_motion_frame_count; // last value of motion_frame_count when calculating fps
   int        ready_count;
   int        first_alarm_count;
   int        last_alarm_count;
   bool       last_signal;
+  // Capture assumes signal on the first packet after connect() cleared it,
+  // even when the decoder measures it, so Analyse doesn't see a signal loss
+  // before the first decoded frame. Capture thread only.
+  bool       assume_signal_on_next_packet;
   int        buffer_count;
   State      state;
   SystemTimePoint start_time;
@@ -637,8 +679,22 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   VideoStore          *videoStore;
   PacketQueue      packetqueue;
+  // Stream timestamps kept going forward across a jump back in the camera's
+  // clock: an offset (microseconds) added to every packet's dts and pts, and
+  // each stream's last dts with the offset applied and its last step.
+  int64_t dts_offset_ = 0;
+  std::map<int, int64_t> last_dts_;
+  std::map<int, int64_t> last_dts_step_;
+  // A step back of more than this in a stream's dts is a jump in the camera's
+  // clock, not reordering jitter.
+  static constexpr int64_t kDtsStepBack = 1000000;
+  // Moves the packet onto the continuous timeline; returns the offset applied.
+  int64_t KeepDtsContinuous(AVPacket *packet, AVRational time_base);
   std::unique_ptr<PollThread> Poller;
   std::list<ZMPacketLock> decoder_queue;
+  // The decoder_queue entry a decoded frame with this pts came from; releases
+  // the entries before it that the codec consumed without returning a frame.
+  std::list<ZMPacketLock>::iterator MatchDecodedFrame(int64_t frame_pts);
   packetqueue_iterator  *analysis_it;
   std::unique_ptr<AnalysisThread> analysis_thread;
   packetqueue_iterator  *decoder_it;
@@ -669,6 +725,12 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   Image        delta_image;
   Image        ref_image;
   Image        alarm_image;  // Used in creating analysis images, will be initialized in Analysis
+  // Set by CheckOndemand() when a linked monitor's alarm wakes this on-demand
+  // monitor from its pause: steady_clock nanoseconds until which Analyse()
+  // counts the link as alarmed, 0 for none. The link only reports an alarm while
+  // it lasts, which can be shorter than reopening the camera takes, so the wake
+  // has to be remembered until the first packet acts on it.
+  std::atomic<int64_t> linked_wake_until_{0};
   Image        write_image;    // Used when creating snapshot images
   std::string diag_path_ref;
   std::string diag_path_delta;
@@ -686,6 +748,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   uint8_t green_val;
   uint8_t blue_val;
   uint8_t grayscale_val; /* 8bit grayscale color */
+  uint8_t luma_val;      /* luma of the RGB colour, limited range */
+  uint8_t luma_full_val; /* luma of the RGB colour, full range */
   Rgb colour_val; /* RGB32 color */
   int usedsubpixorder;
 
@@ -787,10 +851,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
       return false;
     }
     if (decoding_image_count > ready_count) {
-      Debug(4, "Ready because decoding_image_count(%d) > ready_count(%d)", decoding_image_count, ready_count);
+      Debug(4, "Ready because decoding_image_count(%d) > ready_count(%d)", decoding_image_count.load(), ready_count);
       return true;
     }
-    Debug(4, "Not ready because decoding_image_count(%d) <= ready_count(%d)", decoding_image_count, ready_count);
+    Debug(4, "Not ready because decoding_image_count(%d) <= ready_count(%d)", decoding_image_count.load(), ready_count);
     return false;
   }
   inline bool Active() const {
@@ -809,6 +873,20 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
       shared_data->last_viewed_time =
         static_cast<int64>(std::chrono::duration_cast<Seconds>(new_time.time_since_epoch()).count());
   }
+  // What zmc's capture loop does with an on-demand monitor on this pass.
+  enum class OndemandStep { CAPTURE, PLAY, PAUSE, SLEEP };
+  // viewed: watched in the last 10 s. has_image: an image has been written, so
+  // thumbnails have something to show. primed: the camera is open. busy:
+  // alarmed, in its post-event frames, or woken by a link that Analyse() hasn't
+  // acted on yet. link_alarmed is asked only while the camera is closed, when
+  // the analysis thread that otherwise reads the links is stopped.
+  static OndemandStep DecideOndemand(bool viewed, bool has_image, bool primed, bool busy,
+                                     const std::function<bool()> &link_alarmed);
+  OndemandStep CheckOndemand();
+  bool LinkedWakePending() const;
+  // How long a link wake waits for the camera to reopen and a packet to act on it.
+  static constexpr std::chrono::seconds kLinkedWakeTimeout{30};
+
   bool hasViewers() {
     if (shared_data && shared_data->valid) {
       SystemTimePoint now = std::chrono::system_clock::now();
@@ -883,7 +961,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   unsigned int GetPreEventCount() const { return pre_event_count; };
   int32_t GetImageBufferCount() const { return image_buffer_count; };
-  State GetState() const { return (State)shared_data->state; }
+  State GetState() const { return (State)shared_data->state.load(); }
 
   AVStream *GetAudioStream() const { return camera ? camera->getAudioStream() : nullptr; };
   AVCodecContext *GetAudioCodecContext() const { return camera ? camera->getAudioCodecContext() : nullptr; };
@@ -919,9 +997,23 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   void ForceAlarmOff();
   void CancelForced();
   TriggerState GetTriggerState() const { return trigger_data ? trigger_data->trigger_state : TRIGGER_CANCEL; }
-  SystemTimePoint GetStartupTime() const { return std::chrono::system_clock::from_time_t(shared_data->startup_time); }
-  void SetStartupTime(SystemTimePoint time) { shared_data->startup_time = std::chrono::system_clock::to_time_t(time); }
+  // shared_data is null until connect() maps the shm segment, and connect()
+  // fails with it still null whenever the mmap file cannot be opened, grown or
+  // mapped -- wrong ownership, or /dev/shm too small for the requested buffers.
+  // zmc's startup loop calls SetHeartbeatTime() on every failed retry, so
+  // without these guards a monitor that cannot get its shm takes zmc down with
+  // SIGSEGV instead of retrying. The accessors around these already guard the
+  // same way.
+  SystemTimePoint GetStartupTime() const {
+    if (!shared_data) return SystemTimePoint();
+    return std::chrono::system_clock::from_time_t(shared_data->startup_time);
+  }
+  void SetStartupTime(SystemTimePoint time) {
+    if (!shared_data) return;
+    shared_data->startup_time = std::chrono::system_clock::to_time_t(time);
+  }
   void SetHeartbeatTime(SystemTimePoint time) {
+    if (!shared_data) return;
     shared_data->heartbeat_time = std::chrono::system_clock::to_time_t(time);
   }
   void get_ref_image();
@@ -957,6 +1049,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // DetectBlack seems to be unused. Check it on zm_monitor.cpp for more info.
   //unsigned int DetectBlack( const Image &comp_image, Event::StringSet &zoneSet );
   bool CheckSignal( const Image *image );
+  // True when the decoder measures shared_data->signal (SignalCheckPoints)
+  // for the packets it decodes; Capture then leaves the flag to it, so the
+  // two threads don't overwrite each other's value. Pure, for tests.
+  static bool DecoderChecksSignal(DecodingOption decoding, int signal_check_points, bool has_viewers);
   bool Analyse();
   bool setupConvertContext(const AVFrame *input_frame, const Image *image);
   void applyOrientation(Image *image);

@@ -69,6 +69,10 @@ class RemoteCameraHttp : public RemoteCamera {
   int ReadData( Buffer &buffer, unsigned int bytes_expected=0 );
   int GetData();
   int GetResponse();
+
+  // The camera's announced Content-Length as a byte count to read, or -1 when it is not a
+  // number or is larger than any frame of image_size bytes could encode to.
+  static int ParseContentLength(const char *text, unsigned long long image_size);
   int PrimeCapture() override;
   int PreCapture() override;
   int Capture(std::shared_ptr<ZMPacket> &p) override;

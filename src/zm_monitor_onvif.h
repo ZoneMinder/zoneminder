@@ -46,6 +46,51 @@
 // Free rather than a member so it can be tested without an ONVIF object and a
 // live soap context. fault_string and detail may be null.
 bool ONVIFIsAuthError(int result, const char *fault_string, const char *detail);
+
+// How long to wait before the next PullMessages when one came back with no
+// messages after elapsed, having asked the camera to hold it for up to
+// pull_timeout_seconds. Some cameras (Beward) answer at once instead of holding
+// the long-poll, and polling again immediately loops at tens of requests a
+// second.
+std::chrono::milliseconds ONVIFEarlyPollWait(std::chrono::steady_clock::duration elapsed, int pull_timeout_seconds);
+
+// Turn a PullMessagesResponse TerminationTime into the expiry time for the
+// alarms it carries, on our clock.
+//
+// camera_current_time, when non-zero, refreshes clock_offset (our time minus
+// the camera's). Returns false, leaving termination untouched, when there is no
+// TerminationTime or it is not in the future. Some cameras (Beward) send their
+// CurrentTime as the TerminationTime, which would expire each alarm in the
+// same pass that raised it.
+bool ONVIFAlarmTermination(time_t termination_time, time_t camera_current_time, const SystemTimePoint &now,
+                           time_t &clock_offset, SystemTimePoint &termination);
+
+// When to renew a subscription that ends at termination, given that we learnt
+// of it at now: ONVIF_RENEWAL_ADVANCE_SECONDS before the end, or halfway
+// through for a subscription shorter than twice that. A fixed advance put the
+// renewal of a 60 second subscription at its creation time, so it was always
+// due.
+SystemTimePoint ONVIFNextRenewalTime(const SystemTimePoint &now, const SystemTimePoint &termination);
+
+// Termination to assume after a Renew whose response carries no
+// TerminationTime: the deadline we asked for (requested_termination), but no
+// later than request_time plus what the camera last granted (last_granted,
+// zero when it never said). Counted from when the request was sent, not when
+// the response arrived, so a slow response cannot move the deadline later.
+SystemTimePoint ONVIFAssumedTermination(const SystemTimePoint &request_time,
+                                        const SystemTimePoint &requested_termination,
+                                        std::chrono::seconds last_granted);
+
+// Lifetime the camera granted, from a termination after now, in whole seconds
+// rounded up. Termination times have one-second precision and now does not,
+// so truncating would turn a short grant into zero, which means unknown.
+std::chrono::seconds ONVIFGrantedLifetime(const SystemTimePoint &now, const SystemTimePoint &termination);
+
+// Whether a failed Renew means the camera does not support renewal. gSOAP
+// reports every SOAP fault as SOAP_FAULT; the reason is in the subcode
+// (wsa:ActionNotSupported, ter:ActionNotSupported) or the fault string.
+// subcode and fault_string may be null.
+bool ONVIFIsActionNotSupported(int result, const char *subcode, const char *fault_string);
 #endif
 
 // Forward declaration
@@ -108,6 +153,7 @@ class ONVIF {
   // Subscription renewal tracking
   SystemTimePoint subscription_termination_time;
   SystemTimePoint next_renewal_time;
+  std::chrono::seconds granted_lifetime;  // Lifetime the camera last reported granting, 0 if never
   bool use_absolute_time_for_renewal;
   bool renewal_enabled;
   time_t camera_clock_offset;  // Offset in seconds: our_time - camera_time
@@ -141,6 +187,7 @@ class ONVIF {
   void parse_onvif_options();
   int get_retry_delay();
   void update_renewal_times(time_t camera_current_time, time_t termination_time);
+  void assume_renewal_times(const SystemTimePoint &request_time, const SystemTimePoint &requested_termination);
   bool is_renewal_tracking_initialized() const;
   void log_subscription_timing(const char* context);
   bool Renew();

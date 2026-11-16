@@ -35,7 +35,7 @@ class SnapshotsController extends AppController {
 
     if ( $this->request->params['named'] ) {
       $this->FilterComponent = $this->Components->load('Filter');
-      $conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+      $conditions = $this->FilterComponent->buildFilter($this->request->params['named'], array_keys($this->Snapshot->schema()));
     } else {
       $conditions = array();
     }
@@ -55,7 +55,7 @@ class SnapshotsController extends AppController {
       'snapshot' => '`Snapshot`.`Id`',
     );
 
-		$snapshots = $this->Snapshot->find('all', $find_array);
+		$snapshots = array_map(array($this, 'filterContainedEvents'), $this->Snapshot->find('all', $find_array));
 		$this->set(array(
 			'snapshots' => $snapshots,
 			'_serialize' => array('snapshots')
@@ -75,7 +75,7 @@ class SnapshotsController extends AppController {
 			throw new NotFoundException(__('Invalid snapshot'));
 		}
 		$options = array('conditions' => array('Snapshot.' . $this->Snapshot->primaryKey => $id));
-		$snapshot = $this->Snapshot->find('first', $options);
+		$snapshot = $this->filterContainedEvents($this->Snapshot->find('first', $options));
 		$this->set(array(
 			'snapshot' => $snapshot,
 			'_serialize' => array('snapshot')
@@ -99,12 +99,16 @@ class SnapshotsController extends AppController {
         return;
       }
 
-			$this->Snapshot->create();
-
       if ( $this->request->data['Snapshot']['EventIds'] and ! isset($this->request->data['Event']) ) {
         $this->request->data['Event'] = explode(',', $this->request->data['Snapshot']['EventIds']);
         unset($this->request->data['Snapshot']['EventIds']);
       }
+      # A snapshot exposes its events to Snapshots viewers, so only viewable events may be added.
+      $eventIds = $this->requestAssociatedIds('Snapshot', 'Event');
+      if ($eventIds) $this->requireEventsView($eventIds);
+      $this->pinRequestId($this->Snapshot, null);
+			$this->Snapshot->create();
+
       if ( $this->Snapshot->saveAssociated($this->request->data, array('atomic'=>true)) ) {
         return $this->flash(
           __('The snapshot has been saved.'),
@@ -139,7 +143,11 @@ class SnapshotsController extends AppController {
         throw new UnauthorizedException(__('Insufficient Privileges'));
         return;
       }
-      $this->Snapshot->id = $id;
+      $this->pinRequestId($this->Snapshot, $id);
+      $eventIds = $this->requestAssociatedIds('Snapshot', 'Event');
+      if ($eventIds !== null) {
+        $this->request->data['Event'] = array('Event' => $this->eventLinksToSave('Snapshots_Events', 'SnapshotId', $id, $eventIds));
+      }
 			if ( $this->Snapshot->save($this->request->data) ) {
         $message = 'Saved';
       } else {
@@ -201,11 +209,12 @@ class SnapshotsController extends AppController {
     $snapshots = $this->Snapshot->find('all', array(
                                         'contain'=> array(
                                           'Event' => array(
-                                            'fields'=>array('Id','Name')
+                                            'fields'=>array('Id','Name','MonitorId')
                                           )
                                         )
                                       )
                                 );
+            $snapshots = array_map(array($this, 'filterContainedEvents'), $snapshots);
             $this->set(array(
                     'snapshots' => $snapshots,
                     '_serialize' => array('snapshots')

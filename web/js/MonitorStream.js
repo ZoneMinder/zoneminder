@@ -18,7 +18,10 @@ function MonitorStream(monitorData) {
   this.RTSP2WebEnabled = monitorData.RTSP2WebEnabled;
   this.RTSP2WebType = null;
   this.StreamChannel = monitorData.StreamChannel;
-  this.RTSPServer = monitorData.RTSPServer;
+  // ZoneMinder's RTSP restream only exists when its RTSP server runs, which needs
+  // ZM_MIN_RTSP_PORT; without it zmc registers no ZoneMinderPrimary stream.
+  this.RTSPServer = monitorData.RTSPServer &&
+    (typeof ZM_MIN_RTSP_PORT !== 'undefined') && !!ZM_MIN_RTSP_PORT;
   this.Go2RTCEnabled = monitorData.Go2RTCEnabled;
   this.Go2RTCMSEBufferCleared = true;
   this.currentChannelStream = null;
@@ -408,7 +411,7 @@ function MonitorStream(monitorData) {
 
     if (this.Go2RTCEnabled && ((!this.player) || (-1 !== this.player.indexOf('go2rtc')))) {
       if (ZM_GO2RTC_PATH) {
-        const url = new URL(ZM_GO2RTC_PATH);
+        const url = go2rtcApiUrl(ZM_GO2RTC_PATH);
 
         const stream = this.element = replaceDOMElement(this.getElement(), 'video-stream');
         stream.srcObject = null;
@@ -444,8 +447,13 @@ function MonitorStream(monitorData) {
         if (typeof observerMontage !== 'undefined') observerMontage.observe(stream);
         this.activePlayer = 'go2rtc';
         return;
-      } else {
+      } else if (this.player && (-1 !== this.player.indexOf('go2rtc'))) {
+        // go2rtc was chosen explicitly, so say why it can't play.
         alert("ZM_GO2RTC_PATH is empty. Go to Options->System and set ZM_GO2RTC_PATH accordingly.");
+      } else {
+        // Auto: go2rtc isn't configured, so fall through to the next player rather
+        // than interrupting with an alert for every monitor that has it enabled.
+        console.log("ZM_GO2RTC_PATH is empty, skipping go2rtc for monitor " + this.id);
       }
     }
 

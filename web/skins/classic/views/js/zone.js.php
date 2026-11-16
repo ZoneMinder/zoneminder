@@ -18,20 +18,20 @@ foreach ( $presets as $preset ) {
 presets[<?php echo $preset['Id'] ?>] = {
     'UnitsIndex': <?php echo $preset['UnitsIndex'] ?>,
     'CheckMethodIndex': <?php echo $preset['CheckMethodIndex'] ?>,
-    'MinPixelThreshold': '<?php echo $preset['MinPixelThreshold'] ?>',
-    'MaxPixelThreshold': '<?php echo $preset['MaxPixelThreshold'] ?>',
-    'FilterX': '<?php echo $preset['FilterX'] ?>',
-    'FilterY': '<?php echo $preset['FilterY'] ?>',
-    'MinAlarmPixels': '<?php echo $preset['MinAlarmPixels'] ?>',
-    'MaxAlarmPixels': '<?php echo $preset['MaxAlarmPixels'] ?>',
-    'MinFilterPixels': '<?php echo $preset['MinFilterPixels'] ?>',
-    'MaxFilterPixels': '<?php echo $preset['MaxFilterPixels'] ?>',
-    'MinBlobPixels': '<?php echo $preset['MinBlobPixels'] ?>',
-    'MaxBlobPixels': '<?php echo $preset['MaxBlobPixels'] ?>',
-    'MinBlobs': '<?php echo $preset['MinBlobs'] ?>',
-    'MaxBlobs': '<?php echo $preset['MaxBlobs'] ?>',
-    'OverloadFrames': '<?php echo $preset['OverloadFrames'] ?>',
-    'ExtendAlarmFrames': '<?php echo $preset['ExtendAlarmFrames'] ?>'
+    'MinPixelThreshold': '<?php echo validJsStr($preset['MinPixelThreshold']) ?>',
+    'MaxPixelThreshold': '<?php echo validJsStr($preset['MaxPixelThreshold']) ?>',
+    'FilterX': '<?php echo validJsStr($preset['FilterX']) ?>',
+    'FilterY': '<?php echo validJsStr($preset['FilterY']) ?>',
+    'MinAlarmPixels': '<?php echo validJsStr($preset['MinAlarmPixels']) ?>',
+    'MaxAlarmPixels': '<?php echo validJsStr($preset['MaxAlarmPixels']) ?>',
+    'MinFilterPixels': '<?php echo validJsStr($preset['MinFilterPixels']) ?>',
+    'MaxFilterPixels': '<?php echo validJsStr($preset['MaxFilterPixels']) ?>',
+    'MinBlobPixels': '<?php echo validJsStr($preset['MinBlobPixels']) ?>',
+    'MaxBlobPixels': '<?php echo validJsStr($preset['MaxBlobPixels']) ?>',
+    'MinBlobs': '<?php echo validJsStr($preset['MinBlobs']) ?>',
+    'MaxBlobs': '<?php echo validJsStr($preset['MaxBlobs']) ?>',
+    'OverloadFrames': '<?php echo validJsStr($preset['OverloadFrames']) ?>',
+    'ExtendAlarmFrames': '<?php echo validJsStr($preset['ExtendAlarmFrames']) ?>'
 };
 <?php
 } # end foreach preset
@@ -41,10 +41,10 @@ var zone = {
     'Name': '<?php echo validJsStr($zone['Name']) ?>',
     'Id': <?php echo validJsStr($zone['Id']) ?>,
     'MonitorId': <?php echo validJsStr($zone['MonitorId']) ?>,
-    'CheckMethod': '<?php echo $zone['CheckMethod'] ?>',
-    'AlarmRGB': '<?php echo $zone['AlarmRGB'] ?>',
+    'CheckMethod': '<?php echo validJsStr($zone['CheckMethod']) ?>',
+    'AlarmRGB': '<?php echo validJsStr($zone['AlarmRGB']) ?>',
     'NumCoords': <?php echo $zone['NumCoords'] ?>,
-    'Coords': '<?php echo $zone['Coords'] ?>',
+    'Coords': '<?php echo validJsStr($zone['Coords']) ?>',
     'Area': <?php echo $zone['Area'] ?>
 };
 
@@ -71,15 +71,15 @@ monitorData[monitorData.length] = {
   'janusEnabled':<?php echo $monitor->JanusEnabled() ?>,
   'RTSP2WebEnabled': <?php echo $monitor->RTSP2WebEnabled() ?>,
   'RTSPServer':<?php echo $monitor->RTSPServer() ? 'true' : 'false' ?>,
-  'StreamChannel': '<?php echo $monitor->StreamChannel() ?>',
-  'DefaultPlayer':'<?php echo $monitor->DefaultPlayer() ?>',
+  'StreamChannel': '<?php echo validJsStr($monitor->StreamChannel()) ?>',
+  'DefaultPlayer':'<?php echo validJsStr($monitor->DefaultPlayer()) ?>',
   'Go2RTCEnabled': <?php echo $monitor->Go2RTCEnabled() ?>,
   'url': '<?php echo $monitor->UrlToIndex( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'url_to_zms': '<?php echo $monitor->UrlToZMS( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
-  'type': '<?php echo $monitor->Type() ?>',
-  'capturing': '<?php echo $monitor->Capturing() ?>',
-  'refresh': '<?php echo $monitor->Refresh() ?>',
-  'janus_pin': '<?php echo $monitor->Janus_Pin() ?>'
+  'type': '<?php echo validJsStr($monitor->Type()) ?>',
+  'capturing': '<?php echo validJsStr($monitor->Capturing()) ?>',
+  'refresh': '<?php echo validJsStr($monitor->Refresh()) ?>',
+  'janus_pin': '<?php echo validJsStr($monitor->Janus_Pin()) ?>'
 };
 
 var selfIntersecting = <?php echo $selfIntersecting ? 'true' : 'false' ?>;
@@ -108,9 +108,9 @@ var deleteString = "<?php echo translate('Delete') ?>";
 
 const POPUP_ON_ALARM = false;
 
-var streamMode = "<?php echo $streamMode ?>";
+var streamMode = "<?php echo validJsStr($streamMode) ?>";
 
-var connKey = '<?php echo $connkey ?>';
+var connKey = '<?php echo validJsStr($connkey) ?>';
 
 var monitorId = <?php echo $monitor->Id() ?>;
 var monitorUrl = '<?php echo ( $monitor->UrlToIndex() ) ?>';

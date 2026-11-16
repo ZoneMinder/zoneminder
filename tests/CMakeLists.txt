@@ -13,22 +13,52 @@ include(Catch)
 
 set(TEST_SOURCES
   zm_box.cpp
+  zm_buffer.cpp
   zm_comms.cpp
+  zm_config_file_options.cpp
   zm_crypt.cpp
   zm_db_contention.cpp
   zm_db_contention_live.cpp
+  zm_logger_level.cpp
+  zm_monitor_dts.cpp
+  zm_monitor_decoder_queue.cpp
+  zm_db_logging_live.cpp
   zm_event_hardlink.cpp
+  zm_event_score.cpp
   zm_font.cpp
+  zm_image_annotate.cpp
+  zm_monitor_shm.cpp
+  zm_monitor_shared_value.cpp
+  zm_monitor_capture_failure.cpp
+  zm_monitor_check_action.cpp
+  zm_monitor_ondemand.cpp
+  zm_monitorlink_expression.cpp
   zm_monitorstream.cpp
+  zm_monitorlink_token.cpp
+  zm_monitorlink_score.cpp
   zm_packetqueue.cpp
+  zm_packet_lock.cpp
+  zm_monitor_signal.cpp
+  zm_stream.cpp
+  zm_stream_races.cpp
   zm_onvif_auth_error.cpp
+  zm_onvif_poll_wait.cpp
   zm_onvif_renewal.cpp
+  zm_onvif_alarm_termination.cpp
+  zm_rgb_luma.cpp
   zm_poly.cpp
+  zm_poll_thread.cpp
+  zm_rtp_source.cpp
+  zm_rtsp_auth.cpp
+  zm_user_default_password.cpp
   zm_utils.cpp
   zm_vector2.cpp
   zm_zone.cpp
   zm_zone_stride.cpp
+  zm_zone_highlight.cpp
   zm_image_linesize.cpp
+  zm_image_readjpeg.cpp
+  zm_logger_reload.cpp
   zm_zone_blobs.cpp)
 
 add_executable(tests main.cpp ${TEST_SOURCES})

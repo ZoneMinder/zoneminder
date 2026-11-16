@@ -185,6 +185,12 @@ function buildMenuItem($viewItemName, $id, $itemName, $href, $icon, $classNameFo
     $activeClass = $view == $viewItemName ? ' active' : '';
   }
   $itemName = translate($itemName);
+  // Escape the attribute values here rather than trust every caller to. An
+  // entity a caller already wrote (&amp;) is kept as it is, so a pre-escaped
+  // href is not escaped twice.
+  $id = htmlspecialchars((string)$id, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', false);
+  $href = htmlspecialchars((string)$href, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', false);
+  $classNameForTag_A = htmlspecialchars((string)$classNameForTag_A, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', false);
   $result = '
             <li id="' . $id . '" class="menu-item '.$activeClass.'">
               <a href="' . $href . '" class="' . $classNameForTag_A . '">
@@ -516,6 +522,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
           echo getCycleHTML($view);
           echo getMontageHTML($view);
           echo getMontageReviewHTML($view);
+          echo getEventsHTML($view);
           echo getSnapshotsHTML($view);
           echo getReportsHTML($view);
           echo getRprtEvntAuditHTML($view);
@@ -673,6 +680,7 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
             echo getCycleHTML($view);
             echo getMontageHTML($view);
             echo getMontageReviewHTML($view);
+            echo getEventsHTML($view);
             echo getSnapshotsHTML($view);
             echo getReportsHTML($view);
             echo getRprtEvntAuditHTML($view);
@@ -1237,30 +1245,33 @@ function getMontageReviewHTML($view, $forLeftBar = false) {
       $terms = $_REQUEST['filter']['Query']['terms'];
       $count = 0;
       foreach ($terms as $term) {
+        if (!is_array($term) or !isset($term['attr'], $term['op'], $term['val'])) continue;
         if ( $term['attr'] == 'StartDateTime' ) {
           $count += 1;
           if ($term['op'] == '>=') $minTime = $term['val'];
           if ($term['op'] == '<=') $maxTime = $term['val'];
         }
       }
-      if ( $count == 2 ) {
-        $montageReviewQuery = '&minTime='.$minTime.'&maxTime='.$maxTime;
+      if ( $count == 2 and isset($minTime, $maxTime) and is_string($minTime) and is_string($maxTime) ) {
+        // Request values: encode them for the query string here, the whole href is HTML-escaped below.
+        $montageReviewQuery = '&minTime='.urlencode($minTime).'&maxTime='.urlencode($maxTime);
       }
     }
     $live = isset($montageReviewQuery) ? '&fit=1'.$montageReviewQuery.'&live=0' : '';
+    $href = validHtmlStr('?view=montagereview'.$live);
     $class = $view == 'montagereview' ? ' selected' : '';
     if ($forLeftBar) {
       $result .= buildMenuItem(
         $viewItemName = 'montagereview',
         $id = 'getMontageReviewHTML',
         $itemName = 'MontageReview',
-        $href = '?view=montagereview' .$live,
+        $href,
         $icon = 'movie',
         $classNameForTag_A = '',
         $subMenu = ''
       );
     } else {
-      $result .= '<li id="getMontageReviewHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=montagereview' .$live. '">'.translate('MontageReview').'</a></li>'.PHP_EOL;
+      $result .= '<li id="getMontageReviewHTML" class="nav-item"><a class="nav-link'.$class.'" href="'.$href.'">'.translate('MontageReview').'</a></li>'.PHP_EOL;
     }
   }
 
@@ -1411,8 +1422,10 @@ function getAdditionalLinksHTML($view, $forLeftBar = false) {
             $icon_ = $url->getAttribute('data-icon');
             $class_ = $url->getAttribute('class');
             $parts = parse_url($href_);
-            parse_str($parts['query'], $query);
-            $queryView = $query['view'];
+            if (isset($parts['query'])) {
+              parse_str($parts['query'], $query);
+              if (isset($query['view'])) $queryView = $query['view'];
+            }
           }
 
           $result .= buildMenuItem(
@@ -1577,19 +1590,11 @@ function getCSRFinputHTML() {
 
 function fixAmps(&$html) {
   //https://stackoverflow.com/questions/1685277/warning-domdocumentloadhtml-htmlparseentityref-expecting-in-entity
-  $positionAmp = strpos($html, '&');
-  $positionSemiColumn = strpos($html, ';', $positionAmp+1);
-  $string = substr($html, $positionAmp, $positionSemiColumn-$positionAmp+1);
-  if ($positionAmp !== false) { // If an '&' can be found.
-    if ($positionSemiColumn === false) { // If no ';' can be found.
-      $html = substr_replace($html, '&amp;', $positionAmp, 1); // Replace straight away.
-    } else if (preg_match('/&(#[0-9]+|[A-Z|a-z|0-9]+);/', $string) === 0) { // If a standard escape cannot be found.
-      $html = substr_replace($html, '&amp;', $positionAmp, 1); // This mean we need to escape the '&' sign.
-      fixAmps($html, $positionAmp+5); // Recursive call from the new position.
-    } else {
-      fixAmps($html, $positionAmp+1); // Recursive call from the new position.
-    }
-  }
+  // Escape every '&' that does not start a character reference, so that
+  // DOMDocument::loadHTML() does not warn about it. One pass over the string:
+  // the recursive version restarted at the first '&' on every call and never
+  // returned once the string held an entity.
+  $html = preg_replace('/&(?!#[0-9]+;|#x[0-9a-f]+;|[a-z][a-z0-9]*;)/i', '&amp;', $html);
 }
 
 function xhtmlFooter() {

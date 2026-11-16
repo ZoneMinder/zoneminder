@@ -261,9 +261,26 @@ void RtpSource::updateRtcpStats() {
 }
 
 bool RtpSource::handlePacket(const unsigned char *packet, size_t packetLen) {
+  // packetLen is attacker controlled (a raw RTP datagram, or a camera/MITM over
+  // interleaved RTSP). The fixed RTP header is 12 bytes and the CSRC count (cc, a
+  // 4-bit field, 0-15) adds cc*4, so the header is 12-72 bytes. A packet shorter
+  // than its own header made the payload length below (packetLen - rtpHeaderSize
+  // - extraHeader) wrap as size_t and drove an out-of-bounds read here and a heap
+  // overflow in mFrame.append(). Refuse anything too short before reading the
+  // header bytes or the payload. refs GHSA-4p3h-p7rr-838r
+  if (packetLen < 12) {
+    Debug(3, "Discarding RTP packet of %zu bytes, shorter than the 12 byte RTP header", packetLen);
+    return false;
+  }
   const RtpDataHeader *rtpHeader;
   rtpHeader = (RtpDataHeader *)packet;
   int rtpHeaderSize = 12 + rtpHeader->cc * 4;
+  // The H264 path below reads packet[rtpHeaderSize] and packet[rtpHeaderSize+1].
+  if (packetLen < static_cast<size_t>(rtpHeaderSize) + 2) {
+    Debug(3, "Discarding RTP packet of %zu bytes, shorter than its %d byte header plus payload",
+          packetLen, rtpHeaderSize);
+    return false;
+  }
   // No need to check for nal type as non fragmented packets already have 001 start sequence appended
   bool h264FragmentEnd = (mCodecId == AV_CODEC_ID_H264) && (packet[rtpHeaderSize+1] & 0x40);
   // M stands for Marker, it is the 8th bit
@@ -314,8 +331,16 @@ bool RtpSource::handlePacket(const unsigned char *packet, size_t packetLen) {
         if ( !mFrame.size() )
           mFrame.append("\x0\x0\x1", 3);
       } // end if H264
-      mFrame.append(packet+rtpHeaderSize+extraHeader,
-                    packetLen-rtpHeaderSize-extraHeader);
+      // extraHeader can be 3 (STAP-B/MTAP), one more than the top-of-function
+      // guard verified, so re-check before the subtraction so it cannot wrap.
+      // refs GHSA-4p3h-p7rr-838r
+      if (packetLen >= static_cast<size_t>(rtpHeaderSize) + extraHeader) {
+        mFrame.append(packet+rtpHeaderSize+extraHeader,
+                      packetLen-rtpHeaderSize-extraHeader);
+      } else {
+        Debug(3, "Discarding RTP packet of %zu bytes, shorter than header %d plus extra header %d",
+              packetLen, rtpHeaderSize, extraHeader);
+      }
     } else {
       Debug(3, "NOT H264 frame: type is %d", mCodecId);
     }

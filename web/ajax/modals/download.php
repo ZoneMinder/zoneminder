@@ -16,7 +16,7 @@ if (!file_exists(ZM_DIR_EXPORTS)) {
 }
 chmod(ZM_DIR_EXPORTS, 0700);
 
-$eid = isset($_REQUEST['eid']) ? $_REQUEST['eid'] : '';
+$eid = isset($_REQUEST['eid']) ? validCardinal($_REQUEST['eid']) : '';
 $eids = isset($_REQUEST['eids']) ? $_REQUEST['eids'] : array();
 $generated = isset($_REQUEST['generated']) ? $_REQUEST['generated'] : '';
 $exportFileName = 'zmDownload';

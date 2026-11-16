@@ -14,6 +14,35 @@ if ( defined('ZM_OPT_USE_AUTH') and ZM_OPT_USE_AUTH ) {
   } else if (isset($_SESSION['postLoginQuery'])) {
     $postLoginQuery = validStr($_SESSION['postLoginQuery']);
   }
+  if (!empty($defaultPasswordChange)) {
+    // The password was right but is the default one (auth.php,
+    // replaceDefaultPassword()): ask for a new one before logging in.
+?>
+    <form class="center-block" name="loginForm" id="loginForm" method="post" action="?view=login">
+      <input type="hidden" name="action" value="login"/>
+      <input type="hidden" name="postLoginQuery" value="<?php echo validHtmlStr($postLoginQuery); ?>" />
+      <input type="hidden" name="password_change_nonce" value="<?php echo validHtmlStr($defaultPasswordChange['nonce']) ?>"/>
+      <input type="hidden" name="username" value="<?php echo validHtmlStr($defaultPasswordChange['username']) ?>"/>
+
+      <div id="loginform">
+        <h1><i class="material-icons md-36">account_circle</i> <?php echo validHtmlStr(ZM_WEB_TITLE) . ' ' . translate('Login') ?></h1>
+        <div id="passwordChangeRequired" class="alarm" role="alert"><?php echo translate('DefaultPasswordChange') ?></div>
+<?php if ($defaultPasswordChange['problem']) { ?>
+        <div id="passwordChangeProblem" class="alarm" role="alert"><?php echo translate($defaultPasswordChange['problem']) ?></div>
+<?php } ?>
+        <p><?php echo translate('Username').': '.validHtmlStr($defaultPasswordChange['username']) ?></p>
+
+        <label for="inputPassword"><?php echo translate('Password') ?></label>
+        <input type="password" id="inputPassword" name="password" class="form-control" placeholder="<?php echo translate('Password') ?>" required autocomplete="current-password"/>
+        <label for="inputNewPassword"><?php echo translate('NewPassword') ?></label>
+        <input type="password" id="inputNewPassword" name="new_password" class="form-control" placeholder="<?php echo translate('NewPassword') ?>" required autofocus autocomplete="new-password"/>
+        <label for="inputNewPasswordConfirm"><?php echo translate('ConfirmPassword') ?></label>
+        <input type="password" id="inputNewPasswordConfirm" name="new_password_confirm" class="form-control" placeholder="<?php echo translate('ConfirmPassword') ?>" required autocomplete="new-password"/>
+        <button class="btn btn-lg btn-primary btn-block mt-2" type="submit"><?php echo translate('Save') ?></button>
+      </div>
+    </form>
+<?php
+  } else {
 ?>
     <form class="center-block" name="loginForm" id="loginForm" method="post" action="?view=login">
       <input type="hidden" name="action" value="login"/>
@@ -45,7 +74,8 @@ if (
         <button class="btn btn-lg btn-primary btn-block" type="submit"><?php echo translate('Login') ?></button>
       </div>
     </form>
-<?php 
+<?php
+  } # end if default password change
 } else {
 ?>
 <div class="error">

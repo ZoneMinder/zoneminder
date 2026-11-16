@@ -74,7 +74,7 @@ sub open
         $PASSWORD = $+{PASSWORD} if $+{PASSWORD};
         $ADDRESS = $+{ADDRESS} if $+{ADDRESS};
     } else {
-        Error('Failed to parse auth from address ' . $self->{Monitor}->{ControlAddress});
+        Error('Failed to parse auth from address ' . urlForLog($self->{Monitor}->{ControlAddress}));
         $ADDRESS = $self->{Monitor}->{ControlAddress};
     }
     if ( !($ADDRESS =~ /:/) ) {

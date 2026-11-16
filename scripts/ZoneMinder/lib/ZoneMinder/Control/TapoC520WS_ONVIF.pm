@@ -169,7 +169,7 @@ sub parseControlAddress {
 
   $$self{address} = $url->host;
   $$self{BaseURL} = $$self{scheme}.'://'.$$self{address}.':'.$$self{port};
-  Debug("Using address $$self{BaseURL}$$self{path}, username $$self{username}, password $$self{password}");
+  Debug("Using address $$self{BaseURL}$$self{path}, username $$self{username}");
 }
 
 sub digestBase64 {

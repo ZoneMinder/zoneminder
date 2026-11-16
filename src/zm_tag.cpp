@@ -63,7 +63,7 @@ Tag::~Tag() {
 
 Tag *Tag::find(const std::string &name) {
   std::string sql = stringtf("SELECT `Id`, `Name`, `CreateDate`, `CreatedBy`, `LastAssignedDate` FROM `Tags` WHERE `Name`='%s'",
-      name.c_str());
+      zmDbEscapeString(name).c_str());
   Debug(4, "Loading Tag using %s", sql.c_str());
   zmDbRow dbrow;
   if (!dbrow.fetch(sql)) {
@@ -80,7 +80,7 @@ uint64_t Tag::save() {
 
     std::string sql = stringtf("INSERT INTO `Tags` (`Name`, `CreateDate`, `LastAssignedDate`)"
        " VALUES ('%s', from_unixtime(%" PRId64 "), from_unixtime(%" PRId64 "))",
-        name.c_str(),
+        zmDbEscapeString(name).c_str(),
         static_cast<int64>(std::chrono::system_clock::to_time_t(created_on)),
         static_cast<int64>(std::chrono::system_clock::to_time_t(last_assigned_on))
         );

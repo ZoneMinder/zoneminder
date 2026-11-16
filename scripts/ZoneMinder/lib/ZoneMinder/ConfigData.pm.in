@@ -393,6 +393,27 @@ our @options = (
     category    => 'auth',
   },
   {
+    name        => 'ZM_AUTH_TRUSTED_PROXIES',
+    default     => '',
+    description => 'Reverse proxy addresses whose X-Forwarded-For header is trusted',
+    help        => q`
+      A comma or space separated list of the exact IP addresses of
+      reverse proxies in front of ZoneMinder, for example 127.0.0.1.
+      X-Forwarded-For is only used to determine the client address,
+      as bound into the authentication hash by ZM_AUTH_HASH_IPS, when
+      the request arrives directly from one of these addresses. The
+      header is then read from the right, skipping any listed proxies,
+      so values a client adds itself are not used. When empty, the
+      default, the header is ignored and the connecting address is
+      always used; a client could otherwise choose the address its
+      hash is bound to. If ZM_AUTH_HASH_IPS is on behind a reverse
+      proxy, list the proxy here or every client will appear to come
+      from the proxy address.
+      `,
+    type        => $types{string},
+    category    => 'auth',
+  },
+  {
     name        => 'ZM_AUTH_HASH_TTL',
     default     => '2',
     description => 'The number of hours that an authentication hash is valid for.',
@@ -450,7 +471,9 @@ our @options = (
     default     => '',
     description => 'URL for Go2RTC API.',
     help        => q`This value points to the location of the Go2RTC API
-    install, including username and password.
+    install, including username and password, for example
+    http://localhost:1984. Go2RTC serves its API under /api; that suffix
+    may be included or left off.
     `,
     type        => $types{string},
     category    => 'system',
@@ -463,6 +486,7 @@ our @options = (
       and match the admin_key value in janus.plugin.streaming.config.
       `,
     type        => $types{string},
+    private     => 1,
     category    => 'system',
   },
   {
@@ -1898,7 +1922,9 @@ our @options = (
       option which means that the browser client only deletes the key
       entries in the events table, which means the events will no
       longer appear in the listing, and leaves the zmaudit daemon to
-      clear up the rest later. Note that this feature is less relevant
+      clear up the rest later. zmaudit only runs when ZM_RUN_AUDIT is
+      on; without it the event's frames, stats and files are never
+      removed. Note that this feature is less relevant
       with modern hardware. Recommend this feature be left off.
       `,
     type        => $types{boolean},
@@ -2156,6 +2182,7 @@ our @options = (
       `,
     requires    => [ { name => 'ZM_OPT_UPLOAD', value => 'yes' } ],
     type        => $types{string},
+    private     => 1,
     category    => 'upload',
   },
   {
@@ -3989,6 +4016,7 @@ our @options = (
     description => 'MQTT broker password',
     help        => 'MQTT uses a central server to send/receive messages. This is the password to authenticate with.',
     type        => $types{password},
+    private     => 1,
     category    => 'MQTT',
   },
   {

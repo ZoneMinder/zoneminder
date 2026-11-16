@@ -28,7 +28,6 @@ Build-Depends: debhelper, sphinx-doc, dh-linktree, dh-apache2
               ,libdata-uuid-perl
               ,libssl-dev
               ,libcrypt-eksblowfish-perl
-              ,libdata-entropy-perl
 # Unbundled (dh_linktree):
         ,libjs-jquery
 Standards-Version: 3.9.8
@@ -74,7 +73,6 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,zip
         ,libpcre2
         ,libcrypt-eksblowfish-perl
-        ,libdata-entropy-perl
 Recommends: ${misc:Recommends}
            ,libapache2-mod-php | php-fpm
            ,mysql-server | mariadb-server | virtual-mysql-server

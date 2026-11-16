@@ -337,6 +337,11 @@ function changeScale() {
 
   eventViewer.width(newWidth);
   eventViewer.height(newHeight);
+  if (vid) {
+    // event.php opens the next page at this size, so in gapless playback, where each event is
+    // a page load, the video doesn't resize once the page has loaded.
+    setCookie('zmEventVideoSize'+eventData.MonitorId, newWidth + 'x' + newHeight);
+  }
   if (!vid) { // zms needs extra sizing
     streamScale(currentScale);
     drawProgressBar();
@@ -576,6 +581,44 @@ function streamPlay() {
   setButtonState('fastRevBtn', 'inactive');
 }
 
+// The next rate to step to, as a percentage, or null when there is none.
+//
+// list is the shared rate list from skins/classic/includes/config.php, running
+// -1600 to 1600 with 0 in the middle. Stepping used to index it directly:
+//
+//   rates[rates.indexOf(current) + 1]
+//
+// which walks off the end at the top rate and hands playbackRate
+// undefined/100, i.e. NaN. Firefox refuses that outright with "Value being
+// assigned is not a finite floating-point value", so one click too many at 16x
+// threw instead of doing nothing.
+//
+// indexOf also answers -1 for a rate that is not in the list, and -1 + 1 is 0,
+// so stepping forward from an unlisted rate jumped to rates[0] -- full
+// reverse. Snap to the nearest listed rate instead.
+//
+// Returning null rather than a clamped rate lets the caller tell "nowhere left
+// to go" from "step here", so it can disable the button and leave the player
+// alone rather than reassigning the rate it already has.
+function stepRate(list, current, direction) {
+  if (!Array.isArray(list) || !list.length) return null;
+  // A player that has not started yet can answer with something unusable.
+  // Doing nothing is better than guessing, since the button can be clicked
+  // again once it has.
+  if (typeof current !== 'number' || !isFinite(current)) return null;
+
+  let index = list.indexOf(current);
+  if (index < 0) {
+    index = 0;
+    for (let i = 1; i < list.length; i++) {
+      if (Math.abs(list[i] - current) < Math.abs(list[index] - current)) index = i;
+    }
+  }
+
+  const next = index + direction;
+  return (next < 0 || next >= list.length) ? null : list[next];
+}
+
 function streamFastFwd(action) {
   setButtonState('pauseBtn', 'inactive');
   setButtonState('playBtn', 'inactive');
@@ -585,12 +628,21 @@ function streamFastFwd(action) {
   setButtonState('fastRevBtn', 'inactive');
   if (vid) {
     if (revSpeed != .5) stopFastRev();
-    vid.playbackRate(rates[rates.indexOf(vid.playbackRate()*100)+1]/100);
-    if (rates.indexOf(vid.playbackRate()*100)+1 == rates.length) {
+    const next = stepRate(rates, vid.playbackRate()*100, 1);
+    if (next === null) {
+      // Already at the fastest rate. streamPlay() re-enables this button
+      // whatever rate we are at, so we do get clicked here.
+      setButtonState('fastFwdBtn', 'unavail');
+      return;
+    }
+    vid.playbackRate(next/100);
+    if (stepRate(rates, next, 1) === null) {
       setButtonState('fastFwdBtn', 'unavail');
     }
-    $j('select[name="rate"]').val(vid.playbackRate()*100);
-    setCookie('zmEventRate', vid.playbackRate()*100);
+    // next, rather than reading the rate back: videojs deferred the set until
+    // the tech was ready, so the getter can still answer with the old rate.
+    $j('select[name="rate"]').val(next);
+    setCookie('zmEventRate', next);
   } else {
     streamReq({command: CMD_FASTFWD});
   }
@@ -631,12 +683,20 @@ function streamFastRev(action) {
   setButtonState('slowRevBtn', 'unavail');
   setButtonState('fastRevBtn', 'active');
   if (vid) { //There is no reverse play with mp4.  Set the speed to 0 and manually set the time back.
-    revSpeed = -1*(rates[rates.indexOf(revSpeed*-100)-1]/100);
-    if (rates.indexOf(revSpeed*-100) == 0) {
+    // Same walk off the end as streamFastFwd, at the other end of the list:
+    // rates[0 - 1] is undefined, which made revSpeed NaN and then fed
+    // currentTime a NaN on every tick of the rewind interval.
+    const next = stepRate(rates, revSpeed * -100, -1);
+    if (next === null) {
+      setButtonState('fastRevBtn', 'unavail');
+      return;
+    }
+    revSpeed = -next/100;
+    if (stepRate(rates, next, -1) === null) {
       setButtonState('fastRevBtn', 'unavail');
     }
     clearInterval(intervalRewind);
-    $j('select[name="rate"]').val(-revSpeed*100);
+    $j('select[name="rate"]').val(next);
     setCookie('zmEventRate', vid.playbackRate()*100);
     intervalRewind = setInterval(function() {
       if (vid.currentTime() <= 0) {
@@ -652,12 +712,19 @@ function streamFastRev(action) {
   }
 }
 
+// Load another event. Each event is a page load of its own, so skip skin.js's page-leave
+// roll-up: between events, as in gapless playback, it only shows as a wipe of the page.
+function goToEvent(eventId) {
+  skipPageLeaveAnimation = true;
+  location.replace(thisUrl + '?view=event&eid=' + eventId + filterQuery + sortQuery);
+}
+
 function streamPrev(action) {
   if (action) {
     $j(".vjsMessage").remove();
     if (prevEventId != 0) {
       if (vid==null) streamReq({command: CMD_QUIT});
-      location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
+      goToEvent(prevEventId);
       return;
     }
 
@@ -694,7 +761,7 @@ function streamNext(action) {
   // Ic0n 2024-09-20: because it is annoying and now that we have fullscreen mode, we need to just update instead of reloading
   if (1) {
     if (vid==null) streamReq({command: CMD_QUIT});
-    location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
+    goToEvent(nextEventId);
     return;
   }
   if (vid && ( NextEventDefVideoPath.indexOf('view_video') > 0 )) {
@@ -1243,7 +1310,7 @@ function getStat() {
     //switch ( ( eventData[key] && eventData[key].length ) ? key : 'n/a') {
     switch (key) {
       case 'Name':
-        tdString = eventData[key] + ' (Id:' + eventData['Id'] + ')';
+        tdString = escapeHTML(eventData[key]) + ' (Id:' + eventData['Id'] + ')';
         break;
       case 'Frames':
         tdString = '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData[key] + '</a>';
@@ -1264,14 +1331,14 @@ function getStat() {
       //  break;
       case 'MonitorName':
         if (canView["Monitors"]) {
-          tdString = '('+ eventData.MonitorId +') '+ eventData.MonitorName+ '&nbsp';
+          tdString = '('+ eventData.MonitorId +') '+ escapeHTML(eventData.MonitorName)+ '&nbsp';
           tdString += '<div style="display:inline-block">';
           tdString += '<button id="eventLiveBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="'+translate["Live"]+'" ><i class="fa fa-television"></i></button>';
           tdString += '<button id="eventEditBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="'+translate["Edit"]+'" ><i class="fa fa-edit"></i></button>';
           tdString += '<button id="eventAllEvents" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="'+translate["All Events"]+'" ><i class="fa fa-film"></i></button>';
           tdString += '</div>';
         } else {
-          tdString = eventData[key];
+          tdString = escapeHTML(eventData[key]);
         }
         break;
       //case 'MaxScore':
@@ -1287,10 +1354,10 @@ function getStat() {
         tdString = eventData.Width + 'x' + eventData.Height;
         break;
       case 'DiskSpace':
-        tdString = eventData[key] + ' on ' + eventData['Storage'];
+        tdString = escapeHTML(eventData[key]) + ' on ' + escapeHTML(eventData['Storage']);
         break;
       case 'Path':
-        tdString = '<a href="?view=files&amp;path='+eventData.Path+'">'+eventData.Path+'</a>';
+        tdString = '<a href="?view=files&amp;path='+encodeURIComponent(eventData.Path)+'">'+escapeHTML(eventData.Path)+'</a>';
         break;
       //case 'Archived':
       //case 'Emailed':
@@ -1308,7 +1375,8 @@ function getStat() {
         }
         break;
       default:
-        tdString = eventData[key];
+        // Values from the event (Cause, Notes, dates) are text, not markup
+        tdString = escapeHTML(eventData[key]);
     }
 
     var td = $j('<td>').html(tdString);
@@ -1817,14 +1885,19 @@ function formatTag(tag) {
   const tagElement = $j('<div>', {class: 'tag'});
   tagElement.data('tag', tag);
   tagElement.append($j('<span>', {class: 'tag-text', text: tagName}));
-  tagElement.append($j('<span>', {class: 'tag-remove', text: '\u00D7'}));
+  // Removing a tag needs Events edit; don't offer it to users who can't.
+  if (canEdit.Events) tagElement.append($j('<span>', {class: 'tag-remove', text: '\u00D7'}));
   $j('.tag-dropdown').before(tagElement);
 }
 
 function addTag(tag) {
-  if (tag && (tag.Name.trim() !== '') && !isDup(tag.Name)) {
+  if (canEdit.Events && tag && (tag.Name.trim() !== '') && !isDup(tag.Name)) {
     $j.getJSON(thisUrl + '?request=event&action=addtag&tid=' + tag.Id + '&id=' + eventData.Id)
         .done(function(data) {
+          if (data.result != 'Ok') {
+            console.error('addtag refused', data.message);
+            return;
+          }
           formatTag(tag);
           selectedTags.push(tag);
 
@@ -1841,8 +1914,13 @@ function addTag(tag) {
 }
 
 function removeTag(tag) {
+  if (!canEdit.Events) return;
   $j.getJSON(thisUrl + '?request=event&action=removetag&tid=' + tag.Id + '&id=' + eventData.Id)
       .done(function(data) {
+        if (data.result != 'Ok') {
+          console.error('removetag refused', data.message);
+          return;
+        }
         $j('.tag-text').filter(function() {
           return $j(this).text() === tag.Name;
         }).parent().remove();
@@ -1854,8 +1932,13 @@ function removeTag(tag) {
 }
 
 function createTag(tagName) {
+  if (!canEdit.Events) return;
   $j.getJSON(thisUrl + '?request=tags&action=createtag&tname=' + tagName)
       .done(function(data) {
+        if (data.result != 'Ok') {
+          console.error('createtag refused', data.message);
+          return;
+        }
         if (data.response.length > 0) {
           var tag = data.response[0];
           if (availableTags) {
@@ -1935,6 +2018,18 @@ function panZoomIn(el) {
 function panZoomOut(el) {
   zmPanZoom.zoomOut(el);
 }
+
+// Size the video as soon as the DOM is ready. video.js has just replaced the <video> (on
+// DOMContentLoaded, in event.php) and leaves it without a size, and initPage() waits for every
+// image and stylesheet to load, so sizing it there let the browser paint a collapsed video with
+// the controls drawn up under it first. Both run before the first paint.
+document.addEventListener('DOMContentLoaded', function() {
+  const player = (typeof videojs !== 'undefined') ? videojs.getPlayer('videoobj') : null;
+  if (player) {
+    vid = player; // changeScale() tells video.js from zms by vid; initPage() sets the same player
+    changeScale();
+  }
+});
 
 // Kick everything off
 $j( window ).on("load", initPage);

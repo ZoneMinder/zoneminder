@@ -149,8 +149,15 @@ if ($action == 'save') {
   if (!empty($newMonitor['ModelId']) and empty($newMonitor['Model']))
     unset($newMonitor['Model']);
 
+  $refused = $monitor->commandFieldChangesNotAllowed($newMonitor);
+  if (count($refused)) {
+    $error_message .= 'Changing '.implode(', ', $refused).' requires System edit permission.<br/>';
+    ZM\Warning('Refused to save monitor '.$mid.': '.implode(', ', $refused).' requires System edit permission');
+    return;
+  }
+
   $changes = $monitor->changes($newMonitor);
-  ZM\Debug('Changes: '. print_r($changes, true));
+  ZM\Debug('Changes: '. print_r(ZM\redactForLog($changes), true));
   $restart = false;
 
   if (count($changes)) {

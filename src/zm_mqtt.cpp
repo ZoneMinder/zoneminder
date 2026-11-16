@@ -19,7 +19,7 @@ MQTT::MQTT(Monitor *monitor) :
 
 void MQTT::connect() {
   if (config.mqtt_username[0]) {
-    Debug(1, "MQTT setting username to %s, password to %s", config.mqtt_username, config.mqtt_password);
+    Debug(1, "MQTT setting username to %s", config.mqtt_username);
     int rc = mosqpp::mosquittopp::username_pw_set(config.mqtt_username, config.mqtt_password);
     if (MOSQ_ERR_SUCCESS != rc) {
       Warning("MQTT username pw set returns %d %s", rc, mosquitto_strerror(rc));

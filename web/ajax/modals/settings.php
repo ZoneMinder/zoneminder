@@ -158,7 +158,7 @@ foreach ($ctls as $line) {
         </table>
       </div>
       <div class="modal-footer">
-        <button type="submit" class="btn btn-primary" id="settingsSubmitModal" value="Save"<?php echo canView('Control') ? '' : ' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
+        <button type="submit" class="btn btn-primary" id="settingsSubmitModal" value="Save"<?php echo canEdit('Control') ? '' : ' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
         <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
       </div>
     </form>

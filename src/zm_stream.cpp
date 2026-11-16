@@ -123,9 +123,12 @@ void StreamBase::updateFrameRate(double fps) {
 void StreamBase::checkCommandQueue() {
   while (!zm_terminate) {
     // Update modified time of the socket .lock file so that we can tell which ones are stale.
-    if (now - last_comm_update > Hours(1)) {
+    // This is the command thread: read the clock here rather than the
+    // streaming loop's `now`.
+    TimePoint cmd_now = std::chrono::steady_clock::now();
+    if (cmd_now - last_comm_update > Hours(1)) {
       touch(sock_path_lock);
-      last_comm_update = now;
+      last_comm_update = cmd_now;
     }
 
     if (sd >= 0) {
@@ -236,7 +239,7 @@ Image *StreamBase::prepareImage(Image *image) {
 
     Debug(3, "Cropping to %d,%d -> %d,%d %dx%din blown up image", lo_x, lo_y, hi_x, hi_y, hi_x-lo_x, hi_y-lo_y);
     // Scaled back to base_image dimensions
-    last_crop = Box({lo_x*ZM_SCALE_BASE/zoom, lo_y*ZM_SCALE_BASE/zoom}, {hi_x*ZM_SCALE_BASE/zoom, hi_y*ZM_SCALE_BASE/zoom});
+    last_crop = Box({lo_x*ZM_SCALE_BASE/cur_zoom, lo_y*ZM_SCALE_BASE/cur_zoom}, {hi_x*ZM_SCALE_BASE/cur_zoom, hi_y*ZM_SCALE_BASE/cur_zoom});
 
     Debug(3, "Cropping to %d,%d -> %d,%d", last_crop.Lo().x_, last_crop.Lo().y_, last_crop.Hi().x_, last_crop.Hi().y_);
     if ( !image_copied ) {
@@ -346,9 +349,10 @@ void StreamBase::openComms() {
     unsigned int length = snprintf(
                             sock_path_lock,
                             sizeof(sock_path_lock),
-                            "%s/zms-%06d.lock",
+                            "%s/zms-%06d-%d.lock",
                             staticConfig.PATH_SOCKS.c_str(),
-                            connkey
+                            connkey,
+                            owner
                           );
     if ( length >= sizeof(sock_path_lock) ) {
       Warning("Socket lock path was truncated.");
@@ -389,9 +393,10 @@ void StreamBase::openComms() {
     length = snprintf(
                loc_sock_path,
                sizeof(loc_sock_path),
-               "%s/zms-%06ds.sock",
+               "%s/zms-%06d-%ds.sock",
                staticConfig.PATH_SOCKS.c_str(),
-               connkey
+               connkey,
+               owner
              );
     if ( length >= sizeof(loc_sock_path) ) {
       Warning("Socket path was truncated.");
@@ -410,7 +415,7 @@ void StreamBase::openComms() {
       Fatal("Can't bind: %s", strerror(errno));
     }
 
-    snprintf(rem_sock_path, sizeof(rem_sock_path), "%s/zms-%06dw.sock", staticConfig.PATH_SOCKS.c_str(), connkey);
+    snprintf(rem_sock_path, sizeof(rem_sock_path), "%s/zms-%06d-%dw.sock", staticConfig.PATH_SOCKS.c_str(), connkey, owner);
     strncpy(rem_addr.sun_path, rem_sock_path, sizeof(rem_addr.sun_path));
     rem_addr.sun_family = AF_UNIX;
 

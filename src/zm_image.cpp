@@ -83,6 +83,12 @@ imgbufcpy_fptr_t fptr_imgbufcpy;
 /* Font */
 static ZmFont font;
 
+// Label sizes run from 1 to kNumFontSizes; the size is a monitor setting, so map anything
+// outside that to the nearest valid font variant instead of letting variants_.at() throw.
+static uint8 FontVariantIndex(int size) {
+  return static_cast<uint8>(zm::clamp(size, 1, static_cast<int>(kNumFontSizes)) - 1);
+}
+
 std::mutex              jpeg_mutex;
 
 void Image::update_function_pointers() {
@@ -946,14 +952,15 @@ void Image::Assign(const Image &image) {
   }
 }
 
-Image *Image::HighlightEdges(
+Image *Image::BuildHighlight(
   Rgb colour,
   unsigned int p_colours,
   unsigned int p_subpixelorder,
-  const Box *limits
+  const Box *limits,
+  bool edges_only
 ) {
   if ( colours != ZM_COLOUR_GRAY8 ) {
-    Panic("Attempt to highlight image edges when colours = %d", colours);
+    Panic("Attempt to highlight image when colours = %d", colours);
   }
 
   /* Convert the colour's RGBA subpixel order into the image's subpixel order */
@@ -971,42 +978,42 @@ Image *Image::HighlightEdges(
   unsigned int hi_x = limits ? limits->Hi().x_ : width - 1;
   unsigned int hi_y = limits ? limits->Hi().y_ : height - 1;
 
+  // Source (this) is GRAY8 with src_linesize per row; the destination image has
+  // its own, wider and independently padded stride. Indexing the destination
+  // with the source's stride sheared the highlight across the frame and ran off
+  // the end of the destination on the last rows. Neighbour lookups (p +/- a
+  // row) must likewise follow the source stride rather than width.
+  const unsigned int src_linesize = linesize;
+  const unsigned int dst_linesize = high_image->LineSize();
+
   if ( p_colours == ZM_COLOUR_GRAY8 ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      const uint8_t* p = buffer + (y * linesize) + lo_x;
-      uint8_t* phigh = high_buff + (y * linesize) + lo_x;
+      const uint8_t* p = buffer + (y * src_linesize) + lo_x;
+      uint8_t* phigh = high_buff + (y * dst_linesize) + lo_x;
       for ( unsigned int x = lo_x; x <= hi_x; x++, p++, phigh++ ) {
-        bool edge = false;
+        bool mark = false;
         if ( *p ) {
-          edge = (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1)) || (y > 0 && !*(p-width)) || (y < (height-1) && !*(p+width));
-#if 0
-          if ( !edge && x > 0 && !*(p-1) ) edge = true;
-          if ( !edge && x < (width-1) && !*(p+1) ) edge = true;
-          if ( !edge && y > 0 && !*(p-width) ) edge = true;
-          if ( !edge && y < (height-1) && !*(p+width) ) edge = true;
-#endif
+          mark = !edges_only
+              || (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1))
+              || (y > 0 && !*(p-src_linesize)) || (y < (height-1) && !*(p+src_linesize));
         }
-        if ( edge ) {
+        if ( mark ) {
           *phigh = colour;
         }
       }
     }
   } else if ( p_colours == ZM_COLOUR_RGB24 ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      const uint8_t* p = buffer + (y * linesize) + lo_x;
-      uint8_t* phigh = high_buff + (((y * linesize) + lo_x) * 3);
+      const uint8_t* p = buffer + (y * src_linesize) + lo_x;
+      uint8_t* phigh = high_buff + (y * dst_linesize) + (lo_x * 3);
       for ( unsigned int x = lo_x; x <= hi_x; x++, p++, phigh += 3 ) {
-        bool edge = false;
+        bool mark = false;
         if ( *p ) {
-          edge = (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1)) || (y > 0 && !*(p-width)) || (y < (height-1) && !*(p+width));
-#if 0
-          if ( !edge && x > 0 && !*(p-1) ) edge = true;
-          if ( !edge && x < (width-1) && !*(p+1) ) edge = true;
-          if ( !edge && y > 0 && !*(p-width) ) edge = true;
-          if ( !edge && y < (height-1) && !*(p+width) ) edge = true;
-#endif
+          mark = !edges_only
+              || (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1))
+              || (y > 0 && !*(p-src_linesize)) || (y < (height-1) && !*(p+src_linesize));
         }
-        if ( edge ) {
+        if ( mark ) {
           RED_PTR_RGBA(phigh) = RED_VAL_RGBA(colour);
           GREEN_PTR_RGBA(phigh) = GREEN_VAL_RGBA(colour);
           BLUE_PTR_RGBA(phigh) = BLUE_VAL_RGBA(colour);
@@ -1015,20 +1022,16 @@ Image *Image::HighlightEdges(
     }
   } else if ( p_colours == ZM_COLOUR_RGB32 ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-      const uint8_t* p = buffer + (y * linesize) + lo_x;
-      Rgb* phigh = (Rgb*)(high_buff + (((y * linesize) + lo_x) * 4));
+      const uint8_t* p = buffer + (y * src_linesize) + lo_x;
+      Rgb* phigh = (Rgb*)(high_buff + (y * dst_linesize) + (lo_x << 2));
       for ( unsigned int x = lo_x; x <= hi_x; x++, p++, phigh++ ) {
-        bool edge = false;
+        bool mark = false;
         if ( *p ) {
-          edge = (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1)) || (y > 0 && !*(p-width)) || (y < (height-1) && !*(p+width));
-#if 0
-          if ( !edge && x > 0 && !*(p-1) ) edge = true;
-          if ( !edge && x < (width-1) && !*(p+1) ) edge = true;
-          if ( !edge && y > 0 && !*(p-width) ) edge = true;
-          if ( !edge && y < (height-1) && !*(p+width) ) edge = true;
-#endif
+          mark = !edges_only
+              || (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1))
+              || (y > 0 && !*(p-src_linesize)) || (y < (height-1) && !*(p+src_linesize));
         }
-        if ( edge ) {
+        if ( mark ) {
           *phigh = colour;
         }
       }
@@ -1130,10 +1133,10 @@ bool Image::ReadJpeg(const std::string &filename, unsigned int p_colours, unsign
   new_width = readjpg_dcinfo->image_width;
   new_height = readjpg_dcinfo->image_height;
 
+  // Leave width and height to WriteBuffer() below. Assigning them here made it see no size
+  // change and keep the old, smaller buffer, which the decoder then overran.
   if ((width != new_width) || (height != new_height)) {
     Debug(9, "Image dimensions differ. Old: %ux%u New: %ux%u", width, height, new_width, new_height);
-    width = new_width;
-    height = new_height;
   }
 
   switch (p_colours) {
@@ -2184,7 +2187,7 @@ const Vector2 Image::centreCoord(const char *text, int size = 1) const {
     line_no++;
   }
 
-  FontVariant const &font_variant = font.GetFontVariant(size - 1);
+  FontVariant const &font_variant = font.GetFontVariant(FontVariantIndex(size));
   uint16_t char_width = font_variant.GetCharWidth();
   uint16_t char_height = font_variant.GetCharHeight();
   int x = (width - (max_line_len * char_width )) / 2;
@@ -2248,7 +2251,7 @@ void Image::Annotate(
   const Rgb fg_rgb_col = rgb_convert(fg_colour, subpixelorder);
   const Rgb bg_rgb_col = rgb_convert(bg_colour, subpixelorder);
 
-  FontVariant const &font_variant = font.GetFontVariant(size - 1);
+  FontVariant const &font_variant = font.GetFontVariant(FontVariantIndex(size));
   const uint16 char_width = font_variant.GetCharWidth();
   const uint16 char_height = font_variant.GetCharHeight();
 
@@ -2258,21 +2261,30 @@ void Image::Annotate(
     max_line_length = std::max(max_line_length, s.size());
   }
 
-  uint32 x0_max = width - (max_line_length * char_width);
-  uint32 y0_max = height - (lines.size() * char_height);
-
   // Calculate initial coordinates of annotation so that everything is displayed even if the
-  // user set coordinates would prevent that.
-  uint32 x0 = zm::clamp(static_cast<uint32>(coord.x_), 0u, x0_max);
-  uint32 y0 = zm::clamp(static_cast<uint32>(coord.y_), 0u, y0_max);
+  // user set coordinates would prevent that. The label text, position and size are monitor
+  // settings, so a label wider or taller than the frame must not wrap the bound: it starts at
+  // the frame edge and glyphs that don't fit are not drawn. refs GHSA-j5gf-rfm2-vhw9
+  const int64 x0_max = std::max<int64>(0, static_cast<int64>(width) - static_cast<int64>(max_line_length * char_width));
+  const int64 y0_max = std::max<int64>(0, static_cast<int64>(height) - static_cast<int64>(lines.size() * char_height));
+  const uint32 x0 = static_cast<uint32>(zm::clamp<int64>(coord.x_, 0, x0_max));
+  const uint32 y0 = static_cast<uint32>(zm::clamp<int64>(coord.y_, 0, y0_max));
 
   uint32 y = y0;
   for (const std::string &line : lines) {
+    if (y + char_height > height) {
+      break;
+    }
     uint32 x = x0;
 
     if (colours == ZM_COLOUR_GRAY8) {
       uint8 *ptr = &buffer[(y * width) + x0];
       for (char c : line) {
+        if (x + char_width > width) {
+          break;
+        }
+        // A glyph's foreground can reach one column past its cell; keep every pixel inside the row.
+        const uint32 columns_left = width - x;
         for (uint64 cp_row : font_variant.GetCodepoint(c)) {
           if (bg_colour != kRGBTransparent) {
             std::fill(ptr, ptr + char_width, static_cast<uint8>(bg_colour & 0xff));
@@ -2280,23 +2292,27 @@ void Image::Annotate(
 
           while (cp_row != 0) {
             uint32 column_idx = char_width - __builtin_ctzll(cp_row) + font_variant.GetCharPadding();
-            *(ptr + column_idx) = fg_colour & 0xff;
             cp_row = cp_row & (cp_row - 1);
+            if (column_idx < columns_left) {
+              *(ptr + column_idx) = fg_colour & 0xff;
+            }
           }
           ptr += width;
         }
         ptr -= (width * char_height);
         ptr += char_width;
         x += char_width;
-        if (x >= width) {
-          break;
-        }
       }
     } else if (colours == ZM_COLOUR_RGB24) {
       constexpr uint8 bytesPerPixel = 3;
       uint8 *ptr = &buffer[((y * width) + x0) * bytesPerPixel];
 
       for (char c : line) {
+        if (x + char_width > width) {
+          break;
+        }
+        // A glyph's foreground can reach one column past its cell; keep every pixel inside the row.
+        const uint32 columns_left = width - x;
         for (uint64 cp_row : font_variant.GetCodepoint(c)) {
           if (bg_colour != kRGBTransparent) {
             for (uint16 i = 0; i < char_width; i++) {  // We need to set individual r,g,b components
@@ -2309,26 +2325,30 @@ void Image::Annotate(
 
           while (cp_row != 0) {
             uint32 column_idx = char_width - __builtin_ctzll(cp_row) + font_variant.GetCharPadding();
-            uint8 *colour_ptr = ptr + (column_idx * bytesPerPixel);
-            RED_PTR_RGBA(colour_ptr) = RED_VAL_RGBA(fg_colour);
-            GREEN_PTR_RGBA(colour_ptr) = GREEN_VAL_RGBA(fg_colour);
-            BLUE_PTR_RGBA(colour_ptr) = BLUE_VAL_RGBA(fg_colour);
             cp_row = cp_row & (cp_row - 1);
+            if (column_idx < columns_left) {
+              uint8 *colour_ptr = ptr + (column_idx * bytesPerPixel);
+              RED_PTR_RGBA(colour_ptr) = RED_VAL_RGBA(fg_colour);
+              GREEN_PTR_RGBA(colour_ptr) = GREEN_VAL_RGBA(fg_colour);
+              BLUE_PTR_RGBA(colour_ptr) = BLUE_VAL_RGBA(fg_colour);
+            }
           }
           ptr += width * bytesPerPixel;
         }
         ptr -= (width * char_height * bytesPerPixel);
         ptr += char_width * bytesPerPixel;
         x += char_width;
-        if (x >= width) {
-          break;
-        }
       }
     } else if (colours == ZM_COLOUR_RGB32) {
       constexpr uint8 bytesPerPixel = 4;
       Rgb *ptr = reinterpret_cast<Rgb *>(&buffer[((y * width) + x0) * bytesPerPixel]);
 
       for (char c : line) {
+        if (x + char_width > width) {
+          break;
+        }
+        // A glyph's foreground can reach one column past its cell; keep every pixel inside the row.
+        const uint32 columns_left = width - x;
         for (uint64 cp_row : font_variant.GetCodepoint(c)) {
           if (bg_colour != kRGBTransparent) {
             std::fill(ptr, ptr + char_width, bg_rgb_col);
@@ -2336,26 +2356,22 @@ void Image::Annotate(
 
           while (cp_row != 0) {
             uint32 column_idx = char_width - __builtin_ctzll(cp_row) + font_variant.GetCharPadding();
-            *(ptr + column_idx) = fg_rgb_col;
             cp_row = cp_row & (cp_row - 1);
+            if (column_idx < columns_left) {
+              *(ptr + column_idx) = fg_rgb_col;
+            }
           }
           ptr += width;
         }
         ptr -= (width * char_height);
         ptr += char_width;
         x += char_width;
-        if (x >= width) {
-          break;
-        }
       }
     } else {
       Error("Annotate called with unexpected colours: %d", colours);
       return;
     }
     y += char_height;
-    if (y >= height) {
-      break;
-    }
   }
 }
 
@@ -2982,21 +2998,43 @@ void Image::Flip( bool leftright ) {
 void Image::Scale(const unsigned int new_width, const unsigned int new_height) {
   if (width == new_width and height == new_height) return;
 
-  // Why larger than we need?
-  size_t scale_buffer_size = static_cast<size_t>(new_width+1) * (new_height+1) * colours;
+  AVPixelFormat format = AVPixFormat();
+  // The output is packed tight, matching the linesize AssignDirect gives it.
+  int new_size = av_image_get_buffer_size(format, new_width, new_height, 1);
+  if (new_size < 0) {
+    Error("Scale: av_image_get_buffer_size failed for %s %ux%u", av_get_pix_fmt_name(format), new_width, new_height);
+    return;
+  }
+  size_t scale_buffer_size = static_cast<size_t>(new_size);
   uint8_t* scale_buffer = AllocBuffer(scale_buffer_size);
 
-  AVPixelFormat format = AVPixFormat();
+  // Read plane 0 at our own linesize: get_y_image wraps the decoder's Y plane,
+  // whose stride is neither the tight width nor FFALIGN(width,32).
+  int src_align = (static_cast<int>(linesize) == av_image_get_linesize(format, width, 0)) ? 1 : 32;
+  av_frame_ptr src_frame{av_frame_alloc()};
+  av_frame_ptr dst_frame{av_frame_alloc()};
+  if (!src_frame || !dst_frame
+      || av_image_fill_arrays(src_frame->data, src_frame->linesize, buffer, format, width, height, src_align) < 0
+      || av_image_fill_arrays(dst_frame->data, dst_frame->linesize, scale_buffer, format, new_width, new_height, 1) < 0) {
+    Error("Scale: failed to set up frames for %s", av_get_pix_fmt_name(format));
+    DumpBuffer(scale_buffer, ZM_BUFTYPE_ZM);
+    return;
+  }
+  src_frame->linesize[0] = linesize;
+  src_frame->format = dst_frame->format = format;
+  src_frame->width = width;
+  src_frame->height = height;
+  dst_frame->width = new_width;
+  dst_frame->height = new_height;
+
   SWScale swscale;
   swscale.init();
-  swscale.Convert( buffer, allocation,
-                   scale_buffer,
-                   scale_buffer_size,
-                   format, format,
-                   width,
-                   height,
-                   new_width,
-                   new_height);
+  if (swscale.Convert(src_frame.get(), dst_frame.get()) < 0) {
+    Error("Scale: sws_scale conversion failed (%ux%u %s -> %ux%u)",
+          width, height, av_get_pix_fmt_name(format), new_width, new_height);
+    DumpBuffer(scale_buffer, ZM_BUFTYPE_ZM);
+    return;
+  }
   AssignDirect(new_width, new_height, colours, subpixelorder, scale_buffer, scale_buffer_size, ZM_BUFTYPE_ZM);
 }
 

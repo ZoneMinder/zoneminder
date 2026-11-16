@@ -280,10 +280,31 @@ Note that SELinux may cause errors other than those listed above. If you are in 
 
 How do I enable ZoneMinder's security?
 -------------------------------------------
-In the console, click on ``Options->System``. Check the box next to ``ZM_OPT_USE_AUTH``. You will immediately be asked to login. The default username is 'admin' and the password is 'admin'.
+In the console, click on ``Options->System``. Check the box next to ``ZM_OPT_USE_AUTH``. You will immediately be asked to login. The default username is 'admin' and the password is 'admin'; at the first login ZoneMinder asks you to choose a new password. The password ``admin`` is refused everywhere else (the API, stream URLs, ``zmu``) for every account.
 
 To Manage Users:
 In main console, go to ``Options->Users``.
+
+How do I turn authentication on, or set the admin password, without the web interface?
+-------------------------------------------------------------------------------------------
+For scripted installs, containers, or a forgotten password. Both settings live in the database.
+
+* **Turn authentication on:** ``UPDATE Config SET Value='1' WHERE Name='ZM_OPT_USE_AUTH';``
+  then restart ZoneMinder so the daemons pick it up.
+* **Set a password:** make a bcrypt hash and store it, for example
+  ``php -r 'echo password_hash("your new password", PASSWORD_BCRYPT), "\n";'`` and then
+  ``UPDATE Users SET Password='<the hash>' WHERE Username='admin';``. The password ``admin`` is
+  refused however it is set, so choose another one.
+* **Through the API:** once an account can log in with a real password, ``PUT api/users/<id>.json``
+  with ``User[Password]`` changes a password. The API can't be used to get past the password
+  ``admin``; log in to the web interface for that.
+* **Packagers:** ``utils/zmeditconfigdata.sh ZM_OPT_USE_AUTH no`` before building changes the
+  default the package ships with, as the RPM spec does for other options. Prefer leaving it on.
+
+To force authentication on so it can't be turned off from the Options page, set
+``ZM_OPT_USE_AUTH=1`` in a file in ``conf.d`` (for example ``/etc/zm/conf.d/99-auth.conf``) and
+restart ZoneMinder. A value set in ``zm.conf`` or ``conf.d`` wins over the database for the web
+interface, the API, the scripts and the daemons alike.
 
 You may also consider to use the web server security, for example, htaccess files under Apache scope; You may even use this as an additional/redundant security on top of Zoneminders built-in security features. Note that if you choose to enable webserver auth, zmNinja may have issues. Please read the `zmNinja FAQ on basic authentication <https://zmninja.readthedocs.io/en/latest/guides/FAQ.html#i-can-t-see-streams-i-use-basic-auth>`__ for more information. Also please note that zmNinja does not support digest authentication.
 

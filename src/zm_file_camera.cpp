@@ -99,7 +99,15 @@ int FileCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   zm_packet->codec_type = AVMEDIA_TYPE_VIDEO;
   zm_packet->packet->stream_index = mVideoStreamId;
   zm_packet->stream = mVideoStream;
-  return zm_packet->image->ReadJpeg(path, colours, subpixelorder) ? 1 : -1;
+  if (!zm_packet->image->ReadJpeg(path, colours, subpixelorder)) return -1;
+  // Whoever can write the file controls its dimensions. Everything downstream is sized for
+  // the monitor, so refuse a file that does not match rather than pass a different size on.
+  if (zm_packet->image->Width() != Width() || zm_packet->image->Height() != Height()) {
+    Error("File %s is %ux%u but the monitor is %ux%u", path.c_str(),
+          zm_packet->image->Width(), zm_packet->image->Height(), Width(), Height());
+    return -1;
+  }
+  return 1;
 }
 
 int FileCamera::PostCapture() {

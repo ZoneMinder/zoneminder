@@ -88,6 +88,16 @@ std::pair<std::string, std::string> PairSplit(const std::string &str, char delim
 
 std::string Join(const StringVector &values, const std::string &delim = ",");
 
+// The effective client address of a CGI request. X-Forwarded-For is only
+// honoured when remote_addr is one of trusted_proxies (comma/space separated,
+// exact match); the right-most hop that is not itself a trusted proxy is then
+// the client. Must match getRemoteAddr() in web/includes/Network.php, which
+// generates the IP-bound auth hashes this is used to validate.
+std::string ClientAddress(const std::string &remote_addr,
+                          const std::string &forwarded_for,
+                          const std::string &trusted_proxies);
+
+
 inline bool StartsWith(const std::string &haystack, const std::string &needle) {
   return (haystack.substr(0, needle.length()) == needle);
 }
@@ -160,8 +170,18 @@ constexpr std::size_t size(const T(&)[N]) noexcept { return N; }
 
 std::string mask_authentication(const std::string &url);
 std::string remove_authentication(const std::string &url);
+// A URL as it may be logged: no user:password@ and no query string (which may
+// carry an auth hash, a token or a password). "?..." marks a removed query.
+std::string url_for_log(const std::string &url);
+// An HTTP or RTSP request as it may be logged: the request target through
+// url_for_log() and the value of any Authorization or Proxy-Authorization
+// header (Basic carries user:password, only base64-encoded) replaced.
+std::string request_for_log(const std::string &request);
 
 std::string UriEncode(const std::string &value);
+// The go2rtc API base for a ZM_GO2RTC_PATH. go2rtc serves its API under /api, so
+// "http://host:1984" and "http://host:1984/api" both give the latter.
+std::string Go2RTCApiEndpoint(std::string path);
 std::string UriDecode(const std::string &encoded);
 
 class QueryParameter {

@@ -181,6 +181,8 @@ target_link_libraries(zm
     chmike::CxxUrl
     martinmoene::span-lite
     ${ZM_BIN_LIBS}
+    # stdc++fs on GCC < 9, empty elsewhere; zm_eventstream uses std::filesystem.
+    ${FILESYSTEM_LIBRARY}
   PRIVATE
     zm-core-interface)
 

@@ -41,7 +41,10 @@ if (!($socket = @socket_create(AF_UNIX, SOCK_DGRAM, 0))) {
   ajaxError('socket_create() failed: '.socket_strerror(socket_last_error()));
 }
 
-$localSocketFile = ZM_PATH_SOCKS.'/zms-'.$connkey.'w.sock';
+# zms names its sockets after the user it serves, so a connkey only reaches the
+# caller's own streams, not another user's.
+$owner = (ZM_OPT_USE_AUTH and $user) ? $user->Id() : 0;
+$localSocketFile = zmsSocketPath($connkey, $owner, 'w.sock');
 if (!socket_bind($socket, $localSocketFile)) {
   if ($semaphore) sem_release($semaphore);
   ajaxError("socket_bind( $localSocketFile ) failed: ".socket_strerror(socket_last_error()));
@@ -84,7 +87,7 @@ default :
   break;
 }
 
-$remSockFile = ZM_PATH_SOCKS.'/zms-'.$connkey.'s.sock';
+$remSockFile = zmsSocketPath($connkey, $owner, 's.sock');
 // Pi can take up to 3 seconds for zms to start up.
 $max_socket_tries = 1000;
 // FIXME This should not exceed web_ajax_timeout

@@ -112,7 +112,7 @@ void RemoteCameraHttp::Initialise() {
     if ( !auth.empty() )
       request += stringtf( "Authorization: Basic %s\r\n", auth64.c_str() );
     request += "\r\n";
-    Debug( 2, "Request: %s", request.c_str() );
+    Debug( 2, "Request: %s", request_for_log(request).c_str() );
   }
 
   if ( !timeout.tv_sec ) {
@@ -197,7 +197,7 @@ int RemoteCameraHttp::Disconnect() {
 }
 
 int RemoteCameraHttp::SendRequest() {
-  Debug(2, "Sending request: %s", request.c_str());
+  Debug(2, "Sending request: %s", request_for_log(request).c_str());
   if ( write(sd, request.data(), request.length()) < 0 ) {
     Error("Can't write: %s", strerror(errno));
     Disconnect();
@@ -326,6 +326,24 @@ int RemoteCameraHttp::GetData() {
   return buffer_len;
 }
 
+int RemoteCameraHttp::ParseContentLength(const char *text, unsigned long long image_size) {
+  // The length is read from the camera link, usually plain HTTP, and decides how much is
+  // buffered for one frame. No encoding of a frame is larger than twice its raw size, so a
+  // bigger length is refused instead of buffered. refs GHSA-x959-xrc9-89p8
+  constexpr unsigned long long kMaxContentLength = 1ull << 30;
+  const unsigned long long max_length =
+    std::min(kMaxContentLength, 2 * image_size + ZM_NETWORK_BUFSIZ);
+
+  if (!text) return -1;
+  while (*text == ' ') text++;
+  if (*text < '0' or *text > '9') return -1;
+  char *end = nullptr;
+  errno = 0;
+  const unsigned long long length = strtoull(text, &end, 10);
+  if (errno == ERANGE or length > max_length) return -1;
+  return static_cast<int>(length);
+}
+
 int RemoteCameraHttp::GetResponse() {
 #if HAVE_LIBPCRE
   if ( method == REGEXP ) {
@@ -384,7 +402,7 @@ int RemoteCameraHttp::GetResponse() {
               request += mAuthenticator->getAuthHeader("GET", path);
               request += "\r\n";
 
-              Debug( 2, "New request header: %s", request.c_str() );
+              Debug( 2, "New request header: %s", request_for_log(request).c_str() );
               return( 0 );
             }
 
@@ -400,7 +418,11 @@ int RemoteCameraHttp::GetResponse() {
           }
 
           if ( content_length_expr->Match( header, header_len ) == 2 ) {
-            content_length = atoi( content_length_expr->MatchString( 1 ) );
+            content_length = ParseContentLength(content_length_expr->MatchString(1), imagesize);
+            if (content_length < 0) {
+              Error("Invalid content length '%s'", content_length_expr->MatchString(1));
+              return -1;
+            }
             Debug( 3, "Got content length '%d'", content_length );
           }
 
@@ -475,7 +497,11 @@ int RemoteCameraHttp::GetResponse() {
           if ( !subcontent_length_expr )
             subcontent_length_expr = new RegExpr( "Content-length: ?([0-9]+)\r?\n", PCRE2_CASELESS );
           if ( subcontent_length_expr->Match( subheader, subheader_len ) == 2 ) {
-            content_length = atoi( subcontent_length_expr->MatchString( 1 ) );
+            content_length = ParseContentLength(subcontent_length_expr->MatchString(1), imagesize);
+            if (content_length < 0) {
+              Error("Invalid subcontent length '%s'", subcontent_length_expr->MatchString(1));
+              return -1;
+            }
             Debug( 3, "Got subcontent length '%d'", content_length );
           }
 
@@ -756,7 +782,7 @@ int RemoteCameraHttp::GetResponse() {
               request += mAuthenticator->getAuthHeader("GET", path);
               request += "\r\n";
 
-              Debug(2, "New request header: %s", request.c_str());
+              Debug(2, "New request header: %s", request_for_log(request).c_str());
               return 0;
             } else {
               Debug(2, "Need some other kind of Authentication");
@@ -774,7 +800,11 @@ int RemoteCameraHttp::GetResponse() {
           }
           if (content_length_header) {
             start_ptr = content_length_header + strspn(content_length_header, " ");
-            content_length = atoi(start_ptr);
+            content_length = ParseContentLength(start_ptr, imagesize);
+            if (content_length < 0) {
+              Error("Invalid content length '%.32s'", start_ptr);
+              return -1;
+            }
             Debug(3, "Got content length '%d'", content_length);
           }
           if (content_type_header) {
@@ -931,7 +961,11 @@ int RemoteCameraHttp::GetResponse() {
 
           if (subcontent_length_header[0]) {
             start_ptr = subcontent_length_header + strspn(subcontent_length_header, " ");
-            content_length = atoi(start_ptr);
+            content_length = ParseContentLength(start_ptr, imagesize);
+            if (content_length < 0) {
+              Error("Invalid subcontent length '%.32s'", start_ptr);
+              return -1;
+            }
             Debug(3, "Got subcontent length '%d'", content_length);
           }
           if (subcontent_type_header[0]) {

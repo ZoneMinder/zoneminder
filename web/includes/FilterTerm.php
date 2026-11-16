@@ -285,7 +285,7 @@ class FilterTerm {
     case 'CurrentTime':
       return 'extract(hour_second FROM NOW())';
     case 'CurrentWeekday':
-      return 'weekday(NOW()';
+      return 'weekday(NOW())';
     case 'DateTime':
       return 'E.StartDateTime';
     case 'Date':
@@ -583,10 +583,14 @@ class FilterTerm {
       if (!(is_integer($this->val) or ctype_digit($this->val))) 
         return false;
       return true;
+    case 'CurrentWeekday' :
+      // Monday is 0, which is a value, not a missing one
+      if ($this->val === null or $this->val === '')
+        return false;
+      break;
     case 'CurrentDate' :
     case 'CurrentTime' :
     case 'CurrentDateTime' :
-    case 'CurrentWeekday' :
     case 'EndDate' :
     case 'StartDate' :
     case 'EndDateTime' :

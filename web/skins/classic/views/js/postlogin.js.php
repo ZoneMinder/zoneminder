@@ -20,4 +20,4 @@ if ( $redirectSuffix == '?view=login' or $redirectSuffix == '?view=logout') {
   $redirectSuffix = '?view=console';
 }
 ?>
-const redirectSuffix = '<?php echo $redirectSuffix ?>';
+const redirectSuffix = '<?php echo validJsStr($redirectSuffix) ?>';

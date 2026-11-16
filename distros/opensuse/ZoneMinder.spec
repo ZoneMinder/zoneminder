@@ -144,7 +144,6 @@ Requires:       perl-Crypt-Eksblowfish
 Requires:       perl-Crypt-SSLeay
 Requires:       perl-DBD-mysql
 Requires:       perl-DBI
-Requires:       perl-Data-Entropy
 Requires:       perl-Data-UUID
 Requires:       perl-Date-Manip
 Requires:       perl-IO-Socket-Multicast

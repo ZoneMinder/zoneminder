@@ -220,7 +220,7 @@ static void LinkEventFiles(
       }
       std::string sql = stringtf(
         "UPDATE `Events` SET `DefaultVideo` = '%s' WHERE `Id` = %" PRIu64,
-        video_file.c_str(), new_event_id);
+        zmDbEscapeString(video_file).c_str(), new_event_id);
       zmDbDo(sql);
     } else {
       Warning("Source video file %s not found", src.c_str());
@@ -345,7 +345,8 @@ int main(int argc, char *argv[]) {
   unsigned int storage_id = dbrow[1] ? atoi(dbrow[1]) : 0;
   int frame_count = dbrow[2] ? atoi(dbrow[2]) : 0;
   SystemTimePoint start_time = SystemTimePoint(Seconds(atoi(dbrow[3])));
-  std::string video_file = dbrow[6] ? std::string(dbrow[6]) : std::string();
+  // DefaultVideo is user editable; only use it as a filename in the event dir.
+  std::string video_file = dbrow[6] ? std::filesystem::path(dbrow[6]).filename().string() : std::string();
   std::string scheme_str = dbrow[7] ? std::string(dbrow[7]) : std::string();
   int save_jpegs = dbrow[8] ? atoi(dbrow[8]) : 0;
 

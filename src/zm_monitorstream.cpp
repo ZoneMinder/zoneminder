@@ -416,7 +416,6 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
   }
   Image *send_image = prepareImage(image);
 
-  fputs("--" BOUNDARY "\r\n", stdout);
   // Calculate how long it takes to actually send the frame
   TimePoint send_start_time = std::chrono::steady_clock::now();
 
@@ -440,6 +439,7 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
 
     /* double pts = */ vid_stream->EncodeImage(*send_image, config.mpeg_timed_frames, delta_time.count());
   } else {
+    fputs("--" BOUNDARY "\r\n", stdout);
     reserveTempImgBuffer(send_image->Size());
 
     size_t img_buffer_size = 0;

@@ -199,7 +199,7 @@ std::string Base64Encode(const std::string &str) {
   std::string outString;
   outString.reserve(2 * str.size());
 
-  const char *inPtr = str.c_str();
+  const unsigned char *inPtr = reinterpret_cast<const unsigned char *>(str.c_str());
   while (*inPtr) {
     unsigned char selection = *inPtr >> 2;
     unsigned char remainder = (*inPtr++ & 0x03) << 4;

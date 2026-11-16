@@ -56,6 +56,7 @@ set(TEST_SOURCES
   zm_packet_y_image.cpp
   zm_monitor_action.cpp
   zm_monitor_signal.cpp
+  zm_monitor_analyse_state.cpp
   zm_onvif_alarm_latch.cpp
   zm_onvif_alarm_termination.cpp
   zm_onvif_auth_error.cpp

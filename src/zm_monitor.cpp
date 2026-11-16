@@ -1974,6 +1974,24 @@ bool Monitor::CheckSignal(const Image *image) {
   return false;
 } // end bool Monitor::CheckSignal(const Image *image)
 
+int Monitor::AnalysisFrameSkip(double capture_fps, double analysis_fps_limit) {
+  if (analysis_fps_limit <= 0) return 0;
+  // Every Nth frame is analysed, which is a skip of N-1. Round so a measured
+  // rate a little under or over the nominal one picks the same N.
+  int every_nth = static_cast<int>(std::lround(capture_fps / analysis_fps_limit));
+  return every_nth > 1 ? every_nth - 1 : 0;
+}
+
+bool Monitor::TimeSectionCrossed(int64_t prev_sec, int64_t cur_sec, int64_t section_length_sec) {
+  if (prev_sec < 0 or section_length_sec < 1) return false;
+  return (cur_sec / section_length_sec) != (prev_sec / section_length_sec);
+}
+
+void Monitor::ClearAlarmTracking() {
+  EmptyPreAlarmFrames();
+  alert_to_alarm_frame_count = alarm_frame_count;
+}
+
 bool Monitor::DecoderChecksSignal(DecodingOption decoding, int signal_check_points, bool has_viewers) {
   if (signal_check_points <= 0) return false;
   switch (decoding) {
@@ -2301,6 +2319,7 @@ bool Monitor::Analyse() {
           }  // end if doing analysing
         }
         SetState(IDLE);
+        ClearAlarmTracking();
         EndAlarmActions();
       }  // end if signal change
 
@@ -2385,7 +2404,7 @@ bool Monitor::Analyse() {
 
             if (analysis_fps_limit) {
               double capture_fps = get_capture_fps();
-              int new_skip = capture_fps / analysis_fps_limit;
+              int new_skip = AnalysisFrameSkip(capture_fps, analysis_fps_limit);
               if (new_skip != motion_frame_skip) {
                 motion_frame_skip = new_skip;
                 packetqueue.setPreEventVideoPackets(PreEventWalkBack());
@@ -2522,9 +2541,9 @@ bool Monitor::Analyse() {
           Debug(3, "Audio packet, not changing state");
         } else if (score) {
           if ((state == IDLE) || (state == PREALARM)) {
-            if (Event::PreAlarmCount() >= alarm_frame_count-1) {
+            if (PreAlarmCount() >= alarm_frame_count-1) {
               Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u Cause:%s",
-                   name.c_str(), packet->image_index, Event::PreAlarmCount(), alarm_frame_count, cause.c_str());
+                   name.c_str(), packet->image_index, PreAlarmCount(), alarm_frame_count, cause.c_str());
               SetState(ALARM);
               // Only the genuine entry into alarm fires actions. The
               // ALERT->ALARM path below is a re-trigger within one alarm and
@@ -2535,10 +2554,10 @@ bool Monitor::Analyse() {
               Info("%s: %03d - Gone into prealarm state", name.c_str(), analysis_image_count);
               SetState(PREALARM);
               // incremement pre alarm image count
-              Event::AddPreAlarmFrame(packet->image, packet->timestamp, score, nullptr);
+              AddPreAlarmFrame();
             } else { // PREALARM
               // incremement pre alarm image count
-              Event::AddPreAlarmFrame(packet->image, packet->timestamp, score, nullptr);
+              AddPreAlarmFrame();
             }
           } else if (state == ALERT) {
             alert_to_alarm_frame_count--;
@@ -2585,10 +2604,16 @@ bool Monitor::Analyse() {
                   static_cast<int64>(std::chrono::duration_cast<Seconds>(GetVideoWriterStartTime().time_since_epoch()).count()),
                   static_cast<int64>(Seconds(min_section_length).count()));
 
-            if (Event::PreAlarmCount())
-              Event::EmptyPreAlarmFrames();
+            if (PreAlarmCount())
+              EmptyPreAlarmFrames();
           } // end if packet->score meaning did motion detection
         } // end if score or not
+
+        // Whole seconds of the previous and this packet, to see a CLOSE_TIME
+        // boundary pass even when no frame lands on the exact second.
+        const int64_t this_section_sec = std::chrono::duration_cast<Seconds>(packet->timestamp.time_since_epoch()).count();
+        const bool time_section_crossed = TimeSectionCrossed(last_section_sec_, this_section_sec, Seconds(section_length).count());
+        last_section_sec_ = this_section_sec;
 
         if (event) {
           Debug(1, "Event %" PRIu64 ", alarm frames %d <? alarm_frame_count %d duration:%.2f close mode %d",
@@ -2658,7 +2683,7 @@ bool Monitor::Analyse() {
                 }
               } else if (event_close_mode == CLOSE_TIME) {
                 Debug(1, "CLOSE_MODE Time");
-                if (std::chrono::duration_cast<Seconds>(packet->timestamp.time_since_epoch()) % section_length == Seconds(0)) {
+                if (time_section_crossed) {
                   Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " %% %" PRIi64 " = 0",
                        name.c_str(),
                        packet->image_index,
@@ -2768,6 +2793,7 @@ bool Monitor::Analyse() {
         closeEvent();
       }
       SetState(IDLE);
+      ClearAlarmTracking();
       EndAlarmActions();
     } // end if ( trigger_data->trigger_state != TRIGGER_OFF )
 

@@ -1036,12 +1036,11 @@ sub mp4_duration {
 sub guess_EndDateTime {
   my $event = shift;
   if (!$$event{EndDateTime}) {
-    if ($$event{Length}) {
-      my $startdatetime = Date::Parse::str2time( $$event{StartDateTime} );
-      $$event{EndDateTime} = Date::Format::time2str('%Y-%m-%d %H:%M:%S', $startdatetime + $$event{Length});
-    } else {
-      $$event{EndDateTime} = Date::Format::time2str('%Y-%m-%d %H:%M:%S', Date::Parse::str2time( $$event{StartDateTime} )+1);
-    }
+    # Nothing to count from without a start, and str2time(undef) would
+    # turn the end into 1970.
+    my $startdatetime = $$event{StartDateTime} ? Date::Parse::str2time( $$event{StartDateTime} ) : undef;
+    return undef if !defined $startdatetime;
+    $$event{EndDateTime} = Date::Format::time2str('%Y-%m-%d %H:%M:%S', $startdatetime + ($$event{Length} ? $$event{Length} : 1));
   }
   return $$event{EndDateTime};
 }

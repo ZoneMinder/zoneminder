@@ -160,7 +160,7 @@ sub parseControlAddress {
 
   my $url = URI->new($controlAddress);
   $$self{scheme} = $url->scheme;
-  @$self{'username','password'} = split /:/, $url->userinfo if $url->userinfo;
+  @$self{'username','password'} = split /:/, $url->userinfo, 2 if $url->userinfo;
   $$self{password} = URI::Escape::uri_unescape($$self{password});
 
   #If we have no explicitly defined port

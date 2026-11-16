@@ -358,11 +358,11 @@ sub handleMessage {
       handleDelay($delay, $connection, $action_text);
     }
   } elsif ( $action =~ /^(on|off)(?:[ \+](\d+))?$/ ) {
-    if ( !$monitor->{Capturing} eq 'None' ) {
+    if ( $monitor->{Capturing} eq 'None' ) {
       Warning('Capturing not enabled on monitor '.$id);
       return;
     }
-    if ( !$monitor->{Recording} eq 'None' ) {
+    if ( $monitor->{Recording} eq 'None' ) {
       Warning('Recording not enabled on monitor '.$id);
     }
 

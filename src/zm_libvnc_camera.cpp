@@ -21,9 +21,9 @@ void bind_libvnc_symbols() {
   if (libvnc_lib != nullptr) // Safe-check
     return;
 
-  libvnc_lib = dlopen("libvncclient.so", RTLD_LAZY | RTLD_GLOBAL);
+  libvnc_lib = zm_libvnc_open([](const char *name) { return dlopen(name, RTLD_LAZY | RTLD_GLOBAL); });
   if (!libvnc_lib) {
-    Error("Error loading libvncclient.so: %s", dlerror());
+    Error("Error loading libvncclient: %s", dlerror());
     return;
   }
 

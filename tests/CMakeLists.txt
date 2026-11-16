@@ -113,6 +113,7 @@ set(TEST_SOURCES
   zm_janus_ids.cpp
   zm_janus_refresh.cpp
   zm_local_camera.cpp
+  zm_libvnc_loader.cpp
   zm_restream_user_missing.cpp
   zm_stream_manager_json.cpp)
 

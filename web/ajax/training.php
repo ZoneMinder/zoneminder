@@ -43,7 +43,7 @@ function ensureTrainingDirs() {
       ZM\Debug('Training: creating directory '.$dir);
       if (!mkdir($dir, 0755, true)) {
         ZM\Error('Training: failed to create directory '.$dir);
-        ajaxError('Failed to create training directory');
+        ajaxError(translate('TrainingFailedCreateDirectory'));
         return false;
       }
     }

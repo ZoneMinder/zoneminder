@@ -57,12 +57,15 @@ my $server = new ZoneMinder::Server($Config{ZM_SERVER_ID});
 
 while (!$zm_terminate) {
   while ( ! ( $dbh and $dbh->ping() ) ) {
+    # Without this a TERM while the database is down is never acted on.
+    last if $zm_terminate;
     Info('Reconnecting to db');
     if ( !($dbh = zmDbConnect()) ) {
       #What we do here is not that important, so just skip this interval
       sleep($Config{ZM_STATS_UPDATE_INTERVAL});
     }
   }
+  last if $zm_terminate;
 
   my @cpuload = $server->CpuLoad();
   Debug("Cpuload: @cpuload");

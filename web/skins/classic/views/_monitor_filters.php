@@ -133,12 +133,9 @@ function getFilteredMonitorIds() {
     }
     if ($sourceFilter) {
       $Monitor = new ZM\Monitor($row);
-      $regexp = $sourceFilter;
-      if (!preg_match("/^\/.+\/[a-z]*$/i", $regexp)) $regexp = '/'.$regexp.'/i';
-      if (@preg_match($regexp, '') !== false) {
-        if (!preg_match($regexp, $Monitor->Source()) and !preg_match($regexp, $Monitor->Path()))
-          continue;
-      }
+      $regexp = monitorNameRegexp($sourceFilter);
+      if (!preg_match($regexp, $Monitor->Source()) and !preg_match($regexp, $Monitor->Path()))
+        continue;
     }
     $ids[] = $row['Id'];
   }
@@ -382,23 +379,12 @@ function buildMonitorsFilters() {
     $sourceFilter = getFilterSelection('Source');
     if ( $sourceFilter ) {
       $Monitor = new ZM\Monitor($monitors[$i]);
-      ini_set('track_errors', 'on');
-      $php_errormsg = '';
-      $regexp = $sourceFilter;
-
-      if (!preg_match("/^\/.+\/[a-z]*$/i",$regexp))
-        $regexp = '/'.$regexp.'/i';
-
-      @preg_match($regexp, '');
-      if ( $php_errormsg ) {
-        ZM\Warning($sourceFilter.' is not a valid search string');
-      } else {
-        ZM\Debug("Using $regexp for source");
-        if ( !preg_match($regexp, $Monitor->Source()) ) {
-          ZM\Debug("Source didn't match $regexp ".$Monitor->Source());
-          if ( !preg_match($regexp, $Monitor->Path()) ) {
-            continue;
-          }
+      $regexp = monitorNameRegexp($sourceFilter);
+      ZM\Debug("Using $regexp for source");
+      if ( !preg_match($regexp, $Monitor->Source()) ) {
+        ZM\Debug("Source didn't match $regexp ".$Monitor->Source());
+        if ( !preg_match($regexp, $Monitor->Path()) ) {
+          continue;
         }
       }
     }

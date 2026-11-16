@@ -40,6 +40,8 @@ check('text containing a slash that is absent', $matches('in/out', 'Gate'), fals
 check('invalid pattern matches literally', $matches('cam(', 'cam(1)'), true);
 check('invalid pattern that is absent', $matches('cam(', 'cam1'), false);
 check('delimited but invalid pattern matches literally', $matches('/cam(/i', '/cam(/i'), true);
+check('url with slashes', $matches('rtsp://10.0.0.5', 'rtsp://10.0.0.5:554/stream1'), true);
+check('source filter uses the same rules', (bool)preg_match('/\$regexp = monitorNameRegexp\(\$sourceFilter\);/', $src), true);
 
 echo "\n$passes passed, $failures failed\n";
 exit($failures ? 1 : 0);

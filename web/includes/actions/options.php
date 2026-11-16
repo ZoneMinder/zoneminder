@@ -244,6 +244,9 @@ if ( $action == 'delete' ) {
     $allItems = ZM\MenuItem::find();
     foreach ($allItems as $item) {
       $id = $item->Id();
+      // An entry that was not on the submitted form (added by another admin
+      // since the page loaded) must keep its settings, not be disabled.
+      if (!isset($_REQUEST['items'][$id])) continue;
       $enabled = isset($_REQUEST['items'][$id]['Enabled']) ? 1 : 0;
       $label = isset($_REQUEST['items'][$id]['Label']) ? trim($_REQUEST['items'][$id]['Label']) : null;
       $sortOrder = isset($_REQUEST['items'][$id]['SortOrder']) ? intval($_REQUEST['items'][$id]['SortOrder']) : $item->SortOrder();

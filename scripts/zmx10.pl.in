@@ -600,7 +600,7 @@ sub processTask {
       if ( $instruction eq 'start' ) {
         zmTriggerEventOn(
           $task->{monitor},
-          0,
+          $Config{ZM_FORCED_ALARM_SCORE},
           main::CAUSE_STRING,
           $task->{address}
         );

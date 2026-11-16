@@ -14,6 +14,9 @@ class Monitor extends ZM_Object {
   protected static $setters = array('User', 'ViewWidth', 'ViewHeight', 'Storage', 'Groups', 'connKey', 'Model', 'Manufacturer');
   private $shm_id = null;
   private $connected = false;
+  // The Id each cached Control, Server and Storage object was loaded for, so a
+  // later change to ControlId, ServerId or StorageId does not keep serving the old one.
+  private $loaded_ids = array();
 
   // These offsets are the REAL (naturally-aligned) byte offsets of the C++
   // SharedData/TriggerData structs, not the packed-layout ideal implied by the
@@ -429,7 +432,16 @@ class Monitor extends ZM_Object {
     }
   }
 
+  // Forget a cached related object when the Id it was loaded for no longer matches.
+  private function dropStale($name, $id) {
+    if (array_key_exists($name, $this->loaded_ids) and ($this->loaded_ids[$name] != $id)) {
+      unset($this->{$name});
+    }
+    $this->loaded_ids[$name] = $id;
+  }
+
   public function Control() {
+    $this->dropStale('Control', $this->ControlId());
     if (!property_exists($this, 'Control')) {
       if ($this->ControlId())
         $this->{'Control'} = Control::find_one(array('Id'=>$this->{'ControlId'}));
@@ -441,6 +453,7 @@ class Monitor extends ZM_Object {
   }
 
   public function Server() {
+    $this->dropStale('Server', $this->ServerId());
     if (!property_exists($this, 'Server')) {
       if ($this->ServerId()) {
         $this->{'Server'} = Server::find_one(array('Id'=>$this->{'ServerId'}));
@@ -772,7 +785,9 @@ class Monitor extends ZM_Object {
   public function Storage($new = null) {
     if ($new) {
       $this->{'Storage'} = $new;
+      $this->loaded_ids['Storage'] = $this->{'StorageId'} ?? null;
     }
+    $this->dropStale('Storage', $this->{'StorageId'} ?? null);
     if (!(property_exists($this, 'Storage') and $this->{'Storage'})) {
       $this->{'Storage'} = isset($this->{'StorageId'}) ?
         Storage::find_one(array('Id'=>$this->{'StorageId'})) :
@@ -1561,6 +1576,10 @@ class Monitor extends ZM_Object {
       $packed_value = pack('q', $value);
     } else if ($this->shm_offsets[$section][$var]['type'] == 'uint64') {
       $packed_value = pack('Q', $value);
+    } else if (preg_match('/^u?int8\[(\d+)\]$/', $this->shm_offsets[$section][$var]['type'], $matches)) {
+      // A C string field: always NUL terminated and padded, so a short value
+      // replaces the old one instead of overwriting its first bytes.
+      $packed_value = str_pad(substr((string)$value, 0, $matches[1] - 1), $matches[1], "\0");
     }
     Debug("Writing $value=>$packed_value at ".$this->shm_offsets[$section][$var]['offset']);
     fseek($this->shm_id, $this->shm_offsets[$section][$var]['offset']);

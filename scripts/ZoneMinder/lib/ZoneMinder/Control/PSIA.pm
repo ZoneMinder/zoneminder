@@ -296,7 +296,10 @@ sub presetSet
     my $res = $sth->execute($self->{Monitor}->{Id}, $preset_id)
         or Fatal("Can't execute sql '$sql': " . $sth->errstr());
     my $control_preset_row = $sth->fetchrow_hashref();
-    my $new_label_name = $control_preset_row->{'Label'};
+    my $new_label_name = $control_preset_row->{'Label'} // '';
+    $new_label_name =~ s/&/&amp;/g;
+    $new_label_name =~ s/</&lt;/g;
+    $new_label_name =~ s/>/&gt;/g;
 
     my $url_path = "/PSIA/PTZ/channels/1/presets/" . $preset_id;
     my $ptz_preset_data = '<PTZPreset>';

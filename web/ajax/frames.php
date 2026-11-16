@@ -39,7 +39,9 @@ $search = isset($_REQUEST['search']) ? $_REQUEST['search'] : '';
 
 // Advanced search contains an array of "column name" => "search text" pairs
 // Bootstrap table sends json_ecoded array, which we must decode
-$advsearch = isset($_REQUEST['advsearch']) ? json_decode($_REQUEST['advsearch'], JSON_OBJECT_AS_ARRAY) : array();
+$advsearch = (isset($_REQUEST['advsearch']) and is_string($_REQUEST['advsearch'])) ? json_decode($_REQUEST['advsearch'], JSON_OBJECT_AS_ARRAY) : array();
+// json_decode can return null, and count(null) is a fatal error on PHP 8.
+$advsearch = is_array($advsearch) ? $advsearch : array();
 
 // Sort specifies the name of the column to sort on
 $sort = 'FrameId';

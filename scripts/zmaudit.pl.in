@@ -75,11 +75,11 @@ GetOptions(
     continuous     =>\$continuous,
     force          =>\$force,
     interactive    =>\$interactive,
-    level          =>\$level,
+    'level:1'      =>\$level,
     'monitor_id=i' =>\$monitor_id,
     report         =>\$report,
     'server_id=i'  =>\$server_id,
-    'storage_id=i' =>\$storage_id,
+    'storage_id|s=i' =>\$storage_id,
     version        =>\$version
     ) or pod2usage(-exitstatus => -1);
 
@@ -323,7 +323,7 @@ MAIN: while( $loop ) {
 # Check storage id
 								if ( $Storage->Id() and !$Event->Storage()->Id() ) {
 									Info("Correcting StorageId for event $$Event{Id} from $$Event{StorageId} $$Event{Path} to $$Storage{Id} $full_path");
-									$Event->save({ StorageId=>$Storage->Id() });
+									$Event->save({ StorageId=>$Storage->Id() }) if !$report;
 									$Event->Path(undef);
 								} else {
 
@@ -331,7 +331,7 @@ MAIN: while( $loop ) {
 										if ( ! (-e $Event->Path()) ) {
 											if ( $Event->StorageId() != $Storage->Id() ) {
 												Info("Correcting Storage Id for event $$Event{Id} from $$Event{StorageId} $$Event{Path} to $$Storage{Id} $full_path");
-												$Event->save({ StorageId=>$Storage->Id() });
+												$Event->save({ StorageId=>$Storage->Id() }) if !$report;
 												$Event->Path(undef);
 											}
 										} else {
@@ -346,7 +346,7 @@ MAIN: while( $loop ) {
 										( $Event->has_capture_jpegs() ? 1 : 0 ) | ( $Event->has_analyse_jpegs() ? 2 : 0 )
 										) ) {
 									Info("Updated Event $$Event{Id} SaveJPEGs to " . $Event->SaveJPEGs());
-									$Event->save();
+									$Event->save() if !$report;
 								}
 							}
 
@@ -481,7 +481,8 @@ MAIN: while( $loop ) {
       }
       Debug('Got '.int(keys(%$fs_events)).' filesystem events for monitor '.$monitor_dir);
 
-      delete_empty_subdirs($$Storage{Path}.'/'.$monitor_dir);
+      # Report mode must not change anything
+      delete_empty_subdirs($$Storage{Path}.'/'.$monitor_dir) if !$report;
     } # end foreach monitor
 
     if ( $cleaned ) {
@@ -516,18 +517,31 @@ MAIN: while( $loop ) {
               aud_print("Filesystem event $fs_event_id at $$Event{Path} does not exist in database and is $age seconds old");
               if ( confirm() ) {
                 $Event->delete_files();
-                $cleaned = 1;
                 delete $fs_events->{$fs_event_id};
+                # delete_files() removes nothing when the storage area has DoDelete off or the
+                # delete fails. Restarting then would find the same event again forever.
+                if ( -e $Event->Path() ) {
+                  Warning("Unable to delete files for event $fs_event_id at $$Event{Path}");
+                } else {
+                  $cleaned = 1;
+                }
               } # end if confirm
             } # end if old enough
           } # end if ! in db events
         } # end foreach fs event
+      } elsif ( ZoneMinder::Monitor->find_one(Id=>$monitor_id) ) {
+        # Created after the monitor list was read at the start of this pass.
+        Debug("Filesystem monitor '$monitor_id' found in secondary lookup.");
       } else {
         aud_print("Filesystem monitor '$monitor_id' in $$Storage{Path} does not exist in database");
 
         if ( confirm() ) {
           executeShellCommand($Config{ZM_PATH_RM}.' -rf '.$monitor_id);
-          $cleaned = 1;
+          if ( -e $$Storage{Path}.'/'.$monitor_id ) {
+            Warning("Unable to remove monitor directory $$Storage{Path}/$monitor_id");
+          } else {
+            $cleaned = 1;
+          }
         }
       }
     } # end foreach monitor/filesystem events
@@ -684,7 +698,7 @@ EVENT: foreach my $i ( 0 .. $#db_event_ids ) {
             $Event->StartDateTime($StartDateTime);
           }
 
-          $Event->save();
+          $Event->save() if !$report;
         } # end if Event exists in db and not in filesystem
       } # end if ! in fs_events
     } # foreach db_event
@@ -1409,7 +1423,9 @@ yet.
  -f, --force                - Run even if pid file exists
  -i, --interactive          - Ask before applying any changes
  -m, --monitor_id           - Only consider the given monitor
+ -l, --level                - Audit level, 2 also checks for orphaned events, stats and event data
  -r, --report               - Just report don't actually do anything
+     --server_id            - Only audit the storage areas of the given server
  -s, --storage_id           - Specify a storage area to audit instead of all
  -v, --version              - Print the installed version of ZoneMinder
 

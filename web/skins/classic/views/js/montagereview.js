@@ -1131,6 +1131,7 @@ function click_panleft() {
 function click_panright() {
   minTimeSecs = parseInt(minTimeSecs + rangeTimeSecs/2);
   maxTimeSecs = minTimeSecs + rangeTimeSecs - 1;
+  currentTimeSecs += rangeTimeSecs/2;
   clicknav(minTimeSecs, maxTimeSecs, 0);
 }
 // Manage the DOWNLOAD VIDEO button

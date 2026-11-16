@@ -150,8 +150,8 @@ function queryRequest() {
     'Recording' => getFilterSelection('Recording'),
     'Status' => getFilterSelection('Status'),
     'MonitorId' => getFilterSelection('MonitorId'),
-    'MonitorName' => getFilterSelection('MonitorName'),
-    'Source' => getFilterSelection('Source')
+    'MonitorName' => getFilterText('MonitorName'),
+    'Source' => getFilterText('Source')
   );
   // Text filters must be strings; guard against a cookie value that happens to be valid JSON.
   if (is_array($request_filters['MonitorName'])) $request_filters['MonitorName'] = '';

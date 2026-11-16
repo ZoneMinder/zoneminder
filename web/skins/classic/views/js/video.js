@@ -7,11 +7,11 @@ function generateVideoResponse( data, responseText ) {
   $j('#videoProgress').removeClass( 'text-warning' );
   if ( generated ) {
     $j('#videoProgress').addClass( 'text-success' );
-    $j('#videoProgress').text(exportSucceededString);
+    $j('#videoProgress').text(videoGenSuccessString);
     $j( "#videoTable" ).load( fullUrl+ ' #videoTable' );
   } else {
     $j('#videoProgress').addClass( 'text-danger' );
-    $j('#videoProgress').text(exportFailedString);
+    $j('#videoProgress').text(videoGenFailedString);
   }
 }
 

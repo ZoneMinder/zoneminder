@@ -785,9 +785,10 @@ function buildControlCommand($monitor) {
       }
       $ctrlCommand .= ' --preset='.$_REQUEST['preset'];
     } elseif ( $_REQUEST['control'] == 'presetSet' ) {
+      $preset = validInt($_REQUEST['preset']);
       if ( canEdit( 'Control' ) ) {
-        $preset = validInt($_REQUEST['preset']);
-        $newLabel = validJsStr($_REQUEST['newLabel']);
+        // Stored as typed: it is escaped where it is output, and the query is prepared.
+        $newLabel = (isset($_REQUEST['newLabel']) and is_string($_REQUEST['newLabel'])) ? $_REQUEST['newLabel'] : '';
         $row = dbFetchOne(
           'SELECT * FROM `ControlPresets` WHERE `MonitorId` = ? AND `Preset`=?',
           NULL, array($monitor->Id(), $preset));
@@ -800,7 +801,6 @@ function buildControlCommand($monitor) {
               array($monitor->Id(), $preset));
           }
         }
-        $ctrlCommand .= ' --preset='.$preset;
       }
       $ctrlCommand .= ' --preset='.$preset;
     } elseif ( $_REQUEST['control'] == 'moveMap' ) {

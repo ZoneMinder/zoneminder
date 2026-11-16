@@ -666,7 +666,7 @@ function reloadWebSite() {
 
 function updatePresetLabels() {
   var lblNdx = $j('#ctrlPresetForm option:selected').val();
-  $j('#newLabel').val(labels[lblNdx]);
+  $j('#newLabel').val(labels[lblNdx] || '');
 }
 
 

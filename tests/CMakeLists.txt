@@ -80,6 +80,7 @@ set(TEST_SOURCES
   zm_stream_socket_client.cpp
   zm_stream_socket_protocol.cpp
   zm_eventstream_hints.cpp
+  zm_tag_row.cpp
   zm_time.cpp
   zm_user_default_password.cpp
   zm_user_group.cpp

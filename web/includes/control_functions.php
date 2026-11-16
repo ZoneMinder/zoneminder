@@ -791,7 +791,7 @@ function buildControlCommand($monitor) {
         $row = dbFetchOne(
           'SELECT * FROM `ControlPresets` WHERE `MonitorId` = ? AND `Preset`=?',
           NULL, array($monitor->Id(), $preset));
-        if ( $newLabel != $row['Label'] ) {
+        if ( $newLabel != ($row ? $row['Label'] : '') ) {
           if ( $newLabel ) {
             dbQuery('REPLACE INTO `ControlPresets` (`MonitorId`, `Preset`, `Label`) VALUES ( ?, ?, ? )',
               array($monitor->Id(), $preset, $newLabel));

@@ -135,6 +135,10 @@ var zmPanZoom = {
       const nameSpace = '.panzoom_' + params['id'];
       $j(document).off(nameSpace);
       const obj = this.panZoom[params['id']].target;
+      const wheelHandler = this.panZoom[params['id']].wheelHandler;
+      if (wheelHandler && obj.parentElement) {
+        obj.parentElement.removeEventListener('wheel', wheelHandler);
+      }
       // #videoFeed - Event page, #monitorX - Montage & Watch page
       const el = document.getElementById('videoFeed');
       const wrapper = el ? el : document.getElementById('monitor'+params['id']);

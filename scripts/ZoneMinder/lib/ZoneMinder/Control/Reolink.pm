@@ -80,7 +80,7 @@ sub open
     #
     # Extract the username/password host/port from ControlAddress
     #
-    if( $self->{Monitor}{ControlAddress} =~ /^([^:]+):([^@]+)@(.+)/ ) 
+    if( $self->{Monitor}{ControlAddress} =~ /^([^:]+):(.+)@(.+)/ ) 
     { # user:pass@host...
       $username = $1;
       $password = $2;

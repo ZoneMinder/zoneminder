@@ -250,7 +250,7 @@ sub presetSet
     my $self = shift;
     my $params = shift;
     my $preset = $self->getParam( $params, 'preset' );
-	my $presetCmd = 30 + ($preset*2);
+	my $presetCmd = 30 + (($preset-1)*2);
     Debug( "Set Preset $preset with cmd $presetCmd" );
     my $cmd = "decoder_control.cgi?command=$presetCmd";
     $self->sendCmd( $cmd );
@@ -262,7 +262,7 @@ sub presetGoto
     my $self = shift;
     my $params = shift;
     my $preset = $self->getParam( $params, 'preset' );
-    my $presetCmd = 31 + ($preset*2);
+    my $presetCmd = 31 + (($preset-1)*2);
     Debug( "Goto Preset $preset with cmd $presetCmd" );
     my $cmd = "decoder_control.cgi?command=$presetCmd";
     $self->sendCmd( $cmd );

@@ -358,11 +358,11 @@ function probeNetwork() {
   }
   foreach ( dbFetchAll("SELECT `Id`, `Name`, `Path` FROM `Monitors` WHERE `Type` = 'Ffmpeg' ORDER BY `Path`") as $monitor ) {
     $url_parts = parse_url($monitor['Path']);
-    if ($url_parts !== false) {
+    if (!empty($url_parts['host'])) {
       ZM\Debug("Ffmpeg monitor {$url_parts['host']} = {$monitor['Id']} {$monitor['Name']}");
       $monitors[gethostbyname($url_parts['host'])] = $monitor;
     } else {
-      ZM\Debug('Unable to parse '.ZM\urlForLog($monitor['Path']));
+      ZM\Debug('Unable to find a host in '.ZM\urlForLog($monitor['Path']));
     }
   }
 

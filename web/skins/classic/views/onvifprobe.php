@@ -200,7 +200,7 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
     }
   }
 
-  if (count($cameras) <= 0)
+  if (count($cameras) <= 1)
     $cameras[0] = translate('NoDetectedCameras');
 ?>
     <h2><?php echo translate('MonitorProbe') ?></h2>
@@ -304,7 +304,7 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
     $profiles[$sourceDesc] = $sourceString;
   }
 
-  if (count($profiles) <= 0)
+  if (count($profiles) <= 1)
     $profiles[0] = translate('NoDetectedProfiles');
 ?>
     <div id="header">

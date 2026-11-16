@@ -76,6 +76,23 @@ TEST_CASE("zm_parse_options ignores a trailing comma and a movflags list", "[ffm
   REQUIRE(o["movflags"] == "frag_keyframe");
 }
 
+TEST_CASE("zm_parse_options treats '#' as a comment to the end of the line", "[ffmpeg]") {
+  int ret = -1;
+  auto o = parse("# Lines beginning with # are a comment\n"
+                 "# For changing quality, use the crf option\n"
+                 "  # 1 is best, 51 is worst quality\n"
+                 "#g=5\n"
+                 "# set crf=23 here\n"
+                 "crf=30 # balanced\n"
+                 "preset=fast", &ret);
+  REQUIRE(ret == 0);
+  REQUIRE(o.size() == 2);
+  REQUIRE(o.count("g") == 0);
+  REQUIRE(o.count("set crf") == 0);
+  REQUIRE(o["crf"] == "30");
+  REQUIRE(o["preset"] == "fast");
+}
+
 TEST_CASE("zm_parse_options on empty text gives nothing", "[ffmpeg]") {
   REQUIRE(parse("").empty());
   REQUIRE(parse("\n\n,#").empty());

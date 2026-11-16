@@ -494,10 +494,19 @@ static enum AVPixelFormat find_fmt_by_hw_type(const enum AVHWDeviceType type) {
 
 int zm_parse_options(AVDictionary **pm, const std::string &options, const char *separators) {
   const std::string key_terminators = std::string("=") + separators;
+  const bool hash_comments = strchr(separators, '#') != nullptr;
   const char *p = options.c_str();
   int result = 0;
 
   while (*p) {
+    if (hash_comments) {
+      p += strspn(p, " \t\r");
+      if (*p == '#') {
+        p += strcspn(p, "\n");
+        if (*p) p++;
+        continue;
+      }
+    }
     char *key = av_get_token(&p, key_terminators.c_str());
     if (!key) return AVERROR(ENOMEM);
     char *value = nullptr;
@@ -526,6 +535,7 @@ int zm_parse_options(AVDictionary **pm, const std::string &options, const char *
     }
     av_free(key);
     av_free(value);
+    if (hash_comments and *p == '#') p += strcspn(p, "\n");
     if (*p) p++;
   }
   return result;

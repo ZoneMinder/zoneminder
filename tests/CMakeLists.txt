@@ -82,6 +82,7 @@ set(TEST_SOURCES
   zm_time.cpp
   zm_user_default_password.cpp
   zm_user_group.cpp
+  zm_remote_camera.cpp
   zm_utils.cpp
   zm_videostore_m3u8.cpp
   zm_vector2.cpp

@@ -3172,15 +3172,26 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadLocalMonitors
 }
 #endif // ZM_HAS_V4L2
 
+std::string Monitor::RemoteMonitorFilter(const char *protocol, const char *host, const char *port, const char *path,
+                                         const std::function<std::string(const std::string &)> &escape) {
+  std::string where;
+  if (protocol and protocol[0])
+    where += " AND `Protocol` = '" + escape(protocol) + "'";
+  if (host and host[0])
+    where += " AND `Host` = '" + escape(host) + "'";
+  if (port and port[0])
+    where += " AND `Port` = '" + escape(port) + "'";
+  if (path and path[0])
+    where += " AND `Path` = '" + escape(path) + "'";
+  return where;
+}
+
 std::vector<std::shared_ptr<Monitor>> Monitor::LoadRemoteMonitors
 (const char *protocol, const char *host, const char *port, const char *path, Purpose purpose) {
   std::string where = "`Capturing` != 'None' AND `Type` = 'Remote'";
   if (staticConfig.SERVER_ID)
     where += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
-  if (protocol)
-    where += stringtf(" AND `Protocol` = '%s' AND `Host` = '%s' AND `Port` = '%s' AND `Path` = '%s'",
-                      zmDbEscapeString(protocol).c_str(), zmDbEscapeString(host).c_str(),
-                      zmDbEscapeString(port).c_str(), zmDbEscapeString(path).c_str());
+  where += RemoteMonitorFilter(protocol, host, port, path, zmDbEscapeString);
   return LoadMonitors(where, purpose);
 }
 

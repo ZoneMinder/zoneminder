@@ -124,7 +124,7 @@ if (canEdit('Monitors')) {
   case 'probe' :
   {
     $available_streams = array();
-    $url = isset($_REQUEST['url']) ? $_REQUEST['url'] : '';
+    $url = (isset($_REQUEST['url']) and is_string($_REQUEST['url'])) ? $_REQUEST['url'] : '';
     $url_bits = null;
     if ( preg_match('/(\d+)\.(\d+)\.(\d+)\.(\d+)/', $url) ) {
       $url_bits = array('host'=>$url);
@@ -170,7 +170,7 @@ if (canEdit('Monitors')) {
 
     $available_streams = array();
     $row = 0;
-    while ( ($data = fgetcsv($handle, 1000, ',')) !== FALSE ) {
+    while ( ($data = fgetcsv($handle, 0, ',')) !== FALSE ) {
       $row ++;
       if ( count($data) < 2 ) {
         ZM\Info("Skipping line $row, expected at least Name,URL columns");

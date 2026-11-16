@@ -36,8 +36,9 @@ $statusData = array(
     'table' => 'Monitors',
     'limit' => 1,
     'elements' => array(
-      'MonitorCount' => array( 'sql' => 'count(*)' ),
-      'ActiveMonitorCount' => array( 'sql' => 'count(if(`Capturing` != \'None\',1,NULL))' ),
+      // Deleted monitors keep their row, so they must not be counted
+      'MonitorCount' => array( 'sql' => 'count(if(`Deleted` = 0,1,NULL))' ),
+      'ActiveMonitorCount' => array( 'sql' => 'count(if(`Deleted` = 0 and `Capturing` != \'None\',1,NULL))' ),
       'State' => array( 'func' => function() { return daemonCheck() ? translate('Running') : translate('Stopped'); } ),
       'Load' => array( 'func' => function() { return getLoad(); } ),
       'Disk' => array( 'func' => function() { return getDiskPercent(); } ),
@@ -365,7 +366,7 @@ function collectData() {
     }
     if ( $groupSql )
       $sql .= ' GROUP BY '.join(',', array_unique($groupSql));
-    if ( !empty($_REQUEST['sort']) ) {
+    if ( !empty($_REQUEST['sort']) && is_string($_REQUEST['sort']) ) {
       $sort_fields = explode(',', $_REQUEST['sort']);
       $order_clauses = array();
       foreach ( $sort_fields as $sort_field ) {

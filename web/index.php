@@ -289,6 +289,11 @@ if ( $action and $view and !$request ) {
 }
 if ($error_message) ZM\Warning($error_message);
 
+# Check if already authenticated (e.g. Apache REMOTE_USER)
+if (ZM_OPT_USE_AUTH and ($view == 'login') and ($user instanceof ZM\User)) {
+  $redirect = '?view='.getHomeView();
+}
+
 if ( isset($_REQUEST['redirect']) ) {
   $redirect = '?view='.detaintPath($_REQUEST['redirect']);
 }

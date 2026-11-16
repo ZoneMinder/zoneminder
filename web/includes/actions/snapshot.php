@@ -84,6 +84,12 @@ if ( $action == 'create' ) {
 // Event scope actions, view permissions only required
 if ( isset($_REQUEST['id']) ) {
   $snapshot = new ZM\Snapshot(validCardinal($_REQUEST['id']));
+  if ( !$snapshot->Id() ) {
+    // Saving an object that failed to load would insert a new row
+    ZM\Warning('Snapshot '.$_REQUEST['id'].' not found');
+    $redirect = '?view=snapshots';
+    return;
+  }
   if ( ($action == 'save') ) {
     if ( canEdit('Events') or $snapshot->CreatedBy() == $user->Id() ) {
 

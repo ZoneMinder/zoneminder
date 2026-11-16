@@ -73,7 +73,8 @@ $eventsSql = 'SELECT *,
   WHERE 1 > 0 
 ';
 if ( count($user->unviewableMonitorIds()) ) {
-  $eventsSql .= ' AND MonitorId IN ('.implode(',', $user->viewableMonitorIds()).')';
+  // IN () is a syntax error, so a user who can view no monitor matches no event
+  $eventsSql .= ' AND MonitorId IN ('.(count($user->viewableMonitorIds()) ? implode(',', array_map('intval', $user->viewableMonitorIds())) : '0').')';
 }
 if ( count($selected_monitor_ids) ) {
   $eventsSql .= ' AND MonitorId IN ('.implode(',', array_map('intval', $selected_monitor_ids)).')';

@@ -1282,6 +1282,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // for the packets it decodes; Capture then leaves the flag to it, so the
   // two threads don't overwrite each other's value. Pure, for tests.
   static bool DecoderChecksSignal(DecodingOption decoding, int signal_check_points, bool has_viewers);
+  // WHERE fragment (starting with " AND") for zmc -H: only the parts given on the
+  // command line are matched. Pure, for tests.
+  static std::string RemoteMonitorFilter(const char *protocol, const char *host, const char *port, const char *path,
+                                         const std::function<std::string(const std::string &)> &escape);
   bool Analyse();
   bool setupConvertContext(const AVFrame *input_frame, const Image *image);
   // Write capture_image into image_buffer[index] without conversion and

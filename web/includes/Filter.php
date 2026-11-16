@@ -224,6 +224,45 @@ class Filter extends ZM_Object {
     return implode(', ', $out);
   }
 
+  // The SQL for the filterdebug modal, laid out as ZoneMinder::Filter::Sql
+  // builds it for zmfilter: the terms in one parenthesised group, then the
+  // conditions the Auto* actions add, then the lock exclusion.
+  public function debugSql() {
+    $sql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultScale FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId)';
+    $conditions = array();
+    $terms_sql = trim($this->sql());
+    if ($terms_sql !== '') $conditions[] = '( '.$terms_sql.' )';
+
+    $auto_terms = array();
+    foreach (array(
+      'AutoArchive'   => 'E.Archived = 0',
+      'AutoUnarchive' => 'E.Archived = 1',
+      'AutoVideo'     => 'E.Videoed = 0',
+      'AutoUpload'    => 'E.Uploaded = 0',
+      'AutoEmail'     => 'E.Emailed = 0',
+      'AutoMessage'   => 'E.Messaged = 0',
+      'AutoExecute'   => 'E.Executed = 0',
+    ) as $field => $term) {
+      if ($this->$field()) $auto_terms[] = $term;
+    }
+    if (count($auto_terms)) $conditions[] = '( '.implode(' or ', $auto_terms).' )';
+
+    if ($this->LockRows() and $this->skip_locked())
+      $conditions[] = 'NOT EXISTS (SELECT 1 FROM Events_Lock AS EL WHERE EL.EventId=E.Id AND EL.ExpiresAt>NOW())';
+
+    if (count($conditions)) $sql .= "\n    WHERE ".implode("\n    AND ", $conditions);
+
+    // Id and Name are columns of both Events and Monitors, so they have to be qualified.
+    $order = self::buildSortSql($this->sort_field(), $this->sort_asc() ? 'ASC' : 'DESC', function($col) {
+      if ($col == 'MonitorName') return 'M.Name';
+      if ($col == 'Tags') return '(SELECT GROUP_CONCAT(Name) FROM Tags WHERE Id IN (SELECT TagId FROM Events_Tags WHERE Events_Tags.EventId=E.Id))';
+      return 'E.'.$col;
+    });
+    if ($order !== '') $sql .= ' ORDER BY '.$order;
+    if ($this->limit()) $sql .= ' LIMIT '.(int)$this->limit();
+    return $sql;
+  }
+
   # If no storage areas are specified in the terms, then return all
   public function get_StorageAreas() {
     $storage_ids = array();

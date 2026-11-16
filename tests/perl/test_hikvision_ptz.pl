@@ -22,13 +22,16 @@ use lib "$FindBin::Bin/../../scripts/ZoneMinder/lib";
 BEGIN {
   # Optional CPAN modules; only the config/firmware helpers use them.
   if (!eval { require URI::Encode; 1 }) {
-    $INC{'URI/Encode.pm'} = 1;
-    package URI::Encode;
-    sub uri_encode { return $_[0]; }
+    # Not installed here: define a pass-through at run time, so the stub
+    # cannot collide with the real module where it is installed.
+    delete $INC{'URI/Encode.pm'};
+    $INC{'URI/Encode.pm'} = __FILE__;
+    no strict 'refs';
+    *{'URI::Encode::uri_encode'} = sub { return $_[0]; };
   }
   if (!eval { require XML::LibXML; 1 }) {
-    $INC{'XML/LibXML.pm'} = 1;
-    package XML::LibXML;
+    delete $INC{'XML/LibXML.pm'};
+    $INC{'XML/LibXML.pm'} = __FILE__;
   }
 }
 

@@ -119,16 +119,16 @@ download
      Specify events by single id or an array of events ids.
    * filter:
      A url-encoded representation of a filter to use to get a list of eids.
-   * mergevents:
-     Whether to leave each event as a single mp4, or merge events for each monitor into a single mp4 for that monitor.
    * connkey:
      a seimi-unique value to uniquely identify this request from others. Typically ZM uses 6 decimal digits generated randomly.
+
+   The events of each monitor are always merged into a single mp4 for that monitor, or one mp4 per set of events whose video streams match.
 
    For example, a request could look like:
 
 ::
 
-   curl http://server/zm/index.php?view=request&request=event&action=download&connkey=198605&exportVideo=1&mergeevents=1&eids%5B%5D=15433324&eids%5B%5D=15433318&exportFileName=zmDownload-198605&exportFormat=zip
+   curl 'http://server/zm/index.php?view=request&request=event&action=download&connkey=198605&eids%5B%5D=15433324&eids%5B%5D=15433318&exportFileName=zmDownload-198605&exportFormat=zip'
 
 
 On success, the response will look like:
@@ -137,7 +137,7 @@ On success, the response will look like:
 
   {
     "result": "Ok",
-    "exportFile": "?view=archive&type=zip&file=zmDownload-198605.zip",
+    "exportFile": "?view=download&type=zip&file=zmDownload-198605.zip",
     "exportFormat": "zip",
     "connkey": "198605"
   }

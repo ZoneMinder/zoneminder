@@ -713,15 +713,15 @@ sub substituteTags {
 # First we'd better check what we need to get
 # We have a filter and an event, do we need any more
 # monitor information?
-  my $need_monitor = $text =~ /%(?:MN|MET|MEH|MED|MEW|MEN|MEA)%/;
-  my $need_summary = $text =~ /%(?:MET|MEH|MED|MEW|MEN|MEA)%/;
+  my $need_monitor = $text =~ /%(?:MN|MET|MEH|MED|MEW|MEM|MEA)%/;
+  my $need_summary = $text =~ /%(?:MET|MEH|MED|MEW|MEM|MEA)%/;
 
   my $Monitor = $Event->Monitor() if $Event and $need_monitor;
   my $Summary = $Monitor->Event_Summary() if $Monitor and $need_summary;
 
   my $html = exists $$options{html} ? $$options{html} : (($text =~ /<html/ ? !undef : undef));
 # Do we need the image information too?
-  my $need_images = $text =~ /%(?:EPI1|EPIM|EPISNAP|EI1|EIM|EI1A|EIMA|EISNAP|EIMOD|EIMODG)%/;
+  my $need_images = $text =~ /%(?:EPF1|EPFM|EPI1|EPIM|EPISNAP|EI1|EIM|EI1A|EIMA|EISNAP|EIMOD|EIMODG)%/;
   my $first_alarm_frame = '';
   my $max_alarm_frame = '';
   my $max_alarm_score = 0;
@@ -860,7 +860,7 @@ sub substituteTags {
         if ($text =~ /%EI1%/g) {
           my $path = generateImage($Event, $first_alarm_frame);
           if (-e $path) {
-            my $filename = fileparse($path);
+            my $filename = $Event->Id().'_'.fileparse($path);
             my $attachment =  { type=>'image/jpeg', path=>$path, content_id=>URI::Encode::uri_encode($filename) };
             push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
             if ($html) {
@@ -877,7 +877,7 @@ sub substituteTags {
         if ($text =~ /%EIM%/g) {
           my $path = generateImage($Event, $max_alarm_frame);
           if (-e $path) {
-            my $filename = fileparse($path);
+            my $filename = $Event->Id().'_'.fileparse($path);
             my $attachment =  { type=>'image/jpeg', path=>$path, content_id=>URI::Encode::uri_encode($filename) };
             push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
             if ($html) {
@@ -895,7 +895,7 @@ sub substituteTags {
         if ($text =~ /%EI1A%/g) {
           my $path = generateImage($Event, $first_alarm_frame, 'analyse');
           if (-e $path) {
-            my $filename = fileparse($path);
+            my $filename = $Event->Id().'_'.fileparse($path);
             my $attachment = { type=>'image/jpeg', path=>$path, content_id=>URI::Encode::uri_encode($filename) };
             push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
             if ($html) {
@@ -913,7 +913,7 @@ sub substituteTags {
           # Don't attach the same image twice
           my $path = generateImage($Event, $max_alarm_frame, 'analyse');
           if (-e $path) {
-            my $filename = fileparse($path);
+            my $filename = $Event->Id().'_'.fileparse($path);
             my $attachment = { type=>'image/jpeg', path=>$path, content_id=>URI::Encode::uri_encode($filename) };
             push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
             if ($html) {
@@ -962,7 +962,9 @@ sub substituteTags {
 
 sub sendSummaryEmail {
   my $filter = shift;
-  my @events = map { new ZoneMinder::Event($$_{Id}, $_) } @_;
+  # An event can come back for another action (a failed video, say) after it was emailed
+  my @events = grep { !$$_{Emailed} } map { new ZoneMinder::Event($$_{Id}, $_) } @_;
+  return 0 if !@events;
 
   if (!$Config{ZM_FROM_EMAIL}) {
     Error('No from email address defined, not sending email');
@@ -987,7 +989,7 @@ sub sendSummaryEmail {
     $body .= substituteTags($summary_part, $filter, $event, \@attachments, {html=>$html});
   }
   return 0 if !$body;
-  $body .= $body_tail;
+  $body .= substituteTags($body_tail, $filter, undef, \@attachments, {html=>$html}) if defined $body_tail;
   Debug("Sending notification email '$subject'");
   if (sendTheEmail($filter, $subject, $body, @attachments)) {
     foreach my $event (@events) {

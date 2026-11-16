@@ -42,6 +42,7 @@ set(TEST_SOURCES
   zm_monitor_capture_failure.cpp
   zm_monitor_shared_value.cpp
   zm_monitor_check_action.cpp
+  zmu_utils.cpp
   zm_monitor_ondemand.cpp
   zm_monitor_privacy.cpp
   zm_monitorlink_expression.cpp

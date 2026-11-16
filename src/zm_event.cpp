@@ -357,7 +357,7 @@ Event::~Event() {
   }
 
   if (storage_id) {
-    sql = stringtf("UPDATE Storage SET DiskSpace = DiskSpace + %" PRIu64 " WHERE Id=%u", video_size, storage_id);
+    sql = stringtf("UPDATE Storage SET DiskSpace = COALESCE(DiskSpace,0) + %" PRIu64 " WHERE Id=%u", video_size, storage_id);
     dbQueue.push(std::move(sql));
   }
 
@@ -738,7 +738,7 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
                           alarm_frames.load(),
                           tot_score,
                           static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0),
-                          max_score,
+                          EventMaxScoreForDb(max_score),
                           max_score_frame_id,
                           id);
       dbQueue.push(std::move(sql));

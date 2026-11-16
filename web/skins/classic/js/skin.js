@@ -997,6 +997,16 @@ function setCookie(name, value, seconds) {
 /*
 * If JSON is stored in cookies, the function will return an array or object of values.
 */
+// Select value in a <select>, adding an option for it when the list has none.
+// With no matching option jQuery leaves nothing selected and val() is null.
+function setSelectValue(select, value, text) {
+  select.val(value);
+  if (select.val() === null) {
+    select.append($j('<option></option>').val(value).text(text === undefined ? value : text));
+    select.val(value);
+  }
+}
+
 function getCookie(name) {
   var nameEQ = name + "=";
   var result = null;

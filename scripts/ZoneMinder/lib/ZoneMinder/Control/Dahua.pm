@@ -484,7 +484,7 @@ sub reset
 {
     my $self = shift;
     Debug( "Camera Reset" );
-    $self->_sendPtzCommand("Reset", 0, 0, 0, 0);
+    return $self->reboot();
 }
 
 sub reboot

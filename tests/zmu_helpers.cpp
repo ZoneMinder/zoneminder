@@ -17,7 +17,10 @@
 
 #include "zm_catch2.h"
 
-#include "zmu_utils.h"
+// The helpers live in zmu.cpp; build it here with its main() renamed.
+#define main zmu_main
+#include "zmu.cpp"
+#undef main
 #include <sstream>
 #include <vector>
 

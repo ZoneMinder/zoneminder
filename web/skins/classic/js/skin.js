@@ -557,6 +557,9 @@ function formatSeconds(seconds, round='') {
 
 function secsToTime(seconds, round='') {
   let timeString = "--";
+  // Round before splitting into minutes and seconds, otherwise 119.97 at one
+  // decimal place becomes "1:60.0" and 69.996 at two becomes "1:010.00".
+  if (round) seconds = Number(seconds.toFixed(round));
   if ( seconds < 60 ) {
     timeString = (round) ? seconds.toFixed(round) : seconds.toString(10);
   } else if ( seconds < 60*60 ) {

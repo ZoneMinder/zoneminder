@@ -212,9 +212,11 @@ function buildControlCommand($monitor) {
               'DownRight' => 'UpRight',
             ),
           );
-          $new_dirn = $conversions[$monitor->Orientation()][$dirn];
-          $_REQUEST['control'] = preg_replace( "/$dirn\$/", "$new_dirn", $_REQUEST['control'] );
-          $dirn = $new_dirn;
+          if ( isset($conversions[$monitor->Orientation()][$dirn]) ) {
+            $new_dirn = $conversions[$monitor->Orientation()][$dirn];
+            $_REQUEST['control'] = preg_replace( "/$dirn\$/", "$new_dirn", $_REQUEST['control'] );
+            $dirn = $new_dirn;
+          }
         }
 
         if ( $control->HasPanSpeed() && $xFactor ) {
@@ -712,9 +714,11 @@ function buildControlCommand($monitor) {
                 'DownRight' => 'UpRight',
               ),
             );
-            $new_dirn = $conversions[$monitor->Orientation()][$dirn];
-            $_REQUEST['control'] = preg_replace( "/$dirn\$/", "$new_dirn", $_REQUEST['control'] );
-            $dirn = $new_dirn;
+            if ( isset($conversions[$monitor->Orientation()][$dirn]) ) {
+              $new_dirn = $conversions[$monitor->Orientation()][$dirn];
+              $_REQUEST['control'] = preg_replace( "/$dirn\$/", "$new_dirn", $_REQUEST['control'] );
+              $dirn = $new_dirn;
+            }
           }
 
           if ( $control->HasPanSpeed() && $xFactor ) {

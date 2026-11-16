@@ -82,7 +82,7 @@ sub open {
     if ($self->{Monitor}{User}) {
       ( $USERNAME, $PASSWORD ) = ($self->{Monitor}{User}, $self->{Monitor}{Pass});
     } else {
-      ( $USERNAME, $PASSWORD ) = split(/:/, $uri->userinfo()) if $uri->userinfo();
+      ( $USERNAME, $PASSWORD ) = split(/:/, $uri->userinfo(), 2) if $uri->userinfo();
     }
 
     $ADDRESS = $uri->host();

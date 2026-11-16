@@ -163,9 +163,9 @@ if ( count($user->unviewableMonitorIds()) ) {
 }
 
 if ( isset($_REQUEST['range']) ) $range = validHtmlStr($_REQUEST['range']);
-if ( isset($_REQUEST['minTime']) ) $minTime = validHtmlStr($_REQUEST['minTime']);
-if ( isset($_REQUEST['midTime']) ) $midTime = validHtmlStr($_REQUEST['midTime']);
-if ( isset($_REQUEST['maxTime']) ) $maxTime = validHtmlStr($_REQUEST['maxTime']);
+if ( isset($_REQUEST['minTime']) && validTimelineTime($_REQUEST['minTime']) ) $minTime = validHtmlStr($_REQUEST['minTime']);
+if ( isset($_REQUEST['midTime']) && validTimelineTime($_REQUEST['midTime']) ) $midTime = validHtmlStr($_REQUEST['midTime']);
+if ( isset($_REQUEST['maxTime']) && validTimelineTime($_REQUEST['maxTime']) ) $maxTime = validHtmlStr($_REQUEST['maxTime']);
 
 if ( isset($range) and validInt($range) ) {
   $halfRange = (int)($range/2);
@@ -209,6 +209,8 @@ if ( isset($_REQUEST['filter']) ) {
 }
 $tempMinTime = $tempMaxTime = $tempExpandable = false;
 extractDatetimeRange($tree, $tempMinTime, $tempMaxTime, $tempExpandable);
+$tempMinTime = validTimelineTime($tempMinTime);
+$tempMaxTime = validTimelineTime($tempMaxTime);
 
 $filterSql = isset($filter) ? $filter->sql() : '';
 if ( $filterSql ) {
@@ -233,6 +235,9 @@ if (!isset($minTime) || !isset($maxTime)) {
     $maxTime = $tempMaxTime;
   if ( empty($maxTime) )
     $maxTime = 'now';
+  // No events and no usable filter range: an empty minTime would parse as 1970
+  if ( empty($minTime) )
+    $minTime = $maxTime;
 
   $minTimeT = strtotime($minTime);
   $maxTimeT = strtotime($maxTime);

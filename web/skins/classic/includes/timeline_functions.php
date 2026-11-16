@@ -21,6 +21,12 @@ function getDateScale($scales, $range, $minLines, $maxLines) {
 	return $scale;
 }
 
+// A time from the request, or null when strtotime() cannot parse it, so a garbage
+// value is ignored instead of becoming 1970.
+function validTimelineTime($time) {
+	return (is_string($time) && strtotime($time) !== false) ? $time : null;
+}
+
 function getYScale($range, $minLines, $maxLines) {
 	$scale['range'] = $range;
 	$scale['divisor'] = 1;

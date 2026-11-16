@@ -44,11 +44,11 @@ Enabling Authentication
 Authentication (**OPT_USE_AUTH**) is set on the first-run page of a new install (see `First Run`_). An install upgraded from an older version keeps the setting it had, and one set up without a login has it off. If yours has authentication off, we strongly recommend turning it on: with it off, anyone who can reach ZoneMinder can do everything, and so can any web page opened in a browser on the same network. To turn it on:
 
 * Click on the :guilabel:`Options` link in the top bar of the web interface.
-* You will now be presented with a sidebar full of Option tabs. Click on the :guilabel:`System` tab and scroll down to the section containing authentication parameters.
+* You will now be presented with a sidebar full of Option tabs. Click on the :guilabel:`Authentication` tab.
 
 .. figure:: images/getting-started-enable-auth-1.png
 
-    Authentication Parameters in System Tab
+    Authentication Parameters in Authentication Tab
 
 * **OPT_USE_AUTH:** Enable by checking the box. This enables user authentication.
 * **AUTH_HASH_SECRET:** Installing or upgrading with ``zmupdate.pl -f`` (the packages do this) sets a random secret. If it still reads ``...Change me to something unique...``, enter a random string.

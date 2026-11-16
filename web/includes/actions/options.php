@@ -77,7 +77,7 @@ if ( $action == 'delete' ) {
       dbQuery('DELETE FROM Users WHERE Id = ?', array($markUid));
       ZM\AuditAction('delete', 'user', $markUid, '');
     }
-    if ($markUid == $user->Id()) {
+    if (in_array($user->Id(), $_REQUEST['markUids'])) {
       userLogout();
       $redirect = '?view=login';
     } else {

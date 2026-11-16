@@ -761,7 +761,7 @@ if (count($localMethods)>1) {
         </li>
         <li class="Port">
           <label><?php echo translate('RemoteHostPort') ?></label>
-          <input type="number" name="newMonitor[Port]" value="<?php echo validHtmlStr($monitor->Port()) ?>" step="1" min="1" max="65536" />
+          <input type="number" name="newMonitor[Port]" value="<?php echo validHtmlStr($monitor->Port()) ?>" step="1" min="1" max="65535" />
         </li>
         <li class="User">
           <label><?php echo translate('Username') ?></label>

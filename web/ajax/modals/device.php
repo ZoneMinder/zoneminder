@@ -2,9 +2,12 @@
 
 if ( !canEdit( 'Devices' ) ) return;
 
+$newDevice = null;
 if ( !empty($_REQUEST['did']) ) {
     $newDevice = dbFetchOne( 'SELECT * FROM Devices WHERE Id = ?', NULL, array($_REQUEST['did']) );
-} else {
+}
+# A device deleted since the list was drawn is not found, so offer a new one.
+if ( !$newDevice ) {
     $newDevice = array(
         "Id" => "",
         "Name" => "New Device",

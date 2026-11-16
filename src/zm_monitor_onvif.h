@@ -177,6 +177,8 @@ class ONVIF {
   bool InitSoapContext();
   void Subscribe();
   void WaitForMessage();
+  void ProcessPullResponse(_tev__PullMessagesResponse &tev__PullMessagesResponse);
+  void ClearAlarms();
   void SetNoteSet(Event::StringSet &noteSet);
   void enable_soap_logging(const std::string &log_path);
   void disable_soap_logging();

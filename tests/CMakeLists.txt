@@ -45,6 +45,7 @@ set(TEST_SOURCES
   zm_onvif_poll_wait.cpp
   zm_onvif_renewal.cpp
   zm_onvif_alarm_termination.cpp
+  zm_onvif_resubscribe.cpp
   zm_rgb_luma.cpp
   zm_poly.cpp
   zm_poll_thread.cpp

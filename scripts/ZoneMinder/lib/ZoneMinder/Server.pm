@@ -277,8 +277,8 @@ sub Url {
   if ( !$port ) {
     $port = $this->Port();
   }
-  if ( $this->Protocol() == 'https' and $port == 443 ) {
-  } elsif ( $this->Protocol() == 'http' and $port == 80 ) {
+  if ( $this->Protocol() eq 'https' and $port == 443 ) {
+  } elsif ( $this->Protocol() eq 'http' and $port == 80 ) {
   } else {
     $url .= ':'.$port;
   }

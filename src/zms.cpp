@@ -166,6 +166,8 @@ int main(int argc, const char *argv[], char **envp) {
 
   for ( int p = 0; p < parm_no; p++ ) {
     char *name = strtok(parms[p], "=");
+    if ( !name )
+      continue;
     char const *value = strtok(nullptr, "=");
     if ( !value )
       value = "";

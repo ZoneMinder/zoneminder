@@ -280,6 +280,13 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
       }
       return -1;
     }
+    if (packet->stream_index != mAudioStreamId) {
+      // The secondary input is only read for its audio; its video is the same
+      // picture as the primary's and must not be queued as a second video.
+      Debug(4, "Dropping packet for stream %d from secondary input, audio is stream %d",
+            packet->stream_index, mAudioStreamId);
+      return 0;
+    }
   } else {
     formatContextPtr = mFormatContext;
     Debug(4, "Using video input because %" PRId64 " >= %" PRId64,
@@ -469,6 +476,10 @@ int FfmpegCamera::OpenFfmpeg() {
   mLoopVideoOffset = 0;
   mLoopAudioOffset = 0;
 
+  // What ffmpeg is given. For v4l2 it is the path without the scheme, which
+  // must not be written back to mPath or the next prime no longer sees v4l2.
+  std::string openPath = mPath;
+
   // Set transport method as specified by method field, rtpUni is default
   std::string protocol = mPath.substr(0, 4);
   protocol = StringToUpper(protocol);
@@ -495,7 +506,7 @@ int FfmpegCamera::OpenFfmpeg() {
       Error("Cannot find v4l2 input format");
       return -1;
     }
-    mPath = mPath.substr(7);
+    openPath = mPath.substr(7);
   }  // end if RTSP
 
   Debug(1, "Calling avformat_open_input for %s", mMaskedPath.c_str());
@@ -512,10 +523,10 @@ int FfmpegCamera::OpenFfmpeg() {
 
   if (mUser.length() > 0) {
     try {
-      Url url(mPath);
+      Url url(openPath);
       if (url.user_info().empty()) {
         url.user_info(mUser + ":" + mPass);
-        mPath = url.str();
+        openPath = url.str();
         Debug(1, "Rebuilt URI with encoded parameters: '%s'", mMaskedPath.c_str());
       }
     } catch (const Url::parse_error &e) {
@@ -523,7 +534,7 @@ int FfmpegCamera::OpenFfmpeg() {
     }
   }
 
-  ret = avformat_open_input(&mFormatContext, mPath.c_str(), input_format, &opts);
+  ret = avformat_open_input(&mFormatContext, openPath.c_str(), input_format, &opts);
   if (ret != 0) {
     logPrintf(Logger::ERROR + monitor->Importance(),
               "Unable to open input %s due to: %s", mMaskedPath.c_str(),

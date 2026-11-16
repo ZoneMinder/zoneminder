@@ -1485,9 +1485,11 @@ function limitPoints(&$points, $min_x, $min_y, $max_x, $max_y) {
   } // end foreach point
 } // end function limitPoints( $points, $min_x, $min_y, $max_x, $max_y )
 
-function convertPixelPointsToPercent(&$points, $width, $height) {
+// $force is for coordinates known to be pixels (no decimal point, as zmc reads them),
+// which cannot be told from percentages by their values when all are 100 or less.
+function convertPixelPointsToPercent(&$points, $width, $height, $force=false) {
   if (!$width || !$height) return false;
-  $isPixel = false;
+  $isPixel = $force;
   foreach ($points as $point) {
     if ($point['x'] > 100 || $point['y'] > 100) {
       $isPixel = true;
@@ -1502,6 +1504,17 @@ function convertPixelPointsToPercent(&$points, $width, $height) {
     unset($point);
   }
   return $isPixel;
+}
+
+// Thresholds are shown as percentages of the zone area. Those of a legacy pixel
+// zone are pixel counts whatever their size; otherwise a value over 100 is one.
+function convertZoneThresholdsToPercent(&$zone, $zonePixelArea, $legacyPixels=false) {
+  if ($zonePixelArea <= 0) return;
+  foreach (array('MinAlarmPixels', 'MaxAlarmPixels', 'MinFilterPixels', 'MaxFilterPixels', 'MinBlobPixels', 'MaxBlobPixels') as $field) {
+    if (isset($zone[$field]) && $zone[$field] !== '' && ($legacyPixels || $zone[$field] > 100)) {
+      $zone[$field] = min(100, round($zone[$field] / $zonePixelArea * 100, 2));
+    }
+  }
 }
 
 function scalePoints(&$points, $scale) {

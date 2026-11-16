@@ -70,7 +70,7 @@ echo getNavBarHTML();
       $row['Points'] = coordsToPoints($row['Coords']);
       # Percent coordinates are always written with decimals; without any they are pixels
       if (strpos($row['Coords'], '.') === false) {
-        convertPixelPointsToPercent($row['Points'], $monitor->ViewWidth(), $monitor->ViewHeight());
+        convertPixelPointsToPercent($row['Points'], $monitor->ViewWidth(), $monitor->ViewHeight(), true);
       }
 
       $row['OutOfBounds'] = false;

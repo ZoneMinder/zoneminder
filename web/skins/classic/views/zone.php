@@ -95,7 +95,9 @@ if ( !isset($zone) ) {
 } # end if new Zone
 
 # Auto-detect pixel coordinates and convert to percentages
-convertPixelPointsToPercent($zone['Points'], $monitor->ViewWidth(), $monitor->ViewHeight());
+# Coordinates without a decimal point are pixels, as zmc reads them
+$legacyPixels = strpos($zone['Coords'], '.') === false;
+convertPixelPointsToPercent($zone['Points'], $monitor->ViewWidth(), $monitor->ViewHeight(), $legacyPixels);
 # Always store as percentages
 $zone['Units'] = 'Percent';
 
@@ -113,13 +115,7 @@ $selfIntersecting = isSelfIntersecting($zone['Points']);
 # Values > 100 are unconverted pixel counts from before the migration;
 # convert them to percentages so the UI displays correctly.
 $zonePixelArea = $zone['Area'] / 10000.0 * $monitor->ViewWidth() * $monitor->ViewHeight();
-if ($zonePixelArea > 0) {
-  foreach (array('MinAlarmPixels', 'MaxAlarmPixels', 'MinFilterPixels', 'MaxFilterPixels', 'MinBlobPixels', 'MaxBlobPixels') as $field) {
-    if (isset($zone[$field]) && $zone[$field] > 100) {
-      $zone[$field] = round($zone[$field] / $zonePixelArea * 100, 2);
-    }
-  }
-}
+convertZoneThresholdsToPercent($zone, $zonePixelArea, $legacyPixels);
 
 # Rectangle measurement ratios, and the only definition of their defaults -
 # zone-object-size.js falls back to whatever is rendered here. Read from the

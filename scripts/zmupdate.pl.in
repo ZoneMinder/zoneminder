@@ -285,19 +285,17 @@ About to convert saved events to deep storage, please ensure that ZoneMinder is 
 This process is not easily reversible. Are you sure you wish to proceed?
 
 Press \'y\' to continue or \'n\' to abort : ');
-  my $response = <STDIN>;
-  chomp($response);
+  my $response = readAnswer();
   while ( $response !~ /^[yYnN]$/ ) {
     print("Please press 'y' to continue or 'n' to abort only : ");
-    $response = <STDIN>;
-    chomp($response);
+    $response = readAnswer();
   }
 
   if ( $response =~ /^[yY]$/ ) {
     print("Converting all events to deep storage.\n");
 
     chdir($Config{ZM_PATH_WEB});
-    my $sql = 'SELECT *, unix_timestamp(StartTime) AS UnixStartTime FROM Events';
+    my $sql = 'SELECT *, unix_timestamp(StartDateTime) AS UnixStartTime FROM Events';
     my $sth = $dbh->prepare_cached($sql) or Fatal("Can't prepare '$sql': ".$dbh->errstr());
     my $res = $sth->execute();
     if ( !$res ) {
@@ -398,8 +396,7 @@ if ( $version ) {
 
     if ( systemStatus() eq 'running' ) { 
       print"\nZoneMinder system appears to be running.  While not strictly required, it is advised to stop ZM during the update process. Would you like to stop ZM now? [Yn]:";
-      my $response = <STDIN>;
-      chomp($response);
+      my $response = readAnswer();
       if ( $response !~ /^\s*[nN]/ ) {
         packageControl('stop');
         $start_zm = 1;
@@ -407,12 +404,10 @@ if ( $version ) {
     }
 
     print("\nDo you wish to take a backup of your database prior to upgrading?\nThis may result in a large file in @ZM_TMPDIR@ if you have a lot of events.\nPress 'y' for a backup or 'n' to continue : ");
-    my $response = <STDIN>;
-    chomp($response);
+    my $response = readAnswer();
     while ( $response !~ /^[yYnN]$/ ) {
       print("Please press 'y' for a backup or 'n' to continue only : ");
-      $response = <STDIN>;
-      chomp($response);
+      $response = readAnswer();
     }
 
     if ( $response =~ /^[yY]$/ ) {
@@ -1018,6 +1013,15 @@ sub patchDB_using_do {
     Warning("Empty db update file at $file");
   }
 } # end sub patchDB_using_do
+
+# Read one line of the user's answer, stopping instead of asking forever when
+# stdin is closed or at end of file.
+sub readAnswer {
+  my $response = <STDIN>;
+  die("\nNo answer available on stdin, aborting.\n") if !defined($response);
+  chomp($response);
+  return $response;
+}
 
 # Quote a value for a POSIX shell by wrapping it in single quotes.
 sub shellQuote {

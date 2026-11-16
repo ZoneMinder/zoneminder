@@ -893,7 +893,7 @@ void MonitorStream::runStream() {
             break;
           }
           frame_count++;
-          if (frame_count == 0) {
+          if (frame_count == 1) {
             // Chrome will not display the first frame until it receives another.
             // Firefox is fine.  So just send the first frame twice.
             if (!sendFrame(send_image, last_frame_timestamp)) {

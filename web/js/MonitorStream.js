@@ -615,7 +615,8 @@ function MonitorStream(monitorData) {
         (e) => {
           if (!streamSessionActive(this, playbackSessionId)) return;
           this.writeTextInfoBlock("Paused", {showImg: false});
-          manageEventListener.removeEventListener(this.handlerEventListener['volumechange']);
+          // Forget the id too, or createVolumeSlider() on the next play thinks it is still registered.
+          if (manageEventListener.removeEventListener(this.handlerEventListener['volumechange']) == this.handlerEventListener['volumechange']) this.handlerEventListener['volumechange'] = null;
           if (typeof pauseAudioMotion === 'function') {
             pauseAudioMotion(this.id);
           }
@@ -1876,6 +1877,8 @@ function MonitorStream(monitorData) {
 
   this.setMaxFPS = function(maxfps) {
     if (1) {
+      // Only zms understands the command; the other players would just get no_socket back.
+      if (-1 === this.activePlayer.indexOf('zms')) return;
       this.streamCommand({command: CMD_MAXFPS, maxfps: maxfps});
     } else {
       var streamImage = this.getElement();
@@ -2401,6 +2404,7 @@ function MonitorStream(monitorData) {
         if (this.player === 'zms' || currentPlayer.indexOf('zms') !== -1) {
           console.error("All players failed. Stop restart loop", currentPlayer);
           this.fatalError = true;
+          this.starting = false; // Otherwise start() is ignored and Play can never retry.
           return;
         }
 

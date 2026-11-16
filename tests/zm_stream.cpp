@@ -343,6 +343,35 @@ TEST_CASE("StreamBase::prepareImage keeps a zoom across a change of resolution")
   CHECK(sent->Height() == 480);
 }
 
+TEST_CASE("StreamBase::prepareImage starts a new zoom from the whole frame", "[StreamBase]") {
+  // Zooming out to 100% shows the whole frame again. A later zoom-in click is
+  // in that whole-frame view, so it must not be mapped through the crop left
+  // behind by the earlier zoom.
+  EnsureImageInit();
+  Image frame(640, 480, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA);
+
+  TestStream fresh;
+  fresh.setView(ZM_SCALE_BASE, 200);
+  fresh.setClick(320, 240);
+  fresh.prepare(&frame);
+  const Box expected = fresh.crop();
+
+  TestStream used;
+  used.setView(ZM_SCALE_BASE, 200);
+  used.setClick(600, 440);
+  used.prepare(&frame);
+  used.setView(ZM_SCALE_BASE, 100);
+  used.prepare(&frame);
+  used.setView(ZM_SCALE_BASE, 200);
+  used.setClick(320, 240);
+  used.prepare(&frame);
+
+  CHECK(used.crop().Lo().x_ == expected.Lo().x_);
+  CHECK(used.crop().Lo().y_ == expected.Lo().y_);
+  CHECK(used.crop().Hi().x_ == expected.Hi().x_);
+  CHECK(used.crop().Hi().y_ == expected.Hi().y_);
+}
+
 TEST_CASE("StreamBase::preScaleDimensions") {
   const int kWidth = 640;
   const int kHeight = 480;

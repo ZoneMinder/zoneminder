@@ -337,26 +337,26 @@ function deletePath( $path ) {
 function deleteEvent($event) {
   if (empty($event)) {
     ZM\Error('Empty event passed to deleteEvent.');
-    return;
+    return false;
   }
 
   if (!($event instanceof ZM\Event)) {
     # $event could be an eid, so load the event
     $event = new ZM\Event($event);
   }
-  if (!$event->Id()) return;
+  if (!$event->Id()) return false;
 
   if ($event->Archived()) {
     ZM\Info('Cannot delete Archived event.');
-    return;
+    return false;
   } # end if Archived
 
   # Needs Events edit and access to the event's monitor, not just the global permission.
   if ($event->canEdit()) {
-    $event->delete();
-  } else {
-    ZM\Warning('No permission to delete event '.$event->Id());
+    return (bool)$event->delete();
   }
+  ZM\Warning('No permission to delete event '.$event->Id());
+  return false;
 }
 
 /**

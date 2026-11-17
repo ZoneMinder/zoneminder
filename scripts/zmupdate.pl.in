@@ -134,11 +134,11 @@ if ($updateDir) {
   }
 }
 
-my $dbh = zmDbConnect(undef, { mysql_multi_statements=>1 } );
-die "Unable to connect to db\n" if !$dbh;
-
 $Config{ZM_DB_USER} = $dbUser;
 $Config{ZM_DB_PASS} = $dbPass;
+
+my $dbh = zmDbConnect(undef, { mysql_multi_statements=>1 } );
+die "Unable to connect to db\n" if !$dbh;
 
 if ( ! ($check || $freshen || $rename || $zoneFix || $migrateEvents || $version) ) {
   if ( $Config{ZM_DYN_DB_VERSION} ) {

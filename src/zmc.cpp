@@ -313,7 +313,7 @@ int main(int argc, char *argv[]) {
       Seconds sleep_time = Seconds(0);
       bool priming_failed = false;
       while ((monitor->PrimeCapture() <= 0) and !zm_terminate) {
-        if (prime_capture_log_count % 60) {
+        if (prime_capture_log_count % 60 == 0) {
           logPrintf(Logger::ERROR + monitor->Importance(), "Failed to prime capture of initial monitor");
         } else {
           Debug(1, "Failed to prime capture of initial monitor");
@@ -503,6 +503,8 @@ int main(int argc, char *argv[]) {
     }
 
     if (zm_reload) {
+      // Clear first so a SIGHUP that arrives while reloading is not lost.
+      zm_reload = false;
       zmLoadStaticConfig();
       zmLoadDBConfig();
       for (std::shared_ptr<Monitor> &monitor : monitors) {
@@ -510,8 +512,6 @@ int main(int argc, char *argv[]) {
       }
       // The dbQueue and stream socket threads are still running and logging.
       logReload(log_id_string);
-
-      zm_reload = false;
     }  // end if zm_reload
   }  // end while ! zm_terminate outer connection loop
 

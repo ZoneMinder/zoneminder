@@ -29,7 +29,7 @@ bool SplitUserInfo(std::string &host, std::string &user, std::string &pass) {
   if (authIndex == std::string::npos) return false;
   std::string auth = host.substr(0, authIndex);
   host.erase(0, authIndex+1);
-  authIndex = auth.rfind(':');
+  authIndex = auth.find(':');
   user = auth.substr(0, authIndex);
   pass = (authIndex == std::string::npos) ? std::string() : auth.substr(authIndex+1);
   return true;

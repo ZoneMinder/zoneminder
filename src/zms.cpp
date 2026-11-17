@@ -232,7 +232,7 @@ int main(int argc, const char *argv[], char **envp) {
       frames_to_send = strtoll(value, nullptr, 10);
     } else if ( !strcmp(name, "scale") ) {
       scale = StreamBase::ParseScaleParam(value);
-      if (scale == StreamBase::MAX_SCALE) Warning("Limiting scale to 16x");
+      if (strtol(value, nullptr, 10) > 16*ZM_SCALE_BASE) Warning("Limiting scale to 16x");
     } else if ( !strcmp(name, "rate") ) {
       rate = atoi(value);
     } else if ( !strcmp(name, "maxfps") ) {

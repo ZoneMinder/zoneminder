@@ -70,7 +70,7 @@ sub open {
   ) {
     Debug('Using ControlAddress for credentials: '.urlForLog($self->{Monitor}{ControlAddress}));
 
-    if (($self->{Monitor}->{ControlAddress} =~ /^(?<PROTOCOL>https?:\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@?(?<ADDRESS>.*)$/)) {
+    if (($self->{Monitor}->{ControlAddress} =~ /^(?<PROTOCOL>https?:\/\/)?(?:(?<USERNAME>[^:@]*)(?::(?<PASSWORD>.*))?@)?(?<ADDRESS>[^@\n]*)$/)) {
       $PROTOCOL = $+{PROTOCOL} if $+{PROTOCOL};
       $USERNAME = $+{USERNAME} if $+{USERNAME};
       $PASSWORD = $+{PASSWORD} if $+{PASSWORD};

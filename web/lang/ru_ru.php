@@ -292,6 +292,7 @@ $SLANG = array(
     'Clear'                => 'Очистить',                  // Added - 2011-06-16
     'CloneMonitor'         => 'Клонировать',                  // Edited - 2019-03-25
     'Close'                => 'Закрыть',
+    'Codec'                => 'Кодек',
     'Colour'               => 'Цвет',
     'Collapsed'            => 'Свернуто',
     'Command'              => 'Команда',

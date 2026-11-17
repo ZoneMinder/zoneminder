@@ -1304,10 +1304,12 @@ function manageShutdownBtns(element) {
   $j.getJSON(thisUrl + '?request=shutdown&when=' + when + '&command=' + cmd)
       .done(function(data) {
         respText.removeClass('invisible');
-        if ( data.rc ) {
+        if ( data.result == 'Error' ) {
+          respText.html('<h2>Error</h2>' + data.message);
+        } else if ( data.rc ) {
           respText.html('<h2>Error</h2>' + data.output);
         } else {
-          $j('#cancelBtn').prop('disabled', false);
+          $j('#cancelBtn').prop('disabled', cmd == 'cancel');
           if ( cmd == 'cancel' ) {
             respText.html('<h2>Success</h2>Event has been cancelled');
           } else {

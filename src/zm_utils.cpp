@@ -503,16 +503,17 @@ const QueryParameter *QueryString::get(const std::string &name) const {
 std::string QueryString::parseName(std::istream &input) {
   std::string name;
 
-  while (!input.eof() && input.peek() != '=') {
+  // A '&' ends a name that has no '=', and is left for parseValue to eat.
+  while (!input.eof() && input.peek() != '=' && input.peek() != '&') {
     name.push_back(input.get());
   }
 
   //Eat the '='
-  if (!input.eof()) {
+  if (!input.eof() && input.peek() == '=') {
     input.get();
   }
 
-  return name;
+  return UriDecode(name);
 }
 
 std::string QueryString::parseValue(std::istream &input) {

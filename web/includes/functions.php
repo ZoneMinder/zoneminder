@@ -1107,8 +1107,15 @@ function getPagination($pages, $page, $maxShortcuts, $query, $querySep='&amp;') 
   return $pageText;
 }
 
+// parseSort() rewrites these legacy names in $_REQUEST, so compare against the new ones.
+function currentSortField($field) {
+  $legacy = array('StartTime'=>'StartDateTime', 'DateTime'=>'StartDateTime', 'EndTime'=>'EndDateTime');
+  return isset($legacy[$field]) ? $legacy[$field] : $field;
+}
+
 function sortHeader($field, $querySep='&amp;') {
   global $view;
+  $field = currentSortField($field);
   return implode($querySep, array(
     '?view='.$view,
     'page=1'.((isset($_REQUEST['filter']) and isset($_REQUEST['filter']['query'])) ? validHtmlStr($_REQUEST['filter']['query']) : ''),
@@ -1120,6 +1127,7 @@ function sortHeader($field, $querySep='&amp;') {
 }
 
 function sortTag($field) {
+  $field = currentSortField($field);
   if ( isset($_REQUEST['sort_field']) ) {
     if ( $_REQUEST['sort_field'] == $field )
       if ( $_REQUEST['sort_asc'] )

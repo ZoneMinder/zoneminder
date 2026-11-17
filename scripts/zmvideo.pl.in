@@ -170,7 +170,7 @@ $rate = $detaint_rate;
 $scale = $detaint_scale;
 $fps = $detaint_fps;
 $size = $detaint_size;
-($transforms) = $transforms =~ /^([,\w=]+)$/;
+$transforms = $transforms =~ /^([,\w=]+)$/ ? $1 : '';
 
 my $dbh = zmDbConnect();
 

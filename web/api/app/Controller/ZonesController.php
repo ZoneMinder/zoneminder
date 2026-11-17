@@ -94,10 +94,16 @@ class ZonesController extends AppController {
     global $user;
     # null means no restriction. An empty list means the user may see no monitor, so no zone.
     $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : null;
+    $conditions = array();
+    if ($this->request->params['named']) {
+      $this->FilterComponent = $this->Components->load('Filter');
+      $conditions = $this->FilterComponent->buildFilter($this->request->params['named'], array_keys($this->Zone->schema()));
+    }
     $options = array();
     if ($allowedMonitors !== null) {
-      $options['conditions'] = array('Zone.MonitorId' => $allowedMonitors);
+      $conditions[] = array('Zone.MonitorId' => $allowedMonitors);
     }
+    if (count($conditions)) $options['conditions'] = $conditions;
     $zones = $this->Zone->find('all', $options);
     $this->set(array(
       'zones' => $zones,

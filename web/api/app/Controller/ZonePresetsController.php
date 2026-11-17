@@ -31,7 +31,12 @@ class ZonePresetsController extends AppController {
    * @return void
    */
   public function index() {
-    $zonePresets = $this->ZonePreset->find('all');
+    $options = array();
+    if ($this->request->params['named']) {
+      $this->FilterComponent = $this->Components->load('Filter');
+      $options['conditions'] = $this->FilterComponent->buildFilter($this->request->params['named'], array_keys($this->ZonePreset->schema()));
+    }
+    $zonePresets = $this->ZonePreset->find('all', $options);
     $this->set(array(
       'zonePresets' => $zonePresets,
       '_serialize' => array('zonePresets')

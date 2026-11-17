@@ -1,7 +1,8 @@
 <?php
 // ajax/snapshots.php task=query: an advsearch value that is not a JSON object
 // decoded to null and count(null) threw a TypeError (HTTP 500); an array
-// search value was concatenated into a string.
+// search or sort value was concatenated into a string, and an array order
+// reached strtolower().
 // Run: php tests/php/test_snapshots_ajax_bad_search.php   (from the repo root)
 
 namespace ZM {
@@ -21,6 +22,8 @@ namespace {
   $cases = array(
     'garbage advsearch' => array('advsearch' => 'garbage'),
     'array search' => array('search' => array('a')),
+    'array sort' => array('sort' => array('Id')),
+    'array order' => array('order' => array('asc')),
   );
   // The ajax file declares functions, so each case runs in its own process.
   if (!isset($argv[1])) {

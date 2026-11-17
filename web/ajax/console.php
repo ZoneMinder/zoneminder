@@ -134,11 +134,11 @@ function queryRequest() {
   }
   
   // Get search parameter
-  $search = isset($_REQUEST['search']) ? $_REQUEST['search'] : '';
+  $search = (isset($_REQUEST['search']) and is_string($_REQUEST['search'])) ? $_REQUEST['search'] : '';
   
   // Get sort parameters
-  $sort = isset($_REQUEST['sort']) ? $_REQUEST['sort'] : 'Sequence';
-  $order = isset($_REQUEST['order']) ? strtoupper($_REQUEST['order']) : 'ASC';
+  $sort = (isset($_REQUEST['sort']) and is_string($_REQUEST['sort'])) ? $_REQUEST['sort'] : 'Sequence';
+  $order = (isset($_REQUEST['order']) and is_string($_REQUEST['order'])) ? strtoupper($_REQUEST['order']) : 'ASC';
   
   // Build monitor query with filters from request parameters, falling back to cookies
   $conditions = array();

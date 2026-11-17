@@ -35,7 +35,7 @@ if ( $message ) {
 }
 
 // Search contains a user entered string to search on
-$search = isset($_REQUEST['search']) ? $_REQUEST['search'] : '';
+$search = (isset($_REQUEST['search']) and is_string($_REQUEST['search'])) ? $_REQUEST['search'] : '';
 
 // Advanced search contains an array of "column name" => "search text" pairs
 // Bootstrap table sends json_ecoded array, which we must decode
@@ -45,7 +45,7 @@ $advsearch = is_array($advsearch) ? $advsearch : array();
 
 // Sort specifies the name of the column to sort on
 $sort = 'FrameId';
-if ( isset($_REQUEST['sort']) ) {
+if ( isset($_REQUEST['sort']) and is_string($_REQUEST['sort']) ) {
   $sort = $_REQUEST['sort'];
 }
 
@@ -60,7 +60,7 @@ if ( isset($_REQUEST['offset']) ) {
 }
 
 // Order specifies the sort direction, either asc or desc
-$order = (isset($_REQUEST['order']) and (strtolower($_REQUEST['order']) == 'asc')) ? 'ASC' : 'DESC';
+$order = (isset($_REQUEST['order']) and is_string($_REQUEST['order']) and (strtolower($_REQUEST['order']) == 'asc')) ? 'ASC' : 'DESC';
 
 // Limit specifies the number of rows to return
 $limit = 0;

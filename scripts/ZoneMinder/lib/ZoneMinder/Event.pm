@@ -885,10 +885,12 @@ sub MoveTo {
   }
 
   my $old_diskspace = $self->DiskSpace();
-  my $new_diskspace = $self->DiskSpace(undef);
 
   # Succeeded in copying all files, so we may now update the Event.
   $self->Storage($NewStorage);
+  # Measured at the new location: when the files had already been moved the
+  # old path no longer exists and there is nothing to measure there.
+  my $new_diskspace = $self->DiskSpace(undef);
   $error .= $self->save();
   # Going to leave it to upper layer as to whether we rollback or not
   if ($error) {

@@ -587,6 +587,8 @@ EventStream.canPlayFile = function(filename) {
 EventStream.removePlaceholder = function() {
   var ph = document.getElementById('eventPlaceholder');
   if (ph && ph.parentNode) ph.parentNode.removeChild(ph);
+  const videoobj = document.getElementById('videoobj');
+  if (videoobj) videoobj.style.position = 'relative';
 };
 
 // Build the native video.js player into #zoompan, mirroring the server-rendered

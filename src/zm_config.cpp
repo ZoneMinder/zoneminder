@@ -417,6 +417,9 @@ void Config::Load() {
     return;
   }
 
+  // Start over, so that a reload drops a value set back to its default.
+  ZM_CFG_DEFAULTS_INIT
+
   int loaded = 0;
   while (MYSQL_ROW dbrow = mysql_fetch_row(result)) {
     if (dbrow[0] && dbrow[1] && dbrow[2]) {

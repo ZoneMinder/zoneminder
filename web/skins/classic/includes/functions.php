@@ -137,7 +137,7 @@ echo output_cache_busted_stylesheet_links(array(
   $baseCssPhpFile = getSkinFile('css/base/skin.css.php');
   if ($baseCssPhpFile) require_once($baseCssPhpFile);
   $skinCssPhpFile = getSkinFile('css/'.$css.'/skin.css.php');
-  if ($skinCssPhpFile) require_once($baseCssPhpFile);
+  if ($skinCssPhpFile) require_once($skinCssPhpFile);
 
   $baseViewCssPhpFile = getSkinFile('/css/base/views/'.$basename.'.css.php');
   if ($baseViewCssPhpFile) require_once($baseViewCssPhpFile);

@@ -634,3 +634,22 @@ TEST_CASE("zm_parse_leb128", "[utils]") {
     REQUIRE(n == 0);
   }
 }
+
+TEST_CASE("QueryString names", "[utils]") {
+  SECTION("a name without a value ends at the ampersand") {
+    std::stringstream str("flag&token=abc");
+    QueryString qs(str);
+
+    REQUIRE(qs.has("flag"));
+    REQUIRE(qs.has("token"));
+    REQUIRE(qs.get("token")->firstValue() == "abc");
+  }
+
+  SECTION("a url encoded name is decoded") {
+    std::stringstream str("a%5B%5D=1");
+    QueryString qs(str);
+
+    REQUIRE(qs.has("a[]"));
+    REQUIRE(qs.get("a[]")->firstValue() == "1");
+  }
+}

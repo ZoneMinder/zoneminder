@@ -334,6 +334,20 @@ class MonitorRtspStream {
   RtspPtsTracker pts_tracker_;  // guarded by mutex_
 };
 
+// Monitors are only reloaded into the map when their stream name changes, so a
+// copy loaded before zmc restarted with another resolution, image buffer count
+// or zone count expects a shared memory size that no longer matches the file
+// and connect() fails on every pass. Returns the copy loaded in this pass for
+// monitor_id, which matches the restarted zmc.
+std::shared_ptr<Monitor> FindLoadedMonitor(
+    const std::vector<std::shared_ptr<Monitor>> &loaded, unsigned int monitor_id) {
+  for (const auto &candidate : loaded) {
+    if (candidate->Id() == monitor_id)
+      return candidate;
+  }
+  return nullptr;
+}
+
 void Usage() {
   fprintf(stderr, "zm_rtsp_server -m <monitor_id>\n");
 
@@ -477,6 +491,10 @@ int main(int argc, char *argv[]) {
         if (!monitor->ShmValid()) {
           // zmc restarted: unmap its old shared memory instead of leaking it
           monitor->disconnect();
+          // and take the copy loaded in this pass, whose settings match the restarted zmc
+          std::shared_ptr<Monitor> reloaded = FindLoadedMonitor(new_monitors, monitor->Id());
+          if (reloaded)
+            monitor = reloaded;
           if (!monitor->connect()) {
             Debug(1, "Monitor %d shared memory not available yet, retrying next pass", monitor->Id());
             continue;

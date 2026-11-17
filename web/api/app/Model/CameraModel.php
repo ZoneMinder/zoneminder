@@ -80,11 +80,10 @@ class CameraModel extends AppModel {
  *
  * @var array
  */
-	public $hasOne = array(
+	public $belongsTo = array(
 		'Manufacturer' => array(
 			'className' => 'Manufacturer',
-      'joinTable' =>  'Manufacturers',
-			'foreignKey' => 'Id',
+			'foreignKey' => 'ManufacturerId',
 		),
   );
   //var $actsAs = array( 'Containable' );

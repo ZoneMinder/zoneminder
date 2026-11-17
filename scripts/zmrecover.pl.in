@@ -47,6 +47,7 @@ logInit();
 GetOptions(
     force          =>\$force,
     'interactive|i:1' =>\$interactive,
+    nointeractive  => sub { $interactive = 0 },
     'monitor_id=i' =>\$monitor_id,
     report         =>\$report,
     'server_id=i'  =>\$server_id,
@@ -504,7 +505,7 @@ zmrecover.pl - ZoneMinder event file system and database recovery checker
 
 =head1 SYNOPSIS
 
- zmrecover.pl [-r,-report|-i,-interactive]
+ zmrecover.pl [-r,-report|-i,-interactive|-nointeractive]
 
 =head1 DESCRIPTION
 
@@ -518,7 +519,8 @@ yet.
 
 =head1 OPTIONS
 
- -i, --interactive          - Ask before applying any changes
+ -i, --interactive          - Ask before applying any changes (the default)
+     --nointeractive        - Apply changes without asking (same as --interactive=0)
  -m, --monitor_id           - Only consider the given monitor
  -r, --report               - Just report don't actually do anything
  -s, --storage_id           - Specify a storage area to recover instead of all

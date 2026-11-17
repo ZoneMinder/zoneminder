@@ -32,7 +32,7 @@
 //     If both scale and either width or height are specified, scale is ignored
 //
 
-if ( !canView('Events') and ($_REQUEST['fid'] != 'snapshot' or !canView('Snapshots'))) {
+if ( !canView('Events') and (($_REQUEST['fid'] ?? '') != 'snapshot' or !canView('Snapshots'))) {
   $view = 'error';
   return;
 }
@@ -349,7 +349,7 @@ if ( empty($_REQUEST['path']) ) {
         return;
       }
       $Frame = new ZM\Frame();
-      $Frame->Id('objdetect');
+      $Frame->FrameId('objdetect');
     } else if ( $_REQUEST['fid'] == 'objdetect_mp4' ) {
       $path = $Event->Path().'/objdetect.mp4';
       if ( !file_exists($path) ) {
@@ -358,7 +358,7 @@ if ( empty($_REQUEST['path']) ) {
         return;
       }
       $Frame = new ZM\Frame();
-      $Frame->Id('objdetect');
+      $Frame->FrameId('objdetect');
       $media_type = 'video/mp4';
     } else if ( $_REQUEST['fid'] == 'objdetect_gif' ) {
       $path = $Event->Path().'/objdetect.gif';
@@ -368,7 +368,7 @@ if ( empty($_REQUEST['path']) ) {
         return;
       }
       $Frame = new ZM\Frame();
-      $Frame->Id('objdetect');
+      $Frame->FrameId('objdetect');
       $media_type = 'image/gif';
     } else if ( $_REQUEST['fid'] == 'objdetect_jpg' ) {
       $path = $Event->Path().'/objdetect.jpg';
@@ -378,7 +378,7 @@ if ( empty($_REQUEST['path']) ) {
         return;
       }
       $Frame = new ZM\Frame();
-      $Frame->Id('objdetect');
+      $Frame->FrameId('objdetect');
     } else if ( $_REQUEST['fid'] == 'alarm' ) {
       $path = $Event->Path().'/alarm.jpg';
       if ( !file_exists($path) ) {
@@ -483,6 +483,13 @@ if ( empty($_REQUEST['path']) ) {
           ZM\Error('No Frame found for event('.$_REQUEST['eid'].') and frame id('.$_REQUEST['fid'].')');
           return;
         }
+        if ($Event->EndDateTime() and $Event->Frames() and $_REQUEST['fid'] > $Event->Frames()) {
+          # A virtual frame past the end of a finished event does not exist, and
+          # extracting it would store an image file for a frame number that is not there.
+          header('HTTP/1.0 404 Not Found');
+          ZM\Error('Frame '.validInt($_REQUEST['fid']).' is beyond the last frame of event '.$_REQUEST['eid']);
+          return;
+        }
       }  # end if !Frame
       // Frame can be non-existent.  We have Bulk frames.  So now we should try to load the bulk frame 
       $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d',$Frame->FrameId()).'-'.$show.'.jpg';
@@ -557,7 +564,7 @@ if ( !empty($_REQUEST['width']) ) {
   if ( is_numeric($_REQUEST['width']) ) {
     $x = $_REQUEST['width'];
     if ( $x >= 10 and $x <= 8000 )
-      $width = $x;
+      $width = (int)$x;
   }
 }
 
@@ -566,7 +573,7 @@ if ( !empty($_REQUEST['height']) ) {
   if ( is_numeric($_REQUEST['height']) ) {
     $x = $_REQUEST['height'];
     if ( $x >= 10 and $x <= 8000 )
-      $height = $x;
+      $height = (int)$x;
   }
 }
 
@@ -595,7 +602,7 @@ if ( $errorText ) {
   if ((($scale==0 || $scale==100) && ($width==0) && ($height==0)) or !function_exists('imagecreatefromjpeg') or $media_type != 'image/jpeg') {
     # This is so that Save Image As give a useful filename
     if ($Event) {
-      $filename = $Event->MonitorId().'_'.$Event->Id().'_'.$Frame->FrameId().'.jpg';
+      $filename = $Event->MonitorId().'_'.$Event->Id().'_'.$Frame->FrameId().'.'.pathinfo($path, PATHINFO_EXTENSION);
       header('Content-Disposition: inline; filename="' . $filename . '"');
     }
     if (!readfile($path)) {
@@ -606,19 +613,25 @@ if ( $errorText ) {
     $i = null;
     if ( ! ( $width && $height ) ) {
       $i = imagecreatefromjpeg($path);
-      $oldWidth = imagesx($i);
-      $oldHeight = imagesy($i);
-      if ( $width == 0 && $height == 0 ) { // scale has to be set to get here with both zero
-        $width = intval($oldWidth  * $scale / 100.0);
-        $height= intval($oldHeight * $scale / 100.0);
-      } elseif ( $width == 0 && $height != 0 ) {
-        $width = intval(($height * $oldWidth) / $oldHeight);
-      } elseif ( $width != 0 && $height == 0 ) {
-        $height = intval(($width * $oldHeight) / $oldWidth);
+      if ( !$i ) {
+        # Not decodable (e.g. zmc has not finished writing it): the error image below needs a size
+        if ( !$width ) $width = 320;
+        if ( !$height ) $height = 240;
+      } else {
+        $oldWidth = imagesx($i);
+        $oldHeight = imagesy($i);
+        if ( $width == 0 && $height == 0 ) { // scale has to be set to get here with both zero
+          $width = intval($oldWidth  * $scale / 100.0);
+          $height= intval($oldHeight * $scale / 100.0);
+        } elseif ( $width == 0 && $height != 0 ) {
+          $width = intval(($height * $oldWidth) / $oldHeight);
+        } elseif ( $width != 0 && $height == 0 ) {
+          $height = intval(($width * $oldHeight) / $oldWidth);
 ZM\Debug("Figuring out height using width: $height = ($width * $oldHeight) / $oldWidth");
-      }
-      if ( $width == $oldWidth && $height == $oldHeight ) {
-        ZM\Warning('No change to width despite scaling.');
+        }
+        if ( $width == $oldWidth && $height == $oldHeight ) {
+          ZM\Warning('No change to width despite scaling.');
+        }
       }
     }
   

@@ -138,6 +138,10 @@ class EventsController extends AppController {
 
     } else {
       $raw_params = $_REQUEST;
+      // Legacy API authentication rides in the query string next to the filters.
+      foreach (array('user', 'pass', 'username', 'password', 'auth', 'stateful') as $credential) {
+        unset($raw_params[$credential]);
+      }
       if (isset($raw_params['TagId'])) {
         $tag_filter_value = $raw_params['TagId'];
         $tag_filter_field = 'Id';

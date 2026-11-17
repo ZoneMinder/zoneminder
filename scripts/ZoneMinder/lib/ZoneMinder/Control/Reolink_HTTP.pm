@@ -548,6 +548,7 @@ sub zoomStop {
   my $self = shift;
   
   Debug('Zoom Stop');
+  $$self{Monitor}->resumeMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
   
   my $cmd = {
     cmd => 'PtzCtrl',

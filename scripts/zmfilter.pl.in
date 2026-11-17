@@ -292,6 +292,10 @@ sub checkFilter {
         "\n",
         ) );
 
+  my $send_summary = ($Config{ZM_OPT_EMAIL} && $filter->{AutoEmail} && ($filter->{EmailFormat} eq 'Summary') && @Events) ? 1 : 0;
+  # The summary links to and attaches the events, so send it before they are deleted
+  sendSummaryEmail($filter, @Events) if $send_summary and $filter->{AutoDelete};
+
   foreach my $event ( @Events ) {
     last if $zm_terminate;
     my $Event = new ZoneMinder::Event($$event{Id}, $event);
@@ -314,7 +318,7 @@ sub checkFilter {
     Error("Error processing event $$Event{Id}: $error") if $error;
   } # end foreach event
 
-  if ($Config{ZM_OPT_EMAIL} and $filter->{AutoEmail} and ($filter->{EmailFormat} eq 'Summary') and @Events) {
+  if ($send_summary and !$filter->{AutoDelete}) {
     sendSummaryEmail($filter, @Events);
   }
 } # end sub checkFilter

@@ -443,3 +443,19 @@ button.btn.btn-view-watch, button.btn.btn-fullscreen, .ratioControl {
 .vjs-tech {
   pointer-events: auto;
 }
+
+/* +++ positioning eventPlaceholder */
+#zoompan {
+  display: grid;
+  width: fit-content;
+}
+
+#eventPlaceholder {
+  position: relative;
+  grid-area: 1/1;
+}
+#videoobj {
+  position: absolute;
+  grid-area: 1/1;
+}
+/* --- positioning eventPlaceholder */

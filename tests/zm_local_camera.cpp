@@ -25,7 +25,6 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
-#include <sys/sysmacros.h>
 #include <unistd.h>
 #include <vector>
 
@@ -39,6 +38,8 @@
 #include "zm_monitor.h"
 
 #if ZM_HAS_V4L2
+
+#include <sys/sysmacros.h>
 
 TEST_CASE("LocalCamera::UnmapBuffers skips unmapped slots", "[local_camera]") {
   const size_t len = 4096;

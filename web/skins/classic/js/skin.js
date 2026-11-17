@@ -994,7 +994,9 @@ function setCookie(name, value, seconds) {
     // that cannot overflow a signed 32bit int in a client that converts it.
     expires = "; max-age=2147483647";
   }
-  document.cookie = name + "=" + (newValue || "") + expires + "; path=/; samesite=strict";
+  // Encoded so a ';' or '%' in a typed filter value is not cut off or decoded
+  // twice; PHP decodes $_COOKIE and getCookie() below decodes it again.
+  document.cookie = name + "=" + encodeURIComponent(newValue || "") + expires + "; path=/; samesite=strict";
 }
 
 /*
@@ -1010,6 +1012,11 @@ function getCookie(name) {
     while (c.charAt(0)==' ') c = c.substring(1, c.length);
     if (c.indexOf(nameEQ) == 0) {
       result = c.substring(nameEQ.length, c.length);
+      try {
+        result = decodeURIComponent(result);
+      } catch {
+        // Written before values were encoded and holding a bare '%': keep it as is
+      }
       break;
     }
   }

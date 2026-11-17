@@ -4305,9 +4305,13 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
   unsigned int score = 0;
 
   if (zones.empty()) {
-    Warning("No zones to check!");
+    if (!no_zones_warned) {
+      Warning("No zones to check!");
+      no_zones_warned = true;
+    }
     return 0;
   }
+  no_zones_warned = false;
 
   if (!ref_image.Delta(comp_image, &delta_image)) {
     return 0;

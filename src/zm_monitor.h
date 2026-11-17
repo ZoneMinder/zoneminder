@@ -735,6 +735,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int        post_event_count;    // How many unalarmed images must occur before the alarm state is reset
   int        stream_replay_buffer;   // How many frames to store to support DVR functions, IGNORED from this object, passed directly into zms now
   Seconds    section_length;      // How long events should last in continuous modes
+  bool        no_zones_warned = false;  // Whether the no-zones warning was already logged for the current no-zones state
   bool        section_length_warn;  // Whether to log a warning when a motion event exceeds desired section_length
   Seconds    min_section_length;   // Minimum event length when using event_close_mode == ALARM
   bool       startstop_on_section_length; // Whether to start/stop events on time % section_length

@@ -27,7 +27,8 @@ if ( !canEdit('Devices') ) {
 $action = validStr($_REQUEST['action'] ?? '');
 if ( $action == 'delete' ) {
   if ( isset($_REQUEST['markDids']) ) {
-    foreach( $_REQUEST['markDids'] as $markDid ) {
+    foreach( (array)$_REQUEST['markDids'] as $markDid ) {
+      if ( is_array($markDid) ) continue;
       dbQuery('DELETE FROM Devices WHERE Id=?', array($markDid));
     }
   }

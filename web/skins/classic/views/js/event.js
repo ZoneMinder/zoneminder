@@ -1592,6 +1592,13 @@ function initPage() {
       videoElement.addEventListener('loadedmetadata', function() {
         realEventWidth = videoElement.videoWidth;
         realEventHeight = videoElement.videoHeight;
+        // For codec=auto the player is built after DOMContentLoaded, so the
+        // changeScale() in initPage ran while realEventWidth/Height were still 0
+        // and sized from the (often wrong) monitor eventData dimensions. Now that
+        // the real frame size is known, size once more so Scale=Auto is correct
+        // (regression #6612). Harmless for the server-rendered player: it just
+        // recomputes to the same dimensions.
+        changeScale();
       });
 
       // It is necessary to reset the hardcoded dimensions in `event.php` via `$videoSizeStyle`, because `video.js` modifies the DOM structure, and in `changeScale()` we specify dimensions specifically for `#videoobj`.

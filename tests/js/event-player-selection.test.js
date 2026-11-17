@@ -33,6 +33,7 @@ function fakeEl() {
     children: [],
     attrs: {},
     style: {},
+    _listeners: {},
     setAttribute: function(k, v) {
       this.attrs[k] = v;
     },
@@ -41,7 +42,15 @@ function fakeEl() {
       c.parentNode = this;
       return c;
     },
-    addEventListener: function() {},
+    addEventListener: function(type, fn) {
+      (this._listeners[type] = this._listeners[type] || []).push(fn);
+    },
+    // Invoke the recorded listeners for a type (test helper).
+    _fire: function(type) {
+      (this._listeners[type] || []).forEach(function(fn) {
+        fn();
+      });
+    },
     removeChild: function(c) {
       this.children = this.children.filter(function(x) {
         return x !== c;
@@ -54,6 +63,11 @@ function installDom() {
   const created = [];
   const zoompan = fakeEl();
   zoompan.id = 'zoompan';
+  // event.php renders the placeholder frame into #zoompan for codec=auto; the
+  // chosen player must remove it once it has real pixels (regression #6612).
+  const placeholder = fakeEl();
+  placeholder.id = 'eventPlaceholder';
+  zoompan.appendChild(placeholder);
   global.document = {
     _created: created,
     _zoompan: zoompan,
@@ -78,11 +92,15 @@ function installDom() {
 function installVideojs() {
   const calls = [];
   global.videojs = function(id, opts) {
-    calls.push({id: id, opts: opts});
+    const handlers = {};
+    calls.push({id: id, opts: opts, handlers: handlers});
     return {
       zoomrotate: function() {},
       on: function() {},
-      one: function() {}
+      // Record one-shot handlers so a test can fire 'loadeddata'/'playing'.
+      one: function(type, fn) {
+        (handlers[type] = handlers[type] || []).push(fn);
+      }
     };
   };
   global.videojs._calls = calls;
@@ -240,6 +258,59 @@ test('finished HLS auto event plays the mp4 directly, no HLS source', () => {
   });
   assert.strictEqual(srcs.length, 1, 'mp4 only');
   assert.strictEqual(srcs[0].type, 'video/mp4');
+  cleanup();
+});
+
+test('native player removes the #eventPlaceholder once it is ready (regression #6612)', () => {
+  const dom = installDom();
+  installVideojs();
+  global.canPlayCodec = function() {
+    return true;
+  };
+
+  EventStream.chooseEventPlayer(PLAYER_DATA, EVENT_DATA);
+
+  // While the player loads, the placeholder still overlays it (no vertical stack:
+  // the .zoompan-auto grid puts both in one cell; see event.css).
+  assert.ok(dom.zoompan.children.find(function(c) {
+    return c.id === 'eventPlaceholder';
+  }), 'placeholder present until the player signals ready');
+
+  // video.js fires loadeddata when the first frame is decoded.
+  dom.zoompan.children.find(function(c) {
+    return c.id === 'videoobj';
+  }); // player lives in zoompan
+  global.videojs._calls[0].handlers['loadeddata'].forEach(function(fn) {
+    fn();
+  });
+
+  assert.strictEqual(dom.zoompan.children.filter(function(c) {
+    return c.id === 'eventPlaceholder';
+  }).length, 0, 'placeholder removed, leaving only the player');
+  cleanup();
+});
+
+test('zms fallback removes the #eventPlaceholder on the first frame (regression #6612)', () => {
+  const dom = installDom();
+  installVideojs();
+  global.canPlayCodec = function() {
+    return false;
+  };
+
+  EventStream.chooseEventPlayer(PLAYER_DATA, EVENT_DATA);
+
+  assert.ok(dom.zoompan.children.find(function(c) {
+    return c.id === 'eventPlaceholder';
+  }), 'placeholder present until the first zms frame loads');
+
+  const img = dom.zoompan.children.find(function(c) {
+    return c.id === 'evtStream';
+  });
+  img._fire('load');
+
+  assert.strictEqual(dom.zoompan.children.filter(function(c) {
+    return c.id === 'eventPlaceholder';
+  }).length, 0, 'placeholder removed once the stream img has a frame');
   cleanup();
 });
 

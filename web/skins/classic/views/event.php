@@ -396,7 +396,7 @@ if (file_exists($Event->Path().'/objdetect.jpg')) {
                     </div>
                   </div>
                   <div id="videoFeedStream<?php echo $Event->MonitorId()?>" data-not-display-video="<?php echo $dataNotDisplayVideo?>">
-                    <div id="zoompan" class="zoompan">
+                    <div id="zoompan" class="zoompan<?php echo $auto ? ' zoompan-auto' : '' ?>">
 <?php
 if ($force_native) {
   // Explicit MP4 / MP4HLS: render the native <video> server-side.  $has_hls /

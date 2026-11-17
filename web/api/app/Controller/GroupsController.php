@@ -241,7 +241,8 @@ class GroupsController extends AppController {
     # Deleting a group removes its monitors from it, which can lift a deny on them.
     $group = new ZM\Group($id);
     $this->requireMembershipEdit($group->MonitorIds());
-    dbQuery('UPDATE `Groups` SET `ParentId`=NULL WHERE `ParentId`=?', array($id));
+    # Children move up to this group's parent, as deleting one in the web ui does.
+    dbQuery('UPDATE `Groups` SET `ParentId`=? WHERE `ParentId`=?', array($group->ParentId(), $id));
 
 		if ( $this->Group->delete() ) {
       $this->set(array(

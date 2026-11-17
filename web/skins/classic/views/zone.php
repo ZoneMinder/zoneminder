@@ -62,6 +62,11 @@ $maxY = 100;
 if ( !isset($zone) ) {
   if ( $zid > 0 ) {
     $zone = dbFetchOne('SELECT * FROM Zones WHERE MonitorId=? AND Id=?', NULL, array($monitor->Id(), $zid));
+    if (!$zone) {
+      // A stale link to a deleted zone, or a zone of another monitor.
+      $view = 'error';
+      return;
+    }
   } else {
     $zone = array(
       'Id' => 0,

@@ -43,7 +43,7 @@ if ($query) {
       echo 'rtspStreamNames[\''.validJsStr($row['RTSPStreamName']).'\'] = true;'.PHP_EOL;
   } // end foreach
 } # end if $query
-echo 'const mid='.$mid.';'.PHP_EOL;
+echo 'const mid='.(int)$mid.';'.PHP_EOL;
 ?>
 
 function validateForm(form) {

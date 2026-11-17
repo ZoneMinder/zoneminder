@@ -192,6 +192,10 @@ std::string url_for_log(const std::string &url);
 std::string request_for_log(const std::string &request);
 
 std::string UriEncode(const std::string &value);
+// url with user:pass@ inserted after its scheme://, as stored (not encoded: a
+// value already percent-encoded by the operator must reach the camera as is). A url without a scheme is taken to be RTSP. Any scheme is
+// kept: "rtsps://host" must not become "rtsp://u:p@rtsps://host".
+std::string UrlWithCredentials(const std::string &url, const std::string &user, const std::string &pass);
 // The go2rtc API base for a ZM_GO2RTC_PATH. go2rtc serves its API under /api, so
 // "http://host:1984" and "http://host:1984/api" both give the latter.
 std::string Go2RTCApiEndpoint(std::string path);

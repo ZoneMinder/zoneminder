@@ -550,6 +550,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
       int add_to_Go2RTC();
       int check_Go2RTC();
       int remove_from_Go2RTC();
+      int delete_stream(const std::string &name);
       bool refresh_auth_if_needed();        // Refresh auth_hash if expired
 #else
     public:

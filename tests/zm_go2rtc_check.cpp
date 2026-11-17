@@ -58,7 +58,7 @@ TEST_CASE("Go2RTCManager: a registered stream whose URL has an & is found again"
       return std::string("{}");
     }
     if (request.method == "GET" && added) {
-      return std::string("{\"producers\":[{\"url\":\"rtsp://192.168.1.10/stream?channel=1\\u0026subtype=0\"}]}");
+      return std::string("{\"producers\":[{\"url\":\"rtsp://192.168.1.10/stream?channel=1\\u0026subtype=0#backchannel=0\"}]}");
     }
     return std::string("{}");
   });

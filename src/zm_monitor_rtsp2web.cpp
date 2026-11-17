@@ -48,17 +48,9 @@ Monitor::RTSP2WebManager::RTSP2WebManager(Monitor *parent_) :
     // Stored raw: the JSON payload escapes the assembled URL itself.
     rtsp_username = parent->user;
     rtsp_password = parent->pass;
-    if (rtsp_path.find("rtsp://") == 0) {
-      rtsp_path = "rtsp://" + rtsp_username + ":" + rtsp_password + "@" + rtsp_path.substr(7, std::string::npos);
-    } else {
-      rtsp_path = "rtsp://" + rtsp_username + ":" + rtsp_password + "@" + rtsp_path;
-    }
+    rtsp_path = UrlWithCredentials(rtsp_path, rtsp_username, rtsp_password);
     if (!rtsp_second_path.empty()) {
-      if (rtsp_second_path.find("rtsp://") == 0) {
-        rtsp_second_path = "rtsp://" + rtsp_username + ":" + rtsp_password + "@" + rtsp_second_path.substr(7, std::string::npos);
-      } else {
-        rtsp_second_path = "rtsp://" + rtsp_username + ":" + rtsp_password + "@" + rtsp_second_path;
-      }
+      rtsp_second_path = UrlWithCredentials(rtsp_second_path, rtsp_username, rtsp_password);
     }
   }  // end if !user.empty
   Debug(1, "Monitor %u rtsp url is %s", parent->id, url_for_log(rtsp_path).c_str());

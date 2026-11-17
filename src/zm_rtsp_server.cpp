@@ -523,12 +523,13 @@ int main(int argc, char *argv[]) {
     }
 
     if (zm_reload) {
+      // Clear first so a SIGHUP that arrives while reloading is not lost.
+      zm_reload = false;
       Info("Reloading configuration");
       zmLoadStaticConfig();
       zmLoadDBConfig();
       // The RTSP server threads keep logging through the reload.
       logReload(log_id_string);
-      zm_reload = false;
     }  // end if zm_reload
   } // end while !zm_terminate
 

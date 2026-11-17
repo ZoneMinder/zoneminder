@@ -30,7 +30,7 @@ Uri::Uri(const std::string &uri) {
 
   // host
   iterator_t hostStart = protocolEnd;
-  iterator_t pathStart = std::find(hostStart, uriEnd, '/');  // get pathStart
+  iterator_t pathStart = std::find(hostStart, queryStart, '/');  // a / in the query is not the path
   iterator_t authorityEnd = (pathStart != uriEnd) ? pathStart : queryStart;
 
   // skip user:password@

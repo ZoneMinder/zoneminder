@@ -81,6 +81,14 @@ TEST_CASE("MonitorLink score follows the source's alarm state", "[MonitorLink]")
     REQUIRE(link.score() == 42);
     REQUIRE(link.hasAlarmed());
   }
+  SECTION("alarm: a packet with no score still counts as alarmed") {
+    // Audio packets and frames skipped by motion detection leave
+    // last_frame_score at 0 while the source stays in ALARM.
+    data.state = Monitor::ALARM;
+    data.last_frame_score = 0;
+    REQUIRE(link.score() == 1);
+    REQUIRE(link.hasAlarmed());
+  }
   SECTION("alert: keeps the linked event open") {
     data.state = Monitor::ALERT;
     data.last_frame_score = 0;
@@ -150,5 +158,13 @@ TEST_CASE("MonitorLink zone score follows source monitor state and zone id", "[M
 
     data.state = Monitor::ALERT;
     REQUIRE(link.score() == 1);
+  }
+
+  SECTION("zone that can't be found in ALERT returns 0 like ALARM") {
+    TestZoneLink link(std::make_shared<SourceMonitor>(), 999, -1);
+    link.Attach(&data, mock_zone_scores);
+
+    data.state = Monitor::ALERT;
+    REQUIRE(link.score() == 0);
   }
 }

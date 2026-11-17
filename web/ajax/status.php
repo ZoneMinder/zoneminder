@@ -223,7 +223,7 @@ $statusData = array(
       'EventId' => true,
       'Type' => true,
       'TimeStamp' => true,
-      'TimeStampShort' => array( 'sql' => 'date_format( StartDateTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ),
+      'TimeStampShort' => array( 'sql' => 'date_format( Frames.TimeStamp, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ),
       'Delta' => true,
       'Score' => true,
       //'Image' => array( 'postFunc' => 'getFrameImage' ),

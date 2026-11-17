@@ -2,7 +2,7 @@
 ini_set('display_errors', '');
 
 $start_time = microtime(true);
-$connkey = sprintf('%06d', $_REQUEST['connkey']);
+$connkey = sprintf('%06d', $_REQUEST['connkey'] ?? 0);
 
 define('MSG_TIMEOUT', ZM_WEB_AJAX_TIMEOUT/2);
 define('MSG_DATA_SIZE', 4+256);
@@ -25,7 +25,7 @@ define('STREAM_ERR_TIMEOUT', 'timeout');
 define('STREAM_ERR_TRANSIENT', 'transient');
 define('STREAM_ERR_INVALID', 'invalid');
 
-if ( !($_REQUEST['connkey'] && $_REQUEST['command']) ) {
+if ( empty($_REQUEST['connkey']) or empty($_REQUEST['command']) ) {
   ajaxError('No connkey or no command in stream ajax', HTTP_STATUS_OK, STREAM_ERR_INVALID);
 }
 

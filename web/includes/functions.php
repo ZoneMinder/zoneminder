@@ -2419,11 +2419,33 @@ function extract_auth_values_from_url($url) {
   if ($protocolPrefixPos === false)
     return array();
 
-  $authSeparatorPos = strpos($url, '@', $protocolPrefixPos+3);
-  if ($authSeparatorPos === false)
-    return array();
+  $start = $protocolPrefixPos+3;
+  $segmentEnd = $start + strcspn($url, '/?#', $start);
+  $segment = substr($url, $start, $segmentEnd-$start);
 
-  $fieldsSeparatorPos = strpos($url, ':', $protocolPrefixPos+3);
+  $at = strrpos($segment, '@');
+  if ($at !== false) {
+    // Credentials end at the last @ of the authority (a raw @ in the password works).
+    $authSeparatorPos = $start + $at;
+  } else {
+    // No @ in the authority. Raw / ? # in a password (user:pa#ss@host) put the @
+    // after the first delimiter, so accept it only if the authority looks like
+    // user:pass and not host:port, [ipv6] or a bare host. That keeps an @ in the
+    // path or query (rtsp://h:554/live?token=a@b) from being read as credentials.
+    if ($segment === '' || $segment[0] === '[')
+      return array();
+    $colon = strpos($segment, ':');
+    if ($colon === false)
+      return array();
+    $afterColon = substr($segment, $colon+1);
+    if ($afterColon === '' || ctype_digit($afterColon))
+      return array();
+    $authSeparatorPos = strpos($url, '@', $segmentEnd);
+    if ($authSeparatorPos === false)
+      return array();
+  }
+
+  $fieldsSeparatorPos = strpos($url, ':', $start);
   if ($fieldsSeparatorPos === false || $authSeparatorPos < $fieldsSeparatorPos)
     return array();
 

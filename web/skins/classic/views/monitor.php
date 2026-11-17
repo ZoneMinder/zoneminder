@@ -97,7 +97,10 @@ function fourcc($a, $b, $c, $d) {
 }
 if (isset($_REQUEST['newMonitor'])) {
   # Update the monitor object with whatever has been set so far.
-  $monitor->set($_REQUEST['newMonitor']);
+  # A posted form omits unticked checkboxes, so they must not keep the stored
+  # value. A link carrying a few newMonitor values is not a full form.
+  $monitor->set(($_SERVER['REQUEST_METHOD'] == 'POST') ?
+    monitorFillUncheckedFields($_REQUEST['newMonitor']) : $_REQUEST['newMonitor']);
 
   if (ZM_OPT_X10)
     $newX10Monitor = $_REQUEST['newX10Monitor'];

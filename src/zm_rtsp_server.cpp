@@ -362,7 +362,7 @@ int main(int argc, char *argv[]) {
 
   while (1) {
     int option_index = 0;
-    int c = getopt_long(argc, argv, "m:h:v", long_options, &option_index);
+    int c = getopt_long(argc, argv, "m:hv", long_options, &option_index);
     if (c == -1)
       break;
 

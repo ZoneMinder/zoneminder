@@ -96,6 +96,11 @@ function monitorSortValue($monitor, $sort, $ServersById, $StorageById) {
   return preg_match('/(Events|Count|Sequence)$/', $sort) ? 0 : '';
 }
 
+// A monitor with no events has NULL, or no Event_Summaries row at all.
+function monitorEventDiskSpace($monitor, $period) {
+  return human_filesize(isset($monitor[$period.'EventDiskSpace']) ? $monitor[$period.'EventDiskSpace'] : 0);
+}
+
 function queryRequest() {
   global $user, $Servers;
   require_once('includes/Monitor.php');
@@ -433,7 +438,7 @@ function queryRequest() {
     
     foreach ($eventCounts as $period => $eventCount) {
       $row[$period.'Events'] = (int)$monitor[$period.'Events'];
-      $row[$period.'EventDiskSpace'] = human_filesize($monitor[$period.'EventDiskSpace']);
+      $row[$period.'EventDiskSpace'] = monitorEventDiskSpace($monitor, $period);
       
       // Generate filter querystring for this period and monitor
       $filter = addFilterTerm(

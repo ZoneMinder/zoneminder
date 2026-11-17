@@ -22,6 +22,7 @@
 #include "zm_user.h"
 
 #include <cstring>
+#include <new>
 #include <string>
 
 namespace {
@@ -74,6 +75,21 @@ TEST_CASE("User load permissions marks flags as loaded") {
 
   user.loadGroupPermissions();
   REQUIRE(user.group_permissions_loaded == true);
+}
+
+TEST_CASE("User keeps the whole Username column") {
+  // Users.Username is latin1 (cp1252) varchar(64); over a utf8mb4 connection that is up to 3 bytes a character.
+  std::string name;
+  for (int i = 0; i < 64; i++) name += "\xe2\x82\xac";
+  const char *row[] = {"3", name.c_str(), "$2y$10$hash", "1", "1", "1", "1", "1", "1", "0"};
+  // Dirty storage, so a missing terminator shows up.
+  alignas(User) unsigned char storage[sizeof(User)];
+  memset(storage, 'x', sizeof(storage));
+  User *user = new (storage) User(const_cast<char **>(row));
+
+  REQUIRE(std::strlen(user->getUsername()) == name.size());
+  REQUIRE(std::memcmp(user->getUsername(), name.data(), name.size()) == 0);
+  user->~User();
 }
 
 TEST_CASE("Group_Permission parsing from dbrow") {

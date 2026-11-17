@@ -49,7 +49,7 @@ if ( $sid and ! $Server->Id() ) return;
               </tr>
               <tr class="Port">
                 <th scope="row"><?php echo translate('Port') ?></th>
-                <td><input type="number" name="newServer[Port]" value="<?php echo validCardinal($Server->Port()) ?>" step="1" min="1" max="65536"/></td>
+                <td><input type="number" name="newServer[Port]" value="<?php echo validCardinal($Server->Port()) ?>" step="1" min="1" max="65535"/></td>
               </tr>
               <tr class="PathToIndex">
                 <th scope="row"><?php echo translate('PathToIndex') ?></th>

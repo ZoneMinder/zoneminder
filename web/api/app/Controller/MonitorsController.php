@@ -295,6 +295,11 @@ class MonitorsController extends AppController {
     // its events pointing at a monitor that no longer exists.
     require_once __DIR__ .'/../../../includes/Monitor.php';
     $monitor = new ZM\Monitor($id);
+    // Already deleted: the row stays for an undelete, but there is nothing left to delete.
+    // Its zones stay with it, as in the console.
+    if ( $monitor->Deleted() ) {
+      throw new NotFoundException(__('Invalid monitor'));
+    }
     if ( $monitor->delete() ) {
       $this->set(array(
         'message' => 'Deleted',

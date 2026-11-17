@@ -198,6 +198,7 @@ Debug("@Monitors");
           }
           if ( ! opendir(DIR, '.') ) {
             Error("Can't open directory '$$Storage{Path}/$day_dir': $!");
+            chdir($Storage->Path());
             next;
           }
           my %event_ids_by_path;
@@ -410,6 +411,7 @@ Debug("@Monitors");
       }
       if ( ! opendir(DIR, '.') ) {
         Error("Can't open directory '$$Storage{Path}/$monitor_dir': $!");
+        chdir($Storage->Path());
         next;
       }
       # A Deep scheme year directory is numeric too, but it holds date directories
@@ -481,10 +483,10 @@ sub confirm {
       Term();
     }
     chomp( $char );
-    if ( $char eq 'q' ) {
+    if ( lc($char) eq 'q' ) {
       Term();
     }
-    if ( !$char ) {
+    if ( $char eq '' ) {
       $char = 'y';
     }
     $yesno = ( $char =~ /[yY]/ );

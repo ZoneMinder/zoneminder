@@ -449,6 +449,8 @@ int main(int argc, const char *argv[], char **envp) {
     stream.setStreamFrameType(analysis_frames ? StreamBase::FRAME_ANALYSIS: StreamBase::FRAME_NORMAL);
     if ( mode == ZMS_JPEG ) {
       stream.setStreamType(EventStream::STREAM_JPEG);
+    } else if ( mode == ZMS_RAW ) {
+      stream.setStreamType(EventStream::STREAM_RAW);
     } else if ( mode == ZMS_SINGLE ) {
       stream.setStreamType(MonitorStream::STREAM_SINGLE);
     } else {

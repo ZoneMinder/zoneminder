@@ -366,6 +366,7 @@ sub GenerateVideo {
 
     Debug('Executing: '.join(' ', @command));
 
+    my $old_diskspace = $$self{DiskSpace};
     my $pid = fork();
     if ( !defined $pid ) {
       Error("Unable to fork for video generation: $!");
@@ -389,6 +390,16 @@ sub GenerateVideo {
     }
 
     Info("Finished $video_file");
+    # The new file is part of the event, so a later move or delete must account for it.
+    my $new_diskspace = $self->DiskSpace(undef);
+    if ( $$self{Id} and defined $new_diskspace ) {
+      # Only DiskSpace: the event may still be recording, so a full save would write back stale values.
+      if ( defined ZoneMinder::Database::zmDbDo('UPDATE Events SET DiskSpace=? WHERE Id=?', $new_diskspace, $$self{Id}) ) {
+        $self->Storage()->adjust_diskspace($new_diskspace-$old_diskspace) if $old_diskspace;
+      } else {
+        Warning("Unable to save DiskSpace of event $$self{Id}");
+      }
+    }
     return $event_path.'/'.$video_file;
   } else {
     Info("Video file $video_file already exists for event $self->{Id}");

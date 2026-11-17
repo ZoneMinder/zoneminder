@@ -430,7 +430,7 @@ Debug("@Monitors");
         }
         $event = new ZoneMinder::Event();
         $$event{Id} = $event_id;
-        $$event{Path} = join('/', $Storage->Path(), $event_id );
+        $$event{Path} = join('/', $Storage->Path(), $monitor_dir, $event_id );
         Info("Have event $$event{Id} at $$event{Path}");
         if ( confirm() ) {
           $$event{Scheme} = 'Shallow';

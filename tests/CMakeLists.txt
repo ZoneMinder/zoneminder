@@ -81,6 +81,7 @@ set(TEST_SOURCES
   zm_time.cpp
   zm_user_default_password.cpp
   zm_utils.cpp
+  zm_mem_utils.cpp
   zm_videostore_m3u8.cpp
   zm_vector2.cpp
   zm_zone.cpp

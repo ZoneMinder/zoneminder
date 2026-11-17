@@ -413,7 +413,9 @@ class Event extends ZM_Object {
       $this->{'DiskSpace'} = $new;
     }
     if ( (!property_exists($this, 'DiskSpace')) or (null === $this->{'DiskSpace'}) ) {
-      $this->{'DiskSpace'} = folder_size($this->Path());
+      # An empty Path() would make folder_size() add up the whole filesystem from "/".
+      $path = $this->Path();
+      $this->{'DiskSpace'} = $path ? folder_size($path) : null;
       if ($this->{'EndDateTime'} and $this->{'DiskSpace'}) {
         # Finished events shouldn't grow in size much so we can commit it to the db.
         #dbQuery('UPDATE Events SET DiskSpace=? WHERE Id=?', array($this->{'DiskSpace'}, $this->{'Id'}));
@@ -948,7 +950,7 @@ class Event extends ZM_Object {
       Info("Finished $video_file");
       return $video_file;
     } else {
-      Info("Video file $video_file already exists for event {$this['Id']}");
+      Info("Video file $video_file already exists for event ".$this->Id());
       return $video_file;
     }
     return;

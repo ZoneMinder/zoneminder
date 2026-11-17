@@ -143,7 +143,7 @@ if (isset($_REQUEST['replayMode']) and is_string($_REQUEST['replayMode'])) {
     $replayMode = $_COOKIE['replayMode'];
   } else {
     ZM\Warning('Invalid value for replayMode in cookies. Removing.');
-    zm_setcookie('replayMode', '', time()-86400);
+    zm_setcookie('replayMode', '', array('expires'=>time()-86400));
   }
 } else {
   $preference = $user->Preference('replayMode');

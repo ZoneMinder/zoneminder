@@ -91,6 +91,26 @@ sub camera {
   check('presetSet enables the preset', $preset->{enable}, 1);
 }
 
+# The Controls row has CanFocusCon, so the focus button sends focusStop.
+package FocusMonitor;
+sub new { return bless {ModectDuringPTZ => 0, ControlDevice => 0, calls => $_[1]}, $_[0]; }
+sub suspendMotionDetection { $_[0]->{calls}{suspend}++ }
+sub resumeMotionDetection { $_[0]->{calls}{resume}++ }
+
+package main;
+{
+  my ($control, $ua) = camera(0);
+  my %calls;
+  $control->{Monitor} = FocusMonitor->new(\%calls);
+  check('focusStop is implemented', $control->can('focusStop') ? 1 : 0, 1);
+  $control->focusConNear({speed => 10});
+  $control->focusStop() if $control->can('focusStop');
+  my $body = @{$ua->{reqs}} > 1 ? decode_json($ua->{reqs}[1]->content)->[0] : {};
+  check('focusStop op', $body->{param}{op}, 'Stop');
+  check('focusStop channel', $body->{param}{channel}, 2);
+  check('focusStop resumes motion detection', $calls{resume}, 1);
+}
+
 # A move still goes out flat and with the speed.
 {
   my ($control, $ua) = camera(0);

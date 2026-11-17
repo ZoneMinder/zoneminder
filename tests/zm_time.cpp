@@ -18,6 +18,7 @@
 #include "zm_catch2.h"
 
 #include "zm_time.h"
+#include "zm_utils.h"
 
 #include <chrono>
 #include <cstdlib>
@@ -128,4 +129,12 @@ TEST_CASE("SystemTimePointToString: returns the formatted text, not an empty str
   REQUIRE_FALSE(s.empty());
   REQUIRE(s.size() == strlen(s.c_str()));
   REQUIRE(s.find("21:19:59.123456") != std::string::npos);
+}
+
+TEST_CASE("StringToSystemTimePoint: reads a URL decoded zms datetime parameter") {
+  // zms decodes datetime=2026-07-15%2010:00:00 (or +) before parsing it.
+  ScopedTimezone tz("America/New_York");
+  REQUIRE(std::chrono::system_clock::to_time_t(StringToSystemTimePoint(UriDecode("2026-07-15%2010:00:00"))) == 1784124000);
+  REQUIRE(std::chrono::system_clock::to_time_t(StringToSystemTimePoint(UriDecode("2026-07-15+10:00:00"))) == 1784124000);
+  REQUIRE(StringToSystemTimePoint(UriDecode("2026-07-15")).time_since_epoch().count() == 0);
 }

@@ -147,7 +147,7 @@ function applyZoneType() {
       typeSelect.classList.add(selectedClass);
     }
   }
-  
+
   if ( form.elements['newZone[Type]'].value == 'Inactive' || form.elements['newZone[Type]'].value == 'Privacy' ) {
     form.presetSelector.disabled = true;
     form.newAlarmRgbR.disabled = true;

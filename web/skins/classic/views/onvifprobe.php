@@ -125,7 +125,12 @@ function probeProfiles($device_ep, $soapversion, $username, $password) {
           // decoded, which is also quite appropriate.  However, that
           // also applies to the password sub-field of the Path
           // attribute.  So, we must double encode the embedded password.
-          $stream_uri = $tokens[1].$username.':'.urlencode(urlencode($password)).'@'.$tokens[2];
+          // Without credentials there is no userinfo at all: rtsp://:@host is not a valid URL.
+          $userinfo = '';
+          if ((string)$username !== '' || (string)$password !== '') {
+            $userinfo = rawurlencode((string)$username).':'.urlencode(urlencode((string)$password)).'@';
+          }
+          $stream_uri = $tokens[1].$userinfo.$tokens[2];
         }
         ZM\Debug(print_r($matches, true));
 

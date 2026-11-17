@@ -61,5 +61,22 @@ namespace {
     eval($m[0]);
     check("one detected entry keeps the choose text for $v", $$v[0], 'Choose');
   }
+
+  // probeProfiles() puts the credentials into the stream URL: none when there
+  // are none, and a username with reserved characters is encoded.
+  if (!preg_match('/^function probeProfiles\(.*?^\} \/\/ end function probeProfiles/ms', $op, $m)) {
+    echo "FAIL - probeProfiles() not found\n";
+    exit(1);
+  }
+  function execONVIF($cmd, $log_cmd = null) {
+    return array('Profile_1, main, H264, 1920, 1080, 25, RTP-Unicast, rtsp://10.0.0.5:554/stream1');
+  }
+  eval($m[0]);
+  $r = probeProfiles('http://10.0.0.5/onvif/device_service', '1', '', '');
+  check('no credentials leave the stream URL without userinfo', $r[0]['Path'], 'rtsp://10.0.0.5:554/stream1');
+  $r = probeProfiles('http://10.0.0.5/onvif/device_service', '1', 'ad@min', 'pw');
+  check('username is URL encoded', $r[0]['Path'], 'rtsp://ad%40min:pw@10.0.0.5:554/stream1');
+  $r = probeProfiles('http://10.0.0.5/onvif/device_service', '1', 'admin', '');
+  check('username alone keeps the colon', $r[0]['Path'], 'rtsp://admin:@10.0.0.5:554/stream1');
   exit($failures ? 1 : 0);
 }

@@ -148,7 +148,9 @@ int Monitor::AmcrestAPI::start() {
 
   Url full_url(parent->onvif_url.empty() ? parent->path : parent->onvif_url);
   full_url.scheme("http");
-  full_url.path("/cgi-bin/eventManager.cgi?action=attach&heartbeat=5&codes=[All]");
+  // path() would percent-encode a ? into the path, so the query is set on its own.
+  full_url.path("/cgi-bin/eventManager.cgi");
+  full_url.set_query({{"action", "attach"}, {"heartbeat", "5"}, {"codes", "[All]"}});
   Debug(1, "AMCREST url is %s", full_url.str().c_str());
   Amcrest_handle = curl_easy_init();
   if (!Amcrest_handle) {

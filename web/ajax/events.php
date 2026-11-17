@@ -226,6 +226,8 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
       if (!in_array($col, $whitelist)) return null;
       if ($col == 'Tags') return 'Tags';
       if ($col == 'Monitor') return 'M.Name';
+      // Storage is a display name; Events only has StorageId.
+      if ($col == 'Storage') return 'E.StorageId';
       return 'E.'.$col;
     };
     // Implicit NULLs-last rewrite when sorting solely by EndDateTime, so events

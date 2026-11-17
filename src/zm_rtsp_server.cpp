@@ -202,6 +202,12 @@ class MonitorRtspStream {
   // mutex_ must be held; the tracker has a complete HELLO set. build_audio says whether
   // the pending audio HELLO is current (see Update) and should be served.
   void BuildLocked(bool build_audio) {
+    if (stream_name_.empty()) {
+      // rtsp://host:port/ cannot reach a session registered under "", and it would
+      // take the "" slot away from every other monitor without a name
+      Warning("Monitor %u: RTSPStreamName is empty, not serving this monitor over rtsp", monitor_->Id());
+      return;
+    }
     xop::MediaSession *session = xop::MediaSession::CreateNew(stream_name_);
     if (!session) {
       Error("Unable to create session for %s", stream_name_.c_str());

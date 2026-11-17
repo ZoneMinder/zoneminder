@@ -27,6 +27,13 @@ if (!empty($_REQUEST['id'])) {
 global $redirect;
 global $error_message;
 
+if (!empty($_REQUEST['id']) and !$report->Id()) {
+  // Saving a report that failed to load would insert a new row
+  ZM\Warning('Report '.$_REQUEST['id'].' not found');
+  $redirect = '?view=reports';
+  return;
+}
+
 if ($report->Id() and !$report->canEdit()) {
   ZM\Warning('You do not have permission to edit report '.$report->Id());
   $redirect = '?view=reports';

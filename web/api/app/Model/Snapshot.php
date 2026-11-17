@@ -76,4 +76,16 @@ class Snapshot extends AppModel {
   );
 
   public $actsAs = array('Containable');
+
+  // The web action records who took the snapshot and when; the columns have no default.
+  public function beforeSave($options = array()) {
+    if (!$this->id) {
+      global $user;
+      if (empty($this->data[$this->alias]['CreatedBy']) and $user)
+        $this->data[$this->alias]['CreatedBy'] = $user->Id();
+      if (empty($this->data[$this->alias]['CreatedOn']))
+        $this->data[$this->alias]['CreatedOn'] = date('Y-m-d H:i:s');
+    }
+    return true;
+  }
 }

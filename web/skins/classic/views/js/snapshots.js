@@ -45,6 +45,11 @@ function ajaxRequest(params) {
   })
       .done(function(data) {
         ajax = null;
+        if (data.result == 'Error') {
+          table.bootstrapTable('hideLoading');
+          alert(data.message);
+          return;
+        }
         var rows = processRows(data.rows);
         // rearrange the result into what bootstrap-table expects
         params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
@@ -53,8 +58,9 @@ function ajaxRequest(params) {
         // Every reload aborts the request in flight, so those are not failures.
         if (jqXHR.statusText == 'abort') return;
         ajax = null;
+        // Refreshing here would re-run the failing request without end.
+        table.bootstrapTable('hideLoading');
         logAjaxFail(jqXHR);
-        table.bootstrapTable('refresh');
       });
 }
 

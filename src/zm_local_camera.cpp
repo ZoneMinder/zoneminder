@@ -38,15 +38,21 @@
 static unsigned int BigEndian;
 static bool primed;
 
+static int default_ioctl(int fd, unsigned long request, void *arg) {
+  return ioctl(fd, request, arg);
+}
+// Indirection so the unit tests can substitute a fake V4L2 driver
+int (*zm_v4l2_ioctl)(int, unsigned long, void *) = default_ioctl;
+
 static int vidioctl(int fd, int request, void *arg) {
   int result = -1;
   do {
-    result = ioctl(fd, request, arg);
+    result = zm_v4l2_ioctl(fd, request, arg);
   } while( result == -1 && errno == EINTR );
   return result;
 }
 
-static _AVPIXELFORMAT getFfPixFormatFromV4lPalette(int v4l_version, unsigned int palette) {
+_AVPIXELFORMAT getFfPixFormatFromV4lPalette(int v4l_version, unsigned int palette) {
   _AVPIXELFORMAT pixFormat = AV_PIX_FMT_NONE;
 
   switch (palette) {
@@ -85,11 +91,6 @@ static _AVPIXELFORMAT getFfPixFormatFromV4lPalette(int v4l_version, unsigned int
   case V4L2_PIX_FMT_YUV411P :
     pixFormat = AV_PIX_FMT_YUV411P;
     break;
-#ifdef V4L2_PIX_FMT_YUV444
-  case V4L2_PIX_FMT_YUV444 :
-    pixFormat = AV_PIX_FMT_YUV444P;
-    break;
-#endif // V4L2_PIX_FMT_YUV444
   case V4L2_PIX_FMT_YUV410 :
     pixFormat = AV_PIX_FMT_YUV410P;
     break;
@@ -113,6 +114,10 @@ static _AVPIXELFORMAT getFfPixFormatFromV4lPalette(int v4l_version, unsigned int
   case V4L2_PIX_FMT_YVU410 :
   case V4L2_PIX_FMT_YVU420 :
   case V4L2_PIX_FMT_Y41P :
+  // V4L2_PIX_FMT_YUV444 is packed 16 bit xxxxyyyy uuuuvvvv, not planar YUV444P
+#ifdef V4L2_PIX_FMT_YUV444
+  case V4L2_PIX_FMT_YUV444 :
+#endif
   //case V4L2_PIX_FMT_YUV555 :
   //case V4L2_PIX_FMT_YUV565 :
   //case V4L2_PIX_FMT_YUV32 :
@@ -547,6 +552,11 @@ int LocalCamera::Initialise() {
   if (vidioctl(vid_fd, VIDIOC_ENUMINPUT, &input) < 0) {
     Error("Failed to enumerate input %d: %s", channel, strerror(errno));
     return -1;
+  }
+
+  // Select the input first: the video standard below belongs to the input
+  if (vidioctl(vid_fd, VIDIOC_S_INPUT, &channel) < 0) {
+    Warning("Failed to select input %d: %s", channel, strerror(errno));
   }
 
   v4l2_standard enum_standard = {};
@@ -1229,7 +1239,7 @@ bool LocalCamera::GetCurrentSettings(
         }
 
         if ( verbose ) {
-          output_ptr += sprintf( output,
+          output_ptr += sprintf( output_ptr,
                                  "  Input %d\n"
                                  "    Name: %s\n"
                                  "    Type: %s\n"
@@ -1285,7 +1295,7 @@ int LocalCamera::Control(int vid_id, int newvalue) {
     } else {
       Debug(1, "Control is not supported");
     }
-  } else if (newvalue >= 0) {
+  } else if (newvalue != -1) {
     vid_control.value = newvalue;
 
     /* The driver may clamp the value or return ERANGE, ignored here */

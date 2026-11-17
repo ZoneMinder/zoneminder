@@ -18,7 +18,7 @@ namespace ZM {
 namespace {
   if (!isset($argv[1])) {
     $failures = 0;
-    foreach (array('system', 'sort_array') as $scenario) {
+    foreach (array('system', 'sort_array', 'frame_short') as $scenario) {
       passthru(escapeshellarg(PHP_BINARY).' '.escapeshellarg(__FILE__).' '.$scenario, $rc);
       if ($rc) $failures++;
     }
@@ -36,7 +36,7 @@ namespace {
   function getDiskPercent() { return 0; }
   function translate($s) { return $s; }
   function validJsStr($v) { return (is_null($v) or is_array($v)) ? '' : strip_tags(addslashes($v)); }
-  function validInt($v) { return preg_replace('/[^\-\d]/', '', $v); }
+  function validInt($v) { return is_array($v) ? '' : preg_replace('/[^\-\d]/', '', $v); }
   $sqls = array();
   function dbFetchOne($sql, $col = null, $params = array()) {
     $GLOBALS['sqls'][] = $sql;
@@ -49,6 +49,9 @@ namespace {
   $scenario = $argv[1];
   $_REQUEST = array('entity' => ($scenario == 'system') ? 'system' : 'frames');
   if ($scenario == 'sort_array') $_REQUEST += array('id' => '7', 'sort' => array('FrameId'));
+  if ($scenario == 'frame_short') {
+    $_REQUEST = array('entity' => 'frame', 'id' => array('7', '3'), 'element' => array('TimeStampShort'));
+  }
   $thrown = '';
   try {
     include __DIR__.'/../../web/ajax/status.php';
@@ -62,6 +65,15 @@ namespace {
     $ok = preg_match('/count\(if\(`?Deleted`? *= *(0|false),[^)]*\)\) as MonitorCount/i', $sql)
       && preg_match('/count\(if\(`?Deleted`? *= *(0|false) *and `Capturing` != \'None\',/i', $sql);
     echo ($ok ? 'ok' : 'FAIL').' - system counts leave out deleted monitors'.($ok ? '' : " ($sql)")."\n";
+  } else if ($scenario == 'frame_short') {
+    // MySQL date_format() only expands %-specifiers, so the PHP style 'Y/m/d' the
+    // constant used to hold came back as that literal text, and the frame's own
+    // TimeStamp is what is shortened, not its event's start.
+    $sql = $sqls ? $sqls[0] : '';
+    $fmt = file_get_contents(__DIR__.'/../../web/includes/config.php.in');
+    $ok = preg_match("/define\('MYSQL_FMT_DATETIME_SHORT', '[^']*%y[^']*'\)/", $fmt)
+      && preg_match('/date_format\( Frames\.TimeStamp, /', $sql);
+    echo ($ok ? 'ok' : 'FAIL').' - TimeStampShort formats the frame TimeStamp with a MySQL format'.($ok ? '' : " ($sql; threw: $thrown)")."\n";
   } else {
     $ok = ($thrown === '');
     echo ($ok ? 'ok' : 'FAIL').' - array sort is ignored'.($ok ? '' : " (threw: $thrown)")."\n";

@@ -1056,7 +1056,8 @@ function bwClickFunction() {
 function reminderClickFunction() {
   $j("#dropdown_reminder + .dropdown-menu a").click(function() {
     var option = $j(this).data('pdsa-dropdown-val');
-    $j.getJSON(thisUrl + '?view=version&action=version&option=' + option)
+    // The version view has no page, so the response is HTML, not JSON.
+    $j.get(thisUrl + '?view=version&action=version&option=' + option)
         .done(function() {
           window.location.reload(true); // Do a full refresh to update ZM_DYN_LAST_VERSION
         })

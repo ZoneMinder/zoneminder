@@ -1,0 +1,6 @@
+.zone-type-active     { color: #ff6b6b !important; font-weight: bold; }
+.zone-type-inclusive  { color: #ffb84d !important; font-weight: bold; }
+.zone-type-exclusive  { color: #c77dff !important; font-weight: bold; }
+.zone-type-preclusive { color: #5bc0de !important; font-weight: bold; }
+.zone-type-inactive   { color: #adb5bd !important; font-weight: bold; }
+.zone-type-privacy    { color: #f8f9fa !important; font-weight: bold; }

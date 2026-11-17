@@ -1524,6 +1524,7 @@ void EventStream::runStream() {
 
   if (type == STREAM_MPEG) {
     delete vid_stream;
+    vid_stream = nullptr;
   }
 
   if (connkey) {

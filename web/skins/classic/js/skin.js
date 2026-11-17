@@ -3866,7 +3866,8 @@ const stringToLocaleString = function(str) {
       result = '';
       matches.forEach((match, index) => {
         const num = Number(match);
-        result += (!isNaN(num)) ? num.toLocaleString() : match;
+        // Number(' ') is 0, so whitespace between two numbers must stay as is
+        result += (match.trim() !== '' && !isNaN(num)) ? num.toLocaleString() : match;
       });
     }
   }

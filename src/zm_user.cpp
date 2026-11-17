@@ -499,8 +499,6 @@ bool checkUser(const std::string &username) {
 bool checkPass(const std::string &password) {
   if (password.empty())
     return false;
-  if (password.length() > 64)
-    return false;
 
   return true;
 }

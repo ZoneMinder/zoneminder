@@ -412,3 +412,35 @@ TEST_CASE("PacketQueue: pre-event count is in video packets with audio interleav
   queue.stop();
   queue.clear();
 }
+
+// Audio packets carry AV_PKT_FLAG_KEY, so keyframe is set on every one of them.
+// queuePacket() holds everything back until the first video keyframe, but the
+// keyframe test let an audio packet through, which put audio at the front of the queue
+// ahead of the first video keyframe and parked a waiting iterator on it.
+TEST_CASE("PacketQueue: nothing is queued before the first video keyframe") {
+  PacketQueue queue;
+  queue.addStream();
+  queue.addStream();
+  queue.setKeepKeyframes(false);
+  queue.setMaxVideoPackets(0);
+  queue.setPreEventVideoPackets(2);
+
+  // The analysis thread's iterator, waiting at the end of an empty queue.
+  packetqueue_iterator *analysis_it = queue.get_video_it(false);
+  REQUIRE(analysis_it != nullptr);
+
+  REQUIRE_FALSE(queue.queuePacket(audio_packet()));
+  REQUIRE_FALSE(queue.queuePacket(video_packet(0)));
+  REQUIRE(queue.size() == 0);
+
+  auto key = video_packet(1);
+  REQUIRE(queue.queuePacket(key));
+  REQUIRE(queue.queuePacket(audio_packet()));
+  REQUIRE(queue.size() == 2);
+  REQUIRE(*(*analysis_it) == key);
+  REQUIRE(queue.packet_count(1) == 1);
+
+  queue.free_it(analysis_it);
+  queue.stop();
+  queue.clear();
+}

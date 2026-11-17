@@ -38,8 +38,12 @@ class ManufacturersController extends AppController {
   public function index() {
     $this->Manufacturer->recursive = 0;
     
-    $options = '';
-    $manufacturers = $this->Manufacturer->find('all', $options);
+    $conditions = array();
+    if ( $this->request->params['named'] ) {
+      $this->FilterComponent = $this->Components->load('Filter');
+      $conditions = $this->FilterComponent->buildFilter($this->request->params['named'], array_keys($this->Manufacturer->schema()));
+    }
+    $manufacturers = $this->Manufacturer->find('all', array('conditions' => $conditions));
 		$this->set(array(
 					'manufacturers' => $manufacturers,
 					'_serialize' => array('manufacturers')
@@ -158,6 +162,16 @@ class ManufacturersController extends AppController {
     $this->request->allowMethod('post', 'delete');
 
     #$this->daemonControl($this->Manufacturer->id, 'stop');
+
+    # Monitors reference a manufacturer and its models by foreign key, so deleting one in
+    # use is a database error, not a deletion. Its models go with it otherwise, or they
+    # would stay behind pointing at nothing.
+    $inUse = dbFetchOne('SELECT COUNT(*) AS Count FROM Monitors WHERE ManufacturerId=? OR ModelId IN (SELECT Id FROM Models WHERE ManufacturerId=?)', 'Count', array($id, $id))
+      + dbFetchOne('SELECT COUNT(*) AS Count FROM MonitorPresets WHERE ModelId IN (SELECT Id FROM Models WHERE ManufacturerId=?)', 'Count', array($id));
+    if ( $inUse ) {
+      throw new HttpException(__('The manufacturer is in use by monitors or presets.'), 409);
+    }
+    dbQuery('DELETE FROM `Models` WHERE `ManufacturerId`=?', array($id));
 
     if ( $this->Manufacturer->delete() ) {
       $this->set(array(

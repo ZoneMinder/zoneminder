@@ -112,7 +112,7 @@ sub sendCmd
     my $cmd = shift;
     my $result = undef;
 
-	my ($user, $password) = split /:/, $self->{Monitor}->{ControlDevice};
+	my ($user, $password) = split /:/, $self->{Monitor}->{ControlDevice}, 2;
 	if ( ! $password ) {
 		$password = $user;
 		$user = 'admin';

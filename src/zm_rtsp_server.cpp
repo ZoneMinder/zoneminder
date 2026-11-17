@@ -202,6 +202,12 @@ class MonitorRtspStream {
   // mutex_ must be held; the tracker has a complete HELLO set. build_audio says whether
   // the pending audio HELLO is current (see Update) and should be served.
   void BuildLocked(bool build_audio) {
+    if (stream_name_.empty()) {
+      // rtsp://host:port/ cannot reach a session registered under "", and it would
+      // take the "" slot away from every other monitor without a name
+      Warning("Monitor %u: RTSPStreamName is empty, not serving this monitor over rtsp", monitor_->Id());
+      return;
+    }
     xop::MediaSession *session = xop::MediaSession::CreateNew(stream_name_);
     if (!session) {
       Error("Unable to create session for %s", stream_name_.c_str());
@@ -333,6 +339,20 @@ class MonitorRtspStream {
   RtspSessionTracker tracker_;  // HELLO/generation bookkeeping, guarded by mutex_
   RtspPtsTracker pts_tracker_;  // guarded by mutex_
 };
+
+// Monitors are only reloaded into the map when their stream name changes, so a
+// copy loaded before zmc restarted with another resolution, image buffer count
+// or zone count expects a shared memory size that no longer matches the file
+// and connect() fails on every pass. Returns the copy loaded in this pass for
+// monitor_id, which matches the restarted zmc.
+std::shared_ptr<Monitor> FindLoadedMonitor(
+    const std::vector<std::shared_ptr<Monitor>> &loaded, unsigned int monitor_id) {
+  for (const auto &candidate : loaded) {
+    if (candidate->Id() == monitor_id)
+      return candidate;
+  }
+  return nullptr;
+}
 
 void Usage() {
   fprintf(stderr, "zm_rtsp_server -m <monitor_id>\n");
@@ -477,6 +497,10 @@ int main(int argc, char *argv[]) {
         if (!monitor->ShmValid()) {
           // zmc restarted: unmap its old shared memory instead of leaking it
           monitor->disconnect();
+          // and take the copy loaded in this pass, whose settings match the restarted zmc
+          std::shared_ptr<Monitor> reloaded = FindLoadedMonitor(new_monitors, monitor->Id());
+          if (reloaded)
+            monitor = reloaded;
           if (!monitor->connect()) {
             Debug(1, "Monitor %d shared memory not available yet, retrying next pass", monitor->Id());
             continue;

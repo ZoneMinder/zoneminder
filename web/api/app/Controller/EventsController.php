@@ -460,6 +460,11 @@ class EventsController extends AppController {
       return;
     }
 
+    # ZM\Event::delete() refuses an archived event; say so instead of answering 500.
+    if ( !empty($event['Event']['Archived']) ) {
+      throw new BadRequestException(__('The event is archived and cannot be deleted. Unarchive it first.'));
+    }
+
     # Not $this->Event->delete(): the model's beforeDelete() returns false, so that always fails.
     if ( $EventObj->delete() ) {
       $this->set(array(

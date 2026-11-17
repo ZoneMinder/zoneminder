@@ -326,16 +326,11 @@ if ( !$events_result ) {
   return;
 }
 
-$max_aspect_ratio = 0;
-
 while ($event = $events_result->fetch(PDO::FETCH_ASSOC)) {
   if ( !isset($monitors[$event['MonitorId']]) ) {
     $monitor = $monitors[$event['MonitorId']] = ZM\Monitor::find_one(array('Id'=>$event['MonitorId']));
     $monEventSlots[$event['MonitorId']] = array();
     $monFrameSlots[$event['MonitorId']] = array();
-    $aspect_ratio = round($monitor->Width() / $monitor->Height(), 2);
-    if ( $aspect_ratio > $max_aspect_ratio )
-      $max_aspect_ratio = $aspect_ratio;
   }
 
   $currEventSlots = &$monEventSlots[$event['MonitorId']];
@@ -628,7 +623,8 @@ function drawXGrid( $chart, $scale, $labelClass, $tickClass, $gridClass, $zoomCl
         }
         if ( $scale['name'] != 'second' && $zoomClass ) {
           $zoomMinTime = date( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($lastTick * $chart['data']['x']['density'])) );
-          $zoomMaxTime = date( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($i * $chart['data']['x']['density'])) );
+          // End on the block's last pixel: the first pixel of the next block would be aligned up to a whole extra scale step.
+          $zoomMaxTime = date( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + (($i-1) * $chart['data']['x']['density'])) );
 ?>
             <div class="<?php echo $zoomClass ?>" style="left: <?php echo 100*($lastTick-1)/$chart['graph']['width'] ?>%; width: <?php echo round(100*($i-$lastTick)/$chart['graph']['width'],1) ?>%;" title="<?php echo translate('ZoomIn') ?>" data-on-click="tlZoomBounds" data-zoom-min-time="<?php echo $zoomMinTime ?>" data-zoom-max-time="<?php echo $zoomMaxTime ?>"></div>
 <?php
@@ -641,7 +637,7 @@ function drawXGrid( $chart, $scale, $labelClass, $tickClass, $gridClass, $zoomCl
 
   if ( $zoomClass ) {
     $zoomMinTime = date( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($lastTick * $chart['data']['x']['density'])) );
-    $zoomMaxTime = date( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($i * $chart['data']['x']['density'])) );
+    $zoomMaxTime = date( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + (($i-1) * $chart['data']['x']['density'])) );
 ?>
             <div class="<?php echo $zoomClass ?>" style="left: <?php echo 100*($lastTick-1)/$chart['graph']['width'] ?>%; width: <?php echo round(100*($i-$lastTick)/$chart['graph']['width'],1) ?>%;" title="<?php echo translate('ZoomIn') ?>" data-on-click="tlZoomBounds" data-zoom-min-time="<?php echo $zoomMinTime ?>" data-zoom-max-time="<?php echo $zoomMaxTime ?>"></div>
 <?php

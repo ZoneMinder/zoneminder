@@ -185,7 +185,7 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
     //$row['Archived'] = $row['Archived'] ? translate('Yes') : translate('No');
     //$row['Emailed'] = $row['Emailed'] ? translate('Yes') : translate('No');
     //$row['Cause'] = validHtmlStr($row['Cause']);
-    $row['CreatedOn'] = $dateTimeFormatter->format(strtotime($row['CreatedOn']));
+    $row['CreatedOn'] = $row['CreatedOn'] ? $dateTimeFormatter->format(strtotime($row['CreatedOn'])) : '';
     //$row['StartDateTime'] = strftime(STRF_FMT_DATETIME_SHORTER, strtotime($row['StartDateTime']));
     //$row['EndDateTime'] = $row['EndDateTime'] ? strftime(STRF_FMT_DATETIME_SHORTER, strtotime($row['EndDateTime'])) : null;
     //$row['Length'] = gmdate('H:i:s', $row['Length'] );

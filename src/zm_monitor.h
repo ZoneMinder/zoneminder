@@ -782,6 +782,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int        ready_count;
   int        first_alarm_count;
   int        last_alarm_count;
+  int        pre_alarm_count_ = 0;     // Alarmed frames seen while in PREALARM
+  int64_t    last_section_sec_ = -1;   // Timestamp (s) of the previous packet, for CLOSE_TIME
   bool       last_signal;
   // Capture assumes signal on the first packet after connect() cleared it,
   // even when the decoder measures it, so Analyse doesn't see a signal loss
@@ -1287,6 +1289,20 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // command line are matched. Pure, for tests.
   static std::string RemoteMonitorFilter(const char *protocol, const char *host, const char *port, const char *path,
                                          const std::function<std::string(const std::string &)> &escape);
+  // Frames analysis skips between motion detections so that analysis runs at
+  // about analysis_fps_limit when the camera captures at capture_fps. Pure.
+  static int AnalysisFrameSkip(double capture_fps, double analysis_fps_limit);
+  // True when the section_length boundary lies between two packet timestamps
+  // (whole seconds). prev_sec < 0 means there is no previous packet. Pure.
+  static bool TimeSectionCrossed(int64_t prev_sec, int64_t cur_sec, int64_t section_length_sec);
+  // Alarm frames counted while in PREALARM. Per monitor: one zmc process can
+  // run several monitors, whose analysis threads must not share the count.
+  int PreAlarmCount() const { return pre_alarm_count_; }
+  void AddPreAlarmFrame() { pre_alarm_count_++; }
+  void EmptyPreAlarmFrames() { pre_alarm_count_ = 0; }
+  // Forget partial alarm progress when analysis is interrupted (trigger off,
+  // signal loss) so it cannot be completed later by an unrelated frame.
+  void ClearAlarmTracking();
   bool Analyse();
   bool setupConvertContext(const AVFrame *input_frame, const Image *image);
   // Write capture_image into image_buffer[index] without conversion and

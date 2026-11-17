@@ -124,11 +124,12 @@ function probeProfiles($device_ep, $soapversion, $username, $password) {
           // end, the entire value of the Path attribute will be URL
           // decoded, which is also quite appropriate.  However, that
           // also applies to the password sub-field of the Path
-          // attribute.  So, we must double encode the embedded password.
+          // attribute (and the user name).  So, we must double encode both.
+          // rawurlencode, not urlencode: a space would become a + that ffmpeg keeps literally.
           // Without credentials there is no userinfo at all: rtsp://:@host is not a valid URL.
           $userinfo = '';
           if ((string)$username !== '' || (string)$password !== '') {
-            $userinfo = rawurlencode((string)$username).':'.urlencode(urlencode((string)$password)).'@';
+            $userinfo = rawurlencode(rawurlencode((string)$username)).':'.rawurlencode(rawurlencode((string)$password)).'@';
           }
           $stream_uri = $tokens[1].$userinfo.$tokens[2];
         }

@@ -75,8 +75,18 @@ namespace {
   $r = probeProfiles('http://10.0.0.5/onvif/device_service', '1', '', '');
   check('no credentials leave the stream URL without userinfo', $r[0]['Path'], 'rtsp://10.0.0.5:554/stream1');
   $r = probeProfiles('http://10.0.0.5/onvif/device_service', '1', 'ad@min', 'pw');
-  check('username is URL encoded', $r[0]['Path'], 'rtsp://ad%40min:pw@10.0.0.5:554/stream1');
+  check('username is URL encoded twice like the password', $r[0]['Path'], 'rtsp://ad%2540min:pw@10.0.0.5:554/stream1');
   $r = probeProfiles('http://10.0.0.5/onvif/device_service', '1', 'admin', '');
   check('username alone keeps the colon', $r[0]['Path'], 'rtsp://admin:@10.0.0.5:554/stream1');
+  // The probe is POSTed and monitor.php urldecode()s the whole Path once, so
+  // the password must come out as a single encoded value that ffmpeg decodes
+  // once. rawurlencode, because ffmpeg leaves a literal + alone.
+  foreach (array('p@ss:w/rd#1%', 'a b', 'a+b', "\xC3\xA4") as $pw) {
+    $r = probeProfiles('http://10.0.0.5/onvif/device_service', '1', 'admin', $pw);
+    preg_match('|^rtsp://admin:([^@]*)@|', $r[0]['Path'], $pm);
+    check('password '.bin2hex($pw).' is single encoded after the monitor view decodes Path', isset($pm[1]) ? urldecode($pm[1]) : null, rawurlencode($pw));
+    check('password '.bin2hex($pw).' decodes back to itself after two decodes', isset($pm[1]) ? urldecode(urldecode($pm[1])) : null, $pw);
+    check('password '.bin2hex($pw).' is not decoded to a plus', strpos(isset($pm[1]) ? urldecode($pm[1]) : '', '+') === false || strpos($pw, '+') !== false, true);
+  }
   exit($failures ? 1 : 0);
 }

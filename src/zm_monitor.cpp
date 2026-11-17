@@ -4454,7 +4454,7 @@ bool Monitor::DumpSettings(char *output, bool verbose) {
 
   result += stringtf("Id : %u\n", id);
   result += stringtf("Name : %s\n", name.c_str());
-  result += stringtf("Type : %s\n", camera->IsLocal()?"Local":(camera->IsRemote()?"Remote":"File"));
+  result += stringtf("Type : %s\n", CameraType_Strings[type].c_str());
 #if ZM_HAS_V4L2
   if ( camera->IsLocal() ) {
     LocalCamera* cam = static_cast<LocalCamera*>(camera.get());

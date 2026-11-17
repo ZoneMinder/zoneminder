@@ -55,6 +55,7 @@ set(TEST_SOURCES
   zm_packet_lock.cpp
   zm_packet_y_image.cpp
   zm_monitor_action.cpp
+  zm_monitor_type_label.cpp
   zm_monitor_signal.cpp
   zm_onvif_alarm_latch.cpp
   zm_onvif_alarm_termination.cpp

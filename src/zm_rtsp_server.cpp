@@ -524,6 +524,7 @@ int main(int argc, char *argv[]) {
 
     if (zm_reload) {
       Info("Reloading configuration");
+      zmLoadStaticConfig();
       zmLoadDBConfig();
       // The RTSP server threads keep logging through the reload.
       logReload(log_id_string);

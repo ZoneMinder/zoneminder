@@ -157,11 +157,14 @@ function logFilter() {
   //
   // Advanced search contains an array of "column name" => "search text" pairs
   // Bootstrap table sends json_ecoded array, which we must decode
-  $advsearch = isset($_REQUEST['filter']) ? json_decode($_REQUEST['filter'], JSON_OBJECT_AS_ARRAY) : array();
+  $advsearch = (isset($_REQUEST['filter']) and is_string($_REQUEST['filter'])) ? json_decode($_REQUEST['filter'], JSON_OBJECT_AS_ARRAY) : array();
   // json_decode can return null, and count(null) is a fatal error on PHP 8.
   $advsearch = is_array($advsearch) ? $advsearch : array();
   // Search contains a user entered string to search on
-  $search = isset($_REQUEST['search']) ? $_REQUEST['search'] : '';
+  $search = (isset($_REQUEST['search']) and is_string($_REQUEST['search'])) ? $_REQUEST['search'] : '';
+  // An unreadable filter or search is still a filter, so the delete must not truncate on it.
+  if (isset($_REQUEST['filter']) and !is_string($_REQUEST['filter'])) $requested = true;
+  if (isset($_REQUEST['search']) and !is_string($_REQUEST['search'])) $requested = true;
   if (count($advsearch)) {
     $requested = true;
     foreach ($advsearch as $col=>$text) {
@@ -276,24 +279,24 @@ function logFilter() {
 
   if (!empty($_REQUEST['StartDateTime'])) {
     $requested = true;
-    $start_time = strtotime($_REQUEST['StartDateTime']);
+    $start_time = is_string($_REQUEST['StartDateTime']) ? strtotime($_REQUEST['StartDateTime']) : false;
     if ($start_time) {
       if ($where) $where .= ' AND ';
       $where .= 'TimeKey >= ?';
       $query['values'][] = $start_time;
     } else {
-      ZM\Warning("Unable to parse StartDateTime ".$_REQUEST['StartDateTime']. " into a timestamp");
+      ZM\Warning("Unable to parse StartDateTime ".print_r($_REQUEST['StartDateTime'], true). " into a timestamp");
     }
   }
   if (!empty($_REQUEST['EndDateTime'])) {
     $requested = true;
-    $end_time = strtotime($_REQUEST['EndDateTime']);
+    $end_time = is_string($_REQUEST['EndDateTime']) ? strtotime($_REQUEST['EndDateTime']) : false;
     if ($end_time) {
       if ($where) $where .= ' AND ';
       $where .= 'TimeKey <= ?';
       $query['values'][] = $end_time;
     } else {
-      ZM\Warning("Unable to parse EndDateTime ".$_REQUEST['EndDateTime']. " into a timestamp");
+      ZM\Warning("Unable to parse EndDateTime ".print_r($_REQUEST['EndDateTime'], true). " into a timestamp");
     }
   }
 
@@ -338,7 +341,7 @@ function queryRequest() {
   $col_alt = logAltColumns();
 
   $sort = 'TimeKey';
-  if (isset($_REQUEST['sort'])) {
+  if (isset($_REQUEST['sort']) and is_string($_REQUEST['sort'])) {
     $sort = $_REQUEST['sort'];
     if ($sort == 'DateTime') $sort = 'TimeKey';
     if ($sort == 'Server') $sort = 'ServerId';
@@ -352,7 +355,7 @@ function queryRequest() {
   }
 
   // Order specifies the sort direction, either asc or desc
-  $order = (isset($_REQUEST['order']) and (strtolower($_REQUEST['order']) == 'asc')) ? 'ASC' : 'DESC';
+  $order = (isset($_REQUEST['order']) and is_string($_REQUEST['order']) and (strtolower($_REQUEST['order']) == 'asc')) ? 'ASC' : 'DESC';
 
   if ($nameMainQuery !== '' && $nameSubQuery !== '') {
     array_walk($columnsContext, function(&$value, $key, $nameMainQuery) {

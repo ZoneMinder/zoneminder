@@ -41,7 +41,12 @@ class CameraModelsController extends AppController {
     $conditions = array();
     if ( $this->request->params['named'] ) {
       $this->FilterComponent = $this->Components->load('Filter');
-      $conditions = $this->FilterComponent->buildFilter($this->request->params['named'], array_keys($this->CameraModel->schema()));
+      // Manufacturers is joined and has Id and Name too, so write CameraModel.Name.
+      $named = $this->FilterComponent->qualifyFields($this->request->params['named'], array(
+        'CameraModel' => array_keys($this->CameraModel->schema()),
+        'Manufacturer' => array_keys($this->CameraModel->Manufacturer->schema()),
+      ));
+      $conditions = $this->FilterComponent->buildFilter($named);
     }
     $models = $this->CameraModel->find('all', array('conditions' => $conditions));
 		$this->set(array(

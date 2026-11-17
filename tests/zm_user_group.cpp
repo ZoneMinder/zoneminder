@@ -101,3 +101,16 @@ TEST_CASE("Group_Permission parsing from dbrow") {
   REQUIRE(gp.GroupId() == 3);
   REQUIRE(gp.getPermission() == Group_Permission::PERM_VIEW);
 }
+
+TEST_CASE("checkUser accepts every name the Username column holds") {
+  // Users.Username is latin1 varchar(64); over a utf8mb4 connection that is up to 3 bytes a character.
+  std::string euro;
+  for (int i = 0; i < 64; i++) euro += "\xe2\x82\xac";
+
+  REQUIRE(checkUser(std::string(33, 'a')));
+  REQUIRE(checkUser(std::string(64, 'a')));
+  REQUIRE(checkUser(euro));
+
+  REQUIRE_FALSE(checkUser(""));
+  REQUIRE_FALSE(checkUser(euro + "a"));
+}

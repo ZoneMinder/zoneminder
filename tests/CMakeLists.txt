@@ -33,6 +33,7 @@ set(TEST_SOURCES
   zm_hwaccel_candidates.cpp
   zm_image.cpp
   zm_image_annotate.cpp
+  zm_image_overlay_rotate.cpp
   zm_image_transform.cpp
   zm_image_deinterlace_linear.cpp
   zm_image_deinterlace_4field.cpp

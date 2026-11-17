@@ -54,6 +54,7 @@ zmc processes and provide those streams over rtsp
 #include "zm_rtsp_server_authenticator.h"
 #include "zm_rtsp_server_pts_tracker.h"
 #include "zm_rtsp_server_session_tracker.h"
+#include "zm_rtsp_server_session.h"
 #include "zm_rtsp_server_stream_h264_source.h"
 #include "zm_rtsp_server_stream_av1_source.h"
 #include "zm_rtsp_server_stream_adts_source.h"
@@ -214,7 +215,11 @@ class MonitorRtspStream {
         [](xop::MediaSessionId, const std::string &peer_ip, uint16_t peer_port) {
           Debug(1, "RTSP client disconnect, ip=%s, port=%hu", peer_ip.c_str(), peer_port);
         });
-    rtsp_server_->AddSession(session);
+    if (!RtspAddSession(*rtsp_server_, session)) {
+      Error("Monitor %u: rtsp stream name '%s' is already served by another monitor, not serving this one",
+            monitor_->Id(), stream_name_.c_str());
+      return;
+    }
     xop::MediaSessionId session_id = session->GetMediaSessionId();
 
     const HelloInfo &video = tracker_.PendingVideo();

@@ -220,6 +220,12 @@ Image *StreamBase::prepareImage(Image *image, int pre_scaled_by) {
   const unsigned short cur_x = x.load();
   const unsigned short cur_y = y.load();
 
+  if (cur_zoom == ZM_SCALE_BASE) {
+    // Not zoomed, so a later zoom-in starts from the whole frame
+    last_crop = Box();
+    last_crop_width = last_crop_height = 0;
+  }
+
   if (cur_zoom != 100) {
     int base_image_width = image->Width(),
         base_image_height = image->Height(),

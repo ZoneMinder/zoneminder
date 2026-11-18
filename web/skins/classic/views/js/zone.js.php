@@ -131,3 +131,6 @@ var translate = {
   "Showing Analysis": '<?php echo translate('Showing Analysis'); ?>',
   "Not Showing Analysis": '<?php echo translate('Not Showing Analysis'); ?>'
 };
+
+var enterZonePresetName = '<?php echo validJsStr(translate('ZoneEnterPresetName')); ?>';
+var invalidZonePresetName = '<?php echo validJsStr(translate('ZoneInvalidPresetName')); ?>';

@@ -136,6 +136,18 @@ function alarmColourToInputs(picker) {
 
 function applyZoneType() {
   var form = document.zoneForm;
+  var typeSelect = form.elements['newZone[Type]'];
+
+  // Sync the closed <select> color class with the currently selected option
+  if (typeSelect && typeSelect.selectedIndex >= 0) {
+    // Remove any existing zone-type-* class while preserving other classes (e.g. form-control)
+    typeSelect.className = typeSelect.className.replace(/\bzone-type-\S+/g, '').trim();
+    var selectedClass = typeSelect.options[typeSelect.selectedIndex].className;
+    if (selectedClass) {
+      typeSelect.classList.add(selectedClass);
+    }
+  }
+
   if ( form.elements['newZone[Type]'].value == 'Inactive' || form.elements['newZone[Type]'].value == 'Privacy' ) {
     form.presetSelector.disabled = true;
     form.newAlarmRgbR.disabled = true;

@@ -387,6 +387,13 @@ svg circle {
     opacity: 1;
 }
 
+.zone-type-active     { color: #d9534f !important; font-weight: bold; }
+.zone-type-inclusive  { color: #e67e22 !important; font-weight: bold; }
+.zone-type-exclusive  { color: #9b59b6 !important; font-weight: bold; }
+.zone-type-preclusive { color: #337ab7 !important; font-weight: bold; }
+.zone-type-inactive   { color: #7f8c8d !important; font-weight: bold; }
+.zone-type-privacy    { color: #222222 !important; font-weight: bold; }
+
 /* Narrow screens: stack the columns and size the feed from the width again */
 @media (max-width: 900px) {
   #zoneForm {

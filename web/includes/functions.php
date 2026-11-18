@@ -393,9 +393,7 @@ function htmlSelect($name, $contents, $values, $behaviours=false) {
   $behaviourText = '';
   if ( !empty($behaviours) ) {
     if ( is_array($behaviours) ) {
-      foreach ( $behaviours as $event=>$action ) {
-        $behaviourText .= ' '.$event.'="'.$action.'"';
-      }
+      $behaviourText = htmlAttributes($behaviours);
     } else {
       $behaviourText = ' onchange="'.$behaviours.'"';
     }
@@ -409,7 +407,7 @@ function htmlOptions($options, $values) {
   $has_selected = false;
   foreach ( $options as $value=>$option ) {
     $disabled = 0;
-    $text = $class = '';
+    $text = $class = $extraAttrs = '';
     if ( is_array($option) ) {
 
       if ( isset($option['Name']) )
@@ -423,6 +421,7 @@ function htmlOptions($options, $values) {
       if ( isset($option['class']) ) {
         $class = $option['class'];
       }
+      $extraAttrs = htmlAttributes($option, ['Name', 'text', 'disabled', 'class']);
     } else if ( is_object($option) ) {
       $text = $option->Name();
     } else {
@@ -439,6 +438,7 @@ function htmlOptions($options, $values) {
       ($selected?' selected="selected"':'').
       ($disabled?' disabled="disabled"':'').
       ($class?' class="'.htmlspecialchars($class, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'"':'').
+      $extraAttrs.
       '>'.htmlspecialchars($text, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'</option>'.PHP_EOL;
   } # end foreach options
   if ( $values and ((!is_array($values)) or count($values) ) and ! $has_selected ) {
@@ -447,6 +447,26 @@ function htmlOptions($options, $values) {
   }
   return $options_html;
 } # end function htmlOptions
+
+// Build an HTML attribute string from an associative array, supporting boolean attributes and key exclusions
+function htmlAttributes($attributes, $exclude=[]) {
+  $html = '';
+  if ( !is_array($attributes) ) {
+    return $html;
+  }
+  foreach ( $attributes as $key=>$val ) {
+    if ( in_array($key, $exclude, true) || $val === null || $val === false ) {
+      continue;
+    }
+    $safeKey = htmlspecialchars($key, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false);
+    if ( $val === true ) {
+      $html .= ' '.$safeKey;
+    } else {
+      $html .= ' '.$safeKey.'="'.htmlspecialchars((string)$val, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'"';
+    }
+  }
+  return $html;
+} # end function htmlAttributes
 
 function truncText($text, $length, $deslash=1) {
   return preg_replace('/^(.{'.$length.',}?)\b.*$/', '\\1&hellip;', ($deslash?stripslashes($text):$text));

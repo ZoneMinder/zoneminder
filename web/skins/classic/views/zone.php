@@ -37,10 +37,45 @@ foreach ( dbFetchAll($sql) as $preset ) {
   $presets[] = $preset;
 }
 
-$optTypes = array();
-foreach ( getEnumValues('Zones', 'Type') as $optType ) {
-  $optTypes[$optType] = $optType;
+$typeLabels = [
+  'Active'     => [
+    'text'  => translate('ZoneActive'),
+    'title' => translate('ZoneActiveDesc'),
+    'class' => 'zone-type-active',
+  ],
+  'Inclusive'  => [
+    'text'  => translate('ZoneInclusive'),
+    'title' => translate('ZoneInclusiveDesc'),
+    'class' => 'zone-type-inclusive',
+  ],
+  'Exclusive'  => [
+    'text'  => translate('ZoneExclusive'),
+    'title' => translate('ZoneExclusiveDesc'),
+    'class' => 'zone-type-exclusive',
+  ],
+  'Preclusive' => [
+    'text'  => translate('ZonePreclusive'),
+    'title' => translate('ZonePreclusiveDesc'),
+    'class' => 'zone-type-preclusive',
+  ],
+  'Inactive'   => [
+    'text'  => translate('ZoneInactive'),
+    'title' => translate('ZoneInactiveDesc'),
+    'class' => 'zone-type-inactive',
+  ],
+  'Privacy'    => [
+    'text'  => translate('ZonePrivacy'),
+    'title' => translate('ZonePrivacyDesc'),
+    'class' => 'zone-type-privacy',
+  ],
+];
+
+$optTypes = [];
+foreach (getEnumValues('Zones', 'Type') as $optType) {
+  $optTypes[$optType] = $typeLabels[$optType] ?? $optType;
 }
+// Set initial color class for the closed <select> based on the current zone type
+$currentClass = $typeLabels[$zone['Type']]['class'] ?? '';
 
 $optUnits = array();
 foreach ( getEnumValues('Zones', 'Units') as $optUnit ) {
@@ -266,7 +301,7 @@ if ( count($other_zones) ) {
 								<tr>
 									<th scope="row"><?php echo translate('Type') ?></th>
 									<td colspan="2"><?php echo htmlSelect('newZone[Type]', $optTypes, $zone['Type'],
-											array('data-on-change'=>'applyZoneType', 'id'=>'newZone[Type]')); ?></td>
+  array('data-on-change'=>'applyZoneType', 'id'=>'newZone[Type]', 'class'=>$currentClass)); ?></td>
 								</tr>
 								<tr>
 									<th scope="row"><?php echo translate('Preset') ?></th>

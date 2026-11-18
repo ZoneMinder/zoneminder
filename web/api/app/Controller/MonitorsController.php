@@ -75,6 +75,19 @@ class MonitorsController extends AppController {
       'conditions' => &$conditions,
       'contain'    => array('Group'),
     );
+    // sort and direction are taken out of the filter above, so apply them here
+    $sort = isset($this->request->params['named']['sort']) ? $this->request->params['named']['sort'] : $this->request->query('sort');
+    if ($sort !== null) {
+      $direction = isset($this->request->params['named']['direction']) ? $this->request->params['named']['direction'] : $this->request->query('direction');
+      if (!is_string($sort) or !in_array($sort, array_keys($this->Monitor->schema()), true)) {
+        throw new BadRequestException('Unknown sort field');
+      }
+      if ($direction === null) $direction = 'asc';
+      if (!is_string($direction) or !in_array(strtolower($direction), array('asc', 'desc'), true)) {
+        throw new BadRequestException('direction must be asc or desc');
+      }
+      $find_array['order'] = array('Monitor.'.$sort => strtolower($direction));
+    }
     if ($group_filter) {
       $find_array['joins'] = array(
         array(
@@ -295,6 +308,11 @@ class MonitorsController extends AppController {
     // its events pointing at a monitor that no longer exists.
     require_once __DIR__ .'/../../../includes/Monitor.php';
     $monitor = new ZM\Monitor($id);
+    // Already deleted: the row stays for an undelete, but there is nothing left to delete.
+    // Its zones stay with it, as in the console.
+    if ( $monitor->Deleted() ) {
+      throw new NotFoundException(__('Invalid monitor'));
+    }
     if ( $monitor->delete() ) {
       $this->set(array(
         'message' => 'Deleted',

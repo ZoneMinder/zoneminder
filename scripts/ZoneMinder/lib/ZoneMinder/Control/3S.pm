@@ -105,6 +105,13 @@ sub cameraReset
     $self->sendCmd( $cmd );
 }
 
+# The control ui sends 'reset'; cameraReset is the old name.
+sub reset
+{
+    my $self = shift;
+    $self->cameraReset();
+}
+
 #Custom#
 #Move X or Y Axis
 sub Up

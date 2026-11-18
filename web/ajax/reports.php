@@ -32,15 +32,15 @@ require_once('includes/Filter.php');
 require_once('includes/Report.php');
 
 // Search contains a user entered string to search on
-$search = isset($_REQUEST['search']) ? $_REQUEST['search'] : '';
+$search = (isset($_REQUEST['search']) and is_string($_REQUEST['search'])) ? $_REQUEST['search'] : '';
 
 // Advanced search contains an array of "column name" => "search text" pairs
 // Bootstrap table sends json_ecoded array, which we must decode
-$advsearch = isset($_REQUEST['advsearch']) ? json_decode($_REQUEST['advsearch'], JSON_OBJECT_AS_ARRAY) : array();
+$advsearch = (isset($_REQUEST['advsearch']) and is_string($_REQUEST['advsearch'])) ? json_decode($_REQUEST['advsearch'], JSON_OBJECT_AS_ARRAY) : array();
 
 $order = 'ASC';
 // Order specifies the sort direction, either asc or desc
-if (isset($_REQUEST['order'])) {
+if (isset($_REQUEST['order']) and is_string($_REQUEST['order'])) {
   if (strtolower($_REQUEST['order']) == 'asc') {
     $order = 'ASC';
   } else if (strtolower($_REQUEST['order']) == 'desc') {
@@ -51,7 +51,7 @@ if (isset($_REQUEST['order'])) {
 }
 
 // Sort specifies the name of the column to sort on
-$sort = (isset($_REQUEST['sort'])) ? $_REQUEST['sort'] : '';
+$sort = (isset($_REQUEST['sort']) and is_string($_REQUEST['sort'])) ? $_REQUEST['sort'] : '';
 
 // Offset specifies the starting row to return, used for pagination
 $offset = 0;

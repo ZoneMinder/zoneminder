@@ -36,6 +36,13 @@ TEST_CASE("SplitUserInfo") {
   REQUIRE(user == "bob");
   REQUIRE(pass.empty());
 
+  host = "bob:pa:ss@cam.local";
+  user = ""; pass = "";
+  REQUIRE(SplitUserInfo(host, user, pass));
+  REQUIRE(host == "cam.local");
+  REQUIRE(user == "bob");
+  REQUIRE(pass == "pa:ss");
+
   host = "cam.local";
   user = "u"; pass = "p";
   REQUIRE_FALSE(SplitUserInfo(host, user, pass));

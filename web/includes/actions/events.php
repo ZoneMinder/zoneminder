@@ -59,10 +59,11 @@ if ( $action == 'archive' ) {
   $refreshParent = true;
 } else if ( $action == 'delete' ) {
   $deletedEids = getAffectedIds('eids');
+  $deletedCount = 0;
   foreach ( $deletedEids as $markEid ) {
-    deleteEvent($markEid);
+    if (deleteEvent($markEid)) $deletedCount++;
   }
-  ZM\AuditAction('delete', 'events', 0, 'Count: '.count($deletedEids));
+  ZM\AuditAction('delete', 'events', 0, 'Count: '.$deletedCount);
   $refreshParent = true;
 } else {
   ZM\Warning("Unsupported action $action in events");

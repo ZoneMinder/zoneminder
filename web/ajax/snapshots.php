@@ -30,15 +30,16 @@ if ($message) {
 }
 
 // Search contains a user entered string to search on
-$search = isset($_REQUEST['search']) ? $_REQUEST['search'] : '';
+$search = (isset($_REQUEST['search']) and is_scalar($_REQUEST['search'])) ? $_REQUEST['search'] : '';
 
 // Advanced search contains an array of "column name" => "search text" pairs
 // Bootstrap table sends json_ecoded array, which we must decode
-$advsearch = isset($_REQUEST['advsearch']) ? json_decode($_REQUEST['advsearch'], JSON_OBJECT_AS_ARRAY) : array();
+$advsearch = (isset($_REQUEST['advsearch']) and is_string($_REQUEST['advsearch'])) ? json_decode($_REQUEST['advsearch'], JSON_OBJECT_AS_ARRAY) : array();
+if (!is_array($advsearch)) $advsearch = array();
 
 // Sort specifies the name of the column to sort on
 $sort = 'Id';
-if (isset($_REQUEST['sort'])) {
+if (isset($_REQUEST['sort']) and is_string($_REQUEST['sort'])) {
   $sort = $_REQUEST['sort'];
 }
 
@@ -53,7 +54,7 @@ if (isset($_REQUEST['offset'])) {
 }
 
 // Order specifies the sort direction, either asc or desc
-$order = (isset($_REQUEST['order']) and (strtolower($_REQUEST['order']) == 'asc')) ? 'ASC' : 'DESC';
+$order = (isset($_REQUEST['order']) and is_string($_REQUEST['order']) and (strtolower($_REQUEST['order']) == 'asc')) ? 'ASC' : 'DESC';
 
 // Limit specifies the number of rows to return
 // Set the default to 0 for events view, to prevent an issue with ALL pagination
@@ -185,7 +186,7 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
     //$row['Archived'] = $row['Archived'] ? translate('Yes') : translate('No');
     //$row['Emailed'] = $row['Emailed'] ? translate('Yes') : translate('No');
     //$row['Cause'] = validHtmlStr($row['Cause']);
-    $row['CreatedOn'] = $dateTimeFormatter->format(strtotime($row['CreatedOn']));
+    $row['CreatedOn'] = $row['CreatedOn'] ? $dateTimeFormatter->format(strtotime($row['CreatedOn'])) : '';
     //$row['StartDateTime'] = strftime(STRF_FMT_DATETIME_SHORTER, strtotime($row['StartDateTime']));
     //$row['EndDateTime'] = $row['EndDateTime'] ? strftime(STRF_FMT_DATETIME_SHORTER, strtotime($row['EndDateTime'])) : null;
     //$row['Length'] = gmdate('H:i:s', $row['Length'] );

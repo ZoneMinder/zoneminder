@@ -165,10 +165,12 @@ int RemoteCameraHttp::Connect() {
     if ( connect( sd, p->ai_addr, p->ai_addrlen ) < 0 ) {
       close(sd);
       sd = -1;
-      char buf[INET6_ADDRSTRLEN];
-      struct sockaddr_in *addr;
-      addr = (struct sockaddr_in *)p->ai_addr;
-      inet_ntop(AF_INET, &(addr->sin_addr), buf, sizeof(buf));
+      char buf[INET6_ADDRSTRLEN] = "n/a";
+      if (p->ai_family == AF_INET) {
+        inet_ntop(AF_INET, &((struct sockaddr_in *)p->ai_addr)->sin_addr, buf, sizeof(buf));
+      } else if (p->ai_family == AF_INET6) {
+        inet_ntop(AF_INET6, &((struct sockaddr_in6 *)p->ai_addr)->sin6_addr, buf, sizeof(buf));
+      }
 
       Warning("Can't connect to remote camera mid: %d at %s: %s", monitor->Id(), buf, strerror(errno));
       continue;
@@ -217,12 +219,14 @@ int RemoteCameraHttp::SendRequest() {
 
 int RemoteCameraHttp::ReadData(Buffer &buffer, unsigned int bytes_expected) {
   fd_set rfds;
-  FD_ZERO(&rfds);
-  FD_SET(sd, &rfds);
-
-  struct timeval temp_timeout = timeout;
-
-  int n_found = select(sd+1, &rfds, nullptr, nullptr, &temp_timeout);
+  struct timeval temp_timeout;
+  int n_found;
+  do {
+    FD_ZERO(&rfds);
+    FD_SET(sd, &rfds);
+    temp_timeout = timeout;
+    n_found = select(sd+1, &rfds, nullptr, nullptr, &temp_timeout);
+  } while (n_found < 0 && errno == EINTR);
   if (n_found == 0) {
     Debug(1, "Select timed out timeout was %" PRIi64 " secs %" PRIi64" usecs",
           static_cast<int64>(temp_timeout.tv_sec),
@@ -238,9 +242,6 @@ int RemoteCameraHttp::ReadData(Buffer &buffer, unsigned int bytes_expected) {
     }
     // Why are we disconnecting?  It's just a timeout, meaning that data wasn't available.
     //Disconnect();
-    return 0;
-  } else if (n_found == EINTR) {
-    Error("Select interrupted");
     return 0;
   } else if (n_found < 0) {
     Error("Select error: %s", strerror(errno));

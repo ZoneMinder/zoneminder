@@ -78,32 +78,32 @@ void Authenticator::authHandleHeader(const std::string &headerData) {
     subparts.push_back(current);
     // subparts are key="value"
     for ( size_t i = 0; i < subparts.size(); i++ ) {
-      StringVector kvPair = Split(TrimSpaces(subparts[i]), "=");
-      // A directive with no '=' (or an empty one) yields fewer than two parts, so
-      // reading kvPair[0]/kvPair[1] below would run off the end. The header comes
-      // from a camera's 401 response, which on an HTTP source is unauthenticated,
-      // so a malformed directive would otherwise crash the capture daemon
-      // (refs GHSA-r8cq-jgx6-gr5p). Skip anything that is not key=value.
-      if ( kvPair.size() < 2 ) continue;
-      std::string key = TrimSpaces(kvPair[0]);
+      // Split on the first '=' only: base64 nonces and opaque values end in '='.
+      std::pair<std::string, std::string> kvPair = PairSplit(TrimSpaces(subparts[i]), '=');
+      // A directive with no '=' gives an empty key. Skip anything that is not
+      // key=value (refs GHSA-r8cq-jgx6-gr5p).
+      std::string key = TrimSpaces(kvPair.first);
+      if ( key.empty() ) continue;
+      for ( char &c : key ) c = tolower(static_cast<unsigned char>(c));
+      std::string value = TrimSpaces(kvPair.second);
       if ( key == "realm" ) {
-        fRealm = Trim(kvPair[1], "\"");
+        fRealm = Trim(value, "\"");
         continue;
       }
       if ( key == "nonce" ) {
-        fNonce = Trim(kvPair[1], "\"");
+        fNonce = Trim(value, "\"");
         continue;
       }
       if ( key == "qop" ) {
         // qop may be a list such as "auth,auth-int"; only auth is supported.
         fQop = "";
-        for ( const std::string &option : Split(Trim(kvPair[1], "\""), ",") ) {
+        for ( const std::string &option : Split(Trim(value, "\""), ",") ) {
           if ( TrimSpaces(option) == "auth" ) fQop = "auth";
         }
         continue;
       }
       if ( key == "opaque" ) {
-        fOpaque = Trim(kvPair[1], "\"");
+        fOpaque = Trim(value, "\"");
         continue;
       }
     }

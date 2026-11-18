@@ -136,6 +136,18 @@ function alarmColourToInputs(picker) {
 
 function applyZoneType() {
   var form = document.zoneForm;
+  var typeSelect = form.elements['newZone[Type]'];
+
+  // Sync the closed <select> color class with the currently selected option
+  if (typeSelect && typeSelect.selectedIndex >= 0) {
+    // Remove any existing zone-type-* class while preserving other classes (e.g. form-control)
+    typeSelect.className = typeSelect.className.replace(/\bzone-type-\S+/g, '').trim();
+    var selectedClass = typeSelect.options[typeSelect.selectedIndex].className;
+    if (selectedClass) {
+      typeSelect.classList.add(selectedClass);
+    }
+  }
+
   if ( form.elements['newZone[Type]'].value == 'Inactive' || form.elements['newZone[Type]'].value == 'Privacy' ) {
     form.presetSelector.disabled = true;
     form.newAlarmRgbR.disabled = true;
@@ -189,6 +201,11 @@ function applyZoneType() {
 
 function applyCheckMethod() {
   var form = document.zoneForm;
+  // These types have no check method, applyZoneType() has disabled all of it
+  if ( form.elements['newZone[Type]'].value == 'Inactive' || form.elements['newZone[Type]'].value == 'Privacy' ) {
+    syncPixelInputStates();
+    return;
+  }
   if ( form.elements['newZone[CheckMethod]'].value == 'AlarmedPixels' ) {
     form.elements['newZone[FilterX]'].disabled = true;
     form.elements['newZone[FilterY]'].disabled = true;
@@ -493,13 +510,18 @@ function updateY(input) {
   updateArea();
 }
 
+/* The preset and player selectors are in the form but are not part of the zone */
+function isZoneField(el) {
+  return el.name && el.name != 'presetSelector' && el.name != 'codec';
+}
+
 /* Serialise every named form field so we can tell whether anything changed */
 function formState() {
   const form = document.zoneForm;
   const values = [];
   for ( let i = 0; i < form.elements.length; i++ ) {
     const el = form.elements[i];
-    if ( el.name && el.name != 'presetSelector' ) {
+    if ( isZoneField(el) ) {
       // Compare numbers by value so 100 and 100.00 don't look like a change
       const value = (el.type == 'number' && el.value !== '') ? parseFloat(el.value) : el.value;
       values.push(el.name+'='+value);
@@ -891,7 +913,7 @@ function initPage() {
   initialValues = {};
   for ( let i = 0; i < form.elements.length; i++ ) {
     const el = form.elements[i];
-    if ( el.name && el.name.indexOf('newZone[Points]') !== 0 ) {
+    if ( isZoneField(el) && el.name.indexOf('newZone[Points]') !== 0 ) {
       initialValues[el.name] = el.value;
     }
   }

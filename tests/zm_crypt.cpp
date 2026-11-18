@@ -18,13 +18,14 @@
 #include "zm_catch2.h"
 
 #include "zm_crypt.h"
+#include "zm_user.h"
 
 TEST_CASE("JWT validation") {
-  std::string key = "testsecret";
+  std::string key = "testsecret-at-least-32-bytes-long";
 
   SECTION("Valid token") {
     std::string token =
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJab25lTWluZGVyIiwidXNlciI6ImpvaG5kb2UiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxMjM0fQ.94WPmBAVl_83KCI9B3Jq9sNpoOdi0Hm1dR4sc6MCPUA";
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJab25lTWluZGVyIiwidXNlciI6ImpvaG5kb2UiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxMjM0fQ.hSW6iU0Y-IUNlYpJ0sRwjo0jKXWPZHoM3FVvNNLAE7U";
     std::pair<std::string, unsigned int> result = verifyToken(token, key);
 
     REQUIRE(result.first == "johndoe");
@@ -33,7 +34,7 @@ TEST_CASE("JWT validation") {
 
   SECTION("Invalid signature") {
     std::string token =
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJab25lTWluZGVyIiwidXNlciI6ImpvaG5kb2UiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxMjM0fQ.DhviT6RkDLmbXh5F9zM4l0VbWNPCuKptF6fORv1lBlA";
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJab25lTWluZGVyIiwidXNlciI6ImpvaG5kb2UiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxMjM0fQ.LU8uZkxFND3E44mRz3m4Cm67aABFd8GRYk58tM5Yvww";
     std::pair<std::string, unsigned int> result = verifyToken(token, key);
 
     REQUIRE(result.first == "");
@@ -42,7 +43,7 @@ TEST_CASE("JWT validation") {
 
   SECTION("Missing user claim") {
     std::string token =
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJab25lTWluZGVyIiwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTIzNH0.mfi3ZHnqUAPUh5ECxDIkAM9WW9a8HbKrP73LC3yYJmw";
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJab25lTWluZGVyIiwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTIzNH0.f4gXwEyo-R--h0lDsZAUai8_Rgq3cw_7ajU5o7vhuEk";
     std::pair<std::string, unsigned int> result = verifyToken(token, key);
 
     REQUIRE(result.first == "");
@@ -51,7 +52,7 @@ TEST_CASE("JWT validation") {
 
   SECTION("Missing type claim") {
     std::string token =
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJab25lTWluZGVyIiwidXNlciI6ImpvaG5kb2UiLCJpYXQiOjEyMzR9.D4Irs1gHfzO4psRY2xsOdClTg-Sp1kM__mmfNLs7CII";
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJab25lTWluZGVyIiwidXNlciI6ImpvaG5kb2UiLCJpYXQiOjEyMzR9.0VZ2Pj8eL2q688kgZB8UsoEeq0Y-Uo544NPgOgFPYwE";
     std::pair<std::string, unsigned int> result = verifyToken(token, key);
 
     REQUIRE(result.first == "");
@@ -60,7 +61,7 @@ TEST_CASE("JWT validation") {
 
   SECTION("Wrong type claim") {
     std::string token =
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJab25lTWluZGVyIiwidXNlciI6ImpvaG5kb2UiLCJ0eXBlIjoid3JvbmciLCJpYXQiOjEyMzR9.I1Gd50J6mck05vzc_kzjaH4RNjLBaFGpOnie6-PbX28";
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJab25lTWluZGVyIiwidXNlciI6ImpvaG5kb2UiLCJ0eXBlIjoid3JvbmciLCJpYXQiOjEyMzR9.q04wqlXmKZ4obB4NqrEuFIM17C0EiM96UJEdN64GCc4";
     std::pair<std::string, unsigned int> result = verifyToken(token, key);
 
     REQUIRE(result.first == "");
@@ -69,7 +70,7 @@ TEST_CASE("JWT validation") {
 
   SECTION("Missing iat claim") {
     std::string token =
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJab25lTWluZGVyIiwidXNlciI6ImpvaG5kb2UiLCJ0eXBlIjoid3JvbmcifQ.8iUFOUKJAK5vU8JWKm8D0EOEhm1rJoIulCO11O_Tsp0";
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJab25lTWluZGVyIiwidXNlciI6ImpvaG5kb2UiLCJ0eXBlIjoid3JvbmcifQ.EmENxsHBJTZM6sb1N50-ekTJfwpoI-sgMvxNTLM4RFs";
     std::pair<std::string, unsigned int> result = verifyToken(token, key);
 
     REQUIRE(result.first == "");
@@ -161,4 +162,17 @@ TEST_CASE("zm::crypto::LogFingerprint") {
   REQUIRE(fp.find(auth) == std::string::npos);
   REQUIRE(LogFingerprint(auth) == fp);
   REQUIRE(LogFingerprint(auth + "0") != fp);
+}
+
+TEST_CASE("checkPass accepts every password the web accepts") {
+  // The web sets no upper limit; this is PHP 8.3 password_hash() of 100 'a's.
+  std::string password(100, 'a');
+  const char *web_hash = "$2y$10$.XGIdURsvqkfCio5YZaW6ecTBaOtT1jFS1eq.HucuBwb./CQ6EfP6";
+
+  REQUIRE(checkPass(std::string(65, 'a')));
+  REQUIRE(checkPass(password));
+  REQUIRE(verifyPassword("user", password.c_str(), web_hash));
+  REQUIRE_FALSE(verifyPassword("user", std::string(100, 'b').c_str(), web_hash));
+
+  REQUIRE_FALSE(checkPass(""));
 }

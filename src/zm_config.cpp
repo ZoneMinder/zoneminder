@@ -417,6 +417,9 @@ void Config::Load() {
     return;
   }
 
+  // Start over, so that a reload drops a value set back to its default.
+  ZM_CFG_DEFAULTS_INIT
+
   int loaded = 0;
   while (MYSQL_ROW dbrow = mysql_fetch_row(result)) {
     if (dbrow[0] && dbrow[1] && dbrow[2]) {
@@ -456,7 +459,11 @@ void Config::ApplyFileOptions() {
     const char *type = "string";
     switch (bind_it->second.type) {
       case MemberBinding::BOOL: type = "boolean"; break;
-      case MemberBinding::INT: type = "integer"; break;
+      case MemberBinding::INT:
+        // A hexadecimal option such as ZM_SHM_KEY is an int member too.
+        type = (option.second.compare(0, 2, "0x") == 0 or option.second.compare(0, 2, "0X") == 0)
+               ? "hexadecimal" : "integer";
+        break;
       case MemberBinding::DOUBLE: type = "decimal"; break;
       case MemberBinding::STRING: break;
     }

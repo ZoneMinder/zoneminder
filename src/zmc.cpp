@@ -65,6 +65,7 @@ possible, this should run at more or less constant speed.
 #include "zm_utils.h"
 
 #include <algorithm>
+#include <functional>
 #include <getopt.h>
 #include <iostream>
 #include <unistd.h>
@@ -83,6 +84,22 @@ void Usage() {
   fprintf(stderr, "  -h, --help                 : This screen\n");
   fprintf(stderr, "  -v, --version              : Report the installed version of ZoneMinder\n");
   exit(0);
+}
+
+// -r takes the protocol and -h is a flag
+static const char *const kZmcShortOptions = "d:r:H:P:p:f:m:hv";
+
+// Wait up to total, calling tick() about every 100ms; returns false when stop() ends the wait early.
+static bool InterruptibleSleep(std::chrono::milliseconds total, const std::function<bool()> &stop,
+                               const std::function<void()> &tick) {
+  const auto end = std::chrono::steady_clock::now() + total;
+  while (!stop()) {
+    const auto now = std::chrono::steady_clock::now();
+    if (now >= end) return true;
+    if (tick) tick();
+    std::this_thread::sleep_for(std::min<std::chrono::steady_clock::duration>(std::chrono::milliseconds(100), end - now));
+  }
+  return false;
 }
 
 int main(int argc, char *argv[]) {
@@ -114,7 +131,7 @@ int main(int argc, char *argv[]) {
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "d:H:P:p:f:m:h:v", long_options, &option_index);
+    int c = getopt_long(argc, argv, kZmcShortOptions, long_options, &option_index);
     if ( c == -1 ) {
       break;
     }
@@ -122,6 +139,9 @@ int main(int argc, char *argv[]) {
     switch (c) {
     case 'd':
       device = optarg;
+      break;
+    case 'r':
+      protocol = optarg;
       break;
     case 'H':
       host = optarg;
@@ -203,7 +223,7 @@ int main(int argc, char *argv[]) {
   } else
 #endif  // ZM_HAS_V4L2
     if ( host[0] ) {
-      if ( !port )
+      if (!port[0])
         port = "80";
       monitors = Monitor::LoadRemoteMonitors(protocol, host, port, path, Monitor::CAPTURE);
     } else if ( file[0] ) {
@@ -296,7 +316,7 @@ int main(int argc, char *argv[]) {
       Seconds sleep_time = Seconds(0);
       bool priming_failed = false;
       while ((monitor->PrimeCapture() <= 0) and !zm_terminate) {
-        if (prime_capture_log_count % 60) {
+        if (prime_capture_log_count % 60 == 0) {
           logPrintf(Logger::ERROR + monitor->Importance(), "Failed to prime capture of initial monitor");
         } else {
           Debug(1, "Failed to prime capture of initial monitor");
@@ -313,8 +333,10 @@ int main(int argc, char *argv[]) {
           sleep_time++;
         }
 
-        std::this_thread::sleep_for(sleep_time);
-        monitor->SetHeartbeatTime(std::chrono::system_clock::now());
+        // Keep the heartbeat fresh and stay responsive to SIGTERM while waiting.
+        InterruptibleSleep(std::chrono::duration_cast<std::chrono::milliseconds>(sleep_time),
+                           []() { return zm_terminate.load(); },
+                           [&monitor]() { monitor->SetHeartbeatTime(std::chrono::system_clock::now()); });
       }
       if (zm_terminate) break;
       monitor->ResetFPSBaseline();
@@ -484,6 +506,8 @@ int main(int argc, char *argv[]) {
     }
 
     if (zm_reload) {
+      // Clear first so a SIGHUP that arrives while reloading is not lost.
+      zm_reload = false;
       zmLoadStaticConfig();
       zmLoadDBConfig();
       for (std::shared_ptr<Monitor> &monitor : monitors) {
@@ -491,8 +515,6 @@ int main(int argc, char *argv[]) {
       }
       // The dbQueue and stream socket threads are still running and logging.
       logReload(log_id_string);
-
-      zm_reload = false;
     }  // end if zm_reload
   }  // end while ! zm_terminate outer connection loop
 

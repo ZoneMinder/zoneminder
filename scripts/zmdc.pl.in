@@ -691,7 +691,7 @@ sub stop {
   my $command = join(' ', $daemon, @args);
   my $process = $cmd_hash{$command};
   if ( !$process ) {
-    dPrint(ZoneMinder::Logger::WARNING, "Can't find process with command of '$command'");
+    dPrint(ZoneMinder::Logger::WARNING, "Can't find process with command of '$command'\n");
     return;
   }
 
@@ -798,6 +798,7 @@ sub reaper {
     my $exit_signal = $status&0x7f;
     my $core_dumped = $status&0x80;
 
+    my $crashed = 0;
     my $out_str = "'$process->{command}' ";
     if ( $exit_signal ) {
       # 15 == TERM, 14 == ALARM
@@ -805,6 +806,7 @@ sub reaper {
         $out_str .= 'exited';
       } else {
         $out_str .= 'crashed';
+        $crashed = 1;
       }
       $out_str .= ", signal $exit_signal";
     } else {
@@ -818,7 +820,7 @@ sub reaper {
 #print( ", core dumped" ) if ( $core_dumped );
     $out_str .= "\n";
 
-    if ( $exit_status == 0 ) {
+    if ( $exit_status == 0 and !$crashed ) {
       Info($out_str);
     } else {
       Error($out_str);

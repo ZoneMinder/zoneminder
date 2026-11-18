@@ -1826,7 +1826,7 @@ bool Monitor::DumpZoneImage(const char *zone_string) {
     // Grab the most revent event image
     std::string sql = stringtf("SELECT MAX(`Id`) FROM `Events` WHERE `MonitorId`=%d AND `Frames` > 0", id);
     zmDbRow eventid_row;
-    if (eventid_row.fetch(sql)) {
+    if (eventid_row.fetch(sql) && eventid_row[0]) {
       uint64_t event_id = atoll(eventid_row[0]);
 
       Debug(3, "Got event %" PRIu64, event_id);
@@ -1973,6 +1973,24 @@ bool Monitor::CheckSignal(const Image *image) {
   Debug(1, "SignalCheck: %d points, colour_val(%d)", signal_check_points, colour_val);
   return false;
 } // end bool Monitor::CheckSignal(const Image *image)
+
+int Monitor::AnalysisFrameSkip(double capture_fps, double analysis_fps_limit) {
+  if (analysis_fps_limit <= 0) return 0;
+  // Every Nth frame is analysed, which is a skip of N-1. Round so a measured
+  // rate a little under or over the nominal one picks the same N.
+  int every_nth = static_cast<int>(std::lround(capture_fps / analysis_fps_limit));
+  return every_nth > 1 ? every_nth - 1 : 0;
+}
+
+bool Monitor::TimeSectionCrossed(int64_t prev_sec, int64_t cur_sec, int64_t section_length_sec) {
+  if (prev_sec < 0 or section_length_sec < 1) return false;
+  return (cur_sec / section_length_sec) != (prev_sec / section_length_sec);
+}
+
+void Monitor::ClearAlarmTracking() {
+  EmptyPreAlarmFrames();
+  alert_to_alarm_frame_count = alarm_frame_count;
+}
 
 bool Monitor::DecoderChecksSignal(DecodingOption decoding, int signal_check_points, bool has_viewers) {
   if (signal_check_points <= 0) return false;
@@ -2301,6 +2319,7 @@ bool Monitor::Analyse() {
           }  // end if doing analysing
         }
         SetState(IDLE);
+        ClearAlarmTracking();
         EndAlarmActions();
       }  // end if signal change
 
@@ -2385,7 +2404,7 @@ bool Monitor::Analyse() {
 
             if (analysis_fps_limit) {
               double capture_fps = get_capture_fps();
-              int new_skip = capture_fps / analysis_fps_limit;
+              int new_skip = AnalysisFrameSkip(capture_fps, analysis_fps_limit);
               if (new_skip != motion_frame_skip) {
                 motion_frame_skip = new_skip;
                 packetqueue.setPreEventVideoPackets(PreEventWalkBack());
@@ -2522,9 +2541,9 @@ bool Monitor::Analyse() {
           Debug(3, "Audio packet, not changing state");
         } else if (score) {
           if ((state == IDLE) || (state == PREALARM)) {
-            if (Event::PreAlarmCount() >= alarm_frame_count-1) {
+            if (PreAlarmCount() >= alarm_frame_count-1) {
               Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u Cause:%s",
-                   name.c_str(), packet->image_index, Event::PreAlarmCount(), alarm_frame_count, cause.c_str());
+                   name.c_str(), packet->image_index, PreAlarmCount(), alarm_frame_count, cause.c_str());
               SetState(ALARM);
               // Only the genuine entry into alarm fires actions. The
               // ALERT->ALARM path below is a re-trigger within one alarm and
@@ -2535,10 +2554,10 @@ bool Monitor::Analyse() {
               Info("%s: %03d - Gone into prealarm state", name.c_str(), analysis_image_count);
               SetState(PREALARM);
               // incremement pre alarm image count
-              Event::AddPreAlarmFrame(packet->image, packet->timestamp, score, nullptr);
+              AddPreAlarmFrame();
             } else { // PREALARM
               // incremement pre alarm image count
-              Event::AddPreAlarmFrame(packet->image, packet->timestamp, score, nullptr);
+              AddPreAlarmFrame();
             }
           } else if (state == ALERT) {
             alert_to_alarm_frame_count--;
@@ -2585,10 +2604,16 @@ bool Monitor::Analyse() {
                   static_cast<int64>(std::chrono::duration_cast<Seconds>(GetVideoWriterStartTime().time_since_epoch()).count()),
                   static_cast<int64>(Seconds(min_section_length).count()));
 
-            if (Event::PreAlarmCount())
-              Event::EmptyPreAlarmFrames();
+            if (PreAlarmCount())
+              EmptyPreAlarmFrames();
           } // end if packet->score meaning did motion detection
         } // end if score or not
+
+        // Whole seconds of the previous and this packet, to see a CLOSE_TIME
+        // boundary pass even when no frame lands on the exact second.
+        const int64_t this_section_sec = std::chrono::duration_cast<Seconds>(packet->timestamp.time_since_epoch()).count();
+        const bool time_section_crossed = TimeSectionCrossed(last_section_sec_, this_section_sec, Seconds(section_length).count());
+        last_section_sec_ = this_section_sec;
 
         if (event) {
           Debug(1, "Event %" PRIu64 ", alarm frames %d <? alarm_frame_count %d duration:%.2f close mode %d",
@@ -2658,7 +2683,7 @@ bool Monitor::Analyse() {
                 }
               } else if (event_close_mode == CLOSE_TIME) {
                 Debug(1, "CLOSE_MODE Time");
-                if (std::chrono::duration_cast<Seconds>(packet->timestamp.time_since_epoch()) % section_length == Seconds(0)) {
+                if (time_section_crossed) {
                   Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " %% %" PRIi64 " = 0",
                        name.c_str(),
                        packet->image_index,
@@ -2768,6 +2793,7 @@ bool Monitor::Analyse() {
         closeEvent();
       }
       SetState(IDLE);
+      ClearAlarmTracking();
       EndAlarmActions();
     } // end if ( trigger_data->trigger_state != TRIGGER_OFF )
 
@@ -3172,15 +3198,26 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadLocalMonitors
 }
 #endif // ZM_HAS_V4L2
 
+std::string Monitor::RemoteMonitorFilter(const char *protocol, const char *host, const char *port, const char *path,
+                                         const std::function<std::string(const std::string &)> &escape) {
+  std::string where;
+  if (protocol and protocol[0])
+    where += " AND `Protocol` = '" + escape(protocol) + "'";
+  if (host and host[0])
+    where += " AND `Host` = '" + escape(host) + "'";
+  if (port and port[0])
+    where += " AND `Port` = '" + escape(port) + "'";
+  if (path and path[0])
+    where += " AND `Path` = '" + escape(path) + "'";
+  return where;
+}
+
 std::vector<std::shared_ptr<Monitor>> Monitor::LoadRemoteMonitors
 (const char *protocol, const char *host, const char *port, const char *path, Purpose purpose) {
   std::string where = "`Capturing` != 'None' AND `Type` = 'Remote'";
   if (staticConfig.SERVER_ID)
     where += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
-  if (protocol)
-    where += stringtf(" AND `Protocol` = '%s' AND `Host` = '%s' AND `Port` = '%s' AND `Path` = '%s'",
-                      zmDbEscapeString(protocol).c_str(), zmDbEscapeString(host).c_str(),
-                      zmDbEscapeString(port).c_str(), zmDbEscapeString(path).c_str());
+  where += RemoteMonitorFilter(protocol, host, port, path, zmDbEscapeString);
   return LoadMonitors(where, purpose);
 }
 
@@ -4268,9 +4305,13 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
   unsigned int score = 0;
 
   if (zones.empty()) {
-    Warning("No zones to check!");
+    if (!no_zones_warned) {
+      Warning("No zones to check!");
+      no_zones_warned = true;
+    }
     return 0;
   }
+  no_zones_warned = false;
 
   if (!ref_image.Delta(comp_image, &delta_image)) {
     return 0;
@@ -4284,8 +4325,11 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
   // Blank out all exclusion zones
   for (Zone &zone : zones) {
     // need previous alarmed state for preclusive zone, so don't clear just yet
-    if (!zone.IsPreclusive())
+    if (!zone.IsPreclusive()) {
       zone.ClearAlarm();
+      // Not every zone is checked each frame, so drop last frame's scores and boxes.
+      zone.ClearStats();
+    }
     if (!zone.IsInactive())
       continue;
     Debug(3, "Blanking inactive zone %s", zone.Label());
@@ -4443,7 +4487,7 @@ bool Monitor::DumpSettings(char *output, bool verbose) {
 
   result += stringtf("Id : %u\n", id);
   result += stringtf("Name : %s\n", name.c_str());
-  result += stringtf("Type : %s\n", camera->IsLocal()?"Local":(camera->IsRemote()?"Remote":"File"));
+  result += stringtf("Type : %s\n", CameraType_Strings[type].c_str());
 #if ZM_HAS_V4L2
   if ( camera->IsLocal() ) {
     LocalCamera* cam = static_cast<LocalCamera*>(camera.get());

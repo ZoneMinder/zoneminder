@@ -47,6 +47,7 @@ logInit();
 GetOptions(
     force          =>\$force,
     'interactive|i:1' =>\$interactive,
+    nointeractive  => sub { $interactive = 0 },
     'monitor_id=i' =>\$monitor_id,
     report         =>\$report,
     'server_id=i'  =>\$server_id,
@@ -198,6 +199,7 @@ Debug("@Monitors");
           }
           if ( ! opendir(DIR, '.') ) {
             Error("Can't open directory '$$Storage{Path}/$day_dir': $!");
+            chdir($Storage->Path());
             next;
           }
           my %event_ids_by_path;
@@ -410,6 +412,7 @@ Debug("@Monitors");
       }
       if ( ! opendir(DIR, '.') ) {
         Error("Can't open directory '$$Storage{Path}/$monitor_dir': $!");
+        chdir($Storage->Path());
         next;
       }
       # A Deep scheme year directory is numeric too, but it holds date directories
@@ -430,7 +433,7 @@ Debug("@Monitors");
         }
         $event = new ZoneMinder::Event();
         $$event{Id} = $event_id;
-        $$event{Path} = join('/', $Storage->Path(), $event_id );
+        $$event{Path} = join('/', $Storage->Path(), $monitor_dir, $event_id );
         Info("Have event $$event{Id} at $$event{Path}");
         if ( confirm() ) {
           $$event{Scheme} = 'Shallow';
@@ -481,10 +484,10 @@ sub confirm {
       Term();
     }
     chomp( $char );
-    if ( $char eq 'q' ) {
+    if ( lc($char) eq 'q' ) {
       Term();
     }
-    if ( !$char ) {
+    if ( $char eq '' ) {
       $char = 'y';
     }
     $yesno = ( $char =~ /[yY]/ );
@@ -504,7 +507,7 @@ zmrecover.pl - ZoneMinder event file system and database recovery checker
 
 =head1 SYNOPSIS
 
- zmrecover.pl [-r,-report|-i,-interactive]
+ zmrecover.pl [-r,-report|-i,-interactive|-nointeractive]
 
 =head1 DESCRIPTION
 
@@ -518,7 +521,8 @@ yet.
 
 =head1 OPTIONS
 
- -i, --interactive          - Ask before applying any changes
+ -i, --interactive          - Ask before applying any changes (the default)
+     --nointeractive        - Apply changes without asking (same as --interactive=0)
  -m, --monitor_id           - Only consider the given monitor
  -r, --report               - Just report don't actually do anything
  -s, --storage_id           - Specify a storage area to recover instead of all

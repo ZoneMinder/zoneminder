@@ -97,7 +97,10 @@ function fourcc($a, $b, $c, $d) {
 }
 if (isset($_REQUEST['newMonitor'])) {
   # Update the monitor object with whatever has been set so far.
-  $monitor->set($_REQUEST['newMonitor']);
+  # A posted form omits unticked checkboxes, so they must not keep the stored
+  # value. A link carrying a few newMonitor values is not a full form.
+  $monitor->set(($_SERVER['REQUEST_METHOD'] == 'POST') ?
+    monitorFillUncheckedFields($_REQUEST['newMonitor']) : $_REQUEST['newMonitor']);
 
   if (ZM_OPT_X10)
     $newX10Monitor = $_REQUEST['newX10Monitor'];
@@ -761,7 +764,7 @@ if (count($localMethods)>1) {
         </li>
         <li class="Port">
           <label><?php echo translate('RemoteHostPort') ?></label>
-          <input type="number" name="newMonitor[Port]" value="<?php echo validHtmlStr($monitor->Port()) ?>" step="1" min="1" max="65536" />
+          <input type="number" name="newMonitor[Port]" value="<?php echo validHtmlStr($monitor->Port()) ?>" step="1" min="1" max="65535" />
         </li>
         <li class="User">
           <label><?php echo translate('Username') ?></label>
@@ -861,7 +864,7 @@ if (count($localMethods)>1) {
           <li>
           <li class="SourceOptions">
             <label><?php echo translate('Options'); echo makeHelpLink('OPTIONS_'.strtoupper($monitor->Type())) ?></label>
-            <textarea name="newMonitor[Options]" rows="<?php echo max(2, count(preg_split('/[,\r\n]+/', $monitor->Options()))) ?>"><?php echo validHtmlStr($monitor->Options()) ?></textarea>
+            <textarea name="newMonitor[Options]" rows="<?php echo max(2, count(preg_split('/[,\r\n]+/', (string)$monitor->Options()))) ?>"><?php echo validHtmlStr($monitor->Options()) ?></textarea>
           <li>
 <?php
       }
@@ -1294,7 +1297,7 @@ echo htmlSelect('newMonitor[Encoder]', $videowriter_encoders, $monitor->Encoder(
             </li>
             <li class="EncoderParameters">
               <label><?php echo translate('OptionalEncoderParam'); echo makeHelpLink('OPTIONS_ENCODER_PARAMETERS') ?></label>
-              <textarea id="EncoderParameters" name="newMonitor[EncoderParameters]" rows="<?php echo count(explode("\n", $monitor->EncoderParameters())); ?>"><?php echo validHtmlStr($monitor->EncoderParameters()) ?></textarea>
+              <textarea id="EncoderParameters" name="newMonitor[EncoderParameters]" rows="<?php echo count(explode("\n", (string)$monitor->EncoderParameters())); ?>"><?php echo validHtmlStr($monitor->EncoderParameters()) ?></textarea>
               <div id="EncoderParameterDiagnostics" class="encoderParameterDiagnostics"></div>
             </li>
             <li class="EncoderHWAccelName">

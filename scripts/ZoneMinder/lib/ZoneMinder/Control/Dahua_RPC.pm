@@ -194,22 +194,32 @@ sub ptz_raw {
 
 # Continuous-move speed comes from the UI command params (default 4).
 sub _con {
-  my ($self, $code, $params, $diag) = @_;
+  my ($self, $code, $params, $axis) = @_;
   my $mon = $$self{Monitor};
   $mon->suspendMotionDetection() if blessed($mon) && !$mon->{ModectDuringPTZ};
-  my $speed = $self->getParam($params, 'panspeed', 4);
+  my $pan_speed = $self->getParam($params, 'panspeed', 4);
+  my $tilt_speed = $self->getParam($params, 'tiltspeed', 4);
   $self->{LastCmd} = $code;
-  $self->ptz_raw('start', code => $code, arg1 => ($diag ? $speed : 0), arg2 => $speed);
+  my ($arg1, $arg2) = (0, 0);
+  if ($axis eq 'pan') {
+    $arg2 = $pan_speed;
+  } elsif ($axis eq 'tilt') {
+    $arg2 = $tilt_speed;
+  } elsif ($axis eq 'diag') {
+    $arg1 = $tilt_speed;
+    $arg2 = $pan_speed;
+  }
+  $self->ptz_raw('start', code => $code, arg1 => $arg1, arg2 => $arg2);
 }
 
-sub moveConUp        { my ($s,$p)=@_; $s->_con('Up',        $p, 0); }
-sub moveConDown      { my ($s,$p)=@_; $s->_con('Down',      $p, 0); }
-sub moveConLeft      { my ($s,$p)=@_; $s->_con('Left',      $p, 0); }
-sub moveConRight     { my ($s,$p)=@_; $s->_con('Right',     $p, 0); }
-sub moveConUpLeft    { my ($s,$p)=@_; $s->_con('LeftUp',    $p, 1); }
-sub moveConUpRight   { my ($s,$p)=@_; $s->_con('RightUp',   $p, 1); }
-sub moveConDownLeft  { my ($s,$p)=@_; $s->_con('LeftDown',  $p, 1); }
-sub moveConDownRight { my ($s,$p)=@_; $s->_con('RightDown', $p, 1); }
+sub moveConUp        { my ($s,$p)=@_; $s->_con('Up',        $p, 'tilt'); }
+sub moveConDown      { my ($s,$p)=@_; $s->_con('Down',      $p, 'tilt'); }
+sub moveConLeft      { my ($s,$p)=@_; $s->_con('Left',      $p, 'pan'); }
+sub moveConRight     { my ($s,$p)=@_; $s->_con('Right',     $p, 'pan'); }
+sub moveConUpLeft    { my ($s,$p)=@_; $s->_con('LeftUp',    $p, 'diag'); }
+sub moveConUpRight   { my ($s,$p)=@_; $s->_con('RightUp',   $p, 'diag'); }
+sub moveConDownLeft  { my ($s,$p)=@_; $s->_con('LeftDown',  $p, 'diag'); }
+sub moveConDownRight { my ($s,$p)=@_; $s->_con('RightDown', $p, 'diag'); }
 
 sub moveStop {
   my $self = shift;
@@ -220,6 +230,9 @@ sub moveStop {
     $mon->resumeMotionDetection() if blessed($mon) && !$mon->{ModectDuringPTZ};
   }
 }
+
+sub zoomStop  { my $self = shift; $self->moveStop(); }
+sub focusStop { my $self = shift; $self->moveStop(); }
 
 sub presetGoto {
   my ($self, $params) = @_;

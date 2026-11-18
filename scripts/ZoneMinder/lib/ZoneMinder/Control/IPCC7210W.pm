@@ -107,6 +107,12 @@ sub cameraReset
 	$self->sendCmd( $cmd );
 }
 
+sub reset
+{
+	my $self = shift;
+	$self->cameraReset( @_ );
+}
+
 
 #Up Arrow
 sub moveConUp

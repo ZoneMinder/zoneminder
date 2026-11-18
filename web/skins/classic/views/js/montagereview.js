@@ -406,6 +406,13 @@ function imagedone( obj, monId, success ) {
     evaluateLoadTimes();
   }
   monitorLoading[monId] = false;
+  // A newer image was staged while this one loaded; without a timer running
+  // (speed 0) nothing else would ever request it
+  const stagedURL = monitorLoadingStageURL[monId];
+  if (stagedURL) {
+    monitorLoadingStageURL[monId] = '';
+    loadImage2Monitor(monId, stagedURL);
+  }
   if ( ! success ) {
     // if we had a failrue queue up the no-data image
     //loadImage2Monitor(monId,"no data");  // leave the staged URL if there is one, just ignore it here.
@@ -431,6 +438,8 @@ function writeText(monId, text) {
   if (monId) {
     const canvasCtx = monitorCanvasCtx[monId];
     const canvasObj = monitorCanvasObj[monId];
+    // Replace the previous frame, otherwise the text is drawn over a stale image
+    canvasCtx.clearRect(0, 0, canvasObj.width, canvasObj.height);
     var textSize = canvasObj.width * 0.15;
     canvasCtx.font = '600 ' + textSize.toString() + "px Arial";
     canvasCtx.fillStyle = 'white';
@@ -488,7 +497,10 @@ function timerFire() {
     //outputUpdate(currentTimeSecs); // In live mode we basically do nothing but redisplay
   } else if (currentTimeSecs + playSecs >= maxTimeSecs) {
     // beyond the end just stop
-    if (speedIndex) setSpeed(0);
+    if (speedIndex) {
+      $j('#speedslider').val(0); // keep the slider showing what is playing
+      setSpeed(0);
+    }
     //outputUpdate(currentTimeSecs);
   } else if (playSecs || (currentTimeSecs==minTimeSecs)) {
     currentTimeSecs = playSecs + currentTimeSecs;
@@ -568,7 +580,9 @@ function drawSliderOnGraph(val) {
 } // end function drawSliderOnGraph(val)
 
 function drawFrameOnGraph(frame) {
-  if (!frame.Score) {
+  // Score arrives as a string, and "0" is truthy, so compare the number
+  const score = parseInt(frame.Score);
+  if (!score) {
     return;
   }
   const MonitorId = parseInt(events[frame.EventId].MonitorId);
@@ -578,7 +592,7 @@ function drawFrameOnGraph(frame) {
   let x2 = parseInt( (frame.TimeStampSecs - minTimeSecs) / rangeTimeSecs * cWidth + 0.5 ); // round up
   if (x2-x1 < 2) x2=x1+2; // So it is visible make them all at least this number of seconds wide
   ctx.fillStyle = monitorColour[MonitorId];
-  ctx.globalAlpha = 0.4 + 0.6 * (1 - frame.Score/maxScore); // Background is scaled but even lowest is twice as dark as the background
+  ctx.globalAlpha = 0.4 + 0.6 * (1 - score/Math.max(maxScore, score)); // Background is scaled but even lowest is twice as dark as the background
   ctx.fillRect(x1, monitorIndex[MonitorId]*rowHeight, x2-x1, rowHeight-2);
   //console.log("Drew frame from", x1, MonitorId, monitorIndex[MonitorId]*rowHeight, x2-x1, rowHeight, monitorColour[MonitorId]);
 }
@@ -704,7 +718,6 @@ function drawGraph() {
     if (zm_event.FramesById) {
       for (const frame_id in zm_event.FramesById ) {
         const frame = zm_event.FramesById[frame_id];
-        if (!frame.Score) continue;
         drawFrameOnGraph(frame);
       } // end foreach frame
     } else {
@@ -823,7 +836,7 @@ function outputUpdate(time) {
         writeText(monId, 'No Event');
       }
     }
-  } else if (Object.keys(events).length !== 0) {
+  } else if (liveMode == 1 || Object.keys(events).length !== 0) {
     // Per-frame loading path — used for speeds < 1x, speed 0, live
     // mode, or when EventStreams are not active.  Each frame is an
     // independent mode=single HTTP request to zms.  This works well
@@ -849,8 +862,10 @@ function relMouseCoords(event) {
     totalOffsetY += currentElement.offsetTop - currentElement.scrollTop;
   } while (currentElement = currentElement.offsetParent);
 
-  const canvasX = event.pageX - totalOffsetX;
-  const canvasY = event.pageY - totalOffsetY;
+  // A TouchEvent has no pageX/pageY of its own, they are on the touch point
+  const point = (event.touches && event.touches.length) ? event.touches[0] : event;
+  const canvasX = point.pageX - totalOffsetX;
+  const canvasY = point.pageY - totalOffsetY;
 
   return {x: canvasX, y: canvasY};
 }
@@ -1131,6 +1146,7 @@ function click_panleft() {
 function click_panright() {
   minTimeSecs = parseInt(minTimeSecs + rangeTimeSecs/2);
   maxTimeSecs = minTimeSecs + rangeTimeSecs - 1;
+  currentTimeSecs += rangeTimeSecs/2;
   clicknav(minTimeSecs, maxTimeSecs, 0);
 }
 // Manage the DOWNLOAD VIDEO button
@@ -1527,7 +1543,8 @@ function initPage() {
       const monId = monitorPtr[i];
       if (!monId || !monitorCanvasObj[monId]) continue;
       const server = Servers[monitorServerId[monId]] || Servers[0];
-      const monitor = monitorData[i];
+      // monitorData leaves out deleted monitors, so it cannot be indexed by position
+      const monitor = monitorData.find((m) => m.Id == monId);
 
       eventStreams[monId] = new EventStream({
         monitorId: monId,
@@ -1652,7 +1669,8 @@ function initDatepickerMontageReviewPage() {
 }
 
 function wait_for_events() {
-  if (Object.keys(events).length === 0) {
+  // Live mode shows the cameras, not events, so it must not wait for any
+  if (liveMode != 1 && Object.keys(events).length === 0) {
     if (!wait_for_events_interval) {
       wait_for_events_interval = setInterval(wait_for_events, 1000);
     }
@@ -1770,6 +1788,9 @@ function loadFrames(zm_events) {
 
                 //if (!zm_event.FramesById) zm_event.FramesById = [];
                 zm_event.FramesById[frame.FrameId] = frame;
+                // maxScore is emitted as 0 by the page, so track it as frames arrive
+                const frameScore = parseInt(frame.Score);
+                if (frameScore > maxScore) maxScore = frameScore;
                 // Remember how far this event has been read, so getFrame() can
                 // tell when a recording event has outgrown what we hold.
                 const frameSecs = parseFloat(frame.TimeStampSecs);

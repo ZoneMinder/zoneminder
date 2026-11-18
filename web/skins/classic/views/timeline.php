@@ -163,9 +163,9 @@ if ( count($user->unviewableMonitorIds()) ) {
 }
 
 if ( isset($_REQUEST['range']) ) $range = validHtmlStr($_REQUEST['range']);
-if ( isset($_REQUEST['minTime']) ) $minTime = validHtmlStr($_REQUEST['minTime']);
-if ( isset($_REQUEST['midTime']) ) $midTime = validHtmlStr($_REQUEST['midTime']);
-if ( isset($_REQUEST['maxTime']) ) $maxTime = validHtmlStr($_REQUEST['maxTime']);
+if ( isset($_REQUEST['minTime']) && validTimelineTime($_REQUEST['minTime']) ) $minTime = validHtmlStr($_REQUEST['minTime']);
+if ( isset($_REQUEST['midTime']) && validTimelineTime($_REQUEST['midTime']) ) $midTime = validHtmlStr($_REQUEST['midTime']);
+if ( isset($_REQUEST['maxTime']) && validTimelineTime($_REQUEST['maxTime']) ) $maxTime = validHtmlStr($_REQUEST['maxTime']);
 
 if ( isset($range) and validInt($range) ) {
   $halfRange = (int)($range/2);
@@ -209,6 +209,8 @@ if ( isset($_REQUEST['filter']) ) {
 }
 $tempMinTime = $tempMaxTime = $tempExpandable = false;
 extractDatetimeRange($tree, $tempMinTime, $tempMaxTime, $tempExpandable);
+$tempMinTime = validTimelineTime($tempMinTime);
+$tempMaxTime = validTimelineTime($tempMaxTime);
 
 $filterSql = isset($filter) ? $filter->sql() : '';
 if ( $filterSql ) {
@@ -233,6 +235,9 @@ if (!isset($minTime) || !isset($maxTime)) {
     $maxTime = $tempMaxTime;
   if ( empty($maxTime) )
     $maxTime = 'now';
+  // No events and no usable filter range: an empty minTime would parse as 1970
+  if ( empty($minTime) )
+    $minTime = $maxTime;
 
   $minTimeT = strtotime($minTime);
   $maxTimeT = strtotime($maxTime);
@@ -321,16 +326,11 @@ if ( !$events_result ) {
   return;
 }
 
-$max_aspect_ratio = 0;
-
 while ($event = $events_result->fetch(PDO::FETCH_ASSOC)) {
   if ( !isset($monitors[$event['MonitorId']]) ) {
     $monitor = $monitors[$event['MonitorId']] = ZM\Monitor::find_one(array('Id'=>$event['MonitorId']));
     $monEventSlots[$event['MonitorId']] = array();
     $monFrameSlots[$event['MonitorId']] = array();
-    $aspect_ratio = round($monitor->Width() / $monitor->Height(), 2);
-    if ( $aspect_ratio > $max_aspect_ratio )
-      $max_aspect_ratio = $aspect_ratio;
   }
 
   $currEventSlots = &$monEventSlots[$event['MonitorId']];
@@ -623,7 +623,8 @@ function drawXGrid( $chart, $scale, $labelClass, $tickClass, $gridClass, $zoomCl
         }
         if ( $scale['name'] != 'second' && $zoomClass ) {
           $zoomMinTime = date( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($lastTick * $chart['data']['x']['density'])) );
-          $zoomMaxTime = date( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($i * $chart['data']['x']['density'])) );
+          // End on the block's last pixel: the first pixel of the next block would be aligned up to a whole extra scale step.
+          $zoomMaxTime = date( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + (($i-1) * $chart['data']['x']['density'])) );
 ?>
             <div class="<?php echo $zoomClass ?>" style="left: <?php echo 100*($lastTick-1)/$chart['graph']['width'] ?>%; width: <?php echo round(100*($i-$lastTick)/$chart['graph']['width'],1) ?>%;" title="<?php echo translate('ZoomIn') ?>" data-on-click="tlZoomBounds" data-zoom-min-time="<?php echo $zoomMinTime ?>" data-zoom-max-time="<?php echo $zoomMaxTime ?>"></div>
 <?php
@@ -636,7 +637,7 @@ function drawXGrid( $chart, $scale, $labelClass, $tickClass, $gridClass, $zoomCl
 
   if ( $zoomClass ) {
     $zoomMinTime = date( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($lastTick * $chart['data']['x']['density'])) );
-    $zoomMaxTime = date( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($i * $chart['data']['x']['density'])) );
+    $zoomMaxTime = date( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + (($i-1) * $chart['data']['x']['density'])) );
 ?>
             <div class="<?php echo $zoomClass ?>" style="left: <?php echo 100*($lastTick-1)/$chart['graph']['width'] ?>%; width: <?php echo round(100*($i-$lastTick)/$chart['graph']['width'],1) ?>%;" title="<?php echo translate('ZoomIn') ?>" data-on-click="tlZoomBounds" data-zoom-min-time="<?php echo $zoomMinTime ?>" data-zoom-max-time="<?php echo $zoomMaxTime ?>"></div>
 <?php

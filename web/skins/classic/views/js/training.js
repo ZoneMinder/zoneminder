@@ -1002,7 +1002,7 @@ AnnotationEditor.prototype._showLabelPicker = function(x1, y1, x2, y2, mouseEven
     e.stopPropagation();
     if (e.key === 'Enter') {
       const label = input.value.trim().toLowerCase();
-      if (label && /^[a-zA-Z0-9_-]+$/.test(label)) {
+      if (label && /^[\p{L}\p{M}0-9_-]+$/u.test(label)) {
         self._pushUndo();
         self._addAnnotation(label, x1, y1, x2, y2);
         self._hideLabelPicker();

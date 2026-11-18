@@ -178,3 +178,24 @@ TEST_CASE("A level change still pending doesn't carry over to a new logger") {
 
   logTerm();
 }
+
+// LOG_FILE set but empty (an Environment=LOG_FILE= line) is no file name. It
+// used to replace the configured log file with "" and every message printed
+// "Called Logger::openFile() without a filename" instead of reaching the file.
+TEST_CASE("An empty LOG_FILE falls back to the configured log file") {
+  std::string path = stringtf("/tmp/zm_test_logempty_%d.log", getpid());
+  unlink(path.c_str());
+
+  setenv("LOG_FLUSH", "1", 1);
+  setenv("LOG_FILE", "", 1);
+  Logger::Options options(Logger::NOLOG, Logger::NOLOG, Logger::INFO, Logger::NOLOG);
+  options.mLogFile = path;
+  logInit("zm_test_logempty", options);
+  unsetenv("LOG_FILE");
+
+  Info("reaches the file");
+  REQUIRE(slurp(path).find("reaches the file") != std::string::npos);
+
+  logTerm();
+  unlink(path.c_str());
+}

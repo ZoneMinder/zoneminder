@@ -40,7 +40,7 @@ class UsersController extends AppController {
 
     global $user;
     # We should actually be able to list our own user, but I'm not bothering at this time.
-    if ($user->System() == 'None' ) {
+    if ($user and $user->System() == 'None' ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
@@ -61,7 +61,7 @@ class UsersController extends AppController {
 
     global $user;
     # We can view ourselves when ZM_USER_SELF_EDIT allows us to edit ourselves
-    $canView = ($user->System() != 'None') || (ZM_USER_SELF_EDIT && ($user->Id() == $id));
+    $canView = (!$user) || ($user->System() != 'None') || (ZM_USER_SELF_EDIT && ($user->Id() == $id));
     if (!$canView) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
@@ -88,7 +88,7 @@ class UsersController extends AppController {
 	public function add() {
 		if ($this->request->is('post')) {
       global $user;
-      if ($user->System() != 'Edit') {
+      if ($user and $user->System() != 'Edit') {
         throw new UnauthorizedException(__('Insufficient Privileges'));
         return;
       }
@@ -102,9 +102,10 @@ class UsersController extends AppController {
         if (!$this->User->validates()) {
           $message = $this->User->validationErrors;
         }
+        $this->response->statusCode(400);
       }
     } else {
-      $message = 'Add without post data';
+      throw new BadRequestException(__('POST required'));
     }
     $this->set(array(
       'user'        => $this->User,
@@ -124,8 +125,8 @@ class UsersController extends AppController {
 		$this->User->id = $id;
 
     global $user;
-    $selfEdit = ($user->System() != 'Edit');
-    $canEdit = ($user->System() == 'Edit') || (ZM_USER_SELF_EDIT && ($user->Id() == $id));
+    $selfEdit = ($user and $user->System() != 'Edit');
+    $canEdit = (!$user) || ($user->System() == 'Edit') || (ZM_USER_SELF_EDIT && ($user->Id() == $id));
     if (!$canEdit) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
@@ -135,35 +136,39 @@ class UsersController extends AppController {
 			throw new NotFoundException(__('Invalid user'));
 		}
 
-		if ($this->request->is('post') || $this->request->is('put')) {
-      $data = $this->request->data;
-      $fieldList = array();
-      if ($selfEdit) {
-        # Same fields the web UI lets a user change about themselves (includes/actions/user.php)
-        $data = $this->selfEditData($data);
-        $fieldList = array_keys($data['User']);
-        # A self-service password change must also persist TokenMinExpiry, which
-        # the User model sets in beforeSave to revoke the user's existing API
-        # tokens; it is not a field the user submitted, so the self-edit
-        # whitelist has to admit it (refs GHSA-5w6w-qp25-2qqh).
-        if (in_array('Password', $fieldList)) $fieldList[] = 'TokenMinExpiry';
+    $this->request->allowMethod('post', 'put');
+    $message = 'Error';
+    $data = $this->request->data;
+    $fieldList = array();
+    if ($selfEdit) {
+      # Same fields the web UI lets a user change about themselves (includes/actions/user.php)
+      $data = $this->selfEditData($data);
+      $fieldList = array_keys($data['User']);
+      # A self-service password change must also persist TokenMinExpiry, which
+      # the User model sets in beforeSave to revoke the user's existing API
+      # tokens; it is not a field the user submitted, so the self-edit
+      # whitelist has to admit it (refs GHSA-5w6w-qp25-2qqh).
+      if (in_array('Password', $fieldList)) $fieldList[] = 'TokenMinExpiry';
+    }
+    if (!$selfEdit) {
+      # As in the web UI, an empty Password means "leave it unchanged"
+      if (isset($data['User']) and is_array($data['User'])) {
+        if (empty($data['User']['Password'])) unset($data['User']['Password']);
+      } else if (is_array($data) and empty($data['Password'])) {
+        unset($data['Password']);
       }
+    }
 			if ($selfEdit and !count($fieldList)) {
 				$message = 'Error';
 			} else if ( $this->User->save($data, true, $fieldList) ) {
 				$message = 'Saved';
 			} else {
 				$message = 'Error';
-        if (!$this->User->validates()) {
-          $message = $this->User->validationErrors;
-        }
+      if (!$this->User->validates()) {
+        $message = $this->User->validationErrors;
+      }
 			}
-		} else {
-      # What is this doing? Resetting the request data? I understand clearing the password field
-      # but generally I feel like the request data should be read only
-      $this->request->data = $this->User->read(null, $id);
-      unset($this->request->data['User']['Password']);
-    }
+    if ($message != 'Saved') $this->response->statusCode(400);
 
 		$this->set(array(
 			'message' => $message,
@@ -183,7 +188,7 @@ class UsersController extends AppController {
 
     global $user;
     # Can't delete ourselves
-    if ( ($user->System() != 'Edit') or ($user->Id() == $id) ) {
+    if ( $user and (($user->System() != 'Edit') or ($user->Id() == $id)) ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }

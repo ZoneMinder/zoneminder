@@ -106,7 +106,9 @@ $SIG{INT} = \&handler;
 $SIG{HUP} = \&handler;
 $SIG{QUIT} = \&handler;
 $SIG{TERM} = \&handler;
-$SIG{__DIE__} = \&handler;
+# a die caught by an eval anywhere (SOAP::Lite, DBI, ZoneMinder modules) must not
+# shut the daemon down or kill the subscription renewal process
+$SIG{__DIE__} = sub { return if $^S; handler(@_); };
 
 # =========================================================================
 # Debug
@@ -582,6 +584,15 @@ sub renew_monitor {
   subscribe_monitor($monitor, $localaddr, $transport);
 }
 
+# host:port the cameras send notifications to. Without -l the daemon listens
+# on all interfaces, so use the host name the daemon url reports.
+sub consumer_address {
+  my ($localip, $url) = @_;
+  my ($host, $port) = $url =~ m|^\w+://(.*):(\d+)/?$|;
+  $host = $localip if defined $localip and $localip ne '';
+  return $host . ':' . $port;
+}
+
 sub events {
   my ($localip, $localport) = @_;
 
@@ -618,10 +629,7 @@ sub events {
   #};
 
   my $daemon = start_daemon($localip, $localport, $zm);
-  my $port = $daemon->url;
-  $port =~ s|^.*:||;
-  $port =~ s|/.*$||;
-  my $localaddr = $localip . ':' . $port;
+  my $localaddr = consumer_address($localip, $daemon->url);
 
   Info('Daemon uses local address '.$localaddr);
 

@@ -20,11 +20,15 @@
 #include "zm_config.h"
 
 #if HAVE_RTSP_SERVER
+#include "zm_rtsp_server_session.h"
+#include "zm_rtsp_server_stream_adts_source.h"
 #include "zm_rtsp_server_stream_h264_source.h"
+#include "net/EventLoop.h"
 
 #include <chrono>
 #include <condition_variable>
 #include <mutex>
+#include <thread>
 #include <vector>
 
 namespace {
@@ -85,5 +89,29 @@ TEST_CASE("RTSP timestamps never reach xop as 0", "[rtsp_nal_split]") {
   CHECK(ZoneMinderStreamVideoSource::RtpTimestamp(AV_NOPTS_VALUE, tb) == 0);  // wall clock, not INT64_MIN
   CHECK(ZoneMinderStreamVideoSource::RtpTimestamp(0, tb) != 0);
   CHECK(ZoneMinderStreamVideoSource::RtpTimestamp(1000000, tb) == 90000);
+}
+
+TEST_CASE("RTSP audio without a pts gets a running RTP timestamp", "[rtsp_nal_split]") {
+  // a missing pts must not collapse every audio packet onto timestamp 0
+  AVRational tb = {1, 8000};
+  CHECK(ZoneMinderStreamAudioSource::RtpTimestamp(1000000, tb) == 8000);
+  int64_t first = ZoneMinderStreamAudioSource::RtpTimestamp(AV_NOPTS_VALUE, tb);
+  CHECK(first != 0);
+  CHECK(first != AV_NOPTS_VALUE);
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  int64_t second = ZoneMinderStreamAudioSource::RtpTimestamp(AV_NOPTS_VALUE, tb);
+  CHECK(second > first);
+}
+
+TEST_CASE("RTSP session with a taken stream name is refused", "[rtsp_nal_split]") {
+  xop::EventLoop loop;
+  // let the scheduler thread start before the loop is torn down
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  std::shared_ptr<xop::RtspServer> server = xop::RtspServer::Create(&loop);
+  // Two monitors with an empty RTSPStreamName collide on the same suffix
+  xop::MediaSession *first = xop::MediaSession::CreateNew("");
+  xop::MediaSession *second = xop::MediaSession::CreateNew("");
+  CHECK(RtspAddSession(*server, first));
+  CHECK_FALSE(RtspAddSession(*server, second));
 }
 #endif  // HAVE_RTSP_SERVER

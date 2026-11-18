@@ -138,6 +138,10 @@ class EventsController extends AppController {
 
     } else {
       $raw_params = $_REQUEST;
+      // Legacy API authentication rides in the query string next to the filters.
+      foreach (array('user', 'pass', 'username', 'password', 'auth', 'stateful') as $credential) {
+        unset($raw_params[$credential]);
+      }
       if (isset($raw_params['TagId'])) {
         $tag_filter_value = $raw_params['TagId'];
         $tag_filter_field = 'Id';
@@ -454,6 +458,11 @@ class EventsController extends AppController {
     if ( !$EventObj->canEdit() ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
+    }
+
+    # ZM\Event::delete() refuses an archived event; say so instead of answering 500.
+    if ( !empty($event['Event']['Archived']) ) {
+      throw new BadRequestException(__('The event is archived and cannot be deleted. Unarchive it first.'));
     }
 
     # Not $this->Event->delete(): the model's beforeDelete() returns false, so that always fails.

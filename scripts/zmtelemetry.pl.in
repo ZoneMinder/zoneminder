@@ -106,6 +106,7 @@ if (!($Config{ZM_TELEMETRY_DATA} or $force)) {
 print('ZoneMinder Telemetry Agent starting at '.strftime('%y/%m/%d %H:%M:%S', localtime())."\n");
 
 my $lastCheck = $Config{ZM_TELEMETRY_LAST_UPLOAD};
+$lastCheck = 0 if !defined($lastCheck) or $lastCheck eq '';
 
 while (1) {
   while ( ! ( $dbh and $dbh->ping() ) ) {

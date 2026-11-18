@@ -20,7 +20,8 @@ if (empty($_REQUEST['eids'])) {
   if (isset($_REQUEST['task']) && $_REQUEST['task'] != 'query')
     $message = 'No event id(s) supplied<br/>';
 } else {
-  $eids = $_REQUEST['eids'];
+  // eids=5 arrives as a string, not an array, and foreach over it does nothing.
+  $eids = is_array($_REQUEST['eids']) ? $_REQUEST['eids'] : array($_REQUEST['eids']);
 }
 
 if ($message) {
@@ -58,15 +59,17 @@ if (isset($_REQUEST['Tag']) and $_REQUEST['Tag'] !== '') {
 }
 
 // Search contains a user entered string to search on
-$search = isset($_REQUEST['search']) ? $_REQUEST['search'] : '';
+$search = (isset($_REQUEST['search']) and is_string($_REQUEST['search'])) ? $_REQUEST['search'] : '';
 
 // Advanced search contains an array of "column name" => "search text" pairs
 // Bootstrap table sends json_ecoded array, which we must decode
-$advsearch = isset($_REQUEST['advsearch']) ? json_decode($_REQUEST['advsearch'], JSON_OBJECT_AS_ARRAY) : array();
+$advsearch = (isset($_REQUEST['advsearch']) and is_string($_REQUEST['advsearch'])) ? json_decode($_REQUEST['advsearch'], JSON_OBJECT_AS_ARRAY) : array();
+// Anything that did not decode to an object (garbage, empty, a bare number) is no search
+$advsearch = is_array($advsearch) ? $advsearch : array();
 
 // Order specifies the sort direction, either asc or desc
 $order = $filter->sort_asc() ? 'ASC' : 'DESC';
-if (isset($_REQUEST['order'])) {
+if (isset($_REQUEST['order']) and is_string($_REQUEST['order'])) {
   if (strtolower($_REQUEST['order']) == 'asc') {
     $order = 'ASC';
   } else if (strtolower($_REQUEST['order']) == 'desc') {
@@ -78,7 +81,7 @@ if (isset($_REQUEST['order'])) {
 
 // Sort specifies the name of the column to sort on
 $sort = $filter->sort_field();
-if (isset($_REQUEST['sort'])) {
+if (isset($_REQUEST['sort']) and is_string($_REQUEST['sort'])) {
   $sort = $_REQUEST['sort'];
 }
 
@@ -223,6 +226,8 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
       if (!in_array($col, $whitelist)) return null;
       if ($col == 'Tags') return 'Tags';
       if ($col == 'Monitor') return 'M.Name';
+      // Storage is a display name; Events only has StorageId.
+      if ($col == 'Storage') return 'E.StorageId';
       return 'E.'.$col;
     };
     // Implicit NULLs-last rewrite when sorting solely by EndDateTime, so events
@@ -398,7 +403,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
 
     // Counted before the page is cut out of them
     $filtered_total = count($filtered_rows);
-    if ($limit and ($limit < count($filtered_rows))) {
+    if ($limit and (($limit < count($filtered_rows)) or $offset)) {
       ZM\Debug("Filtering rows due to limit rows: " . count($filtered_rows)." offset: $offset limit: $limit");
       $filtered_rows = array_slice($filtered_rows, $offset, $limit);
     }

@@ -57,7 +57,7 @@ function getIdSelections() {
 function processClicks(event, field, value, row, $element) {
   if ( field == 'On' || field == 'Off' ) {
     var key = row.KeyString.replace(/(<([^>]+)>)/gi, '');
-    var url = '?request=device&action=device&command=' + field + '&key=' + key;
+    var url = '?request=device&action=device&command=' + field + '&key=' + encodeURIComponent(key);
     console.log('Url sent to device: ' + url);
     $j.getJSON(thisUrl + url)
         .done(function(data) {

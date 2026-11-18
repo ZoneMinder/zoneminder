@@ -89,6 +89,7 @@ class Zone {
 
   int         overload_frames;
   int         extend_alarm_frames;
+  int         pixel_area;  // pixels the rasterised polygon covers
 
   // Outputs/Statistics
   bool        alarmed;
@@ -197,6 +198,9 @@ class Zone {
   inline Vector2 GetAlarmCentre() const { return stats.alarm_centre_; }
   inline unsigned int Score() const { return stats.score_; }
 
+  // Drop the scores and boxes of a zone that is not checked this frame.
+  inline void ClearStats() { stats.Reset(); }
+
   inline void ResetStats() {
     alarmed = false;
     was_alarmed = false;
@@ -216,6 +220,8 @@ class Zone {
   static bool ClampPolygon(Polygon &polygon, unsigned int width, unsigned int height);
   static bool ParseZoneString( const char *zone_string, unsigned int &zone_id, int &colour, Polygon &polygon );
   static bool ParseCoords(const char *Coords, unsigned int width, unsigned int height, Polygon &polygon, bool &clamped);
+  static int RasterArea(const Polygon &polygon, unsigned int width, unsigned int height);
+  static int PercentToPixels(double percent, int area);
   static size_t Count(const std::shared_ptr<Monitor> &monitor);
   static std::vector<Zone> Load(const std::shared_ptr<Monitor> &monitor);
   //=================================================

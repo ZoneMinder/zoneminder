@@ -166,7 +166,8 @@ if ( $command =~ /^(?:stop|restart)$/ ) {
     runCommand('zmdc.pl shutdown');
     zmMemTidy();
   } else {
-    $retval = 1;
+    # Restart of a stopped system is not a failure, the start below follows.
+    $retval = 1 if $command eq 'stop';
   }
 }
 

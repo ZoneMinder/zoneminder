@@ -960,6 +960,8 @@ enum AVPixelFormat fix_deprecated_pix_fmt(enum AVPixelFormat fmt) {
     return AV_PIX_FMT_YUV444P;
   case AV_PIX_FMT_YUVJ440P :
     return AV_PIX_FMT_YUV440P;
+  case AV_PIX_FMT_YUVJ411P :
+    return AV_PIX_FMT_YUV411P;
   case AV_PIX_FMT_NONE :
   case AV_PIX_FMT_YUVJ420P :
     return AV_PIX_FMT_YUV420P;
@@ -983,6 +985,13 @@ bool pix_fmt_is_jpeg_range(enum AVPixelFormat fmt) {
   }
 }
 
+static bool pix_fmt_is_planar_yuv(enum AVPixelFormat fmt) {
+  // Non-J YUV formats (limited range by swscale default), not RGB or gray.
+  const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(fix_deprecated_pix_fmt(fmt));
+  return desc && !(desc->flags & (AV_PIX_FMT_FLAG_RGB | AV_PIX_FMT_FLAG_PAL | AV_PIX_FMT_FLAG_BAYER))
+         && desc->nb_components >= 3;
+}
+
 void zm_sws_set_ranges(struct SwsContext *ctx,
                        enum AVPixelFormat original_src_fmt,
                        enum AVPixelFormat original_dst_fmt) {
@@ -994,7 +1003,12 @@ void zm_sws_set_ranges(struct SwsContext *ctx,
   // range. Pass the ORIGINAL (pre-fix) formats.
   const bool src_full = pix_fmt_is_jpeg_range(original_src_fmt);
   const bool dst_full = pix_fmt_is_jpeg_range(original_dst_fmt);
-  if (!src_full && !dst_full) return;
+  // sws_getCachedContext() keeps the same context across a YUVJ420P ->
+  // YUV420P change, because both map to one format. A range set for the
+  // earlier frame must therefore be put back to limited for a plain YUV side.
+  const bool src_yuv = pix_fmt_is_planar_yuv(original_src_fmt);
+  const bool dst_yuv = pix_fmt_is_planar_yuv(original_dst_fmt);
+  if (!src_full && !dst_full && !src_yuv && !dst_yuv) return;
 
   int *inv_table, *table;
   int srcRange, dstRange, brightness, contrast, saturation;
@@ -1004,8 +1018,10 @@ void zm_sws_set_ranges(struct SwsContext *ctx,
                                &brightness, &contrast, &saturation) < 0)
     return;
   bool changed = false;
-  if (src_full && srcRange != 1) { srcRange = 1; changed = true; }
-  if (dst_full && dstRange != 1) { dstRange = 1; changed = true; }
+  const int want_src = src_full ? 1 : 0;
+  const int want_dst = dst_full ? 1 : 0;
+  if ((src_full || src_yuv) && srcRange != want_src) { srcRange = want_src; changed = true; }
+  if ((dst_full || dst_yuv) && dstRange != want_dst) { dstRange = want_dst; changed = true; }
   if (!changed) return;
   sws_setColorspaceDetails(ctx, inv_table, srcRange, table, dstRange,
                            brightness, contrast, saturation);

@@ -199,7 +199,7 @@ std::string Base64Encode(const std::string &str) {
   std::string outString;
   outString.reserve(2 * str.size());
 
-  const char *inPtr = str.c_str();
+  const unsigned char *inPtr = reinterpret_cast<const unsigned char *>(str.c_str());
   while (*inPtr) {
     unsigned char selection = *inPtr >> 2;
     unsigned char remainder = (*inPtr++ & 0x03) << 4;
@@ -459,6 +459,14 @@ std::string UriEncode(const std::string &value) {
   return retbuf;
 }
 
+std::string UrlWithCredentials(const std::string &url, const std::string &user, const std::string &pass) {
+  const std::string credentials = user + ":" + pass + "@";
+  size_t scheme_end = url.find("://");
+  if (scheme_end == std::string::npos) return "rtsp://" + credentials + url;
+  scheme_end += 3;
+  return url.substr(0, scheme_end) + credentials + url.substr(scheme_end);
+}
+
 QueryString::QueryString(std::istream &input) {
   while (!input.eof() && input.peek() > 0) {
     //Should eat "param1="
@@ -495,16 +503,17 @@ const QueryParameter *QueryString::get(const std::string &name) const {
 std::string QueryString::parseName(std::istream &input) {
   std::string name;
 
-  while (!input.eof() && input.peek() != '=') {
+  // A '&' ends a name that has no '=', and is left for parseValue to eat.
+  while (!input.eof() && input.peek() != '=' && input.peek() != '&') {
     name.push_back(input.get());
   }
 
   //Eat the '='
-  if (!input.eof()) {
+  if (!input.eof() && input.peek() == '=') {
     input.get();
   }
 
-  return name;
+  return UriDecode(name);
 }
 
 std::string QueryString::parseValue(std::istream &input) {

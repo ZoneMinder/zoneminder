@@ -43,7 +43,7 @@ function ensureTrainingDirs() {
       ZM\Debug('Training: creating directory '.$dir);
       if (!mkdir($dir, 0755, true)) {
         ZM\Error('Training: failed to create directory '.$dir);
-        ajaxError('Failed to create training directory');
+        ajaxError(translate('TrainingFailedCreateDirectory') . ' "' . validHtmlStr($dir) . '"');
         return false;
       }
     }
@@ -576,8 +576,8 @@ switch ($action) {
 
     // Validate and sanitize annotation labels
     foreach ($annotations as $ann) {
-      if (!isset($ann['label']) || !preg_match('/^[a-zA-Z0-9_-]+$/', $ann['label'])) {
-        ajaxError('Invalid label: labels must contain only letters, numbers, hyphens, and underscores');
+      if (!isset($ann['label']) || !preg_match('/^[\p{L}\p{M}0-9_-]+$/u', $ann['label'])) {
+        ajaxError('Invalid label: labels must contain only Unicode letters, numbers, hyphens, and underscores');
         break 2;
       }
     }

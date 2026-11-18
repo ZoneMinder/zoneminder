@@ -557,6 +557,9 @@ function formatSeconds(seconds, round='') {
 
 function secsToTime(seconds, round='') {
   let timeString = "--";
+  // Round before splitting into minutes and seconds, otherwise 119.97 at one
+  // decimal place becomes "1:60.0" and 69.996 at two becomes "1:010.00".
+  if (round) seconds = Number(seconds.toFixed(round));
   if ( seconds < 60 ) {
     timeString = (round) ? seconds.toFixed(round) : seconds.toString(10);
   } else if ( seconds < 60*60 ) {
@@ -991,12 +994,24 @@ function setCookie(name, value, seconds) {
     // that cannot overflow a signed 32bit int in a client that converts it.
     expires = "; max-age=2147483647";
   }
-  document.cookie = name + "=" + (newValue || "") + expires + "; path=/; samesite=strict";
+  // Encoded so a ';' or '%' in a typed filter value is not cut off or decoded
+  // twice; PHP decodes $_COOKIE and getCookie() below decodes it again.
+  document.cookie = name + "=" + encodeURIComponent(newValue || "") + expires + "; path=/; samesite=strict";
 }
 
 /*
 * If JSON is stored in cookies, the function will return an array or object of values.
 */
+// Select value in a <select>, adding an option for it when the list has none.
+// With no matching option jQuery leaves nothing selected and val() is null.
+function setSelectValue(select, value, text) {
+  select.val(value);
+  if (select.val() === null) {
+    select.append($j('<option></option>').val(value).text(text === undefined ? value : text));
+    select.val(value);
+  }
+}
+
 function getCookie(name) {
   var nameEQ = name + "=";
   var result = null;
@@ -1007,6 +1022,11 @@ function getCookie(name) {
     while (c.charAt(0)==' ') c = c.substring(1, c.length);
     if (c.indexOf(nameEQ) == 0) {
       result = c.substring(nameEQ.length, c.length);
+      try {
+        result = decodeURIComponent(result);
+      } catch {
+        // Written before values were encoded and holding a bare '%': keep it as is
+      }
       break;
     }
   }
@@ -1043,7 +1063,8 @@ function bwClickFunction() {
 function reminderClickFunction() {
   $j("#dropdown_reminder + .dropdown-menu a").click(function() {
     var option = $j(this).data('pdsa-dropdown-val');
-    $j.getJSON(thisUrl + '?view=version&action=version&option=' + option)
+    // The version view has no page, so the response is HTML, not JSON.
+    $j.get(thisUrl + '?view=version&action=version&option=' + option)
         .done(function() {
           window.location.reload(true); // Do a full refresh to update ZM_DYN_LAST_VERSION
         })
@@ -1290,10 +1311,12 @@ function manageShutdownBtns(element) {
   $j.getJSON(thisUrl + '?request=shutdown&when=' + when + '&command=' + cmd)
       .done(function(data) {
         respText.removeClass('invisible');
-        if ( data.rc ) {
+        if ( data.result == 'Error' ) {
+          respText.html('<h2>Error</h2>' + data.message);
+        } else if ( data.rc ) {
           respText.html('<h2>Error</h2>' + data.output);
         } else {
-          $j('#cancelBtn').prop('disabled', false);
+          $j('#cancelBtn').prop('disabled', cmd == 'cancel');
           if ( cmd == 'cancel' ) {
             respText.html('<h2>Success</h2>Event has been cancelled');
           } else {
@@ -3863,7 +3886,8 @@ const stringToLocaleString = function(str) {
       result = '';
       matches.forEach((match, index) => {
         const num = Number(match);
-        result += (!isNaN(num)) ? num.toLocaleString() : match;
+        // Number(' ') is 0, so whitespace between two numbers must stay as is
+        result += (match.trim() !== '' && !isNaN(num)) ? num.toLocaleString() : match;
       });
     }
   }

@@ -217,12 +217,16 @@ while (!$zm_terminate) {
  # The same one as last time, so ignore it
 # Do nothing
       }
-    } elsif ( 
-        (($state == STATE_IDLE) and ($monitor->{LastState} != STATE_IDLE))
+    } elsif (
+        defined($monitor->{LastState})
+        and (
+          (($state == STATE_IDLE)
+            and ($monitor->{LastState} == STATE_ALARM or $monitor->{LastState} == STATE_ALERT))
           or
-        (($state == STATE_TAPE) and ($monitor->{LastState} != STATE_TAPE))
-        ) {
-# Out of alarm state
+          (($state == STATE_TAPE) and ($monitor->{LastState} != STATE_TAPE))
+        )) {
+# Out of alarm state. Prealarm going back to idle, or a monitor we had no
+# state for yet, never sent an on so must not send an off.
       push @out_messages, $monitor->{Id}.'|off|'.time().'|'.$last_event;
     } elsif (
         defined($monitor->{LastEvent})
@@ -271,7 +275,7 @@ while (!$zm_terminate) {
   } elsif (@needsReload) { 
     foreach my $monitor (@needsReload) {
       my $id = $monitor->Id();
-      $monitor = $monitors{$id} = ZoneMinder::Monitor->find_one(Id=>$id);
+      $monitor = $monitors{$id} = ZoneMinder::Monitor->find_one(Id=>$id, Deleted=>0);
       if (!$monitor) {
         # Deleted from the database
         delete $monitors{$id};
@@ -300,6 +304,7 @@ sub loadMonitors {
 
   %monitors = ();
   foreach my $monitor ( ZoneMinder::Monitor->find(
+    Deleted=>0,
     'Capturing !=' => 'None',
     ($Config{ZM_SERVER_ID} ? (ServerId=>$Config{ZM_SERVER_ID}) : ()),
     )) {

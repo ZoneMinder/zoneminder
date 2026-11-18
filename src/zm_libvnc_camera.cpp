@@ -21,9 +21,9 @@ void bind_libvnc_symbols() {
   if (libvnc_lib != nullptr) // Safe-check
     return;
 
-  libvnc_lib = dlopen("libvncclient.so", RTLD_LAZY | RTLD_GLOBAL);
+  libvnc_lib = zm_libvnc_open([](const char *name) { return dlopen(name, RTLD_LAZY | RTLD_GLOBAL); });
   if (!libvnc_lib) {
-    Error("Error loading libvncclient.so: %s", dlerror());
+    Error("Error loading libvncclient: %s", dlerror());
     return;
   }
 
@@ -232,7 +232,7 @@ int VncCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   Debug(1, "scale src %p, %zu, dest %p %zu %d %dx%d %dx%d", mVncData.buffer,
         static_cast<size_t>(mRfb->si.framebufferWidth) * mRfb->si.framebufferHeight * 4,
         directbuffer,
-        static_cast<size_t>(width) * height * colours,
+        static_cast<size_t>(zm_packet->image->Size()),
         mImgPixFmt,
         mRfb->si.framebufferWidth,
         mRfb->si.framebufferHeight,
@@ -245,7 +245,7 @@ int VncCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
              mVncData.buffer,
              static_cast<size_t>(mRfb->si.framebufferWidth) * mRfb->si.framebufferHeight * 4,
              directbuffer,
-             static_cast<size_t>(width) * height * colours,
+             zm_packet->image->Size(),
              AV_PIX_FMT_RGBA,
              mImgPixFmt,
              mRfb->si.framebufferWidth,

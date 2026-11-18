@@ -18,7 +18,8 @@ if ($raw) {
   foreach ($stats as $stat) {
     $stat['ZoneName'] = validHtmlStr($stat['ZoneName']);
     $stat['PixelDiff'] = validHtmlStr($stat['PixelDiff']);
-    $area = floatval($stat['Area']);
+    // Zone Area is in the 0-10000 percentage coordinate space, the pixel counts are not.
+    $area = floatval($stat['Area']) / 10000.0 * floatval($stat['Width']) * floatval($stat['Height']);
     $px = function($n) use ($area) {
       return $area > 0 ? sprintf('%d (%.1f%%)', $n, 100*$n/$area) : sprintf('%d', $n);
     };

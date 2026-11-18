@@ -84,6 +84,8 @@ $ctls = explode("\n", $ctls);
 
 foreach ($ctls as $line) {
   $ctl = explode(':', $line);
+  // Skip blank lines and the control class headings ("User Controls") v4l2-ctl prints
+  if (count($ctl) < 2) continue;
   $type_info = explode(' ', trim($ctl[0]));
 
   $setting = trim($type_info[0]);

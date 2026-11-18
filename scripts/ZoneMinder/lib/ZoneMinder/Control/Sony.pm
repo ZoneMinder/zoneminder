@@ -279,6 +279,14 @@ sub zoomConTele {
 
 }
 
+sub zoomStop {
+  my $self = shift;
+  Debug('Zoom Stop');
+
+  my $cmd = '/command/ptzf.cgi?Move=stop,zoom,1';
+  $self->sendCmd($cmd);
+}
+
 sub presetClear {
   my $self = shift;
   my $params = shift;

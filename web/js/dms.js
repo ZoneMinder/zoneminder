@@ -192,7 +192,7 @@ export function parseDms(dmsStr) {
         const minutes = typeof (dmsMatch[2]) !== "undefined" ? Number(dmsMatch[2]) / 60 : 0;
         const seconds = typeof (dmsMatch[3]) !== "undefined" ? Number(dmsMatch[3]) / 3600 : 0;
         const hemisphere = dmsMatch[4] || null;
-        if (hemisphere !== null && /[SW]/i.test(hemisphere)) {
+        if (dmsMatch[1].charAt(0) === "-" || (hemisphere !== null && /[SW]/i.test(hemisphere))) {
             output = -Math.abs(degrees) - minutes - seconds;
         }
         else {

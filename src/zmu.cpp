@@ -94,6 +94,8 @@ Options for use with monitors:
 #include "zm_monitor.h"
 #include "zm_local_camera.h"
 #include <getopt.h>
+#include <cerrno>
+#include <climits>
 #include <unistd.h>
 
 void Usage(int status=-1) {
@@ -175,6 +177,68 @@ typedef enum {
   ZMU_TRIGGER    = 0x20000000,
   ZMU_JANUS      = 0x40000000,
 } Function;
+
+// Functions that act on one monitor and so need -m
+static const int ZMU_MONITOR_FUNCTIONS = ZMU_STATE | ZMU_IMAGE | ZMU_TIME | ZMU_READ_IDX | ZMU_WRITE_IDX
+    | ZMU_EVENT | ZMU_FPS | ZMU_ZONES | ZMU_ALARM | ZMU_NOALARM | ZMU_CANCEL | ZMU_BRIGHTNESS | ZMU_CONTRAST
+    | ZMU_HUE | ZMU_COLOUR | ZMU_RELOAD | ZMU_ENABLE | ZMU_DISABLE | ZMU_SUSPEND | ZMU_RESUME | ZMU_TRIGGER
+    | ZMU_JANUS;
+
+// Parse the -m argument. Returns the monitor id, or -1 if it is not a positive integer
+inline int zmu_parse_monitor_id(const char *arg) {
+  if (!arg || !*arg) return -1;
+  char *end = nullptr;
+  errno = 0;
+  long id = strtol(arg, &end, 10);
+  if (errno || *end || id <= 0 || id > INT_MAX) return -1;
+  return static_cast<int>(id);
+}
+
+// Returns an error message when the options given cannot work, or an empty string
+inline std::string zmu_check_options(int function, int mon_id) {
+  if ((function & ZMU_MONITOR_FUNCTIONS) && mon_id <= 0)
+    return "this option needs a monitor, specify it with -m";
+  return "";
+}
+
+// Separator to print before a value in the non verbose single line output
+inline std::string zmu_separator(bool have_output) {
+  return have_output ? " " : "";
+}
+
+inline const char *zmu_state_name(Monitor::State state) {
+  switch (state) {
+  case Monitor::IDLE: return "Idle";
+  case Monitor::PREALARM: return "Prealarm";
+  case Monitor::ALARM: return "Alarm";
+  case Monitor::ALERT: return "Alert";
+  default: return "Unknown";
+  }
+}
+
+inline std::string zmu_list_header() {
+  char buf[256];
+  snprintf(buf, sizeof(buf), "%4s %9s %9s %9s %5s %8s %13s %5s %5s %9s %9s",
+           "Id", "Capturing", "Analysing", "Recording", "State", "TrgState",
+           "LastImageTime", "RdIdx", "WrIdx", "LastEvent", "FrameRate");
+  return buf;
+}
+
+inline std::string zmu_list_row(int id, int capturing, int analysing, int recording, int state,
+                                int trigger_state, double last_image_time, int read_idx, int write_idx,
+                                uint64_t last_event, double fps) {
+  char buf[256];
+  // A monitor that is not capturing has no shared memory to report on
+  if (capturing <= Monitor::CAPTURING_NONE) {
+    analysing = recording = state = trigger_state = read_idx = write_idx = 0;
+    last_image_time = fps = 0.0;
+    last_event = 0;
+  }
+  snprintf(buf, sizeof(buf), "%4d %9d %9d %9d %5d %8d %13.2f %5d %5d %9" PRIu64 " %9.2f",
+           id, capturing, analysing, recording, state, trigger_state, last_image_time,
+           read_idx, write_idx, last_event, fps);
+  return buf;
+}
 
 // getopt_long value for --cause, which has no short form
 static const int ZMU_OPT_CAUSE = 256;
@@ -303,7 +367,11 @@ int main(int argc, char *argv[]) {
         device = optarg;
       break;
     case 'm':
-      mon_id = atoi(optarg);
+      mon_id = zmu_parse_monitor_id(optarg);
+      if (mon_id < 0) {
+        fprintf(stderr, "Error, invalid monitor id '%s'\n", optarg);
+        Usage();
+      }
       break;
     case 'v':
       verbose = true;
@@ -454,6 +522,13 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "Error, -S option cannot be used with this option\n");
     Usage();
   }
+  {
+    std::string option_error = zmu_check_options(function, mon_id);
+    if (!option_error.empty()) {
+      fprintf(stderr, "Error, %s\n", option_error.c_str());
+      Usage();
+    }
+  }
   //printf( "Monitor %d, Function %d\n", mon_id, function );
 
   logInit("zmu");
@@ -478,7 +553,7 @@ int main(int argc, char *argv[]) {
       }
 
       if (!checkUser(username)) {
-        Error("Username greater than allowed 32 characters");
+        Error("Username greater than allowed 64 characters");
         exit_zmu(-1);
       }
 
@@ -494,11 +569,11 @@ int main(int argc, char *argv[]) {
       }
       if ( !username.empty() && !password.empty() ) {
         if ( !checkUser(username)) {
-          Error("username greater than allowed 32 characters");
+          Error("username greater than allowed 64 characters");
           exit_zmu(-1);
         }
         if ( !checkPass(password)) {
-          Error("password greater than allowed 64 characters");
+          Error("Password must be supplied");
           exit_zmu(-1);
         }
         user = zmLoadUser(username, password);
@@ -548,8 +623,9 @@ int main(int argc, char *argv[]) {
     if ( function & ZMU_STATE ) {
       Monitor::State state = monitor->GetState();
       if ( verbose ) {
-        printf("Current state: %s\n", state==Monitor::ALARM?"Alarm":(state==Monitor::ALERT?"Alert":"Idle"));
+        printf("Current state: %s\n", zmu_state_name(state));
       } else {
+        fputs(zmu_separator(have_output).c_str(), stdout);
         printf("%d", state);
         have_output = true;
       }
@@ -651,7 +727,7 @@ int main(int argc, char *argv[]) {
 
       if (verbose) {
         printf("Forcing alarm on current state: %s, event %" PRIu64 "\n",
-               state==Monitor::ALARM?"Alarm":(state==Monitor::ALERT?"Alert":"Idle"),
+               zmu_state_name(state),
                monitor->GetLastEventId()
               );
       }
@@ -807,9 +883,7 @@ int main(int argc, char *argv[]) {
     }
     Debug(1, "Got %" PRIu64 " monitors", static_cast<uint64>(mysql_num_rows(result)));
 
-    printf("%4s %9s %9s %9s %5s %8s %13s %5s %5s %9s %9s\n",
-           "Id", "Capturing", "Analysing", "Recording", "State", "TrgState",
-           "LastImageTime", "RdIdx", "WrIdx", "LastEvent", "FrameRate");
+    printf("%s\n", zmu_list_header().c_str());
     for (MYSQL_ROW dbrow = mysql_fetch_row(result); dbrow; dbrow = mysql_fetch_row(result)) {
       int monitor_id = atoi(dbrow[0]);
       if (mon_id and (monitor_id != mon_id)) continue;
@@ -820,32 +894,13 @@ int main(int argc, char *argv[]) {
           if (monitor && monitor->connect()) {
             SystemTimePoint timestamp = monitor->GetTimestamp();
 
-            printf("%4d %9d %9d %9d %5d %8d %13.2f %5d %5d %9" PRIu64 "%10.2f\n",
-                   monitor->Id(),
-                   monitor->Capturing(),
-                   monitor->Analysing(),
-                   monitor->Recording(),
-                   monitor->GetState(),
-                   monitor->GetTriggerState(),
-                   FPSeconds(timestamp.time_since_epoch()).count(),
-                   monitor->GetLastReadIndex(),
-                   monitor->GetLastWriteIndex(),
-                   monitor->GetLastEventId(),
-                   monitor->GetFPS()
-                  );
+            printf("%s\n", zmu_list_row(monitor->Id(), monitor->Capturing(), monitor->Analysing(),
+                   monitor->Recording(), monitor->GetState(), monitor->GetTriggerState(),
+                   FPSeconds(timestamp.time_since_epoch()).count(), monitor->GetLastReadIndex(),
+                   monitor->GetLastWriteIndex(), monitor->GetLastEventId(), monitor->GetFPS()).c_str());
           }
         } else {
-          printf("%4d%5d%6d%9d%11ld.%02ld%6d%6d%8d%8.2f\n",
-                 monitor_id,
-                 monitor_capturing,
-                 0,
-                 0,
-                 0l, 0l,
-                 0,
-                 0,
-                 0,
-                 0.0
-                );
+          printf("%s\n", zmu_list_row(monitor_id, monitor_capturing, 0, 0, 0, 0, 0.0, 0, 0, 0, 0.0).c_str());
         } // end if function filter
       } // endif !user || canAccess(mon_id)
     } // end foreach row

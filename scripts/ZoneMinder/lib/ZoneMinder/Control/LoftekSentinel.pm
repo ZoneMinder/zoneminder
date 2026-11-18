@@ -212,6 +212,20 @@ sub zoomConWide
     $self->autoStop( $stop_command, $self->{Monitor}->{AutoStopTimeout} );
 }
 
+#Zoom Stop
+#The ui's centre zoom button stops a continuous zoom without knowing which
+#direction was started, so send both direction stops.  Stopping a direction
+#that is already still is a no-op.
+sub zoomStop
+{
+    my $self = shift;
+    Debug( "Zoom Stop" );
+    my $cmd = "decoder_control.cgi?command=19";
+    $self->sendCmd( $cmd );
+    $cmd = "decoder_control.cgi?command=17";
+    $self->sendCmd( $cmd );
+}
+
 #Diagonally Up Right Arrow
 #This camera does not have builtin diagonal commands so we emulate them
 sub moveConUpRight

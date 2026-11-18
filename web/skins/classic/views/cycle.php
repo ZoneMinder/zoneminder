@@ -60,11 +60,17 @@ $heights = array(
 );
 
 
+// The legacy Function column is no longer maintained, Capturing says whether
+// a monitor is disabled.
+function cycleSkipsMonitor($row) {
+  return $row['Capturing'] == 'None';
+}
+
 $monIdx = 0;
 $monitors = array();
 $monitor = NULL;
 foreach( $displayMonitors as &$row ) {
-  if ( $row['Function'] == 'None' )
+  if ( cycleSkipsMonitor($row) )
     continue;
   if ( isset($_REQUEST['mid']) && ($row['Id'] == $_REQUEST['mid']) )
     $monIdx = count($monitors);

@@ -158,14 +158,13 @@ bool EventStream::loadInitialEventData(
     if ( init_frame_id < 1 || init_frame_id > (int)event_data->frames.size() ) {
       Error("Invalid frame id specified. %d not in [1..%zu]", init_frame_id, event_data->frames.size());
       curr_stream_time = event_data->start_time;
-      curr_frame_id = 1;
     } else {
       curr_stream_time = event_data->frames[init_frame_id-1].timestamp;
-      curr_frame_id = init_frame_id;
     }
   } else {
     curr_stream_time = event_data->start_time;
   }
+  curr_frame_id = InitialFrameId(init_frame_id, event_data->frames.size());
 
   return true;
 }
@@ -354,7 +353,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
     Microseconds delta;
     if (last_frame_idx < 0) {
       // There were no frames in db
-      delta = Microseconds( static_cast<int>(1000000 * base_fps / FPSeconds(event_data->duration).count()) );
+      delta = SyntheticFrameDelta(event_data->frame_count, event_data->duration);
       event_data->frames.emplace_back(
                      1,
                      event_data->start_time,
@@ -365,7 +364,6 @@ bool EventStream::loadEventData(uint64_t event_id) {
       last_frame_idx = event_data->frames.size() - 1;
       last_id ++;
       last_timestamp = event_data->start_time;
-      event_data->frame_count ++;
     } else {
       delta = std::chrono::duration_cast<Microseconds>((event_data->end_time - last_timestamp)/(event_data->frame_count-last_id));
       Debug(1, "Setting delta from endtime %f - %f / frame_count %d - last_id %d", 
@@ -397,7 +395,6 @@ bool EventStream::loadEventData(uint64_t event_id) {
               FPSeconds(frame.offset).count(),
               FPSeconds(frame.delta).count(),
               frame.in_db);
-        event_data->frame_count ++;
       } // end while
     }
   } // end if have endtime
@@ -495,6 +492,20 @@ EventStream::NeighbourChoice EventStream::ChooseNeighbour(const EventHint &hint,
     return hint.event_id ? NeighbourChoice::kHint : NeighbourChoice::kBoundary;
   if (!ui_managed) return NeighbourChoice::kSameMonitor;
   return waited < kHintWait ? NeighbourChoice::kWait : NeighbourChoice::kTimedOut;
+}
+
+int EventStream::LoopedFrameId(int frame_id, int num_frames) {
+  // Below 1 is off the start, which only reverse playback reaches.
+  return frame_id < 1 ? num_frames : 1;
+}
+
+int EventStream::InitialFrameId(int requested, size_t num_frames) {
+  return (requested < 1 || requested > (int)num_frames) ? 1 : requested;
+}
+
+Microseconds EventStream::SyntheticFrameDelta(int frame_count, Microseconds duration) {
+  if (frame_count <= 0 || duration <= Microseconds(0)) return Microseconds(0);
+  return duration / frame_count;
 }
 
 bool EventStream::HintResumes(const SetEventCommand &command, bool end_stop, bool end_prev) {
@@ -1403,8 +1414,8 @@ void EventStream::runStream() {
             )
            ) {
           Debug(2, "Have mode==MODE_SINGLE and at end of event, looping back to start");
-          curr_frame_id = 1;
-          advanced_to = 1;
+          curr_frame_id = LoopedFrameId(curr_frame_id, num_frames);
+          advanced_to = curr_frame_id;
         }
 
         if (curr_frame_id >= 1 && curr_frame_id <= num_frames) {
@@ -1524,6 +1535,7 @@ void EventStream::runStream() {
 
   if (type == STREAM_MPEG) {
     delete vid_stream;
+    vid_stream = nullptr;
   }
 
   if (connkey) {
@@ -1604,12 +1616,14 @@ void EventStream::setStreamStart(
   ) {
   // Load event data first, then seek to the specified time
   loadEventData(init_event_id);
-  if (event_time.time_since_epoch() != Seconds(0)) {
-    seek(event_time);
-  } else {
-    curr_stream_time = event_data->start_time;
-    curr_frame_id = 1;
-  }
+  startAtTime(event_time);
+}
+
+void EventStream::startAtTime(SystemTimePoint event_time) {
+  // seek() leaves these alone when the time is outside the event.
+  curr_stream_time = event_data->start_time;
+  curr_frame_id = 1;
+  if (event_time.time_since_epoch() != Seconds(0)) seek(event_time);
 }  // end void EventStream::setStreamStart(init_event_id, event_time)
 
 void EventStream::setStreamStart(int monitor_id, SystemTimePoint event_time) {

@@ -38,8 +38,17 @@ class CameraModelsController extends AppController {
   public function index() {
     $this->CameraModel->recursive = 0;
     
-    $options = '';
-    $models = $this->CameraModel->find('all', $options);
+    $conditions = array();
+    if ( $this->request->params['named'] ) {
+      $this->FilterComponent = $this->Components->load('Filter');
+      // Manufacturers is joined and has Id and Name too, so write CameraModel.Name.
+      $named = $this->FilterComponent->qualifyFields($this->request->params['named'], array(
+        'CameraModel' => array_keys($this->CameraModel->schema()),
+        'Manufacturer' => array_keys($this->CameraModel->Manufacturer->schema()),
+      ));
+      $conditions = $this->FilterComponent->buildFilter($named);
+    }
+    $models = $this->CameraModel->find('all', array('conditions' => $conditions));
 		$this->set(array(
 					'models' => $models,
 					'_serialize' => array('models')
@@ -152,6 +161,14 @@ class CameraModelsController extends AppController {
       throw new NotFoundException(__('Invalid model'));
     }
     $this->request->allowMethod('post', 'delete');
+
+    # Monitors and presets reference a model by foreign key, so deleting one in use is a
+    # database error, not a deletion.
+    $inUse = dbFetchOne('SELECT COUNT(*) AS Count FROM Monitors WHERE ModelId=?', 'Count', array($id))
+      + dbFetchOne('SELECT COUNT(*) AS Count FROM MonitorPresets WHERE ModelId=?', 'Count', array($id));
+    if ($inUse) {
+      throw new HttpException(__('The model is in use by monitors or presets.'), 409);
+    }
 
     if ($this->CameraModel->delete()) {
       $this->set(array(

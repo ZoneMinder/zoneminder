@@ -37,10 +37,45 @@ foreach ( dbFetchAll($sql) as $preset ) {
   $presets[] = $preset;
 }
 
-$optTypes = array();
-foreach ( getEnumValues('Zones', 'Type') as $optType ) {
-  $optTypes[$optType] = $optType;
+$typeLabels = [
+  'Active'     => [
+    'text'  => translate('ZoneActive'),
+    'title' => translate('ZoneActiveDesc'),
+    'class' => 'zone-type-active',
+  ],
+  'Inclusive'  => [
+    'text'  => translate('ZoneInclusive'),
+    'title' => translate('ZoneInclusiveDesc'),
+    'class' => 'zone-type-inclusive',
+  ],
+  'Exclusive'  => [
+    'text'  => translate('ZoneExclusive'),
+    'title' => translate('ZoneExclusiveDesc'),
+    'class' => 'zone-type-exclusive',
+  ],
+  'Preclusive' => [
+    'text'  => translate('ZonePreclusive'),
+    'title' => translate('ZonePreclusiveDesc'),
+    'class' => 'zone-type-preclusive',
+  ],
+  'Inactive'   => [
+    'text'  => translate('ZoneInactive'),
+    'title' => translate('ZoneInactiveDesc'),
+    'class' => 'zone-type-inactive',
+  ],
+  'Privacy'    => [
+    'text'  => translate('ZonePrivacy'),
+    'title' => translate('ZonePrivacyDesc'),
+    'class' => 'zone-type-privacy',
+  ],
+];
+
+$optTypes = [];
+foreach (getEnumValues('Zones', 'Type') as $optType) {
+  $optTypes[$optType] = $typeLabels[$optType] ?? $optType;
 }
+// Set initial color class for the closed <select> based on the current zone type
+$currentClass = $typeLabels[$zone['Type']]['class'] ?? '';
 
 $optUnits = array();
 foreach ( getEnumValues('Zones', 'Units') as $optUnit ) {
@@ -62,6 +97,11 @@ $maxY = 100;
 if ( !isset($zone) ) {
   if ( $zid > 0 ) {
     $zone = dbFetchOne('SELECT * FROM Zones WHERE MonitorId=? AND Id=?', NULL, array($monitor->Id(), $zid));
+    if (!$zone) {
+      // A stale link to a deleted zone, or a zone of another monitor.
+      $view = 'error';
+      return;
+    }
   } else {
     $zone = array(
       'Id' => 0,
@@ -95,7 +135,9 @@ if ( !isset($zone) ) {
 } # end if new Zone
 
 # Auto-detect pixel coordinates and convert to percentages
-convertPixelPointsToPercent($zone['Points'], $monitor->ViewWidth(), $monitor->ViewHeight());
+# Coordinates without a decimal point are pixels, as zmc reads them
+$legacyPixels = strpos($zone['Coords'], '.') === false;
+convertPixelPointsToPercent($zone['Points'], $monitor->ViewWidth(), $monitor->ViewHeight(), $legacyPixels);
 # Always store as percentages
 $zone['Units'] = 'Percent';
 
@@ -113,13 +155,7 @@ $selfIntersecting = isSelfIntersecting($zone['Points']);
 # Values > 100 are unconverted pixel counts from before the migration;
 # convert them to percentages so the UI displays correctly.
 $zonePixelArea = $zone['Area'] / 10000.0 * $monitor->ViewWidth() * $monitor->ViewHeight();
-if ($zonePixelArea > 0) {
-  foreach (array('MinAlarmPixels', 'MaxAlarmPixels', 'MinFilterPixels', 'MaxFilterPixels', 'MinBlobPixels', 'MaxBlobPixels') as $field) {
-    if (isset($zone[$field]) && $zone[$field] > 100) {
-      $zone[$field] = round($zone[$field] / $zonePixelArea * 100, 2);
-    }
-  }
-}
+convertZoneThresholdsToPercent($zone, $zonePixelArea, $legacyPixels);
 
 # Rectangle measurement ratios, and the only definition of their defaults -
 # zone-object-size.js falls back to whatever is rendered here. Read from the
@@ -265,7 +301,7 @@ if ( count($other_zones) ) {
 								<tr>
 									<th scope="row"><?php echo translate('Type') ?></th>
 									<td colspan="2"><?php echo htmlSelect('newZone[Type]', $optTypes, $zone['Type'],
-											array('data-on-change'=>'applyZoneType', 'id'=>'newZone[Type]')); ?></td>
+  array('data-on-change'=>'applyZoneType', 'id'=>'newZone[Type]', 'class'=>$currentClass)); ?></td>
 								</tr>
 								<tr>
 									<th scope="row"><?php echo translate('Preset') ?></th>

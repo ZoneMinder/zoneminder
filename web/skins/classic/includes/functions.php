@@ -137,7 +137,7 @@ echo output_cache_busted_stylesheet_links(array(
   $baseCssPhpFile = getSkinFile('css/base/skin.css.php');
   if ($baseCssPhpFile) require_once($baseCssPhpFile);
   $skinCssPhpFile = getSkinFile('css/'.$css.'/skin.css.php');
-  if ($skinCssPhpFile) require_once($baseCssPhpFile);
+  if ($skinCssPhpFile) require_once($skinCssPhpFile);
 
   $baseViewCssPhpFile = getSkinFile('/css/base/views/'.$basename.'.css.php');
   if ($baseViewCssPhpFile) require_once($baseViewCssPhpFile);
@@ -1066,7 +1066,7 @@ function getZMVersionHTML() {
     $class = 'text-danger';
     $tt_text = translate('RunLocalUpdate');
     $content = 'v'.ZM_VERSION.PHP_EOL;
-  } else if ( verNum( ZM_DYN_LAST_VERSION ) <= verNum( ZM_VERSION ) || !ZM_CHECK_FOR_UPDATES || ZM_DYN_NEXT_REMINDER > time() ) { // No update needed
+  } else if ( verNum( ZM_DYN_LAST_VERSION ) <= verNum( ZM_VERSION ) || verNum( ZM_DYN_LAST_VERSION ) <= verNum( ZM_DYN_CURR_VERSION ) || !ZM_CHECK_FOR_UPDATES || ZM_DYN_NEXT_REMINDER > time() ) { // No update needed
     $class = ''; // Don't change the text color under normal conditions
     $tt_text = translate('UpdateNotNecessary');
     $content = 'v'.ZM_VERSION.PHP_EOL;

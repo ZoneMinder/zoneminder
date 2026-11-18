@@ -96,6 +96,11 @@ function monitorSortValue($monitor, $sort, $ServersById, $StorageById) {
   return preg_match('/(Events|Count|Sequence)$/', $sort) ? 0 : '';
 }
 
+// A monitor with no events has NULL, or no Event_Summaries row at all.
+function monitorEventDiskSpace($monitor, $period) {
+  return human_filesize(isset($monitor[$period.'EventDiskSpace']) ? $monitor[$period.'EventDiskSpace'] : 0);
+}
+
 function queryRequest() {
   global $user, $Servers;
   require_once('includes/Monitor.php');
@@ -129,11 +134,11 @@ function queryRequest() {
   }
   
   // Get search parameter
-  $search = isset($_REQUEST['search']) ? $_REQUEST['search'] : '';
+  $search = (isset($_REQUEST['search']) and is_string($_REQUEST['search'])) ? $_REQUEST['search'] : '';
   
   // Get sort parameters
-  $sort = isset($_REQUEST['sort']) ? $_REQUEST['sort'] : 'Sequence';
-  $order = isset($_REQUEST['order']) ? strtoupper($_REQUEST['order']) : 'ASC';
+  $sort = (isset($_REQUEST['sort']) and is_string($_REQUEST['sort'])) ? $_REQUEST['sort'] : 'Sequence';
+  $order = (isset($_REQUEST['order']) and is_string($_REQUEST['order'])) ? strtoupper($_REQUEST['order']) : 'ASC';
   
   // Build monitor query with filters from request parameters, falling back to cookies
   $conditions = array();
@@ -150,8 +155,8 @@ function queryRequest() {
     'Recording' => getFilterSelection('Recording'),
     'Status' => getFilterSelection('Status'),
     'MonitorId' => getFilterSelection('MonitorId'),
-    'MonitorName' => getFilterSelection('MonitorName'),
-    'Source' => getFilterSelection('Source')
+    'MonitorName' => getFilterText('MonitorName'),
+    'Source' => getFilterText('Source')
   );
   // Text filters must be strings; guard against a cookie value that happens to be valid JSON.
   if (is_array($request_filters['MonitorName'])) $request_filters['MonitorName'] = '';
@@ -433,7 +438,7 @@ function queryRequest() {
     
     foreach ($eventCounts as $period => $eventCount) {
       $row[$period.'Events'] = (int)$monitor[$period.'Events'];
-      $row[$period.'EventDiskSpace'] = human_filesize($monitor[$period.'EventDiskSpace']);
+      $row[$period.'EventDiskSpace'] = monitorEventDiskSpace($monitor, $period);
       
       // Generate filter querystring for this period and monitor
       $filter = addFilterTerm(

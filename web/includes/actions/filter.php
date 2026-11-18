@@ -52,7 +52,9 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
     } else if (( $action == 'Save' ) or ( $action == 'SaveAs' ) or ( $action == 'execute' )) {
       $_REQUEST['filter']['Query']['sort_field'] = validStr($_REQUEST['filter']['Query']['sort_field']);
       $_REQUEST['filter']['Query']['sort_asc'] = validStr($_REQUEST['filter']['Query']['sort_asc']);
-      $_REQUEST['filter']['Query']['limit'] = validInt($_REQUEST['filter']['Query']['limit']);
+      $limit = validInt($_REQUEST['filter']['Query']['limit']);
+      // A negative LIMIT is an SQL syntax error, which would stop the filter from ever running
+      $_REQUEST['filter']['Query']['limit'] = ($limit === '') ? '' : (string)max(0, (int)$limit);
       $_REQUEST['filter']['Query']['skip_locked'] = isset($_REQUEST['filter']['Query']['skip_locked']) ? validInt($_REQUEST['filter']['Query']['skip_locked']) : 0;
       
       $_REQUEST['filter']['AutoCopy'] = empty($_REQUEST['filter']['AutoCopy']) ? 0 : 1;

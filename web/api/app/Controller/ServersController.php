@@ -38,8 +38,14 @@ class ServersController extends AppController {
   public function index() {
     $this->Server->recursive = 0;
     
-    $options = '';
-    $servers = $this->Server->find('all', $options);
+    $named_params = $this->request->params['named'];
+    if ( $named_params ) {
+      $this->FilterComponent = $this->Components->load('Filter');
+      $conditions = $this->FilterComponent->buildFilter($named_params, array_keys($this->Server->schema()));
+    } else {
+      $conditions = array();
+    }
+    $servers = $this->Server->find('all', array('conditions' => $conditions));
 		$this->set(array(
 					'servers' => $servers,
 					'_serialize' => array('servers')

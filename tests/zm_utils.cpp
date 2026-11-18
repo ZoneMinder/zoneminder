@@ -173,6 +173,8 @@ TEST_CASE("Base64Encode") {
   REQUIRE(Base64Encode("foob") == "Zm9vYg==");
   REQUIRE(Base64Encode("fooba") == "Zm9vYmE=");
   REQUIRE(Base64Encode("foobar") == "Zm9vYmFy");
+  REQUIRE(Base64Encode("\xc3\xa9") == "w6k=");
+  REQUIRE(Base64Encode("\xff\xfe\xfd") == "//79");
 }
 
 TEST_CASE("ZM::clamp") {
@@ -630,5 +632,24 @@ TEST_CASE("zm_parse_leb128", "[utils]") {
     static const unsigned char data[] = {0x05};
     n = zm_parse_leb128(data, 0, value);
     REQUIRE(n == 0);
+  }
+}
+
+TEST_CASE("QueryString names", "[utils]") {
+  SECTION("a name without a value ends at the ampersand") {
+    std::stringstream str("flag&token=abc");
+    QueryString qs(str);
+
+    REQUIRE(qs.has("flag"));
+    REQUIRE(qs.has("token"));
+    REQUIRE(qs.get("token")->firstValue() == "abc");
+  }
+
+  SECTION("a url encoded name is decoded") {
+    std::stringstream str("a%5B%5D=1");
+    QueryString qs(str);
+
+    REQUIRE(qs.has("a[]"));
+    REQUIRE(qs.get("a[]")->firstValue() == "1");
   }
 }

@@ -193,6 +193,20 @@ class Event extends AppModel {
     return file_exists($path) ? filesize($path) : 0;
   }
 
+  // Events.StateId has no default, so MySQL refuses a new event without one. zmc records the
+  // active run state there.
+  public function beforeSave($options = array()) {
+    if (!$this->id and !isset($this->data[$this->alias]['StateId'])) {
+      $state = ClassRegistry::init('State')->find('first', array(
+        'fields' => array('Id'),
+        'conditions' => array('IsActive' => 1),
+        'recursive' => -1,
+      ));
+      $this->data[$this->alias]['StateId'] = $state ? $state['State']['Id'] : 0;
+    }
+    return true;
+  }
+
   public function beforeDelete($cascade=true) {
     $Event = ZM\Event::find_one(['Id'=>$this->id]);
     if ($Event) $Event->delete();

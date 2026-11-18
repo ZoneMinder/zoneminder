@@ -238,7 +238,7 @@ function exportEventImages($event, $exportDetail, $exportFrames, $myfilelist) {
         <track id="monitorCaption" kind="captions" label="English" srclang="en" src='data:plain/text;charset=utf-8,"WEBVTT\n\n 00:00:00.000 --> 00:00:01.000 ZoneMinder"' default>
         Your browser does not support the video tag.
       </video>
-      <script nonce="<?php echo $cspNonce; ?>">
+      <script>
         document.addEventListener('DOMContentLoaded', function() {
           if (typeof videojs === 'undefined') {
             console.error('videojs is not loaded');
@@ -617,6 +617,8 @@ function exportEventImagesMaster($eids, $exportDetail, $exportFrames, $exportStr
 <h2><?php echo translate('Images') ?> Master</h2>
 <?php
   $events = ZM\Event::find(array('Id'=>$eids));
+  $eventMonitorId = array();
+  $eventPath = array();
 
 	foreach ($events as $event) {
 		//get monitor id and event id
@@ -1034,7 +1036,7 @@ function exportEvents(
     return false;
   }
   foreach ($exportFileList as $exportFile) {
-    $exportFile = $export_root.$connkey.'/'.$exportFile;
+    $exportFile = $export_root.($connkey?'_'.$connkey:'').'/'.$exportFile;
     fwrite($fp, $exportFile.PHP_EOL);
   }
   fwrite($fp, $listFile.PHP_EOL);

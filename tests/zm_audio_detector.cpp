@@ -378,4 +378,7 @@ TEST_CASE("Audio level of decoded PCM is the same whatever the sample format") {
   SECTION("s24 (decoded as s32)") { REQUIRE(ProcessSine(AV_CODEC_ID_PCM_S24LE, 3, 0.5, 1) == expected); }
   SECTION("s32") { REQUIRE(ProcessSine(AV_CODEC_ID_PCM_S32LE, 4, 0.5, 2) == expected); }
   SECTION("f64") { REQUIRE(ProcessSine(AV_CODEC_ID_PCM_F64LE, 8, 0.5, 1) == expected); }
+  SECTION("f64 NaN is silence") {
+    REQUIRE(ProcessSine(AV_CODEC_ID_PCM_F64LE, 8, std::numeric_limits<double>::quiet_NaN(), 1) == 0);
+  }
 }

@@ -615,7 +615,8 @@ function MonitorStream(monitorData) {
         (e) => {
           if (!streamSessionActive(this, playbackSessionId)) return;
           this.writeTextInfoBlock("Paused", {showImg: false});
-          manageEventListener.removeEventListener(this.handlerEventListener['volumechange']);
+          // Forget the id too, or createVolumeSlider() on the next play thinks it is still registered.
+          if (manageEventListener.removeEventListener(this.handlerEventListener['volumechange']) == this.handlerEventListener['volumechange']) this.handlerEventListener['volumechange'] = null;
           if (typeof pauseAudioMotion === 'function') {
             pauseAudioMotion(this.id);
           }
@@ -919,7 +920,12 @@ function MonitorStream(monitorData) {
           Very, very rarely, on the MONTAGE PAGE THERE MAY BE AN ERROR OF THE TYPE: TypeError: Failed to execute 'remove' on 'SourceBuffer': The start provided (0) is outside the range (0, 0).
           Possibly due to high CPU load, the browser does not have time to process or the "src" attribute was removed from the object.
           */
-          if (this.mse.sourceBuffers.length > 0) this.mseSourceBuffer.remove(0, Infinity);
+          if (this.mse.sourceBuffers.length > 0) {
+            this.mseSourceBuffer.remove(0, Infinity);
+          } else {
+            // Nothing to remove means no updateend will fire, so waiting for it hangs stopMse()
+            resolve();
+          }
         } catch (e) {
           console.warn(`${dateTimeToISOLocal(new Date())} An error occurred while cleaning Source Buffer for ID=${this.id}`, e);
           reject(e);
@@ -1876,6 +1882,8 @@ function MonitorStream(monitorData) {
 
   this.setMaxFPS = function(maxfps) {
     if (1) {
+      // Only zms understands the command; the other players would just get no_socket back.
+      if (-1 === this.activePlayer.indexOf('zms')) return;
       this.streamCommand({command: CMD_MAXFPS, maxfps: maxfps});
     } else {
       var streamImage = this.getElement();
@@ -2401,6 +2409,7 @@ function MonitorStream(monitorData) {
         if (this.player === 'zms' || currentPlayer.indexOf('zms') !== -1) {
           console.error("All players failed. Stop restart loop", currentPlayer);
           this.fatalError = true;
+          this.starting = false; // Otherwise start() is ignored and Play can never retry.
           return;
         }
 

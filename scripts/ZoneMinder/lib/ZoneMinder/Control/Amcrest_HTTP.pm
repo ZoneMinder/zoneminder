@@ -351,6 +351,7 @@ sub zoomStop {
   $self->sendCmd('cgi-bin/ptz.cgi?action=stop&code=ZoomTele&channel=0&arg1=0&arg2=0&arg3=0&arg4=0');
   $self->sendCmd('cgi-bin/ptz.cgi?action=stop&code=ZoomWide&channel=0&arg1=0&arg2=0&arg3=0&arg4=0');
   $$self{LastCmd} = '';
+  $$self{Monitor}->resumeMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
 }
 
 sub focusStop {
@@ -358,6 +359,7 @@ sub focusStop {
   Debug('Focus stop');
   $self->sendCmd('cgi-bin/devVideoInput.cgi?action=adjustFocusContinuously&focus=0&zoom=0');
   $$self{LastCmd} = '';
+  $$self{Monitor}->resumeMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
 }
 
 sub irisConOpen {

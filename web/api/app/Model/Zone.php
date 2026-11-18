@@ -99,6 +99,33 @@ class Zone extends AppModel {
         and is_string($data['Coords']) and strpos($data['Coords'], '.') === false and $this->validCoords(array($data['Coords']))) {
       $data['Coords'] = preg_replace_callback('/-?\d+/', function($m) { return $m[0].'.00'; }, $data['Coords']);
     }
+    // The web editor (includes/actions/zone.php) keeps NumCoords and Area in step with Coords
+    // and stores thresholds as a percentage of the zone, so do the same here.
+    if (isset($data['Coords']) and is_string($data['Coords']) and $this->validCoords(array($data['Coords']))
+        and preg_match_all('/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/', $data['Coords'], $m, PREG_SET_ORDER) >= 3) {
+      $n = count($m);
+      $sum = 0.0;
+      for ($i = 0; $i < $n; $i++) {
+        $next = $m[($i + 1) % $n];
+        $sum += (float)$m[$i][1] * (float)$next[2] - (float)$next[1] * (float)$m[$i][2];
+      }
+      $data['NumCoords'] = $n;
+      $data['Area'] = round(abs($sum) / 2.0);
+      // zmc reads thresholds as a percentage of the zone when Coords have decimals. A value
+      // over 100 is a pixel count, so convert it with the zone's size in pixels.
+      if (strpos($data['Coords'], '.') !== false and $data['Area'] > 0) {
+        $monitorId = isset($data['MonitorId']) ? $data['MonitorId'] : ($this->id ? $this->field('MonitorId') : null);
+        $monitor = $monitorId ? $this->Monitor->find('first', array('conditions' => array('Id' => $monitorId))) : null;
+        if ($monitor and !empty($monitor['Monitor']['Width']) and !empty($monitor['Monitor']['Height'])) {
+          $pixels = $data['Area'] / 10000.0 * $monitor['Monitor']['Width'] * $monitor['Monitor']['Height'];
+          foreach (array('MinAlarmPixels', 'MaxAlarmPixels', 'MinFilterPixels', 'MaxFilterPixels', 'MinBlobPixels', 'MaxBlobPixels') as $field) {
+            if (isset($data[$field]) and is_numeric($data[$field]) and floatval($data[$field]) > 100) {
+              $data[$field] = min(100, round(floatval($data[$field]) / $pixels * 100, 2));
+            }
+          }
+        }
+      }
+    }
     return true;
   }
 

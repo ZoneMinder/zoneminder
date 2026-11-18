@@ -91,5 +91,12 @@ test('one shift+wheel zooms once after several enable cycles', () => {
   assert.strictEqual(state.wheelZooms, 1);
 });
 
+test('disable removes the wheel listener', () => {
+  const {zm, parent, obj} = load();
+  zm.action('enable', {obj});
+  zm.action('disable', {id: 5});
+  assert.strictEqual(parent.listeners.wheel.size, 0);
+});
+
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);

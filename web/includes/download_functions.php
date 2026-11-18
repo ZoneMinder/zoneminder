@@ -99,7 +99,7 @@ function downloadEvents(
     $event = new ZM\Event($eid);
     if (!$event->canView()) {
       global $user;
-      ZM\Warning('User '.($user?$user['Username']:'').' cannot view event '.$event->Id());
+      ZM\Warning('User '.($user?$user->Username():'').' cannot view event '.$event->Id());
       continue;
     }
     if (!isset($events_by_monitor_id[$event->MonitorId()])) $events_by_monitor_id[$event->MonitorId()] = [];
@@ -107,7 +107,7 @@ function downloadEvents(
 
     if (!$event->DefaultVideo()) {
       # Only build a video from the images when the event has no usable one.
-      $existing = findVideoEventFile($event, 'mp4');
+      $existing = findVideoEventFile($event, '*');
       if ($existing === '' or !filesize($existing)) {
         $generated = $event->GenerateVideo();
         if ($generated) $generatedVideos[$event->Id()] = $event->Path().'/'.$generated;
@@ -121,6 +121,9 @@ function downloadEvents(
   if ($exportFormat == 'tar' || $exportFormat == 'zip') {
     $archiveFileName = $export_root.'.'.$exportFormat;
     $archive_path = DIR_EXPORTS_DOWNLOAD.'/'.$archiveFileName;
+    # tar --append and zip add to an existing archive, so an earlier download
+    # of the same name that was never fetched would bring its events along.
+    @unlink($archive_path);
   }
 
   foreach (array_keys($events_by_monitor_id) as $mid) {
@@ -138,7 +141,7 @@ function downloadEvents(
     # set of matching events is merged into a file of its own.
     $groups = [];
     foreach ($events_by_monitor_id[$mid] as $event) {
-      $filePath = isset($generatedVideos[$event->Id()]) ? $generatedVideos[$event->Id()] : findVideoEventFile($event, "mp4");
+      $filePath = isset($generatedVideos[$event->Id()]) ? $generatedVideos[$event->Id()] : findVideoEventFile($event, '*');
       if ($filePath ==='') {
         ZM\Warning('The file path for event '.$event->Id().' was not found.');
         continue;

@@ -60,6 +60,15 @@ check('an event without a length ends a second after it started',
 check('an end that is already set is kept',
   guess(Length => 12, EndDateTime => '2024-05-06 08:00:00'), '2024-05-06 08:00:00');
 
+# Without a StartDateTime there is nothing to count from; str2time(undef) is
+# undef, which used to make the end 1970-01-01 00:00:01 and get saved.
+check('an event without a StartDateTime gets no guessed end',
+  guess(Length => 0, StartDateTime => undef), undef);
+check('an event with a length and no StartDateTime gets no guessed end',
+  guess(Length => 12, StartDateTime => undef), undef);
+check('an event with an unparseable StartDateTime gets no guessed end',
+  guess(Length => 12, StartDateTime => 'not a date'), undef);
+
 # zmrecover only saves the event when this returns a value.
 my $source = do {
   open(my $fh, '<', "$FindBin::Bin/../../scripts/zmrecover.pl.in") or die "Can't open zmrecover.pl.in: $!";

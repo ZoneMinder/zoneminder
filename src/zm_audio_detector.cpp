@@ -190,7 +190,7 @@ double AudioDetector::RmsFromFrame(const AVFrame *frame) const {
       case AV_SAMPLE_FMT_DBL:
       case AV_SAMPLE_FMT_DBLP:
         rms = RmsScaled(reinterpret_cast<const double *>(frame->extended_data[p]), per_plane,
-                        [](double v) { return std::max(-1.0, std::min(1.0, v)); });
+                        [](double v) { return std::isnan(v) ? 0.0 : std::max(-1.0, std::min(1.0, v)); });
         break;
       default:
         // Anything left (64-bit integers) is reported rather than silently

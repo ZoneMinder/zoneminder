@@ -548,6 +548,7 @@ sub zoomStop {
   my $self = shift;
   
   Debug('Zoom Stop');
+  $$self{Monitor}->resumeMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
   
   my $cmd = {
     cmd => 'PtzCtrl',
@@ -603,6 +604,25 @@ sub focusConFar {
     }
   };
   
+  $self->sendApiCmd($cmd);
+}
+
+sub focusStop {
+  my $self = shift;
+
+  Debug('Focus Stop');
+  $$self{Monitor}->resumeMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
+
+  my $cmd = {
+    cmd => 'PtzCtrl',
+    action => 0,
+    param => {
+      channel => $$self{channel},
+      op => 'Stop',
+      speed => 0
+    }
+  };
+
   $self->sendApiCmd($cmd);
 }
 

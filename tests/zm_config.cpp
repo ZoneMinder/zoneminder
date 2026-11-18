@@ -321,3 +321,18 @@ TEST_CASE("StaticConfig: SERVER_ID is zero-initialized") {
   StaticConfig cfg;
   REQUIRE(cfg.SERVER_ID == 0);
 }
+
+// ZM_SHM_KEY is hexadecimal. The Config table value is parsed as hex, but a
+// config file value went through the decimal path and "0x7a6e0000" became 0,
+// so a second instance given its own key in zm.conf used shm key 0.
+TEST_CASE("Config: a hexadecimal option in a config file is read as hex") {
+  staticConfig.file_options = {{"ZM_SHM_KEY", "0x7a6e0000"}};
+  Config cfg;
+  cfg.ApplyFileOptions();
+  REQUIRE(cfg.shm_key == 0x7a6e0000);
+
+  staticConfig.file_options = {{"ZM_AUTH_HASH_TTL", "010"}};
+  cfg.ApplyFileOptions();
+  REQUIRE(cfg.auth_hash_ttl == 10);
+  staticConfig.file_options.clear();
+}

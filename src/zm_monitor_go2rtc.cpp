@@ -83,6 +83,7 @@ Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
         User *rtsp_user = User::find(parent->rtsp_user);
         if (rtsp_user) {
           std::string auth_key = rtsp_user->getAuthHash();
+          delete rtsp_user;
           rtsp_restream_path += "?auth=" + auth_key;
           last_auth_refresh = std::chrono::system_clock::now();
         } else {
@@ -104,65 +105,63 @@ Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
     // backslash reached go2rtc doubled.
     rtsp_username = parent->user;
     rtsp_password = parent->pass;
-    if (rtsp_path.find("rtsp://") == 0) {
-      rtsp_path = "rtsp://" + rtsp_username + ":" + rtsp_password + "@" + rtsp_path.substr(7, std::string::npos);
-    } else {
-      rtsp_path = "rtsp://" + rtsp_username + ":" + rtsp_password + "@" + rtsp_path;
-    }
+    rtsp_path = UrlWithCredentials(rtsp_path, rtsp_username, rtsp_password);
     if (!rtsp_second_path.empty()) {
-      if (rtsp_second_path.find("rtsp://") == 0) {
-        rtsp_second_path = "rtsp://" + rtsp_username + ":" + rtsp_password + "@" + rtsp_second_path.substr(7, std::string::npos);
-      } else {
-        rtsp_second_path = "rtsp://" + rtsp_username + ":" + rtsp_password + "@" + rtsp_second_path;
-      }
-    }
-    // Helper to add or update a Go2RTC URL option while preserving other options.
-    // For cameras, disable RTSP backchannel by default to prevent issues with
-    // Dahua cameras, such as events not being recorded and ONVIF not working
-    // when viewing the camera on the Watch page using go2rtc.
-    // Unlike simply appending "#backchannel=0", this helper updates an existing
-    // backchannel option without adding a duplicate, and preserves other Go2RTC
-    // options such as "#media=" or "#video=" in the URL.
-    // The Go2RTC_disable_backchannel setting controls this behavior:
-    // when enabled, set backchannel=0, adding the option if it does not exist;
-    // when disabled, set an existing backchannel option to 1, but do not add
-    // the option if it is absent from the RTSP path.
-    auto set_rtsp_param = [](std::string& path,
-                             const std::string& name,
-                             const std::string& value) {
-      const std::string param = "#" + name + "=";
-      size_t pos = path.find(param);
-
-      if (pos != std::string::npos) {
-        size_t value_start = pos + param.size();
-        size_t value_end = path.find('#', value_start);
-        path.replace(value_start,
-                     value_end == std::string::npos ? std::string::npos : value_end - value_start,
-                     value);
-      } else {
-        path += param + value;
-      }
-    };
-
-    if (parent->device_class == "Camera") {
-      if (parent->Go2RTC_disable_backchannel) {
-        // Disable backchannel for both RTSP stream paths.
-        set_rtsp_param(rtsp_path, "backchannel", "0");
-
-        if (!rtsp_second_path.empty())
-          set_rtsp_param(rtsp_second_path, "backchannel", "0");
-      } else {
-        // Re-enable backchannel only if explicitly configured in the RTSP path.
-        // Do not add the option when absent, as backchannel is enabled by default.
-        if (rtsp_path.find("#backchannel=") != std::string::npos)
-          set_rtsp_param(rtsp_path, "backchannel", "1");
-
-        if (!rtsp_second_path.empty() &&
-            rtsp_second_path.find("#backchannel=") != std::string::npos)
-          set_rtsp_param(rtsp_second_path, "backchannel", "1");
-      }
+      rtsp_second_path = UrlWithCredentials(rtsp_second_path, rtsp_username, rtsp_password);
     }
   }  // end if !user.empty
+
+  // Helper to add or update a Go2RTC URL option while preserving other options.
+  // For cameras, disable RTSP backchannel by default to prevent issues with
+  // Dahua cameras, such as events not being recorded and ONVIF not working
+  // when viewing the camera on the Watch page using go2rtc.
+  // Unlike simply appending "#backchannel=0", this helper updates an existing
+  // backchannel option without adding a duplicate, and preserves other Go2RTC
+  // options such as "#media=" or "#video=" in the URL.
+  // The Go2RTC_disable_backchannel setting controls this behavior:
+  // when enabled, set backchannel=0, adding the option if it does not exist;
+  // when disabled, set an existing backchannel option to 1, but do not add
+  // the option if it is absent from the RTSP path.
+  auto set_rtsp_param = [](std::string& path,
+                           const std::string& name,
+                           const std::string& value) {
+    const std::string param = "#" + name + "=";
+    size_t pos = path.find(param);
+
+    if (pos != std::string::npos) {
+      size_t value_start = pos + param.size();
+      size_t value_end = path.find('#', value_start);
+      path.replace(value_start,
+                   value_end == std::string::npos ? std::string::npos : value_end - value_start,
+                   value);
+    } else {
+      path += param + value;
+    }
+  };
+
+  // The credentials may be in the path itself rather than in the monitor's
+  // User field, so this does not depend on the latter; only RTSP sources
+  // have a backchannel.
+  const auto is_rtsp = [](const std::string &path) { return path.compare(0, 4, "rtsp") == 0; };
+  if (parent->device_class == "Camera") {
+    if (parent->Go2RTC_disable_backchannel) {
+      // Disable backchannel for both RTSP stream paths.
+      if (is_rtsp(rtsp_path))
+        set_rtsp_param(rtsp_path, "backchannel", "0");
+
+      if (is_rtsp(rtsp_second_path))
+        set_rtsp_param(rtsp_second_path, "backchannel", "0");
+    } else {
+      // Re-enable backchannel only if explicitly configured in the RTSP path.
+      // Do not add the option when absent, as backchannel is enabled by default.
+      if (rtsp_path.find("#backchannel=") != std::string::npos)
+        set_rtsp_param(rtsp_path, "backchannel", "1");
+
+      if (!rtsp_second_path.empty() &&
+          rtsp_second_path.find("#backchannel=") != std::string::npos)
+        set_rtsp_param(rtsp_second_path, "backchannel", "1");
+    }
+  }  // end if Camera
 
   Debug(1, "Go2RTC: Primary RTSP path: %s", url_for_log(rtsp_path).c_str());
   if (!rtsp_second_path.empty()) {
@@ -275,6 +274,7 @@ bool Monitor::Go2RTCManager::refresh_auth_if_needed() {
   }
 
   std::string auth_key = rtsp_user->getAuthHash();
+  delete rtsp_user;
   std::string old_path = rtsp_restream_path;
   rtsp_restream_path = rtsp_restream_base_path + "?auth=" + auth_key;
   last_auth_refresh = now;
@@ -381,7 +381,22 @@ int Monitor::Go2RTCManager::add_to_Go2RTC() {
 int Monitor::Go2RTCManager::remove_from_Go2RTC() {
   Debug(1, "Go2RTC: remove_from_Go2RTC called for monitor %s (%d)", parent->Name(), parent->Id());
 
-  std::string endpoint = Go2RTC_endpoint + "/streams?src="+std::to_string(parent->Id());
+  // add_to_Go2RTC() registers these names; deleting only the monitor id left the
+  // others, and the camera URLs they hold, behind in go2rtc.
+  const std::string id_str = std::to_string(parent->Id());
+  const std::vector<std::string> names = {
+    id_str + "_h264", id_str + "_ZoneMinderPrimary", id_str + "_CameraDirectPrimary",
+    id_str + "_CameraDirectSecondary", id_str};
+
+  int result = 0;
+  for (const std::string &name : names) {
+    if (delete_stream(name) < 0) result = -1;
+  }
+  return result == 0 ? 0 : -1;
+}
+
+int Monitor::Go2RTCManager::delete_stream(const std::string &name) {
+  std::string endpoint = Go2RTC_endpoint + "/streams?src=" + name;
   std::string response;
 
   Debug(2, "Go2RTC: DELETE request to: %s", endpoint.c_str());

@@ -366,6 +366,7 @@ sub GenerateVideo {
 
     Debug('Executing: '.join(' ', @command));
 
+    my $old_diskspace = $$self{DiskSpace};
     my $pid = fork();
     if ( !defined $pid ) {
       Error("Unable to fork for video generation: $!");
@@ -389,6 +390,16 @@ sub GenerateVideo {
     }
 
     Info("Finished $video_file");
+    # The new file is part of the event, so a later move or delete must account for it.
+    my $new_diskspace = $self->DiskSpace(undef);
+    if ( $$self{Id} and defined $new_diskspace ) {
+      # Only DiskSpace: the event may still be recording, so a full save would write back stale values.
+      if ( defined ZoneMinder::Database::zmDbDo('UPDATE Events SET DiskSpace=? WHERE Id=?', $new_diskspace, $$self{Id}) ) {
+        $self->Storage()->adjust_diskspace($new_diskspace-$old_diskspace) if $old_diskspace;
+      } else {
+        Warning("Unable to save DiskSpace of event $$self{Id}");
+      }
+    }
     return $event_path.'/'.$video_file;
   } else {
     Info("Video file $video_file already exists for event $self->{Id}");
@@ -452,6 +463,13 @@ sub delete {
     #
     # Retry on deadlock (MariaDB ER_LOCK_DEADLOCK = 1213) only when we own
     # the TX; if the caller is managing one, bail and let them decide.
+
+    # Resolved once, outside the retry loop: DiskSpace() can stat the event
+    # directory and Storage() can hit the db, and neither changes between
+    # attempts.
+    my $storage = $event->Storage();
+    my $reclaim = $event->DiskSpace();
+
     my $attempt = 0;
     my $max_attempts = 5;
     while (1) {
@@ -483,6 +501,17 @@ sub delete {
         }
       }
 
+      if (!$err and !$in_transaction and $reclaim) {
+        # Reclaim inside our own transaction, after the deletes succeed, so it
+        # commits or rolls back with them and is retried on deadlock. A relative
+        # single statement, see ZoneMinder::Storage::adjust_diskspace.
+        $storage->adjust_diskspace(-$reclaim);
+        $err = $ZoneMinder::Database::dbh->err() // 0;
+        if ($err) {
+          $errstr = $ZoneMinder::Database::dbh->errstr() // '';
+        }
+      }
+
       if (!$err) {
         $ZoneMinder::Database::dbh->commit() if !$in_transaction;
         last;
@@ -506,7 +535,9 @@ sub delete {
     # SELECT autocommits, so the absolute value it then writes clobbers any
     # adjustment zmc or another filter made in between.
     # See ZoneMinder::Storage::adjust_diskspace.
-    $event->Storage()->adjust_diskspace(-$event->DiskSpace()) if $event->DiskSpace();
+    # When delete() owns the transaction the reclaim already ran inside it,
+    # above; only a caller-managed transaction reclaims here, once.
+    $storage->adjust_diskspace(-$reclaim) if $in_transaction and $reclaim;
   }
 
   if ( $event->Storage()->DoDelete() ) {
@@ -885,10 +916,12 @@ sub MoveTo {
   }
 
   my $old_diskspace = $self->DiskSpace();
-  my $new_diskspace = $self->DiskSpace(undef);
 
   # Succeeded in copying all files, so we may now update the Event.
   $self->Storage($NewStorage);
+  # Measured at the new location: when the files had already been moved the
+  # old path no longer exists and there is nothing to measure there.
+  my $new_diskspace = $self->DiskSpace(undef);
   $error .= $self->save();
   # Going to leave it to upper layer as to whether we rollback or not
   if ($error) {
@@ -1036,12 +1069,11 @@ sub mp4_duration {
 sub guess_EndDateTime {
   my $event = shift;
   if (!$$event{EndDateTime}) {
-    if ($$event{Length}) {
-      my $startdatetime = Date::Parse::str2time( $$event{StartDateTime} );
-      $$event{EndDateTime} = Date::Format::time2str('%Y-%m-%d %H:%M:%S', $startdatetime + $$event{Length});
-    } else {
-      $$event{EndDateTime} = Date::Format::time2str('%Y-%m-%d %H:%M:%S', Date::Parse::str2time( $$event{StartDateTime} )+1);
-    }
+    # Nothing to count from without a start, and str2time(undef) would
+    # turn the end into 1970.
+    my $startdatetime = $$event{StartDateTime} ? Date::Parse::str2time( $$event{StartDateTime} ) : undef;
+    return undef if !defined $startdatetime;
+    $$event{EndDateTime} = Date::Format::time2str('%Y-%m-%d %H:%M:%S', $startdatetime + ($$event{Length} ? $$event{Length} : 1));
   }
   return $$event{EndDateTime};
 }

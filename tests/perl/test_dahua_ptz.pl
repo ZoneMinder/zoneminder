@@ -70,5 +70,53 @@ check('reboot sends magicBox.cgi?action=reboot',
   $reboot_uri,
   'http://192.0.2.1:80/cgi-bin/magicBox.cgi?action=reboot');
 
+# open() takes the host and credentials from the ControlAddress.
+package FakeOpenUA;
+sub new { return bless {reqs => []}, $_[0]; }
+sub request {
+  my ($self, $req) = @_;
+  push @{$self->{reqs}}, $req;
+  return FakeResponse->new(1);
+}
+sub credentials {}
+sub agent {}
+sub ssl_opts {}
+
+package main;
+
+sub dahua_open {
+  my ($addr) = @_;
+  my $open_ua = FakeOpenUA->new();
+  no warnings 'redefine';
+  local *LWP::UserAgent::new = sub { return $open_ua; };
+  $ZoneMinder::Control::Dahua::ADDRESS = '';
+  $ZoneMinder::Control::Dahua::USERNAME = '';
+  $ZoneMinder::Control::Dahua::PASSWORD = '';
+  my $c = bless {
+    Monitor => { Id => 1, ControlAddress => $addr, Path => '' },
+  }, 'ZoneMinder::Control::Dahua';
+  $c->open();
+  return @{$open_ua->{reqs}} ? $open_ua->{reqs}[0]->uri()->as_string() : '';
+}
+
+check('address without credentials connects to that host',
+  dahua_open('192.0.2.1'),
+  'http://192.0.2.1:80/cgi-bin/configManager.cgi?action=getConfig&name=Ptz');
+check('address without credentials sets no username',
+  $ZoneMinder::Control::Dahua::USERNAME, '');
+
+check('password containing @ connects to the host after the last @',
+  dahua_open('admin:p@ss@192.0.2.1:8080'),
+  'http://192.0.2.1:8080/cgi-bin/configManager.cgi?action=getConfig&name=Ptz');
+check('password containing @ is kept whole',
+  $ZoneMinder::Control::Dahua::PASSWORD, 'p@ss');
+
+check('address with a port and no credentials connects to it',
+  dahua_open('192.0.2.1:8080'),
+  'http://192.0.2.1:8080/cgi-bin/configManager.cgi?action=getConfig&name=Ptz');
+check('address with an empty username still connects to the host',
+  dahua_open(':secret@192.0.2.1'),
+  'http://192.0.2.1:80/cgi-bin/configManager.cgi?action=getConfig&name=Ptz');
+
 print "\n$passes passed, $failures failed\n";
 exit($failures ? 1 : 0);

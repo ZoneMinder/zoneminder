@@ -409,6 +409,12 @@ function initPage() {
     window.location.assign('?view=timeline'+filterQuery);
   });
 
+  // Manage the TAGS Button
+  document.getElementById('tagsBtn').addEventListener('click', function onTagsClick(evt) {
+    evt.preventDefault();
+    window.location.assign('?view=tags');
+  });
+
   // Manage the FILTER Button
   document.getElementById('filterBtn').addEventListener('click', function onFilterClick(evt) {
     evt.preventDefault();

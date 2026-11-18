@@ -573,7 +573,7 @@ int main(int argc, char *argv[]) {
           exit_zmu(-1);
         }
         if ( !checkPass(password)) {
-          Error("password greater than allowed 64 characters");
+          Error("Password must be supplied");
           exit_zmu(-1);
         }
         user = zmLoadUser(username, password);

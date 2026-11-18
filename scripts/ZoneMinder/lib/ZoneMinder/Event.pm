@@ -1182,6 +1182,11 @@ FROM `Frames` WHERE `EventId`=?';
     $length = $self->{Length} // 0;
     $end_date_time = time2str('%Y-%m-%d %H:%M:%S', $start + $length);
   }
+  # zmc renames incomplete.* to the final name before it records that in the
+  # row, so an event it left open can have a DefaultVideo naming a file that is
+  # gone.
+  my $default_video = $self->{DefaultVideo};
+  $self->fix_DefaultVideo();
   my $frames = List::Util::max($frame->{Frames} // 0, $self->{Frames} // 0);
   my $alarm_frames = List::Util::max($frame->{AlarmFrames} // 0, $self->{AlarmFrames} // 0);
   my $tot_score = List::Util::max($frame->{TotScore} // 0, $self->{TotScore} // 0);
@@ -1197,6 +1202,7 @@ FROM `Frames` WHERE `EventId`=?';
       MaxScore => $max_score,
       Notes => $self->Notes() . ' ' . $text,
     );
+  $changes{DefaultVideo} = $self->{DefaultVideo} if ($self->{DefaultVideo} // '') ne ($default_video // '');
   # Like zmc's own close (~Event: Name = IF(Name='New Event', ...)), keep a name
   # the user gave the event; only the placeholder gets the recovered name.
   if (($self->{Name} // 'New Event') eq 'New Event') {

@@ -24,6 +24,8 @@ if (!canEdit('System')) {
   return;
 }
 
+global $error_message;
+
 if ($action == 'save') {
   if (!empty($_REQUEST['id'])) {
     $dbServer = dbFetchOne('SELECT * FROM Servers WHERE Id=?', NULL, [$_REQUEST['id']]);
@@ -31,8 +33,17 @@ if ($action == 'save') {
     $dbServer = array();
   }
 
+  $newServer = (isset($_REQUEST['newServer']) and is_array($_REQUEST['newServer'])) ? $_REQUEST['newServer'] : array();
+
   $types = array();
-  $changes = getFormChanges($dbServer, $_REQUEST['newServer'], $types);
+  $changes = getFormChanges($dbServer, $newServer, $types);
+
+  $name = array_key_exists('Name', $newServer) ? $newServer['Name'] : ($dbServer['Name'] ?? '');
+  if (!is_string($name) or (trim($name) === '')) {
+    ZM\Warning('Refusing to save server with an empty Name');
+    $error_message .= 'Server Name is required<br/>';
+    $changes = array();
+  }
 
   if (count($changes)) {
     if (!empty($_REQUEST['id'])) {

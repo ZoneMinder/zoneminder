@@ -1286,11 +1286,15 @@ sub confirm {
   } elsif ( $interactive ) {
     print(", $prompt Y/n/q: ");
     my $char = <>;
-    chomp($char);
-    if ( $char eq 'q' ) {
+    if ( !defined $char ) {
+      Info('No answer on stdin, exiting');
       Term();
     }
-    if ( !$char ) {
+    chomp($char);
+    if ( lc($char) eq 'q' ) {
+      Term();
+    }
+    if ( $char eq '' ) {
       $char = 'y';
     }
     $yesno = ( $char =~ /[yY]/ );

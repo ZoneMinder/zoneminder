@@ -52,6 +52,7 @@ class Zone extends ZM_Object {
   const ZONE_PRESET_EXCLUDED_FIELDS = array(
     'Id',
     'Name',
+    'Type',
     'Units',
     'UnitsIndex',
     'CheckMethodIndex',

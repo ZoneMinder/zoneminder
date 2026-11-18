@@ -122,28 +122,24 @@ if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
     }
 
     $presetData = isset($_REQUEST['newZone']) && is_array($_REQUEST['newZone']) ? $_REQUEST['newZone'] : array();
-    $thresholdFields = array('MinAlarmPixels', 'MaxAlarmPixels', 'MinFilterPixels', 'MaxFilterPixels', 'MinBlobPixels', 'MaxBlobPixels');
-    foreach ( $thresholdFields as $field ) {
-      if ( isset($presetData[$field]) && $presetData[$field] !== '' ) {
+    $presetFields = ZM\Zone::getZonePresetFields();
+
+    // Dynamically identify area threshold fields by the 'Pixels' suffix instead of hardcoding a field list,
+    // and clamp their percentage values to the valid [0..100] range
+    foreach ( $presetFields as $field ) {
+      if ( substr($field, -6) === 'Pixels' && isset($presetData[$field]) && $presetData[$field] !== '' ) {
         $presetData[$field] = max(0, min(100, floatval($presetData[$field])));
       }
     }
-
-    $presetFields = array(
-      'CheckMethod', 'MinPixelThreshold', 'MaxPixelThreshold',
-      'MinAlarmPixels', 'MaxAlarmPixels', 'FilterX', 'FilterY',
-      'MinFilterPixels', 'MaxFilterPixels', 'MinBlobPixels', 'MaxBlobPixels',
-      'MinBlobs', 'MaxBlobs', 'OverloadFrames', 'ExtendAlarmFrames'
-    );
 
     $setClauses = array('Name = ?', 'Units = ?');
     $params = array($presetName, 'Percent');
     foreach ( $presetFields as $field ) {
       if ( isset($presetData[$field]) && $presetData[$field] !== '' ) {
-        $setClauses[] = $field.' = ?';
+        $setClauses[] = '`'.$field.'` = ?';
         $params[] = $presetData[$field];
       } else {
-        $setClauses[] = $field.' = NULL';
+        $setClauses[] = '`'.$field.'` = NULL';
       }
     }
 
@@ -157,6 +153,8 @@ if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
       dbQuery('UPDATE ZonePresets SET '.implode(', ', $setClauses).' WHERE Id = ?', $params);
       ZM\AuditAction('update', 'zone_preset', $presetId, 'Name: '.$presetName);
     } else {
+      $setClauses[] = 'Type = ?';
+      $params[] = 'Active';
       dbQuery('INSERT INTO ZonePresets SET '.implode(', ', $setClauses), $params);
       $presetId = dbInsertId();
       ZM\AuditAction('create', 'zone_preset', $presetId, 'Name: '.$presetName);

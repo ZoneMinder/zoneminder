@@ -198,3 +198,12 @@ TEST_CASE("SWScale::Convert(AVFrame) fails when sws_scale returns a negative err
   av_frame_free(&out);
   REQUIRE(r != 0);
 }
+
+TEST_CASE("fix_deprecated_pix_fmt maps every YUVJ format to its limited-range twin", "[swscale]") {
+  REQUIRE(fix_deprecated_pix_fmt(AV_PIX_FMT_YUVJ420P) == AV_PIX_FMT_YUV420P);
+  REQUIRE(fix_deprecated_pix_fmt(AV_PIX_FMT_YUVJ422P) == AV_PIX_FMT_YUV422P);
+  REQUIRE(fix_deprecated_pix_fmt(AV_PIX_FMT_YUVJ444P) == AV_PIX_FMT_YUV444P);
+  REQUIRE(fix_deprecated_pix_fmt(AV_PIX_FMT_YUVJ440P) == AV_PIX_FMT_YUV440P);
+  REQUIRE(fix_deprecated_pix_fmt(AV_PIX_FMT_YUVJ411P) == AV_PIX_FMT_YUV411P);
+  REQUIRE(fix_deprecated_pix_fmt(AV_PIX_FMT_YUV411P) == AV_PIX_FMT_YUV411P);
+}

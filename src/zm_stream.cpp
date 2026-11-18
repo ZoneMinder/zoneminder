@@ -393,7 +393,7 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
 
     image.EncodeJpeg(buffer, &n_bytes);
 
-    if (type == STREAM_JPEG) {
+    if (type == STREAM_JPEG || type == STREAM_RAW || type == STREAM_ZIP) {
       if (0 > fputs("--" BOUNDARY "\r\n", stdout)) {
         Debug(1, "Error sending  --" BOUNDARY "\r\n");
         return false;

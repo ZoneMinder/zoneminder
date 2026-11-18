@@ -1730,6 +1730,23 @@ bool ONVIF::matches_topic_filter(const std::string &topic, const std::string &fi
     return true;  // Empty filter matches all
   }
 
+  // A comma separated list matches if any of its entries match
+  if (filter.find(',') != std::string::npos) {
+    size_t item_start = 0;
+    while (item_start <= filter.size()) {
+      size_t item_end = filter.find(',', item_start);
+      if (item_end == std::string::npos) item_end = filter.size();
+      size_t first = filter.find_first_not_of(" \t", item_start);
+      size_t last = filter.find_last_not_of(" \t", item_end == 0 ? 0 : item_end - 1);
+      if (first != std::string::npos && first < item_end && last >= first &&
+          matches_topic_filter(topic, filter.substr(first, last - first + 1))) {
+        return true;
+      }
+      item_start = item_end + 1;
+    }
+    return false;
+  }
+
   // Simple substring match for backward compatibility
   if (std::strstr(topic.c_str(), filter.c_str())) {
     return true;

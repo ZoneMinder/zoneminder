@@ -226,7 +226,7 @@ class ONVIF {
   void cleanup_subscription();
   bool interpret_alarm_value(const std::string &value);
   bool parse_event_message(wsnt__NotificationMessageHolderType *msg, std::string &topic, std::string &value, std::string &operation);
-  bool matches_topic_filter(const std::string &topic, const std::string &filter);
+  static bool matches_topic_filter(const std::string &topic, const std::string &filter);
   void parse_onvif_options();
   int get_retry_delay();
   void update_renewal_times(time_t camera_current_time, time_t termination_time);

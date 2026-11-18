@@ -67,6 +67,9 @@ sub import {
   my \$caller = caller();
   *{\$caller.'::Config'} = \\%Config;
 }
+# Like the real module, connect while loading, with the zm.conf credentials
+require ZoneMinder::Database;
+ZoneMinder::Database::zmDbConnect();
 sub syncConfigFlags { return 0; }
 sub loadConfigFromDB { return 1; }
 sub saveConfigToDB { return 1; }
@@ -110,17 +113,25 @@ sub prepare_cached { my ($s, $sql) = @_; open(my $fh, '>>', ($ENV{TEST_SQL_LOG} 
 sub do { 1 }
 sub errstr { '' }
 package ZoneMinder::Database;
-sub import {
-  no strict 'refs';
-  my $caller = caller();
-  *{$caller.'::zmDbConnect'} = sub {
+# Like the real one, keep the connection and only make a new one when forced
+our $dbh;
+sub zmDbConnect {
+  my $force = shift;
+  undef $dbh if $force;
+  if (!$dbh) {
     if ($ENV{TEST_CONNECT_LOG}) {
       open(my $fh, '>>', ($ENV{TEST_CONNECT_LOG} =~ m{^(.*)$})[0]);
       print $fh "CONNECT $ZoneMinder::Config::Config{ZM_DB_USER}/$ZoneMinder::Config::Config{ZM_DB_PASS}\n";
       close $fh;
     }
-    return bless({}, 'FakeDbh');
-  };
+    $dbh = bless({}, 'FakeDbh');
+  }
+  return $dbh;
+}
+sub import {
+  no strict 'refs';
+  my $caller = caller();
+  *{$caller.'::zmDbConnect'} = \&zmDbConnect;
   *{$caller.'::zmDbDisconnect'} = sub { 1 };
   *{$caller.'::zmDbDo'} = sub { 1 };
 }
@@ -178,7 +189,7 @@ my $connect_log = "$dir/connect.log";
 unlink($connect_log);
 ($out, $status) = run_zmupdate('--nointeractive --user=root --pass=rootpw --migrate-events', "y\n",
   TEST_ZM_VERSION => '1.37.5', TEST_DB_VERSION => '1.36.0', TEST_CONNECT_LOG => $connect_log);
-check('--user and --pass are used for the db connection', (split /\n/, read_file($connect_log))[0] // 'no connect', 'CONNECT root/rootpw');
+check('--user and --pass are used for the db connection', (split /\n/, read_file($connect_log))[-1] // 'no connect', 'CONNECT root/rootpw');
 
 print "\n$passes passed, $failures failed\n";
 exit($failures ? 1 : 0);

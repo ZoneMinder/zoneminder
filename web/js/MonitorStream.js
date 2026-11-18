@@ -2028,7 +2028,6 @@ function MonitorStream(monitorData) {
       const url = new URL(ZM_RTSP2WEB_PATH);
       const useSSL = (url.protocol == 'https:');
 
-      const rtsp2webModUrl = url;
       const video_el = this.getAVStream();
       if (video_el) {
         video_el.muted = this.muted;
@@ -2037,8 +2036,6 @@ function MonitorStream(monitorData) {
         return;
       }
       this.handlerEventListenerStream(video_el);
-      rtsp2webModUrl.username = '';
-      rtsp2webModUrl.password = '';
       //.urlParts.length > 1 ? urlParts[1] : urlParts[0]; // drop the username and password for viewing
       this.currentChannelStream = streamChannel;
       const numericChannel = this.getNumericChannel(streamChannel);
@@ -2049,8 +2046,8 @@ function MonitorStream(monitorData) {
       this.setRTSP2WebType(this.player);
 
       if (-1 !== this.player.indexOf('hls')) {
-        const hlsUrl = rtsp2webModUrl;
-        hlsUrl.pathname = "/stream/" + this.id + "/channel/" + numericChannel + "/hls/live/index.m3u8";
+        const hlsUrl = rtsp2webUrl(ZM_RTSP2WEB_PATH,
+            "/stream/" + this.id + "/channel/" + numericChannel + "/hls/live/index.m3u8");
         /*
         if (useSSL) {
           hlsUrl = "https://" + rtsp2webModUrl + "/stream/" + this.id + "/channel/0/hls/live/index.m3u8";
@@ -2131,15 +2128,15 @@ function MonitorStream(monitorData) {
         };
         this.activePlayer = 'rtsp2web_hls';
       } else if (-1 !== this.player.indexOf('mse')) {
-        const mseUrl = rtsp2webModUrl;
+        const mseUrl = rtsp2webUrl(ZM_RTSP2WEB_PATH,
+            "/stream/" + this.id + "/channel/" + numericChannel + "/mse");
         mseUrl.protocol = useSSL ? 'wss' : 'ws';
-        mseUrl.pathname = "/stream/" + this.id + "/channel/" + numericChannel + "/mse";
         mseUrl.search = "uuid=" + this.id + "&channel=" + numericChannel + "";
         startMsePlay(this, stream, mseUrl.href);
         this.activePlayer = 'rtsp2web_mse';
       } else if (!this.player || (-1 !== this.player.indexOf('webrtc'))) {
-        const webrtcUrl = rtsp2webModUrl;
-        webrtcUrl.pathname = "/stream/" + this.id + "/channel/" + numericChannel + "/webrtc";
+        const webrtcUrl = rtsp2webUrl(ZM_RTSP2WEB_PATH,
+            "/stream/" + this.id + "/channel/" + numericChannel + "/webrtc");
         startRTSP2WebPlay(stream, webrtcUrl.href, this);
         this.activePlayer = 'rtsp2web_webrtc';
       }

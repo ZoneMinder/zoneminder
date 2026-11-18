@@ -1617,6 +1617,23 @@ function go2rtcApiUrl(path) {
   return url;
 }
 
+// The RTSP2Web URL for a ZM_RTSP2WEB_PATH plus a suffix such as
+// "/stream/1/channel/0/webrtc". ZM_RTSP2WEB_PATH may include a path prefix when
+// RTSP2Web is behind a reverse proxy, so the suffix is appended to the base path
+// rather than replacing it, the way zmc talks to RTSP2Web.
+function rtsp2webUrl(base, suffix) {
+  const url = new URL(base);
+  // Build the path in one go: a URL's pathname is never empty, so stripping the
+  // slash from "/" and appending to it would give "//stream".
+  let pathname = url.pathname.replace(/\/+$/, '');
+  pathname += suffix.startsWith('/') ? suffix : '/' + suffix;
+  url.pathname = pathname;
+  // Credentials in the configured path are for zmc, not for the browser.
+  url.username = '';
+  url.password = '';
+  return url;
+}
+
 function createGo2rtcStream(container, img, src, mid, fallbackToMjpeg) {
   ensureVideoStreamLoaded().then(function() {
     if (!document.getElementById('thumb-overlay')) return;
@@ -1693,8 +1710,7 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg, eventS
   ensureHlsLoaded().then(function() {
     if (!document.getElementById('thumb-overlay')) return;
 
-    const url = new URL(rtsp2webSrc);
-    const hlsUrl = url.protocol + '//' + url.host + '/stream/' + monitorId + '/channel/' + channel + '/hls/live/index.m3u8';
+    const hlsUrl = rtsp2webUrl(rtsp2webSrc, '/stream/' + monitorId + '/channel/' + channel + '/hls/live/index.m3u8').href;
 
     const video = document.createElement('video');
     video.removeAttribute('controls');

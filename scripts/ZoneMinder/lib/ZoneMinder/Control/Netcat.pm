@@ -33,6 +33,7 @@ use Digest::SHA;
 use DateTime;
 use LWP::UserAgent;
 use URI;
+use URI::Escape qw(uri_unescape);
 
 require ZoneMinder::Base;
 require ZoneMinder::Control;
@@ -109,8 +110,10 @@ sub open {
     Debug('Using Path for credentials: '.urlForLog($self->{Monitor}{Path}));
     if (($self->{Monitor}->{Path} =~ /^(?<PROTOCOL>(https?|rtsp):\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@(?<ADDRESS>[^:\/]+)/)) {
       if (!$username) {
-        $username = $+{USERNAME} if $+{USERNAME};
-        $password = $+{PASSWORD} if $+{PASSWORD};
+        # userinfo is percent-encoded when the password holds @ or :
+        my ($user, $pass) = ($+{USERNAME}, $+{PASSWORD});
+        $username = uri_unescape($user) if $user;
+        $password = uri_unescape($pass) if $pass;
       }
       $address = $+{ADDRESS} if $+{ADDRESS};
     } elsif (($self->{Monitor}->{Path} =~ /^(?<PROTOCOL>(https?|rtsp):\/\/)?(?<ADDRESS>[^:\/]+)/)) {

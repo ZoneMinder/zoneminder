@@ -353,21 +353,25 @@ $SOAP::Constants::DO_NOT_CHECK_MUSTUNDERSTAND = 1;
     #    Data::Dump::dump($som);
     my $action = $som->valueof('/Envelope/Header/Action');
     Debug('  Action = '.$action);
-    my $msg = $som->match('/Envelope/Body/Notify/NotificationMessage');
-    my $topic = $msg->valueof('Topic');
-    my $msg2  = $msg->match('Message/Message');
-    #    Data::Dump::dump($msg2->current());
-    my $time = $msg2->dataof()->attr->{'UtcTime'};
+    # A Notify can carry several messages; they are the first children of Notify
+    my $count = () = $som->dataof('/Envelope/Body/Notify/NotificationMessage');
+    foreach my $i ( 1 .. $count ) {
+      my $msg = $som->match("/Envelope/Body/Notify/[$i]");
+      my $topic = $msg->valueof('Topic');
+      my $msg2  = $msg->match('Message/Message');
+      #    Data::Dump::dump($msg2->current());
+      my $time = $msg2->dataof()->attr->{'UtcTime'};
 
-    my (%source, %data);
-    foreach my $item ($msg2->dataof('Source/SimpleItem')) {
-      $source{$item->attr->{Name}} = $item->attr->{Value};
-      #      print $item->attr->{Name} ."=>". $item->attr->{Value} ."\n";
+      my (%source, %data);
+      foreach my $item ($msg2->dataof('Source/SimpleItem')) {
+        $source{$item->attr->{Name}} = $item->attr->{Value};
+        #      print $item->attr->{Name} ."=>". $item->attr->{Value} ."\n";
+      }
+      foreach my $item ($msg2->dataof('Data/SimpleItem')) {
+        $data{$item->attr->{Name}} = $item->attr->{Value};
+      }
+      main::handle_notification($zm, $id, $topic, $time, \%source, \%data);
     }
-    foreach my $item ($msg2->dataof('Data/SimpleItem')) {
-      $data{$item->attr->{Name}} = $item->attr->{Value};
-    }
-    main::handle_notification($zm, $id, $topic, $time, \%source, \%data);
     return ();
   }
 } # end Consumer

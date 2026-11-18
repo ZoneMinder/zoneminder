@@ -83,6 +83,7 @@ Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
         User *rtsp_user = User::find(parent->rtsp_user);
         if (rtsp_user) {
           std::string auth_key = rtsp_user->getAuthHash();
+          delete rtsp_user;
           rtsp_restream_path += "?auth=" + auth_key;
           last_auth_refresh = std::chrono::system_clock::now();
         } else {
@@ -273,6 +274,7 @@ bool Monitor::Go2RTCManager::refresh_auth_if_needed() {
   }
 
   std::string auth_key = rtsp_user->getAuthHash();
+  delete rtsp_user;
   std::string old_path = rtsp_restream_path;
   rtsp_restream_path = rtsp_restream_base_path + "?auth=" + auth_key;
   last_auth_refresh = now;

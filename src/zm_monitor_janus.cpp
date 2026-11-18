@@ -140,7 +140,7 @@ int Monitor::JanusManager::check_janus() {
   postData +=  "\"request\" : \"info\", \"id\" : ";
   postData += std::to_string(parent->id);
   postData += ", \"secret\" : \"";
-  postData += config.janus_secret;
+  postData += escape_json_string(config.janus_secret);
   postData += "\"}}";
 
   std::string response;
@@ -225,19 +225,19 @@ int Monitor::JanusManager::add_to_janus() {
   //Assemble our actual request
   std::string postData = "{\"janus\" : \"message\", \"transaction\" : \"randomString\", \"body\" : {";
   postData +=  "\"request\" : \"create\", \"admin_key\" : \"";
-  postData += config.janus_secret;
+  postData += escape_json_string(config.janus_secret);
   postData += "\", \"type\" : \"rtsp\", \"rtsp_quirk\" : true, ";
   postData += "\"url\" : \"";
   postData += escape_json_string(rtsp_path);
   //secret prevents querying the mount for info, which leaks the camera's secrets.
   postData += "\", \"secret\" : \"";
-  postData += config.janus_secret;
+  postData += escape_json_string(config.janus_secret);
   //pin prevents viewing the video.
   postData += "\", \"pin\" : \"";
   postData += parent->janus_pin;
   if (profile_override[0] != '\0') {
     postData += "\", \"videofmtp\" : \"";
-    postData += profile_override;
+    postData += escape_json_string(profile_override);
   }
   if (!rtsp_username.empty()) {
     postData += "\", \"rtsp_user\" : \"";
@@ -329,9 +329,9 @@ int Monitor::JanusManager::remove_from_janus() {
   //Assemble our actual request
   std::string postData = "{\"janus\" : \"message\", \"transaction\" : \"randomString\", \"body\" : {";
   postData +=  "\"request\" : \"destroy\", \"admin_key\" : \"";
-  postData += config.janus_secret;
+  postData += escape_json_string(config.janus_secret);
   postData += "\", \"secret\" : \"";
-  postData += config.janus_secret;
+  postData += escape_json_string(config.janus_secret);
   postData += "\", \"id\" : ";
   postData += std::to_string(parent->id);
   postData += "}}";

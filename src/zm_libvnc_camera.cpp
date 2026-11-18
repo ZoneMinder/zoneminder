@@ -1,6 +1,7 @@
 #include "zm_libvnc_camera.h"
 
 #include "zm_packet.h"
+#include "zm_signal.h"
 #include <dlfcn.h>
 
 #if HAVE_LIBVNC
@@ -203,9 +204,13 @@ int VncCamera::PrimeCapture() {
 }
 
 int VncCamera::PreCapture() {
-  int rc = (*WaitForMessage_f)(mRfb, 500);
+  // The timeout is in microseconds: wait up to half a second for an update.
+  int rc = (*WaitForMessage_f)(mRfb, 500000);
+  // Any handled signal (stop, reload, or the logger's WINCH/USR1/USR2) interrupts
+  // the wait; poll once more so only a real socket error is a failure.
+  if (rc < 0 and !zm_terminate and !zm_reload) rc = (*WaitForMessage_f)(mRfb, 0);
   if (rc < 0) {
-    return -1;
+    return (zm_terminate or zm_reload) ? 0 : -1;
   } else if (!rc) {
     return rc;
   }

@@ -96,15 +96,19 @@ TEST_CASE("prime failure logs an error on the first failure and every 60th", "[z
 
 TEST_CASE("zmc clears zm_reload before reloading so a SIGHUP during reload is kept", "[zmcmain]") {
   const std::string src = ReadZmcSource();
-  const auto start = src.find("if (zm_reload) {\n      // Clear first");
-  REQUIRE(start != std::string::npos);
-  const auto reload = src.find("monitor->Reload();", start);
+  const auto reload = src.find("monitor->Reload();");
   REQUIRE(reload != std::string::npos);
+  const auto start = src.rfind("if (zm_reload) {", reload);
+  REQUIRE(start != std::string::npos);
   const auto clear = src.find("zm_reload = false;", start);
   REQUIRE(clear != std::string::npos);
   REQUIRE(clear < reload);
   // No clear after the reload finished, which would drop a SIGHUP that arrived meanwhile.
-  const auto end = src.find("end if zm_reload", reload);
+  size_t depth = 0, end = std::string::npos;
+  for (size_t i = src.find('{', start); i < src.size(); ++i) {
+    if (src[i] == '{') ++depth;
+    else if (src[i] == '}' && --depth == 0) { end = i; break; }
+  }
   REQUIRE(end != std::string::npos);
   REQUIRE(src.substr(reload, end - reload).find("zm_reload = false") == std::string::npos);
 }

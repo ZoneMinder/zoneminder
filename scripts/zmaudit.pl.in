@@ -278,6 +278,7 @@ MAIN: while( $loop ) {
           }
           if ( !opendir(DIR, '.') ) {
             Error("Can't open directory '$$Storage{Path}/$day_dir': $!");
+            chdir($Storage->Path());
             next;
           }
           my %event_ids_by_path;
@@ -462,6 +463,7 @@ MAIN: while( $loop ) {
         }
         if ( ! opendir(DIR, '.') ) {
           Error("Can't open directory '$$Storage{Path}/$monitor_dir': $!");
+          chdir($Storage->Path());
           next;
         }
         # A Deep year dir holds two digit month dirs, a Shallow event dir holds only files.

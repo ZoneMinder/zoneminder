@@ -74,6 +74,14 @@ class Server extends ZM_Object {
     return ZM_Object::_find_one(self::class, $parameters, $options);
   }
 
+  # Chained proxies append their own value to these headers, so the value is a
+  # comma-separated list. The first element is the client-facing one.
+  private static function firstHeaderValue($header) {
+    if (!isset($_SERVER[$header])) return null;
+    $values = explode(',', $_SERVER[$header]);
+    return trim($values[0]);
+  }
+
   public function Hostname($new = null) {
     if ($new != null)
       $this->{'Hostname'} = $new;
@@ -86,13 +94,14 @@ class Server extends ZM_Object {
 
     # The host header may carry a port, which Url() adds separately.
     foreach (array('HTTP_X_FORWARDED_HOST', 'HTTP_X_FORWARDED_SERVER', 'HTTP_HOST') as $header) {
-      if (!isset($_SERVER[$header])) continue;
+      $value = self::firstHeaderValue($header);
+      if ($value === null) continue;
       # This theoretically will match ipv6 addresses as well
-      if ( preg_match( '/^(\[[[:xdigit:]:]+\]|[^:]+)(:[[:digit:]]+)?$/', $_SERVER[$header], $matches ) ) {
+      if ( preg_match( '/^(\[[[:xdigit:]:]+\]|[^:]+)(:[[:digit:]]+)?$/', $value, $matches ) ) {
         return $matches[1];
       }
 
-      $result = explode(':', $_SERVER[$header]);
+      $result = explode(':', $value);
       return $result[0];
     }
     // Fall back to ZM_BASE_URL for single-server setups
@@ -114,8 +123,9 @@ class Server extends ZM_Object {
     }
 
     // Check $_SERVER variables first
+    $forwarded_proto = self::firstHeaderValue('HTTP_X_FORWARDED_PROTO');
     if ( ( isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on' )
-      or ( isset($_SERVER['HTTP_X_FORWARDED_PROTO']) and ( $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https' ) )
+      or ( $forwarded_proto !== null and ( $forwarded_proto == 'https' ) )
       or ( isset($_SERVER['HTTP_FRONT_END_HTTPS']) and ($_SERVER['HTTP_FRONT_END_HTTPS'] == 'On' ) )
     ) {
       return 'https';
@@ -140,8 +150,9 @@ class Server extends ZM_Object {
       return $this->{'Port'};
     }
 
-    if ( isset($_SERVER['HTTP_X_FORWARDED_PORT']) ) {
-      return $_SERVER['HTTP_X_FORWARDED_PORT'];
+    $forwarded_port = self::firstHeaderValue('HTTP_X_FORWARDED_PORT');
+    if ( $forwarded_port !== null ) {
+      return $forwarded_port;
     }
 
     // Fall back to ZM_BASE_URL for single-server setups

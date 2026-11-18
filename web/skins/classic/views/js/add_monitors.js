@@ -26,6 +26,7 @@ function probe(params) {
     timeout: 0,
     success: function(data) {
       if (data.result == 'Error') {
+        table.bootstrapTable('hideLoading');
         alert(data.message);
         return;
       }
@@ -39,6 +40,7 @@ function probe(params) {
       }
     },
     error: function(jqXHR) {
+      table.bootstrapTable('hideLoading');
       console.log("error", jqXHR);
       //logAjaxFail(jqXHR);
       //$j('#eventTable').bootstrapTable('refresh');

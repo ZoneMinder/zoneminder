@@ -161,15 +161,23 @@ $user = new FakeUser('Edit');
 # --- Index filters
 foreach (array(
   array('Manufacturers', 'Manufacturer', 'Name', 'Name', 'Axis'),
-  array('CameraModels', 'CameraModel', 'ManufacturerId', 'ManufacturerId', '3'),
+  array('CameraModels', 'CameraModel', 'ManufacturerId', 'CameraModel.ManufacturerId', '3'),
   array('EncoderTemplates', 'EncoderTemplate', 'Encoder', 'Encoder', 'libx264'),
 ) as $t) {
   list($controller, $alias, $field) = array($t[0], $t[1], $t[2]);
   $m = new StubModel($alias, 'Id', array('Id', 'Name', 'ManufacturerId', 'Encoder'));
+  $m->Manufacturer = new StubModel('Manufacturer', 'Id', array('Id', 'Name'));
   $c = make($controller, $alias, $m, array(), array($field => $t[4]), 'GET');
   $c->index();
-  check("$controller index applies the $field named filter", isset($m->found['conditions']) ? $m->found['conditions'] : null, array($field => $t[4]));
+  check("$controller index applies the $field named filter", isset($m->found['conditions']) ? $m->found['conditions'] : null, array($t[3] => $t[4]));
 }
+
+# CameraModels index joins Manufacturers, which also has Id and Name
+$m = new StubModel('CameraModel', 'Id', array('Id', 'Name', 'ManufacturerId'));
+$m->Manufacturer = new StubModel('Manufacturer', 'Id', array('Id', 'Name'));
+$c = make('CameraModels', 'CameraModel', $m, array(), array('Name' => 'P3301', 'Id' => '2', 'Manufacturer.Name' => 'Axis'), 'GET');
+run(function() use ($c) { $c->index(); });
+check('CameraModels index qualifies Name and Id against the joined Manufacturer', isset($m->found['conditions']) ? array_keys($m->found['conditions']) : null, array('CameraModel.Name', 'CameraModel.Id', 'Manufacturer.Name'));
 
 # --- Deleting a manufacturer or model in use
 $m = new StubModel('Manufacturer', 'Id', array('Id', 'Name'));

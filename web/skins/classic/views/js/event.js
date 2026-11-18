@@ -1218,19 +1218,54 @@ function updateProgressBar() {
   $j('#currentTimeValue').html(progressDate.toLocaleTimeString());
 } // end function updateProgressBar()
 
-// Handles seeking when clicking on the progress bar.
+// Scrubbing the progress bar. zms is only sent a seek every scrubInterval ms
+// while dragging so a fast mouse does not flood the command socket; the final
+// position on release is always sent.
+const scrubInterval = 100;
+let scrubbing = false;
+let scrubLastSent = 0;
+
+// Seconds into the event for a pointer at pageX, clamped to the bar.
+function scrubSeekTime(pageX, barLeft, barWidth, length) {
+  if (!(barWidth > 0)) return 0;
+  const x = Math.min(Math.max(pageX - barLeft, 0), barWidth);
+  return (x / barWidth) * length;
+}
+
+// Whether a seek should be sent now. force is set on press and release.
+function scrubShouldSend(now, lastSent, force) {
+  return force || (now - lastSent >= scrubInterval);
+}
+
+function scrubTo(pageX, force) {
+  const bar = $j('#progressBar');
+  const seekTime = scrubSeekTime(pageX, bar.offset().left, bar.width(), parseFloat(eventData.Length));
+  const now = Date.now();
+  if (!scrubShouldSend(now, scrubLastSent, force)) return;
+  scrubLastSent = now;
+  streamSeek(seekTime);
+}
+
+// Handles seeking and scrubbing on the progress bar.
 function progressBarNav() {
   console.log('progress');
   const progressBar = $j('#progressBar');
-  progressBar.click(function(e) {
-    let x = e.pageX - $j(this).offset().left;
-    if (x<0) x=0;
-    const seekTime = (x / $j('#progressBar').width()) * parseFloat(eventData.Length);
-
-    const date = new Date(eventData.StartDateTime);
-    date.setTime(date.getTime() + (seekTime*1000));
-    console.log("clicked at ", x, seekTime, date.toLocaleTimeString(), "from pageX", e.pageX, "offsetleft", $j(this).offset().left );
-    streamSeek(seekTime);
+  // Pressing on the bar seeks, and dragging scrubs: the position follows the
+  // pointer until it is released, even if it leaves the bar. See #4851.
+  progressBar.on('pointerdown', function(e) {
+    if (e.button) return; // primary button or touch only
+    e.preventDefault();
+    scrubbing = true;
+    scrubLastSent = 0;
+    scrubTo(e.pageX, true);
+  });
+  $j(document).on('pointermove', function(e) {
+    if (scrubbing) scrubTo(e.pageX, false);
+  });
+  $j(document).on('pointerup pointercancel', function(e) {
+    if (!scrubbing) return;
+    scrubTo(e.pageX, true);
+    scrubbing = false;
   });
   progressBar.mouseover(function(e) {
     let x = e.pageX - $j(this).offset().left;

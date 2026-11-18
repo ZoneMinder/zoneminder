@@ -48,6 +48,30 @@ class Zone extends ZM_Object {
     'Best, high sensitivity'   => 'ZonePresetBestHigh',
   );
 
+  // ZonePresets columns and query aliases excluded when saving or applying preset parameters
+  const ZONE_PRESET_EXCLUDED_FIELDS = array(
+    'Id',
+    'Name',
+    'Units',
+    'UnitsIndex',
+    'CheckMethodIndex',
+  );
+
+  // Returns the list of configurable ZonePresets column names
+  public static function getZonePresetFields($presets = array()) {
+    if ( empty($presets) ) {
+      $preset = dbFetchOne('SELECT * FROM ZonePresets LIMIT 1');
+      if ( !$preset ) {
+        return array();
+      }
+      $keys = array_keys($preset);
+    } else {
+      $firstPreset = reset($presets);
+      $keys = array_keys($firstPreset);
+    }
+    return array_values(array_diff($keys, self::ZONE_PRESET_EXCLUDED_FIELDS));
+  }
+
   public static function find( $parameters = array(), $options = array() ) {
     return ZM_Object::_find(self::class, $parameters, $options);
   }

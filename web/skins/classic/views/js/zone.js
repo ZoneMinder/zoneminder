@@ -267,21 +267,18 @@ function applyPreset() {
   if ( presets[presetId] ) {
     var preset = presets[presetId];
 
-    form.elements['newZone[CheckMethod]'].selectedIndex = preset['CheckMethodIndex'];
-    form.elements['newZone[MinPixelThreshold]'].value = preset['MinPixelThreshold'];
-    form.elements['newZone[MaxPixelThreshold]'].value = preset['MaxPixelThreshold'];
-    form.elements['newZone[FilterX]'].value = preset['FilterX'];
-    form.elements['newZone[FilterY]'].value = preset['FilterY'];
-    form.elements['newZone[MinAlarmPixels]'].value = preset['MinAlarmPixels'];
-    form.elements['newZone[MaxAlarmPixels]'].value = preset['MaxAlarmPixels'];
-    form.elements['newZone[MinFilterPixels]'].value = preset['MinFilterPixels'];
-    form.elements['newZone[MaxFilterPixels]'].value = preset['MaxFilterPixels'];
-    form.elements['newZone[MinBlobPixels]'].value = preset['MinBlobPixels'];
-    form.elements['newZone[MaxBlobPixels]'].value = preset['MaxBlobPixels'];
-    form.elements['newZone[MinBlobs]'].value = preset['MinBlobs'];
-    form.elements['newZone[MaxBlobs]'].value = preset['MaxBlobs'];
-    form.elements['newZone[OverloadFrames]'].value = preset['OverloadFrames'];
-    form.elements['newZone[ExtendAlarmFrames]'].value = preset['ExtendAlarmFrames'];
+    for (var i = 0; i < zonePresetFields.length; i++) {
+      var field = zonePresetFields[i];
+      var el = form.elements['newZone[' + field + ']'];
+      if (el) {
+        // Preserve legacy CheckMethodIndex selection for the ENUM dropdown; other fields assign directly
+        if (field === 'CheckMethod' && typeof preset['CheckMethodIndex'] !== 'undefined') {
+          el.selectedIndex = preset['CheckMethodIndex'];
+        } else {
+          el.value = preset[field];
+        }
+      }
+    }
 
     applyCheckMethod();
     form.elements['newZone[Area]'].value = 100;
@@ -1001,16 +998,11 @@ function initPage() {
       postData['__csrf_magic'] = form.elements['__csrf_magic'].value;
     }
 
-    var fields = [
-      'CheckMethod', 'MinPixelThreshold', 'MaxPixelThreshold',
-      'MinAlarmPixels', 'MaxAlarmPixels', 'FilterX', 'FilterY',
-      'MinFilterPixels', 'MaxFilterPixels', 'MinBlobPixels', 'MaxBlobPixels',
-      'MinBlobs', 'MaxBlobs', 'OverloadFrames', 'ExtendAlarmFrames'
-    ];
-    for (var i = 0; i < fields.length; i++) {
-      var el = form.elements['newZone[' + fields[i] + ']'];
+    for (var i = 0; i < zonePresetFields.length; i++) {
+      var field = zonePresetFields[i];
+      var el = form.elements['newZone[' + field + ']'];
       if (el) {
-        postData['newZone[' + fields[i] + ']'] = el.value;
+        postData['newZone[' + field + ']'] = el.value;
       }
     }
 

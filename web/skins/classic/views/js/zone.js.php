@@ -134,3 +134,5 @@ var translate = {
 
 var enterZonePresetName = '<?php echo validJsStr(translate('ZoneEnterPresetName')); ?>';
 var invalidZonePresetName = '<?php echo validJsStr(translate('ZoneInvalidPresetName')); ?>';
+<?php require_once('includes/Zone.php'); ?>
+var zonePresetFields = <?php echo json_encode(ZM\Zone::getZonePresetFields(isset($presets) ? $presets : array())); ?>;

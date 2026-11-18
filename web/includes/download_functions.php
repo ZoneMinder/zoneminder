@@ -95,6 +95,11 @@ function downloadEvents(
   }
   $events_by_monitor_id = [];
   $generatedVideos = [];
+  $generated_dir = $export_dir.'/generated';
+  if (!(@mkdir($generated_dir) or is_dir($generated_dir))) {
+    ZM\Error("Can't create directory '$generated_dir' for generated videos");
+    return removeFailedDownload($export_dir, '');
+  }
   foreach ($eids as $eid) {
     $event = new ZM\Event($eid);
     if (!$event->canView()) {
@@ -109,8 +114,9 @@ function downloadEvents(
       # Only build a video from the images when the event has no usable one.
       $existing = findVideoEventFile($event, '*');
       if ($existing === '' or !filesize($existing)) {
-        $generated = $event->GenerateVideo();
-        if ($generated) $generatedVideos[$event->Id()] = $event->Path().'/'.$generated;
+        # Written under the export directory, not the events' storage, which may be nearly full.
+        $generated = $event->GenerateVideo(0, 0, 0, 0, false, 'mp4', '', $generated_dir);
+        if ($generated) $generatedVideos[$event->Id()] = $generated_dir.'/'.$generated;
       }
     }
   }
@@ -146,7 +152,7 @@ function downloadEvents(
         ZM\Warning('The file path for event '.$event->Id().' was not found.');
         continue;
       }
-      $signature = videoStreamSignature($event->Path().'/'.basename($filePath));
+      $signature = videoStreamSignature(isset($generatedVideos[$event->Id()]) ? $filePath : $event->Path().'/'.basename($filePath));
       if ($signature === '') {
         ZM\Warning('The video file '.$filePath.' of event '.$event->Id().' is empty or unreadable, not exporting it.');
         continue;
@@ -174,7 +180,7 @@ function downloadEvents(
 
         $fileName = basename($filePath);
         if (strpos($fileName, 'incomplete') !== false && !$endSecs) $maxTime = date('Y-m-d H:i:s'); # Probably incomplete event.
-        $eventFileList .= 'file \''.$event->Path().'/'.$fileName.'\''.PHP_EOL;
+        $eventFileList .= 'file \''.(isset($generatedVideos[$event->Id()]) ? $filePath : $event->Path().'/'.$fileName).'\''.PHP_EOL;
       }
 
       if ($eventFileList === '') {
@@ -227,6 +233,8 @@ function downloadEvents(
       }
     } # end foreach group
   } # end foreach monitor
+
+  deletePath($generated_dir);
 
   if (count($exportFileList) === 0) {
    ZM\Warning('No events were found for export.');

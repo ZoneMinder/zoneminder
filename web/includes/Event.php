@@ -868,8 +868,10 @@ class Event extends ZM_Object {
     return $this->Tags;
   }
 
-  public function GenerateVideo($rate=0, $fps=0, $scale=0, $size=0, $overwrite=false, $format='mp4', $transforms='')  {
+  public function GenerateVideo($rate=0, $fps=0, $scale=0, $size=0, $overwrite=false, $format='mp4', $transforms='', $output_dir='')  {
     $event_path = $this->Path();
+    // Where the video and its log are written; the events' own storage unless a directory is given.
+    $out_path = $output_dir !== '' ? $output_dir : $event_path;
     // Name is user editable; keep the output file inside the event directory.
     $video_name = preg_replace('/^\./', '_', preg_replace('/[^-A-Za-z0-9_.]/', '_', $this->Name()));
 
@@ -897,7 +899,7 @@ class Event extends ZM_Object {
     }
     array_merge($file_parts, explode(',', $transforms));
     $video_file = implode('-', $file_parts).'.'.$format;
-    if ( $overwrite || ! file_exists($event_path.'/'.$video_file) ) {
+    if ( $overwrite || ! file_exists($out_path.'/'.$video_file) ) {
       Info("Creating video file $video_file for event ".$this->Id());
 
       $frame_rate = $this->Length() > 0 ? sprintf('%.2f', $this->Frames()/$this->Length()) : 1;
@@ -937,10 +939,10 @@ class Event extends ZM_Object {
       array_push($command, '-s', trim($video_size));
       $command = array_merge($command,
         preg_split('/\s+/', ZM_FFMPEG_OUTPUT_OPTIONS, -1, PREG_SPLIT_NO_EMPTY),
-        [$event_path.'/'.$video_file]
+        [$out_path.'/'.$video_file]
       );
       Debug(implode(' ', $command));
-      $log = $event_path.'/ffmpeg.log';
+      $log = $out_path.'/ffmpeg.log';
       $process = proc_open(implode(' ', array_map('escapeshellarg', $command)), [0=>['file', '/dev/null', 'r'], 1=>['file', $log, 'w'], 2=>['file', $log, 'a']], $pipes);
       if (!is_resource($process) or proc_close($process) != 0) {
         Error("Unable to generate video, check $log for details");

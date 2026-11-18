@@ -595,7 +595,10 @@ function initPage() {
     filterEvents({}, {skipPushState: true});
   });
 
-  table.bootstrapTable('resetSearch');
+  // Drop a search text restored from the cookie. resetSearch also sets the page
+  // to 1 and stores that, so it is skipped when there is nothing to clear and the
+  // page the cookie remembers is kept when coming back from the event view.
+  if (table.bootstrapTable('getOptions').searchText) table.bootstrapTable('resetSearch');
   // The table is initially given a hidden style, so now that we are done rendering, show it
   table.show();
 }

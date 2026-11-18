@@ -1982,6 +1982,28 @@ int Monitor::AnalysisFrameSkip(double capture_fps, double analysis_fps_limit) {
   return every_nth > 1 ? every_nth - 1 : 0;
 }
 
+// A network camera sets its own rate, so MaxFPS is applied to the decoded
+// frames. The tolerance lets a frame that arrives a little early still count
+// without letting the one before it through; the schedule advances by the
+// delay, not from the frame, so jitter does not accumulate as drift.
+bool Monitor::FrameDue(SystemTimePoint ts, SystemTimePoint &next_due, Microseconds delay) {
+  if (delay <= Microseconds(0)) return true;
+  // A clock step back would otherwise hold frames until it catches up.
+  if (next_due > ts + delay) next_due = ts;
+  if (ts < next_due - delay / 10) return false;
+  next_due = (ts - next_due > delay) ? ts + delay : next_due + delay;
+  return true;
+}
+
+// Sleeping in zmc only delays reads from a network camera, which sends at its
+// own rate, and the backlog arrives late. Frames can be dropped after decoding
+// instead: the packets, and so the recording, stay whole. A monitor that
+// encodes its recording from decoded images, and a local camera, which does
+// honour the delay, keep the sleep.
+bool Monitor::MaxFPSByDropping(bool is_local, VideoWriter writer) {
+  return !is_local and writer != ENCODE;
+}
+
 bool Monitor::TimeSectionCrossed(int64_t prev_sec, int64_t cur_sec, int64_t section_length_sec) {
   if (prev_sec < 0 or section_length_sec < 1) return false;
   return (cur_sec / section_length_sec) != (prev_sec / section_length_sec);
@@ -3928,6 +3950,17 @@ bool Monitor::Decode() {
     // between keyframe decodes.
     if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
       shared_data->last_write_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    }
+  }
+
+  // MaxFPS: frames over the limit are decoded (the codec needs them) but not
+  // converted, published or analysed. A frame the decoder is waiting on to
+  // finish its keyframe start is always kept.
+  if (packet->in_frame and !packet->image and !decoder_requires_next_packet and MaxFPSByDropping()) {
+    const Microseconds delay = (GetState() == ALARM) ? alarm_capture_delay : capture_delay;
+    if (!FrameDue(packet->timestamp, next_frame_due_, delay)) {
+      Debug(3, "Dropping frame %d over MaxFPS", packet->image_index);
+      packet->in_frame.reset();
     }
   }
 

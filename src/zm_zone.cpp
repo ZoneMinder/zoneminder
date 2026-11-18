@@ -1336,8 +1336,9 @@ void Zone::std_alarmedpixels(
   uint32_t pixelsdifference = 0;
 
   // Cache member variables locally so the compiler can prove loop-invariance
-  const uint8_t calc_max = max_pixel_threshold ? max_pixel_threshold : 255;
-  const uint8_t calc_min = min_pixel_threshold;
+  const int max_clamped = std::clamp(max_pixel_threshold, 0, 255);
+  const uint8_t calc_max = max_clamped ? max_clamped : 255;
+  const uint8_t calc_min = static_cast<uint8_t>(std::clamp(min_pixel_threshold, 0, 255));
 
   const int img_width = static_cast<int>(pdelta_image->Width());
   const int img_height = static_cast<int>(pdelta_image->Height());

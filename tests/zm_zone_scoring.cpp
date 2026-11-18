@@ -162,3 +162,19 @@ TEST_CASE("Monitor: zones skipped in a frame report no stale scores", "[Zone]") 
     CHECK(monitor->Stats(1).score_ == 0);
   }
 }
+
+TEST_CASE("Zone: pixel thresholds above 255 do not wrap", "[Zone]") {
+  EnsureConfig();
+  auto monitor = std::static_pointer_cast<Monitor>(std::make_shared<TestMonitor>(64, 48));
+  Image delta(64, 48, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE);
+  for (int y = 0; y < 48; y++)
+    for (int x = 0; x < 64; x++) *delta.Buffer(x, y) = 100;
+
+  Zone zone1(monitor, 1, "z1", Zone::ACTIVE, Rect(0, 0, 63, 47), 0, Zone::ALARMED_PIXELS,
+             15, 256, 1, 0);
+  REQUIRE(zone1.CheckAlarms(&delta));
+
+  Zone zone2(monitor, 2, "z2", Zone::ACTIVE, Rect(0, 0, 63, 47), 0, Zone::ALARMED_PIXELS,
+             300, 0, 1, 0);
+  CHECK_FALSE(zone2.CheckAlarms(&delta));
+}

@@ -30,6 +30,12 @@ TEST_CASE("UrlWithCredentials: credentials go after the scheme of any URL", "[In
   REQUIRE(UrlWithCredentials("cam/s", "u", "p") == "rtsp://u:p@cam/s");
 }
 
+TEST_CASE("UrlWithCredentials: encodes reserved characters and keeps existing userinfo", "[IntegrationUrls]") {
+  REQUIRE(UrlWithCredentials("rtsp://cam/s", "u", "p@ss:w/rd#1") == "rtsp://u:p%40ss%3Aw%2Frd%231@cam/s");
+  REQUIRE(UrlWithCredentials("rtsp://old:pw@cam/s", "u", "p") == "rtsp://old:pw@cam/s");
+  REQUIRE(UrlWithCredentials("rtsp://cam/s?x=a@b", "u", "p") == "rtsp://u:p@cam/s?x=a@b");
+}
+
 #if HAVE_LIBCURL
 
 namespace {

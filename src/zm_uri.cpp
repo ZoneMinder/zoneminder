@@ -38,7 +38,16 @@ Uri::Uri(const std::string &uri) {
     if (*it == '@') hostStart = it + 1;
   }
 
-  iterator_t hostEnd = std::find(hostStart, authorityEnd, ':');  // check for port
+  iterator_t hostEnd;
+  if ((hostStart != authorityEnd) && (*hostStart == '[')) {
+    // A bracketed IPv6 literal: the host runs to the closing bracket, whose
+    // colons are part of the address and not a port separator. Keep the
+    // brackets so that "http://" + Host rebuilds a valid URL.
+    iterator_t bracketEnd = std::find(hostStart, authorityEnd, ']');
+    hostEnd = (bracketEnd != authorityEnd) ? bracketEnd + 1 : authorityEnd;
+  } else {
+    hostEnd = std::find(hostStart, authorityEnd, ':');  // check for port
+  }
 
   Host = std::string(hostStart, hostEnd);
 

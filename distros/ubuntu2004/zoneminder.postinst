@@ -194,8 +194,27 @@ zm_apt_source_exists () {
   return 1
 }
 
-if ! zm_apt_source_exists; then
-  wget -O - https://zmrepo.zoneminder.com/debian/archive-keyring.gpg | sudo tee /etc/apt/trusted.gpg.d/zmrepo.asc
+# A source without its key makes every later apt update fail, so add the source
+# only once the key is in place. wget is not a dependency and may be missing,
+# and a proxy or captive portal can answer with something other than the key.
+zm_fetch_apt_key () {
+  if wget -nv -T 20 -t 2 -O /etc/apt/trusted.gpg.d/zmrepo.asc.tmp https://zmrepo.zoneminder.com/debian/archive-keyring.gpg \
+    && grep -q 'BEGIN PGP PUBLIC KEY BLOCK' /etc/apt/trusted.gpg.d/zmrepo.asc.tmp; then
+    mv /etc/apt/trusted.gpg.d/zmrepo.asc.tmp /etc/apt/trusted.gpg.d/zmrepo.asc
+    return 0
+  fi
+  rm -f /etc/apt/trusted.gpg.d/zmrepo.asc.tmp
+  echo "Unable to download the zmrepo signing key."
+  return 1
+}
+
+# Earlier versions wrote the source even when the download failed, leaving an
+# empty key that zm_apt_source_exists below would never replace.
+if [ -e /etc/apt/trusted.gpg.d/zmrepo.asc ] && [ ! -s /etc/apt/trusted.gpg.d/zmrepo.asc ]; then
+  zm_fetch_apt_key || true
+fi
+
+if ! zm_apt_source_exists && zm_fetch_apt_key; then
 
   # Resolve the apt codename for the zmrepo source line. Derivatives such as
   # Linux Mint report their own codename via lsb_release (e.g. "wilma"), which

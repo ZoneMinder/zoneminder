@@ -187,6 +187,25 @@ int FfmpegCamera::readFrameWithLoop(AVFormatContext *ctx, AVPacket *pkt) {
   return ret;
 }
 
+decltype(av_find_input_format(nullptr)) FindForcedInputFormat(AVDictionary **opts) {
+  AVDictionaryEntry *entry = av_dict_get(*opts, "input_format", nullptr, 0);
+  if (!entry) return nullptr;
+
+  decltype(av_find_input_format(nullptr)) format = nullptr;
+  if (entry->value && *entry->value) {
+    format = av_find_input_format(entry->value);
+    if (format) {
+      Debug(1, "Forcing input format %s from options", entry->value);
+    } else {
+      Warning("Could not find input format '%s' from options, letting ffmpeg probe", entry->value);
+    }
+  } else {
+    Warning("input_format option has no value, letting ffmpeg probe");
+  }
+  av_dict_set(opts, "input_format", nullptr, 0);
+  return format;
+}
+
 RealtimePaceDecision ComputeRealtimePace(
     int64_t ts_us, int64_t anchor_ts_us, Microseconds elapsed, Microseconds cap) {
   // Backward movement (e.g. a discontinuity the jump checks let through):
@@ -468,6 +487,10 @@ int FfmpegCamera::OpenFfmpeg() {
       av_dict_set(&opts, "re", nullptr, 0);
       Debug(1, "Real-time pacing %s from options", mRealtime ? "enabled" : "disabled");
     }
+
+    // "input_format=mjpeg" forces the demuxer like ffmpeg's -f flag. Not
+    // applied to v4l2, which always uses its own device format below.
+    input_format = FindForcedInputFormat(&opts);
   }
 
   // Fresh prime: drop any real-time anchor so pacing restarts cleanly, and

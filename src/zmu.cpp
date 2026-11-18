@@ -553,7 +553,7 @@ int main(int argc, char *argv[]) {
       }
 
       if (!checkUser(username)) {
-        Error("Username greater than allowed 32 characters");
+        Error("Username greater than allowed 64 characters");
         exit_zmu(-1);
       }
 
@@ -569,7 +569,7 @@ int main(int argc, char *argv[]) {
       }
       if ( !username.empty() && !password.empty() ) {
         if ( !checkUser(username)) {
-          Error("username greater than allowed 32 characters");
+          Error("username greater than allowed 64 characters");
           exit_zmu(-1);
         }
         if ( !checkPass(password)) {

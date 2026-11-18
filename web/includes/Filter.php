@@ -446,10 +446,10 @@ class Filter extends ZM_Object {
           if ( ZM_AUTH_RELAY == 'hashed' ) {
             $url .= '&auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
           } else if ( ZM_AUTH_RELAY == 'plain' ) {
-            $url .= '&user='.$_SESSION['username'];
-            $url .= '&pass='.$_SESSION['password'];
+            $url .= '&user='.urlencode($_SESSION['username']);
+            $url .= '&pass='.urlencode($_SESSION['password']);
           } else if ( ZM_AUTH_RELAY == 'none' ) {
-            $url .= '&user='.$_SESSION['username'];
+            $url .= '&user='.urlencode($_SESSION['username']);
           }
         }
         $data = array();

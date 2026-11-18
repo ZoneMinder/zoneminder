@@ -440,10 +440,9 @@ int main(int argc, char *argv[]) {
   std::shared_ptr<xop::RtspServer> rtspServer = xop::RtspServer::Create(eventLoop.get());
   rtspServer->SetVersion("ZoneMinder RTSP Server");
 
-  if (config.opt_use_auth) {
-    std::shared_ptr<ZM_RtspServer_Authenticator> authenticator(new ZM_RtspServer_Authenticator());
-    rtspServer->SetAuthenticator(authenticator);
-  }
+  // Always installed: it checks opt_use_auth when a connection authenticates, so a reload can turn auth on.
+  std::shared_ptr<ZM_RtspServer_Authenticator> authenticator(new ZM_RtspServer_Authenticator());
+  rtspServer->SetAuthenticator(authenticator);
 
   if (!rtspServer->Start("0.0.0.0", config.min_rtsp_port)) {
     Debug(1, "Failed starting RTSP server on port %d", config.min_rtsp_port);

@@ -364,7 +364,6 @@ bool EventStream::loadEventData(uint64_t event_id) {
       last_frame_idx = event_data->frames.size() - 1;
       last_id ++;
       last_timestamp = event_data->start_time;
-      event_data->frame_count ++;
     } else {
       delta = std::chrono::duration_cast<Microseconds>((event_data->end_time - last_timestamp)/(event_data->frame_count-last_id));
       Debug(1, "Setting delta from endtime %f - %f / frame_count %d - last_id %d", 
@@ -396,7 +395,6 @@ bool EventStream::loadEventData(uint64_t event_id) {
               FPSeconds(frame.offset).count(),
               FPSeconds(frame.delta).count(),
               frame.in_db);
-        event_data->frame_count ++;
       } // end while
     }
   } // end if have endtime

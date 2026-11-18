@@ -336,3 +336,20 @@ TEST_CASE("Config: a hexadecimal option in a config file is read as hex") {
   REQUIRE(cfg.auth_hash_ttl == 10);
   staticConfig.file_options.clear();
 }
+
+// Other threads keep reading string options while zmc or zm_rtsp_server
+// reloads, so a reload must not free the string an option pointed to.
+TEST_CASE("Config: a reload keeps the previous string value readable") {
+  const std::string first(40, 'a');
+  const std::string second(40, 'b');
+  staticConfig.file_options = {{"ZM_AUTH_HASH_SECRET", first}};
+  Config cfg;
+  cfg.ApplyFileOptions();
+  const char *before = cfg.auth_hash_secret;
+
+  staticConfig.file_options = {{"ZM_AUTH_HASH_SECRET", second}};
+  cfg.ApplyFileOptions();
+  REQUIRE(std::string(cfg.auth_hash_secret) == second);
+  REQUIRE(std::string(before) == first);
+  staticConfig.file_options.clear();
+}

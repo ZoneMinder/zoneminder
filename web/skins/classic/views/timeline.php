@@ -156,7 +156,9 @@ WHERE NOT isnull(StartDateTime)';
 $eventsValues = array();
 
 if ( count($user->unviewableMonitorIds()) ) {
-  $monFilterSql = ' AND E.MonitorId IN (' . implode(',', $user->viewableMonitorIds()) . ')';
+  // IN () is a syntax error, so a user who can view no monitor matches nothing
+  $viewableMonitorIds = $user->viewableMonitorIds();
+  $monFilterSql = ' AND E.MonitorId IN (' . (count($viewableMonitorIds) ? implode(',', $viewableMonitorIds) : '0') . ')';
   $rangeSql .= $monFilterSql;
   $eventsSql .= $monFilterSql;
   $eventIdsSql .= $monFilterSql;

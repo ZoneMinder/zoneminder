@@ -829,83 +829,16 @@ if ( $level > 1 ) {
 
 # New audit to close any events that were left open for longer than MIN_AGE seconds
   my $selectUnclosedEventsSql =
-#"SELECT E.Id, ANY_VALUE(E.MonitorId),
-#
-#max(F.TimeStamp) as EndTime,
-#unix_timestamp(max(F.TimeStamp)) - unix_timestamp(E.StartDateTime) as Length,
-#max(F.FrameId) as Frames,
-#count(if(F.Score>0,1,NULL)) as AlarmFrames,
-#sum(F.Score) as TotScore,
-#max(F.Score) as MaxScore
-#FROM Events as E
-#INNER JOIN Frames as F on E.Id = F.EventId
-#WHERE isnull(E.Frames) or isnull(E.EndTime)
-#GROUP BY E.Id HAVING EndTime < (now() - interval ".$Config{ZM_AUDIT_MIN_AGE}.' second)'
-#;
-    'SELECT *, unix_timestamp(`StartDateTime`) AS `TimeStamp` FROM `Events` WHERE `EndDateTime` IS NULL AND `StartDateTime` < (now() - interval '.$Config{ZM_AUDIT_MIN_AGE}.' second)'.($monitor_id?' AND MonitorId=?':'');
-
-  my $selectFrameDataSql = '
-SELECT
-  max(`TimeStamp`) AS `EndDateTime`,
-  unix_timestamp(max(`TimeStamp`)) AS `EndTimeStamp`,
-  max(`FrameId`) AS `Frames`,
-  count(if(`Score`>0,1,NULL)) AS `AlarmFrames`,
-  sum(`Score`) AS `TotScore`,
-  max(`Score`) AS `MaxScore`
-FROM `Frames` WHERE `EventId`=?';
-  my $selectFrameDataSth = $dbh->prepare_cached($selectFrameDataSql)
-    or Fatal("Can't prepare '$selectFrameDataSql': ".$dbh->errstr());
-
+    'SELECT * FROM `Events` WHERE `EndDateTime` IS NULL AND `StartDateTime` < (now() - interval '.$Config{ZM_AUDIT_MIN_AGE}.' second)'.($monitor_id?' AND MonitorId=?':'');
   my $selectUnclosedEventsSth = $dbh->prepare_cached($selectUnclosedEventsSql)
     or Fatal("Can't prepare '$selectUnclosedEventsSql': ".$dbh->errstr());
-  my $updateUnclosedEventsSql =
-    "UPDATE low_priority `Events`
-    SET `Name` = ?,
-        `EndDateTime` = ?,
-        `Length` = ?,
-        `Frames` = ?,
-        `AlarmFrames` = ?,
-        `TotScore` = ?,
-        `AvgScore` = ?,
-        `MaxScore` = ?,
-        `Notes` = concat_ws( ' ', `Notes`, ? )
-          WHERE `Id` = ?"
-          ;
-  my $updateUnclosedEventsSth = $dbh->prepare_cached( $updateUnclosedEventsSql )
-    or Fatal("Can't prepare '$updateUnclosedEventsSql': ".$dbh->errstr());
   $res = $selectUnclosedEventsSth->execute($monitor_id?$monitor_id:())
     or Fatal("Can't execute: ".$selectUnclosedEventsSth->errstr());
   while( my $event = $selectUnclosedEventsSth->fetchrow_hashref() ) {
     aud_print("Found open event '$event->{Id}' on Monitor $event->{MonitorId} at $$event{StartDateTime}");
     if ( confirm('close', 'closing') ) {
-      if ( ! ( $res = $selectFrameDataSth->execute($event->{Id}) ) ) {
-        Error("Can't execute: $selectFrameDataSql:".$selectFrameDataSth->errstr());
-        next;
-      }
-      my $frame = $selectFrameDataSth->fetchrow_hashref();
-      if ( $frame ) {
-        $frame->{EndTimeStamp} = $event->{TimeStamp} if ! $frame->{EndTimeStamp};
-        $frame->{EndDateTime} = $event->{StartDateTime} if ! $frame->{EndDateTime};
-
-        $res = $updateUnclosedEventsSth->execute(
-           sprintf('%s%d%s',
-             $Monitors{$event->{MonitorId}}->{EventPrefix},
-             $event->{Id},
-             RECOVER_TAG
-             ),
-           $frame->{EndDateTime},
-           $frame->{EndTimeStamp} - $event->{TimeStamp},
-           $frame->{Frames} // 0,
-           $frame->{AlarmFrames} // 0,
-           $frame->{TotScore} // 0,
-           $frame->{AlarmFrames} ? int($frame->{TotScore} / $frame->{AlarmFrames}) : 0,
-           $frame->{MaxScore} // 0,
-           RECOVER_TEXT,
-           $event->{Id}
-          ) or Error('Can\'t execute: '.$updateUnclosedEventsSth->errstr());
-      } else {
-        Error('SHOULD DELETE');
-      } # end if has frame data
+      my $error = ZoneMinder::Event->new($event->{Id}, $event)->Close(RECOVER_TAG, RECOVER_TEXT);
+      Error("Unable to close event $$event{Id}: $error") if $error;
     }
   } # end while unclosed event
   Debug('Done closing open events.');

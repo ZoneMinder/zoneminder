@@ -113,7 +113,14 @@ package ZoneMinder::Database;
 sub import {
   no strict 'refs';
   my $caller = caller();
-  *{$caller.'::zmDbConnect'} = sub { return bless({}, 'FakeDbh'); };
+  *{$caller.'::zmDbConnect'} = sub {
+    if ($ENV{TEST_CONNECT_LOG}) {
+      open(my $fh, '>>', ($ENV{TEST_CONNECT_LOG} =~ m{^(.*)$})[0]);
+      print $fh "CONNECT $ZoneMinder::Config::Config{ZM_DB_USER}/$ZoneMinder::Config::Config{ZM_DB_PASS}\n";
+      close $fh;
+    }
+    return bless({}, 'FakeDbh');
+  };
   *{$caller.'::zmDbDisconnect'} = sub { 1 };
   *{$caller.'::zmDbDo'} = sub { 1 };
 }
@@ -165,6 +172,13 @@ for my $v ('1.36.1', '1.36.10', '1.36.9', '1.37.5', '1.37.6') {
 my @applied = (read_file("$dir/mysql.log") =~ /^-- patch (\S+)/mg);
 check('patches apply in version order and skip newer ones', join(' ', @applied), '1.36.9 1.36.10 1.37.5');
 check('upgrade exits 0', $status, 0);
+
+# --user and --pass must be in effect for the connection zmupdate makes.
+my $connect_log = "$dir/connect.log";
+unlink($connect_log);
+($out, $status) = run_zmupdate('--nointeractive --user=root --pass=rootpw --migrate-events', "y\n",
+  TEST_ZM_VERSION => '1.37.5', TEST_DB_VERSION => '1.36.0', TEST_CONNECT_LOG => $connect_log);
+check('--user and --pass are used for the db connection', (split /\n/, read_file($connect_log))[0] // 'no connect', 'CONNECT root/rootpw');
 
 print "\n$passes passed, $failures failed\n";
 exit($failures ? 1 : 0);

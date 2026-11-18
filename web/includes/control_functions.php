@@ -95,7 +95,7 @@ function buildControlCommand($monitor) {
           case 'Con' :
             if ( $monitor->AutoStopTimeout() ) {
               $slowSpeed = intval(round($control->MinFocusSpeed()+(($control->MaxFocusSpeed()-$control->MinFocusSpeed())*$slow)));
-              if ( $speed < $slowSpeed ) $ctrlCommand .= ' --autostop';
+              if ( !$control->HasFocusSpeed() || $speed < $slowSpeed ) $ctrlCommand .= ' --autostop';
             }
             break;
          }
@@ -114,7 +114,7 @@ function buildControlCommand($monitor) {
         case 'Con' :
           if ( $monitor->AutoStopTimeout() ) {
             $slowSpeed = intval(round($control->MinZoomSpeed()+(($control->MaxZoomSpeed()-$control->MinZoomSpeed())*$slow)));
-            if ($speed < $slowSpeed) $ctrlCommand .= ' --autostop';
+            if ( !$control->HasZoomSpeed() || $speed < $slowSpeed ) $ctrlCommand .= ' --autostop';
           }
           break;
         }
@@ -212,6 +212,7 @@ function buildControlCommand($monitor) {
               'DownRight' => 'UpRight',
             ),
           );
+          // Only direction names are in the table; a stop command is left as it is.
           if ( isset($conversions[$monitor->Orientation()][$dirn]) ) {
             $new_dirn = $conversions[$monitor->Orientation()][$dirn];
             $_REQUEST['control'] = preg_replace( "/$dirn\$/", "$new_dirn", $_REQUEST['control'] );
@@ -224,8 +225,7 @@ function buildControlCommand($monitor) {
             if ( $xFactor >= $turbo ) {
               $panSpeed = $control->TurboPanSpeed();
             } else {
-              $xFactor = $xFactor/$turbo;
-              $panSpeed = intval(round($control->MinPanSpeed()+(($control->MaxPanSpeed()-$control->MinPanSpeed())*$xFactor)));
+              $panSpeed = intval(round($control->MinPanSpeed()+(($control->MaxPanSpeed()-$control->MinPanSpeed())*($xFactor/$turbo))));
             }
           } else {
             $panSpeed = intval(round($control->MinPanSpeed()+(($control->MaxPanSpeed()-$control->MinPanSpeed())*$xFactor)));
@@ -237,8 +237,7 @@ function buildControlCommand($monitor) {
             if ( $yFactor >= $turbo ) {
               $tiltSpeed = $control->TurboTiltSpeed();
             } else {
-              $yFactor = $yFactor/$turbo;
-              $tiltSpeed = intval(round($control->MinTiltSpeed()+(($control->MaxTiltSpeed()-$control->MinTiltSpeed())*$yFactor)));
+              $tiltSpeed = intval(round($control->MinTiltSpeed()+(($control->MaxTiltSpeed()-$control->MinTiltSpeed())*($yFactor/$turbo))));
             }
           } else {
             $tiltSpeed = intval(round($control->MinTiltSpeed()+(($control->MaxTiltSpeed()-$control->MinTiltSpeed())*$yFactor)));
@@ -376,8 +375,7 @@ function buildControlCommand($monitor) {
             if ( $xFactor >= $turbo ) {
               $panSpeed = $control->TurboPanSpeed();
             } else {
-              $xFactor = $xFactor/$turbo;
-              $panSpeed = intval(round($control->MinPanSpeed()+(($control->MaxPanSpeed()-$control->MinPanSpeed())*$xFactor)));
+              $panSpeed = intval(round($control->MinPanSpeed()+(($control->MaxPanSpeed()-$control->MinPanSpeed())*($xFactor/$turbo))));
             }
           } else {
             $panSpeed = intval(round($control->MinPanSpeed()+(($control->MaxPanSpeed()-$control->MinPanSpeed())*$xFactor)));
@@ -388,8 +386,7 @@ function buildControlCommand($monitor) {
             if ( $yFactor >= $turbo ) {
               $tiltSpeed = $control->TurboTiltSpeed();
             } else {
-              $yFactor = $yFactor/$turbo;
-              $tiltSpeed = intval(round($control->MinTiltSpeed()+(($control->MaxTiltSpeed()-$control->MinTiltSpeed())*$yFactor)));
+              $tiltSpeed = intval(round($control->MinTiltSpeed()+(($control->MaxTiltSpeed()-$control->MinTiltSpeed())*($yFactor/$turbo))));
             }
           } else {
             $tiltSpeed = intval(round($control->MinTiltSpeed()+(($control->MaxTiltSpeed()-$control->MinTiltSpeed())*$yFactor)));
@@ -473,8 +470,7 @@ function buildControlCommand($monitor) {
             if ( $xFactor >= $turbo ) {
               $panSpeed = $control->TurboPanSpeed();
             } else {
-              $xFactor = $xFactor/$turbo;
-              $panSpeed = intval(round($control->MinPanSpeed()+(($control->MaxPanSpeed()-$control->MinPanSpeed())*$xFactor)));
+              $panSpeed = intval(round($control->MinPanSpeed()+(($control->MaxPanSpeed()-$control->MinPanSpeed())*($xFactor/$turbo))));
             }
           } else {
             $panSpeed = intval(round($control->MinPanSpeed()+(($control->MaxPanSpeed()-$control->MinPanSpeed())*$xFactor)));
@@ -485,8 +481,7 @@ function buildControlCommand($monitor) {
             if ( $yFactor >= $turbo ) {
               $tiltSpeed = $control->TurboTiltSpeed();
             } else {
-              $yFactor = $yFactor/$turbo;
-              $tiltSpeed = intval(round($control->MinTiltSpeed()+(($control->MaxTiltSpeed()-$control->MinTiltSpeed())*$yFactor)));
+              $tiltSpeed = intval(round($control->MinTiltSpeed()+(($control->MaxTiltSpeed()-$control->MinTiltSpeed())*($yFactor/$turbo))));
             }
           } else {
             $tiltSpeed = intval(round($control->MinTiltSpeed()+(($control->MaxTiltSpeed()-$control->MinTiltSpeed())*$yFactor)));
@@ -547,7 +542,7 @@ function buildControlCommand($monitor) {
           case 'Con' :
             if ( $monitor->AutoStopTimeout() ) {
               $slowSpeed = intval(round($control->MinFocusSpeed()+(($control->MaxFocusSpeed()-$control->MinFocusSpeed())*$slow)));
-              if ( $speed < $slowSpeed ) {
+              if ( !$control->HasFocusSpeed() || $speed < $slowSpeed ) {
                 $ctrlCommand .= ' --autostop';
               }
             }
@@ -576,7 +571,7 @@ function buildControlCommand($monitor) {
           case 'Con' :
             if ( $monitor->AutoStopTimeout() ) {
               $slowSpeed = intval(round($control->MinZoomSpeed()+(($control->MaxZoomSpeed()-$control->MinZoomSpeed())*$slow)));
-              if ( $speed < $slowSpeed ) {
+              if ( !$control->HasZoomSpeed() || $speed < $slowSpeed ) {
                 $ctrlCommand .= ' --autostop';
               }
             }
@@ -714,6 +709,7 @@ function buildControlCommand($monitor) {
                 'DownRight' => 'UpRight',
               ),
             );
+            // Only direction names are in the table; a stop command is left as it is.
             if ( isset($conversions[$monitor->Orientation()][$dirn]) ) {
               $new_dirn = $conversions[$monitor->Orientation()][$dirn];
               $_REQUEST['control'] = preg_replace( "/$dirn\$/", "$new_dirn", $_REQUEST['control'] );
@@ -726,8 +722,7 @@ function buildControlCommand($monitor) {
               if ( $xFactor >= $turbo ) {
                 $panSpeed = $control->TurboPanSpeed();
               } else {
-                $xFactor = $xFactor/$turbo;
-                $panSpeed = intval(round($control->MinPanSpeed()+(($control->MaxPanSpeed()-$control->MinPanSpeed())*$xFactor)));
+                $panSpeed = intval(round($control->MinPanSpeed()+(($control->MaxPanSpeed()-$control->MinPanSpeed())*($xFactor/$turbo))));
               }
             } else {
               $panSpeed = intval(round($control->MinPanSpeed()+(($control->MaxPanSpeed()-$control->MinPanSpeed())*$xFactor)));
@@ -739,8 +734,7 @@ function buildControlCommand($monitor) {
               if ( $yFactor >= $turbo ) {
                 $tiltSpeed = $control->TurboTiltSpeed();
               } else {
-                $yFactor = $yFactor/$turbo;
-                $tiltSpeed = intval(round($control->MinTiltSpeed()+(($control->MaxTiltSpeed()-$control->MinTiltSpeed())*$yFactor)));
+                $tiltSpeed = intval(round($control->MinTiltSpeed()+(($control->MaxTiltSpeed()-$control->MinTiltSpeed())*($yFactor/$turbo))));
               }
             } else {
               $tiltSpeed = intval(round($control->MinTiltSpeed()+(($control->MaxTiltSpeed()-$control->MinTiltSpeed())*$yFactor)));

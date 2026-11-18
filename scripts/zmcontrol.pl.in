@@ -158,6 +158,9 @@ if ($options{command}) {
     shutdown(CLIENT, 1);
   } else {
     Error("Unable to connect to zmcontrol server at $sock_file");
+    # Callers such as the cron entries of scheduled actions need to know the
+    # command was not delivered.
+    exit(1);
   }
 } else {
   # We are the server

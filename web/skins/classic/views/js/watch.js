@@ -172,6 +172,9 @@ function streamCmdPause(action) {
 }
 
 function onPlay() {
+  // streamCmdStop() clears the callback so a status reply does not undo the stopped
+  // buttons, so put it back for the stream that is now playing.
+  monitorStream.onplay = onPlay;
   //setButtonState('playBtn', 'active');
   setButtonStateWatch('pauseBtn', 'inactive');
   setButtonStateWatch('stopBtn', 'inactive');
@@ -196,6 +199,8 @@ function onPlay() {
 }
 
 function streamCmdPlay(action) {
+  // A WebSite monitor has no stream
+  if (!monitorStream) return;
   if (document.hidden && action) {
     // Defer autoplay until the tab becomes visible again.
     prevStateStarted = 'played';
@@ -215,6 +220,8 @@ function streamCmdPlay(action) {
 }
 
 function streamCmdStop() {
+  // A WebSite monitor has no stream
+  if (!monitorStream) return;
   monitorStream.isActive = false;
   monitorStream.stop();
   updatePlayerControls("stop");
@@ -660,8 +667,11 @@ function zoomOutClick(event) {
   }
 }
 
+var websiteRefreshTimer;
+
 function reloadWebSite() {
-  document.getElementById('imageFeed').innerHTML = document.getElementById('imageFeed').innerHTML;
+  const feed = document.getElementById('imageFeed'+monitorId);
+  if (feed) feed.innerHTML = feed.innerHTML;
 }
 
 function updatePresetLabels() {
@@ -781,6 +791,8 @@ function controlSetClicked() {
 }
 
 function streamPrepareStart(monitor=null) {
+  // The previous monitor may have been a WebSite with a refresh timer
+  clearInterval(websiteRefreshTimer);
   // Only enable the settings button for local cameras
   if (!canView.Control) {
     settingsBtn.prop('disabled', true);
@@ -814,6 +826,8 @@ function streamPrepareStart(monitor=null) {
 
     if (canView.Events) {
       // Init the bootstrap-table
+      // destroy does not remove handlers, and this runs again on every monitor switch
+      eventListTable.off('post-body.bs.table click-cell.bs.table all.bs.table');
       eventListTable.bootstrapTable({icons: icons});
       // Update table rows each time after new data is loaded
       eventListTable.on('post-body.bs.table', function(data) {
@@ -839,7 +853,7 @@ function streamPrepareStart(monitor=null) {
       });
     } // end if canView.Events
   } else if (currentMonitor.monitorRefresh > 0) {
-    setInterval(reloadWebSite, currentMonitor.monitorRefresh*1000);
+    websiteRefreshTimer = setInterval(reloadWebSite, currentMonitor.monitorRefresh*1000);
   }
 
   // Manage the generate Edit button
@@ -1034,7 +1048,8 @@ function applyMonitorControllable() {
     console.log('ptz toggle is not present. Likely OPT_CONTROL is off');
     return;
   }
-  if (currentMonitor.monitorControllable) {
+  // A monitor with manual actions gets a panel even when it has no control of its own
+  if (currentMonitor.monitorControllable || currentMonitor.ptzControls) {
     ptzToggle.classList.remove("disabled");
     ptzToggle.disabled=false;
     sidebarControls.html(currentMonitor.ptzControls);
@@ -1293,6 +1308,7 @@ function cycleStop() {
 // FIXME this runs within the interval handler and can take >50ms which will cause chrome to complain.
 function cycleNext() {
   clearInterval(cycleIntervalId);
+  secondsToCycle = 0; // the next monitor gets a full period
   const oldId = monitorData[monIdx].id;
   monIdx = (++monIdx) % monitorData.length;
   if (!monitorData[monIdx]) {
@@ -1307,6 +1323,7 @@ function cycleNext() {
 
 function cyclePrev() {
   clearInterval(cycleIntervalId);
+  secondsToCycle = 0; // the next monitor gets a full period
   const oldId = monitorData[monIdx].id;
   monIdx = (monIdx <= 0) ? monitorData.length - 1 : monIdx-1;
   if (!monitorData[monIdx]) {

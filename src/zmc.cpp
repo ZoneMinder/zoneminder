@@ -140,6 +140,9 @@ int main(int argc, char *argv[]) {
     case 'd':
       device = optarg;
       break;
+    case 'r':
+      protocol = optarg;
+      break;
     case 'H':
       host = optarg;
       break;

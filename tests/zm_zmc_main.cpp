@@ -108,3 +108,8 @@ TEST_CASE("zmc clears zm_reload before reloading so a SIGHUP during reload is ke
   REQUIRE(end != std::string::npos);
   REQUIRE(src.substr(reload, end - reload).find("zm_reload = false") == std::string::npos);
 }
+
+TEST_CASE("zmc keeps the -r/--protocol value for the remote monitor filter", "[zmcmain]") {
+  const std::string src = ReadZmcSource();
+  REQUIRE(src.find("case 'r':\n      protocol = optarg;") != std::string::npos);
+}

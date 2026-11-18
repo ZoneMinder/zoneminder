@@ -668,6 +668,12 @@ switch ($name) {
               <label><?php echo translate('ONVIF_Event_Listener') ?></label>
               <?php echo html_radio('newMonitor[ONVIF_Event_Listener]', array('1'=>translate('Enabled'), '0'=>translate('Disabled')), $monitor->ONVIF_Event_Listener()); ?>
             </li>
+<?php if ($monitor->Id()) { ?>
+            <li class="ONVIF_Status">
+              <label><?php echo translate('ONVIF_Subscription') ?></label>
+              <span id="onvifStatus" data-mid="<?php echo validInt($monitor->Id()) ?>">&mdash;</span>
+            </li>
+<?php } ?>
 <?php
         break;
     }

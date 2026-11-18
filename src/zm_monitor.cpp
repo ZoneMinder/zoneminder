@@ -1245,6 +1245,7 @@ bool Monitor::connect() {
         onvif = nullptr;
       }
       onvif = new ONVIF(this);
+      onvif->setHealthy(false);
       onvif->start();
     }  // End ONVIF Setup
 
@@ -4990,6 +4991,7 @@ int Monitor::Close() {
   if (onvif) {
     delete onvif;
     onvif = nullptr;
+    if (shared_data) shared_data->onvif_status = 0;
   }
 
   // RTSP2Web teardown

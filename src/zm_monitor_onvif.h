@@ -142,7 +142,7 @@ class ONVIF {
   // momentary pulse clears once it has been seen (refs #5301).
   void observeAlarm() { alarm_.observe(); }
   bool isHealthy() const { return healthy_.load(std::memory_order_acquire); }
-  void setHealthy(bool p_healthy) { healthy_.store(p_healthy, std::memory_order_release); }
+  void setHealthy(bool p_healthy);
 #ifdef WITH_GSOAP
   void setNotes(Event::StringSet &noteSet) { SetNoteSet(noteSet); }
 #else

@@ -46,6 +46,9 @@ if (!empty($fid)) {
     if ($virtualFrame) $frame['Delta'] = $virtualFrame->Delta();
 } else {
   $frame = dbFetchOne('SELECT * FROM Frames WHERE EventId=? AND Score=?', NULL, array($eid, $Event->MaxScore()));
+  if (!$frame) {
+    $frame = array('EventId'=>$eid, 'FrameId'=>1, 'Type'=>'Normal', 'Score'=>0, 'Delta'=>0);
+  }
 }
 $Frame = new ZM\Frame($frame);
 if (!$fid) $fid = (int)$Frame->FrameId(); // fid=0 loaded the max score frame, navigate and fetch stats from its real id

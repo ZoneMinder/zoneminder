@@ -1022,7 +1022,7 @@ function initPage() {
         if (opt.length) {
           opt.text(p.Name);
         } else {
-          $j('#presetSelector').append($j('<option>', { value: p.Id, text: p.Name }));
+          $j('#presetSelector').append($j('<option>', {value: p.Id, text: p.Name}));
         }
         $j('#presetSelector').val(p.Id);
         $j('#loadPresetBtn').prop('disabled', false);

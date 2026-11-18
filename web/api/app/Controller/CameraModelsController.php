@@ -46,7 +46,7 @@ class CameraModelsController extends AppController {
         'CameraModel' => array_keys($this->CameraModel->schema()),
         'Manufacturer' => array_keys($this->CameraModel->Manufacturer->schema()),
       ));
-      $conditions = $this->FilterComponent->buildFilter($named);
+      $conditions = $this->FilterComponent->buildFilter($named, array_merge(array_keys($this->CameraModel->schema()), array_keys($this->CameraModel->Manufacturer->schema())));
     }
     $models = $this->CameraModel->find('all', array('conditions' => $conditions));
 		$this->set(array(

@@ -112,5 +112,53 @@ check('zoomConTele clamps speed above 5 to 5',
   run_cmd('zoomConTele', {speed => 12}),
   'http://192.0.2.1/cgi-bin/camctrl/eCamCtrl.cgi?stream=0&speedzoom=5&zoom=tele');
 
+# open() takes the host and credentials from the ControlAddress.
+package FakeOpenResponse;
+sub new { return bless {}, $_[0]; }
+sub is_success { 1 }
+sub status_line { '200 OK' }
+sub content { '' }
+
+package FakeOpenUA;
+sub new { return bless {urls => []}, $_[0]; }
+sub get {
+  my ($self, $url) = @_;
+  push @{$self->{urls}}, $url;
+  return FakeOpenResponse->new();
+}
+sub credentials {}
+sub agent {}
+
+package main;
+
+sub vivotek_open {
+  my ($addr) = @_;
+  my $open_ua = FakeOpenUA->new();
+  no warnings 'redefine';
+  local *LWP::UserAgent::new = sub { return $open_ua; };
+  $ZoneMinder::Control::Vivotek_ePTZ::ADDRESS = '';
+  $ZoneMinder::Control::Vivotek_ePTZ::USERNAME = 'admin';
+  $ZoneMinder::Control::Vivotek_ePTZ::PASSWORD = '';
+  my $c = bless {
+    Monitor => { Id => 1, ControlAddress => $addr, ControlDevice => '', Path => '' },
+  }, 'ZoneMinder::Control::Vivotek_ePTZ';
+  $c->open();
+  return @{$open_ua->{urls}} ? URI->new($open_ua->{urls}[0])->host_port() : '';
+}
+
+check('address without credentials connects to that host',
+  vivotek_open('192.0.2.1'), '192.0.2.1:80');
+check('address without credentials keeps the default username',
+  $ZoneMinder::Control::Vivotek_ePTZ::USERNAME, 'admin');
+
+check('address with a port and no credentials connects to it',
+  vivotek_open('192.0.2.1:8080'), '192.0.2.1:8080');
+check('address with an empty username still connects to the host',
+  vivotek_open(':secret@192.0.2.1'), '192.0.2.1:80');
+
+vivotek_open('root:p@ss@192.0.2.1:8080');
+check('password containing @ is kept whole',
+  $ZoneMinder::Control::Vivotek_ePTZ::PASSWORD, 'p@ss');
+
 print "\n$passes passed, $failures failed\n";
 exit($failures ? 1 : 0);

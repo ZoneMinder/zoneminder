@@ -1208,6 +1208,8 @@ AnnotationEditor.prototype.detect = function() {
   );
 
   $j('#annotationDetectBtn').prop('disabled', true);
+  // Detection can be slow; the user may move to another frame meanwhile.
+  const fid = this.currentFrameId;
 
   $j.ajax({
     url: thisUrl + '?request=training&action=detect',
@@ -1220,6 +1222,7 @@ AnnotationEditor.prototype.detect = function() {
     dataType: 'json'
   }).done(function(data) {
     $j('#annotationDetectBtn').prop('disabled', false);
+    if (self.currentFrameId !== fid) return;
 
     if (data.result === 'Error') {
       self._setStatus(data.message, 'error');

@@ -330,7 +330,7 @@ class FilterTerm {
     case 'MonitorServerId':
       return 'M.ServerId';
     case 'StorageServerId':
-      return 'S.ServerId';
+      return '(SELECT Storage.ServerId FROM Storage WHERE Storage.Id=E.StorageId)';
     case 'FilterServerId':
       return '/* ZM_SERVER_ID:*/'.(defined('ZM_SERVER_ID') ? ZM_SERVER_ID : 0);
       # Unspecified start or end, so assume start, this is to support legacy filters

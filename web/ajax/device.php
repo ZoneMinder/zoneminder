@@ -27,7 +27,10 @@ if ( !canEdit('Devices') ) {
 $action = validStr($_REQUEST['action'] ?? '');
 if ( $action == 'device' ) {
   if ( !empty($_REQUEST['command']) ) {
-    setDeviceStatusX10($_REQUEST['key'], strtolower($_REQUEST['command']));
+    $status = setDeviceStatusX10($_REQUEST['key'], strtolower($_REQUEST['command']));
+    if ( $status == 'unknown' ) {
+      ajaxError('No response from X10 device '.validHtmlStr($_REQUEST['key']));
+    }
   } else if ( isset($_REQUEST['newDevice']) ) {
     if ( isset($_REQUEST['did']) && $_REQUEST['did'] ) {
       ZM\Warning('did value is: '.$_REQUEST['did']);

@@ -938,6 +938,12 @@ function restartZmsStream(onReady) {
   img.onload = function() {
     img.onload = null;
     zmsBroke = false;
+    if (!vid) {
+      // streamQuery cleared the interval while zms was broke; re-arm it so the
+      // progress bar and status readouts resume.
+      clearInterval(streamCmdInterval);
+      streamCmdInterval = setInterval(streamQuery, streamTimeout);
+    }
     // The new zms has none of the next/prev hints; resend them with its first
     // status reply.
     zmsHints.reset();

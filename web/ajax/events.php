@@ -112,7 +112,16 @@ if (isset($_REQUEST['limit']) and ($_REQUEST['limit'] != 'NaN')) {
 
 switch ($task) {
   case 'archive' :
-    foreach ($eids as $eid) archiveRequest($task, $eid);
+    foreach ($eids as $eid) {
+      $id = validCardinal($eid);
+      $message = archiveRequest($task, $id);
+      if ($message) {
+        if (empty($data['message'])) $data['message'] = [];
+        $data['message'][] = $message;
+        if (empty($data['notChanged'])) $data['notChanged'] = [];
+        $data['notChanged'][] = $id;
+      }
+    }
     break;
   case 'unarchive' :
 		# The idea is that anyone can archive, but only people with Event Edit permission can unarchive..
@@ -120,7 +129,16 @@ switch ($task) {
 			ajaxError('Insufficient permissions for user '.validHtmlStr($user->Username()));
 			return;
 		}
-    foreach ($eids as $eid) archiveRequest($task, $eid);
+    foreach ($eids as $eid) {
+      $id = validCardinal($eid);
+      $message = archiveRequest($task, $id);
+      if ($message) {
+        if (empty($data['message'])) $data['message'] = [];
+        $data['message'][] = $message;
+        if (empty($data['notChanged'])) $data['notChanged'] = [];
+        $data['notChanged'][] = $id;
+      }
+    }
     break;
   case 'delete' :
 		if (!canEdit('Events'))  {
@@ -159,16 +177,23 @@ function archiveRequest($task, $eid) {
   // (an array becomes '') so ZM\Event loads the real row (refs GHSA-6h8f-gx4m-qqw4).
   $eid = validCardinal($eid);
   $event = new ZM\Event($eid);
+  if (!$event->Id()) {
+    ZM\Warning('Event '.$eid.' not found');
+    return 'Event '.$eid.' not found';
+  }
   # Anyone who can view an event may archive it, unarchiving needs edit. Either way
   # that is checked on the event itself so that its monitor's permission applies.
-  if (!$event->Id() or !($archiveVal ? $event->canView() : $event->canEdit())) {
+  if (!($archiveVal ? $event->canView() : $event->canEdit())) {
     ZM\Warning('No permission to '.$task.' event '.validCardinal($eid));
-    return;
+    return 'No permission to '.$task.' event '.validCardinal($eid);
   }
-  dbQuery(
+  if (!dbQuery(
     'UPDATE Events SET Archived = ? WHERE Id = ?',
     array($archiveVal, $event->Id())
-  );
+  )) {
+    return 'Failed to update event '.$eid;
+  }
+  return '';
 }
 
 function deleteRequest($eid) {

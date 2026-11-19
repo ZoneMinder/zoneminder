@@ -470,6 +470,7 @@ if ($action == 'save') {
       if ( $monitor->Controllable() ) {
         $monitor->sendControlCommand('start');
       }
+      $monitor->zmtrackControl('start');
     }
     // really should thump zmwatch and maybe zmtrigger too.
     //daemonControl( 'restart', 'zmwatch.pl' );

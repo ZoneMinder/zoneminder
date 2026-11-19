@@ -43,6 +43,7 @@ namespace ZM {
     public function Id($v = null) { return isset($this->f['Id']) ? $this->f['Id'] : null; }
     public function Storage() { return new Storage(); }
     public function zmcControl($m) {}
+    public function zmtrackControl($m) {}
     public function sendControlCommand($m) {}
     public function commandFieldChangesNotAllowed($d) { return array(); }
     public function changes($new) {

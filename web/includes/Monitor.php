@@ -706,6 +706,38 @@ class Monitor extends ZM_Object {
     }
   } // end function zmcControl
 
+  // zmtrack.pl aims the camera at motion. zmpkg.pl starts it only for a
+  // controllable monitor that is capturing, analysing and has TrackMotion set,
+  // so start under those same conditions and stop otherwise.
+  public function zmtrackControl($mode=false) {
+    if (!(property_exists($this,'Id') and $this->{'Id'})) {
+      Warning('Attempt to control a monitor with no Id');
+      return;
+    }
+    if (($mode != 'stop') and (
+        (!defined('ZM_OPT_CONTROL') or !ZM_OPT_CONTROL)
+        or ($this->Type() == 'WebSite')
+        or ($this->Capturing() == 'None')
+        or !$this->Controllable()
+        or !$this->TrackMotion()
+        or ($this->Analysing() == 'None'))) {
+      $mode = 'stop';
+    }
+    if ((!defined('ZM_SERVER_ID')) or ( property_exists($this, 'ServerId') and (ZM_SERVER_ID==$this->{'ServerId'}) )) {
+      // Most monitors do not track motion, so zmdc.pl would log "Can't find
+      // process" on every save/delete if we asked it to stop something that was
+      // never started. Only stop a local zmtrack.pl that is actually running.
+      if (($mode == 'stop') and !daemonStatus('zmtrack.pl', '-m '.$this->{'Id'})) {
+        return;
+      }
+      daemonControl($mode, 'zmtrack.pl', '-m '.$this->{'Id'});
+    } else if ($this->ServerId()) {
+      $result = $this->Server()->SendToApi('/monitors/daemonControl/'.$this->{'Id'}.'/'.$mode.'/zmtrack.pl.json');
+    } else {
+      Error('Server not assigned to Monitor '.$this->{'Id'}.' in a multi-server setup. Please assign a server to the Monitor.');
+    }
+  } // end function zmtrackControl
+
   public function GroupIds($new='') {
     if ($new != '') {
       if (!is_array($new)) {
@@ -733,6 +765,7 @@ class Monitor extends ZM_Object {
       if ($this->Controllable()) {
         $this->sendControlCommand('stop');
       }
+      $this->zmtrackControl('stop');
     }
     // Hand back whether it actually saved. This is a soft delete, so a failing
     // UPDATE (an out of range Importance, for one) leaves the monitor in place,
@@ -753,6 +786,7 @@ class Monitor extends ZM_Object {
     if ($this->Controllable()) {
       $this->sendControlCommand('stop');
     }
+    $this->zmtrackControl('stop');
 
     // With lots of events this step may well time out before completing, in
     // which case zmaudit will still tidy up

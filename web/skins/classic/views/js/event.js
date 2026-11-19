@@ -2221,7 +2221,8 @@ function createTag(tagName, buttonPressed = null) {
 function getAvailableTags() {
   $j.getJSON(thisUrl + '?request=tags&action=getavailabletags')
       .done(function(data) {
-        availableTags = data.response;
+        // An error reply has no response; keep a list so the tag input still works.
+        availableTags = Array.isArray(data.response) ? data.response : [];
       })
       .fail(logAjaxFail);
 }

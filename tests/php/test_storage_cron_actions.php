@@ -78,8 +78,12 @@ $p = run_action('storage.php', 'save', array('id' => '0'));
 check('save without newStorage raises nothing', count($p) == 0);
 $p = run_action('storage.php', 'save', array('id' => '0', 'newStorage' => 'junk'));
 check('scalar newStorage raises nothing', count($p) == 0);
-$p = run_action('storage.php', 'save', array('id' => '0', 'newStorage' => array('Name' => 'x')));
+$p = run_action('storage.php', 'save', array('id' => '0', 'newStorage' => array('Name' => 'x', 'Path' => '/var/cache/zoneminder/events')));
 check('valid save still saves', count($p) == 0 && count($GLOBALS['saved']) == 1);
+$p = run_action('storage.php', 'save', array('id' => '0', 'newStorage' => array('Name' => 'x', 'Path' => '')));
+check('save with an empty Path saves nothing', count($p) == 0 && count($GLOBALS['saved']) == 0);
+$p = run_action('storage.php', 'save', array('id' => '0', 'newStorage' => array('Name' => '', 'Path' => '/var/cache/zoneminder/events')));
+check('save with an empty Name saves nothing', count($p) == 0 && count($GLOBALS['saved']) == 0);
 
 echo "cron action\n";
 $p = run_action('cron.php', 'delete', array('markIds' => '5'));

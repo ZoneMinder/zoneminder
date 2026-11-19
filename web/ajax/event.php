@@ -204,10 +204,16 @@ if ( canEdit('Events') ) {
 
   switch ( $_REQUEST['action'] ) {
   case 'rename' :
-    if ( !empty($_REQUEST['eventName']) and is_scalar($_REQUEST['eventName']) )
-      dbQuery('UPDATE Events SET Name = ? WHERE Id = ?', array($_REQUEST['eventName'], $Event->Id()));
-    else
+    // Events.Name is varchar(64), so reject anything that would not fit (in
+    // characters, not bytes) rather than let strict SQL mode fail the UPDATE
+    // silently and still report success.
+    $eventName = is_scalar($_REQUEST['eventName'] ?? null) ? (string)$_REQUEST['eventName'] : '';
+    if (trim($eventName) === '')
       ajaxError('No new event name supplied');
+    if (function_exists('mb_strlen') ? mb_strlen($eventName, 'UTF-8') > 64 : strlen($eventName) > 64)
+      ajaxError('Event name must be 64 characters or fewer');
+    if (!dbQuery('UPDATE Events SET Name = ? WHERE Id = ?', array($eventName, $Event->Id())))
+      ajaxError('Failed to rename event');
     ajaxResponse(array('refreshEvent'=>true, 'refreshParent'=>true));
     break;
   case 'eventdetail' :

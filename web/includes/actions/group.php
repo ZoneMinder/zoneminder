@@ -18,6 +18,8 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
+global $error_message;
+
 // Group edit actions
 # Changing a group's monitors also needs edit on each monitor moved, checked below.
 if ( !canEdit('Groups') ) {
@@ -46,12 +48,15 @@ if ( $action == 'save' ) {
     return;
   }
 
-  $group->save(
+  if (!$group->save(
       array(
       'Name'=>  $_REQUEST['newGroup']['Name'],
       'ParentId'=>$new_parent,
       )
-    );
+    )) {
+    $error_message .= validHtmlStr($group->get_last_error());
+    return;
+  }
   dbQuery('DELETE FROM `Groups_Monitors` WHERE `GroupId`=?', array($group_id));
   $group_id = $group->Id();
   if ($group_id and isset($_REQUEST['newGroup']['MonitorIds'])) {

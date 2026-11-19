@@ -313,6 +313,21 @@ sub reboot {
 
 # PTZ Control Commands
 
+# A client that passes autostop expects the camera to be left still once the
+# monitor's AutoStopTimeout has run out. Without this a move keeps going and
+# motion detection stays suspended until something else sends a stop.
+sub _autoStopAfter {
+  my $self = shift;
+  my $params = shift;
+  my $stop = shift;
+
+  return unless $self->getParam($params, 'autostop', 0);
+  return unless $self->{Monitor}->{AutoStopTimeout};
+
+  usleep($self->{Monitor}->{AutoStopTimeout});
+  $self->$stop($params);
+}
+
 sub moveConUp {
   my $self = shift;
   my $params = shift;
@@ -332,6 +347,7 @@ sub moveConUp {
   };
   
   $self->sendApiCmd($cmd);
+  $self->_autoStopAfter($params, 'moveStop');
 }
 
 sub moveConDown {
@@ -353,6 +369,7 @@ sub moveConDown {
   };
   
   $self->sendApiCmd($cmd);
+  $self->_autoStopAfter($params, 'moveStop');
 }
 
 sub moveConLeft {
@@ -374,6 +391,7 @@ sub moveConLeft {
   };
   
   $self->sendApiCmd($cmd);
+  $self->_autoStopAfter($params, 'moveStop');
 }
 
 sub moveConRight {
@@ -395,6 +413,7 @@ sub moveConRight {
   };
   
   $self->sendApiCmd($cmd);
+  $self->_autoStopAfter($params, 'moveStop');
 }
 
 sub moveConUpLeft {
@@ -416,6 +435,7 @@ sub moveConUpLeft {
   };
   
   $self->sendApiCmd($cmd);
+  $self->_autoStopAfter($params, 'moveStop');
 }
 
 sub moveConUpRight {
@@ -437,6 +457,7 @@ sub moveConUpRight {
   };
   
   $self->sendApiCmd($cmd);
+  $self->_autoStopAfter($params, 'moveStop');
 }
 
 sub moveConDownLeft {
@@ -458,6 +479,7 @@ sub moveConDownLeft {
   };
   
   $self->sendApiCmd($cmd);
+  $self->_autoStopAfter($params, 'moveStop');
 }
 
 sub moveConDownRight {
@@ -479,6 +501,7 @@ sub moveConDownRight {
   };
   
   $self->sendApiCmd($cmd);
+  $self->_autoStopAfter($params, 'moveStop');
 }
 
 sub moveStop {
@@ -521,6 +544,7 @@ sub zoomConTele {
   };
   
   $self->sendApiCmd($cmd);
+  $self->_autoStopAfter($params, 'zoomStop');
 }
 
 sub zoomConWide {
@@ -542,6 +566,7 @@ sub zoomConWide {
   };
   
   $self->sendApiCmd($cmd);
+  $self->_autoStopAfter($params, 'zoomStop');
 }
 
 sub zoomStop {
@@ -584,6 +609,7 @@ sub focusConNear {
   };
   
   $self->sendApiCmd($cmd);
+  $self->_autoStopAfter($params, 'focusStop');
 }
 
 sub focusConFar {
@@ -605,6 +631,7 @@ sub focusConFar {
   };
   
   $self->sendApiCmd($cmd);
+  $self->_autoStopAfter($params, 'focusStop');
 }
 
 sub focusStop {

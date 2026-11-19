@@ -30,6 +30,7 @@ function showEventDetail(eventHtml) {
 }
 
 function eventDataResponse(respObj, respText) {
+  if (checkStreamForErrors('eventDataResponse', respObj)) return;
   var zm_event = respObj.event;
 
   if (!zm_event) {
@@ -44,6 +45,7 @@ function eventDataResponse(respObj, respText) {
 }
 
 function frameDataResponse(respObj, respText) {
+  if (checkStreamForErrors('frameDataResponse', respObj)) return;
   var frame = respObj.frameimage;
   if (!frame.FrameId) {
     console.log('Null frame');

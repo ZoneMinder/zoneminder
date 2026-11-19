@@ -593,7 +593,7 @@ class Filter extends ZM_Object {
           $sqlValue .= 'M.ServerId';
           break;
         case 'StorageServerId':
-          $sqlValue .= 'S.ServerId';
+          $sqlValue .= '(SELECT Storage.ServerId FROM Storage WHERE Storage.Id=E.StorageId)';
           break;
         case 'FilterServerId':
           $sqlValue .= ZM_SERVER_ID;

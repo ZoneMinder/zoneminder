@@ -95,7 +95,7 @@ if ( $eid ){ // Single Event Mode
           </table>
       </div>
       <div class="modal-footer">
-        <button type="submit" name="action" id="eventDetailSaveBtn" class="btn btn-primary" value="save" <?php echo !canEdit('Events') ? $disabled : $null .'>'. translate('Save') ?></button>
+        <button type="submit" id="eventDetailSaveBtn" class="btn btn-primary" <?php echo !canEdit('Events') ? $disabled : $null .'>'. translate('Save') ?></button>
         <button type="button" class="btn btn-secondary" data-dismiss="modal"><?php echo translate('Cancel') ?></button>
       </div>
       </form>

@@ -751,7 +751,7 @@ sub _auto_stop {
 </s:Body>';
 
   $self->sendCmd($$self{onvif_path}, $body,
-    'http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove');
+    'http://www.onvif.org/ver20/ptz/wsdl/Stop');
 }
 
 # --- Directional continuous moves ----------------------------------------
@@ -786,7 +786,7 @@ sub moveStop {
 </s:Body>';
 
   $self->sendCmd($$self{onvif_path}, $body,
-    'http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove');
+    'http://www.onvif.org/ver20/ptz/wsdl/Stop');
 }
 
 sub zoomStop {
@@ -803,7 +803,7 @@ sub zoomStop {
 </s:Body>';
 
   $self->sendCmd($$self{onvif_path}, $body,
-    'http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove');
+    'http://www.onvif.org/ver20/ptz/wsdl/Stop');
 }
 
 # =========================================================================

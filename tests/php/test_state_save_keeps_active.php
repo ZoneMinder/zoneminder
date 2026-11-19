@@ -37,6 +37,7 @@ namespace {
   function dbQuery($sql, $params = null) {
     global $queries;
     $queries[] = array($sql, $params);
+    return true;
   }
 
   $action = 'save';

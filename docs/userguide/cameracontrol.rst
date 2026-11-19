@@ -153,7 +153,7 @@ The standard set of parameters passed to control scripts is defined below,
 
   --address=<address> : This is the control address from the monitor definition. This will usually be a hostname or ip address for network cameras or a simple numeric camera id for other cameras.
 
-  --autostop=<timeout> : This indicates whether an automatic timeout should be applied to '''stop''' the given command. It will only be included for '''continuous''' commands, as listed below, and will be a timeout in decimal seconds, probably fractional.
+  --autostop : This indicates that an automatic timeout should be applied to '''stop''' the given command. It is a flag and takes no value; the timeout is the monitor's Auto Stop Timeout, set in decimal seconds on its Control tab. It will only be included for '''continuous''' commands, as listed below, and only when that timeout is set.
 
   --command=<command> : This specifies the command that the script should execute. Valid commands are given below.
 

@@ -226,7 +226,7 @@ function unarchiveEvents(event_ids) {
     url: thisUrl + '?request=events&task=unarchive',
     data: {'eids[]': chunk},
     success: function(data) {
-      if (data.message) alert(data.message.join("\n"));
+      if (data.message) alert(Array.isArray(data.message) ? data.message.join("\n") : data.message);
 
       if (!event_ids.length) {
         $j('#eventTable').bootstrapTable('refresh');
@@ -262,7 +262,7 @@ function deleteEvents(event_ids) {
     url: thisUrl + '?request=events&task=delete',
     data: {'eids[]': chunk},
     success: function(data) {
-      if (data.message) alert(data.message.join("\n"));
+      if (data.message) alert(Array.isArray(data.message) ? data.message.join("\n") : data.message);
 
       if (!event_ids.length) {
         $j('#eventTable').bootstrapTable('refresh');

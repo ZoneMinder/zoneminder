@@ -28,26 +28,28 @@ $zid = (!empty($_REQUEST['zid'])) ? validInt($_REQUEST['zid']) : 0;
 
 $hicolor = '0x00ff00'; // Green
 
-require_once('includes/Zone.php');
-$builtInPresets = ZM\Zone::BUILT_IN_PRESETS;
+require_once('includes/ZonePreset.php');
+$builtInPresets = ZM\ZonePreset::BUILT_IN_PRESETS;
 $builtInPresetIds = array();
 $presets = array();
 $presetNames = array();
 $presetNames[0] = translate('ChoosePreset');
-$sql = 'SELECT *, Units-1 AS UnitsIndex, CheckMethod-1 AS CheckMethodIndex FROM ZonePresets ORDER BY Id ASC';
-foreach ( dbFetchAll($sql) as $preset ) {
-  $isBuiltIn = isset($builtInPresets[$preset['Name']]);
-  if ( $isBuiltIn ) {
-    $builtInPresetIds[] = (int)$preset['Id'];
-    $langKey = $builtInPresets[$preset['Name']];
-    $presetNames[$preset['Id']] = [
-      'text'  => translate($langKey),
-      'title' => translate($langKey.'Desc'),
-    ];
+foreach ( ZM\ZonePreset::find(array(), array('order' => 'Id ASC')) as $preset ) {
+  if ( $preset->isBuiltIn() ) {
+    $builtInPresetIds[] = (int)$preset->Id();
+    $langKey = isset($builtInPresets[$preset->Name()]) ? $builtInPresets[$preset->Name()] : '';
+    if ( $langKey ) {
+      $presetNames[$preset->Id()] = array(
+        'text'  => translate($langKey),
+        'title' => translate($langKey.'Desc'),
+      );
+    } else {
+      $presetNames[$preset->Id()] = $preset->Name();
+    }
   } else {
-  $presetNames[$preset['Id']] = $preset['Name'];
+    $presetNames[$preset->Id()] = $preset->Name();
   }
-  $presets[$preset['Id']] = $preset;
+  $presets[$preset->Id()] = $preset;
 }
 
 $typeLabels = [

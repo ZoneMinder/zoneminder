@@ -14,24 +14,7 @@ var presets = new Object();
 <?php
 foreach ( $presets as $preset ) {
 ?>
-presets[<?php echo $preset['Id'] ?>] = {
-    'UnitsIndex': <?php echo $preset['UnitsIndex'] ?>,
-    'CheckMethodIndex': <?php echo $preset['CheckMethodIndex'] ?>,
-    'MinPixelThreshold': '<?php echo validJsStr($preset['MinPixelThreshold']) ?>',
-    'MaxPixelThreshold': '<?php echo validJsStr($preset['MaxPixelThreshold']) ?>',
-    'FilterX': '<?php echo validJsStr($preset['FilterX']) ?>',
-    'FilterY': '<?php echo validJsStr($preset['FilterY']) ?>',
-    'MinAlarmPixels': '<?php echo validJsStr($preset['MinAlarmPixels']) ?>',
-    'MaxAlarmPixels': '<?php echo validJsStr($preset['MaxAlarmPixels']) ?>',
-    'MinFilterPixels': '<?php echo validJsStr($preset['MinFilterPixels']) ?>',
-    'MaxFilterPixels': '<?php echo validJsStr($preset['MaxFilterPixels']) ?>',
-    'MinBlobPixels': '<?php echo validJsStr($preset['MinBlobPixels']) ?>',
-    'MaxBlobPixels': '<?php echo validJsStr($preset['MaxBlobPixels']) ?>',
-    'MinBlobs': '<?php echo validJsStr($preset['MinBlobs']) ?>',
-    'MaxBlobs': '<?php echo validJsStr($preset['MaxBlobs']) ?>',
-    'OverloadFrames': '<?php echo validJsStr($preset['OverloadFrames']) ?>',
-    'ExtendAlarmFrames': '<?php echo validJsStr($preset['ExtendAlarmFrames']) ?>'
-};
+presets[<?php echo (int)$preset->Id() ?>] = <?php echo json_encode($preset->toArray()) ?>;
 <?php
 } # end foreach preset
 ?>
@@ -134,5 +117,5 @@ var translate = {
 
 var enterZonePresetName = '<?php echo validJsStr(translate('ZoneEnterPresetName')); ?>';
 var invalidZonePresetName = '<?php echo validJsStr(translate('ZoneInvalidPresetName')); ?>';
-<?php require_once('includes/Zone.php'); ?>
-var zonePresetFields = <?php echo json_encode(ZM\Zone::getZonePresetFields(isset($presets) ? $presets : array())); ?>;
+<?php require_once('includes/ZonePreset.php'); ?>
+var zonePresetFields = <?php echo json_encode(ZM\ZonePreset::getConfigurableFields()); ?>;
